@@ -8,49 +8,94 @@
 namespace
 {
 	void analyzeLoops(jitdata* jd);
-	void analyzeBasicblockInLoop(basicblock* block, LoopContainer* loop);
+	void analyzeBasicblockInLoop(jitdata* jd, basicblock* block, LoopContainer* loop);
 	void analyzeFooter(jitdata* jd, LoopContainer* loop);
 	void findLeaves(jitdata* jd);
 
 	bool isRegularPredecessor(jitdata* jd, basicblock* node, basicblock* pred);
 	LoopContainer* getLoopContainer(jitdata* jd, basicblock* header);
-	IntervalMap analyze(basicblock* node, basicblock* target);
+	IntervalMap analyze(jitdata* jd, basicblock* node, basicblock* target);
 
 	bool isLocalIntVar(jitdata* jd, s4 varIndex);
 	bool isLocalIntVar(jitdata* jd, s4 var0, s4 var1);
+	bool isLocalVar(jitdata* jd, s4 varIndex);
 
 	/**
 	 * Analyzes a single basicblock that belongs to a loop and finds
 	 *
-	 *   -) all written variables.
+	 *   -) all written variables,
+	 *   -) candidates for the set of invariant integer variables,
+	 *   -) candidates for the set of invariant array variables.
 	 */
-	void analyzeBasicblockInLoop(basicblock* block, LoopContainer* loop)
+	void analyzeBasicblockInLoop(jitdata* jd, basicblock* block, LoopContainer* loop)
 	{
 		for (instruction* instr = block->iinstr; instr != block->iinstr + block->icount; instr++)
 		{
-			if (instruction_has_dst(instr))
+			switch (instr->opc)
 			{
-				switch (instr->opc)
-				{
-					case ICMD_COPY:
-					case ICMD_MOVE:
-					case ICMD_ILOAD:
-					case ICMD_LLOAD:
-					case ICMD_FLOAD:
-					case ICMD_DLOAD:
-					case ICMD_ALOAD:
+				case ICMD_COPY:
+				case ICMD_MOVE:
+				case ICMD_ILOAD:
+				case ICMD_LLOAD:
+				case ICMD_FLOAD:
+				case ICMD_DLOAD:
+				case ICMD_ALOAD:
+				case ICMD_ISTORE:
+				case ICMD_LSTORE:
+				case ICMD_FSTORE:
+				case ICMD_DSTORE:
+				case ICMD_ASTORE:
+					
+					// Save candidates for the set of invariant integer variables.
+					if (isLocalIntVar(jd, instr->s1.varindex))
+						loop->invariantVariables.insert(instr->s1.varindex);
 
-						// The dst-variable is changed only if src != dst.
-						if (instr->s1.varindex != instr->dst.varindex)
-							loop->writtenVariables.insert(instr->dst.varindex);
-						break;
+					// The dst-variable is changed only if src != dst.
+					if (instr->s1.varindex != instr->dst.varindex)
+						loop->writtenVariables.insert(instr->dst.varindex);
+					break;
 
-					default:
+				case ICMD_IALOAD:
+				case ICMD_LALOAD:
+				case ICMD_FALOAD:
+				case ICMD_DALOAD:
+				case ICMD_AALOAD:
+				case ICMD_BALOAD:
+				case ICMD_CALOAD:
+				case ICMD_SALOAD:
 
+				case ICMD_IASTORE:
+				case ICMD_LASTORE:
+				case ICMD_FASTORE:
+				case ICMD_DASTORE:
+				case ICMD_AASTORE:
+				case ICMD_BASTORE:
+				case ICMD_CASTORE:
+				case ICMD_SASTORE:
+
+				case ICMD_IASTORECONST:
+				case ICMD_LASTORECONST:
+				case ICMD_FASTORECONST:
+				case ICMD_DASTORECONST:
+				case ICMD_AASTORECONST:
+				case ICMD_BASTORECONST:
+				case ICMD_CASTORECONST:
+				case ICMD_SASTORECONST:
+					
+					// Save candidates for the set of invariant array variables.
+					if (isLocalVar(jd, instr->s1.varindex))
+						loop->invariantArrays.insert(instr->s1.varindex);
+					
+					// fall through
+
+				default:
+
+					if (instruction_has_dst(instr))
+					{
 						// Store changed variable.
 						loop->writtenVariables.insert(instr->dst.varindex);
 						break;
-				}
+					}
 			}
 		}
 	}
@@ -76,17 +121,18 @@ namespace
 			if (jumpFound)
 			{
 				s4 var = instr->dst.varindex;
-				if (instr->opc == ICMD_IINC &&   // For simplicity only IINC-instructions are considered.
+				s4 arg = instr->sx.val.i;
+
+				if (instr->opc == ICMD_IINC &&				// For simplicity only IINC-instructions are considered.
 					isLocalIntVar(jd, var) &&
-					!loop->writtenVariables.contains(var) &&   // A counter variable is written only once in the whole loop.
-					!loop->counterVariables.contains(var))   // A counter variable cannot be incremented multiple times.
+					!loop->writtenVariables.contains(var))	// A counter variable is written only once in the whole loop.
 				{
-					loop->counterVariables.insert(var);
+					loop->hasCounterVariable = true;
+					loop->counterVariable = var;
+					loop->counterIncrement = arg;
 				}
-				else
-				{
-					break;
-				}
+
+				break;
 			}
 			else
 			{
@@ -100,7 +146,7 @@ namespace
 	/**
 	 * Returns true if there is no back-edge from pred to node, otherwise false.
 	 */
-	bool isRegularPredecessor(jitdata* jd, basicblock* node, basicblock* pred)
+	inline bool isRegularPredecessor(jitdata* jd, basicblock* node, basicblock* pred)
 	{
 		for (std::vector<Edge>::iterator it = jd->ld->loopBackEdges.begin(); it != jd->ld->loopBackEdges.end(); ++it)
 		{
@@ -151,13 +197,73 @@ namespace
 			}
 		}
 
-		// If node is the header of a loop L,
-		// set every interval that belongs to a variable which is changed in L to [MIN,MAX].
+		// When a loop is left, we must reset the intervals of the invariant variables.
+		for (s4 i = 0; i < node->predecessorcount; i++)
+		{
+			basicblock* pred = node->predecessors[i];
+			for (LoopList::iterator predLoopIt = pred->ld->loops.begin(); predLoopIt != pred->ld->loops.end(); ++predLoopIt)
+			{
+				LoopContainer* predLoop = *predLoopIt;
+				if (node->ld->loops.find(predLoop) == node->ld->loops.end())
+				{
+					// We left predLoop.
+					// So we must reset the intervals of predLoop's invariant variables.
+					for (VariableSet::iterator it = predLoop->invariantVariables.begin(); it != predLoop->invariantVariables.end(); ++it)
+					{
+						intervals[*it] = predLoop->invariantIntervals[*it];
+					}
+
+					// Set all intervals referencing an invariant variable to [MIN,MAX].
+					for (size_t j = 0; j < intervals.size(); j++)
+					{
+						// Do not change the interval of an invariant variable.
+						if (predLoop->invariantVariables.contains(j))
+							continue;
+
+						if (intervals[j].lower().instruction().kind() == NumericInstruction::VARIABLE &&
+							predLoop->invariantVariables.contains(intervals[j].lower().instruction().variable()))
+						{
+							intervals[j] = Interval();
+						}
+						else if (intervals[j].upper().instruction().kind() == NumericInstruction::VARIABLE &&
+							predLoop->invariantVariables.contains(intervals[j].upper().instruction().variable()))
+						{
+							intervals[j] = Interval();
+						}
+					}
+				}
+			}
+		}
+
+		// Variable will be used when last instruction of the header has been processed.
+		LoopContainer* loop = 0;
+
 		if (node->ld->loop)
 		{
+			// TODO Only non-negative increments are considered.
+			if (node->ld->loop->hasCounterVariable && node->ld->loop->counterIncrement >= 0)
+			{
+				// Is the counter variable >= 0 before entering the loop?
+				s4 lowerBound = intervals[node->ld->loop->counterVariable].lower().lower();
+				if (lowerBound >= 0)
+				{
+					loop = node->ld->loop;
+					loop->counterInterval = Interval(Scalar(lowerBound), Scalar(Scalar::max()));
+				}
+			}
+
+			// If node is the header of a loop L,
+			// set every interval that belongs to a variable which is changed in L to [MIN,MAX].
 			for (VariableSet::iterator it = node->ld->loop->writtenVariables.begin(); it != node->ld->loop->writtenVariables.end(); ++it)
 			{
 				intervals[*it] = Interval();
+			}
+
+			// Set the interval of every invariant variable x to [x,x] and save old interval.
+			for (VariableSet::iterator it = node->ld->loop->invariantVariables.begin(); it != node->ld->loop->invariantVariables.end(); ++it)
+			{
+				node->ld->loop->invariantIntervals[*it] = intervals[*it];
+				intervals[*it] = Interval(Scalar(NumericInstruction::newVariable(*it)));
 			}
 		}
 
@@ -243,13 +349,23 @@ namespace
 					break;
 
 				case ICMD_IALOAD:
+				case ICMD_LALOAD:
+				case ICMD_FALOAD:
+				case ICMD_DALOAD:
+				case ICMD_AALOAD:
 				case ICMD_BALOAD:
 				case ICMD_CALOAD:
 				case ICMD_SALOAD:
+
 				case ICMD_IASTORE:
+				case ICMD_LASTORE:
+				case ICMD_FASTORE:
+				case ICMD_DASTORE:
+				case ICMD_AASTORE:
 				case ICMD_BASTORE:
 				case ICMD_CASTORE:
 				case ICMD_SASTORE:
+
 				case ICMD_IASTORECONST:
 				case ICMD_LASTORECONST:
 				case ICMD_FASTORECONST:
@@ -302,7 +418,7 @@ namespace
 
 					// TRUE BRANCH
 					{
-						Scalar l(Scalar::Min());
+						Scalar l(Scalar::min());
 						Scalar u(value);
 
 						// interval [MIN,value-1]
@@ -316,7 +432,7 @@ namespace
 					// FALSE BRANCH
 					{
 						Scalar l(value);
-						Scalar u(Scalar::Max());
+						Scalar u(Scalar::max());
 
 						// interval [value,MAX].
 						Interval i(l, u);
@@ -332,7 +448,7 @@ namespace
 
 					// TRUE BRANCH
 					{
-						Scalar l(Scalar::Min());
+						Scalar l(Scalar::min());
 						Scalar u(value);
 
 						// interval [MIN,value]
@@ -345,7 +461,7 @@ namespace
 					// FALSE BRANCH
 					{
 						Scalar l(value);
-						Scalar u(Scalar::Max());
+						Scalar u(Scalar::max());
 
 						// interval [value+1,MAX].
 						Interval i(l, u);
@@ -363,7 +479,7 @@ namespace
 					// TRUE BRANCH
 					{
 						Scalar l(value);
-						Scalar u(Scalar::Max());
+						Scalar u(Scalar::max());
 
 						// interval [value+1,MAX]
 						Interval i(l, u);
@@ -375,7 +491,7 @@ namespace
 
 					// FALSE BRANCH
 					{
-						Scalar l(Scalar::Min());
+						Scalar l(Scalar::min());
 						Scalar u(value);
 
 						// interval [MIN,value].
@@ -393,7 +509,7 @@ namespace
 					// TRUE BRANCH
 					{
 						Scalar l(value);
-						Scalar u(Scalar::Max());
+						Scalar u(Scalar::max());
 
 						// interval [value,MAX]
 						Interval i(l, u);
@@ -404,7 +520,7 @@ namespace
 
 					// FALSE BRANCH
 					{
-						Scalar l(Scalar::Min());
+						Scalar l(Scalar::min());
 						Scalar u(value);
 
 						// interval [MIN,value-1].
@@ -654,6 +770,10 @@ namespace
 					break;
 				}
 
+				case ICMD_ALOAD:
+					// do nothing
+					break;
+/*
 				case ICMD_IMULCONST:
 				case ICMD_IANDCONST:
 				case ICMD_IORCONST:
@@ -733,7 +853,7 @@ namespace
 				case ICMD_INLINE_END:
 				case ICMD_INLINE_BODY:
 				case ICMD_BUILTIN:
-
+*/
 				default:
 					if (instruction_has_dst(instr))
 					{
@@ -763,11 +883,34 @@ namespace
 			}
 		}
 
-		/*
 		std::stringstream str;
 		str << "# " << node->nr << " #  [F] " << intervals << "| [T] " << targetIntervals;
 		log_text(str.str().c_str());
-		*/
+
+		// Compute interval of counter variable.
+		if (loop)
+		{
+			if (node->ld->jumpTarget)
+			{
+				// Check if jump target is part of this loop.
+				if (node->ld->jumpTarget->ld->loops.find(loop) == node->ld->jumpTarget->ld->loops.end())
+				{
+					// Jump target is _not_ part of this loop.
+					loop->counterInterval.intersectWith(intervals[loop->counterVariable]);
+				}
+				else
+				{
+					// Jump target is part of this loop.
+					Interval temp = intervals[loop->counterVariable];
+					temp.unionWith(targetIntervals[loop->counterVariable]);
+					loop->counterInterval.intersectWith(temp);
+				}
+			}
+			else
+			{
+				loop->counterInterval.intersectWith(intervals[loop->counterVariable]);
+			}
+		}
 
 		if (target == node->ld->jumpTarget)
 			return targetIntervals;
@@ -780,7 +923,7 @@ namespace
 	 */
 	bool isLocalIntVar(jitdata* jd, s4 varIndex)
 	{
-		varinfo *info = VAR(varIndex);
+		varinfo* info = VAR(varIndex);
 		return IS_INT_TYPE(info->type) && (var_is_local(jd, varIndex) || var_is_temp(jd, varIndex));
 	}
 	
@@ -789,10 +932,18 @@ namespace
 	 */
 	bool isLocalIntVar(jitdata* jd, s4 var0, s4 var1)
 	{
-		varinfo *info0 = VAR(var0);
-		varinfo *info1 = VAR(var1);
+		varinfo* info0 = VAR(var0);
+		varinfo* info1 = VAR(var1);
 		return IS_INT_TYPE(info0->type) && (var_is_local(jd, var0) || var_is_temp(jd, var0))
 			&& IS_INT_TYPE(info1->type) && (var_is_local(jd, var1) || var_is_temp(jd, var1));
+	}
+
+	/**
+	 * Checks whether the specified variable is local.
+	 */
+	bool isLocalVar(jitdata* jd, s4 varIndex)
+	{
+		return var_is_local(jd, varIndex) || var_is_temp(jd, varIndex);
 	}
 }
 
@@ -814,14 +965,22 @@ void analyzeLoops(jitdata* jd)
 		basicblock* footer = loop->footers.front();
 
 		// Analyze all blocks contained in this loop.
-		analyzeBasicblockInLoop(loop->header, loop);
+		analyzeBasicblockInLoop(jd, loop->header, loop);
 		for (std::vector<basicblock*>::iterator blockIt = loop->nodes.begin(); blockIt != loop->nodes.end(); ++blockIt)
 		{
 			if (*blockIt != footer)
-				analyzeBasicblockInLoop(*blockIt, loop);
+				analyzeBasicblockInLoop(jd, *blockIt, loop);
 		}
 		analyzeFooter(jd, loop);					// Find counter variables.
-		analyzeBasicblockInLoop(footer, loop);	// The footer must be the last node to be analyzed.
+		analyzeBasicblockInLoop(jd, footer, loop);	// The footer must be the last node to be analyzed.
+
+		// Compute the final set of invariant integer variables.
+		// Compute the final set of invariant array variables.
+		for (VariableSet::iterator it = loop->writtenVariables.begin(); it != loop->writtenVariables.end(); ++it)
+		{
+			loop->invariantVariables.remove(*it);
+			loop->invariantArrays.remove(*it);
+		}
 	}
 }
 

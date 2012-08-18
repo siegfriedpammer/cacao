@@ -14,8 +14,10 @@ typedef struct Edge Edge;
 #include <vector>
 
 #include "vm/jit/jit.hpp"
+#include "LoopContainer.hpp"
 #include "VariableSet.hpp"
 #include "IntervalMap.hpp"
+#include "LoopList.hpp"
 
 /**
  * Per-method data used in jitdata.
@@ -39,9 +41,6 @@ struct MethodLoopData
 
 	// Every method has exactly one (pseudo) root loop that is executed exactly once.
 	LoopContainer*				rootLoop;
-
-	// Maintains a condition stack for every variable.
-	//ConditionStackCollection*	conditions;
 
 	MethodLoopData()
 		: n(0)
@@ -72,8 +71,8 @@ struct BasicblockLoopData
 	// This is NOT a pointer to the loop this basicblock belongs to because such a loop is not unique.
 	LoopContainer*				visited;	
 
-	// The loop which this basicblock is the header of. Can be 0.
-	LoopContainer*				loop;
+	LoopContainer*				loop;   // The loop which this basicblock is the header of. Can be 0.
+	LoopList					loops;	// All loops this basicblock is a part of.
 
 	// The number of loop back edges that leave this basicblock.
 	s4							outgoingBackEdgeCount;
@@ -87,10 +86,7 @@ struct BasicblockLoopData
 	IntervalMap					targetIntervals;
 	IntervalMap					intervals;
 
-	// Contains all variables that are possibly assigned/changed between this block and its dominator.
-	//VariableSet					changedVariables;
-
-	//IntervalMap					intervals;
+	basicblock*					copiedTo;		// used during loop duplication: points to the same block in the duplicated loop.
 
 	BasicblockLoopData()
 		: parent(0)
@@ -107,30 +103,7 @@ struct BasicblockLoopData
 		, jumpTarget(0)
 		, targetIntervals(0)
 		, intervals(0)
-		//, intervals(0)
-	{}
-};
-
-/**
- * Represents a single loop.
- */
-struct LoopContainer
-{
-	LoopContainer*					parent;		// the parent loop or 0 if this is the root loop
-	std::vector<LoopContainer*>		children;	// all loops contained in this loop
-
-	basicblock*						header;		// the unique entry point of this loop
-	std::vector<basicblock*>		nodes;		// all nodes contained in this loop except the header
-	std::vector<basicblock*>		footers;	// all nodes from which there is a back edge to the header
-
-	//bool							merged;		// true if this loop was merged with another loop
-
-	VariableSet						writtenVariables;	// Contains all variables that are possibly assigned/changed in this loop.
-	VariableSet						counterVariables;
-
-	LoopContainer()
-		: parent(0)
-		, header(0)
+		, copiedTo(0)
 	{}
 };
 

@@ -53,7 +53,9 @@ libloop_la_SOURCES = \
 	Scalar.cpp \
 	Scalar.hpp \
 	NumericInstruction.cpp \
-	NumericInstruction.hpp
+	NumericInstruction.hpp \
+	duplicate.cpp \
+	duplicate.hpp
 
 
 ## Local variables:

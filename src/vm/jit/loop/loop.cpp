@@ -4,6 +4,7 @@
 #include "loop.hpp"
 #include "dominator.hpp"
 #include "analyze.hpp"
+#include "duplicate.hpp"
 #include "toolbox/logging.hpp"
 
 #define INDENT 2
@@ -20,6 +21,8 @@ namespace
 	void mergeLoops(jitdata* jd);
 	void buildLoopTree(jitdata* jd);
 	void storeLoopsInHeaders(jitdata* jd);
+	void computeLoopDepth(LoopContainer* loop, s4 depth);
+	void sortLoopsInBasicblocks(jitdata* jd);
 
 
 	struct LoopHeaderCompare
@@ -102,7 +105,14 @@ namespace
 			}
 
 			// print variable assignments
-			str << " " << loop->writtenVariables;
+			str << " W:" << loop->writtenVariables;
+			
+			// print invariant variables
+			str << " I:" << loop->invariantVariables;
+
+			// print counter
+			if (loop->hasCounterVariable)
+				str << " counter " << loop->counterVariable << ':' << loop->counterInterval << ',' << loop->counterIncrement;
 
 			log_text(str.str().c_str());
 		}
@@ -201,10 +211,15 @@ namespace
 			basicblock* foot = edge->from;
 
 			LoopContainer* loop = new LoopContainer;
+			loop->invariantIntervals = IntervalMap(jd->varcount);
+			//loop->headerIntervals = IntervalMap(jd->varcount);
 			jd->ld->loops.push_back(loop);
 			
 			loop->header = head;
 			loop->footers.push_back(foot);
+
+			// Save loop in basicblock.
+			head->ld->loops.insert(loop);
 
 			// find all basicblocks contained in this loop
 			reverseDepthFirstTraversal(foot, loop);
@@ -220,6 +235,9 @@ namespace
 			return;
 
 		loop->nodes.push_back(next);
+
+		// Save loop in basicblock.
+		next->ld->loops.insert(loop);
 
 		// Mark basicblock to prevent it from being visited again.
 		next->ld->visited = loop;
@@ -260,7 +278,14 @@ namespace
 					{
 						first->nodes.push_back(node);
 					}
+
+					// Remove second loop from node and save first loop in it.
+					node->ld->loops.erase(second);
+					node->ld->loops.insert(first);
 				}
+
+				// Remove second loop from header too.
+				first->header->ld->loops.erase(second);
 
 				// delete second loop
 				delete second;
@@ -335,12 +360,30 @@ namespace
 			(*it)->header->ld->loop = (*it);
 		}
 	}
+
+	void computeLoopDepth(LoopContainer* loop, s4 depth)
+	{
+		loop->depth = depth;
+		for (std::vector<LoopContainer*>::iterator childIt = loop->children.begin(); childIt != loop->children.end(); ++childIt)
+		{
+			computeLoopDepth(*childIt, depth + 1);
+		}
+	}
+
+	void sortLoopsInBasicblocks(jitdata* jd)
+	{
+		for (basicblock* block = jd->basicblocks; block != 0; block = block->next)
+		{
+			block->ld->loops.sort();
+		}
+	}
 }
 
 
 void removeArrayBoundChecks(jitdata* jd)
 {
-	//log_message_method("removeArrayBoundChecks: ", jd->m);
+	log_message_method("removeArrayBoundChecks: ", jd->m);
+	log_println("vartop: %d, varcount: %d", jd->vartop, jd->varcount);
 
 	createRoot(jd);
 	calculateDominators(jd);
@@ -351,13 +394,17 @@ void removeArrayBoundChecks(jitdata* jd)
 	mergeLoops(jd);
 	buildLoopTree(jd);
 	storeLoopsInHeaders(jd);
+	computeLoopDepth(jd->ld->rootLoop, 0);
+	sortLoopsInBasicblocks(jd);
 
 	analyzeLoops(jd);
 	findLeaves(jd);
-
-	//printBasicBlocks(jd);		// for debugging
 	
 	removeFullyRedundantChecks(jd);
+
+	printBasicBlocks(jd);
+
+	removePartiallyRedundantChecks(jd);
 }
 
 

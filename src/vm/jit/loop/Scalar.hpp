@@ -20,8 +20,8 @@ class Scalar
 
 public:
 
-	static s4 Min() { return std::numeric_limits<s4>::min(); }
-	static s4 Max() { return std::numeric_limits<s4>::max(); }
+	static s4 min() { return std::numeric_limits<s4>::min(); }
+	static s4 max() { return std::numeric_limits<s4>::max(); }
 
 	/**
 	 * Creates a scalar which equals zero.

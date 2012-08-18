@@ -19,15 +19,15 @@ class Interval
 
 public:
 
-	static s4 Min() { return Scalar::Min(); }
-	static s4 Max() { return Scalar::Max(); }
+	static s4 min() { return Scalar::min(); }
+	static s4 max() { return Scalar::max(); }
 
 	/**
 	 * Creates the interval MIN .. MAX
 	 */
 	Interval()
-		: _lower(Scalar(Min()))
-		, _upper(Scalar(Max()))
+		: _lower(Scalar(min()))
+		, _upper(Scalar(max()))
 	{}
 
 	explicit Interval(const Scalar& s)

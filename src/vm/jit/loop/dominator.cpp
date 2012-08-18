@@ -54,7 +54,7 @@ void calculateDominators(jitdata* jd)
 	 *     Step 1     *
 	 ******************/
 
-	// Insert an arbitrary element so that the first real item has index 1. That simplifies the implementation.
+	// Insert an arbitrary element so that the first real item has index 1. This simplifies the implementation.
 	jd->ld->vertex.push_back(0);
 
 	assert(jd->ld->vertex.size() == 1);

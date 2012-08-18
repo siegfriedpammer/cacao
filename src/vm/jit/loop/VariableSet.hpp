@@ -19,6 +19,7 @@ public:
 	typedef std::set<s4>::iterator iterator;
 	
 	void insert(s4 variableIndex) { _variables.insert(variableIndex); }
+	void remove(s4 variableIndex) { _variables.erase(variableIndex); }
 	bool contains(s4 variableIndex) { return _variables.find(variableIndex) != _variables.end(); }
 
 	std::set<s4>::iterator begin() { return _variables.begin(); }
