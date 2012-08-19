@@ -674,13 +674,11 @@ static u1 *jit_compile_intern(jitdata *jd)
 			return NULL;
 
 #if defined(ENABLE_LOOP)
-		removeArrayBoundChecks(jd);
-//		if (opt_loops) {
-//			depthFirst(jd);
-//			analyseGraph(jd);
-//			optimize_loops(jd);
-//			jit_renumber_basicblocks(jd);
-//		}
+		if (opt_loops)
+		{
+			removeArrayBoundChecks(jd);
+			jit_renumber_basicblocks(jd);
+		}
 #endif
 		RT_TIMING_GET_TIME(time_loop);
 

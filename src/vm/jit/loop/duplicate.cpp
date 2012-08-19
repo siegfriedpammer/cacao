@@ -171,6 +171,8 @@ namespace
 	/**
 	 * Inserts the copied loop, the loop switch and the trampoline into the global basicblock list.
 	 * It also inserts these nodes into the predecessor loops.
+	 *
+	 * loop: The original loop that has been duplicated.
 	 */
 	void buildBasicblockList(jitdata* jd, LoopContainer* loop, basicblock* beforeLoop, basicblock* lastBlockInLoop, basicblock* loopSwitch, basicblock* loopTrampoline)
 	{
@@ -201,12 +203,18 @@ namespace
 
 		log_text("loop trampoline inserted");
 
+		// The basicblocks contained in the following container will be inserted into the predecessor loops.
+		std::vector<basicblock*> duplicates;
+
 		// insert copied loop after trampoline
 		basicblock* end = loopTrampoline;
 		for (basicblock* block = loopSwitch->next; block != loopTrampoline; block = block->next)
 		{
 			end->next = block->ld->copiedTo;
 			end = block->ld->copiedTo;
+
+			// The copied basicblock must be inserted into the predecessor loops.
+			duplicates.push_back(block->ld->copiedTo);
 
 			// prepare for next loop duplication
 			block->ld->copiedTo = 0;
@@ -219,7 +227,7 @@ namespace
 		// Insert nodes into predecessor loops except the root loop.
 		for (LoopContainer* pred = loop->parent; pred->parent; pred = pred->parent)
 		{
-			for (std::vector<basicblock*>::iterator it = loop->nodes.begin(); it != loop->nodes.end(); ++it)
+			for (std::vector<basicblock*>::iterator it = duplicates.begin(); it != duplicates.end(); ++it)
 			{
 				pred->nodes.push_back(*it);
 			}
@@ -539,6 +547,9 @@ namespace
 								redirectJumps(jd, loopSwitch);
 								buildBasicblockList(jd, loop, beforeLoop, lastBlockInLoop, loopSwitch, loopTrampoline);
 
+								// Adjust statistical data.
+								jd->basicblockcount += loop->nodes.size() + 3;
+
 								log_text("arraylength finished");
 							}
 							break;
@@ -582,13 +593,13 @@ void removePartiallyRedundantChecks(jitdata* jd)
 	}
 
 	// TODO Currently only methods with one loop will be optimized.
-	if (jd->ld->rootLoop->children.size() == 1 && jd->ld->rootLoop->children[0]->children.size() == 0)
-	{
+	//if (jd->ld->rootLoop->children.size() == 1 && jd->ld->rootLoop->children[0]->children.size() == 0)
+	//{
 		for (std::vector<LoopContainer*>::iterator it = jd->ld->rootLoop->children.begin(); it != jd->ld->rootLoop->children.end(); ++it)
 		{
 			optimizeLoop(jd, *it, stackSlot);
 		}
-	}
+	//}
 
 	log_text("loop duplication finished");
 }
