@@ -24,7 +24,7 @@ namespace
 	void computeLoopDepth(LoopContainer* loop, s4 depth);
 	void sortLoopsInBasicblocks(jitdata* jd);
 
-
+/*
 	struct LoopHeaderCompare
 	{
 		bool operator()(const LoopContainer* a, const LoopContainer* b)
@@ -32,6 +32,12 @@ namespace
 			return a->header < b->header;
 		}
 	};
+*/
+
+	bool compareLoopHeaders(const LoopContainer* a, const LoopContainer* b)
+	{
+		return a->header < b->header;
+	}
 
 
 	void printBasicBlocks(jitdata* jd)
@@ -255,7 +261,8 @@ namespace
 	void mergeLoops(jitdata* jd)
 	{
 		// Sort the loops such that two loops having the same header are one after the other.
-		std::sort(jd->ld->loops.begin(), jd->ld->loops.end(), LoopHeaderCompare());
+		std::sort(jd->ld->loops.begin(), jd->ld->loops.end(), &compareLoopHeaders);
+		//std::sort(jd->ld->loops.begin(), jd->ld->loops.end(), LoopHeaderCompare());
 
 		for (size_t i = 1; i < jd->ld->loops.size(); i++)
 		{
