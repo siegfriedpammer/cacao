@@ -235,21 +235,16 @@ namespace
 			}
 		}
 
-		// Variable will be used when last instruction of the header has been processed.
-		LoopContainer* loop = 0;
-
-		if (node->ld->loop)
+		if (node->ld->loop)   // node is a loop header
 		{
-			// TODO Only non-negative increments are considered.
-			if (node->ld->loop->hasCounterVariable && node->ld->loop->counterIncrement >= 0)
+			// Define the interval of the counter variable, not considering a possible overflow.
+			// This interval will be overwritten after the last instruction in this node has been processed.
+			if (node->ld->loop->hasCounterVariable)
 			{
-				// Is the counter variable >= 0 before entering the loop?
-				s4 lowerBound = intervals[node->ld->loop->counterVariable].lower().lower();
-				if (lowerBound >= 0)
-				{
-					loop = node->ld->loop;
-					loop->counterInterval = Interval(Scalar(lowerBound), Scalar(Scalar::max()));
-				}
+				if (node->ld->loop->counterIncrement >= 0)
+					node->ld->loop->counterInterval = Interval(intervals[node->ld->loop->counterVariable].lower(), Scalar(Scalar::max()));
+				else
+					node->ld->loop->counterInterval = Interval(Scalar(Scalar::min()), intervals[node->ld->loop->counterVariable].upper());
 			}
 
 			// If node is the header of a loop L,
@@ -773,87 +768,7 @@ namespace
 				case ICMD_ALOAD:
 					// do nothing
 					break;
-/*
-				case ICMD_IMULCONST:
-				case ICMD_IANDCONST:
-				case ICMD_IORCONST:
-				case ICMD_IXORCONST:
-				case ICMD_ISHLCONST:
-				case ICMD_ISHRCONST:
-				case ICMD_IUSHRCONST:
-				case ICMD_IDIVPOW2:
-				case ICMD_IREMPOW2:
 
-				case ICMD_IADD:
-				case ICMD_ISUB:
-				case ICMD_IMUL:
-				case ICMD_IDIV:
-				case ICMD_IREM:
-				case ICMD_INEG:
-				case ICMD_ISHL:
-				case ICMD_ISHR:
-				case ICMD_IUSHR:
-				case ICMD_IAND:
-				case ICMD_IOR:
-				case ICMD_IXOR:
-
-				case ICMD_L2I:
-				case ICMD_F2I:
-				case ICMD_D2I:
-				case ICMD_INT2BYTE:
-				case ICMD_INT2CHAR:
-				case ICMD_INT2SHORT:
-
-				case ICMD_LCMP:
-				case ICMD_FCMPL:
-				case ICMD_FCMPG:
-				case ICMD_DCMPL:
-				case ICMD_DCMPG:
-				case ICMD_IF_ACMPEQ:
-				case ICMD_IF_ACMPNE:
-				case ICMD_GOTO:
-				case ICMD_JSR:
-				case ICMD_RET:
-				case ICMD_TABLESWITCH:
-				case ICMD_LOOKUPSWITCH:
-				case ICMD_IRETURN:
-				case ICMD_LRETURN:
-				case ICMD_FRETURN:
-				case ICMD_DRETURN:
-				case ICMD_ARETURN:
-				case ICMD_RETURN:
-
-				case ICMD_GETSTATIC:
-				case ICMD_PUTSTATIC:
-				case ICMD_GETFIELD:
-				case ICMD_PUTFIELD:
-				case ICMD_INVOKEVIRTUAL:
-				case ICMD_INVOKESPECIAL:
-				case ICMD_INVOKESTATIC:
-				case ICMD_INVOKEINTERFACE:
-				case ICMD_NEW:
-				case ICMD_NEWARRAY:
-				case ICMD_ANEWARRAY:
-				case ICMD_ATHROW:
-				case ICMD_CHECKCAST:
-				case ICMD_INSTANCEOF:
-				case ICMD_MONITORENTER:
-				case ICMD_MONITOREXIT:
-				case ICMD_MULTIANEWARRAY:
-				case ICMD_IFNULL:
-				case ICMD_IFNONNULL:
-				case ICMD_BREAKPOINT:
-				case ICMD_PUTSTATICCONST:
-				case ICMD_PUTFIELDCONST:
-				case ICMD_IMULPOW2:
-				case ICMD_LMULPOW2:
-				case ICMD_GETEXCEPTION:
-				case ICMD_PHI:
-				case ICMD_INLINE_START:
-				case ICMD_INLINE_END:
-				case ICMD_INLINE_BODY:
-				case ICMD_BUILTIN:
-*/
 				default:
 					if (instruction_has_dst(instr))
 					{
@@ -888,27 +803,27 @@ namespace
 		log_text(str.str().c_str());
 
 		// Compute interval of counter variable.
-		if (loop)
+		if (node->ld->loop && node->ld->loop->hasCounterVariable)
 		{
 			if (node->ld->jumpTarget)
 			{
 				// Check if jump target is part of this loop.
-				if (node->ld->jumpTarget->ld->loops.find(loop) == node->ld->jumpTarget->ld->loops.end())
+				if (node->ld->jumpTarget->ld->loops.find(node->ld->loop) == node->ld->jumpTarget->ld->loops.end())
 				{
 					// Jump target is _not_ part of this loop.
-					loop->counterInterval.intersectWith(intervals[loop->counterVariable]);
+					node->ld->loop->counterInterval.intersectWith(intervals[node->ld->loop->counterVariable]);
 				}
 				else
 				{
 					// Jump target is part of this loop.
-					Interval temp = intervals[loop->counterVariable];
-					temp.unionWith(targetIntervals[loop->counterVariable]);
-					loop->counterInterval.intersectWith(temp);
+					Interval temp = intervals[node->ld->loop->counterVariable];
+					temp.unionWith(targetIntervals[node->ld->loop->counterVariable]);
+					node->ld->loop->counterInterval.intersectWith(temp);
 				}
 			}
 			else
 			{
-				loop->counterInterval.intersectWith(intervals[loop->counterVariable]);
+				node->ld->loop->counterInterval.intersectWith(intervals[node->ld->loop->counterVariable]);
 			}
 		}
 

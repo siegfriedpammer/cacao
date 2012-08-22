@@ -77,6 +77,14 @@ namespace
 		instr->dst.block = dst;
 	}
 
+	inline void opcode_IFLT(instruction* instr, s4 src, s4 constant, basicblock* dst)
+	{
+		instr->opc = ICMD_IFLT;
+		instr->s1.varindex = src;
+		instr->sx.val.i = constant;
+		instr->dst.block = dst;
+	}
+
 	inline void opcode_IFLE(instruction* instr, s4 src, s4 constant, basicblock* dst)
 	{
 		instr->opc = ICMD_IFLE;
@@ -527,226 +535,394 @@ namespace
 		}
 
 		// Currently only loops with one footer are optimized.
-		if (loop->footers.size() == 1)
+		if (loop->footers.size() == 1 && loop->hasCounterVariable)
 		{
-			if (loop->hasCounterVariable && loop->counterIncrement >= 0)
+			if (loop->counterIncrement >= 0 && loop->counterInterval.lower().lower() >= 0)
 			{
-				if (loop->counterInterval.lower().lower() >= 0)   // counterInterval: [L, ?], L >= 0
+				// counterInterval: [L, ?], L >= 0
+				
+				if (loop->counterInterval.upper().instruction().kind() == NumericInstruction::ARRAY_LENGTH &&
+					loop->counterInterval.upper().constant() < 0)
 				{
-					if (loop->counterInterval.upper().instruction().kind() == NumericInstruction::ARRAY_LENGTH &&
-						loop->counterInterval.upper().constant() < 0)
+					// counterInterval: [L, array.length - c], L >= 0, c > 0
+
+					log_text("optimizeLoop: [non-negative, arraylength], inc");
+
+					s4 array = loop->counterInterval.upper().instruction().variable();
+
+					// The array variable must be invariant.
+					if (!loop->invariantArrays.contains(array))
 					{
-						// counterInterval: [L, array.length - c], L >= 0, c > 0
-
-						log_text("optimizeLoop: [non-negative, arraylength]");
-
-						s4 array = loop->counterInterval.upper().instruction().variable();
-
-						// The array variable must be invariant.
-						if (!loop->invariantArrays.contains(array))
-						{
-							log_println("optimizeLoop: %d not invariant", array);
-							return;
-						}
-
-						// duplicate loop
-						duplicateLoop(loop);
-						basicblock *beforeLoop, *lastBlockInLoop;
-						if (!findLoop(jd, &beforeLoop, &lastBlockInLoop))
-						{
-							log_text("optimizeLoop: hole or header");
-
-							// loop cannot be optimized
-							deleteDuplicatedLoop(jd);
-							return;
-						}
-
-						// The following assertion simplifies the code generation.
-						if ((beforeLoop && beforeLoop->outdepth != 0) ||
-							lastBlockInLoop->outdepth != 0)
-						{
-							log_text("optimizeLoop: depth != 0");
-
-							// loop cannot be optimized
-							deleteDuplicatedLoop(jd);
-							return;
-						}
-
-						// remove checks in original loop
-						removeChecks(loop, array, loop->counterVariable);
-
-						// create basicblock that jumps to the right loop
-						basicblock* loopSwitch = createBasicblock(jd, 4);
-
-						// Fill instruction array of loop switch with:
-						// if (array.length + upper_constant > MAX - increment) goto unoptimized_loop
-
-						instruction* instr = loopSwitch->iinstr;
-
-						opcode_ALOAD(instr++, array, array);
-						opcode_ARRAYLENGTH(instr++, array, stackSlot);
-						opcode_IADDCONST(instr++, stackSlot, loop->counterInterval.upper().constant(), stackSlot);
-						opcode_IFGT(instr++, stackSlot, Scalar::max() - loop->counterIncrement, loop->header->ld->copiedTo);
-
-						assert(instr - loopSwitch->iinstr == loopSwitch->icount);
-
-						// create basicblock that jumps over the second loop
-						basicblock* loopTrampoline = createLoopTrampoline(jd, lastBlockInLoop->next);
-
-						// Insert loop into basicblock list.
-						redirectJumps(jd, loopSwitch);
-						buildBasicblockList(jd, loop, beforeLoop, lastBlockInLoop, loopSwitch, loopTrampoline);
-
-						// Adjust statistical data.
-						jd->basicblockcount += loop->nodes.size() + 3;
+						log_println("optimizeLoop: %d not invariant", array);
+						return;
 					}
-					else if (loop->counterInterval.upper().instruction().kind() == NumericInstruction::VARIABLE &&
-						loop->counterInterval.upper().constant() == 0)
+
+					// duplicate loop
+					duplicateLoop(loop);
+					basicblock *beforeLoop, *lastBlockInLoop;
+					if (!findLoop(jd, &beforeLoop, &lastBlockInLoop))
 					{
-						// counterInterval: [L, x], L >= 0
+						log_text("optimizeLoop: hole or header");
 
-						log_text("optimizeLoop: [non-negative, invariant]");
-
-						if (loop->invariantArrays.begin() == loop->invariantArrays.end())
-						{
-							log_text("optimizeLoop: no invariant array");
-							return;
-						}
-						
-						// TODO optimization: why take an arbitrary array variable?
-						s4 array = *loop->invariantArrays.begin();
-
-						// duplicate loop
-						duplicateLoop(loop);
-						basicblock *beforeLoop, *lastBlockInLoop;
-						if (!findLoop(jd, &beforeLoop, &lastBlockInLoop))
-						{
-							log_text("optimizeLoop: hole or header");
-
-							// loop cannot be optimized
-							deleteDuplicatedLoop(jd);
-							return;
-						}
-
-						// The following assertion simplifies the code generation.
-						if ((beforeLoop && beforeLoop->outdepth != 0) ||
-							lastBlockInLoop->outdepth != 0)
-						{
-							log_text("optimizeLoop: depth != 0");
-
-							// loop cannot be optimized
-							deleteDuplicatedLoop(jd);
-							return;
-						}
-
-						// remove checks in original loop
-						removeChecks(loop, array, loop->counterVariable);
-
-						s4 invariantVariable = loop->counterInterval.upper().instruction().variable();
-
-						// create loop switches that jump to the right loop
-						basicblock* loopSwitch1 = createBasicblock(jd, 2);
-						basicblock* loopSwitch2 = createBasicblock(jd, 4);
-						instruction* instr;
-
-						// Fill instruction array of first loop switch with:
-						// if (x > MAX - increment) goto unoptimized_loop
-
-						instr = loopSwitch1->iinstr;
-
-						opcode_ILOAD(instr++, invariantVariable, invariantVariable);
-						opcode_IFGT(instr++, invariantVariable, Scalar::max() - loop->counterIncrement, loop->header->ld->copiedTo);
-
-						assert(instr - loopSwitch1->iinstr == loopSwitch1->icount);
-
-						// Fill instruction array of second loop switch with:
-						// if (x >= array.length) goto unoptimized_loop
-
-						instr = loopSwitch2->iinstr;
-
-						opcode_ILOAD(instr++, invariantVariable, invariantVariable);
-						opcode_ALOAD(instr++, array, array);
-						opcode_ARRAYLENGTH(instr++, array, stackSlot);
-						opcode_IF_ICMPGE(instr++, invariantVariable, stackSlot, loop->header->ld->copiedTo);
-
-						assert(instr - loopSwitch2->iinstr == loopSwitch2->icount);
-
-						// create basicblock that jumps over the second loop
-						basicblock* loopTrampoline = createLoopTrampoline(jd, lastBlockInLoop->next);
-
-						// Insert loop into basicblock list.
-						redirectJumps(jd, loopSwitch1);
-						buildBasicblockList(jd, loop, beforeLoop, lastBlockInLoop, loopSwitch1, loopSwitch2, loopTrampoline);
-
-						// Adjust statistical data.
-						jd->basicblockcount += loop->nodes.size() + 4;
+						// loop cannot be optimized
+						deleteDuplicatedLoop(jd);
+						return;
 					}
-					else if (loop->counterInterval.upper().instruction().kind() == NumericInstruction::ZERO &&
-						loop->counterInterval.upper().constant() <= Scalar::max() - loop->counterIncrement)
+
+					// The following assertion simplifies the code generation.
+					if ((beforeLoop && beforeLoop->outdepth != 0) ||
+						lastBlockInLoop->outdepth != 0)
 					{
-						// counterInterval: [L, c], L >= 0, c <= MAX - increment
+						log_text("optimizeLoop: depth != 0");
 
-						log_text("optimizeLoop: [non-negative, constant]");
-
-						if (loop->invariantArrays.begin() == loop->invariantArrays.end())
-						{
-							log_text("optimizeLoop: no invariant array");
-							return;
-						}
-						
-						// TODO optimization: why take an arbitrary array variable?
-						s4 array = *loop->invariantArrays.begin();
-
-						// duplicate loop
-						duplicateLoop(loop);
-						basicblock *beforeLoop, *lastBlockInLoop;
-						if (!findLoop(jd, &beforeLoop, &lastBlockInLoop))
-						{
-							log_text("optimizeLoop: hole or header");
-
-							// loop cannot be optimized
-							deleteDuplicatedLoop(jd);
-							return;
-						}
-
-						// The following assertion simplifies the code generation.
-						if ((beforeLoop && beforeLoop->outdepth != 0) ||
-							lastBlockInLoop->outdepth != 0)
-						{
-							log_text("optimizeLoop: depth != 0");
-
-							// loop cannot be optimized
-							deleteDuplicatedLoop(jd);
-							return;
-						}
-
-						// remove checks in original loop
-						removeChecks(loop, array, loop->counterVariable);
-
-						// create basicblock that jumps to the right loop
-						basicblock* loopSwitch = createBasicblock(jd, 3);
-
-						// Fill instruction array of loop switch with:
-						// if (array.length <= upper_constant) goto unoptimized_loop
-
-						instruction* instr = loopSwitch->iinstr;
-
-						opcode_ALOAD(instr++, array, array);
-						opcode_ARRAYLENGTH(instr++, array, stackSlot);
-						opcode_IFLE(instr++, stackSlot, loop->counterInterval.upper().constant(), loop->header->ld->copiedTo);
-
-						assert(instr - loopSwitch->iinstr == loopSwitch->icount);
-
-						// create basicblock that jumps over the second loop
-						basicblock* loopTrampoline = createLoopTrampoline(jd, lastBlockInLoop->next);
-
-						// Insert loop into basicblock list.
-						redirectJumps(jd, loopSwitch);
-						buildBasicblockList(jd, loop, beforeLoop, lastBlockInLoop, loopSwitch, loopTrampoline);
-
-						// Adjust statistical data.
-						jd->basicblockcount += loop->nodes.size() + 3;
+						// loop cannot be optimized
+						deleteDuplicatedLoop(jd);
+						return;
 					}
+
+					// remove checks in original loop
+					removeChecks(loop, array, loop->counterVariable);
+
+					// create basicblock that jumps to the right loop
+					basicblock* loopSwitch = createBasicblock(jd, 4);
+
+					// Fill instruction array of loop switch with:
+					// if (array.length + upper_constant > MAX - increment) goto unoptimized_loop
+
+					instruction* instr = loopSwitch->iinstr;
+
+					opcode_ALOAD(instr++, array, array);
+					opcode_ARRAYLENGTH(instr++, array, stackSlot);
+					opcode_IADDCONST(instr++, stackSlot, loop->counterInterval.upper().constant(), stackSlot);
+					opcode_IFGT(instr++, stackSlot, Scalar::max() - loop->counterIncrement, loop->header->ld->copiedTo);
+
+					assert(instr - loopSwitch->iinstr == loopSwitch->icount);
+
+					// create basicblock that jumps over the second loop
+					basicblock* loopTrampoline = createLoopTrampoline(jd, lastBlockInLoop->next);
+
+					// Insert loop into basicblock list.
+					redirectJumps(jd, loopSwitch);
+					buildBasicblockList(jd, loop, beforeLoop, lastBlockInLoop, loopSwitch, loopTrampoline);
+
+					// Adjust statistical data.
+					jd->basicblockcount += loop->nodes.size() + 3;
+				}
+				else if (loop->counterInterval.upper().instruction().kind() == NumericInstruction::VARIABLE &&
+					loop->counterInterval.upper().constant() == 0)
+				{
+					// counterInterval: [L, x], L >= 0
+
+					log_text("optimizeLoop: [non-negative, invariant], inc");
+
+					if (loop->invariantArrays.begin() == loop->invariantArrays.end())
+					{
+						log_text("optimizeLoop: no invariant array");
+						return;
+					}
+					
+					// TODO optimization: why take an arbitrary array variable?
+					s4 array = *loop->invariantArrays.begin();
+
+					// duplicate loop
+					duplicateLoop(loop);
+					basicblock *beforeLoop, *lastBlockInLoop;
+					if (!findLoop(jd, &beforeLoop, &lastBlockInLoop))
+					{
+						log_text("optimizeLoop: hole or header");
+
+						// loop cannot be optimized
+						deleteDuplicatedLoop(jd);
+						return;
+					}
+
+					// The following assertion simplifies the code generation.
+					if ((beforeLoop && beforeLoop->outdepth != 0) ||
+						lastBlockInLoop->outdepth != 0)
+					{
+						log_text("optimizeLoop: depth != 0");
+
+						// loop cannot be optimized
+						deleteDuplicatedLoop(jd);
+						return;
+					}
+
+					// remove checks in original loop
+					removeChecks(loop, array, loop->counterVariable);
+
+					s4 invariantVariable = loop->counterInterval.upper().instruction().variable();
+
+					// create loop switches that jump to the right loop
+					basicblock* loopSwitch1 = createBasicblock(jd, 2);
+					basicblock* loopSwitch2 = createBasicblock(jd, 4);
+					instruction* instr;
+
+					// Fill instruction array of first loop switch with:
+					// if (invariant > MAX - increment) goto unoptimized_loop
+
+					instr = loopSwitch1->iinstr;
+
+					opcode_ILOAD(instr++, invariantVariable, invariantVariable);
+					opcode_IFGT(instr++, invariantVariable, Scalar::max() - loop->counterIncrement, loop->header->ld->copiedTo);
+
+					assert(instr - loopSwitch1->iinstr == loopSwitch1->icount);
+
+					// Fill instruction array of second loop switch with:
+					// if (invariant >= array.length) goto unoptimized_loop
+
+					instr = loopSwitch2->iinstr;
+
+					opcode_ILOAD(instr++, invariantVariable, invariantVariable);
+					opcode_ALOAD(instr++, array, array);
+					opcode_ARRAYLENGTH(instr++, array, stackSlot);
+					opcode_IF_ICMPGE(instr++, invariantVariable, stackSlot, loop->header->ld->copiedTo);
+
+					assert(instr - loopSwitch2->iinstr == loopSwitch2->icount);
+
+					// create basicblock that jumps over the second loop
+					basicblock* loopTrampoline = createLoopTrampoline(jd, lastBlockInLoop->next);
+
+					// Insert loop into basicblock list.
+					redirectJumps(jd, loopSwitch1);
+					buildBasicblockList(jd, loop, beforeLoop, lastBlockInLoop, loopSwitch1, loopSwitch2, loopTrampoline);
+
+					// Adjust statistical data.
+					jd->basicblockcount += loop->nodes.size() + 4;
+				}
+				else if (loop->counterInterval.upper().instruction().kind() == NumericInstruction::ZERO &&
+					loop->counterInterval.upper().constant() <= Scalar::max() - loop->counterIncrement)
+				{
+					// counterInterval: [L, c], L >= 0, c <= MAX - increment
+
+					log_text("optimizeLoop: [non-negative, constant], inc");
+
+					if (loop->invariantArrays.begin() == loop->invariantArrays.end())
+					{
+						log_text("optimizeLoop: no invariant array");
+						return;
+					}
+					
+					// TODO optimization: why take an arbitrary array variable?
+					s4 array = *loop->invariantArrays.begin();
+
+					// duplicate loop
+					duplicateLoop(loop);
+					basicblock *beforeLoop, *lastBlockInLoop;
+					if (!findLoop(jd, &beforeLoop, &lastBlockInLoop))
+					{
+						log_text("optimizeLoop: hole or header");
+
+						// loop cannot be optimized
+						deleteDuplicatedLoop(jd);
+						return;
+					}
+
+					// The following assertion simplifies the code generation.
+					if ((beforeLoop && beforeLoop->outdepth != 0) ||
+						lastBlockInLoop->outdepth != 0)
+					{
+						log_text("optimizeLoop: depth != 0");
+
+						// loop cannot be optimized
+						deleteDuplicatedLoop(jd);
+						return;
+					}
+
+					// remove checks in original loop
+					removeChecks(loop, array, loop->counterVariable);
+
+					// create basicblock that jumps to the right loop
+					basicblock* loopSwitch = createBasicblock(jd, 3);
+
+					// Fill instruction array of loop switch with:
+					// if (array.length <= upper_constant) goto unoptimized_loop
+
+					instruction* instr = loopSwitch->iinstr;
+
+					opcode_ALOAD(instr++, array, array);
+					opcode_ARRAYLENGTH(instr++, array, stackSlot);
+					opcode_IFLE(instr++, stackSlot, loop->counterInterval.upper().constant(), loop->header->ld->copiedTo);
+
+					assert(instr - loopSwitch->iinstr == loopSwitch->icount);
+
+					// create basicblock that jumps over the second loop
+					basicblock* loopTrampoline = createLoopTrampoline(jd, lastBlockInLoop->next);
+
+					// Insert loop into basicblock list.
+					redirectJumps(jd, loopSwitch);
+					buildBasicblockList(jd, loop, beforeLoop, lastBlockInLoop, loopSwitch, loopTrampoline);
+
+					// Adjust statistical data.
+					jd->basicblockcount += loop->nodes.size() + 3;
+				}
+			}
+			else if (loop->counterIncrement < 0 &&
+				loop->counterInterval.upper().instruction().kind() == NumericInstruction::ARRAY_LENGTH &&
+				loop->counterInterval.upper().constant() < 0)
+			{
+				// counterInterval: [?, U], U < array.length
+
+				if (loop->counterInterval.lower().instruction().kind() == NumericInstruction::ZERO &&
+					loop->counterInterval.lower().constant() >= 0)
+				{
+					// counterInterval: [c, U], c >= 0, U < array.length
+
+					log_text("optimizeLoop: [non-negative, arraylength], dec");
+
+					s4 array = loop->counterInterval.upper().instruction().variable();
+
+					// The array variable must be invariant.
+					if (!loop->invariantArrays.contains(array))
+					{
+						log_println("optimizeLoop: %d not invariant", array);
+						return;
+					}
+
+					// No runtime check and so no loop duplication is necessary.
+
+					// remove checks in loop
+					removeChecks(loop, array, loop->counterVariable);
+				}
+				else if (loop->counterInterval.lower().instruction().kind() == NumericInstruction::VARIABLE &&
+					loop->counterInterval.lower().constant() == 0)
+				{
+					// counterInterval: [x, U], U < array.length
+
+					log_text("optimizeLoop: [invariant, arraylength], dec");
+
+					s4 array = loop->counterInterval.upper().instruction().variable();
+
+					// The array variable must be invariant.
+					if (!loop->invariantArrays.contains(array))
+					{
+						log_println("optimizeLoop: %d not invariant", array);
+						return;
+					}
+
+					// duplicate loop
+					duplicateLoop(loop);
+					basicblock *beforeLoop, *lastBlockInLoop;
+					if (!findLoop(jd, &beforeLoop, &lastBlockInLoop))
+					{
+						log_text("optimizeLoop: hole or header");
+
+						// loop cannot be optimized
+						deleteDuplicatedLoop(jd);
+						return;
+					}
+
+					// The following assertion simplifies the code generation.
+					if ((beforeLoop && beforeLoop->outdepth != 0) ||
+						lastBlockInLoop->outdepth != 0)
+					{
+						log_text("optimizeLoop: depth != 0");
+
+						// loop cannot be optimized
+						deleteDuplicatedLoop(jd);
+						return;
+					}
+
+					// remove checks in original loop
+					removeChecks(loop, array, loop->counterVariable);
+
+					s4 invariantVariable = loop->counterInterval.lower().instruction().variable();
+
+					// create basicblock that jumps to the right loop
+					basicblock* loopSwitch = createBasicblock(jd, 2);
+
+					// Fill instruction array of loop switch with:
+					// if (invariant < 0) goto unoptimized_loop
+
+					instruction* instr = loopSwitch->iinstr;
+
+					opcode_ILOAD(instr++, invariantVariable, invariantVariable);
+					opcode_IFLT(instr++, invariantVariable, 0, loop->header->ld->copiedTo);
+
+					assert(instr - loopSwitch->iinstr == loopSwitch->icount);
+
+					// create basicblock that jumps over the second loop
+					basicblock* loopTrampoline = createLoopTrampoline(jd, lastBlockInLoop->next);
+
+					// Insert loop into basicblock list.
+					redirectJumps(jd, loopSwitch);
+					buildBasicblockList(jd, loop, beforeLoop, lastBlockInLoop, loopSwitch, loopTrampoline);
+
+					// Adjust statistical data.
+					jd->basicblockcount += loop->nodes.size() + 3;
+				}
+				else if (loop->counterInterval.lower().instruction().kind() == NumericInstruction::ARRAY_LENGTH &&
+					loop->counterInterval.lower().constant() < 0 &&
+					loop->counterInterval.lower().constant() > Scalar::min())   // prevent overflow during negation
+				{
+					// counterInterval: [array.length + c, U], MIN < c < 0, U < array.length
+
+					log_text("optimizeLoop: [arraylength, arraylength], dec");
+
+					s4 array = loop->counterInterval.upper().instruction().variable();
+					
+					// Both array variables must be the same.
+					if (array != loop->counterInterval.lower().instruction().variable())
+					{
+						log_text("optimizeLoop: arrays are different");
+						return;
+					}
+
+					// The array variable must be invariant.
+					if (!loop->invariantArrays.contains(array))
+					{
+						log_println("optimizeLoop: %d not invariant", array);
+						return;
+					}
+
+					// duplicate loop
+					duplicateLoop(loop);
+					basicblock *beforeLoop, *lastBlockInLoop;
+					if (!findLoop(jd, &beforeLoop, &lastBlockInLoop))
+					{
+						log_text("optimizeLoop: hole or header");
+
+						// loop cannot be optimized
+						deleteDuplicatedLoop(jd);
+						return;
+					}
+
+					// The following assertion simplifies the code generation.
+					if ((beforeLoop && beforeLoop->outdepth != 0) ||
+						lastBlockInLoop->outdepth != 0)
+					{
+						log_text("optimizeLoop: depth != 0");
+
+						// loop cannot be optimized
+						deleteDuplicatedLoop(jd);
+						return;
+					}
+
+					// remove checks in original loop
+					removeChecks(loop, array, loop->counterVariable);
+
+					// create basicblock that jumps to the right loop
+					basicblock* loopSwitch = createBasicblock(jd, 3);
+
+					// Fill instruction array of loop switch with:
+					// if (array.length < -1 * lower_constant) goto unoptimized_loop
+
+					instruction* instr = loopSwitch->iinstr;
+
+					opcode_ALOAD(instr++, array, array);
+					opcode_ARRAYLENGTH(instr++, array, stackSlot);
+					opcode_IFLT(instr++, stackSlot, -loop->counterInterval.lower().constant(), loop->header->ld->copiedTo);
+
+					assert(instr - loopSwitch->iinstr == loopSwitch->icount);
+
+					// create basicblock that jumps over the second loop
+					basicblock* loopTrampoline = createLoopTrampoline(jd, lastBlockInLoop->next);
+
+					// Insert loop into basicblock list.
+					redirectJumps(jd, loopSwitch);
+					buildBasicblockList(jd, loop, beforeLoop, lastBlockInLoop, loopSwitch, loopTrampoline);
+
+					// Adjust statistical data.
+					jd->basicblockcount += loop->nodes.size() + 3;
 				}
 			}
 		}
