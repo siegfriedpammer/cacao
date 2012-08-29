@@ -1039,7 +1039,7 @@ void groupArrayBoundsChecks(jitdata* jd)
 		s4 smallestConstant = smallestConstants[bestArray][bestIndex];
 		s4 biggestConstant = biggestConstants[bestArray][bestIndex];
 
-		if (bestCount > 3 &&
+		if (bestCount > 2 &&
 			smallestConstant > std::numeric_limits<s4>::min() &&	// prevent overflow
 			biggestConstant >= 0)									// prevent overflow
 		{
@@ -1063,7 +1063,14 @@ void groupArrayBoundsChecks(jitdata* jd)
 			opcode_IFLT(instr++, bestIndex, -smallestConstant, safeBlock);
 			assert(instr - lowerBoundsCheck->iinstr == lowerBoundsCheck->icount);
 
-			// Create second check: if (bestIndex >= bestArray.length - biggestConstant) goto safeBlock
+			// Create second check: if (bestArray == null) goto safeBlock
+			basicblock* nullCheck = createBasicblock(jd, 2);
+			instr = nullCheck->iinstr;
+			opcode_ALOAD(instr++, bestArray, bestArray);
+			opcode_IFNULL(instr++, bestArray, safeBlock);
+			assert(instr - nullCheck->iinstr == nullCheck->icount);
+
+			// Create third check: if (bestIndex >= bestArray.length - biggestConstant) goto safeBlock
 			basicblock* upperBoundsCheck = createBasicblock(jd, 5);
 			instr = upperBoundsCheck->iinstr;
 			opcode_ILOAD(instr++, bestIndex, bestIndex);
@@ -1081,7 +1088,8 @@ void groupArrayBoundsChecks(jitdata* jd)
 			trampoline->next = safeBlock;
 			block->next = trampoline;
 			upperBoundsCheck->next = block;
-			lowerBoundsCheck->next = upperBoundsCheck;
+			nullCheck->next = upperBoundsCheck;
+			lowerBoundsCheck->next = nullCheck;
 			if (lastBlock)
 				lastBlock->next = lowerBoundsCheck;
 			else
@@ -1092,7 +1100,7 @@ void groupArrayBoundsChecks(jitdata* jd)
 			optimizationDone = true;
 
 			// Adjust statistical data.
-			jd->basicblockcount += 4;
+			jd->basicblockcount += 5;
 
 			// Set iteration variable to the correct value.
 			block = safeBlock;
