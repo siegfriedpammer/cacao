@@ -42,11 +42,14 @@ struct MethodLoopData
 	// Every method has exactly one (pseudo) root loop that is executed exactly once.
 	LoopContainer*				rootLoop;
 
+	// An index to a free integer variable in the jd->var array.
+	s4							freeVariable;
+
 	MethodLoopData()
 		: n(0)
 		, root(0)
 		, rootLoop(0)
-		//, conditions(0)
+		, freeVariable(0)
 	{}
 };
 
@@ -67,7 +70,7 @@ struct BasicblockLoopData
 	basicblock*					nextSibling;	// pointer to the next sibling in the dominator tree or 0.
 	std::vector<basicblock*>	children;		// the children of a node in the dominator tree
 
-	// Used to prevent this basicblock from being visited again during a traversal.
+	// Used to prevent this basicblock from being visited again during a traversal in loop.cpp.
 	// This is NOT a pointer to the loop this basicblock belongs to because such a loop is not unique.
 	LoopContainer*				visited;	
 
@@ -86,7 +89,11 @@ struct BasicblockLoopData
 	IntervalMap					targetIntervals;
 	IntervalMap					intervals;
 
+	LoopContainer*				belongingTo;	// used during loop duplication: a marker for blocks to be duplicated.
 	basicblock*					copiedTo;		// used during loop duplication: points to the same block in the duplicated loop.
+
+	// Used during grouping: This variable points to the first check after cloning this block.
+	basicblock*					arrayIndexCheck;
 
 	BasicblockLoopData()
 		: parent(0)
@@ -103,7 +110,9 @@ struct BasicblockLoopData
 		, jumpTarget(0)
 		, targetIntervals(0)
 		, intervals(0)
+		, belongingTo(0)
 		, copiedTo(0)
+		, arrayIndexCheck(0)
 	{}
 };
 

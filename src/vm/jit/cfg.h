@@ -48,6 +48,8 @@ bool cfg_build(jitdata *jd);
 
 void cfg_add_root(jitdata *jd);
 
+void cfg_clear(jitdata *jd);
+
 #ifdef __cplusplus
 }
 #endif

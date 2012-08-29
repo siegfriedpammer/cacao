@@ -55,7 +55,10 @@ libloop_la_SOURCES = \
 	NumericInstruction.cpp \
 	NumericInstruction.hpp \
 	duplicate.cpp \
-	duplicate.hpp
+	duplicate.hpp \
+	Value.hpp \
+	ValueMap.hpp \
+	DynamicVector.hpp
 
 
 ## Local variables:

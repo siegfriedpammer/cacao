@@ -2,6 +2,9 @@
 #include "vm/jit/ir/icmd.hpp"
 
 #include "duplicate.hpp"
+#include "Value.hpp"
+#include "ValueMap.hpp"
+#include "DynamicVector.hpp"
 
 #include <cstring>
 
@@ -9,16 +12,15 @@ namespace
 {
 	basicblock* duplicateBasicblock(const basicblock* block);
 	basicblock* createBasicblock(jitdata* jd, s4 numInstructions);
-	void deleteDuplicatedBasicblock(basicblock* block);
-	void duplicateLoop(LoopContainer* loop);
-	void deleteDuplicatedLoop(jitdata* jd);
-	bool findLoop(jitdata* jd, basicblock** beforeLoopPtr, basicblock** lastBlockInLoopPtr);
-	void buildBasicblockList(jitdata* jd, LoopContainer* loop, basicblock* beforeLoop, basicblock* lastBlockInLoop, basicblock* loopSwitch1, basicblock* loopTrampoline);
+	bool checkLoop(jitdata* jd, LoopContainer* loop);
+	void duplicateLoop(jitdata* jd, LoopContainer* loop);
+	void buildBasicblockList(jitdata* jd, LoopContainer* loop, basicblock* beforeLoop, basicblock* lastBlockInLoop, basicblock* loopSwitch, basicblock* loopTrampoline);
 	void buildBasicblockList(jitdata* jd, LoopContainer* loop, basicblock* beforeLoop, basicblock* lastBlockInLoop, basicblock* loopSwitch1, basicblock* loopSwitch2, basicblock* loopTrampoline);
+	void buildBasicblockList(jitdata* jd, LoopContainer* loop, basicblock* beforeLoop, basicblock* lastBlockInLoop, basicblock* loopSwitch1, basicblock* loopSwitch2, basicblock* loopSwitch3, basicblock* loopTrampoline);
 	void removeChecks(LoopContainer* loop, s4 array, s4 index);
-	basicblock* createLoopTrampoline(basicblock* target);
+	basicblock* createTrampoline(basicblock* target);
 	void redirectJumps(jitdata* jd, basicblock* loopSwitch);
-	void optimizeLoop(jitdata* jd, LoopContainer* loop, s4 stackSlot);
+	void optimizeLoop(jitdata* jd, LoopContainer* loop);
 
 
 	//                                                    //
@@ -53,7 +55,7 @@ namespace
 		instr->sx.val.i = constant;
 		instr->dst.varindex = dst;
 	}
-/*
+
 	inline void opcode_ISUBCONST(instruction* instr, s4 src, s4 constant, s4 dst)
 	{
 		instr->opc = ICMD_ISUBCONST;
@@ -61,7 +63,6 @@ namespace
 		instr->sx.val.i = constant;
 		instr->dst.varindex = dst;
 	}
-*/
 
 	inline void opcode_GOTO(instruction* instr, basicblock* dst)
 	{
@@ -90,6 +91,13 @@ namespace
 		instr->opc = ICMD_IFLE;
 		instr->s1.varindex = src;
 		instr->sx.val.i = constant;
+		instr->dst.block = dst;
+	}
+
+	inline void opcode_IFNULL(instruction* instr, s4 src, basicblock* dst)
+	{
+		instr->opc = ICMD_IFNULL;
+		instr->s1.varindex = src;
 		instr->dst.block = dst;
 	}
 
@@ -145,40 +153,28 @@ namespace
 		return clone;
 	}
 
-	void deleteDuplicatedBasicblock(basicblock* block)
-	{
-		if (block != 0)
-		{
-			// delete switch- and lookup-tables
-			for (instruction* instr = block->iinstr; instr != block->iinstr + block->icount; instr++)
-			{
-				switch (instr->opc)
-				{
-					case ICMD_TABLESWITCH:
-						delete[] instr->dst.table;
-						break;
-					case ICMD_LOOKUPSWITCH:
-						delete[] instr->dst.lookup;
-						break;
-				}
-			}
-
-			delete[] block->iinstr;
-			delete block->ld;
-			delete block;
-		}
-	}
-
 	basicblock* createBasicblock(jitdata* jd, s4 numInstructions)
 	{
 		basicblock* block = new basicblock;
 		memset(block, 0, sizeof(basicblock));
 		block->ld = new BasicblockLoopData;
 		block->method = jd->m;
+		block->flags = BBFINISHED;
+		block->mpc = -1;
 		block->icount = numInstructions;
 		block->iinstr = new instruction[numInstructions];
 		memset(block->iinstr, 0, sizeof(instruction) * numInstructions);
 		return block;
+	}
+
+	/**
+	 * Creates a basicblock with a single GOTO instruction.
+	 */
+	basicblock* createTrampoline(jitdata* jd, basicblock* target)
+	{
+		basicblock* trampoline = createBasicblock(jd, 1);
+		opcode_GOTO(trampoline->iinstr, target);
+		return trampoline;
 	}
 
 	void duplicateLoop(LoopContainer* loop)
@@ -193,76 +189,84 @@ namespace
 		}
 	}
 
-	void deleteDuplicatedLoop(jitdata* jd)
-	{
-		for (basicblock* block = jd->basicblocks; block; block = block->next)
-		{
-			deleteDuplicatedBasicblock(block->ld->copiedTo);
-
-			// prepare for next loop duplication
-			block->ld->copiedTo = 0;
-		}
-	}
-
 	/**
-	 * Searches the basicblock list for the duplicated loop and returns two basicblock pointers:
-	 * One points to the basicblock preceding the loop, the other to the last basicblock in the loop.
-	 * By the way it checks whether the loop has no hole and the first block is the loop header.
+	 * Returns true (otherwise false) if the following points hold for the specified loop:
 	 *
-	 * Returns true if the loop has no hole and the first block is the loop header, false otherwise.
+	 *   -) The loop does not contain a hole.
+	 *   -) The first block is the header.
+	 *   -) The stack depth before and after the loop is 0.
+	 *
+	 * The above points simplify the code generation.
+	 *
+	 * The arguments beforeLoopPtr and lastBlockInLoopPtr will be set
+	 * to the basicblock before the loop and to the last basicblock in the loop respectively.
 	 */
-	bool findLoop(jitdata* jd, basicblock** beforeLoopPtr, basicblock** lastBlockInLoopPtr)
+	bool checkLoop(jitdata* jd, LoopContainer* loop, basicblock** beforeLoopPtr, basicblock** lastBlockInLoopPtr)
 	{
+		*beforeLoopPtr = 0;
+		*lastBlockInLoopPtr = 0;
+
+		// Mark every basicblock which is part of the loop
+		loop->header->ld->belongingTo = loop;
+		for (std::vector<basicblock*>::iterator it = loop->nodes.begin(); it != loop->nodes.end(); ++it)
+		{
+			(*it)->ld->belongingTo = loop;
+		}
+
+		
 		basicblock* lastBlock = 0;
 		bool loopFound = false;
 
-		*beforeLoopPtr = 0;
-		*lastBlockInLoopPtr = 0;
-		
+		// Analyze marked basicblocks.
 		for (basicblock* block = jd->basicblocks; block; block = block->next)
 		{
-			assert(lastBlock == 0 || lastBlock->ld);
-			assert(block->ld);
-
-			// Is block the beginning of the duplicated loop?
-			if ((lastBlock == 0 || lastBlock->ld->copiedTo == 0) && block->ld->copiedTo)
+			if (block->ld->belongingTo == loop)
 			{
-				// The loop contains a hole.
-				if (loopFound)
+				// Are we entering the loop?
+				if (lastBlock == 0 || lastBlock->ld->belongingTo != loop)   // lastBlock is not part of the loop
 				{
-					log_text("findLoop: hole");
-					return false;
+					// The loop contains a hole.
+					if (loopFound)
+					{
+						log_text("checkLoop: hole");
+						return false;
+					}
+
+					// The first block is not the header.
+					if (block->ld->loop == 0)
+					{
+						log_text("checkLoop: header");
+						return false;
+					}
+
+					loopFound = true;
+					*beforeLoopPtr = lastBlock;
 				}
 
-				// The first block is not the header.
-				if (block->ld->loop == 0)
-				{
-					log_text("findLoop: header");
-					return false;
-				}
-
-				loopFound = true;
-				*beforeLoopPtr = lastBlock;
-			}
-
-			if (block->ld->copiedTo)
 				*lastBlockInLoopPtr = block;
-
+			}
+		
 			lastBlock = block;
+		}
+
+		// Check stack depth.
+		if (loop->header->indepth != 0 || (*lastBlockInLoopPtr)->outdepth != 0)
+		{
+			log_text("checkLoop: stack depth");
+			return false;
 		}
 
 		return true;
 	}
 
-	/**
-	 * Inserts the copied loop, the loop switch and the trampoline into the global basicblock list.
-	 * It also inserts these nodes into the predecessor loops.
-	 *
-	 * loop: The original loop that has been duplicated.
-	 */
-	void buildBasicblockList(jitdata* jd, LoopContainer* loop, basicblock* beforeLoop, basicblock* lastBlockInLoop, basicblock* loopSwitch, basicblock* loopTrampoline)
+	inline void buildBasicblockList(jitdata* jd, LoopContainer* loop, basicblock* beforeLoop, basicblock* lastBlockInLoop, basicblock* loopSwitch, basicblock* loopTrampoline)
 	{
-		buildBasicblockList(jd, loop, beforeLoop, lastBlockInLoop, loopSwitch, 0, loopTrampoline);
+		buildBasicblockList(jd, loop, beforeLoop, lastBlockInLoop, loopSwitch, 0, 0, loopTrampoline);
+	}
+
+	inline void buildBasicblockList(jitdata* jd, LoopContainer* loop, basicblock* beforeLoop, basicblock* lastBlockInLoop, basicblock* loopSwitch1, basicblock* loopSwitch2, basicblock* loopTrampoline)
+	{
+		buildBasicblockList(jd, loop, beforeLoop, lastBlockInLoop, loopSwitch1, loopSwitch2, 0, loopTrampoline);
 	}
 
 	/**
@@ -271,8 +275,9 @@ namespace
 	 *
 	 * loop: The original loop that has been duplicated.
 	 * loopSwitch2: Will be inserted after the first loop switch if it is != 0.
+	 * loopSwitch3: Will be inserted after the first loop switch if it is != 0.
 	 */
-	void buildBasicblockList(jitdata* jd, LoopContainer* loop, basicblock* beforeLoop, basicblock* lastBlockInLoop, basicblock* loopSwitch1, basicblock* loopSwitch2, basicblock* loopTrampoline)
+	void buildBasicblockList(jitdata* jd, LoopContainer* loop, basicblock* beforeLoop, basicblock* lastBlockInLoop, basicblock* loopSwitch1, basicblock* loopSwitch2, basicblock* loopSwitch3, basicblock* loopTrampoline)
 	{
 		assert(loopSwitch1);
 
@@ -293,10 +298,19 @@ namespace
 		// insert second loop switch
 		if (loopSwitch2)
 		{
-			loopSwitch2->next = loopSwitch1->next;
-			loopSwitch1->next = loopSwitch2;
+			loopSwitch2->next = lastLoopSwitch->next;
+			lastLoopSwitch->next = loopSwitch2;
 
 			lastLoopSwitch = loopSwitch2;
+		}
+
+		// insert third loop switch
+		if (loopSwitch3)
+		{
+			loopSwitch3->next = lastLoopSwitch->next;
+			lastLoopSwitch->next = loopSwitch3;
+
+			lastLoopSwitch = loopSwitch3;
 		}
 
 		// insert trampoline after loop
@@ -333,6 +347,8 @@ namespace
 			pred->nodes.push_back(loopSwitch1);
 			if (loopSwitch2)
 				pred->nodes.push_back(loopSwitch2);
+			if (loopSwitch3)
+				pred->nodes.push_back(loopSwitch3);
 		}
 	}
 
@@ -377,25 +393,6 @@ namespace
 				}
 			}
 		}
-	}
-
-	/**
-	 * Creates a basicblock with a single GOTO instruction.
-	 */
-	basicblock* createLoopTrampoline(jitdata* jd, basicblock* target)
-	{
-		basicblock* loopTrampoline = new basicblock;
-		memset(loopTrampoline, 0, sizeof(basicblock));
-		loopTrampoline->ld = new BasicblockLoopData;
-		loopTrampoline->method = jd->m;
-		loopTrampoline->icount = 1;
-
-		loopTrampoline->iinstr = new instruction[loopTrampoline->icount];
-		memset(loopTrampoline->iinstr, 0, sizeof(instruction) * loopTrampoline->icount);
-
-		opcode_GOTO(loopTrampoline->iinstr, target);
-
-		return loopTrampoline;
 	}
 
 	/**
@@ -526,12 +523,12 @@ namespace
 		}
 	}
 
-	void optimizeLoop(jitdata* jd, LoopContainer* loop, s4 stackSlot)
+	void optimizeLoop(jitdata* jd, LoopContainer* loop)
 	{
 		// Optimize inner loops.
 		for (std::vector<LoopContainer*>::iterator it = loop->children.begin(); it != loop->children.end(); ++it)
 		{
-			optimizeLoop(jd, *it, stackSlot);
+			optimizeLoop(jd, *it);
 		}
 
 		// Currently only loops with one footer are optimized.
@@ -557,56 +554,51 @@ namespace
 						return;
 					}
 
-					// duplicate loop
-					duplicateLoop(loop);
 					basicblock *beforeLoop, *lastBlockInLoop;
-					if (!findLoop(jd, &beforeLoop, &lastBlockInLoop))
-					{
-						log_text("optimizeLoop: hole or header");
-
-						// loop cannot be optimized
-						deleteDuplicatedLoop(jd);
+					if (!checkLoop(jd, loop, &beforeLoop, &lastBlockInLoop))
 						return;
-					}
 
-					// The following assertion simplifies the code generation.
-					if ((beforeLoop && beforeLoop->outdepth != 0) ||
-						lastBlockInLoop->outdepth != 0)
-					{
-						log_text("optimizeLoop: depth != 0");
-
-						// loop cannot be optimized
-						deleteDuplicatedLoop(jd);
-						return;
-					}
+					duplicateLoop(loop);
 
 					// remove checks in original loop
 					removeChecks(loop, array, loop->counterVariable);
 
-					// create basicblock that jumps to the right loop
-					basicblock* loopSwitch = createBasicblock(jd, 4);
+					// create basicblocks that jump to the right loop
+					basicblock* loopSwitch1 = createBasicblock(jd, 2);
+					basicblock* loopSwitch2 = createBasicblock(jd, 4);
+					instruction* instr;
 
-					// Fill instruction array of loop switch with:
-					// if (array.length + upper_constant > MAX - increment) goto unoptimized_loop
+					// Fill instruction array of first loop switch with:
+					// if (array == null) goto unoptimized_loop
 
-					instruction* instr = loopSwitch->iinstr;
+					instr = loopSwitch1->iinstr;
 
 					opcode_ALOAD(instr++, array, array);
-					opcode_ARRAYLENGTH(instr++, array, stackSlot);
-					opcode_IADDCONST(instr++, stackSlot, loop->counterInterval.upper().constant(), stackSlot);
-					opcode_IFGT(instr++, stackSlot, Scalar::max() - loop->counterIncrement, loop->header->ld->copiedTo);
+					opcode_IFNULL(instr++, array, loop->header->ld->copiedTo);
 
-					assert(instr - loopSwitch->iinstr == loopSwitch->icount);
+					assert(instr - loopSwitch1->iinstr == loopSwitch1->icount);
+
+					// Fill instruction array of second loop switch with:
+					// if (array.length + upper_constant > MAX - increment) goto unoptimized_loop
+
+					instr = loopSwitch2->iinstr;
+
+					opcode_ALOAD(instr++, array, array);
+					opcode_ARRAYLENGTH(instr++, array, jd->ld->freeVariable);
+					opcode_IADDCONST(instr++, jd->ld->freeVariable, loop->counterInterval.upper().constant(), jd->ld->freeVariable);
+					opcode_IFGT(instr++, jd->ld->freeVariable, Scalar::max() - loop->counterIncrement, loop->header->ld->copiedTo);
+
+					assert(instr - loopSwitch2->iinstr == loopSwitch2->icount);
 
 					// create basicblock that jumps over the second loop
-					basicblock* loopTrampoline = createLoopTrampoline(jd, lastBlockInLoop->next);
+					basicblock* loopTrampoline = createTrampoline(jd, lastBlockInLoop->next);
 
 					// Insert loop into basicblock list.
-					redirectJumps(jd, loopSwitch);
-					buildBasicblockList(jd, loop, beforeLoop, lastBlockInLoop, loopSwitch, loopTrampoline);
+					redirectJumps(jd, loopSwitch1);
+					buildBasicblockList(jd, loop, beforeLoop, lastBlockInLoop, loopSwitch1, loopSwitch2, loopTrampoline);
 
 					// Adjust statistical data.
-					jd->basicblockcount += loop->nodes.size() + 3;
+					jd->basicblockcount += loop->nodes.size() + 4;
 				}
 				else if (loop->counterInterval.upper().instruction().kind() == NumericInstruction::VARIABLE &&
 					loop->counterInterval.upper().constant() == 0)
@@ -624,28 +616,11 @@ namespace
 					// TODO optimization: why take an arbitrary array variable?
 					s4 array = *loop->invariantArrays.begin();
 
-					// duplicate loop
-					duplicateLoop(loop);
 					basicblock *beforeLoop, *lastBlockInLoop;
-					if (!findLoop(jd, &beforeLoop, &lastBlockInLoop))
-					{
-						log_text("optimizeLoop: hole or header");
-
-						// loop cannot be optimized
-						deleteDuplicatedLoop(jd);
+					if (!checkLoop(jd, loop, &beforeLoop, &lastBlockInLoop))
 						return;
-					}
 
-					// The following assertion simplifies the code generation.
-					if ((beforeLoop && beforeLoop->outdepth != 0) ||
-						lastBlockInLoop->outdepth != 0)
-					{
-						log_text("optimizeLoop: depth != 0");
-
-						// loop cannot be optimized
-						deleteDuplicatedLoop(jd);
-						return;
-					}
+					duplicateLoop(loop);
 
 					// remove checks in original loop
 					removeChecks(loop, array, loop->counterVariable);
@@ -654,7 +629,8 @@ namespace
 
 					// create loop switches that jump to the right loop
 					basicblock* loopSwitch1 = createBasicblock(jd, 2);
-					basicblock* loopSwitch2 = createBasicblock(jd, 4);
+					basicblock* loopSwitch2 = createBasicblock(jd, 2);
+					basicblock* loopSwitch3 = createBasicblock(jd, 4);
 					instruction* instr;
 
 					// Fill instruction array of first loop switch with:
@@ -668,26 +644,36 @@ namespace
 					assert(instr - loopSwitch1->iinstr == loopSwitch1->icount);
 
 					// Fill instruction array of second loop switch with:
-					// if (invariant >= array.length) goto unoptimized_loop
+					// if (array == null) goto unoptimized_loop
 
 					instr = loopSwitch2->iinstr;
 
-					opcode_ILOAD(instr++, invariantVariable, invariantVariable);
 					opcode_ALOAD(instr++, array, array);
-					opcode_ARRAYLENGTH(instr++, array, stackSlot);
-					opcode_IF_ICMPGE(instr++, invariantVariable, stackSlot, loop->header->ld->copiedTo);
+					opcode_IFNULL(instr++, array, loop->header->ld->copiedTo);
 
 					assert(instr - loopSwitch2->iinstr == loopSwitch2->icount);
 
+					// Fill instruction array of third loop switch with:
+					// if (invariant >= array.length) goto unoptimized_loop
+
+					instr = loopSwitch3->iinstr;
+
+					opcode_ILOAD(instr++, invariantVariable, invariantVariable);
+					opcode_ALOAD(instr++, array, array);
+					opcode_ARRAYLENGTH(instr++, array, jd->ld->freeVariable);
+					opcode_IF_ICMPGE(instr++, invariantVariable, jd->ld->freeVariable, loop->header->ld->copiedTo);
+
+					assert(instr - loopSwitch3->iinstr == loopSwitch3->icount);
+
 					// create basicblock that jumps over the second loop
-					basicblock* loopTrampoline = createLoopTrampoline(jd, lastBlockInLoop->next);
+					basicblock* loopTrampoline = createTrampoline(jd, lastBlockInLoop->next);
 
 					// Insert loop into basicblock list.
 					redirectJumps(jd, loopSwitch1);
-					buildBasicblockList(jd, loop, beforeLoop, lastBlockInLoop, loopSwitch1, loopSwitch2, loopTrampoline);
+					buildBasicblockList(jd, loop, beforeLoop, lastBlockInLoop, loopSwitch1, loopSwitch2, loopSwitch3, loopTrampoline);
 
 					// Adjust statistical data.
-					jd->basicblockcount += loop->nodes.size() + 4;
+					jd->basicblockcount += loop->nodes.size() + 5;
 				}
 				else if (loop->counterInterval.upper().instruction().kind() == NumericInstruction::ZERO &&
 					loop->counterInterval.upper().constant() <= Scalar::max() - loop->counterIncrement)
@@ -705,55 +691,50 @@ namespace
 					// TODO optimization: why take an arbitrary array variable?
 					s4 array = *loop->invariantArrays.begin();
 
-					// duplicate loop
-					duplicateLoop(loop);
 					basicblock *beforeLoop, *lastBlockInLoop;
-					if (!findLoop(jd, &beforeLoop, &lastBlockInLoop))
-					{
-						log_text("optimizeLoop: hole or header");
-
-						// loop cannot be optimized
-						deleteDuplicatedLoop(jd);
+					if (!checkLoop(jd, loop, &beforeLoop, &lastBlockInLoop))
 						return;
-					}
 
-					// The following assertion simplifies the code generation.
-					if ((beforeLoop && beforeLoop->outdepth != 0) ||
-						lastBlockInLoop->outdepth != 0)
-					{
-						log_text("optimizeLoop: depth != 0");
-
-						// loop cannot be optimized
-						deleteDuplicatedLoop(jd);
-						return;
-					}
+					duplicateLoop(loop);
 
 					// remove checks in original loop
 					removeChecks(loop, array, loop->counterVariable);
 
 					// create basicblock that jumps to the right loop
-					basicblock* loopSwitch = createBasicblock(jd, 3);
+					basicblock* loopSwitch1 = createBasicblock(jd, 2);
+					basicblock* loopSwitch2 = createBasicblock(jd, 3);
+					instruction* instr;
 
-					// Fill instruction array of loop switch with:
-					// if (array.length <= upper_constant) goto unoptimized_loop
+					// Fill instruction array of first loop switch with:
+					// if (array == null) goto unoptimized_loop
 
-					instruction* instr = loopSwitch->iinstr;
+					instr = loopSwitch1->iinstr;
 
 					opcode_ALOAD(instr++, array, array);
-					opcode_ARRAYLENGTH(instr++, array, stackSlot);
-					opcode_IFLE(instr++, stackSlot, loop->counterInterval.upper().constant(), loop->header->ld->copiedTo);
+					opcode_IFNULL(instr++, array, loop->header->ld->copiedTo);
 
-					assert(instr - loopSwitch->iinstr == loopSwitch->icount);
+					assert(instr - loopSwitch1->iinstr == loopSwitch1->icount);
+
+					// Fill instruction array of second loop switch with:
+					// if (array.length <= upper_constant) goto unoptimized_loop
+
+					instr = loopSwitch2->iinstr;
+
+					opcode_ALOAD(instr++, array, array);
+					opcode_ARRAYLENGTH(instr++, array, jd->ld->freeVariable);
+					opcode_IFLE(instr++, jd->ld->freeVariable, loop->counterInterval.upper().constant(), loop->header->ld->copiedTo);
+
+					assert(instr - loopSwitch2->iinstr == loopSwitch2->icount);
 
 					// create basicblock that jumps over the second loop
-					basicblock* loopTrampoline = createLoopTrampoline(jd, lastBlockInLoop->next);
+					basicblock* loopTrampoline = createTrampoline(jd, lastBlockInLoop->next);
 
 					// Insert loop into basicblock list.
-					redirectJumps(jd, loopSwitch);
-					buildBasicblockList(jd, loop, beforeLoop, lastBlockInLoop, loopSwitch, loopTrampoline);
+					redirectJumps(jd, loopSwitch1);
+					buildBasicblockList(jd, loop, beforeLoop, lastBlockInLoop, loopSwitch1, loopSwitch2, loopTrampoline);
 
 					// Adjust statistical data.
-					jd->basicblockcount += loop->nodes.size() + 3;
+					jd->basicblockcount += loop->nodes.size() + 4;
 				}
 			}
 			else if (loop->counterIncrement < 0 &&
@@ -799,28 +780,11 @@ namespace
 						return;
 					}
 
-					// duplicate loop
-					duplicateLoop(loop);
 					basicblock *beforeLoop, *lastBlockInLoop;
-					if (!findLoop(jd, &beforeLoop, &lastBlockInLoop))
-					{
-						log_text("optimizeLoop: hole or header");
-
-						// loop cannot be optimized
-						deleteDuplicatedLoop(jd);
+					if (!checkLoop(jd, loop, &beforeLoop, &lastBlockInLoop))
 						return;
-					}
 
-					// The following assertion simplifies the code generation.
-					if ((beforeLoop && beforeLoop->outdepth != 0) ||
-						lastBlockInLoop->outdepth != 0)
-					{
-						log_text("optimizeLoop: depth != 0");
-
-						// loop cannot be optimized
-						deleteDuplicatedLoop(jd);
-						return;
-					}
+					duplicateLoop(loop);
 
 					// remove checks in original loop
 					removeChecks(loop, array, loop->counterVariable);
@@ -841,7 +805,7 @@ namespace
 					assert(instr - loopSwitch->iinstr == loopSwitch->icount);
 
 					// create basicblock that jumps over the second loop
-					basicblock* loopTrampoline = createLoopTrampoline(jd, lastBlockInLoop->next);
+					basicblock* loopTrampoline = createTrampoline(jd, lastBlockInLoop->next);
 
 					// Insert loop into basicblock list.
 					redirectJumps(jd, loopSwitch);
@@ -874,28 +838,11 @@ namespace
 						return;
 					}
 
-					// duplicate loop
-					duplicateLoop(loop);
 					basicblock *beforeLoop, *lastBlockInLoop;
-					if (!findLoop(jd, &beforeLoop, &lastBlockInLoop))
-					{
-						log_text("optimizeLoop: hole or header");
-
-						// loop cannot be optimized
-						deleteDuplicatedLoop(jd);
+					if (!checkLoop(jd, loop, &beforeLoop, &lastBlockInLoop))
 						return;
-					}
 
-					// The following assertion simplifies the code generation.
-					if ((beforeLoop && beforeLoop->outdepth != 0) ||
-						lastBlockInLoop->outdepth != 0)
-					{
-						log_text("optimizeLoop: depth != 0");
-
-						// loop cannot be optimized
-						deleteDuplicatedLoop(jd);
-						return;
-					}
+					duplicateLoop(loop);
 
 					// remove checks in original loop
 					removeChecks(loop, array, loop->counterVariable);
@@ -909,13 +856,13 @@ namespace
 					instruction* instr = loopSwitch->iinstr;
 
 					opcode_ALOAD(instr++, array, array);
-					opcode_ARRAYLENGTH(instr++, array, stackSlot);
-					opcode_IFLT(instr++, stackSlot, -loop->counterInterval.lower().constant(), loop->header->ld->copiedTo);
+					opcode_ARRAYLENGTH(instr++, array, jd->ld->freeVariable);
+					opcode_IFLT(instr++, jd->ld->freeVariable, -loop->counterInterval.lower().constant(), loop->header->ld->copiedTo);
 
 					assert(instr - loopSwitch->iinstr == loopSwitch->icount);
 
 					// create basicblock that jumps over the second loop
-					basicblock* loopTrampoline = createLoopTrampoline(jd, lastBlockInLoop->next);
+					basicblock* loopTrampoline = createTrampoline(jd, lastBlockInLoop->next);
 
 					// Insert loop into basicblock list.
 					redirectJumps(jd, loopSwitch);
@@ -929,39 +876,286 @@ namespace
 	}
 }
 
-void removePartiallyRedundantChecks(jitdata* jd)
+bool findFreeVariable(jitdata* jd)
 {
-	log_text("loop duplication started");
-
 	// Reserve temporary variable.
-	s4 stackSlot;
 	if (jd->vartop < jd->varcount)
 	{
-		stackSlot = jd->vartop++;
+		jd->ld->freeVariable = jd->vartop++;
 
-		varinfo* v = VAR(stackSlot);
+		varinfo* v = VAR(jd->ld->freeVariable);
 		v->type = TYPE_INT;
-	}
-	else
-	{
-		log_text("loop duplication: no free variable available");
-		return;
+
+		return true;
 	}
 
-	// Currently only methods without try blocks are allowed.
-	if (jd->exceptiontablelength != 0)
-	{
-		log_text("loop duplication: exception handler");
-		return;
-	}
-
-	//if (jd->ld->rootLoop->children.size() == 1 && jd->ld->rootLoop->children[0]->children.size() == 0)
-	//{
-		for (std::vector<LoopContainer*>::iterator it = jd->ld->rootLoop->children.begin(); it != jd->ld->rootLoop->children.end(); ++it)
-		{
-			optimizeLoop(jd, *it, stackSlot);
-		}
-	//}
-
-	log_text("loop duplication finished");
+	return false;
 }
+
+void removePartiallyRedundantChecks(jitdata* jd)
+{
+	for (std::vector<LoopContainer*>::iterator it = jd->ld->rootLoop->children.begin(); it != jd->ld->rootLoop->children.end(); ++it)
+	{
+		optimizeLoop(jd, *it);
+	}
+}
+
+void groupArrayBoundsChecks(jitdata* jd)
+{
+	bool optimizationDone = false;
+	basicblock* lastBlock = 0;
+
+	// Optimize every basicblock separately.
+	for (basicblock* block = jd->basicblocks; block; lastBlock = block, block = block->next)
+	{
+		// makes block duplication simpler
+		if (block->indepth != 0 || block->outdepth != 0)
+			continue;
+		
+		// A variable v is mapped to the value w+c, where w represents the value the variable w has at the beginning of the block.
+		// At the beginning of a basicblock every variable v has the value v+0.
+		ValueMap values;
+
+		// first index: array variable
+		// second index: index variable
+		DynamicVector<DynamicVector<s4> > smallestConstants;
+		DynamicVector<DynamicVector<s4> > biggestConstants;
+		DynamicVector<DynamicVector<s4> > accessCounts;
+
+		std::vector<s4> instructionArrayMap;   // Maps each instruction index to the used array variable.
+		std::vector<s4> instructionIndexMap;   // Maps each instruction index to the used index variable.
+
+		instructionArrayMap.resize(block->icount);
+		instructionIndexMap.resize(block->icount);
+
+		for (s4 i = 0; i < block->icount; i++)
+		{
+			instruction* instr = &block->iinstr[i];
+
+			switch (instr->opc)
+			{
+				case ICMD_COPY:
+				case ICMD_MOVE:
+				case ICMD_ILOAD:
+				case ICMD_ISTORE:
+					values[instr->dst.varindex] = values[instr->s1.varindex];
+					break;
+
+				case ICMD_IINC:
+				case ICMD_IADDCONST:
+					values[instr->dst.varindex] = values[instr->s1.varindex];
+					values[instr->dst.varindex].addConstant(instr->sx.val.i);
+					break;
+
+				case ICMD_ISUBCONST:
+					values[instr->dst.varindex] = values[instr->s1.varindex];
+					values[instr->dst.varindex].subtractConstant(instr->sx.val.i);
+					break;
+
+				case ICMD_IALOAD:
+				case ICMD_LALOAD:
+				case ICMD_FALOAD:
+				case ICMD_DALOAD:
+				case ICMD_AALOAD:
+				case ICMD_BALOAD:
+				case ICMD_CALOAD:
+				case ICMD_SALOAD:
+
+				case ICMD_IASTORE:
+				case ICMD_LASTORE:
+				case ICMD_FASTORE:
+				case ICMD_DASTORE:
+				case ICMD_AASTORE:
+				case ICMD_BASTORE:
+				case ICMD_CASTORE:
+				case ICMD_SASTORE:
+
+				case ICMD_IASTORECONST:
+				case ICMD_LASTORECONST:
+				case ICMD_FASTORECONST:
+				case ICMD_DASTORECONST:
+				case ICMD_AASTORECONST:
+				case ICMD_BASTORECONST:
+				case ICMD_CASTORECONST:
+				case ICMD_SASTORECONST:
+				{
+					// the value of the index variable
+					const Value& value = values[instr->sx.s23.s2.varindex];
+					s4 array = instr->s1.varindex;
+
+					if (!value.isUnknown() &&
+						(instr->flags.bits & INS_FLAG_CHECK))   // ABC has not been removed yet.
+					{
+						if (accessCounts[array][value.variable()] == 0)
+						{
+							smallestConstants[array][value.variable()] = value.constant();
+							biggestConstants[array][value.variable()] = value.constant();
+						}
+						else
+						{
+							// update smallest constant
+							if (value.constant() < smallestConstants[array][value.variable()])
+								smallestConstants[array][value.variable()] = value.constant();
+
+							// update biggest constant
+							if (value.constant() > biggestConstants[array][value.variable()])
+								biggestConstants[array][value.variable()] = value.constant();
+						}
+
+						++accessCounts[array][value.variable()];
+
+						instructionArrayMap[i] = array;
+						instructionIndexMap[i] = value.variable();
+					}
+					break;
+				}
+				default:
+					if (instruction_has_dst(instr))
+					{
+						values[instr->dst.varindex] = Value::newUnknown();
+					}
+			}
+		}
+
+		// find most used array/index combination
+		s4 bestCount = 0;
+		s4 bestArray = 0;
+		s4 bestIndex = 0;
+		for (size_t array = 0; array < accessCounts.size(); array++)
+		{
+			DynamicVector<s4> row = accessCounts[array];
+			for (size_t index = 0; index < row.size(); index++)
+			{
+				s4 count = row[index];
+				if (count > bestCount)
+				{
+					bestCount = count;
+					bestArray = array;
+					bestIndex = index;
+				}
+			}
+		}
+
+		s4 smallestConstant = smallestConstants[bestArray][bestIndex];
+		s4 biggestConstant = biggestConstants[bestArray][bestIndex];
+
+		if (bestCount > 3 &&
+			smallestConstant > std::numeric_limits<s4>::min() &&	// prevent overflow
+			biggestConstant >= 0)									// prevent overflow
+		{
+			basicblock* safeBlock = duplicateBasicblock(block);
+
+			// Remove checks in block.
+			for (s4 i = 0; i < block->icount; i++)
+			{
+				if (instructionArrayMap[i] == bestArray && instructionIndexMap[i] == bestIndex)
+				{
+					block->iinstr[i].flags.bits &= ~INS_FLAG_CHECK;
+				}
+			}
+
+			instruction* instr;
+
+			// Create first check: if (bestIndex < -1 * smallestConstant) goto safeBlock
+			basicblock* lowerBoundsCheck = createBasicblock(jd, 2);
+			instr = lowerBoundsCheck->iinstr;
+			opcode_ILOAD(instr++, bestIndex, bestIndex);
+			opcode_IFLT(instr++, bestIndex, -smallestConstant, safeBlock);
+			assert(instr - lowerBoundsCheck->iinstr == lowerBoundsCheck->icount);
+
+			// Create second check: if (bestIndex >= bestArray.length - biggestConstant) goto safeBlock
+			basicblock* upperBoundsCheck = createBasicblock(jd, 5);
+			instr = upperBoundsCheck->iinstr;
+			opcode_ILOAD(instr++, bestIndex, bestIndex);
+			opcode_ALOAD(instr++, bestArray, bestArray);
+			opcode_ARRAYLENGTH(instr++, bestArray, jd->ld->freeVariable);
+			opcode_ISUBCONST(instr++, jd->ld->freeVariable, biggestConstant, jd->ld->freeVariable);
+			opcode_IF_ICMPGE(instr++, bestIndex, jd->ld->freeVariable, safeBlock);
+			assert(instr - upperBoundsCheck->iinstr == upperBoundsCheck->icount);
+
+			// Create GOTO-Block between optimized and unoptimized basicblock.
+			basicblock* trampoline = createTrampoline(jd, block->next);
+
+			// Insert all blocks into the linked list.
+			safeBlock->next = block->next;
+			trampoline->next = safeBlock;
+			block->next = trampoline;
+			upperBoundsCheck->next = block;
+			lowerBoundsCheck->next = upperBoundsCheck;
+			if (lastBlock)
+				lastBlock->next = lowerBoundsCheck;
+			else
+				jd->basicblocks = lowerBoundsCheck;
+
+			// Store a pointer to the first check. Used for jump redirection.
+			block->ld->arrayIndexCheck = lowerBoundsCheck;
+			optimizationDone = true;
+
+			// Adjust statistical data.
+			jd->basicblockcount += 4;
+
+			// Set iteration variable to the correct value.
+			block = safeBlock;
+		}
+	}
+
+	if (optimizationDone)
+	{
+		// Redirect jumps that go to a duplicated basicblock to lowerBoundsCheck.
+		for (basicblock* block = jd->basicblocks; block; block = block->next)
+		{
+			for (instruction* instr = block->iinstr; instr != block->iinstr + block->icount; instr++)
+			{
+				switch (icmd_table[instr->opc].controlflow)
+				{
+					case CF_IF:
+					case CF_GOTO:
+					case CF_RET:
+						if (instr->dst.block->ld->arrayIndexCheck)
+							instr->dst.block = instr->dst.block->ld->arrayIndexCheck;
+						break;
+					case CF_JSR:
+						if (instr->sx.s23.s3.jsrtarget.block->ld->arrayIndexCheck)
+							instr->sx.s23.s3.jsrtarget.block = instr->sx.s23.s3.jsrtarget.block->ld->arrayIndexCheck;
+						break;
+					case CF_TABLE:
+					{
+						// count = (tablehigh - tablelow + 1) + 1 [default branch]
+						s4 count = instr->sx.s23.s3.tablehigh - instr->sx.s23.s2.tablelow + 2;
+
+						branch_target_t* target = instr->dst.table;
+						while (--count >= 0)
+						{
+							if (target->block->ld->arrayIndexCheck)
+								target->block = target->block->ld->arrayIndexCheck;
+							target++;
+						}
+						break;
+					}
+					case CF_LOOKUP:
+					{
+						// default target
+						if (instr->sx.s23.s3.lookupdefault.block->ld->arrayIndexCheck)
+							instr->sx.s23.s3.lookupdefault.block = instr->sx.s23.s3.lookupdefault.block->ld->arrayIndexCheck;
+
+						// other targets
+						lookup_target_t* entry = instr->dst.lookup;
+						s4 count = instr->sx.s23.s2.lookupcount;
+						while (--count >= 0)
+						{
+							if (entry->target.block->ld->arrayIndexCheck)
+								entry->target.block = entry->target.block->ld->arrayIndexCheck;
+							entry++;
+						}
+						break;
+					}
+					case CF_END:
+					case CF_NORMAL:
+						// nothing
+						break;
+				}
+			}
+		}
+	}
+}
+

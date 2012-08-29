@@ -298,8 +298,6 @@ namespace
 				delete second;
 				jd->ld->loops.erase(jd->ld->loops.begin() + i);
 				i--;
-
-				// TODO: The erase operation is quite expensive for vectors. Use lists instead!
 			}
 		}
 	}
@@ -411,7 +409,18 @@ void removeArrayBoundChecks(jitdata* jd)
 
 	printBasicBlocks(jd);
 
-	removePartiallyRedundantChecks(jd);
+	if (jd->exceptiontablelength == 0)   // Currently only methods without try blocks are allowed.
+	{
+		if (findFreeVariable(jd))
+		{
+			removePartiallyRedundantChecks(jd);
+			groupArrayBoundsChecks(jd);
+		}
+	}
+	else
+	{
+		log_text("Exception handler found.");
+	}
 }
 
 

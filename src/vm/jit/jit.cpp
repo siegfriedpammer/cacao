@@ -678,6 +678,10 @@ static u1 *jit_compile_intern(jitdata *jd)
 		{
 			removeArrayBoundChecks(jd);
 			jit_renumber_basicblocks(jd);
+			
+			cfg_clear(jd);
+			if (!cfg_build(jd))
+				return NULL;
 		}
 #endif
 		RT_TIMING_GET_TIME(time_loop);

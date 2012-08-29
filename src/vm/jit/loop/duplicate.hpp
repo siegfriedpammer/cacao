@@ -3,6 +3,8 @@
 
 #include "loop.hpp"
 
+bool findFreeVariable(jitdata* jd);
 void removePartiallyRedundantChecks(jitdata* jd);
+void groupArrayBoundsChecks(jitdata* jd);
 
 #endif

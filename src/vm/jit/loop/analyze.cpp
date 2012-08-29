@@ -94,7 +94,6 @@ namespace
 					{
 						// Store changed variable.
 						loop->writtenVariables.insert(instr->dst.varindex);
-						break;
 					}
 			}
 		}
@@ -112,33 +111,68 @@ namespace
 		assert(!loop->footers.empty());
 		
 		basicblock* footer = loop->footers.front();
-		bool jumpFound = false;
+
+		enum { SEEKING_JUMP, JUMP_FOUND, INC_FOUND } state = SEEKING_JUMP;
 
 		for (s4 i = footer->icount - 1; i >= 0; i--)
 		{
 			instruction* instr = &footer->iinstr[i];
-
-			if (jumpFound)
+			
+			switch (state)
 			{
-				s4 var = instr->dst.varindex;
-				s4 arg = instr->sx.val.i;
+				case SEEKING_JUMP:
 
-				if (instr->opc == ICMD_IINC &&				// For simplicity only IINC-instructions are considered.
-					isLocalIntVar(jd, var) &&
-					!loop->writtenVariables.contains(var))	// A counter variable is written only once in the whole loop.
-				{
-					loop->hasCounterVariable = true;
-					loop->counterVariable = var;
-					loop->counterIncrement = arg;
-				}
+					// Skip NOPs at the end of the basicblock until the jump instruction is found.
+					if (icmd_table[instr->opc].controlflow != CF_NORMAL)
+						state = JUMP_FOUND;
+					break;
 
-				break;
-			}
-			else
-			{
-				// Skip NOPs at the end of the basicblock until the jump instruction is found.
-				if (icmd_table[instr->opc].controlflow != CF_NORMAL)
-					jumpFound = true;
+				case JUMP_FOUND:
+
+					if (instr->opc == ICMD_IINC &&				// For simplicity only IINC-instructions are considered.
+						isLocalIntVar(jd, instr->dst.varindex) &&
+						!loop->writtenVariables.contains(instr->dst.varindex))	// A counter variable is written only once in the whole loop.
+					{
+						loop->hasCounterVariable = true;
+						loop->counterVariable = instr->dst.varindex;
+						loop->counterIncrement = instr->sx.val.i;
+						state = INC_FOUND;
+					}
+					else
+					{
+						return;
+					}
+					break;
+
+				case INC_FOUND:
+
+					switch (instr->opc)
+					{
+						case ICMD_COPY:
+						case ICMD_MOVE:
+						case ICMD_ILOAD:
+						case ICMD_LLOAD:
+						case ICMD_FLOAD:
+						case ICMD_DLOAD:
+						case ICMD_ALOAD:
+						case ICMD_ISTORE:
+						case ICMD_LSTORE:
+						case ICMD_FSTORE:
+						case ICMD_DSTORE:
+						case ICMD_ASTORE:
+							// If src == dst, the counter is definitely not changed.
+							if (instr->s1.varindex == instr->dst.varindex)
+								break;
+							// fall through
+						default:
+							// The counter variable must not be written to in all other instructions.
+							if (instruction_has_dst(instr) && instr->dst.varindex == loop->counterVariable)
+							{
+								loop->hasCounterVariable = false;
+								return;
+							}
+					}
+					break;
 			}
 		}
 	}
