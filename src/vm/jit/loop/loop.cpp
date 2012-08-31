@@ -24,15 +24,6 @@ namespace
 	void computeLoopDepth(LoopContainer* loop, s4 depth);
 	void sortLoopsInBasicblocks(jitdata* jd);
 
-/*
-	struct LoopHeaderCompare
-	{
-		bool operator()(const LoopContainer* a, const LoopContainer* b)
-		{
-			return a->header < b->header;
-		}
-	};
-*/
 
 	bool compareLoopHeaders(const LoopContainer* a, const LoopContainer* b)
 	{
@@ -217,7 +208,7 @@ namespace
 			basicblock* foot = edge->from;
 
 			LoopContainer* loop = new LoopContainer;
-			loop->invariantIntervals = IntervalMap(jd->varcount);
+			//loop->invariantIntervals = IntervalMap(jd->varcount);
 			//loop->headerIntervals = IntervalMap(jd->varcount);
 			jd->ld->loops.push_back(loop);
 			
@@ -388,7 +379,6 @@ namespace
 void removeArrayBoundChecks(jitdata* jd)
 {
 	log_message_method("removeArrayBoundChecks: ", jd->m);
-	log_println("vartop: %d, varcount: %d", jd->vartop, jd->varcount);
 
 	createRoot(jd);
 	calculateDominators(jd);
@@ -407,7 +397,7 @@ void removeArrayBoundChecks(jitdata* jd)
 	
 	removeFullyRedundantChecks(jd);
 
-	printBasicBlocks(jd);
+	//printBasicBlocks(jd);
 
 	if (jd->exceptiontablelength == 0)   // Currently only methods without try blocks are allowed.
 	{

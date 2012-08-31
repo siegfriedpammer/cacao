@@ -36,7 +36,7 @@ struct LoopContainer
 		: parent(0)
 		, depth(0)
 		, header(0)
-		, invariantIntervals(0)
+//		, invariantIntervals(0)
 //		, headerIntervals(0)
 		, hasCounterVariable(false)
 		, counterVariable(0)

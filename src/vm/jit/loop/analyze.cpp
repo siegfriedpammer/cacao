@@ -212,8 +212,8 @@ namespace
 		IntervalMap& targetIntervals = node->ld->targetIntervals;
 
 		// Initialize results. That is necessary because analyze can be called recursively.
-		targetIntervals = IntervalMap(jd->varcount);
-		intervals = IntervalMap(jd->varcount);
+		/*targetIntervals = IntervalMap(jd->varcount);
+		intervals = IntervalMap(jd->varcount);*/
 
 		// If node is a root, the variables (e.g. function arguments) can have any value.
 		// Otherwise we can take the interval maps from the predecessors.
@@ -574,7 +574,7 @@ namespace
 
 					// FALSE BRANCH
 
-					const IntervalMap temp = intervals;
+					IntervalMap temp = intervals;
 
 					// If the interval of S2 contains only one element A,
 					// then A can be removed from the other interval.

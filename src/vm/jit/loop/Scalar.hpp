@@ -49,8 +49,10 @@ public:
 		: _constant(constant)
 		, _instruction(instruction)
 	{
+#if !defined(NDEBUG)
 		s8 cu = static_cast<s8>(constant) + instruction.upper();
 		s8 cl = static_cast<s8>(constant) + instruction.lower();
+#endif
 
 		// check for overflow
 		assert(std::numeric_limits<s4>::min() <= cu && cu <= std::numeric_limits<s4>::max());
