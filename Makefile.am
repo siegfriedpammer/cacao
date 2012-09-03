@@ -1,6 +1,6 @@
 ## Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2008
+## Copyright (C) 1996-2012
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -43,6 +43,7 @@ EXTRA_DIST = \
 	ChangeLog-2005 \
 	ChangeLog-2006 \
 	ChangeLog-2007 \
+	INSTALL.CACAO \
 	THIRDPARTY
 
 
