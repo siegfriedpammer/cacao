@@ -44,8 +44,8 @@ AC_PROG_INSTALL
 GC_CFLAGS=${gc_cflags}
 AC_SUBST(GC_CFLAGS)
 
-AC_ARG_ENABLE(threads,
-  [AC_HELP_STRING([--enable-threads=TYPE], [choose threading package])],
+AC_ARG_ENABLE(boehm-threads,
+  [AC_HELP_STRING([--enable-boehm-threads=TYPE], [choose threading package])],
   THREADS=$enableval,
   [ AC_MSG_CHECKING([for thread model used by GCC])
     THREADS=`$CC -v 2>&1 | sed -n 's/^Thread model: //p'`
@@ -67,7 +67,7 @@ AC_ARG_ENABLE(parallel-mark,
         [parallelize marking and free list construction])],
    [case "$THREADS" in
       no | none | single)
-        AC_MSG_ERROR([Parallel mark requires --enable-threads=x spec])
+        AC_MSG_ERROR([Parallel mark requires --enable-boehm-threads=x spec])
         ;;
     esac ]
 )
