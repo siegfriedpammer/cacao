@@ -1,6 +1,6 @@
 /* src/native/vm/openjdk/sun_misc_Perf.cpp - sun/misc/Perf
 
-   Copyright (C) 2009
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -32,6 +32,7 @@
 #include "vm/utf8.h"
 #include "vm/vm.hpp"
 
+static jlong initial_timer;
 
 // Native functions are exported as C functions.
 extern "C" {
@@ -103,8 +104,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Perf_detach(JNIEnv *env, jobject _this, job
  */
 JNIEXPORT jlong JNICALL Java_sun_misc_Perf_highResCounter(JNIEnv *env, jobject _this)
 {
-	log_println("Java_sun_misc_Perf_highResCounter: IMPLEMENT ME!");
-	return 0;
+	return builtin_nanotime()/1000 - initial_timer;
 }
 
 
@@ -115,8 +115,7 @@ JNIEXPORT jlong JNICALL Java_sun_misc_Perf_highResCounter(JNIEnv *env, jobject _
  */
 JNIEXPORT jlong JNICALL Java_sun_misc_Perf_highResFrequency(JNIEnv *env, jobject _this)
 {
-	log_println("Java_sun_misc_Perf_highResFrequency: IMPLEMENT ME!");
-	return 0;
+	return 1000000;
 }
 
 } // extern "C"
@@ -143,6 +142,8 @@ static JNINativeMethod methods[] = {
 
 void _Jv_sun_misc_Perf_init(void)
 {
+	initial_timer = builtin_nanotime()/1000;
+
 	utf* u = utf_new_char("sun/misc/Perf");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
