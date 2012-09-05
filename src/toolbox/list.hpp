@@ -1,6 +1,6 @@
 /* src/toolbox/list.hpp - linked list
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -40,8 +40,8 @@
 template<class T> class List : protected std::list<T> {
 public:
 	// make iterator of std::list visible
-	using std::list<T>::iterator;
-	using std::list<T>::reverse_iterator;
+	using typename std::list<T>::iterator;
+	using typename std::list<T>::reverse_iterator;
 
 	// make functions of std::list visible
 	using std::list<T>::back;
@@ -92,8 +92,8 @@ public:
 	virtual ~DumpList() {}
 
 	// make iterator of std::list visible
-	using std::list<T, DumpMemoryAllocator<T> >::iterator;
-	using std::list<T, DumpMemoryAllocator<T> >::reverse_iterator;
+	using typename std::list<T, DumpMemoryAllocator<T> >::iterator;
+	using typename std::list<T, DumpMemoryAllocator<T> >::reverse_iterator;
 
 	// make functions of std::list visible
 	using std::list<T, DumpMemoryAllocator<T> >::back;
