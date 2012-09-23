@@ -208,7 +208,10 @@ jitdata *jit_jitdata_new(methodinfo *m)
 	jd->cd    = (codegendata*) DumpMemory::allocate(sizeof(codegendata));
 	jd->rd    = (registerdata*) DumpMemory::allocate(sizeof(registerdata));
 #if defined(ENABLE_LOOP)
-	jd->ld    = new MethodLoopData;
+	if (opt_loops)
+	{
+		jd->ld    = new MethodLoopData;
+	}
 	//jd->ld    = (MethodLoopData*) DumpMemory::allocate(sizeof(MethodLoopData));
 #endif
 

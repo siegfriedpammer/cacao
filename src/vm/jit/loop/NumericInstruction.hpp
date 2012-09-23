@@ -1,3 +1,27 @@
+/* src/vm/jit/loop/NumericInstruction.hpp
+
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301, USA.
+
+*/
+
 #ifndef _NUMERIC_INSTRUCTION_HPP
 #define _NUMERIC_INSTRUCTION_HPP
 
@@ -89,27 +113,11 @@ inline bool operator!=(const NumericInstruction& a, const NumericInstruction& b)
 inline s4 NumericInstruction::lower() const
 {
 	return lowerBounds[_kind];
-	/*switch (_kind)
-	{
-		case ZERO:			return 0;
-		case ARRAY_LENGTH:	return 0;
-		case VARIABLE:		return std::numeric_limits<s4>::min();
-		default:			assert(false);
-	}
-	return 0;*/
 }
 
 inline s4 NumericInstruction::upper() const
 {
 	return upperBounds[_kind];
-	/*switch (_kind)
-	{
-		case ZERO:			return 0;
-		case ARRAY_LENGTH:	return std::numeric_limits<s4>::max();
-		case VARIABLE:		return std::numeric_limits<s4>::max();
-		default:			assert(false);
-	}
-	return 0;*/
 }
 
 inline std::ostream& operator<<(std::ostream& out, const NumericInstruction& instruction)

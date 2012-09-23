@@ -1,3 +1,27 @@
+/* src/vm/jit/loop/duplicate.cpp
+
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301, USA.
+
+*/
+
 #include "toolbox/logging.hpp"
 #include "vm/jit/ir/icmd.hpp"
 
@@ -21,6 +45,7 @@ namespace
 	basicblock* createTrampoline(basicblock* target);
 	void redirectJumps(jitdata* jd, basicblock* loopSwitch);
 	void optimizeLoop(jitdata* jd, LoopContainer* loop);
+	bool isLocalIntVar(jitdata* jd, s4 varIndex);
 
 
 	//                                                    //
@@ -228,14 +253,14 @@ namespace
 					// The loop contains a hole.
 					if (loopFound)
 					{
-						log_text("checkLoop: hole");
+						//log_text("checkLoop: hole");
 						return false;
 					}
 
 					// The first block is not the header.
 					if (block->ld->loop == 0)
 					{
-						log_text("checkLoop: header");
+						//log_text("checkLoop: header");
 						return false;
 					}
 
@@ -252,7 +277,7 @@ namespace
 		// Check stack depth.
 		if (loop->header->indepth != 0 || (*lastBlockInLoopPtr)->outdepth != 0)
 		{
-			log_text("checkLoop: stack depth");
+			//log_text("checkLoop: stack depth");
 			return false;
 		}
 
@@ -543,14 +568,14 @@ namespace
 				{
 					// counterInterval: [L, array.length - c], L >= 0, c > 0
 
-					log_text("optimizeLoop: [non-negative, arraylength], inc");
+					//log_text("optimizeLoop: [non-negative, arraylength], inc");
 
 					s4 array = loop->counterInterval.upper().instruction().variable();
 
 					// The array variable must be invariant.
 					if (!loop->invariantArrays.contains(array))
 					{
-						log_println("optimizeLoop: %d not invariant", array);
+						//log_println("optimizeLoop: %d not invariant", array);
 						return;
 					}
 
@@ -605,15 +630,15 @@ namespace
 				{
 					// counterInterval: [L, x], L >= 0
 
-					log_text("optimizeLoop: [non-negative, invariant], inc");
+					//log_text("optimizeLoop: [non-negative, invariant], inc");
 
 					if (loop->invariantArrays.begin() == loop->invariantArrays.end())
 					{
-						log_text("optimizeLoop: no invariant array");
+						//log_text("optimizeLoop: no invariant array");
 						return;
 					}
 					
-					// TODO optimization: why take an arbitrary array variable?
+					// possible optimization: why take an arbitrary array variable?
 					s4 array = *loop->invariantArrays.begin();
 
 					basicblock *beforeLoop, *lastBlockInLoop;
@@ -680,15 +705,15 @@ namespace
 				{
 					// counterInterval: [L, c], L >= 0, c <= MAX - increment
 
-					log_text("optimizeLoop: [non-negative, constant], inc");
+					//log_text("optimizeLoop: [non-negative, constant], inc");
 
 					if (loop->invariantArrays.begin() == loop->invariantArrays.end())
 					{
-						log_text("optimizeLoop: no invariant array");
+						//log_text("optimizeLoop: no invariant array");
 						return;
 					}
 					
-					// TODO optimization: why take an arbitrary array variable?
+					// possible optimization: why take an arbitrary array variable?
 					s4 array = *loop->invariantArrays.begin();
 
 					basicblock *beforeLoop, *lastBlockInLoop;
@@ -748,14 +773,14 @@ namespace
 				{
 					// counterInterval: [c, U], c >= 0, U < array.length
 
-					log_text("optimizeLoop: [non-negative, arraylength], dec");
+					//log_text("optimizeLoop: [non-negative, arraylength], dec");
 
 					s4 array = loop->counterInterval.upper().instruction().variable();
 
 					// The array variable must be invariant.
 					if (!loop->invariantArrays.contains(array))
 					{
-						log_println("optimizeLoop: %d not invariant", array);
+						//log_println("optimizeLoop: %d not invariant", array);
 						return;
 					}
 
@@ -769,14 +794,14 @@ namespace
 				{
 					// counterInterval: [x, U], U < array.length
 
-					log_text("optimizeLoop: [invariant, arraylength], dec");
+					//log_text("optimizeLoop: [invariant, arraylength], dec");
 
 					s4 array = loop->counterInterval.upper().instruction().variable();
 
 					// The array variable must be invariant.
 					if (!loop->invariantArrays.contains(array))
 					{
-						log_println("optimizeLoop: %d not invariant", array);
+						//log_println("optimizeLoop: %d not invariant", array);
 						return;
 					}
 
@@ -820,21 +845,21 @@ namespace
 				{
 					// counterInterval: [array.length + c, U], MIN < c < 0, U < array.length
 
-					log_text("optimizeLoop: [arraylength, arraylength], dec");
+					//log_text("optimizeLoop: [arraylength, arraylength], dec");
 
 					s4 array = loop->counterInterval.upper().instruction().variable();
 					
 					// Both array variables must be the same.
 					if (array != loop->counterInterval.lower().instruction().variable())
 					{
-						log_text("optimizeLoop: arrays are different");
+						//log_text("optimizeLoop: arrays are different");
 						return;
 					}
 
 					// The array variable must be invariant.
 					if (!loop->invariantArrays.contains(array))
 					{
-						log_println("optimizeLoop: %d not invariant", array);
+						//log_println("optimizeLoop: %d not invariant", array);
 						return;
 					}
 
@@ -873,6 +898,15 @@ namespace
 				}
 			}
 		}
+	}
+
+	/**
+	 * Checks whether the specified variable is local and of type integer.
+	 */
+	bool isLocalIntVar(jitdata* jd, s4 varIndex)
+	{
+		varinfo* info = VAR(varIndex);
+		return IS_INT_TYPE(info->type) && (var_is_local(jd, varIndex) || var_is_temp(jd, varIndex));
 	}
 }
 
@@ -938,18 +972,27 @@ void groupArrayBoundsChecks(jitdata* jd)
 				case ICMD_MOVE:
 				case ICMD_ILOAD:
 				case ICMD_ISTORE:
-					values[instr->dst.varindex] = values[instr->s1.varindex];
+					if (isLocalIntVar(jd, instr->dst.varindex))
+						values[instr->dst.varindex] = values[instr->s1.varindex];
+					else
+						values[instr->dst.varindex] = Value::newUnknown();   // dst can be an array
 					break;
 
 				case ICMD_IINC:
 				case ICMD_IADDCONST:
-					values[instr->dst.varindex] = values[instr->s1.varindex];
-					values[instr->dst.varindex].addConstant(instr->sx.val.i);
+					if (isLocalIntVar(jd, instr->dst.varindex))
+					{
+						values[instr->dst.varindex] = values[instr->s1.varindex];
+						values[instr->dst.varindex].addConstant(instr->sx.val.i);
+					}
 					break;
 
 				case ICMD_ISUBCONST:
-					values[instr->dst.varindex] = values[instr->s1.varindex];
-					values[instr->dst.varindex].subtractConstant(instr->sx.val.i);
+					if (isLocalIntVar(jd, instr->dst.varindex))
+					{
+						values[instr->dst.varindex] = values[instr->s1.varindex];
+						values[instr->dst.varindex].subtractConstant(instr->sx.val.i);
+					}
 					break;
 
 				case ICMD_IALOAD:
@@ -1023,15 +1066,18 @@ void groupArrayBoundsChecks(jitdata* jd)
 		s4 bestIndex = 0;
 		for (size_t array = 0; array < accessCounts.size(); array++)
 		{
-			DynamicVector<s4> row = accessCounts[array];
-			for (size_t index = 0; index < row.size(); index++)
+			if (!values[array].isUnknown())   // Is array invariant?
 			{
-				s4 count = row[index];
-				if (count > bestCount)
+				DynamicVector<s4> row = accessCounts[array];
+				for (size_t index = 0; index < row.size(); index++)
 				{
-					bestCount = count;
-					bestArray = array;
-					bestIndex = index;
+					s4 count = row[index];
+					if (count > bestCount)
+					{
+						bestCount = count;
+						bestArray = array;
+						bestIndex = index;
+					}
 				}
 			}
 		}
@@ -1039,7 +1085,7 @@ void groupArrayBoundsChecks(jitdata* jd)
 		s4 smallestConstant = smallestConstants[bestArray][bestIndex];
 		s4 biggestConstant = biggestConstants[bestArray][bestIndex];
 
-		if (bestCount > 2 &&
+		if (bestCount > 3 &&
 			smallestConstant > std::numeric_limits<s4>::min() &&	// prevent overflow
 			biggestConstant >= 0)									// prevent overflow
 		{
@@ -1166,4 +1212,3 @@ void groupArrayBoundsChecks(jitdata* jd)
 		}
 	}
 }
-
