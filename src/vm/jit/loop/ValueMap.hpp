@@ -1,6 +1,6 @@
 /* src/vm/jit/loop/ValueMap.hpp
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -44,16 +44,6 @@ public:
 	Value& operator[](size_t varIndex);
 };
 
-/*
-inline ValueMap::ValueMap(size_t varCount)
-{
-	_values.reserve(varCount);
-	for (size_t i = 0; i < varCount; i++)
-	{
-		_values.push_back(Value::newAddition(i, 0));
-	}
-}*/
-
 inline Value& ValueMap::operator[](size_t varIndex)
 {
 	for (size_t i = _values.size(); i <= varIndex; i++)
@@ -64,3 +54,18 @@ inline Value& ValueMap::operator[](size_t varIndex)
 }
 
 #endif
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c++
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */
+

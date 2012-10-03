@@ -1,6 +1,6 @@
 ## src/vm/jit/loop/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+## Copyright (C) 1996-2012 R. Grafl, A. Krall, C. Kruegel,
 ## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
 ## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
 ## J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -24,14 +24,14 @@
 ##
 ## Contact: cacao@cacaojvm.org
 ##
-## Authors: Christian Thalinger
+## Authors: Christian Thalinger, Thomas Hackl
 ##
 ## Changes:
 
 ## Process this file with automake to produce Makefile.in
 
 AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
-AM_CXXFLAGS = -Wall -Werror
+AM_CXXFLAGS = -Wall
 
 LIBS =
 
@@ -46,7 +46,6 @@ libloop_la_SOURCES = \
 	analyze.hpp \
 	VariableSet.cpp \
 	VariableSet.hpp \
-	Interval.cpp \
 	Interval.hpp \
 	IntervalMap.cpp \
 	IntervalMap.hpp \
