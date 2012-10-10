@@ -1,6 +1,6 @@
 /* src/vm/suck.cpp - functions to read LE ordered types from a buffer
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -205,6 +205,7 @@ void SuckClasspath::add_from_property(const char *key)
 	s4              i;
 	s4              namlen;
 	char           *p;
+	char* boot_class_path = NULL;
 
 	// Get the property value.
 	Properties& properties = VM::get_current()->get_properties();
@@ -253,29 +254,36 @@ void SuckClasspath::add_from_property(const char *key)
 					namlen = strlen(namelist[i]->d_name);
 #endif
 
-					/* Allocate memory for bootclasspath. */
+					if (boot_class_path == NULL) {
+						/* Allocate memory for bootclasspath. */
+						p = MNEW(char,
+								 pathlen + strlen("/") + namlen +
+								 strlen("0"));
 
-					// FIXME Make boot_class_path const char*.
-					char* boot_class_path = (char*) properties.get("sun.boot.class.path");
+						strcpy(p, path);
+						strcat(p, "/");
+						strcat(p, namelist[i]->d_name);
 
-					p = MNEW(char,
-							 pathlen + strlen("/") + namlen +
-							 strlen(":") +
-							 strlen(boot_class_path) +
-							 strlen("0"));
+					} else {
+						/* Allocate memory for bootclasspath. */
+						p = MNEW(char,
+								 pathlen + strlen("/") + namlen +
+								 strlen(":") +
+								 strlen(boot_class_path) +
+								 strlen("0"));
 
-					/* Prepend the file found to the bootclasspath. */
+						/* Append the file found to the bootclasspath. */
 
-					strcpy(p, path);
-					strcat(p, "/");
-					strcat(p, namelist[i]->d_name);
-					strcat(p, ":");
-					strcat(p, boot_class_path);
+						strcpy(p, boot_class_path);
+						strcat(p, ":");
+						strcat(p, path);
+						strcat(p, "/");
+						strcat(p, namelist[i]->d_name);
 
-					properties.put("sun.boot.class.path", p);
-					properties.put("java.boot.class.path", p);
+						MFREE(boot_class_path, char, strlen(boot_class_path));
+					}
 
-					MFREE(boot_class_path, char, strlen(boot_class_path));
+					boot_class_path = p;
 
 					/* free the memory allocated by scandir */
 					/* (We use `free` as the memory came from the C library.) */
@@ -302,6 +310,33 @@ void SuckClasspath::add_from_property(const char *key)
 		else
 			start = end;
 	}
+
+	if (boot_class_path != NULL) {
+		// only update if something has changed
+
+		// FIXME Make boot_class_path const char*.
+		char* old_boot_class_path = (char*) properties.get("sun.boot.class.path");
+
+		p = MNEW(char,
+				 strlen(boot_class_path) +
+				 strlen(":") +
+				 strlen(old_boot_class_path) +
+				 strlen("0"));
+
+		/* Prepend the file found to the bootclasspath. */
+
+		strcpy(p, boot_class_path);
+		strcat(p, ":");
+		strcat(p, old_boot_class_path);
+
+		MFREE(boot_class_path, char, strlen(boot_class_path));
+		MFREE(old_boot_class_path, char, strlen(old_boot_class_path));
+
+		/* Prepend the file found to the bootclasspath. */
+		properties.put("sun.boot.class.path", p);
+		properties.put("java.boot.class.path", p);
+	}
+
 }
 
 

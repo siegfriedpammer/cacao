@@ -667,6 +667,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	int   len;
 	char *p;
 	char *boot_class_path;
+	char *boot_class_path_p = NULL;
 	char *class_path;
 	int   opt;
 	bool  opt_version;
@@ -794,6 +795,11 @@ VM::VM(JavaVMInitArgs* vm_args)
 			/* Forget default bootclasspath and set the argument as
 			   new boot classpath. */
 
+			/* Forget stored -Xbootclasspath/p value */
+			if (boot_class_path_p != NULL) {
+				MFREE(boot_class_path_p, char, len);
+				boot_class_path_p = NULL;
+			}
 			// FIXME Make boot_class_path const char*.
 			boot_class_path = (char*) _properties.get("sun.boot.class.path");
 
@@ -831,22 +837,22 @@ VM::VM(JavaVMInitArgs* vm_args)
 
 		case OPT_BOOTCLASSPATH_P:
 			/* Prepend to bootclasspath. */
+			/* Note: we can not add this value directly to sun/java.boot.class.path
+			   because we need to take care of the ordering regarding the
+			   endorseddirs property */
 
-			// FIXME Make boot_class_path const char*.
-			boot_class_path = (char*) _properties.get("sun.boot.class.path");
-
-			len = strlen(boot_class_path);
-
-			p = MNEW(char, strlen(opt_arg) + strlen(":") + len + strlen("0"));
-
-			strcpy(p, opt_arg);
-			strcat(p, ":");
-			strcat(p, boot_class_path);
-
-			_properties.put("sun.boot.class.path", p);
-			_properties.put("java.boot.class.path", p);
-
-			MFREE(boot_class_path, char, len);
+			if (boot_class_path_p == NULL) {
+				boot_class_path_p = MNEW(char, strlen(opt_arg) + strlen("0"));
+				strcpy(boot_class_path_p, opt_arg);
+			} else {
+				len = strlen(boot_class_path_p);
+				p = MNEW(char, strlen(opt_arg) + strlen(":") + len + strlen("0"));
+				strcpy(p, opt_arg);
+				strcat(p, ":");
+				strcat(p, boot_class_path_p);
+				MFREE(boot_class_path_p, char, len);
+				boot_class_path_p = p;
+			}
 			break;
 
 		case OPT_BOOTCLASSPATH_C:
@@ -1294,6 +1300,10 @@ VM::VM(JavaVMInitArgs* vm_args)
 #endif
 
 	/* AFTER: thread_preinit */
+
+	/* Add -Xbootclasspath/p if it exists */
+	if (boot_class_path_p != NULL)
+		_suckclasspath.add(boot_class_path_p);
 
 	_suckclasspath.add_from_property("java.endorsed.dirs");
 
