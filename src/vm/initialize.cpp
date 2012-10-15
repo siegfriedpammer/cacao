@@ -1,6 +1,6 @@
 /* src/vm/initialize.cpp - static class initializer functions
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -81,6 +81,9 @@ void initialize_init(void)
 
 	if (!initialize_class(class_java_lang_Thread))
 		vm_abort("initialize_init: Initialization failed: java.lang.Thread");
+
+	if (!initialize_class(class_java_lang_Class))
+		vm_abort("initialize_init: Initialization failed: java.lang.Class");
 
 # else
 #  error unknown classpath configuration
