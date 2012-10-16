@@ -2376,6 +2376,14 @@ void JVM_SetThreadPriority(JNIEnv* env, jobject jthread, jint prio)
 }
 
 
+/* JVM_SetNativeThreadName */
+
+void JVM_SetNativeThreadName(JNIEnv* env, jclass cls, jobject name)
+{
+	TRACEJVMCALLS(("JVM_SetNativeThreadName(env=%p, cls=%p, name=%p)", env, cls, name));
+}
+
+
 /* JVM_Yield */
 
 void JVM_Yield(JNIEnv *env, jclass threadClass)
