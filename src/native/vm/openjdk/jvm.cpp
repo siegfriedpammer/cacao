@@ -2085,6 +2085,8 @@ int open64_w(const char *path, int oflag, int mode)
     return fd;
 }
 
+static jint _JVM_SocketAvailable(jint fd, jint *pbytes);
+
 #ifndef O_DELETE
 #define O_DELETE 0x10000
 #endif
@@ -2194,7 +2196,25 @@ jint JVM_Available(jint fd, jlong* pbytes)
 	HPI& hpi = VM::get_current()->get_hpi();
 	return hpi.get_file().Available(fd, pbytes);
 #else
-	return NULL;
+	off64_t cur, end;
+	int mode;
+
+	if (sysFfileMode(fd, &mode) >= 0)
+		if (S_ISCHR(mode) || S_ISFIFO(mode) || S_ISSOCK(mode)) {
+			jint bytes;
+			if (_JVM_SocketAvailable(fd, &bytes)) {
+				*pbytes = bytes;
+				return 1;
+			}
+		}
+	if ((cur = lseek64(fd, 0L, SEEK_CUR)) == -1)
+		return 0;
+	else if ((end = lseek64(fd, 0L, SEEK_END)) == -1)
+		return 0;
+	else if (lseek64(fd, cur, SEEK_SET) == -1)
+		return 0;
+	*pbytes = end - cur;
+	return 1;
 #endif
 }
 
@@ -2942,13 +2962,11 @@ jint JVM_SendTo(jint fd, char *buf, int len, int flags, struct sockaddr *to, int
 
 /* JVM_SocketAvailable */
 
-jint JVM_SocketAvailable(jint fd, jint *pbytes)
+jint _JVM_SocketAvailable(jint fd, jint *pbytes)
 {
 #if defined(FIONREAD)
 	int bytes;
 	int result;
-
-	TRACEJVMCALLS(("JVM_SocketAvailable(fd=%d, pbytes=%p)", fd, pbytes));
 
 	*pbytes = 0;
 
@@ -2963,6 +2981,12 @@ jint JVM_SocketAvailable(jint fd, jint *pbytes)
 #else
 # error FIONREAD not defined
 #endif
+}
+
+jint JVM_SocketAvailable(jint fd, jint *pbytes)
+{
+	TRACEJVMCALLS(("JVM_SocketAvailable(fd=%d, pbytes=%p)", fd, pbytes));
+	return _JVM_SocketAvailable(fd, pbytes);
 }
 
 
