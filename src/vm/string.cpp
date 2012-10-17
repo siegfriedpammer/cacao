@@ -411,8 +411,8 @@ char* javastring_tochar(java_handle_t* h)
 	if (ca.is_null())
 		return (char*) "";
 
-	int32_t count  = jls.get_count();
-	int32_t offset = jls.get_offset();
+	int32_t count  = jdk_str_ops::get_string_count(jls);
+	int32_t offset = jdk_str_ops::get_string_offset(jls);
 
 	char* buf = MNEW(char, count + 1);
 
@@ -447,8 +447,8 @@ utf *javastring_toutf(java_handle_t *string, bool isclassname)
 	if (ca.is_null())
 		return utf_null;
 
-	int32_t count  = jls.get_count();
-	int32_t offset = jls.get_offset();
+	int32_t count  = jdk_str_ops::get_string_count(jls);
+	int32_t offset = jdk_str_ops::get_string_offset(jls);
 
 	// XXX: Fix me!
 	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
@@ -489,7 +489,7 @@ static java_handle_t *literalstring_u2(java_handle_chararray_t *a, int32_t lengt
 		// FIXME
 		java_lang_String js(LLNI_WRAP(s->string));
 
-		if (length == js.get_count()) {
+		if (length == jdk_str_ops::get_string_count(js)) {
 			/* compare text */
 
 			for (int32_t i = 0; i < length; i++) {
@@ -596,7 +596,7 @@ static java_handle_t *literalstring_u2(java_handle_chararray_t *a, int32_t lengt
 				nexts = s->hashlink;
 				java_lang_String tmpjls(LLNI_WRAP(s->string));
 				// FIXME This is not handle capable!
-				slot  = unicode_hashkey(((java_chararray_t*) LLNI_UNWRAP(tmpjls.get_value()))->data, tmpjls.get_count()) & (newhash.size - 1);
+				slot  = unicode_hashkey(((java_chararray_t*) LLNI_UNWRAP(tmpjls.get_value()))->data, jdk_str_ops::get_string_count(tmpjls)) & (newhash.size - 1);
 	  
 				s->hashlink = (literalstring*) newhash.ptr[slot];
 				newhash.ptr[slot] = s;
@@ -684,8 +684,8 @@ java_handle_t *javastring_intern(java_handle_t *string)
 
 	CharArray ca(jls.get_value());
 
-	int32_t count  = jls.get_count();
-	int32_t offset = jls.get_offset();
+	int32_t count  = jdk_str_ops::get_string_count(jls);
+	int32_t offset = jdk_str_ops::get_string_offset(jls);
 
 	java_handle_t* o = literalstring_u2(ca.get_handle(), count, offset, true);
 
@@ -705,8 +705,8 @@ void javastring_fprint(java_handle_t *s, FILE *stream)
 
 	CharArray ca(jls.get_value());
 
-	int32_t count  = jls.get_count();
-	int32_t offset = jls.get_offset();
+	int32_t count  = jdk_str_ops::get_string_count(jls);
+	int32_t offset = jdk_str_ops::get_string_offset(jls);
 
 	// XXX: Fix me!
 	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();

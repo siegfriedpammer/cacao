@@ -43,6 +43,8 @@
 #include "vm/globals.hpp"
 #include "vm/method.hpp"
 
+#include "vm/array.hpp"
+
 
 #ifdef __cplusplus
 
@@ -1889,22 +1891,31 @@ inline java_lang_StackTraceElement::java_lang_StackTraceElement(java_handle_t* d
 /**
  * OpenJDK java/lang/String
  *
- * Object layout:
+ * Object layout (JDK6):
  *
  * 0. object header
  * 1. char[] value;
  * 2. int    offset;
  * 3. int    count;
  * 4. int    hash;
+ *
+ * Object layout (JDK7):
+ *
+ * 0. object header
+ * 1. char[] value;
+ * 2. int    hash;
  */
 class java_lang_String : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
 	static const off_t offset_value  = MEMORY_ALIGN(sizeof(java_object_t),           SIZEOF_VOID_P);
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	static const off_t offset_offset = MEMORY_ALIGN(offset_value  + SIZEOF_VOID_P,   sizeof(int32_t));
 	static const off_t offset_count  = MEMORY_ALIGN(offset_offset + sizeof(int32_t), sizeof(int32_t));
-	static const off_t offset_hash   = MEMORY_ALIGN(offset_count  + sizeof(int32_t), sizeof(int32_t));
+#else
+	static const off_t offset_hash   = MEMORY_ALIGN(offset_value  + SIZEOF_VOID_P,   sizeof(int32_t));
+#endif
 
 public:
 	java_lang_String(java_handle_t* h) : java_lang_Object(h) {}
@@ -1912,20 +1923,26 @@ public:
 
 	// Getters.
 	java_handle_chararray_t* get_value () const;
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	int32_t                  get_offset() const;
 	int32_t                  get_count () const;
+#endif
 
 	// Setters.
 	void set_value (java_handle_chararray_t* value);
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	void set_offset(int32_t value);
 	void set_count (int32_t value);
+#endif
 };
 
 inline java_lang_String::java_lang_String(java_handle_t* h, java_handle_chararray_t* value, int32_t count, int32_t offset) : java_lang_Object(h)
 {
 	set_value(value);
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	set_offset(offset);
 	set_count(count);
+#endif
 }
 
 inline java_handle_chararray_t* java_lang_String::get_value() const
@@ -1933,6 +1950,7 @@ inline java_handle_chararray_t* java_lang_String::get_value() const
 	return get<java_handle_chararray_t*>(_handle, offset_value);
 }
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 inline int32_t java_lang_String::get_offset() const
 {
 	return get<int32_t>(_handle, offset_offset);
@@ -1942,12 +1960,14 @@ inline int32_t java_lang_String::get_count() const
 {
 	return get<int32_t>(_handle, offset_count);
 }
+#endif
 
 inline void java_lang_String::set_value(java_handle_chararray_t* value)
 {
 	set(_handle, offset_value, value);
 }
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 inline void java_lang_String::set_offset(int32_t value)
 {
 	set(_handle, offset_offset, value);
@@ -1957,6 +1977,43 @@ inline void java_lang_String::set_count(int32_t value)
 {
 	set(_handle, offset_count, value);
 }
+#endif
+
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
+namespace jdk6_str_ops {
+
+inline jsize get_string_count(const java_lang_String &s)
+{
+	return s.get_count();
+}
+
+inline jsize get_string_offset(const java_lang_String &s)
+{
+	return s.get_offset();
+}
+
+}
+#endif
+
+namespace jdk7_str_ops {
+
+inline jsize get_string_count(const java_lang_String &s)
+{
+	return CharArray(s.get_value()).get_length();
+}
+
+inline jsize get_string_offset(const java_lang_String &s)
+{
+	return 0;
+}
+
+}
+
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
+namespace jdk_str_ops = jdk6_str_ops;
+#else
+namespace jdk_str_ops = jdk7_str_ops;
+#endif
 
 
 /**
