@@ -1,6 +1,6 @@
 /* src/vm/jit/stacktrace.cpp - machine independent stacktrace system
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -708,7 +708,7 @@ java_handle_t* stacktrace_get_StackTraceElement(stacktrace_t* st, int32_t index)
 
 	if (!(m->flags & ACC_NATIVE)) {
 		if (c->sourcefile != NULL)
-			filename = javastring_new(c->sourcefile);
+			filename = javastring_intern(javastring_new(c->sourcefile));
 		else
 			filename = NULL;
 	}
@@ -735,7 +735,7 @@ java_handle_t* stacktrace_get_StackTraceElement(stacktrace_t* st, int32_t index)
 	}
 
 	// Get declaring class name.
-	java_handle_t* declaringclass = class_get_classname(c);
+	java_handle_t* declaringclass = javastring_intern(class_get_classname(c));
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	// Allocate a new StackTraceElement object.
@@ -747,7 +747,7 @@ java_handle_t* stacktrace_get_StackTraceElement(stacktrace_t* st, int32_t index)
 	java_lang_StackTraceElement jlste(h, filename, linenumber, declaringclass, javastring_new(m->name), ((m->flags & ACC_NATIVE) ? 1 : 0));
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	// Allocate a new StackTraceElement object.
-	java_lang_StackTraceElement jlste(declaringclass, javastring_new(m->name), filename, linenumber);
+	java_lang_StackTraceElement jlste(declaringclass, javastring_intern(javastring_new(m->name)), filename, linenumber);
 
 	if (jlste.is_null())
 		return NULL;
