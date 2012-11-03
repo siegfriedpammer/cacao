@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <dlfcn.h>
 
 #if defined(HAVE_SYS_IOCTL_H)
 #define BSD_COMP /* Get FIONREAD on Solaris2 */
@@ -58,7 +59,9 @@
 
 #include "native/vm/reflection.hpp"
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 #include "native/vm/openjdk/hpi.hpp"
+#endif
 #include "native/vm/openjdk/management.hpp"
 
 #include "threads/lock.hpp"
@@ -598,8 +601,13 @@ jint JVM_GetLastErrorString(char* buf, int len)
 {
 	TRACEJVMCALLS(("JVM_GetLastErrorString(buf=%p, len=%d", buf, len));
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	HPI& hpi = VM::get_current()->get_hpi();
 	return hpi.get_system().GetLastErrorString(buf, len);
+#else
+	//XXX IMPLEMENT ME!
+	return NULL;
+#endif
 }
 
 
@@ -609,8 +617,12 @@ char *JVM_NativePath(char* path)
 {
 	TRACEJVMCALLS(("JVM_NativePath(path=%s)", path));
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	HPI& hpi = VM::get_current()->get_hpi();
 	return hpi.get_file().NativePath(path);
+#else
+	return path;
+#endif
 }
 
 
@@ -2010,6 +2022,90 @@ jboolean JVM_IsSameClassPackage(JNIEnv *env, jclass class1, jclass class2)
 
 
 /* JVM_Open */
+#ifdef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
+/* Taken from openjdk/jdk/src/solaris/hpi/src/system_md.c of openjdk6 */
+
+int sysFfileMode(int fd, int *mode)
+{
+    struct stat64 buf64;
+    int ret = fstat64(fd, &buf64);
+    (*mode) = buf64.st_mode;
+    return ret;
+}
+
+int open64_w(const char *path, int oflag, int mode)
+{
+    int fd = open64(path, oflag, mode);
+    if (fd == -1) return -1;
+
+    /* If the open succeeded, the file might still be a directory */
+    {
+        int st_mode;
+        if (sysFfileMode(fd, &st_mode) != -1) {
+            if ((st_mode & S_IFMT) == S_IFDIR) {
+                errno = EISDIR;
+                close(fd);
+                return -1;
+            }
+        } else {
+            close(fd);
+            return -1;
+        }
+    }
+
+    /*
+     * All file descriptors that are opened in the JVM and not
+     * specifically destined for a subprocess should have the
+     * close-on-exec flag set.  If we don't set it, then careless 3rd
+     * party native code might fork and exec without closing all
+     * appropriate file descriptors (e.g. as we do in closeDescriptors in
+     * UNIXProcess.c), and this in turn might:
+     *
+     * - cause end-of-file to fail to be detected on some file
+     *   descriptors, resulting in mysterious hangs, or
+     *
+     * - might cause an fopen in the subprocess to fail on a system
+     *   suffering from bug 1085341.
+     *
+     * (Yes, the default setting of the close-on-exec flag is a Unix
+     * design flaw)
+     *
+     * See:
+     * 1085341: 32-bit stdio routines should support file descriptors >255
+     * 4843136: (process) pipe file descriptor from Runtime.exec not being closed
+     * 6339493: (process) Runtime.exec does not close all file descriptors on Solaris 9
+     */
+#ifdef FD_CLOEXEC
+    {
+        int flags = fcntl(fd, F_GETFD);
+        if (flags != -1)
+            fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+    }
+#endif
+    return fd;
+}
+
+static jint _JVM_SocketAvailable(jint fd, jint *pbytes);
+
+#ifndef O_DELETE
+#define O_DELETE 0x10000
+#endif
+/*
+ * Open a file. Unlink the file immediately after open returns
+ * if the specified oflag has the O_DELETE flag set.
+ */
+int sysOpen(const char *path, int oflag, int mode)
+{
+    int fd;
+    int del = (oflag & O_DELETE);
+    oflag = oflag & ~O_DELETE;
+    fd = open64_w(path, oflag, mode);
+    if (del != 0) {
+        unlink(path);
+    }
+    return fd;
+}
+#endif
 
 /* Taken from: hotspot/src/share/vm/prims/jvm.h */
 
@@ -2024,8 +2120,12 @@ jint JVM_Open(const char* fname, jint flags, jint mode)
 
 	TRACEJVMCALLS(("JVM_Open(fname=%s, flags=%d, mode=%d)", fname, flags, mode));
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	HPI& hpi = VM::get_current()->get_hpi();
 	result = hpi.get_file().Open(fname, flags, mode);
+#else
+	result = sysOpen(fname, flags, mode);
+#endif
 
 	if (result >= 0) {
 		return result;
@@ -2047,8 +2147,12 @@ jint JVM_Close(jint fd)
 {
 	TRACEJVMCALLS(("JVM_Close(fd=%d)", fd));
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	HPI& hpi = VM::get_current()->get_hpi();
 	return hpi.get_file().Close(fd);
+#else
+	return close(fd);
+#endif
 }
 
 
@@ -2058,8 +2162,12 @@ jint JVM_Read(jint fd, char* buf, jint nbytes)
 {
 	TRACEJVMCALLS(("JVM_Read(fd=%d, buf=%p, nbytes=%d)", fd, buf, nbytes));
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	HPI& hpi = VM::get_current()->get_hpi();
 	return (jint) hpi.get_file().Read(fd, buf, nbytes);
+#else
+	return read(fd, buf, nbytes);
+#endif
 }
 
 
@@ -2069,8 +2177,12 @@ jint JVM_Write(jint fd, char* buf, jint nbytes)
 {
 	TRACEJVMCALLS(("JVM_Write(fd=%d, buf=%s, nbytes=%d)", fd, buf, nbytes));
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	HPI& hpi = VM::get_current()->get_hpi();
 	return (jint) hpi.get_file().Write(fd, buf, nbytes);
+#else
+	return write(fd,buf,nbytes);
+#endif
 }
 
 
@@ -2080,8 +2192,30 @@ jint JVM_Available(jint fd, jlong* pbytes)
 {
 	TRACEJVMCALLS(("JVM_Available(fd=%d, pbytes=%p)", fd, pbytes));
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	HPI& hpi = VM::get_current()->get_hpi();
 	return hpi.get_file().Available(fd, pbytes);
+#else
+	off64_t cur, end;
+	int mode;
+
+	if (sysFfileMode(fd, &mode) >= 0)
+		if (S_ISCHR(mode) || S_ISFIFO(mode) || S_ISSOCK(mode)) {
+			jint bytes;
+			if (_JVM_SocketAvailable(fd, &bytes)) {
+				*pbytes = bytes;
+				return 1;
+			}
+		}
+	if ((cur = lseek64(fd, 0L, SEEK_CUR)) == -1)
+		return 0;
+	else if ((end = lseek64(fd, 0L, SEEK_END)) == -1)
+		return 0;
+	else if (lseek64(fd, cur, SEEK_SET) == -1)
+		return 0;
+	*pbytes = end - cur;
+	return 1;
+#endif
 }
 
 
@@ -2091,8 +2225,12 @@ jlong JVM_Lseek(jint fd, jlong offset, jint whence)
 {
 	TRACEJVMCALLS(("JVM_Lseek(fd=%d, offset=%ld, whence=%d)", fd, offset, whence));
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	HPI& hpi = VM::get_current()->get_hpi();
 	return hpi.get_file().Seek(fd, (off_t) offset, whence);
+#else
+	return lseek64(fd, (off_t) offset, whence);
+#endif
 }
 
 
@@ -2102,8 +2240,12 @@ jint JVM_SetLength(jint fd, jlong length)
 {
 	TRACEJVMCALLS(("JVM_SetLength(fd=%d, length=%ld)", length));
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	HPI& hpi = VM::get_current()->get_hpi();
 	return hpi.get_file().SetLength(fd, length);
+#else
+	return ftruncate64(fd, length);
+#endif
 }
 
 
@@ -2113,8 +2255,12 @@ jint JVM_Sync(jint fd)
 {
 	TRACEJVMCALLS(("JVM_Sync(fd=%d)", fd));
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	HPI& hpi = VM::get_current()->get_hpi();
 	return hpi.get_file().Sync(fd);
+#else
+	return fsync(fd);
+#endif
 }
 
 
@@ -2227,6 +2373,14 @@ void JVM_SetThreadPriority(JNIEnv* env, jobject jthread, jint prio)
 		return;
 
 	threads_set_thread_priority(t->tid, prio);
+}
+
+
+/* JVM_SetNativeThreadName */
+
+void JVM_SetNativeThreadName(JNIEnv* env, jclass cls, jobject name)
+{
+	TRACEJVMCALLS(("JVM_SetNativeThreadName(env=%p, cls=%p, name=%p)", env, cls, name));
 }
 
 
@@ -2671,8 +2825,12 @@ jint JVM_InitializeSocketLibrary()
 {
 	TRACEJVMCALLS(("JVM_InitializeSocketLibrary()"));
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	HPI& hpi = VM::get_current()->get_hpi();
 	return hpi.initialize_socket_library();
+#else
+	return NULL;
+#endif
 }
 
 
@@ -2812,13 +2970,11 @@ jint JVM_SendTo(jint fd, char *buf, int len, int flags, struct sockaddr *to, int
 
 /* JVM_SocketAvailable */
 
-jint JVM_SocketAvailable(jint fd, jint *pbytes)
+jint _JVM_SocketAvailable(jint fd, jint *pbytes)
 {
 #if defined(FIONREAD)
 	int bytes;
 	int result;
-
-	TRACEJVMCALLS(("JVM_SocketAvailable(fd=%d, pbytes=%p)", fd, pbytes));
 
 	*pbytes = 0;
 
@@ -2833,6 +2989,12 @@ jint JVM_SocketAvailable(jint fd, jint *pbytes)
 #else
 # error FIONREAD not defined
 #endif
+}
+
+jint JVM_SocketAvailable(jint fd, jint *pbytes)
+{
+	TRACEJVMCALLS(("JVM_SocketAvailable(fd=%d, pbytes=%p)", fd, pbytes));
+	return _JVM_SocketAvailable(fd, pbytes);
 }
 
 
@@ -2938,8 +3100,15 @@ void *JVM_FindLibraryEntry(void* handle, const char* name)
 
 	TRACEJVMCALLSENTER(("JVM_FindLibraryEntry(handle=%p, name=%s)", handle, name));
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	HPI& hpi = VM::get_current()->get_hpi();
 	symbol = hpi.get_library().FindLibraryEntry(handle, name);
+#else
+	//because we use glibc we need a mutex here
+	VM::get_current()->get_jniMutex().lock();
+	symbol = dlsym(handle, name);
+	VM::get_current()->get_jniMutex().unlock();
+#endif
 
 	TRACEJVMCALLSEXIT(("->%p", symbol));
 

@@ -28,7 +28,7 @@ AC_ARG_WITH([jvm_md_h],
             [AS_HELP_STRING(--with-jvm_md_h=<dir>,path to jvm_md.h (only with --with-java-runtime-library=openjdk) [[default=${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/solaris/javavm/export]])],
             [WITH_JVM_MD_H=${withval}],
             [case "${WITH_JAVA_RUNTIME_LIBRARY}" in
-                 openjdk)
+                 openjdk*)
                      WITH_JVM_MD_H=${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/solaris/javavm/export
                      ;;
                  *)
@@ -53,7 +53,7 @@ AC_ARG_WITH([jvm_h],
             [AS_HELP_STRING(--with-jvm_h=<dir>,path to jvm.h (only with --with-java-runtime-library=openjdk) [[default=${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/share/javavm/export]])],
             [WITH_JVM_H=${withval}],
             [case "${WITH_JAVA_RUNTIME_LIBRARY}" in
-                 openjdk)
+                 openjdk*)
                      WITH_JVM_H=${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/share/javavm/export
                      ;;
                  *)

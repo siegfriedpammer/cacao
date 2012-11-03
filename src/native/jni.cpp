@@ -2554,7 +2554,7 @@ jsize jni_GetStringLength(JNIEnv *env, jstring str)
 	TRACEJNICALLSENTER(("jni_GetStringLength(env=%p, str=%p)", env, str));
 
 	java_lang_String s(str);
-	jsize count = s.get_count();
+	jsize count = runtime_str_ops::get_string_count(s);
 
 	TRACEJNICALLSEXIT(("->%d)", count));
 
@@ -2584,8 +2584,8 @@ const jchar* jni_GetStringChars(JNIEnv *env, jstring str, jboolean *isCopy)
 
 	CharArray ca(s.get_value());
 
-	int32_t count  = s.get_count();
-	int32_t offset = s.get_offset();
+	int32_t count  = runtime_str_ops::get_string_count(s);
+	int32_t offset = runtime_str_ops::get_string_offset(s);
 	
 	if (ca.is_null())
 		return NULL;
@@ -2629,7 +2629,7 @@ void _Jv_JNI_ReleaseStringChars(JNIEnv *env, jstring str, const jchar *chars)
 		return;
 
 	java_lang_String s(str);
-	int32_t count = s.get_count();
+	int32_t count = runtime_str_ops::get_string_count(s);
 
 	MFREE(((jchar*) chars), jchar, count + 1);
 }
@@ -2660,7 +2660,7 @@ jsize jni_GetStringUTFLength(JNIEnv *env, jstring string)
 
 	java_lang_String s(string);
 	CharArray        ca(s.get_value());
-	int32_t          count = s.get_count();
+	int32_t          count = runtime_str_ops::get_string_count(s);
 
 	// FIXME GC critical section!
 	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
@@ -3112,7 +3112,7 @@ void jni_GetStringRegion(JNIEnv* env, jstring str, jsize start, jsize len, jchar
 {
 	java_lang_String s(str);
 	CharArray        ca(s.get_value());
-	int32_t          count = s.get_count();
+	int32_t          count = runtime_str_ops::get_string_count(s);
 
 	if ((start < 0) || (len < 0) || (start > count) || (start + len > count)) {
 		exceptions_throw_stringindexoutofboundsexception();
@@ -3141,8 +3141,8 @@ void jni_GetStringUTFRegion(JNIEnv* env, jstring str, jsize start, jsize len, ch
 
 	CharArray ca(s.get_value());
 
-	int32_t count  = s.get_count();
-	int32_t offset = s.get_offset();
+	int32_t count  = runtime_str_ops::get_string_count(s);
+	int32_t offset = runtime_str_ops::get_string_offset(s);
 
 	if ((start < 0) || (len < 0) || (start > count) || (start + len > count)) {
 		exceptions_throw_stringindexoutofboundsexception();

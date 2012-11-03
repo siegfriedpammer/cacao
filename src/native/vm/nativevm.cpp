@@ -41,7 +41,9 @@
 
 # include "native/native.hpp"
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 # include "native/vm/openjdk/hpi.hpp"
+#endif
 
 # include "toolbox/sequence.hpp"
 
@@ -120,9 +122,11 @@ void nativevm_preinit(void)
 	NativeLibraries& nls = vm->get_nativelibraries();
 	nls.add(nl);
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	// Initialize the HPI.
 	HPI& hpi = vm->get_hpi();
 	hpi.initialize();
+#endif
 
 	_Jv_sun_misc_Perf_init();
 	_Jv_sun_misc_Unsafe_init();

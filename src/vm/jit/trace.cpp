@@ -591,7 +591,7 @@ void trace_exception_builtin(java_handle_t* h)
 			// FIXME This is not handle capable!
 			uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
 			logtextlen += strlen(": ") +
-				u2_utflength(ptr + jls.get_offset(), jls.get_count());
+				u2_utflength(ptr + runtime_str_ops::get_string_offset(jls), runtime_str_ops::get_string_count(jls));
 		}
 	} 
 	else {

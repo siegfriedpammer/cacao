@@ -82,6 +82,9 @@ void initialize_init(void)
 	if (!initialize_class(class_java_lang_Thread))
 		vm_abort("initialize_init: Initialization failed: java.lang.Thread");
 
+	if (!initialize_class(class_java_lang_Class))
+		vm_abort("initialize_init: Initialization failed: java.lang.Class");
+
 # else
 #  error unknown classpath configuration
 # endif

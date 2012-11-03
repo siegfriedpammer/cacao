@@ -43,6 +43,8 @@
 #include "vm/globals.hpp"
 #include "vm/method.hpp"
 
+#include "vm/array.hpp"
+
 
 #ifdef __cplusplus
 
@@ -753,6 +755,19 @@ inline void java_lang_String::set_offset(int32_t value)
 	set(_handle, offset_offset, value);
 }
 
+namespace runtime_str_ops {
+
+inline jsize get_string_count(const java_lang_String &s)
+{
+	return s.get_count();
+}
+
+inline jsize get_string_offset(const java_lang_String &s)
+{
+	return s.get_offset();
+}
+
+}
 
 /**
  * GNU Classpath java/lang/Thread
@@ -1889,22 +1904,31 @@ inline java_lang_StackTraceElement::java_lang_StackTraceElement(java_handle_t* d
 /**
  * OpenJDK java/lang/String
  *
- * Object layout:
+ * Object layout (JDK6):
  *
  * 0. object header
  * 1. char[] value;
  * 2. int    offset;
  * 3. int    count;
  * 4. int    hash;
+ *
+ * Object layout (JDK7):
+ *
+ * 0. object header
+ * 1. char[] value;
+ * 2. int    hash;
  */
 class java_lang_String : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
 	static const off_t offset_value  = MEMORY_ALIGN(sizeof(java_object_t),           SIZEOF_VOID_P);
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	static const off_t offset_offset = MEMORY_ALIGN(offset_value  + SIZEOF_VOID_P,   sizeof(int32_t));
 	static const off_t offset_count  = MEMORY_ALIGN(offset_offset + sizeof(int32_t), sizeof(int32_t));
-	static const off_t offset_hash   = MEMORY_ALIGN(offset_count  + sizeof(int32_t), sizeof(int32_t));
+#else
+	static const off_t offset_hash   = MEMORY_ALIGN(offset_value  + SIZEOF_VOID_P,   sizeof(int32_t));
+#endif
 
 public:
 	java_lang_String(java_handle_t* h) : java_lang_Object(h) {}
@@ -1912,20 +1936,26 @@ public:
 
 	// Getters.
 	java_handle_chararray_t* get_value () const;
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	int32_t                  get_offset() const;
 	int32_t                  get_count () const;
+#endif
 
 	// Setters.
 	void set_value (java_handle_chararray_t* value);
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	void set_offset(int32_t value);
 	void set_count (int32_t value);
+#endif
 };
 
 inline java_lang_String::java_lang_String(java_handle_t* h, java_handle_chararray_t* value, int32_t count, int32_t offset) : java_lang_Object(h)
 {
 	set_value(value);
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	set_offset(offset);
 	set_count(count);
+#endif
 }
 
 inline java_handle_chararray_t* java_lang_String::get_value() const
@@ -1933,6 +1963,7 @@ inline java_handle_chararray_t* java_lang_String::get_value() const
 	return get<java_handle_chararray_t*>(_handle, offset_value);
 }
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 inline int32_t java_lang_String::get_offset() const
 {
 	return get<int32_t>(_handle, offset_offset);
@@ -1942,12 +1973,14 @@ inline int32_t java_lang_String::get_count() const
 {
 	return get<int32_t>(_handle, offset_count);
 }
+#endif
 
 inline void java_lang_String::set_value(java_handle_chararray_t* value)
 {
 	set(_handle, offset_value, value);
 }
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 inline void java_lang_String::set_offset(int32_t value)
 {
 	set(_handle, offset_offset, value);
@@ -1957,6 +1990,43 @@ inline void java_lang_String::set_count(int32_t value)
 {
 	set(_handle, offset_count, value);
 }
+#endif
+
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
+namespace jdk6_str_ops {
+
+inline jsize get_string_count(const java_lang_String &s)
+{
+	return s.get_count();
+}
+
+inline jsize get_string_offset(const java_lang_String &s)
+{
+	return s.get_offset();
+}
+
+}
+#endif
+
+namespace jdk7_str_ops {
+
+inline jsize get_string_count(const java_lang_String &s)
+{
+	return CharArray(s.get_value()).get_length();
+}
+
+inline jsize get_string_offset(const java_lang_String &s)
+{
+	return 0;
+}
+
+}
+
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
+namespace runtime_str_ops = jdk6_str_ops;
+#else
+namespace runtime_str_ops = jdk7_str_ops;
+#endif
 
 
 /**
@@ -1969,7 +2039,9 @@ private:
 	static off_t offset_group;
 	static off_t offset_uncaughtExceptionHandler;
 	static off_t offset_threadStatus;
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	static off_t offset_me;
+#endif
 
 public:
 	java_lang_Thread(java_handle_t* h) : java_lang_Object(h) {}
@@ -1984,7 +2056,9 @@ public:
 	void set_priority    (int32_t value);
 	void set_group       (java_handle_t* value);
 	void set_threadStatus(int32_t value);
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	void set_me          (java_handle_t* value);
+#endif
 
 	// Offset initializers
 	static void set_priority_offset(int32_t off)     { offset_priority = off; }
@@ -1992,7 +2066,9 @@ public:
 	static void set_group_offset(int32_t off)        { offset_group = off; }
 	static void set_uncaughtExceptionHandler_offset(int32_t off) { offset_uncaughtExceptionHandler = off; }
 	static void set_threadStatus_offset(int32_t off) { offset_threadStatus = off; }
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	static void set_me_offset(int32_t off) { offset_me = off; }
+#endif
 };
 
 
@@ -2032,11 +2108,12 @@ inline void java_lang_Thread::set_threadStatus(int32_t value)
 	set(_handle, offset_threadStatus, value);
 }
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 inline void java_lang_Thread::set_me(java_handle_t* value)
 {
 	set(_handle, offset_me, value);
 }
-
+#endif
 
 
 /**
@@ -2127,7 +2204,13 @@ private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
 	static const off_t offset_override             = MEMORY_ALIGN(sizeof(java_object_t),                         sizeof(int32_t));
-	static const off_t offset_clazz                = MEMORY_ALIGN(offset_override             + sizeof(int32_t), SIZEOF_VOID_P);
+#ifdef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
+	static const off_t offset_securityCheckCache            = MEMORY_ALIGN(offset_override                      + sizeof(int32_t), SIZEOF_VOID_P);
+	/* Members of the actual class java.lang.reflect.Constructor */
+	static const off_t offset_clazz                         = MEMORY_ALIGN(offset_securityCheckCache            + sizeof(int32_t), SIZEOF_VOID_P);
+#else
+	static const off_t offset_clazz                         = MEMORY_ALIGN(offset_override                      + sizeof(int32_t), SIZEOF_VOID_P);
+#endif
 	static const off_t offset_slot                 = MEMORY_ALIGN(offset_clazz                + SIZEOF_VOID_P,   sizeof(int32_t));
 	static const off_t offset_parameterTypes       = MEMORY_ALIGN(offset_slot                 + sizeof(int32_t), SIZEOF_VOID_P);
 	static const off_t offset_exceptionTypes       = MEMORY_ALIGN(offset_parameterTypes       + SIZEOF_VOID_P,   SIZEOF_VOID_P);
@@ -2136,7 +2219,9 @@ private:
 	static const off_t offset_genericInfo          = MEMORY_ALIGN(offset_signature            + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 	static const off_t offset_annotations          = MEMORY_ALIGN(offset_genericInfo          + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 	static const off_t offset_parameterAnnotations = MEMORY_ALIGN(offset_annotations          + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	static const off_t offset_securityCheckCache   = MEMORY_ALIGN(offset_parameterAnnotations + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+#endif
 	static const off_t offset_constructorAccessor  = MEMORY_ALIGN(offset_securityCheckCache   + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 	static const off_t offset_root                 = MEMORY_ALIGN(offset_constructorAccessor  + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 	static const off_t offset_declaredAnnotations  = MEMORY_ALIGN(offset_root                 + SIZEOF_VOID_P,   SIZEOF_VOID_P);
@@ -2289,8 +2374,16 @@ class java_lang_reflect_Field : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
+	/* Fields of extended class
+	 * java.lang.reflect.AccessibleObject */
 	static const off_t offset_override                      = MEMORY_ALIGN(sizeof(java_object_t),                                  sizeof(int32_t));
+#ifdef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
+	static const off_t offset_securityCheckCache            = MEMORY_ALIGN(offset_override                      + sizeof(int32_t), SIZEOF_VOID_P);
+	/* Members of the actual class java.lang.reflect.Field */
+	static const off_t offset_clazz                         = MEMORY_ALIGN(offset_securityCheckCache            + sizeof(int32_t), SIZEOF_VOID_P);
+#else
 	static const off_t offset_clazz                         = MEMORY_ALIGN(offset_override                      + sizeof(int32_t), SIZEOF_VOID_P);
+#endif
 	static const off_t offset_slot                          = MEMORY_ALIGN(offset_clazz                         + SIZEOF_VOID_P,   sizeof(int32_t));
 	static const off_t offset_name                          = MEMORY_ALIGN(offset_slot                          + sizeof(int32_t), SIZEOF_VOID_P);
 	static const off_t offset_type                          = MEMORY_ALIGN(offset_name                          + SIZEOF_VOID_P,   SIZEOF_VOID_P);
@@ -2301,9 +2394,11 @@ private:
 	static const off_t offset_fieldAccessor                 = MEMORY_ALIGN(offset_annotations                   + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 	static const off_t offset_overrideFieldAccessor         = MEMORY_ALIGN(offset_fieldAccessor                 + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 	static const off_t offset_root                          = MEMORY_ALIGN(offset_overrideFieldAccessor         + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	static const off_t offset_securityCheckCache            = MEMORY_ALIGN(offset_root                          + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 	static const off_t offset_securityCheckTargetClassCache = MEMORY_ALIGN(offset_securityCheckCache            + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 	static const off_t offset_declaredAnnotations           = MEMORY_ALIGN(offset_securityCheckTargetClassCache + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+#endif
 
 public:
 	java_lang_reflect_Field(java_handle_t* h) : java_lang_Object(h) {}
@@ -2442,8 +2537,16 @@ class java_lang_reflect_Method : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
+	/* Fields of extended class
+	 * java.lang.reflect.AccessibleObject */
 	static const off_t offset_override                      = MEMORY_ALIGN(sizeof(java_object_t),                                  sizeof(int32_t));
+#ifdef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
+	static const off_t offset_securityCheckCache            = MEMORY_ALIGN(offset_override                      + sizeof(int32_t), SIZEOF_VOID_P);
+	/* Members of the actual class java.lang.reflect.Method */
+	static const off_t offset_clazz                         = MEMORY_ALIGN(offset_securityCheckCache            + sizeof(int32_t), SIZEOF_VOID_P);
+#else
 	static const off_t offset_clazz                         = MEMORY_ALIGN(offset_override                      + sizeof(int32_t), SIZEOF_VOID_P);
+#endif
 	static const off_t offset_slot                          = MEMORY_ALIGN(offset_clazz                         + SIZEOF_VOID_P,   sizeof(int32_t));
 	static const off_t offset_name                          = MEMORY_ALIGN(offset_slot                          + sizeof(int32_t), SIZEOF_VOID_P);
 	static const off_t offset_returnType                    = MEMORY_ALIGN(offset_name                          + SIZEOF_VOID_P,   SIZEOF_VOID_P);
@@ -2457,9 +2560,11 @@ private:
 	static const off_t offset_annotationDefault             = MEMORY_ALIGN(offset_parameterAnnotations          + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 	static const off_t offset_methodAccessor                = MEMORY_ALIGN(offset_annotationDefault             + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 	static const off_t offset_root                          = MEMORY_ALIGN(offset_methodAccessor                + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	static const off_t offset_securityCheckCache            = MEMORY_ALIGN(offset_root                          + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 	static const off_t offset_securityCheckTargetClassCache = MEMORY_ALIGN(offset_securityCheckCache            + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 	static const off_t offset_declaredAnnotations           = MEMORY_ALIGN(offset_securityCheckTargetClassCache + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+#endif
 
 public:
 	java_lang_reflect_Method(java_handle_t* h) : java_lang_Object(h) {}

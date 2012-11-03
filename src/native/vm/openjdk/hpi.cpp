@@ -22,9 +22,9 @@
 
 */
 
-
 #include "config.h"
 
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 // Include this one early.
 #include "native/vm/openjdk/hpi.hpp"
 
@@ -161,7 +161,7 @@ extern "C" {
 	void HPI_initialize() { VM::get_current()->get_hpi().initialize(); }
 }
 
-
+#endif /*not defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7)*/
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

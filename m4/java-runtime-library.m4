@@ -26,7 +26,7 @@ dnl which Java runtime library should we use
 AC_DEFUN([AC_CHECK_WITH_JAVA_RUNTIME_LIBRARY],[
 AC_MSG_CHECKING(which Java runtime library to use)
 AC_ARG_WITH([java-runtime-library],
-            [AS_HELP_STRING(--with-java-runtime-library=<type>,specifies which type of classpath to use as Java runtime library (cldc1.1,gnuclasspath,openjdk) [[default=gnuclasspath]])],
+            [AS_HELP_STRING(--with-java-runtime-library=<type>,specifies which type of classpath to use as Java runtime library (cldc1.1,gnuclasspath,openjdk,openjdk7) [[default=gnuclasspath]])],
             [case "${withval}" in
                 cldc1.1)
                     WITH_JAVA_RUNTIME_LIBRARY=cldc1.1
@@ -37,6 +37,13 @@ AC_ARG_WITH([java-runtime-library],
                     WITH_JAVA_RUNTIME_LIBRARY=gnuclasspath
                     AC_DEFINE([WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH], 1, [use GNU Classpath])
                     AC_SUBST(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
+                    ;;
+                openjdk7)
+                    WITH_JAVA_RUNTIME_LIBRARY=openjdk7
+                    AC_DEFINE([WITH_JAVA_RUNTIME_LIBRARY_OPENJDK], 1, [use OpenJDK's Java SE classes])
+										AC_DEFINE([WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7], 1, [use OpenJDK's version 7])
+                    AC_SUBST(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+										AC_SUBST(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7)
                     ;;
                 openjdk)
                     WITH_JAVA_RUNTIME_LIBRARY=openjdk
@@ -53,7 +60,8 @@ AC_ARG_WITH([java-runtime-library],
 AC_MSG_RESULT(${WITH_JAVA_RUNTIME_LIBRARY})
 AM_CONDITIONAL([WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1], test x"${WITH_JAVA_RUNTIME_LIBRARY}" = "xcldc1.1")
 AM_CONDITIONAL([WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH], test x"${WITH_JAVA_RUNTIME_LIBRARY}" = "xgnuclasspath")
-AM_CONDITIONAL([WITH_JAVA_RUNTIME_LIBRARY_OPENJDK], test x"${WITH_JAVA_RUNTIME_LIBRARY}" = "xopenjdk")
+AM_CONDITIONAL([WITH_JAVA_RUNTIME_LIBRARY_OPENJDK], test x"${WITH_JAVA_RUNTIME_LIBRARY}" = "xopenjdk" -o x"${WITH_JAVA_RUNTIME_LIBRARY}" = "xopenjdk7")
+AM_CONDITIONAL([WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7], test x"${WITH_JAVA_RUNTIME_LIBRARY}" = "xopenjdk7")
 ])
 
 
@@ -131,7 +139,7 @@ AC_ARG_WITH([java-runtime-library-libdir],
                  gnuclasspath)
                      JAVA_RUNTIME_LIBRARY_LIBDIR=${JAVA_RUNTIME_LIBRARY_PREFIX}/lib
                      ;;
-                 openjdk)
+                 openjdk*)
                      JAVA_RUNTIME_LIBRARY_LIBDIR=${JAVA_RUNTIME_LIBRARY_PREFIX}/control/build/${OS_DIR}-${JAVA_ARCH}/lib/${JAVA_ARCH}
                      ;;
                  *)
@@ -155,7 +163,7 @@ AC_ARG_WITH([jni_md_h],
             [AS_HELP_STRING(--with-jni_md_h=<dir>,path to jni_md.h [[default=(openjdk:${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/solaris/javavm/export,*:${JAVA_RUNTIME_LIBRARY_PREFIX}/include)]])],
             [WITH_JNI_MD_H=${withval}],
             [case "${WITH_JAVA_RUNTIME_LIBRARY}" in
-                 openjdk)
+                 openjdk*)
                      WITH_JNI_MD_H=${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/solaris/javavm/export
                      ;;
                  *)
@@ -181,7 +189,7 @@ AC_ARG_WITH([jni_h],
             [AS_HELP_STRING(--with-jni_h=<dir>,path to jni.h [[default=(openjdk:${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/share/javavm/export,*:${JAVA_RUNTIME_LIBRARY_PREFIX}/include)]])],
             [WITH_JNI_H=${withval}],
             [case "${WITH_JAVA_RUNTIME_LIBRARY}" in
-                 openjdk)
+                 openjdk*)
                      WITH_JNI_H=${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/share/javavm/export
                      ;;
                  *)
