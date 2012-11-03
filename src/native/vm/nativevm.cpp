@@ -1,6 +1,6 @@
 /* src/native/vm/nativevm.cpp - Register native VM interface functions.
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.

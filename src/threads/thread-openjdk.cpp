@@ -1,6 +1,6 @@
 /* src/threads/thread-openjdk.cpp - thread functions specific to the OpenJDK library
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.

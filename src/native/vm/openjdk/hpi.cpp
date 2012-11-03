@@ -1,6 +1,6 @@
 /* src/native/vm/openjdk/hpi.cpp - HotSpot HPI interface functions
 
-   Copyright (C) 2008
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.

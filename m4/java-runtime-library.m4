@@ -1,6 +1,6 @@
 dnl m4/java-runtime-library.m4
 dnl
-dnl Copyright (C) 2007, 2008
+dnl Copyright (C) 1996-2012
 dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 dnl
 dnl This file is part of CACAO.

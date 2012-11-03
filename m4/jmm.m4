@@ -1,5 +1,7 @@
 dnl m4/jmm.m4
 dnl
+dnl Copyright (C) 1996-2012
+dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 dnl Copyright (C) 2008 Theobroma Systems Ltd.
 dnl
 dnl This file is part of CACAO.
