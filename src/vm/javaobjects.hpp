@@ -755,6 +755,19 @@ inline void java_lang_String::set_offset(int32_t value)
 	set(_handle, offset_offset, value);
 }
 
+namespace runtime_str_ops {
+
+inline jsize get_string_count(const java_lang_String &s)
+{
+	return s.get_count();
+}
+
+inline jsize get_string_offset(const java_lang_String &s)
+{
+	return s.get_offset();
+}
+
+}
 
 /**
  * GNU Classpath java/lang/Thread
@@ -2010,9 +2023,9 @@ inline jsize get_string_offset(const java_lang_String &s)
 }
 
 #ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
-namespace jdk_str_ops = jdk6_str_ops;
+namespace runtime_str_ops = jdk6_str_ops;
 #else
-namespace jdk_str_ops = jdk7_str_ops;
+namespace runtime_str_ops = jdk7_str_ops;
 #endif
 
 
