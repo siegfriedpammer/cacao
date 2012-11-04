@@ -143,22 +143,13 @@ typedef struct java_objectarray_t java_objectarray_t;
 
 /* some Java related defines **************************************************/
 
-#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
-  #define JAVA_VERSION    "1.5.0"         /* this version is supported by CACAO */
-  #define CLASS_VERSION   "50.0"
-#else
-  #define JAVA_VERSION    "1.5.0"
-  #define CLASS_VERSION   "51.0"
-#endif
+#define JAVA_VERSION    "1.6.0"         /* this version is supported by CACAO */
+#define CLASS_VERSION   "51.0"
 
 /* Java class file constants **************************************************/
 
 #define MAGIC             0xCAFEBABE
-#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
-  #define MAJOR_VERSION   50
-#else
-  #define MAJOR_VERSION   51
-#endif
+#define MAJOR_VERSION     51
 #define MINOR_VERSION     0
 
 
