@@ -321,6 +321,7 @@ ex_flt2:
 	.ent    asm_abstractmethoderror
 
 asm_abstractmethoderror:
+	ldgp    gp,0(t12)                   /* load gp                            */
 	subq    sp,2*8,sp                   /* create stackframe                  */
 	stq     ra,0*8(sp)                  /* save return address                */
 	addq    sp,2*8,a0                   /* pass java sp                       */
