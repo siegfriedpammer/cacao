@@ -3176,7 +3176,7 @@ static void java_value_print(s4 type, replace_val_t value)
 
 		if (obj->vftbl->clazz == class_java_lang_String) {
 			printf(" \"");
-			u = javastring_toutf(obj, false);
+			u = JavaString(obj).to_utf8();
 			utf_display_printable_ascii(u);
 			printf("\"");
 		}

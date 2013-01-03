@@ -54,9 +54,7 @@ static JNINativeMethod methods[] = {
 #if 0
 void _Jv_java_lang_reflect_VMProxy_init(void)
 {
-	utf *u;
-
-	u = utf_new_char("java/lang/reflect/VMProxy");
+	Utf8String u = UtfString::from_utf8("java/lang/reflect/VMProxy");
 
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }

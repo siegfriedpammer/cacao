@@ -107,7 +107,7 @@ static JNINativeMethod methods[] = {
  
 void _Jv_java_lang_Runtime_init(void)
 {
-	utf* u = utf_new_char("java/lang/Runtime");
+	Utf8String u = UtfString::from_utf8("java/lang/Runtime");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

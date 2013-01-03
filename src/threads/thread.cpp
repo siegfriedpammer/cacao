@@ -248,7 +248,7 @@ static void thread_create_initial_thread(void)
 
 	/* The thread name. */
 
-	name = javastring_new(utf_main);
+	name = JavaString::from_utf8(utf8::main);
 
 #if defined(ENABLE_INTRP)
 	/* create interpreter stack */
@@ -423,7 +423,7 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 
 	/* Create the Java thread object. */
 
-	if (!thread_create_object(t, javastring_new(name), threadgroup_system)) {
+	if (!thread_create_object(t, JavaString::from_utf8(name), threadgroup_system)) {
 		ThreadList::release_thread(t, true);
 		return false;
 	}
@@ -506,7 +506,6 @@ bool thread_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 {
 	bool           result;
 	threadobject  *t;
-	utf           *u;
 	java_handle_t *name;
 	java_handle_t *group;
 
@@ -541,14 +540,8 @@ bool thread_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	/* Get the thread name. */
 
-	if (vm_aargs != NULL) {
-		u = utf_new_char(vm_aargs->name);
-	}
-	else {
-		u = utf_null;
-	}
-
-	name = javastring_new(u);
+	name = vm_aargs ? JavaString::from_utf8(vm_aargs->name)
+	                : JavaString::from_utf8(utf8::null);
 
 #if defined(ENABLE_JAVASE)
 	/* Get the threadgroup. */

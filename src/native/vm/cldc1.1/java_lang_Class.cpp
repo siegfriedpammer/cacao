@@ -64,8 +64,8 @@ JNIEXPORT jclass JNICALL Java_java_lang_Class_forName(JNIEnv *env, jclass clazz,
 
 	/* create utf string in which '.' is replaced by '/' */
 
-	ufile = javastring_toutf((java_handle_t *) name, true);
-	uname = javastring_toutf((java_handle_t *) name, false);
+	ufile = JavaString((java_handle_t*) name).to_utf8_dot_to_slash();
+	uname = javastring((java_handle_t*) name).to_utf8);
 
 	/* name must not contain '/' (mauve test) */
 
@@ -223,8 +223,8 @@ static JNINativeMethod methods[] = {
 
 void _Jv_java_lang_Class_init(void)
 {
-	utf* u = utf_new_char("java/lang/Class");
- 
+	Utf8String u = UtfString::from_utf8("java/lang/Class");
+
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }

@@ -85,7 +85,7 @@ void Utf8String::initialize(void)
 
 	/* create utf-symbols for pointer comparison of frequently used strings */
 
-#define UTF8( NAME, STR ) utf_##NAME = Utf8String::from_utf8( STR );
+#define UTF8( NAME, STR ) utf8::NAME = Utf8String::from_utf8( STR );
 #include "vm/utf8.inc"
 }
 
@@ -216,9 +216,9 @@ struct EagerStringBuilder : private StringBuilderBase {
 		inline Utf8String finish() {
 			StringBuilderBase::finish();
 
-			*_text               = '\0';
-			_out->num_codepoints = _codepoints;
-			_out->hash           = _hash;
+			*_text           = '\0';
+			_out->utf16_size = _codepoints;
+			_out->hash       = _hash;
 
 			utf* intern = intern_table->intern(_out);
 
@@ -259,8 +259,8 @@ struct LazyStringBuilder : private StringBuilderBase {
 		operator Utf8String() const {
 			utf* str = utf8_alloc(sz);
 
-			str->num_codepoints = _codepoints;
-			str->hash           = _hash;
+			str->utf16_size = _codepoints;
+			str->hash       = _hash;
 
 			char *text = str->text;
 
@@ -332,12 +332,15 @@ Utf8String::byte_iterator Utf8String::end()   const
 
 Utf8String::utf16_iterator::utf16_iterator(byte_iterator bs, size_t sz)
 : codepoint(0), bytes(bs), end(bs + sz) {
-	if (bytes != end) ++(*this);
+	this->operator++();
 }
 
 void Utf8String::utf16_iterator::operator++()
 {
-	codepoint = utf8::decode_char(bytes);
+	if (bytes != end)
+		codepoint = utf8::decode_char(bytes);
+	else
+		codepoint = -1;
 }
 
 Utf8String::utf16_iterator Utf8String::utf16_begin() const {
@@ -359,7 +362,7 @@ size_t Utf8String::size() const
 	return _data->blength;
 }
 
-/* Utf8String::codepoints ******************************************************
+/* Utf8String::utf16_size ******************************************************
 
 	Returns the number of UTF-16 codepoints in string.
 
@@ -367,11 +370,11 @@ size_t Utf8String::size() const
 
 *******************************************************************************/
 
-size_t Utf8String::codepoints() const
+size_t Utf8String::utf16_size() const
 {
 	assert(_data);
 
-	return _data->num_codepoints;
+	return _data->utf16_size;
 }
 
 /* Utf8String::hash ************************************************************
@@ -521,7 +524,7 @@ size_t utf8::num_bytes(const u2 *cs, size_t sz)
 //*****          GLOBAL UTF8-STRING CONSTANTS                            *****//
 //****************************************************************************//
 
-#define UTF8( NAME, STR ) utf* utf_##NAME;
+#define UTF8( NAME, STR ) Utf8String utf8::NAME;
 #include "vm/utf8.inc"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -530,116 +533,11 @@ size_t utf8::num_bytes(const u2 *cs, size_t sz)
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-void utf8_init(void) { Utf8String::initialize(); }
-
-u4 utf_hashkey(const char *text, u4 length)      { return compute_hash(text, length); } 
-u4 utf_full_hashkey(const char *text, u4 length) { return compute_hash(text, length); } 
-
-utf *utf_new(const char *text, u2 length) { return Utf8String::from_utf8(text, length); }
-
-/* make utf symbol from u2 array */
-utf *utf_new_u2(u2 *unicodedata, u4 unicodelength, bool isclassname) {
-	if (isclassname)
-		return Utf8String::from_utf16_dot_to_slash(unicodedata, unicodelength);
-	else
-		return Utf8String::from_utf16(unicodedata, unicodelength);
-}
-
-utf *utf_new_char(const char *text)           { return Utf8String::from_utf8(text); }
-utf *utf_new_char_classname(const char *text) { return Utf8String::from_utf8_dot_to_slash(text); }
-
-u4 utf_bytes(utf *u) { return u->blength; }
-
-u2 utf_nextu2(char **utf) { 
-	const char** const_utf     = (const char**) utf;
-	const char*& const_utf_ref = *const_utf;
-
-	return utf8::decode_char(const_utf_ref); 
-}
-
-s4   utf8_safe_number_of_u2s(const char *text, s4 nbytes);
-void utf8_safe_convert_to_u2s(const char *text, s4 nbytes, u2 *buffer);
-
-u4 utf_get_number_of_u2s(utf *u) { return u->num_codepoints; }
-
-/* determine utf length in bytes of a u2 array */
-u4 u2_utflength(u2 *text, u4 u2_length) { return utf8::num_bytes(text, u2_length); }
-
-/* utf_copy ********************************************************************
-
-   Copy the given utf string byte-for-byte to a buffer.
-
-   IN:
-      buffer.......the buffer
-	  u............the utf string
-
-*******************************************************************************/
-
-void utf_copy(char *buffer, utf *u)
-{
-	/* our utf strings are zero-terminated (done by utf_new) */
-	MCOPY(buffer, u->text, char, u->blength + 1);
-}
-
-
-/* utf_cat *********************************************************************
-
-   Append the given utf string byte-for-byte to a buffer.
-
-   IN:
-      buffer.......the buffer
-	  u............the utf string
-
-*******************************************************************************/
-
-void utf_cat(char *buffer, utf *u)
-{
-	/* our utf strings are zero-terminated (done by utf_new) */
-	MCOPY(buffer + strlen(buffer), u->text, char, u->blength + 1);
-}
-
-
-/* utf_copy_classname **********************************************************
-
-   Copy the given utf classname byte-for-byte to a buffer.
-   '/' is replaced by '.'
-
-   IN:
-      buffer.......the buffer
-	  u............the utf string
-
-*******************************************************************************/
-
-void utf_copy_classname(char *buffer, utf *u)
-{
-	Utf8String str = u;
-
-	const char *src = str.begin();
-	const char *end = str.end();
-
-	for (; src != end; src++, buffer++) {
-		char ch = *src;
-
-		*buffer = ch == '/' ? '.' : ch;
-	}
-}
-
-
-/* utf_cat *********************************************************************
-
-   Append the given utf classname byte-for-byte to a buffer.
-   '/' is replaced by '.'
-
-   IN:
-      buffer.......the buffer
-	  u............the utf string
-
-*******************************************************************************/
-
-void utf_cat_classname(char *buffer, utf *u)
-{
-	utf_copy_classname(buffer + strlen(buffer), u);
-}
+extern const char *utf8_begin(utf *u) { return Utf8String(u).begin(); }
+extern const char *utf8_end  (utf *u) { return Utf8String(u).end();   }
+   
+extern size_t utf8_size(utf *u) { return Utf8String(u).size(); }
+extern size_t utf8_hash(utf *u) { return Utf8String(u).hash(); }
 
 /* utf_display_printable_ascii *************************************************
 
@@ -852,6 +750,8 @@ bool is_valid_name(char *utf_ptr, char *end_pos)
 bool is_valid_name_utf(utf *u) { return Utf8String(u).is_valid_name(); }
 
 void utf_show() {}
+
+const size_t sizeof_utf = sizeof(utf);
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -129,7 +129,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_gnu_classpath_VMSystemProperties_init(void)
 {
-	utf* u = utf_new_char("gnu/classpath/VMSystemProperties");
+	Utf8String u = UtfString::from_utf8("gnu/classpath/VMSystemProperties");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

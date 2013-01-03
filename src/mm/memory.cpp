@@ -243,9 +243,7 @@ static void memory_thread(void)
 #if defined(ENABLE_THREADS) && !defined(NDEBUG)
 bool memory_start_thread(void)
 {
-	utf *name;
-
-	name = utf_new_char("Memory Profiler");
+	Utf8String name = Utf8String::from_utf8("Memory Profiler");
 
 	/* start the memory profiling thread */
 

@@ -107,7 +107,7 @@ void Primitive::initialize_table()
 
 		/* create UTF-8 name */
 
-		name = utf_new_char(primitivetype_table[i].cname);
+		name = Utf8String::from_utf8(primitivetype_table[i].cname);
 
 		primitivetype_table[i].name = name;
 
@@ -142,7 +142,7 @@ void Primitive::initialize_table()
 		/* Create primitive array class. */
 
 		if (primitivetype_table[i].arrayname != NULL) {
-			u  = utf_new_char(primitivetype_table[i].arrayname);
+			u  = Utf8String::from_utf8(primitivetype_table[i].arrayname);
 			ac = class_create_classinfo(u);
 			ac = load_newly_created_array(ac, NULL);
 
@@ -174,7 +174,7 @@ void Primitive::initialize_table()
 
 		/* Create class for wrapping the primitive type. */
 
-		u = utf_new_char(primitivetype_table[i].wrapname);
+		u = Utf8String::from_utf8(primitivetype_table[i].wrapname);
 		c = load_class_bootstrap(u);
 
 		if (c == NULL)

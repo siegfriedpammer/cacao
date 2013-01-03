@@ -1286,12 +1286,11 @@ VM::VM(JavaVMInitArgs* vm_args)
 
 	/* AFTER: threads_preinit */
 
-	if (!string_init())
-		os::abort("vm_create: string_init failed");
+	JavaString::initialize();
 
 	/* AFTER: threads_preinit */
 
-	utf8_init();
+	Utf8String::initialize();
 
 	// Hook point before the VM is initialized.
 	Hook::vm_preinit();
@@ -1564,7 +1563,7 @@ bool VM::start_runtime_agents()
 
 		// Load the management agent class.
 		classinfo* class_sun_management_Agent;
-		if (!(class_sun_management_Agent = load_class_from_sysloader(utf_new_char("sun/management/Agent"))))
+		if (!(class_sun_management_Agent = load_class_from_sysloader(Utf8String::from_utf8("sun/management/Agent"))))
 			return false;
 
 		// Link the management agent class.
@@ -1573,8 +1572,8 @@ bool VM::start_runtime_agents()
 
 		// Actually start the management agent.
 		methodinfo* m = class_resolveclassmethod(class_sun_management_Agent,
-												 utf_new_char("startAgent"),
-												 utf_void__void,
+												 Utf8String::from_utf8("startAgent"),
+												 utf8::void__void,
 												 class_java_lang_Object,
 												 false);
 
@@ -1675,8 +1674,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	for (int i = 0; i < oalength; i++) {
 		char* option = vm_args->options[opt_index + i].optionString;
 
-		utf*           u = utf_new_char(option);
-		java_handle_t* s = javastring_new(u);
+		java_handle_t* s = JavaString::from_utf8(option);
 
 		oa.set_element(i, s);
 	}
@@ -1696,7 +1694,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 
 	/* load the main class */
 
-	utf* mainutf = utf_new_char(mainname);
+	utf* mainutf = Utf8String::from_utf8(mainname);
 
 #if defined(ENABLE_JAVAME_CLDC1_1)
 	classinfo* mainclass = load_class_bootstrap(mainutf);
@@ -1722,8 +1720,8 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	/* find the `main' method of the main class */
 
 	m = class_resolveclassmethod(mainclass,
-								 utf_new_char("main"), 
-								 utf_new_char("([Ljava/lang/String;)V"),
+								 Utf8String::from_utf8("main"), 
+								 Utf8String::from_utf8("([Ljava/lang/String;)V"),
 								 class_java_lang_Object,
 								 false);
 
@@ -1737,8 +1735,8 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	if ((m == NULL) || !(m->flags & ACC_STATIC)) {
 		exceptions_clear_exception();
 		exceptions_throw_nosuchmethoderror(mainclass,
-										   utf_new_char("main"), 
-										   utf_new_char("([Ljava/lang/String;)V"));
+										   Utf8String::from_utf8("main"), 
+										   Utf8String::from_utf8("([Ljava/lang/String;)V"));
 
 		exceptions_print_stacktrace();
 		vm_exit(1);
@@ -1848,8 +1846,8 @@ void vm_exit(s4 status)
 	/* call java.lang.System.exit(I)V */
 
 	m = class_resolveclassmethod(class_java_lang_System,
-								 utf_new_char("exit"),
-								 utf_int__void,
+								 Utf8String::from_utf8("exit"),
+								 utf8::int__void,
 								 class_java_lang_Object,
 								 true);
 	
@@ -1921,9 +1919,6 @@ void vm_exit_handler(void)
 
 	if (showconstantpool)
 		class_showconstantpool(mainclass);
-
-	if (showutf)
-		utf_show();
 
 # if defined(ENABLE_PROFILING)
 	if (opt_prof)
@@ -2037,9 +2032,9 @@ static char *vm_get_mainclass_from_jar(char *mainname)
 	java_handle_t *s;
 
 #if defined(ENABLE_JAVAME_CLDC1_1)
-	c = load_class_bootstrap(utf_new_char("java/util/jar/JarFile"));
+	c = load_class_bootstrap(Utf8String::from_utf8("java/util/jar/JarFile"));
 #else
-	c = load_class_from_sysloader(utf_new_char("java/util/jar/JarFile"));
+	c = load_class_from_sysloader(Utf8String::from_utf8("java/util/jar/JarFile"));
 #endif
 
 	if (c == NULL) {
@@ -2057,8 +2052,8 @@ static char *vm_get_mainclass_from_jar(char *mainname)
 	}
 
 	m = class_resolveclassmethod(c,
-								 utf_init, 
-								 utf_java_lang_String__void,
+								 utf8::init, 
+								 utf8::java_lang_String__void,
 								 class_java_lang_Object,
 								 true);
 
@@ -2067,7 +2062,7 @@ static char *vm_get_mainclass_from_jar(char *mainname)
 		return NULL;
 	}
 
-	s = javastring_new_from_ascii(mainname);
+	s = JavaString::from_utf8(mainname);
 
 	(void) vm_call_method(m, o, s);
 
@@ -2079,8 +2074,8 @@ static char *vm_get_mainclass_from_jar(char *mainname)
 	/* get manifest object */
 
 	m = class_resolveclassmethod(c,
-								 utf_new_char("getManifest"), 
-								 utf_new_char("()Ljava/util/jar/Manifest;"),
+								 Utf8String::from_utf8("getManifest"), 
+								 Utf8String::from_utf8("()Ljava/util/jar/Manifest;"),
 								 class_java_lang_Object,
 								 true);
 
@@ -2102,8 +2097,8 @@ static char *vm_get_mainclass_from_jar(char *mainname)
 	LLNI_class_get(o, c);
 
 	m = class_resolveclassmethod(c,
-								 utf_new_char("getMainAttributes"), 
-								 utf_new_char("()Ljava/util/jar/Attributes;"),
+								 Utf8String::from_utf8("getMainAttributes"), 
+								 Utf8String::from_utf8("()Ljava/util/jar/Attributes;"),
 								 class_java_lang_Object,
 								 true);
 
@@ -2125,8 +2120,8 @@ static char *vm_get_mainclass_from_jar(char *mainname)
 	LLNI_class_get(o, c);
 
 	m = class_resolveclassmethod(c,
-								 utf_new_char("getValue"), 
-								 utf_new_char("(Ljava/lang/String;)Ljava/lang/String;"),
+								 Utf8String::from_utf8("getValue"), 
+								 Utf8String::from_utf8("(Ljava/lang/String;)Ljava/lang/String;"),
 								 class_java_lang_Object,
 								 true);
 
@@ -2135,7 +2130,7 @@ static char *vm_get_mainclass_from_jar(char *mainname)
 		return NULL;
 	}
 
-	s = javastring_new_from_ascii("Main-Class");
+	s = JavaString::from_utf8("Main-Class");
 
 	o = vm_call_method(m, o, s);
 
@@ -2145,7 +2140,7 @@ static char *vm_get_mainclass_from_jar(char *mainname)
 		return NULL;
 	}
 
-	return javastring_tochar(o);
+	return JavaString(o).to_chars();
 }
 
 
@@ -2240,7 +2235,7 @@ static void vm_compile_method(char* mainname)
 
 	/* create, load and link the main class */
 
-	mainclass = load_class_bootstrap(utf_new_char(mainname));
+	mainclass = load_class_bootstrap(Utf8String::from_utf8(mainname));
 
 	if (mainclass == NULL)
 		exceptions_print_stacktrace();
@@ -2250,14 +2245,14 @@ static void vm_compile_method(char* mainname)
 
 	if (opt_CompileSignature != NULL) {
 		m = class_resolveclassmethod(mainclass,
-									 utf_new_char(opt_CompileMethod),
-									 utf_new_char(opt_CompileSignature),
+									 Utf8String::from_utf8(opt_CompileMethod),
+									 Utf8String::from_utf8(opt_CompileSignature),
 									 mainclass,
 									 false);
 	}
 	else {
 		m = class_resolveclassmethod(mainclass,
-									 utf_new_char(opt_CompileMethod),
+									 Utf8String::from_utf8(opt_CompileMethod),
 									 NULL,
 									 mainclass,
 									 false);

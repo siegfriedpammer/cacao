@@ -210,7 +210,7 @@ static bool initialize_class_intern(classinfo *c)
 
 	/* interfaces implemented need not to be initialized (VM Spec 2.17.4) */
 
-	m = class_findmethod(c, utf_clinit, utf_void__void);
+	m = class_findmethod(c, utf8::clinit, utf8::void__void);
 
 	if (m == NULL) {
 #if !defined(NDEBUG)
@@ -245,7 +245,7 @@ static bool initialize_class_intern(classinfo *c)
 
 		/* Load java/lang/Exception for the instanceof check. */
 
-		clazz = load_class_bootstrap(utf_java_lang_Exception);
+		clazz = load_class_bootstrap(utf8::java_lang_Exception);
 
 		if (clazz == NULL)
 			return false;

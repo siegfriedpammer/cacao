@@ -53,6 +53,7 @@
 # include "threads/thread.hpp"
 #endif
 
+#include "toolbox/buffer.hpp"
 
 /* global variables ***********************************************************/
 
@@ -706,7 +707,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
         if (stage >= SHOW_PARSE) {                                   \
             putchar('"');                                            \
             utf_display_printable_ascii(                             \
-               javastring_toutf((java_handle_t *)(val), false));     \
+               JavaString((java_handle_t*) (val)).to_utf8());        \
             printf("\" ");                                           \
         }                                                            \
         else {                                                       \
@@ -1556,19 +1557,18 @@ void show_filters_apply(methodinfo *m) {
 
 	/* compose full name of method */
 
-	len = 
-		utf_bytes(m->clazz->name) +
-		1 +
-		utf_bytes(m->name) +
-		utf_bytes(m->descriptor) +
-		1;
+	len = utf8_size(m->clazz->name)
+	    + 1  // '.'
+        + utf8_size(m->name)
+	    + utf8_size(m->descriptor)
+	    + 1; // zero terminator
 
-	method_name = MNEW(char, len);
+	Buffer<MemoryAllocator> buf(len);
 
-	utf_cat_classname(method_name, m->clazz->name);
-	strcat(method_name, ".");
-	utf_cat(method_name, m->name);
-	utf_cat(method_name, m->descriptor);
+	method_name = buf.write_slash_to_dot(m->clazz->name)
+	                 .write('.')
+	                 .write(m->name)
+	                 .write(m->descriptor);
 
 	/* reset all flags */
 
@@ -1587,9 +1587,6 @@ void show_filters_apply(methodinfo *m) {
 			m->filtermatches |= show_filters[i].flag;
 		}
 	}
-
-	// Release memory.
-	MFREE(method_name, char, len);
 }
 
 #define STATE_IS_INITIAL() ((FILTERVERBOSECALLCTR[0] == 0) && (FILTERVERBOSECALLCTR[1] == 0))

@@ -393,7 +393,7 @@ bool typecheck_infer_types(jitdata *jd)
 
 	/* check if this method is an instance initializer method */
 
-    state.initmethod = (state.m->name == utf_init);
+    state.initmethod = (state.m->name == utf8::init);
 
 	/* initialize the basic block flags for the following CFG traversal */
 

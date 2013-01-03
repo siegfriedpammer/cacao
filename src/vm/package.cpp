@@ -48,7 +48,7 @@ std::set<utf*> Package::_packages;
 void Package::add(utf* packagename)
 {
 	// Intern the Java string to get a unique address.
-/* 	s = javastring_intern(packagename); */
+/* 	s = JavaString(packagename).intern(); */
 
 #if !defined(NDEBUG)
 	if (opt_DebugPackage) {

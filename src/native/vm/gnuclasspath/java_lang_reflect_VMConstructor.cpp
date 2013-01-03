@@ -121,7 +121,7 @@ JNIEXPORT jstring JNICALL Java_java_lang_reflect_VMConstructor_getSignature(JNIE
 	if (m->signature == NULL)
 		return NULL;
 
-	o = javastring_new(m->signature);
+	o = JavaString::from_utf8(m->signature);
 
 	/* In error case o is NULL. */
 
@@ -206,7 +206,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_java_lang_reflect_VMConstructor_init(void)
 {
-	utf* u = utf_new_char("java/lang/reflect/VMConstructor");
+	Utf8String u = Utf8String::from_utf8("java/lang/reflect/VMConstructor");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

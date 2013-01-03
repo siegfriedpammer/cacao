@@ -1180,7 +1180,7 @@ static s4 emit_inlining_prolog(inline_node *iln,
 		/* ensures that they are only called for an uninit. object */
 		/* (which may not be NULL).                                */
 
-		if (!callee->isstatic && i == 0 && calleem->name != utf_init) {
+		if (!callee->isstatic && i == 0 && calleem->name != utf8::init) {
 			assert(type == TYPE_ADR);
 			n_ins = inline_instruction(iln, ICMD_CHECKNULL, o_iptr);
 			n_ins->s1.varindex = varindex;
@@ -2490,7 +2490,7 @@ static void inline_set_callee_properties(const inline_node *caller,
 
 	/* we need a CHECKNULL for instance methods, except for <init> */
 
-	if (!cn->isstatic && cn->m->name != utf_init)
+	if (!cn->isstatic && cn->m->name != utf8::init)
 		cn->prolog_instructioncount += 1;
 
 	/* deal with synchronized callees */

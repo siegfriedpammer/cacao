@@ -324,7 +324,7 @@ void signal_thread_handler(int sig)
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	default: {
 		// For OpenJDK we dispatch all unknown signals to Java.
-		methodinfo* m = class_resolvemethod(class_sun_misc_Signal, utf_dispatch, utf_int__void);
+		methodinfo* m = class_resolvemethod(class_sun_misc_Signal, utf8::dispatch, utf8::int__void);
 		(void) vm_call_method(m, NULL, sig);
 
 		if (exceptions_get_exception()) {
@@ -353,7 +353,7 @@ bool signal_start_thread(void)
 #if defined(ENABLE_THREADS)
 	utf *name;
 
-	name = utf_new_char("Signal Handler");
+	name = Utf8String::from_utf8("Signal Handler");
 
 	if (!threads_thread_start_internal(name, signal_thread))
 		return false;

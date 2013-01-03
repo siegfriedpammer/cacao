@@ -52,7 +52,7 @@ JNIEXPORT jstring JNICALL Java_java_lang_VMString_intern(JNIEnv *env, jclass cla
 	if (str == NULL)
 		return NULL;
 
-	return (jstring) javastring_intern((java_handle_t *) str);
+	return (jstring) JavaString((java_handle_t*) str).intern();
 }
 
 } // extern "C"
@@ -73,7 +73,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_java_lang_VMString_init(void)
 {
-	utf* u = utf_new_char("java/lang/VMString");
+	Utf8String u = UtfString::from_utf8("java/lang/VMString");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

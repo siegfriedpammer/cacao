@@ -944,7 +944,7 @@ typeinfo_init_class(typeinfo_t *info,classref_or_classinfo c)
 			utf_ptr++;
 			len -= 2;
 			info->elementtype = ARRAYTYPE_OBJECT;
-			info->elementclass.ref = class_get_classref(c.ref->referer,utf_new(utf_ptr,len));
+			info->elementclass.ref = class_get_classref(c.ref->referer,Utf8String::from_utf8(utf_ptr,len));
 		}
 		else {
 			/* an array with primitive element type */
@@ -2159,7 +2159,7 @@ typeinfo_test_parse(typeinfo_t *info,char *str)
     typeinfo_t *infobuf;
     u1 *typebuf;
     int returntype;
-    utf *desc = utf_new_char(str);
+    Utf8String desc = Utf8String::from_utf8(str);
     
     num = typeinfo_count_method_args(desc,false);
     if (num) {

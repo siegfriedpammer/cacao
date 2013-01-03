@@ -142,7 +142,7 @@ JNIEXPORT jstring JNICALL Java_java_lang_reflect_VMMethod_getSignature(JNIEnv *e
 	if (m->signature == NULL)
 		return NULL;
 
-	java_handle_t* s = javastring_new(m->signature);
+	java_handle_t* s = JavaString::from_utf8(m->signature);
 
 	/* in error case o is NULL */
 
@@ -183,8 +183,8 @@ JNIEXPORT jobject JNICALL Java_java_lang_reflect_VMMethod_getDefaultValue(JNIEnv
 
 	/* only resolve the parser method the first time */
 	if (m_parseAnnotationDefault == NULL) {
-		utf_parseAnnotationDefault = utf_new_char("parseAnnotationDefault");
-		utf_desc = utf_new_char(
+		utf_parseAnnotationDefault = UtfString::from_utf8("parseAnnotationDefault");
+		utf_desc = UtfString::from_utf8(
 			"(Ljava/lang/reflect/Method;[BLsun/reflect/ConstantPool;)"
 			"Ljava/lang/Object;");
 
@@ -287,7 +287,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_java_lang_reflect_VMMethod_init(void)
 {
-	utf* u = utf_new_char("java/lang/reflect/VMMethod");
+	Utf8String u = UtfString::from_utf8("java/lang/reflect/VMMethod");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

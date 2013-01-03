@@ -254,9 +254,9 @@ hashtable *zip_open(char *path)
 
 		if (filename[cdsfh.filenamelength - 1] != '/') {
 			if (strncmp(classext, ".class", strlen(".class")) == 0)
-				u = utf_new(filename, cdsfh.filenamelength - strlen(".class"));
+				u = Utf8String::from_utf8(filename, cdsfh.filenamelength - strlen(".class"));
 			else
-				u = utf_new(filename, cdsfh.filenamelength);
+				u = Utf8String::from_utf8(filename, cdsfh.filenamelength);
 
 			/* insert class into hashtable */
 
@@ -270,7 +270,7 @@ hashtable *zip_open(char *path)
 
 			/* get hashtable slot */
 
-			key  = utf_hashkey(u->text, u->blength);
+			key  = UTF_HASH(u);
 			slot = key & (ht->size - 1);
 
 			/* insert into external chain */
@@ -330,7 +330,7 @@ hashtable_zipfile_entry *zip_find(list_classpath_entry *lce, utf *u)
 
 	/* get the hashtable slot of the name searched */
 
-	key   = utf_hashkey(u->text, u->blength);
+	key   = UTF_HASH(u);
 	slot  = key & (ht->size - 1);
 	htzfe = (hashtable_zipfile_entry*) ht->ptr[slot];
 

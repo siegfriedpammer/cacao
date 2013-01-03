@@ -2,6 +2,7 @@
 #define __CACAO_BUFFER_HPP__ 1
 
 #include "vm/utf8.hpp"
+#include "vm/string.hpp"
 #include "mm/memory.hpp"
 
 #include "toolbox/utf_utils.hpp"
@@ -24,7 +25,7 @@ template<template<typename T> class Allocator = MemoryAllocator>
 class Buffer : public OutputStream {
 	public:
 		// construct a buffer with size
-		Buffer(size_t buf_size=64);
+		Buffer(size_t buf_size=64, bool free_on_exit = true);
 
 		// free content of buffer
 		~Buffer();
@@ -32,6 +33,7 @@ class Buffer : public OutputStream {
 		// write to buffer byte-by-byte
 		virtual inline Buffer& write(char);
 		virtual inline Buffer& write(Utf8String);
+		virtual inline Buffer& write(JavaString);
 		virtual inline Buffer& write(const char*);
 		virtual inline Buffer& write(const char*, size_t);
 		virtual inline Buffer& write(const u2*,   size_t);
@@ -74,7 +76,8 @@ class Buffer : public OutputStream {
 		Buffer& operator=(const Buffer&);
 
 		char*           _start, *_end, *_pos;
-		Allocator<char> alloc;
+		bool            _free_on_exit;
+		Allocator<char> _alloc;
 
 		class Encode {
 			public:
@@ -96,23 +99,32 @@ class Buffer : public OutputStream {
 
 /* Buffer::Buffer **************************************************************
 
-	Construct a new Buffer with a given size
+	Construct a new Buffer with a given size.
+	
+	IN:
+		buf_size ....... The number of bytes that should be preallocated
+		                 for input in the buffer.
+		free_on_exit ... Tells wether the Buffer should free it's internal
+		                 buffer in it's destructor.
 
 *******************************************************************************/
 
 template<template<typename T> class Allocator>
-Buffer<Allocator>::Buffer(size_t buf_size)
+Buffer<Allocator>::Buffer(size_t buf_size, bool free_on_exit)
 {
-	_start = alloc.allocate(buf_size);
-	_end   = _start + buf_size;
-	_pos   = _start;
+	_start        = _alloc.allocate(buf_size);
+	_end          = _start + buf_size;
+	_pos          = _start;
+	_free_on_exit = free_on_exit;
 }
 
 template<template<typename T> class Allocator>
 Buffer<Allocator>::~Buffer()
 {
-	alloc.deallocate(_start, _end - _start);
-	_start = _end = _pos = 0;
+	if (_free_on_exit) {
+		_alloc.deallocate(_start, _end - _start);
+		_start = _end = _pos = 0;
+	}
 }
 
 /* Buffer::write(Utf8String) ***************************************************
@@ -126,6 +138,19 @@ template<template<typename T> class Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write(Utf8String u)
 {
 	return write(u.begin(), u.size());
+}
+
+/* Buffer::write(JavaString) ***************************************************
+
+	Decode a java lang string into buffer
+	Does NOT inserts a zero terminator.
+
+*******************************************************************************/
+
+template<template<typename T> class Allocator>
+Buffer<Allocator>& Buffer<Allocator>::write(JavaString js)
+{
+	return write(js.get_contents(), js.size());
 }
 
 /* Buffer::write(const char*) **************************************************
@@ -382,7 +407,7 @@ void Buffer<Allocator>::ensure_capacity(size_t write_size)
 		assert(new_capacity > (old_capacity + write_size));
 
 		// enlarge buffer
-		_start = alloc.reallocate(_start, old_capacity, new_capacity);
+		_start = _alloc.reallocate(_start, old_capacity, new_capacity);
 		_end   = _start + new_capacity;
 		_pos   = _start + old_size;
 	}

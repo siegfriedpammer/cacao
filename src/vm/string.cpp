@@ -282,7 +282,7 @@ namespace {
 *******************************************************************************/
 
 JavaString JavaString::from_utf8(Utf8String u) {
-	return makeJavaString(u.begin(), u.size(), u.codepoints(),
+	return makeJavaString(u.begin(), u.size(), u.utf16_size(),
 	                      allocate_with_GC, init_from_utf8<identity>);
 }
 
@@ -302,7 +302,7 @@ JavaString JavaString::from_utf8(const char *cs, size_t sz) {
 *******************************************************************************/
 
 JavaString JavaString::from_utf8_slash_to_dot(Utf8String u) {
-	return makeJavaString(u.begin(), u.size(), u.codepoints(),
+	return makeJavaString(u.begin(), u.size(), u.utf16_size(),
 	                      allocate_with_GC, init_from_utf8<slash_to_dot>);
 }
 
@@ -319,7 +319,7 @@ JavaString JavaString::from_utf8_slash_to_dot(Utf8String u) {
 *******************************************************************************/
 
 JavaString JavaString::literal(Utf8String u) {
-	JavaString str = makeJavaString(u.begin(), u.size(), u.codepoints(),
+	JavaString str = makeJavaString(u.begin(), u.size(), u.utf16_size(),
 	                                allocate_on_system_heap, init_from_utf8<identity>);
 
 
@@ -395,6 +395,17 @@ size_t JavaString::size() const {
 	return java_lang_String::get_count(str);
 }
 
+/* JavaString::utf8_size *******************************************************
+
+	Get the number of bytes this string would need in utf-8 encoding
+
+*******************************************************************************/
+
+size_t JavaString::utf8_size() const {
+	assert(str);
+
+	return utf8::num_bytes(get_contents(), size());
+}
 
 //****************************************************************************//
 //*****          JAVA STRING CONVERSIONS                                 *****//
@@ -434,7 +445,7 @@ char *JavaString::to_chars() const {
 *******************************************************************************/
 
 Utf8String JavaString::to_utf8() const {
-	if (str == NULL) return utf_empty;
+	if (str == NULL) return utf8::empty;
 
 	return Utf8String::from_utf16(get_contents(), size());
 }
@@ -447,7 +458,7 @@ Utf8String JavaString::to_utf8() const {
 *******************************************************************************/
 
 Utf8String JavaString::to_utf8_dot_to_slash() const {
-	if (str == NULL) return utf_empty;
+	if (str == NULL) return utf8::empty;
 		
 	return Utf8String::from_utf16_dot_to_slash(get_contents(), size());
 }
@@ -472,45 +483,6 @@ void JavaString::fprint(FILE *stream) const
 		fputc(c, stream);
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-// LEGACY C API
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-bool string_init(void) { 
-	JavaString::initialize();
-	return true;
-}
-
-void stringtable_update(void)  {}
-
-java_handle_t *javastring_new(utf *text) { return JavaString::from_utf8(text); }
-
-java_handle_t *javastring_new_slash_to_dot(utf *text) { return JavaString::from_utf8_slash_to_dot(text); }
-
-java_handle_t *javastring_new_from_ascii(const char *text) { return JavaString::from_utf8(text); }
-
-java_handle_t *javastring_new_from_utf_string(const char *utfstr) { return JavaString::from_utf8(utfstr); }
-
-java_handle_t *javastring_safe_new_from_utf8(const char *text) { return JavaString::from_utf8(text); }
-
-char *javastring_tochar(java_handle_t *string) { return JavaString(string).to_chars(); }
-
-utf *javastring_toutf(java_handle_t *h, bool isclassname) {
-	if (isclassname)
-		return JavaString(h).to_utf8_dot_to_slash();
-	else
-		return JavaString(h).to_utf8();
-}
-
-/* creates a new javastring with the text of the utf-symbol */
-java_object_t *literalstring_new(utf *u) { return JavaString::literal(u); }
-
-java_handle_t *javastring_intern(java_handle_t *s) { return JavaString(s).intern(); }
-void           javastring_fprint(java_handle_t *s, FILE *stream) { return JavaString(s).fprint(stream); }
-
 
 /*
  * These are local overrides for various environment variables in Emacs.

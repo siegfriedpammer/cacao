@@ -94,7 +94,7 @@
 
 	/* check whether we are calling <init> */
 	
-	callinginit = (invokespecial && mname == utf_init);
+	callinginit = (invokespecial && mname == utf8::init);
 	if (specialmethod && !callinginit)
 		TYPECHECK_VERIFYERROR_bool("Invalid invocation of special method");
 

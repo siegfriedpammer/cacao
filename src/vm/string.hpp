@@ -23,19 +23,19 @@
 */
 
 
-#ifndef _STRINGLOCAL_H
-#define _STRINGLOCAL_H
+#ifndef _STRING_HPP
+#define _STRING_HPP 1
+
+#ifdef __cplusplus
 
 #include "config.h"
-
-#include <stdio.h>
-#include <string.h>
 
 #include "vm/types.h"
 #include "vm/global.h"
 #include "vm/utf8.hpp"
 
-#ifdef __cplusplus
+#include <cstdio>
+#include <cstring>
 
 class JavaString {
 	public:
@@ -53,8 +53,8 @@ class JavaString {
 		static JavaString from_utf8(Utf8String);
 		static JavaString from_utf8(const char*, size_t);
 
-		static inline java_handle_t* from_utf8(const char *cs) {
-			return from_utf8(cs, strlen(cs));
+		static inline JavaString from_utf8(const char *cs) {
+			return from_utf8(cs, std::strlen(cs));
 		}
 
 		// creates a new object of type java/lang/String from a utf-text,
@@ -68,6 +68,10 @@ class JavaString {
 
 		const u2* get_contents() const;
 		size_t    size()         const; 
+
+		// the number of bytes this string would need
+		// in utf-8 encoding
+		size_t utf8_size() const;
 
 		/*** CONVERSIONS   ******************************************/
 
@@ -91,56 +95,7 @@ class JavaString {
 
 #endif /* __cplusplus */
 
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-// LEGACY C API
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-/* function prototypes ********************************************************/
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/* initialize string subsystem */
-bool string_init(void);
-
-void stringtable_update(void);
-
-/* creates a new object of type java/lang/String from a utf-text */
-java_handle_t *javastring_new(utf *text);
-
-/* creates a new object of type java/lang/String from a utf-text, changes slashes to dots */
-java_handle_t *javastring_new_slash_to_dot(utf *text);
-
-/* creates a new object of type java/lang/String from an ASCII c-string */
-java_handle_t *javastring_new_from_ascii(const char *text);
-
-/* creates a new object of type java/lang/String from UTF-8 */
-java_handle_t *javastring_new_from_utf_string(const char *utfstr);
-
-/* creates a new object of type java/lang/String from (possibly invalid) UTF-8 */
-java_handle_t *javastring_safe_new_from_utf8(const char *text);
-
-/* make c-string from a javastring (debugging) */
-char *javastring_tochar(java_handle_t *string);
-
-/* make utf symbol from javastring */
-utf *javastring_toutf(java_handle_t *string, bool isclassname);
-
-/* creates a new javastring with the text of the utf-symbol */
-java_object_t *literalstring_new(utf *u);
-
-java_handle_t *javastring_intern(java_handle_t *s);
-void           javastring_fprint(java_handle_t *s, FILE *stream);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* _STRINGLOCAL_H */
-
+#endif /* _STRING_HPP */
 
 /*
  * These are local overrides for various environment variables in Emacs.

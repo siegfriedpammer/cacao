@@ -418,7 +418,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_sun_reflect_ConstantPool_init(void)
 {
-	utf* u = utf_new_char("sun/reflect/ConstantPool");
+	Utf8String u = UtfString::from_utf8("sun/reflect/ConstantPool");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

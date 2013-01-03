@@ -339,8 +339,8 @@ JNIEXPORT jclass JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, jclass claz
 
 	/* create utf string in which '.' is replaced by '/' */
 
-	ufile = javastring_toutf((java_handle_t *) name, true);
-	uname = javastring_toutf((java_handle_t *) name, false);
+	ufile = JavaString((java_handle_t*) name).to_utf8_dot_to_slash();
+	uname = JavaString((java_handle_t*) name).to_utf8();
 
 	/* name must not contain '/' (mauve test) */
 
@@ -434,9 +434,9 @@ JNIEXPORT jobjectArray JNICALL Java_java_lang_VMClass_getDeclaredAnnotations(JNI
 
 	/* only resolve the parser method the first time */
 	if (m_parseAnnotationsIntoArray == NULL) {
-		utf* utf_parseAnnotationsIntoArray = utf_new_char("parseAnnotationsIntoArray");
-		utf* utf_desc = utf_new_char("([BLsun/reflect/ConstantPool;Ljava/lang/Class;)"
-									 "[Ljava/lang/annotation/Annotation;");
+		Utf8String utf_parseAnnotationsIntoArray = UtfString::from_utf8("parseAnnotationsIntoArray");
+		Utf8String utf_desc = UtfString::from_utf8("([BLsun/reflect/ConstantPool;Ljava/lang/Class;)"
+		                                           "[Ljava/lang/annotation/Annotation;");
 
 		if (utf_parseAnnotationsIntoArray == NULL || utf_desc == NULL) {
 			/* out of memory */
@@ -532,7 +532,7 @@ JNIEXPORT jstring JNICALL Java_java_lang_VMClass_getClassSignature(JNIEnv *env, 
 	if (u == NULL)
 		return NULL;
 
-	s = javastring_new(u);
+	s = JavaString::from_utf8(u);
 
 	/* in error case s is NULL */
 
@@ -617,7 +617,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_java_lang_VMClass_init(void)
 {
-	utf* u = utf_new_char("java/lang/VMClass");
+	Utf8String u = UtfString::from_utf8("java/lang/VMClass");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

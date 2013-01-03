@@ -181,7 +181,7 @@ void Recompiler::thread()
  */
 bool Recompiler::start()
 {
-	utf *name = utf_new_char("Recompiler");
+	Utf8String name = Utf8String::from_utf8("Recompiler");
 
 	if (!threads_thread_start_internal(name, (functionptr) &Recompiler::thread))
 		return false;

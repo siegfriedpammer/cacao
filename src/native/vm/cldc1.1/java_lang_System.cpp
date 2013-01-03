@@ -76,20 +76,20 @@ JNIEXPORT jstring JNICALL Java_java_lang_System_getProperty0(JNIEnv *env, jclass
 
 	/* build an ASCII string out of the java/lang/String passed */
 
-	key = javastring_tochar(so);
+	key = JavaString(so).to_chars();
 
 	/* get the property from the internal table */
 
 	value = VM::get_current()->get_properties().get(key);
 
-	/* release the memory allocated in javastring_tochar */
+	/* release the memory allocated in JavaString::to_chars */
 
 	MFREE(key, char, 0);
 
 	if (value == NULL)
 		return NULL;
 
-	result = javastring_new_from_ascii(value);
+	result = JavaString::from_utf8(value);
 
 	return (jstring) result;
 }
@@ -126,7 +126,7 @@ static JNINativeMethod methods[] = {
  
 void _Jv_java_lang_System_init(void)
 {
-	utf* u = utf_new_char("java/lang/System");
+	Utf8String u = UtfString::from_utf8("java/lang/System");
  
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

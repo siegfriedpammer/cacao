@@ -153,7 +153,6 @@ struct methoddesc {
 
 #ifdef __cplusplus
 extern "C" {
-#endif
 
 descriptor_pool * descriptor_pool_new(classinfo *referer);
 
@@ -169,7 +168,7 @@ constant_classref * descriptor_pool_lookup_classref(descriptor_pool *pool,utf *c
 
 void descriptor_pool_alloc_parsed_descriptors(descriptor_pool *pool);
 
-typedesc *descriptor_pool_parse_field_descriptor(descriptor_pool *pool, utf *desc);
+typedesc *descriptor_pool_parse_field_descriptor(descriptor_pool *pool, Utf8String desc);
 methoddesc *descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc, s4 mflags,
 													constant_classref *thisclass);
 
@@ -185,7 +184,6 @@ void descriptor_debug_print_paramdesc(FILE *file,paramdesc *d);
 void descriptor_pool_debug_dump(descriptor_pool *pool, FILE *file);
 #endif /* !defined(NDEBUG) */
 
-#ifdef __cplusplus
 }
 #endif
 

@@ -274,40 +274,25 @@ JNIEXPORT jstring JNICALL Java_java_lang_VMThread_getState(JNIEnv *env, jobject 
 	
 	switch (state) {
 	case THREAD_STATE_NEW:
-		u = utf_new_char("NEW");
-		break;
+		return (jstring) JavaString::from_utf8("NEW");
 	case THREAD_STATE_RUNNABLE:
-		u = utf_new_char("RUNNABLE");
-		break;
+		return (jstring) JavaString::from_utf8("RUNNABLE");
 	case THREAD_STATE_BLOCKED:
-		u = utf_new_char("BLOCKED");
-		break;
+		return (jstring) JavaString::from_utf8("BLOCKED");
 	case THREAD_STATE_WAITING:
-		u = utf_new_char("WAITING");
-		break;
+		return (jstring) JavaString::from_utf8("WAITING");
 	case THREAD_STATE_TIMED_WAITING:
-		u = utf_new_char("TIMED_WAITING");
-		break;
+		return (jstring) JavaString::from_utf8("TIMED_WAITING");
 	case THREAD_STATE_PARKED:
-		u = utf_new_char("PARKED");
-		break;
+		return (jstring) JavaString::from_utf8r("PARKED");
 	case THREAD_STATE_TIMED_PARKED:
-		u = utf_new_char("TIMED_PARKED");
-		break;
+		return (jstring) JavaString::from_utf8("TIMED_PARKED");
 	case THREAD_STATE_TERMINATED:
-		u = utf_new_char("TERMINATED");
-		break;
+		return (jstring) JavaString::from_utf8("TERMINATED");
 	default:
 		vm_abort("Java_java_lang_VMThread_getState: unknown thread state %d", state);
-
-		/* Keep compiler happy. */
-
-		u = NULL;
+		return NULL; /* Keep compiler happy. */
 	}
-
-	o = javastring_new(u);
-
-	return (jstring) o;
 #else
 	return NULL;
 #endif
@@ -344,7 +329,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_java_lang_VMThread_init(void)
 {
-	utf* u = utf_new_char("java/lang/VMThread");
+	Utf8String u = UtfString::from_utf8("java/lang/VMThread");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

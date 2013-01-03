@@ -29,6 +29,8 @@
 #include "vm/jit/code.hpp"
 #include "vm/jit/oprofile-agent.hpp"
 
+#include "toolbox/buffer.hpp"
+
 #include <string.h>
 
 /* static fields **************************************************************/
@@ -59,26 +61,23 @@ void OprofileAgent::newmethod(methodinfo *m)
 	unsigned int real_length = (unsigned int) m->code->mcodelength -
 		(unsigned int) (m->code->entrypoint - m->code->mcode);
 
-	char *buf;
-	s4    len;
+	size_t len = Utf8String(m->clazz->name) + strlen(".")
+	           + Utf8String(m->name)        + Utf8String(m->descriptor)
+	           + strlen("0");
 
-	len = utf_bytes(m->clazz->name) + strlen(".") +
-                utf_bytes(m->name) + utf_bytes(m->descriptor) + strlen("0");
+	// can the buffer free it's contents or not?
+	Buffer<> buf(len, false);
 
-	buf = MNEW(char, len);
-
-	utf_copy_classname(buf, m->clazz->name);
-	strcat(buf, ".");
-	utf_cat(buf, m->name);
-	utf_cat(buf, m->descriptor);
+	buf.write_slash_to_dot(m->clazz->name)
+           .write('.')
+           .write(m->name)
+           .write(m->descriptor)
 
 	if (_handle)
-		op_write_native_code(_handle, buf,
+		op_write_native_code(_handle, (char*) buf,
 			(uint64_t) (ptrint) m->code->entrypoint,
 			(const void *) m->code->entrypoint,
 			real_length);
-
-	MFREE(buf, char, len);
 }
 
 /**

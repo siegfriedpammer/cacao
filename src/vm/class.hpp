@@ -201,17 +201,7 @@ extern "C" {
  * @param c class to get name of
  * @return classname
  */
-inline static java_handle_t* class_get_classname(classinfo* c)
-{
-	java_handle_t *s;
-
-	/* Create a java string. */
-
-	s = javastring_new_slash_to_dot(c->name);
-
-	return s;
-}
-
+extern java_handle_t* class_get_classname(classinfo* c);
 
 /* class_is_primitive **********************************************************
 

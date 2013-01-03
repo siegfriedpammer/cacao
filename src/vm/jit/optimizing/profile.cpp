@@ -175,7 +175,7 @@ bool profile_start_thread(void)
 {
 	utf *name;
 
-	name = utf_new_char("Profiling Sampler");
+	name = Utf8String::from_utf8("Profiling Sampler");
 
 	if (!threads_thread_start_internal(name, profile_thread))
 		return false;

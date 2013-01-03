@@ -1276,7 +1276,7 @@ inline java_lang_reflect_VMField::java_lang_reflect_VMField(fieldinfo* f)
 	if (is_null())
 		return;
 
-	java_handle_t*           name        = javastring_intern(javastring_new(f->name));
+	java_handle_t*           name        = JavaString::literal(f->name);
 	int                      slot        = f - f->clazz->fields;
 	java_handle_bytearray_t* annotations = field_get_annotations(f);
 
@@ -1491,7 +1491,7 @@ inline java_lang_reflect_VMMethod::java_lang_reflect_VMMethod(methodinfo* m)
 	if (is_null())
 		return;
 
-	java_handle_t*           name                 = javastring_intern(javastring_new(m->name));
+	java_handle_t*           name                 = JavaString::literal(m->name);
 	int                      slot                 = m - m->clazz->methods;
 	java_handle_bytearray_t* annotations          = method_get_annotations(m);
 	java_handle_bytearray_t* parameterAnnotations = method_get_parameterannotations(m);
@@ -1829,7 +1829,7 @@ public:
 
 inline java_lang_AssertionStatusDirectives::java_lang_AssertionStatusDirectives(java_handle_objectarray_t* classes, java_handle_booleanarray_t* classEnabled, java_handle_objectarray_t* packages, java_handle_booleanarray_t* packageEnabled)
 {
-	classinfo* c = load_class_bootstrap(utf_new_char("java/lang/AssertionStatusDirectives"));
+	classinfo* c = load_class_bootstrap(Utf8String::from_utf8("java/lang/AssertionStatusDirectives"));
 
 	// FIXME Load the class at VM startup.
 	if (c == NULL)
@@ -2317,7 +2317,7 @@ inline java_lang_reflect_Constructor::java_lang_reflect_Constructor(methodinfo* 
 	set_parameterTypes(parameterTypes);
 	set_exceptionTypes(exceptionTypes);
 	set_modifiers(m->flags & ACC_CLASS_REFLECT_MASK);
-	set_signature(m->signature ? javastring_new(m->signature) : NULL);
+	set_signature(m->signature ? JavaString::from_utf8(m->signature) : NULL);
 	set_annotations(annotations);
 	set_parameterAnnotations(parameterAnnotations);
 }
@@ -2480,10 +2480,10 @@ inline java_lang_reflect_Field::java_lang_reflect_Field(fieldinfo* f)
 
 	set_clazz(f->clazz);
 	set_slot(f - f->clazz->fields);
-	set_name(javastring_intern(javastring_new(f->name)));
+	set_name(JavaString::literal(f->name));
 	set_type(field_get_type(f));
 	set_modifiers(f->flags);
-	set_signature(f->signature ? javastring_new(f->signature) : NULL);
+	set_signature(f->signature ? JavaString::from_utf8(f->signature) : NULL);
 	set_annotations(field_get_annotations(f));
 }
 
@@ -2642,12 +2642,12 @@ inline java_lang_reflect_Method::java_lang_reflect_Method(methodinfo* m)
 
 	set(_handle, offset_clazz,                m->clazz);
 	set(_handle, offset_slot,                 (int32_t) (m - m->clazz->methods)); // This cast is important (see PR100).
-	set(_handle, offset_name,                 javastring_intern(javastring_new(m->name)));
+	set(_handle, offset_name,                 JavaString::literal(m->name));
 	set(_handle, offset_returnType,           method_returntype_get(m));
 	set(_handle, offset_parameterTypes,       method_get_parametertypearray(m));
 	set(_handle, offset_exceptionTypes,       method_get_exceptionarray(m));
 	set(_handle, offset_modifiers,            (int32_t) (m->flags & ACC_CLASS_REFLECT_MASK));
-	set(_handle, offset_signature,            m->signature ? javastring_new(m->signature) : NULL);
+	set(_handle, offset_signature,            m->signature ? JavaString::from_utf8(m->signature) : NULL);
 	set(_handle, offset_annotations,          method_get_annotations(m));
 	set(_handle, offset_parameterAnnotations, method_get_parameterannotations(m));
 	set(_handle, offset_annotationDefault,    method_get_annotationdefault(m));

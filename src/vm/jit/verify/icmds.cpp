@@ -474,7 +474,7 @@ case ICMD_ATHROW:
 				METHOD,
 				/* XXX make this more efficient, use class_java_lang_Throwable
 				 * directly */
-				class_get_classref(METHOD->clazz,utf_java_lang_Throwable),
+				class_get_classref(METHOD->clazz,utf8::java_lang_Throwable),
 				&OP1->typeinfo);
 		IPTR->flags.bits |= INS_FLAG_UNRESOLVED;
 	}

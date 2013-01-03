@@ -38,6 +38,7 @@
 
 #include "toolbox/list.hpp"
 #include "toolbox/logging.hpp"
+#include "toolbox/buffer.hpp"
 
 #include "vm/exceptions.hpp"
 #include "vm/loader.hpp"
@@ -498,9 +499,7 @@ void suck_skip_nbytes(classbuffer *cb, s4 len)
 classbuffer *suck_start(classinfo *c)
 {
 	list_classpath_entry *lce;
-	char                 *filename;
 	s4                    filenamelen;
-	char                 *path;
 	FILE                 *classfile;
 	s4                    len;
 	struct stat           buffer;
@@ -513,11 +512,13 @@ classbuffer *suck_start(classinfo *c)
 	/* get the classname as char string (do it here for the warning at
        the end of the function) */
 
-	filenamelen = utf_bytes(c->name) + strlen(".class") + strlen("0");
-	filename = MNEW(char, filenamelen);
+	filenamelen = utf8_size(c->name) + strlen(".class") + strlen("0");
 
-	utf_copy(filename, c->name);
-	strcat(filename, ".class");
+	Buffer<MemoryAllocator> filename(filenamelen);
+	Buffer<MemoryAllocator> path;
+
+	filename.write(c->name)
+	        .write(".class");
 
 	// Get current list of classpath entries.
 	SuckClasspath& suckclasspath = VM::get_current()->get_suckclasspath();
@@ -544,9 +545,10 @@ classbuffer *suck_start(classinfo *c)
 
 		} else {
 #endif /* defined(ENABLE_ZLIB) */
-			path = MNEW(char, lce->pathlen + filenamelen);
-			strcpy(path, lce->path);
-			strcat(path, filename);
+			path.clear();
+
+			path.write(lce->path)
+			    .write(filename);
 
 			classfile = os::fopen(path, "r");
 
@@ -575,8 +577,6 @@ classbuffer *suck_start(classinfo *c)
 					os::fclose(classfile);
 				}
 			}
-
-			MFREE(path, char, lce->pathlen + filenamelen);
 #if defined(ENABLE_ZLIB)
 		}
 #endif
@@ -584,9 +584,7 @@ classbuffer *suck_start(classinfo *c)
 
 	if (opt_verbose)
 		if (cb == NULL)
-			dolog("Warning: Can not open class file '%s'", filename);
-
-	MFREE(filename, char, filenamelen);
+			dolog("Warning: Can not open class file '%s'", (char*) filename);
 
 	return cb;
 }

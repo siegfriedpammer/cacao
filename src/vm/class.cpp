@@ -62,8 +62,21 @@
 
 #include "vm/suck.hpp"
 #include "vm/utf8.hpp"
+#include "vm/string.hpp"
 
 #include "vm/jit/asmpart.h"
+
+/**
+ * Returns the classname of the class, where slashes ('/') are
+ * replaced by dots ('.').
+ *
+ * @param c class to get name of
+ * @return classname
+ */
+extern java_handle_t* class_get_classname(classinfo* c)
+{
+	return JavaString::from_utf8_slash_to_dot(c->name);
+}
 
 
 /* class_set_packagename *******************************************************
@@ -81,7 +94,7 @@
 
 void class_set_packagename(classinfo *c)
 {
-	char *p;
+	const char *p;
 	char *start;
 
 	p     = UTF_END(c->name) - 1;
@@ -106,7 +119,7 @@ void class_set_packagename(classinfo *c)
 	   '/'.  Otherwise we set the packagename to NULL. */
 
 	if (p > start)
-		c->packagename = utf_new(start, p - start + 1);
+		c->packagename = Utf8String::from_utf8(start, p - start + 1);
 	else
 		c->packagename = NULL;
 }
@@ -135,7 +148,7 @@ classinfo *class_create_classinfo(utf *classname)
 	/* we use a safe name for temporarily unnamed classes */
 
 	if (classname == NULL)
-		classname = utf_not_named_yet;
+		classname = utf8::not_named_yet;
 
 #if !defined(NDEBUG)
 	if (initverbose)
@@ -163,18 +176,18 @@ classinfo *class_create_classinfo(utf *classname)
 #if defined(ENABLE_JAVASE)
 	/* check if the class is a reference class and flag it */
 
-	if (classname == utf_java_lang_ref_SoftReference) {
+	if (classname == utf8::java_lang_ref_SoftReference) {
 		c->flags |= ACC_CLASS_REFERENCE_SOFT;
 	}
-	else if (classname == utf_java_lang_ref_WeakReference) {
+	else if (classname == utf8::java_lang_ref_WeakReference) {
 		c->flags |= ACC_CLASS_REFERENCE_WEAK;
 	}
-	else if (classname == utf_java_lang_ref_PhantomReference) {
+	else if (classname == utf8::java_lang_ref_PhantomReference) {
 		c->flags |= ACC_CLASS_REFERENCE_PHANTOM;
 	}
 #endif
 
-	if (classname != utf_not_named_yet)
+	if (classname != utf8::not_named_yet)
 		class_set_packagename(c);
 
 	Lockword(c->object.header.lockword).init();
@@ -491,7 +504,7 @@ bool class_load_attributes(classbuffer *cb)
 		if (attribute_name == NULL)
 			return false;
 
-		if (attribute_name == utf_InnerClasses) {
+		if (attribute_name == utf8::InnerClasses) {
 			/* InnerClasses */
 
 			if (c->innerclass != NULL) {
@@ -558,20 +571,20 @@ bool class_load_attributes(classbuffer *cb)
 				info->flags       = flags;
 			}
 		}
-		else if (attribute_name == utf_SourceFile) {
+		else if (attribute_name == utf8::SourceFile) {
 			/* SourceFile */
 
 			if (!class_load_attribute_sourcefile(cb))
 				return false;
 		}
 #if defined(ENABLE_JAVASE)
-		else if (attribute_name == utf_EnclosingMethod) {
+		else if (attribute_name == utf8::EnclosingMethod) {
 			/* EnclosingMethod */
 
 			if (!class_load_attribute_enclosingmethod(cb))
 				return false;
 		}
-		else if (attribute_name == utf_Signature) {
+		else if (attribute_name == utf8::Signature) {
 			/* Signature */
 
 			if (!loader_load_attribute_signature(cb, &(c->signature)))
@@ -580,12 +593,12 @@ bool class_load_attributes(classbuffer *cb)
 #endif
 
 #if defined(ENABLE_ANNOTATIONS)
-		else if (attribute_name == utf_RuntimeVisibleAnnotations) {
+		else if (attribute_name == utf8::RuntimeVisibleAnnotations) {
 			/* RuntimeVisibleAnnotations */
 			if (!annotation_load_class_attribute_runtimevisibleannotations(cb))
 				return false;
 		}
-		else if (attribute_name == utf_RuntimeInvisibleAnnotations) {
+		else if (attribute_name == utf8::RuntimeInvisibleAnnotations) {
 			/* RuntimeInvisibleAnnotations */
 			if (!annotation_load_class_attribute_runtimeinvisibleannotations(cb))
 				return false;
@@ -842,7 +855,7 @@ classinfo *class_array_of(classinfo *component, bool link)
         namelen += 3;
     }
 
-	u = utf_new(namebuf, namelen);
+	u = Utf8String::from_utf8(namebuf, namelen);
 
 	MFREE(namebuf, char, namelen);
 
@@ -889,7 +902,7 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
     }
 	memset(namebuf, '[', dim);
 
-	utf* u = utf_new(namebuf, namelen);
+	utf* u = Utf8String::from_utf8(namebuf, namelen);
 
 	MFREE(namebuf, char, namelen);
 
@@ -1048,7 +1061,7 @@ constant_classref *class_get_classref_multiarray_of(s4 dim, constant_classref *r
     }
 	memset(namebuf, '[', dim);
 
-	utf* u = utf_new(namebuf, namelen);
+	utf* u = Utf8String::from_utf8(namebuf, namelen);
 
 	MFREE(namebuf, char, namelen);
 
@@ -1076,6 +1089,25 @@ constant_classref *class_get_classref_multiarray_of(s4 dim, constant_classref *r
 
 constant_classref *class_get_classref_component_of(constant_classref *ref)
 {
+	assert(ref);
+
+	Utf8String name = ref->name;
+	size_t start    = 1;
+	size_t end      = name.size() - 1;
+
+	if (name[0] != '[')
+		return NULL;
+
+	if (name[1] == 'L') {
+		start += 1;
+		end   -= 2;
+	}
+	else if (name[1] != '[') {
+		return NULL;
+	}
+
+    return class_get_classref(ref->referer, name.substring(start, end));
+/*
 	s4 namelen;
 	char *name;
 	
@@ -1095,6 +1127,7 @@ constant_classref *class_get_classref_component_of(constant_classref *ref)
 	}
 
     return class_get_classref(ref->referer, utf_new(name, namelen));
+*/
 }
 
 
@@ -1146,7 +1179,7 @@ methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *desc)
 		   explicited in the specification.  Section 5.4.3.3 should be
 		   updated appropriately.  */
 
-		if (name == utf_init || name == utf_clinit)
+		if (name == utf8::init || name == utf8::clinit)
 			return NULL;
 
 		c = c->super;
@@ -1741,7 +1774,7 @@ java_handle_objectarray_t *class_get_declaredconstructors(classinfo *c, bool pub
 		m = &(c->methods[i]);
 
 		if (((m->flags & ACC_PUBLIC) || (publicOnly == 0)) &&
-			(m->name == utf_init))
+			(m->name == utf8::init))
 			count++;
 	}
 
@@ -1758,7 +1791,7 @@ java_handle_objectarray_t *class_get_declaredconstructors(classinfo *c, bool pub
 		m = &(c->methods[i]);
 
 		if (((m->flags & ACC_PUBLIC) || (publicOnly == 0)) &&
-			(m->name == utf_init)) {
+			(m->name == utf8::init)) {
 			// Create a java.lang.reflect.Constructor object.
 
 			java_lang_reflect_Constructor rc(m);
@@ -1872,7 +1905,7 @@ java_handle_objectarray_t *class_get_declaredmethods(classinfo *c, bool publicOn
 		m = &(c->methods[i]);
 
 		if (((m->flags & ACC_PUBLIC) || (publicOnly == false)) &&
-			((m->name != utf_init) && (m->name != utf_clinit)) &&
+			((m->name != utf8::init) && (m->name != utf8::clinit)) &&
 			!(m->flags & ACC_MIRANDA))
 			count++;
 	}
@@ -1890,7 +1923,7 @@ java_handle_objectarray_t *class_get_declaredmethods(classinfo *c, bool publicOn
 		m = &(c->methods[i]);
 
 		if (((m->flags & ACC_PUBLIC) || (publicOnly == false)) && 
-			((m->name != utf_init) && (m->name != utf_clinit)) &&
+			((m->name != utf8::init) && (m->name != utf8::clinit)) &&
 			!(m->flags & ACC_MIRANDA)) {
 			// Create java.lang.reflect.Method object.
 
@@ -2007,7 +2040,7 @@ java_handle_t* class_get_enclosingconstructor(classinfo *c)
 
 	/* Check for <init>. */
 
-	if (m->name != utf_init)
+	if (m->name != utf8::init)
 		return NULL;
 
 	// Create a java.lang.reflect.Constructor object.
@@ -2083,7 +2116,7 @@ java_handle_t* class_get_enclosingmethod(classinfo *c)
 
 	/* check for <init> */
 
-	if (m->name == utf_init)
+	if (m->name == utf8::init)
 		return NULL;
 
 	// Create a java.lang.reflect.Method object.

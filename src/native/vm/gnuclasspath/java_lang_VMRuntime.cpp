@@ -48,6 +48,7 @@
 #include "vm/utf8.hpp"
 #include "vm/vm.hpp"
 
+#include "toolbox/buffer.hpp"
 
 static bool finalizeOnExit = false;
 
@@ -204,7 +205,7 @@ JNIEXPORT jint JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass c
 		return 0;
 	}
 
-	utf* name = javastring_toutf((java_handle_t *) libname, false);
+	Utf8String name = JavaString((java_handle_t*) libname).to_utf8();
 
 	NativeLibrary library(name, cl);
 	return library.load(env);
@@ -228,29 +229,17 @@ JNIEXPORT jstring JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIEnv *env, j
 		return NULL;
 	}
 
-	u = javastring_toutf((java_handle_t *) libname, false);
-
-	/* calculate length of library name */
-
-	buffer_len =
-		strlen(NATIVE_LIBRARY_PREFIX) +
-		utf_bytes(u) +
-		strlen(NATIVE_LIBRARY_SUFFIX) +
-		strlen("0");
-
-	buffer = MNEW(char, buffer_len);
+	u = JavaString((java_handle_t*) libname).to_utf8();
 
 	/* generate library name */
 
-	strcpy(buffer, NATIVE_LIBRARY_PREFIX);
-	utf_cat(buffer, u);
-	strcat(buffer, NATIVE_LIBRARY_SUFFIX);
+	Buffer<> buf;
 
-	o = javastring_new_from_utf_string(buffer);
+	buf.write(NATIVE_LIBRARY_PREFIX)
+	   .write(u)
+	   .write(NATIVE_LIBRARY_SUFFIX);
 
-	/* release memory */
-
-	MFREE(buffer, char, buffer_len);
+	o = JavaString::from_utf8(buf);
 
 	return (jstring) o;
 }
@@ -285,7 +274,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_java_lang_VMRuntime_init(void)
 {
-	utf* u = utf_new_char("java/lang/VMRuntime");
+	Utf8String u = UtfString::from_utf8("java/lang/VMRuntime");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

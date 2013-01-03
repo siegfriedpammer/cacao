@@ -600,7 +600,7 @@ fetch_opcode:
 				OP_LOADCONST_D(((constant_double *) (m->clazz->cpinfos[i]))->value);
 				break;
 			case CONSTANT_String:
-				OP_LOADCONST_STRING(literalstring_new((utf *) (m->clazz->cpinfos[i])));
+				OP_LOADCONST_STRING(JavaString::literal((utf *) (m->clazz->cpinfos[i])));
 				break;
 			case CONSTANT_Class:
 				cr = (constant_classref *) (m->clazz->cpinfos[i]);

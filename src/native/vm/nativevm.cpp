@@ -183,10 +183,10 @@ bool nativevm_init(void)
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	methodinfo* m = class_resolveclassmethod(class_java_lang_System,
-											 utf_new_char("initializeSystemClass"),
-											 utf_void__void,
-											 class_java_lang_Object,
-											 false);
+	                                         Utf8String::from_utf8("initializeSystemClass"),
+	                                         utf8::void__void,
+	                                         class_java_lang_Object,
+	                                         false);
 
 	if (m == NULL)
 		return false;

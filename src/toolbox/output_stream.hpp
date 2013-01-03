@@ -26,6 +26,7 @@
 #define __CACAO_OUTPUT_STREAM_HPP__ 1
 
 #include "vm/utf8.hpp"
+#include "vm/string.hpp"
 
 #include <cstring>
 #include <stdint.h>
@@ -49,6 +50,9 @@ class OutputStream {
 
 		virtual inline OutputStream& write(Utf8String u) {
 			return write(u.begin(), u.size());
+		}
+		virtual inline OutputStream& write(JavaString s) {
+			return write(s.get_contents(), s.size());
 		}
 		virtual OutputStream& write(const char *cs) {
 			return write(cs, std::strlen(cs));

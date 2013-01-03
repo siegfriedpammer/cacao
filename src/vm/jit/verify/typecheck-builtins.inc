@@ -136,7 +136,7 @@
 
 #ifdef TYPECHECK_DEBUG
 			/* generic builtins may only take primitive types and java.lang.Object references */
-			if (av->type == TYPE_ADR && md->paramtypes[i].classref->name != utf_java_lang_Object) {
+			if (av->type == TYPE_ADR && md->paramtypes[i].classref->name != utf8::java_lang_Object) {
 				exceptions_throw_internalerror("generic builtin method with non-generic reference parameter");
 				return false;
 			}

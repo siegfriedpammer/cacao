@@ -155,8 +155,8 @@ java_handle_t* Reflection::get_declaredannotations(java_handle_bytearray_t *anno
 	/* only resolve the parser method the first time */
 	if (m_parseAnnotations == NULL) {
 		// FIXME Use globals.
-		utf* utf_parseAnnotations = utf_new_char("parseAnnotations");
-		utf* utf_desc = utf_new_char("([BLsun/reflect/ConstantPool;Ljava/lang/Class;)Ljava/util/Map;");
+		Utf8String utf_parseAnnotations = Utf8String::from_utf8("parseAnnotations");
+		Utf8String utf_desc             = Utf8String::from_utf8("([BLsun/reflect/ConstantPool;Ljava/lang/Class;)Ljava/util/Map;");
 
 		if (utf_parseAnnotations == NULL || utf_desc == NULL)
 			return NULL;
@@ -230,8 +230,8 @@ java_handle_objectarray_t* Reflection::get_parameterannotations(java_handle_byte
 
 	/* only resolve the parser method the first time */
 	if (m_parseParameterAnnotations == NULL) {
-		utf* utf_parseParameterAnnotations = utf_new_char("parseParameterAnnotations");
-		utf* utf_desc = utf_new_char("([BLsun/reflect/ConstantPool;Ljava/lang/Class;I)[[Ljava/lang/annotation/Annotation;");
+		Utf8String utf_parseParameterAnnotations = Utf8String::from_utf8("parseParameterAnnotations");
+		Utf8String utf_desc                      = Utf8String::from_utf8("([BLsun/reflect/ConstantPool;Ljava/lang/Class;I)[[Ljava/lang/annotation/Annotation;");
 
 		if (utf_parseParameterAnnotations == NULL || utf_desc == NULL)
 			return NULL;

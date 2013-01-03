@@ -834,8 +834,8 @@ JNIEXPORT jclass JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_String_2_3
 	if (name != NULL) {
 		/* convert '.' to '/' in java string */
 
-		utfname = javastring_toutf((java_handle_t *) name, true);
-	} 
+		utfname = JavaString((java_handle_t*) name).to_utf8_dot_to_slash();
+	}
 	else {
 		utfname = NULL;
 	}
@@ -1364,7 +1364,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_sun_misc_Unsafe_init(void)
 {
-	utf* u = utf_new_char("sun/misc/Unsafe");
+	Utf8String u = Utf8String::from_utf8("sun/misc/Unsafe");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

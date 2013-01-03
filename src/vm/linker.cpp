@@ -316,7 +316,7 @@ void linker_init(void)
     /* pseudo class for Arraystubs (extends java.lang.Object) */
 
 	pseudo_class_Arraystub                   =
-		class_create_classinfo(utf_new_char("$ARRAYSTUB$"));
+		class_create_classinfo(Utf8String::from_utf8("$ARRAYSTUB$"));
 	pseudo_class_Arraystub->state           |= CLASS_LOADED;
 	pseudo_class_Arraystub->super            = class_java_lang_Object;
 
@@ -344,7 +344,7 @@ void linker_init(void)
 
 	/* pseudo class representing the null type */
 
-	pseudo_class_Null         = class_create_classinfo(utf_new_char("$NULL$"));
+	pseudo_class_Null         = class_create_classinfo(Utf8String::from_utf8("$NULL$"));
 	pseudo_class_Null->state |= CLASS_LOADED;
 	pseudo_class_Null->super  = class_java_lang_Object;
 
@@ -356,18 +356,13 @@ void linker_init(void)
 
 	/* pseudo class representing new uninitialized objects */
     
-	pseudo_class_New         = class_create_classinfo(utf_new_char("$NEW$"));
+	pseudo_class_New         = class_create_classinfo(Utf8String::from_utf8("$NEW$"));
 	pseudo_class_New->state |= CLASS_LOADED;
 	pseudo_class_New->state |= CLASS_LINKED; /* XXX is this allright? */
 	pseudo_class_New->super  = class_java_lang_Object;
 
 	if (!classcache_store_unique(pseudo_class_New))
 		vm_abort("linker_init: could not cache pseudo_class_New");
-
-	/* Correct vftbl-entries (retarded loading and linking of class
-	   java/lang/String). */
-
-	stringtable_update();
 }
 
 
@@ -485,7 +480,7 @@ static bool linker_overwrite_method(methodinfo *mg,
 	/* Add loading constraints (for the more general types of method mg). */
 	/* Not for <init>, as it is not invoked virtually.                    */
 
-	if ((ms->name != utf_init)
+	if ((ms->name != utf8::init)
 			&& !classcache_add_constraints_for_params(
 				cs->classloader, cg->classloader, mg))
 	{
@@ -501,7 +496,7 @@ static bool linker_overwrite_method(methodinfo *mg,
 	/* update flags and check assumptions */
 	/* <init> methods are a special case, as they are never dispatched dynamically */
 
-	if ((ms->flags & ACC_METHOD_IMPLEMENTED) && ms->name != utf_init) {
+	if ((ms->flags & ACC_METHOD_IMPLEMENTED) && ms->name != utf8::init) {
 		do {
 
 #if defined(ENABLE_TLH)
@@ -795,7 +790,7 @@ static classinfo *link_class_intern(classinfo *c)
 
 				/* skip `<clinit>' and `<init>' */
 
-				if ((im->name == utf_clinit) || (im->name == utf_init))
+				if ((im->name == utf8::clinit) || (im->name == utf8::init))
 					continue;
 
 				for (tc = c; tc != NULL; tc = tc->super) {
@@ -828,7 +823,7 @@ static classinfo *link_class_intern(classinfo *c)
 
 					/* skip `<clinit>' and `<init>' */
 
-					if ((im->name == utf_clinit) || (im->name == utf_init))
+					if ((im->name == utf8::clinit) || (im->name == utf8::init))
 						continue;
 
 					for (tc = c; tc != NULL; tc = tc->super) {
@@ -999,7 +994,7 @@ static classinfo *link_class_intern(classinfo *c)
 	if (super) {
 		methodinfo *fi;
 
-		fi = class_findmethod(c, utf_finalize, utf_void__void);
+		fi = class_findmethod(c, utf8::finalize, utf8::void__void);
 
 		if (fi)
 			if (!(fi->flags & ACC_STATIC))
@@ -1081,14 +1076,14 @@ static arraydescriptor *link_array(classinfo *c)
 	switch (c->name->text[1]) {
 	case '[':
 		/* c is an array of arrays. */
-		u = utf_new(c->name->text + 1, namelen - 1);
+		u = Utf8String::from_utf8(c->name->text + 1, namelen - 1);
 		if (!(comp = load_class_from_classloader(u, c->classloader)))
 			return NULL;
 		break;
 
 	case 'L':
 		/* c is an array of objects. */
-		u = utf_new(c->name->text + 2, namelen - 3);
+		u = Utf8String::from_utf8(c->name->text + 2, namelen - 3);
 		if (!(comp = load_class_from_classloader(u, c->classloader)))
 			return NULL;
 		break;
@@ -1217,7 +1212,7 @@ void linker_initialize_deferred_strings()
 {
 	deferred_strings_vec_t::const_iterator it = deferred_strings.begin();
 	for (; it != deferred_strings.end(); ++it)
-		*it->first = literalstring_new(it->second);
+		*it->first = JavaString::literal(it->second);
 	deferred_strings.clear();
 }
 

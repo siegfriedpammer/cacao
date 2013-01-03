@@ -43,6 +43,7 @@
 #include "threads/thread.hpp"
 
 #include "toolbox/util.h"
+#include "toolbox/buffer.hpp"
 
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
@@ -275,7 +276,7 @@ static java_handle_t *exceptions_new_class_utf(classinfo *c, utf *message)
 			exceptions_abort(c->name, message);
 	}
 
-	s = javastring_new(message);
+	s = JavaString::from_utf8(message);
 
 	if (s == NULL)
 		return exceptions_get_exception();
@@ -473,8 +474,8 @@ static void exceptions_throw_utf_throwable(utf *classname,
 	/* call initializer */
 
 	m = class_resolveclassmethod(c,
-								 utf_init,
-								 utf_java_lang_Throwable__void,
+								 utf8::init,
+								 utf8::java_lang_Throwable__void,
 								 NULL,
 								 true);
 	                      	                      
@@ -523,8 +524,8 @@ static void exceptions_throw_utf_exception(utf *classname,
 	/* call initializer */
 
 	m = class_resolveclassmethod(c,
-								 utf_init,
-								 utf_java_lang_Exception__V,
+								 utf8::init,
+								 utf8::java_lang_Exception__V,
 								 NULL,
 								 true);
 	                      	                      
@@ -570,8 +571,8 @@ static void exceptions_throw_utf_cause(utf *classname, java_handle_t *cause)
 	/* call initializer */
 
 	methodinfo* m = class_resolveclassmethod(c,
-											 utf_init,
-											 utf_java_lang_String__void,
+											 utf8::init,
+											 utf8::java_lang_String__void,
 											 NULL,
 											 true);
 	                      	                      
@@ -583,8 +584,8 @@ static void exceptions_throw_utf_cause(utf *classname, java_handle_t *cause)
 	/* call initCause */
 
 	m = class_resolveclassmethod(c,
-								 utf_initCause,
-								 utf_java_lang_Throwable__java_lang_Throwable,
+								 utf8::initCause,
+								 utf8::java_lang_Throwable__java_lang_Throwable,
 								 NULL,
 								 true);
 
@@ -628,7 +629,7 @@ java_handle_t *exceptions_new_abstractmethoderror(void)
 {
 	java_handle_t *o;
 
-	o = exceptions_new_utf(utf_java_lang_AbstractMethodError);
+	o = exceptions_new_utf(utf8::java_lang_AbstractMethodError);
 
 	return o;
 }
@@ -645,7 +646,7 @@ static java_handle_t *exceptions_new_error(utf *message)
 {
 	java_handle_t *o;
 
-	o = exceptions_new_utf_utf(utf_java_lang_Error, message);
+	o = exceptions_new_utf_utf(utf8::java_lang_Error, message);
 
 	return o;
 }
@@ -674,7 +675,7 @@ java_object_t *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra)
 #if defined(ENABLE_JAVASE)
 	e = exceptions_new_abstractmethoderror();
 #else
-	e = exceptions_new_error(utf_java_lang_AbstractMethodError);
+	e = exceptions_new_error(utf8::java_lang_AbstractMethodError);
 #endif
 
 	/* Remove the stackframeinfo. */
@@ -700,7 +701,7 @@ java_handle_t *exceptions_new_arraystoreexception(void)
 {
 	java_handle_t *o;
 
-	o = exceptions_new_utf(utf_java_lang_ArrayStoreException);
+	o = exceptions_new_utf(utf8::java_lang_ArrayStoreException);
 
 	return o;
 }
@@ -714,7 +715,7 @@ java_handle_t *exceptions_new_arraystoreexception(void)
 
 void exceptions_throw_abstractmethoderror(void)
 {
-	exceptions_throw_utf(utf_java_lang_AbstractMethodError);
+	exceptions_throw_utf(utf8::java_lang_AbstractMethodError);
 }
 
 
@@ -730,7 +731,7 @@ void exceptions_throw_abstractmethoderror(void)
 
 void exceptions_throw_classcircularityerror(classinfo *c)
 {
-	exceptions_throw_utf_utf(utf_java_lang_ClassCircularityError, c->name);
+	exceptions_throw_utf_utf(utf8::java_lang_ClassCircularityError, c->name);
 }
 
 
@@ -746,54 +747,27 @@ void exceptions_throw_classcircularityerror(classinfo *c)
 
 void exceptions_throw_classformaterror(classinfo *c, const char *message, ...)
 {
-	char    *msg;
-	s4       msglen;
 	va_list  ap;
-	utf     *u;
-
-	/* calculate message length */
-
-	msglen = 0;
-
-	if (c != NULL)
-		msglen += utf_bytes(c->name) + strlen(" (");
-
-	va_start(ap, message);
-	msglen += get_variable_message_length(message, ap);
-	va_end(ap);
-
-	if (c != NULL)
-		msglen += strlen(")");
-
-	msglen += strlen("0");
 
 	/* allocate a buffer */
 
-	msg = MNEW(char, msglen);
+	Buffer<MemoryAllocator> buf;
 
 	/* print message into allocated buffer */
 
-	if (c != NULL) {
-		utf_copy_classname(msg, c->name);
-		strcat(msg, " (");
-	}
+	if (c != NULL)
+		buf.write_slash_to_dot(c->name).write('(');
 
-	va_start(ap, message);
-	vsprintf(msg + strlen(msg), message, ap);
-	va_end(ap);
+	buf.writevf(message,ap);
 
 	if (c != NULL)
-		strcat(msg, ")");
+		buf.write(')');
 
-	u = utf_new_char(msg);
-
-	/* free memory */
-
-	MFREE(msg, char, msglen);
+	buf.write('\0');
 
 	/* throw exception */
 
-	exceptions_throw_utf_utf(utf_java_lang_ClassFormatError, u);
+	exceptions_throw_utf_utf(utf8::java_lang_ClassFormatError, buf.build());
 }
 
 
@@ -824,7 +798,7 @@ void exceptions_throw_classnotfoundexception(utf *name)
 
 void exceptions_throw_noclassdeffounderror(utf *name)
 {
-	exceptions_throw_utf_utf(utf_java_lang_NoClassDefFoundError, name);
+	exceptions_throw_utf_utf(utf8::java_lang_NoClassDefFoundError, name);
 }
 
 
@@ -837,7 +811,7 @@ void exceptions_throw_noclassdeffounderror(utf *name)
 
 void exceptions_throw_noclassdeffounderror_cause(java_handle_t *cause)
 {
-	exceptions_throw_utf_cause(utf_java_lang_NoClassDefFoundError, cause);
+	exceptions_throw_utf_cause(utf8::java_lang_NoClassDefFoundError, cause);
 }
 
 
@@ -853,25 +827,14 @@ void exceptions_throw_noclassdeffounderror_cause(java_handle_t *cause)
 
 void exceptions_throw_noclassdeffounderror_wrong_name(classinfo *c, utf *name)
 {
-	char *msg;
-	s4    msglen;
-	utf  *u;
+	Buffer<MemoryAllocator> buf;
 
-	msglen = utf_bytes(c->name) + strlen(" (wrong name: ") +
-		utf_bytes(name) + strlen(")") + strlen("0");
+	buf.write_slash_to_dot(c->name)
+	   .write(" (wrong name: ", 14)
+	   .write_slash_to_dot(name)
+	   .write(')');
 
-	msg = MNEW(char, msglen);
-
-	utf_copy_classname(msg, c->name);
-	strcat(msg, " (wrong name: ");
-	utf_cat_classname(msg, name);
-	strcat(msg, ")");
-
-	u = utf_new_char(msg);
-
-	MFREE(msg, char, msglen);
-
-	exceptions_throw_noclassdeffounderror(u);
+	exceptions_throw_noclassdeffounderror(buf.build());
 }
 
 
@@ -887,7 +850,7 @@ void exceptions_throw_noclassdeffounderror_wrong_name(classinfo *c, utf *name)
 
 void exceptions_throw_exceptionininitializererror(java_handle_t *cause)
 {
-	exceptions_throw_utf_throwable(utf_java_lang_ExceptionInInitializerError,
+	exceptions_throw_utf_throwable(utf8::java_lang_ExceptionInInitializerError,
 								   cause);
 }
 
@@ -904,30 +867,16 @@ void exceptions_throw_exceptionininitializererror(java_handle_t *cause)
 
 void exceptions_throw_incompatibleclasschangeerror(classinfo *c, const char *message)
 {
-	char *msg;
-	s4    msglen;
-	utf  *u;
-
-	/* calculate exception message length */
-
-	msglen = utf_bytes(c->name) + strlen(message) + strlen("0");
-
 	/* allocate memory */
 
-	msg = MNEW(char, msglen);
+	Buffer<MemoryAllocator> buf;
 
-	utf_copy_classname(msg, c->name);
-	strcat(msg, message);
-
-	u = utf_new_char(msg);
-
-	/* free memory */
-
-	MFREE(msg, char, msglen);
+	buf.write_slash_to_dot(c->name)
+	   .write(message);
 
 	/* throw exception */
 
-	exceptions_throw_utf_utf(utf_java_lang_IncompatibleClassChangeError, u);
+	exceptions_throw_utf_utf(utf8::java_lang_IncompatibleClassChangeError, buf.build());
 }
 
 
@@ -939,7 +888,7 @@ void exceptions_throw_incompatibleclasschangeerror(classinfo *c, const char *mes
 
 void exceptions_throw_instantiationerror(classinfo *c)
 {
-	exceptions_throw_utf_utf(utf_java_lang_InstantiationError, c->name);
+	exceptions_throw_utf_utf(utf8::java_lang_InstantiationError, c->name);
 }
 
 
@@ -955,35 +904,18 @@ void exceptions_throw_instantiationerror(classinfo *c)
 void exceptions_throw_internalerror(const char *message, ...)
 {
 	va_list  ap;
-	char    *msg;
-	s4       msglen;
-	utf     *u;
-
-	/* calculate exception message length */
-
-	va_start(ap, message);
-	msglen = get_variable_message_length(message, ap);
-	va_end(ap);
 
 	/* allocate memory */
 
-	msg = MNEW(char, msglen);
+	Buffer<MemoryAllocator> buf;
 
 	/* generate message */
 
-	va_start(ap, message);
-	vsprintf(msg, message, ap);
-	va_end(ap);
-
-	u = utf_new_char(msg);
-
-	/* free memory */
-
-	MFREE(msg, char, msglen);
+	buf.writevf(message,ap);
 
 	/* throw exception */
 
-	exceptions_throw_utf_utf(utf_java_lang_InternalError, u);
+	exceptions_throw_utf_utf(utf8::java_lang_InternalError, buf.build());
 }
 
 
@@ -1000,35 +932,16 @@ void exceptions_throw_internalerror(const char *message, ...)
 
 void exceptions_throw_linkageerror(const char *message, classinfo *c)
 {
-	utf  *u;
-	char *msg;
-	int   len;
-
-	/* calculate exception message length */
-
-	len = strlen(message) + 1;
-
-	if (c != NULL)
-		len += utf_bytes(c->name);
-		
-	/* allocate memory */
-
-	msg = MNEW(char, len);
-
 	/* generate message */
 
-	strcpy(msg, message);
+	Buffer<MemoryAllocator> buf;
+
+	buf.write(message);
 
 	if (c != NULL)
-		utf_cat_classname(msg, c->name);
+		buf.write_slash_to_dot(c->name);
 
-	u = utf_new_char(msg);
-
-	/* free memory */
-
-	MFREE(msg, char, len);
-
-	exceptions_throw_utf_utf(utf_java_lang_LinkageError, u);
+	exceptions_throw_utf_utf(utf8::java_lang_LinkageError, buf.build());
 }
 
 
@@ -1045,31 +958,15 @@ void exceptions_throw_linkageerror(const char *message, classinfo *c)
 
 void exceptions_throw_nosuchfielderror(classinfo *c, utf *name)
 {
-	char *msg;
-	s4    msglen;
-	utf  *u;
-
-	/* calculate exception message length */
-
-	msglen = utf_bytes(c->name) + strlen(".") + utf_bytes(name) + strlen("0");
-
-	/* allocate memory */
-
-	msg = MNEW(char, msglen);
-
 	/* generate message */
 
-	utf_copy_classname(msg, c->name);
-	strcat(msg, ".");
-	utf_cat(msg, name);
+	Buffer<MemoryAllocator> buf;
 
-	u = utf_new_char(msg);
+	buf.write_slash_to_dot(c->name)
+	   .write('.')
+	   .write(name);
 
-	/* free memory */
-
-	MFREE(msg, char, msglen);
-
-	exceptions_throw_utf_utf(utf_java_lang_NoSuchFieldError, u);
+	exceptions_throw_utf_utf(utf8::java_lang_NoSuchFieldError, buf.build());
 }
 
 
@@ -1087,36 +984,19 @@ void exceptions_throw_nosuchfielderror(classinfo *c, utf *name)
 
 void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc)
 {
-	char *msg;
-	s4    msglen;
-	utf  *u;
-
-	/* calculate exception message length */
-
-	msglen = utf_bytes(c->name) + strlen(".") + utf_bytes(name) +
-		utf_bytes(desc) + strlen("0");
-
-	/* allocate memory */
-
-	msg = MNEW(char, msglen);
-
 	/* generate message */
 
-	utf_copy_classname(msg, c->name);
-	strcat(msg, ".");
-	utf_cat(msg, name);
-	utf_cat(msg, desc);
+	Buffer<MemoryAllocator> buf;
 
-	u = utf_new_char(msg);
-
-	/* free memory */
-
-	MFREE(msg, char, msglen);
+	buf.write_slash_to_dot(c->name)
+	   .write('.')
+	   .write(name)
+	   .write(desc);
 
 #if defined(ENABLE_JAVASE)
-	exceptions_throw_utf_utf(utf_java_lang_NoSuchMethodError, u);
+	exceptions_throw_utf_utf(utf8::java_lang_NoSuchMethodError, buf.build());
 #else
-	exceptions_throw_utf_utf(utf_java_lang_Error, u);
+	exceptions_throw_utf_utf(utf8::java_lang_Error, buf.build());
 #endif
 }
 
@@ -1129,7 +1009,7 @@ void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc)
 
 void exceptions_throw_outofmemoryerror(void)
 {
-	exceptions_throw_utf(utf_java_lang_OutOfMemoryError);
+	exceptions_throw_utf(utf8::java_lang_OutOfMemoryError);
 }
 
 
@@ -1146,9 +1026,9 @@ void exceptions_throw_outofmemoryerror(void)
 void exceptions_throw_unsatisfiedlinkerror(utf *name)
 {
 #if defined(ENABLE_JAVASE)
-	exceptions_throw_utf_utf(utf_java_lang_UnsatisfiedLinkError, name);
+	exceptions_throw_utf_utf(utf8::java_lang_UnsatisfiedLinkError, name);
 #else
-	exceptions_throw_utf_utf(utf_java_lang_Error, name);
+	exceptions_throw_utf_utf(utf8::java_lang_Error, name);
 #endif
 }
 
@@ -1166,36 +1046,16 @@ void exceptions_throw_unsatisfiedlinkerror(utf *name)
 
 void exceptions_throw_unsupportedclassversionerror(classinfo *c, u4 ma, u4 mi)
 {
-	char *msg;
-    s4    msglen;
-	utf  *u;
-
-	/* calculate exception message length */
-
-	msglen =
-		utf_bytes(c->name) +
-		strlen(" (Unsupported major.minor version 00.0)") +
-		strlen("0");
-
-	/* allocate memory */
-
-	msg = MNEW(char, msglen);
-
 	/* generate message */
 
-	utf_copy_classname(msg, c->name);
-	sprintf(msg + strlen(msg), " (Unsupported major.minor version %d.%d)",
-			ma, mi);
+	Buffer<MemoryAllocator> buf;
 
-	u = utf_new_char(msg);
-
-	/* free memory */
-
-	MFREE(msg, char, msglen);
+	buf.write_slash_to_dot(c->name)
+	   .writef(" (Unsupported major.minor version %d.%d)", ma, mi);
 
 	/* throw exception */
 
-	exceptions_throw_utf_utf(utf_java_lang_UnsupportedClassVersionError, u);
+	exceptions_throw_utf_utf(utf8::java_lang_UnsupportedClassVersionError, buf.build());
 }
 
 
@@ -1211,55 +1071,28 @@ void exceptions_throw_unsupportedclassversionerror(classinfo *c, u4 ma, u4 mi)
 
 void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...)
 {
-	va_list  ap;
-	char    *msg;
-	s4       msglen;
-	utf     *u;
-
-	/* calculate exception message length */
-
-	msglen = 0;
-
-	if (m != NULL)
-		msglen =
-			strlen("(class: ") + utf_bytes(m->clazz->name) +
-			strlen(", method: ") + utf_bytes(m->name) +
-			strlen(" signature: ") + utf_bytes(m->descriptor) +
-			strlen(") ") + strlen("0");
-
-	va_start(ap, message);
-	msglen += get_variable_message_length(message, ap);
-	va_end(ap);
-
-	/* allocate memory */
-
-	msg = MNEW(char, msglen);
+	va_list                 ap;
+	Buffer<MemoryAllocator> buf;
 
 	/* generate message */
 
 	if (m != NULL) {
-		strcpy(msg, "(class: ");
-		utf_cat_classname(msg, m->clazz->name);
-		strcat(msg, ", method: ");
-		utf_cat(msg, m->name);
-		strcat(msg, " signature: ");
-		utf_cat(msg, m->descriptor);
-		strcat(msg, ") ");
+		buf.write("(class: ")
+		   .write_slash_to_dot(m->clazz->name)
+		   .write(", method: ")
+		   .write(m->name)
+		   .write(" signature: ")
+		   .write(m->descriptor)
+		   .write(") ");
 	}
 
 	va_start(ap, message);
-	vsprintf(msg + strlen(msg), message, ap);
+	buf.writevf(message, ap);
 	va_end(ap);
-
-	u = utf_new_char(msg);
-
-	/* free memory */
-
-	MFREE(msg, char, msglen);
 
 	/* throw exception */
 
-	exceptions_throw_utf_utf(utf_java_lang_VerifyError, u);
+	exceptions_throw_utf_utf(utf8::java_lang_VerifyError, buf.build());
 }
 
 
@@ -1279,66 +1112,37 @@ void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...)
 
 void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type)
 {
-	char *msg;
-	s4    msglen;
-	utf  *u;
-
-	/* calculate exception message length */
-
-	msglen = 0;
-
-	if (m != NULL)
-		msglen = strlen("(class: ") + utf_bytes(m->clazz->name) +
-			strlen(", method: ") + utf_bytes(m->name) +
-			strlen(" signature: ") + utf_bytes(m->descriptor) +
-			strlen(") Expecting to find longest-------typename on stack") 
-			+ strlen("0");
-
-	/* allocate memory */
-
-	msg = MNEW(char, msglen);
-
 	/* generate message */
 
+	Buffer<MemoryAllocator> buf;
+
 	if (m != NULL) {
-		strcpy(msg, "(class: ");
-		utf_cat_classname(msg, m->clazz->name);
-		strcat(msg, ", method: ");
-		utf_cat(msg, m->name);
-		strcat(msg, " signature: ");
-		utf_cat(msg, m->descriptor);
-		strcat(msg, ") ");
-	}
-	else {
-		msg[0] = 0;
+		buf.write("(class: ")
+		   .write_slash_to_dot(m->clazz->name)
+		   .write(", method: ")
+		   .write(m->name)
+		   .write(" signature: ")
+		   .write(m->descriptor)
+		   .write(") ");
 	}
 
-	strcat(msg, "Expecting to find ");
-
-	const char *name;
+	buf.write("Expecting to find ");
 
 	switch (type) {
-	case TYPE_INT: name = "integer";       break;
-	case TYPE_LNG: name = "long";          break;
-	case TYPE_FLT: name = "float";         break;
-	case TYPE_DBL: name = "double";        break;
-	case TYPE_ADR: name = "object/array";  break;
-	case TYPE_RET: name = "returnAddress"; break;
-	default:       name = "<INVALID>"; assert(0); break;
+	case TYPE_INT: buf.write("integer");              break;
+	case TYPE_LNG: buf.write("long");                 break;
+	case TYPE_FLT: buf.write("float");                break;
+	case TYPE_DBL: buf.write("double");               break;
+	case TYPE_ADR: buf.write("object/array");         break;
+	case TYPE_RET: buf.write("returnAddress");        break;
+	default:       buf.write("<INVALID>"); assert(0); break;
 	}
 
-	strcat(msg, name);
-	strcat(msg, " on stack");
-
-	u = utf_new_char(msg);
-
-	/* free memory */
-
-	MFREE(msg, char, msglen);
+	buf.write(" on stack");
 
 	/* throw exception */
 
-	exceptions_throw_utf_utf(utf_java_lang_VerifyError, u);
+	exceptions_throw_utf_utf(utf8::java_lang_VerifyError, buf.build());
 }
 
 
@@ -1352,8 +1156,8 @@ java_handle_t *exceptions_new_arithmeticexception(void)
 {
 	java_handle_t *o;
 
-	o = exceptions_new_utf_utf(utf_java_lang_ArithmeticException,
-							   utf_division_by_zero);
+	o = exceptions_new_utf_utf(utf8::java_lang_ArithmeticException,
+							   utf8::division_by_zero);
 
 	return o;
 }
@@ -1375,8 +1179,8 @@ java_handle_t *exceptions_new_arrayindexoutofboundsexception(s4 index)
 	/* convert the index into a String, like Sun does */
 
 	m = class_resolveclassmethod(class_java_lang_String,
-								 utf_new_char("valueOf"),
-								 utf_new_char("(I)Ljava/lang/String;"),
+								 Utf8String::from_utf8("valueOf"),
+								 Utf8String::from_utf8("(I)Ljava/lang/String;"),
 								 class_java_lang_Object,
 								 true);
 
@@ -1388,7 +1192,7 @@ java_handle_t *exceptions_new_arrayindexoutofboundsexception(s4 index)
 	if (s == NULL)
 		return exceptions_get_exception();
 
-	o = exceptions_new_utf_javastring(utf_java_lang_ArrayIndexOutOfBoundsException,
+	o = exceptions_new_utf_javastring(utf8::java_lang_ArrayIndexOutOfBoundsException,
 									  s);
 
 	if (o == NULL)
@@ -1407,7 +1211,7 @@ java_handle_t *exceptions_new_arrayindexoutofboundsexception(s4 index)
 
 void exceptions_throw_arrayindexoutofboundsexception(void)
 {
-	exceptions_throw_utf(utf_java_lang_ArrayIndexOutOfBoundsException);
+	exceptions_throw_utf(utf8::java_lang_ArrayIndexOutOfBoundsException);
 }
 
 
@@ -1419,7 +1223,7 @@ void exceptions_throw_arrayindexoutofboundsexception(void)
 
 void exceptions_throw_arraystoreexception(void)
 {
-	exceptions_throw_utf(utf_java_lang_ArrayStoreException);
+	exceptions_throw_utf(utf8::java_lang_ArrayStoreException);
 }
 
 
@@ -1439,7 +1243,7 @@ java_handle_t *exceptions_new_classcastexception(java_handle_t *o)
 
 	classname = c->name;
 
-	e = exceptions_new_utf_utf(utf_java_lang_ClassCastException, classname);
+	e = exceptions_new_utf_utf(utf8::java_lang_ClassCastException, classname);
 
 	return e;
 }
@@ -1454,7 +1258,7 @@ java_handle_t *exceptions_new_classcastexception(java_handle_t *o)
 
 void exceptions_throw_clonenotsupportedexception(void)
 {
-	exceptions_throw_utf(utf_java_lang_CloneNotSupportedException);
+	exceptions_throw_utf(utf8::java_lang_CloneNotSupportedException);
 }
 
 
@@ -1466,7 +1270,7 @@ void exceptions_throw_clonenotsupportedexception(void)
 
 void exceptions_throw_illegalaccessexception(utf *message)
 {
-	exceptions_throw_utf_utf(utf_java_lang_IllegalAccessException, message);
+	exceptions_throw_utf_utf(utf8::java_lang_IllegalAccessException, message);
 }
 
 
@@ -1479,7 +1283,7 @@ void exceptions_throw_illegalaccessexception(utf *message)
 
 void exceptions_throw_illegalargumentexception(void)
 {
-	exceptions_throw_utf(utf_java_lang_IllegalArgumentException);
+	exceptions_throw_utf(utf8::java_lang_IllegalArgumentException);
 }
 
 
@@ -1492,7 +1296,7 @@ void exceptions_throw_illegalargumentexception(void)
 
 void exceptions_throw_illegalmonitorstateexception(void)
 {
-	exceptions_throw_utf(utf_java_lang_IllegalMonitorStateException);
+	exceptions_throw_utf(utf8::java_lang_IllegalMonitorStateException);
 }
 
 
@@ -1504,7 +1308,7 @@ void exceptions_throw_illegalmonitorstateexception(void)
 
 void exceptions_throw_instantiationexception(classinfo *c)
 {
-	exceptions_throw_utf_utf(utf_java_lang_InstantiationException, c->name);
+	exceptions_throw_utf_utf(utf8::java_lang_InstantiationException, c->name);
 }
 
 
@@ -1516,7 +1320,7 @@ void exceptions_throw_instantiationexception(classinfo *c)
 
 void exceptions_throw_interruptedexception(void)
 {
-	exceptions_throw_utf(utf_java_lang_InterruptedException);
+	exceptions_throw_utf(utf8::java_lang_InterruptedException);
 }
 
 
@@ -1532,7 +1336,7 @@ void exceptions_throw_interruptedexception(void)
 
 void exceptions_throw_invocationtargetexception(java_handle_t *cause)
 {
-	exceptions_throw_utf_throwable(utf_java_lang_reflect_InvocationTargetException,
+	exceptions_throw_utf_throwable(utf8::java_lang_reflect_InvocationTargetException,
 								   cause);
 }
 
@@ -1546,7 +1350,7 @@ void exceptions_throw_invocationtargetexception(java_handle_t *cause)
 
 void exceptions_throw_negativearraysizeexception(void)
 {
-	exceptions_throw_utf(utf_java_lang_NegativeArraySizeException);
+	exceptions_throw_utf(utf8::java_lang_NegativeArraySizeException);
 }
 
 
@@ -1560,7 +1364,7 @@ java_handle_t *exceptions_new_nullpointerexception(void)
 {
 	java_handle_t *o;
 
-	o = exceptions_new_utf(utf_java_lang_NullPointerException);
+	o = exceptions_new_utf(utf8::java_lang_NullPointerException);
 
 	return o;
 }
@@ -1575,7 +1379,7 @@ java_handle_t *exceptions_new_nullpointerexception(void)
 
 void exceptions_throw_nullpointerexception(void)
 {
-	exceptions_throw_utf(utf_java_lang_NullPointerException);
+	exceptions_throw_utf(utf8::java_lang_NullPointerException);
 }
 
 
@@ -1587,7 +1391,7 @@ void exceptions_throw_nullpointerexception(void)
 
 void exceptions_throw_privilegedactionexception(java_handle_t *exception)
 {
-	exceptions_throw_utf_exception(utf_java_security_PrivilegedActionException,
+	exceptions_throw_utf_exception(utf8::java_security_PrivilegedActionException,
 								   exception);
 }
 
@@ -1601,7 +1405,7 @@ void exceptions_throw_privilegedactionexception(java_handle_t *exception)
 
 void exceptions_throw_stringindexoutofboundsexception(void)
 {
-	exceptions_throw_utf(utf_java_lang_StringIndexOutOfBoundsException);
+	exceptions_throw_utf(utf8::java_lang_StringIndexOutOfBoundsException);
 }
 
 
@@ -1630,12 +1434,12 @@ java_handle_t *exceptions_fillinstacktrace(void)
 
 #if defined(ENABLE_JAVASE)
 	m = class_resolvemethod(c,
-							utf_fillInStackTrace,
-							utf_void__java_lang_Throwable);
+							utf8::fillInStackTrace,
+							utf8::void__java_lang_Throwable);
 #elif defined(ENABLE_JAVAME_CLDC1_1)
 	m = class_resolvemethod(c,
-							utf_fillInStackTrace,
-							utf_void__void);
+							utf8::fillInStackTrace,
+							utf8::void__void);
 #else
 #error IMPLEMENT ME!
 #endif
@@ -1909,7 +1713,7 @@ void exceptions_print_exception(java_handle_t *xptr)
 	java_lang_String jls(jlt.get_detailMessage());
 
 	if (!jls.is_null()) {
-		utf* u = javastring_toutf(jls.get_handle(), false);
+		utf* u = JavaString(jls.get_handle()).to_utf8();
 
 		printf(": ");
 		utf_display_printable_ascii(u);
@@ -1930,7 +1734,7 @@ void exceptions_print_exception(java_handle_t *xptr)
 		java_lang_String jlscause(jlt.get_detailMessage());
 
 		if (jlscause.get_handle() != NULL) {
-			utf* u = javastring_toutf(jlscause.get_handle(), false);
+			Utf8String u = JavaString(jlscause.get_handle()).to_utf8();
 
 			printf(": ");
 			utf_display_printable_ascii(u);
@@ -2004,8 +1808,8 @@ void exceptions_print_stacktrace(void)
 		/* Find the printStackTrace() method. */
 
 		m = class_resolveclassmethod(c,
-									 utf_printStackTrace,
-									 utf_void__void,
+									 utf8::printStackTrace,
+									 utf8::void__void,
 									 class_java_lang_Object,
 									 false);
 

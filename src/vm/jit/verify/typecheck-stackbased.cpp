@@ -728,7 +728,7 @@ bool typecheck_stackbased(jitdata *jd)
 
 	/* check if this method is an instance initializer method */
 
-    state.initmethod = (state.m->name == utf_init);
+    state.initmethod = (state.m->name == utf8::init);
 
 	/* allocate parameter descriptors if necessary */
 

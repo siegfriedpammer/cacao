@@ -243,8 +243,8 @@ static JNINativeMethod methods[] = {
  
 void _Jv_com_sun_cldc_io_j2me_socket_Protocol_init(void)
 {
-	utf* u = utf_new_char("com/sun/cldc/io/j2me/socket/Protocol");
- 
+	Utf8String u = UtfString::from_utf8("com/sun/cldc/io/j2me/socket/Protocol");
+
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }

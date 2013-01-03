@@ -119,33 +119,33 @@ static bool builtintable_init(void)
 
 	/* add some entries we need */
 
-	if (!descriptor_pool_add_class(descpool, utf_java_lang_Object))
+	if (!descriptor_pool_add_class(descpool, utf8::java_lang_Object))
 		return false;
 
-	if (!descriptor_pool_add_class(descpool, utf_java_lang_Class))
+	if (!descriptor_pool_add_class(descpool, utf8::java_lang_Class))
 		return false;
 
 	/* first add all descriptors to the pool */
 
 	for (bte = builtintable_internal; bte->fp != NULL; bte++) {
-		bte->name       = utf_new_char(bte->cname);
-		bte->descriptor = utf_new_char(bte->cdescriptor);
+		bte->name       = Utf8String::from_utf8(bte->cname);
+		bte->descriptor = Utf8String::from_utf8(bte->cdescriptor);
 
 		if (!descriptor_pool_add(descpool, bte->descriptor, NULL))
 			return false;
 	}
 
 	for (bte = builtintable_automatic; bte->fp != NULL; bte++) {
-		bte->descriptor = utf_new_char(bte->cdescriptor);
+		bte->descriptor = Utf8String::from_utf8(bte->cdescriptor);
 
 		if (!descriptor_pool_add(descpool, bte->descriptor, NULL))
 			return false;
 	}
 
 	for (bte = builtintable_function; bte->fp != NULL; bte++) {
-		bte->classname  = utf_new_char(bte->cclassname);
-		bte->name       = utf_new_char(bte->cname);
-		bte->descriptor = utf_new_char(bte->cdescriptor);
+		bte->classname  = Utf8String::from_utf8(bte->cclassname);
+		bte->name       = Utf8String::from_utf8(bte->cname);
+		bte->descriptor = Utf8String::from_utf8(bte->cdescriptor);
 
 		if (!descriptor_pool_add(descpool, bte->descriptor, NULL))
 			return false;

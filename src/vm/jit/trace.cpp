@@ -37,6 +37,7 @@
 #include "threads/thread.hpp"
 
 #include "toolbox/logging.hpp"
+#include "toolbox/buffer.hpp"
 
 #include "vm/array.hpp"
 #include "vm/global.h"
@@ -51,7 +52,6 @@
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/trace.hpp"
 #include "vm/jit/show.hpp"
-
 
 #if !defined(NDEBUG)
 
@@ -72,43 +72,42 @@ u4 _no_threads_tracejavacallcount= 0;
 
 *******************************************************************************/
 
-static char *trace_java_call_print_argument(methodinfo *m, char *logtext, s4 *logtextlen, typedesc *paramtype, imm_union imu)
+static void trace_java_call_print_argument(Buffer<>& logtext, methodinfo *m, typedesc *paramtype, imm_union imu)
 {
 	java_object_t *o;
 	classinfo     *c;
-	utf           *u;
-	u4             len;
+	Utf8String     u;
 
 	switch (paramtype->type) {
 	case TYPE_INT:
-		sprintf(logtext + strlen(logtext), "%d (0x%08x)", (int32_t)imu.l, (int32_t)imu.l);
+		logtext.writef("%d (0x%08x)", (int32_t)imu.l, (int32_t)imu.l);
 		break;
 
 	case TYPE_LNG:
 #if SIZEOF_VOID_P == 4
-		sprintf(logtext + strlen(logtext), "%lld (0x%016llx)", imu.l, imu.l);
+		logtext.writef("%lld (0x%016llx)", imu.l, imu.l);
 #else
-		sprintf(logtext + strlen(logtext), "%ld (0x%016lx)", imu.l, imu.l);
+		logtext.writef("%ld (0x%016lx)", imu.l, imu.l);
 #endif
 		break;
 
 	case TYPE_FLT:
-		sprintf(logtext + strlen(logtext), "%g (0x%08x)", imu.f, imu.i);
+		logtext.writef("%g (0x%08x)", imu.f, imu.i);
 		break;
 
 	case TYPE_DBL:
 #if SIZEOF_VOID_P == 4
-		sprintf(logtext + strlen(logtext), "%g (0x%016llx)", imu.d, imu.l);
+		logtext.writef("%g (0x%016llx)", imu.d, imu.l);
 #else
-		sprintf(logtext + strlen(logtext), "%g (0x%016lx)", imu.d, imu.l);
+		logtext.writef("%g (0x%016lx)", imu.d, imu.l);
 #endif
 		break;
 
 	case TYPE_ADR:
 #if SIZEOF_VOID_P == 4
-		sprintf(logtext + strlen(logtext), "0x%08x", (ptrint) imu.l);
+		logtext.writef("0x%08x", (ptrint) imu.l);
 #else
-		sprintf(logtext + strlen(logtext), "0x%016lx", (ptrint) imu.l);
+		logtext.writef("0x%016lx", (ptrint) imu.l);
 #endif
 
 		/* Workaround for sun.misc.Unsafe methods.  In the future
@@ -116,7 +115,7 @@ static char *trace_java_call_print_argument(methodinfo *m, char *logtext, s4 *lo
 		   heap. */
 
 		if ((m->clazz       != NULL) &&
-			(m->clazz->name == utf_new_char("sun/misc/Unsafe")))
+			(m->clazz->name == Utf8String::from_utf8("sun/misc/Unsafe")))
 			break;
 
 		/* Cast to java.lang.Object. */
@@ -128,23 +127,11 @@ static char *trace_java_call_print_argument(methodinfo *m, char *logtext, s4 *lo
 
 		if (o != NULL) {
 			if (o->vftbl->clazz == class_java_lang_String) {
-				/* get java.lang.String object and the length of the
-				   string */
+				/* convert java.lang.String object to utf8 string and strcat it to the logtext */
 
-				u = javastring_toutf(o, false);
-
-				len = strlen(" (String = \"") + utf_bytes(u) + strlen("\")");
-
-				/* realloc memory for string length */
-
-				logtext = (char*) DumpMemory::reallocate(logtext, *logtextlen, *logtextlen + len);
-				*logtextlen += len;
-
-				/* convert to utf8 string and strcat it to the logtext */
-
-				strcat(logtext, " (String = \"");
-				utf_cat(logtext, u);
-				strcat(logtext, "\")");
+				logtext.write(" (String = \"")
+				       .write(o)
+				       .write("\")");
 			}
 			else {
 				if (o->vftbl->clazz == class_java_lang_Class) {
@@ -163,23 +150,14 @@ static char *trace_java_call_print_argument(methodinfo *m, char *logtext, s4 *lo
 					u = o->vftbl->clazz->name;
 				}
 
-				len = strlen(" (Class = \"") + utf_bytes(u) + strlen("\")");
-
-				/* realloc memory for string length */
-
-				logtext = (char*) DumpMemory::reallocate(logtext, *logtextlen, *logtextlen + len);
-				*logtextlen += len;
-
 				/* strcat to the logtext */
 
-				strcat(logtext, " (Class = \"");
-				utf_cat_classname(logtext, u);
-				strcat(logtext, "\")");
+				logtext.write(" (Class = \"")
+				       .write_slash_to_dot(u)
+				       .write("\")");
 			}
 		}
 	}
-
-	return logtext;
 }
 
 /* trace_java_call_enter ******************************************************
@@ -199,10 +177,7 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 {
 	methoddesc *md;
 	imm_union   arg;
-	char       *logtext;
-	s4          logtextlen;
 	s4          i;
-	s4          pos;
 
 	/* We can only trace "slow" builtin functions (those with a stub)
 	 * here, because the argument passing of "fast" ones happens via
@@ -231,95 +206,55 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 
 	md = m->parseddesc;
 
-	/* calculate message length */
-
-	logtextlen =
-		strlen("4294967295 ") +
-		strlen("-2147483647-") +        /* INT_MAX should be sufficient       */
-		TRACEJAVACALLINDENT +
-		strlen("called: ") +
-		((m->clazz == NULL) ? strlen("NULL") : utf_bytes(m->clazz->name)) +
-		strlen(".") +
-		utf_bytes(m->name) +
-		utf_bytes(m->descriptor);
-
-	/* Actually it's not possible to have all flags printed, but:
-	   safety first! */
-
-	logtextlen +=
-		strlen(" PUBLIC") +
-		strlen(" PRIVATE") +
-		strlen(" PROTECTED") +
-		strlen(" STATIC") +
-		strlen(" FINAL") +
-		strlen(" SYNCHRONIZED") +
-		strlen(" VOLATILE") +
-		strlen(" TRANSIENT") +
-		strlen(" NATIVE") +
-		strlen(" INTERFACE") +
-		strlen(" ABSTRACT") +
-		strlen(" METHOD_BUILTIN");
-
-	/* add maximal argument length */
-
-	logtextlen +=
-		strlen("(") +
-		strlen("-9223372036854775808 (0x123456789abcdef0), ") * md->paramcount +
-		strlen("...(255)") +
-		strlen(")");
-
 	// Create new dump memory area.
 	DumpMemoryArea dma;
 
-	// TODO Use a std::string here.
-	logtext = (char*) DumpMemory::allocate(sizeof(char) * logtextlen);
+	Buffer<MemoryAllocator> logtext;
 
 	TRACEJAVACALLCOUNT++;
 
-	sprintf(logtext, "%10d ", TRACEJAVACALLCOUNT);
-	sprintf(logtext + strlen(logtext), "-%d-", TRACEJAVACALLINDENT);
-
-	pos = strlen(logtext);
+	logtext.writef("%10d ", TRACEJAVACALLCOUNT);
+	logtext.writef("-%d-", TRACEJAVACALLINDENT);
 
 	for (i = 0; i < TRACEJAVACALLINDENT; i++)
-		logtext[pos++] = '\t';
+		logtext.write('\t');
 
-	strcpy(logtext + pos, "called: ");
+	logtext.write("called: ");
 
 	if (m->clazz != NULL)
-		utf_cat_classname(logtext, m->clazz->name);
+		logtext.write_slash_to_dot(m->clazz->name);
 	else
-		strcat(logtext, "NULL");
-	strcat(logtext, ".");
-	utf_cat(logtext, m->name);
-	utf_cat(logtext, m->descriptor);
+		logtext.write("NULL");
+	logtext.write(".");
+	logtext.write(m->name);
+	logtext.write(m->descriptor);
 
-	if (m->flags & ACC_PUBLIC)         strcat(logtext, " PUBLIC");
-	if (m->flags & ACC_PRIVATE)        strcat(logtext, " PRIVATE");
-	if (m->flags & ACC_PROTECTED)      strcat(logtext, " PROTECTED");
-	if (m->flags & ACC_STATIC)         strcat(logtext, " STATIC");
-	if (m->flags & ACC_FINAL)          strcat(logtext, " FINAL");
-	if (m->flags & ACC_SYNCHRONIZED)   strcat(logtext, " SYNCHRONIZED");
-	if (m->flags & ACC_VOLATILE)       strcat(logtext, " VOLATILE");
-	if (m->flags & ACC_TRANSIENT)      strcat(logtext, " TRANSIENT");
-	if (m->flags & ACC_NATIVE)         strcat(logtext, " NATIVE");
-	if (m->flags & ACC_INTERFACE)      strcat(logtext, " INTERFACE");
-	if (m->flags & ACC_ABSTRACT)       strcat(logtext, " ABSTRACT");
+	if (m->flags & ACC_PUBLIC)         logtext.write(" PUBLIC");
+	if (m->flags & ACC_PRIVATE)        logtext.write(" PRIVATE");
+	if (m->flags & ACC_PROTECTED)      logtext.write(" PROTECTED");
+	if (m->flags & ACC_STATIC)         logtext.write(" STATIC");
+	if (m->flags & ACC_FINAL)          logtext.write(" FINAL");
+	if (m->flags & ACC_SYNCHRONIZED)   logtext.write(" SYNCHRONIZED");
+	if (m->flags & ACC_VOLATILE)       logtext.write(" VOLATILE");
+	if (m->flags & ACC_TRANSIENT)      logtext.write(" TRANSIENT");
+	if (m->flags & ACC_NATIVE)         logtext.write(" NATIVE");
+	if (m->flags & ACC_INTERFACE)      logtext.write(" INTERFACE");
+	if (m->flags & ACC_ABSTRACT)       logtext.write(" ABSTRACT");
 
-	strcat(logtext, "(");
+	logtext.write("(");
 
 	for (i = 0; i < md->paramcount; ++i) {
 		arg = argument_jitarray_load(md, i, arg_regs, stack);
-		logtext = trace_java_call_print_argument(m, logtext, &logtextlen,
-												 &md->paramtypes[i], arg);
+		trace_java_call_print_argument(logtext, m, &md->paramtypes[i], arg);
+		
 		if (i != (md->paramcount - 1)) {
-			strcat(logtext, ", ");
+			logtext.write(", ");
 		}
 	}
 
-	strcat(logtext, ")");
+	logtext.write(")");
 
-	log_text(logtext);
+	log_text((char*) logtext);
 
 	TRACEJAVACALLINDENT++;
 }
@@ -337,10 +272,7 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 {
 	methoddesc *md;
-	char       *logtext;
-	s4          logtextlen;
 	s4          i;
-	s4          pos;
 	imm_union   val;
 
 	/* We can only trace "slow" builtin functions (those with a stub)
@@ -377,58 +309,36 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 	else
 		log_text("trace_java_call_exit: WARNING: unmatched unindent");
 
-	/* calculate message length */
-
-	logtextlen =
-		strlen("4294967295 ") +
-		strlen("-2147483647-") +        /* INT_MAX should be sufficient       */
-		TRACEJAVACALLINDENT +
-		strlen("finished: ") +
-		((m->clazz == NULL) ? strlen("NULL") : utf_bytes(m->clazz->name)) +
-		strlen(".") +
-		utf_bytes(m->name) +
-		utf_bytes(m->descriptor) +
-		strlen(" SYNCHRONIZED") + strlen("(") + strlen(")");
-
-	/* add maximal argument length */
-
-	logtextlen += strlen("->0.4872328470301428 (0x0123456789abcdef)");
-
 	// Create new dump memory area.
 	DumpMemoryArea dma;
 
-	// TODO Use a std::string here.
-	logtext = (char*) DumpMemory::allocate(sizeof(char) * logtextlen);
+	Buffer<MemoryAllocator> logtext;
 
 	/* generate the message */
 
-	sprintf(logtext, "           ");
-	sprintf(logtext + strlen(logtext), "-%d-", TRACEJAVACALLINDENT);
-
-	pos = strlen(logtext);
+	logtext.write("           ");
+	logtext.writef("-%d-", TRACEJAVACALLINDENT);
 
 	for (i = 0; i < TRACEJAVACALLINDENT; i++)
-		logtext[pos++] = '\t';
+		logtext.write('\t');
 
-	strcpy(logtext + pos, "finished: ");
+	logtext.write("finished: ");
 	if (m->clazz != NULL)
-		utf_cat_classname(logtext, m->clazz->name);
+		logtext.write_slash_to_dot(m->clazz->name);
 	else
-		strcat(logtext, "NULL");
-	strcat(logtext, ".");
-	utf_cat(logtext, m->name);
-	utf_cat(logtext, m->descriptor);
+		logtext.write("NULL");
+	logtext.write(".");
+	logtext.write(m->name);
+	logtext.write(m->descriptor);
 
 	if (!IS_VOID_TYPE(md->returntype.type)) {
-		strcat(logtext, "->");
+		logtext.write("->");
 		val = argument_jitreturn_load(md, return_regs);
 
-		logtext =
-			trace_java_call_print_argument(m, logtext, &logtextlen,
-										   &md->returntype, val);
+		trace_java_call_print_argument(logtext, m, &md->returntype, val);
 	}
 
-	log_text(logtext);
+	log_text((char*) logtext);
 }
 
 
@@ -440,89 +350,45 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 
 void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 {
-	char *logtext;
-	s4    logtextlen;
 	codeinfo *code;
-
-	/* calculate message length */
-
-	if (xptr) {
-		logtextlen =
-			strlen("Exception ") + utf_bytes(xptr->vftbl->clazz->name);
-	} 
-	else {
-		logtextlen = strlen("Some Throwable");
-	}
-
-	logtextlen += strlen(" thrown in ");
-
-	if (m) {
-		logtextlen +=
-			utf_bytes(m->clazz->name) +
-			strlen(".") +
-			utf_bytes(m->name) +
-			utf_bytes(m->descriptor) +
-			strlen("(NOSYNC,NATIVE");
-
-#if SIZEOF_VOID_P == 8
-		logtextlen +=
-			strlen(")(0x123456789abcdef0) at position 0x123456789abcdef0 (");
-#else
-		logtextlen += strlen(")(0x12345678) at position 0x12345678 (");
-#endif
-
-		if (m->clazz->sourcefile == NULL)
-			logtextlen += strlen("<NO CLASSFILE INFORMATION>");
-		else
-			logtextlen += utf_bytes(m->clazz->sourcefile);
-
-		logtextlen += strlen(":65536)");
-
-	} 
-	else {
-		logtextlen += strlen("call_java_method");
-	}
-
-	logtextlen += strlen("0");
 
 	// Create new dump memory area.
 	DumpMemoryArea dma;
 
-	// TODO Use a std::string here.
-	logtext = (char*) DumpMemory::allocate(sizeof(char) * logtextlen);
+	Buffer<MemoryAllocator> logtext;
 
 	if (xptr) {
-		strcpy(logtext, "Exception ");
-		utf_cat_classname(logtext, xptr->vftbl->clazz->name);
+		logtext.write("Exception ");
+		logtext.write_slash_to_dot(xptr->vftbl->clazz->name);
 
 	} else {
-		strcpy(logtext, "Some Throwable");
+		logtext.write("Some Throwable");
 	}
 
-	strcat(logtext, " thrown in ");
+	logtext.write(" thrown in ");
 
 	if (m) {
-		utf_cat_classname(logtext, m->clazz->name);
-		strcat(logtext, ".");
-		utf_cat(logtext, m->name);
-		utf_cat(logtext, m->descriptor);
+		logtext.write_slash_to_dot(m->clazz->name);
+		logtext.write(".");
+		logtext.write(m->name);
+		logtext.write(m->descriptor);
 
 		if (m->flags & ACC_SYNCHRONIZED)
-			strcat(logtext, "(SYNC");
+			logtext.write("(SYNC");
 		else
-			strcat(logtext, "(NOSYNC");
+			logtext.write("(NOSYNC");
 
 		if (m->flags & ACC_NATIVE) {
-			strcat(logtext, ",NATIVE");
+			logtext.write(",NATIVE");
 
 			code = m->code;
 
 #if SIZEOF_VOID_P == 8
-			sprintf(logtext + strlen(logtext),
-					")(0x%016lx) at position 0x%016lx",
-					(ptrint) code->entrypoint, (ptrint) pos);
+			logtext.writef(
+				")(0x%016lx) at position 0x%016lx",
+				(ptrint) code->entrypoint, (ptrint) pos);
 #else
-			sprintf(logtext + strlen(logtext),
+			logtext.writef(
 					")(0x%08x) at position 0x%08x",
 					(ptrint) code->entrypoint, (ptrint) pos);
 #endif
@@ -534,27 +400,27 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 			code = m->code;
 			
 #if SIZEOF_VOID_P == 8
-			sprintf(logtext + strlen(logtext),
+			logtext.writef(
 					")(0x%016lx) at position 0x%016lx (",
 					(ptrint) code->entrypoint, (ptrint) pos);
 #else
-			sprintf(logtext + strlen(logtext),
+			logtext.writef(
 					")(0x%08x) at position 0x%08x (",
 					(ptrint) code->entrypoint, (ptrint) pos);
 #endif
 
 			if (m->clazz->sourcefile == NULL)
-				strcat(logtext, "<NO CLASSFILE INFORMATION>");
+				logtext.write("<NO CLASSFILE INFORMATION>");
 			else
-				utf_cat(logtext, m->clazz->sourcefile);
+				logtext.write(m->clazz->sourcefile);
 
-			sprintf(logtext + strlen(logtext), ":%d)", 0);
+			logtext.writef(":%d)", 0);
 		}
 
 	} else
-		strcat(logtext, "call_java_method");
+		logtext.write("call_java_method");
 
-	log_text(logtext);
+	log_text((char*) logtext);
 }
 
 
@@ -566,9 +432,6 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 
 void trace_exception_builtin(java_handle_t* h)
 {
-	char                *logtext;
-	s4                   logtextlen;
-
 	java_lang_Throwable jlt(h);
 
 	// Get detail message.
@@ -579,49 +442,26 @@ void trace_exception_builtin(java_handle_t* h)
 
 	java_lang_String jls(s);
 
-	/* calculate message length */
-
-	logtextlen = strlen("Builtin exception thrown: ") + strlen("0");
-
-	if (jlt.get_handle() != NULL) {
-		logtextlen += utf_bytes(jlt.get_vftbl()->clazz->name);
-
-		if (jls.get_handle()) {
-			CharArray ca(jls.get_value());
-			// FIXME This is not handle capable!
-			uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
-			logtextlen += strlen(": ") +
-				u2_utflength(ptr + runtime_str_ops::get_string_offset(jls), runtime_str_ops::get_string_count(jls));
-		}
-	} 
-	else {
-		logtextlen += strlen("(nil)");
-	}
-
 	// Create new dump memory area.
 	DumpMemoryArea dma;
 
-	logtext = (char*) DumpMemory::allocate(sizeof(char) * logtextlen);
+	Buffer<MemoryAllocator> logtext;
 
-	strcpy(logtext, "Builtin exception thrown: ");
+	logtext.write("Builtin exception thrown: ");
 
 	if (jlt.get_handle()) {
-		utf_cat_classname(logtext, jlt.get_vftbl()->clazz->name);
+		logtext.write_slash_to_dot(jlt.get_vftbl()->clazz->name);
 
 		if (s) {
-			char *buf;
-
-			buf = javastring_tochar(jls.get_handle());
-			strcat(logtext, ": ");
-			strcat(logtext, buf);
-			MFREE(buf, char, strlen(buf) + 1);
+			logtext.write(": ");
+			logtext.write(JavaString(jls.get_handle()));
 		}
 
 	} else {
-		strcat(logtext, "(nil)");
+		logtext.write("(nil)");
 	}
 
-	log_text(logtext);
+	log_text((char*) logtext);
 }
 
 } // extern "C"

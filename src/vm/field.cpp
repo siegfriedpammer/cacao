@@ -113,7 +113,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 #ifdef ENABLE_VERIFIER
 	if (opt_verify) {
 		/* check name */
-		if (!is_valid_name_utf(f->name) || f->name->text[0] == '<') {
+		if (!Utf8String(f->name).is_valid_name() || f->name->text[0] == '<') {
 			exceptions_throw_classformaterror(c,
 											  "Illegal Field name \"%s\"",
 											  f->name->text);
@@ -226,7 +226,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 		if (!(u = (utf*) class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 			return false;
 
-		if (u == utf_ConstantValue) {
+		if (u == utf8::ConstantValue) {
 			if (!suck_check_classbuffer_size(cb, 4 + 2))
 				return false;
 
@@ -300,7 +300,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 				if (!(class_java_lang_String->flags & CLASS_LINKED))
 					linker_create_string_later(reinterpret_cast<java_object_t**>(&f->value->a), u);
 				else
-					f->value->a = literalstring_new(u);
+					f->value->a = JavaString::literal(u);
 				break;
 
 			default: 
@@ -308,7 +308,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 			}
 		}
 #if defined(ENABLE_JAVASE)
-		else if (u == utf_Signature) {
+		else if (u == utf8::Signature) {
 			/* Signature */
 
 			if (!loader_load_attribute_signature(cb, &(f->signature)))
@@ -316,12 +316,12 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 		}
 
 #if defined(ENABLE_ANNOTATIONS)
-		else if (u == utf_RuntimeVisibleAnnotations) {
+		else if (u == utf8::RuntimeVisibleAnnotations) {
 			/* RuntimeVisibleAnnotations */
 			if (!annotation_load_field_attribute_runtimevisibleannotations(cb, f))
 				return false;
 		}
-		else if (u == utf_RuntimeInvisibleAnnotations) {
+		else if (u == utf8::RuntimeInvisibleAnnotations) {
 			/* RuntimeInvisibleAnnotations */
 			if (!annotation_load_field_attribute_runtimeinvisibleannotations(cb, f))
 				return false;
