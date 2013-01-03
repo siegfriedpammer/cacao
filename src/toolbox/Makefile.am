@@ -33,14 +33,19 @@ libtoolbox_la_SOURCES = \
 	avl.h \
 	bitvector.c \
 	bitvector.h \
+	buffer.hpp \
 	hashtable.c \
 	hashtable.h \
 	list.hpp \
 	logging.cpp \
 	logging.hpp \
-	sequence.hpp \
+	output_stream.cpp \
+	output_stream.hpp \
 	set.h \
 	set.c \
+	utf_utils.hpp \
+	utf8_transform.inc \
+	utf16_transform.inc \
 	util.c \
 	util.h \
 	worklist.c \

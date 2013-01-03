@@ -45,7 +45,7 @@
 # include "native/vm/openjdk/hpi.hpp"
 #endif
 
-# include "toolbox/sequence.hpp"
+# include "toolbox/buffer.hpp"
 
 # include "vm/globals.hpp"
 # include "vm/properties.hpp"
@@ -104,20 +104,19 @@ void nativevm_preinit(void)
 	Properties& properties = vm->get_properties();
 	const char* boot_library_path = properties.get("sun.boot.library.path");
 
-	// Use sequence builder to assemble library path.
-	SequenceBuilder sb;
+	// Use Buffer to assemble library path.
+	Buffer<> buf;
 
-	sb.cat(boot_library_path);
-	sb.cat("/libjava.so");
+	buf.write(boot_library_path);
+	buf.write("/libjava.so");
 
-	// XXX This should actually be sb.export_symbol()
-	utf* u = utf_new_char(sb.c_str());
+	Utf8String u = buf.build();
 
 	NativeLibrary nl(u);
 	void* handle = nl.open();
 
 	if (handle == NULL)
-		os::abort("nativevm_init: failed to open libjava.so at: %s", sb.c_str());
+		os::abort("nativevm_init: failed to open libjava.so at: %s", (char*) buf);
 
 	NativeLibraries& nls = vm->get_nativelibraries();
 	nls.add(nl);

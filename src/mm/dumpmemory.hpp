@@ -178,6 +178,11 @@ public:
 		return static_cast<pointer>(DumpMemory::allocate(n * sizeof(T)));
 	}
 
+	// ** Reallocate block of storage (non-standard!)
+	inline pointer reallocate(pointer p, size_type old_sz, size_type new_sz) {
+		return static_cast<pointer>(DumpMemory::reallocate(p, old_sz * sizeof(T), new_sz * sizeof(T)));
+	}
+
 	// Initialize elements of allocated storage p with value value.
 	void construct(pointer p, const T& value) {
 // 		printf("construct: p=%p, value=%p\n", (void*) p, (void*) value);
