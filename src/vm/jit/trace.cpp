@@ -209,7 +209,7 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 	// Create new dump memory area.
 	DumpMemoryArea dma;
 
-	Buffer<MemoryAllocator> logtext;
+	Buffer<> logtext;
 
 	TRACEJAVACALLCOUNT++;
 
@@ -312,7 +312,7 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 	// Create new dump memory area.
 	DumpMemoryArea dma;
 
-	Buffer<MemoryAllocator> logtext;
+	Buffer<> logtext;
 
 	/* generate the message */
 
@@ -355,7 +355,7 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 	// Create new dump memory area.
 	DumpMemoryArea dma;
 
-	Buffer<MemoryAllocator> logtext;
+	Buffer<> logtext;
 
 	if (xptr) {
 		logtext.write("Exception ");
@@ -445,7 +445,7 @@ void trace_exception_builtin(java_handle_t* h)
 	// Create new dump memory area.
 	DumpMemoryArea dma;
 
-	Buffer<MemoryAllocator> logtext;
+	Buffer<> logtext;
 
 	logtext.write("Builtin exception thrown: ");
 

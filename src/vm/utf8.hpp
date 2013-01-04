@@ -100,6 +100,9 @@ class Utf8String {
 			return from_utf8_dot_to_slash(cs, strlen(cs));
 		}
 
+		// construct from a UTF8String
+		static Utf8String from_utf8_slash_to_dot(Utf8String);
+
 		// construct from a UTF-16 string with a given length
 		static Utf8String from_utf16(const u2*, size_t);
 		static Utf8String from_utf16_dot_to_slash(const u2*, size_t);

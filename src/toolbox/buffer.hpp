@@ -26,6 +26,7 @@ class Buffer : public OutputStream {
 	public:
 		// construct a buffer with size
 		Buffer(size_t buf_size=64, bool free_on_exit = true);
+//		Buffer(size_t buf_size, bool free_on_exit);
 
 		// free content of buffer
 		~Buffer();
@@ -68,7 +69,7 @@ class Buffer : public OutputStream {
 
 		// ensure string in buffer is zero terminated
 		Buffer& zero_terminate();
-	private:
+//	private:
 		void ensure_capacity(size_t);
 
 		// non-copyable, non-assignable
@@ -121,6 +122,9 @@ Buffer<Allocator>::Buffer(size_t buf_size, bool free_on_exit)
 template<template<typename T> class Allocator>
 Buffer<Allocator>::~Buffer()
 {
+//	static int xxx = 0;
+//	printf(">> ~Buffer() %05d '%s'\n", xxx++, _start);
+
 	if (_free_on_exit) {
 		_alloc.deallocate(_start, _end - _start);
 		_start = _end = _pos = 0;

@@ -622,13 +622,14 @@ check_again:
 		else
 			buf.write("subtype constraint violated (");
 	
-		buf.write_slash_to_dot(subclass->name)
-		   .write(" is not a subclass of ")
-		   .write_slash_to_dot(CLASSREF_OR_CLASSINFO_NAME(supertype))
-		   .write(')');
+		Utf8String u = buf.write_slash_to_dot(subclass->name)
+		                  .write(" is not a subclass of ")
+		                  .write_slash_to_dot(CLASSREF_OR_CLASSINFO_NAME(supertype))
+		                  .write(')')
+		                  .build();
 
 		if (error == resolveIllegalAccessError)
-			exceptions_throw_illegalaccessexception(buf.build());
+			exceptions_throw_illegalaccessexception(u);
 		else
 			exceptions_throw_linkageerror((char*) buf, NULL);
 
@@ -1122,7 +1123,7 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 	/* check access rights */
 
 	if (!access_is_accessible_member(referer,declarer,fi->flags)) {
-		Buffer<> buf;
+		Buffer<> buf(64, false);
 
 		Utf8String u = buf.write("field is not accessible (")
 		                  .write_slash_to_dot(declarer->name)
@@ -1634,7 +1635,7 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 	if (!access_is_accessible_member(referer,declarer,mi->flags)) {
 		/* XXX clean this up. this should be in exceptions.c */
 
-		Buffer<> buf;
+		Buffer<> buf(64, false);
 
 		Utf8String u = buf.write("method is not accessible (")
 		                  .write_slash_to_dot(declarer->name)

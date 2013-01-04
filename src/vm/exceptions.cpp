@@ -751,7 +751,7 @@ void exceptions_throw_classformaterror(classinfo *c, const char *message, ...)
 
 	/* allocate a buffer */
 
-	Buffer<MemoryAllocator> buf;
+	Buffer<> buf;
 
 	/* print message into allocated buffer */
 
@@ -827,7 +827,7 @@ void exceptions_throw_noclassdeffounderror_cause(java_handle_t *cause)
 
 void exceptions_throw_noclassdeffounderror_wrong_name(classinfo *c, utf *name)
 {
-	Buffer<MemoryAllocator> buf;
+	Buffer<> buf;
 
 	buf.write_slash_to_dot(c->name)
 	   .write(" (wrong name: ", 14)
@@ -869,7 +869,7 @@ void exceptions_throw_incompatibleclasschangeerror(classinfo *c, const char *mes
 {
 	/* allocate memory */
 
-	Buffer<MemoryAllocator> buf;
+	Buffer<> buf;
 
 	buf.write_slash_to_dot(c->name)
 	   .write(message);
@@ -907,7 +907,7 @@ void exceptions_throw_internalerror(const char *message, ...)
 
 	/* allocate memory */
 
-	Buffer<MemoryAllocator> buf;
+	Buffer<> buf;
 
 	/* generate message */
 
@@ -934,14 +934,10 @@ void exceptions_throw_linkageerror(const char *message, classinfo *c)
 {
 	/* generate message */
 
-	Buffer<MemoryAllocator> buf;
+	Utf8String msg = c ? Utf8String::from_utf8_slash_to_dot(c->name) : 
+	                     utf8::empty;
 
-	buf.write(message);
-
-	if (c != NULL)
-		buf.write_slash_to_dot(c->name);
-
-	exceptions_throw_utf_utf(utf8::java_lang_LinkageError, buf.build());
+	exceptions_throw_utf_utf(utf8::java_lang_LinkageError, msg);
 }
 
 
@@ -960,7 +956,7 @@ void exceptions_throw_nosuchfielderror(classinfo *c, utf *name)
 {
 	/* generate message */
 
-	Buffer<MemoryAllocator> buf;
+	Buffer<> buf;
 
 	buf.write_slash_to_dot(c->name)
 	   .write('.')
@@ -986,7 +982,7 @@ void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc)
 {
 	/* generate message */
 
-	Buffer<MemoryAllocator> buf;
+	Buffer<> buf;
 
 	buf.write_slash_to_dot(c->name)
 	   .write('.')
@@ -1048,7 +1044,7 @@ void exceptions_throw_unsupportedclassversionerror(classinfo *c, u4 ma, u4 mi)
 {
 	/* generate message */
 
-	Buffer<MemoryAllocator> buf;
+	Buffer<> buf;
 
 	buf.write_slash_to_dot(c->name)
 	   .writef(" (Unsupported major.minor version %d.%d)", ma, mi);
@@ -1071,8 +1067,8 @@ void exceptions_throw_unsupportedclassversionerror(classinfo *c, u4 ma, u4 mi)
 
 void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...)
 {
-	va_list                 ap;
-	Buffer<MemoryAllocator> buf;
+	va_list  ap;
+	Buffer<> buf;
 
 	/* generate message */
 
@@ -1114,7 +1110,7 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type)
 {
 	/* generate message */
 
-	Buffer<MemoryAllocator> buf;
+	Buffer<> buf;
 
 	if (m != NULL) {
 		buf.write("(class: ")

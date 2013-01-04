@@ -1553,17 +1553,9 @@ void show_filters_apply(methodinfo *m) {
 	int i;
 	int res;
 	char *method_name;
-	s4 len;
 
 	/* compose full name of method */
-
-	len = utf8_size(m->clazz->name)
-	    + 1  // '.'
-        + utf8_size(m->name)
-	    + utf8_size(m->descriptor)
-	    + 1; // zero terminator
-
-	Buffer<MemoryAllocator> buf(len);
+	Buffer<> buf;
 
 	method_name = buf.write_slash_to_dot(m->clazz->name)
 	                 .write('.')

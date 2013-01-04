@@ -68,7 +68,7 @@
 
 static Utf8String native_make_overloaded_function(Utf8String name, Utf8String descriptor)
 {
-	Buffer<> newname(name.size() + strlen("__") + strlen("0"));
+	Buffer<> newname;
 	u2       c;
 
 	newname.write(name).write("__");

@@ -514,8 +514,8 @@ classbuffer *suck_start(classinfo *c)
 
 	filenamelen = utf8_size(c->name) + strlen(".class") + strlen("0");
 
-	Buffer<MemoryAllocator> filename(filenamelen);
-	Buffer<MemoryAllocator> path;
+	Buffer<> filename(filenamelen);
+	Buffer<> path;
 
 	filename.write(c->name)
 	        .write(".class");
