@@ -52,11 +52,6 @@
 
 static FILE *LOG_FILE = NULL;
 
-void log_preinit()
-{
-	LOG_FILE = stdout;
-}
-
 void log_init(const char *fname)
 {
 	if (fname) {
@@ -68,9 +63,7 @@ void log_init(const char *fname)
 
 static inline FILE* get_log() 
 {
-	assert( LOG_FILE && "Log file has not been initialized" );
-
-	return LOG_FILE;
+	return LOG_FILE ? LOG_FILE : stdout;
 }
 
 /***************************************************************************

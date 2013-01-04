@@ -644,6 +644,9 @@ VM::VM(JavaVMInitArgs* vm_args)
 	// Very first thing to do: we are initializing.
 	_initializing = true;
 
+	// Make sure logging works
+	
+
 	// Make ourself globally visible.
 	// XXX Is this a good idea?
 	_vm = this;
