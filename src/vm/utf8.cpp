@@ -728,29 +728,6 @@ struct Utf8Validator {
 	inline bool abort()  { return false; }
 };
 
-bool is_valid_utf(char *cs, char *end)
-{
-	return utf8::transform<bool>(cs, end - cs, Utf8Validator());
-}
-
-bool is_valid_name(char *utf_ptr, char *end_pos)
-{
-	if (end_pos <= utf_ptr) return false; /* disallow empty names */
-
-	while (utf_ptr < end_pos) {
-		unsigned char c = *utf_ptr++;
-
-		if (c < 0x20) return false; /* disallow control characters */
-		if (c == 0xc0 && (unsigned char) *utf_ptr == 0x80)  /* disallow zero */
-			return false;
-	}
-
-	return true;
-}
-bool is_valid_name_utf(utf *u) { return Utf8String(u).is_valid_name(); }
-
-void utf_show() {}
-
 const size_t sizeof_utf = sizeof(utf);
 
 /*

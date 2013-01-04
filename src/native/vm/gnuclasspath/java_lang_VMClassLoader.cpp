@@ -171,7 +171,7 @@ JNIEXPORT jclass JNICALL Java_java_lang_VMClassLoader_getPrimitiveClass(JNIEnv *
 	c = Primitive::get_class_by_char(type);
 
 	if (c == NULL) {
-		exceptions_throw_classnotfoundexception(utf_null);
+		exceptions_throw_classnotfoundexception(utf8::null);
 		return NULL;
 	}
 

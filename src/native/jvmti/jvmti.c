@@ -690,7 +690,7 @@ GetThreadInfo (jvmtiEnv * env, jthread t, jvmtiThreadInfo * info_ptr)
 	info_ptr->context_class_loader=(jobject)th->contextClassLoader;
 
 	name = JavaString(th->name).to_utf8();
-	info_ptr->name=(char*)heap_allocate(sizeof(char)*(utf_bytes(name)+1),true,NULL);
+	info_ptr->name=(char*)heap_allocate(sizeof(char)*(UTF_SIZE(name)+1),true,NULL);
 	utf_sprint_convert_to_latin1(info_ptr->name, name);
 
     return JVMTI_ERROR_NONE;
@@ -1799,7 +1799,7 @@ GetClassSignature (jvmtiEnv * env, jclass klass, char **signature_ptr,
 	if (signature_ptr != NULL) {
 		*signature_ptr = (char*)
 			heap_allocate(sizeof(char) * 
-						  utf_bytes(((classinfo*)klass)->name)+1,true,NULL);
+						  UTF_SIZE(((classinfo*)klass)->name)+1,true,NULL);
 		
 		utf_sprint_convert_to_latin1(*signature_ptr,((classinfo*)klass)->name);
 	}
@@ -1874,7 +1874,7 @@ GetSourceFileName (jvmtiEnv * env, jclass klass, char **source_name_ptr)
     if ((klass == NULL)||(source_name_ptr == NULL)) 
         return JVMTI_ERROR_NULL_POINTER;
     
-    size = utf_bytes(((classinfo*)klass)->sourcefile)+1;
+    size = UTF_SIZE(((classinfo*)klass)->sourcefile)+1;
 
     *source_name_ptr = (char*) heap_allocate(sizeof(char)* size,true,NULL);
     
@@ -2159,13 +2159,13 @@ GetFieldName (jvmtiEnv * env, jclass klass, jfieldID field,
     if (field == NULL) return JVMTI_ERROR_INVALID_FIELDID;
     
     if (name_ptr != NULL) {
-		size = utf_bytes(((fieldinfo*)field)->name)+1;
+		size = UTF_SIZE(((fieldinfo*)field)->name)+1;
 		*name_ptr = (char*) heap_allocate(sizeof(char)* size,true,NULL);
 		utf_sprint_convert_to_latin1(*name_ptr, ((fieldinfo*)field)->name);
 	}
 
 	if (signature_ptr != NULL) {
-		size = utf_bytes(((fieldinfo*)field)->descriptor)+1;
+		size = UTF_SIZE(((fieldinfo*)field)->descriptor)+1;
 		*signature_ptr = (char*) heap_allocate(sizeof(char)* size,true,NULL); 
 		utf_sprint_convert_to_latin1(*signature_ptr, 
 									 ((fieldinfo*)field)->descriptor);
@@ -2286,13 +2286,13 @@ GetMethodName (jvmtiEnv * env, jmethodID method, char **name_ptr,
 
 	if (name_ptr != NULL) {
 		*name_ptr = (char*)
-			heap_allocate(sizeof(char) * (utf_bytes(m->name)+1),true,NULL);
+			heap_allocate(sizeof(char) * (UTF_SIZE(m->name)+1),true,NULL);
 		utf_sprint_convert_to_latin1(*name_ptr, m->name);
 	}
 	
 	if (signature_ptr != NULL) {
 		*signature_ptr = (char*)
-			heap_allocate(sizeof(char)*(utf_bytes(m->descriptor)+1),true,NULL);
+			heap_allocate(sizeof(char)*(UTF_SIZE(m->descriptor)+1),true,NULL);
 		utf_sprint_convert_to_latin1(*signature_ptr, m->descriptor);
 	}
 

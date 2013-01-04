@@ -325,7 +325,7 @@ void jvmti_ClassFileLoadHook(utf* name, int class_data_len,
 	d.ev = JVMTI_EVENT_CLASS_FILE_LOAD_HOOK;
 	d.klass = NULL; /* class is not redefined */
 	d.object = loader;
-	d.name = (char*)MNEW(char,(utf_bytes(name)+1));
+	d.name = (char*)MNEW(char,(UTF_SIZE(name)+1));
 	utf_sprint_convert_to_latin1(d.name, name);
 	d.protection_domain = protection_domain;
 	d.class_data = class_data;
@@ -334,7 +334,7 @@ void jvmti_ClassFileLoadHook(utf* name, int class_data_len,
 	d.new_class_data = new_class_data;
 
 	jvmti_fireEvent(&d);
-	MFREE(d.name,char,utf_bytes(name)+1);
+	MFREE(d.name,char,UTF_SIZE(name)+1);
 }
 
 

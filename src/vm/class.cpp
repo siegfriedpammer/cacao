@@ -1107,27 +1107,6 @@ constant_classref *class_get_classref_component_of(constant_classref *ref)
 	}
 
     return class_get_classref(ref->referer, name.substring(start, end));
-/*
-	s4 namelen;
-	char *name;
-	
-	assert(ref);
-
-	name = ref->name->text;
-	if (*name++ != '[')
-		return NULL;
-	
-	namelen = ref->name->blength - 1;
-	if (*name == 'L') {
-		name++;
-		namelen -= 2;
-	}
-	else if (*name != '[') {
-		return NULL;
-	}
-
-    return class_get_classref(ref->referer, utf_new(name, namelen));
-*/
 }
 
 

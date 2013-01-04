@@ -132,7 +132,7 @@ void JavaString::initialize() {
 	intern_table = new JavaStringInternTable(4096);
 }
 
-/* javastring::is_initialized **************************************************
+/* JavaString::is_initialized **************************************************
 
 	Check is string subsystem is initialized
 
@@ -440,7 +440,7 @@ char *JavaString::to_chars() const {
 
 /* JavaString::to_utf8() *******************************************************
 
-	make utf symbol from javastring 
+	make utf symbol from java.lang.String 
 
 *******************************************************************************/
 
@@ -452,7 +452,7 @@ Utf8String JavaString::to_utf8() const {
 
 /* JavaString::to_utf8_dot_to_slash() ******************************************
 
-	make utf symbol from javastring 
+	make utf symbol from java.lang.String 
 	replace '/' with '.'
 
 *******************************************************************************/
