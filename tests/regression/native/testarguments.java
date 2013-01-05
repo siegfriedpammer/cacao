@@ -1,9 +1,7 @@
 /* tests/regressions/native/testarguments.java - tests argument passing
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   TU Wien
+   Copyright (C) 1996-2012
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -53,6 +51,13 @@ public class testarguments {
                                     int e, long f, float g, double h,
                                     int i, long j, float k, double l,
                                     int m, long n, float o);
+
+    public static native void nmfsub(double a, float b, double c, float d, double e, float f, double x, float y,
+                                     float g, double h, int i,
+                                     float j, double k, int l,
+                                     float m, double n, int o,
+                                     int p, long q, float r, double s,
+                                     int t, long u, float v, double w);
 
     public static void main(String[] argv) {
         System.loadLibrary("testarguments");
@@ -136,6 +141,16 @@ public class testarguments {
              i2f(0xbbbbbbbb), l2d(0xccccccccccccccccL),
              0xdddddddd, 0xeeeeeeeeeeeeeeeeL,
              i2f(0xffffffff));
+
+        pln("testing more mixed -------------------------------------------");
+
+        mfsub(l2d(0x1111111111111111L), i2f(0x22222222), l2d(0x3333333333333333L), i2f(0x44444444),
+              l2d(0x5555555555555555L), i2f(0x66666666), l2d(0x1122112233443344L), i2f(0x55667788),
+              i2f(0x77777777), l2d(0x8888888888888888L), 0x99999999,
+              i2f(0xaaaaaaaa), l2d(0xbbbbbbbbbbbbbbbbL), 0xcccccccc,
+              i2f(0xdddddddd), l2d(0xeeeeeeeeeeeeeeeeL), 0xffffffff,
+              0x80808080, 0x9191919191919191L, i2f(0xa2a2a2a2), l2d(0xb3b3b3b3b3b3b3b3L),
+              0xc4c4c4c4, 0xd5d5d5d5d5d5d5d5L, i2f(0xe6e6e6e6), l2d(0xf7f7f7f7f7f7f7f7L));
     }
 
 
@@ -226,6 +241,25 @@ public class testarguments {
         nmsub(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
     }
 
+    public static void mfsub(double a, float b, double c, float d, double e, float f, double x, float y,
+                             float g, double h, int i,
+                             float j, double k, int l,
+                             float m, double n, int o,
+                             int p, long q, float r, double s,
+                             int t, long u, float v, double w) {
+        p("java-java  :");
+
+        p(a); p(b); p(c); p(d); p(e); p(f); p(x); p(y);
+        p(g); p(h); p(i);
+        p(j); p(k); p(l);
+        p(m); p(n); p(o);
+        p(p); p(q); p(r); p(s);
+        p(t); p(u); p(v); p(w);
+
+        pln();
+
+        nmfsub(a, b, c, d, e, f, x, y, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w);
+    }
 
     // test native-java argument passing
 
@@ -301,6 +335,25 @@ public class testarguments {
 
         pln();
     }
+
+    public static void jmfsub(double a, float b, double c, float d, double e, float f, double x, float y,
+                              float g, double h, int i,
+                              float j, double k, int l,
+                              float m, double n, int o,
+                              int p, long q, float r, double s,
+                              int t, long u, float v, double w) {
+        p("native-java:");
+
+        p(a); p(b); p(c); p(d); p(e); p(f); p(x); p(y);
+        p(g); p(h); p(i);
+        p(j); p(k); p(l);
+        p(m); p(n); p(o);
+        p(p); p(q); p(r); p(s);
+        p(t); p(u); p(v); p(w);
+
+        pln();
+    }
+
 
     static float i2f(int i) {
         return Float.intBitsToFloat(i);

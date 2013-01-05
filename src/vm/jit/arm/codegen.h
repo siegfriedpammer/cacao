@@ -85,7 +85,7 @@
 #define IS_OFFSET(off,max) ((s4)(off) <= (max) && (s4)(off) >= -(max))
 
 #define CHECK_INT_REG(r)              assert((r)>=0 && (r)<=15)
-#define CHECK_FLT_REG(r)              assert((r)>=0 && (r)<=7)
+#define CHECK_FLT_REG(r)              assert((r)>=0 && (r)<=15)
 #define CHECK_OFFSET(off,max)         assert(IS_OFFSET(off,max))
 
 
@@ -319,6 +319,8 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 		cd->mcodeptr += 4; \
 	} while (0)
 
+#define M_CPDPF(cond,p,q,r,s,cp_num,Fd,Fn,Fm) \
+	M_CPDP(cond,p,q,r,s,cp_num,(Fd)>>4,(Fn)>>4,(Fm)>>4,(Fd)&0xf,(Fn)&0xf,Fm)
 
 /* M_CPDT **********************************************************************
 
@@ -332,10 +334,10 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 *******************************************************************************/
 
 #define M_CPDT(cond,L,T1,T0,Fd,n,off,P,U,W) \
-    do { \
-        *((u4 *) cd->mcodeptr) = (((cond) << 28) | (0x0c << 24) | (1 << 8) | ((L) << 20) | ((T1) << 22) | ((T0) << 15) | ((Fd) << 12) | ((n) << 16) | ((off) & 0xff) | ((P) << 24) | ((U) << 23) | ((W) << 21)); \
-        cd->mcodeptr += 4; \
-    } while (0)
+	do { \
+		*((u4 *) cd->mcodeptr) = (((cond) << 28) | (0x0c << 24) | (1 << 8) | ((L) << 20) | ((T1) << 22) | ((T0) << 15) | ((Fd) << 12) | ((n) << 16) | ((off) & 0xff) | ((P) << 24) | ((U) << 23) | ((W) << 21)); \
+		cd->mcodeptr += 4; \
+	} while (0)
 
 #define M_CPLS(cond,L,P,U,W,cp_num,D,Fd,n,off) \
 	do { \
@@ -661,28 +663,28 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 
 #if defined(__VFP_FP__)
 
-#define M_FADD(a,b,d)      M_CPDP(UNCOND,0,1,1,0,10,0,0,0,d,a,b)/* d = a +  b */
-#define M_FSUB(a,b,d)      M_CPDP(UNCOND,0,1,1,1,10,0,0,0,d,a,b)/* d = a -  b */
-#define M_FMUL(a,b,d)      M_CPDP(UNCOND,0,1,0,0,10,0,0,0,d,a,b)/* d = a *  b */
-#define M_FDIV(a,b,d)      M_CPDP(UNCOND,1,0,0,0,10,0,0,0,d,a,b)/* d = a /  b */
+#define M_FADD(a,b,d)      M_CPDPF(UNCOND,0,1,1,0,10,d,a,b)/* d = a +  b */
+#define M_FSUB(a,b,d)      M_CPDPF(UNCOND,0,1,1,1,10,d,a,b)/* d = a -  b */
+#define M_FMUL(a,b,d)      M_CPDPF(UNCOND,0,1,0,0,10,d,a,b)/* d = a *  b */
+#define M_FDIV(a,b,d)      M_CPDPF(UNCOND,1,0,0,0,10,d,a,b)/* d = a /  b */
 #define M_DADD(a,b,d)      M_CPDP(UNCOND,0,1,1,0,11,0,0,0,d,a,b)/* d = a +  b */
 #define M_DSUB(a,b,d)      M_CPDP(UNCOND,0,1,1,1,11,0,0,0,d,a,b)/* d = a -  b */
 #define M_DMUL(a,b,d)      M_CPDP(UNCOND,0,1,0,0,11,0,0,0,d,a,b)/* d = a *  b */
 #define M_DDIV(a,b,d)      M_CPDP(UNCOND,1,0,0,0,11,0,0,0,d,a,b)/* d = a /  b */
 
-#define M_FMOV(a,d)        M_CPDP(UNCOND,1,1,1,1,10,0,0,0,d,0x0,a)
+#define M_FMOV(a,d)        M_CPDPF(UNCOND,1,1,1,1,10,d,0x0,a)
 #define M_DMOV(a,d)        M_CPDP(UNCOND,1,1,1,1,11,0,0,0,d,0x0,a)
-#define M_FNEG(a,d)        M_CPDP(UNCOND,1,1,1,1,10,0,0,0,d,0x1,a)
+#define M_FNEG(a,d)        M_CPDPF(UNCOND,1,1,1,1,10,d,0x1,a)
 #define M_DNEG(a,d)        M_CPDP(UNCOND,1,1,1,1,11,0,0,0,d,0x1,a)
 
-#define M_FCMP(a,b)        M_CPDP(UNCOND,1,1,1,1,10,0,0,0,a,0x4,b)
+#define M_FCMP(a,b)        M_CPDPF(UNCOND,1,1,1,1,10,a,0x4,b)
 #define M_DCMP(a,b)        M_CPDP(UNCOND,1,1,1,1,11,0,0,0,a,0x4,b)
 
-#define M_CVTDF(a,d)       M_CPDP(UNCOND,1,1,1,1,11,0,1,0,d,0x7,a)
+#define M_CVTDF(a,d)       M_CPDP(UNCOND,1,1,1,1,11,(d)>>4,1,0,(d)&0xf,0x7,a)
 #define M_CVTFD(a,d)       M_CPDP(UNCOND,1,1,1,1,10,0,1,0,d,0x7,a)
-#define M_CVTIF(a,d)       M_CPDP(UNCOND,1,1,1,1,10,0,1,0,d,0x8,a)
+#define M_CVTIF(a,d)       M_CPDP(UNCOND,1,1,1,1,10,(d)>>4,1,0,(d)&0xf,0x8,a)
 #define M_CVTID(a,d)       M_CPDP(UNCOND,1,1,1,1,11,0,1,0,d,0x8,a)
-#define M_CVTFI(a,d)       M_CPDP(UNCOND,1,1,1,1,10,0,1,0,d,0xd,a) // ftosis
+#define M_CVTFI(a,d)       M_CPDP(UNCOND,1,1,1,1,10,0,1,(a)>>4,d,0xd,a) // ftosis
 #define M_CVTDI(a,d)       M_CPDP(UNCOND,1,1,1,1,11,0,1,0,d,0xd,a) // ftosid
 
 #define M_FMSTAT           M_CPRT(UNCOND,0x07,1,10,0,0x1,0xf)
@@ -792,28 +794,28 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #if defined(__VFP_FP__)
 
 #define M_FLD_INTERN(d,base,off) \
-    do { \
-        CHECK_OFFSET(off, 0x03ff); \
-        M_CPLS(UNCOND,1,1,(((off) < 0) ? 0 : 1),0,10,0,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2)); \
-    } while (0)
+	do {						   \
+		CHECK_OFFSET(off, 0x03ff);										\
+		M_CPLS(UNCOND,1,1,(((off) < 0) ? 0 : 1),0,10,(d)>>4,(d)&0xf,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2)); \
+	} while (0)
 
 #define M_DLD_INTERN(d,base,off) \
-    do { \
-        CHECK_OFFSET(off, 0x03ff); \
+	do {						   \
+		CHECK_OFFSET(off, 0x03ff);										\
 		M_CPLS(UNCOND,1,1,(((off) < 0) ? 0 : 1),0,11,0,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2)); \
-    } while (0)
+	} while (0)
 
 #define M_FST_INTERN(d,base,off) \
-    do { \
-        CHECK_OFFSET(off, 0x03ff); \
-		M_CPLS(UNCOND,0,1,(((off) < 0) ? 0 : 1),0,10,0,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2)); \
-    } while (0)
+	do {						   \
+		CHECK_OFFSET(off, 0x03ff);										\
+		M_CPLS(UNCOND,0,1,(((off) < 0) ? 0 : 1),0,10,(d)>>4,(d)&0xf,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2)); \
+	} while (0)
 
 #define M_DST_INTERN(d,base,off) \
-    do { \
-        CHECK_OFFSET(off, 0x03ff); \
+	do {						   \
+		CHECK_OFFSET(off, 0x03ff);										\
 		M_CPLS(UNCOND,0,1,(((off) < 0) ? 0 : 1),0,11,0,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2)); \
-    } while (0)
+	} while (0)
 
 #else
 
@@ -1055,8 +1057,8 @@ do { \
 /******************************************************************************/
 
 /* M_???_IMM_EXT_MUL4:
-   extended immediate operations, to handle immediates lager than 8bit.
-   ATTENTION: the immediate is rotatet left by 2 (multiplied by 4)!!!
+   extended immediate operations, to handle immediates larger than 8bit.
+   ATTENTION: the immediate is rotated left by 2 (multiplied by 4)!!!
 */
 
 #define M_ADD_IMM_EXT_MUL4(d,n,imm) \

@@ -1,6 +1,6 @@
 /* tests/regression/native/testarguments.c - tests argument passing
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -256,3 +256,74 @@ JNIEXPORT void JNICALL Java_testarguments_nmsub(JNIEnv *env, jclass clazz, jint 
 
     (*env)->CallStaticVoidMethod(env, clazz, mid, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
 }
+
+JNIEXPORT void JNICALL Java_testarguments_nmfsub(JNIEnv *env, jclass clazz, jdouble a, jfloat b, jdouble c, jfloat d, jdouble e, jfloat f, jdouble x_, jfloat y, jfloat g, jdouble h, jint i, jfloat j, jdouble k, jint l, jfloat m, jdouble n, jint o, jint p, jlong q, jfloat r, jdouble s, jint t, jlong u, jfloat v, jdouble w)
+{
+    jmethodID mid;
+    union {
+      jint i;
+      jlong l;
+      jfloat f;
+      jdouble d;
+    } x;
+
+    printf("java-native:");
+
+    x.d = a; printf(" 0x%llx", x.l);
+    x.f = b; printf(" 0x%x", x.i);
+    x.d = c; printf(" 0x%llx", x.l);
+    x.f = d; printf(" 0x%x", x.i);
+    x.d = e; printf(" 0x%llx", x.l);
+    x.f = f; printf(" 0x%x", x.i);
+    x.d = x_; printf(" 0x%llx", x.l);
+    x.f = y; printf(" 0x%x", x.i);
+
+    x.f = g; printf(" 0x%x", x.i);
+    x.d = h; printf(" 0x%llx", x.l);
+    printf(" 0x%x", i);
+
+    x.f = j; printf(" 0x%x", x.i);
+    x.d = k; printf(" 0x%llx", x.l);
+    printf(" 0x%x", l);
+
+    x.f = m; printf(" 0x%x", x.i);
+    x.d = n; printf(" 0x%llx", x.l);
+    printf(" 0x%x", o);
+
+    printf(" 0x%x", p);
+    printf(" 0x%llx", q);
+    x.f = r; printf(" 0x%x", x.i);
+    x.d = s; printf(" 0x%llx", x.l);
+
+    printf(" 0x%x", t);
+    printf(" 0x%llx", u);
+    x.f = v; printf(" 0x%x", x.i);
+    x.d = w; printf(" 0x%llx", x.l);
+
+    printf("\n");
+    fflush(stdout);
+
+    mid = (*env)->GetStaticMethodID(env, clazz, "jmfsub", "(DFDFDFDFFDIFDIFDIIJFDIJFD)V");
+
+    if (mid == 0) {
+        printf("native: couldn't find jmfsub\n");
+        return;
+    }
+
+    (*env)->CallStaticVoidMethod(env, clazz, mid, a, b, c, d, e, f, x_, y, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w);
+}
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */

@@ -36,6 +36,10 @@
 	.text
 	.align 2
 
+#if defined(__ARMHF__)
+	.fpu vfp
+#endif
+
 
 /* export functions ***********************************************************/
 
@@ -97,6 +101,10 @@ asm_vm_call_method_double:
 	ldr   a1, [itmp1], #8
 	ldr   a2, [itmp1], #8
 	ldr   a3, [itmp1], #8
+
+#if defined(__ARMHF__)
+	vldm itmp1!, {d0,d1,d2,d3,d4,d5}
+#endif
 
 	cmp   itmp3, #0                   /* do we have stack arguments?      */
 	ble   asm_calljava_copyfinish     /* no -> do not care :-)            */

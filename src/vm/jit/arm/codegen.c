@@ -70,7 +70,7 @@ void codegen_emit_prolog(jitdata* jd)
 	varinfo*    var;
 	methoddesc* md;
 	int32_t     s1;
-	int32_t     t, len;
+	int32_t     p, t, len;
 	int32_t     varindex;
 	int         i;
 
@@ -93,7 +93,7 @@ void codegen_emit_prolog(jitdata* jd)
 		savedregs_bitmask |= (1<<(rd->savintregs[i]));
 	}
 
-#if !defined(NDEBUG)
+#if !defined(NDEBUG) && !defined(__ARMHF__)
 	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
 		vm_abort("codegen_emit_prolog: Floating-point callee saved registers are not saved to stack");
 	}
@@ -111,11 +111,17 @@ void codegen_emit_prolog(jitdata* jd)
 	if (additional_bytes > 0)
 		M_SUB_IMM_EXT_MUL4(REG_SP, REG_SP, additional_bytes / 4);
 
+#if defined(__ARMHF__)
+	p = cd->stackframesize - savedregs_num / 2;
+	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
+		p--; M_DST(rd->savfltregs[i], REG_SP, p * 8 - (savedregs_num & 1) * 4);
+	}
+#endif
+
 	/* take arguments out of register or stack frame */
 
 	md = m->parseddesc;
 	for (i = 0, len = 0; i < md->paramcount; i++) {
-		s1 = md->params[i].regoff;
 		t = md->paramtypes[i].type;
 
 		varindex = jd->local_map[len * 5 + t];
@@ -126,6 +132,7 @@ void codegen_emit_prolog(jitdata* jd)
 			continue;
 
 		var = VAR(varindex);
+		s1 = md->params[i].regoff;
 
 		/* ATTENTION: we use interger registers for all arguments (even float) */
 #if !defined(ENABLE_SOFTFLOAT)
@@ -161,6 +168,20 @@ void codegen_emit_prolog(jitdata* jd)
 		}
 		else {
 			if (!md->params[i].inmemory) {
+#if defined(__ARMHF__)
+				if (!(var->flags & INMEMORY)) {
+					if (IS_2_WORD_TYPE(t))
+						emit_dmove(cd, s1, var->vv.regoff);
+					else
+						emit_fmove(cd, s1, var->vv.regoff);
+				}
+				else {
+					if (IS_2_WORD_TYPE(t))
+						M_DST(s1, REG_SP, var->vv.regoff);
+					else
+						M_FST(s1, REG_SP, var->vv.regoff);
+				}
+#else
 				if (!(var->flags & INMEMORY)) {
 					if (IS_2_WORD_TYPE(t))
 						M_CAST_L2D(s1, var->vv.regoff);
@@ -173,6 +194,7 @@ void codegen_emit_prolog(jitdata* jd)
 					else
 						M_IST(s1, REG_SP, var->vv.regoff);
 				}
+#endif
 			}
 			else {
 				if (!(var->flags & INMEMORY)) {
@@ -197,6 +219,7 @@ void codegen_emit_prolog(jitdata* jd)
  */
 void codegen_emit_epilog(jitdata* jd)
 {
+	int32_t p;
 	int i;
 
 	// Get required compiler data.
@@ -216,6 +239,13 @@ void codegen_emit_epilog(jitdata* jd)
 		savedregs_num++;
 		savedregs_bitmask |= (1<<(rd->savintregs[i]));
 	}
+
+#if defined(__ARMHF__)
+	p = cd->stackframesize - savedregs_num / 2;
+	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
+		p--; M_DLD(rd->savfltregs[i], REG_SP, p * 8 - (savedregs_num & 1) * 4);
+	}
+#endif
 
 	/* deallocate stackframe for spilled variables */
 
@@ -248,7 +278,6 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 {
 	varinfo*            var;
 	builtintable_entry* bte;
-	methoddesc*         md;
 	methodinfo*         lm;             // Local methodinfo for ICMD_INVOKE*.
 	unresolved_method*  um;
 	fieldinfo*          fi;
@@ -849,8 +878,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 #if defined(__VFP_FP__)
-			M_FMSR(s1, d);
-			M_CVTIF(d, d);
+			M_FMSR(s1, REG_FTMP1);
+			M_CVTIF(REG_FTMP1, d);
 #else
 			M_CVTIF(s1, d);
 #endif
@@ -1694,7 +1723,6 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 		case ICMD_BUILTIN:
 			bte = iptr->sx.s23.s3.bte;
-			md = bte->md;
 			if (bte->stub == NULL) {
 				disp = dseg_add_functionptr(cd, bte->fp);
 			} else {
@@ -2336,7 +2364,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	methoddesc  *md;
 	s4           i, j;
 	s4           t;
-	int          s1, s2;
+	int          s1, s2, tmpfreg;
 	int          disp;
 
 	/* get required compiler data */
@@ -2351,11 +2379,19 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	/* calculate stackframe size */
 
+	/* XXX There seems to be confusion about the unit of this number. Sometimes
+	 * it's interpreted as the number of 4-byte words, while at other times, it
+	 * seems to be the number of 8-byte entities. */
 	cd->stackframesize =
 		1 +                                                /* return address  */
 		sizeof(stackframeinfo_t) / SIZEOF_VOID_P +         /* stackframeinfo  */
 		sizeof(localref_table) / SIZEOF_VOID_P +           /* localref_table  */
-		nmd->memuse;                                       /* stack arguments */
+		nmd->memuse +                                      /* stack arguments */
+#if defined(__ARMHF__)
+		9;                                                 /* float arguments (8 regs + 1 temporary) */
+#else
+		0;
+#endif
 
 	/* align stack to 8-byte */
 
@@ -2389,7 +2425,44 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	   registers, stack is 8-byte aligned). */
 
 	M_STMFD(BITMASK_ARGS, REG_SP);
-	/* TODO: floating point */
+
+#if defined(__ARMHF__)
+	for (i = 0; i < md->paramcount; i++) {
+		if (!md->params[i].inmemory) {
+			s1 = md->params[i].regoff;
+
+			switch (md->paramtypes[i].type) {
+			case TYPE_FLT:
+			case TYPE_DBL:
+				assert(s1 < 8);
+				M_DST(s1, REG_SP, (cd->stackframesize - 9 + s1) * 8);
+				break;
+			}
+		}
+	}
+
+	tmpfreg = REG_FTMP2;
+	/* If REG_FTMP2 is taken up by the arguments, we have to resort to one of
+	 * the saved registers. */
+	for (i = md->paramcount - 1, j = i + skipparams; i >= 0; i--, j--) {
+		t = md->paramtypes[i].type;
+		if (IS_FLT_DBL_TYPE(t)) {
+			if (nmd->params[j].inmemory)
+				continue;
+			s2 = nmd->params[j].regoff;
+
+			if (s2 < REG_FTMP2)
+				break;
+			if (s2 == REG_FTMP2) {
+				tmpfreg = abi_registers_float_saved[0];
+				break;
+			}
+		}
+	}
+
+	if (tmpfreg != REG_FTMP2)
+		M_DST(tmpfreg, REG_SP, (cd->stackframesize - 1) * 8);
+#endif
 
 	/* create native stackframe info */
 
@@ -2411,17 +2484,93 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	   registers, stack is 8-byte aligned). */
 
 	M_LDMFD(BITMASK_ARGS, REG_SP);
-	/* TODO: floating point */
 
 	/* copy or spill arguments to new locations */
-	/* ATTENTION: the ARM has only integer argument registers! */
 
+#if defined(__ARMHF__)
 	for (i = md->paramcount - 1, j = i + skipparams; i >= 0; i--, j--) {
 		t = md->paramtypes[i].type;
+		s2 = nmd->params[j].regoff;
+
+		if (IS_INT_LNG_TYPE(t)) {
+			if (!md->params[i].inmemory) {
+				s1 = md->params[i].regoff;
+
+				if (!nmd->params[j].inmemory) {
+					if (IS_2_WORD_TYPE(t))
+						M_LNGMOVE(s1, s2);
+					else
+						M_INTMOVE(s1, s2);
+				}
+				else {
+					if (IS_2_WORD_TYPE(t))
+						M_LST(s1, REG_SP, s2);
+					else
+						M_IST(s1, REG_SP, s2);
+				}
+			}
+			else {
+				s1 = md->params[i].regoff + cd->stackframesize * 8;
+
+				if (IS_2_WORD_TYPE(t)) {
+					M_LLD(REG_ITMP12_PACKED, REG_SP, s1);
+					M_LST(REG_ITMP12_PACKED, REG_SP, s2);
+				}
+				else {
+					M_ILD(REG_ITMP1, REG_SP, s1);
+					M_IST(REG_ITMP1, REG_SP, s2);
+				}
+			}
+		}
+		else {
+			if (!md->params[i].inmemory) {
+				s1 = md->params[i].regoff;
+
+				M_DLD(tmpfreg, REG_SP, (cd->stackframesize - 11 + s1) * 8);
+				if (!nmd->params[j].inmemory) {
+
+					if (IS_2_WORD_TYPE(t))
+						M_DMOV(tmpfreg, s2);
+					else
+						M_FMOV(tmpfreg, s2);
+
+				}
+				else {
+					if (IS_2_WORD_TYPE(t))
+						M_DST(REG_FTMP2, REG_SP, s2);
+					else
+						M_FST(REG_FTMP2, REG_SP, s2);
+				}
+			}
+			else {
+				s1 = md->params[i].regoff + cd->stackframesize * 8;
+
+				if (!nmd->params[j].inmemory) {
+					if (IS_2_WORD_TYPE(t))
+						M_DLD(s2, REG_SP, s1);
+					else
+						M_FLD(s2, REG_SP, s1);
+				}
+				else {
+					if (IS_2_WORD_TYPE(t)) {
+						M_DLD(REG_FTMP1, REG_SP, s1);
+						M_DST(REG_FTMP1, REG_SP, s2);
+					}
+					else {
+						M_FLD(REG_FTMP1, REG_SP, s1);
+						M_FST(REG_FTMP1, REG_SP, s2);
+					}
+				}
+			}
+		}
+	}
+#else
+	for (i = md->paramcount - 1, j = i + skipparams; i >= 0; i--, j--) {
+		t = md->paramtypes[i].type;
+		s2 = nmd->params[j].regoff;
 
 		if (!md->params[i].inmemory) {
 			s1 = md->params[i].regoff;
-			s2 = nmd->params[j].regoff;
 
 			if (!nmd->params[j].inmemory) {
 #if !defined(__ARM_EABI__)
@@ -2446,7 +2595,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		}
 		else {
 			s1 = md->params[i].regoff + cd->stackframesize * 8;
-			s2 = nmd->params[j].regoff;
 
 			if (IS_2_WORD_TYPE(t)) {
 				M_LLD(REG_ITMP12_PACKED, REG_SP, s1);
@@ -2458,6 +2606,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 			}
 		}
 	}
+#endif
 
 	/* Handle native Java methods. */
 
@@ -2483,6 +2632,12 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	   really need it? */
 
 	emit_recompute_pv(cd);
+
+#if defined(__ARMHF__)
+	/* restore borrowed float register */
+	if (tmpfreg != REG_FTMP2)
+		M_DLD(tmpfreg, REG_SP, (cd->stackframesize - 1) * 8);
+#endif
 
 	/* remove native stackframe info */
 	/* TODO: improve this store/load */

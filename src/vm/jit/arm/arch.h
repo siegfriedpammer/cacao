@@ -1,6 +1,6 @@
 /* src/vm/jit/arm/arch.h - architecture defines for arm
 
-   Copyright (C) 1996-2010
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -95,7 +95,9 @@
 
 
 #define SUPPORT_COMBINE_INTEGER_REGISTERS
+#if !defined(__ARMHF__)
 #define SUPPORT_PASS_FLOATARGS_IN_INTREGS
+#endif
 
 
 /* branches *******************************************************************/
@@ -142,4 +144,5 @@
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
