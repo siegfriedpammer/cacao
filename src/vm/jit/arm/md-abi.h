@@ -1,9 +1,7 @@
 /* src/vm/jit/arm/md-abi.h - defines for arm ABI
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2012
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -71,6 +69,19 @@
 #define REG_FTMP1       6    /* temporary floating point register             */
 #define REG_FTMP2       7    /* temporary floating point register             */
 
+
+/* The ARM hardfloat calling conventions are quite unique in that two 32-bit
+ * float arguments can be assigned to the separate halves of one 64-bit
+ * register. In assembler code, the float registers are laid out such that
+ * s0/s1 == d0, s2/s3 == d1 and so on. In machine code, however, the numbering
+ * of the single precision registers is so that s0/s16 == d0, s1/s17 == d1 and
+ * so on. That's where this constant comes from. The second halves are
+ * accessed by a higher number range. The constant is named this way because
+ * the upper range of single-precision registers is only used for back-filled
+ * float arguments passed to native functions. */
+
+#define BACKFILL_OFFSET 16
+
 #endif /* !defined(ENABLE_SOFTFLOAT) */
 
 
@@ -81,17 +92,26 @@
 #define INT_ARG_CNT     4    /* number of int argument registers              */
 #define INT_RES_CNT     7    /* number of reserved integer registers          */
 
-#define FLT_REG_CNT     8    /* number of float registers                     */
 #if defined(ENABLE_SOFTFLOAT)
+# define FLT_REG_CNT    8    /* number of float registers                     */
 # define FLT_TMP_CNT    0    /* number of flt temp registers                  */
 # define FLT_SAV_CNT    0    /* number of flt callee saved registers          */
 # define FLT_ARG_CNT    0    /* number of flt argument registers              */
 # define FLT_RES_CNT    8    /* number of reserved float registers            */
 #else
+#if !defined(__ARMHF__)
+# define FLT_REG_CNT    8    /* number of float registers                     */
 # define FLT_TMP_CNT    6    /* number of flt temp registers                  */
 # define FLT_SAV_CNT    0    /* number of flt callee saved registers          */
 # define FLT_ARG_CNT    0    /* number of flt argument registers              */
 # define FLT_RES_CNT    2    /* number of reserved float registers            */
+#else
+# define FLT_REG_CNT   16    /* number of float registers                     */
+# define FLT_TMP_CNT    0    /* number of flt temp registers                  */
+# define FLT_SAV_CNT    8    /* number of flt callee saved registers          */
+# define FLT_ARG_CNT    6    /* number of flt argument registers              */
+# define FLT_RES_CNT    2    /* number of reserved float registers            */
+#endif
 #endif /* defined(ENABLE_SOFTFLOAT) */
 
 
@@ -134,4 +154,5 @@
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

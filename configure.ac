@@ -48,6 +48,12 @@ arm | armv4* | armv5* | armv6* | armv7* )
     ARCH_DIR="arm"
     ARCH_FLAGS="-D__ARM__"
     JAVA_ARCH="arm"
+
+    case "$host" in
+	*-gnueabihf)
+		ARCH_FLAGS="$ARCH_FLAGS -D__ARMHF__"
+		;;
+	esac
     ;;
 
 hppa2.0 )
@@ -809,3 +815,4 @@ AC_OUTPUT
 ## tab-width: 8
 ## compile-command: "automake --add-missing"
 ## End:
+## vim:noexpandtab:sw=4:ts=4:

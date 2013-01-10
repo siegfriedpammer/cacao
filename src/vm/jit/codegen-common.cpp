@@ -1920,10 +1920,10 @@ bool codegen_emit(jitdata *jd)
 
 				REPLACEMENT_POINT_RETURN(cd, iptr);
 				s1 = emit_load_s1(jd, iptr, REG_FRESULT);
-#if !defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
-				emit_fmove(cd, s1, REG_FRESULT);
-#else
+#if defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 				M_CAST_F2I(s1, REG_RESULT);
+#else
+				emit_fmove(cd, s1, REG_FRESULT);
 #endif
 				goto nowperformreturn;
 
@@ -1931,10 +1931,10 @@ bool codegen_emit(jitdata *jd)
 
 				REPLACEMENT_POINT_RETURN(cd, iptr);
 				s1 = emit_load_s1(jd, iptr, REG_FRESULT);
-#if !defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
-				emit_dmove(cd, s1, REG_FRESULT);
-#else
+#if defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 				M_CAST_D2L(s1, REG_LRESULT);
+#else
+				emit_dmove(cd, s1, REG_FRESULT);
 #endif
 				goto nowperformreturn;
 #endif

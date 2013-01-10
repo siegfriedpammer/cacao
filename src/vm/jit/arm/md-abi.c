@@ -1,6 +1,6 @@
 /* src/vm/jit/arm/md-abi.c - functions for arm ABI
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -75,24 +75,37 @@ s4 nregdescfloat[] = {
 	REG_END
 };
 #else
-/* TODO: FPA register usage conventions */
+#if !defined(__ARMHF__)
 s4 nregdescfloat[] = {
 	REG_TMP, REG_TMP, REG_TMP, REG_TMP,
 	REG_TMP, REG_TMP, REG_RES, REG_RES,
 	REG_END
 };
+#else
+s4 nregdescfloat[] = {
+	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_RES, REG_RES,
+	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
+	REG_END
+};
+#endif
 #endif /* defined(ENABLE_SOFTFLOAT) */
 
 const s4 abi_registers_float_argument[] = {
+#if defined(__ARMHF__)
+	0, 1, 2, 3, 4, 5, 6, 7,
+#endif
 	-1,
 };
 
 const s4 abi_registers_float_saved[] = {
+#if defined(__ARMHF__)
+	8, 9, 10, 11, 12, 13, 14, 15,
+#endif
 	-1,
 };
 
 const s4 abi_registers_float_temporary[] = {
-#if defined(ENABLE_SOFTFLOAT)
+#if defined(__ARMHF__) || defined(ENABLE_SOFTFLOAT)
 	-1,
 #else
 	0,  /* ft0 */
@@ -126,12 +139,13 @@ void md_param_alloc(methoddesc *md)
 {
 	paramdesc *pd;
 	s4         i;
-	s4         reguse;
+	s4         reguse, freguse;
 	s4         stacksize;
 
 	/* set default values */
 
 	reguse    = 0;
+	freguse   = 0;
 	stacksize = 0;
 
 	/* get params field of methoddesc */
@@ -142,7 +156,9 @@ void md_param_alloc(methoddesc *md)
 		switch (md->paramtypes[i].type) {
 		case TYPE_INT:
 		case TYPE_ADR:
+#if !defined(__ARMHF__)
 		case TYPE_FLT:
+#endif
 			if (reguse < INT_ARG_CNT) {
 				pd->inmemory = false;
 				pd->index    = reguse;
@@ -158,7 +174,9 @@ void md_param_alloc(methoddesc *md)
 			break;
 
 		case TYPE_LNG:
+#if !defined(__ARMHF__)
 		case TYPE_DBL:
+#endif
 			/* interally we use the EABI */
 
 			ALIGN_2(reguse);
@@ -189,13 +207,36 @@ void md_param_alloc(methoddesc *md)
 				stacksize++;
 			}
 			break;
+
+#if defined(__ARMHF__)
+		case TYPE_FLT:
+		case TYPE_DBL:
+			if (freguse < FLT_ARG_CNT) {
+				pd->inmemory = false;
+				pd->index    = freguse;
+				pd->regoff   = abi_registers_float_argument[freguse];
+				freguse++;
+			}
+			else {
+				pd->inmemory = true;
+				pd->index    = stacksize;
+				pd->regoff   = stacksize * 8;
+				stacksize++;
+			}
+			break;
+#endif
 		}
 	}
 
 	/* Since R0/R1 (==A0/A1) are used for passing return values, this
 	   argument register usage has to be regarded, too. */
 
-	if (md->returntype.type != TYPE_VOID) {
+	if (md->returntype.type != TYPE_VOID
+#if defined(__ARMHF__)
+			&& !IS_FLT_DBL_TYPE(md->returntype.type)
+#endif
+	)
+	{
 		if (!IS_2_WORD_TYPE(md->returntype.type)) {
 			if (reguse < 1)
 				reguse = 1;
@@ -205,11 +246,16 @@ void md_param_alloc(methoddesc *md)
 				reguse = 2;
 		}
 	}
+#if defined(__ARMHF__)
+	else if (IS_FLT_DBL_TYPE(md->returntype.type))
+		if (freguse < 1)
+			freguse = 1;
+#endif
 
 	/* fill register and stack usage */
 
 	md->argintreguse = reguse;
-	md->argfltreguse = 0;
+	md->argfltreguse = freguse;
 	md->memuse       = stacksize;
 }
 
@@ -224,24 +270,79 @@ void md_param_alloc_native(methoddesc *md)
 {
 	paramdesc *pd;
 	s4         i;
-	s4         reguse;
+	s4         reguse, freguse;
 	s4         stacksize;
+	s1 sregused[8]; /* 1 = full, 0 = half free */
+	bool backfill;
 
 	/* set default values */
 
 	reguse    = 0;
+	freguse   = 0;
 	stacksize = 0;
+	backfill  = true;
 
 	/* get params field of methoddesc */
 
 	pd = md->params;
 
 	for (i = 0; i < md->paramcount; i++, pd++) {
+#if defined(__ARMHF__)
+		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
+			bool found = false;
+			do {
+				/* Try to find free VFP register first. */
+				/* If it fails, use the normal path below. */
+				if (IS_2_WORD_TYPE(md->paramtypes[i].type)) {
+					if (freguse >= 8)
+						break;
+					pd->inmemory = false;
+					pd->index    = -1;
+					pd->regoff   = abi_registers_float_argument[freguse];
+					sregused[freguse] = 1;
+					freguse++;
+				}
+				else {
+					int i, r;
+					if (backfill) {
+						for (i=0; i<freguse; i++)
+							if (!sregused[i])
+								break;
+					}
+					else
+						i = freguse;
+					if (i<freguse) {
+						pd->regoff   = abi_registers_float_argument[i] + BACKFILL_OFFSET;
+						sregused[i] = 1;
+					}
+					else {
+						if (freguse >= 8)
+							break;
+						/* no backfill space found */
+						pd->regoff   = abi_registers_float_argument[freguse];
+						sregused[freguse] = 0;
+						freguse++;
+					}
+					pd->inmemory = false;
+					pd->index    = -1;
+				}
+				found = true;
+			} while (0);
+			if (found)
+				continue;
+			backfill = false;
+		}
+#endif
+
 		switch (md->paramtypes[i].type) {
 		case TYPE_INT:
 		case TYPE_ADR:
 		case TYPE_FLT:
-			if (reguse < INT_ARG_CNT) {
+			if (reguse < INT_ARG_CNT
+#if defined(__ARMHF__)
+				&& md->paramtypes[i].type != TYPE_FLT
+#endif
+			   ) {
 				pd->inmemory = false;
 				pd->index    = -1;
 				pd->regoff   = abi_registers_integer_argument[reguse];
@@ -257,7 +358,11 @@ void md_param_alloc_native(methoddesc *md)
 
 		case TYPE_LNG:
 		case TYPE_DBL:
-			if (reguse < (INT_ARG_CNT - 1)) {
+			if (reguse < (INT_ARG_CNT - 1)
+#if defined(__ARMHF__)
+				&& md->paramtypes[i].type != TYPE_DBL
+#endif
+				) {
 #if defined(__ARM_EABI__)
 				ALIGN_2(reguse);
 #endif
@@ -300,7 +405,10 @@ void md_param_alloc_native(methoddesc *md)
 				pd->inmemory  = true;
 				pd->index     = -1;
 				pd->regoff    = stacksize * 4;
-				reguse        = INT_ARG_CNT;
+#if defined(__ARMHF__)
+				if (md->paramtypes[i].type != TYPE_DBL)
+#endif
+					reguse        = INT_ARG_CNT;
 				stacksize    += 2;
 			}
 			break;
@@ -310,7 +418,12 @@ void md_param_alloc_native(methoddesc *md)
 	/* Since R0/R1 (==A0/A1) are used for passing return values, this
 	   argument register usage has to be regarded, too. */
 
-	if (md->returntype.type != TYPE_VOID) {
+	if (md->returntype.type != TYPE_VOID
+#if defined(__ARMHF__)
+			&& !IS_FLT_DBL_TYPE(md->returntype.type)
+#endif
+	)
+	{
 		if (!IS_2_WORD_TYPE(md->returntype.type)) {
 			if (reguse < 1)
 				reguse = 1;
@@ -320,11 +433,16 @@ void md_param_alloc_native(methoddesc *md)
 				reguse = 2;
 		}
 	}
+#if defined(__ARMHF__)
+	else if (IS_FLT_DBL_TYPE(md->returntype.type))
+		if (freguse < 1)
+			freguse = 1;
+#endif
 
 	/* fill register and stack usage */
 
 	md->argintreguse = reguse;
-	md->argfltreguse = 0;
+	md->argfltreguse = freguse;
 	md->memuse       = stacksize;
 }
 
@@ -397,6 +515,16 @@ void md_return_alloc(jitdata *jd, stackelement_t *stackslot)
 
 #if !defined(ENABLE_SOFTFLOAT)
 			}
+#if defined(__ARMHF__)
+			else {
+				VAR(stackslot->varnum)->flags = PREALLOC;
+
+				if (rd->argfltreguse < 1)
+					rd->argfltreguse = 1;
+
+				VAR(stackslot->varnum)->vv.regoff = REG_FRESULT;
+			}
+#endif
 #endif
 		}
 	}

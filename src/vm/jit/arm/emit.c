@@ -1,6 +1,6 @@
 /* src/vm/jit/arm/emit.c - Arm code emitter functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -672,7 +672,7 @@ void emit_recompute_pv(codegendata *cd)
 #if defined(ENABLE_THREADS)
 void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
 {
-	int32_t disp;
+	int32_t disp, p;
 
 	// Get required compiler data.
 	methodinfo*  m  = jd->m;
@@ -682,6 +682,15 @@ void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
 		M_STMFD(BITMASK_ARGS, REG_SP);
 		syncslot_offset += 4 * 4;
+
+#if defined(__ARMHF__)
+		M_SUB_IMM(REG_SP, REG_SP, FLT_ARG_CNT * 8);
+
+		for (p = 0; p < FLT_ARG_CNT; p++)
+			M_DST(abi_registers_float_argument[p], REG_SP, p * 8);
+
+		syncslot_offset += FLT_ARG_CNT * 8;
+#endif
 	}
 # endif
 
@@ -701,8 +710,16 @@ void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
 	emit_recompute_pv(cd);
 
 # if !defined(NDEBUG)
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+#if defined(__ARMHF__)
+		for (p = 0; p < FLT_ARG_CNT; p++)
+			M_DLD(abi_registers_float_argument[p], REG_SP, p * 8);
+
+		M_ADD_IMM(REG_SP, REG_SP, FLT_ARG_CNT * 8);
+#endif
+
 		M_LDMFD(BITMASK_ARGS, REG_SP);
+	}
 # endif
 }
 #endif
@@ -765,6 +782,7 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 void emit_verbosecall_enter(jitdata *jd)
 {
 	methodinfo   *m;
+	codeinfo     *code;
 	codegendata  *cd;
 	registerdata *rd;
 	methoddesc   *md;
@@ -774,6 +792,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* get required compiler data */
 
 	m  = jd->m;
+	code = jd->code;
 	cd = jd->cd;
 	rd = jd->rd;
 
@@ -786,7 +805,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* Keep stack 8-byte aligned. */
 
 	M_STMFD((1<<REG_LR) | (1<<REG_PV), REG_SP);
-	M_SUB_IMM(REG_SP, REG_SP, md->paramcount * 8);
+	M_SUB_IMM_EXT_MUL4(REG_SP, REG_SP, (md->paramcount + ARG_CNT + TMP_CNT) * 8 >> 2);
 
 	/* save argument registers */
 
@@ -796,22 +815,52 @@ void emit_verbosecall_enter(jitdata *jd)
 
 			switch (md->paramtypes[i].type) {
 			case TYPE_INT:
-			case TYPE_FLT:
 			case TYPE_ADR:
+#if !defined(__ARMHF__)
+			case TYPE_FLT:
+#endif
 				M_IST(s, REG_SP, i * 8);
 				break;
 			case TYPE_LNG:
+#if !defined(__ARMHF__)
 			case TYPE_DBL:
+#endif
 				M_LST(s, REG_SP, i * 8);
 				break;
+#if defined(__ARMHF__)
+			case TYPE_FLT:
+			case TYPE_DBL:
+				M_DST(s, REG_SP, i * 8);
+				break;
+#endif
 			}
 		}
+	}
+
+	/* save all argument and temporary registers for leaf methods */
+
+	if (code_is_leafmethod(code)) {
+		for (i = 0; i < INT_ARG_CNT; i++)
+			M_IST(abi_registers_integer_argument[i], REG_SP, (md->paramcount + i) * 8);
+
+#if defined(__ARMHF__)
+		for (i = 0; i < FLT_ARG_CNT; i++)
+			M_DST(abi_registers_float_argument[i], REG_SP, (md->paramcount + INT_ARG_CNT + i) * 8);
+#endif
+
+		for (i = 0; i < INT_TMP_CNT; i++)
+			M_IST(rd->tmpintregs[i], REG_SP, (md->paramcount + ARG_CNT + i) * 8);
+
+#if defined(__ARMHF__)
+		for (i = 0; i < FLT_TMP_CNT; i++)
+			M_DST(rd->tmpfltregs[i], REG_SP, (md->paramcount + ARG_CNT + INT_TMP_CNT + i) * 8);
+#endif
 	}
 
 	disp = dseg_add_address(cd, m);
 	M_DSEG_LOAD(REG_A0, disp);
 	M_MOV(REG_A1, REG_SP);
-	M_ADD_IMM(REG_A2, REG_SP, md->paramcount * 8 + 2 * 4 + cd->stackframesize * 8);
+	M_ADD_IMM_EXT_MUL4(REG_A2, REG_SP, ((md->paramcount + ARG_CNT + TMP_CNT) * 8 + 2 * 4 + cd->stackframesize * 8) >> 2);
 	M_LONGBRANCH(trace_java_call_enter);
 
 	/* restore argument registers */
@@ -822,21 +871,51 @@ void emit_verbosecall_enter(jitdata *jd)
 
 			switch (md->paramtypes[i].type) {
 			case TYPE_INT:
-			case TYPE_FLT:
 			case TYPE_ADR:
+#if !defined(__ARMHF__)
+			case TYPE_FLT:
+#endif
 				M_ILD(s, REG_SP, i * 8);
 				break;
 			case TYPE_LNG:
+#if !defined(__ARMHF__)
 			case TYPE_DBL:
+#endif
 				M_LLD(s, REG_SP, i * 8);
 				break;
+#if defined(__ARMHF__)
+			case TYPE_FLT:
+			case TYPE_DBL:
+				M_DLD(s, REG_SP, i * 8);
+				break;
+#endif
 			}
 		}
 	}
 
+	/* restore all argument and temporary registers for leaf methods */
+
+	if (code_is_leafmethod(code)) {
+		for (i = 0; i < INT_ARG_CNT; i++)
+			M_ILD(abi_registers_integer_argument[i], REG_SP, (md->paramcount + i) * 8);
+
+#if defined(__ARMHF__)
+		for (i = 0; i < FLT_ARG_CNT; i++)
+			M_DLD(abi_registers_float_argument[i], REG_SP, (md->paramcount + INT_ARG_CNT + i) * 8);
+#endif
+
+		for (i = 0; i < INT_TMP_CNT; i++)
+			M_ILD(rd->tmpintregs[i], REG_SP, (md->paramcount + ARG_CNT + i) * 8);
+
+#if defined(__ARMHF__)
+		for (i = 0; i < FLT_TMP_CNT; i++)
+			M_DLD(rd->tmpfltregs[i], REG_SP, (md->paramcount + ARG_CNT + INT_TMP_CNT + i) * 8);
+#endif
+	}
+
 	/* Keep stack 8-byte aligned. */
 
-	M_ADD_IMM(REG_SP, REG_SP, md->paramcount * 8);
+	M_ADD_IMM_EXT_MUL4(REG_SP, REG_SP, (md->paramcount + ARG_CNT + TMP_CNT) * 8 >> 2);
 	M_LDMFD((1<<REG_LR) | (1<<REG_PV), REG_SP);
 
 	/* mark trace code */
@@ -857,7 +936,6 @@ void emit_verbosecall_exit(jitdata *jd)
 {
 	methodinfo   *m;
 	codegendata  *cd;
-	registerdata *rd;
 	methoddesc   *md;
 	s4            disp;
 
@@ -865,7 +943,6 @@ void emit_verbosecall_exit(jitdata *jd)
 
 	m  = jd->m;
 	cd = jd->cd;
-	rd = jd->rd;
 
 	md = m->parseddesc;
 
@@ -883,13 +960,23 @@ void emit_verbosecall_exit(jitdata *jd)
 	switch (md->returntype.type) {
 	case TYPE_ADR:
 	case TYPE_INT:
+#if !defined(__ARMHF__)
 	case TYPE_FLT:
+#endif
 		M_IST(REG_RESULT, REG_SP, 0 * 8);
 		break;
 	case TYPE_LNG:
+#if !defined(__ARMHF__)
 	case TYPE_DBL:
+#endif
 		M_LST(REG_RESULT_PACKED, REG_SP, 0 * 8);
 		break;
+#if defined(__ARMHF__)
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_DST(REG_FRESULT, REG_SP, 0 * 8);
+		break;
+#endif
 	}
 
 	disp = dseg_add_address(cd, m);
@@ -902,13 +989,23 @@ void emit_verbosecall_exit(jitdata *jd)
 	switch (md->returntype.type) {
 	case TYPE_ADR:
 	case TYPE_INT:
+#if !defined(__ARMHF__)
 	case TYPE_FLT:
+#endif
 		M_ILD(REG_RESULT, REG_SP, 0 * 8);
 		break;
 	case TYPE_LNG:
+#if !defined(__ARMHF__)
 	case TYPE_DBL:
+#endif
 		M_LLD(REG_RESULT_PACKED, REG_SP, 0 * 8);
 		break;
+#if defined(__ARMHF__)
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+		break;
+#endif
 	}
 
 	/* Keep stack 8-byte aligned. */
