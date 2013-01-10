@@ -1,6 +1,6 @@
 /* src/vm/jit/i386/atomic.hpp - i386 atomic instructions
 
-   Copyright (C) 2008, 2010
+   Copyright (C) 2008-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -76,7 +76,7 @@ inline uint64_t compare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t
  */
 inline void memory_barrier(void)
 {
-	__asm__ __volatile__ ("lock; add $0, 0(%%esp)" : : : "memory" );
+	__asm__ __volatile__ ("lock; addl $0, 0(%%esp)" : : : "memory" );
 }
 
 
