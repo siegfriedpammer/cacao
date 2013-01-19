@@ -82,6 +82,10 @@
 # include "vm/jit/loop/loop.hpp"
 #endif
 
+#if defined(ENABLE_OPTIMIZATION_FRAMEWORK)
+#include "vm/jit/compiler2/Compiler.hpp"
+#endif
+
 /* debug macros ***************************************************************/
 
 #if !defined(NDEBUG)
@@ -492,7 +496,13 @@ u1 *jit_recompile(methodinfo *m)
 
 	/* now call internal compile function */
 
+#if defined(ENABLE_OPTIMIZATION_FRAMEWORK)
+	opt_RegallocSpillAll = true;
+	r = jit_recompile_intern(jd);
+	opt_RegallocSpillAll = false;
+#else
 	r = jit_compile_intern(jd);
+#endif
 
 	if (r == NULL) {
 		/* We had an exception! Finish stuff here if necessary. */
@@ -944,8 +954,13 @@ codeinfo *jit_get_current_code(methodinfo *m)
 
 	/* otherwise: recompile */
 
+#if defined(ENABLE_OPTIMIZATION_FRAMEWORK)
+	if (!cacao::jit::compiler2::compile(m))
+		return NULL;
+#else
 	if (!jit_recompile(m))
 		return NULL;
+#endif
 
 	assert(m->code);
 

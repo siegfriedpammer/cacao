@@ -501,6 +501,8 @@ AC_CHECK_ENABLE_INLINING
 AC_CHECK_ENABLE_INLINING_DEBUG
 AC_CHECK_ENABLE_REPLACEMENT
 
+AC_CHECK_ENABLE_OPTIMIZATION_FRAMEWORK
+
 dnl check for loop optimization
 AC_MSG_CHECKING(whether loop optimization should be supported)
 AC_ARG_ENABLE([loop],
@@ -772,6 +774,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/mips/linux/Makefile]
 		[src/vm/jit/mips/uclinux/Makefile]
 		[src/vm/jit/optimizing/Makefile]
+		[src/vm/jit/compiler2/Makefile]
 		[src/vm/jit/parisc/Makefile]
 		[src/vm/jit/parisc/linux/Makefile]
 		[src/vm/jit/powerpc/Makefile]
