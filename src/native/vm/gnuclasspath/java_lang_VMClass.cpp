@@ -434,8 +434,8 @@ JNIEXPORT jobjectArray JNICALL Java_java_lang_VMClass_getDeclaredAnnotations(JNI
 
 	/* only resolve the parser method the first time */
 	if (m_parseAnnotationsIntoArray == NULL) {
-		Utf8String utf_parseAnnotationsIntoArray = UtfString::from_utf8("parseAnnotationsIntoArray");
-		Utf8String utf_desc = UtfString::from_utf8("([BLsun/reflect/ConstantPool;Ljava/lang/Class;)"
+		Utf8String utf_parseAnnotationsIntoArray = Utf8String::from_utf8("parseAnnotationsIntoArray");
+		Utf8String utf_desc = Utf8String::from_utf8("([BLsun/reflect/ConstantPool;Ljava/lang/Class;)"
 		                                           "[Ljava/lang/annotation/Annotation;");
 
 		if (utf_parseAnnotationsIntoArray == NULL || utf_desc == NULL) {
@@ -617,7 +617,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_java_lang_VMClass_init(void)
 {
-	Utf8String u = UtfString::from_utf8("java/lang/VMClass");
+	Utf8String u = Utf8String::from_utf8("java/lang/VMClass");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

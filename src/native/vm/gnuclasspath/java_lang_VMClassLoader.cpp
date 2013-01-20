@@ -250,8 +250,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv
 	java_handle_t        *o;         /* vector being created     */
 	methodinfo           *m;         /* "add" method of vector   */
 	java_handle_t        *path;      /* path to be added         */
-	utf                  *utfname;   /* utf to look for          */
-	char                 *buffer;    /* char buffer              */
+	Utf8String            utfname;   /* utf to look for          */
 	char                 *namestart; /* start of name to use     */
 	char                 *tmppath;   /* temporary buffer         */
 	int32_t               namelen;   /* length of name to use    */
@@ -273,13 +272,13 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv
 
 	/* copy it to a char buffer */
 
-	Buffer<> buf;
-	buf.write(utfname);
+	Buffer<> buffer;
+	buffer.write(utfname);
 
-	namelen   = utf_bytes(utfname);
+	namelen   = utfname.size();
 	searchlen = namelen;
 	bufsize   = namelen + strlen("0");
-	namestart = buf;
+	namestart = buffer;
 
 	/* skip leading '/' */
 
@@ -298,7 +297,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv
 	/* create a new needle to look for, if necessary */
 
 	if (searchlen != bufsize-1) {
-		utfname = UtfString::from_utf8(namestart, searchlen);
+		utfname = Utf8String::from_utf8(namestart, searchlen);
 		if (utfname == NULL)
 			goto return_NULL;
 	}
@@ -314,7 +313,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv
 
 	m = class_resolveclassmethod(class_java_util_Vector,
 	                             utf8::add,
-	                             UtfString::from_utf8("(Ljava/lang/Object;)Z"),
+	                             Utf8String::from_utf8("(Ljava/lang/Object;)Z"),
 	                             NULL,
 	                             true);
 
@@ -442,7 +441,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_packageAssertionStatus0(J
 
 	m = class_resolveclassmethod(class_java_util_HashMap,
 	                             utf8::put,
-	                             UtfString::from_utf8("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
+	                             Utf8String::from_utf8("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
 	                             NULL,
 	                             true);
 
@@ -510,7 +509,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_classAssertionStatus0(JNI
 
 	m = class_resolveclassmethod(class_java_util_HashMap,
                                  utf8::put,
-                                 UtfString::from_utf8("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
+                                 Utf8String::from_utf8("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
                                  NULL,
                                  true);
 
@@ -600,7 +599,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_java_lang_VMClassLoader_init(void)
 {
-	Utf8String u = UtfString::from_utf8("java/lang/VMClassLoader");
+	Utf8String u = Utf8String::from_utf8("java/lang/VMClassLoader");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

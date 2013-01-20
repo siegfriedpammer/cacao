@@ -84,7 +84,7 @@ static JNINativeMethod methods[] = {
  
 void _Jv_com_sun_cldchi_jvm_JVM_init(void)
 {
-	Utf8String u = UtfString::from_utf8("com/sun/cldchi/jvm/JVM");
+	Utf8String u = Utf8String::from_utf8("com/sun/cldchi/jvm/JVM");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

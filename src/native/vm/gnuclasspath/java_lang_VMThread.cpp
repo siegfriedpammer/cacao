@@ -284,7 +284,7 @@ JNIEXPORT jstring JNICALL Java_java_lang_VMThread_getState(JNIEnv *env, jobject 
 	case THREAD_STATE_TIMED_WAITING:
 		return (jstring) JavaString::from_utf8("TIMED_WAITING");
 	case THREAD_STATE_PARKED:
-		return (jstring) JavaString::from_utf8r("PARKED");
+		return (jstring) JavaString::from_utf8("PARKED");
 	case THREAD_STATE_TIMED_PARKED:
 		return (jstring) JavaString::from_utf8("TIMED_PARKED");
 	case THREAD_STATE_TERMINATED:
@@ -329,7 +329,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_java_lang_VMThread_init(void)
 {
-	Utf8String u = UtfString::from_utf8("java/lang/VMThread");
+	Utf8String u = Utf8String::from_utf8("java/lang/VMThread");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

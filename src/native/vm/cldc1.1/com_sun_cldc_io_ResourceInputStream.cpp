@@ -125,7 +125,7 @@ static java_handle_t* zip_read_resource(list_classpath_entry *lce, utf *name)
 	}
 		
 	// Create a file descriptor object.
-	ci = load_class_bootstrap(UtfString::from_utf8("com/sun/cldchi/jvm/FileDescriptor"));
+	ci = load_class_bootstrap(Utf8String::from_utf8("com/sun/cldchi/jvm/FileDescriptor"));
 	java_handle_t* h = native_new_and_init(ci);
 
 	if (h == NULL)
@@ -159,7 +159,7 @@ static java_handle_t* file_read_resource(char *path)
 		filep = (u1*) mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0);
 		
 		/* Create a file descriptor object */
-		ci = load_class_bootstrap(UtfString::from_utf8("com/sun/cldchi/jvm/FileDescriptor"));
+		ci = load_class_bootstrap(Utf8String::from_utf8("com/sun/cldchi/jvm/FileDescriptor"));
 		java_handle_t* h = native_new_and_init(ci);
 
 		if (h == NULL)
@@ -339,7 +339,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_cldc_io_ResourceInputStream_clone(JNIEnv 
 {
 	com_sun_cldchi_jvm_FileDescriptor fd(jobj);
 
-	classinfo* c = load_class_bootstrap(UtfString::from_utf8("com/sun/cldchi/jvm/FileDescriptor"));
+	classinfo* c = load_class_bootstrap(Utf8String::from_utf8("com/sun/cldchi/jvm/FileDescriptor"));
 	java_handle_t* h = native_new_and_init(c);
 
 	if (h == NULL)
@@ -372,7 +372,7 @@ static JNINativeMethod methods[] = {
  
 void _Jv_com_sun_cldc_io_ResourceInputStream_init(void)
 {
-	Utf8String u = UtfString::from_utf8("com/sun/cldc/io/ResourceInputStream");
+	Utf8String u = Utf8String::from_utf8("com/sun/cldc/io/ResourceInputStream");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

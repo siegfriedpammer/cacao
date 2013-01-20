@@ -126,7 +126,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_gnu_classpath_VMStackWalker_init(void)
 {
-	Utf8String u = UtfString::from_utf8("gnu/classpath/VMStackWalker");
+	Utf8String u = Utf8String::from_utf8("gnu/classpath/VMStackWalker");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

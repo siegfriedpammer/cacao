@@ -184,7 +184,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_gnu_java_lang_management_VMThreadMXBeanImpl_init(void)
 {
-	Utf8String u = UtfString::from_utf8("gnu/java/lang/management/VMThreadMXBeanImpl");
+	Utf8String u = Utf8String::from_utf8("gnu/java/lang/management/VMThreadMXBeanImpl");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

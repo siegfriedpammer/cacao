@@ -1560,7 +1560,7 @@ RawMonitorWait (jvmtiEnv * env, jrawMonitorID monitor, jlong millis)
 		return JVMTI_ERROR_NOT_MONITOR_OWNER;
 
 	lock_wait_for_object(&monitor->name->header, millis,0);
-	if (builtin_instanceof((java_objectheader*)exceptionptr, load_class_bootstrap(UtfString::from_utf8("java/lang/InterruptedException"))))
+	if (builtin_instanceof((java_objectheader*)exceptionptr, load_class_bootstrap(Utf8String::from_utf8("java/lang/InterruptedException"))))
 		return JVMTI_ERROR_INTERRUPT;
 
 #else
@@ -3590,13 +3590,13 @@ GetSystemProperties (jvmtiEnv * env, jint * count_ptr, char ***property_ptr)
     if ((count_ptr == NULL) || (property_ptr == NULL)) 
         return JVMTI_ERROR_NULL_POINTER;
 
-    sysclass = load_class_from_sysloader(UtfString::from_utf8("java/lang/System"));
+    sysclass = load_class_from_sysloader(Utf8String::from_utf8("java/lang/System"));
 
     if (!sysclass) throw_main_exception_exit();
 
     mid = (jmethodID)class_resolvemethod(sysclass,
-                                         UtfString::from_utf8("getProperties"),
-                                         UtfString::from_utf8("()Ljava/util/Properties;"));
+                                         Utf8String::from_utf8("getProperties"),
+                                         Utf8String::from_utf8("()Ljava/util/Properties;"));
     if (!mid) throw_main_exception_exit();
 
 
@@ -3606,8 +3606,8 @@ GetSystemProperties (jvmtiEnv * env, jint * count_ptr, char ***property_ptr)
     propclass = sysprop->vftbl->class;
 
     mid = (jmethodID)class_resolvemethod(propclass, 
-                                         UtfString::from_utf8("size"),
-                                         UtfString::from_utf8("()I"));
+                                         Utf8String::from_utf8("size"),
+                                         Utf8String::from_utf8("()I"));
     if (!mid) throw_main_exception_exit();
 
     *count_ptr = 
@@ -3615,21 +3615,21 @@ GetSystemProperties (jvmtiEnv * env, jint * count_ptr, char ***property_ptr)
     *property_ptr = heap_allocate(sizeof(char*) * (*count_ptr) ,true,NULL);
 
     mid = (jmethodID)class_resolvemethod(propclass, 
-                                         UtfString::from_utf8("keys"),
-                                         UtfString::from_utf8("()Ljava/util/Enumeration;"));
+                                         Utf8String::from_utf8("keys"),
+                                         Utf8String::from_utf8("()Ljava/util/Enumeration;"));
     if (!mid) throw_main_exception_exit();
 
     keys = _Jv_JNINativeInterface.CallObjectMethod(NULL, sysprop, mid);
     enumclass = keys->vftbl->class;
         
     moremid = (jmethodID)class_resolvemethod(enumclass, 
-                                             UtfString::from_utf8("hasMoreElements"),
-                                             UtfString::from_utf8("()Z"));
+                                             Utf8String::from_utf8("hasMoreElements"),
+                                             Utf8String::from_utf8("()Z"));
     if (!moremid) throw_main_exception_exit();
 
     mid = (jmethodID)class_resolvemethod(propclass,
-                                         UtfString::from_utf8("nextElement"),
-                                         UtfString::from_utf8("()Ljava/lang/Object;"));
+                                         Utf8String::from_utf8("nextElement"),
+                                         Utf8String::from_utf8("()Ljava/lang/Object;"));
     if (!mid) throw_main_exception_exit();
 
     i = 0;
@@ -3668,12 +3668,12 @@ GetSystemProperty (jvmtiEnv * env, const char *property, char **value_ptr)
     if ((value_ptr == NULL) || (property == NULL)) 
         return JVMTI_ERROR_NULL_POINTER;
 
-    sysclass = load_class_from_sysloader(UtfString::from_utf8("java/lang/System"));
+    sysclass = load_class_from_sysloader(Utf8String::from_utf8("java/lang/System"));
     if (!sysclass) throw_main_exception_exit();
 
     mid = (jmethodID)class_resolvemethod(sysclass, 
-                                         UtfString::from_utf8("getProperties"),
-                                         UtfString::from_utf8("()Ljava/util/Properties;"));
+                                         Utf8String::from_utf8("getProperties"),
+                                         Utf8String::from_utf8("()Ljava/util/Properties;"));
     if (!mid) throw_main_exception_exit();
 
     sysprop = _Jv_JNINativeInterface.CallStaticObjectMethod(NULL, (jclass)sysclass, mid);
@@ -3681,8 +3681,8 @@ GetSystemProperty (jvmtiEnv * env, const char *property, char **value_ptr)
     propclass = sysprop->vftbl->class;
 
     mid = (jmethodID)class_resolvemethod(propclass, 
-                                         UtfString::from_utf8("getProperty"),
-                                         UtfString::from_utf8("(Ljava/lang/String;)Ljava/lang/String;"));
+                                         Utf8String::from_utf8("getProperty"),
+                                         Utf8String::from_utf8("(Ljava/lang/String;)Ljava/lang/String;"));
     if (!mid) throw_main_exception_exit();
 
     obj = (java_objectheader*)_Jv_JNINativeInterface.CallObjectMethod(
@@ -3718,12 +3718,12 @@ SetSystemProperty (jvmtiEnv * env, const char *property, const char *value)
     if (property == NULL) return JVMTI_ERROR_NULL_POINTER;
     if (value == NULL) return JVMTI_ERROR_NOT_AVAILABLE;
 
-    sysclass = load_class_from_sysloader(UtfString::from_utf8("java/lang/System"));
+    sysclass = load_class_from_sysloader(Utf8String::from_utf8("java/lang/System"));
     if (!sysclass) throw_main_exception_exit();
 
     mid = (jmethodID)class_resolvemethod(sysclass, 
-                                         UtfString::from_utf8("getProperties"),
-                                         UtfString::from_utf8("()Ljava/util/Properties;"));
+                                         Utf8String::from_utf8("getProperties"),
+                                         Utf8String::from_utf8("()Ljava/util/Properties;"));
     if (!mid) throw_main_exception_exit();
 
     sysprop = _Jv_JNINativeInterface.CallStaticObjectMethod(NULL, (jclass)sysclass, mid);
@@ -3731,8 +3731,8 @@ SetSystemProperty (jvmtiEnv * env, const char *property, const char *value)
     propclass = sysprop->vftbl->class;
 
     mid = (jmethodID)class_resolvemethod(propclass, 
-                                         UtfString::from_utf8("setProperty"),
-                                         UtfString::from_utf8("(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;"));
+                                         Utf8String::from_utf8("setProperty"),
+                                         Utf8String::from_utf8("(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;"));
     if (!mid) throw_main_exception_exit();
 
     _Jv_JNINativeInterface.CallObjectMethod(NULL, 

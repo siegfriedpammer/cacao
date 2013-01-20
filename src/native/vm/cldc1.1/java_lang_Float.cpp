@@ -94,7 +94,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_java_lang_Float_init(void)
 {
-	Utf8String u = UtfString::from_utf8("java/lang/Float");
+	Utf8String u = Utf8String::from_utf8("java/lang/Float");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

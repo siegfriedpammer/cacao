@@ -25,8 +25,11 @@ template<template<typename T> class Allocator = MemoryAllocator>
 class Buffer : public OutputStream {
 	public:
 		// construct a buffer with size
-		Buffer(size_t buf_size=64, bool free_on_exit = true);
-//		Buffer(size_t buf_size, bool free_on_exit);
+		Buffer(size_t initial_size = 64, bool free_on_exit = true);
+
+		// set wether the Buffer owns it's internal buffer,
+		// and deletes it in its dtor
+		Buffer& free_on_exit(bool free_on_exit);
 
 		// free content of buffer
 		~Buffer();
@@ -69,8 +72,10 @@ class Buffer : public OutputStream {
 
 		// ensure string in buffer is zero terminated
 		Buffer& zero_terminate();
-//	private:
+	private:
 		void ensure_capacity(size_t);
+
+		void init(size_t sz, bool free_on_exit);
 
 		// non-copyable, non-assignable
 		Buffer(const Buffer&);
@@ -111,13 +116,20 @@ class Buffer : public OutputStream {
 *******************************************************************************/
 
 template<template<typename T> class Allocator>
-Buffer<Allocator>::Buffer(size_t buf_size, bool free_on_exit)
+Buffer<Allocator>::Buffer(size_t initial_size, bool free_on_exit)
 {
-	_start        = _alloc.allocate(buf_size);
-	_end          = _start + buf_size;
+	_start        = _alloc.allocate(initial_size);
+	_end          = _start + initial_size;
 	_pos          = _start;
 	_free_on_exit = free_on_exit;
 }
+
+template<template<typename T> class Allocator>
+Buffer<Allocator>& Buffer<Allocator>::free_on_exit(bool free_on_exit)
+{
+	_free_on_exit = free_on_exit;
+}
+
 
 template<template<typename T> class Allocator>
 Buffer<Allocator>::~Buffer()

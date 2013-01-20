@@ -55,7 +55,7 @@ methodinfo *ThreadRuntimeClasspath::get_threadgroup_remove_method(classinfo *c)
 {
 	return class_resolveclassmethod(c,
 									utf8::removeThread,
-									utf_java_lang_Thread__V,
+									utf8::java_lang_Thread__V,
 									class_java_lang_ThreadGroup,
 									true);
 }
@@ -140,8 +140,8 @@ bool ThreadRuntimeClasspath::invoke_thread_initializer(java_lang_Thread& jlt, th
 	LLNI_class_get(group, c);
 
 	methodinfo* m = class_resolveclassmethod(c,
-											 utf_addThread,
-											 utf_java_lang_Thread__V,
+											 utf8::addThread,
+											 utf8::java_lang_Thread__V,
 											 class_java_lang_ThreadGroup,
 											 true);
 

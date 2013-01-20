@@ -351,7 +351,7 @@ JNIEXPORT double JNICALL Java_sun_reflect_ConstantPool_getDoubleAt0(JNIEnv *env,
  */
 JNIEXPORT jstring JNICALL Java_sun_reflect_ConstantPool_getStringAt0(JNIEnv *env, jobject _this, jobject jcpool, jint index)
 {
-	utf *ref;
+	Utf8String ref;
 	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 	
 	ref = (utf*)class_getconstant(cls, index, CONSTANT_String);
@@ -362,7 +362,7 @@ JNIEXPORT jstring JNICALL Java_sun_reflect_ConstantPool_getStringAt0(JNIEnv *env
 	}
 
 	/* XXX: I hope literalstring_new is the right Function. */
-	return (jstring) literalstring_new(ref);
+	return (jstring) JavaString::literal(ref);
 }
 
 
@@ -373,7 +373,7 @@ JNIEXPORT jstring JNICALL Java_sun_reflect_ConstantPool_getStringAt0(JNIEnv *env
  */
 JNIEXPORT jstring JNICALL Java_sun_reflect_ConstantPool_getUTF8At0(JNIEnv *env, jobject _this, jobject jcpool, jint index)
 {
-	utf *ref;
+	Utf8String ref;
 	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 
 	ref = (utf*)class_getconstant(cls, index, CONSTANT_Utf8);
@@ -384,7 +384,7 @@ JNIEXPORT jstring JNICALL Java_sun_reflect_ConstantPool_getUTF8At0(JNIEnv *env, 
 	}
 
 	/* XXX: I hope literalstring_new is the right Function. */
-	return (jstring) literalstring_new(ref);
+	return (jstring) JavaString::literal(ref);
 }
 
 } // extern "C"
@@ -418,7 +418,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_sun_reflect_ConstantPool_init(void)
 {
-	Utf8String u = UtfString::from_utf8("sun/reflect/ConstantPool");
+	Utf8String u = Utf8String::from_utf8("sun/reflect/ConstantPool");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
