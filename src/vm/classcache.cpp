@@ -1408,7 +1408,7 @@ void classcache_foreach_loaded_class(classcache_foreach_functionptr_t func,
 		for (en = (classcache_name_entry*) hashtable_classcache.ptr[i]; en != NULL; en = en->hashlink) {
 			/* filter pseudo classes $NEW$, $NULL$, $ARRAYSTUB$ out */
 
-			if (en->name->text[0] == '$')
+			if (UTF_AT(en->name, 0) == '$')
 				continue;
 
 			/* iterate over classes with same name */

@@ -867,7 +867,7 @@ CLASS_FUNC(fieldinfo_func) {
 				case F_OFFSET:
 					return get_int(arg->get.result, fi->offset);
 				case F_NAME:
-					return get_string(arg->get.result, fi->name->text);
+					return get_string(arg->get.result, UTF_TEXT(fi->name));
 				case F_KLASS:
 					return get_obj(arg->get.result, classinfo_func, state->root, fi->clazz);
 			}
@@ -882,7 +882,7 @@ CLASS_FUNC(unresolved_field_func) {
 		case CLASS_GET_FIELD:
 			switch (arg->get.field) {
 				case F_NAME:
-					return get_string(arg->get.result, uf->fieldref->name->text);
+					return get_string(arg->get.result, UTF_TEXT(uf->fieldref->name));
 				case F_CLASSREF:
 					if (IS_FMIREF_RESOLVED(uf->fieldref)) {
 						return get_none(arg->get.result);
@@ -890,7 +890,7 @@ CLASS_FUNC(unresolved_field_func) {
 						return get_obj(arg->get.result, constant_classref_func, state->root, uf->fieldref->p.classref);
 					}
 				case F_DESCRIPTOR:
-					return get_string(arg->get.result, uf->fieldref->descriptor->text);
+					return get_string(arg->get.result, UTF_TEXT(uf->fieldref->descriptor));
 				case F_FIELD:
 					if (IS_FMIREF_RESOLVED(uf->fieldref)) {
 						return get_obj(arg->get.result, fieldinfo_func, state->root, uf->fieldref->p.field);
@@ -1322,7 +1322,7 @@ CLASS_FUNC(classinfo_func) {
 		case CLASS_GET_FIELD:
 			switch (arg->get.field) {
 				case F_NAME:
-					return get_string(arg->get.result, c->name->text);
+					return get_string(arg->get.result, UTF_TEXT(c->name));
 			}
 	}
 	return -1;
@@ -1334,7 +1334,7 @@ CLASS_FUNC(constant_classref_func) {
 		case CLASS_GET_FIELD:
 			switch (arg->get.field) {
 				case F_NAME:
-					return get_string(arg->get.result, cr->name->text);
+					return get_string(arg->get.result, UTF_TEXT(cr->name));
 			}
 	}
 	return -1;
@@ -1400,7 +1400,7 @@ CLASS_FUNC(methodinfo_func) {
 		case CLASS_GET_FIELD:
 			switch (arg->get.field) {
 				case F_NAME:
-					return get_string(arg->get.result, m->name->text);
+					return get_string(arg->get.result, UTF_TEXT(m->name));
 				case F_KLASS:
 					return get_obj(arg->get.result, classinfo_func, state->root, m->clazz);
 				case F_PARAM_TYPES:

@@ -1878,7 +1878,7 @@ GetSourceFileName (jvmtiEnv * env, jclass klass, char **source_name_ptr)
 
     *source_name_ptr = (char*) heap_allocate(sizeof(char)* size,true,NULL);
     
-    memcpy(*source_name_ptr,((classinfo*)klass)->sourcefile->text, size);
+    memcpy(*source_name_ptr,(UTF_TEXT((classinfo*)klass)->sourcefile), size);
 	(*source_name_ptr)[size]='\0';
 
     return JVMTI_ERROR_NONE;

@@ -23,6 +23,7 @@
 */
 
 
+
 #include "config.h"
 
 #include <stdint.h>
@@ -41,6 +42,7 @@
 #include "vm/initialize.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/string.hpp"
+#include "vm/utf8.hpp"
 
 #if defined(ENABLE_ANNOTATIONS)
 #include "vm/annotation.hpp"
@@ -322,11 +324,12 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClass_getClassLoader(JNIEnv *env, jcl
 JNIEXPORT jclass JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, jclass clazz, jstring name, jboolean initialize, jobject loader)
 {
 	classloader_t *cl;
-	utf           *ufile;
-	utf           *uname;
+	JavaString     sname;
+	Utf8String     ufile;
+	Utf8String     uname;
 	classinfo     *c;
-	char*          pos;
-	int32_t        i;
+
+	sname = name;
 
 	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
@@ -339,14 +342,14 @@ JNIEXPORT jclass JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, jclass claz
 
 	/* create utf string in which '.' is replaced by '/' */
 
-	ufile = JavaString((java_handle_t*) name).to_utf8_dot_to_slash();
-	uname = JavaString((java_handle_t*) name).to_utf8();
+	ufile = sname.to_utf8_dot_to_slash();
+	uname = sname.to_utf8();
 
 	/* name must not contain '/' (mauve test) */
 
 	// FIXME Move this check into a function.
-	for (i = 0, pos = uname->text; i < uname->blength; i++, pos++) {
-		if (*pos == '/') {
+	for (const char *it = uname.begin(), *end = uname.end(); it != end; ++it) {
+		if (*it == '/') {
 			exceptions_throw_classnotfoundexception(uname);
 			return NULL;
 		}

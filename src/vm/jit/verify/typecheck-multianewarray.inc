@@ -69,7 +69,7 @@
 		/* check that the reference indicates an array class of correct dimension */
 		cr = state->iptr->sx.s23.s3.c.ref;
 		i = 0;
-		p = cr->name->text;
+		p = UTF_TEXT(cr->name);
 		while (p[i] == '[')
 			i++;
 		/* { the dimension of the array class == i } */

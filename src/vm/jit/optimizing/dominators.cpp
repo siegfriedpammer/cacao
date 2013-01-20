@@ -600,7 +600,7 @@ void dominator_tree_validate(jitdata *jd, dominatordata *_dd) {
 	// Create new dump memory area.
 	DumpMemoryArea dma;
 
-	fprintf(stderr, "%s/%s: \n", jd->m->clazz->name->text, jd->m->name->text);
+	fprintf(stderr, "%s/%s: \n", UTF_TEXT(jd->m->clazz->name), UTF_TEXT(jd->m->name));
 	gd = graph_init(jd->basicblockcount);
 
 	for (bptr = jd->basicblocks; bptr; bptr = bptr->next) {

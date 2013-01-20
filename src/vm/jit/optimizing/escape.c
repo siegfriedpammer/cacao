@@ -264,11 +264,11 @@ bool dependency_list_item_compare(const dependency_list_item_t *item, const inst
 
 		/* TODO pointer equality ? */	
 
-		if (storen->blength != loadn->blength) {
+		if (UTF_SIZE(storen) != UTF_SIZE(loadn)) {
 			return false;
 		}
 
-		return (strcmp(storen->text, loadn->text) == 0);
+		return (strcmp(UTF_TEXT(storen), UTF_TEXT(loadn)) == 0);
 	}
 }
 
@@ -462,7 +462,7 @@ static void escape_analysis_init(escape_analysis_t *e, jitdata *jd) {
 	e->adr_args_count = 0;
 
 	e->verbose = 1;
-	e->verbose = strcmp(jd->m->name->text, "<init>") == 0;
+	e->verbose = strcmp(UTF_TEXT(jd->m->name), "<init>") == 0;
 	e->verbose = getenv("EV") != NULL;
 }
 
@@ -1284,8 +1284,8 @@ void escape_analysis_perform(jitdata *jd) {
 	escape_analysis_init(e, jd);
 
 	if (e->verbose) 
-		color_printf(RED, "\n\n==== %s/%s ====\n\n", e->jd->m->clazz->name->text, e->jd->m->name->text);
-		
+		color_printf(RED, "\n\n==== %s/%s ====\n\n", UTF_TEXT(e->jd->m->clazz->name), UTF_TEXT(e->jd->m->name));
+
 	escape_analysis_process_arguments(e);
 	escape_analysis_process_instructions(e);
 	escape_analysis_post_process_getfields(e);

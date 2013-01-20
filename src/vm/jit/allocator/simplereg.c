@@ -1874,7 +1874,7 @@ void simplereg_make_statistics(jitdata *jd)
 		count_interface_size += size_interface; /* accummulate the size of the interface (between bb boundaries) */
 		if (in_register) count_method_in_register++;
 		if (in_register) {
-/* 			printf("INREGISTER: %s%s%s\n",m->class->name->text, m->name->text, m->descriptor->text); */
+/* 			printf("INREGISTER: %s%s%s\n",UTF_TEXT(m->class->name), UTF_TEXT(m->name), UTF_TEXT(m->descriptor)); */
 		}
 }
 #endif /* defined(ENABLE_STATISTICS) */

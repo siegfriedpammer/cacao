@@ -32,7 +32,7 @@
 //****************************************************************************//
 
 struct Utf8Key {
-	Utf8Key(const char * text, size_t size, size_t hash)
+	Utf8Key(const char *text, size_t size, size_t hash)
 	 : text(text), size(size), hash(hash) {}
 
 	const char* const text;
@@ -40,8 +40,8 @@ struct Utf8Key {
 	const size_t      hash;
 };
 struct Utf8Hash {
-	inline uint32_t operator()(Utf8String     u) const { return u.hash(); }
-	inline uint32_t operator()(const Utf8Key& k) const { return k.hash;   }
+	inline size_t operator()(Utf8String     u) const { return u.hash(); }
+	inline size_t operator()(const Utf8Key& k) const { return k.hash;   }
 };
 struct Utf8Eq {
 	inline bool operator()(Utf8String a, Utf8String b) const
@@ -106,15 +106,19 @@ bool Utf8String::is_initialized(void)
 
 // TODO: move definition of struct utf here
 
-static inline utf* utf8_alloc(size_t sz) {
-	utf* str = (utf*) mem_alloc(offsetof(utf,text) + sz + 1);
+inline Utf8String::Utf* Utf8String::alloc(size_t sz) {
+	Utf* str = (Utf*) mem_alloc(offsetof(Utf,text) + sz + 1);
+
+	#if STATISTICS_ENABLED
+		if (opt_stat) count_utf_new++;
+	#endif
 
 	str->blength = sz;
 
 	return str;
 }
-static inline void utf8_free(utf* u) {
-	mem_free(u, offsetof(utf,text) + u->blength + 1);
+inline void Utf8String::free(Utf* u) {
+	mem_free(u, offsetof(Utf,text) + u->blength + 1);
 }
 
 //****************************************************************************//
@@ -126,7 +130,7 @@ static inline void utf8_free(utf* u) {
 	These routines are used to compute the hash for a utf-8 string byte by byte.
 
 	Use like this:
-		u4 hash = 0;
+		size_t hash = 0;
 
 		for each byte in string:
 			hash = update_hash( hash, byte );
@@ -138,7 +142,7 @@ static inline void utf8_free(utf* u) {
 
 *******************************************************************************/
 
-static inline u4 update_hash(u4 hash, uint8_t byte)
+static inline size_t update_hash(size_t hash, uint8_t byte)
 {
 	hash += byte;
 	hash += (hash << 10);
@@ -147,7 +151,7 @@ static inline u4 update_hash(u4 hash, uint8_t byte)
 	return hash;
 }
 
-static inline u4 finish_hash(u4 hash)
+static inline size_t finish_hash(size_t hash)
 {
 	hash += (hash << 3);
 	hash ^= (hash >> 11);
@@ -156,8 +160,8 @@ static inline u4 finish_hash(u4 hash)
 	return hash;
 }
 
-static inline u4 compute_hash(const char *cs, size_t sz) {
-	u4 hash = 0;
+static inline size_t compute_hash(const char *cs, size_t sz) {
+	size_t hash = 0;
 
 	for (const char *end = cs + sz; cs != end; cs++) {
 		hash = update_hash(hash, *cs);
@@ -181,14 +185,10 @@ struct StringBuilderBase {
 
 		inline void finish() {
 			_hash = finish_hash(_hash);
-
-			#if STATISTICS_ENABLED
-				if (opt_stat) count_utf_new++;
-			#endif
 		}
 	protected:
-		uint32_t _hash;
-		size_t   _codepoints;
+		size_t _hash;
+		size_t _codepoints;
 };
 
 // Builds a new utf8 string, always allocates a new string.
@@ -199,7 +199,7 @@ struct EagerStringBuilder : private StringBuilderBase {
 		typedef utf_utils::Tag<utf_utils::VISIT_BOTH, utf_utils::ABORT_ON_ERROR> Tag;
 
 		inline EagerStringBuilder(size_t sz) : StringBuilderBase(sz) {
-			_out  = utf8_alloc(sz);
+			_out  = Utf8String::alloc(sz);
 			_text = _out->text;
 		}
 
@@ -220,20 +220,20 @@ struct EagerStringBuilder : private StringBuilderBase {
 			_out->utf16_size = _codepoints;
 			_out->hash       = _hash;
 
-			utf* intern = intern_table->intern(_out);
+			Utf8String::Utf *intern = intern_table->intern((utf*) _out)._data;
 
-			if (intern != _out) utf8_free(_out);
+			if (intern != _out) Utf8String::free(_out);
 
-			return intern;
+			return (utf*) intern;
 		}
 
 		inline Utf8String abort() {
-			utf8_free(_out);
+			Utf8String::free(_out);
 			return 0;
 		}
 	private:
-		utf*  _out;
-		char* _text;
+		Utf8String::Utf *_out;
+		char            *_text;
 };
 
 
@@ -257,7 +257,7 @@ struct LazyStringBuilder : private StringBuilderBase {
 
 		// lazily construct a utf*
 		operator Utf8String() const {
-			utf* str = utf8_alloc(sz);
+			Utf8String::Utf* str = Utf8String::alloc(sz);
 
 			str->utf16_size = _codepoints;
 			str->hash       = _hash;
@@ -267,7 +267,7 @@ struct LazyStringBuilder : private StringBuilderBase {
 			memcpy(text, src, sz);
 			text[sz] = '\0';
 
-			return str;
+			return (utf*) str;
 		}
 
 		inline Utf8String abort() { return 0; }
@@ -312,28 +312,6 @@ Utf8String Utf8String::from_utf8_slash_to_dot(Utf8String u) {
 	                             EagerStringBuilder<slash_to_dot>(sz));
 }
 
-
-/* Utf8String::byte_iterator ***************************************************
-
-	Iterates over the bytes of string, does not include zero terminator.
-
-*******************************************************************************/
-
-Utf8String::byte_iterator Utf8String::begin() const
-{   
-	assert(_data);
-
-	char* cs = _data->text;
-
-	return cs;
-}
-Utf8String::byte_iterator Utf8String::end()   const
-{
-	assert(_data);
-
-	return begin() + _data->blength;
-}
-
 /* Utf8String::utf16_iterator **************************************************
 
 	A forward iterator over the utf16 codepoints in a Utf8String
@@ -357,78 +335,6 @@ Utf8String::utf16_iterator Utf8String::utf16_begin() const {
 	assert(_data);
 
 	return utf16_iterator(_data->text, _data->blength);
-}
-
-/* Utf8String::size ************************************************************
-
-	Returns the number of bytes in string.
-
-*******************************************************************************/
-
-size_t Utf8String::size() const
-{
-	assert(_data);
-
-	return _data->blength;
-}
-
-/* Utf8String::utf16_size ******************************************************
-
-	Returns the number of UTF-16 codepoints in string.
-
-	Requires one pass over the whole string.
-
-*******************************************************************************/
-
-size_t Utf8String::utf16_size() const
-{
-	assert(_data);
-
-	return _data->utf16_size;
-}
-
-/* Utf8String::hash ************************************************************
-
-	Returns the hash of the string.
-
-*******************************************************************************/
-
-size_t Utf8String::hash() const
-{
-	assert(_data);
-
-	return _data->hash;
-}
-
-/* Utf8String::operator[] ******************************************************
-
-	Index into string
-	Does not perform a bounds check
-
-*******************************************************************************/
-
-char Utf8String::operator[](size_t idx) const
-{
-	assert(_data);
-	assert(idx >= 0);
-	assert(idx <  size());
-
-	return begin()[idx];
-}
-
-/* Utf8String::back() **********************************************************
-
-	Access last element, accessing a null or empty string leads to 
-	undefined behaviour
-
-*******************************************************************************/
-
-char Utf8String::back() const
-{
-	assert(_data);
-	assert(size() > 0);
-
-	return (*this)[size()-1];
 }
 
 /* Utf8String::substring *******************************************************
@@ -543,8 +449,8 @@ size_t utf8::num_bytes(const u2 *cs, size_t sz)
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-extern const char *utf8_begin(utf *u) { return Utf8String(u).begin(); }
-extern const char *utf8_end  (utf *u) { return Utf8String(u).end();   }
+extern const char *utf8_text(utf *u) { return Utf8String(u).begin(); }
+extern const char *utf8_end (utf *u) { return Utf8String(u).end();   }
    
 extern size_t utf8_size(utf *u) { return Utf8String(u).size(); }
 extern size_t utf8_hash(utf *u) { return Utf8String(u).hash(); }
@@ -589,7 +495,7 @@ void utf_display_printable_ascii(utf *u)
 		return;
 	}
 
-	utf8::transform<void>(u->text, u->blength, 
+	utf8::transform<void>(UTF_TEXT(u), UTF_SIZE(u),
 	                      DisplayPrintableAscii<identity>(stdout));
 }
 
@@ -610,7 +516,7 @@ void utf_display_printable_ascii_classname(utf *u)
 		return;
 	}
 
-	utf8::transform<void>(u->text, u->blength, 
+	utf8::transform<void>(UTF_TEXT(u), UTF_SIZE(u),
 	                      DisplayPrintableAscii<slash_to_dot>(stdout));
 }
 
@@ -646,7 +552,7 @@ void utf_sprint_convert_to_latin1(char *buffer, utf *u)
 		return;
 	}
 
-	utf8::transform<void>(u->text, u->blength, 
+	utf8::transform<void>(UTF_TEXT(u), UTF_SIZE(u),
 	                      SprintConvertToLatin1<identity>(buffer));
 }
 
@@ -667,7 +573,7 @@ void utf_sprint_convert_to_latin1_classname(char *buffer, utf *u)
 		return;
 	}
 
-	utf8::transform<void>(u->text, u->blength, 
+	utf8::transform<void>(UTF_TEXT(u), UTF_SIZE(u),
 	                      SprintConvertToLatin1<slash_to_dot>(buffer));
 }
 
@@ -711,7 +617,7 @@ void utf_fprint_printable_ascii(FILE *file, utf *u)
 {
 	if (!u) return;
 
-	utf8::transform<void>(u->text, u->blength, 
+	utf8::transform<void>(UTF_TEXT(u), UTF_SIZE(u),
 	                      DisplayPrintableAscii<identity>(file));
 }
 
@@ -727,7 +633,7 @@ void utf_fprint_printable_ascii_classname(FILE *file, utf *u)
 {
 	if (!u) return;
 
-	utf8::transform<void>(u->text, u->blength, 
+	utf8::transform<void>(UTF_TEXT(u), UTF_SIZE(u),
 	                      DisplayPrintableAscii<slash_to_dot>(file));
 }
 
@@ -738,7 +644,7 @@ struct Utf8Validator {
 	inline bool abort()  { return false; }
 };
 
-const size_t sizeof_utf = sizeof(utf);
+const size_t Utf8String::sizeof_utf = sizeof(Utf8String::Utf);
 
 /*
  * These are local overrides for various environment variables in Emacs.

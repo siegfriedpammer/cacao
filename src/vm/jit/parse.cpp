@@ -1330,7 +1330,7 @@ invoke_method:
 			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
 				return false;
 
-			if (cr->name->text[0] == '[') {
+			if (UTF_AT(cr->name, 0) == '[') {
 				/* array type cast-check */
 				flags = INS_FLAG_CHECK | INS_FLAG_ARRAY;
 				code_unflag_leafmethod(code);
@@ -1352,7 +1352,7 @@ invoke_method:
 			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
 				return false;
 
-			if (cr->name->text[0] == '[') {
+			if (UTF_AT(cr->name, 0) == '[') {
 				/* array type cast-check */
 				INSTRUCTIONS_CHECK(2);
 				OP_LOADCONST_CLASSINFO_OR_CLASSREF_NOCHECK(c, cr);

@@ -223,7 +223,7 @@ void ssa(jitdata *jd) {
 							if ((in[in_d] != out[out_d]) || 
 							(VAR(in[in_d])->flags != VAR(out[out_d])->flags)) {
 								printf("Method: %s %s\n",
-									   m->clazz->name->text, m->name->text);
+									   UTF_TEXT(m->clazz->name), UTF_TEXT(m->name));
 									printf("Error: Stack Varnum Mismatch BBin %3i BBout %3i Stackdepth %3i\n", i, pred, in_d);
 								if (compileverbose)
 									printf("Error: Stack Varnum Mismatch BBin %3i BBout %3i Stackdepth %3i\n", i, pred, in_d);
@@ -294,14 +294,14 @@ void ssa_init(jitdata *jd) {
 #if defined(SSA_DEBUG_CHECK) || defined(SSA_DEBUG_VERBOSE)
 # if defined(SSA_DEBUG_VERBOSE)
 	if (compileverbose) {
-		printf("%s %s ",m->clazz->name->text, m->name->text);
+		printf("%s %s ", UTF_TEXT(m->clazz->name), UTF_TEXT(m->name));
 		if (code_is_leafmethod(jd->code))
 			printf("**Leafmethod**");
 		printf("\n");
 	}
 # endif
-	if (strcmp(m->clazz->name->text,"spec/benchmarks/_213_javac/Parser")==0)
-		if (strcmp(m->name->text,"parseTerm")==0)
+	if (strcmp(UTF_TEXT(m->clazz->name), "spec/benchmarks/_213_javac/Parser")==0)
+		if (strcmp(UTF_TEXT(m->name),"parseTerm")==0)
 # if defined(SSA_DEBUG_VERBOSE)
 			if (compileverbose) 
 				printf("12-------------------12\n");
@@ -845,7 +845,7 @@ void dead_code_elimination(jitdata *jd, graphdata *gd) {
 #ifdef SSA_DEBUG_VERBOSE
 						if (compileverbose)
 							printf("dce: %s %s:at BB %3i II %3i NOP-<%s\n",
-								   m->clazz->name->text, m->name->text, 
+								   UTF_TEXT(m->clazz->name), UTF_TEXT(m->name), 
 								   lt->def->b_index, lt->def->iindex, 
 								   icmd_table[iptr->opc].name);
 #endif

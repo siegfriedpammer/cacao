@@ -105,7 +105,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 	   check against them here before the call of
 	   descriptor_to_basic_type below. */
 
-	if (u->text[0] == '(') {
+	if (UTF_AT(u, 0) == '(') {
 		exceptions_throw_classformaterror(c, "Method descriptor used for field");
 		return false;
 	}
@@ -113,10 +113,10 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 #ifdef ENABLE_VERIFIER
 	if (opt_verify) {
 		/* check name */
-		if (!Utf8String(f->name).is_valid_name() || f->name->text[0] == '<') {
+		if (!Utf8String(f->name).is_valid_name() || UTF_AT(f->name, 0) == '<') {
 			exceptions_throw_classformaterror(c,
-											  "Illegal Field name \"%s\"",
-											  f->name->text);
+			                                  "Illegal Field name \"%s\"",
+			                                  UTF_TEXT(f->name));
 			return false;
 		}
 

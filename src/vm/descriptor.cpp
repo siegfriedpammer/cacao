@@ -147,9 +147,9 @@ extern "C" {
 
 int descriptor_to_basic_type(utf *descriptor)
 {
-	assert(descriptor->blength >= 1);
+	assert(UTF_SIZE(descriptor) >= 1);
 	
-	switch (descriptor->text[0]) {
+	switch (UTF_AT(descriptor, 0)) {
 	case 'Z':
 	case 'B':
 	case 'C':
@@ -171,8 +171,8 @@ int descriptor_to_basic_type(utf *descriptor)
 		return TYPE_ADR;
 
 	default:
-		vm_abort("descriptor_to_basic_type: invalid type %c",
-				 descriptor->text[0]);
+		vm_abort("descriptor_to_basic_type: invalid type %c", 
+		         UTF_AT(descriptor, 0));
 	}
 
 	/* keep the compiler happy */
@@ -345,7 +345,7 @@ descriptor_to_typedesc(descriptor_pool *pool, const char *utf_ptr, const char *e
 		td->type = TYPE_ADR;
 		td->primitivetype = TYPE_ADR;
 		td->arraydim = 0;
-		for (utf_ptr = name->text; *utf_ptr == '['; ++utf_ptr)
+		for (utf_ptr = UTF_TEXT(name); *utf_ptr == '['; ++utf_ptr)
 			td->arraydim++;
 		td->classref = descriptor_pool_lookup_classref(pool, name);
 
@@ -555,7 +555,7 @@ descriptor_pool_add(descriptor_pool *pool, utf *desc, int *paramslots)
 	/* Save all method descriptors in the hashtable, since the parsed         */
 	/* descriptor may vary between differenf methods (static vs. non-static). */
 
-	utf_ptr = desc->text;
+	utf_ptr = UTF_TEXT(desc);
 
 	if (*utf_ptr != '(') {
 		while (d) {
@@ -901,7 +901,7 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 
 	/* check that it is a method descriptor */
 	
-	if (desc->text[0] != '(') {
+	if (UTF_AT(desc, 0) != '(') {
 		exceptions_throw_classformaterror(pool->referer,
 										  "Field descriptor used in method reference");
 		return NULL;
@@ -928,7 +928,7 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 	md->pool_lock = reinterpret_cast<Mutex*>(pool->descriptors - sizeof(Mutex));
 	pool->descriptors_next += sizeof(methoddesc) - sizeof(typedesc);
 
-	utf_ptr = desc->text + 1; /* skip '(' */
+	utf_ptr = UTF_TEXT(desc) + 1; /* skip '(' */
 	end_pos = UTF_END(desc);
 
 	td = md->paramtypes;

@@ -843,14 +843,14 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			/* check name */
 			if (!Utf8String(cn->name).is_valid_name()) {
 				exceptions_throw_classformaterror(c,
-												  "Illegal Field name \"%s\"",
-												  cn->name->text);
+				                                  "Illegal Field name \"%s\"",
+				                                  UTF_TEXT(cn->name));
 
 				return false;
 			}
 
 			/* disallow referencing <clinit> among others */
-			if (cn->name->text[0] == '<' && cn->name != utf8::init) {
+			if (UTF_AT(cn->name, 0) == '<' && cn->name != utf8::init) {
 				exceptions_throw_classformaterror(c, "Illegal reference to special method");
 				return false;
 			}
@@ -1029,11 +1029,11 @@ classinfo *load_class_from_classloader(utf *name, classloader_t *cl)
 
 	if (cl != NULL) {
 		methodinfo *lc;
-		char       *text;
+		const char *text;
 		s4          namelen;
 
-		text = name->text;
-		namelen = name->blength;
+		text    = UTF_TEXT(name);
+		namelen = UTF_SIZE(name);
 
 		/* handle array classes */
 		if (text[0] == '[') {
@@ -1239,7 +1239,7 @@ classinfo *load_class_bootstrap(utf *name)
 
 	/* handle array classes */
 
-	if (name->text[0] == '[') {
+	if (UTF_AT(name, 0) == '[') {
 		c = load_newly_created_array(c, NULL);
 
 		if (c == NULL)
@@ -1800,7 +1800,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 		/* Determine bitshift (to get good hash values) */
 		if (!shift) {
-			len = SIZEOF_UTF;
+			len = Utf8String::sizeof_utf;
 			while (len) {
 				len >>= 1;
 				shift++;

@@ -94,13 +94,12 @@ extern java_handle_t* class_get_classname(classinfo* c)
 
 void class_set_packagename(classinfo *c)
 {
-	const char *p;
-	char *start;
+	Utf8String name = c->name;
 
-	p     = UTF_END(c->name) - 1;
-	start = c->name->text;
+	const char *p     = name.end() - 1;
+	const char *start = name.begin();
 
-	if (c->name->text[0] == '[') {
+	if (name[0] == '[') {
 		/* Set packagename of arrays to the element's package. */
 
 		for (; *start == '['; start++);
@@ -828,21 +827,23 @@ static classinfo *get_array_class(utf *name,classloader_t *initloader,
 classinfo *class_array_of(classinfo *component, bool link)
 {
 	classloader_t     *cl;
-    s4                 namelen;
-    char              *namebuf;
+	s4                 namelen;
+	char              *namebuf;
 	utf               *u;
 	classinfo         *c;
+
+	Utf8String component_name = component->name;
 
 	cl = component->classloader;
 
     /* Assemble the array class name */
-    namelen = component->name->blength;
+    namelen = component_name.size();
     
-    if (component->name->text[0] == '[') {
+    if (component_name[0] == '[') {
         /* the component is itself an array */
         namebuf = MNEW(char, namelen + 1);
         namebuf[0] = '[';
-        MCOPY(namebuf + 1, component->name->text, char, namelen);
+        MCOPY(namebuf + 1, component_name.begin(), char, namelen);
         namelen++;
     }
 	else {
@@ -850,7 +851,7 @@ classinfo *class_array_of(classinfo *component, bool link)
         namebuf = MNEW(char, namelen + 3);
         namebuf[0] = '[';
         namebuf[1] = 'L';
-        MCOPY(namebuf + 2, component->name->text, char, namelen);
+        MCOPY(namebuf + 2, component_name.begin(), char, namelen);
         namebuf[2 + namelen] = ';';
         namelen += 3;
     }
@@ -878,25 +879,27 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
     char *namebuf;
 	classinfo *c;
 
+	Utf8String element_name = element->name;
+
 	if (dim < 1) {
 		log_text("Invalid array dimension requested");
 		assert(0);
 	}
 
     /* Assemble the array class name */
-    namelen = element->name->blength;
+    namelen = element_name.size();
     
-    if (element->name->text[0] == '[') {
+    if (element_name[0] == '[') {
         /* the element is itself an array */
         namebuf = MNEW(char, namelen + dim);
-        memcpy(namebuf + dim, element->name->text, namelen);
+        memcpy(namebuf + dim, element_name.begin(), namelen);
         namelen += dim;
     }
     else {
         /* the element is a non-array class */
         namebuf = MNEW(char, namelen + 2 + dim);
         namebuf[dim] = 'L';
-        memcpy(namebuf + dim + 1, element->name->text, namelen);
+        memcpy(namebuf + dim + 1, element_name.begin(), namelen);
         namelen += (2 + dim);
         namebuf[namelen - 1] = ';';
     }
@@ -907,9 +910,9 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
 	MFREE(namebuf, char, namelen);
 
 	c = get_array_class(u,
-						element->classloader,
-						element->classloader,
-						link);
+	                    element->classloader,
+	                    element->classloader,
+	                    link);
 
 	return c;
 }
@@ -1039,23 +1042,25 @@ constant_classref *class_get_classref_multiarray_of(s4 dim, constant_classref *r
     char *namebuf;
 	constant_classref *cr;
 
+	Utf8String refname = ref->name;
+
 	assert(ref);
 	assert(dim >= 1 && dim <= 255);
 
     /* Assemble the array class name */
-    namelen = ref->name->blength;
+    namelen = refname.size();
     
-    if (ref->name->text[0] == '[') {
+    if (refname[0] == '[') {
         /* the element is itself an array */
         namebuf = MNEW(char, namelen + dim);
-        memcpy(namebuf + dim, ref->name->text, namelen);
+        memcpy(namebuf + dim, refname.begin(), namelen);
         namelen += dim;
     }
     else {
         /* the element is a non-array class */
         namebuf = MNEW(char, namelen + 2 + dim);
         namebuf[dim] = 'L';
-        memcpy(namebuf + dim + 1, ref->name->text, namelen);
+        memcpy(namebuf + dim + 1, refname.begin(), namelen);
         namelen += (2 + dim);
         namebuf[namelen - 1] = ';';
     }

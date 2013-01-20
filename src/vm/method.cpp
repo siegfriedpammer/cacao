@@ -207,7 +207,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 			return false;
 		}
 
-		if (m->name->text[0] == '<' &&
+		if (UTF_AT(m->name, 0) == '<' &&
 			m->name != utf8::init && m->name != utf8::clinit) {
 			exceptions_throw_classformaterror(c, "Method with invalid special name");
 			return false;

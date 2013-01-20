@@ -28,8 +28,6 @@
 
 /* forward typedefs ***********************************************************/
 
-typedef struct utf utf;
-
 #include "config.h"
 
 #include <stdio.h>
@@ -38,18 +36,13 @@ typedef struct utf utf;
 #include "vm/types.h"
 #include "vm/global.h"
 
-/* data structure for utf8 symbols ********************************************/
-
-struct utf {
-	uint32_t hash;       // cached hash of the string
-	size_t   blength;    // text length in bytes
-	                     // (does NOT include zero terminator)
-	size_t   utf16_size; // number of utf16 codepoints in string
-			
-	char  text[sizeof(void*)]; // string content
-	                           // directly embedded in struct utf
-	                           // aligned to pointer size    
-};
+#ifdef __cplusplus
+extern "C" {
+#endif
+	typedef struct utf utf;
+#ifdef __cplusplus
+}
+#endif
 
 #ifdef __cplusplus
 
@@ -110,15 +103,15 @@ class Utf8String {
 		// constructs a Utf8String with a given content
 		// is only public for interop with legacy C code
 		// NOTE: does NOT perform any checks
-		inline Utf8String(utf *u) : _data(u) {} 
+		inline Utf8String(utf *u) : _data((Utf*) u) {}
 
 		/*** ITERATION     ******************************************/
 
 		// iterator over the bytes in a string
 		typedef const char* byte_iterator;
 
-		byte_iterator begin() const;
-		byte_iterator end()   const;
+		inline byte_iterator begin() const { return _data->text; }
+		inline byte_iterator end()   const { return begin() + size(); }
 
 		// iterator over UTF-16 codepoints in a string
 		class utf16_iterator {
@@ -142,40 +135,62 @@ class Utf8String {
 
 		/*** HASHING       ******************************************/
 
-		size_t hash() const;
+		inline size_t hash() const { return _data->hash; }
 
 		/*** COMPARISONS   ******************************************/
 
 		/*** ACCESSORS     ******************************************/
 
 		// access first element
-		char front() const;
+		inline char front() const { return begin()[0]; }
 
 		// access last element
-		char back() const;
+		inline char back() const { return begin()[size() - 1]; }
 
-		char operator[]( size_t idx ) const;
+		inline char operator[](size_t idx) const { return begin()[0]; }
 
 		// get the number of bytes in string, excluding zero terminator.
-		size_t size() const;
+		inline size_t size() const { return _data->blength; }
 
-		// get the number of utf16 codepoints in string,
-		// excluding zero terminator.
-		size_t utf16_size() const;
+		// get the number of utf16 codepoints in string
+		inline size_t utf16_size() const { return _data->utf16_size; }
 
 		// for checking against NULL,
 		// also allows interop with legacy C code
-		inline operator utf*() const { return _data; }
+		inline operator utf*() const { return (utf*) _data; }
 
 		// create substring
 		Utf8String substring(size_t from ) const;
 		Utf8String substring(size_t from, size_t to ) const;
 
-		/*** JAVA STUFF    ******************************************/
+		/*** MISC ******************************************/
 
 		bool is_valid_name() const;
+		
+		// TODO: remove (only used in loader.cpp)
+		static const size_t sizeof_utf;
 	private:
-		utf* _data;
+		// MUST be a POD type
+		struct Utf {
+			size_t hash;       // cached hash of the string
+			size_t blength;    // text length in bytes
+				               // (does NOT include zero terminator)
+			size_t utf16_size; // number of utf16 codepoints in string
+			
+			char   text[sizeof(void*)]; // string content
+				                        // directly embedded in struct utf
+				                        // aligned to pointer size    
+		};
+
+		Utf *_data;
+
+		static inline Utf* alloc(size_t);
+		static inline void free(Utf*);
+
+		template<uint8_t (*Fn)(uint8_t)> 
+		friend struct EagerStringBuilder;
+		friend struct LazyStringBuilder;
+		friend struct Utf8Eq;
 };
 
 // ***** UTF-8 HELPER FUNCTIONS
@@ -200,24 +215,20 @@ namespace utf8 {
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-#define UTF_AT(u, IDX) (utf8_begin(u)[IDX])
-#define UTF_BEGIN(u)   utf8_begin(u)
+#define UTF_AT(u, IDX) (utf8_text(u)[IDX])
+#define UTF_TEXT(u)    utf8_text(u)
 #define UTF_END(u)     utf8_end(u)
 #define UTF_SIZE(u)    utf8_size(u)
 #define UTF_HASH(u)    utf8_hash(u)
-
-#define SIZEOF_UTF sizeof_utf // only used in loader.cpp
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern const char *utf8_begin(utf*);
+extern const char *utf8_text(utf*);
 extern const char *utf8_end(utf*);
 extern size_t      utf8_size(utf*);
 extern size_t      utf8_hash(utf*);
-
-extern const size_t sizeof_utf;
 
 // these are only used in old logging code in the jit & jvmti
 

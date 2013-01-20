@@ -904,9 +904,9 @@ typeinfo_init_classinfo(typeinfo_t *info, classinfo *c)
 bool
 typeinfo_init_class(typeinfo_t *info,classref_or_classinfo c)
 {
-	char *utf_ptr;
-	int len;
-	classinfo *cls;
+	const char *utf_ptr;
+	int         len;
+	classinfo  *cls;
 		
 	TYPEINFO_ASSERT(c.any);
 	TYPEINFO_ASSERT(info);
@@ -931,8 +931,8 @@ typeinfo_init_class(typeinfo_t *info,classref_or_classinfo c)
 	info->merged = NULL;
 
 	/* handle array type references */
-	utf_ptr = c.ref->name->text;
-	len = c.ref->name->blength;
+	utf_ptr = UTF_TEXT(c.ref->name);
+	len     = UTF_SIZE(c.ref->name);
 	if (*utf_ptr == '[') {
 		/* count dimensions */
 		while (*utf_ptr == '[') {

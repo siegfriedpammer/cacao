@@ -22,7 +22,6 @@
 
 */
 
-
 #include "config.h"
 
 #include <assert.h>
@@ -153,9 +152,9 @@ bool resolve_class_from_name(classinfo *referer,
 							 bool link,
 							 classinfo **result)
 {
-	classinfo *cls;
-	char      *utf_ptr;
-	int        len;
+	classinfo  *cls;
+	const char *utf_ptr;
+	int         len;
 
 	assert(result);
 	assert(referer);
@@ -183,9 +182,9 @@ bool resolve_class_from_name(classinfo *referer,
 	if (!cls) {
 		/* resolve array types */
 
-		if (classname->text[0] == '[') {
-			utf_ptr = classname->text + 1;
-			len = classname->blength - 1;
+		if (UTF_AT(classname, 0) == '[') {
+			utf_ptr = UTF_TEXT(classname) + 1;
+			len     = UTF_SIZE(classname) - 1;
 
 			/* classname is an array type name */
 
@@ -581,7 +580,7 @@ static resolve_result_t resolve_subtype_check(methodinfo *refmethod,
 
 	/* do not check access to protected members of arrays */
 
-	if (error == resolveIllegalAccessError && subclass->name->text[0] == '[') {
+	if (error == resolveIllegalAccessError && UTF_AT(subclass->name, 0) == '[') {
 		return resolveSucceeded;
 	}
 

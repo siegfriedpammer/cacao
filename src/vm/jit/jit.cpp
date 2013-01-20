@@ -718,10 +718,10 @@ static u1 *jit_compile_intern(jitdata *jd)
 		if (
 			(opt_lsra &&
 			jd->code->optlevel > 0) 
-			/* strncmp(jd->m->name->text, "hottie", 6) == 0*/
+			/* strncmp(UTF_TEXT(jd->m->name), "hottie", 6) == 0*/
 			/*&& jd->exceptiontablelength == 0*/
 		) {
-			/*printf("=== %s ===\n", jd->m->name->text);*/
+			/*printf("=== %s ===\n", UTF_TEXT(jd->m->name));*/
 			jd->ls = (lsradata*) DumpMemory::allocate(sizeof(lsradata));
 			jd->ls = NULL;
 			ssa(jd);

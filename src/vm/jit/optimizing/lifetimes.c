@@ -403,8 +403,10 @@ void lt_lifeness_analysis(jitdata *jd, graphdata *gd) {
 			atime++;
 			diff += 1000000;
 		}
-		printf("%8li %s.%s.%s\n",diff, m->clazz->name->text, m->name->text,
-			   m->descriptor->text);
+		printf("%8li %s.%s.%s\n", diff, 
+			UTF_TEXT(m->clazz->name), 
+			UTF_TEXT(m->name),
+			UTF_TEXT(m->descriptor));
 	}
 #endif
 }

@@ -501,8 +501,11 @@ static bool linker_overwrite_method(methodinfo *mg,
 
 #if defined(ENABLE_TLH)
 			if (mg->flags & ACC_METHOD_MONOMORPHY_USED) {
-				printf("%s/%s is evil! the siner is %s/%s\n", mg->clazz->name->text, mg->name->text,
-					ms->clazz->name->text, ms->name->text);
+				printf("%s/%s is evil! the sinner is %s/%s\n", 
+					UTF_TEXT(mg->clazz->name), 
+					UTF_TEXT(mg->name),
+					UTF_TEXT(ms->clazz->name), 
+					UTF_TEXT(ms->name));
 				ms->flags |= ACC_METHOD_PARENT_MONOMORPHY_USED;					
 			}
 #endif
@@ -703,7 +706,7 @@ static classinfo *link_class_intern(classinfo *c)
 
 		/* handle array classes */
 
-		if (c->name->text[0] == '[')
+		if (UTF_AT(c->name, 0) == '[')
 			if (!(arraydesc = link_array(c)))
   				return NULL;
 
@@ -1069,21 +1072,21 @@ static arraydescriptor *link_array(classinfo *c)
 	utf             *u;
 
 	comp = NULL;
-	namelen = c->name->blength;
+	namelen = UTF_SIZE(c->name);
 
 	/* Check the component type */
 
-	switch (c->name->text[1]) {
+	switch (UTF_AT(c->name, 1)) {
 	case '[':
 		/* c is an array of arrays. */
-		u = Utf8String::from_utf8(c->name->text + 1, namelen - 1);
+		u = Utf8String::from_utf8(UTF_TEXT(c->name) + 1, namelen - 1);
 		if (!(comp = load_class_from_classloader(u, c->classloader)))
 			return NULL;
 		break;
 
 	case 'L':
 		/* c is an array of objects. */
-		u = Utf8String::from_utf8(c->name->text + 2, namelen - 3);
+		u = Utf8String::from_utf8(UTF_TEXT(c->name) + 2, namelen - 3);
 		if (!(comp = load_class_from_classloader(u, c->classloader)))
 			return NULL;
 		break;
@@ -1135,7 +1138,7 @@ static arraydescriptor *link_array(classinfo *c)
 
 	} else {
 		/* c is an array of a primitive type */
-		switch (c->name->text[1]) {
+		switch (UTF_AT(c->name, 1)) {
 		case 'Z':
 			desc->arraytype = ARRAYTYPE_BOOLEAN;
 			desc->dataoffset = OFFSET(java_booleanarray_t,data);
