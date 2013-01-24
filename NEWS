@@ -2,7 +2,7 @@ New in release 1.6.1 (not yet released)
 
   * Support for OpenJDK 7.
   * ARM: Support for hard-float systems (PR172).
-  * Fixed remaining icedtea6 check-langtools failures (PR167, PR168).
+  * Fixed remaining icedtea6 check-langtools failures (PR166, PR167).
   * Assorted minor fixes and improvements.
 
 New in release 1.6.0 (September 4, 2012)
