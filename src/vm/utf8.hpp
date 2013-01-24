@@ -184,8 +184,8 @@ class Utf8String {
 
 		Utf *_data;
 
-		static inline Utf* alloc(size_t);
-		static inline void free(Utf*);
+		static inline Utf8String alloc(size_t);
+		static inline void       free(Utf8String);
 
 		template<uint8_t (*Fn)(uint8_t)> 
 		friend struct EagerStringBuilder;

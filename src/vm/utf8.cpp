@@ -106,7 +106,7 @@ bool Utf8String::is_initialized(void)
 
 // TODO: move definition of struct utf here
 
-inline Utf8String::Utf* Utf8String::alloc(size_t sz) {
+inline Utf8String Utf8String::alloc(size_t sz) {
 	Utf* str = (Utf*) mem_alloc(offsetof(Utf,text) + sz + 1);
 
 	#if STATISTICS_ENABLED
@@ -115,10 +115,10 @@ inline Utf8String::Utf* Utf8String::alloc(size_t sz) {
 
 	str->blength = sz;
 
-	return str;
+	return Utf8String((utf*) str);
 }
-inline void Utf8String::free(Utf* u) {
-	mem_free(u, offsetof(Utf,text) + u->blength + 1);
+inline void Utf8String::free(Utf8String u) {
+	mem_free(u._data, offsetof(Utf,text) + u.size() + 1);
 }
 
 //****************************************************************************//
@@ -200,7 +200,7 @@ struct EagerStringBuilder : private StringBuilderBase {
 
 		inline EagerStringBuilder(size_t sz) : StringBuilderBase(sz) {
 			_out  = Utf8String::alloc(sz);
-			_text = _out->text;
+			_text = (char*) _out.begin();
 		}
 
 		inline void utf8(uint8_t c) {
@@ -216,15 +216,15 @@ struct EagerStringBuilder : private StringBuilderBase {
 		inline Utf8String finish() {
 			StringBuilderBase::finish();
 
-			*_text           = '\0';
-			_out->utf16_size = _codepoints;
-			_out->hash       = _hash;
+			*_text                 = '\0';
+			_out._data->utf16_size = _codepoints;
+			_out._data->hash       = _hash;
 
-			Utf8String::Utf *intern = intern_table->intern((utf*) _out)._data;
+			Utf8String intern = intern_table->intern(_out);
 
 			if (intern != _out) Utf8String::free(_out);
 
-			return (utf*) intern;
+			return intern;
 		}
 
 		inline Utf8String abort() {
@@ -232,8 +232,8 @@ struct EagerStringBuilder : private StringBuilderBase {
 			return 0;
 		}
 	private:
-		Utf8String::Utf *_out;
-		char            *_text;
+		Utf8String _out;
+		char      *_text;
 };
 
 
@@ -255,19 +255,19 @@ struct LazyStringBuilder : private StringBuilderBase {
 			return intern_table->intern(Utf8Key(src, sz, _hash), *this);
 		}
 
-		// lazily construct a utf*
+		// lazily construct an utf8-string
 		operator Utf8String() const {
-			Utf8String::Utf* str = Utf8String::alloc(sz);
+			Utf8String str = Utf8String::alloc(sz);
 
-			str->utf16_size = _codepoints;
-			str->hash       = _hash;
+			str._data->utf16_size = _codepoints;
+			str._data->hash       = _hash;
 
-			char *text = str->text;
+			char *text = (char*) str.begin();
 
 			memcpy(text, src, sz);
 			text[sz] = '\0';
 
-			return (utf*) str;
+			return str;
 		}
 
 		inline Utf8String abort() { return 0; }
@@ -283,33 +283,33 @@ namespace {
 }
 
 Utf8String Utf8String::from_utf8(const char *cs, size_t sz) {
-	return utf8::transform<utf*>(cs, sz, LazyStringBuilder(cs, sz));
+	return utf8::transform<Utf8String>(cs, sz, LazyStringBuilder(cs, sz));
 }
 
 Utf8String Utf8String::from_utf8_dot_to_slash(const char *cs, size_t sz) {
-	return utf8::transform<utf*>(cs, sz, 
-	                             EagerStringBuilder<dot_to_slash>(sz));
+	return utf8::transform<Utf8String>(cs, sz, 
+	                                   EagerStringBuilder<dot_to_slash>(sz));
 }
 
 Utf8String Utf8String::from_utf16(const u2 *cs, size_t sz) {
 	size_t blength = utf8::num_bytes(cs, sz);
 
-	return utf16::transform<utf*>(cs, sz, 
-	                              EagerStringBuilder<identity>(blength));
+	return utf16::transform<Utf8String>(cs, sz, 
+	                                    EagerStringBuilder<identity>(blength));
 }
 
 Utf8String Utf8String::from_utf16_dot_to_slash(const u2 *cs, size_t sz) {
 	size_t blength = utf8::num_bytes(cs, sz);
 
-	return utf16::transform<utf*>(cs, sz, 
-	                              EagerStringBuilder<dot_to_slash>(blength));
+	return utf16::transform<Utf8String>(cs, sz, 
+	                                    EagerStringBuilder<dot_to_slash>(blength));
 }
 
 Utf8String Utf8String::from_utf8_slash_to_dot(Utf8String u) {
 	size_t sz = u.size();
 
-	return utf8::transform<utf*>(u.begin(), sz,
-	                             EagerStringBuilder<slash_to_dot>(sz));
+	return utf8::transform<Utf8String>(u.begin(), sz,
+	                                   EagerStringBuilder<slash_to_dot>(sz));
 }
 
 /* Utf8String::utf16_iterator **************************************************
