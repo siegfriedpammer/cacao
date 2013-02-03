@@ -30,6 +30,9 @@
 
 ## Process this file with automake to produce Makefile.in
 
+LATEX = TEXINPUTS=.:$(abs_srcdir):$$TEXINPUTS latex -interaction=batchmode -halt-on-error
+BIBTEX = BIBINPUTS=.:$(abs_srcdir) bibtex
+
 dist_noinst_DATA = \
 	alpha.tex \
 	arch.eps \
@@ -60,10 +63,10 @@ CLEANFILES = \
 	*.aux *.bbl *.blg *.dvi *.lof *.log *.lot *.toc
 
 handbook:
-	latex cacao
-	bibtex cacao
-	latex cacao
-	latex cacao
+	$(LATEX) cacao.tex
+	$(BIBTEX) cacao.aux
+	$(LATEX) cacao.tex
+	$(LATEX) cacao.tex
 
 
 ## Local variables:
