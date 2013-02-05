@@ -133,9 +133,7 @@ static void finalizer_thread(void)
 #if defined(ENABLE_THREADS)
 bool finalizer_start_thread(void)
 {
-	utf *name;
-
-	name = Utf8String::from_utf8("Finalizer");
+	Utf8String name = Utf8String::from_utf8("Finalizer");
 
 	if (!threads_thread_start_internal(name, finalizer_thread))
 		return false;

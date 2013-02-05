@@ -653,8 +653,8 @@ typecheck_result
 typeinfo_is_assignable_to_class(typeinfo_t *value,classref_or_classinfo dest)
 {
 	classref_or_classinfo c;
-    classinfo *cls;
-	utf *classname;
+    classinfo            *cls;
+	Utf8String            classname;
 
 	TYPEINFO_ASSERT(value);
 
@@ -1676,8 +1676,8 @@ typeinfo_merge_nonarrays(typeinfo_t *dest,
     typeinfo_mergedlist_t *tmerged;
     bool changed;
 	typecheck_result r;
-	utf *xname;
-	utf *yname;
+	Utf8String xname;
+	Utf8String yname;
 
 	TYPEINFO_ASSERT(dest && result && x.any && y.any);
 	TYPEINFO_ASSERT(x.cls != pseudo_class_Null);

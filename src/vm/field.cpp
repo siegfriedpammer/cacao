@@ -68,7 +68,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 	classinfo *c;
 	u4 attrnum, i;
 	u4 pindex = field_load_NOVALUE;     /* constantvalue_index */
-	utf *u;
+	Utf8String u;
 
 	/* Get class. */
 

@@ -479,10 +479,26 @@ void JavaString::fprint(FILE *stream) const
 	size_t          sz = size();  
 
 	for (size_t i = 0; i < sz; i++) {
-		uint16_t c = cs[i];
+		char c = cs[i];
+
 		fputc(c, stream);
 	}
 }
+
+void JavaString::fprint_printable_ascii(FILE *stream) const
+{
+	const uint16_t* cs = get_contents();
+	size_t          sz = size();  
+
+	for (size_t i = 0; i < sz; i++) {
+		char c = cs[i];
+
+		c = (c >= 32 && c <= 127) ? c : '?';
+
+		fputc(c, stream);
+	}
+}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

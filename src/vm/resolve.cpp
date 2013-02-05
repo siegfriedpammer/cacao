@@ -1877,7 +1877,7 @@ bool resolve_method_loading_constraints(classinfo *referer,
 {
 	methoddesc *md;
 	typedesc   *paramtypes;
-	utf        *name;
+	Utf8String  name;
 	s4          i;
 	s4          instancecount;
 

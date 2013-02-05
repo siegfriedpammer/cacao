@@ -90,11 +90,6 @@ primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = {
  */
 void Primitive::initialize_table()
 {  
-	utf       *name;
-	classinfo *c;
-	utf       *u;
-	classinfo *ac;
-
 	TRACESUBSYSTEMINITIALIZATION("primitive_init");
 
 	/* Load and link primitive-type classes and array-classes. */
@@ -107,13 +102,13 @@ void Primitive::initialize_table()
 
 		/* create UTF-8 name */
 
-		name = Utf8String::from_utf8(primitivetype_table[i].cname);
+		Utf8String name = Utf8String::from_utf8(primitivetype_table[i].cname);
 
 		primitivetype_table[i].name = name;
 
 		/* create primitive class */
 
-		c = class_create_classinfo(name);
+		classinfo *c = class_create_classinfo(name);
 
 		/* Primitive type classes don't have a super class. */
 
@@ -142,8 +137,8 @@ void Primitive::initialize_table()
 		/* Create primitive array class. */
 
 		if (primitivetype_table[i].arrayname != NULL) {
-			u  = Utf8String::from_utf8(primitivetype_table[i].arrayname);
-			ac = class_create_classinfo(u);
+			Utf8String  u  = Utf8String::from_utf8(primitivetype_table[i].arrayname);
+			classinfo  *ac = class_create_classinfo(u);
 			ac = load_newly_created_array(ac, NULL);
 
 			if (ac == NULL)
@@ -174,8 +169,8 @@ void Primitive::initialize_table()
 
 		/* Create class for wrapping the primitive type. */
 
-		u = Utf8String::from_utf8(primitivetype_table[i].wrapname);
-		c = load_class_bootstrap(u);
+		Utf8String  u = Utf8String::from_utf8(primitivetype_table[i].wrapname);
+		classinfo  *c = load_class_bootstrap(u);
 
 		if (c == NULL)
 			vm_abort("primitive_init: loading failed");

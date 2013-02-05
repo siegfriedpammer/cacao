@@ -351,9 +351,7 @@ void signal_thread_handler(int sig)
 bool signal_start_thread(void)
 {
 #if defined(ENABLE_THREADS)
-	utf *name;
-
-	name = Utf8String::from_utf8("Signal Handler");
+	Utf8String name = Utf8String::from_utf8("Signal Handler");
 
 	if (!threads_thread_start_internal(name, signal_thread))
 		return false;

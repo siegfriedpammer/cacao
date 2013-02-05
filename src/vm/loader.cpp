@@ -780,7 +780,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 	for (DumpList<forward_class>::iterator it = forward_classes.begin();
 			it != forward_classes.end(); ++it) {
 
-		utf *name = (utf*) class_getconstant(c, it->name_index, CONSTANT_Utf8);
+		Utf8String name = (utf*) class_getconstant(c, it->name_index, CONSTANT_Utf8);
 		if (!name)
 			return false;
 
@@ -805,7 +805,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 	for (DumpList<forward_string>::iterator it = forward_strings.begin();
 			it != forward_strings.end(); ++it) {
 
-		utf *text = (utf*) class_getconstant(c, it->string_index, CONSTANT_Utf8);
+		Utf8String text = (utf*) class_getconstant(c, it->string_index, CONSTANT_Utf8);
 
 		if (!text)
 			return false;
@@ -1038,7 +1038,7 @@ classinfo *load_class_from_classloader(utf *name, classloader_t *cl)
 		/* handle array classes */
 		if (text[0] == '[') {
 			classinfo *comp;
-			utf       *u;
+			Utf8String u;
 
 			switch (text[1]) {
 			case 'L':
@@ -1352,11 +1352,9 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 {
 	classinfo          *c;
 	classinfo          *tc;
-	utf                *name;
-	utf                *supername;
-	utf               **interfacesnames;
-	utf                *u;
-	constant_classref  *cr;
+	Utf8String          name;
+	Utf8String          supername;
+	Utf8String         *interfacesnames;
 	int16_t             index;
 
 	u4 ma, mi;
@@ -1535,12 +1533,12 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	/* Get the names of the super interfaces. */
 
-	interfacesnames = (utf**) DumpMemory::allocate(sizeof(utf*) * c->interfacescount);
+	interfacesnames = (Utf8String*) DumpMemory::allocate(sizeof(Utf8String) * c->interfacescount);
 
 	for (int32_t i = 0; i < c->interfacescount; i++) {
 		index = suck_u2(cb);
 
-		u = (utf *) class_getconstant(c, index, CONSTANT_Class);
+		Utf8String u = (utf *) class_getconstant(c, index, CONSTANT_Class);
 
 		if (u == NULL)
 			return false;
@@ -1609,7 +1607,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	for (int32_t i = 0; i < c->cpcount; i++) {
 		if (c->cptags[i] == CONSTANT_Class) {
-			utf *name = (utf *) c->cpinfos[i];
+			Utf8String name = (utf *) c->cpinfos[i];
 			c->cpinfos[i] = descriptor_pool_lookup_classref(descpool, name);
 		}
 	}
@@ -1617,7 +1615,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	/* Resolve the super class. */
 
 	if (supername != NULL) {
-		cr = descriptor_pool_lookup_classref(descpool, supername);
+		constant_classref *cr = descriptor_pool_lookup_classref(descpool, supername);
 
 		if (cr == NULL)
 			return false;
@@ -1653,8 +1651,8 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	/* Resolve the super interfaces. */
 
 	for (int32_t i = 0; i < c->interfacescount; i++) {
-		u  = interfacesnames[i];
-		cr = descriptor_pool_lookup_classref(descpool, u);
+		Utf8String         u  = interfacesnames[i];
+		constant_classref *cr = descriptor_pool_lookup_classref(descpool, u);
 
 		if (cr == NULL)
 			return false;
@@ -2003,7 +2001,7 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 	constant_classref *classrefs;
 	const char        *text;
 	s4                 namelen;
-	utf               *u;
+	Utf8String         u;
 
 	Utf8String name = c->name;
 

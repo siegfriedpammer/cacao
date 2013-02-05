@@ -3160,7 +3160,7 @@ void replace_show_replacement_points(codeinfo *code)
 static void java_value_print(s4 type, replace_val_t value)
 {
 	java_object_t *obj;
-	utf           *u;
+	Utf8String     u;
 
 	printf("%016llx",(unsigned long long) value.l);
 

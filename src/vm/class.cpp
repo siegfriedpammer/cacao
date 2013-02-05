@@ -342,7 +342,7 @@ static bool class_load_attribute_sourcefile(classbuffer *cb)
 	classinfo *c;
 	u4         attribute_length;
 	u2         sourcefile_index;
-	utf       *sourcefile;
+	Utf8String sourcefile;
 
 	/* get classinfo */
 
@@ -473,11 +473,11 @@ bool class_load_attributes(classbuffer *cb)
 	classinfo             *c;
 	uint16_t               attributes_count;
 	uint16_t               attribute_name_index;
-	utf                   *attribute_name;
+	Utf8String             attribute_name;
 	innerclassinfo        *info;
 	classref_or_classinfo  inner;
 	classref_or_classinfo  outer;
-	utf                   *name;
+	Utf8String             name;
 	uint16_t               flags;
 	int                    i, j;
 
@@ -829,7 +829,7 @@ classinfo *class_array_of(classinfo *component, bool link)
 	classloader_t     *cl;
 	s4                 namelen;
 	char              *namebuf;
-	utf               *u;
+	Utf8String         u;
 	classinfo         *c;
 
 	Utf8String component_name = component->name;
@@ -905,7 +905,7 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
     }
 	memset(namebuf, '[', dim);
 
-	utf* u = Utf8String::from_utf8(namebuf, namelen);
+	Utf8String u = Utf8String::from_utf8(namebuf, namelen);
 
 	MFREE(namebuf, char, namelen);
 
@@ -1066,7 +1066,7 @@ constant_classref *class_get_classref_multiarray_of(s4 dim, constant_classref *r
     }
 	memset(namebuf, '[', dim);
 
-	utf* u = Utf8String::from_utf8(namebuf, namelen);
+	Utf8String u = Utf8String::from_utf8(namebuf, namelen);
 
 	MFREE(namebuf, char, namelen);
 
@@ -1657,7 +1657,7 @@ java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOn
 {
 	classref_or_classinfo  inner;
 	classref_or_classinfo  outer;
-	utf                   *outername;
+	Utf8String             outername;
 	int                    declaredclasscount;  /* number of declared classes */
 	int                    pos;                     /* current declared class */
 	int                    i;
@@ -2186,7 +2186,7 @@ int32_t class_get_modifiers(classinfo *c, bool ignoreInnerClassesAttrib)
 {
 	classref_or_classinfo  inner;
 	classref_or_classinfo  outer;
-	utf                   *innername;
+	Utf8String             innername;
 	int                    i;
 	int32_t                flags;
 

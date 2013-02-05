@@ -84,6 +84,7 @@ class JavaString {
 		JavaString intern() const;
 
 		void fprint(FILE*) const;
+		void fprint_printable_ascii(FILE*) const;
 
 		inline JavaString() : str(0) {}
 		inline JavaString(java_handle_t *h) : str(h) {}

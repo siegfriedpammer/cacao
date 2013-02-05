@@ -178,7 +178,7 @@ hashtable *zip_open(char *path)
 	cdsfh                    cdsfh;
 	const char              *filename;
 	const char              *classext;
-	utf                     *u;
+	Utf8String               u;
 	u4                       key;       /* hashkey computed from utf-text     */
 	u4                       slot;      /* slot in hashtable                  */
 

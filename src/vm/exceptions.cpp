@@ -1233,15 +1233,12 @@ java_handle_t *exceptions_new_classcastexception(java_handle_t *o)
 {
 	java_handle_t *e;
 	classinfo     *c;
-	utf           *classname;
 
 	LLNI_class_get(o, c);
 
-	classname = c->name;
+	Utf8String classname = c->name;
 
-	e = exceptions_new_utf_utf(utf8::java_lang_ClassCastException, classname);
-
-	return e;
+	return exceptions_new_utf_utf(utf8::java_lang_ClassCastException, classname);
 }
 
 
@@ -1709,10 +1706,10 @@ void exceptions_print_exception(java_handle_t *xptr)
 	java_lang_String jls(jlt.get_detailMessage());
 
 	if (!jls.is_null()) {
-		utf* u = JavaString(jls.get_handle()).to_utf8();
+		JavaString str = jls.get_handle();
 
 		printf(": ");
-		utf_display_printable_ascii(u);
+		str.fprint_printable_ascii(stdout);
 	}
 
 	putc('\n', stdout);
@@ -1730,10 +1727,10 @@ void exceptions_print_exception(java_handle_t *xptr)
 		java_lang_String jlscause(jlt.get_detailMessage());
 
 		if (jlscause.get_handle() != NULL) {
-			Utf8String u = JavaString(jlscause.get_handle()).to_utf8();
+			JavaString str = jls.get_handle();
 
 			printf(": ");
-			utf_display_printable_ascii(u);
+			str.fprint_printable_ascii(stdout);
 		}
 
 		putc('\n', stdout);

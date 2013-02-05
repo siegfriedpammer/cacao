@@ -147,15 +147,15 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 	classinfo *c;
 	int argcount;
 	s4         i, j, k, l;
-	utf       *u;
+	Utf8String u;
 	u2         name_index;
 	u2         descriptor_index;
 	u2         attributes_count;
 	u2         attribute_name_index;
-	utf       *attribute_name;
+	Utf8String attribute_name;
 	u2         code_attributes_count;
 	u2         code_attribute_name_index;
-	utf       *code_attribute_name;
+	Utf8String code_attribute_name;
 
 	/* get classinfo */
 

@@ -1069,7 +1069,7 @@ static arraydescriptor *link_array(classinfo *c)
 	s4               namelen;
 	arraydescriptor *desc;
 	vftbl_t         *compvftbl;
-	utf             *u;
+	Utf8String       u;
 
 	comp = NULL;
 	namelen = UTF_SIZE(c->name);
