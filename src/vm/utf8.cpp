@@ -400,14 +400,14 @@ struct SafeCodePointCounter {
 		inline void utf8(uint8_t) const {}
 		inline void utf16(uint16_t) { count++; }
 	
-		inline ssize_t finish() { return count; }
-		inline ssize_t abort()  { return -1;    }
+		inline long finish() { return count; }
+		inline long abort()  { return -1;    }
 	private:
-		ssize_t count;
+		long count;
 };
 
-ssize_t utf8::num_codepoints(const char *cs, size_t sz) {
-	return utf8::transform<ssize_t>(cs, sz, SafeCodePointCounter());
+long utf8::num_codepoints(const char *cs, size_t sz) {
+	return utf8::transform<long>(cs, sz, SafeCodePointCounter());
 }
 
 /* utf8::num_bytes *************************************************************

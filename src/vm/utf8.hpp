@@ -197,7 +197,7 @@ class Utf8String {
 
 namespace utf8 {
 	// count UTF-16 codepoints, -1 on error
-	extern ssize_t num_codepoints(const char*, size_t);
+	extern long num_codepoints(const char*, size_t);
 
 	// count how many bytes a utf-8 version would need
 	extern size_t num_bytes(const u2*, size_t);
