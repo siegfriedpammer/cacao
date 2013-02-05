@@ -106,6 +106,9 @@
 #include <vmlog_cacao.h>
 #endif
 
+#if defined(ENABLE_RT_TIMING)
+#include "vm/rt-timing.h"
+#endif
 
 /**
  * This is _the_ VM instance.

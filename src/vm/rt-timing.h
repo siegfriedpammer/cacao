@@ -116,6 +116,10 @@
 
 #define RT_TIMING_N                60
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void rt_timing_gettime(struct timespec *ts);
 
 void rt_timing_time_diff(struct timespec *a,struct timespec *b,int index);
@@ -123,6 +127,10 @@ void rt_timing_time_diff(struct timespec *a,struct timespec *b,int index);
 long rt_timing_diff_usec(struct timespec *a,struct timespec *b);
 
 void rt_timing_print_time_stats(FILE *file);
+
+#ifdef __cplusplus
+}
+#endif
 
 #else /* !defined(ENABLE_RT_TIMING) */
 
