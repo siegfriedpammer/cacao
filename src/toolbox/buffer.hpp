@@ -418,8 +418,13 @@ void Buffer<Allocator>::ensure_capacity(size_t write_size)
 		// increase capacity
 		size_t old_size     = _pos - _start;
 		size_t old_capacity = _end - _start;
-		size_t new_capacity = (std::max(old_capacity, write_size) * 2) + 1;
 
+		// TODO: for some reason including <algorithm> breaks show.cpp
+		//       can't use std::max
+
+#define _MAX(A,B) ((A) >= (B) ? (A) : (B))
+		size_t new_capacity = (_MAX(old_capacity, write_size) * 2) + 1;
+#undef  _MAX
 		assert(new_capacity > (old_capacity + write_size));
 
 		// enlarge buffer
