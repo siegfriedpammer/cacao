@@ -1,6 +1,6 @@
 /* src/vm/jit/jit.cpp - Just-In-Time compiler
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -48,7 +48,7 @@
 #include "vm/loader.hpp"
 #include "vm/method.hpp"
 #include "vm/options.h"
-#include "vm/rt-timing.h"
+#include "vm/rt-timing.hpp"
 #include "vm/statistics.h"
 
 #include "vm/jit/asmpart.h"

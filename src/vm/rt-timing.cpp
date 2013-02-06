@@ -1,6 +1,6 @@
-/* src/vm/rt-timing.c - POSIX real-time timing utilities
+/* src/vm/rt-timing.cpp - POSIX real-time timing utilities
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -35,8 +35,11 @@
 #include "mm/memory.hpp"
 
 #include "vm/global.h"
-#include "vm/rt-timing.h"
+#include "vm/rt-timing.hpp"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct rt_timing_stat {
 	int index;
@@ -69,7 +72,7 @@ static struct rt_timing_stat rt_timing_stat_defs[] = {
     { RT_TIMING_LINK_SUBCLASS   ,RT_TIMING_LINK_TOTAL, "link: re-calculate subclass indices"},
     { RT_TIMING_LINK_TOTAL      ,-1                  , "total link time" },
     { -1                        ,-1                  , "" },
-	
+
 	{ RT_TIMING_LOAD_CHECKS     ,RT_TIMING_LOAD_TOTAL, "load: initial checks"},
 	{ RT_TIMING_LOAD_NDPOOL     ,RT_TIMING_LOAD_TOTAL, "load: new descriptor pool"},
 	{ RT_TIMING_LOAD_CPOOL      ,RT_TIMING_LOAD_TOTAL, "load: load constant pool"},
@@ -172,7 +175,7 @@ void rt_timing_print_time_stats(FILE *file)
 			fprintf(file,"%s\n",stats->name);
 			continue;
 		}
-		
+
 		if (stats->totalindex >= 0) {
 			total = rt_timing_sum[stats->totalindex];
 			fprintf(file,"%12lld usec %3.0f%% %s\n",
@@ -187,6 +190,10 @@ void rt_timing_print_time_stats(FILE *file)
 		}
 	}
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

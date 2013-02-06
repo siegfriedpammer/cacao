@@ -1,6 +1,6 @@
 /* src/vm/linker.cpp - class linker functions
 
-   Copyright (C) 1996, 2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -49,7 +49,7 @@
 #include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/primitive.hpp"
-#include "vm/rt-timing.h"
+#include "vm/rt-timing.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 

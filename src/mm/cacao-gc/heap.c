@@ -1,6 +1,6 @@
 /* mm/cacao-gc/heap.c - GC module for heap management
 
-   Copyright (C) 2006, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -40,7 +40,7 @@
 
 #include "vm/global.h"
 #include "vm/options.h"
-#include "vm/rt-timing.h"
+#include "vm/rt-timing.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 

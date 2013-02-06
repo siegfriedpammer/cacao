@@ -1,6 +1,6 @@
-/* src/vm/rt-timing.h - POSIX real-time timing utilities
+/* src/vm/rt-timing.hpp - POSIX real-time timing utilities
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _RT_TIMING_H
-#define _RT_TIMING_H
+#ifndef _RT_TIMING_HPP
+#define _RT_TIMING_HPP
 
 #include "config.h"
 
@@ -139,7 +139,7 @@ void rt_timing_print_time_stats(FILE *file);
 
 #endif /* defined(ENABLE_RT_TIMING) */
 
-#endif /* _RT_TIMING_H */
+#endif /* _RT_TIMING_HPP */
 
 /*
  * These are local overrides for various environment variables in Emacs.

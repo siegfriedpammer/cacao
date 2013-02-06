@@ -1,6 +1,6 @@
 /* src/vm/jit/optimizing/ssa3.c
 
-   Copyright (C) 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
@@ -2367,7 +2367,7 @@ void ssa_simple_leave(ssa_info_t *ssa) {
 	ssa->jd->localcount = ssa->original.localcount;
 }
 
-#include "vm/rt-timing.h"
+#include "vm/rt-timing.hpp"
 
 void yssa(jitdata *jd) {
 	basicblock *it;

@@ -1,6 +1,6 @@
 /* src/vm/loader.cpp - class loader functions
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -58,7 +58,7 @@
 #include "vm/package.hpp"
 #include "vm/primitive.hpp"
 #include "vm/resolve.hpp"
-#include "vm/rt-timing.h"
+#include "vm/rt-timing.hpp"
 #include "vm/string.hpp"
 #include "vm/suck.hpp"
 #include "vm/vm.hpp"

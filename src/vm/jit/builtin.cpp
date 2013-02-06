@@ -1,6 +1,6 @@
 /* src/vm/jit/builtin.cpp - functions for unsupported operations
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -71,7 +71,7 @@
 #include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/primitive.hpp"
-#include "vm/rt-timing.h"
+#include "vm/rt-timing.hpp"
 #include "vm/string.hpp"
 
 #include "vm/jit/asmpart.h"

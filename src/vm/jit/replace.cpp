@@ -1,6 +1,6 @@
 /* src/vm/jit/replace.cpp - on-stack replacement of methods
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -50,7 +50,7 @@
 #include "vm/string.hpp"
 
 #if defined(ENABLE_RT_TIMING)
-# include "vm/rt-timing.h"
+# include "vm/rt-timing.hpp"
 #endif
 
 #include "vm/jit/abi.h"

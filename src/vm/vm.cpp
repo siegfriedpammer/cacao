@@ -1,6 +1,6 @@
 /* src/vm/vm.cpp - VM startup and shutdown functions
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -107,7 +107,7 @@
 #endif
 
 #if defined(ENABLE_RT_TIMING)
-#include "vm/rt-timing.h"
+#include "vm/rt-timing.hpp"
 #endif
 
 /**
