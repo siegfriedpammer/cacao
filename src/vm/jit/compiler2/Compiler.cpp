@@ -41,7 +41,10 @@
 #endif
 #include "vm/jit/verify/typecheck.hpp"
 
+#include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Compiler.hpp"
+
+#include "vm/jit/compiler2/Debug.hpp"
 
 #include "vm/options.hpp"
 
@@ -167,13 +170,10 @@ u1 *compile_intern(methodinfo *m)
 
 	/* now call internal compile function */
 
-#if defined(ENABLE_OPTIMIZATION_FRAMEWORK)
+	bool bak = opt_RegallocSpillAll;
 	opt_RegallocSpillAll = true;
 	r = jit_compile_intern(jd);
-	opt_RegallocSpillAll = false;
-#else
-	r = jit_compile_intern(jd);
-#endif
+	opt_RegallocSpillAll = bak;
 
 	if (r == NULL) {
 		/* We had an exception! Finish stuff here if necessary. */
@@ -304,138 +304,130 @@ u1 *jit_compile_intern(jitdata *jd)
 
 	DEBUG_JIT_COMPILEVERBOSE("Parsing done: ");
 
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (!opt_intrp) {
-# endif
-		DEBUG_JIT_COMPILEVERBOSE("Analysing: ");
+	DEBUG_JIT_COMPILEVERBOSE("Analysing: ");
 
-		/* call stack analysis pass */
+	/* call stack analysis pass */
 
-		if (!stack_analyse(jd)) {
-			DEBUG_JIT_COMPILEVERBOSE("Exception while analysing: ");
+	if (!stack_analyse(jd)) {
+		DEBUG_JIT_COMPILEVERBOSE("Exception while analysing: ");
+
+		return NULL;
+	}
+	RT_TIMING_GET_TIME(time_stack);
+
+	DEBUG_JIT_COMPILEVERBOSE("Analysing done: ");
+
+#ifdef ENABLE_VERIFIER
+	if (JITDATA_HAS_FLAG_VERIFY(jd)) {
+		DEBUG_JIT_COMPILEVERBOSE("Typechecking: ");
+
+		/* call typecheck pass */
+		if (!typecheck(jd)) {
+			DEBUG_JIT_COMPILEVERBOSE("Exception while typechecking: ");
 
 			return NULL;
 		}
-		RT_TIMING_GET_TIME(time_stack);
 
-		DEBUG_JIT_COMPILEVERBOSE("Analysing done: ");
-
-#ifdef ENABLE_VERIFIER
-		if (JITDATA_HAS_FLAG_VERIFY(jd)) {
-			DEBUG_JIT_COMPILEVERBOSE("Typechecking: ");
-
-			/* call typecheck pass */
-			if (!typecheck(jd)) {
-				DEBUG_JIT_COMPILEVERBOSE("Exception while typechecking: ");
-
-				return NULL;
-			}
-
-			DEBUG_JIT_COMPILEVERBOSE("Typechecking done: ");
-		}
+		DEBUG_JIT_COMPILEVERBOSE("Typechecking done: ");
+	}
 #endif
-		RT_TIMING_GET_TIME(time_typecheck);
+	RT_TIMING_GET_TIME(time_typecheck);
 
 #if defined(ENABLE_LOOP)
-		if (opt_loops) {
-			depthFirst(jd);
-			analyseGraph(jd);
-			optimize_loops(jd);
-			jit_renumber_basicblocks(jd);
-		}
+	if (opt_loops) {
+		depthFirst(jd);
+		analyseGraph(jd);
+		optimize_loops(jd);
+		jit_renumber_basicblocks(jd);
+	}
 #endif
-		RT_TIMING_GET_TIME(time_loop);
+	RT_TIMING_GET_TIME(time_loop);
 
 #if defined(ENABLE_IFCONV)
-		if (JITDATA_HAS_FLAG_IFCONV(jd)) {
-			if (!ifconv_static(jd))
-				return NULL;
-			jit_renumber_basicblocks(jd);
-		}
+	if (JITDATA_HAS_FLAG_IFCONV(jd)) {
+		if (!ifconv_static(jd))
+			return NULL;
+		jit_renumber_basicblocks(jd);
+	}
 #endif
-		RT_TIMING_GET_TIME(time_ifconv);
+	RT_TIMING_GET_TIME(time_ifconv);
 
-		/* inlining */
+	/* inlining */
 
 #if defined(ENABLE_INLINING) && (!defined(ENABLE_ESCAPE) || 1)
-		if (JITDATA_HAS_FLAG_INLINE(jd)) {
-			if (!inline_inline(jd))
-				return NULL;
-		}
+	if (JITDATA_HAS_FLAG_INLINE(jd)) {
+		if (!inline_inline(jd))
+			return NULL;
+	}
 #endif
 
 #if defined(ENABLE_SSA)
-		if (opt_lsra) {
-			fix_exception_handlers(jd);
-		}
+	if (opt_lsra) {
+		fix_exception_handlers(jd);
+	}
 #endif
 
-		/* Build the CFG.  This has to be done after stack_analyse, as
-		   there happens the JSR elimination. */
+	/* Build the CFG.  This has to be done after stack_analyse, as
+	   there happens the JSR elimination. */
 
-		if (!cfg_build(jd))
-			return NULL;
+	if (!cfg_build(jd))
+		return NULL;
 
 #if defined(ENABLE_PROFILING)
-		/* Basic block reordering.  I think this should be done after
-		   if-conversion, as we could lose the ability to do the
-		   if-conversion. */
+	/* Basic block reordering.  I think this should be done after
+	   if-conversion, as we could lose the ability to do the
+	   if-conversion. */
 #if 0
-		if (JITDATA_HAS_FLAG_REORDER(jd)) {
-			if (!reorder(jd))
-				return NULL;
-			jit_renumber_basicblocks(jd);
-		}
+	if (JITDATA_HAS_FLAG_REORDER(jd)) {
+		if (!reorder(jd))
+			return NULL;
+		jit_renumber_basicblocks(jd);
+	}
 #endif
 #endif
 
 #if defined(ENABLE_PM_HACKS)
 #include "vm/jit/jit_pm_2.inc"
 #endif
-		DEBUG_JIT_COMPILEVERBOSE("Allocating registers: ");
+	DEBUG_JIT_COMPILEVERBOSE("Allocating registers: ");
 
 #if defined(ENABLE_LSRA) && !defined(ENABLE_SSA)
-		/* allocate registers */
-		if (opt_lsra) {
-			if (!lsra(jd))
-				return NULL;
+	/* allocate registers */
+	if (opt_lsra) {
+		if (!lsra(jd))
+			return NULL;
 
-			STATISTICS(count_methods_allocated_by_lsra++);
+		STATISTICS(count_methods_allocated_by_lsra++);
 
-		} else
+	} else
 # endif /* defined(ENABLE_LSRA) && !defined(ENABLE_SSA) */
 #if defined(ENABLE_SSA)
-		/* allocate registers */
-		if (
-			(opt_lsra &&
-			jd->code->optlevel > 0) 
-			/* strncmp(jd->m->name->text, "hottie", 6) == 0*/
-			/*&& jd->exceptiontablelength == 0*/
-		) {
-			/*printf("=== %s ===\n", jd->m->name->text);*/
-			jd->ls = (lsradata*) DumpMemory::allocate(sizeof(lsradata));
-			jd->ls = NULL;
-			ssa(jd);
-			/*lsra(jd);*/ regalloc(jd);
-			/*eliminate_subbasicblocks(jd);*/
-			STATISTICS(count_methods_allocated_by_lsra++);
+	/* allocate registers */
+	if (
+		(opt_lsra &&
+		jd->code->optlevel > 0) 
+		/* strncmp(jd->m->name->text, "hottie", 6) == 0*/
+		/*&& jd->exceptiontablelength == 0*/
+	) {
+		/*printf("=== %s ===\n", jd->m->name->text);*/
+		jd->ls = (lsradata*) DumpMemory::allocate(sizeof(lsradata));
+		jd->ls = NULL;
+		ssa(jd);
+		/*lsra(jd);*/ regalloc(jd);
+		/*eliminate_subbasicblocks(jd);*/
+		STATISTICS(count_methods_allocated_by_lsra++);
 
-		} else
+	} else
 # endif /* defined(ENABLE_SSA) */
-		{
-			STATISTICS(count_locals_conflicts += (jd->maxlocals - 1) * (jd->maxlocals));
+	{
+		STATISTICS(count_locals_conflicts += (jd->maxlocals - 1) * (jd->maxlocals));
 
-			regalloc(jd);
-		}
-
-		STATISTICS(simplereg_make_statistics(jd));
-
-		DEBUG_JIT_COMPILEVERBOSE("Allocating registers done: ");
-# if defined(ENABLE_INTRP)
+		regalloc(jd);
 	}
-# endif
-#endif /* defined(ENABLE_JIT) */
+
+	STATISTICS(simplereg_make_statistics(jd));
+
+	DEBUG_JIT_COMPILEVERBOSE("Allocating registers done: ");
 	RT_TIMING_GET_TIME(time_alloc);
 
 #if defined(ENABLE_CFG_PRINTER)
@@ -572,7 +564,10 @@ namespace compiler2 {
 
 MachineCode* compile(methodinfo* m)
 {
-	return compile_intern(m);
+	INFO(dbg() << BOLDWHITE << "Compiler Start: " << RESET ; method_print(m); dbg() << "\n";)
+	MachineCode* mc = compile_intern(m);
+	INFO(dbg() << BOLDWHITE << "Compiler End: " << RESET ; method_print(m); dbg() << "\n";)
+	return mc;
 }
 
 } // end namespace cacao

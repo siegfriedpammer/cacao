@@ -22,15 +22,49 @@
 
 */
 
+/**
+ * This file contains the Instruction class.
+ * The Instruction class is the base class for all other instruction types.
+ * They are defined in Instructions.hpp.
+ */
+
 #ifndef _JIT_COMPILER2_INSTRUCTION
 #define _JIT_COMPILER2_INSTRUCTION
+
+#include "vm/jit/compiler2/Value.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-class Instruction : public Value {
+// Forward declarations
+class BasicBlock;
 
+/**
+ * Instruction super class.
+ * This is the base class for all instruction. The functions 'toXInstruction()'
+ * can be used to cast Instructions. If casting is not possible these functions
+ * return NULL. Therefor it can be used to check for a specific Instruction, e.g.:
+ * <code>
+ *  if (CmdInstruction* ti = i.toCmdInstruction()
+ *  { // 'i' is a CmpInstruction
+ *    ...
+ *  }
+ * </code>
+ */
+class Instruction : public Value {
+private:
+  instruction *iptr;                   ///< reference to the 'old' instruction format
+  BasicBlock *parent;				   ///< BasicBlock containing the instruction or NULL
+public:
+  unsigned getOpcode() const;		   ///< return the opcode of the instruction (icmd.hpp)
+  bool isTerminator() const;           ///< true if the instruction terminates a basic block
+  BasicBlock *getParent() const;	   /**< get the BasicBlock in which the instruction is contained.
+                                         * NULL if not attached to any block.
+										 */
+
+  // casting functions
+  virtual Instruction* toInstruction() { return this;}
 };
 
 
