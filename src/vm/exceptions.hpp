@@ -55,13 +55,13 @@ void exceptions_throw_abstractmethoderror(void);
 void exceptions_throw_classcircularityerror(classinfo *c);
 // TODO: remove 'extern "C"', still used by vm/stackmap.c
 extern "C" void exceptions_throw_classformaterror(classinfo *c, const char *message, ...);
-void exceptions_throw_classnotfoundexception(utf *name);
-void exceptions_throw_noclassdeffounderror(utf *name);
+void exceptions_throw_classnotfoundexception(Utf8String name);
+void exceptions_throw_noclassdeffounderror(Utf8String name);
 void exceptions_throw_noclassdeffounderror_cause(java_handle_t *cause);
-void exceptions_throw_noclassdeffounderror_wrong_name(classinfo *c, utf *name);
+void exceptions_throw_noclassdeffounderror_wrong_name(classinfo *c, Utf8String name);
 void exceptions_throw_linkageerror(const char *message, classinfo *c);
-void exceptions_throw_nosuchfielderror(classinfo *c, utf *name);
-void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc);
+void exceptions_throw_nosuchfielderror(classinfo *c, Utf8String name);
+void exceptions_throw_nosuchmethoderror(classinfo *c, Utf8String name, Utf8String desc);
 void exceptions_throw_exceptionininitializererror(java_handle_t *cause);
 void exceptions_throw_incompatibleclasschangeerror(classinfo *c,
 												   const char *message);
@@ -72,7 +72,7 @@ void exceptions_throw_outofmemoryerror(void);
 // TODO: remove 'extern "C"', still used by vm/jit/stack.c
 extern "C" void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...);
 extern "C" void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type);
-void exceptions_throw_unsatisfiedlinkerror(utf *name);
+void exceptions_throw_unsatisfiedlinkerror(Utf8String name);
 void exceptions_throw_unsupportedclassversionerror(classinfo *c, u4 ma, u4 mi);
 
 java_handle_t *exceptions_new_arithmeticexception(void);
@@ -84,7 +84,7 @@ void exceptions_throw_arraystoreexception(void);
 java_handle_t *exceptions_new_classcastexception(java_handle_t *o);
 
 void exceptions_throw_clonenotsupportedexception(void);
-void exceptions_throw_illegalaccessexception(utf *message);
+void exceptions_throw_illegalaccessexception(Utf8String message);
 void exceptions_throw_illegalargumentexception(void);
 void exceptions_throw_illegalmonitorstateexception(void);
 void exceptions_throw_interruptedexception(void);

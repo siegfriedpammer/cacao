@@ -223,7 +223,7 @@ java_handle_t *exceptions_get_and_clear_exception(void)
 
 *******************************************************************************/
 
-static void exceptions_abort(utf *classname, utf *message)
+static void exceptions_abort(Utf8String classname, Utf8String message)
 {
 	log_println("exception thrown while VM is initializing: ");
 
@@ -241,14 +241,14 @@ static void exceptions_abort(utf *classname, utf *message)
 }
 
 
-/* exceptions_new_class_utf ****************************************************
+/* exceptions_new_class_Utf8String ***************************************************
 
    Creates an exception object with the given class and initalizes it
    with the given utf message.
 
    IN:
       c ......... exception class
-	  message ... the message as an utf *
+	  message ... the message as an Utf8String 
 
    RETURN VALUE:
      an exception pointer (in any case -- either it is the newly
@@ -257,7 +257,7 @@ static void exceptions_abort(utf *classname, utf *message)
 
 *******************************************************************************/
 
-static java_handle_t *exceptions_new_class_utf(classinfo *c, utf *message)
+static java_handle_t *exceptions_new_class_utf(classinfo *c, Utf8String message)
 {
 	java_handle_t *s;
 	java_handle_t *o;
@@ -286,7 +286,7 @@ static java_handle_t *exceptions_new_class_utf(classinfo *c, utf *message)
 }
 
 
-/* exceptions_new_utf **********************************************************
+/* exceptions_new_Utf8String *********************************************************
 
    Creates an exception object with the given name and initalizes it.
 
@@ -295,7 +295,7 @@ static java_handle_t *exceptions_new_class_utf(classinfo *c, utf *message)
 
 *******************************************************************************/
 
-static java_handle_t *exceptions_new_utf(utf *classname)
+static java_handle_t *exceptions_new_utf(Utf8String classname)
 {
 	classinfo     *c;
 	java_handle_t *o;
@@ -332,7 +332,7 @@ static java_handle_t *exceptions_new_utf(utf *classname)
 
 *******************************************************************************/
 
-static java_handle_t *exceptions_new_utf_javastring(utf *classname,
+static java_handle_t *exceptions_new_utf_javastring(Utf8String classname,
 													java_handle_t *message)
 {
 	java_handle_t *o;
@@ -355,14 +355,14 @@ static java_handle_t *exceptions_new_utf_javastring(utf *classname,
 }
 
 
-/* exceptions_new_utf_utf ******************************************************
+/* exceptions_new_utf_Utf8String *****************************************************
 
    Creates an exception object with the given name and initalizes it
    with the given utf message.
 
    IN:
       classname....class name in UTF-8
-	  message......the message as an utf *
+	  message......the message as an Utf8String 
 
    RETURN VALUE:
       an exception pointer (in any case -- either it is the newly created
@@ -370,7 +370,7 @@ static java_handle_t *exceptions_new_utf_javastring(utf *classname,
 
 *******************************************************************************/
 
-static java_handle_t *exceptions_new_utf_utf(utf *classname, utf *message)
+static java_handle_t *exceptions_new_utf_utf(Utf8String classname, Utf8String message)
 {
 	classinfo     *c;
 	java_handle_t *o;
@@ -389,18 +389,18 @@ static java_handle_t *exceptions_new_utf_utf(utf *classname, utf *message)
 }
 
 
-/* exceptions_throw_class_utf **************************************************
+/* exceptions_throw_class_Utf8String *************************************************
 
    Creates an exception object with the given class, initalizes and
    throws it with the given utf message.
 
    IN:
       c ......... exception class
-	  message ... the message as an utf *
+	  message ... the message as an Utf8String 
 
 *******************************************************************************/
 
-static void exceptions_throw_class_utf(classinfo *c, utf *message)
+static void exceptions_throw_class_utf(classinfo *c, Utf8String message)
 {
 	java_handle_t *o;
 
@@ -410,7 +410,7 @@ static void exceptions_throw_class_utf(classinfo *c, utf *message)
 }
 
 
-/* exceptions_throw_utf ********************************************************
+/* exceptions_throw_Utf8String *******************************************************
 
    Creates an exception object with the given name, initalizes and
    throws it.
@@ -420,7 +420,7 @@ static void exceptions_throw_class_utf(classinfo *c, utf *message)
 
 *******************************************************************************/
 
-static void exceptions_throw_utf(utf *classname)
+static void exceptions_throw_utf(Utf8String classname)
 {
 	java_handle_t *o;
 
@@ -444,7 +444,7 @@ static void exceptions_throw_utf(utf *classname)
 
 *******************************************************************************/
 
-static void exceptions_throw_utf_throwable(utf *classname,
+static void exceptions_throw_utf_throwable(Utf8String classname,
 										   java_handle_t *cause)
 {
 	classinfo           *c;
@@ -495,7 +495,7 @@ static void exceptions_throw_utf_throwable(utf *classname,
 
 *******************************************************************************/
 
-static void exceptions_throw_utf_exception(utf *classname,
+static void exceptions_throw_utf_exception(Utf8String classname,
 										   java_handle_t *exception)
 {
 	classinfo     *c;
@@ -545,7 +545,7 @@ static void exceptions_throw_utf_exception(utf *classname,
 
 *******************************************************************************/
 
-static void exceptions_throw_utf_cause(utf *classname, java_handle_t *cause)
+static void exceptions_throw_utf_cause(Utf8String classname, java_handle_t *cause)
 {
 	if (VM::get_current()->is_initializing())
 		exceptions_abort(classname, NULL);
@@ -594,18 +594,18 @@ static void exceptions_throw_utf_cause(utf *classname, java_handle_t *cause)
 }
 
 
-/* exceptions_throw_utf_utf ****************************************************
+/* exceptions_throw_utf_Utf8String ***************************************************
 
    Creates an exception object with the given name, initalizes and
    throws it with the given utf message.
 
    IN:
       classname....class name in UTF-8
-	  message......the message as an utf *
+	  message......the message as an Utf8String 
 
 *******************************************************************************/
 
-static void exceptions_throw_utf_utf(utf *classname, utf *message)
+static void exceptions_throw_utf_utf(Utf8String classname, Utf8String message)
 {
 	java_handle_t *o;
 
@@ -638,7 +638,7 @@ java_handle_t *exceptions_new_abstractmethoderror(void)
 *******************************************************************************/
 
 #if defined(ENABLE_JAVAME_CLDC1_1)
-static java_handle_t *exceptions_new_error(utf *message)
+static java_handle_t *exceptions_new_error(Utf8String message)
 {
 	java_handle_t *o;
 
@@ -773,11 +773,11 @@ void exceptions_throw_classformaterror(classinfo *c, const char *message, ...)
    VM.
 
    IN:
-      name.........name of the class not found as a utf *
+      name.........name of the class not found as a Utf8String 
 
 *******************************************************************************/
 
-void exceptions_throw_classnotfoundexception(utf *name)
+void exceptions_throw_classnotfoundexception(Utf8String name)
 {	
 	exceptions_throw_class_utf(class_java_lang_ClassNotFoundException, name);
 }
@@ -788,11 +788,11 @@ void exceptions_throw_classnotfoundexception(utf *name)
    Generates and throws a java.lang.NoClassDefFoundError.
 
    IN:
-      name.........name of the class not found as a utf *
+      name.........name of the class not found as a Utf8String 
 
 *******************************************************************************/
 
-void exceptions_throw_noclassdeffounderror(utf *name)
+void exceptions_throw_noclassdeffounderror(Utf8String name)
 {
 	exceptions_throw_utf_utf(utf8::java_lang_NoClassDefFoundError, name);
 }
@@ -817,11 +817,11 @@ void exceptions_throw_noclassdeffounderror_cause(java_handle_t *cause)
    specific message:
 
    IN:
-      name.........name of the class not found as a utf *
+      name.........name of the class not found as a Utf8String 
 
 *******************************************************************************/
 
-void exceptions_throw_noclassdeffounderror_wrong_name(classinfo *c, utf *name)
+void exceptions_throw_noclassdeffounderror_wrong_name(classinfo *c, Utf8String name)
 {
 	Buffer<> buf;
 
@@ -948,7 +948,7 @@ void exceptions_throw_linkageerror(const char *message, classinfo *c)
 
 *******************************************************************************/
 
-void exceptions_throw_nosuchfielderror(classinfo *c, utf *name)
+void exceptions_throw_nosuchfielderror(classinfo *c, Utf8String name)
 {
 	/* generate message */
 
@@ -974,7 +974,7 @@ void exceptions_throw_nosuchfielderror(classinfo *c, utf *name)
 
 *******************************************************************************/
 
-void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc)
+void exceptions_throw_nosuchmethoderror(classinfo *c, Utf8String name, Utf8String desc)
 {
 	/* generate message */
 
@@ -1015,7 +1015,7 @@ void exceptions_throw_outofmemoryerror(void)
 
 *******************************************************************************/
 
-void exceptions_throw_unsatisfiedlinkerror(utf *name)
+void exceptions_throw_unsatisfiedlinkerror(Utf8String name)
 {
 #if defined(ENABLE_JAVASE)
 	exceptions_throw_utf_utf(utf8::java_lang_UnsatisfiedLinkError, name);
@@ -1257,7 +1257,7 @@ void exceptions_throw_clonenotsupportedexception(void)
 
 *******************************************************************************/
 
-void exceptions_throw_illegalaccessexception(utf *message)
+void exceptions_throw_illegalaccessexception(Utf8String message)
 {
 	exceptions_throw_utf_utf(utf8::java_lang_IllegalAccessException, message);
 }
