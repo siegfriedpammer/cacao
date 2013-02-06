@@ -37,8 +37,6 @@
 /* function prototypes ********************************************************/
 
 #ifdef __cplusplus
-extern "C" {
-#endif
 
 java_handle_t *exceptions_get_exception(void);
 void           exceptions_set_exception(java_handle_t *o);
@@ -49,12 +47,14 @@ java_handle_t *exceptions_get_and_clear_exception(void);
 /* functions to generate compiler exceptions */
 
 java_handle_t *exceptions_new_abstractmethoderror(void);
-java_object_t *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra);
 java_handle_t *exceptions_new_arraystoreexception(void);
+
+extern "C" java_object_t *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra);
 
 void exceptions_throw_abstractmethoderror(void);
 void exceptions_throw_classcircularityerror(classinfo *c);
-void exceptions_throw_classformaterror(classinfo *c, const char *message, ...);
+// TODO: remove 'extern "C"', still used by vm/stackmap.c
+extern "C" void exceptions_throw_classformaterror(classinfo *c, const char *message, ...);
 void exceptions_throw_classnotfoundexception(utf *name);
 void exceptions_throw_noclassdeffounderror(utf *name);
 void exceptions_throw_noclassdeffounderror_cause(java_handle_t *cause);
@@ -66,10 +66,12 @@ void exceptions_throw_exceptionininitializererror(java_handle_t *cause);
 void exceptions_throw_incompatibleclasschangeerror(classinfo *c,
 												   const char *message);
 void exceptions_throw_instantiationerror(classinfo *c);
-void exceptions_throw_internalerror(const char *message, ...);
+// TODO: remove 'extern "C"', still used by vm/jit/stack.c, vm/jit/allocator/*.c 
+extern "C" void exceptions_throw_internalerror(const char *message, ...);
 void exceptions_throw_outofmemoryerror(void);
-void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...);
-void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type);
+// TODO: remove 'extern "C"', still used by vm/jit/stack.c
+extern "C" void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...);
+extern "C" void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type);
 void exceptions_throw_unsatisfiedlinkerror(utf *name);
 void exceptions_throw_unsupportedclassversionerror(classinfo *c, u4 ma, u4 mi);
 
@@ -101,8 +103,6 @@ void exceptions_print_exception(java_handle_t *xptr);
 void exceptions_print_current_exception(void);
 void exceptions_print_stacktrace(void);
 
-#ifdef __cplusplus
-}
 #endif
 
 #endif // _EXCEPTIONS_HPP

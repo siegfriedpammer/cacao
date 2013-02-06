@@ -70,10 +70,6 @@
 #include <vmlog_cacao.h>
 #endif
 
-
-// FIXME
-extern "C" {
-
 /* for raising exceptions from native methods *********************************/
 
 #if !defined(ENABLE_THREADS)
@@ -1466,7 +1462,7 @@ java_handle_t *exceptions_fillinstacktrace(void)
 *******************************************************************************/
 
 #if defined(ENABLE_JIT)
-void *exceptions_handle_exception(java_object_t *xptro, void *xpc, void *pv, void *sp)
+extern "C" void *exceptions_handle_exception(java_object_t *xptro, void *xpc, void *pv, void *sp)
 {
 	stackframeinfo_t        sfi;
 	java_handle_t          *xptr;
@@ -1867,9 +1863,6 @@ void exceptions_print_stacktrace(void)
 		fflush(stderr);
 	}
 }
-
-} // extern "C"
-
 
 /*
  * These are local overrides for various environment variables in Emacs.
