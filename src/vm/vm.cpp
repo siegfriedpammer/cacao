@@ -1932,7 +1932,16 @@ void vm_exit_handler(void)
 #endif /* !defined(NDEBUG) */
 
 #if defined(ENABLE_RT_TIMING)
- 	rt_timing_print_time_stats(stderr);
+	if (!opt_RtTimingLogfile) {
+		FILE *file = fopen("rt-timing.log", "w");
+		if (file == NULL)
+			/* fallback to stderr */
+			file = stderr;
+		opt_RtTimingLogfile = file;
+	}
+
+	assert(opt_RtTimingLogfile);
+ 	rt_timing_print_time_stats(opt_RtTimingLogfile);
 #endif
 
 #if defined(ENABLE_CYCLES_STATS)

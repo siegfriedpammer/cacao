@@ -1,6 +1,6 @@
 /* src/vm/options.h - define global options extern
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -237,6 +237,9 @@ extern int      opt_TraceJVMCallsVerbose;
 extern int      opt_TraceJVMTICalls;
 #endif
 extern int      opt_TraceLinkClass;
+#if defined(ENABLE_RT_TIMING)
+extern FILE    *opt_RtTimingLogfile;
+#endif
 #if defined(ENABLE_REPLACEMENT)
 extern int      opt_TraceReplacement;
 #endif
@@ -281,4 +284,5 @@ void options_xx(JavaVMInitArgs *vm_args);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
