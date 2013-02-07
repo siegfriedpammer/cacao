@@ -1,6 +1,6 @@
 /* src/native/vm/cldc1.1/com_sun_cldchi_io_ConsoleOutputStream.cpp
 
-   Copyright (C) 2006, 2007, 2008
+   Copyright (C) 2006-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.

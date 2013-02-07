@@ -1,6 +1,6 @@
 /* src/vm/jit/powerpc/netbsd/md-abi.c - PowerPC NetBSD ABI
 
-   Copyright (C) 1996-2005, 2006, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.

@@ -1,6 +1,6 @@
 /* src/vm/javaobjects.cpp - functions to create and access Java objects
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008, 2009 Theobroma Systems Ltd.
 

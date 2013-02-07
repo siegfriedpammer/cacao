@@ -1,6 +1,6 @@
 /* src/native/jni.cpp - implementation of the Java Native Interface functions
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.

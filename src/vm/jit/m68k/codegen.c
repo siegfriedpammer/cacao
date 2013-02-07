@@ -1,6 +1,6 @@
 /* src/vm/jit/m68k/codegen.c - machine code generator for m68k
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.

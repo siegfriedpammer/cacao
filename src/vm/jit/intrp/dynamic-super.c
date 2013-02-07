@@ -3,7 +3,7 @@
    Copyright (C) 1995,1996,1997,1998,2000,2003,2004 Free Software Foundation, Inc.
    Taken from Gforth.
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.

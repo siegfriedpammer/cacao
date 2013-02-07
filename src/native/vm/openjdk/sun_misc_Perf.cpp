@@ -1,6 +1,6 @@
 /* src/native/vm/openjdk/sun_misc_Perf.cpp - sun/misc/Perf
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 

@@ -1,6 +1,6 @@
 /* src/vm/jit/trap.hpp - hardware traps
 
-   Copyright (C) 2008
+   Copyright (C) 2008-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 

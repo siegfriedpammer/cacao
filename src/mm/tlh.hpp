@@ -1,6 +1,6 @@
 /* src/mm/tlh.h
 
-   Copyright (C) 2008
+   Copyright (C) 2008-2013
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.

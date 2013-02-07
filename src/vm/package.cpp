@@ -1,6 +1,6 @@
 /* src/vm/package.cpp - Java boot-package functions
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 2007-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.

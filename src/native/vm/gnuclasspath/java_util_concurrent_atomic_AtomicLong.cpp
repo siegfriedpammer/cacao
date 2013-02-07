@@ -1,6 +1,6 @@
 /* src/native/vm/gnuclasspath/java_util_concurrent_atomic_AtomicLong.cpp
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 2007-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.

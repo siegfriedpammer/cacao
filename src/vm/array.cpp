@@ -1,6 +1,6 @@
 /* src/vm/array.cpp - Java array functions
 
-   Copyright (C) 2007
+   Copyright (C) 2007-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008 Theobroma Systems Ltd.
 

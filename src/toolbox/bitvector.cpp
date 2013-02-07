@@ -1,6 +1,6 @@
 /* src/toolbox/bitvector.c - bitvector implementation
 
-   Copyright (C) 2005, 2006
+   Copyright (C) 2005-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008 Theobroma Systems Ltd.
 

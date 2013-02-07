@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/typecheck-invoke.inc - type checking for invocations
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.

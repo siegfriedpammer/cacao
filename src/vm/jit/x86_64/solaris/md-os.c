@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/solaris/md-os.c - machine dependent x86_64 Solaris functions
 
-   Copyright (C) 2008, 2009
+   Copyright (C) 2008-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
