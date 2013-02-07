@@ -219,7 +219,7 @@ JNIEXPORT jint JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass c
  */
 JNIEXPORT jstring JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIEnv *env, jclass clazz, jstring libname)
 {
-	utf           *u;
+	Utf8String     u;
 	char          *buffer;
 	int32_t        buffer_len;
 	java_handle_t *o;

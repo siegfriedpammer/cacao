@@ -43,10 +43,10 @@ public:
 	static void initialize_table();
 	static void post_initialize_table();
 
-	static classinfo*     get_class_by_name(utf *name);
+	static classinfo*     get_class_by_name(Utf8String name);
 	static classinfo*     get_class_by_type(int type);
 	static classinfo*     get_class_by_char(char ch);
-	static classinfo*     get_arrayclass_by_name(utf* name);
+	static classinfo*     get_arrayclass_by_name(Utf8String name);
 	static classinfo*     get_arrayclass_by_type(int type);
 
 	static int            get_type_by_wrapperclass(classinfo *c);

@@ -60,14 +60,14 @@ typedef struct descriptor_hash_entry descriptor_hash_entry;
 /* entry struct for the classrefhash of descriptor_pool */
 struct classref_hash_entry {
 	classref_hash_entry *hashlink;  /* for hash chaining            */
-	utf                 *name;      /* name of the class refered to */
+	Utf8String           name;      /* name of the class refered to */
 	u2                   index;     /* index into classref table    */
 };
 
 /* entry struct for the descriptorhash of descriptor_pool */
 struct descriptor_hash_entry {
 	descriptor_hash_entry *hashlink;
-	utf                   *desc;
+	Utf8String             desc;
 	parseddesc_t           parseddesc;
 	s2                     paramslots; /* number of params, LONG/DOUBLE counted as 2 */
 };

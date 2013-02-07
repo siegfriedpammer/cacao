@@ -160,9 +160,9 @@ JNIEXPORT jstring JNICALL Java_java_lang_reflect_VMMethod_getSignature(JNIEnv *e
  */
 JNIEXPORT jobject JNICALL Java_java_lang_reflect_VMMethod_getDefaultValue(JNIEnv *env, jobject _this)
 {
-	static methodinfo        *m_parseAnnotationDefault   = NULL; /* parser method (will be chached, therefore static) */
-	utf                      *utf_parseAnnotationDefault = NULL; /* parser method name                                */
-	utf                      *utf_desc        = NULL;            /* parser method descriptor (signature)              */
+	static methodinfo *m_parseAnnotationDefault   = NULL; /* parser method (will be chached, therefore static) */
+	Utf8String         utf_parseAnnotationDefault = NULL; /* parser method name                                */
+	Utf8String         utf_desc        = NULL;            /* parser method descriptor (signature)              */
 
 	if (_this == NULL) {
 		exceptions_throw_nullpointerexception();

@@ -809,9 +809,9 @@ JNIEXPORT jint JNICALL Java_sun_misc_Unsafe_pageSize(JNIEnv *env, jobject _this)
  */
 JNIEXPORT jclass JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_String_2_3BIILjava_lang_ClassLoader_2Ljava_security_ProtectionDomain_2(JNIEnv *env, jobject _this, jstring name, jbyteArray b, jint off, jint len, jobject loader, jobject protectionDomain)
 {
-	classloader_t   *cl;
-	utf             *utfname;
-	classinfo       *c;
+	classloader_t *cl;
+	Utf8String     utfname;
+	classinfo     *c;
 
 	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 

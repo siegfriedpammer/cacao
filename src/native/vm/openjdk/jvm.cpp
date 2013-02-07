@@ -1059,26 +1059,20 @@ jclass JVM_GetDeclaringClass(JNIEnv *env, jclass ofClass)
 
 jstring JVM_GetClassSignature(JNIEnv *env, jclass cls)
 {
-	classinfo     *c;
-	utf           *u;
-	java_handle_t *s;
-
 	TRACEJVMCALLS(("JVM_GetClassSignature(env=%p, cls=%p)", env, cls));
 
-	c = LLNI_classinfo_unwrap(cls);
+	classinfo *c = LLNI_classinfo_unwrap(cls);
 
 	/* Get the signature of the class. */
 
-	u = class_get_signature(c);
+	Utf8String u = class_get_signature(c);
 
 	if (u == NULL)
 		return NULL;
 
 	/* Convert UTF-string to a Java-string. */
 
-	s = JavaString::from_utf8(u);
-
-	return (jstring) s;
+	return (jstring) JavaString::from_utf8(u);
 }
 
 
@@ -1541,7 +1535,7 @@ jdouble JVM_ConstantPoolGetDoubleAt(JNIEnv *env, jobject unused, jobject jcpool,
 
 jstring JVM_ConstantPoolGetStringAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
-	utf *ref;       /* utf object for the string in constant pool at index 'index' */
+	Utf8String ref; /* utf object for the string in constant pool at index 'index' */
 	classinfo *cls; /* classinfo of the class for which 'this' is the constant pool */
 
 	TRACEJVMCALLS(("JVM_ConstantPoolGetStringAt: jcpool=%p, index=%d", jcpool, index));
@@ -1563,7 +1557,7 @@ jstring JVM_ConstantPoolGetStringAt(JNIEnv *env, jobject unused, jobject jcpool,
 
 jstring JVM_ConstantPoolGetUTF8At(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
-	utf *ref; /* utf object for the utf8 data in constant pool at index 'index' */
+	Utf8String ref; /* utf object for the utf8 data in constant pool at index 'index' */
 	classinfo *cls; /* classinfo of the class for which 'this' is the constant pool */
 
 	TRACEJVMCALLS(("JVM_ConstantPoolGetUTF8At: jcpool=%p, index=%d", jcpool, index));
@@ -2536,23 +2530,12 @@ jint JVM_ClassLoaderDepth(JNIEnv *env)
 
 jstring JVM_GetSystemPackage(JNIEnv *env, jstring name)
 {
-	java_handle_t *s;
-	utf *u;
-	utf *result;
-
 	TRACEJVMCALLS(("JVM_GetSystemPackage(env=%p, name=%p)", env, name));
 
-/* 	s = Package::find(name); */
-	u = JavaString((java_handle_t*) name).to_utf8();
+	Utf8String u      = JavaString((java_handle_t*) name).to_utf8();
+	Utf8String result = Package::find(u);
 
-	result = Package::find(u);
-
-	if (result != NULL)
-		s = JavaString::from_utf8(result);
-	else
-		s = NULL;
-
-	return (jstring) s;
+	return (jstring) (result ? JavaString::from_utf8(result) : NULL);
 }
 
 

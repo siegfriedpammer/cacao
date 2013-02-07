@@ -263,14 +263,8 @@ JNIEXPORT jboolean JNICALL Java_java_lang_VMThread_holdsLock(JNIEnv *env, jclass
 JNIEXPORT jstring JNICALL Java_java_lang_VMThread_getState(JNIEnv *env, jobject _this)
 {
 #if defined(ENABLE_THREADS)
-	java_handle_t *h;
-	int            state;
-	utf           *u;
-	java_handle_t *o;
-
-	h = (java_handle_t *) _this;
-
-	state = thread_handle_get_state(h);
+	java_handle_t *h     = (java_handle_t *) _this;
+	int            state = thread_handle_get_state(h);
 	
 	switch (state) {
 	case THREAD_STATE_NEW:

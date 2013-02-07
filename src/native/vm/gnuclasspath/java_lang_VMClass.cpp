@@ -524,22 +524,15 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClass_getEnclosingMethod(JNIEnv *env,
  */
 JNIEXPORT jstring JNICALL Java_java_lang_VMClass_getClassSignature(JNIEnv *env, jclass clazz, jclass klass)
 {
-	classinfo     *c;
-	utf           *u;
-	java_handle_t *s;
+	classinfo *c = LLNI_classinfo_unwrap(klass);
+	Utf8String u = class_get_signature(c);
 
-	c = LLNI_classinfo_unwrap(klass);
-
-	u = class_get_signature(c);
+	/* in error case return NULL */
 
 	if (u == NULL)
 		return NULL;
 
-	s = JavaString::from_utf8(u);
-
-	/* in error case s is NULL */
-
-	return (jstring) s;
+	return (jstring) JavaString::from_utf8(u);
 }
 
 

@@ -228,7 +228,7 @@ void Primitive::post_initialize_table()
  *
  * @return Class structure.
  */
-classinfo* Primitive::get_class_by_name(utf *name)
+classinfo* Primitive::get_class_by_name(Utf8String name)
 {
 	int i;
 
@@ -312,7 +312,7 @@ classinfo* Primitive::get_class_by_char(char ch)
  *
  * @return Class structure.
  */
-classinfo* Primitive::get_arrayclass_by_name(utf *name)
+classinfo* Primitive::get_arrayclass_by_name(Utf8String name)
 {
 	int i;
 

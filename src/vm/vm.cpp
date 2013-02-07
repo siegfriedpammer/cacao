@@ -1697,7 +1697,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 
 	/* load the main class */
 
-	utf* mainutf = Utf8String::from_utf8(mainname);
+	Utf8String mainutf = Utf8String::from_utf8(mainname);
 
 #if defined(ENABLE_JAVAME_CLDC1_1)
 	classinfo* mainclass = load_class_bootstrap(mainutf);

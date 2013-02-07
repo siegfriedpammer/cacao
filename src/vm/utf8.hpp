@@ -207,6 +207,14 @@ namespace utf8 {
 	#include "vm/utf8.inc"
 }
 
+// these are only used in old logging code
+
+void utf_display_printable_ascii(Utf8String u);
+void utf_display_printable_ascii_classname(Utf8String u);
+
+void utf_fprint_printable_ascii(FILE *file, Utf8String u);
+void utf_fprint_printable_ascii_classname(FILE *file, Utf8String u);
+
 #endif /* __cplusplus */
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -230,19 +238,13 @@ extern const char *utf8_end(utf*);
 extern size_t      utf8_size(utf*);
 extern size_t      utf8_hash(utf*);
 
-// these are only used in old logging code in the jit & jvmti
-
-void utf_display_printable_ascii(utf *u);
-void utf_display_printable_ascii_classname(utf *u);
+// these are only used in jvmti
 
 void utf_sprint_convert_to_latin1(char *buffer, utf *u);
 void utf_sprint_convert_to_latin1_classname(char *buffer, utf *u);
 
 void utf_strcat_convert_to_latin1(char *buffer, utf *u);
 void utf_strcat_convert_to_latin1_classname(char *buffer, utf *u);
-
-void utf_fprint_printable_ascii(FILE *file, utf *u);
-void utf_fprint_printable_ascii_classname(FILE *file, utf *u);
 
 #ifdef __cplusplus
 }

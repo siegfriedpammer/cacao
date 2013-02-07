@@ -489,7 +489,7 @@ class DisplayPrintableAscii {
 		FILE* _dst;
 };
 
-void utf_display_printable_ascii(utf *u)
+void utf_display_printable_ascii(Utf8String u)
 {
 	if (u == NULL) {
 		printf("NULL");
@@ -497,7 +497,7 @@ void utf_display_printable_ascii(utf *u)
 		return;
 	}
 
-	utf8::transform<void>(UTF_TEXT(u), UTF_SIZE(u),
+	utf8::transform<void>(u.begin(), u.size(),
 	                      DisplayPrintableAscii<identity>(stdout));
 }
 
@@ -510,7 +510,7 @@ void utf_display_printable_ascii(utf *u)
 
 *******************************************************************************/
 
-void utf_display_printable_ascii_classname(utf *u)
+void utf_display_printable_ascii_classname(Utf8String u)
 {
 	if (u == NULL) {
 		printf("NULL");
@@ -518,7 +518,7 @@ void utf_display_printable_ascii_classname(utf *u)
 		return;
 	}
 
-	utf8::transform<void>(UTF_TEXT(u), UTF_SIZE(u),
+	utf8::transform<void>(u.begin(), u.size(),
 	                      DisplayPrintableAscii<slash_to_dot>(stdout));
 }
 
@@ -615,11 +615,11 @@ void utf_strcat_convert_to_latin1_classname(char *buffer, utf *u)
 
 *******************************************************************************/
 
-void utf_fprint_printable_ascii(FILE *file, utf *u)
+void utf_fprint_printable_ascii(FILE *file, Utf8String u)
 {
 	if (!u) return;
 
-	utf8::transform<void>(UTF_TEXT(u), UTF_SIZE(u),
+	utf8::transform<void>(u.begin(), u.size(),
 	                      DisplayPrintableAscii<identity>(file));
 }
 
@@ -631,11 +631,11 @@ void utf_fprint_printable_ascii(FILE *file, utf *u)
 
 *******************************************************************************/
 
-void utf_fprint_printable_ascii_classname(FILE *file, utf *u)
+void utf_fprint_printable_ascii_classname(FILE *file, Utf8String u)
 {
 	if (!u) return;
 
-	utf8::transform<void>(UTF_TEXT(u), UTF_SIZE(u),
+	utf8::transform<void>(u.begin(), u.size(),
 	                      DisplayPrintableAscii<slash_to_dot>(file));
 }
 

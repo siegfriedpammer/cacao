@@ -30,8 +30,6 @@
 
 #include <stdint.h>
 
-#include <set>
-
 #include "vm/utf8.hpp"
 
 
@@ -39,12 +37,9 @@
  *
  */
 class Package {
-private:
-	static std::set<utf*> _packages;
-
 public:
-	static void add (utf* packagename);
-	static utf* find(utf* packagename);
+	static void       add (Utf8String packagename);
+	static Utf8String find(Utf8String packagename);
 };
 
 #endif // _VM_PACKAGE_HPP

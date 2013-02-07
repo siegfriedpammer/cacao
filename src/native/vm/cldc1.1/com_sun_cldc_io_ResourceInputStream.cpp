@@ -49,7 +49,7 @@
 #include "vm/zip.hpp"
 
 
-static java_handle_t* zip_read_resource(list_classpath_entry *lce, utf *name)
+static java_handle_t* zip_read_resource(list_classpath_entry *lce, Utf8String name)
 {
 	hashtable_zipfile_entry *htzfe;
 	lfh                      lfh;
@@ -188,7 +188,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_cldc_io_ResourceInputStream_open(JNIEnv *
 	char *filename;
 	s4 filenamelen;
 	char *path;
-	utf *uname;
+	Utf8String uname;
 	java_handle_t* descriptor;
 
 	// Get current list of classpath entries.
