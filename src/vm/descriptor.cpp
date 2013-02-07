@@ -147,9 +147,9 @@ extern "C" {
 
 int descriptor_to_basic_type(Utf8String descriptor)
 {
-	assert(UTF_SIZE(descriptor) >= 1);
+	assert(descriptor.size() >= 1);
 	
-	switch (UTF_AT(descriptor, 0)) {
+	switch (descriptor[0]) {
 	case 'Z':
 	case 'B':
 	case 'C':
@@ -171,8 +171,7 @@ int descriptor_to_basic_type(Utf8String descriptor)
 		return TYPE_ADR;
 
 	default:
-		vm_abort("descriptor_to_basic_type: invalid type %c", 
-		         UTF_AT(descriptor, 0));
+		vm_abort("descriptor_to_basic_type: invalid type %c", descriptor[0]);
 	}
 
 	/* keep the compiler happy */

@@ -105,7 +105,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 	   check against them here before the call of
 	   descriptor_to_basic_type below. */
 
-	if (UTF_AT(u, 0) == '(') {
+	if (u[0] == '(') {
 		exceptions_throw_classformaterror(c, "Method descriptor used for field");
 		return false;
 	}
@@ -351,7 +351,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 classinfo *field_get_type(fieldinfo *f)
 {
 	typedesc  *td;
-	utf       *u;
+	Utf8String u;
 	classinfo *c;
 
 	td = f->parseddesc;
