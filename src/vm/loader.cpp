@@ -910,15 +910,18 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 *******************************************************************************/
 
 #if defined(ENABLE_JAVASE)
-bool loader_load_attribute_signature(classbuffer *cb, utf **signature)
+bool loader_load_attribute_signature(classbuffer *cb, Utf8String& signature)
 {
-	classinfo *c;
-	u4         attribute_length;
-	u2         signature_index;
-
 	/* get classinfo */
 
-	c = cb->clazz;
+	classinfo *c = cb->clazz;
+
+	/* destination must be NULL */
+
+	if (signature != NULL) {
+		exceptions_throw_classformaterror(c, "Multiple Signature attributes");
+		return false;
+	}
 
 	/* check remaining bytecode */
 
@@ -927,28 +930,20 @@ bool loader_load_attribute_signature(classbuffer *cb, utf **signature)
 
 	/* check attribute length */
 
-	attribute_length = suck_u4(cb);
+	u4 attribute_length = suck_u4(cb);
 
 	if (attribute_length != 2) {
 		exceptions_throw_classformaterror(c, "Wrong size for VALUE attribute");
 		return false;
 	}
 
-	if (*signature != NULL) {
-		exceptions_throw_classformaterror(c, "Multiple Signature attributes");
-		return false;
-	}
-
 	/* get signature */
 
-	signature_index = suck_u2(cb);
+	u2 signature_index = suck_u2(cb);
 
-	*signature = (utf*) class_getconstant(c, signature_index, CONSTANT_Utf8);
+	signature = (utf*) class_getconstant(c, signature_index, CONSTANT_Utf8);
 
-	if (*signature == NULL)
-		return false;
-
-	return true;
+	return signature != NULL;
 }
 #endif /* defined(ENABLE_JAVASE) */
 
@@ -967,7 +962,7 @@ bool loader_load_attribute_signature(classbuffer *cb, utf **signature)
 *******************************************************************************/
 
 #if defined(ENABLE_JAVASE)
-classinfo *load_class_from_sysloader(utf *name)
+classinfo *load_class_from_sysloader(Utf8String name)
 {
 	classloader_t *cl;
 	classinfo     *c;
@@ -998,7 +993,7 @@ classinfo *load_class_from_sysloader(utf *name)
 
 *******************************************************************************/
 
-classinfo *load_class_from_classloader(utf *name, classloader_t *cl)
+classinfo *load_class_from_classloader(Utf8String name, classloader_t *cl)
 {
 	java_handle_t *o;
 	classinfo     *c;
@@ -1201,7 +1196,7 @@ classinfo *load_class_from_classloader(utf *name, classloader_t *cl)
 
 *******************************************************************************/
 
-classinfo *load_class_bootstrap(utf *name)
+classinfo *load_class_bootstrap(Utf8String name)
 {
 	classbuffer *cb;
 	classinfo   *c;

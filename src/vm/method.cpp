@@ -529,8 +529,16 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 		else if (attribute_name == utf8::Signature) {
 			/* Signature */
 
-			if (!loader_load_attribute_signature(cb, &(m->signature)))
-				return false;
+			// TODO: change methodinfo.signature to Utf8String
+			//       and use it directly
+
+			Utf8String signature = m->signature;
+
+			if (!loader_load_attribute_signature(cb, signature)) {
+				return NULL;
+			}
+
+			m->signature = signature;
 		}
 
 # if defined(ENABLE_ANNOTATIONS)

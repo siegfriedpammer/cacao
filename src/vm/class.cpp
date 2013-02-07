@@ -582,8 +582,16 @@ bool class_load_attributes(classbuffer *cb)
 		else if (attribute_name == utf8::Signature) {
 			/* Signature */
 
-			if (!loader_load_attribute_signature(cb, &(c->signature)))
-				return false;
+			// TODO: change classinfo.signature to Utf8String
+			//       and use it directly
+
+			Utf8String signature = c->signature;
+
+			if (!loader_load_attribute_signature(cb, signature)) {
+				return NULL;
+			}
+
+			c->signature = signature;
 		}
 #endif
 

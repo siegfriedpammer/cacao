@@ -311,8 +311,16 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 		else if (u == utf8::Signature) {
 			/* Signature */
 
-			if (!loader_load_attribute_signature(cb, &(f->signature)))
-				return false;
+			// TODO: change fieldinfo.signature to Utf8String
+			//       and use it directly
+
+			Utf8String signature = f->signature;
+
+			if (!loader_load_attribute_signature(cb, signature)) {
+				return NULL;
+			}
+
+			f->signature = signature;
 		}
 
 #if defined(ENABLE_ANNOTATIONS)

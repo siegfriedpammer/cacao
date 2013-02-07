@@ -43,10 +43,10 @@ typedef struct stacktrace_t       stacktrace_t;
 #include "threads/thread.hpp"
 
 #include "vm/class.hpp"
+#include "vm/loader.hpp"
 #include "vm/global.h"
 
 #include "vm/jit/code.hpp"
-
 
 /* stackframeinfo **************************************************************
 
