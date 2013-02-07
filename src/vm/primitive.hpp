@@ -104,6 +104,8 @@ public:
 
 /* primitivetypeinfo **********************************************************/
 
+typedef struct primitivetypeinfo primitivetypeinfo;
+
 struct primitivetypeinfo {
 	const char* cname;                   /* char name of primitive class      */
 	utf*        name;                    /* name of primitive class           */

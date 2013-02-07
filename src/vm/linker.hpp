@@ -26,12 +26,6 @@
 #ifndef _LINKER_H
 #define _LINKER_H
 
-/* forward typedefs ***********************************************************/
-
-typedef struct arraydescriptor arraydescriptor;
-typedef struct primitivetypeinfo primitivetypeinfo;
-
-
 #include "config.h"
 #include "vm/types.h"
 
@@ -41,6 +35,7 @@ typedef struct primitivetypeinfo primitivetypeinfo;
 #include "vm/references.h"
 #include "vm/vftbl.hpp"
 
+#ifdef __cplusplus
 
 /* arraydescriptor *************************************************************
 
@@ -82,20 +77,26 @@ extern Mutex *linker_classrenumber_lock;
 
 /* function prototypes ********************************************************/
 
+void       linker_preinit(void);
+void       linker_init(void);
+
+void linker_create_string_later(java_object_t **a, Utf8String u);
+void linker_initialize_deferred_strings();
+
+#endif /* __cplusplus */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void       linker_preinit(void);
-void       linker_init(void);
+// TODO: remove 'extern "C"', this is used in an inline function in 
+//       class.hpp (class_is_array) and thus visible to all machine code emitters
 classinfo *link_class(classinfo *c);
-
-void linker_create_string_later(java_object_t **a, utf *u);
-void linker_initialize_deferred_strings();
 
 #ifdef __cplusplus
 }
-#endif
+#endif /* __cplusplus */
+
 
 #endif /* _LINKER_H */
 

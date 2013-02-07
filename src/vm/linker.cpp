@@ -100,10 +100,6 @@ static s4 classvalue;
 Mutex *linker_classrenumber_lock;
 #endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 /* private functions **********************************************************/
 
 static classinfo *link_class_intern(classinfo *c);
@@ -114,7 +110,7 @@ static bool linker_addinterface(classinfo *c, classinfo *ic);
 static s4 class_highestinterface(classinfo *c);
 
 
-typedef std::vector<std::pair<java_object_t**, utf*> > deferred_strings_vec_t;
+typedef std::vector<std::pair<java_object_t**, Utf8String> > deferred_strings_vec_t;
 static deferred_strings_vec_t deferred_strings;
 
 /* linker_init *****************************************************************
@@ -1204,7 +1200,7 @@ static arraydescriptor *link_array(classinfo *c)
    A hack so we can initialize java.lang.String objects during initialization.
 
 *******************************************************************************/
-void linker_create_string_later(java_object_t **a, utf *u)
+void linker_create_string_later(java_object_t **a, Utf8String u)
 {
 	deferred_strings.push_back(std::make_pair(a, u));
 }
@@ -1423,10 +1419,6 @@ static s4 class_highestinterface(classinfo *c)
 
 	return h;
 }
-
-#if defined(__cplusplus)
-}
-#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.
