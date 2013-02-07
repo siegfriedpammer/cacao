@@ -88,14 +88,14 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 	if (!(u = (utf*) class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 		return false;
 
-	f->name = u;
+	f->name = u.c_ptr();
 
 	/* Get descriptor. */
 
 	if (!(u = (utf*) class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 		return false;
 
-	f->descriptor = u;
+	f->descriptor = u.c_ptr();
 	f->parseddesc = NULL;
 
 	if (!descriptor_pool_add(descpool, u, NULL))
@@ -320,7 +320,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 				return NULL;
 			}
 
-			f->signature = signature;
+			f->signature = signature.c_ptr();
 		}
 
 #if defined(ENABLE_ANNOTATIONS)

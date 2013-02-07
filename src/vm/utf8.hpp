@@ -157,7 +157,10 @@ class Utf8String {
 
 		// for checking against NULL,
 		// also allows interop with legacy C code
-		inline operator utf*() const { return (utf*) _data; }
+		inline operator void*() const { return _data; }
+//		inline operator utf*() const { return (utf*) _data; }
+
+		inline utf* c_ptr() const { return (utf*) _data; }
 
 		// create substring
 		Utf8String substring(size_t from ) const;

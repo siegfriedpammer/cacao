@@ -688,7 +688,7 @@ descriptor_pool_create_classrefs(descriptor_pool *pool, s4 *count)
 		c = (classref_hash_entry *) pool->classrefhash.ptr[slot];
 		while (c) {
 			ref = pool->classrefs + c->index;
-			CLASSREF_INIT(*ref, pool->referer, c->name);
+			CLASSREF_INIT(*ref, pool->referer, c->name.c_ptr());
 			c = c->hashlink;
 		}
 	}

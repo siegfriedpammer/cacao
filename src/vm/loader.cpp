@@ -758,7 +758,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			}
 #endif /* ENABLE_VERIFIER */
 			/* insert utf-string into the utf-symboltable */
-			cpinfos[idx] = (utf*) u;
+			cpinfos[idx] = u.c_ptr();
 
 			/* skip bytes of the string (buffer size check above) */
 			suck_skip_nbytes(cb, length);
@@ -842,13 +842,13 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			if (!Utf8String(cn->name).is_valid_name()) {
 				exceptions_throw_classformaterror(c,
 				                                  "Illegal Field name \"%s\"",
-				                                  UTF_TEXT(cn->name));
+				                                  cn->name.begin());
 
 				return false;
 			}
 
 			/* disallow referencing <clinit> among others */
-			if (UTF_AT(cn->name, 0) == '<' && cn->name != utf8::init) {
+			if (cn->name[0] == '<' && cn->name != utf8::init) {
 				exceptions_throw_classformaterror(c, "Illegal reference to special method");
 				return false;
 			}
@@ -885,11 +885,11 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 
 		/* the classref is created later */
 
-		fmi->p.index = it->class_index;
-		fmi->name = nat->name;
-		fmi->descriptor = nat->descriptor;
+		fmi->p.index    = it->class_index;
+		fmi->name       = nat->name.c_ptr();
+		fmi->descriptor = nat->descriptor.c_ptr();
 
-		cptags[it->thisindex] = it->tag;
+		cptags[it->thisindex]  = it->tag;
 		cpinfos[it->thisindex] = fmi;
 	}
 
@@ -1025,8 +1025,8 @@ classinfo *load_class_from_classloader(Utf8String name, classloader_t *cl)
 		const char *text;
 		s4          namelen;
 
-		text    = UTF_TEXT(name);
-		namelen = UTF_SIZE(name);
+		text    = name.begin();
+		namelen = name.size();
 
 		/* handle array classes */
 		if (text[0] == '[') {
@@ -1232,7 +1232,7 @@ classinfo *load_class_bootstrap(Utf8String name)
 
 	/* handle array classes */
 
-	if (UTF_AT(name, 0) == '[') {
+	if (name[0] == '[') {
 		c = load_newly_created_array(c, NULL);
 
 		if (c == NULL)
@@ -1460,7 +1460,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	if (c->name == utf8::not_named_yet) {
 		/* we finally have a name for this class */
-		c->name = name;
+		c->name = name.c_ptr();
 		class_set_packagename(c);
 	}
 	else if (name != c->name) {
@@ -2097,12 +2097,12 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 	classrefs = MNEW(constant_classref, 2);
 
 	CLASSREF_INIT(classrefs[0], c, c->name);
-	CLASSREF_INIT(classrefs[1], c, utf8::java_lang_Object);
+	CLASSREF_INIT(classrefs[1], c, utf8::java_lang_Object.c_ptr());
 
 	/* create descriptor for clone method */
 	/* we need one paramslot which is reserved for the 'this' parameter */
 	clonedesc = NEW(methoddesc);
-	clonedesc->returntype.type = TYPE_ADR;
+	clonedesc->returntype.type     = TYPE_ADR;
 	clonedesc->returntype.classref = classrefs + 1;
 	clonedesc->returntype.arraydim = 0;
 	/* initialize params to "empty", add real params below in
@@ -2123,8 +2123,8 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 
 	clone->mutex      = new Mutex();
 	clone->flags      = ACC_PUBLIC | ACC_NATIVE;
-	clone->name       = utf8::clone;
-	clone->descriptor = utf8::void__java_lang_Object;
+	clone->name       = utf8::clone.c_ptr();
+	clone->descriptor = utf8::void__java_lang_Object.c_ptr();
 	clone->parseddesc = clonedesc;
 	clone->clazz      = c;
 

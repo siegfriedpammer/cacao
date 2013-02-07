@@ -86,7 +86,7 @@
 	opcode = state->iptr->opc;
 	invokestatic = (opcode == ICMD_INVOKESTATIC);
 	invokespecial = (opcode == ICMD_INVOKESPECIAL);
-	specialmethod = (UTF_AT(mname, 0) == '<');
+	specialmethod = (mname[0] == '<');
 
 	/* prevent compiler warnings */
 

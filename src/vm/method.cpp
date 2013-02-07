@@ -186,7 +186,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 	if (!(u = (utf*) class_getconstant(c, name_index, CONSTANT_Utf8)))
 		return false;
 
-	m->name = u;
+	m->name = u.c_ptr();
 
 	/* descriptor */
 
@@ -195,7 +195,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 	if (!(u = (utf*) class_getconstant(c, descriptor_index, CONSTANT_Utf8)))
 		return false;
 
-	m->descriptor = u;
+	m->descriptor = u.c_ptr();
 
 	if (!descriptor_pool_add(descpool, u, &argcount))
 		return false;
@@ -538,7 +538,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 				return NULL;
 			}
 
-			m->signature = signature;
+			m->signature = signature.c_ptr();
 		}
 
 # if defined(ENABLE_ANNOTATIONS)
