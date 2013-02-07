@@ -146,7 +146,7 @@ void resolve_handle_pending_exception(bool throwError)
 
 bool resolve_class_from_name(classinfo *referer,
 							 methodinfo *refmethod,
-							 utf *classname,
+							 Utf8String classname,
 							 resolve_mode_t mode,
 							 bool checkaccess,
 							 bool link,
@@ -182,9 +182,9 @@ bool resolve_class_from_name(classinfo *referer,
 	if (!cls) {
 		/* resolve array types */
 
-		if (UTF_AT(classname, 0) == '[') {
-			utf_ptr = UTF_TEXT(classname) + 1;
-			len     = UTF_SIZE(classname) - 1;
+		if (classname[0] == '[') {
+			utf_ptr = classname.begin() + 1;
+			len     = classname.size()  - 1;
 
 			/* classname is an array type name */
 
