@@ -50,7 +50,6 @@ typedef struct methoddesc      methoddesc;
 
 #include "arch.h"		/* needed for HAS_ADDRESS_REGISTER_FILE */
 
-
 /* data structures ************************************************************/
 
 /*----------------------------------------------------------------------------*/
@@ -149,27 +148,28 @@ struct methoddesc {
 
 #define METHODDESC_NOPARAMS  ((paramdesc*)1)
 
+#ifdef __cplusplus
+
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
 extern "C" {
 
 descriptor_pool * descriptor_pool_new(classinfo *referer);
 
-bool descriptor_pool_add_class(descriptor_pool *pool,utf *name);
-bool descriptor_pool_add(descriptor_pool *pool,utf *desc,int *paramslots);
+bool descriptor_pool_add_class(descriptor_pool *pool, Utf8String name);
+bool descriptor_pool_add(descriptor_pool *pool,Utf8String desc,int *paramslots);
 
-int  descriptor_to_basic_type(utf *desc);
+int  descriptor_to_basic_type(Utf8String desc);
 int  descriptor_typesize(typedesc *td);
 
 constant_classref * descriptor_pool_create_classrefs(descriptor_pool *pool,
 													 s4 *count);
-constant_classref * descriptor_pool_lookup_classref(descriptor_pool *pool,utf *classname);
+constant_classref * descriptor_pool_lookup_classref(descriptor_pool *pool,Utf8String classname);
 
 void descriptor_pool_alloc_parsed_descriptors(descriptor_pool *pool);
 
 typedesc *descriptor_pool_parse_field_descriptor(descriptor_pool *pool, Utf8String desc);
-methoddesc *descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc, s4 mflags,
+methoddesc *descriptor_pool_parse_method_descriptor(descriptor_pool *pool, Utf8String desc, s4 mflags,
 													constant_classref *thisclass);
 
 void descriptor_params_from_paramtypes(methoddesc *md, s4 mflags);
@@ -185,7 +185,7 @@ void descriptor_pool_debug_dump(descriptor_pool *pool, FILE *file);
 #endif /* !defined(NDEBUG) */
 
 }
-#endif
+#endif /* __cplusplus */
 
 #endif /* _DESCRIPTOR_H */
 

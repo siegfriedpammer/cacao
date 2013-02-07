@@ -145,7 +145,7 @@ extern "C" {
 
 *******************************************************************************/
 
-int descriptor_to_basic_type(utf *descriptor)
+int descriptor_to_basic_type(Utf8String descriptor)
 {
 	assert(UTF_SIZE(descriptor) >= 1);
 	
@@ -262,7 +262,7 @@ int descriptor_typesize(typedesc *td)
 static bool 
 name_from_descriptor(classinfo *c,
 					 const char *utf_ptr, const char *end_ptr,
-					 const char **next, int mode, utf **name)
+					 const char **next, int mode, Utf8String *name)
 {
 	const char *start = utf_ptr;
 	bool error = false;
@@ -335,7 +335,7 @@ static bool
 descriptor_to_typedesc(descriptor_pool *pool, const char *utf_ptr, const char *end_pos,
 					   const char **next, typedesc *td)
 {
-	utf *name;
+	Utf8String name;
 	
 	if (!name_from_descriptor(pool->referer, utf_ptr, end_pos, next, 0, &name))
 		return false;
@@ -345,7 +345,7 @@ descriptor_to_typedesc(descriptor_pool *pool, const char *utf_ptr, const char *e
 		td->type = TYPE_ADR;
 		td->primitivetype = TYPE_ADR;
 		td->arraydim = 0;
-		for (utf_ptr = UTF_TEXT(name); *utf_ptr == '['; ++utf_ptr)
+		for (utf_ptr = name.begin(); *utf_ptr == '['; ++utf_ptr)
 			td->arraydim++;
 		td->classref = descriptor_pool_lookup_classref(pool, name);
 
@@ -466,7 +466,7 @@ descriptor_pool_new(classinfo *referer)
 *******************************************************************************/
 
 bool 
-descriptor_pool_add_class(descriptor_pool *pool, utf *name)
+descriptor_pool_add_class(descriptor_pool *pool, Utf8String name)
 {
 	u4 key,slot;
 	classref_hash_entry *c;
@@ -481,9 +481,9 @@ descriptor_pool_add_class(descriptor_pool *pool, utf *name)
 
 	/* find a place in the hashtable */
 
-	key = UTF_HASH(name);
+	key  = name.hash();
 	slot = key & (pool->classrefhash.size - 1);
-	c = (classref_hash_entry *) pool->classrefhash.ptr[slot];
+	c    = (classref_hash_entry *) pool->classrefhash.ptr[slot];
 
 	while (c) {
 		if (c->name == name)
@@ -529,13 +529,13 @@ descriptor_pool_add_class(descriptor_pool *pool, utf *name)
 *******************************************************************************/
 
 bool 
-descriptor_pool_add(descriptor_pool *pool, utf *desc, int *paramslots)
+descriptor_pool_add(descriptor_pool *pool, Utf8String desc, int *paramslots)
 {
 	u4 key,slot;
 	descriptor_hash_entry *d;
 	const char *utf_ptr;
 	const char *end_pos;
-	utf *name;
+	Utf8String name;
 	s4 argcount = 0;
 	
 #ifdef DESCRIPTOR_VERBOSE
@@ -548,14 +548,14 @@ descriptor_pool_add(descriptor_pool *pool, utf *desc, int *paramslots)
 
 	/* find a place in the hashtable */
 
-	key = UTF_HASH(desc);
+	key  = desc.hash();
 	slot = key & (pool->descriptorhash.size - 1);
-	d = (descriptor_hash_entry *) pool->descriptorhash.ptr[slot];
+	d    = (descriptor_hash_entry *) pool->descriptorhash.ptr[slot];
 
 	/* Save all method descriptors in the hashtable, since the parsed         */
 	/* descriptor may vary between differenf methods (static vs. non-static). */
 
-	utf_ptr = UTF_TEXT(desc);
+	utf_ptr = desc.begin();
 
 	if (*utf_ptr != '(') {
 		while (d) {
@@ -578,7 +578,7 @@ descriptor_pool_add(descriptor_pool *pool, utf *desc, int *paramslots)
 
 	/* now check the descriptor */
 
-	end_pos = UTF_END(desc);
+	end_pos = desc.end();
 	
 	if (*utf_ptr == '(') {
 		/* a method descriptor */
@@ -716,7 +716,7 @@ descriptor_pool_create_classrefs(descriptor_pool *pool, s4 *count)
 *******************************************************************************/
 
 constant_classref * 
-descriptor_pool_lookup_classref(descriptor_pool *pool, utf *classname)
+descriptor_pool_lookup_classref(descriptor_pool *pool, Utf8String classname)
 {
 	u4 key,slot;
 	classref_hash_entry *c;
@@ -725,9 +725,9 @@ descriptor_pool_lookup_classref(descriptor_pool *pool, utf *classname)
 	assert(pool->classrefs);
 	assert(classname);
 
-	key = UTF_HASH(classname);
+	key  = classname.hash();
 	slot = key & (pool->classrefhash.size - 1);
-	c = (classref_hash_entry *) pool->classrefhash.ptr[slot];
+	c    = (classref_hash_entry *) pool->classrefhash.ptr[slot];
 
 	while (c) {
 		if (c->name == classname)
@@ -818,9 +818,9 @@ descriptor_pool_parse_field_descriptor(descriptor_pool *pool, Utf8String desc)
 
 	/* lookup the descriptor in the hashtable */
 
-	key = UTF_HASH(desc);
+	key  = desc.hash();
 	slot = key & (pool->descriptorhash.size - 1);
-	d = (descriptor_hash_entry *) pool->descriptorhash.ptr[slot];
+	d    = (descriptor_hash_entry *) pool->descriptorhash.ptr[slot];
 
 	while (d) {
 		if (d->desc == desc) {
@@ -877,7 +877,7 @@ descriptor_pool_parse_field_descriptor(descriptor_pool *pool, Utf8String desc)
 *******************************************************************************/
 
 methoddesc * 
-descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
+descriptor_pool_parse_method_descriptor(descriptor_pool *pool, Utf8String desc,
 										s4 mflags,constant_classref *thisclass)
 {
 	u4 key, slot;
@@ -901,7 +901,7 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 
 	/* check that it is a method descriptor */
 	
-	if (UTF_AT(desc, 0) != '(') {
+	if (desc[0] != '(') {
 		exceptions_throw_classformaterror(pool->referer,
 										  "Field descriptor used in method reference");
 		return NULL;
@@ -909,9 +909,9 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 
 	/* lookup the descriptor in the hashtable */
 
-	key = UTF_HASH(desc);
+	key  = desc.hash();
 	slot = key & (pool->descriptorhash.size - 1);
-	d = (descriptor_hash_entry *) pool->descriptorhash.ptr[slot];
+	d   = (descriptor_hash_entry *) pool->descriptorhash.ptr[slot];
 
 	/* find an un-parsed descriptor */
 
@@ -928,8 +928,8 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 	md->pool_lock = reinterpret_cast<Mutex*>(pool->descriptors - sizeof(Mutex));
 	pool->descriptors_next += sizeof(methoddesc) - sizeof(typedesc);
 
-	utf_ptr = UTF_TEXT(desc) + 1; /* skip '(' */
-	end_pos = UTF_END(desc);
+	utf_ptr = desc.begin() + 1; /* skip '(' */
+	end_pos = desc.end();
 
 	td = md->paramtypes;
 
