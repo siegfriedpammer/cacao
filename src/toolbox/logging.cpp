@@ -149,7 +149,7 @@ void log_print(const char *text, ...)
 
 *******************************************************************************/
 
-void log_classname(utf* u)
+void log_classname(Utf8String u)
 {
 	FILE* log = get_log();
 
@@ -199,7 +199,7 @@ void log_println(const char *text, ...)
 
 *******************************************************************************/
 
-void log_message_utf(const char *msg, utf *u)
+void log_message_utf(const char *msg, Utf8String u)
 {
 	log_start();
 

@@ -57,19 +57,22 @@ void log_println(const char *text, ...);
 
 void log_finish(void);
 
+#define log_text(s) log_println("%s", (s))
+#define dolog       log_println
+
+#ifdef __cplusplus
+}
+#endif
+
+#ifdef __cplusplus
 
 /* log message functions */
-void log_message_utf(const char *msg, utf *u);
+void log_message_utf(const char *msg, Utf8String u);
 void log_message_class(const char *msg, classinfo *c);
 void log_message_class_message_class(const char *msg1, classinfo *c1,
 									 const char *msg2, classinfo *c2);
 void log_message_method(const char *msg, methodinfo *m);
 
-#define log_text(s) log_println("%s", (s))
-#define dolog log_println
-
-#ifdef __cplusplus
-}
 #endif
 
 #endif /* _LOGGING_H */
