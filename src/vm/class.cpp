@@ -122,7 +122,7 @@ void class_set_packagename(classinfo *c)
 
 /* class_create_classinfo ******************************************************
 
-   Create a new classinfo struct. The class name is set to the given utf *,
+   Create a new classinfo struct. The class name is set to the given utf string,
    most other fields are initialized to zero.
 
    Note: classname may be NULL. In this case a not-yet-named classinfo is
@@ -131,7 +131,7 @@ void class_set_packagename(classinfo *c)
 
 *******************************************************************************/
 
-classinfo *class_create_classinfo(utf *classname)
+classinfo *class_create_classinfo(Utf8String classname)
 {
 	classinfo *c;
 
@@ -232,7 +232,7 @@ void class_postset_header_vftbl(void)
 
 *******************************************************************************/
 
-classinfo *class_define(utf *name, classloader_t *cl, int32_t length, uint8_t *data, java_handle_t *pd)
+classinfo *class_define(Utf8String name, classloader_t *cl, int32_t length, uint8_t *data, java_handle_t *pd)
 {
 	classinfo   *c;
 	classinfo   *r;
@@ -789,8 +789,8 @@ void class_free(classinfo *c)
 
 *******************************************************************************/
 
-static classinfo *get_array_class(utf *name,classloader_t *initloader,
-											classloader_t *defloader,bool link)
+static classinfo *get_array_class(Utf8String name,classloader_t *initloader,
+											      classloader_t *defloader,bool link)
 {
 	classinfo *c;
 	
@@ -937,7 +937,7 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
    
 *******************************************************************************/
 
-constant_classref *class_lookup_classref(classinfo *cls, utf *name)
+constant_classref *class_lookup_classref(classinfo *cls, Utf8String name)
 {
 	constant_classref *ref;
 	extra_classref *xref;
@@ -981,7 +981,7 @@ constant_classref *class_lookup_classref(classinfo *cls, utf *name)
    
 *******************************************************************************/
 
-constant_classref *class_get_classref(classinfo *cls, utf *name)
+constant_classref *class_get_classref(classinfo *cls, Utf8String name)
 {
 	constant_classref *ref;
 	extra_classref *xref;
@@ -1126,7 +1126,7 @@ constant_classref *class_get_classref_component_of(constant_classref *ref)
 
 *******************************************************************************/
 
-methodinfo *class_findmethod(classinfo *c, utf *name, utf *desc)
+methodinfo *class_findmethod(classinfo *c, Utf8String name, Utf8String desc)
 {
 	methodinfo *m;
 	s4          i;
@@ -1150,7 +1150,7 @@ methodinfo *class_findmethod(classinfo *c, utf *name, utf *desc)
 
 *******************************************************************************/
 
-methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *desc)
+methodinfo *class_resolvemethod(classinfo *c, Utf8String name, Utf8String desc)
 {
 	methodinfo *m;
 
@@ -1184,7 +1184,7 @@ methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *desc)
 *******************************************************************************/
 
 static methodinfo *class_resolveinterfacemethod_intern(classinfo *c,
-													   utf *name, utf *desc)
+													   Utf8String name, Utf8String desc)
 {
 	methodinfo *m;
 	s4          i;
@@ -1221,7 +1221,7 @@ static methodinfo *class_resolveinterfacemethod_intern(classinfo *c,
 
 *******************************************************************************/
 
-methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
+methodinfo *class_resolveclassmethod(classinfo *c, Utf8String name, Utf8String desc,
 									 classinfo *referer, bool throwexception)
 {
 	classinfo  *cls;
@@ -1282,7 +1282,7 @@ methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
 
 *******************************************************************************/
 
-methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *desc,
+methodinfo *class_resolveinterfacemethod(classinfo *c, Utf8String name, Utf8String desc,
 										 classinfo *referer, bool throwexception)
 {
 	methodinfo *mi;
@@ -1320,7 +1320,7 @@ methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *desc,
 
 *******************************************************************************/
 
-fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc)
+fieldinfo *class_findfield(classinfo *c, Utf8String name, Utf8String desc)
 {
 	s4 i;
 
@@ -1342,7 +1342,7 @@ fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc)
 
 *******************************************************************************/
  
-fieldinfo *class_findfield_by_name(classinfo* c, utf* name)
+fieldinfo *class_findfield_by_name(classinfo* c, Utf8String name)
 {
 	for (int32_t i = 0; i < c->fieldscount; i++) {
 		fieldinfo* f = &(c->fields[i]);
@@ -1366,7 +1366,7 @@ fieldinfo *class_findfield_by_name(classinfo* c, utf* name)
 
 *******************************************************************************/
 
-static fieldinfo *class_resolvefield_int(classinfo *c, utf *name, utf *desc)
+static fieldinfo *class_resolvefield_int(classinfo *c, Utf8String name, Utf8String desc)
 {
 	fieldinfo *fi;
 	s4         i;
@@ -1408,7 +1408,7 @@ static fieldinfo *class_resolvefield_int(classinfo *c, utf *name, utf *desc)
 
 *******************************************************************************/
 
-fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc, classinfo *referer)
+fieldinfo *class_resolvefield(classinfo *c, Utf8String name, Utf8String desc, classinfo *referer)
 {
 	fieldinfo *fi;
 
@@ -2233,7 +2233,7 @@ int32_t class_get_modifiers(classinfo *c, bool ignoreInnerClassesAttrib)
 
 
 /**
- * Helper function for the CLASS_IS_OR_ALMOST_INITIALIZED macro.
+ * Helper function for the function class_is_or_almost_initialized.
  */
 bool class_initializing_thread_is_self(classinfo *c)
 {
@@ -2249,7 +2249,7 @@ bool class_initializing_thread_is_self(classinfo *c)
 *******************************************************************************/
 
 #if defined(ENABLE_JAVASE)
-utf *class_get_signature(classinfo *c)
+Utf8String class_get_signature(classinfo *c)
 {
 	/* For array and primitive classes return NULL. */
 

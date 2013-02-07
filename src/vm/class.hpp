@@ -63,13 +63,6 @@ typedef struct extra_classref extra_classref;
 #define CLASS_INITIALIZED     0x0020
 #define CLASS_ERROR           0x0040
 
-
-/* some macros ****************************************************************/
-
-#define CLASS_IS_OR_ALMOST_INITIALIZED(c) \
-    (((c)->state & CLASS_INITIALIZED) || ((c)->state & CLASS_INITIALIZING && class_initializing_thread_is_self((c))))
-
-
 /* classinfo ******************************************************************/
 
 /* We define this dummy structure of java_lang_Class so we can
@@ -188,11 +181,108 @@ struct extra_classref {
 };
 
 
-/* inline functions ***********************************************************/
-
 #ifdef __cplusplus
-extern "C" {
+
+/* function prototypes ********************************************************/
+
+classinfo *class_create_classinfo(Utf8String u);
+void       class_postset_header_vftbl(void);
+classinfo *class_define(Utf8String name, classloader_t *cl, int32_t length, uint8_t *data, java_handle_t *pd);
+void       class_set_packagename(classinfo *c);
+
+bool       class_load_attributes(classbuffer *cb);
+
+/* retrieve constantpool element */
+void* class_getconstant(classinfo *c, u4 pos, u4 ctype);
+void* innerclass_getconstant(classinfo *c, u4 pos, u4 ctype);
+
+/* frees all resources used by the class */
+void class_free(classinfo *);
+
+/* return an array class with the given component class */
+classinfo *class_array_of(classinfo *component,bool link);
+
+/* return an array class with the given dimension and element class */
+classinfo *class_multiarray_of(s4 dim, classinfo *element,bool link);
+
+/* return a classref for the given class name */
+/* (does a linear search!)                    */
+constant_classref *class_lookup_classref(classinfo *cls,Utf8String name);
+
+/* return a classref for the given class name */
+/* (does a linear search!)                    */
+constant_classref *class_get_classref(classinfo *cls,Utf8String name);
+
+/* return a classref to the class itself */
+/* (does a linear search!)                    */
+constant_classref *class_get_self_classref(classinfo *cls);
+
+/* return a classref for an array with the given dimension of with the */
+/* given component type */
+constant_classref *class_get_classref_multiarray_of(s4 dim,constant_classref *ref);
+
+/* return a classref for the component type of the given array type */
+constant_classref *class_get_classref_component_of(constant_classref *ref);
+
+/* get a class' field by name and descriptor */
+fieldinfo *class_findfield(classinfo *c, Utf8String name, Utf8String desc);
+
+/* search 'classinfo'-structure for a field with the specified name */
+fieldinfo *class_findfield_by_name(classinfo *c, Utf8String name);
+
+/* search class for a field */
+fieldinfo *class_resolvefield(classinfo *c, Utf8String name, Utf8String desc, classinfo *referer);
+
+/* search for a method with a specified name and descriptor */
+methodinfo *class_findmethod(classinfo *c, Utf8String name, Utf8String desc);
+methodinfo *class_resolvemethod(classinfo *c, Utf8String name, Utf8String dest);
+methodinfo *class_resolveclassmethod(classinfo *c, Utf8String name, Utf8String dest, classinfo *referer, bool throwexception);
+methodinfo *class_resolveinterfacemethod(classinfo *c, Utf8String name, Utf8String dest, classinfo *referer, bool throwexception);
+
+bool                       class_issubclass(classinfo *sub, classinfo *super);
+bool                       class_isanysubclass(classinfo *sub, classinfo *super);
+bool                       class_is_arraycompatible(struct arraydescriptor *desc, struct arraydescriptor *target);
+bool                       class_is_assignable_from(classinfo *to, classinfo *from);
+bool                       class_is_instance(classinfo *c, java_handle_t *h);
+
+inline classloader_t      *class_get_classloader(classinfo *c);
+inline classinfo          *class_get_superclass(classinfo *c);
+classinfo                 *class_get_componenttype(classinfo *c);
+java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOnly);
+java_handle_objectarray_t *class_get_declaredconstructors(classinfo *c, bool publicOnly);
+java_handle_objectarray_t *class_get_declaredfields(classinfo *c, bool publicOnly);
+java_handle_objectarray_t *class_get_declaredmethods(classinfo *c, bool publicOnly);
+classinfo                 *class_get_declaringclass(classinfo *c);
+classinfo                 *class_get_enclosingclass(classinfo *c);
+java_handle_t*             class_get_enclosingconstructor(classinfo *c);
+methodinfo*                class_get_enclosingmethod_raw(classinfo *c);
+java_handle_t*             class_get_enclosingmethod(classinfo *c);
+java_handle_objectarray_t *class_get_interfaces(classinfo *c);
+java_handle_bytearray_t   *class_get_annotations(classinfo *c);
+int32_t                    class_get_modifiers(classinfo *c, bool ignoreInnerClassesAttrib);
+java_handle_t             *class_get_name(classinfo *c);
+
+#if defined(ENABLE_JAVASE)
+Utf8String                 class_get_signature(classinfo *c);
 #endif
+
+/* some debugging functions */
+
+#if !defined(NDEBUG)
+void class_printflags(classinfo *c);
+void class_print(classinfo *c);
+void class_println(classinfo *c);
+void class_classref_print(constant_classref *cr);
+void class_classref_println(constant_classref *cr);
+void class_classref_or_classinfo_print(classref_or_classinfo c);
+void class_classref_or_classinfo_println(classref_or_classinfo c);
+#endif
+
+/* debug purposes */
+void class_showmethods(classinfo *c);
+void class_showconstantpool(classinfo *c);
+
+/* inline functions ***********************************************************/
 
 /**
  * Returns the classname of the class, where slashes ('/') are
@@ -224,7 +314,7 @@ static inline bool class_is_primitive(classinfo *c)
 
 *******************************************************************************/
 
-static inline bool class_is_anonymousclass(classinfo *c)
+inline bool class_is_anonymousclass(classinfo *c)
 {
 	if (c->flags & ACC_CLASS_ANONYMOUS)
 		return true;
@@ -239,7 +329,7 @@ static inline bool class_is_anonymousclass(classinfo *c)
 
 *******************************************************************************/
 
-static inline bool class_is_array(classinfo *c)
+inline bool class_is_array(classinfo *c)
 {
 	if (!(c->state & CLASS_LINKED))
 		if (!link_class(c))
@@ -255,7 +345,7 @@ static inline bool class_is_array(classinfo *c)
 
 *******************************************************************************/
 
-static inline bool class_is_interface(classinfo *c)
+inline bool class_is_interface(classinfo *c)
 {
 	if (c->flags & ACC_INTERFACE)
 		return true;
@@ -270,7 +360,7 @@ static inline bool class_is_interface(classinfo *c)
 
 *******************************************************************************/
 
-static inline bool class_is_localclass(classinfo *c)
+inline bool class_is_localclass(classinfo *c)
 {
 	if ((c->enclosingmethod != NULL) && !class_is_anonymousclass(c))
 		return true;
@@ -285,7 +375,7 @@ static inline bool class_is_localclass(classinfo *c)
 
 *******************************************************************************/
 
-static inline bool class_is_memberclass(classinfo *c)
+inline bool class_is_memberclass(classinfo *c)
 {
 	if (c->flags & ACC_CLASS_MEMBER)
 		return true;
@@ -300,7 +390,7 @@ static inline bool class_is_memberclass(classinfo *c)
 
 *******************************************************************************/
 
-static inline classloader_t *class_get_classloader(classinfo *c)
+inline classloader_t *class_get_classloader(classinfo *c)
 {
 	classloader_t *cl;
 
@@ -318,7 +408,7 @@ static inline classloader_t *class_get_classloader(classinfo *c)
 
 *******************************************************************************/
 
-static inline classinfo *class_get_superclass(classinfo *c)
+inline classinfo *class_get_superclass(classinfo *c)
 {
 	/* For interfaces we return NULL. */
 
@@ -331,107 +421,22 @@ static inline classinfo *class_get_superclass(classinfo *c)
 	return c->super;
 }
 
+//#ifdef __cplusplus
+//}
+#endif // __cplusplus
 
-/* function prototypes ********************************************************/
-
-classinfo *class_create_classinfo(utf *u);
-void       class_postset_header_vftbl(void);
-classinfo *class_define(utf *name, classloader_t *cl, int32_t length, uint8_t *data, java_handle_t *pd);
-void       class_set_packagename(classinfo *c);
-
-bool       class_load_attributes(classbuffer *cb);
-
-/* retrieve constantpool element */
-void* class_getconstant(classinfo *c, u4 pos, u4 ctype);
-void* innerclass_getconstant(classinfo *c, u4 pos, u4 ctype);
-
-/* frees all resources used by the class */
-void class_free(classinfo *);
-
-/* return an array class with the given component class */
-classinfo *class_array_of(classinfo *component,bool link);
-
-/* return an array class with the given dimension and element class */
-classinfo *class_multiarray_of(s4 dim, classinfo *element,bool link);
-
-/* return a classref for the given class name */
-/* (does a linear search!)                    */
-constant_classref *class_lookup_classref(classinfo *cls,utf *name);
-
-/* return a classref for the given class name */
-/* (does a linear search!)                    */
-constant_classref *class_get_classref(classinfo *cls,utf *name);
-
-/* return a classref to the class itself */
-/* (does a linear search!)                    */
-constant_classref *class_get_self_classref(classinfo *cls);
-
-/* return a classref for an array with the given dimension of with the */
-/* given component type */
-constant_classref *class_get_classref_multiarray_of(s4 dim,constant_classref *ref);
-
-/* return a classref for the component type of the given array type */
-constant_classref *class_get_classref_component_of(constant_classref *ref);
-
-/* get a class' field by name and descriptor */
-fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc);
-
-/* search 'classinfo'-structure for a field with the specified name */
-fieldinfo *class_findfield_by_name(classinfo *c, utf *name);
-
-/* search class for a field */
-fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc, classinfo *referer);
-
-/* search for a method with a specified name and descriptor */
-methodinfo *class_findmethod(classinfo *c, utf *name, utf *desc);
-methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *dest);
-methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool throwexception);
-methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool throwexception);
-
-bool                       class_issubclass(classinfo *sub, classinfo *super);
-bool                       class_isanysubclass(classinfo *sub, classinfo *super);
-bool                       class_is_arraycompatible(struct arraydescriptor *desc, struct arraydescriptor *target);
-bool                       class_is_assignable_from(classinfo *to, classinfo *from);
-bool                       class_is_instance(classinfo *c, java_handle_t *h);
-
-classloader_t             *class_get_classloader(classinfo *c);
-classinfo                 *class_get_superclass(classinfo *c);
-classinfo                 *class_get_componenttype(classinfo *c);
-java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOnly);
-java_handle_objectarray_t *class_get_declaredconstructors(classinfo *c, bool publicOnly);
-java_handle_objectarray_t *class_get_declaredfields(classinfo *c, bool publicOnly);
-java_handle_objectarray_t *class_get_declaredmethods(classinfo *c, bool publicOnly);
-classinfo                 *class_get_declaringclass(classinfo *c);
-classinfo                 *class_get_enclosingclass(classinfo *c);
-java_handle_t*             class_get_enclosingconstructor(classinfo *c);
-methodinfo*                class_get_enclosingmethod_raw(classinfo *c);
-java_handle_t*             class_get_enclosingmethod(classinfo *c);
-java_handle_objectarray_t *class_get_interfaces(classinfo *c);
-java_handle_bytearray_t   *class_get_annotations(classinfo *c);
-int32_t                    class_get_modifiers(classinfo *c, bool ignoreInnerClassesAttrib);
-java_handle_t             *class_get_name(classinfo *c);
-
-#if defined(ENABLE_JAVASE)
-utf                       *class_get_signature(classinfo *c);
+#ifdef __cplusplus
+extern "C" {
 #endif
+
+// TODO: used by code generators which are still in C, move to C++
 
 bool class_initializing_thread_is_self(classinfo *c);
 
-/* some debugging functions */
-
-#if !defined(NDEBUG)
-void class_printflags(classinfo *c);
-void class_print(classinfo *c);
-void class_println(classinfo *c);
-void class_classref_print(constant_classref *cr);
-void class_classref_println(constant_classref *cr);
-void class_classref_or_classinfo_print(classref_or_classinfo c);
-void class_classref_or_classinfo_println(classref_or_classinfo c);
-#endif
-
-/* debug purposes */
-void class_showmethods(classinfo *c);
-void class_showconstantpool(classinfo *c);
+inline bool class_is_or_almost_initialized(classinfo *c) {
+   return ((c)->state & CLASS_INITIALIZED) 
+	   || ((c)->state & CLASS_INITIALIZING && class_initializing_thread_is_self((c)));
+}
 
 #ifdef __cplusplus
 }

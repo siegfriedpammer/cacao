@@ -1437,7 +1437,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+				if (!class_is_or_almost_initialized(fi->clazz))
 					codegen_add_patch_ref(cd, PATCHER_clinit, fi->clazz, disp);
   			}
 
@@ -1482,7 +1482,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+				if (!class_is_or_almost_initialized(fi->clazz))
 					codegen_add_patch_ref(cd, PATCHER_clinit, fi->clazz, disp);
   			}
 
@@ -1528,7 +1528,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+				if (!class_is_or_almost_initialized(fi->clazz))
 					codegen_add_patch_ref(cd, PATCHER_clinit, fi->clazz, disp);
   			}
 

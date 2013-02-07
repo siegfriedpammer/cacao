@@ -904,7 +904,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				fieldtype = fi->type;
 				disp      = (intptr_t) fi->value;
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))	{
+				if (!class_is_or_almost_initialized(fi->clazz))	{
 					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz,
 										0);
 				}
@@ -958,7 +958,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				fieldtype = fi->type;
 				disp      = (intptr_t) fi->value;
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+				if (!class_is_or_almost_initialized(fi->clazz))
 					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz,
 										0);
   			}

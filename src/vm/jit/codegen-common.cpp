@@ -1541,7 +1541,7 @@ bool codegen_emit(jitdata *jd)
 					fieldtype = fi->type;
 					disp      = dseg_add_address(cd, fi->value);
 
-					if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz)) {
+					if (!class_is_or_almost_initialized(fi->clazz)) {
 						PROFILE_CYCLE_STOP;
 						patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz, 0);
 						PROFILE_CYCLE_START;
@@ -1619,7 +1619,7 @@ bool codegen_emit(jitdata *jd)
 					fieldtype = fi->type;
 					disp      = dseg_add_address(cd, fi->value);
 
-					if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz)) {
+					if (!class_is_or_almost_initialized(fi->clazz)) {
 						PROFILE_CYCLE_STOP;
 						patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz, 0);
 						PROFILE_CYCLE_START;

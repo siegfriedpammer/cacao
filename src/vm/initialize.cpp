@@ -115,7 +115,7 @@ bool initialize_class(classinfo *c)
 	/* maybe the class is already initalized or the current thread, which can
 	   pass the monitor, is currently initalizing this class */
 
-	if (CLASS_IS_OR_ALMOST_INITIALIZED(c)) {
+	if (class_is_or_almost_initialized(c)) {
 		LOCK_MONITOR_EXIT(c);
 
 		return true;
