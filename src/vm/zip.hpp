@@ -37,6 +37,7 @@
 #include "vm/suck.hpp"
 #include "vm/utf8.hpp"
 
+#ifdef __cplusplus
 
 /* Local file header ***********************************************************
 
@@ -78,7 +79,7 @@ struct lfh {
 typedef struct hashtable_zipfile_entry hashtable_zipfile_entry;
 
 struct hashtable_zipfile_entry {
-	utf                     *filename;
+	Utf8String               filename;
 	u2                       compressionmethod;
 	u4                       compressedsize;
 	u4                       uncompressedsize;
@@ -89,17 +90,11 @@ struct hashtable_zipfile_entry {
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+hashtable               *zip_open(char *path);
+hashtable_zipfile_entry *zip_find(list_classpath_entry *lce, Utf8String u);
+classbuffer             *zip_get(list_classpath_entry *lce, classinfo *c);
 
-hashtable *zip_open(char *path);
-hashtable_zipfile_entry *zip_find(list_classpath_entry *lce, utf *u);
-classbuffer *zip_get(list_classpath_entry *lce, classinfo *c);
-
-#ifdef __cplusplus
-}
-#endif
+#endif /* __cplusplus */
 
 #endif /* _ZIP_HPP */
 
