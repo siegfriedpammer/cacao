@@ -101,8 +101,6 @@ extern bool threads_pthreads_implementation_nptl;
 
 
 #ifdef __cplusplus
-extern "C" {
-#endif
 
 /* inline functions ***********************************************************/
 
@@ -217,7 +215,7 @@ void          threads_init(void);
 
 void          thread_free(threadobject *t);
 
-bool          threads_thread_start_internal(utf *name, functionptr f);
+bool          threads_thread_start_internal(Utf8String name, functionptr f);
 void          threads_thread_start(java_handle_t *object);
 
 bool          thread_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon);
@@ -261,8 +259,6 @@ void          threads_impl_thread_start(threadobject *thread, functionptr f);
 
 void          threads_yield(void);
 
-#ifdef __cplusplus
-}
 #endif
 
 #endif /* ENABLE_THREADS */

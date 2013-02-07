@@ -406,7 +406,7 @@ static void thread_cleanup_finalizer(java_handle_t *h, void *data)
 	ThreadList::release_thread(t, false);
 }
 
-bool threads_thread_start_internal(utf *name, functionptr f)
+bool threads_thread_start_internal(Utf8String name, functionptr f)
 {
 	threadobject *t;
 
