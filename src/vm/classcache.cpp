@@ -480,7 +480,7 @@ static classcache_name_entry *classcache_new_name(Utf8String name)
 
 	CLASSCACHE_COUNT(stat_lookup_new_name);
 
-	key  = UTF_HASH(name);
+	key  = name.hash();
 	slot = key & (hashtable_classcache.size - 1);
 	c    = (classcache_name_entry*) hashtable_classcache.ptr[slot];
 
@@ -531,7 +531,7 @@ static classcache_name_entry *classcache_new_name(Utf8String name)
 			c2 = (classcache_name_entry *) hashtable_classcache.ptr[i];
 			while (c2) {
 				classcache_name_entry *nextc = c2->hashlink;
-				u4 newslot = UTF_HASH(c2->name) & (newhash.size - 1);
+				u4 newslot = c2->name.hash() & (newhash.size - 1);
 
 				c2->hashlink = (classcache_name_entry *) newhash.ptr[newslot];
 				CLASSCACHE_COUNTIF(c2->hashlink,stat_rehash_names_collisions);
@@ -1347,7 +1347,7 @@ static s4 classcache_number_of_loaded_classes(void)
 		for (en = (classcache_name_entry*) hashtable_classcache.ptr[i]; en != NULL; en = en->hashlink) {
 			/* filter pseudo classes $NEW$, $NULL$, $ARRAYSTUB$ out */
 
-			if (UTF_AT(en->name, 0) == '$')
+			if (en->name[0] == '$')
 				continue;
 
 			/* iterate over classes with same name */
@@ -1408,7 +1408,7 @@ void classcache_foreach_loaded_class(classcache_foreach_functionptr_t func,
 		for (en = (classcache_name_entry*) hashtable_classcache.ptr[i]; en != NULL; en = en->hashlink) {
 			/* filter pseudo classes $NEW$, $NULL$, $ARRAYSTUB$ out */
 
-			if (UTF_AT(en->name, 0) == '$')
+			if (en->name[0] == '$')
 				continue;
 
 			/* iterate over classes with same name */
