@@ -102,7 +102,7 @@ public:
 
 struct primitivetypeinfo {
 	const char* cname;                   /* char name of primitive class      */
-	utf*        name;                    /* name of primitive class           */
+	Utf8String  name;                    /* name of primitive class           */
 	classinfo*  class_wrap;              /* class for wrapping primitive type */
 	classinfo*  class_primitive;         /* primitive class                   */
 	const char* wrapname;                /* name of class for wrapping        */
