@@ -426,7 +426,7 @@ static void classcache_merge_class_entries(classcache_name_entry *en,
 	   
 *******************************************************************************/
 
-static classcache_name_entry *classcache_lookup_name(utf *name)
+static classcache_name_entry *classcache_lookup_name(Utf8String name)
 {
 	classcache_name_entry *c;           /* hash table element                 */
 	u4 key;                             /* hashkey computed from classname    */
@@ -434,7 +434,7 @@ static classcache_name_entry *classcache_lookup_name(utf *name)
 
 	CLASSCACHE_COUNT(stat_lookup_name);
 
-	key  = UTF_HASH(name);
+	key  = name.hash();
 	slot = key & (hashtable_classcache.size - 1);
 	c    = (classcache_name_entry*) hashtable_classcache.ptr[slot];
 
@@ -471,7 +471,7 @@ static classcache_name_entry *classcache_lookup_name(utf *name)
 	   
 *******************************************************************************/
 
-static classcache_name_entry *classcache_new_name(utf *name)
+static classcache_name_entry *classcache_new_name(Utf8String name)
 {
 	classcache_name_entry *c;	/* hash table element */
 	u4 key;						/* hashkey computed from classname */
@@ -567,7 +567,7 @@ static classcache_name_entry *classcache_new_name(utf *name)
    
 *******************************************************************************/
 
-classinfo *classcache_lookup(classloader_t *initloader, utf *classname)
+classinfo *classcache_lookup(classloader_t *initloader, Utf8String classname)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
@@ -619,7 +619,7 @@ classinfo *classcache_lookup(classloader_t *initloader, utf *classname)
    
 *******************************************************************************/
 
-classinfo *classcache_lookup_defined(classloader_t *defloader, utf *classname)
+classinfo *classcache_lookup_defined(classloader_t *defloader, Utf8String classname)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
@@ -666,7 +666,7 @@ classinfo *classcache_lookup_defined(classloader_t *defloader, utf *classname)
 *******************************************************************************/
 
 classinfo *classcache_lookup_defined_or_initiated(classloader_t *loader, 
-												  utf *classname)
+												  Utf8String classname)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
@@ -1160,7 +1160,7 @@ void classcache_free(void)
 #if defined(ENABLE_VERIFIER)
 bool classcache_add_constraint(classloader_t * a,
 							   classloader_t * b,
-							   utf * classname)
+							   Utf8String  classname)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsenA;
@@ -1446,7 +1446,7 @@ void classcache_foreach_loaded_class(classcache_foreach_functionptr_t func,
 *******************************************************************************/
 
 #ifndef NDEBUG
-void classcache_debug_dump(FILE * file,utf *only)
+void classcache_debug_dump(FILE * file,Utf8String only)
 {
 	classcache_name_entry *c;
 	classcache_class_entry *clsen;
