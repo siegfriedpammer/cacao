@@ -496,13 +496,7 @@ u1 *jit_recompile(methodinfo *m)
 
 	/* now call internal compile function */
 
-#if defined(ENABLE_OPTIMIZATION_FRAMEWORK)
-	opt_RegallocSpillAll = true;
-	r = jit_recompile_intern(jd);
-	opt_RegallocSpillAll = false;
-#else
 	r = jit_compile_intern(jd);
-#endif
 
 	if (r == NULL) {
 		/* We had an exception! Finish stuff here if necessary. */

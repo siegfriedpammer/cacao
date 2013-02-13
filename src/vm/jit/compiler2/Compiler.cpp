@@ -43,6 +43,10 @@
 
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Compiler.hpp"
+#include "vm/jit/compiler2/PassManager.hpp"
+
+#include "vm/jit/compiler2/CFGConstructionPass.hpp"
+#include "vm/jit/compiler2/CodeGenPass.hpp"
 
 #include "vm/jit/compiler2/Debug.hpp"
 
@@ -564,7 +568,11 @@ namespace compiler2 {
 
 MachineCode* compile(methodinfo* m)
 {
+	PassManager PM;
+
 	INFO(dbg() << BOLDWHITE << "Compiler Start: " << RESET ; method_print(m); dbg() << "\n";)
+	PM.addPass<CFGConstructionPass>();
+	PM.addPass<CodeGenPass>();
 	MachineCode* mc = compile_intern(m);
 	INFO(dbg() << BOLDWHITE << "Compiler End: " << RESET ; method_print(m); dbg() << "\n";)
 	return mc;
