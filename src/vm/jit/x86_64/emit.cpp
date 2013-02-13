@@ -442,6 +442,21 @@ void emit_trap_compiler(codegendata *cd)
 	M_ALD_MEM(REG_METHODPTR, TRAP_COMPILER);
 }
 
+/* emit_trap_countdown *********************************************************
+
+   Emit a countdown trap.
+
+   counter....absolute address of the counter variable
+
+*******************************************************************************/
+
+void emit_trap_countdown(codegendata *cd, s4 *counter)
+{
+	M_MOV_IMM((s8) counter, REG_ITMP3);
+	M_IDEC_MEMBASE(REG_ITMP3, 0);
+	M_BNS(8);
+	M_ALD_MEM(REG_METHODPTR, TRAP_COUNTDOWN);
+}
 
 /* emit_patcher_alignment ******************************************************
 
@@ -1823,6 +1838,12 @@ void emit_incq_membase(codegendata *cd, s8 basereg, s8 disp)
 	emit_membase(cd, (basereg),(disp),0);
 }
 
+void emit_decl_membase(codegendata *cd, s8 basereg, s8 disp)
+{
+	emit_rex(0,0,0,(basereg));
+	*(cd->mcodeptr++) = 0xff;
+	emit_membase(cd, (basereg),(disp),1);
+}
 
 
 void emit_cltd(codegendata *cd) {

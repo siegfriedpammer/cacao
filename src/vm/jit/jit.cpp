@@ -470,8 +470,11 @@ u1 *jit_recompile(methodinfo *m)
 		jd->flags |= JITDATA_FLAG_VERBOSECALL;
 
 #if defined(ENABLE_INLINING)
+#warning Inlining currently disabled (broken)
+#if 0
 	if (opt_Inline)
 		jd->flags |= JITDATA_FLAG_INLINE;
+#endif
 #endif
 
 #if defined(ENABLE_JIT)
