@@ -33,14 +33,14 @@ namespace compiler2 {
 
 
 /**
- * CFGConstructionodePass superclass
- * All compiler passes should inheritate this class.
+ * CFGConstructionPass
  * TODO: more info
  */
 class CFGConstructionPass : public Pass {
 public:
 	CFGConstructionPass(PassManager *PM) : Pass(PM) {}
 	void run(Method &M) {}
+	static const char* name() { return "CFGConstructionPass"; };
 };
 
 

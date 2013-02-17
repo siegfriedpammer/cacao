@@ -59,9 +59,8 @@ private:
 public:
   unsigned getOpcode() const;		   ///< return the opcode of the instruction (icmd.hpp)
   bool isTerminator() const;           ///< true if the instruction terminates a basic block
-  BasicBlock *getParent() const;	   /**< get the BasicBlock in which the instruction is contained.
-                                         * NULL if not attached to any block.
-										 */
+  BasicBlock *getParent() const;	   ///< get the BasicBlock in which the instruction is contained.
+                                       ///< NULL if not attached to any block.
 
   // casting functions
   virtual Instruction* toInstruction() { return this;}

@@ -25,12 +25,19 @@
 #ifndef _JIT_COMPILER2_METHOD
 #define _JIT_COMPILER2_METHOD
 
+
+// forward declaration
+struct methodinfo;
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
 class Method {
-
+private:
+	methodinfo *mi;
+public:
+	Method(methodinfo *MI) : mi(MI) {}
 };
 
 

@@ -33,14 +33,14 @@ namespace compiler2 {
 
 
 /**
- * CodeGenPass superclass
- * All compiler passes should inheritate this class.
+ * CodeGenPass
  * TODO: more info
  */
 class CodeGenPass : public Pass {
 public:
 	CodeGenPass(PassManager *PM) : Pass(PM) {}
 	void run(Method &M) {}
+	const char* name() { return "CodeGenPass"; };
 };
 
 

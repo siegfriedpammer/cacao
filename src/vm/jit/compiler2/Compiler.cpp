@@ -43,6 +43,7 @@
 
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Compiler.hpp"
+#include "vm/jit/compiler2/Method.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 
 #include "vm/jit/compiler2/CFGConstructionPass.hpp"
@@ -51,6 +52,19 @@
 #include "vm/jit/compiler2/Debug.hpp"
 
 #include "vm/options.hpp"
+
+
+RT_REGISTER_GROUP(compiler_group,"compiler2","second-stage compiler")
+
+RT_REGISTER_GROUP_TIMER(checks_timer,        "compiler2","checks at beginning",          compiler_group)
+RT_REGISTER_GROUP_TIMER(parse_timer,         "compiler2","parse",                        compiler_group)
+RT_REGISTER_GROUP_TIMER(stack_timer, "compiler2","analyse_stack",                compiler_group)
+RT_REGISTER_GROUP_TIMER(typechecker_timer,   "compiler2","typecheck",                    compiler_group)
+RT_REGISTER_GROUP_TIMER(loop_timer,          "compiler2","loop",                         compiler_group)
+RT_REGISTER_GROUP_TIMER(ifconversion_timer,  "compiler2","if conversion",                compiler_group)
+RT_REGISTER_GROUP_TIMER(ra_timer,            "compiler2","register allocation",          compiler_group)
+RT_REGISTER_GROUP_TIMER(rp_timer,            "compiler2","replacement point generation", compiler_group)
+RT_REGISTER_GROUP_TIMER(codegen_timer,       "compiler2","codegen",                      compiler_group)
 
 namespace {
 
@@ -220,13 +234,7 @@ u1 *jit_compile_intern(jitdata *jd)
 	codegendata *cd;
 	codeinfo    *code;
 
-#if defined(ENABLE_RT_TIMING)
-	struct timespec time_start,time_checks,time_parse,time_stack,
-					time_typecheck,time_loop,time_ifconv,time_alloc,
-					time_codegen;
-#endif
-
-	RT_TIMING_GET_TIME(time_start);
+	RT_TIMER_START(checks_timer);
 
 	/* get required compiler data */
 
@@ -279,7 +287,7 @@ u1 *jit_compile_intern(jitdata *jd)
 	}
 #endif
 
-	RT_TIMING_GET_TIME(time_checks);
+	RT_TIMER_STOPSTART(checks_timer,parse_timer);
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	/* Code for Sun's OpenJDK (see
@@ -304,7 +312,7 @@ u1 *jit_compile_intern(jitdata *jd)
 
 		return NULL;
 	}
-	RT_TIMING_GET_TIME(time_parse);
+	RT_TIMER_STOPSTART(parse_timer,stack_timer);
 
 	DEBUG_JIT_COMPILEVERBOSE("Parsing done: ");
 
@@ -317,7 +325,7 @@ u1 *jit_compile_intern(jitdata *jd)
 
 		return NULL;
 	}
-	RT_TIMING_GET_TIME(time_stack);
+	RT_TIMER_STOPSTART(stack_timer,typechecker_timer);
 
 	DEBUG_JIT_COMPILEVERBOSE("Analysing done: ");
 
@@ -335,7 +343,7 @@ u1 *jit_compile_intern(jitdata *jd)
 		DEBUG_JIT_COMPILEVERBOSE("Typechecking done: ");
 	}
 #endif
-	RT_TIMING_GET_TIME(time_typecheck);
+	RT_TIMER_STOPSTART(typechecker_timer,loop_timer);
 
 #if defined(ENABLE_LOOP)
 	if (opt_loops) {
@@ -345,7 +353,7 @@ u1 *jit_compile_intern(jitdata *jd)
 		jit_renumber_basicblocks(jd);
 	}
 #endif
-	RT_TIMING_GET_TIME(time_loop);
+	RT_TIMER_STOPSTART(loop_timer,ifconversion_timer);
 
 #if defined(ENABLE_IFCONV)
 	if (JITDATA_HAS_FLAG_IFCONV(jd)) {
@@ -354,7 +362,7 @@ u1 *jit_compile_intern(jitdata *jd)
 		jit_renumber_basicblocks(jd);
 	}
 #endif
-	RT_TIMING_GET_TIME(time_ifconv);
+	RT_TIMER_STOPSTART(ifconversion_timer,ra_timer);
 
 	/* inlining */
 
@@ -432,7 +440,7 @@ u1 *jit_compile_intern(jitdata *jd)
 	STATISTICS(simplereg_make_statistics(jd));
 
 	DEBUG_JIT_COMPILEVERBOSE("Allocating registers done: ");
-	RT_TIMING_GET_TIME(time_alloc);
+	RT_TIMER_STOPSTART(ra_timer,codegen_timer);
 
 #if defined(ENABLE_CFG_PRINTER)
 #if 0
@@ -503,7 +511,7 @@ u1 *jit_compile_intern(jitdata *jd)
 		return NULL;
 	}
 #endif
-	RT_TIMING_GET_TIME(time_codegen);
+	RT_TIMER_STOP(codegen_timer);
 
 	DEBUG_JIT_COMPILEVERBOSE("Generating code done: ");
 
@@ -546,15 +554,6 @@ u1 *jit_compile_intern(jitdata *jd)
 	code->prev = m->code;
 	m->code = code;
 
-	RT_TIMING_TIME_DIFF(time_start,time_checks,RT_TIMING_JIT_CHECKS);
-	RT_TIMING_TIME_DIFF(time_checks,time_parse,RT_TIMING_JIT_PARSE);
-	RT_TIMING_TIME_DIFF(time_parse,time_stack,RT_TIMING_JIT_STACK);
-	RT_TIMING_TIME_DIFF(time_stack,time_typecheck,RT_TIMING_JIT_TYPECHECK);
-	RT_TIMING_TIME_DIFF(time_typecheck,time_loop,RT_TIMING_JIT_LOOP);
-	RT_TIMING_TIME_DIFF(time_loop,time_alloc,RT_TIMING_JIT_ALLOC);
-	RT_TIMING_TIME_DIFF(time_alloc,time_codegen,RT_TIMING_JIT_CODEGEN);
-	RT_TIMING_TIME_DIFF(time_start,time_codegen,RT_TIMING_JIT_TOTAL);
-
 	/* return pointer to the methods entry point */
 
 	return code->entrypoint;
@@ -566,15 +565,22 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+
 MachineCode* compile(methodinfo* m)
 {
+
+	Method M(m);
 	PassManager PM;
 
 	INFO(dbg() << BOLDWHITE << "Compiler Start: " << RESET ; method_print(m); dbg() << "\n";)
+
 	PM.addPass<CFGConstructionPass>();
 	PM.addPass<CodeGenPass>();
+	PM.runPasses(M);
+
 	MachineCode* mc = compile_intern(m);
-	INFO(dbg() << BOLDWHITE << "Compiler End: " << RESET ; method_print(m); dbg() << "\n";)
+	INFO(dbg() << BOLDWHITE << "Compiler End: " << RESET ; method_print(m); dbg() <<"\n";)
+
 	return mc;
 }
 

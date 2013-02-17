@@ -72,7 +72,14 @@ public:
 	 */
 	virtual void run(Method &M) = 0;
 
-	/// Destructor
+	/**
+	 * Name of the Pass.
+	 */
+	static const char* name();
+
+	/**
+	 * Destructor
+	 */
 	virtual ~Pass() {}
 };
 

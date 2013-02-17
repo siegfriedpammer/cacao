@@ -33,8 +33,6 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-// forward declaration
-
 /**
  * Manage the execution of compiler passes
  */
@@ -65,6 +63,18 @@ public:
 	}
 
 	/**
+	 * run passes
+	 */
+	void runPasses(Method &M) {
+		initializePasses();
+		for(PassList::iterator i = passes.begin(), e = passes.end(); i != e; ++i) {
+			Pass* P = *i;
+			P->run(M);
+		}
+		finalizePasses();
+	}
+
+	/**
 	 * run pass finalizers
 	 */
 	void finalizePasses() {
@@ -84,7 +94,7 @@ public:
 	 * add a compiler pass
 	 */
 	template<typename PassType>
-	void *addPass() {
+	void addPass() {
 		passes.push_back(new PassType(this));
 	}
 
