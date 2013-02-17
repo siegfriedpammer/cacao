@@ -1,4 +1,4 @@
-/* src/mm/tlh.h
+/* src/mm/tlh.hpp
 
    Copyright (C) 2008-2013
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _MM_TLH_H
-#define _MM_TLH_H
+#ifndef TLH_HPP_
+#define TLH_HPP_ 1
 
 #include "config.h"
 
@@ -57,7 +57,7 @@ void *tlh_alloc(tlh_t *tlh, size_t size);
 }
 #endif
 
-#endif
+#endif // TLH_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -65,7 +65,7 @@ void *tlh_alloc(tlh_t *tlh, size_t size);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -654,7 +654,7 @@ const size_t Utf8String::sizeof_utf = sizeof(Utf8String::Utf);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _ICMD_HPP
-#define _ICMD_HPP
+#ifndef ICMD_HPP_
+#define ICMD_HPP_ 1
 
 #include "config.h"
 
@@ -401,7 +401,7 @@ struct icmdtable_entry_t {
 // The ICMD table.
 extern icmdtable_entry_t icmd_table[256];
 
-#endif // _ICMD_HPP
+#endif // ICMD_HPP_
 
 
 /*

@@ -1,4 +1,4 @@
-/* src/toolbox/set.h - Set implementation.
+/* src/toolbox/set.hpp - Set implementation.
 
    Copyright (C) 2008-2013
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _TOOLBOX_SET_H
-#define _TOOLBOX_SET_H
+#ifndef TOOLBOX_SET_HPP_
+#define TOOLBOX_SET_HPP_ 1
 
 #include "config.h"
 
@@ -47,7 +47,7 @@ void *set_pop(set *s);
 }
 #endif
 
-#endif
+#endif // SET_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -55,7 +55,7 @@ void *set_pop(set *s);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

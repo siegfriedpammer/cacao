@@ -24,8 +24,8 @@
 */
 
 
-#ifndef _VM_ARRAY_HPP
-#define _VM_ARRAY_HPP
+#ifndef ARRAY_HPP_
+#define ARRAY_HPP_ 1
 
 #include "config.h"
 
@@ -381,7 +381,7 @@ public:
 # warning No legacy C functions for array access classes.
 #endif
 
-#endif // _VM_ARRAY_HPP
+#endif // ARRAY_HPP_
 
 
 /*

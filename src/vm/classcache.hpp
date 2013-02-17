@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _CLASSCACHE_H
-#define _CLASSCACHE_H
+#ifndef CLASSCACHE_HPP_
+#define CLASSCACHE_HPP_ 1
 
 #include "config.h"
 
@@ -149,7 +149,8 @@ void classcache_debug_dump(FILE *file,Utf8String only);
 
 #endif /* __cplusplus */
 
-#endif /* _CLASSCACHE_H */
+#endif // CLASSCACHE_HPP_
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -24,8 +24,8 @@
 */
 
 
-#ifndef _EMIT_COMMON_HPP
-#define _EMIT_COMMON_HPP
+#ifndef EMIT_COMMON_HPP_
+#define EMIT_COMMON_HPP_ 1
 
 #include "config.h"
 #include "vm/types.h"
@@ -306,7 +306,7 @@ static inline void emit_dmove(codegendata* cd, int s, int d)
 #define M_DBLMOVE(a, b)      emit_dmove(cd, a, b)
 
 
-#endif /* _EMIT_COMMON_HPP */
+#endif // EMIT_COMMON_HPP_
 
 
 /*
@@ -315,7 +315,7 @@ static inline void emit_dmove(codegendata* cd, int s, int d)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

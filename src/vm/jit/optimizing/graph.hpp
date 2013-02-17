@@ -1,4 +1,4 @@
-/* src/vm/jit/optimizing/graph.h - control flow graph header
+/* src/vm/jit/optimizing/graph.hpp - control flow graph header
 
    Copyright (C) 2005-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _LSRA_GRAPH_H
-#define _LSRA_GRAPH_H
+#ifndef LSRA_GRAPH_HPP_
+#define LSRA_GRAPH_HPP_ 1
 
 #include "config.h"
 
@@ -96,7 +96,7 @@ void graph_add_edge( graphdata *gd, int from, int to );
 }
 #endif
 
-#endif /* _LSRA_GRAPH_H */
+#endif // LSRA_GRAPH_HPP_
 
 
 /*
@@ -105,7 +105,7 @@ void graph_add_edge( graphdata *gd, int from, int to );
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

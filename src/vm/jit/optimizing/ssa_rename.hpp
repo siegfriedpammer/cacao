@@ -1,4 +1,4 @@
-/* src/vm/jit/optimizing/ssa.h - static single assignment form header
+/* src/vm/jit/optimizing/ssa_rename.hpp - static single assignment form header
 
    Copyright (C) 2005-2013
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
@@ -29,8 +29,8 @@
 */
 
 
-#ifndef _SSA_RENAME_H
-#define _SSA_RENAME_H
+#ifndef SSA_RENAME_HPP_
+#define SSA_RENAME_HPP_ 1
 
 #include "vm/jit/optimizing/graph.hpp"
 
@@ -42,7 +42,7 @@
 void ssa_rename_init(jitdata *jd, graphdata *gd);
 void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd);
 
-#endif /* _SSA_RENAME_H */
+#endif // SSA_RENAME_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -50,7 +50,7 @@ void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset): 4
  * tab-width): 4

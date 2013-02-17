@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _METHOD_H
-#define _METHOD_H
+#ifndef METHOD_HPP_
+#define METHOD_HPP_ 1
 
 /* forward typedefs ***********************************************************/
 
@@ -232,7 +232,7 @@ void method_methodref_println(constant_FMIref *mr);
 }
 #endif
 
-#endif /* _METHOD_H */
+#endif // METHOD_HPP_
 
 
 /*

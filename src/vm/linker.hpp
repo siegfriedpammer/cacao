@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _LINKER_H
-#define _LINKER_H
+#ifndef LINKER_HPP_
+#define LINKER_HPP_ 1
 
 #include "config.h"
 #include "vm/types.h"
@@ -98,7 +98,7 @@ classinfo *link_class(classinfo *c);
 #endif /* __cplusplus */
 
 
-#endif /* _LINKER_H */
+#endif // LINKER_HPP_
 
 
 /*
@@ -107,7 +107,7 @@ classinfo *link_class(classinfo *c);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

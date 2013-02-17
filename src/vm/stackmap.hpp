@@ -1,4 +1,4 @@
-/* src/vm/stackmap.h - class attribute StackMapTable
+/* src/vm/stackmap.hpp - class attribute StackMapTable
 
    Copyright (C) 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _STACKMAP_H
-#define _STACKMAP_H
+#ifndef STACKMAP_HPP_
+#define STACKMAP_HPP_ 1
 
 /* forward typedefs ***********************************************************/
 
@@ -218,7 +218,7 @@ bool stackmap_load_attribute_stackmaptable(classbuffer *cb, methodinfo *m);
 }
 #endif
 
-#endif /* _STACKMAP_H */
+#endif // STACKMAP_HPP_
 
 
 /*
@@ -227,7 +227,7 @@ bool stackmap_load_attribute_stackmaptable(classbuffer *cb, methodinfo *m);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

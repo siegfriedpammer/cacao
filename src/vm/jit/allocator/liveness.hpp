@@ -1,4 +1,4 @@
-/* src/vm/jit/allocator/liveness.h - liveness header
+/* src/vm/jit/allocator/liveness.hpp - liveness header
 
    Copyright (C) 2005, 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -30,8 +30,8 @@
 */
 
 
-#ifndef _LIVENESS_H
-#define _LIVENESS_H
+#ifndef LIVENESS_HPP_
+#define LIVENESS_HPP_ 1
 
 #include "toolbox/bitvector.hpp"
 #include "vm/jit/allocator/lsra.hpp"
@@ -70,7 +70,7 @@ struct liveness_sets {
 	bitvector tmp;
 };
 
-#endif /* _LIVENESS_H */
+#endif // LIVENESS_HPP_
 
 
 /*
@@ -79,7 +79,7 @@ struct liveness_sets {
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -1,4 +1,4 @@
-/* src/vm/utf8.h - utf8 string functions
+/* src/vm/utf8.hpp - utf8 string functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _UTF_H
-#define _UTF_H
+#ifndef UTF8_HPP_
+#define UTF8_HPP_ 1
 
 /* forward typedefs ***********************************************************/
 
@@ -253,7 +253,8 @@ void utf_strcat_convert_to_latin1_classname(char *buffer, utf *u);
 }
 #endif
 
-#endif /* _UTF_H */
+#endif // UTF8_HPP_
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -261,7 +262,7 @@ void utf_strcat_convert_to_latin1_classname(char *buffer, utf *u);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

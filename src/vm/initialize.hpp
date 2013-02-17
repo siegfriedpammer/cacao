@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _INITIALIZE_HPP
-#define _INITIALIZE_HPP
+#ifndef INITIALIZE_HPP_
+#define INITIALIZE_HPP_ 1
 
 #include "config.h"
 
@@ -45,7 +45,7 @@ bool initialize_class(classinfo *c);
 }
 #endif
 
-#endif /* _INITIALIZE_HPP */
+#endif // INITIALIZE_HPP_
 
 
 /*
@@ -54,7 +54,7 @@ bool initialize_class(classinfo *c);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

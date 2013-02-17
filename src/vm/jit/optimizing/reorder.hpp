@@ -1,4 +1,4 @@
-/* src/vm/optimizing/reorder.h - basic block reordering
+/* src/vm/optimizing/reorder.hpp - basic block reordering
 
    Copyright (C) 2006-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _REORDER_H
-#define _REORDER_H
+#ifndef REORDER_HPP_
+#define REORDER_HPP_ 1
 
 #include "config.h"
 
@@ -45,7 +45,7 @@ bool reorder(jitdata *jd);
 }
 #endif
 
-#endif /* _REORDER_H */
+#endif // REORDER_HPP_
 
 
 /*
@@ -54,7 +54,7 @@ bool reorder(jitdata *jd);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

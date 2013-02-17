@@ -1,4 +1,4 @@
-/* src/mm/codememory.h - code memory management
+/* src/mm/codememory.hpp - code memory management
 
    Copyright (C) 2007-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _CODEMEMORY_H
-#define _CODEMEMORY_H
+#ifndef CODEMEMORY_HPP_
+#define CODEMEMORY_HPP_ 1
 
 #include "config.h"
 
@@ -54,7 +54,7 @@ void  codememory_release(void *p, size_t size);
 }
 #endif
 
-#endif /* _CODEMEMORY_H */
+#endif // CODEMEMORY_HPP_
 
 
 /*
@@ -63,7 +63,7 @@ void  codememory_release(void *p, size_t size);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

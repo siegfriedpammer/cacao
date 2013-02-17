@@ -1,4 +1,4 @@
-/* src/vm/jit/methodtree.h - AVL tree of methods
+/* src/vm/jit/methodtree.hpp - AVL tree of methods
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _METHODTREE_H
-#define _METHODTREE_H
+#ifndef METHODTREE_HPP_
+#define METHODTREE_HPP_ 1
 
 #include "config.h"
 
@@ -45,7 +45,7 @@ void *methodtree_find_nocheck(void *pc);
 }
 #endif
 
-#endif /* _METHODTREE_H */
+#endif // METHODTREE_HPP_
 
 
 /*
@@ -54,7 +54,7 @@ void *methodtree_find_nocheck(void *pc);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -65,7 +65,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMFrame_setValue(JNIEnv *env, gnu
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

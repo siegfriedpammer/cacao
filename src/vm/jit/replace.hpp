@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _REPLACE_HPP
-#define _REPLACE_HPP
+#ifndef REPLACE_HPP_
+#define REPLACE_HPP_ 1
 
 #include "config.h"
 #include "vm/types.h"
@@ -272,7 +272,7 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert);
 
 #endif // ENABLE_REPLACEMENT
 
-#endif // _REPLACE_HPP
+#endif // REPLACE_HPP_
 
 
 /*

@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _SUCK_HPP
-#define _SUCK_HPP
+#ifndef SUCK_HPP_
+#define SUCK_HPP_ 1
 
 #include "config.h"
 
@@ -196,7 +196,7 @@ void suck_stop(classbuffer *cb);
 }
 #endif
 
-#endif // _SUCK_HPP
+#endif // SUCK_HPP_
 
 
 /*

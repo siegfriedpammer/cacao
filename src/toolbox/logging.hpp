@@ -1,4 +1,4 @@
-/* src/toolbox/logging.h - contains logging functions
+/* src/toolbox/logging.hpp - contains logging functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _LOGGING_H
-#define _LOGGING_H
+#ifndef LOGGING_HPP_
+#define LOGGING_HPP_ 1
 
 #include "config.h"
 
@@ -75,7 +75,7 @@ void log_message_method(const char *msg, methodinfo *m);
 
 #endif
 
-#endif /* _LOGGING_H */
+#endif // LOGGING_HPP_
 
 
 /*

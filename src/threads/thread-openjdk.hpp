@@ -1,3 +1,4 @@
+
 /* src/threads/thread-openjdk.hpp - thread functions specific to the OpenJDK library
 
    Copyright (C) 1996-2013
@@ -23,8 +24,8 @@
 */
 
 
-#ifndef _THREAD_OPENJDK_HPP
-#define _THREAD_OPENJDK_HPP
+#ifndef THREAD_OPENJDK_HPP_
+#define THREAD_OPENJDK_HPP_ 1
 
 #ifdef __cplusplus
 
@@ -66,7 +67,7 @@ typedef ThreadRuntimeOpenjdk ThreadRuntime;
 
 #endif	// __cplusplus
 
-#endif // _THREAD_OPENJDK_HPP
+#endif // THREAD_OPENJDK_HPP_1
 
 
 /*

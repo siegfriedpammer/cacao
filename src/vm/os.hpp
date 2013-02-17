@@ -24,8 +24,8 @@
 */
 
 
-#ifndef _OS_HPP
-#define _OS_HPP
+#ifndef OS_HPP_
+#define OS_HPP_ 1
 
 #include "config.h"
 
@@ -703,7 +703,7 @@ int    os_strlen(const char* s);
 
 #endif
 
-#endif // _OS_HPP
+#endif // OS_HPP_
 
 
 /*

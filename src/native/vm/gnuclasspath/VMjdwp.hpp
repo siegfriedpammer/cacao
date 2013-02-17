@@ -28,8 +28,8 @@
 
 */
 
-#ifndef _VMJDWP_H
-#define _VMJDWP_H
+#ifndef VMJDWP_HPP_
+#define VMJDWP_HPP_ 1
 
 #include "native/jvmti/jvmti.h"
 
@@ -49,5 +49,18 @@ void printjvmtierror(char *desc, jvmtiError err);
 }
 #endif
 
-#endif /* _VMJDWP_H */
+#endif // VMJDWP_HPP_
 
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c++
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

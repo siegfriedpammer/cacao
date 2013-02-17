@@ -22,8 +22,8 @@
 
 */
 
-#ifndef __CACAO_OUTPUT_STREAM_HPP__
-#define __CACAO_OUTPUT_STREAM_HPP__ 1
+#ifndef CACAO_OUTPUT_STREAM_HPP_
+#define CACAO_OUTPUT_STREAM_HPP_ 1
 
 #include "vm/utf8.hpp"
 #include "vm/string.hpp"
@@ -73,7 +73,7 @@ class OutputStream {
 		OutputStream& operator=(const OutputStream&);
 };
 
-#endif /* __CACAO_OUTPUT_STREAM_HPP__ */
+#endif // CACAO_OUTPUT_STREAM_HPP_ */
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -81,7 +81,7 @@ class OutputStream {
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

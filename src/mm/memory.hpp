@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _MEMORY_H
-#define _MEMORY_H
+#ifndef MEMORY_HPP_
+#define MEMORY_HPP_ 1
 
 #include "config.h"
 
@@ -212,7 +212,7 @@ public:
 
 #endif /* __cplusplus */
 
-#endif /* _MEMORY_H */
+#endif // MEMORY_HPP_
 
 
 /*

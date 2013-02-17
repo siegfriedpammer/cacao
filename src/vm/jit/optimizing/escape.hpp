@@ -1,4 +1,4 @@
-/* src/vm/optimizing/escape.h
+/* src/vm/optimizing/escape.hpp
 
    Copyright (C) 2008-2013
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
@@ -21,8 +21,8 @@
    02110-1301, USA.
 */
 
-#ifndef _VM_JIT_OPTIMIZING_ESCAPE_H
-#define _VM_JIT_OPTIMIZING_ESCAPE_H
+#ifndef ESCAPE_HPP_
+#define ESCAPE_HPP_
 
 #include "vm/jit/jit.hpp"
 #include "vm/method.hpp"
@@ -51,4 +51,19 @@ void bc_escape_analysis_perform(methodinfo *m);
 
 bool escape_is_monomorphic(methodinfo *caller, methodinfo *callee);
 
-#endif
+#endif // ESCAPE_HPP_
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c++
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */

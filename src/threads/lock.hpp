@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _LOCK_HPP
-#define _LOCK_HPP
+#ifndef LOCK_HPP_
+#define LOCK_HPP_ 1
 
 #include <stdint.h>
 
@@ -114,7 +114,7 @@ void lock_schedule_lockrecord_removal(java_handle_t *o);
 
 #endif
 
-#endif // _LOCK_HPP
+#endif // LOCK_HPP_
 
 
 /*

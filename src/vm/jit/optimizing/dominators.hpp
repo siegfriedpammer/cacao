@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _DOMINATORS_HPP
-#define _DOMINATORS_HPP
+#ifndef DOMINATORS_HPP_
+#define DOMINATORS_HPP_ 1
 
 #include "config.h"
 
@@ -82,7 +82,7 @@ void dominator_tree_validate(jitdata *jd, dominatordata *dd);
 }
 #endif
 
-#endif // _DOMINATORS_HPP
+#endif // DOMINATORS_HPP_
 
 
 /*

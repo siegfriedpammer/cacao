@@ -1,4 +1,4 @@
-/* src/vm/descriptor.h - checking and parsing of field / method descriptors
+/* src/vm/descriptor.hpp - checking and parsing of field / method descriptors
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _DESCRIPTOR_H
-#define _DESCRIPTOR_H
+#ifndef DESCRIPTOR_HPP_
+#define DESCRIPTOR_HPP_ 1
 
 /* forward typedefs ***********************************************************/
 
@@ -187,7 +187,7 @@ void descriptor_pool_debug_dump(descriptor_pool *pool, FILE *file);
 }
 #endif /* __cplusplus */
 
-#endif /* _DESCRIPTOR_H */
+#endif // DESCRIPTOR_HPP_
 
 
 /*
@@ -196,7 +196,7 @@ void descriptor_pool_debug_dump(descriptor_pool *pool, FILE *file);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

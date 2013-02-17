@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _THREAD_POSIX_HPP
-#define _THREAD_POSIX_HPP
+#ifndef THREAD_POSIX_HPP_
+#define THREAD_POSIX_HPP_ 1
 
 #include "config.h"
 
@@ -304,8 +304,7 @@ void threads_tlh_remove_frame();
 } // extern "C"
 #endif
 
-#endif // _THREAD_POSIX_HPP
-
+#endif // THREAD_POSIX_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.

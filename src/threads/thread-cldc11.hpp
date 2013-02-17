@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _THREAD_CLDC11_HPP
-#define _THREAD_CLDC11_HPP
+#ifndef THREAD_CLDC11_HPP_
+#define THREAD_CLDC11_HPP_ 1
 
 #ifdef __cplusplus
 
@@ -66,7 +66,7 @@ typedef ThreadRuntimeCldc11 ThreadRuntime;
 
 #endif	// __cplusplus
 
-#endif // _THREAD_CLDC11_HPP
+#endif // THREAD_CLDC11_HPP_
 
 
 /*

@@ -102,7 +102,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_VMProxy_generateProxyC
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

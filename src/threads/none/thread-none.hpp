@@ -1,4 +1,4 @@
-/* src/threads/none/thread-none.h - fake threads header
+/* src/threads/none/thread-none.hpp - fake threads header
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _THREAD_NONE_H
-#define _THREAD_NONE_H
+#ifndef THREAD_NONE_HPP_
+#define THREAD_NONE_HPP_ 1
 
 #include "config.h"
 
@@ -96,7 +96,7 @@ inline static void threads_set_current_stackframeinfo(stackframeinfo_t *sfi)
 	_no_threads_stackframeinfo = sfi;
 }
 
-#endif /* _THREAD_NONE_H */
+#endif // THREAD_NONE_HPP_
 
 
 /*
@@ -105,7 +105,7 @@ inline static void threads_set_current_stackframeinfo(stackframeinfo_t *sfi)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

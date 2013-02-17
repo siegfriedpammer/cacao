@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _PRIMITIVE_HPP
-#define _PRIMITIVE_HPP
+#ifndef PRIMITIVE_HPP_
+#define PRIMITIVE_HPP_ 1
 
 #include "config.h"
 
@@ -124,7 +124,7 @@ void       primitive_postinit(void);
 
 #endif // __cplusplus
 
-#endif // _PRIMITIVE_HPP
+#endif // PRIMITIVE_HPP_
 
 
 /*

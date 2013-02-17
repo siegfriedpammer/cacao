@@ -1,4 +1,4 @@
-/* src/toolbox/hashtable.h - functions for internal hashtables
+/* src/toolbox/hashtable.hpp - functions for internal hashtables
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _HASHTABLE_H
-#define _HASHTABLE_H
+#ifndef HASHTABLE_HPP_
+#define HASHTABLE_HPP_ 1
 
 /* forward typedefs ***********************************************************/
 
@@ -122,7 +122,7 @@ void hashtable_free(hashtable *hash);
 }
 #endif
 
-#endif /* _HASHTABLE_H */
+#endif // HASHTABLE_HPP_
 
 
 /*
@@ -131,7 +131,7 @@ void hashtable_free(hashtable *hash);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

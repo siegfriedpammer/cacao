@@ -1,4 +1,4 @@
-/* src/vm/jit/reg.h - register allocator header
+/* src/vm/jit/reg.hpp - register allocator header
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _REG_H
-#define _REG_H
+#ifndef REG_HPP_
+#define REG_HPP_ 1
 
 /* forward typedefs ***********************************************************/
 
@@ -139,7 +139,7 @@ void reg_setup(jitdata *jd);
 }
 #endif
 
-#endif /* _REG_H */
+#endif // REG_HPP_
 
 
 /*
@@ -148,7 +148,7 @@ void reg_setup(jitdata *jd);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

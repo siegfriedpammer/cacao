@@ -1,4 +1,4 @@
-/* src/vm/jit/executionstate.h - execution-state handling
+/* src/vm/jit/executionstate.hpp - execution-state handling
 
    Copyright (C) 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _EXECUTIONSTATE_H
-#define _EXECUTIONSTATE_H
+#ifndef EXECUTIONSTATE_HPP_
+#define EXECUTIONSTATE_HPP_ 1
 
 /* forward typedefs ***********************************************************/
 
@@ -97,7 +97,7 @@ void md_executionstate_write(executionstate_t *es, void *ucontext);
 }
 #endif
 
-#endif /* _EXECUTIONSTATE_H */
+#endif // EXECUTIONSTATE_HPP_
 
 
 /*
@@ -106,7 +106,7 @@ void md_executionstate_write(executionstate_t *es, void *ucontext);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

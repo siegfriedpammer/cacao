@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _CODE_HPP
-#define _CODE_HPP
+#ifndef CODE_HPP_
+#define CODE_HPP_ 1
 
 #include "config.h"
 
@@ -235,7 +235,7 @@ void code_free_code_of_method(methodinfo *m);
 }
 #endif
 
-#endif // _CODE_HPP
+#endif // CODE_HPP_
 
 
 /*

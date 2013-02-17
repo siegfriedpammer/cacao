@@ -1,4 +1,4 @@
-/* src/toolbox/bitvector.h - bitvector header
+/* src/toolbox/bitvector.hpp - bitvector header
 
    Copyright (C) 2005-2013
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
@@ -28,8 +28,8 @@
 */
 
 
-#ifndef _BITVECTOR_H
-#define _BITVECTOR_H
+#ifndef BITVECTOR_HPP_
+#define BITVECTOR_HPP_ 1
 
 #include "vm/global.h"
 
@@ -86,7 +86,7 @@ void bv_union(bitvector d, bitvector s1, bitvector s2, int size);
 }
 #endif
 
-#endif /* _BITVECTOR_H */
+#endif // BITVECTOR_HPP
 
 
 /*
@@ -95,7 +95,7 @@ void bv_union(bitvector d, bitvector s1, bitvector s2, int size);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

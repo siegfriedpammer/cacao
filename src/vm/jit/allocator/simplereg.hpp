@@ -1,4 +1,4 @@
-/* src/vm/jit/allocator/simplereg.h - register allocator header
+/* src/vm/jit/allocator/simplereg.hpp - register allocator header
 
    Copyright (C) 1996-2005, 2006, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _SIMPLE_REG_H
-#define _SIMPLE_REG_H
+#ifndef SIMPLE_REG_HPP_
+#define SIMPLE_REG_HPP_ 1
 
 #include "config.h"
 #include "vm/types.h"
@@ -52,7 +52,7 @@ void simplereg_make_statistics(jitdata *jd);
 }
 #endif
 
-#endif /* _SIMPLE_REG_H */
+#endif // SIMPLE_REG_HPP_
 
 
 /*
@@ -61,7 +61,7 @@ void simplereg_make_statistics(jitdata *jd);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

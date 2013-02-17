@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _VM_PACKAGE_HPP
-#define _VM_PACKAGE_HPP
+#ifndef PACKAGE_HPP_
+#define PACKAGE_HPP_ 1
 
 #include "config.h"
 
@@ -42,7 +42,7 @@ public:
 	static Utf8String find(Utf8String packagename);
 };
 
-#endif // _VM_PACKAGE_HPP
+#endif // VM_PACKAGE_HPP_
 
 
 /*

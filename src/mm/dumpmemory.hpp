@@ -24,8 +24,8 @@
 */
 
 
-#ifndef _DUMPMEMORY_HPP
-#define _DUMPMEMORY_HPP
+#ifndef DUMPMEMORY_HPP_
+#define DUMPMEMORY_HPP_ 1
 
 #include "config.h"
 
@@ -390,7 +390,7 @@ void* DumpMemory_reallocate(void* src, size_t len1, size_t len2);
 
 #endif
 
-#endif // _DUMPMEMORY_HPP
+#endif // DUMPMEMORY_HPP_
 
 
 /*

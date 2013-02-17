@@ -1,4 +1,4 @@
-/* src/vm/jit/optimizing/ssa.h - static single assignment form header
+/* src/vm/jit/optimizing/ssa.hpp - static single assignment form header
 
    Copyright (C) 2005-2013
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _SSA_H
-#define _SSA_H
+#ifndef SSA_HPP_
+#define SSA_HPP_ 1
 
 #include "config.h"
 
@@ -65,7 +65,7 @@ void ssa_print_phi(lsradata *, graphdata *);
 }
 #endif
 
-#endif /* _SSA_H */
+#endif // _SSA_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -73,7 +73,7 @@ void ssa_print_phi(lsradata *, graphdata *);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset): 4
  * tab-width): 4

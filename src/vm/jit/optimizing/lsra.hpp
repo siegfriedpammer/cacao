@@ -1,4 +1,4 @@
-/* src/vm/jit/optimizing/lsra.h - linear scan register allocator header
+/* src/vm/jit/optimizing/lsra.hpp - linear scan register allocator header
 
    Copyright (C) 2005-2013
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
@@ -29,8 +29,8 @@
 */
 
 
-#ifndef _LSRA_H
-#define _LSRA_H
+#ifndef LSRA_HPP_
+#define LSRA_HPP_ 1
 
 #include "toolbox/bitvector.hpp"
 
@@ -216,7 +216,8 @@ typedef struct lsradata lsradata;
 
 /* function prototypes */
 void lsra(jitdata *);
-#endif /* _LSRA_H */
+
+#endif // LSRA_HPP_
 
 
 /*
@@ -225,7 +226,7 @@ void lsra(jitdata *);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

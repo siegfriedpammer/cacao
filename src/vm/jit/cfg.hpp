@@ -1,4 +1,4 @@
-/* src/vm/jit/cfg.h - build a control-flow graph
+/* src/vm/jit/cfg.hpp - build a control-flow graph
 
    Copyright (C) 2006-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _CFG_H
-#define _CFG_H
+#ifndef CFG_HPP_
+#define CFG_HPP_ 1
 
 #include "config.h"
 
@@ -55,7 +55,7 @@ void cfg_remove_root(jitdata *jd);
 }
 #endif
 
-#endif /* _CFG_H */
+#endif // CFG_HPP_
 
 
 /*
@@ -64,7 +64,7 @@ void cfg_remove_root(jitdata *jd);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

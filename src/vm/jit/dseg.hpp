@@ -1,4 +1,4 @@
-/* src/vm/jit/dseg.c - data segment handling stuff
+/* src/vm/jit/dseg.hpp - data segment handling stuff
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _DSEG_H
-#define _DSEG_H
+#ifndef DSEG_HPP_
+#define DSEG_HPP_ 1
 
 /* forward typedefs ***********************************************************/
 
@@ -96,7 +96,7 @@ void dseg_display(jitdata *jd);
 }
 #endif
 
-#endif /* _DSEG_H */
+#endif // DSEG_HPP_
 
 
 /*
@@ -105,7 +105,7 @@ void dseg_display(jitdata *jd);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

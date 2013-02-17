@@ -1,4 +1,4 @@
-/* src/vm/jit/parse.h - parser header
+/* src/vm/jit/parse.hpp - parser header
 
    Copyright (C) 1996-2005, 2006, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _PARSE_H
-#define _PARSE_H
+#ifndef PARSE_HPP_
+#define PARSE_HPP_ 1
 
 #include "config.h"
 #include "vm/types.h"
@@ -279,7 +279,7 @@ bool parse(jitdata *jd);
 }
 #endif
 
-#endif /* _PARSE_H */
+#endif // PARSE_HPP_
 
 
 /*
@@ -288,7 +288,7 @@ bool parse(jitdata *jd);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

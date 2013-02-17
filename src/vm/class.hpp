@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _CLASS_HPP
-#define _CLASS_HPP
+#ifndef CLASS_HPP_
+#define CLASS_HPP_ 1
 
 /* forward typedefs ***********************************************************/
 
@@ -442,7 +442,7 @@ inline bool class_is_or_almost_initialized(classinfo *c) {
 }
 #endif
 
-#endif /* _CLASS_HPP */
+#endif // CLASS_HPP_
 
 
 /*
@@ -451,7 +451,7 @@ inline bool class_is_or_almost_initialized(classinfo *c) {
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _PROPERTIES_HPP
-#define _PROPERTIES_HPP
+#ifndef PROPERTIES_HPP_
+#define PROPERTIES_HPP_
 
 #include "config.h"
 
@@ -73,7 +73,7 @@ public:
 
 #endif
 
-#endif // _PROPERTIES_HPP
+#endif // PROPERTIES_HPP_
 
 
 /*

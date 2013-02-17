@@ -1,4 +1,4 @@
-/* src/vm/cycles-stats.h - macros for cycle count statistics
+/* src/vm/cycles-stats.hpp - macros for cycle count statistics
 
    Copyright (C) 1996-2005, 2006, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,8 +22,8 @@
 
 */
 
-#ifndef _CYCLES_STATS_H
-#define _CYCLES_STATS_H
+#ifndef CYCLES_STATS_HPP_
+#define CYCLES_STATS_HPP_
 
 #include "config.h"
 #include "vm/types.h"
@@ -134,7 +134,7 @@ void cycles_stats_print(FILE *file,
 
 #endif /* defined(ENABLE_CYCLES_STATS) */
 
-#endif /* _CYCLES_STATS_H */
+#endif // CYCLES_STATS_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -142,7 +142,7 @@ void cycles_stats_print(FILE *file,
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

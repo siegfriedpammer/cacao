@@ -24,8 +24,8 @@
 */
 
 
-#ifndef _JAVAOBJECTS_HPP
-#define _JAVAOBJECTS_HPP
+#ifndef JAVAOBJECTS_HPP_
+#define JAVAOBJECTS_HPP_ 1
 
 #include "config.h"
 
@@ -3016,7 +3016,7 @@ inline void java_lang_Throwable::set_backtrace(java_handle_bytearray_t* value)
 
 #endif
 
-#endif // _JAVAOBJECTS_HPP
+#endif // JAVAOBJECTS_HPP_
 
 
 /*

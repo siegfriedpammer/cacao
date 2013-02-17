@@ -22,8 +22,8 @@
 
 */
 
-#ifndef __UTF_UTILS_HPP__
-#define __UTF_UTILS_HPP__ 1
+#ifndef UTF_UTILS_HPP_
+#define UTF_UTILS_HPP_ 1
 
 // TODO: get rid of the old utf type and rename utf_utils to utf
 
@@ -279,5 +279,19 @@ inline uint16_t utf8::decode_char(const char*& src) {
     }
 }
 
-#endif /* __UTF_UTILS_HPP__ */
+#endif // UTF_UTILS_HPP_
 
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c++
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */

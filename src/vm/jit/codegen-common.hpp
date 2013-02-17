@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _CODEGEN_COMMON_HPP
-#define _CODEGEN_COMMON_HPP
+#ifndef CODEGEN_COMMON_HPP_
+#define CODEGEN_COMMON_HPP_ 1
 
 /* forward typedefs ***********************************************************/
 
@@ -280,7 +280,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 }
 #endif
 
-#endif // _CODEGEN_COMMON_HPP
+#endif // CODEGEN_COMMON_HPP_
 
 
 /*

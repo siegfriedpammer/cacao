@@ -1,4 +1,4 @@
-/* src/native/llni.h - low level native interfarce (LLNI)
+/* src/native/llni.hpp - low level native interfarce (LLNI)
 
    Copyright (C) 2007-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _LLNI_H
-#define _LLNI_H
+#ifndef LLNI_HPP_
+#define LLNI_HPP_ 1
 
 #include "config.h"
 
@@ -155,7 +155,7 @@ void llni_critical_end_thread(threadobject *t);
 }
 #endif
 
-#endif /* _LLNI_H */
+#endif // LLNI_HPP_
 
 
 /*
@@ -164,7 +164,7 @@ void llni_critical_end_thread(threadobject *t);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

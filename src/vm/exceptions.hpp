@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _EXCEPTIONS_HPP
-#define _EXCEPTIONS_HPP
+#ifndef EXCEPTIONS_HPP_
+#define EXCEPTIONS_HPP_ 1
 
 #include "config.h"
 #include "vm/types.h"
@@ -107,7 +107,7 @@ extern "C" void *exceptions_handle_exception(java_object_t *xptro, void *xpc, vo
 
 #endif
 
-#endif // _EXCEPTIONS_HPP
+#endif // EXCEPTIONS_HPP_
 
 
 /*

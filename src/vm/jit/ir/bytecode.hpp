@@ -1,4 +1,4 @@
-/* src/vm/jit/ir/bytecode.h - Java byte code definitions
+/* src/vm/jit/ir/bytecode.hpp - Java byte code definitions
 
    Copyright (C) 2007 
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _VM_JIT_IR_BYTECODE_H
-#define _VM_JIT_IR_BYTECODE_H
+#ifndef BYTECODE_HPP_
+#define BYTECODE_HPP_ 1
 
 #include "config.h"
 
@@ -307,7 +307,7 @@ enum {
 	BC_impdep2         = 255
 };
 
-#endif /* _VM_JIT_IR_BYTECODE_H */
+#endif // BYTECODE_HPP_
 
 
 /*
@@ -316,7 +316,7 @@ enum {
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

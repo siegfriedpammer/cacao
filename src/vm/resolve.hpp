@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _RESOLVE_HPP
-#define _RESOLVE_HPP
+#ifndef RESOLVE_HPP_
+#define RESOLVE_HPP_ 1
 
 /* forward declarations *******************************************************/
 
@@ -274,7 +274,7 @@ classinfo *resolve_class_eager_no_access_check(unresolved_class *ref);
 }
 #endif
 
-#endif /* _RESOLVE_HPP */
+#endif // RESOLVE_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -282,7 +282,7 @@ classinfo *resolve_class_eager_no_access_check(unresolved_class *ref);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

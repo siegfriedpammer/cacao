@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _STACKTRACE_HPP
-#define _STACKTRACE_HPP
+#ifndef STACKTRACE_HPP_
+#define STACKTRACE_HPP_ 1
 
 /* forward typedefs ***********************************************************/
 
@@ -147,7 +147,7 @@ void stacktrace_print_cycles_stats(FILE *file);
 }
 #endif
 
-#endif // _STACKTRACE_HPP
+#endif // STACKTRACE_HPP_
 
 
 /*

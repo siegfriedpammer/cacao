@@ -1,4 +1,4 @@
-/* src/vm/jit/optimizing/lifetimes.h - lifetimes header
+/* src/vm/jit/optimizing/lifetimes.hpp - lifetimes header
 
    Copyright (C) 2005-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _LIFETIMES_H
-#define _LIFETIMES_H
+#ifndef LIFETIMES_HPP_
+#define LIFETIMES_HPP_ 1
 
 #include "config.h"
 
@@ -55,7 +55,8 @@ void lt_add_ss(struct lifetime *, stackelement_t *);
 void lt_remove_use_site(struct lifetime *lt, int block, int iindex);
 void lt_move_use_sites(struct lifetime *from, struct lifetime *to);
 void lt_lifeness_analysis(jitdata *, graphdata *);
-#endif /* _LIFETIMES_H */
+
+#endif // LIFETIMES_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -63,7 +64,7 @@ void lt_lifeness_analysis(jitdata *, graphdata *);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

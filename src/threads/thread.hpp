@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _THREAD_HPP
-#define _THREAD_HPP
+#ifndef THREAD_HPP_
+#define THREAD_HPP_ 1
 
 #include "config.h"
 
@@ -263,8 +263,6 @@ void          threads_yield(void);
 
 #endif /* ENABLE_THREADS */
 
-#endif // _THREAD_HPP
-
 void          thread_handle_set_priority(java_handle_t *th, int);
 bool          thread_handle_is_interrupted(java_handle_t *th);
 void          thread_handle_interrupt(java_handle_t *th);
@@ -277,6 +275,8 @@ int           thread_handle_get_state(java_handle_t *th);
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 #include "thread-cldc11.hpp"
 #endif
+
+#endif // THREAD_HPP_
 
 
 /*

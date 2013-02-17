@@ -1,4 +1,4 @@
-/* src/vm/statistics.h - exports global varables for statistics
+/* src/vm/statistics.hpp - exports global varables for statistics
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _STATISTICS_H
-#define _STATISTICS_H
+#ifndef STATISTICS_HPP_
+#define STATISTICS_HPP_ 1
 
 #include "config.h"
 
@@ -261,7 +261,7 @@ void jniinvokation(void);
 
 #endif /* ENABLE_STATISTICS */
 
-#endif /* _STATISTICS_H */
+#endif // STATISTICS_HPP_
 
 
 /*
@@ -270,7 +270,7 @@ void jniinvokation(void);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

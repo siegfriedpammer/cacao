@@ -24,8 +24,8 @@
 */
 
 
-#ifndef _NATIVE_HPP
-#define _NATIVE_HPP
+#ifndef NATIVE_HPP_
+#define NATIVE_HPP_ 1
 
 #include <stdint.h>
 
@@ -206,7 +206,7 @@ java_handle_t *native_new_and_init_string(classinfo *c, java_handle_t *s);
 } // extern "C"
 #endif
 
-#endif // _NATIVE_HPP
+#endif // NATIVE_HPP_
 
 
 /*

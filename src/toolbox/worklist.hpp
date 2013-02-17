@@ -1,4 +1,4 @@
-/* src/toolbox/worklist.h - worklist header
+/* src/toolbox/worklist.hpp - worklist header
 
    Copyright (C) 2005-2013
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
@@ -28,8 +28,8 @@
 */
 
 
-#ifndef _WORKLIST_H
-#define _WORKLIST_H
+#ifndef WORKLIST_HPP_
+#define WORKLIST_HPP_ 1
 
 #include "toolbox/bitvector.hpp"
 
@@ -81,7 +81,7 @@ void wl_reset(worklist *w, int size);
 }
 #endif
 
-#endif /* _BITVECTOR_H */
+#endif // BITVECTOR_HPP_
 
 
 /*
@@ -90,7 +90,7 @@ void wl_reset(worklist *w, int size);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

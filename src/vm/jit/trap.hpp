@@ -24,8 +24,8 @@
 */
 
 
-#ifndef _TRAP_HPP
-#define _TRAP_HPP
+#ifndef TRAP_HPP_
+#define TRAP_HPP_ 1
 
 #include "config.h"
 
@@ -79,7 +79,7 @@ bool md_trap_decode(trapinfo_t* trp, int sig, void* xpc, executionstate_t* es);
 }
 #endif
 
-#endif /* _TRAP_HPP */
+#endif // TRAP_HPP_
 
 
 /*

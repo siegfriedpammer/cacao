@@ -1140,7 +1140,7 @@ void liveness_scan_registers_canditates(jitdata *jd, int b_index, int iindex,
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

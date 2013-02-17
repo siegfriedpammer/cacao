@@ -1,4 +1,4 @@
-/* src/vm/jit/optimizing/ifconv.h - if-conversion
+/* src/vm/jit/optimizing/ifconv.hpp - if-conversion
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _IFCONV_H
-#define _IFCONV_H
+#ifndef IFCONV_HPP_
+#define IFCONV_HPP_ 1
 
 #include "config.h"
 
@@ -45,7 +45,7 @@ bool ifconv_static(jitdata *jd);
 }
 #endif
 
-#endif /* _IFCONV_H */
+#endif // IFCONV_HPP_
 
 
 /*
@@ -54,7 +54,7 @@ bool ifconv_static(jitdata *jd);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

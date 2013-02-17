@@ -1,4 +1,4 @@
-/* src/vm/jit/exceptiontable.h - method exception table
+/* src/vm/jit/exceptiontable.hpp - method exception table
 
    Copyright (C) 2007
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _EXCEPTIONTABLE_H
-#define _EXCEPTIONTABLE_H
+#ifndef EXCEPTIONTABLE_HPP_
+#define EXCEPTIONTABLE_HPP_ 1
 
 /* forward typedefs ***********************************************************/
 
@@ -75,7 +75,7 @@ void exceptiontable_print(codeinfo *code);
 } // extern "C"
 #endif
 
-#endif /* _EXCEPTIONTABLE_H */
+#endif // EXCEPTIONTABLE_HPP_
 
 
 /*
@@ -84,7 +84,7 @@ void exceptiontable_print(codeinfo *code);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

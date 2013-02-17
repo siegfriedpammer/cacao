@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _THREAD_CLASSPATH_HPP
-#define _THREAD_CLASSPATH_HPP
+#ifndef THREAD_CLASSPATH_HPP_
+#define THREAD_CLASSPATH_HPP_ 1
 
 #ifdef __cplusplus
 
@@ -66,7 +66,7 @@ typedef ThreadRuntimeClasspath ThreadRuntime;
 
 #endif	// __cplusplus
 
-#endif // _THREAD_CLASSPATH_HPP
+#endif // THREAD_CLASSPATH_HPP_
 
 
 /*

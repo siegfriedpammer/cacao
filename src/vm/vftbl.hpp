@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _VFTBL_HPP
-#define _VFTBL_HPP
+#ifndef VFTBL_HPP_
+#define VFTBL_HPP_ 1
 
 // Forward declaration.
 typedef struct _vftbl vftbl_t;
@@ -118,7 +118,7 @@ struct _vftbl {
 	methodptr    table[1];             /* class vftbl                         */
 };
 
-#endif // _VFTBL_HPP
+#endif // VFTBL_HPP_
 
 
 /*

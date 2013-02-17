@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _LOADER_HPP
-#define _LOADER_HPP
+#ifndef LOADER_HPP_
+#define LOADER_HPP_ 1
 
 #include "config.h"
 
@@ -161,7 +161,7 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader);
 
 #endif // __cplusplus
 
-#endif // _LOADER_HPP
+#endif // LOADER_HPP_
 
 
 /*

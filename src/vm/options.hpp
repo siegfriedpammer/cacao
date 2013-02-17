@@ -1,4 +1,4 @@
-/* src/vm/options.h - define global options extern
+/* src/vm/options.hpp - define global options extern
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _OPTIONS_H
-#define _OPTIONS_H
+#ifndef OPTIONS_HPP_
+#define OPTIONS_HPP_ 1
 
 #include "config.h"
 
@@ -270,7 +270,7 @@ void options_xx(JavaVMInitArgs *vm_args);
 }
 #endif
 
-#endif /* _OPTIONS_H */
+#endif // OPTIONS_HPP_
 
 
 /*
@@ -279,7 +279,7 @@ void options_xx(JavaVMInitArgs *vm_args);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

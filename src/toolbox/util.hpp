@@ -1,4 +1,4 @@
-/* src/toolbox/util.h - contains some utility functions
+/* src/toolbox/util.hpp - contains some utility functions
 
    Copyright (C) 1996-2005, 2006, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _UTIL_H
-#define _UTIL_H
+#ifndef UTIL_HPP_
+#define UTIL_HPP_ 1
 
 #include "config.h"
 
@@ -45,7 +45,7 @@ int   get_variable_message_length(const char *fmt, va_list ap);
 }
 #endif
 
-#endif /* _UTIL_H */
+#endif // UTIL_HPP_
 
 
 /*
@@ -54,7 +54,7 @@ int   get_variable_message_length(const char *fmt, va_list ap);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _STRING_HPP
-#define _STRING_HPP 1
+#ifndef STRING_HPP_
+#define STRING_HPP_ 1
 
 #ifdef __cplusplus
 
@@ -96,7 +96,7 @@ class JavaString {
 
 #endif /* __cplusplus */
 
-#endif /* _STRING_HPP */
+#endif // STRING_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -104,7 +104,7 @@ class JavaString {
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

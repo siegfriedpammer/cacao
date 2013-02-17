@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _JIT_HPP
-#define _JIT_HPP
+#ifndef JIT_HPP_
+#define JIT_HPP_ 1
 
 /* forward typedefs ***********************************************************/
 
@@ -473,7 +473,7 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr);
 }
 #endif
 
-#endif // _JIT_HPP
+#endif // JIT_HPP_
 
 
 /*
