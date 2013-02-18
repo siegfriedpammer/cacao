@@ -37,6 +37,6 @@ AM_CONDITIONAL([ENABLE_RT_TIMING], test x"${ENABLE_RT_TIMING}" = "xyes")
 
 if test x"${ENABLE_RT_TIMING}" = "xyes"; then
     AC_DEFINE([ENABLE_RT_TIMING], 1, [enable real-time timing])
-    AC_SEARCH_LIBS([clock_gettime],[rt])
+    AC_SEARCH_LIBS([clock_gettime], [rt])
 fi
 ])
