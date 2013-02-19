@@ -40,7 +40,7 @@
 #include "toolbox/logging.hpp"
 
 #include "vm/exceptions.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/vm.hpp"
 

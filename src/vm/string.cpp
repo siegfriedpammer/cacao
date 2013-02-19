@@ -28,6 +28,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
+#include "vm/options.hpp"
 
 #include "toolbox/intern_table.hpp"
 #include "toolbox/utf_utils.hpp"

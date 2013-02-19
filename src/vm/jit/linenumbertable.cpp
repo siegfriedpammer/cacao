@@ -35,7 +35,7 @@
 #include "toolbox/list.hpp"
 
 #if defined(ENABLE_STATISTICS)
-# include "vm/options.h"
+# include "vm/options.hpp"
 # include "vm/statistics.h"
 #endif
 

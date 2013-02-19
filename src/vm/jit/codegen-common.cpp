@@ -67,7 +67,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/method.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/statistics.h"
 #include "vm/string.hpp"
 

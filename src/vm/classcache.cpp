@@ -40,7 +40,7 @@
 
 #include "vm/classcache.hpp"
 #include "vm/exceptions.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/utf8.hpp"
 
 

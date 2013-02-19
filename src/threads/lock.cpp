@@ -48,7 +48,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/finalizer.hpp"
 #include "vm/global.h"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 

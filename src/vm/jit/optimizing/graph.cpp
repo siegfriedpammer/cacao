@@ -37,7 +37,7 @@
 #include "vm/jit/optimizing/graph.hpp"
 
 #ifdef GRAPH_DEBUG_VERBOSE
-#include "vm/options.h"
+#include "vm/options.hpp"
 #endif
 
 /* Helpers for graph_make_cfg */

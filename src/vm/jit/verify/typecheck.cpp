@@ -154,7 +154,7 @@ error reporting.
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/primitive.hpp"
 #include "vm/resolve.hpp"
 

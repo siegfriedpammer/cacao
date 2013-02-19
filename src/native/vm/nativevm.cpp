@@ -33,7 +33,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/initialize.hpp"
 #include "vm/method.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)

@@ -36,7 +36,7 @@
 
 #include "vm/global.h"
 #include "vm/jit/builtin.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 

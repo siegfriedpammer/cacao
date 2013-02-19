@@ -42,7 +42,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/resolve.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/statistics.h"
 
 #include "vm/jit/abi.h"

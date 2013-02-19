@@ -46,7 +46,7 @@
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
 #include "vm/method.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/resolve.hpp"
 #include "vm/suck.hpp"
 #include "vm/utf8.hpp"

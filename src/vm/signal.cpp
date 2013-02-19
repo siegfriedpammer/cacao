@@ -42,7 +42,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
 #include "vm/method.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/signallocal.hpp"
 #include "vm/vm.hpp"

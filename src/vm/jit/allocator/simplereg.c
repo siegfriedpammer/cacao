@@ -39,7 +39,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/method.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/resolve.hpp"
 #include "vm/string.hpp"
 

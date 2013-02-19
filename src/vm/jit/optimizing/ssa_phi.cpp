@@ -45,7 +45,7 @@
 #include "vm/jit/optimizing/ssa_phi.hpp"
 
 #if defined(SSA_DEBUG_VERBOSE)
-#include "vm/options.h"   /* compileverbose */
+#include "vm/options.hpp"   /* compileverbose */
 #endif
 
 /* ssa_place_phi_functions *****************************************************

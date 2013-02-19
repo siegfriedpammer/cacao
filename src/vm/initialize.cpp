@@ -38,7 +38,7 @@
 #include "vm/globals.hpp"
 #include "vm/initialize.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/vm.hpp"
 
 #if defined(ENABLE_STATISTICS)

@@ -39,7 +39,7 @@
 #include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/javaobjects.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/vm.hpp"
 
 

@@ -36,7 +36,7 @@
 #include "mm/memory.hpp"
 
 #include "vm/jit/builtin.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"

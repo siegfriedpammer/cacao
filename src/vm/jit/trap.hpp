@@ -31,7 +31,7 @@
 
 #include <stdint.h>
 
-#include "vm/options.h"
+#include "vm/options.hpp"
 
 #include "vm/jit/executionstate.h"
 

@@ -47,7 +47,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/hook.hpp"
 #include "vm/initialize.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/resolve.hpp"
 

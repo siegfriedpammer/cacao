@@ -36,7 +36,7 @@
 
 #include "vm/classcache.hpp"
 #include "vm/exceptions.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/string.hpp"
 
 #include "vm/jit/builtin.hpp"

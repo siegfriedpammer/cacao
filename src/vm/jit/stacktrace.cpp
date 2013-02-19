@@ -56,7 +56,7 @@
 #include "vm/javaobjects.hpp"
 #include "vm/loader.hpp"
 #include "vm/method.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 

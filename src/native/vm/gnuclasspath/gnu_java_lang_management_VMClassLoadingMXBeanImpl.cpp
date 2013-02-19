@@ -39,7 +39,7 @@
 #include "toolbox/logging.hpp"
 
 #include "vm/classcache.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/utf8.hpp"
 #include "vm/vm.hpp"
 

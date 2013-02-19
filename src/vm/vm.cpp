@@ -72,7 +72,7 @@
 #include "vm/hook.hpp"
 #include "vm/initialize.hpp"
 #include "vm/javaobjects.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/primitive.hpp"
 #include "vm/properties.hpp"

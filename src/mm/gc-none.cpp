@@ -39,7 +39,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/global.h"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/vm.hpp"
 

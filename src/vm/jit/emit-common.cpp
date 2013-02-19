@@ -37,7 +37,7 @@
 
 #include "toolbox/list.hpp"
 
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/statistics.h"
 
 #include "vm/jit/emit-common.hpp"

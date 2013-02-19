@@ -47,7 +47,7 @@
 #include "vm/jit/trap.hpp"
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
-#include "vm/options.h" /* XXX debug */
+#include "vm/options.hpp" /* XXX debug */
 #endif
 
 #include "vm/jit/codegen-common.hpp"

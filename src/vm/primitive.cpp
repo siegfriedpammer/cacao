@@ -35,7 +35,7 @@
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/primitive.hpp"
 #include "vm/utf8.hpp"

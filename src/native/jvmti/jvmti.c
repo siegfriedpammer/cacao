@@ -49,7 +49,7 @@
 #include "vm/classcache.hpp"
 #include "mm/gc.hpp"
 #include "toolbox/logging.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/string.hpp"
 #include "mm/memory.hpp"
 #include "threads/mutex.h"

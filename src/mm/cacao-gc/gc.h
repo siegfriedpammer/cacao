@@ -54,7 +54,7 @@
 
 #if !defined(NDEBUG) && defined(GC_DEBUGGING)
 # include <assert.h>
-# include "vm/options.h"
+# include "vm/options.hpp"
 # define GC_LOG(code) if (opt_verbosegc) { code; }
 # define GC_ASSERT(assertion) assert(assertion)
 #else

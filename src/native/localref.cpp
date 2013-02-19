@@ -36,7 +36,7 @@
 
 #include "toolbox/logging.hpp"
 
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/argument.hpp"

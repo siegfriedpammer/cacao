@@ -24,6 +24,8 @@
 
 #include "vm/utf8.hpp"
 
+#include "vm/options.hpp"
+
 #include "toolbox/intern_table.hpp"
 #include "toolbox/utf_utils.hpp"
 

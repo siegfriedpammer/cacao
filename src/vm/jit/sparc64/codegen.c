@@ -46,7 +46,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"

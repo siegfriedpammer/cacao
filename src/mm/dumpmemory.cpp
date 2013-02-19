@@ -33,7 +33,6 @@
 
 #include "threads/thread.hpp"
 
-#include "vm/options.h"
 #include "vm/os.hpp"
 
 #if defined(ENABLE_STATISTICS)

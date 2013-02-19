@@ -229,8 +229,6 @@ public:
 
 #include "threads/thread.hpp"
 
-#include "vm/options.h"
-
 #if defined(ENABLE_STATISTICS)
 # include "vm/statistics.h"
 #endif

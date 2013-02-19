@@ -29,7 +29,7 @@
 
 #include "mm/memory.hpp"
 
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/package.hpp"
 #include "vm/string.hpp"
 #include "vm/utf8.hpp"

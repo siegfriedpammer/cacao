@@ -50,7 +50,7 @@
 #include "vm/globals.hpp"
 #include "vm/hook.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/resolve.hpp"
 #include "vm/string.hpp"

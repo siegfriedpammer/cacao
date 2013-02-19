@@ -52,7 +52,7 @@
 #include "vm/jit/python.h"
 
 #if defined(SSA_DEBUG_VERBOSE)
-#include "vm/options.h"   /* compileverbose */
+#include "vm/options.hpp"   /* compileverbose */
 #endif
 
 /* function prototypes */

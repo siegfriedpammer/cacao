@@ -35,7 +35,7 @@
 
 #include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/primitive.hpp"
 #include "vm/vm.hpp"
 

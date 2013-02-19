@@ -42,7 +42,7 @@
 
 #include "vm/exceptions.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/properties.hpp"
 #include "vm/suck.hpp"

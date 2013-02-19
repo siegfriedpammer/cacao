@@ -34,7 +34,7 @@
 
 #include "toolbox/buffer.hpp"
 
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/properties.hpp"
 #include "vm/utf8.hpp"

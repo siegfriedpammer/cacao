@@ -44,7 +44,7 @@
 #include "vm/globals.hpp"
 #include "vm/hook.hpp"
 #include "vm/javaobjects.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/string.hpp"
 #include "vm/utf8.hpp"
 

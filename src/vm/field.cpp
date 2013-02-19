@@ -45,7 +45,7 @@
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/primitive.hpp"
 #include "vm/references.h"
 #include "vm/string.hpp"

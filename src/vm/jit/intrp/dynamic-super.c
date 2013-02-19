@@ -43,7 +43,7 @@
 #include "toolbox/hashtable.h"
 #include "toolbox/logging.hpp"
 
-#include "vm/options.h"
+#include "vm/options.hpp"
 
 #include "vm/jit/disass.h"
 #include "vm/jit/intrp/intrp.h"

@@ -27,7 +27,7 @@
 
 #include "vm/jit/intrp/intrp.h"
 
-#include "vm/options.h"
+#include "vm/options.hpp"
 
 
 /* the numbers in this struct are primitive indices */

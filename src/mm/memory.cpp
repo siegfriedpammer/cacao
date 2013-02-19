@@ -51,7 +51,7 @@
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 
 #if defined(ENABLE_STATISTICS)

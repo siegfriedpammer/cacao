@@ -40,7 +40,7 @@
 #include "vm/class.hpp"
 #include "vm/classcache.hpp"
 #include "vm/method.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/string.hpp"
 
 #include "vm/jit/jit.hpp"

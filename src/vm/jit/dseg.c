@@ -31,7 +31,7 @@
 
 #include "mm/memory.hpp"
 
-#include "vm/options.h"
+#include "vm/options.hpp"
 
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/methodheader.h"

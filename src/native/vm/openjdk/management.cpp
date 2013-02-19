@@ -43,7 +43,7 @@
 #include "vm/array.hpp"
 #include "vm/classcache.hpp"
 #include "vm/globals.hpp" // XXX Remove!!!
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/vm.hpp"
 

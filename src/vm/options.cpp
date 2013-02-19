@@ -32,7 +32,7 @@
 
 #include "mm/memory.hpp"
 
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/vm.hpp"
 
@@ -425,7 +425,7 @@ int options_get(opt_struct *opts, JavaVMInitArgs *vm_args)
 				opt_index++;
 
 				if (opt_index < vm_args->nOptions) {
-					opt_arg = os_strdup(vm_args->options[opt_index].optionString);
+					opt_arg = os::strdup(vm_args->options[opt_index].optionString);
 					opt_index++;
 					return opts[i].value;
 				}
@@ -439,12 +439,12 @@ int options_get(opt_struct *opts, JavaVMInitArgs *vm_args)
 				 * parameter with no argument starting with same letter as param with argument
 				 * but named after that one, ouch! */
 
-				size_t l = os_strlen(opts[i].name);
+				size_t l = os::strlen(opts[i].name);
 
-				if (os_strlen(option + 1) > l) {
+				if (os::strlen(option + 1) > l) {
 					if (memcmp(option + 1, opts[i].name, l) == 0) {
 						opt_index++;
-						opt_arg = os_strdup(option + 1 + l);
+						opt_arg = os::strdup(option + 1 + l);
 						return opts[i].value;
 					}
 				}
@@ -479,13 +479,13 @@ static void options_xxusage(void)
 		switch (opt->type) {
 		case OPT_TYPE_BOOLEAN:
 			printf("+%s", opt->name);
-			length = os_strlen("    -XX:+") + os_strlen(opt->name);
+			length = os::strlen("    -XX:+") + os::strlen(opt->name);
 			break;
 
 		case OPT_TYPE_VALUE:
 			printf("%s=<value>", opt->name);
-			length = os_strlen("    -XX:") + os_strlen(opt->name) +
-				os_strlen("=<value>");
+			length = os::strlen("    -XX:") + os::strlen(opt->name) +
+				os::strlen("=<value>");
 			break;
 
 		default:
@@ -508,7 +508,7 @@ static void options_xxusage(void)
 
 		/* Check documentation length. */
 
-		length = os_strlen(opt->doc);
+		length = os::strlen(opt->doc);
 
 		if (length < (80 - 29)) {
 			printf("%s", opt->doc);
@@ -546,7 +546,7 @@ void options_xx(JavaVMInitArgs *vm_args)
 {
 	const char *name;
 	const char *start;
-	char       *end;
+	const char *end;
 	int         length;
 	int         enable;
 	char       *value;
@@ -595,12 +595,12 @@ void options_xx(JavaVMInitArgs *vm_args)
 		end = strchr(start, '=');
 
 		if (end == NULL) {
-			length = os_strlen(start);
+			length = os::strlen(start);
 			value  = NULL;
 		}
 		else {
 			length = end - start;
-			value  = end + 1;
+			value  = (char*) (end + 1);
 		}
 
 		/* Search the option in the option array. */
@@ -635,7 +635,7 @@ void options_xx(JavaVMInitArgs *vm_args)
 		   in HotSpot). */
 
 		case OPT_MaxDirectMemorySize:
-			opt_MaxDirectMemorySize = os_atoi(value);
+			opt_MaxDirectMemorySize = os::atoi(value);
 			break;
 
 		case OPT_MaxPermSize:
@@ -749,17 +749,17 @@ void options_xx(JavaVMInitArgs *vm_args)
 
 		case OPT_InlineCount:
 			if (value != NULL)
-				opt_InlineCount = os_atoi(value);
+				opt_InlineCount = os::atoi(value);
 			break;
 
 		case OPT_InlineMaxSize:
 			if (value != NULL)
-				opt_InlineMaxSize = os_atoi(value);
+				opt_InlineMaxSize = os::atoi(value);
 			break;
 
 		case OPT_InlineMinSize:
 			if (value != NULL)
-				opt_InlineMinSize = os_atoi(value);
+				opt_InlineMinSize = os::atoi(value);
 			break;
 #endif
 #endif
@@ -776,14 +776,14 @@ void options_xx(JavaVMInitArgs *vm_args)
 			if (value == NULL)
 				opt_ProfileGCMemoryUsage = 5;
 			else
-				opt_ProfileGCMemoryUsage = os_atoi(value);
+				opt_ProfileGCMemoryUsage = os::atoi(value);
 			break;
 
 		case OPT_ProfileMemoryUsage:
 			if (value == NULL)
 				opt_ProfileMemoryUsage = 5;
 			else
-				opt_ProfileMemoryUsage = os_atoi(value);
+				opt_ProfileMemoryUsage = os::atoi(value);
 
 # if defined(ENABLE_STATISTICS)
 			/* we also need statistics */
@@ -839,7 +839,7 @@ void options_xx(JavaVMInitArgs *vm_args)
 			if (value == NULL)
 				opt_TraceInlining = 1;
 			else
-				opt_TraceInlining = os_atoi(value);
+				opt_TraceInlining = os::atoi(value);
 			break;
 #endif
 
@@ -879,7 +879,7 @@ void options_xx(JavaVMInitArgs *vm_args)
 			if (value == NULL)
 				opt_TraceReplacement = 1;
 			else
-				opt_TraceReplacement = os_atoi(value);
+				opt_TraceReplacement = os::atoi(value);
 			break;
 #endif
 

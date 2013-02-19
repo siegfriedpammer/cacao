@@ -69,7 +69,7 @@
 #include "vm/initialize.hpp"
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/primitive.hpp"
 #include "vm/rt-timing.hpp"
 #include "vm/string.hpp"

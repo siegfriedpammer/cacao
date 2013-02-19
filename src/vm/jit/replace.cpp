@@ -46,7 +46,7 @@
 
 #include "vm/classcache.hpp"
 #include "vm/globals.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/string.hpp"
 
 #if defined(ENABLE_RT_TIMING)

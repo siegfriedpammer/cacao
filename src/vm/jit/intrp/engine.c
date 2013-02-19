@@ -43,7 +43,7 @@
 
 #include "vm/jit/builtin.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher.h"

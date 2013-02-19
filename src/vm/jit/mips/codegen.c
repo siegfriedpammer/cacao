@@ -45,7 +45,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
 #include "vm/exceptions.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/abi.h"

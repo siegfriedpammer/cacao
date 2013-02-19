@@ -53,7 +53,7 @@
 #include "vm/javaobjects.hpp"
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/resolve.hpp"
 
 #if defined(ENABLE_STATISTICS)

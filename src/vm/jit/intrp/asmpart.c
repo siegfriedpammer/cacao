@@ -37,7 +37,7 @@
 #include "vm/class.hpp"
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/methodheader.h"
