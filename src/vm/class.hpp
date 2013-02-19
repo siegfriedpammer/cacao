@@ -245,8 +245,8 @@ bool                       class_is_arraycompatible(struct arraydescriptor *desc
 bool                       class_is_assignable_from(classinfo *to, classinfo *from);
 bool                       class_is_instance(classinfo *c, java_handle_t *h);
 
-inline classloader_t      *class_get_classloader(classinfo *c);
-inline classinfo          *class_get_superclass(classinfo *c);
+static inline classloader_t      *class_get_classloader(classinfo *c);
+static inline classinfo          *class_get_superclass(classinfo *c);
 classinfo                 *class_get_componenttype(classinfo *c);
 java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOnly);
 java_handle_objectarray_t *class_get_declaredconstructors(classinfo *c, bool publicOnly);
@@ -291,7 +291,7 @@ void class_showconstantpool(classinfo *c);
  * @param c class to get name of
  * @return classname
  */
-extern java_handle_t* class_get_classname(classinfo* c);
+java_handle_t* class_get_classname(classinfo* c);
 
 /* class_is_primitive **********************************************************
 
@@ -314,7 +314,7 @@ static inline bool class_is_primitive(classinfo *c)
 
 *******************************************************************************/
 
-inline bool class_is_anonymousclass(classinfo *c)
+static inline bool class_is_anonymousclass(classinfo *c)
 {
 	if (c->flags & ACC_CLASS_ANONYMOUS)
 		return true;
@@ -329,7 +329,7 @@ inline bool class_is_anonymousclass(classinfo *c)
 
 *******************************************************************************/
 
-inline bool class_is_array(classinfo *c)
+static inline bool class_is_array(classinfo *c)
 {
 	if (!(c->state & CLASS_LINKED))
 		if (!link_class(c))
@@ -345,7 +345,7 @@ inline bool class_is_array(classinfo *c)
 
 *******************************************************************************/
 
-inline bool class_is_interface(classinfo *c)
+static inline bool class_is_interface(classinfo *c)
 {
 	if (c->flags & ACC_INTERFACE)
 		return true;
@@ -360,7 +360,7 @@ inline bool class_is_interface(classinfo *c)
 
 *******************************************************************************/
 
-inline bool class_is_localclass(classinfo *c)
+static inline bool class_is_localclass(classinfo *c)
 {
 	if ((c->enclosingmethod != NULL) && !class_is_anonymousclass(c))
 		return true;
@@ -375,7 +375,7 @@ inline bool class_is_localclass(classinfo *c)
 
 *******************************************************************************/
 
-inline bool class_is_memberclass(classinfo *c)
+static inline bool class_is_memberclass(classinfo *c)
 {
 	if (c->flags & ACC_CLASS_MEMBER)
 		return true;
@@ -390,7 +390,7 @@ inline bool class_is_memberclass(classinfo *c)
 
 *******************************************************************************/
 
-inline classloader_t *class_get_classloader(classinfo *c)
+static inline classloader_t *class_get_classloader(classinfo *c)
 {
 	classloader_t *cl;
 
@@ -408,7 +408,7 @@ inline classloader_t *class_get_classloader(classinfo *c)
 
 *******************************************************************************/
 
-inline classinfo *class_get_superclass(classinfo *c)
+static inline classinfo *class_get_superclass(classinfo *c)
 {
 	/* For interfaces we return NULL. */
 
