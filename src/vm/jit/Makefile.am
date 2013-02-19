@@ -106,8 +106,8 @@ REPLACE_SOURCES += \
 	replace.hpp
 
 STACK_SOURCES = \
-	stack.c \
-	stack.h
+	stack.cpp \
+	stack.hpp
 
 TRAP_SOURCES = \
 	trap.cpp \

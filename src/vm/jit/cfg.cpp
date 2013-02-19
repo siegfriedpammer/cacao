@@ -36,7 +36,7 @@
 #include "vm/global.h"
 
 #include "vm/jit/jit.hpp"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 
 
 /* cfg_allocate_predecessors ***************************************************

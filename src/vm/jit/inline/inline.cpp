@@ -52,7 +52,7 @@
 #include "vm/jit/parse.hpp"
 #include "vm/jit/reg.h"
 #include "vm/jit/show.hpp"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 
 #include "vm/jit/inline/inline.hpp"
 #include "vm/jit/loop/loop.h"

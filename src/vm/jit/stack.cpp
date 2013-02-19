@@ -62,7 +62,7 @@
 #endif
 
 #include "vm/jit/jit.hpp"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 
 #if 0
 #if defined(ENABLE_SSA)
@@ -113,7 +113,7 @@ typedef struct stackdata_t stackdata_t;
 
 struct stackdata_t {
     basicblock *bptr;             /* the current basic block being analysed   */
-    stackelement_t *new;          /* next free stackelement                   */
+    stackelement_t *new_elem;     /* next free stackelement                   */
     s4 vartop;                    /* next free variable index                 */
     s4 localcount;                /* number of locals (at the start of var)   */
     s4 varcount;                  /* maximum number of variables expected     */
@@ -500,6 +500,30 @@ struct stackdata_t {
 #define BRANCH(tempbptr)                                             \
     BRANCH_TARGET(iptr->dst, tempbptr)
 
+
+/*--------------------------------------------------*/
+/* ALLOCATING STACK SLOTS                           */
+/*--------------------------------------------------*/
+
+#define NEWSTACK(s,v,n)                                              \
+    do {                                                             \
+        sd.new_elem->prev = curstack;                                \
+        sd.new_elem->type = (s);                                     \
+        sd.new_elem->flags = 0;                                      \
+        sd.new_elem->varkind = (v);                                  \
+        sd.new_elem->varnum = (n);                                   \
+        curstack = sd.new_elem;                                      \
+        sd.var[(n)].type = (s);                                      \
+        sd.var[(n)].flags = 0;                                       \
+        sd.new_elem++;                                               \
+    } while (0)
+
+/* Initialize regoff, so -sia can show regnames even before reg.inc */
+/* regs[rd->intregargnum] has to be set for this                    */
+/* new_elem->regoff = (IS_FLT_DBL_TYPE(s))?-1:rd->intreg_argnum; }  */
+
+#define NEWSTACKn(s,n)  NEWSTACK(s,UNDEFVAR,n)
+#define NEWSTACK0(s)    NEWSTACK(s,UNDEFVAR,0)
 
 /* forward declarations *******************************************************/
 
@@ -1072,7 +1096,7 @@ static stackelement_t * stack_create_instack(stackdata_t *sd)
 	if ((depth = sd->bptr->indepth) == 0)
 		return NULL;
 
-    sp = (sd->new += depth);
+    sp = (sd->new_elem += depth);
 
 	while (depth--) {
 		sp--;
@@ -1087,7 +1111,7 @@ static stackelement_t * stack_create_instack(stackdata_t *sd)
 	sp->prev = NULL;
 
 	/* return the top of the created stack */
-	return sd->new - 1;
+	return sd->new_elem - 1;
 }
 
 
@@ -2224,7 +2248,7 @@ bool stack_analyse(jitdata *jd)
 
 				/* reset the new pointer for allocating stackslots */
 
-				sd.new = jd->stack;
+				sd.new_elem = jd->stack;
 
 				/* create the instack of this block */
 
@@ -2249,9 +2273,9 @@ bool stack_analyse(jitdata *jd)
 
 				/* reset variables for dependency checking */
 
-				coalescing_boundary = sd.new;
+				coalescing_boundary = sd.new_elem;
 				for( i = 0; i < m->maxlocals; i++)
-					last_store_boundary[i] = sd.new;
+					last_store_boundary[i] = sd.new_elem;
 
  				/* remember the start of this block's variables */
   
@@ -2304,7 +2328,7 @@ icmd_NOP:
 						break;
 
 					case ICMD_CHECKNULL:
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 						COUNT(count_check_null);
 						USE_S1(TYPE_ADR);
 						CLR_SX;
@@ -3076,7 +3100,7 @@ normal_LCONST:
 	/************************** ACONST OPTIMIZATIONS **************************/
 
 					case ICMD_ACONST:
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 						COUNT(count_pcmd_load);
 #if SUPPORT_CONST_STORE
 						/* We can only optimize if the ACONST is resolved
@@ -3157,7 +3181,7 @@ normal_ACONST:
 					case ICMD_FALOAD:
 					case ICMD_DALOAD:
 					case ICMD_AALOAD:
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 						iptr->flags.bits |= INS_FLAG_CHECK;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
@@ -3169,7 +3193,7 @@ normal_ACONST:
 					case ICMD_BALOAD:
 					case ICMD_CALOAD:
 					case ICMD_SALOAD:
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 						iptr->flags.bits |= INS_FLAG_CHECK;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
@@ -3182,7 +3206,7 @@ normal_ACONST:
 					case ICMD_IINC:
 						STATISTICS_STACKDEPTH_DISTRIBUTION(count_store_depth);
 						javaindex = iptr->s1.varindex;
-						last_store_boundary[javaindex] = sd.new;
+						last_store_boundary[javaindex] = sd.new_elem;
 
 						iptr->s1.varindex = 
 							jd->local_map[javaindex * 5 + TYPE_INT];
@@ -3249,7 +3273,7 @@ normal_ACONST:
 #if defined(ENABLE_STATISTICS)
 						if (opt_stat) {
 							count_pcmd_store++;
-							i = sd.new - curstack;
+							i = sd.new_elem - curstack;
 							if (i >= 20)
 								count_store_length[20]++;
 							else
@@ -3297,7 +3321,7 @@ normal_ACONST:
 
 						/* there is no DEF LOCALVAR(varindex) while curstack is live */
 
-						copy = sd.new; /* most recent stackslot created + 1 */
+						copy = sd.new_elem; /* most recent stackslot created + 1 */
 						while (--copy > curstack) {
 							if (copy->varkind == LOCALVAR && jd->reverselocalmap[copy->varnum] == javaindex)
 								goto assume_conflict;
@@ -3330,7 +3354,7 @@ assume_conflict:
 
 						/* remember the stack boundary at this store */
 store_tail:
-						last_store_boundary[javaindex] = sd.new;
+						last_store_boundary[javaindex] = sd.new_elem;
 
 						if (opcode == ICMD_ASTORE && curstack->type == TYPE_RET)
 							STORE(TYPE_RET, varindex);
@@ -3341,7 +3365,7 @@ store_tail:
 					/* pop 3 push 0 */
 
 					case ICMD_AASTORE:
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 						iptr->flags.bits |= INS_FLAG_CHECK;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
@@ -3376,7 +3400,7 @@ store_tail:
 					case ICMD_LASTORE:
 					case ICMD_FASTORE:
 					case ICMD_DASTORE:
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 						iptr->flags.bits |= INS_FLAG_CHECK;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
@@ -3388,7 +3412,7 @@ store_tail:
 					case ICMD_BASTORE:
 					case ICMD_CASTORE:
 					case ICMD_SASTORE:
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 						iptr->flags.bits |= INS_FLAG_CHECK;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
@@ -3414,7 +3438,7 @@ store_tail:
 					case ICMD_FRETURN:
 					case ICMD_DRETURN:
 					case ICMD_ARETURN:
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 						/* Assert here that no LOCAL or INOUTS get */
 						/* preallocated, since tha macros are not   */
 						/* available in md-abi.c! */
@@ -3428,7 +3452,7 @@ store_tail:
 						break;
 
 					case ICMD_ATHROW:
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 						COUNT(count_check_null);
 						OP1_0(TYPE_ADR);
 						curstack = NULL; stackdepth = 0;
@@ -3436,7 +3460,7 @@ store_tail:
 						break;
 
 					case ICMD_PUTSTATIC:
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 						COUNT(count_pcmd_mem);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						OP1_0(fmiref->parseddesc.fd->type);
@@ -3517,7 +3541,7 @@ store_tail:
 
 					case ICMD_MONITORENTER:
 					case ICMD_MONITOREXIT:
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 						COUNT(count_check_null);
 						OP1_0(TYPE_ADR);
 						break;
@@ -3545,7 +3569,7 @@ store_tail:
 						/* pop 2 push 0 */
 
 					case ICMD_PUTFIELD:
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 						COUNT(count_check_null);
 						COUNT(count_pcmd_mem);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
@@ -3587,7 +3611,7 @@ icmd_DUP:
 						src1 = curstack;
 
 						COPY_UP(src1);
-						coalescing_boundary = sd.new - 1;
+						coalescing_boundary = sd.new_elem - 1;
 						break;
 
 					case ICMD_DUP2:
@@ -3612,7 +3636,7 @@ icmd_DUP:
 							COPY_UP(src1); iptr++; len--;
 							COPY_UP(src2);
 
-							coalescing_boundary = sd.new;
+							coalescing_boundary = sd.new_elem;
 						}
 						break;
 
@@ -3646,7 +3670,7 @@ icmd_DUP_X1:
 
 						COPY_DOWN(curstack, dst1);
 
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 						break;
 
 					case ICMD_DUP2_X1:
@@ -3698,7 +3722,7 @@ icmd_DUP2_X1:
 							COPY_DOWN(curstack, dst2); iptr++; len--;
 							COPY_DOWN(curstack->prev, dst1);
 
-							coalescing_boundary = sd.new;
+							coalescing_boundary = sd.new_elem;
 						}
 						break;
 
@@ -3750,7 +3774,7 @@ icmd_DUP_X2:
 
 							COPY_DOWN(curstack, dst1);
 
-							coalescing_boundary = sd.new;
+							coalescing_boundary = sd.new_elem;
 						}
 						break;
 
@@ -3831,7 +3855,7 @@ icmd_DUP_X2:
 							COPY_DOWN(curstack, dst2); iptr++; len--;
 							COPY_DOWN(curstack->prev, dst1);
 
-							coalescing_boundary = sd.new;
+							coalescing_boundary = sd.new_elem;
 						}
 						break;
 
@@ -3860,14 +3884,14 @@ icmd_DUP_X2:
 						MOVE_UP(src2); iptr++; len--;
 						MOVE_UP(src1);
 
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 						break;
 
 						/* pop 2 push 1 */
 
 					case ICMD_IDIV:
 					case ICMD_IREM:
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 #if !SUPPORT_DIVISION
 						bte = iptr->sx.s23.s3.bte;
 						md = bte->md;
@@ -3904,7 +3928,7 @@ icmd_DUP_X2:
 
 					case ICMD_LDIV:
 					case ICMD_LREM:
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
 						bte = iptr->sx.s23.s3.bte;
 						md = bte->md;
@@ -4098,7 +4122,7 @@ normal_LCMP:
 						break;
 
 					case ICMD_CHECKCAST:
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 						if (iptr->flags.bits & INS_FLAG_ARRAY) {
 							/* array type cast-check */
 
@@ -4124,18 +4148,18 @@ normal_LCMP:
 
 					case ICMD_INSTANCEOF:
 					case ICMD_ARRAYLENGTH:
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 						OP1_1(TYPE_ADR, TYPE_INT);
 						break;
 
 					case ICMD_NEWARRAY:
 					case ICMD_ANEWARRAY:
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 						OP1_1(TYPE_INT, TYPE_ADR);
 						break;
 
 					case ICMD_GETFIELD:
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 						COUNT(count_check_null);
 						COUNT(count_pcmd_mem);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
@@ -4145,14 +4169,14 @@ normal_LCMP:
 						/* pop 0 push 1 */
 
 					case ICMD_GETSTATIC:
- 						coalescing_boundary = sd.new;
+ 						coalescing_boundary = sd.new_elem;
 						COUNT(count_pcmd_mem);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						OP0_1(fmiref->parseddesc.fd->type);
 						break;
 
 					case ICMD_NEW:
- 						coalescing_boundary = sd.new;
+ 						coalescing_boundary = sd.new_elem;
 						OP0_1(TYPE_ADR);
 						break;
 
@@ -4210,7 +4234,7 @@ icmd_BUILTIN:
 
 					_callhandling:
 
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 
 						i = md->paramcount;
 
@@ -4313,7 +4337,7 @@ icmd_BUILTIN:
 						break;
 
 					case ICMD_MULTIANEWARRAY:
-						coalescing_boundary = sd.new;
+						coalescing_boundary = sd.new_elem;
 						if (rd->argintreguse < MIN(3, INT_ARG_CNT))
 							rd->argintreguse = MIN(3, INT_ARG_CNT);
 
@@ -4530,8 +4554,8 @@ icmd_BUILTIN:
 		count_javainstr += jd->instructioncount;
 		if (jd->stackcount > count_upper_bound_new_stack)
 			count_upper_bound_new_stack = jd->stackcount;
-		if ((sd.new - jd->stack) > count_max_new_stack)
-			count_max_new_stack = (sd.new - jd->stack);
+		if ((sd.new_elem - jd->stack) > count_max_new_stack)
+			count_max_new_stack = (sd.new_elem - jd->stack);
 
 		sd.bptr = jd->basicblocks;
 		for (; sd.bptr; sd.bptr = sd.bptr->next) {

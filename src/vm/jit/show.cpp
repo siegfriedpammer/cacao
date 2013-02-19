@@ -44,7 +44,7 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/show.hpp"
 #include "vm/jit/disass.h"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 #include "vm/jit/parse.hpp"
 
 #if defined(ENABLE_DEBUG_FILTER)

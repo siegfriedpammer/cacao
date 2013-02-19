@@ -61,7 +61,7 @@
 #include "vm/jit/methodheader.h"
 #include "vm/jit/replace.hpp"
 #include "vm/jit/show.hpp"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 
 
 #define REPLACE_PATCH_DYNAMIC_CALL

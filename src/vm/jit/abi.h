@@ -33,7 +33,7 @@
 
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 
 
 /* ABI externs ****************************************************************/

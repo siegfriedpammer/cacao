@@ -36,7 +36,7 @@
 #include "toolbox/logging.hpp"
 
 #include "vm/jit/jit.hpp"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 
 #include "vm/jit/loop/analyze.h"
 #include "vm/jit/loop/graph.h"

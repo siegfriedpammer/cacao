@@ -40,7 +40,7 @@
 
 #include "vm/jit/parse.hpp"
 #include "vm/jit/show.hpp"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 #include "vm/jit/verify/typecheck-common.hpp"
 
 #if defined(__cplusplus)

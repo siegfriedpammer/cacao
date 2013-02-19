@@ -30,7 +30,7 @@
 #include "vm/types.h"
 
 #include "vm/jit/jit.hpp"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 
 #include "vm/jit/s390/md-abi.h"
 

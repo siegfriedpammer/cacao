@@ -32,7 +32,7 @@
 #include "vm/global.h"
 
 #include "vm/jit/abi.h"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 
 
 #define _ALIGN(a)    do { if ((a) & 1) (a)++; } while (0)

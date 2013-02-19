@@ -33,7 +33,7 @@
 
 #include "vm/jit/abi.h"
 #include "vm/jit/jit.hpp" /* for REG_* (maybe can be removed) */
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 
 
 /* register descripton array **************************************************/

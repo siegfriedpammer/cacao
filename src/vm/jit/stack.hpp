@@ -134,31 +134,6 @@ struct stackelement_t {
 #define CHECKOVERFLOW
 #endif /* ENABLE_VERIFIER */
 
-/*--------------------------------------------------*/
-/* ALLOCATING STACK SLOTS                           */
-/*--------------------------------------------------*/
-
-#define NEWSTACK(s,v,n)                                              \
-    do {                                                             \
-        sd.new->prev = curstack;                                     \
-        sd.new->type = (s);                                          \
-        sd.new->flags = 0;                                           \
-        sd.new->varkind = (v);                                       \
-        sd.new->varnum = (n);                                        \
-        curstack = sd.new;                                           \
-        sd.var[(n)].type = (s);                                      \
-        sd.var[(n)].flags = 0;                                       \
-        sd.new++;                                                    \
-    } while (0)
-
-/* Initialize regoff, so -sia can show regnames even before reg.inc */
-/* regs[rd->intregargnum] has to be set for this                    */
-/* new->regoff = (IS_FLT_DBL_TYPE(s))?-1:rd->intreg_argnum; }       */
-
-#define NEWSTACKn(s,n)  NEWSTACK(s,UNDEFVAR,n)
-#define NEWSTACK0(s)    NEWSTACK(s,UNDEFVAR,0)
-
-
 /* function prototypes ********************************************************/
 
 #ifdef __cplusplus

@@ -63,7 +63,7 @@
 #include "vm/jit/reg.h"
 
 #include "vm/jit/show.hpp"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 #include "vm/jit/stubs.hpp"
 
 #include "vm/jit/allocator/simplereg.h"

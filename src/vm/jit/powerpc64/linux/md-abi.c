@@ -35,7 +35,7 @@
 #include "vm/global.h"
 
 #include "vm/jit/abi.h"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 
 
 /* register descripton array **************************************************/
