@@ -41,7 +41,7 @@ typedef struct literalstring literalstring;
 
 #include "vm/global.h"
 #include "vm/os.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 /* data structure of internal javastrings stored in global hashtable **********/

@@ -32,7 +32,7 @@
 #include "vm/options.h"
 #include "vm/package.hpp"
 #include "vm/string.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 // Package list.

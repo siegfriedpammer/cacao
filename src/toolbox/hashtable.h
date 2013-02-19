@@ -37,7 +37,7 @@ typedef struct hashtable hashtable;
 #include "threads/mutex.hpp"
 
 #include "vm/global.h"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 /* data structures for hashtables ********************************************

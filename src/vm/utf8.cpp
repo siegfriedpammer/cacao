@@ -43,7 +43,7 @@
 # include "vm/statistics.h"
 #endif
 
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 /* global variables ***********************************************************/
@@ -703,7 +703,7 @@ utf *utf_new(const char *text, u2 length)
 	utf *u;                             /* hashtable element                  */
 	u2 i;
 
-	Mutex_lock(hashtable_utf->mutex);
+	hashtable_utf->mutex->lock();
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
@@ -712,7 +712,7 @@ utf *utf_new(const char *text, u2 length)
 
 	key  = utf_hashkey(text, length);
 	slot = key & (hashtable_utf->size - 1);
-	u    = hashtable_utf->ptr[slot];
+	u    = (utf*) hashtable_utf->ptr[slot];
 
 	/* search external hash chain for utf-symbol */
 
@@ -731,7 +731,7 @@ utf *utf_new(const char *text, u2 length)
 
 			/* symbol found in hashtable */
 
-			Mutex_unlock(hashtable_utf->mutex);
+			hashtable_utf->mutex->unlock();
 
 			return u;
 		}
@@ -745,8 +745,8 @@ utf *utf_new(const char *text, u2 length)
 	u = NEW(utf);
 
 	u->blength  = length;               /* length in bytes of utfstring       */
-	u->hashlink = hashtable_utf->ptr[slot]; /* link in external hashchain     */
-	u->text     = mem_alloc(length + 1);/* allocate memory for utf-text       */
+	u->hashlink = (utf*)  hashtable_utf->ptr[slot]; /* link in external hashchain     */
+	u->text     = (char*) mem_alloc(length + 1);/* allocate memory for utf-text       */
 
 	memcpy(u->text, text, length);      /* copy utf-text                      */
 	u->text[length] = '\0';
@@ -782,7 +782,7 @@ utf *utf_new(const char *text, u2 length)
 		/* transfer elements to new hashtable */
 
 		for (i = 0; i < hashtable_utf->size; i++) {
-			u = hashtable_utf->ptr[i];
+			u = (utf*) hashtable_utf->ptr[i];
 
 			while (u) {
 				nextu = u->hashlink;
@@ -804,7 +804,7 @@ utf *utf_new(const char *text, u2 length)
 		hashtable_utf = newhash;
 	}
 
-	Mutex_unlock(hashtable_utf->mutex);
+	hashtable_utf->mutex->unlock();
 
 	return u;
 }
@@ -1861,7 +1861,7 @@ void utf_show(void)
 	/* show element of utf-hashtable */
 
 	for (i = 0; i < hashtable_utf->size; i++) {
-		utf *u = hashtable_utf->ptr[i];
+		utf *u = (utf*) hashtable_utf->ptr[i];
 
 		if (u) {
 			printf("SLOT %d: ", (int) i);

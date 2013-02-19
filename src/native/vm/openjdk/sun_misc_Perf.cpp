@@ -29,7 +29,7 @@
 #include "native/jni.hpp"
 #include "native/native.hpp"
 
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 #include "vm/vm.hpp"
 
 static jlong initial_timer;

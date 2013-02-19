@@ -42,7 +42,7 @@
 #include "vm/loader.hpp"
 #include "vm/method.hpp"
 #include "vm/os.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 /* defines ********************************************************************/

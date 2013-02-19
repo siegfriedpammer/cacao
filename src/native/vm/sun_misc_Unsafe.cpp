@@ -47,7 +47,7 @@
 #include "vm/javaobjects.hpp"
 #include "vm/os.hpp"
 #include "vm/string.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 // Native functions are exported as C functions.

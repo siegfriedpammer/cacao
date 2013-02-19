@@ -35,7 +35,7 @@
 #include "vm/global.h"
 #include "vm/loader.hpp"
 #include "vm/suck.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 /* Local file header ***********************************************************

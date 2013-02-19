@@ -42,7 +42,7 @@ typedef struct classbuffer classbuffer;
 #include "vm/global.h"
 #include "vm/method.hpp"
 #include "vm/references.h"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 /* constant pool entries *******************************************************

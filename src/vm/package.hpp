@@ -32,7 +32,7 @@
 
 #include <set>
 
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 /**

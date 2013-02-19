@@ -48,7 +48,7 @@
 #include "vm/primitive.hpp"
 #include "vm/statistics.h"
 #include "vm/string.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 /* global variables ***********************************************************/

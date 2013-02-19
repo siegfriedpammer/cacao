@@ -33,7 +33,7 @@
 
 #include "vm/class.hpp"
 #include "vm/method.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 /* function prototypes ********************************************************/

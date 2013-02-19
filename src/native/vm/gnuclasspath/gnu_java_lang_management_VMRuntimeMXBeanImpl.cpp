@@ -38,7 +38,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 #include "vm/vm.hpp"
 
 

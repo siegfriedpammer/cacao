@@ -46,7 +46,7 @@ typedef struct methoddesc      methoddesc;
 #include "vm/global.h"
 #include "vm/method.hpp"
 #include "vm/references.h"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 #include "arch.h"		/* needed for HAS_ADDRESS_REGISTER_FILE */
 

@@ -39,7 +39,7 @@ typedef struct fieldinfo fieldinfo;
 #include "vm/global.h"
 #include "vm/loader.hpp"
 #include "vm/references.h"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 /* fieldinfo ******************************************************************/

@@ -66,7 +66,7 @@
 #include "vm/method.hpp"
 #include "vm/options.h"
 #include "vm/string.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 #include "vm/vm.hpp"
 
 #if defined(ENABLE_STATISTICS)

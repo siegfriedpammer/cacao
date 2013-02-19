@@ -50,7 +50,7 @@ typedef struct extra_classref extra_classref;
 #include "vm/method.hpp"
 #include "vm/references.h"
 #include "vm/string.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 /* class state defines ********************************************************/

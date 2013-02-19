@@ -49,7 +49,7 @@
 
 # include "vm/globals.hpp"
 # include "vm/properties.hpp"
-# include "vm/utf8.h"
+# include "vm/utf8.hpp"
 # include "vm/vm.hpp"
 #endif
 

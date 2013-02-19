@@ -45,7 +45,7 @@
 #include "vm/javaobjects.hpp"
 #include "vm/options.h"
 #include "vm/string.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 #include "vm/jit/argument.hpp"
 #include "vm/jit/codegen-common.hpp"

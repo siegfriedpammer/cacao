@@ -34,7 +34,7 @@
 # include "native/include/java_util_concurrent_atomic_AtomicLong.h"
 #endif
 
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 #include "vm/vm.hpp"
 
 

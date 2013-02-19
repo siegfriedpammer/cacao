@@ -45,7 +45,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/os.hpp"
 #include "vm/string.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 #include "vm/vm.hpp"
 
 

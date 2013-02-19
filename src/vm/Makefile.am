@@ -133,8 +133,8 @@ libvm_la_SOURCES = \
 	string.hpp \
 	suck.cpp \
 	suck.hpp \
-	utf8.c \
-	utf8.h \
+	utf8.cpp \
+	utf8.hpp \
 	vftbl.hpp \
 	vm.cpp \
 	vm.hpp \

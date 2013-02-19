@@ -44,7 +44,7 @@
 #include "threads/mutex.hpp"
 
 #include "vm/global.h"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 /* only define the following stuff with thread enabled ************************/

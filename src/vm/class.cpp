@@ -61,7 +61,7 @@
 #endif
 
 #include "vm/suck.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 #include "vm/jit/asmpart.h"
 

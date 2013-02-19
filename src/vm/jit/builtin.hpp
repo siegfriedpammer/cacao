@@ -39,7 +39,7 @@ typedef struct builtintable_entry builtintable_entry;
 #include "toolbox/logging.hpp"
 
 #include "vm/descriptor.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 /* define infinity for floating point numbers */

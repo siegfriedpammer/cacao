@@ -53,7 +53,7 @@ typedef struct codeinfo            codeinfo;
 # include "vm/stackmap.h"
 #endif
 
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 #if defined(ENABLE_REPLACEMENT)

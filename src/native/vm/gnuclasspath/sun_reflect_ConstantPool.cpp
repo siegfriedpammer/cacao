@@ -58,7 +58,7 @@
 #include "vm/javaobjects.hpp"
 #include "vm/resolve.hpp"
 #include "vm/string.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 #include "vm/vm.hpp"
 
 
