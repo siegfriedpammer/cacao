@@ -38,7 +38,7 @@
 #include "vm/global.h"
 #include "vm/method.hpp"
 
-#include "vm/jit/exceptiontable.h"
+#include "vm/jit/exceptiontable.hpp"
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher-common.hpp"

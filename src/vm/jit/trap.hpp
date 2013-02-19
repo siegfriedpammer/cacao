@@ -33,7 +33,7 @@
 
 #include "vm/options.hpp"
 
-#include "vm/jit/executionstate.h"
+#include "vm/jit/executionstate.hpp"
 
 
 /**

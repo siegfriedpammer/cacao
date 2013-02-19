@@ -32,11 +32,12 @@
 #include "md.h"
 #include "md-abi.h"
 
+#include "vm/exceptions.hpp"
 #include "vm/descriptor.hpp"
 #include "vm/os.hpp"
 
 #include "vm/jit/abi.h"
-#include "vm/jit/executionstate.h"
+#include "vm/jit/executionstate.hpp"
 
 
 /**
@@ -188,7 +189,7 @@ void executionstate_unwind_exception(executionstate_t* es, java_handle_t* e)
 		executionstate_pop_stackframe(es);
 
 		// Get the PV for the parent Java method.
-		es->pv = md_codegen_get_pv_from_pc(es->pc);
+		es->pv = (uint8_t*) md_codegen_get_pv_from_pc(es->pc);
 
 		// After popping the frame the PC points to the instruction just after
 		// the invocation. To get the XPC we need to correct the PC to point
@@ -232,13 +233,13 @@ void executionstate_sanity_check(void *context)
 
 	/* keep a copy of (a prefix of) the context for reference */
 
-	os_memcpy(&reference, context, MINIMUM_CONTEXT_SIZE);
+	os::memcpy(&reference, context, MINIMUM_CONTEXT_SIZE);
 
 	/* different poisons */
 
-	os_memset(&es1, 0xc9, sizeof(executionstate_t));
-	os_memset(&es2, 0xb5, sizeof(executionstate_t));
-	os_memset(&es3, 0x6f, sizeof(executionstate_t));
+	os::memset(&es1, 0xc9, sizeof(executionstate_t));
+	os::memset(&es2, 0xb5, sizeof(executionstate_t));
+	os::memset(&es3, 0x6f, sizeof(executionstate_t));
 
 	md_executionstate_read(&es1, context);
 

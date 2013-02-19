@@ -32,7 +32,7 @@
 #include "toolbox/avl.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/methodtree.h"
+#include "vm/jit/methodtree.hpp"
 #include "vm/jit/stacktrace.hpp"
 
 
@@ -233,7 +233,7 @@ void *methodtree_find_nocheck(void *pc)
 	mtepc.startpc = pc;
 	mtepc.endpc   = pc;
 
-	mte = avl_find(methodtree, &mtepc);
+	mte = (methodtree_element_t*) avl_find(methodtree, &mtepc);
 
 	if (mte == NULL)
 		return NULL;

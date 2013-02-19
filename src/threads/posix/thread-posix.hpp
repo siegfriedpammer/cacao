@@ -207,7 +207,7 @@ inline static threadobject* thread_get_current(void);
 #include "vm/vm.hpp"
 
 #if defined(ENABLE_GC_CACAO)
-# include "vm/jit/executionstate.h"
+# include "vm/jit/executionstate.hpp"
 # include "vm/jit/replace.hpp"
 #endif
 

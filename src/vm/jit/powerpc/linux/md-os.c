@@ -41,7 +41,7 @@
 #include "vm/signallocal.hpp"
 #include "vm/os.hpp"
 
-#include "vm/jit/executionstate.h"
+#include "vm/jit/executionstate.hpp"
 #include "vm/jit/trap.hpp"
 
 

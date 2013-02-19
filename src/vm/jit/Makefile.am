@@ -163,16 +163,16 @@ libjit_la_SOURCES = \
 	dseg.hpp \
 	emit-common.cpp \
 	emit-common.hpp \
-	exceptiontable.c \
-	exceptiontable.h \
-	executionstate.c \
-	executionstate.h \
+	exceptiontable.cpp \
+	exceptiontable.hpp \
+	executionstate.cpp \
+	executionstate.hpp \
 	jit.cpp \
 	jit.hpp \
 	linenumbertable.cpp \
 	linenumbertable.hpp \
-	methodtree.c \
-	methodtree.h \
+	methodtree.cpp \
+	methodtree.hpp \
 	parse.cpp \
 	parse.hpp \
 	patcher-common.cpp \

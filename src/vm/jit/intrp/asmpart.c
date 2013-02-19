@@ -41,7 +41,7 @@
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/methodtree.h"
+#include "vm/jit/methodtree.hpp"
 #include "vm/jit/dseg.hpp"
 
 #include "vm/jit/intrp/intrp.h"

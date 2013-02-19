@@ -64,7 +64,7 @@
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/methodtree.h"
+#include "vm/jit/methodtree.hpp"
 
 
 // FIXME Use C-linkage for now.

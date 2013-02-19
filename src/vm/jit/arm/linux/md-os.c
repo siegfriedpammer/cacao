@@ -54,7 +54,7 @@ typedef struct ucontext {
 #include "vm/signallocal.hpp"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/executionstate.h"
+#include "vm/jit/executionstate.hpp"
 #include "vm/jit/trap.hpp"
 
 

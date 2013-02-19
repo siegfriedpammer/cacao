@@ -36,7 +36,7 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/codegen-common.hpp"
-#include "vm/jit/executionstate.h"
+#include "vm/jit/executionstate.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/trap.hpp"
 

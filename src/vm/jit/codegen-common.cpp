@@ -85,7 +85,7 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/methodtree.h"
+#include "vm/jit/methodtree.hpp"
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/replace.hpp"
 #include "vm/jit/show.hpp"

@@ -31,7 +31,7 @@
 #include "mm/memory.hpp"
 
 #include "vm/jit/code.hpp"
-#include "vm/jit/exceptiontable.h"
+#include "vm/jit/exceptiontable.hpp"
 #include "vm/jit/jit.hpp"
 
 

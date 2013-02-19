@@ -34,7 +34,7 @@
 #include <stdint.h>
 
 #include "vm/jit/codegen-common.hpp"
-#include "vm/jit/methodtree.h"
+#include "vm/jit/methodtree.hpp"
 
 
 /**

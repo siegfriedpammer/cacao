@@ -40,9 +40,9 @@
 #include "vm/signallocal.hpp"
 
 #include "vm/jit/abi.h"
-#include "vm/jit/executionstate.h"
+#include "vm/jit/executionstate.hpp"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/methodtree.h"
+#include "vm/jit/methodtree.hpp"
 #include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.hpp"
 

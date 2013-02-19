@@ -33,7 +33,7 @@
 #include "vm/jit/arm/md.h"
 #include "vm/jit/arm/md-abi.h"
 
-#include "vm/jit/executionstate.h"
+#include "vm/jit/executionstate.hpp"
 #include "vm/jit/trap.hpp"
 
 

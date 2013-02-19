@@ -91,7 +91,7 @@
 #endif
 
 #include "vm/jit/jit.hpp"
-#include "vm/jit/methodtree.h"
+#include "vm/jit/methodtree.hpp"
 
 #include "vm/jit/optimizing/profile.hpp"
 #include "vm/jit/optimizing/recompiler.hpp"
