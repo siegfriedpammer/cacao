@@ -47,7 +47,9 @@ libtoolbox_la_SOURCES = \
 	util.cpp \
 	util.hpp \
 	worklist.cpp \
-	worklist.hpp
+	worklist.hpp \
+	OStream.cpp \
+	OStream.hpp
 
 
 ## Local variables:
