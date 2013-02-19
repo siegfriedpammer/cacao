@@ -397,7 +397,8 @@ public:
 	 * Get the root group
 	 */
 	static RTGroup& root() {
-		return root_rg;
+		static RTGroup rg("vm","vm");
+		return rg;
 	}
 
 	/**
@@ -531,7 +532,7 @@ public:
 } // end namespace cacao
 
 #define RT_REGISTER_TIMER(var,name,description)                              \
-	static cacao::RTTimer var##_rt(name,description,cacao:RTGroup::root());  \
+	static cacao::RTTimer var##_rt(name,description,cacao::RTGroup::root()); \
 	static cacao::RTTimer& var() {	                                         \
 		return var##_rt;                                                     \
 	}
