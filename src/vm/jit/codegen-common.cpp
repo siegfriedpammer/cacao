@@ -54,7 +54,7 @@
 
 #include "mm/memory.hpp"
 
-#include "toolbox/avl.h"
+#include "toolbox/avl.hpp"
 #include "toolbox/list.hpp"
 #include "toolbox/logging.hpp"
 

@@ -33,7 +33,7 @@
 
 #include "threads/mutex.hpp"
 
-#include "toolbox/avl.h"
+#include "toolbox/avl.hpp"
 #include "toolbox/logging.hpp"
 
 #include "vm/global.h"
@@ -52,7 +52,7 @@ avl_tree_t *avl_create(avl_comparator *comparator)
 
 	t = NEW(avl_tree_t);
 
-	t->mutex      = Mutex_new();
+	t->mutex      = new Mutex();
 	t->root       = NULL;
 	t->comparator = comparator;
 	t->entries    = 0;
@@ -303,7 +303,7 @@ bool avl_insert(avl_tree_t *tree, void *data)
 	assert(tree);
 	assert(data);
 
-	Mutex_lock(tree->mutex);
+	tree->mutex->lock();
 
 	/* if we don't have a root node, create one */
 
@@ -316,7 +316,7 @@ bool avl_insert(avl_tree_t *tree, void *data)
 
 	tree->entries++;
 
-	Mutex_unlock(tree->mutex);
+	tree->mutex->unlock();
 
 	/* insertion was ok */
 
@@ -339,7 +339,7 @@ void *avl_find(avl_tree_t *tree, void *data)
 	assert(tree);
 	assert(data);
 
-	Mutex_lock(tree->mutex);
+	tree->mutex->lock();
 
 	/* search the tree for the given node */
 
@@ -351,7 +351,7 @@ void *avl_find(avl_tree_t *tree, void *data)
 		/* was the entry found? return it */
 
 		if (res == 0) {
-			Mutex_unlock(tree->mutex);
+			tree->mutex->unlock();
 
 			return node->data;
 		}
@@ -361,7 +361,7 @@ void *avl_find(avl_tree_t *tree, void *data)
 		node = node->childs[(res < 0) ? AVL_LEFT : AVL_RIGHT];
 	}
 
-	Mutex_unlock(tree->mutex);
+	tree->mutex->unlock();
 
 	/* entry was not found, returning NULL */
 

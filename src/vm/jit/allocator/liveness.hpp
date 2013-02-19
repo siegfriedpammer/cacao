@@ -33,7 +33,7 @@
 #ifndef _LIVENESS_H
 #define _LIVENESS_H
 
-#include "toolbox/bitvector.h"
+#include "toolbox/bitvector.hpp"
 #include "vm/jit/allocator/lsra.hpp"
 
 #if !defined(NDEBUG)

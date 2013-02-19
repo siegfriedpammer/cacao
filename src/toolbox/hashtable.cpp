@@ -30,7 +30,7 @@
 
 #include "threads/mutex.hpp"
 
-#include "toolbox/hashtable.h"
+#include "toolbox/hashtable.hpp"
 
 #include "vm/global.h"
 
@@ -51,7 +51,7 @@ void hashtable_create(hashtable *hash, u4 size)
 	   store the lock object in the new hashtable if it's resized.
 	   Otherwise we get an IllegalMonitorStateException. */
 
-	hash->mutex   = Mutex_new();
+	hash->mutex   = new Mutex();
 #endif
 
 	/* set initial hash values */
@@ -85,7 +85,7 @@ hashtable *hashtable_resize(hashtable *hash, u4 size)
 	/* We need to store the old lock object in the new hashtable.
 	   Otherwise we get an IllegalMonitorStateException. */
 
-	Mutex_delete(newhash->mutex);
+	delete newhash->mutex;
 
 	newhash->mutex   = hash->mutex;
 #endif

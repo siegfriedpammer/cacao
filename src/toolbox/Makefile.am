@@ -29,27 +29,27 @@ noinst_LTLIBRARIES = \
 	libtoolbox.la
 
 libtoolbox_la_SOURCES = \
-	avl.c \
-	avl.h \
-	bitvector.c \
-	bitvector.h \
+	avl.cpp \
+	avl.hpp \
+	bitvector.cpp \
+	bitvector.hpp \
 	buffer.hpp \
-	hashtable.c \
-	hashtable.h \
+	hashtable.cpp \
+	hashtable.hpp \
 	list.hpp \
 	logging.cpp \
 	logging.hpp \
 	output_stream.cpp \
 	output_stream.hpp \
-	set.h \
-	set.c \
+	set.hpp \
+	set.cpp \
 	utf_utils.hpp \
 	utf8_transform.inc \
 	utf16_transform.inc \
-	util.c \
-	util.h \
-	worklist.c \
-	worklist.h
+	util.cpp \
+	util.hpp \
+	worklist.cpp \
+	worklist.hpp
 
 
 ## Local variables:

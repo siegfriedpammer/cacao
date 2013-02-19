@@ -29,7 +29,7 @@
 
 #include "mm/memory.hpp"
 
-#include "toolbox/avl.h"
+#include "toolbox/avl.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/methodtree.hpp"

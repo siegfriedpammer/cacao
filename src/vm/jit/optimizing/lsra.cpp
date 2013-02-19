@@ -33,7 +33,7 @@
 
 #include "mm/memory.hpp"
 
-#include "toolbox/bitvector.h"
+#include "toolbox/bitvector.hpp"
 
 #include "vm/statistics.hpp"
 #include "vm/options.hpp"

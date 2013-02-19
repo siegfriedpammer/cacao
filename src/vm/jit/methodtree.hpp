@@ -34,9 +34,6 @@
 extern "C" {
 #endif
 
-#include "toolbox/avl.h"
-
-
 /* function prototypes ********************************************************/
 
 void  methodtree_init(void);

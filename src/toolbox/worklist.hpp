@@ -31,7 +31,7 @@
 #ifndef _WORKLIST_H
 #define _WORKLIST_H
 
-#include "toolbox/bitvector.h"
+#include "toolbox/bitvector.hpp"
 
 #if !defined(NDEBUG)
 #include <assert.h>

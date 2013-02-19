@@ -39,7 +39,7 @@
 
 #include "threads/mutex.hpp"
 
-#include "toolbox/hashtable.h"
+#include "toolbox/hashtable.hpp"
 #include "toolbox/list.hpp"
 #include "toolbox/logging.hpp"
 

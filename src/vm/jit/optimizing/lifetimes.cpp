@@ -30,8 +30,8 @@
 
 #include "mm/memory.hpp"
 
-#include "toolbox/bitvector.h"
-#include "toolbox/worklist.h"
+#include "toolbox/bitvector.hpp"
+#include "toolbox/worklist.hpp"
 
 #include "vm/jit/builtin.hpp"
 #include "vm/resolve.hpp"

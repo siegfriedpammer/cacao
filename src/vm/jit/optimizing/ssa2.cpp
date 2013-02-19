@@ -28,9 +28,9 @@
 
 #include "mm/memory.hpp"
 
-#include "toolbox/bitvector.h"
-#include "toolbox/set.h"
-#include "toolbox/worklist.h"
+#include "toolbox/bitvector.hpp"
+#include "toolbox/set.hpp"
+#include "toolbox/worklist.hpp"
 
 #include "vm/global.h"
 #include "vm/jit/jit.hpp"

@@ -34,7 +34,7 @@
 
 #include <assert.h>
 
-#include "toolbox/set.h"
+#include "toolbox/set.hpp"
 
 #include "mm/memory.hpp"
 
@@ -63,9 +63,9 @@ struct set {
 *******************************************************************************/
 
 set *set_new(unsigned capacity) {
-	set *s = DumpMemory_allocate(sizeof(set));
+	set *s = (set*) DumpMemory::allocate(sizeof(set));
 
-	s->elements = DumpMemory_allocate(sizeof(void*) * capacity);
+	s->elements = (void**) DumpMemory::allocate(sizeof(void*) * capacity);
 	MZERO(s->elements, void *, capacity);
 	s->capacity = capacity;
 	s->size = 0;

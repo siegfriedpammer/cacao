@@ -34,7 +34,7 @@
 #include "threads/lock.hpp"
 #include "threads/mutex.hpp"
 
-#include "toolbox/hashtable.h"
+#include "toolbox/hashtable.hpp"
 #include "toolbox/logging.hpp"
 #include "toolbox/buffer.hpp"
 

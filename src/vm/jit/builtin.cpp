@@ -57,7 +57,7 @@
 #include "threads/thread.hpp"
 
 #include "toolbox/logging.hpp"
-#include "toolbox/util.h"
+#include "toolbox/util.hpp"
 
 #include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"

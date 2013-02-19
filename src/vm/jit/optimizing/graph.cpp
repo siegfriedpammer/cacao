@@ -28,7 +28,7 @@
 
 #include "mm/memory.hpp"
 
-#include "toolbox/bitvector.h"
+#include "toolbox/bitvector.hpp"
 
 #include "vm/jit/jit.hpp"
 

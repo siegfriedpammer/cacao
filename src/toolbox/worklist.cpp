@@ -30,7 +30,7 @@
 */
 
 #include "mm/memory.hpp"
-#include "toolbox/worklist.h"
+#include "toolbox/worklist.hpp"
 
 
 /******************************************************************************

@@ -30,7 +30,7 @@
 #include "mm/dumpmemory.hpp"
 #include "mm/memory.hpp"
 
-#include "toolbox/bitvector.h"
+#include "toolbox/bitvector.hpp"
 
 #include "vm/class.hpp"
 #include "vm/descriptor.hpp"

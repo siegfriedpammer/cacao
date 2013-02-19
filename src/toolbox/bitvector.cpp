@@ -27,8 +27,8 @@
 #include "config.h"
 
 #include "mm/memory.hpp"
-#include "toolbox/bitvector.h"
-
+#include "mm/dumpmemory.hpp"
+#include "toolbox/bitvector.hpp"
 
 /******************************************************************************
 
@@ -112,7 +112,7 @@ bitvector bv_new(int size) {
     /* n = (((size+7)/8) + sizeof(int) - 1)/sizeof(int);  */
 	n = BV_NUM_INTS(size);
 
-	bv = DumpMemory_allocate(sizeof(int) * n);
+	bv = (int*) DumpMemory::allocate(sizeof(int) * n);
 
 	for(i = 0; i < n; i++) bv[i] = 0;
    

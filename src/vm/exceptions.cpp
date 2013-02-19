@@ -42,7 +42,7 @@
 #include "threads/lock.hpp"
 #include "threads/thread.hpp"
 
-#include "toolbox/util.h"
+#include "toolbox/util.hpp"
 #include "toolbox/buffer.hpp"
 
 #include "vm/jit/builtin.hpp"

@@ -33,7 +33,7 @@
 #include "mm/memory.hpp"
 
 #include "toolbox/logging.hpp"
-#include "toolbox/worklist.h"
+#include "toolbox/worklist.hpp"
 
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"

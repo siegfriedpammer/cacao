@@ -1264,6 +1264,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 
 	/* initialize the garbage collector */
 
+	/**/ log_init("/dev/null");
 	gc_init(opt_heapmaxsize, opt_heapstartsize);
 
 #if defined(ENABLE_THREADS)

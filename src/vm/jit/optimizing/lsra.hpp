@@ -32,8 +32,7 @@
 #ifndef _LSRA_H
 #define _LSRA_H
 
-#include "toolbox/bitvector.h"
-
+#include "toolbox/bitvector.hpp"
 
 #if !defined(NDEBUG)
 # include <assert.h>

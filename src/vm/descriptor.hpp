@@ -40,7 +40,7 @@ typedef struct methoddesc      methoddesc;
 
 #include "vm/types.h"
 
-#include "toolbox/hashtable.h"
+#include "toolbox/hashtable.hpp"
 
 #include "vm/class.hpp"
 #include "vm/global.h"

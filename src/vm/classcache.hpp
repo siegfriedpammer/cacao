@@ -32,7 +32,7 @@
 
 #include <stdio.h>  /* for FILE */
 
-#include "toolbox/hashtable.h"
+#include "toolbox/hashtable.hpp"
 
 #include "vm/class.hpp"
 #include "vm/global.h"
