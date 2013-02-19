@@ -511,6 +511,20 @@ u1 *jit_recompile(methodinfo *m)
 #include "vm/jit/jit_pm_1.inc"
 #endif
 
+// register compiler real-time group
+RT_REGISTER_GROUP(compiler_group,"compiler","baseline compiler")
+
+// register real-time timers
+RT_REGISTER_GROUP_TIMER(checks_timer,        "compiler","checks at beginning",          compiler_group)
+RT_REGISTER_GROUP_TIMER(parse_timer,         "compiler","parse",                        compiler_group)
+RT_REGISTER_GROUP_TIMER(stack_timer,         "compiler","analyse_stack",                compiler_group)
+RT_REGISTER_GROUP_TIMER(typechecker_timer,   "compiler","typecheck",                    compiler_group)
+RT_REGISTER_GROUP_TIMER(loop_timer,          "compiler","loop",                         compiler_group)
+RT_REGISTER_GROUP_TIMER(ifconversion_timer,  "compiler","if conversion",                compiler_group)
+RT_REGISTER_GROUP_TIMER(ra_timer,            "compiler","register allocation",          compiler_group)
+RT_REGISTER_GROUP_TIMER(rp_timer,            "compiler","replacement point generation", compiler_group)
+RT_REGISTER_GROUP_TIMER(codegen_timer,       "compiler","codegen",                      compiler_group)
+
 /* jit_compile_intern **********************************************************
 
    Static internal function which does the actual compilation.
@@ -530,6 +544,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 #endif
 	
 	RT_TIMING_GET_TIME(time_start);
+	RT_TIMER_START(checks_timer);
 
 	/* get required compiler data */
 
@@ -583,6 +598,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 #endif
 
 	RT_TIMING_GET_TIME(time_checks);
+	RT_TIMER_STOPSTART(checks_timer,parse_timer);
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	/* Code for Sun's OpenJDK (see
@@ -608,6 +624,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		return NULL;
 	}
 	RT_TIMING_GET_TIME(time_parse);
+	RT_TIMER_STOP(parse_timer);
 
 	DEBUG_JIT_COMPILEVERBOSE("Parsing done: ");
 	
@@ -615,6 +632,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 # if defined(ENABLE_INTRP)
 	if (!opt_intrp) {
 # endif
+		RT_TIMER_START(stack_timer);
 		DEBUG_JIT_COMPILEVERBOSE("Analysing: ");
 
 		/* call stack analysis pass */
@@ -625,6 +643,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 			return NULL;
 		}
 		RT_TIMING_GET_TIME(time_stack);
+		RT_TIMER_STOPSTART(stack_timer,typechecker_timer);
 
 		DEBUG_JIT_COMPILEVERBOSE("Analysing done: ");
 
@@ -643,6 +662,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		}
 #endif
 		RT_TIMING_GET_TIME(time_typecheck);
+		RT_TIMER_STOPSTART(typechecker_timer,loop_timer);
 
 #if defined(ENABLE_LOOP)
 		if (opt_loops) {
@@ -653,6 +673,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		}
 #endif
 		RT_TIMING_GET_TIME(time_loop);
+		RT_TIMER_STOPSTART(loop_timer,ifconversion_timer);
 
 #if defined(ENABLE_IFCONV)
 		if (JITDATA_HAS_FLAG_IFCONV(jd)) {
@@ -662,6 +683,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		}
 #endif
 		RT_TIMING_GET_TIME(time_ifconv);
+		RT_TIMER_STOPSTART(ifconversion_timer,ra_timer);
 
 		/* inlining */
 
@@ -737,12 +759,14 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 		STATISTICS(simplereg_make_statistics(jd));
 
+		RT_TIMER_STOP(ra_timer);
 		DEBUG_JIT_COMPILEVERBOSE("Allocating registers done: ");
 # if defined(ENABLE_INTRP)
 	}
 # endif
 #endif /* defined(ENABLE_JIT) */
 	RT_TIMING_GET_TIME(time_alloc);
+	RT_TIMER_START(codegen_timer);
 
 #if defined(ENABLE_PROFILING)
 	/* Allocate memory for basic block profiling information. This
@@ -793,6 +817,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		return NULL;
 	}
 #endif
+	RT_TIMER_STOP(codegen_timer);
 	RT_TIMING_GET_TIME(time_codegen);
 
 	DEBUG_JIT_COMPILEVERBOSE("Generating code done: ");
