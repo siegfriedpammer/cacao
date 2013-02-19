@@ -46,11 +46,7 @@
 #include "vm/resolve.hpp"
 #include "vm/string.hpp"
 #include "vm/types.h"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
-
+#include "vm/statistics.hpp"
 #include "vm/jit/abi.h"
 #include "vm/jit/cfg.hpp"
 #include "vm/jit/codegen-common.hpp"

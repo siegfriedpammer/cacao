@@ -40,10 +40,7 @@
 #include "vm/loader.hpp"
 #include "vm/options.hpp"
 #include "vm/vm.hpp"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
+#include "vm/statistics.hpp"
 
 #include "vm/jit/asmpart.h"
 

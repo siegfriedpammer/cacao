@@ -35,11 +35,7 @@
 
 #include "vm/os.hpp"
 #include "vm/options.hpp"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
-
+#include "vm/statistics.hpp"
 #include "vm/vm.hpp"
 
 

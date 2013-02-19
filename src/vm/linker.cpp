@@ -82,9 +82,7 @@
 /* copied prototype to avoid bootstrapping problem: */
 classinfo *resolve_classref_or_classinfo_eager(classref_or_classinfo cls, bool checkaccess);
 
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
+#include "vm/statistics.hpp"
 
 #if !defined(NDEBUG) && defined(ENABLE_INLINING)
 #define INLINELOG(code)  do { if (opt_TraceInlining) { code } } while (0)

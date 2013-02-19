@@ -37,11 +37,7 @@
 #include "vm/global.h"
 #include "vm/options.hpp"
 #include "vm/os.hpp"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
-
+#include "vm/statistics.hpp"
 
 /* global code memory variables ***********************************************/
 

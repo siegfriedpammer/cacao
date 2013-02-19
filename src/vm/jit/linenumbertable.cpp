@@ -36,7 +36,7 @@
 
 #if defined(ENABLE_STATISTICS)
 # include "vm/options.hpp"
-# include "vm/statistics.h"
+# include "vm/statistics.hpp"
 #endif
 
 #include "vm/jit/code.hpp"

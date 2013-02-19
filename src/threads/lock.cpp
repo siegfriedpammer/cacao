@@ -51,10 +51,7 @@
 #include "vm/options.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
+#include "vm/statistics.hpp"
 
 #if defined(ENABLE_VMLOG)
 #include <vmlog_cacao.h>

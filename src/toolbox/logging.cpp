@@ -40,11 +40,7 @@
 #include "toolbox/util.h"
 
 #include "vm/global.h"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
-
+#include "vm/statistics.hpp"
 
 /***************************************************************************
                         LOG FILE HANDLING 
@@ -64,6 +60,12 @@ void log_init(const char *fname)
 static inline FILE* get_log() 
 {
 	return LOG_FILE ? LOG_FILE : stdout;
+}
+
+// TODO: remove
+FILE* log_get_logfile() 
+{
+	return get_log();
 }
 
 /***************************************************************************

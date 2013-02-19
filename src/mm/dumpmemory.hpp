@@ -229,10 +229,7 @@ public:
 
 #include "threads/thread.hpp"
 
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
-
+#include "vm/statistics.hpp"
 
 // Inline functions.
 

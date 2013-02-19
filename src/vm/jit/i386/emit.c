@@ -39,7 +39,7 @@
 #include "threads/lock.hpp"
 
 #include "vm/options.hpp"
-#include "vm/statistics.h"
+#include "vm/statistics.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"

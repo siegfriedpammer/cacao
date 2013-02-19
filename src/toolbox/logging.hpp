@@ -42,6 +42,11 @@
 extern "C" {
 #endif
 
+// TODO: remove, this is just a temporary hack 
+//       that allows cycle-stats to be printed to the regular log file
+//       so we can run make check with cycle-stats enabled.
+FILE* log_get_logfile();
+
 void log_init(const char *fname);
 
 void log_start(void);

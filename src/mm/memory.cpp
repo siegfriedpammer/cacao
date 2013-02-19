@@ -54,10 +54,7 @@
 #include "vm/options.hpp"
 #include "vm/os.hpp"
 
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
-
+#include "vm/statistics.hpp"
 
 /* memory_mprotect *************************************************************
 

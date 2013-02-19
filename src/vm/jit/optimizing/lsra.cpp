@@ -35,7 +35,7 @@
 
 #include "toolbox/bitvector.h"
 
-#include "vm/statistics.h"
+#include "vm/statistics.hpp"
 #include "vm/options.hpp"
 #include "vm/method.hpp"
 

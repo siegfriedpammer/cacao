@@ -77,7 +77,7 @@
 #include "vm/primitive.hpp"
 #include "vm/properties.hpp"
 #include "vm/signallocal.hpp"
-#include "vm/statistics.h"
+#include "vm/statistics.hpp"
 #include "vm/string.hpp"
 #include "vm/suck.hpp"
 #include "vm/vm.hpp"
@@ -1943,8 +1943,8 @@ void vm_exit_handler(void)
 #endif
 
 #if defined(ENABLE_CYCLES_STATS)
-	builtin_print_cycles_stats(stderr);
-	stacktrace_print_cycles_stats(stderr);
+	builtin_print_cycles_stats(log_get_logfile());
+	stacktrace_print_cycles_stats(log_get_logfile());
 #endif
 
 	if (opt_verbose 

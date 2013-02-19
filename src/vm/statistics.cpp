@@ -51,7 +51,7 @@
 #include "vm/global.h"
 #include "vm/method.hpp"
 #include "vm/options.hpp"
-#include "vm/statistics.h"
+#include "vm/statistics.hpp"
 
 #include "vm/jit/code.hpp"
 

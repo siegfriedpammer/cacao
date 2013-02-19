@@ -35,8 +35,8 @@ endif
 
 if ENABLE_CYCLES_STATS
 CYCLES_STATS_SOURCES = \
-	cycles-stats.c \
-	cycles-stats.h
+	cycles-stats.cpp \
+	cycles-stats.hpp
 endif
 
 if ENABLE_JAVASE
@@ -59,8 +59,8 @@ endif
 
 if ENABLE_STATISTICS
 STATISTICS_SOURCES = \
-	statistics.c \
-	statistics.h
+	statistics.cpp \
+	statistics.hpp
 endif
 
 if ENABLE_ZLIB

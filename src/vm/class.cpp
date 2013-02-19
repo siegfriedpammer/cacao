@@ -55,11 +55,7 @@
 #include "vm/loader.hpp"
 #include "vm/options.hpp"
 #include "vm/resolve.hpp"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
-
+#include "vm/statistics.hpp"
 #include "vm/suck.hpp"
 #include "vm/utf8.hpp"
 #include "vm/string.hpp"

@@ -48,6 +48,8 @@
 #define STATISTICS(x)    /* nothing */
 #endif
 
+#ifdef ENABLE_STATISTICS
+
 /* in_  inline statistics */
 
 #define IN_MAX                  9
@@ -256,6 +258,8 @@ void jniinvokation(void);
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* ENABLE_STATISTICS */
 
 #endif /* _STATISTICS_H */
 

@@ -46,7 +46,7 @@
 #include "vm/global.h"
 #include "vm/loader.hpp"
 #include "vm/options.hpp"
-#include "vm/statistics.h"
+#include "vm/statistics.hpp"
 #include "vm/types.h"
 #include "vm/vm.hpp"
 

@@ -49,7 +49,7 @@
 #include "vm/method.hpp"
 #include "vm/options.hpp"
 #include "vm/rt-timing.hpp"
-#include "vm/statistics.h"
+#include "vm/statistics.hpp"
 
 #include "vm/jit/asmpart.h"
 

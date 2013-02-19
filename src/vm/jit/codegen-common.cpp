@@ -68,7 +68,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/method.hpp"
 #include "vm/options.hpp"
-#include "vm/statistics.h"
+#include "vm/statistics.hpp"
 #include "vm/string.hpp"
 
 #include "vm/jit/abi.h"

@@ -59,7 +59,7 @@
 #include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/primitive.hpp"
-#include "vm/statistics.h"
+#include "vm/statistics.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 #include "vm/zip.hpp"

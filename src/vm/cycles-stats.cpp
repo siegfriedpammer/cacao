@@ -40,7 +40,9 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
-#include "vm/cycles-stats.h"
+#include "vm/cycles-stats.hpp"
+
+#include "toolbox/logging.hpp"
 
 struct cycles_stats_percentile {
 	int         pct;
@@ -69,7 +71,7 @@ static double cycles_stats_get_cpu_MHz(void)
 
 	info = fopen("/proc/cpuinfo","r");
 	if (!info) {
-		fprintf(stderr,"error: could not open /proc/cpuinfo: %s\n",strerror(errno));
+		fprintf(log_get_logfile(),"error: could not open /proc/cpuinfo: %s\n",strerror(errno));
 		goto got_no_cpuinfo;
 	}
 
@@ -78,20 +80,20 @@ static double cycles_stats_get_cpu_MHz(void)
 			&& sscanf(line,"cpu MHz : %lf",&cycles_stats_cpu_MHz) == 1)
 		{
 			fclose(info);
-			fprintf(stderr,"CPU frequency used for statistics: %f MHz\n",
+			fprintf(log_get_logfile(),"CPU frequency used for statistics: %f MHz\n",
 					cycles_stats_cpu_MHz);
 			return cycles_stats_cpu_MHz;
 		}
 	}
 
 	if (ferror(info)) {
-		fprintf(stderr,"error reading /proc/cpuinfo: %s\n",strerror(errno));
+		fprintf(log_get_logfile(),"error reading /proc/cpuinfo: %s\n",strerror(errno));
 	}
 
 	fclose(info);
 
 got_no_cpuinfo:
-	fprintf(stderr,"warning: falling back to default CPU frequency for statistics\n");
+	fprintf(log_get_logfile(),"warning: falling back to default CPU frequency for statistics\n");
 	cycles_stats_cpu_MHz = 1800.0;
 	return cycles_stats_cpu_MHz;
 }

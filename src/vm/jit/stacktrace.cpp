@@ -50,7 +50,7 @@
 #include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
-#include "vm/cycles-stats.h"
+#include "vm/cycles-stats.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"

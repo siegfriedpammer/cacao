@@ -46,11 +46,7 @@
 #include "vm/os.hpp"
 #include "vm/signallocal.hpp"
 #include "vm/vm.hpp"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
-
+#include "vm/statistics.hpp"
 
 /* function prototypes ********************************************************/
 

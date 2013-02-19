@@ -32,9 +32,9 @@
 #include "vm/exceptions.hpp"
 #include "vm/method.hpp"
 #include "vm/stackmap.hpp"
-#include "vm/statistics.h"
-#include "vm/suck.hpp"
+#include "vm/statistics.hpp"
 #include "vm/options.hpp"
+#include "vm/suck.hpp"
 
 
 /* stackmap_get_verification_type_info *****************************************

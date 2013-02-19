@@ -42,7 +42,7 @@
 
 #include "mm/memory.hpp"
 #include "vm/options.hpp"
-#include "vm/statistics.h"
+#include "vm/statistics.hpp"
 #include "vm/jit/schedule/schedule.h"
 
 

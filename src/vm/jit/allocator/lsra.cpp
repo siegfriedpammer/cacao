@@ -43,7 +43,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/resolve.hpp"
 #include "vm/options.hpp"
-#include "vm/statistics.h"
+#include "vm/statistics.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/reg.hpp"

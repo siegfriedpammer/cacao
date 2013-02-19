@@ -40,11 +40,7 @@ typedef struct exception_entry exception_entry;
 #include "vm/method.hpp"
 #include "vm/references.h"
 #include "vm/resolve.hpp"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
-
+#include "vm/statistics.hpp"
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/reg.hpp"
 #include "vm/jit/replace.hpp"

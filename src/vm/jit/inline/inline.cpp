@@ -46,7 +46,7 @@
 #include "vm/initialize.hpp"
 #include "vm/method.hpp"
 #include "vm/options.hpp"
-#include "vm/statistics.h"
+#include "vm/statistics.hpp"
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/parse.hpp"

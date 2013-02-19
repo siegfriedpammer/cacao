@@ -69,9 +69,7 @@
 # include "vm/stackmap.hpp"
 #endif
 
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
+# include "vm/statistics.hpp"
 
 #if defined(ENABLE_ZLIB)
 # include "vm/zip.hpp"
