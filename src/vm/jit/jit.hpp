@@ -51,7 +51,7 @@ typedef struct exception_entry exception_entry;
 # include "vm/jit/inline/inline.hpp"
 #endif
 
-#include "vm/jit/ir/bytecode.h"
+#include "vm/jit/ir/bytecode.hpp"
 #include "vm/jit/ir/instruction.hpp"
 
 #if defined(ENABLE_LOOP)

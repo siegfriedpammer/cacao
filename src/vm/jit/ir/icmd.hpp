@@ -30,7 +30,7 @@
 
 #include <stdint.h>
 
-#include "vm/jit/ir/bytecode.h"
+#include "vm/jit/ir/bytecode.hpp"
 
 
 // JavaVM operation codes (sorted).

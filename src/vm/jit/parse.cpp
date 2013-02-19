@@ -54,7 +54,7 @@
 #include "vm/jit/parse.hpp"
 #include "vm/jit/loop/loop.h"
 
-#include "vm/jit/ir/bytecode.h"
+#include "vm/jit/ir/bytecode.hpp"
 
 
 #define INSTRUCTIONS_INCREMENT  5  /* number of additional instructions to    */

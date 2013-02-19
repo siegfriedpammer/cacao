@@ -29,8 +29,8 @@ noinst_LTLIBRARIES = \
 	libir.la
 
 libir_la_SOURCES = \
-	bytecode.c \
-	bytecode.h \
+	bytecode.cpp \
+	bytecode.hpp \
 	icmd.cpp \
 	icmd.hpp \
 	icmdtable.inc \

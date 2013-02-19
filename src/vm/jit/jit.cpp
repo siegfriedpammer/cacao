@@ -80,7 +80,7 @@
 # include "vm/jit/inline/inline.hpp"
 #endif
 
-#include "vm/jit/ir/bytecode.h"
+#include "vm/jit/ir/bytecode.hpp"
 
 #include "vm/jit/loop/analyze.h"
 #include "vm/jit/loop/graph.h"

@@ -38,7 +38,7 @@
 
 #include "vm/jit/jit.hpp" /* icmd_table */
 
-#include "vm/jit/ir/bytecode.h"
+#include "vm/jit/ir/bytecode.hpp"
 
 #include "vm/jit/optimizing/dominators.hpp"
 #include "vm/jit/optimizing/graph.hpp"
