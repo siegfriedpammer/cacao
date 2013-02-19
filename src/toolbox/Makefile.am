@@ -39,8 +39,8 @@ libtoolbox_la_SOURCES = \
 	list.hpp \
 	logging.cpp \
 	logging.hpp \
-	output_stream.cpp \
-	output_stream.hpp \
+	OutputStream.cpp \
+	OutputStream.hpp \
 	set.hpp \
 	set.cpp \
 	utf_utils.hpp \

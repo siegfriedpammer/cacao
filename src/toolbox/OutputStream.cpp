@@ -22,7 +22,7 @@
 
 */
 
-#include "toolbox/output_stream.hpp"
+#include "toolbox/OutputStream.hpp"
 
 OutputStream::~OutputStream() {}
 

@@ -6,7 +6,7 @@
 #include "mm/memory.hpp"
 
 #include "toolbox/utf_utils.hpp"
-#include "toolbox/output_stream.hpp"
+#include "toolbox/OutputStream.hpp"
 
 /* Buffer **********************************************************************
 
