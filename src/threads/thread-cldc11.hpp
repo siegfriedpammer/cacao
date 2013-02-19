@@ -36,7 +36,7 @@
 #if defined(ENABLE_THREADS)
 # include "threads/posix/thread-posix.hpp"
 #else
-# include "threads/none/thread-none.h"
+# include "threads/none/thread-none.hpp"
 #endif
 
 class java_lang_Thread;

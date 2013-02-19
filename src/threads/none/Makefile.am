@@ -29,9 +29,9 @@ noinst_LTLIBRARIES = \
 	libthreadsnone.la
 
 libthreadsnone_la_SOURCES = \
-	lock.h \
-	thread-none.c \
-	thread-none.h
+	lock.hpp \
+	thread-none.cpp \
+	thread-none.hpp
 
 
 ## Local variables:
