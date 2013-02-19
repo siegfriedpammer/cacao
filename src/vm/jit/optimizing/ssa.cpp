@@ -79,7 +79,7 @@ void _ssa_print_lt(struct lifetime *lt);
 
 SSA main procedure:
 
-SSA Algorithms are based on "modern compiler implementation in C" from andrew 
+SSA Algorithms are based on "modern compiler implementation in C" from andrew
 w. appel, edition 2004
 
 Corrections:
@@ -122,7 +122,7 @@ void ssa(jitdata *jd) {
 	/*pythonpass_run(jd, "ssa2", "main");*/
 	/*pythonpass_run(jd, "alt_ssa", "main");*/
 	/*pythonpass_run(jd, "foo", "before");*/
-	
+
 	/*if (getenv("XSSA")) {
 		dominator_tree_build(jd);
 		dominance_frontier_build(jd);
@@ -163,7 +163,7 @@ void ssa(jitdata *jd) {
 	}
 #endif
 	if (opt_ssa_dce) {
-		dead_code_elimination(jd, gd); 
+		dead_code_elimination(jd, gd);
 #ifdef SSA_DEBUG_VERBOSE
 		if (compileverbose) {
 			printf("Phi after dead code elemination\n");
@@ -218,7 +218,7 @@ void ssa(jitdata *jd) {
 							out = ls->basicblocks[pred]->outvars;
 							_SSA_ASSERT(out_d >= in_d);
 							for(; out_d > in_d; out_d--);
-							if ((in[in_d] != out[out_d]) || 
+							if ((in[in_d] != out[out_d]) ||
 							(VAR(in[in_d])->flags != VAR(out[out_d])->flags)) {
 								printf("Method: %s %s\n",
 									   UTF_TEXT(m->clazz->name), UTF_TEXT(m->name));
@@ -253,7 +253,7 @@ interface_map[ 5 * stackdepth + type ] = new_varindex with
 0 <= new_varindex < ls->ssavarcount
 
 TODO: check if coalescing of IOVARS of same stackdepth and type only of adjacent
-basic blocks could decrease the number of phi functions and so improve ssa 
+basic blocks could decrease the number of phi functions and so improve ssa
 analysis performance!
 
 All LOCALVARS and IOVARS get a new unique varindex:
@@ -261,11 +261,11 @@ ls->new_varindex[0..jd->varcount[ = new_varindex with
 0 <= new_varindex < ls->ssavarcount
 
 The jd->varcount bits long bitvectors ls->var_def[0..jd->basicblockindex+1[
- are set  to the definitions of LOCALVARS and IOVARS. (So the only the first 
-ls->ssavarcount bits of each of these vectors contain valid data, but 
+ are set  to the definitions of LOCALVARS and IOVARS. (So the only the first
+ls->ssavarcount bits of each of these vectors contain valid data, but
 ls->ssavarcount is computed at the same time as the definitons are stored.)
 
-The basic block number used as index for the bitvector array ls->var_def is 
+The basic block number used as index for the bitvector array ls->var_def is
 already shifted by one to make space for the new basic block 0 for parameter
 initialization.
 
@@ -301,7 +301,7 @@ void ssa_init(jitdata *jd) {
 	if (strcmp(UTF_TEXT(m->clazz->name), "spec/benchmarks/_213_javac/Parser")==0)
 		if (strcmp(UTF_TEXT(m->name),"parseTerm")==0)
 # if defined(SSA_DEBUG_VERBOSE)
-			if (compileverbose) 
+			if (compileverbose)
 				printf("12-------------------12\n");
 # else
 	        { int dummy=1; dummy++; }
@@ -309,7 +309,7 @@ void ssa_init(jitdata *jd) {
 #endif
 
 #ifdef SSA_DEBUG_VERBOSE
-    if (compileverbose) 
+    if (compileverbose)
 		printf("ssa_init: basicblockcount %3i localcount %3i\n",
 			   jd->basicblockcount, jd->localcount);
 #endif
@@ -418,7 +418,7 @@ void ssa_init(jitdata *jd) {
 
 #ifdef SSA_DEBUG_VERBOSE
 	if (compileverbose) {
-		printf("ssa_init: Vars: Orig:%3i SSAVar: %3i\n", jd->varcount, 
+		printf("ssa_init: Vars: Orig:%3i SSAVar: %3i\n", jd->varcount,
 			   ls->ssavarcount);
 		for(i = 0; i < jd->varcount; i++) {
 			if ((i < jd->localcount) || ( VAR(i)->flags & INOUT)) {
@@ -485,7 +485,7 @@ IN: ls              pointer to lsradata structure
 	map_index       stackdepth * 5 + type, used for coalescing IOVARS.
 
 IN/OUT
-	interface_map   used for coalescing IOVARS. interface_map[map_index] == 
+	interface_map   used for coalescing IOVARS. interface_map[map_index] ==
 	                UNUSED, if this map_index (==stackdepth,type tupel) did not
 					occur till now. Then interface_map[map_index] will be set
 					to a new unique index.
@@ -499,7 +499,7 @@ ls->var_def
 ******************************************************************************/
 
 void ssa_set_iovar(lsradata *ls, s4 iovar, int map_index, s4 *interface_map) {
-		if (interface_map[map_index] == UNUSED) 
+		if (interface_map[map_index] == UNUSED)
 			interface_map[map_index] = ls->ssavarcount++;
 
 		ls->new_varindex[iovar] = interface_map[map_index];
@@ -514,14 +514,14 @@ IN: ls              pointer to lsradata structure
     *bptr           pointer to the basic block to be processed
 
 IN/OUT
-	interface_map   used for coalescing IOVARS. interface_map[map_index] == 
+	interface_map   used for coalescing IOVARS. interface_map[map_index] ==
 	                UNUSED, if this map_index (==stackdepth,type tupel) did not
 					occur till now. Then interface_map[map_index] will be set
 					to a new unique index. (see ssa_set_iovar)
 
 Searches the basic block given by *bptr for IN and OUTVARS and coalesces them
-for each unique stackdepth,type dupel. For each OUTVAR with a different or no 
-INVAR at the same stackdepth the definition of this OUTVAR in this basic block 
+for each unique stackdepth,type dupel. For each OUTVAR with a different or no
+INVAR at the same stackdepth the definition of this OUTVAR in this basic block
 is remembered in ls->var_def. (see ssa_set_def)
 
 ******************************************************************************/
@@ -581,7 +581,7 @@ void ssa_print_trees(jitdata *jd, graphdata *gd, dominatordata *dd) {
 	ls = jd->ls;
 
 	printf("ssa_printtrees: maxlocals %3i", jd->localcount);
-		
+
 	printf("Dominator Tree: \n");
 	for(i = 0; i < ls->basicblockcount; i++) {
 		printf("%3i:",i);
@@ -694,10 +694,10 @@ void dead_code_elimination(jitdata *jd, graphdata *gd) {
 		/* defines them! */
 
 		remove_statement = (lt->use != NULL) && (lt->use->iindex < 0);
-		for(use = lt->use; (remove_statement && (use != NULL)); 
+		for(use = lt->use; (remove_statement && (use != NULL));
 			use = use->next)
 		{
-			remove_statement = remove_statement && 
+			remove_statement = remove_statement &&
 				(use->b_index == lt->def->b_index) &&
 				(use->iindex == lt->def->iindex);
 		}
@@ -734,11 +734,11 @@ void dead_code_elimination(jitdata *jd, graphdata *gd) {
 					 i++) {
 					source =
 						ls->phi[lt->def->b_index][-lt->def->iindex-1][i];
-					if ((source != ls->varcount_with_indices) && 
+					if ((source != ls->varcount_with_indices) &&
 						(source != lt->v_index) &&
 						(source != UNUSED)) {
 
-						/* phi Argument was not already removed (already in 
+						/* phi Argument was not already removed (already in
 						   because of "selfdefinition") */
 
 						s_lt = &(ls->lifetime[source]);
@@ -774,7 +774,7 @@ void dead_code_elimination(jitdata *jd, graphdata *gd) {
 
 					/* do not look at artificial block 0 (parameter init) */
 
-					iptr = ls->basicblocks[lt->def->b_index]->iinstr + 
+					iptr = ls->basicblocks[lt->def->b_index]->iinstr +
 						lt->def->iindex;
 
 					if (icmd_table[iptr->opc].flags & ICMDTABLE_PEI) {
@@ -843,8 +843,8 @@ void dead_code_elimination(jitdata *jd, graphdata *gd) {
 #ifdef SSA_DEBUG_VERBOSE
 						if (compileverbose)
 							printf("dce: %s %s:at BB %3i II %3i NOP-<%s\n",
-								   UTF_TEXT(m->clazz->name), UTF_TEXT(m->name), 
-								   lt->def->b_index, lt->def->iindex, 
+								   UTF_TEXT(m->clazz->name), UTF_TEXT(m->name),
+								   lt->def->b_index, lt->def->iindex,
 								   icmd_table[iptr->opc].name);
 #endif
 						iptr->opc = ICMD_NOP;
@@ -922,8 +922,8 @@ void copy_propagation(jitdata *jd, graphdata *gd) {
 			for (i = 1; i <= graph_get_num_predecessor(gd, lt->def->b_index);
 				 i++) {
 					source = ls->phi[lt->def->b_index][-lt->def->iindex-1][i];
-					if ((source != ls->varcount_with_indices) && 
-						(source != UNUSED)) {	
+					if ((source != ls->varcount_with_indices) &&
+						(source != UNUSED)) {
 						if (only_source == ls->varcount_with_indices) {
 
 							/* first valid source argument of phi function */
@@ -941,7 +941,7 @@ void copy_propagation(jitdata *jd, graphdata *gd) {
 			}
 
 			if (only_source != ls->varcount_with_indices) {
-				
+
 #ifdef SSA_DEBUG_VERBOSE
 				if (compileverbose)
 					printf(
@@ -983,7 +983,7 @@ void copy_propagation(jitdata *jd, graphdata *gd) {
 #endif
 			} /* if (only_source != ls->varcount_with_indices) */
 		}
-		else { /* if (lt->def->iindex < 0 ) */	
+		else { /* if (lt->def->iindex < 0 ) */
 
 			/* def in argument passing - no propagation possible */
 			/* (there is no ICMD for this... */
@@ -993,9 +993,9 @@ void copy_propagation(jitdata *jd, graphdata *gd) {
 
 			/* def in "normal" ICMD */
 
-			iptr = ls->basicblocks[lt->def->b_index]->iinstr + 
+			iptr = ls->basicblocks[lt->def->b_index]->iinstr +
 				lt->def->iindex;
-			
+
 			switch(iptr->opc) {
 			case ICMD_ISTORE:
 			case ICMD_LSTORE:
@@ -1017,14 +1017,14 @@ void copy_propagation(jitdata *jd, graphdata *gd) {
 						   iptr->s1.varindex, iptr->dst.varindex);
 #endif
 				s_lt = ls->lifetime + iptr->s1.varindex;
-				
+
 				_SSA_ASSERT( lt->v_index == iptr->dst.varindex);
-				
+
 				/* replace all use sites of lt with the var_index */
 				/* iptr->s1.varindex (==lt->v_index) */
-				
+
 				ssa_replace_use_sites(jd, gd, lt, iptr->s1.varindex, W);
-				
+
 				_SSA_ASSERT(lt->def->next == NULL);
 				_SSA_ASSERT(s_lt->def != NULL);
 				_SSA_ASSERT(s_lt->def->next == NULL);
@@ -1041,11 +1041,11 @@ void copy_propagation(jitdata *jd, graphdata *gd) {
 				lt_remove_use_site(s_lt, lt->def->b_index, lt->def->iindex);
 
 				/* invalidate def site of lt */
-				
+
 				lt->def = NULL;
-				
+
 				/* move use sites from lt to s_lt */
-				
+
 				lt_move_use_sites(lt, s_lt);
 
 				/* invalidate lt */
@@ -1078,7 +1078,7 @@ void ssa_replace_use_sites(jitdata *jd, graphdata *gd, struct lifetime *lt,
 
 	ls = jd->ls;
 	md = jd->m->parseddesc;
-	
+
 
 	for(s = lt->use; s != NULL; s = s->next) {
 		if (s->iindex < 0) {
@@ -1130,8 +1130,8 @@ void ssa_replace_use_sites(jitdata *jd, graphdata *gd, struct lifetime *lt,
 			}
 		}
 		else { /* use in ICMD */
-	
-			iptr = ls->basicblocks[s->b_index]->iinstr + 
+
+			iptr = ls->basicblocks[s->b_index]->iinstr +
 				s->iindex;
 
 		/* check for use (s1, s2, s3 or special (argp) ) */
@@ -1219,7 +1219,7 @@ void ssa_replace_use_sites(jitdata *jd, graphdata *gd, struct lifetime *lt,
 						}
 #endif
 						*argp = new_v_index;
-							
+
 					}
 					argp++;
 				}

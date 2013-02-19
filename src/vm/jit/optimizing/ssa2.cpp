@@ -20,7 +20,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Reimplementation of code in ssa.c. 
+   Reimplementation of code in ssa.c.
    Uses the new dominator tree and the new CFG.
 */
 
@@ -102,7 +102,7 @@ static void ssa_place_phi_functions(ssa_info *ssa) {
 	set *work;
 
 	for (bptr = ssa->jd->basicblocks; bptr; bptr = bptr->next) {
-	
+
 		bbi = DNEW(basicblock_info);
 		bbi->defines = bv_new(ssa->vars_count);
 		bbi->phi = bv_new(ssa->vars_count);
@@ -113,7 +113,7 @@ static void ssa_place_phi_functions(ssa_info *ssa) {
 		for (iptr = bptr->iinstr; iptr != bptr->iinstr + bptr->icount; ++iptr) {
 			if (instruction_has_dst(iptr)) {
 				if (
-					var_is_local(ssa->jd, iptr->dst.varindex) 
+					var_is_local(ssa->jd, iptr->dst.varindex)
 				) {
 					/* A_orig */
 					bv_set_bit(bbi->defines, iptr->dst.varindex);
@@ -139,8 +139,8 @@ static void ssa_place_phi_functions(ssa_info *ssa) {
 		while (! set_empty(work)) {
 			n = (basicblock *)set_pop(work);
 			for (
-				itdf = n->domfrontier; 
-				itdf != n->domfrontier + n->domfrontiercount; 
+				itdf = n->domfrontier;
+				itdf != n->domfrontier + n->domfrontiercount;
 				++itdf
 			) {
 				Y = *itdf;
@@ -274,7 +274,7 @@ printf(" *** === %d ===========\n", bptr->nr);
 	/* Phi functions are the first instructions in the block */
 printf(" *** --- phis ---------\n");
 	for (
-		itph = bbi->phi_functions; 
+		itph = bbi->phi_functions;
 		itph != bbi->phi_functions + bbi->phi_count;
 		++itph
 	) {
@@ -282,7 +282,7 @@ printf(" *** --- phis ---------\n");
 	}
 
 printf(" *** --- vars ---------\n");
-	
+
 	if (bptr == ssa->jd->basicblocks) {
 		for (i = 0; i < ssa->jd->localcount; ++i) {
 			tmp = i;
@@ -316,7 +316,7 @@ printf(" *** --- vars ---------\n");
 
 				uses = s;
 				break;
-		
+
 			case DF_N_TO_1:
 			case DF_INVOKE:
 			case DF_BUILTIN:
@@ -368,8 +368,8 @@ printf(" *** --- vars ---------\n");
 	printf(" *** succs %d\n", bptr->successorcount);
 
 	for (
-		itsucc = bptr->successors; 
-		itsucc != bptr->successors + bptr->successorcount; 
+		itsucc = bptr->successors;
+		itsucc != bptr->successors + bptr->successorcount;
 		++itsucc
 	) {
 		Y = *itsucc;
@@ -446,7 +446,7 @@ static void ssa_export(ssa_info *ssa) {
 
 	for (i = 0; i < jd->localcount; ++i) {
 		for (j = 1; j < ssa->vars[i].num_defs; ++j) {
-			*(it++) = jd->var[i];		
+			*(it++) = jd->var[i];
 		}
 	}
 
@@ -485,7 +485,7 @@ static unsigned get_predecessor_index(basicblock *from, basicblock *to) {
 		if (*itpred == from) break;
 		j++;
 	}
-	
+
 	if (j == to->predecessorcount) {
 		printf(" *** %d => %d\n", from->nr, to->nr);
 		assert(j != to->predecessorcount);
@@ -500,7 +500,7 @@ static basicblock *create_block(ssa_info *ssa, basicblock *from, basicblock *to)
 	instruction *iptr;
 	phi_function *itph;
 	unsigned j = get_predecessor_index(from, to);
-	
+
 	mid = DNEW(basicblock);
 	MZERO(mid, basicblock, 1);
 
@@ -586,7 +586,7 @@ static void ssa_create_phi_moves(ssa_info *ssa) {
 				case CF_IF:
 				case CF_RET:
 				case CF_GOTO:
-					iptr->dst.block = create_block(ssa, bptr, iptr->dst.block);	
+					iptr->dst.block = create_block(ssa, bptr, iptr->dst.block);
 					break;
 				case CF_TABLE:
 					table = iptr->dst.table;

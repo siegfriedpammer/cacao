@@ -72,7 +72,7 @@ bool bv_equal(bitvector s1, bitvector s2, int size);
 
 /* copy the whole bitvector    */
 
-void bv_copy(bitvector dst, bitvector src, int size); 
+void bv_copy(bitvector dst, bitvector src, int size);
 
 /* d = s1 \ s2     */
 

@@ -22,9 +22,9 @@
 
    SSA transformation PROTOTYPE based on:
 
-   Moessenboeck, H., 
-   Adding Static Single Assignment Form and a Graph Coloring Register 
-   Allocator to the Java Hotspot Client Compiler, 2000 
+   Moessenboeck, H.,
+   Adding Static Single Assignment Form and a Graph Coloring Register
+   Allocator to the Java Hotspot Client Compiler, 2000
    (http://www.ssw.uni-linz.ac.at/Research/Reports/Report15.html)
 
    TODO
@@ -70,11 +70,11 @@ typedef enum {
 } phi_flags_t;
 
 static inline void phi_set_flag(instruction *iptr, phi_flags_t flag) {
-	iptr->flags.bits |= (1 << flag);	
+	iptr->flags.bits |= (1 << flag);
 }
 
 static inline void phi_clear_flag(instruction *iptr, phi_flags_t flag) {
-	iptr->flags.bits &= ~(1 << flag);	
+	iptr->flags.bits &= ~(1 << flag);
 }
 
 static inline bool phi_has_flag(const instruction *iptr, phi_flags_t flag) {
@@ -101,7 +101,7 @@ static inline void phi_init(instruction *iptr, unsigned argcount, s4 index) {
 	iptr->sx.s23.s2.iargs += 1;
 	iptr->sx.s23.s3.javaindex = index;
 
-	/* subst field - If non-null, the phi function shall be replaced by the 
+	/* subst field - If non-null, the phi function shall be replaced by the
 	   value produced by the subst instruction. */
 	iptr->sx.s23.s2.iargs[-1] = NULL;
 
@@ -191,7 +191,7 @@ static inline void phi_set_arg(instruction *iptr, unsigned arg, instruction *val
 
 static inline bool phi_is_redundant(const instruction *iptr) {
 	return (
-		phi_has_flag(iptr, PHI_FLAG_REDUNDANT_ONE) || 
+		phi_has_flag(iptr, PHI_FLAG_REDUNDANT_ONE) ||
 		phi_has_flag(iptr, PHI_FLAG_REDUNDANT_ALL)
 	);
 }
@@ -319,7 +319,7 @@ static void instruction_get_uses(const instruction *iptr, s4 *buf, s4 **puses, u
 			*puses_count = uses_count;
 			*puses = buf;
 			break;
-	
+
 		case DF_N_TO_1:
 		case DF_INVOKE:
 		case DF_BUILTIN:
@@ -479,7 +479,7 @@ static inline void vars_record_old_index(vars_t *vs, unsigned varindex, s4 old_i
 	item = vs->items + varindex;
 
 	assert(
-		item->old_index == OLD_INDEX_UNUSED || 
+		item->old_index == OLD_INDEX_UNUSED ||
 		item->old_index == old_index
 	);
 
@@ -890,11 +890,11 @@ static unsigned basicblock_get_predecessor_index(basicblock *from, basicblock *t
 	basicblock **itpred;
 	unsigned j = 0;
 
-	FOR_EACH_PREDECESSOR(to, itpred) {	
+	FOR_EACH_PREDECESSOR(to, itpred) {
 		if (*itpred == from) break;
 		j++;
 	}
-	
+
 	assert(j != to->predecessorcount);
 
 	return j;
@@ -1016,7 +1016,7 @@ void fix_exception_handlers(jitdata *jd) {
 		if (bptr->type == BBTYPE_EXH) {
 
 			/*
-             
+
             +---- EXH (exh)-------+
             |  in0 in1 in2 exc    |
 			|  .....              |
@@ -1042,13 +1042,13 @@ void fix_exception_handlers(jitdata *jd) {
 			bptr->predecessorcount = 0; /* legacy */
 
 			/* Create basicblock with 2 instructions */
-		
+
 			exh = DNEW(basicblock);
 			MZERO(exh, basicblock, 1);
 
 			iptr = DMNEW(instruction, 2);
 			MZERO(iptr, instruction, 2);
-			
+
 			/* Create outvars */
 
 			exh->outdepth = bptr->indepth;
@@ -1103,7 +1103,7 @@ void fix_exception_handlers(jitdata *jd) {
 			goto_init(iptr, bptr);
 
 			bptr->vp = exh;
-		} else {	
+		} else {
 			bptr->vp = NULL;
 		}
 
@@ -1181,7 +1181,7 @@ void unfix_exception_handlers(jitdata *jd) {
 			bptr->outdepth = 0;
 			exh->type = BBTYPE_EXH;
 			bptr->vp = exh;
-		
+
 			/* bptr is no more a predecessor of exh */
 
 			for (i = 0; i < exh->predecessorcount; ++i) {
@@ -1237,10 +1237,10 @@ static inline void ssa_enter_mark_loops(basicblock *bb) {
 }
 
 static void ssa_enter_merge(
-	traversal_t *src, 
-	traversal_t *dst, 
-	basicblock *bdst, 
-	unsigned predecessor_index, 
+	traversal_t *src,
+	traversal_t *dst,
+	basicblock *bdst,
+	unsigned predecessor_index,
 	vars_t *vdst
 ) {
 
@@ -1279,8 +1279,8 @@ static void ssa_enter_merge(
 			   We only need to set their arguments. */
 
 			phi_set_arg(
-				phis_get(dst->phis, i), 
-				predecessor_index, 
+				phis_get(dst->phis, i),
+				predecessor_index,
 				state_array_get(src->state_array, i)
 			);
 
@@ -1293,7 +1293,7 @@ static void ssa_enter_merge(
 				/* There is already a phi function created for this var.
 				   No need to create one. */
 			} else {
-				/* Create a new phi function. 
+				/* Create a new phi function.
 				   Set all arguments to old value in state array. */
 				old = state_array_get(dst->state_array, i);
 				phi = traversal_create_phi(dst, vdst, predecessor_count, i);
@@ -1303,7 +1303,7 @@ static void ssa_enter_merge(
 			/* Set argument of phi function. */
 
 			phi_set_arg(
-				state_array_get(dst->state_array, i), 
+				state_array_get(dst->state_array, i),
 				predecessor_index,
 				state_array_get(src->state_array, i)
 			);
@@ -1380,12 +1380,12 @@ static void ssa_enter_traverse(ssa_info_t *ssa, basicblock *bb) {
 		predecessor_count = basicblock_get_predecessor_count(*itsucc);
 
 		if (
-			succi->complete_predecessors == 
+			succi->complete_predecessors ==
 			(predecessor_count - succi->backward_branches)
 		) {
 			ssa_enter_traverse(ssa, *itsucc);
 		}
-		
+
 		if (
 			(succi->complete_predecessors == predecessor_count) &&
 			(succi->backward_branches > 0)
@@ -1408,7 +1408,7 @@ static void ssa_enter_traverse(ssa_info_t *ssa, basicblock *bb) {
 		predecessor_count = basicblock_get_predecessor_count(*itsucc);
 
 		if (
-			succi->complete_predecessors == 
+			succi->complete_predecessors ==
 			(predecessor_count - succi->backward_branches)
 		) {
 			ssa_enter_traverse(ssa, *itsucc);
@@ -1492,7 +1492,7 @@ static void ssa_enter_post_eliminate_redundand_phi(
 ) {
 	phi_calculate_redundancy(phi);
 	phi_set_flag(PHI_FLAG_REDUNDANCY_CHECKED);
-	
+
 	/* if redundancy changed and phi function escapes block */
 
 	/* for each successor */
@@ -1574,7 +1574,7 @@ static void ssa_enter_process_block(ssa_info *ssa, basicblock *bb) {
 #endif
 
 	/* Some in/out vars get marked as INOUT in simplereg,
-	   and are not marked at this point. 
+	   and are not marked at this point.
 	   Mark them manually. */
 
 	for (ituse = bb->invars; ituse != bb->invars + bb->indepth; ++ituse) {
@@ -1596,7 +1596,7 @@ static void ssa_enter_process_block(ssa_info *ssa, basicblock *bb) {
 	/* Process instructions */
 
 	state_array_assert_items(bbi->locals->state_array);
-	
+
 	FOR_EACH_INSTRUCTION(bb, iptr) {
 
 #if defined(ELIMINATE_NOP_LOAD_STORE)
@@ -1629,7 +1629,7 @@ static void ssa_enter_process_block(ssa_info *ssa, basicblock *bb) {
 		for (ituse = uses; ituse != uses + uses_count; ++ituse) {
 			if (var_is_local(ssa->jd, *ituse)) {
 				traversal_rename_use(
-					bbi->locals, 
+					bbi->locals,
 					ssa->locals,
 					ituse
 				);
@@ -1649,8 +1649,8 @@ static void ssa_enter_process_block(ssa_info *ssa, basicblock *bb) {
 		if (instruction_has_dst(iptr)) {
 			if (var_is_local(ssa->jd, iptr->dst.varindex)) {
 				traversal_rename_def(
-					bbi->locals, 
-					ssa->locals, 
+					bbi->locals,
+					ssa->locals,
 					iptr
 				);
 			} else if (var_is_inout(ssa->jd, iptr->dst.varindex)) {
@@ -1699,7 +1699,7 @@ static void ssa_enter_export_variables(ssa_info *ssa) {
 
 	/* Grow local map to accomodate all new locals and iovars.
 	   But keep the local map for version 1 of locals, that contains the holes. */
-	
+
 	local_map = DMNEW(
 		s4,
 		5 * (jd->maxlocals + ssa->locals->count + ssa->stack->count - jd->localcount)
@@ -1723,7 +1723,7 @@ static void ssa_enter_export_variables(ssa_info *ssa) {
 			it += 1;
 		}
 	}
-	
+
 	/* Add all io vars. */
 
 	for (i = ssa->locals->count; i < ssa->locals->count + ssa->stack->count; ++i) {
@@ -1890,10 +1890,10 @@ static basicblock *ssa_leave_create_transition_block_intern(
 	bb->mpc = -1;
 	bb->method = ssa->jd->m;
 	bb->type = BBTYPE_STD;
-	bb->icount = 
-		reserved_insns + 
-		toi->locals->phis->count + 
-		toi->stack->phis->count + 
+	bb->icount =
+		reserved_insns +
+		toi->locals->phis->count +
+		toi->stack->phis->count +
 		1;
 	bb->iinstr = DMNEW(instruction, bb->icount);
 	MZERO(bb->iinstr, instruction, bb->icount);
@@ -1901,7 +1901,7 @@ static basicblock *ssa_leave_create_transition_block_intern(
 	/* Populate instruction array. */
 
 	iptr = bb->iinstr + reserved_insns;
-	
+
 	/* Add phi moves. */
 
 	FOR_EACH_PHI_FUNCTION(toi->locals->phis, itph) {
@@ -1929,8 +1929,8 @@ static inline basicblock *ssa_leave_create_transition_block(
 	basicblock *to
 ) {
 	return ssa_leave_create_transition_block_intern(
-		ssa, 
-		from, 
+		ssa,
+		from,
 		to,
 		basicblock_get_predecessor_index(from, to),
 		0
@@ -1959,9 +1959,9 @@ static void ssa_leave_create_fallthrough(ssa_info *ssa, basicblock *bptr) {
 	icount = bptr->icount + toi->locals->phis->count + toi->stack->phis->count;
 
 	bptr->iinstr = DMREALLOC(
-		bptr->iinstr, 
-		instruction, 
-		bptr->icount, 
+		bptr->iinstr,
+		instruction,
+		bptr->icount,
 		icount
 	);
 
@@ -2010,8 +2010,8 @@ static void ssa_leave_create_phi_moves(ssa_info *ssa) {
 				case CF_IF:
 				case CF_RET:
 				case CF_GOTO:
-					iptr->dst.block = 
-						ssa_leave_create_transition_block(ssa, bptr, iptr->dst.block);	
+					iptr->dst.block =
+						ssa_leave_create_transition_block(ssa, bptr, iptr->dst.block);
 					break;
 				case CF_TABLE:
 					table = iptr->dst.table;
@@ -2020,7 +2020,7 @@ static void ssa_leave_create_phi_moves(ssa_info *ssa) {
 					i = i - l + 1;
 					i += 1; /* default */
 					while (--i >= 0) {
-						table->block = 
+						table->block =
 							ssa_leave_create_transition_block(ssa, bptr, table->block);
 						++table;
 					}
@@ -2029,25 +2029,25 @@ static void ssa_leave_create_phi_moves(ssa_info *ssa) {
 					lookup = iptr->dst.lookup;
 					i = iptr->sx.s23.s2.lookupcount;
 					while (--i >= 0) {
-						lookup->target.block = 
+						lookup->target.block =
 							ssa_leave_create_transition_block(ssa, bptr, lookup->target.block);
 						lookup++;
 					}
-					iptr->sx.s23.s3.lookupdefault.block = 
+					iptr->sx.s23.s3.lookupdefault.block =
 						ssa_leave_create_transition_block(ssa, bptr, iptr->sx.s23.s3.lookupdefault.block);
 					break;
 				case CF_JSR:
-					iptr->sx.s23.s3.jsrtarget.block = 
+					iptr->sx.s23.s3.jsrtarget.block =
 						ssa_leave_create_transition_block(ssa, bptr, iptr->sx.s23.s3.jsrtarget.block);
 					break;
 			}
 
 			if (
-				(iptr->opc == ICMD_GOTO) || 
-				(iptr->opc == ICMD_JSR) || 
-				(iptr->opc == ICMD_RET) || 
-				icmd_table[iptr->opc].controlflow == CF_END || 
-				(iptr->opc == ICMD_TABLESWITCH) || 
+				(iptr->opc == ICMD_GOTO) ||
+				(iptr->opc == ICMD_JSR) ||
+				(iptr->opc == ICMD_RET) ||
+				icmd_table[iptr->opc].controlflow == CF_END ||
+				(iptr->opc == ICMD_TABLESWITCH) ||
 				(iptr->opc == ICMD_LOOKUPSWITCH)
 			) {
 				has_fallthrough = false;
@@ -2090,7 +2090,7 @@ static basicblock *ssa_leave_split_basicblock_at(ssa_info *ssa, basicblock *bptr
 	assert(iidx < bptr->icount);
 	assert(bbi);
 
-	/* If there are no subbasicblocks yet, we initialize the first one to be a 
+	/* If there are no subbasicblocks yet, we initialize the first one to be a
 	   copy of the original basicblock. */
 
 	if (basicblock_chain_empty(bbi->subbasicblocks)) {
@@ -2101,7 +2101,7 @@ static basicblock *ssa_leave_split_basicblock_at(ssa_info *ssa, basicblock *bptr
 		basicblock_chain_add(bbi->subbasicblocks, newblock);
 	}
 
-	/* Find the subbasicblock that will be split: 
+	/* Find the subbasicblock that will be split:
 	   the one that cointains iptr. */
 
 	tosplit = basicblock_chain_front(bbi->subbasicblocks);
@@ -2114,7 +2114,7 @@ static basicblock *ssa_leave_split_basicblock_at(ssa_info *ssa, basicblock *bptr
 	}
 
 	assert(bptr->nr == tosplit->nr);
-	
+
 	/* Calculate number of instructions left in block to split. */
 
 	ileft = iptr - tosplit->iinstr + 1;
@@ -2125,7 +2125,7 @@ static basicblock *ssa_leave_split_basicblock_at(ssa_info *ssa, basicblock *bptr
 	if (ileft < tosplit->icount) {
 		newblock = DNEW(basicblock);
 		*newblock = *tosplit;
-	
+
 		tosplit->next = newblock;
 		tosplit->icount = ileft;
 
@@ -2178,7 +2178,7 @@ static basicblock *ssa_leave_create_transition_exception_handler(
 	);
 	exh->type = BBTYPE_EXH;
 
-	/* Copy goto to real exception handler at the end of the exception handler 
+	/* Copy goto to real exception handler at the end of the exception handler
 	   prologue. */
 
 	assert(to->iinstr[to->icount - 1].opc == ICMD_GOTO);
@@ -2428,7 +2428,7 @@ void yssa(jitdata *jd) {
 
 	ssa_leave_create_exceptional_phi_moves(ssa);
 	*/
-	
+
 #ifdef SSA_VERBOSE
 	if (verb) {
 		printf("=============== [ mid ] =========================\n");

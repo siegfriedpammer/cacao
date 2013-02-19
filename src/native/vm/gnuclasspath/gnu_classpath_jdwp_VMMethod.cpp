@@ -37,7 +37,7 @@
 
 void printjvmtierror(char *desc, jvmtiError err) {
     char* errdesc;
-	
+
 	if (err == JVMTI_ERROR_NONE) return;
 	(*jvmtienv)->GetErrorName(jvmtienv,err, &errdesc);
 	fprintf(stderr,"%s: jvmti error %s\n",desc, errdesc);
@@ -52,20 +52,20 @@ void printjvmtierror(char *desc, jvmtiError err) {
  * Method:    getName
  * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT struct java_lang_String* JNICALL Java_gnu_classpath_jdwp_VMMethod_getName(JNIEnv *env, gnu_classpath_jdwp_VMMethod* this) 
+JNIEXPORT struct java_lang_String* JNICALL Java_gnu_classpath_jdwp_VMMethod_getName(JNIEnv *env, gnu_classpath_jdwp_VMMethod* this)
 {
     jvmtiError err;
     char *name;
     jstring stringname;
-    
+
     if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
-                             GetMethodName(jvmtienv, 
+                             GetMethodName(jvmtienv,
 										   (jmethodID)(long)this->_methodId,
                                            &name,NULL, NULL))) {
 		printjvmtierror("VMMethod.getName GetMethodName",err);
         return NULL;
     }
-    
+
     stringname = (*env)->NewStringUTF(env,name);
     (*jvmtienv)->Deallocate(jvmtienv,(unsigned char*)name);
 
@@ -78,23 +78,23 @@ JNIEXPORT struct java_lang_String* JNICALL Java_gnu_classpath_jdwp_VMMethod_getN
  * Method:    getSignature
  * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT struct java_lang_String* JNICALL Java_gnu_classpath_jdwp_VMMethod_getSignature(JNIEnv *env, gnu_classpath_jdwp_VMMethod* this) 
+JNIEXPORT struct java_lang_String* JNICALL Java_gnu_classpath_jdwp_VMMethod_getSignature(JNIEnv *env, gnu_classpath_jdwp_VMMethod* this)
 {
     jvmtiError err;
     char *signature;
     jstring stringsignature;
-    
+
     if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
-                             GetMethodName(jvmtienv, 
+                             GetMethodName(jvmtienv,
 										   (jmethodID)(long)this->_methodId,
                                            NULL, &signature, NULL))) {
 		printjvmtierror("VMMethod.getSignature GetMethodName",err);
         return NULL;
     }
-    
+
     stringsignature = (*env)->NewStringUTF(env,signature);
     (*jvmtienv)->Deallocate(jvmtienv,(unsigned char*)signature);
-    
+
     return stringsignature;
 }
 
@@ -104,19 +104,19 @@ JNIEXPORT struct java_lang_String* JNICALL Java_gnu_classpath_jdwp_VMMethod_getS
  * Method:    getModifiers
  * Signature: ()I
  */
-JNIEXPORT int32_t JNICALL Java_gnu_classpath_jdwp_VMMethod_getModifiers(JNIEnv *env, gnu_classpath_jdwp_VMMethod* this) 
+JNIEXPORT int32_t JNICALL Java_gnu_classpath_jdwp_VMMethod_getModifiers(JNIEnv *env, gnu_classpath_jdwp_VMMethod* this)
 {
     jvmtiError err;
     jint modifiers;
-	
+
     if (JVMTI_ERROR_NONE!=(err= (*jvmtienv)->
-						   GetMethodModifiers(jvmtienv, 
+						   GetMethodModifiers(jvmtienv,
 											  (jmethodID)(long)this->_methodId,
 											  &modifiers))) {
 		printjvmtierror("VMMethod.getModifiers GetMethodModifiers",err);
         return 0;
     }
-    
+
     return modifiers;
 }
 
@@ -126,7 +126,7 @@ JNIEXPORT int32_t JNICALL Java_gnu_classpath_jdwp_VMMethod_getModifiers(JNIEnv *
  * Method:    getLineTable
  * Signature: ()Lgnu/classpath/jdwp/util/LineTable;
  */
-JNIEXPORT struct gnu_classpath_jdwp_util_LineTable* JNICALL Java_gnu_classpath_jdwp_VMMethod_getLineTable(JNIEnv *env, struct gnu_classpath_jdwp_VMMethod* this) 
+JNIEXPORT struct gnu_classpath_jdwp_util_LineTable* JNICALL Java_gnu_classpath_jdwp_VMMethod_getLineTable(JNIEnv *env, struct gnu_classpath_jdwp_VMMethod* this)
 {
     jclass cl;
     jmethodID m;
@@ -138,11 +138,11 @@ JNIEXPORT struct gnu_classpath_jdwp_util_LineTable* JNICALL Java_gnu_classpath_j
     long *lineCI;
     jvmtiLineNumberEntry *lne;
     jlocation start,end;
-    
+
     jvmtiError err;
 
     if (JVMTI_ERROR_NONE!=(err= (*jvmtienv)->
-						   GetLineNumberTable(jvmtienv, 
+						   GetLineNumberTable(jvmtienv,
 											  (jmethodID)(long)this->_methodId,
 											  &count, &lne))) {
 		printjvmtierror("VMMethod.getlinetable GetLineNumberTable",err);
@@ -154,7 +154,7 @@ JNIEXPORT struct gnu_classpath_jdwp_util_LineTable* JNICALL Java_gnu_classpath_j
 
     m = (*env)->GetMethodID(env, cl, "<init>", "(JJ[I[J)V");
     if (!m) return NULL;
-	
+
     jlineNum = (*env)->NewIntArray(env, count);
     if (!jlineNum) return NULL;
     jlineCI = (*env)->NewLongArray(env, count);
@@ -170,23 +170,23 @@ JNIEXPORT struct gnu_classpath_jdwp_util_LineTable* JNICALL Java_gnu_classpath_j
     (*jvmtienv)->Deallocate(jvmtienv, lne);
 
     if (JVMTI_ERROR_NONE!=(err= (*jvmtienv)->
-						   GetMethodLocation(jvmtienv, 
-											 (jmethodID)(long)this->_methodId, 
+						   GetMethodLocation(jvmtienv,
+											 (jmethodID)(long)this->_methodId,
 											 &start, &end))) {
 		printjvmtierror("VMMethod.getlinetable GetMethodLocation",err);
         return NULL;
     }
 
-    ol = (*env)->NewObject(env, cl, m, start, 
+    ol = (*env)->NewObject(env, cl, m, start,
                            end, jlineNum, jlineCI);
 
     return (struct gnu_classpath_jdwp_util_LineTable*)ol;
- 
+
 }
 
-static bool fillVariableTable(JNIEnv *env, jvmtiLocalVariableEntry* entries, 
-							  int count, jlongArray *jlineCI, 
-							  jobjectArray *names, jobjectArray *sigs, 
+static bool fillVariableTable(JNIEnv *env, jvmtiLocalVariableEntry* entries,
+							  int count, jlongArray *jlineCI,
+							  jobjectArray *names, jobjectArray *sigs,
 							  jintArray *jlengths, jintArray *jslot) {
 	jint *lengths, *slot,i;
 	jclass cl;
@@ -197,25 +197,25 @@ static bool fillVariableTable(JNIEnv *env, jvmtiLocalVariableEntry* entries,
 
 	cl=(*env)->FindClass(env,"java/lang/String");
 	if (!cl) return false;
-	
+
 	*names = (*env)->NewObjectArray(env, count, cl, NULL);
 	if (names) return false;
 	sigs = (*env)->NewObjectArray(env, count, cl, NULL);
 	if (sigs) return false;
-	
+
 	jlengths = (*env)->NewIntArray(env, count);
 	if (!lengths) return false;
-	
+
 	jslot = (*env)->NewIntArray(env, count);
 	if (!slot) return false;
-	
+
 	lineCI = (*env)->GetLongArrayElements(env, *jlineCI, NULL);
 	lengths = (*env)->GetIntArrayElements(env, *jlengths, NULL);
 	slot = (*env)->GetIntArrayElements(env, jslot, NULL);
-	
+
 	for (i=0; i<count; i++) {
 		(*env)->
-			SetObjectArrayElement(env, *names, i, 
+			SetObjectArrayElement(env, *names, i,
 								  (*env)->NewStringUTF(env,entries[i].name));
 		(*env)->
 			SetObjectArrayElement(env, *sigs, i, (*env)->NewStringUTF(
@@ -239,7 +239,7 @@ static bool fillVariableTable(JNIEnv *env, jvmtiLocalVariableEntry* entries,
 JNIEXPORT struct gnu_classpath_jdwp_util_VariableTable* JNICALL Java_gnu_classpath_jdwp_VMMethod_getVariableTable(JNIEnv *env, struct gnu_classpath_jdwp_VMMethod* this)
 {
 	jvmtiLocalVariableEntry* localvarentries;
-	jint entry_count, argCnt, slots; 
+	jint entry_count, argCnt, slots;
 	jclass cl;
 	jmethodID m, vmmethodid;
     jobject o;
@@ -250,13 +250,13 @@ JNIEXPORT struct gnu_classpath_jdwp_util_VariableTable* JNICALL Java_gnu_classpa
 
 	vmmethodid = (jmethodID)(long)this->_methodId;
 
-	err= (*jvmtienv)->GetLocalVariableTable(jvmtienv, 
+	err= (*jvmtienv)->GetLocalVariableTable(jvmtienv,
 											vmmethodid,
-											&entry_count, 
+											&entry_count,
 											&localvarentries);
-    if (JVMTI_ERROR_NONE != err) { 
+    if (JVMTI_ERROR_NONE != err) {
 		if (err == JVMTI_ERROR_ABSENT_INFORMATION) {
-			/* no local variable table available for this method. 
+			/* no local variable table available for this method.
 			   return an empty local variable table */
 			argCnt = slots = 0;
 			names = sigs = jlineCI = jlengths = jslot = NULL;
@@ -265,24 +265,24 @@ JNIEXPORT struct gnu_classpath_jdwp_util_VariableTable* JNICALL Java_gnu_classpa
 			return NULL;
 		}
 	} else {
-		if (JVMTI_ERROR_NONE != (err= 
-								 (*jvmtienv)->GetArgumentsSize(jvmtienv, 
-															   vmmethodid, 
+		if (JVMTI_ERROR_NONE != (err=
+								 (*jvmtienv)->GetArgumentsSize(jvmtienv,
+															   vmmethodid,
 															   &argCnt))) {
 			printjvmtierror("VMMethod.getVariableTable GetArgumentsSize",err);
 			return NULL;
 		}
 
-		if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->GetMaxLocals(jvmtienv, 
+		if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->GetMaxLocals(jvmtienv,
 																vmmethodid,
 																&slots))) {
 			printjvmtierror("VMMethod.getVariableTable GetMaxLocals",err);
 			return NULL;
 		}
-		
+
 		slots = slots - argCnt;
-		if (!fillVariableTable(env, localvarentries, entry_count, &jlineCI, 
-							   &names, &sigs, &jlengths, &jslot)) 
+		if (!fillVariableTable(env, localvarentries, entry_count, &jlineCI,
+							   &names, &sigs, &jlengths, &jslot))
 			return NULL;
 		(*jvmtienv)->
 			Deallocate(jvmtienv, (unsigned char*)localvarentries->signature);
@@ -295,17 +295,17 @@ JNIEXPORT struct gnu_classpath_jdwp_util_VariableTable* JNICALL Java_gnu_classpa
 
 		(*jvmtienv)->Deallocate(jvmtienv,(unsigned char*)localvarentries);
 	}
-	
+
     cl = (*env)->FindClass(env,"gnu.classpath.jdwp.util.VariableTable");
     if (!cl) return NULL;
 
     m = (*env)->
-		GetMethodID(env, cl,"<init>", 
+		GetMethodID(env, cl,"<init>",
 					"(II[J[Ljava/lang/String;[Ljava/lang/String;[I[I)V");
     if (!m) return NULL;
 
-    o = (*env)->NewObject(env, cl, m, argCnt, slots, jlineCI, 
-						  names, sigs, jlengths, jslot);	
+    o = (*env)->NewObject(env, cl, m, argCnt, slots, jlineCI,
+						  names, sigs, jlengths, jslot);
 
     return (struct gnu_classpath_jdwp_util_VariableTable*) o;
 }

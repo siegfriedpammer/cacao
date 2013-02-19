@@ -79,7 +79,7 @@ int lsra_getmem(struct lifetime *, struct freemem *, int *);
 struct freemem *lsra_getnewmem(int *);
 void lsra_setflags(int *, int);
 
-#ifdef LSRA_DEBUG_VERBOSE 
+#ifdef LSRA_DEBUG_VERBOSE
 void lsra_dump_stack(stackelement_t* );
 void print_lifetimes(jitdata *, int *, int);
 #endif
@@ -102,7 +102,7 @@ bool lsra(jitdata *jd)
 	lsradata *ls;
 	int locals_start;
 	int i,j;
-#endif	
+#endif
 #if defined(LSRA_DEBUG_CHECK)
 	methodinfo   *m;
 	int      b_index;
@@ -149,14 +149,14 @@ bool lsra(jitdata *jd)
 		ls = jd->ls;
 		/* local Variable Lifetimes are at the end of the lifetime array and  */
 		/* have v_index >= 0 */
-		for (locals_start = ls->lifetimecount-1; (locals_start >=0) && 
+		for (locals_start = ls->lifetimecount-1; (locals_start >=0) &&
 			(ls->lifetime[ls->lt_used[locals_start]].v_index >= 0);
 			 locals_start--);
 		for (i=locals_start + 1; i < ls->lifetimecount; i++)
 			for (j=i+1; j < ls->lifetimecount; j++)
-				if ( !((ls->lifetime[ls->lt_used[i]].i_end 
-					   < ls->lifetime[ls->lt_used[j]].i_start) 
-					|| (ls->lifetime[ls->lt_used[j]].i_end < 
+				if ( !((ls->lifetime[ls->lt_used[i]].i_end
+					   < ls->lifetime[ls->lt_used[j]].i_start)
+					|| (ls->lifetime[ls->lt_used[j]].i_end <
 					   ls->lifetime[ls->lt_used[i]].i_start)) )
 					count_locals_conflicts += 2;
 	 }
@@ -197,7 +197,7 @@ void lsra_DFS(jitdata *jd) {
 	stack_top = 1;
 	visited[0] = ls->num_pred[0]; /* Start Block is handled right and can be */
 	                              /* put in sorted */
-	p = 0; 
+	p = 0;
 	not_finished = true;
 	while (not_finished) {
 		while (stack_top != 0) {
@@ -272,13 +272,13 @@ void lsra_get_nesting(jitdata *jd) {
 	ls = jd->ls;
 
 	for (i=0; i <= m->basicblockcount; i++)
-		if (ls->sorted[i] != -1) 
+		if (ls->sorted[i] != -1)
 			ls->sorted_rev[ls->sorted[i]]=i;
 
 	lsra_get_backedges_(ls, m->basicblockcount + 1);
 	/* - sort backedge by increasing end: */
 	for (i=0; i < ls->backedge_count; i++)
-		for (j=i+1; j < ls->backedge_count; j++) 
+		for (j=i+1; j < ls->backedge_count; j++)
 			if ((ls->backedge[i]->end > ls->backedge[j]->end) ||     /* -> swap */
 				  ((ls->backedge[i]->end == ls->backedge[j]->end) &&
 				   (ls->backedge[i]->start > ls->backedge[j]->start) )) {
@@ -374,15 +374,15 @@ void lsra_get_backedges(jitdata *jd) {
 		}
 
 	for (i=0; i < m->basicblockcount; i++)
-		if (ls->sorted[i] != -1) 
+		if (ls->sorted[i] != -1)
 			ls->sorted_rev[ls->sorted[i]]=i;
 
 	lsra_get_backedges_(ls, m->basicblockcount);
 
 	/* - sort backedge by increasing start */
 	for (i=0; i < ls->backedge_count; i++)
-		for (j=i+1; j < ls->backedge_count; j++) 
-			if (ls->backedge[i]->start > ls->backedge[j]->start) {     
+		for (j=i+1; j < ls->backedge_count; j++)
+			if (ls->backedge[i]->start > ls->backedge[j]->start) {
 				/* -> swap */
 				n = ls->backedge[i];
 				ls->backedge[i] = ls->backedge[j];
@@ -393,9 +393,9 @@ void lsra_get_backedges(jitdata *jd) {
 	if (compileverbose) {
 		printf("sorted: \n");
 		for (i=0; i < ls->backedge_count; i++)
-			printf("Backedge: %i - %i, %i - %i\n", 
-				   ls->sorted[ls->backedge[i]->start], 
-				   ls->sorted[ls->backedge[i]->end], ls->backedge[i]->start, 
+			printf("Backedge: %i - %i, %i - %i\n",
+				   ls->sorted[ls->backedge[i]->start],
+				   ls->sorted[ls->backedge[i]->end], ls->backedge[i]->start,
 				   ls->backedge[i]->end);
 		printf("Nesting Level \n");
 		for (i=0; i<m->basicblockcount; i++) printf(" %3li", ls->nesting[i]);
@@ -414,7 +414,7 @@ void lsra_get_backedges(jitdata *jd) {
 					if (ls->backedge[i]->start >= ls->backedge[j]->end) {
 						merged = true;
 						/* overlapping -> merge */
-						ls->backedge[j]->end = min (ls->backedge[j]->end, 
+						ls->backedge[j]->end = min (ls->backedge[j]->end,
 												    ls->backedge[i]->end);
 						ls->backedge[i] = NULL;
 					}
@@ -478,7 +478,7 @@ void lsra_add_cfg(jitdata *jd, int from, int to) {
 	if (n != NULL) return; /* edge from->to already existing */
 
 	n=DNEW(struct _list);
-			
+
 	n->value=to;
 	n->next=ls->succ[from];
 	ls->succ[from]=n;
@@ -490,10 +490,10 @@ void lsra_add_cfg(jitdata *jd, int from, int to) {
 	ls->num_pred[to]++;
 }
 
-/* add Edges from guarded Areas to Exception handlers in the CFG */ 	
+/* add Edges from guarded Areas to Exception handlers in the CFG */
 void lsra_add_exceptions(jitdata *jd) {
 	methodinfo  *m;
-	lsradata    *ls; 
+	lsradata    *ls;
 	int i;
 	exceptiontable *ex;
 
@@ -579,7 +579,7 @@ void lsra_add_jsr(jitdata *jd, int from, int to) {
 
 	/* search for right place to insert */
 	for (sbr = &(ls->sbr); (sbr->next != NULL) && (sbr->next->header < to); sbr=sbr->next);
-	
+
 	if ((sbr->next!= NULL) && (sbr->next->header == to)) {
 		/* Entry for this sub already exist */
 		sbr = sbr->next;
@@ -625,15 +625,15 @@ void lsra_add_sub( jitdata *jd, int b_index, struct _list *ret,
 			next_block = true;
 
 		if (!next_block) {
-			ip = m->basicblocks[b_index].iinstr 
+			ip = m->basicblocks[b_index].iinstr
 				+ m->basicblocks[b_index].icount -1;
-		
+
 			if (ip->opc == ICMD_JSR) /* nested Subroutines */
 				next_block = true;
 		}
 
 		if (!next_block) {
-			if (ip->opc == ICMD_RET) { 
+			if (ip->opc == ICMD_RET) {
 				/* subroutine return found -> add return adresses to CFG */
 				for (l = ret; l != NULL; l = l->next)
 					lsra_add_cfg(jd, b_index, l->value);
@@ -747,40 +747,40 @@ void lsra_make_cfg(jitdata *jd) {
 				case ICMD_IF_ACMPNE:		    /* branch -> add next block */
 					lsra_add_cfg(jd, b_index, b_index+1);
 					/* fall throu -> add branch target */
-			   
+
 				case ICMD_GOTO:
 					lsra_add_cfg(jd, b_index,  m->basicblockindex[ip->op1]);
 					break;					/* visit branch (goto) target	*/
-				
+
 				case ICMD_TABLESWITCH:		/* switch statement				*/
 					s4ptr = ip->val.a;
-				
+
 					lsra_add_cfg(jd, b_index,  m->basicblockindex[*s4ptr]);
-				
+
 					s4ptr++;
 					low = *s4ptr;
 					s4ptr++;
 					high = *s4ptr;
-				
+
 					count = (high-low+1);
-				
+
 					while (--count >= 0) {
 						s4ptr++;
-						lsra_add_cfg(jd, b_index, 
+						lsra_add_cfg(jd, b_index,
 									 m->basicblockindex[*s4ptr]);
 				    }
 					break;
-				
+
 				case ICMD_LOOKUPSWITCH:		/* switch statement				*/
 					s4ptr = ip->val.a;
-			   
+
 					lsra_add_cfg(jd, b_index,  m->basicblockindex[*s4ptr]);
-				
+
 					++s4ptr;
 					count = *s4ptr++;
-				
+
 					while (--count >= 0) {
-						lsra_add_cfg(jd, b_index, 
+						lsra_add_cfg(jd, b_index,
 									 m->basicblockindex[s4ptr[1]]);
 						s4ptr += 2;
 				    }
@@ -789,14 +789,14 @@ void lsra_make_cfg(jitdata *jd) {
 				case ICMD_JSR:
 					lsra_add_jsr(jd, b_index, m->basicblockindex[ip->op1]);
 					break;
-				
+
 				case ICMD_RET:
 					break;
-				
+
 				default:
 					lsra_add_cfg(jd, b_index, b_index + 1 );
-					break;	
-			} /* switch (ip->opc)*/                        
+					break;
+			} /* switch (ip->opc)*/
 		}     /* if ((m->basicblocks[blockIndex].icount)&& */
 		      /*     (m->basicblocks[b_index].flags >= BBREACHED)) */
 		b_index++;
@@ -805,7 +805,7 @@ void lsra_make_cfg(jitdata *jd) {
 
 void lsra_init(jitdata *jd) {
 	methodinfo   *m;
-	lsradata     *ls; 
+	lsradata     *ls;
 	int i;
 
 	ls = jd->ls;
@@ -818,9 +818,9 @@ void lsra_init(jitdata *jd) {
 	ls->pred = DMNEW(struct _list *, m->basicblockcount+1);
 	ls->succ = DMNEW(struct _list *, m->basicblockcount+1);
 	ls->sorted = DMNEW(int , m->basicblockcount+1);
-	ls->sorted_rev = DMNEW(int , m->basicblockcount+1); 
+	ls->sorted_rev = DMNEW(int , m->basicblockcount+1);
 	ls->num_pred = DMNEW(int , m->basicblockcount+1);
-	ls->nesting = DMNEW(long , m->basicblockcount+1); 
+	ls->nesting = DMNEW(long , m->basicblockcount+1);
 	for (i=0; i<m->basicblockcount; i++) {
 		ls->pred[i]=NULL;
 		ls->succ[i]=NULL;
@@ -833,7 +833,7 @@ void lsra_init(jitdata *jd) {
 	ls->succ[m->basicblockcount]=NULL;
 	ls->sorted[m->basicblockcount]=-1;
 	ls->sorted_rev[m->basicblockcount]=-1;
-	ls->num_pred[m->basicblockcount]=0;	
+	ls->num_pred[m->basicblockcount]=0;
 
 	ls->sbr.next = NULL;
 
@@ -878,7 +878,7 @@ void lsra_setup(jitdata *jd) {
 	/* gather nesting before adding of Exceptions and Subroutines!!! */
 
 #ifdef USAGE_COUNT
-	lsra_DFS(jd);  
+	lsra_DFS(jd);
 	lsra_get_nesting(jd);
 #endif
 
@@ -908,11 +908,11 @@ void lsra_setup(jitdata *jd) {
 #endif
 
 	/* add subroutines before exceptions! They "destroy" the CFG */
-	lsra_add_subs(jd); 
+	lsra_add_subs(jd);
  	lsra_add_exceptions(jd);
 
 	/* generate reverse post order sort */
-	lsra_DFS(jd);  
+	lsra_DFS(jd);
 
 	/* setup backedge and nested data structures*/
 	lsra_get_backedges(jd);
@@ -1009,14 +1009,14 @@ void lsra_setup(jitdata *jd) {
 		for (p = 0, i = 0; p < md->paramcount; p++) {
 			t = md->paramtypes[p].type;
 
-			if (rd->locals[i][t].type >= 0)	
+			if (rd->locals[i][t].type >= 0)
 				/* Param to Local init happens before normal Code */
-				lsra_usage_local(ls, i, t, 0, -1, LSRA_STORE); 
+				lsra_usage_local(ls, i, t, 0, -1, LSRA_STORE);
 			i++;
 			/* increment local counter a second time  */
 			/* for 2 word types */
 			if (IS_2_WORD_TYPE(t))
-				i++;                 
+				i++;
 		}  /* end for */
 	}
 #endif /* LV */
@@ -1046,7 +1046,7 @@ void lsra_reg_setup(jitdata *jd, struct lsra_register *int_reg,
 
 	int_reg->nregdesc = nregdescint;
 	flt_reg->nregdesc = nregdescfloat;
-	if (code_is_leafmethod(code)) { 
+	if (code_is_leafmethod(code)) {
 		/* Temp and Argumentregister can be used as saved registers */
 
 		int_reg->sav_top = INT_ARG_CNT + INT_TMP_CNT + INT_SAV_CNT;
@@ -1080,18 +1080,18 @@ void lsra_reg_setup(jitdata *jd, struct lsra_register *int_reg,
 				if (IS_INT_LNG_TYPE(md->paramtypes[i].type)) {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 					if (IS_2_WORD_TYPE(md->paramtypes[i].type)) {
-						int_reg->sav_reg[--int_sav_top] = 
+						int_reg->sav_reg[--int_sav_top] =
 							rd->argintregs[GET_HIGH_REG(md->params[i].regoff)];
 						intarg_used[GET_HIGH_REG(md->params[i].regoff)]=true;
 						/*used -> don't copy later on */
-						int_reg->sav_reg[--int_sav_top] = 
+						int_reg->sav_reg[--int_sav_top] =
 							rd->argintregs[GET_LOW_REG(md->params[i].regoff)];
 						intarg_used[GET_LOW_REG(md->params[i].regoff)]=true;
 						/*used -> don't copy later on */
 					} else
 #endif
 					{ /* !IS_2_WORD_TYPE(md->paramtypes[i].type */
-						int_reg->sav_reg[--int_sav_top] = 
+						int_reg->sav_reg[--int_sav_top] =
 							rd->argintregs[md->params[i].regoff];
 						intarg_used[md->params[i].regoff]=true;
 						/*used -> don't copy later on */
@@ -1102,12 +1102,12 @@ void lsra_reg_setup(jitdata *jd, struct lsra_register *int_reg,
 				/* integer registers. But these integer argument registers    */
 				/* still be used in the method! */
 				else { /* IS_FLT_DBL_TYPE(md->paramtypes[i].type */
-						flt_reg->sav_reg[--flt_sav_top] = 
+						flt_reg->sav_reg[--flt_sav_top] =
 							rd->argfltregs[md->params[i].regoff];
 						fltarg_used[md->params[i].regoff]=true;
 				}
 #endif
-					
+
 			}
 		}
 
@@ -1204,7 +1204,7 @@ void lsra_qsort( struct lsradata *ls, int *a, int lo, int hi) {
 					tmp = a[i];
 					a[i] = a[j];
 					a[j] = tmp;
-			
+
 					i++;
 					j--;
 				}
@@ -1237,7 +1237,7 @@ void lsra_param_sort(struct lsradata *ls, int *lifetime, int lifetime_count) {
 					lifetime[i]=lifetime[j];
 					lifetime[j]=tmp;
 				}
-	}			
+	}
 }
 
 void lsra_main(jitdata *jd) {
@@ -1321,11 +1321,11 @@ void lsra_main(jitdata *jd) {
 		printf("Int RA complete \n");
 		printf("Lifetimes after splitting int: \n");
 		print_lifetimes(jd, ls->lt_int, ls->lt_int_count);
-		
+
 		printf("Flt RA complete \n");
 		printf("Lifetimes after splitting flt:\n");
 		print_lifetimes(jd, ls->lt_flt, ls->lt_flt_count);
-		
+
 		printf("Rest RA complete \n");
 		printf("Lifetimes after leftt:\n");
 		print_lifetimes(jd, ls->lt_mem, ls->lt_mem_count);
@@ -1372,11 +1372,11 @@ void lsra_alloc(jitdata *jd, int *lifet, int lifetimecount, int *mem_use)
 			if (rd->locals[lt->v_index][lt->type].type >= 0) {
 				rd->locals[lt->v_index][lt->type].flags  = flags;
 				rd->locals[lt->v_index][lt->type].regoff = regoff;
-			} else { 
+			} else {
 				log_text("Type Data mismatch\n");
 				abort();
 			}
-		}		
+		}
 		lt->reg = regoff;
 	}
 }
@@ -1387,7 +1387,7 @@ void lsra_setflags(int *flags, int newflags)
 		*flags |= INMEMORY;
 	else
 		*flags &= ~INMEMORY;
-	
+
 	if (newflags & SAVEDVAR)
 		*flags |= SAVEDVAR;
 }
@@ -1436,7 +1436,7 @@ void _lsra_main(jitdata *jd, int *lifet, int lifetimecount,
 
 	m  = jd->m;
 	ls = jd->ls;
-	
+
 #if !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 	regsneeded = 0;
 #endif
@@ -1524,9 +1524,9 @@ void lsra_add_active(struct lifetime *lt, struct lifetime **active,
 void lsra_expire_old_intervalls(jitdata *jd, struct lifetime *lt,
 								struct lsra_register *reg)
 {
-	_lsra_expire_old_intervalls(jd, lt, reg, jd->ls->active_tmp, 
+	_lsra_expire_old_intervalls(jd, lt, reg, jd->ls->active_tmp,
 								&(jd->ls->active_tmp_top));
-	_lsra_expire_old_intervalls(jd, lt, reg, jd->ls->active_sav, 
+	_lsra_expire_old_intervalls(jd, lt, reg, jd->ls->active_sav,
 								&(jd->ls->active_sav_top));
 }
 
@@ -1540,7 +1540,7 @@ void _lsra_expire_old_intervalls(jitdata *jd, struct lifetime *lt,
 		if (active[i]->i_end > lt->i_start) break;
 
 		/* make active[i]->reg available again */
-		if (code_is_leafmethod(code)) { 
+		if (code_is_leafmethod(code)) {
 			/* leafmethod -> don't care about type -> put all again into */
 			/* reg->sav_reg */
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
@@ -1550,7 +1550,7 @@ void _lsra_expire_old_intervalls(jitdata *jd, struct lifetime *lt,
 			} else
 #endif
 				reg->sav_reg[reg->sav_top++] = active[i]->reg;
-		} else { 
+		} else {
 			/* no leafmethod -> distinguish between temp and saved register */
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 			if (active[i]->type == TYPE_LNG) {
@@ -1572,7 +1572,7 @@ void _lsra_expire_old_intervalls(jitdata *jd, struct lifetime *lt,
 			}
 		}
 	}
-	
+
 	/* active[0..i[ is to be removed */
 	/* -> move [i..*active_top[ to [0..*active_top-i[ */
 	for(k = 0, j = i; (j < *active_top); k++,j++)
@@ -1589,7 +1589,7 @@ void spill_at_intervall(jitdata *jd, struct lifetime *lt )
 	} else {
 		_spill_at_intervall(lt, jd->ls->active_tmp, &(jd->ls->active_tmp_top));
 		if (lt->reg == -1) { /* no tmp free anymore */
-			_spill_at_intervall(lt, jd->ls->active_sav, 
+			_spill_at_intervall(lt, jd->ls->active_sav,
 								&(jd->ls->active_sav_top));
 		}
 	}
@@ -1607,7 +1607,7 @@ void _spill_at_intervall(struct lifetime *lt, struct lifetime **active,
 		lt->reg=-1;
 		return;
 	}
-	
+
 	i = *active_top - 1;
 #if defined(USAGE_COUNT_EXACT)
 	/* find intervall which ends later or equal than than lt and has the lowest
@@ -1625,7 +1625,7 @@ void _spill_at_intervall(struct lifetime *lt, struct lifetime **active,
 		i = i_min;
 #else
 # if defined(USAGE_COUNT) && !defined(USAGE_COUNT_EXACT)
-	if ((active[i]->i_end >= lt->i_end) 
+	if ((active[i]->i_end >= lt->i_end)
 		 && (active[i]->usagecount < lt->usagecount)) {
 # else /* "normal" LSRA heuristic */
 	/* get last intervall from active */
@@ -1639,7 +1639,7 @@ void _spill_at_intervall(struct lifetime *lt, struct lifetime **active,
 #endif
 		lt->reg = active[i]->reg;
 		active[i]->reg=-1;
-		
+
 		(*active_top)--;
 		for (j = i; j < *active_top; j++)
 			active[j] = active[j + 1];
@@ -1681,22 +1681,22 @@ void lsra_calc_lifetime_length(jitdata *jd) {
 	/* extend lifetime over backedges (for the lsra version without exact
 	   liveness analysis)
 	   now iterate through lifetimes and expand them */
-	
+
 	lifetimecount = 0;
 	for(lt_index = 0 ;lt_index < ls->lifetimecount; lt_index++) {
 		if ( ls->lifetime[lt_index].type != -1) { /* used lifetime */
 			/* remember lt_index in lt_sorted */
-			ls->lt_used[lifetimecount++] = lt_index; 
+			ls->lt_used[lifetimecount++] = lt_index;
 			lt = &(ls->lifetime[lt_index]);
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-			/* prevent conflicts between lifetimes of type long by increasing 
-			   the lifetime by one instruction 
-			   i.e.(ri/rj)  ...       
-			       (rk/rl)  ICMD_LNEG 
-			   with i==l and/or j==k  
-			   to resolve this during codegeneration a temporary register     
+			/* prevent conflicts between lifetimes of type long by increasing
+			   the lifetime by one instruction
+			   i.e.(ri/rj)  ...
+			       (rk/rl)  ICMD_LNEG
+			   with i==l and/or j==k
+			   to resolve this during codegeneration a temporary register
 			   would be needed */
-			if (lt->type == TYPE_LNG) 
+			if (lt->type == TYPE_LNG)
 				lt->i_last_use++;
 #endif
 
@@ -1742,8 +1742,8 @@ void lsra_calc_lifetime_length(jitdata *jd) {
 
 			if (lt->i_first_def == INT_MAX) {
 #ifdef LSRA_DEBUG_VERBOSE
- 				printf("Warning: var not defined! vi: %i start: %i end: %i\n", 
-					   lt->v_index, lt->i_start, lt->i_end); 
+ 				printf("Warning: var not defined! vi: %i start: %i end: %i\n",
+					   lt->v_index, lt->i_start, lt->i_end);
 #endif
 				lt->bb_first_def = 0;
 				lt->i_first_def = 0;
@@ -1753,7 +1753,7 @@ void lsra_calc_lifetime_length(jitdata *jd) {
 
 			if (lt->i_last_use == -2) {
 #ifdef LSRA_DEBUG_VERBOSE
- 				printf("Warning: Var not used! vi: %i start: %i end: %i\n", 
+ 				printf("Warning: Var not used! vi: %i start: %i end: %i\n",
 					   lt->v_index, lt->i_start, lt->i_end);
 #endif
 				lt->bb_last_use = lt->bb_first_def;
@@ -1763,7 +1763,7 @@ void lsra_calc_lifetime_length(jitdata *jd) {
 			lt->i_end = lt->i_last_use;
 
 #ifdef LSRA_DEBUG_VERBOSE
-			if (lt->i_start > lt->i_end) 
+			if (lt->i_start > lt->i_end)
 				printf("Warning: last use before first def! vi: %i start: %i end: %i\n", lt->v_index, lt->i_start, lt->i_end);
 #endif
 
@@ -1775,14 +1775,14 @@ void lsra_calc_lifetime_length(jitdata *jd) {
 				/* see lsra_get_backedges                           */
 				/* Arguments are set "before" Block 0, so they have */
 				/* a lifespan of more then one block, too           */
-				
+
 				for (i=0; i < ls->backedge_count; i++) {
 					if (!( (lt->bb_first_def > ls->backedge[i]->start) ||
 						   (lt->bb_last_use < ls->backedge[i]->end) )) {
 						/* Live intervall intersects with a backedge */
 						/* 	if (lt->bb_first_def <= ls->backedge[i]->start) */
 						if (lt->bb_last_use <= ls->backedge[i]->start)
-							lt->i_end = 
+							lt->i_end =
 								ls->icount_block[ls->backedge[i]->start] +
 					  m->basicblocks[ls->sorted[ls->backedge[i]->start]].icount;
 					}
@@ -1828,7 +1828,7 @@ void print_lifetimes(jitdata *jd, int *lt, int lifetimecount)
 				flags=rd->locals[n->v_index][n->type].flags;
 				regoff=rd->locals[n->v_index][n->type].regoff;
 				varkind=-1;
-			} else 
+			} else
 				{ log_text("Type Data mismatch 3\n"); assert(0); }
 		}
 #if !defined(LV)
@@ -1856,10 +1856,10 @@ bool lsra_join_ss( struct lsradata *ls, struct stackelement *in,
 
 	if (in->varnum != out->varnum) {
 		lt = &(ls->lifetime[-in->varnum - 1]);
-	
+
 #ifdef LSRA_DEBUG_CHECK
 		if (join_flag == JOIN_BB)
-			if (lt->type == -1) { 
+			if (lt->type == -1) {
 				log_text("lsra_join_ss: lifetime for instack not found\n");
 				assert(0);
 			}
@@ -1889,7 +1889,7 @@ bool lsra_join_ss( struct lsradata *ls, struct stackelement *in,
 				abort();
 			}
 #endif
-	
+
 			lt->flags |= JOINING;
 
 			/* take Lifetime lto out of ls->lifetimes */
@@ -1915,10 +1915,10 @@ bool lsra_join_ss( struct lsradata *ls, struct stackelement *in,
 			/*join of i_first_def and i_last_use */
 			if (lto->i_first_def < lt->i_first_def) {
 				lt->i_first_def = lto->i_first_def;
-			}	
+			}
 			if (lto->i_last_use > lt->i_last_use) {
 				lt->i_last_use = lto->i_last_use;
-			}	
+			}
 		}
 	}
 	return true;
@@ -1934,14 +1934,14 @@ void lsra_join_lifetimes(jitdata *jd,int b_index) {
 	m  = jd->m;
 	ls = jd->ls;
 
-	/* do not join instack of Exception Handler */ 
+	/* do not join instack of Exception Handler */
 	if (m->basicblocks[b_index].type == BBTYPE_EXH)
 		return;
 	in=m->basicblocks[b_index].instack;
 	/* do not join first instack element of a subroutine header */
 	if (m->basicblocks[b_index].type == BBTYPE_SBR)
-		in=in->prev; 
-	
+		in=in->prev;
+
 	if (in != NULL) {
 		for (pred = ls->pred[b_index]; pred != NULL; pred = pred->next) {
 			out = m->basicblocks[pred->value].outstack;
@@ -1972,16 +1972,16 @@ void lsra_add_ss(struct lifetime *lt, stackelement_t* s) {
 		ss->s->varnum = lt->v_index;
 		ss->next = lt->local_ss;
 		lt->local_ss = ss;
-		if (s != NULL) 
+		if (s != NULL)
 			lt->savedvar |= s->flags & SAVEDVAR;
-		if (s != NULL) 
+		if (s != NULL)
 			lt->type = s->type;
 	}
 }
 
 struct lifetime *get_ss_lifetime(lsradata *ls, stackelement_t* s) {
 	struct lifetime *n;
-	
+
 	if (s->varnum >= 0) { /* new stackslot lifetime */
 #ifdef LSRA_DEBUG_CHECK_VERBOSE
 		if (-ls->v_index - 1 >= ls->maxlifetimes) {
@@ -1994,7 +1994,7 @@ struct lifetime *get_ss_lifetime(lsradata *ls, stackelement_t* s) {
 		n->type = s->type;
 		n->v_index = ls->v_index--;
 		n->usagecount = 0;
-		
+
 		n->bb_last_use  = -1;
 		n->bb_first_def = -1;
 		n->i_last_use   = -2; /* At -1 param init happens, so -2 is below all
@@ -2058,7 +2058,7 @@ void _lsra_new_stack(lsradata *ls, stackelement_t* s, int block, int instr, int 
 	if (s->varkind == LOCALVAR) {
 		lsra_usage_local(ls, s->varnum, s->type, block, instr, LSRA_STORE);
 	} else /* if (s->varkind != ARGVAR) */ {
-		
+
 		n=get_ss_lifetime(ls, s);
 
 		if (store == LSRA_BB_IN)
@@ -2136,13 +2136,13 @@ void lsra_usage_local(lsradata *ls, s4 v_index, int type, int block, int instr,
 		n->bb_first_def = ls->sorted_rev[block];
 		n->i_first_def = ls->icount_block[ls->sorted_rev[block]] + instr;
 	}
-}	
+}
 
 #ifdef LSRA_DEBUG_VERBOSE
 void lsra_dump_stack(stackelement_t* s)
 {
 	while (s!=NULL) {
-		printf("%p(R%3i N%3i K%3i T%3i F%3i) ",(void *)s,s->regoff, s->varnum, 
+		printf("%p(R%3i N%3i K%3i T%3i F%3i) ",(void *)s,s->regoff, s->varnum,
 			   s->varkind, s->type, s->flags);
 		s=s->prev;
 	}
@@ -2228,12 +2228,12 @@ Check this - ? For every incoming Stack Slot a lifetime has to be created ?
 		case ICMD_INLINE_END:
 		case ICMD_INLINE_GOTO:
 			break;
-                             
+
 		case ICMD_IINC:
 			/* local = local+<const> */
-			lsra_usage_local(ls, iptr->op1, TYPE_INT, b_index, iindex, 
+			lsra_usage_local(ls, iptr->op1, TYPE_INT, b_index, iindex,
 							 LSRA_LOAD);
-			lsra_usage_local(ls, iptr->op1, TYPE_INT, b_index, iindex, 
+			lsra_usage_local(ls, iptr->op1, TYPE_INT, b_index, iindex,
 							 LSRA_STORE);
 			break;
 
@@ -2255,12 +2255,12 @@ Check this - ? For every incoming Stack Slot a lifetime has to be created ?
 		case ICMD_ALOAD:
 			if (dst->varkind != LOCALVAR) {
 				/* local->value on stack */
-				lsra_usage_local(ls, iptr->op1, opcode - ICMD_ILOAD, b_index, 
+				lsra_usage_local(ls, iptr->op1, opcode - ICMD_ILOAD, b_index,
 								 iindex, LSRA_LOAD);
 				lsra_new_stack(ls, dst, b_index, iindex); /* value->stack */
 			} else /* if (dst->varnum != iptr->op1) */ {
 				/* local -> local */
-				lsra_usage_local(ls, iptr->op1, opcode - ICMD_ILOAD, b_index, 
+				lsra_usage_local(ls, iptr->op1, opcode - ICMD_ILOAD, b_index,
 								 iindex,LSRA_LOAD); /* local->value */
 				lsra_usage_local(ls, dst->varnum, opcode - ICMD_ILOAD, b_index,
 								 iindex, LSRA_STORE); /* local->value */
@@ -2280,11 +2280,11 @@ Check this - ? For every incoming Stack Slot a lifetime has to be created ?
 		case ICMD_CALOAD:
 		case ICMD_SALOAD:
 			/* stack->index */
-			lsra_from_stack(ls, src, b_index, iindex); 
+			lsra_from_stack(ls, src, b_index, iindex);
 			/* stack->arrayref */
-			lsra_from_stack(ls, src->prev, b_index, iindex); 
+			lsra_from_stack(ls, src->prev, b_index, iindex);
 			/* arrayref[index]->stack */
-			lsra_new_stack(ls, dst, b_index, iindex); 
+			lsra_new_stack(ls, dst, b_index, iindex);
 			break;
 
 			/* pop 3 push 0 */
@@ -2302,7 +2302,7 @@ Check this - ? For every incoming Stack Slot a lifetime has to be created ?
 			lsra_from_stack(ls, src,b_index, iindex); /* stack -> value */
 			lsra_from_stack(ls, src->prev, b_index, iindex); /* stack -> index*/
 			/* stack -> arrayref */
-			lsra_from_stack(ls, src->prev->prev, b_index, iindex); 
+			lsra_from_stack(ls, src->prev->prev, b_index, iindex);
 			break;
 
 			/* pop 1 push 0 store: stack -> local */
@@ -2316,9 +2316,9 @@ Check this - ? For every incoming Stack Slot a lifetime has to be created ?
 				lsra_usage_local(ls, iptr->op1, opcode-ICMD_ISTORE, b_index,
 								 iindex, LSRA_STORE); /* local->value */
 			} else /* if (src->varnum != iptr->op1) */ {
-				lsra_usage_local(ls, iptr->op1, opcode-ICMD_ISTORE, b_index, 
+				lsra_usage_local(ls, iptr->op1, opcode-ICMD_ISTORE, b_index,
 								 iindex, LSRA_STORE); /* local->value */
-				lsra_usage_local(ls, src->varnum, opcode-ICMD_ISTORE, b_index, 
+				lsra_usage_local(ls, src->varnum, opcode-ICMD_ISTORE, b_index,
 								 iindex, LSRA_LOAD); /* local->value */
 			}
 			break;
@@ -2406,12 +2406,12 @@ Check this - ? For every incoming Stack Slot a lifetime has to be created ?
 		case ICMD_CASTORECONST:
 		case ICMD_SASTORECONST:
 			lsra_from_stack(ls, src, b_index, iindex); 	   /* stack -> value*/
-			lsra_from_stack(ls, src->prev, b_index, iindex); 
+			lsra_from_stack(ls, src->prev, b_index, iindex);
 			break;
 
 			/* pop 0 push 1 dup */
 		case ICMD_DUP: /* src == dst->prev, src -> dst */
-			/* lsra_from_stack(ls, src,b_index,iindex);*/ 
+			/* lsra_from_stack(ls, src,b_index,iindex);*/
 			lsra_new_stack(ls, dst, b_index, iindex);
 
 #ifdef JOIN_DUP_STACK
@@ -2421,11 +2421,11 @@ Check this - ? For every incoming Stack Slot a lifetime has to be created ?
 			break;
 
 			/* pop 0 push 2 dup */
-		case ICMD_DUP2: 
-			/* lsra_from_stack(ls, src,b_index, iindex); */ 
+		case ICMD_DUP2:
+			/* lsra_from_stack(ls, src,b_index, iindex); */
 			/* lsra_from_stack(ls, src->prev, b_index, iindex); */
 			lsra_new_stack(ls, dst->prev, b_index, iindex);
-			lsra_new_stack(ls, dst, b_index, iindex); 
+			lsra_new_stack(ls, dst, b_index, iindex);
 
 #ifdef JOIN_DUP_STACK
 			lsra_join_2_stack(ls, src, dst, JOIN_DUP);
@@ -2437,11 +2437,11 @@ Check this - ? For every incoming Stack Slot a lifetime has to be created ?
 
 			/* pop 2 push 3 dup */
 		case ICMD_DUP_X1:
-			lsra_from_stack(ls, src, b_index, iindex+1); 
+			lsra_from_stack(ls, src, b_index, iindex+1);
 			lsra_from_stack(ls, src->prev, b_index, iindex+1);
 			lsra_new_stack(ls, dst->prev->prev, b_index, iindex);
 			lsra_new_stack(ls, dst->prev, b_index, iindex);
-			lsra_new_stack(ls, dst, b_index, iindex); 
+			lsra_new_stack(ls, dst, b_index, iindex);
 #ifdef JOIN_DUP_STACK
 			lsra_join_dup(ls, src, dst, dst->prev->prev);
 			lsra_join_2_stack(ls, src->prev, dst->prev, JOIN);
@@ -2450,13 +2450,13 @@ Check this - ? For every incoming Stack Slot a lifetime has to be created ?
 
 			/* pop 3 push 4 dup */
 		case ICMD_DUP_X2:
-			lsra_from_stack(ls, src,b_index, iindex+1); 
-			lsra_from_stack(ls, src->prev, b_index, iindex+1); 
-			lsra_from_stack(ls, src->prev->prev, b_index, iindex+1); 
+			lsra_from_stack(ls, src,b_index, iindex+1);
+			lsra_from_stack(ls, src->prev, b_index, iindex+1);
+			lsra_from_stack(ls, src->prev->prev, b_index, iindex+1);
 			lsra_new_stack(ls, dst->prev->prev->prev, b_index, iindex);
 			lsra_new_stack(ls, dst->prev->prev, b_index, iindex);
 			lsra_new_stack(ls, dst->prev, b_index, iindex);
-			lsra_new_stack(ls, dst, b_index, iindex); 
+			lsra_new_stack(ls, dst, b_index, iindex);
 
 #ifdef JOIN_DUP_STACK
 			lsra_join_dup(ls, src, dst, dst->prev->prev->prev);
@@ -2467,18 +2467,18 @@ Check this - ? For every incoming Stack Slot a lifetime has to be created ?
 
 			/* pop 3 push 5 dup */
 		case ICMD_DUP2_X1:
-			lsra_from_stack(ls, src, b_index, iindex+1); 
-			lsra_from_stack(ls, src->prev, b_index, iindex+1); 
-			lsra_from_stack(ls, src->prev->prev, b_index, iindex+1); 
+			lsra_from_stack(ls, src, b_index, iindex+1);
+			lsra_from_stack(ls, src->prev, b_index, iindex+1);
+			lsra_from_stack(ls, src->prev->prev, b_index, iindex+1);
 			lsra_new_stack(ls, dst->prev->prev->prev->prev, b_index, iindex);
 			lsra_new_stack(ls, dst->prev->prev->prev, b_index, iindex);
 			lsra_new_stack(ls, dst->prev->prev, b_index, iindex);
 			lsra_new_stack(ls, dst->prev, b_index, iindex);
-			lsra_new_stack(ls, dst, b_index, iindex); 
+			lsra_new_stack(ls, dst, b_index, iindex);
 
 #ifdef JOIN_DUP_STACK
 			lsra_join_dup(ls, src, dst, dst->prev->prev->prev);
-			lsra_join_dup(ls, src->prev, dst->prev, 
+			lsra_join_dup(ls, src->prev, dst->prev,
 						  dst->prev->prev->prev->prev);
 			lsra_join_2_stack(ls, src->prev->prev, dst->prev->prev, JOIN);
 #endif
@@ -2486,31 +2486,31 @@ Check this - ? For every incoming Stack Slot a lifetime has to be created ?
 
 			/* pop 4 push 6 dup */
 		case ICMD_DUP2_X2:
-			lsra_from_stack(ls, src, b_index, iindex+1); 
-			lsra_from_stack(ls, src->prev, b_index, iindex+1); 
-			lsra_from_stack(ls, src->prev->prev, b_index, iindex+1); 
-			lsra_from_stack(ls, src->prev->prev->prev, b_index, iindex+1); 
-			lsra_new_stack(ls, dst->prev->prev->prev->prev->prev, b_index, 
+			lsra_from_stack(ls, src, b_index, iindex+1);
+			lsra_from_stack(ls, src->prev, b_index, iindex+1);
+			lsra_from_stack(ls, src->prev->prev, b_index, iindex+1);
+			lsra_from_stack(ls, src->prev->prev->prev, b_index, iindex+1);
+			lsra_new_stack(ls, dst->prev->prev->prev->prev->prev, b_index,
 						   iindex);
 			lsra_new_stack(ls, dst->prev->prev->prev->prev, b_index, iindex);
 			lsra_new_stack(ls, dst->prev->prev->prev, b_index, iindex);
 			lsra_new_stack(ls, dst->prev->prev, b_index, iindex);
 			lsra_new_stack(ls, dst->prev, b_index, iindex);
-			lsra_new_stack(ls, dst, b_index, iindex); 
+			lsra_new_stack(ls, dst, b_index, iindex);
 
 #ifdef JOIN_DUP_STACK
 			lsra_join_dup(ls, src, dst, dst->prev->prev->prev->prev);
 			lsra_join_dup(ls, src->prev, dst->prev,
 						  dst->prev->prev->prev->prev->prev);
 			lsra_join_2_stack(ls, src->prev->prev, dst->prev->prev, JOIN);
-			lsra_join_2_stack(ls, src->prev->prev->prev, dst->prev->prev->prev, 
+			lsra_join_2_stack(ls, src->prev->prev->prev, dst->prev->prev->prev,
 							  JOIN);
 #endif
 			break;
 
 			/* pop 2 push 2 swap */
 		case ICMD_SWAP:
-			lsra_from_stack(ls, src, b_index, iindex+1); 
+			lsra_from_stack(ls, src, b_index, iindex+1);
 			lsra_from_stack(ls, src->prev, b_index, iindex+1);
 			lsra_new_stack(ls, dst->prev, b_index, iindex);
 			lsra_new_stack(ls, dst, b_index, iindex);
@@ -2521,7 +2521,7 @@ Check this - ? For every incoming Stack Slot a lifetime has to be created ?
 			break;
 
 			/* pop 2 push 1 */
-					
+
 		case ICMD_LADD:
 		case ICMD_LSUB:
 		case ICMD_LMUL:

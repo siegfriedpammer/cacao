@@ -47,7 +47,7 @@
 
 
 /* function prototypes */
-void liveness_scan_registers_canditates(jitdata *jd, int b_index, int iindex, 
+void liveness_scan_registers_canditates(jitdata *jd, int b_index, int iindex,
 										stackelement_t* src, lv_sets *sets);
 void liveness_set_stack(lsradata *ls, int block, int g_iindex, stackelement_t* s,
 						lv_sets *sets, int op);
@@ -79,7 +79,7 @@ void liveness_join_ss( struct lsradata *ls, struct stackelement *in,
 		lt = &(ls->lifetime[-in->varnum - 1]);
 
 #ifdef LV_DEBUG_CHECK
-		if (lt->type == -1) { 
+		if (lt->type == -1) {
 #ifdef LV_DEBUG_VERBOSE
 			log_text("liveness_join_ss: lifetime for instack not found\n");
 #endif
@@ -108,7 +108,7 @@ void liveness_join_ss( struct lsradata *ls, struct stackelement *in,
 				assert(0);
 			}
 #endif
-	
+
 			/* take Lifetime lto out of ls->lifetimes */
 			lto->type = -1;
 
@@ -138,14 +138,14 @@ void liveness_join_ss( struct lsradata *ls, struct stackelement *in,
 			} else if ((lto->bb_first_def == lt->bb_first_def) &&
 					   ( lto->i_first_def < lt->i_first_def)) {
 				lt->i_first_def = lto->i_first_def;
-			}	
+			}
 			if (lto->bb_last_use > lt->bb_last_use) {
 				lt->bb_last_use = lto->bb_last_use;
 				lt->i_last_use = lto->i_last_use;
 			} else if ((lto->bb_last_use == lt->bb_last_use) &&
 					   ( lto->i_last_use > lt->i_last_use)) {
 				lt->i_last_use = lto->i_last_use;
-			}	
+			}
 		}
 	}
 }
@@ -161,14 +161,14 @@ void liveness_join_lifetimes(jitdata *jd, int b_index) {
 	ls = jd->ls;
 	m  = jd->m;
 
-	/* do not join instack of Exception Handler */ 
+	/* do not join instack of Exception Handler */
 	if (m->basicblocks[b_index].type == BBTYPE_EXH)
 		return;
 	in=m->basicblocks[b_index].instack;
 	/* do not join first instack element of a subroutine header */
 	if (m->basicblocks[b_index].type == BBTYPE_SBR)
-		in=in->prev; 
-	
+		in=in->prev;
+
 	if (in != NULL) {
 		for (pred = ls->pred[b_index]; pred != NULL; pred = pred->next) {
 			out = m->basicblocks[pred->value].outstack;
@@ -290,7 +290,7 @@ void liveness_init(jitdata *jd) {
 			for (;len>0; len--, iptr++) {
 				src = dst;
 				dst = iptr->dst;
-				
+
 				switch(iptr->opc) {
 				case ICMD_SWAP:
 				case ICMD_DUP2:
@@ -366,7 +366,7 @@ void liveness_scan_basicblock(jitdata *jd, int b_index,
 
 		/* in  = gen(instr) union tmp = gen union (out - kill) */
 
-		bv_union(sets->in, sets->gen, sets->tmp, lifetimes);    
+		bv_union(sets->in, sets->gen, sets->tmp, lifetimes);
 
 		/* Set SAVEDVAR flag for locals */
 
@@ -397,12 +397,12 @@ void liveness_scan_basicblock(jitdata *jd, int b_index,
 		/* liveness_set_stack redirects for LOCALVARS */
 		liveness_set_stack(ls, b_index, iindex, src,	sets, LV_GEN);
 		_LV_ASSERT( ((src->varkind == LOCALVAR) || (src->varkind == TEMPVAR)) );
-	}	
+	}
 	/* in  = gen union (out - kill) */
 	bv_minus(sets->tmp, sets->out, sets->kill, lifetimes);
-	bv_union(sets->in, sets->gen, sets->tmp, lifetimes);    
+	bv_union(sets->in, sets->gen, sets->tmp, lifetimes);
 }
-		
+
 void liveness(jitdata *jd) {
 	bitvector *out;
 	bitvector *in;
@@ -423,12 +423,12 @@ void liveness(jitdata *jd) {
 	registerdata *rd;
 	lsradata *ls;
 	/***************************************************************************
- TODO: 
+ TODO:
  - Exact Lifeness Information for intra Basic Blocks Stackslots are trivial
  They should not be included in the gen, kill, in and out sets to improve
  performance.
  - Local Vars as represented in rd->locals "are quite sparse". An intermediate
- representation for really used index/type pairs should be implemented. 
+ representation for really used index/type pairs should be implemented.
 	***************************************************************************/
 
 	ls = jd->ls;
@@ -464,9 +464,9 @@ void liveness(jitdata *jd) {
 	for (p = 0, i = 0; p < md->paramcount; p++) {
  		t = md->paramtypes[p].type;
 
-		if (rd->locals[i][t].type >= 0)	
+		if (rd->locals[i][t].type >= 0)
 			/* Param to Local init happens before normal Code */
-			liveness_set_local(ls, 0, -1, i, t, &sets, LV_KILL); 
+			liveness_set_local(ls, 0, -1, i, t, &sets, LV_KILL);
  		i++;
  		if (IS_2_WORD_TYPE(t))    /* increment local counter a second time  */
  			i++;                  /* for 2 word types */
@@ -529,7 +529,7 @@ void liveness(jitdata *jd) {
 							ls->lifetime[t].i_first_def = p;
 					}
 					if (bv_get_bit(out[b_index], t)) {
-						p = 
+						p =
    ls->icount_block[ls->sorted_rev[b_index]]+m->basicblocks[b_index].icount - 1;
 						if (p > ls->lifetime[t].i_last_use)
 							ls->lifetime[t].i_last_use = p;
@@ -537,14 +537,14 @@ void liveness(jitdata *jd) {
 				}
 			}
 		}
-		   
+
 }
 
 struct lifetime *liveness_get_ss_lifetime(lsradata *ls, stackelement_t* s) {
 	struct lifetime *n;
-	
+
 	if (s->varnum >= 0) { /* new stackslot lifetime */
-#ifdef LV_DEBUG_VERBOSE		
+#ifdef LV_DEBUG_VERBOSE
 		if (-ls->v_index - 1 >= ls->maxlifetimes) {
 			printf("%i %i\n", -ls->v_index - 1, ls->maxlifetimes);
 		}
@@ -555,7 +555,7 @@ struct lifetime *liveness_get_ss_lifetime(lsradata *ls, stackelement_t* s) {
 		n->type = s->type;
 		n->v_index = ls->v_index--;
 		n->usagecount = 0;
-		
+
 		n->i_last_use = -2;
 		n->i_first_def = INT_MAX;
 		n->local_ss = NULL;
@@ -662,7 +662,7 @@ void liveness_scan_registers_canditates(jitdata *jd, int b_index, int iindex,
 	case ICMD_INLINE_END:
 	case ICMD_INLINE_GOTO:
 		break;
-                             
+
 	case ICMD_IINC:
 		/* local = local+<const> */
 		liveness_set_local(ls, b_index, g_iindex, iptr->op1, TYPE_INT, sets,  LV_GEN);
@@ -690,7 +690,7 @@ void liveness_scan_registers_canditates(jitdata *jd, int b_index, int iindex,
 			liveness_set_local(ls, b_index, g_iindex, iptr->op1,
 							   iptr->opc - ICMD_ILOAD, sets, LV_GEN);
 			/* value->stack */
-			liveness_set_stack(ls, b_index, g_iindex, dst, sets, LV_KILL); 
+			liveness_set_stack(ls, b_index, g_iindex, dst, sets, LV_KILL);
 		} else /* if (dst->varnum != iptr->op1) */ {
 			/* local -> local */
 			liveness_set_local(ls, b_index, g_iindex, iptr->op1,
@@ -731,11 +731,11 @@ void liveness_scan_registers_canditates(jitdata *jd, int b_index, int iindex,
 	case ICMD_CASTORE:
 	case ICMD_SASTORE:
 		/* stack -> value */
-		liveness_set_stack(ls, b_index, g_iindex, src, sets, LV_GEN); 
+		liveness_set_stack(ls, b_index, g_iindex, src, sets, LV_GEN);
 		/* stack -> index*/
 		liveness_set_stack(ls, b_index, g_iindex, src->prev, sets, LV_GEN);
 		/* stack -> arrayref */
-		liveness_set_stack(ls, b_index, g_iindex, src->prev->prev, sets, LV_GEN); 
+		liveness_set_stack(ls, b_index, g_iindex, src->prev->prev, sets, LV_GEN);
 		break;
 
 		/* pop 1 push 0 store: stack -> local */
@@ -746,7 +746,7 @@ void liveness_scan_registers_canditates(jitdata *jd, int b_index, int iindex,
 	case ICMD_ASTORE:
 		if (src->varkind != LOCALVAR) {
 			/* stack -> value */
-			liveness_set_stack(ls, b_index, g_iindex, src, sets, LV_GEN); 
+			liveness_set_stack(ls, b_index, g_iindex, src, sets, LV_GEN);
 			liveness_set_local(ls, b_index, g_iindex, iptr->op1, iptr->opc - ICMD_ISTORE,
 							   sets, LV_KILL);
 		} else {
@@ -801,7 +801,7 @@ void liveness_scan_registers_canditates(jitdata *jd, int b_index, int iindex,
 	case ICMD_MONITORENTER:
 	case ICMD_MONITOREXIT:
 		/* stack -> value */
-		liveness_set_stack(ls, b_index, g_iindex, src, sets, LV_GEN); 
+		liveness_set_stack(ls, b_index, g_iindex, src, sets, LV_GEN);
 		break;
 
 		/* pop 2 push 0 */
@@ -841,12 +841,12 @@ void liveness_scan_registers_canditates(jitdata *jd, int b_index, int iindex,
 	case ICMD_CASTORECONST:
 	case ICMD_SASTORECONST:
 		/* stack -> value*/
-		liveness_set_stack(ls, b_index, g_iindex, src, sets, LV_GEN);  
+		liveness_set_stack(ls, b_index, g_iindex, src, sets, LV_GEN);
 		liveness_set_stack(ls, b_index, g_iindex, src->prev, sets, LV_GEN);
 		break;
 
 		/* pop 0 push 1 dup */
-	case ICMD_DUP: 
+	case ICMD_DUP:
 		/* src == dst->prev */
 		/* src -> dst */
 
@@ -859,7 +859,7 @@ void liveness_scan_registers_canditates(jitdata *jd, int b_index, int iindex,
 		break;
 
 		/* pop 0 push 2 dup */
-	case ICMD_DUP2: 
+	case ICMD_DUP2:
 		/* src       ==  dst->prev->prev */
 		/* src->prev == dst->prev->prev->prev */
 		/* src       ->  dst */
@@ -960,7 +960,7 @@ void liveness_scan_registers_canditates(jitdata *jd, int b_index, int iindex,
 		break;
 
 		/* pop 2 push 1 */
-					
+
 	case ICMD_LADD:
 	case ICMD_LSUB:
 	case ICMD_LMUL:

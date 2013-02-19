@@ -1,6 +1,6 @@
 /* src/vm/jit/ir/bytecode.hpp - Java byte code definitions
 
-   Copyright (C) 2007 
+   Copyright (C) 2007
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.

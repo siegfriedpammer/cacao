@@ -23,7 +23,7 @@
 */
 
 // This header has no include guard on purpose!
-// It is meant to be included multiple times 
+// It is meant to be included multiple times
 
 #ifndef UTF8
 #	error "You must a function like macro called UTF8 \
@@ -122,7 +122,7 @@ UTF8( java_lang_StringIndexOutOfBoundsException, "java/lang/StringIndexOutOfBoun
 UTF8( java_lang_reflect_InvocationTargetException, "java/lang/reflect/InvocationTargetException" )
 
 UTF8( java_security_PrivilegedActionException, "java/security/PrivilegedActionException" )
- 
+
 #if defined(ENABLE_JAVASE)
 UTF8( java_lang_Void, "java/lang/Void" )
 #endif

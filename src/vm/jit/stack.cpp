@@ -523,7 +523,7 @@ struct stackdata_t {
 
 /* forward declarations *******************************************************/
 
-static void stack_create_invars(stackdata_t *sd, basicblock *b, 
+static void stack_create_invars(stackdata_t *sd, basicblock *b,
 								stackelement_t * curstack, int stackdepth);
 static void stack_create_invars_from_outvars(stackdata_t *sd, basicblock *b);
 
@@ -533,7 +533,7 @@ static void stack_verbose_show_variable(stackdata_t *sd, s4 index);
 static void stack_verbose_show_block(stackdata_t *sd, basicblock *bptr);
 static void stack_verbose_block_enter(stackdata_t *sd, bool reanalyse);
 static void stack_verbose_block_exit(stackdata_t *sd, bool superblockend);
-static void stack_verbose_show_state(stackdata_t *sd, instruction *iptr, 
+static void stack_verbose_show_state(stackdata_t *sd, instruction *iptr,
 									 stackelement_t * curstack);
 #endif
 
@@ -661,7 +661,7 @@ static basicblock * stack_clone_block(stackdata_t *sd, basicblock *b)
 
 
 /* stack_create_locals *********************************************************
- 
+
    Create the local variables for the start of the given basic block.
 
    IN:
@@ -693,7 +693,7 @@ static void stack_create_locals(stackdata_t *sd, basicblock *b)
 
 
 /* stack_merge_locals **********************************************************
- 
+
    Merge local variables at the beginning of the given basic block.
 
    IN:
@@ -758,7 +758,7 @@ static void stack_merge_locals(stackdata_t *sd, basicblock *b)
 
 *******************************************************************************/
 
-static void stack_create_invars(stackdata_t *sd, basicblock *b, 
+static void stack_create_invars(stackdata_t *sd, basicblock *b,
 								stackelement_t * curstack, int stackdepth)
 {
 	stackelement_t * sp;
@@ -920,7 +920,7 @@ static basicblock * stack_check_invars(stackdata_t *sd, basicblock *b,
 #if defined(ENABLE_VERIFIER)
 							(sv->SBRSTART == dv->SBRSTART) &&
 #endif
-							(sv->vv.retaddr != dv->vv.retaddr)) 
+							(sv->vv.retaddr != dv->vv.retaddr))
 					{
 						separable = true;
 						break;
@@ -1129,7 +1129,7 @@ static stackelement_t * stack_create_instack(stackdata_t *sd)
 
 *******************************************************************************/
 
-static basicblock *stack_mark_reached(stackdata_t *sd, basicblock *b, stackelement_t * curstack, int stackdepth) 
+static basicblock *stack_mark_reached(stackdata_t *sd, basicblock *b, stackelement_t * curstack, int stackdepth)
 {
 	assert(b != NULL);
 
@@ -1154,7 +1154,7 @@ static basicblock *stack_mark_reached(stackdata_t *sd, basicblock *b, stackeleme
 		b->flags = BBREACHED;
 
 		return b;
-	} 
+	}
 	else {
 		/* b has been reached before. Check that its invars match. */
 
@@ -1166,7 +1166,7 @@ static basicblock *stack_mark_reached(stackdata_t *sd, basicblock *b, stackeleme
 /* stack_mark_reached_from_outvars *********************************************
 
    Mark the given block reached and propagate the outvars of the current block
-   and the current locals to it. This function specializes the target block, 
+   and the current locals to it. This function specializes the target block,
    if necessary, and returns a pointer to the specialized target.
 
    IN:
@@ -1204,7 +1204,7 @@ static basicblock *stack_mark_reached_from_outvars(stackdata_t *sd, basicblock *
 		b->flags = BBREACHED;
 
 		return b;
-	} 
+	}
 	else {
 		/* b has been reached before. Check that its invars match. */
 
@@ -1892,13 +1892,13 @@ bool stack_reanalyse_block(stackdata_t *sd)
       sd...........stack analysis data
 	  sp...........stackslot to change
 	  ilimit.......instruction up to which to look for ICMDs passing-through
-	               the stackslot (exclusive). This may point exactly after the 
+	               the stackslot (exclusive). This may point exactly after the
 				   last instruction, in which case the search is done to the
 				   basic block end.
 
 *******************************************************************************/
 
-static void stack_change_to_tempvar(stackdata_t *sd, stackelement_t * sp, 
+static void stack_change_to_tempvar(stackdata_t *sd, stackelement_t * sp,
 									instruction *ilimit)
 {
 	s4 newindex;
@@ -1966,7 +1966,7 @@ static void stack_change_to_tempvar(stackdata_t *sd, stackelement_t * sp,
 
 
 /* stack_init_javalocals *******************************************************
- 
+
    Initialize the mapping from Java locals to cacao variables at method entry.
 
    IN:
@@ -2005,7 +2005,7 @@ static void stack_init_javalocals(stackdata_t *sd)
 
    Analyse_stack uses the intermediate code created by parse.c to
    build a model of the JVM operand stack for the current method.
-   
+
    The following checks are performed:
      - check for operand stack underflow (before each instruction)
      - check for operand stack overflow (after[1] each instruction)
@@ -2013,12 +2013,12 @@ static void stack_init_javalocals(stackdata_t *sd)
      - check for matching basic types[2] at merging points
      - check basic types for instruction input (except for BUILTIN*
            opcodes, INVOKE* opcodes and MULTIANEWARRAY)
-   
+
    [1]) Checking this after the instruction should be ok. parse.c
    counts the number of required stack slots in such a way that it is
    only vital that we don't exceed `maxstack` at basic block
    boundaries.
-   
+
    [2]) 'basic types' means the distinction between INT, LONG, FLOAT,
    DOUBLE and ADDRESS types. Subtypes of INT and different ADDRESS
    types are not discerned.
@@ -2100,7 +2100,7 @@ bool stack_analyse(jitdata *jd)
 #endif
 
 	/* find the last real basic block */
-	
+
 	sd.last_real_block = NULL;
 	tbptr = jd->basicblocks;
 	while (tbptr->next) {
@@ -2130,9 +2130,9 @@ bool stack_analyse(jitdata *jd)
 	jd->basicblocks[0].flags = BBREACHED;
 	jd->basicblocks[0].invars = NULL;
 	jd->basicblocks[0].indepth = 0;
-	jd->basicblocks[0].inlocals = 
+	jd->basicblocks[0].inlocals =
 		DMNEW(varinfo, jd->localcount + VERIFIER_EXTRA_LOCALS);
-	MCOPY(jd->basicblocks[0].inlocals, jd->var, varinfo, 
+	MCOPY(jd->basicblocks[0].inlocals, jd->var, varinfo,
 			jd->localcount + VERIFIER_EXTRA_LOCALS);
 
 	/* initialize java local mapping of first block */
@@ -2274,13 +2274,13 @@ bool stack_analyse(jitdata *jd)
 					last_store_boundary[i] = sd.new_elem;
 
  				/* remember the start of this block's variables */
-  
+
  				sd.bptr->varstart = sd.vartop;
 
 #if defined(STACK_VERBOSE)
 				stack_verbose_block_enter(&sd, false);
 #endif
-  
+
 				/* reach exception handlers for this block */
 
 				if (!stack_reach_handlers(&sd))
@@ -2332,7 +2332,7 @@ icmd_NOP:
 						break;
 
 					case ICMD_RET:
-						varindex = iptr->s1.varindex = 
+						varindex = iptr->s1.varindex =
 							jd->local_map[iptr->s1.varindex * 5 + TYPE_ADR];
 
 #if defined(ENABLE_VERIFIER)
@@ -2341,7 +2341,7 @@ icmd_NOP:
 							return false;
 						}
 #endif
-		
+
 						CLR_SX;
 
 						iptr->dst.block = stack_mark_reached(&sd, sd.var[varindex].vv.retaddr, curstack, stackdepth);
@@ -2717,7 +2717,7 @@ putconst_tail:
 										assert(0);
 								}
 #endif /* defined(ENABLE_VERIFIER) */
-								
+
 								switch (iptr[1].opc) {
 									case ICMD_PUTSTATIC:
 										iptr->opc = ICMD_PUTSTATICCONST;
@@ -3159,7 +3159,7 @@ normal_ACONST:
 						COUNT(count_load_instruction);
 						type = opcode - ICMD_ILOAD;
 
-						varindex = iptr->s1.varindex = 
+						varindex = iptr->s1.varindex =
 							jd->local_map[iptr->s1.varindex * 5 + type];
 
 #if defined(ENABLE_VERIFIER)
@@ -3204,7 +3204,7 @@ normal_ACONST:
 						javaindex = iptr->s1.varindex;
 						last_store_boundary[javaindex] = sd.new_elem;
 
-						iptr->s1.varindex = 
+						iptr->s1.varindex =
 							jd->local_map[javaindex * 5 + TYPE_INT];
 
 						copy = curstack;
@@ -3234,7 +3234,7 @@ normal_ACONST:
 
 						type = opcode - ICMD_ISTORE;
 						javaindex = iptr->dst.varindex;
-						varindex = iptr->dst.varindex = 
+						varindex = iptr->dst.varindex =
 							jd->local_map[javaindex * 5 + type];
 
 						COPY_VAL_AND_TYPE(sd, curstack->varnum, varindex);
@@ -3243,7 +3243,7 @@ normal_ACONST:
 
 						if (curstack->type == TYPE_RET) {
 							iptr->flags.bits |= INS_FLAG_RETADDR;
-							iptr->sx.s23.s2.retaddrnr = 
+							iptr->sx.s23.s2.retaddrnr =
 								JAVALOCAL_FROM_RETADDR(sd.var[varindex].vv.retaddr->nr);
 							sd.javalocals[javaindex] = iptr->sx.s23.s2.retaddrnr;
 						}
@@ -4261,7 +4261,7 @@ icmd_BUILTIN:
 			 * Only arguments that are passed by stack anyway can be precolored
 			 * (michi 2005/07/24) */
 							if (!(sd.var[copy->varnum].flags & SAVEDVAR) &&
-							   (!IS_FLT_DBL_TYPE(copy->type) 
+							   (!IS_FLT_DBL_TYPE(copy->type)
 								|| md->params[i].inmemory)) {
 #else
 							if (!(sd.var[copy->varnum].flags & SAVEDVAR)) {
@@ -4272,7 +4272,7 @@ icmd_BUILTIN:
 								if (md->params[i].inmemory) {
 									sd.var[copy->varnum].vv.regoff =
 										md->params[i].regoff;
-									sd.var[copy->varnum].flags |= 
+									sd.var[copy->varnum].flags |=
 										INMEMORY;
 								}
 								else {
@@ -4280,20 +4280,20 @@ icmd_BUILTIN:
 #if defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 										assert(0); /* XXX is this assert ok? */
 #else
-										sd.var[copy->varnum].vv.regoff = 
+										sd.var[copy->varnum].vv.regoff =
 											md->params[i].regoff;
 #endif /* SUPPORT_PASS_FLOATARGS_IN_INTREGS */
 									}
 									else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 										if (IS_2_WORD_TYPE(copy->type))
-											sd.var[copy->varnum].vv.regoff = 
+											sd.var[copy->varnum].vv.regoff =
 			PACK_REGS(GET_LOW_REG(md->params[i].regoff),
 					  GET_HIGH_REG(md->params[i].regoff));
 
 										else
 #endif /* SUPPORT_COMBINE_INTEGER_REGISTERS */
-											sd.var[copy->varnum].vv.regoff = 
+											sd.var[copy->varnum].vv.regoff =
 												md->params[i].regoff;
 									}
 								}
@@ -4375,10 +4375,10 @@ icmd_BUILTIN:
 									INMEMORY & PREALLOC;
 #if defined(SPECIALMEMUSE)
 # if defined(__DARWIN__)
-								sd.var[copy->varnum].vv.regoff = i + 
+								sd.var[copy->varnum].vv.regoff = i +
 									LA_SIZE_IN_POINTERS + INT_ARG_CNT;
 # else
-								sd.var[copy->varnum].vv.regoff = i + 
+								sd.var[copy->varnum].vv.regoff = i +
 									LA_SIZE_IN_POINTERS + 3;
 # endif
 #else
@@ -4643,13 +4643,13 @@ throw_stack_category_error:
 
 
 /* stack_javalocals_store ******************************************************
- 
+
    Model the effect of a ?STORE instruction upon the given javalocals array.
-  
+
    IN:
        iptr.............the ?STORE instruction
 	   javalocals.......the javalocals array to modify
-  
+
 *******************************************************************************/
 
 void stack_javalocals_store(instruction *iptr, s4 *javalocals)
@@ -4754,7 +4754,7 @@ static void stack_verbose_block_enter(stackdata_t *sd, bool reanalyse)
 {
 	int i;
 
-	printf("======================================== STACK %sANALYSE BLOCK ", 
+	printf("======================================== STACK %sANALYSE BLOCK ",
 			(reanalyse) ? ((sd->bptr->iinstr == NULL) ? "CLONE-" : "RE-") : "");
 	stack_verbose_show_block(sd, sd->bptr);
 	printf("\n");
@@ -4814,7 +4814,7 @@ static void stack_verbose_show_state(stackdata_t *sd, instruction *iptr, stackel
 	}
 	printf("] ... ");
 	if (iptr)
-		show_icmd(sd->jd, iptr, false, SHOW_PARSE); 
+		show_icmd(sd->jd, iptr, false, SHOW_PARSE);
 	printf("\n");
 }
 #endif

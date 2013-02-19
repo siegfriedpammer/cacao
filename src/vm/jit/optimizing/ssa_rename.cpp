@@ -58,12 +58,12 @@ Rename the variables a (0 <= a < ls->ssavarcount) so that each new variable
 has only one definition (SSA form).
 
 ls->def_count[0..ls->ssavarcount[ holds the number of definitions of each var.
-ls->var_0[0..ls->ssavarcount[ will be set to the new index of the first 
+ls->var_0[0..ls->ssavarcount[ will be set to the new index of the first
                               definition of each old var.
 ls->varcount_with_indices     will be se to the new maximum varcount of LOCAL
                               and IOVARS.
 
-All other vars (TEMPVAR and PREALLOC) will get a new unique index above 
+All other vars (TEMPVAR and PREALLOC) will get a new unique index above
 ls->varcount_with_indices.
 
 jd->var and jd->varcount will be set for this renamed vars.
@@ -80,7 +80,7 @@ void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd)
 	lsradata *ls;
 
 	ls = jd->ls;
-	
+
 	ssa_rename_init(jd, gd);
 
 	/* Consider definition of Local Vars initialized with Arguments */
@@ -103,7 +103,7 @@ void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd)
 		/* index of var can be in the range from 0 up to not including*/
 		/* jd->varcount */
 
-		
+
 		i = ls->new_varindex[i];
 
 		/* ignore return value, since first definition gives 0 -> */
@@ -123,7 +123,7 @@ void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd)
 
 	/* Invalidate all xij from xi0=phi(xi1,xi2,xi3,..,xin) with xij == xi0*/
 	/* this happens if the phi function is the first definition of x or in*/
-	/* a path with a backedge xi has no definition */ 
+	/* a path with a backedge xi has no definition */
 	/* a phi(xij) = ...,xij,... with the only use and definition of xij by*/
 	/* this phi function would otherwise "deadlock" the dead code         */
 	/* elemination (invalidate means set it to UNUSED)                    */
@@ -137,7 +137,7 @@ void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd)
 	      for(p = 1; p <= graph_get_num_predecessor(gd, t); p++) {
 		if (ls->phi[t][i][0] == ls->phi[t][i][p])
 		  ls->phi[t][i][p] = UNUSED;
-		else 
+		else
 		  remove_phi = false;
 	      }
 	    }
@@ -159,7 +159,7 @@ void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd)
 	if (strcmp(UTF_TEXT(jd->m->clazz->name),"fp")==0)
 		if (strcmp(UTF_TEXT(jd->m->name),"testfloat")==0)
 # if defined(SSA_DEBUG_VERBOSE)
-			if (compileverbose) 
+			if (compileverbose)
 				printf("12-------------------12\n");
 # else
 	        { int dummy=1; dummy++; }
@@ -170,7 +170,7 @@ void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd)
 	/* now only one (local_index/type) pair exists anymore     */
 	/* all var[t][i] with var_to_index[var[t][i]] >= 0 are locals */
 	/* max local index after SSA indexing is in ls->local_0[ls->max_locals] */
-	
+
 	new_vars = DMNEW(varinfo, ls->vartop);
 	for(i = 0; i < ls->vartop ; i++)
 		new_vars[i].type = UNUSED;
@@ -241,19 +241,19 @@ void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd)
 Setup the data structure for ssa_rename
 
 ls->def_count[0..ls->ssavarcount[ holds the number of definitions of each var.
-ls->var_0[0..ls->ssavarcount[ will be set to the new index of the first 
+ls->var_0[0..ls->ssavarcount[ will be set to the new index of the first
                               definition of each old var.
 ls->varcount_with_indices     will be se to the new maximum varcount of LOCAL
                               and IOVARS.
 
-All other vars (TEMPVAR and PREALLOC) will get a new unique index above 
+All other vars (TEMPVAR and PREALLOC) will get a new unique index above
 ls->varcount_with_indices.
 
 jd->var and jd->varcount will be set for this renamed vars.
 
 *******************************************************************************/
 
-void ssa_rename_init(jitdata *jd, graphdata *gd) 
+void ssa_rename_init(jitdata *jd, graphdata *gd)
 {
 	int a, i;
 #if 0
@@ -262,7 +262,7 @@ void ssa_rename_init(jitdata *jd, graphdata *gd)
 	lsradata *ls;
 
 	ls = jd->ls;
-	
+
 	/* set up new locals */
 	/* ls->new_varindex[0..jd->varcount[ holds the new unique index */
 	/* for locals and iovars */
@@ -290,11 +290,11 @@ void ssa_rename_init(jitdata *jd, graphdata *gd)
 
 	for(i = 0; i < ls->basicblockcount; i++)
 		for (a = 0; a < ls->ssavarcount; a++)
-			if (ls->phi[i][a] != NULL)				
+			if (ls->phi[i][a] != NULL)
 				for(p = 0; p < graph_get_num_predecessor(gd, i) + 1; p++)
 					ls->phi[i][a][p] = ls->var_0[a];
 #endif
-	
+
 	/* Initialization */
 
 	ls->count     = DMNEW(int, max(1, ls->ssavarcount));
@@ -350,7 +350,7 @@ void ssa_rename_init(jitdata *jd, graphdata *gd)
 	ls->lt_mem_count = 0;
 	for (i=0; i < ls->lifetimecount; i++) {
 		ls->lifetime[i].type = UNUSED;
-		ls->lifetime[i].savedvar = 0;		
+		ls->lifetime[i].savedvar = 0;
 		ls->lifetime[i].flags = 0;
 		ls->lifetime[i].usagecount = 0;
 		ls->lifetime[i].bb_last_use = -1;
@@ -362,7 +362,7 @@ void ssa_rename_init(jitdata *jd, graphdata *gd)
 
 	/* for giving TEMP and PREALLOC vars a new unique index */
 
-	ls->vartop = ls->varcount_with_indices; 
+	ls->vartop = ls->varcount_with_indices;
 
 #ifdef SSA_DEBUG_VERBOSE
 	if (compileverbose) {
@@ -385,7 +385,7 @@ void ssa_rename_init(jitdata *jd, graphdata *gd)
 
 int ssa_rename_def_(lsradata *ls, int a) {
 	int i;
-	
+
 	_SSA_CHECK_BOUNDS(a,0,ls->ssavarcount);
 	ls->count[a]++;
 	i = ls->count[a] - 1;
@@ -400,7 +400,7 @@ int ssa_rename_def(jitdata *jd, int *def_count, int a) {
 	lsradata *ls;
 
 	ls = jd->ls;
-	
+
 	a1 = ls->new_varindex[a];
 	_SSA_CHECK_BOUNDS(a1, UNUSED, ls->varcount);
 	if ((a1 != UNUSED) && (a1 < ls->ssavarcount)) {
@@ -445,7 +445,7 @@ int ssa_rename_use(lsradata *ls, int n, int a) {
 		/* i <- top(stack[a]) */
 
 		_SSA_CHECK_BOUNDS(ls->stack_top[a1]-1, 0, ls->num_defs[a1]+1);
-		i = ls->stack[a1][ls->stack_top[a1] - 1]; 
+		i = ls->stack[a1][ls->stack_top[a1] - 1];
 		_SSA_CHECK_BOUNDS(i, 0, ls->num_defs[a1]);
 
 		ret = ls->var_0[a1] + i;
@@ -481,7 +481,7 @@ void ssa_rename_print(instruction *iptr, char *op, int from,  int to) {
 
 /* ssa_rename_ ****************************************************************
 
-Algorithm is based on "modern compiler implementation in C" from andrew 
+Algorithm is based on "modern compiler implementation in C" from andrew
 w. appel, edition 2004
 
 page 443 Algorithm 19.7. Renaming Variables
@@ -560,7 +560,7 @@ void ssa_rename_(jitdata *jd, graphdata *gd, dominatordata *dd, int n) {
 		/* i <- top(stack[a]) */
 
 		_SSA_CHECK_BOUNDS(ls->stack_top[a]-1, 0, ls->num_defs[a]+1);
-		i = ls->stack[a][ls->stack_top[a]-1]; 
+		i = ls->stack[a][ls->stack_top[a]-1];
 		_SSA_CHECK_BOUNDS(i, 0, ls->num_defs[a]);
 
 		/* Replace use of x with xi */
@@ -630,7 +630,7 @@ void ssa_rename_(jitdata *jd, graphdata *gd, dominatordata *dd, int n) {
 			}
 			break;
 		}
-			
+
 
 		/* Look for definitions (iptr->dst). INVOKE and BUILTIN have */
 		/* an optional dst - so they to be checked first */
@@ -681,7 +681,7 @@ void ssa_rename_(jitdata *jd, graphdata *gd, dominatordata *dd, int n) {
 		/* i <- top(stack[a]) */
 
 		_SSA_CHECK_BOUNDS(ls->stack_top[a]-1, 0, ls->num_defs[a]+1);
-		i = ls->stack[a][ls->stack_top[a]-1]; 
+		i = ls->stack[a][ls->stack_top[a]-1];
 		_SSA_CHECK_BOUNDS(i, 0, ls->num_defs[a]);
 
 		/* Replace use of x with xi */
@@ -712,7 +712,7 @@ void ssa_rename_(jitdata *jd, graphdata *gd, dominatordata *dd, int n) {
 			if (ls->phi[Y][a] != NULL) {
 
 				/* i <- top(stack[a]) */
-				
+
 				if (ls->stack_top[a] == 1) {
 					/* no definition till now in controll flow */
 #ifdef SSA_DEBUG_VERBOSE
@@ -725,7 +725,7 @@ void ssa_rename_(jitdata *jd, graphdata *gd, dominatordata *dd, int n) {
 				}
 				else {
 					_SSA_CHECK_BOUNDS(ls->stack_top[a]-1, 0, ls->num_defs[a]+1);
-					i = ls->stack[a][ls->stack_top[a]-1]; 
+					i = ls->stack[a][ls->stack_top[a]-1];
 					_SSA_CHECK_BOUNDS(i, 0, ls->num_defs[a]);
 
 					/* change jth operand from a0 to ai */
@@ -752,7 +752,7 @@ void ssa_rename_(jitdata *jd, graphdata *gd, dominatordata *dd, int n) {
 
 			}
 	}
-	
+
 	/* Call ssa_rename_ for all Childs of n of the Dominator Tree */
 	for(i = 0; i < ls->basicblockcount; i++)
 		if (dd->idom[i] == n)

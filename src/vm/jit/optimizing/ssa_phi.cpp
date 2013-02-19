@@ -50,7 +50,7 @@
 
 /* ssa_place_phi_functions *****************************************************
 
-Algorithm is based on "modern compiler implementation in C" from andrew 
+Algorithm is based on "modern compiler implementation in C" from andrew
 w. appel, edition 2004
 
 Corrections:
@@ -76,8 +76,8 @@ n in [0..ls->basicblockcount[
 a in [0..ls->ssavarcount[
 p in [1..Count of Predecessors of Basicblock n]
 
-For each basicblock Y in the dominance frontier of a basicblock n (0 <= n < 
-ls->basicblockcount) in which a variable (0 <= a < ls->ssavarcount) is defined 
+For each basicblock Y in the dominance frontier of a basicblock n (0 <= n <
+ls->basicblockcount) in which a variable (0 <= a < ls->ssavarcount) is defined
 an entry in ls->phi[Y][a] is created.
 This entry is an array with the number of predecessors of Y elements + 1
 elements.
@@ -157,7 +157,7 @@ void ssa_place_phi_functions(jitdata *jd, graphdata *gd, dominatordata *dd)
 			if (bv_get_bit(def_sites[a],n)) {
 				wl_add(W, n);
 			}
-				
+
 		while (!wl_is_empty(W)) { /* W not empty */
 			n = wl_get(W);
 
@@ -168,7 +168,7 @@ void ssa_place_phi_functions(jitdata *jd, graphdata *gd, dominatordata *dd)
 				/* insert phi function for a at top of Y*/
 
 				_SSA_CHECK_BOUNDS(Y, 0, ls->basicblockcount);
-				if (bv_get_bit( A_phi[Y], a) == 0) { 
+				if (bv_get_bit( A_phi[Y], a) == 0) {
 
 					/* a is not a Element of A_phi[Y] */
 					/* a <- phi(a,a...,a) to be inserted at top of Block Y */
@@ -183,7 +183,7 @@ void ssa_place_phi_functions(jitdata *jd, graphdata *gd, dominatordata *dd)
 					/* for this phi function */
 
 					ls->num_defs[a]++;
-					
+
 					bv_set_bit(A_phi[Y], a);
 					if (bv_get_bit(ls->var_def[Y],a)==0) {
 
@@ -227,7 +227,7 @@ void ssa_generate_phi_moves(jitdata *jd, graphdata *gd) {
 					ls->lifetime[ls->phi[i][a][0]].def = NULL;
 					ls->phi[i][a] = NULL;
 				}
-				else 
+				else
 #endif
 					{
 					pred = graph_get_first_predecessor(gd, i, &iter);
@@ -279,7 +279,7 @@ void ssa_generate_phi_moves(jitdata *jd, graphdata *gd) {
 void ssa_print_phi(lsradata *ls, graphdata *gd) {
 	int i,j,k;
 
-	printf("phi Functions (varcount_with_indices: %3i):\n", 
+	printf("phi Functions (varcount_with_indices: %3i):\n",
 		   ls->varcount_with_indices);
 	for(i = 0; i < ls->basicblockcount; i++) {
 		for(j = 0; j < ls->ssavarcount; j++) {

@@ -90,7 +90,7 @@ extern bool opt_verbose;
 extern bool opt_debugcolor;
 
 extern bool loadverbose;         /* Print debug messages during loading */
-extern bool initverbose;         /* Log class initialization */ 
+extern bool initverbose;         /* Log class initialization */
 
 extern bool opt_verboseclass;
 extern bool opt_verbosegc;

@@ -340,7 +340,7 @@ bool ifconv_static(jitdata *jd)
 				/* get the condition array index */
 
 				complement = ifconv_condition_complement[condition - ICMD_IFEQ];
-	
+
 				/* Set the new instructions, first basic block 1... */
 
 				tiptr = bptr[1].iinstr;
@@ -441,17 +441,17 @@ static void check(jitdata *jd, basicblock *bptr)
 	  [         i00]     0 (line:   227)  ICONST          0 (0x00000000)
 	  [     l00 i00]     1 (line:   227)  ILOAD           0
 	  [     r15 i00]     2 (line:   227)  IANDCONST       1 (0x00000001)
-	  [     r15 i00]     3 (line:   227)  NOP            
+	  [     r15 i00]     3 (line:   227)  NOP
 	  [         i00]     4 (line:   227)  IFEQ            0 (0x00000000) L002
 
 	  [         i00] L001(2 - 1) flags=1:
-	  [            ]     0 (line:   227)  POP            
+	  [            ]     0 (line:   227)  POP
 	  [         i00]     1 (line:   227)  ICONST          1 (0x00000001)
 
 	  [         i00] L002(1 - 2) flags=1:
-	  [            ]     0 (line:   227)  IRETURN        
+	  [            ]     0 (line:   227)  IRETURN
 	*/
-								
+
 	if ((bptr[1].icount == 2) &&
 		(bptr[1].iinstr[0].opc == ICMD_POP) &&
 		(bptr[1].iinstr[1].opc == ICMD_ICONST))
@@ -472,11 +472,11 @@ static void check(jitdata *jd, basicblock *bptr)
 
 	  [    ] L001(2 - 1) flags=1:
 	  [ rdi]     0 (line:   292)  ICONST          1 (0x00000001)
-	  [    ]     1 (line:   292)  IRETURN        
+	  [    ]     1 (line:   292)  IRETURN
 
 	  [    ] L002(2 - 1) flags=1:
 	  [ rdi]     0 (line:   292)  ICONST          0 (0x00000000)
-	  [    ]     1 (line:   292)  IRETURN        
+	  [    ]     1 (line:   292)  IRETURN
 	*/
 
 	if ((bptr[1].icount == 2) &&

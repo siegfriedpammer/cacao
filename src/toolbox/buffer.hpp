@@ -57,7 +57,7 @@ class Buffer{
 
 		// free content of buffer
 		~Buffer();
-		
+
 		// write to buffer byte-by-byte
 		inline Buffer& write(char);
 		inline Buffer& write(Utf8String);
@@ -80,7 +80,7 @@ class Buffer{
 		// get char contents of buffer
 		inline operator char*() {
 			zero_terminate();
-			return _start; 
+			return _start;
 		}
 
 		// get utf-8 string contents of buffer
@@ -130,7 +130,7 @@ class Buffer{
 /* Buffer::Buffer **************************************************************
 
 	Construct a new Buffer with a given size.
-	
+
 	IN:
 		buf_size ....... The number of bytes that should be preallocated
 		                 for input in the buffer.
@@ -248,7 +248,7 @@ Buffer<Allocator>& Buffer<Allocator>::write(const u2 *cs, size_t sz)
 *******************************************************************************/
 
 template<template<typename T> class Allocator>
-Buffer<Allocator>& Buffer<Allocator>::write(char c) 
+Buffer<Allocator>& Buffer<Allocator>::write(char c)
 {
 	ensure_capacity(1);
 
@@ -275,10 +275,10 @@ Buffer<Allocator>& Buffer<Allocator>::write_slash_to_dot(const char *cs) {
 
 	for ( ; src != end; ++_pos, ++src ) {
 		char c = *src;
-		
+
 		*_pos = (c == '/') ? '.' : c;
 	}
-	
+
 	return *this;
 }
 
@@ -291,10 +291,10 @@ Buffer<Allocator>& Buffer<Allocator>::write_slash_to_dot(Utf8String u) {
 
 	for ( ; src != end; ++_pos, ++src ) {
 		char c = *src;
-		
+
 		*_pos = (c == '/') ? '.' : c;
 	}
-	
+
 	return *this;
 }
 
@@ -314,10 +314,10 @@ Buffer<Allocator>& Buffer<Allocator>::write_dot_to_slash(Utf8String u) {
 
 	for ( ; src != end; ++_pos, ++src ) {
 		char c = *src;
-		
+
 		*_pos = (c == '.') ? '/' : c;
 	}
-	
+
 	return *this;
 }
 
@@ -395,7 +395,7 @@ void Buffer<Allocator>::clear()
 	IN:
 		bytes_to_drop ... how many bytes of content should be removed from the
 		                  back of the buffer.
-	
+
 	NOTE:
 		The content of the buffer is not necesserily valid utf-8 or
 		null terminated after calling this.

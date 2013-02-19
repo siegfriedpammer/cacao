@@ -304,12 +304,12 @@ void executionstate_sanity_check(void *context)
 
 
 /* executionstate_println ******************************************************
- 
+
    Print execution state
-  
+
    IN:
        es...............the execution state to print
-  
+
 *******************************************************************************/
 
 #if !defined(NDEBUG)

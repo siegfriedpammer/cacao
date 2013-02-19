@@ -1,6 +1,6 @@
 /* src/vm/jit/ir/bytecode.c - Java byte code handling
 
-   Copyright (C) 2007 
+   Copyright (C) 2007
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.

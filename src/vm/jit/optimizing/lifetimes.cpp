@@ -59,13 +59,13 @@ void lt_usage(jitdata *, s4 , int , int , int );
 
 void lt_lifeoutatblock(lsradata *ls, graphdata *gd, int *M, int b_index,
 					   struct lifetime *lt, worklist *W);
-void lt_lifeatstatement(lsradata *ls, graphdata *gd, int b_index, 
+void lt_lifeatstatement(lsradata *ls, graphdata *gd, int b_index,
 						int iindex, struct lifetime *lt, bool life_in,
 						worklist *W);
 #if 0
-void lt_lifeinatstatement(lsradata *ls, graphdata *gd, int *M, int b_index, 
+void lt_lifeinatstatement(lsradata *ls, graphdata *gd, int *M, int b_index,
 					   int iindex, struct lifetime *lt);
-void lt_lifeoutatstatement(lsradata *ls, graphdata *gd, int *M, int b_index, 
+void lt_lifeoutatstatement(lsradata *ls, graphdata *gd, int *M, int b_index,
 						int iindex, struct lifetime *lt);
 #endif
 #ifdef USAGE_COUNT
@@ -90,13 +90,13 @@ struct site *lt_get_first_def_site(struct lifetime *lt, lt_iterator *iter) {
 	return ((*iter) = lt->def);
 }
 
-bool lt_v_is_defined_at_s(lsradata *ls, int b_index, int iindex, 
+bool lt_v_is_defined_at_s(lsradata *ls, int b_index, int iindex,
 					   struct lifetime * lt) {
 	struct site *def_site;
 	bool is_defined_at_s;
 
 	def_site = lt->def;
-	is_defined_at_s = ((def_site->b_index == b_index) 
+	is_defined_at_s = ((def_site->b_index == b_index)
 					   && (def_site->iindex == iindex));
 	return is_defined_at_s;
 }
@@ -132,7 +132,7 @@ void lt_scanlifetimes(jitdata *jd, graphdata *gd, dominatordata *dd) {
 		}
 		printf("\n");
 		printf("Sorted_rev: ");
-		for (i=0; i < ls->basicblockcount; i++) 
+		for (i=0; i < ls->basicblockcount; i++)
 			printf("%3i ", ls->sorted_rev[i]);
 		printf("\n");
 	}
@@ -158,14 +158,14 @@ void lt_scanlifetimes(jitdata *jd, graphdata *gd, dominatordata *dd) {
 /* 		_LT_ASSERT( i < jd->cd->maxlocals); */
 /* 			printf("param %3i -> L %3i/%3i\n",p,i,t); */
 		_LT_ASSERT(t == VAR(i)->type);
-		
+
 		/* Param to Local init happens before normal Code */
 
 #ifdef LT_DEBUG_VERBOSE
 		if (compileverbose)
 			printf(" ok\n");
 #endif
-		lt_usage(jd, i, 0, 0, LT_DEF); 
+		lt_usage(jd, i, 0, 0, LT_DEF);
 	}  /* end for */
 }
 
@@ -175,13 +175,13 @@ bool lt_is_simple_lt(struct lifetime *lt) {
 	struct site *def, *use;
 	bool all_in_same_block;
 
-	
+
 	def = lt_get_first_def_site(lt, &i_def);
 	use = lt_get_first_use_site(lt, &i_use);
 	all_in_same_block = true;
 	for (; (all_in_same_block && (use != NULL));
 		 use = lt_get_next_site(&i_use)) {
-		all_in_same_block = 
+		all_in_same_block =
 			(use->iindex >= 0) && (use->b_index == def->b_index);
 	}
 	return all_in_same_block;
@@ -192,12 +192,12 @@ void lt_is_live(lsradata *ls, struct lifetime *lt, int b_index, int iindex) {
 
 	bb_sorted = ls->sorted_rev[b_index];
 
-	if ((lt->bb_last_use < bb_sorted) || 
+	if ((lt->bb_last_use < bb_sorted) ||
 		((lt->bb_last_use == bb_sorted) && (lt->i_last_use < iindex))) {
 		lt->bb_last_use = bb_sorted;
 		lt->i_last_use  = iindex;
 	}
-	if ((lt->bb_first_def > bb_sorted) || 
+	if ((lt->bb_first_def > bb_sorted) ||
 		((lt->bb_first_def == bb_sorted) && (lt->i_first_def > iindex))) {
 		lt->bb_first_def = bb_sorted;
 		lt->i_first_def  = iindex;
@@ -230,7 +230,7 @@ void lt_lifeness_analysis(jitdata *jd, graphdata *gd) {
 	int *M;      /* bit_vecor of visited blocks */
 	int *use;    /* bit_vecor of blocks with use sites visited */
 	worklist *W; /* Worklist of Basic Blocks, where lt is life-out */
-	
+
 	struct site *use_site, *u_site;
 	lt_iterator iter, iter1;
 	graphiterator pred_iter;
@@ -282,7 +282,7 @@ void lt_lifeness_analysis(jitdata *jd, graphdata *gd) {
 
 		lt->bb_last_use = -1;
 		lt->bb_first_def = ls->basicblockcount;
-		
+
 		bv_reset(M, ls->basicblockcount);
 		bv_reset(use, ls->basicblockcount);
 		wl_reset(W, ls->basicblockcount);
@@ -355,10 +355,10 @@ void lt_lifeness_analysis(jitdata *jd, graphdata *gd) {
 
 				phi = ls->phi[use_site->b_index][-iindex-1];
 				_LT_ASSERT(phi != NULL);
-				
+
 					pred = graph_get_first_predecessor(gd, use_site->b_index,
 													   &pred_iter);
-					for(i = 1; (pred != -1); i++,pred = 
+					for(i = 1; (pred != -1); i++,pred =
 							graph_get_next(&pred_iter))
 						if (lt->v_index == phi[i]) {
 
@@ -366,19 +366,19 @@ void lt_lifeness_analysis(jitdata *jd, graphdata *gd) {
 
 							wl_add(W, pred);
 						}
-			} 
+			}
 			else /* lt is live-in at this statement */
-				lt_lifeatstatement(ls, gd, use_site->b_index, 
+				lt_lifeatstatement(ls, gd, use_site->b_index,
 								   iindex, lt, true, W);
 		} /* for (;use_site != NULL; use_site = lt_get_next_site(&iter)) */
 
 		/* process Worklist */
-	   
+
 		while (!wl_is_empty(W)) {
 			b_index = wl_get(W);
 			lt_lifeoutatblock(ls, gd, M, b_index, lt, W);
 		}
-			
+
 
 #ifdef LT_DEBUG_VERBOSE
 		if (compileverbose)
@@ -403,8 +403,8 @@ void lt_lifeness_analysis(jitdata *jd, graphdata *gd) {
 			atime++;
 			diff += 1000000;
 		}
-		printf("%8li %s.%s.%s\n", diff, 
-			UTF_TEXT(m->clazz->name), 
+		printf("%8li %s.%s.%s\n", diff,
+			UTF_TEXT(m->clazz->name),
 			UTF_TEXT(m->name),
 			UTF_TEXT(m->descriptor));
 	}
@@ -425,7 +425,7 @@ IN:     lsradata *ls    pointer to worklist created with wl_new
 
 IN/OUT: worklist *W     Worklist of Basic Blocks, where lt is life-out
 *******************************************************************************/
-void lt_lifeatstatement(lsradata *ls, graphdata *gd, int b_index, 
+void lt_lifeatstatement(lsradata *ls, graphdata *gd, int b_index,
 						int iindex, struct lifetime *lt, bool life_in,
 						worklist *W) {
 
@@ -491,33 +491,33 @@ void lt_lifeatstatement(lsradata *ls, graphdata *gd, int b_index,
 		if (life_in) {
 
 			/* lt->v_index is live-in at statement (b_index,iindex) */
-	
+
 #ifdef LT_DEBUG_VERBOSE
 			if ((compileverbose) && (iindex >= 0))
-				printf("LI@ST: vi %3i bi %3i ii %3i\n", 
+				printf("LI@ST: vi %3i bi %3i ii %3i\n",
 					   lt->v_index, b_index, iindex);
 #endif
 
 			lt_is_live(ls, lt, b_index, iindex);
 
 
-			if (iindex == -ls->ssavarcount-1) { 
+			if (iindex == -ls->ssavarcount-1) {
 
 #ifdef LT_DEBUG_VERBOSE
 				if ((compileverbose))
-					printf("LI@ST: vi %3i bi %3i ii %3i\n", 
+					printf("LI@ST: vi %3i bi %3i ii %3i\n",
 						   lt->v_index, b_index, iindex);
 #endif
 				/* iindex is the first statement of b_index */
 				/* Statements -ls->ssavarcounts-1 .. -1 are possible phi functions*/
 				/* lt->v_index is live-in at b_index */
-		
+
 				pred = graph_get_first_predecessor(gd, b_index, &pred_iter);
 
 				/* Add "Life out Basic Blocks to Worklist */
 
 				for(; pred != -1; pred = graph_get_next(&pred_iter))
-					wl_add(W, pred); 
+					wl_add(W, pred);
 
 				/* Stop here - beginning of Basic Block reached */
 
@@ -539,11 +539,11 @@ void lt_lifeatstatement(lsradata *ls, graphdata *gd, int b_index,
 				life_in = false;
 			}
 		}
-	}	
+	}
 }
 
 
-void lt_lifeoutatblock(lsradata *ls, graphdata *gd, int *M, int b_index, 
+void lt_lifeoutatblock(lsradata *ls, graphdata *gd, int *M, int b_index,
 					   struct lifetime *lt, worklist *W) {
 
 #if defined(LT_DEBUG_VERBOSE)
@@ -683,7 +683,7 @@ void lt_usage(jitdata *jd,s4 v_index, int block, int instr,
 	if (store == LT_DEF) {
 		lt_add_def_site(n, block, instr);
 	}
-}	
+}
 
 /***************************************************************************
 use sites: dead code elemination, LifenessAnalysis
@@ -701,7 +701,7 @@ void _lt_scanlifetimes(jitdata *jd, graphdata *gd, basicblock *bptr,
 	s4 *argp;
 
 	lsradata *ls;
-	
+
 	ls = jd->ls;
 
 #ifdef LT_DEBUG_VERBOSE
@@ -734,7 +734,7 @@ void _lt_scanlifetimes(jitdata *jd, graphdata *gd, basicblock *bptr,
 				/* Add definition of target add - phi index -1*/
 #ifdef LT_DEBUG_VERBOSE
 				if (compileverbose)
-					printf("_lt_scanlifetimes: phi_def: v: %3i\n i: %3i\n", 
+					printf("_lt_scanlifetimes: phi_def: v: %3i\n i: %3i\n",
 						   v, -i-1);
 #endif
 				lt_usage(jd, v, b_index, -i-1, LT_DEF);
@@ -744,10 +744,10 @@ void _lt_scanlifetimes(jitdata *jd, graphdata *gd, basicblock *bptr,
 				for (j = 1; j <= graph_get_num_predecessor(gd, b_index); j++) {
 					if (ls->phi[b_index][i][j] != ls->varcount_with_indices)
 						if (ls->phi[b_index][i][j] != UNUSED)
-							lt_usage(jd, ls->phi[b_index][i][j], b_index, 
+							lt_usage(jd, ls->phi[b_index][i][j], b_index,
 									 -i-1, LT_USE);
 				}
-			} 
+			}
 		}
 
 		if (bptr->iinstr != NULL) {
@@ -839,7 +839,7 @@ bool dominates(dominatordata *dd, int i, int j) {
 /*******************************************************************************
 lt_get_nesting
 
-Look for loops in the CFG and set the nesting depth of all Basicblocks in 
+Look for loops in the CFG and set the nesting depth of all Basicblocks in
 gd->nesting:
 
 The Loop Header BB h is an element of DF[n] for all Basicblocks n of this loop

@@ -42,7 +42,7 @@
 
 /* Helpers for graph_make_cfg */
 void graph_add_cfg( jitdata *jd, graphdata *gd, basicblock *, basicblock *);
-void graph_add_exceptions(jitdata *jd, graphdata *gd); 
+void graph_add_exceptions(jitdata *jd, graphdata *gd);
 
 void graph_add_edge( graphdata *gd, int from, int to );
 
@@ -69,7 +69,7 @@ graphdata *graph_init(int basicblockcount) {
 
 	gd->num_succ = DMNEW(int, basicblockcount);
 	gd->successor = DMNEW(graph_element *, basicblockcount);
-	
+
 	gd->num_pred = DMNEW(int, basicblockcount);
 	gd->predecessor = DMNEW(graph_element *, basicblockcount);
 
@@ -143,7 +143,7 @@ void graph_add_edge( graphdata *gd, int from, int to ) {
 	/* We need two new graph_elements. One for successors and one for */
 	/* predecessors */
 	n = DMNEW(graph_element, 2);
-			
+
 	n->value=to;
 	n->next=gd->successor[from];
 	gd->successor[from]=n;
@@ -200,8 +200,8 @@ void graph_split_edge(graphdata *gd, int from, graphiterator *i, int new_block) 
 }
 
 /***********************************************
-Generate the Control Flow Graph             
-( pred,succ,num_pred of lsradata structure) 
+Generate the Control Flow Graph
+( pred,succ,num_pred of lsradata structure)
 ************************************************/
 void graph_make_cfg(jitdata *jd,graphdata *gd) {
 	instruction *iptr;
@@ -276,11 +276,11 @@ void graph_make_cfg(jitdata *jd,graphdata *gd) {
 					graph_add_cfg(jd, gd, bptr, bptr->next);
 					break;
 
-			   
+
 				case ICMD_GOTO:
 					graph_add_cfg(jd, gd, bptr,  iptr->dst.block);
 					break;					/* visit branch (goto) target	*/
-				
+
 				case ICMD_TABLESWITCH:		/* switch statement				*/
 					table = iptr->dst.table;
 					l = iptr->sx.s23.s2.tablelow;
@@ -297,11 +297,11 @@ void graph_make_cfg(jitdata *jd,graphdata *gd) {
 						--table;
 					}
 					break;
-				
+
 				case ICMD_LOOKUPSWITCH:		/* switch statement				*/
 					lookup = iptr->dst.lookup;
 					i = iptr->sx.s23.s2.lookupcount;
-			
+
 					while (--i >= 0) {
 						graph_add_cfg(jd, gd, bptr, lookup->target.block);
 						lookup++;
@@ -317,11 +317,11 @@ void graph_make_cfg(jitdata *jd,graphdata *gd) {
 
 				case ICMD_NOP:
 					assert(0);
-				
+
 				default:
 					graph_add_cfg(jd, gd, bptr, bptr + 1 );
-					break;	
-			    } /* switch (iptr->opc)*/                        
+					break;
+			    } /* switch (iptr->opc)*/
 		    }     /* if (bptr->icount) */
 	    }         /* if (bptr->flags >= BBREACHED) */
 	}             /* for (bptr = ...; bptr != NULL; bptr = bptr->next) */
@@ -338,7 +338,7 @@ void graph_make_cfg(jitdata *jd,graphdata *gd) {
 /*****************************************************************
 add Edges from guarded Areas to Exception handlers in the CFG
 *****************************************************************/
-void graph_add_exceptions(jitdata *jd, graphdata *gd) { 
+void graph_add_exceptions(jitdata *jd, graphdata *gd) {
 #if 0
 	basicblock *bptr;
 	raw_exception_entry *ex;
@@ -370,11 +370,11 @@ void graph_add_exceptions(jitdata *jd, graphdata *gd) {
 
 		/* loop all valid Basic Blocks of the guarded area and add CFG edges  */
 		/* to the appropriate handler */
-		for (bptr = ex->start; (bptr != NULL) && (bptr != ex->end); bptr = bptr->next) 
+		for (bptr = ex->start; (bptr != NULL) && (bptr != ex->end); bptr = bptr->next)
 			if (bptr->flags >= BBREACHED)
 				graph_add_cfg(jd, gd, bptr, ex->handler);
 
-		_GRAPH_ASSERT((bptr != NULL) 
+		_GRAPH_ASSERT((bptr != NULL)
 					  && ((bptr->flags >=BBREACHED) || (bptr == ex->end)));
 	}
 #ifdef GRAPH_DEBUG_VERBOSE
@@ -436,7 +436,7 @@ void graph_DFS(lsradata *ls, graphdata *gd) {
 	stack_top = 1;
 	/* Start Block is handled right and can be put in sorted */
 	visited[0] = graph_get_num_predecessor(gd , 0);
-	p = 0; 
+	p = 0;
 	not_finished = true;
 	while (not_finished) {
 		while (stack_top != 0) {
@@ -534,7 +534,7 @@ void transform_CFG(jitdata *jd, graphdata *gd) {
 			}
 		}
 	}
-	
+
 	/* increase now basicblockcount accordingly. */
 	ls->basicblockcount = jd->basicblockcount + num_new_blocks;
 
@@ -549,7 +549,7 @@ void transform_CFG(jitdata *jd, graphdata *gd) {
 		ls->basicblocks[bptr->nr + 1] = bptr;
 		bptr->nr = bptr->nr+1;
 	}
-	
+
 	/* Create new Basic Blocks:
 	   0, [jd->basicblockcount..ls->basicblockcount[ */
 	/* num_new_blocks have to be inserted*/
@@ -566,7 +566,7 @@ void transform_CFG(jitdata *jd, graphdata *gd) {
 
 		num_succ = DMNEW(int, ls->basicblockcount);
 		successor = DMNEW(graph_element *, ls->basicblockcount);
-	
+
 		num_pred = DMNEW(int, ls->basicblockcount);
 		predecessor = DMNEW(graph_element *, ls->basicblockcount);
 
@@ -627,7 +627,7 @@ void transform_CFG(jitdata *jd, graphdata *gd) {
 					out = ls->basicblocks[i]->outvars;
 					ls->basicblocks[num_new_blocks]->invars = in = NULL;
 
-					if (ls->basicblocks[num_new_blocks]->indepth > 0) 
+					if (ls->basicblocks[num_new_blocks]->indepth > 0)
 						new_in_stack = DMNEW( s4,
 									  ls->basicblocks[num_new_blocks]->indepth);
 						new_out_stack = DMNEW( s4,
@@ -642,10 +642,10 @@ void transform_CFG(jitdata *jd, graphdata *gd) {
 					/* Create Outstack */
 					ls->basicblocks[num_new_blocks]->outvars =
 						new_out_stack;
-					ls->basicblocks[num_new_blocks]->outdepth = 
+					ls->basicblocks[num_new_blocks]->outdepth =
 						ls->basicblocks[num_new_blocks]->indepth;
 
-					_GRAPH_ASSERT(ls->basicblocks[num_new_blocks]->outdepth == 
+					_GRAPH_ASSERT(ls->basicblocks[num_new_blocks]->outdepth ==
 								  ls->basicblocks[j]->indepth );
 
 					num_new_blocks++;
@@ -682,7 +682,7 @@ void transform_BB(jitdata *jd, graphdata *gd) {
 			/* i can only have one predecessor and one successor! */
 			_GRAPH_ASSERT( graph_has_multiple_predecessors(gd, n) == false);
 			_GRAPH_ASSERT( graph_has_multiple_successors(gd, n) == false);
-			
+
 			succ = graph_get_first_successor(gd, n, &iter);
 			pred = graph_get_first_predecessor(gd, n, &iter);
 
@@ -694,7 +694,7 @@ void transform_BB(jitdata *jd, graphdata *gd) {
 				iptr--;
 			}
 
-				
+
 			/* with JSR there can not be multiple successors  */
 			_GRAPH_ASSERT(iptr->opc != ICMD_JSR);
 			/* If the return Statment has more successors and  */
@@ -710,22 +710,22 @@ void transform_BB(jitdata *jd, graphdata *gd) {
 			/* and generate no ICMD */
 			/* else if edge to split is the branch, generate a   */
 			/* ICMD_GOTO and add new BB at the end of the BB List*/
-			if ((ls->basicblocks[pred]->next == ls->basicblocks[succ]) 
+			if ((ls->basicblocks[pred]->next == ls->basicblocks[succ])
 				&& (iptr->opc != ICMD_LOOKUPSWITCH)
 				&& (iptr->opc != ICMD_TABLESWITCH)
 				&& (iptr->opc != ICMD_GOTO)) {
 				/* GOTO, *SWITCH have no fallthrough path */
 
 				/* link into fallthrough path */
-				
-						
+
+
 				ls->basicblocks[n]->next =
 					ls->basicblocks[pred]->next;
 				ls->basicblocks[pred]->next =
 					ls->basicblocks[n];
 #if 1
 				/* generate no instructions */
-				ls->basicblocks[n]->icount = 1; 
+				ls->basicblocks[n]->icount = 1;
 				ls->basicblocks[n]->iinstr = NEW(instruction);
 				ls->basicblocks[n]->iinstr[0].opc =	ICMD_NOP;
 #else
@@ -749,7 +749,7 @@ void transform_BB(jitdata *jd, graphdata *gd) {
 						lookup = iptr->dst.lookup;
 
 						i = iptr->sx.s23.s2.lookupcount;
-			
+
 						while (--i >= 0) {
 							if (lookup->target.block == ls->basicblocks[succ])
 								/* target found -> change */
@@ -815,7 +815,7 @@ void transform_BB(jitdata *jd, graphdata *gd) {
 				case ICMD_IF_LCMPGT:
 				case ICMD_IF_LCMPLE:
 				case ICMD_IF_ACMPEQ:
-				case ICMD_IF_ACMPNE:		    
+				case ICMD_IF_ACMPNE:
 				case ICMD_GOTO:
 					_GRAPH_ASSERT(iptr->dst.block == ls->basicblocks[succ]);
 					iptr->dst.block = ls->basicblocks[n];
@@ -827,7 +827,7 @@ void transform_BB(jitdata *jd, graphdata *gd) {
 				}
 #if 1
 				/* Generate the ICMD_GOTO */
-				ls->basicblocks[n]->icount = 1; 
+				ls->basicblocks[n]->icount = 1;
 				ls->basicblocks[n]->iinstr =
 					DNEW(instruction);
 				ls->basicblocks[n]->iinstr->opc =

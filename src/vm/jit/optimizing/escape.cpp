@@ -297,7 +297,7 @@ void dependency_list_add(dependency_list_t *dl, instruction *store) {
 
 	item->store = store;
 	item->next = NULL;
-	
+
 	if (dl->first == NULL) {
 		dl->first = item;
 		dl->last = item;
@@ -322,7 +322,7 @@ void dependenCy_list_import(dependency_list_t *dl, dependency_list_t *other) {
 
 	other->first = NULL;
 	other->last = NULL;
-	
+
 }
 
 #define FOR_EACH_DEPENDENCY_LIST(dl, it) \
@@ -404,7 +404,7 @@ static s4 var_extra_get_representant(escape_analysis_t *e, s4 var) {
 
 static escape_state_t var_extra_get_escape_state(escape_analysis_t *e, s4 var) {
 	var_extra_t *ve;
-	
+
 	var = var_extra_get_representant(e, var);
 	ve = var_extra_get(e, var);
 
@@ -413,7 +413,7 @@ static escape_state_t var_extra_get_escape_state(escape_analysis_t *e, s4 var) {
 
 static void var_extra_set_escape_state(escape_analysis_t *e, s4 var, escape_state_t escape_state) {
 	var_extra_t *ve;
-	
+
 	var = var_extra_get_representant(e, var);
 	ve = var_extra_get(e, var);
 
@@ -422,7 +422,7 @@ static void var_extra_set_escape_state(escape_analysis_t *e, s4 var, escape_stat
 
 static dependency_list_t *var_extra_get_dependency_list(escape_analysis_t *e, s4 var) {
 	var_extra_t *ve;
-	
+
 	var = var_extra_get_representant(e, var);
 	ve = var_extra_get(e, var);
 
@@ -528,7 +528,7 @@ static bool escape_analysis_in_same_set(escape_analysis_t *e, s4 var1, s4 var2) 
 }
 
 static void escape_analysis_ensure_state(escape_analysis_t *e, s4 var, escape_state_t escape_state) {
-	
+
 	var_extra_t *ve;
 	dependency_list_item_t *it;
 
@@ -538,9 +538,9 @@ static void escape_analysis_ensure_state(escape_analysis_t *e, s4 var, escape_st
 	if (ve->escape_state < escape_state) {
 		if (e->verbose) {
 			printf(
-				"escape state of %d %s => %s\n", 
-				var, 
-				escape_state_to_string(ve->escape_state), 
+				"escape state of %d %s => %s\n",
+				var,
+				escape_state_to_string(ve->escape_state),
 				escape_state_to_string(escape_state)
 			);
 		}
@@ -551,7 +551,7 @@ static void escape_analysis_ensure_state(escape_analysis_t *e, s4 var, escape_st
 					printf("propagating to %s@%d\n", icmd_table[it->store->opc].name, it->store->line);
 				}
 				escape_analysis_ensure_state(
-					e, 
+					e,
 					dependency_list_item_get_dependency(it),
 					escape_state
 				);
@@ -620,7 +620,7 @@ static void escape_analysis_merge(escape_analysis_t *e, s4 var1, s4 var2) {
 	ve2->representant = var1;
 
 	/* Adjust is_arg to logical or. */
-	
+
 	has_become_arg = ve1->contains_arg != ve2->contains_arg;
 	ve1->contains_arg = ve1->contains_arg || ve2->contains_arg;
 
@@ -686,7 +686,7 @@ static void escape_analysis_add_dependency(escape_analysis_t *e, instruction *st
 	if (e->verbose) {
 		printf("dependency_list_add: %d.dependency_list.add( { ", obj);
 		show_icmd(e->jd, store, 0, 3);
-		printf(" } )\n"); 
+		printf(" } )\n");
 	}
 }
 
@@ -738,14 +738,14 @@ static void escape_analysis_process_instruction(escape_analysis_t *e, instructio
 
 		case ICMD_MONITORENTER:
 		case ICMD_MONITOREXIT:
-		
+
 			instruction_list_add(e->monitors, iptr);
 
 			break;
 
 		case ICMD_NEWARRAY:
 		case ICMD_ANEWARRAY:
-			
+
 			escape_analysis_ensure_state(e, instruction_dst(iptr), ESCAPE_GLOBAL);
 			escape_analysis_set_allocation(e, instruction_dst(iptr), iptr);
 			instruction_list_add(e->allocations, iptr);
@@ -922,14 +922,14 @@ static void escape_analysis_process_instruction(escape_analysis_t *e, instructio
 				}
 				escape_analysis_set_allocation(e, instruction_dst(iptr), iptr);
 			}
-			
+
 			for (i = 0; i < count; ++i) {
 				if (instruction_arg_type(iptr, i) == TYPE_ADR) {
 
 					if (paramescape == NULL) {
 						escape_analysis_ensure_state(
-							e, 
-							instruction_arg(iptr, i), 
+							e,
+							instruction_arg(iptr, i),
 							ESCAPE_GLOBAL
 						);
 						E2(why, instruction_arg(iptr, i));
@@ -946,7 +946,7 @@ static void escape_analysis_process_instruction(escape_analysis_t *e, instructio
 						if (*paramescape & 0x80) {
 							/* Parameter can be returned from method.
 							   This creates an alias to the retur value.
-							   If the return value escapes, the ES of the parameter needs 
+							   If the return value escapes, the ES of the parameter needs
 							   to be adjusted. */
 							escape_analysis_merge(e, instruction_arg(iptr, i), instruction_dst(iptr));
 							I2("return alias", instruction_arg(iptr, i), instruction_dst(iptr));
@@ -1011,7 +1011,7 @@ static void escape_analysis_process_instructions(escape_analysis_t *e) {
 	FOR_EACH_BASICBLOCK(e->jd, bptr) {
 
 		if (e->verbose) {
-			color_printf(CYAN, "=== BB %d ===\n", bptr->nr);	
+			color_printf(CYAN, "=== BB %d ===\n", bptr->nr);
 		}
 
 		for (iptr = bptr->phis; iptr != bptr->phis + bptr->phicount; ++iptr) {
@@ -1067,7 +1067,7 @@ static void escape_analysis_post_process_getfields(escape_analysis_t *e) {
 					/* Fields match. Adjust escape state. */
 
 					escape_analysis_ensure_state(
-						e, 
+						e,
 						dependency_list_item_get_dependency(itd),
 						escape_analysis_get_state(e, instruction_dst(iptr))
 					);
@@ -1140,7 +1140,7 @@ static void escape_analysis_process_arguments(escape_analysis_t *e) {
 	s4 l;
 	s4 varindex;
 	methoddesc *md;
-	
+
 	md = e->jd->m->parseddesc;
 
 	for (p = 0, l = 0; p < md->paramcount; ++p) {
@@ -1170,7 +1170,7 @@ static void escape_analysis_export_arguments(escape_analysis_t *e) {
 	instruction *iptr;
 	escape_state_t es, re;
 	int ret_val_is_adr;
-	
+
 	md = e->jd->m->parseddesc;
 
 	ret_val_is_adr = (md->returntype.type == TYPE_ADR) ? 1 : 0;
@@ -1227,7 +1227,7 @@ void print_escape_reasons() {
 	reason_t *re = THREADOBJECT->escape_reasons;
 
 	fprintf(stderr, "DYN_REASON");
-	
+
 	for (; re; re = re->next) {
 		fprintf(stderr,":%s", re->why);
 	}
@@ -1253,9 +1253,9 @@ static void escape_analysis_display(escape_analysis_t *e) {
 		show_icmd(e->jd, iptr, 0, 3);
 		printf("\n");
 		printf(
-			"%s@%d: --%s-- %d\n\n", 
-			icmd_table[iptr->opc].name, 
-			iptr->line, 
+			"%s@%d: --%s-- %d\n\n",
+			icmd_table[iptr->opc].name,
+			iptr->line,
 			escape_state_to_string(ve->escape_state),
 			ve->representant
 		);
@@ -1278,7 +1278,7 @@ void escape_analysis_perform(jitdata *jd) {
 	e = DNEW(escape_analysis_t);
 	escape_analysis_init(e, jd);
 
-	if (e->verbose) 
+	if (e->verbose)
 		color_printf(RED, "\n\n==== %s/%s ====\n\n", UTF_TEXT(e->jd->m->clazz->name), UTF_TEXT(e->jd->m->name));
 
 	escape_analysis_process_arguments(e);

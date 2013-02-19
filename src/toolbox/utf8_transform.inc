@@ -34,7 +34,7 @@
 
 namespace utf8_impl {
 	// common data for all utf-8/16 transfomer functions
-		
+
 	// every byte in a UTF-8 sequence falls into one
 	// of these categories
 	enum {
@@ -50,10 +50,10 @@ namespace utf8_impl {
 	enum {
 		// done decoding
 		UTF8_ACCEPT      = 0,
-		UTF8_ERROR       = 1, 
+		UTF8_ERROR       = 1,
 		// need more input
 		UTF8_READ_1_OF_2 = 2,
-		UTF8_READ_1_OF_3 = 3, 
+		UTF8_READ_1_OF_3 = 3,
 		UTF8_READ_2_OF_3 = 4
 	};
 
@@ -73,16 +73,16 @@ namespace utf8_impl {
 			// all ascii characters except 0 are valid
 			_127_TIMES( UTF8_ASCII_BYTE ),
 
-			// bytes from 0x80 to 0xBF are the 2nd or 3rd byte in a multi byte 
+			// bytes from 0x80 to 0xBF are the 2nd or 3rd byte in a multi byte
 			// sequence
 			_64_TIMES( UTF8_CONTINUATION_BYTE ),
 
 			// bytes from 0xC0 to 0xDF begin a two byte sequence
 			_32_TIMES( UTF8_START_OF_2_BYTE_SEQUENCE ),
-	
+
 			// bytes from 0xE0 to 0xEF begin a three byte sequence
 			_16_TIMES( UTF8_START_OF_3_BYTE_SEQUENCE ),
-	
+
 			// byte from 0xF0 to 0xFF are forbidden
 			_16_TIMES( UTF8_ILLEGAL_BYTE )
 #undef   _2_TIMES
@@ -139,7 +139,7 @@ namespace utf8_impl {
 					/* input: UTF8_START_OF_3_BYTE_SEQUENCE */ UTF8_ERROR
 			},
 		};
-		
+
 		return transition_table[state][category];
 	}
 }
@@ -196,13 +196,13 @@ namespace utf8_impl {
 
 			// get the new state the decoder is in after reading input byte
 			state = transition(state, category);
-	
+
 			// mask out non-data bits of byte
 			byte = byte & (0xFF >> category);
 
 			// make room in codepoint for new data bits
-			if (category) codepoint <<= 8 - category;	
-		
+			if (category) codepoint <<= 8 - category;
+
 			// add new bits to codepoint
 			codepoint = codepoint | byte;
 
@@ -229,7 +229,7 @@ namespace utf8_impl {
 					#endif
 			}
 		}
-	
+
 		return fn.finish();
 	}
 }

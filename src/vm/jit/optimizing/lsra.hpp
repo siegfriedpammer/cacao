@@ -166,7 +166,7 @@ struct lsradata {
 	int *num_defs;    /* counts definitions of variables     */
 	                  /* [0..jd->maxlocals*5+cd->maxstack*5[ */
 	                  /* valid for [0..ls->max_vars[         */
-	
+
 
 	int *local_0;     /* [0..ls->max_locals]  */
 	                  /* local_0[a] with a in [0..ls->max_locals[ holds the */
@@ -205,7 +205,7 @@ struct lsradata {
 
 };
 
-	
+
 struct freemem {
 	int off;
 	int end;

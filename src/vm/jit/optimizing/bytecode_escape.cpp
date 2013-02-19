@@ -77,7 +77,7 @@ typedef struct {
 	unsigned index:31;
 } op_stack_slot_t;
 
-const op_stack_slot_t OP_STACK_SLOT_UNKNOWN = { 
+const op_stack_slot_t OP_STACK_SLOT_UNKNOWN = {
 	OP_STACK_SLOT_TYPE_UNKNOWN,
 	0
 };
@@ -111,9 +111,9 @@ static inline bool op_stack_slot_is_param(const op_stack_slot_t slot) {
                 ^
 
 +---+---+-1-+---+  pop 1
-            ^        
+            ^
 
-+---+---+---+---+  
++---+---+---+---+
         ^
 */
 
@@ -222,7 +222,7 @@ static inline void op_stack_push_unknown(op_stack_t *stack) {
 static void op_stack_print(const op_stack_t *stack, FILE *f) {
 	op_stack_slot_t *it;
 	char sep;
-	
+
 	for (it = stack->bottom; it < stack->ptr; ++it) {
 		if (it == stack->start) {
 			sep = '!';
@@ -571,7 +571,7 @@ static void bc_escape_analysis_branch_target(bc_escape_analysis_t *be, s4 branch
 }
 
 static void bc_escape_analysis_adjust_state(
-	bc_escape_analysis_t *be, 
+	bc_escape_analysis_t *be,
 	op_stack_slot_t adr_param,
 	escape_state_t escape_state
 ) {
@@ -589,7 +589,7 @@ static void bc_escape_analysis_adjust_state(
 				   parameters. */
 
 				if (
-					old < ESCAPE_GLOBAL && 
+					old < ESCAPE_GLOBAL &&
 					escape_state >= ESCAPE_GLOBAL
 				) {
 					be->non_escaping_adr_params -= 1;
@@ -685,7 +685,7 @@ static void bc_escape_analysis_adjust_invoke_parameters(
 	unsigned num_params_returned = 0;
 	op_stack_slot_t param_returned;
 
-	/* Process parameters. 
+	/* Process parameters.
 	 * The first parameter is at the highest depth on the stack.
 	 */
 
@@ -718,7 +718,7 @@ static void bc_escape_analysis_adjust_invoke_parameters(
 	for (i = 0; i < md->paramslots; ++i) {
 		op_stack_pop(be->stack);
 	}
-	
+
 	/* Push return value. */
 
 	if (md->returntype.type == TYPE_ADR) {
@@ -802,7 +802,7 @@ static void bc_escape_analysis_parse_invoke(bc_escape_analysis_t *be, jcode_t *j
 		if (be->verbose) {
 			dprintf(
 				be->depth,
-				"Failed to resolve callee %s/%s.\n", 
+				"Failed to resolve callee %s/%s.\n",
 				(IS_FMIREF_RESOLVED(fmi) ? "ERR" : UTF_TEXT(fmi->p.classref->name)),
 				UTF_TEXT(fmi->name)
 			);
@@ -811,7 +811,7 @@ static void bc_escape_analysis_parse_invoke(bc_escape_analysis_t *be, jcode_t *j
 	}
 
 	/* If we could resolve the method, either reuse available escape inormation
-	   or recurse into callee. 
+	   or recurse into callee.
 	   Otherwise we must assume, that all parameters escape. */
 
 	if (mi != NULL && escape_is_monomorphic(be->method, mi)) {
@@ -834,7 +834,7 @@ static void bc_escape_analysis_parse_invoke(bc_escape_analysis_t *be, jcode_t *j
 }
 
 static void bc_escape_analysis_parse_tableswitch(
-	bc_escape_analysis_t *be, 
+	bc_escape_analysis_t *be,
 	jcode_t *jc
 ) {
 	s4 high, low, def;
@@ -860,7 +860,7 @@ static void bc_escape_analysis_parse_tableswitch(
 }
 
 static void bc_escape_analysis_parse_lookupswitch(
-	bc_escape_analysis_t *be, 
+	bc_escape_analysis_t *be,
 	jcode_t *jc
 ) {
 	s4 npairs;
@@ -920,7 +920,7 @@ static void bc_escape_analysis_process_basicblock(bc_escape_analysis_t *be, jcod
 
 		length = bytecode[opc].length;
 
-#if BC_ESCAPE_VERBOSE	
+#if BC_ESCAPE_VERBOSE
 		if (be->verbose) {
 			dprintf(be->depth, "* %s, ", bytecode[opc].mnemonic);
 			op_stack_print(be->stack, stdout);
@@ -1185,7 +1185,7 @@ static void bc_escape_analysis_process_basicblock(bc_escape_analysis_t *be, jcod
 				op_stack_push(be->stack, value2);
 				op_stack_push(be->stack, value1);
 				break;
-				
+
 			case BC_dup2:
 				value1 = op_stack_get(be->stack, 1);
 				value2 = op_stack_get(be->stack, 2);
@@ -1348,7 +1348,7 @@ static void bc_escape_analysis_process_basicblock(bc_escape_analysis_t *be, jcod
 				op_stack_pop(be->stack);
 				op_stack_push_unknown(be->stack);
 				break;
-				
+
 			case BC_f2l:
 			case BC_f2d:
 				op_stack_pop(be->stack);
@@ -1487,7 +1487,7 @@ static void bc_escape_analysis_process_basicblock(bc_escape_analysis_t *be, jcod
 
 			case BC_getstatic:
 				if (
-					bc_escape_analysis_value_category(be, jcode_get_s2(jc)) == 
+					bc_escape_analysis_value_category(be, jcode_get_s2(jc)) ==
 					VALUE_CATEGORY_2
 				) {
 					op_stack_push_unknown(be->stack);
@@ -1495,10 +1495,10 @@ static void bc_escape_analysis_process_basicblock(bc_escape_analysis_t *be, jcod
 				op_stack_push_unknown(be->stack);
 				break;
 
-			
+
 			case BC_putfield:
 				if (
-					bc_escape_analysis_value_category(be, jcode_get_u2(jc)) == 
+					bc_escape_analysis_value_category(be, jcode_get_u2(jc)) ==
 					VALUE_CATEGORY_2
 				) {
 					op_stack_pop(be->stack);
@@ -1514,7 +1514,7 @@ static void bc_escape_analysis_process_basicblock(bc_escape_analysis_t *be, jcod
 
 			case BC_putstatic:
 				if (
-					bc_escape_analysis_value_category(be, jcode_get_u2(jc)) == 
+					bc_escape_analysis_value_category(be, jcode_get_u2(jc)) ==
 					VALUE_CATEGORY_2
 				) {
 					op_stack_pop(be->stack);
@@ -1589,9 +1589,9 @@ static void bc_escape_analysis_process_basicblock(bc_escape_analysis_t *be, jcod
 
 					case BC_aload:
 						op_stack_push(
-							be->stack, 
+							be->stack,
 							bc_escape_analysis_address_local(
-								be, 
+								be,
 								jcode_get_u1(jc)
 							)
 						);
@@ -1614,7 +1614,7 @@ static void bc_escape_analysis_process_basicblock(bc_escape_analysis_t *be, jcod
 						bc_escape_analysis_dirty(be, jcode_get_u2(jc));
 						bc_escape_analysis_adjust_state(be, op_stack_pop(be->stack), ESCAPE_GLOBAL);
 						break;
-						
+
 					case BC_ret:
 						/* Do nothing. */
 						break;
@@ -1725,7 +1725,7 @@ static void	bc_escape_analysis_adjust_return_value(bc_escape_analysis_t *be) {
 
 			pe = escape_state_from_u1(be->param_escape[i]);
 			re = escape_state_from_u1(be->param_escape[-1]);
-			
+
 			if (pe > re) {
 				be->param_escape[-1] = escape_state_to_u1(pe);
 			}
@@ -1803,7 +1803,7 @@ static void bc_escape_analysis_perform_intern(methodinfo *m, int depth) {
 
 	if (m->paramescape != NULL) {
 #if BC_ESCAPE_VERBOSE
-		if (verbose) {	
+		if (verbose) {
 			dprintf(depth, "Escape info for method already available.\n");
 		}
 #endif
@@ -1812,7 +1812,7 @@ static void bc_escape_analysis_perform_intern(methodinfo *m, int depth) {
 
 	if ((m->flags & ACC_METHOD_EA) != 0) {
 #if BC_ESCAPE_VERBOSE
-		if (verbose) {	
+		if (verbose) {
 			dprintf(depth, "Detected recursion, aborting.\n");
 		}
 #endif
@@ -1848,7 +1848,7 @@ static void bc_escape_analysis_perform_intern(methodinfo *m, int depth) {
 	if (be->verbose) {
 		dprintf(
 			depth,
-			"%s/%s: Non-escaping params: %d\n", 
+			"%s/%s: Non-escaping params: %d\n",
 			UTF_TEXT(m->clazz->name),
 			UTF_TEXT(m->name),
 			be->non_escaping_adr_params

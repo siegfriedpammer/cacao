@@ -26,7 +26,7 @@
 #include "config.h"
 
 #include <stdint.h>
-#include <string.h> 
+#include <string.h>
 
 #if defined(HAVE_TIME_H)
 # include <time.h>
@@ -198,8 +198,8 @@ u8 count_jni_calls=0;
 
 
 static int count_block_stack_init[11] = {
-	0, 0, 0, 0, 0, 
-	0, 0, 0, 0, 0, 
+	0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0,
 	0
 };
 int *count_block_stack = count_block_stack_init;
@@ -247,7 +247,7 @@ s4 count_schedule_critical_path = 0;
 /* jnicallXmethodinvokation ***************************************************
 
    increments the jni CallXMethod invokation count by one
-	
+
 *******************************************************************************/
 
 void jnicallXmethodnvokation(void)
@@ -260,7 +260,7 @@ void jnicallXmethodnvokation(void)
 /* jniinvokation *************************************************************
 
    increments the jni overall  invokation count by one
-	
+
 *******************************************************************************/
 
 void jniinvokation(void)
@@ -273,7 +273,7 @@ void jniinvokation(void)
 /* getcputime *********************************** ******************************
 
    Returns the used CPU time in microseconds
-	
+
 *******************************************************************************/
 
 s8 getcputime(void)
@@ -450,7 +450,7 @@ void print_stats(void)
 	dolog("Number of Try-Blocks: %d", count_tryblocks);
 
 	dolog("Number of branch_emit (total, 8bit/16bit/32bit/64bit offset): %d, %d/%d/%d/%d",
-		count_emit_branch,  count_emit_branch_8bit,  count_emit_branch_16bit, 
+		count_emit_branch,  count_emit_branch_8bit,  count_emit_branch_16bit,
 							count_emit_branch_32bit, count_emit_branch_64bit);
 
 	dolog("Maximal count of stack elements:   %d", count_max_new_stack);
@@ -724,7 +724,7 @@ void statistics_print_memory_usage(void)
 	sum =
 		count_const_pool_len +
 		count_classref_len +
-		count_parsed_desc_len + 
+		count_parsed_desc_len +
 		count_vftbl_len +
 		count_cstub_len +
 		size_stub_native +

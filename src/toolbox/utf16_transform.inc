@@ -62,22 +62,22 @@ namespace utf16_impl {
 			if ((c != 0) && (c < 0x80)) {
 				// 1 character
 				fn.utf8((char) c);
-			} else if (c < 0x800) {	    
-				// 2 characters				
+			} else if (c < 0x800) {
+				// 2 characters
 	    		unsigned char high = c >> 6;
 	    		unsigned char low  = c & 0x3F;
 
 				fn.utf8(high | 0xC0);
 				fn.utf8(low  | 0x80);
 			} else {
-		    	// 3 characters				
+		    	// 3 characters
 		    	char low  = c & 0x3f;
 		    	char mid  = (c >> 6) & 0x3F;
 		    	char high = c >> 12;
-	
-				fn.utf8(high | 0xE0); 
-				fn.utf8(mid  | 0x80);  
-				fn.utf8(low  | 0x80);   
+
+				fn.utf8(high | 0xE0);
+				fn.utf8(mid  | 0x80);
+				fn.utf8(low  | 0x80);
 			}
 		}
 

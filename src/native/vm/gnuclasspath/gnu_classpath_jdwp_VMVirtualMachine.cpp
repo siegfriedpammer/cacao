@@ -48,7 +48,7 @@
  */
 JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_suspendThread(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1)
 {
-	jvmtiError err; 
+	jvmtiError err;
 
     err = (*jvmtienv)->SuspendThread(jvmtienv, (jthread) par1);
 	printjvmtierror("VMVirtualMachine.suspendThread SuspendThread", err);
@@ -61,7 +61,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_suspendThread(JN
  */
 JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_resumeThread(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1)
 {
-	jvmtiError err; 
+	jvmtiError err;
 
     err = (*jvmtienv)->ResumeThread(jvmtienv, (jthread) par1);
 	printjvmtierror("VMVirtualMachine.resumethread ResumeThread", err);
@@ -115,12 +115,12 @@ JNIEXPORT struct java_util_Iterator* JNICALL Java_gnu_classpath_jdwp_VMVirtualMa
 	if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
 		GetLoadedClasses(jvmtienv, &classcount, &classes))) {
 		printjvmtierror("VMVirtualMachine_getAllLoadedClasses GetLoadedClasses",err);
-		
+
 		/* we should throw JDWP Exception INTERNAL = 113;*/
 /*		env->ThrowNew(env,ec,"jvmti error occoured");  */
 		return NULL;
 	}
-	
+
 	cl = (*env)->FindClass(env,"java.lang.Class");
 	if (!cl) return NULL;
 
@@ -128,10 +128,10 @@ JNIEXPORT struct java_util_Iterator* JNICALL Java_gnu_classpath_jdwp_VMVirtualMa
 	joa = (*env)->NewObjectArray(env, (jsize)classcount, cl , NULL);
 	if (!joa) return NULL;
 
-	for (i = 0; i < classcount; i++) 
+	for (i = 0; i < classcount; i++)
 		(*env)->SetObjectArrayElement(env,joa,(jsize)i, (jobject)classes[i]);
 	(*jvmtienv)->Deallocate(jvmtienv, (unsigned char*)classes);
-	
+
 	cl = (*env)->FindClass(env,"java.util.Arrays");
 	if (!cl) return NULL;
 
@@ -146,7 +146,7 @@ JNIEXPORT struct java_util_Iterator* JNICALL Java_gnu_classpath_jdwp_VMVirtualMa
 	m = (*env)->GetMethodID(env,cl,"iterator","()Ljava/util/Iterator;");
 	if (!m) return NULL;
 	oi = (*env)->CallObjectMethod(env,ol,m);
-		
+
 	return (struct java_util_Iterator*)oi;
 }
 
@@ -173,27 +173,27 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_get
     jint count;
     jmethodID* methodID, m;
    	jvmtiError err;
-	
+
 	jclass *cl;
 	jobject *ol;
 	jobjectArray joa;
 	int i;
 
     if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
-							 GetClassMethods(jvmtienv, (jclass) par1, 
+							 GetClassMethods(jvmtienv, (jclass) par1,
 											 &count, &methodID))) {
 		printjvmtierror("VMVirtualMachine_getAllClassMethods GetClassMethods", err);
 		return NULL;
 	}
-	
+
 	m = (*env)->
-		GetStaticMethodID(env, clazz, "getClassMethod", 
+		GetStaticMethodID(env, clazz, "getClassMethod",
 						  "(Ljava/lang/Class;J)Lgnu/classpath/jdwp/VMMethod;");
 	if (!m) return NULL;
-   
+
     cl = (*env)->FindClass(env,"gnu.classpath.jdwp.VMMethod");
 	if (!cl) return NULL;
-	
+
 	joa = (*env)->NewObjectArray(env, (jsize)count, cl , NULL);
 	if (!joa) return NULL;
 
@@ -216,15 +216,15 @@ JNIEXPORT struct gnu_classpath_jdwp_VMMethod* JNICALL Java_gnu_classpath_jdwp_VM
 	jclass *cl;
     jmethodID m;
     jobject *ol;
-	
+
     cl = (*env)->FindClass(env,"gnu.classpath.jdwp.VMMethod");
 	if (!cl) return NULL;
-	
+
 	m = (*env)->GetMethodID(env, cl, "<init>", "(Ljava/lang/Class;J)V");
 	if (!m) return NULL;
-	
+
     ol = (*env)->NewObject(env, cl, m, par1, par2);
-	
+
 	return (struct gnu_classpath_jdwp_VMMethod*)ol;
 }
 
@@ -275,23 +275,23 @@ JNIEXPORT int32_t JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getFrameCount
  */
 JNIEXPORT int32_t JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getThreadStatus(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1) {
 	jint status;
-	jvmtiError err; 
+	jvmtiError err;
 	if (JVMTI_ERROR_NONE != (err = (*jvmtienv)->GetThreadState(jvmtienv, (jthread)par1, &status))) {
 		printjvmtierror("VMVirtualMachine_getThreadStatus GetThreadState", err);
 		return 0;
 	}
 	if (status && JVMTI_THREAD_STATE_ALIVE) {
-		if (status && JVMTI_THREAD_STATE_WAITING) {		
+		if (status && JVMTI_THREAD_STATE_WAITING) {
 			return 4; /* WAIT - see JdwpConstants */
 		}
-		if (status && JVMTI_THREAD_STATE_BLOCKED_ON_MONITOR_ENTER) { 
+		if (status && JVMTI_THREAD_STATE_BLOCKED_ON_MONITOR_ENTER) {
 			return 3; /* MONITOR - see JdwpConstants */
 		}
-		if (status && JVMTI_THREAD_STATE_SLEEPING) { 
+		if (status && JVMTI_THREAD_STATE_SLEEPING) {
 			return 2; /* SLEEPING - see JdwpConstants */
 		}
 		return 1; /* RUNNING - see JdwpConstants */
-	} else 
+	} else
 		return 0; /* ZOMBIE - see JdwpConstants */
 	return -1; /* some error */
 }
@@ -327,7 +327,7 @@ JNIEXPORT struct gnu_classpath_jdwp_util_MethodResult* JNICALL Java_gnu_classpat
 JNIEXPORT struct java_lang_String* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getSourceFile(JNIEnv *env, jclass clazz, struct java_lang_Class* par1) {
 	char* srcname;
 	jstring str;
-	jvmtiError err; 
+	jvmtiError err;
 
     if (JVMTI_ERROR_NONE !=(err=(*jvmtienv)->
 		GetSourceFileName(jvmtienv, (jclass)par1, &srcname))) {
@@ -359,7 +359,7 @@ static jvmtiEvent EventKind2jvmtiEvent(jbyte kind){
     case /*  METHOD_ENTRY */ 40: return JVMTI_EVENT_METHOD_ENTRY;
     case /*  METHOD_EXIT */ 41: return JVMTI_EVENT_METHOD_EXIT;
     case /*  VM_INIT */ 90: return JVMTI_EVENT_VM_INIT;
-    case /*  VM_DEATH */ 99: return JVMTI_EVENT_VM_DEATH;    
+    case /*  VM_DEATH */ 99: return JVMTI_EVENT_VM_DEATH;
     case /*  VM_DISCONNECTED */ 100: return -1; /* can this be matched ? */
 	default: return -1;
 	}
@@ -377,12 +377,12 @@ JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_registerEvent(JN
 	jvmtiError err;
 
 	erc = (*env)->FindClass(env,"gnu.classpath.jdwp.event.EventRequest");
-	
+
 	kindid = (*env)->GetFieldID(env, erc, "_kind", "B");
 	kind = (*env)->GetByteField(env, (jobject)par1, kindid);
 
 	if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
-		SetEventNotificationMode(jvmtienv, JVMTI_ENABLE, 
+		SetEventNotificationMode(jvmtienv, JVMTI_ENABLE,
 								 EventKind2jvmtiEvent(kind), NULL)))
 		printjvmtierror("VMVirtualMachine_registerEvent SetEventNotificationMode",err);
 
@@ -401,12 +401,12 @@ JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_unregisterEvent(
 	jvmtiError err;
 
 	erc = (*env)->FindClass(env,"gnu.classpath.jdwp.event.EventRequest");
-	
+
 	kindid = (*env)->GetFieldID(env, erc, "_kind", "B");
 	kind = (*env)->GetByteField(env, (jobject)par1, kindid);
 
 	if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
-		SetEventNotificationMode(jvmtienv, JVMTI_DISABLE, 
+		SetEventNotificationMode(jvmtienv, JVMTI_DISABLE,
 								 EventKind2jvmtiEvent(kind), NULL)))
 		printjvmtierror("VMVirtualMachine_registerEvent SetEventNotificationMode",err);
 

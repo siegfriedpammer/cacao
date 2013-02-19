@@ -49,15 +49,15 @@ namespace utf_utils {
 		IGNORE_ERRORS,    // invalid bytes in input are skipped.
 		                  // This is the only valid action for utf16::transform
 
-		REPLACE_ON_ERROR, // Fn must have a method replacement() that returns a 
+		REPLACE_ON_ERROR, // Fn must have a method replacement() that returns a
 		                  // replacement character for invalid input
 
-		ABORT_ON_ERROR    // Fn must have a method abort() that is called if 
+		ABORT_ON_ERROR    // Fn must have a method abort() that is called if
 		                  // an error occurs, transform will return the result
 		                  // of abort.
 	};
 
-	template<VisitorType VT, ErrorAction EA> struct Tag {};	
+	template<VisitorType VT, ErrorAction EA> struct Tag {};
 }
 
 namespace utf8 {
@@ -87,7 +87,7 @@ namespace utf8 {
 		Tag<VISIT_BOTH, REPLACE_ON_ERROR>
 		Tag<VISIT_BOTH, ABORT_ON_ERROR>
 
-	If you don't explicitly specify a tag the Functor must have a public type 
+	If you don't explicitly specify a tag the Functor must have a public type
 	member called Tag that is used.
 
 *******************************************************************************/
@@ -100,7 +100,7 @@ namespace utf8 {
 
 /* decode_char *****************************************************************
 
-	Decodes one utf-16 codepoints from input, automatically advances input 
+	Decodes one utf-16 codepoints from input, automatically advances input
 	pointer to start of next codepoint.
 
 	Input MUST be valid UTF-8.
@@ -135,10 +135,10 @@ namespace utf16 {
 		Tag<VISIT_UTF8, ABORT_ON_ERROR>
 		Tag<VISIT_BOTH, ABORT_ON_ERROR>
 
-	If you don't explicitly specify a tag the Functor must have a public type 
+	If you don't explicitly specify a tag the Functor must have a public type
 	member called Tag that is used.
 
-	utf16::transform never actually fails, the Tag type is the same as for 
+	utf16::transform never actually fails, the Tag type is the same as for
 	utf8::transform to allow for reuse of functors.
 
 *******************************************************************************/
@@ -254,7 +254,7 @@ inline uint16_t utf8::decode_char(const char*& src) {
 	switch (ch1 >> 4) {
 	default: // 1 byte
 		return (uint16_t) ch1;
-	case 0xC: 
+	case 0xC:
 	case 0xD: // 2 bytes
 		ch2 = *src++;
 

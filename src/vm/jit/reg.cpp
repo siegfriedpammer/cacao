@@ -71,13 +71,13 @@ void reg_setup(jitdata *jd)
 	for (i = 0; i < INT_REG_CNT; i++) {
 		switch (nregdescint[i]) {
 		case REG_RET:
-			rd->intreg_ret = i; 
+			rd->intreg_ret = i;
 			break;
 		case REG_SAV:
 			rd->savintregs[rd->savintreguse++] = i;
 			break;
 		case REG_TMP:
-  			rd->tmpintregs[rd->tmpintreguse++] = i; 
+  			rd->tmpintregs[rd->tmpintreguse++] = i;
 			break;
 		}
 	}
@@ -102,13 +102,13 @@ void reg_setup(jitdata *jd)
 	for (i = 0; i < ADR_REG_CNT; i++) {
 		switch (nregdescadr[i]) {
 		case REG_RET:
-			rd->adrreg_ret = i; 
+			rd->adrreg_ret = i;
 			break;
 		case REG_SAV:
 			rd->savadrregs[rd->savadrreguse++] = i;
 			break;
 		case REG_TMP:
-  			rd->tmpadrregs[rd->tmpadrreguse++] = i; 
+  			rd->tmpadrregs[rd->tmpadrreguse++] = i;
 			break;
 		case REG_ARG:
 			rd->argadrregs[rd->argadrreguse++] = i;
@@ -153,7 +153,7 @@ void reg_setup(jitdata *jd)
 #if defined(SPECIALMEMUSE)
 # if defined(__DARWIN__)
 	/* 6*4=24 byte linkage area + 8*4=32 byte minimum parameter Area */
-	rd->memuse = LA_SIZE_IN_POINTERS + INT_ARG_CNT; 
+	rd->memuse = LA_SIZE_IN_POINTERS + INT_ARG_CNT;
 # else
 	rd->memuse = LA_SIZE_IN_POINTERS;
 # endif

@@ -36,41 +36,41 @@
 /* InternTable *****************************************************************
 
 	A specialized hash map that allows for parallel access by multiple threads.
-	This is achieved by splitting up the table into multiple segments. Each 
+	This is achieved by splitting up the table into multiple segments. Each
 	segment is a separate hash table protected by it's own lock.
-	We need no separate global lock for accessing segments because there is a 
+	We need no separate global lock for accessing segments because there is a
 	fixed number of segments.
 
 	Every segment itself is a simple hash table with open addressing.
 
 	TEMPLAT PARAMETERS:
 		T ..................... The type of element stored in the table.
-		                        Must have a default and a copy constructor and 
+		                        Must have a default and a copy constructor and
 		                        must be assignable.
 		                        Should be small, a pointer is optimal.
 		Hash .................. The hash function to use.
 		                        The hash of an element may never change.
 		Eq .................... The equality predicate to use.
-		concurrency_factor .... The number of segments to use. It is the maximum 
-		                        number of threads that can access the table 
+		concurrency_factor .... The number of segments to use. It is the maximum
+		                        number of threads that can access the table
 		                        concurrently. Must be a power of two.
 
 	NOTE:
-		If we don't wan't any concurrency we can use an intern table with a 
+		If we don't wan't any concurrency we can use an intern table with a
 		concurrency factor of 1, this means the table has exactly one global
 		lock without any overhead.
 
-		The design of the hash table is taken from Doug Lea's ConcurrentHashMap 
-		from OpenJDK, but the implementation of the segments is simpler 
+		The design of the hash table is taken from Doug Lea's ConcurrentHashMap
+		from OpenJDK, but the implementation of the segments is simpler
 		because we do not need to support concurrent reads.
-		
+
 		The design of the segment internal hash table is taken from CPython.
 		As presented in the book 'Beautiful Code'
 
 *******************************************************************************/
 
 // A helper for selecting which segment to use for a given object.
-// The top log2( concurrency_factor ) bits of the hash are used 
+// The top log2( concurrency_factor ) bits of the hash are used
 // as an index into the segment array.
 // Thus it is important to have a hash function that does not leave
 // the top bits empty or always the same.
@@ -120,8 +120,8 @@ class InternTable {
 			IN:
 				t ... a value to intern
 			OUT:
-				either the same as the input or, if the table already contains 
-				a value that is equal to t (checked via _Eq) that interned 
+				either the same as the input or, if the table already contains
+				a value that is equal to t (checked via _Eq) that interned
 				value.
 
 		***********************************************************************/
@@ -174,7 +174,7 @@ class InternTable {
 		struct Segment {
 			Segment() : entries(0) {}
 			~Segment() { delete[] entries; }
-			
+
 			void init(size_t capacity, float load_factor) {
 				this->entries     = new Entry[capacity];
 				this->capacity    = capacity;
@@ -241,7 +241,7 @@ class InternTable {
 			/* get entry at (index % table size) */
 			Entry* get_entry(size_t idx) {
 				return entries + (idx & (capacity - 1));
-			}				
+			}
 
 			/* FIELDS */
 
@@ -249,7 +249,7 @@ class InternTable {
 			float  load_factor; /* how full the segment may get before
 			                       resizing*/
 			size_t capacity;    /* size of the segment table */
-			size_t count;       /* numer of elements stored in the 
+			size_t count;       /* numer of elements stored in the
 			                       segment */
 			size_t threshold;   /* table will be resized when count gets
 			                       greater than threshold */
@@ -266,7 +266,7 @@ class InternTable {
 			assert(initial_capacity > 0);
 
 			// evenly divide capacity among segments
-			size_t cap = divide_rounding_up(initial_capacity, 
+			size_t cap = divide_rounding_up(initial_capacity,
 			                                concurrency_factor);
 
 			for ( size_t i = 0; i < concurrency_factor; ++i ) {

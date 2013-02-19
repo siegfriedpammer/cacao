@@ -120,7 +120,7 @@ void exceptiontable_free(codeinfo *code)
 	/* Free the exception table memory. */
 
 	et = code->exceptiontable;
- 
+
 	if (et != NULL) {
 		ete = et->entries;
 

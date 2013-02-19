@@ -34,7 +34,7 @@
 # include <assert.h>
 /* # define GRAPH_DEBUG_CHECK */
 # define GRAPH_DEBUG_VERBOSE
-#endif 
+#endif
 
 #ifdef GRAPH_DEBUG_CHECK
 # define _GRAPH_CHECK_BOUNDS(i,l,h) assert( ((i) >= (l)) && ((i) < (h)));
@@ -80,7 +80,7 @@ extern "C" {
 void transform_BB(jitdata *, graphdata *gd);
 graphdata *graph_init(int basicblockcount);
                                             /* Generate the CFG */
-void graph_make_cfg(jitdata *,graphdata *); 
+void graph_make_cfg(jitdata *,graphdata *);
 void graph_DFS(lsradata *ls, graphdata *gd);
 int graph_get_first_successor(graphdata *gd, int b_index, graphiterator *i);
 int graph_get_first_predecessor(graphdata *gd, int b_index, graphiterator *i);

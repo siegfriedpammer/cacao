@@ -184,7 +184,7 @@ bool cfg_build(jitdata *jd)
 			if (iptr == bptr->iinstr) {
 				continue;
 			}
-			
+
 			iptr--;
 
 			while (iptr->opc == ICMD_NOP) {
@@ -251,7 +251,7 @@ bool cfg_build(jitdata *jd)
 				table++;
 			}
 			break;
-					
+
 		case CF_LOOKUP:
 			lookup = iptr->dst.lookup;
 
@@ -319,7 +319,7 @@ bool cfg_build(jitdata *jd)
 			if (iptr == bptr->iinstr) {
 				continue;
 			}
-			
+
 			iptr--;
 
 			while (iptr->opc == ICMD_NOP) {
@@ -407,7 +407,7 @@ goto_tail:
 				cfg_insert_predecessors(tbptr, bptr);
 			}
 			break;
-					
+
 		case CF_LOOKUP:
 			lookup = iptr->dst.lookup;
 
@@ -465,7 +465,7 @@ goto_tail:
 
    Adds an empty root basicblock.
    The numbers of all other basicblocks are set off by one.
-   Needed for some analyses that require the root basicblock to have no 
+   Needed for some analyses that require the root basicblock to have no
    predecessors and to perform special initializations.
 
 *******************************************************************************/
@@ -522,10 +522,10 @@ void cfg_remove_root(jitdata *jd) {
 static void cfg_eliminate_edges_to_unreachable(jitdata *jd);
 
 /* cfg_add_exceptional_edges ***************************************************
- 
-   Edges from basicblocks to their exception handlers and from exception 
+
+   Edges from basicblocks to their exception handlers and from exception
    handlers to the blocks they handle exceptions for are added. Further
-   the number of potentially throwing instructions in the basicblocks are 
+   the number of potentially throwing instructions in the basicblocks are
    counted.
 
    We don't consider nor do we determine the types of exceptions thrown. Edges
@@ -553,7 +553,7 @@ void cfg_add_exceptional_edges(jitdata *jd) {
 		}
 
 		FOR_EACH_INSTRUCTION(bptr, iptr) {
-			if (icmd_table[iptr->opc].flags & ICMDTABLE_PEI) {	
+			if (icmd_table[iptr->opc].flags & ICMDTABLE_PEI) {
 				bptr->exouts += 1;
 			}
 		}
@@ -588,7 +588,7 @@ void cfg_add_exceptional_edges(jitdata *jd) {
 
 				if (bptr->exhandlers == NULL) {
 					bptr->exhandlers = DMNEW(basicblock *, bptr->exhandlercount);
-					/* Move pointer past the end of the array, 
+					/* Move pointer past the end of the array,
 					 * It will be filled in the reverse order.
 					 */
 					bptr->exhandlers += bptr->exhandlercount;
@@ -611,7 +611,7 @@ void cfg_add_exceptional_edges(jitdata *jd) {
 	if (unreachable_exh) {
 
 		/* This is rare in ``normal'' compiler generated code.
-		  
+
 		   The dead block [EXH] is a predecessor of [BB1],
 		   but the edge [EXH] -> [BB1] will never be traversed.
 
@@ -621,7 +621,7 @@ void cfg_add_exceptional_edges(jitdata *jd) {
 		*/
 
 		/*
-		fprintf(stderr, "Found unreachable exh, adjusting %s %s", 
+		fprintf(stderr, "Found unreachable exh, adjusting %s %s",
 			UTF_TEXT(jd->m->klazz->name), UTF_TEXT(jd->m->name));
 		fprintf(stderr, "<before>\n");
 		show_method(jd, 3);

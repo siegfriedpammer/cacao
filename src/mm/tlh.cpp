@@ -46,14 +46,14 @@ static inline bool tlh_avail(tlh_t *tlh, unsigned n) {
 void tlh_init(tlh_t *tlh) {
 
 	void *heap = mmap(
-		NULL, 
-		TLH_MAX_SIZE, 
-		PROT_READ|PROT_WRITE, 
-		MAP_ANONYMOUS|MAP_PRIVATE, 
-		-1, 
+		NULL,
+		TLH_MAX_SIZE,
+		PROT_READ|PROT_WRITE,
+		MAP_ANONYMOUS|MAP_PRIVATE,
+		-1,
 		0
 	);
-	
+
 	if (heap == MAP_FAILED) {
 		/* The top pointer points to end, so all allocations will fail. */
 		tlh->start = NULL;

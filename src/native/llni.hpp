@@ -61,7 +61,7 @@
 
 
 /* LLNI_equals ****************************************************************
- 
+
    Test if two java_handle_t* point to the same java_object_t*.
 
 ******************************************************************************/
@@ -70,10 +70,10 @@
 	LLNI_CRITICAL_START; \
 	(result) = LLNI_UNWRAP(obj1) == LLNI_UNWRAP(obj2); \
 	LLNI_CRITICAL_END
-	
+
 
 /* LLNI_classinfo_field_get ***************************************************
- 
+
    Get a field from classinfo that is a java object.
 
 ******************************************************************************/
@@ -85,7 +85,7 @@
 
 
 /* LLNI_classinfo_field_set ***************************************************
- 
+
    Set a field from classinfo that is a java object.
 
 ******************************************************************************/

@@ -253,7 +253,7 @@ s4 dseg_add_s4(codegendata *cd, s4 value)
 
 	if (disp != 0)
 		return disp;
-		
+
 	disp = dseg_add_s4_intern(cd, value, DSEG_FLAG_READONLY);
 
 	return disp;
@@ -326,7 +326,7 @@ s4 dseg_add_s8(codegendata *cd, s8 value)
 
 	if (disp != 0)
 		return disp;
-		
+
 	disp = dseg_add_s8_intern(cd, value, DSEG_FLAG_READONLY);
 
 	return disp;
@@ -342,7 +342,7 @@ s4 dseg_add_s8(codegendata *cd, s8 value)
 static s4 dseg_add_float_intern(codegendata *cd, float value, u4 flags)
 {
 	dsegentry *de;
-		
+
 	/* Increase data segment size, which is also the displacement into
 	   the data segment. */
 
@@ -399,7 +399,7 @@ s4 dseg_add_float(codegendata *cd, float value)
 
 	if (disp != 0)
 		return disp;
-		
+
 	disp = dseg_add_float_intern(cd, value, DSEG_FLAG_READONLY);
 
 	return disp;
@@ -415,7 +415,7 @@ s4 dseg_add_float(codegendata *cd, float value)
 static s4 dseg_add_double_intern(codegendata *cd, double value, u4 flags)
 {
 	dsegentry *de;
-		
+
 	/* Increase data segment size, which is also the displacement into
 	   the data segment. */
 
@@ -472,7 +472,7 @@ s4 dseg_add_double(codegendata *cd, double value)
 
 	if (disp != 0)
 		return disp;
-		
+
 	disp = dseg_add_double_intern(cd, value, DSEG_FLAG_READONLY);
 
 	return disp;
@@ -549,7 +549,7 @@ s4 dseg_add_address(codegendata *cd, void *value)
 
 	if (disp != 0)
 		return disp;
-		
+
 	disp = dseg_add_address_intern(cd, value, DSEG_FLAG_READONLY);
 
 	return disp;

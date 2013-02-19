@@ -73,7 +73,7 @@ bv_to_string
 Transforms the bitvector bv to a string of 1's and 0's.
 
 IN: bitvector bv      bitvector created with bv_new()
-    int       size    size of bitvector bv 
+    int       size    size of bitvector bv
 
 IN/OUT:   char      *string allocated buffer, at least size + 1 elements
 
@@ -84,7 +84,7 @@ char *bv_to_string(bitvector bv, char *string, int size) {
 
 	_BV_ASSERT(bv[0] == size);
 
-	for(i = 0; i < size; i++) 
+	for(i = 0; i < size; i++)
 		if (bv_get_bit(bv, i))
 			string[i]='1';
 		else
@@ -99,7 +99,7 @@ bv_new
 
 Creates a new bitvector and initializes all bits to 0.
 
-IN: int       size    size of bitvector bv 
+IN: int       size    size of bitvector bv
 
 RETURN: bitvector
 
@@ -115,7 +115,7 @@ bitvector bv_new(int size) {
 	bv = (int*) DumpMemory::allocate(sizeof(int) * n);
 
 	for(i = 0; i < n; i++) bv[i] = 0;
-   
+
 #ifdef BV_DEBUG_CHECK
 	bv[0] = size;
 #endif
@@ -129,7 +129,7 @@ bv_get_bit
 Checks if a specific bit of the bitvector is set.
 
 IN:   bitvector bv
-      int       bit    Index of bit to check (0..size( 
+      int       bit    Index of bit to check (0..size(
 
 RETURN:  bool      true if bit is set otherwise false
 *******************************************************************************/
@@ -151,7 +151,7 @@ bv_set_bit
 Sets a specific bit of the bitvector
 
 IN:   bitvector bv
-      int       bit    Index of bit to set (0..size( 
+      int       bit    Index of bit to set (0..size(
 *******************************************************************************/
 void bv_set_bit(bitvector bv, int bit) {
 	int i, n;
@@ -172,7 +172,7 @@ bv_reset_bit
 Resets a specific bit of the bitvector
 
 IN:   bitvector bv
-      int       bit    Index of bit to reset (0..size( 
+      int       bit    Index of bit to reset (0..size(
 *******************************************************************************/
 void bv_reset_bit(bitvector bv, int bit) {
 	int i, n;
@@ -203,9 +203,9 @@ void bv_reset(bitvector bv, int size) {
 	n = BV_NUM_INTS(size);
 
 #ifdef BV_DEBUG_CHECK
-	for(i = 1; i < n; i++) 
+	for(i = 1; i < n; i++)
 #else
-	for(i = 0; i < n; i++) 
+	for(i = 0; i < n; i++)
 #endif
 		bv[i] = 0;
 }
@@ -230,9 +230,9 @@ bool bv_is_empty(bitvector bv, int size) {
 
 	empty = true;
 #ifdef BV_DEBUG_CHECK
-	for(i = 1; (i < n) && empty; i++) 
+	for(i = 1; (i < n) && empty; i++)
 #else
-	for(i = 0; (i < n) && empty; i++) 
+	for(i = 0; (i < n) && empty; i++)
 #endif
 		empty = empty && (bv[i] == 0);
 	return empty;
@@ -255,9 +255,9 @@ void bv_copy(bitvector dst, bitvector src, int size) {
 	n = BV_NUM_INTS(size);
 
 #ifdef BV_DEBUG_CHECK
-	for(i = 1; i < n; i++) 
+	for(i = 1; i < n; i++)
 #else
-	for(i = 0; i < n; i++) 
+	for(i = 0; i < n; i++)
 #endif
 		dst[i] = src[i];
 }
@@ -287,9 +287,9 @@ bool bv_equal(bitvector s1, bitvector s2, int size) {
 	n = BV_NUM_INTS(size);
 
 #ifdef BV_DEBUG_CHECK
-	for(i = 1; equal && (i < n-1); i++) 
+	for(i = 1; equal && (i < n-1); i++)
 #else
-	for(i = 0; equal && (i < n-1); i++) 
+	for(i = 0; equal && (i < n-1); i++)
 #endif
 		equal = (s1[i] == s2[i]);
 
@@ -307,7 +307,7 @@ bool bv_equal(bitvector s1, bitvector s2, int size) {
 	} else {
 		mask = (1<<(n+1)) - 1;
 	}
-	
+
 	equal = equal && ( (s1[i]&mask) == (s2[i]&mask));
 
 	return equal;
@@ -333,9 +333,9 @@ void bv_minus(bitvector d, bitvector s1, bitvector s2, int size) {
 	_BV_ASSERT(s2[0] == size);
 	n = BV_NUM_INTS(size);
 #ifdef BV_DEBUG_CHECK
-	for(i = 1; i < n; i++) 
+	for(i = 1; i < n; i++)
 #else
-	for(i = 0; i < n; i++) 
+	for(i = 0; i < n; i++)
 #endif
 		d[i] = s1[i] & (~s2[i]);
 }
@@ -360,9 +360,9 @@ void bv_union(bitvector d, bitvector s1, bitvector s2, int size) {
 	_BV_ASSERT(s2[0] == size);
 	n = BV_NUM_INTS(size);
 #ifdef BV_DEBUG_CHECK
-	for(i = 1; i < n; i++) 
+	for(i = 1; i < n; i++)
 #else
-	for(i = 0; i < n; i++) 
+	for(i = 0; i < n; i++)
 #endif
 		d[i] = s1[i] | s2[i];
 }

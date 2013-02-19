@@ -53,7 +53,7 @@
 /* in_  inline statistics */
 
 #define IN_MAX                  9
-#define IN_UNIQUEVIRT           0x0000 
+#define IN_UNIQUEVIRT           0x0000
 #define IN_UNIQUE_INTERFACE     0x0001
 #define IN_OUTSIDERS            0x0004
 #define IN_MAXDEPTH             0x0008
@@ -66,12 +66,12 @@
 #define N_UNIQUEVIRT            0
 #define N_UNIQUE_INTERFACE      1
 #define N_OUTSIDERS             2
-#define N_MAXDEPTH		3	
-#define N_MAXCODE               4 
-#define N_JCODELENGTH           5 
-#define N_EXCEPTION            6 
-#define N_NOT_UNIQUE_VIRT       7 
-#define N_NOT_UNIQUE_INTERFACE  8 
+#define N_MAXDEPTH		3
+#define N_MAXCODE               4
+#define N_JCODELENGTH           5
+#define N_EXCEPTION            6
+#define N_NOT_UNIQUE_VIRT       7
+#define N_NOT_UNIQUE_INTERFACE  8
 
 
 /* global variables ***********************************************************/

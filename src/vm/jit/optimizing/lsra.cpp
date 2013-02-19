@@ -88,7 +88,7 @@ void lsra(jitdata *jd) {
 #if defined(ENABLE_STATISTICS)
 	int locals_start;
 	int i,j;
-#endif	
+#endif
 #if defined(LSRA_DEBUG_CHECK)
 #if 0
 	int b_index;
@@ -116,7 +116,7 @@ void lsra(jitdata *jd) {
 #if defined(LSRA_DEBUG_VERBOSE)
 				if (compileverbose) {
 					if (in->varkind == ARGVAR) printf("ARGVAR in instack: \n");
-					if (in->varkind == LOCALVAR) 
+					if (in->varkind == LOCALVAR)
 						printf("LOCALVAR in instack\n");
 				}
 #endif
@@ -153,7 +153,7 @@ void lsra(jitdata *jd) {
 	        { int dummy=1; dummy++; }
 #endif
 #endif
-			
+
 	lsra_setup(jd);
 
 #if defined(ENABLE_STATISTICS)
@@ -161,14 +161,14 @@ void lsra(jitdata *jd) {
 	if (opt_stat) {
 		/* local Variable Lifetimes are at the end of the lifetime array and */
 		/* have v_index >= 0 */
-		for (locals_start = ls->lifetimecount-1; (locals_start >=0) && 
+		for (locals_start = ls->lifetimecount-1; (locals_start >=0) &&
 			(ls->lifetime[ls->lt_used[locals_start]].v_index >= 0);
 			 locals_start--);
 		for (i=locals_start + 1; i < ls->lifetimecount; i++)
 			for (j=i+1; j < ls->lifetimecount; j++)
-				if ( !((ls->lifetime[ls->lt_used[i]].i_end 
-					   < ls->lifetime[ls->lt_used[j]].i_start) 
-					|| (ls->lifetime[ls->lt_used[j]].i_end < 
+				if ( !((ls->lifetime[ls->lt_used[i]].i_end
+					   < ls->lifetime[ls->lt_used[j]].i_start)
+					|| (ls->lifetime[ls->lt_used[j]].i_end <
 					   ls->lifetime[ls->lt_used[i]].i_start)) )
 					count_locals_conflicts += 2;
 	 }
@@ -234,7 +234,7 @@ void lsra_reg_setup(jitdata *jd,
 
 	int_reg->nregdesc = nregdescint;
 	flt_reg->nregdesc = nregdescfloat;
-	if (code_is_leafmethod(jd->code)) { 
+	if (code_is_leafmethod(jd->code)) {
 		/* Temp and Argumentregister can be used as saved registers */
 
 		int_reg->sav_top = INT_ARG_CNT + INT_TMP_CNT + INT_SAV_CNT;
@@ -268,18 +268,18 @@ void lsra_reg_setup(jitdata *jd,
 				if (IS_INT_LNG_TYPE(md->paramtypes[i].type)) {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 					if (IS_2_WORD_TYPE(md->paramtypes[i].type)) {
-						int_reg->sav_reg[--int_sav_top] = 
+						int_reg->sav_reg[--int_sav_top] =
 							GET_HIGH_REG(md->params[i].regoff);
 						intarg_used[GET_HIGH_REG(md->params[i].regoff)]=true;
 						/*used -> don't copy later on */
-						int_reg->sav_reg[--int_sav_top] = 
+						int_reg->sav_reg[--int_sav_top] =
 							GET_LOW_REG(md->params[i].regoff);
 						intarg_used[GET_LOW_REG(md->params[i].regoff)]=true;
 						/*used -> don't copy later on */
 					} else
 #endif
 					{ /* !IS_2_WORD_TYPE(md->paramtypes[i].type */
-						int_reg->sav_reg[--int_sav_top] = 
+						int_reg->sav_reg[--int_sav_top] =
 							md->params[i].regoff;
 						intarg_used[md->params[i].regoff]=true;
 						/*used -> don't copy later on */
@@ -290,12 +290,12 @@ void lsra_reg_setup(jitdata *jd,
 				/* integer registers. But these integer argument registers    */
 				/* still be used in the method! */
 				else { /* IS_FLT_DBL_TYPE(md->paramtypes[i].type */
-						flt_reg->sav_reg[--flt_sav_top] = 
+						flt_reg->sav_reg[--flt_sav_top] =
 							md->params[i].regoff;
 						fltarg_used[md->params[i].regoff]=true;
 				}
 #endif
-					
+
 			}
 		}
 
@@ -400,7 +400,7 @@ void lsra_qsort( struct lsradata *ls, int *a, int lo, int hi) {
 					tmp = a[i];
 					a[i] = a[j];
 					a[j] = tmp;
-			
+
 					i++;
 					j--;
 				}
@@ -433,7 +433,7 @@ void lsra_param_sort(struct lsradata *ls, int *lifetime, int lifetime_count) {
 					lifetime[i]=lifetime[j];
 					lifetime[j]=tmp;
 				}
-	}			
+	}
 }
 
 void lsra_main(jitdata *jd)
@@ -518,7 +518,7 @@ void lsra_main(jitdata *jd)
 		printf("Int RA complete \n");
 		printf("Lifetimes after splitting int: \n");
 		print_lifetimes(jd, ls->lt_int, ls->lt_int_count);
-		
+
 		printf("Flt RA complete \n");
 		printf("Lifetimes after splitting flt:\n");
 		print_lifetimes(jd, ls->lt_flt, ls->lt_flt_count);
@@ -617,7 +617,7 @@ void _lsra_main( jitdata *jd, int *lifet, int lifetimecount,
 
 	m = jd->m;
 	ls = jd->ls;
-	
+
 #if !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 	regsneeded = 0;
 #endif
@@ -728,7 +728,7 @@ void _lsra_expire_old_intervalls(jitdata *jd, struct lifetime *lt,
 		if (active[i]->i_end > lt->i_start) break;
 
 		/* make active[i]->reg available again */
-		if (code_is_leafmethod(jd->code)) { 
+		if (code_is_leafmethod(jd->code)) {
 			/* leafmethod -> don't care about type -> put all again into */
 			/* reg->sav_reg */
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
@@ -738,7 +738,7 @@ void _lsra_expire_old_intervalls(jitdata *jd, struct lifetime *lt,
 			} else
 #endif
 				reg->sav_reg[reg->sav_top++] = active[i]->regoff;
-		} else { 
+		} else {
 			/* no leafmethod -> distinguish between temp and saved register */
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 			if (active[i]->type == TYPE_LNG) {
@@ -760,7 +760,7 @@ void _lsra_expire_old_intervalls(jitdata *jd, struct lifetime *lt,
 			}
 		}
 	}
-	
+
 	/* active[0..i[ is to be removed */
 	/* -> move [i..*active_top[ to [0..*active_top-i[ */
 	for(k = 0, j = i; (j < *active_top); k++,j++)
@@ -800,7 +800,7 @@ void _spill_at_intervall(struct lifetime *lt, struct lifetime **active,
 		lt->regoff = -1;
 		return;
 	}
-	
+
 	i = *active_top - 1;
 #ifdef USAGE_COUNT
 #if 0
@@ -830,14 +830,14 @@ void _spill_at_intervall(struct lifetime *lt, struct lifetime **active,
 		if ((active[i]->type == TYPE_LNG) != (lt->type == TYPE_LNG))
 			return;
 #endif
-		
+
 		lt->regoff = active[i]->regoff;
 		active[i]->regoff = -1;
 
 		(*active_top)--;
 		for (j = i; j < *active_top; j++)
 			active[j] = active[j + 1];
-		
+
 		lsra_add_active(lt, active, active_top);
 	} else {
 		lt->regoff = -1;
@@ -863,7 +863,7 @@ void lsra_calc_lifetime_length(jitdata *jd)
 	icount_block[0] = icount = 0 /* + ls->max_vars_with_indices + 1 */;
 	for (i=1; i < ls->basicblockcount; i++) {
 		if (ls->sorted[i-1] != -1)
-			icount += ls->basicblocks[ls->sorted[i-1]]->icount + 1 + 
+			icount += ls->basicblocks[ls->sorted[i-1]]->icount + 1 +
 				ls->varcount_with_indices;
 		if (ls->sorted[i] != -1)
 			icount_block[i] = icount;
@@ -882,7 +882,7 @@ void lsra_calc_lifetime_length(jitdata *jd)
 	for(lt_index = 0 ;lt_index < ls->lifetimecount; lt_index++) {
 		if ( ls->lifetime[lt_index].type != -1) { /* used lifetime */
 			/* remember lt_index in lt_sorted */
-			ls->lt_used[lifetimecount ++] = lt_index; 
+			ls->lt_used[lifetimecount ++] = lt_index;
 			lt = &(ls->lifetime[lt_index]);
 
 			/* compute lt->bb_first_def, i_first_def, bb_last_use and */
@@ -901,7 +901,7 @@ void lsra_calc_lifetime_length(jitdata *jd)
 			/* with i==l and/or j==k  */
 			/* to resolve this during codegeneration a temporary register     */
 			/* would be needed */
-			if (lt->type == TYPE_LNG) 
+			if (lt->type == TYPE_LNG)
 				lt->i_last_use++;
 #endif
 
@@ -962,10 +962,10 @@ void lsra_calc_lifetime_length(jitdata *jd)
 				/* unused Vars are not regarded by lifeness_analysis! */
 				_LSRA_ASSERT(lt->def != NULL)
 				_LSRA_ASSERT(lt->def->next == NULL)
-				
+
 				if (compileverbose) {
 					printf("--------- Warning: variable not used! ---------");
-					printf("vi: %i start: %i end: %i\n", lt->v_index, 
+					printf("vi: %i start: %i end: %i\n", lt->v_index,
 						   lt->i_start, lt->i_end);
 				}
 				lt->bb_last_use = lt->bb_first_def;
@@ -977,7 +977,7 @@ void lsra_calc_lifetime_length(jitdata *jd)
 			if (lt->i_start < 0)
 				printf("------- Error: Lt %3i Vi %4i invalid!\n",lt_index, lt->v_index);
 
-			if (lt->i_start > lt->i_end) 
+			if (lt->i_start > lt->i_end)
 				printf("--------- Warning: last use before first def! vi: %i start: %i end: %i\n", lt->v_index, lt->i_start, lt->i_end);
 
 #ifdef USAGE_PER_INSTR

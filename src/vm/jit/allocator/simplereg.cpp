@@ -368,19 +368,19 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 					if (!code_is_leafmethod(code) && AVAIL_ARG_ADR) {
 						flags |= ARGREG;
 						TAKE_ARG_ADR(regoff);
-					} 
+					}
 					else if (AVAIL_TMP_ADR) {
 						TAKE_TMP_ADR(regoff);
-					} 
+					}
 					else if (AVAIL_SAV_ADR) {
 						flags |= SAVREG;
 						TAKE_SAV_ADR(regoff);
-					} 
+					}
 					else {
 						flags |= INMEMORY;
 						regoff = rd->memuse++ * SIZE_OF_STACKSLOT;
-					}						
-				} 
+					}
+				}
 				else /* !IS_ADR_TYPE */
 #endif /* defined(HAS_ADDRESS_REGISTER_FILE) */
 				{
@@ -389,18 +389,18 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 							/* Reuse memory slot(s)/register(s) for shared interface slots */
 							flags |= jd->interface_map[fltalloc].flags & ~SAVEDVAR;
 							regoff = jd->interface_map[fltalloc].regoff;
-						} 
+						}
 						else if (AVAIL_ARG_FLT) {
 							flags |= ARGREG;
 							TAKE_ARG_FLT(regoff);
-						} 
+						}
 						else if (AVAIL_TMP_FLT) {
 							TAKE_TMP_FLT(regoff);
-						} 
+						}
 						else if (AVAIL_SAV_FLT) {
 							flags |= SAVREG;
 							TAKE_SAV_FLT(regoff);
-						} 
+						}
 						else {
 							flags |= INMEMORY;
 							NEW_MEM_SLOT_FLT_DBL(regoff);
@@ -415,7 +415,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 						if (IS_2_WORD_TYPE(t)) {
 							flags |= INMEMORY;
 							NEW_MEM_SLOT_INT_LNG(regoff);
-						} 
+						}
 						else
 #endif
 							if (intalloc >= 0) {
@@ -424,11 +424,11 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 								regoff = jd->interface_map[intalloc].regoff;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 								/* reuse lower half */
-								if (!(flags & INMEMORY) 
+								if (!(flags & INMEMORY)
 										&& IS_2_WORD_TYPE(intalloc % 5))
 									regoff = GET_LOW_REG(regoff);
 #endif
-							} 
+							}
 							else {
 								if (AVAIL_ARG_INT) {
 									flags |= ARGREG;
@@ -449,8 +449,8 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 
 						intalloc = s * 5 + t;
 					} /* if (IS_FLT_DBL_TYPE(t)) */
-				} 
-			} 
+				}
+			}
 			else { /* (saved) */
 				/* now the same like above, but without a chance to take a temporary register */
 #ifdef HAS_ADDRESS_REGISTER_FILE
@@ -461,8 +461,8 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 					else {
 						flags |= INMEMORY;
 						regoff = rd->memuse++ * SIZE_OF_STACKSLOT;
-					}						
-				} 
+					}
+				}
 				else
 #endif
 				{
@@ -470,7 +470,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 						if (fltalloc >= 0) {
 							flags |= jd->interface_map[fltalloc].flags & ~SAVEDVAR;
 							regoff = jd->interface_map[fltalloc].regoff;
-						} 
+						}
 						else {
 							if (AVAIL_SAV_FLT) {
 								TAKE_SAV_FLT(regoff);
@@ -490,7 +490,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 						if (IS_2_WORD_TYPE(t)) {
 							flags |= INMEMORY;
 							NEW_MEM_SLOT_INT_LNG(regoff);
-						} 
+						}
 						else
 #endif
 						{
@@ -503,11 +503,11 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 										&& IS_2_WORD_TYPE(intalloc % 5))
 									regoff = GET_LOW_REG(regoff);
 #endif
-							} 
+							}
 							else {
 								if (AVAIL_SAV_INT) {
 									TAKE_SAV_INT(regoff);
-								} 
+								}
 								else {
 									flags |= INMEMORY;
 									NEW_MEM_SLOT_INT_LNG(regoff);
@@ -582,9 +582,9 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 			 *  The order of
 			 *
 			 *  #ifdef HAS_ADDRESS_REGISTER_FILE
-			 *  if (IS_ADR_TYPE) { 
+			 *  if (IS_ADR_TYPE) {
 			 *  ...
-			 *  } else 
+			 *  } else
 			 *  #endif
 			 *  if (IS_FLT_DBL) {
 			 *  ...
@@ -607,7 +607,7 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 				}
 				/* use unused argument registers as local registers */
 				else if ((p >= md->paramcount) &&
-						 (aargcnt < ADR_ARG_CNT)) 
+						 (aargcnt < ADR_ARG_CNT))
 				{
 					v->flags = 0;
 					POP_FRONT(rd->argadrregs, aargcnt, v->vv.regoff);
@@ -619,8 +619,8 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 				else {
 					v->flags |= INMEMORY;
 					v->vv.regoff = rd->memuse++ * SIZE_OF_STACKSLOT;
-				}						
-			} 
+				}
+			}
 			else {
 #endif
 				if (IS_FLT_DBL_TYPE(t)) {
@@ -656,7 +656,7 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 					}
 					fltalloc = jd->local_map[s * 5 + t];
 
-				} 
+				}
 				else {
 #if (SIZEOF_VOID_P == 4) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 					/*
@@ -665,8 +665,8 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 					if (IS_2_WORD_TYPE(t)) {
 						v->flags = INMEMORY;
 						NEW_MEM_SLOT_INT_LNG(v->vv.regoff);
-					} 
-					else 
+					}
+					else
 #endif
 					{
 						if (intalloc >= 0) {
@@ -680,8 +680,8 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 #endif
 								v->vv.regoff = VAR(intalloc)->vv.regoff;
 						}
-						else if ((p < md->paramcount) && 
-								 !md->params[p].inmemory) 
+						else if ((p < md->paramcount) &&
+								 !md->params[p].inmemory)
 						{
 							v->flags = 0;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
@@ -701,7 +701,7 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 						 * use unused argument registers as local registers
 						 */
 						else if ((p >= m->parseddesc->paramcount) &&
-								 (iargcnt + intregsneeded < INT_ARG_CNT)) 
+								 (iargcnt + intregsneeded < INT_ARG_CNT))
 						{
 							v->flags = 0;
 							POP_FRONT_INT(abi_registers_integer_argument,
@@ -788,7 +788,7 @@ static void simplereg_allocate_locals(jitdata *jd)
 						v->flags = INMEMORY;
 						v->vv.regoff = rd->memuse++ * SIZE_OF_STACKSLOT;
 					}
-				} 
+				}
 				else {
 #endif
 				if (IS_FLT_DBL_TYPE(t)) {
@@ -814,7 +814,7 @@ static void simplereg_allocate_locals(jitdata *jd)
 					if (IS_2_WORD_TYPE(t)) {
 						v->flags = INMEMORY;
 						NEW_MEM_SLOT_INT_LNG(v->vv.regoff);
-					} 
+					}
 					else {
 #endif
 						if (intalloc >= 0) {
@@ -996,12 +996,12 @@ static void simplereg_new_temp(jitdata *jd, s4 index)
 				if (AVAIL_FREE_SAV_ADR) {
 					TAKE_FREE_SAV_ADR(v->vv.regoff);
 					return;
-				} 
+				}
 				else if (AVAIL_SAV_ADR) {
 					TAKE_SAV_ADR(v->vv.regoff);
 					return;
 				}
-			} 
+			}
 			else
 #endif
 			{
@@ -1009,12 +1009,12 @@ static void simplereg_new_temp(jitdata *jd, s4 index)
 					if (AVAIL_FREE_SAV_FLT) {
 						TAKE_FREE_SAV_FLT(v->vv.regoff);
 						return;
-					} 
+					}
 					else if (AVAIL_SAV_FLT) {
 						TAKE_SAV_FLT(v->vv.regoff);
 						return;
 					}
-				} 
+				}
 				else {
 #if (SIZEOF_VOID_P == 4) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 					/*
@@ -1026,7 +1026,7 @@ static void simplereg_new_temp(jitdata *jd, s4 index)
 						if (AVAIL_FREE_SAV_INT) {
 							TAKE_FREE_SAV_INT(v->vv.regoff);
 							return;
-						} 
+						}
 						else if (AVAIL_SAV_INT) {
 							TAKE_SAV_INT(v->vv.regoff);
 							return;
@@ -1034,19 +1034,19 @@ static void simplereg_new_temp(jitdata *jd, s4 index)
 					}
 				}
 			}
-		} 
+		}
 		else { /* tryagain == 2 */
 #ifdef HAS_ADDRESS_REGISTER_FILE
 			if (IS_ADR_TYPE(v->type)) {
 				if (AVAIL_FREE_TMP_ADR) {
 					TAKE_FREE_TMP_ADR(v->vv.regoff);
 					return;
-				} 
+				}
 				else if (AVAIL_TMP_ADR) {
 					TAKE_TMP_ADR(v->vv.regoff);
 					return;
 				}
-			} 
+			}
 			else
 #endif
 			{
@@ -1055,22 +1055,22 @@ static void simplereg_new_temp(jitdata *jd, s4 index)
 						v->flags |= ARGREG;
 						TAKE_FREE_ARG_FLT(v->vv.regoff);
 						return;
-					} 
+					}
 					else if (AVAIL_ARG_FLT) {
 						v->flags |= ARGREG;
 						TAKE_ARG_FLT(v->vv.regoff);
 						return;
-					} 
+					}
 					else if (AVAIL_FREE_TMP_FLT) {
 						TAKE_FREE_TMP_FLT(v->vv.regoff);
 						return;
-					} 
+					}
 					else if (AVAIL_TMP_FLT) {
 						TAKE_TMP_FLT(v->vv.regoff);
 						return;
 					}
 
-				} 
+				}
 				else {
 #if (SIZEOF_VOID_P == 4) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 					/*
@@ -1083,16 +1083,16 @@ static void simplereg_new_temp(jitdata *jd, s4 index)
 							v->flags |= ARGREG;
 							TAKE_FREE_ARG_INT(v->vv.regoff);
 							return;
-						} 
+						}
 						else if (AVAIL_ARG_INT) {
 							v->flags |= ARGREG;
 							TAKE_ARG_INT(v->vv.regoff);
 							return;
-						} 
+						}
 						else if (AVAIL_FREE_TMP_INT) {
 							TAKE_FREE_TMP_INT(v->vv.regoff);
 							return;
-						} 
+						}
 						else if (AVAIL_TMP_INT) {
 							TAKE_TMP_INT(v->vv.regoff);
 							return;
@@ -1160,7 +1160,7 @@ static void simplereg_free(registerdata *rd, s4 flags, s4 regoff, s4 type)
 	if (flags & INMEMORY) {
 		PUSH_BACK(rd->freemem, rd->freememtop, regoff);
 		return;
-	} 
+	}
 
 	/* freeing a register */
 
@@ -1170,7 +1170,7 @@ static void simplereg_free(registerdata *rd, s4 flags, s4 regoff, s4 type)
 			PUSH_FREE_SAV_ADR(regoff);
 		else
 			PUSH_FREE_TMP_ADR(regoff);
-	} 
+	}
 #endif
 	else if (IS_FLT_DBL_TYPE(type)) {
 		if (flags & (SAVEDVAR | SAVREG))
@@ -1179,7 +1179,7 @@ static void simplereg_free(registerdata *rd, s4 flags, s4 regoff, s4 type)
 			PUSH_FREE_ARG_FLT(regoff);
 		else
 			PUSH_FREE_TMP_FLT(regoff);
-	} 
+	}
 	else { /* IS_INT_LNG_TYPE */
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 		s4 intregsneeded = (IS_2_WORD_TYPE(type)) ? 1 : 0;
@@ -1298,7 +1298,7 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 
 			/* set allocation of invars */
 
-			for (i=0; i<bptr->indepth; ++i) 
+			for (i=0; i<bptr->indepth; ++i)
 			{
 				v = VAR(bptr->invars[i]);
 				if (v->type == TYPE_RET)
@@ -1313,7 +1313,7 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 
 			/* set allocation of outvars */
 
-			for (i=0; i<bptr->outdepth; ++i) 
+			for (i=0; i<bptr->outdepth; ++i)
 			{
 				v = VAR(bptr->outvars[i]);
 				if (v->type == TYPE_RET)
@@ -1338,7 +1338,7 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 
 				if (!(flags & INMEMORY)) {
 					if (!rd->regcopycount[REG_INDEX(regoff, type)]) {
-						LOG(("MAY REUSE interface register f=%02x r=%d t=%d\n", 
+						LOG(("MAY REUSE interface register f=%02x r=%d t=%d\n",
 									flags, regoff, type));
 						simplereg_free(rd, flags, regoff, type);
 
@@ -1378,7 +1378,7 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 					break;
 
 					/* pop 0 push 1 const */
-					
+
 				case ICMD_ICONST:
 				case ICMD_LCONST:
 				case ICMD_FCONST:
@@ -1387,7 +1387,7 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 				case ICMD_GETEXCEPTION:
 
 					/* pop 0 push 1 load */
-					
+
 				case ICMD_ILOAD:
 				case ICMD_LLOAD:
 				case ICMD_FLOAD:
@@ -1516,14 +1516,14 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 					break;
 
 					/* pop 0 push 1 copy */
-					
+
 				case ICMD_COPY:
 					/* src === dst->prev (identical Stackslot Element)     */
 					/* src --> dst       (copied value, take same reg/mem) */
 
  					if (!simplereg_alloc_dup(jd, iptr->s1.varindex, iptr->dst.varindex)) {
 						NEW_TEMP_REG(iptr->dst.varindex);
- 					} 
+ 					}
 					else {
 						v = VAROP(iptr->dst);
 
@@ -1558,7 +1558,7 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 					break;
 
 					/* pop 2 push 1 */
-					
+
 				case ICMD_IADD:
 				case ICMD_ISUB:
 				case ICMD_IMUL:
@@ -1609,7 +1609,7 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 					break;
 
 					/* pop 1 push 1 */
-					
+
 				case ICMD_IADDCONST:
 				case ICMD_ISUBCONST:
 				case ICMD_IMULCONST:
@@ -1671,7 +1671,7 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 					break;
 
 					/* pop 0 push 1 */
-					
+
 				case ICMD_GETSTATIC:
 
 				case ICMD_NEW:
@@ -1679,7 +1679,7 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 					break;
 
 					/* pop many push any */
-					
+
 				case ICMD_INVOKESTATIC:
 				case ICMD_INVOKESPECIAL:
 				case ICMD_INVOKEVIRTUAL:
@@ -1779,10 +1779,10 @@ void simplereg_make_statistics(jitdata *jd)
 
 #if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
 			if (!opt_lsra) {
-#endif	
+#endif
 				/* check for memory moves from interface to BB instack */
 				len = bptr->indepth;
-				
+
 				if (len > size_interface) size_interface = len;
 
 				while (len) {
@@ -1804,7 +1804,7 @@ void simplereg_make_statistics(jitdata *jd)
 				}
 #if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
 			}
-#endif	
+#endif
 
 
 #if 0
@@ -1821,12 +1821,12 @@ void simplereg_make_statistics(jitdata *jd)
 						switch (src->varkind) {
 						case TEMPVAR:
 						case STACKVAR:
-							if (!(src->flags & INMEMORY)) 
+							if (!(src->flags & INMEMORY))
 								count_ss_register++;
 							else {
 								count_ss_spilled++;
 								in_register=false;
-							}				
+							}
 							break;
 							/* 					case LOCALVAR: */
 							/* 						if (!(rd->locals[src->varnum][src->type].flags & INMEMORY)) */
@@ -1835,7 +1835,7 @@ void simplereg_make_statistics(jitdata *jd)
 							/* 							count_ss_spilled++; */
 							/* 						break; */
 						case ARGVAR:
-							if (!(src->flags & INMEMORY)) 
+							if (!(src->flags & INMEMORY))
 								count_argument_mem_ss++;
 							else
 								count_argument_reg_ss++;
@@ -1862,7 +1862,7 @@ void simplereg_make_statistics(jitdata *jd)
 						}
 					}
 					src_old = src;
-					
+
 					iptr++;
 				} /* while instructions */
 #endif
