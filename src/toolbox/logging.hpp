@@ -35,6 +35,53 @@
 #include "vm/method.hpp"
 #include "vm/utf8.hpp"
 
+#ifdef __cplusplus
+
+#include "toolbox/Debug.hpp"
+#include "toolbox/OStream.hpp"
+
+namespace cacao {
+
+/// The default destination for logging messages
+OStream& dbg();
+
+#ifdef ENABLE_LOGGING
+
+/// Log EXPR to OStream cacao::dbg if debugging is enabled for the given
+/// subsystem.
+#define LOG_WITH_NAME(DEBUG_NAME, EXPR)                          \
+	do {                                                         \
+		if (cacao::Debug::is_debugging_enabled(DEBUG_NAME)) {    \
+			cacao::OStream stream = cacao::dbg();                \
+                                                                 \
+			stream << setprefix(DEBUG_NAME, cacao::log_color()); \
+                                                                 \
+			{ stream << EXPR << "\n"; }                          \
+		}                                                        \
+	} while (0)
+
+/// Analogous to DEBUG
+#define LOG(STMT) LOG_WITH_NAME(DEBUG_NAME, STMT)
+
+/// Set the file dbg() writes to
+void set_log_file(FILE *file);
+
+/// Set the color for line prefixes of debug messages
+void set_log_color(Color color);
+
+/// Get the color for line prefixes of debug messages
+Color log_color();
+
+#else // defined(ENABLE_LOGGING)
+
+#define LOG_WITH_NAME(DEBUG_NAME, STMT) do { } while(0)
+#define LOG(STMT)                       LOG_WITH_NAME(DEBUG_NAME, STMT)
+
+#endif // defined(ENABLE_LOGGING)
+
+} // end namespace cacao
+
+#endif // defined(__cplusplus)
 
 /* function prototypes ********************************************************/
 
@@ -89,4 +136,5 @@ void log_message_method(const char *msg, methodinfo *m);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

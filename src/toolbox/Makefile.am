@@ -48,6 +48,8 @@ libtoolbox_la_SOURCES = \
 	util.hpp \
 	worklist.cpp \
 	worklist.hpp \
+	Debug.hpp \
+	Debug.cpp \
 	OStream.cpp \
 	OStream.hpp
 

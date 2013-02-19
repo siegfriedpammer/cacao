@@ -26,6 +26,8 @@
 
 #include "threads/thread.hpp"
 
+#include <cassert>
+
 namespace cacao {
 
 OStream& err() {
@@ -62,6 +64,8 @@ Underline   underline;
 NoUnderline nounderline;
 
 OStream::OStream(FILE *file) : file(file), newline(true) {
+	assert(file);
+
 	init_flag_defaults();
 }
 
@@ -83,7 +87,7 @@ void OStream::init_transient_flags() {
 void OStream::init_persistent_flags() {
 	// keep comments in Flags class in sync with this!
 
-	align           = Align_left;
+	align           = Align_right;
 	int_fmt         = OStream::IntFmt_decimal;
 	float_fmt       = OStream::FloatFmt_decimal;
 	indent_lvl      = 0;
@@ -96,13 +100,9 @@ void OStream::on_newline() {
 
 	newline = false;
 
-	if (prefix_color >= 0) (*this) << prefix_color;
+	// set color
 
-	// print thread id
-
-#if defined(ENABLE_THREADS)
-	fprintf(file, "[0x%016lx] ", (long) threads_get_current_tid());
-#endif
+	if (prefix_color != InvalidColor) (*this) << prefix_color;
 
 	// print prefix
 
@@ -111,13 +111,15 @@ void OStream::on_newline() {
 		fputc(' ', file);
 	}
 
+	// reset color
+
+	if (prefix_color != InvalidColor) (*this) << reset_color;
+
 	// indent
 
 	for (size_t indent = indent_lvl * 4; indent > 0; indent--) {
 		fputc(' ', file);
 	}
-
-	if (prefix_color >= 0) (*this) << reset_color;
 }
 
 #define PRINT_INT(DEC, OCT, HEX, VAL)                                                   \
@@ -234,6 +236,8 @@ OStream& OStream::operator<<(const void *p) {
 }
 OStream& OStream::operator<<(const char *cs) {
 	on_newline();
+
+	if (!cs) cs = "(null)";
 
 	if (!width) {
 		fputs(cs, file);
@@ -387,4 +391,5 @@ OStream& OStream::operator<<(const NoUnderline&) {
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

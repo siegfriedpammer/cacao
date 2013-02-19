@@ -246,6 +246,7 @@ enum {
 	OPT_CompileAll,
 	OPT_CompileMethod,
 	OPT_CompileSignature,
+	OPT_DebugName,
 	OPT_DebugExceptions,
 	OPT_DebugFinalizer,
 	OPT_DebugLocalReferences,
@@ -310,6 +311,7 @@ option_t options_XX[] = {
 	{ "CompileAll",                   OPT_CompileAll,                   OPT_TYPE_BOOLEAN, "compile all methods, no execution" },
 	{ "CompileMethod",                OPT_CompileMethod,                OPT_TYPE_VALUE,   "compile only a specific method" },
 	{ "CompileSignature",             OPT_CompileSignature,             OPT_TYPE_VALUE,   "specify signature for a specific method" },
+	{ "DebugName",                    OPT_DebugName,                    OPT_TYPE_VALUE,   "Name of the subsystem to debug"},
 	{ "DebugExceptions",              OPT_DebugExceptions,              OPT_TYPE_BOOLEAN, "debug exceptions" },
 	{ "DebugFinalizer",               OPT_DebugFinalizer,               OPT_TYPE_BOOLEAN, "debug finalizer thread" },
 	{ "DebugLocalReferences",         OPT_DebugLocalReferences,         OPT_TYPE_BOOLEAN, "print debug information for local reference tables" },
@@ -674,6 +676,10 @@ void options_xx(JavaVMInitArgs *vm_args)
 
 		case OPT_CompileSignature:
 			opt_CompileSignature = value;
+			break;
+
+		case OPT_DebugName:
+			debug_set_current_system(value);
 			break;
 
 		case OPT_DebugExceptions:

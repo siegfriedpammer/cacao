@@ -26,9 +26,13 @@
 #define OSTREAM_HPP_ 1
 
 #include <cstdio>
-#include <cassert>
 
 namespace cacao {
+
+class OStream;
+
+OStream& out();
+OStream& err();
 
 class SetWidth;
 class SetIndent;
@@ -52,6 +56,7 @@ class ThreadId;
 // ANSI terminal control
 
 enum Color {
+	InvalidColor = 0,
 	Black,
 	Red,
 	Green,
@@ -59,8 +64,7 @@ enum Color {
 	Blue,
 	Magenta,
 	Cyan,
-	White,
-	InvalidColor = -1
+	White
 };
 
 class ResetColor  {};
@@ -183,6 +187,8 @@ public:
 	OStream& operator<<(const NoBold&);
 	OStream& operator<<(const Underline&);
 	OStream& operator<<(const NoUnderline&);
+
+	inline void set_file(FILE *file) { this->file = file; }
 private:
 	void on_newline();
 
@@ -222,7 +228,7 @@ private:
 
 	/// Alignment to use when padding text
 	///
-	/// default value is OStream::Align_left
+	/// default value is OStream::Align_right
 	enum {
 		Align_left,
 		Align_right
@@ -259,6 +265,8 @@ private:
 	///
 	/// default value is -1
 	Color prefix_color;
+
+	friend class Logging;
 };
 
 /// Set width flag for next item to be written.
@@ -359,4 +367,5 @@ extern NoUnderline nounderline;
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

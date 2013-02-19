@@ -22,6 +22,31 @@
 
 */
 
+#ifdef ENABLE_LOGGING
+
+using namespace cacao;
+
+static Color current_log_color = InvalidColor;
+
+OStream& cacao::dbg() {
+	static OStream stream(stdout);
+
+	return stream;
+}
+
+void cacao::set_log_file(FILE *file) {
+	dbg().set_file(file);
+}
+
+void cacao::set_log_color(Color color) {
+	current_log_color = color;
+}
+
+Color cacao::log_color() {
+	return current_log_color;
+}
+
+#endif
 
 #include "config.h"
 
