@@ -40,7 +40,7 @@
 
 #include "vm/jit/abi-asm.h"
 
-#include "mm/codememory.h"
+#include "mm/codememory.hpp"
 #include "mm/dumpmemory.hpp"
 #include "mm/gc.hpp"
 #include "mm/memory.hpp"
