@@ -1939,6 +1939,7 @@ void vm_exit_handler(void)
 	}
 
 	assert(opt_RtTimingLogfile);
+	RTGroup::root().print(std::cout);
  	rt_timing_print_time_stats(opt_RtTimingLogfile);
 #endif
 

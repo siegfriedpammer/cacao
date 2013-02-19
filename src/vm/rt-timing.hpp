@@ -22,7 +22,98 @@
 
 */
 
+/** @file
+ * This file contain the real-time timing utilities.
+ *
+ * For day to day use only the following macros are of importance:
+ * - RT_REGISTER_TIMER(var,name,description)
+ * - RT_REGISTER_GROUP_TIMER(var,name,description,group)
+ * - RT_REGISTER_GROUP(var,name,description)
+ * - RT_REGISTER_SUBGROUP(var,name,description,group)
+ * - RT_TIMER_START(var)
+ * - RT_TIMER_STOP(var)
+ * - RT_TIMER_STOPSTART(var1,var2)
+ *
+ * A typical usage would look something like this: *
+ * @code
+ * // NOTE: toplevel, outside a function!
+ * RT_REGISTER_GROUP(my_group,"my-group","this is my very own timing group");
+ * RT_REGISTER_GROUP_TIMER(my_timer1,"my-timer1","this is my first timer",my_group);
+ * RT_REGISTER_GROUP_TIMER(my_timer2,"my-timer1","this is my second timer",my_group);
+ *
+ * void do_something() {
+ *    RT_TIMER_START(my_timer1);
+ *    // do some work
+ *    RT_TIMER_STOPSTART(my_timer1,my_timer2);
+ *    // do even more work
+ *    RT_TIMER_STOP(my_timer2);
+ * }
+ * @endcode
+ *
+ * @note
+ * The implementation of the RT_REGISTER_* macros is a bit tricky. In general
+ * we simply want to create global variables for groups and timers. Unfortunately
+ * RTGroup and RTTimer are no "plain old datatypes" (pod). There is a constructor
+ * which is dependant on other global non-pod variables. The C++ standard does not
+ * guarantee any specific order of construction so it might be the case that
+ * a subgroup is registered before its super group. There are many dirty tricks to
+ * work around this issue. The one we are using does the following. We create a global
+ * variable as well as a function which returns this variable. The C++ standard
+ * guarantees that a global variable is initialized before its first use. Therefore,
+ * if we access the group/timer variables only through these functions it is
+ * guaranteed that everything is initialized in the right order.
+ * Also note that the variable must be global (i.e. they can not be declared as
+ * static function variables) otherwise the objects might be destroyed eagerly.
+ */
 
+/**
+ * @def RT_REGISTER_TIMER(var,name,description)
+ * Register a new (toplevel) timer. Create a timer and add it to the toplevel
+ * timing group RTGroup::root().
+ *
+ * @note This macro creates a new global variable with the name var_rt and
+ * a function RTTimer& var(). Consider using namespaces to avoid name clashes.
+ */
+
+/**
+ * @def RT_REGISTER_GROUP_TIMER(var,name,description,group)
+ * Register a new timer. Create a timer and add it to group specified.
+ *
+ * @note This macro creates a new global variable with the name var_rt and
+ * a function RTTimer& var(). Consider using namespaces to avoid name clashes.
+ */
+
+/**
+ * @def RT_REGISTER_GROUP(var,name,description)
+ * Register a new (toplevel) group. Create a group and add it to the toplevel
+ * timing group RTGroup::root().
+ *
+ * @note This macro creates a new global variable with the name var_rg and
+ * a function RTGroup& var(). Consider using namespaces to avoid name clashes.
+ */
+
+/**
+ * @def RT_REGISTER_SUBGROUP(var,name,description,group)
+ * Register a new subgroup. Create a group and add it to group specified.
+ *
+ * @note This macro creates a new global variable with the name var_rg and
+ * a function RTGroup& var(). Consider using namespaces to avoid name clashes.
+ */
+
+/**
+ * @def RT_TIMER_START(var)
+ * Start the timer var.
+ */
+
+/**
+ * @def RT_TIMER_STOP(var)
+ * Stop the timer var.
+ */
+
+/**
+ * @def RT_TIMER_STOPSTART(var1,var2)
+ * Stop the timer var1 and start the timer var2
+ */
 #ifndef _RT_TIMING_HPP
 #define _RT_TIMING_HPP
 
@@ -132,10 +223,272 @@ void rt_timing_print_time_stats(FILE *file);
 }
 #endif
 
+#include <vector>
+#include <iostream>
+#include <ostream>
+#include <iomanip>
+
+namespace {
+/**
+ * @note: http://www.gnu.org/software/libc/manual/html_node/Elapsed-Time.html
+ */
+inline timespec operator-(const timespec a, timespec b) {
+	timespec result;
+	/* Perform the carry for the later subtraction by updating b. */
+	if (a.tv_nsec < b.tv_nsec) {
+		int xsec = (b.tv_nsec - a.tv_nsec) / 1000000000L + 1;
+		b.tv_nsec -= 1000000000L * xsec;
+		b.tv_sec += xsec;
+	}
+	if (a.tv_nsec - b.tv_nsec > 1000000000L) {
+		int xsec = (a.tv_nsec - b.tv_nsec) / 1000000000L;
+		b.tv_nsec += 1000000000L * xsec;
+		b.tv_sec -= xsec;
+	}
+
+	/* Compute the time remaining to wait. tv_usec is certainly positive. */
+	result.tv_sec = a.tv_sec - b.tv_sec;
+	result.tv_nsec = a.tv_nsec - b.tv_nsec;
+
+	return result;
+}
+
+inline timespec operator+(const timespec a, const timespec b) {
+	timespec result;
+	result.tv_sec = a.tv_sec + b.tv_sec;
+	result.tv_nsec = a.tv_nsec + b.tv_nsec;
+	if (result.tv_nsec > 1000000000L) {
+		result.tv_nsec -= 1000000000L;
+		result.tv_sec ++;
+	}
+
+	return result;
+}
+
+inline void operator+=(timespec &result, const timespec b) {
+	result.tv_sec += b.tv_sec;
+	result.tv_nsec += b.tv_nsec;
+	if (result.tv_nsec > 1000000000L) {
+		result.tv_nsec -= 1000000000L;
+		result.tv_sec ++;
+	}
+}
+
+inline timespec operator/(const timespec &a, const int b) {
+	long int r; // remainder
+	timespec result;
+
+	if (b==0) {
+		result.tv_sec = -1;
+		result.tv_nsec = -1;
+		return result;
+	}
+
+	r = a.tv_sec % b;
+	result.tv_sec = a.tv_sec / b;
+	result.tv_nsec = r * 1000000000L / b;
+	result.tv_nsec += a.tv_nsec / b;
+
+	return result;
+}
+
+/**
+ * @note: this is not accurate
+ */
+inline long int operator/(const timespec &a, const timespec &b) {
+	if (a.tv_sec != 0) {
+		if (b.tv_sec == 0) {
+			return -1;
+		} else {
+			return a.tv_sec / b.tv_sec;
+		}
+	} else {
+		if (b.tv_nsec == 0) {
+			return -1;
+		} else {
+			return a.tv_nsec / b.tv_nsec;
+		}
+	}
+}
+
+inline bool operator==(const timespec &a, const timespec &b) {
+	return (a.tv_sec == b.tv_sec) && (a.tv_nsec == b.tv_nsec);
+}
+
+inline std::ostream& operator<<(std::ostream &ostr, timespec ts) {
+	const char *unit;
+	if (ts.tv_sec >= 10) {
+		// display seconds if at least 10 sec
+		ostr << ts.tv_sec;
+		unit = "sec";
+	} else {
+		ts.tv_nsec += ts.tv_sec * 1000000000L;
+		if (ts.tv_nsec >= 100000000) {
+			// display milliseconds if at least 100ms
+			ostr << ts.tv_nsec/1000000;
+			unit = "msec";
+		} else {
+			// otherwise display microseconds
+			ostr << ts.tv_nsec/1000;
+			unit = "usec";
+		}
+	}
+	ostr << std::setw(5) << unit;
+	return ostr;
+}
+} // end anonymous namespace
+
+class RTEntry {
+protected:
+	const char* name;
+	const char* description;
+public:
+	static timespec invalid_ts;
+	RTEntry(const char* name, const char* description) : name(name), description(description) {}
+	virtual void print(std::ostream &O,timespec ref) const = 0;
+	virtual inline timespec time() const = 0;
+
+};
+
+class RTGroup : public RTEntry {
+private:
+	typedef std::vector<RTEntry*> RTEntryList;
+	RTEntryList *members;
+
+	RTGroup(const char* name, const char* description) : RTEntry(name, description) {
+		members = new RTEntryList();
+	}
+public:
+	static RTGroup root_rg;
+	static RTGroup& root() {
+		return root_rg;
+	}
+
+	RTGroup(const char* name, const char* description, RTGroup &group) : RTEntry(name, description) {
+		members = new RTEntryList();
+		group.add(this);
+	}
+
+	~RTGroup() {
+		delete members;
+	}
+
+	void add(RTEntry *re) {
+		members->push_back(re);
+	}
+
+	virtual inline timespec time() const {
+		timespec time = {0,0};
+		for(RTEntryList::const_iterator i = members->begin(), e = members->end(); i != e; ++i) {
+			RTEntry* re = *i;
+			time += re->time();
+		}
+		return time;
+	}
+
+	void print(std::ostream &O,timespec ref = invalid_ts) const {
+		timespec duration = time();
+		if (ref == invalid_ts)
+			ref = duration;
+		O << "Group: " <<std::setw(10) << std::left << name << std::right <<"   " << description << "\n";
+		// O << intend;
+		for(RTEntryList::const_iterator i = members->begin(), e= members->end(); i != e; ++i) {
+			RTEntry* re = *i;
+			re->print(O,duration);
+		}
+		int percent = duration / (ref / 100);
+		O << std::setw(10) << duration << " "
+		  << std::setw(4) << percent << "% "
+		  << std::setw(20) << name << ": total time" << "\n\n";
+		// O << unintend;
+	}
+};
+// TODO could be ported to std::chrono if C++11 is available
+
+class RTTimer : public RTEntry {
+private:
+	timespec startstamp;
+	timespec duration;
+public:
+	RTTimer(const char* name, const char* description, RTGroup &parent) : RTEntry(name, description) {
+		reset();
+		parent.add(this);
+	}
+
+	inline void start() {
+		rt_timing_gettime(&startstamp);
+	}
+
+	inline void stop() {
+		timespec stopstamp;
+		rt_timing_gettime(&stopstamp);
+		duration += stopstamp - startstamp;
+	}
+
+	inline void reset() {
+		duration.tv_sec = 0;
+		duration.tv_nsec = 0;
+	}
+
+	virtual inline timespec time() const {
+		return duration;
+	}
+
+	void print(std::ostream &O,timespec ref = invalid_ts) const {
+		if (ref == invalid_ts)
+			ref = time();
+		int percent = duration / (ref / 100);
+		O << std::setw(10) << duration.tv_nsec/1000 << " usec "
+		  << std::setw(4) << percent << "% "
+		  << std::setw(20) << name << ": " << description << "\n";
+	}
+};
+#define RT_REGISTER_TIMER(var,name,description)                \
+	static RTTimer var##_rt(name,description,RTGroup::root()); \
+	static RTTimer& var() {	                                   \
+		return var##_rt;                                       \
+	}
+
+#define RT_REGISTER_GROUP_TIMER(var,name,description,group)    \
+	static RTTimer var##_rt(name, description, group());       \
+	static RTTimer& var() {                                    \
+		return var##_rt;                                       \
+	}
+
+#define RT_REGISTER_GROUP(var,name,description)                \
+	static RTGroup var##_rg(name,description,RTGroup::root()); \
+	RTGroup& var() {                                           \
+		return var##_rg;                                       \
+	}
+
+
+#define RT_REGISTER_SUBGROUP(var,name,description,group)       \
+	static RTGroup var##_rg(name, description, group());       \
+	RTGroup& var() {                                           \
+		return var##_rg;                                       \
+	}
+
+#define RT_TIMER_START(var) var().start()
+#define RT_TIMER_STOP(var) var().stop()
+#define RT_TIMER_STOPSTART(var1,var2) do { \
+	  var1().stop();                       \
+	  var2().start()                       \
+  while(0)
+
 #else /* !defined(ENABLE_RT_TIMING) */
 
 #define RT_TIMING_GET_TIME(ts)
 #define RT_TIMING_TIME_DIFF(a,b,index)
+
+
+#define RT_REGISTER_TIMER(var,name,description)
+#define RT_REGISTER_GROUP_TIMER(var,name,description,group)
+#define RT_REGISTER_GROUP(var,name,description)
+#define RT_REGISTER_SUBGROUP(var,name,description,group)
+
+#define RT_TIMER_START(var)
+#define RT_TIMER_STOP(var)
+#define RT_TIMER_STOPSTART(var1,var2)
 
 #endif /* defined(ENABLE_RT_TIMING) */
 

@@ -195,6 +195,9 @@ void rt_timing_print_time_stats(FILE *file)
 }
 #endif
 
+timespec RTEntry::invalid_ts = {-1,-1};
+RTGroup RTGroup::root_rg("vm","vm timer");
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
