@@ -50,7 +50,7 @@
 #include "mm/gc.hpp"
 #include "mm/memory.hpp"
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "threads/lock.hpp"
 #include "threads/mutex.hpp"

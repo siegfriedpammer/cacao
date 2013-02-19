@@ -35,7 +35,7 @@
 
 #include "mm/memory.hpp"
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "threads/atomic.hpp"
 #include "threads/lock.hpp"

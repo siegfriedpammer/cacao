@@ -45,8 +45,8 @@ endif
 
 libnative_la_SOURCES = \
 	$(JNI_SOURCES) \
-	llni.c \
-	llni.h \
+	llni.cpp \
+	llni.hpp \
 	native.cpp \
 	native.hpp
 

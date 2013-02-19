@@ -51,7 +51,7 @@
 # include "mm/cacao-gc/gc.h"
 #endif
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "native/native.hpp"
 
 #include "threads/condition.hpp"

@@ -32,7 +32,7 @@
 
 #include "mm/memory.hpp"
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "vm/access.hpp"
 #include "vm/jit/builtin.hpp"

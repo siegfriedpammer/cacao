@@ -28,7 +28,7 @@
 #include <assert.h>
 #include <stdint.h>
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"

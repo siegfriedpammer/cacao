@@ -58,7 +58,7 @@
 #include "toolbox/list.hpp"
 #include "toolbox/logging.hpp"
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "native/localref.hpp"
 #include "native/native.hpp"
 

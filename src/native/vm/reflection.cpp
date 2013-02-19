@@ -27,7 +27,7 @@
 
 #include <stdint.h>
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "native/native.hpp"
 
 #if defined(ENABLE_ANNOTATIONS) && defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)

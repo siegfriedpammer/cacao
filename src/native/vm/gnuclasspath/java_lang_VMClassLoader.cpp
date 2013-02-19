@@ -31,7 +31,7 @@
 #include "mm/memory.hpp"
 
 #include "native/jni.hpp"
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)

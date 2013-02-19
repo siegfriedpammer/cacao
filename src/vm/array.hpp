@@ -33,7 +33,7 @@
 
 #include "mm/gc.hpp" // XXX Remove me!
 
-#include "native/llni.h" // XXX Remove me!
+#include "native/llni.hpp" // XXX Remove me!
 
 #include "vm/class.hpp"
 #include "vm/exceptions.hpp"

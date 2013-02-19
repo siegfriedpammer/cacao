@@ -50,7 +50,7 @@
 # include "mm/boehm-gc/include/gc.h"
 #endif
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "native/native.hpp"
 
 #include "threads/lock.hpp"

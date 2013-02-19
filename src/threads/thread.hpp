@@ -39,7 +39,7 @@
 
 #include "vm/os.hpp"
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "threads/mutex.hpp"
 
