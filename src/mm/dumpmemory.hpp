@@ -1,6 +1,6 @@
 /* src/mm/dumpmemory.hpp - dump memory management
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008 Theobroma Systems Ltd.
 
@@ -377,6 +377,10 @@ void* DumpMemoryBlock::allocate(size_t size)
 
 	return p;
 }
+
+#define DNEW(type)                    ((type*) DumpMemory::allocate(sizeof(type)))
+#define DMNEW(type,num)               ((type*) DumpMemory::allocate(sizeof(type) * (num)))
+#define DMREALLOC(ptr,type,num1,num2) ((type*) DumpMemory::reallocate((ptr), sizeof(type) * (num1), sizeof(type) * (num2)))
 
 #else
 

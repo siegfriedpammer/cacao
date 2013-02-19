@@ -1,6 +1,6 @@
 ## src/vm/jit/optimizing/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2007, 2008
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -27,8 +27,8 @@ LIBS =
 
 if ENABLE_IFCONV
 IFCONV_SOURCES = \
-	ifconv.c \
-	ifconv.h
+	ifconv.cpp \
+	ifconv.hpp
 endif
 
 if ENABLE_PROFILING
@@ -37,8 +37,8 @@ PROFILE_SOURCES = \
 	profile.hpp
 
 REORDER_SOURCES = \
-	reorder.c \
-	reorder.h
+	reorder.cpp \
+	reorder.hpp
 endif
 
 if ENABLE_THREADS
@@ -49,29 +49,29 @@ endif
 
 if ENABLE_SSA
 SSA_SOURCES = \
-	lsra.c \
-	lsra.h \
-	ssa.c \
-	ssa.h \
-	ssa_phi.c \
-	ssa_phi.h \
-	ssa_rename.c \
-	ssa_rename.h \
-	graph.c \
-	graph.h \
+	lsra.cpp \
+	lsra.hpp \
+	ssa.cpp \
+	ssa.hpp \
+	ssa_phi.cpp \
+	ssa_phi.hpp \
+	ssa_rename.cpp \
+	ssa_rename.hpp \
+	graph.cpp \
+	graph.hpp \
 	dominators.cpp \
 	dominators.hpp \
-	lifetimes.c \
-	lifetimes.h \
-	ssa2.c \
-	ssa3.c 
+	lifetimes.cpp \
+	lifetimes.hpp \
+	ssa2.cpp \
+	ssa3.cpp 
 endif
 
 if ENABLE_ESCAPE
 ESCAPE_SOURCES = \
-	bytecode_escape.c \
-	escape.h \
-	escape.c
+	bytecode_escape.cpp \
+	escape.hpp \
+	escape.cpp
 endif
 
 noinst_LTLIBRARIES = \

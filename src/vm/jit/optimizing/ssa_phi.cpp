@@ -1,6 +1,6 @@
 /* src/vm/jit/optimizing/ssa.c - static single-assignment form
 
-   Copyright (C) 2005-2007, 2008
+   Copyright (C) 2005-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -38,11 +38,11 @@
 #include "vm/jit/jit.hpp" /* icmd_table */
 
 #include "vm/jit/optimizing/dominators.hpp"
-#include "vm/jit/optimizing/graph.h"
-#include "vm/jit/optimizing/lifetimes.h"
-#include "vm/jit/optimizing/lsra.h"
-#include "vm/jit/optimizing/ssa.h"
-#include "vm/jit/optimizing/ssa_phi.h"
+#include "vm/jit/optimizing/graph.hpp"
+#include "vm/jit/optimizing/lifetimes.hpp"
+#include "vm/jit/optimizing/lsra.hpp"
+#include "vm/jit/optimizing/ssa.hpp"
+#include "vm/jit/optimizing/ssa_phi.hpp"
 
 #if defined(SSA_DEBUG_VERBOSE)
 #include "vm/options.h"   /* compileverbose */

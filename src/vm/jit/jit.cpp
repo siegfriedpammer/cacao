@@ -72,8 +72,8 @@
 #endif
 
 #if defined(ENABLE_SSA)
-# include "vm/jit/optimizing/lsra.h"
-# include "vm/jit/optimizing/ssa.h"
+# include "vm/jit/optimizing/lsra.hpp"
+# include "vm/jit/optimizing/ssa.hpp"
 #endif
 
 #if defined(ENABLE_INLINING)
@@ -87,10 +87,10 @@
 #include "vm/jit/loop/loop.h"
 
 #if defined(ENABLE_IFCONV)
-# include "vm/jit/optimizing/ifconv.h"
+# include "vm/jit/optimizing/ifconv.hpp"
 #endif
 
-#include "vm/jit/optimizing/reorder.h"
+#include "vm/jit/optimizing/reorder.hpp"
 
 #if defined(ENABLE_PYTHON)
 # include "vm/jit/python.h"

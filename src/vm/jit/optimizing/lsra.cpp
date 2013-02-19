@@ -1,6 +1,6 @@
 /* src/vm/jit/optimizing/lsra.inc - linear scan register allocator
 
-   Copyright (C) 2005, 2006, 2008
+   Copyright (C) 2005-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -43,11 +43,11 @@
 #include "vm/jit/reg.h"
 #include "vm/jit/jit.hpp"
 
-#include "vm/jit/optimizing/graph.h"
-#include "vm/jit/optimizing/lifetimes.h"
-#include "vm/jit/optimizing/ssa.h"
+#include "vm/jit/optimizing/graph.hpp"
+#include "vm/jit/optimizing/lifetimes.hpp"
+#include "vm/jit/optimizing/ssa.hpp"
 
-#include "vm/jit/optimizing/lsra.h"
+#include "vm/jit/optimizing/lsra.hpp"
 
 #include "toolbox/logging.hpp"
 

@@ -1,6 +1,6 @@
 /* src/toolbox/set.h - Set implementation.
 
-   Copyright (C) 2008
+   Copyright (C) 2008-2013
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
@@ -30,7 +30,9 @@
 
 #include "vm/global.h"
 
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 typedef struct set set;
 
 set *set_new(unsigned capacity);
@@ -40,6 +42,10 @@ bool set_contains(const set *s, void *element);
 unsigned set_size(const set *s);
 bool set_empty(const set *s);
 void *set_pop(set *s);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

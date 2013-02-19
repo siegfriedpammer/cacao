@@ -1,9 +1,7 @@
 /* src/vm/jit/optimizing/ssa.h - static single assignment form header
 
-   Copyright (C) 2005 - 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2005-2013
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -19,35 +17,55 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-   02111-1307, USA.
-
-   Contact: cacao@complang.tuwien.ac.at
-
-   Authors: Christian Ullrich
-
-   $Id: ssa.h$
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301, USA.
 
 */
 
 
-#ifndef _SSA_PHI_H
-#define _SSA_PHI_H
+#ifndef _SSA_H
+#define _SSA_H
 
-#include "vm/jit/optimizing/graph.h"
+#include "config.h"
+
+#include "vm/jit/jit.hpp"
+#include "vm/jit/optimizing/graph.hpp"
 
 #if !defined(NDEBUG)
 # include <assert.h>
+# define SSA_DEBUG_CHECK
+# define SSA_DEBUG_VERBOSE
+#endif
+
+#ifdef SSA_DEBUG_CHECK
+# define _SSA_CHECK_BOUNDS(i,l,h) assert( ((i) >= (l)) && ((i) < (h)));
+# define _SSA_ASSERT(a) assert((a));
+#else
+# define _SSA_CHECK_BOUNDS(i,l,h)
+# define _SSA_ASSERT(a)
 #endif
 
 /* function prototypes */
-void ssa_place_phi_functions(jitdata *jd, graphdata *gd, dominatordata *dd);
-void ssa_generate_phi_moves(jitdata *, graphdata *);
-#ifdef SSA_DEBUG_VERBOSE
-void ssa_print_phi(lsradata *ls, graphdata *gd);
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#endif /* _SSA_PHI_H */
+void ssa_init(jitdata *);
+void ssa(jitdata */* , graphdata **/);
+
+void fix_exception_handlers(jitdata *jd);
+
+#ifdef SSA_DEBUG_VERBOSE
+void ssa_show_variable(jitdata *jd, int index, varinfo *v, int stage);
+void ssa_print_phi(lsradata *, graphdata *);
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _SSA_H */
 
 /*
  * These are local overrides for various environment variables in Emacs.

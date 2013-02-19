@@ -1,9 +1,7 @@
 /* src/toolbox/bitvector.h - bitvector header
 
-   Copyright (C) 2005, 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2005-2013
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -54,6 +52,11 @@
 #define _BV_CHECK_BOUNDS(i,l,h);
 #define _BV_ASSERT(a);
 #endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef int *bitvector;
 
 /* function prototypes */
@@ -78,6 +81,10 @@ void bv_minus(bitvector d, bitvector s1, bitvector s2, int size);
 /* d = s1 union s2 */
 
 void bv_union(bitvector d, bitvector s1, bitvector s2, int size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _BITVECTOR_H */
 

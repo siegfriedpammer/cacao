@@ -1,6 +1,6 @@
 /* src/vm/jit/optimizing/ssa.c - static single-assignment form
 
-   Copyright (C) 2005, 2006, 2007, 2008
+   Copyright (C) 2005-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -33,6 +33,7 @@
 #include "toolbox/bitvector.h"
 #include "toolbox/worklist.h"
 
+#include "vm/jit/cfg.h"
 #include "vm/jit/builtin.hpp"
 
 #include "vm/jit/jit.hpp" /* icmd_table */
@@ -40,13 +41,13 @@
 #include "vm/jit/ir/bytecode.h"
 
 #include "vm/jit/optimizing/dominators.hpp"
-#include "vm/jit/optimizing/graph.h"
-#include "vm/jit/optimizing/lifetimes.h"
-#include "vm/jit/optimizing/lsra.h"
+#include "vm/jit/optimizing/graph.hpp"
+#include "vm/jit/optimizing/lifetimes.hpp"
+#include "vm/jit/optimizing/lsra.hpp"
 
-#include "vm/jit/optimizing/ssa.h"
-#include "vm/jit/optimizing/ssa_rename.h"
-#include "vm/jit/optimizing/ssa_phi.h"
+#include "vm/jit/optimizing/ssa.hpp"
+#include "vm/jit/optimizing/ssa_rename.hpp"
+#include "vm/jit/optimizing/ssa_phi.hpp"
 
 #include "vm/jit/python.h"
 
@@ -68,13 +69,10 @@ void ssa_set_local_def(lsradata *, int , int );
 void ssa_set_iovar(lsradata *, s4 , int , s4 *);
 void ssa_set_interface(jitdata *, basicblock *, s4 *);
 
-
 #ifdef SSA_DEBUG_VERBOSE
 void ssa_print_trees(jitdata *jd, graphdata *gd, dominatordata *dd);
 void ssa_print_lt(lsradata *ls);
 void _ssa_print_lt(struct lifetime *lt);
-void ssa_show_variable(jitdata *jd, int index, varinfo *v, int stage);
-void ssa_print_phi(lsradata *, graphdata *);
 #endif
 
 /* ssa ************************************************************************

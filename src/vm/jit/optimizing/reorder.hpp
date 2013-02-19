@@ -1,7 +1,7 @@
-/* src/vm/jit/optimizing/ssa.h - static single assignment form header
+/* src/vm/optimizing/reorder.h - basic block reordering
 
-   Copyright (C) 2005, 2006, 2007, 2008
-   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
+   Copyright (C) 2006-2013
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -23,43 +23,30 @@
 */
 
 
-#ifndef _SSA_H
-#define _SSA_H
+#ifndef _REORDER_H
+#define _REORDER_H
 
 #include "config.h"
 
-#include "vm/jit/optimizing/graph.h"
+#include <stdbool.h>
 
-#if !defined(NDEBUG)
-# include <assert.h>
-# define SSA_DEBUG_CHECK
-# define SSA_DEBUG_VERBOSE
-#endif
+#include "vm/jit/jit.hpp"
 
-#ifdef SSA_DEBUG_CHECK
-# define _SSA_CHECK_BOUNDS(i,l,h) assert( ((i) >= (l)) && ((i) < (h)));
-# define _SSA_ASSERT(a) assert((a));
-#else
-# define _SSA_CHECK_BOUNDS(i,l,h)
-# define _SSA_ASSERT(a)
-#endif
 
-/* function prototypes */
+/* function prototypes ********************************************************/
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void ssa_init(jitdata *);
-void ssa(jitdata */* , graphdata **/);
-
-void fix_exception_handlers(jitdata *jd);
+bool reorder(jitdata *jd);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _SSA_H */
+#endif /* _REORDER_H */
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -69,8 +56,8 @@ void fix_exception_handlers(jitdata *jd);
  * Local variables:
  * mode: c
  * indent-tabs-mode: t
- * c-basic-offset): 4
- * tab-width): 4
+ * c-basic-offset: 4
+ * tab-width: 4
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */

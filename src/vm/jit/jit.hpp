@@ -1,6 +1,6 @@
 /* src/vm/jit/jit.hpp - Just-In-Time compiler
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -62,7 +62,7 @@ typedef struct exception_entry exception_entry;
 # include "vm/jit/loop/loop.h"
 #endif
 #if defined(ENABLE_SSA) 
-# include "vm/jit/optimizing/lsra.h"
+# include "vm/jit/optimizing/lsra.hpp"
 #endif
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"

@@ -1,6 +1,6 @@
 /* src/vm/jit/cfg.h - build a control-flow graph
 
-   Copyright (C) 2006, 2007, 2008
+   Copyright (C) 2006-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -47,6 +47,9 @@ extern "C" {
 bool cfg_build(jitdata *jd);
 
 void cfg_add_root(jitdata *jd);
+
+void cfg_add_exceptional_edges(jitdata *jd);
+void cfg_remove_root(jitdata *jd);
 
 #ifdef __cplusplus
 }

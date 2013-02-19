@@ -1,6 +1,6 @@
 /* src/vm/optimizing/bytecode_escape.c
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
@@ -39,7 +39,7 @@
 #include "vm/resolve.hpp"
 
 #include "vm/jit/ir/bytecode.h"
-#include "vm/jit/optimizing/escape.h"
+#include "vm/jit/optimizing/escape.hpp"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -127,6 +127,8 @@ typedef struct {
 	bool *perror_flag;
 } op_stack_t;
 
+static bool op_stack_test_position(op_stack_t *stack, op_stack_slot_t *pos);
+
 static void op_stack_init(op_stack_t *stack, unsigned max, bool *perror_flag) {
 	op_stack_slot_t *it;
 
@@ -199,7 +201,7 @@ static void op_stack_push(op_stack_t *stack, op_stack_slot_t element) {
 	}
 }
 
-static op_stack_slot_t op_stack_get(const op_stack_t *stack, int offset) {
+static op_stack_slot_t op_stack_get(op_stack_t *stack, int offset) {
 	if (op_stack_test_position(stack, stack->ptr - offset)) {
 		return *(stack->ptr - offset);
 	} else {
@@ -637,7 +639,7 @@ op_stack_slot_t bc_escape_analysis_address_local(bc_escape_analysis_t *be, s4 lo
 
 value_category_t bc_escape_analysis_value_category(bc_escape_analysis_t *be, s4 index) {
 	constant_FMIref *fmi;
-	fmi = class_getconstant(be->method->clazz, index, CONSTANT_Fieldref);
+	fmi = (constant_FMIref *) class_getconstant(be->method->clazz, index, CONSTANT_Fieldref);
 
 	if (fmi == NULL) {
 		/* TODO */
@@ -759,9 +761,9 @@ static void bc_escape_analysis_parse_invoke(bc_escape_analysis_t *be, jcode_t *j
 	/* Get method reference */
 
 	if (opc == BC_invokeinterface) {
-		fmi = class_getconstant(be->method->clazz, cp_index, CONSTANT_InterfaceMethodref);
+		fmi = (constant_FMIref *) class_getconstant(be->method->clazz, cp_index, CONSTANT_InterfaceMethodref);
 	} else {
-		fmi = class_getconstant(be->method->clazz, cp_index, CONSTANT_Methodref);
+		fmi = (constant_FMIref *) class_getconstant(be->method->clazz, cp_index, CONSTANT_Methodref);
 	}
 
 	if (fmi == NULL) {

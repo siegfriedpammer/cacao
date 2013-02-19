@@ -1,6 +1,6 @@
 /* src/vm/jit/optimizing/lifetimes.c - lifetime anaylsis
 
-   Copyright (C) 2005, 2006, 2008
+   Copyright (C) 2005-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -40,10 +40,10 @@
 
 #include "vm/jit/jit.hpp"
 
-#include "vm/jit/optimizing/graph.h"
-#include "vm/jit/optimizing/lsra.h"
-#include "vm/jit/optimizing/ssa.h"
-#include "vm/jit/optimizing/lifetimes.h"
+#include "vm/jit/optimizing/graph.hpp"
+#include "vm/jit/optimizing/lsra.hpp"
+#include "vm/jit/optimizing/ssa.hpp"
+#include "vm/jit/optimizing/lifetimes.hpp"
 
 #ifdef LT_DEBUG_VERBOSE
 #include "vm/options.h"
@@ -561,7 +561,7 @@ void lt_lifeoutatblock(lsradata *ls, graphdata *gd, int *M, int b_index,
 		if (b_index != 0) {
 			int i;
 			i = ls->basicblocks[b_index]->icount - 1;
-			for (;((i>0) && (ls->basicblocks[b_index]->iinstr+i == ICMD_NOP));
+			for (;((i>0) && ((ls->basicblocks[b_index]->iinstr+i)->opc == ICMD_NOP));
 				 i--);
 			lt_lifeatstatement(ls, gd, b_index, i, lt, false, W);
 		}

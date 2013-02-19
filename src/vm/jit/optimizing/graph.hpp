@@ -1,6 +1,6 @@
 /* src/vm/jit/optimizing/graph.h - control flow graph header
 
-   Copyright (C) 2005, 2006, 2008
+   Copyright (C) 2005-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -28,7 +28,7 @@
 
 #include "config.h"
 
-#include "vm/jit/optimizing/lsra.h"
+#include "vm/jit/optimizing/lsra.hpp"
 
 #if !defined(NDEBUG)
 # include <assert.h>
@@ -89,6 +89,8 @@ int graph_get_num_predecessor(graphdata *gd, int b_index);
 int graph_get_num_successor(graphdata *gd, int b_index);
 bool graph_has_multiple_successors( graphdata *gd, int b_index);
 bool graph_has_multiple_predecessors( graphdata *gd, int b_index);
+
+void graph_add_edge( graphdata *gd, int from, int to );
 
 #ifdef __cplusplus
 }

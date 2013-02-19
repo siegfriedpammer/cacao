@@ -1,6 +1,6 @@
 /* src/vm/optimizing/ssa2.c
 
-   Copyright (C) 2008
+   Copyright (C) 2008-2013
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
@@ -34,6 +34,7 @@
 
 #include "vm/global.h"
 #include "vm/jit/jit.hpp"
+#include "vm/jit/show.hpp"
 
 #if 1
 #define printf(...) do { if (getenv("VERB")) printf(__VA_ARGS__); } while (0)
@@ -258,10 +259,10 @@ static void ssa_rename_block(ssa_info *ssa, basicblock *bptr) {
 	unsigned j;
 	s4 i, tmp;
 	s4 a;
-	s4 **orig_stack_top;
+	u4 **orig_stack_top;
 
 	/* XXX */
-	orig_stack_top = DMNEW(s4 *, ssa->vars_count);
+	orig_stack_top = DMNEW(u4 *, ssa->vars_count);
 	for (a = 0; a < ssa->vars_count; ++a) orig_stack_top[a] = ssa->vars[a].stack_top;
 
 		int jj;

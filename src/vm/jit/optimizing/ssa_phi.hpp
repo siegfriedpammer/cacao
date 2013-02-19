@@ -1,9 +1,7 @@
 /* src/vm/jit/optimizing/ssa.h - static single assignment form header
 
-   Copyright (C) 2005 - 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2005-2013
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -31,20 +29,23 @@
 */
 
 
-#ifndef _SSA_RENAME_H
-#define _SSA_RENAME_H
+#ifndef _SSA_PHI_H
+#define _SSA_PHI_H
 
-#include "vm/jit/optimizing/graph.h"
+#include "vm/jit/optimizing/graph.hpp"
 
 #if !defined(NDEBUG)
 # include <assert.h>
 #endif
 
 /* function prototypes */
-void ssa_rename_init(jitdata *jd, graphdata *gd);
-void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd);
+void ssa_place_phi_functions(jitdata *jd, graphdata *gd, dominatordata *dd);
+void ssa_generate_phi_moves(jitdata *, graphdata *);
+#ifdef SSA_DEBUG_VERBOSE
+void ssa_print_phi(lsradata *ls, graphdata *gd);
+#endif
 
-#endif /* _SSA_RENAME_H */
+#endif /* _SSA_PHI_H */
 
 /*
  * These are local overrides for various environment variables in Emacs.

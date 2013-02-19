@@ -1,6 +1,6 @@
 /* src/vm/jit/optimizing/dominators.cpp - dominators and dominance frontier
 
-   Copyright (C) 2005, 2006, 2008
+   Copyright (C) 2005-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -33,9 +33,11 @@
 
 #include "vm/jit/jit.hpp"
 
-#include "vm/jit/optimizing/graph.h"
+#include "vm/jit/optimizing/graph.hpp"
 #include "vm/jit/optimizing/dominators.hpp"
 
+#include "vm/jit/show.hpp"
+#include "vm/jit/python.h"
 
 /* function prototypes */
 void dom_Dominators_init(dominatordata *dd, int basicblockcount);
@@ -583,11 +585,6 @@ bool dominance_frontier_build(jitdata *jd) {
 	dominance_frontier_for_block(dfi, jd->basicblocks);
 	dominance_frontier_store(dfi);
 }
-
-#include "vm/jit/show.hpp"
-#include "vm/jit/python.h"
-
-extern "C" void graph_add_edge( graphdata *gd, int from, int to );
 
 void dominator_tree_validate(jitdata *jd, dominatordata *_dd) {
 	graphdata *gd;

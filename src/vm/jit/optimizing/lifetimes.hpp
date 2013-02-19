@@ -1,6 +1,6 @@
-/* src/vm/optimizing/reorder.h - basic block reordering
+/* src/vm/jit/optimizing/lifetimes.h - lifetimes header
 
-   Copyright (C) 2006, 2008
+   Copyright (C) 2005-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -17,36 +17,45 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
 
 */
 
 
-#ifndef _REORDER_H
-#define _REORDER_H
+#ifndef _LIFETIMES_H
+#define _LIFETIMES_H
 
 #include "config.h"
 
-#include <stdbool.h>
+#include "vm/jit/optimizing/dominators.hpp"
 
-#include "vm/jit/jit.hpp"
-
-
-/* function prototypes ********************************************************/
-
-#ifdef __cplusplus
-extern "C" {
+#if !defined(NDEBUG)
+# include <assert.h>
+# define LT_DEBUG_CHECK
+/* # define LT_DEBUG_VERBOSE */
 #endif
 
-bool reorder(jitdata *jd);
-
-#ifdef __cplusplus
-}
+#ifdef LT_DEBUG_CHECK
+# define _LT_CHECK_BOUNDS(i,l,h) assert( ((i) >= (l)) && ((i) < (h)));
+# define _LT_ASSERT(a) assert((a));
+#else
+# define _LT_CHECK_BOUNDS(i,l,h)
+# define _LT_ASSERT(a)
 #endif
 
-#endif /* _REORDER_H */
+#define LT_BB_IN 3
+#define LT_BB_OUT 2
+#define LT_DEF 1
+#define LT_USE 0
 
+typedef struct site *lt_iterator;
+void lt_scanlifetimes(jitdata *, graphdata *, dominatordata *);
+void lt_add_ss(struct lifetime *, stackelement_t *);
+void lt_remove_use_site(struct lifetime *lt, int block, int iindex);
+void lt_move_use_sites(struct lifetime *from, struct lifetime *to);
+void lt_lifeness_analysis(jitdata *, graphdata *);
+#endif /* _LIFETIMES_H */
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -59,5 +68,4 @@ bool reorder(jitdata *jd);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
- * vim:noexpandtab:sw=4:ts=4:
  */

@@ -1,6 +1,6 @@
 /* src/vm/jit/optimizing/escape.c
 
-   Copyright (C) 2008
+   Copyright (C) 2008-2013
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
@@ -29,7 +29,8 @@
 #include "vm/classcache.hpp"
 
 #include "vm/jit/jit.hpp"
-#include "vm/jit/optimizing/escape.h"
+#include "vm/jit/show.hpp"
+#include "vm/jit/optimizing/escape.hpp"
 
 #include <stdarg.h>
 
@@ -230,8 +231,8 @@ typedef struct dependency_list_item {
 bool dependency_list_item_compare(const dependency_list_item_t *item, const instruction *load) {
 
 	instruction *store = item->store;
-	utf *storen;
-	const utf *loadn;
+	Utf8String storen;
+	Utf8String loadn;
 
 	if (load->opc == ICMD_AALOAD) {
 
@@ -256,19 +257,13 @@ bool dependency_list_item_compare(const dependency_list_item_t *item, const inst
 
 		if (instruction_is_unresolved(store)) {
 			storen = store->sx.s23.s3.uf->fieldref->name;
-			loadn = load->sx.s23.s3.uf->fieldref->name;
+			loadn  = load->sx.s23.s3.uf->fieldref->name;
 		} else {
 			storen = store->sx.s23.s3.fmiref->name;
-			loadn = load->sx.s23.s3.fmiref->name;
+			loadn  = load->sx.s23.s3.fmiref->name;
 		}
 
-		/* TODO pointer equality ? */	
-
-		if (UTF_SIZE(storen) != UTF_SIZE(loadn)) {
-			return false;
-		}
-
-		return (strcmp(UTF_TEXT(storen), UTF_TEXT(loadn)) == 0);
+		return storen == loadn;
 	}
 }
 

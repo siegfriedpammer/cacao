@@ -1,6 +1,6 @@
 /* src/vm/jit/optimizing/graph.c - CFG
 
-   Copyright (C) 2005, 2006, 2008
+   Copyright (C) 2005-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -32,9 +32,9 @@
 
 #include "vm/jit/jit.hpp"
 
-#include "vm/jit/optimizing/lsra.h"
-#include "vm/jit/optimizing/ssa.h"
-#include "vm/jit/optimizing/graph.h"
+#include "vm/jit/optimizing/lsra.hpp"
+#include "vm/jit/optimizing/ssa.hpp"
+#include "vm/jit/optimizing/graph.hpp"
 
 #ifdef GRAPH_DEBUG_VERBOSE
 #include "vm/options.h"
@@ -43,6 +43,7 @@
 /* Helpers for graph_make_cfg */
 void graph_add_cfg( jitdata *jd, graphdata *gd, basicblock *, basicblock *);
 void graph_add_exceptions(jitdata *jd, graphdata *gd); 
+
 void graph_add_edge( graphdata *gd, int from, int to );
 
 /* Helper for graph_get_first_* */

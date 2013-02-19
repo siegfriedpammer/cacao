@@ -1,9 +1,7 @@
 /* src/toolbox/worklist.h - worklist header
 
-   Copyright (C) 2005, 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2005-2013
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -56,6 +54,11 @@
 #define _WL_ASSERT(a);
 #endif
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct worklist {
 	int *W_stack;
 	int W_top;
@@ -74,6 +77,9 @@ int wl_get(worklist *w);
 bool wl_is_empty(worklist *w);
 void wl_reset(worklist *w, int size);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _BITVECTOR_H */
 

@@ -38,10 +38,12 @@
    * Unify access to phi args.
 */
 
+#include "vm/jit/optimizing/ssa.hpp"
 
 #include "config.h"
 
 #include "vm/jit/jit.hpp"
+#include "vm/jit/optimizing/escape.hpp"
 #include "vm/global.h"
 #include "mm/memory.hpp"
 #include "mm/dumpmemory.hpp"
@@ -1202,7 +1204,7 @@ void unfix_exception_handlers(jitdata *jd) {
 
 	for (ee = jd->exceptiontable; ee; ee = ee->down) {
 		assert(ee->handler->vp);
-		ee->handler = ee->handler->vp;
+		ee->handler = (basicblock*) ee->handler->vp;
 	}
 }
 
@@ -1460,6 +1462,7 @@ static FIXME(bool) ssa_enter_eliminate_redundant_phis(traversal_t *t, vars_t *vs
 	bool ret = false;
 
 	/* XXX */
+	assert(false);
 	return;
 
 	FOR_EACH_PHI_FUNCTION(t->phis, itph) {
@@ -2226,7 +2229,7 @@ static void ssa_leave_create_exceptional_phi_moves(ssa_info *ssa) {
 	classref_or_classinfo catchtype;
 	basicblock *ittry;
 	unsigned pei;
-	basicblock *try;
+	basicblock *try_block;
 	basicblock *exh;
 	exception_entry *ee;
 	basicblock *last = NULL;
@@ -2248,13 +2251,13 @@ static void ssa_leave_create_exceptional_phi_moves(ssa_info *ssa) {
 				FOR_EACH_INSTRUCTION(ittry, iptr) {
 					if (icmd_table[iptr->opc].flags & ICMDTABLE_PEI) {
 						/* try is basicblock fragment till (including) the pei */
-						try = ssa_leave_split_basicblock_at(ssa, ittry, iptr);
+						try_block = ssa_leave_split_basicblock_at(ssa, ittry, iptr);
 						/* ee is handler for try */
 						exh = ssa_leave_create_transition_exception_handler(
-							ssa, try, pei, bptr
+							ssa, try_block, pei, bptr
 						);
 						ee = ssa_leave_create_transition_exception_entry(
-							ssa, try, exh, catchtype
+							ssa, try_block, exh, catchtype
 						);
 						exception_entry_chain_add(&chain, ee);
 						pei += 1;

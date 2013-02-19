@@ -1,6 +1,6 @@
-/* src/vm/jit/optimizing/lifetimes.h - lifetimes header
+/* src/vm/jit/optimizing/ifconv.h - if-conversion
 
-   Copyright (C) 2005, 2006, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -17,45 +17,36 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-   02111-1307, USA.
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301, USA.
 
 */
 
 
-#ifndef _LIFETIMES_H
-#define _LIFETIMES_H
+#ifndef _IFCONV_H
+#define _IFCONV_H
 
 #include "config.h"
 
-#include "vm/jit/optimizing/dominators.hpp"
+#include <stdbool.h>
 
-#if !defined(NDEBUG)
-# include <assert.h>
-# define LT_DEBUG_CHECK
-/* # define LT_DEBUG_VERBOSE */
+#include "vm/jit/jit.hpp"
+
+
+/* function prototypes ********************************************************/
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#ifdef LT_DEBUG_CHECK
-# define _LT_CHECK_BOUNDS(i,l,h) assert( ((i) >= (l)) && ((i) < (h)));
-# define _LT_ASSERT(a) assert((a));
-#else
-# define _LT_CHECK_BOUNDS(i,l,h)
-# define _LT_ASSERT(a)
+bool ifconv_static(jitdata *jd);
+
+#ifdef __cplusplus
+}
 #endif
 
-#define LT_BB_IN 3
-#define LT_BB_OUT 2
-#define LT_DEF 1
-#define LT_USE 0
+#endif /* _IFCONV_H */
 
-typedef struct site *lt_iterator;
-void lt_scanlifetimes(jitdata *, graphdata *, dominatordata *);
-void lt_add_ss(struct lifetime *, stackelement_t *);
-void lt_remove_use_site(struct lifetime *lt, int block, int iindex);
-void lt_move_use_sites(struct lifetime *from, struct lifetime *to);
-void lt_lifeness_analysis(jitdata *, graphdata *);
-#endif /* _LIFETIMES_H */
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -68,4 +59,5 @@ void lt_lifeness_analysis(jitdata *, graphdata *);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

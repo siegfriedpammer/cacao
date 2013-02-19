@@ -1,7 +1,7 @@
-/* src/vm/jit/optimizing/ifconv.h - if-conversion
+/* src/vm/jit/optimizing/ssa.h - static single assignment form header
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
-   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2005-2013
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -17,36 +17,32 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
+
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Christian Ullrich
+
+   $Id: ssa.h$
 
 */
 
 
-#ifndef _IFCONV_H
-#define _IFCONV_H
+#ifndef _SSA_RENAME_H
+#define _SSA_RENAME_H
 
-#include "config.h"
+#include "vm/jit/optimizing/graph.hpp"
 
-#include <stdbool.h>
-
-#include "vm/jit/jit.hpp"
-
-
-/* function prototypes ********************************************************/
-
-#ifdef __cplusplus
-extern "C" {
+#if !defined(NDEBUG)
+# include <assert.h>
 #endif
 
-bool ifconv_static(jitdata *jd);
+/* function prototypes */
+void ssa_rename_init(jitdata *jd, graphdata *gd);
+void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd);
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* _IFCONV_H */
-
+#endif /* _SSA_RENAME_H */
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -56,8 +52,8 @@ bool ifconv_static(jitdata *jd);
  * Local variables:
  * mode: c
  * indent-tabs-mode: t
- * c-basic-offset: 4
- * tab-width: 4
+ * c-basic-offset): 4
+ * tab-width): 4
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */
