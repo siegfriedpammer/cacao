@@ -342,33 +342,70 @@ inline OStream& operator<<(OStream &ostr, timespec ts) {
 #include <vector>
 
 namespace cacao {
-
+/**
+ * Superclass of real-time group entries.
+ */
 class RTEntry {
 protected:
 	const char* name;
 	const char* description;
 public:
-	static timespec invalid_ts;
+	static timespec invalid_ts;   //< invalid time stamp
+	/**
+	 * Constructor.
+	 */
 	RTEntry(const char* name, const char* description) : name(name), description(description) {}
+	/**
+	 * Print the timing information to an OStream.
+	 * @param[in,out] O     output stream
+	 * @param[in]     ref   time reference. Used to calculate percentage .
+	 *	Normally the time of the parent.
+	 */
 	virtual void print(OStream &O,timespec ref) const = 0;
+	/**
+	 * Get the elapsed time of a RTEntry.
+	 */
 	virtual timespec time() const = 0;
 
 };
 
+/**
+ * Real-time group.
+ * Used to collect a set of RTEntry's
+ */
 class RTGroup : public RTEntry {
 private:
 	typedef std::vector<RTEntry*> RTEntryList;
+	/**
+	 * List of members.
+	 * @note: this must be a pointer. If it is changes to a normal variable strange
+	 * things will happen!
+	 */
 	RTEntryList *members;
 
 	RTGroup(const char* name, const char* description) : RTEntry(name, description) {
 		members = new RTEntryList();
 	}
 public:
+	/**
+	 * __the__ root group.
+	 * @note never use this variable directly (use RTGroup::root() instead).
+	 * Used for internal purposes only!
+	 */
 	static RTGroup root_rg;
+	/**
+	 * Get the root group
+	 */
 	static RTGroup& root() {
 		return root_rg;
 	}
 
+	/**
+	 * Create a new real-time group.
+	 * @param[in] name name of the group
+	 * @param[in] description description of the group
+	 * @param[in] group parent group.
+	 */
 	RTGroup(const char* name, const char* description, RTGroup &group) : RTEntry(name, description) {
 		members = new RTEntryList();
 		group.add(this);
@@ -378,6 +415,9 @@ public:
 		delete members;
 	}
 
+	/**
+	 * Add an entry to the group
+	 */
 	void add(RTEntry *re) {
 		members->push_back(re);
 	}
@@ -409,28 +449,59 @@ public:
 		  << setw(20) << name << ": total time" << nl<< nl;
 	}
 };
-// TODO could be ported to std::chrono if C++11 is available
 
+/**
+ * Real-time timer.
+ *
+ * @note could be ported to std::chrono if C++11 is available
+ */
 class RTTimer : public RTEntry {
 private:
 	timespec startstamp;
 	timespec duration;
 public:
+	/**
+	 * Create a new real-time timer.
+	 * @param[in] name name of the timer
+	 * @param[in] description description of the timer
+	 * @param[in] group parent group.
+	 */
 	RTTimer(const char* name, const char* description, RTGroup &parent) : RTEntry(name, description) {
 		reset();
 		parent.add(this);
 	}
 
+	/**
+	 * Start the timer.
+	 * @see stop()
+	 * @see stopstart()
+	 */
 	inline void start() {
 		rt_timing_gettime(&startstamp);
 	}
 
+	/**
+	 * Start the timer.
+	 * @note Only use after a start() or stopstart()
+	 * @see start()
+	 * @see stopstart()
+	 */
 	inline void stop() {
 		timespec stopstamp;
 		rt_timing_gettime(&stopstamp);
 		duration += stopstamp - startstamp;
 	}
 
+	/**
+	 * Stop this timer and start a second timer.
+	 * This method stops the current timer and starts the timer in the parameter.
+	 * The advantage is that the current is only requested once as opposed to calling
+	 * stop() and start() separately.
+	 *
+	 * @note Only use after a start() or stopstart()
+	 * @see start()
+	 * @see stop()
+	 */
 	inline void stopstart(RTTimer &timer) {
 		timespec stopstamp;
 		rt_timing_gettime(&stopstamp);
