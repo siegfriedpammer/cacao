@@ -979,6 +979,34 @@ classinfo *load_class_from_sysloader(Utf8String name)
 #endif /* defined(ENABLE_JAVASE) */
 
 
+// register loader real-time group
+RT_REGISTER_GROUP(linker_group,"linker","linker group")
+
+// register real-time timers
+RT_REGISTER_GROUP_TIMER(checks_timer,"load","initial checks",linker_group)
+RT_REGISTER_GROUP_TIMER(ndpool_timer,"load","new descriptor pool",linker_group)
+RT_REGISTER_GROUP_TIMER(cpool_timer,"load","load constant pool",linker_group)
+RT_REGISTER_GROUP_TIMER(setup_timer,"load","class setup",linker_group)
+RT_REGISTER_GROUP_TIMER(fields_timer,"load","load fields",linker_group)
+RT_REGISTER_GROUP_TIMER(methods_timer,"load","load methods",linker_group)
+RT_REGISTER_GROUP_TIMER(classrefs_timer,"load","create classrefs",linker_group)
+RT_REGISTER_GROUP_TIMER(descs_timer,"load","allocate descriptors",linker_group)
+RT_REGISTER_GROUP_TIMER(setrefs_timer,"load","set classrefs",linker_group)
+RT_REGISTER_GROUP_TIMER(parsefds_timer,"load","parse field descriptors",linker_group)
+RT_REGISTER_GROUP_TIMER(parsemds_timer,"load","parse method descriptors",linker_group)
+RT_REGISTER_GROUP_TIMER(parsecpool_timer,"load","parse descriptors in constant pool",linker_group)
+RT_REGISTER_GROUP_TIMER(verify_timer,"load","verifier checks",linker_group)
+RT_REGISTER_GROUP_TIMER(attrs_timer,"load","load attributes",linker_group)
+
+// register classloader real-time group
+RT_REGISTER_GROUP(cl_group,"classloader","classloader")
+
+// register real-time timers
+RT_REGISTER_GROUP_TIMER(cllookup_timer,"classloader","lookup in classcache",cl_group)
+RT_REGISTER_GROUP_TIMER(prepare_timer,"classloader","prepare loader call",cl_group)
+RT_REGISTER_GROUP_TIMER(java_timer,"classloader","loader Java code",cl_group)
+RT_REGISTER_GROUP_TIMER(clcache_timer,"classloader","store in classcache",cl_group)
+
 /* load_class_from_classloader *************************************************
 
    Load the class with the given name using the given user-defined class loader.
@@ -1005,6 +1033,7 @@ classinfo *load_class_from_classloader(Utf8String name, classloader_t *cl)
 #endif
 
 	RT_TIMING_GET_TIME(time_start);
+	RT_TIMER_START(cllookup_timer);
 
 	assert(name);
 
@@ -1013,6 +1042,7 @@ classinfo *load_class_from_classloader(Utf8String name, classloader_t *cl)
 	c = classcache_lookup(cl, name);
 
 	RT_TIMING_GET_TIME(time_lookup);
+	RT_TIMER_STOPSTART(cllookup_timer,prepare_timer);
 	RT_TIMING_TIME_DIFF(time_start,time_lookup,RT_TIMING_LOAD_CL_LOOKUP);
 
 	if (c != NULL)
@@ -1118,10 +1148,12 @@ classinfo *load_class_from_classloader(Utf8String name, classloader_t *cl)
 		string = JavaString::from_utf8_slash_to_dot(name);
 
 		RT_TIMING_GET_TIME(time_prepare);
+		RT_TIMER_STOPSTART(prepare_timer,java_timer);
 
 		o = vm_call_method(lc, (java_handle_t *) cl, string);
 
 		RT_TIMING_GET_TIME(time_java);
+		RT_TIMER_STOPSTART(java_timer,clcache_timer);
 
 		c = LLNI_classinfo_unwrap(o);
 
@@ -1157,6 +1189,7 @@ classinfo *load_class_from_classloader(Utf8String name, classloader_t *cl)
 		}
 
 		RT_TIMING_GET_TIME(time_cache);
+		RT_TIMER_STOP(clcache_timer);
 
 		RT_TIMING_TIME_DIFF(time_lookup , time_prepare, RT_TIMING_LOAD_CL_PREPARE);
 		RT_TIMING_TIME_DIFF(time_prepare, time_java   , RT_TIMING_LOAD_CL_JAVA);
@@ -1178,6 +1211,16 @@ classinfo *load_class_from_classloader(Utf8String name, classloader_t *cl)
 	return c;
 }
 
+
+// register boot real-time group
+RT_REGISTER_GROUP(boot_group,"boot","boot group")
+
+// register real-time timers
+RT_REGISTER_GROUP_TIMER(lookup_timer,"boot","lookup in classcache",boot_group)
+RT_REGISTER_GROUP_TIMER(array_timer,"boot","load array classes",boot_group)
+RT_REGISTER_GROUP_TIMER(suck_timer,"boot","suck class files",boot_group)
+RT_REGISTER_GROUP_TIMER(load_timer,"boot","load from class buffer",boot_group)
+RT_REGISTER_GROUP_TIMER(cache_timer,"boot","store in classcache",boot_group)
 
 /* load_class_bootstrap ********************************************************
 	
@@ -1207,6 +1250,7 @@ classinfo *load_class_bootstrap(Utf8String name)
 #endif
 
 	RT_TIMING_GET_TIME(time_start);
+	RT_TIMER_START(lookup_timer);
 
 	/* for debugging */
 
@@ -1218,12 +1262,14 @@ classinfo *load_class_bootstrap(Utf8String name)
 
 	if (r != NULL) {
 		RT_TIMING_GET_TIME(time_lookup);
+		RT_TIMER_STOP(lookup_timer);
 		RT_TIMING_TIME_DIFF(time_start,time_lookup,RT_TIMING_LOAD_BOOT_LOOKUP);
 		
 		return r;
 	}
 
 	RT_TIMING_GET_TIME(time_lookup);
+	RT_TIMER_STOP(lookup_timer);
 	RT_TIMING_TIME_DIFF(time_start,time_lookup,RT_TIMING_LOAD_BOOT_LOOKUP);
 		
 	/* create the classinfo */
@@ -1234,6 +1280,7 @@ classinfo *load_class_bootstrap(Utf8String name)
 
 	if (name[0] == '[') {
 		c = load_newly_created_array(c, NULL);
+		RT_TIMER_START(array_timer);
 
 		if (c == NULL)
 			return NULL;
@@ -1241,10 +1288,12 @@ classinfo *load_class_bootstrap(Utf8String name)
 		assert(c->state & CLASS_LOADED);
 
 		RT_TIMING_GET_TIME(time_array);
+		RT_TIMER_STOP(array_timer);
 		RT_TIMING_TIME_DIFF(time_start,time_array,RT_TIMING_LOAD_BOOT_ARRAY);
 		
 		return c;
 	}
+	RT_TIMER_START(suck_timer);
 
 #if defined(ENABLE_STATISTICS)
 	/* measure time */
@@ -1266,12 +1315,14 @@ classinfo *load_class_bootstrap(Utf8String name)
 	}
 
 	RT_TIMING_GET_TIME(time_suck);
+	RT_TIMER_STOPSTART(suck_timer,load_timer);
 	
 	/* load the class from the buffer */
 
 	r = load_class_from_classbuffer(cb);
 
 	RT_TIMING_GET_TIME(time_load);
+	RT_TIMER_STOPSTART(load_timer,cache_timer);
 	
 	if (r == NULL) {
 		/* the class could not be loaded, free the classinfo struct */
@@ -1298,6 +1349,7 @@ classinfo *load_class_bootstrap(Utf8String name)
 	}
 
 	RT_TIMING_GET_TIME(time_cache);
+	RT_TIMER_STOP(cache_timer);
 	
 	/* SUN compatible -verbose:class output */
 
@@ -1367,6 +1419,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	DumpMemoryArea dma;
 
 	RT_TIMING_GET_TIME(time_start);
+	RT_TIMER_START(checks_timer);
 
 	/* Get the classbuffer's class. */
 
@@ -1393,12 +1446,14 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	}
 
 	RT_TIMING_GET_TIME(time_checks);
+	RT_TIMER_STOPSTART(checks_timer,ndpool_timer);
 
 	/* create a new descriptor pool */
 
 	descpool = descriptor_pool_new(c);
 
 	RT_TIMING_GET_TIME(time_ndpool);
+	RT_TIMER_STOPSTART(ndpool_timer,cpool_timer);
 
 	/* load the constant pool */
 
@@ -1406,6 +1461,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		return false;
 
 	RT_TIMING_GET_TIME(time_cpool);
+	RT_TIMER_STOPSTART(cpool_timer,setup_timer);
 
 	/* ACC flags */
 
@@ -1540,6 +1596,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	}
 
 	RT_TIMING_GET_TIME(time_setup);
+	RT_TIMER_STOPSTART(setup_timer,fields_timer);
 
 	/* Parse fields. */
 
@@ -1557,6 +1614,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	}
 
 	RT_TIMING_GET_TIME(time_fields);
+	RT_TIMER_STOPSTART(fields_timer,methods_timer);
 
 	/* Parse methods. */
 
@@ -1574,6 +1632,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	}
 
 	RT_TIMING_GET_TIME(time_methods);
+	RT_TIMER_STOPSTART(methods_timer,classrefs_timer);
 
 	/* create the class reference table */
 
@@ -1581,6 +1640,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		descriptor_pool_create_classrefs(descpool, &(c->classrefcount));
 
 	RT_TIMING_GET_TIME(time_classrefs);
+	RT_TIMER_STOPSTART(classrefs_timer,descs_timer);
 
 	/* allocate space for the parsed descriptors */
 
@@ -1595,6 +1655,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 #endif
 
 	RT_TIMING_GET_TIME(time_descs);
+	RT_TIMER_STOPSTART(descs_timer,setrefs_timer);
 
 	/* put the classrefs in the constant pool */
 
@@ -1677,6 +1738,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	}
 
 	RT_TIMING_GET_TIME(time_setrefs);
+	RT_TIMER_STOPSTART(setrefs_timer,parsefds_timer);
 
 	/* Parse the field descriptors. */
 
@@ -1689,6 +1751,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	}
 
 	RT_TIMING_GET_TIME(time_parsefds);
+	RT_TIMER_STOPSTART(parsefds_timer,parsemds_timer);
 
 	/* parse method descriptors */
 
@@ -1721,6 +1784,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	}
 
 	RT_TIMING_GET_TIME(time_parsemds);
+	RT_TIMER_STOPSTART(parsemds_timer,parsecpool_timer);
 
 	/* parse the loaded descriptors */
 
@@ -1765,6 +1829,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	}
 
 	RT_TIMING_GET_TIME(time_parsecpool);
+	RT_TIMER_STOPSTART(parsecpool_timer,verify_timer);
 
 #ifdef ENABLE_VERIFIER
 	/* Check if all fields and methods can be uniquely
@@ -1851,6 +1916,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 #endif /* ENABLE_VERIFIER */
 
 	RT_TIMING_GET_TIME(time_verify);
+	RT_TIMER_STOPSTART(verify_timer,attrs_timer);
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
@@ -1880,6 +1946,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	}
 
 	RT_TIMING_GET_TIME(time_attrs);
+	RT_TIMER_STOP(attrs_timer);
 
 	RT_TIMING_TIME_DIFF(time_start     , time_checks    , RT_TIMING_LOAD_CHECKS);
 	RT_TIMING_TIME_DIFF(time_checks    , time_ndpool    , RT_TIMING_LOAD_NDPOOL);

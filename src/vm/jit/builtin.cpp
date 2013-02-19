@@ -796,6 +796,12 @@ bool builtin_fast_canstore_onedim_class(java_objectarray_t *a, java_object_t *o)
 	return result;
 }
 
+// register boot real-time group
+RT_REGISTER_GROUP(buildin_group,"boot","boot group")
+
+// register real-time timers
+RT_REGISTER_GROUP_TIMER(bi_new_timer,"buildin","builtin_new time",buildin_group)
+RT_REGISTER_GROUP_TIMER(bi_newa_timer,"buildin","builtin_newarray time",buildin_group)
 
 /* builtin_new *****************************************************************
 
@@ -819,6 +825,7 @@ java_handle_t *builtin_new(classinfo *c)
 #endif
 
 	RT_TIMING_GET_TIME(time_start);
+	RT_TIMER_START(bi_new_timer);
 	CYCLES_STATS_GET(cycles_start);
 
 	/* is the class loaded */
@@ -868,6 +875,7 @@ java_handle_t *builtin_new(classinfo *c)
 
 	CYCLES_STATS_GET(cycles_end);
 	RT_TIMING_GET_TIME(time_end);
+	RT_TIMER_STOP(bi_new_timer);
 
 	CYCLES_STATS_COUNT(builtin_new,cycles_end - cycles_start);
 	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_NEW_OBJECT);
@@ -1056,6 +1064,7 @@ java_handle_array_t *builtin_java_newarray(int32_t size, java_handle_t *arraycla
 #endif
 
 	RT_TIMING_GET_TIME(time_start);
+	RT_TIMER_START(bi_newa_timer);
 
 	classinfo* arrayclass = LLNI_classinfo_unwrap(arrayclazz);
 
@@ -1063,6 +1072,7 @@ java_handle_array_t *builtin_java_newarray(int32_t size, java_handle_t *arraycla
 	Array a(size, arrayclass);
 
 	RT_TIMING_GET_TIME(time_end);
+	RT_TIMER_STOP(bi_newa_timer);
 	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_NEW_ARRAY);
 
 	return a.get_handle();

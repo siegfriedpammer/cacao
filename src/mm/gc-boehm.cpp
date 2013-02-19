@@ -137,6 +137,11 @@ void *heap_alloc_uncollectable(size_t size)
 }
 
 
+// register heap timer
+RT_REGISTER_GROUP(heap_group,"heap","heap time")
+// register heap timer
+RT_REGISTER_GROUP_TIMER(heap_timer,"heap","allocation time",heap_group)
+
 /* heap_alloc ******************************************************************
 
    Allocates memory on the Java heap.
@@ -151,6 +156,7 @@ void *heap_alloc(size_t size, int references, methodinfo *finalizer, bool collec
 #endif
 
 	RT_TIMING_GET_TIME(time_start);
+	RT_TIMER_START(heap_timer);
 
 	/* We can't use a bool here for references, as it's passed as a
 	   bitmask in builtin_new.  Thus we check for != 0. */
@@ -171,6 +177,7 @@ void *heap_alloc(size_t size, int references, methodinfo *finalizer, bool collec
 	MSET(p, 0, uint8_t, size);
 
 	RT_TIMING_GET_TIME(time_end);
+	RT_TIMER_STOP(heap_timer);
 	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_GC_ALLOC);
 
 	return p;

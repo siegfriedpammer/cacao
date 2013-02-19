@@ -603,6 +603,21 @@ static classinfo *build_display(classinfo *c)
 }
 #endif
 
+// register linker real-time group
+RT_REGISTER_GROUP(linker_group,"link","linker")
+
+// register real-time timers
+RT_REGISTER_GROUP_TIMER(resolving_timer, "link", "resolve superclass/superinterfaces",linker_group)
+RT_REGISTER_GROUP_TIMER(compute_vftbl_timer, "link", "compute vftbl length",linker_group)
+RT_REGISTER_GROUP_TIMER(abstract_timer, "link", "handle abstract methods",linker_group)
+RT_REGISTER_GROUP_TIMER(compute_iftbl_timer, "link", "compute interface table",linker_group)
+RT_REGISTER_GROUP_TIMER(fill_vftbl_timer, "link", "fill vftbl",linker_group)
+RT_REGISTER_GROUP_TIMER(offsets_timer, "link", "set offsets",linker_group)
+RT_REGISTER_GROUP_TIMER(fill_iftbl_timer, "link", "fill interface table",linker_group)
+RT_REGISTER_GROUP_TIMER(finalizer_timer, "link", "set finalizer",linker_group)
+//RT_REGISTER_GROUP_TIMER(checks_timer, "link", "resolve exception classes",linker_group)
+RT_REGISTER_GROUP_TIMER(subclasses_timer, "link", "re-calculate subclass indices",linker_group)
+
 /* link_class_intern ***********************************************************
 
    Tries to link a class. The function calculates the length in bytes
@@ -630,6 +645,7 @@ static classinfo *link_class_intern(classinfo *c)
 #endif
 
 	RT_TIMING_GET_TIME(time_start);
+	RT_TIMER_START(resolving_timer);
 
 	TRACELINKCLASS(c);
 
@@ -718,6 +734,7 @@ static classinfo *link_class_intern(classinfo *c)
 		c->finalizer = super->finalizer;
 	}
 	RT_TIMING_GET_TIME(time_resolving);
+	RT_TIMER_STOPSTART(resolving_timer,compute_vftbl_timer);
 
 
 	/* compute vftbl length */
@@ -762,6 +779,7 @@ static classinfo *link_class_intern(classinfo *c)
 		}
 	}
 	RT_TIMING_GET_TIME(time_compute_vftbl);
+	RT_TIMER_STOPSTART(compute_vftbl_timer,abstract_timer);
 
 
 	/* Check all interfaces of an abstract class (maybe be an
@@ -851,6 +869,7 @@ static classinfo *link_class_intern(classinfo *c)
 		}
 	}
 	RT_TIMING_GET_TIME(time_abstract);
+	RT_TIMER_STOPSTART(abstract_timer,compute_iftbl_timer);
 
 
 #if defined(ENABLE_STATISTICS)
@@ -872,6 +891,7 @@ static classinfo *link_class_intern(classinfo *c)
 		}
 	}
 	RT_TIMING_GET_TIME(time_compute_iftbl);
+	RT_TIMER_STOPSTART(compute_iftbl_timer,fill_vftbl_timer);
 
 	/* allocate virtual function table */
 
@@ -949,6 +969,7 @@ static classinfo *link_class_intern(classinfo *c)
 		v->table[m->vftblindex] = (methodptr) (ptrint) m->stubroutine;
 	}
 	RT_TIMING_GET_TIME(time_fill_vftbl);
+	RT_TIMER_STOPSTART(fill_vftbl_timer,offsets_timer);
 
 	/* compute instance size and offset of each field */
 	
@@ -964,6 +985,7 @@ static classinfo *link_class_intern(classinfo *c)
 		}
 	}
 	RT_TIMING_GET_TIME(time_offsets);
+	RT_TIMER_STOPSTART(offsets_timer,fill_iftbl_timer);
 
 	/* initialize interfacetable and interfacevftbllength */
 
@@ -987,6 +1009,7 @@ static classinfo *link_class_intern(classinfo *c)
 				return NULL;
 
 	RT_TIMING_GET_TIME(time_fill_iftbl);
+	RT_TIMER_STOPSTART(fill_iftbl_timer,finalizer_timer);
 
 	/* add finalizer method (not for java.lang.Object) */
 
@@ -1000,6 +1023,7 @@ static classinfo *link_class_intern(classinfo *c)
 				c->finalizer = fi;
 	}
 	RT_TIMING_GET_TIME(time_finalizer);
+	RT_TIMER_STOPSTART(finalizer_timer,subclasses_timer);
 
 	/* final tasks */
 
@@ -1007,6 +1031,7 @@ static classinfo *link_class_intern(classinfo *c)
 
 	/* FIXME: this is completely useless now */
 	RT_TIMING_GET_TIME(time_subclasses);
+	RT_TIMER_STOP(subclasses_timer);
 
 #if USES_NEW_SUBTYPE
 	if (!build_display(c))
