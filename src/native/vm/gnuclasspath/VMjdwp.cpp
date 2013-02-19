@@ -31,7 +31,7 @@
 */
 
 #include "native/jvmti/jvmti.h"
-#include "native/jvmti/VMjdwp.h"
+#include "native/jvmti/VMjdwp.hpp"
 
 #include <stdlib.h>
 #include <string.h>

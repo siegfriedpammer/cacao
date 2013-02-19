@@ -35,6 +35,10 @@
 
 #include "native/jvmti/jvmti.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 jvmtiEnv* jvmtienv;
 extern jvmtiEventCallbacks jvmti_jdwp_EventCallbacks;
 char* jdwpoptions;
@@ -42,4 +46,10 @@ bool suspend;               /* should the virtual machine suspend on startup?  *
 jthread jdwpthread;
 
 void printjvmtierror(char *desc, jvmtiError err);
+
+#ifdef __cplusplus
+}
 #endif
+
+#endif /* _VMJDWP_H */
+
