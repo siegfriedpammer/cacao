@@ -55,7 +55,7 @@
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.hpp"
-#include "vm/jit/dseg.h"
+#include "vm/jit/dseg.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/linenumbertable.hpp"

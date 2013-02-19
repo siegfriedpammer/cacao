@@ -80,7 +80,7 @@
 # include "vm/jit/disass.h"
 #endif
 
-#include "vm/jit/dseg.h"
+#include "vm/jit/dseg.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/linenumbertable.hpp"

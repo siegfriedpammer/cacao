@@ -159,8 +159,8 @@ libjit_la_SOURCES = \
 	codegen-common.hpp \
 	disass.h \
 	$(DISASS_SOURCES) \
-	dseg.c \
-	dseg.h \
+	dseg.cpp \
+	dseg.hpp \
 	emit-common.cpp \
 	emit-common.hpp \
 	exceptiontable.c \
