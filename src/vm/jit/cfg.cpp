@@ -24,8 +24,9 @@
 
 */
 
-
 #include "config.h"
+
+#include "vm/jit/cfg.hpp"
 
 #include <assert.h>
 #include <stdint.h>

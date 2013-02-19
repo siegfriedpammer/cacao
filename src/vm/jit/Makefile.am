@@ -193,8 +193,8 @@ libjit_la_SOURCES = \
 	$(OPAGENT_SOURCES)
 
 libjit_la_SOURCES += \
-	cfg.c \
-	cfg.h
+	cfg.cpp \
+	cfg.hpp
 
 libjit_la_LIBADD = \
 	allocator/liballocator.la \

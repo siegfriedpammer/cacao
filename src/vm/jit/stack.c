@@ -52,7 +52,7 @@
 #endif
 
 #include "vm/jit/abi.h"
-#include "vm/jit/cfg.h"
+#include "vm/jit/cfg.hpp"
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/parse.hpp"
 #include "vm/jit/show.hpp"

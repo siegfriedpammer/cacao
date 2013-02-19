@@ -53,7 +53,7 @@
 
 #include "vm/jit/asmpart.h"
 
-#include "vm/jit/cfg.h"
+#include "vm/jit/cfg.hpp"
 
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/disass.h"
