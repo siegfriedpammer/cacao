@@ -32,7 +32,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/method.hpp"
 #include "vm/options.h"
-#include "vm/stackmap.h"
+#include "vm/stackmap.hpp"
 #include "vm/statistics.h"
 #include "vm/suck.hpp"
 

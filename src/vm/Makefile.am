@@ -47,8 +47,8 @@ ANNOTATION_SOURCES = \
 endif
 
 STACKMAP_SOURCES = \
-	stackmap.c \
-	stackmap.h
+	stackmap.cpp \
+	stackmap.hpp
 endif
 
 if ENABLE_RT_TIMING

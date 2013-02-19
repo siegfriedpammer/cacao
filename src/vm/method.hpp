@@ -50,7 +50,7 @@ typedef struct codeinfo            codeinfo;
 #include "vm/references.h"
 
 #if defined(ENABLE_JAVASE)
-# include "vm/stackmap.h"
+# include "vm/stackmap.hpp"
 #endif
 
 #include "vm/utf8.hpp"

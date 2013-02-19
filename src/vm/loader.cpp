@@ -66,7 +66,7 @@
 
 #if defined(ENABLE_JAVASE)
 # include "vm/annotation.hpp"
-# include "vm/stackmap.h"
+# include "vm/stackmap.hpp"
 #endif
 
 #if defined(ENABLE_STATISTICS)
