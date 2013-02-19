@@ -31,7 +31,6 @@
 #include "mm/memory.hpp"
 
 #include "toolbox/utf_utils.hpp"
-#include "toolbox/OutputStream.hpp"
 
 /* Buffer **********************************************************************
 
@@ -47,7 +46,7 @@
 *******************************************************************************/
 
 template<template<typename T> class Allocator = MemoryAllocator>
-class Buffer : public OutputStream {
+class Buffer{
 	public:
 		// construct a buffer with size
 		Buffer(size_t initial_size = 64, bool free_on_exit = true);
@@ -60,23 +59,23 @@ class Buffer : public OutputStream {
 		~Buffer();
 		
 		// write to buffer byte-by-byte
-		virtual inline Buffer& write(char);
-		virtual inline Buffer& write(Utf8String);
-		virtual inline Buffer& write(JavaString);
-		virtual inline Buffer& write(const char*);
-		virtual inline Buffer& write(const char*, size_t);
-		virtual inline Buffer& write(const u2*,   size_t);
+		inline Buffer& write(char);
+		inline Buffer& write(Utf8String);
+		inline Buffer& write(JavaString);
+		inline Buffer& write(const char*);
+		inline Buffer& write(const char*, size_t);
+		inline Buffer& write(const u2*,   size_t);
 
 		// write to buffer, replacing '/' by '.'
-		virtual inline Buffer& write_slash_to_dot(const char*);
-		virtual inline Buffer& write_slash_to_dot(Utf8String);
+		inline Buffer& write_slash_to_dot(const char*);
+		inline Buffer& write_slash_to_dot(Utf8String);
 
 		// write to buffer, replacing '.' by '/'
-		virtual inline Buffer& write_dot_to_slash(Utf8String);
+		inline Buffer& write_dot_to_slash(Utf8String);
 
 		// like printf
-		virtual inline Buffer& writef(const char* fmt, ...);
-		virtual inline Buffer& writevf(const char* fmt, va_list ap);
+		inline Buffer& writef(const char* fmt, ...);
+		inline Buffer& writevf(const char* fmt, va_list ap);
 
 		// get char contents of buffer
 		inline operator char*() {
