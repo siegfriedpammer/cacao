@@ -1,4 +1,4 @@
-/* src/vm/utf8.c - utf8 string functions
+/* src/vm/utf8.cpp - utf8 string functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,217 +22,133 @@
 
 */
 
-
-#include "config.h"
-
-#include <string.h>
-#include <assert.h>
-
-#include "vm/types.h"
-
-#include "mm/memory.hpp"
-
-#include "threads/mutex.hpp"
-
-#include "toolbox/hashtable.h"
-
-#include "vm/exceptions.hpp"
-#include "vm/options.h"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
-
 #include "vm/utf8.hpp"
 
+#include "toolbox/intern_table.hpp"
+#include "toolbox/utf_utils.hpp"
 
-/* global variables ***********************************************************/
+//****************************************************************************//
+//*****          GLOBAL UTF8-STRING INTERN TABLE                         *****//
+//****************************************************************************//
 
-/* hashsize must be power of 2 */
+struct Utf8Key {
+	Utf8Key(const char * text, size_t size, size_t hash)
+	 : text(text), size(size), hash(hash) {}
 
-#define HASHTABLE_UTF_SIZE    16384     /* initial size of utf-hash           */
+	const char* const text;
+	const size_t      size;
+	const size_t      hash;
+};
+struct Utf8Hash {
+	inline uint32_t operator()(Utf8String     u) const { return u.hash(); }
+	inline uint32_t operator()(const Utf8Key& k) const { return k.hash;   }
+};
+struct Utf8Eq {
+	inline bool operator()(Utf8String a, Utf8String b) const
+	{
+		return eq(a.size(), a.hash(), a.begin(),
+		          b.size(), b.hash(), b.begin());
+	}
+	inline bool operator()(Utf8String a, const Utf8Key& b) const
+	{
+		return eq(a.size(), a.hash(), a.begin(),
+		          b.size,   b.hash,   b.text);
+	}
 
-hashtable *hashtable_utf;               /* hashtable for utf8-symbols         */
+	static inline bool eq(size_t a_sz, size_t a_hash, const char *a_cs, 
+	                      size_t b_sz, size_t b_hash, const char *b_cs) {
+		return (a_sz   == b_sz)   && 
+		       (a_hash == b_hash) &&
+		       (memcmp(a_cs, b_cs, a_sz) == 0);
+	}
+};
 
+typedef InternTable<Utf8String, Utf8Hash, Utf8Eq, 1> Utf8InternTable;
 
-/* utf-symbols for pointer comparison of frequently used strings **************/
+static Utf8InternTable *intern_table;
 
-#define UTF8( NAME, STR ) utf *utf_##NAME;
-#include "vm/utf8.inc"
+// initial size of intern table
+#define HASHTABLE_UTF_SIZE 16384
 
-/* utf_init ********************************************************************
-
-   Initializes the utf8 subsystem.
-
-*******************************************************************************/
-
-void utf8_init(void)
+void Utf8String::initialize(void)
 {
 	TRACESUBSYSTEMINITIALIZATION("utf8_init");
 
-	/* create utf8 hashtable */
+	/* create utf8 intern table */
 
-	hashtable_utf = NEW(hashtable);
-
-	hashtable_create(hashtable_utf, HASHTABLE_UTF_SIZE);
+	intern_table = new Utf8InternTable(HASHTABLE_UTF_SIZE);
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
-		count_utf_len += sizeof(utf*) * hashtable_utf->size;
+		count_utf_len += sizeof(utf*) * HASHTABLE_UTF_SIZE;
 #endif
 
 	/* create utf-symbols for pointer comparison of frequently used strings */
 
-	#define UTF8( NAME, STR ) utf_##NAME = utf_new_char(STR);
-	#include "vm/utf8.inc"
+#define UTF8( NAME, STR ) utf_##NAME = Utf8String::from_utf8( STR );
+#include "vm/utf8.inc"
 }
 
+/* Utf8String::initialize ******************************************************
 
-/* utf_hashkey *****************************************************************
-
-   The hashkey is computed from the utf-text by using up to 8
-   characters.  For utf-symbols longer than 15 characters 3 characters
-   are taken from the beginning and the end, 2 characters are taken
-   from the middle.
+   Check if utf8 subsytem is initialized
 
 *******************************************************************************/
 
-#define nbs(val) ((u4) *(++text) << val) /* get next byte, left shift by val  */
-#define fbs(val) ((u4) *(  text) << val) /* get first byte, left shift by val */
-
-u4 utf_hashkey(const char *text, u4 length)
+bool Utf8String::is_initialized(void)
 {
-	const char *start_pos = text;       /* pointer to utf text                */
-	u4 a;
-
-	switch (length) {
-	case 0: /* empty string */
-		return 0;
-
-	case 1: return fbs(0);
-	case 2: return fbs(0) ^ nbs(3);
-	case 3: return fbs(0) ^ nbs(3) ^ nbs(5);
-	case 4: return fbs(0) ^ nbs(2) ^ nbs(4) ^ nbs(6);
-	case 5: return fbs(0) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(6);
-	case 6: return fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(5) ^ nbs(6);
-	case 7: return fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(5) ^ nbs(6);
-	case 8: return fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(5) ^ nbs(6) ^ nbs(7);
-
-	case 9:
-		a = fbs(0);
-		a ^= nbs(1);
-		a ^= nbs(2);
-		text++;
-		return a ^ nbs(4) ^ nbs(5) ^ nbs(6) ^ nbs(7) ^ nbs(8);
-
-	case 10:
-		a = fbs(0);
-		text++;
-		a ^= nbs(2);
-		a ^= nbs(3);
-		a ^= nbs(4);
-		text++;
-		return a ^ nbs(6) ^ nbs(7) ^ nbs(8) ^ nbs(9);
-
-	case 11:
-		a = fbs(0);
-		text++;
-		a ^= nbs(2);
-		a ^= nbs(3);
-		a ^= nbs(4);
-		text++;
-		return a ^ nbs(6) ^ nbs(7) ^ nbs(8) ^ nbs(9) ^ nbs(10);
-
-	case 12:
-		a = fbs(0);
-		text += 2;
-		a ^= nbs(2);
-		a ^= nbs(3);
-		text++;
-		a ^= nbs(5);
-		a ^= nbs(6);
-		a ^= nbs(7);
-		text++;
-		return a ^ nbs(9) ^ nbs(10);
-
-	case 13:
-		a = fbs(0);
-		a ^= nbs(1);
-		text++;
-		a ^= nbs(3);
-		a ^= nbs(4);
-		text += 2;	
-		a ^= nbs(7);
-		a ^= nbs(8);
-		text += 2;
-		return a ^ nbs(9) ^ nbs(10);
-
-	case 14:
-		a = fbs(0);
-		text += 2;	
-		a ^= nbs(3);
-		a ^= nbs(4);
-		text += 2;	
-		a ^= nbs(7);
-		a ^= nbs(8);
-		text += 2;
-		return a ^ nbs(9) ^ nbs(10) ^ nbs(11);
-
-	case 15:
-		a = fbs(0);
-		text += 2;	
-		a ^= nbs(3);
-		a ^= nbs(4);
-		text += 2;	
-		a ^= nbs(7);
-		a ^= nbs(8);
-		text += 2;
-		return a ^ nbs(9) ^ nbs(10) ^ nbs(11);
-
-	default:  /* 3 characters from beginning */
-		a = fbs(0);
-		text += 2;
-		a ^= nbs(3);
-		a ^= nbs(4);
-
-		/* 2 characters from middle */
-		text = start_pos + (length / 2);
-		a ^= fbs(5);
-		text += 2;
-		a ^= nbs(6);	
-
-		/* 3 characters from end */
-		text = start_pos + length - 4;
-
-		a ^= fbs(7);
-		text++;
-
-		return a ^ nbs(10) ^ nbs(11);
-    }
+	return intern_table != NULL;
 }
 
-/* utf_full_hashkey ************************************************************
+//****************************************************************************//
+//*****          INTERNAL DATA REPRESENTATION                            *****//
+//****************************************************************************//
 
-   This function computes a hash value using all bytes in the string.
+// TODO: move definition of struct utf here
 
-   The algorithm is the "One-at-a-time" algorithm as published
-   by Bob Jenkins on http://burtleburtle.net/bob/hash/doobs.html.
+static inline utf* utf8_alloc(size_t sz) {
+	utf* str = (utf*) mem_alloc(offsetof(utf,text) + sz + 1);
+
+	str->blength = sz;
+
+	return str;
+}
+static inline void utf8_free(utf* u) {
+	mem_free(u, offsetof(utf,text) + u->blength + 1);
+}
+
+//****************************************************************************//
+//*****          HASHING                                                 *****//
+//****************************************************************************//
+
+/* init/update/finish_hash *****************************************************
+	
+	These routines are used to compute the hash for a utf-8 string byte by byte.
+
+	Use like this:
+		u4 hash = 0;
+
+		for each byte in string:
+			hash = update_hash( hash, byte );
+
+		hash = finish_hash(hash);
+		
+	The algorithm is the "One-at-a-time" algorithm as published
+	by Bob Jenkins on http://burtleburtle.net/bob/hash/doobs.html.
 
 *******************************************************************************/
 
-u4 utf_full_hashkey(const char *text, u4 length)
+static inline u4 update_hash(u4 hash, uint8_t byte)
 {
-	register const unsigned char *p = (const unsigned char *) text;
-	register u4 hash;
-	register u4 i;
+	hash += byte;
+	hash += (hash << 10);
+	hash ^= (hash >> 6);
 
-	hash = 0;
-	for (i=length; i--;)
-	{
-	    hash += *p++;
-	    hash += (hash << 10);
-	    hash ^= (hash >> 6);
-	}
+	return hash;
+}
+
+static inline u4 finish_hash(u4 hash)
+{
 	hash += (hash << 3);
 	hash ^= (hash >> 11);
 	hash += (hash << 15);
@@ -240,761 +156,414 @@ u4 utf_full_hashkey(const char *text, u4 length)
 	return hash;
 }
 
-/* unicode_hashkey *************************************************************
+static inline u4 compute_hash(const char *cs, size_t sz) {
+	u4 hash = 0;
 
-   Compute the hashkey of a unicode string.
-
-*******************************************************************************/
-
-u4 unicode_hashkey(u2 *text, u2 len)
-{
-	return utf_hashkey((char *) text, len);
-}
-
-
-/* utf_new *********************************************************************
-
-   Creates a new utf-symbol, the text of the symbol is passed as a
-   u1-array. The function searches the utf-hashtable for a utf-symbol
-   with this text. On success the element returned, otherwise a new
-   hashtable element is created.
-
-   If the number of entries in the hashtable exceeds twice the size of
-   the hashtable slots a reorganization of the hashtable is done and
-   the utf symbols are copied to a new hashtable with doubled size.
-
-*******************************************************************************/
-
-utf *utf_new(const char *text, u2 length)
-{
-	u4 key;                             /* hashkey computed from utf-text     */
-	u4 slot;                            /* slot in hashtable                  */
-	utf *u;                             /* hashtable element                  */
-	u2 i;
-
-	hashtable_utf->mutex->lock();
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		count_utf_new++;
-#endif
-
-	key  = utf_hashkey(text, length);
-	slot = key & (hashtable_utf->size - 1);
-	u    = (utf*) hashtable_utf->ptr[slot];
-
-	/* search external hash chain for utf-symbol */
-
-	while (u) {
-		if (u->blength == length) {
-			/* compare text of hashtable elements */
-
-			for (i = 0; i < length; i++)
-				if (text[i] != u->text[i])
-					goto nomatch;
-			
-#if defined(ENABLE_STATISTICS)
-			if (opt_stat)
-				count_utf_new_found++;
-#endif
-
-			/* symbol found in hashtable */
-
-			hashtable_utf->mutex->unlock();
-
-			return u;
-		}
-
-	nomatch:
-		u = u->hashlink; /* next element in external chain */
+	for (const char *end = cs + sz; cs != end; cs++) {
+		hash = update_hash(hash, *cs);
 	}
 
-	/* location in hashtable found, create new utf element */
+	return finish_hash(hash);
+}
 
-	u = NEW(utf);
+//****************************************************************************//
+//*****          UTF-8 STRING                                            *****//
+//****************************************************************************//
 
-	u->blength  = length;               /* length in bytes of utfstring       */
-	u->hashlink = (utf*)  hashtable_utf->ptr[slot]; /* link in external hashchain     */
-	u->text     = (char*) mem_alloc(length + 1);/* allocate memory for utf-text       */
+// create & intern string
 
-	memcpy(u->text, text, length);      /* copy utf-text                      */
-	u->text[length] = '\0';
+struct StringBuilderBase {
+	public:
+		inline StringBuilderBase(size_t sz) : _hash(0), _codepoints(0) {}
 
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		count_utf_len += sizeof(utf) + length + 1;
-#endif
+		inline void utf8 (uint8_t  c) { _hash = update_hash(_hash, c); }
+		inline void utf16(uint16_t c) { _codepoints++; }
 
-	hashtable_utf->ptr[slot] = u;       /* insert symbol into table           */
-	hashtable_utf->entries++;           /* update number of entries           */
+		inline void finish() {
+			_hash = finish_hash(_hash);
 
-	if (hashtable_utf->entries > (hashtable_utf->size * 2)) {
-
-        /* reorganization of hashtable, average length of the external
-           chains is approx. 2 */
-
-		hashtable *newhash;                              /* the new hashtable */
-		u4         i;
-		utf       *u;
-		utf       *nextu;
-		u4         slot;
-
-		/* create new hashtable, double the size */
-
-		newhash = hashtable_resize(hashtable_utf, hashtable_utf->size * 2);
-
-#if defined(ENABLE_STATISTICS)
-		if (opt_stat)
-			count_utf_len += sizeof(utf*) * hashtable_utf->size;
-#endif
-
-		/* transfer elements to new hashtable */
-
-		for (i = 0; i < hashtable_utf->size; i++) {
-			u = (utf*) hashtable_utf->ptr[i];
-
-			while (u) {
-				nextu = u->hashlink;
-				slot  = utf_hashkey(u->text, u->blength) & (newhash->size - 1);
-						
-				u->hashlink = (utf *) newhash->ptr[slot];
-				newhash->ptr[slot] = u;
-
-				/* follow link in external hash chain */
-
-				u = nextu;
-			}
+			#if STATISTICS_ENABLED
+				if (opt_stat) count_utf_new++;
+			#endif
 		}
+	protected:
+		uint32_t _hash;
+		size_t   _codepoints;
+};
+
+// Builds a new utf8 string, always allocates a new string.
+// If the string was already interned, throw it away
+template<uint8_t (*Fn)(uint8_t)>
+struct EagerStringBuilder : private StringBuilderBase {
+	public:
+		typedef utf_utils::Tag<utf_utils::VISIT_BOTH, utf_utils::ABORT_ON_ERROR> Tag;
+
+		inline EagerStringBuilder(size_t sz) : StringBuilderBase(sz) {
+			_out  = utf8_alloc(sz);
+			_text = _out->text;
+		}
+
+		inline void utf8(uint8_t c) {
+			c = Fn(c);
+
+			StringBuilderBase::utf8(c);
+
+			*_text++ = c;
+		}
+
+		using StringBuilderBase::utf16;
+
+		inline Utf8String finish() {
+			StringBuilderBase::finish();
+
+			*_text               = '\0';
+			_out->num_codepoints = _codepoints;
+			_out->hash           = _hash;
+
+			utf* intern = intern_table->intern(_out);
+
+			if (intern != _out) utf8_free(_out);
+
+			return intern;
+		}
+
+		inline Utf8String abort() {
+			utf8_free(_out);
+			return 0;
+		}
+	private:
+		utf*  _out;
+		char* _text;
+};
+
+
+// Builds a new utf8 string.
+// Only allocates a new string if the string was not already intern_table.
+struct LazyStringBuilder : private StringBuilderBase {
+	public:
+		typedef utf_utils::Tag<utf_utils::VISIT_BOTH, utf_utils::ABORT_ON_ERROR> Tag;
+
+		inline LazyStringBuilder(const char *src, size_t sz)
+		 : StringBuilderBase(sz), src(src), sz(sz) {}
+
+		using StringBuilderBase::utf8;
+		using StringBuilderBase::utf16;
+
+		inline Utf8String finish() {
+			StringBuilderBase::finish();
+
+			return intern_table->intern(Utf8Key(src, sz, _hash), *this);
+		}
+
+		// lazily construct a utf*
+		operator Utf8String() const {
+			utf* str = utf8_alloc(sz);
+
+			str->num_codepoints = _codepoints;
+			str->hash           = _hash;
+
+			char *text = str->text;
+
+			memcpy(text, src, sz);
+			text[sz] = '\0';
+
+			return str;
+		}
+
+		inline Utf8String abort() { return 0; }
+	private:
+		const char *src;
+		size_t      sz;
+};
+
+namespace {
+	inline uint8_t identity(uint8_t c)     { return c; }
+	inline uint8_t slash_to_dot(uint8_t c) { return (c == '/') ? '.' : c; }
+	inline uint8_t dot_to_slash(uint8_t c) { return (c == '.') ? '/' : c; }
+}
+
+Utf8String Utf8String::from_utf8(const char *cs, size_t sz) {
+	return utf8::transform<utf*>(cs, sz, LazyStringBuilder(cs, sz));
+}
+Utf8String Utf8String::from_utf8_dot_to_slash(const char *cs, size_t sz) {
+	return utf8::transform<utf*>(cs, sz, 
+	                             EagerStringBuilder<dot_to_slash>(sz));
+}
+
+Utf8String Utf8String::from_utf16(const u2 *cs, size_t sz) {
+	size_t blength = utf8::num_bytes(cs, sz);
+
+	return utf16::transform<utf*>(cs, sz, 
+	                              EagerStringBuilder<identity>(blength));
+}
+Utf8String Utf8String::from_utf16_dot_to_slash(const u2 *cs, size_t sz) {
+	size_t blength = utf8::num_bytes(cs, sz);
+
+	return utf16::transform<utf*>(cs, sz, 
+	                              EagerStringBuilder<dot_to_slash>(blength));
+}
+
+/* Utf8String::byte_iterator ***************************************************
+
+	Iterates over the bytes of string, does not include zero terminator.
+
+*******************************************************************************/
+
+Utf8String::byte_iterator Utf8String::begin() const
+{   
+	assert(_data);
+
+	char* cs = _data->text;
+
+	return cs;
+}
+Utf8String::byte_iterator Utf8String::end()   const
+{
+	assert(_data);
+
+	return begin() + _data->blength;
+}
+
+/* Utf8String::utf16_iterator **************************************************
+
+	A forward iterator over the utf16 codepoints in a Utf8String
+
+*******************************************************************************/
+
+Utf8String::utf16_iterator::utf16_iterator(byte_iterator bs, size_t sz)
+: codepoint(0), bytes(bs), end(bs + sz) {
+	if (bytes != end) ++(*this);
+}
+
+void Utf8String::utf16_iterator::operator++()
+{
+	codepoint = utf8::decode_char(bytes);
+}
+
+Utf8String::utf16_iterator Utf8String::utf16_begin() const {
+	assert(_data);
+
+	return utf16_iterator(_data->text, _data->blength);
+}
+
+/* Utf8String::size ************************************************************
+
+	Returns the number of bytes in string.
+
+*******************************************************************************/
+
+size_t Utf8String::size() const
+{
+	assert(_data);
+
+	return _data->blength;
+}
+
+/* Utf8String::codepoints ******************************************************
+
+	Returns the number of UTF-16 codepoints in string.
+
+	Requires one pass over the whole string.
+
+*******************************************************************************/
+
+size_t Utf8String::codepoints() const
+{
+	assert(_data);
+
+	return _data->num_codepoints;
+}
+
+/* Utf8String::hash ************************************************************
+
+	Returns the hash of the string.
+
+*******************************************************************************/
+
+size_t Utf8String::hash() const
+{
+	assert(_data);
+
+	return _data->hash;
+}
+
+/* Utf8String::operator[] ******************************************************
+
+	Index into string
+	Does not perform a bounds check
+
+*******************************************************************************/
+
+char Utf8String::operator[](size_t idx) const
+{
+	assert(_data);
+	assert(idx >= 0);
+	assert(idx <  size());
+
+	return begin()[idx];
+}
+
+/* Utf8String::back() **********************************************************
+
+	Access last element, accessing a null or empty string leads to 
+	undefined behaviour
+
+*******************************************************************************/
+
+char Utf8String::back() const
+{
+	assert(_data);
+	assert(size() > 0);
+
+	return (*this)[size()-1];
+}
+
+/* Utf8String::substring *******************************************************
+
+	Access last element, accessing a null or empty string leads to 
+	undefined behaviour
+
+*******************************************************************************/
+
+Utf8String Utf8String::substring(size_t from) const
+{
+	return substring(from, size());
+}
+
+Utf8String Utf8String::substring(size_t from, size_t to) const
+{
+	assert(_data);
+	assert(from >  0);
+	assert(from <= to);
+	assert(to   <= size());
+
+	return Utf8String::from_utf8(begin() + from, to - from);
+}
+
+bool Utf8String::is_valid_name() const {
+	Utf8String::byte_iterator it  = this->begin();
+	Utf8String::byte_iterator end = this->end();
+
+	for (; it != end; it++) {
+		unsigned char c = *it;
+
+		if (c < 0x20)                   return false; // disallow control characters
+		if (c == 0xc0 && it[1] == 0x80) return false; // disallow zero
+	}
+
+	return true;
+}
+
+//****************************************************************************//
+//*****          PUBLIC UTF-8 FUNCTIONS                                  *****//
+//****************************************************************************//
+
+/* Utf8String::initialize ******************************************************
+
+   Initializes the utf8 subsystem.
+
+*******************************************************************************/
+
+/* utf8::num_codepoints ********************************************************
+
+	Count number of UTF-16 code points in UTF-8 string.
+
+	Returns -1 on error
+
+*******************************************************************************/
+
+struct SafeCodePointCounter {
+	public:
+		typedef utf_utils::Tag<utf_utils::VISIT_UTF16, utf_utils::ABORT_ON_ERROR> Tag;
+
+		SafeCodePointCounter() : count(0) {}
+
+		inline void utf8(uint8_t) const {}
+		inline void utf16(uint16_t) { count++; }
 	
-		/* dispose old table */
+		inline ssize_t finish() { return count; }
+		inline ssize_t abort()  { return -1;    }
+	private:
+		ssize_t count;
+};
 
-		hashtable_free(hashtable_utf);
-
-		hashtable_utf = newhash;
-	}
-
-	hashtable_utf->mutex->unlock();
-
-	return u;
+ssize_t utf8::num_codepoints(const char *cs, size_t sz) {
+	return utf8::transform<ssize_t>(cs, sz, SafeCodePointCounter());
 }
 
+/* utf8::num_bytes *************************************************************
 
-/* utf_new_u2 ******************************************************************
-
-   Make utf symbol from u2 array, if isclassname is true '.' is
-   replaced by '/'.
+	Calculate how many bytes a UTF-8 encoded version of a UTF-16 string 
+	would need.
 
 *******************************************************************************/
 
-utf *utf_new_u2(u2 *unicode_pos, u4 unicode_length, bool isclassname)
-{
-	char *buffer;                   /* memory buffer for  unicode characters  */
-	char *pos;                      /* pointer to current position in buffer  */
-	u4 left;                        /* unicode characters left                */
-	u4 buflength;                   /* utf length in bytes of the u2 array    */
-	utf *result;                    /* resulting utf-string                   */
-	int i;
+struct ByteCounter {
+	public:
+		typedef utf_utils::Tag<utf_utils::VISIT_UTF8, utf_utils::IGNORE_ERRORS> Tag;
 
-	/* determine utf length in bytes and allocate memory */
+		ByteCounter() : count(0) {}
 
-	buflength = u2_utflength(unicode_pos, unicode_length); 
-	buffer    = MNEW(char, buflength);
- 
-	left = buflength;
-	pos  = buffer;
-
-	for (i = 0; i++ < unicode_length; unicode_pos++) {
-		/* next unicode character */
-		u2 c = *unicode_pos;
-		
-		if ((c != 0) && (c < 0x80)) {
-			/* 1 character */	
-			left--;
-	    	if ((int) left < 0) break;
-			/* convert classname */
-			if (isclassname && c == '.')
-				*pos++ = '/';
-			else
-				*pos++ = (char) c;
-
-		} else if (c < 0x800) { 	    
-			/* 2 characters */				
-	    	unsigned char high = c >> 6;
-	    	unsigned char low  = c & 0x3F;
-			left = left - 2;
-	    	if ((int) left < 0) break;
-	    	*pos++ = high | 0xC0; 
-	    	*pos++ = low  | 0x80;	  
-
-		} else {	 
-	    	/* 3 characters */				
-	    	char low  = c & 0x3f;
-	    	char mid  = (c >> 6) & 0x3F;
-	    	char high = c >> 12;
-			left = left - 3;
-	    	if ((int) left < 0) break;
-	    	*pos++ = high | 0xE0; 
-	    	*pos++ = mid  | 0x80;  
-	    	*pos++ = low  | 0x80;   
-		}
-	}
+		inline void utf8(uint8_t) { count++; }
+		inline void utf16(uint16_t) const {}
 	
-	/* insert utf-string into symbol-table */
-	result = utf_new(buffer,buflength);
+		inline size_t finish() { return count; }
+	private:
+		size_t count;
+};
 
-	MFREE(buffer, char, buflength);
-
-	return result;
-}
-
-
-/* utf_new_char ****************************************************************
-
-   Creates a new utf symbol, the text for this symbol is passed as a
-   c-string ( = char* ).
-
-*******************************************************************************/
-
-utf *utf_new_char(const char *text)
+size_t utf8::num_bytes(const u2 *cs, size_t sz)
 {
-	return utf_new(text, strlen(text));
+	return utf16::transform<size_t>(cs, sz, ByteCounter());
 }
 
+//****************************************************************************//
+//*****          GLOBAL UTF8-STRING CONSTANTS                            *****//
+//****************************************************************************//
 
-/* utf_new_char_classname ******************************************************
+#define UTF8( NAME, STR ) utf* utf_##NAME;
+#include "vm/utf8.inc"
 
-   Creates a new utf symbol, the text for this symbol is passed as a
-   c-string ( = char* ) "." characters are going to be replaced by
-   "/". Since the above function is used often, this is a separte
-   function, instead of an if.
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// LEGACY C API
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
-*******************************************************************************/
+void utf8_init(void) { Utf8String::initialize(); }
 
-utf *utf_new_char_classname(const char *text)
-{
-	if (strchr(text, '.')) {
-		char *txt = strdup(text);
-		char *end = txt + strlen(txt);
-		char *c;
-		utf *tmpRes;
+u4 utf_hashkey(const char *text, u4 length)      { return compute_hash(text, length); } 
+u4 utf_full_hashkey(const char *text, u4 length) { return compute_hash(text, length); } 
 
-		for (c = txt; c < end; c++)
-			if (*c == '.') *c = '/';
+utf *utf_new(const char *text, u2 length) { return Utf8String::from_utf8(text, length); }
 
-		tmpRes = utf_new(txt, strlen(txt));
-		FREE(txt, 0);
-
-		return tmpRes;
-
-	} else
-		return utf_new(text, strlen(text));
+/* make utf symbol from u2 array */
+utf *utf_new_u2(u2 *unicodedata, u4 unicodelength, bool isclassname) {
+	if (isclassname)
+		return Utf8String::from_utf16_dot_to_slash(unicodedata, unicodelength);
+	else
+		return Utf8String::from_utf16(unicodedata, unicodelength);
 }
 
+utf *utf_new_char(const char *text)           { return Utf8String::from_utf8(text); }
+utf *utf_new_char_classname(const char *text) { return Utf8String::from_utf8_dot_to_slash(text); }
 
-/* utf_nextu2 ******************************************************************
+u4 utf_bytes(utf *u) { return u->blength; }
 
-   Read the next unicode character from the utf string and increment
-   the utf-string pointer accordingly.
+u2 utf_nextu2(char **utf) { 
+	const char** const_utf     = (const char**) utf;
+	const char*& const_utf_ref = *const_utf;
 
-   CAUTION: This function is unsafe for input that was not checked 
-            by is_valid_utf!
-
-*******************************************************************************/
-
-u2 utf_nextu2(char **utf_ptr)
-{
-    /* uncompressed unicode character */
-    u2 unicode_char = 0;
-    /* current position in utf text */	
-    unsigned char *utf = (unsigned char *) (*utf_ptr);
-    /* bytes representing the unicode character */
-    unsigned char ch1, ch2, ch3;
-    /* number of bytes used to represent the unicode character */
-    int len = 0;
-	
-    switch ((ch1 = utf[0]) >> 4) {
-	default: /* 1 byte */
-		(*utf_ptr)++;
-		return (u2) ch1;
-	case 0xC: 
-	case 0xD: /* 2 bytes */
-		if (((ch2 = utf[1]) & 0xC0) == 0x80) {
-			unsigned char high = ch1 & 0x1F;
-			unsigned char low  = ch2 & 0x3F;
-			unicode_char = (high << 6) + low;
-			len = 2;
-		}
-		break;
-
-	case 0xE: /* 2 or 3 bytes */
-		if (((ch2 = utf[1]) & 0xC0) == 0x80) {
-			if (((ch3 = utf[2]) & 0xC0) == 0x80) {
-				unsigned char low  = ch3 & 0x3f;
-				unsigned char mid  = ch2 & 0x3f;
-				unsigned char high = ch1 & 0x0f;
-				unicode_char = (((high << 6) + mid) << 6) + low;
-				len = 3;
-			} else
-				len = 2;					   
-		}
-		break;
-    }
-
-    /* update position in utf-text */
-    *utf_ptr = (char *) (utf + len);
-
-    return unicode_char;
+	return utf8::decode_char(const_utf_ref); 
 }
 
+s4   utf8_safe_number_of_u2s(const char *text, s4 nbytes);
+void utf8_safe_convert_to_u2s(const char *text, s4 nbytes, u2 *buffer);
 
-/* utf_bytes *******************************************************************
+u4 utf_get_number_of_u2s(utf *u) { return u->num_codepoints; }
 
-   Determine number of bytes (aka. octets) in the utf string.
-
-   IN:
-      u............utf string
-
-   OUT:
-      The number of octets of this utf string.
-	  There is _no_ terminating zero included in this count.
-
-*******************************************************************************/
-
-u4 utf_bytes(utf *u)
-{
-	return u->blength;
-}
-
-
-/* utf_get_number_of_u2s_for_buffer ********************************************
-
-   Determine number of UTF-16 u2s in the given UTF-8 buffer
-
-   CAUTION: This function is unsafe for input that was not checked 
-            by is_valid_utf!
-
-   CAUTION: Use this function *only* when you want to convert an UTF-8 buffer
-   to an array of u2s (UTF-16) and want to know how many of them you will get.
-   All other uses of this function are probably wrong.
-
-   IN:
-      buffer........points to first char in buffer
-	  blength.......number of _bytes_ in the buffer
-
-   OUT:
-      the number of u2s needed to hold this string in UTF-16 encoding.
-	  There is _no_ terminating zero included in this count.
-
-   NOTE: Unlike utf_get_number_of_u2s, this function never throws an
-   exception.
-
-*******************************************************************************/
-
-u4 utf_get_number_of_u2s_for_buffer(const char *buffer, u4 blength)
-{
-	const char *endpos;                 /* points behind utf string           */
-	const char *utf_ptr;                /* current position in utf text       */
-	u4 len = 0;                         /* number of unicode characters       */
-
-	utf_ptr = buffer;
-	endpos = utf_ptr + blength;
-
-	while (utf_ptr < endpos) {
-		len++;
-		/* next unicode character */
-		utf_nextu2((char **)&utf_ptr);
-	}
-
-	assert(utf_ptr == endpos);
-
-	return len;
-}
-
-
-/* utf_get_number_of_u2s *******************************************************
-
-   Determine number of UTF-16 u2s in the utf string.
-
-   CAUTION: This function is unsafe for input that was not checked 
-            by is_valid_utf!
-
-   CAUTION: Use this function *only* when you want to convert a utf string
-   to an array of u2s and want to know how many of them you will get.
-   All other uses of this function are probably wrong.
-
-   IN:
-      u............utf string
-
-   OUT:
-      the number of u2s needed to hold this string in UTF-16 encoding.
-	  There is _no_ terminating zero included in this count.
-	  XXX 0 if a NullPointerException has been thrown (see below)
-
-*******************************************************************************/
-
-u4 utf_get_number_of_u2s(utf *u)
-{
-	char *endpos;                       /* points behind utf string           */
-	char *utf_ptr;                      /* current position in utf text       */
-	u4 len = 0;                         /* number of unicode characters       */
-
-	/* XXX this is probably not checked by most callers! Review this after */
-	/* the invalid uses of this function have been eliminated */
-	if (u == NULL) {
-		exceptions_throw_nullpointerexception();
-		return 0;
-	}
-
-	endpos = UTF_END(u);
-	utf_ptr = u->text;
-
-	while (utf_ptr < endpos) {
-		len++;
-		/* next unicode character */
-		utf_nextu2(&utf_ptr);
-	}
-
-	if (utf_ptr != endpos) {
-		/* string ended abruptly */
-		exceptions_throw_internalerror("Illegal utf8 string");
-		return 0;
-	}
-
-	return len;
-}
-
-
-/* utf8_safe_number_of_u2s *****************************************************
-
-   Determine number of UTF-16 u2s needed for decoding the given UTF-8 string.
-   (For invalid UTF-8 the U+fffd replacement character will be counted.)
-
-   This function is safe even for invalid UTF-8 strings.
-
-   IN:
-      text..........zero-terminated(!) UTF-8 string (may be invalid)
-	                must NOT be NULL
-	  nbytes........strlen(text). (This is needed to completely emulate
-	                the RI).
-
-   OUT:
-      the number of u2s needed to hold this string in UTF-16 encoding.
-	  There is _no_ terminating zero included in this count.
-
-*******************************************************************************/
-
-s4 utf8_safe_number_of_u2s(const char *text, s4 nbytes) {
-	register const unsigned char *t;
-	register s4 byte;
-	register s4 len;
-	register const unsigned char *tlimit;
-	s4 byte1;
-	s4 byte2;
-	s4 byte3;
-	s4 value;
-	s4 skip;
-
-	assert(text);
-	assert(nbytes >= 0);
-
-	len = 0;
-	t = (const unsigned char *) text;
-	tlimit = t + nbytes;
-
-	/* CAUTION: Keep this code in sync with utf8_safe_convert_to_u2s! */
-
-	while (1) {
-		byte = *t++;
-
-		if (byte & 0x80) {
-			/* highest bit set, non-ASCII character */
-
-			if ((byte & 0xe0) == 0xc0) {
-				/* 2-byte: should be 110..... 10...... ? */
-
-				if ((*t++ & 0xc0) == 0x80)
-					; /* valid 2-byte */
-				else
-					t--; /* invalid */
-			}
-			else if ((byte & 0xf0) == 0xe0) {
-				/* 3-byte: should be 1110.... 10...... 10...... */
-				/*                            ^t                */
-
-				if (t + 2 > tlimit)
-					return len + 1; /* invalid, stop here */
-
-				if ((*t++ & 0xc0) == 0x80) {
-					if ((*t++ & 0xc0) == 0x80)
-						; /* valid 3-byte */
-					else
-						t--; /* invalid */
-				}
-				else
-					t--; /* invalid */
-			}
-			else if ((byte & 0xf8) == 0xf0) {
-				/* 4-byte: should be 11110... 10...... 10...... 10...... */
-				/*                            ^t                         */
-
-				if (t + 3 > tlimit)
-					return len + 1; /* invalid, stop here */
-
-				if (((byte1 = *t++) & 0xc0) == 0x80) {
-					if (((byte2 = *t++) & 0xc0) == 0x80) {
-						if (((byte3 = *t++) & 0xc0) == 0x80) {
-							/* valid 4-byte UTF-8? */
-							value = ((byte  & 0x07) << 18)
-								  | ((byte1 & 0x3f) << 12)
-								  | ((byte2 & 0x3f) <<  6)
-								  | ((byte3 & 0x3f)      );
-
-							if (value > 0x10FFFF)
-								; /* invalid */
-							else if (value > 0xFFFF)
-								len += 1; /* we need surrogates */
-							else
-								; /* 16bit suffice */
-						}
-						else
-							t--; /* invalid */
-					}
-					else
-						t--; /* invalid */
-				}
-				else
-					t--; /* invalid */
-			}
-			else if ((byte & 0xfc) == 0xf8) {
-				/* invalid 5-byte */
-				if (t + 4 > tlimit)
-					return len + 1; /* invalid, stop here */
-
-				skip = 4;
-				for (; skip && ((*t & 0xc0) == 0x80); --skip)
-					t++;
-			}
-			else if ((byte & 0xfe) == 0xfc) {
-				/* invalid 6-byte */
-				if (t + 5 > tlimit)
-					return len + 1; /* invalid, stop here */
-
-				skip = 5;
-				for (; skip && ((*t & 0xc0) == 0x80); --skip)
-					t++;
-			}
-			else
-				; /* invalid */
-		}
-		else {
-			/* NUL */
-
-			if (byte == 0)
-				break;
-
-			/* ASCII character, common case */
-		}
-
-		len++;
-	}
-
-	return len;
-}
-
-
-/* utf8_safe_convert_to_u2s ****************************************************
-
-   Convert the given UTF-8 string to UTF-16 into a pre-allocated buffer.
-   (Invalid UTF-8 will be replaced with the U+fffd replacement character.)
-   Use utf8_safe_number_of_u2s to determine the number of u2s to allocate.
-
-   This function is safe even for invalid UTF-8 strings.
-
-   IN:
-      text..........zero-terminated(!) UTF-8 string (may be invalid)
-	                must NOT be NULL
-	  nbytes........strlen(text). (This is needed to completely emulate
-	  				the RI).
-	  buffer........a preallocated array of u2s to receive the decoded
-	                string. Use utf8_safe_number_of_u2s to get the
-					required number of u2s for allocating this.
-
-*******************************************************************************/
-
-#define UNICODE_REPLACEMENT  0xfffd
-
-void utf8_safe_convert_to_u2s(const char *text, s4 nbytes, u2 *buffer) {
-	register const unsigned char *t;
-	register s4 byte;
-	register const unsigned char *tlimit;
-	s4 byte1;
-	s4 byte2;
-	s4 byte3;
-	s4 value;
-	s4 skip;
-
-	assert(text);
-	assert(nbytes >= 0);
-
-	t = (const unsigned char *) text;
-	tlimit = t + nbytes;
-
-	/* CAUTION: Keep this code in sync with utf8_safe_number_of_u2s! */
-
-	while (1) {
-		byte = *t++;
-
-		if (byte & 0x80) {
-			/* highest bit set, non-ASCII character */
-
-			if ((byte & 0xe0) == 0xc0) {
-				/* 2-byte: should be 110..... 10...... */
-
-				if (((byte1 = *t++) & 0xc0) == 0x80) {
-					/* valid 2-byte UTF-8 */
-					*buffer++ = ((byte  & 0x1f) << 6)
-							  | ((byte1 & 0x3f)     );
-				}
-				else {
-					*buffer++ = UNICODE_REPLACEMENT;
-					t--;
-				}
-			}
-			else if ((byte & 0xf0) == 0xe0) {
-				/* 3-byte: should be 1110.... 10...... 10...... */
-
-				if (t + 2 > tlimit) {
-					*buffer++ = UNICODE_REPLACEMENT;
-					return;
-				}
-
-				if (((byte1 = *t++) & 0xc0) == 0x80) {
-					if (((byte2 = *t++) & 0xc0) == 0x80) {
-						/* valid 3-byte UTF-8 */
-						*buffer++ = ((byte  & 0x0f) << 12)
-								  | ((byte1 & 0x3f) <<  6)
-								  | ((byte2 & 0x3f)      );
-					}
-					else {
-						*buffer++ = UNICODE_REPLACEMENT;
-						t--;
-					}
-				}
-				else {
-					*buffer++ = UNICODE_REPLACEMENT;
-					t--;
-				}
-			}
-			else if ((byte & 0xf8) == 0xf0) {
-				/* 4-byte: should be 11110... 10...... 10...... 10...... */
-
-				if (t + 3 > tlimit) {
-					*buffer++ = UNICODE_REPLACEMENT;
-					return;
-				}
-
-				if (((byte1 = *t++) & 0xc0) == 0x80) {
-					if (((byte2 = *t++) & 0xc0) == 0x80) {
-						if (((byte3 = *t++) & 0xc0) == 0x80) {
-							/* valid 4-byte UTF-8? */
-							value = ((byte  & 0x07) << 18)
-								  | ((byte1 & 0x3f) << 12)
-								  | ((byte2 & 0x3f) <<  6)
-								  | ((byte3 & 0x3f)      );
-
-							if (value > 0x10FFFF) {
-								*buffer++ = UNICODE_REPLACEMENT;
-							}
-							else if (value > 0xFFFF) {
-								/* we need surrogates */
-								*buffer++ = 0xd800 | ((value >> 10) - 0x40);
-								*buffer++ = 0xdc00 | (value & 0x03ff);
-							}
-							else
-								*buffer++ = value; /* 16bit suffice */
-						}
-						else {
-							*buffer++ = UNICODE_REPLACEMENT;
-							t--;
-						}
-					}
-					else {
-						*buffer++ = UNICODE_REPLACEMENT;
-						t--;
-					}
-				}
-				else {
-					*buffer++ = UNICODE_REPLACEMENT;
-					t--;
-				}
-			}
-			else if ((byte & 0xfc) == 0xf8) {
-				if (t + 4 > tlimit) {
-					*buffer++ = UNICODE_REPLACEMENT;
-					return;
-				}
-
-				skip = 4;
-				for (; skip && ((*t & 0xc0) == 0x80); --skip)
-					t++;
-				*buffer++ = UNICODE_REPLACEMENT;
-			}
-			else if ((byte & 0xfe) == 0xfc) {
-				if (t + 5 > tlimit) {
-					*buffer++ = UNICODE_REPLACEMENT;
-					return;
-				}
-
-				skip = 5;
-				for (; skip && ((*t & 0xc0) == 0x80); --skip)
-					t++;
-				*buffer++ = UNICODE_REPLACEMENT;
-			}
-			else
-				*buffer++ = UNICODE_REPLACEMENT;
-		}
-		else {
-			/* NUL */
-
-			if (byte == 0)
-				break;
-
-			/* ASCII character, common case */
-
-			*buffer++ = byte;
-		}
-	}
-}
-
-
-/* u2_utflength ****************************************************************
-
-   Returns the utf length in bytes of a u2 array.
-
-*******************************************************************************/
-
-u4 u2_utflength(u2 *text, u4 u2_length)
-{
-	u4 result_len = 0;                  /* utf length in bytes                */
-	u2 ch;                              /* current unicode character          */
-	u4 len;
-	
-	for (len = 0; len < u2_length; len++) {
-		/* next unicode character */
-		ch = *text++;
-	  
-		/* determine bytes required to store unicode character as utf */
-		if (ch && (ch < 0x80)) 
-			result_len++;
-		else if (ch < 0x800)
-			result_len += 2;	
-		else 
-			result_len += 3;	
-	}
-
-    return result_len;
-}
-
+/* determine utf length in bytes of a u2 array */
+u4 u2_utflength(u2 *text, u4 u2_length) { return utf8::num_bytes(text, u2_length); }
 
 /* utf_copy ********************************************************************
 
@@ -1043,20 +612,15 @@ void utf_cat(char *buffer, utf *u)
 
 void utf_copy_classname(char *buffer, utf *u)
 {
-	char *bufptr;
-	char *srcptr;
-	char *endptr;
-	char ch;
+	Utf8String str = u;
 
-	bufptr = buffer;
-	srcptr = u->text;
-	endptr = UTF_END(u) + 1; /* utfs are zero-terminared by utf_new */
+	const char *src = str.begin();
+	const char *end = str.end();
 
-	while (srcptr != endptr) {
-		ch = *srcptr++;
-		if (ch == '/')
-			ch = '.';
-		*bufptr++ = ch;
+	for (; src != end; src++, buffer++) {
+		char ch = *src;
+
+		*buffer = ch == '/' ? '.' : ch;
 	}
 }
 
@@ -1084,32 +648,41 @@ void utf_cat_classname(char *buffer, utf *u)
 
 *******************************************************************************/
 
+template<uint8_t (*Fn)(uint8_t)>
+class DisplayPrintableAscii {
+	public:
+		typedef utf_utils::Tag<utf_utils::VISIT_UTF16, utf_utils::REPLACE_ON_ERROR> Tag;
+
+		inline DisplayPrintableAscii(FILE *dst) : _dst(dst) {}
+
+		inline void utf8 (uint8_t c) const {}
+		inline void utf16(uint16_t c) {
+			char out;
+
+			out = (c >= 32 && c <= 127) ? c : '?';
+			out = Fn(c);
+			
+			fputc(out, _dst);
+		}
+
+		inline uint16_t replacement() const { return '?'; }
+		
+		inline void finish() {fflush(_dst);}
+		inline void abort()  const {}
+	private:
+		FILE* _dst;
+};
+
 void utf_display_printable_ascii(utf *u)
 {
-	char *endpos;                       /* points behind utf string           */
-	char *utf_ptr;                      /* current position in utf text       */
-
 	if (u == NULL) {
 		printf("NULL");
 		fflush(stdout);
 		return;
 	}
 
-	endpos = UTF_END(u);
-	utf_ptr = u->text;
-
-	while (utf_ptr < endpos) {
-		/* read next unicode character */
-
-		u2 c = utf_nextu2(&utf_ptr);
-
-		if ((c >= 32) && (c <= 127))
-			printf("%c", c);
-		else
-			printf("?");
-	}
-
-	fflush(stdout);
+	utf8::transform<void>(u->text, u->blength, 
+	                      DisplayPrintableAscii<identity>(stdout));
 }
 
 
@@ -1123,33 +696,14 @@ void utf_display_printable_ascii(utf *u)
 
 void utf_display_printable_ascii_classname(utf *u)
 {
-	char *endpos;                       /* points behind utf string           */
-	char *utf_ptr;                      /* current position in utf text       */
-
 	if (u == NULL) {
 		printf("NULL");
 		fflush(stdout);
 		return;
 	}
 
-	endpos = UTF_END(u);
-	utf_ptr = u->text;
-
-	while (utf_ptr < endpos) {
-		/* read next unicode character */
-
-		u2 c = utf_nextu2(&utf_ptr);
-
-		if (c == '/')
-			c = '.';
-
-		if ((c >= 32) && (c <= 127))
-			printf("%c", c);
-		else
-			printf("?");
-	}
-
-	fflush(stdout);
+	utf8::transform<void>(u->text, u->blength, 
+	                      DisplayPrintableAscii<slash_to_dot>(stdout));
 }
 
 
@@ -1161,26 +715,31 @@ void utf_display_printable_ascii_classname(utf *u)
 
 *******************************************************************************/
 
+template<uint8_t (*Fn)(uint8_t)>
+class SprintConvertToLatin1 {
+	public:
+		typedef utf_utils::Tag<utf_utils::VISIT_UTF16, utf_utils::IGNORE_ERRORS> Tag;
+
+		inline SprintConvertToLatin1(char* dst) : _dst(dst) {}
+
+		inline void utf8 (uint8_t c) const {}
+		inline void utf16(uint16_t c) { *_dst++ = Fn(c); }
+		
+		inline void finish() { *_dst = '\0'; }
+		inline void abort() const {}
+	private:
+		char* _dst;
+};
+
 void utf_sprint_convert_to_latin1(char *buffer, utf *u)
 {
-	char *endpos;                       /* points behind utf string           */
-	char *utf_ptr;                      /* current position in utf text       */
-	u2 pos = 0;                         /* position in c-string               */
-
 	if (!u) {
 		strcpy(buffer, "NULL");
 		return;
 	}
 
-	endpos = UTF_END(u);
-	utf_ptr = u->text;
-
-	while (utf_ptr < endpos) 
-		/* copy next unicode character */       
-		buffer[pos++] = utf_nextu2(&utf_ptr);
-
-	/* terminate string */
-	buffer[pos] = '\0';
+	utf8::transform<void>(u->text, u->blength, 
+	                      SprintConvertToLatin1<identity>(buffer));
 }
 
 
@@ -1195,27 +754,13 @@ void utf_sprint_convert_to_latin1(char *buffer, utf *u)
 
 void utf_sprint_convert_to_latin1_classname(char *buffer, utf *u)
 {
-	char *endpos;                       /* points behind utf string           */
-	char *utf_ptr;                      /* current position in utf text       */
-	u2 pos = 0;                         /* position in c-string               */
-
 	if (!u) {
 		strcpy(buffer, "NULL");
 		return;
 	}
 
-	endpos = UTF_END(u);
-	utf_ptr = u->text;
-
-	while (utf_ptr < endpos) {
-		/* copy next unicode character */       
-		u2 c = utf_nextu2(&utf_ptr);
-		if (c == '/') c = '.';
-		buffer[pos++] = c;
-	}
-
-	/* terminate string */
-	buffer[pos] = '\0';
+	utf8::transform<void>(u->text, u->blength, 
+	                      SprintConvertToLatin1<slash_to_dot>(buffer));
 }
 
 
@@ -1256,22 +801,10 @@ void utf_strcat_convert_to_latin1_classname(char *buffer, utf *u)
 
 void utf_fprint_printable_ascii(FILE *file, utf *u)
 {
-	char *endpos;                       /* points behind utf string           */
-	char *utf_ptr;                      /* current position in utf text       */
+	if (!u) return;
 
-	if (!u)
-		return;
-
-	endpos = UTF_END(u);
-	utf_ptr = u->text;
-
-	while (utf_ptr < endpos) { 
-		/* read next unicode character */                
-		u2 c = utf_nextu2(&utf_ptr);				
-
-		if (c >= 32 && c <= 127) fprintf(file, "%c", c);
-		else fprintf(file, "?");
-	}
+	utf8::transform<void>(u->text, u->blength, 
+	                      DisplayPrintableAscii<identity>(file));
 }
 
 
@@ -1284,105 +817,23 @@ void utf_fprint_printable_ascii(FILE *file, utf *u)
 
 void utf_fprint_printable_ascii_classname(FILE *file, utf *u)
 {
-	char *endpos;                       /* points behind utf string           */
-	char *utf_ptr;                      /* current position in utf text       */
+	if (!u) return;
 
-    if (!u)
-		return;
-
-	endpos = UTF_END(u);
-	utf_ptr = u->text;
-
-	while (utf_ptr < endpos) { 
-		/* read next unicode character */                
-		u2 c = utf_nextu2(&utf_ptr);				
-		if (c == '/') c = '.';
-
-		if (c >= 32 && c <= 127) fprintf(file, "%c", c);
-		else fprintf(file, "?");
-	}
+	utf8::transform<void>(u->text, u->blength, 
+	                      DisplayPrintableAscii<slash_to_dot>(file));
 }
 
+struct Utf8Validator {
+	typedef utf_utils::Tag<utf_utils::VISIT_NONE, utf_utils::ABORT_ON_ERROR> Tag;
 
-/* is_valid_utf ****************************************************************
+	inline bool finish() { return true;  }
+	inline bool abort()  { return false; }
+};
 
-   Return true if the given string is a valid UTF-8 string.
-
-   utf_ptr...points to first character
-   end_pos...points after last character
-
-*******************************************************************************/
-
-/*  static unsigned long min_codepoint[6] = {0,1L<<7,1L<<11,1L<<16,1L<<21,1L<<26}; */
-
-bool is_valid_utf(char *utf_ptr, char *end_pos)
+bool is_valid_utf(char *cs, char *end)
 {
-	int bytes;
-	int len,i;
-	char c;
-	unsigned long v;
-
-	if (end_pos < utf_ptr) return false;
-	bytes = end_pos - utf_ptr;
-	while (bytes--) {
-		c = *utf_ptr++;
-
-		if (!c) return false;                     /* 0x00 is not allowed */
-		if ((c & 0x80) == 0) continue;            /* ASCII */
-
-		if      ((c & 0xe0) == 0xc0) len = 1;     /* 110x xxxx */
-		else if ((c & 0xf0) == 0xe0) len = 2;     /* 1110 xxxx */
-		else if ((c & 0xf8) == 0xf0) len = 3;     /* 1111 0xxx */
-		else if ((c & 0xfc) == 0xf8) len = 4;     /* 1111 10xx */
-		else if ((c & 0xfe) == 0xfc) len = 5;     /* 1111 110x */
-		else return false;                        /* invalid leading byte */
-
-		if (len > 2) return false;                /* Java limitation */
-
-		v = (unsigned long)c & (0x3f >> len);
-		
-		if ((bytes -= len) < 0) return false;     /* missing bytes */
-
-		for (i = len; i--; ) {
-			c = *utf_ptr++;
-			if ((c & 0xc0) != 0x80)               /* 10xx xxxx */
-				return false;
-			v = (v << 6) | (c & 0x3f);
-		}
-
-		if (v == 0) {
-			if (len != 1) return false;           /* Java special */
-
-		} else {
-			/* Sun Java seems to allow overlong UTF-8 encodings */
-			
-			/* if (v < min_codepoint[len]) */
-				/* XXX throw exception? */
-		}
-
-		/* surrogates in UTF-8 seem to be allowed in Java classfiles */
-		/* if (v >= 0xd800 && v <= 0xdfff) return false; */ /* surrogates */
-
-		/* even these seem to be allowed */
-		/* if (v == 0xfffe || v == 0xffff) return false; */ /* invalid codepoints */
-	}
-
-	return true;
+	return utf8::transform<bool>(cs, end - cs, Utf8Validator());
 }
-
-
-/* is_valid_name ***************************************************************
-
-   Return true if the given string may be used as a class/field/method
-   name. (Currently this only disallows empty strings and control
-   characters.)
-
-   NOTE: The string is assumed to have passed is_valid_utf!
-
-   utf_ptr...points to first character
-   end_pos...points after last character
-
-*******************************************************************************/
 
 bool is_valid_name(char *utf_ptr, char *end_pos)
 {
@@ -1398,107 +849,9 @@ bool is_valid_name(char *utf_ptr, char *end_pos)
 
 	return true;
 }
+bool is_valid_name_utf(utf *u) { return Utf8String(u).is_valid_name(); }
 
-bool is_valid_name_utf(utf *u)
-{
-	return is_valid_name(u->text, UTF_END(u));
-}
-
-
-/* utf_show ********************************************************************
-
-   Writes the utf symbols in the utfhash to stdout and displays the
-   number of external hash chains grouped according to the chainlength
-   (for debugging purposes).
-
-*******************************************************************************/
-
-#if !defined(NDEBUG)
-void utf_show(void)
-{
-
-#define CHAIN_LIMIT 20               /* limit for seperated enumeration */
-
-	u4 chain_count[CHAIN_LIMIT]; /* numbers of chains */
-	u4 max_chainlength = 0;      /* maximum length of the chains */
-	u4 sum_chainlength = 0;      /* sum of the chainlengths */
-	u4 beyond_limit = 0;         /* number of utf-symbols in chains with length>=CHAIN_LIMIT-1 */
-	u4 i;
-
-	printf("UTF-HASH:\n");
-
-	/* show element of utf-hashtable */
-
-	for (i = 0; i < hashtable_utf->size; i++) {
-		utf *u = (utf*) hashtable_utf->ptr[i];
-
-		if (u) {
-			printf("SLOT %d: ", (int) i);
-
-			while (u) {
-				printf("'");
-				utf_display_printable_ascii(u);
-				printf("' ");
-				u = u->hashlink;
-			}	
-			printf("\n");
-		}
-	}
-
-	printf("UTF-HASH: %d slots for %d entries\n", 
-		   (int) hashtable_utf->size, (int) hashtable_utf->entries );
-
-	if (hashtable_utf->entries == 0)
-		return;
-
-	printf("chains:\n  chainlength    number of chains    %% of utfstrings\n");
-
-	for (i=0;i<CHAIN_LIMIT;i++)
-		chain_count[i]=0;
-
-	/* count numbers of hashchains according to their length */
-	for (i=0; i<hashtable_utf->size; i++) {
-		  
-		utf *u = (utf*) hashtable_utf->ptr[i];
-		u4 chain_length = 0;
-
-		/* determine chainlength */
-		while (u) {
-			u = u->hashlink;
-			chain_length++;
-		}
-
-		/* update sum of all chainlengths */
-		sum_chainlength+=chain_length;
-
-		/* determine the maximum length of the chains */
-		if (chain_length>max_chainlength)
-			max_chainlength = chain_length;
-
-		/* update number of utf-symbols in chains with length>=CHAIN_LIMIT-1 */
-		if (chain_length>=CHAIN_LIMIT) {
-			beyond_limit+=chain_length;
-			chain_length=CHAIN_LIMIT-1;
-		}
-
-		/* update number of hashchains of current length */
-		chain_count[chain_length]++;
-	}
-
-	/* display results */  
-	for (i=1;i<CHAIN_LIMIT-1;i++) 
-		printf("       %2d %17d %18.2f%%\n",i,chain_count[i],(((float) chain_count[i]*i*100)/hashtable_utf->entries));
-	  
-	printf("     >=%2d %17d %18.2f%%\n",CHAIN_LIMIT-1,chain_count[CHAIN_LIMIT-1],((float) beyond_limit*100)/hashtable_utf->entries);
-
-
-	printf("max. chainlength:%5d\n",max_chainlength);
-
-	/* avg. chainlength = sum of chainlengths / number of chains */
-	printf("avg. chainlength:%5.2f\n",(float) sum_chainlength / (hashtable_utf->size-chain_count[0]));
-}
-#endif /* !defined(NDEBUG) */
-
+void utf_show() {}
 
 /*
  * These are local overrides for various environment variables in Emacs.

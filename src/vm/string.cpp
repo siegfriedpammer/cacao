@@ -22,700 +22,494 @@
 
 */
 
-
-#include "config.h"
-
-#include <assert.h>
-
-#include "vm/os.hpp"
-
-#include "vm/types.h"
-
-#include "vm/global.h"
-
-#include "mm/memory.hpp"
-
-#include "native/llni.h"
-
-#include "threads/lock.hpp"
+#include "vm/string.hpp"
 
 #include "vm/array.hpp"
-#include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
-#include "vm/options.h"
-#include "vm/primitive.hpp"
-#include "vm/statistics.h"
-#include "vm/string.hpp"
-#include "vm/utf8.hpp"
 
+#include "toolbox/intern_table.hpp"
+#include "toolbox/utf_utils.hpp"
 
-/* global variables ***********************************************************/
+//****************************************************************************//
+//*****          GLOBAL JAVA/LANG/STRING INTERN TABLE                    *****//
+//****************************************************************************//
 
-/* hashsize must be power of 2 */
+struct JavaStringHash {
+	inline uint32_t operator()(JavaString str) const {
+		const u2 *cs = str.get_contents();
+		size_t    sz = str.size();
 
-#define HASHTABLE_STRING_SIZE    2048   /* initial size of javastring-hash    */
-
-static hashtable hashtable_string;      /* hashtable for javastrings          */
-static Mutex* mutex;
-
-
-/* string_init *****************************************************************
-
-   Initialize the string hashtable lock.
-
-*******************************************************************************/
-
-bool string_init(void)
-{
-	TRACESUBSYSTEMINITIALIZATION("string_init");
-
-	/* create string (javastring) hashtable */
-
-	hashtable_create(&hashtable_string, HASHTABLE_STRING_SIZE);
-
-	mutex = new Mutex();
-
-	/* everything's ok */
-
-	return true;
-}
-
-
-/* stringtable_update **********************************************************
-
-   Traverses the javastring hashtable and sets the vftbl-entries of
-   javastrings which were temporarily set to NULL, because
-   java.lang.Object was not yet loaded.
-
-*******************************************************************************/
- 
-void stringtable_update(void)
-{
-	literalstring    *s;       /* hashtable entry */
-
-	for (unsigned int i = 0; i < hashtable_string.size; i++) {
-		s = (literalstring*) hashtable_string.ptr[i];
-
-		if (s) {
-			while (s) {
-				// FIXME
-				java_lang_String js(LLNI_WRAP(s->string));
-                               
-				if (js.is_null() || (js.get_value() == NULL)) {
-					/* error in hashtable found */
-					os::abort("stringtable_update: invalid literalstring in hashtable");
-				}
-
-				java_chararray_t* a = (java_chararray_t*) js.get_value();
-
-				if (js.get_vftbl() == NULL)
-					// FIXME
-					LLNI_UNWRAP(js.get_handle())->vftbl = class_java_lang_String->vftbl;
-
-				if (a->header.objheader.vftbl == NULL)
-					a->header.objheader.vftbl = Primitive::get_arrayclass_by_type(ARRAYTYPE_CHAR)->vftbl;
-
-				/* follow link in external hash chain */
-				s = s->hashlink;
-			}       
-		}               
-	}
-}
-
-
-/* javastring_new_from_utf_buffer **********************************************
-
-   Create a new object of type java/lang/String with the text from
-   the specified utf8 buffer.
-
-   IN:
-      buffer.......points to first char in the buffer
-	  blength......number of bytes to read from the buffer
-
-   RETURN VALUE:
-      the java.lang.String object, or
-      NULL if an exception has been thrown
-
-*******************************************************************************/
-
-static java_handle_t *javastring_new_from_utf_buffer(const char *buffer, u4 blength)
-{
-	const char *utf_ptr;            /* current utf character in utf string    */
-
-	assert(buffer);
-
-	int32_t utflength = utf_get_number_of_u2s_for_buffer(buffer, blength);
-
-	java_handle_t*           h  = builtin_new(class_java_lang_String);
-	CharArray ca(utflength);
-
-	/* javastring or character-array could not be created */
-
-	if ((h == NULL) || ca.is_null())
-		return NULL;
-
-	// XXX: Fix me!
-	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
-
-	/* decompress utf-string */
-
-	utf_ptr = buffer;
-
-	for (int32_t i = 0; i < utflength; i++)
-		ptr[i] = utf_nextu2((char **) &utf_ptr);
-	
-	/* set fields of the javastring-object */
-
-	java_lang_String jls(h, ca.get_handle(), utflength);
-
-	return jls.get_handle();
-}
-
-
-/* javastring_safe_new_from_utf8 ***********************************************
-
-   Create a new object of type java/lang/String with the text from
-   the specified UTF-8 string. This function is safe for invalid UTF-8.
-   (Invalid characters will be replaced by U+fffd.)
-
-   IN:
-      text.........the UTF-8 string, zero-terminated.
-
-   RETURN VALUE:
-      the java.lang.String object, or
-      NULL if an exception has been thrown
-
-*******************************************************************************/
-
-java_handle_t *javastring_safe_new_from_utf8(const char *text)
-{
-	if (text == NULL)
-		return NULL;
-
-	/* Get number of bytes. We need this to completely emulate the messy */
-	/* behaviour of the RI. :(                                           */
-
-	int32_t nbytes = strlen(text);
-
-	/* calculate number of Java characters */
-
-	int32_t len = utf8_safe_number_of_u2s(text, nbytes);
-
-	/* allocate the String object and the char array */
-
-	java_handle_t*           h  = builtin_new(class_java_lang_String);
-	CharArray ca(len);
-
-	/* javastring or character-array could not be created? */
-
-	if ((h == NULL) || ca.is_null())
-		return NULL;
-
-	// XXX: Fix me!
-	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
-
-	/* decompress UTF-8 string */
-
-	utf8_safe_convert_to_u2s(text, nbytes, ptr);
-
-	/* set fields of the String object */
-
-	java_lang_String jls(h, ca.get_handle(), len);
-
-	return jls.get_handle();
-}
-
-
-/* javastring_new_from_utf_string **********************************************
-
-   Create a new object of type java/lang/String with the text from
-   the specified zero-terminated utf8 string.
-
-   IN:
-      buffer.......points to first char in the buffer
-	  blength......number of bytes to read from the buffer
-
-   RETURN VALUE:
-      the java.lang.String object, or
-      NULL if an exception has been thrown
-
-*******************************************************************************/
-
-java_handle_t *javastring_new_from_utf_string(const char *utfstr)
-{
-	assert(utfstr);
-
-	return javastring_new_from_utf_buffer(utfstr, strlen(utfstr));
-}
-
-
-/* javastring_new **************************************************************
-
-   creates a new object of type java/lang/String with the text of 
-   the specified utf8-string
-
-   return: pointer to the string or NULL if memory is exhausted.	
-
-*******************************************************************************/
-
-java_handle_t *javastring_new(utf *u)
-{
-	if (u == NULL) {
-		exceptions_throw_nullpointerexception();
-		return NULL;
+		return hash(cs, sz);
 	}
 
-	char*   utf_ptr   = u->text;
-	int32_t utflength = utf_get_number_of_u2s(u);
-
-	java_handle_t*           h  = builtin_new(class_java_lang_String);
-	CharArray ca(utflength);
-
-	/* javastring or character-array could not be created */
-
-	if ((h == NULL) || ca.is_null())
-		return NULL;
-
-	// XXX: Fix me!
-	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
-
-	/* decompress utf-string */
-
-	for (int32_t i = 0; i < utflength; i++)
-		ptr[i] = utf_nextu2(&utf_ptr);
-	
-	/* set fields of the javastring-object */
-
-	java_lang_String jls(h, ca.get_handle(), utflength);
-
-	return jls.get_handle();
-}
-
-
-/* javastring_new_slash_to_dot *************************************************
-
-   creates a new object of type java/lang/String with the text of 
-   the specified utf8-string with slashes changed to dots
-
-   return: pointer to the string or NULL if memory is exhausted.	
-
-*******************************************************************************/
-
-java_handle_t *javastring_new_slash_to_dot(utf *u)
-{
-	if (u == NULL) {
-		exceptions_throw_nullpointerexception();
-		return NULL;
-	}
-
-	char*   utf_ptr   = u->text;
-	int32_t utflength = utf_get_number_of_u2s(u);
-
-	java_handle_t*           h  = builtin_new(class_java_lang_String);
-	CharArray ca(utflength);
-
-	/* javastring or character-array could not be created */
-	if ((h == NULL) || ca.is_null())
-		return NULL;
-
-	// XXX: Fix me!
-	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
-
-	/* decompress utf-string */
-
-	for (int32_t i = 0; i < utflength; i++) {
-		uint16_t ch = utf_nextu2(&utf_ptr);
-
-		if (ch == '/')
-			ch = '.';
-
-		ptr[i] = ch;
-	}
-	
-	/* set fields of the javastring-object */
-
-	java_lang_String jls(h, ca.get_handle(), utflength);
-
-	return jls.get_handle();
-}
-
-
-/* javastring_new_from_ascii ***************************************************
-
-   creates a new java/lang/String object which contains the given ASCII
-   C-string converted to UTF-16.
-
-   IN:
-      text.........string of ASCII characters
-
-   RETURN VALUE:
-      the java.lang.String object, or 
-      NULL if an exception has been thrown.
-
-*******************************************************************************/
-
-java_handle_t *javastring_new_from_ascii(const char *text)
-{
-	if (text == NULL) {
-		exceptions_throw_nullpointerexception();
-		return NULL;
-	}
-
-	int32_t len = strlen(text);
-
-	java_handle_t*           h  = builtin_new(class_java_lang_String);
-	CharArray ca(len);
-
-	/* javastring or character-array could not be created */
-
-	if ((h == NULL) || ca.is_null())
-		return NULL;
-
-	// XXX: Fix me!
-	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
-
-	/* copy text */
-
-	for (int32_t i = 0; i < len; i++)
-		ptr[i] = text[i];
-	
-	/* set fields of the javastring-object */
-
-	java_lang_String jls(h, ca.get_handle(), len);
-
-	return jls.get_handle();
-}
-
-
-/* javastring_tochar ***********************************************************
-
-   converts a Java string into a C string.
-	
-   return: pointer to C string
-	
-   Caution: calling method MUST release the allocated memory!
-	
-*******************************************************************************/
-
-char* javastring_tochar(java_handle_t* h)
-{
-	java_lang_String jls(h);
-
-	if (jls.is_null())
-		return (char*) "";
-
-	CharArray ca(jls.get_value());
-
-	if (ca.is_null())
-		return (char*) "";
-
-	int32_t count  = runtime_str_ops::get_string_count(jls);
-	int32_t offset = runtime_str_ops::get_string_offset(jls);
-
-	char* buf = MNEW(char, count + 1);
-
-	// XXX: Fix me!
-	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
-
-	int32_t i;
-	for (i = 0; i < count; i++)
-		buf[i] = ptr[offset + i];
-
-	buf[i] = '\0';
-
-	return buf;
-}
-
-
-/* javastring_toutf ************************************************************
-
-   Make utf symbol from javastring.
-
-*******************************************************************************/
-
-utf *javastring_toutf(java_handle_t *string, bool isclassname)
-{
-	java_lang_String jls(string);
-
-	if (jls.is_null())
-		return utf_null;
-
-	CharArray ca(jls.get_value());
-
-	if (ca.is_null())
-		return utf_null;
-
-	int32_t count  = runtime_str_ops::get_string_count(jls);
-	int32_t offset = runtime_str_ops::get_string_offset(jls);
-
-	// XXX: Fix me!
-	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
-
-	return utf_new_u2(ptr + offset, count, isclassname);
-}
-
-
-/* literalstring_u2 ************************************************************
-
-   Searches for the literalstring with the specified u2-array in the
-   string hashtable, if there is no such string a new one is created.
-
-   If copymode is true a copy of the u2-array is made.
-
-*******************************************************************************/
-
-static java_handle_t *literalstring_u2(java_handle_chararray_t *a, int32_t length,
-									   u4 offset, bool copymode)
-{
-	literalstring    *s;                /* hashtable element                  */
-	u4                key;
-	u4                slot;
-
-	mutex->lock();
-
-	// XXX: Fix me!
-	CharArray ca(a);
-	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
-
-	/* find location in hashtable */
-
-	key  = unicode_hashkey(ptr + offset, length);
-	slot = key & (hashtable_string.size - 1);
-	s    = (literalstring*) hashtable_string.ptr[slot];
-
-	while (s) {
-		// FIXME
-		java_lang_String js(LLNI_WRAP(s->string));
-
-		if (length == runtime_str_ops::get_string_count(js)) {
-			/* compare text */
-
-			for (int32_t i = 0; i < length; i++) {
-				// FIXME This is not handle capable!
-				CharArray jsca(js.get_value());
-				uint16_t* sptr = (uint16_t*) jsca.get_raw_data_ptr();
-				
-				if (ptr[offset + i] != sptr[i])
-					goto nomatch;
-			}
-
-			/* string already in hashtable, free memory */
-
-			if (!copymode)
-				mem_free(a, sizeof(java_chararray_t) + sizeof(u2) * (length - 1));
-
-			mutex->unlock();
-
-			return js.get_handle();
+	// compute the hash by XORing word sized chunks of the string.
+	// If the string is not cleanly divisible into word sized chunks, the last chunk
+	// is zero extended to word size.
+	// For strings longer than 16 chars use only 4 chars from the start,
+	// 4 chars from the middle and 4 from the end.
+	static inline u4 hash(const u2 *cs, size_t sz) {
+		const char *bytes = (const char*) cs;
+
+#define _16(N) (*reinterpret_cast<const uint16_t*>(bytes + N))
+#define _32(N) (*reinterpret_cast<const uint32_t*>(bytes + N))
+#define _48(N) (_32(N) ^ _16(N+2))
+
+#if SIZEOF_VOID_P == 8
+	#define _64(N) (*reinterpret_cast<const uint64_t*>(bytes + N))
+#else
+	#define _64(N) (_32(N) ^ _32(N+2))
+#endif
+
+		switch (sz) {
+		case  0: return 0;
+		case  1: return _16(0);
+		case  2: return _32(0); 
+		case  3: return _48(0);
+		case  4: return _64(0);
+		case  5: return _64(0) ^ _16(4);
+		case  6: return _64(0) ^ _32(4);
+		case  7: return _64(0) ^ _48(4);
+		case  8: return _64(0) ^ _64(4);
+		case  9: return _64(0) ^ _64(4) ^ _16(8);
+		case 10: return _64(0) ^ _64(4) ^ _32(8);
+		case 11: return _64(0) ^ _64(4) ^ _48(8);
+		case 12: return _64(0) ^ _64(4) ^ _64(8);
+		case 13: return _64(0) ^ _64(4) ^ _64(8) ^ _16(12);
+		case 14: return _64(0) ^ _64(4) ^ _64(8) ^ _32(12);
+		case 15: return _64(0) ^ _64(4) ^ _64(8) ^ _48(12);
+		case 16: return _64(0) ^ _64(4) ^ _64(8) ^ _64(12);
+		default: return
+			// 4 codepoints from the start
+			_64(0) ^
+			// 4 codepoints from the middle
+			_64(sz/2) ^
+			// 4 codepoints from the end
+			_64(sz - 4);
 		}
 
-	nomatch:
-		/* follow link in external hash chain */
-		s = s->hashlink;
+#undef _16
+#undef _32
+#undef _64
+	}
+};
+
+struct JavaStringEq {
+	inline bool operator()(JavaString a, JavaString b) const {
+		size_t a_sz = a.size();
+		size_t b_sz = b.size();
+
+		if (a_sz != b_sz) return false;
+
+		const char *a_cs = (const char*) a.get_contents();
+		const char *b_cs = (const char*) b.get_contents();
+
+		return memcmp(a_cs, b_cs, a_sz * sizeof(u2)) == 0;
+	}
+};
+
+typedef InternTable<JavaString, JavaStringHash, JavaStringEq, 1> 
+        JavaStringInternTable;
+
+static JavaStringInternTable* intern_table = NULL;
+
+//****************************************************************************//
+//*****          JAVA STRING SUBSYSTEM INITIALIZATION                    *****//
+//****************************************************************************//
+
+/* JavaString::initialize ******************************************************
+
+	Initialize string subsystem 
+
+*******************************************************************************/
+
+void JavaString::initialize() {
+	assert(!JavaString::is_initialized());
+
+	TRACESUBSYSTEMINITIALIZATION("string_init");
+
+	intern_table = new JavaStringInternTable(4096);
+}
+
+/* javastring::is_initialized **************************************************
+
+	Check is string subsystem is initialized
+
+*******************************************************************************/
+	
+bool JavaString::is_initialized() {
+	return intern_table != NULL;
+}
+
+//****************************************************************************//
+//*****          JAVA STRING CONSTRUCTORS                                *****//
+//****************************************************************************//
+
+/* makeJavaString **************************************************************
+
+	Allocate a new java/lang/String object, fill it with string content
+	and set it's fields.
+
+	If input chars is NULL a NullPointerException is raised.
+
+	PARAMETERS:
+		cs .... input bytes to decode
+		sz .... number of bytes in cs
+	TEMPLATE PARAMETERS:
+		Fn .... The function used to convert from C chars to unicode chars.
+		        Returns true iff the conversion succeeded.
+
+*******************************************************************************/
+
+template<typename Src, typename Allocator, typename Initializer>
+static inline java_handle_t* makeJavaString(const Src *src, size_t src_size, size_t dst_size,
+                                            Allocator alloc, Initializer init) {
+	if (src == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
 	}
 
-	java_chararray_t* acopy;
-	if (copymode) {
-		/* create copy of u2-array for new javastring */
-		u4 arraysize = sizeof(java_chararray_t) + sizeof(u2) * (length - 1);
-		acopy = (java_chararray_t*) mem_alloc(arraysize);
-/*    		memcpy(ca, a, arraysize); */
-		memcpy(&(acopy->header), &(((java_chararray_t*) a)->header), sizeof(java_array_t));
-		memcpy(&(acopy->data), &(((java_chararray_t*) a)->data) + offset, sizeof(u2) * length);
-	}
-	else {
-		acopy = (java_chararray_t*) a;
-	}
+	assert(src_size >= 0);
+	assert(dst_size >= 0);
 
-	/* location in hashtable found, complete arrayheader */
+	// allocate new java/lang/String
 
-	acopy->header.objheader.vftbl = Primitive::get_arrayclass_by_type(ARRAYTYPE_CHAR)->vftbl;
-	acopy->header.size            = length;
+	JavaString str = alloc(dst_size);
 
-	assert(class_java_lang_String);
-	assert(class_java_lang_String->state & CLASS_LOADED);
+	if (str == NULL) return NULL;
 
-	// Create a new java.lang.String object on the system heap.
-	java_object_t* o = (java_object_t*) MNEW(uint8_t, class_java_lang_String->instancesize);
+	// copy text
+
+	u2 *dst = (u2*) str.get_contents();
+
+	bool success = init(src, src_size, dst);
+
+	if (!success) return NULL;
+
+	return str;	
+}
+
+//***** ALLOCATORS
+
+static inline JavaString allocate_with_GC(size_t size) {
+	java_handle_t *h = builtin_new(class_java_lang_String);
+
+	if (h == NULL) return NULL;
+
+	CharArray ca(size);
+
+	if (ca.is_null()) return NULL;
+
+	java_lang_String::set_fields(h, ca.get_handle());
+
+	return h;
+}
+
+static inline JavaString allocate_on_system_heap(size_t size) {
+	// allocate string
+	java_handle_t *h = (java_object_t*) MNEW(uint8_t, class_java_lang_String->instancesize);
+	if (h == NULL) return NULL;
+
+	// set string VTABLE and lockword
+	WITH_THREADS(Lockword(h->lockword).init());
+	h->vftbl = class_java_lang_String->vftbl;
+
+	// allocate array
+	java_chararray_t *a = (java_chararray_t*) MNEW(uint8_t, sizeof(java_chararray_t) + sizeof(u2) * size);
+	if (a == NULL) return NULL;
+
+	// set array VTABLE, lockword and length
+	a->header.objheader.vftbl = Primitive::get_arrayclass_by_type(ARRAYTYPE_CHAR)->vftbl;
+	WITH_THREADS(Lockword(a->header.objheader.lockword).init());
+	a->header.size            = size;
+
+	java_lang_String::set_fields(h, (java_handle_chararray_t*) a);
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		size_string += sizeof(class_java_lang_String->instancesize);
 #endif
 
-#if defined(ENABLE_THREADS)
-	Lockword(o->lockword).init();
-#endif
+	return h;
+}
 
-	o->vftbl = class_java_lang_String->vftbl;
+static inline void free_from_system_heap(JavaString str) {
+	MFREE(java_lang_String::get_value(str), uint8_t, sizeof(java_chararray_t) + sizeof(u2) * str.size());
+	MFREE(str,                              uint8_t, class_java_lang_String->instancesize);
+}
 
-	CharArray cacopy((java_handle_chararray_t*) acopy);
-	java_lang_String jls(o, cacopy.get_handle(), length);
+// ***** COPY CONTENTS INTO STRING
 
-	/* create new literalstring */
+template<uint16_t (*Fn)(uint16_t)>
+class Utf8Decoder {
+	public:
+		typedef utf_utils::Tag<utf_utils::VISIT_UTF16, utf_utils::ABORT_ON_ERROR> Tag;
 
-	s = NEW(literalstring);
+		Utf8Decoder(u2 *dst) : _dst(dst) {}
 
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_string += sizeof(literalstring);
-#endif
+		inline void utf16(uint16_t c) { *_dst++ = Fn(c); }
 
-	s->hashlink = (literalstring*) hashtable_string.ptr[slot];
-	s->string   = (java_object_t*) LLNI_UNWRAP(jls.get_handle());
-	hashtable_string.ptr[slot] = s;
+		inline bool finish() const { return true;  }
+		inline bool abort()  const { return false; }
+	private:
+		u2 *_dst;
+};
 
-	/* update number of hashtable entries */
+template<uint16_t (*Fn)(uint16_t)>
+static inline bool init_from_utf8(const char *src, size_t src_size, u2 *dst) {
+	return utf8::transform<bool>(src, src_size, Utf8Decoder<Fn>(dst));
+}
 
-	hashtable_string.entries++;
+static inline bool init_from_utf16(const u2 *src, size_t src_size, u2 *dst) {
+	memcpy(dst, src, sizeof(u2) * src_size);
+	return true;
+}
 
-	/* reorganization of hashtable */       
+// ***** CHARACTER TRANSFORMERS
 
-	if (hashtable_string.entries > (hashtable_string.size * 2)) {
-		/* reorganization of hashtable, average length of the external
-		   chains is approx. 2 */
+namespace {
+	inline uint16_t identity(uint16_t c)     { return c; }
+	inline uint16_t slash_to_dot(uint16_t c) { return (c == '/') ? '.' : c; }
+	inline uint16_t dot_to_slash(uint16_t c) { return (c == '.') ? '/' : c; }
+}
 
-		u4             i;
-		literalstring *s;
-		literalstring *nexts;
-		hashtable      newhash;                          /* the new hashtable */
-      
-		/* create new hashtable, double the size */
+/* JavaString::from_utf8 *******************************************************
 
-		hashtable_create(&newhash, hashtable_string.size * 2);
-		newhash.entries = hashtable_string.entries;
-      
-		/* transfer elements to new hashtable */
+	Create a new java/lang/String filled with text decoded from an UTF-8 string.
+	Returns NULL on error.
 
-		for (i = 0; i < hashtable_string.size; i++) {
-			s = (literalstring*) hashtable_string.ptr[i];
+*******************************************************************************/
 
-			while (s) {
-				nexts = s->hashlink;
-				java_lang_String tmpjls(LLNI_WRAP(s->string));
-				// FIXME This is not handle capable!
-				slot  = unicode_hashkey(((java_chararray_t*) LLNI_UNWRAP(tmpjls.get_value()))->data, runtime_str_ops::get_string_count(tmpjls)) & (newhash.size - 1);
-	  
-				s->hashlink = (literalstring*) newhash.ptr[slot];
-				newhash.ptr[slot] = s;
-	
-				/* follow link in external hash chain */
-				s = nexts;
-			}
-		}
-	
-		/* dispose old table */
+JavaString JavaString::from_utf8(Utf8String u) {
+	return makeJavaString(u.begin(), u.size(), u.codepoints(),
+	                      allocate_with_GC, init_from_utf8<identity>);
+}
 
-		MFREE(hashtable_string.ptr, void*, hashtable_string.size);
-		hashtable_string = newhash;
+JavaString JavaString::from_utf8(const char *cs, size_t sz) {
+	return makeJavaString(cs, sz, utf8::num_codepoints(cs, sz),
+	                      allocate_with_GC, init_from_utf8<identity>);
+}
+
+/* JavaString::from_utf8_slash_to_dot ******************************************
+
+	Create a new java/lang/String filled with text decoded from an UTF-8 string.
+	Replaces '/' with '.'.
+
+	NOTE:
+		If the input is not valid UTF-8 the process aborts!
+
+*******************************************************************************/
+
+JavaString JavaString::from_utf8_slash_to_dot(Utf8String u) {
+	return makeJavaString(u.begin(), u.size(), u.codepoints(),
+	                      allocate_with_GC, init_from_utf8<slash_to_dot>);
+}
+
+/* JavaString::literal *********************************************************
+
+	Create and intern a java/lang/String filled with text decoded from an UTF-8
+	string.
+
+	NOTE:
+		because the intern table is allocated on the system heap the GC
+		can't see it and thus interned strings must also be allocated on
+		the system heap.
+
+*******************************************************************************/
+
+JavaString JavaString::literal(Utf8String u) {
+	JavaString str = makeJavaString(u.begin(), u.size(), u.codepoints(),
+	                                allocate_on_system_heap, init_from_utf8<identity>);
+
+
+	JavaString intern_str = intern_table->intern(str);
+
+	if (intern_str != str) {
+		// str was already present, free it.
+		free_from_system_heap(str);
 	}
 
-	mutex->unlock();
-
-	return (java_object_t*) LLNI_UNWRAP(jls.get_handle());
+	return intern_str;
 }
 
+/* JavaString::intern **********************************************************
 
-/* literalstring_new ***********************************************************
+	intern string in global intern table
 
-   Creates a new literalstring with the text of the utf-symbol and inserts
-   it into the string hashtable.
+	NOTE:
+		because the intern table is allocated on the system heap the GC
+		can't see it and thus interned strings must also be allocated on
+		the system heap.
 
 *******************************************************************************/
 
-java_object_t *literalstring_new(utf *u)
-{
-	char             *utf_ptr;       /* pointer to current unicode character  */
-	                                 /* utf string                            */
-	int32_t           utflength;     /* length of utf-string if uncompressed  */
-	java_chararray_t *a;             /* u2-array constructed from utf string  */
+struct LazyStringCopy {
+	LazyStringCopy(JavaString src) : src(src) {}
 
-	utf_ptr = u->text;
-	utflength = utf_get_number_of_u2s(u);
+	inline operator JavaString() const {
+		return makeJavaString(src.get_contents(), src.size(), src.size(),
+	                          allocate_on_system_heap, init_from_utf16);
+	}
 
-	/* allocate memory */ 
-	a = (java_chararray_t*) mem_alloc(sizeof(java_chararray_t) + sizeof(u2) * (utflength - 1));
+	JavaString src;
+};
 
-	/* convert utf-string to u2-array */
-	for (int32_t i = 0; i < utflength; i++)
-		a->data[i] = utf_nextu2(&utf_ptr);
-
-	return literalstring_u2((java_handle_chararray_t*) a, utflength, 0, false);
+JavaString JavaString::intern() const {
+	return intern_table->intern(*this, LazyStringCopy(*this));
 }
 
+//****************************************************************************//
+//*****          JAVA STRING ACCESSORS                                   *****//
+//****************************************************************************//
 
-/* literalstring_free **********************************************************
+/* JavaString::get_contents ****************************************************
 
-   Removes a literalstring from memory.
+	Get the utf-16 contents of string
 
 *******************************************************************************/
 
-#if 0
-/* TWISTI This one is currently not used. */
+const u2* JavaString::get_contents() const {
+	assert(str);
+		
+	java_handle_chararray_t *array = java_lang_String::get_value(str);
+	assert(array);
 
-static void literalstring_free(java_object_t* string)
-{
-	heapstring_t     *s;
-	java_chararray_t *a;
+	CharArray ca(array);
 
-	s = (heapstring_t *) string;
-	a = s->value;
+	int32_t   offset = java_lang_String::get_offset(str);
+	uint16_t* ptr    = ca.get_raw_data_ptr();
 
-	/* dispose memory of java.lang.String object */
-	FREE(s, heapstring_t);
-
-	/* dispose memory of java-characterarray */
-	FREE(a, sizeof(java_chararray_t) + sizeof(u2) * (a->header.size - 1));
+	return ptr + offset;
 }
-#endif
 
+/* JavaString::size ************************************************************
 
-/* javastring_intern ***********************************************************
-
-   Intern the given Java string.
+	Get the number of utf-16 characters in string
 
 *******************************************************************************/
 
-java_handle_t *javastring_intern(java_handle_t *string)
-{
-	java_lang_String jls(string);
+size_t JavaString::size() const {
+	assert(str);
 
-	CharArray ca(jls.get_value());
-
-	int32_t count  = runtime_str_ops::get_string_count(jls);
-	int32_t offset = runtime_str_ops::get_string_offset(jls);
-
-	java_handle_t* o = literalstring_u2(ca.get_handle(), count, offset, true);
-
-	return o;
+	return java_lang_String::get_count(str);
 }
 
 
-/* javastring_fprint ***********************************************************
+//****************************************************************************//
+//*****          JAVA STRING CONVERSIONS                                 *****//
+//****************************************************************************//
+
+/* JavaString::to_chars ********************************************************
+
+	Decodes java/lang/String into newly allocated string (debugging) 
+
+	NOTE:
+		You must free the string allocated yourself with MFREE
+
+*******************************************************************************/
+
+char *JavaString::to_chars() const {
+	if (str == NULL) return MNEW(char, 1); // memory is zero initialized
+
+	size_t sz = size();
+
+	const uint16_t *src = get_contents();
+	const uint16_t *end = src + sz;
+
+	char *buf = MNEW(char, sz + 1);
+	char *dst = buf;
+
+	while (src != end) *dst++ = *src++;
+
+	*dst = '\0';
+
+	return buf;	
+}
+
+/* JavaString::to_utf8() *******************************************************
+
+	make utf symbol from javastring 
+
+*******************************************************************************/
+
+Utf8String JavaString::to_utf8() const {
+	if (str == NULL) return utf_empty;
+
+	return Utf8String::from_utf16(get_contents(), size());
+}
+
+/* JavaString::to_utf8_dot_to_slash() ******************************************
+
+	make utf symbol from javastring 
+	replace '/' with '.'
+
+*******************************************************************************/
+
+Utf8String JavaString::to_utf8_dot_to_slash() const {
+	if (str == NULL) return utf_empty;
+		
+	return Utf8String::from_utf16_dot_to_slash(get_contents(), size());
+}
+
+//****************************************************************************//
+//*****          JAVA STRING IO                                          *****//
+//****************************************************************************//
+
+/* JavaString::fprint **********************************************************
 
    Print the given Java string to the given stream.
 
 *******************************************************************************/
 
-void javastring_fprint(java_handle_t *s, FILE *stream)
+void JavaString::fprint(FILE *stream) const
 {
-	java_lang_String jls(s);
+	const uint16_t* cs = get_contents();
+	size_t          sz = size();  
 
-	CharArray ca(jls.get_value());
-
-	int32_t count  = runtime_str_ops::get_string_count(jls);
-	int32_t offset = runtime_str_ops::get_string_offset(jls);
-
-	// XXX: Fix me!
-	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
-
-	for (int32_t i = offset; i < offset + count; i++) {
-		uint16_t c = ptr[i];
+	for (size_t i = 0; i < sz; i++) {
+		uint16_t c = cs[i];
 		fputc(c, stream);
 	}
 }
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// LEGACY C API
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+bool string_init(void) { 
+	JavaString::initialize();
+	return true;
+}
+
+void stringtable_update(void)  {}
+
+java_handle_t *javastring_new(utf *text) { return JavaString::from_utf8(text); }
+
+java_handle_t *javastring_new_slash_to_dot(utf *text) { return JavaString::from_utf8_slash_to_dot(text); }
+
+java_handle_t *javastring_new_from_ascii(const char *text) { return JavaString::from_utf8(text); }
+
+java_handle_t *javastring_new_from_utf_string(const char *utfstr) { return JavaString::from_utf8(utfstr); }
+
+java_handle_t *javastring_safe_new_from_utf8(const char *text) { return JavaString::from_utf8(text); }
+
+char *javastring_tochar(java_handle_t *string) { return JavaString(string).to_chars(); }
+
+utf *javastring_toutf(java_handle_t *h, bool isclassname) {
+	if (isclassname)
+		return JavaString(h).to_utf8_dot_to_slash();
+	else
+		return JavaString(h).to_utf8();
+}
+
+/* creates a new javastring with the text of the utf-symbol */
+java_object_t *literalstring_new(utf *u) { return JavaString::literal(u); }
+
+java_handle_t *javastring_intern(java_handle_t *s) { return JavaString(s).intern(); }
+void           javastring_fprint(java_handle_t *s, FILE *stream) { return JavaString(s).fprint(stream); }
 
 
 /*

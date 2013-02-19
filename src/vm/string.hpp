@@ -26,33 +26,82 @@
 #ifndef _STRINGLOCAL_H
 #define _STRINGLOCAL_H
 
+#include "config.h"
+
+#include <stdio.h>
+#include <string.h>
+
+#include "vm/types.h"
+#include "vm/global.h"
+#include "vm/utf8.hpp"
+
+#ifdef __cplusplus
+
+class JavaString {
+	public:
+		/*** GLOBAL INITIALIZATION **********************************/
+
+		// initialize string subsystem
+		static void initialize();
+
+		// check if string subsystem is initialized
+		static bool is_initialized();
+
+		/*** CONSTRUCTORS  ******************************************/
+
+		// creates a new java/lang/String from a utf-text
+		static JavaString from_utf8(Utf8String);
+		static JavaString from_utf8(const char*, size_t);
+
+		static inline java_handle_t* from_utf8(const char *cs) {
+			return from_utf8(cs, strlen(cs));
+		}
+
+		// creates a new object of type java/lang/String from a utf-text,
+		// changes '/' to '.'
+		static JavaString from_utf8_slash_to_dot(Utf8String);
+
+		// creates and interns a java/lang/String
+		static JavaString literal(Utf8String);
+
+		/*** ACCESSORS     ******************************************/
+
+		const u2* get_contents() const;
+		size_t    size()         const; 
+
+		/*** CONVERSIONS   ******************************************/
+
+		char*      to_chars() const; // you must free the char* yourself
+		Utf8String to_utf8()  const;
+		Utf8String to_utf8_dot_to_slash() const;
+
+		/*** MISC          ******************************************/
+
+		JavaString intern() const;
+
+		void fprint(FILE*) const;
+
+		inline JavaString() : str(0) {}
+		inline JavaString(java_handle_t *h) : str(h) {}
+	
+		inline operator java_handle_t*() const { return str; }
+	private:
+		java_handle_t *str;
+};
+
+#endif /* __cplusplus */
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// LEGACY C API
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+/* function prototypes ********************************************************/
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef struct literalstring literalstring;
-
-
-#include "config.h"
-
-#include "vm/types.h"
-
-#include "toolbox/hashtable.h"
-
-#include "vm/global.h"
-#include "vm/os.hpp"
-#include "vm/utf8.hpp"
-
-
-/* data structure of internal javastrings stored in global hashtable **********/
-
-struct literalstring {
-	literalstring     *hashlink;        /* link for external hash chain       */
-	java_object_t     *string;  
-};
-
-
-/* function prototypes ********************************************************/
 
 /* initialize string subsystem */
 bool string_init(void);

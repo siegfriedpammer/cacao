@@ -46,6 +46,12 @@
 #include "vm/global.h"
 #include "vm/utf8.hpp"
 
+// short-hand for '#ifdef ENABLE_THREADS' block
+#if defined(ENABLE_THREADS)
+	#define WITH_THREADS(X) X
+#else
+	#define WITH_THREADS(X)
+#endif
 
 /* only define the following stuff with thread enabled ************************/
 

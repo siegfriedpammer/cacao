@@ -33,24 +33,168 @@ typedef struct utf utf;
 #include "config.h"
 
 #include <stdio.h>
+#include <string.h>
 
 #include "vm/types.h"
-
 #include "vm/global.h"
-
 
 /* data structure for utf8 symbols ********************************************/
 
 struct utf {
-	utf  *hashlink;                     /* link for external hash chain       */
-	s4    blength;                      /* text length in bytes               */
-	char *text;                         /* pointer to text                    */
+	uint32_t hash;           // cached hash of the string
+	size_t   blength;        // text length in bytes
+	                         // (does NOT include zero terminator)
+	size_t   num_codepoints; // number of utf16 codepoints in string
+			
+	char  text[sizeof(void*)]; // string content
+	                           // directly embedded in struct utf
+	                           // aligned to pointer size    
 };
 
+#ifdef __cplusplus
+
+/* Utf8String ******************************************************************
+
+	A container for strings in Java's modified UTF-8 encoding.
+
+	A Utf8String always contains either a valid (possibly empty) UTF-8 string
+	or NULL.
+	You can check for NULL like you would with any normal pointer.
+	Invoking any method except operator utf*() on a NULL string leads to 
+	undefined behaviour.
+
+	Use a Utf8String like a pointer, i.e. always pass by value.
+
+	The contents of a Utf8String are zero terminated, and it never contains any
+	zero bytes except the one at the end, so any C string processing functions
+	work properly.
+
+*******************************************************************************/
+
+class Utf8String {
+	public:
+		/*** GLOBAL INITIALIZATION **********************************/
+
+		// initialize the utf8 subsystem
+		// MUST be called before any Utf8String can be constructed
+		static void initialize();
+
+		// check if utf8 subsytem is initialized
+		static bool is_initialized();
+
+		/*** CONSTRUCTORS  ******************************************/
+
+		// constructs a null string
+		inline Utf8String() : _data(0) {}
+
+		// construct from a buffer with a given length
+		// validates that input is really UTF-8
+		// constructs a null string on error
+		static Utf8String from_utf8(const char*, size_t);
+		static Utf8String from_utf8_dot_to_slash(const char*, size_t);
+
+		inline static Utf8String from_utf8(const char *cs) {
+			return from_utf8(cs, strlen(cs));
+		}
+		inline static Utf8String from_utf8_dot_to_slash(const char *cs) {
+			return from_utf8_dot_to_slash(cs, strlen(cs));
+		}
+
+		// construct from a UTF-16 string with a given length
+		static Utf8String from_utf16(const u2*, size_t);
+		static Utf8String from_utf16_dot_to_slash(const u2*, size_t);
+
+		// constructs a Utf8String with a given content
+		// is only public for interop with legacy C code
+		// NOTE: does NOT perform any checks
+		inline Utf8String(utf *u) : _data(u) {} 
+
+		/*** ITERATION     ******************************************/
+
+		// iterator over the bytes in a string
+		typedef const char* byte_iterator;
+
+		byte_iterator begin() const;
+		byte_iterator end()   const;
+
+		// iterator over UTF-16 codepoints in a string
+		class utf16_iterator {
+			public:
+				inline uint32_t operator*() const { return codepoint; }
+
+				void operator++();
+
+				inline operator void*() { return bytes == end ? this : 0; }
+			private:
+				utf16_iterator(byte_iterator,size_t);
+
+				uint32_t      codepoint;
+				byte_iterator bytes;
+				byte_iterator end;
+
+			friend class Utf8String;
+		};
+
+		utf16_iterator utf16_begin() const;
+
+		/*** HASHING       ******************************************/
+
+		size_t hash() const;
+
+		/*** COMPARISONS   ******************************************/
+
+		/*** ACCESSORS     ******************************************/
+
+		// access first element
+		char front() const;
+
+		// access last element
+		char back() const;
+
+		char operator[]( size_t idx ) const;
+
+		// get the number of bytes in string, excluding zero terminator.
+		size_t size() const;
+
+		// get the number of utf16 codepoints in string,
+		// excluding zero terminator.
+		size_t codepoints() const;
+
+		// for checking against NULL,
+		// also allows interop with legacy C code
+		inline operator utf*() const { return _data; }
+
+		// create substring
+		Utf8String substring( size_t from ) const;
+		Utf8String substring( size_t from, size_t to ) const;
+
+		/*** JAVA STUFF    ******************************************/
+
+		bool is_valid_name() const;
+	private:
+		utf* _data;
+};
+
+// ***** UTF-8 HELPER FUNCTIONS
+
+namespace utf8 {
+	// count UTF-16 codepoints, -1 on error
+	extern ssize_t num_codepoints(const char*, size_t);
+
+	// count how many bytes a utf-8 version would need
+	extern size_t num_bytes(const u2*, size_t);
+}
+
+#endif /* __cplusplus */
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// LEGACY C API
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
 /* to determine the end of utf strings */
-
 #define UTF_END(u)    ((char *) u->text + u->blength)
-
 
 /* utf-symbols for pointer comparison of frequently used strings **************/
 

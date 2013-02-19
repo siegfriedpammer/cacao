@@ -716,6 +716,24 @@ public:
 	void set_value (java_handle_chararray_t* value);
 	void set_count (int32_t value);
 	void set_offset(int32_t value);
+
+	// Raw access
+	static inline void set_fields(java_handle_t *str, java_handle_chararray_t* value) {
+		set(str, offset_value,  value);
+		set(str, offset_count,  CharArray(value).get_length());
+		set(str, offset_offset, (int32_t) 0);
+		// cachedHashCode is assumed to be zero initialized
+	}
+
+	static inline java_handle_chararray_t *get_value(java_handle_t *str) {
+		return get<java_handle_chararray_t*>(str, offset_value);
+	}
+	static inline int32_t get_count(java_handle_t *str) {
+		return get<int32_t>(str, offset_count);
+	}
+	static inline int32_t get_offset(java_handle_t *str) {
+		return get<int32_t>(str, offset_offset);
+	}
 };
 
 inline java_lang_String::java_lang_String(java_handle_t* h, java_handle_chararray_t* value, int32_t count, int32_t offset) : java_lang_Object(h)
@@ -1947,6 +1965,34 @@ public:
 	void set_offset(int32_t value);
 	void set_count (int32_t value);
 #endif
+
+	// Raw access
+	static inline void set_fields(java_handle_t *str, java_handle_chararray_t *value) {
+		set(str, offset_value,  value);
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
+		set(str, offset_offset, (int32_t) 0);
+		set(str, offset_count,  CharArray(value).get_length());
+#endif
+		// hash is assumed to be zero initialized
+	}
+
+	static inline java_handle_chararray_t *get_value(java_handle_t *str) {
+		return get<java_handle_chararray_t*>(str, offset_value);
+	}
+	static inline int32_t get_count(java_handle_t *str) {
+#ifdef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
+		return CharArray(get_value(str)).get_length();
+#else
+		return get<int32_t>(str, offset_count);
+#endif
+	}
+	static inline int32_t get_offset(java_handle_t *str) {
+#ifdef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
+		return 0;
+#else
+		return get<int32_t>(str, offset_offset);
+#endif
+	}
 };
 
 inline java_lang_String::java_lang_String(java_handle_t* h, java_handle_chararray_t* value, int32_t count, int32_t offset) : java_lang_Object(h)
@@ -2805,8 +2851,24 @@ public:
 	void set_value (java_handle_chararray_t* value);
 	void set_offset(int32_t value);
 	void set_count (int32_t value);
-};
 
+	// Raw access
+	static inline void set_fields(java_handle_t *str, java_handle_chararray_t* value) {
+		set(str, offset_value,  value);
+		set(str, offset_offset, 0);
+		set(str, offset_count,  CharArray(value).get_length());
+	}
+
+	static inline java_handle_chararray_t *get_value(java_handle_t *str) {
+		return get<java_handle_chararray_t*>(str, offset_value);
+	}
+	static inline int32_t get_count(java_handle_t *str) {
+		return get<int32_t>(str, offset_count);
+	}
+	static inline int32_t get_offset(java_handle_t *str) {
+		return get<int32_t>(str, offset_offset);
+	}
+};
 
 inline java_lang_String::java_lang_String(java_handle_t* h, java_handle_chararray_t* value, int32_t count, int32_t offset) : java_lang_Object(h)
 {
