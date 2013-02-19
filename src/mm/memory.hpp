@@ -46,7 +46,7 @@
 
 
 // Includes.
-#include "mm/codememory.h"
+#include "mm/codememory.hpp"
 #include "mm/dumpmemory.hpp"
 #include "mm/gc.hpp"
 

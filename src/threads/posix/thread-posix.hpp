@@ -37,7 +37,7 @@
 // Includes required by Thread.
 
 #if defined(ENABLE_TLH)
-# include "mm/tlh.h"
+# include "mm/tlh.hpp"
 #endif
 
 #include "threads/condition.hpp"

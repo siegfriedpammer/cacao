@@ -57,8 +57,8 @@ noinst_LTLIBRARIES = \
 	libmm.la
 
 libmm_la_SOURCES = \
-	codememory.c \
-	codememory.h \
+	codememory.cpp \
+	codememory.hpp \
 	dumpmemory.cpp \
 	dumpmemory.hpp \
 	$(GC_FILE) \
@@ -71,8 +71,8 @@ libmm_la_LIBADD = \
 
 if ENABLE_TLH
 libmm_la_SOURCES += \
-	tlh.h \
-	tlh.c
+	tlh.hpp \
+	tlh.cpp
 endif
 
 ## Local variables:

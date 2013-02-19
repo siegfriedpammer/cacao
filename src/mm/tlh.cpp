@@ -24,7 +24,7 @@
 #include "config.h"
 
 #include "mm/memory.hpp"
-#include "mm/tlh.h"
+#include "mm/tlh.hpp"
 
 #include "vm/global.h"
 #include "vm/os.hpp"

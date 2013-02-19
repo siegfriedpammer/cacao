@@ -31,7 +31,7 @@
 #include "threads/mutex.hpp"
 #include "threads/thread.hpp"
 
-#include "mm/codememory.h"
+#include "mm/codememory.hpp"
 #include "mm/memory.hpp"
 
 #include "vm/global.h"
@@ -68,12 +68,12 @@ void codememory_init(void)
 #if defined(ENABLE_THREADS)
 	/* create mutex for code memory */
 
-	code_memory_mutex = Mutex_new();
+	code_memory_mutex = new Mutex();
 #endif
 
 	/* Get the pagesize of this architecture. */
 
-	pagesize = os_getpagesize();
+	pagesize = os::getpagesize();
 }
 
 
@@ -88,7 +88,7 @@ void *codememory_get(size_t size)
 {
 	void *p;
 
-	Mutex_lock(code_memory_mutex);
+	code_memory_mutex->lock();
 
 	size = MEMORY_ALIGN(size, ALIGNSIZE);
 
@@ -119,9 +119,9 @@ void *codememory_get(size_t size)
 
 		/* allocate the memory */
 
-		p = os_mmap_anonymous(NULL, code_memory_size,
-							  PROT_READ | PROT_WRITE | PROT_EXEC,
-							  MAP_PRIVATE);
+		p = os::mmap_anonymous(NULL, code_memory_size,
+							   PROT_READ | PROT_WRITE | PROT_EXEC,
+							   MAP_PRIVATE);
 
 		/* set global code memory pointer */
 
@@ -135,7 +135,7 @@ void *codememory_get(size_t size)
 	code_memory       = (void *) ((ptrint) code_memory + size);
 	code_memory_size -= size;
 
-	Mutex_unlock(code_memory_mutex);
+	code_memory_mutex->unlock();
 
 	return p;
 }
