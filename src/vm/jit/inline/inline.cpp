@@ -50,7 +50,7 @@
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/parse.hpp"
-#include "vm/jit/reg.h"
+#include "vm/jit/reg.hpp"
 #include "vm/jit/show.hpp"
 #include "vm/jit/stack.hpp"
 

@@ -44,9 +44,9 @@
 #include "vm/string.hpp"
 
 #include "vm/jit/abi.h"
-#include "vm/jit/reg.h"
+#include "vm/jit/reg.hpp"
 #include "vm/jit/show.hpp"
-#include "vm/jit/allocator/simplereg.h"
+#include "vm/jit/allocator/simplereg.hpp"
 
 
 #if 0

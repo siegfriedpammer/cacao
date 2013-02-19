@@ -46,10 +46,10 @@
 #include "vm/statistics.h"
 
 #include "vm/jit/abi.h"
-#include "vm/jit/reg.h"
+#include "vm/jit/reg.hpp"
 
-#include "vm/jit/allocator/liveness.h"
-#include "vm/jit/allocator/lsra.h"
+#include "vm/jit/allocator/liveness.hpp"
+#include "vm/jit/allocator/lsra.hpp"
 
 #ifdef USAGE_COUNT
 extern char **prof_m_names;

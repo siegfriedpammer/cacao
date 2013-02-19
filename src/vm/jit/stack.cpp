@@ -66,10 +66,10 @@
 
 #if 0
 #if defined(ENABLE_SSA)
-# include "vm/jit/optimizing/lsra.h"
-# include "vm/jit/optimizing/ssa.h"
+# include "vm/jit/optimizing/lsra.hpp"
+# include "vm/jit/optimizing/ssa.hpp"
 #elif defined(ENABLE_LSRA)
-# include "vm/jit/allocator/lsra.h"
+# include "vm/jit/allocator/lsra.hpp"
 #endif
 #endif
 

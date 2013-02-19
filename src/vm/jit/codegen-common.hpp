@@ -49,7 +49,7 @@ struct patchref_t;
 
 #include "vm/jit/dseg.hpp"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/reg.h"
+#include "vm/jit/reg.hpp"
 #include "vm/jit/code.hpp"
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/replace.hpp"

@@ -36,7 +36,7 @@
 
 #include "mm/memory.hpp"
 #include "vm/jit/abi.h"
-#include "vm/jit/reg.h"
+#include "vm/jit/reg.hpp"
 
 
 /* reg_setup *******************************************************************

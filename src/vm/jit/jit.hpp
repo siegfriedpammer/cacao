@@ -46,7 +46,7 @@ typedef struct exception_entry exception_entry;
 #endif
 
 #include "vm/jit/codegen-common.hpp"
-#include "vm/jit/reg.h"
+#include "vm/jit/reg.hpp"
 #include "vm/jit/replace.hpp"
 #include "vm/jit/stack.hpp"
 #include "vm/jit/stacktrace.hpp"
@@ -65,7 +65,7 @@ typedef struct exception_entry exception_entry;
 # include "vm/jit/optimizing/lsra.hpp"
 #endif
 #if defined(ENABLE_LSRA)
-# include "vm/jit/allocator/lsra.h"
+# include "vm/jit/allocator/lsra.hpp"
 #endif
 
 #include "vm/jit/verify/typeinfo.hpp"

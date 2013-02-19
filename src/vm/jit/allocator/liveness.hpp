@@ -34,7 +34,7 @@
 #define _LIVENESS_H
 
 #include "toolbox/bitvector.h"
-#include "vm/jit/allocator/lsra.h"
+#include "vm/jit/allocator/lsra.hpp"
 
 #if !defined(NDEBUG)
 #include <assert.h>

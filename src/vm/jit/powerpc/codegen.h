@@ -33,7 +33,7 @@
 
 #include "vm/global.h"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/reg.h"
+#include "vm/jit/reg.hpp"
 
 
 /* additional functions and macros to generate code ***************************/

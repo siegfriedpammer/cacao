@@ -34,6 +34,7 @@
 #include "threads/thread.hpp"
 
 #include "vm/os.hpp"
+#include "vm/options.hpp"
 
 #if defined(ENABLE_STATISTICS)
 # include "vm/statistics.h"

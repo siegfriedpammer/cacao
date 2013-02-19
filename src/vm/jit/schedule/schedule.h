@@ -37,7 +37,7 @@
 
 #include "arch.h"
 #include "types.h"
-#include "vm/jit/reg.h"
+#include "vm/jit/reg.hpp"
 
 
 typedef struct scheduledata scheduledata;

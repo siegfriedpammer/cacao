@@ -42,8 +42,8 @@
 #include "vm/resolve.hpp"
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/allocator/lsra.h"
-#include "vm/jit/allocator/liveness.h"
+#include "vm/jit/allocator/lsra.hpp"
+#include "vm/jit/allocator/liveness.hpp"
 
 
 /* function prototypes */

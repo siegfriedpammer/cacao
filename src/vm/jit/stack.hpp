@@ -40,7 +40,7 @@ typedef struct stackelement_t stackelement_t;
 #include "vm/global.h"
 
 #include "vm/jit/jit.hpp"
-#include "vm/jit/reg.h"
+#include "vm/jit/reg.hpp"
 
 
 /* stack element structure ****************************************************/

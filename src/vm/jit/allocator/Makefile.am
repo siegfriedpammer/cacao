@@ -38,15 +38,15 @@ noinst_LTLIBRARIES = \
 	liballocator.la
 
 liballocator_la_SOURCES = \
-	simplereg.c \
-	simplereg.h 
+	simplereg.cpp \
+	simplereg.hpp 
 
 if ENABLE_LSRA
 liballocator_la_SOURCES += \
-	lsra.c \
-	lsra.h \
-	liveness.c \
-	liveness.h
+	lsra.cpp \
+	lsra.hpp \
+	liveness.cpp \
+	liveness.hpp
 endif		
 
 

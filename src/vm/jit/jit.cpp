@@ -60,15 +60,15 @@
 #include "vm/jit/dseg.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/parse.hpp"
-#include "vm/jit/reg.h"
+#include "vm/jit/reg.hpp"
 
 #include "vm/jit/show.hpp"
 #include "vm/jit/stack.hpp"
 #include "vm/jit/stubs.hpp"
 
-#include "vm/jit/allocator/simplereg.h"
+#include "vm/jit/allocator/simplereg.hpp"
 #if defined(ENABLE_LSRA) && !defined(ENABLE_SSA)
-# include "vm/jit/allocator/lsra.h"
+# include "vm/jit/allocator/lsra.hpp"
 #endif
 
 #if defined(ENABLE_SSA)
@@ -92,9 +92,7 @@
 
 #include "vm/jit/optimizing/reorder.hpp"
 
-#if defined(ENABLE_PYTHON)
-# include "vm/jit/python.h"
-#endif
+#include "vm/jit/python.h"
 
 #include "vm/jit/verify/typecheck.hpp"
 

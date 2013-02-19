@@ -36,7 +36,7 @@
 
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/reg.h"
+#include "vm/jit/reg.hpp"
 #include "vm/jit/show.hpp"
 
 

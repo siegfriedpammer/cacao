@@ -66,7 +66,7 @@
 #include "vm/jit/methodheader.h"
 #include "vm/jit/parse.hpp"
 #include "vm/jit/patcher-common.hpp"
-#include "vm/jit/reg.h"
+#include "vm/jit/reg.hpp"
 #include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.hpp"
 

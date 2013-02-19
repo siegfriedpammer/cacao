@@ -34,6 +34,7 @@
 #include "vm/stackmap.hpp"
 #include "vm/statistics.h"
 #include "vm/suck.hpp"
+#include "vm/options.hpp"
 
 
 /* stackmap_get_verification_type_info *****************************************

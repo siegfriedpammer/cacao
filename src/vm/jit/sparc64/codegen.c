@@ -57,7 +57,7 @@
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/parse.hpp"
 #include "vm/jit/patcher.h"
-#include "vm/jit/reg.h"
+#include "vm/jit/reg.hpp"
 #include "vm/jit/stacktrace.hpp"
 
 #include "vm/jit/sparc64/solaris/macro_rename.h"

@@ -99,8 +99,8 @@ REPLACE_SOURCES =
 
 if ENABLE_JIT
 REG_SOURCES = \
-	reg.c \
-	reg.h
+	reg.cpp \
+	reg.hpp
 
 REPLACE_SOURCES += \
 	replace.hpp
