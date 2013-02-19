@@ -1903,6 +1903,7 @@ void vm_shutdown(s4 status)
 	exit(status);
 }
 
+#include "toolbox/OStream.hpp"
 
 /* vm_exit_handler *************************************************************
 
@@ -1939,7 +1940,10 @@ void vm_exit_handler(void)
 	}
 
 	assert(opt_RtTimingLogfile);
-	RTGroup::root().print(std::cout);
+	cacao::OStream OS(opt_RtTimingLogfile);
+	OS << cacao::right;
+	OS << "\nreal-time measurment:\n" << cacao::nl;
+	cacao::RTGroup::root().print(OS);
  	rt_timing_print_time_stats(opt_RtTimingLogfile);
 #endif
 

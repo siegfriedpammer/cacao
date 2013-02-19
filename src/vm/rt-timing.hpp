@@ -223,10 +223,7 @@ void rt_timing_print_time_stats(FILE *file);
 }
 #endif
 
-#include <vector>
-#include <iostream>
-#include <ostream>
-#include <iomanip>
+#include "toolbox/OStream.hpp"
 
 namespace {
 /**
@@ -314,8 +311,11 @@ inline long int operator/(const timespec &a, const timespec &b) {
 inline bool operator==(const timespec &a, const timespec &b) {
 	return (a.tv_sec == b.tv_sec) && (a.tv_nsec == b.tv_nsec);
 }
+} // end anonymous namespace
 
-inline std::ostream& operator<<(std::ostream &ostr, timespec ts) {
+namespace cacao {
+namespace {
+inline OStream& operator<<(OStream &ostr, timespec ts) {
 	const char *unit;
 	if (ts.tv_sec >= 10) {
 		// display seconds if at least 10 sec
@@ -333,10 +333,15 @@ inline std::ostream& operator<<(std::ostream &ostr, timespec ts) {
 			unit = "usec";
 		}
 	}
-	ostr << std::setw(5) << unit;
+	ostr << setw(5) << unit;
 	return ostr;
 }
 } // end anonymous namespace
+} // end namespace cacao
+
+#include <vector>
+
+namespace cacao {
 
 class RTEntry {
 protected:
@@ -345,8 +350,8 @@ protected:
 public:
 	static timespec invalid_ts;
 	RTEntry(const char* name, const char* description) : name(name), description(description) {}
-	virtual void print(std::ostream &O,timespec ref) const = 0;
-	virtual inline timespec time() const = 0;
+	virtual void print(OStream &O,timespec ref) const = 0;
+	virtual timespec time() const = 0;
 
 };
 
@@ -377,7 +382,7 @@ public:
 		members->push_back(re);
 	}
 
-	virtual inline timespec time() const {
+	virtual timespec time() const {
 		timespec time = {0,0};
 		for(RTEntryList::const_iterator i = members->begin(), e = members->end(); i != e; ++i) {
 			RTEntry* re = *i;
@@ -386,21 +391,22 @@ public:
 		return time;
 	}
 
-	void print(std::ostream &O,timespec ref = invalid_ts) const {
+	void print(OStream &O,timespec ref = invalid_ts) const {
 		timespec duration = time();
 		if (ref == invalid_ts)
 			ref = duration;
-		O << "Group: " <<std::setw(10) << std::left << name << std::right <<"   " << description << "\n";
-		// O << intend;
+		// O << setw(10) << left << name << right <<"   " << description << nl;
+		O << indent;
 		for(RTEntryList::const_iterator i = members->begin(), e= members->end(); i != e; ++i) {
 			RTEntry* re = *i;
 			re->print(O,duration);
 		}
+		O << dedent;
 		int percent = duration / (ref / 100);
-		O << std::setw(10) << duration << " "
-		  << std::setw(4) << percent << "% "
-		  << std::setw(20) << name << ": total time" << "\n\n";
-		// O << unintend;
+		O << nl;
+		O << setw(10) << duration << " "
+		  << setw(4) << percent << "% "
+		  << setw(20) << name << ": total time" << nl<< nl;
 	}
 };
 // TODO could be ported to std::chrono if C++11 is available
@@ -425,55 +431,62 @@ public:
 		duration += stopstamp - startstamp;
 	}
 
+	inline void stopstart(RTTimer &timer) {
+		timespec stopstamp;
+		rt_timing_gettime(&stopstamp);
+		duration += stopstamp - startstamp;
+		timer.startstamp = stopstamp;
+	}
+
 	inline void reset() {
 		duration.tv_sec = 0;
 		duration.tv_nsec = 0;
 	}
 
-	virtual inline timespec time() const {
+	virtual timespec time() const {
 		return duration;
 	}
 
-	void print(std::ostream &O,timespec ref = invalid_ts) const {
+	void print(OStream &O,timespec ref = invalid_ts) const {
 		if (ref == invalid_ts)
 			ref = time();
 		int percent = duration / (ref / 100);
-		O << std::setw(10) << duration.tv_nsec/1000 << " usec "
-		  << std::setw(4) << percent << "% "
-		  << std::setw(20) << name << ": " << description << "\n";
+		O << setw(10) << duration.tv_nsec/1000 << " usec "
+		  << setw(4) << percent << "% "
+		  << setw(20) << name << ": " << description << nl;
 	}
 };
-#define RT_REGISTER_TIMER(var,name,description)                \
-	static RTTimer var##_rt(name,description,RTGroup::root()); \
-	static RTTimer& var() {	                                   \
-		return var##_rt;                                       \
+
+} // end namespace cacao
+
+#define RT_REGISTER_TIMER(var,name,description)                              \
+	static cacao::RTTimer var##_rt(name,description,cacao:RTGroup::root());  \
+	static cacao::RTTimer& var() {	                                         \
+		return var##_rt;                                                     \
 	}
 
-#define RT_REGISTER_GROUP_TIMER(var,name,description,group)    \
-	static RTTimer var##_rt(name, description, group());       \
-	static RTTimer& var() {                                    \
-		return var##_rt;                                       \
+#define RT_REGISTER_GROUP_TIMER(var,name,description,group)                  \
+	static cacao::RTTimer var##_rt(name, description, group());              \
+	static cacao::RTTimer& var() {                                           \
+		return var##_rt;                                                     \
 	}
 
-#define RT_REGISTER_GROUP(var,name,description)                \
-	static RTGroup var##_rg(name,description,RTGroup::root()); \
-	RTGroup& var() {                                           \
-		return var##_rg;                                       \
+#define RT_REGISTER_GROUP(var,name,description)                              \
+	static cacao::RTGroup var##_rg(name,description,cacao::RTGroup::root()); \
+	cacao::RTGroup& var() {                                                  \
+		return var##_rg;                                                     \
 	}
 
 
-#define RT_REGISTER_SUBGROUP(var,name,description,group)       \
-	static RTGroup var##_rg(name, description, group());       \
-	RTGroup& var() {                                           \
-		return var##_rg;                                       \
+#define RT_REGISTER_SUBGROUP(var,name,description,group)                     \
+	static cacao::RTGroup var##_rg(name, description, group());              \
+	cacao::RTGroup& var() {                                                  \
+		return var##_rg;                                                     \
 	}
 
 #define RT_TIMER_START(var) var().start()
 #define RT_TIMER_STOP(var) var().stop()
-#define RT_TIMER_STOPSTART(var1,var2) do { \
-	  var1().stop();                       \
-	  var2().start()                       \
-  while(0)
+#define RT_TIMER_STOPSTART(var1,var2) var1().stopstart(var2())
 
 #else /* !defined(ENABLE_RT_TIMING) */
 

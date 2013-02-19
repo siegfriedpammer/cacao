@@ -195,8 +195,10 @@ void rt_timing_print_time_stats(FILE *file)
 }
 #endif
 
+namespace cacao {
 timespec RTEntry::invalid_ts = {-1,-1};
 RTGroup RTGroup::root_rg("vm","vm timer");
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.
