@@ -433,7 +433,7 @@ extern "C" {
 
 bool class_initializing_thread_is_self(classinfo *c);
 
-inline bool class_is_or_almost_initialized(classinfo *c) {
+static inline bool class_is_or_almost_initialized(classinfo *c) {
    return ((c)->state & CLASS_INITIALIZED) 
 	   || ((c)->state & CLASS_INITIALIZING && class_initializing_thread_is_self((c)));
 }
