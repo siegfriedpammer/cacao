@@ -109,8 +109,15 @@ typedef java_handle_doublearray_t*  jdoubleArray;
 #define JNI_TRUE true
 #define JNI_FALSE false
 
+#ifdef __cplusplus
+class _Jv_JNIEnv;
+class _Jv_JavaVM;
+typedef _Jv_JNIEnv JNIEnv;
+typedef _Jv_JavaVM JavaVM;
+#else
 typedef struct _Jv_JNIEnv JNIEnv;
 typedef struct _Jv_JavaVM JavaVM;
+#endif
 
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 

@@ -45,6 +45,12 @@
 
 #include "vm/global.h"
 
+/* forward declarations */
+#ifdef __cplusplus
+class DumpMemory;
+#else
+typedef struct DumpMemory DumpMemory;
+#endif
 
 /* threadobject ****************************************************************
 
@@ -122,7 +128,7 @@ struct threadobject {
 	executionstate_t     *es;
 #endif
 
-	struct DumpMemory*    _dumpmemory;     ///< Dump memory structure.
+	DumpMemory*          _dumpmemory;     ///< Dump memory structure.
 
 #if defined(ENABLE_DEBUG_FILTER)
 	u2                    filterverbosecallctr[2]; /* counters for verbose call filter */
