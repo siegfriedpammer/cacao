@@ -42,6 +42,9 @@ extern "C" {
 /* DEBUG HELPERS                                                            */
 /****************************************************************************/
 
+#warning port to the new logging framework!
+#undef LOG
+
 #ifdef TYPECHECK_DEBUG
 #define TYPECHECK_ASSERT(cond)  assert(cond)
 #else

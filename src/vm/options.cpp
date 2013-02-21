@@ -36,6 +36,9 @@
 #include "vm/os.hpp"
 #include "vm/vm.hpp"
 
+#include "toolbox/Debug.hpp"
+#include "toolbox/logging.hpp"
+
 
 /* command line option ********************************************************/
 

@@ -29,10 +29,10 @@
 
 #ifndef NDEBUG
 
+#ifdef __cplusplus
+
 #include <cstring>
 #include <cassert>
-
-#ifdef __cplusplus
 
 namespace cacao {
 
