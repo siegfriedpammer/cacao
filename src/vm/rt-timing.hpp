@@ -229,7 +229,7 @@ namespace {
 /**
  * @note: http://www.gnu.org/software/libc/manual/html_node/Elapsed-Time.html
  */
-inline timespec operator-(const timespec a, timespec b) {
+inline timespec operator-(const timespec &a, timespec b) {
 	timespec result;
 	/* Perform the carry for the later subtraction by updating b. */
 	if (a.tv_nsec < b.tv_nsec) {
@@ -250,7 +250,7 @@ inline timespec operator-(const timespec a, timespec b) {
 	return result;
 }
 
-inline timespec operator+(const timespec a, const timespec b) {
+inline timespec operator+(const timespec a, const timespec &b) {
 	timespec result;
 	result.tv_sec = a.tv_sec + b.tv_sec;
 	result.tv_nsec = a.tv_nsec + b.tv_nsec;
@@ -262,7 +262,7 @@ inline timespec operator+(const timespec a, const timespec b) {
 	return result;
 }
 
-inline void operator+=(timespec &result, const timespec b) {
+inline void operator+=(timespec &result, const timespec &b) {
 	result.tv_sec += b.tv_sec;
 	result.tv_nsec += b.tv_nsec;
 	if (result.tv_nsec > 1000000000L) {
@@ -336,6 +336,28 @@ inline OStream& operator<<(OStream &ostr, timespec ts) {
 	ostr << setw(5) << unit;
 	return ostr;
 }
+
+inline void rt_timing_gettime_inline(timespec &ts) {
+	if (clock_gettime(CLOCK_THREAD_CPUTIME_ID,&ts) != 0) {
+		fprintf(stderr,"could not get time by clock_gettime: %s\n",strerror(errno));
+		abort();
+	}
+}
+
+inline long rt_timing_diff_usec_inline(const timespec &a, const timespec &b)
+{
+	long diff;
+	time_t atime;
+
+	diff = (b.tv_nsec - a.tv_nsec) / 1000;
+	atime = a.tv_sec;
+	while (atime < b.tv_sec) {
+		atime++;
+		diff += 1000000;
+	}
+	return diff;
+}
+
 } // end anonymous namespace
 } // end namespace cacao
 
@@ -437,17 +459,19 @@ public:
 		if (ref == invalid_ts)
 			ref = duration;
 		// O << setw(10) << left << name << right <<"   " << description << nl;
-		O << indent;
+		//O << indent;
 		for(RTEntryList::const_iterator i = members->begin(), e= members->end(); i != e; ++i) {
 			RTEntry* re = *i;
 			re->print(O,duration);
 		}
-		O << dedent;
+		//O << dedent;
 		int percent = duration / (ref / 100);
-		O << nl;
-		O << setw(10) << duration << " "
+		O << bold
+		  << setw(10) << duration << " "
 		  << setw(4) << percent << "% "
-		  << setw(20) << name << ": total time" << nl<< nl;
+		  << setw(20) << name << ": total time"
+		  << reset_color
+		  << nl<< nl;
 	}
 };
 
@@ -458,8 +482,8 @@ public:
  */
 class RTTimer : public RTEntry {
 private:
-	timespec startstamp;
-	timespec duration;
+	timespec startstamp;  //< start timestamp
+	long int duration;    //< time in usec
 public:
 	/**
 	 * Create a new real-time timer.
@@ -468,62 +492,49 @@ public:
 	 * @param[in] group parent group.
 	 */
 	RTTimer(const char* name, const char* description, RTGroup &parent) : RTEntry(name, description) {
-		reset();
+		//reset();
+		duration = 0;
 		parent.add(this);
 	}
 
 	/**
 	 * Start the timer.
 	 * @see stop()
-	 * @see stopstart()
 	 */
 	inline void start() {
-		rt_timing_gettime(&startstamp);
+		rt_timing_gettime_inline(startstamp);
 	}
 
 	/**
 	 * Start the timer.
 	 * @note Only use after a start() or stopstart()
 	 * @see start()
-	 * @see stopstart()
 	 */
 	inline void stop() {
 		timespec stopstamp;
-		rt_timing_gettime(&stopstamp);
-		duration += stopstamp - startstamp;
-	}
-
-	/**
-	 * Stop this timer and start a second timer.
-	 * This method stops the current timer and starts the timer in the parameter.
-	 * The advantage is that the current is only requested once as opposed to calling
-	 * stop() and start() separately.
-	 *
-	 * @note Only use after a start() or stopstart()
-	 * @see start()
-	 * @see stop()
-	 */
-	inline void stopstart(RTTimer &timer) {
-		timespec stopstamp;
-		rt_timing_gettime(&stopstamp);
-		duration += stopstamp - startstamp;
-		timer.startstamp = stopstamp;
-	}
-
-	inline void reset() {
-		duration.tv_sec = 0;
-		duration.tv_nsec = 0;
+		rt_timing_gettime_inline(stopstamp);
+		duration += rt_timing_diff_usec_inline(startstamp,stopstamp);
 	}
 
 	virtual timespec time() const {
-		return duration;
+		timespec ts;
+		int sec = duration/1000000;
+		ts.tv_sec = sec;
+		ts.tv_nsec = (duration - sec * 1000000) * 1000;
+		return ts;
 	}
 
 	void print(OStream &O,timespec ref = invalid_ts) const {
-		if (ref == invalid_ts)
-			ref = time();
-		int percent = duration / (ref / 100);
-		O << setw(10) << duration.tv_nsec/1000 << " usec "
+		timespec ts = time();
+		int percent;
+
+		if (ref == invalid_ts) {
+			percent = -1;
+		} else {
+			percent = ts / (ref / 100);
+		}
+
+		O << setw(10) << ts.tv_nsec/1000 << " usec "
 		  << setw(4) << percent << "% "
 		  << setw(20) << name << ": " << description << nl;
 	}
@@ -533,32 +544,32 @@ public:
 
 #define RT_REGISTER_TIMER(var,name,description)                              \
 	static cacao::RTTimer var##_rt(name,description,cacao::RTGroup::root()); \
-	static cacao::RTTimer& var() {	                                         \
+	static inline cacao::RTTimer& var() {	                                         \
 		return var##_rt;                                                     \
 	}
 
 #define RT_REGISTER_GROUP_TIMER(var,name,description,group)                  \
 	static cacao::RTTimer var##_rt(name, description, group());              \
-	static cacao::RTTimer& var() {                                           \
+	static inline cacao::RTTimer& var() {                                           \
 		return var##_rt;                                                     \
 	}
 
 #define RT_REGISTER_GROUP(var,name,description)                              \
 	static cacao::RTGroup var##_rg(name,description,cacao::RTGroup::root()); \
-	cacao::RTGroup& var() {                                                  \
+	inline cacao::RTGroup& var() {                                                  \
 		return var##_rg;                                                     \
 	}
 
 
 #define RT_REGISTER_SUBGROUP(var,name,description,group)                     \
 	static cacao::RTGroup var##_rg(name, description, group());              \
-	cacao::RTGroup& var() {                                                  \
+	inline cacao::RTGroup& var() {                                                  \
 		return var##_rg;                                                     \
 	}
 
 #define RT_TIMER_START(var) var().start()
 #define RT_TIMER_STOP(var) var().stop()
-#define RT_TIMER_STOPSTART(var1,var2) var1().stopstart(var2())
+#define RT_TIMER_STOPSTART(var1,var2) do { var1().stop();var2().start(); } while(0)
 
 #else /* !defined(ENABLE_RT_TIMING) */
 
