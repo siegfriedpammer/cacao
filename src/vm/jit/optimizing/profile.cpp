@@ -77,12 +77,14 @@ static s4 misses = 0;
 #if defined(ENABLE_THREADS)
 static void profile_thread(void)
 {
-	threadobject *t;
 	s4            nanos;
+#if 0
+	threadobject *t;
 	u1           *pc;
 	u1           *pv;
 	methodinfo   *m;
 	codeinfo     *code;
+#endif
 
 	while (true) {
 		/* sleep thread for 0.5-1.0 ms */
