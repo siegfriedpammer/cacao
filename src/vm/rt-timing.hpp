@@ -226,6 +226,7 @@ void rt_timing_print_time_stats(FILE *file);
 #include "toolbox/OStream.hpp"
 
 namespace {
+#if 0
 /**
  * @note: http://www.gnu.org/software/libc/manual/html_node/Elapsed-Time.html
  */
@@ -261,6 +262,7 @@ inline timespec operator+(const timespec a, const timespec &b) {
 
 	return result;
 }
+#endif
 
 inline void operator+=(timespec &result, const timespec &b) {
 	result.tv_sec += b.tv_sec;
