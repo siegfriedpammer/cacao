@@ -970,7 +970,7 @@ classinfo *load_class_from_sysloader(Utf8String name)
 	cl = java_lang_ClassLoader::invoke_getSystemClassLoader();
 
 	if (cl == NULL)
-		return false;
+		return NULL;
 
 	c = load_class_from_classloader(name, cl);
 
@@ -1038,13 +1038,13 @@ classinfo *load_class_from_classloader(Utf8String name, classloader_t *cl)
 				/* check for cases like `[L;' or `[L[I;' or `[Ljava.lang.Object' */
 				if (namelen < 4 || text[2] == '[' || text[namelen - 1] != ';') {
 					exceptions_throw_classnotfoundexception(name);
-					return false;
+					return NULL;
 				}
 
 				u = Utf8String::from_utf8(text + 2, namelen - 3);
 
 				if (!(comp = load_class_from_classloader(u, cl)))
-					return false;
+					return NULL;
 
 				/* create the array class */
 
@@ -1066,7 +1066,7 @@ classinfo *load_class_from_classloader(Utf8String name, classloader_t *cl)
 				u = Utf8String::from_utf8(text + 1, namelen - 1);
 
 				if (!(comp = load_class_from_classloader(u, cl)))
-					return false;
+					return NULL;
 
 				/* create the array class */
 
@@ -1111,7 +1111,7 @@ classinfo *load_class_from_classloader(Utf8String name, classloader_t *cl)
 #endif
 
 		if (lc == NULL)
-			return false; /* exception */
+			return NULL; /* exception */
 
 		/* move return value into `o' and cast it afterwards to a classinfo* */
 

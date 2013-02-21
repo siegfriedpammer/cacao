@@ -856,7 +856,8 @@ jclass jni_FindClass(JNIEnv *env, const char *name)
 
 	Utf8String u = Utf8String::from_utf8_dot_to_slash(name);
 
-	if ((u == NULL) /*|| (int)strlen(name) > symbolOopDesc::max_length() */) {
+	/* if ((u == NULL) || (int)strlen(name) > symbolOopDesc::max_length() ) { */
+	if (u == NULL) {
 		exceptions_throw_noclassdeffounderror(u);
 		return NULL;
 	}
