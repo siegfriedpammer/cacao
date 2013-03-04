@@ -41,12 +41,18 @@
 #endif
 #include "vm/jit/verify/typecheck.hpp"
 
+#include "toolbox/OStream.hpp"
+
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Compiler.hpp"
 #include "vm/jit/compiler2/Method.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 
-#include "vm/jit/compiler2/CFGConstructionPass.hpp"
+#include "vm/jit/compiler2/ParserPass.hpp"
+# if defined(ENABLE_VERIFIER)
+#include "vm/jit/compiler2/VerifierPass.hpp"
+#endif
+#include "vm/jit/compiler2/RegisterAllocatorPass.hpp"
 #include "vm/jit/compiler2/CodeGenPass.hpp"
 
 #include "vm/jit/compiler2/Debug.hpp"
@@ -54,17 +60,17 @@
 #include "vm/options.hpp"
 
 
-RT_REGISTER_GROUP(compiler_group,"compiler2","second-stage compiler")
+RT_REGISTER_GROUP(compiler2_group,"compiler2","second-stage compiler")
 
-RT_REGISTER_GROUP_TIMER(checks_timer,        "compiler2","checks at beginning",          compiler_group)
-RT_REGISTER_GROUP_TIMER(parse_timer,         "compiler2","parse",                        compiler_group)
-RT_REGISTER_GROUP_TIMER(stack_timer, "compiler2","analyse_stack",                compiler_group)
-RT_REGISTER_GROUP_TIMER(typechecker_timer,   "compiler2","typecheck",                    compiler_group)
-RT_REGISTER_GROUP_TIMER(loop_timer,          "compiler2","loop",                         compiler_group)
-RT_REGISTER_GROUP_TIMER(ifconversion_timer,  "compiler2","if conversion",                compiler_group)
-RT_REGISTER_GROUP_TIMER(ra_timer,            "compiler2","register allocation",          compiler_group)
-RT_REGISTER_GROUP_TIMER(rp_timer,            "compiler2","replacement point generation", compiler_group)
-RT_REGISTER_GROUP_TIMER(codegen_timer,       "compiler2","codegen",                      compiler_group)
+RT_REGISTER_GROUP_TIMER(checks_timer,        "compiler2","checks at beginning",          compiler2_group)
+RT_REGISTER_GROUP_TIMER(parse_timer,         "compiler2","parse",                        compiler2_group)
+RT_REGISTER_GROUP_TIMER(stack_timer,         "compiler2","analyse_stack",                compiler2_group)
+RT_REGISTER_GROUP_TIMER(typechecker_timer,   "compiler2","typecheck",                    compiler2_group)
+RT_REGISTER_GROUP_TIMER(loop_timer,          "compiler2","loop",                         compiler2_group)
+RT_REGISTER_GROUP_TIMER(ifconversion_timer,  "compiler2","if conversion",                compiler2_group)
+RT_REGISTER_GROUP_TIMER(ra_timer,            "compiler2","register allocation",          compiler2_group)
+RT_REGISTER_GROUP_TIMER(rp_timer,            "compiler2","replacement point generation", compiler2_group)
+RT_REGISTER_GROUP_TIMER(codegen_timer,       "compiler2","codegen",                      compiler2_group)
 
 namespace {
 
@@ -559,12 +565,29 @@ u1 *jit_compile_intern(jitdata *jd)
 	return code->entrypoint;
 }
 
+cacao::OStream& operator<<(cacao::OStream &OS, const utf *u)
+{
+  OS << u->text;
+  return OS;
+}
+
+cacao::OStream& operator<<(cacao::OStream &OS, const struct methodinfo &m)
+{
+  OS << m.clazz->name << "." << m.name << "." << m.descriptor;
+  // TODO flags
+  return OS;
+}
+
+
 } // end anonymous namespace
+
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+
+#define DEBUG_NAME "compiler2"
 
 MachineCode* compile(methodinfo* m)
 {
@@ -572,14 +595,18 @@ MachineCode* compile(methodinfo* m)
 	Method M(m);
 	PassManager PM;
 
-	INFO(dbg() << BOLDWHITE << "Compiler Start: " << RESET ; method_print(m); dbg() << "\n";)
+	LOG(bold << bold << "Compiler Start: " << reset_color << *m << nl);
 
-	PM.addPass<CFGConstructionPass>();
+	PM.addPass<ParserPass>();
+#ifdef ENABLE_VERIFIER
+	PM.addPass<VerifierPass>();
+#endif
+	PM.addPass<RegisterAllocatorPass>();
 	PM.addPass<CodeGenPass>();
 	PM.runPasses(M);
 
 	MachineCode* mc = compile_intern(m);
-	INFO(dbg() << BOLDWHITE << "Compiler End: " << RESET ; method_print(m); dbg() <<"\n";)
+	LOG(bold << bold << "Compiler End: " << reset_color << *m << nl);
 
 	return mc;
 }
