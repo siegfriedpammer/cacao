@@ -1,6 +1,6 @@
-/* tests/regression/junit/All.java - runs all CACAO regression unit tests
+/* tests/regression/base/All.java - runs all CACAO regression unit tests
 
-   Copyright (C) 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.

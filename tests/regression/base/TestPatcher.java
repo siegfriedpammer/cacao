@@ -1,6 +1,6 @@
-/* tests/regression/bugzilla/TestPatcher.java
+/* tests/regression/base/TestPatcher.java
 
-   Copyright (C) 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.

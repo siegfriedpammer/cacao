@@ -1,6 +1,6 @@
-## tests/regression/junit/Makefile.am
+## tests/regression/base/Makefile.am
 ##
-## Copyright (C) 2008
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
