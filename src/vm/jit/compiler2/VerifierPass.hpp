@@ -27,6 +27,8 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 
+#include "vm/jit/verify/typecheck.hpp"
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -39,10 +41,25 @@ namespace compiler2 {
 class VerifierPass : public Pass {
 public:
 	VerifierPass(PassManager *PM) : Pass(PM) {}
-	void run(Method &M) {}
-	static const char* name() { return "VerifierPass"; };
+	bool run(JITData &JD);
+	const char* name() { return "VerifierPass"; };
 };
 
+bool VerifierPass::run(JITData &JD) {
+	if (JITDATA_HAS_FLAG_VERIFY(JD.jitdata())) {
+		//DEBUG_JIT_COMPILEVERBOSE("Typechecking: ");
+
+		/* call typecheck pass */
+		if (!typecheck(JD.jitdata())) {
+			//DEBUG_JIT_COMPILEVERBOSE("Exception while typechecking: ");
+
+			return false;
+		}
+
+		//DEBUG_JIT_COMPILEVERBOSE("Typechecking done: ");
+	}
+	return true;
+}
 
 } // end namespace cacao
 } // end namespace jit

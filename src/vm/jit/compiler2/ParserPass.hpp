@@ -26,6 +26,9 @@
 #define _JIT_COMPILER2_PARSERPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/JITData.hpp"
+
+#include "vm/jit/parse.hpp"
 
 namespace cacao {
 namespace jit {
@@ -39,10 +42,20 @@ namespace compiler2 {
 class ParserPass : public Pass {
 public:
 	ParserPass(PassManager *PM) : Pass(PM) {}
-	void run(Method &M) {}
-	static const char* name() { return "ParserPass"; };
+	bool run(JITData &JD);
+	const char* name() { return "ParserPass"; };
 };
 
+bool ParserPass::run(JITData &JD) {
+	/* call parse pass */
+
+	if (!parse(JD.jitdata())) {
+		//DEBUG_JIT_COMPILEVERBOSE("Exception while parsing: ");
+
+		return false;
+	}
+	return true;
+}
 
 } // end namespace cacao
 } // end namespace jit

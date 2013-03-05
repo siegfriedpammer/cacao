@@ -29,7 +29,8 @@ noinst_LTLIBRARIES = \
 	libcompiler2.la
 
 libcompiler2_la_SOURCES = \
-	Compiler.cpp
+	Compiler.cpp \
+	PassManager.cpp
 
 
 ## Local variables:

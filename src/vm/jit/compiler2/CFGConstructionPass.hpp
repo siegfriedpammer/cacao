@@ -27,6 +27,8 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 
+#include "vm/jit/cfg.hpp"
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -39,10 +41,18 @@ namespace compiler2 {
 class CFGConstructionPass : public Pass {
 public:
 	CFGConstructionPass(PassManager *PM) : Pass(PM) {}
-	void run(Method &M) {}
-	static const char* name() { return "CFGConstructionPass"; };
+	bool run(JITData &JD);
+	const char* name() { return "CFGConstructionPass"; };
 };
 
+bool CFGConstructionPass::run(JITData &JD) {
+	/* Build the CFG.  This has to be done after stack_analyse, as
+	   there happens the JSR elimination. */
+	if (!cfg_build(JD.jitdata())) {
+		return false;
+	}
+	return true;
+}
 
 } // end namespace cacao
 } // end namespace jit

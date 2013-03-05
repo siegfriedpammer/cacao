@@ -31,7 +31,7 @@ namespace compiler2 {
 
 // forward declaration
 class PassManager;
-class Method;
+class JITData;
 
 
 /**
@@ -69,13 +69,15 @@ public:
 	/**
 	 * Run the Pass.
 	 * This method implements the compiler pass.
+	 *
+	 * @return false if a problem occurred, true otherwise
 	 */
-	virtual void run(Method &M) = 0;
+	virtual bool run(JITData &JD) = 0;
 
 	/**
 	 * Name of the Pass.
 	 */
-	static const char* name();
+	virtual const char* name() = 0;
 
 	/**
 	 * Destructor

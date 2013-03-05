@@ -49,17 +49,20 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 
 #include "vm/jit/compiler2/ParserPass.hpp"
+#include "vm/jit/compiler2/StackAnalysisPass.hpp"
 # if defined(ENABLE_VERIFIER)
 #include "vm/jit/compiler2/VerifierPass.hpp"
 #endif
+#include "vm/jit/compiler2/CFGConstructionPass.hpp"
 #include "vm/jit/compiler2/RegisterAllocatorPass.hpp"
 #include "vm/jit/compiler2/CodeGenPass.hpp"
 
-#include "vm/jit/compiler2/Debug.hpp"
+#include "vm/jit/compiler2/Method.hpp"
+#include "vm/jit/compiler2/JITData.hpp"
 
 #include "vm/options.hpp"
 
-
+#if 0
 RT_REGISTER_GROUP(compiler2_group,"compiler2","second-stage compiler")
 
 RT_REGISTER_GROUP_TIMER(checks_timer,        "compiler2","checks at beginning",          compiler2_group)
@@ -71,36 +74,9 @@ RT_REGISTER_GROUP_TIMER(ifconversion_timer,  "compiler2","if conversion",       
 RT_REGISTER_GROUP_TIMER(ra_timer,            "compiler2","register allocation",          compiler2_group)
 RT_REGISTER_GROUP_TIMER(rp_timer,            "compiler2","replacement point generation", compiler2_group)
 RT_REGISTER_GROUP_TIMER(codegen_timer,       "compiler2","codegen",                      compiler2_group)
+#endif
 
 namespace {
-
-/* debug macros ***************************************************************/
-
-#if !defined(NDEBUG)
-#define DEBUG_JIT_COMPILEVERBOSE(x)				\
-    do {										\
-        if (compileverbose) {					\
-            log_message_method(x, m);			\
-        }										\
-    } while (0)
-#else
-#define DEBUG_JIT_COMPILEVERBOSE(x)    /* nothing */
-#endif
-
-#if !defined(NDEBUG)
-# define TRACECOMPILERCALLS()								\
-	do {													\
-		if (opt_TraceCompilerCalls) {						\
-			log_start();									\
-			log_print("[JIT compiler started: method=");	\
-			method_print(m);								\
-			log_print("]");									\
-			log_finish();									\
-		}													\
-	} while (0)
-#else
-# define TRACECOMPILERCALLS()
-#endif
 
 /* dummy function, used when there is no JavaVM code available                */
 
@@ -108,18 +84,35 @@ u1 *do_nothing_function(void)
 {
 	return NULL;
 }
+} // end anonymous namespace
 
-/* compile ***************************************************************
+namespace cacao {
+namespace jit {
+namespace compiler2 {
 
-   Recompiles a Java method.
 
-*******************************************************************************/
+#define DEBUG_NAME "compiler2"
 
-// forward declarations
-u1 *jit_compile_intern(jitdata *jd);
-
-u1 *compile_intern(methodinfo *m)
+MachineCode* compile(methodinfo* m)
 {
+
+	Method M(m);
+	PassManager PM;
+
+	LOG(bold << bold << "Compiler Start: " << reset_color << *m << nl);
+
+	PM.addPass<ParserPass>();
+	PM.addPass<StackAnalysisPass>();
+#ifdef ENABLE_VERIFIER
+	PM.addPass<VerifierPass>();
+#endif
+	PM.addPass<CFGConstructionPass>();
+	PM.addPass<RegisterAllocatorPass>();
+	PM.addPass<CodeGenPass>();
+
+/*****************************************************************************/
+/** prolog start jit_compile **/
+/*****************************************************************************/
 	u1      *r;
 	jitdata *jd;
 	u1       optlevel;
@@ -135,7 +128,7 @@ u1 *compile_intern(methodinfo *m)
 	}
 #endif
 
-	DEBUG_JIT_COMPILEVERBOSE("Recompiling start: ");
+	//DEBUG_JIT_COMPILEVERBOSE("Recompiling start: ");
 
 	STATISTICS(count_jit_calls++);
 
@@ -196,63 +189,29 @@ u1 *compile_intern(methodinfo *m)
 
 	bool bak = opt_RegallocSpillAll;
 	opt_RegallocSpillAll = true;
-	r = jit_compile_intern(jd);
-	opt_RegallocSpillAll = bak;
+/*****************************************************************************/
+/** prolog end jit_compile **/
+/*****************************************************************************/
+	JITData JD(jd);
+/*****************************************************************************/
+/** prolog start jit_compile_intern **/
+/*****************************************************************************/
 
-	if (r == NULL) {
-		/* We had an exception! Finish stuff here if necessary. */
-
-		/* release codeinfo */
-
-		code_codeinfo_free(jd->code);
-	}
-
-#if defined(ENABLE_STATISTICS)
-	/* measure time */
-
-	if (opt_getcompilingtime)
-		compilingtime_stop();
-#endif
-
-	// Hook point just after code was generated.
-	Hook::jit_generated(m, m->code);
-
-	DEBUG_JIT_COMPILEVERBOSE("Recompiling done: ");
-
-	/* return pointer to the methods entry point */
-
-	return r;
-}
-
-#if defined(ENABLE_PM_HACKS)
-#include "vm/jit/jit_pm_1.inc"
-#endif
-
-/* jit_compile_intern **********************************************************
-
-   Static internal function which does the actual compilation.
-
-*******************************************************************************/
-
-u1 *jit_compile_intern(jitdata *jd)
-{
-	methodinfo  *m;
 	codegendata *cd;
 	codeinfo    *code;
 
-	RT_TIMER_START(checks_timer);
+	//RT_TIMER_START(checks_timer);
 
 	/* get required compiler data */
 
 #if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
-	jd->ls = NULL;
+	JD.jitdata()->ls = NULL;
 #endif
-	m    = jd->m;
-	code = jd->code;
-	cd   = jd->cd;
+	code = JD.jitdata()->code;
+	cd   = JD.jitdata()->cd;
 
 #if defined(ENABLE_DEBUG_FILTER)
-	show_filters_apply(jd->m);
+	show_filters_apply(JD.jitdata()->m);
 #endif
 
 	// Handle native methods and create a native stub.
@@ -277,7 +236,7 @@ u1 *jit_compile_intern(jitdata *jd)
 	/* if there is no javacode, print error message and return empty method   */
 
 	if (m->jcode == NULL) {
-		DEBUG_JIT_COMPILEVERBOSE("No code given for: ");
+		//DEBUG_JIT_COMPILEVERBOSE("No code given for: ");
 
 		code->entrypoint = (u1 *) (ptrint) do_nothing_function;
 		m->code = code;
@@ -288,12 +247,10 @@ u1 *jit_compile_intern(jitdata *jd)
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 		count_javacodesize += m->jcodelength + 18;
-		count_tryblocks    += jd->exceptiontablelength;
-		count_javaexcsize  += jd->exceptiontablelength * SIZEOF_VOID_P;
+		count_tryblocks    += JD.jitdata()->exceptiontablelength;
+		count_javaexcsize  += JD.jitdata()->exceptiontablelength * SIZEOF_VOID_P;
 	}
 #endif
-
-	RT_TIMER_STOPSTART(checks_timer,parse_timer);
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	/* Code for Sun's OpenJDK (see
@@ -303,312 +260,54 @@ u1 *jit_compile_intern(jitdata *jd)
 
 # if defined(ENABLE_VERIFIER)
 	if (class_issubclass(m->clazz, class_sun_reflect_MagicAccessorImpl))
-		jd->flags &= ~JITDATA_FLAG_VERIFY;
+		JD.jitdata()->flags &= ~JITDATA_FLAG_VERIFY;
 # endif
 #endif
 
-	/* call the compiler passes ***********************************************/
-
-	DEBUG_JIT_COMPILEVERBOSE("Parsing: ");
-
-	/* call parse pass */
-
-	if (!parse(jd)) {
-		DEBUG_JIT_COMPILEVERBOSE("Exception while parsing: ");
-
-		return NULL;
-	}
-	RT_TIMER_STOPSTART(parse_timer,stack_timer);
-
-	DEBUG_JIT_COMPILEVERBOSE("Parsing done: ");
-
-	DEBUG_JIT_COMPILEVERBOSE("Analysing: ");
-
-	/* call stack analysis pass */
-
-	if (!stack_analyse(jd)) {
-		DEBUG_JIT_COMPILEVERBOSE("Exception while analysing: ");
-
-		return NULL;
-	}
-	RT_TIMER_STOPSTART(stack_timer,typechecker_timer);
-
-	DEBUG_JIT_COMPILEVERBOSE("Analysing done: ");
-
-#ifdef ENABLE_VERIFIER
-	if (JITDATA_HAS_FLAG_VERIFY(jd)) {
-		DEBUG_JIT_COMPILEVERBOSE("Typechecking: ");
-
-		/* call typecheck pass */
-		if (!typecheck(jd)) {
-			DEBUG_JIT_COMPILEVERBOSE("Exception while typechecking: ");
-
-			return NULL;
-		}
-
-		DEBUG_JIT_COMPILEVERBOSE("Typechecking done: ");
-	}
-#endif
-	RT_TIMER_STOPSTART(typechecker_timer,loop_timer);
-
-#if defined(ENABLE_LOOP)
-	if (opt_loops) {
-		depthFirst(jd);
-		analyseGraph(jd);
-		optimize_loops(jd);
-		jit_renumber_basicblocks(jd);
-	}
-#endif
-	RT_TIMER_STOPSTART(loop_timer,ifconversion_timer);
-
-#if defined(ENABLE_IFCONV)
-	if (JITDATA_HAS_FLAG_IFCONV(jd)) {
-		if (!ifconv_static(jd))
-			return NULL;
-		jit_renumber_basicblocks(jd);
-	}
-#endif
-	RT_TIMER_STOPSTART(ifconversion_timer,ra_timer);
-
-	/* inlining */
-
-#if defined(ENABLE_INLINING) && (!defined(ENABLE_ESCAPE) || 1)
-	if (JITDATA_HAS_FLAG_INLINE(jd)) {
-		if (!inline_inline(jd))
-			return NULL;
-	}
-#endif
-
-#if defined(ENABLE_SSA)
-	if (opt_lsra) {
-		fix_exception_handlers(jd);
-	}
-#endif
-
-	/* Build the CFG.  This has to be done after stack_analyse, as
-	   there happens the JSR elimination. */
-
-	if (!cfg_build(jd))
-		return NULL;
-
-#if defined(ENABLE_PROFILING)
-	/* Basic block reordering.  I think this should be done after
-	   if-conversion, as we could lose the ability to do the
-	   if-conversion. */
-#if 0
-	if (JITDATA_HAS_FLAG_REORDER(jd)) {
-		if (!reorder(jd))
-			return NULL;
-		jit_renumber_basicblocks(jd);
-	}
-#endif
-#endif
-
-#if defined(ENABLE_PM_HACKS)
-#include "vm/jit/jit_pm_2.inc"
-#endif
-	DEBUG_JIT_COMPILEVERBOSE("Allocating registers: ");
-
-#if defined(ENABLE_LSRA) && !defined(ENABLE_SSA)
-	/* allocate registers */
-	if (opt_lsra) {
-		if (!lsra(jd))
-			return NULL;
-
-		STATISTICS(count_methods_allocated_by_lsra++);
-
-	} else
-# endif /* defined(ENABLE_LSRA) && !defined(ENABLE_SSA) */
-#if defined(ENABLE_SSA)
-	/* allocate registers */
-	if (
-		(opt_lsra &&
-		jd->code->optlevel > 0) 
-		/* strncmp(jd->m->name->text, "hottie", 6) == 0*/
-		/*&& jd->exceptiontablelength == 0*/
-	) {
-		/*printf("=== %s ===\n", jd->m->name->text);*/
-		jd->ls = (lsradata*) DumpMemory::allocate(sizeof(lsradata));
-		jd->ls = NULL;
-		ssa(jd);
-		/*lsra(jd);*/ regalloc(jd);
-		/*eliminate_subbasicblocks(jd);*/
-		STATISTICS(count_methods_allocated_by_lsra++);
-
-	} else
-# endif /* defined(ENABLE_SSA) */
-	{
-		STATISTICS(count_locals_conflicts += (jd->maxlocals - 1) * (jd->maxlocals));
-
-		regalloc(jd);
-	}
-
-	STATISTICS(simplereg_make_statistics(jd));
-
-	DEBUG_JIT_COMPILEVERBOSE("Allocating registers done: ");
-	RT_TIMER_STOPSTART(ra_timer,codegen_timer);
-
-#if defined(ENABLE_CFG_PRINTER)
-#if 0
-		/* FIXME: WOW that is dirty. Use filter stuff instead */
-		/* Only method is need, signature and class are optional */
-		#if 1
-		if (opt_CFGPrinterMethod
-		    && strcmp(m->name->text, opt_CFGPrinterMethod) == 0)
-		if (!opt_CFGPrinterClass
-		    || strcmp(m->clazz->name->text, opt_CFGPrinterClass) == 0)
-		if (!opt_CFGPrinterSignature
-		    || strcmp(m->descriptor->text, opt_CFGPrinterSignature) == 0)
-		#endif
-		{
-
-			GraphPrinter<JitDataGraph>::print(get_filename(m,jd,"cfg_",".dot"),
-			                                  JitDataGraph(*jd, opt_CFGPrinterVerbose));
-		}
-#endif
-#endif
-
-#if defined(ENABLE_PROFILING)
-	/* Allocate memory for basic block profiling information. This
-	   _must_ be done after loop optimization and register allocation,
-	   since they can change the basic block count. */
-
-	if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
-		code->basicblockcount = jd->basicblockcount;
-		code->bbfrequency = MNEW(u4, jd->basicblockcount);
-	}
-#endif
-
-	DEBUG_JIT_COMPILEVERBOSE("Generating code: ");
-
-	/* now generate the machine code */
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (opt_intrp) {
-#if defined(ENABLE_VERIFIER)
-		if (opt_verify) {
-			DEBUG_JIT_COMPILEVERBOSE("Typechecking (stackbased): ");
-
-			if (!typecheck_stackbased(jd)) {
-				DEBUG_JIT_COMPILEVERBOSE("Exception while typechecking (stackbased): ");
-				return NULL;
-			}
-		}
-#endif
-		if (!intrp_codegen(jd)) {
-			DEBUG_JIT_COMPILEVERBOSE("Exception while generating code: ");
-
-			return NULL;
-		}
-	} else
-# endif
-		{
-			if (!codegen_generate(jd)) {
-				DEBUG_JIT_COMPILEVERBOSE("Exception while generating code: ");
-
-				return NULL;
-			}
-		}
-#else
-	if (!intrp_codegen(jd)) {
-		DEBUG_JIT_COMPILEVERBOSE("Exception while generating code: ");
-
-		return NULL;
-	}
-#endif
-	RT_TIMER_STOP(codegen_timer);
-
-	DEBUG_JIT_COMPILEVERBOSE("Generating code done: ");
-
-#if !defined(NDEBUG) && defined(ENABLE_REPLACEMENT)
-	/* activate replacement points inside newly created code */
-
-	if (opt_TestReplacement)
-		replace_activate_replacement_points(code, false);
-#endif
-
-#if !defined(NDEBUG)
-#if defined(ENABLE_DEBUG_FILTER)
-	if (jd->m->filtermatches & SHOW_FILTER_FLAG_SHOW_METHOD)
-#endif
-	{
-		/* intermediate and assembly code listings */
-
-		if (JITDATA_HAS_FLAG_SHOWINTERMEDIATE(jd)) {
-			show_method(jd, SHOW_CODE);
-		}
-		else if (JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd)) {
-# if defined(ENABLE_DISASSEMBLER)
-			DISASSEMBLE(code->entrypoint,
-						code->entrypoint + (code->mcodelength - cd->dseglen));
-# endif
-		}
-
-		if (opt_showddatasegment)
-			dseg_display(jd);
-	}
-#endif
-
-	/* switch to the newly generated code */
-
+/*****************************************************************************/
+/** prolog end jit_compile_intern **/
+/*****************************************************************************/
+	PM.runPasses(JD);
 	assert(code);
 	assert(code->entrypoint);
 
-	/* add the current compile version to the methodinfo */
 
 	code->prev = m->code;
 	m->code = code;
+	r = JD.jitdata()->code->entrypoint;
+/*****************************************************************************/
+/** epilog  start jit_compile **/
+/*****************************************************************************/
+	opt_RegallocSpillAll = bak;
+
+	if (r == NULL) {
+		/* We had an exception! Finish stuff here if necessary. */
+
+		/* release codeinfo */
+
+		code_codeinfo_free(JD.jitdata()->code);
+	}
+
+#if defined(ENABLE_STATISTICS)
+	/* measure time */
+
+	if (opt_getcompilingtime)
+		compilingtime_stop();
+#endif
+
+	// Hook point just after code was generated.
+	Hook::jit_generated(m, m->code);
+
+	//DEBUG_JIT_COMPILEVERBOSE("Recompiling done: ");
 
 	/* return pointer to the methods entry point */
 
-	return code->entrypoint;
-}
+/** epilog end jit_compile **/
 
-cacao::OStream& operator<<(cacao::OStream &OS, const utf *u)
-{
-  OS << u->text;
-  return OS;
-}
-
-cacao::OStream& operator<<(cacao::OStream &OS, const struct methodinfo &m)
-{
-  OS << m.clazz->name << "." << m.name << "." << m.descriptor;
-  // TODO flags
-  return OS;
-}
-
-
-} // end anonymous namespace
-
-
-namespace cacao {
-namespace jit {
-namespace compiler2 {
-
-
-#define DEBUG_NAME "compiler2"
-
-MachineCode* compile(methodinfo* m)
-{
-
-	Method M(m);
-	PassManager PM;
-
-	LOG(bold << bold << "Compiler Start: " << reset_color << *m << nl);
-
-	PM.addPass<ParserPass>();
-#ifdef ENABLE_VERIFIER
-	PM.addPass<VerifierPass>();
-#endif
-	PM.addPass<RegisterAllocatorPass>();
-	PM.addPass<CodeGenPass>();
-	PM.runPasses(M);
-
-	MachineCode* mc = compile_intern(m);
 	LOG(bold << bold << "Compiler End: " << reset_color << *m << nl);
 
-	return mc;
+	//return mc;
+	return r;
 }
 
 } // end namespace cacao

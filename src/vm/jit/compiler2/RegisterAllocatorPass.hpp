@@ -27,6 +27,8 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 
+#include "vm/jit/allocator/simplereg.hpp"
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -39,10 +41,16 @@ namespace compiler2 {
 class RegisterAllocatorPass : public Pass {
 public:
 	RegisterAllocatorPass(PassManager *PM) : Pass(PM) {}
-	void run(Method &M) {}
-	static const char* name() { return "RegisterAllocatorPass"; };
+	bool run(JITData &JD);
+	const char* name() { return "RegisterAllocatorPass"; };
 };
 
+bool RegisterAllocatorPass::run(JITData &JD) {
+	if (!regalloc(JD.jitdata())) {
+		return false;
+	}
+	return true;
+}
 
 } // end namespace cacao
 } // end namespace jit

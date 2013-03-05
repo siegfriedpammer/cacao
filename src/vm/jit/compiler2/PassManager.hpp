@@ -27,11 +27,13 @@
 
 #include <vector>
 
-#include "vm/jit/compiler2/Pass.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+
+class JITData;
+class Pass;
 
 /**
  * Manage the execution of compiler passes
@@ -43,46 +45,22 @@ private:
 public:
 	PassManager() {}
 
-	~PassManager() {
-		// delete all passes
-		for(PassList::iterator i = passes.begin(), e = passes.end(); i != e; ++i) {
-			Pass* P = *i;
-			delete P;
-		}
-	}
-
+	~PassManager();
 
 	/**
 	 * run pass initializers
 	 */
-	void initializePasses() {
-		for(PassList::iterator i = passes.begin(), e = passes.end(); i != e; ++i) {
-			Pass* P = *i;
-			P->initialize();
-		}
-	}
+	void initializePasses();
 
 	/**
 	 * run passes
 	 */
-	void runPasses(Method &M) {
-		initializePasses();
-		for(PassList::iterator i = passes.begin(), e = passes.end(); i != e; ++i) {
-			Pass* P = *i;
-			P->run(M);
-		}
-		finalizePasses();
-	}
+	void runPasses(JITData &JD);
 
 	/**
 	 * run pass finalizers
 	 */
-	void finalizePasses() {
-		for(PassList::iterator i = passes.begin(), e = passes.end(); i != e; ++i) {
-			Pass* P = *i;
-			P->finalize();
-		}
-	}
+	void finalizePasses();
 
 	/**
 	 * get the result of a previous compiler pass

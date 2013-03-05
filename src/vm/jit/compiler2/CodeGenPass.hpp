@@ -39,10 +39,16 @@ namespace compiler2 {
 class CodeGenPass : public Pass {
 public:
 	CodeGenPass(PassManager *PM) : Pass(PM) {}
-	void run(Method &M) {}
+	bool run(JITData &JD);
 	const char* name() { return "CodeGenPass"; };
 };
 
+bool CodeGenPass::run(JITData &JD) {
+	if (!codegen_generate(JD.jitdata())) {
+		return false;
+	}
+	return true;
+}
 
 } // end namespace cacao
 } // end namespace jit
