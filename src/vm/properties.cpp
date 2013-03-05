@@ -1,6 +1,6 @@
 /* src/vm/properties.cpp - handling commandline properties
 
-   Copyright (C) 1996-2010
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -35,12 +35,12 @@
 
 #include "mm/memory.hpp"
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/method.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/properties.hpp"
 #include "vm/string.hpp"
@@ -533,8 +533,8 @@ void Properties::put(java_handle_t* p, const char* key, const char* value)
 	LLNI_class_get(p, c);
 
 	methodinfo* m = class_resolveclassmethod(c,
-											 utf_put,
-											 utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
+											 utf8::put,
+											 Utf8String::from_utf8("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
 											 NULL,
 											 true);
 
@@ -542,8 +542,8 @@ void Properties::put(java_handle_t* p, const char* key, const char* value)
 		return;
 
 	// Add to the Java system properties.
-	java_handle_t* k = javastring_new_from_utf_string(key);
-	java_handle_t* v = javastring_new_from_utf_string(value);
+	java_handle_t* k = JavaString::from_utf8(key);
+	java_handle_t* v = JavaString::from_utf8(value);
 
 	(void) vm_call_method(m, p, k, v);
 }
@@ -622,8 +622,8 @@ void Properties::fill(java_handle_t* p)
 	LLNI_class_get(p, c);
 
 	methodinfo* m = class_resolveclassmethod(c,
-											 utf_put,
-											 utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
+											 utf8::put,
+											 Utf8String::from_utf8("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
 											 NULL,
 											 true);
 
@@ -633,8 +633,8 @@ void Properties::fill(java_handle_t* p)
 	// Iterator over all properties.
 	for (std::map<const char*, const char*>::iterator it = _properties.begin(); it != _properties.end(); it++) {
 		// Put into the Java system properties.
-		java_handle_t* key   = javastring_new_from_utf_string(it->first);
-		java_handle_t* value = javastring_new_from_utf_string(it->second);
+		java_handle_t* key   = JavaString::from_utf8(it->first);
+		java_handle_t* value = JavaString::from_utf8(it->second);
 
 		(void) vm_call_method(m, p, key, value);
 	}

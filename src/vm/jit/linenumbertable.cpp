@@ -1,6 +1,6 @@
 /* src/vm/jit/linenumbertable.cpp - linenumber handling stuff
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 2007-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -35,8 +35,8 @@
 #include "toolbox/list.hpp"
 
 #if defined(ENABLE_STATISTICS)
-# include "vm/options.h"
-# include "vm/statistics.h"
+# include "vm/options.hpp"
+# include "vm/statistics.hpp"
 #endif
 
 #include "vm/jit/code.hpp"

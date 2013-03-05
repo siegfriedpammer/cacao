@@ -1,6 +1,6 @@
 /* src/vm/field.cpp - field functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -31,7 +31,7 @@
 
 #include "mm/memory.hpp"
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "vm/types.h"
 
@@ -45,12 +45,12 @@
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/primitive.hpp"
 #include "vm/references.h"
 #include "vm/string.hpp"
 #include "vm/suck.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 #include "vm/vm.hpp"
 
 
@@ -68,7 +68,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 	classinfo *c;
 	u4 attrnum, i;
 	u4 pindex = field_load_NOVALUE;     /* constantvalue_index */
-	utf *u;
+	Utf8String u;
 
 	/* Get class. */
 
@@ -88,14 +88,14 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 	if (!(u = (utf*) class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 		return false;
 
-	f->name = u;
+	f->name = u.c_ptr();
 
 	/* Get descriptor. */
 
 	if (!(u = (utf*) class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 		return false;
 
-	f->descriptor = u;
+	f->descriptor = u.c_ptr();
 	f->parseddesc = NULL;
 
 	if (!descriptor_pool_add(descpool, u, NULL))
@@ -105,7 +105,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 	   check against them here before the call of
 	   descriptor_to_basic_type below. */
 
-	if (u->text[0] == '(') {
+	if (u[0] == '(') {
 		exceptions_throw_classformaterror(c, "Method descriptor used for field");
 		return false;
 	}
@@ -113,10 +113,10 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 #ifdef ENABLE_VERIFIER
 	if (opt_verify) {
 		/* check name */
-		if (!is_valid_name_utf(f->name) || f->name->text[0] == '<') {
+		if (!Utf8String(f->name).is_valid_name() || UTF_AT(f->name, 0) == '<') {
 			exceptions_throw_classformaterror(c,
-											  "Illegal Field name \"%s\"",
-											  f->name->text);
+			                                  "Illegal Field name \"%s\"",
+			                                  UTF_TEXT(f->name));
 			return false;
 		}
 
@@ -226,7 +226,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 		if (!(u = (utf*) class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 			return false;
 
-		if (u == utf_ConstantValue) {
+		if (u == utf8::ConstantValue) {
 			if (!suck_check_classbuffer_size(cb, 4 + 2))
 				return false;
 
@@ -300,7 +300,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 				if (!(class_java_lang_String->flags & CLASS_LINKED))
 					linker_create_string_later(reinterpret_cast<java_object_t**>(&f->value->a), u);
 				else
-					f->value->a = literalstring_new(u);
+					f->value->a = JavaString::literal(u);
 				break;
 
 			default: 
@@ -308,20 +308,28 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 			}
 		}
 #if defined(ENABLE_JAVASE)
-		else if (u == utf_Signature) {
+		else if (u == utf8::Signature) {
 			/* Signature */
 
-			if (!loader_load_attribute_signature(cb, &(f->signature)))
-				return false;
+			// TODO: change fieldinfo.signature to Utf8String
+			//       and use it directly
+
+			Utf8String signature = f->signature;
+
+			if (!loader_load_attribute_signature(cb, signature)) {
+				return NULL;
+			}
+
+			f->signature = signature.c_ptr();
 		}
 
 #if defined(ENABLE_ANNOTATIONS)
-		else if (u == utf_RuntimeVisibleAnnotations) {
+		else if (u == utf8::RuntimeVisibleAnnotations) {
 			/* RuntimeVisibleAnnotations */
 			if (!annotation_load_field_attribute_runtimevisibleannotations(cb, f))
 				return false;
 		}
-		else if (u == utf_RuntimeInvisibleAnnotations) {
+		else if (u == utf8::RuntimeInvisibleAnnotations) {
 			/* RuntimeInvisibleAnnotations */
 			if (!annotation_load_field_attribute_runtimeinvisibleannotations(cb, f))
 				return false;
@@ -351,7 +359,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 classinfo *field_get_type(fieldinfo *f)
 {
 	typedesc  *td;
-	utf       *u;
+	Utf8String u;
 	classinfo *c;
 
 	td = f->parseddesc;
@@ -554,7 +562,7 @@ void field_fieldref_println(constant_FMIref *fr)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

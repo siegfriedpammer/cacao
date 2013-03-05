@@ -1,6 +1,6 @@
 /* src/native/vm/cldc1.1/java_lang_String.cpp
 
-   Copyright (C) 2006, 2007, 2008
+   Copyright (C) 2006-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -175,7 +175,7 @@ JNIEXPORT jstring JNICALL Java_java_lang_String_intern(JNIEnv *env, jstring _thi
 	if (jls.is_null())
 		return NULL;
 
-	return (jstring) javastring_intern(jls.get_handle());
+	return (jstring) JavaString(jls.get_handle()).intern();
 }
 
 } // extern "C"
@@ -204,7 +204,7 @@ static JNINativeMethod methods[] = {
  
 void _Jv_java_lang_String_init(void)
 {
-	utf* u = utf_new_char("java/lang/String");
+	Utf8String u = Utf8String::from_utf8("java/lang/String");
  
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

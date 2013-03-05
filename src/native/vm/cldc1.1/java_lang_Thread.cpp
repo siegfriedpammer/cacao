@@ -1,6 +1,6 @@
 /* src/native/vm/cldc1.1/java_lang_Thread.cpp
 
-   Copyright (C) 2006, 2007, 2008
+   Copyright (C) 2006-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -211,8 +211,8 @@ static JNINativeMethod methods[] = {
  
 void _Jv_java_lang_Thread_init(void)
 {
-	utf* u = utf_new_char("java/lang/Thread");
- 
+	Utf8String u = Utf8String::from_utf8("java/lang/Thread");
+
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }

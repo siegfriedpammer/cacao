@@ -1,6 +1,6 @@
 /* src/vm/resolve.hpp - resolving classes/interfaces/fields/methods
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _RESOLVE_HPP
-#define _RESOLVE_HPP
+#ifndef RESOLVE_HPP_
+#define RESOLVE_HPP_ 1
 
 /* forward declarations *******************************************************/
 
@@ -44,7 +44,7 @@ typedef struct unresolved_subtype_set unresolved_subtype_set;
 #include "vm/references.h"
 
 #include "vm/jit/jit.hpp"
-#include "vm/jit/reg.h"
+#include "vm/jit/reg.hpp"
 
 #include "vm/jit/ir/instruction.hpp"
 #include "vm/jit/verify/typeinfo.hpp"
@@ -117,13 +117,11 @@ struct unresolved_method {
 /* function prototypes ********************************************************/
 
 #ifdef __cplusplus
-extern "C" {
-#endif
 
 void resolve_handle_pending_exception(bool throwError);
 
 bool resolve_class_from_name(classinfo* referer,methodinfo *refmethod,
-			  			utf *classname,
+			  			Utf8String classname,
 			  			resolve_mode_t mode,
 						bool checkaccess,
 						bool link,
@@ -152,9 +150,6 @@ bool resolve_class(unresolved_class *ref,
 			  resolve_mode_t mode,
 			  bool checkaccess,
 			  classinfo **result);
-
-classinfo * resolve_class_eager(unresolved_class *ref);
-classinfo * resolve_class_eager_no_access_check(unresolved_class *ref);
 #endif /* ENABLE_VERIFIER */
 
 bool resolve_field(unresolved_field *ref,
@@ -164,11 +159,6 @@ bool resolve_field(unresolved_field *ref,
 bool resolve_method(unresolved_method *ref,
 			  resolve_mode_t mode,
 			   methodinfo **result);
-
-classinfo * resolve_classref_eager(constant_classref *ref);
-classinfo * resolve_classref_eager_nonabstract(constant_classref *ref);
-fieldinfo * resolve_field_eager(unresolved_field *ref);
-methodinfo * resolve_method_eager(unresolved_method *ref);
 
 #ifdef ENABLE_VERIFIER
 unresolved_class * create_unresolved_class(methodinfo *refmethod,
@@ -262,11 +252,29 @@ void unresolved_method_debug_dump(unresolved_method *ref,FILE *file);
 void unresolved_subtype_set_debug_dump(unresolved_subtype_set *stset,FILE *file);
 #endif
 
+#endif /* __cplusplus */
+
+/* functions still used by C code (the JIT) */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+classinfo  *resolve_classref_eager(constant_classref *ref);
+classinfo  *resolve_classref_eager_nonabstract(constant_classref *ref);
+fieldinfo  *resolve_field_eager(unresolved_field *ref);
+methodinfo *resolve_method_eager(unresolved_method *ref);
+
+#ifdef ENABLE_VERIFIER
+classinfo *resolve_class_eager(unresolved_class *ref);
+classinfo *resolve_class_eager_no_access_check(unresolved_class *ref);
+#endif
+
 #ifdef __cplusplus
 }
 #endif
-	
-#endif /* _RESOLVE_HPP */
+
+#endif // RESOLVE_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -274,7 +282,7 @@ void unresolved_subtype_set_debug_dump(unresolved_subtype_set *stset,FILE *file)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

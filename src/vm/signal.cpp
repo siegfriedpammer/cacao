@@ -1,6 +1,6 @@
 /* src/vm/signal.c - machine independent signal functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -42,15 +42,11 @@
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
 #include "vm/method.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/signallocal.hpp"
 #include "vm/vm.hpp"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
-
+#include "vm/statistics.hpp"
 
 /* function prototypes ********************************************************/
 
@@ -324,7 +320,7 @@ void signal_thread_handler(int sig)
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	default: {
 		// For OpenJDK we dispatch all unknown signals to Java.
-		methodinfo* m = class_resolvemethod(class_sun_misc_Signal, utf_dispatch, utf_int__void);
+		methodinfo* m = class_resolvemethod(class_sun_misc_Signal, utf8::dispatch, utf8::int__void);
 		(void) vm_call_method(m, NULL, sig);
 
 		if (exceptions_get_exception()) {
@@ -351,9 +347,7 @@ void signal_thread_handler(int sig)
 bool signal_start_thread(void)
 {
 #if defined(ENABLE_THREADS)
-	utf *name;
-
-	name = utf_new_char("Signal Handler");
+	Utf8String name = Utf8String::from_utf8("Signal Handler");
 
 	if (!threads_thread_start_internal(name, signal_thread))
 		return false;

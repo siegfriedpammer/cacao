@@ -1,6 +1,6 @@
 /* src/toolbox/logging.c - contains logging functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -25,9 +25,10 @@
 
 #include "config.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cassert>
 
 #include "vm/types.h"
 
@@ -36,31 +37,40 @@
 #include "threads/thread.hpp"
 
 #include "toolbox/logging.hpp"
-#include "toolbox/util.h"
+#include "toolbox/util.hpp"
 
 #include "vm/global.h"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
-
+#include "vm/statistics.hpp"
 
 /***************************************************************************
                         LOG FILE HANDLING 
 ***************************************************************************/
 
-FILE *logfile = NULL;
-
+static FILE *LOG_FILE = NULL;
 
 void log_init(const char *fname)
 {
 	if (fname) {
 		if (fname[0]) {
-			logfile = fopen(fname, "w");
+			LOG_FILE = fopen(fname, "w");
 		}
 	}
 }
 
+static inline FILE* get_log() 
+{
+	return LOG_FILE ? LOG_FILE : stdout;
+}
+
+// TODO: remove
+FILE* log_get_logfile() 
+{
+	return get_log();
+}
+
+/***************************************************************************
+                        LOG ENTRY HEADER/FOOTER
+***************************************************************************/
 
 /* log_start *******************************************************************
 
@@ -71,34 +81,38 @@ void log_init(const char *fname)
 
 void log_start(void)
 {
-#if defined(ENABLE_THREADS)
-	ptrint tid;
+	FILE* log = get_log();
 
-	tid = threads_get_current_tid();
-#endif
+#if defined(ENABLE_THREADS)
+	ptrint tid = threads_get_current_tid();
 
-	if (logfile) {
-#if defined(ENABLE_THREADS)
 # if SIZEOF_VOID_P == 8
-		fprintf(logfile, "[0x%016lx] ", tid );
+	fprintf(log, "LOG: [0x%016lx] ", tid);
 # else
-		fprintf(logfile, "[0x%08x] ", tid);
-# endif
-#endif
-	}
-	else {
-#if defined(ENABLE_THREADS)
-# if SIZEOF_VOID_P == 8
-		fprintf(stdout, "LOG: [0x%016lx] ", tid);
-# else
-		fprintf(stdout, "LOG: [0x%08x] ", tid);
+	fprintf(log, "LOG: [0x%08x] ", tid);
 # endif
 #else
-		fputs("LOG: ", stdout);
+	fputs("LOG: ", log);
 #endif
-	}
 }
 
+/* log_finish ******************************************************************
+
+   Finishes a logtext line with trailing newline and a fflush.
+
+*******************************************************************************/
+
+void log_finish(void)
+{
+	FILE* log = get_log();
+
+	fputs("\n", log);
+	fflush(log);
+}
+
+/***************************************************************************
+                        PRINT TO CURRENT LOG ENTRY
+***************************************************************************/
 
 /* log_vprint ******************************************************************
 
@@ -108,10 +122,9 @@ void log_start(void)
 
 void log_vprint(const char *text, va_list ap)
 {
-	if (logfile)
-		os::vfprintf(logfile, text, ap);
-	else
-		os::vfprintf(stdout, text, ap);
+	FILE* log = get_log();
+
+	os::vfprintf(log, text, ap);
 }
 
 
@@ -130,6 +143,33 @@ void log_print(const char *text, ...)
 	va_end(ap);
 }
 
+/* log_classname ***************************************************************
+
+   Writes utf string to the protocol replacing '/' by '.'
+
+*******************************************************************************/
+
+void log_classname(Utf8String u)
+{
+	FILE* log = get_log();
+
+	assert(u);
+
+	Utf8String                str = u;
+	Utf8String::byte_iterator it  = str.begin();
+	Utf8String::byte_iterator end = str.end();
+
+	for (; it != end; ++it) {
+		char c = *it;
+
+		fputc(c=='/' ? '.' : c, log);
+	}
+}
+
+
+/***************************************************************************
+                        PRINT WHOLE LOG ENTRY
+***************************************************************************/
 
 /* log_println *****************************************************************
 
@@ -151,26 +191,6 @@ void log_println(const char *text, ...)
 	log_finish();
 }
 
-
-/* log_finish ******************************************************************
-
-   Finishes a logtext line with trailing newline and a fflush.
-
-*******************************************************************************/
-
-void log_finish(void)
-{
-	if (logfile) {
-		fputs("\n", logfile);
-		fflush(logfile);
-	}
-	else {
-		fputs("\n", stdout);
-		fflush(stdout);
-	}
-}
-
-
 /* log_message_utf *************************************************************
 
    Outputs log text like this:
@@ -179,21 +199,18 @@ void log_finish(void)
 
 *******************************************************************************/
 
-void log_message_utf(const char *msg, utf *u)
+void log_message_utf(const char *msg, Utf8String u)
 {
-	char *buf;
-	s4    len;
+	log_start();
 
-	len = strlen(msg) + utf_bytes(u) + strlen("0");
+	FILE* log = get_log();
 
-	buf = MNEW(char, len);
+	Utf8String str = u; // TODO: remove
 
-	strcpy(buf, msg);
-	utf_cat(buf, u);
+	fputs(msg, log);
+	fputs(str.begin(), log);
 
-	log_text(buf);
-
-	MFREE(buf, char, len);
+	log_finish();
 }
 
 
@@ -222,23 +239,16 @@ void log_message_class(const char *msg, classinfo *c)
 void log_message_class_message_class(const char *msg1, classinfo *c1,
 									 const char *msg2, classinfo *c2)
 {
-	char *buf;
-	s4    len;
+	log_start();
 
-	len =
-		strlen(msg1) + utf_bytes(c1->name) +
-		strlen(msg2) + utf_bytes(c2->name) + strlen("0");
+	FILE* log = get_log();
 
-	buf = MNEW(char, len);
+	fputs(msg1, log);
+	fputs(Utf8String(c1->name).begin(), log);
+	fputs(msg2, log);
+	fputs(Utf8String(c2->name).begin(), log);
 
-	strcpy(buf, msg1);
-	utf_cat_classname(buf, c1->name);
-	strcat(buf, msg2);
-	utf_cat_classname(buf, c2->name);
-
-	log_text(buf);
-
-	MFREE(buf, char, len);
+	log_finish();
 }
 
 
@@ -252,23 +262,17 @@ void log_message_class_message_class(const char *msg1, classinfo *c1,
 
 void log_message_method(const char *msg, methodinfo *m)
 {
-	char *buf;
-	s4    len;
+	log_start();
 
-	len = strlen(msg) + utf_bytes(m->clazz->name) + strlen(".") +
-		utf_bytes(m->name) + utf_bytes(m->descriptor) + strlen("0");
+	FILE* log = get_log();
 
-	buf = MNEW(char, len);
+	fputs(msg, log);
+	log_classname( m->clazz->name );
+	fputc('.', log);
+	fputs(Utf8String(m->name).begin(), log);
+	fputs(Utf8String(m->descriptor).begin(), log);
 
-	strcpy(buf, msg);
-	utf_cat_classname(buf, m->clazz->name);
-	strcat(buf, ".");
-	utf_cat(buf, m->name);
-	utf_cat(buf, m->descriptor);
-
-	log_text(buf);
-
-	MFREE(buf, char, len);
+	log_finish();
 }
 
 

@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/typecheck-stackbased.c - stack-based verifier
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -40,7 +40,7 @@
 
 #include "vm/jit/parse.hpp"
 #include "vm/jit/show.hpp"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 #include "vm/jit/verify/typecheck-common.hpp"
 
 #if defined(__cplusplus)
@@ -501,7 +501,7 @@ static bool typecheck_stackbased_multianewarray(verifier_state *state,
 		/* check that the reference indicates an array class of correct dimension */
 		cr = state->iptr->sx.s23.s3.c.ref;
 		i = 0;
-		p = cr->name->text;
+		p = UTF_TEXT(cr->name);
 		while (p[i] == '[')
 			i++;
 		/* { the dimension of the array class == i } */
@@ -728,7 +728,7 @@ bool typecheck_stackbased(jitdata *jd)
 
 	/* check if this method is an instance initializer method */
 
-    state.initmethod = (state.m->name == utf_init);
+    state.initmethod = (state.m->name == utf8::init);
 
 	/* allocate parameter descriptors if necessary */
 

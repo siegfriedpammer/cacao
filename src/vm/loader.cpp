@@ -35,11 +35,11 @@
 #include "mm/dumpmemory.hpp"
 #include "mm/memory.hpp"
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "threads/mutex.hpp"
 
-#include "toolbox/hashtable.h"
+#include "toolbox/hashtable.hpp"
 #include "toolbox/list.hpp"
 #include "toolbox/logging.hpp"
 
@@ -54,7 +54,7 @@
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
 #include "vm/method.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/package.hpp"
 #include "vm/primitive.hpp"
 #include "vm/resolve.hpp"
@@ -66,12 +66,10 @@
 
 #if defined(ENABLE_JAVASE)
 # include "vm/annotation.hpp"
-# include "vm/stackmap.h"
+# include "vm/stackmap.hpp"
 #endif
 
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
+# include "vm/statistics.hpp"
 
 #if defined(ENABLE_ZLIB)
 # include "vm/zip.hpp"
@@ -122,11 +120,11 @@ void loader_preinit(void)
 
 	assert(VM::get_current()->is_initializing() == true);
 
-	class_java_lang_Object     = load_class_bootstrap(utf_java_lang_Object);
+	class_java_lang_Object     = load_class_bootstrap(utf8::java_lang_Object);
 
 #if defined(ENABLE_JAVASE)
-	class_java_lang_Cloneable  = load_class_bootstrap(utf_java_lang_Cloneable);
-	class_java_io_Serializable = load_class_bootstrap(utf_java_io_Serializable);
+	class_java_lang_Cloneable  = load_class_bootstrap(utf8::java_lang_Cloneable);
+	class_java_io_Serializable = load_class_bootstrap(utf8::java_io_Serializable);
 #endif
 }
 
@@ -149,104 +147,104 @@ void loader_init(void)
 	assert(VM::get_current()->is_initializing() == true);
 
 #if defined(ENABLE_JAVASE)
-	class_java_lang_Void       = load_class_bootstrap(utf_java_lang_Void);
+	class_java_lang_Void       = load_class_bootstrap(utf8::java_lang_Void);
 #endif
 
-	class_java_lang_Boolean    = load_class_bootstrap(utf_java_lang_Boolean);
-	class_java_lang_Byte       = load_class_bootstrap(utf_java_lang_Byte);
-	class_java_lang_Character  = load_class_bootstrap(utf_java_lang_Character);
-	class_java_lang_Short      = load_class_bootstrap(utf_java_lang_Short);
-	class_java_lang_Integer    = load_class_bootstrap(utf_java_lang_Integer);
-	class_java_lang_Long       = load_class_bootstrap(utf_java_lang_Long);
-	class_java_lang_Float      = load_class_bootstrap(utf_java_lang_Float);
-	class_java_lang_Double     = load_class_bootstrap(utf_java_lang_Double);
+	class_java_lang_Boolean    = load_class_bootstrap(utf8::java_lang_Boolean);
+	class_java_lang_Byte       = load_class_bootstrap(utf8::java_lang_Byte);
+	class_java_lang_Character  = load_class_bootstrap(utf8::java_lang_Character);
+	class_java_lang_Short      = load_class_bootstrap(utf8::java_lang_Short);
+	class_java_lang_Integer    = load_class_bootstrap(utf8::java_lang_Integer);
+	class_java_lang_Long       = load_class_bootstrap(utf8::java_lang_Long);
+	class_java_lang_Float      = load_class_bootstrap(utf8::java_lang_Float);
+	class_java_lang_Double     = load_class_bootstrap(utf8::java_lang_Double);
 
 	/* Load important system classes. */
 
-	class_java_lang_Class      = load_class_bootstrap(utf_java_lang_Class);
-	class_java_lang_String     = load_class_bootstrap(utf_java_lang_String);
+	class_java_lang_Class      = load_class_bootstrap(utf8::java_lang_Class);
+	class_java_lang_String     = load_class_bootstrap(utf8::java_lang_String);
 
 #if defined(ENABLE_JAVASE)
 	class_java_lang_ClassLoader =
-		load_class_bootstrap(utf_java_lang_ClassLoader);
+		load_class_bootstrap(utf8::java_lang_ClassLoader);
 
 	class_java_lang_SecurityManager =
-		load_class_bootstrap(utf_java_lang_SecurityManager);
+		load_class_bootstrap(utf8::java_lang_SecurityManager);
 #endif
 
 	class_java_lang_System     =
-		load_class_bootstrap(utf_new_char("java/lang/System"));
+		load_class_bootstrap(Utf8String::from_utf8("java/lang/System"));
 
 	class_java_lang_Thread     =
-		load_class_bootstrap(utf_new_char("java/lang/Thread"));
+		load_class_bootstrap(Utf8String::from_utf8("java/lang/Thread"));
 
 #if defined(ENABLE_JAVASE)
 	class_java_lang_ThreadGroup =
-		load_class_bootstrap(utf_java_lang_ThreadGroup);
+		load_class_bootstrap(utf8::java_lang_ThreadGroup);
 #endif
 
-	class_java_lang_Throwable  = load_class_bootstrap(utf_java_lang_Throwable);
+	class_java_lang_Throwable  = load_class_bootstrap(utf8::java_lang_Throwable);
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	class_java_lang_VMSystem   =
-		load_class_bootstrap(utf_new_char("java/lang/VMSystem"));
+		load_class_bootstrap(Utf8String::from_utf8("java/lang/VMSystem"));
 
 	class_java_lang_VMThread   =
-		load_class_bootstrap(utf_new_char("java/lang/VMThread"));
+		load_class_bootstrap(Utf8String::from_utf8("java/lang/VMThread"));
 
 	class_java_lang_VMThrowable =
-		load_class_bootstrap(utf_new_char("java/lang/VMThrowable"));
+		load_class_bootstrap(Utf8String::from_utf8("java/lang/VMThrowable"));
 #endif
 
 	/* Important system exceptions. */
 
-	class_java_lang_Exception  = load_class_bootstrap(utf_java_lang_Exception);
+	class_java_lang_Exception  = load_class_bootstrap(utf8::java_lang_Exception);
 
 	class_java_lang_ClassNotFoundException =
-		load_class_bootstrap(utf_java_lang_ClassNotFoundException);
+		load_class_bootstrap(utf8::java_lang_ClassNotFoundException);
 
 	class_java_lang_RuntimeException =
-		load_class_bootstrap(utf_java_lang_RuntimeException);
+		load_class_bootstrap(utf8::java_lang_RuntimeException);
 
 	/* Some classes which may be used often. */
 
 #if defined(ENABLE_JAVASE)
-	class_java_lang_StackTraceElement      = load_class_bootstrap(utf_java_lang_StackTraceElement);
+	class_java_lang_StackTraceElement      = load_class_bootstrap(utf8::java_lang_StackTraceElement);
 
-	class_java_lang_reflect_Constructor    = load_class_bootstrap(utf_java_lang_reflect_Constructor);
-	class_java_lang_reflect_Field          = load_class_bootstrap(utf_java_lang_reflect_Field);
-	class_java_lang_reflect_Method         = load_class_bootstrap(utf_java_lang_reflect_Method);
+	class_java_lang_reflect_Constructor    = load_class_bootstrap(utf8::java_lang_reflect_Constructor);
+	class_java_lang_reflect_Field          = load_class_bootstrap(utf8::java_lang_reflect_Field);
+	class_java_lang_reflect_Method         = load_class_bootstrap(utf8::java_lang_reflect_Method);
 
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	class_java_lang_reflect_VMConstructor  = load_class_bootstrap(utf_java_lang_reflect_VMConstructor);
-	class_java_lang_reflect_VMField        = load_class_bootstrap(utf_java_lang_reflect_VMField);
-	class_java_lang_reflect_VMMethod       = load_class_bootstrap(utf_java_lang_reflect_VMMethod);
+	class_java_lang_reflect_VMConstructor  = load_class_bootstrap(utf8::java_lang_reflect_VMConstructor);
+	class_java_lang_reflect_VMField        = load_class_bootstrap(utf8::java_lang_reflect_VMField);
+	class_java_lang_reflect_VMMethod       = load_class_bootstrap(utf8::java_lang_reflect_VMMethod);
 # endif
 
-	class_java_security_PrivilegedAction   = load_class_bootstrap(utf_new_char("java/security/PrivilegedAction"));
+	class_java_security_PrivilegedAction   = load_class_bootstrap(Utf8String::from_utf8("java/security/PrivilegedAction"));
 
-	class_java_util_HashMap                = load_class_bootstrap(utf_new_char("java/util/HashMap"));
-	class_java_util_Vector                 = load_class_bootstrap(utf_java_util_Vector);
+	class_java_util_HashMap                = load_class_bootstrap(Utf8String::from_utf8("java/util/HashMap"));
+	class_java_util_Vector                 = load_class_bootstrap(utf8::java_util_Vector);
 
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-	class_sun_misc_Signal                     = load_class_bootstrap(utf_new_char("sun/misc/Signal"));
-	class_sun_reflect_MagicAccessorImpl       = load_class_bootstrap(utf_new_char("sun/reflect/MagicAccessorImpl"));
-	class_sun_reflect_MethodAccessorImpl      = load_class_bootstrap(utf_new_char("sun/reflect/MethodAccessorImpl"));
-	class_sun_reflect_ConstructorAccessorImpl = load_class_bootstrap(utf_new_char("sun/reflect/ConstructorAccessorImpl"));
+	class_sun_misc_Signal                     = load_class_bootstrap(Utf8String::from_utf8("sun/misc/Signal"));
+	class_sun_reflect_MagicAccessorImpl       = load_class_bootstrap(Utf8String::from_utf8("sun/reflect/MagicAccessorImpl"));
+	class_sun_reflect_MethodAccessorImpl      = load_class_bootstrap(Utf8String::from_utf8("sun/reflect/MethodAccessorImpl"));
+	class_sun_reflect_ConstructorAccessorImpl = load_class_bootstrap(Utf8String::from_utf8("sun/reflect/ConstructorAccessorImpl"));
 # endif
 
 	arrayclass_java_lang_Object =
-		load_class_bootstrap(utf_new_char("[Ljava/lang/Object;"));
+		load_class_bootstrap(Utf8String::from_utf8("[Ljava/lang/Object;"));
 
 # if defined(ENABLE_ANNOTATIONS)
 	/* needed by annotation support */
 	class_sun_reflect_ConstantPool =
-		load_class_bootstrap(utf_new_char("sun/reflect/ConstantPool"));
+		load_class_bootstrap(Utf8String::from_utf8("sun/reflect/ConstantPool"));
 
 #  if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	/* needed by GNU Classpaths annotation support */
 	class_sun_reflect_annotation_AnnotationParser =
-		load_class_bootstrap(utf_new_char("sun/reflect/annotation/AnnotationParser"));
+		load_class_bootstrap(Utf8String::from_utf8("sun/reflect/annotation/AnnotationParser"));
 #  endif
 # endif
 #endif
@@ -400,7 +398,7 @@ void loader_load_all_classes(void)
 #if defined(ENABLE_ZLIB)
 	hashtable               *ht;
 	hashtable_zipfile_entry *htzfe;
-	utf                     *u;
+	Utf8String               u;
 #endif
 
 	// Get current list of classpath entries.
@@ -424,9 +422,9 @@ void loader_load_all_classes(void)
 					/* skip all entries in META-INF and .properties,
                        .png files */
 
-					if (!strncmp(u->text, "META-INF", strlen("META-INF")) ||
-						strstr(u->text, ".properties") ||
-						strstr(u->text, ".png"))
+					if (!strncmp(u.begin(), "META-INF", strlen("META-INF")) ||
+						strstr(u.begin(), ".properties") ||
+						strstr(u.begin(), ".png"))
 						continue;
 
 					/* load class from bootstrap classloader */
@@ -751,15 +749,16 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 				return false;
 
 #ifdef ENABLE_VERIFIER
-			if (opt_verify &&
-				!is_valid_utf((char *) cb->pos, (char *) (cb->pos + length))) 
+			Utf8String u = Utf8String::from_utf8((char *) cb->pos, length);
+
+			if (opt_verify && u == NULL)
 			{
 				exceptions_throw_classformaterror(c, "Invalid UTF-8 string");
 				return false;
 			}
 #endif /* ENABLE_VERIFIER */
 			/* insert utf-string into the utf-symboltable */
-			cpinfos[idx] = utf_new((char *) cb->pos, length);
+			cpinfos[idx] = u.c_ptr();
 
 			/* skip bytes of the string (buffer size check above) */
 			suck_skip_nbytes(cb, length);
@@ -779,12 +778,12 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 	for (DumpList<forward_class>::iterator it = forward_classes.begin();
 			it != forward_classes.end(); ++it) {
 
-		utf *name = (utf*) class_getconstant(c, it->name_index, CONSTANT_Utf8);
+		Utf8String name = (utf*) class_getconstant(c, it->name_index, CONSTANT_Utf8);
 		if (!name)
 			return false;
 
 #ifdef ENABLE_VERIFIER
-		if (opt_verify && !is_valid_name_utf(name)) {
+		if (opt_verify && !Utf8String(name).is_valid_name()) {
 			exceptions_throw_classformaterror(c, "Class reference with invalid name");
 			return false;
 		}
@@ -804,7 +803,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 	for (DumpList<forward_string>::iterator it = forward_strings.begin();
 			it != forward_strings.end(); ++it) {
 
-		utf *text = (utf*) class_getconstant(c, it->string_index, CONSTANT_Utf8);
+		Utf8String text = (utf*) class_getconstant(c, it->string_index, CONSTANT_Utf8);
 
 		if (!text)
 			return false;
@@ -840,16 +839,16 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 #ifdef ENABLE_VERIFIER
 		if (opt_verify) {
 			/* check name */
-			if (!is_valid_name_utf(cn->name)) {
+			if (!Utf8String(cn->name).is_valid_name()) {
 				exceptions_throw_classformaterror(c,
-												  "Illegal Field name \"%s\"",
-												  cn->name->text);
+				                                  "Illegal Field name \"%s\"",
+				                                  cn->name.begin());
 
 				return false;
 			}
 
 			/* disallow referencing <clinit> among others */
-			if (cn->name->text[0] == '<' && cn->name != utf_init) {
+			if (cn->name[0] == '<' && cn->name != utf8::init) {
 				exceptions_throw_classformaterror(c, "Illegal reference to special method");
 				return false;
 			}
@@ -886,11 +885,11 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 
 		/* the classref is created later */
 
-		fmi->p.index = it->class_index;
-		fmi->name = nat->name;
-		fmi->descriptor = nat->descriptor;
+		fmi->p.index    = it->class_index;
+		fmi->name       = nat->name.c_ptr();
+		fmi->descriptor = nat->descriptor.c_ptr();
 
-		cptags[it->thisindex] = it->tag;
+		cptags[it->thisindex]  = it->tag;
 		cpinfos[it->thisindex] = fmi;
 	}
 
@@ -911,15 +910,18 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 *******************************************************************************/
 
 #if defined(ENABLE_JAVASE)
-bool loader_load_attribute_signature(classbuffer *cb, utf **signature)
+bool loader_load_attribute_signature(classbuffer *cb, Utf8String& signature)
 {
-	classinfo *c;
-	u4         attribute_length;
-	u2         signature_index;
-
 	/* get classinfo */
 
-	c = cb->clazz;
+	classinfo *c = cb->clazz;
+
+	/* destination must be NULL */
+
+	if (signature != NULL) {
+		exceptions_throw_classformaterror(c, "Multiple Signature attributes");
+		return false;
+	}
 
 	/* check remaining bytecode */
 
@@ -928,28 +930,20 @@ bool loader_load_attribute_signature(classbuffer *cb, utf **signature)
 
 	/* check attribute length */
 
-	attribute_length = suck_u4(cb);
+	u4 attribute_length = suck_u4(cb);
 
 	if (attribute_length != 2) {
 		exceptions_throw_classformaterror(c, "Wrong size for VALUE attribute");
 		return false;
 	}
 
-	if (*signature != NULL) {
-		exceptions_throw_classformaterror(c, "Multiple Signature attributes");
-		return false;
-	}
-
 	/* get signature */
 
-	signature_index = suck_u2(cb);
+	u2 signature_index = suck_u2(cb);
 
-	*signature = (utf*) class_getconstant(c, signature_index, CONSTANT_Utf8);
+	signature = (utf*) class_getconstant(c, signature_index, CONSTANT_Utf8);
 
-	if (*signature == NULL)
-		return false;
-
-	return true;
+	return signature != NULL;
 }
 #endif /* defined(ENABLE_JAVASE) */
 
@@ -968,7 +962,7 @@ bool loader_load_attribute_signature(classbuffer *cb, utf **signature)
 *******************************************************************************/
 
 #if defined(ENABLE_JAVASE)
-classinfo *load_class_from_sysloader(utf *name)
+classinfo *load_class_from_sysloader(Utf8String name)
 {
 	classloader_t *cl;
 	classinfo     *c;
@@ -999,7 +993,7 @@ classinfo *load_class_from_sysloader(utf *name)
 
 *******************************************************************************/
 
-classinfo *load_class_from_classloader(utf *name, classloader_t *cl)
+classinfo *load_class_from_classloader(Utf8String name, classloader_t *cl)
 {
 	java_handle_t *o;
 	classinfo     *c;
@@ -1028,16 +1022,16 @@ classinfo *load_class_from_classloader(utf *name, classloader_t *cl)
 
 	if (cl != NULL) {
 		methodinfo *lc;
-		char       *text;
+		const char *text;
 		s4          namelen;
 
-		text = name->text;
-		namelen = name->blength;
+		text    = name.begin();
+		namelen = name.size();
 
 		/* handle array classes */
 		if (text[0] == '[') {
 			classinfo *comp;
-			utf       *u;
+			Utf8String u;
 
 			switch (text[1]) {
 			case 'L':
@@ -1047,7 +1041,7 @@ classinfo *load_class_from_classloader(utf *name, classloader_t *cl)
 					return false;
 				}
 
-				u = utf_new(text + 2, namelen - 3);
+				u = Utf8String::from_utf8(text + 2, namelen - 3);
 
 				if (!(comp = load_class_from_classloader(u, cl)))
 					return false;
@@ -1069,7 +1063,7 @@ classinfo *load_class_from_classloader(utf *name, classloader_t *cl)
 			case '[':
 				/* load the component class */
 
-				u = utf_new(text + 1, namelen - 1);
+				u = Utf8String::from_utf8(text + 1, namelen - 1);
 
 				if (!(comp = load_class_from_classloader(u, cl)))
 					return false;
@@ -1104,14 +1098,14 @@ classinfo *load_class_from_classloader(utf *name, classloader_t *cl)
 		   synchronized. */
 
 		lc = class_resolveclassmethod(c,
-									  utf_loadClassInternal,
-									  utf_java_lang_String__java_lang_Class,
+									  utf8::loadClassInternal,
+									  utf8::java_lang_String__java_lang_Class,
 									  NULL,
 									  true);
 #else
 		lc = class_resolveclassmethod(c,
-									  utf_loadClass,
-									  utf_java_lang_String__java_lang_Class,
+									  utf8::loadClass,
+									  utf8::java_lang_String__java_lang_Class,
 									  NULL,
 									  true);
 #endif
@@ -1121,7 +1115,7 @@ classinfo *load_class_from_classloader(utf *name, classloader_t *cl)
 
 		/* move return value into `o' and cast it afterwards to a classinfo* */
 
-		string = javastring_new_slash_to_dot(name);
+		string = JavaString::from_utf8_slash_to_dot(name);
 
 		RT_TIMING_GET_TIME(time_prepare);
 
@@ -1202,7 +1196,7 @@ classinfo *load_class_from_classloader(utf *name, classloader_t *cl)
 
 *******************************************************************************/
 
-classinfo *load_class_bootstrap(utf *name)
+classinfo *load_class_bootstrap(Utf8String name)
 {
 	classbuffer *cb;
 	classinfo   *c;
@@ -1238,7 +1232,7 @@ classinfo *load_class_bootstrap(utf *name)
 
 	/* handle array classes */
 
-	if (name->text[0] == '[') {
+	if (name[0] == '[') {
 		c = load_newly_created_array(c, NULL);
 
 		if (c == NULL)
@@ -1351,11 +1345,9 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 {
 	classinfo          *c;
 	classinfo          *tc;
-	utf                *name;
-	utf                *supername;
-	utf               **interfacesnames;
-	utf                *u;
-	constant_classref  *cr;
+	Utf8String          name;
+	Utf8String          supername;
+	Utf8String         *interfacesnames;
 	int16_t             index;
 
 	u4 ma, mi;
@@ -1466,9 +1458,9 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	if (name == NULL)
 		return false;
 
-	if (c->name == utf_not_named_yet) {
+	if (c->name == utf8::not_named_yet) {
 		/* we finally have a name for this class */
-		c->name = name;
+		c->name = name.c_ptr();
 		class_set_packagename(c);
 	}
 	else if (name != c->name) {
@@ -1487,7 +1479,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 		/* This is only allowed for java.lang.Object. */
 
-		if (c->name != utf_java_lang_Object) {
+		if (c->name != utf8::java_lang_Object) {
 			exceptions_throw_classformaterror(c, "Bad superclass index");
 			return false;
 		}
@@ -1500,7 +1492,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 		/* java.lang.Object may not have a super class. */
 
-		if (c->name == utf_java_lang_Object) {
+		if (c->name == utf8::java_lang_Object) {
 			exceptions_throw_classformaterror(NULL, "java.lang.Object with superclass");
 			return false;
 		}
@@ -1514,7 +1506,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 		/* Interfaces must have java.lang.Object as super class. */
 
-		if ((c->flags & ACC_INTERFACE) && (supername != utf_java_lang_Object)) {
+		if ((c->flags & ACC_INTERFACE) && (supername != utf8::java_lang_Object)) {
 			exceptions_throw_classformaterror(c, "Interfaces must have java.lang.Object as superclass");
 			return false;
 		}
@@ -1534,12 +1526,12 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	/* Get the names of the super interfaces. */
 
-	interfacesnames = (utf**) DumpMemory::allocate(sizeof(utf*) * c->interfacescount);
+	interfacesnames = (Utf8String*) DumpMemory::allocate(sizeof(Utf8String) * c->interfacescount);
 
 	for (int32_t i = 0; i < c->interfacescount; i++) {
 		index = suck_u2(cb);
 
-		u = (utf *) class_getconstant(c, index, CONSTANT_Class);
+		Utf8String u = (utf *) class_getconstant(c, index, CONSTANT_Class);
 
 		if (u == NULL)
 			return false;
@@ -1608,7 +1600,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	for (int32_t i = 0; i < c->cpcount; i++) {
 		if (c->cptags[i] == CONSTANT_Class) {
-			utf *name = (utf *) c->cpinfos[i];
+			Utf8String name = (utf *) c->cpinfos[i];
 			c->cpinfos[i] = descriptor_pool_lookup_classref(descpool, name);
 		}
 	}
@@ -1616,7 +1608,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	/* Resolve the super class. */
 
 	if (supername != NULL) {
-		cr = descriptor_pool_lookup_classref(descpool, supername);
+		constant_classref *cr = descriptor_pool_lookup_classref(descpool, supername);
 
 		if (cr == NULL)
 			return false;
@@ -1652,8 +1644,8 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	/* Resolve the super interfaces. */
 
 	for (int32_t i = 0; i < c->interfacescount; i++) {
-		u  = interfacesnames[i];
-		cr = descriptor_pool_lookup_classref(descpool, u);
+		Utf8String         u  = interfacesnames[i];
+		constant_classref *cr = descriptor_pool_lookup_classref(descpool, u);
 
 		if (cr == NULL)
 			return false;
@@ -1799,7 +1791,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 		/* Determine bitshift (to get good hash values) */
 		if (!shift) {
-			len = sizeof(utf);
+			len = Utf8String::sizeof_utf;
 			while (len) {
 				len >>= 1;
 				shift++;
@@ -2000,12 +1992,14 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 	methodinfo        *clone;
 	methoddesc        *clonedesc;
 	constant_classref *classrefs;
-	char              *text;
+	const char        *text;
 	s4                 namelen;
-	utf               *u;
+	Utf8String         u;
 
-	text    = c->name->text;
-	namelen = c->name->blength;
+	Utf8String name = c->name;
+
+	text    = name.begin();
+	namelen = name.size();
 
 	/* Check array class name */
 
@@ -2020,9 +2014,7 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 	case '[':
 		/* c is an array of arrays. We have to create the component class. */
 
-		u = utf_new(text + 1, namelen - 1);
-
-		comp = load_class_from_classloader(u, loader);
+		comp = load_class_from_classloader(name.substring(1), loader);
 
 		if (comp == NULL)
 			return NULL;
@@ -2043,7 +2035,7 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 			return NULL;
 		}
 
-		u = utf_new(text + 2, namelen - 3);
+		u  = Utf8String::from_utf8(text + 2, namelen - 3);
 
 		if (!(comp = load_class_from_classloader(u, loader)))
 			return NULL;
@@ -2105,12 +2097,12 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 	classrefs = MNEW(constant_classref, 2);
 
 	CLASSREF_INIT(classrefs[0], c, c->name);
-	CLASSREF_INIT(classrefs[1], c, utf_java_lang_Object);
+	CLASSREF_INIT(classrefs[1], c, utf8::java_lang_Object.c_ptr());
 
 	/* create descriptor for clone method */
 	/* we need one paramslot which is reserved for the 'this' parameter */
 	clonedesc = NEW(methoddesc);
-	clonedesc->returntype.type = TYPE_ADR;
+	clonedesc->returntype.type     = TYPE_ADR;
 	clonedesc->returntype.classref = classrefs + 1;
 	clonedesc->returntype.arraydim = 0;
 	/* initialize params to "empty", add real params below in
@@ -2131,8 +2123,8 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 
 	clone->mutex      = new Mutex();
 	clone->flags      = ACC_PUBLIC | ACC_NATIVE;
-	clone->name       = utf_clone;
-	clone->descriptor = utf_void__java_lang_Object;
+	clone->name       = utf8::clone.c_ptr();
+	clone->descriptor = utf8::void__java_lang_Object.c_ptr();
 	clone->parseddesc = clonedesc;
 	clone->clazz      = c;
 

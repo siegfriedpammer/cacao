@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/typecheck-builtins.inc - type checking for ICMD_BUILTIN
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -136,7 +136,7 @@
 
 #ifdef TYPECHECK_DEBUG
 			/* generic builtins may only take primitive types and java.lang.Object references */
-			if (av->type == TYPE_ADR && md->paramtypes[i].classref->name != utf_java_lang_Object) {
+			if (av->type == TYPE_ADR && md->paramtypes[i].classref->name != utf8::java_lang_Object) {
 				exceptions_throw_internalerror("generic builtin method with non-generic reference parameter");
 				return false;
 			}

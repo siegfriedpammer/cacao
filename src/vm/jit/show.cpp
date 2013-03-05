@@ -1,6 +1,6 @@
 /* src/vm/jit/show.cpp - showing the intermediate representation
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -36,7 +36,7 @@
 
 #include "vm/global.h"
 #include "vm/jit/builtin.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
@@ -44,7 +44,7 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/show.hpp"
 #include "vm/jit/disass.h"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 #include "vm/jit/parse.hpp"
 
 #if defined(ENABLE_DEBUG_FILTER)
@@ -53,6 +53,7 @@
 # include "threads/thread.hpp"
 #endif
 
+#include "toolbox/buffer.hpp"
 
 /* global variables ***********************************************************/
 
@@ -706,7 +707,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
         if (stage >= SHOW_PARSE) {                                   \
             putchar('"');                                            \
             utf_display_printable_ascii(                             \
-               javastring_toutf((java_handle_t *)(val), false));     \
+               JavaString((java_handle_t*) (val)).to_utf8());        \
             printf("\" ");                                           \
         }                                                            \
         else {                                                       \
@@ -1552,23 +1553,14 @@ void show_filters_apply(methodinfo *m) {
 	int i;
 	int res;
 	char *method_name;
-	s4 len;
 
 	/* compose full name of method */
+	Buffer<> buf;
 
-	len = 
-		utf_bytes(m->clazz->name) +
-		1 +
-		utf_bytes(m->name) +
-		utf_bytes(m->descriptor) +
-		1;
-
-	method_name = MNEW(char, len);
-
-	utf_cat_classname(method_name, m->clazz->name);
-	strcat(method_name, ".");
-	utf_cat(method_name, m->name);
-	utf_cat(method_name, m->descriptor);
+	method_name = buf.write_slash_to_dot(m->clazz->name)
+	                 .write('.')
+	                 .write(m->name)
+	                 .write(m->descriptor);
 
 	/* reset all flags */
 
@@ -1587,9 +1579,6 @@ void show_filters_apply(methodinfo *m) {
 			m->filtermatches |= show_filters[i].flag;
 		}
 	}
-
-	// Release memory.
-	MFREE(method_name, char, len);
 }
 
 #define STATE_IS_INITIAL() ((FILTERVERBOSECALLCTR[0] == 0) && (FILTERVERBOSECALLCTR[1] == 0))

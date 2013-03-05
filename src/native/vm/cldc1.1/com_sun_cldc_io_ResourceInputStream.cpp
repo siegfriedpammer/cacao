@@ -1,6 +1,6 @@
 /* src/native/vm/cldc1.1/com_sun_cldc_io_ResourceInputStream.cpp
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 2007-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -49,7 +49,7 @@
 #include "vm/zip.hpp"
 
 
-static java_handle_t* zip_read_resource(list_classpath_entry *lce, utf *name)
+static java_handle_t* zip_read_resource(list_classpath_entry *lce, Utf8String name)
 {
 	hashtable_zipfile_entry *htzfe;
 	lfh                      lfh;
@@ -125,7 +125,7 @@ static java_handle_t* zip_read_resource(list_classpath_entry *lce, utf *name)
 	}
 		
 	// Create a file descriptor object.
-	ci = load_class_bootstrap(utf_new_char("com/sun/cldchi/jvm/FileDescriptor"));
+	ci = load_class_bootstrap(Utf8String::from_utf8("com/sun/cldchi/jvm/FileDescriptor"));
 	java_handle_t* h = native_new_and_init(ci);
 
 	if (h == NULL)
@@ -159,7 +159,7 @@ static java_handle_t* file_read_resource(char *path)
 		filep = (u1*) mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0);
 		
 		/* Create a file descriptor object */
-		ci = load_class_bootstrap(utf_new_char("com/sun/cldchi/jvm/FileDescriptor"));
+		ci = load_class_bootstrap(Utf8String::from_utf8("com/sun/cldchi/jvm/FileDescriptor"));
 		java_handle_t* h = native_new_and_init(ci);
 
 		if (h == NULL)
@@ -188,19 +188,18 @@ JNIEXPORT jobject JNICALL Java_com_sun_cldc_io_ResourceInputStream_open(JNIEnv *
 	char *filename;
 	s4 filenamelen;
 	char *path;
-	utf *uname;
+	Utf8String uname;
 	java_handle_t* descriptor;
 
 	// Get current list of classpath entries.
 	SuckClasspath& suckclasspath = VM::get_current()->get_suckclasspath();
 
 	/* get the classname as char string (do it here for the warning at
-       the end of the function) */
+	   the end of the function) */
 
-	uname = javastring_toutf((java_handle_t *)name, false);
-	filenamelen = utf_bytes(uname) + strlen("0");
-	filename = MNEW(char, filenamelen);
-	utf_copy(filename, uname);
+	Buffer<> filename, path;
+
+	filename.write(name);
 
 	/* walk through all classpath entries */
 
@@ -218,31 +217,26 @@ JNIEXPORT jobject JNICALL Java_com_sun_cldc_io_ResourceInputStream_open(JNIEnv *
 
 			/* leave the monitor */
 			lce->mutex->unlock();
-			
+
 			if (descriptor != NULL) { /* file exists */
 				break;
 			}
 
 		} else {
 #endif
-			
-			path = MNEW(char, lce->pathlen + filenamelen);
-			strcpy(path, lce->path);
-			strcat(path, filename);
+			path.write(lce->path).write(filename);
 
 			descriptor = file_read_resource(path);
-			
-			MFREE(path, char, lce->pathlen + filenamelen);
+
+			path.clear();
 
 			if (descriptor != NULL) { /* file exists */
 				break;
 			}
 #if defined(ENABLE_ZLIB)
 		}
-#endif	
+#endif
 	}
-
-	MFREE(filename, char, filenamelen);
 
 	return (jobject) descriptor;
 }
@@ -345,7 +339,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_cldc_io_ResourceInputStream_clone(JNIEnv 
 {
 	com_sun_cldchi_jvm_FileDescriptor fd(jobj);
 
-	classinfo* c = load_class_bootstrap(utf_new_char("com/sun/cldchi/jvm/FileDescriptor"));
+	classinfo* c = load_class_bootstrap(Utf8String::from_utf8("com/sun/cldchi/jvm/FileDescriptor"));
 	java_handle_t* h = native_new_and_init(c);
 
 	if (h == NULL)
@@ -378,8 +372,8 @@ static JNINativeMethod methods[] = {
  
 void _Jv_com_sun_cldc_io_ResourceInputStream_init(void)
 {
-	utf* u = utf_new_char("com/sun/cldc/io/ResourceInputStream");
- 
+	Utf8String u = Utf8String::from_utf8("com/sun/cldc/io/ResourceInputStream");
+
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }

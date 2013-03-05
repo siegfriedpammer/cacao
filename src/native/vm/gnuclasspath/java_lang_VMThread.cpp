@@ -1,6 +1,6 @@
 /* src/native/vm/gnuclasspath/java_lang_VMThread.cpp
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -29,7 +29,7 @@
 #include <stdint.h>
 
 #include "native/jni.hpp"
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
@@ -42,7 +42,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/string.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 // Native functions are exported as C functions.
@@ -263,51 +263,30 @@ JNIEXPORT jboolean JNICALL Java_java_lang_VMThread_holdsLock(JNIEnv *env, jclass
 JNIEXPORT jstring JNICALL Java_java_lang_VMThread_getState(JNIEnv *env, jobject _this)
 {
 #if defined(ENABLE_THREADS)
-	java_handle_t *h;
-	int            state;
-	utf           *u;
-	java_handle_t *o;
-
-	h = (java_handle_t *) _this;
-
-	state = thread_handle_get_state(h);
+	java_handle_t *h     = (java_handle_t *) _this;
+	int            state = thread_handle_get_state(h);
 	
 	switch (state) {
 	case THREAD_STATE_NEW:
-		u = utf_new_char("NEW");
-		break;
+		return (jstring) JavaString::from_utf8("NEW");
 	case THREAD_STATE_RUNNABLE:
-		u = utf_new_char("RUNNABLE");
-		break;
+		return (jstring) JavaString::from_utf8("RUNNABLE");
 	case THREAD_STATE_BLOCKED:
-		u = utf_new_char("BLOCKED");
-		break;
+		return (jstring) JavaString::from_utf8("BLOCKED");
 	case THREAD_STATE_WAITING:
-		u = utf_new_char("WAITING");
-		break;
+		return (jstring) JavaString::from_utf8("WAITING");
 	case THREAD_STATE_TIMED_WAITING:
-		u = utf_new_char("TIMED_WAITING");
-		break;
+		return (jstring) JavaString::from_utf8("TIMED_WAITING");
 	case THREAD_STATE_PARKED:
-		u = utf_new_char("PARKED");
-		break;
+		return (jstring) JavaString::from_utf8("PARKED");
 	case THREAD_STATE_TIMED_PARKED:
-		u = utf_new_char("TIMED_PARKED");
-		break;
+		return (jstring) JavaString::from_utf8("TIMED_PARKED");
 	case THREAD_STATE_TERMINATED:
-		u = utf_new_char("TERMINATED");
-		break;
+		return (jstring) JavaString::from_utf8("TERMINATED");
 	default:
 		vm_abort("Java_java_lang_VMThread_getState: unknown thread state %d", state);
-
-		/* Keep compiler happy. */
-
-		u = NULL;
+		return NULL; /* Keep compiler happy. */
 	}
-
-	o = javastring_new(u);
-
-	return (jstring) o;
 #else
 	return NULL;
 #endif
@@ -344,7 +323,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_java_lang_VMThread_init(void)
 {
-	utf* u = utf_new_char("java/lang/VMThread");
+	Utf8String u = Utf8String::from_utf8("java/lang/VMThread");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

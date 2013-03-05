@@ -1,6 +1,6 @@
 /* src/vm/jit/codegen-common.hpp - architecture independent code generator stuff
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _CODEGEN_COMMON_HPP
-#define _CODEGEN_COMMON_HPP
+#ifndef CODEGEN_COMMON_HPP_
+#define CODEGEN_COMMON_HPP_ 1
 
 /* forward typedefs ***********************************************************/
 
@@ -47,9 +47,9 @@ struct patchref_t;
 #include "vm/method.hpp"
 #include "vm/references.h"
 
-#include "vm/jit/dseg.h"
+#include "vm/jit/dseg.hpp"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/reg.h"
+#include "vm/jit/reg.hpp"
 #include "vm/jit/code.hpp"
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/replace.hpp"
@@ -280,7 +280,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 }
 #endif
 
-#endif // _CODEGEN_COMMON_HPP
+#endif // CODEGEN_COMMON_HPP_
 
 
 /*

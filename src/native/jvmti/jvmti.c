@@ -1,7 +1,7 @@
 /* src/native/jvmti/jvmti.c - implementation of the Java Virtual Machine 
                               Tool Interface functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -49,7 +49,7 @@
 #include "vm/classcache.hpp"
 #include "mm/gc.hpp"
 #include "toolbox/logging.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/string.hpp"
 #include "mm/memory.hpp"
 #include "threads/mutex.h"
@@ -689,8 +689,8 @@ GetThreadInfo (jvmtiEnv * env, jthread t, jvmtiThreadInfo * info_ptr)
 	info_ptr->thread_group=(jthreadGroup)th->group;
 	info_ptr->context_class_loader=(jobject)th->contextClassLoader;
 
-	name = javastring_toutf(th->name,false);
-	info_ptr->name=(char*)heap_allocate(sizeof(char)*(utf_bytes(name)+1),true,NULL);
+	name = JavaString(th->name).to_utf8();
+	info_ptr->name=(char*)heap_allocate(sizeof(char)*(UTF_SIZE(name)+1),true,NULL);
 	utf_sprint_convert_to_latin1(info_ptr->name, name);
 
     return JVMTI_ERROR_NONE;
@@ -991,7 +991,7 @@ GetThreadGroupInfo (jvmtiEnv * env, jthreadGroup group,
 									  (jclass)grp->header.vftbl->class,
 									  (java_lang_Cloneable*) &grp->parent);
 
-	name = javastring_tochar((java_objectheader*)grp->name);
+	name = JavaString((java_objectheader*)grp->name).to_chars();
 	size = strlen(name);
 	info_ptr->name=heap_allocate(size*sizeof(char),true,NULL);
 	strncpy(info_ptr->name,name,size);
@@ -1453,7 +1453,7 @@ CreateRawMonitor (jvmtiEnv * env, const char *name,
 		return JVMTI_ERROR_NULL_POINTER;
 
 #if defined(ENABLE_THREADS)
-	monitor->name=javastring_new_from_ascii(name);
+	monitor->name = JavaString::from_utf8(name);
 #else
 	log_text ("CreateRawMonitor not supported");
 #endif
@@ -1560,7 +1560,7 @@ RawMonitorWait (jvmtiEnv * env, jrawMonitorID monitor, jlong millis)
 		return JVMTI_ERROR_NOT_MONITOR_OWNER;
 
 	lock_wait_for_object(&monitor->name->header, millis,0);
-	if (builtin_instanceof((java_objectheader*)exceptionptr, load_class_bootstrap(utf_new_char("java/lang/InterruptedException"))))
+	if (builtin_instanceof((java_objectheader*)exceptionptr, load_class_bootstrap(Utf8String::from_utf8("java/lang/InterruptedException"))))
 		return JVMTI_ERROR_INTERRUPT;
 
 #else
@@ -1799,7 +1799,7 @@ GetClassSignature (jvmtiEnv * env, jclass klass, char **signature_ptr,
 	if (signature_ptr != NULL) {
 		*signature_ptr = (char*)
 			heap_allocate(sizeof(char) * 
-						  utf_bytes(((classinfo*)klass)->name)+1,true,NULL);
+						  UTF_SIZE(((classinfo*)klass)->name)+1,true,NULL);
 		
 		utf_sprint_convert_to_latin1(*signature_ptr,((classinfo*)klass)->name);
 	}
@@ -1874,11 +1874,11 @@ GetSourceFileName (jvmtiEnv * env, jclass klass, char **source_name_ptr)
     if ((klass == NULL)||(source_name_ptr == NULL)) 
         return JVMTI_ERROR_NULL_POINTER;
     
-    size = utf_bytes(((classinfo*)klass)->sourcefile)+1;
+    size = UTF_SIZE(((classinfo*)klass)->sourcefile)+1;
 
     *source_name_ptr = (char*) heap_allocate(sizeof(char)* size,true,NULL);
     
-    memcpy(*source_name_ptr,((classinfo*)klass)->sourcefile->text, size);
+    memcpy(*source_name_ptr,(UTF_TEXT((classinfo*)klass)->sourcefile), size);
 	(*source_name_ptr)[size]='\0';
 
     return JVMTI_ERROR_NONE;
@@ -2159,13 +2159,13 @@ GetFieldName (jvmtiEnv * env, jclass klass, jfieldID field,
     if (field == NULL) return JVMTI_ERROR_INVALID_FIELDID;
     
     if (name_ptr != NULL) {
-		size = utf_bytes(((fieldinfo*)field)->name)+1;
+		size = UTF_SIZE(((fieldinfo*)field)->name)+1;
 		*name_ptr = (char*) heap_allocate(sizeof(char)* size,true,NULL);
 		utf_sprint_convert_to_latin1(*name_ptr, ((fieldinfo*)field)->name);
 	}
 
 	if (signature_ptr != NULL) {
-		size = utf_bytes(((fieldinfo*)field)->descriptor)+1;
+		size = UTF_SIZE(((fieldinfo*)field)->descriptor)+1;
 		*signature_ptr = (char*) heap_allocate(sizeof(char)* size,true,NULL); 
 		utf_sprint_convert_to_latin1(*signature_ptr, 
 									 ((fieldinfo*)field)->descriptor);
@@ -2286,13 +2286,13 @@ GetMethodName (jvmtiEnv * env, jmethodID method, char **name_ptr,
 
 	if (name_ptr != NULL) {
 		*name_ptr = (char*)
-			heap_allocate(sizeof(char) * (utf_bytes(m->name)+1),true,NULL);
+			heap_allocate(sizeof(char) * (UTF_SIZE(m->name)+1),true,NULL);
 		utf_sprint_convert_to_latin1(*name_ptr, m->name);
 	}
 	
 	if (signature_ptr != NULL) {
 		*signature_ptr = (char*)
-			heap_allocate(sizeof(char)*(utf_bytes(m->descriptor)+1),true,NULL);
+			heap_allocate(sizeof(char)*(UTF_SIZE(m->descriptor)+1),true,NULL);
 		utf_sprint_convert_to_latin1(*signature_ptr, m->descriptor);
 	}
 
@@ -3590,14 +3590,13 @@ GetSystemProperties (jvmtiEnv * env, jint * count_ptr, char ***property_ptr)
     if ((count_ptr == NULL) || (property_ptr == NULL)) 
         return JVMTI_ERROR_NULL_POINTER;
 
-    sysclass = load_class_from_sysloader(
-        utf_new_char_classname ("java/lang/System"));
+    sysclass = load_class_from_sysloader(Utf8String::from_utf8("java/lang/System"));
 
     if (!sysclass) throw_main_exception_exit();
 
-    mid = (jmethodID)class_resolvemethod(sysclass, 
-                              utf_new_char("getProperties"),
-                              utf_new_char("()Ljava/util/Properties;"));
+    mid = (jmethodID)class_resolvemethod(sysclass,
+                                         Utf8String::from_utf8("getProperties"),
+                                         Utf8String::from_utf8("()Ljava/util/Properties;"));
     if (!mid) throw_main_exception_exit();
 
 
@@ -3607,8 +3606,8 @@ GetSystemProperties (jvmtiEnv * env, jint * count_ptr, char ***property_ptr)
     propclass = sysprop->vftbl->class;
 
     mid = (jmethodID)class_resolvemethod(propclass, 
-                              utf_new_char("size"),
-                              utf_new_char("()I"));
+                                         Utf8String::from_utf8("size"),
+                                         Utf8String::from_utf8("()I"));
     if (!mid) throw_main_exception_exit();
 
     *count_ptr = 
@@ -3616,27 +3615,27 @@ GetSystemProperties (jvmtiEnv * env, jint * count_ptr, char ***property_ptr)
     *property_ptr = heap_allocate(sizeof(char*) * (*count_ptr) ,true,NULL);
 
     mid = (jmethodID)class_resolvemethod(propclass, 
-                              utf_new_char("keys"),
-                              utf_new_char("()Ljava/util/Enumeration;"));
+                                         Utf8String::from_utf8("keys"),
+                                         Utf8String::from_utf8("()Ljava/util/Enumeration;"));
     if (!mid) throw_main_exception_exit();
 
     keys = _Jv_JNINativeInterface.CallObjectMethod(NULL, sysprop, mid);
     enumclass = keys->vftbl->class;
         
     moremid = (jmethodID)class_resolvemethod(enumclass, 
-                                  utf_new_char("hasMoreElements"),
-                                  utf_new_char("()Z"));
+                                             Utf8String::from_utf8("hasMoreElements"),
+                                             Utf8String::from_utf8("()Z"));
     if (!moremid) throw_main_exception_exit();
 
-    mid = (jmethodID)class_resolvemethod(propclass, 
-                              utf_new_char("nextElement"),
-                              utf_new_char("()Ljava/lang/Object;"));
+    mid = (jmethodID)class_resolvemethod(propclass,
+                                         Utf8String::from_utf8("nextElement"),
+                                         Utf8String::from_utf8("()Ljava/lang/Object;"));
     if (!mid) throw_main_exception_exit();
 
     i = 0;
     while (_Jv_JNINativeInterface.CallBooleanMethod(NULL,keys,(jmethodID)moremid)) {
         obj = _Jv_JNINativeInterface.CallObjectMethod(NULL, keys, mid);
-        ch = javastring_tochar(obj);
+        ch = JavaString(obj).to_chars();
         *property_ptr[i] = heap_allocate(sizeof(char*) * strlen (ch),true,NULL);
         memcpy(*property_ptr[i], ch, strlen (ch));
         MFREE(ch,char,strlen(ch)+1);
@@ -3669,12 +3668,12 @@ GetSystemProperty (jvmtiEnv * env, const char *property, char **value_ptr)
     if ((value_ptr == NULL) || (property == NULL)) 
         return JVMTI_ERROR_NULL_POINTER;
 
-    sysclass = load_class_from_sysloader(utf_new_char("java/lang/System"));
+    sysclass = load_class_from_sysloader(Utf8String::from_utf8("java/lang/System"));
     if (!sysclass) throw_main_exception_exit();
 
     mid = (jmethodID)class_resolvemethod(sysclass, 
-                              utf_new_char("getProperties"),
-                              utf_new_char("()Ljava/util/Properties;"));
+                                         Utf8String::from_utf8("getProperties"),
+                                         Utf8String::from_utf8("()Ljava/util/Properties;"));
     if (!mid) throw_main_exception_exit();
 
     sysprop = _Jv_JNINativeInterface.CallStaticObjectMethod(NULL, (jclass)sysclass, mid);
@@ -3682,15 +3681,15 @@ GetSystemProperty (jvmtiEnv * env, const char *property, char **value_ptr)
     propclass = sysprop->vftbl->class;
 
     mid = (jmethodID)class_resolvemethod(propclass, 
-                              utf_new_char("getProperty"),
-                              utf_new_char("(Ljava/lang/String;)Ljava/lang/String;"));
+                                         Utf8String::from_utf8("getProperty"),
+                                         Utf8String::from_utf8("(Ljava/lang/String;)Ljava/lang/String;"));
     if (!mid) throw_main_exception_exit();
 
     obj = (java_objectheader*)_Jv_JNINativeInterface.CallObjectMethod(
-        NULL, sysprop, mid, javastring_new_from_ascii(property));
+        NULL, sysprop, mid, JavaString::from_utf8(property));
     if (!obj) return JVMTI_ERROR_NOT_AVAILABLE;
 
-    ch = javastring_tochar(obj);
+    ch = JavaString(obj).to_chars();
     *value_ptr = heap_allocate(sizeof(char*) * strlen (ch),true,NULL);
     memcpy(*value_ptr, ch, strlen (ch));
     MFREE(ch,char,strlen(ch)+1);       
@@ -3719,12 +3718,12 @@ SetSystemProperty (jvmtiEnv * env, const char *property, const char *value)
     if (property == NULL) return JVMTI_ERROR_NULL_POINTER;
     if (value == NULL) return JVMTI_ERROR_NOT_AVAILABLE;
 
-    sysclass = load_class_from_sysloader(utf_new_char("java/lang/System"));
+    sysclass = load_class_from_sysloader(Utf8String::from_utf8("java/lang/System"));
     if (!sysclass) throw_main_exception_exit();
 
     mid = (jmethodID)class_resolvemethod(sysclass, 
-                              utf_new_char("getProperties"),
-                              utf_new_char("()Ljava/util/Properties;"));
+                                         Utf8String::from_utf8("getProperties"),
+                                         Utf8String::from_utf8("()Ljava/util/Properties;"));
     if (!mid) throw_main_exception_exit();
 
     sysprop = _Jv_JNINativeInterface.CallStaticObjectMethod(NULL, (jclass)sysclass, mid);
@@ -3732,12 +3731,15 @@ SetSystemProperty (jvmtiEnv * env, const char *property, const char *value)
     propclass = sysprop->vftbl->class;
 
     mid = (jmethodID)class_resolvemethod(propclass, 
-                              utf_new_char("setProperty"),
-                              utf_new_char("(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;"));
+                                         Utf8String::from_utf8("setProperty"),
+                                         Utf8String::from_utf8("(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;"));
     if (!mid) throw_main_exception_exit();
 
-    _Jv_JNINativeInterface.CallObjectMethod(
-        NULL, sysprop, mid, javastring_new_from_ascii(property),javastring_new_from_ascii(value));
+    _Jv_JNINativeInterface.CallObjectMethod(NULL, 
+                                            sysprop, 
+                                            mid, 
+                                            JavaString::from_utf8(property), 
+                                            JavaString::from_utf8(value));
     
     return JVMTI_ERROR_NONE;
 }

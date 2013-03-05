@@ -1,6 +1,6 @@
 /* src/vm/array.hpp - Java array functions
 
-   Copyright (C) 2007, 2009, 2010
+   Copyright (C) 2007-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008 Theobroma Systems Ltd.
 
@@ -24,8 +24,8 @@
 */
 
 
-#ifndef _VM_ARRAY_HPP
-#define _VM_ARRAY_HPP
+#ifndef ARRAY_HPP_
+#define ARRAY_HPP_ 1
 
 #include "config.h"
 
@@ -33,7 +33,7 @@
 
 #include "mm/gc.hpp" // XXX Remove me!
 
-#include "native/llni.h" // XXX Remove me!
+#include "native/llni.hpp" // XXX Remove me!
 
 #include "vm/class.hpp"
 #include "vm/exceptions.hpp"
@@ -381,7 +381,7 @@ public:
 # warning No legacy C functions for array access classes.
 #endif
 
-#endif // _VM_ARRAY_HPP
+#endif // ARRAY_HPP_
 
 
 /*

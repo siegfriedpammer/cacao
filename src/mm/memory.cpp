@@ -1,6 +1,6 @@
 /* src/mm/memory.cpp - memory management
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -51,13 +51,10 @@
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
-
+#include "vm/statistics.hpp"
 
 /* memory_mprotect *************************************************************
 
@@ -243,9 +240,7 @@ static void memory_thread(void)
 #if defined(ENABLE_THREADS) && !defined(NDEBUG)
 bool memory_start_thread(void)
 {
-	utf *name;
-
-	name = utf_new_char("Memory Profiler");
+	Utf8String name = Utf8String::from_utf8("Memory Profiler");
 
 	/* start the memory profiling thread */
 

@@ -1,6 +1,6 @@
 /* src/mm/dumpmemory.hpp - dump memory management
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008 Theobroma Systems Ltd.
 
@@ -24,8 +24,8 @@
 */
 
 
-#ifndef _DUMPMEMORY_HPP
-#define _DUMPMEMORY_HPP
+#ifndef DUMPMEMORY_HPP_
+#define DUMPMEMORY_HPP_ 1
 
 #include "config.h"
 
@@ -178,6 +178,11 @@ public:
 		return static_cast<pointer>(DumpMemory::allocate(n * sizeof(T)));
 	}
 
+	// ** Reallocate block of storage (non-standard!)
+	inline pointer reallocate(pointer p, size_type old_sz, size_type new_sz) {
+		return static_cast<pointer>(DumpMemory::reallocate(p, old_sz * sizeof(T), new_sz * sizeof(T)));
+	}
+
 	// Initialize elements of allocated storage p with value value.
 	void construct(pointer p, const T& value) {
 // 		printf("construct: p=%p, value=%p\n", (void*) p, (void*) value);
@@ -224,12 +229,7 @@ public:
 
 #include "threads/thread.hpp"
 
-#include "vm/options.h"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
-
+#include "vm/statistics.hpp"
 
 // Inline functions.
 
@@ -373,6 +373,10 @@ void* DumpMemoryBlock::allocate(size_t size)
 	return p;
 }
 
+#define DNEW(type)                    ((type*) DumpMemory::allocate(sizeof(type)))
+#define DMNEW(type,num)               ((type*) DumpMemory::allocate(sizeof(type) * (num)))
+#define DMREALLOC(ptr,type,num1,num2) ((type*) DumpMemory::reallocate((ptr), sizeof(type) * (num1), sizeof(type) * (num2)))
+
 #else
 
 // Legacy C interface.
@@ -386,7 +390,7 @@ void* DumpMemory_reallocate(void* src, size_t len1, size_t len2);
 
 #endif
 
-#endif // _DUMPMEMORY_HPP
+#endif // DUMPMEMORY_HPP_
 
 
 /*

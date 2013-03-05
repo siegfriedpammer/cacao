@@ -1,6 +1,6 @@
 /* src/vm/finalizer.cpp - finalizer linked list and thread
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -39,7 +39,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
@@ -133,9 +133,7 @@ static void finalizer_thread(void)
 #if defined(ENABLE_THREADS)
 bool finalizer_start_thread(void)
 {
-	utf *name;
-
-	name = utf_new_char("Finalizer");
+	Utf8String name = Utf8String::from_utf8("Finalizer");
 
 	if (!threads_thread_start_internal(name, finalizer_thread))
 		return false;

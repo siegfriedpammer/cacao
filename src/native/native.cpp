@@ -1,6 +1,6 @@
 /* src/native/native.cpp - native library support
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -42,6 +42,7 @@
 #include "threads/mutex.hpp"
 
 #include "toolbox/logging.hpp"
+#include "toolbox/buffer.hpp"
 
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
@@ -49,7 +50,7 @@
 #include "vm/globals.hpp"
 #include "vm/hook.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/resolve.hpp"
 #include "vm/string.hpp"
@@ -65,61 +66,16 @@
 
 *******************************************************************************/
 
-static utf *native_make_overloaded_function(utf *name, utf *descriptor)
+static Utf8String native_make_overloaded_function(Utf8String name, Utf8String descriptor)
 {
-	char *newname;
-	s4    namelen;
-	char *utf_ptr;
-	u2    c;
-	s4    i;
-	utf  *u;
+	Buffer<> newname;
+	u2       c;
 
-	utf_ptr = descriptor->text;
-	namelen = strlen(name->text) + strlen("__") + strlen("0");
+	newname.write(name).write("__");
 
-	/* calculate additional length */
+	Utf8String::utf16_iterator it = descriptor.utf16_begin();
 
-	while ((c = utf_nextu2(&utf_ptr)) != ')') {
-		switch (c) {
-		case 'Z':
-		case 'B':
-		case 'C':
-		case 'S':
-		case 'I':
-		case 'J':
-		case 'F':
-		case 'D':
-			namelen++;
-			break;
-		case '[':
-			namelen += 2;
-			break;
-		case 'L':
-			namelen++;
-			while (utf_nextu2(&utf_ptr) != ';')
-				namelen++;
-			namelen += 2;
-			break;
-		case '(':
-			break;
-		default:
-			assert(0);
-		}
-	}
-
-	/* reallocate memory */
-
-	i = strlen(name->text);
-
-	newname = MNEW(char, namelen);
-	MCOPY(newname, name->text, char, i);
-
-	utf_ptr = descriptor->text;
-
-	newname[i++] = '_';
-	newname[i++] = '_';
-
-	while ((c = utf_nextu2(&utf_ptr)) != ')') {
+	for (; (c = *it) != ')'; ++it) {
 		switch (c) {
 		case 'Z':
 		case 'B':
@@ -129,23 +85,23 @@ static utf *native_make_overloaded_function(utf *name, utf *descriptor)
 		case 'I':
 		case 'F':
 		case 'D':
-			newname[i++] = c;
+			newname.write(c);
 			break;
 		case '[':
-			newname[i++] = '_';
-			newname[i++] = '3';
+			newname.write("_3");
 			break;
 		case 'L':
-			newname[i++] = 'L';
-			while ((c = utf_nextu2(&utf_ptr)) != ';')
+			newname.write('L');
+			while ((++it, c = *it) != ';') {
 				if (((c >= 'a') && (c <= 'z')) ||
 					((c >= 'A') && (c <= 'Z')) ||
-					((c >= '0') && (c <= '9')))
-					newname[i++] = c;
-				else
-					newname[i++] = '_';
-			newname[i++] = '_';
-			newname[i++] = '2';
+					((c >= '0') && (c <= '9'))) {
+					newname.write(c);
+				} else {
+					newname.write('_');
+				}
+			}
+			newname.write("_2");
 			break;
 		case '(':
 			break;
@@ -153,20 +109,10 @@ static utf *native_make_overloaded_function(utf *name, utf *descriptor)
 			assert(0);
 		}
 	}
-
-	/* close string */
-
-	newname[i] = '\0';
 
 	/* make a utf-string */
 
-	u = utf_new_char(newname);
-
-	/* release memory */
-
-	MFREE(newname, char, namelen);
-
-	return u;
+	return newname.build();
 }
 
 
@@ -177,60 +123,50 @@ static utf *native_make_overloaded_function(utf *name, utf *descriptor)
 
 *******************************************************************************/
 
-static s4 native_insert_char(char *name, u4 pos, u2 c)
+static inline void native_insert_char(Buffer<>& name, u2 c)
 {
-	s4 val;
-	s4 i;
+	char tmp[4];
 
 	switch (c) {
 	case '/':
 	case '.':
 		/* replace '/' or '.' with '_' */
-		name[pos] = '_';
+		name.write('_');
 		break;
 
 	case '_':
 		/* escape sequence for '_' is '_1' */
-		name[pos]   = '_';
-		name[++pos] = '1';
+		name.write("_1");
 		break;
 
 	case ';':
 		/* escape sequence for ';' is '_2' */
-		name[pos]   = '_';
-		name[++pos] = '2';
+		name.write("_2");
 		break;
 
 	case '[':
-		/* escape sequence for '[' is '_1' */
-		name[pos]   = '_';
-		name[++pos] = '3';
+		/* escape sequence for '[' is '_3' */
+		name.write("_3");
 		break;
 
 	default:
 		if (isalnum(c))
-			name[pos] = c;
+			name.write(c);
 		else {
 			/* unicode character */
-			name[pos]   = '_';
-			name[++pos] = '0';
+			name.write("_0");
 
-			for (i = 0; i < 4; ++i) {
-				val = c & 0x0f;
-				name[pos + 4 - i] = (val > 10) ? ('a' + val - 10) : ('0' + val);
+			for (s4 i = 0; i < 4; ++i) {
+				s4 val = (c & 0x0f);
+				tmp[3 - i] = (val > 10) ? ('a' + val - 10) : ('0' + val);
 				c >>= 4;
 			}
 
-			pos += 4;
+			name.write(tmp, 4);
 		}
 		break;
 	}
-
-	/* return the new buffer index */
-
-	return pos;
 }
-
 
 /* native_method_symbol ********************************************************
 
@@ -239,73 +175,43 @@ static s4 native_insert_char(char *name, u4 pos, u2 c)
 
 *******************************************************************************/
 
-static utf *native_method_symbol(utf *classname, utf *methodname)
+static Utf8String native_method_symbol(Utf8String classname, Utf8String methodname)
 {
-	char *name;
-	s4    namelen;
-	char *utf_ptr;
-	char *utf_endptr;
-	u2    c;
-	u4    pos;
-	utf  *u;
+	Utf8String::byte_iterator begin, end;
 
 	/* Calculate length of native function name.  We multiply the
 	   class and method name length by 6 as this is the maxium
 	   escape-sequence that can be generated (unicode). */
 
-	namelen =
-		strlen("Java_") +
-		utf_get_number_of_u2s(classname) * 6 +
-		strlen("_") +
-		utf_get_number_of_u2s(methodname) * 6 +
-		strlen("0");
-
 	/* allocate memory */
 
-	name = MNEW(char, namelen);
+	Buffer<> name;
 
 	/* generate name of native functions */
 
-	strcpy(name, "Java_");
-	pos = strlen("Java_");
+	name.write("Java_");
 
-	utf_ptr    = classname->text;
-	utf_endptr = UTF_END(classname);
+	begin = classname.begin();
+	end   = classname.end();
 
-	for (; utf_ptr < utf_endptr; utf_ptr++, pos++) {
-		c   = *utf_ptr;
-		pos = native_insert_char(name, pos, c);
+	for (; begin != end; ++begin) {
+		native_insert_char(name, *begin);
 	}
 
 	/* seperator between class and method */
 
-	name[pos++] = '_';
+	name.write('_');
 
-	utf_ptr    = methodname->text;
-	utf_endptr = UTF_END(methodname);
+	begin = methodname.begin();
+	end   = methodname.end();
 
-	for (; utf_ptr < utf_endptr; utf_ptr++, pos++) {
-		c   = *utf_ptr;
-		pos = native_insert_char(name, pos, c);
+	for (; begin != end; ++begin) {
+		native_insert_char(name, *begin);
 	}
-
-	/* close string */
-
-	name[pos] = '\0';
-
-	/* check for an buffer overflow */
-
-	assert((int32_t) pos <= namelen);
 
 	/* make a utf-string */
 
-	u = utf_new_char(name);
-
-	/* release memory */
-
-	MFREE(name, char, namelen);
-
-	return u;
+	return name.build();
 }
 
 
@@ -339,7 +245,7 @@ bool operator< (const NativeMethod& first, const NativeMethod& second)
  * @param methods   Native methods array.
  * @param count     Number of methods in the array.
  */
-void NativeMethods::register_methods(utf* classname, const JNINativeMethod* methods, size_t count)
+void NativeMethods::register_methods(Utf8String classname, const JNINativeMethod* methods, size_t count)
 {
 	// Insert all methods passed */
 	for (size_t i = 0; i < count; i++) {
@@ -350,8 +256,8 @@ void NativeMethods::register_methods(utf* classname, const JNINativeMethod* meth
 		}
 
 		// Generate the UTF8 names.
-		utf* name      = utf_new_char(methods[i].name);
-		utf* signature = utf_new_char(methods[i].signature);
+		Utf8String name      = Utf8String::from_utf8(methods[i].name);
+		Utf8String signature = Utf8String::from_utf8(methods[i].signature);
 
 		NativeMethod nm(classname, name, signature, methods[i].fnPtr);
 
@@ -381,11 +287,11 @@ void* NativeMethods::resolve_method(methodinfo* m)
 
 	/* generate method symbol string */
 
-	utf* name = native_method_symbol(m->clazz->name, m->name);
+	Utf8String name = native_method_symbol(m->clazz->name, m->name);
 
 	/* generate overloaded function (having the types in it's name)           */
 
-	utf* newname = native_make_overloaded_function(name, m->descriptor);
+	Utf8String newname = native_make_overloaded_function(name, m->descriptor);
 
 	// Try to find the symbol.
 	void* symbol;
@@ -396,7 +302,7 @@ void* NativeMethods::resolve_method(methodinfo* m)
 
 	if (symbol != NULL)
 		if (opt_verbosejni)
-			printf("internal ]\n");
+			printf("internal ");
 
 #if defined(ENABLE_DL)
 	classloader_t* classloader;
@@ -421,19 +327,19 @@ void* NativeMethods::resolve_method(methodinfo* m)
 
 		methodinfo* method_findNative =
 			class_resolveclassmethod(class_java_lang_ClassLoader,
-									 utf_findNative,
-									 utf_java_lang_ClassLoader_java_lang_String__J,
+									 utf8::findNative,
+									 utf8::java_lang_ClassLoader_java_lang_String__J,
 									 class_java_lang_ClassLoader,
 									 true);
 
 		if (method_findNative != NULL) {
 			// Try the normal name.
-			java_handle_t* s = javastring_new(name);
+			java_handle_t* s = JavaString::from_utf8(name);
 			symbol = (void*) vm_call_method_long(method_findNative, NULL, classloader, s);
 
 			// If not found, try the mangled name.
 			if (symbol == NULL) {
-				s = javastring_new(newname);
+				s = JavaString::from_utf8(newname);
 				symbol = (void*) vm_call_method_long(method_findNative, NULL, classloader, s);
 			}
 		}
@@ -498,7 +404,7 @@ void* NativeLibrary::open()
 	assert(_filename != NULL);
 
 	// Try to open the library.
-	_handle = os::dlopen(_filename->text, RTLD_LAZY);
+	_handle = os::dlopen(_filename.begin(), RTLD_LAZY);
 
 	if (_handle == NULL) {
 		if (opt_verbosejni)
@@ -633,9 +539,9 @@ bool NativeLibrary::is_loaded()
  *
  * @return Pointer to symbol if found, NULL otherwise.
  */
-void* NativeLibrary::resolve_symbol(utf* symbolname) const
+void* NativeLibrary::resolve_symbol(Utf8String symbolname) const
 {
-	return os::dlsym(_handle, symbolname->text);
+	return os::dlsym(_handle, symbolname.begin());
 }
 
 
@@ -694,7 +600,7 @@ bool NativeLibraries::is_loaded(NativeLibrary& library)
  *
  * @return Pointer to symbol if found, NULL otherwise.
  */
-void* NativeLibraries::resolve_symbol(utf* symbolname, classloader_t* classloader)
+void* NativeLibraries::resolve_symbol(Utf8String symbolname, classloader_t* classloader)
 {
 	std::pair<MAP::const_iterator, MAP::const_iterator> its = _libraries.equal_range(classloader);
 
@@ -764,21 +670,12 @@ bool NativeAgents::load_agents()
 		NativeAgent& na = *(it);
 
 		// Construct agent library name.
-		size_t len =
-			os::strlen(NATIVE_LIBRARY_PREFIX) +
-			os::strlen(na.get_library()) +
-			os::strlen(NATIVE_LIBRARY_SUFFIX) +
-			os::strlen("0");
+		Buffer<> buf;
 
-		char* p = MNEW(char, len);
-
-		os::strcpy(p, NATIVE_LIBRARY_PREFIX);
-		os::strcat(p, na.get_library());
-		os::strcat(p, NATIVE_LIBRARY_SUFFIX);
-
-		utf* u = utf_new_char(p);
-
-		MFREE(p, char, len);
+		Utf8String u = buf.write(NATIVE_LIBRARY_PREFIX)
+		                  .write(na.get_library())
+		                  .write(NATIVE_LIBRARY_SUFFIX)
+		                  .build();
 
 		// Construct new native library.
 		NativeLibrary nl(u);
@@ -843,7 +740,7 @@ java_handle_t *native_new_and_init(classinfo *c)
 
 	/* try to find the initializer */
 
-	m = class_findmethod(c, utf_init, utf_void__void);
+	m = class_findmethod(c, utf8::init, utf8::void__void);
 	                      	                      
 	/* ATTENTION: returning the object here is ok, since the class may
        not have an initializer */
@@ -876,7 +773,7 @@ java_handle_t *native_new_and_init_string(classinfo *c, java_handle_t *s)
 
 	/* find initializer */
 
-	m = class_findmethod(c, utf_init, utf_java_lang_String__void);
+	m = class_findmethod(c, utf8::init, utf8::java_lang_String__void);
 
 	/* initializer not found */
 

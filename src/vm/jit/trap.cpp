@@ -1,6 +1,6 @@
 /* src/vm/jit/trap.cpp - hardware traps
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -35,21 +35,21 @@
 
 #include "mm/memory.hpp"
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "toolbox/logging.hpp"
 
 #include "vm/exceptions.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/code.hpp"
 #include "vm/jit/disass.h"
-#include "vm/jit/executionstate.h"
+#include "vm/jit/executionstate.hpp"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/methodtree.h"
+#include "vm/jit/methodtree.hpp"
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/replace.hpp"
 #include "vm/jit/stacktrace.hpp"

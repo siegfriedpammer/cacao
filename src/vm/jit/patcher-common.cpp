@@ -1,6 +1,6 @@
 /* src/vm/jit/patcher-common.cpp - architecture independent code patching stuff
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008 Theobroma Systems Ltd.
 
@@ -47,7 +47,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/hook.hpp"
 #include "vm/initialize.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/resolve.hpp"
 

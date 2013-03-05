@@ -35,11 +35,11 @@
 #include "region.h"
 #include "mm/memory.hpp"
 #include "native/include/java_lang_String.h"
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "toolbox/logging.hpp"
 
 #include "vm/global.h"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/rt-timing.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
@@ -458,7 +458,7 @@ void heap_print_object(java_object_t *o)
 		if (c == class_java_lang_String) {
 			printf(" (string=\"");
 			utf_display_printable_ascii(
-					javastring_toutf((java_lang_String *) o, false));
+					JavaString((java_lang_String*) o).to_utf8();
 			printf("\")");
 		}
 

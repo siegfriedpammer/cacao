@@ -1,6 +1,6 @@
 /* src/vm/primitive.cpp - primitive types
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 2007-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -28,17 +28,17 @@
 #include <assert.h>
 #include <stdint.h>
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/primitive.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 /* primitivetype_table *********************************************************
@@ -90,11 +90,6 @@ primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = {
  */
 void Primitive::initialize_table()
 {  
-	utf       *name;
-	classinfo *c;
-	utf       *u;
-	classinfo *ac;
-
 	TRACESUBSYSTEMINITIALIZATION("primitive_init");
 
 	/* Load and link primitive-type classes and array-classes. */
@@ -107,13 +102,13 @@ void Primitive::initialize_table()
 
 		/* create UTF-8 name */
 
-		name = utf_new_char(primitivetype_table[i].cname);
+		Utf8String name = Utf8String::from_utf8(primitivetype_table[i].cname);
 
 		primitivetype_table[i].name = name;
 
 		/* create primitive class */
 
-		c = class_create_classinfo(name);
+		classinfo *c = class_create_classinfo(name);
 
 		/* Primitive type classes don't have a super class. */
 
@@ -142,8 +137,8 @@ void Primitive::initialize_table()
 		/* Create primitive array class. */
 
 		if (primitivetype_table[i].arrayname != NULL) {
-			u  = utf_new_char(primitivetype_table[i].arrayname);
-			ac = class_create_classinfo(u);
+			Utf8String  u  = Utf8String::from_utf8(primitivetype_table[i].arrayname);
+			classinfo  *ac = class_create_classinfo(u);
 			ac = load_newly_created_array(ac, NULL);
 
 			if (ac == NULL)
@@ -174,8 +169,8 @@ void Primitive::initialize_table()
 
 		/* Create class for wrapping the primitive type. */
 
-		u = utf_new_char(primitivetype_table[i].wrapname);
-		c = load_class_bootstrap(u);
+		Utf8String  u = Utf8String::from_utf8(primitivetype_table[i].wrapname);
+		classinfo  *c = load_class_bootstrap(u);
 
 		if (c == NULL)
 			vm_abort("primitive_init: loading failed");
@@ -233,7 +228,7 @@ void Primitive::post_initialize_table()
  *
  * @return Class structure.
  */
-classinfo* Primitive::get_class_by_name(utf *name)
+classinfo* Primitive::get_class_by_name(Utf8String name)
 {
 	int i;
 
@@ -317,7 +312,7 @@ classinfo* Primitive::get_class_by_char(char ch)
  *
  * @return Class structure.
  */
-classinfo* Primitive::get_arrayclass_by_name(utf *name)
+classinfo* Primitive::get_arrayclass_by_name(Utf8String name)
 {
 	int i;
 

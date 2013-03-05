@@ -1,6 +1,6 @@
 /* src/native/native.hpp - native library support
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008 Theobroma Systems Ltd.
 
@@ -24,8 +24,8 @@
 */
 
 
-#ifndef _NATIVE_HPP
-#define _NATIVE_HPP
+#ifndef NATIVE_HPP_
+#define NATIVE_HPP_ 1
 
 #include <stdint.h>
 
@@ -42,7 +42,7 @@
 #include "vm/loader.hpp"
 #include "vm/method.hpp"
 #include "vm/os.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 /* defines ********************************************************************/
@@ -67,23 +67,23 @@
  */
 class NativeLibrary {
 private:
-	utf*           _filename;    ///< Name of the native library.
-	classloader_t* _classloader; ///< Defining classloader.
-	void*          _handle;      ///< Filesystem handle.
+	Utf8String     _filename;    ///< Name of the native library.
+	classloader_t *_classloader; ///< Defining classloader.
+	void          *_handle;      ///< Filesystem handle.
 
 public:
-	NativeLibrary(utf* filename, classloader_t* classloader = 0, void* handle = 0) : _filename(filename), _classloader(classloader), _handle(handle) {}
+	NativeLibrary(Utf8String filename, classloader_t* classloader = 0, void* handle = 0) : _filename(filename), _classloader(classloader), _handle(handle) {}
 	NativeLibrary(void* handle) : _filename(0), _classloader(0), _handle(handle) {}
 
 	inline classloader_t* get_classloader() const { return _classloader; }
-	inline utf*           get_filename   () const { return _filename; }
+	inline Utf8String     get_filename   () const { return _filename; }
 	inline void*          get_handle     () const { return _handle; }
 
 	void* open();
 	void  close();
 	bool  load(JNIEnv* env);
 	bool  is_loaded();
-	void* resolve_symbol(utf* symbolname) const;
+	void* resolve_symbol(Utf8String symbolname) const;
 };
 
 
@@ -98,9 +98,9 @@ private:
 
 private:
 	// Comparator class.
-	class comparator : public std::binary_function<std::pair<classloader_t*, NativeLibrary>, utf*, bool> {
+	class comparator : public std::binary_function<std::pair<classloader_t*, NativeLibrary>, Utf8String, bool> {
 	public:
-		bool operator() (std::pair<classloader_t*, NativeLibrary> args, const utf* filename) const
+		bool operator() (std::pair<classloader_t*, NativeLibrary> args, Utf8String filename) const
 		{
 			return (args.second.get_filename() == filename);
 		}
@@ -109,7 +109,7 @@ private:
 public:
 	void  add(NativeLibrary& library);
 	bool  is_loaded(NativeLibrary& library);
-	void* resolve_symbol(utf* symbolname, classloader_t* classloader);
+	void* resolve_symbol(Utf8String symbolname, classloader_t* classloader);
 };
 #endif /* defined(ENABLE_DL) */
 
@@ -119,15 +119,15 @@ public:
  */
 class NativeMethod {
 private:
-	utf*  _classname;  ///< Class name.
-	utf*  _name;       ///< Method name.
-	utf*  _descriptor; ///< Method signature.
-	void* _function;   ///< Pointer to the native function.
+	Utf8String _classname;  ///< Class name.
+	Utf8String _name;       ///< Method name.
+	Utf8String _descriptor; ///< Method signature.
+	void*      _function;   ///< Pointer to the native function.
 
 	friend bool operator< (const NativeMethod& first, const NativeMethod& second);
 
 public:
-	NativeMethod(utf* classname, utf* name, utf* signature, void* function) : _classname(classname), _name(name), _descriptor(signature), _function(function) {}
+	NativeMethod(Utf8String classname, Utf8String name, Utf8String signature, void* function) : _classname(classname), _name(name), _descriptor(signature), _function(function) {}
 	NativeMethod(methodinfo* m) : _classname(m->clazz->name), _name(m->name), _descriptor(m->descriptor), _function(0) {}
 
 	inline void* get_function() const { return _function; }
@@ -144,16 +144,16 @@ private:
 
 private:
 	// Comparator class.
-	class comparator : public std::binary_function<std::pair<classloader_t*, NativeLibrary>, utf*, bool> {
+	class comparator : public std::binary_function<std::pair<classloader_t*, NativeLibrary>, Utf8String, bool> {
 	public:
-		bool operator() (std::pair<classloader_t*, NativeLibrary> args, const utf* filename) const
+		bool operator() (std::pair<classloader_t*, NativeLibrary> args, Utf8String filename) const
 		{
 			return (args.second.get_filename() == filename);
 		}
 	};
 	
 public:
-	void  register_methods(utf* classname, const JNINativeMethod* methods, size_t count);
+	void  register_methods(Utf8String classname, const JNINativeMethod* methods, size_t count);
 	void* resolve_method(methodinfo* m);
 	void* find_registered_method(methodinfo* m);
 };
@@ -206,7 +206,7 @@ java_handle_t *native_new_and_init_string(classinfo *c, java_handle_t *s);
 } // extern "C"
 #endif
 
-#endif // _NATIVE_HPP
+#endif // NATIVE_HPP_
 
 
 /*

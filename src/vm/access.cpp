@@ -1,6 +1,6 @@
 /* src/vm/access.c - checking access rights
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -32,7 +32,7 @@
 
 #include "mm/memory.hpp"
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "vm/access.hpp"
 #include "vm/jit/builtin.hpp"
@@ -43,6 +43,8 @@
 #include "vm/method.hpp"
 
 #include "vm/jit/stacktrace.hpp"
+
+#include "toolbox/buffer.hpp"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -212,9 +214,6 @@ bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
 bool access_check_field(fieldinfo *f, int callerdepth)
 {
 	classinfo *callerclass;
-	char      *msg;
-	int        msglen;
-	utf       *u;
 
 	/* If everything is public, there is nothing to check. */
 
@@ -231,28 +230,16 @@ bool access_check_field(fieldinfo *f, int callerdepth)
 	/* Check access rights. */
 
 	if (!access_is_accessible_member(callerclass, f->clazz, f->flags)) {
-		msglen =
-			utf_bytes(f->clazz->name) +
-			strlen(".") +
-			utf_bytes(f->name) +
-			strlen(" not accessible from ") +
-			utf_bytes(callerclass->name) +
-			strlen("0");
+		Buffer<> buf;
 
-		msg = MNEW(char, msglen);
+		Utf8String u = buf.write_slash_to_dot(f->clazz->name)
+		                  .write('.')
+		                  .write_slash_to_dot(f->name)
+		                  .write(" not accessible from ", 21)
+		                  .write_slash_to_dot(callerclass->name)
+		                  .build();
 
-		utf_copy_classname(msg, f->clazz->name);
-		strcat(msg, ".");
-		utf_cat_classname(msg, f->name);
-		strcat(msg, " not accessible from ");
-		utf_cat_classname(msg, callerclass->name);
-
-		u = utf_new_char(msg);
-
-		MFREE(msg, char, msglen);
-		
 		exceptions_throw_illegalaccessexception(u);
-
 		return false;
 	}
 
@@ -290,9 +277,6 @@ bool access_check_field(fieldinfo *f, int callerdepth)
 bool access_check_method(methodinfo *m, int callerdepth)
 {
 	classinfo *callerclass;
-	char      *msg;
-	int        msglen;
-	utf       *u;
 
 	/* If everything is public, there is nothing to check. */
 
@@ -309,30 +293,16 @@ bool access_check_method(methodinfo *m, int callerdepth)
 	/* Check access rights. */
 
 	if (!access_is_accessible_member(callerclass, m->clazz, m->flags)) {
-		msglen =
-			utf_bytes(m->clazz->name) +
-			strlen(".") +
-			utf_bytes(m->name) +
-			utf_bytes(m->descriptor) +
-			strlen(" not accessible from ") +
-			utf_bytes(callerclass->name) +
-			strlen("0");
+		Buffer<> buf(64, false);
 
-		msg = MNEW(char, msglen);
+		buf.write_slash_to_dot(m->clazz->name)
+		   .write('.')
+		   .write_slash_to_dot(m->name)
+		   .write_slash_to_dot(m->descriptor)
+		   .write(" not accessible from ", 21)
+		   .write_slash_to_dot(callerclass->name);
 
-		utf_copy_classname(msg, m->clazz->name);
-		strcat(msg, ".");
-		utf_cat_classname(msg, m->name);
-		utf_cat_classname(msg, m->descriptor);
-		strcat(msg, " not accessible from ");
-		utf_cat_classname(msg, callerclass->name);
-
-		u = utf_new_char(msg);
-
-		MFREE(msg, char, msglen);
-		
-		exceptions_throw_illegalaccessexception(u);
-
+		exceptions_throw_illegalaccessexception(buf.build());
 		return false;
 	}
 

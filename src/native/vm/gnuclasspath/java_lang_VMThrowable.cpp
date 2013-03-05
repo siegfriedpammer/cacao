@@ -1,6 +1,6 @@
 /* src/native/vm/gnuclasspath/java_lang_VMThrowable.cpp
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -31,7 +31,7 @@
 #include "vm/types.h"
 
 #include "native/jni.hpp"
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
@@ -123,7 +123,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_java_lang_VMThrowable_init(void)
 {
-	utf* u = utf_new_char("java/lang/VMThrowable");
+	Utf8String u = Utf8String::from_utf8("java/lang/VMThrowable");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

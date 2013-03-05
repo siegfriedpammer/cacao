@@ -1,6 +1,6 @@
 /* src/mm/memory.hpp - macros for memory management
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _MEMORY_H
-#define _MEMORY_H
+#ifndef MEMORY_HPP_
+#define MEMORY_HPP_ 1
 
 #include "config.h"
 
@@ -46,7 +46,7 @@
 
 
 // Includes.
-#include "mm/codememory.h"
+#include "mm/codememory.hpp"
 #include "mm/dumpmemory.hpp"
 #include "mm/gc.hpp"
 
@@ -151,7 +151,68 @@ bool  memory_start_thread(void);
 }
 #endif
 
-#endif /* _MEMORY_H */
+#ifdef __cplusplus
+
+// **** a stl style memory allocator
+template<class T> 
+class MemoryAllocator {
+public:
+	// Type definitions.
+	typedef T              value_type;
+	typedef T*             pointer;
+	typedef const T*       const_pointer;
+	typedef T&             reference;
+	typedef const T&       const_reference;
+	typedef std::size_t    size_type;
+	typedef std::ptrdiff_t difference_type;
+
+	// Constructors and destructor, nothing to do because the
+	// allocator has no state.
+	MemoryAllocator() throw() {}
+	MemoryAllocator(const MemoryAllocator&) throw() {}
+	template <class U> MemoryAllocator(const MemoryAllocator<U>&) throw() {}
+
+	~MemoryAllocator() throw() {}
+
+	// ** Return address
+	inline pointer       address ( reference x )       const { return &x; }
+	inline const_pointer address ( const_reference x ) const { return &x; }
+
+	// ** Allocate block of storage
+	inline pointer allocate(size_type n, const_pointer hint=0)
+	{
+		return static_cast<pointer>(mem_alloc(n * sizeof(T)));
+	}
+
+	// ** Reallocate block of storage (non-standard!)
+	inline pointer reallocate(pointer p, size_type old_sz, size_type new_sz)
+	{
+		return static_cast<pointer>(mem_realloc(p, old_sz * sizeof(T), new_sz * sizeof(T)));
+	}
+	
+	// ** Release block of storage
+	inline void deallocate(pointer p, size_type n)
+	{
+		mem_free(p,n);
+	}
+
+	// ** Maximum size possible to allocate
+	// TODO
+
+	// ** Construct an object
+	void construct(pointer p, const T& value) {
+		new ((void*) p) T(value);
+	}
+
+	// ** Destroy an object
+	void destroy(pointer p) {
+		p->~T();
+	}
+};
+
+#endif /* __cplusplus */
+
+#endif // MEMORY_HPP_
 
 
 /*

@@ -1,6 +1,6 @@
 /* src/vm/jit/code.hpp - codeinfo struct for representing compiled code
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _CODE_HPP
-#define _CODE_HPP
+#ifndef CODE_HPP_
+#define CODE_HPP_ 1
 
 #include "config.h"
 
@@ -38,7 +38,7 @@
 #include "vm/global.h"
 #include "vm/method.hpp"
 
-#include "vm/jit/exceptiontable.h"
+#include "vm/jit/exceptiontable.hpp"
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher-common.hpp"
@@ -235,7 +235,7 @@ void code_free_code_of_method(methodinfo *m);
 }
 #endif
 
-#endif // _CODE_HPP
+#endif // CODE_HPP_
 
 
 /*

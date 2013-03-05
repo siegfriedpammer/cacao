@@ -1,6 +1,6 @@
 /* src/native/vm/gnuclasspath/java_lang_VMClassLoader.cpp
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -31,7 +31,7 @@
 #include "mm/memory.hpp"
 
 #include "native/jni.hpp"
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
@@ -40,6 +40,7 @@
 
 #include "toolbox/logging.hpp"
 #include "toolbox/list.hpp"
+#include "toolbox/buffer.hpp"
 
 #if defined(ENABLE_ASSERTION)
 #include "vm/assertion.hpp"
@@ -55,10 +56,10 @@
 #include "vm/javaobjects.hpp"
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/primitive.hpp"
-#include "vm/statistics.h"
+#include "vm/statistics.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 #include "vm/zip.hpp"
@@ -80,7 +81,7 @@ extern "C" {
  */
 JNIEXPORT jclass JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, jobject cl, jstring name, jbyteArray data, jint offset, jint len, jobject pd)
 {
-	utf*           utfname;
+	Utf8String     utfname;
 	classinfo*     c;
 	classloader_t* loader;
 	uint8_t*       stream;
@@ -113,8 +114,8 @@ JNIEXPORT jclass JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, j
 	if (name != NULL) {
 		/* convert '.' to '/' in java string */
 
-		utfname = javastring_toutf((java_handle_t *) name, true);
-	} 
+		utfname = JavaString((java_handle_t*) name).to_utf8_dot_to_slash();
+	}
 	else {
 		utfname = NULL;
 	}
@@ -170,7 +171,7 @@ JNIEXPORT jclass JNICALL Java_java_lang_VMClassLoader_getPrimitiveClass(JNIEnv *
 	c = Primitive::get_class_by_char(type);
 
 	if (c == NULL) {
-		exceptions_throw_classnotfoundexception(utf_null);
+		exceptions_throw_classnotfoundexception(utf8::null);
 		return NULL;
 	}
 
@@ -210,9 +211,6 @@ JNIEXPORT void JNICALL Java_java_lang_VMClassLoader_resolveClass(JNIEnv *env, jc
  */
 JNIEXPORT jclass JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv *env, jclass clazz, jstring name, jboolean resolve)
 {
-	classinfo *c;
-	utf       *u;
-
 	if (name == NULL) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
@@ -220,11 +218,11 @@ JNIEXPORT jclass JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv *env, jcl
 
 	/* create utf string in which '.' is replaced by '/' */
 
-	u = javastring_toutf((java_handle_t *) name, true);
+	Utf8String u = JavaString((java_handle_t*) name).to_utf8_dot_to_slash();
 
 	/* load class */
 
-	c = load_class_bootstrap(u);
+	classinfo *c = load_class_bootstrap(u);
 
 	if (c == NULL)
 		return NULL;
@@ -249,8 +247,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv
 	java_handle_t        *o;         /* vector being created     */
 	methodinfo           *m;         /* "add" method of vector   */
 	java_handle_t        *path;      /* path to be added         */
-	utf                  *utfname;   /* utf to look for          */
-	char                 *buffer;    /* char buffer              */
+	Utf8String            utfname;   /* utf to look for          */
 	char                 *namestart; /* start of name to use     */
 	char                 *tmppath;   /* temporary buffer         */
 	int32_t               namelen;   /* length of name to use    */
@@ -265,19 +262,19 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv
 
 	/* get the resource name as utf string */
 
-	utfname = javastring_toutf((java_handle_t *) name, false);
+	utfname = JavaString((java_handle_t*) name).to_utf8();
 
 	if (utfname == NULL)
 		return NULL;
 
 	/* copy it to a char buffer */
 
-	namelen   = utf_bytes(utfname);
+	Buffer<> buffer;
+	buffer.write(utfname);
+
+	namelen   = utfname.size();
 	searchlen = namelen;
 	bufsize   = namelen + strlen("0");
-	buffer    = MNEW(char, bufsize);
-
-	utf_copy(buffer, utfname);
 	namestart = buffer;
 
 	/* skip leading '/' */
@@ -297,7 +294,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv
 	/* create a new needle to look for, if necessary */
 
 	if (searchlen != bufsize-1) {
-		utfname = utf_new(namestart, searchlen);
+		utfname = Utf8String::from_utf8(namestart, searchlen);
 		if (utfname == NULL)
 			goto return_NULL;
 	}
@@ -312,10 +309,10 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv
 	/* get Vector.add() method */
 
 	m = class_resolveclassmethod(class_java_util_Vector,
-								 utf_add,
-								 utf_new_char("(Ljava/lang/Object;)Z"),
-								 NULL,
-								 true);
+	                             utf8::add,
+	                             Utf8String::from_utf8("(Ljava/lang/Object;)Z"),
+	                             NULL,
+	                             true);
 
 	if (m == NULL)
 		goto return_NULL;
@@ -338,7 +335,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv
 				tmppath = MNEW(char, pathlen);
 
 				sprintf(tmppath, "jar:file://%s!/%s", lce->path, namestart);
-				path = javastring_new_from_utf_string(tmppath),
+				path = JavaString::from_utf8(tmppath),
 
 				MFREE(tmppath, char, pathlen);
 			}
@@ -355,7 +352,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv
 
 			if (stat(tmppath + strlen("file://") - 1, &buf) == 0)
 				if (!S_ISDIR(buf.st_mode))
-					path = javastring_new_from_utf_string(tmppath);
+					path = JavaString::from_utf8(tmppath);
 
 			MFREE(tmppath, char, pathlen);
 #if defined(ENABLE_ZLIB)
@@ -375,13 +372,9 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv
 		}
 	}
 
-	MFREE(buffer, char, bufsize);
-
 	return (jobject) o;
 
 return_NULL:
-	MFREE(buffer, char, bufsize);
-
 	return NULL;
 }
 
@@ -444,10 +437,10 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_packageAssertionStatus0(J
 	/* get HashMap.put method */
 
 	m = class_resolveclassmethod(class_java_util_HashMap,
-                                 utf_put,
-                                 utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
-                                 NULL,
-                                 true);
+	                             utf8::put,
+	                             Utf8String::from_utf8("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
+	                             NULL,
+	                             true);
 
 	if (m == NULL) {
 		return NULL;
@@ -464,7 +457,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_packageAssertionStatus0(J
 			js = NULL;
 		}
 		else {
-			js = javastring_new_from_ascii(item->name);
+			js = JavaString::from_utf8(item->name);
 			if (js == NULL) {
 				return NULL;
 			}
@@ -512,8 +505,8 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_classAssertionStatus0(JNI
 	/* get HashMap.put method */
 
 	m = class_resolveclassmethod(class_java_util_HashMap,
-                                 utf_put,
-                                 utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
+                                 utf8::put,
+                                 Utf8String::from_utf8("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
                                  NULL,
                                  true);
 
@@ -527,7 +520,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_classAssertionStatus0(JNI
 		if (item->package == true)
 			continue;
 
-		js = javastring_new_from_ascii(item->name);
+		js = JavaString::from_utf8(item->name);
 		if (js == NULL) {
 			return NULL;
 		}
@@ -552,21 +545,17 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_classAssertionStatus0(JNI
  */
 JNIEXPORT jclass JNICALL Java_java_lang_VMClassLoader_findLoadedClass(JNIEnv *env, jclass clazz, jobject loader, jstring name)
 {
-	classloader_t *cl;
-	classinfo     *c;
-	utf           *u;
-
 	/* XXX is it correct to add the classloader to the hashtable here? */
 
-	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
+	classloader_t *cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
 	/* replace `.' by `/', this is required by the classcache */
 
-	u = javastring_toutf((java_handle_t *) name, true);
+	Utf8String u = JavaString((java_handle_t*) name).to_utf8_dot_to_slash();
 
 	/* lookup for defining classloader */
 
-	c = classcache_lookup_defined(cl, u);
+	classinfo *c = classcache_lookup_defined(cl, u);
 
 	/* if not found, lookup for initiating classloader */
 
@@ -603,7 +592,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_java_lang_VMClassLoader_init(void)
 {
-	utf* u = utf_new_char("java/lang/VMClassLoader");
+	Utf8String u = Utf8String::from_utf8("java/lang/VMClassLoader");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

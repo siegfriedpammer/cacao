@@ -1,6 +1,6 @@
 /* src/vm/jit/stacktrace.cpp - machine independent stacktrace system
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -41,7 +41,7 @@
 
 #include "vm/jit/stacktrace.hpp"
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "threads/thread.hpp"
 
@@ -50,13 +50,13 @@
 #include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
-#include "vm/cycles-stats.h"
+#include "vm/cycles-stats.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/loader.hpp"
 #include "vm/method.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
@@ -64,7 +64,7 @@
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/methodtree.h"
+#include "vm/jit/methodtree.hpp"
 
 
 // FIXME Use C-linkage for now.
@@ -593,13 +593,13 @@ java_handle_bytearray_t *stacktrace_get(stackframeinfo_t *sfi)
 			   VMThrowable.fillInStackTrace(). */
 
 			if ((m->clazz == class_java_lang_VMThrowable) &&
-				(m->name  == utf_fillInStackTrace))
+				(m->name  == utf8::fillInStackTrace))
 				continue;
 #endif
 
 			skip_fillInStackTrace = false;
 
-			if (m->name == utf_fillInStackTrace)
+			if (m->name == utf8::fillInStackTrace)
 				continue;
 		}
 
@@ -608,7 +608,7 @@ java_handle_bytearray_t *stacktrace_get(stackframeinfo_t *sfi)
 		   exception we are going to skipping them in stack trace. */
 
 		if (skip_init == true) {
-			if ((m->name == utf_init) &&
+			if ((m->name == utf8::init) &&
 				(class_issubclass(m->clazz, class_java_lang_Throwable))) {
 				continue;
 			}
@@ -708,7 +708,7 @@ java_handle_t* stacktrace_get_StackTraceElement(stacktrace_t* st, int32_t index)
 
 	if (!(m->flags & ACC_NATIVE)) {
 		if (c->sourcefile != NULL)
-			filename = javastring_intern(javastring_new(c->sourcefile));
+			filename = JavaString::literal(c->sourcefile);
 		else
 			filename = NULL;
 	}
@@ -735,7 +735,7 @@ java_handle_t* stacktrace_get_StackTraceElement(stacktrace_t* st, int32_t index)
 	}
 
 	// Get declaring class name.
-	java_handle_t* declaringclass = javastring_intern(class_get_classname(c));
+	java_handle_t* declaringclass = JavaString(class_get_classname(c)).intern();
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	// Allocate a new StackTraceElement object.
@@ -744,10 +744,10 @@ java_handle_t* stacktrace_get_StackTraceElement(stacktrace_t* st, int32_t index)
 	if (h == NULL)
 			return NULL;
 
-	java_lang_StackTraceElement jlste(h, filename, linenumber, declaringclass, javastring_new(m->name), ((m->flags & ACC_NATIVE) ? 1 : 0));
+	java_lang_StackTraceElement jlste(h, filename, linenumber, declaringclass, JavaString::from_utf8(m->name), ((m->flags & ACC_NATIVE) ? 1 : 0));
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	// Allocate a new StackTraceElement object.
-	java_lang_StackTraceElement jlste(declaringclass, javastring_intern(javastring_new(m->name)), filename, linenumber);
+	java_lang_StackTraceElement jlste(declaringclass, JavaString::literal(m->name), filename, linenumber);
 
 	if (jlste.is_null())
 		return NULL;
@@ -1234,7 +1234,7 @@ java_handle_objectarray_t *stacktrace_get_stack(void)
 
 		/* Store the name in the array. */
 
-		string = javastring_new(m->name);
+		string = JavaString::from_utf8(m->name);
 
 		if (string == NULL)
 			goto return_NULL;

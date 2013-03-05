@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/typecheck.c - typechecking (part of bytecode verification)
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -154,7 +154,7 @@ error reporting.
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/primitive.hpp"
 #include "vm/resolve.hpp"
 
@@ -725,7 +725,7 @@ bool typecheck(jitdata *jd)
 
 	/* check if this method is an instance initializer method */
 
-    state.initmethod = (state.m->name == utf_init);
+    state.initmethod = (state.m->name == utf8::init);
 
 	/* initialize the basic block flags for the following CFG traversal */
 

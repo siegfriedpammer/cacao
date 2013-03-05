@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/typeinfo.c - type system used by the type checker
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -653,8 +653,8 @@ typecheck_result
 typeinfo_is_assignable_to_class(typeinfo_t *value,classref_or_classinfo dest)
 {
 	classref_or_classinfo c;
-    classinfo *cls;
-	utf *classname;
+    classinfo            *cls;
+	Utf8String            classname;
 
 	TYPEINFO_ASSERT(value);
 
@@ -904,9 +904,9 @@ typeinfo_init_classinfo(typeinfo_t *info, classinfo *c)
 bool
 typeinfo_init_class(typeinfo_t *info,classref_or_classinfo c)
 {
-	char *utf_ptr;
-	int len;
-	classinfo *cls;
+	const char *utf_ptr;
+	int         len;
+	classinfo  *cls;
 		
 	TYPEINFO_ASSERT(c.any);
 	TYPEINFO_ASSERT(info);
@@ -931,8 +931,8 @@ typeinfo_init_class(typeinfo_t *info,classref_or_classinfo c)
 	info->merged = NULL;
 
 	/* handle array type references */
-	utf_ptr = c.ref->name->text;
-	len = c.ref->name->blength;
+	utf_ptr = UTF_TEXT(c.ref->name);
+	len     = UTF_SIZE(c.ref->name);
 	if (*utf_ptr == '[') {
 		/* count dimensions */
 		while (*utf_ptr == '[') {
@@ -944,7 +944,7 @@ typeinfo_init_class(typeinfo_t *info,classref_or_classinfo c)
 			utf_ptr++;
 			len -= 2;
 			info->elementtype = ARRAYTYPE_OBJECT;
-			info->elementclass.ref = class_get_classref(c.ref->referer,utf_new(utf_ptr,len));
+			info->elementclass.ref = class_get_classref(c.ref->referer,Utf8String::from_utf8(utf_ptr,len));
 		}
 		else {
 			/* an array with primitive element type */
@@ -1676,8 +1676,8 @@ typeinfo_merge_nonarrays(typeinfo_t *dest,
     typeinfo_mergedlist_t *tmerged;
     bool changed;
 	typecheck_result r;
-	utf *xname;
-	utf *yname;
+	Utf8String xname;
+	Utf8String yname;
 
 	TYPEINFO_ASSERT(dest && result && x.any && y.any);
 	TYPEINFO_ASSERT(x.cls != pseudo_class_Null);
@@ -2159,7 +2159,7 @@ typeinfo_test_parse(typeinfo_t *info,char *str)
     typeinfo_t *infobuf;
     u1 *typebuf;
     int returntype;
-    utf *desc = utf_new_char(str);
+    Utf8String desc = Utf8String::from_utf8(str);
     
     num = typeinfo_count_method_args(desc,false);
     if (num) {

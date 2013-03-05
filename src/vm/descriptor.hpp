@@ -1,6 +1,6 @@
-/* src/vm/descriptor.h - checking and parsing of field / method descriptors
+/* src/vm/descriptor.hpp - checking and parsing of field / method descriptors
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _DESCRIPTOR_H
-#define _DESCRIPTOR_H
+#ifndef DESCRIPTOR_HPP_
+#define DESCRIPTOR_HPP_ 1
 
 /* forward typedefs ***********************************************************/
 
@@ -40,16 +40,15 @@ typedef struct methoddesc      methoddesc;
 
 #include "vm/types.h"
 
-#include "toolbox/hashtable.h"
+#include "toolbox/hashtable.hpp"
 
 #include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/method.hpp"
 #include "vm/references.h"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 #include "arch.h"		/* needed for HAS_ADDRESS_REGISTER_FILE */
-
 
 /* data structures ************************************************************/
 
@@ -149,28 +148,28 @@ struct methoddesc {
 
 #define METHODDESC_NOPARAMS  ((paramdesc*)1)
 
+#ifdef __cplusplus
+
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
 extern "C" {
-#endif
 
 descriptor_pool * descriptor_pool_new(classinfo *referer);
 
-bool descriptor_pool_add_class(descriptor_pool *pool,utf *name);
-bool descriptor_pool_add(descriptor_pool *pool,utf *desc,int *paramslots);
+bool descriptor_pool_add_class(descriptor_pool *pool, Utf8String name);
+bool descriptor_pool_add(descriptor_pool *pool,Utf8String desc,int *paramslots);
 
-int  descriptor_to_basic_type(utf *desc);
+int  descriptor_to_basic_type(Utf8String desc);
 int  descriptor_typesize(typedesc *td);
 
 constant_classref * descriptor_pool_create_classrefs(descriptor_pool *pool,
 													 s4 *count);
-constant_classref * descriptor_pool_lookup_classref(descriptor_pool *pool,utf *classname);
+constant_classref * descriptor_pool_lookup_classref(descriptor_pool *pool,Utf8String classname);
 
 void descriptor_pool_alloc_parsed_descriptors(descriptor_pool *pool);
 
-typedesc *descriptor_pool_parse_field_descriptor(descriptor_pool *pool, utf *desc);
-methoddesc *descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc, s4 mflags,
+typedesc *descriptor_pool_parse_field_descriptor(descriptor_pool *pool, Utf8String desc);
+methoddesc *descriptor_pool_parse_method_descriptor(descriptor_pool *pool, Utf8String desc, s4 mflags,
 													constant_classref *thisclass);
 
 void descriptor_params_from_paramtypes(methoddesc *md, s4 mflags);
@@ -185,11 +184,10 @@ void descriptor_debug_print_paramdesc(FILE *file,paramdesc *d);
 void descriptor_pool_debug_dump(descriptor_pool *pool, FILE *file);
 #endif /* !defined(NDEBUG) */
 
-#ifdef __cplusplus
 }
-#endif
+#endif /* __cplusplus */
 
-#endif /* _DESCRIPTOR_H */
+#endif // DESCRIPTOR_HPP_
 
 
 /*
@@ -198,7 +196,7 @@ void descriptor_pool_debug_dump(descriptor_pool *pool, FILE *file);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

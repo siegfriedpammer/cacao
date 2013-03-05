@@ -1,6 +1,6 @@
 ## src/threads/none/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2008
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -29,9 +29,9 @@ noinst_LTLIBRARIES = \
 	libthreadsnone.la
 
 libthreadsnone_la_SOURCES = \
-	lock.h \
-	thread-none.c \
-	thread-none.h
+	lock.hpp \
+	thread-none.cpp \
+	thread-none.hpp
 
 
 ## Local variables:

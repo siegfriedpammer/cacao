@@ -1,6 +1,6 @@
 /* src/native/vm/cldc1.1/java_lang_Class.cpp
 
-   Copyright (C) 2006, 2007, 2008
+   Copyright (C) 2006-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -28,7 +28,7 @@
 #include <stdint.h>
 
 #include "native/jni.hpp"
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
@@ -49,8 +49,9 @@ extern "C" {
  */
 JNIEXPORT jclass JNICALL Java_java_lang_Class_forName(JNIEnv *env, jclass clazz, jstring name)
 {
-	utf       *ufile;
-	utf       *uname;
+	Utf8String ufile;
+	Utf8String uname;
+	JavaString sname = name;
 	classinfo *c;
 	char*      pos;
 	int32_t    i;
@@ -64,14 +65,14 @@ JNIEXPORT jclass JNICALL Java_java_lang_Class_forName(JNIEnv *env, jclass clazz,
 
 	/* create utf string in which '.' is replaced by '/' */
 
-	ufile = javastring_toutf((java_handle_t *) name, true);
-	uname = javastring_toutf((java_handle_t *) name, false);
+	ufile = sname.to_utf8_dot_to_slash();
+	uname = sname.to_utf8();
 
 	/* name must not contain '/' (mauve test) */
 
 	// FIXME Move this check into a function.
-	for (i = 0, pos = uname->text; i < uname->blength; i++, pos++) {
-		if (*pos == '/') {
+	for (const char *it = uname.begin(), *end = uname.end(); it != end; ++it) {
+		if (*it == '/') {
 			exceptions_throw_classnotfoundexception(uname);
 			return NULL;
 		}
@@ -223,8 +224,8 @@ static JNINativeMethod methods[] = {
 
 void _Jv_java_lang_Class_init(void)
 {
-	utf* u = utf_new_char("java/lang/Class");
- 
+	Utf8String u = Utf8String::from_utf8("java/lang/Class");
+
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }

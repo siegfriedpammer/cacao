@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/patcher.c - x86_64 code patching functions
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -40,7 +40,7 @@
 #include "vm/class.hpp"
 #include "vm/field.hpp"
 #include "vm/initialize.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/references.h"
 #include "vm/resolve.hpp"
 

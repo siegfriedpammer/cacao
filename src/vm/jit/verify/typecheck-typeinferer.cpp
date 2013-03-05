@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/typecheck-typeinferer.c - type inference pass
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -41,7 +41,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/primitive.hpp"
 #include "vm/resolve.hpp"
 #include "vm/vm.hpp"
@@ -393,7 +393,7 @@ bool typecheck_infer_types(jitdata *jd)
 
 	/* check if this method is an instance initializer method */
 
-    state.initmethod = (state.m->name == utf_init);
+    state.initmethod = (state.m->name == utf8::init);
 
 	/* initialize the basic block flags for the following CFG traversal */
 

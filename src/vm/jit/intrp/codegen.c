@@ -1,6 +1,6 @@
 /* src/vm/jit/intrp/codegen.c - code generator for Interpreter
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -51,16 +51,16 @@
 #include "vm/class.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.hpp"
-#include "vm/jit/dseg.h"
+#include "vm/jit/dseg.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/parse.hpp"
 #include "vm/jit/patcher.h"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 #include "vm/jit/stacktrace.hpp"
 
 
@@ -1102,7 +1102,7 @@ dont_opt_IF_LCMPxx:
 			case TYPE_INT:
 				if (fi == NULL)
 					gen_PATCHER_GETSTATIC_INT(cd, 0, uf);
-				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+				else if (!class_is_or_almost_initialized(fi->clazz))
 					gen_PATCHER_GETSTATIC_CLINIT_INT(cd, 0, fi);
 				else
 					gen_GETSTATIC_INT(cd, (u1 *) &(fi->value.i), fi);
@@ -1110,7 +1110,7 @@ dont_opt_IF_LCMPxx:
 			case TYPE_FLT:
 				if (fi == NULL)
 					gen_PATCHER_GETSTATIC_FLOAT(cd, 0, uf);
-				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+				else if (!class_is_or_almost_initialized(fi->clazz))
 					gen_PATCHER_GETSTATIC_CLINIT_FLOAT(cd, 0, fi);
 				else
 					gen_GETSTATIC_FLOAT(cd, (u1 *) &(fi->value.i), fi);
@@ -1119,7 +1119,7 @@ dont_opt_IF_LCMPxx:
 			case TYPE_DBL:
 				if (fi == NULL)
 					gen_PATCHER_GETSTATIC_LONG(cd, 0, uf);
-				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+				else if (!class_is_or_almost_initialized(fi->clazz))
 					gen_PATCHER_GETSTATIC_CLINIT_LONG(cd, 0, fi);
 				else
 					gen_GETSTATIC_LONG(cd, (u1 *) &(fi->value.l), fi);
@@ -1127,7 +1127,7 @@ dont_opt_IF_LCMPxx:
 			case TYPE_ADR:
 				if (fi == NULL)
 					gen_PATCHER_GETSTATIC_CELL(cd, 0, uf);
-				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+				else if (!class_is_or_almost_initialized(fi->clazz))
 					gen_PATCHER_GETSTATIC_CLINIT_CELL(cd, 0, fi);
 				else
 					gen_GETSTATIC_CELL(cd, (u1 *) &(fi->value.a), fi);
@@ -1153,7 +1153,7 @@ dont_opt_IF_LCMPxx:
 			case TYPE_INT:
 				if (fi == NULL)
 					gen_PATCHER_PUTSTATIC_INT(cd, 0, uf);
-				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+				else if (!class_is_or_almost_initialized(fi->clazz))
 					gen_PATCHER_PUTSTATIC_CLINIT_INT(cd, 0, fi);
 				else
 					gen_PUTSTATIC_INT(cd, (u1 *) &(fi->value.i), fi);
@@ -1161,7 +1161,7 @@ dont_opt_IF_LCMPxx:
 			case TYPE_FLT:
 				if (fi == NULL)
 					gen_PATCHER_PUTSTATIC_FLOAT(cd, 0, uf);
-				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+				else if (!class_is_or_almost_initialized(fi->clazz))
 					gen_PATCHER_PUTSTATIC_CLINIT_FLOAT(cd, 0, fi);
 				else
 					gen_PUTSTATIC_FLOAT(cd, (u1 *) &(fi->value.i), fi);
@@ -1170,7 +1170,7 @@ dont_opt_IF_LCMPxx:
 			case TYPE_DBL:
 				if (fi == NULL)
 					gen_PATCHER_PUTSTATIC_LONG(cd, 0, uf);
-				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+				else if (!class_is_or_almost_initialized(fi->clazz))
 					gen_PATCHER_PUTSTATIC_CLINIT_LONG(cd, 0, fi);
 				else
 					gen_PUTSTATIC_LONG(cd, (u1 *) &(fi->value.l), fi);
@@ -1178,7 +1178,7 @@ dont_opt_IF_LCMPxx:
 			case TYPE_ADR:
 				if (fi == NULL)
 					gen_PATCHER_PUTSTATIC_CELL(cd, 0, uf);
-				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+				else if (!class_is_or_almost_initialized(fi->clazz))
 					gen_PATCHER_PUTSTATIC_CLINIT_CELL(cd, 0, fi);
 				else
 					gen_PUTSTATIC_CELL(cd, (u1 *) &(fi->value.a), fi);

@@ -1,6 +1,6 @@
 /* src/vm/jit/jit.hpp - Just-In-Time compiler
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _JIT_HPP
-#define _JIT_HPP
+#ifndef JIT_HPP_
+#define JIT_HPP_ 1
 
 /* forward typedefs ***********************************************************/
 
@@ -40,32 +40,28 @@ typedef struct exception_entry exception_entry;
 #include "vm/method.hpp"
 #include "vm/references.h"
 #include "vm/resolve.hpp"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
-
+#include "vm/statistics.hpp"
 #include "vm/jit/codegen-common.hpp"
-#include "vm/jit/reg.h"
+#include "vm/jit/reg.hpp"
 #include "vm/jit/replace.hpp"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 #include "vm/jit/stacktrace.hpp"
 
 #if defined(ENABLE_INLINING)
 # include "vm/jit/inline/inline.hpp"
 #endif
 
-#include "vm/jit/ir/bytecode.h"
+#include "vm/jit/ir/bytecode.hpp"
 #include "vm/jit/ir/instruction.hpp"
 
 #if defined(ENABLE_LOOP)
 # include "vm/jit/loop/loop.h"
 #endif
 #if defined(ENABLE_SSA) 
-# include "vm/jit/optimizing/lsra.h"
+# include "vm/jit/optimizing/lsra.hpp"
 #endif
 #if defined(ENABLE_LSRA)
-# include "vm/jit/allocator/lsra.h"
+# include "vm/jit/allocator/lsra.hpp"
 #endif
 
 #include "vm/jit/verify/typeinfo.hpp"
@@ -477,7 +473,7 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr);
 }
 #endif
 
-#endif // _JIT_HPP
+#endif // JIT_HPP_
 
 
 /*

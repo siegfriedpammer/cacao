@@ -47,54 +47,52 @@
 #include "vm/initialize.hpp"
 #include "vm/loader.hpp"
 #include "vm/method.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/rt-timing.hpp"
-#include "vm/statistics.h"
+#include "vm/statistics.hpp"
 
 #include "vm/jit/asmpart.h"
 
-#include "vm/jit/cfg.h"
+#include "vm/jit/cfg.hpp"
 
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/disass.h"
-#include "vm/jit/dseg.h"
+#include "vm/jit/dseg.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/parse.hpp"
-#include "vm/jit/reg.h"
+#include "vm/jit/reg.hpp"
 
 #include "vm/jit/show.hpp"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 #include "vm/jit/stubs.hpp"
 
-#include "vm/jit/allocator/simplereg.h"
+#include "vm/jit/allocator/simplereg.hpp"
 #if defined(ENABLE_LSRA) && !defined(ENABLE_SSA)
-# include "vm/jit/allocator/lsra.h"
+# include "vm/jit/allocator/lsra.hpp"
 #endif
 
 #if defined(ENABLE_SSA)
-# include "vm/jit/optimizing/lsra.h"
-# include "vm/jit/optimizing/ssa.h"
+# include "vm/jit/optimizing/lsra.hpp"
+# include "vm/jit/optimizing/ssa.hpp"
 #endif
 
 #if defined(ENABLE_INLINING)
 # include "vm/jit/inline/inline.hpp"
 #endif
 
-#include "vm/jit/ir/bytecode.h"
+#include "vm/jit/ir/bytecode.hpp"
 
 #include "vm/jit/loop/analyze.h"
 #include "vm/jit/loop/graph.h"
 #include "vm/jit/loop/loop.h"
 
 #if defined(ENABLE_IFCONV)
-# include "vm/jit/optimizing/ifconv.h"
+# include "vm/jit/optimizing/ifconv.hpp"
 #endif
 
-#include "vm/jit/optimizing/reorder.h"
+#include "vm/jit/optimizing/reorder.hpp"
 
-#if defined(ENABLE_PYTHON)
-# include "vm/jit/python.h"
-#endif
+#include "vm/jit/python.h"
 
 #include "vm/jit/verify/typecheck.hpp"
 
@@ -718,10 +716,10 @@ static u1 *jit_compile_intern(jitdata *jd)
 		if (
 			(opt_lsra &&
 			jd->code->optlevel > 0) 
-			/* strncmp(jd->m->name->text, "hottie", 6) == 0*/
+			/* strncmp(UTF_TEXT(jd->m->name), "hottie", 6) == 0*/
 			/*&& jd->exceptiontablelength == 0*/
 		) {
-			/*printf("=== %s ===\n", jd->m->name->text);*/
+			/*printf("=== %s ===\n", UTF_TEXT(jd->m->name));*/
 			jd->ls = (lsradata*) DumpMemory::allocate(sizeof(lsradata));
 			jd->ls = NULL;
 			ssa(jd);

@@ -1,6 +1,6 @@
 /* src/vm/jit/replace.hpp - on-stack replacement of methods
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _REPLACE_HPP
-#define _REPLACE_HPP
+#ifndef REPLACE_HPP_
+#define REPLACE_HPP_ 1
 
 #include "config.h"
 #include "vm/types.h"
@@ -59,8 +59,8 @@ typedef union  replace_val_t replace_val_t;
 
 #include "vm/method.hpp"
 
-#include "vm/jit/executionstate.h"
-#include "vm/jit/reg.h"
+#include "vm/jit/executionstate.hpp"
+#include "vm/jit/reg.hpp"
 #include "vm/jit/stacktrace.hpp"
 
 
@@ -272,7 +272,7 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert);
 
 #endif // ENABLE_REPLACEMENT
 
-#endif // _REPLACE_HPP
+#endif // REPLACE_HPP_
 
 
 /*

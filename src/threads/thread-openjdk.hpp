@@ -1,6 +1,7 @@
+
 /* src/threads/thread-openjdk.hpp - thread functions specific to the OpenJDK library
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +24,8 @@
 */
 
 
-#ifndef _THREAD_OPENJDK_HPP
-#define _THREAD_OPENJDK_HPP
+#ifndef THREAD_OPENJDK_HPP_
+#define THREAD_OPENJDK_HPP_ 1
 
 #ifdef __cplusplus
 
@@ -36,7 +37,7 @@
 #if defined(ENABLE_THREADS)
 # include "threads/posix/thread-posix.hpp"
 #else
-# include "threads/none/thread-none.h"
+# include "threads/none/thread-none.hpp"
 #endif
 
 class java_lang_Thread;
@@ -66,7 +67,7 @@ typedef ThreadRuntimeOpenjdk ThreadRuntime;
 
 #endif	// __cplusplus
 
-#endif // _THREAD_OPENJDK_HPP
+#endif // THREAD_OPENJDK_HPP_1
 
 
 /*

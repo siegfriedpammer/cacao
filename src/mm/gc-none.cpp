@@ -1,6 +1,6 @@
 /* src/mm/gc-none.cpp - allocates memory through malloc (no GC)
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -39,7 +39,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/global.h"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/vm.hpp"
 
@@ -167,7 +167,7 @@ void gc_finalize_all(void)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

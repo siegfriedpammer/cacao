@@ -1,4 +1,4 @@
-/* src/vm/zip.cpp - ZIP file handling for bootstrap classloader
+/* src/vm/zip.hpp - ZIP file handling for bootstrap classloader
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,20 +23,21 @@
 */
 
 
-#ifndef _ZIP_HPP
-#define _ZIP_HPP
+#ifndef ZIP_HPP_
+#define ZIP_HPP_ 1
 
 #include "config.h"
 #include "vm/types.h"
 
-#include "toolbox/hashtable.h"
+#include "toolbox/hashtable.hpp"
 
 #include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/loader.hpp"
 #include "vm/suck.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
+#ifdef __cplusplus
 
 /* Local file header ***********************************************************
 
@@ -78,7 +79,7 @@ struct lfh {
 typedef struct hashtable_zipfile_entry hashtable_zipfile_entry;
 
 struct hashtable_zipfile_entry {
-	utf                     *filename;
+	Utf8String               filename;
 	u2                       compressionmethod;
 	u4                       compressedsize;
 	u4                       uncompressedsize;
@@ -89,19 +90,13 @@ struct hashtable_zipfile_entry {
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+hashtable               *zip_open(char *path);
+hashtable_zipfile_entry *zip_find(list_classpath_entry *lce, Utf8String u);
+classbuffer             *zip_get(list_classpath_entry *lce, classinfo *c);
 
-hashtable *zip_open(char *path);
-hashtable_zipfile_entry *zip_find(list_classpath_entry *lce, utf *u);
-classbuffer *zip_get(list_classpath_entry *lce, classinfo *c);
+#endif /* __cplusplus */
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* _ZIP_HPP */
+#endif // ZIP_HPP_
 
 
 /*

@@ -1,6 +1,6 @@
 ## src/native/vm/gnuclasspath/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2008
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -58,18 +58,18 @@ libnativevmcore_la_SOURCES = \
 	java_lang_reflect_VMConstructor.cpp \
 	java_lang_reflect_VMField.cpp \
 	java_lang_reflect_VMMethod.cpp \
-	java_lang_reflect_VMProxy.c \
+	java_lang_reflect_VMProxy.cpp \
 	java_security_VMAccessController.cpp \
 	java_util_concurrent_atomic_AtomicLong.cpp \
 	$(SUN_REFLECT_SOURCES)
 
 if ENABLE_JVMTI
 libjdwp_la_SOURCES = \
-	gnu_classpath_jdwp_VMFrame.c \
-	gnu_classpath_jdwp_VMMethod.c \
-	gnu_classpath_jdwp_VMVirtualMachine.c \
-	VMjdwp.c \
-	VMjdwp.h
+	gnu_classpath_jdwp_VMFrame.cpp \
+	gnu_classpath_jdwp_VMMethod.cpp \
+	gnu_classpath_jdwp_VMVirtualMachine.cpp \
+	VMjdwp.cpp \
+	VMjdwp.hpp
 endif
 
 

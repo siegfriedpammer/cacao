@@ -1,6 +1,6 @@
 /* src/vm/jit/powerpc/darwin/md-abi.c - PowerPC Darwin ABI
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -33,7 +33,7 @@
 #include "vm/global.h"
 
 #include "vm/jit/abi.h"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 
 
 /* register descripton arrays *************************************************/

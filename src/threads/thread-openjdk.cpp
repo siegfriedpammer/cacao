@@ -1,6 +1,6 @@
 /* src/threads/thread-openjdk.cpp - thread functions specific to the OpenJDK library
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -55,8 +55,8 @@ java_handle_t *ThreadRuntimeOpenjdk::get_thread_exception_handler(const java_lan
 methodinfo *ThreadRuntimeOpenjdk::get_threadgroup_remove_method(classinfo *c)
 {
 	return class_resolveclassmethod(c,
-									utf_remove,
-									utf_java_lang_Thread__V,
+									utf8::remove,
+									utf8::java_lang_Thread__V,
 									class_java_lang_ThreadGroup,
 									true);
 }
@@ -64,8 +64,8 @@ methodinfo *ThreadRuntimeOpenjdk::get_threadgroup_remove_method(classinfo *c)
 methodinfo *ThreadRuntimeOpenjdk::get_thread_init_method()
 {
 	return class_resolveclassmethod(class_java_lang_Thread,
-									utf_init,
-									utf_new_char("(Ljava/lang/ThreadGroup;Ljava/lang/String;)V"),
+									utf8::init,
+									Utf8String::from_utf8("(Ljava/lang/ThreadGroup;Ljava/lang/String;)V"),
 									class_java_lang_Thread,
 									true);
 }
@@ -81,7 +81,7 @@ void ThreadRuntimeOpenjdk::print_thread_name(const java_lang_Thread& jlt, FILE *
 	//java_chararray_t *name;
 
 	/* FIXME This prints to stdout. */
-	utf_display_printable_ascii(utf_null);
+	utf_display_printable_ascii(utf8::null);
 }
 
 void ThreadRuntimeOpenjdk::set_javathread_state(threadobject *t, int state)
@@ -117,11 +117,11 @@ void ThreadRuntimeOpenjdk::thread_create_initial_threadgroups(java_handle_t **th
 	if (*threadgroup_main == NULL)
 		vm_abort("thread_create_initial_threadgroups: failed to allocate main threadgroup");
 
-	name = javastring_new(utf_main);
+	name = JavaString::from_utf8(utf8::main);
 
 	m = class_resolveclassmethod(class_java_lang_ThreadGroup,
-								 utf_init,
-								 utf_Ljava_lang_ThreadGroup_Ljava_lang_String__V,
+								 utf8::init,
+								 utf8::Ljava_lang_ThreadGroup_Ljava_lang_String__V,
 								 class_java_lang_ThreadGroup,
 								 true);
 

@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/md.h - machine dependent x86_64 functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -32,7 +32,7 @@
 #include <stdint.h>
 
 #include "vm/jit/codegen-common.hpp"
-#include "vm/jit/methodtree.h"
+#include "vm/jit/methodtree.hpp"
 
 
 /* inline functions ***********************************************************/

@@ -1,6 +1,6 @@
 /* src/vm/jit/intrp/asmpart.c - Java-C interface functions for Interpreter
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -37,12 +37,12 @@
 #include "vm/class.hpp"
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/methodtree.h"
-#include "vm/jit/dseg.h"
+#include "vm/jit/methodtree.hpp"
+#include "vm/jit/dseg.hpp"
 
 #include "vm/jit/intrp/intrp.h"
 

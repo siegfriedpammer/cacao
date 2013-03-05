@@ -1,6 +1,6 @@
 /* src/vm/resolve.cpp - resolving classes/interfaces/fields/methods
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -22,7 +22,6 @@
 
 */
 
-
 #include "config.h"
 
 #include <assert.h>
@@ -39,9 +38,11 @@
 #include "vm/globals.hpp"
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/primitive.hpp"
 #include "vm/resolve.hpp"
+
+#include "toolbox/buffer.hpp"
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/verify/typeinfo.hpp"
@@ -145,18 +146,15 @@ void resolve_handle_pending_exception(bool throwError)
 
 bool resolve_class_from_name(classinfo *referer,
 							 methodinfo *refmethod,
-							 utf *classname,
+							 Utf8String classname,
 							 resolve_mode_t mode,
 							 bool checkaccess,
 							 bool link,
 							 classinfo **result)
 {
-	classinfo *cls;
-	char      *utf_ptr;
-	int        len;
-	char      *msg;
-	s4         msglen;
-	utf       *u;
+	classinfo  *cls;
+	const char *utf_ptr;
+	int         len;
 
 	assert(result);
 	assert(referer);
@@ -184,9 +182,9 @@ bool resolve_class_from_name(classinfo *referer,
 	if (!cls) {
 		/* resolve array types */
 
-		if (classname->text[0] == '[') {
-			utf_ptr = classname->text + 1;
-			len = classname->blength - 1;
+		if (classname[0] == '[') {
+			utf_ptr = classname.begin() + 1;
+			len     = classname.size()  - 1;
 
 			/* classname is an array type name */
 
@@ -199,8 +197,8 @@ bool resolve_class_from_name(classinfo *referer,
 					/* the component type is a reference type */
 					/* resolve the component type */
 					if (!resolve_class_from_name(referer,refmethod,
-									   utf_new(utf_ptr,len),
-									   mode,checkaccess,link,&cls))
+					                             Utf8String::from_utf8(utf_ptr,len),
+					                             mode,checkaccess,link,&cls))
 						return false; /* exception */
 					if (!cls) {
 						assert(mode == resolveLazy);
@@ -243,25 +241,16 @@ bool resolve_class_from_name(classinfo *referer,
 	/* check access rights of referer to refered class */
 
 	if (checkaccess && !access_is_accessible_class(referer,cls)) {
-		msglen =
-			utf_bytes(cls->name) +
-			utf_bytes(referer->name) +
-			100;
+		Buffer<> buf;
 
-		msg = MNEW(char, msglen);
-
-		strcpy(msg, "class is not accessible (");
-		utf_cat_classname(msg, cls->name);
-		strcat(msg, " from ");
-		utf_cat_classname(msg, referer->name);
-		strcat(msg, ")");
-
-		u = utf_new_char(msg);
-
-		MFREE(msg, char, msglen);
+		Utf8String u = buf.write("class is not accessible (")
+		                  .write_slash_to_dot(cls->name)
+		                  .write(" from ")
+		                  .write_slash_to_dot(referer->name)
+		                  .write(")")
+		                  .build();
 
 		exceptions_throw_illegalaccessexception(u);
-
 		return false; /* exception */
 	}
 
@@ -568,9 +557,6 @@ static resolve_result_t resolve_subtype_check(methodinfo *refmethod,
 	classinfo        *subclass;
 	typeinfo_t        subti;
 	typecheck_result  r;
-	char             *msg;
-	s4                msglen;
-	utf              *u;
 
 	assert(refmethod);
 	assert(subtype.any);
@@ -594,7 +580,7 @@ static resolve_result_t resolve_subtype_check(methodinfo *refmethod,
 
 	/* do not check access to protected members of arrays */
 
-	if (error == resolveIllegalAccessError && subclass->name->text[0] == '[') {
+	if (error == resolveIllegalAccessError && UTF_AT(subclass->name, 0) == '[') {
 		return resolveSucceeded;
 	}
 
@@ -628,34 +614,23 @@ check_again:
 #if defined(RESOLVE_VERBOSE)
 		printf("SUBTYPE CHECK FAILED!\n");
 #endif
+		Buffer<> buf;
 
-		msglen =
-			utf_bytes(subclass->name) +
-			utf_bytes(CLASSREF_OR_CLASSINFO_NAME(supertype))
-			+ 200;
-
-		msg = MNEW(char, msglen);
-
-		strcpy(msg, (error == resolveIllegalAccessError) ?
-			   "illegal access to protected member (" :
-			   "subtype constraint violated (");
-
-		utf_cat_classname(msg, subclass->name);
-		strcat(msg, " is not a subclass of ");
-		utf_cat_classname(msg, CLASSREF_OR_CLASSINFO_NAME(supertype));
-		strcat(msg, ")");
-
-		u = utf_new_char(msg);
+		if (error == resolveIllegalAccessError)
+			buf.write("illegal access to protected member (");
+		else
+			buf.write("subtype constraint violated (");
+	
+		Utf8String u = buf.write_slash_to_dot(subclass->name)
+		                  .write(" is not a subclass of ")
+		                  .write_slash_to_dot(CLASSREF_OR_CLASSINFO_NAME(supertype))
+		                  .write(')')
+		                  .build();
 
 		if (error == resolveIllegalAccessError)
 			exceptions_throw_illegalaccessexception(u);
 		else
-			exceptions_throw_linkageerror(msg, NULL);
-
-		/* ATTENTION: We probably need msg for
-		   exceptions_throw_linkageerror. */
-
-		MFREE(msg, char, msglen);
+			exceptions_throw_linkageerror((char*) buf, NULL);
 
 		return resolveFailed; /* exception */
 	}
@@ -737,7 +712,7 @@ static resolve_result_t resolve_lazy_subtype_checks(methodinfo *refmethod,
 	/* every type is assignable to (BOOTSTRAP)java.lang.Object */
 
 	if (supertype.cls == class_java_lang_Object
-		|| (CLASSREF_OR_CLASSINFO_NAME(supertype) == utf_java_lang_Object
+		|| (CLASSREF_OR_CLASSINFO_NAME(supertype) == utf8::java_lang_Object
 			&& refmethod->clazz->classloader == NULL))
 	{
 		return resolveSucceeded;
@@ -1111,9 +1086,6 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 	classinfo         *referer;
 	resolve_result_t   result;
 	constant_classref *fieldtyperef;
-	char              *msg;
-	s4                 msglen;
-	utf               *u;
 
 	assert(refmethod);
 	assert(fieldref);
@@ -1150,25 +1122,16 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 	/* check access rights */
 
 	if (!access_is_accessible_member(referer,declarer,fi->flags)) {
-		msglen =
-			utf_bytes(declarer->name) +
-			utf_bytes(fi->name) +
-			utf_bytes(referer->name) +
-			100;
+		Buffer<> buf(64, false);
 
-		msg = MNEW(char, msglen);
-
-		strcpy(msg, "field is not accessible (");
-		utf_cat_classname(msg, declarer->name);
-		strcat(msg, ".");
-		utf_cat(msg, fi->name);
-		strcat(msg, " from ");
-		utf_cat_classname(msg, referer->name);
-		strcat(msg, ")");
-
-		u = utf_new_char(msg);
-
-		MFREE(msg, char, msglen);
+		Utf8String u = buf.write("field is not accessible (")
+		                  .write_slash_to_dot(declarer->name)
+		                  .write(".")
+		                  .write(fi->name)
+		                  .write(" from ")
+		                  .write_slash_to_dot(referer->name)
+		                  .write(")")
+		                  .build();
 
 		exceptions_throw_illegalaccessexception(u);
 
@@ -1580,7 +1543,7 @@ methodinfo * resolve_method_invokespecial_lookup(methodinfo *refmethod,
 	/* special checks. Otherwise we must verify that the called method */
 	/* belongs to a super class of the current class                   */
 
-	if ((referer != declarer) && (mi->name != utf_init)) {
+	if ((referer != declarer) && (mi->name != utf8::init)) {
 		/* check that declarer is a super class of the current class   */
 
 		if (!class_issubclass(referer,declarer)) {
@@ -1636,9 +1599,6 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 {
 	classinfo *declarer;
 	classinfo *referer;
-	char      *msg;
-	s4         msglen;
-	utf       *u;
 
 	assert(refmethod);
 	assert(methodref);
@@ -1674,30 +1634,19 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 	if (!access_is_accessible_member(referer,declarer,mi->flags)) {
 		/* XXX clean this up. this should be in exceptions.c */
 
-		msglen =
-			utf_bytes(declarer->name) +
-			utf_bytes(mi->name) +
-			utf_bytes(mi->descriptor) +
-			utf_bytes(referer->name) +
-			100;
+		Buffer<> buf(64, false);
 
-		msg = MNEW(char, msglen);
-
-		strcpy(msg, "method is not accessible (");
-		utf_cat_classname(msg, declarer->name);
-		strcat(msg, ".");
-		utf_cat(msg, mi->name);
-		utf_cat(msg, mi->descriptor);
-		strcat(msg, " from ");
-		utf_cat_classname(msg, referer->name);
-		strcat(msg, ")");
-
-		u = utf_new_char(msg);
-
-		MFREE(msg, char, msglen);
+		Utf8String u = buf.write("method is not accessible (")
+		                  .write_slash_to_dot(declarer->name)
+		                  .write(".")
+		                  .write(mi->name)
+		                  .write(mi->descriptor)
+		                  .write(" from ")
+		                  .write_slash_to_dot(referer->name)
+		                  .write(")")
+		                  .build();
 
 		exceptions_throw_illegalaccessexception(u);
-
 		return resolveFailed; /* exception */
 	}
 
@@ -1928,7 +1877,7 @@ bool resolve_method_loading_constraints(classinfo *referer,
 {
 	methoddesc *md;
 	typedesc   *paramtypes;
-	utf        *name;
+	Utf8String  name;
 	s4          i;
 	s4          instancecount;
 
@@ -2340,7 +2289,7 @@ static bool unresolved_subtype_set_from_typeinfo(classinfo *referer,
 		goto empty_set;
 
 	/* every type is assignable to (BOOTSTRAP)java.lang.Object */
-	if (declaredclassname == utf_java_lang_Object
+	if (declaredclassname == utf8::java_lang_Object
 			&& referer->classloader == NULL) /* XXX do loading constraints make the second check obsolete? */
 	{
 		goto empty_set;
@@ -3149,7 +3098,7 @@ void unresolved_method_debug_dump(unresolved_method *ref,FILE *file)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

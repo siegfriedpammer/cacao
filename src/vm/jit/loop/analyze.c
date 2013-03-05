@@ -1,6 +1,6 @@
 /* src/vm/jit/loop/analyze.c - bound check removal functions
 
-   Copyright (C) 1996-2005, 2006, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -36,7 +36,7 @@
 #include "toolbox/logging.hpp"
 
 #include "vm/jit/jit.hpp"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 
 #include "vm/jit/loop/analyze.h"
 #include "vm/jit/loop/graph.h"

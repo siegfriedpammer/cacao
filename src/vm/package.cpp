@@ -1,6 +1,6 @@
 /* src/vm/package.cpp - Java boot-package functions
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 2007-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -29,26 +29,30 @@
 
 #include "mm/memory.hpp"
 
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/package.hpp"
 #include "vm/string.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
+#include <set>
 
 // Package list.
 
-std::set<utf*> Package::_packages;
+static std::set<Utf8String>& packages() {
+	static std::set<Utf8String> _packages;
 
+	return _packages;
+}
 
 /**
  * Add a package to the boot-package list.
  *
  * @param packagename Package name as Java string.
  */
-void Package::add(utf* packagename)
+void Package::add(Utf8String packagename)
 {
 	// Intern the Java string to get a unique address.
-/* 	s = javastring_intern(packagename); */
+/* 	s = JavaString(packagename).intern(); */
 
 #if !defined(NDEBUG)
 	if (opt_DebugPackage) {
@@ -61,7 +65,7 @@ void Package::add(utf* packagename)
 #endif
 
 	// Add the package name.
-	_packages.insert(packagename);
+	packages().insert(packagename);
 }
 
 
@@ -72,11 +76,12 @@ void Package::add(utf* packagename)
  *
  * @return Package name as Java string.
  */
-utf* Package::find(utf* packagename)
+Utf8String Package::find(Utf8String packagename)
 {
-	std::set<utf*>::iterator it = _packages.find(packagename);
+	std::set<Utf8String>&          pkgs = packages();
+	std::set<Utf8String>::iterator it   = pkgs.find(packagename);
 
-	if (it == _packages.end())
+	if (it == pkgs.end())
 		return NULL;
 
 	return *it;

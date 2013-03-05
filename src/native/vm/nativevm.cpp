@@ -1,6 +1,6 @@
 /* src/native/vm/nativevm.cpp - Register native VM interface functions.
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -33,7 +33,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/initialize.hpp"
 #include "vm/method.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
@@ -45,11 +45,11 @@
 # include "native/vm/openjdk/hpi.hpp"
 #endif
 
-# include "toolbox/sequence.hpp"
+# include "toolbox/buffer.hpp"
 
 # include "vm/globals.hpp"
 # include "vm/properties.hpp"
-# include "vm/utf8.h"
+# include "vm/utf8.hpp"
 # include "vm/vm.hpp"
 #endif
 
@@ -104,20 +104,19 @@ void nativevm_preinit(void)
 	Properties& properties = vm->get_properties();
 	const char* boot_library_path = properties.get("sun.boot.library.path");
 
-	// Use sequence builder to assemble library path.
-	SequenceBuilder sb;
+	// Use Buffer to assemble library path.
+	Buffer<> buf;
 
-	sb.cat(boot_library_path);
-	sb.cat("/libjava.so");
+	buf.write(boot_library_path);
+	buf.write("/libjava.so");
 
-	// XXX This should actually be sb.export_symbol()
-	utf* u = utf_new_char(sb.c_str());
+	Utf8String u = buf.build();
 
 	NativeLibrary nl(u);
 	void* handle = nl.open();
 
 	if (handle == NULL)
-		os::abort("nativevm_init: failed to open libjava.so at: %s", sb.c_str());
+		os::abort("nativevm_init: failed to open libjava.so at: %s", (char*) buf);
 
 	NativeLibraries& nls = vm->get_nativelibraries();
 	nls.add(nl);
@@ -184,10 +183,10 @@ bool nativevm_init(void)
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	methodinfo* m = class_resolveclassmethod(class_java_lang_System,
-											 utf_new_char("initializeSystemClass"),
-											 utf_void__void,
-											 class_java_lang_Object,
-											 false);
+	                                         Utf8String::from_utf8("initializeSystemClass"),
+	                                         utf8::void__void,
+	                                         class_java_lang_Object,
+	                                         false);
 
 	if (m == NULL)
 		return false;

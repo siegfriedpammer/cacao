@@ -1,6 +1,6 @@
 /* src/vm/jit/s390/emit.c - s390 code emitter functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -38,7 +38,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/global.h"
 #include "vm/types.h"
-#include "vm/options.h"
+#include "vm/options.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"

@@ -1806,7 +1806,7 @@
   GENERATED  				METHOD,
   GENERATED  				/* XXX make this more efficient, use class_java_lang_Throwable
   GENERATED  				 * directly */
-  GENERATED  				class_get_classref(METHOD->clazz,utf_java_lang_Throwable),
+  GENERATED  				class_get_classref(METHOD->clazz,utf8::java_lang_Throwable),
   GENERATED  				&OP1->typeinfo);
   GENERATED  		IPTR->flags.bits |= INS_FLAG_UNRESOLVED;
   GENERATED  	}

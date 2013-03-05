@@ -1,6 +1,6 @@
 /* src/native/vm/gnuclasspath/java_lang_reflect_VMMethod.cpp
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -32,7 +32,7 @@
 #endif
 
 #include "native/jni.hpp"
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
@@ -142,7 +142,7 @@ JNIEXPORT jstring JNICALL Java_java_lang_reflect_VMMethod_getSignature(JNIEnv *e
 	if (m->signature == NULL)
 		return NULL;
 
-	java_handle_t* s = javastring_new(m->signature);
+	java_handle_t* s = JavaString::from_utf8(m->signature);
 
 	/* in error case o is NULL */
 
@@ -160,9 +160,9 @@ JNIEXPORT jstring JNICALL Java_java_lang_reflect_VMMethod_getSignature(JNIEnv *e
  */
 JNIEXPORT jobject JNICALL Java_java_lang_reflect_VMMethod_getDefaultValue(JNIEnv *env, jobject _this)
 {
-	static methodinfo        *m_parseAnnotationDefault   = NULL; /* parser method (will be chached, therefore static) */
-	utf                      *utf_parseAnnotationDefault = NULL; /* parser method name                                */
-	utf                      *utf_desc        = NULL;            /* parser method descriptor (signature)              */
+	static methodinfo *m_parseAnnotationDefault   = NULL; /* parser method (will be chached, therefore static) */
+	Utf8String         utf_parseAnnotationDefault = NULL; /* parser method name                                */
+	Utf8String         utf_desc        = NULL;            /* parser method descriptor (signature)              */
 
 	if (_this == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -183,8 +183,8 @@ JNIEXPORT jobject JNICALL Java_java_lang_reflect_VMMethod_getDefaultValue(JNIEnv
 
 	/* only resolve the parser method the first time */
 	if (m_parseAnnotationDefault == NULL) {
-		utf_parseAnnotationDefault = utf_new_char("parseAnnotationDefault");
-		utf_desc = utf_new_char(
+		utf_parseAnnotationDefault = Utf8String::from_utf8("parseAnnotationDefault");
+		utf_desc = Utf8String::from_utf8(
 			"(Ljava/lang/reflect/Method;[BLsun/reflect/ConstantPool;)"
 			"Ljava/lang/Object;");
 
@@ -287,7 +287,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_java_lang_reflect_VMMethod_init(void)
 {
-	utf* u = utf_new_char("java/lang/reflect/VMMethod");
+	Utf8String u = Utf8String::from_utf8("java/lang/reflect/VMMethod");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

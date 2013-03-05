@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/icmds.c - ICMD-specific type checking code
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -474,7 +474,7 @@ case ICMD_ATHROW:
 				METHOD,
 				/* XXX make this more efficient, use class_java_lang_Throwable
 				 * directly */
-				class_get_classref(METHOD->clazz,utf_java_lang_Throwable),
+				class_get_classref(METHOD->clazz,utf8::java_lang_Throwable),
 				&OP1->typeinfo);
 		IPTR->flags.bits |= INS_FLAG_UNRESOLVED;
 	}

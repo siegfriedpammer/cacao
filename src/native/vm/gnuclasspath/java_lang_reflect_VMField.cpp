@@ -1,6 +1,6 @@
 /* src/native/vm/gnuclasspath/java_lang_reflect_VMField.cpp
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -29,7 +29,7 @@
 #include <stdint.h>
 
 #include "native/jni.hpp"
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
@@ -51,7 +51,7 @@
 #include "vm/primitive.hpp"
 #include "vm/resolve.hpp"
 #include "vm/string.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 /* _field_access_check *********************************************************
@@ -542,7 +542,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, jobject _
 
 		/* determine the field to read the value */
 
-		if ((sc == NULL) || !(sf = class_findfield(sc, utf_value, utf_Z)))
+		if ((sc == NULL) || !(sf = class_findfield(sc, utf8::value, utf8::Z)))
 			break;
 
 		switch (sf->parseddesc->primitivetype) {
@@ -561,7 +561,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, jobject _
 	case PRIMITIVETYPE_BYTE: {
 		int32_t val;
 
-		if ((sc == NULL) || !(sf = class_findfield(sc, utf_value, utf_B)))
+		if ((sc == NULL) || !(sf = class_findfield(sc, utf8::value, utf8::B)))
 			break;
 
 		switch (sf->parseddesc->primitivetype) {
@@ -580,7 +580,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, jobject _
 	case PRIMITIVETYPE_CHAR: {
 		int32_t val;
 
-		if ((sc == NULL) || !(sf = class_findfield(sc, utf_value, utf_C)))
+		if ((sc == NULL) || !(sf = class_findfield(sc, utf8::value, utf8::C)))
 			break;
 				   
 		switch (sf->parseddesc->primitivetype) {
@@ -601,7 +601,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, jobject _
 
 		/* get field only by name, it can be one of B, S */
 
-		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf_value)))
+		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf8::value)))
 			break;
 				   
 		switch (sf->parseddesc->primitivetype) {
@@ -625,7 +625,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, jobject _
 
 		/* get field only by name, it can be one of B, S, C, I */
 
-		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf_value)))
+		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf8::value)))
 			break;
 
 		switch (sf->parseddesc->primitivetype) {
@@ -655,7 +655,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, jobject _
 
 		/* get field only by name, it can be one of B, S, C, I, J */
 
-		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf_value)))
+		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf8::value)))
 			break;
 
 		switch (sf->parseddesc->primitivetype) {
@@ -688,7 +688,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, jobject _
 
 		/* get field only by name, it can be one of B, S, C, I, J, F */
 
-		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf_value)))
+		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf8::value)))
 			break;
 
 		switch (sf->parseddesc->primitivetype) {
@@ -724,7 +724,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, jobject _
 
 		/* get field only by name, it can be one of B, S, C, I, J, F, D */
 
-		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf_value)))
+		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf8::value)))
 			break;
 
 		switch (sf->parseddesc->primitivetype) {
@@ -1037,7 +1037,7 @@ JNIEXPORT jstring JNICALL Java_java_lang_reflect_VMField_getSignature(JNIEnv *en
 	if (f->signature == NULL)
 		return NULL;
 
-	java_handle_t* o = javastring_new(f->signature);
+	java_handle_t* o = JavaString::from_utf8(f->signature);
 
 	/* in error case o is NULL */
 
@@ -1113,7 +1113,7 @@ static const JNINativeMethod methods[] = {
 
 void _Jv_java_lang_reflect_VMField_init(void)
 {
-	utf* u = utf_new_char("java/lang/reflect/VMField");
+	Utf8String u = Utf8String::from_utf8("java/lang/reflect/VMField");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

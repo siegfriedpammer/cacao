@@ -1,6 +1,6 @@
 /* src/vm/jit/optimizing/profile.cpp - runtime profiling
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -40,12 +40,12 @@
 #include "vm/class.hpp"
 #include "vm/classcache.hpp"
 #include "vm/method.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/string.hpp"
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/methodtree.h"
+#include "vm/jit/methodtree.hpp"
 
 #include "vm/jit/optimizing/recompiler.hpp"
 
@@ -173,9 +173,7 @@ static void profile_thread(void)
 #if defined(ENABLE_THREADS)
 bool profile_start_thread(void)
 {
-	utf *name;
-
-	name = utf_new_char("Profiling Sampler");
+	Utf8String name = Utf8String::from_utf8("Profiling Sampler");
 
 	if (!threads_thread_start_internal(name, profile_thread))
 		return false;

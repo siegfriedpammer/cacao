@@ -1,6 +1,6 @@
 /* src/vm/jit/mips/patcher.c - SPARC code patching functions
 
-   Copyright (C) 1996-2005, 2006, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -43,7 +43,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/field.hpp"
 #include "vm/initialize.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/references.h"
 #include "vm/resolve.hpp"
 

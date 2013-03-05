@@ -1,6 +1,6 @@
 /* src/native/vm/sun_misc_Unsafe.cpp - sun/misc/Unsafe
 
-   Copyright (C) 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2006-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -33,7 +33,7 @@
 #include "mm/memory.hpp"
 
 #include "native/jni.hpp"
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
@@ -47,7 +47,7 @@
 #include "vm/javaobjects.hpp"
 #include "vm/os.hpp"
 #include "vm/string.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 // Native functions are exported as C functions.
@@ -809,9 +809,9 @@ JNIEXPORT jint JNICALL Java_sun_misc_Unsafe_pageSize(JNIEnv *env, jobject _this)
  */
 JNIEXPORT jclass JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_String_2_3BIILjava_lang_ClassLoader_2Ljava_security_ProtectionDomain_2(JNIEnv *env, jobject _this, jstring name, jbyteArray b, jint off, jint len, jobject loader, jobject protectionDomain)
 {
-	classloader_t   *cl;
-	utf             *utfname;
-	classinfo       *c;
+	classloader_t *cl;
+	Utf8String     utfname;
+	classinfo     *c;
 
 	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
@@ -834,8 +834,8 @@ JNIEXPORT jclass JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_String_2_3
 	if (name != NULL) {
 		/* convert '.' to '/' in java string */
 
-		utfname = javastring_toutf((java_handle_t *) name, true);
-	} 
+		utfname = JavaString((java_handle_t*) name).to_utf8_dot_to_slash();
+	}
 	else {
 		utfname = NULL;
 	}
@@ -1364,7 +1364,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_sun_misc_Unsafe_init(void)
 {
-	utf* u = utf_new_char("sun/misc/Unsafe");
+	Utf8String u = Utf8String::from_utf8("sun/misc/Unsafe");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

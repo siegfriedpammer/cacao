@@ -1,6 +1,6 @@
 /* src/native/vm/gnuclasspath/gnu_java_lang_VMCPStringBuilder.cpp
 
-   Copyright (C) 2008
+   Copyright (C) 2008-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -28,7 +28,7 @@
 #include <stdint.h>
 
 #include "native/jni.hpp"
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
@@ -100,7 +100,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_gnu_java_lang_VMCPStringBuilder_init(void)
 {
-	utf* u = utf_new_char("gnu/java/lang/VMCPStringBuilder");
+	Utf8String u = Utf8String::from_utf8("gnu/java/lang/VMCPStringBuilder");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

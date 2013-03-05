@@ -1,6 +1,6 @@
 /* src/vm/jit/argument.cpp - argument passing from and to JIT methods
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 2007-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -32,7 +32,7 @@
 
 #include "mm/memory.hpp"
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "vm/array.hpp"
 #include "vm/descriptor.hpp"

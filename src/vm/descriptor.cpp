@@ -1,6 +1,6 @@
 /* src/vm/descriptor.c - checking and parsing of field / method descriptors
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -35,7 +35,7 @@
 
 #include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/primitive.hpp"
 #include "vm/vm.hpp"
 
@@ -60,14 +60,14 @@ typedef struct descriptor_hash_entry descriptor_hash_entry;
 /* entry struct for the classrefhash of descriptor_pool */
 struct classref_hash_entry {
 	classref_hash_entry *hashlink;  /* for hash chaining            */
-	utf                 *name;      /* name of the class refered to */
+	Utf8String           name;      /* name of the class refered to */
 	u2                   index;     /* index into classref table    */
 };
 
 /* entry struct for the descriptorhash of descriptor_pool */
 struct descriptor_hash_entry {
 	descriptor_hash_entry *hashlink;
-	utf                   *desc;
+	Utf8String             desc;
 	parseddesc_t           parseddesc;
 	s2                     paramslots; /* number of params, LONG/DOUBLE counted as 2 */
 };
@@ -145,11 +145,11 @@ extern "C" {
 
 *******************************************************************************/
 
-int descriptor_to_basic_type(utf *descriptor)
+int descriptor_to_basic_type(Utf8String descriptor)
 {
-	assert(descriptor->blength >= 1);
+	assert(descriptor.size() >= 1);
 	
-	switch (descriptor->text[0]) {
+	switch (descriptor[0]) {
 	case 'Z':
 	case 'B':
 	case 'C':
@@ -171,8 +171,7 @@ int descriptor_to_basic_type(utf *descriptor)
 		return TYPE_ADR;
 
 	default:
-		vm_abort("descriptor_to_basic_type: invalid type %c",
-				 descriptor->text[0]);
+		vm_abort("descriptor_to_basic_type: invalid type %c", descriptor[0]);
 	}
 
 	/* keep the compiler happy */
@@ -261,10 +260,10 @@ int descriptor_typesize(typedesc *td)
 
 static bool 
 name_from_descriptor(classinfo *c,
-					 char *utf_ptr, char *end_ptr,
-					 char **next, int mode, utf **name)
+					 const char *utf_ptr, const char *end_ptr,
+					 const char **next, int mode, Utf8String *name)
 {
-	char *start = utf_ptr;
+	const char *start = utf_ptr;
 	bool error = false;
 
 	assert(c);
@@ -301,7 +300,7 @@ name_from_descriptor(classinfo *c,
 			  utf_ptr--;
 			  /* FALLTHROUGH! */
 		  case '[':
-			  *name = utf_new(start, utf_ptr - start);
+			  *name = Utf8String::from_utf8(start, utf_ptr - start);
 			  return true;
 		}
 	}
@@ -332,10 +331,10 @@ name_from_descriptor(classinfo *c,
 *******************************************************************************/
 
 static bool
-descriptor_to_typedesc(descriptor_pool *pool, char *utf_ptr, char *end_pos,
-					   char **next, typedesc *td)
+descriptor_to_typedesc(descriptor_pool *pool, const char *utf_ptr, const char *end_pos,
+					   const char **next, typedesc *td)
 {
-	utf *name;
+	Utf8String name;
 	
 	if (!name_from_descriptor(pool->referer, utf_ptr, end_pos, next, 0, &name))
 		return false;
@@ -345,7 +344,7 @@ descriptor_to_typedesc(descriptor_pool *pool, char *utf_ptr, char *end_pos,
 		td->type = TYPE_ADR;
 		td->primitivetype = TYPE_ADR;
 		td->arraydim = 0;
-		for (utf_ptr = name->text; *utf_ptr == '['; ++utf_ptr)
+		for (utf_ptr = name.begin(); *utf_ptr == '['; ++utf_ptr)
 			td->arraydim++;
 		td->classref = descriptor_pool_lookup_classref(pool, name);
 
@@ -466,7 +465,7 @@ descriptor_pool_new(classinfo *referer)
 *******************************************************************************/
 
 bool 
-descriptor_pool_add_class(descriptor_pool *pool, utf *name)
+descriptor_pool_add_class(descriptor_pool *pool, Utf8String name)
 {
 	u4 key,slot;
 	classref_hash_entry *c;
@@ -481,9 +480,9 @@ descriptor_pool_add_class(descriptor_pool *pool, utf *name)
 
 	/* find a place in the hashtable */
 
-	key = utf_hashkey(name->text, name->blength);
+	key  = name.hash();
 	slot = key & (pool->classrefhash.size - 1);
-	c = (classref_hash_entry *) pool->classrefhash.ptr[slot];
+	c    = (classref_hash_entry *) pool->classrefhash.ptr[slot];
 
 	while (c) {
 		if (c->name == name)
@@ -493,7 +492,7 @@ descriptor_pool_add_class(descriptor_pool *pool, utf *name)
 
 	/* check if the name is a valid classname */
 
-	if (!is_valid_name(name->text,UTF_END(name))) {
+	if (!Utf8String(name).is_valid_name()) {
 		exceptions_throw_classformaterror(pool->referer, "Invalid class name");
 		return false; /* exception */
 	}
@@ -529,13 +528,13 @@ descriptor_pool_add_class(descriptor_pool *pool, utf *name)
 *******************************************************************************/
 
 bool 
-descriptor_pool_add(descriptor_pool *pool, utf *desc, int *paramslots)
+descriptor_pool_add(descriptor_pool *pool, Utf8String desc, int *paramslots)
 {
 	u4 key,slot;
 	descriptor_hash_entry *d;
-	char *utf_ptr;
-	char *end_pos;
-	utf *name;
+	const char *utf_ptr;
+	const char *end_pos;
+	Utf8String name;
 	s4 argcount = 0;
 	
 #ifdef DESCRIPTOR_VERBOSE
@@ -548,14 +547,14 @@ descriptor_pool_add(descriptor_pool *pool, utf *desc, int *paramslots)
 
 	/* find a place in the hashtable */
 
-	key = utf_hashkey(desc->text, desc->blength);
+	key  = desc.hash();
 	slot = key & (pool->descriptorhash.size - 1);
-	d = (descriptor_hash_entry *) pool->descriptorhash.ptr[slot];
+	d    = (descriptor_hash_entry *) pool->descriptorhash.ptr[slot];
 
 	/* Save all method descriptors in the hashtable, since the parsed         */
 	/* descriptor may vary between differenf methods (static vs. non-static). */
 
-	utf_ptr = desc->text;
+	utf_ptr = desc.begin();
 
 	if (*utf_ptr != '(') {
 		while (d) {
@@ -578,7 +577,7 @@ descriptor_pool_add(descriptor_pool *pool, utf *desc, int *paramslots)
 
 	/* now check the descriptor */
 
-	end_pos = UTF_END(desc);
+	end_pos = desc.end();
 	
 	if (*utf_ptr == '(') {
 		/* a method descriptor */
@@ -689,7 +688,7 @@ descriptor_pool_create_classrefs(descriptor_pool *pool, s4 *count)
 		c = (classref_hash_entry *) pool->classrefhash.ptr[slot];
 		while (c) {
 			ref = pool->classrefs + c->index;
-			CLASSREF_INIT(*ref, pool->referer, c->name);
+			CLASSREF_INIT(*ref, pool->referer, c->name.c_ptr());
 			c = c->hashlink;
 		}
 	}
@@ -716,7 +715,7 @@ descriptor_pool_create_classrefs(descriptor_pool *pool, s4 *count)
 *******************************************************************************/
 
 constant_classref * 
-descriptor_pool_lookup_classref(descriptor_pool *pool, utf *classname)
+descriptor_pool_lookup_classref(descriptor_pool *pool, Utf8String classname)
 {
 	u4 key,slot;
 	classref_hash_entry *c;
@@ -725,9 +724,9 @@ descriptor_pool_lookup_classref(descriptor_pool *pool, utf *classname)
 	assert(pool->classrefs);
 	assert(classname);
 
-	key = utf_hashkey(classname->text, classname->blength);
+	key  = classname.hash();
 	slot = key & (pool->classrefhash.size - 1);
-	c = (classref_hash_entry *) pool->classrefhash.ptr[slot];
+	c    = (classref_hash_entry *) pool->classrefhash.ptr[slot];
 
 	while (c) {
 		if (c->name == classname)
@@ -806,7 +805,7 @@ descriptor_pool_alloc_parsed_descriptors(descriptor_pool *pool)
 *******************************************************************************/
 
 typedesc * 
-descriptor_pool_parse_field_descriptor(descriptor_pool *pool, utf *desc)
+descriptor_pool_parse_field_descriptor(descriptor_pool *pool, Utf8String desc)
 {
 	u4 key,slot;
 	descriptor_hash_entry *d;
@@ -818,9 +817,9 @@ descriptor_pool_parse_field_descriptor(descriptor_pool *pool, utf *desc)
 
 	/* lookup the descriptor in the hashtable */
 
-	key = utf_hashkey(desc->text, desc->blength);
+	key  = desc.hash();
 	slot = key & (pool->descriptorhash.size - 1);
-	d = (descriptor_hash_entry *) pool->descriptorhash.ptr[slot];
+	d    = (descriptor_hash_entry *) pool->descriptorhash.ptr[slot];
 
 	while (d) {
 		if (d->desc == desc) {
@@ -834,7 +833,7 @@ descriptor_pool_parse_field_descriptor(descriptor_pool *pool, utf *desc)
 
 	assert(d);
 	
-	if (desc->text[0] == '(') {
+	if (desc[0] == '(') {
 		exceptions_throw_classformaterror(pool->referer,
 										  "Method descriptor used in field reference");
 		return NULL;
@@ -843,7 +842,7 @@ descriptor_pool_parse_field_descriptor(descriptor_pool *pool, utf *desc)
 	td = (typedesc *) pool->descriptors_next;
 	pool->descriptors_next += sizeof(typedesc);
 	
-	if (!descriptor_to_typedesc(pool, desc->text, UTF_END(desc), NULL, td))
+	if (!descriptor_to_typedesc(pool, desc.begin(), desc.end(), NULL, td))
 		return NULL;
 
 	*(pool->descriptor_kind_next++) = 'f';
@@ -877,15 +876,15 @@ descriptor_pool_parse_field_descriptor(descriptor_pool *pool, utf *desc)
 *******************************************************************************/
 
 methoddesc * 
-descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
+descriptor_pool_parse_method_descriptor(descriptor_pool *pool, Utf8String desc,
 										s4 mflags,constant_classref *thisclass)
 {
 	u4 key, slot;
 	descriptor_hash_entry *d;
 	methoddesc            *md;
 	typedesc              *td;
-	char *utf_ptr;
-	char *end_pos;
+	const char *utf_ptr;
+	const char *end_pos;
 	s2 paramcount = 0;
 	s2 paramslots = 0;
 
@@ -901,7 +900,7 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 
 	/* check that it is a method descriptor */
 	
-	if (desc->text[0] != '(') {
+	if (desc[0] != '(') {
 		exceptions_throw_classformaterror(pool->referer,
 										  "Field descriptor used in method reference");
 		return NULL;
@@ -909,9 +908,9 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 
 	/* lookup the descriptor in the hashtable */
 
-	key = utf_hashkey(desc->text, desc->blength);
+	key  = desc.hash();
 	slot = key & (pool->descriptorhash.size - 1);
-	d = (descriptor_hash_entry *) pool->descriptorhash.ptr[slot];
+	d   = (descriptor_hash_entry *) pool->descriptorhash.ptr[slot];
 
 	/* find an un-parsed descriptor */
 
@@ -928,8 +927,8 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 	md->pool_lock = reinterpret_cast<Mutex*>(pool->descriptors - sizeof(Mutex));
 	pool->descriptors_next += sizeof(methoddesc) - sizeof(typedesc);
 
-	utf_ptr = desc->text + 1; /* skip '(' */
-	end_pos = UTF_END(desc);
+	utf_ptr = desc.begin() + 1; /* skip '(' */
+	end_pos = desc.end();
 
 	td = md->paramtypes;
 
@@ -1374,7 +1373,7 @@ descriptor_pool_debug_dump(descriptor_pool *pool,FILE *file)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

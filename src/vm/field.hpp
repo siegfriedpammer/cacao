@@ -39,7 +39,7 @@ typedef struct fieldinfo fieldinfo;
 #include "vm/global.h"
 #include "vm/loader.hpp"
 #include "vm/references.h"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 /* fieldinfo ******************************************************************/
@@ -99,7 +99,7 @@ void field_fieldref_println(constant_FMIref *fr);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

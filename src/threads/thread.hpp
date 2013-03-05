@@ -1,6 +1,6 @@
 /* src/threads/thread.hpp - machine independent thread functions
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _THREAD_HPP
-#define _THREAD_HPP
+#ifndef THREAD_HPP_
+#define THREAD_HPP_ 1
 
 #include "config.h"
 
@@ -34,18 +34,24 @@
 #if defined(ENABLE_THREADS)
 # include "threads/posix/thread-posix.hpp"
 #else
-# include "threads/none/thread-none.h"
+# include "threads/none/thread-none.hpp"
 #endif
 
 #include "vm/os.hpp"
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "threads/mutex.hpp"
 
 #include "vm/global.h"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
+// short-hand for '#ifdef ENABLE_THREADS' block
+#if defined(ENABLE_THREADS)
+	#define WITH_THREADS(X) X
+#else
+	#define WITH_THREADS(X)
+#endif
 
 /* only define the following stuff with thread enabled ************************/
 
@@ -95,8 +101,6 @@ extern bool threads_pthreads_implementation_nptl;
 
 
 #ifdef __cplusplus
-extern "C" {
-#endif
 
 /* inline functions ***********************************************************/
 
@@ -211,7 +215,7 @@ void          threads_init(void);
 
 void          thread_free(threadobject *t);
 
-bool          threads_thread_start_internal(utf *name, functionptr f);
+bool          threads_thread_start_internal(Utf8String name, functionptr f);
 void          threads_thread_start(java_handle_t *object);
 
 bool          thread_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon);
@@ -255,13 +259,9 @@ void          threads_impl_thread_start(threadobject *thread, functionptr f);
 
 void          threads_yield(void);
 
-#ifdef __cplusplus
-}
 #endif
 
 #endif /* ENABLE_THREADS */
-
-#endif // _THREAD_HPP
 
 void          thread_handle_set_priority(java_handle_t *th, int);
 bool          thread_handle_is_interrupted(java_handle_t *th);
@@ -275,6 +275,8 @@ int           thread_handle_get_state(java_handle_t *th);
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 #include "thread-cldc11.hpp"
 #endif
+
+#endif // THREAD_HPP_
 
 
 /*

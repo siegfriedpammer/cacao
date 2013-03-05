@@ -1,6 +1,6 @@
 /* src/threads/posix/thread-posix.cpp - POSIX thread functions
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -51,7 +51,7 @@
 # include "mm/cacao-gc/gc.h"
 #endif
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "native/native.hpp"
 
 #include "threads/condition.hpp"
@@ -68,15 +68,12 @@
 #include "vm/globals.hpp"
 #include "vm/hook.hpp"
 #include "vm/javaobjects.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/signallocal.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
+#include "vm/statistics.hpp"
 
 #include "vm/jit/asmpart.h"
 
@@ -745,7 +742,7 @@ static void *threads_startup_thread(void *arg)
 	if (function == NULL) {
 		c = ThreadRuntime::get_thread_class_from_object(object);
 
-		m = class_resolveclassmethod(c, utf_run, utf_void__void, c, true);
+		m = class_resolveclassmethod(c, utf8::run, utf8::void__void, c, true);
 
 		if (m == NULL)
 			vm_abort("threads_startup_thread: run() method not found in class");
@@ -928,8 +925,8 @@ bool thread_detach_current_thread(void)
 		}
 
 		methodinfo* m = class_resolveclassmethod(c,
-												 utf_uncaughtException,
-												 utf_java_lang_Thread_java_lang_Throwable__V,
+												 utf8::uncaughtException,
+												 utf8::java_lang_Thread_java_lang_Throwable__V,
 												 NULL,
 												 true);
 

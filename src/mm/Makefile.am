@@ -1,6 +1,6 @@
 ## src/mm/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2007, 2008
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -57,8 +57,8 @@ noinst_LTLIBRARIES = \
 	libmm.la
 
 libmm_la_SOURCES = \
-	codememory.c \
-	codememory.h \
+	codememory.cpp \
+	codememory.hpp \
 	dumpmemory.cpp \
 	dumpmemory.hpp \
 	$(GC_FILE) \
@@ -71,8 +71,8 @@ libmm_la_LIBADD = \
 
 if ENABLE_TLH
 libmm_la_SOURCES += \
-	tlh.h \
-	tlh.c
+	tlh.hpp \
+	tlh.cpp
 endif
 
 ## Local variables:

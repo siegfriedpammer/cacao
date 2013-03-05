@@ -1,6 +1,6 @@
 ## src/vm/jit/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2007, 2008
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -99,15 +99,15 @@ REPLACE_SOURCES =
 
 if ENABLE_JIT
 REG_SOURCES = \
-	reg.c \
-	reg.h
+	reg.cpp \
+	reg.hpp
 
 REPLACE_SOURCES += \
 	replace.hpp
 
 STACK_SOURCES = \
-	stack.c \
-	stack.h
+	stack.cpp \
+	stack.hpp
 
 TRAP_SOURCES = \
 	trap.cpp \
@@ -159,20 +159,20 @@ libjit_la_SOURCES = \
 	codegen-common.hpp \
 	disass.h \
 	$(DISASS_SOURCES) \
-	dseg.c \
-	dseg.h \
+	dseg.cpp \
+	dseg.hpp \
 	emit-common.cpp \
 	emit-common.hpp \
-	exceptiontable.c \
-	exceptiontable.h \
-	executionstate.c \
-	executionstate.h \
+	exceptiontable.cpp \
+	exceptiontable.hpp \
+	executionstate.cpp \
+	executionstate.hpp \
 	jit.cpp \
 	jit.hpp \
 	linenumbertable.cpp \
 	linenumbertable.hpp \
-	methodtree.c \
-	methodtree.h \
+	methodtree.cpp \
+	methodtree.hpp \
 	parse.cpp \
 	parse.hpp \
 	patcher-common.cpp \
@@ -193,8 +193,8 @@ libjit_la_SOURCES = \
 	$(OPAGENT_SOURCES)
 
 libjit_la_SOURCES += \
-	cfg.c \
-	cfg.h
+	cfg.cpp \
+	cfg.hpp
 
 libjit_la_LIBADD = \
 	allocator/liballocator.la \

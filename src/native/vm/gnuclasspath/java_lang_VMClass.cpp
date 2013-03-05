@@ -1,6 +1,6 @@
 /* src/native/vm/gnuclasspath/java_lang_VMClass.cpp
 
-   Copyright (C) 2006, 2007, 2008
+   Copyright (C) 2006-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,12 +23,13 @@
 */
 
 
+
 #include "config.h"
 
 #include <stdint.h>
 
 #include "native/jni.hpp"
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
@@ -41,6 +42,7 @@
 #include "vm/initialize.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/string.hpp"
+#include "vm/utf8.hpp"
 
 #if defined(ENABLE_ANNOTATIONS)
 #include "vm/annotation.hpp"
@@ -322,11 +324,12 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClass_getClassLoader(JNIEnv *env, jcl
 JNIEXPORT jclass JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, jclass clazz, jstring name, jboolean initialize, jobject loader)
 {
 	classloader_t *cl;
-	utf           *ufile;
-	utf           *uname;
+	JavaString     sname;
+	Utf8String     ufile;
+	Utf8String     uname;
 	classinfo     *c;
-	char*          pos;
-	int32_t        i;
+
+	sname = name;
 
 	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
@@ -339,14 +342,14 @@ JNIEXPORT jclass JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, jclass claz
 
 	/* create utf string in which '.' is replaced by '/' */
 
-	ufile = javastring_toutf((java_handle_t *) name, true);
-	uname = javastring_toutf((java_handle_t *) name, false);
+	ufile = sname.to_utf8_dot_to_slash();
+	uname = sname.to_utf8();
 
 	/* name must not contain '/' (mauve test) */
 
 	// FIXME Move this check into a function.
-	for (i = 0, pos = uname->text; i < uname->blength; i++, pos++) {
-		if (*pos == '/') {
+	for (const char *it = uname.begin(), *end = uname.end(); it != end; ++it) {
+		if (*it == '/') {
 			exceptions_throw_classnotfoundexception(uname);
 			return NULL;
 		}
@@ -434,9 +437,9 @@ JNIEXPORT jobjectArray JNICALL Java_java_lang_VMClass_getDeclaredAnnotations(JNI
 
 	/* only resolve the parser method the first time */
 	if (m_parseAnnotationsIntoArray == NULL) {
-		utf* utf_parseAnnotationsIntoArray = utf_new_char("parseAnnotationsIntoArray");
-		utf* utf_desc = utf_new_char("([BLsun/reflect/ConstantPool;Ljava/lang/Class;)"
-									 "[Ljava/lang/annotation/Annotation;");
+		Utf8String utf_parseAnnotationsIntoArray = Utf8String::from_utf8("parseAnnotationsIntoArray");
+		Utf8String utf_desc = Utf8String::from_utf8("([BLsun/reflect/ConstantPool;Ljava/lang/Class;)"
+		                                           "[Ljava/lang/annotation/Annotation;");
 
 		if (utf_parseAnnotationsIntoArray == NULL || utf_desc == NULL) {
 			/* out of memory */
@@ -521,22 +524,15 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClass_getEnclosingMethod(JNIEnv *env,
  */
 JNIEXPORT jstring JNICALL Java_java_lang_VMClass_getClassSignature(JNIEnv *env, jclass clazz, jclass klass)
 {
-	classinfo     *c;
-	utf           *u;
-	java_handle_t *s;
+	classinfo *c = LLNI_classinfo_unwrap(klass);
+	Utf8String u = class_get_signature(c);
 
-	c = LLNI_classinfo_unwrap(klass);
-
-	u = class_get_signature(c);
+	/* in error case return NULL */
 
 	if (u == NULL)
 		return NULL;
 
-	s = javastring_new(u);
-
-	/* in error case s is NULL */
-
-	return (jstring) s;
+	return (jstring) JavaString::from_utf8(u);
 }
 
 
@@ -617,7 +613,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_java_lang_VMClass_init(void)
 {
-	utf* u = utf_new_char("java/lang/VMClass");
+	Utf8String u = Utf8String::from_utf8("java/lang/VMClass");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

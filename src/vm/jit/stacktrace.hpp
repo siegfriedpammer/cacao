@@ -1,6 +1,6 @@
 /* src/vm/jit/stacktrace.hpp - header file for stacktrace generation
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _STACKTRACE_HPP
-#define _STACKTRACE_HPP
+#ifndef STACKTRACE_HPP_
+#define STACKTRACE_HPP_ 1
 
 /* forward typedefs ***********************************************************/
 
@@ -43,10 +43,10 @@ typedef struct stacktrace_t       stacktrace_t;
 #include "threads/thread.hpp"
 
 #include "vm/class.hpp"
+#include "vm/loader.hpp"
 #include "vm/global.h"
 
 #include "vm/jit/code.hpp"
-
 
 /* stackframeinfo **************************************************************
 
@@ -147,7 +147,7 @@ void stacktrace_print_cycles_stats(FILE *file);
 }
 #endif
 
-#endif // _STACKTRACE_HPP
+#endif // STACKTRACE_HPP_
 
 
 /*

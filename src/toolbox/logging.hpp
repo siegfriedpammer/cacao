@@ -1,6 +1,6 @@
-/* src/toolbox/logging.h - contains logging functions
+/* src/toolbox/logging.hpp - contains logging functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _LOGGING_H
-#define _LOGGING_H
+#ifndef LOGGING_HPP_
+#define LOGGING_HPP_ 1
 
 #include "config.h"
 
@@ -33,7 +33,7 @@
 
 #include "vm/class.hpp"
 #include "vm/method.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 /* function prototypes ********************************************************/
@@ -41,6 +41,11 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+// TODO: remove, this is just a temporary hack 
+//       that allows cycle-stats to be printed to the regular log file
+//       so we can run make check with cycle-stats enabled.
+FILE* log_get_logfile();
 
 void log_init(const char *fname);
 
@@ -52,22 +57,25 @@ void log_println(const char *text, ...);
 
 void log_finish(void);
 
-
-/* log message functions */
-void log_message_utf(const char *msg, utf *u);
-void log_message_class(const char *msg, classinfo *c);
-void log_message_class_message_class(const char *msg1, classinfo *c1,
-									 const char *msg2, classinfo *c2);
-void log_message_method(const char *msg, methodinfo *m);
-
 #define log_text(s) log_println("%s", (s))
-#define dolog log_println
+#define dolog       log_println
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _LOGGING_H */
+#ifdef __cplusplus
+
+/* log message functions */
+void log_message_utf(const char *msg, Utf8String u);
+void log_message_class(const char *msg, classinfo *c);
+void log_message_class_message_class(const char *msg1, classinfo *c1,
+									 const char *msg2, classinfo *c2);
+void log_message_method(const char *msg, methodinfo *m);
+
+#endif
+
+#endif // LOGGING_HPP_
 
 
 /*

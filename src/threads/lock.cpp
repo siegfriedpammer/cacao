@@ -1,6 +1,6 @@
 /* src/threads/lock.cpp - lock implementation
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -35,7 +35,7 @@
 
 #include "mm/memory.hpp"
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "threads/atomic.hpp"
 #include "threads/lock.hpp"
@@ -48,13 +48,10 @@
 #include "vm/exceptions.hpp"
 #include "vm/finalizer.hpp"
 #include "vm/global.h"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
+#include "vm/statistics.hpp"
 
 #if defined(ENABLE_VMLOG)
 #include <vmlog_cacao.h>

@@ -1,6 +1,6 @@
 /* src/native/vm/openjdk/jvm.cpp - HotSpot VM interface functions
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -54,7 +54,7 @@
 
 #include "mm/memory.hpp"
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "native/native.hpp"
 
 #include "native/vm/reflection.hpp"
@@ -84,7 +84,7 @@
 #include "vm/globals.hpp"
 #include "vm/initialize.hpp"
 #include "vm/javaobjects.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/package.hpp"
 #include "vm/primitive.hpp"
@@ -644,13 +644,10 @@ jclass JVM_GetCallerClass(JNIEnv* env, int depth)
 
 jclass JVM_FindPrimitiveClass(JNIEnv* env, const char* s)
 {
-	classinfo *c;
-	utf       *u;
-
 	TRACEJVMCALLS(("JVM_FindPrimitiveClass(env=%p, s=%s)", env, s));
 
-	u = utf_new_char(s);
-	c = Primitive::get_class_by_name(u);
+	Utf8String u = Utf8String::from_utf8(s);
+	classinfo *c = Primitive::get_class_by_name(u);
 
 	return (jclass) LLNI_classinfo_wrap(c);
 }
@@ -669,13 +666,10 @@ void JVM_ResolveClass(JNIEnv* env, jclass cls)
 
 jclass JVM_FindClassFromBootLoader(JNIEnv* env, const char* name)
 {
-	classinfo     *c;
-	utf           *u;
-
 	TRACEJVMCALLS(("JVM_FindClassFromBootLoader(name=%s)", name));
 
-	u  = utf_new_char(name);
-	c = load_class_from_classloader(u, NULL);
+	Utf8String u = Utf8String::from_utf8(name);
+	classinfo *c = load_class_from_classloader(u, NULL);
 
 	if (c == NULL)
 		return NULL;
@@ -688,10 +682,6 @@ jclass JVM_FindClassFromBootLoader(JNIEnv* env, const char* name)
 
 jclass JVM_FindClassFromClassLoader(JNIEnv* env, const char* name, jboolean init, jobject loader, jboolean throwError)
 {
-	classinfo     *c;
-	utf           *u;
-	classloader_t *cl;
-
 	TRACEJVMCALLS(("JVM_FindClassFromClassLoader(name=%s, init=%d, loader=%p, throwError=%d)", name, init, loader, throwError));
 
 	/* As of now, OpenJDK does not call this function with throwError
@@ -699,10 +689,9 @@ jclass JVM_FindClassFromClassLoader(JNIEnv* env, const char* name, jboolean init
 
 	assert(throwError == false);
 
-	u  = utf_new_char(name);
-	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
-
-	c = load_class_from_classloader(u, cl);
+	Utf8String     u  = Utf8String::from_utf8(name);
+	classloader_t *cl = loader_hashtable_classloader_add((java_handle_t *) loader);
+	classinfo     *c  = load_class_from_classloader(u, cl);
 
 	if (c == NULL)
 		return NULL;
@@ -740,22 +729,14 @@ jclass JVM_DefineClass(JNIEnv *env, const char *name, jobject loader, const jbyt
 
 jclass JVM_DefineClassWithSource(JNIEnv *env, const char *name, jobject loader, const jbyte *buf, jsize len, jobject pd, const char *source)
 {
-	classinfo     *c;
-	utf           *u;
-	classloader_t *cl;
-
 	TRACEJVMCALLS(("JVM_DefineClassWithSource(env=%p, name=%s, loader=%p, buf=%p, len=%d, pd=%p, source=%s)", env, name, loader, buf, len, pd, source));
 
-	if (name != NULL)
-		u = utf_new_char(name);
-	else
-		u = NULL;
-
-	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
+	Utf8String     u  = (name != NULL) ? Utf8String::from_utf8(name) : NULL;
+	classloader_t *cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
 	/* XXX do something with source */
 
-	c = class_define(u, cl, len, (uint8_t *) buf, (java_handle_t *) pd);
+	classinfo *c = class_define(u, cl, len, (uint8_t *) buf, (java_handle_t *) pd);
 
 	return (jclass) LLNI_classinfo_wrap(c);
 }
@@ -765,16 +746,11 @@ jclass JVM_DefineClassWithSource(JNIEnv *env, const char *name, jobject loader, 
 
 jclass JVM_FindLoadedClass(JNIEnv *env, jobject loader, jstring name)
 {
-	classloader_t *cl;
-	utf           *u;
-	classinfo     *c;
-
 	TRACEJVMCALLS(("JVM_FindLoadedClass(env=%p, loader=%p, name=%p)", env, loader, name));
 
-	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
-
-	u = javastring_toutf((java_handle_t *) name, true);
-	c = classcache_lookup(cl, u);
+	classloader_t *cl = loader_hashtable_classloader_add((java_handle_t *) loader);
+	Utf8String     u  = JavaString((java_handle_t*) name).to_utf8_dot_to_slash();
+	classinfo     *c  = classcache_lookup(cl, u);
 
 	return (jclass) LLNI_classinfo_wrap(c);
 }
@@ -930,7 +906,7 @@ jobject JVM_DoPrivileged(JNIEnv *env, jclass cls, jobject action, jobject contex
 
 	/* lookup run() method (throw no exceptions) */
 
-	m = class_resolveclassmethod(c, utf_run, utf_void__java_lang_Object, c,
+	m = class_resolveclassmethod(c, utf8::run, utf8::void__java_lang_Object, c,
 								 false);
 
 	if ((m == NULL) || !(m->flags & ACC_PUBLIC) || (m->flags & ACC_STATIC)) {
@@ -1083,26 +1059,20 @@ jclass JVM_GetDeclaringClass(JNIEnv *env, jclass ofClass)
 
 jstring JVM_GetClassSignature(JNIEnv *env, jclass cls)
 {
-	classinfo     *c;
-	utf           *u;
-	java_handle_t *s;
-
 	TRACEJVMCALLS(("JVM_GetClassSignature(env=%p, cls=%p)", env, cls));
 
-	c = LLNI_classinfo_unwrap(cls);
+	classinfo *c = LLNI_classinfo_unwrap(cls);
 
 	/* Get the signature of the class. */
 
-	u = class_get_signature(c);
+	Utf8String u = class_get_signature(c);
 
 	if (u == NULL)
 		return NULL;
 
 	/* Convert UTF-string to a Java-string. */
 
-	s = javastring_new(u);
-
-	return (jstring) s;
+	return (jstring) JavaString::from_utf8(u);
 }
 
 
@@ -1565,7 +1535,7 @@ jdouble JVM_ConstantPoolGetDoubleAt(JNIEnv *env, jobject unused, jobject jcpool,
 
 jstring JVM_ConstantPoolGetStringAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
-	utf *ref;       /* utf object for the string in constant pool at index 'index' */
+	Utf8String ref; /* utf object for the string in constant pool at index 'index' */
 	classinfo *cls; /* classinfo of the class for which 'this' is the constant pool */
 
 	TRACEJVMCALLS(("JVM_ConstantPoolGetStringAt: jcpool=%p, index=%d", jcpool, index));
@@ -1578,8 +1548,8 @@ jstring JVM_ConstantPoolGetStringAt(JNIEnv *env, jobject unused, jobject jcpool,
 		return NULL;
 	}
 
-	/* XXX: I hope literalstring_new is the right Function. */
-	return (jstring)literalstring_new(ref);
+	/* XXX: I hope JavaString::literal is the right Function. */
+	return (jstring)JavaString::literal(ref);
 }
 
 
@@ -1587,7 +1557,7 @@ jstring JVM_ConstantPoolGetStringAt(JNIEnv *env, jobject unused, jobject jcpool,
 
 jstring JVM_ConstantPoolGetUTF8At(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
-	utf *ref; /* utf object for the utf8 data in constant pool at index 'index' */
+	Utf8String ref; /* utf object for the utf8 data in constant pool at index 'index' */
 	classinfo *cls; /* classinfo of the class for which 'this' is the constant pool */
 
 	TRACEJVMCALLS(("JVM_ConstantPoolGetUTF8At: jcpool=%p, index=%d", jcpool, index));
@@ -1600,8 +1570,8 @@ jstring JVM_ConstantPoolGetUTF8At(JNIEnv *env, jobject unused, jobject jcpool, j
 		return NULL;
 	}
 
-	/* XXX: I hope literalstring_new is the right Function. */
-	return (jstring)literalstring_new(ref);
+	/* XXX: I hope JavaString::literal is the right Function. */
+	return (jstring)JavaString::literal(ref);
 }
 
 
@@ -1612,7 +1582,6 @@ jboolean JVM_DesiredAssertionStatus(JNIEnv *env, jclass unused, jclass cls)
 #if defined(ENABLE_ASSERTION)
 	classinfo         *c;
 	jboolean           status;
-	utf               *name;
 
 	TRACEJVMCALLS(("JVM_DesiredAssertionStatus(env=%p, unused=%p, cls=%p)", env, unused, cls));
 
@@ -1630,7 +1599,7 @@ jboolean JVM_DesiredAssertionStatus(JNIEnv *env, jclass unused, jclass cls)
 			 it != list_assertion_names->end(); it++) {
 			assertion_name_t* item = *it;
 
-			name = utf_new_char(item->name);
+			Utf8String name = Utf8String::from_utf8(item->name);
 			if (name == c->packagename) {
 				status = (jboolean)item->enabled;
 			}
@@ -1700,7 +1669,7 @@ jobject JVM_AssertionStatusDirectives(JNIEnv *env, jclass unused)
 		for (List<assertion_name_t*>::iterator it = list_assertion_names->begin(); it != list_assertion_names->end(); it++) {
 			assertion_name_t* item = *it;
 
-			js = javastring_new_from_ascii(item->name);
+			js = JavaString::from_utf8(item->name);
 			if (js == NULL) {
 				return NULL;
 			}
@@ -2561,23 +2530,12 @@ jint JVM_ClassLoaderDepth(JNIEnv *env)
 
 jstring JVM_GetSystemPackage(JNIEnv *env, jstring name)
 {
-	java_handle_t *s;
-	utf *u;
-	utf *result;
-
 	TRACEJVMCALLS(("JVM_GetSystemPackage(env=%p, name=%p)", env, name));
 
-/* 	s = Package::find(name); */
-	u = javastring_toutf((java_handle_t *) name, false);
+	Utf8String u      = JavaString((java_handle_t*) name).to_utf8();
+	Utf8String result = Package::find(u);
 
-	result = Package::find(u);
-
-	if (result != NULL)
-		s = javastring_new(result);
-	else
-		s = NULL;
-
-	return (jstring) s;
+	return (jstring) (result ? JavaString::from_utf8(result) : NULL);
 }
 
 
@@ -3070,7 +3028,7 @@ void* JVM_LoadLibrary(const char* name)
 {
 	TRACEJVMCALLSENTER(("JVM_LoadLibrary(name=%s)", name));
 
-	utf* u = utf_new_char(name);
+	Utf8String u = Utf8String::from_utf8(name);
 
 	NativeLibrary nl(u);
 	void* handle = nl.open();
@@ -3148,7 +3106,7 @@ jstring JVM_InternString(JNIEnv *env, jstring str)
 {
 	TRACEJVMCALLS(("JVM_InternString(env=%p, str=%p)", env, str));
 
-	return (jstring) javastring_intern((java_handle_t *) str);
+	return (jstring) JavaString((java_handle_t*) str).intern();
 }
 
 
@@ -3531,8 +3489,8 @@ jobjectArray JVM_GetEnclosingMethodInfo(JNIEnv *env, jclass ofClass)
 		return NULL;
 
 	oa.set_element(0, (java_handle_t *) LLNI_classinfo_wrap(m->clazz));
-	oa.set_element(1, javastring_new(m->name));
-	oa.set_element(2, javastring_new(m->descriptor));
+	oa.set_element(1, JavaString::from_utf8(m->name));
+	oa.set_element(2, JavaString::from_utf8(m->descriptor));
 
 	return oa.get_handle();
 }
@@ -3663,7 +3621,7 @@ jobjectArray JVM_GetThreadStateNames(JNIEnv* env, jint javaThreadState, jintArra
 			if (oa.is_null())
 				return NULL;
 
-			s = javastring_new(utf_new_char("NEW"));
+			s = JavaString::from_utf8("NEW");
 
 			if (s == NULL)
 				return NULL;
@@ -3679,7 +3637,7 @@ jobjectArray JVM_GetThreadStateNames(JNIEnv* env, jint javaThreadState, jintArra
 			if (oa.is_null())
 				return NULL;
 
-			s = javastring_new(utf_new_char("RUNNABLE"));
+			s = JavaString::from_utf8("RUNNABLE");
 
 			if (s == NULL)
 				return NULL;
@@ -3695,7 +3653,7 @@ jobjectArray JVM_GetThreadStateNames(JNIEnv* env, jint javaThreadState, jintArra
 			if (oa.is_null())
 				return NULL;
 
-			s = javastring_new(utf_new_char("BLOCKED"));
+			s = JavaString::from_utf8("BLOCKED");
 
 			if (s == NULL)
 				return NULL;
@@ -3711,14 +3669,14 @@ jobjectArray JVM_GetThreadStateNames(JNIEnv* env, jint javaThreadState, jintArra
 			if (oa.is_null())
 				return NULL;
 
-			s = javastring_new(utf_new_char("WAITING.OBJECT_WAIT"));
+			s = JavaString::from_utf8("WAITING.OBJECT_WAIT");
 
 			if (s == NULL)
 				return NULL;
 
 			oa.set_element(0, s);
 
-			s = javastring_new(utf_new_char("WAITING.PARKED"));
+			s = JavaString::from_utf8("WAITING.PARKED");
 
 			if (s == NULL)
 				return NULL;
@@ -3734,15 +3692,15 @@ jobjectArray JVM_GetThreadStateNames(JNIEnv* env, jint javaThreadState, jintArra
 			if (oa.is_null())
 				return NULL;
 
-/* 			s = javastring_new(utf_new_char("TIMED_WAITING.SLEEPING")); */
-			s = javastring_new(utf_new_char("TIMED_WAITING.OBJECT_WAIT"));
+/* 			s = JavaString::from_utf8("TIMED_WAITING.SLEEPING"); */
+			s = JavaString::from_utf8("TIMED_WAITING.OBJECT_WAIT");
 
 			if (s == NULL)
 				return NULL;
 
 			oa.set_element(0, s);
 
-			s = javastring_new(utf_new_char("TIMED_WAITING.PARKED"));
+			s = JavaString::from_utf8("TIMED_WAITING.PARKED");
 
 			if (s == NULL)
 				return NULL;
@@ -3758,7 +3716,7 @@ jobjectArray JVM_GetThreadStateNames(JNIEnv* env, jint javaThreadState, jintArra
 			if (oa.is_null())
 				return NULL;
 
-			s = javastring_new(utf_new_char("TERMINATED"));
+			s = JavaString::from_utf8("TERMINATED");
 
 			if (s == NULL)
 				return NULL;

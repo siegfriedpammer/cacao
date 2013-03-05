@@ -1,6 +1,6 @@
 /* src/vm/method.hpp - method functions header
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _METHOD_H
-#define _METHOD_H
+#ifndef METHOD_HPP_
+#define METHOD_HPP_ 1
 
 /* forward typedefs ***********************************************************/
 
@@ -50,10 +50,10 @@ typedef struct codeinfo            codeinfo;
 #include "vm/references.h"
 
 #if defined(ENABLE_JAVASE)
-# include "vm/stackmap.h"
+# include "vm/stackmap.hpp"
 #endif
 
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 
 #if defined(ENABLE_REPLACEMENT)
@@ -232,7 +232,7 @@ void method_methodref_println(constant_FMIref *mr);
 }
 #endif
 
-#endif /* _METHOD_H */
+#endif // METHOD_HPP_
 
 
 /*

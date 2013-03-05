@@ -1,6 +1,6 @@
 /* src/vm/jit/m68k/codegen.c - machine code generator for m68k
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -45,20 +45,20 @@
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/loader.hpp"
-#include "vm/options.h"
-#include "vm/utf8.h"
+#include "vm/options.hpp"
+#include "vm/utf8.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/patcher-common.hpp"
-#include "vm/jit/dseg.h"
+#include "vm/jit/dseg.hpp"
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/abi.h"
 #include "vm/jit/parse.hpp"
-#include "vm/jit/reg.h"
+#include "vm/jit/reg.hpp"
 #include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.hpp"
 
@@ -904,7 +904,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				fieldtype = fi->type;
 				disp      = (intptr_t) fi->value;
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))	{
+				if (!class_is_or_almost_initialized(fi->clazz))	{
 					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz,
 										0);
 				}
@@ -958,7 +958,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				fieldtype = fi->type;
 				disp      = (intptr_t) fi->value;
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+				if (!class_is_or_almost_initialized(fi->clazz))
 					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz,
 										0);
   			}

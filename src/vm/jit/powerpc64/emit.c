@@ -1,6 +1,6 @@
 /* src/vm/jit/powerpc64/emit.c - PowerPC64 code emitter functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -36,7 +36,7 @@
 
 #include "threads/lock.hpp"
 
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/abi.h"

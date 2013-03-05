@@ -1,6 +1,6 @@
 ## src/vm/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2007, 2008
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -35,8 +35,8 @@ endif
 
 if ENABLE_CYCLES_STATS
 CYCLES_STATS_SOURCES = \
-	cycles-stats.c \
-	cycles-stats.h
+	cycles-stats.cpp \
+	cycles-stats.hpp
 endif
 
 if ENABLE_JAVASE
@@ -47,8 +47,8 @@ ANNOTATION_SOURCES = \
 endif
 
 STACKMAP_SOURCES = \
-	stackmap.c \
-	stackmap.h
+	stackmap.cpp \
+	stackmap.hpp
 endif
 
 if ENABLE_RT_TIMING
@@ -59,8 +59,8 @@ endif
 
 if ENABLE_STATISTICS
 STATISTICS_SOURCES = \
-	statistics.c \
-	statistics.h
+	statistics.cpp \
+	statistics.hpp
 endif
 
 if ENABLE_ZLIB
@@ -111,8 +111,8 @@ libvm_la_SOURCES = \
 	loader.hpp \
 	method.cpp \
 	method.hpp \
-	options.c \
-	options.h \
+	options.cpp \
+	options.hpp \
 	os.cpp \
 	os.hpp \
 	package.cpp \
@@ -133,8 +133,8 @@ libvm_la_SOURCES = \
 	string.hpp \
 	suck.cpp \
 	suck.hpp \
-	utf8.c \
-	utf8.h \
+	utf8.cpp \
+	utf8.hpp \
 	vftbl.hpp \
 	vm.cpp \
 	vm.hpp \

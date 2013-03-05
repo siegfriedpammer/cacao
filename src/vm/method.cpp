@@ -1,6 +1,6 @@
 /* src/vm/method.cpp - method functions
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -33,7 +33,7 @@
 
 #include "mm/memory.hpp"
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "threads/mutex.hpp"
 
@@ -46,10 +46,10 @@
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
 #include "vm/method.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/resolve.hpp"
 #include "vm/suck.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/code.hpp"
@@ -90,7 +90,7 @@ void method_init(void)
 	/* Cache java.lang.reflect.Method.invoke() */
 
 	method_java_lang_reflect_Method_invoke =
-		class_findmethod(class_java_lang_reflect_Method, utf_invoke, NULL);
+		class_findmethod(class_java_lang_reflect_Method, utf8::invoke, NULL);
 
 	if (method_java_lang_reflect_Method_invoke == NULL)
 		vm_abort("method_init: Could not resolve method java.lang.reflect.Method.invoke().");
@@ -147,15 +147,15 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 	classinfo *c;
 	int argcount;
 	s4         i, j, k, l;
-	utf       *u;
+	Utf8String u;
 	u2         name_index;
 	u2         descriptor_index;
 	u2         attributes_count;
 	u2         attribute_name_index;
-	utf       *attribute_name;
+	Utf8String attribute_name;
 	u2         code_attributes_count;
 	u2         code_attribute_name_index;
-	utf       *code_attribute_name;
+	Utf8String code_attribute_name;
 
 	/* get classinfo */
 
@@ -186,7 +186,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 	if (!(u = (utf*) class_getconstant(c, name_index, CONSTANT_Utf8)))
 		return false;
 
-	m->name = u;
+	m->name = u.c_ptr();
 
 	/* descriptor */
 
@@ -195,20 +195,20 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 	if (!(u = (utf*) class_getconstant(c, descriptor_index, CONSTANT_Utf8)))
 		return false;
 
-	m->descriptor = u;
+	m->descriptor = u.c_ptr();
 
 	if (!descriptor_pool_add(descpool, u, &argcount))
 		return false;
 
 #ifdef ENABLE_VERIFIER
 	if (opt_verify) {
-		if (!is_valid_name_utf(m->name)) {
+		if (!Utf8String(m->name).is_valid_name()) {
 			exceptions_throw_classformaterror(c, "Method with invalid name");
 			return false;
 		}
 
-		if (m->name->text[0] == '<' &&
-			m->name != utf_init && m->name != utf_clinit) {
+		if (UTF_AT(m->name, 0) == '<' &&
+			m->name != utf8::init && m->name != utf8::clinit) {
 			exceptions_throw_classformaterror(c, "Method with invalid special name");
 			return false;
 		}
@@ -218,7 +218,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 	/* Ignore flags for class initializer according to section 4.6
 	   of "The Java Virtual Machine Specification, 2nd Edition" (see PR125). */
 
-	if (m->name == utf_clinit) {
+	if (m->name == utf8::clinit) {
 		m->flags &= ACC_STRICT;
 		m->flags |= ACC_STATIC;
 	}
@@ -234,7 +234,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 		}
 
 		/* check flag consistency */
-		if (m->name != utf_clinit) {
+		if (m->name != utf8::clinit) {
 			i = (m->flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED));
 
 			if (i != 0 && i != ACC_PUBLIC && i != ACC_PRIVATE && i != ACC_PROTECTED) {
@@ -263,7 +263,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 				}
 			}
 
-			if (m->name == utf_init) {
+			if (m->name == utf8::init) {
 				if (m->flags & (ACC_STATIC | ACC_FINAL | ACC_SYNCHRONIZED |
 								ACC_NATIVE | ACC_ABSTRACT)) {
 					exceptions_throw_classformaterror(c, "Instance initialization method has invalid flags set");
@@ -304,7 +304,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 		if (attribute_name == NULL)
 			return false;
 
-		if (attribute_name == utf_Code) {
+		if (attribute_name == utf8::Code) {
 			/* Code */
 
 			if (m->flags & (ACC_ABSTRACT | ACC_NATIVE)) {
@@ -409,7 +409,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 
 				/* check which code attribute */
 
-				if (code_attribute_name == utf_LineNumberTable) {
+				if (code_attribute_name == utf8::LineNumberTable) {
 					/* LineNumberTable */
 
 					if (!suck_check_classbuffer_size(cb, 4 + 2))
@@ -440,14 +440,14 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 					}
 				}
 #if defined(ENABLE_JAVASE)
-				else if (code_attribute_name == utf_StackMapTable) {
+				else if (code_attribute_name == utf8::StackMapTable) {
 					/* StackTableMap */
 
 					if (!stackmap_load_attribute_stackmaptable(cb, m))
 						return false;
 				}
 # if defined(ENABLE_JVMTI)
-				else if (code_attribute_name == utf_LocalVariableTable) {
+				else if (code_attribute_name == utf8::LocalVariableTable) {
 					/* LocalVariableTable */
 
 					if (m->localvars != NULL) {
@@ -496,7 +496,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 				}
 			}
 		}
-		else if (attribute_name == utf_Exceptions) {
+		else if (attribute_name == utf8::Exceptions) {
 			/* Exceptions */
 
 			if (m->thrownexceptions != NULL) {
@@ -526,35 +526,43 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 			}
 		}
 #if defined(ENABLE_JAVASE)
-		else if (attribute_name == utf_Signature) {
+		else if (attribute_name == utf8::Signature) {
 			/* Signature */
 
-			if (!loader_load_attribute_signature(cb, &(m->signature)))
-				return false;
+			// TODO: change methodinfo.signature to Utf8String
+			//       and use it directly
+
+			Utf8String signature = m->signature;
+
+			if (!loader_load_attribute_signature(cb, signature)) {
+				return NULL;
+			}
+
+			m->signature = signature.c_ptr();
 		}
 
 # if defined(ENABLE_ANNOTATIONS)
-		else if (attribute_name == utf_RuntimeVisibleAnnotations) {
+		else if (attribute_name == utf8::RuntimeVisibleAnnotations) {
 			/* RuntimeVisibleAnnotations */
 			if (!annotation_load_method_attribute_runtimevisibleannotations(cb, m))
 				return false;
 		}
-		else if (attribute_name == utf_RuntimeInvisibleAnnotations) {
+		else if (attribute_name == utf8::RuntimeInvisibleAnnotations) {
 			/* RuntimeInvisibleAnnotations */
 			if (!annotation_load_method_attribute_runtimeinvisibleannotations(cb, m))
 				return false;
 		}
-		else if (attribute_name == utf_RuntimeVisibleParameterAnnotations) {
+		else if (attribute_name == utf8::RuntimeVisibleParameterAnnotations) {
 			/* RuntimeVisibleParameterAnnotations */
 			if (!annotation_load_method_attribute_runtimevisibleparameterannotations(cb, m))
 				return false;
 		}
-		else if (attribute_name == utf_RuntimeInvisibleParameterAnnotations) {
+		else if (attribute_name == utf8::RuntimeInvisibleParameterAnnotations) {
 			/* RuntimeInvisibleParameterAnnotations */
 			if (!annotation_load_method_attribute_runtimeinvisibleparameterannotations(cb, m))
 				return false;
 		}
-		else if (attribute_name == utf_AnnotationDefault) {
+		else if (attribute_name == utf8::AnnotationDefault) {
 			/* AnnotationDefault */
 			if (!annotation_load_method_attribute_annotationdefault(cb, m))
 				return false;

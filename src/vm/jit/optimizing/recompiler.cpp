@@ -1,6 +1,6 @@
 /* src/vm/jit/optimizing/recompiler.cpp - recompilation system
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -36,7 +36,7 @@
 
 #include "vm/classcache.hpp"
 #include "vm/exceptions.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/string.hpp"
 
 #include "vm/jit/builtin.hpp"
@@ -181,7 +181,7 @@ void Recompiler::thread()
  */
 bool Recompiler::start()
 {
-	utf *name = utf_new_char("Recompiler");
+	Utf8String name = Utf8String::from_utf8("Recompiler");
 
 	if (!threads_thread_start_internal(name, (functionptr) &Recompiler::thread))
 		return false;

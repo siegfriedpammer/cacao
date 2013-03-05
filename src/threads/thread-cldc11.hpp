@@ -1,6 +1,6 @@
 /* src/threads/thread-cldc11.hpp - thread functions specific to the CLDC 1.1 library
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _THREAD_CLDC11_HPP
-#define _THREAD_CLDC11_HPP
+#ifndef THREAD_CLDC11_HPP_
+#define THREAD_CLDC11_HPP_ 1
 
 #ifdef __cplusplus
 
@@ -36,7 +36,7 @@
 #if defined(ENABLE_THREADS)
 # include "threads/posix/thread-posix.hpp"
 #else
-# include "threads/none/thread-none.h"
+# include "threads/none/thread-none.hpp"
 #endif
 
 class java_lang_Thread;
@@ -66,7 +66,7 @@ typedef ThreadRuntimeCldc11 ThreadRuntime;
 
 #endif	// __cplusplus
 
-#endif // _THREAD_CLDC11_HPP
+#endif // THREAD_CLDC11_HPP_
 
 
 /*

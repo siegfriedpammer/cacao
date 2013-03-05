@@ -1,6 +1,6 @@
 /* src/vm/initialize.cpp - static class initializer functions
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -38,12 +38,9 @@
 #include "vm/globals.hpp"
 #include "vm/initialize.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/vm.hpp"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
+#include "vm/statistics.hpp"
 
 #include "vm/jit/asmpart.h"
 
@@ -118,7 +115,7 @@ bool initialize_class(classinfo *c)
 	/* maybe the class is already initalized or the current thread, which can
 	   pass the monitor, is currently initalizing this class */
 
-	if (CLASS_IS_OR_ALMOST_INITIALIZED(c)) {
+	if (class_is_or_almost_initialized(c)) {
 		LOCK_MONITOR_EXIT(c);
 
 		return true;
@@ -210,7 +207,7 @@ static bool initialize_class_intern(classinfo *c)
 
 	/* interfaces implemented need not to be initialized (VM Spec 2.17.4) */
 
-	m = class_findmethod(c, utf_clinit, utf_void__void);
+	m = class_findmethod(c, utf8::clinit, utf8::void__void);
 
 	if (m == NULL) {
 #if !defined(NDEBUG)
@@ -245,7 +242,7 @@ static bool initialize_class_intern(classinfo *c)
 
 		/* Load java/lang/Exception for the instanceof check. */
 
-		clazz = load_class_bootstrap(utf_java_lang_Exception);
+		clazz = load_class_bootstrap(utf8::java_lang_Exception);
 
 		if (clazz == NULL)
 			return false;

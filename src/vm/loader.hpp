@@ -1,6 +1,6 @@
 /* src/vm/loader.hpp - class loader header
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,27 +23,38 @@
 */
 
 
-#ifndef _LOADER_HPP
-#define _LOADER_HPP
-
-/* forward typedefs ***********************************************************/
-
-typedef struct classbuffer classbuffer;
-
+#ifndef LOADER_HPP_
+#define LOADER_HPP_ 1
 
 #include "config.h"
 
 #include <stdio.h>
 
 #include "vm/types.h"
-
-#include "vm/descriptor.hpp"
-#include "vm/class.hpp"
 #include "vm/global.h"
-#include "vm/method.hpp"
-#include "vm/references.h"
-#include "vm/utf8.h"
 
+#include "vm/utf8.hpp"
+
+/* forward typedefs ***********************************************************/
+
+typedef struct classbuffer          classbuffer;
+typedef struct constant_nameandtype constant_nameandtype;
+
+/* classloader *****************************************************************
+
+   [!ENABLE_HANDLES]: The classloader is a Java Object which cannot move.
+   [ENABLE_HANDLES] : The classloader entry itself is a static handle for a
+                      given classloader (use loader_hashtable_classloader_foo).
+
+*******************************************************************************/
+
+#if defined(ENABLE_HANDLES)
+typedef hashtable_classloader_entry classloader_t;
+#else
+typedef java_object_t               classloader_t;
+#endif
+
+#ifdef __cplusplus
 
 /* constant pool entries *******************************************************
 
@@ -68,31 +79,30 @@ typedef struct classbuffer classbuffer;
 
 *******************************************************************************/
 
-typedef struct {            /* Integer                                        */
+struct constant_integer {              /* Integer                             */
 	s4 value;
-} constant_integer;
+};
 
 	
-typedef struct {            /* Float                                          */
+struct constant_float {                /* Float                               */
 	float value;
-} constant_float;
+};
 
 
-typedef struct {            /* Long                                           */
+struct constant_long {                 /* Long                                */
 	s8 value;
-} constant_long;
+};
 	
 
-typedef struct {            /* Double                                         */
+struct constant_double {               /* Double                              */
 	double value;
-} constant_double;
+};
 
 
-typedef struct {            /* NameAndType (Field or Method)                  */
-	utf *name;              /* field/method name                              */
-	utf *descriptor;        /* field/method type descriptor string            */
-} constant_nameandtype;
-
+struct  constant_nameandtype {         /* NameAndType (Field or Method)       */
+	Utf8String name;                   /* field/method name                   */
+	Utf8String descriptor;             /* field/method type descriptor string */
+};
 
 /* classbuffer ****************************************************************/
 
@@ -120,27 +130,7 @@ struct hashtable_classloader_entry {
 	hashtable_classloader_entry *hashlink;
 };
 
-
-/* classloader *****************************************************************
-
-   [!ENABLE_HANDLES]: The classloader is a Java Object which cannot move.
-   [ENABLE_HANDLES] : The classloader entry itself is a static handle for a
-                      given classloader (use loader_hashtable_classloader_foo).
-
-*******************************************************************************/
-
-#if defined(ENABLE_HANDLES)
-typedef hashtable_classloader_entry classloader_t;
-#else
-typedef java_object_t               classloader_t;
-#endif
-
-
 /* function prototypes ********************************************************/
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 void loader_preinit(void);
 void loader_init(void);
@@ -154,26 +144,24 @@ void loader_load_all_classes(void);
 bool loader_skip_attribute_body(classbuffer *cb);
 
 #if defined(ENABLE_JAVASE)
-bool loader_load_attribute_signature(classbuffer *cb, utf **signature);
+bool loader_load_attribute_signature(classbuffer *cb, Utf8String& signature);
 #endif
 
 /* free resources */
 void loader_close(void);
 
 /* class loading functions */
-classinfo *load_class_from_sysloader(utf *name);
-classinfo *load_class_from_classloader(utf *name, classloader_t *cl);
-classinfo *load_class_bootstrap(utf *name);
+classinfo *load_class_from_sysloader(Utf8String name);
+classinfo *load_class_from_classloader(Utf8String name, classloader_t *cl);
+classinfo *load_class_bootstrap(Utf8String name);
 
 /* (don't use the following directly) */
 classinfo *load_class_from_classbuffer(classbuffer *cb);
 classinfo *load_newly_created_array(classinfo *c, classloader_t *loader);
 
-#ifdef __cplusplus
-}
-#endif
+#endif // __cplusplus
 
-#endif // _LOADER_HPP
+#endif // LOADER_HPP_
 
 
 /*

@@ -1,6 +1,6 @@
 /* src/native/vm/gnuclasspath/java_security_VMAccessController.cpp
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -35,7 +35,7 @@
 #endif
 
 #include "vm/global.h"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
 #include "vm/jit/stacktrace.hpp"
 
@@ -71,7 +71,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_java_security_VMAccessController_init(void)
 {
-	utf* u = utf_new_char("java/security/VMAccessController");
+	Utf8String u = Utf8String::from_utf8("java/security/VMAccessController");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

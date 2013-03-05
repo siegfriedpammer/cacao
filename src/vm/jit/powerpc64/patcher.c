@@ -1,6 +1,6 @@
 /* src/vm/jit/powerpc64/patcher.c - PowerPC64 code patching functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008 Theobroma Systems Ltd.
 
@@ -41,7 +41,7 @@
 #include "vm/class.hpp"
 #include "vm/field.hpp"
 #include "vm/initialize.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/references.h"
 #include "vm/resolve.hpp"
 

@@ -1,6 +1,6 @@
 /* src/native/jni.cpp - implementation of the Java Native Interface functions
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -35,7 +35,7 @@
 #include "mm/memory.hpp"
 
 #include "native/jni.hpp"
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "native/localref.hpp"
 #include "native/native.hpp"
 
@@ -57,10 +57,10 @@
 #include "vm/initialize.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/primitive.hpp"
 #include "vm/resolve.hpp"
-#include "vm/statistics.h"
+#include "vm/statistics.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
@@ -173,36 +173,36 @@ bool jni_init(void)
 	/* Direct buffer stuff. */
 
 	if (!(class_java_nio_Buffer =
-		  load_class_bootstrap(utf_new_char("java/nio/Buffer"))) ||
+		  load_class_bootstrap(Utf8String::from_utf8("java/nio/Buffer"))) ||
 		!link_class(class_java_nio_Buffer))
 		return false;
 
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	if (!(class_java_nio_DirectByteBufferImpl =
-		  load_class_bootstrap(utf_new_char("java/nio/DirectByteBufferImpl"))) ||
+		  load_class_bootstrap(Utf8String::from_utf8("java/nio/DirectByteBufferImpl"))) ||
 		!link_class(class_java_nio_DirectByteBufferImpl))
 		return false;
 
 	if (!(class_java_nio_DirectByteBufferImpl_ReadWrite =
-		  load_class_bootstrap(utf_new_char("java/nio/DirectByteBufferImpl$ReadWrite"))) ||
+		  load_class_bootstrap(Utf8String::from_utf8("java/nio/DirectByteBufferImpl$ReadWrite"))) ||
 		!link_class(class_java_nio_DirectByteBufferImpl_ReadWrite))
 		return false;
 
 	if (!(dbbirw_init =
 		class_resolvemethod(class_java_nio_DirectByteBufferImpl_ReadWrite,
-							utf_init,
-							utf_new_char("(Ljava/lang/Object;Lgnu/classpath/Pointer;III)V"))))
+		                    utf8::init,
+		                    Utf8String::from_utf8("(Ljava/lang/Object;Lgnu/classpath/Pointer;III)V"))))
 		return false;
 
 #  if SIZEOF_VOID_P == 8
 	if (!(class_gnu_classpath_Pointer64 =
-		  load_class_bootstrap(utf_new_char("gnu/classpath/Pointer64"))) ||
+		  load_class_bootstrap(Utf8String::from_utf8("gnu/classpath/Pointer64"))) ||
 		!link_class(class_gnu_classpath_Pointer64))
 		return false;
 #  else
 	if (!(class_gnu_classpath_Pointer32 =
-		  load_class_bootstrap(utf_new_char("gnu/classpath/Pointer32"))) ||
+		  load_class_bootstrap(Utf8String::from_utf8("gnu/classpath/Pointer32"))) ||
 		!link_class(class_gnu_classpath_Pointer32))
 		return false;
 #  endif
@@ -210,14 +210,14 @@ bool jni_init(void)
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	if (!(class_sun_nio_ch_DirectBuffer =
-		  load_class_bootstrap(utf_new_char("sun/nio/ch/DirectBuffer"))))
+		  load_class_bootstrap(Utf8String::from_utf8("sun/nio/ch/DirectBuffer"))))
 		vm_abort("jni_init: loading sun/nio/ch/DirectBuffer failed");
 
 	if (!link_class(class_sun_nio_ch_DirectBuffer))
 		vm_abort("jni_init: linking sun/nio/ch/DirectBuffer failed");
 
 	if (!(class_java_nio_DirectByteBuffer =
-		  load_class_bootstrap(utf_new_char("java/nio/DirectByteBuffer"))))
+		  load_class_bootstrap(Utf8String::from_utf8("java/nio/DirectByteBuffer"))))
 		vm_abort("jni_init: loading java/nio/DirectByteBuffer failed");
 
 	if (!link_class(class_java_nio_DirectByteBuffer))
@@ -225,8 +225,8 @@ bool jni_init(void)
 
 	if (!(dbb_init =
 		  class_resolvemethod(class_java_nio_DirectByteBuffer,
-							  utf_init,
-							  utf_new_char("(JI)V"))))
+							  utf8::init,
+							  Utf8String::from_utf8("(JI)V"))))
 		vm_abort("jni_init: resolving java/nio/DirectByteBuffer.init(JI)V failed");
 
 # endif
@@ -810,14 +810,14 @@ jint _Jv_JNI_GetVersion(JNIEnv *env)
 jclass jni_DefineClass(JNIEnv *env, const char *name, jobject loader, const jbyte *buf, jsize bufLen)
 {
 #if defined(ENABLE_JAVASE)
-	utf           *u;
+	Utf8String     u;
 	classloader_t *cl;
 	classinfo     *c;
 	java_handle_t* h;
 
 	TRACEJNICALLS(("jni_DefineClass(env=%p, name=%s, loader=%p, buf=%p, bufLen=%d)", env, name, loader, buf, bufLen));
 
-	u  = utf_new_char(name);
+	u  = Utf8String::from_utf8(name);
 	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
 	c = class_define(u, cl, bufLen, (uint8_t *) buf, NULL);
@@ -846,8 +846,6 @@ jclass jni_DefineClass(JNIEnv *env, const char *name, jobject loader, const jbyt
 jclass jni_FindClass(JNIEnv *env, const char *name)
 {
 #if defined(ENABLE_JAVASE)
-
-	utf*       u;    
 	classinfo* cc;
 	classinfo* c;
 	java_handle_t* h;
@@ -856,7 +854,7 @@ jclass jni_FindClass(JNIEnv *env, const char *name)
 
 	/* FIXME If name is NULL we have a problem here. */
 
-	u = utf_new_char_classname((char *) name);
+	Utf8String u = Utf8String::from_utf8_dot_to_slash(name);
 
 	if ((u == NULL) /*|| (int)strlen(name) > symbolOopDesc::max_length() */) {
 		exceptions_throw_noclassdeffounderror(u);
@@ -885,12 +883,12 @@ jclass jni_FindClass(JNIEnv *env, const char *name)
 		classloader_t *cl = cc->classloader;
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 		/* See jni_FindClass in Hotspot's src/share/vm/prims/jni.cpp */
-		if (!cl && cc->name == utf_java_lang_ClassLoader_NativeLibrary)
+		if (!cl && cc->name == utf8::java_lang_ClassLoader_NativeLibrary)
 		{
 			methodinfo *m = class_resolveclassmethod(
 				cc,
-				utf_new_char("getFromClass"),
-				utf_new_char("()Ljava/lang/Class;"),
+				Utf8String::from_utf8("getFromClass"),
+				Utf8String::from_utf8("()Ljava/lang/Class;"),
 				NULL,
 				true);
 
@@ -920,13 +918,11 @@ jclass jni_FindClass(JNIEnv *env, const char *name)
   	return (jclass) jni_NewLocalRef(env, (jobject) h);
 
 #elif defined(ENABLE_JAVAME_CLDC1_1)
-
-	utf       *u;
 	classinfo *c;
 
 	TRACEJNICALLS(("jni_FindClass(env=%p, name=%s)", env, name));
 
-	u = utf_new_char_classname((char *) name);
+	Utf8String u = Utf8String:from_utf8_dot_to_slash(name);
 	c = load_class_bootstrap(u);
 
 	if (c == NULL) {
@@ -1036,7 +1032,7 @@ jint _Jv_JNI_ThrowNew(JNIEnv* env, jclass clazz, const char *msg)
 	c = LLNI_classinfo_unwrap(clazz);
 	if (msg == NULL)
 		msg = "";
-	s = javastring_new_from_utf_string(msg);
+	s = JavaString::from_utf8(msg);
 
   	/* instantiate exception object */
 
@@ -1546,7 +1542,7 @@ jobject jni_ToReflectedMethod(JNIEnv* env, jclass cls, jmethodID methodID, jbool
 
 	java_handle_t* h;
 
-	if (m->name == utf_init) {
+	if (m->name == utf8::init) {
 		h = java_lang_reflect_Constructor(m).get_handle();
 	}
 	else {
@@ -1599,8 +1595,6 @@ jmethodID _Jv_JNI_GetMethodID(JNIEnv* env, jclass clazz, const char *name,
 							  const char *sig)
 {
 	classinfo  *c;
-	utf        *uname;
-	utf        *udesc;
 	methodinfo *m;
 
 	STATISTICS(jniinvokation());
@@ -1616,8 +1610,8 @@ jmethodID _Jv_JNI_GetMethodID(JNIEnv* env, jclass clazz, const char *name,
 
 	/* try to get the method of the class or one of it's superclasses */
 
-	uname = utf_new_char((char *) name);
-	udesc = utf_new_char((char *) sig);
+	Utf8String uname = Utf8String::from_utf8(name);
+	Utf8String udesc = Utf8String::from_utf8(sig);
 
  	m = class_resolvemethod(c, uname, udesc);
 
@@ -2004,8 +1998,6 @@ jfieldID _Jv_JNI_GetFieldID(JNIEnv *env, jclass clazz, const char *name,
 {
 	classinfo *c;
 	fieldinfo *f;
-	utf       *uname;
-	utf       *udesc;
 
 	STATISTICS(jniinvokation());
 
@@ -2013,8 +2005,8 @@ jfieldID _Jv_JNI_GetFieldID(JNIEnv *env, jclass clazz, const char *name,
 
 	/* XXX NPE check? */
 
-	uname = utf_new_char((char *) name);
-	udesc = utf_new_char((char *) sig);
+	Utf8String uname = Utf8String::from_utf8(name);
+	Utf8String udesc = Utf8String::from_utf8(sig);
 
 	f = class_findfield(c, uname, udesc); 
 	
@@ -2149,8 +2141,6 @@ jmethodID _Jv_JNI_GetStaticMethodID(JNIEnv *env, jclass clazz, const char *name,
 									const char *sig)
 {
 	classinfo  *c;
-	utf        *uname;
-	utf        *udesc;
 	methodinfo *m;
 
 	TRACEJNICALLS(("_Jv_JNI_GetStaticMethodID(env=%p, clazz=%p, name=%s, sig=%s)", env, clazz, name, sig));
@@ -2166,8 +2156,8 @@ jmethodID _Jv_JNI_GetStaticMethodID(JNIEnv *env, jclass clazz, const char *name,
 
 	/* try to get the static method of the class */
 
-	uname = utf_new_char((char *) name);
-	udesc = utf_new_char((char *) sig);
+	Utf8String uname = Utf8String::from_utf8(name);
+	Utf8String udesc = Utf8String::from_utf8(sig);
 
  	m = class_resolvemethod(c, uname, udesc);
 
@@ -2361,19 +2351,17 @@ void _Jv_JNI_CallStaticVoidMethodA(JNIEnv *env, jclass clazz,
 *******************************************************************************/
 
 jfieldID _Jv_JNI_GetStaticFieldID(JNIEnv *env, jclass clazz, const char *name,
-								  const char *sig)
+                                                             const char *sig)
 {
 	classinfo *c;
 	fieldinfo *f;
-	utf       *uname;
-	utf       *usig;
 
 	STATISTICS(jniinvokation());
 
 	c = LLNI_classinfo_unwrap(clazz);
 
-	uname = utf_new_char((char *) name);
-	usig  = utf_new_char((char *) sig);
+	Utf8String uname = Utf8String::from_utf8(name);
+	Utf8String usig  = Utf8String::from_utf8(sig);
 
 	f = class_findfield(c, uname, usig);
 	
@@ -2646,7 +2634,7 @@ jstring jni_NewStringUTF(JNIEnv *env, const char *bytes)
 {
 	TRACEJNICALLS(("jni_NewStringUTF(env=%p, bytes=%s)", env, bytes));
 
-	java_handle_t *h = javastring_safe_new_from_utf8(bytes);
+	java_handle_t *h = JavaString::from_utf8(bytes);
 
     return (jstring) jni_NewLocalRef(env, (jobject) h);
 }
@@ -2658,15 +2646,7 @@ jsize jni_GetStringUTFLength(JNIEnv *env, jstring string)
 {   
 	TRACEJNICALLS(("jni_GetStringUTFLength(env=%p, string=%p)", env, string));
 
-	java_lang_String s(string);
-	CharArray        ca(s.get_value());
-	int32_t          count = runtime_str_ops::get_string_count(s);
-
-	// FIXME GC critical section!
-	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
-	int32_t length = u2_utflength(ptr, count);
-
-	return length;
+	return JavaString((java_handle_t*) string).utf8_size();
 }
 
 
@@ -2681,8 +2661,6 @@ jsize jni_GetStringUTFLength(JNIEnv *env, jstring string)
 const char *_Jv_JNI_GetStringUTFChars(JNIEnv *env, jstring string,
 									  jboolean *isCopy)
 {
-	utf *u;
-
 	STATISTICS(jniinvokation());
 
 	if (string == NULL)
@@ -2691,10 +2669,10 @@ const char *_Jv_JNI_GetStringUTFChars(JNIEnv *env, jstring string,
 	if (isCopy)
 		*isCopy = JNI_TRUE;
 	
-	u = javastring_toutf((java_handle_t *) string, false);
+	Utf8String u = JavaString((java_handle_t *) string).to_utf8();
 
 	if (u != NULL)
-		return u->text;
+		return u.begin();
 
 	return "";
 }

@@ -1,6 +1,6 @@
 /* src/threads/lock.hpp - lock implementation
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,12 +23,12 @@
 */
 
 
-#ifndef _LOCK_HPP
-#define _LOCK_HPP
+#ifndef LOCK_HPP_
+#define LOCK_HPP_ 1
 
 #include <stdint.h>
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "threads/mutex.hpp"
 
@@ -114,7 +114,7 @@ void lock_schedule_lockrecord_removal(java_handle_t *o);
 
 #endif
 
-#endif // _LOCK_HPP
+#endif // LOCK_HPP_
 
 
 /*

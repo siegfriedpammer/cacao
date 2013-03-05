@@ -1,6 +1,6 @@
 ## src/native/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2007, 2008
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -45,8 +45,8 @@ endif
 
 libnative_la_SOURCES = \
 	$(JNI_SOURCES) \
-	llni.c \
-	llni.h \
+	llni.cpp \
+	llni.hpp \
 	native.cpp \
 	native.hpp
 

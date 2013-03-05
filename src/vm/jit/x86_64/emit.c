@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/emit.c - x86_64 code emitter functions
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -38,7 +38,7 @@
 
 #include "threads/lock.hpp"
 
-#include "vm/options.h"
+#include "vm/options.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"

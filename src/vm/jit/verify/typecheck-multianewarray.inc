@@ -1,9 +1,7 @@
 /* src/vm/jit/verify/typecheck-multianewarray.inc - type checking for MULTIANEWARRAY
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2013
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -69,7 +67,7 @@
 		/* check that the reference indicates an array class of correct dimension */
 		cr = state->iptr->sx.s23.s3.c.ref;
 		i = 0;
-		p = cr->name->text;
+		p = UTF_TEXT(cr->name);
 		while (p[i] == '[')
 			i++;
 		/* { the dimension of the array class == i } */

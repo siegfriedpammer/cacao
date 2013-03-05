@@ -1,6 +1,6 @@
 /* src/threads/posix/thread-posix.hpp - POSIX thread functions
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _THREAD_POSIX_HPP
-#define _THREAD_POSIX_HPP
+#ifndef THREAD_POSIX_HPP_
+#define THREAD_POSIX_HPP_ 1
 
 #include "config.h"
 
@@ -37,7 +37,7 @@
 // Includes required by Thread.
 
 #if defined(ENABLE_TLH)
-# include "mm/tlh.h"
+# include "mm/tlh.hpp"
 #endif
 
 #include "threads/condition.hpp"
@@ -207,7 +207,7 @@ inline static threadobject* thread_get_current(void);
 #include "vm/vm.hpp"
 
 #if defined(ENABLE_GC_CACAO)
-# include "vm/jit/executionstate.h"
+# include "vm/jit/executionstate.hpp"
 # include "vm/jit/replace.hpp"
 #endif
 
@@ -304,8 +304,7 @@ void threads_tlh_remove_frame();
 } // extern "C"
 #endif
 
-#endif // _THREAD_POSIX_HPP
-
+#endif // THREAD_POSIX_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -1,6 +1,6 @@
 /* src/native/vm/cldc1.1/com_sun_cldchi_io_ConsoleOutputStream.cpp
 
-   Copyright (C) 2006, 2007, 2008
+   Copyright (C) 2006-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -71,8 +71,8 @@ static JNINativeMethod methods[] = {
  
 void _Jv_com_sun_cldchi_io_ConsoleOutputStream_init(void)
 {
-	utf* u = utf_new_char("com/sun/cldchi/io/ConsoleOutputStream");
- 
+	Utf8String u = Utf8String::from_utf8("com/sun/cldchi/io/ConsoleOutputStream");
+
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }

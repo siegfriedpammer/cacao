@@ -1,6 +1,6 @@
 /* src/vm/primitive.hpp - primitive types
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 2007-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _PRIMITIVE_HPP
-#define _PRIMITIVE_HPP
+#ifndef PRIMITIVE_HPP_
+#define PRIMITIVE_HPP_ 1
 
 #include "config.h"
 
@@ -33,8 +33,30 @@
 #include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/linker.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 
+/* primitive data types *******************************************************/
+
+/* These values are used in parsed descriptors and in some other
+   places were the different types handled internally as TYPE_INT have
+   to be distinguished. */
+
+#define PRIMITIVETYPE_COUNT  11  /* number of primitive types (+ dummies)     */
+
+/* CAUTION: Don't change the numerical values! These constants are
+   used as indices into the primitive type table. */
+
+#define PRIMITIVETYPE_INT     TYPE_INT
+#define PRIMITIVETYPE_LONG    TYPE_LNG
+#define PRIMITIVETYPE_FLOAT   TYPE_FLT
+#define PRIMITIVETYPE_DOUBLE  TYPE_DBL
+#define PRIMITIVETYPE_DUMMY1  TYPE_ADR     /* not used! */
+#define PRIMITIVETYPE_BYTE    5
+#define PRIMITIVETYPE_CHAR    6
+#define PRIMITIVETYPE_SHORT   7
+#define PRIMITIVETYPE_BOOLEAN 8
+#define PRIMITIVETYPE_DUMMY2  9            /* not used! */
+#define PRIMITIVETYPE_VOID    TYPE_VOID
 
 #ifdef __cplusplus
 
@@ -43,10 +65,10 @@ public:
 	static void initialize_table();
 	static void post_initialize_table();
 
-	static classinfo*     get_class_by_name(utf *name);
+	static classinfo*     get_class_by_name(Utf8String name);
 	static classinfo*     get_class_by_type(int type);
 	static classinfo*     get_class_by_char(char ch);
-	static classinfo*     get_arrayclass_by_name(utf* name);
+	static classinfo*     get_arrayclass_by_name(Utf8String name);
 	static classinfo*     get_arrayclass_by_type(int type);
 
 	static int            get_type_by_wrapperclass(classinfo *c);
@@ -76,37 +98,11 @@ public:
 	static double         unbox_double(java_handle_t* o);
 };
 
-#endif
-
-/* primitive data types *******************************************************/
-
-/* These values are used in parsed descriptors and in some other
-   places were the different types handled internally as TYPE_INT have
-   to be distinguished. */
-
-#define PRIMITIVETYPE_COUNT  11  /* number of primitive types (+ dummies)     */
-
-/* CAUTION: Don't change the numerical values! These constants are
-   used as indices into the primitive type table. */
-
-#define PRIMITIVETYPE_INT     TYPE_INT
-#define PRIMITIVETYPE_LONG    TYPE_LNG
-#define PRIMITIVETYPE_FLOAT   TYPE_FLT
-#define PRIMITIVETYPE_DOUBLE  TYPE_DBL
-#define PRIMITIVETYPE_DUMMY1  TYPE_ADR     /* not used! */
-#define PRIMITIVETYPE_BYTE    5
-#define PRIMITIVETYPE_CHAR    6
-#define PRIMITIVETYPE_SHORT   7
-#define PRIMITIVETYPE_BOOLEAN 8
-#define PRIMITIVETYPE_DUMMY2  9            /* not used! */
-#define PRIMITIVETYPE_VOID    TYPE_VOID
-
-
 /* primitivetypeinfo **********************************************************/
 
 struct primitivetypeinfo {
 	const char* cname;                   /* char name of primitive class      */
-	utf*        name;                    /* name of primitive class           */
+	Utf8String  name;                    /* name of primitive class           */
 	classinfo*  class_wrap;              /* class for wrapping primitive type */
 	classinfo*  class_primitive;         /* primitive class                   */
 	const char* wrapname;                /* name of class for wrapping        */
@@ -114,7 +110,6 @@ struct primitivetypeinfo {
 	const char* arrayname;               /* name of primitive array class     */
 	classinfo*  arrayclass;              /* primitive array class             */
 };
-
 
 /* global variables ***********************************************************/
 
@@ -127,7 +122,9 @@ extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
 void       primitive_init(void);
 void       primitive_postinit(void);
 
-#endif // _PRIMITIVE_HPP
+#endif // __cplusplus
+
+#endif // PRIMITIVE_HPP_
 
 
 /*

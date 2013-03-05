@@ -1,6 +1,6 @@
 /* src/native/vm/gnuclasspath/gnu_classpath_VMSystemProperties.cpp
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -39,7 +39,7 @@
 # include "native/include/gnu_classpath_VMSystemProperties.h"
 #endif
 
-#include "toolbox/sequence.hpp"
+#include "toolbox/buffer.hpp"
 
 #include "vm/exceptions.hpp"
 #include "vm/properties.hpp"
@@ -100,13 +100,14 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_postInit(JNIEnv *en
 	Properties::put(p, "gnu.classpath.home", java_home);
 
 	// Use sequence builder to assemble value.
-	SequenceBuilder sb;
+	Buffer<> buf;
+	buf.free_on_exit(false);
+	
+	buf.write("file://")
+	   .write(java_home)
+	   .write("/lib");
 
-	sb.cat("file://");
-	sb.cat(java_home);
-	sb.cat("/lib");
-
-	Properties::put(p, "gnu.classpath.home.url", sb.c_str());
+	Properties::put(p, "gnu.classpath.home.url", (char*) buf);
 #endif
 }
 
@@ -129,7 +130,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_gnu_classpath_VMSystemProperties_init(void)
 {
-	utf* u = utf_new_char("gnu/classpath/VMSystemProperties");
+	Utf8String u = Utf8String::from_utf8("gnu/classpath/VMSystemProperties");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

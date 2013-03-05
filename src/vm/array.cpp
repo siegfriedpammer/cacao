@@ -1,6 +1,6 @@
 /* src/vm/array.cpp - Java array functions
 
-   Copyright (C) 2007
+   Copyright (C) 2007-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008 Theobroma Systems Ltd.
 
@@ -28,7 +28,7 @@
 
 #include <stdint.h>
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "vm/array.hpp"
 #include "vm/exceptions.hpp"

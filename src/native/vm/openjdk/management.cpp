@@ -1,6 +1,6 @@
  /* src/native/vm/openjdk/management.cpp - HotSpot management interface functions
 
-   Copyright (C) 2009
+   Copyright (C) 2009-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008, 2009 Theobroma Systems Ltd.
 
@@ -43,7 +43,7 @@
 #include "vm/array.hpp"
 #include "vm/classcache.hpp"
 #include "vm/globals.hpp" // XXX Remove!!!
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/vm.hpp"
 

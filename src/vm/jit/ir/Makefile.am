@@ -1,6 +1,6 @@
 ## src/vm/jit/ir/Makefile.am
 ##
-## Copyright (C) 2007, 2008
+## Copyright (C) 2007-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -29,8 +29,8 @@ noinst_LTLIBRARIES = \
 	libir.la
 
 libir_la_SOURCES = \
-	bytecode.c \
-	bytecode.h \
+	bytecode.cpp \
+	bytecode.hpp \
 	icmd.cpp \
 	icmd.hpp \
 	icmdtable.inc \

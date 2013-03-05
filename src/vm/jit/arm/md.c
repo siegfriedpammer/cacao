@@ -1,6 +1,6 @@
 /* src/vm/jit/arm/md.c - machine dependent ARM functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -33,7 +33,7 @@
 #include "vm/jit/arm/md.h"
 #include "vm/jit/arm/md-abi.h"
 
-#include "vm/jit/executionstate.h"
+#include "vm/jit/executionstate.hpp"
 #include "vm/jit/trap.hpp"
 
 

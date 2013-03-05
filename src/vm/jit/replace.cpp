@@ -46,7 +46,7 @@
 
 #include "vm/classcache.hpp"
 #include "vm/globals.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/string.hpp"
 
 #if defined(ENABLE_RT_TIMING)
@@ -56,12 +56,12 @@
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/disass.h"
-#include "vm/jit/executionstate.h"
+#include "vm/jit/executionstate.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/replace.hpp"
 #include "vm/jit/show.hpp"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 
 
 #define REPLACE_PATCH_DYNAMIC_CALL
@@ -2696,10 +2696,10 @@ static void replace_me(rplpoint *rp, executionstate_t *es)
 	origrp   = rp;
 
 #if defined(ENABLE_TLH)
-	/*printf("Replacing in %s/%s\n", rp->method->clazz->name->text, rp->method->name->text);*/
+	/*printf("Replacing in %s/%s\n", UTF_TEXT(rp->method->clazz->name), UTF_TEXT(rp->method->name));*/
 #endif
 
-	/*if (strcmp(rp->method->clazz->name->text, "antlr/AlternativeElement") == 0 && strcmp(rp->method->name->text, "getAutoGenType") ==0) opt_TraceReplacement = 2; else opt_TraceReplacement = 0;*/
+	/*if (strcmp(UTF_TEXT(rp->method->clazz->name), "antlr/AlternativeElement") == 0 && strcmp(UTF_TEXT(rp->method->name), "getAutoGenType") ==0) opt_TraceReplacement = 2; else opt_TraceReplacement = 0;*/
 
 	DOLOG_SHORT( printf("REPLACING(%d %p): (id %d %p) ",
 				 stat_replacements, (void*)THREADOBJECT,
@@ -3160,7 +3160,7 @@ void replace_show_replacement_points(codeinfo *code)
 static void java_value_print(s4 type, replace_val_t value)
 {
 	java_object_t *obj;
-	utf           *u;
+	Utf8String     u;
 
 	printf("%016llx",(unsigned long long) value.l);
 
@@ -3176,7 +3176,7 @@ static void java_value_print(s4 type, replace_val_t value)
 
 		if (obj->vftbl->clazz == class_java_lang_String) {
 			printf(" \"");
-			u = javastring_toutf(obj, false);
+			u = JavaString(obj).to_utf8();
 			utf_display_printable_ascii(u);
 			printf("\"");
 		}

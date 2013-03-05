@@ -1,6 +1,6 @@
 /* src/vm/jit/codegen-common.cpp - architecture independent code generator stuff
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -54,11 +54,11 @@
 
 #include "mm/memory.hpp"
 
-#include "toolbox/avl.h"
+#include "toolbox/avl.hpp"
 #include "toolbox/list.hpp"
 #include "toolbox/logging.hpp"
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "native/localref.hpp"
 #include "native/native.hpp"
 
@@ -67,8 +67,8 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/method.hpp"
-#include "vm/options.h"
-#include "vm/statistics.h"
+#include "vm/options.hpp"
+#include "vm/statistics.hpp"
 #include "vm/string.hpp"
 
 #include "vm/jit/abi.h"
@@ -80,12 +80,12 @@
 # include "vm/jit/disass.h"
 #endif
 
-#include "vm/jit/dseg.h"
+#include "vm/jit/dseg.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/methodtree.h"
+#include "vm/jit/methodtree.hpp"
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/replace.hpp"
 #include "vm/jit/show.hpp"
@@ -95,10 +95,10 @@
 #include "vm/jit/optimizing/profile.hpp"
 
 #if defined(ENABLE_SSA)
-# include "vm/jit/optimizing/lsra.h"
-# include "vm/jit/optimizing/ssa.h"
+# include "vm/jit/optimizing/lsra.hpp"
+# include "vm/jit/optimizing/ssa.hpp"
 #elif defined(ENABLE_LSRA)
-# include "vm/jit/allocator/lsra.h"
+# include "vm/jit/allocator/lsra.hpp"
 #endif
 
 #if defined(ENABLE_INTRP)
@@ -1541,7 +1541,7 @@ bool codegen_emit(jitdata *jd)
 					fieldtype = fi->type;
 					disp      = dseg_add_address(cd, fi->value);
 
-					if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz)) {
+					if (!class_is_or_almost_initialized(fi->clazz)) {
 						PROFILE_CYCLE_STOP;
 						patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz, 0);
 						PROFILE_CYCLE_START;
@@ -1619,7 +1619,7 @@ bool codegen_emit(jitdata *jd)
 					fieldtype = fi->type;
 					disp      = dseg_add_address(cd, fi->value);
 
-					if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz)) {
+					if (!class_is_or_almost_initialized(fi->clazz)) {
 						PROFILE_CYCLE_STOP;
 						patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz, 0);
 						PROFILE_CYCLE_START;

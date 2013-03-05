@@ -1,6 +1,6 @@
 /* src/vm/class.cpp - class related functions
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -36,7 +36,7 @@
 
 #include "mm/memory.hpp"
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "threads/lock.hpp"
 #include "threads/mutex.hpp"
@@ -53,17 +53,26 @@
 #include "vm/javaobjects.hpp"
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/resolve.hpp"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
-
+#include "vm/statistics.hpp"
 #include "vm/suck.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
+#include "vm/string.hpp"
 
 #include "vm/jit/asmpart.h"
+
+/**
+ * Returns the classname of the class, where slashes ('/') are
+ * replaced by dots ('.').
+ *
+ * @param c class to get name of
+ * @return classname
+ */
+extern java_handle_t* class_get_classname(classinfo* c)
+{
+	return JavaString::from_utf8_slash_to_dot(c->name);
+}
 
 
 /* class_set_packagename *******************************************************
@@ -81,13 +90,12 @@
 
 void class_set_packagename(classinfo *c)
 {
-	char *p;
-	char *start;
+	Utf8String name = c->name;
 
-	p     = UTF_END(c->name) - 1;
-	start = c->name->text;
+	const char *p     = name.end() - 1;
+	const char *start = name.begin();
 
-	if (c->name->text[0] == '[') {
+	if (name[0] == '[') {
 		/* Set packagename of arrays to the element's package. */
 
 		for (; *start == '['; start++);
@@ -106,7 +114,7 @@ void class_set_packagename(classinfo *c)
 	   '/'.  Otherwise we set the packagename to NULL. */
 
 	if (p > start)
-		c->packagename = utf_new(start, p - start + 1);
+		c->packagename = Utf8String::from_utf8(start, p - start + 1).c_ptr();
 	else
 		c->packagename = NULL;
 }
@@ -114,7 +122,7 @@ void class_set_packagename(classinfo *c)
 
 /* class_create_classinfo ******************************************************
 
-   Create a new classinfo struct. The class name is set to the given utf *,
+   Create a new classinfo struct. The class name is set to the given utf string,
    most other fields are initialized to zero.
 
    Note: classname may be NULL. In this case a not-yet-named classinfo is
@@ -123,7 +131,7 @@ void class_set_packagename(classinfo *c)
 
 *******************************************************************************/
 
-classinfo *class_create_classinfo(utf *classname)
+classinfo *class_create_classinfo(Utf8String classname)
 {
 	classinfo *c;
 
@@ -135,7 +143,7 @@ classinfo *class_create_classinfo(utf *classname)
 	/* we use a safe name for temporarily unnamed classes */
 
 	if (classname == NULL)
-		classname = utf_not_named_yet;
+		classname = utf8::not_named_yet;
 
 #if !defined(NDEBUG)
 	if (initverbose)
@@ -151,7 +159,7 @@ classinfo *class_create_classinfo(utf *classname)
 	/* GCNEW_UNCOLLECTABLE clears the allocated memory */
 #endif
 
-	c->name = classname;
+	c->name = classname.c_ptr();
 
 	/* Set the header.vftbl of all loaded classes to the one of
        java.lang.Class, so Java code can use a class as object. */
@@ -163,18 +171,18 @@ classinfo *class_create_classinfo(utf *classname)
 #if defined(ENABLE_JAVASE)
 	/* check if the class is a reference class and flag it */
 
-	if (classname == utf_java_lang_ref_SoftReference) {
+	if (classname == utf8::java_lang_ref_SoftReference) {
 		c->flags |= ACC_CLASS_REFERENCE_SOFT;
 	}
-	else if (classname == utf_java_lang_ref_WeakReference) {
+	else if (classname == utf8::java_lang_ref_WeakReference) {
 		c->flags |= ACC_CLASS_REFERENCE_WEAK;
 	}
-	else if (classname == utf_java_lang_ref_PhantomReference) {
+	else if (classname == utf8::java_lang_ref_PhantomReference) {
 		c->flags |= ACC_CLASS_REFERENCE_PHANTOM;
 	}
 #endif
 
-	if (classname != utf_not_named_yet)
+	if (classname != utf8::not_named_yet)
 		class_set_packagename(c);
 
 	Lockword(c->object.header.lockword).init();
@@ -224,7 +232,7 @@ void class_postset_header_vftbl(void)
 
 *******************************************************************************/
 
-classinfo *class_define(utf *name, classloader_t *cl, int32_t length, uint8_t *data, java_handle_t *pd)
+classinfo *class_define(Utf8String name, classloader_t *cl, int32_t length, uint8_t *data, java_handle_t *pd)
 {
 	classinfo   *c;
 	classinfo   *r;
@@ -330,7 +338,7 @@ static bool class_load_attribute_sourcefile(classbuffer *cb)
 	classinfo *c;
 	u4         attribute_length;
 	u2         sourcefile_index;
-	utf       *sourcefile;
+	Utf8String sourcefile;
 
 	/* get classinfo */
 
@@ -367,7 +375,7 @@ static bool class_load_attribute_sourcefile(classbuffer *cb)
 
 	/* store sourcefile */
 
-	c->sourcefile = sourcefile;
+	c->sourcefile = sourcefile.c_ptr();
 
 	return true;
 }
@@ -461,11 +469,11 @@ bool class_load_attributes(classbuffer *cb)
 	classinfo             *c;
 	uint16_t               attributes_count;
 	uint16_t               attribute_name_index;
-	utf                   *attribute_name;
+	Utf8String             attribute_name;
 	innerclassinfo        *info;
 	classref_or_classinfo  inner;
 	classref_or_classinfo  outer;
-	utf                   *name;
+	Utf8String             name;
 	uint16_t               flags;
 	int                    i, j;
 
@@ -491,7 +499,7 @@ bool class_load_attributes(classbuffer *cb)
 		if (attribute_name == NULL)
 			return false;
 
-		if (attribute_name == utf_InnerClasses) {
+		if (attribute_name == utf8::InnerClasses) {
 			/* InnerClasses */
 
 			if (c->innerclass != NULL) {
@@ -554,38 +562,46 @@ bool class_load_attributes(classbuffer *cb)
 
 				info->inner_class = inner;
 				info->outer_class = outer;
-				info->name        = name;
+				info->name        = name.c_ptr();
 				info->flags       = flags;
 			}
 		}
-		else if (attribute_name == utf_SourceFile) {
+		else if (attribute_name == utf8::SourceFile) {
 			/* SourceFile */
 
 			if (!class_load_attribute_sourcefile(cb))
 				return false;
 		}
 #if defined(ENABLE_JAVASE)
-		else if (attribute_name == utf_EnclosingMethod) {
+		else if (attribute_name == utf8::EnclosingMethod) {
 			/* EnclosingMethod */
 
 			if (!class_load_attribute_enclosingmethod(cb))
 				return false;
 		}
-		else if (attribute_name == utf_Signature) {
+		else if (attribute_name == utf8::Signature) {
 			/* Signature */
 
-			if (!loader_load_attribute_signature(cb, &(c->signature)))
-				return false;
+			// TODO: change classinfo.signature to Utf8String
+			//       and use it directly
+
+			Utf8String signature = c->signature;
+
+			if (!loader_load_attribute_signature(cb, signature)) {
+				return NULL;
+			}
+
+			c->signature = signature.c_ptr();
 		}
 #endif
 
 #if defined(ENABLE_ANNOTATIONS)
-		else if (attribute_name == utf_RuntimeVisibleAnnotations) {
+		else if (attribute_name == utf8::RuntimeVisibleAnnotations) {
 			/* RuntimeVisibleAnnotations */
 			if (!annotation_load_class_attribute_runtimevisibleannotations(cb))
 				return false;
 		}
-		else if (attribute_name == utf_RuntimeInvisibleAnnotations) {
+		else if (attribute_name == utf8::RuntimeInvisibleAnnotations) {
 			/* RuntimeInvisibleAnnotations */
 			if (!annotation_load_class_attribute_runtimeinvisibleannotations(cb))
 				return false;
@@ -773,8 +789,8 @@ void class_free(classinfo *c)
 
 *******************************************************************************/
 
-static classinfo *get_array_class(utf *name,classloader_t *initloader,
-											classloader_t *defloader,bool link)
+static classinfo *get_array_class(Utf8String name,classloader_t *initloader,
+											      classloader_t *defloader,bool link)
 {
 	classinfo *c;
 	
@@ -815,21 +831,23 @@ static classinfo *get_array_class(utf *name,classloader_t *initloader,
 classinfo *class_array_of(classinfo *component, bool link)
 {
 	classloader_t     *cl;
-    s4                 namelen;
-    char              *namebuf;
-	utf               *u;
+	s4                 namelen;
+	char              *namebuf;
+	Utf8String         u;
 	classinfo         *c;
+
+	Utf8String component_name = component->name;
 
 	cl = component->classloader;
 
     /* Assemble the array class name */
-    namelen = component->name->blength;
+    namelen = component_name.size();
     
-    if (component->name->text[0] == '[') {
+    if (component_name[0] == '[') {
         /* the component is itself an array */
         namebuf = MNEW(char, namelen + 1);
         namebuf[0] = '[';
-        MCOPY(namebuf + 1, component->name->text, char, namelen);
+        MCOPY(namebuf + 1, component_name.begin(), char, namelen);
         namelen++;
     }
 	else {
@@ -837,12 +855,12 @@ classinfo *class_array_of(classinfo *component, bool link)
         namebuf = MNEW(char, namelen + 3);
         namebuf[0] = '[';
         namebuf[1] = 'L';
-        MCOPY(namebuf + 2, component->name->text, char, namelen);
+        MCOPY(namebuf + 2, component_name.begin(), char, namelen);
         namebuf[2 + namelen] = ';';
         namelen += 3;
     }
 
-	u = utf_new(namebuf, namelen);
+	u = Utf8String::from_utf8(namebuf, namelen);
 
 	MFREE(namebuf, char, namelen);
 
@@ -865,38 +883,40 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
     char *namebuf;
 	classinfo *c;
 
+	Utf8String element_name = element->name;
+
 	if (dim < 1) {
 		log_text("Invalid array dimension requested");
 		assert(0);
 	}
 
     /* Assemble the array class name */
-    namelen = element->name->blength;
+    namelen = element_name.size();
     
-    if (element->name->text[0] == '[') {
+    if (element_name[0] == '[') {
         /* the element is itself an array */
         namebuf = MNEW(char, namelen + dim);
-        memcpy(namebuf + dim, element->name->text, namelen);
+        memcpy(namebuf + dim, element_name.begin(), namelen);
         namelen += dim;
     }
     else {
         /* the element is a non-array class */
         namebuf = MNEW(char, namelen + 2 + dim);
         namebuf[dim] = 'L';
-        memcpy(namebuf + dim + 1, element->name->text, namelen);
+        memcpy(namebuf + dim + 1, element_name.begin(), namelen);
         namelen += (2 + dim);
         namebuf[namelen - 1] = ';';
     }
 	memset(namebuf, '[', dim);
 
-	utf* u = utf_new(namebuf, namelen);
+	Utf8String u = Utf8String::from_utf8(namebuf, namelen);
 
 	MFREE(namebuf, char, namelen);
 
 	c = get_array_class(u,
-						element->classloader,
-						element->classloader,
-						link);
+	                    element->classloader,
+	                    element->classloader,
+	                    link);
 
 	return c;
 }
@@ -917,7 +937,7 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
    
 *******************************************************************************/
 
-constant_classref *class_lookup_classref(classinfo *cls, utf *name)
+constant_classref *class_lookup_classref(classinfo *cls, Utf8String name)
 {
 	constant_classref *ref;
 	extra_classref *xref;
@@ -961,7 +981,7 @@ constant_classref *class_lookup_classref(classinfo *cls, utf *name)
    
 *******************************************************************************/
 
-constant_classref *class_get_classref(classinfo *cls, utf *name)
+constant_classref *class_get_classref(classinfo *cls, Utf8String name)
 {
 	constant_classref *ref;
 	extra_classref *xref;
@@ -974,7 +994,7 @@ constant_classref *class_get_classref(classinfo *cls, utf *name)
 		return ref;
 
 	xref = NEW(extra_classref);
-	CLASSREF_INIT(xref->classref,cls,name);
+	CLASSREF_INIT(xref->classref,cls,name.c_ptr());
 
 	xref->next = cls->extclassrefs;
 	cls->extclassrefs = xref;
@@ -1026,29 +1046,31 @@ constant_classref *class_get_classref_multiarray_of(s4 dim, constant_classref *r
     char *namebuf;
 	constant_classref *cr;
 
+	Utf8String refname = ref->name;
+
 	assert(ref);
 	assert(dim >= 1 && dim <= 255);
 
     /* Assemble the array class name */
-    namelen = ref->name->blength;
+    namelen = refname.size();
     
-    if (ref->name->text[0] == '[') {
+    if (refname[0] == '[') {
         /* the element is itself an array */
         namebuf = MNEW(char, namelen + dim);
-        memcpy(namebuf + dim, ref->name->text, namelen);
+        memcpy(namebuf + dim, refname.begin(), namelen);
         namelen += dim;
     }
     else {
         /* the element is a non-array class */
         namebuf = MNEW(char, namelen + 2 + dim);
         namebuf[dim] = 'L';
-        memcpy(namebuf + dim + 1, ref->name->text, namelen);
+        memcpy(namebuf + dim + 1, refname.begin(), namelen);
         namelen += (2 + dim);
         namebuf[namelen - 1] = ';';
     }
 	memset(namebuf, '[', dim);
 
-	utf* u = utf_new(namebuf, namelen);
+	Utf8String u = Utf8String::from_utf8(namebuf, namelen);
 
 	MFREE(namebuf, char, namelen);
 
@@ -1076,25 +1098,24 @@ constant_classref *class_get_classref_multiarray_of(s4 dim, constant_classref *r
 
 constant_classref *class_get_classref_component_of(constant_classref *ref)
 {
-	s4 namelen;
-	char *name;
-	
 	assert(ref);
 
-	name = ref->name->text;
-	if (*name++ != '[')
+	Utf8String name = ref->name;
+	size_t start    = 1;
+	size_t end      = name.size() - 1;
+
+	if (name[0] != '[')
 		return NULL;
-	
-	namelen = ref->name->blength - 1;
-	if (*name == 'L') {
-		name++;
-		namelen -= 2;
+
+	if (name[1] == 'L') {
+		start += 1;
+		end   -= 2;
 	}
-	else if (*name != '[') {
+	else if (name[1] != '[') {
 		return NULL;
 	}
 
-    return class_get_classref(ref->referer, utf_new(name, namelen));
+    return class_get_classref(ref->referer, name.substring(start, end));
 }
 
 
@@ -1105,7 +1126,7 @@ constant_classref *class_get_classref_component_of(constant_classref *ref)
 
 *******************************************************************************/
 
-methodinfo *class_findmethod(classinfo *c, utf *name, utf *desc)
+methodinfo *class_findmethod(classinfo *c, Utf8String name, Utf8String desc)
 {
 	methodinfo *m;
 	s4          i;
@@ -1129,7 +1150,7 @@ methodinfo *class_findmethod(classinfo *c, utf *name, utf *desc)
 
 *******************************************************************************/
 
-methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *desc)
+methodinfo *class_resolvemethod(classinfo *c, Utf8String name, Utf8String desc)
 {
 	methodinfo *m;
 
@@ -1146,7 +1167,7 @@ methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *desc)
 		   explicited in the specification.  Section 5.4.3.3 should be
 		   updated appropriately.  */
 
-		if (name == utf_init || name == utf_clinit)
+		if (name == utf8::init || name == utf8::clinit)
 			return NULL;
 
 		c = c->super;
@@ -1163,7 +1184,7 @@ methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *desc)
 *******************************************************************************/
 
 static methodinfo *class_resolveinterfacemethod_intern(classinfo *c,
-													   utf *name, utf *desc)
+													   Utf8String name, Utf8String desc)
 {
 	methodinfo *m;
 	s4          i;
@@ -1200,7 +1221,7 @@ static methodinfo *class_resolveinterfacemethod_intern(classinfo *c,
 
 *******************************************************************************/
 
-methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
+methodinfo *class_resolveclassmethod(classinfo *c, Utf8String name, Utf8String desc,
 									 classinfo *referer, bool throwexception)
 {
 	classinfo  *cls;
@@ -1261,7 +1282,7 @@ methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
 
 *******************************************************************************/
 
-methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *desc,
+methodinfo *class_resolveinterfacemethod(classinfo *c, Utf8String name, Utf8String desc,
 										 classinfo *referer, bool throwexception)
 {
 	methodinfo *mi;
@@ -1299,7 +1320,7 @@ methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *desc,
 
 *******************************************************************************/
 
-fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc)
+fieldinfo *class_findfield(classinfo *c, Utf8String name, Utf8String desc)
 {
 	s4 i;
 
@@ -1321,7 +1342,7 @@ fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc)
 
 *******************************************************************************/
  
-fieldinfo *class_findfield_by_name(classinfo* c, utf* name)
+fieldinfo *class_findfield_by_name(classinfo* c, Utf8String name)
 {
 	for (int32_t i = 0; i < c->fieldscount; i++) {
 		fieldinfo* f = &(c->fields[i]);
@@ -1345,7 +1366,7 @@ fieldinfo *class_findfield_by_name(classinfo* c, utf* name)
 
 *******************************************************************************/
 
-static fieldinfo *class_resolvefield_int(classinfo *c, utf *name, utf *desc)
+static fieldinfo *class_resolvefield_int(classinfo *c, Utf8String name, Utf8String desc)
 {
 	fieldinfo *fi;
 	s4         i;
@@ -1387,7 +1408,7 @@ static fieldinfo *class_resolvefield_int(classinfo *c, utf *name, utf *desc)
 
 *******************************************************************************/
 
-fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc, classinfo *referer)
+fieldinfo *class_resolvefield(classinfo *c, Utf8String name, Utf8String desc, classinfo *referer)
 {
 	fieldinfo *fi;
 
@@ -1640,7 +1661,7 @@ java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOn
 {
 	classref_or_classinfo  inner;
 	classref_or_classinfo  outer;
-	utf                   *outername;
+	Utf8String             outername;
 	int                    declaredclasscount;  /* number of declared classes */
 	int                    pos;                     /* current declared class */
 	int                    i;
@@ -1741,7 +1762,7 @@ java_handle_objectarray_t *class_get_declaredconstructors(classinfo *c, bool pub
 		m = &(c->methods[i]);
 
 		if (((m->flags & ACC_PUBLIC) || (publicOnly == 0)) &&
-			(m->name == utf_init))
+			(m->name == utf8::init))
 			count++;
 	}
 
@@ -1758,7 +1779,7 @@ java_handle_objectarray_t *class_get_declaredconstructors(classinfo *c, bool pub
 		m = &(c->methods[i]);
 
 		if (((m->flags & ACC_PUBLIC) || (publicOnly == 0)) &&
-			(m->name == utf_init)) {
+			(m->name == utf8::init)) {
 			// Create a java.lang.reflect.Constructor object.
 
 			java_lang_reflect_Constructor rc(m);
@@ -1872,7 +1893,7 @@ java_handle_objectarray_t *class_get_declaredmethods(classinfo *c, bool publicOn
 		m = &(c->methods[i]);
 
 		if (((m->flags & ACC_PUBLIC) || (publicOnly == false)) &&
-			((m->name != utf_init) && (m->name != utf_clinit)) &&
+			((m->name != utf8::init) && (m->name != utf8::clinit)) &&
 			!(m->flags & ACC_MIRANDA))
 			count++;
 	}
@@ -1890,7 +1911,7 @@ java_handle_objectarray_t *class_get_declaredmethods(classinfo *c, bool publicOn
 		m = &(c->methods[i]);
 
 		if (((m->flags & ACC_PUBLIC) || (publicOnly == false)) && 
-			((m->name != utf_init) && (m->name != utf_clinit)) &&
+			((m->name != utf8::init) && (m->name != utf8::clinit)) &&
 			!(m->flags & ACC_MIRANDA)) {
 			// Create java.lang.reflect.Method object.
 
@@ -2007,7 +2028,7 @@ java_handle_t* class_get_enclosingconstructor(classinfo *c)
 
 	/* Check for <init>. */
 
-	if (m->name != utf_init)
+	if (m->name != utf8::init)
 		return NULL;
 
 	// Create a java.lang.reflect.Constructor object.
@@ -2083,7 +2104,7 @@ java_handle_t* class_get_enclosingmethod(classinfo *c)
 
 	/* check for <init> */
 
-	if (m->name == utf_init)
+	if (m->name == utf8::init)
 		return NULL;
 
 	// Create a java.lang.reflect.Method object.
@@ -2169,7 +2190,7 @@ int32_t class_get_modifiers(classinfo *c, bool ignoreInnerClassesAttrib)
 {
 	classref_or_classinfo  inner;
 	classref_or_classinfo  outer;
-	utf                   *innername;
+	Utf8String             innername;
 	int                    i;
 	int32_t                flags;
 
@@ -2212,7 +2233,7 @@ int32_t class_get_modifiers(classinfo *c, bool ignoreInnerClassesAttrib)
 
 
 /**
- * Helper function for the CLASS_IS_OR_ALMOST_INITIALIZED macro.
+ * Helper function for the function class_is_or_almost_initialized.
  */
 bool class_initializing_thread_is_self(classinfo *c)
 {
@@ -2228,7 +2249,7 @@ bool class_initializing_thread_is_self(classinfo *c)
 *******************************************************************************/
 
 #if defined(ENABLE_JAVASE)
-utf *class_get_signature(classinfo *c)
+Utf8String class_get_signature(classinfo *c)
 {
 	/* For array and primitive classes return NULL. */
 
@@ -2520,7 +2541,7 @@ void class_showmethods (classinfo *c)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

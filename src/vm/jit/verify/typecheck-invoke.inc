@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/typecheck-invoke.inc - type checking for invocations
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -27,11 +27,11 @@
 	unresolved_method *um;      /* struct describing the called method */
 	constant_FMIref *mref;           /* reference to the called method */
 	methoddesc *md;                 /* descriptor of the called method */
-	utf *mname;                                         /* method name */
+	Utf8String mname;                                   /* method name */
     u1 rtype;                          /* return type of called method */
 #if !defined(TYPECHECK_TYPEINFERER)
 	methodinfo *mi;                        /* resolved method (if any) */
-	utf *mclassname;                     /* name of the method's class */
+	Utf8String mclassname;               /* name of the method's class */
 	bool specialmethod;            /* true if a <...> method is called */
 	int opcode;                                   /* invocation opcode */
 	bool callinginit;                      /* true if <init> is called */
@@ -86,7 +86,7 @@
 	opcode = state->iptr->opc;
 	invokestatic = (opcode == ICMD_INVOKESTATIC);
 	invokespecial = (opcode == ICMD_INVOKESPECIAL);
-	specialmethod = (mname->text[0] == '<');
+	specialmethod = (mname[0] == '<');
 
 	/* prevent compiler warnings */
 
@@ -94,7 +94,7 @@
 
 	/* check whether we are calling <init> */
 	
-	callinginit = (invokespecial && mname == utf_init);
+	callinginit = (invokespecial && mname == utf8::init);
 	if (specialmethod && !callinginit)
 		TYPECHECK_VERIFYERROR_bool("Invalid invocation of special method");
 

@@ -33,14 +33,14 @@
 #include "vm/types.h"
 
 #include "vm/descriptor.hpp" /* needed to prevent circular dependency */
-#include "toolbox/hashtable.h"
+#include "toolbox/hashtable.hpp"
 
 #include "mm/memory.hpp"
 
 #include "vm/global.h"
 #include "vm/os.hpp"
 #include "vm/suck.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 #include "vm/vm.hpp"
 #include "vm/zip.hpp"
 
@@ -154,10 +154,6 @@ struct eocdr {
 	u4 offset;
 };
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 /* zip_open ********************************************************************
 
    XXX
@@ -178,7 +174,7 @@ hashtable *zip_open(char *path)
 	cdsfh                    cdsfh;
 	const char              *filename;
 	const char              *classext;
-	utf                     *u;
+	Utf8String               u;
 	u4                       key;       /* hashkey computed from utf-text     */
 	u4                       slot;      /* slot in hashtable                  */
 
@@ -254,9 +250,9 @@ hashtable *zip_open(char *path)
 
 		if (filename[cdsfh.filenamelength - 1] != '/') {
 			if (strncmp(classext, ".class", strlen(".class")) == 0)
-				u = utf_new(filename, cdsfh.filenamelength - strlen(".class"));
+				u = Utf8String::from_utf8(filename, cdsfh.filenamelength - strlen(".class"));
 			else
-				u = utf_new(filename, cdsfh.filenamelength);
+				u = Utf8String::from_utf8(filename, cdsfh.filenamelength);
 
 			/* insert class into hashtable */
 
@@ -270,7 +266,7 @@ hashtable *zip_open(char *path)
 
 			/* get hashtable slot */
 
-			key  = utf_hashkey(u->text, u->blength);
+			key  = u.hash();
 			slot = key & (ht->size - 1);
 
 			/* insert into external chain */
@@ -317,7 +313,7 @@ hashtable *zip_open(char *path)
 
 *******************************************************************************/
 
-hashtable_zipfile_entry *zip_find(list_classpath_entry *lce, utf *u)
+hashtable_zipfile_entry *zip_find(list_classpath_entry *lce, Utf8String u)
 {
 	hashtable               *ht;
 	u4                       key;       /* hashkey computed from utf-text     */
@@ -330,7 +326,7 @@ hashtable_zipfile_entry *zip_find(list_classpath_entry *lce, utf *u)
 
 	/* get the hashtable slot of the name searched */
 
-	key   = utf_hashkey(u->text, u->blength);
+	key   = u.hash();
 	slot  = key & (ht->size - 1);
 	htzfe = (hashtable_zipfile_entry*) ht->ptr[slot];
 
@@ -445,10 +441,6 @@ classbuffer *zip_get(list_classpath_entry *lce, classinfo *c)
 
 	return cb;
 }
-
-#if defined(__cplusplus)
-}
-#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

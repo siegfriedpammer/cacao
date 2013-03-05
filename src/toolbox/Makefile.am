@@ -1,6 +1,6 @@
 ## src/toolbox/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2007, 2008
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -29,22 +29,25 @@ noinst_LTLIBRARIES = \
 	libtoolbox.la
 
 libtoolbox_la_SOURCES = \
-	avl.c \
-	avl.h \
-	bitvector.c \
-	bitvector.h \
-	hashtable.c \
-	hashtable.h \
+	avl.cpp \
+	avl.hpp \
+	bitvector.cpp \
+	bitvector.hpp \
+	buffer.hpp \
+	hashtable.cpp \
+	hashtable.hpp \
 	list.hpp \
 	logging.cpp \
 	logging.hpp \
-	sequence.hpp \
-	set.h \
-	set.c \
-	util.c \
-	util.h \
-	worklist.c \
-	worklist.h
+	set.hpp \
+	set.cpp \
+	utf_utils.hpp \
+	utf8_transform.inc \
+	utf16_transform.inc \
+	util.cpp \
+	util.hpp \
+	worklist.cpp \
+	worklist.hpp
 
 
 ## Local variables:

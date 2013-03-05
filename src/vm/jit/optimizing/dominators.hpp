@@ -1,6 +1,6 @@
 /* src/vm/jit/optimizing/dominators.hpp - Dominators and Dominance Frontier header
 
-   Copyright (C) 2005, 2006, 2008
+   Copyright (C) 2005-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,12 +23,12 @@
 */
 
 
-#ifndef _DOMINATORS_HPP
-#define _DOMINATORS_HPP
+#ifndef DOMINATORS_HPP_
+#define DOMINATORS_HPP_ 1
 
 #include "config.h"
 
-#include "vm/jit/optimizing/graph.h"
+#include "vm/jit/optimizing/graph.hpp"
 
 #if !defined(NDEBUG)
 # include <assert.h>
@@ -82,7 +82,7 @@ void dominator_tree_validate(jitdata *jd, dominatordata *dd);
 }
 #endif
 
-#endif // _DOMINATORS_HPP
+#endif // DOMINATORS_HPP_
 
 
 /*

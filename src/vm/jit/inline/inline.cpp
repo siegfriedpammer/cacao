@@ -1,6 +1,6 @@
 /* src/vm/jit/inline/inline.c - method inlining
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -45,14 +45,14 @@
 #include "vm/global.h"
 #include "vm/initialize.hpp"
 #include "vm/method.hpp"
-#include "vm/options.h"
-#include "vm/statistics.h"
+#include "vm/options.hpp"
+#include "vm/statistics.hpp"
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/parse.hpp"
-#include "vm/jit/reg.h"
+#include "vm/jit/reg.hpp"
 #include "vm/jit/show.hpp"
-#include "vm/jit/stack.h"
+#include "vm/jit/stack.hpp"
 
 #include "vm/jit/inline/inline.hpp"
 #include "vm/jit/loop/loop.h"
@@ -1180,7 +1180,7 @@ static s4 emit_inlining_prolog(inline_node *iln,
 		/* ensures that they are only called for an uninit. object */
 		/* (which may not be NULL).                                */
 
-		if (!callee->isstatic && i == 0 && calleem->name != utf_init) {
+		if (!callee->isstatic && i == 0 && calleem->name != utf8::init) {
 			assert(type == TYPE_ADR);
 			n_ins = inline_instruction(iln, ICMD_CHECKNULL, o_iptr);
 			n_ins->s1.varindex = varindex;
@@ -2490,7 +2490,7 @@ static void inline_set_callee_properties(const inline_node *caller,
 
 	/* we need a CHECKNULL for instance methods, except for <init> */
 
-	if (!cn->isstatic && cn->m->name != utf_init)
+	if (!cn->isstatic && cn->m->name != utf8::init)
 		cn->prolog_instructioncount += 1;
 
 	/* deal with synchronized callees */

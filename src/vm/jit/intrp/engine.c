@@ -1,6 +1,6 @@
 /* src/vm/jit/intrp/engine.c - #included by engine1.c and engine2.c
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -43,7 +43,7 @@
 
 #include "vm/jit/builtin.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher.h"

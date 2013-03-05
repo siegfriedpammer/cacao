@@ -1,6 +1,6 @@
 /* src/vm/jit/parse.c - parser for JavaVM to intermediate code translation
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -43,13 +43,9 @@
 #include "vm/global.h"
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/resolve.hpp"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
-
+#include "vm/statistics.hpp"
 #include "vm/string.hpp"
 #include "vm/suck.hpp"
 
@@ -58,7 +54,7 @@
 #include "vm/jit/parse.hpp"
 #include "vm/jit/loop/loop.h"
 
-#include "vm/jit/ir/bytecode.h"
+#include "vm/jit/ir/bytecode.hpp"
 
 
 #define INSTRUCTIONS_INCREMENT  5  /* number of additional instructions to    */
@@ -600,7 +596,7 @@ fetch_opcode:
 				OP_LOADCONST_D(((constant_double *) (m->clazz->cpinfos[i]))->value);
 				break;
 			case CONSTANT_String:
-				OP_LOADCONST_STRING(literalstring_new((utf *) (m->clazz->cpinfos[i])));
+				OP_LOADCONST_STRING(JavaString::literal((utf *) (m->clazz->cpinfos[i])));
 				break;
 			case CONSTANT_Class:
 				cr = (constant_classref *) (m->clazz->cpinfos[i]);
@@ -1330,7 +1326,7 @@ invoke_method:
 			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
 				return false;
 
-			if (cr->name->text[0] == '[') {
+			if (UTF_AT(cr->name, 0) == '[') {
 				/* array type cast-check */
 				flags = INS_FLAG_CHECK | INS_FLAG_ARRAY;
 				code_unflag_leafmethod(code);
@@ -1352,7 +1348,7 @@ invoke_method:
 			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
 				return false;
 
-			if (cr->name->text[0] == '[') {
+			if (UTF_AT(cr->name, 0) == '[') {
 				/* array type cast-check */
 				INSTRUCTIONS_CHECK(2);
 				OP_LOADCONST_CLASSINFO_OR_CLASSREF_NOCHECK(c, cr);
@@ -1923,7 +1919,7 @@ throw_illegal_local_variable_number:
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

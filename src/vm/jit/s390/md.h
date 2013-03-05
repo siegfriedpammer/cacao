@@ -1,6 +1,6 @@
 /* src/vm/jit/s390/md.h - machine dependent s390 Linux functions
 
-   Copyright (C) 2006, 2007, 2008
+   Copyright (C) 2006-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -32,7 +32,7 @@
 #include <stdint.h>
 
 #include "vm/jit/codegen-common.hpp"
-#include "vm/jit/methodtree.h"
+#include "vm/jit/methodtree.hpp"
 
 
 /**

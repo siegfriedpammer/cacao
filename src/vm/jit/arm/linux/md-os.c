@@ -1,6 +1,6 @@
 /* src/vm/jit/arm/linux/md-os.c - machine dependent ARM Linux functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008, 2009 Theobroma Systems Ltd.
 
@@ -54,7 +54,7 @@ typedef struct ucontext {
 #include "vm/signallocal.hpp"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/executionstate.h"
+#include "vm/jit/executionstate.hpp"
 #include "vm/jit/trap.hpp"
 
 

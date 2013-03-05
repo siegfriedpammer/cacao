@@ -1,6 +1,6 @@
 /* src/vm/javaobjects.cpp - functions to create and access Java objects
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008, 2009 Theobroma Systems Ltd.
 
@@ -58,8 +58,8 @@ java_handle_t* java_lang_ClassLoader::invoke_getSystemClassLoader()
 	assert(class_java_lang_ClassLoader->state & CLASS_LINKED);
 
 	m = class_resolveclassmethod(class_java_lang_ClassLoader,
-								 utf_getSystemClassLoader,
-								 utf_void__java_lang_ClassLoader,
+								 utf8::getSystemClassLoader,
+								 utf8::void__java_lang_ClassLoader,
 								 class_java_lang_Object,
 								 false);
 
@@ -86,14 +86,14 @@ java_lang_management_MemoryUsage::java_lang_management_MemoryUsage(int64_t init,
 	// Load the class.
 	// XXX Maybe this should be made global at some points.
 	classinfo* class_java_lang_management_MemoryUsage;
-	if (!(class_java_lang_management_MemoryUsage = load_class_bootstrap(utf_new_char("java/lang/management/MemoryUsage"))))
+	if (!(class_java_lang_management_MemoryUsage = load_class_bootstrap(Utf8String::from_utf8("java/lang/management/MemoryUsage"))))
 		return;
 
 	// Find the appropriate initializer.
 	// XXX Maybe this should be made global at some points.
 	methodinfo* m = class_findmethod(class_java_lang_management_MemoryUsage,
-									 utf_init,
-									 utf_new_char("(JJJJ)V"));
+	                                 utf8::init,
+	                                 Utf8String::from_utf8("(JJJJ)V"));
 
 	if (m == NULL)
 		return;
@@ -207,7 +207,7 @@ static void register_dyn_entry_table(classinfo *c, DynOffsetEntry *entries)
 static bool runAllSetters(classinfo *c, DynOffsetEntry entries[])
 {
 	do {
-		fieldinfo *fi = class_findfield_by_name(c, utf_new_char(entries->name));
+		fieldinfo *fi = class_findfield_by_name(c, Utf8String::from_utf8(entries->name));
 		if (!fi)
 			return false;
 		entries->setter(fi->offset);

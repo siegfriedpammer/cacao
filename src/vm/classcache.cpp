@@ -1,6 +1,6 @@
 /* src/vm/classcache.cpp - loaded class cache and loading constraints
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -34,13 +34,14 @@
 #include "threads/lock.hpp"
 #include "threads/mutex.hpp"
 
-#include "toolbox/hashtable.h"
+#include "toolbox/hashtable.hpp"
 #include "toolbox/logging.hpp"
+#include "toolbox/buffer.hpp"
 
 #include "vm/classcache.hpp"
 #include "vm/exceptions.hpp"
-#include "vm/options.h"
-#include "vm/utf8.h"
+#include "vm/options.hpp"
+#include "vm/utf8.hpp"
 
 
 /*************************************************************************
@@ -238,9 +239,6 @@ static void classcache_free_class_entry(classcache_class_entry *clsen);
 static void classcache_remove_class_entry(classcache_name_entry *en,
 										  classcache_class_entry *clsen);
 
-/* hash function to use */
-
-#define CLASSCACHE_HASH utf_full_hashkey
 
 /* classcache_init *************************************************************
  
@@ -378,7 +376,7 @@ static void classcache_merge_class_entries(classcache_name_entry *en,
 										   classcache_class_entry *clsenB)
 {
 #ifdef CLASSCACHE_VERBOSE
-	char logbuffer[1024];
+	Buffer<> logbuffer;
 #endif
 	
 	assert(en);
@@ -387,12 +385,12 @@ static void classcache_merge_class_entries(classcache_name_entry *en,
 	assert(!clsenA->classobj || !clsenB->classobj || clsenA->classobj == clsenB->classobj);
 
 #ifdef CLASSCACHE_VERBOSE
-	sprintf(logbuffer,"classcache_merge_class_entries(%p,%p->%p,%p->%p) ", 
+	logbuffer.writef("classcache_merge_class_entries(%p,%p->%p,%p->%p) ", 
 			(void*)en,(void*)clsenA,(void*)clsenA->classobj,(void*)clsenB,(void*)clsenB->classobj);
 	if (clsenA->classobj)
-		utf_cat_classname(logbuffer, clsenA->classobj->name);
+		logbuffer.write_slash_to_dot(clsenA->classobj->name);
 	if (clsenB->classobj)
-		utf_cat_classname(logbuffer, clsenB->classobj->name);
+		logbuffer.write_slash_to_dot(clsenB->classobj->name);
 	log_println(logbuffer);
 #endif
 
@@ -428,7 +426,7 @@ static void classcache_merge_class_entries(classcache_name_entry *en,
 	   
 *******************************************************************************/
 
-static classcache_name_entry *classcache_lookup_name(utf *name)
+static classcache_name_entry *classcache_lookup_name(Utf8String name)
 {
 	classcache_name_entry *c;           /* hash table element                 */
 	u4 key;                             /* hashkey computed from classname    */
@@ -436,7 +434,7 @@ static classcache_name_entry *classcache_lookup_name(utf *name)
 
 	CLASSCACHE_COUNT(stat_lookup_name);
 
-	key  = CLASSCACHE_HASH(name->text, (u4) name->blength);
+	key  = name.hash();
 	slot = key & (hashtable_classcache.size - 1);
 	c    = (classcache_name_entry*) hashtable_classcache.ptr[slot];
 
@@ -473,7 +471,7 @@ static classcache_name_entry *classcache_lookup_name(utf *name)
 	   
 *******************************************************************************/
 
-static classcache_name_entry *classcache_new_name(utf *name)
+static classcache_name_entry *classcache_new_name(Utf8String name)
 {
 	classcache_name_entry *c;	/* hash table element */
 	u4 key;						/* hashkey computed from classname */
@@ -482,7 +480,7 @@ static classcache_name_entry *classcache_new_name(utf *name)
 
 	CLASSCACHE_COUNT(stat_lookup_new_name);
 
-	key  = CLASSCACHE_HASH(name->text, (u4) name->blength);
+	key  = name.hash();
 	slot = key & (hashtable_classcache.size - 1);
 	c    = (classcache_name_entry*) hashtable_classcache.ptr[slot];
 
@@ -533,8 +531,7 @@ static classcache_name_entry *classcache_new_name(utf *name)
 			c2 = (classcache_name_entry *) hashtable_classcache.ptr[i];
 			while (c2) {
 				classcache_name_entry *nextc = c2->hashlink;
-				u4 newslot =
-					(CLASSCACHE_HASH(c2->name->text, (u4) c2->name->blength)) & (newhash.size - 1);
+				u4 newslot = c2->name.hash() & (newhash.size - 1);
 
 				c2->hashlink = (classcache_name_entry *) newhash.ptr[newslot];
 				CLASSCACHE_COUNTIF(c2->hashlink,stat_rehash_names_collisions);
@@ -570,7 +567,7 @@ static classcache_name_entry *classcache_new_name(utf *name)
    
 *******************************************************************************/
 
-classinfo *classcache_lookup(classloader_t *initloader, utf *classname)
+classinfo *classcache_lookup(classloader_t *initloader, Utf8String classname)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
@@ -622,7 +619,7 @@ classinfo *classcache_lookup(classloader_t *initloader, utf *classname)
    
 *******************************************************************************/
 
-classinfo *classcache_lookup_defined(classloader_t *defloader, utf *classname)
+classinfo *classcache_lookup_defined(classloader_t *defloader, Utf8String classname)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
@@ -669,7 +666,7 @@ classinfo *classcache_lookup_defined(classloader_t *defloader, utf *classname)
 *******************************************************************************/
 
 classinfo *classcache_lookup_defined_or_initiated(classloader_t *loader, 
-												  utf *classname)
+												  Utf8String classname)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
@@ -744,7 +741,7 @@ classinfo *classcache_store(classloader_t *initloader, classinfo *cls,
 	classcache_class_entry *clsenB;
 	classcache_loader_entry *lden;
 #ifdef CLASSCACHE_VERBOSE
-	char logbuffer[1024];
+	Buffer<> logbuffer;
 #endif
 	
 	assert(cls);
@@ -753,9 +750,9 @@ classinfo *classcache_store(classloader_t *initloader, classinfo *cls,
 	CLASSCACHE_LOCK();
 
 #ifdef CLASSCACHE_VERBOSE
-	sprintf(logbuffer,"classcache_store (%p,%d,%p=", (void*)initloader,mayfree,(void*)cls);
-	utf_cat_classname(logbuffer, cls->name);
-	strcat(logbuffer,")");
+	logbuffer.writef("classcache_store (%p,%d,%p=", (void*)initloader,mayfree,(void*)cls)
+	         .write_slash_to_dot(cls->name)
+	         .write(")");
 	log_println(logbuffer);
 #endif
 
@@ -928,7 +925,7 @@ classinfo *classcache_store_defined(classinfo *cls)
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
 #ifdef CLASSCACHE_VERBOSE
-	char logbuffer[1024];
+	Buffer<> logbuffer;
 #endif
 
 	assert(cls);
@@ -937,9 +934,9 @@ classinfo *classcache_store_defined(classinfo *cls)
 	CLASSCACHE_LOCK();
 
 #ifdef CLASSCACHE_VERBOSE
-	sprintf(logbuffer,"classcache_store_defined (%p,", (void*)cls->classloader);
-	utf_cat_classname(logbuffer, cls->name);
-	strcat(logbuffer,")");
+	logbuffer.writef("classcache_store_defined (%p,", (void*)cls->classloader)
+	         .write_slash_to_dot(cls->name)
+	         .write(")");
 	log_println(logbuffer);
 #endif
 
@@ -1163,7 +1160,7 @@ void classcache_free(void)
 #if defined(ENABLE_VERIFIER)
 bool classcache_add_constraint(classloader_t * a,
 							   classloader_t * b,
-							   utf * classname)
+							   Utf8String  classname)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsenA;
@@ -1350,7 +1347,7 @@ static s4 classcache_number_of_loaded_classes(void)
 		for (en = (classcache_name_entry*) hashtable_classcache.ptr[i]; en != NULL; en = en->hashlink) {
 			/* filter pseudo classes $NEW$, $NULL$, $ARRAYSTUB$ out */
 
-			if (en->name->text[0] == '$')
+			if (en->name[0] == '$')
 				continue;
 
 			/* iterate over classes with same name */
@@ -1411,7 +1408,7 @@ void classcache_foreach_loaded_class(classcache_foreach_functionptr_t func,
 		for (en = (classcache_name_entry*) hashtable_classcache.ptr[i]; en != NULL; en = en->hashlink) {
 			/* filter pseudo classes $NEW$, $NULL$, $ARRAYSTUB$ out */
 
-			if (en->name->text[0] == '$')
+			if (en->name[0] == '$')
 				continue;
 
 			/* iterate over classes with same name */
@@ -1449,7 +1446,7 @@ void classcache_foreach_loaded_class(classcache_foreach_functionptr_t func,
 *******************************************************************************/
 
 #ifndef NDEBUG
-void classcache_debug_dump(FILE * file,utf *only)
+void classcache_debug_dump(FILE * file,Utf8String only)
 {
 	classcache_name_entry *c;
 	classcache_class_entry *clsen;

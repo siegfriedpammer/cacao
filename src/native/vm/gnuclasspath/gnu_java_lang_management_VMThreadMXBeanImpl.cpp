@@ -1,6 +1,6 @@
 /* src/native/vm/gnuclasspath/gnu_java_lang_management_VMThreadMXBeanImpl.cpp
 
-   Copyright (C) 1996-2005, 2006, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -41,7 +41,7 @@
 #include "toolbox/logging.hpp"
 
 #include "vm/classcache.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 #include "vm/vm.hpp"
 
 
@@ -184,7 +184,7 @@ static JNINativeMethod methods[] = {
 
 void _Jv_gnu_java_lang_management_VMThreadMXBeanImpl_init(void)
 {
-	utf* u = utf_new_char("gnu/java/lang/management/VMThreadMXBeanImpl");
+	Utf8String u = Utf8String::from_utf8("gnu/java/lang/management/VMThreadMXBeanImpl");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

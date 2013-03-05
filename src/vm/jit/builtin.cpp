@@ -50,26 +50,26 @@
 #include "mm/gc.hpp"
 #include "mm/memory.hpp"
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "threads/lock.hpp"
 #include "threads/mutex.hpp"
 #include "threads/thread.hpp"
 
 #include "toolbox/logging.hpp"
-#include "toolbox/util.h"
+#include "toolbox/util.hpp"
 
 #include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
-#include "vm/cycles-stats.h"
+#include "vm/cycles-stats.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/initialize.hpp"
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/primitive.hpp"
 #include "vm/rt-timing.hpp"
 #include "vm/string.hpp"
@@ -119,33 +119,33 @@ static bool builtintable_init(void)
 
 	/* add some entries we need */
 
-	if (!descriptor_pool_add_class(descpool, utf_java_lang_Object))
+	if (!descriptor_pool_add_class(descpool, utf8::java_lang_Object))
 		return false;
 
-	if (!descriptor_pool_add_class(descpool, utf_java_lang_Class))
+	if (!descriptor_pool_add_class(descpool, utf8::java_lang_Class))
 		return false;
 
 	/* first add all descriptors to the pool */
 
 	for (bte = builtintable_internal; bte->fp != NULL; bte++) {
-		bte->name       = utf_new_char(bte->cname);
-		bte->descriptor = utf_new_char(bte->cdescriptor);
+		bte->name       = Utf8String::from_utf8(bte->cname).c_ptr();
+		bte->descriptor = Utf8String::from_utf8(bte->cdescriptor).c_ptr();
 
 		if (!descriptor_pool_add(descpool, bte->descriptor, NULL))
 			return false;
 	}
 
 	for (bte = builtintable_automatic; bte->fp != NULL; bte++) {
-		bte->descriptor = utf_new_char(bte->cdescriptor);
+		bte->descriptor = Utf8String::from_utf8(bte->cdescriptor).c_ptr();
 
 		if (!descriptor_pool_add(descpool, bte->descriptor, NULL))
 			return false;
 	}
 
 	for (bte = builtintable_function; bte->fp != NULL; bte++) {
-		bte->classname  = utf_new_char(bte->cclassname);
-		bte->name       = utf_new_char(bte->cname);
-		bte->descriptor = utf_new_char(bte->cdescriptor);
+		bte->classname  = Utf8String::from_utf8(bte->cclassname).c_ptr();
+		bte->name       = Utf8String::from_utf8(bte->cname).c_ptr();
+		bte->descriptor = Utf8String::from_utf8(bte->cdescriptor).c_ptr();
 
 		if (!descriptor_pool_add(descpool, bte->descriptor, NULL))
 			return false;

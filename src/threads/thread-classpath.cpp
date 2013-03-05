@@ -1,6 +1,6 @@
 /* src/threads/thread-classpath.cpp - thread functions specific to the GNU classpath library
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -54,8 +54,8 @@ java_handle_t *ThreadRuntimeClasspath::get_thread_exception_handler(const java_l
 methodinfo *ThreadRuntimeClasspath::get_threadgroup_remove_method(classinfo *c)
 {
 	return class_resolveclassmethod(c,
-									utf_removeThread,
-									utf_java_lang_Thread__V,
+									utf8::removeThread,
+									utf8::java_lang_Thread__V,
 									class_java_lang_ThreadGroup,
 									true);
 }
@@ -63,8 +63,8 @@ methodinfo *ThreadRuntimeClasspath::get_threadgroup_remove_method(classinfo *c)
 methodinfo *ThreadRuntimeClasspath::get_thread_init_method()
 {
 	return class_resolveclassmethod(class_java_lang_Thread,
-									utf_init,
-									utf_new_char("(Ljava/lang/VMThread;Ljava/lang/String;IZ)V"),
+									utf8::init,
+									Utf8String::from_utf8("(Ljava/lang/VMThread;Ljava/lang/String;IZ)V"),
 									class_java_lang_Thread,
 									true);
 }
@@ -83,7 +83,7 @@ void ThreadRuntimeClasspath::setup_thread_vmdata(const java_lang_Thread& jlt, th
 void ThreadRuntimeClasspath::print_thread_name(const java_lang_Thread& jlt, FILE *stream)
 {
 	java_handle_t* name = jlt.get_name();
-	javastring_fprint(name, stream);
+	JavaString(name).fprint(stream);
 }
 
 void ThreadRuntimeClasspath::set_javathread_state(threadobject *t, int state)
@@ -140,8 +140,8 @@ bool ThreadRuntimeClasspath::invoke_thread_initializer(java_lang_Thread& jlt, th
 	LLNI_class_get(group, c);
 
 	methodinfo* m = class_resolveclassmethod(c,
-											 utf_addThread,
-											 utf_java_lang_Thread__V,
+											 utf8::addThread,
+											 utf8::java_lang_Thread__V,
 											 class_java_lang_ThreadGroup,
 											 true);
 

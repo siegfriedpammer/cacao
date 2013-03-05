@@ -1,6 +1,6 @@
 /* src/threads/thread.cpp - machine independent thread functions
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -50,7 +50,7 @@
 # include "mm/boehm-gc/include/gc.h"
 #endif
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "native/native.hpp"
 
 #include "threads/lock.hpp"
@@ -64,14 +64,11 @@
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/method.hpp"
-#include "vm/options.h"
+#include "vm/options.hpp"
 #include "vm/string.hpp"
-#include "vm/utf8.h"
+#include "vm/utf8.hpp"
 #include "vm/vm.hpp"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
+#include "vm/statistics.hpp"
 
 #include "vm/jit/stacktrace.hpp"
 
@@ -248,7 +245,7 @@ static void thread_create_initial_thread(void)
 
 	/* The thread name. */
 
-	name = javastring_new(utf_main);
+	name = JavaString::from_utf8(utf8::main);
 
 #if defined(ENABLE_INTRP)
 	/* create interpreter stack */
@@ -409,7 +406,7 @@ static void thread_cleanup_finalizer(java_handle_t *h, void *data)
 	ThreadList::release_thread(t, false);
 }
 
-bool threads_thread_start_internal(utf *name, functionptr f)
+bool threads_thread_start_internal(Utf8String name, functionptr f)
 {
 	threadobject *t;
 
@@ -423,7 +420,7 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 
 	/* Create the Java thread object. */
 
-	if (!thread_create_object(t, javastring_new(name), threadgroup_system)) {
+	if (!thread_create_object(t, JavaString::from_utf8(name), threadgroup_system)) {
 		ThreadList::release_thread(t, true);
 		return false;
 	}
@@ -506,7 +503,6 @@ bool thread_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 {
 	bool           result;
 	threadobject  *t;
-	utf           *u;
 	java_handle_t *name;
 	java_handle_t *group;
 
@@ -541,14 +537,8 @@ bool thread_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	/* Get the thread name. */
 
-	if (vm_aargs != NULL) {
-		u = utf_new_char(vm_aargs->name);
-	}
-	else {
-		u = utf_null;
-	}
-
-	name = javastring_new(u);
+	name = vm_aargs ? JavaString::from_utf8(vm_aargs->name)
+	                : JavaString::from_utf8(utf8::null);
 
 #if defined(ENABLE_JAVASE)
 	/* Get the threadgroup. */

@@ -1,6 +1,6 @@
 /* src/vm/jit/trap.hpp - hardware traps
 
-   Copyright (C) 2008
+   Copyright (C) 2008-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -24,16 +24,16 @@
 */
 
 
-#ifndef _TRAP_HPP
-#define _TRAP_HPP
+#ifndef TRAP_HPP_
+#define TRAP_HPP_ 1
 
 #include "config.h"
 
 #include <stdint.h>
 
-#include "vm/options.h"
+#include "vm/options.hpp"
 
-#include "vm/jit/executionstate.h"
+#include "vm/jit/executionstate.hpp"
 
 
 /**
@@ -79,7 +79,7 @@ bool md_trap_decode(trapinfo_t* trp, int sig, void* xpc, executionstate_t* es);
 }
 #endif
 
-#endif /* _TRAP_HPP */
+#endif // TRAP_HPP_
 
 
 /*

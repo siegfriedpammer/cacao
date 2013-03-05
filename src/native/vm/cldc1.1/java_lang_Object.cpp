@@ -1,6 +1,6 @@
 /* src/native/vm/cldc1.1/java_lang_Object.c
 
-   Copyright (C) 2006, 2007, 2008
+   Copyright (C) 2006-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -29,7 +29,7 @@
 #include <stdlib.h>
 
 #include "native/jni.hpp"
-#include "native/llni.h"
+#include "native/llni.hpp"
 #include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
@@ -136,8 +136,8 @@ static JNINativeMethod methods[] = {
  
 void _Jv_java_lang_Object_init(void)
 {
-	utf* u = utf_new_char("java/lang/Object");
- 
+	Utf8String u = Utf8String::from_utf8("java/lang/Object");
+
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }

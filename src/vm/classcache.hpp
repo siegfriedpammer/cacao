@@ -1,6 +1,6 @@
 /* src/vm/classcache.hpp - loaded class cache and loading constraints
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _CLASSCACHE_H
-#define _CLASSCACHE_H
+#ifndef CLASSCACHE_HPP_
+#define CLASSCACHE_HPP_ 1
 
 #include "config.h"
 
@@ -32,17 +32,14 @@
 
 #include <stdio.h>  /* for FILE */
 
-#include "toolbox/hashtable.h"
+#include "toolbox/hashtable.hpp"
 
 #include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/loader.hpp"
 #include "vm/references.h"
 
-
 #ifdef __cplusplus
-extern "C" {
-#endif
 
 /* forward declarations *******************************************************/
 
@@ -96,7 +93,7 @@ extern hashtable hashtable_classcache;
 
 struct classcache_name_entry
 {
-	utf                     *name;        /* class name                       */
+	Utf8String               name;        /* class name                       */
 	classcache_name_entry   *hashlink;    /* link for external chaining       */
 	classcache_class_entry  *classes;     /* equivalence classes for this name*/
 };
@@ -127,16 +124,16 @@ typedef void (*classcache_foreach_functionptr_t)(classinfo *, void *);
 bool classcache_init(void);
 void classcache_free(void);
 
-classinfo * classcache_lookup(classloader_t *initloader,utf *classname);
-classinfo * classcache_lookup_defined(classloader_t *defloader,utf *classname);
-classinfo * classcache_lookup_defined_or_initiated(classloader_t *loader,utf *classname);
+classinfo * classcache_lookup(classloader_t *initloader,Utf8String classname);
+classinfo * classcache_lookup_defined(classloader_t *defloader,Utf8String classname);
+classinfo * classcache_lookup_defined_or_initiated(classloader_t *loader,Utf8String classname);
 
 bool classcache_store_unique(classinfo *cls);
 classinfo * classcache_store(classloader_t *initloader,classinfo *cls,bool mayfree);
 classinfo * classcache_store_defined(classinfo *cls);
 
 #if defined(ENABLE_VERIFIER)
-bool classcache_add_constraint(classloader_t *a,classloader_t *b,utf *classname);
+bool classcache_add_constraint(classloader_t *a,classloader_t *b,Utf8String classname);
 bool classcache_add_constraints_for_params(classloader_t *a,classloader_t *b,
 										   methodinfo *m);
 #endif
@@ -147,14 +144,13 @@ void classcache_foreach_loaded_class(classcache_foreach_functionptr_t func,
 									 void *data);
 
 #ifndef NDEBUG
-void classcache_debug_dump(FILE *file,utf *only);
-#endif
-	
-#ifdef __cplusplus
-}
+void classcache_debug_dump(FILE *file,Utf8String only);
 #endif
 
-#endif /* _CLASSCACHE_H */
+#endif /* __cplusplus */
+
+#endif // CLASSCACHE_HPP_
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

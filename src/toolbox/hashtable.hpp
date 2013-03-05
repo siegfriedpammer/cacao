@@ -1,8 +1,7 @@
-/* src/toolbox/hashtable.hpp - hashtable classes
+/* src/toolbox/hashtable.hpp - functions for internal hashtables
 
-   Copyright (C) 2009, 2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
-   Copyright (C) 2009 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -24,67 +23,106 @@
 */
 
 
-#ifndef _HASHTABLE_HPP
-#define _HASHTABLE_HPP
+#ifndef HASHTABLE_HPP_
+#define HASHTABLE_HPP_ 1
+
+/* forward typedefs ***********************************************************/
+
+typedef struct hashtable hashtable;
+
 
 #include "config.h"
+#include "vm/types.h"
 
-#if __cplusplus
-
-#include <tr1/unordered_map>
-
-
-/**
- * Default hashing function for hashtable implementation.
- */
-template<class T> class Hasher {
-	// XXX Implement me!
-};
-
-
-/**
- * Hashtable implementation.
- */
-template<class Key, class T,
-		class Hash = Hasher<Key>,
-		class Pred = std::equal_to<Key> >
-class Hashtable :
-		protected std::tr1::unordered_map<Key,T,Hash,Pred> {
-public:
-	// Constructor.
-	Hashtable(size_t n) : std::tr1::unordered_map<Key,T,Hash,Pred>(n) {}
-
-	// Make iterator of TR1 unordered map visible.
-	using std::tr1::unordered_map<Key,T,Hash,Pred>::iterator;
-
-	// Make functions of TR1 unordered map visible.
-	using std::tr1::unordered_map<Key,T,Hash,Pred>::end;
-	using std::tr1::unordered_map<Key,T,Hash,Pred>::find;
-	using std::tr1::unordered_map<Key,T,Hash,Pred>::insert;
-};
-
-
-// Required by LockableHashtable.
 #include "threads/mutex.hpp"
 
+#include "vm/global.h"
+#include "vm/utf8.hpp"
 
-/**
- * Hashtable implementation with a Mutex.
- */
-template<class Key, class T,
-		class Hash = Hasher<Key>,
-		class Pred = std::equal_to<Key> >
-class LockableHashtable :
-		public Hashtable<Key,T,Hash,Pred>,
-		public Mutex {
-public:
-	// Constructor.
-	LockableHashtable(size_t n) : Hashtable<Key,T,Hash,Pred>(n) {}
+
+/* data structures for hashtables ********************************************
+
+   All utf-symbols, javastrings and classes are stored in global
+   hashtables, so every symbol exists only once. Equal symbols have
+   identical pointers.  The functions for adding hashtable elements
+   search the table for the element with the specified name/text and
+   return it on success. Otherwise a new hashtable element is created.
+
+   The hashtables use external linking for handling collisions. The
+   hashtable structure contains a pointer <ptr> to the array of
+   hashtable slots. The number of hashtable slots and therefore the
+   size of this array is specified by the element <size> of hashtable
+   structure. <entries> contains the number of all hashtable elements
+   stored in the table, including those in the external chains.  The
+   hashtable element structures (utf, literalstring, classinfo)
+   contain both a pointer to the next hashtable element as a link for
+   the external hash chain and the key of the element. The key is
+   computed from the text of the string or the classname by using up
+   to 8 characters.
+	
+   If the number of entries in the hashtable exceeds twice the size of
+   the hashtableslot-array it is supposed that the average length of
+   the external chains has reached a value beyond 2. Therefore the
+   functions for adding hashtable elements (utf_new, class_new,
+   literalstring_new) double the hashtableslot-array. In this
+   restructuring process all elements have to be inserted into the new
+   hashtable and new external chains must be built.
+
+   Example for the layout of a hashtable:
+
+hashtable.ptr-->+-------------------+
+                |                   |
+                         ...
+                |                   |
+                +-------------------+   +-------------------+   +-------------------+
+                | hashtable element |-->| hashtable element |-->| hashtable element |-->NULL
+                +-------------------+   +-------------------+   +-------------------+
+                | hashtable element |
+                +-------------------+   +-------------------+   
+                | hashtable element |-->| hashtable element |-->NULL
+                +-------------------+   +-------------------+   
+                | hashtable element |-->NULL
+                +-------------------+
+                |                   |
+                         ...
+                |                   |
+                +-------------------+
+
+*/
+
+
+/* hashtable ******************************************************************/
+
+struct hashtable {            
+#if defined(ENABLE_THREADS)
+	Mutex              *mutex;          /* required for locking               */
+#endif
+	u4                  size;           /* current size of the hashtable      */
+	u4                  entries;        /* number of entries in the table     */
+	void              **ptr;            /* pointer to hashtable               */
 };
 
+
+/* function prototypes ********************************************************/
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#endif /* _HASHTABLE_HPP */
+/* create hashtable */
+void hashtable_create(hashtable *hash, u4 size);
+
+/* creates and resizes a hashtable */
+hashtable *hashtable_resize(hashtable *hash, u4 size);
+
+/* frees a hashtable */
+void hashtable_free(hashtable *hash);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // HASHTABLE_HPP_
 
 
 /*
@@ -98,5 +136,4 @@ public:
  * c-basic-offset: 4
  * tab-width: 4
  * End:
- * vim:noexpandtab:sw=4:ts=4:
  */

@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _VFTBL_HPP
-#define _VFTBL_HPP
+#ifndef VFTBL_HPP_
+#define VFTBL_HPP_ 1
 
 // Forward declaration.
 typedef struct _vftbl vftbl_t;
@@ -91,7 +91,6 @@ typedef struct _vftbl vftbl_t;
 *******************************************************************************/
 
 // Includes.
-#include "vm/class.hpp"
 #include "vm/references.h"
 
 #if USES_NEW_SUBTYPE
@@ -99,14 +98,14 @@ typedef struct _vftbl vftbl_t;
 #endif
 
 struct _vftbl {
-	methodptr   *interfacetable[1];    /* interface table (access via macro)  */
-	classinfo   *clazz;                /* class, the vtbl belongs to          */
-	arraydescriptor *arraydesc;        /* for array classes, otherwise NULL   */
-	s4           vftbllength;          /* virtual function table length       */
-	s4           interfacetablelength; /* interface table length              */
-	s4           baseval;              /* base for runtime type check         */
-	                                   /* (-index for interfaces)             */
-	s4           diffval;              /* high - base for runtime type check  */
+	methodptr              *interfacetable[1];    /* interface table (access via macro)  */
+	struct classinfo       *clazz;                /* class, the vtbl belongs to          */
+	struct arraydescriptor *arraydesc;            /* for array classes, otherwise NULL   */
+	s4                      vftbllength;          /* virtual function table length       */
+	s4                      interfacetablelength; /* interface table length              */
+	s4                      baseval;              /* base for runtime type check         */
+	                                              /* (-index for interfaces)             */
+	s4                      diffval;              /* high - base for runtime type check  */
 
 #if USES_NEW_SUBTYPE
 	s4 subtype_depth;
@@ -119,7 +118,7 @@ struct _vftbl {
 	methodptr    table[1];             /* class vftbl                         */
 };
 
-#endif // _VFTBL_HPP
+#endif // VFTBL_HPP_
 
 
 /*

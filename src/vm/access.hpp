@@ -1,4 +1,4 @@
-/* src/vm/access.h - checking access rights
+/* src/vm/access.hpp - checking access rights
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _ACCESS_H
-#define _ACCESS_H
+#ifndef ACCESS_HPP_
+#define ACCESS_HPP_
 
 #include "config.h"
 
@@ -63,7 +63,7 @@ bool access_check_method(methodinfo *m, int callerdepth);
 }
 #endif
 
-#endif /* _ACCESS_H */
+#endif // ACCESS_HPP_
 
 
 /*

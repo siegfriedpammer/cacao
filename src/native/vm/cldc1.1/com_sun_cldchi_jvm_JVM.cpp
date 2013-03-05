@@ -1,6 +1,6 @@
 /* src/native/vm/cldc1.1/com_sun_cldchi_jvm_JVM.cpp
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 2007-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -55,7 +55,7 @@ JNIEXPORT void JNICALL Java_com_sun_cldchi_jvm_JVM_loadLibrary(JNIEnv *env, jcla
 	}
 
 	// REMOVEME When we use Java-strings internally.
-	utf* name = javastring_toutf((java_handle_t*) libName, false);
+	Utf8String name = JavaString((java_handle_t*) libName).to_utf8();
 
 	NativeLibrary nl(name);
 	bool result = nl.load(env);
@@ -84,8 +84,8 @@ static JNINativeMethod methods[] = {
  
 void _Jv_com_sun_cldchi_jvm_JVM_init(void)
 {
-	utf* u = utf_new_char("com/sun/cldchi/jvm/JVM");
- 
+	Utf8String u = Utf8String::from_utf8("com/sun/cldchi/jvm/JVM");
+
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }

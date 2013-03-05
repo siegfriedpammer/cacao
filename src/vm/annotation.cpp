@@ -1,6 +1,6 @@
 /* src/vm/annotation.cpp - class annotations
 
-   Copyright (C) 2006, 2007, 2008
+   Copyright (C) 2006-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -28,7 +28,7 @@
 #include <assert.h>
 #include <stdint.h>
 
-#include "native/llni.h"
+#include "native/llni.hpp"
 
 #include "mm/memory.hpp"
 

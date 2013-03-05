@@ -1,6 +1,6 @@
 /* src/vm/linker.hpp - class linker header
 
-   Copyright (C) 1996, 2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,14 +23,8 @@
 */
 
 
-#ifndef _LINKER_H
-#define _LINKER_H
-
-/* forward typedefs ***********************************************************/
-
-typedef struct arraydescriptor arraydescriptor;
-typedef struct primitivetypeinfo primitivetypeinfo;
-
+#ifndef LINKER_HPP_
+#define LINKER_HPP_ 1
 
 #include "config.h"
 #include "vm/types.h"
@@ -41,6 +35,7 @@ typedef struct primitivetypeinfo primitivetypeinfo;
 #include "vm/references.h"
 #include "vm/vftbl.hpp"
 
+#ifdef __cplusplus
 
 /* arraydescriptor *************************************************************
 
@@ -82,22 +77,28 @@ extern Mutex *linker_classrenumber_lock;
 
 /* function prototypes ********************************************************/
 
+void       linker_preinit(void);
+void       linker_init(void);
+
+void linker_create_string_later(java_object_t **a, Utf8String u);
+void linker_initialize_deferred_strings();
+
+#endif /* __cplusplus */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void       linker_preinit(void);
-void       linker_init(void);
+// TODO: remove 'extern "C"', this is used in an inline function in 
+//       class.hpp (class_is_array) and thus visible to all machine code emitters
 classinfo *link_class(classinfo *c);
-
-void linker_create_string_later(java_object_t **a, utf *u);
-void linker_initialize_deferred_strings();
 
 #ifdef __cplusplus
 }
-#endif
+#endif /* __cplusplus */
 
-#endif /* _LINKER_H */
+
+#endif // LINKER_HPP_
 
 
 /*
@@ -106,7 +107,7 @@ void linker_initialize_deferred_strings();
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -1,6 +1,6 @@
 /* src/vm/jit/s390/md.c - machine dependent s390 Linux functions
 
-   Copyright (C) 2006, 2007, 2008, 2010
+   Copyright (C) 2006-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -40,14 +40,14 @@
 #include "vm/signallocal.hpp"
 
 #include "vm/jit/abi.h"
-#include "vm/jit/executionstate.h"
+#include "vm/jit/executionstate.hpp"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/methodtree.h"
+#include "vm/jit/methodtree.hpp"
 #include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.hpp"
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
-#include "vm/options.h" /* XXX debug */
+#include "vm/options.hpp" /* XXX debug */
 #endif
 
 #include "vm/jit/codegen-common.hpp"
@@ -101,7 +101,7 @@ void md_dump_context(u1 *pc, mcontext_t *mc) {
 		m = (*(codeinfo **)(pv + CodeinfoPointer))->m;
 		log_println(
 			"Java method: class %s, method %s, descriptor %s.",
-			m->clazz->name->text, m->name->text, m->descriptor->text
+			UTF_TEXT(m->clazz->name), UTF_TEXT(m->name), UTF_TEXT(m->descriptor)
 		);
 	}
 

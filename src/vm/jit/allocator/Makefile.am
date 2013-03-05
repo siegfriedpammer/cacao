@@ -1,9 +1,7 @@
 ## src/vm/jit/allocator/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-## J. Wenninger, Institut f. Computersprachen - TU Wien
+## Copyright (C) 1996-2013
+## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
 ##
@@ -38,15 +36,15 @@ noinst_LTLIBRARIES = \
 	liballocator.la
 
 liballocator_la_SOURCES = \
-	simplereg.c \
-	simplereg.h 
+	simplereg.cpp \
+	simplereg.hpp 
 
 if ENABLE_LSRA
 liballocator_la_SOURCES += \
-	lsra.c \
-	lsra.h \
-	liveness.c \
-	liveness.h
+	lsra.cpp \
+	lsra.hpp \
+	liveness.cpp \
+	liveness.hpp
 endif		
 
 
