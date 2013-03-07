@@ -54,9 +54,9 @@ OStream& dbg();
 		if (cacao::Debug::is_debugging_enabled(DEBUG_NAME)) {    \
 			cacao::OStream stream = cacao::dbg();                \
                                                                  \
-			stream << setprefix(DEBUG_NAME, cacao::log_color()); \
+			/*stream << setprefix(DEBUG_NAME, cacao::log_color());*/ \
                                                                  \
-			{ stream << EXPR << "\n"; }                          \
+			{ stream << EXPR /*<< "\n"*/; }                          \
 		}                                                        \
 	} while (0)
 
