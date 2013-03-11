@@ -22,6 +22,27 @@
 
 */
 
+#include "config.h"
+
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cassert>
+
+#include "vm/types.h"
+
+#include "mm/memory.hpp"
+
+#include "threads/thread.hpp"
+
+#include "toolbox/logging.hpp"
+#include "toolbox/util.hpp"
+
+#include "vm/global.h"
+#if defined(ENABLE_STATISTICS)
+# include "vm/statistics.hpp"
+#endif
+
 #ifdef ENABLE_LOGGING
 
 using namespace cacao;
@@ -47,25 +68,6 @@ Color cacao::log_color() {
 }
 
 #endif
-
-#include "config.h"
-
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <cassert>
-
-#include "vm/types.h"
-
-#include "mm/memory.hpp"
-
-#include "threads/thread.hpp"
-
-#include "toolbox/logging.hpp"
-#include "toolbox/util.hpp"
-
-#include "vm/global.h"
-#include "vm/statistics.hpp"
 
 /***************************************************************************
                         LOG FILE HANDLING 
