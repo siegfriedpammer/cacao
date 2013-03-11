@@ -49,15 +49,17 @@ OStream& dbg();
 
 /// Log EXPR to OStream cacao::dbg if debugging is enabled for the given
 /// subsystem.
-#define LOG_WITH_NAME(DEBUG_NAME, EXPR)                          \
-	do {                                                         \
-		if (cacao::Debug::is_debugging_enabled(DEBUG_NAME)) {    \
-			cacao::OStream stream = cacao::dbg();                \
-                                                                 \
-			/*stream << setprefix(DEBUG_NAME, cacao::log_color());*/ \
-                                                                 \
-			{ stream << EXPR /*<< "\n"*/; }                          \
-		}                                                        \
+#define LOG_WITH_NAME(DEBUG_NAME, EXPR)                              \
+	do {                                                             \
+		if (cacao::Debug::is_debugging_enabled(DEBUG_NAME)) {        \
+			cacao::OStream stream = cacao::dbg();                    \
+                                                                     \
+			if (cacao::Debug::prefix_enabled) {                      \
+				stream << setprefix(DEBUG_NAME, cacao::log_color()); \
+			}                                                        \
+                                                                     \
+			{ stream << EXPR ; }                                     \
+		}                                                            \
 	} while (0)
 
 /// Analogous to DEBUG

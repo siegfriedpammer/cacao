@@ -29,6 +29,8 @@ using namespace cacao;
 static const char *current_system_name      = NULL;
 static size_t      current_system_name_size = 0;
 
+bool cacao::Debug::prefix_enabled = false;
+
 void cacao::Debug::set_current_system(const char *system) {
 	current_system_name      = system;
 	current_system_name_size = std::strlen(system);

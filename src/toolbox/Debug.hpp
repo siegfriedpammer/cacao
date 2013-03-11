@@ -37,6 +37,12 @@
 namespace cacao {
 
 struct Debug {
+	/// True if we should print a prefix
+	/// 
+	/// Can be set using the -XX:+DebugPrefix command line flag
+	/// @default false
+	static bool prefix_enabled;
+
 	/// Set the name of system you are interested in debugging
 	///
 	/// can be conviently be set via the command line flag -XX:DebugName
