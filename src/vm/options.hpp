@@ -183,6 +183,7 @@ extern bool     opt_AlwaysMmapFirstPage;
 extern int      opt_CompileAll;
 extern char*    opt_CompileMethod;
 extern char*    opt_CompileSignature;
+// TODO remove this option
 extern int      opt_DebugExceptions;
 extern int      opt_DebugFinalizer;
 extern int      opt_DebugLocalReferences;

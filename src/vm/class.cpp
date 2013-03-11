@@ -2534,6 +2534,32 @@ void class_showmethods (classinfo *c)
 }
 #endif /* !defined(NDEBUG) */
 
+namespace cacao {
+
+OStream& operator<<(OStream& os, const classinfo *c) {
+	if (c == NULL) {
+	  os << "NULL";
+	  return os;
+	}
+
+	os << (Utf8String)c->name;
+	// print flags
+	if (c->flags & ACC_PUBLIC)       os << " PUBLIC";
+	if (c->flags & ACC_PRIVATE)      os << " PRIVATE";
+	if (c->flags & ACC_PROTECTED)    os << " PROTECTED";
+	if (c->flags & ACC_STATIC)       os << " STATIC";
+	if (c->flags & ACC_FINAL)        os << " FINAL";
+	if (c->flags & ACC_SYNCHRONIZED) os << " SYNCHRONIZED";
+	if (c->flags & ACC_VOLATILE)     os << " VOLATILE";
+	if (c->flags & ACC_TRANSIENT)    os << " TRANSIENT";
+	if (c->flags & ACC_NATIVE)       os << " NATIVE";
+	if (c->flags & ACC_INTERFACE)    os << " INTERFACE";
+	if (c->flags & ACC_ABSTRACT)     os << " ABSTRACT";
+
+	return os;
+}
+
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -218,6 +218,14 @@ void utf_display_printable_ascii_classname(Utf8String u);
 void utf_fprint_printable_ascii(FILE *file, Utf8String u);
 void utf_fprint_printable_ascii_classname(FILE *file, Utf8String u);
 
+// OStream operators
+namespace cacao {
+class OStream;
+
+OStream& operator<<(OStream& os, const Utf8String &u);
+
+}
+
 #endif /* __cplusplus */
 
 ////////////////////////////////////////////////////////////////////////////////

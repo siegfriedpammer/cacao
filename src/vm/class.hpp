@@ -278,6 +278,14 @@ void class_classref_or_classinfo_print(classref_or_classinfo c);
 void class_classref_or_classinfo_println(classref_or_classinfo c);
 #endif
 
+namespace cacao {
+
+/* OStream overloads */
+class OStream;
+OStream& operator<<(OStream& os, const classinfo *c);
+
+}
+
 /* debug purposes */
 void class_showmethods(classinfo *c);
 void class_showconstantpool(classinfo *c);

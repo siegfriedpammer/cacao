@@ -29,6 +29,8 @@
 #include "toolbox/intern_table.hpp"
 #include "toolbox/utf_utils.hpp"
 
+#include "toolbox/OStream.hpp"
+
 //****************************************************************************//
 //*****          GLOBAL UTF8-STRING INTERN TABLE                         *****//
 //****************************************************************************//
@@ -647,6 +649,16 @@ struct Utf8Validator {
 };
 
 const size_t Utf8String::sizeof_utf = sizeof(Utf8String::Utf);
+
+namespace cacao {
+
+// OStream operators
+OStream& operator<<(OStream& os, const Utf8String &u) {
+  os << u.begin();
+  return os;
+}
+
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.
