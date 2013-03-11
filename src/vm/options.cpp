@@ -254,6 +254,7 @@ enum {
 	OPT_DebugLocks,
 	OPT_DebugPackage,
 	OPT_DebugPatcher,
+	// TODO remove this option
 	OPT_DebugProperties,
 	OPT_DebugStackFrameInfo,
 	OPT_DebugStackTrace,
@@ -320,6 +321,7 @@ option_t options_XX[] = {
 	{ "DebugLocks",                   OPT_DebugLocks,                   OPT_TYPE_BOOLEAN, "print debug information for locks" },
 	{ "DebugPackage",                 OPT_DebugPackage,                 OPT_TYPE_BOOLEAN, "debug Java boot-packages" },
 	{ "DebugPatcher",                 OPT_DebugPatcher,                 OPT_TYPE_BOOLEAN, "debug JIT code patching" },
+	// TODO remove this option
 	{ "DebugProperties",              OPT_DebugProperties,              OPT_TYPE_BOOLEAN, "print debug information for properties" },
 	{ "DebugStackFrameInfo",          OPT_DebugStackFrameInfo,          OPT_TYPE_BOOLEAN, "TODO" },
 	{ "DebugStackTrace",              OPT_DebugStackTrace,              OPT_TYPE_BOOLEAN, "debug stacktrace creation" },
@@ -712,6 +714,7 @@ void options_xx(JavaVMInitArgs *vm_args)
 			opt_DebugPatcher = enable;
 			break;
 
+		// TODO remove this option
 		case OPT_DebugProperties:
 			opt_DebugProperties = enable;
 			break;

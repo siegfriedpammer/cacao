@@ -189,6 +189,7 @@ extern int      opt_DebugLocalReferences;
 extern int      opt_DebugLocks;
 extern int      opt_DebugPatcher;
 extern int      opt_DebugPackage;
+// TODO remove this option
 extern int      opt_DebugProperties;
 extern int      opt_DebugStackFrameInfo;
 extern int      opt_DebugStackTrace;
