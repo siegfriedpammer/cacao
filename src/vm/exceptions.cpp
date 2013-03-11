@@ -140,15 +140,6 @@ void exceptions_set_exception(java_handle_t *e)
 
 	o = LLNI_UNWRAP(e);
 
-	// TODO remove this option
-#if !defined(NDEBUG)
-	if (opt_DebugExceptions) {
-		printf("[exceptions_set_exception  : t=%p, o=%p, class=",
-			   (void *) t, (void *) o);
-		class_print(o->vftbl->clazz);
-		printf("]\n");
-	}
-#endif
 	LOG("[exceptions_set_exception  : t=" << (void *) t
 	    << ", o=" << (void *) o
 	    << ", class=" << o->vftbl->clazz << "]" << cacao::nl);
@@ -181,12 +172,6 @@ void exceptions_clear_exception(void)
 
 	/* Set the exception. */
 
-	// TODO remove this option
-#if !defined(NDEBUG)
-	if (opt_DebugExceptions) {
-		printf("[exceptions_clear_exception: t=%p]\n", (void *) t);
-	}
-#endif
 	LOG("[exceptions_clear_exception: t=" << (void *) t << cacao::nl);
 
 #if defined(ENABLE_THREADS)

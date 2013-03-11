@@ -161,8 +161,6 @@ bool     opt_AlwaysMmapFirstPage          = false;
 int      opt_CompileAll                   = 0;
 char*    opt_CompileMethod                = NULL;
 char*    opt_CompileSignature             = NULL;
-// TODO remove this option
-int      opt_DebugExceptions              = 0;
 int      opt_DebugFinalizer               = 0;
 int      opt_DebugLocalReferences         = 0;
 int      opt_DebugLocks                   = 0;
@@ -249,8 +247,6 @@ enum {
 	OPT_CompileSignature,
 	OPT_DebugName,
 	OPT_DebugPrefix,
-	// TODO remove this option
-	OPT_DebugExceptions,
 	OPT_DebugFinalizer,
 	OPT_DebugLocalReferences,
 	OPT_DebugLocks,
@@ -315,8 +311,6 @@ option_t options_XX[] = {
 	{ "CompileSignature",             OPT_CompileSignature,             OPT_TYPE_VALUE,   "specify signature for a specific method" },
 	{ "DebugName",                    OPT_DebugName,                    OPT_TYPE_VALUE,   "Name of the subsystem to debug"},
 	{ "DebugPrefix",                  OPT_DebugPrefix,                  OPT_TYPE_BOOLEAN, "print debug prefix"},
-	// TODO remove this option
-	{ "DebugExceptions",              OPT_DebugExceptions,              OPT_TYPE_BOOLEAN, "debug exceptions" },
 	{ "DebugFinalizer",               OPT_DebugFinalizer,               OPT_TYPE_BOOLEAN, "debug finalizer thread" },
 	{ "DebugLocalReferences",         OPT_DebugLocalReferences,         OPT_TYPE_BOOLEAN, "print debug information for local reference tables" },
 	{ "DebugLocks",                   OPT_DebugLocks,                   OPT_TYPE_BOOLEAN, "print debug information for locks" },
@@ -687,11 +681,6 @@ void options_xx(JavaVMInitArgs *vm_args)
 
 		case OPT_DebugPrefix:
 			cacao::Debug::prefix_enabled = enable;
-			break;
-
-		// TODO remove this option
-		case OPT_DebugExceptions:
-			opt_DebugExceptions = enable;
 			break;
 
 		case OPT_DebugFinalizer:
