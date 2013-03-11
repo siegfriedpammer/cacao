@@ -567,13 +567,6 @@ void Properties::put(const char* key, const char* value)
 
 	// The key is already in the map.
 	if (it != _properties.end()) {
-	// TODO remove this option
-#if !defined(NDEBUG)
-		if (opt_DebugProperties) {
-			printf("[Properties::put: key=%s, old value=%s, new value=%s]\n",
-				   key, it->second, value);
-		}
-#endif
 		LOG("[Properties::put: " << "key=" << key << ", old value="<< it->second << ", new value=" << value << "]" << cacao::nl);
 
 		// Replace the value in the current entry.
@@ -583,12 +576,6 @@ void Properties::put(const char* key, const char* value)
 	}
 
 	// The key was not found, insert the pair.
-	// TODO remove this option
-#if !defined(NDEBUG)
-	if (opt_DebugProperties) {
-		printf("[Properties::put: key=%s, value=%s]\n", key, value);
-	}
-#endif
 	LOG("[Properties::put: " << "key=" << key << ", value=" << value << "]" << cacao::nl);
 
 	_properties.insert(std::make_pair(key, value));
