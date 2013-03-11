@@ -64,7 +64,15 @@ enum Color {
 	Blue,
 	Magenta,
 	Cyan,
-	White
+	White,
+	BoldBlack,
+	BoldRed,
+	BoldGreen,
+	BoldYellow,
+	BoldBlue,
+	BoldMagenta,
+	BoldCyan,
+	BoldWhite
 };
 
 class ResetColor  {};

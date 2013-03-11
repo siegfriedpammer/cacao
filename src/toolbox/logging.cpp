@@ -47,7 +47,7 @@
 
 using namespace cacao;
 
-static Color current_log_color = InvalidColor;
+static Color current_log_color = BoldWhite;
 
 OStream& cacao::dbg() {
 	static OStream stream(stdout);

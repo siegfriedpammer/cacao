@@ -355,6 +355,14 @@ OStream& OStream::operator<<(Color c) {
 	case Magenta:     return (*this) << "\033[35m";
 	case Cyan:        return (*this) << "\033[36m";
 	case White:       return (*this) << "\033[37m";
+	case BoldBlack:   return (*this) << "\033[30m\033[1m";
+	case BoldRed:     return (*this) << "\033[31m\033[1m";
+	case BoldGreen:   return (*this) << "\033[32m\033[1m";
+	case BoldYellow:  return (*this) << "\033[33m\033[1m";
+	case BoldBlue:    return (*this) << "\033[34m\033[1m";
+	case BoldMagenta: return (*this) << "\033[35m\033[1m";
+	case BoldCyan:    return (*this) << "\033[36m\033[1m";
+	case BoldWhite:   return (*this) << "\033[37m\033[1m";
 	default:
 		assert(false && "Unknown color code");
 		break;
