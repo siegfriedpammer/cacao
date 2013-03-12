@@ -1,6 +1,6 @@
-/* src/vm/jit/x86_64/linux/md-os.c - machine dependent x86_64 Linux functions
+/* src/vm/jit/x86_64/solaris/md-os.cpp - machine dependent x86_64 Solaris functions
 
-   Copyright (C) 2007-2013
+   Copyright (C) 2008-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,13 +23,11 @@
 */
 
 
-#define _GNU_SOURCE
-
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
+#include <cstdlib>
 #include <stdint.h>
-#include <stdlib.h>
 #include <ucontext.h>
 
 #include "vm/types.hpp"
@@ -47,57 +45,57 @@
 
 
 /**
- * Signal handler for hardware exception.
+ * Signal handler for hardware exceptions.
  */
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t* _uc = (ucontext_t *) _p;
-	mcontext_t* _mc = &_uc->uc_mcontext;
+	ucontext_t *_uc = (ucontext_t *) _p;
+	mcontext_t *_mc = &_uc->uc_mcontext;
 
 	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
 	   different to the ones in <ucontext.h>. */
 
-	void* xpc = (void*) _mc->gregs[REG_RIP];
+	void* xpc = (void *) _mc->gregs[REG_RIP];
 
-	// Handle the trap.
-	trap_handle(TRAP_SIGSEGV, xpc, _p);
+    // Handle the trap.
+    trap_handle(TRAP_SIGSEGV, xpc, _p);
 }
 
 
 /**
- * ArithmeticException signal handler for hardware divide by zero
+ * Signal handler for hardware divide by zero (ArithmeticException)
  * check.
  */
 void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t* _uc = (ucontext_t *) _p;
-	mcontext_t* _mc = &_uc->uc_mcontext;
+	ucontext_t *_uc = (ucontext_t *) _p;
+	mcontext_t *_mc = &_uc->uc_mcontext;
 
 	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
 	   different to the ones in <ucontext.h>. */
 
-	void* xpc = (void*) _mc->gregs[REG_RIP];
+	void* xpc = (void *) _mc->gregs[REG_RIP];
 
-	// Handle the trap.
-	trap_handle(TRAP_SIGFPE, xpc, _p);
+    // Handle the trap.
+    trap_handle(TRAP_SIGFPE, xpc, _p);
 }
 
 
 /**
- * Signal handler for patchers.
+ * Signal handler for hardware patcher traps (ud2).
  */
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t* _uc = (ucontext_t *) _p;
-	mcontext_t* _mc = &_uc->uc_mcontext;
+	ucontext_t *_uc = (ucontext_t *) _p;
+	mcontext_t *_mc = &_uc->uc_mcontext;
 
 	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
 	   different to the ones in <ucontext.h>. */
 
-	void* xpc = (void*) _mc->gregs[REG_RIP];
+	void* xpc = (void *) _mc->gregs[REG_RIP];
 
-	// Handle the trap.
-	trap_handle(TRAP_SIGILL, xpc, _p);
+    // Handle the trap.
+    trap_handle(TRAP_SIGILL, xpc, _p);
 }
 
 
@@ -146,9 +144,6 @@ void md_executionstate_read(executionstate_t *es, void *context)
 	_uc = (ucontext_t *) context;
 	_mc = &_uc->uc_mcontext;
 
-	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
-	   different to the ones in <ucontext.h>. */
-
 	/* read special registers */
 	es->pc = (u1 *) _mc->gregs[REG_RIP];
 	es->sp = (u1 *) _mc->gregs[REG_RSP];
@@ -156,42 +151,40 @@ void md_executionstate_read(executionstate_t *es, void *context)
 
 	/* read integer registers */
 	for (i = 0; i < INT_REG_CNT; i++) {
-		/* XXX FIX ME! */
-
 		switch (i) {
-		case 0:  /* REG_RAX == 13 */
+		case 0:  /* REG_RAX */
 			d = REG_RAX;
 			break;
-		case 1:  /* REG_RCX == 14 */
+		case 1:  /* REG_RCX */
 			d = REG_RCX;
 			break;
-		case 2:  /* REG_RDX == 12 */
+		case 2:  /* REG_RDX */
 			d = REG_RDX;
 			break;
-		case 3:  /* REG_RBX == 11 */
+		case 3:  /* REG_RBX */
 			d = REG_RBX;
 			break;
-		case 4:  /* REG_RSP == 15 */
+		case 4:  /* REG_RSP */
 			d = REG_RSP;
 			break;
-		case 5:  /* REG_RBP == 10 */
+		case 5:  /* REG_RBP */
 			d = REG_RBP;
 			break;
-		case 6:  /* REG_RSI == 9  */
+		case 6:  /* REG_RSI */
 			d = REG_RSI;
 			break;
-		case 7:  /* REG_RDI == 8  */
+		case 7:  /* REG_RDI */
 			d = REG_RDI;
 			break;
-		case 8:  /* REG_R8  == 0  */
-		case 9:  /* REG_R9  == 1  */
-		case 10: /* REG_R10 == 2  */
-		case 11: /* REG_R11 == 3  */
-		case 12: /* REG_R12 == 4  */
-		case 13: /* REG_R13 == 5  */
-		case 14: /* REG_R14 == 6  */
-		case 15: /* REG_R15 == 7  */
-			d = i - 8;
+		case 8:  /* REG_R8  == 7  */
+		case 9:  /* REG_R9  == 6  */
+		case 10: /* REG_R10 == 5  */
+		case 11: /* REG_R11 == 4  */
+		case 12: /* REG_R12 == 3  */
+		case 13: /* REG_R13 == 2  */
+		case 14: /* REG_R14 == 1  */
+		case 15: /* REG_R15 == 0  */
+			d = 15 - i;
 			break;
 		}
 
@@ -220,47 +213,42 @@ void md_executionstate_write(executionstate_t *es, void *context)
 	_uc = (ucontext_t *) context;
 	_mc = &_uc->uc_mcontext;
 
-	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
-	   different to the ones in <ucontext.h>. */
-
 	/* write integer registers */
 	for (i = 0; i < INT_REG_CNT; i++) {
-		/* XXX FIX ME! */
-
 		switch (i) {
-		case 0:  /* REG_RAX == 13 */
+		case 0:  /* REG_RAX */
 			d = REG_RAX;
 			break;
-		case 1:  /* REG_RCX == 14 */
+		case 1:  /* REG_RCX */
 			d = REG_RCX;
 			break;
-		case 2:  /* REG_RDX == 12 */
+		case 2:  /* REG_RDX */
 			d = REG_RDX;
 			break;
-		case 3:  /* REG_RBX == 11 */
+		case 3:  /* REG_RBX */
 			d = REG_RBX;
 			break;
-		case 4:  /* REG_RSP == 15 */
+		case 4:  /* REG_RSP */
 			d = REG_RSP;
 			break;
-		case 5:  /* REG_RBP == 10 */
+		case 5:  /* REG_RBP */
 			d = REG_RBP;
 			break;
-		case 6:  /* REG_RSI == 9  */
+		case 6:  /* REG_RSI */
 			d = REG_RSI;
 			break;
-		case 7:  /* REG_RDI == 8  */
+		case 7:  /* REG_RDI */
 			d = REG_RDI;
 			break;
-		case 8:  /* REG_R8  == 0  */
-		case 9:  /* REG_R9  == 1  */
-		case 10: /* REG_R10 == 2  */
-		case 11: /* REG_R11 == 3  */
-		case 12: /* REG_R12 == 4  */
-		case 13: /* REG_R13 == 5  */
-		case 14: /* REG_R14 == 6  */
-		case 15: /* REG_R15 == 7  */
-			d = i - 8;
+		case 8:  /* REG_R8  == 7  */
+		case 9:  /* REG_R9  == 6  */
+		case 10: /* REG_R10 == 5  */
+		case 11: /* REG_R11 == 4  */
+		case 12: /* REG_R12 == 3  */
+		case 13: /* REG_R13 == 2  */
+		case 14: /* REG_R14 == 1  */
+		case 15: /* REG_R15 == 0  */
+			d = 15 - i;
 			break;
 		}
 
@@ -279,7 +267,7 @@ void md_executionstate_write(executionstate_t *es, void *context)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

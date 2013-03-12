@@ -1,4 +1,4 @@
-/* src/vm/jit/x86_64/patcher.c - x86_64 code patching functions
+/* src/vm/jit/x86_64/patcher.cpp - x86_64 code patching functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -29,8 +29,8 @@
 
 #include "vm/types.hpp"
 
-#include "vm/jit/x86_64/codegen.h"
-#include "vm/jit/x86_64/md.h"
+#include "vm/jit/x86_64/codegen.hpp"
+#include "vm/jit/x86_64/md.hpp"
 
 #include "mm/memory.hpp"
 
@@ -68,7 +68,7 @@ static int32_t *patch_checked_location(int32_t *p, int32_t val)
 	return p;
 }
 
-static void checked_icache_flush(int32_t *addr, int nbytes, int32_t *check_loc)
+static void checked_icache_flush(void *addr, int nbytes, int32_t *check_loc)
 {
 	assert((int8_t*) addr + nbytes - sizeof(int32_t) >= (int8_t*) check_loc);
 	md_icacheflush(addr, nbytes);
@@ -558,7 +558,7 @@ bool patcher_instanceof_interface(patchref_t *pr)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

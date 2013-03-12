@@ -25,15 +25,15 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <stdint.h>
 
 #include <algorithm>
 
 #include "vm/types.hpp"
 
-#include "arch.h"
-#include "codegen.h"
+#include "arch.hpp"
+#include "codegen.hpp"
 
 #include "toolbox/list.hpp"
 

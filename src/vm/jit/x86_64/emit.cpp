@@ -1,4 +1,4 @@
-/* src/vm/jit/x86_64/emit.c - x86_64 code emitter functions
+/* src/vm/jit/x86_64/emit.cpp - x86_64 code emitter functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -24,15 +24,15 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 
 #include "vm/types.hpp"
 #include "vm/os.hpp"
 
-#include "md-abi.h"
+#include "md-abi.hpp"
 
-#include "vm/jit/x86_64/codegen.h"
-#include "vm/jit/x86_64/emit.h"
+#include "vm/jit/x86_64/codegen.hpp"
+#include "vm/jit/x86_64/emit.hpp"
 
 #include "mm/memory.hpp"
 
@@ -2666,7 +2666,7 @@ void emit_mfence(codegendata *cd)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -1,9 +1,7 @@
-/* src/vm/jit/reg.c - register allocator setup
+/* src/vm/jit/reg.cpp - register allocator setup
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2013
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -27,12 +25,12 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 
 #include "vm/types.hpp"
 
-#include "arch.h"
-#include "md-abi.h"
+#include "arch.hpp"
+#include "md-abi.hpp"
 
 #include "mm/memory.hpp"
 #include "vm/jit/abi.hpp"

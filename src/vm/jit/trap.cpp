@@ -30,8 +30,8 @@
 
 /* Include machine dependent trap stuff. */
 
-#include "md.h"
-#include "md-trap.h"
+#include "md.hpp"
+#include "md-trap.hpp"
 
 #include "mm/memory.hpp"
 

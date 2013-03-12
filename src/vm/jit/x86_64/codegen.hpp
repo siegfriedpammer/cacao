@@ -1,6 +1,6 @@
-/* src/vm/jit/x86_64/codegen.h - code generation macros for x86_64
+/* src/vm/jit/x86_64/codegen.hpp - code generation macros for x86_64
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _CODEGEN_H
-#define _CODEGEN_H
+#ifndef CODEGEN_HPP_
+#define CODEGEN_HPP_ 1
 
 #include "config.h"
 
@@ -32,7 +32,7 @@
 
 #include "vm/types.hpp"
 
-#include "vm/jit/x86_64/emit.h"
+#include "vm/jit/x86_64/emit.hpp"
 
 #include "vm/jit/jit.hpp"
 
@@ -354,8 +354,7 @@
 #define M_ISBB_MEMBASE(a,b,c)   emit_alul_reg_membase(cd, ALU_SBB, (a), (b), (c))
 
 
-#endif /* _CODEGEN_H */
-
+#endif // CODEGEN_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -363,7 +362,7 @@
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

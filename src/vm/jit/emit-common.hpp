@@ -1,6 +1,6 @@
 /* src/vm/jit/emit-common.hpp - common code emitter functions
 
-   Copyright (C) 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -30,8 +30,8 @@
 #include "config.h"
 #include "vm/types.hpp"
 
-#include "arch.h"
-#include "codegen.h"
+#include "arch.hpp"
+#include "codegen.hpp"
 
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/jit.hpp"

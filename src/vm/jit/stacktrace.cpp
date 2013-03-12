@@ -26,15 +26,15 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
+#include <cstdlib>
+#include <cstring>
 #include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "vm/types.hpp"
 
-#include "arch.h"
-#include "md.h"
+#include "arch.hpp"
+#include "md.hpp"
 
 #include "mm/gc.hpp"
 #include "mm/memory.hpp"

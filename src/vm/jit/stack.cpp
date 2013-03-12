@@ -1,6 +1,6 @@
-/* src/vm/jit/stack.c - stack analysis
+/* src/vm/jit/stack.cpp - stack analysis
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -25,13 +25,13 @@
 
 #include "config.h"
 
-#include <assert.h>
-#include <stdio.h>
-#include <string.h>
-#include <limits.h>
+#include <cassert>
+#include <cstdio>
+#include <cstring>
+#include <climits>
 
-#include "arch.h"
-#include "md-abi.h"
+#include "arch.hpp"
+#include "md-abi.hpp"
 
 #include "mm/memory.hpp"
 

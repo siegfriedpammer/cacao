@@ -35,8 +35,8 @@ typedef struct executionstate_t executionstate_t;
 
 #include <stdint.h>
 
-#include "arch.h"
-#include "md-abi.h"
+#include "arch.hpp"
+#include "md-abi.hpp"
 
 #include "vm/jit/code.hpp"
 

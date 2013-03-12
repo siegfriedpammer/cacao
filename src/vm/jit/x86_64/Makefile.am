@@ -1,6 +1,6 @@
 ## src/vm/jit/x86_64/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2007, 2008
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -34,33 +34,33 @@ DIST_SUBDIRS = \
 SUBDIRS = $(OS_DIR)
 
 noinst_HEADERS = \
-	arch.h \
+	arch.hpp \
 	\
-	md-asm.h \
+	md-asm.hpp \
 	md-atomic.hpp
 
 noinst_LTLIBRARIES = libarch.la
 
 if ENABLE_DISASSEMBLER
 DISASS_SOURCES = \
-	disass.c
+	disass.cpp
 endif
 
 libarch_la_SOURCES = \
 	asmpart.S \
-	codegen.c \
-	codegen.h \
+	codegen.cpp \
+	codegen.hpp \
 	$(DISASS_SOURCES) \
-	emit.c \
-	emit.h \
-	patcher.c \
+	emit.cpp \
+	emit.hpp \
+	patcher.cpp \
 	\
-	md-abi.c \
-	md-abi.h \
+	md-abi.cpp \
+	md-abi.hpp \
 	md-stubs.hpp \
-	md-trap.h \
-	md.c \
-	md.h
+	md-trap.hpp \
+	md.cpp \
+	md.hpp
 
 libarch_la_LIBADD = \
 	$(OS_DIR)/libmd.la

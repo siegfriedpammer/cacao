@@ -1,4 +1,4 @@
-/* src/vm/jit/x86_64/codegen.c - machine code generator for x86_64
+/* src/vm/jit/x86_64/codegen.cpp - machine code generator for x86_64
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,18 +25,18 @@
 
 #include "config.h"
 
-#include <assert.h>
-#include <stdio.h>
+#include <cassert>
+#include <cstdio>
 #include <stdint.h>
 
 #include "vm/types.hpp"
 #include "vm/os.hpp"
 
-#include "md-abi.h"
+#include "md-abi.hpp"
 
-#include "vm/jit/x86_64/arch.h"
-#include "vm/jit/x86_64/codegen.h"
-#include "vm/jit/x86_64/emit.h"
+#include "vm/jit/x86_64/arch.hpp"
+#include "vm/jit/x86_64/codegen.hpp"
+#include "vm/jit/x86_64/emit.hpp"
 
 #include "mm/memory.hpp"
 
@@ -2464,7 +2464,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 		/* put env into first argument register */
 
-		M_MOV_IMM(VM_get_jnienv(), REG_A0);
+		M_MOV_IMM(VM::get_current()->get_jnienv(), REG_A0);
 	}
 
 	/* Call the native function. */
@@ -2565,7 +2565,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

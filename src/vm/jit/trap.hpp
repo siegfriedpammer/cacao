@@ -65,7 +65,7 @@ extern "C" {
 
 /* Include machine dependent trap stuff. */
 
-#include "md-trap.h"
+#include "md-trap.hpp"
 
 
 /* function prototypes ********************************************************/

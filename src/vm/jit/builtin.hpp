@@ -1,6 +1,6 @@
 /* src/vm/jit/builtin.hpp - prototypes of builtin functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -33,8 +33,8 @@ typedef struct builtintable_entry builtintable_entry;
 #include "config.h"
 #include "vm/types.hpp"
 
-#include "arch.h"
-#include "md-abi.h"
+#include "arch.hpp"
+#include "md-abi.hpp"
 
 #include "toolbox/logging.hpp"
 

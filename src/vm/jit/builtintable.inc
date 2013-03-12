@@ -1,6 +1,6 @@
 /* src/vm/jit/builtintable.inc - tables of builtin functions
 
-   Copyright (C) 1996-2010
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -25,7 +25,7 @@
 
 #include "config.h"
 
-#include "arch.h"
+#include "arch.hpp"
 
 #include "threads/lock.hpp"
 

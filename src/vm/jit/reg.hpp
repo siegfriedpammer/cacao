@@ -35,7 +35,7 @@ typedef struct registerdata registerdata;
 #include "config.h"
 #include "vm/types.hpp"
 
-#include "arch.h"
+#include "arch.hpp"
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/verify/typeinfo.hpp"

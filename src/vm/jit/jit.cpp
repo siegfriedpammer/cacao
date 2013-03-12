@@ -25,12 +25,12 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <stdint.h>
 
 #include "vm/types.hpp"
 
-#include "md.h"
+#include "md.hpp"
 
 #include "mm/memory.hpp"
 

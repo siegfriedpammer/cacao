@@ -38,7 +38,7 @@ typedef struct stacktrace_t       stacktrace_t;
 
 #include "vm/types.hpp"
 
-#include "md-abi.h"
+#include "md-abi.hpp"
 
 #include "threads/thread.hpp"
 

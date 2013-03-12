@@ -29,7 +29,7 @@
 #include <stdint.h>
 
 // Include machine dependent headers.
-#include "md.h"
+#include "md.hpp"
 
 #include "mm/dumpmemory.hpp"
 

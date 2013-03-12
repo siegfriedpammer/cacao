@@ -25,14 +25,14 @@
 
 #include "config.h"
 
-#include <assert.h>
-#include <string.h>
-#include <stdarg.h>
-#include <stdlib.h>
+#include <cassert>
+#include <cstring>
+#include <cstdarg>
+#include <cstdlib>
 
 #include "vm/types.hpp"
 
-#include "md-abi.h"
+#include "md-abi.hpp"
 
 #include "mm/memory.hpp"
 

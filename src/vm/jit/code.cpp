@@ -28,7 +28,7 @@
 #include <assert.h>
 #include <stdint.h>
 
-#include "arch.h"
+#include "arch.hpp"
 
 #include "mm/memory.hpp"
 

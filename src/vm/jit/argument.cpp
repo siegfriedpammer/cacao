@@ -25,10 +25,10 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <stdint.h>
 
-#include "arch.h"
+#include "arch.hpp"
 
 #include "mm/memory.hpp"
 

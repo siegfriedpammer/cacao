@@ -29,7 +29,7 @@
 #include "config.h"
 #include "vm/types.hpp"
 
-#include "arch.h"
+#include "arch.hpp"
 
 #include "vm/jit/abi-asm.hpp"
 #include "vm/jit/jit.hpp"

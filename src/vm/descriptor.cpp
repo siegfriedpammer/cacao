@@ -1,4 +1,4 @@
-/* src/vm/descriptor.c - checking and parsing of field / method descriptors
+/* src/vm/descriptor.cpp - checking and parsing of field / method descriptors
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,11 +25,11 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 
 #include "vm/types.hpp"
 
-#include "md-abi.h"
+#include "md-abi.hpp"
 
 #include "mm/memory.hpp"
 

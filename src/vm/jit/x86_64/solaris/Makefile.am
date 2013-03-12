@@ -1,6 +1,6 @@
 ## src/vm/jit/x86_64/solaris/Makefile.am
 ##
-## Copyright (C) 2008
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -31,7 +31,7 @@ noinst_LTLIBRARIES = \
 	libmd.la
 
 libmd_la_SOURCES = \
-	md-os.c
+	md-os.cpp
 
 
 ## Local variables:

@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/asmpart.S - Java-C interface functions for x86_64
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -25,9 +25,9 @@
 
 #include "config.h"
 
-#include "vm/jit/x86_64/arch.h"
-#include "vm/jit/x86_64/md-abi.h"
-#include "vm/jit/x86_64/md-asm.h"
+#include "vm/jit/x86_64/arch.hpp"
+#include "vm/jit/x86_64/md-abi.hpp"
+#include "vm/jit/x86_64/md-asm.hpp"
 
 #include "vm/jit/abi-asm.hpp"
 #include "vm/jit/methodheader.hpp"

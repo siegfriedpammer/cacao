@@ -31,16 +31,16 @@
 
 #include "config.h"
 
-#include <assert.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
 #include <sys/time.h>
 
 #include "vm/types.hpp"
 
-#include "arch.h"
-#include "md-abi.h"
+#include "arch.hpp"
+#include "md-abi.hpp"
 
 #include "fdlibm/fdlibm.h"
 #if defined(__CYGWIN__) && defined(Bias)

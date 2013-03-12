@@ -1,4 +1,4 @@
-/* src/vm/jit/x86_64/freebsd/md-os.c - machine dependent x86_64 FreeBSD functions
+/* src/vm/jit/x86_64/freebsd/md-os.cpp - machine dependent x86_64 FreeBSD functions
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -26,8 +26,8 @@
 
 #include "config.h"
 
-#include <assert.h>
-#include <stdlib.h>
+#include <cassert>
+#include <cstdlib>
 #include <ucontext.h>
 
 #include "threads/thread.hpp"
@@ -136,7 +136,7 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

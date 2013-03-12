@@ -35,8 +35,8 @@
 
 #include "vm/types.hpp"
 
-#include "arch.h"
-#include "md-abi.h"
+#include "arch.hpp"
+#include "md-abi.hpp"
 
 #include "vm/jit/abi-asm.hpp"
 

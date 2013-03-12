@@ -25,10 +25,10 @@
 
 #include "config.h"
 
-#include <stdio.h>
+#include <cstdio>
 
-#include "arch.h"
-#include "md-abi.h"
+#include "arch.hpp"
+#include "md-abi.hpp"
 
 #include "mm/memory.hpp"
 

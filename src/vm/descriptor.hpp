@@ -48,7 +48,7 @@ typedef struct methoddesc      methoddesc;
 #include "vm/references.h"
 #include "vm/utf8.hpp"
 
-#include "arch.h"		/* needed for HAS_ADDRESS_REGISTER_FILE */
+#include "arch.hpp"		/* needed for HAS_ADDRESS_REGISTER_FILE */
 
 /* data structures ************************************************************/
 

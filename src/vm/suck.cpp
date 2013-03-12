@@ -25,12 +25,12 @@
 
 #include "config.h"
 
-#include <assert.h>
-#include <stdlib.h>
+#include <cassert>
+#include <cstdlib>
 
 #include "vm/types.hpp"
 
-#include "arch.h"
+#include "arch.hpp"
 
 #include "mm/memory.hpp"
 

@@ -26,14 +26,14 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <stdint.h>
 
 #include <algorithm>
 #include <functional>
 
-#include "codegen.h"                   /* for PATCHER_NOPS */
-#include "md.h"
+#include "codegen.hpp"                   /* for PATCHER_NOPS */
+#include "md.hpp"
 #include "trap.hpp"
 
 #include "mm/memory.hpp"

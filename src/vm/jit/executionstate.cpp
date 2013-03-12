@@ -1,6 +1,6 @@
-/* src/vm/jit/executionstate.c - execution-state handling
+/* src/vm/jit/executionstate.cpp - execution-state handling
 
-   Copyright (C) 2007, 2008, 2009
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -26,11 +26,11 @@
 #include "config.h"
 
 #include <stdint.h>
-#include <stdio.h>
+#include <cstdio>
 
-#include "arch.h"
-#include "md.h"
-#include "md-abi.h"
+#include "arch.hpp"
+#include "md.hpp"
+#include "md-abi.hpp"
 
 #include "vm/exceptions.hpp"
 #include "vm/descriptor.hpp"

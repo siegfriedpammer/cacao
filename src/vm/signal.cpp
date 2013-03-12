@@ -1,4 +1,4 @@
-/* src/vm/signal.c - machine independent signal functions
+/* src/vm/signal.cpp - machine independent signal functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,12 +25,12 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
+#include <cstdlib>
 #include <signal.h>
 #include <stdint.h>
-#include <stdlib.h>
 
-#include "arch.h"
+#include "arch.hpp"
 
 #if defined(ENABLE_GC_BOEHM)
 # include "mm/memory.hpp"

@@ -43,14 +43,14 @@
 
 #include "config.h"
 
-#include <assert.h>
-#include <string.h>
+#include <cassert>
+#include <cstring>
 
 #include "vm/types.hpp"
 
-#include "codegen.h"
-#include "md.h"
-#include "md-abi.h"
+#include "codegen.hpp"
+#include "md.hpp"
+#include "md-abi.hpp"
 
 #include "mm/memory.hpp"
 

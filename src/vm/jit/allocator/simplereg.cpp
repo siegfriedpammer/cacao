@@ -1,4 +1,4 @@
-/* src/vm/jit/allocator/simplereg.c - register allocator
+/* src/vm/jit/allocator/simplereg.cpp - register allocator
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -26,13 +26,13 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <stdint.h>
 
 #include "vm/types.hpp"
 
-#include "arch.h"
-#include "md-abi.h"
+#include "arch.hpp"
+#include "md-abi.hpp"
 
 #include "mm/memory.hpp"
 
