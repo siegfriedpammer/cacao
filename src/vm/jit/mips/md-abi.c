@@ -38,7 +38,7 @@
 #include "vm/global.hpp"
 #include "vm/method.hpp"
 
-#include "vm/jit/abi.h"
+#include "vm/jit/abi.hpp"
 #include "vm/jit/stack.hpp"
 
 

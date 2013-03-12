@@ -1,4 +1,4 @@
-/* src/vm/jit/abi.h - common ABI defines
+/* src/vm/jit/abi.hpp - common ABI defines
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,15 +23,15 @@
 */
 
 
-#ifndef _ABI_H
-#define _ABI_H
+#ifndef ABI_HPP_
+#define ABI_HPP_ 1
 
 #include "config.h"
 #include "vm/types.hpp"
 
 #include "arch.h"
 
-#include "vm/jit/abi-asm.h"
+#include "vm/jit/abi-asm.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/stack.hpp"
 
@@ -79,7 +79,7 @@ void md_return_alloc(jitdata *jd, stackelement_t *stackslot);
 }
 #endif
 
-#endif /* _ABI_H */
+#endif // ABI_HPP_
 
 
 /*
@@ -88,7 +88,7 @@ void md_return_alloc(jitdata *jd, stackelement_t *stackslot);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

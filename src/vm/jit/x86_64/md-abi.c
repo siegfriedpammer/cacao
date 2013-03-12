@@ -31,7 +31,7 @@
 #include "vm/descriptor.hpp"
 #include "vm/global.hpp"
 
-#include "vm/jit/abi.h"
+#include "vm/jit/abi.hpp"
 #include "vm/jit/jit.hpp" /* for REG_* (maybe can be removed) */
 #include "vm/jit/stack.hpp"
 

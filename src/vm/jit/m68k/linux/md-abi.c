@@ -32,7 +32,7 @@
 
 #include "vm/types.hpp"
 
-#include "vm/jit/abi.h"
+#include "vm/jit/abi.hpp"
 
 /* Integer register description */
 /*                        D0,      D1,   ITMP1,   ITMP2,   ITMP3,      D5,      D6,      D7 */

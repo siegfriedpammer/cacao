@@ -64,7 +64,7 @@
 #include "vm/vm.hpp"
 #include "vm/zip.hpp"
 
-#include "vm/jit/asmpart.h"
+#include "vm/jit/asmpart.hpp"
 
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/cacaodbg.h"

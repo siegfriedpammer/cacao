@@ -44,7 +44,7 @@
 #include "vm/global.hpp"
 #include "vm/loader.hpp"
 #include "vm/jit/builtin.hpp"
-#include "vm/jit/asmpart.h"
+#include "vm/jit/asmpart.hpp"
 #include "vm/class.hpp"
 #include "vm/classcache.hpp"
 #include "mm/gc.hpp"

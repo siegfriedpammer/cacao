@@ -33,7 +33,7 @@
 #include "vm/types.hpp"
 
 #include "vm/signallocal.hpp"
-#include "vm/jit/asmpart.h"
+#include "vm/jit/asmpart.hpp"
 
 
 /* md_signal_handler_sigsegv ***************************************************

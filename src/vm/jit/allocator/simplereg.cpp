@@ -43,7 +43,7 @@
 #include "vm/resolve.hpp"
 #include "vm/string.hpp"
 
-#include "vm/jit/abi.h"
+#include "vm/jit/abi.hpp"
 #include "vm/jit/reg.hpp"
 #include "vm/jit/show.hpp"
 #include "vm/jit/allocator/simplereg.hpp"

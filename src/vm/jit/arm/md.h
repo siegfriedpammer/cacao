@@ -33,7 +33,7 @@
 
 #include "vm/types.hpp"
 
-#include "vm/jit/asmpart.h"
+#include "vm/jit/asmpart.hpp"
 #include "vm/jit/codegen-common.hpp"
 
 

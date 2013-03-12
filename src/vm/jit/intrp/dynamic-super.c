@@ -45,7 +45,7 @@
 
 #include "vm/options.hpp"
 
-#include "vm/jit/disass.h"
+#include "vm/jit/disass.hpp"
 #include "vm/jit/intrp/intrp.h"
 
 

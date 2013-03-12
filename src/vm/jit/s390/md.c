@@ -39,9 +39,9 @@
 #include "vm/exceptions.hpp"
 #include "vm/signallocal.hpp"
 
-#include "vm/jit/abi.h"
+#include "vm/jit/abi.hpp"
 #include "vm/jit/executionstate.hpp"
-#include "vm/jit/methodheader.h"
+#include "vm/jit/methodheader.hpp"
 #include "vm/jit/methodtree.hpp"
 #include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.hpp"

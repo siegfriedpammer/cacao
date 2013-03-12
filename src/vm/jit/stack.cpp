@@ -47,14 +47,14 @@
 #include "vm/string.hpp"
 #include "vm/types.hpp"
 #include "vm/statistics.hpp"
-#include "vm/jit/abi.h"
+#include "vm/jit/abi.hpp"
 #include "vm/jit/cfg.hpp"
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/parse.hpp"
 #include "vm/jit/show.hpp"
 
 #if defined(ENABLE_DISASSEMBLER)
-# include "vm/jit/disass.h"
+# include "vm/jit/disass.hpp"
 #endif
 
 #include "vm/jit/jit.hpp"

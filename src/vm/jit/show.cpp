@@ -40,10 +40,10 @@
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
-#include "vm/jit/abi.h"
+#include "vm/jit/abi.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/show.hpp"
-#include "vm/jit/disass.h"
+#include "vm/jit/disass.hpp"
 #include "vm/jit/stack.hpp"
 #include "vm/jit/parse.hpp"
 

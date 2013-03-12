@@ -45,7 +45,7 @@
 #include "vm/options.hpp"
 #include "vm/statistics.hpp"
 
-#include "vm/jit/abi.h"
+#include "vm/jit/abi.hpp"
 #include "vm/jit/reg.hpp"
 
 #include "vm/jit/allocator/liveness.hpp"

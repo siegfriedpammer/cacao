@@ -33,8 +33,8 @@
 
 #include "vm/global.hpp"
 
-#include "vm/jit/abi.h"
-#include "vm/jit/disass.h"
+#include "vm/jit/abi.hpp"
+#include "vm/jit/disass.hpp"
 
 
 /*  The disassembler uses two tables for decoding the instructions. The first

@@ -35,7 +35,7 @@
 #include "md-abi.h"
 
 #include "mm/memory.hpp"
-#include "vm/jit/abi.h"
+#include "vm/jit/abi.hpp"
 #include "vm/jit/reg.hpp"
 
 

@@ -39,7 +39,7 @@
 #include "vm/options.hpp"
 #include "vm/method.hpp"
 
-#include "vm/jit/abi.h"
+#include "vm/jit/abi.hpp"
 #include "vm/jit/reg.hpp"
 #include "vm/jit/jit.hpp"
 

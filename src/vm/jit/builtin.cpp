@@ -74,7 +74,7 @@
 #include "vm/rt-timing.hpp"
 #include "vm/string.hpp"
 
-#include "vm/jit/asmpart.h"
+#include "vm/jit/asmpart.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/stubs.hpp"
 #include "vm/jit/trace.hpp"

@@ -33,7 +33,7 @@
 
 #include "vm/global.hpp"
 
-#include "vm/jit/disass.h"
+#include "vm/jit/disass.hpp"
 
 
 /* disassinstr *****************************************************************

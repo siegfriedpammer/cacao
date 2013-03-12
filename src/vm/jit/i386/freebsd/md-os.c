@@ -38,7 +38,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/signallocal.hpp"
 
-#include "vm/jit/asmpart.h"
+#include "vm/jit/asmpart.hpp"
 #include "vm/jit/executionstate.hpp"
 #include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.hpp"

@@ -30,7 +30,7 @@
 #include "vm/loader.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/jit/builtin.hpp"
-#include "vm/jit/asmpart.h"
+#include "vm/jit/asmpart.hpp"
 #include "vm/string.hpp"
 #include "toolbox/logging.hpp"
 #include "threads/mutex.h"

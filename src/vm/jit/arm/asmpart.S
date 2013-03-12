@@ -29,7 +29,7 @@
 
 #include "vm/jit/arm/md-asm.h"
 
-#include "vm/jit/methodheader.h"
+#include "vm/jit/methodheader.hpp"
 
 
 	.file "asmpart.S"

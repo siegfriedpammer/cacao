@@ -36,10 +36,10 @@
 #include "vm/method.hpp"
 #include "vm/options.hpp"
 
-#include "vm/jit/abi.h"
+#include "vm/jit/abi.hpp"
 #include "vm/jit/code.hpp"
 #include "vm/jit/codegen-common.hpp"
-#include "vm/jit/disass.h"
+#include "vm/jit/disass.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/show.hpp"

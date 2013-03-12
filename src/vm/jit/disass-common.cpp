@@ -1,9 +1,7 @@
-/* src/vm/jit/disass-common.c - common functions for GNU binutils disassembler
+/* src/vm/jit/disass-common.cpp - common functions for GNU binutils disassembler
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2013
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -28,14 +26,14 @@
 #include "config.h"
 
 #include <dis-asm.h>
-#include <stdarg.h>
-#include <stdio.h>
+#include <cstdarg>
+#include <cstdio>
 
 #include "vm/types.hpp"
 
 #include "mm/memory.hpp"
 
-#include "vm/jit/disass.h"
+#include "vm/jit/disass.hpp"
 
 
 /* global variables ***********************************************************/
@@ -119,7 +117,7 @@ int disass_buffer_read_memory(bfd_vma memaddr, bfd_byte *myaddr, unsigned int le
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

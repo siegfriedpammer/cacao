@@ -31,8 +31,8 @@
 #include "vm/jit/s390/md-abi.h"
 #include "vm/jit/s390/md-asm.h"
 
-#include "vm/jit/abi-asm.h"
-#include "vm/jit/methodheader.h"
+#include "vm/jit/abi-asm.hpp"
+#include "vm/jit/methodheader.hpp"
 
 	.text
 

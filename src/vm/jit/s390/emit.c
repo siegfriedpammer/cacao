@@ -40,9 +40,9 @@
 #include "vm/types.hpp"
 #include "vm/options.hpp"
 
-#include "vm/jit/abi.h"
-#include "vm/jit/abi-asm.h"
-#include "vm/jit/asmpart.h"
+#include "vm/jit/abi.hpp"
+#include "vm/jit/abi-asm.hpp"
+#include "vm/jit/asmpart.hpp"
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"

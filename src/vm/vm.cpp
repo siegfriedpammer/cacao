@@ -38,7 +38,7 @@
 #include "arch.h"
 #include "md-abi.h"
 
-#include "vm/jit/abi-asm.h"
+#include "vm/jit/abi-asm.hpp"
 
 #include "mm/codememory.hpp"
 #include "mm/dumpmemory.hpp"
@@ -83,11 +83,11 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/argument.hpp"
-#include "vm/jit/asmpart.h"
+#include "vm/jit/asmpart.hpp"
 #include "vm/jit/code.hpp"
 
 #if defined(ENABLE_DISASSEMBLER)
-# include "vm/jit/disass.h"
+# include "vm/jit/disass.hpp"
 #endif
 
 #include "vm/jit/jit.hpp"

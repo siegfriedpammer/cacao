@@ -53,7 +53,7 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/code.hpp"
-#include "vm/jit/methodheader.h"
+#include "vm/jit/methodheader.hpp"
 #include "vm/jit/stubs.hpp"
 
 

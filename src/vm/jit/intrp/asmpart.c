@@ -39,8 +39,8 @@
 #include "vm/loader.hpp"
 #include "vm/options.hpp"
 
-#include "vm/jit/asmpart.h"
-#include "vm/jit/methodheader.h"
+#include "vm/jit/asmpart.hpp"
+#include "vm/jit/methodheader.hpp"
 #include "vm/jit/methodtree.hpp"
 #include "vm/jit/dseg.hpp"
 

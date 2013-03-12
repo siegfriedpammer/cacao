@@ -1,6 +1,6 @@
-/* src/vm/jit/disass.h - disassembler header
+/* src/vm/jit/disass.hpp - disassembler header
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _DISASS_H
-#define _DISASS_H
+#ifndef DISASS_HPP_
+#define DISASS_HPP_ 1
 
 #include "config.h"
 
@@ -125,7 +125,7 @@ void intrp_disassemble(u1 *start, u1 *end);
 
 #endif /* defined(ENABLE_DISASSEMBLER) */
 
-#endif // _DISASS_H
+#endif // DISASS_HPP_
 
 
 /*
@@ -134,7 +134,7 @@ void intrp_disassemble(u1 *start, u1 *end);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -46,7 +46,7 @@
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
-#include "vm/jit/asmpart.h"
+#include "vm/jit/asmpart.hpp"
 
 #ifdef HAVE_LOCALE_H
 #include <locale.h>

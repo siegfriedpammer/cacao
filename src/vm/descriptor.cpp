@@ -39,7 +39,7 @@
 #include "vm/primitive.hpp"
 #include "vm/vm.hpp"
 
-#include "vm/jit/abi.h"
+#include "vm/jit/abi.hpp"
 
 
 /* constants (private to descriptor.c) ****************************************/

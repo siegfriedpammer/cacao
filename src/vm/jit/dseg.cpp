@@ -34,7 +34,7 @@
 #include "vm/options.hpp"
 
 #include "vm/jit/codegen-common.hpp"
-#include "vm/jit/methodheader.h"
+#include "vm/jit/methodheader.hpp"
 
 
 /* dseg_finish *****************************************************************

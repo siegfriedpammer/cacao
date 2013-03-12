@@ -53,12 +53,12 @@
 # include "vm/rt-timing.hpp"
 #endif
 
-#include "vm/jit/abi.h"
-#include "vm/jit/asmpart.h"
-#include "vm/jit/disass.h"
+#include "vm/jit/abi.hpp"
+#include "vm/jit/asmpart.hpp"
+#include "vm/jit/disass.hpp"
 #include "vm/jit/executionstate.hpp"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/methodheader.h"
+#include "vm/jit/methodheader.hpp"
 #include "vm/jit/replace.hpp"
 #include "vm/jit/show.hpp"
 #include "vm/jit/stack.hpp"

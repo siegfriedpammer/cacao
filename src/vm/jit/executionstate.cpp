@@ -36,7 +36,7 @@
 #include "vm/descriptor.hpp"
 #include "vm/os.hpp"
 
-#include "vm/jit/abi.h"
+#include "vm/jit/abi.hpp"
 #include "vm/jit/executionstate.hpp"
 
 

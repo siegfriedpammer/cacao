@@ -1,9 +1,7 @@
-/* src/vm/jit/methodheader.h - method header data segment offsets
+/* src/vm/jit/abi-asm.hpp - common assembler ABI defines
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2013
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,37 +20,28 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
+   Contact: cacao@cacaojvm.org
+
+   Authors: Christian Thalinger
+
+   Changes:
+
 */
 
 
-#ifndef _METHODHEADER_H
-#define _METHODHEADER_H
+#ifndef ABI_ASM_HPP_
+#define ABI_ASM_HPP_ 1
 
-#include "config.h"
+/* ATTENTION: Don't add C stuff in here, as this file is included in
+   asmpart.S */
 
+/* some count defines for asmpart.S *******************************************/
 
-/* data segment offsets *******************************************************/
+#define SAV_CNT    (INT_SAV_CNT + FLT_SAV_CNT)
+#define ARG_CNT    (INT_ARG_CNT + FLT_ARG_CNT)
+#define TMP_CNT    (INT_TMP_CNT + FLT_TMP_CNT)
 
-#if SIZEOF_VOID_P == 8
-
-#define CodeinfoPointer         -8
-#define FrameSize               -12
-#define IsLeaf                  -16
-#define IntSave                 -20
-#define FltSave                 -24
-       
-#else /* SIZEOF_VOID_P == 8 */
-
-#define CodeinfoPointer         -4
-#define FrameSize               -8
-#define IsLeaf                  -12
-#define IntSave                 -16
-#define FltSave                 -20
-
-#endif /* SIZEOF_VOID_P == 8 */
-
-#endif /* _METHODHEADER_H */
-
+#endif // ABI_ASM_HP_
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -60,7 +49,7 @@
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

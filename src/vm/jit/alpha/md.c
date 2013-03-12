@@ -39,7 +39,7 @@ extern void ieee_set_fp_control(unsigned long fp_control);
 #include "vm/jit/alpha/codegen.h"
 #include "vm/jit/alpha/md.h"
 
-#include "vm/jit/asmpart.h"
+#include "vm/jit/asmpart.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/trap.hpp"
 

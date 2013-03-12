@@ -135,14 +135,14 @@ OPAGENT_SOURCES = \
 endif
 
 if WITH_BINUTILS_DISASSEMBLER
-DISASS_SOURCES = disass-common.c
+DISASS_SOURCES = disass-common.cpp
 endif
 
 noinst_HEADERS = \
-	abi.h \
-	abi-asm.h \
-	asmpart.h \
-	methodheader.h
+	abi.hpp \
+	abi-asm.hpp \
+	asmpart.hpp \
+	methodheader.hpp
 
 noinst_LTLIBRARIES = \
 	libjit.la
@@ -157,7 +157,7 @@ libjit_la_SOURCES = \
 	code.hpp \
 	codegen-common.cpp \
 	codegen-common.hpp \
-	disass.h \
+	disass.hpp \
 	$(DISASS_SOURCES) \
 	dseg.cpp \
 	dseg.hpp \

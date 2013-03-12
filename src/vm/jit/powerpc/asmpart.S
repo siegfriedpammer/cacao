@@ -30,8 +30,8 @@
 #include "md-abi.h"
 #include "md-asm.h"
 
-#include "vm/jit/abi-asm.h"
-#include "vm/jit/methodheader.h"
+#include "vm/jit/abi-asm.hpp"
+#include "vm/jit/methodheader.hpp"
 
 
 	.text

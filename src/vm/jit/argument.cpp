@@ -42,7 +42,7 @@
 #include "vm/resolve.hpp"
 #include "vm/vm.hpp"
 
-#include "vm/jit/abi-asm.h"
+#include "vm/jit/abi-asm.hpp"
 
 
 /* argument_jitarray_load ******************************************************

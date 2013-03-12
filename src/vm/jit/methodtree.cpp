@@ -31,7 +31,7 @@
 
 #include "toolbox/avl.hpp"
 
-#include "vm/jit/asmpart.h"
+#include "vm/jit/asmpart.hpp"
 #include "vm/jit/methodtree.hpp"
 #include "vm/jit/stacktrace.hpp"
 

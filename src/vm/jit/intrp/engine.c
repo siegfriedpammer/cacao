@@ -45,7 +45,7 @@
 #include "vm/loader.hpp"
 #include "vm/options.hpp"
 
-#include "vm/jit/methodheader.h"
+#include "vm/jit/methodheader.hpp"
 #include "vm/jit/patcher.h"
 #include "vm/jit/stacktrace.hpp"
 

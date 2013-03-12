@@ -44,7 +44,7 @@
 #include "vm/string.hpp"
 
 #include "vm/jit/jit.hpp"
-#include "vm/jit/methodheader.h"
+#include "vm/jit/methodheader.hpp"
 #include "vm/jit/methodtree.hpp"
 
 #include "vm/jit/optimizing/recompiler.hpp"

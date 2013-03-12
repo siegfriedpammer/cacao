@@ -31,7 +31,7 @@
 
 #include "vm/types.hpp"
 
-#include "vm/jit/abi.h"
+#include "vm/jit/abi.hpp"
 
 
 /*  The disassembler uses four tables for decoding the instructions. The first

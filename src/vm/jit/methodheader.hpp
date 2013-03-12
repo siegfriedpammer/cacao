@@ -1,4 +1,4 @@
-/* src/vm/jit/abi-asm.h - common assembler ABI defines
+/* src/vm/jit/methodheader.hpp - method header data segment offsets
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -22,28 +22,36 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
 */
 
 
-#ifndef _ABI_ASM_H
-#define _ABI_ASM_H
+#ifndef METHODHEADER_HPP_
+#define METHODHEADER_HPP_ 1
 
-/* ATTENTION: Don't add C stuff in here, as this file is included in
-   asmpart.S */
+#include "config.h"
 
-/* some count defines for asmpart.S *******************************************/
 
-#define SAV_CNT    (INT_SAV_CNT + FLT_SAV_CNT)
-#define ARG_CNT    (INT_ARG_CNT + FLT_ARG_CNT)
-#define TMP_CNT    (INT_TMP_CNT + FLT_TMP_CNT)
+/* data segment offsets *******************************************************/
 
-#endif /* _ABI_ASM_H */
+#if SIZEOF_VOID_P == 8
+
+#define CodeinfoPointer         -8
+#define FrameSize               -12
+#define IsLeaf                  -16
+#define IntSave                 -20
+#define FltSave                 -24
+       
+#else /* SIZEOF_VOID_P == 8 */
+
+#define CodeinfoPointer         -4
+#define FrameSize               -8
+#define IsLeaf                  -12
+#define IntSave                 -16
+#define FltSave                 -20
+
+#endif /* SIZEOF_VOID_P == 8 */
+
+#endif // METHODHEADER_HPP_
 
 
 /*
@@ -52,7 +60,7 @@
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

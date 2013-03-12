@@ -40,7 +40,7 @@
 
 #include "vm/jit/exceptiontable.hpp"
 #include "vm/jit/linenumbertable.hpp"
-#include "vm/jit/methodheader.h"
+#include "vm/jit/methodheader.hpp"
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/replace.hpp"
 

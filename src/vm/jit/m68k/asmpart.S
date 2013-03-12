@@ -29,7 +29,7 @@
 
 #include "md-abi.h"
 
-#include "vm/jit/methodheader.h"
+#include "vm/jit/methodheader.hpp"
 
 
 .text

@@ -31,7 +31,7 @@
 #include "vm/descriptor.hpp"
 #include "vm/global.hpp"
 
-#include "vm/jit/abi.h"
+#include "vm/jit/abi.hpp"
 
 
 /* register descripton array **************************************************/

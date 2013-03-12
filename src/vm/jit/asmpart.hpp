@@ -1,6 +1,6 @@
-/* src/vm/jit/asmpart.h - prototypes for machine specfic functions
+/* src/vm/jit/asmpart.hpp - prototypes for machine specfic functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _ASMPART_H
-#define _ASMPART_H
+#ifndef ASMPART_HPP_
+#define ASMPART_HPP_ 1
 
 #include "config.h"
 
@@ -112,7 +112,7 @@ void asm_escape_check(java_object_t *obj);
 } // extern "C"
 #endif
 
-#endif /* _ASMPART_H */
+#endif // _ASMPART_HPP_
 
 
 /*
@@ -121,7 +121,7 @@ void asm_escape_check(java_object_t *obj);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

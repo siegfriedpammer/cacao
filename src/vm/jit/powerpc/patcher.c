@@ -45,8 +45,8 @@
 #include "vm/references.h"
 #include "vm/resolve.hpp"
 
-#include "vm/jit/asmpart.h"
-#include "vm/jit/methodheader.h"
+#include "vm/jit/asmpart.hpp"
+#include "vm/jit/methodheader.hpp"
 #include "vm/jit/patcher-common.hpp"
 
 
