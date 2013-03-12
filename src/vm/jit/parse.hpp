@@ -27,7 +27,7 @@
 #define PARSE_HPP_ 1
 
 #include "config.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/global.h"
 #include "vm/jit/codegen-common.hpp"

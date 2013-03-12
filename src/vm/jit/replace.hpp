@@ -27,7 +27,7 @@
 #define REPLACE_HPP_ 1
 
 #include "config.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #if !defined(ENABLE_REPLACEMENT)
 

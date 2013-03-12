@@ -40,7 +40,7 @@
 # include <sys/resource.h>
 #endif
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "mm/gc.hpp"
 

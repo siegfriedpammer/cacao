@@ -1,4 +1,4 @@
-/* src/vm/types.h - type definitions for CACAO's internal types
+/* src/vm/types.hpp - type definitions for CACAO's internal types
 
    Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _CACAO_TYPES_H
-#define _CACAO_TYPES_H
+#ifndef CACAO_TYPES_HPP_
+#define CACAO_TYPES_HPP_ 1
 
 #include "config.h"
 
@@ -53,7 +53,7 @@ typedef uint64_t          u8;
 
 typedef uintptr_t                      ptrint;
 
-#endif /* _CACAO_TYPES_H */
+#endif // CACAO_TYPES_HPP_
 
 
 /*
@@ -62,7 +62,7 @@ typedef uintptr_t                      ptrint;
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

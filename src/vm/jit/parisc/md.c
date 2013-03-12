@@ -36,7 +36,7 @@
 #include <assert.h>
 #include <ucontext.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 
 /* md_cacheflush ***************************************************************

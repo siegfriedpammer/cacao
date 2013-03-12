@@ -26,7 +26,7 @@
 #define CYCLES_STATS_HPP_
 
 #include "config.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #if defined(ENABLE_CYCLES_STATS)
 

@@ -27,7 +27,7 @@
 
 #include <assert.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/jit/sparc64/codegen.h"
 #include "vm/jit/sparc64/md-abi.h"

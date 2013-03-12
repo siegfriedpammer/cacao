@@ -137,7 +137,7 @@ error reporting.
 #include <assert.h>
 #include <string.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #ifdef ENABLE_VERIFIER
 

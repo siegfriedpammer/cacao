@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include <ucontext.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/jit/x86_64/codegen.h"
 #include "vm/jit/x86_64/md.h"

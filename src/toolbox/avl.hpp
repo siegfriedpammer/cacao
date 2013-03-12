@@ -28,7 +28,7 @@
 
 #include "config.h"
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "threads/mutex.hpp"
 

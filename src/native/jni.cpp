@@ -29,7 +29,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "mm/gc.hpp"
 #include "mm/memory.hpp"

@@ -32,7 +32,7 @@
 # include <dis-asm.h>
 #endif
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/global.h"
 

@@ -37,7 +37,7 @@ typedef struct method_worklist     method_worklist;
 typedef struct codeinfo            codeinfo;
 
 #include "config.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "threads/mutex.hpp"
 

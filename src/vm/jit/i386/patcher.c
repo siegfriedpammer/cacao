@@ -27,7 +27,7 @@
 
 #include <stdint.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/jit/i386/codegen.h"
 #include "vm/jit/i386/md.h"

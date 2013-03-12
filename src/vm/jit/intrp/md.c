@@ -40,7 +40,7 @@
 #include <stdlib.h>
 #include <signal.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/jit/intrp/intrp.h"
 

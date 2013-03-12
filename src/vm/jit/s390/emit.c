@@ -37,7 +37,7 @@
 
 #include "vm/jit/builtin.hpp"
 #include "vm/global.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 #include "vm/options.hpp"
 
 #include "vm/jit/abi.h"

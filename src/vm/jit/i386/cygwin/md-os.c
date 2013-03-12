@@ -30,7 +30,7 @@
 #include <assert.h>
 #include <ucontext.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/signallocal.hpp"
 #include "vm/jit/asmpart.h"

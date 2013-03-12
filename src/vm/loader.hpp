@@ -30,7 +30,7 @@
 
 #include <stdio.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 #include "vm/global.h"
 
 #include "vm/utf8.hpp"

@@ -27,7 +27,7 @@
 #define _LOOP_H
 
 #include "config.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/global.h"
 #include "vm/method.hpp"

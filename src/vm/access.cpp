@@ -28,7 +28,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "mm/memory.hpp"
 

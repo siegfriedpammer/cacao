@@ -28,7 +28,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "native/jni.hpp"
 #include "native/native.hpp"

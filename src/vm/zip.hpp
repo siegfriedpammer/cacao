@@ -27,7 +27,7 @@
 #define ZIP_HPP_ 1
 
 #include "config.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "toolbox/hashtable.hpp"
 

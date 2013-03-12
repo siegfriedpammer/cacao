@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "mm/memory.hpp"
 

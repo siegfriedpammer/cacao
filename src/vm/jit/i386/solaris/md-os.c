@@ -28,7 +28,7 @@
 #include <stdint.h>
 #include <ucontext.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 #include "vm/os.hpp"
 
 #define SKIP_REG_DEFS 1

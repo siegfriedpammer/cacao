@@ -44,7 +44,7 @@ typedef struct ucontext {
 
 #define scontext_t struct sigcontext
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/jit/arm/md.h"
 #include "vm/jit/arm/md-abi.h"

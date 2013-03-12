@@ -32,7 +32,7 @@ typedef struct dsegentry dsegentry;
 
 
 #include "config.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/references.h"
 

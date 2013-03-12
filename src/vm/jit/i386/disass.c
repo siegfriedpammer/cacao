@@ -38,7 +38,7 @@
 #include <dis-asm.h>
 #include <stdarg.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/global.h"
 #include "vm/jit/disass.h"

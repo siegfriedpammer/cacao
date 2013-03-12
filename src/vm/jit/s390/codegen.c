@@ -47,7 +47,7 @@
 #include "vm/loader.hpp"
 #include "vm/options.hpp"
 #include "vm/statistics.hpp"
-#include "vm/types.h"
+#include "vm/types.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/abi.h"

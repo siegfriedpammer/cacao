@@ -30,7 +30,7 @@
 #include <sys/types.h>                         /* required by <machine/reg.h> */
 #include <machine/reg.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/jit/alpha/md-abi.h"
 

@@ -31,7 +31,7 @@
 typedef struct builtintable_entry builtintable_entry;
 
 #include "config.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "arch.h"
 #include "md-abi.h"

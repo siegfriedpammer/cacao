@@ -32,7 +32,7 @@ typedef struct fieldinfo fieldinfo;
 
 
 #include "config.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/descriptor.hpp"
 #include "vm/class.hpp"

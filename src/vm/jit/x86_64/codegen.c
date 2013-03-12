@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 #include "vm/os.hpp"
 
 #include "md-abi.h"

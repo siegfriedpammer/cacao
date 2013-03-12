@@ -27,7 +27,7 @@
 #define _TYPECHECK_COMMON_H
 
 #include "config.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 #include "vm/global.h"
 
 #include <assert.h>

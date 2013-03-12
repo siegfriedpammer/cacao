@@ -33,7 +33,7 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "arch.h"
 #include "md-abi.h"

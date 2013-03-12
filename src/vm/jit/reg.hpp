@@ -33,7 +33,7 @@ typedef struct registerdata registerdata;
 
 
 #include "config.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "arch.h"
 

@@ -29,7 +29,7 @@
 #define _EMIT_ARCH_H
 
 #include "config.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 /* SPARC branch options */
 

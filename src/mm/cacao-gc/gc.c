@@ -28,7 +28,7 @@
 #include <signal.h>
 #include <stdint.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "threads/lock.hpp"
 #include "threads/thread.hpp"

@@ -33,7 +33,7 @@
 #include <assert.h>
 #include <stdint.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/jit/codegen-common.hpp"
 

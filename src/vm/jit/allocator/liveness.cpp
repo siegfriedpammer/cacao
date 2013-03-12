@@ -28,7 +28,7 @@
 #include <limits.h>
 #include <stdlib.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "mm/memory.hpp"
 

@@ -27,7 +27,7 @@
 #define _CODEGEN_H
 
 #include "config.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/jit/jit.hpp"
 

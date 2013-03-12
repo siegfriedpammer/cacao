@@ -27,7 +27,7 @@
 
 #include "vm/descriptor.hpp"
 #include "vm/global.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/stack.hpp"

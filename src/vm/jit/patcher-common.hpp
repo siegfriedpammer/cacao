@@ -31,7 +31,7 @@
 typedef struct patchref_t patchref_t;
 
 #include "config.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "toolbox/list.hpp"
 

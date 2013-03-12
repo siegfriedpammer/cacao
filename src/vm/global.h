@@ -31,7 +31,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 
 /* additional data types ******************************************************/

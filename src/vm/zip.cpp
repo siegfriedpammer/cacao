@@ -30,7 +30,7 @@
 #include <unistd.h>
 #include <zlib.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/descriptor.hpp" /* needed to prevent circular dependency */
 #include "toolbox/hashtable.hpp"

@@ -30,7 +30,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "md-abi.h"
 

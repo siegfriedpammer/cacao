@@ -36,7 +36,7 @@
 # error neither WITH_FFI nor WITH_FFCALL defined
 #endif
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "arch.h"
 

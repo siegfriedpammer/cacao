@@ -28,7 +28,7 @@
 #include <signal.h>
 #include <ucontext.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/vm.hpp"
 

@@ -27,7 +27,7 @@
 
 #include <ucontext.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/jit/powerpc/netbsd/md-abi.h"
 

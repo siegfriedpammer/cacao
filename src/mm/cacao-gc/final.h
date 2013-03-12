@@ -27,7 +27,7 @@
 #define _FINAL_H
 
 #include "config.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "toolbox/list.hpp"
 #include "vm/method.hpp"

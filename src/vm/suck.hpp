@@ -32,7 +32,7 @@
 #include <list>
 #endif
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "threads/mutex.hpp"
 

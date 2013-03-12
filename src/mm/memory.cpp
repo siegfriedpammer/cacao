@@ -34,7 +34,7 @@
 # include <sys/types.h>
 #endif
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "arch.h"
 

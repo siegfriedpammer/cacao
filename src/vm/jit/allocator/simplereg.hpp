@@ -27,7 +27,7 @@
 #define SIMPLE_REG_HPP_ 1
 
 #include "config.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "arch.h"
 

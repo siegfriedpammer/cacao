@@ -34,7 +34,7 @@
 
 #include <stdio.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "disass.h"
 

@@ -29,7 +29,7 @@
 typedef struct rootset_t rootset_t;
 
 #include "config.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "threads/thread.hpp"
 

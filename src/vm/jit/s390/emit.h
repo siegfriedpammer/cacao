@@ -34,7 +34,7 @@
 #ifndef _MD_EMIT_H
 #define _MD_EMIT_H
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 
 /* macros to create code ******************************************************/

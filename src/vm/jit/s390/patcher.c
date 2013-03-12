@@ -38,7 +38,7 @@
 #include "vm/options.hpp"
 #include "vm/references.h"
 #include "vm/resolve.hpp"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/s390/codegen.h"

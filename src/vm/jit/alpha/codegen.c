@@ -28,7 +28,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "md.h"
 #include "md-abi.h"

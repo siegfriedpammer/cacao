@@ -28,7 +28,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/jit/mips/md-abi.h"
 

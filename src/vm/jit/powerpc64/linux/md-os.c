@@ -30,7 +30,7 @@
 #include <stdint.h>
 #include <ucontext.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/jit/powerpc64/codegen.h"
 #include "vm/jit/powerpc64/md.h"

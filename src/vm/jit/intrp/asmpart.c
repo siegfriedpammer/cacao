@@ -27,7 +27,7 @@
 
 #include <assert.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "arch.h"
 

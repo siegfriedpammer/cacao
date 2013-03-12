@@ -30,7 +30,7 @@
 
 #include <stdarg.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 
 /* function prototypes ********************************************************/

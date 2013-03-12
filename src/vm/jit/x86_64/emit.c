@@ -26,7 +26,7 @@
 
 #include <assert.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 #include "vm/os.hpp"
 
 #include "md-abi.h"

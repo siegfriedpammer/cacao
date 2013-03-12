@@ -41,7 +41,7 @@
 #include "vm/loader.hpp"
 #include "vm/primitive.hpp"
 #include "vm/suck.hpp"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #if !defined(ENABLE_ANNOTATIONS)
 # error annotation support has to be enabled when compling this file!

@@ -30,7 +30,7 @@
 #include <stdio.h>
 #include <signal.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "md-abi.h"
 

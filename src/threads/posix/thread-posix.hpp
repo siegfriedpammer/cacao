@@ -31,7 +31,7 @@
 #include <pthread.h>
 #include <ucontext.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 
 // Includes required by Thread.

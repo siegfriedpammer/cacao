@@ -33,7 +33,7 @@
 
 #include "native/llni.hpp"
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/annotation.hpp"
 #include "vm/array.hpp"

@@ -28,7 +28,7 @@
 #ifndef _REGION_H
 #define _REGION_H
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 
 /* Forward Typedefs ***********************************************************/

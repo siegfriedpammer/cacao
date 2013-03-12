@@ -30,7 +30,7 @@
 
 #include "md-abi.h"
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/jit/abi.h"
 

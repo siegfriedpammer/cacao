@@ -30,7 +30,7 @@
 #include <stdarg.h>
 #include <unistd.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "mm/memory.hpp"
 #include "vm/vm.hpp"

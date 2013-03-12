@@ -38,7 +38,7 @@ typedef struct methoddesc      methoddesc;
 
 #include <stdint.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "toolbox/hashtable.hpp"
 

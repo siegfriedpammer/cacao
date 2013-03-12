@@ -24,7 +24,7 @@
 
 
 #include "config.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "gc.h"
 #include "final.h"

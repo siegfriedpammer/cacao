@@ -71,7 +71,7 @@ endif
 
 noinst_HEADERS = \
 	global.h \
-	types.h
+	types.hpp
 
 noinst_LTLIBRARIES = \
 	libvm.la

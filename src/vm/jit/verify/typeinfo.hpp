@@ -32,7 +32,7 @@ typedef struct typeinfo_mergedlist typeinfo_mergedlist_t;
 typedef struct typedescriptor      typedescriptor_t;
 
 #include "config.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/global.h"
 #include "vm/references.h"

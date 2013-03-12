@@ -38,7 +38,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/global.h"
 #include "vm/jit/disass.h"

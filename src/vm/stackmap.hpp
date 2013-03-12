@@ -50,7 +50,7 @@ typedef struct Uninitialized_variable_info_t     Uninitialized_variable_info_t;
 
 
 #include "config.h"
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "vm/global.h"
 #include "vm/loader.hpp"

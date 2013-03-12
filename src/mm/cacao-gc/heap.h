@@ -28,7 +28,7 @@
 #ifndef _HEAP_H
 #define _HEAP_H
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "gc.h"
 #include "region.h"

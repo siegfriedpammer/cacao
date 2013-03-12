@@ -33,7 +33,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 #include "vm/global.h"
 
 #ifdef __cplusplus

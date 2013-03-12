@@ -28,7 +28,7 @@
 #include <stdint.h>
 #include <assert.h>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include "native/jni.hpp"
 #include "native/llni.hpp"

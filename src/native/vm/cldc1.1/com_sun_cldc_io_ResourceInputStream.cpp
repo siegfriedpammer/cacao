@@ -44,7 +44,7 @@
 #include "vm/javaobjects.hpp"
 #include "vm/os.hpp"
 #include "vm/string.hpp"
-#include "vm/types.h"
+#include "vm/types.hpp"
 #include "vm/vm.hpp" /* REMOVE ME: temporarily */
 #include "vm/zip.hpp"
 
