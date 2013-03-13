@@ -627,7 +627,7 @@ static void ssa_create_phi_moves(ssa_info *ssa) {
 void xssa(jitdata *jd) {
 	ssa_info *ssa = ssa_init(jd);
 
-	printf("=============== [ before %s ] =========================\n", UTF_TEXT(jd->m->name));
+	printf("=============== [ before %s ] =========================\n", jd->m->name.begin());
 	show_method(jd, 3);
 	printf("=============== [ /before ] =========================\n");
 

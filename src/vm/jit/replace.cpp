@@ -30,8 +30,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "arch.h"
-#include "md.h"
+#include "arch.hpp"
+#include "md.hpp"
 
 #if defined(ENABLE_GC_CACAO)
 # include "mm/cacao-gc/gc.h"

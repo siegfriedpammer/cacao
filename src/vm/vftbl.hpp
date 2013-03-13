@@ -91,7 +91,7 @@ typedef struct _vftbl vftbl_t;
 *******************************************************************************/
 
 // Includes.
-#include "vm/references.h"
+#include "vm/references.hpp"
 
 #if USES_NEW_SUBTYPE
 #define DISPLAY_SIZE 4

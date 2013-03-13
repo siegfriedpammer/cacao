@@ -703,7 +703,7 @@ static classinfo *link_class_intern(classinfo *c)
 
 		/* handle array classes */
 
-		if (UTF_AT(c->name, 0) == '[')
+		if (c->name[0] == '[')
 			if (!(arraydesc = link_array(c)))
   				return NULL;
 
@@ -1058,22 +1058,22 @@ static arraydescriptor *link_array(classinfo *c)
 	vftbl_t         *compvftbl;
 	Utf8String       u;
 
-	comp = NULL;
-	namelen = UTF_SIZE(c->name);
+	comp    = NULL;
+	namelen = c->name.size();
 
 	/* Check the component type */
 
-	switch (UTF_AT(c->name, 1)) {
+	switch (c->name[1]) {
 	case '[':
 		/* c is an array of arrays. */
-		u = Utf8String::from_utf8(UTF_TEXT(c->name) + 1, namelen - 1);
+		u = Utf8String::from_utf8(c->name.begin() + 1, namelen - 1);
 		if (!(comp = load_class_from_classloader(u, c->classloader)))
 			return NULL;
 		break;
 
 	case 'L':
 		/* c is an array of objects. */
-		u = Utf8String::from_utf8(UTF_TEXT(c->name) + 2, namelen - 3);
+		u = Utf8String::from_utf8(c->name.begin() + 2, namelen - 3);
 		if (!(comp = load_class_from_classloader(u, c->classloader)))
 			return NULL;
 		break;
@@ -1125,7 +1125,7 @@ static arraydescriptor *link_array(classinfo *c)
 
 	} else {
 		/* c is an array of a primitive type */
-		switch (UTF_AT(c->name, 1)) {
+		switch (c->name[1]) {
 		case 'Z':
 			desc->arraytype = ARRAYTYPE_BOOLEAN;
 			desc->dataoffset = OFFSET(java_booleanarray_t,data);

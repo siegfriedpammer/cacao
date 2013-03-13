@@ -1463,7 +1463,7 @@ static FIXME(bool) ssa_enter_eliminate_redundant_phis(traversal_t *t, vars_t *vs
 
 	/* XXX */
 	assert(false);
-	return;
+	return false;
 
 	FOR_EACH_PHI_FUNCTION(t->phis, itph) {
 
@@ -1834,7 +1834,7 @@ static void ssa_enter_create_phi_graph(ssa_info *ssa) {
 	char path[PATH_MAX], *ppath;
 	FILE *f;
 
-	snprintf(path, PATH_MAX, "|tmp|graphs|%s.%s.dot", UTF_TEXT(ssa->jd->m->clazz->name), UTF_TEXT(ssa->jd->m->name));
+	snprintf(path, PATH_MAX, "|tmp|graphs|%s.%s.dot", ssa->jd->m->clazz->name.begin(), ssa->jd->m->name.begin());
 	for (ppath = path; *ppath; ++ppath) {
 		if (*ppath == '|') *ppath = '/';
 		else if (*ppath == '/') *ppath = '.';
@@ -2387,7 +2387,7 @@ void yssa(jitdata *jd) {
 #ifdef SSA_VERBOSE
 	bool verb = true;
 	if (verb) {
-		printf("=============== [ before %s ] =========================\n", UTF_TEXT(jd->m->name));
+		printf("=============== [ before %s ] =========================\n", jd->m->name.begin());
 		show_method(jd, 3);
 		printf("=============== [ /before ] =========================\n");
 	}

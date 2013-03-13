@@ -128,24 +128,24 @@ static bool builtintable_init(void)
 	/* first add all descriptors to the pool */
 
 	for (bte = builtintable_internal; bte->fp != NULL; bte++) {
-		bte->name       = Utf8String::from_utf8(bte->cname).c_ptr();
-		bte->descriptor = Utf8String::from_utf8(bte->cdescriptor).c_ptr();
+		bte->name       = Utf8String::from_utf8(bte->cname);
+		bte->descriptor = Utf8String::from_utf8(bte->cdescriptor);
 
 		if (!descriptor_pool_add(descpool, bte->descriptor, NULL))
 			return false;
 	}
 
 	for (bte = builtintable_automatic; bte->fp != NULL; bte++) {
-		bte->descriptor = Utf8String::from_utf8(bte->cdescriptor).c_ptr();
+		bte->descriptor = Utf8String::from_utf8(bte->cdescriptor);
 
 		if (!descriptor_pool_add(descpool, bte->descriptor, NULL))
 			return false;
 	}
 
 	for (bte = builtintable_function; bte->fp != NULL; bte++) {
-		bte->classname  = Utf8String::from_utf8(bte->cclassname).c_ptr();
-		bte->name       = Utf8String::from_utf8(bte->cname).c_ptr();
-		bte->descriptor = Utf8String::from_utf8(bte->cdescriptor).c_ptr();
+		bte->classname  = Utf8String::from_utf8(bte->cclassname);
+		bte->name       = Utf8String::from_utf8(bte->cname);
+		bte->descriptor = Utf8String::from_utf8(bte->cdescriptor);
 
 		if (!descriptor_pool_add(descpool, bte->descriptor, NULL))
 			return false;

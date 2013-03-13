@@ -28,8 +28,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "arch.h"
-#include "md-abi.h"
+#include "arch.hpp"
+#include "md-abi.hpp"
 
 #include "mm/memory.hpp"
 
@@ -138,14 +138,14 @@ void lsra(jitdata *jd) {
 #if defined(LSRA_DEBUG_CHECK) || defined(LSRA_DEBUG_VERBOSE)
 #if defined(LSRA_DEBUG_VERBOSE)
 	if (compileverbose) {
-		printf("%s %s ", UTF_TEXT(m->clazz->name), UTF_TEXT(m->name));
+		printf("%s %s ", m->clazz->name.begin(), m->name.begin());
 		if (code_is_leafmethod(jd->code))
 			printf("**Leafmethod**");
 		printf("\n");
 	}
 #endif
-	if (strcmp(UTF_TEXT(m->clazz->name),"java/lang/String")==0)
-		if (strcmp(UTF_TEXT(m->name),"toLowerCase")==0)
+	if (strcmp(m->clazz->name.begin(),"java/lang/String")==0)
+		if (strcmp(m->name.begin(),"toLowerCase")==0)
 #if defined(LSRA_DEBUG_VERBOSE)
 			if (compileverbose)
 				printf("12-------------------12\n");

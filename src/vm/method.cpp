@@ -186,7 +186,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 	if (!(u = (utf*) class_getconstant(c, name_index, CONSTANT_Utf8)))
 		return false;
 
-	m->name = u.c_ptr();
+	m->name = u;
 
 	/* descriptor */
 
@@ -195,7 +195,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 	if (!(u = (utf*) class_getconstant(c, descriptor_index, CONSTANT_Utf8)))
 		return false;
 
-	m->descriptor = u.c_ptr();
+	m->descriptor = u;
 
 	if (!descriptor_pool_add(descpool, u, &argcount))
 		return false;
@@ -207,7 +207,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 			return false;
 		}
 
-		if (UTF_AT(m->name, 0) == '<' &&
+		if (m->name[0] == '<' &&
 			m->name != utf8::init && m->name != utf8::clinit) {
 			exceptions_throw_classformaterror(c, "Method with invalid special name");
 			return false;
@@ -538,7 +538,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 				return NULL;
 			}
 
-			m->signature = signature.c_ptr();
+			m->signature = signature;
 		}
 
 # if defined(ENABLE_ANNOTATIONS)

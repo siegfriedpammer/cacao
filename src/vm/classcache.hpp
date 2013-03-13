@@ -37,7 +37,7 @@
 #include "vm/class.hpp"
 #include "vm/global.hpp"
 #include "vm/loader.hpp"
-#include "vm/references.h"
+#include "vm/references.hpp"
 
 #ifdef __cplusplus
 

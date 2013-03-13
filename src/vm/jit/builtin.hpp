@@ -73,9 +73,9 @@ struct builtintable_entry {
 	const char*  cclassname;            /* char name of the class             */
 	const char*  cname;                 /* char name of the function          */
 	const char*  cdescriptor;           /* char name of the descriptor        */
-	utf         *classname;             /* class of the function              */
-	utf         *name;                  /* name of the function               */
-	utf         *descriptor;            /* descriptor of the function         */
+	Utf8String   classname;             /* class of the function              */
+	Utf8String   name;                  /* name of the function               */
+	Utf8String   descriptor;            /* descriptor of the function         */
 	methoddesc  *md;
 	functionptr  emit_fastpath;         /* emitter for fast-path code         */
 };

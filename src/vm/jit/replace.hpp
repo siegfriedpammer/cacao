@@ -54,8 +54,8 @@ typedef struct sourcestate_t sourcestate_t;
 typedef struct sourceframe_t sourceframe_t;
 typedef union  replace_val_t replace_val_t;
 
-#include "arch.h"
-#include "md-abi.h"
+#include "arch.hpp"
+#include "md-abi.hpp"
 
 #include "vm/method.hpp"
 

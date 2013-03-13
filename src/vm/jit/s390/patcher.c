@@ -36,7 +36,7 @@
 #include "vm/field.hpp"
 #include "vm/initialize.hpp"
 #include "vm/options.hpp"
-#include "vm/references.h"
+#include "vm/references.hpp"
 #include "vm/resolve.hpp"
 #include "vm/types.hpp"
 

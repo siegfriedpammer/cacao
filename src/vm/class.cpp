@@ -114,7 +114,7 @@ void class_set_packagename(classinfo *c)
 	   '/'.  Otherwise we set the packagename to NULL. */
 
 	if (p > start)
-		c->packagename = Utf8String::from_utf8(start, p - start + 1).c_ptr();
+		c->packagename = Utf8String::from_utf8(start, p - start + 1);
 	else
 		c->packagename = NULL;
 }
@@ -159,7 +159,7 @@ classinfo *class_create_classinfo(Utf8String classname)
 	/* GCNEW_UNCOLLECTABLE clears the allocated memory */
 #endif
 
-	c->name = classname.c_ptr();
+	c->name = classname;
 
 	/* Set the header.vftbl of all loaded classes to the one of
        java.lang.Class, so Java code can use a class as object. */
@@ -375,7 +375,7 @@ static bool class_load_attribute_sourcefile(classbuffer *cb)
 
 	/* store sourcefile */
 
-	c->sourcefile = sourcefile.c_ptr();
+	c->sourcefile = sourcefile;
 
 	return true;
 }
@@ -562,7 +562,7 @@ bool class_load_attributes(classbuffer *cb)
 
 				info->inner_class = inner;
 				info->outer_class = outer;
-				info->name        = name.c_ptr();
+				info->name        = name;
 				info->flags       = flags;
 			}
 		}
@@ -591,7 +591,7 @@ bool class_load_attributes(classbuffer *cb)
 				return NULL;
 			}
 
-			c->signature = signature.c_ptr();
+			c->signature = signature;
 		}
 #endif
 
@@ -994,7 +994,7 @@ constant_classref *class_get_classref(classinfo *cls, Utf8String name)
 		return ref;
 
 	xref = NEW(extra_classref);
-	CLASSREF_INIT(xref->classref,cls,name.c_ptr());
+	CLASSREF_INIT(xref->classref,cls,name);
 
 	xref->next = cls->extclassrefs;
 	cls->extclassrefs = xref;

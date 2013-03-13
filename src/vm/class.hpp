@@ -48,7 +48,7 @@ typedef struct extra_classref extra_classref;
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
 #include "vm/method.hpp"
-#include "vm/references.h"
+#include "vm/references.hpp"
 #include "vm/string.hpp"
 #include "vm/utf8.hpp"
 
@@ -89,7 +89,7 @@ struct classinfo {                /* class structure                          */
 	dummy_java_lang_Class object;
 
 	s4          flags;            /* ACC flags                                */
-	utf        *name;             /* class name                               */
+	Utf8String  name;             /* class name                               */
 
 	s4          cpcount;          /* number of entries in constant pool       */
 	u1         *cptags;           /* constant pool tags                       */
@@ -129,10 +129,10 @@ struct classinfo {                /* class structure                          */
 	classref_or_classinfo  enclosingclass;  /* enclosing class                */
 	constant_nameandtype  *enclosingmethod; /* enclosing method               */
 
-	utf        *packagename;      /* full name of the package                 */
-	utf        *sourcefile;       /* SourceFile attribute                     */
+	Utf8String  packagename;      /* full name of the package                 */
+	Utf8String  sourcefile;       /* SourceFile attribute                     */
 #if defined(ENABLE_JAVASE)
-	utf        *signature;        /* Signature attribute                      */
+	Utf8String  signature;        /* Signature attribute                      */
 #if defined(ENABLE_ANNOTATIONS)
 	/* All the annotation attributes are NULL (and not a zero length array)   */
 	/* if there is nothing.                                                   */
@@ -164,7 +164,7 @@ struct classinfo {                /* class structure                          */
 struct innerclassinfo {
 	classref_or_classinfo inner_class; /* inner class pointer                 */
 	classref_or_classinfo outer_class; /* outer class pointer                 */
-	utf                  *name;        /* innerclass name                     */
+	Utf8String            name;        /* innerclass name                     */
 	s4                    flags;       /* ACC flags                           */
 };
 

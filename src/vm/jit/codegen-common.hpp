@@ -45,7 +45,7 @@ struct patchref_t;
 #include "vm/descriptor.hpp"
 #include "vm/global.hpp"
 #include "vm/method.hpp"
-#include "vm/references.h"
+#include "vm/references.hpp"
 
 #include "vm/jit/dseg.hpp"
 #include "vm/jit/jit.hpp"

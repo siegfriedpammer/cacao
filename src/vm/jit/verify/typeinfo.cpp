@@ -931,8 +931,8 @@ typeinfo_init_class(typeinfo_t *info,classref_or_classinfo c)
 	info->merged = NULL;
 
 	/* handle array type references */
-	utf_ptr = UTF_TEXT(c.ref->name);
-	len     = UTF_SIZE(c.ref->name);
+	utf_ptr = c.ref->name.begin();
+	len     = c.ref->name.size();
 	if (*utf_ptr == '[') {
 		/* count dimensions */
 		while (*utf_ptr == '[') {

@@ -512,7 +512,7 @@ classbuffer *suck_start(classinfo *c)
 	/* get the classname as char string (do it here for the warning at
        the end of the function) */
 
-	filenamelen = utf8_size(c->name) + strlen(".class") + strlen("0");
+	filenamelen = c->name.size() + strlen(".class") + strlen("0");
 
 	Buffer<> filename(filenamelen);
 	Buffer<> path;

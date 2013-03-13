@@ -32,7 +32,7 @@
 #include "threads/mutex.hpp"
 
 #include "vm/class.hpp"
-#include "vm/references.h"
+#include "vm/references.hpp"
 #include "vm/vftbl.hpp"
 
 #ifdef __cplusplus

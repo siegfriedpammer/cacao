@@ -32,7 +32,7 @@
 
 #include <stdio.h>
 
-#include "md.h"
+#include "md.hpp"
 
 #define CYCLES_STATS_DECLARE(name,nbins,divisor)                            \
     static const int CYCLES_STATS_##name##_MAX = (nbins);                   \

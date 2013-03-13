@@ -150,14 +150,14 @@ void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd)
 #if defined(SSA_DEBUG_CHECK) || defined(SSA_DEBUG_VERBOSE)
 # if defined(SSA_DEBUG_VERBOSE)
 	if (compileverbose) {
-		printf("%s %s ", UTF_TEXT(jd->m->clazz->name), UTF_TEXT(jd->m->name));
+		printf("%s %s ", jd->m->clazz->name.begin(), jd->m->name.begin());
 		if (code_is_leafmethod(jd->code))
 			printf("**Leafmethod**");
 		printf("\n");
 	}
 # endif
-	if (strcmp(UTF_TEXT(jd->m->clazz->name),"fp")==0)
-		if (strcmp(UTF_TEXT(jd->m->name),"testfloat")==0)
+	if (strcmp(jd->m->clazz->name.begin(),"fp")==0)
+		if (strcmp(jd->m->name.begin(),"testfloat")==0)
 # if defined(SSA_DEBUG_VERBOSE)
 			if (compileverbose)
 				printf("12-------------------12\n");

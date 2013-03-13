@@ -38,7 +38,7 @@ typedef struct exception_entry exception_entry;
 
 #include "vm/global.hpp"
 #include "vm/method.hpp"
-#include "vm/references.h"
+#include "vm/references.hpp"
 #include "vm/resolve.hpp"
 #include "vm/statistics.hpp"
 #include "vm/jit/codegen-common.hpp"

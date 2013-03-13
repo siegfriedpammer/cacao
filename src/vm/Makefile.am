@@ -121,7 +121,7 @@ libvm_la_SOURCES = \
 	primitive.hpp \
 	properties.cpp \
 	properties.hpp \
-	references.h \
+	references.hpp \
 	resolve.cpp \
 	resolve.hpp \
 	$(RT_TIMING_SOURCES) \

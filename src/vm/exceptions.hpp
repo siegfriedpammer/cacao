@@ -30,7 +30,7 @@
 #include "vm/types.hpp"
 
 #include "vm/global.hpp"
-#include "vm/references.h"
+#include "vm/references.hpp"
 #include "vm/method.hpp"
 
 

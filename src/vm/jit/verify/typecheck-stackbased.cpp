@@ -501,7 +501,7 @@ static bool typecheck_stackbased_multianewarray(verifier_state *state,
 		/* check that the reference indicates an array class of correct dimension */
 		cr = state->iptr->sx.s23.s3.c.ref;
 		i = 0;
-		p = UTF_TEXT(cr->name);
+		p = cr->name.begin();
 		while (p[i] == '[')
 			i++;
 		/* { the dimension of the array class == i } */

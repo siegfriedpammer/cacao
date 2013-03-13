@@ -38,7 +38,7 @@ typedef struct fieldinfo fieldinfo;
 #include "vm/class.hpp"
 #include "vm/global.hpp"
 #include "vm/loader.hpp"
-#include "vm/references.h"
+#include "vm/references.hpp"
 #include "vm/utf8.hpp"
 
 
@@ -56,9 +56,9 @@ struct fieldinfo {	      /* field of a class                                 */
 
 	s4         flags;     /* ACC flags                                        */
 	s4         type;      /* basic data type                                  */
-	utf       *name;      /* name of field                                    */
-	utf       *descriptor;/* JavaVM descriptor string of field                */
-	utf       *signature; /* Signature attribute string                       */
+	Utf8String name;      /* name of field                                    */
+	Utf8String descriptor;/* JavaVM descriptor string of field                */
+	Utf8String signature; /* Signature attribute string                       */
 	typedesc  *parseddesc;/* parsed descriptor                                */
 
 	int32_t    offset;    /* offset from start of object (instance variables) */

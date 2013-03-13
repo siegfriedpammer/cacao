@@ -35,7 +35,7 @@
 #include "vm/class.hpp"
 #include "vm/descriptor.hpp"
 #include "vm/global.hpp"
-#include "vm/references.h"
+#include "vm/references.hpp"
 #include "vm/resolve.hpp"
 
 #include "vm/jit/ir/bytecode.hpp"
@@ -791,8 +791,8 @@ static void bc_escape_analysis_parse_invoke(bc_escape_analysis_t *be, jcode_t *j
 			dprintf(
 				be->depth,
 				"Succefully resolved callee %s/%s. Recursing.\n",
-				UTF_TEXT(mi->clazz->name),
-				UTF_TEXT(mi->name)
+				mi->clazz->name.begin(),
+				mi->name.begin()
 			);
 		}
 #endif
@@ -803,8 +803,8 @@ static void bc_escape_analysis_parse_invoke(bc_escape_analysis_t *be, jcode_t *j
 			dprintf(
 				be->depth,
 				"Failed to resolve callee %s/%s.\n",
-				(IS_FMIREF_RESOLVED(fmi) ? "ERR" : UTF_TEXT(fmi->p.classref->name)),
-				UTF_TEXT(fmi->name)
+				(IS_FMIREF_RESOLVED(fmi) ? "ERR" : fmi->p.classref->name.begin()),
+				fmi->name.begin()
 			);
 		}
 #endif
@@ -1790,8 +1790,8 @@ static void bc_escape_analysis_perform_intern(methodinfo *m, int depth) {
 		dprintf(
 			depth,
 			"=== BC escape analysis of %s/%s at depth %d ===\n",
-			UTF_TEXT(m->clazz->name),
-			UTF_TEXT(m->name),
+			m->clazz->name.begin(),
+			m->name.begin(),
 			depth
 		);
 	}
@@ -1849,8 +1849,8 @@ static void bc_escape_analysis_perform_intern(methodinfo *m, int depth) {
 		dprintf(
 			depth,
 			"%s/%s: Non-escaping params: %d\n",
-			UTF_TEXT(m->clazz->name),
-			UTF_TEXT(m->name),
+			m->clazz->name.begin(),
+			m->name.begin(),
 			be->non_escaping_adr_params
 		);
 	}

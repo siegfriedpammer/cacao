@@ -457,7 +457,7 @@ static void escape_analysis_init(escape_analysis_t *e, jitdata *jd) {
 	e->adr_args_count = 0;
 
 	e->verbose = 1;
-	e->verbose = strcmp(UTF_TEXT(jd->m->name), "<init>") == 0;
+	e->verbose = strcmp(jd->m->name.begin(), "<init>") == 0;
 	e->verbose = getenv("EV") != NULL;
 }
 
@@ -1279,7 +1279,7 @@ void escape_analysis_perform(jitdata *jd) {
 	escape_analysis_init(e, jd);
 
 	if (e->verbose)
-		color_printf(RED, "\n\n==== %s/%s ====\n\n", UTF_TEXT(e->jd->m->clazz->name), UTF_TEXT(e->jd->m->name));
+		color_printf(RED, "\n\n==== %s/%s ====\n\n", e->jd->m->clazz->name.begin(), e->jd->m->name.begin());
 
 	escape_analysis_process_arguments(e);
 	escape_analysis_process_instructions(e);

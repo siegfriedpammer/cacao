@@ -886,8 +886,8 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		/* the classref is created later */
 
 		fmi->p.index    = it->class_index;
-		fmi->name       = nat->name.c_ptr();
-		fmi->descriptor = nat->descriptor.c_ptr();
+		fmi->name       = nat->name;
+		fmi->descriptor = nat->descriptor;
 
 		cptags[it->thisindex]  = it->tag;
 		cpinfos[it->thisindex] = fmi;
@@ -1474,7 +1474,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	if (c->name == utf8::not_named_yet) {
 		/* we finally have a name for this class */
-		c->name = name.c_ptr();
+		c->name = name;
 		class_set_packagename(c);
 	}
 	else if (name != c->name) {
@@ -1819,8 +1819,8 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 			fieldinfo *fi = c->fields + i;
 
 			/* It's ok if we lose bits here */
-			index = ((((size_t) fi->name) +
-					  ((size_t) fi->descriptor)) >> shift) % hashlen;
+			index = ((((size_t) fi->name.c_ptr()) +
+					  ((size_t) fi->descriptor.c_ptr())) >> shift) % hashlen;
 
 			if ((old = hashtab[index])) {
 				old--;
@@ -1843,8 +1843,8 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 			methodinfo *mi = c->methods + i;
 
 			/* It's ok if we lose bits here */
-			index = ((((size_t) mi->name) +
-					  ((size_t) mi->descriptor)) >> shift) % hashlen;
+			index = ((((size_t) mi->name.c_ptr()) +
+					  ((size_t) mi->descriptor.c_ptr())) >> shift) % hashlen;
 
 			if ((old = hashtab[index])) {
 				old--;
@@ -2095,7 +2095,7 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 	classrefs = MNEW(constant_classref, 2);
 
 	CLASSREF_INIT(classrefs[0], c, c->name);
-	CLASSREF_INIT(classrefs[1], c, utf8::java_lang_Object.c_ptr());
+	CLASSREF_INIT(classrefs[1], c, utf8::java_lang_Object);
 
 	/* create descriptor for clone method */
 	/* we need one paramslot which is reserved for the 'this' parameter */
@@ -2121,8 +2121,8 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 
 	clone->mutex      = new Mutex();
 	clone->flags      = ACC_PUBLIC | ACC_NATIVE;
-	clone->name       = utf8::clone.c_ptr();
-	clone->descriptor = utf8::void__java_lang_Object.c_ptr();
+	clone->name       = utf8::clone;
+	clone->descriptor = utf8::void__java_lang_Object;
 	clone->parseddesc = clonedesc;
 	clone->clazz      = c;
 

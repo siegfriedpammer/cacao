@@ -47,7 +47,7 @@
 #include "vm/loader.hpp"
 #include "vm/options.hpp"
 #include "vm/primitive.hpp"
-#include "vm/references.h"
+#include "vm/references.hpp"
 #include "vm/string.hpp"
 #include "vm/suck.hpp"
 #include "vm/utf8.hpp"
@@ -88,14 +88,14 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 	if (!(u = (utf*) class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 		return false;
 
-	f->name = u.c_ptr();
+	f->name = u;
 
 	/* Get descriptor. */
 
 	if (!(u = (utf*) class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 		return false;
 
-	f->descriptor = u.c_ptr();
+	f->descriptor = u;
 	f->parseddesc = NULL;
 
 	if (!descriptor_pool_add(descpool, u, NULL))
@@ -113,10 +113,10 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 #ifdef ENABLE_VERIFIER
 	if (opt_verify) {
 		/* check name */
-		if (!Utf8String(f->name).is_valid_name() || UTF_AT(f->name, 0) == '<') {
+		if (!f->name.is_valid_name() || f->name[0] == '<') {
 			exceptions_throw_classformaterror(c,
 			                                  "Illegal Field name \"%s\"",
-			                                  UTF_TEXT(f->name));
+			                                  f->name.begin());
 			return false;
 		}
 
@@ -320,7 +320,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 				return NULL;
 			}
 
-			f->signature = signature.c_ptr();
+			f->signature = signature;
 		}
 
 #if defined(ENABLE_ANNOTATIONS)

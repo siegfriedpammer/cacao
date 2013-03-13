@@ -47,7 +47,7 @@ typedef struct codeinfo            codeinfo;
 #include "vm/global.hpp"
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
-#include "vm/references.h"
+#include "vm/references.hpp"
 
 #if defined(ENABLE_JAVASE)
 # include "vm/stackmap.hpp"
@@ -55,21 +55,23 @@ typedef struct codeinfo            codeinfo;
 
 #include "vm/utf8.hpp"
 
-
 #if defined(ENABLE_REPLACEMENT)
 /* Initial value for the hit countdown field of each method. */
 #define METHOD_INITIAL_HIT_COUNTDOWN  1000
 #endif
+
+union  classref_or_classinfo;
+struct constant_FMIref;
 
 /* methodinfo *****************************************************************/
 
 struct methodinfo {                 /* method structure                       */
 	Mutex        *mutex;            /* we need this in jit's locking          */
 	s4            flags;            /* ACC flags                              */
-	utf          *name;             /* name of method                         */
-	utf          *descriptor;       /* JavaVM descriptor string of method     */
+	Utf8String    name;             /* name of method                         */
+	Utf8String    descriptor;       /* JavaVM descriptor string of method     */
 #if defined(ENABLE_JAVASE)
-	utf          *signature;        /* Signature attribute                    */
+	Utf8String    signature;        /* Signature attribute                    */
 	stack_map_t  *stack_map;        /* StackMapTable attribute                */
 #endif
 
@@ -169,11 +171,11 @@ struct lineinfo {
 /* localvarinfo ***************************************************************/
 
 struct localvarinfo {
-	uint16_t start_pc;
-	uint16_t length;
-	utf*     name;
-	utf*     descriptor;
-	uint16_t index;
+	uint16_t   start_pc;
+	uint16_t   length;
+	Utf8String name;
+	Utf8String descriptor;
+	uint16_t   index;
 };
 
 

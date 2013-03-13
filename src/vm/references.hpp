@@ -1,6 +1,6 @@
-/* src/vm/references.h - references to classes/fields/methods
+/* src/vm/references.hpp - references to classes/fields/methods
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -22,21 +22,37 @@
 
 */
 
-#ifndef _REFERENCES_H_
-#define _REFERENCES_H_
+#ifndef REFERENCES_HPP_
+#define REFERENCES_HPP_ 1
+
+#include "config.h"
+
+#include "vm/types.hpp"
+#include "vm/global.hpp"
+
+#include "vm/utf8.hpp"
+
+//#include "vm/class.hpp"
+//#include "vm/descriptor.hpp"
+//#include "vm/field.hpp"
+//#include "vm/method.hpp"
 
 /* forward typedefs ***********************************************************/
 
-typedef struct constant_classref constant_classref;
-typedef struct constant_FMIref   constant_FMIref;
-
+struct classinfo;
+struct constant_classref;
+struct constant_FMIref;
+struct typedesc;
+struct methoddesc;
+struct methodinfo;
+struct fieldinfo;
 
 /* constant_classref **********************************************************/
 
 struct constant_classref {
-	void             *pseudo_vftbl; /* for distinguishing it from classinfo   */
-	struct classinfo *referer;    /* class containing the reference           */
-	struct utf       *name;       /* name of the class refered to             */
+	void       *pseudo_vftbl;     /* for distinguishing it from classinfo     */
+	classinfo  *referer;          /* class containing the reference           */
+	Utf8String  name;             /* name of the class refered to             */
 };
 
 
@@ -44,7 +60,7 @@ struct constant_classref {
 
 typedef union classref_or_classinfo {
 	constant_classref *ref;       /* a symbolic class reference               */
-	struct classinfo  *cls;       /* an already loaded class                  */
+	classinfo         *cls;       /* an already loaded class                  */
 	void              *any;       /* used for general access (x != NULL,...)  */
 } classref_or_classinfo;
 
@@ -52,22 +68,10 @@ typedef union classref_or_classinfo {
 /* parseddesc_t ***************************************************************/
 
 typedef union parseddesc {
-	struct typedesc   *fd;        /* parsed field descriptor                  */
-	struct methoddesc *md;        /* parsed method descriptor                 */
-	void              *any;       /* used for simple test against NULL        */
+	typedesc   *fd;               /* parsed field descriptor                  */
+	methoddesc *md;               /* parsed method descriptor                 */
+	void       *any;              /* used for simple test against NULL        */
 } parseddesc_t;
-
-
-#include "config.h"
-#include "vm/types.hpp"
-
-#include "vm/class.hpp"
-#include "vm/descriptor.hpp"
-#include "vm/field.hpp"
-#include "vm/global.hpp"
-#include "vm/method.hpp"
-#include "vm/utf8.hpp"
-
 
 /*----------------------------------------------------------------------------*/
 /* References                                                                 */
@@ -97,8 +101,8 @@ struct constant_FMIref{      /* Fieldref, Methodref and InterfaceMethodref    */
 		fieldinfo         *field;     /* resolved field                       */
 		methodinfo        *method;    /* resolved method                      */
 	} p;
-	utf         *name;       /* field/method/interfacemethod name             */
-	utf         *descriptor; /* field/method/intfmeth. type descriptor string */
+	Utf8String   name;       /* field/method/interfacemethod name             */
+	Utf8String   descriptor; /* field/method/intfmeth. type descriptor string */
 	parseddesc_t parseddesc; /* parsed descriptor                             */
 };
 
@@ -149,7 +153,7 @@ struct constant_FMIref{      /* Fieldref, Methodref and InterfaceMethodref    */
         (c).name = (classname); \
     } while (0)
 
-#endif /* _REFERENCES_H_ */
+#endif // REFERENCES_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -157,7 +161,7 @@ struct constant_FMIref{      /* Fieldref, Methodref and InterfaceMethodref    */
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -580,7 +580,7 @@ static resolve_result_t resolve_subtype_check(methodinfo *refmethod,
 
 	/* do not check access to protected members of arrays */
 
-	if (error == resolveIllegalAccessError && UTF_AT(subclass->name, 0) == '[') {
+	if (error == resolveIllegalAccessError && subclass->name[0] == '[') {
 		return resolveSucceeded;
 	}
 
@@ -2255,7 +2255,7 @@ static bool unresolved_subtype_set_from_typeinfo(classinfo *referer,
 												 methodinfo *refmethod,
 												 unresolved_subtype_set *stset,
 												 typeinfo_t *tinfo,
-												 utf *declaredclassname)
+												 Utf8String declaredclassname)
 {
 	int count;
 	int i;
