@@ -147,7 +147,7 @@ class Utf8String {
 		// access last element
 		inline char back() const { return begin()[size() - 1]; }
 
-		inline char operator[](size_t idx) const { return begin()[0]; }
+		inline char operator[](size_t idx) const { return begin()[idx]; }
 
 		// get the number of bytes in string, excluding zero terminator.
 		inline size_t size() const { return _data->blength; }
