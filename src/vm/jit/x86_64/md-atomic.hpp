@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/atomic.hpp - x86_64 atomic instructions
 
-   Copyright (C) 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _MD_ATOMIC_HPP
-#define _MD_ATOMIC_HPP
+#ifndef MD_ATOMIC_HPP_
+#define MD_ATOMIC_HPP_ 1
 
 #include "config.h"
 
@@ -108,7 +108,7 @@ inline void instruction_barrier(void)
 
 }
 
-#endif // _MD_ATOMIC_HPP
+#endif // MD_ATOMIC_HPP_
 
 
 /*

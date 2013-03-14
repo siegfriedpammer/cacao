@@ -27,16 +27,16 @@ AM_CCASFLAGS = $(AM_CPPFLAGS) $(AM_LDFLAGS)
 LIBS =
 
 DIST_SUBDIRS = \
-	freebsd \
-	linux \
+	freebsd    \
+	linux      \
 	solaris
 
 SUBDIRS = $(OS_DIR)
 
-noinst_HEADERS = \
-	arch.hpp \
-	\
-	md-asm.hpp \
+noinst_HEADERS =  \
+	arch.hpp      \
+	              \
+	md-asm.hpp    \
 	md-atomic.hpp
 
 noinst_LTLIBRARIES = libarch.la
@@ -46,20 +46,20 @@ DISASS_SOURCES = \
 	disass.cpp
 endif
 
-libarch_la_SOURCES = \
-	asmpart.S \
-	codegen.cpp \
-	codegen.hpp \
+libarch_la_SOURCES =  \
+	asmpart.S         \
+	codegen.cpp       \
+	codegen.hpp       \
 	$(DISASS_SOURCES) \
-	emit.cpp \
-	emit.hpp \
-	patcher.cpp \
-	\
-	md-abi.cpp \
-	md-abi.hpp \
-	md-stubs.hpp \
-	md-trap.hpp \
-	md.cpp \
+	emit.cpp          \
+	emit.hpp          \
+	patcher.cpp       \
+	                  \
+	md-abi.cpp        \
+	md-abi.hpp        \
+	md-stubs.hpp      \
+	md-trap.hpp       \
+	md.cpp            \
 	md.hpp
 
 libarch_la_LIBADD = \

@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/freebsd/md-os.cpp - machine dependent x86_64 FreeBSD functions
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 

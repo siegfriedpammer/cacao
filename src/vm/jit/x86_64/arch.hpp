@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/arch.hpp - architecture defines for x86_64
 
-   Copyright (C) 1996-2010
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.

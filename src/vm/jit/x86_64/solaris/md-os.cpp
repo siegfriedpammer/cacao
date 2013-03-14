@@ -32,8 +32,8 @@
 
 #include "vm/types.hpp"
 
-#include "vm/jit/x86_64/codegen.h"
-#include "vm/jit/x86_64/md.h"
+#include "vm/jit/x86_64/codegen.hpp"
+#include "vm/jit/x86_64/md.hpp"
 
 #include "threads/thread.hpp"
 

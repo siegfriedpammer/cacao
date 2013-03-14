@@ -1,9 +1,7 @@
-/* src/vm/jit/x86_64/md-asm.h - assembler defines for x86_64 Linux ABI
+/* src/vm/jit/x86_64/md-asm.hpp - assembler defines for x86_64 Linux ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2013
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -31,8 +29,8 @@
 */
 
 
-#ifndef _MD_ASM_H
-#define _MD_ASM_H
+#ifndef MD_ASM_HPP_
+#define MD_ASM_HPP_ 1
 
 /* register defines ***********************************************************/
 
@@ -149,7 +147,7 @@
 	movq    (3+(off))*8(sp),ft2  ; \
 	movq    (4+(off))*8(sp),ft3  ;
 
-#endif /* _MD_ASM_H */
+#endif // MD_ASM_HPP_
 
 
 /*
@@ -158,7 +156,7 @@
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

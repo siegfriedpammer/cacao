@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/linux/md-os.cpp - machine dependent x86_64 Linux functions
 
-   Copyright (C) 2007-2013
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.

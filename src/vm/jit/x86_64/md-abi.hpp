@@ -1,6 +1,6 @@
-/* src/vm/jit/x86_64/md-abi.h - defines for x86_64 Linux ABI
+/* src/vm/jit/x86_64/md-abi.hpp - defines for x86_64 Linux ABI
 
-   Copyright (C) 1996-2008, 2009
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _MD_ABI_H
-#define _MD_ABI_H
+#ifndef MD_ABI_HPP_
+#define MD_ABI_HPP_ 1
 
 /* define registers ***********************************************************/
 
@@ -121,7 +121,7 @@
 #define FLT_TMP_CNT     5        /* number of float temporary registers       */
 #define FLT_RES_CNT     3        /* number of float reserved registers        */
 
-#endif /* _MD_ABI_H */
+#endif // MD_ABI_HPP_
 
 
 /*
@@ -130,7 +130,7 @@
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
