@@ -1,6 +1,6 @@
-/* src/vm/jit/powerpc/md.c - machine dependent PowerPC functions
+/* src/vm/jit/powerpc/md.cpp - machine dependent PowerPC functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -26,14 +26,14 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <stdint.h>
 
 #include "vm/types.hpp"
 
-#include "md-abi.h"
-#include "vm/jit/powerpc/codegen.h"
-#include "vm/jit/powerpc/md.h"
+#include "md-abi.hpp"
+#include "vm/jit/powerpc/codegen.hpp"
+#include "vm/jit/powerpc/md.hpp"
 
 #include "vm/global.hpp"
 #include "vm/vm.hpp"
@@ -260,7 +260,7 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

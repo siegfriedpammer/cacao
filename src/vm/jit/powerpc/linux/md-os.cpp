@@ -1,4 +1,4 @@
-/* src/vm/jit/powerpc/linux/md-os.c - machine dependent PowerPC Linux functions
+/* src/vm/jit/powerpc/linux/md-os.cpp - machine dependent PowerPC Linux functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -26,15 +26,15 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <stdint.h>
 #include <ucontext.h>
 
 #include "vm/types.hpp"
 
-#include "vm/jit/powerpc/codegen.h"
-#include "vm/jit/powerpc/md.h"
-#include "vm/jit/powerpc/linux/md-abi.h"
+#include "vm/jit/powerpc/codegen.hpp"
+#include "vm/jit/powerpc/md.hpp"
+#include "vm/jit/powerpc/linux/md-abi.hpp"
 
 #include "threads/thread.hpp"
 
@@ -239,7 +239,7 @@ void md_executionstate_write(executionstate_t *es, void *context)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

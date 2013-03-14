@@ -1,4 +1,4 @@
-/* src/vm/jit/powerpc/emit.c - PowerPC code emitter functions
+/* src/vm/jit/powerpc/emit.cpp - PowerPC code emitter functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,14 +25,14 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <stdint.h>
 
 #include "vm/types.hpp"
 
-#include "md-abi.h"
+#include "md-abi.hpp"
 
-#include "vm/jit/powerpc/codegen.h"
+#include "vm/jit/powerpc/codegen.hpp"
 
 #include "mm/memory.hpp"
 
@@ -972,7 +972,7 @@ void emit_verbosecall_exit(jitdata *jd)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

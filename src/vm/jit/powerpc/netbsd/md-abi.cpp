@@ -1,4 +1,4 @@
-/* src/vm/jit/powerpc/netbsd/md-abi.c - PowerPC NetBSD ABI
+/* src/vm/jit/powerpc/netbsd/md-abi.cpp - PowerPC NetBSD ABI
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -26,7 +26,7 @@
 #include "config.h"
 #include "vm/types.hpp"
 
-#include "vm/jit/powerpc/netbsd/md-abi.h"
+#include "vm/jit/powerpc/netbsd/md-abi.hpp"
 
 #include "vm/descriptor.hpp"
 #include "vm/global.hpp"
@@ -257,7 +257,7 @@ void md_return_alloc(jitdata *jd, stackelement_t* stackslot)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

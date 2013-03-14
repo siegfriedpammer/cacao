@@ -1,4 +1,4 @@
-/* src/vm/jit/powerpc/codegen.c - machine code generator for 32-bit PowerPC
+/* src/vm/jit/powerpc/codegen.cpp - machine code generator for 32-bit PowerPC
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -31,10 +31,10 @@
 
 #include "vm/types.hpp"
 
-#include "md-abi.h"
+#include "md-abi.hpp"
 
-#include "vm/jit/powerpc/arch.h"
-#include "vm/jit/powerpc/codegen.h"
+#include "vm/jit/powerpc/arch.hpp"
+#include "vm/jit/powerpc/codegen.hpp"
 
 #include "mm/memory.hpp"
 

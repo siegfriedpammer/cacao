@@ -1,9 +1,7 @@
 ## src/vm/jit/powerpc/darwin/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-## J. Wenninger, Institut f. Computersprachen - TU Wien
+## Copyright (C) 1996-2013
+## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
 ##
@@ -28,15 +26,15 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 LIBS =
 
 noinst_HEADERS = \
-	md-asm.h
+	md-asm.hpp
 
 noinst_LTLIBRARIES = \
 	libmd.la
 
 libmd_la_SOURCES = \
-	md-abi.c \
-	md-abi.h \
-	md-os.c
+	md-abi.cpp     \
+	md-abi.hpp     \
+	md-os.cpp
 
 
 ## Local variables:

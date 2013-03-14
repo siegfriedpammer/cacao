@@ -1,4 +1,4 @@
-/* src/vm/jit/powerpc/patcher.c - PowerPC code patching functions
+/* src/vm/jit/powerpc/patcher.cpp - PowerPC code patching functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -26,12 +26,12 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <stdint.h>
 
 #include "vm/types.hpp"
 
-#include "vm/jit/powerpc/md.h"
+#include "vm/jit/powerpc/md.hpp"
 
 #include "mm/memory.hpp"
 
@@ -514,7 +514,7 @@ bool patcher_instanceof_interface(patchref_t *pr)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

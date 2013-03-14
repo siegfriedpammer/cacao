@@ -1,6 +1,6 @@
-/* src/vm/jit/powerpc/darwin/md-os.c - machine dependent PowerPC Darwin functions
+/* src/vm/jit/powerpc/darwin/md-os.cpp - machine dependent PowerPC Darwin functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -25,15 +25,15 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <signal.h>
 #include <stdint.h>
 #include <ucontext.h>
 
 #include "vm/types.hpp"
 
-#include "vm/jit/powerpc/codegen.h"
-#include "vm/jit/powerpc/darwin/md-abi.h"
+#include "vm/jit/powerpc/codegen.hpp"
+#include "vm/jit/powerpc/darwin/md-abi.hpp"
 
 #include "threads/thread.hpp"
 
@@ -184,7 +184,7 @@ void md_executionstate_write(executionstate_t *es, void *context)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
