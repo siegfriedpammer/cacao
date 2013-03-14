@@ -1,4 +1,4 @@
-/* src/vm/jit/sparc64/emit.c - SPARC code emitter functions
+/* src/vm/jit/sparc64/emit.cpp - SPARC code emitter functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,13 +25,13 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 
 #include "vm/types.hpp"
 
-#include "vm/jit/sparc64/codegen.h"
-#include "vm/jit/sparc64/md-abi.h"
-#include "vm/jit/sparc64/emit.h"
+#include "vm/jit/sparc64/codegen.hpp"
+#include "vm/jit/sparc64/md-abi.hpp"
+#include "vm/jit/sparc64/emit.hpp"
 
 #include "mm/memory.hpp"
 
@@ -46,7 +46,7 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/replace.hpp"
 
-#include "vm/jit/sparc64/solaris/macro_rename.h"
+#include "vm/jit/sparc64/solaris/macro_rename.hpp"
 
 /* how to leaf optimization in the emitted stubs?? */
 #define REG_PV REG_PV_CALLEE
@@ -1036,7 +1036,7 @@ void emit_verbosecall_exit(jitdata *jd)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

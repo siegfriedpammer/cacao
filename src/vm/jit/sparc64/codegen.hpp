@@ -1,7 +1,7 @@
-/* src/vm/jit/sparc64/codegen.h - code generation macros and
-                                  definitions for SPARC64
+/* src/vm/jit/sparc64/codegen.hpp - code generation macros and
+                                    definitions for SPARC64
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,17 +23,17 @@
 
 */
 
-#ifndef _CODEGEN_H
-#define _CODEGEN_H
+#ifndef CODEGEN_HPP_
+#define CODEGEN_HPP_ 1
 
 #include "config.h"
 #include "vm/types.hpp"
 
 #include "vm/jit/jit.hpp"
 
-#include "md-abi.h" /* for INT_NATARG_CNT */
+#include "md-abi.hpp" /* for INT_NATARG_CNT */
 
-#include <assert.h>
+#include <cassert>
 
 /* debug defines **************************************************************/
 #ifndef NDEBUG
@@ -671,4 +671,19 @@ s4   get_lopart_disp(s4 disp);
 #define M_ACMP(a,b)             M_CMP(a,b)
 #define M_ICMP(a,b)             M_CMP(a,b)
 
-#endif /* _CODEGEN_H */
+#endif // CODEGEN_HPP_
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c++
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */

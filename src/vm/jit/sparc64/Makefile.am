@@ -1,6 +1,6 @@
 ## src/vm/jit/sparc64/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2007, 2008
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -32,10 +32,10 @@ AM_CCASFLAGS = $(AM_CPPFLAGS)
 
 LIBS =
 
-noinst_HEADERS = \
-	arch.h \
-	\
-	md-asm.h \
+noinst_HEADERS =  \
+	arch.hpp      \
+	              \
+	md-asm.hpp    \
 	md-atomic.hpp
 
 noinst_LTLIBRARIES = libarch.la
@@ -46,21 +46,21 @@ DISASS_SOURCES = \
 endif
 
 
-libarch_la_SOURCES = \
-	asmpart.S \
-	codegen.c \
-	codegen.h \
+libarch_la_SOURCES =  \
+	asmpart.S         \
+	codegen.cpp       \
+	codegen.hpp       \
 	$(DISASS_SOURCES) \
-	emit.c \
-	emit.h \
-	patcher.c \
-	\
-	md-abi.c \
-	md-abi.h \
-	md-stubs.hpp \
-	md-trap.h \
-	md.c \
-	md.h
+	emit.cpp          \
+	emit.hpp          \
+	patcher.cpp       \
+	                  \
+	md-abi.cpp        \
+	md-abi.hpp        \
+	md-stubs.hpp      \
+	md-trap.hpp       \
+	md.cpp            \
+	md.hpp      
 
 libarch_la_LIBADD = \
 	$(OS_DIR)/libmd.la

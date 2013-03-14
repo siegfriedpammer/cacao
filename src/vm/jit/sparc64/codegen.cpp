@@ -1,4 +1,4 @@
-/* src/vm/jit/sparc64/codegen.c - machine code generator for Sparc
+/* src/vm/jit/sparc64/codegen.cpp - machine code generator for Sparc
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,17 +25,17 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <stdint.h>
 #include <stdio.h>
 
 #include "vm/types.hpp"
 
-#include "md-abi.h"
+#include "md-abi.hpp"
 
-/* #include "vm/jit/sparc64/arch.h" */
-#include "vm/jit/sparc64/codegen.h"
-#include "vm/jit/sparc64/emit.h"
+// #include "vm/jit/sparc64/arch.hpp"
+#include "vm/jit/sparc64/codegen.hpp"
+#include "vm/jit/sparc64/emit.hpp"
 
 #include "mm/memory.hpp"
 
@@ -56,11 +56,11 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/parse.hpp"
-#include "vm/jit/patcher.h"
+#include "vm/jit/patcher.hpp"
 #include "vm/jit/reg.hpp"
 #include "vm/jit/stacktrace.hpp"
 
-#include "vm/jit/sparc64/solaris/macro_rename.h"
+#include "vm/jit/sparc64/solaris/macro_rename.hpp"
 
 #define BUILTIN_FLOAT_ARGS 1
 
@@ -2852,7 +2852,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* put env into first argument register */
 
-	disp = dseg_add_address(cd, VM_get_jnienv());
+	disp = dseg_add_address(cd, VM::get_current()->get_jnienv());
 	M_ALD(REG_OUT0, REG_PV_CALLEE, disp);
 
 	/* do the native function call */
@@ -2928,7 +2928,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

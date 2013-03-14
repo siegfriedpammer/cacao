@@ -1,5 +1,7 @@
 /* src/vm/jit/sparc64/md-stubs.hpp - SPARC64 JIT stubs
 
+   Copyright (C) 1996-2013
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008 Theobroma Systems Ltd.
 
    This file is part of CACAO.
@@ -22,8 +24,8 @@
 */
 
 
-#ifndef _MD_STUBS_HPP
-#define _MD_STUBS_HPP
+#ifndef MD_STUBS_HPP_
+#define MD_STUBS_HPP_ 1
 
 #include "config.h"
 
@@ -38,7 +40,7 @@ int CompilerStub::get_code_size()
 	return 4 * 4;
 }
 
-#endif // _MD_STUBS_HPP
+#endif // MD_STUBS_HPP_
 
 
 /*

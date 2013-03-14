@@ -1,9 +1,7 @@
-/* src/vm/jit/sparc64/emit.h - sparc64 code emitter functions
+/* src/vm/jit/sparc64/emit-arch.hpp - sparc64 code emitter functions
 
-   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2013
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -25,8 +23,8 @@
 */
 
 
-#ifndef _EMIT_H
-#define _EMIT_H
+#ifndef EMIT_ARCH_HPP_
+#define EMIT_ARCH_HPP_ 1
 
 #include "config.h"
 #include "vm/types.hpp"
@@ -58,7 +56,7 @@ void emit_bgt_xcc(codegendata *cd, basicblock *target);
 void emit_ble_xcc(codegendata *cd, basicblock *target);
 
 
-#endif /* _EMIT_H */
+#endif // EMIT_ARCH_HPP_
 
 
 /*
@@ -67,7 +65,7 @@ void emit_ble_xcc(codegendata *cd, basicblock *target);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

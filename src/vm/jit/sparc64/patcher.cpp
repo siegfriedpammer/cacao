@@ -1,4 +1,4 @@
-/* src/vm/jit/mips/patcher.c - SPARC code patching functions
+/* src/vm/jit/mips/patcher.cpp - SPARC code patching functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,16 +25,16 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <stdint.h>
 
 #include "vm/types.hpp"
 
 #include "mm/memory.hpp"
 
-#include "vm/jit/sparc64/codegen.h"
-#include "vm/jit/sparc64/md.h"
-#include "vm/jit/sparc64/md-abi.h"
+#include "vm/jit/sparc64/codegen.hpp"
+#include "vm/jit/sparc64/md.hpp"
+#include "vm/jit/sparc64/md-abi.hpp"
 
 #include "native/native.hpp"
 
@@ -48,11 +48,11 @@
 #include "vm/resolve.hpp"
 
 #include "vm/jit/asmpart.hpp"
-#include "vm/jit/patcher.h"
+#include "vm/jit/patcher.hpp"
 #include "vm/jit/methodheader.hpp"
 #include "vm/jit/stacktrace.hpp"
 
-#include "vm/jit/sparc64/solaris/macro_rename.h"
+#include "vm/jit/sparc64/solaris/macro_rename.hpp"
 
 
 /* patcher_wrapper *************************************************************
@@ -757,7 +757,7 @@ bool patcher_resolve_native(u1 *sp)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

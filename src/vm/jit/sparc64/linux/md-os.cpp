@@ -1,6 +1,6 @@
-/* src/vm/jit/sparc64/linux/md-os.c - machine dependent SPARC Linux functions
+/* src/vm/jit/sparc64/linux/md-os.cpp - machine dependent SPARC Linux functions
 
-   Copyright (C) 1996-2005, 2006, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -25,14 +25,14 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <stdint.h>
 #include <signal.h>
 
 #include "vm/types.hpp"
 
-#include "vm/jit/sparc64/codegen.h"
-#include "vm/jit/sparc64/md-abi.h"
+#include "vm/jit/sparc64/codegen.hpp"
+#include "vm/jit/sparc64/md-abi.hpp"
 
 #include "vm/signallocal.hpp"
 
@@ -182,7 +182,7 @@ void md_icacheflush(u1 *addr, s4 nbytes)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
