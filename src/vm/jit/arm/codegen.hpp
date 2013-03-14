@@ -1,6 +1,6 @@
-/* src/vm/jit/arm/codegen.h - code generation macros and definitions for ARM
+/* src/vm/jit/arm/codegen.hpp - code generation macros and definitions for ARM
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _CODEGEN_H
-#define _CODEGEN_H
+#ifndef CODEGEN_HPP_
+#define CODEGEN_HPP_ 1
 
 #include "config.h"
 
@@ -1194,7 +1194,7 @@ do { \
 #endif /* !defined(ENABLE_SOFTFLOAT) */
 
 
-#endif /* _CODEGEN_H */
+#endif // CODEGEN_HPP_
 
 
 /*
@@ -1203,7 +1203,7 @@ do { \
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

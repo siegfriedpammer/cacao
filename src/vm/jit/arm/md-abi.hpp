@@ -1,4 +1,4 @@
-/* src/vm/jit/arm/md-abi.h - defines for arm ABI
+/* src/vm/jit/arm/md-abi.hpp - defines for arm ABI
 
    Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _MD_ABI_H
-#define _MD_ABI_H
+#ifndef MD_ABI_HPP_
+#define MD_ABI_HPP_ 1
 
 #include "config.h"
 
@@ -140,7 +140,7 @@
 #define REG_ITMP12_TYPED(t) ((IS_2_WORD_TYPE(t)) ? REG_ITMP12_PACKED : REG_ITMP1)
 #define REG_RESULT_TYPED(t) ((IS_2_WORD_TYPE(t)) ? REG_RESULT_PACKED : REG_RESULT)
 
-#endif /* _MD_ABI_H */
+#endif // MD_ABI_HPP_
 
 
 /*
@@ -149,7 +149,7 @@
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

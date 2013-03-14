@@ -1,4 +1,4 @@
-/* src/vm/jit/arm/md.c - machine dependent ARM functions
+/* src/vm/jit/arm/md.cpp - machine dependent ARM functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -26,12 +26,12 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <stdint.h>
 
-#include "vm/jit/arm/codegen.h"
-#include "vm/jit/arm/md.h"
-#include "vm/jit/arm/md-abi.h"
+#include "vm/jit/arm/codegen.hpp"
+#include "vm/jit/arm/md.hpp"
+#include "vm/jit/arm/md-abi.hpp"
 
 #include "vm/jit/executionstate.hpp"
 #include "vm/jit/trap.hpp"
@@ -260,7 +260,7 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

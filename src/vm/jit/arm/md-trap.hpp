@@ -1,6 +1,6 @@
-/* src/vm/jit/arm/md-trap.h - ARM hardware traps
+/* src/vm/jit/arm/md-trap.hpp - ARM hardware traps
 
-   Copyright (C) 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _MD_TRAP_H
-#define _MD_TRAP_H
+#ifndef MD_TRAP_HPP_
+#define MD_TRAP_HPP_ 1
 
 #include "config.h"
 
@@ -65,7 +65,7 @@ enum {
 	} while(0)
 
 
-#endif /* _MD_TRAP_H */
+#endif // MD_TRAP_HPP_
 
 
 /*
@@ -74,7 +74,7 @@ enum {
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

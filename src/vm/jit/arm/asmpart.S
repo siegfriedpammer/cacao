@@ -1,6 +1,6 @@
 /* src/vm/jit/arm/asmpart.S - Java-C interface functions for ARM
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -27,7 +27,7 @@
 
 #include <sys/syscall.h>
 
-#include "vm/jit/arm/md-asm.h"
+#include "vm/jit/arm/md-asm.hpp"
 
 #include "vm/jit/methodheader.hpp"
 

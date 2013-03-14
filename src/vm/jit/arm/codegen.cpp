@@ -1,4 +1,4 @@
-/* src/vm/jit/arm/codegen.c - machine code generator for Arm
+/* src/vm/jit/arm/codegen.cpp - machine code generator for Arm
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,15 +25,15 @@
 
 #include "config.h"
 
-#include <assert.h>
-#include <stdio.h>
+#include <cassert>
+#include <cstdio>
 
 #include "vm/types.hpp"
 
-#include "md-abi.h"
+#include "md-abi.hpp"
 
-#include "vm/jit/arm/arch.h"
-#include "vm/jit/arm/codegen.h"
+#include "vm/jit/arm/arch.hpp"
+#include "vm/jit/arm/codegen.hpp"
 
 #include "mm/memory.hpp"
 
@@ -2618,7 +2618,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 		/* put env into first argument register */
 
-		disp = dseg_add_address(cd, VM_get_jnienv());
+		disp = dseg_add_address(cd, VM::get_current()->get_jnienv());
 		M_DSEG_LOAD(REG_A0, disp);
 	}
 
@@ -2704,7 +2704,7 @@ void asm_debug(int a1, int a2, int a3, int a4)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

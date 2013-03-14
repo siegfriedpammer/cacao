@@ -1,9 +1,7 @@
-/* src/vm/jit/arm/md-asm.h - assembler defines for arm ABI
+/* src/vm/jit/arm/md-asm.hpp - assembler defines for arm ABI
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2013
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -30,8 +28,8 @@
 */
 
 
-#ifndef _MD_ASM_H
-#define _MD_ASM_H
+#ifndef MD_ASM_HPP_
+#define MD_ASM_HPP_ 1
 
 #include "config.h"
 
@@ -108,7 +106,7 @@
 #define RESTORE_SCRATCH_REGS_AND_RETURN \
 	ldmfd   sp!, {itmp3,itmp1,itmp2,pc}
 
-#endif /* _MD_ASM_H */
+#endif // MD_ASM_HPP_
 
 
 /*
@@ -117,7 +115,7 @@
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

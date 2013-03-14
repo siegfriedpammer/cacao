@@ -1,6 +1,6 @@
-/* src/vm/jit/arm/md.h - machine dependent Arm functions
+/* src/vm/jit/arm/md.hpp - machine dependent Arm functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,12 +23,12 @@
 */
 
 
-#ifndef _VM_JIT_ARM_MD_H
-#define _VM_JIT_ARM_MD_H
+#ifndef VM_JIT_ARM_MD_HPP_
+#define VM_JIT_ARM_MD_HPP_
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <stdint.h>
 
 #include "vm/types.hpp"
@@ -163,7 +163,7 @@ inline static void md_dcacheflush(void *addr, int nbytes)
 	__asm__ __volatile__ ("" : : : "memory");
 }
 
-#endif /* _VM_JIT_ARM_MD_H */
+#endif // VM_JIT_ARM_MD_HPP_
 
 
 /*
@@ -172,7 +172,7 @@ inline static void md_dcacheflush(void *addr, int nbytes)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
