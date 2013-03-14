@@ -1,4 +1,4 @@
-/* src/vm/jit/mips/codegen.c - machine code generator for MIPS
+/* src/vm/jit/mips/codegen.cpp - machine code generator for MIPS
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,15 +25,15 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <stdio.h>
 
 #include "vm/types.hpp"
 
 #include "md-abi.h"
 
-#include "vm/jit/mips/arch.h"
-#include "vm/jit/mips/codegen.h"
+#include "vm/jit/mips/arch.hpp"
+#include "vm/jit/mips/codegen.hpp"
 
 #include "mm/memory.hpp"
 
@@ -3376,7 +3376,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 		/* put env into first argument register */
 
-		disp = dseg_add_address(cd, VM_get_jnienv());
+		disp = dseg_add_address(cd, VM::get_current()->get_jnienv());
 		M_ALD(REG_A0, REG_PV, disp);
 	}
 
@@ -3486,7 +3486,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

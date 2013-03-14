@@ -1,4 +1,4 @@
-/* src/vm/jit/mips/emit.c - MIPS code emitter functions
+/* src/vm/jit/mips/emit.cpp - MIPS code emitter functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,12 +25,12 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert.h>
 
 #include "vm/types.hpp"
 
-#include "vm/jit/mips/codegen.h"
-#include "vm/jit/mips/md-abi.h"
+#include "vm/jit/mips/codegen.hpp"
+#include "vm/jit/mips/md-abi.hpp"
 
 #include "mm/memory.hpp"
 
@@ -1014,7 +1014,7 @@ void emit_verbosecall_exit(jitdata *jd)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

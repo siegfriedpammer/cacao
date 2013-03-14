@@ -1,6 +1,6 @@
-/* src/vm/jit/mips/irix/md-os.c - machine dependent MIPS IRIX functions
+/* src/vm/jit/mips/irix/md-os.cpp - machine dependent MIPS IRIX functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -25,15 +25,15 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <signal.h>
 #include <stdint.h>
 #include <sys/fpu.h>
 
 #include "vm/types.hpp"
 
-#include "vm/jit/mips/codegen.h"
-#include "vm/jit/mips/md-abi.h"
+#include "vm/jit/mips/codegen.hpp"
+#include "vm/jit/mips/md-abi.hpp"
 
 #include "mm/gc.hpp"
 
@@ -147,7 +147,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

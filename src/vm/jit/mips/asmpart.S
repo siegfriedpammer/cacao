@@ -25,8 +25,8 @@
 
 #include "config.h"
 
-#include "vm/jit/mips/md-abi.h"
-#include "vm/jit/mips/md-asm.h"
+#include "vm/jit/mips/md-abi.hpp"
+#include "vm/jit/mips/md-asm.hpp"
 
 #include "vm/jit/abi-asm.hpp"
 #include "vm/jit/methodheader.hpp"

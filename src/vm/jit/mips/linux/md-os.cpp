@@ -1,4 +1,4 @@
-/* src/vm/jit/mips/linux/md-os.c - machine dependent MIPS Linux functions
+/* src/vm/jit/mips/linux/md-os.cpp - machine dependent MIPS Linux functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,7 +25,7 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <sgidefs.h> /* required for _MIPS_SIM_ABI* defines (before signal.h) */
 #include <signal.h>
 #include <stdint.h>
@@ -33,9 +33,9 @@
 
 #include "vm/types.hpp"
 
-#include "vm/jit/mips/codegen.h"
-#include "vm/jit/mips/md.h"
-#include "vm/jit/mips/md-abi.h"
+#include "vm/jit/mips/codegen.hpp"
+#include "vm/jit/mips/md.hpp"
+#include "vm/jit/mips/md-abi.hpp"
 
 #include "mm/gc.hpp"
 #include "mm/memory.hpp"
@@ -259,7 +259,7 @@ void md_executionstate_write(executionstate_t* es, void* context)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

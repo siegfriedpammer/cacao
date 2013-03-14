@@ -1,9 +1,7 @@
-/* src/vm/jit/mips/md-abi.h - defines for MIPS ABI
+/* src/vm/jit/mips/md-abi.hpp - defines for MIPS ABI
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2013
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -25,8 +23,8 @@
 */
 
 
-#ifndef _MD_ABI_H
-#define _MD_ABI_H
+#ifndef MD_ABI_HPP_
+#define MD_ABI_HPP_ 1
 
 #include "config.h"
 
@@ -174,7 +172,7 @@
 # endif
 #endif
 
-#endif /* _MD_ABI_H */
+#endif // MD_ABI_HPP_
 
 
 /*
@@ -183,7 +181,7 @@
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

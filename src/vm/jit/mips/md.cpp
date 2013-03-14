@@ -1,6 +1,6 @@
-/* src/vm/jit/mips/md.c - machine dependent MIPS functions
+/* src/vm/jit/mips/md.cpp - machine dependent MIPS functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -28,8 +28,8 @@
 #include <stdint.h>
 #include <ucontext.h>
 
-#include "vm/jit/mips/codegen.h"
-#include "vm/jit/mips/md.h"
+#include "vm/jit/mips/codegen.hpp"
+#include "vm/jit/mips/md.hpp"
 
 #include "vm/jit/asmpart.hpp"
 #include "vm/jit/jit.hpp"
@@ -240,7 +240,7 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
