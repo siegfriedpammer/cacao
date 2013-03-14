@@ -30,9 +30,9 @@
 #include "vm/types.hpp"
 #include "vm/os.hpp"
 
-#include "vm/jit/i386/codegen.h"
-#include "vm/jit/i386/emit.h"
-#include "vm/jit/i386/md-abi.h"
+#include "vm/jit/i386/codegen.hpp"
+#include "vm/jit/i386/emit.hpp"
+#include "vm/jit/i386/md-abi.hpp"
 
 #include "mm/memory.hpp"
 

@@ -31,7 +31,7 @@
 
 #include "vm/types.hpp"
 
-#include "vm/jit/i386/codegen.h"
+#include "vm/jit/i386/codegen.hpp"
 
 #include "vm/global.hpp"
 #include "vm/vm.hpp"

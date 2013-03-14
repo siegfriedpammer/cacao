@@ -25,10 +25,10 @@
 
 #include "config.h"
 
-#include "md-asm.h"
+#include "md-asm.hpp"
 
-#include "vm/jit/i386/arch.h"
-#include "vm/jit/i386/md-abi.h"
+#include "vm/jit/i386/arch.hpp"
+#include "vm/jit/i386/md-abi.hpp"
 
 #include "vm/jit/abi-asm.hpp"
 #include "vm/jit/methodheader.hpp"

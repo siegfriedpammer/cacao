@@ -29,7 +29,7 @@
 #include "config.h"
 #include "vm/types.hpp"
 
-#include "vm/jit/i386/emit.h"
+#include "vm/jit/i386/emit.hpp"
 
 #include "vm/jit/jit.hpp"
 

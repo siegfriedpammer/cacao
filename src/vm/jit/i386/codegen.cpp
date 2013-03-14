@@ -32,10 +32,10 @@
 #include "vm/types.hpp"
 #include "vm/os.hpp"
 
-#include "vm/jit/i386/md-abi.h"
+#include "vm/jit/i386/md-abi.hpp"
 
-#include "vm/jit/i386/codegen.h"
-#include "vm/jit/i386/emit.h"
+#include "vm/jit/i386/codegen.hpp"
+#include "vm/jit/i386/emit.hpp"
 
 #include "mm/memory.hpp"
 
@@ -3026,7 +3026,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 		/* put env into first argument */
 
-		M_AST_IMM(VM_get_jnienv(), REG_SP, 0 * 4);
+		M_AST_IMM(VM::get_current()->get_jnienv(), REG_SP, 0 * 4);
 	}
 
 	/* Call the native function. */

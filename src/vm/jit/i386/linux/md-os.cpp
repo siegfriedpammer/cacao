@@ -33,8 +33,8 @@
 
 #include "vm/types.hpp"
 
-#include "vm/jit/i386/codegen.h"
-#include "vm/jit/i386/md.h"
+#include "vm/jit/i386/codegen.hpp"
+#include "vm/jit/i386/md.hpp"
 
 #include "threads/thread.hpp"
 

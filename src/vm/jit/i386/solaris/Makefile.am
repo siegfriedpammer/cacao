@@ -1,6 +1,6 @@
 ## src/vm/jit/i386/solaris/Makefile.am
 ##
-## Copyright (C) 2008
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -26,13 +26,13 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 LIBS =
 
 noinst_HEADERS = \
-	md-asm.h
+	md-asm.hpp
 
 noinst_LTLIBRARIES = \
 	libmd.la
 
 libmd_la_SOURCES = \
-	md-os.c
+	md-os.cpp
 
 
 ## Local variables:

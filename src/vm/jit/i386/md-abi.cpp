@@ -26,7 +26,7 @@
 #include "config.h"
 #include "vm/types.hpp"
 
-#include "vm/jit/i386/md-abi.h"
+#include "vm/jit/i386/md-abi.hpp"
 
 #include "vm/descriptor.hpp"
 #include "vm/global.hpp"
