@@ -1,4 +1,4 @@
-/* src/vm/jit/powerpc64/linux/md-abi.c - functions for PowerPC64 Linux ABI
+/* src/vm/jit/powerpc64/linux/md-abi.cpp - functions for PowerPC64 Linux ABI
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,11 +25,11 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 
 #include "vm/types.hpp"
 
-#include "vm/jit/powerpc64/linux/md-abi.h"
+#include "vm/jit/powerpc64/linux/md-abi.hpp"
 
 #include "vm/descriptor.hpp"
 #include "vm/global.hpp"
@@ -334,7 +334,7 @@ void md_return_alloc(jitdata *jd, stackelement_t *stackslot)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -1,5 +1,5 @@
-/* src/vm/jit/powerpc64/codegen.h - code generation macros and
-                                    definitions for PowerPC64
+/* src/vm/jit/powerpc64/codegen.hpp - code generation macros and
+                                      definitions for PowerPC64
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -24,12 +24,12 @@
 */
 
 
-#ifndef _CODEGEN_H
-#define _CODEGEN_H
+#ifndef CODEGEN_HPP_
+#define CODEGEN_HPP_ 1
 
 #include "config.h"
 
-#include "md-abi.h"
+#include "md-abi.hpp"
 
 #include "vm/global.hpp"
 #include "vm/jit/jit.hpp"
@@ -450,7 +450,7 @@
 
 #define M_TEST(a)                       M_TST(a)
 
-#endif /* _CODEGEN_H */
+#endif // CODEGEN_HPP_
 
 
 /*
@@ -459,7 +459,7 @@
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

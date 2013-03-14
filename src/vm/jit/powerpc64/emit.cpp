@@ -1,4 +1,4 @@
-/* src/vm/jit/powerpc64/emit.c - PowerPC64 code emitter functions
+/* src/vm/jit/powerpc64/emit.cpp - PowerPC64 code emitter functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,14 +25,14 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 
 #include "vm/types.hpp"
 
 #include "mm/memory.hpp"
 
-#include "md-abi.h"
-#include "vm/jit/powerpc64/codegen.h"
+#include "md-abi.hpp"
+#include "vm/jit/powerpc64/codegen.hpp"
 
 #include "threads/lock.hpp"
 
@@ -806,7 +806,7 @@ void emit_recompute_pv(codegendata *cd)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

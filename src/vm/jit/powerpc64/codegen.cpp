@@ -1,4 +1,4 @@
-/* src/vm/jit/powerpc64/codegen.c - machine code generator for 64-bit PowerPC
+/* src/vm/jit/powerpc64/codegen.cpp - machine code generator for 64-bit PowerPC
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,17 +25,17 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
+#include <cstdio>
 #include <stdint.h>
-#include <stdio.h>
 #include <signal.h>
 
 #include "vm/types.hpp"
 
-#include "md-abi.h"
+#include "md-abi.hpp"
 
-#include "vm/jit/powerpc64/arch.h"
-#include "vm/jit/powerpc64/codegen.h"
+#include "vm/jit/powerpc64/arch.hpp"
+#include "vm/jit/powerpc64/codegen.hpp"
 
 #include "mm/memory.hpp"
 
@@ -2137,7 +2137,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 		/* put env into first argument register */
 
-		disp = dseg_add_unique_address(cd, VM_get_jnienv());
+		disp = dseg_add_unique_address(cd, VM::get_current()->get_jnienv());
 		M_ALD(REG_A0, REG_PV, disp);
 	}
 
@@ -2214,7 +2214,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
