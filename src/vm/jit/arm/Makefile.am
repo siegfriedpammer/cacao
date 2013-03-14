@@ -41,10 +41,10 @@ DISASS_SOURCES = \
 	disass.cpp
 endif
 
-#	asmpart.S         \
 libarch_la_SOURCES =  \
 	codegen.cpp       \
 	codegen.hpp       \
+	asmpart.S         \
 	$(DISASS_SOURCES) \
 	emit.cpp          \
 	patcher.cpp       \
