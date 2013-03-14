@@ -137,7 +137,7 @@ JNIEnv* VM_get_jnienv();
 
 
 // Includes.
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/method.hpp"
 
 

@@ -38,7 +38,7 @@
 #include "native/llni.hpp"
 #include "toolbox/logging.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/options.hpp"
 #include "vm/rt-timing.hpp"
 #include "vm/string.hpp"

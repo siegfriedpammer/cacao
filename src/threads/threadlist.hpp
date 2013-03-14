@@ -34,7 +34,7 @@
 
 #include "toolbox/list.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 
 /* ThreadList *****************************************************************/

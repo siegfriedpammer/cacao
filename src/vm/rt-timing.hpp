@@ -127,7 +127,7 @@
 
 #include "mm/memory.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 #include "toolbox/OStream.hpp"
 

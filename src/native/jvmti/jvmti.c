@@ -41,7 +41,7 @@
 #include "native/jvmti/cacaodbg.h"
 #include "native/jvmti/jvmti.h"
 #include "vm/jit/stacktrace.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/loader.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/jit/asmpart.h"

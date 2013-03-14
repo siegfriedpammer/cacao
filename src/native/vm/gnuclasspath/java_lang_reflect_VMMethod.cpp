@@ -45,7 +45,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
 #include "vm/exceptions.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/globals.hpp"
 #include "vm/initialize.hpp"
 #include "vm/javaobjects.hpp"

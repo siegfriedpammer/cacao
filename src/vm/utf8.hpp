@@ -34,7 +34,7 @@
 #include <string.h>
 
 #include "vm/types.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 #ifdef __cplusplus
 extern "C" {

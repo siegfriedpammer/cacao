@@ -25,7 +25,7 @@
 
 #include "thread-classpath.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/globals.hpp"
 
 #include "mm/gc.hpp"

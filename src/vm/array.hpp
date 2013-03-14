@@ -37,7 +37,7 @@
 
 #include "vm/class.hpp"
 #include "vm/exceptions.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/primitive.hpp"
 
 

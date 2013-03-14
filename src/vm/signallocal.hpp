@@ -34,7 +34,7 @@ extern "C" {
 
 #include <signal.h>
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 
 // Signal defines.

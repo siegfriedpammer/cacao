@@ -43,7 +43,7 @@
 #endif
 
 #include "vm/array.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/os.hpp"
 #include "vm/vm.hpp" /* REMOVE ME: temporarily */
 

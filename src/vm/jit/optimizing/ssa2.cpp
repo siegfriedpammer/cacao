@@ -32,7 +32,7 @@
 #include "toolbox/set.hpp"
 #include "toolbox/worklist.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/show.hpp"
 

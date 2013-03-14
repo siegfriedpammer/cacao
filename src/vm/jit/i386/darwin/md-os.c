@@ -37,7 +37,7 @@
 
 #include "threads/thread.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/signallocal.hpp"
 
 #include "vm/jit/executionstate.hpp"

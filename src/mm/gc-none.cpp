@@ -37,7 +37,7 @@
 #include "toolbox/logging.hpp"
 
 #include "vm/jit/builtin.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/loader.hpp"
 #include "vm/options.hpp"
 #include "vm/os.hpp"

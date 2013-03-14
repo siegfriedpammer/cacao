@@ -34,7 +34,7 @@
 
 #include "vm/class.hpp"
 #include "vm/descriptor.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/references.h"
 #include "vm/resolve.hpp"
 

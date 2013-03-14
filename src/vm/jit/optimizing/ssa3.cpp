@@ -44,7 +44,7 @@
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/optimizing/escape.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "mm/memory.hpp"
 #include "mm/dumpmemory.hpp"
 #include "toolbox/list.hpp"

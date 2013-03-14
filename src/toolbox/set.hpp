@@ -28,7 +28,7 @@
 
 #include "config.h"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 #ifdef __cplusplus
 extern "C" {

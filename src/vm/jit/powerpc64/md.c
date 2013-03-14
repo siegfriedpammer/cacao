@@ -35,7 +35,7 @@
 #include "vm/jit/powerpc64/codegen.h"
 #include "vm/jit/powerpc64/md.h"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/trap.hpp"

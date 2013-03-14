@@ -32,7 +32,7 @@
 
 #include "config.h"
 #include "vm/types.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 #if defined(ENABLE_CYCLES_STATS)
 

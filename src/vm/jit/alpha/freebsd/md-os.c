@@ -34,7 +34,7 @@
 
 #include "vm/jit/alpha/md-abi.h"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/signallocal.hpp"
 #include "vm/jit/asmpart.h"
 

@@ -38,7 +38,7 @@
 
 #include "threads/lock.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"

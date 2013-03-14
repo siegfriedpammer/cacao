@@ -42,7 +42,7 @@
 
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/initialize.hpp"
 #include "vm/method.hpp"
 #include "vm/options.hpp"

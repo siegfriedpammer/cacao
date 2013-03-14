@@ -70,7 +70,7 @@ ZLIB_SOURCES = \
 endif
 
 noinst_HEADERS = \
-	global.h \
+	global.hpp \
 	types.hpp
 
 noinst_LTLIBRARIES = \

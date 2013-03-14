@@ -38,10 +38,8 @@
 #include "toolbox/logging.hpp"
 #include "toolbox/util.hpp"
 
-#include "vm/global.h"
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.hpp"
-#endif
+#include "vm/global.hpp"
+#include "vm/statistics.hpp"
 
 #ifdef ENABLE_LOGGING
 

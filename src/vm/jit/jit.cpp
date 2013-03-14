@@ -41,7 +41,7 @@
 #include "threads/mutex.hpp"
 
 #include "vm/class.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/globals.hpp"
 #include "vm/hook.hpp"
 #include "vm/initialize.hpp"

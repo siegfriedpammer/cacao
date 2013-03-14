@@ -34,7 +34,7 @@
 #include "vm/classcache.hpp"
 #include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/globals.hpp"
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"

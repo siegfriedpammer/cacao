@@ -31,7 +31,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 #include "vm/jit/disass.h"
 

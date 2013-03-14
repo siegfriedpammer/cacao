@@ -31,7 +31,7 @@
 #include <stdint.h>
 
 #include "vm/class.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/linker.hpp"
 #include "vm/utf8.hpp"
 

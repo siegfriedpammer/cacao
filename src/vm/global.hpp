@@ -1,6 +1,6 @@
-/* src/vm/global.h - global definitions
+/* src/vm/global.hpp - global definitions
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _GLOBAL_H
-#define _GLOBAL_H
+#ifndef GLOBAL_HPP_ 
+#define GLOBAL_HPP_ 1
 
 #include "config.h"
 
@@ -364,8 +364,7 @@ typedef java_handle_array_t java_handle_doublearray_t;
 #    define STACK_EXTRA_VARS       1
 #endif
 
-#endif /* _GLOBAL_H */
-
+#endif // GLOBAL_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -373,7 +372,7 @@ typedef java_handle_array_t java_handle_doublearray_t;
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

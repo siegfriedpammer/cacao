@@ -36,7 +36,7 @@
 
 #include "vm/array.hpp"
 #include "vm/descriptor.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/method.hpp"
 #include "vm/primitive.hpp"
 #include "vm/resolve.hpp"

@@ -35,7 +35,7 @@
 #endif
 
 #include "vm/class.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/utf8.hpp"
 
 #include "vm/jit/stacktrace.hpp"

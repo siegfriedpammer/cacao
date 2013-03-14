@@ -43,7 +43,7 @@
 #include "threads/condition.hpp"
 #include "threads/mutex.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 /* forward declarations */
 #ifdef __cplusplus
@@ -209,7 +209,7 @@ inline static threadobject* thread_get_current(void);
 
 #include "threads/lock.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/vm.hpp"
 
 #if defined(ENABLE_GC_CACAO)

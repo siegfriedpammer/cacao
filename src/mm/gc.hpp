@@ -129,7 +129,7 @@ enum {
 
 
 // Includes.
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/method.hpp"
 
 

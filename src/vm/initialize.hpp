@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 #include "vm/class.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 
 /* function prototypes ********************************************************/

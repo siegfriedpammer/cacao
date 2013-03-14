@@ -33,7 +33,7 @@
 #include "mm/memory.hpp"
 #include "toolbox/logging.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/linker.hpp"
 #include "vm/vm.hpp"
 

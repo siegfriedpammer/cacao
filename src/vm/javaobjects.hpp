@@ -39,7 +39,7 @@
 
 #include "vm/class.hpp"
 #include "vm/field.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/globals.hpp"
 #include "vm/method.hpp"
 

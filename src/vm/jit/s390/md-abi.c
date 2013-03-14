@@ -26,7 +26,7 @@
 #include "config.h"
 
 #include "vm/descriptor.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/types.hpp"
 
 #include "vm/jit/jit.hpp"

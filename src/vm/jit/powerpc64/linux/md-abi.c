@@ -32,7 +32,7 @@
 #include "vm/jit/powerpc64/linux/md-abi.h"
 
 #include "vm/descriptor.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/stack.hpp"

@@ -44,7 +44,7 @@ typedef struct codeinfo            codeinfo;
 #include "vm/breakpoint.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/descriptor.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
 #include "vm/references.h"

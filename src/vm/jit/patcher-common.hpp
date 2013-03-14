@@ -35,7 +35,7 @@ typedef struct patchref_t patchref_t;
 
 #include "toolbox/list.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 #include "vm/jit/jit.hpp"
 

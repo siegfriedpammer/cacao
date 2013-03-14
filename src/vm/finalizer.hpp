@@ -41,7 +41,7 @@ extern "C" {
 
 #include "vm/types.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 
 /* function prototypes ********************************************************/

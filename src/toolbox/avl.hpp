@@ -32,7 +32,7 @@
 
 #include "threads/mutex.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 
 /* define direction in an AVL node ********************************************/

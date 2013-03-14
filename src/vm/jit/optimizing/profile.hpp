@@ -31,7 +31,7 @@
 
 #include "vm/types.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 
 /* CPU cycle counting macros **************************************************/

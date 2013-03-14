@@ -44,7 +44,7 @@ typedef struct stacktrace_t       stacktrace_t;
 
 #include "vm/class.hpp"
 #include "vm/loader.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 #include "vm/jit/code.hpp"
 

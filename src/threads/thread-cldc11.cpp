@@ -25,7 +25,7 @@
 
 #include "thread-cldc11.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/globals.hpp"
 
 #include "mm/gc.hpp"

@@ -43,7 +43,7 @@
 
 #include "threads/mutex.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/utf8.hpp"
 
 // short-hand for '#ifdef ENABLE_THREADS' block

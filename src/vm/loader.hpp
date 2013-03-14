@@ -31,7 +31,7 @@
 #include <stdio.h>
 
 #include "vm/types.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 #include "vm/utf8.hpp"
 

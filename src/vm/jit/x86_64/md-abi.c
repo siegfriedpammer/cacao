@@ -29,7 +29,7 @@
 #include "vm/jit/x86_64/md-abi.h"
 
 #include "vm/descriptor.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/jit.hpp" /* for REG_* (maybe can be removed) */

@@ -30,7 +30,7 @@
 
 #include <stdint.h>
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/method.hpp"
 
 

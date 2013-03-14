@@ -34,7 +34,7 @@
 
 #include "mm/memory.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/rt-timing.hpp"
 
 namespace cacao {

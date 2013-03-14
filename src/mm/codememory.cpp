@@ -34,7 +34,7 @@
 #include "mm/codememory.hpp"
 #include "mm/memory.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/statistics.hpp"

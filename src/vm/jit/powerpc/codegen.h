@@ -31,7 +31,7 @@
 
 #include "md-abi.h"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/reg.hpp"
 

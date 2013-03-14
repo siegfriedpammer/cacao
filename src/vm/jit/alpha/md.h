@@ -33,7 +33,7 @@
 
 #include "vm/jit/alpha/codegen.h"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"

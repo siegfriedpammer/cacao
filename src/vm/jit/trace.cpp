@@ -40,7 +40,7 @@
 #include "toolbox/buffer.hpp"
 
 #include "vm/array.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/globals.hpp"
 #include "vm/hook.hpp"
 #include "vm/javaobjects.hpp"

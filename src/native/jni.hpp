@@ -76,7 +76,7 @@
 
 // Include the C++ wrapper classes.
 //#include "vm/javaobjects.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 
 // Some additional JNI version numbers, we currently support JNI 1.6.
@@ -164,7 +164,7 @@ typedef enum _jobjectType {
 
 
 // Includes.
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 
 #ifdef __cplusplus

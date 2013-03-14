@@ -34,7 +34,7 @@
 # include "native/vm/include/java_security_VMAccessController.h"
 #endif
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/utf8.hpp"
 
 #include "vm/jit/stacktrace.hpp"

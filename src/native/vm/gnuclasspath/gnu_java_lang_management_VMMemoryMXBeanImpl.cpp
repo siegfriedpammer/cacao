@@ -37,7 +37,7 @@
 #endif
 
 #include "vm/class.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/options.hpp"
 #include "vm/vm.hpp"

@@ -36,7 +36,7 @@
 #include "toolbox/avl.hpp"
 #include "toolbox/logging.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/vm.hpp"
 
 

@@ -38,7 +38,7 @@
 #include "native/llni.hpp"
 
 #include "vm/class.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/method.hpp"
 #include "vm/options.hpp"
 #include "vm/os.hpp"

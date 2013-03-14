@@ -34,7 +34,7 @@ typedef struct typedescriptor      typedescriptor_t;
 #include "config.h"
 #include "vm/types.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/references.h"
 
 

@@ -75,7 +75,7 @@
 #include <Python.h>
 #include <structmember.h>
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/jit/python.h"
 #include "vm/jit/show.hpp"
 #if defined(ENABLE_THREADS)

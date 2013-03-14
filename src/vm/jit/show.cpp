@@ -34,7 +34,7 @@
 
 #include "threads/lock.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/options.hpp"
 #include "vm/string.hpp"

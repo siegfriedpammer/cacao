@@ -39,7 +39,7 @@ typedef struct unresolved_subtype_set unresolved_subtype_set;
 
 #include "vm/class.hpp"
 #include "vm/field.hpp"
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/method.hpp"
 #include "vm/references.h"
 

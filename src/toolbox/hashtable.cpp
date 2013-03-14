@@ -32,7 +32,7 @@
 
 #include "toolbox/hashtable.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 
 /* hashtable_create ************************************************************

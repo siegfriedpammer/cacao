@@ -38,7 +38,7 @@ extern "C" {
 
 #include "native/jni.hpp"
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 
 
 /* reserved option numbers ****************************************************/

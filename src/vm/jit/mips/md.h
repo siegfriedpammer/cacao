@@ -32,7 +32,7 @@
 #include <stdint.h>
 #include <sys/cachectl.h>
 
-#include "vm/global.h"
+#include "vm/global.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
