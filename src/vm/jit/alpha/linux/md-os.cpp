@@ -1,4 +1,4 @@
-/* src/vm/jit/alpha/linux/md-os.c - machine dependent Alpha Linux functions
+/* src/vm/jit/alpha/linux/md-os.cpp - machine dependent Alpha Linux functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -26,15 +26,15 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <stdint.h>
 #include <ucontext.h>
 
 #include "vm/types.hpp"
 
-#include "vm/jit/alpha/codegen.h"
-#include "vm/jit/alpha/md.h"
-#include "vm/jit/alpha/md-abi.h"
+#include "vm/jit/alpha/codegen.hpp"
+#include "vm/jit/alpha/md.hpp"
+#include "vm/jit/alpha/md-abi.hpp"
 
 #include "threads/thread.hpp"
 
@@ -177,7 +177,7 @@ void md_executionstate_write(executionstate_t *es, void *context)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

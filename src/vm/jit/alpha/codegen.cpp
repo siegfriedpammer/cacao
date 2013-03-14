@@ -1,4 +1,4 @@
-/* src/vm/jit/alpha/codegen.c - machine code generator for Alpha
+/* src/vm/jit/alpha/codegen.cpp - machine code generator for Alpha
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,16 +25,16 @@
 
 #include "config.h"
 
-#include <assert.h>
-#include <stdio.h>
+#include <cassert>
+#include <cstdio>
 
 #include "vm/types.hpp"
 
-#include "md.h"
-#include "md-abi.h"
+#include "md.hpp"
+#include "md-abi.hpp"
 
-#include "vm/jit/alpha/arch.h"
-#include "vm/jit/alpha/codegen.h"
+#include "vm/jit/alpha/arch.hpp"
+#include "vm/jit/alpha/codegen.hpp"
 
 #include "mm/memory.hpp"
 
@@ -2608,7 +2608,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 		/* put env into first argument register */
 
-		disp = dseg_add_address(cd, VM_get_jnienv());
+		disp = dseg_add_address(cd, VM::get_current()->get_jnienv());
 		M_ALD(REG_A0, REG_PV, disp);
 	}
 
@@ -2702,7 +2702,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

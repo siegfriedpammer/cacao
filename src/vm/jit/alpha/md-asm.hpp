@@ -1,6 +1,6 @@
-/* src/vm/jit/alpha/md-asm.h - assembler defines for Alpha ABI
+/* src/vm/jit/alpha/md-asm.hpp - assembler defines for Alpha ABI
 
-   Copyright (C) 1996-2005, 2006, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _MD_ASM_H
-#define _MD_ASM_H
+#ifndef MD_ASM_HPP_
+#define MD_ASM_HPP_ 1
 
 
 /* register defines ***********************************************************/
@@ -205,7 +205,7 @@
 	ldt     ft11,(22+(off))*8(sp) ; \
 	ldt     ft12,(23+(off))*8(sp) ;
 
-#endif /* _MD_ASM_H */
+#endif // MD_ASM_HPP_
 
 
 /*
@@ -214,7 +214,7 @@
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -1,6 +1,6 @@
-/* src/vm/jit/alpha/freebsd/md-os.c - machine dependent Alpha FreeBSD functions
+/* src/vm/jit/alpha/freebsd/md-os.cpp - machine dependent Alpha FreeBSD functions
 
-   Copyright (C) 1996-2005, 2006, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -25,14 +25,14 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <ucontext.h>
 #include <sys/types.h>                         /* required by <machine/reg.h> */
 #include <machine/reg.h>
 
 #include "vm/types.hpp"
 
-#include "vm/jit/alpha/md-abi.h"
+#include "vm/jit/alpha/md-abi.hpp"
 
 #include "vm/global.hpp"
 #include "vm/signallocal.hpp"
@@ -91,7 +91,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

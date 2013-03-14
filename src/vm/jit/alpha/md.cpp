@@ -1,6 +1,6 @@
-/* src/vm/jit/alpha/md.c - machine dependent Alpha functions
+/* src/vm/jit/alpha/md.cpp - machine dependent Alpha functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -36,8 +36,8 @@ extern unsigned long ieee_get_fp_control();
 extern void ieee_set_fp_control(unsigned long fp_control);
 #endif
 
-#include "vm/jit/alpha/codegen.h"
-#include "vm/jit/alpha/md.h"
+#include "vm/jit/alpha/codegen.hpp"
+#include "vm/jit/alpha/md.hpp"
 
 #include "vm/jit/asmpart.hpp"
 #include "vm/jit/jit.hpp"
@@ -286,7 +286,7 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

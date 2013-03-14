@@ -1,6 +1,6 @@
-/* src/vm/jit/alpha/arch.h - architecture defines for Alpha
+/* src/vm/jit/alpha/arch.hpp - architecture defines for Alpha
 
-   Copyright (C) 1996-2010
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _ARCH_H
-#define _ARCH_H
+#ifndef ARCH_HPP_
+#define ARCH_HPP_ 1
 
 #define JIT_COMPILER_VIA_SIGNAL
 
@@ -116,7 +116,7 @@
 
 #define USES_NEW_SUBTYPE                 1
 
-#endif /* _ARCH_H */
+#endif // ARCH_HPP_
 
 
 /*
@@ -125,7 +125,7 @@
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
