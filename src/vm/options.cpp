@@ -248,6 +248,7 @@ enum {
 	OPT_CompileSignature,
 	OPT_DebugName,
 	OPT_DebugPrefix,
+	OPT_DebugPrintThread,
 	// TODO remove me
 	OPT_DebugFinalizer,
 	OPT_DebugLocalReferences,
@@ -313,6 +314,7 @@ option_t options_XX[] = {
 	{ "CompileSignature",             OPT_CompileSignature,             OPT_TYPE_VALUE,   "specify signature for a specific method" },
 	{ "DebugName",                    OPT_DebugName,                    OPT_TYPE_VALUE,   "Name of the subsystem to debug"},
 	{ "DebugPrefix",                  OPT_DebugPrefix,                  OPT_TYPE_BOOLEAN, "print debug prefix"},
+	{ "DebugPrintThread",             OPT_DebugPrintThread,             OPT_TYPE_BOOLEAN, "print thread id"},
 	// TODO remove me
 	{ "DebugFinalizer",               OPT_DebugFinalizer,               OPT_TYPE_BOOLEAN, "debug finalizer thread" },
 	{ "DebugLocalReferences",         OPT_DebugLocalReferences,         OPT_TYPE_BOOLEAN, "print debug information for local reference tables" },
@@ -684,6 +686,10 @@ void options_xx(JavaVMInitArgs *vm_args)
 
 		case OPT_DebugPrefix:
 			cacao::Debug::prefix_enabled = enable;
+			break;
+
+		case OPT_DebugPrintThread:
+			cacao::Debug::thread_enabled = enable;
 			break;
 
 		// TODO remove me

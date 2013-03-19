@@ -54,6 +54,10 @@ OStream& dbg();
 		if (cacao::Debug::is_debugging_enabled(DEBUG_NAME)) {        \
 			cacao::OStream stream = cacao::dbg();                    \
                                                                      \
+			if (cacao::Debug::thread_enabled) {                      \
+				stream << "LOG: " << cacao::threadid << " ";         \
+			}                                                        \
+                                                                     \
 			if (cacao::Debug::prefix_enabled) {                      \
 				stream << setprefix(DEBUG_NAME, cacao::log_color()); \
 			}                                                        \
