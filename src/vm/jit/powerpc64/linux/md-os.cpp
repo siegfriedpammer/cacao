@@ -133,7 +133,7 @@ void md_executionstate_read(executionstate_t *es, void *context)
 	// The assertion below will fail because _mc->fp_regs[] also
 	// contains the "fpscr" register.
 	//assert(sizeof(_mc->fp_regs) == sizeof(es->fltregs));
-	os_memcpy(&es->fltregs, &_mc->fp_regs, sizeof(es->fltregs));
+	os::memcpy(&es->fltregs, &_mc->fp_regs, sizeof(es->fltregs));
 }
 
 
@@ -163,7 +163,7 @@ void md_executionstate_write(executionstate_t *es, void *context)
 	// The assertion below will fail because _mc->fp_regs[] also
 	// contains the "fpscr" register.
 	//assert(sizeof(_mc->fp_regs) == sizeof(es->fltregs));
-	os_memcpy(&_mc->fp_regs, &es->fltregs, sizeof(es->fltregs));
+	os::memcpy(&_mc->fp_regs, &es->fltregs, sizeof(es->fltregs));
 
 	/* write special registers */
 	_mc->gp_regs[PT_NIP] = (ptrint) es->pc;

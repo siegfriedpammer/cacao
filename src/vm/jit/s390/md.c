@@ -257,7 +257,7 @@ void md_executionstate_read(executionstate_t* es, void* context)
 	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
 
 	assert(sizeof(_mc->fpregs.fprs) == sizeof(es->fltregs));
-	os_memcpy(&es->fltregs, &_mc->fpregs.fprs, sizeof(_mc->fpregs.fprs));
+	os::memcpy(&es->fltregs, &_mc->fpregs.fprs, sizeof(_mc->fpregs.fprs));
 }
 
 
@@ -285,7 +285,7 @@ void md_executionstate_write(executionstate_t* es, void* context)
 	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
 
 	assert(sizeof(_mc->fpregs.fprs) == sizeof(es->fltregs));
-	os_memcpy(&_mc->fpregs.fprs, &es->fltregs, sizeof(_mc->fpregs.fprs));
+	os::memcpy(&_mc->fpregs.fprs, &es->fltregs, sizeof(_mc->fpregs.fprs));
 
 	/* write special registers */
 	_mc->psw.addr      = (ptrint) es->pc;
