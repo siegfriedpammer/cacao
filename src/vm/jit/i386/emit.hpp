@@ -1,6 +1,6 @@
-/* src/vm/jit/i386/emit.h - machine dependent emit function prototypes
+/* src/vm/jit/i386/emit.hpp - machine dependent emit function prototypes
 
-   Copyright (C) 1996-2005, 2006
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _MD_EMIT_H
-#define _MD_EMIT_H
+#ifndef MD_EMIT_HPP_
+#define MD_EMIT_HPP_ 1
 
 #include "config.h"
 #include "vm/types.hpp"
@@ -312,7 +312,7 @@ static inline void emit_recompute_pv(codegendata* cd) {}
 }
 #endif
 
-#endif /* _MD_EMIT_H */
+#endif // MD_EMIT_HPP_
 
 
 /*
@@ -321,7 +321,7 @@ static inline void emit_recompute_pv(codegendata* cd) {}
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

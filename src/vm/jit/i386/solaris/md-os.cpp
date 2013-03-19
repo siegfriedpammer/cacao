@@ -1,6 +1,6 @@
-/* src/vm/jit/i386/solaris/md-os.c - machine dependent i386 Solaris functions
+/* src/vm/jit/i386/solaris/md-os.cpp - machine dependent i386 Solaris functions
 
-   Copyright (C) 2008-2013
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -177,7 +177,7 @@ void md_executionstate_write(executionstate_t *es, void *context)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

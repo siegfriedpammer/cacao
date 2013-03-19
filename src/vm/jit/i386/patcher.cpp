@@ -1,4 +1,4 @@
-/* src/vm/jit/i386/patcher.c - i386 code patching functions
+/* src/vm/jit/i386/patcher.cpp - i386 code patching functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -728,7 +728,7 @@ bool patcher_instanceof_class(patchref_t *pr)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

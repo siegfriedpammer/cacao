@@ -1,6 +1,6 @@
 /* src/vm/jit/i386/asmpart.S - Java-C interface functions for i386
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.

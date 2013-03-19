@@ -1,4 +1,4 @@
-/* src/vm/jit/i386/md.h - machine dependent i386 functions
+/* src/vm/jit/i386/md.hpp - machine dependent i386 functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,12 +23,12 @@
 */
 
 
-#ifndef _VM_JIT_I386_MD_H
-#define _VM_JIT_I386_MD_H
+#ifndef VM_JIT_I386_MD_HPP_
+#define VM_JIT_I386_MD_HPP_ 1
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <stdint.h>
 
 #include "vm/jit/codegen-common.hpp"
@@ -156,7 +156,7 @@ inline static uint64_t md_get_cycle_count()
 	return cycles;
 }
 
-#endif /* _VM_JIT_I386_MD_H */
+#endif // VM_JIT_I386_MD_HPP_
 
 
 /*
@@ -165,7 +165,7 @@ inline static uint64_t md_get_cycle_count()
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

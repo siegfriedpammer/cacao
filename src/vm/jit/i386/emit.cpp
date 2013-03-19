@@ -1,4 +1,4 @@
-/* src/vm/jit/i386/emit.c - i386 code emitter functions
+/* src/vm/jit/i386/emit.cpp - i386 code emitter functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -2081,7 +2081,7 @@ void emit_escape_check(codegendata *cd, s4 reg) {
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
