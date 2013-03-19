@@ -30,8 +30,8 @@
 #include <assert.h>
 #include <limits.h>
 
-#include "arch.h"
-#include "md-abi.h"
+#include "arch.hpp"
+#include "md-abi.hpp"
 
 #include "vm/types.hpp"
 

@@ -36,7 +36,7 @@
 
 #include "vm/types.hpp"
 
-#include "disass.h"
+#include "disass.hpp"
 
 #include "mm/memory.hpp"
 #include "vm/options.hpp"

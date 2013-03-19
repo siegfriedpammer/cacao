@@ -34,7 +34,7 @@
 
 #include "vm/types.hpp"
 
-#include "arch.h"
+#include "arch.hpp"
 
 /* we need Cell in some headers below */
 

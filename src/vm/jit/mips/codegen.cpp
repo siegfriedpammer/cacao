@@ -30,7 +30,7 @@
 
 #include "vm/types.hpp"
 
-#include "md-abi.h"
+#include "md-abi.hpp"
 
 #include "vm/jit/mips/arch.hpp"
 #include "vm/jit/mips/codegen.hpp"

@@ -29,7 +29,7 @@
 
 #include "vm/types.hpp"
 
-#include "arch.h"
+#include "arch.hpp"
 
 #include "threads/thread.hpp"
 

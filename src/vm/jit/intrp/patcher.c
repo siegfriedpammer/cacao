@@ -39,7 +39,7 @@
 #include "vm/resolve.hpp"
 
 #include "vm/jit/asmpart.hpp"
-#include "vm/jit/patcher.h"
+#include "vm/jit/patcher.hpp"
 
 
 /* patcher_get_putstatic *******************************************************

@@ -38,7 +38,7 @@
 
 #include "vm/types.hpp"
 
-#include "arch.h"
+#include "arch.hpp"
 
 #include "vm/jit/intrp/codegen.h"
 #include "vm/jit/intrp/intrp.h"
@@ -59,7 +59,7 @@
 #include "vm/jit/dseg.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/parse.hpp"
-#include "vm/jit/patcher.h"
+#include "vm/jit/patcher.hpp"
 #include "vm/jit/stack.hpp"
 #include "vm/jit/stacktrace.hpp"
 

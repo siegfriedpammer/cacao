@@ -31,11 +31,11 @@
 
 #include "vm/types.hpp"
 
-#include "arch.h"
+#include "arch.hpp"
 
 #include "vm/jit/intrp/intrp.h"
 
-#include "md-abi.h"                           /* required for TRACE_ARGS_NUM */
+#include "md-abi.hpp"                           /* required for TRACE_ARGS_NUM */
 
 #include "mm/memory.hpp"
 
@@ -46,7 +46,7 @@
 #include "vm/options.hpp"
 
 #include "vm/jit/methodheader.hpp"
-#include "vm/jit/patcher.h"
+#include "vm/jit/patcher.hpp"
 #include "vm/jit/stacktrace.hpp"
 
 

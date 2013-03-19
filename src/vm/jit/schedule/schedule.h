@@ -33,8 +33,8 @@
 #ifndef _SCHEDULE_H
 #define _SCHEDULE_H
 
-#include "arch.h"
-#include "types.h"
+#include "arch.hpp"
+#include "types.hpp"
 #include "vm/jit/reg.hpp"
 
 
