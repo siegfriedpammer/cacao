@@ -552,7 +552,7 @@ void options_xx(JavaVMInitArgs *vm_args)
 	int         enable;
 	char       *value;
 	option_t   *opt;
-	char       *filename;
+	const char *filename;
 	FILE       *file;
 	int         i;
 

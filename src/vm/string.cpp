@@ -272,7 +272,10 @@ static inline bool init_from_utf16(const u2 *src, size_t src_size, u2 *dst) {
 namespace {
 	inline uint16_t identity(uint16_t c)     { return c; }
 	inline uint16_t slash_to_dot(uint16_t c) { return (c == '/') ? '.' : c; }
+// TODO delete me
+#if 0
 	inline uint16_t dot_to_slash(uint16_t c) { return (c == '.') ? '/' : c; }
+#endif
 }
 
 /* JavaString::from_utf8 *******************************************************

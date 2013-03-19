@@ -104,7 +104,9 @@ Mutex *linker_classrenumber_lock;
 
 static classinfo *link_class_intern(classinfo *c);
 static arraydescriptor *link_array(classinfo *c);
+#if !USES_NEW_SUBTYPE
 static void linker_compute_class_values(classinfo *c);
+#endif
 static void linker_compute_subclasses(classinfo *c);
 static bool linker_addinterface(classinfo *c, classinfo *ic);
 static s4 class_highestinterface(classinfo *c);
@@ -1263,6 +1265,7 @@ static void linker_compute_subclasses(classinfo *c)
 
 *******************************************************************************/
 
+#if !USES_NEW_SUBTYPE
 static void linker_compute_class_values(classinfo *c)
 {
 	classinfo *subs;
@@ -1279,6 +1282,7 @@ static void linker_compute_class_values(classinfo *c)
 
 	c->vftbl->diffval = classvalue - c->vftbl->baseval;
 }
+#endif
 
 
 /* linker_addinterface *********************************************************

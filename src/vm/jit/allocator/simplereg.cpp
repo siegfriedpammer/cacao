@@ -48,10 +48,11 @@
 #include "vm/jit/show.hpp"
 #include "vm/jit/allocator/simplereg.hpp"
 
-
+#warning port to the new logging framework!
 #if 0
 #    define LOG(args) printf args
 #else
+#    undef LOG
 #    define LOG(args)
 #endif
 

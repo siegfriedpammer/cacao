@@ -1222,7 +1222,6 @@ void exceptions_throw_arraystoreexception(void)
 
 java_handle_t *exceptions_new_classcastexception(java_handle_t *o)
 {
-	java_handle_t *e;
 	classinfo     *c;
 
 	LLNI_class_get(o, c);
