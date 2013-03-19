@@ -65,6 +65,7 @@
 # include "mm/boehm-gc/include/gc.h"
 #endif
 
+#include "toolbox/logging.hpp"
 
 /* debug **********************************************************************/
 
@@ -556,6 +557,8 @@ static void lock_hashtable_remove(threadobject *t, java_handle_t *o)
 
 *******************************************************************************/
 
+#define DEBUG_NAME "finalizer"
+
 static void lock_record_finalizer(java_handle_t *o, void *p)
 {
 #if !defined(NDEBUG)
@@ -570,6 +573,11 @@ static void lock_record_finalizer(java_handle_t *o, void *p)
 		log_print("]");
 		log_finish();
 	}
+	LOG("[finalizer lockrecord:"
+	    << " o=" << o
+	    << " p=" << p
+	    << " class=" << c
+		<< "]" << cacao::nl);
 #endif
 
 	/* remove the lock-record entry from the hashtable and free it */
@@ -577,6 +585,7 @@ static void lock_record_finalizer(java_handle_t *o, void *p)
 	lock_hashtable_remove(THREADOBJECT, o);
 }
 
+#undef DEBUG_NAME
 
 /*============================================================================*/
 /* LOCKING ALGORITHM                                                          */

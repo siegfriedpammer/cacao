@@ -52,6 +52,10 @@
 # include "mm/boehm-gc/include/gc.h"
 #endif
 
+#include "toolbox/logging.hpp"
+
+#define DEBUG_NAME "finalizer"
+
 /* global variables ***********************************************************/
 
 #if defined(ENABLE_THREADS)
@@ -110,6 +114,7 @@ static void finalizer_thread(void)
 		if (opt_DebugFinalizer)
 			log_println("[finalizer thread    : status=awake]");
 #endif
+		LOG("[finalizer thread    : status=awake]" << cacao::nl);
 
 		/* and call the finalizers */
 
@@ -119,6 +124,7 @@ static void finalizer_thread(void)
 		if (opt_DebugFinalizer)
 			log_println("[finalizer thread    : status=sleeping]");
 #endif
+		LOG("[finalizer thread    : status=sleeping]" << cacao::nl);
 	}
 }
 #endif
@@ -158,6 +164,7 @@ void finalizer_notify(void)
 	if (opt_DebugFinalizer)
 		log_println("[finalizer notified]");
 #endif
+	LOG("[finalizer notified]" << cacao::nl);
 
 #if defined(ENABLE_THREADS)
 	/* get the lock on the finalizer lock object, so we can call wait */
@@ -209,6 +216,11 @@ void finalizer_run(void *o, void *p)
 		log_finish();
 	}
 #endif
+	LOG("[finalizer running   :"
+	    << " o=" << o
+	    << " p=" << p
+	    << " class=" << c
+		<< "]" << cacao::nl);
 
 	/* call the finalizer function */
 
@@ -217,6 +229,10 @@ void finalizer_run(void *o, void *p)
 #if !defined(NDEBUG)
 	if (opt_DebugFinalizer && (exceptions_get_exception() != NULL)) {
 		log_println("[finalizer exception]");
+		exceptions_print_stacktrace();
+	}
+	if (exceptions_get_exception() != NULL) {
+		LOG("[finalizer exception]" << cacao::nl);
 		exceptions_print_stacktrace();
 	}
 #endif
@@ -324,4 +340,5 @@ void Finalizer::reinstall_custom_finalizer(java_handle_t *h)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
