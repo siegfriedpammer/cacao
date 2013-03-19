@@ -31,7 +31,7 @@ AM_CCASFLAGS = $(AM_CPPFLAGS)
 
 noinst_HEADERS =  \
 	arch.hpp      \
-	md-asm.h      \
+	md-asm.hpp    \
 	md-atomic.hpp
 
 noinst_LTLIBRARIES = libarch.la
@@ -46,6 +46,7 @@ libarch_la_SOURCES =  \
 	codegen.hpp       \
 	asmpart.S         \
 	$(DISASS_SOURCES) \
+	emit.hpp          \
 	emit.cpp          \
 	patcher.cpp       \
 	                  \

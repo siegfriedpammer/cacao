@@ -22,6 +22,7 @@
 
 */
 
+#include "vm/jit/arm/emit.hpp"
 
 #include "config.h"
 

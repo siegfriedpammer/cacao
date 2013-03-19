@@ -34,6 +34,7 @@
 
 #include "vm/jit/arm/arch.hpp"
 #include "vm/jit/arm/codegen.hpp"
+#include "vm/jit/arm/emit.hpp"
 
 #include "mm/memory.hpp"
 
@@ -70,7 +71,7 @@ void codegen_emit_prolog(jitdata* jd)
 	varinfo*    var;
 	methoddesc* md;
 	int32_t     s1;
-	int32_t     p, t, len;
+	int32_t     t, len;
 	int32_t     varindex;
 	int         i;
 
@@ -219,7 +220,6 @@ void codegen_emit_prolog(jitdata* jd)
  */
 void codegen_emit_epilog(jitdata* jd)
 {
-	int32_t p;
 	int i;
 
 	// Get required compiler data.
