@@ -230,6 +230,9 @@ OStream& OStream::operator<<(double n) {
 }
 OStream& OStream::operator<<(const void *p) {
 	on_newline();
+
+	if (!p) return (*this) << "NULL";
+
 	OStream OS = (*this); // new OStream for new flags
 	OS << "0x" << hex << (const long int)p;
 	return (*this);
