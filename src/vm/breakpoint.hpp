@@ -1,6 +1,6 @@
 /* src/vm/breakpoint.hpp - breakpoint handling header
 
-   Copyright (C) 2009-2012
+   Copyright (C) 2009-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.

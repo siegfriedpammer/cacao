@@ -1,6 +1,6 @@
 /* src/vm/jit/allocator/simplereg.c - register allocator
 
-   Copyright (C) 1996-2005, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
