@@ -110,20 +110,12 @@ static void finalizer_thread(void)
 
 		finalizer_thread_mutex->unlock();
 
-#if !defined(NDEBUG)
-		if (opt_DebugFinalizer)
-			log_println("[finalizer thread    : status=awake]");
-#endif
 		LOG("[finalizer thread    : status=awake]" << cacao::nl);
 
 		/* and call the finalizers */
 
 		gc_invoke_finalizers();
 
-#if !defined(NDEBUG)
-		if (opt_DebugFinalizer)
-			log_println("[finalizer thread    : status=sleeping]");
-#endif
 		LOG("[finalizer thread    : status=sleeping]" << cacao::nl);
 	}
 }
@@ -160,10 +152,6 @@ bool finalizer_start_thread(void)
 
 void finalizer_notify(void)
 {
-#if !defined(NDEBUG)
-	if (opt_DebugFinalizer)
-		log_println("[finalizer notified]");
-#endif
 	LOG("[finalizer notified]" << cacao::nl);
 
 #if defined(ENABLE_THREADS)
@@ -207,15 +195,6 @@ void finalizer_run(void *o, void *p)
 
 	LLNI_class_get(h, c);
 
-#if !defined(NDEBUG)
-	if (opt_DebugFinalizer) {
-		log_start();
-		log_print("[finalizer running   : o=%p p=%p class=", o, p);
-		class_print(c);
-		log_print("]");
-		log_finish();
-	}
-#endif
 	LOG("[finalizer running   :"
 	    << " o=" << o
 	    << " p=" << p
@@ -226,16 +205,12 @@ void finalizer_run(void *o, void *p)
 
 	(void) vm_call_method(c->finalizer, h);
 
-#if !defined(NDEBUG)
-	if (opt_DebugFinalizer && (exceptions_get_exception() != NULL)) {
-		log_println("[finalizer exception]");
-		exceptions_print_stacktrace();
-	}
 	if (exceptions_get_exception() != NULL) {
 		LOG("[finalizer exception]" << cacao::nl);
+#if !defined(NDEBUG)
 		exceptions_print_stacktrace();
-	}
 #endif
+	}
 
 	/* if we had an exception in the finalizer, ignore it */
 

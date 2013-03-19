@@ -566,13 +566,6 @@ static void lock_record_finalizer(java_handle_t *o, void *p)
 
 	LLNI_class_get(o, c);
 
-	if (opt_DebugFinalizer) {
-		log_start();
-		log_print("[finalizer lockrecord: o=%p p=%p class=", o, p);
-		class_print(c);
-		log_print("]");
-		log_finish();
-	}
 	LOG("[finalizer lockrecord:"
 	    << " o=" << o
 	    << " p=" << p

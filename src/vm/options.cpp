@@ -161,8 +161,6 @@ bool     opt_AlwaysMmapFirstPage          = false;
 int      opt_CompileAll                   = 0;
 char*    opt_CompileMethod                = NULL;
 char*    opt_CompileSignature             = NULL;
-// TODO remove me
-int      opt_DebugFinalizer               = 0;
 int      opt_DebugLocalReferences         = 0;
 int      opt_DebugLocks                   = 0;
 int      opt_DebugPackage                 = 0;
@@ -249,8 +247,6 @@ enum {
 	OPT_DebugName,
 	OPT_DebugPrefix,
 	OPT_DebugPrintThread,
-	// TODO remove me
-	OPT_DebugFinalizer,
 	OPT_DebugLocalReferences,
 	OPT_DebugLocks,
 	OPT_DebugPackage,
@@ -315,8 +311,6 @@ option_t options_XX[] = {
 	{ "DebugName",                    OPT_DebugName,                    OPT_TYPE_VALUE,   "Name of the subsystem to debug"},
 	{ "DebugPrefix",                  OPT_DebugPrefix,                  OPT_TYPE_BOOLEAN, "print debug prefix"},
 	{ "DebugPrintThread",             OPT_DebugPrintThread,             OPT_TYPE_BOOLEAN, "print thread id"},
-	// TODO remove me
-	{ "DebugFinalizer",               OPT_DebugFinalizer,               OPT_TYPE_BOOLEAN, "debug finalizer thread" },
 	{ "DebugLocalReferences",         OPT_DebugLocalReferences,         OPT_TYPE_BOOLEAN, "print debug information for local reference tables" },
 	{ "DebugLocks",                   OPT_DebugLocks,                   OPT_TYPE_BOOLEAN, "print debug information for locks" },
 	{ "DebugPackage",                 OPT_DebugPackage,                 OPT_TYPE_BOOLEAN, "debug Java boot-packages" },
@@ -690,11 +684,6 @@ void options_xx(JavaVMInitArgs *vm_args)
 
 		case OPT_DebugPrintThread:
 			cacao::Debug::thread_enabled = enable;
-			break;
-
-		// TODO remove me
-		case OPT_DebugFinalizer:
-			opt_DebugFinalizer = enable;
 			break;
 
 		case OPT_DebugLocalReferences:
