@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/Method.hpp - Method
+/* src/vm/jit/compiler2/SSAConstructionPass.hpp - SSAConstructionPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,31 +22,42 @@
 
 */
 
-#ifndef _JIT_COMPILER2_METHOD
-#define _JIT_COMPILER2_METHOD
+#ifndef _JIT_COMPILER2_SSACONSTRUCTIONPASS
+#define _JIT_COMPILER2_SSACONSTRUCTIONPASS
 
+#include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/Instruction.hpp"
 
-struct methodinfo;
+#include "vm/jit/jit.hpp"
+
+#include <vector>
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-class Method {
-public:
-	typedef std::vector<Instruction*> InstructionList;
+/**
+ * SSAConstructionPass
+ *
+ * This Pass constructs the compiler2 specific SSA based IR from
+ * the ICMD_* style IR used in the baseline compiler.
+ *
+ * The approach is based on Braun et al. 2013 @cite SSAsimple2013.
+ */
+class SSAConstructionPass : public Pass {
 private:
-	InstructionList inst;
+	Instruction* get_Instruction(jitdata *jd, instruction *iptr);
 public:
-	Method() {}
+	SSAConstructionPass(PassManager *PM) : Pass(PM) {}
+	bool run(JITData &JD);
+	const char* name() { return "SSAConstructionPass"; };
 };
-
 
 } // end namespace cacao
 } // end namespace jit
 } // end namespace compiler2
 
-#endif /* _JIT_COMPILER2_METHOD */
+#endif /* _JIT_COMPILER2_SSACONSTRUCTIONPASS */
 
 
 /*

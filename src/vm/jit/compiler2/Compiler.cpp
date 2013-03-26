@@ -54,6 +54,7 @@
 #include "vm/jit/compiler2/VerifierPass.hpp"
 #endif
 #include "vm/jit/compiler2/CFGConstructionPass.hpp"
+#include "vm/jit/compiler2/SSAConstructionPass.hpp"
 #include "vm/jit/compiler2/RegisterAllocatorPass.hpp"
 #include "vm/jit/compiler2/CodeGenPass.hpp"
 
@@ -96,7 +97,7 @@ namespace compiler2 {
 MachineCode* compile(methodinfo* m)
 {
 
-	Method M(m);
+	Method M;
 	PassManager PM;
 
 	LOG(bold << bold << "Compiler Start: " << reset_color << *m << nl);
@@ -107,6 +108,7 @@ MachineCode* compile(methodinfo* m)
 	PM.addPass<VerifierPass>();
 #endif
 	PM.addPass<CFGConstructionPass>();
+	PM.addPass<SSAConstructionPass>();
 	PM.addPass<RegisterAllocatorPass>();
 	PM.addPass<CodeGenPass>();
 
