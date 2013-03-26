@@ -25,6 +25,7 @@
 #include "vm/jit/compiler2/SSAConstructionPass.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/Type.hpp"
+#include "vm/jit/compiler2/Instructions.hpp"
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/show.hpp"
@@ -1005,11 +1006,16 @@ Instruction* SSAConstructionPass::get_Instruction(jitdata *jd, instruction *iptr
 //			printf(" ---> L%03d", iptr->dst.block->nr);
 //		}
 //		break;
+		goto _default;
 
 	case ICMD_ILOAD:
+		return new LOADInst(Type::IntTypeID, iptr->s1.varindex);
 	case ICMD_LLOAD:
+		return new LOADInst(Type::LongTypeID, iptr->s1.varindex);
 	case ICMD_FLOAD:
+		return new LOADInst(Type::FloatTypeID, iptr->s1.varindex);
 	case ICMD_DLOAD:
+		return new LOADInst(Type::DoubleTypeID, iptr->s1.varindex);
 	case ICMD_ALOAD:
 //		SHOW_S1_LOCAL(OS, iptr);
 //		SHOW_DST(OS, iptr);
@@ -1135,7 +1141,14 @@ Instruction* SSAConstructionPass::get_Instruction(jitdata *jd, instruction *iptr
 	case ICMD_IF_LEQ:
 	case ICMD_IF_LNE:
 	case ICMD_IF_LLT:
+		goto _default;
 	case ICMD_IF_LGE:
+		{
+			Instruction *konst = new CONSTInst(Type::LongTypeID, iptr->sx.val.l);
+			Instruction *s1 = bla;
+			Instruction *result = new IFInst(Type::LongTypeID, s1, konst, Conditional::GE);
+			return result;
+		}
 	case ICMD_IF_LGT:
 	case ICMD_IF_LLE:
 //		SHOW_S1(OS, iptr);
@@ -1252,10 +1265,14 @@ Instruction* SSAConstructionPass::get_Instruction(jitdata *jd, instruction *iptr
 //		break;
 #endif
 	default:
+		goto _default;
+	}
+	return NULL;
+	_default:
 		err() << BoldRed << "error: " << reset_color << "operation " << BoldWhite
 		      << icmd_table[iptr->opc].name << reset_color << " not yet supported!" << nl;
 		assert(false);
-	}
+	return NULL;
 }
 
 bool SSAConstructionPass::run(JITData &JD) {

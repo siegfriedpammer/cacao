@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/SSAConstructionPass.hpp - SSAConstructionPass
+/* src/vm/jit/compiler2/Conditional.hpp - Conditionals used in the 2nd stage compiler IR
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,40 +22,53 @@
 
 */
 
-#ifndef _JIT_COMPILER2_SSACONSTRUCTIONPASS
-#define _JIT_COMPILER2_SSACONSTRUCTIONPASS
+#ifndef _JIT_COMPILER2_CONDITIONAL
+#define _JIT_COMPILER2_CONDITIONAL
 
-#include "vm/jit/compiler2/Pass.hpp"
-#include "vm/jit/compiler2/Instruction.hpp"
-
-#include "vm/jit/jit.hpp"
+#include "vm/method.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+class PrimitiveType;
+class ReferenceType;
+class NumericType;
+class BooleanType;
+class ReturnAddressType;
+class IntegralType;
+class FloatingPointType;
+class ByteType;
+class ShortType;
+class IntType;
+class LongType;
+class CharType;
+class FloatType;
+class DoubleType;
+
 /**
- * SSAConstructionPass
+ * Type Class
  *
- * This Pass constructs the compiler2 specific SSA based IR from
- * the ICMD_* style IR used in the baseline compiler.
- *
- * The approach is based on Braun et al. 2013 @cite SSAsimple2013.
+ * See JVM spec 2.2
  */
-class SSAConstructionPass : public Pass {
-private:
-	Instruction* get_Instruction(jitdata *jd, instruction *iptr);
+class Conditional {
 public:
-	SSAConstructionPass(PassManager *PM) : Pass(PM) {}
-	bool run(JITData &JD);
-	const char* name() { return "SSAConstructionPass"; };
+	enum CondID {
+		EQ,
+		NE,
+		LT,
+		GE,
+		GT,
+		LE,
+		NoCond
+	};
 };
 
 } // end namespace cacao
 } // end namespace jit
 } // end namespace compiler2
 
-#endif /* _JIT_COMPILER2_SSACONSTRUCTIONPASS */
+#endif /* _JIT_COMPILER2_CONDITIONAL */
 
 
 /*

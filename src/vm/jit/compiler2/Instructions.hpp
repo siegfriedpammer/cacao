@@ -32,264 +32,352 @@
 #define _JIT_COMPILER2_INSTRUCTIONS
 
 #include "vm/jit/compiler2/Instruction.hpp"
+#include "vm/jit/compiler2/Conditional.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-struct NOPInst : public Instruction {
-	explicit NOPInst(Type *type) : Instruction(NOPInstID, type) {}
-	virtual toNOPInst() { return this; }
+
+// Instruction groups
+class LoadInst : public Instruction {
+public:
+	explicit LoadInst(InstID id, Type::TypeID type) : Instruction(id, type) {}
 };
 
-struct POPInst : public Instruction {
-	explicit POPInst(Type *type) : Instruction(POPInstID, type) {}
-	virtual toPOPInst() { return this; }
+class UnaryInst : public Instruction {
+public:
+	explicit UnaryInst(InstID id, Type::TypeID type, Value* S1) : Instruction(id, type) {
+		operand_list.push_back(S1);
+	}
 };
 
-struct CHECKNULLInst : public Instruction {
-	explicit CHECKNULLInst(Type *type) : Instruction(CHECKNULLInstID, type) {}
-	virtual toCHECKNULLInst() { return this; }
+class BinaryInst : public Instruction {
+public:
+	explicit BinaryInst(InstID id, Type::TypeID type, Value* S1, Value* S2) : Instruction(id, type) {
+		operand_list.push_back(S1);
+		operand_list.push_back(S2);
+	}
 };
 
-struct ARRAYLENGTHInst : public Instruction {
-	explicit ARRAYLENGTHInst(Type *type) : Instruction(ARRAYLENGTHInstID, type) {}
-	virtual toARRAYLENGTHInst() { return this; }
+class CondInst : public BinaryInst {
+protected:
+	Conditional::CondID cond;
+public:
+	explicit CondInst(InstID id, Type::TypeID type, Value* S1, Value* S2, Conditional::CondID cond)
+		: BinaryInst(id, type, S1, S2), cond(cond) {}
 };
 
-struct NEGInst : public Instruction {
-	explicit NEGInst(Type *type) : Instruction(NEGInstID, type) {}
-	virtual toNEGInst() { return this; }
+
+// Instructions
+
+class NOPInst : public Instruction {
+public:
+	explicit NOPInst(Type::TypeID type) : Instruction(NOPInstID, type) {}
+	virtual NOPInst* to_NOPInst() { return this; }
 };
 
-struct CASTInst : public Instruction {
-	explicit CASTInst(Type *type) : Instruction(CASTInstID, type) {}
-	virtual toCASTInst() { return this; }
+class POPInst : public Instruction {
+public:
+	explicit POPInst(Type::TypeID type) : Instruction(POPInstID, type) {}
+	virtual POPInst* to_POPInst() { return this; }
 };
 
-struct ADDInst : public Instruction {
-	explicit ADDInst(Type *type) : Instruction(ADDInstID, type) {}
-	virtual toADDInst() { return this; }
+class CHECKNULLInst : public Instruction {
+public:
+	explicit CHECKNULLInst(Type::TypeID type) : Instruction(CHECKNULLInstID, type) {}
+	virtual CHECKNULLInst* to_CHECKNULLInst() { return this; }
 };
 
-struct SUBInst : public Instruction {
-	explicit SUBInst(Type *type) : Instruction(SUBInstID, type) {}
-	virtual toSUBInst() { return this; }
+class ARRAYLENGTHInst : public Instruction {
+public:
+	explicit ARRAYLENGTHInst(Type::TypeID type) : Instruction(ARRAYLENGTHInstID, type) {}
+	virtual ARRAYLENGTHInst* to_ARRAYLENGTHInst() { return this; }
 };
 
-struct MULInst : public Instruction {
-	explicit MULInst(Type *type) : Instruction(MULInstID, type) {}
-	virtual toMULInst() { return this; }
+class NEGInst : public Instruction {
+public:
+	explicit NEGInst(Type::TypeID type) : Instruction(NEGInstID, type) {}
+	virtual NEGInst* to_NEGInst() { return this; }
 };
 
-struct DIVInst : public Instruction {
-	explicit DIVInst(Type *type) : Instruction(DIVInstID, type) {}
-	virtual toDIVInst() { return this; }
+class CASTInst : public Instruction {
+public:
+	explicit CASTInst(Type::TypeID type) : Instruction(CASTInstID, type) {}
+	virtual CASTInst* to_CASTInst() { return this; }
 };
 
-struct REMInst : public Instruction {
-	explicit REMInst(Type *type) : Instruction(REMInstID, type) {}
-	virtual toREMInst() { return this; }
+class ADDInst : public Instruction {
+public:
+	explicit ADDInst(Type::TypeID type) : Instruction(ADDInstID, type) {}
+	virtual ADDInst* to_ADDInst() { return this; }
 };
 
-struct SHLInst : public Instruction {
-	explicit SHLInst(Type *type) : Instruction(SHLInstID, type) {}
-	virtual toSHLInst() { return this; }
+class SUBInst : public Instruction {
+public:
+	explicit SUBInst(Type::TypeID type) : Instruction(SUBInstID, type) {}
+	virtual SUBInst* to_SUBInst() { return this; }
 };
 
-struct USHRInst : public Instruction {
-	explicit USHRInst(Type *type) : Instruction(USHRInstID, type) {}
-	virtual toUSHRInst() { return this; }
+class MULInst : public Instruction {
+public:
+	explicit MULInst(Type::TypeID type) : Instruction(MULInstID, type) {}
+	virtual MULInst* to_MULInst() { return this; }
 };
 
-struct ANDInst : public Instruction {
-	explicit ANDInst(Type *type) : Instruction(ANDInstID, type) {}
-	virtual toANDInst() { return this; }
+class DIVInst : public Instruction {
+public:
+	explicit DIVInst(Type::TypeID type) : Instruction(DIVInstID, type) {}
+	virtual DIVInst* to_DIVInst() { return this; }
 };
 
-struct ORInst : public Instruction {
-	explicit ORInst(Type *type) : Instruction(ORInstID, type) {}
-	virtual toORInst() { return this; }
+class REMInst : public Instruction {
+public:
+	explicit REMInst(Type::TypeID type) : Instruction(REMInstID, type) {}
+	virtual REMInst* to_REMInst() { return this; }
 };
 
-struct XORInst : public Instruction {
-	explicit XORInst(Type *type) : Instruction(XORInstID, type) {}
-	virtual toXORInst() { return this; }
+class SHLInst : public Instruction {
+public:
+	explicit SHLInst(Type::TypeID type) : Instruction(SHLInstID, type) {}
+	virtual SHLInst* to_SHLInst() { return this; }
 };
 
-struct CMPInst : public Instruction {
-	explicit CMPInst(Type *type) : Instruction(CMPInstID, type) {}
-	virtual toCMPInst() { return this; }
+class USHRInst : public Instruction {
+public:
+	explicit USHRInst(Type::TypeID type) : Instruction(USHRInstID, type) {}
+	virtual USHRInst* to_USHRInst() { return this; }
 };
 
-struct CONSTInst : public Instruction {
-	explicit CONSTInst(Type *type) : Instruction(CONSTInstID, type) {}
-	virtual toCONSTInst() { return this; }
+class ANDInst : public Instruction {
+public:
+	explicit ANDInst(Type::TypeID type) : Instruction(ANDInstID, type) {}
+	virtual ANDInst* to_ANDInst() { return this; }
 };
 
-struct GETFIELDInst : public Instruction {
-	explicit GETFIELDInst(Type *type) : Instruction(GETFIELDInstID, type) {}
-	virtual toGETFIELDInst() { return this; }
+class ORInst : public Instruction {
+public:
+	explicit ORInst(Type::TypeID type) : Instruction(ORInstID, type) {}
+	virtual ORInst* to_ORInst() { return this; }
 };
 
-struct PUTFIELDInst : public Instruction {
-	explicit PUTFIELDInst(Type *type) : Instruction(PUTFIELDInstID, type) {}
-	virtual toPUTFIELDInst() { return this; }
+class XORInst : public Instruction {
+public:
+	explicit XORInst(Type::TypeID type) : Instruction(XORInstID, type) {}
+	virtual XORInst* to_XORInst() { return this; }
 };
 
-struct PUTSTATICInst : public Instruction {
-	explicit PUTSTATICInst(Type *type) : Instruction(PUTSTATICInstID, type) {}
-	virtual toPUTSTATICInst() { return this; }
+class CMPInst : public Instruction {
+public:
+	explicit CMPInst(Type::TypeID type) : Instruction(CMPInstID, type) {}
+	virtual CMPInst* to_CMPInst() { return this; }
 };
 
-struct GETSTATICInst : public Instruction {
-	explicit GETSTATICInst(Type *type) : Instruction(GETSTATICInstID, type) {}
-	virtual toGETSTATICInst() { return this; }
+class CONSTInst : public Instruction {
+public:
+	explicit CONSTInst(Type::TypeID type) : Instruction(CONSTInstID, type) {}
+	virtual CONSTInst* to_CONSTInst() { return this; }
 };
 
-struct INCInst : public Instruction {
-	explicit INCInst(Type *type) : Instruction(INCInstID, type) {}
-	virtual toINCInst() { return this; }
+class GETFIELDInst : public Instruction {
+public:
+	explicit GETFIELDInst(Type::TypeID type) : Instruction(GETFIELDInstID, type) {}
+	virtual GETFIELDInst* to_GETFIELDInst() { return this; }
 };
 
-struct ASTOREInst : public Instruction {
-	explicit ASTOREInst(Type *type) : Instruction(ASTOREInstID, type) {}
-	virtual toASTOREInst() { return this; }
+class PUTFIELDInst : public Instruction {
+public:
+	explicit PUTFIELDInst(Type::TypeID type) : Instruction(PUTFIELDInstID, type) {}
+	virtual PUTFIELDInst* to_PUTFIELDInst() { return this; }
 };
 
-struct ALOADInst : public Instruction {
-	explicit ALOADInst(Type *type) : Instruction(ALOADInstID, type) {}
-	virtual toALOADInst() { return this; }
+class PUTSTATICInst : public Instruction {
+public:
+	explicit PUTSTATICInst(Type::TypeID type) : Instruction(PUTSTATICInstID, type) {}
+	virtual PUTSTATICInst* to_PUTSTATICInst() { return this; }
 };
 
-struct RETInst : public Instruction {
-	explicit RETInst(Type *type) : Instruction(RETInstID, type) {}
-	virtual toRETInst() { return this; }
+class GETSTATICInst : public Instruction {
+public:
+	explicit GETSTATICInst(Type::TypeID type) : Instruction(GETSTATICInstID, type) {}
+	virtual GETSTATICInst* to_GETSTATICInst() { return this; }
 };
 
-struct LOADInst : public Instruction {
-	explicit LOADInst(Type *type) : Instruction(LOADInstID, type) {}
-	virtual toLOADInst() { return this; }
+class INCInst : public Instruction {
+public:
+	explicit INCInst(Type::TypeID type) : Instruction(INCInstID, type) {}
+	virtual INCInst* to_INCInst() { return this; }
 };
 
-struct STOREInst : public Instruction {
-	explicit STOREInst(Type *type) : Instruction(STOREInstID, type) {}
-	virtual toSTOREInst() { return this; }
+class ASTOREInst : public Instruction {
+public:
+	explicit ASTOREInst(Type::TypeID type) : Instruction(ASTOREInstID, type) {}
+	virtual ASTOREInst* to_ASTOREInst() { return this; }
 };
 
-struct NEWInst : public Instruction {
-	explicit NEWInst(Type *type) : Instruction(NEWInstID, type) {}
-	virtual toNEWInst() { return this; }
+class ALOADInst : public Instruction {
+public:
+	explicit ALOADInst(Type::TypeID type) : Instruction(ALOADInstID, type) {}
+	virtual ALOADInst* to_ALOADInst() { return this; }
 };
 
-struct NEWARRAYInst : public Instruction {
-	explicit NEWARRAYInst(Type *type) : Instruction(NEWARRAYInstID, type) {}
-	virtual toNEWARRAYInst() { return this; }
+class RETInst : public Instruction {
+public:
+	explicit RETInst(Type::TypeID type) : Instruction(RETInstID, type) {}
+	virtual RETInst* to_RETInst() { return this; }
 };
 
-struct ANEWARRAYInst : public Instruction {
-	explicit ANEWARRAYInst(Type *type) : Instruction(ANEWARRAYInstID, type) {}
-	virtual toANEWARRAYInst() { return this; }
+class LOADInst : public LoadInst {
+private:
+	unsigned index;
+public:
+	explicit LOADInst(Type::TypeID type, unsigned index) : LoadInst(LOADInstID, type), index(index) {}
+	virtual LOADInst* to_LOADInst() { return this; }
 };
 
-struct MULTIANEWARRAYInst : public Instruction {
-	explicit MULTIANEWARRAYInst(Type *type) : Instruction(MULTIANEWARRAYInstID, type) {}
-	virtual toMULTIANEWARRAYInst() { return this; }
+class STOREInst : public Instruction {
+public:
+	explicit STOREInst(Type::TypeID type) : Instruction(STOREInstID, type) {}
+	virtual STOREInst* to_STOREInst() { return this; }
 };
 
-struct CHECKCASTInst : public Instruction {
-	explicit CHECKCASTInst(Type *type) : Instruction(CHECKCASTInstID, type) {}
-	virtual toCHECKCASTInst() { return this; }
+class NEWInst : public Instruction {
+public:
+	explicit NEWInst(Type::TypeID type) : Instruction(NEWInstID, type) {}
+	virtual NEWInst* to_NEWInst() { return this; }
 };
 
-struct INSTANCEOFInst : public Instruction {
-	explicit INSTANCEOFInst(Type *type) : Instruction(INSTANCEOFInstID, type) {}
-	virtual toINSTANCEOFInst() { return this; }
+class NEWARRAYInst : public Instruction {
+public:
+	explicit NEWARRAYInst(Type::TypeID type) : Instruction(NEWARRAYInstID, type) {}
+	virtual NEWARRAYInst* to_NEWARRAYInst() { return this; }
 };
 
-struct GOTOInst : public Instruction {
-	explicit GOTOInst(Type *type) : Instruction(GOTOInstID, type) {}
-	virtual toGOTOInst() { return this; }
+class ANEWARRAYInst : public Instruction {
+public:
+	explicit ANEWARRAYInst(Type::TypeID type) : Instruction(ANEWARRAYInstID, type) {}
+	virtual ANEWARRAYInst* to_ANEWARRAYInst() { return this; }
 };
 
-struct JSRInst : public Instruction {
-	explicit JSRInst(Type *type) : Instruction(JSRInstID, type) {}
-	virtual toJSRInst() { return this; }
+class MULTIANEWARRAYInst : public Instruction {
+public:
+	explicit MULTIANEWARRAYInst(Type::TypeID type) : Instruction(MULTIANEWARRAYInstID, type) {}
+	virtual MULTIANEWARRAYInst* to_MULTIANEWARRAYInst() { return this; }
 };
 
-struct BUILTINInst : public Instruction {
-	explicit BUILTINInst(Type *type) : Instruction(BUILTINInstID, type) {}
-	virtual toBUILTINInst() { return this; }
+class CHECKCASTInst : public Instruction {
+public:
+	explicit CHECKCASTInst(Type::TypeID type) : Instruction(CHECKCASTInstID, type) {}
+	virtual CHECKCASTInst* to_CHECKCASTInst() { return this; }
 };
 
-struct INVOKEVIRTUALInst : public Instruction {
-	explicit INVOKEVIRTUALInst(Type *type) : Instruction(INVOKEVIRTUALInstID, type) {}
-	virtual toINVOKEVIRTUALInst() { return this; }
+class INSTANCEOFInst : public Instruction {
+public:
+	explicit INSTANCEOFInst(Type::TypeID type) : Instruction(INSTANCEOFInstID, type) {}
+	virtual INSTANCEOFInst* to_INSTANCEOFInst() { return this; }
 };
 
-struct INVOKESPECIALInst : public Instruction {
-	explicit INVOKESPECIALInst(Type *type) : Instruction(INVOKESPECIALInstID, type) {}
-	virtual toINVOKESPECIALInst() { return this; }
+class GOTOInst : public Instruction {
+public:
+	explicit GOTOInst(Type::TypeID type) : Instruction(GOTOInstID, type) {}
+	virtual GOTOInst* to_GOTOInst() { return this; }
 };
 
-struct INVOKESTATICInst : public Instruction {
-	explicit INVOKESTATICInst(Type *type) : Instruction(INVOKESTATICInstID, type) {}
-	virtual toINVOKESTATICInst() { return this; }
+class JSRInst : public Instruction {
+public:
+	explicit JSRInst(Type::TypeID type) : Instruction(JSRInstID, type) {}
+	virtual JSRInst* to_JSRInst() { return this; }
 };
 
-struct INVOKEINTERFACEInst : public Instruction {
-	explicit INVOKEINTERFACEInst(Type *type) : Instruction(INVOKEINTERFACEInstID, type) {}
-	virtual toINVOKEINTERFACEInst() { return this; }
+class BUILTINInst : public Instruction {
+public:
+	explicit BUILTINInst(Type::TypeID type) : Instruction(BUILTINInstID, type) {}
+	virtual BUILTINInst* to_BUILTINInst() { return this; }
 };
 
-struct IFInst : public Instruction {
-	explicit IFInst(Type *type) : Instruction(IFInstID, type) {}
-	virtual toIFInst() { return this; }
+class INVOKEVIRTUALInst : public Instruction {
+public:
+	explicit INVOKEVIRTUALInst(Type::TypeID type) : Instruction(INVOKEVIRTUALInstID, type) {}
+	virtual INVOKEVIRTUALInst* to_INVOKEVIRTUALInst() { return this; }
 };
 
-struct IF_CMPInst : public Instruction {
-	explicit IF_CMPInst(Type *type) : Instruction(IF_CMPInstID, type) {}
-	virtual toIF_CMPInst() { return this; }
+class INVOKESPECIALInst : public Instruction {
+public:
+	explicit INVOKESPECIALInst(Type::TypeID type) : Instruction(INVOKESPECIALInstID, type) {}
+	virtual INVOKESPECIALInst* to_INVOKESPECIALInst() { return this; }
 };
 
-struct TABLESWITCHInst : public Instruction {
-	explicit TABLESWITCHInst(Type *type) : Instruction(TABLESWITCHInstID, type) {}
-	virtual toTABLESWITCHInst() { return this; }
+class INVOKESTATICInst : public Instruction {
+public:
+	explicit INVOKESTATICInst(Type::TypeID type) : Instruction(INVOKESTATICInstID, type) {}
+	virtual INVOKESTATICInst* to_INVOKESTATICInst() { return this; }
 };
 
-struct LOOKUPSWITCHInst : public Instruction {
-	explicit LOOKUPSWITCHInst(Type *type) : Instruction(LOOKUPSWITCHInstID, type) {}
-	virtual toLOOKUPSWITCHInst() { return this; }
+class INVOKEINTERFACEInst : public Instruction {
+public:
+	explicit INVOKEINTERFACEInst(Type::TypeID type) : Instruction(INVOKEINTERFACEInstID, type) {}
+	virtual INVOKEINTERFACEInst* to_INVOKEINTERFACEInst() { return this; }
 };
 
-struct RETURNInst : public Instruction {
-	explicit RETURNInst(Type *type) : Instruction(RETURNInstID, type) {}
-	virtual toRETURNInst() { return this; }
+class IFInst : public CondInst {
+public:
+	explicit IFInst(Type::TypeID type, Value* S1, Value* S2, Conditional::CondID cond)
+		: CondInst(IFInstID, type, S1, S2, cond) {}
+	virtual IFInst* to_IFInst() { return this; }
 };
 
-struct THROWInst : public Instruction {
-	explicit THROWInst(Type *type) : Instruction(THROWInstID, type) {}
-	virtual toTHROWInst() { return this; }
+class IF_CMPInst : public Instruction {
+public:
+	explicit IF_CMPInst(Type::TypeID type) : Instruction(IF_CMPInstID, type) {}
+	virtual IF_CMPInst* to_IF_CMPInst() { return this; }
 };
 
-struct COPYInst : public Instruction {
-	explicit COPYInst(Type *type) : Instruction(COPYInstID, type) {}
-	virtual toCOPYInst() { return this; }
+class TABLESWITCHInst : public Instruction {
+public:
+	explicit TABLESWITCHInst(Type::TypeID type) : Instruction(TABLESWITCHInstID, type) {}
+	virtual TABLESWITCHInst* to_TABLESWITCHInst() { return this; }
 };
 
-struct MOVEInst : public Instruction {
-	explicit MOVEInst(Type *type) : Instruction(MOVEInstID, type) {}
-	virtual toMOVEInst() { return this; }
+class LOOKUPSWITCHInst : public Instruction {
+public:
+	explicit LOOKUPSWITCHInst(Type::TypeID type) : Instruction(LOOKUPSWITCHInstID, type) {}
+	virtual LOOKUPSWITCHInst* to_LOOKUPSWITCHInst() { return this; }
 };
 
-struct GETEXCEPTIONInst : public Instruction {
-	explicit GETEXCEPTIONInst(Type *type) : Instruction(GETEXCEPTIONInstID, type) {}
-	virtual toGETEXCEPTIONInst() { return this; }
+class RETURNInst : public Instruction {
+public:
+	explicit RETURNInst(Type::TypeID type) : Instruction(RETURNInstID, type) {}
+	virtual RETURNInst* to_RETURNInst() { return this; }
 };
 
-struct PHIInst : public Instruction {
-	explicit PHIInst(Type *type) : Instruction(PHIInstID, type) {}
-	virtual toPHIInst() { return this; }
+class THROWInst : public Instruction {
+public:
+	explicit THROWInst(Type::TypeID type) : Instruction(THROWInstID, type) {}
+	virtual THROWInst* to_THROWInst() { return this; }
+};
+
+class COPYInst : public Instruction {
+public:
+	explicit COPYInst(Type::TypeID type) : Instruction(COPYInstID, type) {}
+	virtual COPYInst* to_COPYInst() { return this; }
+};
+
+class MOVEInst : public Instruction {
+public:
+	explicit MOVEInst(Type::TypeID type) : Instruction(MOVEInstID, type) {}
+	virtual MOVEInst* to_MOVEInst() { return this; }
+};
+
+class GETEXCEPTIONInst : public Instruction {
+public:
+	explicit GETEXCEPTIONInst(Type::TypeID type) : Instruction(GETEXCEPTIONInstID, type) {}
+	virtual GETEXCEPTIONInst* to_GETEXCEPTIONInst() { return this; }
+};
+
+class PHIInst : public Instruction {
+public:
+	explicit PHIInst(Type::TypeID type) : Instruction(PHIInstID, type) {}
+	virtual PHIInst* to_PHIInst() { return this; }
 };
 
 
