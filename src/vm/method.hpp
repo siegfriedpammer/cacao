@@ -220,6 +220,15 @@ void method_methodref_println(constant_FMIref *mr);
 #endif
 
 
+namespace cacao {
+
+// forward declaration
+class OStream;
+
+cacao::OStream& operator<<(cacao::OStream &OS, const struct methodinfo &m);
+
+} // end namespace cacao
+
 #endif // METHOD_HPP_
 
 

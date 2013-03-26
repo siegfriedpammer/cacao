@@ -1265,6 +1265,40 @@ void method_methodref_println(constant_FMIref *mr)
 #endif /* !defined(NDEBUG) */
 
 
+namespace cacao {
+namespace {
+
+inline OStream& method_printflags_OS(OStream &OS, const struct methodinfo &m)
+{
+	if (m.flags & ACC_PUBLIC)             OS << " PUBLIC" ;
+	if (m.flags & ACC_PRIVATE)            OS << " PRIVATE" ;
+	if (m.flags & ACC_PROTECTED)          OS << " PROTECTED" ;
+	if (m.flags & ACC_STATIC)             OS << " STATIC" ;
+	if (m.flags & ACC_FINAL)              OS << " FINAL" ;
+	if (m.flags & ACC_SYNCHRONIZED)       OS << " SYNCHRONIZED" ;
+	if (m.flags & ACC_VOLATILE)           OS << " VOLATILE" ;
+	if (m.flags & ACC_TRANSIENT)          OS << " TRANSIENT" ;
+	if (m.flags & ACC_NATIVE)             OS << " NATIVE" ;
+	if (m.flags & ACC_INTERFACE)          OS << " INTERFACE" ;
+	if (m.flags & ACC_ABSTRACT)           OS << " ABSTRACT" ;
+	if (m.flags & ACC_METHOD_BUILTIN)     OS << " (builtin)" ;
+	if (m.flags & ACC_METHOD_MONOMORPHIC) OS << " (mono)" ;
+	if (m.flags & ACC_METHOD_IMPLEMENTED) OS << " (impl)" ;
+	return OS;
+}
+} // end anonymous namespace
+
+OStream& operator<<(OStream &OS, const struct methodinfo &m)
+{
+	OS << (Utf8String)m.clazz->name << "."
+	   << (Utf8String)m.name
+	   << (Utf8String)m.descriptor;
+	method_printflags_OS(OS,m);
+	return OS;
+}
+
+} // end namespace cacao
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
