@@ -30,6 +30,8 @@
 
 #include "vm/jit/jit.hpp"
 
+#include <vector>
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -40,11 +42,15 @@ namespace compiler2 {
  * This Pass constructs the compiler2 specific SSA based IR from
  * the ICMD_* style IR used in the baseline compiler.
  *
- * The approach is based on Braun et al. 2013 @cite SSAsimple2013.
+ * The approach is based on "Simple and Efficient Construction of
+ * Static Singe Assignment Form" by Braun et al. 2013 @cite SSAsimple2013.
  */
 class SSAConstructionPass : public Pass {
 private:
-	Instruction* get_Instruction(jitdata *jd, instruction *iptr);
+	std::vector<std::vector<Value*> > current_def;
+	inline void write_variable(size_t varindex, size_t bb, Value *V);
+	inline Value* read_variable(size_t varindex, size_t bb) const;
+	inline Value* read_variable_recursive(size_t varindex, size_t bb) const;
 public:
 	SSAConstructionPass(PassManager *PM) : Pass(PM) {}
 	bool run(JITData &JD);

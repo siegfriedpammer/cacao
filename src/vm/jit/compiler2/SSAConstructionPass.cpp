@@ -261,6 +261,7 @@ OStream& show_variable_intern_OS(OStream &OS, const jitdata *jd, s4 index, int s
     else {                                                           \
         OS << "=> JavaL" << iptr->dst.varindex << " ";               \
     }
+#if 0
 //cacao::OStream& operator<<(cacao::OStream &OS, const struct instruction &inst) {
 cacao::OStream& print_instruction_OS(cacao::OStream &OS, const jitdata *jd, const struct instruction &inst) {
 	const instruction *iptr = &inst;
@@ -766,6 +767,7 @@ cacao::OStream& print_instruction_OS(cacao::OStream &OS, const jitdata *jd, cons
 	}
 	return OS << icmd_table[inst.opc].name;
 }
+#endif
 
 } // end anonymous namespace
 
@@ -774,7 +776,13 @@ namespace compiler2 {
 
 #define DEBUG_NAME "compiler2/ssa"
 
-Instruction* SSAConstructionPass::get_Instruction(jitdata *jd, instruction *iptr) {
+void SSAConstructionPass::write_variable(size_t varindex, size_t bb, Value* v) {
+	current_def[varindex][bb] = v;
+}
+
+Value* SSAConstructionPass::read_variable(size_t varindex, size_t bb) const {
+	Value* v = current_def[varindex][bb];
+	return v;
 }
 
 bool SSAConstructionPass::run(JITData &JD) {
@@ -784,7 +792,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 	jitdata *jd = JD.jitdata();
 
 	// Local Value Numbering Map, size #bb times #var, initialized to NULL
-	std::vector<std::vector<Value*> > current_def(jd->basicblockcount,std::vector<Value*>(jd->vartop,NULL));
+	current_def.resize(jd->vartop,std::vector<Value*>(jd->basicblockcount,NULL));
 
 	show_method(jd, SHOW_CFG);
 
@@ -838,9 +846,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 				goto _default;
 			case ICMD_LADD:
 				{
-					Value *s1 = current_def[bb->nr][iptr->s1.varindex];
-					Value *s2 = current_def[bb->nr][iptr->sx.s23.s2.varindex];
-					Instruction *result = new SUBInst(Type::LongTypeID, s1, s2);
+					Value *s1 = read_variable(iptr->s1.varindex, bb->nr);
+					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bb->nr);
+					Instruction *result = new ADDInst(Type::LongTypeID, s1, s2);
+					write_variable(iptr->dst.varindex,bb->nr,result);
 					M.add_instruction(result);
 				}
 				break;
@@ -927,7 +936,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_LSUBCONST:
 				{
 					Instruction *konst = new CONSTInst(iptr->sx.val.l);
-					Value *s1 = current_def[bb->nr][iptr->s1.varindex];
+					Value *s1 = read_variable(iptr->s1.varindex,bb->nr);
 					Instruction *result = new SUBInst(Type::LongTypeID, s1, konst);
 					M.add_instruction(konst);
 					M.add_instruction(result);
@@ -957,7 +966,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_LCONST:
 				{
 					Instruction *I = new CONSTInst(iptr->sx.val.l);
-					current_def[bb->nr][iptr->dst.varindex] = I;
+					write_variable(iptr->dst.varindex,bb->nr,I);
 					M.add_instruction(I);
 				}
 				break;
@@ -1062,28 +1071,28 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_ILOAD:
 				{
 					Instruction *I = new LOADInst(Type::IntTypeID, iptr->s1.varindex);
-					current_def[bb->nr][iptr->dst.varindex] = I;
+					write_variable(iptr->dst.varindex,bb->nr,I);
 					M.add_instruction(I);
 				}
 				break;
 			case ICMD_LLOAD:
 				{
 					Instruction *I = new LOADInst(Type::LongTypeID, iptr->s1.varindex);
-					current_def[bb->nr][iptr->dst.varindex] = I;
+					write_variable(iptr->dst.varindex,bb->nr,I);
 					M.add_instruction(I);
 				}
 				break;
 			case ICMD_FLOAD:
 				{
 					Instruction *I = new LOADInst(Type::FloatTypeID, iptr->s1.varindex);
-					current_def[bb->nr][iptr->dst.varindex] = I;
+					write_variable(iptr->dst.varindex,bb->nr,I);
 					M.add_instruction(I);
 				}
 				break;
 			case ICMD_DLOAD:
 				{
 					Instruction *I = new LOADInst(Type::DoubleTypeID, iptr->s1.varindex);
-					current_def[bb->nr][iptr->dst.varindex] = I;
+					write_variable(iptr->dst.varindex,bb->nr,I);
 					M.add_instruction(I);
 				}
 				break;
@@ -1266,7 +1275,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_IF_LNE:
 				{
 					Instruction *konst = new CONSTInst(iptr->sx.val.l);
-					Value *s1 = current_def[bb->nr][iptr->s1.varindex];
+					Value *s1 = read_variable(iptr->s1.varindex,bb->nr);
 					Instruction *result = new IFInst(Type::LongTypeID, s1, konst, Conditional::NE);
 					M.add_instruction(konst);
 					M.add_instruction(result);
@@ -1277,7 +1286,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_IF_LGE:
 				{
 					Instruction *konst = new CONSTInst(iptr->sx.val.l);
-					Value *s1 = current_def[bb->nr][iptr->s1.varindex];
+					Value *s1 = read_variable(iptr->s1.varindex,bb->nr);
 					assert(s1);
 					Instruction *result = new IFInst(Type::LongTypeID, s1, konst, Conditional::GE);
 					M.add_instruction(konst);
@@ -1365,7 +1374,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_DRETURN:
 			case ICMD_LRETURN:
 				{
-					Value *s1 = current_def[bb->nr][iptr->s1.varindex];
+					Value *s1 = read_variable(iptr->s1.varindex,bb->nr);
 					Instruction *result = new RETURNInst(Type::LongTypeID, s1);
 					M.add_instruction(result);
 				}
