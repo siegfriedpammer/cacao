@@ -791,6 +791,17 @@ bool SSAConstructionPass::run(JITData &JD) {
 	basicblock *bb;
 	jitdata *jd = JD.jitdata();
 
+	// store basicblock BeginInst
+	std::vector<Instruction*> BB(jd->basicblockcount,NULL);
+	for(int i = 0; i < jd->basicblockcount; ++i) {
+		BB[i] = new BeginInst();
+	}
+	for(std::vector<Instruction*>::iterator i = BB.begin(), e = BB.end();
+			i != e; ++i) {
+		Instruction *v = *i;
+		LOG("BB: " << (void*)v << nl);
+	}
+
 	// Local Value Numbering Map, size #bb times #var, initialized to NULL
 	current_def.resize(jd->vartop,std::vector<Value*>(jd->basicblockcount,NULL));
 
@@ -803,8 +814,21 @@ bool SSAConstructionPass::run(JITData &JD) {
 	LOG("# variables: " << jd->vartop << nl);
 
 	FOR_EACH_BASICBLOCK(jd,bb) {
+		if (bb->icount == 0 ) {
+			// this is the last (empty) basicblock
+			assert(bb->nr == jd->basicblockcount);
+			assert(bb->predecessorcount == 0);
+			assert(bb->successorcount == 0);
+			// we dont need it
+			continue;
+		}
 		instruction *iptr;
 		LOG("basicblock: " << bb->nr << nl);
+
+		// add begin block
+		assert(BB[bb->nr]);
+		M.add_instruction(BB[bb->nr]);
+
 		FOR_EACH_INSTRUCTION(bb,iptr) {
 			LOG("iptr: " << icmd_table[iptr->opc].name << nl);
 			switch (iptr->opc) {
@@ -1276,7 +1300,15 @@ bool SSAConstructionPass::run(JITData &JD) {
 				{
 					Instruction *konst = new CONSTInst(iptr->sx.val.l);
 					Value *s1 = read_variable(iptr->s1.varindex,bb->nr);
-					Instruction *result = new IFInst(Type::LongTypeID, s1, konst, Conditional::NE);
+					assert(s1);
+					assert(BB[iptr->dst.block->nr]);
+					BeginInst *trueBlock = BB[iptr->dst.block->nr]->to_BeginInst();
+					assert(trueBlock);
+					assert(BB[bb->nr+1]);
+					BeginInst *falseBlock = BB[bb->nr+1]->to_BeginInst();
+					assert(falseBlock);
+					Instruction *result = new IFInst(s1, konst, Conditional::NE,
+						trueBlock, falseBlock);
 					M.add_instruction(konst);
 					M.add_instruction(result);
 				}
@@ -1288,7 +1320,14 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Instruction *konst = new CONSTInst(iptr->sx.val.l);
 					Value *s1 = read_variable(iptr->s1.varindex,bb->nr);
 					assert(s1);
-					Instruction *result = new IFInst(Type::LongTypeID, s1, konst, Conditional::GE);
+					assert(BB[iptr->dst.block->nr]);
+					BeginInst *trueBlock = BB[iptr->dst.block->nr]->to_BeginInst();
+					assert(trueBlock);
+					assert(BB[bb->nr+1]);
+					BeginInst *falseBlock = BB[bb->nr+1]->to_BeginInst();
+					assert(falseBlock);
+					Instruction *result = new IFInst(s1, konst, Conditional::GE,
+						trueBlock, falseBlock);
 					M.add_instruction(konst);
 					M.add_instruction(result);
 				}

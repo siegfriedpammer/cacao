@@ -134,6 +134,8 @@ class EndInst;
 class Instruction : public Value {
 public:
 	typedef std::vector<Value*> OperandListTy;
+	typedef std::vector<BeginInst*> SuccessorListTy;
+
 	enum InstID {
 		NOPInstID,
 		POPInstID,
@@ -196,6 +198,7 @@ public:
 protected:
 	const InstID id;
 	OperandListTy operand_list;
+	SuccessorListTy successor_list;
 	unsigned number_of_operands;
 	BasicBlock *parent;				   ///< BasicBlock containing the instruction or NULL
 	Type::TypeID type;
@@ -214,8 +217,10 @@ public:
 	Method* get_method() const { return method; }
 
 	unsigned get_number_operands() const { return number_of_operands; }
-	OperandListTy::const_iterator begin() const { return operand_list.begin(); }
-	OperandListTy::const_iterator end()   const { return operand_list.end(); }
+	OperandListTy::const_iterator op_begin() const { return operand_list.begin(); }
+	OperandListTy::const_iterator op_end()   const { return operand_list.end(); }
+	SuccessorListTy::const_iterator succ_begin() const { return successor_list.begin(); }
+	SuccessorListTy::const_iterator succ_end()   const { return successor_list.end(); }
 
 	bool is_terminator() const;              ///< true if the instruction terminates a basic block
 

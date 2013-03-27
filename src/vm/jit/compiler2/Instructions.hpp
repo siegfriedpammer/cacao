@@ -77,6 +77,25 @@ public:
 };
 
 
+/**
+ * This Instruction mark the start of a basic block
+ */
+class BeginInst : public Instruction {
+public:
+	explicit BeginInst() : Instruction(BeginInstID, Type::VoidTypeID) {}
+	virtual BeginInst* to_BeginInst() { return this; }
+};
+
+/**
+ * This Instruction mark the end of a basic block
+ */
+class EndInst : public Instruction {
+public:
+	explicit EndInst() : Instruction(EndInstID, Type::VoidTypeID) {}
+	virtual EndInst* to_EndInst() { return this; }
+};
+
+
 // Instructions
 
 class NOPInst : public Instruction {
@@ -351,8 +370,11 @@ public:
 
 class IFInst : public CondInst {
 public:
-	explicit IFInst(Type::TypeID type, Value* S1, Value* S2, Conditional::CondID cond)
-		: CondInst(IFInstID, type, S1, S2, cond) {}
+	explicit IFInst(Value* S1, Value* S2, Conditional::CondID cond, BeginInst* trueBlock, BeginInst* falseBlock)
+			: CondInst(IFInstID, Type::VoidTypeID, S1, S2, cond) {
+		successor_list.push_back(trueBlock);
+		successor_list.push_back(falseBlock);
+	}
 	virtual IFInst* to_IFInst() { return this; }
 };
 
@@ -409,25 +431,6 @@ public:
 	explicit PHIInst(Type::TypeID type) : Instruction(PHIInstID, type) {}
 	virtual PHIInst* to_PHIInst() { return this; }
 };
-
-/**
- * This Instruction mark the start of a basic block
- */
-class BeginInst : public Instruction {
-public:
-	explicit BeginInst(Type::TypeID type) : Instruction(BeginInstID, type) {}
-	virtual BeginInst* to_BeginInst() { return this; }
-};
-
-/**
- * This Instruction mark the end of a basic block
- */
-class EndInst : public Instruction {
-public:
-	explicit EndInst(Type::TypeID type) : Instruction(EndInstID, type) {}
-	virtual EndInst* to_EndInst() { return this; }
-};
-
 
 } // end namespace cacao
 } // end namespace jit

@@ -26,6 +26,7 @@
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/Method.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
+#include "vm/jit/compiler2/Instructions.hpp"
 
 #include "toolbox/GraphTraits.hpp"
 
@@ -48,7 +49,20 @@ public:
 		    e = M.end(); i != e; ++i) {
 			Instruction *I = *i;
 			nodes.insert(I);
-			for(Instruction::OperandListTy::const_iterator ii = I->begin(), ee = I->end();
+			// add operator link
+			for(Instruction::OperandListTy::const_iterator ii = I->op_begin(), ee = I->op_end();
+				ii != ee; ++ii) {
+				Value *v = (*ii);
+				if (v) {
+					Instruction *II = (*ii)->to_Instruction();
+					if (II) {
+						EdgeType edge = std::make_pair(I,II);
+						edges.insert(edge);
+					}
+				}
+			}
+			// add successor link
+			for(Instruction::SuccessorListTy::const_iterator ii = I->succ_begin(), ee = I->succ_end();
 				ii != ee; ++ii) {
 				Value *v = (*ii);
 				if (v) {
@@ -70,7 +84,7 @@ public:
 		std::ostringstream sstream;
 		sstream << "[" << getNodeID(node) << "] "
 		        << node.get_name();
-		for(Instruction::OperandListTy::const_iterator ii = node.begin(), ee = node.end();
+		for(Instruction::OperandListTy::const_iterator ii = node.op_begin(), ee = node.op_end();
 				ii != ee; ++ii) {
 			sstream << " ";
 			Value *v = (*ii);
