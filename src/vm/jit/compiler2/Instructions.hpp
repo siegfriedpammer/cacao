@@ -410,6 +410,24 @@ public:
 	virtual PHIInst* to_PHIInst() { return this; }
 };
 
+/**
+ * This Instruction mark the start of a basic block
+ */
+class BeginInst : public Instruction {
+public:
+	explicit BeginInst(Type::TypeID type) : Instruction(BeginInstID, type) {}
+	virtual BeginInst* to_BeginInst() { return this; }
+};
+
+/**
+ * This Instruction mark the end of a basic block
+ */
+class EndInst : public Instruction {
+public:
+	explicit EndInst(Type::TypeID type) : Instruction(EndInstID, type) {}
+	virtual EndInst* to_EndInst() { return this; }
+};
+
 
 } // end namespace cacao
 } // end namespace jit

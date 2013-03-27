@@ -52,7 +52,6 @@ class BinaryInst;
 
 class CondInst;
 
-
 // Instructions forward defs
 
 class NOPInst;
@@ -115,6 +114,10 @@ class COPYInst;
 class MOVEInst;
 class GETEXCEPTIONInst;
 class PHIInst;
+
+// Control Flow Meta Instructions
+class BeginInst;
+class EndInst;
 
 /**
  * Instruction super class.
@@ -183,6 +186,10 @@ public:
 		MOVEInstID,
 		GETEXCEPTIONInstID,
 		PHIInstID,
+		// Control Flow Meta Instructions
+		BeginInstID,
+		EndInstID,
+
 		NoInstID
 	};
 
@@ -267,6 +274,9 @@ public:
 	virtual GETEXCEPTIONInst*     to_GETEXCEPTIONInst()     { return NULL; }
 	virtual PHIInst*              to_PHIInst()              { return NULL; }
 
+	virtual BeginInst*            to_BeginInst()            { return NULL; }
+	virtual EndInst*              to_EndInst()              { return NULL; }
+
 	const char* get_name() const {
 		switch (id) {
 			case NOPInstID:              return "NOPInst";
@@ -320,6 +330,10 @@ public:
 			case MOVEInstID:             return "MOVEInst";
 			case GETEXCEPTIONInstID:     return "GETEXCEPTIONInst";
 			case PHIInstID:              return "PHIInst";
+
+			case BeginInstID:            return "BeginInst";
+			case EndInstID:              return "EndInst";
+
 			case NoInstID:               return "NoInst";
 		}
 		return "Unknown Instruction";
