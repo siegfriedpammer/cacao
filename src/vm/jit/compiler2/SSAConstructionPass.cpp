@@ -1029,8 +1029,27 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		break;
 
 				/* binary/const INT */
+				goto _default;
 			case ICMD_IADDCONST:
 			case ICMD_ISUBCONST:
+				{
+					Value *s1 = read_variable(iptr->s1.varindex,bb->nr);
+					Instruction *konst = new CONSTInst(iptr->sx.val.i);
+					Instruction *result;
+					switch (iptr->opc) {
+					case ICMD_IADDCONST:
+						result = new ADDInst(Type::IntTypeID, s1, konst);
+						break;
+					case ICMD_ISUBCONST:
+						result = new SUBInst(Type::IntTypeID, s1, konst);
+						break;
+					default: assert(0);
+					}
+					M->add_Instruction(konst);
+					write_variable(iptr->dst.varindex,bb->nr,result);
+					M->add_Instruction(result);
+				}
+				break;
 			case ICMD_IMULCONST:
 			case ICMD_IMULPOW2:
 			case ICMD_IDIVPOW2:
@@ -1060,10 +1079,24 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		break;
 
 				/* const INT */
+				goto _default;
 			case ICMD_ICONST:
-		//		SHOW_INT_CONST(OS, iptr->sx.val.i);	
-		//		SHOW_DST(OS, iptr);
-		//		break;
+			case ICMD_LCONST:
+				{
+					Instruction *I;
+					switch (iptr->opc) {
+					case ICMD_ICONST:
+						I = new CONSTInst(iptr->sx.val.i);
+						break;
+					case ICMD_LCONST:
+						I = new CONSTInst(iptr->sx.val.l);
+						break;
+					default: assert(0);
+					}
+					write_variable(iptr->dst.varindex,bb->nr,I);
+					M->add_Instruction(I);
+				}
+				break;
 
 				/* binary/const LNG */
 			case ICMD_LADDCONST:
@@ -1099,16 +1132,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 
 				/* const LNG */
 				goto _default;
-			case ICMD_LCONST:
-				{
-					Instruction *I = new CONSTInst(iptr->sx.val.l);
-					write_variable(iptr->dst.varindex,bb->nr,I);
-					M->add_Instruction(I);
-				}
-				break;
-		//		SHOW_LNG_CONST(OS, iptr->sx.val.l);	
-		//		SHOW_DST(OS, iptr);
-		//		break;
 
 				/* const FLT */
 			case ICMD_FCONST:
@@ -1205,29 +1228,26 @@ bool SSAConstructionPass::run(JITData &JD) {
 				goto _default;
 
 			case ICMD_ILOAD:
-				{
-					Instruction *I = new LOADInst(Type::IntTypeID, iptr->s1.varindex);
-					write_variable(iptr->dst.varindex,bb->nr,I);
-					M->add_Instruction(I);
-				}
-				break;
 			case ICMD_LLOAD:
-				{
-					Instruction *I = new LOADInst(Type::LongTypeID, iptr->s1.varindex);
-					write_variable(iptr->dst.varindex,bb->nr,I);
-					M->add_Instruction(I);
-				}
-				break;
 			case ICMD_FLOAD:
-				{
-					Instruction *I = new LOADInst(Type::FloatTypeID, iptr->s1.varindex);
-					write_variable(iptr->dst.varindex,bb->nr,I);
-					M->add_Instruction(I);
-				}
-				break;
 			case ICMD_DLOAD:
 				{
-					Instruction *I = new LOADInst(Type::DoubleTypeID, iptr->s1.varindex);
+					Instruction *I;
+					switch (iptr->opc) {
+					case ICMD_ILOAD:
+						I = new LOADInst(Type::IntTypeID, iptr->s1.varindex);
+						break;
+					case ICMD_LLOAD:
+						I = new LOADInst(Type::LongTypeID, iptr->s1.varindex);
+						break;
+					case ICMD_FLOAD:
+						I = new LOADInst(Type::FloatTypeID, iptr->s1.varindex);
+						break;
+					case ICMD_DLOAD:
+						I = new LOADInst(Type::DoubleTypeID, iptr->s1.varindex);
+						break;
+					default: assert(0);
+					}
 					write_variable(iptr->dst.varindex,bb->nr,I);
 					M->add_Instruction(I);
 				}
@@ -1398,11 +1418,37 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		break;
 
 			case ICMD_IFEQ:
-			case ICMD_IFNE:
 			case ICMD_IFLT:
 			case ICMD_IFGE:
 			case ICMD_IFGT:
+				goto _default;
+			case ICMD_IFNE:
 			case ICMD_IFLE:
+				{
+					Conditional::CondID cond;
+					switch (iptr->opc) {
+					case ICMD_IFNE:
+						cond = Conditional::NE;
+						break;
+					case ICMD_IFLE:
+						cond = Conditional::LE;
+						break;
+					}
+					Instruction *konst = new CONSTInst(iptr->sx.val.i);
+					Value *s1 = read_variable(iptr->s1.varindex,bb->nr);
+					assert(s1);
+					assert(BB[iptr->dst.block->nr]);
+					BeginInst *trueBlock = BB[iptr->dst.block->nr]->to_BeginInst();
+					assert(trueBlock);
+					assert(BB[bb->nr+1]);
+					BeginInst *falseBlock = BB[bb->nr+1]->to_BeginInst();
+					assert(falseBlock);
+					Instruction *result = new IFInst(BB[bb->nr], s1, konst, cond,
+						trueBlock, falseBlock);
+					M->add_Instruction(konst);
+					M->add_Instruction(result);
+				}
+				break;
 		//		SHOW_S1(OS, iptr);
 		//		SHOW_INT_CONST(OS, iptr->sx.val.i);	
 		//		SHOW_TARGET(OS, iptr->dst);
@@ -1411,7 +1457,17 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_IF_LEQ:
 				goto _default;
 			case ICMD_IF_LNE:
+			case ICMD_IF_LGE:
 				{
+					Conditional::CondID cond;
+					switch (iptr->opc) {
+					case ICMD_IF_LNE:
+						cond = Conditional::NE;
+						break;
+					case ICMD_IF_LGE:
+						cond = Conditional::GE;
+						break;
+					}
 					Instruction *konst = new CONSTInst(iptr->sx.val.l);
 					Value *s1 = read_variable(iptr->s1.varindex,bb->nr);
 					assert(s1);
@@ -1421,7 +1477,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					assert(BB[bb->nr+1]);
 					BeginInst *falseBlock = BB[bb->nr+1]->to_BeginInst();
 					assert(falseBlock);
-					Instruction *result = new IFInst(BB[bb->nr], s1, konst, Conditional::NE,
+					Instruction *result = new IFInst(BB[bb->nr], s1, konst, cond,
 						trueBlock, falseBlock);
 					M->add_Instruction(konst);
 					M->add_Instruction(result);
@@ -1429,23 +1485,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 				break;
 			case ICMD_IF_LLT:
 				goto _default;
-			case ICMD_IF_LGE:
-				{
-					Instruction *konst = new CONSTInst(iptr->sx.val.l);
-					Value *s1 = read_variable(iptr->s1.varindex,bb->nr);
-					assert(s1);
-					assert(BB[iptr->dst.block->nr]);
-					BeginInst *trueBlock = BB[iptr->dst.block->nr]->to_BeginInst();
-					assert(trueBlock);
-					assert(BB[bb->nr+1]);
-					BeginInst *falseBlock = BB[bb->nr+1]->to_BeginInst();
-					assert(falseBlock);
-					Instruction *result = new IFInst(BB[bb->nr], s1, konst, Conditional::GE,
-						trueBlock, falseBlock);
-					M->add_Instruction(konst);
-					M->add_Instruction(result);
-				}
-				break;
 			case ICMD_IF_LGT:
 			case ICMD_IF_LLE:
 		//		SHOW_S1(OS, iptr);
@@ -1522,6 +1561,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		}
 		//		break;
 
+				goto _default;
 			case ICMD_FRETURN:
 			case ICMD_IRETURN:
 			case ICMD_DRETURN:
