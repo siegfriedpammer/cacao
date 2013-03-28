@@ -41,7 +41,7 @@ private:
 	InstructionList inst_list;
 public:
 	Method() {}
-	void add_instruction(Instruction* I);
+	void add_Instruction(Instruction* I);
 	InstructionList::const_iterator begin() const {
 		return inst_list.begin();
 	}

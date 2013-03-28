@@ -776,37 +776,123 @@ namespace compiler2 {
 
 #define DEBUG_NAME "compiler2/ssa"
 
+namespace {
+
+Type::TypeID convert_var_type(int type)
+{
+	switch(type) {
+	case TYPE_INT:  return Type::IntTypeID;
+	case TYPE_LNG:  return Type::LongTypeID;
+	case TYPE_FLT:  return Type::FloatTypeID;
+	case TYPE_DBL:  return Type::DoubleTypeID;
+	case TYPE_VOID: return Type::VoidTypeID;
+	case TYPE_ADR:  return Type::ReferenceTypeID; // XXX is this right?
+	case TYPE_RET:
+	default: /* do nothing */ ;
+	}
+	err() << BoldRed << "error: " << reset_color << "type " << BoldWhite
+		  << get_var_type(type) << reset_color << " (0x0" << hex << type << dec << ") "
+		  << " not yet supported!" << nl;
+	//assert( 0 && "Unsupported type");
+	return Type::VoidTypeID;
+}
+
+} // end anonymous namespace
+
 void SSAConstructionPass::write_variable(size_t varindex, size_t bb, Value* v) {
 	current_def[varindex][bb] = v;
 }
 
-Value* SSAConstructionPass::read_variable(size_t varindex, size_t bb) const {
+Value* SSAConstructionPass::read_variable(size_t varindex, size_t bb) {
 	Value* v = current_def[varindex][bb];
-	return v;
+	if (v) {
+		// local value numbering
+		return v;
+	}
+	// global value numbering
+	return read_variable_recursive(varindex, bb);
+
+}
+
+Value* SSAConstructionPass::read_variable_recursive(size_t varindex, size_t bb) {
+	Value *val; // current definition
+	if (! sealed_blocks[bb]) {
+		assert(0 && "incomplete cfgs not yet supported");
+	} else if (BB[bb]->pred_size() == 1) { // one predecessor
+		// get first (and only predecessor
+		BeginInst *pred = *(BB[bb]->pred_begin());
+		val = read_variable(varindex, beginToIndex[pred]);
+	} else {
+		PHIInst *phi = new PHIInst(convert_var_type(varindex), BB[bb]);
+		// might get deleted by try_remove_trivial_phi()
+		M->add_Instruction(phi);
+		write_variable(varindex, bb, phi);
+		val = add_phi_operands(varindex, phi);
+	}
+	write_variable(varindex, bb, val);
+	return val;
+}
+
+Value* SSAConstructionPass::add_phi_operands(size_t varindex, PHIInst *phi) {
+	// determine operands from predecessors
+	BeginInst *BI = phi->get_BeginInst();
+	for (BeginInst::PredecessorListTy::const_iterator i = BI->pred_begin(),
+			e = BI->pred_end(); i != e; ++i) {
+		//
+		phi->append_op(read_variable(varindex,beginToIndex[*i]));
+	}
+	return try_remove_trivial_phi(phi);
+}
+
+PHIInst* SSAConstructionPass::try_remove_trivial_phi(PHIInst *phi) {
+	return phi;
 }
 
 bool SSAConstructionPass::run(JITData &JD) {
-	Method &M = *(JD.get_Method());
+	M = JD.get_Method();
 
 	basicblock *bb;
 	jitdata *jd = JD.jitdata();
 
+	// **** BEGIN initializations
+
 	// store basicblock BeginInst
-	std::vector<Instruction*> BB(jd->basicblockcount,NULL);
+	beginToIndex.clear();
+	BB.clear();
+	BB.resize(jd->basicblockcount, NULL);
 	for(int i = 0; i < jd->basicblockcount; ++i) {
-		BB[i] = new BeginInst();
+		BeginInst *bi  = new BeginInst();
+		BB[i] = bi;
+		beginToIndex.insert(std::make_pair(bi,i));
 	}
-	for(std::vector<Instruction*>::iterator i = BB.begin(), e = BB.end();
+
+	// (Local,Global) Value Numbering Map, size #bb times #var, initialized to NULL
+	current_def.clear();
+	current_def.resize(jd->vartop,std::vector<Value*>(jd->basicblockcount,NULL));
+	// sealed blocks
+	sealed_blocks.clear();
+	sealed_blocks.resize(jd->basicblockcount,true);
+	// initialize
+	var_type_tbl.clear();
+	var_type_tbl.resize(jd->vartop,Type::VoidTypeID);
+
+	// create variable type map
+	for(size_t i = 0, e = jd->vartop; i != e ; ++i) {
+		varinfo &v = jd->var[i];
+		var_type_tbl[i] = convert_var_type(v.type);
+	}
+
+	// **** END initializations
+
+	show_method(jd, SHOW_CFG);
+
+	// print BeginInsts
+	for(std::vector<BeginInst*>::iterator i = BB.begin(), e = BB.end();
 			i != e; ++i) {
 		Instruction *v = *i;
 		LOG("BB: " << (void*)v << nl);
 	}
-
-	// Local Value Numbering Map, size #bb times #var, initialized to NULL
-	current_def.resize(jd->vartop,std::vector<Value*>(jd->basicblockcount,NULL));
-
-	show_method(jd, SHOW_CFG);
-
+	// print variables
 	for(size_t i = 0, e = jd->vartop; i != e ; ++i) {
 		varinfo &v = jd->var[i];
 		LOG("var#" << i << " type: " << get_var_type(v.type) << nl);
@@ -827,13 +913,13 @@ bool SSAConstructionPass::run(JITData &JD) {
 
 		// add begin block
 		assert(BB[bb->nr]);
-		M.add_instruction(BB[bb->nr]);
+		M->add_Instruction(BB[bb->nr]);
 
 		FOR_EACH_INSTRUCTION(bb,iptr) {
 			LOG("iptr: " << icmd_table[iptr->opc].name << nl);
 			switch (iptr->opc) {
 			case ICMD_NOP:
-				//M.add_instruction(new NOPInst());
+				//M->add_Instruction(new NOPInst());
 				break;
 			case ICMD_POP:
 			case ICMD_CHECKNULL:
@@ -874,7 +960,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bb->nr);
 					Instruction *result = new ADDInst(Type::LongTypeID, s1, s2);
 					write_variable(iptr->dst.varindex,bb->nr,result);
-					M.add_instruction(result);
+					M->add_Instruction(result);
 				}
 				break;
 			case ICMD_FADD:
@@ -962,8 +1048,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Instruction *konst = new CONSTInst(iptr->sx.val.l);
 					Value *s1 = read_variable(iptr->s1.varindex,bb->nr);
 					Instruction *result = new SUBInst(Type::LongTypeID, s1, konst);
-					M.add_instruction(konst);
-					M.add_instruction(result);
+					M->add_Instruction(konst);
+					M->add_Instruction(result);
 				}
 				break;
 			case ICMD_LMULCONST:
@@ -991,7 +1077,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 				{
 					Instruction *I = new CONSTInst(iptr->sx.val.l);
 					write_variable(iptr->dst.varindex,bb->nr,I);
-					M.add_instruction(I);
+					M->add_Instruction(I);
 				}
 				break;
 		//		SHOW_LNG_CONST(OS, iptr->sx.val.l);	
@@ -1096,28 +1182,28 @@ bool SSAConstructionPass::run(JITData &JD) {
 				{
 					Instruction *I = new LOADInst(Type::IntTypeID, iptr->s1.varindex);
 					write_variable(iptr->dst.varindex,bb->nr,I);
-					M.add_instruction(I);
+					M->add_Instruction(I);
 				}
 				break;
 			case ICMD_LLOAD:
 				{
 					Instruction *I = new LOADInst(Type::LongTypeID, iptr->s1.varindex);
 					write_variable(iptr->dst.varindex,bb->nr,I);
-					M.add_instruction(I);
+					M->add_Instruction(I);
 				}
 				break;
 			case ICMD_FLOAD:
 				{
 					Instruction *I = new LOADInst(Type::FloatTypeID, iptr->s1.varindex);
 					write_variable(iptr->dst.varindex,bb->nr,I);
-					M.add_instruction(I);
+					M->add_Instruction(I);
 				}
 				break;
 			case ICMD_DLOAD:
 				{
 					Instruction *I = new LOADInst(Type::DoubleTypeID, iptr->s1.varindex);
 					write_variable(iptr->dst.varindex,bb->nr,I);
-					M.add_instruction(I);
+					M->add_Instruction(I);
 				}
 				break;
 			case ICMD_ALOAD:
@@ -1257,10 +1343,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 						// TODO understand
 						//if ((iptr->s1.argcount - 1 - i) == md->paramcount)
 						//	printf(" pass-through: ");
-						I->add_operand(current_def[bb->nr][*(argp++)]);
+						I->append_op(read_variable(*(argp++),bb->nr));
 					}
 
-					M.add_instruction(I);
+					M->add_Instruction(I);
 				}
 				break;
 			case ICMD_INVOKEINTERFACE:
@@ -1307,10 +1393,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 					assert(BB[bb->nr+1]);
 					BeginInst *falseBlock = BB[bb->nr+1]->to_BeginInst();
 					assert(falseBlock);
-					Instruction *result = new IFInst(s1, konst, Conditional::NE,
+					Instruction *result = new IFInst(BB[bb->nr], s1, konst, Conditional::NE,
 						trueBlock, falseBlock);
-					M.add_instruction(konst);
-					M.add_instruction(result);
+					M->add_Instruction(konst);
+					M->add_Instruction(result);
 				}
 				break;
 			case ICMD_IF_LLT:
@@ -1326,10 +1412,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 					assert(BB[bb->nr+1]);
 					BeginInst *falseBlock = BB[bb->nr+1]->to_BeginInst();
 					assert(falseBlock);
-					Instruction *result = new IFInst(s1, konst, Conditional::GE,
+					Instruction *result = new IFInst(BB[bb->nr], s1, konst, Conditional::GE,
 						trueBlock, falseBlock);
-					M.add_instruction(konst);
-					M.add_instruction(result);
+					M->add_Instruction(konst);
+					M->add_Instruction(result);
 				}
 				break;
 			case ICMD_IF_LGT:
@@ -1415,7 +1501,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 				{
 					Value *s1 = read_variable(iptr->s1.varindex,bb->nr);
 					Instruction *result = new RETURNInst(Type::LongTypeID, s1);
-					M.add_instruction(result);
+					M->add_Instruction(result);
 				}
 				break;
 		//		SHOW_S1(OS, iptr);

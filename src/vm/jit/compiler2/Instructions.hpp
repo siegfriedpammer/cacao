@@ -48,32 +48,34 @@ public:
 class UnaryInst : public Instruction {
 public:
 	explicit UnaryInst(InstID id, Type::TypeID type, Value* S1) : Instruction(id, type) {
-		operand_list.push_back(S1);
+		append_op(S1);
 	}
 };
 
 class BinaryInst : public Instruction {
 public:
 	explicit BinaryInst(InstID id, Type::TypeID type, Value* S1, Value* S2) : Instruction(id, type) {
-		operand_list.push_back(S1);
-		operand_list.push_back(S2);
+		append_op(S1);
+		append_op(S2);
 	}
 };
 
 class MultiOpInst : public Instruction {
 public:
 	explicit MultiOpInst(InstID id, Type::TypeID type) : Instruction(id, type) {}
-	void add_operand(Value* op) {
-		operand_list.push_back(op);
-	}
+
+	// exporting to the public
+	using Instruction::append_op;
 };
 
-class CondInst : public BinaryInst {
+/**
+ * TODO not a real Instruction... hmm
+ */
+class CondInst {
 protected:
 	Conditional::CondID cond;
 public:
-	explicit CondInst(InstID id, Type::TypeID type, Value* S1, Value* S2, Conditional::CondID cond)
-		: BinaryInst(id, type, S1, S2), cond(cond) {}
+	explicit CondInst(Conditional::CondID cond) : cond(cond){}
 };
 
 
@@ -82,8 +84,25 @@ public:
  */
 class BeginInst : public Instruction {
 public:
-	explicit BeginInst() : Instruction(BeginInstID, Type::VoidTypeID) {}
+	typedef std::vector<BeginInst*> PredecessorListTy;
+private:
+	EndInst *end;
+	PredecessorListTy pred_list;
+public:
+	explicit BeginInst() : Instruction(BeginInstID, Type::VoidTypeID) {
+		end = NULL;
+	}
+	explicit BeginInst(EndInst *end) : Instruction(BeginInstID, Type::VoidTypeID), end(end) {}
 	virtual BeginInst* to_BeginInst() { return this; }
+
+	EndInst *get_EndInst() const { return end; }
+	void set_EndInst(EndInst* e) { end = e; }
+
+	PredecessorListTy::const_iterator pred_begin() const { return pred_list.begin(); }
+	PredecessorListTy::const_iterator pred_end()   const { return pred_list.end(); }
+	size_t pred_size() const { return pred_list.size(); }
+
+	friend class EndInst;
 };
 
 /**
@@ -91,8 +110,31 @@ public:
  */
 class EndInst : public Instruction {
 public:
-	explicit EndInst() : Instruction(EndInstID, Type::VoidTypeID) {}
+	typedef std::vector<BeginInst*> SuccessorListTy;
+private:
+	SuccessorListTy succ_list;
+	BeginInst* begin;
+public:
+	explicit EndInst(BeginInst* begin) : Instruction(EndInstID, Type::VoidTypeID), begin(begin) {
+		assert(begin);
+		begin->set_EndInst(this);
+	}
+	explicit EndInst(InstID id, BeginInst* begin) : Instruction(id, Type::VoidTypeID), begin(begin) {
+		assert(begin);
+		begin->set_EndInst(this);
+	}
 	virtual EndInst* to_EndInst() { return this; }
+	BeginInst *get_BeginInst() const { return begin; }
+
+	void append_succ(BeginInst* bi) {
+		assert(bi);
+		succ_list.push_back(bi);
+		bi->pred_list.push_back(begin);
+	}
+	SuccessorListTy::const_iterator succ_begin() const { return succ_list.begin(); }
+	SuccessorListTy::const_iterator succ_end()   const { return succ_list.end(); }
+	size_t succ_size() const { return succ_list.size(); }
+
 };
 
 
@@ -368,12 +410,15 @@ public:
 	virtual INVOKEINTERFACEInst* to_INVOKEINTERFACEInst() { return this; }
 };
 
-class IFInst : public CondInst {
+class IFInst : public EndInst, public CondInst {
 public:
-	explicit IFInst(Value* S1, Value* S2, Conditional::CondID cond, BeginInst* trueBlock, BeginInst* falseBlock)
-			: CondInst(IFInstID, Type::VoidTypeID, S1, S2, cond) {
-		successor_list.push_back(trueBlock);
-		successor_list.push_back(falseBlock);
+	explicit IFInst(BeginInst *begin, Value* S1, Value* S2, Conditional::CondID cond,
+			BeginInst* trueBlock, BeginInst* falseBlock)
+			: EndInst(IFInstID, begin), CondInst(cond) {
+		append_op(S1);
+		append_op(S2);
+		append_succ(trueBlock);
+		append_succ(falseBlock);
 	}
 	virtual IFInst* to_IFInst() { return this; }
 };
@@ -426,10 +471,20 @@ public:
 	virtual GETEXCEPTIONInst* to_GETEXCEPTIONInst() { return this; }
 };
 
-class PHIInst : public Instruction {
+class PHIInst : public MultiOpInst {
 public:
-	explicit PHIInst(Type::TypeID type) : Instruction(PHIInstID, type) {}
+	explicit PHIInst(Type::TypeID type, BeginInst *begin) : MultiOpInst(PHIInstID, type) {
+		append_dep(begin);
+	}
 	virtual PHIInst* to_PHIInst() { return this; }
+
+	BeginInst* get_BeginInst() const {
+		BeginInst *begin = (*dep_begin())->to_BeginInst();
+		assert(begin);
+		return begin;
+	}
+	// exporting to the public
+	using Instruction::append_op;
 };
 
 } // end namespace cacao

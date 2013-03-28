@@ -29,7 +29,7 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-void Method::add_instruction(Instruction* I) {
+void Method::add_Instruction(Instruction* I) {
 	assert(I);
 	I->set_method(this);
 	inst_list.push_back(I);

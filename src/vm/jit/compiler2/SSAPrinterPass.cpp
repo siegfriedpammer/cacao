@@ -42,6 +42,10 @@ class SSAGraph : public GraphTraits<Method,Instruction> {
 protected:
     const Method &M;
     bool verbose;
+	std::set<EdgeType> data_dep;
+	std::set<EdgeType> sched_dep;
+	std::set<EdgeType> cfg_edges;
+
 public:
 
     SSAGraph(const Method &M, bool verbose = false) : M(M), verbose(verbose) {
@@ -57,19 +61,34 @@ public:
 					Instruction *II = (*ii)->to_Instruction();
 					if (II) {
 						EdgeType edge = std::make_pair(I,II);
+						data_dep.insert(edge);
 						edges.insert(edge);
 					}
 				}
 			}
-			// add successor link
-			for(Instruction::SuccessorListTy::const_iterator ii = I->succ_begin(), ee = I->succ_end();
+			// add dependency link
+			for(Instruction::DepListTy::const_iterator ii = I->dep_begin(), ee = I->dep_end();
 				ii != ee; ++ii) {
-				Value *v = (*ii);
-				if (v) {
-					Instruction *II = (*ii)->to_Instruction();
-					if (II) {
-						EdgeType edge = std::make_pair(I,II);
-						edges.insert(edge);
+				Instruction *II = (*ii);
+				if (II) {
+					EdgeType edge = std::make_pair(I,II);
+					sched_dep.insert(edge);
+					edges.insert(edge);
+				}
+			}
+			// add successor link
+			EndInst *EI = I->to_EndInst();
+			if (EI) {
+				for(EndInst::SuccessorListTy::const_iterator ii = EI->succ_begin(), ee = EI->succ_end();
+					ii != ee; ++ii) {
+					Value *v = (*ii);
+					if (v) {
+						Instruction *II = (*ii)->to_Instruction();
+						if (II) {
+							EdgeType edge = std::make_pair(EI,II);
+							cfg_edges.insert(edge);
+							edges.insert(edge);
+						}
 					}
 				}
 			}
@@ -103,8 +122,19 @@ public:
 
     StringBuf getEdgeLabel(const SSAGraph::EdgeType &e) const ;
 
-    StringBuf getEdgeAttributes(const SSAGraph::EdgeType &e) const ;
 #endif
+    StringBuf getEdgeAttributes(const SSAGraph::EdgeType &e) const {
+		StringBuf attr;
+		if (data_dep.find(e) != data_dep.end()) {
+			attr +="color=red,";
+		}
+		#if 0
+		if (sched_dep.find(e) != data_dep.end()) {
+			attr +="color=blue,";
+		}
+		#endif
+		return attr;
+	}
 };
 
 } // end anonymous namespace

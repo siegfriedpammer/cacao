@@ -47,10 +47,17 @@ namespace compiler2 {
  */
 class SSAConstructionPass : public Pass {
 private:
+	Method *M;
+	std::vector<BeginInst*> BB;
+	std::map<BeginInst*,size_t> beginToIndex;
 	std::vector<std::vector<Value*> > current_def;
+	std::vector<bool> sealed_blocks;
+	std::vector<Type::TypeID> var_type_tbl;
 	inline void write_variable(size_t varindex, size_t bb, Value *V);
-	inline Value* read_variable(size_t varindex, size_t bb) const;
-	inline Value* read_variable_recursive(size_t varindex, size_t bb) const;
+	inline Value* read_variable(size_t varindex, size_t bb);
+	inline Value* read_variable_recursive(size_t varindex, size_t bb);
+	inline Value* add_phi_operands(size_t varindex, PHIInst *phi);
+	inline PHIInst* try_remove_trivial_phi(PHIInst *phi);
 public:
 	SSAConstructionPass(PassManager *PM) : Pass(PM) {}
 	bool run(JITData &JD);

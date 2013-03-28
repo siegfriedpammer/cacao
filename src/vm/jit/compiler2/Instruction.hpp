@@ -36,6 +36,8 @@
 #include "vm/jit/compiler2/Method.hpp"
 
 #include <vector>
+#include <set>
+
 #include <stddef.h>
 
 namespace cacao {
@@ -49,8 +51,6 @@ class BasicBlock;
 class LoadInst;
 class UnaryInst;
 class BinaryInst;
-
-class CondInst;
 
 // Instructions forward defs
 
@@ -134,7 +134,7 @@ class EndInst;
 class Instruction : public Value {
 public:
 	typedef std::vector<Value*> OperandListTy;
-	typedef std::vector<BeginInst*> SuccessorListTy;
+	typedef std::vector<Instruction*> DepListTy;
 
 	enum InstID {
 		NOPInstID,
@@ -194,17 +194,25 @@ public:
 
 		NoInstID
 	};
+private:
+	OperandListTy op_list;
+	DepListTy dep_list;
 
 protected:
 	const InstID id;
-	OperandListTy operand_list;
-	SuccessorListTy successor_list;
-	unsigned number_of_operands;
 	BasicBlock *parent;				   ///< BasicBlock containing the instruction or NULL
 	Type::TypeID type;
 	Method* method;
 
 	explicit Instruction() : id(NoInstID) {}
+
+	void append_op(Value* v) {
+		op_list.push_back(v);
+	}
+
+	void append_dep(Instruction* I) {
+		dep_list.push_back(I);
+	}
 
 public:
 	explicit Instruction(InstID id, Type::TypeID type) : id(id), type(type) {}
@@ -216,11 +224,13 @@ public:
 	void set_method(Method* M) { method = M; }
 	Method* get_method() const { return method; }
 
-	unsigned get_number_operands() const { return number_of_operands; }
-	OperandListTy::const_iterator op_begin() const { return operand_list.begin(); }
-	OperandListTy::const_iterator op_end()   const { return operand_list.end(); }
-	SuccessorListTy::const_iterator succ_begin() const { return successor_list.begin(); }
-	SuccessorListTy::const_iterator succ_end()   const { return successor_list.end(); }
+	OperandListTy::const_iterator op_begin() const { return op_list.begin(); }
+	OperandListTy::const_iterator op_end()   const { return op_list.end(); }
+	size_t op_size() const { return op_list.size(); }
+
+	DepListTy::const_iterator dep_begin() const { return dep_list.begin(); }
+	DepListTy::const_iterator dep_end()   const { return dep_list.end(); }
+	size_t dep_size() const { return dep_list.size(); }
 
 	bool is_terminator() const;              ///< true if the instruction terminates a basic block
 
