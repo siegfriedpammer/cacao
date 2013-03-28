@@ -45,6 +45,7 @@ protected:
 	std::set<EdgeType> data_dep;
 	std::set<EdgeType> sched_dep;
 	std::set<EdgeType> cfg_edges;
+	std::set<EdgeType> begin2end_edges;
 
 public:
 
@@ -91,6 +92,9 @@ public:
 						}
 					}
 				}
+				EdgeType edge = std::make_pair(EI->get_BeginInst(),EI);
+				begin2end_edges.insert(edge);
+				edges.insert(edge);
 			}
 		}
 	}
@@ -128,11 +132,12 @@ public:
 		if (data_dep.find(e) != data_dep.end()) {
 			attr +="color=red,";
 		}
-		#if 0
-		if (sched_dep.find(e) != data_dep.end()) {
+		if (sched_dep.find(e) != sched_dep.end()) {
 			attr +="color=blue,";
 		}
-		#endif
+		if (begin2end_edges.find(e) != begin2end_edges.end()) {
+			attr +="style=dashed,";
+		}
 		return attr;
 	}
 };

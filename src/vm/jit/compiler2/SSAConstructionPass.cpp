@@ -816,6 +816,11 @@ Value* SSAConstructionPass::read_variable(size_t varindex, size_t bb) {
 
 Value* SSAConstructionPass::read_variable_recursive(size_t varindex, size_t bb) {
 	Value *val; // current definition
+	if(BB[bb]->pred_size() == 0) {
+		err() << BoldRed << "error: " << reset_color << "no predecessor " << BoldWhite
+			  << "basicblock" << bb << reset_color << nl;
+		assert(0);
+	}
 	if (! sealed_blocks[bb]) {
 		assert(0 && "incomplete cfgs not yet supported");
 	} else if (BB[bb]->pred_size() == 1) { // one predecessor
@@ -824,10 +829,11 @@ Value* SSAConstructionPass::read_variable_recursive(size_t varindex, size_t bb) 
 		val = read_variable(varindex, beginToIndex[pred]);
 	} else {
 		PHIInst *phi = new PHIInst(convert_var_type(varindex), BB[bb]);
-		// might get deleted by try_remove_trivial_phi()
-		M->add_Instruction(phi);
 		write_variable(varindex, bb, phi);
 		val = add_phi_operands(varindex, phi);
+		// might get deleted by try_remove_trivial_phi()
+		assert(val->to_Instruction());
+		M->add_Instruction(val->to_Instruction());
 	}
 	write_variable(varindex, bb, val);
 	return val;
@@ -846,6 +852,25 @@ Value* SSAConstructionPass::add_phi_operands(size_t varindex, PHIInst *phi) {
 
 PHIInst* SSAConstructionPass::try_remove_trivial_phi(PHIInst *phi) {
 	return phi;
+}
+void SSAConstructionPass::print_current_def() const {
+	for(std::vector<std::vector<Value*> >::const_iterator i = current_def.begin(),
+			e = current_def.end(); i != e ; ++i) {
+		for(std::vector<Value*>::const_iterator ii = (*i).begin(),
+				ee = (*i).end(); ii != ee ; ++ii) {
+			Value *v = *ii;
+			Instruction *I;
+			int max = 20;
+			if (!v) {
+				dbg() << setw(max) << "NULL";
+			} else if ( (I = v->to_Instruction()) ) {
+				dbg() << setw(max) << I->get_name();
+			} else {
+				dbg() << setw(max) << "VALUE";
+			}
+		}
+		dbg() << nl;
+	}
 }
 
 bool SSAConstructionPass::run(JITData &JD) {
@@ -1049,6 +1074,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Value *s1 = read_variable(iptr->s1.varindex,bb->nr);
 					Instruction *result = new SUBInst(Type::LongTypeID, s1, konst);
 					M->add_Instruction(konst);
+					write_variable(iptr->dst.varindex,bb->nr,result);
 					M->add_Instruction(result);
 				}
 				break;
@@ -1345,7 +1371,9 @@ bool SSAConstructionPass::run(JITData &JD) {
 						//	printf(" pass-through: ");
 						I->append_op(read_variable(*(argp++),bb->nr));
 					}
-
+					if (type != Type::VoidTypeID) {
+						write_variable(iptr->dst.varindex,bb->nr,I);
+					}
 					M->add_Instruction(I);
 				}
 				break;
@@ -1500,7 +1528,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_LRETURN:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex,bb->nr);
-					Instruction *result = new RETURNInst(Type::LongTypeID, s1);
+					Instruction *result = new RETURNInst(BB[bb->nr], s1);
 					M->add_Instruction(result);
 				}
 				break;

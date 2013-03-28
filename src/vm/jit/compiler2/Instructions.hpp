@@ -441,9 +441,11 @@ public:
 	virtual LOOKUPSWITCHInst* to_LOOKUPSWITCHInst() { return this; }
 };
 
-class RETURNInst : public UnaryInst {
+class RETURNInst : public EndInst {
 public:
-	explicit RETURNInst(Type::TypeID type, Value* S1) : UnaryInst(RETURNInstID, type, S1) {}
+	explicit RETURNInst(BeginInst *begin, Value* S1) : EndInst(RETURNInstID, begin) {
+		append_op(S1);
+	}
 	virtual RETURNInst* to_RETURNInst() { return this; }
 };
 
