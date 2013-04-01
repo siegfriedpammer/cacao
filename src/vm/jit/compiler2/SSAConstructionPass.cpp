@@ -881,11 +881,40 @@ bool SSAConstructionPass::run(JITData &JD) {
 
 	// **** BEGIN initializations
 
+	/**
+	 * There are two kinds of variables in the baseline ir. The javalocals as defined
+	 * in the JVM specification (2.6.1.). These are used for arguments and other values
+	 * not stored on the JVM stack. These variables are addressed using an index. Every
+	 * 'slot' can contain values of each basic type. The type is defined by the access
+	 * instruction (e.g. ILOAD, ISTORE for integer). These instructions are introduced
+	 * by the java compiler (usually javac).
+	 * The other group of variables are intended to replace the jvm stack and are created
+	 * by the baseline parse/stackanalysis pass. In contrast to the javalocals these
+	 * variables have a fixed typed. They are used as arguments and results for
+	 * baseline IR instructions.
+	 * For simplicity of the compiler2 IR both variables groups are treated the same way.
+	 * Their current definitions are stored in a value numbering table.
+	 * The number of variables is already known at this point for both types.
+	 */
+	unsigned int num_variables = jd->vartop;
+	// last block used for argument loading
+	unsigned int num_basicblocks = jd->basicblockcount;
+	unsigned int init_basicblock = 0;
+	bool extra_init_bb = jd->basicblocks[0].predecessorcount;
+
+	assert(jd->basicblockcount);
+	if (extra_init_bb) {
+		// The first basicblock is the target of a jump (e.g. loophead).
+		// We have to create a new one to load the arguments
+		++num_basicblocks;
+		init_basicblock = jd->basicblockcount;
+	}
+
 	// store basicblock BeginInst
 	beginToIndex.clear();
 	BB.clear();
-	BB.resize(jd->basicblockcount, NULL);
-	for(int i = 0; i < jd->basicblockcount; ++i) {
+	BB.resize(num_basicblocks, NULL);
+	for(int i = 0; i < num_basicblocks; ++i) {
 		BeginInst *bi  = new BeginInst();
 		BB[i] = bi;
 		beginToIndex.insert(std::make_pair(bi,i));
@@ -893,10 +922,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 
 	// (Local,Global) Value Numbering Map, size #bb times #var, initialized to NULL
 	current_def.clear();
-	current_def.resize(jd->vartop,std::vector<Value*>(jd->basicblockcount,NULL));
+	current_def.resize(jd->vartop,std::vector<Value*>(num_basicblocks,NULL));
 	// sealed blocks
 	sealed_blocks.clear();
-	sealed_blocks.resize(jd->basicblockcount,true);
+	sealed_blocks.resize(num_basicblocks,true);
 	// initialize
 	var_type_tbl.clear();
 	var_type_tbl.resize(jd->vartop,Type::VoidTypeID);
@@ -905,6 +934,35 @@ bool SSAConstructionPass::run(JITData &JD) {
 	for(size_t i = 0, e = jd->vartop; i != e ; ++i) {
 		varinfo &v = jd->var[i];
 		var_type_tbl[i] = convert_var_type(v.type);
+	}
+
+	// initialize arguments
+	methoddesc *md = jd->m->parseddesc;
+	assert(md);
+	assert(md->paramtypes);
+
+	if (extra_init_bb)
+		M->add_Instruction(BB[init_basicblock]);
+	for (int i = 0; i < md->paramslots; ++i) {
+		int type = md->paramtypes[i].type;
+		int varindex = jd->local_map[i * 5 + type];
+		assert(varindex != UNUSED);
+
+		Instruction *I = new LOADInst(convert_var_type(type), varindex);
+		write_variable(varindex,init_basicblock,I);
+		M->add_Instruction(I);
+
+		switch (type) {
+			case TYPE_LNG:
+			case TYPE_DBL:
+				++i;
+				break;
+		}
+	}
+	if (extra_init_bb) {
+		BeginInst *targetBlock = BB[0]->to_BeginInst();
+		Instruction *result = new GOTOInst(BB[init_basicblock], targetBlock);
+		M->add_Instruction(result);
 	}
 
 	// **** END initializations
@@ -923,6 +981,32 @@ bool SSAConstructionPass::run(JITData &JD) {
 		LOG("var#" << i << " type: " << get_var_type(v.type) << nl);
 	}
 	LOG("# variables: " << jd->vartop << nl);
+	LOG("# javalocals: " << jd->localcount << nl);
+	// print arguments
+	LOG("# parameters: " << md->paramcount << nl);
+	LOG("# parameter slots: " << md->paramslots << nl);
+	for (int i = 0; i < md->paramslots; ++i) {
+		int type = md->paramtypes[i].type;
+		LOG("argument type: " << get_var_type(type)
+		    << " (index " << i << ")"
+		    << " (var_local " << jd->local_map[i * 5 + type] << ")" << nl);
+		switch (type) {
+			case TYPE_LNG:
+			case TYPE_DBL:
+				++i;
+				break;
+		}
+	}
+	for (int i = 0; i < jd->maxlocals; ++i) {
+		LOG("localindex: " << i << nl);
+		for (int j = 0; j < 5; ++j) {
+			s4 entry = jd->local_map[i*5+j];
+			if (entry == UNUSED)
+				LOG("  type " <<get_var_type(j) << " UNUSED" << nl);
+			else
+				LOG("  type " <<get_var_type(j) << " " << entry << nl);
+		}
+	}
 
 	FOR_EACH_BASICBLOCK(jd,bb) {
 		if (bb->icount == 0 ) {
@@ -933,12 +1017,13 @@ bool SSAConstructionPass::run(JITData &JD) {
 			// we dont need it
 			continue;
 		}
+		s4 bbindex = bb->nr;
 		instruction *iptr;
-		LOG("basicblock: " << bb->nr << nl);
+		LOG("basicblock: " << bbindex << nl);
 
 		// add begin block
-		assert(BB[bb->nr]);
-		M->add_Instruction(BB[bb->nr]);
+		assert(BB[bbindex]);
+		M->add_Instruction(BB[bbindex]);
 
 		FOR_EACH_INSTRUCTION(bb,iptr) {
 			LOG("iptr: " << icmd_table[iptr->opc].name << nl);
@@ -981,10 +1066,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 				goto _default;
 			case ICMD_LADD:
 				{
-					Value *s1 = read_variable(iptr->s1.varindex, bb->nr);
-					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bb->nr);
+					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
+					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
 					Instruction *result = new ADDInst(Type::LongTypeID, s1, s2);
-					write_variable(iptr->dst.varindex,bb->nr,result);
+					write_variable(iptr->dst.varindex,bbindex,result);
 					M->add_Instruction(result);
 				}
 				break;
@@ -1033,7 +1118,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_IADDCONST:
 			case ICMD_ISUBCONST:
 				{
-					Value *s1 = read_variable(iptr->s1.varindex,bb->nr);
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
 					Instruction *konst = new CONSTInst(iptr->sx.val.i);
 					Instruction *result;
 					switch (iptr->opc) {
@@ -1046,7 +1131,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					default: assert(0);
 					}
 					M->add_Instruction(konst);
-					write_variable(iptr->dst.varindex,bb->nr,result);
+					write_variable(iptr->dst.varindex,bbindex,result);
 					M->add_Instruction(result);
 				}
 				break;
@@ -1093,21 +1178,29 @@ bool SSAConstructionPass::run(JITData &JD) {
 						break;
 					default: assert(0);
 					}
-					write_variable(iptr->dst.varindex,bb->nr,I);
+					write_variable(iptr->dst.varindex,bbindex,I);
 					M->add_Instruction(I);
 				}
 				break;
 
 				/* binary/const LNG */
 			case ICMD_LADDCONST:
-				goto _default;
+				{
+					Instruction *konst = new CONSTInst(iptr->sx.val.l);
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+					Instruction *result = new ADDInst(Type::LongTypeID, s1, konst);
+					M->add_Instruction(konst);
+					write_variable(iptr->dst.varindex,bbindex,result);
+					M->add_Instruction(result);
+				}
+				break;
 			case ICMD_LSUBCONST:
 				{
 					Instruction *konst = new CONSTInst(iptr->sx.val.l);
-					Value *s1 = read_variable(iptr->s1.varindex,bb->nr);
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
 					Instruction *result = new SUBInst(Type::LongTypeID, s1, konst);
 					M->add_Instruction(konst);
-					write_variable(iptr->dst.varindex,bb->nr,result);
+					write_variable(iptr->dst.varindex,bbindex,result);
 					M->add_Instruction(result);
 				}
 				break;
@@ -1232,6 +1325,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_FLOAD:
 			case ICMD_DLOAD:
 				{
+					#if 0
 					Instruction *I;
 					switch (iptr->opc) {
 					case ICMD_ILOAD:
@@ -1248,8 +1342,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 						break;
 					default: assert(0);
 					}
-					write_variable(iptr->dst.varindex,bb->nr,I);
-					M->add_Instruction(I);
+					#endif
+					assert(read_variable(iptr->s1.varindex,bbindex));
+					write_variable(iptr->dst.varindex,bbindex,
+					    read_variable(iptr->s1.varindex,bbindex));
 				}
 				break;
 			case ICMD_ALOAD:
@@ -1257,8 +1353,14 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		SHOW_DST(OS, iptr);
 		//		break;
 
+				goto _default;
 			case ICMD_ISTORE:
 			case ICMD_LSTORE:
+				{
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+					write_variable(iptr->dst.varindex,bbindex,s1);
+				}
+				break;
 			case ICMD_FSTORE:
 			case ICMD_DSTORE:
 			case ICMD_ASTORE:
@@ -1389,10 +1491,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 						// TODO understand
 						//if ((iptr->s1.argcount - 1 - i) == md->paramcount)
 						//	printf(" pass-through: ");
-						I->append_op(read_variable(*(argp++),bb->nr));
+						I->append_op(read_variable(*(argp++),bbindex));
 					}
 					if (type != Type::VoidTypeID) {
-						write_variable(iptr->dst.varindex,bb->nr,I);
+						write_variable(iptr->dst.varindex,bbindex,I);
 					}
 					M->add_Instruction(I);
 				}
@@ -1435,15 +1537,15 @@ bool SSAConstructionPass::run(JITData &JD) {
 						break;
 					}
 					Instruction *konst = new CONSTInst(iptr->sx.val.i);
-					Value *s1 = read_variable(iptr->s1.varindex,bb->nr);
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
 					assert(s1);
 					assert(BB[iptr->dst.block->nr]);
 					BeginInst *trueBlock = BB[iptr->dst.block->nr]->to_BeginInst();
 					assert(trueBlock);
-					assert(BB[bb->nr+1]);
-					BeginInst *falseBlock = BB[bb->nr+1]->to_BeginInst();
+					assert(BB[bbindex+1]);
+					BeginInst *falseBlock = BB[bbindex+1]->to_BeginInst();
 					assert(falseBlock);
-					Instruction *result = new IFInst(BB[bb->nr], s1, konst, cond,
+					Instruction *result = new IFInst(BB[bbindex], s1, konst, cond,
 						trueBlock, falseBlock);
 					M->add_Instruction(konst);
 					M->add_Instruction(result);
@@ -1469,22 +1571,21 @@ bool SSAConstructionPass::run(JITData &JD) {
 						break;
 					}
 					Instruction *konst = new CONSTInst(iptr->sx.val.l);
-					Value *s1 = read_variable(iptr->s1.varindex,bb->nr);
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
 					assert(s1);
 					assert(BB[iptr->dst.block->nr]);
 					BeginInst *trueBlock = BB[iptr->dst.block->nr]->to_BeginInst();
 					assert(trueBlock);
-					assert(BB[bb->nr+1]);
-					BeginInst *falseBlock = BB[bb->nr+1]->to_BeginInst();
+					assert(BB[bbindex+1]);
+					BeginInst *falseBlock = BB[bbindex+1]->to_BeginInst();
 					assert(falseBlock);
-					Instruction *result = new IFInst(BB[bb->nr], s1, konst, cond,
+					Instruction *result = new IFInst(BB[bbindex], s1, konst, cond,
 						trueBlock, falseBlock);
 					M->add_Instruction(konst);
 					M->add_Instruction(result);
 				}
 				break;
 			case ICMD_IF_LLT:
-				goto _default;
 			case ICMD_IF_LGT:
 			case ICMD_IF_LLE:
 		//		SHOW_S1(OS, iptr);
@@ -1492,7 +1593,15 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		SHOW_TARGET(OS, iptr->dst);
 		//		break;
 		//
+				goto _default;
 			case ICMD_GOTO:
+				{
+					assert(BB[iptr->dst.block->nr]);
+					BeginInst *targetBlock = BB[iptr->dst.block->nr]->to_BeginInst();
+					Instruction *result = new GOTOInst(BB[bbindex], targetBlock);
+					M->add_Instruction(result);
+				}
+				break;
 		//		SHOW_TARGET(OS, iptr->dst);
 		//		break;
 
@@ -1519,7 +1628,30 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_IF_LCMPLT:
 			case ICMD_IF_LCMPGE:
 			case ICMD_IF_LCMPGT:
+				goto _default;
 			case ICMD_IF_LCMPLE:
+				{
+					Conditional::CondID cond;
+					switch (iptr->opc) {
+					case ICMD_IF_LCMPLE:
+						cond = Conditional::LE;
+						break;
+					}
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
+					assert(s1);
+					assert(s2);
+					assert(BB[iptr->dst.block->nr]);
+					BeginInst *trueBlock = BB[iptr->dst.block->nr]->to_BeginInst();
+					assert(trueBlock);
+					assert(BB[bbindex+1]);
+					BeginInst *falseBlock = BB[bbindex+1]->to_BeginInst();
+					assert(falseBlock);
+					Instruction *result = new IFInst(BB[bbindex], s1, s2, cond,
+						trueBlock, falseBlock);
+					M->add_Instruction(result);
+				}
+				break;
 
 			case ICMD_IF_ACMPEQ:
 			case ICMD_IF_ACMPNE:
@@ -1567,8 +1699,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_DRETURN:
 			case ICMD_LRETURN:
 				{
-					Value *s1 = read_variable(iptr->s1.varindex,bb->nr);
-					Instruction *result = new RETURNInst(BB[bb->nr], s1);
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+					Instruction *result = new RETURNInst(BB[bbindex], s1);
 					M->add_Instruction(result);
 				}
 				break;

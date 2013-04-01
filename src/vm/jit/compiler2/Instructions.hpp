@@ -368,9 +368,12 @@ public:
 	virtual INSTANCEOFInst* to_INSTANCEOFInst() { return this; }
 };
 
-class GOTOInst : public Instruction {
+class GOTOInst : public EndInst {
 public:
-	explicit GOTOInst(Type::TypeID type) : Instruction(GOTOInstID, type) {}
+	explicit GOTOInst(BeginInst *begin, BeginInst* targetBlock)
+			: EndInst(GOTOInstID, begin) {
+		append_succ(targetBlock);
+	}
 	virtual GOTOInst* to_GOTOInst() { return this; }
 };
 
