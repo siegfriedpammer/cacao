@@ -141,7 +141,7 @@ s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src,s4 tempreg)
 
 *******************************************************************************/
 
-inline s4 emit_load_high(jitdata *jd, instruction *iptr,varinfo *src,s4 tempreg)
+s4 emit_load_high(jitdata *jd, instruction *iptr,varinfo *src,s4 tempreg)
 {
 	codegendata  *cd;
 	s4            disp;
@@ -175,7 +175,7 @@ inline s4 emit_load_high(jitdata *jd, instruction *iptr,varinfo *src,s4 tempreg)
 
 *******************************************************************************/
 
-inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
+void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 {
 	codegendata  *cd;
 	s4            disp;
@@ -217,7 +217,7 @@ inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 
 *******************************************************************************/
 
-inline void emit_store_low(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
+void emit_store_low(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 {
 	codegendata  *cd;
 
@@ -241,7 +241,7 @@ inline void emit_store_low(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 
 *******************************************************************************/
 
-inline void emit_store_high(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
+void emit_store_high(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 {
 	codegendata  *cd;
 
