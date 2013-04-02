@@ -821,8 +821,11 @@ Value* SSAConstructionPass::read_variable_recursive(size_t varindex, size_t bb) 
 			  << "basicblock" << bb << reset_color << nl;
 		assert(0);
 	}
-	if (! sealed_blocks[bb]) {
-		assert(0 && "incomplete cfgs not yet supported");
+	if (!sealed_blocks[bb]) {
+		PHIInst *phi = new PHIInst(convert_var_type(varindex), BB[bb]);
+		incomplete_phi[bb][varindex] = phi;
+		M->add_Instruction(phi);
+		val = phi;
 	} else if (BB[bb]->pred_size() == 1) { // one predecessor
 		// get first (and only predecessor
 		BeginInst *pred = *(BB[bb]->pred_begin());
@@ -850,9 +853,42 @@ Value* SSAConstructionPass::add_phi_operands(size_t varindex, PHIInst *phi) {
 	return try_remove_trivial_phi(phi);
 }
 
+// TODO implement me!
 PHIInst* SSAConstructionPass::try_remove_trivial_phi(PHIInst *phi) {
 	return phi;
 }
+
+void SSAConstructionPass::seal_block(size_t bb) {
+	LOG("sealing basic block: " << bb << nl);
+	std::vector<PHIInst*> &inc_phi_bb = incomplete_phi[bb];
+	for (int i = 0, e = inc_phi_bb.size(); i != e ; ++i) {
+		PHIInst *phi = inc_phi_bb[i];
+		if (phi) {
+			add_phi_operands(i,phi);
+		}
+	}
+	sealed_blocks[bb] = true;
+}
+
+
+bool SSAConstructionPass::try_seal_block(basicblock *bb) {
+	if (sealed_blocks[bb->nr])
+		return true;
+
+	for(int i = 0; i < bb->predecessorcount; ++i)
+		if (!filled_blocks[bb->predecessors[i]->nr])
+			return false;
+
+	// seal it!
+	seal_block(bb->nr);
+	// try seal successors
+	for(int i = 0; i < bb->successorcount; ++i) {
+		try_seal_block(bb->successors[i]);
+	}
+
+	return true;
+}
+
 void SSAConstructionPass::print_current_def() const {
 	for(std::vector<std::vector<Value*> >::const_iterator i = current_def.begin(),
 			e = current_def.end(); i != e ; ++i) {
@@ -920,12 +956,19 @@ bool SSAConstructionPass::run(JITData &JD) {
 		beginToIndex.insert(std::make_pair(bi,i));
 	}
 
+	// init incomplete_phi
+	incomplete_phi.clear();
+	incomplete_phi.resize(num_basicblocks,std::vector<PHIInst*>(jd->vartop,NULL));
+
 	// (Local,Global) Value Numbering Map, size #bb times #var, initialized to NULL
 	current_def.clear();
 	current_def.resize(jd->vartop,std::vector<Value*>(num_basicblocks,NULL));
 	// sealed blocks
 	sealed_blocks.clear();
-	sealed_blocks.resize(num_basicblocks,true);
+	sealed_blocks.resize(num_basicblocks,false);
+	// filled blocks
+	filled_blocks.clear();
+	filled_blocks.resize(num_basicblocks,false);
 	// initialize
 	var_type_tbl.clear();
 	var_type_tbl.resize(jd->vartop,Type::VoidTypeID);
@@ -963,6 +1006,9 @@ bool SSAConstructionPass::run(JITData &JD) {
 		BeginInst *targetBlock = BB[0]->to_BeginInst();
 		Instruction *result = new GOTOInst(BB[init_basicblock], targetBlock);
 		M->add_Instruction(result);
+		// now we mark it filled and sealed
+		filled_blocks[init_basicblock];
+		sealed_blocks[init_basicblock];
 	}
 
 	// **** END initializations
@@ -1749,6 +1795,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 					  << icmd_table[iptr->opc].name << reset_color << " not yet supported!" << nl;
 				assert(false);
 		}
+
+		// block filled!
+		filled_blocks[bbindex] = true;
+		try_seal_block(bb);
 	}
 	return true;
 }

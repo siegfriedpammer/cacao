@@ -51,13 +51,19 @@ private:
 	std::vector<BeginInst*> BB;
 	std::map<BeginInst*,size_t> beginToIndex;
 	std::vector<std::vector<Value*> > current_def;
+	// TODO may be changed to std::vector<std::map<int,PHIInst*> > incomplete_phi;
+	std::vector<std::vector<PHIInst*> > incomplete_phi;
 	std::vector<bool> sealed_blocks;
+	//
+	std::vector<bool> filled_blocks;
 	std::vector<Type::TypeID> var_type_tbl;
 	inline void write_variable(size_t varindex, size_t bb, Value *V);
 	inline Value* read_variable(size_t varindex, size_t bb);
 	inline Value* read_variable_recursive(size_t varindex, size_t bb);
 	inline Value* add_phi_operands(size_t varindex, PHIInst *phi);
 	inline PHIInst* try_remove_trivial_phi(PHIInst *phi);
+	inline void seal_block(size_t bb);
+	inline bool try_seal_block(basicblock *bb);
 	void print_current_def() const;
 public:
 	SSAConstructionPass(PassManager *PM) : Pass(PM) {}
