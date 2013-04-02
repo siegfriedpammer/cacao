@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_VALUE
 
 #include <cstddef>
+#include <vector>
 
 namespace cacao {
 namespace jit {
@@ -35,7 +36,21 @@ class Instruction;
 
 class Value {
 public:
+	typedef std::vector<Instruction*> UserListTy;
+protected:
+	UserListTy user_list;
+	void append_user(Instruction* I) {
+		user_list.push_back(I);
+	}
+public:
+	UserListTy::const_iterator user_begin() const { return user_list.begin(); }
+	UserListTy::const_iterator user_end()   const { return user_list.end(); }
+	size_t user_size() const { return user_list.size(); }
+
 	virtual Instruction* to_Instruction() { return NULL; }
+
+	// we need this to access append_user
+	friend class Instruction;
 };
 
 

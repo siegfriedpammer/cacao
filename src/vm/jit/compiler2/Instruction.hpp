@@ -208,6 +208,7 @@ protected:
 
 	void append_op(Value* v) {
 		op_list.push_back(v);
+		v->append_user(this);
 	}
 
 	void append_dep(Instruction* I) {
