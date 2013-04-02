@@ -853,9 +853,39 @@ Value* SSAConstructionPass::add_phi_operands(size_t varindex, PHIInst *phi) {
 	return try_remove_trivial_phi(phi);
 }
 
-// TODO implement me!
-PHIInst* SSAConstructionPass::try_remove_trivial_phi(PHIInst *phi) {
-	return phi;
+Value* SSAConstructionPass::try_remove_trivial_phi(PHIInst *phi) {
+	Value *same = NULL;
+	// TODO: slicing!! perhaps we should overload Value::operator==(Instruction *)
+	for(Instruction::OperandListTy::const_iterator i = phi->op_begin(),
+			e = phi->op_end(); i != e; ++i) {
+		Value *op = *i;
+		if ( (op == same) || (op == (Value*)phi) ) {
+			continue; // unique value or self-reference
+		}
+		if (same != NULL) {
+			return phi; // not trivial (merges at least two values)
+		}
+		same = op;
+	}
+	if (same == NULL) {
+		same = NULL; // Phi instruction not reachable
+	}
+	LOG(BoldGreen << "removed PHI! " << reset_color << (long)phi << nl);
+	std::list<Instruction*> users(phi->user_begin(),phi->user_end());
+	users.remove(phi);
+	phi->replace_value(same);
+	// TODO delete phi
+	M->remove_Instruction(phi);
+
+	for(std::list<Instruction*>::iterator i = users.begin(), e = users.end();
+			i != e; ++i) {
+		PHIInst *p = (*i)->to_PHIInst();
+		if (p) {
+			try_remove_trivial_phi(p);
+		}
+	}
+
+	return same;
 }
 
 void SSAConstructionPass::seal_block(size_t bb) {

@@ -61,7 +61,7 @@ private:
 	inline Value* read_variable(size_t varindex, size_t bb);
 	inline Value* read_variable_recursive(size_t varindex, size_t bb);
 	inline Value* add_phi_operands(size_t varindex, PHIInst *phi);
-	inline PHIInst* try_remove_trivial_phi(PHIInst *phi);
+	inline Value* try_remove_trivial_phi(PHIInst *phi);
 	inline void seal_block(size_t bb);
 	inline bool try_seal_block(basicblock *bb);
 	void print_current_def() const;
