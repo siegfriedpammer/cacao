@@ -32,8 +32,8 @@
 #if defined(__LINUX__)
 # include <asm/fpu.h>
 
-extern unsigned long ieee_get_fp_control();
-extern void ieee_set_fp_control(unsigned long fp_control);
+extern "C" unsigned long ieee_get_fp_control();
+extern "C" void          ieee_set_fp_control(unsigned long fp_control);
 #endif
 
 #include "vm/jit/alpha/codegen.hpp"

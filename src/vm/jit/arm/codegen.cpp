@@ -113,7 +113,7 @@ void codegen_emit_prolog(jitdata* jd)
 		M_SUB_IMM_EXT_MUL4(REG_SP, REG_SP, additional_bytes / 4);
 
 #if defined(__ARMHF__)
-	p = cd->stackframesize - savedregs_num / 2;
+	int32_t p = cd->stackframesize - savedregs_num / 2;
 	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
 		p--; M_DST(rd->savfltregs[i], REG_SP, p * 8 - (savedregs_num & 1) * 4);
 	}
@@ -241,7 +241,7 @@ void codegen_emit_epilog(jitdata* jd)
 	}
 
 #if defined(__ARMHF__)
-	p = cd->stackframesize - savedregs_num / 2;
+	int32_t p = cd->stackframesize - savedregs_num / 2;
 	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
 		p--; M_DLD(rd->savfltregs[i], REG_SP, p * 8 - (savedregs_num & 1) * 4);
 	}
