@@ -58,7 +58,7 @@
 
 *******************************************************************************/
 
-inline s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
+s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 {
 	codegendata  *cd;
 	s4            disp;
