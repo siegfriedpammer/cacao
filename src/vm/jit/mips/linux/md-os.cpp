@@ -182,12 +182,12 @@ void md_executionstate_read(executionstate_t* es, void* context)
 #if defined(__UCLIBC__)
 	es->pc = _gregs[CTX_EPC];
 #else
-	es->pc = (void*) (uintptr_t) _mc->pc;
+	es->pc = (uint8_t*) (uintptr_t) _mc->pc;
 #endif
 
-	es->sp = (void*) (uintptr_t) _gregs[REG_SP];
-	es->pv = (void*) (uintptr_t) _gregs[REG_PV];
-	es->ra = (void*) (uintptr_t) _gregs[REG_RA];
+	es->sp = (uint8_t*) (uintptr_t) _gregs[REG_SP];
+	es->pv = (uint8_t*) (uintptr_t) _gregs[REG_PV];
+	es->ra = (uint8_t*) (uintptr_t) _gregs[REG_RA];
 
 	/* Read integer registers. */
 
