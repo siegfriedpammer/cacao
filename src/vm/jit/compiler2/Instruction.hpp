@@ -240,8 +240,6 @@ public:
 	}
 
 	InstID get_opcode() const { return id; } ///< return the opcode of the instruction (icmd.hpp)
-	BasicBlock *get_parent() const;          ///< get the BasicBlock in which the instruction is contained.
-                                             ///< NULL if not attached to any block.
 
 	void set_method(Method* M) { method = M; }
 	Method* get_method() const { return method; }
@@ -254,7 +252,14 @@ public:
 	DepListTy::const_iterator dep_end()   const { return dep_list.end(); }
 	size_t dep_size() const { return dep_list.size(); }
 
-	bool is_terminator() const;              ///< true if the instruction terminates a basic block
+	/**
+	 * Get the corresponding BeginInst.
+	 *
+	 * BeginInst are used to mark control flow joins (aka the start of a basic block).
+	 * @return The directly dominating BeginInst. NULL if there is none (eg. several
+	 *         cadidates or dead code).
+	 */
+	virtual BeginInst* get_BeginInst() const;
 
 	// casting functions
 	virtual Instruction*          to_Instruction()          { return this; }

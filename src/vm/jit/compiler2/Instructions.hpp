@@ -95,6 +95,7 @@ public:
 	}
 	explicit BeginInst(EndInst *end) : Instruction(BeginInstID, Type::VoidTypeID), end(end) {}
 	virtual BeginInst* to_BeginInst() { return this; }
+	virtual BeginInst *get_BeginInst() const { return const_cast<BeginInst*>(this); }
 
 	EndInst *get_EndInst() const { return end; }
 	void set_EndInst(EndInst* e) { end = e; }
@@ -125,7 +126,7 @@ public:
 		begin->set_EndInst(this);
 	}
 	virtual EndInst* to_EndInst() { return this; }
-	BeginInst *get_BeginInst() const { return begin; }
+	virtual BeginInst *get_BeginInst() const { return begin; }
 
 	void append_succ(BeginInst* bi) {
 		assert(bi);
@@ -484,7 +485,7 @@ public:
 	}
 	virtual PHIInst* to_PHIInst() { return this; }
 
-	BeginInst* get_BeginInst() const {
+	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = (*dep_begin())->to_BeginInst();
 		assert(begin);
 		return begin;

@@ -99,19 +99,9 @@ public:
 				edges.insert(edge);
 			}
 			// clustering
-			BeginInst *bi;
-			EndInst *ei;
-			PHIInst *phi;
-			if( (bi = I->to_BeginInst()) ) {
-				clusters[(unsigned long)bi].insert(bi);
-			}
-			if ( (ei = I->to_EndInst()) ) {
-				bi = ei->get_BeginInst();
-				clusters[(unsigned long)bi].insert(ei);
-			}
-			if ( (phi = I->to_PHIInst()) ) {
-				bi = phi->get_BeginInst();
-				clusters[(unsigned long)bi].insert(phi);
+			BeginInst *bi = I->get_BeginInst();
+			if (bi) {
+				clusters[(unsigned long)bi].insert(I);
 			}
 		}
 	}
