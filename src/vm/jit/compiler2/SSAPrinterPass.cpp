@@ -50,9 +50,11 @@ protected:
 public:
 
     SSAGraph(const Method &M, bool verbose = false) : M(M), verbose(verbose) {
-		for(Method::InstructionList::const_iterator i = M.begin(),
+		for(Method::InstructionListTy::const_iterator i = M.begin(),
 		    e = M.end(); i != e; ++i) {
 			Instruction *I = *i;
+			if (I == NULL)
+				continue;
 			nodes.insert(I);
 			// add operator link
 			for(Instruction::OperandListTy::const_iterator ii = I->op_begin(), ee = I->op_end();
@@ -95,6 +97,21 @@ public:
 				EdgeType edge = std::make_pair(EI->get_BeginInst(),EI);
 				begin2end_edges.insert(edge);
 				edges.insert(edge);
+			}
+			// clustering
+			BeginInst *bi;
+			EndInst *ei;
+			PHIInst *phi;
+			if( (bi = I->to_BeginInst()) ) {
+				clusters[(unsigned long)bi].insert(bi);
+			}
+			if ( (ei = I->to_EndInst()) ) {
+				bi = ei->get_BeginInst();
+				clusters[(unsigned long)bi].insert(ei);
+			}
+			if ( (phi = I->to_PHIInst()) ) {
+				bi = phi->get_BeginInst();
+				clusters[(unsigned long)bi].insert(phi);
 			}
 		}
 	}
