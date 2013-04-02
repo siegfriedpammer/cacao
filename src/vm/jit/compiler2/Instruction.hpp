@@ -37,8 +37,9 @@
 
 #include <vector>
 #include <set>
+#include <algorithm>
 
-#include <stddef.h>
+#include <cstddef>
 
 namespace cacao {
 namespace jit {
@@ -211,12 +212,32 @@ protected:
 		v->append_user(this);
 	}
 
+	bool replace_op(Value* v_old, Value* v_new) {
+		OperandListTy::iterator f = std::find(op_list.begin(),op_list.end(),v_old);
+		if (f != op_list.end()) {
+			std::replace(f,f+1,v_old,v_new);
+			v_old->remove_user(this);
+			if (v_new)
+				v_new->append_user(this);
+			return true;
+		}
+		// nothing to replace
+		return false;
+	}
+
 	void append_dep(Instruction* I) {
 		dep_list.push_back(I);
 	}
 
 public:
 	explicit Instruction(InstID id, Type::TypeID type) : id(id), type(type) {}
+
+	virtual ~Instruction() {
+		// remove from users
+		for( OperandListTy::iterator i = op_list.begin(), e = op_list.end(); i != e ; ++i) {
+			(*i)->remove_user(this);
+		}
+	}
 
 	InstID get_opcode() const { return id; } ///< return the opcode of the instruction (icmd.hpp)
 	BasicBlock *get_parent() const;          ///< get the BasicBlock in which the instruction is contained.
@@ -354,6 +375,9 @@ public:
 		}
 		return "Unknown Instruction";
 	}
+
+	// needed to access replace_op in replace_value
+	friend class Value;
 };
 
 

@@ -34,7 +34,8 @@ libcompiler2_la_SOURCES = \
 	PassManager.cpp \
 	SSAConstructionPass.cpp \
 	SSAPrinterPass.cpp \
-	Type.cpp
+	Type.cpp \
+	Value.cpp
 
 
 ## Local variables:

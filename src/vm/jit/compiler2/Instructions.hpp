@@ -66,6 +66,7 @@ public:
 
 	// exporting to the public
 	using Instruction::append_op;
+	using Instruction::replace_op;
 };
 
 /**

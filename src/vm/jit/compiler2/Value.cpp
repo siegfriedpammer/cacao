@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/Method.hpp - Method
+/* src/vm/jit/compiler2/Value.cpp - Value
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,41 +22,26 @@
 
 */
 
-#ifndef _JIT_COMPILER2_METHOD
-#define _JIT_COMPILER2_METHOD
-
-#include <vector>
+#include "vm/jit/compiler2/Value.hpp"
+#include "vm/jit/compiler2/Instruction.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-// forware declaration
-class Instruction;
-
-class Method {
-public:
-	typedef std::vector<Instruction*> InstructionListTy;
-private:
-	InstructionListTy inst_list;
-public:
-	Method() {}
-	void add_Instruction(Instruction* I);
-	void remove_Instruction(Instruction* I);
-	InstructionListTy::const_iterator begin() const {
-		return inst_list.begin();
+void Value::replace_value(Value *v) {
+	for (UserListTy::iterator i = user_list.begin(), e = user_list.end();
+			i != e; ++i) {
+		Instruction *I = *i;
+		assert(I);
+		I->replace_op(this, v);
 	}
-	InstructionListTy::const_iterator end() const {
-		return inst_list.end();
-	}
-};
+}
 
 
 } // end namespace cacao
 } // end namespace jit
 } // end namespace compiler2
-
-#endif /* _JIT_COMPILER2_METHOD */
 
 
 /*

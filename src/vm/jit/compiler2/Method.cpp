@@ -25,6 +25,8 @@
 #include "vm/jit/compiler2/Method.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
 
+#include <algorithm>
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -35,6 +37,10 @@ void Method::add_Instruction(Instruction* I) {
 	inst_list.push_back(I);
 }
 
+void Method::remove_Instruction(Instruction* I) {
+	std::replace(inst_list.begin(),	inst_list.end(),I,(Instruction*)0);
+	delete I;
+}
 
 } // end namespace cacao
 } // end namespace jit

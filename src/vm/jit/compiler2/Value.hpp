@@ -27,6 +27,7 @@
 
 #include <cstddef>
 #include <vector>
+#include <algorithm>
 
 namespace cacao {
 namespace jit {
@@ -42,10 +43,24 @@ protected:
 	void append_user(Instruction* I) {
 		user_list.push_back(I);
 	}
+	void remove_user(Instruction* I) {
+		#if 0
+		UserListTy::iterator f = user_list.find(I);
+		if (f != user_list.end()) {
+			user_list.erase(f);
+		}
+		#endif
+		user_list.erase(std::find(user_list.begin(),user_list.end(),I));
+	}
 public:
 	UserListTy::const_iterator user_begin() const { return user_list.begin(); }
 	UserListTy::const_iterator user_end()   const { return user_list.end(); }
 	size_t user_size() const { return user_list.size(); }
+
+	/**
+	 * Replace this Value this the new one in all users.
+	 */
+	void replace_value(Value *v);
 
 	virtual Instruction* to_Instruction() { return NULL; }
 
