@@ -29,6 +29,7 @@
 #include "toolbox/StringBuf.hpp"
 
 #include <set>
+#include <map>
 #include <utility>
 
 #include <cstdio>
@@ -42,15 +43,19 @@ class GraphTraits {
 public:
 	typedef NodeTy NodeType;
 	typedef std::pair<NodeType*,NodeType*> EdgeType;
+	typedef typename std::set<NodeType*> NodeListType;
 	typedef typename std::set<NodeType*>::iterator iterator;
 	typedef typename std::set<NodeType*>::const_iterator const_iterator;
 	typedef typename std::set<EdgeType>::iterator edge_iterator;
 	typedef typename std::set<EdgeType>::const_iterator const_edge_iterator;
+	typedef typename std::map<unsigned long,std::set<NodeType*> >::iterator cluster_iterator;
+	typedef typename std::map<unsigned long,std::set<NodeType*> >::const_iterator const_cluster_iterator;
 
 protected:
 	std::set<NodeType*> nodes;
 	std::set<EdgeType> edges;
 	std::set<EdgeType> successors;
+	std::map<unsigned long,NodeListType> clusters;
 public:
 
 	const_iterator begin() const {
@@ -83,6 +88,22 @@ public:
 
 	edge_iterator edge_end() {
 		return edges.end();
+	}
+
+	cluster_iterator cluster_begin() {
+		return clusters.begin();
+	}
+
+	const_cluster_iterator cluster_begin() const {
+		return clusters.begin();
+	}
+
+	cluster_iterator cluster_end() {
+		return clusters.end();
+	}
+
+	const_cluster_iterator cluster_end() const {
+		return clusters.end();
 	}
 
 	StringBuf getGraphName() const {
@@ -119,6 +140,7 @@ public:
 		printHeader(OS,G);
 		printNodes(OS,G);
 		printEdges(OS,G);
+		printCluster(OS,G);
 		printFooter(OS,G);
 		fclose(file);
 	}
@@ -137,6 +159,21 @@ public:
 		}
 	}
 
+	static void printCluster(OStream &OS, const GraphTraitsTy &G) {
+		for(typename GraphTraitsTy::const_cluster_iterator i = G.cluster_begin(),
+				e = G.cluster_end(); i != e; ++i) {
+			unsigned long cid = i->first;
+			const std::set<typename GraphTraitsTy::NodeType*> &set = i->second;
+			OS<<"subgraph cluster_" << cid << " {\n";
+			//OS<<"label = \""<< sb <<"\";\n";
+			for (typename std::set<typename GraphTraitsTy::NodeType*>::const_iterator ii = set.begin(),
+					ee = set.end(); ii != ee; ++ii) {
+				typename GraphTraitsTy::NodeType &node = (**ii);
+				OS<< "\"node_" << G.getNodeID(node) << "\";\n";
+			}
+			OS<<"}\n";
+		}
+	}
 	static void printEdges(OStream &OS, const GraphTraitsTy &G) {
 		for(typename GraphTraitsTy::const_edge_iterator i = G.edge_begin(),
 		    e = G.edge_end(); i != e; ++i) {
