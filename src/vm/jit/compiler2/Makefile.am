@@ -30,6 +30,7 @@ noinst_LTLIBRARIES = \
 
 libcompiler2_la_SOURCES = \
 	Compiler.cpp \
+	DominatorPass.cpp \
 	Instruction.cpp \
 	Method.cpp \
 	PassManager.cpp \

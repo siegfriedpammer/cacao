@@ -1041,6 +1041,9 @@ bool SSAConstructionPass::run(JITData &JD) {
 		sealed_blocks[init_basicblock];
 	}
 
+	// set start begin inst
+	M->set_init_bb(BB[init_basicblock]);
+
 	// **** END initializations
 
 	show_method(jd, SHOW_CFG);

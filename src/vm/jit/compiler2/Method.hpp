@@ -46,6 +46,7 @@ private:
 	 */
 	InstructionListTy inst_list;
 	BBListTy bb_list;
+	BeginInst* init_bb;
 public:
 	Method() {}
 	~Method();
@@ -78,6 +79,14 @@ public:
 	 * The Instruction will be removed using remove_Instruction().
 	 */
 	void remove_bb(BeginInst *bi);
+
+	void set_init_bb(BeginInst *bi) {
+		init_bb = bi;
+	}
+
+	BeginInst* get_init_bb() const {
+		return init_bb;
+	}
 
 	InstructionListTy::const_iterator begin() const {
 		return inst_list.begin();

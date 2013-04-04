@@ -55,6 +55,7 @@
 #endif
 #include "vm/jit/compiler2/CFGConstructionPass.hpp"
 #include "vm/jit/compiler2/SSAConstructionPass.hpp"
+#include "vm/jit/compiler2/DominatorPass.hpp"
 #include "vm/jit/compiler2/SSAPrinterPass.hpp"
 #include "vm/jit/compiler2/RegisterAllocatorPass.hpp"
 #include "vm/jit/compiler2/CodeGenPass.hpp"
@@ -110,6 +111,7 @@ MachineCode* compile(methodinfo* m)
 #endif
 	PM.addPass<CFGConstructionPass>();
 	PM.addPass<SSAConstructionPass>();
+	PM.addPass<DominatorPass>();
 	PM.addPass<SSAPrinterPass>();
 	PM.addPass<RegisterAllocatorPass>();
 	PM.addPass<CodeGenPass>();
