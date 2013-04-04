@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_METHOD
 
 #include <vector>
+#include <list>
 
 namespace cacao {
 namespace jit {
@@ -33,21 +34,73 @@ namespace compiler2 {
 
 // forware declaration
 class Instruction;
+class BeginInst;
 
 class Method {
 public:
 	typedef std::vector<Instruction*> InstructionListTy;
+	typedef std::list<BeginInst*> BBListTy;
 private:
+	/**
+	 * This is were the instructions live.
+	 */
 	InstructionListTy inst_list;
+	BBListTy bb_list;
 public:
 	Method() {}
+	~Method();
+
+	/**
+	 * Add instructions to a Method.
+	 *
+	 * Instructions added via this method will be deleted by ~Method.
+	 * use remove_Instruction() to delete them manually.
+	 */
 	void add_Instruction(Instruction* I);
+
+	/**
+	 * Remove an Instruction for a Method.
+	 *
+	 * The constructor will be called
+	 */
 	void remove_Instruction(Instruction* I);
+
+	/**
+	 * Add a BeginInst.
+	 *
+	 * The Instruction will be added using add_Instruction().
+	 */
+	void add_bb(BeginInst *bi);
+
+	/**
+	 * Remove BeginInst.
+	 *
+	 * The Instruction will be removed using remove_Instruction().
+	 */
+	void remove_bb(BeginInst *bi);
+
 	InstructionListTy::const_iterator begin() const {
 		return inst_list.begin();
 	}
+
 	InstructionListTy::const_iterator end() const {
 		return inst_list.end();
+	}
+
+	size_t size() const {
+		return inst_list.size();
+	}
+
+	BBListTy::const_iterator bb_begin() const {
+		return bb_list.begin();
+	}
+
+	BBListTy::const_iterator bb_end() const {
+		return bb_list.end();
+	}
+
+	size_t bb_size() const {
+		return bb_list.size();
 	}
 };
 

@@ -1099,7 +1099,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 
 		// add begin block
 		assert(BB[bbindex]);
-		M->add_Instruction(BB[bbindex]);
+		M->add_bb(BB[bbindex]);
 
 		FOR_EACH_INSTRUCTION(bb,iptr) {
 			LOG("iptr: " << icmd_table[iptr->opc].name << nl);

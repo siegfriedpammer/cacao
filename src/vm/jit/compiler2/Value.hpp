@@ -26,8 +26,12 @@
 #define _JIT_COMPILER2_VALUE
 
 #include <cstddef>
-#include <vector>
+#include <list>
 #include <algorithm>
+
+#include "toolbox/logging.hpp"
+
+#include <cassert>
 
 namespace cacao {
 namespace jit {
@@ -35,24 +39,31 @@ namespace compiler2 {
 
 class Instruction;
 
+#define DEBUG_NAME "compiler2/Value"
 class Value {
 public:
-	typedef std::vector<Instruction*> UserListTy;
+	typedef std::list<Instruction*> UserListTy;
 protected:
 	UserListTy user_list;
 	void append_user(Instruction* I) {
+		assert(I);
 		user_list.push_back(I);
 	}
 	void remove_user(Instruction* I) {
+		LOG("Value::remove_user(this=" << this << ",I=" << I << ")" << nl );
+		user_list.remove(I);
 		#if 0
 		UserListTy::iterator f = user_list.find(I);
 		if (f != user_list.end()) {
 			user_list.erase(f);
 		}
-		#endif
 		user_list.erase(std::find(user_list.begin(),user_list.end(),I));
+		#endif
 	}
 public:
+
+	virtual ~Value();
+
 	UserListTy::const_iterator user_begin() const { return user_list.begin(); }
 	UserListTy::const_iterator user_end()   const { return user_list.end(); }
 	size_t user_size() const { return user_list.size(); }
@@ -68,10 +79,11 @@ public:
 	friend class Instruction;
 };
 
+#undef DEBUG_NAME
 
-} // end namespace cacao
-} // end namespace jit
 } // end namespace compiler2
+} // end namespace jit
+} // end namespace cacao
 
 #endif /* _JIT_COMPILER2_VALUE */
 

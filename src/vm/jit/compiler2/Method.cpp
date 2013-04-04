@@ -24,12 +24,21 @@
 
 #include "vm/jit/compiler2/Method.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
+#include "vm/jit/compiler2/Instructions.hpp"
 
 #include <algorithm>
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+
+Method::~Method() {
+	for(InstructionListTy::iterator i = inst_list.begin(),
+			e = inst_list.end(); i != e ; ++i) {
+		Instruction *I = *i;
+		delete I;
+	}
+}
 
 void Method::add_Instruction(Instruction* I) {
 	assert(I);
@@ -40,6 +49,16 @@ void Method::add_Instruction(Instruction* I) {
 void Method::remove_Instruction(Instruction* I) {
 	std::replace(inst_list.begin(),	inst_list.end(),I,(Instruction*)0);
 	delete I;
+}
+
+void Method::add_bb(BeginInst *bi) {
+	add_Instruction(bi);
+	bb_list.push_back(bi);
+}
+
+void Method::remove_bb(BeginInst *bi) {
+	bb_list.remove(bi);
+	remove_Instruction(bi);
 }
 
 } // end namespace cacao

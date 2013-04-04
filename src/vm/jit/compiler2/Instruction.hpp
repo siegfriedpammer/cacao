@@ -35,6 +35,8 @@
 #include "vm/jit/compiler2/Type.hpp"
 #include "vm/jit/compiler2/Method.hpp"
 
+#include "toolbox/logging.hpp"
+
 #include <vector>
 #include <set>
 #include <algorithm>
@@ -119,6 +121,8 @@ class PHIInst;
 // Control Flow Meta Instructions
 class BeginInst;
 class EndInst;
+
+#define DEBUG_NAME "compiler2/Instruction"
 
 /**
  * Instruction super class.
@@ -212,17 +216,11 @@ protected:
 		v->append_user(this);
 	}
 
-	bool replace_op(Value* v_old, Value* v_new) {
-		OperandListTy::iterator f = std::find(op_list.begin(),op_list.end(),v_old);
-		if (f != op_list.end()) {
-			std::replace(f,f+1,v_old,v_new);
-			v_old->remove_user(this);
-			if (v_new)
-				v_new->append_user(this);
-			return true;
-		}
-		// nothing to replace
-		return false;
+	void replace_op(Value* v_old, Value* v_new) {
+		std::replace(op_list.begin(),op_list.end(),v_old,v_new);
+		v_old->remove_user(this);
+		if (v_new)
+			v_new->append_user(this);
 	}
 
 	void append_dep(Instruction* I) {
@@ -233,9 +231,15 @@ public:
 	explicit Instruction(InstID id, Type::TypeID type) : id(id), type(type) {}
 
 	virtual ~Instruction() {
+		LOG("deleting instruction: " << this << nl);
 		// remove from users
 		for( OperandListTy::iterator i = op_list.begin(), e = op_list.end(); i != e ; ++i) {
-			(*i)->remove_user(this);
+			Value *v = *i;
+			assert(v != (Value*)this);
+			// might be a NULL operand
+			if (v) {
+				v->remove_user(this);
+			}
 		}
 	}
 
@@ -389,6 +393,8 @@ public:
 } // end namespace cacao
 } // end namespace jit
 } // end namespace compiler2
+
+#undef DEBUG_NAME
 
 #endif /* _JIT_COMPILER2_INSTRUCTION */
 

@@ -24,20 +24,44 @@
 
 #include "vm/jit/compiler2/Value.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
+#include "toolbox/logging.hpp"
+
+#define DEBUG_NAME "compiler2/Value"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
 void Value::replace_value(Value *v) {
-	for (UserListTy::iterator i = user_list.begin(), e = user_list.end();
-			i != e; ++i) {
+	#ifndef NDEBUG
+	size_t size = user_list.size();
+	#endif
+	UserListTy::iterator i;
+	UserListTy::iterator e = user_list.end();
+	while ( (i = user_list.begin() ) != e ) {
 		Instruction *I = *i;
+		LOG("preplacing value " << this << " with " << v << nl );
 		assert(I);
 		I->replace_op(this, v);
+		assert( --size == user_list.size());
 	}
 }
+Value::~Value()
+{
+#ifndef NDEBUG
+	size_t size = user_list.size();
+#endif
 
+	LOG("Value::~Value(this=" << this << ")" << nl );
+	UserListTy::iterator i;
+	UserListTy::iterator e = user_list.end();
+	while ( (i = user_list.begin() ) != e ) {
+		Instruction *I = *i;
+		assert(I);
+		I->replace_op(this, NULL);
+		assert( --size == user_list.size());
+	}
+}
 
 } // end namespace cacao
 } // end namespace jit
