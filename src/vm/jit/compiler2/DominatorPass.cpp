@@ -59,6 +59,31 @@ void DominatorPass::DFS(NodeTy * v) {
 	}
 }
 
+// simple versions
+void DominatorPass::Link(DominatorPass::NodeTy *v, DominatorPass::NodeTy *w) {
+	ancestor[w] = v;
+}
+
+DominatorPass::NodeTy* DominatorPass::Eval(DominatorPass::NodeTy *v) {
+	if (ancestor[v] == 0) {
+		return v;
+	} else {
+		return label[v];
+	}
+}
+
+void DominatorPass::Compress(DominatorPass::NodeTy *v) {
+	// this preocedure assumes ancestor[v] != 0
+	assert(ancestor[v]);
+	if (ancestor[ancestor[v]] != 0) {
+		Compress(ancestor[v]);
+		if (semi[label[ancestor[v]]] < semi[label[v]]) {
+			label[v] = label[ancestor[v]];
+		}
+		ancestor[v] = ancestor[ancestor[v]];
+	}
+}
+
 bool DominatorPass::run(JITData &JD) {
 	Method *M = JD.get_Method();
 	// initialize
@@ -66,13 +91,61 @@ bool DominatorPass::run(JITData &JD) {
 	vertex.resize(M->bb_size() + 1); // +1 because we start at 1 not at 0
 	for(Method::BBListTy::const_iterator i = M->bb_begin(), e = M->bb_end() ;
 			i != e; ++i) {
-		// pred[*i] = NodeListTy(); // maps are auto initialized at first access
-		semi[*i] = 0;
+		NodeTy *v = *i;
+		// pred[v] = NodeListTy(); // maps are auto initialized at first access
+		semi[v] = 0;
+		// init label and ancestor array
+		ancestor[v] = 0;
+		label[v] = v;
 	}
 	DFS(M->get_init_bb());
 
-	for (int i = 1 ; i < vertex.size(); ++i) {
-		LOG("index" << setw(3) << i << " BeginInst" << (long)vertex[i] << nl);
+	LOG("DFS:" << nl);
+	for (int i = 1 ; i <= n; ++i) {
+		LOG("index" << setw(3) << i << " " << (long)vertex[i] << nl);
+	}
+
+	// from n to 2
+	for (int i = n; i >= 2; --i) {
+		NodeTy *w = vertex[i];
+		// step 2
+		NodeListTy &pred_w = pred[w];
+		for (NodeListTy::const_iterator it = pred_w.begin(), et = pred_w.end();
+				it != et; ++it) {
+			NodeTy *v = *it;
+			NodeTy *u = Eval(v);
+			if (semi[u] < semi[w]) {
+				semi[w] = semi[u];
+			}
+		}
+		bucket[vertex[semi[w]]].insert(w);
+		Link(parent[w],w);
+		// step 3
+		NodeListTy &bucket_p_w = bucket[parent[w]];
+		for (NodeListTy::const_iterator it = bucket_p_w.begin(), et = bucket_p_w.end();
+				it != et; ++it) {
+			NodeTy *v = *it;
+			bucket_p_w.erase(v);
+			NodeTy *u = Eval(v);
+			dom[v] = semi[u] < semi[v] ? u : parent[w] ;
+		}
+
+	}
+
+	// step 4
+	for (int i = 2; i <= n ; ++i) {
+		NodeTy *w = vertex[i];
+		if (dom[w] != vertex[semi[w]]) {
+			dom[w] = dom[dom[w]];
+		}
+	}
+	dom[M->get_init_bb()];
+
+	LOG("Dominators:" << nl);
+	for (int i = 1 ; i <= n; ++i) {
+		NodeTy *v = vertex[i];
+		NodeTy *w = dom[v];
+		LOG("index" << setw(3) << i << " dom(" << (long)v <<") =" << (long)w << nl);
 	}
 
 	return true;

@@ -38,8 +38,15 @@ namespace compiler2 {
 
 
 /**
- * DominatorPass
- * TODO: more info
+ * Calculate the Dominator Tree.
+ *
+ * This Pass implements the algorithm proposed by Lengauer and Tarjan.
+ * The variable and function are named accoring to the paper. Currently the
+ * 'simple' version is implemented. The 'sophisticated' version is left
+ * for future work.
+ *
+ * A Fast Algorithm for Finding Dominators in a Flowgraph, by Lengauer
+ * and Tarjan, 1979 @cite Lengauer1979.
  */
 class DominatorPass : public Pass {
 private:
@@ -58,8 +65,15 @@ private:
 	EdgeMapTy dom;
 	int n;
 
+	EdgeMapTy ancestor;
+	EdgeMapTy label;
+
 	NodeListTy& succ(NodeTy *v, NodeListTy &list);
 	void DFS(NodeTy * v);
+
+	void Link(NodeTy *v, NodeTy *w);
+	NodeTy* Eval(NodeTy *v);
+	void Compress(NodeTy *v);
 public:
 	DominatorPass(PassManager *PM) : Pass(PM) {}
 	bool run(JITData &JD);
