@@ -303,11 +303,14 @@ void *heap_alloc(u4 size, u4 references, methodinfo *finalizer, bool collect)
 {
 	java_object_t *p;
 	java_handle_t *h;
+/* TODO port to new rt timing */
+#if 0
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_end;
 #endif
 
 	RT_TIMING_GET_TIME(time_start);
+#endif
 
 	p = heap_alloc_intern(size, heap_region_main, collect);
 
@@ -329,8 +332,11 @@ void *heap_alloc(u4 size, u4 references, methodinfo *finalizer, bool collect)
 
 	h = LLNI_WRAP(p);
 
+/* TODO port to new rt timing */
+#if 0
 	RT_TIMING_GET_TIME(time_end);
 	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_GC_ALLOC);
+#endif
 
 	return h;
 }

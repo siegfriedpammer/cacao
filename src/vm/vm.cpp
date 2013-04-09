@@ -163,7 +163,7 @@ enum {
 	OPT_DA,
 	OPT_EA_NOARG,
 	OPT_DA_NOARG,
-    
+
 
 	OPT_ESA,
 	OPT_DSA,
@@ -218,7 +218,7 @@ enum {
 #if defined(ENABLE_LOOP)
 	OPT_OLOOP,
 #endif
-	
+
 #if defined(ENABLE_IFCONV)
 	OPT_IFCONV,
 #endif
@@ -472,7 +472,7 @@ static void Xusage(void)
 	/* exit with error code */
 
 	exit(1);
-}   
+}
 
 
 #if 0
@@ -645,7 +645,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	_initializing = true;
 
 	// Make sure logging works
-	
+
 
 	// Make ourself globally visible.
 	// XXX Is this a good idea?
@@ -744,7 +744,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 
 		case OPT_IGNORE:
 			break;
-			
+
 		case OPT_JAR:
 			opt_jar = true;
 			break;
@@ -983,7 +983,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 			opt_typecheckverbose = true;
 			break;
 #endif
-				
+
 		case OPT_VERSION:
 			opt_version = true;
 			opt_exit    = true;
@@ -1013,16 +1013,16 @@ VM::VM(JavaVMInitArgs* vm_args)
 			opt_getcompilingtime = true;
 			opt_getloadingtime = true;
 			break;
-					
+
 		case OPT_STAT:
 			opt_stat = true;
 			break;
 #endif
-					
+
 		case OPT_LOG:
 			log_init(opt_arg);
 			break;
-			
+
 		case OPT_CHECK:
 			for (unsigned int i = 0; i < strlen(opt_arg); i++) {
 				switch (opt_arg[i]) {
@@ -1037,14 +1037,14 @@ VM::VM(JavaVMInitArgs* vm_args)
 				}
 			}
 			break;
-			
+
 		case OPT_LOAD:
 			opt_run = false;
 			makeinitializations = false;
 			break;
 
 		case OPT_SHOW:       /* Display options */
-			for (unsigned int i = 0; i < strlen(opt_arg); i++) {		
+			for (unsigned int i = 0; i < strlen(opt_arg); i++) {
 				switch (opt_arg[i]) {
 				case 'c':
 					showconstantpool = true;
@@ -1079,7 +1079,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 				}
 			}
 			break;
-			
+
 #if defined(ENABLE_LOOP)
 		case OPT_OLOOP:
 			opt_loops = true;
@@ -1100,7 +1100,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 #if  defined(ENABLE_SSA)
 		case OPT_LSRA:
 			opt_lsra = true;
-			for (unsigned int i = 0; i < strlen(opt_arg); i++) {		
+			for (unsigned int i = 0; i < strlen(opt_arg); i++) {
 				switch (opt_arg[i]) {
 				case 'c':
 					opt_ssa_cp = true;
@@ -1711,7 +1711,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 
 	if ((e != NULL) || (mainclass == NULL)) {
 		exceptions_throw_noclassdeffounderror_cause(e);
-		exceptions_print_stacktrace(); 
+		exceptions_print_stacktrace();
 		vm_exit(1);
 	}
 
@@ -1719,11 +1719,11 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 		exceptions_print_stacktrace();
 		vm_exit(1);
 	}
-			
+
 	/* find the `main' method of the main class */
 
 	m = class_resolveclassmethod(mainclass,
-								 Utf8String::from_utf8("main"), 
+								 Utf8String::from_utf8("main"),
 								 Utf8String::from_utf8("([Ljava/lang/String;)V"),
 								 class_java_lang_Object,
 								 false);
@@ -1738,7 +1738,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	if ((m == NULL) || !(m->flags & ACC_STATIC)) {
 		exceptions_clear_exception();
 		exceptions_throw_nosuchmethoderror(mainclass,
-										   Utf8String::from_utf8("main"), 
+										   Utf8String::from_utf8("main"),
 										   Utf8String::from_utf8("([Ljava/lang/String;)V"));
 
 		exceptions_print_stacktrace();
@@ -1853,7 +1853,7 @@ void vm_exit(s4 status)
 								 utf8::int__void,
 								 class_java_lang_Object,
 								 true);
-	
+
 	if (m == NULL) {
 		exceptions_print_stacktrace();
 		exit(1);
@@ -1874,16 +1874,16 @@ void vm_exit(s4 status)
 
    Terminates the system immediately without freeing memory explicitly
    (to be used only for abnormal termination).
-	
+
 *******************************************************************************/
 
 void vm_shutdown(s4 status)
 {
-	if (opt_verbose 
+	if (opt_verbose
 #if defined(ENABLE_STATISTICS)
 		|| opt_getcompilingtime || opt_stat
 #endif
-	   ) 
+	   )
 	{
 		log_text("CACAO terminated by shutdown");
 		dolog("Exit status: %d\n", (s4) status);
@@ -1897,7 +1897,7 @@ void vm_shutdown(s4 status)
 		dbgcom->running=1;
 		mutex_unlock(&dbgcomlock);
 		jvmti_cacaodbgserver_quit();
-	}	
+	}
 #endif
 
 	exit(status);
@@ -1944,7 +1944,6 @@ void vm_exit_handler(void)
 	OS << cacao::right;
 	OS << "\nreal-time measurment:\n" << cacao::nl;
 	cacao::RTGroup::root().print(OS);
- 	rt_timing_print_time_stats(opt_RtTimingLogfile);
 #endif
 
 #if defined(ENABLE_CYCLES_STATS)
@@ -1952,11 +1951,11 @@ void vm_exit_handler(void)
 	stacktrace_print_cycles_stats(log_get_logfile());
 #endif
 
-	if (opt_verbose 
+	if (opt_verbose
 #if defined(ENABLE_STATISTICS)
 		|| opt_getcompilingtime || opt_stat
 #endif
-	   ) 
+	   )
 	{
 		log_text("CACAO terminated");
 
@@ -2060,7 +2059,7 @@ static char *vm_get_mainclass_from_jar(char *mainname)
 	}
 
 	m = class_resolveclassmethod(c,
-								 utf8::init, 
+								 utf8::init,
 								 utf8::java_lang_String__void,
 								 class_java_lang_Object,
 								 true);
@@ -2082,7 +2081,7 @@ static char *vm_get_mainclass_from_jar(char *mainname)
 	/* get manifest object */
 
 	m = class_resolveclassmethod(c,
-								 Utf8String::from_utf8("getManifest"), 
+								 Utf8String::from_utf8("getManifest"),
 								 Utf8String::from_utf8("()Ljava/util/jar/Manifest;"),
 								 class_java_lang_Object,
 								 true);
@@ -2105,7 +2104,7 @@ static char *vm_get_mainclass_from_jar(char *mainname)
 	LLNI_class_get(o, c);
 
 	m = class_resolveclassmethod(c,
-								 Utf8String::from_utf8("getMainAttributes"), 
+								 Utf8String::from_utf8("getMainAttributes"),
 								 Utf8String::from_utf8("()Ljava/util/jar/Attributes;"),
 								 class_java_lang_Object,
 								 true);
@@ -2128,7 +2127,7 @@ static char *vm_get_mainclass_from_jar(char *mainname)
 	LLNI_class_get(o, c);
 
 	m = class_resolveclassmethod(c,
-								 Utf8String::from_utf8("getValue"), 
+								 Utf8String::from_utf8("getValue"),
 								 Utf8String::from_utf8("(Ljava/lang/String;)Ljava/lang/String;"),
 								 class_java_lang_Object,
 								 true);
@@ -2269,7 +2268,7 @@ static void vm_compile_method(char* mainname)
 	if (m == NULL)
 		os::abort("vm_compile_method: java.lang.NoSuchMethodException: %s.%s",
 				 opt_CompileMethod, opt_CompileSignature ? opt_CompileSignature : "");
-		
+
 	jit_compile(m);
 }
 #endif /* !defined(NDEBUG) */

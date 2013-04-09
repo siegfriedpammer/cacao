@@ -151,11 +151,7 @@ RT_REGISTER_GROUP_TIMER(heap_timer,"heap","allocation time",heap_group)
 void *heap_alloc(size_t size, int references, methodinfo *finalizer, bool collect)
 {
 	void *p;
-#if defined(ENABLE_RT_TIMING)
-	struct timespec time_start, time_end;
-#endif
 
-	RT_TIMING_GET_TIME(time_start);
 	RT_TIMER_START(heap_timer);
 
 	/* We can't use a bool here for references, as it's passed as a
@@ -176,9 +172,7 @@ void *heap_alloc(size_t size, int references, methodinfo *finalizer, bool collec
 
 	MSET(p, 0, uint8_t, size);
 
-	RT_TIMING_GET_TIME(time_end);
 	RT_TIMER_STOP(heap_timer);
-	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_GC_ALLOC);
 
 	return p;
 }

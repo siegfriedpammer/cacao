@@ -1027,12 +1027,7 @@ classinfo *load_class_from_classloader(Utf8String name, classloader_t *cl)
 	classinfo     *c;
 	classinfo     *tmpc;
 	java_handle_t *string;
-#if defined(ENABLE_RT_TIMING)
-	struct timespec time_start, time_lookup, time_prepare, time_java, 
-					time_cache;
-#endif
 
-	RT_TIMING_GET_TIME(time_start);
 	RT_TIMER_START(cllookup_timer);
 
 	assert(name);
@@ -1041,9 +1036,7 @@ classinfo *load_class_from_classloader(Utf8String name, classloader_t *cl)
 
 	c = classcache_lookup(cl, name);
 
-	RT_TIMING_GET_TIME(time_lookup);
 	RT_TIMER_STOPSTART(cllookup_timer,prepare_timer);
-	RT_TIMING_TIME_DIFF(time_start,time_lookup,RT_TIMING_LOAD_CL_LOOKUP);
 
 	if (c != NULL)
 		return c;
@@ -1147,12 +1140,10 @@ classinfo *load_class_from_classloader(Utf8String name, classloader_t *cl)
 
 		string = JavaString::from_utf8_slash_to_dot(name);
 
-		RT_TIMING_GET_TIME(time_prepare);
 		RT_TIMER_STOPSTART(prepare_timer,java_timer);
 
 		o = vm_call_method(lc, (java_handle_t *) cl, string);
 
-		RT_TIMING_GET_TIME(time_java);
 		RT_TIMER_STOPSTART(java_timer,clcache_timer);
 
 		c = LLNI_classinfo_unwrap(o);
@@ -1188,12 +1179,8 @@ classinfo *load_class_from_classloader(Utf8String name, classloader_t *cl)
 			}
 		}
 
-		RT_TIMING_GET_TIME(time_cache);
 		RT_TIMER_STOP(clcache_timer);
 
-		RT_TIMING_TIME_DIFF(time_lookup , time_prepare, RT_TIMING_LOAD_CL_PREPARE);
-		RT_TIMING_TIME_DIFF(time_prepare, time_java   , RT_TIMING_LOAD_CL_JAVA);
-		RT_TIMING_TIME_DIFF(time_java   , time_cache  , RT_TIMING_LOAD_CL_CACHE);
 
 		/* SUN compatible -verbose:class output */
 
@@ -1244,12 +1231,7 @@ classinfo *load_class_bootstrap(Utf8String name)
 	classbuffer *cb;
 	classinfo   *c;
 	classinfo   *r;
-#if defined(ENABLE_RT_TIMING)
-	struct timespec time_start, time_lookup, time_array, time_suck, 
-					time_load, time_cache;
-#endif
 
-	RT_TIMING_GET_TIME(time_start);
 	RT_TIMER_START(lookup_timer);
 
 	/* for debugging */
@@ -1261,17 +1243,13 @@ classinfo *load_class_bootstrap(Utf8String name)
 	r = classcache_lookup(NULL, name);
 
 	if (r != NULL) {
-		RT_TIMING_GET_TIME(time_lookup);
 		RT_TIMER_STOP(lookup_timer);
-		RT_TIMING_TIME_DIFF(time_start,time_lookup,RT_TIMING_LOAD_BOOT_LOOKUP);
-		
+
 		return r;
 	}
 
-	RT_TIMING_GET_TIME(time_lookup);
 	RT_TIMER_STOP(lookup_timer);
-	RT_TIMING_TIME_DIFF(time_start,time_lookup,RT_TIMING_LOAD_BOOT_LOOKUP);
-		
+
 	/* create the classinfo */
 
 	c = class_create_classinfo(name);
@@ -1287,10 +1265,8 @@ classinfo *load_class_bootstrap(Utf8String name)
 
 		assert(c->state & CLASS_LOADED);
 
-		RT_TIMING_GET_TIME(time_array);
 		RT_TIMER_STOP(array_timer);
-		RT_TIMING_TIME_DIFF(time_start,time_array,RT_TIMING_LOAD_BOOT_ARRAY);
-		
+
 		return c;
 	}
 	RT_TIMER_START(suck_timer);
@@ -1314,14 +1290,12 @@ classinfo *load_class_bootstrap(Utf8String name)
 		return NULL;
 	}
 
-	RT_TIMING_GET_TIME(time_suck);
 	RT_TIMER_STOPSTART(suck_timer,load_timer);
 	
 	/* load the class from the buffer */
 
 	r = load_class_from_classbuffer(cb);
 
-	RT_TIMING_GET_TIME(time_load);
 	RT_TIMER_STOPSTART(load_timer,cache_timer);
 	
 	if (r == NULL) {
@@ -1348,7 +1322,6 @@ classinfo *load_class_bootstrap(Utf8String name)
 		r = res;
 	}
 
-	RT_TIMING_GET_TIME(time_cache);
 	RT_TIMER_STOP(cache_timer);
 	
 	/* SUN compatible -verbose:class output */
@@ -1372,11 +1345,6 @@ classinfo *load_class_bootstrap(Utf8String name)
 	if (opt_getcompilingtime)
 		compilingtime_start();
 #endif
-
-	RT_TIMING_TIME_DIFF(time_lookup, time_suck , RT_TIMING_LOAD_BOOT_SUCK);
-	RT_TIMING_TIME_DIFF(time_suck  , time_load , RT_TIMING_LOAD_BOOT_LOAD);
-	RT_TIMING_TIME_DIFF(time_load  , time_cache, RT_TIMING_LOAD_BOOT_CACHE);
-	RT_TIMING_TIME_DIFF(time_lookup, time_cache, RT_TIMING_LOAD_BOOT_TOTAL);
 
 	return r;
 }
@@ -1408,17 +1376,10 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	u4 classrefsize;
 	u4 descsize;
 #endif
-#if defined(ENABLE_RT_TIMING)
-	struct timespec time_start, time_checks, time_ndpool, time_cpool,
-					time_setup, time_fields, time_methods, time_classrefs,
-					time_descs,	time_setrefs, time_parsefds, time_parsemds,
-					time_parsecpool, time_verify, time_attrs;
-#endif
 
 	// Create new dump memory area.
 	DumpMemoryArea dma;
 
-	RT_TIMING_GET_TIME(time_start);
 	RT_TIMER_START(checks_timer);
 
 	/* Get the classbuffer's class. */
@@ -1445,14 +1406,12 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		return false;
 	}
 
-	RT_TIMING_GET_TIME(time_checks);
 	RT_TIMER_STOPSTART(checks_timer,ndpool_timer);
 
 	/* create a new descriptor pool */
 
 	descpool = descriptor_pool_new(c);
 
-	RT_TIMING_GET_TIME(time_ndpool);
 	RT_TIMER_STOPSTART(ndpool_timer,cpool_timer);
 
 	/* load the constant pool */
@@ -1460,7 +1419,6 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	if (!load_constantpool(cb, descpool))
 		return false;
 
-	RT_TIMING_GET_TIME(time_cpool);
 	RT_TIMER_STOPSTART(cpool_timer,setup_timer);
 
 	/* ACC flags */
@@ -1595,7 +1553,6 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		interfacesnames[i] = u;
 	}
 
-	RT_TIMING_GET_TIME(time_setup);
 	RT_TIMER_STOPSTART(setup_timer,fields_timer);
 
 	/* Parse fields. */
@@ -1613,7 +1570,6 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 			return false;
 	}
 
-	RT_TIMING_GET_TIME(time_fields);
 	RT_TIMER_STOPSTART(fields_timer,methods_timer);
 
 	/* Parse methods. */
@@ -1631,7 +1587,6 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 			return false;
 	}
 
-	RT_TIMING_GET_TIME(time_methods);
 	RT_TIMER_STOPSTART(methods_timer,classrefs_timer);
 
 	/* create the class reference table */
@@ -1639,7 +1594,6 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	c->classrefs =
 		descriptor_pool_create_classrefs(descpool, &(c->classrefcount));
 
-	RT_TIMING_GET_TIME(time_classrefs);
 	RT_TIMER_STOPSTART(classrefs_timer,descs_timer);
 
 	/* allocate space for the parsed descriptors */
@@ -1654,7 +1608,6 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	}
 #endif
 
-	RT_TIMING_GET_TIME(time_descs);
 	RT_TIMER_STOPSTART(descs_timer,setrefs_timer);
 
 	/* put the classrefs in the constant pool */
@@ -1737,7 +1690,6 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		c->interfaces[i] = tc;
 	}
 
-	RT_TIMING_GET_TIME(time_setrefs);
 	RT_TIMER_STOPSTART(setrefs_timer,parsefds_timer);
 
 	/* Parse the field descriptors. */
@@ -1750,7 +1702,6 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 			return false;
 	}
 
-	RT_TIMING_GET_TIME(time_parsefds);
 	RT_TIMER_STOPSTART(parsefds_timer,parsemds_timer);
 
 	/* parse method descriptors */
@@ -1783,7 +1734,6 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		}
 	}
 
-	RT_TIMING_GET_TIME(time_parsemds);
 	RT_TIMER_STOPSTART(parsemds_timer,parsecpool_timer);
 
 	/* parse the loaded descriptors */
@@ -1828,7 +1778,6 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		}
 	}
 
-	RT_TIMING_GET_TIME(time_parsecpool);
 	RT_TIMER_STOPSTART(parsecpool_timer,verify_timer);
 
 #ifdef ENABLE_VERIFIER
@@ -1915,7 +1864,6 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	}
 #endif /* ENABLE_VERIFIER */
 
-	RT_TIMING_GET_TIME(time_verify);
 	RT_TIMER_STOPSTART(verify_timer,attrs_timer);
 
 #if defined(ENABLE_STATISTICS)
@@ -1945,24 +1893,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		}
 	}
 
-	RT_TIMING_GET_TIME(time_attrs);
 	RT_TIMER_STOP(attrs_timer);
-
-	RT_TIMING_TIME_DIFF(time_start     , time_checks    , RT_TIMING_LOAD_CHECKS);
-	RT_TIMING_TIME_DIFF(time_checks    , time_ndpool    , RT_TIMING_LOAD_NDPOOL);
-	RT_TIMING_TIME_DIFF(time_ndpool    , time_cpool     , RT_TIMING_LOAD_CPOOL);
-	RT_TIMING_TIME_DIFF(time_cpool     , time_setup     , RT_TIMING_LOAD_SETUP);
-	RT_TIMING_TIME_DIFF(time_setup     , time_fields    , RT_TIMING_LOAD_FIELDS);
-	RT_TIMING_TIME_DIFF(time_fields    , time_methods   , RT_TIMING_LOAD_METHODS);
-	RT_TIMING_TIME_DIFF(time_methods   , time_classrefs , RT_TIMING_LOAD_CLASSREFS);
-	RT_TIMING_TIME_DIFF(time_classrefs , time_descs     , RT_TIMING_LOAD_DESCS);
-	RT_TIMING_TIME_DIFF(time_descs     , time_setrefs   , RT_TIMING_LOAD_SETREFS);
-	RT_TIMING_TIME_DIFF(time_setrefs   , time_parsefds  , RT_TIMING_LOAD_PARSEFDS);
-	RT_TIMING_TIME_DIFF(time_parsefds  , time_parsemds  , RT_TIMING_LOAD_PARSEMDS);
-	RT_TIMING_TIME_DIFF(time_parsemds  , time_parsecpool, RT_TIMING_LOAD_PARSECP);
-	RT_TIMING_TIME_DIFF(time_parsecpool, time_verify    , RT_TIMING_LOAD_VERIFY);
-	RT_TIMING_TIME_DIFF(time_verify    , time_attrs     , RT_TIMING_LOAD_ATTRS);
-	RT_TIMING_TIME_DIFF(time_start     , time_attrs     , RT_TIMING_LOAD_TOTAL);
 
 	return true;
 }

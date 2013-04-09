@@ -237,8 +237,11 @@ void gc_collect(s4 level)
 #if !defined(NDEBUG)
 	stacktrace_t *st;
 #endif
+/* TODO port to new rt-timing */
+#if 0
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_suspend, time_rootset, time_mark, time_compact, time_end;
+#endif
 #endif
 
 	/* enter the global gc lock */
@@ -249,7 +252,10 @@ void gc_collect(s4 level)
 
 	GCSTAT_COUNT(gcstat_collections);
 
+/* TODO port to new rt-timing */
+#if 0
 	RT_TIMING_GET_TIME(time_start);
+#endif
 
 	/* let everyone know we want to do a collection */
 	GC_ASSERT(!gc_pending);
@@ -288,7 +294,10 @@ void gc_collect(s4 level)
 	gc_pending = false;
 	gc_running = true;
 
+/* TODO port to new rt-timing */
+#if 0
 	RT_TIMING_GET_TIME(time_suspend);
+#endif
 
 	GC_LOG( heap_println_usage(); );
 	/*GC_LOG( heap_dump_region(heap_region_main, false); );*/
@@ -302,7 +311,10 @@ void gc_collect(s4 level)
 		rootset_print(rs);
 #endif
 
+/* TODO port to new rt-timing */
+#if 0
 	RT_TIMING_GET_TIME(time_rootset);
+#endif
 
 #if 1
 
@@ -310,7 +322,10 @@ void gc_collect(s4 level)
 	mark_me(rs);
 	/*GC_LOG( heap_dump_region(heap_region_main, false); );*/
 
+/* TODO port to new rt-timing */
+#if 0
 	RT_TIMING_GET_TIME(time_mark);
+#endif
 
 	/* compact the heap */
 	compact_me(rs, heap_region_main);
@@ -321,7 +336,10 @@ void gc_collect(s4 level)
 	region_invalidate(heap_region_main);
 #endif
 
+/* TODO port to new rt-timing */
+#if 0
 	RT_TIMING_GET_TIME(time_compact);
+#endif
 
 	/* check if we should increase the heap size */
 	if (gc_get_free_bytes() < gc_get_heap_size() / 3) /* TODO: improve this heuristic */
@@ -372,6 +390,8 @@ void gc_collect(s4 level)
 		finalizer_notify();
 #endif
 
+/* TODO port to new rt-timing */
+#if 0
 	RT_TIMING_GET_TIME(time_end);
 
 	RT_TIMING_TIME_DIFF(time_start  , time_suspend, RT_TIMING_GC_SUSPEND);
@@ -380,6 +400,7 @@ void gc_collect(s4 level)
 	RT_TIMING_TIME_DIFF(time_mark   , time_compact, RT_TIMING_GC_COMPACT);
 	RT_TIMING_TIME_DIFF(time_compact, time_end    , RT_TIMING_GC_ROOTSET2);
 	RT_TIMING_TIME_DIFF(time_start  , time_end    , RT_TIMING_GC_TOTAL);
+#endif
 
     /* free dump memory area */
     DRELEASE;

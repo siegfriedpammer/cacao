@@ -2379,7 +2379,10 @@ void yssa(jitdata *jd) {
 
 	struct timespec bs, es, be, ee;
 
+/* TODO port to new rt-timing */
+#if 0
 	RT_TIMING_GET_TIME(bs);
+#endif
 
 #ifdef SSA_VERBOSE
 	bool verb = true;
@@ -2419,9 +2422,15 @@ void yssa(jitdata *jd) {
 
 	/*ssa_enter_create_phi_graph(ssa);*/
 
+/* TODO port to new rt-timing */
+#if 0
 	RT_TIMING_GET_TIME(be);
+#endif
 	escape_analysis_perform(ssa->jd);
+/* TODO port to new rt-timing */
+#if 0
 	RT_TIMING_GET_TIME(ee);
+#endif
 
 	/*
 	ssa_leave_create_phi_moves(ssa);
@@ -2447,10 +2456,13 @@ void yssa(jitdata *jd) {
 	}
 #endif
 
+/* TODO port to new rt-timing */
+#if 0
 	RT_TIMING_GET_TIME(es);
 
 	RT_TIMING_TIME_DIFF(bs, es, RT_TIMING_1);
 	RT_TIMING_TIME_DIFF(be, ee, RT_TIMING_2);
+#endif
 }
 
 void eliminate_subbasicblocks(jitdata *jd) {

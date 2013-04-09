@@ -23,7 +23,7 @@
 */
 
 /** @file
- * This file contain the real-time timing utilities.
+ * This file contains the real-time timing utilities.
  *
  * For day to day use only the following macros are of importance:
  * - RT_REGISTER_TIMER(var,name,description)
@@ -128,100 +128,6 @@
 #include "mm/memory.hpp"
 
 #include "vm/global.h"
-
-
-#define RT_TIMING_GET_TIME(ts) \
-	rt_timing_gettime(&(ts));
-
-#define RT_TIMING_TIME_DIFF(a,b,index) \
-	rt_timing_time_diff(&(a),&(b),(index));
-
-#define RT_TIMING_JIT_CHECKS       0
-#define RT_TIMING_JIT_PARSE        1
-#define RT_TIMING_JIT_STACK        2
-#define RT_TIMING_JIT_TYPECHECK    3
-#define RT_TIMING_JIT_LOOP         4
-#define RT_TIMING_JIT_IFCONV       5
-#define RT_TIMING_JIT_ALLOC        6
-#define RT_TIMING_JIT_RPLPOINTS    7
-#define RT_TIMING_JIT_CODEGEN      8
-#define RT_TIMING_JIT_TOTAL        9
-
-#define RT_TIMING_LINK_RESOLVE     10
-#define RT_TIMING_LINK_C_VFTBL     11
-#define RT_TIMING_LINK_ABSTRACT    12
-#define RT_TIMING_LINK_C_IFTBL     13
-#define RT_TIMING_LINK_F_VFTBL     14
-#define RT_TIMING_LINK_OFFSETS     15
-#define RT_TIMING_LINK_F_IFTBL     16
-#define RT_TIMING_LINK_FINALIZER   17
-#define RT_TIMING_LINK_EXCEPTS     18
-#define RT_TIMING_LINK_SUBCLASS    19
-#define RT_TIMING_LINK_TOTAL       20
-
-#define RT_TIMING_LOAD_CHECKS      21
-#define RT_TIMING_LOAD_NDPOOL      22
-#define RT_TIMING_LOAD_CPOOL       23
-#define RT_TIMING_LOAD_SETUP       24
-#define RT_TIMING_LOAD_FIELDS      25
-#define RT_TIMING_LOAD_METHODS     26
-#define RT_TIMING_LOAD_CLASSREFS   27
-#define RT_TIMING_LOAD_DESCS       28
-#define RT_TIMING_LOAD_SETREFS     29
-#define RT_TIMING_LOAD_PARSEFDS    30
-#define RT_TIMING_LOAD_PARSEMDS    31
-#define RT_TIMING_LOAD_PARSECP     32
-#define RT_TIMING_LOAD_VERIFY      33
-#define RT_TIMING_LOAD_ATTRS       34
-#define RT_TIMING_LOAD_TOTAL       35
-
-#define RT_TIMING_LOAD_BOOT_LOOKUP 36
-#define RT_TIMING_LOAD_BOOT_ARRAY  37
-#define RT_TIMING_LOAD_BOOT_SUCK   38
-#define RT_TIMING_LOAD_BOOT_LOAD   39
-#define RT_TIMING_LOAD_BOOT_CACHE  40
-#define RT_TIMING_LOAD_BOOT_TOTAL  41
-
-#define RT_TIMING_LOAD_CL_LOOKUP   42
-#define RT_TIMING_LOAD_CL_PREPARE  43
-#define RT_TIMING_LOAD_CL_JAVA     44
-#define RT_TIMING_LOAD_CL_CACHE    45
-
-#define RT_TIMING_NEW_OBJECT       46
-#define RT_TIMING_NEW_ARRAY        47
-
-#define RT_TIMING_GC_ALLOC         48
-#define RT_TIMING_GC_SUSPEND       49
-#define RT_TIMING_GC_ROOTSET1      50
-#define RT_TIMING_GC_MARK          51
-#define RT_TIMING_GC_COMPACT       52
-#define RT_TIMING_GC_ROOTSET2      53
-#define RT_TIMING_GC_TOTAL         54
-
-#define RT_TIMING_REPLACE          55
-
-#define RT_TIMING_1                56
-#define RT_TIMING_2                57
-#define RT_TIMING_3                58
-#define RT_TIMING_4                59
-
-#define RT_TIMING_N                60
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void rt_timing_gettime(struct timespec *ts);
-
-void rt_timing_time_diff(struct timespec *a,struct timespec *b,int index);
-
-long rt_timing_diff_usec(struct timespec *a,struct timespec *b);
-
-void rt_timing_print_time_stats(FILE *file);
-
-#ifdef __cplusplus
-}
-#endif
 
 #include "toolbox/OStream.hpp"
 
@@ -574,10 +480,6 @@ public:
 #define RT_TIMER_STOPSTART(var1,var2) do { var1().stop();var2().start(); } while(0)
 
 #else /* !defined(ENABLE_RT_TIMING) */
-
-#define RT_TIMING_GET_TIME(ts)
-#define RT_TIMING_TIME_DIFF(a,b,index)
-
 
 #define RT_REGISTER_TIMER(var,name,description)
 #define RT_REGISTER_GROUP_TIMER(var,name,description,group)

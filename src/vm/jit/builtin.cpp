@@ -817,14 +817,10 @@ RT_REGISTER_GROUP_TIMER(bi_newa_timer,"buildin","builtin_newarray time",buildin_
 java_handle_t *builtin_new(classinfo *c)
 {
 	java_handle_t *o;
-#if defined(ENABLE_RT_TIMING)
-	struct timespec time_start, time_end;
-#endif
 #if defined(ENABLE_CYCLES_STATS)
 	u8 cycles_start, cycles_end;
 #endif
 
-	RT_TIMING_GET_TIME(time_start);
 	RT_TIMER_START(bi_new_timer);
 	CYCLES_STATS_GET(cycles_start);
 
@@ -874,11 +870,9 @@ java_handle_t *builtin_new(classinfo *c)
 #endif
 
 	CYCLES_STATS_GET(cycles_end);
-	RT_TIMING_GET_TIME(time_end);
 	RT_TIMER_STOP(bi_new_timer);
 
 	CYCLES_STATS_COUNT(builtin_new,cycles_end - cycles_start);
-	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_NEW_OBJECT);
 
 	return o;
 }
@@ -894,14 +888,10 @@ java_handle_t *builtin_escape_reason_new(classinfo *c) {
 java_handle_t *builtin_tlh_new(classinfo *c)
 {
 	java_handle_t *o;
-# if defined(ENABLE_RT_TIMING)
-	struct timespec time_start, time_end;
-# endif
 # if defined(ENABLE_CYCLES_STATS)
 	u8 cycles_start, cycles_end;
 # endif
 
-	RT_TIMING_GET_TIME(time_start);
 	CYCLES_STATS_GET(cycles_start);
 
 	/* is the class loaded */
@@ -957,10 +947,10 @@ java_handle_t *builtin_tlh_new(classinfo *c)
 # endif
 
 	CYCLES_STATS_GET(cycles_end);
-	RT_TIMING_GET_TIME(time_end);
 
 /*
 	CYCLES_STATS_COUNT(builtin_new,cycles_end - cycles_start);
+	TODO port to new rt-timing
 	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_NEW_OBJECT);
 */
 
@@ -996,14 +986,10 @@ java_handle_t *builtin_java_new(java_handle_t *clazz)
 java_object_t *builtin_fast_new(classinfo *c)
 {
 	java_object_t *o;
-#if defined(ENABLE_RT_TIMING)
-	struct timespec time_start, time_end;
-#endif
 #if defined(ENABLE_CYCLES_STATS)
 	u8 cycles_start, cycles_end;
 #endif
 
-	RT_TIMING_GET_TIME(time_start);
 	CYCLES_STATS_GET(cycles_start);
 
 	/* is the class loaded */
@@ -1036,10 +1022,8 @@ java_object_t *builtin_fast_new(classinfo *c)
 #endif
 
 	CYCLES_STATS_GET(cycles_end);
-	RT_TIMING_GET_TIME(time_end);
 
 	CYCLES_STATS_COUNT(builtin_new,cycles_end - cycles_start);
-	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_NEW_OBJECT);
 
 	return o;
 }
@@ -1059,11 +1043,7 @@ java_object_t *builtin_fast_new(classinfo *c)
 
 java_handle_array_t *builtin_java_newarray(int32_t size, java_handle_t *arrayclazz)
 {
-#if defined(ENABLE_RT_TIMING)
-	struct timespec time_start, time_end;
-#endif
 
-	RT_TIMING_GET_TIME(time_start);
 	RT_TIMER_START(bi_newa_timer);
 
 	classinfo* arrayclass = LLNI_classinfo_unwrap(arrayclazz);
@@ -1071,9 +1051,7 @@ java_handle_array_t *builtin_java_newarray(int32_t size, java_handle_t *arraycla
 	// Allocate a new array with given size and class on the heap
 	Array a(size, arrayclass);
 
-	RT_TIMING_GET_TIME(time_end);
 	RT_TIMER_STOP(bi_newa_timer);
-	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_NEW_ARRAY);
 
 	return a.get_handle();
 }

@@ -351,7 +351,7 @@ void linker_init(void)
 		vm_abort("linker_init: linking failed");
 
 	/* pseudo class representing new uninitialized objects */
-    
+
 	pseudo_class_New         = class_create_classinfo(Utf8String::from_utf8("$NEW$"));
 	pseudo_class_New->state |= CLASS_LOADED;
 	pseudo_class_New->state |= CLASS_LINKED; /* XXX is this allright? */
@@ -372,11 +372,6 @@ void linker_init(void)
 classinfo *link_class(classinfo *c)
 {
 	classinfo *r;
-#if defined(ENABLE_RT_TIMING)
-	struct timespec time_start, time_end;
-#endif
-
-	RT_TIMING_GET_TIME(time_start);
 
 	if (c == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -425,9 +420,6 @@ classinfo *link_class(classinfo *c)
 
 	LOCK_MONITOR_EXIT(c);
 
-	RT_TIMING_GET_TIME(time_end);
-
-	RT_TIMING_TIME_DIFF(time_start,time_end,RT_TIMING_LINK_TOTAL);
 
 	// Hook point just after a class was linked.
 	if (!Hook::class_linked(r))
@@ -497,12 +489,12 @@ static bool linker_overwrite_method(methodinfo *mg,
 
 #if defined(ENABLE_TLH)
 			if (mg->flags & ACC_METHOD_MONOMORPHY_USED) {
-				printf("%s/%s is evil! the sinner is %s/%s\n", 
-					UTF_TEXT(mg->clazz->name), 
+				printf("%s/%s is evil! the sinner is %s/%s\n",
+					UTF_TEXT(mg->clazz->name),
 					UTF_TEXT(mg->name),
-					UTF_TEXT(ms->clazz->name), 
+					UTF_TEXT(ms->clazz->name),
 					UTF_TEXT(ms->name));
-				ms->flags |= ACC_METHOD_PARENT_MONOMORPHY_USED;					
+				ms->flags |= ACC_METHOD_PARENT_MONOMORPHY_USED;
 			}
 #endif
 
@@ -623,7 +615,7 @@ RT_REGISTER_GROUP_TIMER(subclasses_timer, "link", "re-calculate subclass indices
    Tries to link a class. The function calculates the length in bytes
    that an instance of this class requires as well as the VTBL for
    methods and interface methods.
-	
+
 *******************************************************************************/
 
 static classinfo *link_class_intern(classinfo *c)
@@ -637,14 +629,7 @@ static classinfo *link_class_intern(classinfo *c)
 	s4 i;                         /* interface/method/field counter           */
 	arraydescriptor *arraydesc;   /* descriptor for array classes             */
 	method_worklist *worklist;    /* worklist for recompilation               */
-#if defined(ENABLE_RT_TIMING)
-	struct timespec time_start, time_resolving, time_compute_vftbl,
-					time_abstract, time_compute_iftbl, time_fill_vftbl,
-					time_offsets, time_fill_iftbl, time_finalizer,
-					time_subclasses;
-#endif
 
-	RT_TIMING_GET_TIME(time_start);
 	RT_TIMER_START(resolving_timer);
 
 	TRACELINKCLASS(c);
@@ -684,7 +669,7 @@ static classinfo *link_class_intern(classinfo *c)
 			if (!link_class(tc))
 				return NULL;
 	}
-	
+
 	/* check super class */
 
 	super = NULL;
@@ -694,7 +679,7 @@ static classinfo *link_class_intern(classinfo *c)
 	if (c->super == NULL) {
 		c->index = 0;
 		c->instancesize = sizeof(java_object_t);
-		
+
 		vftbllength = supervftbllength = 0;
 
 		c->finalizer = NULL;
@@ -705,7 +690,7 @@ static classinfo *link_class_intern(classinfo *c)
 		super = c->super;
 
 		/* Link the super class if necessary. */
-		
+
 		if (!(super->state & CLASS_LINKED))
 			if (!link_class(super))
 				return NULL;
@@ -726,14 +711,13 @@ static classinfo *link_class_intern(classinfo *c)
 			c->index = interfaceindex++;
 		else
 			c->index = super->index + 1;
-		
+
 		c->instancesize = super->instancesize;
 
 		vftbllength = supervftbllength = super->vftbl->vftbllength;
-		
+
 		c->finalizer = super->finalizer;
 	}
-	RT_TIMING_GET_TIME(time_resolving);
 	RT_TIMER_STOPSTART(resolving_timer,compute_vftbl_timer);
 
 
@@ -756,8 +740,8 @@ static classinfo *link_class_intern(classinfo *c)
 						/* package-private methods in other packages */
 						/* must not be overridden                    */
 						/* (see Java Language Specification 8.4.8.1) */
-						if ( !(tc->methods[j].flags & (ACC_PUBLIC | ACC_PROTECTED)) 
-							 && !SAME_PACKAGE(c,tc) ) 
+						if ( !(tc->methods[j].flags & (ACC_PUBLIC | ACC_PROTECTED))
+							 && !SAME_PACKAGE(c,tc) )
 						{
 						    goto notfoundvftblindex;
 						}
@@ -778,7 +762,6 @@ static classinfo *link_class_intern(classinfo *c)
 			;
 		}
 	}
-	RT_TIMING_GET_TIME(time_compute_vftbl);
 	RT_TIMER_STOPSTART(compute_vftbl_timer,abstract_timer);
 
 
@@ -868,7 +851,6 @@ static classinfo *link_class_intern(classinfo *c)
 			}
 		}
 	}
-	RT_TIMING_GET_TIME(time_abstract);
 	RT_TIMER_STOPSTART(abstract_timer,compute_iftbl_timer);
 
 
@@ -890,7 +872,6 @@ static classinfo *link_class_intern(classinfo *c)
 				interfacetablelength = h;
 		}
 	}
-	RT_TIMING_GET_TIME(time_compute_iftbl);
 	RT_TIMER_STOPSTART(compute_iftbl_timer,fill_vftbl_timer);
 
 	/* allocate virtual function table */
@@ -914,7 +895,7 @@ static classinfo *link_class_intern(classinfo *c)
 
 	/* copy virtual function table of super class */
 
-	for (i = 0; i < supervftbllength; i++) 
+	for (i = 0; i < supervftbllength; i++)
 		v->table[i] = super->vftbl->table[i];
 
 	/* Fill the remaining vftbl slots with the AbstractMethodError
@@ -968,15 +949,14 @@ static classinfo *link_class_intern(classinfo *c)
 
 		v->table[m->vftblindex] = (methodptr) (ptrint) m->stubroutine;
 	}
-	RT_TIMING_GET_TIME(time_fill_vftbl);
 	RT_TIMER_STOPSTART(fill_vftbl_timer,offsets_timer);
 
 	/* compute instance size and offset of each field */
-	
+
 	for (i = 0; i < c->fieldscount; i++) {
 		s4 dsize;
 		fieldinfo *f = &(c->fields[i]);
-		
+
 		if (!(f->flags & ACC_STATIC)) {
 			dsize = descriptor_typesize(f->parseddesc);
 			c->instancesize = MEMORY_ALIGN(c->instancesize, dsize);
@@ -984,7 +964,6 @@ static classinfo *link_class_intern(classinfo *c)
 			c->instancesize += dsize;
 		}
 	}
-	RT_TIMING_GET_TIME(time_offsets);
 	RT_TIMER_STOPSTART(offsets_timer,fill_iftbl_timer);
 
 	/* initialize interfacetable and interfacevftbllength */
@@ -1008,7 +987,6 @@ static classinfo *link_class_intern(classinfo *c)
 			if (!linker_addinterface(c, tc->interfaces[i]))
 				return NULL;
 
-	RT_TIMING_GET_TIME(time_fill_iftbl);
 	RT_TIMER_STOPSTART(fill_iftbl_timer,finalizer_timer);
 
 	/* add finalizer method (not for java.lang.Object) */
@@ -1022,7 +1000,6 @@ static classinfo *link_class_intern(classinfo *c)
 			if (!(fi->flags & ACC_STATIC))
 				c->finalizer = fi;
 	}
-	RT_TIMING_GET_TIME(time_finalizer);
 	RT_TIMER_STOPSTART(finalizer_timer,subclasses_timer);
 
 	/* final tasks */
@@ -1030,7 +1007,6 @@ static classinfo *link_class_intern(classinfo *c)
 	linker_compute_subclasses(c);
 
 	/* FIXME: this is completely useless now */
-	RT_TIMING_GET_TIME(time_subclasses);
 	RT_TIMER_STOP(subclasses_timer);
 
 #if USES_NEW_SUBTYPE
@@ -1057,16 +1033,6 @@ static classinfo *link_class_intern(classinfo *c)
 		/* XXX put worklist into dump memory? */
 		FREE(wi, method_worklist);
 	}
-
-	RT_TIMING_TIME_DIFF(time_start        ,time_resolving    ,RT_TIMING_LINK_RESOLVE);
-	RT_TIMING_TIME_DIFF(time_resolving    ,time_compute_vftbl,RT_TIMING_LINK_C_VFTBL);
-	RT_TIMING_TIME_DIFF(time_compute_vftbl,time_abstract     ,RT_TIMING_LINK_ABSTRACT);
-	RT_TIMING_TIME_DIFF(time_abstract     ,time_compute_iftbl,RT_TIMING_LINK_C_IFTBL);
-	RT_TIMING_TIME_DIFF(time_compute_iftbl,time_fill_vftbl   ,RT_TIMING_LINK_F_VFTBL);
-	RT_TIMING_TIME_DIFF(time_fill_vftbl   ,time_offsets      ,RT_TIMING_LINK_OFFSETS);
-	RT_TIMING_TIME_DIFF(time_offsets      ,time_fill_iftbl   ,RT_TIMING_LINK_F_IFTBL);
-	RT_TIMING_TIME_DIFF(time_fill_iftbl   ,time_finalizer    ,RT_TIMING_LINK_FINALIZER);
-	RT_TIMING_TIME_DIFF(time_finalizer    ,time_subclasses   ,RT_TIMING_LINK_SUBCLASS);
 
 	/* just return c to show that we didn't had a problem */
 
@@ -1130,7 +1096,7 @@ static arraydescriptor *link_array(classinfo *c)
 		desc->arraytype = ARRAYTYPE_OBJECT;
 		desc->componentsize = sizeof(void*);
 		desc->dataoffset = OFFSET(java_objectarray_t, data);
-		
+
 		compvftbl = comp->vftbl;
 
 		if (!compvftbl) {
@@ -1139,7 +1105,7 @@ static arraydescriptor *link_array(classinfo *c)
 		}
 
 		desc->componentvftbl = compvftbl;
-		
+
 		if (compvftbl->arraydesc) {
 			desc->elementvftbl = compvftbl->arraydesc->elementvftbl;
 
@@ -1212,7 +1178,7 @@ static arraydescriptor *link_array(classinfo *c)
 			exceptions_throw_noclassdeffounderror(c->name);
 			return NULL;
 		}
-		
+
 		desc->componentvftbl = NULL;
 		desc->elementvftbl = NULL;
 		desc->dimension = 1;
@@ -1434,7 +1400,7 @@ static s4 class_highestinterface(classinfo *c)
 	s4 h;
 	s4 h2;
 	s4 i;
-	
+
     /* check for ACC_INTERFACE bit already done in link_class_intern */
 
     h = c->index;

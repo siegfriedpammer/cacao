@@ -537,13 +537,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 	codegendata *cd;
 	codeinfo    *code;
 
-#if defined(ENABLE_RT_TIMING)
-	struct timespec time_start,time_checks,time_parse,time_stack,
-					time_typecheck,time_loop,time_ifconv,time_alloc,
-					time_codegen;
-#endif
-	
-	RT_TIMING_GET_TIME(time_start);
 	RT_TIMER_START(checks_timer);
 
 	/* get required compiler data */
@@ -554,7 +547,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 	m    = jd->m;
 	code = jd->code;
 	cd   = jd->cd;
-	
+
 #if defined(ENABLE_DEBUG_FILTER)
 	show_filters_apply(jd->m);
 #endif
@@ -570,11 +563,11 @@ static u1 *jit_compile_intern(jitdata *jd)
 		code = NativeStub::generate(m, (functionptr) f);
 
 		/* Native methods are never recompiled. */
-		
+
 		assert(!m->code);
 
 		m->code = code;
-		
+
 		return code->entrypoint;
 	}
 
@@ -597,7 +590,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 	}
 #endif
 
-	RT_TIMING_GET_TIME(time_checks);
 	RT_TIMER_STOPSTART(checks_timer,parse_timer);
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
@@ -623,11 +615,10 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 		return NULL;
 	}
-	RT_TIMING_GET_TIME(time_parse);
 	RT_TIMER_STOP(parse_timer);
 
 	DEBUG_JIT_COMPILEVERBOSE("Parsing done: ");
-	
+
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (!opt_intrp) {
@@ -642,7 +633,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 			return NULL;
 		}
-		RT_TIMING_GET_TIME(time_stack);
 		RT_TIMER_STOPSTART(stack_timer,typechecker_timer);
 
 		DEBUG_JIT_COMPILEVERBOSE("Analysing done: ");
@@ -661,7 +651,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 			DEBUG_JIT_COMPILEVERBOSE("Typechecking done: ");
 		}
 #endif
-		RT_TIMING_GET_TIME(time_typecheck);
 		RT_TIMER_STOPSTART(typechecker_timer,loop_timer);
 
 #if defined(ENABLE_LOOP)
@@ -672,7 +661,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 			jit_renumber_basicblocks(jd);
 		}
 #endif
-		RT_TIMING_GET_TIME(time_loop);
 		RT_TIMER_STOPSTART(loop_timer,ifconversion_timer);
 
 #if defined(ENABLE_IFCONV)
@@ -682,7 +670,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 			jit_renumber_basicblocks(jd);
 		}
 #endif
-		RT_TIMING_GET_TIME(time_ifconv);
 		RT_TIMER_STOPSTART(ifconversion_timer,ra_timer);
 
 		/* inlining */
@@ -737,7 +724,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		/* allocate registers */
 		if (
 			(opt_lsra &&
-			jd->code->optlevel > 0) 
+			jd->code->optlevel > 0)
 			/* strncmp(UTF_TEXT(jd->m->name), "hottie", 6) == 0*/
 			/*&& jd->exceptiontablelength == 0*/
 		) {
@@ -765,7 +752,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 	}
 # endif
 #endif /* defined(ENABLE_JIT) */
-	RT_TIMING_GET_TIME(time_alloc);
 	RT_TIMER_START(codegen_timer);
 
 #if defined(ENABLE_PROFILING)
@@ -818,7 +804,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 	}
 #endif
 	RT_TIMER_STOP(codegen_timer);
-	RT_TIMING_GET_TIME(time_codegen);
 
 	DEBUG_JIT_COMPILEVERBOSE("Generating code done: ");
 
@@ -835,7 +820,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 #endif
 	{
 		/* intermediate and assembly code listings */
-		
+
 		if (JITDATA_HAS_FLAG_SHOWINTERMEDIATE(jd)) {
 			show_method(jd, SHOW_CODE);
 		}
@@ -861,19 +846,10 @@ static u1 *jit_compile_intern(jitdata *jd)
 	code->prev = m->code;
 	m->code = code;
 
-	RT_TIMING_TIME_DIFF(time_start,time_checks,RT_TIMING_JIT_CHECKS);
-	RT_TIMING_TIME_DIFF(time_checks,time_parse,RT_TIMING_JIT_PARSE);
-	RT_TIMING_TIME_DIFF(time_parse,time_stack,RT_TIMING_JIT_STACK);
-	RT_TIMING_TIME_DIFF(time_stack,time_typecheck,RT_TIMING_JIT_TYPECHECK);
-	RT_TIMING_TIME_DIFF(time_typecheck,time_loop,RT_TIMING_JIT_LOOP);
-	RT_TIMING_TIME_DIFF(time_loop,time_alloc,RT_TIMING_JIT_ALLOC);
-	RT_TIMING_TIME_DIFF(time_alloc,time_codegen,RT_TIMING_JIT_CODEGEN);
-	RT_TIMING_TIME_DIFF(time_start,time_codegen,RT_TIMING_JIT_TOTAL);
-
 	/* return pointer to the methods entry point */
 
 	return code->entrypoint;
-} 
+}
 
 
 /* jit_invalidate_code *********************************************************

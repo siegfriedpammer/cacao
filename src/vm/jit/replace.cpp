@@ -152,9 +152,9 @@ static void replace_statistics_source_frame(sourceframe_t *frame);
 
 
 /* replace_create_replacement_point ********************************************
- 
+
    Create a replacement point.
-  
+
    IN:
        jd...............current jitdata
 	   iinfo............inlining info for the current position
@@ -166,10 +166,10 @@ static void replace_statistics_source_frame(sourceframe_t *frame);
 	   stackvars........the stack variables at the current point
 	   stackdepth.......the stack depth at the current point
 	   paramcount.......number of parameters at the start of stackvars
-  
+
    OUT:
        *rpa.............points to the next free rplalloc
-  
+
 *******************************************************************************/
 
 static void replace_create_replacement_point(jitdata *jd,
@@ -306,12 +306,12 @@ static insinfo_inline * replace_create_inline_start_replacement_point(
 
 
 /* replace_create_replacement_points *******************************************
- 
+
    Create the replacement points for the given code.
-  
+
    IN:
        jd...............current jitdata, must not have any replacement points
-  
+
    OUT:
        code->rplpoints.......set to the list of replacement points
 	   code->rplpointcount...number of replacement points
@@ -319,11 +319,11 @@ static insinfo_inline * replace_create_inline_start_replacement_point(
 	   code->regalloccount...total length of allocation info list
 	   code->globalcount.....number of global allocations at the
 	                         start of code->regalloc
-  
+
    RETURN VALUE:
-       true.............everything ok 
+       true.............everything ok
        false............an exception has been thrown
-   
+
 *******************************************************************************/
 
 #define CLEAR_javalocals(array, method)                              \
@@ -707,12 +707,12 @@ bool replace_create_replacement_points(jitdata *jd)
 
 
 /* replace_free_replacement_points *********************************************
- 
+
    Free memory used by replacement points.
-  
+
    IN:
        code.............codeinfo whose replacement points should be freed.
-  
+
 *******************************************************************************/
 
 void replace_free_replacement_points(codeinfo *code)
@@ -739,17 +739,17 @@ void replace_free_replacement_points(codeinfo *code)
 
 
 /* replace_activate_replacement_points *****************************************
- 
+
    Activate the replacement points of the given compilation unit. When this
    function returns, the replacement points are "armed", so each thread
    reaching one of the points will enter the replacement mechanism.
-   
+
    IN:
        code.............codeinfo of which replacement points should be
 						activated
 	   mappable.........if true, only mappable replacement points are
 						activated
-  
+
 *******************************************************************************/
 
 void replace_activate_replacement_points(codeinfo *code, bool mappable)
@@ -823,14 +823,14 @@ void replace_activate_replacement_points(codeinfo *code, bool mappable)
 
 
 /* replace_deactivate_replacement_points ***************************************
- 
+
    Deactivate a replacement points in the given compilation unit.
    When this function returns, the replacement points will be "un-armed",
    that is a each thread reaching a point will just continue normally.
-   
+
    IN:
        code.............the compilation unit
-  
+
 *******************************************************************************/
 
 void replace_deactivate_replacement_points(codeinfo *code)
@@ -910,7 +910,7 @@ void replace_deactivate_replacement_points(codeinfo *code)
 /* replace_read_value **********************************************************
 
    Read a value with the given allocation from the execution state.
-   
+
    IN:
 	   es...............execution state
 	   ra...............allocation
@@ -918,7 +918,7 @@ void replace_deactivate_replacement_points(codeinfo *code)
 
    OUT:
        *javaval.........the value
-  
+
 *******************************************************************************/
 
 static void replace_read_value(executionstate_t *es,
@@ -968,7 +968,7 @@ static void replace_read_value(executionstate_t *es,
 /* replace_write_value *********************************************************
 
    Write a value to the given allocation in the execution state.
-   
+
    IN:
 	   es...............execution state
 	   ra...............allocation
@@ -1022,7 +1022,7 @@ static void replace_write_value(executionstate_t *es,
 /* replace_new_sourceframe *****************************************************
 
    Allocate a new source frame and insert it at the front of the frame list.
-   
+
    IN:
 	   ss...............the source state
 
@@ -1064,7 +1064,7 @@ static sourceframe_t *replace_new_sourceframe(sourcestate_t *ss)
    OUT:
        *ss..............the source state with the newly created source frame
 	                    added
-  
+
 *******************************************************************************/
 
 static s4 replace_normalize_type_map[] = {
@@ -1193,7 +1193,7 @@ static void replace_read_executionstate(rplpoint *rp,
 	else if (!(rp->method->flags & ACC_STATIC)) {
 		/* On i386 we always pass the first argument on stack. */
 		frame->instance.a = *(java_object_t **)(basesp + 1);
-	} 
+	}
 #endif
 #endif /* defined(REPLACE_PATCH_DYNAMIC_CALL) */
 
@@ -1305,7 +1305,7 @@ static void replace_read_executionstate(rplpoint *rp,
 
    OUT:
        *es..............the execution state derived from the source state
-  
+
 *******************************************************************************/
 
 static void replace_write_executionstate(rplpoint *rp,
@@ -1893,7 +1893,7 @@ void replace_patch_future_calls(u1 *ra,
 /* replace_push_activation_record **********************************************
 
    Push a stack frame onto the execution state.
-   
+
    *** This function imitates the effects of a call and the ***
    *** method prolog of the callee.                         ***
 
@@ -1906,7 +1906,7 @@ void replace_patch_future_calls(u1 *ra,
 
    OUT:
        *es..............the execution state after pushing the stack frame
-  
+
 *******************************************************************************/
 
 void replace_push_activation_record(executionstate_t *es,
@@ -1975,7 +1975,7 @@ void replace_push_activation_record(executionstate_t *es,
 
    Find the replacement point in the given code corresponding to the
    position given in the source frame.
-   
+
    IN:
 	   code.............the codeinfo in which to search the rplpoint
 	   frame............the source frame defining the position to look for
@@ -1983,7 +1983,7 @@ void replace_push_activation_record(executionstate_t *es,
 
    RETURN VALUE:
        the replacement point
-  
+
 *******************************************************************************/
 
 rplpoint * replace_find_replacement_point(codeinfo *code,
@@ -2668,7 +2668,7 @@ static void replace_build_execution_state(sourcestate_t *ss,
 
 
 /* replace_me ******************************************************************
- 
+
    This function is called by the signal handler when a thread reaches
    a replacement point. `replace_me` must map the execution state to the
    target replacement point and let execution continue there.
@@ -2678,7 +2678,7 @@ static void replace_build_execution_state(sourcestate_t *ss,
    IN:
        rp...............replacement point that has been reached
        es...............execution state read by signal handler
-  
+
 *******************************************************************************/
 
 static void replace_me(rplpoint *rp, executionstate_t *es)
@@ -2820,9 +2820,6 @@ bool replace_handler(u1 *pc, executionstate_t *es)
 {
 	codeinfo         *code;
 	rplpoint         *rp;
-#if defined(ENABLE_RT_TIMING)
-	struct timespec time_start, time_end;
-#endif
 
 	/* search the codeinfo for the given PC */
 
@@ -2846,16 +2843,7 @@ bool replace_handler(u1 *pc, executionstate_t *es)
 
 		/* do the actual replacement */
 
-#if defined(ENABLE_RT_TIMING)
-		RT_TIMING_GET_TIME(time_start);
-#endif
-
 		replace_me(rp, es);
-
-#if defined(ENABLE_RT_TIMING)
-		RT_TIMING_GET_TIME(time_end);
-		RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_REPLACE);
-#endif
 
 		/* new code is entered after returning */
 
@@ -3028,12 +3016,12 @@ static void replace_statistics_source_frame(sourceframe_t *frame)
 /* debugging helpers **********************************************************/
 
 /* replace_replacement_point_println *******************************************
- 
+
    Print replacement point info.
-  
+
    IN:
        rp...............the replacement point to print
-  
+
 *******************************************************************************/
 
 #if !defined(NDEBUG)
@@ -3108,12 +3096,12 @@ void replace_replacement_point_println(rplpoint *rp, int depth)
 
 
 /* replace_show_replacement_points *********************************************
- 
+
    Print replacement point info.
-  
+
    IN:
        code.............codeinfo whose replacement points should be printed.
-  
+
 *******************************************************************************/
 
 #if !defined(NDEBUG)
@@ -3301,12 +3289,12 @@ void replace_source_frame_println(sourceframe_t *frame)
 
 
 /* replace_sourcestate_println *************************************************
- 
+
    Print source state
-  
+
    IN:
        ss...............the source state to print
-  
+
 *******************************************************************************/
 
 #if !defined(NDEBUG)
