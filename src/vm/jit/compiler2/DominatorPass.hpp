@@ -36,6 +36,39 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+class DominatorTree {
+public:
+	typedef BeginInst NodeTy;
+	typedef std::map<const NodeTy*, const NodeTy*> EdgeMapTy;
+protected:
+	EdgeMapTy dom;
+public:
+	/**
+	 * True if a dominates b.
+	 */
+	bool dominates(const NodeTy *a, const NodeTy *b) const;
+	/**
+	 * True if b is dominated by b.
+	 */
+	inline bool is_dominated_by(const NodeTy *b, NodeTy *a) const {
+		return dominates(a,b);
+	}
+
+	/**
+	 * Get the immediate dominator.
+	 *
+	 * @return the immediate dominator or NULL if it is the starting node of
+	 *         the dominator tree (and if a is not in the tree).
+	 */
+	inline const NodeTy* get_idominator(const NodeTy *a) const {
+		return dom.at(a);
+	}
+
+	/**
+	 * Find the nearest common dominator.
+	 */
+	const NodeTy* find_nearest_common_dom(const NodeTy *a, const NodeTy *b) const;
+};
 
 /**
  * Calculate the Dominator Tree.
@@ -48,32 +81,31 @@ namespace compiler2 {
  * A Fast Algorithm for Finding Dominators in a Flowgraph, by Lengauer
  * and Tarjan, 1979 @cite Lengauer1979.
  */
-class DominatorPass : public Pass {
+class DominatorPass : public Pass , public DominatorTree {
 private:
 	typedef BeginInst NodeTy;
-	typedef std::set<NodeTy *> NodeListTy;
-	typedef std::map<NodeTy *,NodeListTy> NodeListMapTy;
-	typedef std::vector<NodeTy *> NodeMapTy;
-	typedef std::map<NodeTy *,int> IndexMapTy;
-	typedef std::map<NodeTy *,NodeTy *> EdgeMapTy;
+	typedef std::set<const NodeTy *> NodeListTy;
+	typedef std::map<const NodeTy *,NodeListTy> NodeListMapTy;
+	typedef std::vector<const NodeTy *> NodeMapTy;
+	typedef std::map<const NodeTy *,int> IndexMapTy;
+	typedef std::map<const NodeTy *,const NodeTy *> EdgeMapTy;
 
 	EdgeMapTy parent;
 	NodeListMapTy pred;
 	IndexMapTy semi;
 	NodeMapTy vertex;
 	NodeListMapTy bucket;
-	EdgeMapTy dom;
 	int n;
 
 	EdgeMapTy ancestor;
 	EdgeMapTy label;
 
-	NodeListTy& succ(NodeTy *v, NodeListTy &list);
-	void DFS(NodeTy * v);
+	NodeListTy& succ(const NodeTy *v, NodeListTy &list);
+	void DFS(const NodeTy * v);
 
-	void Link(NodeTy *v, NodeTy *w);
-	NodeTy* Eval(NodeTy *v);
-	void Compress(NodeTy *v);
+	void Link(const NodeTy *v, const NodeTy *w);
+	const NodeTy* Eval(const NodeTy *v);
+	void Compress(const NodeTy *v);
 public:
 	DominatorPass(PassManager *PM) : Pass(PM) {}
 	bool run(JITData &JD);
