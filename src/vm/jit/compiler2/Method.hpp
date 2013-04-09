@@ -25,6 +25,8 @@
 #ifndef _JIT_COMPILER2_METHOD
 #define _JIT_COMPILER2_METHOD
 
+#include <cstddef>
+
 #include <vector>
 #include <list>
 
