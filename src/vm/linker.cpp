@@ -490,10 +490,10 @@ static bool linker_overwrite_method(methodinfo *mg,
 #if defined(ENABLE_TLH)
 			if (mg->flags & ACC_METHOD_MONOMORPHY_USED) {
 				printf("%s/%s is evil! the sinner is %s/%s\n",
-					UTF_TEXT(mg->clazz->name),
-					UTF_TEXT(mg->name),
-					UTF_TEXT(ms->clazz->name),
-					UTF_TEXT(ms->name));
+					mg->clazz->name.begin(),
+					mg->name.begin(),
+					ms->clazz->name.begin(),
+					ms->name.begin());
 				ms->flags |= ACC_METHOD_PARENT_MONOMORPHY_USED;
 			}
 #endif
