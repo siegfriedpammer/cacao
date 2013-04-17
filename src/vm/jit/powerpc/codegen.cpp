@@ -2352,7 +2352,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 		/* put env into first argument register */
 
-		disp = dseg_add_address(cd, VM_get_jnienv());
+		disp = dseg_add_address(cd, VM::get_current()->get_jnienv());
 		M_ALD(REG_A0, REG_PV, disp);
 	}
 
