@@ -670,7 +670,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 
 	/* actually create the JVM */
 
-	int   len;
+	int   len = 0;
 	char *p;
 	char *boot_class_path;
 	char *boot_class_path_p = NULL;

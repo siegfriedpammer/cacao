@@ -749,7 +749,9 @@ void exceptions_throw_classformaterror(classinfo *c, const char *message, ...)
 	if (c != NULL)
 		buf.write_slash_to_dot(c->name).write('(');
 
+	va_start(ap, message);
 	buf.writevf(message,ap);
+	va_end(ap);
 
 	if (c != NULL)
 		buf.write(')');

@@ -588,7 +588,7 @@ bool class_load_attributes(classbuffer *cb)
 			Utf8String signature = c->signature;
 
 			if (!loader_load_attribute_signature(cb, signature)) {
-				return NULL;
+				return false;
 			}
 
 			c->signature = signature;
