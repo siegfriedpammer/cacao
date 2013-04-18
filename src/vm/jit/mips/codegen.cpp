@@ -250,13 +250,12 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 	methodinfo*         lm;             // Local methodinfo for ICMD_INVOKE*.
 	unresolved_method*  um;
 	fieldinfo*          fi;
-	unresolved_field*   uf;
+	unresolved_field*   uf = NULL;
 	int32_t             fieldtype;
-	int32_t             s1, s2, s3, d;
+	int32_t             s1, s2, s3, d = 0;
 	int32_t             disp;
 
 	// Get required compiler data.
-	codeinfo*     code = jd->code;
 	codegendata*  cd   = jd->cd;
 
 	switch (iptr->opc) {
