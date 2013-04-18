@@ -285,7 +285,7 @@ bool patcher_resolve_classref_to_flags(patchref_t *pr)
 bool patcher_invokestatic_special(patchref_t *pr)
 {
 	unresolved_method* um    = (unresolved_method*) pr->ref;
-	void**             datap = (void*)              pr->datap;
+	void**             datap = (void**)             pr->datap;
 
 	// Resolve the method.
 	methodinfo* m = resolve_method_eager(um);
