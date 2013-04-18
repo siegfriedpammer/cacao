@@ -25,7 +25,7 @@
 
 #include "config.h"
 
-#include <cassert.h>
+#include <cassert>
 
 #include "vm/types.hpp"
 
