@@ -32,10 +32,10 @@
 #include "vm/types.hpp"
 
 #include "vm/class.hpp"
-#include "vm/field.hpp"
 #include "vm/global.hpp"
 #include "vm/loader.hpp"
 
+struct fieldinfo;
 struct methodinfo;
 
 /* function prototypes ********************************************************/

@@ -43,7 +43,6 @@ typedef struct extra_classref extra_classref;
 # include "vm/annotation.hpp"
 #endif
 
-#include "vm/field.hpp"
 #include "vm/global.hpp"
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
@@ -52,6 +51,7 @@ typedef struct extra_classref extra_classref;
 #include "vm/utf8.hpp"
 #include "vm/vftbl.hpp"
 
+struct fieldinfo;
 struct methodinfo;
 
 /* class state defines ********************************************************/

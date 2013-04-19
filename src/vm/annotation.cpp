@@ -38,6 +38,7 @@
 #include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
+#include "vm/field.hpp"
 #include "vm/loader.hpp"
 #include "vm/primitive.hpp"
 #include "vm/suck.hpp"

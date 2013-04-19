@@ -31,9 +31,9 @@
 #include <stdint.h>
 
 #include "vm/class.hpp"
-#include "vm/field.hpp"
 #include "vm/global.hpp"
 
+struct fieldinfo;
 struct methodinfo;
 
 /* macros *********************************************************************/
