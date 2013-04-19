@@ -48,8 +48,6 @@
 // Includes.
 #include "mm/codememory.hpp"
 #include "mm/dumpmemory.hpp"
-#include "mm/gc.hpp"
-
 
 /* 
 ---------------------------- Interface description -----------------------

@@ -29,6 +29,7 @@
 #include "class.hpp"                    // for class_resolvemethod
 #include "config.h"                     // for ENABLE_THREADS, etc
 #include "global.hpp"                   // for functionptr
+#include "mm/gc.hpp"                    // for heap_alloc
 #include "mm/memory.hpp"                // for GCNEW
 #include "threads/thread.hpp"           // for thread_set_state_runnable, etc
 #include "threads/threadlist.hpp"       // for ThreadList

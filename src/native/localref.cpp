@@ -28,6 +28,7 @@
 #include <assert.h>
 #include <stdint.h>
 
+#include "mm/gc.hpp"
 #include "mm/memory.hpp"
 
 #include "native/localref.hpp"

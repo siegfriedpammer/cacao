@@ -28,6 +28,7 @@
 #include <stdlib.h>                     // for NULL
 #include <map>                          // for multimap, _Rb_tree_iterator, etc
 #include <utility>                      // for pair, make_pair
+#include "mm/gc.hpp"                    // for gc_invoke_finalizers
 #include "native/llni.hpp"              // for LLNI_DIRECT, LLNI_class_get
 #include "threads/condition.hpp"        // for Condition
 #include "threads/mutex.hpp"            // for Mutex, MutexLocker
