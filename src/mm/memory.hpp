@@ -29,7 +29,7 @@
 #include "config.h"
 
 #include <stdint.h>
-
+#include <cstddef>                     // for size_t
 
 // Align the size of memory allocations to this size.
 #define ALIGNSIZE 8
@@ -46,8 +46,7 @@
 
 
 // Includes.
-//#include "mm/codememory.hpp"
-#include "mm/dumpmemory.hpp"
+//#include "mm/dumpmemory.hpp"
 
 /* 
 ---------------------------- Interface description -----------------------
