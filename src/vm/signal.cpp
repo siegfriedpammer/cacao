@@ -22,31 +22,26 @@
 
 */
 
-
-#include "config.h"
-
-#include <cassert>
-#include <cstdlib>
-#include <signal.h>
-#include <stdint.h>
-
+#include <errno.h>                      // for EINTR
+#include <signal.h>                     // for sigaction, sigemptyset, etc
+#include <cstdlib>                      // for NULL
 #include "arch.hpp"
-
-#if defined(ENABLE_GC_BOEHM)
-# include "mm/memory.hpp"
-#endif
-
-#include "threads/thread.hpp"
-#include "threads/threadlist.hpp"
-
-#include "vm/exceptions.hpp"
-#include "vm/globals.hpp"
-#include "vm/method.hpp"
+#include "class.hpp"                    // for class_resolvemethod
+#include "config.h"                     // for ENABLE_THREADS, etc
+#include "global.hpp"                   // for functionptr
+#include "mm/memory.hpp"                // for GCNEW
+#include "threads/thread.hpp"           // for thread_set_state_runnable, etc
+#include "threads/threadlist.hpp"       // for ThreadList
+#include "toolbox/logging.hpp"          // for log_println
+#include "utf8.hpp"                     // for Utf8String
+#include "vm/exceptions.hpp"            // for exceptions_get_exception, etc
+#include "vm/globals.hpp"               // for class_sun_misc_Signal
 #include "vm/options.hpp"
-#include "vm/os.hpp"
-#include "vm/signallocal.hpp"
-#include "vm/vm.hpp"
-#include "vm/statistics.hpp"
+#include "vm/os.hpp"                    // for os
+#include "vm/signallocal.hpp"           // for md_signal_handler_sigsegv, etc
+#include "vm/vm.hpp"                    // for vm_abort, vm_call_method, etc
+
+struct methodinfo;
 
 /* function prototypes ********************************************************/
 

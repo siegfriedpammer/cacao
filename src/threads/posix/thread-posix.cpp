@@ -22,60 +22,44 @@
 
 */
 
-
-#include "config.h"
-
-/* XXX cleanup these includes */
-
 #define __STDC_LIMIT_MACROS
 
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <time.h>
-#include <errno.h>
-
-#include <pthread.h>
-
-#include "vm/types.hpp"
-
-#include "arch.hpp"
-
-#include "mm/gc.hpp"
-#include "mm/memory.hpp"
+#include "threads/posix/thread-posix.hpp" // for threadobject, etc
+#include <assert.h>                       // for assert
+#include <errno.h>                      // for errno, EINTR
+#include <pthread.h>                    // for pthread_attr_init, etc
+#include <sched.h>                      // for sched_param, sched_yield, etc
+#include <semaphore.h>                  // for sem_t, sem_destroy, etc
+#include <signal.h>                     // for pthread_kill, SIGUSR1
+#include <stdint.h>                     // for INT32_MAX
+#include <stdlib.h>                     // for NULL
+#include <string.h>                     // for strerror
+#include <sys/time.h>                   // for timeval, gettimeofday
+#include <sys/types.h>                  // for int32_t, int64_t
+#include <time.h>                       // for timespec
+#include "condition-posix.hpp"          // for Condition
+#include "config.h"                     // for ENABLE_GC_BOEHM, etc
+#include "mutex-posix.hpp"              // for Mutex
+#include "native/llni.hpp"              // for LLNI_class_get, LLNI_WRAP
+#include "threads/lock.hpp"             // for lock_monitor_enter, etc
+#include "threads/mutex.hpp"            // for MutexLocker
+#include "threads/thread.hpp"           // for DEBUGTHREADS, etc
+#include "threads/threadlist.hpp"       // for ThreadList
+#include "vm/class.hpp"                 // for class_resolveclassmethod, etc
+#include "vm/exceptions.hpp"            // for exceptions_get_exception, etc
+#include "vm/global.hpp"                // for java_handle_t, functionptr
+#include "vm/hook.hpp"                  // for thread_end, thread_start
+#include "vm/javaobjects.hpp"           // for java_lang_Thread
+#include "vm/options.hpp"               // for opt_stacksize
+#include "vm/os.hpp"                    // for os
+#include "vm/signallocal.hpp"
+#include "vm/types.hpp"                 // for s4, s8, u2
+#include "vm/utf8.hpp"
+#include "vm/vm.hpp"                    // for vm_abort, vm_call_method
 
 #if defined(ENABLE_GC_CACAO)
 # include "mm/cacao-gc/gc.h"
 #endif
-
-#include "native/llni.hpp"
-#include "native/native.hpp"
-
-#include "threads/condition.hpp"
-#include "threads/lock.hpp"
-#include "threads/mutex.hpp"
-#include "threads/threadlist.hpp"
-#include "threads/thread.hpp"
-
-#include "toolbox/logging.hpp"
-
-#include "vm/jit/builtin.hpp"
-#include "vm/exceptions.hpp"
-#include "vm/global.hpp"
-#include "vm/globals.hpp"
-#include "vm/hook.hpp"
-#include "vm/javaobjects.hpp"
-#include "vm/options.hpp"
-#include "vm/os.hpp"
-#include "vm/signallocal.hpp"
-#include "vm/string.hpp"
-#include "vm/vm.hpp"
-#include "vm/statistics.hpp"
-
-#include "vm/jit/asmpart.hpp"
 
 #if defined(__DARWIN__)
 
@@ -100,11 +84,13 @@ typedef struct {
 #endif
 
 #if defined(ENABLE_GC_BOEHM)
-/* We need to include Boehm's gc.h here because it overrides
-   pthread_create and friends. */
-# include "mm/boehm-gc/include/gc.h"
+// We need to include Boehm's gc.h here because it overrides
+// pthread_create and friends.
+# include "mm/boehm-gc/include/gc.h"     // for GC_get_stack_base, etc
+# include "mm/boehm-gc/include/gc_pthread_redirects.h"
 #endif
 
+struct methodinfo;
 
 #if defined(__DARWIN__)
 /* Darwin has no working semaphore implementation.  This one is taken

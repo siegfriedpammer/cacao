@@ -29,17 +29,11 @@
    elements (pointers).
 */
 
-
-#include "config.h"
-
-#include <assert.h>
-
 #include "toolbox/set.hpp"
-
-#include "mm/memory.hpp"
-
-#include "vm/global.hpp"
-
+#include <assert.h>                     // for assert
+#include <stddef.h>                     // for NULL
+#include "mm/dumpmemory.hpp"            // for DumpMemory
+#include "mm/memory.hpp"                // for MZERO
 
 /* struct set ******************************************************************
 

@@ -29,9 +29,9 @@
 
 */
 
-#include "mm/memory.hpp"
 #include "toolbox/worklist.hpp"
-
+#include "bitvector.hpp"                // for bv_get_bit, bv_new, etc
+#include "mm/dumpmemory.hpp"            // for DMNEW, DNEW
 
 /******************************************************************************
 

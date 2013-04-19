@@ -22,56 +22,47 @@
 
 */
 
-
-#include "config.h"
-
-#include <assert.h>
-#include <stdint.h>
-#include <unistd.h>
-
-#include "vm/types.hpp"
-
-#include "mm/memory.hpp"
+#include "threads/thread.hpp"
+#include <assert.h>                     // for assert
+#include <stddef.h>                     // for NULL, size_t
+#include <stdint.h>                     // for int32_t, intptr_t
+#include <string.h>                     // for strstr
+#include <unistd.h>                     // for _CS_GNU_LIBPTHREAD_VERSION, etc
+#include "config.h"                     // for ENABLE_GC_BOEHM, etc
+#include "lockword.hpp"                 // for Lockword
+#include "mm/dumpmemory.hpp"            // for DumpMemory
+#include "mm/memory.hpp"                // for GCNEW_UNCOLLECTABLE, MNEW, etc
+#include "native/llni.hpp"              // for LLNI_WRAP, LLNI_DIRECT
+#include "threads/atomic.hpp"           // for write_memory_barrier
+#include "threads/condition.hpp"        // for Condition
+#include "threads/mutex.hpp"            // for Mutex
+#include "threads/threadlist.hpp"       // for ThreadList
+#include "vm/finalizer.hpp"             // for Finalizer
+#include "vm/globals.hpp"               // for class_java_lang_Thread
+#include "vm/javaobjects.hpp"           // for java_lang_Thread
+#include "vm/jit/builtin.hpp"           // for builtin_new
+#include "vm/options.hpp"
+#include "vm/string.hpp"                // for JavaString
+#include "vm/types.hpp"                 // for ptrint, u4
+#include "vm/utf8.hpp"                  // for Utf8String
+#include "vm/vm.hpp"                    // for vm_abort
 
 #if defined(ENABLE_GC_BOEHM)
-
-#if defined(__LINUX__)
-# define GC_LINUX_THREADS
-#elif defined(__IRIX__)
-# define GC_IRIX_THREADS
-#elif defined(__DARWIN__)
-# define GC_DARWIN_THREADS
-#elif defined(__SOLARIS__)
-# define GC_SOLARIS_THREADS
-#endif
-
-/* We need to include Boehm's gc.h here for GC_register_my_thread and
-   friends. */
+# if defined(__LINUX__)
+#  define GC_LINUX_THREADS
+# elif defined(__IRIX__)
+#  define GC_IRIX_THREADS
+# elif defined(__DARWIN__)
+#  define GC_DARWIN_THREADS
+# elif defined(__SOLARIS__)
+#  define GC_SOLARIS_THREADS
+# endif
+// We need to include Boehm's gc.h here
+// for GC_register_my_thread and friends.
 # include "mm/boehm-gc/include/gc.h"
 #endif
 
-#include "native/llni.hpp"
-#include "native/native.hpp"
-
-#include "threads/lock.hpp"
-#include "threads/threadlist.hpp"
-#include "threads/thread.hpp"
-
-#include "vm/jit/builtin.hpp"
-#include "vm/class.hpp"
-#include "vm/exceptions.hpp"
-#include "vm/finalizer.hpp"
-#include "vm/globals.hpp"
-#include "vm/javaobjects.hpp"
-#include "vm/method.hpp"
-#include "vm/options.hpp"
-#include "vm/string.hpp"
-#include "vm/utf8.hpp"
-#include "vm/vm.hpp"
-#include "vm/statistics.hpp"
-
-#include "vm/jit/stacktrace.hpp"
-
+struct methodinfo;
 
 /* global variables ***********************************************************/
 

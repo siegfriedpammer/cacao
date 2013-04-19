@@ -22,37 +22,28 @@
 
 */
 
-
-#include "config.h"
-
-#include <stdlib.h>
-
-#include "vm/types.hpp"
-
-#include "mm/memory.hpp"
-
-#include "threads/condition.hpp"
-#include "threads/mutex.hpp"
-#include "threads/thread.hpp"
-#include "threads/lock.hpp"
-
-#include "vm/jit/builtin.hpp"
-#include "vm/exceptions.hpp"
-#include "vm/global.hpp"
-#include "vm/options.hpp"
-#include "vm/vm.hpp"
-
-#include "vm/jit/asmpart.hpp"
-
 #include "finalizer.hpp"
-
-#include <map>
+#include "config.h"                     // for ENABLE_THREADS, etc
+#include <assert.h>                     // for assert
+#include <stdlib.h>                     // for NULL
+#include <map>                          // for multimap, _Rb_tree_iterator, etc
+#include <utility>                      // for pair, make_pair
+#include "native/llni.hpp"              // for LLNI_DIRECT, LLNI_class_get
+#include "threads/condition.hpp"        // for Condition
+#include "threads/mutex.hpp"            // for Mutex, MutexLocker
+#include "threads/thread.hpp"
+#include "toolbox/OStream.hpp"          // for OStream, nl
+#include "toolbox/logging.hpp"          // for LOG
+#include "utf8.hpp"                     // for Utf8String
+#include "vm/class.hpp"                 // for operator<<, classinfo
+#include "vm/exceptions.hpp"            // for exceptions_clear_exception, etc
+#include "vm/global.hpp"                // for java_handle_t
+#include "vm/options.hpp"
+#include "vm/vm.hpp"                    // for vm_call_method
 
 #if defined(ENABLE_GC_BOEHM)
 # include "mm/boehm-gc/include/gc.h"
 #endif
-
-#include "toolbox/logging.hpp"
 
 #define DEBUG_NAME "finalizer"
 
@@ -62,8 +53,6 @@
 static Mutex     *finalizer_thread_mutex;
 static Condition *finalizer_thread_cond;
 #endif
-
-extern "C" {
 
 /* finalizer_init **************************************************************
 
@@ -219,8 +208,6 @@ void finalizer_run(void *o, void *p)
 #if defined(ENABLE_GC_BOEHM)
 	Finalizer::reinstall_custom_finalizer(h);
 #endif
-}
-
 }
 
 #if defined(ENABLE_GC_BOEHM)

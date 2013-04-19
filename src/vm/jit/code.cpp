@@ -22,24 +22,14 @@
 
 */
 
-
-#include "config.h"
-
-#include <assert.h>
-#include <stdint.h>
-
-#include "arch.hpp"
-
-#include "mm/memory.hpp"
-
-#include "vm/options.hpp"
-#include "vm/vm.hpp"
-
 #include "vm/jit/code.hpp"
-#include "vm/jit/codegen-common.hpp"
-#include "vm/jit/patcher-common.hpp"
-#include "vm/jit/methodtree.hpp"
-
+#include "mm/codememory.hpp"            // for CFREE
+#include "mm/memory.hpp"                // for OFFSET, FREE, NEW
+#include "vm/jit/methodtree.hpp"        // for methodtree_find, etc
+#include "vm/jit/patcher-common.hpp"    // for patcher_list_create, etc
+#include "vm/method.hpp"                // for methodinfo
+#include "vm/options.hpp"               // for checksync
+#include "vm/vm.hpp"                    // for vm_abort
 
 /* code_init *******************************************************************
 

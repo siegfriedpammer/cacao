@@ -26,23 +26,13 @@
 #ifndef _FINALIZER_H
 #define _FINALIZER_H
 
-#include "config.h"
-
-#ifdef __cplusplus
+#include "vm/global.hpp"                // for java_handle_t
 
 struct Finalizer {
-	typedef void (*FinalizerFunc)(java_handle_t *h, void *data);
-	static void *attach_custom_finalizer(java_handle_t *h, FinalizerFunc f, void *data);
-	static void reinstall_custom_finalizer(java_handle_t *h);
+   typedef void (*FinalizerFunc)(java_handle_t *h, void *data);
+   static void *attach_custom_finalizer(java_handle_t *h, FinalizerFunc f, void *data);
+   static void reinstall_custom_finalizer(java_handle_t *h);
 };
-
-extern "C" {
-#endif
-
-#include "vm/types.hpp"
-
-#include "vm/global.hpp"
-
 
 /* function prototypes ********************************************************/
 
@@ -50,10 +40,6 @@ bool finalizer_init(void);
 bool finalizer_start_thread(void);
 void finalizer_notify(void);
 void finalizer_run(void *o, void *p);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _FINALIZER_H */
 

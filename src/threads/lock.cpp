@@ -22,40 +22,31 @@
 
 */
 
-
-#include "config.h"
-
-#include <assert.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/time.h>
-
-#include "vm/types.hpp"
-
-#include "mm/memory.hpp"
-
-#include "native/llni.hpp"
-
-#include "threads/atomic.hpp"
 #include "threads/lock.hpp"
-#include "threads/mutex.hpp"
-#include "threads/threadlist.hpp"
-#include "threads/thread.hpp"
-
-#include "toolbox/list.hpp"
-
+#include <assert.h>                     // for assert
+#include <stdint.h>                     // for uintptr_t, int32_t
+#include <stdio.h>                      // for NULL
+#include <list>                         // for _List_iterator, etc
+#include "arch.hpp"                     // for CAS_PROVIDES_FULL_BARRIER
+#include "config.h"                     // for ENABLE_GC_BOEHM
+#include "lockword.hpp"                 // for Lockword
+#include "mm/gc.hpp"                    // for heap_hashcode, etc
+#include "mm/memory.hpp"                // for MNEW, MZERO, FREE, MFREE, etc
+#include "native/llni.hpp"              // for LLNI_DIRECT, LLNI_class_get
+#include "posix/condition-posix.hpp"    // for Condition
+#include "posix/mutex-posix.hpp"        // for Mutex
+#include "posix/thread-posix.hpp"       // for threadobject, etc
+#include "threads/atomic.hpp"           // for memory_barrier, etc
+#include "threads/threadlist.hpp"       // for ThreadList
+#include "toolbox/OStream.hpp"          // for OStream, nl
+#include "toolbox/list.hpp"             // for List
+#include "toolbox/logging.hpp"          // for log_println, LOG
+#include "vm/class.hpp"                 // for operator<<, etc
 #include "vm/exceptions.hpp"
-#include "vm/finalizer.hpp"
-#include "vm/global.hpp"
-#include "vm/options.hpp"
-#include "vm/string.hpp"
-#include "vm/vm.hpp"
-#include "vm/statistics.hpp"
-
-#if defined(ENABLE_VMLOG)
-#include <vmlog_cacao.h>
-#endif
+#include "vm/finalizer.hpp"             // for Finalizer
+#include "vm/global.hpp"                // for java_handle_t
+#include "vm/options.hpp"               // for opt_DebugLocks
+#include "vm/types.hpp"                 // for u4, s4, s8
 
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/cacaodbg.h"
@@ -64,8 +55,6 @@
 #if defined(ENABLE_GC_BOEHM)
 # include "mm/boehm-gc/include/gc.h"
 #endif
-
-#include "toolbox/logging.hpp"
 
 /* debug **********************************************************************/
 
