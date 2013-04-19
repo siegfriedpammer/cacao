@@ -127,7 +127,7 @@ bool builtintable_replace_function(void *iptr);
  */
 
 #if USES_NEW_SUBTYPE
-bool fast_subtype_check(struct _vftbl *, struct _vftbl *);
+bool fast_subtype_check(vftbl_t*, vftbl_t*);
 #endif
 
 /* From lock.hpp: bool lock_monitor_enter(java_handle_t *); */

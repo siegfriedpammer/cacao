@@ -243,8 +243,10 @@ typedef struct java_objectarray_t java_objectarray_t;
 
 #include "threads/lockword.hpp"
 
+struct vftbl_t;
+
 struct java_object_t {                 /* header for all objects              */
-	struct _vftbl *vftbl;              /* pointer to virtual function table   */
+	vftbl_t *vftbl;                    /* pointer to virtual function table   */
 #if defined(ENABLE_THREADS)
 	uintptr_t      lockword;
 #endif

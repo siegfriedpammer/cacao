@@ -50,6 +50,7 @@ typedef struct extra_classref extra_classref;
 #include "vm/references.hpp"
 #include "vm/string.hpp"
 #include "vm/utf8.hpp"
+#include "vm/vftbl.hpp"
 
 struct methodinfo;
 

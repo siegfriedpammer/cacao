@@ -26,12 +26,6 @@
 #ifndef VFTBL_HPP_
 #define VFTBL_HPP_ 1
 
-// Forward declaration.
-typedef struct _vftbl vftbl_t;
-
-#include "config.h"
-
-
 /* virtual function table ******************************************************
 
    The vtbl has a bidirectional layout with open ends at both sides.
@@ -91,16 +85,20 @@ typedef struct _vftbl vftbl_t;
 *******************************************************************************/
 
 // Includes.
-#include "vm/references.hpp"
+#include "arch.hpp"        // for USES_NEW_SUBTYPE
+#include "vm/global.hpp"   // for methodptr
 
 #if USES_NEW_SUBTYPE
 #define DISPLAY_SIZE 4
 #endif
 
-struct _vftbl {
+struct classinfo;
+struct arraydescriptor;
+
+struct vftbl_t {
 	methodptr              *interfacetable[1];    /* interface table (access via macro)  */
-	struct classinfo       *clazz;                /* class, the vtbl belongs to          */
-	struct arraydescriptor *arraydesc;            /* for array classes, otherwise NULL   */
+   classinfo              *clazz;                /* class, the vtbl belongs to          */
+   arraydescriptor        *arraydesc;            /* for array classes, otherwise NULL   */
 	s4                      vftbllength;          /* virtual function table length       */
 	s4                      interfacetablelength; /* interface table length              */
 	s4                      baseval;              /* base for runtime type check         */
@@ -108,10 +106,10 @@ struct _vftbl {
 	s4                      diffval;              /* high - base for runtime type check  */
 
 #if USES_NEW_SUBTYPE
-	s4 subtype_depth;
-	s4 subtype_offset;
-	struct _vftbl *subtype_display[DISPLAY_SIZE+1];  /* the last one is cache */
-	struct _vftbl **subtype_overflow;
+	s4        subtype_depth;
+	s4        subtype_offset;
+   vftbl_t  *subtype_display[DISPLAY_SIZE+1];  /* the last one is cache */
+   vftbl_t **subtype_overflow;
 #endif
 
 	s4          *interfacevftbllength; /* length of interface vftbls          */

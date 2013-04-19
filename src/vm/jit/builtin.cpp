@@ -607,7 +607,7 @@ bool builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o)
 
 *******************************************************************************/
 
-bool fast_subtype_check(struct _vftbl *s, struct _vftbl *t)
+bool fast_subtype_check(vftbl_t *s, vftbl_t *t)
 {
    if (s->subtype_display[t->subtype_depth] == t)
        return true;
