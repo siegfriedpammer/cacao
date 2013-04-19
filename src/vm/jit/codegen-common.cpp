@@ -52,6 +52,7 @@
 #include "md.hpp"
 #include "md-abi.hpp"
 
+#include "mm/codememory.hpp"
 #include "mm/memory.hpp"
 
 #include "toolbox/avl.hpp"

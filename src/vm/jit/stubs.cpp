@@ -31,6 +31,7 @@
 // Include machine dependent headers.
 #include "md.hpp"
 
+#include "mm/codememory.hpp"
 #include "mm/dumpmemory.hpp"
 
 #include "vm/method.hpp"
