@@ -47,11 +47,11 @@ typedef struct extra_classref extra_classref;
 #include "vm/global.hpp"
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
-#include "vm/method.hpp"
 #include "vm/references.hpp"
 #include "vm/string.hpp"
 #include "vm/utf8.hpp"
 
+struct methodinfo;
 
 /* class state defines ********************************************************/
 

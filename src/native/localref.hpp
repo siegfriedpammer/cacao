@@ -35,8 +35,8 @@ typedef struct localref_table localref_table;
 #include "vm/types.hpp"
 
 #include "vm/global.hpp"
-#include "vm/method.hpp"
 
+struct methodinfo;
 
 /* localref_table **************************************************************
 

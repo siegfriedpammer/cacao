@@ -44,7 +44,6 @@ typedef struct methoddesc      methoddesc;
 
 #include "vm/class.hpp"
 #include "vm/global.hpp"
-#include "vm/method.hpp"
 #include "vm/references.hpp"
 #include "vm/utf8.hpp"
 

@@ -26,8 +26,13 @@
 #ifndef _HOOK_HPP
 #define _HOOK_HPP
 
-#include "config.h"
-#include "vm/globals.hpp"
+#include "breakpoint.hpp"               // for Breakpoint
+#include "linker.hpp"
+#include "method.hpp"                   // for methodinfo (ptr only), etc
+#include "vm/globals.hpp"               // for class_java_lang_String
+
+struct classinfo;
+struct threadobject;
 
 #if defined(ENABLE_OPAGENT)
 #include "vm/jit/oprofile-agent.hpp"

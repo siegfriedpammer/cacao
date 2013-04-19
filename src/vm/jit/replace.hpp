@@ -57,12 +57,11 @@ typedef union  replace_val_t replace_val_t;
 #include "arch.hpp"
 #include "md-abi.hpp"
 
-#include "vm/method.hpp"
-
 #include "vm/jit/executionstate.hpp"
 #include "vm/jit/reg.hpp"
 #include "vm/jit/stacktrace.hpp"
 
+struct methodinfo;
 
 /*** structs *********************************************************/
 

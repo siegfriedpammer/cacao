@@ -29,10 +29,11 @@
 
 #include "native/vm/nativevm.hpp"
 
+#include "toolbox/logging.hpp"
+
 #include "vm/class.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/initialize.hpp"
-#include "vm/method.hpp"
 #include "vm/options.hpp"
 #include "vm/os.hpp"
 

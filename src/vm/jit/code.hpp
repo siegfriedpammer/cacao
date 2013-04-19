@@ -36,7 +36,6 @@
 #include "toolbox/list.hpp"
 
 #include "vm/global.hpp"
-#include "vm/method.hpp"
 
 #include "vm/jit/exceptiontable.hpp"
 #include "vm/jit/linenumbertable.hpp"
@@ -44,6 +43,7 @@
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/replace.hpp"
 
+struct methodinfo;
 
 /* constants ******************************************************************/
 

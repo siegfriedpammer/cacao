@@ -39,7 +39,6 @@
 
 #include "vm/class.hpp"
 #include "vm/global.hpp"
-#include "vm/method.hpp"
 #include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/properties.hpp"
@@ -53,6 +52,8 @@
 #endif
 
 #include "toolbox/logging.hpp"
+
+struct methodinfo;
 
 #define DEBUG_NAME "properties"
 

@@ -26,6 +26,35 @@
 #ifndef METHOD_HPP_
 #define METHOD_HPP_ 1
 
+/*
+#include <stdint.h>                     // for uint16_t, int32_t
+#include "config.h"                     // for ENABLE_JAVASE, etc
+#include "vftbl.hpp"                    // for vftbl_t
+#include "vm/global.hpp"                // for java_handle_bytearray_t, etc
+#include "vm/references.hpp"            // for classref_or_classinfo
+#include "vm/types.hpp"                 // for s4, u2, u1
+#include "vm/utf8.hpp"                  // for Utf8String
+
+class BreakpointTable;
+class Mutex;
+struct builtintable_entry;
+struct classbuffer;
+struct classinfo;
+struct lineinfo;
+struct localvarinfo;
+struct method_assumption;
+struct method_worklist;
+struct methoddesc;
+struct methodinfo;
+struct raw_exception_entry;
+struct stack_map_t;
+
+#if defined(ENABLE_REPLACEMENT)
+// Initial value for the hit countdown field of each method.
+#define METHOD_INITIAL_HIT_COUNTDOWN  1000
+#endif
+*/
+
 /* forward typedefs ***********************************************************/
 
 typedef struct methodinfo          methodinfo; 

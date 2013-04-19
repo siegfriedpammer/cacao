@@ -54,8 +54,8 @@ typedef struct Uninitialized_variable_info_t     Uninitialized_variable_info_t;
 
 #include "vm/global.hpp"
 #include "vm/loader.hpp"
-#include "vm/method.hpp"
 
+struct methodinfo;
 
 /* verification_type_info *****************************************************/
 

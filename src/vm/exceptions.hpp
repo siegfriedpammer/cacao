@@ -31,8 +31,8 @@
 
 #include "vm/global.hpp"
 #include "vm/references.hpp"
-#include "vm/method.hpp"
 
+struct methodinfo;
 
 /* function prototypes ********************************************************/
 

@@ -27,14 +27,10 @@
 #define _REFLECTION_HPP
 
 #include "config.h"
+#include "vm/global.hpp"
 
-#include <stdint.h>
-
-#include "native/native.hpp"
-
-#include "vm/field.hpp"
-#include "vm/method.hpp"
-
+struct classinfo;
+struct methodinfo;
 
 class Reflection {
 public:

@@ -37,7 +37,6 @@ typedef struct exception_entry exception_entry;
 #include "vm/types.hpp"
 
 #include "vm/global.hpp"
-#include "vm/method.hpp"
 #include "vm/references.hpp"
 #include "vm/resolve.hpp"
 #include "vm/statistics.hpp"
@@ -66,6 +65,7 @@ typedef struct exception_entry exception_entry;
 
 #include "vm/jit/verify/typeinfo.hpp"
 
+struct methodinfo;
 
 /* common jit/codegen macros **************************************************/
 

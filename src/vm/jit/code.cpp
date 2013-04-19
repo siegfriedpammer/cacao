@@ -27,9 +27,10 @@
 #include "mm/memory.hpp"                // for OFFSET, FREE, NEW
 #include "vm/jit/methodtree.hpp"        // for methodtree_find, etc
 #include "vm/jit/patcher-common.hpp"    // for patcher_list_create, etc
-#include "vm/method.hpp"                // for methodinfo
 #include "vm/options.hpp"               // for checksync
 #include "vm/vm.hpp"                    // for vm_abort
+
+struct methodinfo;
 
 /* code_init *******************************************************************
 

@@ -30,7 +30,7 @@
 
 #include <stdint.h>
 
-#include "vm/method.hpp"
+struct methodinfo;
 
 #if !defined(NDEBUG)
 

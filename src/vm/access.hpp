@@ -30,15 +30,11 @@
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "vm/class.hpp"
 #include "vm/field.hpp"
 #include "vm/global.hpp"
-#include "vm/method.hpp"
 
+struct methodinfo;
 
 /* macros *********************************************************************/
 
@@ -57,10 +53,6 @@ bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
 #if defined(ENABLE_JAVASE)
 bool access_check_field(fieldinfo *f, int callerdepth);
 bool access_check_method(methodinfo *m, int callerdepth);
-#endif
-
-#ifdef __cplusplus
-}
 #endif
 
 #endif // ACCESS_HPP_

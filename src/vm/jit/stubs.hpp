@@ -29,10 +29,9 @@
 
 #include <stdint.h>
 
-#include "vm/method.hpp"
-
 #include "vm/jit/code.hpp"
 
+struct methodinfo;
 
 #ifdef __cplusplus
 

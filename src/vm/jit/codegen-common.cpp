@@ -67,7 +67,6 @@
 
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
-#include "vm/method.hpp"
 #include "vm/options.hpp"
 #include "vm/statistics.hpp"
 #include "vm/string.hpp"
@@ -110,6 +109,7 @@
 #include <vmlog_cacao.h>
 #endif
 
+struct methodinfo;
 
 /* codegen_init ****************************************************************
 

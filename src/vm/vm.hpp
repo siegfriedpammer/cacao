@@ -27,6 +27,7 @@
 #define _VM_HPP
 
 #include "config.h"
+#include "vm/global.hpp"
 
 #include <stdarg.h>
 #include <stdint.h>
@@ -47,6 +48,7 @@
 
 #include "vm/jit/optimizing/recompiler.hpp"
 
+struct methodinfo;
 
 #ifdef __cplusplus
 
@@ -134,12 +136,6 @@ private:
 JNIEnv* VM_get_jnienv();
 
 #endif
-
-
-// Includes.
-#include "vm/global.hpp"
-#include "vm/method.hpp"
-
 
 /* These C methods are the exported interface. ********************************/
 

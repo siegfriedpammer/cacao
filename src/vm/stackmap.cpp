@@ -31,7 +31,6 @@
 
 #include "vm/class.hpp"
 #include "vm/exceptions.hpp"
-#include "vm/method.hpp"
 #include "vm/stackmap.hpp"
 #include "vm/statistics.hpp"
 #include "vm/options.hpp"

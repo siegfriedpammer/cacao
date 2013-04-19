@@ -44,7 +44,6 @@ struct patchref_t;
 #include "vm/jit/builtin.hpp"
 #include "vm/descriptor.hpp"
 #include "vm/global.hpp"
-#include "vm/method.hpp"
 #include "vm/references.hpp"
 
 #include "vm/jit/dseg.hpp"
@@ -54,6 +53,7 @@ struct patchref_t;
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/replace.hpp"
 
+struct methodinfo;
 
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */
 #define DSEGINITSIZE  (1<<12)       /*  4 Kbyte data area initialization size */

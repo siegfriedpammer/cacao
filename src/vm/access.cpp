@@ -46,10 +46,6 @@
 
 #include "toolbox/buffer.hpp"
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 /* access_is_accessible_class **************************************************
  
    Check if a class is accessible from another class
@@ -312,11 +308,6 @@ bool access_check_method(methodinfo *m, int callerdepth)
 }
 
 #endif
-
-#if defined(__cplusplus)
-}
-#endif
-
 
 /*
  * These are local overrides for various environment variables in Emacs.
