@@ -40,7 +40,6 @@ typedef struct unresolved_subtype_set unresolved_subtype_set;
 #include "vm/class.hpp"
 #include "vm/field.hpp"
 #include "vm/global.hpp"
-#include "vm/method.hpp"
 #include "vm/references.hpp"
 
 #include "vm/jit/jit.hpp"
@@ -49,6 +48,7 @@ typedef struct unresolved_subtype_set unresolved_subtype_set;
 #include "vm/jit/ir/instruction.hpp"
 #include "vm/jit/verify/typeinfo.hpp"
 
+struct methodinfo;
 
 /* constants ******************************************************************/
 

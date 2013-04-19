@@ -32,7 +32,6 @@
 #include <stdarg.h>
 
 #include "vm/class.hpp"
-#include "vm/method.hpp"
 #include "vm/utf8.hpp"
 
 #ifdef __cplusplus

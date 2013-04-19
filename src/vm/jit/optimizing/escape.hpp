@@ -25,7 +25,8 @@
 #define ESCAPE_HPP_
 
 #include "vm/jit/jit.hpp"
-#include "vm/method.hpp"
+
+struct methodinfo;
 
 typedef enum {
 	ESCAPE_UNKNOWN,
