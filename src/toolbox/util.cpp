@@ -32,7 +32,6 @@
 
 #include "vm/types.hpp"
 
-#include "mm/memory.hpp"
 #include "vm/vm.hpp"
 
 

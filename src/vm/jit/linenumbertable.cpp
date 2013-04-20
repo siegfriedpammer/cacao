@@ -30,8 +30,6 @@
 
 #include <algorithm>
 
-#include "mm/memory.hpp"
-
 #include "toolbox/list.hpp"
 
 #if defined(ENABLE_STATISTICS)

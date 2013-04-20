@@ -26,7 +26,6 @@
 #include "config.h"
 #include "vm/globals.hpp"
 
-#include "mm/memory.hpp"
 #include "vm/hook.hpp"
 #include "vm/javaobjects.hpp"
 

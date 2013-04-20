@@ -201,8 +201,6 @@ inline static threadobject* thread_get_current(void);
 
 
 // Includes.
-#include "mm/memory.hpp"
-
 #include "native/localref.hpp"
 
 #include "threads/lock.hpp"

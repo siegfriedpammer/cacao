@@ -30,8 +30,6 @@
 
 #include "vm/types.hpp"
 
-#include "mm/memory.hpp"
-
 #include "threads/lock.hpp"
 
 #include "vm/field.hpp"

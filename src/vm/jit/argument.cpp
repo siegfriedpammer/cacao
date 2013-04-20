@@ -30,8 +30,6 @@
 
 #include "arch.hpp"
 
-#include "mm/memory.hpp"
-
 #include "native/llni.hpp"
 
 #include "vm/array.hpp"

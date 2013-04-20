@@ -30,8 +30,6 @@
 
 #include "vm/types.hpp"
 
-#include "mm/memory.hpp"
-
 #include "native/llni.hpp"
 
 #include "vm/access.hpp"

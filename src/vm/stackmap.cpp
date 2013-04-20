@@ -27,7 +27,6 @@
 #include "vm/types.hpp"
 
 #include "mm/dumpmemory.hpp"
-#include "mm/memory.hpp"
 
 #include "vm/exceptions.hpp"
 #include "vm/stackmap.hpp"

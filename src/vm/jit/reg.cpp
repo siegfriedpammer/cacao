@@ -32,7 +32,6 @@
 #include "arch.hpp"
 #include "md-abi.hpp"
 
-#include "mm/memory.hpp"
 #include "vm/jit/abi.hpp"
 #include "vm/jit/reg.hpp"
 

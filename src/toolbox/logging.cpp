@@ -31,8 +31,6 @@
 
 #include "vm/types.hpp"
 
-#include "mm/memory.hpp"
-
 #include "threads/thread.hpp"
 
 #include "toolbox/logging.hpp"

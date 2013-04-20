@@ -37,7 +37,6 @@
 #include "md.hpp"
 
 #include "mm/gc.hpp"
-#include "mm/memory.hpp"
 
 #include "vm/jit/stacktrace.hpp"
 

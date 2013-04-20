@@ -28,8 +28,6 @@
 // Include this one early.
 #include "native/vm/openjdk/hpi.hpp"
 
-#include "mm/memory.hpp"
-
 #include "native/native.hpp"
 
 #include "toolbox/buffer.hpp"

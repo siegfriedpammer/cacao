@@ -36,8 +36,6 @@
 #include "md.hpp"
 #include "trap.hpp"
 
-#include "mm/memory.hpp"
-
 #include "native/native.hpp"
 
 #include "toolbox/list.hpp"

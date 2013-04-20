@@ -27,8 +27,6 @@
 
 #include <assert.h>
 
-#include "mm/memory.hpp"
-
 #include "threads/condition.hpp"
 #include "threads/mutex.hpp"
 #include "threads/thread.hpp"

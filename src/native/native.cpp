@@ -34,8 +34,6 @@
 #include <functional>
 #include <map>
 
-#include "mm/memory.hpp"
-
 #include "native/jni.hpp"
 #include "native/native.hpp"
 
