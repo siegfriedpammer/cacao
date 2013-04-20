@@ -26,56 +26,18 @@
 #ifndef AVL_HPP_
 #define AVL_HPP_ 1
 
-#include "config.h"
+#include "vm/types.hpp"                 // for s4
 
-#include "vm/types.hpp"
+class Mutex;
 
-#include "threads/mutex.hpp"
-
-#include "vm/global.hpp"
-
-
-/* define direction in an AVL node ********************************************/
-
-#define AVL_LEFT     0
-#define AVL_RIGHT    1
-
+struct avl_tree_t;
+struct avl_node_t;
 
 /* tree comparator prototype **************************************************/
 
 typedef s4 avl_comparator(const void *treenode, const void *node);
 
-
-/* forward typedefs ***********************************************************/
-
-typedef struct avl_tree_t avl_tree_t;
-typedef struct avl_node_t avl_node_t;
-
-
-/* avl_tree_t *****************************************************************/
-
-struct avl_tree_t {
-	Mutex*          mutex;              ///< Mutex to lock the tree.
-	avl_node_t     *root;               /* pointer to root node               */
-	avl_comparator *comparator;         /* pointer to comparison function     */
-	s4              entries;            /* contains number of entries         */
-};
-
-
-/* avl_node_t *****************************************************************/
-
-struct avl_node_t {
-	void       *data;                   /* pointer to data structure          */
-	s4          balance;                /* the range of the field is -2...2   */
-	avl_node_t *childs[2];              /* pointers to the child nodes        */
-};
-
-
 /* function prototypes ********************************************************/
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 avl_tree_t *avl_create(avl_comparator *comparator);
 bool        avl_insert(avl_tree_t *tree, void *data);
@@ -83,10 +45,6 @@ void       *avl_find(avl_tree_t *tree, void *data);
 
 #if !defined(NDEBUG)
 void        avl_dump(avl_node_t* node, s4 indent);
-#endif
-
-#ifdef __cplusplus
-} // extern "C"
 #endif
 
 #endif // AVL_HPP_

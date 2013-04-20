@@ -22,22 +22,38 @@
 
 */
 
-
-#include "config.h"
-
-#include <assert.h>
-
-#include "vm/types.hpp"
-
-#include "mm/memory.hpp"
-
-#include "threads/mutex.hpp"
-
 #include "toolbox/avl.hpp"
-#include "toolbox/logging.hpp"
+#include <assert.h>                     // for assert
+#include <stddef.h>                     // for NULL
+#include "mm/memory.hpp"                // for NEW
+#include "threads/mutex.hpp"            // for Mutex
+#include "toolbox/logging.hpp"          // for log_print, log_finish, etc
+#include "vm/types.hpp"                 // for s4
+#include "vm/vm.hpp"                    // for vm_abort
 
-#include "vm/global.hpp"
-#include "vm/vm.hpp"
+/* define direction in an AVL node ********************************************/
+
+#define AVL_LEFT     0
+#define AVL_RIGHT    1
+
+
+/* avl_tree_t *****************************************************************/
+
+struct avl_tree_t {
+   Mutex*          mutex;              ///< Mutex to lock the tree.
+   avl_node_t     *root;               /* pointer to root node               */
+   avl_comparator *comparator;         /* pointer to comparison function     */
+   s4              entries;            /* contains number of entries         */
+};
+
+
+/* avl_node_t *****************************************************************/
+
+struct avl_node_t {
+   void       *data;                   /* pointer to data structure          */
+   s4          balance;                /* the range of the field is -2...2   */
+   avl_node_t *childs[2];              /* pointers to the child nodes        */
+};
 
 
 /* avl_create ******************************************************************
