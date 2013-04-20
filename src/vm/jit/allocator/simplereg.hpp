@@ -29,8 +29,6 @@
 #include "config.h"
 #include "vm/types.hpp"
 
-#include "arch.hpp"
-
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/inline/inline.hpp"
 

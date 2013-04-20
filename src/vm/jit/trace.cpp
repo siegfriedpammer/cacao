@@ -27,7 +27,6 @@
 
 #include <cstdio>
 
-#include "arch.hpp"
 #include "md-abi.hpp"
 
 #include "native/llni.hpp"

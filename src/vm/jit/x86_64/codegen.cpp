@@ -34,7 +34,6 @@
 
 #include "md-abi.hpp"
 
-#include "vm/jit/x86_64/arch.hpp"
 #include "vm/jit/x86_64/codegen.hpp"
 #include "vm/jit/x86_64/emit.hpp"
 

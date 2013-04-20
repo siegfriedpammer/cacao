@@ -30,8 +30,6 @@
 
 #include "vm/types.hpp"
 
-#include "arch.hpp"
-
 #include "mm/memory.hpp"
 
 #include "threads/mutex.hpp"

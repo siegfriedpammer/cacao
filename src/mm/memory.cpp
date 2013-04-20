@@ -36,8 +36,6 @@
 
 #include "vm/types.hpp"
 
-#include "arch.hpp"
-
 #include "mm/memory.hpp"
 
 #include "native/native.hpp"
