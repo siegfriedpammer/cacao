@@ -25,7 +25,6 @@
 
 #include "config.h"
 
-#include <stdint.h>
 #include <stdlib.h>
 
 #include "threads/mutex.hpp"

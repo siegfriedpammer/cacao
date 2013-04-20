@@ -33,8 +33,6 @@ typedef struct stackelement_t stackelement_t;
 
 #include "config.h"
 
-#include <stdint.h>
-
 #include "vm/types.hpp"
 
 #include "vm/jit/jit.hpp"

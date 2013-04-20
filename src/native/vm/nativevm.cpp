@@ -25,8 +25,6 @@
 
 #include "config.h"
 
-#include <stdint.h>
-
 #include "native/vm/nativevm.hpp"
 
 #include "toolbox/logging.hpp"

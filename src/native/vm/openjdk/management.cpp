@@ -26,8 +26,6 @@
 
 #include "config.h"
 
-#include <stdint.h>
-
 // Include our JNI header before the JMM header, because the JMM
 // header include jni.h and we want to override the typedefs in jni.h.
 #include "native/jni.hpp"

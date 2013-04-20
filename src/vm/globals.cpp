@@ -25,8 +25,6 @@
 
 #include "config.h"
 
-#include <stdint.h>
-
 struct classinfo;
 
 // Classes.

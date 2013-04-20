@@ -26,8 +26,6 @@
 
 #include "config.h"
 
-#include <stdint.h>
-
 #include "mm/dumpmemory.hpp"
 #include "mm/memory.hpp"
 

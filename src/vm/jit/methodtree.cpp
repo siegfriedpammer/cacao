@@ -25,8 +25,6 @@
 
 #include "config.h"
 
-#include <stdint.h>
-
 #include "mm/memory.hpp"
 
 #include "toolbox/avl.hpp"

@@ -27,11 +27,7 @@
 #define PACKAGE_HPP_ 1
 
 #include "config.h"
-
-#include <stdint.h>
-
 #include "vm/utf8.hpp"
-
 
 /**
  *

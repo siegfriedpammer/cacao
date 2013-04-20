@@ -25,8 +25,6 @@
 
 #include "config.h"
 
-#include <stdint.h>
-
 #include "native/llni.hpp"
 #include "native/native.hpp"
 

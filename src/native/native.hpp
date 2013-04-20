@@ -27,8 +27,6 @@
 #ifndef NATIVE_HPP_
 #define NATIVE_HPP_ 1
 
-#include <stdint.h>
-
 #ifdef __cplusplus
 #include <map>
 #include <set>

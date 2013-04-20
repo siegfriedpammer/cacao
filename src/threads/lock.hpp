@@ -26,8 +26,6 @@
 #ifndef LOCK_HPP_
 #define LOCK_HPP_ 1
 
-#include <stdint.h>
-
 #include "native/llni.hpp"
 
 #include "threads/mutex.hpp"

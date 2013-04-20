@@ -27,8 +27,6 @@
 
 #include "config.h"
 
-#include <stdint.h>
-
 #include "vm/jit/code.hpp"
 
 struct methodinfo;
