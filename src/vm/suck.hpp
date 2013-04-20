@@ -38,10 +38,10 @@
 
 #include "toolbox/hashtable.hpp"
 
-#include "vm/class.hpp"
 #include "vm/global.hpp"
 #include "vm/loader.hpp"
 
+struct classinfo;
 
 /* list_classpath_entry *******************************************************/
 

@@ -29,13 +29,13 @@
 #include "mm/dumpmemory.hpp"
 #include "mm/memory.hpp"
 
-#include "vm/class.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/stackmap.hpp"
 #include "vm/statistics.hpp"
 #include "vm/options.hpp"
 #include "vm/suck.hpp"
 
+struct classinfo;
 
 /* stackmap_get_verification_type_info *****************************************
 

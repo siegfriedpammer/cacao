@@ -26,15 +26,7 @@
 #ifndef _ANNOTATION_HPP
 #define _ANNOTATION_HPP
 
-
-#include "config.h"
-
-#include "vm/types.hpp"
-
-#include "vm/class.hpp"
-#include "vm/global.hpp"
-#include "vm/loader.hpp"
-
+struct classbuffer;
 struct fieldinfo;
 struct methodinfo;
 

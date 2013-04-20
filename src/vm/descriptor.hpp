@@ -42,12 +42,13 @@ typedef struct methoddesc      methoddesc;
 
 #include "toolbox/hashtable.hpp"
 
-#include "vm/class.hpp"
 #include "vm/global.hpp"
 #include "vm/references.hpp"
 #include "vm/utf8.hpp"
 
 #include "arch.hpp"		/* needed for HAS_ADDRESS_REGISTER_FILE */
+
+struct classinfo;
 
 /* data structures ************************************************************/
 

@@ -30,10 +30,11 @@
 
 #include <stdint.h>
 
-#include "vm/class.hpp"
 #include "vm/global.hpp"
 #include "vm/linker.hpp"
 #include "vm/utf8.hpp"
+
+struct classinfo;
 
 /* primitive data types *******************************************************/
 

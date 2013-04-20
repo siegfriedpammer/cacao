@@ -31,9 +31,10 @@
 
 #include "threads/mutex.hpp"
 
-#include "vm/class.hpp"
 #include "vm/references.hpp"
 #include "vm/vftbl.hpp"
+
+struct classinfo;
 
 #ifdef __cplusplus
 

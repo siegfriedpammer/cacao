@@ -32,9 +32,9 @@
 extern "C" {
 #endif
 
-#include "vm/class.hpp"
 #include "vm/global.hpp"
 
+struct classinfo;
 
 /* function prototypes ********************************************************/
 

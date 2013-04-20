@@ -31,13 +31,13 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "vm/class.hpp"
 #include "vm/utf8.hpp"
-
-#ifdef __cplusplus
 
 #include "toolbox/Debug.hpp"
 #include "toolbox/OStream.hpp"
+
+struct classinfo;
+struct methodinfo;
 
 namespace cacao {
 
@@ -86,13 +86,7 @@ Color log_color();
 
 } // end namespace cacao
 
-#endif // defined(__cplusplus)
-
 /* function prototypes ********************************************************/
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 // TODO: remove, this is just a temporary hack 
 //       that allows cycle-stats to be printed to the regular log file
@@ -112,12 +106,6 @@ void log_finish(void);
 #define log_text(s) log_println("%s", (s))
 #define dolog       log_println
 
-#ifdef __cplusplus
-}
-#endif
-
-#ifdef __cplusplus
-
 /* log message functions */
 void log_message_utf(const char *msg, Utf8String u);
 void log_message_class(const char *msg, classinfo *c);
@@ -125,10 +113,7 @@ void log_message_class_message_class(const char *msg1, classinfo *c1,
 									 const char *msg2, classinfo *c2);
 void log_message_method(const char *msg, methodinfo *m);
 
-#endif
-
 #endif // LOGGING_HPP_
-
 
 /*
  * These are local overrides for various environment variables in Emacs.

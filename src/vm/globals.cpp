@@ -27,8 +27,7 @@
 
 #include <stdint.h>
 
-#include "vm/class.hpp"
-
+struct classinfo;
 
 // Classes.
 

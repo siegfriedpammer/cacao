@@ -28,6 +28,7 @@
 #include "vm/class.hpp"
 #include "vm/classcache.hpp"
 
+#include "vm/field.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/show.hpp"
 #include "vm/jit/optimizing/escape.hpp"
