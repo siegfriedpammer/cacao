@@ -75,7 +75,6 @@ typedef struct codeinfo            codeinfo;
 #include "vm/descriptor.hpp"
 #include "vm/global.hpp"
 #include "vm/linker.hpp"
-#include "vm/loader.hpp"
 #include "vm/references.hpp"
 
 #if defined(ENABLE_JAVASE)
@@ -90,6 +89,7 @@ typedef struct codeinfo            codeinfo;
 #endif
 
 union  classref_or_classinfo;
+struct classbuffer;
 struct constant_FMIref;
 
 /* methodinfo *****************************************************************/

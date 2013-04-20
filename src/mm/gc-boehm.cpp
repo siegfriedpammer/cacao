@@ -50,7 +50,6 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/finalizer.hpp"
-#include "vm/loader.hpp"
 #include "vm/options.hpp"
 #include "vm/rt-timing.hpp"
 #include "vm/string.hpp"

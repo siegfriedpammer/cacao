@@ -50,9 +50,9 @@ typedef struct Uninitialized_variable_info_t     Uninitialized_variable_info_t;
 
 
 #include "config.h"
-#include "vm/loader.hpp"
 #include "vm/types.hpp"
 
+struct classbuffer;
 struct methodinfo;
 
 /* verification_type_info *****************************************************/

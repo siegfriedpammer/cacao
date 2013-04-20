@@ -154,7 +154,6 @@ error reporting.
 #include "vm/field.hpp"
 #include "vm/global.hpp"
 #include "vm/globals.hpp"
-#include "vm/loader.hpp"
 #include "vm/options.hpp"
 #include "vm/primitive.hpp"
 #include "vm/resolve.hpp"

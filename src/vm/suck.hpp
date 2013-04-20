@@ -38,8 +38,7 @@
 
 #include "toolbox/hashtable.hpp"
 
-#include "vm/loader.hpp"
-
+struct classbuffer;
 struct classinfo;
 
 /* list_classpath_entry *******************************************************/

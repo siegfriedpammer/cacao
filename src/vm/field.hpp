@@ -36,11 +36,11 @@ typedef struct fieldinfo fieldinfo;
 
 #include "vm/descriptor.hpp"
 #include "vm/global.hpp"
-#include "vm/loader.hpp"
 #include "vm/references.hpp"
 #include "vm/utf8.hpp"
 
 struct classinfo;
+struct classbuffer;
 
 /* fieldinfo ******************************************************************/
 

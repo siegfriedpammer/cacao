@@ -49,7 +49,6 @@
 #include "vm/exceptions.hpp"
 #include "vm/field.hpp"
 #include "vm/global.hpp"
-#include "vm/loader.hpp"
 #include "vm/options.hpp"
 #include "vm/primitive.hpp"
 #include "vm/statistics.hpp"
