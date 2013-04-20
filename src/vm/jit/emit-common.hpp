@@ -34,7 +34,6 @@
 #include "codegen.hpp"
 
 #include "vm/jit/codegen-common.hpp"
-#include "vm/jit/jit.hpp"
 
 
 /* branch labels **************************************************************/

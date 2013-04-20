@@ -26,9 +26,7 @@
 #ifndef CFG_HPP_
 #define CFG_HPP_ 1
 
-#include "config.h"
-#include "vm/jit/jit.hpp"
-
+struct jitdata;
 
 /* defines ********************************************************************/
 

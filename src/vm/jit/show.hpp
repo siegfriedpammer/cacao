@@ -29,8 +29,9 @@
 #include "config.h"
 #include "vm/types.hpp"
 
-#include "vm/jit/jit.hpp"
-
+struct jitdata;
+struct basicblock;
+struct instruction;
 
 /* compiler stage defines *****************************************************/
 

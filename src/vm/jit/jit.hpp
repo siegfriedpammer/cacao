@@ -66,6 +66,7 @@ typedef struct exception_entry exception_entry;
 #include "vm/jit/verify/typeinfo.hpp"
 
 struct methodinfo;
+struct registerdata;
 
 /* common jit/codegen macros **************************************************/
 

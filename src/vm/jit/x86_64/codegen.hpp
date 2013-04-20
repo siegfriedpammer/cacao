@@ -34,9 +34,6 @@
 
 #include "vm/jit/x86_64/emit.hpp"
 
-#include "vm/jit/jit.hpp"
-
-
 /* additional functions and macros to generate code ***************************/
 
 /* MCODECHECK(icnt) */

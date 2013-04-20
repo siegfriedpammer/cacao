@@ -57,7 +57,6 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.hpp"
-#include "vm/jit/jit.hpp"
 #include "vm/jit/methodheader.hpp"
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/show.hpp"

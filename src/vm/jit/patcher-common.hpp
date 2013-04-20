@@ -37,8 +37,7 @@ typedef struct patchref_t patchref_t;
 
 #include "vm/global.hpp"
 
-#include "vm/jit/jit.hpp"
-
+struct jitdata;
 
 /* patchref_t ******************************************************************
 

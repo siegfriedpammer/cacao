@@ -36,9 +36,10 @@ typedef struct dsegentry dsegentry;
 
 #include "vm/references.hpp"
 
-#include "vm/jit/jit.hpp"
 #include "vm/jit/codegen-common.hpp"
 
+struct jitdata;
+struct basicblock;
 
 /* convenience macros *********************************************************/
 

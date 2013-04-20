@@ -37,6 +37,7 @@ typedef struct typedescriptor      typedescriptor_t;
 #include "vm/global.hpp"
 #include "vm/references.hpp"
 
+struct varinfo;
 
 /* configuration **************************************************************/
 

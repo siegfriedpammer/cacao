@@ -30,8 +30,7 @@
 
 #include <stdbool.h>
 
-#include "vm/jit/jit.hpp"
-
+struct jitdata;
 
 /* function prototypes ********************************************************/
 

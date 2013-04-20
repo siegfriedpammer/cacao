@@ -39,7 +39,6 @@
 
 #include "vm/method.hpp"
 
-#include "vm/jit/jit.hpp"
 #include "vm/jit/code.hpp"
 
 #include "vm/jit/ir/instruction.hpp"

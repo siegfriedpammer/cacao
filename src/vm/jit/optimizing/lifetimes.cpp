@@ -38,8 +38,6 @@
 #include "vm/exceptions.hpp"
 #include "vm/string.hpp"
 
-#include "vm/jit/jit.hpp"
-
 #include "vm/jit/optimizing/graph.hpp"
 #include "vm/jit/optimizing/lsra.hpp"
 #include "vm/jit/optimizing/ssa.hpp"

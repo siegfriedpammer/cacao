@@ -37,11 +37,14 @@ typedef struct insinfo_inline insinfo_inline;
 
 #include "vm/descriptor.hpp"
 
-#include "vm/jit/jit.hpp"
 #include "vm/jit/replace.hpp"
 
 #include "vm/jit/ir/icmd.hpp"
 
+struct basicblock;
+struct unresolved_class;
+struct unresolved_method;
+struct unresolved_field;
 
 #ifdef __cplusplus
 extern "C" {

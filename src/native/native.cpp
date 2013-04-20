@@ -55,7 +55,6 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.hpp"
-#include "vm/jit/jit.hpp"
 
 
 /* native_make_overloaded_function *********************************************

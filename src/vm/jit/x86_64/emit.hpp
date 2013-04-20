@@ -30,8 +30,6 @@
 #include "vm/types.hpp"
 
 #include "vm/jit/codegen-common.hpp"
-#include "vm/jit/jit.hpp"
-
 
 /* macros to create code ******************************************************/
 

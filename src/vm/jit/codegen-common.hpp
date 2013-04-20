@@ -53,6 +53,7 @@ struct patchref_t;
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/replace.hpp"
 
+struct varinfo;
 struct methodinfo;
 
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */

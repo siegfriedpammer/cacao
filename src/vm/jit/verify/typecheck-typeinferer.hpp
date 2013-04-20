@@ -35,8 +35,6 @@
 
 #include "config.h"
 
-#include "vm/jit/jit.hpp"
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
