@@ -817,9 +817,10 @@ Value* SSAConstructionPass::read_variable(size_t varindex, size_t bb) {
 Value* SSAConstructionPass::read_variable_recursive(size_t varindex, size_t bb) {
 	Value *val; // current definition
 	if(BB[bb]->pred_size() == 0) {
-		err() << BoldRed << "error: " << reset_color << "no predecessor " << BoldWhite
-			  << "basicblock" << bb << reset_color << nl;
+		LOG(BoldRed << "error: " << reset_color << "no predecessor " << BoldWhite
+			  << "basicblock" << bb << reset_color << nl);
 		assert(0);
+		return NULL;
 	}
 	if (!sealed_blocks[bb]) {
 		PHIInst *phi = new PHIInst(convert_var_type(varindex), BB[bb]);
@@ -1040,7 +1041,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 		}
 	}
 	if (extra_init_bb) {
-		BeginInst *targetBlock = BB[0]->to_BeginInst();
+		BeginInst *targetBlock = BB[0];
 		Instruction *result = new GOTOInst(BB[init_basicblock], targetBlock);
 		M->add_Instruction(result);
 		// now we mark it filled and sealed
@@ -1427,9 +1428,34 @@ bool SSAConstructionPass::run(JITData &JD) {
 					default: assert(0);
 					}
 					#endif
-					assert(read_variable(iptr->s1.varindex,bbindex));
-					write_variable(iptr->dst.varindex,bbindex,
-					    read_variable(iptr->s1.varindex,bbindex));
+					Value *def = read_variable(iptr->s1.varindex,bbindex);
+					// XXX dont yet know if this can happen
+					#if 0
+					if (!def) {
+						// no definition found. Initialize with zero
+						Instruction *konst;
+						switch (iptr->opc) {
+						case ICMD_ILOAD:
+							konst = new CONSTInst((int)0);
+							break;
+						case ICMD_LLOAD:
+							konst = new CONSTInst((long)0);
+							break;
+						case ICMD_FLOAD:
+							konst = new CONSTInst((float)0);
+							break;
+						case ICMD_DLOAD:
+							konst = new CONSTInst((double)0);
+							break;
+						default: assert(0);
+						}
+						M->add_Instruction(konst);
+						def = konst;
+					}
+					#else
+					assert(def);
+					#endif
+					write_variable(iptr->dst.varindex,bbindex,def);
 				}
 				break;
 			case ICMD_ALOAD:
@@ -1681,7 +1707,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_GOTO:
 				{
 					assert(BB[iptr->dst.block->nr]);
-					BeginInst *targetBlock = BB[iptr->dst.block->nr]->to_BeginInst();
+					BeginInst *targetBlock = BB[iptr->dst.block->nr];
 					Instruction *result = new GOTOInst(BB[bbindex], targetBlock);
 					M->add_Instruction(result);
 				}
@@ -1710,13 +1736,16 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_IF_LCMPEQ:
 			case ICMD_IF_LCMPNE:
 			case ICMD_IF_LCMPLT:
-			case ICMD_IF_LCMPGE:
 			case ICMD_IF_LCMPGT:
 				goto _default;
+			case ICMD_IF_LCMPGE:
 			case ICMD_IF_LCMPLE:
 				{
 					Conditional::CondID cond;
 					switch (iptr->opc) {
+					case ICMD_IF_LCMPGE:
+						cond = Conditional::GE;
+						break;
 					case ICMD_IF_LCMPLE:
 						cond = Conditional::LE;
 						break;
@@ -1832,6 +1861,14 @@ bool SSAConstructionPass::run(JITData &JD) {
 				err() << BoldRed << "error: " << reset_color << "operation " << BoldWhite
 					  << icmd_table[iptr->opc].name << reset_color << " not yet supported!" << nl;
 				assert(false);
+		}
+
+		if (!BB[bbindex]->get_EndInst()) {
+			// No end instruction yet. Adding GOTO
+			assert(bbindex+1 < BB.size());
+			BeginInst *targetBlock = BB[bbindex+1];
+			Instruction *result = new GOTOInst(BB[bbindex], targetBlock);
+			M->add_Instruction(result);
 		}
 
 		// block filled!
