@@ -834,10 +834,10 @@ Value* SSAConstructionPass::read_variable_recursive(size_t varindex, size_t bb) 
 	} else {
 		PHIInst *phi = new PHIInst(convert_var_type(varindex), BB[bb]);
 		write_variable(varindex, bb, phi);
+		M->add_Instruction(phi);
 		val = add_phi_operands(varindex, phi);
 		// might get deleted by try_remove_trivial_phi()
 		assert(val->to_Instruction());
-		M->add_Instruction(val->to_Instruction());
 	}
 	write_variable(varindex, bb, val);
 	return val;
@@ -880,6 +880,7 @@ Value* SSAConstructionPass::try_remove_trivial_phi(PHIInst *phi) {
 
 	for(std::list<Instruction*>::iterator i = users.begin(), e = users.end();
 			i != e; ++i) {
+		assert(*i);
 		PHIInst *p = (*i)->to_PHIInst();
 		if (p) {
 			try_remove_trivial_phi(p);

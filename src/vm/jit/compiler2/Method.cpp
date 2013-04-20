@@ -43,12 +43,15 @@ Method::~Method() {
 void Method::add_Instruction(Instruction* I) {
 	assert(I);
 	I->set_method(this);
+	assert(std::find(inst_list.begin(), inst_list.end(),I) == inst_list.end());
 	inst_list.push_back(I);
 }
 
 void Method::remove_Instruction(Instruction* I) {
+	#if 0
 	std::replace(inst_list.begin(),	inst_list.end(),I,(Instruction*)0);
 	delete I;
+	#endif
 }
 
 void Method::add_bb(BeginInst *bi) {

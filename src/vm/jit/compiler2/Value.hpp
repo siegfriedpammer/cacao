@@ -50,8 +50,12 @@ protected:
 		user_list.push_back(I);
 	}
 	void remove_user(Instruction* I) {
+		#ifndef NDEBUG
+		size_t size = user_list.size();
+		#endif
 		LOG("Value::remove_user(this=" << this << ",I=" << I << ")" << nl );
 		user_list.remove(I);
+		assert( size > user_list.size());
 		#if 0
 		UserListTy::iterator f = user_list.find(I);
 		if (f != user_list.end()) {
@@ -59,6 +63,12 @@ protected:
 		}
 		user_list.erase(std::find(user_list.begin(),user_list.end(),I));
 		#endif
+	}
+	OStream& print_users(OStream &OS) {
+		OS << "Users of " << this << nl ;
+		for(UserListTy::iterator i = user_list.begin(), e = user_list.end(); i != e; ++i) {
+			OS << "User: " << *i << nl;
+		}
 	}
 public:
 

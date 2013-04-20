@@ -33,21 +33,24 @@ namespace jit {
 namespace compiler2 {
 
 void Value::replace_value(Value *v) {
-	#ifndef NDEBUG
-	size_t size = user_list.size();
-	#endif
+	LOG("Value::replace_value(this=" << this << ",v=" << v << ")" << nl );
 	UserListTy::iterator i;
 	UserListTy::iterator e = user_list.end();
 	while ( (i = user_list.begin() ) != e ) {
+		#ifndef NDEBUG
+		size_t size = user_list.size();
+		#endif
+		DEBUG(print_users(dbg()));
 		Instruction *I = *i;
-		LOG("preplacing value " << this << " with " << v << nl );
+		LOG("replacing value " << this << " with " << v << nl );
 		assert(I);
 		I->replace_op(this, v);
-		assert( --size == user_list.size());
+		assert( size > user_list.size());
 	}
 }
 Value::~Value()
 {
+#if 0
 #ifndef NDEBUG
 	size_t size = user_list.size();
 #endif
@@ -61,6 +64,7 @@ Value::~Value()
 		I->replace_op(this, NULL);
 		assert( --size == user_list.size());
 	}
+#endif
 }
 
 } // end namespace cacao

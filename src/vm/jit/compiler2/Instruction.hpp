@@ -217,7 +217,10 @@ protected:
 	}
 
 	void replace_op(Value* v_old, Value* v_new) {
+		LOG("Instruction:::replace_op(this=" << this << ",v_old=" << v_old << ",v_new=" << v_new << ")" << nl );
+		DEBUG(print_operands(dbg()));
 		std::replace(op_list.begin(),op_list.end(),v_old,v_new);
+		DEBUG(print_operands(dbg()));
 		v_old->remove_user(this);
 		if (v_new)
 			v_new->append_user(this);
@@ -227,20 +230,29 @@ protected:
 		dep_list.push_back(I);
 	}
 
+	OStream& print_operands(OStream &OS) {
+		OS << "Operands of " << this << " (" << get_name() << ")" << nl ;
+		for(OperandListTy::iterator i = op_list.begin(), e = op_list.end(); i != e; ++i) {
+			OS << "OP: " << *i << nl;
+		}
+	}
+
 public:
 	explicit Instruction(InstID id, Type::TypeID type) : id(id), type(type) {}
 
 	virtual ~Instruction() {
 		LOG("deleting instruction: " << this << nl);
+		#if 0
 		// remove from users
 		for( OperandListTy::iterator i = op_list.begin(), e = op_list.end(); i != e ; ++i) {
 			Value *v = *i;
 			//assert(v != (Value*)this);
 			// might be a NULL operand
-			if (v) {
+			//if (v) {
 				v->remove_user(this);
-			}
+			//}
 		}
+		#endif
 	}
 
 	InstID get_opcode() const { return id; } ///< return the opcode of the instruction (icmd.hpp)
