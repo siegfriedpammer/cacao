@@ -440,9 +440,12 @@ public:
 	virtual TABLESWITCHInst* to_TABLESWITCHInst() { return this; }
 };
 
-class LOOKUPSWITCHInst : public Instruction {
+class LOOKUPSWITCHInst : public EndInst {
 public:
-	explicit LOOKUPSWITCHInst(Type::TypeID type) : Instruction(LOOKUPSWITCHInstID, type) {}
+	explicit LOOKUPSWITCHInst(BeginInst *begin, Value* S1)
+			: EndInst(LOOKUPSWITCHInstID, begin) {
+		append_op(S1);
+	}
 	virtual LOOKUPSWITCHInst* to_LOOKUPSWITCHInst() { return this; }
 };
 

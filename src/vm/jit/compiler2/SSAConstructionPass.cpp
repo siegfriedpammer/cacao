@@ -1148,13 +1148,23 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		break;
 
 				/* binary */
-			case ICMD_IADD:
 				goto _default;
+			case ICMD_IADD:
 			case ICMD_LADD:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
 					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
-					Instruction *result = new ADDInst(Type::LongTypeID, s1, s2);
+					Type::TypeID type;
+					switch (iptr->opc) {
+					case ICMD_IADD:
+						type = Type::IntTypeID;
+						break;
+					case ICMD_LADD:
+						type = Type::LongTypeID;
+						break;
+					default: assert(0);
+					}
+					Instruction *result = new ADDInst(type, s1, s2);
 					write_variable(iptr->dst.varindex,bbindex,result);
 					M->add_Instruction(result);
 				}
@@ -1366,7 +1376,23 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		}
 		//		break;
 
+				goto _default;
 			case ICMD_IINC:
+				{
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+					Instruction *konst = new CONSTInst((int)1);
+					Instruction *result;
+					switch (iptr->opc) {
+					case ICMD_IINC:
+						result = new ADDInst(Type::IntTypeID, s1, konst);
+						break;
+					default: assert(0);
+					}
+					M->add_Instruction(konst);
+					write_variable(iptr->dst.varindex,bbindex,result);
+					M->add_Instruction(result);
+				}
+				break;
 		//		SHOW_S1_LOCAL(OS, iptr);
 		//		SHOW_INT_CONST(OS, iptr->sx.val.i);
 		//		SHOW_DST_LOCAL(OS, iptr);
@@ -1630,16 +1656,19 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		}
 		//		break;
 
-			case ICMD_IFEQ:
 			case ICMD_IFLT:
 			case ICMD_IFGE:
 			case ICMD_IFGT:
 				goto _default;
+			case ICMD_IFEQ:
 			case ICMD_IFNE:
 			case ICMD_IFLE:
 				{
 					Conditional::CondID cond;
 					switch (iptr->opc) {
+					case ICMD_IFEQ:
+						cond = Conditional::EQ;
+						break;
 					case ICMD_IFNE:
 						cond = Conditional::NE;
 						break;
@@ -1732,7 +1761,31 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_IF_ICMPLT:
 			case ICMD_IF_ICMPGE:
 			case ICMD_IF_ICMPGT:
+				goto _default;
 			case ICMD_IF_ICMPLE:
+				{
+					Conditional::CondID cond;
+					switch (iptr->opc) {
+					case ICMD_IF_ICMPLE:
+						cond = Conditional::LE;
+						break;
+					}
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
+					assert(s1);
+					assert(s2);
+					assert(BB[iptr->dst.block->nr]);
+					BeginInst *trueBlock = BB[iptr->dst.block->nr]->to_BeginInst();
+					assert(trueBlock);
+					assert(BB[bbindex+1]);
+					BeginInst *falseBlock = BB[bbindex+1]->to_BeginInst();
+					assert(falseBlock);
+					Instruction *result = new IFInst(BB[bbindex], s1, s2, cond,
+						trueBlock, falseBlock);
+					M->add_Instruction(result);
+				}
+				break;
+
 
 			case ICMD_IF_LCMPEQ:
 			case ICMD_IF_LCMPNE:
@@ -1788,8 +1841,29 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		}
 		//
 		//		break;
+				goto _default;
 
 			case ICMD_LOOKUPSWITCH:
+				{
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+					LOOKUPSWITCHInst *result = new LOOKUPSWITCHInst(BB[bbindex], s1);
+
+					// add case targets
+					lookup_target_t *lookup = iptr->dst.lookup;
+					s4 i = iptr->sx.s23.s2.lookupcount;
+					while (--i >= 0) {
+						// lookup->value
+						result->append_succ(BB[lookup->target.block->nr]);
+						lookup++;
+					}
+					// add default target
+					BeginInst *defaultBlock = BB[iptr->sx.s23.s3.lookupdefault.block->nr];
+					assert(defaultBlock);
+					result->append_succ(defaultBlock);
+
+					M->add_Instruction(result);
+				}
+				break;
 		//		SHOW_S1(OS, iptr);
 		//
 		//		printf("count=%d, default=L%03d\n",
@@ -1807,7 +1881,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		}
 		//		break;
 
-				goto _default;
 			case ICMD_FRETURN:
 			case ICMD_IRETURN:
 			case ICMD_DRETURN:
