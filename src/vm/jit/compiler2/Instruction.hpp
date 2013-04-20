@@ -235,7 +235,7 @@ public:
 		// remove from users
 		for( OperandListTy::iterator i = op_list.begin(), e = op_list.end(); i != e ; ++i) {
 			Value *v = *i;
-			assert(v != (Value*)this);
+			//assert(v != (Value*)this);
 			// might be a NULL operand
 			if (v) {
 				v->remove_user(this);

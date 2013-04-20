@@ -945,6 +945,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 	basicblock *bb;
 	jitdata *jd = JD.jitdata();
 
+	show_method(jd, SHOW_CFG);
+
 	// **** BEGIN initializations
 
 	/**
@@ -1014,11 +1016,14 @@ bool SSAConstructionPass::run(JITData &JD) {
 	assert(md);
 	assert(md->paramtypes);
 
-	if (extra_init_bb)
-		M->add_Instruction(BB[init_basicblock]);
-	for (int i = 0; i < md->paramslots; ++i) {
+	if (extra_init_bb) {
+		M->add_bb(BB[init_basicblock]);
+	}
+	LOG("parameter count: i = " << md->paramcount << " slot count = " << md->paramslots << nl);
+	for (int i = 0, slot = 0; i < md->paramcount; ++i) {
 		int type = md->paramtypes[i].type;
-		int varindex = jd->local_map[i * 5 + type];
+		int varindex = jd->local_map[slot * 5 + type];
+		LOG("parameter: i = " << i << " slot = " << slot << " type " << get_var_type(type) << nl);
 		assert(varindex != UNUSED);
 
 		Instruction *I = new LOADInst(convert_var_type(type), varindex);
@@ -1028,8 +1033,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 		switch (type) {
 			case TYPE_LNG:
 			case TYPE_DBL:
-				++i;
+				slot +=2;
 				break;
+			default:
+				++slot;
 		}
 	}
 	if (extra_init_bb) {
@@ -1045,8 +1052,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 	M->set_init_bb(BB[init_basicblock]);
 
 	// **** END initializations
-
-	show_method(jd, SHOW_CFG);
 
 	// print BeginInsts
 	for(std::vector<BeginInst*>::iterator i = BB.begin(), e = BB.end();
