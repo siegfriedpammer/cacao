@@ -26,19 +26,10 @@
 #ifndef HASHTABLE_HPP_
 #define HASHTABLE_HPP_ 1
 
-/* forward typedefs ***********************************************************/
+#include "config.h"                     // for ENABLE_THREADS
+#include "vm/types.hpp"                 // for u4
 
-typedef struct hashtable hashtable;
-
-
-#include "config.h"
-#include "vm/types.hpp"
-
-#include "threads/mutex.hpp"
-
-#include "vm/global.hpp"
-#include "vm/utf8.hpp"
-
+struct Mutex;
 
 /* data structures for hashtables ********************************************
 
@@ -59,7 +50,7 @@ typedef struct hashtable hashtable;
    the external hash chain and the key of the element. The key is
    computed from the text of the string or the classname by using up
    to 8 characters.
-	
+  
    If the number of entries in the hashtable exceeds twice the size of
    the hashtableslot-array it is supposed that the average length of
    the external chains has reached a value beyond 2. Therefore the
@@ -89,7 +80,6 @@ hashtable.ptr-->+-------------------+
                 +-------------------+
 
 */
-
 
 /* hashtable ******************************************************************/
 
