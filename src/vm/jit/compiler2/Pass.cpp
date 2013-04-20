@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/CFGConstructionPass.hpp - CFGConstructionPass
+/* src/vm/jit/compiler2/Pass.cpp - Pass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,34 +22,17 @@
 
 */
 
-#ifndef _JIT_COMPILER2_CFGCONSTRUCTIONPASS
-#define _JIT_COMPILER2_CFGCONSTRUCTIONPASS
-
-#include "vm/jit/compiler2/Pass.hpp"
-
-#include "vm/jit/cfg.hpp"
-
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+#include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/PassManager.hpp"
 
-/**
- * CFGConstructionPass
- * TODO: more info
- */
-class CFGConstructionPass : public Pass {
-public:
-	static char ID;
-	CFGConstructionPass() : Pass() {}
-	bool run(JITData &JD);
-};
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
-
-#endif /* _JIT_COMPILER2_CFGCONSTRUCTIONPASS */
 
 
 /*

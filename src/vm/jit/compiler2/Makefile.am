@@ -29,15 +29,22 @@ noinst_LTLIBRARIES = \
 	libcompiler2.la
 
 libcompiler2_la_SOURCES = \
+	CFGConstructionPass.cpp \
+	CodeGenPass.cpp \
 	Compiler.cpp \
 	DominatorPass.cpp \
 	Instruction.cpp \
+	LoopPass.cpp \
 	Method.cpp \
+	ParserPass.cpp \
 	PassManager.cpp \
+	RegisterAllocatorPass.cpp \
 	SSAConstructionPass.cpp \
 	SSAPrinterPass.cpp \
+	StackAnalysisPass.cpp \
 	Type.cpp \
-	Value.cpp
+	Value.cpp \
+	VerifierPass.cpp
 
 
 ## Local variables:

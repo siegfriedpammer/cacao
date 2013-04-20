@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/CFGConstructionPass.hpp - CFGConstructionPass
+/* src/vm/jit/compiler2/RegisterAllocatorPass.cpp - RegisterAllocatorPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,34 +22,33 @@
 
 */
 
-#ifndef _JIT_COMPILER2_CFGCONSTRUCTIONPASS
-#define _JIT_COMPILER2_CFGCONSTRUCTIONPASS
+#include "vm/jit/compiler2/RegisterAllocatorPass.hpp"
+#include "vm/jit/compiler2/PassManager.hpp"
+#include "vm/jit/compiler2/JITData.hpp"
 
-#include "vm/jit/compiler2/Pass.hpp"
-
-#include "vm/jit/cfg.hpp"
+#include "vm/jit/allocator/simplereg.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+bool RegisterAllocatorPass::run(JITData &JD) {
+	if (!regalloc(JD.jitdata())) {
+		return false;
+	}
+	return true;
+}
 
-/**
- * CFGConstructionPass
- * TODO: more info
- */
-class CFGConstructionPass : public Pass {
-public:
-	static char ID;
-	CFGConstructionPass() : Pass() {}
-	bool run(JITData &JD);
-};
+
+// the address of this variable is used to identify the pass
+char RegisterAllocatorPass::ID = 0;
+
+// registrate Pass
+static PassRegistery<RegisterAllocatorPass> X("RegisterAllocatorPass");
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
-
-#endif /* _JIT_COMPILER2_CFGCONSTRUCTIONPASS */
 
 
 /*

@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/CFGConstructionPass.hpp - CFGConstructionPass
+/* src/vm/jit/compiler2/PassUsage.hpp - PassUsage
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,12 +22,10 @@
 
 */
 
-#ifndef _JIT_COMPILER2_CFGCONSTRUCTIONPASS
-#define _JIT_COMPILER2_CFGCONSTRUCTIONPASS
+#ifndef _JIT_COMPILER2_PASSUSAGE
+#define _JIT_COMPILER2_PASSUSAGE
 
-#include "vm/jit/compiler2/Pass.hpp"
-
-#include "vm/jit/cfg.hpp"
+#include "vm/jit/compiler2/PassManager.hpp"
 
 namespace cacao {
 namespace jit {
@@ -35,21 +33,30 @@ namespace compiler2 {
 
 
 /**
- * CFGConstructionPass
- * TODO: more info
+ * PassUsage
+ * This is a Container to track dependencies between passes
  */
-class CFGConstructionPass : public Pass {
+class PassUsage {
+private:
+	std::list<PassInfo::IDTy> requires;
+	std::list<PassInfo::IDTy> destroys;
 public:
-	static char ID;
-	CFGConstructionPass() : Pass() {}
-	bool run(JITData &JD);
+	PassUsage() {}
+	void add_required(char &ID) {
+		requires.push_back(&ID);
+	}
+
+	void add_destroys(char &ID) {
+		destroys.push_back(&ID);
+	}
 };
+
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_CFGCONSTRUCTIONPASS */
+#endif /* _JIT_COMPILER2_PASSUSAGE */
 
 
 /*

@@ -24,6 +24,7 @@
 
 #include "vm/jit/compiler2/DominatorPass.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
+#include "vm/jit/compiler2/PassManager.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -188,6 +189,13 @@ bool DominatorPass::run(JITData &JD) {
 
 	return true;
 }
+
+
+// the address of this variable is used to identify the pass
+char DominatorPass::ID = 0;
+
+// register pass
+static PassRegistery<DominatorPass> X("DominatorPass");
 
 } // end namespace compiler2
 } // end namespace jit

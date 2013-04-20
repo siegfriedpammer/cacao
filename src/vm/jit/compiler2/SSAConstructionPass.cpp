@@ -26,6 +26,7 @@
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/Type.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
+#include "vm/jit/compiler2/PassManager.hpp"
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/show.hpp"
@@ -1951,6 +1952,12 @@ bool SSAConstructionPass::run(JITData &JD) {
 	}
 	return true;
 }
+
+// the address of this variable is used to identify the pass
+char SSAConstructionPass::ID = 0;
+
+// registrate Pass
+static PassRegistery<SSAConstructionPass> X("SSAConstructionPass");
 
 } // end namespace cacao
 } // end namespace jit

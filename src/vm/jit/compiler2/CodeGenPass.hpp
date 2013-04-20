@@ -38,21 +38,14 @@ namespace compiler2 {
  */
 class CodeGenPass : public Pass {
 public:
-	CodeGenPass(PassManager *PM) : Pass(PM) {}
+	static char ID;
+	CodeGenPass() : Pass() {}
 	bool run(JITData &JD);
-	const char* name() { return "CodeGenPass"; };
 };
 
-bool CodeGenPass::run(JITData &JD) {
-	if (!codegen_generate(JD.jitdata())) {
-		return false;
-	}
-	return true;
-}
-
-} // end namespace cacao
-} // end namespace jit
 } // end namespace compiler2
+} // end namespace jit
+} // end namespace cacao
 
 #endif /* _JIT_COMPILER2_CODEGENPASS */
 

@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/CFGConstructionPass.hpp - CFGConstructionPass
+/* src/vm/jit/compiler2/StackAnalysisPass.cpp - StackAnalysisPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,35 +22,36 @@
 
 */
 
-#ifndef _JIT_COMPILER2_CFGCONSTRUCTIONPASS
-#define _JIT_COMPILER2_CFGCONSTRUCTIONPASS
+#include "vm/jit/compiler2/StackAnalysisPass.hpp"
+#include "vm/jit/compiler2/PassManager.hpp"
+#include "vm/jit/compiler2/JITData.hpp"
 
-#include "vm/jit/compiler2/Pass.hpp"
-
-#include "vm/jit/cfg.hpp"
+#include "vm/jit/jit.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+bool StackAnalysisPass::run(JITData &JD) {
+	/* call stack analysis pass */
 
-/**
- * CFGConstructionPass
- * TODO: more info
- */
-class CFGConstructionPass : public Pass {
-public:
-	static char ID;
-	CFGConstructionPass() : Pass() {}
-	bool run(JITData &JD);
-};
+	if (!stack_analyse(JD.jitdata())) {
+		//DEBUG_JIT_COMPILEVERBOSE("Exception while analysing: ");
+
+		return false;
+	}
+	return true;
+}
+
+// the address of this variable is used to identify the pass
+char StackAnalysisPass::ID = 0;
+
+// registrate Pass
+static PassRegistery<StackAnalysisPass> X("StackAnalysisPass");
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
-
-#endif /* _JIT_COMPILER2_CFGCONSTRUCTIONPASS */
-
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -235,6 +235,7 @@ protected:
 		for(OperandListTy::iterator i = op_list.begin(), e = op_list.end(); i != e; ++i) {
 			OS << "OP: " << *i << nl;
 		}
+		return OS;
 	}
 
 public:

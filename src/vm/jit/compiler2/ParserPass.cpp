@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/CFGConstructionPass.hpp - CFGConstructionPass
+/* src/vm/jit/compiler2/ParserPass.cpp - ParserPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,34 +22,36 @@
 
 */
 
-#ifndef _JIT_COMPILER2_CFGCONSTRUCTIONPASS
-#define _JIT_COMPILER2_CFGCONSTRUCTIONPASS
 
-#include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/ParserPass.hpp"
+#include "vm/jit/compiler2/PassManager.hpp"
 
-#include "vm/jit/cfg.hpp"
+#include "vm/jit/parse.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+bool ParserPass::run(JITData &JD) {
+	/* call parse pass */
 
-/**
- * CFGConstructionPass
- * TODO: more info
- */
-class CFGConstructionPass : public Pass {
-public:
-	static char ID;
-	CFGConstructionPass() : Pass() {}
-	bool run(JITData &JD);
-};
+	if (!parse(JD.jitdata())) {
+		//DEBUG_JIT_COMPILEVERBOSE("Exception while parsing: ");
+
+		return false;
+	}
+	return true;
+}
+
+// the address of this variable is used to identify the pass
+char ParserPass::ID = 0;
+
+// registrate Pass
+static PassRegistery<ParserPass> X("ParserPass");
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
-
-#endif /* _JIT_COMPILER2_CFGCONSTRUCTIONPASS */
 
 
 /*

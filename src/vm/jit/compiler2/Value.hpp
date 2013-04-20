@@ -69,6 +69,7 @@ protected:
 		for(UserListTy::iterator i = user_list.begin(), e = user_list.end(); i != e; ++i) {
 			OS << "User: " << *i << nl;
 		}
+		return OS;
 	}
 public:
 

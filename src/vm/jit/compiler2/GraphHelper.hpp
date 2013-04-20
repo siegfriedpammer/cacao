@@ -43,7 +43,8 @@ namespace compiler2 {
 /**
  * This helper class creates traversal for a graph.
  *
- * The only information required from the graph is the successor relation succ().
+ * The only information required from the graph is the successor relation successor()
+ * and number of vertices  num_nodes.
  */
 template <class _NodeTy>
 class DFSTraversal {
@@ -53,56 +54,38 @@ private:
 	typedef typename std::vector<int> ParentMapTy;
 
 	typedef typename std::set<const _NodeTy *> NodeListTy;
-	typedef typename std::map<const _NodeTy *,NodeListTy> NodeListMapTy;
-	typedef typename std::map<const _NodeTy *,const _NodeTy *> EdgeMapTy;
-
-
-	typedef typename std::set<const _NodeTy *>::const_iterator const_node_list_iterator;
+	typedef typename std::set<int> SuccessorListTy;
+	typedef typename std::vector<SuccessorListTy> SuccessorListMapTy;
 
 	NodeMapTy vertex;
 	IndexMapTy index;
 	ParentMapTy parent;
+	SuccessorListMapTy succ;
 
 	int n;
 	int _size;
 
-	#if 0
-	EdgeMapTy parent;
-	NodeListMapTy pred;
-	NodeListMapTy bucket;
-	IndexMapTy semi;
-	NodeMapTy vertex;
-
-	EdgeMapTy ancestor;
-	EdgeMapTy label;
-	#endif
-
-	NodeListTy& succ(const _NodeTy *v, NodeListTy &list);
+	NodeListTy& successor(const _NodeTy *v, NodeListTy &list);
 	int num_nodes(const _NodeTy *v) const;
 
 	int dfs(const _NodeTy * v);
 
 public:
+	class iterator;
+	typedef std::set<iterator> iterator_list;
+
 	explicit DFSTraversal(const _NodeTy *entry) {
 		n = -1;
 		_size = num_nodes(entry);
 		LOG("num nodes" << _size << nl);
 		vertex.resize(_size, NULL);
 		// index.resize(_size, -1); auto initialzied
-		parent.clear();
 		parent.resize(_size, -1);
+		succ.resize(_size);
 		LOG("vertex size " << vertex.size() << nl);
 
-		#if 0
-		for(int i = 0, e = size; i != e ; ++i) {
-			// pred[v] = NodeListTy(); // maps are auto initialized at first access
-			semi[v] = -1;
-			// init label and ancestor array
-			ancestor[v] = -1;
-			//label[v] = v;
-		}
-		#endif
 		dfs(entry);
+
 #ifdef ENABLE_LOGGING
 		LOG("index"<<nl);
 		for(int i = 0, e = _size; i != e ; ++i) {
@@ -185,6 +168,14 @@ public:
 			iterator get_parent() const {
 				return iterator(parent,parent->parent[index]);
 			}
+
+			iterator_list& get_successors(iterator_list &list) const {
+				for(SuccessorListTy::iterator i = parent->succ[index].begin(),
+						e = parent->succ[index].end(); i != e ; ++i) {
+					list.insert(iterator(parent,*i));
+				}
+				return list;
+			}
 	};
 
 	iterator begin() {
@@ -210,14 +201,18 @@ int DFSTraversal<_NodeTy>::dfs(const _NodeTy * v)
 	vertex[my_n] = v;
 	// TODO this can be done better
 	NodeListTy succ_v;
-	succ_v = succ(v, succ_v);
+	succ_v = successor(v, succ_v);
 	LOG("number of succ for " << (long)v << " (" << my_n << ") " << " = " << succ_v.size() << nl);
-	for(const_node_list_iterator i = succ_v.begin() , e = succ_v.end();
+	for(typename std::set<const _NodeTy *>::const_iterator i = succ_v.begin() , e = succ_v.end();
 			i != e; ++i) {
 		const _NodeTy *w = *i;
+		SuccessorListTy &succ_list = succ[my_n];
 		if (index.find(w) == index.end()) {
 			int w_n = dfs(w);
 			parent[w_n] = my_n;
+			succ_list.insert(w_n);
+		} else {
+			succ_list.insert(index[w]);
 		}
 		//pred[w].insert(v);
 	}
@@ -227,7 +222,7 @@ int DFSTraversal<_NodeTy>::dfs(const _NodeTy * v)
 // specialization for BeginInst
 
 template <>
-DFSTraversal<BeginInst>::NodeListTy& DFSTraversal<BeginInst>::succ(const BeginInst *v, NodeListTy& list) {
+DFSTraversal<BeginInst>::NodeListTy& DFSTraversal<BeginInst>::successor(const BeginInst *v, NodeListTy& list) {
 	EndInst *ve = v->get_EndInst();
 	assert(ve);
 	list.insert(ve->succ_begin(),ve->succ_end());

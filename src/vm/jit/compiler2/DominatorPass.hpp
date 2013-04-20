@@ -107,9 +107,9 @@ private:
 	const NodeTy* Eval(const NodeTy *v);
 	void Compress(const NodeTy *v);
 public:
-	DominatorPass(PassManager *PM) : Pass(PM) {}
+	static char ID;
+	DominatorPass() : Pass() {}
 	bool run(JITData &JD);
-	const char* name() { return "DominatorPass"; };
 };
 
 } // end namespace compiler2

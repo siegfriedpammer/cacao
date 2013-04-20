@@ -33,40 +33,53 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+Pass* PassManager::get_initialized_Pass(PassInfo::IDTy ID) {
+	Pass *P = initialized_passes[ID];
+	if (!P) {
+		PassInfo *PI = registered_passes()[ID];
+		assert(PI && "Pass not registered");
+		// This should be the only place where a Pass is constructed!
+		P = PI->create_Pass();
+		P->set_PassManager(this);
+		initialized_passes[ID] = P;
+	}
+	return P;
+}
+
 PassManager::~PassManager() {
 	// delete all passes
-	for(PassList::iterator i = passes.begin(), e = passes.end(); i != e; ++i) {
-		Pass* P = *i;
+	for(PassMapTy::iterator i = initialized_passes.begin(), e = initialized_passes.end(); i != e; ++i) {
+		Pass* P = i->second;
 		delete P;
 	}
 }
 
 void PassManager::initializePasses() {
-	for(PassList::iterator i = passes.begin(), e = passes.end(); i != e; ++i) {
-		Pass* P = *i;
-		LOG("initialize: " << P->name() << nl);
+	for(ScheduleListTy::iterator i = schedule.begin(), e = schedule.end(); i != e; ++i) {
+		Pass* P = get_initialized_Pass(*i);
+		LOG("initialize: " << get_Pass_name(*i) << nl);
 		P->initialize();
 	}
 }
 
 void PassManager::runPasses(JITData &JD) {
 	initializePasses();
-	for(PassList::iterator i = passes.begin(), e = passes.end(); i != e; ++i) {
-		Pass* P = *i;
-		LOG("start: " << P->name() << nl);
+	for(ScheduleListTy::iterator i = schedule.begin(), e = schedule.end(); i != e; ++i) {
+		Pass* P = get_initialized_Pass(*i);
+		LOG("start: " << get_Pass_name(*i) << nl);
 		if (!P->run(JD)) {
-			err() << bold << Red << "error" << reset_color << " during pass " << P->name() << nl;
+			err() << bold << Red << "error" << reset_color << " during pass " << get_Pass_name(*i) << nl;
 			vm_abort("compiler2: error");
 		}
-		LOG("finished: " << P->name() << nl);
+		LOG("finished: " << get_Pass_name(*i) << nl);
 	}
 	finalizePasses();
 }
 
 void PassManager::finalizePasses() {
-	for(PassList::iterator i = passes.begin(), e = passes.end(); i != e; ++i) {
-		Pass* P = *i;
-		LOG("finialize: " << P->name() << nl);
+	for(ScheduleListTy::iterator i = schedule.begin(), e = schedule.end(); i != e; ++i) {
+		Pass* P = get_initialized_Pass(*i);
+		LOG("finialize: " << get_Pass_name(*i) << nl);
 		P->finalize();
 	}
 }

@@ -38,25 +38,14 @@ namespace compiler2 {
  */
 class StackAnalysisPass : public Pass {
 public:
-	StackAnalysisPass(PassManager *PM) : Pass(PM) {}
+	static char ID;
+	StackAnalysisPass() : Pass() {}
 	bool run(JITData &JD);
-	const char* name() { return "StackAnalysisPass"; };
 };
 
-bool StackAnalysisPass::run(JITData &JD) {
-	/* call stack analysis pass */
-
-	if (!stack_analyse(JD.jitdata())) {
-		//DEBUG_JIT_COMPILEVERBOSE("Exception while analysing: ");
-
-		return false;
-	}
-	return true;
-}
-
-} // end namespace cacao
-} // end namespace jit
 } // end namespace compiler2
+} // end namespace jit
+} // end namespace cacao
 
 #endif /* _JIT_COMPILER2_STACKANALYSISPASS */
 

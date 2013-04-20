@@ -40,30 +40,14 @@ namespace compiler2 {
  */
 class VerifierPass : public Pass {
 public:
-	VerifierPass(PassManager *PM) : Pass(PM) {}
+	static char ID;
+	VerifierPass() : Pass() {}
 	bool run(JITData &JD);
-	const char* name() { return "VerifierPass"; };
 };
 
-bool VerifierPass::run(JITData &JD) {
-	if (JITDATA_HAS_FLAG_VERIFY(JD.jitdata())) {
-		//DEBUG_JIT_COMPILEVERBOSE("Typechecking: ");
-
-		/* call typecheck pass */
-		if (!typecheck(JD.jitdata())) {
-			//DEBUG_JIT_COMPILEVERBOSE("Exception while typechecking: ");
-
-			return false;
-		}
-
-		//DEBUG_JIT_COMPILEVERBOSE("Typechecking done: ");
-	}
-	return true;
-}
-
-} // end namespace cacao
-} // end namespace jit
 } // end namespace compiler2
+} // end namespace jit
+} // end namespace cacao
 
 #endif /* _JIT_COMPILER2_VERIFIERPASS */
 

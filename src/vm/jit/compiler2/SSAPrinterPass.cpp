@@ -28,6 +28,8 @@
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 
+#include "vm/jit/compiler2/PassManager.hpp"
+
 #include "toolbox/GraphTraits.hpp"
 
 #include <sstream>
@@ -55,7 +57,11 @@ public:
 			Instruction *I = *i;
 			if (I == NULL)
 				continue;
+			// only print end begin for now
+			if (!(I->to_BeginInst() || I->to_EndInst()) )
+				continue;
 			nodes.insert(I);
+			#if 0
 			// add operator link
 			for(Instruction::OperandListTy::const_iterator ii = I->op_begin(), ee = I->op_end();
 				ii != ee; ++ii) {
@@ -79,6 +85,7 @@ public:
 					edges.insert(edge);
 				}
 			}
+			#endif
 			// add successor link
 			EndInst *EI = I->to_EndInst();
 			if (EI) {
@@ -151,7 +158,13 @@ public:
 
 } // end anonymous namespace
 
+// the address of this variable is used to identify the pass
+char SSAPrinterPass::ID = 0;
 
+// register pass
+static PassRegistery<SSAPrinterPass> X("SSAPrinterPass");
+
+// run pass
 bool SSAPrinterPass::run(JITData &JD) {
 	GraphPrinter<SSAGraph>::print("test.dot", SSAGraph(*(JD.get_Method())));
 	return true;

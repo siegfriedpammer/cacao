@@ -26,7 +26,12 @@
 #define _JIT_COMPILER2_PASSMANAGER
 
 #include <vector>
+#include <map>
+#include <set>
 
+#include "toolbox/logging.hpp"
+
+#define DEBUG_NAME "compiler2/PassManger"
 
 namespace cacao {
 namespace jit {
@@ -35,17 +40,79 @@ namespace compiler2 {
 class JITData;
 class Pass;
 
+
+class PassInfo {
+public:
+	typedef void * IDTy;
+	typedef Pass* (*ConstructorTy)();
+private:
+	const char *const name;
+	/// Constructor function pointer
+	ConstructorTy ctor;
+public:
+	PassInfo::IDTy const ID;
+	PassInfo(const char* name, PassInfo::IDTy ID,  ConstructorTy ctor) : name(name),  ctor(ctor), ID(ID) {}
+	const char* get_name() const {
+		return name;
+	}
+	Pass* create_Pass() const {
+		return ctor();
+	}
+};
+
 /**
  * Manage the execution of compiler passes
  */
 class PassManager {
 private:
-	typedef std::vector<Pass*> PassList;
-	PassList passes;
+	typedef std::set<PassInfo::IDTy> PassListTy;
+	typedef std::vector<PassInfo::IDTy> ScheduleListTy;
+	typedef std::map<PassInfo::IDTy,Pass*> PassMapTy;
+	/**
+	 * This stores the initialized passes.
+	 * Every Pass can only occure once.
+	 */
+	PassMapTy initialized_passes;
+	/**
+	 * This variable contains a schedule of the passes.
+	 * A pass may occure more than once.
+	 */
+	ScheduleListTy schedule;
+	/**
+	 * The list of passed that should be performed
+	 */
+	PassListTy passes;
+
+	static std::map<PassInfo::IDTy, PassInfo*> &registered_passes() {
+		static std::map<PassInfo::IDTy, PassInfo*> registered_passes;
+		return registered_passes;
+	}
+
+	Pass* get_initialized_Pass(PassInfo::IDTy ID);
+
+	const char * get_Pass_name(PassInfo::IDTy ID) {
+		PassInfo *PI = registered_passes()[ID];
+		assert(PI && "Pass not registered");
+		return PI->get_name();
+	}
+	template<class _PassClass>
+	_PassClass* get_Pass_result() {
+		return (_PassClass*)initialized_passes[&_PassClass::ID];
+	}
 public:
-	PassManager() {}
+	PassManager() {
+		dbg() << "PassManager::PassManager()" << nl;
+	}
 
 	~PassManager();
+
+	/**
+	 * DO NOT CALL THIS MANUALLY. ONLY INVOKE VIA RegisterPass.
+	 */
+	static void register_Pass(PassInfo *PI) {
+		dbg() << "PassManager::register_Pass: " << PI->get_name() << nl;
+		registered_passes().insert(std::make_pair(PI->ID,PI));
+	}
 
 	/**
 	 * run pass initializers
@@ -63,21 +130,29 @@ public:
 	void finalizePasses();
 
 	/**
-	 * get the result of a previous compiler pass
-	 */
-	template<typename PassType>
-	PassType *getResult() const;
-
-	/**
 	 * add a compiler pass
 	 */
-	template<typename PassType>
-	void addPass() {
-		passes.push_back(new PassType(this));
+	void add_Pass(PassInfo::IDTy ID) {
+		assert(registered_passes()[ID] && "Pass not registered");
+		passes.insert(ID);
+		schedule.push_back(ID);
 	}
+
+	friend class Pass;
 
 };
 
+template<class _PassClass>
+Pass *call_ctor() { return new _PassClass(); }
+
+template <class _PassClass>
+struct PassRegistery : public PassInfo {
+	PassRegistery(const char * name) : PassInfo(name, &_PassClass::ID, (PassInfo::ConstructorTy)call_ctor<_PassClass>) {
+		PassManager::register_Pass(this);
+	}
+};
+
+#undef DEBUG_NAME
 
 } // end namespace cacao
 } // end namespace jit

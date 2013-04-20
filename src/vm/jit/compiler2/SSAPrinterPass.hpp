@@ -38,9 +38,9 @@ namespace compiler2 {
  */
 class SSAPrinterPass : public Pass {
 public:
-	SSAPrinterPass(PassManager *PM) : Pass(PM) {}
+	static char ID;
+	SSAPrinterPass() : Pass() {}
 	bool run(JITData &JD);
-	const char* name() { return "SSAPrinterPass"; };
 };
 
 } // end namespace cacao

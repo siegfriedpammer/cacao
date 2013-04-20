@@ -40,21 +40,14 @@ namespace compiler2 {
  */
 class RegisterAllocatorPass : public Pass {
 public:
-	RegisterAllocatorPass(PassManager *PM) : Pass(PM) {}
+	static char ID;
+	RegisterAllocatorPass() : Pass() {}
 	bool run(JITData &JD);
-	const char* name() { return "RegisterAllocatorPass"; };
 };
 
-bool RegisterAllocatorPass::run(JITData &JD) {
-	if (!regalloc(JD.jitdata())) {
-		return false;
-	}
-	return true;
-}
-
-} // end namespace cacao
-} // end namespace jit
 } // end namespace compiler2
+} // end namespace jit
+} // end namespace cacao
 
 #endif /* _JIT_COMPILER2_REGISTERALLOCATORPASS */
 

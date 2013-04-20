@@ -25,12 +25,16 @@
 #ifndef _JIT_COMPILER2_PASS
 #define _JIT_COMPILER2_PASS
 
+#include "vm/jit/compiler2/PassManager.hpp"
+#include <cstddef>
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
 // forward declaration
 class PassManager;
+class PassUsage;
 class JITData;
 
 
@@ -43,16 +47,32 @@ class Pass {
 private:
 	PassManager *pm;
 public:
-	Pass(PassManager *PM) : pm(PM) {}
+	Pass() : pm(NULL) {}
+
+	void set_PassManager(PassManager *PM) {
+		pm = PM;
+	}
 
 	/**
-	 * get the result of a previous compiler pass
+	 * Get the result of a previous compiler pass
+	 *
+	 * Can only be used if ResultType is added to required in get_PassUsage().
 	 */
-	template<typename ResultType>
-	ResultType *getResult() const;
+	template<class _PassClass>
+	_PassClass *get_Pass() const {
+		return pm->get_Pass_result<_PassClass>();
+	}
 
 	/**
-	 * Initialize teh Pass.
+	 * Set the requirements for the pass
+	 */
+	virtual PassUsage& get_PassUsage(PassUsage &PA) const {
+		// default: require nothing, destroy nothing
+		return PA;
+	}
+
+	/**
+	 * Initialize the Pass.
 	 * This method is called by the PassManager before the pass is started. It should be used to
 	 * initialize e.g. data structures. A Pass object might be reused so the construtor can not be
 	 * used in some cases.
@@ -75,20 +95,15 @@ public:
 	virtual bool run(JITData &JD) = 0;
 
 	/**
-	 * Name of the Pass.
-	 */
-	virtual const char* name() = 0;
-
-	/**
 	 * Destructor
 	 */
 	virtual ~Pass() {}
 };
 
 
-} // end namespace cacao
-} // end namespace jit
 } // end namespace compiler2
+} // end namespace jit
+} // end namespace cacao
 
 #endif /* _JIT_COMPILER2_PASS */
 

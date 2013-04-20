@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/CFGConstructionPass.hpp - CFGConstructionPass
+/* src/vm/jit/compiler2/CFGConstructionPass.cpp - CFGConstructionPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,34 +22,34 @@
 
 */
 
-#ifndef _JIT_COMPILER2_CFGCONSTRUCTIONPASS
-#define _JIT_COMPILER2_CFGCONSTRUCTIONPASS
-
-#include "vm/jit/compiler2/Pass.hpp"
-
+#include "vm/jit/compiler2/CFGConstructionPass.hpp"
+#include "vm/jit/compiler2/JITData.hpp"
+#include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/cfg.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+bool CFGConstructionPass::run(JITData &JD) {
+	/* Build the CFG.  This has to be done after stack_analyse, as
+	   there happens the JSR elimination. */
+	if (!cfg_build(JD.jitdata())) {
+		return false;
+	}
+	return true;
+}
 
-/**
- * CFGConstructionPass
- * TODO: more info
- */
-class CFGConstructionPass : public Pass {
-public:
-	static char ID;
-	CFGConstructionPass() : Pass() {}
-	bool run(JITData &JD);
-};
+
+// the address of this variable is used to identify the pass
+char CFGConstructionPass::ID = 0;
+
+// registrate Pass
+static PassRegistery<CFGConstructionPass> X("CFGConstructionPass");
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
-
-#endif /* _JIT_COMPILER2_CFGCONSTRUCTIONPASS */
 
 
 /*

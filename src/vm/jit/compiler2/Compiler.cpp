@@ -56,6 +56,7 @@
 #include "vm/jit/compiler2/CFGConstructionPass.hpp"
 #include "vm/jit/compiler2/SSAConstructionPass.hpp"
 #include "vm/jit/compiler2/DominatorPass.hpp"
+#include "vm/jit/compiler2/LoopPass.hpp"
 #include "vm/jit/compiler2/SSAPrinterPass.hpp"
 #include "vm/jit/compiler2/RegisterAllocatorPass.hpp"
 #include "vm/jit/compiler2/CodeGenPass.hpp"
@@ -104,17 +105,18 @@ MachineCode* compile(methodinfo* m)
 
 	LOG(bold << bold << "Compiler Start: " << reset_color << *m << nl);
 
-	PM.addPass<ParserPass>();
-	PM.addPass<StackAnalysisPass>();
+	PM.add_Pass(&ParserPass::ID);
+	PM.add_Pass(&StackAnalysisPass::ID);
 #ifdef ENABLE_VERIFIER
-	PM.addPass<VerifierPass>();
+	PM.add_Pass(&VerifierPass::ID);
 #endif
-	PM.addPass<CFGConstructionPass>();
-	PM.addPass<SSAConstructionPass>();
-	PM.addPass<DominatorPass>();
-	PM.addPass<SSAPrinterPass>();
-	PM.addPass<RegisterAllocatorPass>();
-	PM.addPass<CodeGenPass>();
+	PM.add_Pass(&CFGConstructionPass::ID);
+	PM.add_Pass(&SSAConstructionPass::ID);
+	PM.add_Pass(&SSAPrinterPass::ID);
+	PM.add_Pass(&DominatorPass::ID);
+	PM.add_Pass(&LoopPass::ID);
+	PM.add_Pass(&RegisterAllocatorPass::ID);
+	PM.add_Pass(&CodeGenPass::ID);
 
 /*****************************************************************************/
 /** prolog start jit_compile **/

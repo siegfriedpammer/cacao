@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/CFGConstructionPass.hpp - CFGConstructionPass
+/* src/vm/jit/compiler2/LoopPass.hpp - LoopPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,34 +22,73 @@
 
 */
 
-#ifndef _JIT_COMPILER2_CFGCONSTRUCTIONPASS
-#define _JIT_COMPILER2_CFGCONSTRUCTIONPASS
+#ifndef _JIT_COMPILER2_LOOPPASS
+#define _JIT_COMPILER2_LOOPPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/JITData.hpp"
 
-#include "vm/jit/cfg.hpp"
+#include <set>
+#include <map>
+#include <vector>
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+class Loop {
+private:
+	BeginInst *header;
+public:
+};
+
+class LoopTree {
+public:
+	typedef BeginInst NodeTy;
+};
 
 /**
- * CFGConstructionPass
- * TODO: more info
+ * Calculate the Loop Tree.
  */
-class CFGConstructionPass : public Pass {
+class LoopPass : public Pass , public LoopTree {
+private:
+	typedef BeginInst NodeTy;
+	typedef std::set<const NodeTy *> NodeListTy;
+	typedef std::map<const NodeTy *,NodeListTy> NodeListMapTy;
+	typedef std::vector<const NodeTy *> NodeMapTy;
+	typedef std::map<const NodeTy *,int> IndexMapTy;
+	typedef std::map<const NodeTy *,const NodeTy *> EdgeMapTy;
+
+	#if 0
+	EdgeMapTy parent;
+	NodeListMapTy pred;
+	#endif
+	NodeListMapTy bucket;
+	IndexMapTy semi;
+	NodeMapTy vertex;
+	int n;
+
+	EdgeMapTy ancestor;
+	EdgeMapTy label;
+
+	NodeListTy& succ(const NodeTy *v, NodeListTy &list);
+	void DFS(const NodeTy * v);
+
+	void Link(const NodeTy *v, const NodeTy *w);
+	const NodeTy* Eval(const NodeTy *v);
+	void Compress(const NodeTy *v);
 public:
 	static char ID;
-	CFGConstructionPass() : Pass() {}
+	LoopPass() : Pass() {}
 	bool run(JITData &JD);
+	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
 };
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_CFGCONSTRUCTIONPASS */
+#endif /* _JIT_COMPILER2_LOOPPASS */
 
 
 /*

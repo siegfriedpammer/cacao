@@ -66,9 +66,9 @@ private:
 	inline bool try_seal_block(basicblock *bb);
 	void print_current_def() const;
 public:
-	SSAConstructionPass(PassManager *PM) : Pass(PM) {}
+	static char ID;
+	SSAConstructionPass() : Pass() {}
 	bool run(JITData &JD);
-	const char* name() { return "SSAConstructionPass"; };
 };
 
 } // end namespace cacao
