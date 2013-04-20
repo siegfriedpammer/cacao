@@ -27,9 +27,6 @@
 #define CFG_HPP_ 1
 
 #include "config.h"
-
-#include "vm/global.hpp"
-
 #include "vm/jit/jit.hpp"
 
 

@@ -35,8 +35,6 @@
 
 #include "toolbox/list.hpp"
 
-#include "vm/global.hpp"
-
 #include "vm/jit/exceptiontable.hpp"
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/methodheader.hpp"

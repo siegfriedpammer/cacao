@@ -28,13 +28,11 @@
 
 #include "config.h"
 
+struct classinfo;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "vm/global.hpp"
-
-struct classinfo;
 
 /* function prototypes ********************************************************/
 

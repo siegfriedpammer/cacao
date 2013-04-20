@@ -37,7 +37,6 @@
 
 #include "mm/memory.hpp"
 
-#include "vm/global.hpp"
 #include "vm/os.hpp"
 #include "vm/suck.hpp"
 #include "vm/utf8.hpp"

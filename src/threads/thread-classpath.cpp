@@ -24,10 +24,6 @@
 
 
 #include "thread-classpath.hpp"
-
-#include "vm/global.hpp"
-#include "vm/globals.hpp"
-
 #include "mm/gc.hpp"
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"

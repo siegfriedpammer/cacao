@@ -29,7 +29,6 @@
 #include "config.h"
 #include "vm/types.hpp"
 
-#include "vm/global.hpp"
 #include "vm/jit/codegen-common.hpp"
 
 

@@ -26,8 +26,8 @@
 #ifndef _LOCKWORD_HPP
 #define _LOCKWORD_HPP
 
+#include "config.h"
 #include <stdint.h>
-
 
 #ifdef __cplusplus
 

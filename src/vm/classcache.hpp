@@ -34,7 +34,6 @@
 
 #include "toolbox/hashtable.hpp"
 
-#include "vm/global.hpp"
 #include "vm/loader.hpp"
 #include "vm/references.hpp"
 

@@ -24,7 +24,6 @@
 
 
 #include "config.h"
-#include "vm/global.hpp"
 #include "vm/globals.hpp"
 
 #include "mm/memory.hpp"

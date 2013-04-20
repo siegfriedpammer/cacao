@@ -23,16 +23,11 @@
 */
 
 
-#include "config.h"
-#include "vm/types.hpp"
-
-#include "mm/memory.hpp"
-
-#include "threads/mutex.hpp"
-
 #include "toolbox/hashtable.hpp"
-
-#include "vm/global.hpp"
+#include "config.h"
+#include "mm/memory.hpp"
+#include "threads/mutex.hpp"
+#include "vm/types.hpp"
 
 
 /* hashtable_create ************************************************************

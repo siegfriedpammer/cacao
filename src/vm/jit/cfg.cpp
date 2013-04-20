@@ -33,8 +33,6 @@
 
 #include "mm/memory.hpp"
 
-#include "vm/global.hpp"
-
 #include "vm/jit/jit.hpp"
 #include "vm/jit/stack.hpp"
 

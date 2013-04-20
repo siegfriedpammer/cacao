@@ -64,7 +64,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-
+#include "vm/global.hpp"
 
 // Define these to override the typedefs in jni.h
 #define _CLASSPATH_VM_JNI_TYPES_DEFINED          1 // GNU Classpath
@@ -76,8 +76,6 @@
 
 // Include the C++ wrapper classes.
 //#include "vm/javaobjects.hpp"
-#include "vm/global.hpp"
-
 
 // Some additional JNI version numbers, we currently support JNI 1.6.
 #define JNI_VERSION_SUPPORTED JNI_VERSION_1_6

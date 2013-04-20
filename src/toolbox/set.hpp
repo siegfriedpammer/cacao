@@ -28,8 +28,6 @@
 
 #include "config.h"
 
-#include "vm/global.hpp"
-
 #ifdef __cplusplus
 extern "C" {
 #endif

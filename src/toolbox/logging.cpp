@@ -38,7 +38,6 @@
 #include "toolbox/logging.hpp"
 #include "toolbox/util.hpp"
 
-#include "vm/global.hpp"
 #include "vm/statistics.hpp"
 
 #ifdef ENABLE_LOGGING

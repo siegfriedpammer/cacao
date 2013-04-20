@@ -34,8 +34,8 @@
 
 #include <map>
 
+#include "global.hpp"                   // for java_handle_t
 #include "vm/os.hpp"
-
 
 class ltstr {
 public:

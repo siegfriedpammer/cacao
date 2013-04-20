@@ -31,8 +31,6 @@
 #ifndef BITVECTOR_HPP_
 #define BITVECTOR_HPP_ 1
 
-#include "vm/global.hpp"
-
 #if !defined(NDEBUG)
 #include <assert.h>
 

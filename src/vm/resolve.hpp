@@ -37,7 +37,6 @@ typedef struct unresolved_subtype_set unresolved_subtype_set;
 #include "config.h"
 #include "vm/types.hpp"
 
-#include "vm/global.hpp"
 #include "vm/references.hpp"
 
 #include "vm/jit/jit.hpp"

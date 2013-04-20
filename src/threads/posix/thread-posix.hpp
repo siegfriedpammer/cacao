@@ -43,8 +43,6 @@
 #include "threads/condition.hpp"
 #include "threads/mutex.hpp"
 
-#include "vm/global.hpp"
-
 /* forward declarations */
 #ifdef __cplusplus
 class DumpMemory;

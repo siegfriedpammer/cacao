@@ -35,7 +35,6 @@
 
 #include "config.h"
 
-#include "vm/global.hpp"
 #include "vm/jit/jit.hpp"
 
 #if defined(__cplusplus)

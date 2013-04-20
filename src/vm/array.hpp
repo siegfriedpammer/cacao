@@ -35,11 +35,11 @@
 
 #include "native/llni.hpp" // XXX Remove me!
 
+#include "threads/lockword.hpp"         // for Lockword
 #include "vm/class.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.hpp"
 #include "vm/primitive.hpp"
-
 
 /* array types ****************************************************************/
 

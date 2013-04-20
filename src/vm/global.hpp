@@ -241,8 +241,6 @@ typedef struct java_objectarray_t java_objectarray_t;
 #define HDRFLAG_HASH_ATTACHED 0x20
 #define HDRFLAG_REFERENCING   0x40
 
-#include "threads/lockword.hpp"
-
 struct vftbl_t;
 
 struct java_object_t {                 /* header for all objects              */

@@ -25,14 +25,11 @@
 
 #include "thread-cldc11.hpp"
 
-#include "vm/global.hpp"
-#include "vm/globals.hpp"
 
 #include "mm/gc.hpp"
+#include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
-#include "vm/exceptions.hpp"
-
 #include "threadlist.hpp"
 
 #if defined(ENABLE_THREADS) && defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)

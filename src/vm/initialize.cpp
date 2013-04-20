@@ -29,6 +29,7 @@
 
 #include "vm/types.hpp"
 
+#include "threads/atomic.hpp"           // for write_memory_barrier
 #include "threads/lock.hpp"
 
 #include "vm/jit/builtin.hpp"

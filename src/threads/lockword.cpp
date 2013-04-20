@@ -23,7 +23,7 @@
 */
 
 
-#include "config.h"
+#include "threads/lockword.hpp"
 
 #include <assert.h>
 #include <stdint.h>

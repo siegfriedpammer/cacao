@@ -42,7 +42,6 @@ typedef struct methoddesc      methoddesc;
 
 #include "toolbox/hashtable.hpp"
 
-#include "vm/global.hpp"
 #include "vm/references.hpp"
 #include "vm/utf8.hpp"
 
