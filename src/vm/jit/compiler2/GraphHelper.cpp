@@ -32,6 +32,20 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+// specialization for BeginInst
+template <>
+DFSTraversal<BeginInst>::NodeListTy& DFSTraversal<BeginInst>::successor(BeginInst *v, NodeListTy& list) {
+	EndInst *ve = v->get_EndInst();
+	assert(ve);
+	list.insert(ve->succ_begin(),ve->succ_end());
+	return list;
+}
+
+template <>
+int DFSTraversal<BeginInst>::num_nodes(BeginInst *v) const {
+	assert(v->get_method());
+	return v->get_method()->bb_size();
+}
 
 } // end namespace compiler2
 } // end namespace jit

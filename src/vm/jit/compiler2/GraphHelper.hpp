@@ -49,12 +49,12 @@ namespace compiler2 {
 template <class _NodeTy>
 class DFSTraversal {
 private:
-	typedef typename std::vector<const _NodeTy *> NodeMapTy;
-	typedef typename std::map<const _NodeTy *,int> IndexMapTy;
+	typedef typename std::vector<_NodeTy *> NodeMapTy;
+	typedef typename std::map<_NodeTy *,int> IndexMapTy;
 	typedef typename std::vector<int> ParentMapTy;
 	typedef typename std::vector<int> DecendantMapTy;
 
-	typedef typename std::set<const _NodeTy *> NodeListTy;
+	typedef typename std::set<_NodeTy *> NodeListTy;
 	typedef typename std::set<int> SuccessorListTy;
 	typedef typename std::vector<SuccessorListTy> SuccessorListMapTy;
 
@@ -67,16 +67,16 @@ private:
 	int n;
 	int _size;
 
-	NodeListTy& successor(const _NodeTy *v, NodeListTy &list);
-	int num_nodes(const _NodeTy *v) const;
+	NodeListTy& successor(_NodeTy *v, NodeListTy &list);
+	int num_nodes(_NodeTy *v) const;
 
-	int dfs(const _NodeTy * v);
+	int dfs(_NodeTy * v);
 
 public:
 	class iterator;
 	typedef std::set<iterator> iterator_list;
 
-	explicit DFSTraversal(const _NodeTy *entry) {
+	explicit DFSTraversal(_NodeTy *entry) {
 		n = -1;
 		_size = num_nodes(entry);
 		LOG("num nodes" << _size << nl);
@@ -107,12 +107,43 @@ public:
 		return _size;
 	}
 
-	const _NodeTy* operator[](unsigned i) {
+	const _NodeTy* operator[](unsigned i) const {
 		return vertex[i];
 	}
 
-	int operator[](const _NodeTy *v) {
-		return index[v];
+	int operator[](_NodeTy *v) const {
+		typename IndexMapTy::const_iterator i = index.find(v);
+		if (i == index.end())
+			return -1;
+		return i->second;
+	}
+
+	int num_decendants(int v) const {
+		assert(v < _size);
+		return number_decendants[v];
+	}
+
+	#if 0
+	bool is_ancestor(const _NodeTy *v, const _NodeTy *w) const {
+		return is_ancestor(index[v],index[w]);
+	}
+	#endif
+	inline bool is_ancestor(int v, int w) const {
+		assert(w < _size);
+		for(;w >= 0; w = parent[w]) {
+			if (v == w)
+				return true;
+
+		}
+		return false;
+	}
+	#if 0
+	bool is_decendant(const _NodeTy *w, const _NodeTy *v) const {
+		return is_ancestor(index[v],index[w]);
+	}
+	#endif
+	bool is_decendant(int w, int v) const {
+		return is_ancestor(v,w);
 	}
 
 	class iterator {
