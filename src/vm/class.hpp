@@ -26,32 +26,28 @@
 #ifndef CLASS_HPP_
 #define CLASS_HPP_ 1
 
-/* forward typedefs ***********************************************************/
-
-typedef struct classinfo      classinfo; 
-typedef struct innerclassinfo innerclassinfo;
-typedef struct extra_classref extra_classref;
-
-
-#include "config.h"
-
-#include <stdint.h>
-
-#include "vm/types.hpp"
+#include <stddef.h>                     // for NULL
+#include <stdint.h>                     // for intptr_t, uint8_t
+#include <sys/types.h>                  // for int32_t
+#include "config.h"                     // for ENABLE_JAVASE, etc
+#include "vm/global.hpp"                // for java_handle_t, etc
+#include "vm/linker.hpp"                // for link_class
+#include "vm/loader.hpp"                // for classloader_t
+#include "vm/references.hpp"            // for classref_or_classinfo, etc
+#include "vm/types.hpp"                 // for s4, u4, u1, u2
+#include "vm/utf8.hpp"                  // for Utf8String
+#include "vm/vftbl.hpp"                 // for vftbl_t
 
 #if defined(ENABLE_JAVASE)
 # include "vm/annotation.hpp"
 #endif
 
-#include "vm/global.hpp"
-#include "vm/linker.hpp"
-#include "vm/loader.hpp"
-#include "vm/references.hpp"
-#include "vm/string.hpp"
-#include "vm/utf8.hpp"
-#include "vm/vftbl.hpp"
+namespace cacao { class OStream; }
 
+struct classinfo;
+struct extra_classref;
 struct fieldinfo;
+struct innerclassinfo;
 struct methodinfo;
 
 /* class state defines ********************************************************/
@@ -118,8 +114,8 @@ struct classinfo {                /* class structure                          */
 	                              /* (interfaces)                             */
 	s4          instancesize;     /* size of an instance of this class        */
 
-	struct threadobject *initializing_thread;
-	vftbl_t    *vftbl;            /* pointer to virtual function table        */
+	threadobject *initializing_thread;
+	vftbl_t      *vftbl;          /* pointer to virtual function table        */
 
 	methodinfo *finalizer;        /* finalizer method                         */
 
@@ -282,7 +278,6 @@ void class_classref_or_classinfo_println(classref_or_classinfo c);
 namespace cacao {
 
 /* OStream overloads */
-class OStream;
 OStream& operator<<(OStream& os, const classinfo *c);
 
 }

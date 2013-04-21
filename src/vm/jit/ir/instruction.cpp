@@ -28,7 +28,8 @@
 #include "vm/descriptor.hpp"
 
 #include "vm/jit/ir/instruction.hpp"
-
+#include "vm/jit/builtin.hpp"
+#include "vm/resolve.hpp"
 
 // REMOVEME
 extern "C" {

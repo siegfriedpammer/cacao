@@ -42,6 +42,7 @@
 #include "vm/global.hpp"
 #include "vm/globals.hpp"
 #include "vm/method.hpp"
+#include "vm/string.hpp"
 
 #include "vm/array.hpp"
 
