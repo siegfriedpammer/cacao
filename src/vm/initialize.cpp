@@ -43,9 +43,6 @@
 #include "vm/vm.hpp"
 #include "vm/statistics.hpp"
 
-#include "vm/jit/asmpart.hpp"
-
-
 /* private functions **********************************************************/
 
 static bool initialize_class_intern(classinfo *c);

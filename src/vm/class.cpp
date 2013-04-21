@@ -60,8 +60,6 @@
 #include "vm/utf8.hpp"
 #include "vm/string.hpp"
 
-#include "vm/jit/asmpart.hpp"
-
 /**
  * Returns the classname of the class, where slashes ('/') are
  * replaced by dots ('.').

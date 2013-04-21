@@ -72,7 +72,6 @@
 #include "vm/primitive.hpp"
 #include "vm/rt-timing.hpp"
 
-#include "vm/jit/asmpart.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/stubs.hpp"
 #include "vm/jit/trace.hpp"

@@ -44,7 +44,6 @@
 #include "vm/os.hpp"
 #include "vm/vm.hpp"
 
-#include "vm/jit/asmpart.hpp"
 #include "vm/jit/code.hpp"
 #include "vm/jit/disass.hpp"
 #include "vm/jit/executionstate.hpp"

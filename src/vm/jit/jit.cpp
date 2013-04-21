@@ -48,8 +48,6 @@
 #include "vm/rt-timing.hpp"
 #include "vm/statistics.hpp"
 
-#include "vm/jit/asmpart.hpp"
-
 #include "vm/jit/cfg.hpp"
 
 #include "vm/jit/codegen-common.hpp"

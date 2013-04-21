@@ -59,7 +59,6 @@
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
-#include "vm/jit/asmpart.hpp"
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/methodheader.hpp"

@@ -49,7 +49,6 @@
 #include "vm/string.hpp"
 #include "vm/suck.hpp"
 
-#include "vm/jit/asmpart.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/parse.hpp"
 #include "vm/jit/loop/loop.h"
