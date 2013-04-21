@@ -52,6 +52,7 @@ private:
 	typedef typename std::vector<const _NodeTy *> NodeMapTy;
 	typedef typename std::map<const _NodeTy *,int> IndexMapTy;
 	typedef typename std::vector<int> ParentMapTy;
+	typedef typename std::vector<int> DecendantMapTy;
 
 	typedef typename std::set<const _NodeTy *> NodeListTy;
 	typedef typename std::set<int> SuccessorListTy;
@@ -61,6 +62,7 @@ private:
 	IndexMapTy index;
 	ParentMapTy parent;
 	SuccessorListMapTy succ;
+	DecendantMapTy number_decendants;
 
 	int n;
 	int _size;
@@ -82,6 +84,8 @@ public:
 		// index.resize(_size, -1); auto initialzied
 		parent.resize(_size, -1);
 		succ.resize(_size);
+		number_decendants.clear();
+		number_decendants.resize(_size,0);
 		LOG("vertex size " << vertex.size() << nl);
 
 		dfs(entry);
@@ -119,7 +123,7 @@ public:
 			explicit iterator (DFSTraversal *parent) : index(0), parent(parent)  {}
 			explicit iterator (DFSTraversal *parent, int index) : index(index), parent(parent){}
 
-			const _NodeTy* operator*() const {
+			_NodeTy* operator*() const {
 				if(index >= 0 && index < parent->size())
 					return parent->vertex[index];
 				return NULL;
@@ -127,6 +131,12 @@ public:
 			iterator& operator++() {
 				++index;
 				if (parent->size() <= index)
+					index = -1;
+				return *this;
+			}
+			iterator& operator--() {
+				--index;
+				if (index < 0)
 					index = -1;
 				return *this;
 			}
@@ -178,6 +188,8 @@ public:
 			}
 	};
 
+	typedef iterator reverse_iterator;
+
 	iterator begin() {
 		return iterator(this);
 	}
@@ -186,12 +198,19 @@ public:
 		return iterator(this,-1);
 	}
 
+	reverse_iterator rbegin() {
+		return reverse_iterator(this,size()-1);
+	}
+
+	reverse_iterator rend() {
+		return reverse_iterator(this,-1);
+	}
 
 	friend class DFSTraversal::iterator;
 };
 
 template <class _NodeTy>
-int DFSTraversal<_NodeTy>::dfs(const _NodeTy * v)
+int DFSTraversal<_NodeTy>::dfs(_NodeTy * v)
 {
 	assert(v);
 	int my_n = ++n;
@@ -203,9 +222,9 @@ int DFSTraversal<_NodeTy>::dfs(const _NodeTy * v)
 	NodeListTy succ_v;
 	succ_v = successor(v, succ_v);
 	LOG("number of succ for " << (long)v << " (" << my_n << ") " << " = " << succ_v.size() << nl);
-	for(typename std::set<const _NodeTy *>::const_iterator i = succ_v.begin() , e = succ_v.end();
+	for(typename std::set<_NodeTy *>::const_iterator i = succ_v.begin() , e = succ_v.end();
 			i != e; ++i) {
-		const _NodeTy *w = *i;
+		_NodeTy *w = *i;
 		SuccessorListTy &succ_list = succ[my_n];
 		if (index.find(w) == index.end()) {
 			int w_n = dfs(w);
@@ -216,24 +235,16 @@ int DFSTraversal<_NodeTy>::dfs(const _NodeTy * v)
 		}
 		//pred[w].insert(v);
 	}
+	number_decendants[my_n] = n - my_n;
 	return my_n;
 }
 
 // specialization for BeginInst
+template <>
+DFSTraversal<BeginInst>::NodeListTy& DFSTraversal<BeginInst>::successor(BeginInst *v, NodeListTy& list);
 
 template <>
-DFSTraversal<BeginInst>::NodeListTy& DFSTraversal<BeginInst>::successor(const BeginInst *v, NodeListTy& list) {
-	EndInst *ve = v->get_EndInst();
-	assert(ve);
-	list.insert(ve->succ_begin(),ve->succ_end());
-	return list;
-}
-
-template <>
-int DFSTraversal<BeginInst>::num_nodes(const BeginInst *v) const {
-	assert(v->get_method());
-	return v->get_method()->bb_size();
-}
+int DFSTraversal<BeginInst>::num_nodes(BeginInst *v) const;
 
 } // end namespace compiler2
 } // end namespace jit

@@ -39,18 +39,18 @@ namespace compiler2 {
 class DominatorTree {
 public:
 	typedef BeginInst NodeTy;
-	typedef std::map<const NodeTy*, const NodeTy*> EdgeMapTy;
+	typedef std::map<NodeTy*, NodeTy*> EdgeMapTy;
 protected:
 	EdgeMapTy dom;
 public:
 	/**
 	 * True if a dominates b.
 	 */
-	bool dominates(const NodeTy *a, const NodeTy *b) const;
+	bool dominates(NodeTy *a, NodeTy *b) const;
 	/**
 	 * True if b is dominated by b.
 	 */
-	inline bool is_dominated_by(const NodeTy *b, NodeTy *a) const {
+	inline bool is_dominated_by(NodeTy *b, NodeTy *a) const {
 		return dominates(a,b);
 	}
 
@@ -60,14 +60,17 @@ public:
 	 * @return the immediate dominator or NULL if it is the starting node of
 	 *         the dominator tree (and if a is not in the tree).
 	 */
-	inline const NodeTy* get_idominator(const NodeTy *a) const {
-		return dom.at(a);
+	inline NodeTy* get_idominator(NodeTy *a) const {
+		EdgeMapTy::const_iterator i = dom.find(a);
+		if (i == dom.end())
+			return NULL;
+		return i->second;
 	}
 
 	/**
 	 * Find the nearest common dominator.
 	 */
-	const NodeTy* find_nearest_common_dom(const NodeTy *a, const NodeTy *b) const;
+	NodeTy* find_nearest_common_dom(NodeTy *a, NodeTy *b) const;
 };
 
 /**
@@ -84,11 +87,11 @@ public:
 class DominatorPass : public Pass , public DominatorTree {
 private:
 	typedef BeginInst NodeTy;
-	typedef std::set<const NodeTy *> NodeListTy;
-	typedef std::map<const NodeTy *,NodeListTy> NodeListMapTy;
-	typedef std::vector<const NodeTy *> NodeMapTy;
-	typedef std::map<const NodeTy *,int> IndexMapTy;
-	typedef std::map<const NodeTy *,const NodeTy *> EdgeMapTy;
+	typedef std::set<NodeTy *> NodeListTy;
+	typedef std::map<NodeTy *,NodeListTy> NodeListMapTy;
+	typedef std::vector<NodeTy *> NodeMapTy;
+	typedef std::map<NodeTy *,int> IndexMapTy;
+	typedef std::map<NodeTy *,NodeTy *> EdgeMapTy;
 
 	EdgeMapTy parent;
 	NodeListMapTy pred;
@@ -100,12 +103,12 @@ private:
 	EdgeMapTy ancestor;
 	EdgeMapTy label;
 
-	NodeListTy& succ(const NodeTy *v, NodeListTy &list);
-	void DFS(const NodeTy * v);
+	NodeListTy& succ(NodeTy *v, NodeListTy &list);
+	void DFS(NodeTy * v);
 
-	void Link(const NodeTy *v, const NodeTy *w);
-	const NodeTy* Eval(const NodeTy *v);
-	void Compress(const NodeTy *v);
+	void Link(NodeTy *v, NodeTy *w);
+	NodeTy* Eval(NodeTy *v);
+	void Compress(NodeTy *v);
 public:
 	static char ID;
 	DominatorPass() : Pass() {}

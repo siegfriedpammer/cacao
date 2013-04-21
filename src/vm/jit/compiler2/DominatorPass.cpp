@@ -37,15 +37,15 @@ namespace compiler2 {
 ///////////////////////////////////////////////////////////////////////////////
 // DominatorTree
 ///////////////////////////////////////////////////////////////////////////////
-bool DominatorTree::dominates(const NodeTy *a, const NodeTy *b) const {
-	for ( ; a != NULL ; a = get_idominator(a) ) {
+bool DominatorTree::dominates(NodeTy *a, NodeTy *b) const {
+	for ( ; b != NULL ; b = get_idominator(b) ) {
 		if (a == b)
 		  return true;
 	}
 	return false;
 }
 
-const DominatorTree::NodeTy* DominatorTree::find_nearest_common_dom(const NodeTy *a, const NodeTy *b) const {
+DominatorTree::NodeTy* DominatorTree::find_nearest_common_dom(NodeTy *a, NodeTy *b) const {
 	// trivial cases
 	if (dominates(a,b)) {
 	  return a;
@@ -54,13 +54,13 @@ const DominatorTree::NodeTy* DominatorTree::find_nearest_common_dom(const NodeTy
 	  return b;
 	}
 	// collect a's dominators
-	std::set<const NodeTy*> dom_a;
+	std::set<NodeTy*> dom_a;
 	while ( (a = get_idominator(a)) ) {
 		dom_a.insert(a);
 	}
 
 	// search nearest common dominator
-	for(std::set<const NodeTy*>::const_iterator e = dom_a.end(); b != NULL ; b = get_idominator(b) ) {
+	for(std::set<NodeTy*>::const_iterator e = dom_a.end(); b != NULL ; b = get_idominator(b) ) {
 		if (dom_a.find(b) != e) {
 			return b;
 		}
@@ -72,14 +72,14 @@ const DominatorTree::NodeTy* DominatorTree::find_nearest_common_dom(const NodeTy
 // DominatorPass
 ///////////////////////////////////////////////////////////////////////////////
 
-DominatorPass::NodeListTy& DominatorPass::succ(const NodeTy *v, NodeListTy& list) {
+DominatorPass::NodeListTy& DominatorPass::succ(NodeTy *v, NodeListTy& list) {
 	EndInst *ve = v->get_EndInst();
 	assert(ve);
 	list.insert(ve->succ_begin(),ve->succ_end());
 	return list;
 }
 
-void DominatorPass::DFS(const NodeTy * v) {
+void DominatorPass::DFS(NodeTy * v) {
 	assert(v);
 	semi[v] = ++n;
 	vertex[n] = v;
@@ -89,7 +89,7 @@ void DominatorPass::DFS(const NodeTy * v) {
 	LOG("number of succ for " << (long)v << " (" << n << ") " << " = " << succ_v.size() << nl);
 	for(NodeListTy::const_iterator i = succ_v.begin() , e = succ_v.end();
 			i != e; ++i) {
-		const NodeTy *w = *i;
+		NodeTy *w = *i;
 		if (semi[w] == 0) {
 			parent[w] = v;
 			DFS(w);
@@ -99,11 +99,11 @@ void DominatorPass::DFS(const NodeTy * v) {
 }
 
 // simple versions
-void DominatorPass::Link(const NodeTy *v, const NodeTy *w) {
+void DominatorPass::Link(NodeTy *v, NodeTy *w) {
 	ancestor[w] = v;
 }
 
-const DominatorPass::NodeTy* DominatorPass::Eval(const NodeTy *v) {
+DominatorPass::NodeTy* DominatorPass::Eval(NodeTy *v) {
 	if (ancestor[v] == 0) {
 		return v;
 	} else {
@@ -111,7 +111,7 @@ const DominatorPass::NodeTy* DominatorPass::Eval(const NodeTy *v) {
 	}
 }
 
-void DominatorPass::Compress(const NodeTy *v) {
+void DominatorPass::Compress(NodeTy *v) {
 	// this preocedure assumes ancestor[v] != 0
 	assert(ancestor[v]);
 	if (ancestor[ancestor[v]] != 0) {
@@ -130,7 +130,7 @@ bool DominatorPass::run(JITData &JD) {
 	vertex.resize(M->bb_size() + 1); // +1 because we start at 1 not at 0
 	for(Method::BBListTy::const_iterator i = M->bb_begin(), e = M->bb_end() ;
 			i != e; ++i) {
-		const NodeTy *v = *i;
+		NodeTy *v = *i;
 		// pred[v] = NodeListTy(); // maps are auto initialized at first access
 		semi[v] = 0;
 		// init label and ancestor array
@@ -146,13 +146,13 @@ bool DominatorPass::run(JITData &JD) {
 
 	// from n to 2
 	for (int i = n; i >= 2; --i) {
-		const NodeTy *w = vertex[i];
+		NodeTy *w = vertex[i];
 		// step 2
 		NodeListTy &pred_w = pred[w];
 		for (NodeListTy::const_iterator it = pred_w.begin(), et = pred_w.end();
 				it != et; ++it) {
-			const NodeTy *v = *it;
-			const NodeTy *u = Eval(v);
+			NodeTy *v = *it;
+			NodeTy *u = Eval(v);
 			if (semi[u] < semi[w]) {
 				semi[w] = semi[u];
 			}
@@ -163,9 +163,9 @@ bool DominatorPass::run(JITData &JD) {
 		NodeListTy &bucket_p_w = bucket[parent[w]];
 		for (NodeListTy::const_iterator it = bucket_p_w.begin(), et = bucket_p_w.end();
 				it != et; ++it) {
-			const NodeTy *v = *it;
+			NodeTy *v = *it;
 			bucket_p_w.erase(v);
-			const NodeTy *u = Eval(v);
+			NodeTy *u = Eval(v);
 			dom[v] = semi[u] < semi[v] ? u : parent[w] ;
 		}
 
@@ -173,7 +173,7 @@ bool DominatorPass::run(JITData &JD) {
 
 	// step 4
 	for (int i = 2; i <= n ; ++i) {
-		const NodeTy *w = vertex[i];
+		NodeTy *w = vertex[i];
 		if (dom[w] != vertex[semi[w]]) {
 			dom[w] = dom[dom[w]];
 		}
@@ -182,8 +182,8 @@ bool DominatorPass::run(JITData &JD) {
 
 	LOG("Dominators:" << nl);
 	for (int i = 1 ; i <= n; ++i) {
-		const NodeTy *v = vertex[i];
-		const NodeTy *w = dom[v];
+		NodeTy *v = vertex[i];
+		NodeTy *w = dom[v];
 		LOG("index" << setw(3) << i << " dom(" << (long)v <<") =" << (long)w << nl);
 	}
 
