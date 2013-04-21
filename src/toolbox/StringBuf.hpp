@@ -31,8 +31,10 @@ namespace cacao {
 
 typedef std::string StringBuf;
 
+namespace {
 cacao::OStream& operator<<(cacao::OStream &OS, const StringBuf &SB) {
 	return OS << SB.c_str();
+}
 }
 
 } // end namespace cacao
