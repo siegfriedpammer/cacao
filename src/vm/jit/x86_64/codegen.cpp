@@ -51,7 +51,6 @@
 #include "vm/options.hpp"
 #include "vm/primitive.hpp"
 #include "vm/statistics.hpp"
-#include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/abi.hpp"

@@ -43,7 +43,6 @@
 #include "vm/initialize.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/method.hpp"
-#include "vm/string.hpp"
 
 
 /**

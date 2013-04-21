@@ -71,7 +71,6 @@
 #include "vm/options.hpp"
 #include "vm/primitive.hpp"
 #include "vm/rt-timing.hpp"
-#include "vm/string.hpp"
 
 #include "vm/jit/asmpart.hpp"
 #include "vm/jit/emit-common.hpp"

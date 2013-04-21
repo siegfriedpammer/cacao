@@ -70,7 +70,6 @@
 #include "vm/field.hpp"
 #include "vm/options.hpp"
 #include "vm/statistics.hpp"
-#include "vm/string.hpp"
 
 #include "vm/jit/abi.hpp"
 #include "vm/jit/asmpart.hpp"

@@ -45,7 +45,6 @@
 
 #include "toolbox/logging.hpp"
 
-#include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/options.hpp"

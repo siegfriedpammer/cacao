@@ -44,7 +44,6 @@
 #include "vm/global.hpp"
 #include "vm/options.hpp"
 #include "vm/resolve.hpp"
-#include "vm/string.hpp"
 #include "vm/types.hpp"
 #include "vm/statistics.hpp"
 #include "vm/jit/abi.hpp"

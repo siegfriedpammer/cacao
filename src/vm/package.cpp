@@ -29,7 +29,6 @@
 
 #include "vm/options.hpp"
 #include "vm/package.hpp"
-#include "vm/string.hpp"
 #include "vm/utf8.hpp"
 
 #include <set>
