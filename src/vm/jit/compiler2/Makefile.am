@@ -33,6 +33,8 @@ libcompiler2_la_SOURCES = \
 	CodeGenPass.cpp \
 	Compiler.cpp \
 	DominatorPass.cpp \
+	DomTreePrinterPass.cpp \
+	GraphHelper.cpp \
 	Instruction.cpp \
 	LoopPass.cpp \
 	Method.cpp \
