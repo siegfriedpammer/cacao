@@ -1906,8 +1906,14 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		}
 		//		break;
 
+				goto _default;
 			case ICMD_COPY:
 			case ICMD_MOVE:
+				{
+					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
+					write_variable(iptr->dst.varindex,bbindex,s1);
+				}
+				break;
 		//		SHOW_S1(OS, iptr);
 		//		SHOW_DST(OS, iptr);
 		//		break;
