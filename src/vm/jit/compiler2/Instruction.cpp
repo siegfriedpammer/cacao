@@ -29,6 +29,8 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+int Instruction::id_counter = 0;
+
 BeginInst* Instruction::get_BeginInst() const {
 	BeginInst *begin;
 	if (this->user_size() != 1)
@@ -46,6 +48,11 @@ BeginInst* Instruction::get_BeginInst() const {
 	}
 	return NULL;
 }
+
+OStream& operator<<(OStream &OS, const Instruction &I) {
+	return OS << "[" << I.get_id() << "] " << I.get_name();
+}
+
 
 } // end namespace compiler2
 } // end namespace jit

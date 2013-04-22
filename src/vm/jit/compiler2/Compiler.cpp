@@ -102,6 +102,9 @@ namespace compiler2 {
 MachineCode* compile(methodinfo* m)
 {
 
+	// reset instructions
+	Instruction::reset();
+
 	Method M;
 	PassManager PM;
 

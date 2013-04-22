@@ -35,6 +35,9 @@
 #include "vm/jit/compiler2/Type.hpp"
 #include "vm/jit/compiler2/Method.hpp"
 
+// for Instruction::reset
+#include "vm/jit/compiler2/Compiler.hpp"
+
 #include "toolbox/logging.hpp"
 
 #include <vector>
@@ -202,14 +205,25 @@ public:
 private:
 	OperandListTy op_list;
 	DepListTy dep_list;
+	// this is probably a waste of space
+	static int id_counter;
+
+	/**
+	 * Reset static infos (run by Compiler)
+	 */
+	static void reset() {
+		id_counter = 0;
+	}
+	friend MachineCode* compile(methodinfo*);
 
 protected:
-	const InstID id;
+	const InstID opcode;
 	BasicBlock *parent;				   ///< BasicBlock containing the instruction or NULL
 	Type::TypeID type;
 	Method* method;
+	const int id;
 
-	explicit Instruction() : id(NoInstID) {}
+	explicit Instruction() : opcode(NoInstID), id(-1) {}
 
 	void append_op(Value* v) {
 		op_list.push_back(v);
@@ -239,7 +253,7 @@ protected:
 	}
 
 public:
-	explicit Instruction(InstID id, Type::TypeID type) : id(id), type(type) {}
+	explicit Instruction(InstID opcode, Type::TypeID type) : opcode(opcode), type(type), id(id_counter++) {}
 
 	virtual ~Instruction() {
 		LOG("deleting instruction: " << this << nl);
@@ -256,7 +270,8 @@ public:
 		#endif
 	}
 
-	InstID get_opcode() const { return id; } ///< return the opcode of the instruction (icmd.hpp)
+	int get_id() const { return id; } ///< return a unique identifier for this instruction
+	InstID get_opcode() const { return opcode; } ///< return the opcode of the instruction
 
 	void set_method(Method* M) { method = M; }
 	Method* get_method() const { return method; }
@@ -337,7 +352,7 @@ public:
 	virtual EndInst*              to_EndInst()              { return NULL; }
 
 	const char* get_name() const {
-		switch (id) {
+		switch (opcode) {
 			case NOPInstID:              return "NOPInst";
 			case POPInstID:              return "POPInst";
 			case CHECKNULLInstID:        return "CHECKNULLInst";
@@ -402,10 +417,11 @@ public:
 	friend class Value;
 };
 
+OStream& operator<<(OStream &OS, const Instruction &I);
 
-} // end namespace cacao
-} // end namespace jit
 } // end namespace compiler2
+} // end namespace jit
+} // end namespace cacao
 
 #undef DEBUG_NAME
 
