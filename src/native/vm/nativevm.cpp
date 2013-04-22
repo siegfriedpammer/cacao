@@ -34,6 +34,7 @@
 #include "vm/initialize.hpp"
 #include "vm/options.hpp"
 #include "vm/os.hpp"
+#include "vm/jit/builtin.hpp"
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 # include "native/native.hpp"

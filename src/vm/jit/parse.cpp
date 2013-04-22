@@ -38,6 +38,7 @@
 
 #include "toolbox/logging.hpp"
 
+#include "vm/breakpoint.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.hpp"

@@ -29,8 +29,11 @@
 #include "native/jni.hpp"
 #include "native/native.hpp"
 
+#include "toolbox/logging.hpp"
+
 #include "vm/utf8.hpp"
 #include "vm/vm.hpp"
+#include "vm/jit/builtin.hpp"
 
 static jlong initial_timer;
 

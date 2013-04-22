@@ -26,7 +26,6 @@
 #ifndef METHOD_HPP_
 #define METHOD_HPP_ 1
 
-/*
 #include <stdint.h>                     // for uint16_t, int32_t
 #include "config.h"                     // for ENABLE_JAVASE, etc
 #include "vftbl.hpp"                    // for vftbl_t
@@ -53,43 +52,7 @@ struct stack_map_t;
 // Initial value for the hit countdown field of each method.
 #define METHOD_INITIAL_HIT_COUNTDOWN  1000
 #endif
-*/
 
-/* forward typedefs ***********************************************************/
-
-typedef struct methodinfo          methodinfo; 
-typedef struct raw_exception_entry raw_exception_entry;
-typedef struct lineinfo            lineinfo;
-typedef struct localvarinfo        localvarinfo;
-typedef struct method_assumption   method_assumption;
-typedef struct method_worklist     method_worklist;
-typedef struct codeinfo            codeinfo;
-
-#include "config.h"
-#include "vm/types.hpp"
-
-#include "vm/breakpoint.hpp"
-#include "vm/jit/builtin.hpp"
-#include "vm/descriptor.hpp"
-#include "vm/global.hpp"
-#include "vm/linker.hpp"
-#include "vm/references.hpp"
-
-#if defined(ENABLE_JAVASE)
-# include "vm/stackmap.hpp"
-#endif
-
-#include "vm/utf8.hpp"
-
-#if defined(ENABLE_REPLACEMENT)
-/* Initial value for the hit countdown field of each method. */
-#define METHOD_INITIAL_HIT_COUNTDOWN  1000
-#endif
-
-union  classref_or_classinfo;
-struct classbuffer;
-struct constant_FMIref;
-struct Mutex;
 
 /* methodinfo *****************************************************************/
 

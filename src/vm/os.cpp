@@ -36,7 +36,7 @@
 /* #include <sys/sysctl.h> */
 
 #include "mm/memory.hpp"
-
+#include "toolbox/logging.hpp"
 #include "vm/os.hpp"
 #include "vm/vm.hpp"
 

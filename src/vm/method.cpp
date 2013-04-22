@@ -51,6 +51,7 @@
 #include "vm/suck.hpp"
 #include "vm/utf8.hpp"
 #include "vm/vm.hpp"
+#include "vm/stackmap.hpp"
 
 #include "vm/jit/code.hpp"
 #include "vm/jit/methodheader.hpp"

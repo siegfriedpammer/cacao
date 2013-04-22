@@ -31,6 +31,7 @@
 #include "native/native.hpp"
 
 #include "toolbox/buffer.hpp"
+#include "toolbox/logging.hpp"
 
 #include "vm/options.hpp"
 #include "vm/os.hpp"

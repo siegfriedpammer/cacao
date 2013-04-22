@@ -25,6 +25,8 @@
 #ifndef UTF_UTILS_HPP_
 #define UTF_UTILS_HPP_ 1
 
+#include <cassert>
+
 // TODO: get rid of the old utf type and rename utf_utils to utf
 
 // TODO: Maybe rename functions, this is not a transform in the STL sense.

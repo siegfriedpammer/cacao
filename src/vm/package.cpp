@@ -26,7 +26,7 @@
 #include "config.h"
 
 #include "mm/dumpmemory.hpp"
-
+#include "toolbox/logging.hpp"
 #include "vm/options.hpp"
 #include "vm/package.hpp"
 #include "vm/utf8.hpp"

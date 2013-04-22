@@ -41,6 +41,7 @@
 #include "vm/global.hpp"
 #include "vm/primitive.hpp"
 #include "vm/os.hpp"
+#include "vm/jit/builtin.hpp"
 
 /* array types ****************************************************************/
 

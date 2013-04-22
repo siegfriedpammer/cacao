@@ -37,6 +37,7 @@
 
 #include "toolbox/logging.hpp"
 
+#include "vm/descriptor.hpp"
 #include "vm/options.hpp"
 #include "vm/vm.hpp"
 
