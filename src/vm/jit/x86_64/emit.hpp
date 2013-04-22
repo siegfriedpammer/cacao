@@ -176,10 +176,6 @@ typedef union {
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void emit_cmovxx(codegendata *cd, instruction *iptr, s4 s, s4 d);
 
 
@@ -373,10 +369,6 @@ void emit_mfence(codegendata *cd);
 static inline void emit_recompute_pv(codegendata* cd) {}
 
 void emit_arbitrary_nop(codegendata *cd, int disp);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // MD_EMIT_HPP_
 
