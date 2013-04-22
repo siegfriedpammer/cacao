@@ -164,9 +164,6 @@ error reporting.
 
 #include "vm/jit/verify/typecheck-common.hpp"
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 /****************************************************************************/
 /* MACROS FOR VARIABLE TYPE CHECKING                                        */
@@ -819,10 +816,6 @@ bool typecheck(jitdata *jd)
     LOGimp("exiting typecheck");
 	return true;
 }
-
-#if defined(__cplusplus)
-}
-#endif
 
 #endif /* ENABLE_VERIFIER */
 

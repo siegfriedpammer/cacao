@@ -35,9 +35,7 @@
 
 #include "config.h"
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+struct jitdata;
 
 /* function prototypes ********************************************************/
 
@@ -45,9 +43,6 @@ extern "C" {
 bool typecheck_infer_types(jitdata *jd);
 #endif
 
-#if defined(__cplusplus)
-}
-#endif
 
 #endif /* _TYPECHECK_TYPEINFERER_H */
 

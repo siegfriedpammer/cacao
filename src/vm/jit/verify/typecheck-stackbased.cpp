@@ -44,9 +44,6 @@
 #include "vm/jit/stack.hpp"
 #include "vm/jit/verify/typecheck-common.hpp"
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 /* this #if runs over the whole file: */
 #if defined(ENABLE_VERIFIER)
@@ -1010,9 +1007,6 @@ static void typecheck_stackbased_show_state(verifier_state *state,
 }
 #endif
 
-#if defined(__cplusplus)
-}
-#endif
 
 #endif /* defined(ENABLE_VERIFIER) */
 

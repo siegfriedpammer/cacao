@@ -36,9 +36,6 @@
 
 #include "typecheck-common.hpp"
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 /****************************************************************************/
 /* DEBUG HELPERS                                                            */
@@ -537,9 +534,6 @@ bool typecheck_init_locals(verifier_state *state, bool newthis)
 	return true;
 }
 
-#if defined(__cplusplus)
-}
-#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

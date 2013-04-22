@@ -28,24 +28,15 @@
 
 #include "config.h"
 
-#include "vm/global.hpp"
-#include "vm/jit/jit.hpp"
-
-
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+struct jitdata;
 
 #if defined(ENABLE_VERIFIER)
 bool typecheck(jitdata *jd);
 bool typecheck_stackbased(jitdata *jd);
 #endif
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _TYPECHECK_H */
 

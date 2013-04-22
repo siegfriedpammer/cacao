@@ -54,9 +54,6 @@
 #define TYPECHECK_NO_STATISTICS
 #include "vm/jit/verify/typecheck-common.hpp"
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 /* macros used by the generated code ******************************************/
 
@@ -472,9 +469,6 @@ bool typecheck_infer_types(jitdata *jd)
 	return true;
 }
 
-#if defined(__cplusplus)
-}
-#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -429,10 +429,6 @@ struct typedescriptor {
 /* FUNCTIONS                                                                */
 /****************************************************************************/
 
-#ifdef __cplusplus
-extern "C" { 
-#endif
-
 /* typevector functions *****************************************************/
 
 /* element read-only access */
@@ -517,10 +513,6 @@ void typedescriptor_print(FILE *file,typedescriptor_t *td);
 void typevector_print(FILE *file,varinfo *vec,int size);
 
 #endif /* TYPEINFO_DEBUG */
-
-#ifdef __cplusplus
-} 
-#endif
 
 #endif /* _TYPEINFO_H */
 
