@@ -26,10 +26,8 @@
 #ifndef THREAD_CLDC11_HPP_
 #define THREAD_CLDC11_HPP_ 1
 
-#ifdef __cplusplus
-
 #include "config.h"
-
+#include "vm/global.hpp"
 #include "vm/types.hpp"
 
 // Include early to get threadobject.
@@ -39,32 +37,33 @@
 # include "threads/none/thread-none.hpp"
 #endif
 
+struct classinfo;
 class java_lang_Thread;
+struct methodinfo;
+struct threadobject;
 
 /* only define the following stuff with thread enabled ************************/
 
 #if defined(ENABLE_THREADS) && defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 
 struct ThreadRuntimeCldc11 {
-	static classinfo *get_thread_class_from_object(java_handle_t *object);
+	static classinfo     *get_thread_class_from_object(java_handle_t *object);
 	static java_handle_t *get_vmthread_handle(const java_lang_Thread &jlt);
 	static java_handle_t *get_thread_exception_handler(const java_lang_Thread &jlt);
-	static methodinfo *get_threadgroup_remove_method(classinfo *c);
-	static methodinfo *get_thread_init_method();
-	static void setup_thread_vmdata(const java_lang_Thread& jlt, threadobject *t);
-	static void print_thread_name(const java_lang_Thread& jlt, FILE *stream);
-	static void set_javathread_state(threadobject *t, int state);
-	static threadobject *get_threadobject_from_thread(java_handle_t *h);
-	static void thread_create_initial_threadgroups(java_handle_t **threadgroup_system, java_handle_t **threadgroup_main);
-	static bool invoke_thread_initializer(java_lang_Thread& jlt, threadobject *t, methodinfo *thread_method_init, java_handle_t *name, java_handle_t *group);
-	static void clear_heap_reference(java_lang_Thread& jlt);
+	static methodinfo    *get_threadgroup_remove_method(classinfo *c);
+	static methodinfo    *get_thread_init_method();
+	static void           setup_thread_vmdata(const java_lang_Thread& jlt, threadobject *t);
+	static void           print_thread_name(const java_lang_Thread& jlt, FILE *stream);
+	static void           set_javathread_state(threadobject *t, int state);
+	static threadobject  *get_threadobject_from_thread(java_handle_t *h);
+	static void           thread_create_initial_threadgroups(java_handle_t **threadgroup_system, java_handle_t **threadgroup_main);
+	static bool           invoke_thread_initializer(java_lang_Thread& jlt, threadobject *t, methodinfo *thread_method_init, java_handle_t *name, java_handle_t *group);
+	static void           clear_heap_reference(java_lang_Thread& jlt);
 };
 
 typedef ThreadRuntimeCldc11 ThreadRuntime;
 
 #endif /* ENABLE_THREADS */
-
-#endif	// __cplusplus
 
 #endif // THREAD_CLDC11_HPP_
 

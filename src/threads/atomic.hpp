@@ -30,8 +30,6 @@
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-
 namespace Atomic_md {
 	// Machine dependent functions.
 	uint32_t compare_and_swap(volatile uint32_t *p, uint32_t oldval, uint32_t newval);
@@ -99,19 +97,6 @@ namespace Atomic {
 	inline void     write_memory_barrier(void) { Atomic_md::write_memory_barrier(); }
 	inline void     instruction_barrier(void)  { Atomic_md::instruction_barrier(); }
 }
-
-#else
-
-// Legacy C interface.
-
-uint32_t Atomic_compare_and_swap_32(uint32_t *p, uint32_t oldval, uint32_t newval);
-uint64_t Atomic_compare_and_swap_64(uint64_t *p, uint64_t oldval, uint64_t newval);
-void*    Atomic_compare_and_swap_ptr(void** p, void* oldval, void* newval);
-void     Atomic_memory_barrier(void);
-void     Atomic_write_memory_barrier(void);
-void     Atomic_instruction_barrier(void);
-
-#endif
 
 #endif // _ATOMIC_HPP
 

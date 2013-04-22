@@ -28,8 +28,8 @@
 
 #include "config.h"
 #include <stdint.h>
-
-#ifdef __cplusplus
+#include <assert.h>
+#include "threads/atomic.hpp"
 
 /**
  * Lockword.
@@ -84,12 +84,6 @@ public:
 
 	void inflate(struct lock_record_t* lr);
 };
-
-
-// Includes.
-#include <assert.h>
-
-#include "threads/atomic.hpp"
 
 
 /**
@@ -217,15 +211,6 @@ void Lockword::decrease_thin_lock_count()
 
 	_lockword -= (1 << THIN_LOCK_COUNT_SHIFT);
 }
-
-#else
-
-// This structure must have the same layout as the C++ class above.
-typedef struct Lockword {
-	uintptr_t _lockword;
-} Lockword;
-
-#endif
 
 #endif // _LOCKWORD_HPP
 

@@ -51,11 +51,7 @@ struct lock_record_t {
 	struct threadobject *owner;              /* current owner of this monitor */
 	s4                   count;              /* recursive lock count          */
 	Mutex*               mutex;              /* mutex for synchronizing       */
-#ifdef __cplusplus
 	List<threadobject*>* waiters;            /* list of threads waiting       */
-#else
-	List* waiters;
-#endif
 	lock_record_t       *hashlink;           /* next record in hash chain     */
 };
 
@@ -76,10 +72,6 @@ struct lock_hashtable_t {
 
 /* functions ******************************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void lock_init(void);
 
 bool lock_monitor_enter(java_handle_t *);
@@ -93,10 +85,6 @@ void lock_notify_all_object(java_handle_t *o);
 
 #if defined(ENABLE_GC_BOEHM)
 void lock_schedule_lockrecord_removal(java_handle_t *o);
-#endif
-
-#ifdef __cplusplus
-}
 #endif
 
 

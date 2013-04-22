@@ -44,11 +44,7 @@
 #include "threads/mutex.hpp"
 
 /* forward declarations */
-#ifdef __cplusplus
 class DumpMemory;
-#else
-typedef struct DumpMemory DumpMemory;
-#endif
 
 /* threadobject ****************************************************************
 
@@ -189,15 +185,7 @@ extern pthread_key_t thread_current_key;
 #	define TRACEJAVACALLCOUNT (THREADOBJECT->tracejavacallcount)
 #endif
 
-
-// FIXME
-#ifdef __cplusplus
-extern "C" {
-#endif
 inline static threadobject* thread_get_current(void);
-#ifdef __cplusplus
-}
-#endif
 
 
 // Includes.
@@ -217,11 +205,6 @@ inline static threadobject* thread_get_current(void);
 #include "vm/jit/intrp/intrp.h"
 #endif
 
-
-// FIXME
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /* inline functions ***********************************************************/
 
@@ -300,10 +283,6 @@ void threads_unpark(threadobject *thread);
 #if defined(ENABLE_TLH)
 void threads_tlh_add_frame();
 void threads_tlh_remove_frame();
-#endif
-
-#ifdef __cplusplus
-} // extern "C"
 #endif
 
 #endif // THREAD_POSIX_HPP_

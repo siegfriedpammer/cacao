@@ -32,7 +32,6 @@
 #include <time.h>
 #include "threads/mutex.hpp"
 
-#ifdef __cplusplus
 
 /**
  * POSIX condition variable.
@@ -150,25 +149,6 @@ inline void Condition::wait(Mutex& mutex)
 		os::abort_errnum(result, "Condition::wait(): pthread_cond_wait failed");
 	}
 }
-
-#else
-
-// This structure must have the same layout as the class above.
-typedef struct Condition {
-	pthread_mutex_t _mutex;
-	pthread_cond_t _cond;
-} Condition;
-
-Condition* Condition_new();
-void       Condition_delete(Condition* cond);
-void       Condition_lock(Condition* cond);
-void       Condition_unlock(Condition* cond);
-void       Condition_broadcast(Condition* cond);
-void       Condition_signal(Condition* cond);
-void       Condition_timedwait(Condition* cond, Mutex *mutex, const struct timespec* abstime);
-void       Condition_wait(Condition* cond, Mutex* mutex);
-
-#endif
 
 #endif /* _CONDITION_POSIX_HPP */
 

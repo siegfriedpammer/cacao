@@ -31,9 +31,6 @@
 
 #include <pthread.h>
 
-
-#ifdef __cplusplus
-
 /**
  * POSIX implementation of a mutex.
  */
@@ -55,19 +52,8 @@ public:
 	inline void unlock();
 };
 
-#else
-
-// Forward typedefs
-class Mutex;
-
-#endif
-
-
 // Includes.
 #include "vm/os.hpp"
-
-
-#ifdef __cplusplus
 
 /**
  * Initializes the given mutex object and checks for errors.
@@ -144,21 +130,6 @@ inline void Mutex::unlock()
 		os::abort_errnum(result, "Mutex::unlock: pthread_mutex_unlock failed");
 	}
 }
-
-#else
-
-// This structure must have the same layout as the class above.
-struct Mutex {
-	pthread_mutex_t     _mutex;
-	pthread_mutexattr_t _attr;
-};
-
-Mutex* Mutex_new();
-void   Mutex_delete(Mutex* mutex);
-void   Mutex_lock(Mutex* mutex);
-void   Mutex_unlock(Mutex* mutex);
-
-#endif
 
 #endif /* _MUTEX_POSIX_HPP */
 

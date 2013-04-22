@@ -39,8 +39,6 @@
 
 /* ThreadList *****************************************************************/
 
-#ifdef __cplusplus
-
 class ThreadList {
 private:
 	static Mutex               _mutex;              // a mutex for all thread lists
@@ -202,23 +200,6 @@ inline void ThreadList::reset_peak_of_active_java_threads()
 	_peak_of_active_java_threads = _number_of_active_java_threads;
 	unlock();
 }
-
-#else
-
-typedef struct ThreadList ThreadList;
-
-void ThreadList_lock();
-void ThreadList_unlock();
-void ThreadList_dump_threads();
-threadobject* ThreadList_get_free_thread();
-int32_t ThreadList_get_free_thread_index();
-void ThreadList_add_to_active_thread_list(threadobject* t);
-threadobject* ThreadList_get_thread_by_index(int32_t index);
-threadobject* ThreadList_get_main_thread();
-threadobject* ThreadList_get_thread_from_java_object(java_handle_t* h);
-int32_t ThreadList_get_number_of_non_daemon_threads();
-
-#endif
 
 #endif // _THREADLIST_HPP
 

@@ -97,9 +97,6 @@
 extern bool threads_pthreads_implementation_nptl;
 #endif
 
-
-#ifdef __cplusplus
-
 /* inline functions ***********************************************************/
 
 /* thread_get_current_object **************************************************
@@ -256,8 +253,6 @@ void          threads_impl_clear_heap_pointers(threadobject *t);
 void          threads_impl_thread_start(threadobject *thread, functionptr f);
 
 void          threads_yield(void);
-
-#endif
 
 #endif /* ENABLE_THREADS */
 
