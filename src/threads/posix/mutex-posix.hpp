@@ -58,7 +58,7 @@ public:
 #else
 
 // Forward typedefs
-typedef struct Mutex Mutex;
+class Mutex;
 
 #endif
 

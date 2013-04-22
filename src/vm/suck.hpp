@@ -37,7 +37,7 @@
 struct classbuffer;
 struct classinfo;
 struct hashtable;
-struct Mutex;
+class Mutex;
 
 /* list_classpath_entry *******************************************************/
 

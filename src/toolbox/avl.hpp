@@ -28,8 +28,6 @@
 
 #include "vm/types.hpp"                 // for s4
 
-class Mutex;
-
 struct avl_tree_t;
 struct avl_node_t;
 

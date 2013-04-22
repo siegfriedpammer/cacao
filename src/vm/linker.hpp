@@ -32,7 +32,7 @@
 #include "vm/vftbl.hpp"
 
 struct classinfo;
-struct Mutex;
+class Mutex;
 
 #ifdef __cplusplus
 

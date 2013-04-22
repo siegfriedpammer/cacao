@@ -29,7 +29,7 @@
 #include "config.h"                     // for ENABLE_THREADS
 #include "vm/types.hpp"                 // for u4
 
-struct Mutex;
+class Mutex;
 
 /* data structures for hashtables ********************************************
 
