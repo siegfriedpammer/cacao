@@ -39,10 +39,6 @@ typedef struct {
 	unsigned overflows;
 } tlh_t;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void tlh_init(tlh_t *tlh);
 
 void tlh_destroy(tlh_t *tlh);
@@ -52,10 +48,6 @@ void tlh_add_frame(tlh_t *tlh);
 void tlh_remove_frame(tlh_t *tlh);
 
 void *tlh_alloc(tlh_t *tlh, size_t size);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // TLH_HPP_
 

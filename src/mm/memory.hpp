@@ -123,10 +123,6 @@ Some more macros:
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 bool  memory_init(void);
 
 void  memory_mprotect(void *addr, size_t len, int prot);
@@ -143,12 +139,6 @@ void *mem_realloc(void *src, int32_t len1, int32_t len2);
 #if defined(ENABLE_THREADS)
 bool  memory_start_thread(void);
 #endif
-
-#ifdef __cplusplus
-}
-#endif
-
-#ifdef __cplusplus
 
 // **** a stl style memory allocator
 template<class T> 
@@ -206,8 +196,6 @@ public:
 		p->~T();
 	}
 };
-
-#endif /* __cplusplus */
 
 #endif // MEMORY_HPP_
 
