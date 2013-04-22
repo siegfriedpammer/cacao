@@ -33,6 +33,8 @@
 #include "threads/atomic.hpp"           // for write_memory_barrier
 #include "threads/lock.hpp"
 
+#include "toolbox/logging.hpp"
+
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
 #include "vm/exceptions.hpp"

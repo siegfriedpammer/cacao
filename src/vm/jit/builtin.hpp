@@ -28,20 +28,18 @@
 
 /* forward typedefs ***********************************************************/
 
-typedef struct builtintable_entry builtintable_entry;
+#include <sys/types.h>                  // for int32_t
+#include "arch.hpp"                     // for USES_NEW_SUBTYPE
+#include "fdlibm/fdlibm.h"              // for fmod, isnan
+#include "threads/lock.hpp"             // for lock_monitor_enter, etc
+#include "vm/global.hpp"                // for functionptr, java_handle_t, etc
+#include "vm/types.hpp"                 // for s8, s4, u1, u4
+#include "vm/utf8.hpp"                  // for Utf8String
 
-#include "config.h"
-#include "vm/types.hpp"
-
-#include "arch.hpp"
-#include "md-abi.hpp"
-
-#include "toolbox/logging.hpp"
-
-#include "vm/descriptor.hpp"
-#include "vm/global.hpp"
-#include "vm/utf8.hpp"
-
+struct builtintable_entry;
+struct classinfo;
+struct methoddesc;
+struct methodinfo;
 struct vftbl_t;
 
 /* define infinity for floating point numbers */

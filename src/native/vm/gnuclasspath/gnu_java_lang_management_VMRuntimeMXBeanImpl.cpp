@@ -30,6 +30,8 @@
 #include "native/jni.hpp"
 #include "native/native.hpp"
 
+#include "toolbox/logging.hpp"
+
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/vm/include/gnu_java_lang_management_VMRuntimeMXBeanImpl.h"
 #endif

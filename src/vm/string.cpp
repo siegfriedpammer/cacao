@@ -31,6 +31,7 @@
 #include "vm/options.hpp"
 
 #include "toolbox/intern_table.hpp"
+#include "toolbox/logging.hpp"
 #include "toolbox/utf_utils.hpp"
 
 //****************************************************************************//

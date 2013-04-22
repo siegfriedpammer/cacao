@@ -37,6 +37,7 @@
 #include "threads/condition.hpp"        // for Condition
 #include "threads/mutex.hpp"            // for Mutex
 #include "threads/threadlist.hpp"       // for ThreadList
+#include "toolbox/logging.hpp"
 #include "vm/finalizer.hpp"             // for Finalizer
 #include "vm/globals.hpp"               // for class_java_lang_Thread
 #include "vm/javaobjects.hpp"           // for java_lang_Thread

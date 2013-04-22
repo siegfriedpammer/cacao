@@ -32,6 +32,8 @@
 #include "native/llni.hpp"
 #include "native/native.hpp"
 
+#include "toolbox/logging.hpp"
+
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/vm/include/java_lang_VMThread.h"
 #endif

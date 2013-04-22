@@ -28,6 +28,7 @@
 #include "mm/memory.hpp"
 
 #include "toolbox/avl.hpp"
+#include "toolbox/logging.hpp"
 
 #include "vm/jit/asmpart.hpp"
 #include "vm/jit/methodtree.hpp"
