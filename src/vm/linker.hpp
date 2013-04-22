@@ -28,8 +28,7 @@
 
 #include "config.h"
 #include "vm/types.hpp"
-
-#include "vm/references.hpp"
+#include "vm/utf8.hpp"
 #include "vm/vftbl.hpp"
 
 struct classinfo;

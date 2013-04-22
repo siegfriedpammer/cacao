@@ -39,6 +39,8 @@ class Mutex;
 struct builtintable_entry;
 struct classbuffer;
 struct classinfo;
+struct codeinfo;
+struct descriptor_pool;
 struct lineinfo;
 struct localvarinfo;
 struct method_assumption;

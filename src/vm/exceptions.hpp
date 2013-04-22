@@ -27,11 +27,12 @@
 #define EXCEPTIONS_HPP_ 1
 
 #include "config.h"
-#include "vm/types.hpp"
 
 #include "vm/global.hpp"
-#include "vm/references.hpp"
+#include "vm/types.hpp"
+#include "vm/utf8.hpp"
 
+struct classinfo;
 struct methodinfo;
 
 /* function prototypes ********************************************************/

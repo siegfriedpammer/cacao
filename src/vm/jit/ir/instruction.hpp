@@ -36,6 +36,7 @@ typedef struct insinfo_inline insinfo_inline;
 #include <stdint.h>
 
 #include "vm/descriptor.hpp"
+#include "vm/references.hpp"
 
 #include "vm/jit/replace.hpp"
 

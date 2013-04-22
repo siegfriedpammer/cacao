@@ -33,7 +33,6 @@ typedef struct typedesc        typedesc;
 typedef struct paramdesc       paramdesc;
 typedef struct methoddesc      methoddesc;
 
-
 #include "config.h"
 
 #include <stdint.h>
@@ -42,12 +41,12 @@ typedef struct methoddesc      methoddesc;
 
 #include "toolbox/hashtable.hpp"
 
-#include "vm/references.hpp"
 #include "vm/utf8.hpp"
 
 #include "arch.hpp"		/* needed for HAS_ADDRESS_REGISTER_FILE */
 
 struct classinfo;
+struct constant_classref;
 
 /* data structures ************************************************************/
 
