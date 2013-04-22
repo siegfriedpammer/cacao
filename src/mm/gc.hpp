@@ -26,14 +26,10 @@
 #ifndef _GC_HPP
 #define _GC_HPP
 
-#include "config.h"
-
-#include <cassert>
-#include <cstdio>
-#include <stdint.h>
-
-
-#ifdef __cplusplus
+#include <stddef.h>                     // for size_t
+#include <stdint.h>                     // for int32_t, etc.
+#include "threads/thread.hpp"
+#include "vm/global.hpp"                // for java_object_t
 
 class GC {
 public:
@@ -52,13 +48,6 @@ public:
 	inline static void leave ();
 	inline static bool inside();
 };
-
-
-// Includes.
-#if defined(ENABLE_GC_CACAO)
-# include "threads/thread.hpp"
-#endif
-
 
 /**
  * Enters a LLNI critical section which prevents the GC from moving
@@ -112,9 +101,6 @@ bool GCCriticalSection::inside()
 #endif
 }
 
-#endif
-
-
 /* reference types ************************************************************/
 
 enum {
@@ -128,17 +114,7 @@ enum {
 	GC_REFTYPE_LOCKRECORD
 };
 
-
-// Includes.
-#include "vm/global.hpp"
-#include "vm/method.hpp"
-
-
 /* function prototypes ********************************************************/
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 void    gc_init(size_t heapmaxsize, size_t heapstartsize);
 
@@ -177,10 +153,6 @@ static inline int32_t heap_hashcode(java_object_t* obj)
 	return (int32_t)(intptr_t) obj;
 #endif
 }
-
-#ifdef __cplusplus
-} // extern "C"
-#endif
 
 #endif // _GC_HPP
 

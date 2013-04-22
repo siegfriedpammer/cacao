@@ -38,6 +38,7 @@
 #include "threads/mutex.hpp"
 
 #include "vm/array.hpp"
+#include "vm/breakpoint.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
 #include "vm/exceptions.hpp"

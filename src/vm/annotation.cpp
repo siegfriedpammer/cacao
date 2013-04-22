@@ -40,6 +40,7 @@
 #include "vm/class.hpp"
 #include "vm/field.hpp"
 #include "vm/loader.hpp"
+#include "vm/method.hpp"
 #include "vm/primitive.hpp"
 #include "vm/suck.hpp"
 #include "vm/types.hpp"

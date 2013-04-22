@@ -26,9 +26,7 @@
 #ifndef CODEMEMORY_HPP_
 #define CODEMEMORY_HPP_ 1
 
-#include "config.h"
-
-#include <sys/types.h>
+#include <stddef.h>                     // for size_t
 
 
 /* convenience macros *********************************************************/

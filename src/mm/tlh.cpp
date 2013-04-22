@@ -21,15 +21,11 @@
    02110-1301, USA.
 */
 
-#include "config.h"
-
-#include "mm/memory.hpp"
 #include "mm/tlh.hpp"
-
-#include "vm/global.hpp"
-#include "vm/os.hpp"
-
-#include <assert.h>
+#include <assert.h>                     // for assert
+#include <sys/mman.h>                   // for mmap, munmap, MAP_ANONYMOUS, etc
+#include "config.h"                     // for SIZEOF_VOID_P
+#include "mm/memory.hpp"                // for MZERO
 
 static const int TLH_MAX_SIZE = (20 * 1024 * 1024);
 

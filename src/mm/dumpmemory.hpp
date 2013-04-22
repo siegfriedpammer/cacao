@@ -27,24 +27,21 @@
 #ifndef DUMPMEMORY_HPP_
 #define DUMPMEMORY_HPP_ 1
 
-#include "config.h"
+#include <assert.h>                     // for assert
+#include <stddef.h>                     // for size_t, NULL
+#include <stdint.h>                     // for uint8_t
+#include <cstddef>                      // for ptrdiff_t, size_t
+#include <list>                         // for list
+#include <new>                          // for operator new
+#include <vector>                       // for vector
+#include "config.h"                     // for ENABLE_MEMCHECK
+#include "mm/memory.hpp"                // for MEMORY_CANARY_SIZE, etc
+#include "threads/thread.hpp"           // for thread_get_current, etc
+#include "vm/os.hpp"                    // for os
 
-#include <assert.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <cstddef>
-#include <list>
-#include <vector>
-#include <stdio.h> // REMOVEME
-#include "threads/thread.hpp"
-
-// Forward declaration.
+class DumpMemoryAllocation;
 class DumpMemoryArea;
 class DumpMemoryBlock;
-#if defined(ENABLE_MEMCHECK)
-class DumpMemoryAllocation;
-#endif
-
 
 /**
  * All classes intended to be allocated on dump memory should extend this

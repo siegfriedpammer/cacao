@@ -22,21 +22,15 @@
 
 */
 
-
-#include "config.h"
-
-#include <stdlib.h>
-
-#include "threads/mutex.hpp"
-
 #include "mm/codememory.hpp"
-#include "mm/memory.hpp"
-
-#include "toolbox/logging.hpp"
-
+#include <stdlib.h>                     // for NULL
+#include <sys/mman.h>                   // for MAP_PRIVATE, PROT_EXEC, etc
+#include "config.h"                     // for ENABLE_THREADS
+#include "mm/memory.hpp"                // for MEMORY_ALIGN, ALIGNSIZE
+#include "threads/mutex.hpp"            // for Mutex
 #include "vm/options.hpp"
-#include "vm/os.hpp"
-#include "vm/statistics.hpp"
+#include "vm/os.hpp"                    // for os
+#include "vm/types.hpp"                 // for ptrint
 
 /* global code memory variables ***********************************************/
 

@@ -22,35 +22,24 @@
 
 */
 
-
-#include "config.h"
-
-#include <assert.h>
-#include <stdint.h>
+#include "mm/memory.hpp"
+#include <assert.h>                     // for assert
+#include <stdint.h>                     // for int32_t
+#include <stdlib.h>                     // for realloc
+#include "config.h"                     // for ENABLE_MEMCHECK, etc
+#include "threads/thread.hpp"           // for threads_sleep, etc
+#include "toolbox/logging.hpp"          // for log_text
+#include "vm/options.hpp"               // for opt_ProfileGCMemoryUsage, etc
+#include "vm/os.hpp"                    // for os
+#include "vm/types.hpp"                 // for u1
+#include "vm/utf8.hpp"                  // for Utf8String
+#include "vm/vm.hpp"                    // for vm_abort
 
 #if defined(__DARWIN__)
 /* If we compile with -ansi on darwin, <sys/types.h> is not
    included. So let's do it here. */
 # include <sys/types.h>
 #endif
-
-#include "vm/types.hpp"
-
-#include "mm/memory.hpp"
-
-#include "native/native.hpp"
-
-#include "threads/lock.hpp"
-#include "threads/thread.hpp"
-
-#include "toolbox/logging.hpp"
-
-#include "vm/vm.hpp"
-
-#include "vm/options.hpp"
-#include "vm/os.hpp"
-
-#include "vm/statistics.hpp"
 
 /* memory_mprotect *************************************************************
 

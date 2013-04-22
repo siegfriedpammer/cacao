@@ -22,10 +22,17 @@
 
 */
 
-
-#include "config.h"
-
-#include <stdint.h>
+#include "mm/gc.hpp"
+#include <stddef.h>                     // for size_t, NULL
+#include <stdint.h>                     // for int64_t, uint8_t
+#include "config.h"                     // for ENABLE_THREADS
+#include "mm/memory.hpp"                // for MSET
+#include "toolbox/logging.hpp"          // for dolog
+#include "vm/exceptions.hpp"
+#include "vm/finalizer.hpp"             // for finalizer_notify, etc
+#include "vm/options.hpp"
+#include "vm/os.hpp"                    // for os
+#include "vm/rt-timing.hpp"             // for RT_REGISTER_GROUP, etc
 
 #if defined(ENABLE_THREADS) && defined(__LINUX__)
 #define GC_LINUX_THREADS
@@ -40,20 +47,10 @@
 #define GC_SOLARIS_THREADS
 #endif
 
-#include "boehm-gc/include/gc.h"
-#include "boehm-gc/include/javaxfc.h"
-#include "mm/gc.hpp"
-#include "mm/memory.hpp"
+#include "boehm-gc/include/gc.h"        // for GC_get_heap_size, etc
+#include "boehm-gc/include/javaxfc.h"   // for GC_finalize_all
 
-#include "toolbox/logging.hpp"
-
-#include "vm/jit/builtin.hpp"
-#include "vm/exceptions.hpp"
-#include "vm/finalizer.hpp"
-#include "vm/options.hpp"
-#include "vm/rt-timing.hpp"
-#include "vm/vm.hpp"
-
+struct methodinfo;
 
 /* global variables ***********************************************************/
 

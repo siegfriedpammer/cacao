@@ -26,17 +26,15 @@
 #ifndef OPTIONS_HPP_
 #define OPTIONS_HPP_ 1
 
-#include "config.h"
+#include <stdint.h>                     // for int64_t
+#include <stdio.h>                      // for FILE
+#include "config.h"                     // for ENABLE_DEBUG_FILTER, etc
+#include "native/jni.hpp"               // for JavaVMInitArgs
+#include "toolbox/logging.hpp"
+#include "vm/types.hpp"                 // for s4
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <stdint.h>
-
-#include "vm/types.hpp"
-
-#include "native/jni.hpp"
+struct opt_struct;
+struct option_t;
 
 /* reserved option numbers ****************************************************/
 
@@ -258,10 +256,6 @@ void options_xx(JavaVMInitArgs *vm_args);
     } while (0)
 #else
 # define TRACESUBSYSTEMINITIALIZATION(text)
-#endif
-
-#ifdef __cplusplus
-}
 #endif
 
 #endif // OPTIONS_HPP_

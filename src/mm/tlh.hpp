@@ -28,8 +28,8 @@
 
 #include "config.h"
 
-#include <stddef.h>
-#include <stdint.h>
+#include <stddef.h>                     // for size_t
+#include <stdint.h>                     // for uint8_t
 
 typedef struct {
 	uint8_t *start;

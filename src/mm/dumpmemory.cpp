@@ -23,17 +23,12 @@
 
 */
 
-
-#include "config.h"
-
 #include "mm/dumpmemory.hpp"
-#include "mm/memory.hpp"
-
-#include "vm/os.hpp"
-#include "vm/options.hpp"
-#include "vm/statistics.hpp"
-#include "vm/vm.hpp"
-
+#include <stdio.h>                      // for fprintf, stderr
+#include "config.h"                     // for ENABLE_MEMCHECK, etc
+#include "mm/memory.hpp"                // for MEMORY_CANARY_SIZE, etc
+#include "vm/os.hpp"                    // for os
+#include "vm/vm.hpp"                    // for vm_abort
 
 /*******************************************************************************
 
