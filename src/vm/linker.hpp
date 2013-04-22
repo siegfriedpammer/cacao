@@ -29,12 +29,11 @@
 #include "config.h"
 #include "vm/types.hpp"
 
-#include "threads/mutex.hpp"
-
 #include "vm/references.hpp"
 #include "vm/vftbl.hpp"
 
 struct classinfo;
+struct Mutex;
 
 #ifdef __cplusplus
 

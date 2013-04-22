@@ -28,10 +28,11 @@
 #include <stdlib.h>
 
 #include "threads/mutex.hpp"
-#include "threads/thread.hpp"
 
 #include "mm/codememory.hpp"
 #include "mm/memory.hpp"
+
+#include "toolbox/logging.hpp"
 
 #include "vm/options.hpp"
 #include "vm/os.hpp"

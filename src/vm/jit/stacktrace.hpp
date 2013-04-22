@@ -38,8 +38,6 @@ typedef struct stacktrace_t       stacktrace_t;
 
 #include "md-abi.hpp"
 
-#include "threads/thread.hpp"
-
 #include "vm/loader.hpp"
 #include "vm/global.hpp"
 

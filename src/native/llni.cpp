@@ -27,9 +27,6 @@
 
 #include <assert.h>
 
-#include "threads/thread.hpp"
-
-
 /* LLNI critical sections ******************************************************
 
    Start and end a LLNI critical section which prevents the GC from

@@ -36,6 +36,7 @@
 #include "vm/globals.hpp"
 #include "vm/initialize.hpp"
 #include "vm/javaobjects.hpp"
+#include "vm/vm.hpp"
 
 #include <map>
 

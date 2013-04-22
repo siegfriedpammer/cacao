@@ -28,8 +28,6 @@
 
 #include "config.h"
 
-#include "threads/mutex.hpp"
-
 #if defined(ENABLE_THREADS)
 # include "threads/posix/condition-posix.hpp"
 #endif

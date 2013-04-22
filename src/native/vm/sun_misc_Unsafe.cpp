@@ -29,6 +29,7 @@
 #include <unistd.h>
 
 #include "threads/atomic.hpp"
+#include "threads/thread.hpp"
 
 #include "mm/memory.hpp"
 
@@ -48,6 +49,7 @@
 #include "vm/os.hpp"
 #include "vm/string.hpp"
 #include "vm/utf8.hpp"
+#include "vm/vm.hpp"
 
 
 // Native functions are exported as C functions.

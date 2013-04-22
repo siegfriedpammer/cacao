@@ -38,9 +38,11 @@
 #include "toolbox/logging.hpp"
 #include "toolbox/buffer.hpp"
 
+#include "vm/class.hpp"
 #include "vm/classcache.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/options.hpp"
+#include "vm/method.hpp"
 #include "vm/utf8.hpp"
 
 

@@ -33,6 +33,7 @@
 
 #include "mm/memory.hpp"
 
+#include "native/jni.hpp"                      // for jclass, jsize
 #include "native/llni.hpp"
 
 #include "threads/atomic.hpp"

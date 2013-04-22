@@ -39,6 +39,7 @@
 #include "vm/os.hpp"
 #include "vm/primitive.hpp"
 #include "vm/utf8.hpp"
+#include "vm/vm.hpp"
 
 
 /* primitivetype_table *********************************************************

@@ -34,12 +34,10 @@
 
 #include "vm/types.hpp"
 
-#include "threads/mutex.hpp"
-
-#include "toolbox/hashtable.hpp"
-
 struct classbuffer;
 struct classinfo;
+struct hashtable;
+struct Mutex;
 
 /* list_classpath_entry *******************************************************/
 

@@ -41,7 +41,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/utf8.hpp"
-
+#include "vm/vm.hpp"
 
 // Native functions are exported as C functions.
 extern "C" {

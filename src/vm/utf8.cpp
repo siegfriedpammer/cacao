@@ -23,13 +23,12 @@
 */
 
 #include "vm/utf8.hpp"
-
+#include "mm/memory.hpp"
+#include "toolbox/intern_table.hpp"
+#include "toolbox/OStream.hpp"
+#include "toolbox/utf_utils.hpp"
 #include "vm/options.hpp"
 
-#include "toolbox/intern_table.hpp"
-#include "toolbox/utf_utils.hpp"
-
-#include "toolbox/OStream.hpp"
 
 //****************************************************************************//
 //*****          GLOBAL UTF8-STRING INTERN TABLE                         *****//

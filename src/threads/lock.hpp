@@ -30,10 +30,9 @@
 
 #include "threads/mutex.hpp"
 
-#include "toolbox/list.hpp"
-
 #include "vm/global.hpp"
 
+template <class T> class List;
 
 /* typedefs *******************************************************************/
 

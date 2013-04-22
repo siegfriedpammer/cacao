@@ -34,6 +34,7 @@
 
 #include "threads/mutex.hpp"
 
+#include "toolbox/hashtable.hpp"
 #include "toolbox/list.hpp"
 #include "toolbox/logging.hpp"
 #include "toolbox/buffer.hpp"

@@ -29,8 +29,6 @@
 #include "mm/dumpmemory.hpp"
 #include "mm/memory.hpp"
 
-#include "threads/thread.hpp"
-
 #include "vm/os.hpp"
 #include "vm/options.hpp"
 #include "vm/statistics.hpp"

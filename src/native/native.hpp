@@ -35,6 +35,8 @@
 
 #include "native/jni.hpp"
 
+#include "threads/mutex.hpp"
+
 #include "vm/class.hpp"
 #include "vm/global.hpp"
 #include "vm/loader.hpp"

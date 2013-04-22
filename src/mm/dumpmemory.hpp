@@ -39,7 +39,7 @@
 #include <list>
 #include <vector>
 #include <stdio.h> // REMOVEME
-
+#include "threads/thread.hpp"
 
 // Forward declaration.
 class DumpMemoryArea;
@@ -226,8 +226,6 @@ public:
 
 // Includes.
 #include "mm/memory.hpp"
-
-#include "threads/thread.hpp"
 
 #include "vm/statistics.hpp"
 

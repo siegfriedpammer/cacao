@@ -28,6 +28,7 @@
 #include <assert.h>
 
 #include "threads/lock.hpp"
+#include "threads/thread.hpp"
 
 
 /**

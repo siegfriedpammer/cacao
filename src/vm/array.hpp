@@ -40,6 +40,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/global.hpp"
 #include "vm/primitive.hpp"
+#include "vm/os.hpp"
 
 /* array types ****************************************************************/
 

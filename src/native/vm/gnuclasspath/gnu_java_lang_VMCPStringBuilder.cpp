@@ -40,7 +40,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
-
+#include "vm/vm.hpp"
 
 /*
  * Class:     gnu/java/lang/VMCPStringBuilder

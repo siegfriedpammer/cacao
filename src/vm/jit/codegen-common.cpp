@@ -63,8 +63,6 @@
 #include "native/localref.hpp"
 #include "native/native.hpp"
 
-#include "threads/thread.hpp"
-
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/field.hpp"

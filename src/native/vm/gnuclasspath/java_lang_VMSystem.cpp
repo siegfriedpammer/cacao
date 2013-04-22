@@ -40,6 +40,7 @@
 
 #include "vm/jit/builtin.hpp"
 #include "vm/javaobjects.hpp"
+#include "vm/vm.hpp"
 
 
 // Native functions are exported as C functions.

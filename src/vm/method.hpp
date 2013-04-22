@@ -68,8 +68,6 @@ typedef struct codeinfo            codeinfo;
 #include "config.h"
 #include "vm/types.hpp"
 
-#include "threads/mutex.hpp"
-
 #include "vm/breakpoint.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/descriptor.hpp"
@@ -91,6 +89,7 @@ typedef struct codeinfo            codeinfo;
 union  classref_or_classinfo;
 struct classbuffer;
 struct constant_FMIref;
+struct Mutex;
 
 /* methodinfo *****************************************************************/
 

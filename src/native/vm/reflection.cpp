@@ -43,7 +43,7 @@
 #include "vm/initialize.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/method.hpp"
-
+#include "vm/vm.hpp"
 
 /**
  * Invoke a method on the given object with the given arguments.

@@ -54,7 +54,6 @@
 
 #include "threads/lock.hpp"
 #include "threads/mutex.hpp"
-#include "threads/thread.hpp"
 
 #include "toolbox/logging.hpp"
 #include "toolbox/util.hpp"

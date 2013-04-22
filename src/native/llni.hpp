@@ -28,6 +28,8 @@
 
 #include "config.h"
 
+struct threadobject;
+
 /* forward defines ************************************************************/
 
 /* LLNI wrapping / unwrapping macros *******************************************
@@ -52,9 +54,6 @@
 
 
 #include "native/localref.hpp"
-
-#include "threads/thread.hpp"
-
 
 #define LLNI_class_get(obj, variable) \
 	(variable) = LLNI_field_direct((java_handle_t *) obj, vftbl->clazz)

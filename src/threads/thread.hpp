@@ -41,8 +41,6 @@
 
 #include "native/llni.hpp"
 
-#include "threads/mutex.hpp"
-
 #include "vm/global.hpp"
 #include "vm/utf8.hpp"
 
