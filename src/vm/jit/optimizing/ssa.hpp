@@ -28,8 +28,10 @@
 
 #include "config.h"
 
-#include "vm/jit/jit.hpp"
-#include "vm/jit/optimizing/graph.hpp"
+struct graphdata;
+struct jitdata;
+struct lsradata;
+struct varinfo;
 
 #if !defined(NDEBUG)
 # include <assert.h>
@@ -39,7 +41,7 @@
 
 #ifdef SSA_DEBUG_CHECK
 # define _SSA_CHECK_BOUNDS(i,l,h) assert( ((i) >= (l)) && ((i) < (h)));
-# define _SSA_ASSERT(a) assert((a));
+# define _SSA_ASSERT(a)           assert((a));
 #else
 # define _SSA_CHECK_BOUNDS(i,l,h)
 # define _SSA_ASSERT(a)
@@ -47,22 +49,14 @@
 
 /* function prototypes */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void ssa_init(jitdata *);
-void ssa(jitdata */* , graphdata **/);
+void ssa(jitdata*);
 
 void fix_exception_handlers(jitdata *jd);
 
 #ifdef SSA_DEBUG_VERBOSE
 void ssa_show_variable(jitdata *jd, int index, varinfo *v, int stage);
 void ssa_print_phi(lsradata *, graphdata *);
-#endif
-
-#ifdef __cplusplus
-}
 #endif
 
 #endif // _SSA_HPP_

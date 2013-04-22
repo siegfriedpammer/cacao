@@ -67,15 +67,11 @@ struct graphdata {
 	struct graph_element **predecessor;
 };
 
-typedef struct graphdata graphdata;
-typedef struct graph_element graph_element;
+struct graphdata;
+struct graph_element;
 typedef graph_element *graphiterator;
 
 /* function prototypes */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 void transform_BB(jitdata *, graphdata *gd);
 graphdata *graph_init(int basicblockcount);
@@ -91,10 +87,6 @@ bool graph_has_multiple_successors( graphdata *gd, int b_index);
 bool graph_has_multiple_predecessors( graphdata *gd, int b_index);
 
 void graph_add_edge( graphdata *gd, int from, int to );
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // LSRA_GRAPH_HPP_
 

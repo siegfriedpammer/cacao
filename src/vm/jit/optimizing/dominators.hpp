@@ -30,20 +30,6 @@
 
 #include "vm/jit/optimizing/graph.hpp"
 
-#if !defined(NDEBUG)
-# include <assert.h>
-/* # define DOM_DEBUG_CHECK */
-# define DOM_DEBUG_VERBOSE
-#endif
-
-#ifdef DOM_DEBUG_CHECK
-# define _DOM_CHECK_BOUNDS(i,l,h) assert( ((i) >= (l)) && ((i) < (h)));
-# define _DOM_ASSERT(a) assert((a));
-#else
-# define _DOM_CHECK_BOUNDS(i,l,h)
-# define _DOM_ASSERT(a)
-#endif
-
 struct dominatordata {
 	int *dfnum;           /* [0..ls->basicblockcount[ */
 	int *vertex;          /* [0..ls->basicblockcount[ */
@@ -59,16 +45,12 @@ struct dominatordata {
 	int *num_DF;          /* [0..ls->basicblockcount[ */
 };	
 
-typedef struct dominatordata dominatordata;
+struct dominatordata;
 
 /* function prototypes */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 dominatordata *compute_Dominators(graphdata *gd, int basicblockcount);
-void computeDF(graphdata *gd, dominatordata *dd, int basicblockcount, int n);
+void           computeDF(graphdata *gd, dominatordata *dd, int basicblockcount, int n);
 
 /* ............................... */
 
@@ -77,10 +59,6 @@ bool dominator_tree_build(jitdata *jd);
 bool dominance_frontier_build(jitdata *jd);
 
 void dominator_tree_validate(jitdata *jd, dominatordata *dd);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // DOMINATORS_HPP_
 

@@ -26,6 +26,7 @@
 #include "config.h"
 
 #include "config.h"
+# include <cassert>
 
 #include "mm/memory.hpp"
 
@@ -38,6 +39,19 @@
 
 #include "vm/jit/show.hpp"
 #include "vm/jit/python.h"
+
+#if !defined(NDEBUG)
+/* # define DOM_DEBUG_CHECK */
+# define DOM_DEBUG_VERBOSE
+#endif
+
+#ifdef DOM_DEBUG_CHECK
+# define _DOM_CHECK_BOUNDS(i,l,h) assert( ((i) >= (l)) && ((i) < (h)));
+# define _DOM_ASSERT(a) assert((a));
+#else
+# define _DOM_CHECK_BOUNDS(i,l,h)
+# define _DOM_ASSERT(a)
+#endif
 
 /* function prototypes */
 void dom_Dominators_init(dominatordata *dd, int basicblockcount);

@@ -28,21 +28,11 @@
 
 #include "config.h"
 
-#include <stdbool.h>
-
 struct jitdata;
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 bool ifconv_static(jitdata *jd);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // IFCONV_HPP_
 

@@ -210,9 +210,7 @@ void Recompiler::queue_method(methodinfo *m)
 
 
 // Legacy C interface.
-extern "C" {
-	void Recompiler_queue_method(methodinfo* m) { VM::get_current()->get_recompiler().queue_method(m); }
-}
+void Recompiler_queue_method(methodinfo* m) { VM::get_current()->get_recompiler().queue_method(m); }
 
 /*
  * These are local overrides for various environment variables in Emacs.

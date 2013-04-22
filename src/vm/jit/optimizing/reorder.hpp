@@ -28,22 +28,11 @@
 
 #include "config.h"
 
-#include <stdbool.h>
-
-#include "vm/jit/jit.hpp"
-
-
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+struct jitdata;
 
 bool reorder(jitdata *jd);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // REORDER_HPP_
 

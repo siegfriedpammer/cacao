@@ -27,19 +27,11 @@
 #define _RECOMPILER_HPP
 
 #include "config.h"
-
-#include <stdbool.h>
-
-#ifdef __cplusplus
 #include <queue>
-#endif
-
 #include "threads/condition.hpp"
 #include "threads/mutex.hpp"
 
 struct methodinfo;
-
-#ifdef __cplusplus
 
 /**
  * Thread for JIT recompilations.
@@ -61,29 +53,18 @@ public:
 	void queue_method(methodinfo* m);   ///< Queue a method for recompilation.
 };
 
-#endif
 
 /* list_method_entry **********************************************************/
 
-typedef struct list_method_entry list_method_entry;
-
 struct list_method_entry {
-	methodinfo *m;
-/* 	listnode_t  linkage; */
+   methodinfo *m;
+// listnode_t  linkage;
 };
 
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void Recompiler_queue_method(methodinfo *m);
-
-#ifdef __cplusplus
-} // extern "C"
-#endif
 
 #endif // _RECOMPILER_HPP
 
