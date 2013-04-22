@@ -30,6 +30,7 @@
 
 #include <stdint.h>
 #include <cstddef>                     // for size_t
+#include <cstring>                     // for memset
 
 // Align the size of memory allocations to this size.
 #define ALIGNSIZE 8
@@ -99,10 +100,10 @@ Some more macros:
                                                         sizeof(type) * (num2))
 
 
-#define MCOPY(dest,src,type,num) memcpy((dest), (src), sizeof(type) * (num))
-#define MSET(ptr,byte,type,num) memset((ptr), (byte), sizeof(type) * (num))
-#define MZERO(ptr,type,num)     MSET(ptr,0,type,num)
-#define MMOVE(dest,src,type,num) memmove((dest), (src), sizeof(type) * (num))
+#define MCOPY(dest,src,type,num) std::memcpy((dest), (src), sizeof(type) * (num))
+#define MSET(ptr,byte,type,num)  std::memset((ptr), (byte), sizeof(type) * (num))
+#define MZERO(ptr,type,num)      MSET(ptr,0,type,num)
+#define MMOVE(dest,src,type,num) std::memmove((dest), (src), sizeof(type) * (num))
 
 
 /* GC macros (boehm only) *****************************************************/

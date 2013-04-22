@@ -60,11 +60,12 @@
 #ifndef _JNI_HPP
 #define _JNI_HPP
 
-#include "config.h"
+#include <stdint.h>                     // for int32_t
+#include "config.h"                     // for INCLUDE_JNI_H, etc
+#include "native/jni.hpp"               // for JNI_VERSION_1_6, etc
+#include "vm/global.hpp"                // for java_handle_t, etc
 
-#include <stdbool.h>
-#include <stdint.h>
-#include "vm/global.hpp"
+struct hashtable_global_ref_entry;
 
 // Define these to override the typedefs in jni.h
 #define _CLASSPATH_VM_JNI_TYPES_DEFINED          1 // GNU Classpath
@@ -107,15 +108,10 @@ typedef java_handle_doublearray_t*  jdoubleArray;
 #define JNI_TRUE true
 #define JNI_FALSE false
 
-#ifdef __cplusplus
 class _Jv_JNIEnv;
 class _Jv_JavaVM;
 typedef _Jv_JNIEnv JNIEnv;
 typedef _Jv_JavaVM JavaVM;
-#else
-typedef struct _Jv_JNIEnv JNIEnv;
-typedef struct _Jv_JavaVM JavaVM;
-#endif
 
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
@@ -160,19 +156,10 @@ typedef enum _jobjectType {
 // Now include jni.h to complete the JNI header.
 #include INCLUDE_JNI_H
 
-
-// Includes.
-#include "vm/global.hpp"
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* CACAO related stuff ********************************************************/
 
-extern const struct JNIInvokeInterface_ _Jv_JNIInvokeInterface;
-extern struct JNINativeInterface_ _Jv_JNINativeInterface;
+extern "C" const JNIInvokeInterface_  _Jv_JNIInvokeInterface;
+extern "C" JNINativeInterface_        _Jv_JNINativeInterface;
 
 
 /* hashtable_global_ref_entry *************************************************/
@@ -191,9 +178,6 @@ struct hashtable_global_ref_entry {
 bool jni_init(void);
 bool jni_version_check(int version);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // _JNI_HPP
 

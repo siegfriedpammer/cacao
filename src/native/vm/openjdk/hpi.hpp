@@ -47,9 +47,6 @@
 #include INCLUDE_HPI_MD_H
 #include INCLUDE_HPI_H
 
-
-#ifdef __cplusplus
-
 /**
  * Host Porting Interface (HPI).
  */
@@ -72,12 +69,6 @@ public:
 	void initialize(); // REMOVEME
 	int initialize_socket_library();
 };
-
-#else
-
-void HPI_initialize();
-
-#endif
 
 #endif // _HPI_HPP
 

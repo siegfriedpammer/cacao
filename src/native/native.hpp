@@ -27,16 +27,11 @@
 #ifndef NATIVE_HPP_
 #define NATIVE_HPP_ 1
 
-#ifdef __cplusplus
 #include <map>
 #include <set>
 #include <vector>
-#endif
-
 #include "native/jni.hpp"
-
 #include "threads/mutex.hpp"
-
 #include "vm/class.hpp"
 #include "vm/global.hpp"
 #include "vm/loader.hpp"
@@ -57,9 +52,6 @@
 #else
 # define NATIVE_LIBRARY_SUFFIX    ".so"
 #endif
-
-
-#ifdef __cplusplus
 
 #if defined(ENABLE_DL)
 /**
@@ -191,20 +183,10 @@ public:
 };
 #endif /* defined(ENABLE_JVMTI) */
 
-#endif
-
 /* function prototypes ********************************************************/
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 java_handle_t *native_new_and_init(classinfo *c);
 java_handle_t *native_new_and_init_string(classinfo *c, java_handle_t *s);
-
-#ifdef __cplusplus
-} // extern "C"
-#endif
 
 #endif // NATIVE_HPP_
 

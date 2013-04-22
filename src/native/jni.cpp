@@ -3834,7 +3834,7 @@ jint jni_AttachCurrentThreadAsDaemon(JavaVM *javavm, void **penv, void *args)
 
 /* JNI invocation table *******************************************************/
 
-const struct JNIInvokeInterface_ _Jv_JNIInvokeInterface = {
+const JNIInvokeInterface_ _Jv_JNIInvokeInterface = {
 	NULL,
 	NULL,
 	NULL,
@@ -3849,7 +3849,7 @@ const struct JNIInvokeInterface_ _Jv_JNIInvokeInterface = {
 
 /* JNI function table *********************************************************/
 
-struct JNINativeInterface_ _Jv_JNINativeInterface = {
+JNINativeInterface_ _Jv_JNINativeInterface = {
 	NULL,
 	NULL,
 	NULL,

@@ -31,9 +31,6 @@
 
 #include INCLUDE_JMM_H
 
-
-#ifdef __cplusplus
-
 /**
  * Management support.
  */
@@ -49,11 +46,6 @@ public:
 	const jmmOptionalSupport& get_optional_support() const;
 };
 
-#else
-
-typedef struct Management Management;
-
-#endif
 
 #endif // _MANAGEMENT_HPP
 
