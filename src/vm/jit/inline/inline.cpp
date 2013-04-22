@@ -122,10 +122,6 @@
 /* #define INLINE_VERIFY_RESULT */
 #endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 /* types **********************************************************************/
 
 typedef struct inline_node inline_node;
@@ -3225,9 +3221,6 @@ bool inline_inline(jitdata *jd)
 	return true;
 }
 
-#if defined(__cplusplus)
-}
-#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

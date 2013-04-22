@@ -35,15 +35,7 @@
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 bool inline_inline(jitdata *jd);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _INLINE_H */
 
