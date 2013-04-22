@@ -45,7 +45,7 @@ void LoopSimplificationPass::check_loop(Loop *loop) const {
 	assert(LT);
 	BeginInst* header = loop->get_header();
 	if (LT->get_Loop(header) != loop) {
-		LOG("Loop with shared header"<<nl);
+		LOG("Loop with shared header:" << header << nl);
 		/*
 		 * We have a BeginInst which is the header of more than one loop.
 		 * We create a new header block for the _outer_ loop (stored in the

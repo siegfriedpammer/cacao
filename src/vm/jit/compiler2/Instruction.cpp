@@ -50,7 +50,13 @@ BeginInst* Instruction::get_BeginInst() const {
 }
 
 OStream& operator<<(OStream &OS, const Instruction &I) {
-	return OS << "[" << I.get_id() << "] " << I.get_name();
+	return OS << "[" << I.get_id() << ": " << I.get_name() << "]";
+}
+OStream& operator<<(OStream &OS, const Instruction *I) {
+	if(!I) {
+		return OS << "Instruction is NULL";
+	}
+	return OS << *I;
 }
 
 

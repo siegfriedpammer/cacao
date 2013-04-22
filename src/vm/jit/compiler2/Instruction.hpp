@@ -418,6 +418,7 @@ public:
 };
 
 OStream& operator<<(OStream &OS, const Instruction &I);
+OStream& operator<<(OStream &OS, const Instruction *I);
 
 } // end namespace compiler2
 } // end namespace jit

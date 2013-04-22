@@ -79,6 +79,9 @@ public:
 	friend class LoopSimplificationPass;
 };
 
+OStream& operator<<(OStream &OS, const Loop &L);
+OStream& operator<<(OStream &OS, const Loop *L);
+
 class LoopTree {
 public:
 	// Note vector needed for std::sort!

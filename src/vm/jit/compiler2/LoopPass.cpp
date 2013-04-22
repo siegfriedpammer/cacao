@@ -111,7 +111,7 @@ public:
 
 	virtual void make_set(T s) {
 		assert(find(s) == end() && "Element already in a set!");
-		LOG("UnionFindImpl:make_set: " << s << nl);
+		LOG2("UnionFindImpl:make_set: " << s << nl);
 		SetTy list;
 		list.insert(s);
 		sets.insert(list);
@@ -130,11 +130,11 @@ public:
 		merged.insert(s_it->begin(), s_it->end());
 		merged.insert(r_it->begin(), r_it->end());
 
-		LOG("UnionFindImpl:merginig: ");
-		print_container(dbg(), s_it->begin(), s_it->end()) << " and ";
-		print_container(dbg(), r_it->begin(), r_it->end()) << nl;
-		LOG("UnionFindImpl:result: ");
-		print_container(dbg(), merged.begin(), merged.end()) << nl;
+		LOG2("UnionFindImpl:merginig: ");
+		DEBUG2(print_container(dbg(), s_it->begin(), s_it->end()) << " and ");
+		DEBUG2(print_container(dbg(), r_it->begin(), r_it->end()) << nl);
+		LOG2("UnionFindImpl:result: ");
+		DEBUG2(print_container(dbg(), merged.begin(), merged.end()) << nl);
 
 		sets.erase(s_it);
 		sets.erase(r_it);
@@ -144,7 +144,7 @@ public:
 
 	virtual inline T find(T x) {
 		typename SetSetTy::iterator i = find_it(x);
-		LOG("UnionFindImpl:find: " << x << nl);
+		LOG2("UnionFindImpl:find: " << x << nl);
 		if (i != sets.end())
 			return *(*i).begin();
 		return end();
@@ -173,6 +173,22 @@ public:
 };
 
 } // end namespace anonymous
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Loop
+///////////////////////////////////////////////////////////////////////////////
+
+OStream& operator<<(OStream &OS, const Loop &L) {
+	return OS << L.get_header() << " <- " << L.get_exit();
+}
+OStream& operator<<(OStream &OS, const Loop *L) {
+	if (!L) {
+		return OS << "Loop is NULL";
+	}
+	return OS << *L;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // LoopTree
 ///////////////////////////////////////////////////////////////////////////////
@@ -239,25 +255,25 @@ bool LoopPass::run(JITData &JD) {
 		// print treeedge
 		for(std::set<int>::iterator i = set.begin(), e = set.end(); i != e ; ++i) {
 			int v = *i;
-			LOG("treeedge:    " << setw(3) << v << " -> " << setw(3) << w << nl);
+			LOG2("treeedge:    " << setw(3) << v << " -> " << setw(3) << w << nl);
 		}
 		// print backedge
 		set = backedges[w];
 		for(std::set<int>::iterator i = set.begin(), e = set.end(); i != e ; ++i) {
 			int v = *i;
-			LOG("backedge:    " << setw(3) << v << " -> " << setw(3) << w << nl);
+			LOG2("backedge:    " << setw(3) << v << " -> " << setw(3) << w << nl);
 		}
 		// print forwardedge
 		set = forwardedges[w];
 		for(std::set<int>::iterator i = set.begin(), e = set.end(); i != e ; ++i) {
 			int v = *i;
-			LOG("forwardedge: " << setw(3) << v << " -> " << setw(3) << w << nl);
+			LOG2("forwardedge: " << setw(3) << v << " -> " << setw(3) << w << nl);
 		}
 		// print crossedge
 		set = crossedges[w];
 		for(std::set<int>::iterator i = set.begin(), e = set.end(); i != e ; ++i) {
 			int v = *i;
-			LOG("crossedge:   " << setw(3) << v << " -> " << setw(3) << w << nl);
+			LOG2("crossedge:   " << setw(3) << v << " -> " << setw(3) << w << nl);
 		}
 	}
 
@@ -266,7 +282,7 @@ bool LoopPass::run(JITData &JD) {
 	for (DFSTraversal<BeginInst>::reverse_iterator i = dfs.rbegin(), e = dfs.rend();
 			i != e ; --i) {
 		int w = i.get_index();
-		LOG("w=" << w << nl);
+		LOG2("w=" << w << nl);
 
 		P.clear();
 		Q.clear();
@@ -295,8 +311,8 @@ bool LoopPass::run(JITData &JD) {
 				}
 			}
 
-			LOG("Q=P= ");
-			print_container(dbg(), Q.begin(),Q.end());
+			LOG2("Q=P= ");
+			DEBUG2(print_container(dbg(), Q.begin(),Q.end()));
 			dbg() << nl;
 
 			// Q contains the sources of the backedges to w.
@@ -310,7 +326,7 @@ bool LoopPass::run(JITData &JD) {
 					x = *x_it;
 					Q.erase(x_it);
 				}
-				LOG("x=" << x << nl);
+				LOG2("x=" << x << nl);
 
 				// is loop header?
 				if (backedges[x].size() != 0) {
@@ -334,10 +350,10 @@ bool LoopPass::run(JITData &JD) {
 				for(std::set<int>::iterator i = incoming.begin(), e = incoming.end();
 						i != e; ++i) {
 					int y = *i;
-					LOG("y=" << y << nl);
+					LOG2("y=" << y << nl);
 					int y_r = unionfind.find(y);
 					assert(y_r != end);
-					LOG("y_r=" << y_r << nl);
+					LOG2("y_r=" << y_r << nl);
 
 					//LOG("ND(w)=" << dfs.num_decendants(w) << nl);
 					// test for reducibility
@@ -376,64 +392,36 @@ bool LoopPass::run(JITData &JD) {
 
 	}
 	for (int w = 0; w < size ; ++w ) {
-		LOG("highpt[" << w << "]=" << highpt[w] << nl);
+		LOG2("highpt[" << w << "]=" << highpt[w] << nl);
 	}
 	for (int w = 0; w < size ; ++w ) {
 		Loop *loop = index_to_loop[w];
 		if (!loop) {
-			LOG("loop[" << w << "] not in a loop" << nl);
+			LOG2("loop(" << dfs[w] << ") not in a loop" << nl);
 			continue;
 		}
 		loop_map[dfs[w]] = loop;
-		BeginInst *header = loop->get_header();
-		BeginInst *exit = loop->get_exit();
-		LOG("loop[" << w << "]=" << (long) header << " ("<< setw(3) << dfs[header] << ") -> "
-		            << (long) exit << " (" << setw(3) << dfs[exit] << ") " << nl);
+		LOG2("loop(header = " << dfs[w] << ") = " << loop << nl);
 	}
-
-	for(std::map<BeginInst*,Loop*>::iterator i = loop_map.begin(), e = loop_map.end();
-			i != e ; ++i) {
-		LOG("loopmap: " << (long) i->first << " " << (long) i->second << nl);
-	}
-	#if 0
-	LOG("BI:" << (long) *i << " ("<< i.get_index() << ") num succssors: " << successors.size() << nl);
-			const char* t = "";
-					t = "is an advancing edge (reverse fronds)";
-					t = "is a retreating edge (backedge, fronds)";
-					t = "is a crossedge";
-				t = "is a tree edge";
-			LOG("edge " << (long) *i << " ("<< setw(3) << v << ") -> "
-				<< (long) *(*ii) << " (" << setw(3) << w << ") " << t << nl);
-	#endif
 
 	// sort from outermost to innermost loop
 	LoopComparator compare_loop(dfs);
 	std::sort(loops.begin(), loops.end(), compare_loop);
 
 	// add BeginInst to loops
-	std::vector<Loop*> bb_to_loop(dfs.size(),NULL);
 	for (LoopListTy::reverse_iterator i = loops.rbegin(), e = loops.rend();
 			i != e; ++i) {
 		Loop *loop = *i;
 		if (!loop->get_parent()) {
 			add_top_loop(loop);
 		}
-		BeginInst *header = loop->get_header();
-		BeginInst *exit = loop->get_exit();
-		LOG("Loop:" << (long) header << " ("<< setw(3) << dfs[header] << ") -> "
-		            << (long) exit << " (" << setw(3) << dfs[exit] << ") " << nl);
+		LOG("Loop: " << loop << nl);
 		if (loop->get_parent()) {
 			Loop *parent = loop->get_parent();
-			BeginInst *header = parent->get_header();
-			BeginInst *exit = parent->get_exit();
-			LOG("parent: " <<
-				"Loop:" << (long) header << " ("<< setw(3) << dfs[header] << ") -> "
-						<< (long) exit << " (" << setw(3) << dfs[exit] << ") " << nl);
+			LOG("parent: " << parent << nl);
 		} else {
 			LOG("parent: " << "toplevel" << nl);
 		}
-		bb_to_loop[dfs[header]] = loop;
-		bb_to_loop[dfs[exit]] = loop;
 	}
 	return true;
 }
