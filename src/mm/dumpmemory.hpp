@@ -32,9 +32,6 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
-
-#ifdef __cplusplus
-
 #include <cstddef>
 #include <list>
 #include <vector>
@@ -371,22 +368,11 @@ void* DumpMemoryBlock::allocate(size_t size)
 	return p;
 }
 
+// Legacy C interface.
+
 #define DNEW(type)                    ((type*) DumpMemory::allocate(sizeof(type)))
 #define DMNEW(type,num)               ((type*) DumpMemory::allocate(sizeof(type) * (num)))
 #define DMREALLOC(ptr,type,num1,num2) ((type*) DumpMemory::reallocate((ptr), sizeof(type) * (num1), sizeof(type) * (num2)))
-
-#else
-
-// Legacy C interface.
-
-void* DumpMemory_allocate(size_t size);
-void* DumpMemory_reallocate(void* src, size_t len1, size_t len2);
-
-#define DNEW(type)                    ((type*) DumpMemory_allocate(sizeof(type)))
-#define DMNEW(type,num)               ((type*) DumpMemory_allocate(sizeof(type) * (num)))
-#define DMREALLOC(ptr,type,num1,num2) ((type*) DumpMemory_reallocate((ptr), sizeof(type) * (num1), sizeof(type) * (num2)))
-
-#endif
 
 #endif // DUMPMEMORY_HPP_
 

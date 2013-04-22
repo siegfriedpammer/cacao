@@ -286,15 +286,6 @@ DumpMemoryBlock::~DumpMemoryBlock()
 #endif
 }
 
-
-// Legacy C interface.
-
-extern "C" {
-	void* DumpMemory_allocate(size_t size) { return DumpMemory::allocate(size); }
-	void* DumpMemory_reallocate(void* src, size_t len1, size_t len2) { return DumpMemory::reallocate(src, len1, len2); }
-}
-
-
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
