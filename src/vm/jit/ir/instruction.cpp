@@ -31,9 +31,6 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/resolve.hpp"
 
-// REMOVEME
-extern "C" {
-
 methoddesc* instruction_call_site(const instruction* iptr)
 {
 	if (iptr->opc == ICMD_BUILTIN) {
@@ -45,8 +42,6 @@ methoddesc* instruction_call_site(const instruction* iptr)
 	else {
 		return iptr->sx.s23.s3.fmiref->p.method->parseddesc;
 	}
-}
-
 }
 
 
