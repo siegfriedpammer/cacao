@@ -35,18 +35,10 @@
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 bool regalloc(jitdata *jd);
 
 #if defined(ENABLE_STATISTICS)
 void simplereg_make_statistics(jitdata *jd);
-#endif
-
-#ifdef __cplusplus
-}
 #endif
 
 #endif // SIMPLE_REG_HPP_
