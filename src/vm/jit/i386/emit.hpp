@@ -142,10 +142,6 @@
 
 #define emit_reg(reg,rm)                emit_address_byte(3,(reg),(rm))
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* integer instructions */
 
 void emit_mov_reg_reg(codegendata *cd, s4 reg, s4 dreg);
@@ -306,11 +302,6 @@ void emit_escape_annotate_object(codegendata *cd, methodinfo *m);
  * because we do not use a procedure vector.
  */
 static inline void emit_recompute_pv(codegendata* cd) {}
-
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // MD_EMIT_HPP_
 
