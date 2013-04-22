@@ -47,10 +47,6 @@ struct unresolved_class;
 struct unresolved_method;
 struct unresolved_field;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 // Instruction structure.
 
 /* branch_target_t: used in TABLESWITCH tables */
@@ -258,10 +254,6 @@ static inline bool instruction_has_dst(const instruction* iptr)
 		return icmd_table[iptr->opc].dataflow >= DF_DST_BASE;
 	}
 }
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // _INSTRUCTION_HPP
 
