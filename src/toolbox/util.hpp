@@ -26,24 +26,11 @@
 #ifndef UTIL_HPP_
 #define UTIL_HPP_ 1
 
-#include "config.h"
-
 #include <stdarg.h>
-
-#include "vm/types.hpp"
-
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-int   get_variable_message_length(const char *fmt, va_list ap);
-
-#ifdef __cplusplus
-}
-#endif
+int get_variable_message_length(const char *fmt, va_list ap);
 
 #endif // UTIL_HPP_
 

@@ -33,42 +33,14 @@
 
 #include "toolbox/bitvector.hpp"
 
-#if !defined(NDEBUG)
-#include <assert.h>
-
-/* define WL_DEBUG_CHECK to activate the bound checks */
-
-/* #define WL_DEBUG_CHECK */
-
-/* no debug messages implemented till now */
-
-/* #define WL_DEBUG_VERBOSE */
-
-#endif
-
-#if defined(WL_DEBUG_CHECK)
-#define _WL_CHECK_BOUNDS(i,l,h) assert( ((i) >= (l)) && ((i) < (h)));
-#define _WL_ASSERT(a) assert((a));
-#else
-#define _WL_CHECK_BOUNDS(i,l,h);
-#define _WL_ASSERT(a);
-#endif
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct worklist {
-	int *W_stack;
-	int W_top;
+	int      *W_stack;
+	int       W_top;
 	bitvector W_bv;
 #ifdef WL_DEBUG_CHECK
-	int size;
+	int       size;
 #endif
 };
-
-typedef struct worklist worklist;
 
 /* function prototypes */
 worklist *wl_new(int size);
@@ -76,10 +48,6 @@ void wl_add(worklist *w, int element);
 int wl_get(worklist *w);
 bool wl_is_empty(worklist *w);
 void wl_reset(worklist *w, int size);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // BITVECTOR_HPP_
 

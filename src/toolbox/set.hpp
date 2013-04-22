@@ -28,10 +28,7 @@
 
 #include "config.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-typedef struct set set;
+struct set;
 
 set *set_new(unsigned capacity);
 void set_insert(set *s, void *element);
@@ -40,10 +37,6 @@ bool set_contains(const set *s, void *element);
 unsigned set_size(const set *s);
 bool set_empty(const set *s);
 void *set_pop(set *s);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // SET_HPP_
 

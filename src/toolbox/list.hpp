@@ -29,10 +29,9 @@
 #include "config.h"
 
 #include <stdint.h>
-
-#ifdef __cplusplus
-
 #include <list>
+#include "mm/dumpmemory.hpp"
+#include "threads/mutex.hpp"
 
 /**
  * List implementation.
@@ -59,10 +58,6 @@ public:
 };
 
 
-// Required by LockedList.
-#include "threads/mutex.hpp"
-
-
 /**
  * List implementation with a Mutex.
  */
@@ -76,10 +71,6 @@ public:
 	void lock  () { _mutex.lock(); }
 	void unlock() { _mutex.unlock(); }
 };
-
-
-// Required by DumpList.
-#include "mm/dumpmemory.hpp"
 
 
 /**
@@ -110,14 +101,6 @@ public:
 	using std::list<T, DumpMemoryAllocator<T> >::size;
 	using std::list<T, DumpMemoryAllocator<T> >::sort;
 };
-
-#else
-
-typedef struct List List;
-typedef struct LockedList LockedList;
-typedef struct DumpList DumpList;
-
-#endif
 
 #endif // _LIST_HPP
 

@@ -24,10 +24,26 @@
 */
 
 
-#include "config.h"
 
-#include "mm/dumpmemory.hpp"
 #include "toolbox/bitvector.hpp"
+#include <assert.h>
+#include "config.h"
+#include "mm/dumpmemory.hpp"
+
+#if !defined(NDEBUG)
+
+/// define BV_DEBUG_CHECK to activate the bound checks
+// #define BV_DEBUG_CHECK
+
+#endif
+
+#if defined(BV_DEBUG_CHECK)
+#define _BV_CHECK_BOUNDS(i,l,h) assert( ((i) >= (l)) && ((i) < (h)));
+#define _BV_ASSERT(a)           assert((a));
+#else
+#define _BV_CHECK_BOUNDS(i,l,h);
+#define _BV_ASSERT(a);
+#endif
 
 /******************************************************************************
 
@@ -104,16 +120,13 @@ RETURN: bitvector
 
 *******************************************************************************/
 bitvector bv_new(int size) {
-	int i,n;
-	int *bv;
-
 	/* Number of ints needed for size bits */
     /* n = (((size+7)/8) + sizeof(int) - 1)/sizeof(int);  */
-	n = BV_NUM_INTS(size);
+	int n = BV_NUM_INTS(size);
 
-	bv = (int*) DumpMemory::allocate(sizeof(int) * n);
+	int *bv = (int*) DumpMemory::allocate(sizeof(int) * n);
 
-	for(i = 0; i < n; i++) bv[i] = 0;
+	for(int i = 0; i < n; i++) bv[i] = 0;
 
 #ifdef BV_DEBUG_CHECK
 	bv[0] = size;
@@ -133,12 +146,10 @@ IN:   bitvector bv
 RETURN:  bool      true if bit is set otherwise false
 *******************************************************************************/
 bool bv_get_bit(bitvector bv, int bit) {
-	int i, n;
-
 	_BV_ASSERT(bit >= 0);
 
-	i = BV_INT_INDEX(bit);
-	n = BV_BIT_INDEX(bit, i);
+	int i = BV_INT_INDEX(bit);
+	int n = BV_BIT_INDEX(bit, i);
 
 	_BV_ASSERT(i < (BV_NUM_INTS(bv[0])));
 	return (bv[i] & (1<<n));
@@ -153,12 +164,10 @@ IN:   bitvector bv
       int       bit    Index of bit to set (0..size(
 *******************************************************************************/
 void bv_set_bit(bitvector bv, int bit) {
-	int i, n;
-
 	_BV_ASSERT(bit >= 0);
 
-	i = BV_INT_INDEX(bit);
-	n = BV_BIT_INDEX(bit, i);
+	int i = BV_INT_INDEX(bit);
+	int n = BV_BIT_INDEX(bit, i);
 
 	_BV_ASSERT(i < BV_NUM_INTS(bv[0]));
 
@@ -174,12 +183,10 @@ IN:   bitvector bv
       int       bit    Index of bit to reset (0..size(
 *******************************************************************************/
 void bv_reset_bit(bitvector bv, int bit) {
-	int i, n;
-
 	_BV_ASSERT(bit >= 0);
 
-	i = BV_INT_INDEX(bit);
-	n = BV_BIT_INDEX(bit, i);
+	int i = BV_INT_INDEX(bit);
+	int n = BV_BIT_INDEX(bit, i);
 
 	_BV_ASSERT(i < BV_NUM_INTS(bv[0]));
 
@@ -195,16 +202,14 @@ IN:   bitvector bv
       int       size    Size of the bitvector
 *******************************************************************************/
 void bv_reset(bitvector bv, int size) {
-	int i,n;
-
 	_BV_ASSERT(bv[0] == size);
 
-	n = BV_NUM_INTS(size);
+	int n = BV_NUM_INTS(size);
 
 #ifdef BV_DEBUG_CHECK
-	for(i = 1; i < n; i++)
+	for(int i = 1; i < n; i++)
 #else
-	for(i = 0; i < n; i++)
+	for(int i = 0; i < n; i++)
 #endif
 		bv[i] = 0;
 }
@@ -220,18 +225,15 @@ IN:   bitvector bv
 RETURN: bool  return true if bv is empty, false otherwise
 *******************************************************************************/
 bool bv_is_empty(bitvector bv, int size) {
-	int i,n;
-	bool empty;
-
 	_BV_ASSERT(bv[0] == size);
 
-	n = BV_NUM_INTS(size);
+	int n = BV_NUM_INTS(size);
 
-	empty = true;
+	bool empty = true;
 #ifdef BV_DEBUG_CHECK
-	for(i = 1; (i < n) && empty; i++)
+	for(int i = 1; (i < n) && empty; i++)
 #else
-	for(i = 0; (i < n) && empty; i++)
+	for(int i = 0; (i < n) && empty; i++)
 #endif
 		empty = empty && (bv[i] == 0);
 	return empty;
@@ -273,9 +275,8 @@ IN:   bitvector s1      bitvector created with bv_new
 RETURN: bool    true if s1==s1, false otherwise
 *******************************************************************************/
 bool bv_equal(bitvector s1, bitvector s2, int size) {
-	int i,n;
-	int mask;
 	bool equal = true;
+
 	/* copy the whole bitvector    */
 	_BV_ASSERT(s1[0] == size);
 	_BV_ASSERT(s2[0] == size);
@@ -283,22 +284,24 @@ bool bv_equal(bitvector s1, bitvector s2, int size) {
 	if (size == 0)
 		return true;
 
-	n = BV_NUM_INTS(size);
+	int n = BV_NUM_INTS(size);
 
 #ifdef BV_DEBUG_CHECK
-	for(i = 1; equal && (i < n-1); i++)
+	for(int i = 1; equal && (i < n-1); i++)
 #else
-	for(i = 0; equal && (i < n-1); i++)
+	for(int i = 0; equal && (i < n-1); i++)
 #endif
 		equal = (s1[i] == s2[i]);
 
 	/* Last compare maybe has to be masked! */
 
-	i = BV_INT_INDEX(size - 1);
+	int i = BV_INT_INDEX(size - 1);
 	n = BV_BIT_INDEX(size - 1, i);
 
 	_BV_ASSERT(i < BV_NUM_INTS(s1[0]));
 	_BV_ASSERT(i < BV_NUM_INTS(s2[0]));
+
+	int mask;
 
 	if (n == (sizeof(int) * 8 - 1)) {
 		/* full mask */
@@ -325,16 +328,15 @@ IN/OUT:bitvector d       bitvector created with bv_new
 
 *******************************************************************************/
 void bv_minus(bitvector d, bitvector s1, bitvector s2, int size) {
-	int i,n;
     /* d = s1 - s2     */
 	_BV_ASSERT(d[0] == size);
 	_BV_ASSERT(s1[0] == size);
 	_BV_ASSERT(s2[0] == size);
-	n = BV_NUM_INTS(size);
+	int n = BV_NUM_INTS(size);
 #ifdef BV_DEBUG_CHECK
-	for(i = 1; i < n; i++)
+	for(int i = 1; i < n; i++)
 #else
-	for(i = 0; i < n; i++)
+	for(int i = 0; i < n; i++)
 #endif
 		d[i] = s1[i] & (~s2[i]);
 }
@@ -352,16 +354,15 @@ IN/OUT:bitvector d       bitvector created with bv_new
 
 *******************************************************************************/
 void bv_union(bitvector d, bitvector s1, bitvector s2, int size) {
-	int i,n;
     /* d = s1 union s2 */
 	_BV_ASSERT(d[0] == size);
 	_BV_ASSERT(s1[0] == size);
 	_BV_ASSERT(s2[0] == size);
-	n = BV_NUM_INTS(size);
+	int n = BV_NUM_INTS(size);
 #ifdef BV_DEBUG_CHECK
-	for(i = 1; i < n; i++)
+	for(int i = 1; i < n; i++)
 #else
-	for(i = 0; i < n; i++)
+	for(int i = 0; i < n; i++)
 #endif
 		d[i] = s1[i] | s2[i];
 }

@@ -30,8 +30,24 @@
 */
 
 #include "toolbox/worklist.hpp"
+#include <cassert>
 #include "bitvector.hpp"                // for bv_get_bit, bv_new, etc
 #include "mm/dumpmemory.hpp"            // for DMNEW, DNEW
+
+#if !defined(NDEBUG)
+
+/// define WL_DEBUG_CHECK to activate the bound checks
+// #define WL_DEBUG_CHECK
+
+#endif
+
+#if defined(WL_DEBUG_CHECK)
+#define _WL_CHECK_BOUNDS(i,l,h) assert( ((i) >= (l)) && ((i) < (h)));
+#define _WL_ASSERT(a) assert((a));
+#else
+#define _WL_CHECK_BOUNDS(i,l,h);
+#define _WL_ASSERT(a);
+#endif
 
 /******************************************************************************
 
@@ -50,14 +66,12 @@ IN:     int size    size of worklist
 RETURN: worklist *  new worklist
 *******************************************************************************/
 worklist *wl_new(int size) {
-	worklist *w;
-
-	w = DNEW(worklist);
-	w->W_stack = DMNEW(int, size);
-	w->W_top = 0;
-	w->W_bv = bv_new(size);
+	worklist *w = DNEW(worklist);
+	w->W_stack  = DMNEW(int, size);
+	w->W_top    = 0;
+	w->W_bv     = bv_new(size);
 #ifdef WL_DEBUG_CHECK
-	w->size = size;
+	w->size     = size;
 #endif
 	return w;
 }
@@ -73,8 +87,9 @@ IN:     worklist *w    pointer to worklist created with wl_new
 *******************************************************************************/
 void wl_add(worklist *w, int element) {
 	_WL_CHECK_BOUNDS(element, 0, w->size);
+
 	if (!bv_get_bit(w->W_bv, element)) {
-		_BV_ASSERT((w->W_top < w->size));
+		_WL_ASSERT((w->W_top < w->size));
 		w->W_stack[(w->W_top)++] = element;
 		bv_set_bit(w->W_bv, element);
 	}
@@ -90,10 +105,9 @@ IN:     worklist *w    pointer to worklist created with wl_new
 RETURN  int            an element removed from the worklist
 *******************************************************************************/
 int wl_get(worklist *w) {
-	int element;
-
 	_WL_ASSERT((w->W_top > 0));
-	element = w->W_stack[--(w->W_top)];
+
+	int element = w->W_stack[--(w->W_top)];
 	bv_reset_bit(w->W_bv, element);
 	return element;
 }

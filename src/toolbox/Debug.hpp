@@ -26,13 +26,10 @@
 #define DEBUG_HPP_ 1
 
 #include "config.h"
-
-#ifndef NDEBUG
-
-#ifdef __cplusplus
-
 #include <cstring>
 #include <cassert>
+
+#ifndef NDEBUG
 
 namespace cacao {
 
@@ -80,19 +77,8 @@ struct Debug {
 
 } // end namespace cacao
 
-#endif // end __cplusplus
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void debug_set_current_system(const char *);
-
 int  debug_is_debugging_enabled(const char *);
-
-#ifdef __cplusplus
-}
-#endif
 
 #else
 

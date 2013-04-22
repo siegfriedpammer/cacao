@@ -31,30 +31,6 @@
 #ifndef BITVECTOR_HPP_
 #define BITVECTOR_HPP_ 1
 
-#if !defined(NDEBUG)
-#include <assert.h>
-
-/* define BV_DEBUG_CHECK to activate the bound checks */
-
-/* #define BV_DEBUG_CHECK */
-
-/* no debug messages implemented till now */
-
-/* #define BV_DEBUG_VERBOSE */
-#endif
-
-#if defined(BV_DEBUG_CHECK)
-#define _BV_CHECK_BOUNDS(i,l,h) assert( ((i) >= (l)) && ((i) < (h)));
-#define _BV_ASSERT(a) assert((a));
-#else
-#define _BV_CHECK_BOUNDS(i,l,h);
-#define _BV_ASSERT(a);
-#endif
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef int *bitvector;
 
 /* function prototypes */
@@ -79,10 +55,6 @@ void bv_minus(bitvector d, bitvector s1, bitvector s2, int size);
 /* d = s1 union s2 */
 
 void bv_union(bitvector d, bitvector s1, bitvector s2, int size);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // BITVECTOR_HPP
 
