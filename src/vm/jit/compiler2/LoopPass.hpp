@@ -37,6 +37,7 @@ namespace jit {
 namespace compiler2 {
 
 class BeginInst;
+class LoopSimplificationPass;
 
 class Loop {
 public:
@@ -75,6 +76,7 @@ public:
 			outer_loop->add_inner_loop(this);
 		}
 	}
+	friend class LoopSimplificationPass;
 };
 
 class LoopTree {
@@ -86,6 +88,7 @@ protected:
 	bool reducible;
 	LoopListTy loops;
 	Loop::LoopListTy top_loops;
+	std::map<BeginInst*,Loop*> loop_map;
 public:
 	LoopTree() : reducible(true) {}
 
@@ -108,12 +111,37 @@ public:
 	loop_iterator loop_end() {
 		return top_loops.end();
 	}
+	Loop* get_Loop(BeginInst *BI) const {
+		std::map<BeginInst*,Loop*>::const_iterator it = loop_map.find(BI);
+		if (it == loop_map.end()) {
+			return NULL;
+		}
+		return it->second;
+	}
+	/**
+	 * Test if a loop is a strictly inner loop of another loop.
+	 *
+	 * Note that a loop is not an inner loop of itself!
+	 */
+	bool is_inner_loop(Loop *inner, Loop *outer) const {
+		if (!inner || inner == outer) {
+			return false;
+		}
+		while((inner = inner->get_parent())) {
+			if (inner == outer) {
+				return true;
+			}
+		}
+		return false;
+	}
 	virtual ~LoopTree() {
 		for (LoopListTy::iterator i = loops.begin(), e = loops.end();
 				i != e; ++i) {
 			delete *i;
 		}
 	}
+
+	friend class LoopSimplificationPass;
 };
 
 /**

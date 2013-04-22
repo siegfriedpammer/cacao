@@ -27,7 +27,6 @@
 #include "vm/jit/compiler2/GraphHelper.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
-#include "vm/jit/compiler2/DominatorPass.hpp"
 
 #include <list>
 #include <set>
@@ -385,10 +384,16 @@ bool LoopPass::run(JITData &JD) {
 			LOG("loop[" << w << "] not in a loop" << nl);
 			continue;
 		}
+		loop_map[dfs[w]] = loop;
 		BeginInst *header = loop->get_header();
 		BeginInst *exit = loop->get_exit();
 		LOG("loop[" << w << "]=" << (long) header << " ("<< setw(3) << dfs[header] << ") -> "
 		            << (long) exit << " (" << setw(3) << dfs[exit] << ") " << nl);
+	}
+
+	for(std::map<BeginInst*,Loop*>::iterator i = loop_map.begin(), e = loop_map.end();
+			i != e ; ++i) {
+		LOG("loopmap: " << (long) i->first << " " << (long) i->second << nl);
 	}
 	#if 0
 	LOG("BI:" << (long) *i << " ("<< i.get_index() << ") num succssors: " << successors.size() << nl);

@@ -22,13 +22,18 @@
 
 */
 
+#include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/PassManager.hpp"
+#include "vm/jit/compiler2/PassUsage.hpp"
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-#include "vm/jit/compiler2/Pass.hpp"
-#include "vm/jit/compiler2/PassManager.hpp"
-
+bool Pass::allowed_to_use_result(char &id) const {
+	PassUsage PU;
+	return get_PassUsage(PU).is_required(id);
+}
 
 } // end namespace compiler2
 } // end namespace jit

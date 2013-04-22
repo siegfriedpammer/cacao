@@ -85,10 +85,11 @@ public:
  */
 class BeginInst : public Instruction {
 public:
-	typedef std::vector<BeginInst*> PredecessorListTy;
+	typedef std::list<BeginInst*> PredecessorListTy;
 private:
 	EndInst *end;
 	PredecessorListTy pred_list;
+
 public:
 	explicit BeginInst() : Instruction(BeginInstID, Type::VoidTypeID) {
 		end = NULL;
@@ -131,7 +132,19 @@ public:
 	void append_succ(BeginInst* bi) {
 		assert(bi);
 		succ_list.push_back(bi);
+		assert(begin);
 		bi->pred_list.push_back(begin);
+	}
+	void replace_succ(BeginInst* s_old, BeginInst* s_new) {
+		assert(s_new);
+		// replace the successor of this EndInst with the new block s_new
+		std::replace(succ_list.begin(), succ_list.end(), s_old, s_new);
+		// update pred link of the new BeginInst
+		assert(begin);
+		s_new->pred_list.push_back(begin);
+
+		// remove the predecessor of s_old
+		s_old->pred_list.remove(begin);
 	}
 	SuccessorListTy::const_iterator succ_begin() const { return succ_list.begin(); }
 	SuccessorListTy::const_iterator succ_end()   const { return succ_list.end(); }

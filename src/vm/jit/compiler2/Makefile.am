@@ -37,8 +37,10 @@ libcompiler2_la_SOURCES = \
 	GraphHelper.cpp \
 	Instruction.cpp \
 	LoopPass.cpp \
+	LoopSimplificationPass.cpp \
 	Method.cpp \
 	ParserPass.cpp \
+	Pass.cpp \
 	PassManager.cpp \
 	RegisterAllocatorPass.cpp \
 	SSAConstructionPass.cpp \

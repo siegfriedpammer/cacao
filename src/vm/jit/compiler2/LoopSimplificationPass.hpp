@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/PassUsage.hpp - PassUsage
+/* src/vm/jit/compiler2/LoopSimplificationPass.hpp - LoopSimplificationPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,52 +22,43 @@
 
 */
 
-#ifndef _JIT_COMPILER2_PASSUSAGE
-#define _JIT_COMPILER2_PASSUSAGE
+#ifndef _JIT_COMPILER2_LOOPSIMPLIFICATIONPASS
+#define _JIT_COMPILER2_LOOPSIMPLIFICATIONPASS
 
-#include "vm/jit/compiler2/PassManager.hpp"
+#include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/JITData.hpp"
 
 #include <set>
+#include <map>
+#include <vector>
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+class Loop;
+class LoopTree;
 
 /**
- * PassUsage
- * This is a Container to track dependencies between passes
+ * Split Loop header with multipe backedges
  */
-class PassUsage {
+class LoopSimplificationPass : public Pass {
 private:
-	std::set<PassInfo::IDTy> requires;
-	std::set<PassInfo::IDTy> destroys;
-	std::set<PassInfo::IDTy> modifies;
+	LoopTree *LT;
+	Method *M;
+	void check_loop(Loop *loop) const;
 public:
-	PassUsage() {}
-	void add_requires(char &ID) {
-		requires.insert(&ID);
-	}
-
-	void add_destroys(char &ID) {
-		destroys.insert(&ID);
-	}
-
-	void add_modifies(char &ID) {
-		modifies.insert(&ID);
-	}
-
-	bool is_required(char &ID) const {
-		return requires.find(&ID) != requires.end();
-	}
+	static char ID;
+	LoopSimplificationPass() : Pass() {}
+	bool run(JITData &JD);
+	PassUsage& get_PassUsage(PassUsage &PA) const;
 };
-
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_PASSUSAGE */
+#endif /* _JIT_COMPILER2_LOOPSIMPLIFICATIONPASS */
 
 
 /*

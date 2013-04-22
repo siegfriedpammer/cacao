@@ -46,6 +46,7 @@ class JITData;
 class Pass {
 private:
 	PassManager *pm;
+	bool allowed_to_use_result(char &id) const;
 public:
 	Pass() : pm(NULL) {}
 
@@ -60,6 +61,10 @@ public:
 	 */
 	template<class _PassClass>
 	_PassClass *get_Pass() const {
+		if (!allowed_to_use_result(_PassClass::ID)) {
+			assert(0 && "Not allowed to get result (not declared in get_PassUsage())");
+			return NULL;
+		}
 		return pm->get_Pass_result<_PassClass>();
 	}
 
