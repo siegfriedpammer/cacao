@@ -27,7 +27,9 @@
 #define LLNI_HPP_ 1
 
 #include "config.h"
+#include "vm/global.hpp"
 
+struct classinfo;
 struct threadobject;
 
 /* forward defines ************************************************************/
@@ -141,18 +143,10 @@ struct threadobject;
 # define LLNI_CRITICAL_END_THREAD(t)
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void llni_critical_start();
 void llni_critical_end();
 void llni_critical_start_thread(threadobject *t);
 void llni_critical_end_thread(threadobject *t);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // LLNI_HPP_
 
