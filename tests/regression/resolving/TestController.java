@@ -245,9 +245,9 @@ public class TestController {
 
     public String invokeStringGetter(Class cls, String methodname) {
         try {
-            Method mid = cls.getMethod(methodname, null);
+            Method mid = cls.getMethod(methodname, (Class[]) null);
 
-            String id = (String) mid.invoke(null, null);
+            String id = (String) mid.invoke(null, (Object[]) null);
 
             return id;
         }

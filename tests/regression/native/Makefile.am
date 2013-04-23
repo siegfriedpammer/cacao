@@ -27,37 +27,37 @@ JAVA     = $(top_builddir)/src/cacao/cacao
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
 JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
 
-SOURCE_FILES = \
-	checkjni.java \
+SOURCE_FILES =         \
+	checkjni.java      \
 	testarguments.java
 
-EXTRA_DIST = \
-	$(SOURCE_FILES) \
-	checkjni.c \
-	testarguments.c \
-	\
-	checkjni.output \
+EXTRA_DIST =              \
+	$(SOURCE_FILES)       \
+	checkjni.cpp          \
+	testarguments.cpp     \
+	                      \
+	checkjni.output       \
 	testarguments.output
 
-CLEANFILES = \
-	*.class \
-	*.h \
-	*.so \
-	*.thisoutput \
+CLEANFILES =       \
+	*.class        \
+	*.h            \
+	*.so           \
+	*.thisoutput   \
 	*.this2output
 
 NOTESTNAMES = \
 	test
 
-TESTNAMES = \
-	checkjni \
+TESTNAMES =        \
+	checkjni       \
 	testarguments
 
 check: $(TESTNAMES)
 
 $(TESTNAMES) $(NOTESTNAMES):
 	@$(JAVACCMD) -d . $(srcdir)/$@.java
-	@$(CC) -shared $(AM_CPPFLAGS) $(CPPFLAGS) $(CFLAGS) $(srcdir)/$@.c -o lib$@.so -fPIC
+	@$(CXX) -shared $(AM_CPPFLAGS) $(CPPFLAGS) $(CFLAGS) $(srcdir)/$@.cpp -o lib$@.so -fPIC
 	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs:. $(SHELL) $(srcdir)/../Test.sh "$(JAVACMD)" $@ $(srcdir)
 
 
