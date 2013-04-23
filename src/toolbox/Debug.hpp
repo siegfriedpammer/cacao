@@ -34,25 +34,30 @@
 namespace cacao {
 
 struct Debug {
-	/// True if we should print a prefix
-	///
-	/// Can be set using the -XX:+DebugPrefix command line flag
-	/// @default false
+	/** True if we should print a prefix
+	 *
+	 * Can be set using the -XX:+DebugPrefix command line flag
+	 * @default false
+	 */
 	static bool prefix_enabled;
 
-	/// True if we should print a the thread id
-	///
-	/// Can be set using the -XX:+DebugPrintThread command line flag
-	/// @default false
+	/** True if we should print a the thread id
+	 *
+	 * Can be set using the -XX:+DebugPrintThread command line flag
+	 * @default false
+	 */
 	static bool thread_enabled;
 
-	/// Set the name of system you are interested in debugging
-	///
-	/// can be conviently be set via the command line flag -XX:DebugName
+	/** Set the name of system you are interested in debugging
+	 *
+	 * can be conviently be set via the command line flag -XX:DebugName
+	 */
 	static void set_current_system(const char *system);
 
-	/// Debugging of a sub system is enabled if it's name is a valid prefix
-	/// of the currently set system's name (as set via set_current_system)
+	/**
+	 * Debugging of a sub system is enabled if it's name is a valid prefix
+	 * of the currently set system's name (as set via set_current_system)
+	 */
 	static bool is_debugging_enabled(const char *system, size_t sz);
 
 	inline static bool is_debugging_enabled(const char *system) {
@@ -68,11 +73,12 @@ struct Debug {
 		}                                                    \
 	} while (0)
 
-/// Execute debug statements in your current module.
-///
-/// To use this macro you must define the macro DEBUG_NAME to the
-/// name of your current module (should be a string literal.
-/// Never do this in a header!
+/** Execute debug statements in your current module.
+ *
+ * To use this macro you must define the macro DEBUG_NAME to the
+ * name of your current module (should be a string literal.
+ * Never do this in a header!
+ */
 #define DEBUG(STMT) DEBUG_WITH_NAME(DEBUG_NAME, STMT)
 
 } // end namespace cacao

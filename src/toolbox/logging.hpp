@@ -46,8 +46,10 @@ OStream& dbg();
 
 #ifdef ENABLE_LOGGING
 
-/// Log EXPR to OStream cacao::dbg if debugging is enabled for the given
-/// subsystem.
+/**
+ * Log EXPR to OStream cacao::dbg if debugging is enabled for the given
+ * subsystem.
+ */
 #define LOG_WITH_NAME(DEBUG_NAME, EXPR)                              \
 	do {                                                             \
 		if (cacao::Debug::is_debugging_enabled(DEBUG_NAME)) {        \
@@ -88,7 +90,7 @@ Color log_color();
 
 /* function prototypes ********************************************************/
 
-// TODO: remove, this is just a temporary hack 
+// TODO: remove, this is just a temporary hack
 //       that allows cycle-stats to be printed to the regular log file
 //       so we can run make check with cycle-stats enabled.
 FILE* log_get_logfile();

@@ -81,67 +81,69 @@ class NoBold      {};
 class Underline   {};
 class NoUnderline {};
 
-/// Simple stream class for formatted output
-///
-/// This class is designed for debugging, thus usability trumps performance.
-/// It mostly mimics the iostreams library, but requires no global constructors.
-/// Interally everything is forwarded to stdio
-///
-/// Every new line is prefixed with the id of the current thread and an optional
-/// prefix string.
-/// The stream does not detect if your output contains a '\n' character.
-/// You must use the manipulator #nl instead. It works like std::endl but
-/// does not flush the stream.
-///
-/// Simple examples :
-///   @code
-///		OStream os(stdout);
-///
-///		os << "Hi there, my name is " << bold << "cacao" << nobold             << nl;
-///     os << "I was born in " << 1996                                         << nl;
-///     os << "Test failures are " << underline << red << "BAD" << reset_color << nl;
-///		os                                                                     << nl;
-///	 	os << "Do you like hex? "       << hex       << 255  << dec            << nl;
-///		os << "Or floating point hex? " << float_hex << 17.3 << float_dec      << nl;
-///   @endcode
-///
-/// Unlike a std::iostream you can copy construct an OStream.
-/// A copied OStream will write to the same file but has it's own set of
-/// format flags that you can set independent of the original stream.
-/// But Colors, bold and underline are shared by all streams for a file,
-/// because they are stored in the underlying terminal.
-///	You should not write nl to the copied stream since the original will not
-/// detect the newline.
-///
-/// Example:
-///  @code
-///		struct MyLittlePony {
-///			const char *name;
-///         Color       color;
-///		};
-///
-///		OStream& operator<<(OStream& os, const MyLittlePony& mlp) {
-///			OStream os2 = os; // new stream with new flags
-///
-///			os2 << mlp.color;
-///			os2 << "My little pony is called " << setw(20) << right << mlp.name;
-///			os2 << hex;
-///
-///			// Forgot to unset hex for os2: no problem, hex flag is not shared
-///			// Forgot to unset color: big problem, colors are shared!
-///
-///			return os; // always return original stream
-///		}
-///  @endcode
+/** Simple stream class for formatted output
+ *
+ * This class is designed for debugging, thus usability trumps performance.
+ * It mostly mimics the iostreams library, but requires no global constructors.
+ * Interally everything is forwarded to stdio
+ *
+ * Every new line is prefixed with the id of the current thread and an optional
+ * prefix string.
+ * The stream does not detect if your output contains a '\n' character.
+ * You must use the manipulator #nl instead. It works like std::endl but
+ * does not flush the stream.
+ *
+ * Simple examples :
+ *   @code
+ *		OStream os(stdout);
+ *
+ *		os << "Hi there, my name is " << bold << "cacao" << nobold             << nl;
+ *     os << "I was born in " << 1996                                         << nl;
+ *     os << "Test failures are " << underline << red << "BAD" << reset_color << nl;
+ *		os                                                                     << nl;
+ *	 	os << "Do you like hex? "       << hex       << 255  << dec            << nl;
+ *		os << "Or floating point hex? " << float_hex << 17.3 << float_dec      << nl;
+ *   @endcode
+ *
+ * Unlike a std::iostream you can copy construct an OStream.
+ * A copied OStream will write to the same file but has it's own set of
+ * format flags that you can set independent of the original stream.
+ * But Colors, bold and underline are shared by all streams for a file,
+ * because they are stored in the underlying terminal.
+ *	You should not write nl to the copied stream since the original will not
+ * detect the newline.
+ *
+ * Example:
+ *  @code
+ *		struct MyLittlePony {
+ *			const char *name;
+ *         Color       color;
+ *		};
+ *
+ *		OStream& operator<<(OStream& os, const MyLittlePony& mlp) {
+ *			OStream os2 = os; // new stream with new flags
+ *
+ *			os2 << mlp.color;
+ *			os2 << "My little pony is called " << setw(20) << right << mlp.name;
+ *			os2 << hex;
+ *
+ *			// Forgot to unset hex for os2: no problem, hex flag is not shared
+ *			// Forgot to unset color: big problem, colors are shared!
+ *
+ *			return os; // always return original stream
+ *		}
+ *  @endcode
+ */
 class OStream {
 public:
 	/// create a new stream with default flags
 	OStream(FILE *file);
 
-	/// copy stream
-	///
-	/// creates a new stream with the same file
-	/// but default
+	/** copy stream
+	 *
+	 * creates a new stream with the same file
+	 * but default
+	 */
 	OStream(const OStream&);
 
 	OStream& operator<<(char);
@@ -227,51 +229,58 @@ private:
 
 	// ********** format flags
 
-	/// padding for next write
-	///
-	/// ! width is reset to zero by all standard write operations !
-	///
-	/// default value is 0
+	/** padding for next write
+	 *
+	 * ! width is reset to zero by all standard write operations !
+	 *
+	 * default value is 0
+	 */
 	size_t width;
 
-	/// Alignment to use when padding text
-	///
-	/// default value is OStream::Align_right
+	/** Alignment to use when padding text
+	 *
+	 * default value is OStream::Align_right
+	 */
 	enum {
 		Align_left,
 		Align_right
 	} align;
 
-	/// format used to print integer types
-	///
-	/// default value is \link OStream::IntegerFormat::IntFmt_decimal decimal \endlink
+	/** format used to print integer types
+	 *
+	 * default value is \link OStream::IntegerFormat::IntFmt_decimal decimal \endlink
+	 */
 	IntegerFormat int_fmt;
 
-	/// format used to print floating point types
-	///
-	/// default value is \link OStream::FloatFormat::FloatFmt_decimal decimal \endlink
+	/** format used to print floating point types
+	 *
+	 * default value is \link OStream::FloatFormat::FloatFmt_decimal decimal \endlink
+	 */
 	FloatFormat float_fmt;
 
-	/// indentation level
-	///
-	/// every new line will start with OStream::Flags::indent_lvl * 4 spaces
-	///
-	/// default value is 0
+	/** indentation level
+	 *
+	 * every new line will start with OStream::Flags::indent_lvl * 4 spaces
+	 *
+	 * default value is 0
+	 */
 	size_t indent_lvl;
 
-	/// line prefix
-	///
-	/// ignored if NULL
-	/// will be printed at start of every new line
-	///
-	/// default value is NULL
+	/** line prefix
+	 *
+	 * ignored if NULL
+	 * will be printed at start of every new line
+	 *
+	 * default value is NULL
+	 */
 	const char *prefix;
 
-	/// color line prefix is printed in
-	///
-	/// ignored if negative
-	///
-	/// default value is -1
+	/** color line prefix is printed in
+	 *
+	 * ignored if negative
+	 *
+	 * default value is -1
+	 */
 	Color prefix_color;
 
 	friend class Logging;
