@@ -37,8 +37,6 @@ struct methodinfo;
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-
 java_handle_t *exceptions_get_exception(void);
 void           exceptions_set_exception(java_handle_t *o);
 void           exceptions_clear_exception(void);
@@ -54,8 +52,7 @@ extern "C" java_object_t *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra)
 
 void exceptions_throw_abstractmethoderror(void);
 void exceptions_throw_classcircularityerror(classinfo *c);
-// TODO: remove 'extern "C"', still used by vm/stackmap.c
-extern "C" void exceptions_throw_classformaterror(classinfo *c, const char *message, ...);
+void exceptions_throw_classformaterror(classinfo *c, const char *message, ...);
 void exceptions_throw_classnotfoundexception(Utf8String name);
 void exceptions_throw_noclassdeffounderror(Utf8String name);
 void exceptions_throw_noclassdeffounderror_cause(java_handle_t *cause);
@@ -67,12 +64,10 @@ void exceptions_throw_exceptionininitializererror(java_handle_t *cause);
 void exceptions_throw_incompatibleclasschangeerror(classinfo *c,
 												   const char *message);
 void exceptions_throw_instantiationerror(classinfo *c);
-// TODO: remove 'extern "C"', still used by vm/jit/stack.c, vm/jit/allocator/*.c 
-extern "C" void exceptions_throw_internalerror(const char *message, ...);
+void exceptions_throw_internalerror(const char *message, ...);
 void exceptions_throw_outofmemoryerror(void);
-// TODO: remove 'extern "C"', still used by vm/jit/stack.c
-extern "C" void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...);
-extern "C" void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type);
+void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...);
+void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type);
 void exceptions_throw_unsatisfiedlinkerror(Utf8String name);
 void exceptions_throw_unsupportedclassversionerror(classinfo *c, u4 ma, u4 mi);
 
@@ -105,8 +100,6 @@ void exceptions_print_current_exception(void);
 void exceptions_print_stacktrace(void);
 
 extern "C" void *exceptions_handle_exception(java_object_t *xptro, void *xpc, void *pv, void *sp);
-
-#endif
 
 #endif // EXCEPTIONS_HPP_
 

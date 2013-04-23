@@ -146,11 +146,7 @@ struct methoddesc {
 
 #define METHODDESC_NOPARAMS  ((paramdesc*)1)
 
-#ifdef __cplusplus
-
 /* function prototypes ********************************************************/
-
-extern "C" {
 
 descriptor_pool * descriptor_pool_new(classinfo *referer);
 
@@ -181,9 +177,6 @@ void descriptor_debug_print_methoddesc(FILE *file,methoddesc *d);
 void descriptor_debug_print_paramdesc(FILE *file,paramdesc *d);
 void descriptor_pool_debug_dump(descriptor_pool *pool, FILE *file);
 #endif /* !defined(NDEBUG) */
-
-}
-#endif /* __cplusplus */
 
 #endif // DESCRIPTOR_HPP_
 

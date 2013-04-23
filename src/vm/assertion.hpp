@@ -44,11 +44,7 @@ struct assertion_name_t {
 
 /* -ea/-esa/-da/-dsa options **************************************************/
 
-#ifdef __cplusplus
-extern List<assertion_name_t*>*   list_assertion_names;
-#else
-extern List*   list_assertion_names;
-#endif
+extern List<assertion_name_t*> *list_assertion_names;
 
 extern int32_t assertion_class_count;
 extern int32_t assertion_package_count;
@@ -57,15 +53,7 @@ extern bool    assertion_system_enabled;
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void assertion_ea_da(const char *name, bool enabled);
-
-#ifdef __cplusplus
-} // extern "C"
-#endif
 
 #endif // _ASSERTION_HPP
 

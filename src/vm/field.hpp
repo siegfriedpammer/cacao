@@ -68,10 +68,6 @@ struct fieldinfo {	      /* field of a class                                 */
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 bool       field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool);
 classinfo *field_get_type(fieldinfo *f);
 void       field_free(fieldinfo *f);
@@ -84,10 +80,6 @@ void field_print(fieldinfo *f);
 void field_println(fieldinfo *f);
 void field_fieldref_print(constant_FMIref *fr);
 void field_fieldref_println(constant_FMIref *fr);
-#endif
-
-#ifdef __cplusplus
-}
 #endif
 
 #endif /* _FIELD_HPP */

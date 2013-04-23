@@ -105,19 +105,10 @@
     CYCLES_STATS_COUNT(ovname, cycles_overhead - cycles_start);             \
     CYCLES_STATS_COUNT(name, cycles_end - cycles_overhead);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void cycles_stats_print(FILE *file,
 					    const char *name, int nbins, int div,
 					    u4 *bins, u8 count, u8 total, u8 min, u8 max,
 						int overhead);
-
-#ifdef __cplusplus
-}
-#endif
-
 
 #else /* !defined(ENABLE_CYCLES_STATS) */
 

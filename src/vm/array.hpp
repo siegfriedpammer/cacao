@@ -27,21 +27,22 @@
 #ifndef ARRAY_HPP_
 #define ARRAY_HPP_ 1
 
-#include "config.h"
-
-#include <stdint.h>
-
-#include "mm/gc.hpp" // XXX Remove me!
-
-#include "native/llni.hpp" // XXX Remove me!
-
+#include <assert.h>                     // for assert
+#include <stdint.h>                     // for int32_t, int8_t, int16_t, etc
+#include <stdio.h>                      // for NULL, printf
+#include "config.h"                     // for ENABLE_THREADS
+#include "linker.hpp"                   // for arraydescriptor
+#include "mm/gc.hpp"                    // for GCCriticalSection, etc
+#include "native/llni.hpp"              // for LLNI_vftbl_direct
 #include "threads/lockword.hpp"         // for Lockword
-#include "vm/class.hpp"
+#include "types.hpp"                    // for u4
+#include "vftbl.hpp"                    // for vftbl_t
+#include "vm/class.hpp"                 // for classinfo, class_is_array
 #include "vm/exceptions.hpp"
-#include "vm/global.hpp"
-#include "vm/primitive.hpp"
-#include "vm/os.hpp"
-#include "vm/jit/builtin.hpp"
+#include "vm/global.hpp"                // for java_handle_t, java_array_t, etc
+#include "vm/jit/builtin.hpp"           // for builtin_canstore
+#include "vm/os.hpp"                    // for os
+#include "vm/primitive.hpp"             // for primitivetypeinfo, etc
 
 /* array types ****************************************************************/
 
@@ -58,9 +59,6 @@
 #define ARRAYTYPE_SHORT       PRIMITIVETYPE_SHORT
 #define ARRAYTYPE_BOOLEAN     PRIMITIVETYPE_BOOLEAN
 #define ARRAYTYPE_OBJECT      PRIMITIVETYPE_VOID     /* don't use as index! */
-
-
-#ifdef __cplusplus
 
 /**
  * This is a generic accessor class for Java arrays (of unspecified type),
@@ -377,11 +375,6 @@ public:
 	ClassArray(int32_t length);
 	classinfo** get_raw_data_ptr() { return (classinfo**) ((java_objectarray_t*) get_handle())->data; }
 };
-
-
-#else
-# warning No legacy C functions for array access classes.
-#endif
 
 #endif // ARRAY_HPP_
 

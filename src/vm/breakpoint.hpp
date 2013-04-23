@@ -28,10 +28,8 @@
 
 #include "config.h"
 
-#ifdef __cplusplus
 #include <cassert>
 #include <map>
-
 
 /**
  * This structure contains information about a breakpoint. Feel
@@ -97,11 +95,6 @@ inline void BreakpointTable::remove_breakpoint(int32_t location)
 	assert(contains(location));
 	_breakpoints.erase(location);
 }
-
-
-#else // __cplusplus
-typedef struct BreakpointTable BreakpointTable;
-#endif // __cplusplus
 
 #endif /* _BREAKPOINT_HPP */
 

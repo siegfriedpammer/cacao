@@ -34,8 +34,6 @@
 struct classinfo;
 class Mutex;
 
-#ifdef __cplusplus
-
 /* arraydescriptor *************************************************************
 
    For every array class an arraydescriptor is allocated which
@@ -82,20 +80,7 @@ void       linker_init(void);
 void linker_create_string_later(java_object_t **a, Utf8String u);
 void linker_initialize_deferred_strings();
 
-#endif /* __cplusplus */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-// TODO: remove 'extern "C"', this is used in an inline function in 
-//       class.hpp (class_is_array) and thus visible to all machine code emitters
 classinfo *link_class(classinfo *c);
-
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
-
 
 #endif // LINKER_HPP_
 

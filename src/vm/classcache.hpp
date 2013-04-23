@@ -38,8 +38,6 @@
 
 struct classinfo;
 
-#ifdef __cplusplus
-
 /* forward declarations *******************************************************/
 
 typedef struct classcache_name_entry classcache_name_entry;
@@ -145,8 +143,6 @@ void classcache_foreach_loaded_class(classcache_foreach_functionptr_t func,
 #ifndef NDEBUG
 void classcache_debug_dump(FILE *file,Utf8String only);
 #endif
-
-#endif /* __cplusplus */
 
 #endif // CLASSCACHE_HPP_
 

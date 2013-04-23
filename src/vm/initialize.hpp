@@ -26,22 +26,12 @@
 #ifndef INITIALIZE_HPP_
 #define INITIALIZE_HPP_ 1
 
-#include "config.h"
-
 struct classinfo;
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /* function prototypes ********************************************************/
 
 void initialize_init(void);
 bool initialize_class(classinfo *c);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // INITIALIZE_HPP_
 

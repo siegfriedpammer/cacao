@@ -47,9 +47,6 @@
 
 #include "vm/array.hpp"
 
-
-#ifdef __cplusplus
-
 /**
  * This class provides low-level functions to access Java object
  * instance fields.
@@ -3015,8 +3012,6 @@ inline void java_lang_Throwable::set_backtrace(java_handle_bytearray_t* value)
 }
 
 #endif // WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1
-
-#endif
 
 #endif // JAVAOBJECTS_HPP_
 

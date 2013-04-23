@@ -114,11 +114,6 @@ struct descriptor_hash_entry {
 				if ((utf_ptr)[-1] != ';')								\
 					(errorflag) = true; }} while(0)
 
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 /****************************************************************************/
 /* DEBUG HELPERS                                                            */
 /****************************************************************************/
@@ -1362,10 +1357,6 @@ descriptor_pool_debug_dump(descriptor_pool *pool,FILE *file)
 	fprintf(file,"==========================================================\n");
 }
 #endif /* !defined(NDEBUG) */
-
-#if defined(__cplusplus)
-}
-#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

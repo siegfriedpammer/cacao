@@ -177,9 +177,6 @@ struct extra_classref {
 	constant_classref  classref;
 };
 
-
-#ifdef __cplusplus
-
 /* function prototypes ********************************************************/
 
 classinfo *class_create_classinfo(Utf8String u);
@@ -188,6 +185,8 @@ classinfo *class_define(Utf8String name, classloader_t *cl, int32_t length, uint
 void       class_set_packagename(classinfo *c);
 
 bool       class_load_attributes(classbuffer *cb);
+
+bool       class_initializing_thread_is_self(classinfo *c);
 
 /* retrieve constantpool element */
 void* class_getconstant(classinfo *c, u4 pos, u4 ctype);
@@ -425,26 +424,10 @@ static inline classinfo *class_get_superclass(classinfo *c)
 	return c->super;
 }
 
-//#ifdef __cplusplus
-//}
-#endif // __cplusplus
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-// TODO: used by code generators which are still in C, move to C++
-
-bool class_initializing_thread_is_self(classinfo *c);
-
 static inline bool class_is_or_almost_initialized(classinfo *c) {
    return ((c)->state & CLASS_INITIALIZED) 
 	   || ((c)->state & CLASS_INITIALIZING && class_initializing_thread_is_self((c)));
 }
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // CLASS_HPP_
 

@@ -32,12 +32,6 @@
 
 #include "vm/class.hpp"
 
-
-// FIXME For now we export them a C symbols.
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 // Classes.
 
 /* Important system classes. */
@@ -140,10 +134,6 @@ extern classinfo *class_sun_reflect_annotation_AnnotationParser;
 extern classinfo *pseudo_class_Arraystub;
 extern classinfo *pseudo_class_Null;
 extern classinfo *pseudo_class_New;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // _GLOBALS_HPP
 
