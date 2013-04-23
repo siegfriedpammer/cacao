@@ -24,6 +24,9 @@
 
 #include "toolbox/Debug.hpp"
 
+// TODO conditional Makefile.am
+#ifdef ENABLE_LOGGING
+
 using namespace cacao;
 
 static const char *current_system_name      = NULL;
@@ -51,6 +54,8 @@ void debug_set_current_system(const char *cs) {
 int  debug_is_debugging_enabled(const char *cs) {
 	return cacao::Debug::is_debugging_enabled(cs);
 }
+
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

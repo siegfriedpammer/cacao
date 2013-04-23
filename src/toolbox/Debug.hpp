@@ -29,7 +29,7 @@
 #include <cstring>
 #include <cassert>
 
-#ifndef NDEBUG
+#ifdef ENABLE_LOGGING
 
 namespace cacao {
 
