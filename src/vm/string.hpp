@@ -26,8 +26,6 @@
 #ifndef STRING_HPP_
 #define STRING_HPP_ 1
 
-#ifdef __cplusplus
-
 #include "config.h"
 
 #include "vm/types.hpp"
@@ -93,8 +91,6 @@ class JavaString {
 	private:
 		java_handle_t *str;
 };
-
-#endif /* __cplusplus */
 
 #endif // STRING_HPP_
 

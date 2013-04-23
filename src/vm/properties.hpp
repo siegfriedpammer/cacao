@@ -26,14 +26,9 @@
 #ifndef PROPERTIES_HPP_
 #define PROPERTIES_HPP_
 
-#include "config.h"
-
-#ifdef __cplusplus
-
-#include <map>
-
+#include <map>                          // for map
 #include "global.hpp"                   // for java_handle_t
-#include "vm/os.hpp"
+#include "vm/os.hpp"                    // for os
 
 class ltstr {
 public:
@@ -69,7 +64,6 @@ public:
 #endif
 };
 
-#endif
 
 #endif // PROPERTIES_HPP_
 

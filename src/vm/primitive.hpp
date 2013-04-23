@@ -59,7 +59,6 @@ struct classinfo;
 #define PRIMITIVETYPE_DUMMY2  9            /* not used! */
 #define PRIMITIVETYPE_VOID    TYPE_VOID
 
-#ifdef __cplusplus
 
 class Primitive {
 public:
@@ -123,7 +122,6 @@ extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
 void       primitive_init(void);
 void       primitive_postinit(void);
 
-#endif // __cplusplus
 
 #endif // PRIMITIVE_HPP_
 

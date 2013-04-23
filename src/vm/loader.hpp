@@ -54,8 +54,6 @@ typedef hashtable_classloader_entry classloader_t;
 typedef java_object_t               classloader_t;
 #endif
 
-#ifdef __cplusplus
-
 /* constant pool entries *******************************************************
 
 	All constant pool entries need a data structure which contain the entrys
@@ -158,8 +156,6 @@ classinfo *load_class_bootstrap(Utf8String name);
 /* (don't use the following directly) */
 classinfo *load_class_from_classbuffer(classbuffer *cb);
 classinfo *load_newly_created_array(classinfo *c, classloader_t *loader);
-
-#endif // __cplusplus
 
 #endif // LOADER_HPP_
 

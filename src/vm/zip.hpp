@@ -36,8 +36,6 @@
 
 struct classinfo;
 
-#ifdef __cplusplus
-
 /* Local file header ***********************************************************
 
    local file header signature     4 bytes  (0x04034b50)
@@ -93,7 +91,6 @@ hashtable               *zip_open(char *path);
 hashtable_zipfile_entry *zip_find(list_classpath_entry *lce, Utf8String u);
 classbuffer             *zip_get(list_classpath_entry *lce, classinfo *c);
 
-#endif /* __cplusplus */
 
 #endif // ZIP_HPP_
 

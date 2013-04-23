@@ -50,8 +50,6 @@
 
 struct methodinfo;
 
-#ifdef __cplusplus
-
 /**
  * Represent an instance of a VM.
  */
@@ -131,23 +129,9 @@ private:
 	bool start_runtime_agents();
 };
 
-#else
-
-JNIEnv* VM_get_jnienv();
-
-#endif
-
 /* These C methods are the exported interface. ********************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-bool VM_create(JavaVM** p_vm, void** p_env, void* vm_args);
-
-#ifdef __cplusplus
-}
-#endif
+extern "C" bool VM_create(JavaVM** p_vm, void** p_env, void* vm_args);
 
 
 /* export global variables ****************************************************/
@@ -159,9 +143,7 @@ extern uint8_t* intrp_main_stack;
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
 extern "C" {
-#endif
 
 void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args);
 int32_t   vm_destroy(JavaVM *vm);
@@ -202,9 +184,7 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o, java_
 // Legacy C interface.
 void vm_abort(const char* text, ...);
 
-#ifdef __cplusplus
-}
-#endif
+} // extern "C"
 
 #endif // _VM_HPP
 

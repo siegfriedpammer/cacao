@@ -115,8 +115,6 @@ struct unresolved_method {
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-
 void resolve_handle_pending_exception(bool throwError);
 
 bool resolve_class_from_name(classinfo* referer,methodinfo *refmethod,
@@ -251,14 +249,6 @@ void unresolved_method_debug_dump(unresolved_method *ref,FILE *file);
 void unresolved_subtype_set_debug_dump(unresolved_subtype_set *stset,FILE *file);
 #endif
 
-#endif /* __cplusplus */
-
-/* functions still used by C code (the JIT) */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 classinfo  *resolve_classref_eager(constant_classref *ref);
 classinfo  *resolve_classref_eager_nonabstract(constant_classref *ref);
 fieldinfo  *resolve_field_eager(unresolved_field *ref);
@@ -267,10 +257,6 @@ methodinfo *resolve_method_eager(unresolved_method *ref);
 #ifdef ENABLE_VERIFIER
 classinfo *resolve_class_eager(unresolved_class *ref);
 classinfo *resolve_class_eager_no_access_check(unresolved_class *ref);
-#endif
-
-#ifdef __cplusplus
-}
 #endif
 
 #endif // RESOLVE_HPP_

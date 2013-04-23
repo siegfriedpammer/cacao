@@ -28,10 +28,6 @@
 
 #include "config.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <signal.h>
 
 #include "vm/global.hpp"
@@ -75,10 +71,6 @@ void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p);
 #endif
 
 void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _CACAO_SIGNAL_H */
 

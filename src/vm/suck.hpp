@@ -27,10 +27,7 @@
 #define SUCK_HPP_ 1
 
 #include "config.h"
-
-#ifdef __cplusplus
 #include <list>
-#endif
 
 #include "vm/types.hpp"
 
@@ -58,9 +55,6 @@ typedef struct list_classpath_entry {
 #endif
 } list_classpath_entry;
 
-
-#ifdef __cplusplus
-
 /**
  * Classpath entries list.
  */
@@ -76,8 +70,6 @@ public:
 	using std::list<list_classpath_entry*>::begin;
 	using std::list<list_classpath_entry*>::end;
 };
-
-#endif
 
 /* macros to read LE and BE types from a buffer ********************************
 
@@ -167,10 +159,6 @@ public:
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 bool suck_check_classbuffer_size(classbuffer *cb, s4 len);
 
 u1 suck_u1(classbuffer *cb);
@@ -187,10 +175,6 @@ void suck_skip_nbytes(classbuffer *cb, s4 len);
 classbuffer *suck_start(classinfo *c);
 
 void suck_stop(classbuffer *cb);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // SUCK_HPP_
 

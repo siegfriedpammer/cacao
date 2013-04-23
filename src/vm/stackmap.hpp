@@ -204,17 +204,9 @@ union stack_map_frame_t {
 	full_frame_t                              full_frame;
 };
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 /* function prototypes ********************************************************/
 
 bool stackmap_load_attribute_stackmaptable(classbuffer *cb, methodinfo *m);
-
-#if defined(__cplusplus)
-}
-#endif
 
 #endif // STACKMAP_HPP_
 

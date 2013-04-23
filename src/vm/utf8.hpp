@@ -35,15 +35,7 @@
 
 #include "vm/types.hpp"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-	typedef struct utf utf;
-#ifdef __cplusplus
-}
-#endif
-
-#ifdef __cplusplus
+struct utf;
 
 /* Utf8String ******************************************************************
 
@@ -225,8 +217,6 @@ OStream& operator<<(OStream& os, const Utf8String &u);
 
 }
 
-#endif /* __cplusplus */
-
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 // LEGACY C API
@@ -238,10 +228,6 @@ OStream& operator<<(OStream& os, const Utf8String &u);
 #define UTF_END(u)     utf8_end(u)
 #define UTF_SIZE(u)    utf8_size(u)
 #define UTF_HASH(u)    utf8_hash(u)
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 extern const char *utf8_text(utf*);
 extern const char *utf8_end(utf*);
@@ -255,10 +241,6 @@ void utf_sprint_convert_to_latin1_classname(char *buffer, utf *u);
 
 void utf_strcat_convert_to_latin1(char *buffer, utf *u);
 void utf_strcat_convert_to_latin1_classname(char *buffer, utf *u);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // UTF8_HPP_
 

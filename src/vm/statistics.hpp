@@ -231,10 +231,6 @@ extern s4 count_schedule_critical_path;
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 s8 getcputime(void);
 
 void loadingtime_start(void);
@@ -254,10 +250,6 @@ void mem_usagelog(bool givewarnings);
 void compiledinvokation(void);
 void jnicallXmethodnvokation(void);
 void jniinvokation(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* ENABLE_STATISTICS */
 

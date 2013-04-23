@@ -70,11 +70,6 @@
 methodinfo *method_java_lang_reflect_Method_invoke;
 
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-
 /* method_init *****************************************************************
 
    Initialize method subsystem.
@@ -1265,9 +1260,6 @@ void method_methodref_println(constant_FMIref *mr)
 }
 #endif /* !defined(NDEBUG) */
 
-#if defined(__cplusplus)
-}
-#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

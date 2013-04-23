@@ -119,9 +119,6 @@
 # include <sys/utsname.h>
 #endif
 
-
-#ifdef __cplusplus
-
 // Class wrapping system (OS) functions.
 class os {
 public:
@@ -689,19 +686,6 @@ inline static ssize_t system_write(int fd, const void *buf, size_t count)
 # error write not available
 #endif
 }
-
-#else
-
-void*  os_mmap_anonymous(void *addr, size_t len, int prot, int flags);
-
-int    os_atoi(const char* nptr);
-int    os_getpagesize(void);
-void*  os_memcpy(void* dest, const void* src, size_t n);
-void*  os_memset(void* s, int c, size_t n);
-char*  os_strdup(const char* s);
-int    os_strlen(const char* s);
-
-#endif
 
 #endif // OS_HPP_
 

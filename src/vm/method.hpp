@@ -177,10 +177,6 @@ struct localvarinfo {
 extern methodinfo *method_java_lang_reflect_Method_invoke;
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* inline functions ***********************************************************/
 
 inline static bool method_is_builtin(methodinfo* m)
@@ -223,9 +219,6 @@ void method_methodref_print(constant_FMIref *mr);
 void method_methodref_println(constant_FMIref *mr);
 #endif
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // METHOD_HPP_
 
