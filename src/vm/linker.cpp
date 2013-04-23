@@ -54,6 +54,7 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.hpp"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/stubs.hpp"
 
 #include <vector>

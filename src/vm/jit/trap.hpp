@@ -58,11 +58,6 @@ enum {
 	TRAP_SIGEND
 };
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* Include machine dependent trap stuff. */
 
 #include "md-trap.hpp"
@@ -71,13 +66,10 @@ extern "C" {
 /* function prototypes ********************************************************/
 
 void trap_init(void);
+
 void trap_handle(int sig, void* xpc, void* context);
 
 bool md_trap_decode(trapinfo_t* trp, int sig, void* xpc, executionstate_t* es);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // TRAP_HPP_
 

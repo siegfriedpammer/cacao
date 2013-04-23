@@ -36,6 +36,7 @@
 #include "vm/jit/verify/typeinfo.hpp"
 
 struct basicblock;
+struct jitdata;
 
 /************************* pseudo variable structure **************************/
 
@@ -125,15 +126,7 @@ struct registerdata {
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void reg_setup(jitdata *jd);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // REG_HPP_
 

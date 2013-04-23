@@ -53,6 +53,7 @@
 #include "vm/method.hpp"
 #include "vm/options.hpp"
 #include "vm/os.hpp"
+#include "vm/resolve.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 

@@ -26,18 +26,13 @@
 #ifndef DSEG_HPP_
 #define DSEG_HPP_ 1
 
-/* forward typedefs ***********************************************************/
-
-typedef struct dsegentry dsegentry;
-
-
 #include "config.h"
+#include "vm/global.hpp"
 #include "vm/types.hpp"
 
-#include "vm/jit/codegen-common.hpp"
-
-struct jitdata;
 struct basicblock;
+struct codegendata;
+struct jitdata;
 
 /* convenience macros *********************************************************/
 
@@ -61,10 +56,6 @@ struct dsegentry {
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void dseg_finish(jitdata *jd);
 
 s4 dseg_add_unique_s4(codegendata *cd, s4 value);
@@ -75,7 +66,8 @@ s4 dseg_add_unique_address(codegendata *cd, void *value);
 
 s4 dseg_add_s4(codegendata *cd, s4 value);
 s4 dseg_add_s8(codegendata *cd, s8 value);
-s4 dseg_add_float(codegendata *cd, float value);
+// TODO: something expects this to be declared with C linkage, why?
+extern "C" s4 dseg_add_float(codegendata *cd, float value);
 s4 dseg_add_double(codegendata *cd, double value);
 s4 dseg_add_address(codegendata *cd, void *value);
 
@@ -91,9 +83,6 @@ void dseg_resolve_datareferences(jitdata *jd);
 void dseg_display(jitdata *jd);
 #endif
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // DSEG_HPP_
 

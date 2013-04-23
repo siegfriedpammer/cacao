@@ -45,15 +45,15 @@ struct patchref_t;
 #include "vm/descriptor.hpp"
 #include "vm/global.hpp"
 
-#include "vm/jit/dseg.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/reg.hpp"
 #include "vm/jit/code.hpp"
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/replace.hpp"
 
-struct varinfo;
+struct dsegentry;
 struct methodinfo;
+struct varinfo;
 
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */
 #define DSEGINITSIZE  (1<<12)       /*  4 Kbyte data area initialization size */
@@ -143,14 +143,8 @@ struct codegendata {
 	dataref        *datareferences; /* list of data segment references        */
 #endif
 
-#ifdef __cplusplus
 	DumpList<branch_label_ref_t*>* brancheslabel;
 	DumpList<Linenumber>* linenumbers; ///< List of line numbers.
-#else
-	// REMOVEME
-	DumpList* brancheslabel;
-	DumpList* linenumbers;
-#endif
 
 	methodinfo     *method;
 
@@ -215,10 +209,6 @@ struct dataref {
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void codegen_init(void);
 void codegen_setup(jitdata *jd);
 
@@ -275,10 +265,6 @@ void codegen_emit_phi_moves(jitdata *jd, basicblock *bptr);
 // REMOVEME
 void codegen_emit_stub_compiler(jitdata *jd);
 void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int skipparams);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // CODEGEN_COMMON_HPP_
 

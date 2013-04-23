@@ -89,9 +89,7 @@ struct builtintable_entry {
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
 extern "C" {
-#endif
 
 bool builtin_init(void);
 
@@ -344,9 +342,7 @@ s8 builtin_currenttimemillis(void);
 void builtin_print_cycles_stats(FILE *file);
 #endif
 
-#ifdef __cplusplus
-}
-#endif
+} // extern "C"
 
 #endif // _BUILTIN_HPP
 

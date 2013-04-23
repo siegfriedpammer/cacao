@@ -26,17 +26,13 @@
 #ifndef STACK_HPP_
 #define STACK_HPP_ 1
 
-/* forward typedefs ***********************************************************/
-
-typedef struct stackelement_t stackelement_t;
-
-
 #include "config.h"
-
 #include "vm/types.hpp"
-
 #include "vm/jit/reg.hpp"
 
+/* forward typedefs ***********************************************************/
+
+struct stackelement_t;
 
 /* stack element structure ****************************************************/
 
@@ -131,19 +127,11 @@ struct stackelement_t {
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 bool stack_init(void);
 
 bool stack_analyse(jitdata *jd);
 
 void stack_javalocals_store(instruction *iptr, s4 *javalocals);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // STACK_HPP_
 

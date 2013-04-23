@@ -94,9 +94,7 @@ extern s4   disass_len;
 
 /* function prototypes *******************************************************/
 
-#ifdef __cplusplus
 extern "C" {
-#endif
 
 #if defined(ENABLE_JIT)
 void disassemble(u1 *start, u1 *end);
@@ -119,9 +117,7 @@ u1 *intrp_disassinstr(u1 *code);
 void intrp_disassemble(u1 *start, u1 *end);
 #endif
 
-#ifdef __cplusplus
 } // extern "C"
-#endif
 
 #endif /* defined(ENABLE_DISASSEMBLER) */
 

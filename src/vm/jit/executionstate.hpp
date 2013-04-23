@@ -75,10 +75,6 @@ struct executionstate_t {
 
 /* prototypes *****************************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void executionstate_pop_stackframe(executionstate_t *es);
 
 void executionstate_unwind_exception(executionstate_t* es, java_handle_t* e);
@@ -92,10 +88,6 @@ void executionstate_println(executionstate_t *es);
 
 void md_executionstate_read(executionstate_t *es, void *ucontext);
 void md_executionstate_write(executionstate_t *es, void *ucontext);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // EXECUTIONSTATE_HPP_
 

@@ -31,8 +31,6 @@
 
 struct methodinfo;
 
-#ifdef __cplusplus
-
 /**
  * Class for compiler stub generation.
  */
@@ -66,8 +64,6 @@ public:
 
 // Include machine dependent implementation.
 #include "md-stubs.hpp"
-
-#endif
 
 #endif // _STUBS_HPP
 

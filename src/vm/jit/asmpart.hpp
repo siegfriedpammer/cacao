@@ -38,9 +38,7 @@
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
 extern "C" {
-#endif
 
 /* machine dependent initialization */
 s4   asm_md_init(void);
@@ -108,9 +106,7 @@ void *md_asm_codegen_get_pv_from_pc(void *ra);
 void asm_escape_check(java_object_t *obj);
 #endif
 
-#ifdef __cplusplus
 } // extern "C"
-#endif
 
 #endif // _ASMPART_HPP_
 

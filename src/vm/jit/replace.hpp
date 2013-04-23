@@ -26,8 +26,23 @@
 #ifndef REPLACE_HPP_
 #define REPLACE_HPP_ 1
 
-#include "config.h"
-#include "vm/types.hpp"
+#include <stddef.h>                     // for NULL
+#include "config.h"                     // for ENABLE_JIT, etc
+#include "arch.hpp"                     // for HAS_ADDRESS_REGISTER_FILE
+#include "md-abi.hpp"                   // for FLT_REG_CNT, INT_SAV_CNT
+#include "vm/types.hpp"                 // for s4, u1, ptrint, u4, s8
+
+struct codeinfo;
+struct executionstate_t;
+struct java_object_t;
+struct jitdata;
+struct methodinfo;
+struct rplalloc;
+struct rplpoint;
+struct sourceframe_t;
+struct sourcestate_t;
+struct stackframeinfo_t;
+union replace_val_t;
 
 #if !defined(ENABLE_REPLACEMENT)
 
@@ -45,23 +60,6 @@
 #define REPLACEMENT_POINT_FORGC_BUILTIN_RETURN(cd, iptr)
 
 #else /* defined(ENABLE_REPLACEMENT) */
-
-/* forward typedefs ***********************************************************/
-
-typedef struct rplalloc rplalloc;
-typedef struct rplpoint rplpoint;
-typedef struct sourcestate_t sourcestate_t;
-typedef struct sourceframe_t sourceframe_t;
-typedef union  replace_val_t replace_val_t;
-
-#include "arch.hpp"
-#include "md-abi.hpp"
-
-#include "vm/jit/executionstate.hpp"
-#include "vm/jit/reg.hpp"
-#include "vm/jit/stacktrace.hpp"
-
-struct methodinfo;
 
 /*** structs *********************************************************/
 
@@ -239,10 +237,6 @@ struct sourcestate_t {
 
 /*** prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 bool replace_create_replacement_points(jitdata *jd);
 void replace_free_replacement_points(codeinfo *code);
 
@@ -263,10 +257,6 @@ void replace_source_frame_println(sourceframe_t *frame);
 
 #if defined(ENABLE_JIT)
 void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert);
-#endif
-
-#ifdef __cplusplus
-}
 #endif
 
 #endif // ENABLE_REPLACEMENT

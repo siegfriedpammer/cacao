@@ -52,9 +52,6 @@
 
 #if !defined(NDEBUG)
 
-// FIXME For now we export everything as C functions.
-extern "C" {
-
 /* global variables ***********************************************************/
 
 #if !defined(ENABLE_THREADS)
@@ -460,8 +457,6 @@ void trace_exception_builtin(java_handle_t* h)
 
 	log_text((char*) logtext);
 }
-
-} // extern "C"
 
 #endif /* !defined(NDEBUG) */
 

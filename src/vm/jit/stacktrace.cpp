@@ -64,10 +64,6 @@
 #include "vm/jit/methodheader.hpp"
 #include "vm/jit/methodtree.hpp"
 
-
-// FIXME Use C-linkage for now.
-extern "C" {
-
 /* global variables ***********************************************************/
 
 CYCLES_STATS_DECLARE(stacktrace_overhead        , 100, 1)
@@ -1511,9 +1507,6 @@ void stacktrace_print_cycles_stats(FILE *file)
 	CYCLES_STATS_PRINT(stacktrace_get_stack,         file);
 }
 #endif
-
-} // extern "C"
-
 
 /*
  * These are local overrides for various environment variables in Emacs.

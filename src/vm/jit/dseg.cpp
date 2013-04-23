@@ -22,18 +22,13 @@
 
 */
 
-
-#include "config.h"
-
+#include "vm/jit/dseg.hpp"
 #include <assert.h>
-
-#include "vm/types.hpp"
-
+#include "config.h"
 #include "mm/dumpmemory.hpp"
 #include "mm/memory.hpp"
-
 #include "vm/options.hpp"
-
+#include "vm/types.hpp"
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/methodheader.hpp"
 

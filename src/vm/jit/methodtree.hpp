@@ -26,22 +26,17 @@
 #ifndef METHODTREE_HPP_
 #define METHODTREE_HPP_ 1
 
-#include "config.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* function prototypes ********************************************************/
+
+// functions need to be accessible from assembler
+extern "C" {
 
 void  methodtree_init(void);
 void  methodtree_insert(void *startpc, void *endpc);
 void *methodtree_find(void *pc);
 void *methodtree_find_nocheck(void *pc);
 
-#ifdef __cplusplus
-}
-#endif
+} // extern "C"
 
 #endif // METHODTREE_HPP_
 

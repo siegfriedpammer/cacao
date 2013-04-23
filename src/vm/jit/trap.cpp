@@ -60,10 +60,6 @@
 #define N_PV_OFFSET 0
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Mmap the first memory page to support hardware exceptions and check
  * the maximum hardware trap displacement on the architectures where
@@ -423,10 +419,6 @@ void trap_handle(int sig, void *xpc, void *context)
 # endif
 #endif
 }
-
-#ifdef __cplusplus
-}
-#endif
 
 
 /*

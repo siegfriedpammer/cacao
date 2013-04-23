@@ -88,11 +88,7 @@ struct codeinfo {
 	LinenumberTable* linenumbertable;
 
 	/* patcher list */
-#ifdef __cplusplus
 	LockedList<patchref_t>* patchers;
-#else
-	LockedList*   patchers;
-#endif
 
 	/* replacement */
 #if defined(ENABLE_REPLACEMENT)
@@ -114,10 +110,6 @@ struct codeinfo {
 #endif
 };
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /* inline functions ***********************************************************/
 
@@ -228,10 +220,6 @@ int code_get_sync_slot_count(codeinfo *code);
 #endif /* defined(ENABLE_REPLACEMENT) */
 
 void code_free_code_of_method(methodinfo *m);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // CODE_HPP_
 

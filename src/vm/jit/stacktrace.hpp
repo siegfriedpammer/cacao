@@ -26,12 +26,6 @@
 #ifndef STACKTRACE_HPP_
 #define STACKTRACE_HPP_ 1
 
-/* forward typedefs ***********************************************************/
-
-typedef struct stackframeinfo_t   stackframeinfo_t;
-typedef struct stacktrace_entry_t stacktrace_entry_t;
-typedef struct stacktrace_t       stacktrace_t;
-
 #include "config.h"
 
 #include "vm/types.hpp"
@@ -41,9 +35,8 @@ typedef struct stacktrace_t       stacktrace_t;
 #include "vm/loader.hpp"
 #include "vm/global.hpp"
 
-#include "vm/jit/code.hpp"
-
 struct classinfo;
+struct codeinfo;
 
 /* stackframeinfo **************************************************************
 
@@ -91,11 +84,6 @@ struct stacktrace_t {
 
 /* function prototypes ********************************************************/
 
-// FIXME Use C-linkage for now.
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void                       stacktrace_stackframeinfo_add(stackframeinfo_t* sfi, void* pv, void* sp, void* ra, void* xpc);
 void                       stacktrace_stackframeinfo_remove(stackframeinfo_t *sfi);
 
@@ -138,10 +126,6 @@ void* intrp_md_stacktrace_get_returnaddress(void* sp, int32_t framesize);
 
 #if defined(ENABLE_CYCLES_STATS)
 void stacktrace_print_cycles_stats(FILE *file);
-#endif
-
-#ifdef __cplusplus
-}
 #endif
 
 #endif // STACKTRACE_HPP_

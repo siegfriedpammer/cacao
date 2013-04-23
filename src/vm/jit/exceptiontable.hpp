@@ -26,19 +26,20 @@
 #ifndef EXCEPTIONTABLE_HPP_
 #define EXCEPTIONTABLE_HPP_ 1
 
-/* forward typedefs ***********************************************************/
-
-typedef struct exceptiontable_t       exceptiontable_t;
-typedef struct exceptiontable_entry_t exceptiontable_entry_t;
-
-
 #include "config.h"
 
 #include <stdint.h>
 
-#include "vm/jit/code.hpp"
+#include "vm/references.hpp"
 
 struct jitdata;
+struct codeinfo;
+
+/* forward typedefs ***********************************************************/
+
+struct exceptiontable_t;
+struct exceptiontable_entry_t;
+
 
 /* exceptiontable_t ***********************************************************/
 
@@ -60,19 +61,11 @@ struct exceptiontable_entry_t {
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void exceptiontable_create(jitdata *jd);
 void exceptiontable_free(codeinfo *code);
 
 #if !defined(NDEBUG)
 void exceptiontable_print(codeinfo *code);
-#endif
-
-#ifdef __cplusplus
-} // extern "C"
 #endif
 
 #endif // EXCEPTIONTABLE_HPP_

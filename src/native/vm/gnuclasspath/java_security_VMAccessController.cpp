@@ -36,6 +36,7 @@
 
 #include "vm/global.hpp"
 #include "vm/utf8.hpp"
+#include "vm/vm.hpp"
 
 #include "vm/jit/stacktrace.hpp"
 

@@ -45,13 +45,9 @@ struct instruction;
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #if !defined(NDEBUG)
 extern const char *show_jit_type_names[];
-extern const char show_jit_type_letters[];
+extern const char  show_jit_type_letters[];
 
 bool show_init(void);
 
@@ -74,10 +70,6 @@ void show_filters_init(void);
 void show_filters_apply(methodinfo *m);
 int show_filters_test_verbosecall_enter(methodinfo *m);
 int show_filters_test_verbosecall_exit(methodinfo *m);
-#endif
-
-#ifdef __cplusplus
-} // extern "C"
 #endif
 
 #endif // _SHOW_HPP

@@ -29,11 +29,8 @@
 #include "config.h"
 
 #include <stdint.h>
-
-#ifdef __cplusplus
 #include <functional>
 #include <vector>
-#endif
 
 #include "toolbox/list.hpp"
 
@@ -43,8 +40,8 @@
 
 #include "vm/jit/ir/instruction.hpp"
 
-
-#ifdef __cplusplus
+struct codegendata;
+struct instruction;
 
 /**
  * Represents a Java line number.
@@ -106,25 +103,9 @@ public:
 	int32_t find(methodinfo **pm, void* pc);
 };
 
-#else
-
-typedef struct LinenumberTable LinenumberTable;
-
-#endif
-
-#include "vm/jit/codegen-common.hpp"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void    linenumbertable_list_entry_add(codegendata *cd, int32_t linenumber);
-void    linenumbertable_list_entry_add_inline_start(codegendata *cd, instruction *iptr);
-void    linenumbertable_list_entry_add_inline_end(codegendata *cd, instruction *iptr);
-
-#ifdef __cplusplus
-} // extern "C"
-#endif
+void linenumbertable_list_entry_add(codegendata *cd, int32_t linenumber);
+void linenumbertable_list_entry_add_inline_start(codegendata *cd, instruction *iptr);
+void linenumbertable_list_entry_add_inline_end(codegendata *cd, instruction *iptr);
 
 #endif // _LINENUMBERTABLE_HPP
 

@@ -35,20 +35,12 @@ struct jitdata;
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 bool cfg_build(jitdata *jd);
 
 void cfg_add_root(jitdata *jd);
 
 void cfg_add_exceptional_edges(jitdata *jd);
 void cfg_remove_root(jitdata *jd);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // CFG_HPP_
 

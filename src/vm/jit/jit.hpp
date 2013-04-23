@@ -423,10 +423,6 @@ static inline bool basicblock_reached(const basicblock *bptr) {
 
 /* function prototypes ********************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* compiler initialisation */
 void jit_init(void);
 
@@ -469,10 +465,6 @@ void intrp_md_init(void);
 #endif
 
 void *md_jit_method_patch_address(void *pv, void *ra, void *mptr);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // JIT_HPP_
 
