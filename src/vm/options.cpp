@@ -1,4 +1,4 @@
-/* src/vm/options.c - contains global options
+/* src/vm/options.cpp - contains global options
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -249,6 +249,7 @@ enum {
 	OPT_CompileSignature,
 	OPT_DebugName,
 	OPT_DebugPrefix,
+	OPT_DebugVerbose,
 	OPT_DebugPrintThread,
 	OPT_DebugLocalReferences,
 	OPT_DebugLocks,
@@ -313,6 +314,7 @@ option_t options_XX[] = {
 	{ "CompileSignature",             OPT_CompileSignature,             OPT_TYPE_VALUE,   "specify signature for a specific method" },
 	{ "DebugName",                    OPT_DebugName,                    OPT_TYPE_VALUE,   "Name of the subsystem to debug"},
 	{ "DebugPrefix",                  OPT_DebugPrefix,                  OPT_TYPE_BOOLEAN, "print debug prefix"},
+	{ "DebugVerbose",                 OPT_DebugVerbose,                 OPT_TYPE_VALUE,   "verbosity level for debugging (default=0)"},
 	{ "DebugPrintThread",             OPT_DebugPrintThread,             OPT_TYPE_BOOLEAN, "print thread id"},
 	{ "DebugLocalReferences",         OPT_DebugLocalReferences,         OPT_TYPE_BOOLEAN, "print debug information for local reference tables" },
 	{ "DebugLocks",                   OPT_DebugLocks,                   OPT_TYPE_BOOLEAN, "print debug information for locks" },
@@ -683,6 +685,13 @@ void options_xx(JavaVMInitArgs *vm_args)
 
 		case OPT_DebugPrefix:
 			cacao::Debug::prefix_enabled = enable;
+			break;
+
+		case OPT_DebugVerbose:
+			{
+				int verb = os::atoi(value);
+				cacao::Debug::verbose = (verb >= 0 ? verb : 0);
+			}
 			break;
 
 		case OPT_DebugPrintThread:

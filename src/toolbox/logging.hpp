@@ -50,25 +50,23 @@ OStream& dbg();
  * Log EXPR to OStream cacao::dbg if debugging is enabled for the given
  * subsystem.
  */
-#define LOG_WITH_NAME(DEBUG_NAME, EXPR)                              \
+#define LOG_WITH_NAME_N(DBG_NAME, VERBOSE,  EXPR)                    \
 	do {                                                             \
-		if (cacao::Debug::is_debugging_enabled(DEBUG_NAME)) {        \
+		if (DEBUG_COND_WITH_NAME_N( (DBG_NAME) , (VERBOSE) )) {      \
 			cacao::OStream stream = cacao::dbg();                    \
-                                                                     \
+																	 \
 			if (cacao::Debug::thread_enabled) {                      \
 				stream << "LOG: " << cacao::threadid << " ";         \
 			}                                                        \
-                                                                     \
+																	 \
 			if (cacao::Debug::prefix_enabled) {                      \
 				stream << setprefix(DEBUG_NAME, cacao::log_color()); \
 			}                                                        \
-                                                                     \
+																	 \
 			{ stream << EXPR ; }                                     \
 		}                                                            \
 	} while (0)
 
-/// Analogous to DEBUG
-#define LOG(STMT) LOG_WITH_NAME(DEBUG_NAME, STMT)
 
 /// Set the file dbg() writes to
 void set_log_file(FILE *file);
@@ -81,10 +79,17 @@ Color log_color();
 
 #else // defined(ENABLE_LOGGING)
 
-#define LOG_WITH_NAME(DEBUG_NAME, STMT) do { } while(0)
-#define LOG(STMT)                       LOG_WITH_NAME(DEBUG_NAME, STMT)
+#define LOG_WITH_NAME_N(DEBUG_NAME, VERBOSE,  STMT) do { } while(0)
 
 #endif // defined(ENABLE_LOGGING)
+
+#define LOG_WITH_NAME(DEBUG_NAME, STMT) LOG_WITH_NAME_N(DEBUG_NAME, 0, STMT)
+#define LOG_N(VERBOSE, STMT) LOG_WITH_NAME_N(DEBUG_NAME, VERBOSE, STMT)
+/// Analogous to DEBUG
+#define LOG(STMT) LOG_N(0, STMT)
+#define LOG1(STMT) LOG_N(1, STMT)
+#define LOG2(STMT) LOG_N(2, STMT)
+#define LOG3(STMT) LOG_N(3, STMT)
 
 } // end namespace cacao
 

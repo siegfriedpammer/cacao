@@ -41,6 +41,14 @@ struct Debug {
 	 */
 	static bool prefix_enabled;
 
+	/** Verbosity level
+	 *
+	 * Higher number means more details.
+	 * Can be set using the -XX:+DebugVerbose command line flag
+	 * @default 0
+	 */
+	static unsigned int verbose;
+
 	/** True if we should print a the thread id
 	 *
 	 * Can be set using the -XX:+DebugPrintThread command line flag
@@ -65,21 +73,29 @@ struct Debug {
 	}
 };
 
-/// This macro executes STMT iff debugging of sub system DBG_NAME is enabled
-#define DEBUG_WITH_NAME(DBG_NAME, STMT)                      \
-	do {                                                     \
-		if (cacao::Debug::is_debugging_enabled(DBG_NAME)) {  \
-			STMT;                                            \
-		}                                                    \
-	} while (0)
-
-/** Execute debug statements in your current module.
+/**
+ * The debug condition.
  *
- * To use this macro you must define the macro DEBUG_NAME to the
- * name of your current module (should be a string literal.
- * Never do this in a header!
+ * It is used by all DEBUG* and LOG* macros but it can also be used in code
+ * for marking a longer block which should be only executed in the debug context.
+ *
+ * @code
+ * if (DEBUG_COND_WITH_NAME_N) {
+ *   ...
+ * }
+ * @endcode
  */
-#define DEBUG(STMT) DEBUG_WITH_NAME(DEBUG_NAME, STMT)
+#define DEBUG_COND_WITH_NAME_N(DBG_NAME,VERBOSE)        \
+	( (cacao::Debug::verbose >= (VERBOSE) ) &&             \
+	  (cacao::Debug::is_debugging_enabled( (DBG_NAME) )) )
+
+/// This macro executes STMT iff debugging of sub system DBG_NAME is enabled
+#define DEBUG_WITH_NAME_N(DBG_NAME, VERBOSE, STMT)               \
+	do {                                                         \
+		if (DEBUG_COND_WITH_NAME_N( (DBG_NAME) , (VERBOSE) )) {  \
+			STMT;                                                \
+		}                                                        \
+	} while (0)
 
 } // end namespace cacao
 
@@ -88,10 +104,30 @@ int  debug_is_debugging_enabled(const char *);
 
 #else
 
-#define DEBUG_WITH_NAME(DBG_NAME, STMT) do { } while(0)
-#define DEBUG(STMT)                     DEBUG_WITH_NAME(DEBUG_NAME, STMT)
+#define DEBUG_COND_WITH_NAME_N(DBG_NAME,VERBOSE)  false
+#define DEBUG_WITH_NAME_N(DBG_NAME, VERBOSE, STMT) do { } while(0)
 
 #endif // end NDEBUG
+
+
+#define DEBUG_COND_WITH_NAME(DBG_NAME) DEBUG_COND_WITH_NAME_N(DBG_NAME,0)
+#define DEBUG_COND_N(VERBOSE)          DEBUG_COND_WITH_NAME_N(DEBUG_NAME,VERBOSE)
+#define DEBUG_COND                     DEBUG_N(0)
+
+#define DEBUG_WITH_NAME(DBG_NAME, STMT) DEBUG_WITH_NAME_N(DBG_NAME,0, STMT)
+#define DEBUG_N(VERBOSE,STMT) DEBUG_WITH_NAME_N(DEBUG_NAME,VERBOSE, STMT)
+
+/** Execute debug statements in your current module.
+ *
+ * To use this macro you must define the macro DEBUG_NAME to the
+ * name of your current module (should be a string literal.
+ * Never do this in a header (but if you do this, undef DEBUG_NAME
+ * at the end of the header)!
+ */
+#define DEBUG(STMT) DEBUG_N(0, STMT)
+#define DEBUG1(STMT) DEBUG_N(1, STMT)
+#define DEBUG2(STMT) DEBUG_N(2, STMT)
+#define DEBUG3(STMT) DEBUG_N(3, STMT)
 
 #endif // DEBUG_HPP_
 
