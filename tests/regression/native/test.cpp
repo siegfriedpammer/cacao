@@ -30,8 +30,8 @@
 #include "native/jni.hpp"
 
 
-JNIEXPORT void JNICALL Java_test_nsub(JNIEnv *env, jclass clazz)
+extern "C" JNIEXPORT void JNICALL Java_test_nsub(JNIEnv *env, jclass clazz)
 {
-    jint version = (*env)->GetVersion(env);
+    jint version = env->GetVersion();
     printf("JNI Version: %d\n", version);
 }

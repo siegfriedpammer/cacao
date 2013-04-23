@@ -27,7 +27,7 @@
 #include "native/jni.hpp"
 
 
-JNIEXPORT void JNICALL Java_testgetobjectclass0_getobjectclass0(JNIEnv *env, jclass clazz)
+extern "C" JNIEXPORT void JNICALL Java_testgetobjectclass0_getobjectclass0(JNIEnv *env, jclass clazz)
 {
-    (*env)->GetObjectClass(env,0);
+    env->GetObjectClass(0);
 }

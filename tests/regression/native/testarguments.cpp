@@ -32,6 +32,53 @@
 #include INCLUDE_JNI_MD_H
 #include INCLUDE_JNI_H
 
+static inline void print_jlong(jlong n) {
+#ifdef WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH
+    printf(" 0x%llx", n);
+#else
+    printf(" 0x%lx", n);
+#endif
+}
+static inline void print_jint (jint  n) {
+    printf(" 0x%x", n);
+}
+
+static inline void print_jfloat(jfloat  f) {
+    union {
+        jfloat f;
+        jint   i;
+    } x;
+
+    x.f = f;
+
+    print_jint(x.i);
+}
+static inline void print_jdouble(jdouble d) {
+    union {
+        jdouble d;
+        jlong   l;
+    } x;
+
+    x.d = d;
+
+    print_jlong(x.l);
+}
+
+static inline void print_jobject(jobject o) {
+#if defined(ENABLE_HANDLES)
+    intptr_t p = *((intptr_t *) o);
+#else
+    intptr_t p = (intptr_t) o;
+#endif
+
+#if SIZEOF_VOID_P == 8
+    printf(" 0x%lx", (long) p);
+#else
+    printf(" 0x%x",  (int) p);
+#endif
+}
+
+extern "C" {
 
 JNIEXPORT jobject JNICALL Java_testarguments_adr(JNIEnv *env, jclass clazz, jint i)
 {
@@ -40,7 +87,7 @@ JNIEXPORT jobject JNICALL Java_testarguments_adr(JNIEnv *env, jclass clazz, jint
   p = 0x11111111 * ((intptr_t) i);
 
 #if defined(ENABLE_HANDLES)
-  return (*env)->NewLocalRef(env, &p);
+  return env->NewLocalRef(&p);
 #else
   return (jobject) p;
 #endif
@@ -67,252 +114,256 @@ JNIEXPORT void JNICALL Java_testarguments_np(JNIEnv *env, jclass clazz, jobject 
 
 JNIEXPORT void JNICALL Java_testarguments_nisub(JNIEnv *env, jclass clazz, jint a, jint b, jint c, jint d, jint e, jint f, jint g, jint h, jint i, jint j, jint k, jint l, jint m, jint n, jint o)
 {
-    jmethodID mid;
+    printf("java-native:");
 
-    printf("java-native: 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\n", a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
+    print_jint(a);
+    print_jint(b);
+    print_jint(c);
+    print_jint(d);
+    print_jint(e);
+    print_jint(f);
+    print_jint(g);
+    print_jint(h);
+    print_jint(i);
+    print_jint(j);
+    print_jint(k);
+    print_jint(l);
+    print_jint(m);
+    print_jint(n);
+    print_jint(o);
+
+    printf("\n");
     fflush(stdout);
 
-    mid = (*env)->GetStaticMethodID(env, clazz, "jisub", "(IIIIIIIIIIIIIII)V");
+    jmethodID mid = env->GetStaticMethodID(clazz, "jisub", "(IIIIIIIIIIIIIII)V");
 
     if (mid == 0) {
         printf("native: couldn't find jisub\n");
         return;
     }
 
-    (*env)->CallStaticVoidMethod(env, clazz, mid, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
+    env->CallStaticVoidMethod(clazz, mid, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
 }
 
 
 JNIEXPORT void JNICALL Java_testarguments_nlsub(JNIEnv *env, jclass clazz, jlong a, jlong b, jlong c, jlong d, jlong e, jlong f, jlong g, jlong h, jlong i, jlong j, jlong k, jlong l, jlong m, jlong n, jlong o)
 {
-    jmethodID mid;
+    printf("java-native:");
 
-    printf("java-native: 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx\n", a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
+    print_jlong(a);
+    print_jlong(b);
+    print_jlong(c);
+    print_jlong(d);
+    print_jlong(e);
+    print_jlong(f);
+    print_jlong(g);
+    print_jlong(h);
+    print_jlong(i);
+    print_jlong(j);
+    print_jlong(k);
+    print_jlong(l);
+    print_jlong(m);
+    print_jlong(n);
+    print_jlong(o);
+
+    printf("\n");
     fflush(stdout);
 
-    mid = (*env)->GetStaticMethodID(env, clazz, "jlsub", "(JJJJJJJJJJJJJJJ)V");
+    jmethodID mid = env->GetStaticMethodID(clazz, "jlsub", "(JJJJJJJJJJJJJJJ)V");
 
     if (mid == 0) {
         printf("native: couldn't find jlsub\n");
         return;
     }
 
-    (*env)->CallStaticVoidMethod(env, clazz, mid, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
+    env->CallStaticVoidMethod(clazz, mid, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
 }
 
 
 JNIEXPORT void JNICALL Java_testarguments_nfsub(JNIEnv *env, jclass clazz, jfloat a, jfloat b, jfloat c, jfloat d, jfloat e, jfloat f, jfloat g, jfloat h, jfloat i, jfloat j, jfloat k, jfloat l, jfloat m, jfloat n, jfloat o)
 {
-    jmethodID mid;
-    union {
-      jint i;
-      jfloat f;
-    } x;
-
     printf("java-native:");
 
-    x.f = a; printf(" 0x%x", x.i);
-    x.f = b; printf(" 0x%x", x.i);
-    x.f = c; printf(" 0x%x", x.i);
-    x.f = d; printf(" 0x%x", x.i);
-    x.f = e; printf(" 0x%x", x.i);
-    x.f = f; printf(" 0x%x", x.i);
-    x.f = g; printf(" 0x%x", x.i);
-    x.f = h; printf(" 0x%x", x.i);
-    x.f = i; printf(" 0x%x", x.i);
-    x.f = j; printf(" 0x%x", x.i);
-    x.f = k; printf(" 0x%x", x.i);
-    x.f = l; printf(" 0x%x", x.i);
-    x.f = m; printf(" 0x%x", x.i);
-    x.f = n; printf(" 0x%x", x.i);
-    x.f = o; printf(" 0x%x", x.i);
+    print_jfloat(a);
+    print_jfloat(b);
+    print_jfloat(c);
+    print_jfloat(d);
+    print_jfloat(e);
+    print_jfloat(f);
+    print_jfloat(g);
+    print_jfloat(h);
+    print_jfloat(i);
+    print_jfloat(j);
+    print_jfloat(k);
+    print_jfloat(l);
+    print_jfloat(m);
+    print_jfloat(n);
+    print_jfloat(o);
 
     printf("\n");
     fflush(stdout);
 
-    mid = (*env)->GetStaticMethodID(env, clazz, "jfsub", "(FFFFFFFFFFFFFFF)V");
+    jmethodID mid = env->GetStaticMethodID(clazz, "jfsub", "(FFFFFFFFFFFFFFF)V");
 
     if (mid == 0) {
         printf("native: couldn't find jfsub\n");
         return;
     }
 
-    (*env)->CallStaticVoidMethod(env, clazz, mid, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
+    env->CallStaticVoidMethod(clazz, mid, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
 }
 
 
 JNIEXPORT void JNICALL Java_testarguments_ndsub(JNIEnv *env, jclass clazz, jdouble a, jdouble b, jdouble c, jdouble d, jdouble e, jdouble f, jdouble g, jdouble h, jdouble i, jdouble j, jdouble k, jdouble l, jdouble m, jdouble n, jdouble o)
 {
-    jmethodID mid;
-    union {
-      jlong l;
-      jdouble d;
-    } x;
-
     printf("java-native:");
 
-    x.d = a; printf(" 0x%llx", x.l);
-    x.d = b; printf(" 0x%llx", x.l);
-    x.d = c; printf(" 0x%llx", x.l);
-    x.d = d; printf(" 0x%llx", x.l);
-    x.d = e; printf(" 0x%llx", x.l);
-    x.d = f; printf(" 0x%llx", x.l);
-    x.d = g; printf(" 0x%llx", x.l);
-    x.d = h; printf(" 0x%llx", x.l);
-    x.d = i; printf(" 0x%llx", x.l);
-    x.d = j; printf(" 0x%llx", x.l);
-    x.d = k; printf(" 0x%llx", x.l);
-    x.d = l; printf(" 0x%llx", x.l);
-    x.d = m; printf(" 0x%llx", x.l);
-    x.d = n; printf(" 0x%llx", x.l);
-    x.d = o; printf(" 0x%llx", x.l);
+    print_jdouble(a);
+    print_jdouble(b);
+    print_jdouble(c);
+    print_jdouble(d);
+    print_jdouble(e);
+    print_jdouble(f);
+    print_jdouble(g);
+    print_jdouble(h);
+    print_jdouble(i);
+    print_jdouble(j);
+    print_jdouble(k);
+    print_jdouble(l);
+    print_jdouble(m);
+    print_jdouble(n);
+    print_jdouble(o);
 
     printf("\n");
     fflush(stdout);
 
-    mid = (*env)->GetStaticMethodID(env, clazz, "jdsub", "(DDDDDDDDDDDDDDD)V");
+    jmethodID mid = env->GetStaticMethodID(clazz, "jdsub", "(DDDDDDDDDDDDDDD)V");
 
     if (mid == 0) {
         printf("native: couldn't find jdsub\n");
         return;
     }
 
-    (*env)->CallStaticVoidMethod(env, clazz, mid, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
+    env->CallStaticVoidMethod(clazz, mid, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
 }
 
 
 JNIEXPORT void JNICALL Java_testarguments_nasub(JNIEnv *env, jclass clazz, jobject a, jobject b, jobject c, jobject d, jobject e, jobject f, jobject g, jobject h, jobject i, jobject j, jobject k, jobject l, jobject m, jobject n, jobject o)
 {
-    jmethodID mid;
+    printf("java-native:");
 
-#if defined(ENABLE_HANDLES)
+    print_jobject(a);
+    print_jobject(b);
+    print_jobject(c);
+    print_jobject(d);
+    print_jobject(e);
+    print_jobject(f);
+    print_jobject(g);
+    print_jobject(h);
+    print_jobject(i);
+    print_jobject(j);
+    print_jobject(k);
+    print_jobject(l);
+    print_jobject(m);
+    print_jobject(n);
+    print_jobject(o);
 
-# if SIZEOF_VOID_P == 8
-    printf("java-native: 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx\n", *((long*) a), *((long*) b), *((long*) c), *((long*) d), *((long*) e), *((long*) f), *((long*) g), *((long*) h), *((long*) i), *((long*) j), *((long*) k), *((long*) l), *((long*) m), *((long*) n), *((long*) o));
-# else
-    printf("java-native: 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\n", *((int*) a), *((int*) b), *((int*) c), *((int*) d), *((int*) e), *((int*) f), *((int*) g), *((int*) h), *((int*) i), *((int*) j), *((int*) k), *((int*) l), *((int*) m), *((int*) n), *((int*) o));
-# endif
-
-#else
-
-# if SIZEOF_VOID_P == 8
-    printf("java-native: 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx\n", (long) a, (long) b, (long) c, (long) d, (long) e, (long) f, (long) g, (long) h, (long) i, (long) j, (long) k, (long) l, (long) m, (long) n, (long) o);
-# else
-    printf("java-native: 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\n", (int) a, (int) b, (int) c, (int) d, (int) e, (int) f, (int) g, (int) h, (int) i, (int) j, (int) k, (int) l, (int) m, (int) n, (int) o);
-# endif
-
-#endif
-
+    printf("\n");
     fflush(stdout);
 
-    mid = (*env)->GetStaticMethodID(env, clazz, "jasub", "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V");
+    jmethodID mid = env->GetStaticMethodID(clazz, "jasub", "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V");
 
     if (mid == 0) {
         printf("native: couldn't find jasub\n");
         return;
     }
 
-    (*env)->CallStaticVoidMethod(env, clazz, mid, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
+    env->CallStaticVoidMethod(clazz, mid, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
 }
 
 
 JNIEXPORT void JNICALL Java_testarguments_nmsub(JNIEnv *env, jclass clazz, jint a, jlong b, jfloat c, jdouble d, jint e, jlong f, jfloat g, jdouble h, jint i, jlong j, jfloat k, jdouble l, jint m, jlong n, jfloat o)
 {
-    jmethodID mid;
-    union {
-      jint i;
-      jlong l;
-      jfloat f;
-      jdouble d;
-    } x;
-
     printf("java-native:");
 
-    printf(" 0x%x", a);
-    printf(" 0x%llx", b);
-    x.f = c; printf(" 0x%x", x.i);
-    x.d = d; printf(" 0x%llx", x.l);
-    printf(" 0x%x", e);
-    printf(" 0x%llx", f);
-    x.f = g; printf(" 0x%x", x.i);
-    x.d = h; printf(" 0x%llx", x.l);
-    printf(" 0x%x", i);
-    printf(" 0x%llx", j);
-    x.f = k; printf(" 0x%x", x.i);
-    x.d = l; printf(" 0x%llx", x.l);
-    printf(" 0x%x", m);
-    printf(" 0x%llx", n);
-    x.f = o; printf(" 0x%x", x.i);
+    print_jint(a);
+    print_jlong(b);
+    print_jfloat(c);
+    print_jdouble(d);
+    print_jint(e);
+    print_jlong(f);
+    print_jfloat(g);
+    print_jdouble(h);
+    print_jint(i);
+    print_jlong(j);
+    print_jfloat(k);
+    print_jdouble(l);
+    print_jint(m);
+    print_jlong(n);
+    print_jfloat(o);
 
     printf("\n");
     fflush(stdout);
 
-    mid = (*env)->GetStaticMethodID(env, clazz, "jmsub", "(IJFDIJFDIJFDIJF)V");
+    jmethodID mid = env->GetStaticMethodID(clazz, "jmsub", "(IJFDIJFDIJFDIJF)V");
 
     if (mid == 0) {
         printf("native: couldn't find jmsub\n");
         return;
     }
 
-    (*env)->CallStaticVoidMethod(env, clazz, mid, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
+    env->CallStaticVoidMethod(clazz, mid, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
 }
 
 JNIEXPORT void JNICALL Java_testarguments_nmfsub(JNIEnv *env, jclass clazz, jdouble a, jfloat b, jdouble c, jfloat d, jdouble e, jfloat f, jdouble x_, jfloat y, jfloat g, jdouble h, jint i, jfloat j, jdouble k, jint l, jfloat m, jdouble n, jint o, jint p, jlong q, jfloat r, jdouble s, jint t, jlong u, jfloat v, jdouble w)
 {
-    jmethodID mid;
-    union {
-      jint i;
-      jlong l;
-      jfloat f;
-      jdouble d;
-    } x;
-
     printf("java-native:");
 
-    x.d = a; printf(" 0x%llx", x.l);
-    x.f = b; printf(" 0x%x", x.i);
-    x.d = c; printf(" 0x%llx", x.l);
-    x.f = d; printf(" 0x%x", x.i);
-    x.d = e; printf(" 0x%llx", x.l);
-    x.f = f; printf(" 0x%x", x.i);
-    x.d = x_; printf(" 0x%llx", x.l);
-    x.f = y; printf(" 0x%x", x.i);
+    print_jdouble(a);
+    print_jfloat(b);
+    print_jdouble(c);
+    print_jfloat(d);
+    print_jdouble(e);
+    print_jfloat(f);
+    print_jdouble(x_);
+    print_jfloat(y);
 
-    x.f = g; printf(" 0x%x", x.i);
-    x.d = h; printf(" 0x%llx", x.l);
-    printf(" 0x%x", i);
+    print_jfloat(g);
+    print_jdouble(h);
+    print_jint(i);
 
-    x.f = j; printf(" 0x%x", x.i);
-    x.d = k; printf(" 0x%llx", x.l);
-    printf(" 0x%x", l);
+    print_jfloat(j);
+    print_jdouble(k);
+    print_jint(l);
 
-    x.f = m; printf(" 0x%x", x.i);
-    x.d = n; printf(" 0x%llx", x.l);
-    printf(" 0x%x", o);
+    print_jfloat(m);
+    print_jdouble(n);
+    print_jint(o);
 
-    printf(" 0x%x", p);
-    printf(" 0x%llx", q);
-    x.f = r; printf(" 0x%x", x.i);
-    x.d = s; printf(" 0x%llx", x.l);
+    print_jint(p);
+    print_jlong(q);
+    print_jfloat(r);
+    print_jdouble(s);
 
-    printf(" 0x%x", t);
-    printf(" 0x%llx", u);
-    x.f = v; printf(" 0x%x", x.i);
-    x.d = w; printf(" 0x%llx", x.l);
+    print_jint(t);
+    print_jlong(u);
+    print_jfloat(v);
+    print_jdouble(w);
 
     printf("\n");
     fflush(stdout);
 
-    mid = (*env)->GetStaticMethodID(env, clazz, "jmfsub", "(DFDFDFDFFDIFDIFDIIJFDIJFD)V");
+    jmethodID mid = env->GetStaticMethodID(clazz, "jmfsub", "(DFDFDFDFFDIFDIFDIIJFDIJFD)V");
 
     if (mid == 0) {
         printf("native: couldn't find jmfsub\n");
         return;
     }
 
-    (*env)->CallStaticVoidMethod(env, clazz, mid, a, b, c, d, e, f, x_, y, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w);
+    env->CallStaticVoidMethod(clazz, mid, a, b, c, d, e, f, x_, y, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w);
 }
 
+} // extern "C"
 
 /*
  * These are local overrides for various environment variables in Emacs.
