@@ -222,8 +222,9 @@ protected:
 	Type::TypeID type;
 	Method* method;
 	const int id;
+	BeginInst* begin;
 
-	explicit Instruction() : opcode(NoInstID), id(-1) {}
+	explicit Instruction() : opcode(NoInstID), id(-1), begin(NULL) {}
 
 	void append_op(Value* v) {
 		op_list.push_back(v);
@@ -253,7 +254,8 @@ protected:
 	}
 
 public:
-	explicit Instruction(InstID opcode, Type::TypeID type) : opcode(opcode), type(type), id(id_counter++) {}
+	explicit Instruction(InstID opcode, Type::TypeID type, BeginInst* begin = NULL)
+			: opcode(opcode), type(type), id(id_counter++), begin(begin) {}
 
 	virtual ~Instruction() {
 		LOG("deleting instruction: " << this << nl);
@@ -291,7 +293,20 @@ public:
 	 * @return The directly dominating BeginInst. NULL if there is none (eg. several
 	 *         cadidates or dead code).
 	 */
-	virtual BeginInst* get_BeginInst() const;
+	virtual BeginInst *get_BeginInst() const { return begin; }
+	virtual bool set_BeginInst(BeginInst *b) {
+		if (is_floating()) {
+			begin = b;
+			return true;
+		}
+		assert(0 && "Trying to set BeginInst of a non floating instruction");
+		return false;
+	}
+
+	/**
+	 * True if the instruction has no fixed control dependencies
+	 */
+	virtual bool is_floating() const { return true; }
 
 	// casting functions
 	virtual Instruction*          to_Instruction()          { return this; }

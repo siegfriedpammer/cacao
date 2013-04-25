@@ -1033,7 +1033,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 		LOG("parameter: i = " << i << " slot = " << slot << " type " << get_var_type(type) << nl);
 		assert(varindex != UNUSED);
 
-		Instruction *I = new LOADInst(convert_var_type(type), varindex);
+		Instruction *I = new LOADInst(convert_var_type(type), varindex, BB[init_basicblock]);
 		write_variable(varindex,init_basicblock,I);
 		M->add_Instruction(I);
 

@@ -42,7 +42,8 @@ namespace compiler2 {
 // Instruction groups
 class LoadInst : public Instruction {
 public:
-	explicit LoadInst(InstID id, Type::TypeID type) : Instruction(id, type) {}
+	explicit LoadInst(InstID id, Type::TypeID type, BeginInst *begin) : Instruction(id, type, begin) {}
+	virtual bool is_floating() const { return false; }
 };
 
 class UnaryInst : public Instruction {
@@ -100,6 +101,7 @@ public:
 
 	EndInst *get_EndInst() const { return end; }
 	void set_EndInst(EndInst* e) { end = e; }
+	virtual bool is_floating() const { return false; }
 
 	PredecessorListTy::const_iterator pred_begin() const { return pred_list.begin(); }
 	PredecessorListTy::const_iterator pred_end()   const { return pred_list.end(); }
@@ -116,18 +118,17 @@ public:
 	typedef std::vector<BeginInst*> SuccessorListTy;
 private:
 	SuccessorListTy succ_list;
-	BeginInst* begin;
 public:
-	explicit EndInst(BeginInst* begin) : Instruction(EndInstID, Type::VoidTypeID), begin(begin) {
+	explicit EndInst(BeginInst* begin) : Instruction(EndInstID, Type::VoidTypeID, begin) {
 		assert(begin);
 		begin->set_EndInst(this);
 	}
-	explicit EndInst(InstID id, BeginInst* begin) : Instruction(id, Type::VoidTypeID), begin(begin) {
+	explicit EndInst(InstID id, BeginInst* begin) : Instruction(id, Type::VoidTypeID, begin) {
 		assert(begin);
 		begin->set_EndInst(this);
 	}
 	virtual EndInst* to_EndInst() { return this; }
-	virtual BeginInst *get_BeginInst() const { return begin; }
+	virtual bool is_floating() const { return false; }
 
 	void append_succ(BeginInst* bi) {
 		assert(bi);
@@ -337,7 +338,7 @@ class LOADInst : public LoadInst {
 private:
 	unsigned index;
 public:
-	explicit LOADInst(Type::TypeID type, unsigned index) : LoadInst(LOADInstID, type), index(index) {}
+	explicit LOADInst(Type::TypeID type, unsigned index, BeginInst* begin ) : LoadInst(LOADInstID, type, begin), index(index) {}
 	virtual LOADInst* to_LOADInst() { return this; }
 };
 
@@ -509,6 +510,8 @@ public:
 		assert(begin);
 		return begin;
 	}
+	virtual bool is_floating() const { return false; }
+
 	// exporting to the public
 	using Instruction::append_op;
 };

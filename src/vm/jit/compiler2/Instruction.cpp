@@ -31,24 +31,6 @@ namespace compiler2 {
 
 int Instruction::id_counter = 0;
 
-BeginInst* Instruction::get_BeginInst() const {
-	BeginInst *begin;
-	if (this->user_size() != 1)
-		return NULL;
-	for(Value::UserListTy::const_iterator i = this->user_begin(), e = this->user_end() ;
-			i != e; ++i) {
-		Instruction *I = (*i)->to_Instruction();
-		if (I) {
-			// NOTE: eventually an overloaded method will be called
-			begin = I->get_BeginInst();
-			if (begin) {
-				return begin;
-			}
-		}
-	}
-	return NULL;
-}
-
 OStream& operator<<(OStream &OS, const Instruction &I) {
 	return OS << "[" << I.get_id() << ": " << I.get_name() << "]";
 }
