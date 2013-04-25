@@ -47,12 +47,14 @@ bool DominatorTree::dominates(NodeTy *a, NodeTy *b) const {
 
 DominatorTree::NodeTy* DominatorTree::find_nearest_common_dom(NodeTy *a, NodeTy *b) const {
 	// trivial cases
-	if (dominates(a,b)) {
+	if (!a)
+		return b;
+	if (!b)
+		return a;
+	if (dominates(a,b))
 	  return a;
-	}
-	if (dominates(b,a)) {
+	if (dominates(b,a))
 	  return b;
-	}
 	// collect a's dominators
 	std::set<NodeTy*> dom_a;
 	while ( (a = get_idominator(a)) ) {

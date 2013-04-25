@@ -71,6 +71,20 @@ public:
 	 * Find the nearest common dominator.
 	 */
 	NodeTy* find_nearest_common_dom(NodeTy *a, NodeTy *b) const;
+
+	/**
+	 * Depth of a tree node.
+	 *
+	 * The depth is defined as the length of the path from the node to the
+	 * root. The depth of the root is 0.
+	 */
+	int depth(NodeTy *node) const {
+		int d = 0;
+		while ( (node = get_idominator(node)) != NULL) {
+			++d;
+		}
+		return d;
+	}
 };
 
 /**
