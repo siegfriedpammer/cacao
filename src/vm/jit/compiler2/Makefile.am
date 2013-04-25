@@ -44,6 +44,7 @@ libcompiler2_la_SOURCES = \
 	PassManager.cpp \
 	RegisterAllocatorPass.cpp \
 	ScheduleEarlyPass.cpp \
+	ScheduleLatePass.cpp \
 	SSAConstructionPass.cpp \
 	SSAPrinterPass.cpp \
 	StackAnalysisPass.cpp \
