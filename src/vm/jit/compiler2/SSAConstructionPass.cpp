@@ -908,16 +908,19 @@ bool SSAConstructionPass::try_seal_block(basicblock *bb) {
 	if (sealed_blocks[bb->nr])
 		return true;
 
+	LOG("try sealing basic block: " << bb->nr << nl);
 	for(int i = 0; i < bb->predecessorcount; ++i)
 		if (!filled_blocks[bb->predecessors[i]->nr])
 			return false;
 
 	// seal it!
 	seal_block(bb->nr);
+	#if 0
 	// try seal successors
 	for(int i = 0; i < bb->successorcount; ++i) {
 		try_seal_block(bb->successors[i]);
 	}
+	#endif
 
 	return true;
 }
@@ -979,6 +982,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 		// We have to create a new one to load the arguments
 		++num_basicblocks;
 		init_basicblock = jd->basicblockcount;
+		LOG("Extra basic block added (index = " << init_basicblock << ")" << nl);
 	}
 
 	// store basicblock BeginInst
@@ -1047,8 +1051,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 		Instruction *result = new GOTOInst(BB[init_basicblock], targetBlock);
 		M->add_Instruction(result);
 		// now we mark it filled and sealed
-		filled_blocks[init_basicblock];
-		sealed_blocks[init_basicblock];
+		filled_blocks[init_basicblock] = true;
+		sealed_blocks[init_basicblock] = true;
 	}
 
 	// set start begin inst
@@ -1954,8 +1958,23 @@ bool SSAConstructionPass::run(JITData &JD) {
 
 		// block filled!
 		filled_blocks[bbindex] = true;
+		// try to seal block
 		try_seal_block(bb);
+		// try seal successors
+		for(int i = 0; i < bb->successorcount; ++i) {
+			try_seal_block(bb->successors[i]);
+		}
 	}
+	#ifndef NDEBUG
+	for(size_t i = 0; i< num_basicblocks; ++i) {
+		if (!sealed_blocks[i]) {
+			err() << BoldRed << "error: " << reset_color << "unsealed basic block: " << BoldWhite
+				  << i << " (" << BB[i] << ")"
+				  << reset_color << nl;
+			assert(0 && "There is an unsealed basic block");
+		}
+	}
+	#endif
 	return true;
 }
 
