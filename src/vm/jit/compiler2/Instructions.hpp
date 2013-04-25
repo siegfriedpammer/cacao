@@ -193,7 +193,7 @@ public:
 
 class ADDInst : public BinaryInst {
 public:
-	explicit ADDInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(SUBInstID, type, S1, S2) {}
+	explicit ADDInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(ADDInstID, type, S1, S2) {}
 	virtual ADDInst* to_ADDInst() { return this; }
 };
 
@@ -203,15 +203,15 @@ public:
 	virtual SUBInst* to_SUBInst() { return this; }
 };
 
-class MULInst : public Instruction {
+class MULInst : public BinaryInst {
 public:
-	explicit MULInst(Type::TypeID type) : Instruction(MULInstID, type) {}
+	explicit MULInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(MULInstID, type, S1, S2) {}
 	virtual MULInst* to_MULInst() { return this; }
 };
 
-class DIVInst : public Instruction {
+class DIVInst : public BinaryInst {
 public:
-	explicit DIVInst(Type::TypeID type) : Instruction(DIVInstID, type) {}
+	explicit DIVInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(DIVInstID, type, S1, S2) {}
 	virtual DIVInst* to_DIVInst() { return this; }
 };
 
@@ -233,9 +233,9 @@ public:
 	virtual USHRInst* to_USHRInst() { return this; }
 };
 
-class ANDInst : public Instruction {
+class ANDInst : public BinaryInst {
 public:
-	explicit ANDInst(Type::TypeID type) : Instruction(ANDInstID, type) {}
+	explicit ANDInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(ANDInstID, type, S1, S2) {}
 	virtual ANDInst* to_ANDInst() { return this; }
 };
 
@@ -464,6 +464,9 @@ public:
 
 class RETURNInst : public EndInst {
 public:
+	/// void return
+	explicit RETURNInst(BeginInst *begin) : EndInst(RETURNInstID, begin) {}
+	/// value return
 	explicit RETURNInst(BeginInst *begin, Value* S1) : EndInst(RETURNInstID, begin) {
 		append_op(S1);
 	}

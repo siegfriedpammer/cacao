@@ -1180,8 +1180,27 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_LSUB:
 			case ICMD_FSUB:
 			case ICMD_DSUB:
+				goto _default;
 			case ICMD_IMUL:
 			case ICMD_LMUL:
+				{
+					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
+					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
+					Type::TypeID type;
+					switch (iptr->opc) {
+					case ICMD_IMUL:
+						type = Type::IntTypeID;
+						break;
+					case ICMD_LMUL:
+						type = Type::LongTypeID;
+						break;
+					default: assert(0);
+					}
+					Instruction *result = new MULInst(type, s1, s2);
+					write_variable(iptr->dst.varindex,bbindex,result);
+					M->add_Instruction(result);
+				}
+				break;
 			case ICMD_FMUL:
 			case ICMD_DMUL:
 			case ICMD_IDIV:
@@ -1238,9 +1257,30 @@ bool SSAConstructionPass::run(JITData &JD) {
 				break;
 			case ICMD_IMULCONST:
 			case ICMD_IMULPOW2:
-			case ICMD_IDIVPOW2:
 			case ICMD_IREMPOW2:
+				goto _default;
+			case ICMD_IDIVPOW2:
+				// FIXME we should lower this to a shift
+				// XXX it the constant the divisor or the shift amount?
 			case ICMD_IANDCONST:
+				{
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+					Instruction *konst = new CONSTInst(iptr->sx.val.i);
+					Instruction *result;
+					switch (iptr->opc) {
+					case ICMD_IANDCONST:
+						result = new ANDInst(Type::IntTypeID, s1, konst);
+						break;
+					case ICMD_IDIVPOW2:
+						result = new DIVInst(Type::IntTypeID, s1, konst);
+						break;
+					default: assert(0);
+					}
+					M->add_Instruction(konst);
+					write_variable(iptr->dst.varindex,bbindex,result);
+					M->add_Instruction(result);
+				}
+				break;
 			case ICMD_IORCONST:
 			case ICMD_IXORCONST:
 			case ICMD_ISHLCONST:
@@ -1430,12 +1470,12 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		break;
 
 			case ICMD_RET:
+				goto _default;
 		//		SHOW_S1_LOCAL(OS, iptr);
 		//		if (stage >= SHOW_STACK) {
 		//			printf(" ---> L%03d", iptr->dst.block->nr);
 		//		}
 		//		break;
-				goto _default;
 
 			case ICMD_ILOAD:
 			case ICMD_LLOAD:
@@ -1899,6 +1939,12 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		SHOW_S1(OS, iptr);
 		//		break;
 		//
+			case ICMD_RETURN:
+				{
+					Instruction *result = new RETURNInst(BB[bbindex]);
+					M->add_Instruction(result);
+				}
+				break;
 			case ICMD_ARETURN:
 			case ICMD_ATHROW:
 		//		SHOW_S1(OS, iptr);
@@ -1944,7 +1990,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 
 			_default:
 				err() << BoldRed << "error: " << reset_color << "operation " << BoldWhite
-					  << icmd_table[iptr->opc].name << reset_color << " not yet supported!" << nl;
+					  << icmd_table[iptr->opc].name << " (" << iptr->opc << ")"
+					  << reset_color << " not yet supported!" << nl;
 				assert(false);
 		}
 
