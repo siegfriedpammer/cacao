@@ -27,12 +27,41 @@
 #include "vm/jit/compiler2/Method.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
-
 #include "vm/jit/compiler2/PassManager.hpp"
 
 #include "toolbox/GraphTraits.hpp"
 
+#include "vm/utf8.hpp"
+#include "vm/jit/jit.hpp"
+
 #include <sstream>
+
+namespace {
+std::string get_filename(methodinfo *m, jitdata *jd, std::string prefix = "cfg_", std::string suffix=".dot");
+std::string get_filename(methodinfo *m, jitdata *jd, std::string prefix, std::string suffix)
+{
+	std::string filename = prefix;
+	filename += Utf8String(m->clazz->name).begin();
+	filename += ".";
+	filename += Utf8String(m->name).begin();
+	filename += Utf8String(m->descriptor).begin();
+	filename += suffix;
+	/* replace unprintable chars */
+	for (size_t i = filename.find_first_of('/');
+		 i != std::string::npos;
+		 i = filename.find_first_of('/',i+1)) {
+		filename.replace(i,1,1,'.');
+	}
+	const char *unchar = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.";
+	for (size_t i = filename.find_first_not_of(unchar);
+		i != std::string::npos;
+		i = filename.find_first_not_of(unchar,i+1)) {
+		filename.replace(i,1,1,'_');
+	}
+
+	return filename;
+}
+} // end anonymous namespace
 
 namespace cacao {
 namespace jit {
@@ -43,6 +72,7 @@ namespace {
 class SSAGraph : public GraphTraits<Method,Instruction> {
 protected:
     const Method &M;
+	StringBuf name;
     bool verbose;
 	std::set<EdgeType> data_dep;
 	std::set<EdgeType> sched_dep;
@@ -51,17 +81,18 @@ protected:
 
 public:
 
-    SSAGraph(const Method &M, bool verbose = false) : M(M), verbose(verbose) {
+    SSAGraph(const Method &M, StringBuf name = "SSAGraph", bool verbose = false) : M(M), name(name), verbose(verbose) {
 		for(Method::InstructionListTy::const_iterator i = M.begin(),
 		    e = M.end(); i != e; ++i) {
 			Instruction *I = *i;
 			if (I == NULL)
 				continue;
+			#if 0
 			// only print end begin for now
 			if (!(I->to_BeginInst() || I->to_EndInst()) )
 				continue;
+			#endif
 			nodes.insert(I);
-			#if 0
 			// add operator link
 			for(Instruction::OperandListTy::const_iterator ii = I->op_begin(), ee = I->op_end();
 				ii != ee; ++ii) {
@@ -69,7 +100,7 @@ public:
 				if (v) {
 					Instruction *II = (*ii)->to_Instruction();
 					if (II) {
-						EdgeType edge = std::make_pair(I,II);
+						EdgeType edge = std::make_pair(II,I);
 						data_dep.insert(edge);
 						edges.insert(edge);
 					}
@@ -80,12 +111,11 @@ public:
 				ii != ee; ++ii) {
 				Instruction *II = (*ii);
 				if (II) {
-					EdgeType edge = std::make_pair(I,II);
+					EdgeType edge = std::make_pair(II,I);
 					sched_dep.insert(edge);
 					edges.insert(edge);
 				}
 			}
-			#endif
 			// add successor link
 			EndInst *EI = I->to_EndInst();
 			if (EI) {
@@ -113,8 +143,12 @@ public:
 		}
 	}
 
+	unsigned long getNodeID(const Instruction &node) const {
+		return node.get_id();
+	}
+
     StringBuf getGraphName() const {
-		return "SSAGraph";
+		return name;
 	}
 
     StringBuf getNodeLabel(const Instruction &node) const {
@@ -127,7 +161,7 @@ public:
 			Value *v = (*ii);
 			if (v) {
 				Instruction *II = (*ii)->to_Instruction();
-				sstream << getNodeID(*II);
+				sstream << "[" << II->get_id() << "]";
 			} else {
 				sstream << "NULL";
 			}
@@ -166,7 +200,10 @@ static PassRegistery<SSAPrinterPass> X("SSAPrinterPass");
 
 // run pass
 bool SSAPrinterPass::run(JITData &JD) {
-	GraphPrinter<SSAGraph>::print("test.dot", SSAGraph(*(JD.get_Method())));
+	StringBuf name = get_filename(JD.jitdata()->m,JD.jitdata(),"","");
+	StringBuf filename = "ssa_";
+	filename+=name+".dot";
+	GraphPrinter<SSAGraph>::print(filename.c_str(), SSAGraph(*(JD.get_Method()),name));
 	return true;
 }
 
