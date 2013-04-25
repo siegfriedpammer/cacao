@@ -98,6 +98,17 @@ public:
 	explicit BeginInst(EndInst *end) : Instruction(BeginInstID, Type::VoidTypeID), end(end) {}
 	virtual BeginInst* to_BeginInst() { return this; }
 	virtual BeginInst *get_BeginInst() const { return const_cast<BeginInst*>(this); }
+	BeginInst* get_predecessor(int index) const {
+		if (index < 0 || index > pred_size()) {
+			return NULL;
+		}
+		PredecessorListTy::const_iterator i = pred_list.begin();
+		while(index--) {
+			++i;
+		}
+		assert(i != pred_list.end());
+		return *i;
+	}
 
 	EndInst *get_EndInst() const { return end; }
 	void set_EndInst(EndInst* e) { end = e; }

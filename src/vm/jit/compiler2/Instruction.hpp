@@ -281,6 +281,13 @@ public:
 	OperandListTy::const_iterator op_begin() const { return op_list.begin(); }
 	OperandListTy::const_iterator op_end()   const { return op_list.end(); }
 	size_t op_size() const { return op_list.size(); }
+	int get_operand_index(Value *op) const {
+		for (int i = 0, e = op_list.size(); i < e; ++i) {
+			if (op == op_list[i])
+				return i;
+		}
+		return -1;
+	}
 
 	DepListTy::const_iterator dep_begin() const { return dep_list.begin(); }
 	DepListTy::const_iterator dep_end()   const { return dep_list.end(); }
