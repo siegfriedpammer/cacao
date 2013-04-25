@@ -1,6 +1,6 @@
 dnl m4/disassembler.m4
 dnl
-dnl Copyright (C) 2008
+dnl Copyright (C) 1996-2013
 dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 dnl 
 dnl This file is part of CACAO.
@@ -41,7 +41,7 @@ if test x"${ENABLE_DISASSEMBLER}" = "xyes"; then
     dnl check for binutils headers and libraries on some architectures for the
     dnl disassembler
     case "${ARCH_DIR}" in
-        arm | i386 | powerpc | x86_64 | sparc64 | powerpc64 | s390 | m68k)
+        arm | i386 | mips | powerpc | x86_64 | sparc64 | powerpc64 | s390 | m68k)
             AC_CHECK_HEADER([ansidecl.h],, [AC_MSG_ERROR(cannot find ansidecl.h)])
             AC_CHECK_HEADER([symcat.h],, [AC_MSG_ERROR(cannot find symcat.h)])
             AC_CHECK_HEADER([bfd.h],, [AC_MSG_ERROR(cannot find bfd.h)])
