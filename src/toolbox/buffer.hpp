@@ -190,7 +190,7 @@ Buffer<Allocator>& Buffer<Allocator>::write(Utf8String u)
 template<template<typename T> class Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write(JavaString js)
 {
-	return write(js.get_contents(), js.size());
+	return write(js.begin(), js.size());
 }
 
 /* Buffer::write(const char*) **************************************************

@@ -35,6 +35,10 @@
 #include <cstdio>
 #include <cstring>
 
+namespace cacao {
+	class OStream;
+}
+
 class JavaString {
 	public:
 		/*** GLOBAL INITIALIZATION **********************************/
@@ -58,14 +62,18 @@ class JavaString {
 		// creates a new object of type java/lang/String from a utf-text,
 		// changes '/' to '.'
 		static JavaString from_utf8_slash_to_dot(Utf8String);
-
 		// creates and interns a java/lang/String
 		static JavaString literal(Utf8String);
 
+		/// creates a new java/lang/String from a utf16-text
+		static JavaString from_utf16(const u2*, size_t);
+
 		/*** ACCESSORS     ******************************************/
 
-		const u2* get_contents() const;
-		size_t    size()         const; 
+		const u2* begin() const;
+		const u2* end()   const;
+
+		size_t    size()  const;
 
 		// the number of bytes this string would need
 		// in utf-8 encoding
@@ -86,8 +94,10 @@ class JavaString {
 
 		inline JavaString() : str(0) {}
 		inline JavaString(java_handle_t *h) : str(h) {}
-	
+
 		inline operator java_handle_t*() const { return str; }
+
+		friend cacao::OStream& operator<<(cacao::OStream&, JavaString);
 	private:
 		java_handle_t *str;
 };

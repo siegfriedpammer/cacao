@@ -33,7 +33,10 @@
 
 #include "toolbox/intern_table.hpp"
 #include "toolbox/logging.hpp"
+#include "toolbox/OStream.hpp"
 #include "toolbox/utf_utils.hpp"
+
+using namespace cacao;
 
 //****************************************************************************//
 //*****          GLOBAL JAVA/LANG/STRING INTERN TABLE                    *****//
@@ -41,7 +44,7 @@
 
 struct JavaStringHash {
 	inline uint32_t operator()(JavaString str) const {
-		const u2 *cs = str.get_contents();
+		const u2 *cs = str.begin();
 		size_t    sz = str.size();
 
 		return hash(cs, sz);
@@ -105,8 +108,8 @@ struct JavaStringEq {
 
 		if (a_sz != b_sz) return false;
 
-		const char *a_cs = (const char*) a.get_contents();
-		const char *b_cs = (const char*) b.get_contents();
+		const char *a_cs = (const char*) a.begin();
+		const char *b_cs = (const char*) b.begin();
 
 		return memcmp(a_cs, b_cs, a_sz * sizeof(u2)) == 0;
 	}
@@ -157,11 +160,16 @@ bool JavaString::is_initialized() {
 	If input chars is NULL a NullPointerException is raised.
 
 	PARAMETERS:
-		cs .... input bytes to decode
-		sz .... number of bytes in cs
+		src ........ content of new string is copied from this pointer
+		src_size ... number of chars in src
+		dst_size ... numbers of chars in new string
 	TEMPLATE PARAMETERS:
-		Fn .... The function used to convert from C chars to unicode chars.
-		        Returns true iff the conversion succeeded.
+		Src ........... The char type used to initialize the String (u1 or u2)
+		Allocator ..... An allocation function, it allocats and initializes a new 
+		                java/lang/String with a given size. The contents of the 
+		                strings char[] can be undefined.
+		Initializer ... A function that copies the given chars into the strings
+		                private char[].
 
 *******************************************************************************/
 
@@ -184,7 +192,7 @@ static inline java_handle_t* makeJavaString(const Src *src, size_t src_size, siz
 
 	// copy text
 
-	u2 *dst = (u2*) str.get_contents();
+	u2 *dst = (u2*) str.begin();
 
 	bool success = init(src, src_size, dst);
 
@@ -274,10 +282,6 @@ static inline bool init_from_utf16(const u2 *src, size_t src_size, u2 *dst) {
 namespace {
 	inline uint16_t identity(uint16_t c)     { return c; }
 	inline uint16_t slash_to_dot(uint16_t c) { return (c == '/') ? '.' : c; }
-// TODO delete me
-#if 0
-	inline uint16_t dot_to_slash(uint16_t c) { return (c == '.') ? '/' : c; }
-#endif
 }
 
 /* JavaString::from_utf8 *******************************************************
@@ -339,6 +343,18 @@ JavaString JavaString::literal(Utf8String u) {
 	return intern_str;
 }
 
+/* JavaString:from_utf16 *******************************************************
+
+	Create a new java/lang/String filled with text copied from an UTF-16 string.
+	Returns NULL on error.
+
+*******************************************************************************/
+
+JavaString JavaString::from_utf16(const u2 *cs, size_t sz) {
+	return makeJavaString(cs, sz, sz,
+                          allocate_with_GC, init_from_utf16);
+}
+
 /* JavaString::intern **********************************************************
 
 	intern string in global intern table
@@ -354,7 +370,7 @@ struct LazyStringCopy {
 	LazyStringCopy(JavaString src) : src(src) {}
 
 	inline operator JavaString() const {
-		return makeJavaString(src.get_contents(), src.size(), src.size(),
+		return makeJavaString(src.begin(), src.size(), src.size(),
 	                          allocate_on_system_heap, init_from_utf16);
 	}
 
@@ -369,25 +385,35 @@ JavaString JavaString::intern() const {
 //*****          JAVA STRING ACCESSORS                                   *****//
 //****************************************************************************//
 
-/* JavaString::get_contents ****************************************************
+/* JavaString::begin ***********************************************************
 
 	Get the utf-16 contents of string
 
 *******************************************************************************/
 
-const u2* JavaString::get_contents() const {
+const u2* JavaString::begin() const {
 	assert(str);
 		
 	java_handle_chararray_t *array = java_lang_String::get_value(str);
-	assert(array);
+
+	if (array == NULL)
+		// this can only happen if the string has been allocated by java code
+		// and <init> has not been called on it yet
+		return NULL;
 
 	CharArray ca(array);
 
 	int32_t   offset = java_lang_String::get_offset(str);
 	uint16_t* ptr    = ca.get_raw_data_ptr();
+//	uint16_t* ptr    = ((java_chararray_t*)array)->data;
 
 	return ptr + offset;
 }
+
+const u2* JavaString::end() const {
+	return begin() + size();
+}
+
 
 /* JavaString::size ************************************************************
 
@@ -410,7 +436,7 @@ size_t JavaString::size() const {
 size_t JavaString::utf8_size() const {
 	assert(str);
 
-	return utf8::num_bytes(get_contents(), size());
+	return utf8::num_bytes(begin(), size());
 }
 
 //****************************************************************************//
@@ -431,7 +457,7 @@ char *JavaString::to_chars() const {
 
 	size_t sz = size();
 
-	const uint16_t *src = get_contents();
+	const uint16_t *src = begin();
 	const uint16_t *end = src + sz;
 
 	char *buf = MNEW(char, sz + 1);
@@ -453,7 +479,7 @@ char *JavaString::to_chars() const {
 Utf8String JavaString::to_utf8() const {
 	if (str == NULL) return utf8::empty;
 
-	return Utf8String::from_utf16(get_contents(), size());
+	return Utf8String::from_utf16(begin(), size());
 }
 
 /* JavaString::to_utf8_dot_to_slash() ******************************************
@@ -466,7 +492,7 @@ Utf8String JavaString::to_utf8() const {
 Utf8String JavaString::to_utf8_dot_to_slash() const {
 	if (str == NULL) return utf8::empty;
 		
-	return Utf8String::from_utf16_dot_to_slash(get_contents(), size());
+	return Utf8String::from_utf16_dot_to_slash(begin(), size());
 }
 
 //****************************************************************************//
@@ -481,7 +507,7 @@ Utf8String JavaString::to_utf8_dot_to_slash() const {
 
 void JavaString::fprint(FILE *stream) const
 {
-	const uint16_t* cs = get_contents();
+	const uint16_t* cs = begin();
 	size_t          sz = size();  
 
 	for (size_t i = 0; i < sz; i++) {
@@ -493,7 +519,7 @@ void JavaString::fprint(FILE *stream) const
 
 void JavaString::fprint_printable_ascii(FILE *stream) const
 {
-	const uint16_t* cs = get_contents();
+	const uint16_t* cs = begin();
 	size_t          sz = size();  
 
 	for (size_t i = 0; i < sz; i++) {
@@ -502,6 +528,26 @@ void JavaString::fprint_printable_ascii(FILE *stream) const
 		c = (c >= 32 && c <= 127) ? c : '?';
 
 		fputc(c, stream);
+	}
+}
+
+OStream& operator<<(OStream& os, JavaString js) {
+	const u2 *cs = js.begin();
+
+	if (cs == NULL) {
+		// string has been allocated by java code 
+		// but <init> has not been called on it yet.
+		return os << "<uninitialized string>";
+	} else {
+		os << '"';
+
+		for (const u2 *end = js.end(); cs != end; ++cs) {
+			os << ((char) *cs);
+		}
+	
+		os << '"';
+
+		return os;	
 	}
 }
 

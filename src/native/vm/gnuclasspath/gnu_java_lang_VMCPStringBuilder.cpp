@@ -74,14 +74,12 @@ JNIEXPORT jstring JNICALL Java_gnu_java_lang_VMCPStringBuilder_toString(JNIEnv *
 		return NULL;
 	}
 
-	java_handle_t* h = builtin_new(class_java_lang_String);
+	JavaString js = JavaString::make(ca.get_handle(), count, startIndex);
 
-	if (h == NULL)
+	if (js == NULL)
 		return NULL;
 
-	java_lang_String s(h, ca.get_handle(), (int32_t) count, (int32_t) startIndex);
-
-	return (jstring) s.get_handle();
+	return (jstring) (java_handle_t*) js;
 }
 
 

@@ -2504,26 +2504,12 @@ jstring jni_NewString(JNIEnv *env, const jchar *buf, jsize len)
 {
 	TRACEJNICALLS(("jni_NewString(env=%p, buf=%p, len=%d)", env, buf, len));
 
-	CharArray ca(len);
+	JavaString js = JavaString::from_utf16(buf, len);
 
-	if (ca.is_null())
+	if (js == NULL)
 		return NULL;
 
-	/* copy text */
-
-	// XXX: Fix me!
-	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
-	for (jsize i = 0; i < len; i++)
-		ptr[i] = buf[i];
-
-	java_handle_t* h = builtin_new(class_java_lang_String);
-
-	if (h == NULL)
-		return NULL;
-
-	java_lang_String s(h, ca.get_handle(), len, 0);
-
-	return (jstring) jni_NewLocalRef(env, (jobject) s.get_handle());
+	return (jstring) jni_NewLocalRef(env, (jobject) (java_handle_t*) js);
 }
 
 
