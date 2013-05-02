@@ -364,8 +364,8 @@ Utf8String Utf8String::substring(size_t from, size_t to) const
 }
 
 bool Utf8String::is_valid_name() const {
-	Utf8String::byte_iterator it  = this->begin();
-	Utf8String::byte_iterator end = this->end();
+	unsigned char *it  = (unsigned char *) this->begin();
+	unsigned char *end = (unsigned char *) this->end();
 
 	for (; it != end; it++) {
 		unsigned char c = *it;

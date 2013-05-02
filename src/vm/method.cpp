@@ -532,7 +532,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 			Utf8String signature = m->signature;
 
 			if (!loader_load_attribute_signature(cb, signature)) {
-				return NULL;
+				return false;
 			}
 
 			m->signature = signature;

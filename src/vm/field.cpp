@@ -316,7 +316,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 			Utf8String signature = f->signature;
 
 			if (!loader_load_attribute_signature(cb, signature)) {
-				return NULL;
+				return false;
 			}
 
 			f->signature = signature;
