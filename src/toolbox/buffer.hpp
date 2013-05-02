@@ -73,6 +73,21 @@ class Buffer{
 		// write to buffer, replacing '.' by '/'
 		inline Buffer& write_dot_to_slash(Utf8String);
 
+		/// write address of pointer as hex to buffer
+		inline Buffer& write_ptr(void*);
+
+		/// write number to buffer as decimal
+		inline Buffer& write_dec(s4);
+		inline Buffer& write_dec(s8);
+		inline Buffer& write_dec(float);
+		inline Buffer& write_dec(double);
+
+		/// write number to buffer as hexadecimal
+		inline Buffer& write_hex(s4);
+		inline Buffer& write_hex(s8);
+		inline Buffer& write_hex(float);
+		inline Buffer& write_hex(double);
+
 		// like printf
 		inline Buffer& writef(const char* fmt, ...);
 		inline Buffer& writevf(const char* fmt, va_list ap);
@@ -240,7 +255,7 @@ Buffer<Allocator>& Buffer<Allocator>::write(const u2 *cs, size_t sz)
 	return *this;
 }
 
-/* Buffer::write(char) ***********************************************************
+/* Buffer::write(char) *********************************************************
 
 	Insert a utf-8 string into buffer byte by byte.
 	Does NOT inserts a zero terminator.
@@ -319,6 +334,77 @@ Buffer<Allocator>& Buffer<Allocator>::write_dot_to_slash(Utf8String u) {
 	}
 
 	return *this;
+}
+
+template<template<typename T> class Allocator>
+Buffer<Allocator>& Buffer<Allocator>::write_ptr(void *ptr) {
+#if SIZEOF_VOID_P == 8
+	return writef("0x%08x",   (ptrint) ptr);
+#else
+	return writef("0x%016lx", (ptrint) ptr);
+#endif
+}
+
+template<template<typename T> class Allocator>
+Buffer<Allocator>& Buffer<Allocator>::write_dec(s4 n) {
+	return writef("%d", n);
+}
+
+template<template<typename T> class Allocator>
+Buffer<Allocator>& Buffer<Allocator>::write_dec(s8 n) {
+#if SIZEOF_VOID_P == 8
+	return writef(" 0x%lld", n);
+#else
+	return writef(" 0x%ld", n);
+#endif
+}
+
+template<template<typename T> class Allocator>
+Buffer<Allocator>& Buffer<Allocator>::write_dec(float n) {
+	return writef("%g", n);
+}
+
+template<template<typename T> class Allocator>
+Buffer<Allocator>& Buffer<Allocator>::write_dec(double n) {
+	return writef("%g", n);
+}
+
+template<template<typename T> class Allocator>
+Buffer<Allocator>& Buffer<Allocator>::write_hex(s4 n) {
+	return writef("%08x", n);
+}
+
+template<template<typename T> class Allocator>
+Buffer<Allocator>& Buffer<Allocator>::write_hex(s8 n) {
+#if SIZEOF_VOID_P == 8
+	return writef(" 0x%016llx", n);
+#else
+	return writef(" 0x%016lx", n);
+#endif
+}
+
+template<template<typename T> class Allocator>
+Buffer<Allocator>& Buffer<Allocator>::write_hex(float n) {
+	union {
+		float f;
+		s4    i;
+	} u;
+
+	u.f = n;
+
+	return write_hex(u.i);
+}
+
+template<template<typename T> class Allocator>
+Buffer<Allocator>& Buffer<Allocator>::write_hex(double n) {
+	union {
+		double d;
+		s8     l;
+	} u;
+
+	u.d = n;
+
+	return write_hex(u.l);
 }
 
 /* Buffer::writef/writevf ******************************************************

@@ -396,10 +396,11 @@ const u2* JavaString::begin() const {
 		
 	java_handle_chararray_t *array = java_lang_String::get_value(str);
 
-	if (array == NULL)
+	if (array == NULL) {
 		// this can only happen if the string has been allocated by java code
 		// and <init> has not been called on it yet
 		return NULL;
+	}
 
 	CharArray ca(array);
 
@@ -411,7 +412,9 @@ const u2* JavaString::begin() const {
 }
 
 const u2* JavaString::end() const {
-	return begin() + size();
+	const u2 *ptr = begin();
+
+	return ptr ? ptr + size() : NULL;
 }
 
 

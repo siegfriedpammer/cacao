@@ -66,7 +66,7 @@ u4 _no_threads_tracejavacallcount= 0;
 
 *******************************************************************************/
 
-static void trace_java_call_print_argument(Buffer<>& logtext, methodinfo *m, typedesc *paramtype, imm_union imu)
+static void trace_java_call_print_argument(Buffer<DumpMemoryAllocator>& logtext, methodinfo *m, typedesc *paramtype, imm_union imu)
 {
 	java_object_t *o;
 	classinfo     *c;
@@ -74,35 +74,20 @@ static void trace_java_call_print_argument(Buffer<>& logtext, methodinfo *m, typ
 
 	switch (paramtype->type) {
 	case TYPE_INT:
-		logtext.writef("%d (0x%08x)", (int32_t)imu.l, (int32_t)imu.l);
+		logtext.write_dec(imu.i).write(" (").write_hex(imu.i).write(')');
 		break;
-
 	case TYPE_LNG:
-#if SIZEOF_VOID_P == 4
-		logtext.writef("%lld (0x%016llx)", imu.l, imu.l);
-#else
-		logtext.writef("%ld (0x%016lx)", imu.l, imu.l);
-#endif
+		logtext.write_dec(imu.l).write(" (").write_hex(imu.l).write(')');
 		break;
-
 	case TYPE_FLT:
-		logtext.writef("%g (0x%08x)", imu.f, imu.i);
+		logtext.write_dec(imu.f).write(" (").write_hex(imu.f).write(')');
 		break;
-
 	case TYPE_DBL:
-#if SIZEOF_VOID_P == 4
-		logtext.writef("%g (0x%016llx)", imu.d, imu.l);
-#else
-		logtext.writef("%g (0x%016lx)", imu.d, imu.l);
-#endif
+		logtext.write_dec(imu.d).write(" (").write_hex(imu.d).write(')');
 		break;
 
 	case TYPE_ADR:
-#if SIZEOF_VOID_P == 4
-		logtext.writef("0x%08x", (ptrint) imu.l);
-#else
-		logtext.writef("0x%016lx", (ptrint) imu.l);
-#endif
+		logtext.write_ptr(imu.a);
 
 		/* Workaround for sun.misc.Unsafe methods.  In the future
 		   (exact GC) we should check if the address is on the GC
@@ -203,7 +188,7 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 	// Create new dump memory area.
 	DumpMemoryArea dma;
 
-	Buffer<> logtext;
+	Buffer<DumpMemoryAllocator> logtext;
 
 	TRACEJAVACALLCOUNT++;
 
@@ -211,7 +196,7 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 	logtext.writef("-%d-", TRACEJAVACALLINDENT);
 
 	for (i = 0; i < TRACEJAVACALLINDENT; i++)
-		logtext.write('\t');
+		logtext.write("\t");
 
 	logtext.write("called: ");
 
@@ -306,7 +291,7 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 	// Create new dump memory area.
 	DumpMemoryArea dma;
 
-	Buffer<> logtext;
+	Buffer<DumpMemoryAllocator> logtext;
 
 	/* generate the message */
 
@@ -314,7 +299,7 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 	logtext.writef("-%d-", TRACEJAVACALLINDENT);
 
 	for (i = 0; i < TRACEJAVACALLINDENT; i++)
-		logtext.write('\t');
+		logtext.write("\t");
 
 	logtext.write("finished: ");
 	if (m->clazz != NULL)
@@ -349,7 +334,7 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 	// Create new dump memory area.
 	DumpMemoryArea dma;
 
-	Buffer<> logtext;
+	Buffer<DumpMemoryAllocator> logtext;
 
 	if (xptr) {
 		logtext.write("Exception ");
@@ -377,31 +362,16 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 
 			code = m->code;
 
-#if SIZEOF_VOID_P == 8
-			logtext.writef(
-				")(0x%016lx) at position 0x%016lx",
-				(ptrint) code->entrypoint, (ptrint) pos);
-#else
-			logtext.writef(
-					")(0x%08x) at position 0x%08x",
-					(ptrint) code->entrypoint, (ptrint) pos);
-#endif
-
+			logtext.write(")(").write_ptr(code->entrypoint)
+			       .write(") at position ").write_ptr(pos);
 		} else {
 
 			/* XXX preliminary: This should get the actual codeinfo */
 			/* in which the exception happened.                     */
 			code = m->code;
 			
-#if SIZEOF_VOID_P == 8
-			logtext.writef(
-					")(0x%016lx) at position 0x%016lx (",
-					(ptrint) code->entrypoint, (ptrint) pos);
-#else
-			logtext.writef(
-					")(0x%08x) at position 0x%08x (",
-					(ptrint) code->entrypoint, (ptrint) pos);
-#endif
+			logtext.write(")(").write_ptr(code->entrypoint)
+			       .write(") at position ").write_ptr(pos);
 
 			if (m->clazz->sourcefile == NULL)
 				logtext.write("<NO CLASSFILE INFORMATION>");
@@ -439,7 +409,7 @@ void trace_exception_builtin(java_handle_t* h)
 	// Create new dump memory area.
 	DumpMemoryArea dma;
 
-	Buffer<> logtext;
+	Buffer<DumpMemoryAllocator> logtext;
 
 	logtext.write("Builtin exception thrown: ");
 
