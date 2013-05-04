@@ -34,6 +34,9 @@
 #include "vm/types.hpp"                 // for u1
 #include "vm/utf8.hpp"                  // for Utf8String
 #include "vm/vm.hpp"                    // for vm_abort
+#ifdef ENABLE_STATISTICS
+#include "vm/statistics.hpp"
+#endif
 
 #if defined(__DARWIN__)
 /* If we compile with -ansi on darwin, <sys/types.h> is not

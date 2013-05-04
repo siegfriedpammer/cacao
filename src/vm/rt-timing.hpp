@@ -121,7 +121,9 @@
 
 #if defined(ENABLE_RT_TIMING)
 
-#include <time.h>
+#include <ctime>
+#include <cstdlib>
+#include <cerrno>
 
 #include "vm/types.hpp"
 

@@ -29,6 +29,9 @@
 #include "mm/memory.hpp"                // for MEMORY_CANARY_SIZE, etc
 #include "vm/os.hpp"                    // for os
 #include "vm/vm.hpp"                    // for vm_abort
+#ifdef ENABLE_STATISTICS
+#include "vm/options.hpp"
+#endif
 
 /*******************************************************************************
 

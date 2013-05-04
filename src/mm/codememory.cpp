@@ -31,6 +31,9 @@
 #include "vm/options.hpp"
 #include "vm/os.hpp"                    // for os
 #include "vm/types.hpp"                 // for ptrint
+#ifdef ENABLE_STATISTICS
+#include "vm/statistics.hpp"
+#endif
 
 /* global code memory variables ***********************************************/
 

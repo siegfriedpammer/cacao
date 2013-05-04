@@ -29,6 +29,8 @@
 #include "config.h"
 
 #include <cassert>
+//#include <cstdint> <- requires C++0x
+#include <stdint.h>
 #include <map>
 
 /**

@@ -29,6 +29,9 @@
 #include "toolbox/OStream.hpp"
 #include "toolbox/utf_utils.hpp"
 #include "vm/options.hpp"
+#ifdef ENABLE_STATISTICS
+#include "vm/statistics.hpp"
+#endif
 
 //****************************************************************************//
 //*****          GLOBAL UTF8-STRING INTERN TABLE                         *****//

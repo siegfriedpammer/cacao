@@ -29,6 +29,9 @@
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/options.hpp"
+#ifdef ENABLE_STATISTICS
+#include "vm/statistics.hpp"
+#endif
 
 #include "toolbox/intern_table.hpp"
 #include "toolbox/logging.hpp"

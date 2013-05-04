@@ -45,6 +45,9 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/show.hpp"
 #include "vm/jit/stubs.hpp"
+#ifdef ENABLE_DISASSEMBLER
+#include "vm/jit/dseg.hpp"
+#endif
 
 
 /**
