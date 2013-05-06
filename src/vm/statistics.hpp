@@ -26,6 +26,8 @@
 #ifndef STATISTICS_HPP_
 #define STATISTICS_HPP_ 1
 
+#if defined(ENABLE_STATISTICS)
+
 #include "config.h"
 
 #include <stdint.h>
@@ -37,7 +39,6 @@
 
 /* statistic macros ***********************************************************/
 
-#if defined(ENABLE_STATISTICS)
 #define STATISTICS(x) \
     do { \
         if (opt_stat) { \
