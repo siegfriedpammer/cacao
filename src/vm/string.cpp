@@ -364,6 +364,8 @@ JavaString JavaString::from_utf16(const u2 *cs, size_t sz) {
 
 *******************************************************************************/
 
+#ifdef WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH
+
 JavaString JavaString::from_array(java_handle_t *array, int32_t count, int32_t offset) {
 	java_handle_t *str = builtin_new(class_java_lang_String);
 	if (!str)
@@ -378,6 +380,7 @@ JavaString JavaString::from_array(java_handle_t *array, int32_t count, int32_t o
 	return str;
 }
 
+#endif
 
 /* JavaString::intern **********************************************************
 
