@@ -74,12 +74,7 @@ JNIEXPORT jstring JNICALL Java_gnu_java_lang_VMCPStringBuilder_toString(JNIEnv *
 		return NULL;
 	}
 
-	JavaString js = JavaString::make(ca.get_handle(), count, startIndex);
-
-	if (js == NULL)
-		return NULL;
-
-	return (jstring) (java_handle_t*) js;
+	return (jstring) (java_handle_t*) JavaString::from_array(ca.get_handle(), count, startIndex);
 }
 
 

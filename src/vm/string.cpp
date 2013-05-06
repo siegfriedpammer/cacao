@@ -355,6 +355,30 @@ JavaString JavaString::from_utf16(const u2 *cs, size_t sz) {
                           allocate_with_GC, init_from_utf16);
 }
 
+/* JavaString:from_utf16 *******************************************************
+
+	Creates a new java/lang/String with a given char[]
+
+	WARNING: the char[] is not copied or validated, 
+	         you must make sure it is never changed.
+
+*******************************************************************************/
+
+JavaString JavaString::from_array(java_handle_t *array, int32_t count, int32_t offset) {
+	java_handle_t *str = builtin_new(class_java_lang_String);
+	if (!str)
+		return NULL;
+
+	java_lang_String jstr(str);
+
+	jstr.set_value((java_handle_chararray_t*) array);
+	jstr.set_count (count);
+	jstr.set_offset(offset);
+
+	return str;
+}
+
+
 /* JavaString::intern **********************************************************
 
 	intern string in global intern table

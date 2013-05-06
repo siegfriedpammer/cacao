@@ -68,6 +68,13 @@ class JavaString {
 		/// creates a new java/lang/String from a utf16-text
 		static JavaString from_utf16(const u2*, size_t);
 
+#ifdef WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH
+		/// creates a new java/lang/String with a given char[]
+		/// WARNING: the char[] is not copied or validated, 
+		///          you must make sure it is never changed.
+		static JavaString from_array(java_handle_t *array, int32_t count, int32_t offset);
+#endif
+
 		/*** ACCESSORS     ******************************************/
 
 		const u2* begin() const;
