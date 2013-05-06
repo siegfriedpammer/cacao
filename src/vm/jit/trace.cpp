@@ -56,7 +56,7 @@
 
 #if !defined(ENABLE_THREADS)
 s4 _no_threads_tracejavacallindent = 0;
-u4 _no_threads_tracejavacallcount= 0;
+u4 _no_threads_tracejavacallcount  = 0;
 #endif
 
 
@@ -66,7 +66,7 @@ u4 _no_threads_tracejavacallcount= 0;
 
 *******************************************************************************/
 
-static void trace_java_call_print_argument(Buffer<DumpMemoryAllocator>& logtext, methodinfo *m, typedesc *paramtype, imm_union imu)
+static void trace_java_call_print_argument(Buffer<>& logtext, methodinfo *m, typedesc *paramtype, imm_union imu)
 {
 	java_object_t *o;
 	classinfo     *c;
@@ -186,9 +186,9 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 	md = m->parseddesc;
 
 	// Create new dump memory area.
-	DumpMemoryArea dma;
+//	DumpMemoryArea dma;
 
-	Buffer<DumpMemoryAllocator> logtext;
+	Buffer<> logtext;
 
 	TRACEJAVACALLCOUNT++;
 
@@ -289,9 +289,9 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 		log_text("trace_java_call_exit: WARNING: unmatched unindent");
 
 	// Create new dump memory area.
-	DumpMemoryArea dma;
+//	DumpMemoryArea dma;
 
-	Buffer<DumpMemoryAllocator> logtext;
+	Buffer<> logtext;
 
 	/* generate the message */
 
@@ -332,9 +332,9 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 	codeinfo *code;
 
 	// Create new dump memory area.
-	DumpMemoryArea dma;
+//	DumpMemoryArea dma;
 
-	Buffer<DumpMemoryAllocator> logtext;
+	Buffer<> logtext;
 
 	if (xptr) {
 		logtext.write("Exception ");
@@ -407,9 +407,9 @@ void trace_exception_builtin(java_handle_t* h)
 	java_lang_String jls(s);
 
 	// Create new dump memory area.
-	DumpMemoryArea dma;
+//	DumpMemoryArea dma;
 
-	Buffer<DumpMemoryAllocator> logtext;
+	Buffer<> logtext;
 
 	logtext.write("Builtin exception thrown: ");
 
