@@ -25,6 +25,7 @@
 #include "vm/jit/compiler2/VerifierPass.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/verify/typecheck.hpp"
 
 namespace cacao {
