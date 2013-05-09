@@ -82,6 +82,7 @@ void OStream::init_transient_flags() {
 	// keep comments in Flags class in sync with this!
 
 	width = 0;
+	precision = -1;
 }
 
 void OStream::init_persistent_flags() {
@@ -144,26 +145,34 @@ void OStream::on_newline() {
 		assert(false && "Bad alignment");                                               \
 	}
 
-#define PRINT_FLOAT(DEC, SCI, HEX, VAL)                                                   \
-	switch (align) {                                                                      \
-	case Align_left:                                                                      \
-		switch (float_fmt) {                                                              \
-			case FloatFmt_decimal:     fprintf(file, "%-*" #DEC, (int) width, VAL);break; \
-			case FloatFmt_scientific:  fprintf(file, "%-*" #SCI, (int) width, VAL);break; \
-			case FloatFmt_hexadecimal: fprintf(file, "%-*" #HEX, (int) width, VAL);break; \
-			default:                 assert(false && "Bad float format");                 \
-		}                                                                                 \
-		break;                                                                            \
-	case Align_right:                                                                     \
-		switch (float_fmt) {                                                              \
-			case FloatFmt_decimal:     fprintf(file, "%*" #DEC, (int) width, VAL);break;  \
-			case FloatFmt_scientific:  fprintf(file, "%*" #SCI, (int) width, VAL);break;  \
-			case FloatFmt_hexadecimal: fprintf(file, "%*" #HEX, (int) width, VAL);break;  \
-			default:                 assert(false && "Bad float format");                 \
-		}                                                                                 \
-		break;                                                                            \
-	default:                                                                              \
-		assert(false && "Bad alignment");                                                 \
+#define PRINT_FLOAT(DEC, SCI, HEX, VAL)                                                 \
+	switch (align) {                                                                    \
+	case Align_left:                                                                    \
+		switch (float_fmt) {                                                            \
+			case FloatFmt_decimal:                                                      \
+				fprintf(file, "%-*.*" #DEC, (int) width, precision, VAL); break;        \
+			case FloatFmt_scientific:                                                   \
+				fprintf(file, "%-*.*" #SCI, (int) width, precision, VAL); break;        \
+			case FloatFmt_hexadecimal:                                                  \
+				fprintf(file, "%-*.*" #HEX, (int) width, precision, VAL); break;        \
+			default:                                                                    \
+				assert(false && "Bad float format");                                    \
+		}                                                                               \
+		break;                                                                          \
+	case Align_right:                                                                   \
+		switch (float_fmt) {                                                            \
+			case FloatFmt_decimal:										                \
+				fprintf(file, "%*.*" #DEC, (int) width, precision, VAL); break;         \
+			case FloatFmt_scientific:                                                   \
+				fprintf(file, "%*.*" #SCI, (int) width, precision, VAL); break;         \
+			case FloatFmt_hexadecimal:                                                  \
+				fprintf(file, "%*.*" #HEX, (int) width, precision, VAL); break;         \
+			default:                                                                    \
+				assert(false && "Bad float format");                                    \
+		}                                                                               \
+		break;                                                                          \
+	default:                                                                            \
+		assert(false && "Bad alignment");                                               \
 	}
 
 OStream& OStream::operator<<(char c) {
@@ -261,6 +270,11 @@ OStream& OStream::operator<<(const char *cs) {
 
 OStream& OStream::operator<<(const SetWidth& s) {
 	width = s.width;
+
+	return (*this);
+}
+OStream& OStream::operator<<(const SetPrecision& s) {
+	precision = s.precision;
 
 	return (*this);
 }
