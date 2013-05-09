@@ -84,7 +84,7 @@ void OStream::init_transient_flags() {
 
 	width = 0;
 	precision = -1;
-	fillzero = false;
+	fill_zero = false;
 }
 
 void OStream::init_persistent_flags() {
@@ -143,7 +143,7 @@ void OStream::on_newline() {
 		PRINT_INT_FLAG(DEC,OCT,HEX,VAL,"-");                                            \
 		break;                                                                          \
 	case Align_right:                                                                   \
-		if (fillzero) {                                                                 \
+		if (fill_zero) {                                                                \
 			PRINT_INT_FLAG(DEC,OCT,HEX,VAL,"0");                                        \
 		} else {                                                                        \
 			PRINT_INT_FLAG(DEC,OCT,HEX,VAL,"");                                         \
@@ -172,7 +172,7 @@ void OStream::on_newline() {
 		PRINT_FLOAT_FLAG(DEC,SCI,HEX,VAL,"-");                                          \
 		break;                                                                          \
 	case Align_right:                                                                   \
-		if (fillzero) {                                                                 \
+		if (fill_zero) {                                                                \
 			PRINT_FLOAT_FLAG(DEC,SCI,HEX,VAL,"0");                                      \
 		} else {                                                                        \
 			PRINT_FLOAT_FLAG(DEC,SCI,HEX,VAL,"");                                       \
@@ -298,7 +298,7 @@ OStream& OStream::operator<<(const SetPrefix& s) {
 }
 
 OStream& OStream::operator<<(const FillZero&) {
-	fillzero = true;
+	fill_zero = true;
 
 	return (*this);
 }
@@ -369,7 +369,7 @@ OStream& OStream::operator<<(const ThreadId&) {
 #ifdef ENABLE_THREADS
 	ptrint tid = threads_get_current_tid();
 
-	return (*this) << "[" << hex << setw(16) << tid << dec << "]";
+	return (*this) << "[" << hex << setw(16) << fillzero << tid << dec << "]";
 #else
 	return (*this) << "[thread-id]";
 #endif

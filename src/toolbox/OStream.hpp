@@ -250,13 +250,13 @@ private:
 	 */
 	int precision;
 
-	/** fillzero
+	/** fill_zero
 	 *
-	 * ! fillzero is reset to false by all standard write operations !
+	 * ! fill_zero is reset to false by all standard write operations !
 	 *
 	 * default value is false
 	 */
-	bool fillzero;
+	bool fill_zero;
 
 	/** Alignment to use when padding text
 	 *
