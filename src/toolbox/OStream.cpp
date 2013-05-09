@@ -42,6 +42,7 @@ OStream& out() {
 	return stream;
 }
 
+FillZero   fillzero;
 Left       left;
 Right      right;
 Dec        dec;
@@ -83,6 +84,7 @@ void OStream::init_transient_flags() {
 
 	width = 0;
 	precision = -1;
+	fillzero = false;
 }
 
 void OStream::init_persistent_flags() {
@@ -123,52 +125,57 @@ void OStream::on_newline() {
 	}
 }
 
+#define PRINT_INT_FLAG(DEC, OCT, HEX, VAL, FLAG)                                        \
+	switch (int_fmt) {                                                                  \
+		case IntFmt_decimal:                                                            \
+			fprintf(file, "%" FLAG "*" #DEC, (int) width, VAL);break;                   \
+		case IntFmt_octal:                                                              \
+			fprintf(file, "%" FLAG "*" #OCT, (int) width, VAL);break;                   \
+		case IntFmt_hexadecimal:                                                        \
+			fprintf(file, "%" FLAG "*" #HEX, (int) width, VAL);break;                   \
+		default:                 assert(false && "Bad int format");                     \
+	}
+
 #define PRINT_INT(DEC, OCT, HEX, VAL)                                                   \
 	switch (align) {                                                                    \
 	case Align_left:                                                                    \
-		switch (int_fmt) {                                                              \
-			case IntFmt_decimal:     fprintf(file, "%-*" #DEC, (int) width, VAL);break; \
-			case IntFmt_octal:       fprintf(file, "%-*" #OCT, (int) width, VAL);break; \
-			case IntFmt_hexadecimal: fprintf(file, "%-*" #HEX, (int) width, VAL);break; \
-			default:                 assert(false && "Bad int format");                 \
-		}                                                                               \
+		/* left align (i.e. - ) and zero padding not valid */                           \
+		PRINT_INT_FLAG(DEC,OCT,HEX,VAL,"-");                                            \
 		break;                                                                          \
 	case Align_right:                                                                   \
-		switch (int_fmt) {                                                              \
-			case IntFmt_decimal:     fprintf(file, "%*" #DEC, (int) width, VAL);break;  \
-			case IntFmt_octal:       fprintf(file, "%*" #OCT, (int) width, VAL);break;  \
-			case IntFmt_hexadecimal: fprintf(file, "%*" #HEX, (int) width, VAL);break;  \
-			default:                 assert(false && "Bad int format");                 \
+		if (fillzero) {                                                                 \
+			PRINT_INT_FLAG(DEC,OCT,HEX,VAL,"0");                                        \
+		} else {                                                                        \
+			PRINT_INT_FLAG(DEC,OCT,HEX,VAL,"");                                         \
 		}                                                                               \
 		break;                                                                          \
 	default:                                                                            \
 		assert(false && "Bad alignment");                                               \
 	}
 
+#define PRINT_FLOAT_FLAG(DEC, SCI, HEX, VAL, FLAG)                                      \
+	switch (float_fmt) {                                                                \
+		case FloatFmt_decimal:                                                          \
+			fprintf(file, "%" FLAG "*.*" #DEC, (int) width, precision, VAL); break;     \
+		case FloatFmt_scientific:                                                       \
+			fprintf(file, "%" FLAG "*.*" #SCI, (int) width, precision, VAL); break;     \
+		case FloatFmt_hexadecimal:                                                      \
+			fprintf(file, "%" FLAG "*.*" #HEX, (int) width, precision, VAL); break;     \
+		default:                                                                        \
+			assert(false && "Bad float format");                                        \
+	}
+
 #define PRINT_FLOAT(DEC, SCI, HEX, VAL)                                                 \
 	switch (align) {                                                                    \
 	case Align_left:                                                                    \
-		switch (float_fmt) {                                                            \
-			case FloatFmt_decimal:                                                      \
-				fprintf(file, "%-*.*" #DEC, (int) width, precision, VAL); break;        \
-			case FloatFmt_scientific:                                                   \
-				fprintf(file, "%-*.*" #SCI, (int) width, precision, VAL); break;        \
-			case FloatFmt_hexadecimal:                                                  \
-				fprintf(file, "%-*.*" #HEX, (int) width, precision, VAL); break;        \
-			default:                                                                    \
-				assert(false && "Bad float format");                                    \
-		}                                                                               \
+		/* left align (i.e. - ) and zero padding not valid */                           \
+		PRINT_FLOAT_FLAG(DEC,SCI,HEX,VAL,"-");                                          \
 		break;                                                                          \
 	case Align_right:                                                                   \
-		switch (float_fmt) {                                                            \
-			case FloatFmt_decimal:										                \
-				fprintf(file, "%*.*" #DEC, (int) width, precision, VAL); break;         \
-			case FloatFmt_scientific:                                                   \
-				fprintf(file, "%*.*" #SCI, (int) width, precision, VAL); break;         \
-			case FloatFmt_hexadecimal:                                                  \
-				fprintf(file, "%*.*" #HEX, (int) width, precision, VAL); break;         \
-			default:                                                                    \
-				assert(false && "Bad float format");                                    \
+		if (fillzero) {                                                                 \
+			PRINT_FLOAT_FLAG(DEC,SCI,HEX,VAL,"0");                                      \
+		} else {                                                                        \
+			PRINT_FLOAT_FLAG(DEC,SCI,HEX,VAL,"");                                       \
 		}                                                                               \
 		break;                                                                          \
 	default:                                                                            \
@@ -286,6 +293,12 @@ OStream& OStream::operator<<(const SetIndent& s) {
 OStream& OStream::operator<<(const SetPrefix& s) {
 	prefix       = s.prefix;
 	prefix_color = s.color;
+
+	return (*this);
+}
+
+OStream& OStream::operator<<(const FillZero&) {
+	fillzero = true;
 
 	return (*this);
 }

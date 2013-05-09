@@ -39,6 +39,8 @@ class SetPrecision;
 class SetIndent;
 class SetPrefix;
 
+class FillZero;
+
 class Left;
 class Right;
 class Dec;
@@ -170,6 +172,8 @@ public:
 	OStream& operator<<(const SetIndent&);
 	OStream& operator<<(const SetPrefix&);
 
+	OStream& operator<<(const FillZero&);
+
 	OStream& operator<<(const Left&);
 	OStream& operator<<(const Right&);
 
@@ -245,6 +249,14 @@ private:
 	 * default value is -1 (i.e. turned off)
 	 */
 	int precision;
+
+	/** fillzero
+	 *
+	 * ! fillzero is reset to false by all standard write operations !
+	 *
+	 * default value is false
+	 */
+	bool fillzero;
 
 	/** Alignment to use when padding text
 	 *
@@ -333,6 +345,8 @@ public:
 friend class OStream;
 };
 
+class FillZero   {};
+
 class Left       {};
 class Right      {};
 class Dec        {};
@@ -367,6 +381,7 @@ inline static SetPrefix setprefix(const char *prefix, Color color) {
 	return SetPrefix(prefix, color);
 }
 
+extern FillZero   fillzero;
 extern Left       left;
 extern Right      right;
 extern Dec        dec;
