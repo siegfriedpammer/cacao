@@ -341,7 +341,7 @@ Buffer<Allocator>& Buffer<Allocator>::write_dot_to_slash(Utf8String u) {
 
 template<template<typename T> class Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write_ptr(void *ptr) {
-	return writef("0x" PRIxPTR, ptr);
+	return writef("0x%" PRIxPTR, ptr);
 }
 
 template<template<typename T> class Allocator>
@@ -351,7 +351,7 @@ Buffer<Allocator>& Buffer<Allocator>::write_dec(s4 n) {
 
 template<template<typename T> class Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write_dec(s8 n) {
-	return writef("0x" PRId64, n);
+	return writef("0x%" PRId64, n);
 }
 
 template<template<typename T> class Allocator>
@@ -371,7 +371,7 @@ Buffer<Allocator>& Buffer<Allocator>::write_hex(s4 n) {
 
 template<template<typename T> class Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write_hex(s8 n) {
-	return writef("0x" PRIx64, n);
+	return writef("0x%" PRIx64, n);
 }
 
 template<template<typename T> class Allocator>
