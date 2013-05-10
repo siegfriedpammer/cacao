@@ -28,7 +28,6 @@
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
-#undef  __STDC_FORMAT_MACROS
 
 #include "vm/utf8.hpp"
 #include "vm/string.hpp"
