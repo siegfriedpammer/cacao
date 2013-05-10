@@ -341,7 +341,7 @@ Buffer<Allocator>& Buffer<Allocator>::write_dot_to_slash(Utf8String u) {
 
 template<template<typename T> class Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write_ptr(void *ptr) {
-	return writef("0x" PRIxPTR, (uintptr_t) ptr);
+	return writef("0x" PRIxPTR, ptr);
 }
 
 template<template<typename T> class Allocator>
