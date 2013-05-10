@@ -26,6 +26,10 @@
 #ifndef BUFFER_HPP_
 #define BUFFER_HPP_ 1
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+#undef  __STDC_FORMAT_MACROS
+
 #include "vm/utf8.hpp"
 #include "vm/string.hpp"
 #include "mm/memory.hpp"
@@ -338,11 +342,7 @@ Buffer<Allocator>& Buffer<Allocator>::write_dot_to_slash(Utf8String u) {
 
 template<template<typename T> class Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write_ptr(void *ptr) {
-#if SIZEOF_VOID_P == 8
-	return writef("0x%08x",   (ptrint) ptr);
-#else
-	return writef("0x%016lx", (ptrint) ptr);
-#endif
+	return writef("0x" PRIxPTR, (uintptr_t) ptr);
 }
 
 template<template<typename T> class Allocator>
@@ -352,11 +352,7 @@ Buffer<Allocator>& Buffer<Allocator>::write_dec(s4 n) {
 
 template<template<typename T> class Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write_dec(s8 n) {
-#if SIZEOF_VOID_P == 8
-	return writef(" 0x%lld", n);
-#else
-	return writef(" 0x%ld", n);
-#endif
+	return writef("0x" PRId64, n);
 }
 
 template<template<typename T> class Allocator>
@@ -376,11 +372,7 @@ Buffer<Allocator>& Buffer<Allocator>::write_hex(s4 n) {
 
 template<template<typename T> class Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write_hex(s8 n) {
-#if SIZEOF_VOID_P == 8
-	return writef(" 0x%016llx", n);
-#else
-	return writef(" 0x%016lx", n);
-#endif
+	return writef("0x" PRIx64, n);
 }
 
 template<template<typename T> class Allocator>
