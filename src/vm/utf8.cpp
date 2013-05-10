@@ -364,14 +364,17 @@ Utf8String Utf8String::substring(size_t from, size_t to) const
 }
 
 bool Utf8String::is_valid_name() const {
-	unsigned char *it  = (unsigned char *) this->begin();
-	unsigned char *end = (unsigned char *) this->end();
+	Utf8String::byte_iterator it  = this->begin();
+	Utf8String::byte_iterator end = this->end();
+
 
 	for (; it != end; it++) {
 		unsigned char c = *it;
 
-		if (c < 0x20)                   return false; // disallow control characters
-		if (c == 0xc0 && it[1] == 0x80) return false; // disallow zero
+		if (c < 0x20)                                     
+			return false; // disallow control chars
+		if (c == 0xc0 && ((unsigned char) it[1]) == 0x80) 
+			return false; // disallow zero
 	}
 
 	return true;
