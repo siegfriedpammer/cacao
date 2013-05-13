@@ -2335,23 +2335,23 @@ VM_CALL_ARRAY(_double, double)
 *******************************************************************************/
 
 #define VM_CALL_METHOD(name, type)                                  \
-type vm_call_method##name(methodinfo *m, java_handle_t *o, ...)     \
+type vm_call_##name(methodinfo *m, java_handle_t *o, ...)     \
 {                                                                   \
 	va_list ap;                                                     \
 	type    value;                                                  \
                                                                     \
 	va_start(ap, o);                                                \
-	value = vm_call_method##name##_valist(m, o, ap);                \
+	value = vm_call_##name##_valist(m, o, ap);                \
 	va_end(ap);                                                     \
                                                                     \
 	return value;                                                   \
 }
 
-VM_CALL_METHOD(,        java_handle_t *)
-VM_CALL_METHOD(_int,    int32_t)
-VM_CALL_METHOD(_long,   int64_t)
-VM_CALL_METHOD(_float,  float)
-VM_CALL_METHOD(_double, double)
+VM_CALL_METHOD(method,        java_handle_t *)
+VM_CALL_METHOD(method_int,    int32_t)
+VM_CALL_METHOD(method_long,   int64_t)
+VM_CALL_METHOD(method_float,  float)
+VM_CALL_METHOD(method_double, double)
 
 
 /* vm_call_method_valist *******************************************************
@@ -2362,8 +2362,8 @@ VM_CALL_METHOD(_double, double)
 *******************************************************************************/
 
 #define VM_CALL_METHOD_VALIST(name, type)                               \
-type vm_call_method##name##_valist(methodinfo *m, java_handle_t *o,     \
-								   va_list ap)                          \
+type vm_call_method##name##valist(methodinfo *m, java_handle_t *o,      \
+								  va_list ap)                           \
 {                                                                       \
 	uint64_t *array;                                                    \
 	type      value;                                                    \
@@ -2377,18 +2377,18 @@ type vm_call_method##name##_valist(methodinfo *m, java_handle_t *o,     \
 	DumpMemoryArea dma;													\
                                                                         \
 	array = argument_vmarray_from_valist(m, o, ap);                     \
-	value = vm_call##name##_array(m, array);                            \
+	value = vm_call##name##array(m, array);                             \
                                                                         \
 	THREAD_NATIVEWORLD_ENTER;                                           \
                                                                         \
 	return value;                                                       \
 }
 
-VM_CALL_METHOD_VALIST(,        java_handle_t *)
-VM_CALL_METHOD_VALIST(_int,    int32_t)
-VM_CALL_METHOD_VALIST(_long,   int64_t)
-VM_CALL_METHOD_VALIST(_float,  float)
-VM_CALL_METHOD_VALIST(_double, double)
+VM_CALL_METHOD_VALIST(_,        java_handle_t *)
+VM_CALL_METHOD_VALIST(_int_,    int32_t)
+VM_CALL_METHOD_VALIST(_long_,   int64_t)
+VM_CALL_METHOD_VALIST(_float_,  float)
+VM_CALL_METHOD_VALIST(_double_, double)
 
 
 /* vm_call_method_jvalue *******************************************************
@@ -2399,7 +2399,7 @@ VM_CALL_METHOD_VALIST(_double, double)
 *******************************************************************************/
 
 #define VM_CALL_METHOD_JVALUE(name, type)                               \
-type vm_call_method##name##_jvalue(methodinfo *m, java_handle_t *o,     \
+type vm_call_method##name##jvalue(methodinfo *m, java_handle_t *o,      \
 						           const jvalue *args)                  \
 {                                                                       \
 	uint64_t *array;                                                    \
@@ -2414,18 +2414,18 @@ type vm_call_method##name##_jvalue(methodinfo *m, java_handle_t *o,     \
 	DumpMemoryArea dma;													\
                                                                         \
 	array = argument_vmarray_from_jvalue(m, o, args);                   \
-	value = vm_call##name##_array(m, array);                            \
+	value = vm_call##name##array(m, array);                             \
                                                                         \
 	THREAD_NATIVEWORLD_ENTER;                                           \
                                                                         \
 	return value;                                                       \
 }
 
-VM_CALL_METHOD_JVALUE(,        java_handle_t *)
-VM_CALL_METHOD_JVALUE(_int,    int32_t)
-VM_CALL_METHOD_JVALUE(_long,   int64_t)
-VM_CALL_METHOD_JVALUE(_float,  float)
-VM_CALL_METHOD_JVALUE(_double, double)
+VM_CALL_METHOD_JVALUE(_,        java_handle_t *)
+VM_CALL_METHOD_JVALUE(_int_,    int32_t)
+VM_CALL_METHOD_JVALUE(_long_,   int64_t)
+VM_CALL_METHOD_JVALUE(_float_,  float)
+VM_CALL_METHOD_JVALUE(_double_, double)
 
 
 /* vm_call_method_objectarray **************************************************
