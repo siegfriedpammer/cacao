@@ -35,8 +35,11 @@ OStream& out();
 OStream& err();
 
 class SetWidth;
+class SetPrecision;
 class SetIndent;
 class SetPrefix;
+
+class FillZero;
 
 class Left;
 class Right;
@@ -165,8 +168,11 @@ public:
 
 	// manipulators
 	OStream& operator<<(const SetWidth&);
+	OStream& operator<<(const SetPrecision&);
 	OStream& operator<<(const SetIndent&);
 	OStream& operator<<(const SetPrefix&);
+
+	OStream& operator<<(const FillZero&);
 
 	OStream& operator<<(const Left&);
 	OStream& operator<<(const Right&);
@@ -236,6 +242,22 @@ private:
 	 */
 	size_t width;
 
+	/** precision
+	 *
+	 * ! precision is reset to -1 by all standard write operations !
+	 *
+	 * default value is -1 (i.e. turned off)
+	 */
+	int precision;
+
+	/** fill_zero
+	 *
+	 * ! fill_zero is reset to false by all standard write operations !
+	 *
+	 * default value is false
+	 */
+	bool fill_zero;
+
 	/** Alignment to use when padding text
 	 *
 	 * default value is OStream::Align_right
@@ -294,6 +316,15 @@ public:
 friend class OStream;
 };
 
+/// Set precision flag for next item to be written.
+class SetPrecision {
+	int precision;
+public:
+	inline SetPrecision(int precision) : precision(precision) {}
+
+friend class OStream;
+};
+
 /// Set indent level in stream
 class SetIndent {
 	size_t indent;
@@ -313,6 +344,8 @@ public:
 
 friend class OStream;
 };
+
+class FillZero   {};
 
 class Left       {};
 class Right      {};
@@ -338,6 +371,9 @@ class NoUnderline;
 inline static SetWidth setw(size_t w) {
 	return SetWidth(w);
 }
+inline static SetPrecision setprecision(int p) {
+	return SetPrecision(p);
+}
 inline static SetIndent setindent(size_t i) {
 	return SetIndent(i);
 }
@@ -345,6 +381,7 @@ inline static SetPrefix setprefix(const char *prefix, Color color) {
 	return SetPrefix(prefix, color);
 }
 
+extern FillZero   fillzero;
 extern Left       left;
 extern Right      right;
 extern Dec        dec;
