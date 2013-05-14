@@ -544,15 +544,15 @@ classbuffer *suck_start(classinfo *c)
 
 		} else {
 #endif /* defined(ENABLE_ZLIB) */
-			path.clear();
+			path.reset();
 
 			path.write(lce->path)
 			    .write(filename);
 
-			classfile = os::fopen(path, "r");
+			classfile = os::fopen(path.c_str(), "r");
 
 			if (classfile) {                                   /* file exists */
-				if (!os::stat(path, &buffer)) {     /* read classfile data */
+				if (!os::stat(path.c_str(), &buffer)) {        /* read classfile data */
 					cb = NEW(classbuffer);
 					cb->clazz = c;
 					cb->size  = buffer.st_size;
@@ -583,7 +583,7 @@ classbuffer *suck_start(classinfo *c)
 
 	if (opt_verbose)
 		if (cb == NULL)
-			dolog("Warning: Can not open class file '%s'", (char*) filename);
+			dolog("Warning: Can not open class file '%s'", filename.c_str());
 
 	return cb;
 }

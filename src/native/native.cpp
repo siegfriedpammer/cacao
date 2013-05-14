@@ -106,7 +106,7 @@ static Utf8String native_make_overloaded_function(Utf8String name, Utf8String de
 
 	/* make a utf-string */
 
-	return newname.build();
+	return newname.utf8_str();
 }
 
 
@@ -205,7 +205,7 @@ static Utf8String native_method_symbol(Utf8String classname, Utf8String methodna
 
 	/* make a utf-string */
 
-	return name.build();
+	return name.utf8_str();
 }
 
 
@@ -669,7 +669,7 @@ bool NativeAgents::load_agents()
 		Utf8String u = buf.write(NATIVE_LIBRARY_PREFIX)
 		                  .write(na.get_library())
 		                  .write(NATIVE_LIBRARY_SUFFIX)
-		                  .build();
+		                  .utf8_str();
 
 		// Construct new native library.
 		NativeLibrary nl(u);

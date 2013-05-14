@@ -758,7 +758,7 @@ void exceptions_throw_classformaterror(classinfo *c, const char *message, ...)
 
 	/* throw exception */
 
-	exceptions_throw_utf_utf(utf8::java_lang_ClassFormatError, buf.build());
+	exceptions_throw_utf_utf(utf8::java_lang_ClassFormatError, buf.utf8_str());
 }
 
 
@@ -825,7 +825,7 @@ void exceptions_throw_noclassdeffounderror_wrong_name(classinfo *c, Utf8String n
 	   .write_slash_to_dot(name)
 	   .write(')');
 
-	exceptions_throw_noclassdeffounderror(buf.build());
+	exceptions_throw_noclassdeffounderror(buf.utf8_str());
 }
 
 
@@ -867,7 +867,7 @@ void exceptions_throw_incompatibleclasschangeerror(classinfo *c, const char *mes
 
 	/* throw exception */
 
-	exceptions_throw_utf_utf(utf8::java_lang_IncompatibleClassChangeError, buf.build());
+	exceptions_throw_utf_utf(utf8::java_lang_IncompatibleClassChangeError, buf.utf8_str());
 }
 
 
@@ -906,7 +906,7 @@ void exceptions_throw_internalerror(const char *message, ...)
 
 	/* throw exception */
 
-	exceptions_throw_utf_utf(utf8::java_lang_InternalError, buf.build());
+	exceptions_throw_utf_utf(utf8::java_lang_InternalError, buf.utf8_str());
 }
 
 
@@ -915,7 +915,7 @@ void exceptions_throw_internalerror(const char *message, ...)
    Generates and throws java.lang.LinkageError with an error message.
 
    IN:
-      message......UTF-8 message
+      message......UTF-8 message, can be freed after the call
 	  c............class related to the error. If this is != NULL
 	               the name of c is appended to the error message.
 
@@ -925,8 +925,16 @@ void exceptions_throw_linkageerror(const char *message, classinfo *c)
 {
 	/* generate message */
 
-	Utf8String msg = c ? Utf8String::from_utf8_slash_to_dot(c->name) : 
-	                     utf8::empty;
+	Buffer<> buf;
+
+	if (c) {
+		buf.write_slash_to_dot(c->name)
+		   .write(": ");		
+	}
+
+	buf.write(message);
+
+	Utf8String msg = buf.utf8_str();
 
 	exceptions_throw_utf_utf(utf8::java_lang_LinkageError, msg);
 }
@@ -953,7 +961,7 @@ void exceptions_throw_nosuchfielderror(classinfo *c, Utf8String name)
 	   .write('.')
 	   .write(name);
 
-	exceptions_throw_utf_utf(utf8::java_lang_NoSuchFieldError, buf.build());
+	exceptions_throw_utf_utf(utf8::java_lang_NoSuchFieldError, buf.utf8_str());
 }
 
 
@@ -981,9 +989,9 @@ void exceptions_throw_nosuchmethoderror(classinfo *c, Utf8String name, Utf8Strin
 	   .write(desc);
 
 #if defined(ENABLE_JAVASE)
-	exceptions_throw_utf_utf(utf8::java_lang_NoSuchMethodError, buf.build());
+	exceptions_throw_utf_utf(utf8::java_lang_NoSuchMethodError, buf.utf8_str());
 #else
-	exceptions_throw_utf_utf(utf8::java_lang_Error, buf.build());
+	exceptions_throw_utf_utf(utf8::java_lang_Error, buf.utf8_str());
 #endif
 }
 
@@ -1042,7 +1050,7 @@ void exceptions_throw_unsupportedclassversionerror(classinfo *c, u4 ma, u4 mi)
 
 	/* throw exception */
 
-	exceptions_throw_utf_utf(utf8::java_lang_UnsupportedClassVersionError, buf.build());
+	exceptions_throw_utf_utf(utf8::java_lang_UnsupportedClassVersionError, buf.utf8_str());
 }
 
 
@@ -1079,7 +1087,7 @@ void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...)
 
 	/* throw exception */
 
-	exceptions_throw_utf_utf(utf8::java_lang_VerifyError, buf.build());
+	exceptions_throw_utf_utf(utf8::java_lang_VerifyError, buf.utf8_str());
 }
 
 
@@ -1129,7 +1137,7 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type)
 
 	/* throw exception */
 
-	exceptions_throw_utf_utf(utf8::java_lang_VerifyError, buf.build());
+	exceptions_throw_utf_utf(utf8::java_lang_VerifyError, buf.utf8_str());
 }
 
 

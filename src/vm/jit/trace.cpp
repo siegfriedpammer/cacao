@@ -233,7 +233,7 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 
 	logtext.write(")");
 
-	log_text((char*) logtext);
+	log_text(logtext.c_str());
 
 	TRACEJAVACALLINDENT++;
 }
@@ -317,7 +317,7 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 		trace_java_call_print_argument(logtext, m, &md->returntype, val);
 	}
 
-	log_text((char*) logtext);
+	log_text(logtext.c_str());
 }
 
 
@@ -384,7 +384,7 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 	} else
 		logtext.write("call_java_method");
 
-	log_text((char*) logtext);
+	log_text(logtext.c_str());
 }
 
 
@@ -425,7 +425,7 @@ void trace_exception_builtin(java_handle_t* h)
 		logtext.write("(nil)");
 	}
 
-	log_text((char*) logtext);
+	log_text(logtext.c_str());
 }
 
 #endif /* !defined(NDEBUG) */

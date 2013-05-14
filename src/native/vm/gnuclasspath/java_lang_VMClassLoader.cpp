@@ -248,7 +248,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv
 	methodinfo           *m;         /* "add" method of vector   */
 	java_handle_t        *path;      /* path to be added         */
 	Utf8String            utfname;   /* utf to look for          */
-	char                 *namestart; /* start of name to use     */
+	const char           *namestart; /* start of name to use     */
 	char                 *tmppath;   /* temporary buffer         */
 	int32_t               namelen;   /* length of name to use    */
 	int32_t               searchlen; /* length of name to search */
@@ -275,7 +275,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv
 	namelen   = utfname.size();
 	searchlen = namelen;
 	bufsize   = namelen + strlen("0");
-	namestart = buffer;
+	namestart = buffer.c_str();
 
 	/* skip leading '/' */
 

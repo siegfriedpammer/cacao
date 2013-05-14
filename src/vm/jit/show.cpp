@@ -1549,26 +1549,23 @@ INITIAL           INCLUDE1           INCLUDE2           EXCLUDE1           EXCLU
 */
 
 void show_filters_apply(methodinfo *m) {
-	int i;
-	int res;
-	char *method_name;
-
-	/* compose full name of method */
+	// compose full name of method
 	Buffer<> buf;
 
-	method_name = buf.write_slash_to_dot(m->clazz->name)
-	                 .write('.')
-	                 .write(m->name)
-	                 .write(m->descriptor);
+	const char *method_name = buf.write_slash_to_dot(m->clazz->name)
+	                             .write('.')
+	                             .write(m->name)
+	                             .write(m->descriptor)
+	                             .c_str();
 
 	/* reset all flags */
 
 	m->filtermatches = 0;
 
-	for (i = 0; i < SHOW_FILTERS_SIZE; ++i) {
+	for (int i = 0; i < SHOW_FILTERS_SIZE; ++i) {
 		if (show_filters[i].enabled) {
 
-			res = regexec(&show_filters[i].regex, method_name, 0, NULL, 0);
+			int res = regexec(&show_filters[i].regex, method_name, 0, NULL, 0);
 
 			if (res == 0) {
 				m->filtermatches |= show_filters[i].flag;

@@ -108,7 +108,7 @@ void nativevm_preinit(void)
 	buf.write(boot_library_path);
 	buf.write("/libjava.so");
 
-	Utf8String u = buf.build();
+	Utf8String u = buf.utf8_str();
 
 	NativeLibrary nl(u);
 	void* handle = nl.open();

@@ -79,7 +79,7 @@ void HPI::initialize() // REMOVEME
 	buf.write(boot_library_path);
 	buf.write("/native_threads/libhpi.so");
 
-	Utf8String u = buf.build();
+	Utf8String u = buf.utf8_str();
 
     if (opt_TraceHPI)
 		log_println("HPI::initialize: Loading HPI %s ", (char*) buf);

@@ -250,7 +250,7 @@ bool resolve_class_from_name(classinfo *referer,
 		                  .write(" from ")
 		                  .write_slash_to_dot(referer->name)
 		                  .write(")")
-		                  .build();
+		                  .utf8_str();
 
 		exceptions_throw_illegalaccessexception(u);
 		return false; /* exception */
@@ -623,16 +623,15 @@ check_again:
 		else
 			buf.write("subtype constraint violated (");
 	
-		Utf8String u = buf.write_slash_to_dot(subclass->name)
-		                  .write(" is not a subclass of ")
-		                  .write_slash_to_dot(CLASSREF_OR_CLASSINFO_NAME(supertype))
-		                  .write(')')
-		                  .build();
+		buf.write_slash_to_dot(subclass->name)
+		   .write(" is not a subclass of ")
+		   .write_slash_to_dot(CLASSREF_OR_CLASSINFO_NAME(supertype))
+		   .write(')');
 
 		if (error == resolveIllegalAccessError)
-			exceptions_throw_illegalaccessexception(u);
+			exceptions_throw_illegalaccessexception(buf.utf8_str());
 		else
-			exceptions_throw_linkageerror((char*) buf, NULL);
+			exceptions_throw_linkageerror(buf.c_str(), NULL);
 
 		return resolveFailed; /* exception */
 	}
@@ -1124,7 +1123,7 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 	/* check access rights */
 
 	if (!access_is_accessible_member(referer,declarer,fi->flags)) {
-		Buffer<> buf(64, false);
+		Buffer<> buf(64);
 
 		Utf8String u = buf.write("field is not accessible (")
 		                  .write_slash_to_dot(declarer->name)
@@ -1133,7 +1132,7 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 		                  .write(" from ")
 		                  .write_slash_to_dot(referer->name)
 		                  .write(")")
-		                  .build();
+		                  .utf8_str();
 
 		exceptions_throw_illegalaccessexception(u);
 
@@ -1636,7 +1635,7 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 	if (!access_is_accessible_member(referer,declarer,mi->flags)) {
 		/* XXX clean this up. this should be in exceptions.c */
 
-		Buffer<> buf(64, false);
+		Buffer<> buf(64);
 
 		Utf8String u = buf.write("method is not accessible (")
 		                  .write_slash_to_dot(declarer->name)
@@ -1646,7 +1645,7 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 		                  .write(" from ")
 		                  .write_slash_to_dot(referer->name)
 		                  .write(")")
-		                  .build();
+		                  .utf8_str();
 
 		exceptions_throw_illegalaccessexception(u);
 		return resolveFailed; /* exception */

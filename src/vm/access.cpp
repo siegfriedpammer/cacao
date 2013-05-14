@@ -231,7 +231,7 @@ bool access_check_field(fieldinfo *f, int callerdepth)
 		                  .write_slash_to_dot(f->name)
 		                  .write(" not accessible from ", 21)
 		                  .write_slash_to_dot(callerclass->name)
-		                  .build();
+		                  .utf8_str();
 
 		exceptions_throw_illegalaccessexception(u);
 		return false;
@@ -287,7 +287,7 @@ bool access_check_method(methodinfo *m, int callerdepth)
 	/* Check access rights. */
 
 	if (!access_is_accessible_member(callerclass, m->clazz, m->flags)) {
-		Buffer<> buf(64, false);
+		Buffer<> buf(64);
 
 		buf.write_slash_to_dot(m->clazz->name)
 		   .write('.')
@@ -296,7 +296,7 @@ bool access_check_method(methodinfo *m, int callerdepth)
 		   .write(" not accessible from ", 21)
 		   .write_slash_to_dot(callerclass->name);
 
-		exceptions_throw_illegalaccessexception(buf.build());
+		exceptions_throw_illegalaccessexception(buf.utf8_str());
 		return false;
 	}
 

@@ -237,7 +237,7 @@ JNIEXPORT jstring JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIEnv *env, j
 	   .write(u)
 	   .write(NATIVE_LIBRARY_SUFFIX);
 
-	o = JavaString::from_utf8(buf);
+	o = JavaString::from_utf8(buf.c_str());
 
 	return (jstring) o;
 }

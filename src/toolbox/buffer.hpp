@@ -29,6 +29,7 @@
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
+#include "vm/global.hpp"            // for MAX
 #include "vm/utf8.hpp"
 #include "vm/string.hpp"
 #include "mm/memory.hpp"
@@ -37,29 +38,31 @@
 
 /* Buffer **********************************************************************
 
-	An OutputStream that writes to an in memory buffer.
+	An in memory buffer.
 
-	It performs no checks, bounds or otherwise on input strings.
 	The buffer automatically grows to fit it's input.
 
 	When a buffer goes out of scope all memory associated with it will be freed
 
 	Don't forget to zero terminate contents of buffer if you use them directly.
 
+	TEMPLATE PARAMETERS:
+		Allocator ... The type of allocator to use for allocating the buffer.
+		              Must support the non-standard reallocate function.
+
 *******************************************************************************/
 
-template<template<typename T> class Allocator = MemoryAllocator>
-class Buffer{
+template<typename Allocator = MemoryAllocator<u1> >
+class Buffer {
 	public:
 		// construct a buffer with size
-		Buffer(size_t initial_size = 64, bool free_on_exit = true);
-
-		// set wether the Buffer owns it's internal buffer,
-		// and deletes it in its dtor
-		Buffer& free_on_exit(bool free_on_exit);
+		Buffer(size_t initial_size = 64);
 
 		// free content of buffer
 		~Buffer();
+
+		// *********************************************************************
+		// ***** WRITE TO BUFFER
 
 		// write to buffer byte-by-byte
 		inline Buffer& write(char);
@@ -69,12 +72,16 @@ class Buffer{
 		inline Buffer& write(const char*, size_t);
 		inline Buffer& write(const u2*,   size_t);
 
-		// write to buffer, replacing '/' by '.'
+		/// write to buffer, replacing '/' by '.'
 		inline Buffer& write_slash_to_dot(const char*);
 		inline Buffer& write_slash_to_dot(Utf8String);
 
-		// write to buffer, replacing '.' by '/'
+		/// write to buffer, replacing '.' by '/'
 		inline Buffer& write_dot_to_slash(Utf8String);
+
+		/// copy contents of buffer (calls c_str() on src)
+		template<typename A>
+		inline Buffer& write(Buffer<A>& src) { return write(src.c_str()); }
 
 		/// write address of pointer as hex to buffer
 		inline Buffer& write_ptr(void*);
@@ -95,38 +102,62 @@ class Buffer{
 		inline Buffer& writef(const char* fmt, ...);
 		inline Buffer& writevf(const char* fmt, va_list ap);
 
-		// get char contents of buffer
-		inline operator char*() {
-			zero_terminate();
-			return _start;
-		}
+		/// ensure string in buffer is zero terminated
+		inline Buffer& zero_terminate();
 
-		// get utf-8 string contents of buffer
-		inline Utf8String build();
+		// *********************************************************************
+		// ***** GET CONTENTS OF BUFFER
 
-		// clear buffer content
-		// O(1)
-		inline void clear();
+		/// get contents of buffer as zero-terminated c-style-string
+		/// This strings lifetime is tied to it's buffer.
+		inline const char* c_str();
 
-		// remove data from the back of this buffer.
-		// O(1)
+		/// get copy contents of buffer as zero-terminated c-style-string
+		/// You must free the returned string yourself (
+		/// use a copy of the buffer's allocator via get_allocator())
+		inline const char* c_str_copy();
+
+		/// get utf-8 string contents of buffer as utf8-string
+		inline Utf8String utf8_str();
+
+		/// get raw contents of buffer (not necessarily zero terminated).
+		inline u1* data();
+		inline const u1* data() const;
+
+		/// get size of buffer contents
+		inline size_t size();
+
+		// *********************************************************************
+		// ***** CHANGE BUFFER POSITION
+
+		/// Reset buffer position to start of buffer.
+		/// This effectively clears the buffer.
+		/// O(1)
+		inline void reset();
+
+		/// advance buffer position by n bytes
+		/// O(1)
+		inline void skip(size_t num_bytes); 
+
+		/// remove data from the back of this buffer.
+		/// O(1)
 		inline void rewind(size_t bytes_to_drop);
 
-		// ensure string in buffer is zero terminated
-		Buffer& zero_terminate();
+		// *********************************************************************
+		// ***** MISC
+
+		/// ensure buffer contains space for at least sz bytes
+		void ensure_capacity(size_t sz);
 	private:
-		void ensure_capacity(size_t);
-
-		void init(size_t sz, bool free_on_exit);
-
-		// non-copyable, non-assignable
+		/// non-copyable
 		Buffer(const Buffer&);
+		///non-assignable
 		Buffer& operator=(const Buffer&);
 
-		char*           _start, *_end, *_pos;
-		bool            _free_on_exit;
-		Allocator<char> _alloc;
+		u1       *_start, *_end, *_pos;
+		Allocator _alloc;
 
+		// used to encode utf16 strings to utf8
 		class Encode {
 			public:
 				typedef utf_utils::Tag<utf_utils::VISIT_UTF8, utf_utils::IGNORE_ERRORS> Tag;
@@ -152,37 +183,22 @@ class Buffer{
 	IN:
 		buf_size ....... The number of bytes that should be preallocated
 		                 for input in the buffer.
-		free_on_exit ... Tells wether the Buffer should free it's internal
-		                 buffer in it's destructor.
 
 *******************************************************************************/
 
-template<template<typename T> class Allocator>
-Buffer<Allocator>::Buffer(size_t initial_size, bool free_on_exit)
+template<typename Allocator>
+Buffer<Allocator>::Buffer(size_t initial_size)
 {
 	_start        = _alloc.allocate(initial_size);
 	_end          = _start + initial_size;
 	_pos          = _start;
-	_free_on_exit = free_on_exit;
 }
 
-template<template<typename T> class Allocator>
-Buffer<Allocator>& Buffer<Allocator>::free_on_exit(bool free_on_exit)
-{
-	_free_on_exit = free_on_exit;
-}
-
-
-template<template<typename T> class Allocator>
+template<typename Allocator>
 Buffer<Allocator>::~Buffer()
 {
-//	static int xxx = 0;
-//	printf(">> ~Buffer() %05d '%s'\n", xxx++, _start);
-
-	if (_free_on_exit) {
-		_alloc.deallocate(_start, _end - _start);
-		_start = _end = _pos = 0;
-	}
+	_alloc.deallocate(_start, _end - _start);
+	_start = _end = _pos = 0;
 }
 
 /* Buffer::write(Utf8String) ***************************************************
@@ -192,7 +208,7 @@ Buffer<Allocator>::~Buffer()
 
 *******************************************************************************/
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write(Utf8String u)
 {
 	return write(u.begin(), u.size());
@@ -205,7 +221,7 @@ Buffer<Allocator>& Buffer<Allocator>::write(Utf8String u)
 
 *******************************************************************************/
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write(JavaString js)
 {
 	return write(js.begin(), js.size());
@@ -218,7 +234,7 @@ Buffer<Allocator>& Buffer<Allocator>::write(JavaString js)
 
 *******************************************************************************/
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write(const char *cs)
 {
 	return write(cs, strlen(cs));
@@ -231,7 +247,7 @@ Buffer<Allocator>& Buffer<Allocator>::write(const char *cs)
 
 *******************************************************************************/
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write(const char *cs, size_t sz)
 {
 	ensure_capacity(sz);
@@ -250,7 +266,7 @@ Buffer<Allocator>& Buffer<Allocator>::write(const char *cs, size_t sz)
 
 *******************************************************************************/
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write(const u2 *cs, size_t sz)
 {
 	utf16::transform<void>(cs, sz, Encode(*this));
@@ -260,12 +276,12 @@ Buffer<Allocator>& Buffer<Allocator>::write(const u2 *cs, size_t sz)
 
 /* Buffer::write(char) *********************************************************
 
-	Insert a utf-8 string into buffer byte by byte.
+	Write a char into buffer.
 	Does NOT inserts a zero terminator.
 
 *******************************************************************************/
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write(char c)
 {
 	ensure_capacity(1);
@@ -282,7 +298,7 @@ Buffer<Allocator>& Buffer<Allocator>::write(char c)
 
 *******************************************************************************/
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write_slash_to_dot(const char *cs) {
 	size_t sz = std::strlen(cs);
 
@@ -300,7 +316,7 @@ Buffer<Allocator>& Buffer<Allocator>::write_slash_to_dot(const char *cs) {
 	return *this;
 }
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write_slash_to_dot(Utf8String u) {
 	ensure_capacity(u.size());
 
@@ -323,7 +339,7 @@ Buffer<Allocator>& Buffer<Allocator>::write_slash_to_dot(Utf8String u) {
 
 *******************************************************************************/
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write_dot_to_slash(Utf8String u) {
 	ensure_capacity(u.size());
 
@@ -339,42 +355,49 @@ Buffer<Allocator>& Buffer<Allocator>::write_dot_to_slash(Utf8String u) {
 	return *this;
 }
 
-template<template<typename T> class Allocator>
+/* Buffer::write_ptr/dec/hex **************************************************
+
+
+	Like (v)snprintf but for buffers.
+
+*******************************************************************************/
+
+template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write_ptr(void *ptr) {
 	return writef("0x%" PRIxPTR, ptr);
 }
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write_dec(s4 n) {
 	return writef("%d", n);
 }
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write_dec(s8 n) {
 	return writef("0x%" PRId64, n);
 }
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write_dec(float n) {
 	return writef("%g", n);
 }
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write_dec(double n) {
 	return writef("%g", n);
 }
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write_hex(s4 n) {
 	return writef("%08x", n);
 }
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write_hex(s8 n) {
 	return writef("0x%" PRIx64, n);
 }
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write_hex(float n) {
 	union {
 		float f;
@@ -386,7 +409,7 @@ Buffer<Allocator>& Buffer<Allocator>::write_hex(float n) {
 	return write_hex(u.i);
 }
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write_hex(double n) {
 	union {
 		double d;
@@ -404,7 +427,7 @@ Buffer<Allocator>& Buffer<Allocator>::write_hex(double n) {
 
 *******************************************************************************/
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::writef(const char *fmt, ...)
 {
 	va_list ap;
@@ -416,50 +439,118 @@ Buffer<Allocator>& Buffer<Allocator>::writef(const char *fmt, ...)
 	return *this;
 }
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::writevf(const char *fmt, va_list ap)
 {
 	size_t size    = _end - _pos;
-	size_t written = vsnprintf(_pos, size, fmt, ap);
+	size_t written = vsnprintf((char*) _pos, size, fmt, ap);
 
 	if (written > size) {
 		// buffer was too small
 		ensure_capacity(written);
 
 		size    = _end - _pos;
-		written = vsnprintf(_pos, size, fmt, ap);
-		_pos   += written;
+		written = vsnprintf((char*) _pos, size, fmt, ap);
 		assert(written <= size);
 	}
+
+	_pos   += written;
 
 	return *this;
 }
 
-/* Buffer::build ***************************************************************
+/* Buffer::zero_terminate ******************************************************
+
+	Ensure content of buffer is a zero terminated string.
+	Does not alter the buffers position.
+
+*******************************************************************************/
+
+template<typename Allocator>
+Buffer<Allocator>& Buffer<Allocator>::zero_terminate()
+{
+	ensure_capacity(1);
+
+	*_pos = '\0';
+
+	return *this;
+}
+
+/* Buffer::c_str() *************************************************************
+
+	Returns the buffers contents as read only c-style string.
+	The string remains valid only as long as the buffer exists.
+
+	Automatically ensures that this buffers contents are zero terminated
+
+*******************************************************************************/
+
+template<typename Allocator>
+const char* Buffer<Allocator>::c_str()
+{
+	zero_terminate();
+
+	return (const char*) _start;
+}
+
+/* Buffer::utf8_str() **********************************************************
 
 	Create a new Utf8String whose contents are equal to the contents of this
 	buffer.
 
-	The contents of the buffer must be zero terminated.
+	Automatically ensures that this buffers contents are zero terminated
 
 *******************************************************************************/
 
-template<template<typename T> class Allocator>
-Utf8String Buffer<Allocator>::build()
+template<typename Allocator>
+Utf8String Buffer<Allocator>::utf8_str()
 {
 	zero_terminate();
 
-	return Utf8String::from_utf8(_start,_pos - _start);
+	return Utf8String::from_utf8((char*) _start, _pos - _start);
 }
 
-/* Buffer::clear ***************************************************************
+/* Buffer::data() **************************************************************
 
-	Clear buffer content
+	get raw contents of buffer (not necessarily zero terminated).
+	The pointer remains valid only as long as the buffer exists.
+
+	Returns NULL if buffer is empty
 
 *******************************************************************************/
 
-template<template<typename T> class Allocator>
-void Buffer<Allocator>::clear()
+template<typename Allocator>
+u1* Buffer<Allocator>::data()
+{
+	return _start;
+}
+
+template<typename Allocator>
+const u1* Buffer<Allocator>::data() const
+{
+	return _start;
+}
+
+/* Buffer::size() **************************************************************
+
+	get size of buffer contents
+
+*******************************************************************************/
+
+template<typename Allocator>
+size_t Buffer<Allocator>::size()
+{
+	return _pos - _start;
+}
+
+/* Buffer::reset ***************************************************************
+
+	Reset buffer position to start of buffer.
+
+*******************************************************************************/
+
+template<typename Allocator>
+void Buffer<Allocator>::reset()
 {
 	_pos = _start;
 }
@@ -479,24 +570,10 @@ void Buffer<Allocator>::clear()
 
 *******************************************************************************/
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 void Buffer<Allocator>::rewind(size_t bytes_to_drop)
 {
 	_pos -= bytes_to_drop;
-}
-
-/* Buffer::zero_terminate ******************************************************
-
-	Ensure content of buffer is a zero terminated string.
-
-*******************************************************************************/
-
-template<template<typename T> class Allocator>
-Buffer<Allocator>& Buffer<Allocator>::zero_terminate()
-{
-	*_pos = '\0';
-
-	return *this;
 }
 
 /* Buffer::ensure_capacity *****************************************************
@@ -510,7 +587,7 @@ Buffer<Allocator>& Buffer<Allocator>::zero_terminate()
 
 *******************************************************************************/
 
-template<template<typename T> class Allocator>
+template<typename Allocator>
 void Buffer<Allocator>::ensure_capacity(size_t write_size)
 {
 	size_t free_space = _end - _pos;
@@ -520,12 +597,7 @@ void Buffer<Allocator>::ensure_capacity(size_t write_size)
 		size_t old_size     = _pos - _start;
 		size_t old_capacity = _end - _start;
 
-		// TODO: for some reason including <algorithm> breaks show.cpp
-		//       can't use std::max
-
-#define _MAX(A,B) ((A) >= (B) ? (A) : (B))
-		size_t new_capacity = (_MAX(old_capacity, write_size) * 2) + 1;
-#undef  _MAX
+		size_t new_capacity = MAX(old_capacity, write_size) * 2 + 1;
 		assert(new_capacity > (old_capacity + write_size));
 
 		// enlarge buffer

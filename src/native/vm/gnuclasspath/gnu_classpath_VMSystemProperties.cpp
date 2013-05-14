@@ -101,13 +101,12 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_postInit(JNIEnv *en
 
 	// Use sequence builder to assemble value.
 	Buffer<> buf;
-	buf.free_on_exit(false);
 	
 	buf.write("file://")
 	   .write(java_home)
 	   .write("/lib");
 
-	Properties::put(p, "gnu.classpath.home.url", (char*) buf);
+	Properties::put(p, "gnu.classpath.home.url", buf.c_str_copy());
 #endif
 }
 
