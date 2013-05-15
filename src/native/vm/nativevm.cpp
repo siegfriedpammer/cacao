@@ -114,7 +114,7 @@ void nativevm_preinit(void)
 	void* handle = nl.open();
 
 	if (handle == NULL)
-		os::abort("nativevm_init: failed to open libjava.so at: %s", (char*) buf);
+		os::abort("nativevm_init: failed to open libjava.so at: %s", buf.c_str());
 
 	NativeLibraries& nls = vm->get_nativelibraries();
 	nls.add(nl);

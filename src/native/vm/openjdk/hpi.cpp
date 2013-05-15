@@ -82,7 +82,7 @@ void HPI::initialize() // REMOVEME
 	Utf8String u = buf.utf8_str();
 
     if (opt_TraceHPI)
-		log_println("HPI::initialize: Loading HPI %s ", (char*) buf);
+		log_println("HPI::initialize: Loading HPI %s ", buf.c_str());
 
 	NativeLibrary nl(u);
 	void* handle = nl.open();
