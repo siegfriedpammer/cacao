@@ -58,6 +58,8 @@ libcompiler2_la_SOURCES = \
 	Value.cpp \
 	VerifierPass.cpp
 
+libcompiler2_la_SOURCES += XxxPass.cpp
+
 libcompiler2_la_LIBADD = \
 	$(ARCH_DIR)/lib$(ARCH_DIR).la
 
