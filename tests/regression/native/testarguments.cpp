@@ -31,12 +31,13 @@
 #include <cstdlib>
 #include <inttypes.h>
 #include <stdint.h>
+#include "global.h"
 
 #include INCLUDE_JNI_MD_H
 #include INCLUDE_JNI_H
 
 static inline void print_jlong(jlong n) {
-    printf(" 0x%" PRIx64, n);
+    printf(" 0x%" PRIx64, (s8) n);
 }
 static inline void print_jint (jint  n) {
     printf(" 0x%x", n);

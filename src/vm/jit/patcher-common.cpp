@@ -28,6 +28,7 @@
 
 #include <cassert>
 #include <stdint.h>
+#include <inttypes.h>
 
 #include <algorithm>
 #include <functional>
@@ -180,13 +181,14 @@ void patcher_list_show(codeinfo *code)
 				break;
 
 		// Display information about patcher.
-		printf("\tpatcher pc:"PRINTF_FORMAT_INTPTR_T, pr.mpc);
-		printf(" datap:"PRINTF_FORMAT_INTPTR_T, pr.datap);
-		printf(" ref:"PRINTF_FORMAT_INTPTR_T, (intptr_t) pr.ref);
+		printf("\tpatcher");
+		printf(" pc:0x%016"PRIxPTR,    pr.mpc);
+		printf(" datap:0x%016"PRIxPTR, pr.datap);
+		printf(" ref:0x%016"PRIxPTR,   (uintptr_t) pr.ref);
 #if PATCHER_CALL_SIZE == 4
-		printf(" mcode:%08x", (uint32_t) pr.mcode);
+		printf(" mcode:%08"PRIx32, (uint32_t) pr.mcode);
 #elif PATCHER_CALL_SIZE == 2
-		printf(" mcode:%04x", (uint16_t) pr.mcode);
+		printf(" mcode:%04"PRIx16, (uint16_t) pr.mcode);
 #else
 # error Unknown PATCHER_CALL_SIZE
 #endif

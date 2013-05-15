@@ -64,10 +64,6 @@
 #include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trace.hpp"
 
-#if defined(ENABLE_VMLOG)
-#include <vmlog_cacao.h>
-#endif
-
 #include "toolbox/logging.hpp"
 
 #define DEBUG_NAME "exceptions"
@@ -1516,10 +1512,6 @@ extern "C" void *exceptions_handle_exception(java_object_t *xptro, void *xpc, vo
 
 	if (opt_TraceExceptions)
 		trace_exception(LLNI_DIRECT(xptr), m, xpc);
-
-# if defined(ENABLE_VMLOG)
-	vmlog_cacao_throw(xptr);
-# endif
 #endif
 
 	/* Get the exception table. */
@@ -1542,10 +1534,6 @@ extern "C" void *exceptions_handle_exception(java_object_t *xptro, void *xpc, vo
 			if (cr.any == NULL) {
 #if !defined(NDEBUG)
 				/* Print stacktrace of exception when caught. */
-
-# if defined(ENABLE_VMLOG)
-				vmlog_cacao_catch(xptr);
-# endif
 
 				if (opt_TraceExceptions) {
 					exceptions_print_exception(xptr);
@@ -1607,10 +1595,6 @@ extern "C" void *exceptions_handle_exception(java_object_t *xptro, void *xpc, vo
 #if !defined(NDEBUG)
 				/* Print stacktrace of exception when caught. */
 
-# if defined(ENABLE_VMLOG)
-				vmlog_cacao_catch(xptr);
-# endif
-
 				if (opt_TraceExceptions) {
 					exceptions_print_exception(xptr);
 					stacktrace_print_exception(xptr);
@@ -1641,9 +1625,6 @@ extern "C" void *exceptions_handle_exception(java_object_t *xptro, void *xpc, vo
 	/* none of the exceptions catch this one */
 
 #if !defined(NDEBUG)
-# if defined(ENABLE_VMLOG)
-	vmlog_cacao_unwnd_method(m);
-# endif
 
 # if defined(ENABLE_DEBUG_FILTER)
 	if (show_filters_test_verbosecall_exit(m)) {
