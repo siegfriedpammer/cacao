@@ -96,17 +96,7 @@ JNIEXPORT jobject JNICALL Java_testarguments_adr(JNIEnv *env, jclass clazz, jint
 
 JNIEXPORT void JNICALL Java_testarguments_np(JNIEnv *env, jclass clazz, jobject o)
 {
-#if defined(ENABLE_HANDLES)
-    intptr_t p = *((intptr_t *) o);
-#else
-    intptr_t p = (intptr_t) o;
-#endif
-
-#if SIZEOF_VOID_P == 8
-    printf(" 0x%lx", (long) p);
-#else
-    printf(" 0x%x", (int) p);
-#endif
+    print_jobject(o);
 
     fflush(stdout);
 }
