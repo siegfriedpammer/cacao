@@ -84,6 +84,8 @@ RT_REGISTER_GROUP_TIMER(rp_timer,            "compiler2","replacement point gene
 RT_REGISTER_GROUP_TIMER(codegen_timer,       "compiler2","codegen",                      compiler2_group)
 #endif
 
+STAT_REGISTER_GROUP(compiler2_stat,"compiler2","statistics for compiler2")
+
 namespace {
 
 /* dummy function, used when there is no JavaVM code available                */

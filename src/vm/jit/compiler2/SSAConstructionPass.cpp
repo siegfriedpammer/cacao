@@ -32,7 +32,12 @@
 #include "vm/jit/show.hpp"
 #include "vm/jit/ir/icmd.hpp"
 
+#include "vm/statistics.hpp"
+
 #include "toolbox/logging.hpp"
+
+STAT_DECLARE_GROUP(compiler2_stat)
+STAT_REGISTER_GROUP_VAR(int,num_trivial_phis,0,"# trivial phis","number of trivial phis",compiler2_stat)
 
 namespace {
 const char * get_var_type(int type)
@@ -873,6 +878,7 @@ Value* SSAConstructionPass::try_remove_trivial_phi(PHIInst *phi) {
 		same = NULL; // Phi instruction not reachable
 	}
 	LOG(BoldGreen << "removed PHI! " << reset_color << (long)phi << nl);
+	STATISTICS(num_trivial_phis++);
 	std::list<Instruction*> users(phi->user_begin(),phi->user_end());
 	users.remove(phi);
 	phi->replace_value(same);
