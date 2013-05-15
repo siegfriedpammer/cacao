@@ -1,4 +1,4 @@
-## src/vm/jit/compiler2/Makefile.am
+## src/vm/jit/compiler2/x86_64/Makefile.am
 ##
 ## Copyright (C) 2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,41 +25,11 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 
 LIBS =
 
-SUBDIRS = \
-	$(ARCH_DIR)
-
 noinst_LTLIBRARIES = \
-	libcompiler2.la
+	libx86_64.la
 
-libcompiler2_la_SOURCES = \
-	Backend.cpp \
-	CFGConstructionPass.cpp \
-	CodeGenPass.cpp \
-	Compiler.cpp \
-	DominatorPass.cpp \
-	DomTreePrinterPass.cpp \
-	GraphHelper.cpp \
-	Instruction.cpp \
-	LoopPass.cpp \
-	LoopSimplificationPass.cpp \
-	MachineInstruction.cpp \
-	MachineOperand.cpp \
-	Method.cpp \
-	ParserPass.cpp \
-	Pass.cpp \
-	PassManager.cpp \
-	RegisterAllocatorPass.cpp \
-	ScheduleEarlyPass.cpp \
-	ScheduleLatePass.cpp \
-	SSAConstructionPass.cpp \
-	SSAPrinterPass.cpp \
-	StackAnalysisPass.cpp \
-	Type.cpp \
-	Value.cpp \
-	VerifierPass.cpp
-
-libcompiler2_la_LIBADD = \
-	$(ARCH_DIR)/lib$(ARCH_DIR).la
+libx86_64_la_SOURCES = \
+	X86_64Backend.cpp
 
 ## Local variables:
 ## mode: Makefile
