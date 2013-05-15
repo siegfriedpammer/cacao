@@ -38,6 +38,8 @@ libcompiler2_la_SOURCES = \
 	Instruction.cpp \
 	LoopPass.cpp \
 	LoopSimplificationPass.cpp \
+	MachineInstruction.cpp \
+	MachineOperand.cpp \
 	Method.cpp \
 	ParserPass.cpp \
 	Pass.cpp \
