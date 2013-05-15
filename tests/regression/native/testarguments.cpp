@@ -31,7 +31,7 @@
 #include <cstdlib>
 #include <inttypes.h>
 #include <stdint.h>
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 #include INCLUDE_JNI_MD_H
 #include INCLUDE_JNI_H
