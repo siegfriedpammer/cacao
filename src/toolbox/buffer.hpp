@@ -26,15 +26,12 @@
 #ifndef BUFFER_HPP_
 #define BUFFER_HPP_ 1
 
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
-
+#include "mm/memory.hpp"
+#include "toolbox/utf_utils.hpp"
 #include "vm/global.hpp"            // for MAX
 #include "vm/utf8.hpp"
 #include "vm/string.hpp"
-#include "mm/memory.hpp"
-
-#include "toolbox/utf_utils.hpp"
 
 /* Buffer **********************************************************************
 
@@ -364,7 +361,7 @@ Buffer<Allocator>& Buffer<Allocator>::write_dot_to_slash(Utf8String u) {
 
 template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::write_ptr(void *ptr) {
-	return writef("0x%" PRIxPTR, ptr);
+	return writef("0x%" PRIxPTR, (uintptr_t) ptr);
 }
 
 template<typename Allocator>

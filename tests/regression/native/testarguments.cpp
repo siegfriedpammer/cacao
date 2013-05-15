@@ -25,19 +25,18 @@
 
 #include "config.h"
 
+#define __STDC_FORMAT_MACROS
+
+#include <cstdio>
+#include <cstdlib>
+#include <inttypes.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 #include INCLUDE_JNI_MD_H
 #include INCLUDE_JNI_H
 
 static inline void print_jlong(jlong n) {
-#ifdef WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH
-    printf(" 0x%llx", n);
-#else
-    printf(" 0x%lx", n);
-#endif
+    printf(" 0x%" PRIx64, n);
 }
 static inline void print_jint (jint  n) {
     printf(" 0x%x", n);
@@ -71,11 +70,7 @@ static inline void print_jobject(jobject o) {
     intptr_t p = (intptr_t) o;
 #endif
 
-#if SIZEOF_VOID_P == 8
-    printf(" 0x%lx", (long) p);
-#else
-    printf(" 0x%x",  (int) p);
-#endif
+    printf(" 0x%" PRIxPTR, (uintptr_t) p);
 }
 
 extern "C" {
