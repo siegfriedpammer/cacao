@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_Method
 
 #include "vm/jit/compiler2/Method.hpp"
+#include "vm/jit/compiler2/Backend.hpp"
 
 // forward declaration
 struct jitdata;
@@ -38,12 +39,14 @@ class JITData {
 private:
 	jitdata *jd;
 	Method M;
+	Backend *BE;
 public:
-	JITData(jitdata *jd) : jd(jd) {}
+	JITData(jitdata *jd) : jd(jd), BE(Backend::factory())  {}
 	jitdata *jitdata() const {
 		return jd;
 	}
 	Method* get_Method() { return &M; }
+	Backend* get_Backend() { return BE; }
 };
 
 

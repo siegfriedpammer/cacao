@@ -42,6 +42,10 @@ class Method {
 public:
 	typedef std::vector<Instruction*> InstructionListTy;
 	typedef std::list<BeginInst*> BBListTy;
+	typedef InstructionListTy::iterator iterator;
+	typedef InstructionListTy::const_iterator const_iterator;
+	typedef BBListTy::iterator bb_iterator;
+	typedef BBListTy::const_iterator const_bb_iterator;
 private:
 	/**
 	 * This is were the instructions live.
@@ -90,11 +94,11 @@ public:
 		return init_bb;
 	}
 
-	InstructionListTy::const_iterator begin() const {
+	const_iterator begin() const {
 		return inst_list.begin();
 	}
 
-	InstructionListTy::const_iterator end() const {
+	const_iterator end() const {
 		return inst_list.end();
 	}
 
@@ -102,11 +106,11 @@ public:
 		return inst_list.size();
 	}
 
-	BBListTy::const_iterator bb_begin() const {
+	const_bb_iterator bb_begin() const {
 		return bb_list.begin();
 	}
 
-	BBListTy::const_iterator bb_end() const {
+	const_bb_iterator bb_end() const {
 		return bb_list.end();
 	}
 

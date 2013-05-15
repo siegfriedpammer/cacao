@@ -22,6 +22,12 @@
 
 */
 
+#include "vm/jit/compiler2/x86_64/X86_64Backend.hpp"
+
+#include "toolbox/logging.hpp"
+
+#define DEBUG_NAME "compiler2/x86_64"
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {

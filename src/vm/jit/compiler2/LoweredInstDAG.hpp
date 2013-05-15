@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/X86_64Backend.hpp - X86_64Backend
+/* src/vm/jit/compiler2/LoweredInstDAG.hpp - LoweredInstDAG
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,24 +22,54 @@
 
 */
 
-#ifndef _JIT_COMPILER2_X86_64BACKEND
-#define _JIT_COMPILER2_X86_64BACKEND
+#ifndef _JIT_COMPILER2_LOWEREDINSTDAG
+#define _JIT_COMPILER2_LOWEREDINSTDAG
 
 #include "vm/jit/compiler2/Instruction.hpp"
-#include "vm/jit/compiler2/Backend.hpp"
+#include "vm/jit/compiler2/MachineInstruction.hpp"
+
+#include <cassert>
+#include <vector>
+#include <algorithm>
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-
 /**
- * X86_64 Backend
+ * DAG of machine instruction that replace one Instruction.
+ *
+ * Often a target independent instruction can not be replaced by one but by a
+ * DAG of machine instructions. A LoweredInstDAG stores these machine
+ * instructions and contains a mapping from the instruction operands to the
+ * operands of the machine instructions.
+ * 
+ * Note all machine instructions must be linked i.e. all operands are either
+ * connected to the operand map, another machine instruction or a immediate
+ * value.
  */
-class X86_64Backend : public Backend {
-protected:
+class LoweredInstDAG {
+private:
+	Instruction * inst;
+	std::vector<MachineInstruction*> minst;
+	MachineInstruction *result;
 public:
-	virtual const char* get_name() const { return "x86_64"; }
+	LoweredInstDAG(Instruction* I) : inst(I), minst(I->op_size()),
+			result(NULL) {}
+	Instruction * get_Instruction() const {
+		return inst;
+	}
+
+	void add(MachineInstruction *MI) {
+		assert(std::find(minst.begin(),minst.end(),MI) == minst.end());
+		assert(MI);
+		minst.push_back(MI);
+	}
+	void set_result(MachineInstruction *MI) {
+		assert(MI);
+		result = MI;
+	}
+
 };
 
 
@@ -47,7 +77,7 @@ public:
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_X86_64BACKEND */
+#endif /* _JIT_COMPILER2_LOWEREDINSTDAG */
 
 
 /*

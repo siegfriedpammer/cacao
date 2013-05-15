@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/X86_64Backend.hpp - X86_64Backend
+/* src/vm/jit/compiler2/MachineInstructions.hpp - Machine Instruction Types
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,32 +22,26 @@
 
 */
 
-#ifndef _JIT_COMPILER2_X86_64BACKEND
-#define _JIT_COMPILER2_X86_64BACKEND
+#ifndef _JIT_COMPILER2_MACHINEINSTRUCTIONS
+#define _JIT_COMPILER2_MACHINEINSTRUCTIONS
 
-#include "vm/jit/compiler2/Instruction.hpp"
-#include "vm/jit/compiler2/Backend.hpp"
+#include "vm/jit/compiler2/MachineInstruction.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-
-/**
- * X86_64 Backend
- */
-class X86_64Backend : public Backend {
-protected:
+class MachineLabelInst : public MachineInstruction {
 public:
-	virtual const char* get_name() const { return "x86_64"; }
+	MachineLabelInst() : MachineInstruction("MLabel",MachineOperand::IMMEDIATE_ADDR, 0) {}
+	
 };
-
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_X86_64BACKEND */
+#endif /* _JIT_COMPILER2_MACHINEINSTRUCTIONS */
 
 
 /*

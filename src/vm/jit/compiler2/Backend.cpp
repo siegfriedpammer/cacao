@@ -23,6 +23,10 @@
 */
 
 #include "vm/jit/compiler2/Backend.hpp"
+#include "vm/jit/compiler2/Instructions.hpp"
+#include "vm/jit/compiler2/LoweredInstDAG.hpp"
+#include "vm/jit/compiler2/MachineInstructions.hpp"
+
 #include "vm/jit/compiler2/x86_64/X86_64Backend.hpp"
 
 namespace cacao {
@@ -33,6 +37,24 @@ namespace compiler2 {
 Backend* Backend::factory() {
 	static X86_64Backend BE;
 	return &BE;
+}
+
+LoweredInstDAG* Backend::lower(Instruction *I) const {
+	switch(I->get_opcode()) {
+	case Instruction::BeginInstID: return lowerBeginInst(I->to_BeginInst());
+	}
+	err() << BoldRed << "error: " << reset_color
+		  << " instruction " << BoldWhite
+		  << I << reset_color << " not yet handled by the Backend" << nl;
+	return NULL;
+}
+
+LoweredInstDAG* Backend::lowerBeginInst(BeginInst *I) const {
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	MachineLabelInst *label = new MachineLabelInst();
+	dag->add(label);
+	dag->set_result(label);
+	return dag;
 }
 
 } // end namespace compiler2

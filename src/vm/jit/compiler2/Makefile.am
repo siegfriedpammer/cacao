@@ -42,6 +42,7 @@ libcompiler2_la_SOURCES = \
 	Instruction.cpp \
 	LoopPass.cpp \
 	LoopSimplificationPass.cpp \
+	LoweringPass.cpp \
 	MachineInstruction.cpp \
 	MachineOperand.cpp \
 	Method.cpp \

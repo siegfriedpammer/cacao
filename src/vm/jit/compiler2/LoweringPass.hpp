@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/X86_64Backend.hpp - X86_64Backend
+/* src/vm/jit/compiler2/LoweringPass.hpp - LoweringPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,11 +22,10 @@
 
 */
 
-#ifndef _JIT_COMPILER2_X86_64BACKEND
-#define _JIT_COMPILER2_X86_64BACKEND
+#ifndef _JIT_COMPILER2_LOWERINGPASS
+#define _JIT_COMPILER2_LOWERINGPASS
 
-#include "vm/jit/compiler2/Instruction.hpp"
-#include "vm/jit/compiler2/Backend.hpp"
+#include "vm/jit/compiler2/Pass.hpp"
 
 namespace cacao {
 namespace jit {
@@ -34,20 +33,22 @@ namespace compiler2 {
 
 
 /**
- * X86_64 Backend
+ * LoweringPass
+ * TODO: more info
  */
-class X86_64Backend : public Backend {
-protected:
+class LoweringPass : public Pass {
 public:
-	virtual const char* get_name() const { return "x86_64"; }
+	static char ID;
+	LoweringPass() : Pass() {}
+	bool run(JITData &JD);
+	PassUsage& get_PassUsage(PassUsage &PA) const;
 };
-
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_X86_64BACKEND */
+#endif /* _JIT_COMPILER2_LOWERINGPASS */
 
 
 /*

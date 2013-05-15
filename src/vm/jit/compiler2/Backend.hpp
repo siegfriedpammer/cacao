@@ -29,15 +29,29 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+class LoweredInstDAG;
 
+class Instruction;
+
+class BeginInst;
+
+class BackendGen {
+protected:
+	virtual LoweredInstDAG* lowerBeginInst(BeginInst *I) const = 0;
+};
 /**
  * Machine Backend
  *
  * This class containes all target dependent information.
  */
-class Backend {
+class Backend : public BackendGen {
+protected:
+	virtual LoweredInstDAG* lowerBeginInst(BeginInst *I) const;
 public:
 	static Backend* factory();
+
+	virtual const char* get_name() const = 0;
+	LoweredInstDAG* lower(Instruction *I) const;
 
 };
 

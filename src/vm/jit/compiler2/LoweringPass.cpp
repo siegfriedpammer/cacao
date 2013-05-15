@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/X86_64Backend.hpp - X86_64Backend
+/* src/vm/jit/compiler2/LoweringPass.cpp - LoweringPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,32 +22,52 @@
 
 */
 
-#ifndef _JIT_COMPILER2_X86_64BACKEND
-#define _JIT_COMPILER2_X86_64BACKEND
+#include "vm/jit/compiler2/LoweringPass.hpp"
+#include "vm/jit/compiler2/PassManager.hpp"
+#include "vm/jit/compiler2/JITData.hpp"
+#include "vm/jit/compiler2/PassUsage.hpp"
+#include "vm/jit/compiler2/LoweredInstDAG.hpp"
 
-#include "vm/jit/compiler2/Instruction.hpp"
-#include "vm/jit/compiler2/Backend.hpp"
+#include "toolbox/logging.hpp"
+
+#define DEBUG_NAME "compiler2/lowering"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
 
-/**
- * X86_64 Backend
- */
-class X86_64Backend : public Backend {
-protected:
-public:
-	virtual const char* get_name() const { return "x86_64"; }
-};
+bool LoweringPass::run(JITData &JD) {
+	Method *M = JD.get_Method();
+	Backend *BE = JD.get_Backend();
 
+	LOG("Lowering to target: " << BE->get_name() << nl);
+
+	for(Method::const_iterator i = M->begin(), e = M->end(); i != e ; ++i ) {
+		Instruction *I = *i;
+		LoweredInstDAG* dag = BE->lower(I);
+		if (!dag)
+			return false;
+	}
+
+	return true;
+}
+
+// pass usage
+PassUsage& LoweringPass::get_PassUsage(PassUsage &PU) const {
+	//PU.add_requires(YyyPass::ID);
+	return PU;
+}
+
+// the address of this variable is used to identify the pass
+char LoweringPass::ID = 0;
+
+// register pass
+static PassRegistery<LoweringPass> X("LoweringPass");
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
-
-#endif /* _JIT_COMPILER2_X86_64BACKEND */
 
 
 /*
