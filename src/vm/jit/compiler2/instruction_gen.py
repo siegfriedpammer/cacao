@@ -171,6 +171,14 @@ if __name__ == '__main__':
 	temps = [
 		Template('InstructionDeclGen.inc','Instruction Declarations','class {name};\n',
 			cpp_header+cpp_generation_disclaimer,cpp_footer),
+		Template('InstructionIDGen.inc','Instruction IDs','{name}ID,\n',
+			cpp_header+cpp_generation_disclaimer,cpp_footer),
+		Template('InstructionToInstGen.inc','Instruction conversion methods',
+			'virtual {name}* to_{name}() {{ return NULL; }}\n',
+			cpp_header+cpp_generation_disclaimer,cpp_footer),
+		Template('InstructionNameSwitchGen.inc','Instruction name switch',
+			'case {name}ID: return "{name}";\n',
+			cpp_header+cpp_generation_disclaimer,cpp_footer),
 	]
 	main(temps)
 

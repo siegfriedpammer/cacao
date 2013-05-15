@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/Backend.hpp - Backend
+/* src/vm/jit/compiler2/InstructionIDGen.inc - Instruction IDs
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,47 +22,68 @@
 
 */
 
-#ifndef _JIT_COMPILER2_BACKEND
-#define _JIT_COMPILER2_BACKEND
+/*
+WARNING: THIS FILE IS AUTO-GENERATED! DO NOT ALTER!
+Instead have a look into the generator (./instruction_gen.py)
+and the input file (./instruction_table.csv).
+*/
 
-namespace cacao {
-namespace jit {
-namespace compiler2 {
-
-class LoweredInstDAG;
-
-class Instruction;
-
-// include instruction declaration
-#include "vm/jit/compiler2/InstructionDeclGen.inc"
-
-class BackendGen {
-protected:
-	virtual LoweredInstDAG* lowerBeginInst(BeginInst *I) const = 0;
-};
-/**
- * Machine Backend
- *
- * This class containes all target dependent information.
- */
-class Backend : public BackendGen {
-protected:
-	virtual LoweredInstDAG* lowerBeginInst(BeginInst *I) const;
-public:
-	static Backend* factory();
-
-	virtual const char* get_name() const = 0;
-	LoweredInstDAG* lower(Instruction *I) const;
-
-};
-
-
-} // end namespace compiler2
-} // end namespace jit
-} // end namespace cacao
-
-#endif /* _JIT_COMPILER2_BACKEND */
-
+LoadInstID,
+UnaryInstID,
+BinaryInstID,
+NOPInstID,
+POPInstID,
+CHECKNULLInstID,
+ARRAYLENGTHInstID,
+NEGInstID,
+CASTInstID,
+ADDInstID,
+SUBInstID,
+MULInstID,
+DIVInstID,
+REMInstID,
+SHLInstID,
+USHRInstID,
+ANDInstID,
+ORInstID,
+XORInstID,
+CMPInstID,
+CONSTInstID,
+GETFIELDInstID,
+PUTFIELDInstID,
+PUTSTATICInstID,
+GETSTATICInstID,
+INCInstID,
+ASTOREInstID,
+ALOADInstID,
+RETInstID,
+LOADInstID,
+STOREInstID,
+NEWInstID,
+NEWARRAYInstID,
+ANEWARRAYInstID,
+MULTIANEWARRAYInstID,
+CHECKCASTInstID,
+INSTANCEOFInstID,
+GOTOInstID,
+JSRInstID,
+BUILTINInstID,
+INVOKEVIRTUALInstID,
+INVOKESPECIALInstID,
+INVOKESTATICInstID,
+INVOKEINTERFACEInstID,
+IFInstID,
+IF_CMPInstID,
+TABLESWITCHInstID,
+LOOKUPSWITCHInstID,
+RETURNInstID,
+THROWInstID,
+COPYInstID,
+MOVEInstID,
+GETEXCEPTIONInstID,
+PHIInstID,
+BeginInstID,
+EndInstID,
 
 /*
  * These are local overrides for various environment variables in Emacs.
