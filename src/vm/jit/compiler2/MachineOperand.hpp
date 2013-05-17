@@ -40,12 +40,15 @@ namespace compiler2 {
 class MachineOperand {
 public:
 	enum TYPE {
-		NONE,
-		REGISTER_VALUE  = 1<<0,
-		REGISTER_ADDR   = 1<<1,
-		IMMEDIATE_VALUE = 1<<2,
-		IMMEDIATE_ADDR  = 1<<3,
-		ALL = REGISTER_VALUE | REGISTER_ADDR | IMMEDIATE_ADDR | IMMEDIATE_ADDR
+		NONE            = 0,
+		REGISTER_VALUE  = 1<<0, ///< register with a value
+		REGISTER_MEM    = 1<<1, ///< register with a memory address
+		IMMEDIATE       = 1<<2, ///< immediate value
+		ABSOLUTE_ADDR   = 1<<3, ///< absolute code address
+		PIC_ADDR        = 1<<4, ///< absolute code address (position independent code).
+		                        ///< The absolute value might changes but offsets are still valid.
+		PC_REL_ADDR     = 1<<5, ///< code address offset
+		ALL = REGISTER_VALUE | REGISTER_MEM | IMMEDIATE | ABSOLUTE_ADDR | PIC_ADDR | PC_REL_ADDR
 	};
 private:
 	unsigned type;

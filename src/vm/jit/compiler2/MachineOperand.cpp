@@ -35,12 +35,16 @@ OStream& operator<<(OStream &OS, const MachineOperand &MO) {
 	OS << "MachineOperand [ ";
 	if (MO.takes(MachineOperand::REGISTER_VALUE))
 		OS << "RV ";
-	if (MO.takes(MachineOperand::REGISTER_ADDR))
+	if (MO.takes(MachineOperand::REGISTER_MEM))
+		OS << "RM ";
+	if (MO.takes(MachineOperand::IMMEDIATE))
+		OS << "IM ";
+	if (MO.takes(MachineOperand::ABSOLUTE_ADDR))
+		OS << "AA ";
+	if (MO.takes(MachineOperand::PIC_ADDR))
+		OS << "PA ";
+	if (MO.takes(MachineOperand::PC_REL_ADDR))
 		OS << "RA ";
-	if (MO.takes(MachineOperand::IMMEDIATE_VALUE))
-		OS << "IV ";
-	if (MO.takes(MachineOperand::IMMEDIATE_ADDR))
-		OS << "IA ";
 	return OS << ']';
 }
 

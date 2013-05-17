@@ -33,8 +33,37 @@ namespace compiler2 {
 
 class MachineLabelInst : public MachineInstruction {
 public:
-	MachineLabelInst() : MachineInstruction("MLabel",MachineOperand::IMMEDIATE_ADDR, 0) {}
-	
+	MachineLabelInst() : MachineInstruction("MLabel",
+			MachineOperand::ABSOLUTE_ADDR | MachineOperand::PIC_ADDR, 0) {}
+
+};
+
+/**
+ * Load from memory to register
+ */
+class MachineLoadInst : public MachineInstruction {
+public:
+	MachineLoadInst(
+			unsigned dst_type = MachineOperand::REGISTER_VALUE,
+			unsigned src_type = MachineOperand::REGISTER_MEM)
+			: MachineInstruction("MLoad", dst_type, 1) {
+		operands[0] = src_type;
+	}
+
+};
+
+/**
+ * Store register to memory
+ */
+class MachineStoreInst : public MachineInstruction {
+public:
+	MachineStoreInst(
+			unsigned dst_type = MachineOperand::REGISTER_MEM,
+			unsigned src_type = MachineOperand::REGISTER_VALUE)
+			: MachineInstruction("MStore", dst_type, 1) {
+		operands[0] = src_type;
+	}
+
 };
 
 } // end namespace compiler2
