@@ -154,9 +154,10 @@ public:
 
 	int get_id() const { return id; } ///< return a unique identifier for this instruction
 	InstID get_opcode() const { return opcode; } ///< return the opcode of the instruction
+	Type::TypeID get_type() const { return type; } ///< get the value type of the instruction
 
-	void set_method(Method* M) { method = M; }
-	Method* get_method() const { return method; }
+	void set_Method(Method* M) { method = M; }
+	Method* get_Method() const { return method; }
 
 	OperandListTy::const_iterator op_begin() const { return op_list.begin(); }
 	OperandListTy::const_iterator op_end()   const { return op_list.end(); }

@@ -28,6 +28,14 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+OStream& operator<<(OStream &OS, const MethodDescriptor &MD) {
+	OS << "num args: " << MD.size() << " [ ";
+	for(MethodDescriptor::const_iterator i = MD.begin(), e = MD.end();
+			i != e ; ++i) {
+		OS << *i << ' ';
+	}
+	return OS << ']';
+}
 
 } // end namespace compiler2
 } // end namespace jit

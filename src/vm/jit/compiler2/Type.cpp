@@ -24,6 +24,8 @@
 
 #include "vm/jit/compiler2/Type.hpp"
 
+#include <cassert>
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -62,6 +64,27 @@ Type::TypeID convert_var_type(int type)
 	return Type::VoidTypeID;
 }
 
+OStream& operator<<(OStream &OS, const Type::TypeID &type) {
+	switch(type) {
+		case Type::PrimitiveTypeID: return OS << "PrimitiveTypeID";
+		case Type::ReferenceTypeID: return OS << "ReferenceTypeID";
+		case Type::NumericTypeID: return OS << "NumericTypeID";
+		case Type::BooleanTypeID: return OS << "BooleanTypeID";
+		case Type::ReturnAddressTypeID: return OS << "ReturnAddressTypeID";
+		case Type::IntegralTypeID: return OS << "IntegralTypeID";
+		case Type::FloatingPointTypeID: return OS << "FloatingPointTypeID";
+		case Type::ByteTypeID: return OS << "ByteTypeID";
+		case Type::ShortTypeID: return OS << "ShortTypeID";
+		case Type::IntTypeID: return OS << "IntTypeID";
+		case Type::LongTypeID: return OS << "LongTypeID";
+		case Type::CharTypeID: return OS << "CharTypeID";
+		case Type::FloatTypeID: return OS << "FloatTypeID";
+		case Type::DoubleTypeID: return OS << "DoubleTypeID";
+		case Type::VoidTypeID: return OS << "VoidTypeID";
+	}
+	assert(0 && "unreachable");
+	return OS;
+}
 #if 0
 /**
  * Type Class

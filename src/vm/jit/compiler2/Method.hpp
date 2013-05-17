@@ -123,6 +123,13 @@ public:
 	size_t bb_size() const {
 		return bb_list.size();
 	}
+
+	/**
+	 * Get the MethodDescriptor
+	 */
+	const MethodDescriptor& get_MethodDescriptor() const {
+		return *method_desc;
+	}
 };
 
 

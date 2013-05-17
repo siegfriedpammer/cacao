@@ -43,8 +43,8 @@ DFSTraversal<BeginInst>::NodeListTy& DFSTraversal<BeginInst>::successor(BeginIns
 
 template <>
 int DFSTraversal<BeginInst>::num_nodes(BeginInst *v) const {
-	assert(v->get_method());
-	return v->get_method()->bb_size();
+	assert(v->get_Method());
+	return v->get_Method()->bb_size();
 }
 
 } // end namespace compiler2

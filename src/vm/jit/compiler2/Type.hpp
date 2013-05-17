@@ -264,6 +264,8 @@ public:
 const char * get_var_type(int type);
 Type::TypeID convert_var_type(int type);
 
+OStream& operator<<(OStream &OS, const Type::TypeID &type);
+
 } // end namespace cacao
 } // end namespace jit
 } // end namespace compiler2

@@ -40,10 +40,11 @@ namespace compiler2 {
  * TODO: more info
  */
 class MethodDescriptor {
-private:
+public:
 	typedef std::vector<Type::TypeID> ParameterTypeListTy;
 	typedef ParameterTypeListTy::iterator iterator;
 	typedef ParameterTypeListTy::const_iterator const_iterator;
+private:
 	ParameterTypeListTy parameter_type_list;
 public:
 	MethodDescriptor(unsigned size) : parameter_type_list(size) {}
@@ -55,7 +56,15 @@ public:
 	Type::TypeID operator[](unsigned i) const {
 		return parameter_type_list[i];
 	}
+
+	iterator begin() { return parameter_type_list.begin(); }
+	iterator end() { return parameter_type_list.end(); }
+
+	const_iterator begin() const { return parameter_type_list.begin(); }
+	const_iterator end() const { return parameter_type_list.end(); }
 };
+
+OStream& operator<<(OStream &OS, const MethodDescriptor &MD);
 
 } // end namespace compiler2
 } // end namespace jit
