@@ -24,17 +24,21 @@
 
 #include "vm/jit/compiler2/Backend.hpp"
 
+#ifdef __X86_64__
+
 #include "vm/jit/compiler2/x86_64/X86_64Backend.hpp"
+cacao::jit::compiler2::Backend* cacao::jit::compiler2::Backend::factory() {
+	static cacao::jit::compiler2::BackendTraits<cacao::jit::compiler2::X86_64> BE;
+	return &BE;
+}
+
+#else
+#error Target not yet ported to the compiler2 backend!
+#endif
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
-
-
-Backend* Backend::factory() {
-	static BackendTraits<X86_64> BE;
-	return &BE;
-}
 
 LoweredInstDAG* Backend::lower(Instruction *I) const {
 	switch(I->get_opcode()) {
