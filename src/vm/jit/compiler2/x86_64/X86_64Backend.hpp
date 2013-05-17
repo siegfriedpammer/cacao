@@ -25,24 +25,20 @@
 #ifndef _JIT_COMPILER2_X86_64BACKEND
 #define _JIT_COMPILER2_X86_64BACKEND
 
-#include "vm/jit/compiler2/Instruction.hpp"
+#include "vm/jit/compiler2/x86_64/X86_64.hpp"
 #include "vm/jit/compiler2/Backend.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-
+#if 0
 /**
  * X86_64 Backend
  */
-class X86_64Backend : public Backend {
-protected:
-	virtual LoweredInstDAG* lowerLOADInst(LOADInst *I) const;
-public:
-	virtual const char* get_name() const { return "x86_64"; }
-};
-
+template<>
+class BackendTraits<X86_64>;
+#endif
 
 } // end namespace compiler2
 } // end namespace jit

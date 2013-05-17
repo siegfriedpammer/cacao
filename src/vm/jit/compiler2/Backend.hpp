@@ -25,38 +25,46 @@
 #ifndef _JIT_COMPILER2_BACKEND
 #define _JIT_COMPILER2_BACKEND
 
+#include "vm/jit/compiler2/Instructions.hpp"
+#include "vm/jit/compiler2/LoweredInstDAG.hpp"
+#include "vm/jit/compiler2/MachineInstructions.hpp"
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-class LoweredInstDAG;
-
-class Instruction;
-
-// include instruction declaration
-#include "vm/jit/compiler2/InstructionDeclGen.inc"
-
-class BackendGen {
+class Backend {
 protected:
 	virtual LoweredInstDAG* lowerBeginInst(BeginInst *I) const = 0;
 	virtual LoweredInstDAG* lowerLOADInst(LOADInst *I) const = 0;
+public:
+	static Backend* factory();
+	virtual LoweredInstDAG* lower(Instruction *I) const;
+
+	virtual const char* get_name() const = 0;
 };
 /**
  * Machine Backend
  *
  * This class containes all target dependent information.
  */
-class Backend : public BackendGen {
+template <typename Target>
+class BackendTraits : public Backend {
 protected:
 	virtual LoweredInstDAG* lowerBeginInst(BeginInst *I) const;
-
+	virtual LoweredInstDAG* lowerLOADInst(LOADInst *I) const;
 public:
-	static Backend* factory();
-
-	virtual const char* get_name() const = 0;
-	LoweredInstDAG* lower(Instruction *I) const;
-
+	virtual const char* get_name() const;
 };
+
+template<typename Target>
+LoweredInstDAG* BackendTraits<Target>::lowerBeginInst(BeginInst *I) const {
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	MachineLabelInst *label = new MachineLabelInst();
+	dag->add(label);
+	dag->set_result(label);
+	return dag;
+}
 
 
 } // end namespace compiler2

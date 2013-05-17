@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/Backend.cpp - Backend
+/* src/vm/jit/compiler2/X86_64.hpp - X86_64
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,34 +22,25 @@
 
 */
 
-#include "vm/jit/compiler2/Backend.hpp"
-
-#include "vm/jit/compiler2/x86_64/X86_64Backend.hpp"
+#ifndef _JIT_COMPILER2_X86_64
+#define _JIT_COMPILER2_X86_64
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
 
-Backend* Backend::factory() {
-	static BackendTraits<X86_64> BE;
-	return &BE;
-}
+/**
+ * X86_64
+ */
+class X86_64 {};
 
-LoweredInstDAG* Backend::lower(Instruction *I) const {
-	switch(I->get_opcode()) {
-	case Instruction::BeginInstID: return lowerBeginInst(I->to_BeginInst());
-	case Instruction::LOADInstID:  return lowerLOADInst(I->to_LOADInst());
-	}
-	err() << BoldRed << "error: " << reset_color
-		  << " instruction " << BoldWhite
-		  << I << reset_color << " not yet handled by the Backend" << nl;
-	return NULL;
-}
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
+
+#endif /* _JIT_COMPILER2_X86_64 */
 
 
 /*

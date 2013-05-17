@@ -35,7 +35,13 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-LoweredInstDAG* X86_64Backend::lowerLOADInst(LOADInst *I) const {
+template<>
+const char* BackendTraits<X86_64>::get_name() const {
+	return "x86_64";
+}
+
+template<>
+LoweredInstDAG* BackendTraits<X86_64>::lowerLOADInst(LOADInst *I) const {
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	//MachineInstruction *minst = loadParameter(I->get_index(), I->get_type());
 	const MethodDescriptor &MD = I->get_Method()->get_MethodDescriptor();
