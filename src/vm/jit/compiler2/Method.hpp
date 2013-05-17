@@ -30,6 +30,9 @@
 #include <vector>
 #include <list>
 
+// forware declaration
+struct methodinfo;
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -37,6 +40,8 @@ namespace compiler2 {
 // forware declaration
 class Instruction;
 class BeginInst;
+class MethodDescriptor;
+
 
 class Method {
 public:
@@ -53,8 +58,9 @@ private:
 	InstructionListTy inst_list;
 	BBListTy bb_list;
 	BeginInst* init_bb;
+	MethodDescriptor* method_desc;
 public:
-	Method() {}
+	Method(methodinfo *m);
 	~Method();
 
 	/**

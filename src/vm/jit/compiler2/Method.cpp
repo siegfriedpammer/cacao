@@ -25,14 +25,47 @@
 #include "vm/jit/compiler2/Method.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
+#include "vm/jit/compiler2/MethodDescriptor.hpp"
 
+#include "vm/method.hpp"
+#include "vm/jit/jit.hpp"
+
+#include <cassert>
 #include <algorithm>
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+Method::Method(methodinfo *m) {
+	assert(m);
+	methoddesc *md = m->parseddesc;
+	assert(md);
+	assert(md->paramtypes);
+	method_desc = new MethodDescriptor(md->paramcount);
+	MethodDescriptor &MD = *method_desc;
+
+	for (int i = 0, slot = 0; i < md->paramcount; ++i) {
+		int type = md->paramtypes[i].type;
+		MD[i] = convert_var_type(type);
+		/*
+		int varindex = jd->local_map[slot * 5 + type];
+		assert(varindex != UNUSED);
+		*/
+
+		switch (type) {
+			case TYPE_LNG:
+			case TYPE_DBL:
+				slot +=2;
+				break;
+			default:
+				++slot;
+		}
+	}
+}
+
 Method::~Method() {
+	delete method_desc;
 	for(InstructionListTy::iterator i = inst_list.begin(),
 			e = inst_list.end(); i != e ; ++i) {
 		Instruction *I = *i;

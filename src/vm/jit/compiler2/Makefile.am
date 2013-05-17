@@ -40,12 +40,14 @@ libcompiler2_la_SOURCES = \
 	DomTreePrinterPass.cpp \
 	GraphHelper.cpp \
 	Instruction.cpp \
+	JITData.cpp \
 	LoopPass.cpp \
 	LoopSimplificationPass.cpp \
 	LoweringPass.cpp \
 	MachineInstruction.cpp \
 	MachineOperand.cpp \
 	Method.cpp \
+	MethodDescriptor.cpp \
 	ParserPass.cpp \
 	Pass.cpp \
 	PassManager.cpp \
