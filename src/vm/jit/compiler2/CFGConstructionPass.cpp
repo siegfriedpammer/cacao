@@ -34,7 +34,7 @@ namespace compiler2 {
 bool CFGConstructionPass::run(JITData &JD) {
 	/* Build the CFG.  This has to be done after stack_analyse, as
 	   there happens the JSR elimination. */
-	if (!cfg_build(JD.jitdata())) {
+	if (!cfg_build(JD.get_jitdata())) {
 		return false;
 	}
 	return true;

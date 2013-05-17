@@ -916,7 +916,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 	M = JD.get_Method();
 
 	basicblock *bb;
-	jitdata *jd = JD.jitdata();
+	jitdata *jd = JD.get_jitdata();
 
 	show_method(jd, SHOW_CFG);
 

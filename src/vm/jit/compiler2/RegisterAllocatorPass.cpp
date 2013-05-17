@@ -33,7 +33,7 @@ namespace jit {
 namespace compiler2 {
 
 bool RegisterAllocatorPass::run(JITData &JD) {
-	if (!regalloc(JD.jitdata())) {
+	if (!regalloc(JD.get_jitdata())) {
 		return false;
 	}
 	return true;

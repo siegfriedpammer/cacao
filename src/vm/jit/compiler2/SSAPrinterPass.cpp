@@ -200,7 +200,7 @@ static PassRegistery<SSAPrinterPass> X("SSAPrinterPass");
 
 // run pass
 bool SSAPrinterPass::run(JITData &JD) {
-	StringBuf name = get_filename(JD.jitdata()->m,JD.jitdata(),"","");
+	StringBuf name = get_filename(JD.get_jitdata()->m,JD.get_jitdata(),"","");
 	StringBuf filename = "ssa_";
 	filename+=name+".dot";
 	GraphPrinter<SSAGraph>::print(filename.c_str(), SSAGraph(*(JD.get_Method()),name));

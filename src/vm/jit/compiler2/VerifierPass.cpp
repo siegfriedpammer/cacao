@@ -33,11 +33,11 @@ namespace jit {
 namespace compiler2 {
 
 bool VerifierPass::run(JITData &JD) {
-	if (JITDATA_HAS_FLAG_VERIFY(JD.jitdata())) {
+	if (JITDATA_HAS_FLAG_VERIFY(JD.get_jitdata())) {
 		//DEBUG_JIT_COMPILEVERBOSE("Typechecking: ");
 
 		/* call typecheck pass */
-		if (!typecheck(JD.jitdata())) {
+		if (!typecheck(JD.get_jitdata())) {
 			//DEBUG_JIT_COMPILEVERBOSE("Exception while typechecking: ");
 
 			return false;

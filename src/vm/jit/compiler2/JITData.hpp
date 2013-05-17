@@ -22,8 +22,8 @@
 
 */
 
-#ifndef _JIT_COMPILER2_Method
-#define _JIT_COMPILER2_Method
+#ifndef _JIT_COMPILER2_JITDATA
+#define _JIT_COMPILER2_JITDATA
 
 #include "vm/jit/compiler2/Method.hpp"
 #include "vm/jit/compiler2/Backend.hpp"
@@ -41,20 +41,19 @@ private:
 	Method M;
 	Backend *BE;
 public:
-	JITData(jitdata *jd) : jd(jd), BE(Backend::factory())  {}
-	jitdata *jitdata() const {
+	JITData(jitdata *jd);
+	jitdata *get_jitdata() const {
 		return jd;
 	}
 	Method* get_Method() { return &M; }
 	Backend* get_Backend() { return BE; }
 };
 
-
-} // end namespace cacao
-} // end namespace jit
 } // end namespace compiler2
+} // end namespace jit
+} // end namespace cacao
 
-#endif /* _JIT_COMPILER2_Method */
+#endif /* _JIT_COMPILER2_JITDATA */
 
 
 /*

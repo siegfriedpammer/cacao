@@ -35,7 +35,7 @@ namespace compiler2 {
 bool StackAnalysisPass::run(JITData &JD) {
 	/* call stack analysis pass */
 
-	if (!stack_analyse(JD.jitdata())) {
+	if (!stack_analyse(JD.get_jitdata())) {
 		//DEBUG_JIT_COMPILEVERBOSE("Exception while analysing: ");
 
 		return false;

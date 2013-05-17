@@ -33,7 +33,7 @@ namespace jit {
 namespace compiler2 {
 
 bool CodeGenPass::run(JITData &JD) {
-	if (!codegen_generate(JD.jitdata())) {
+	if (!codegen_generate(JD.get_jitdata())) {
 		return false;
 	}
 	return true;

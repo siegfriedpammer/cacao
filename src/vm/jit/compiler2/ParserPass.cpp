@@ -35,7 +35,7 @@ namespace compiler2 {
 bool ParserPass::run(JITData &JD) {
 	/* call parse pass */
 
-	if (!parse(JD.jitdata())) {
+	if (!parse(JD.get_jitdata())) {
 		//DEBUG_JIT_COMPILEVERBOSE("Exception while parsing: ");
 
 		return false;

@@ -45,7 +45,6 @@
 
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Compiler.hpp"
-#include "vm/jit/compiler2/Method.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 
 #include "vm/jit/compiler2/ParserPass.hpp"
@@ -66,7 +65,6 @@
 #include "vm/jit/compiler2/RegisterAllocatorPass.hpp"
 #include "vm/jit/compiler2/CodeGenPass.hpp"
 
-#include "vm/jit/compiler2/Method.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 
 #include "vm/options.hpp"
@@ -110,7 +108,6 @@ MachineCode* compile(methodinfo* m)
 	// reset instructions
 	Instruction::reset();
 
-	Method M;
 	PassManager PM;
 
 	LOG(bold << bold << "Compiler Start: " << reset_color << *m << nl);
@@ -228,13 +225,13 @@ MachineCode* compile(methodinfo* m)
 	/* get required compiler data */
 
 #if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
-	JD.jitdata()->ls = NULL;
+	JD.get_jitdata()->ls = NULL;
 #endif
-	code = JD.jitdata()->code;
-	cd   = JD.jitdata()->cd;
+	code = JD.get_jitdata()->code;
+	cd   = JD.get_jitdata()->cd;
 
 #if defined(ENABLE_DEBUG_FILTER)
-	show_filters_apply(JD.jitdata()->m);
+	show_filters_apply(JD.get_jitdata()->m);
 #endif
 
 	// Handle native methods and create a native stub.
@@ -270,8 +267,8 @@ MachineCode* compile(methodinfo* m)
 #if 0 && defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 		count_javacodesize += m->jcodelength + 18;
-		count_tryblocks    += JD.jitdata()->exceptiontablelength;
-		count_javaexcsize  += JD.jitdata()->exceptiontablelength * SIZEOF_VOID_P;
+		count_tryblocks    += JD.get_jitdata()->exceptiontablelength;
+		count_javaexcsize  += JD.get_jitdata()->exceptiontablelength * SIZEOF_VOID_P;
 	}
 #endif
 
@@ -283,7 +280,7 @@ MachineCode* compile(methodinfo* m)
 
 # if defined(ENABLE_VERIFIER)
 	if (class_issubclass(m->clazz, class_sun_reflect_MagicAccessorImpl))
-		JD.jitdata()->flags &= ~JITDATA_FLAG_VERIFY;
+		JD.get_jitdata()->flags &= ~JITDATA_FLAG_VERIFY;
 # endif
 #endif
 
@@ -297,7 +294,7 @@ MachineCode* compile(methodinfo* m)
 
 	code->prev = m->code;
 	m->code = code;
-	r = JD.jitdata()->code->entrypoint;
+	r = JD.get_jitdata()->code->entrypoint;
 /*****************************************************************************/
 /** epilog  start jit_compile **/
 /*****************************************************************************/
@@ -308,7 +305,7 @@ MachineCode* compile(methodinfo* m)
 
 		/* release codeinfo */
 
-		code_codeinfo_free(JD.jitdata()->code);
+		code_codeinfo_free(JD.get_jitdata()->code);
 	}
 
 #if 0 && defined(ENABLE_STATISTICS)
