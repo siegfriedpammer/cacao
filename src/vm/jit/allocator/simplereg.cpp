@@ -47,13 +47,7 @@
 #include "vm/jit/show.hpp"
 #include "vm/jit/allocator/simplereg.hpp"
 
-#warning port to the new logging framework!
-#if 0
-#    define LOG(args) printf args
-#else
-#    undef LOG
-#    define LOG(args)
-#endif
+#define DEBUG_NAME "simplereg"
 
 
 /* function prototypes for this file ******************************************/
@@ -1144,11 +1138,15 @@ static void simplereg_free(registerdata *rd, s4 flags, s4 regoff, s4 type)
 
 		if (flags & INOUT) {
 			if (rd->regisoutvar[regindex]) {
-				LOG(("DONT FREE f=%02x r=%d t=%d\n", flags, regoff, type));
+				LOG("DONT FREE f=" << cacao::hex << cacao::setw(2)
+				    << cacao::fillzero << flags << cacao::dec
+					<< " r=" << regoff << " t=" << type << cacao::nl);
 				return;
 			}
 
-			LOG(("FREEING INVAR f=%02x r=%d t=%d\n", flags, regoff, type));
+			LOG("FREEING INVAR f=" << cacao::hex << cacao::setw(2)
+			    << cacao::fillzero << flags << cacao::dec
+			    << " r=" << regoff << " t=" << type << cacao::nl);
 		}
 
 		if (rd->regcopycount[regindex]) {
@@ -1281,7 +1279,8 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 	while (bptr != NULL) {
 		if (bptr->flags >= BBREACHED) {
 
-			LOG(("\nallocating block L%03d\n", bptr->nr));
+			LOG(cacao::nl << "allocating block L" << cacao::setw(3)
+			              << cacao::fillzero << bptr->nr << cacao::nl);
 
 			simplereg_init_block(rd);
 
@@ -1338,8 +1337,10 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 
 				if (!(flags & INMEMORY)) {
 					if (!rd->regcopycount[REG_INDEX(regoff, type)]) {
-						LOG(("MAY REUSE interface register f=%02x r=%d t=%d\n",
-									flags, regoff, type));
+						LOG("MAY REUSE interface register f="
+							<< cacao::hex << cacao::setw(2) << cacao::fillzero
+							<< flags << cacao::dec
+							<< " r=" << regoff << " t=" << type << cacao::nl);
 						simplereg_free(rd, flags, regoff, type);
 
 						/* mark it, so it is not freed again */
