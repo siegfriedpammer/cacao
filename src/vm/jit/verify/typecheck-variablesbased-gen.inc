@@ -814,7 +814,7 @@
   GENERATED  		table++;
   GENERATED  	}
   GENERATED  
-  GENERATED  	LOG("switch done");
+  GENERATED  	OLD_LOG("switch done");
   GENERATED  
 #            	line 820 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
@@ -844,7 +844,7 @@
   GENERATED  		lookup++;
   GENERATED  	}
   GENERATED  
-  GENERATED  	LOG("switch done");
+  GENERATED  	OLD_LOG("switch done");
   GENERATED  
 #            	line 850 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
@@ -981,7 +981,7 @@
   GENERATED  
   GENERATED  	if (STATE->initmethod && METHOD->clazz != class_java_lang_Object) {
   GENERATED  		/* Check if the 'this' instance has been initialized. */
-  GENERATED  		LOG("Checking <init> marker");
+  GENERATED  		OLD_LOG("Checking <init> marker");
   GENERATED  
 #            if defined(TYPECHECK_VARIABLESBASED)
   GENERATED  		if (!typevector_checktype(jd->var,STATE->numlocals-1,TYPE_INT))

@@ -238,8 +238,8 @@ handle_basic_block(verifier_state *state)
 	jitdata *jd = state->jd;
 	exception_entry *ex;
 
-	LOGSTR1("\n---- BLOCK %04d ------------------------------------------------\n",state->bptr->nr);
-	LOGFLUSH;
+	OLD_LOGSTR1("\n---- BLOCK %04d ------------------------------------------------\n",state->bptr->nr);
+	OLD_LOGFLUSH;
 	DOLOG(show_basicblock(jd, state->bptr, SHOW_STACK));
 
 	superblockend = false;
@@ -254,7 +254,7 @@ handle_basic_block(verifier_state *state)
 	len = 0;
 	for (ex = state->jd->exceptiontable; ex ; ex = ex->down) {
 		if ((ex->start->nr <= state->bptr->nr) && (ex->end->nr > state->bptr->nr)) {
-			LOG1("active handler L%03d", ex->handler->nr);
+			OLD_LOG1("active handler L%03d", ex->handler->nr);
 			state->handlers[len++] = ex;
 		}
 	}
@@ -266,7 +266,7 @@ handle_basic_block(verifier_state *state)
 	DOLOG(typecheck_print_vararray(stdout, jd, state->bptr->invars, 
 				state->bptr->indepth));
 	DOLOG(typevector_print(stdout, jd->var, state->numlocals));
-	LOGNL; LOGFLUSH;
+	OLD_LOGNL; OLD_LOGFLUSH;
 
 	/* loop over the instructions */
 	len = state->bptr->icount;
@@ -277,8 +277,8 @@ handle_basic_block(verifier_state *state)
 		iptr = state->iptr;
 
 		DOLOG(typevector_print(stdout, jd->var, state->numlocals));
-		LOGNL; LOGFLUSH;
-		DOLOG(show_icmd(jd, state->iptr, false, SHOW_STACK)); LOGNL; LOGFLUSH;
+		OLD_LOGNL; OLD_LOGFLUSH;
+		DOLOG(show_icmd(jd, state->iptr, false, SHOW_STACK)); OLD_LOGNL; OLD_LOGFLUSH;
 
 		opcode = iptr->opc;
 		maythrow = false;
@@ -308,7 +308,7 @@ handle_basic_block(verifier_state *state)
 		if (maythrow) {
 			TYPECHECK_COUNT(stat_ins_maythrow);
 			TYPECHECK_MARK(state->stat_maythrow);
-			LOG("reaching exception handlers");
+			OLD_LOG("reaching exception handlers");
 			i = 0;
 			while (state->handlers[i]) {
 				TYPECHECK_COUNT(stat_handlers_reached);
@@ -324,20 +324,20 @@ handle_basic_block(verifier_state *state)
 			}
 		}
 
-		LOG("\t\tnext instruction");
+		OLD_LOG("\t\tnext instruction");
 		state->iptr++;
 	} /* while instructions */
 
-	LOG("instructions done");
-	LOGSTR("RESULT=> ");
+	OLD_LOG("instructions done");
+	OLD_LOGSTR("RESULT=> ");
 	DOLOG(typecheck_print_vararray(stdout, jd, state->bptr->outvars,
 				state->bptr->outdepth));
 	DOLOG(typevector_print(stdout, jd->var, state->numlocals));
-	LOGNL; LOGFLUSH;
+	OLD_LOGNL; OLD_LOGFLUSH;
 
 	/* propagate stack and variables to the following block */
 	if (!superblockend) {
-		LOG("reaching following block");
+		OLD_LOG("reaching following block");
 		tbptr = state->bptr->next;
 		while (tbptr->flags == BBDELETED) {
 			tbptr = tbptr->next;
@@ -366,10 +366,10 @@ bool typecheck_infer_types(jitdata *jd)
 	/* some logging on entry */
 
 
-    LOGSTR("\n==============================================================================\n");
+    OLD_LOGSTR("\n==============================================================================\n");
     DOLOG( show_method(jd, SHOW_STACK) );
-    LOGSTR("\n==============================================================================\n");
-    LOGMETHOD("Entering type inference: ",cd->method);
+    OLD_LOGSTR("\n==============================================================================\n");
+    OLD_LOGMETHOD("Entering type inference: ",cd->method);
 
 	/* initialize the verifier state */
 
@@ -428,7 +428,7 @@ bool typecheck_infer_types(jitdata *jd)
 	typeinfo_init_classinfo(&(VAR(state.exinvars)->typeinfo),
 							class_java_lang_Throwable); /* changed later */
 
-    LOG("Exception handler stacks set.\n");
+    OLD_LOG("Exception handler stacks set.\n");
 
     /* loop while there are still blocks to be checked */
     do {
@@ -439,9 +439,9 @@ bool typecheck_infer_types(jitdata *jd)
         state.bptr = state.basicblocks;
 
         for (; state.bptr; state.bptr = state.bptr->next) {
-            LOGSTR1("---- BLOCK %04d, ",state.bptr->nr);
-            LOGSTR1("blockflags: %d\n",state.bptr->flags);
-            LOGFLUSH;
+            OLD_LOGSTR1("---- BLOCK %04d, ",state.bptr->nr);
+            OLD_LOGSTR1("blockflags: %d\n",state.bptr->flags);
+            OLD_LOGFLUSH;
             
 		    /* verify reached block */	
             if (state.bptr->flags == BBTYPECHECK_REACHED) {
@@ -450,7 +450,7 @@ bool typecheck_infer_types(jitdata *jd)
             }
         } /* for blocks */
 
-        LOGIF(state.repeat,"state.repeat == true");
+        OLD_LOGIF(state.repeat,"state.repeat == true");
     } while (state.repeat);
 
 	/* statistics */
@@ -465,7 +465,7 @@ bool typecheck_infer_types(jitdata *jd)
 
 	/* everything's ok */
 
-    LOGimp("exiting type inference");
+    OLD_LOGimp("exiting type inference");
 	return true;
 }
 

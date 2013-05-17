@@ -157,9 +157,9 @@ void typecheck_print_statistics(FILE *file) {
 
 
 /* typecheck_init_flags ********************************************************
- 
+
    Initialize the basic block flags for the following CFG traversal.
-  
+
    IN:
        state............the current state of the verifier
        minflags.........minimum flags value of blocks that should be
@@ -172,14 +172,14 @@ void typecheck_init_flags(verifier_state *state, s4 minflags)
 	basicblock *block;
 
     /* set all BBFINISHED blocks to BBTYPECHECK_UNDEF. */
-	
+
     for (block = state->basicblocks; block; block = block->next) {
-		
+
 #ifdef TYPECHECK_DEBUG
 		/* check for invalid flags */
         if (block->flags != BBFINISHED && block->flags != BBDELETED && block->flags != BBUNDEF)
         {
-            LOGSTR1("block flags: %d\n",block->flags); LOGFLUSH;
+            OLD_LOGSTR1("block flags: %d\n",block->flags); OLD_LOGFLUSH;
 			TYPECHECK_ASSERT(false);
         }
 #endif
@@ -190,16 +190,16 @@ void typecheck_init_flags(verifier_state *state, s4 minflags)
     }
 
     /* the first block is always reached */
-	
+
     if (state->basicblockcount && state->basicblocks[0].flags == BBTYPECHECK_UNDEF)
         state->basicblocks[0].flags = BBTYPECHECK_REACHED;
 }
 
 
 /* typecheck_reset_flags *******************************************************
- 
+
    Reset the flags of basic blocks we have not reached.
-  
+
    IN:
        state............the current state of the verifier
 
@@ -210,7 +210,7 @@ void typecheck_reset_flags(verifier_state *state)
 	basicblock *block;
 
 	/* check for invalid flags at exit */
-	
+
 #ifdef TYPECHECK_DEBUG
 	for (block = state->basicblocks; block; block = block->next) {
 		if (block->flags != BBDELETED
@@ -220,15 +220,15 @@ void typecheck_reset_flags(verifier_state *state)
 													 * some exception handlers,
 													 * that's ok. */
 		{
-			LOG2("block L%03d has invalid flags after typecheck: %d",
+			OLD_LOG2("block L%03d has invalid flags after typecheck: %d",
 				 block->nr,block->flags);
 			TYPECHECK_ASSERT(false);
 		}
 	}
 #endif
-	
+
 	/* Delete blocks we never reached */
-	
+
 	for (block = state->basicblocks; block; block = block->next) {
 		if (block->flags == BBTYPECHECK_UNDEF)
 			block->flags = BBDELETED;
@@ -420,7 +420,7 @@ bool typestate_reach(verifier_state *state,
 	bool changed = false;
 	typecheck_result r;
 
-	LOG1("reaching block L%03d",destblock->nr);
+	OLD_LOG1("reaching block L%03d",destblock->nr);
 	TYPECHECK_COUNT(stat_reached);
 
 	destloc = destblock->inlocals;
@@ -429,7 +429,7 @@ bool typestate_reach(verifier_state *state,
 		/* The destblock has never been reached before */
 
 		TYPECHECK_COUNT(stat_copied);
-		LOG1("block L%03d reached first time",destblock->nr);
+		OLD_LOG1("block L%03d reached first time",destblock->nr);
 
 		if (!typecheck_copy_types(state, srcvars, destblock->invars, n))
 			return false;
@@ -440,7 +440,7 @@ bool typestate_reach(verifier_state *state,
 		/* The destblock has already been reached before */
 
 		TYPECHECK_COUNT(stat_merged);
-		LOG1("block L%03d reached before", destblock->nr);
+		OLD_LOG1("block L%03d reached before", destblock->nr);
 
 		r = typestate_merge(state, srcvars, srclocals,
 				destblock->invars, destblock->inlocals, n);
@@ -451,10 +451,10 @@ bool typestate_reach(verifier_state *state,
 	}
 
 	if (changed) {
-		LOG("changed!");
+		OLD_LOG("changed!");
 		destblock->flags = BBTYPECHECK_REACHED;
 		if (destblock->nr <= state->bptr->nr) {
-			LOG("REPEAT!");
+			OLD_LOG("REPEAT!");
 			state->repeat = true;
 		}
 	}
@@ -519,7 +519,7 @@ bool typecheck_init_locals(verifier_state *state, bool newthis)
 		skip = 1;
     }
 
-    LOG("'this' argument set.\n");
+    OLD_LOG("'this' argument set.\n");
 
     /* the rest of the arguments and the return type */
 
@@ -530,7 +530,7 @@ bool typecheck_init_locals(verifier_state *state, bool newthis)
 											  &state->returntype))
 		return false;
 
-    LOG("Arguments set.\n");
+    OLD_LOG("Arguments set.\n");
 	return true;
 }
 

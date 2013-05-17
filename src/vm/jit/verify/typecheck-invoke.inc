@@ -115,14 +115,14 @@
 		argindex = state->iptr->sx.s23.s2.args[i];
 		av = VAR(argindex);
 #endif
-		LOG1("\t\tparam %d",i);
+		OLD_LOG1("\t\tparam %d",i);
 		td = md->paramtypes + i;
 
 		if (av->type != td->type)
 			TYPECHECK_VERIFYERROR_bool("Parameter type mismatch in method invocation");
 
 		if (av->type == TYPE_ADR) {
-			LOGSTR("\t\t"); LOGINFO(&(av->typeinfo));
+			OLD_LOGSTR("\t\t"); OLD_LOGINFO(&(av->typeinfo));
 			if (i==0 && callinginit)
 			{
 				/* first argument to <init> method */
@@ -130,13 +130,13 @@
 					TYPECHECK_VERIFYERROR_bool("Calling <init> on initialized object");
 
 				/* get the address of the NEW instruction */
-				LOGSTR("\t\t"); LOGINFO(&(av->typeinfo));
+				OLD_LOGSTR("\t\t"); OLD_LOGINFO(&(av->typeinfo));
 				ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(av->typeinfo);
 				if (ins)
 					initclass = ins[-1].sx.val.c;
 				else
 					initclass.cls = state->m->clazz;
-				LOGSTR("\t\tclass: "); LOGNAME(initclass); LOGNL;
+				OLD_LOGSTR("\t\tclass: "); OLD_LOGNAME(initclass); OLD_LOGNL;
 			}
 		}
 		else {
@@ -146,7 +146,7 @@
 				TYPECHECK_VERIFYERROR_bool("Parameter type mismatch for 'this' argument");
 			}
 		}
-		LOG("\t\tok");
+		OLD_LOG("\t\tok");
 
 #if defined(TYPECHECK_STACKBASED)
 		av += (IS_2_WORD_TYPE(av->type)) ? 2 : 1;
@@ -154,7 +154,7 @@
 	}
 
 	if (callinginit) {
-		LOG("\treplacing uninitialized object");
+		OLD_LOG("\treplacing uninitialized object");
 		/* replace uninitialized object type on stack */
 
 		/* for all live-in and live-through variables */ 
@@ -169,7 +169,7 @@
 					&& TYPEINFO_IS_NEWOBJECT(av->typeinfo)
 					&& TYPEINFO_NEWOBJECT_INSTRUCTION(av->typeinfo) == ins)
 			{
-				LOG("\treplacing uninitialized type");
+				OLD_LOG("\treplacing uninitialized type");
 
 #if defined(TYPECHECK_VARIABLESBASED)
 				/* If this stackslot is in the instack of
@@ -232,7 +232,7 @@
 			}
 
 			/* set our marker variable to type int */
-			LOG("\tsetting <init> marker");
+			OLD_LOG("\tsetting <init> marker");
 #if defined(TYPECHECK_VARIABLESBASED)
 			typevector_store(jd->var, state->numlocals-1, TYPE_INT, NULL);
 #else

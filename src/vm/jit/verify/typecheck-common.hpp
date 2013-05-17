@@ -39,11 +39,7 @@
 /* DEBUG HELPERS                                                            */
 /****************************************************************************/
 
-#warning port to the new logging framework!
-#undef LOG
-#undef LOG1
-#undef LOG2
-#undef LOG3
+// TODO port to the new logging framework!
 
 #ifdef TYPECHECK_DEBUG
 #define TYPECHECK_ASSERT(cond)  assert(cond)
@@ -60,48 +56,48 @@ extern bool opt_typecheckverbose;
 
 #ifdef TYPECHECK_VERBOSE
 #define TYPECHECK_VERBOSE_IMPORTANT
-#define LOGNL              DOLOG(puts(""))
-#define LOG(str)           DOLOG(puts(str);)
-#define LOG1(str,a)        DOLOG(printf(str,a); LOGNL)
-#define LOG2(str,a,b)      DOLOG(printf(str,a,b); LOGNL)
-#define LOG3(str,a,b,c)    DOLOG(printf(str,a,b,c); LOGNL)
-#define LOGIF(cond,str)    DOLOG(do {if (cond) { puts(str); }} while(0))
+#define OLD_LOGNL              DOLOG(puts(""))
+#define OLD_LOG(str)           DOLOG(puts(str);)
+#define OLD_LOG1(str,a)        DOLOG(printf(str,a); OLD_LOGNL)
+#define OLD_LOG2(str,a,b)      DOLOG(printf(str,a,b); OLD_LOGNL)
+#define OLD_LOG3(str,a,b,c)    DOLOG(printf(str,a,b,c); OLD_LOGNL)
+#define OLD_LOGIF(cond,str)    DOLOG(do {if (cond) { puts(str); }} while(0))
 #ifdef  TYPEINFO_DEBUG
-#define LOGINFO(info)      DOLOG(do {typeinfo_print_short(stdout,(info)); LOGNL;} while(0))
+#define OLD_LOGINFO(info)      DOLOG(do {typeinfo_print_short(stdout,(info)); OLD_LOGNL;} while(0))
 #else
-#define LOGINFO(info)
+#define OLD_LOGINFO(info)
 #define typevector_print(x,y,z)
 #endif
-#define LOGFLUSH           DOLOG(fflush(stdout))
-#define LOGSTR(str)        DOLOG(printf("%s", str))
-#define LOGSTR1(str,a)     DOLOG(printf(str,a))
-#define LOGSTR2(str,a,b)   DOLOG(printf(str,a,b))
-#define LOGSTR3(str,a,b,c) DOLOG(printf(str,a,b,c))
-#define LOGNAME(c)         DOLOG(class_classref_or_classinfo_print(c))
-#define LOGMETHOD(str,m)   DOLOG(printf("%s", str); method_println(m);)
+#define OLD_LOGFLUSH           DOLOG(fflush(stdout))
+#define OLD_LOGSTR(str)        DOLOG(printf("%s", str))
+#define OLD_LOGSTR1(str,a)     DOLOG(printf(str,a))
+#define OLD_LOGSTR2(str,a,b)   DOLOG(printf(str,a,b))
+#define OLD_LOGSTR3(str,a,b,c) DOLOG(printf(str,a,b,c))
+#define OLD_LOGNAME(c)         DOLOG(class_classref_or_classinfo_print(c))
+#define OLD_LOGMETHOD(str,m)   DOLOG(printf("%s", str); method_println(m);)
 #else
-#define LOG(str)
-#define LOG1(str,a)
-#define LOG2(str,a,b)
-#define LOG3(str,a,b,c)
-#define LOGIF(cond,str)
-#define LOGINFO(info)
-#define LOGFLUSH
-#define LOGNL
-#define LOGSTR(str)
-#define LOGSTR1(str,a)
-#define LOGSTR2(str,a,b)
-#define LOGSTR3(str,a,b,c)
-#define LOGNAME(c)
-#define LOGMETHOD(str,m)
+#define OLD_LOG(str)
+#define OLD_LOG1(str,a)
+#define OLD_LOG2(str,a,b)
+#define OLD_LOG3(str,a,b,c)
+#define OLD_LOGIF(cond,str)
+#define OLD_LOGINFO(info)
+#define OLD_LOGFLUSH
+#define OLD_LOGNL
+#define OLD_LOGSTR(str)
+#define OLD_LOGSTR1(str,a)
+#define OLD_LOGSTR2(str,a,b)
+#define OLD_LOGSTR3(str,a,b,c)
+#define OLD_LOGNAME(c)
+#define OLD_LOGMETHOD(str,m)
 #endif
 
 #ifdef TYPECHECK_VERBOSE_IMPORTANT
-#define LOGimp(str)     DOLOG(puts(str);LOGNL)
-#define LOGimpSTR(str)  DOLOG(puts(str))
+#define OLD_LOGimp(str)     DOLOG(puts(str);OLD_LOGNL)
+#define OLD_LOGimpSTR(str)  DOLOG(puts(str))
 #else
-#define LOGimp(str)
-#define LOGimpSTR(str)
+#define OLD_LOGimp(str)
+#define OLD_LOGimpSTR(str)
 #endif
 
 #if defined(TYPECHECK_VERBOSE) || defined(TYPECHECK_VERBOSE_IMPORTANT)

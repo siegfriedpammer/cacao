@@ -217,10 +217,10 @@ typestate_save_invars(verifier_state *state)
 	s4 i, index;
 	s4 *pindex;
 	
-	LOG("saving invars");
+	OLD_LOG("saving invars");
 
 	if (!state->savedindices) {
-		LOG("allocating savedindices buffer");
+		OLD_LOG("allocating savedindices buffer");
 		pindex = (s4*) DumpMemory::allocate(sizeof(s4) * state->m->maxstack);
 		state->savedindices = pindex;
 		index = state->numlocals + VERIFIER_EXTRA_VARS;
@@ -255,7 +255,7 @@ static void
 typestate_restore_invars(verifier_state *state)
 {
 	TYPECHECK_COUNT(stat_savedstack);
-	LOG("restoring saved invars");
+	OLD_LOG("restoring saved invars");
 
 	/* restore the invars pointer */
 
@@ -429,7 +429,7 @@ static void typecheck_invalidate_locals(verifier_state *state, s4 index, bool tw
 		for (t=0; t<5; ++t) {
 			varindex = *localmap++;
 			if (varindex >= 0 && IS_2_WORD_TYPE(vars[varindex].type)) {
-				LOG1("invalidate local %d", varindex);
+				OLD_LOG1("invalidate local %d", varindex);
 				vars[varindex].type = TYPE_VOID;
 			}
 		}
@@ -443,7 +443,7 @@ static void typecheck_invalidate_locals(verifier_state *state, s4 index, bool tw
 	for (t=0; t<5; ++t) {
 		varindex = *localmap++;
 		if (varindex >= 0) {
-			LOG1("invalidate local %d", varindex);
+			OLD_LOG1("invalidate local %d", varindex);
 			vars[varindex].type = TYPE_VOID;
 		}
 	}
@@ -454,7 +454,7 @@ static void typecheck_invalidate_locals(verifier_state *state, s4 index, bool tw
 		for (t=0; t<5; ++t) {
 			varindex = *localmap++;
 			if (varindex >= 0) {
-				LOG1("invalidate local %d", varindex);
+				OLD_LOG1("invalidate local %d", varindex);
 				vars[varindex].type = TYPE_VOID;
 			}
 		}
@@ -529,8 +529,8 @@ handle_basic_block(verifier_state *state)
 	varinfo constvalue;                               /* for PUT*CONST */
 	constant_FMIref *fieldref;
 
-	LOGSTR1("\n---- BLOCK %04d ------------------------------------------------\n",state->bptr->nr);
-	LOGFLUSH;
+	OLD_LOGSTR1("\n---- BLOCK %04d ------------------------------------------------\n",state->bptr->nr);
+	OLD_LOGFLUSH;
 
 	superblockend = false;
 	state->bptr->flags = BBFINISHED;
@@ -544,7 +544,7 @@ handle_basic_block(verifier_state *state)
 	len = 0;
 	for (ex = state->jd->exceptiontable; ex ; ex = ex->down) {
 		if ((ex->start->nr <= state->bptr->nr) && (ex->end->nr > state->bptr->nr)) {
-			LOG1("active handler L%03d", ex->handler->nr);
+			OLD_LOG1("active handler L%03d", ex->handler->nr);
 			state->handlers[len++] = ex;
 		}
 	}
@@ -557,7 +557,7 @@ handle_basic_block(verifier_state *state)
 	DOLOG(typecheck_print_vararray(stdout, jd, state->bptr->invars, 
 				state->bptr->indepth));
 	DOLOG(typevector_print(stdout, jd->var, state->numlocals));
-	LOGNL; LOGFLUSH;
+	OLD_LOGNL; OLD_LOGFLUSH;
 
 	/* loop over the instructions */
 	len = state->bptr->icount;
@@ -568,8 +568,8 @@ handle_basic_block(verifier_state *state)
 		iptr = state->iptr;
 
 		DOLOG(typevector_print(stdout, jd->var, state->numlocals));
-		LOGNL; LOGFLUSH;
-		DOLOG(show_icmd(jd, state->iptr, false, SHOW_STACK)); LOGNL; LOGFLUSH;
+		OLD_LOGNL; OLD_LOGFLUSH;
+		DOLOG(show_icmd(jd, state->iptr, false, SHOW_STACK)); OLD_LOGNL; OLD_LOGFLUSH;
 
 		opcode = iptr->opc;
 		maythrow = false;
@@ -591,7 +591,7 @@ handle_basic_block(verifier_state *state)
 #undef  TYPECHECK_VARIABLESBASED
 
 			default:
-				LOG1("ICMD %d\n", opcode);
+				OLD_LOG1("ICMD %d\n", opcode);
 				TYPECHECK_VERIFYERROR_bool("Missing ICMD code during typecheck");
 		}
 
@@ -600,7 +600,7 @@ handle_basic_block(verifier_state *state)
 		if (maythrow) {
 			TYPECHECK_COUNT(stat_ins_maythrow);
 			TYPECHECK_MARK(state->stat_maythrow);
-			LOG("reaching exception handlers");
+			OLD_LOG("reaching exception handlers");
 			i = 0;
 			while (state->handlers[i]) {
 				TYPECHECK_COUNT(stat_handlers_reached);
@@ -616,20 +616,20 @@ handle_basic_block(verifier_state *state)
 			}
 		}
 
-		LOG("\t\tnext instruction");
+		OLD_LOG("\t\tnext instruction");
 		state->iptr++;
 	} /* while instructions */
 
-	LOG("instructions done");
-	LOGSTR("RESULT=> ");
+	OLD_LOG("instructions done");
+	OLD_LOGSTR("RESULT=> ");
 	DOLOG(typecheck_print_vararray(stdout, jd, state->bptr->outvars,
 				state->bptr->outdepth));
 	DOLOG(typevector_print(stdout, jd->var, state->numlocals));
-	LOGNL; LOGFLUSH;
+	OLD_LOGNL; OLD_LOGFLUSH;
 
 	/* propagate stack and variables to the following block */
 	if (!superblockend) {
-		LOG("reaching following block");
+		OLD_LOG("reaching following block");
 		tbptr = state->bptr->next;
 		while (tbptr->flags == BBDELETED) {
 			tbptr = tbptr->next;
@@ -699,10 +699,10 @@ bool typecheck(jitdata *jd)
 	/* some logging on entry */
 
 
-    LOGSTR("\n==============================================================================\n");
+    OLD_LOGSTR("\n==============================================================================\n");
     DOLOG( show_method(jd, SHOW_STACK) );
-    LOGSTR("\n==============================================================================\n");
-    LOGMETHOD("Entering typecheck: ",cd->method);
+    OLD_LOGSTR("\n==============================================================================\n");
+    OLD_LOGMETHOD("Entering typecheck: ",cd->method);
 
 	/* initialize the verifier state */
 
@@ -743,9 +743,9 @@ bool typecheck(jitdata *jd)
 	DOLOG(
 		s4 i;
 		s4 t;
-		LOG("reverselocalmap:");
+		OLD_LOG("reverselocalmap:");
 		for (i=0; i<state.validlocals; ++i) {
-			LOG2("    %i => javaindex %i", i, jd->reverselocalmap[i]);
+			OLD_LOG2("    %i => javaindex %i", i, jd->reverselocalmap[i]);
 		});
 
     /* allocate the buffer of active exception handlers */
@@ -769,7 +769,7 @@ bool typecheck(jitdata *jd)
 	typeinfo_init_classinfo(&(VAR(state.exinvars)->typeinfo),
 							class_java_lang_Throwable); /* changed later */
 
-    LOG("Exception handler stacks set.\n");
+    OLD_LOG("Exception handler stacks set.\n");
 
     /* loop while there are still blocks to be checked */
     do {
@@ -780,9 +780,9 @@ bool typecheck(jitdata *jd)
         state.bptr = state.basicblocks;
 
         for (; state.bptr; state.bptr = state.bptr->next) {
-            LOGSTR1("---- BLOCK %04d, ",state.bptr->nr);
-            LOGSTR1("blockflags: %d\n",state.bptr->flags);
-            LOGFLUSH;
+            OLD_LOGSTR1("---- BLOCK %04d, ",state.bptr->nr);
+            OLD_LOGSTR1("blockflags: %d\n",state.bptr->flags);
+            OLD_LOGFLUSH;
             
 		    /* verify reached block */	
             if (state.bptr->flags == BBTYPECHECK_REACHED) {
@@ -791,13 +791,13 @@ bool typecheck(jitdata *jd)
             }
         } /* for blocks */
 
-        LOGIF(state.repeat,"state.repeat == true");
+        OLD_LOGIF(state.repeat,"state.repeat == true");
     } while (state.repeat);
 
 	/* statistics */
 	
 #ifdef TYPECHECK_STATISTICS
-	LOG1("Typechecker did %4d iterations",count_iterations);
+	OLD_LOG1("Typechecker did %4d iterations",count_iterations);
 	TYPECHECK_COUNT_FREQ(stat_iterations,count_iterations,STAT_ITERATIONS);
 	TYPECHECK_COUNTIF(state.jsrencountered,stat_typechecked_jsr);
 	TYPECHECK_COUNTIF(state.stat_maythrow,stat_methods_maythrow);
@@ -813,7 +813,7 @@ bool typecheck(jitdata *jd)
 
 	/* everything's ok */
 
-    LOGimp("exiting typecheck");
+    OLD_LOGimp("exiting typecheck");
 	return true;
 }
 

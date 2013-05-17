@@ -528,7 +528,7 @@
   GENERATED  		table++;
   GENERATED  	}
   GENERATED  
-  GENERATED  	LOG("switch done");
+  GENERATED  	OLD_LOG("switch done");
   GENERATED  
 #            	line 534 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
@@ -558,7 +558,7 @@
   GENERATED  		lookup++;
   GENERATED  	}
   GENERATED  
-  GENERATED  	LOG("switch done");
+  GENERATED  	OLD_LOG("switch done");
   GENERATED  
 #            	line 564 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  

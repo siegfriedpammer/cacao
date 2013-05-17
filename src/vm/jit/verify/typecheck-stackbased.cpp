@@ -107,7 +107,7 @@ static void typecheck_stackbased_show_state(verifier_state *state,
 
 #define VERIFY_ERROR_ret(msg,ret)                                    \
     do {                                                             \
-        LOG1("VerifyError: %s", msg);                                \
+        OLD_LOG1("VerifyError: %s", msg);                                \
         exceptions_throw_verifyerror(STATE->m, msg);                 \
         return ret;                                                  \
     } while (0)
@@ -283,7 +283,7 @@ static bool typecheck_stackbased_reach(verifier_state *state,
 		/* The destblock has never been reached before */
 
 		TYPECHECK_COUNT(stat_copied);
-		LOG1("block L%03d reached first time",destblock->nr); LOGSTR("\t");
+		OLD_LOG1("block L%03d reached first time",destblock->nr); OLD_LOGSTR("\t");
 		DOLOG( typecheck_stackbased_show_state(state, stack, stack - (stackdepth - 1), false); );
 
 		state->indepth[destblock->nr] = stackdepth;
@@ -304,7 +304,7 @@ static bool typecheck_stackbased_reach(verifier_state *state,
 		/* The destblock has already been reached before */
 
 		TYPECHECK_COUNT(stat_merged);
-		LOG1("block L%03d reached before", destblock->nr); LOGSTR("\t");
+		OLD_LOG1("block L%03d reached before", destblock->nr); OLD_LOGSTR("\t");
 		DOLOG( typecheck_stackbased_show_state(state, stack, stack - (stackdepth - 1), false); );
 
 		r = typecheck_stackbased_merge(state, destblock, stack, stackdepth);
@@ -316,11 +316,11 @@ static bool typecheck_stackbased_reach(verifier_state *state,
 	}
 
 	if (changed) {
-		LOG("\tchanged!");
+		OLD_LOG("\tchanged!");
 		destblock->flags = BBTYPECHECK_REACHED;
 		/* XXX is this check ok? */
 		if (destblock->nr <= state->bptr->nr) {
-			LOG("\tREPEAT!");
+			OLD_LOG("\tREPEAT!");
 			state->repeat = true;
 		}
 	}
@@ -369,7 +369,7 @@ static typedescriptor_t *typecheck_stackbased_verify_fieldaccess(
 	return stack;
 
 throw_stack_overflow:
-	LOG("STACK OVERFLOW!");
+	OLD_LOG("STACK OVERFLOW!");
 	exceptions_throw_verifyerror(state->m, "Stack size too large");
 	return NULL;
 }
@@ -555,7 +555,7 @@ static typedescriptor_t *typecheck_stackbased_jsr(verifier_state *state,
 
 	if (jsr && tbptr->flags == BBFINISHED) {
 
-		LOG1("another JSR to analysed subroutine L%03d", tbptr->nr);
+		OLD_LOG1("another JSR to analysed subroutine L%03d", tbptr->nr);
 		if (jsr->active) {
 			exceptions_throw_verifyerror(state->m, "Recursive JSR");
 			return NULL;
@@ -583,7 +583,7 @@ static typedescriptor_t *typecheck_stackbased_jsr(verifier_state *state,
 	}
 	else {
 		if (!jsr) {
-			LOG1("first JSR to block L%03d", tbptr->nr);
+			OLD_LOG1("first JSR to block L%03d", tbptr->nr);
 
 			jsr = (typecheck_jsr_t*) DumpMemory::allocate(sizeof(typecheck_jsr_t));
 			state->jsrinfos[tbptr->nr] = jsr;
@@ -598,7 +598,7 @@ static typedescriptor_t *typecheck_stackbased_jsr(verifier_state *state,
 			jsr->retdepth = 0;
 		}
 		else {
-			LOG1("re-analysing JSR to block L%03d", tbptr->nr);
+			OLD_LOG1("re-analysing JSR to block L%03d", tbptr->nr);
 		}
 
 		jsr->active = true;
@@ -643,7 +643,7 @@ static bool typecheck_stackbased_ret(verifier_state *state,
 		return false;
 	}
 
-	LOG1("RET from subroutine L%03d", tbptr->nr);
+	OLD_LOG1("RET from subroutine L%03d", tbptr->nr);
 	jsr = state->jsrinfos[tbptr->nr];
 	assert(jsr);
 
@@ -675,7 +675,7 @@ static bool typecheck_stackbased_ret(verifier_state *state,
 		typedescriptor_t *lc = &(jsr->retlocals[i]);
 		if (TYPE_IS_RETURNADDRESS(lc->type, lc->typeinfo))
 			if (TYPEINFO_RETURNADDRESS(lc->typeinfo) == tbptr) {
-				LOG1("invalidating returnAddress in local %d", i);
+				OLD_LOG1("invalidating returnAddress in local %d", i);
 				TYPEINFO_INIT_RETURNADDRESS(lc->typeinfo, NULL);
 			}
 	}
@@ -684,7 +684,7 @@ static bool typecheck_stackbased_ret(verifier_state *state,
 
 	for (jsrcaller = jsr->callers; jsrcaller != NULL; jsrcaller = jsrcaller->next) {
 		tbptr = jsrcaller->callblock;
-		LOG1("touching caller L%03d from RET", tbptr->nr);
+		OLD_LOG1("touching caller L%03d from RET", tbptr->nr);
 		assert(jsr->blockflags[tbptr->nr] >= BBFINISHED);
 		jsr->blockflags[tbptr->nr] = BBTYPECHECK_REACHED; /* XXX repeat? */
 	}
@@ -766,7 +766,7 @@ bool typecheck_stackbased(jitdata *jd)
 	typeinfo_init_classinfo(&(exstack.typeinfo),
 							class_java_lang_Throwable); /* changed later */
 
-    LOG("Exception handler stacks set.\n");
+    OLD_LOG("Exception handler stacks set.\n");
 
 	/* initialize jsr info buffer */
 
@@ -794,7 +794,7 @@ bool typecheck_stackbased(jitdata *jd)
 		skip = 1;
     }
 
-    LOG("'this' argument set.\n");
+    OLD_LOG("'this' argument set.\n");
 
 	len = typedescriptors_init_from_methoddesc(state.startlocals + skip,
 			state.m->parseddesc,
@@ -837,7 +837,7 @@ bool typecheck_stackbased(jitdata *jd)
 			len = 0;
 			for (ex = STATE->jd->exceptiontable; ex ; ex = ex->down) {
 				if ((ex->start->nr <= STATE->bptr->nr) && (ex->end->nr > STATE->bptr->nr)) {
-					LOG1("\tactive handler L%03d", ex->handler->nr);
+					OLD_LOG1("\tactive handler L%03d", ex->handler->nr);
 					STATE->handlers[len++] = ex;
 				}
 			}
@@ -870,7 +870,7 @@ bool typecheck_stackbased(jitdata *jd)
 
 				maythrow = false;
 
-				LOGNL;
+				OLD_LOGNL;
 				DOLOG( typecheck_stackbased_show_state(&state, stack, stackfloor, true); );
 
 				switch (state.iptr->opc) {
@@ -882,7 +882,7 @@ bool typecheck_stackbased(jitdata *jd)
 #define LOCAL_SLOT(index)  (state.locals + (index))
 #define EXCEPTION                                                    \
     do {                                                             \
-        LOG("EXCEPTION THROWN!\n");                                  \
+        OLD_LOG("EXCEPTION THROWN!\n");                                  \
         return false;                                                \
     } while (0)
 
@@ -895,7 +895,7 @@ bool typecheck_stackbased(jitdata *jd)
 				if (maythrow) {
 					TYPECHECK_COUNT(stat_ins_maythrow);
 					TYPECHECK_MARK(STATE->stat_maythrow);
-					LOG("\treaching exception handlers");
+					OLD_LOG("\treaching exception handlers");
 					i = 0;
 					while (STATE->handlers[i]) {
 						TYPECHECK_COUNT(stat_handlers_reached);
@@ -923,7 +923,7 @@ bool typecheck_stackbased(jitdata *jd)
 		} /* end loop over blocks */
 
 		while (!state.repeat && state.topjsr) {
-			LOG1("done analysing subroutine L%03d", state.topjsr->start->nr);
+			OLD_LOG1("done analysing subroutine L%03d", state.topjsr->start->nr);
 
 			/* propagate down used locals */
 
@@ -953,32 +953,32 @@ bool typecheck_stackbased(jitdata *jd)
 
 	typecheck_reset_flags(&state);
 
-	LOG("typecheck_stackbased successful");
+	OLD_LOG("typecheck_stackbased successful");
 
 	return true;
 
 throw_stack_underflow:
-	LOG("STACK UNDERFLOW!");
+	OLD_LOG("STACK UNDERFLOW!");
 	exceptions_throw_verifyerror(state.m, "Unable to pop operand off an empty stack");
 	return false;
 
 throw_stack_overflow:
-	LOG("STACK OVERFLOW!");
+	OLD_LOG("STACK OVERFLOW!");
 	exceptions_throw_verifyerror(state.m, "Stack size too large");
 	return false;
 
 throw_stack_type_error:
-	LOG("STACK TYPE ERROR!");
+	OLD_LOG("STACK TYPE ERROR!");
 	exceptions_throw_verifyerror(state.m, "Mismatched stack types");
 	return false;
 
 throw_local_type_error:
-	LOG("LOCAL TYPE ERROR!");
+	OLD_LOG("LOCAL TYPE ERROR!");
 	exceptions_throw_verifyerror(state.m, "Local variable type mismatch");
 	return false;
 
 throw_stack_category_error:
-	LOG("STACK CATEGORY ERROR!");
+	OLD_LOG("STACK CATEGORY ERROR!");
 	exceptions_throw_verifyerror(state.m, "Attempt to split long or double on the stack");
 	return false;
 }
@@ -993,22 +993,22 @@ static void typecheck_stackbased_show_state(verifier_state *state,
 	typedescriptor_t *sp;
 	s4 i;
 
-	LOGSTR1("stackdepth %d stack [", (stack - stackfloor) + 1);
+	OLD_LOGSTR1("stackdepth %d stack [", (stack - stackfloor) + 1);
 	for (sp=stackfloor; sp <= stack; sp++) {
-		LOGSTR(" ");
+		OLD_LOGSTR(" ");
 		DOLOG( typedescriptor_print(stdout, sp); );
 	}
-	LOGSTR(" ] locals [");
+	OLD_LOGSTR(" ] locals [");
 	for (i=0; i<state->numlocals; ++i) {
-		LOGSTR(" ");
+		OLD_LOGSTR(" ");
 		DOLOG( typedescriptor_print(stdout, state->locals + i); );
 	}
-	LOGSTR(" ]");
-	LOGNL;
+	OLD_LOGSTR(" ]");
+	OLD_LOGNL;
 	if (showins && state->iptr < (state->bptr->iinstr + state->bptr->icount)) {
-		LOGSTR("\t");
+		OLD_LOGSTR("\t");
 		DOLOG( show_icmd(state->jd, state->iptr, false, SHOW_PARSE); );
-		LOGNL;
+		OLD_LOGNL;
 	}
 }
 #endif

@@ -436,7 +436,7 @@ case ICMD_TABLESWITCH:     /* {ALL} */
 		table++;
 	}
 
-	LOG("switch done");
+	OLD_LOG("switch done");
 	break;
 
 case ICMD_LOOKUPSWITCH:    /* {ALL} */
@@ -452,7 +452,7 @@ case ICMD_LOOKUPSWITCH:    /* {ALL} */
 		lookup++;
 	}
 
-	LOG("switch done");
+	OLD_LOG("switch done");
 	break;
 
 
@@ -534,7 +534,7 @@ return_tail:
 
 	if (STATE->initmethod && METHOD->clazz != class_java_lang_Object) {
 		/* Check if the 'this' instance has been initialized. */
-		LOG("Checking <init> marker");
+		OLD_LOG("Checking <init> marker");
 #if defined(TYPECHECK_VARIABLESBASED)
 		if (!typevector_checktype(jd->var,STATE->numlocals-1,TYPE_INT))
 #else
