@@ -41,6 +41,9 @@
 
 #warning port to the new logging framework!
 #undef LOG
+#undef LOG1
+#undef LOG2
+#undef LOG3
 
 #ifdef TYPECHECK_DEBUG
 #define TYPECHECK_ASSERT(cond)  assert(cond)

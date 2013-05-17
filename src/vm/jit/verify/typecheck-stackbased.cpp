@@ -105,12 +105,14 @@ static void typecheck_stackbased_show_state(verifier_state *state,
             STATE->topjsr->usedlocals[(index)] = 1;                  \
     } while (0)
 
-#define VERIFY_ERROR(msg)                                            \
+#define VERIFY_ERROR_ret(msg,ret)                                    \
     do {                                                             \
         LOG1("VerifyError: %s", msg);                                \
         exceptions_throw_verifyerror(STATE->m, msg);                 \
-        return false;                                                \
+        return ret;                                                  \
     } while (0)
+
+#define VERIFY_ERROR(msg) VERIFY_ERROR_ret(msg,false)
 
 #define IS_CAT1(slot)                                                \
     ((slot).type != TYPE_VOID && !IS_2_WORD_TYPE((slot).type))
@@ -355,10 +357,14 @@ static typedescriptor_t *typecheck_stackbased_verify_fieldaccess(
 #define TYPECHECK_STACKBASED
 #define EXCEPTION  do { return NULL; } while (0)
 #define STATE  state
+#undef  VERIFY_ERROR
+#define VERIFY_ERROR(msg) VERIFY_ERROR_ret(msg,NULL)
 #include <typecheck-fields.inc>
 #undef  EXCEPTION
 #undef  STATE
 #undef  TYPECHECK_STACKBASED
+#undef  VERIFY_ERROR
+#define VERIFY_ERROR(msg) VERIFY_ERROR_ret(msg,false)
 
 	return stack;
 
