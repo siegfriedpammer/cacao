@@ -260,6 +260,9 @@ public:
 	virtual VoidType* toVoidType() { return this; }
 };
 
+// conversion functions
+const char * get_var_type(int type);
+Type::TypeID convert_var_type(int type);
 
 } // end namespace cacao
 } // end namespace jit

@@ -28,6 +28,40 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+// conversion functions
+const char * get_var_type(int type)
+{
+	switch(type) {
+	case TYPE_INT: return "TYPE_INT";
+	case TYPE_LNG: return "TYPE_LNG";
+	case TYPE_FLT: return "TYPE_FLT";
+	case TYPE_DBL: return "TYPE_DBL";
+	case TYPE_ADR: return "TYPE_ADR";
+	case TYPE_RET: return "TYPE_RET";
+	case TYPE_VOID: return "TYPE_VOID";
+	}
+	return "(unknown type)";
+}
+
+Type::TypeID convert_var_type(int type)
+{
+	switch(type) {
+	case TYPE_INT:  return Type::IntTypeID;
+	case TYPE_LNG:  return Type::LongTypeID;
+	case TYPE_FLT:  return Type::FloatTypeID;
+	case TYPE_DBL:  return Type::DoubleTypeID;
+	case TYPE_VOID: return Type::VoidTypeID;
+	case TYPE_ADR:  return Type::ReferenceTypeID; // XXX is this right?
+	case TYPE_RET:
+	default: /* do nothing */ ;
+	}
+	err() << BoldRed << "error: " << reset_color << "type " << BoldWhite
+		  << get_var_type(type) << reset_color << " (0x0" << hex << type << dec << ") "
+		  << " not yet supported!" << nl;
+	//assert( 0 && "Unsupported type");
+	return Type::VoidTypeID;
+}
+
 #if 0
 /**
  * Type Class
