@@ -42,6 +42,7 @@ Backend* Backend::factory() {
 LoweredInstDAG* Backend::lower(Instruction *I) const {
 	switch(I->get_opcode()) {
 	case Instruction::BeginInstID: return lowerBeginInst(I->to_BeginInst());
+	case Instruction::LOADInstID:  return lowerLOADInst(I->to_LOADInst());
 	}
 	err() << BoldRed << "error: " << reset_color
 		  << " instruction " << BoldWhite

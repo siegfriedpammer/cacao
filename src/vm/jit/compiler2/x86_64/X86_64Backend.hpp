@@ -38,6 +38,7 @@ namespace compiler2 {
  */
 class X86_64Backend : public Backend {
 protected:
+	virtual LoweredInstDAG* lowerLOADInst(LOADInst *I) const;
 public:
 	virtual const char* get_name() const { return "x86_64"; }
 };

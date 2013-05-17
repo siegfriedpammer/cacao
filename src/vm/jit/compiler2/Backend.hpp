@@ -39,6 +39,7 @@ class Instruction;
 class BackendGen {
 protected:
 	virtual LoweredInstDAG* lowerBeginInst(BeginInst *I) const = 0;
+	virtual LoweredInstDAG* lowerLOADInst(LOADInst *I) const = 0;
 };
 /**
  * Machine Backend
@@ -48,6 +49,7 @@ protected:
 class Backend : public BackendGen {
 protected:
 	virtual LoweredInstDAG* lowerBeginInst(BeginInst *I) const;
+
 public:
 	static Backend* factory();
 

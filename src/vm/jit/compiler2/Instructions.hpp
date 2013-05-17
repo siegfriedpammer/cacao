@@ -351,6 +351,7 @@ private:
 public:
 	explicit LOADInst(Type::TypeID type, unsigned index, BeginInst* begin ) : LoadInst(LOADInstID, type, begin), index(index) {}
 	virtual LOADInst* to_LOADInst() { return this; }
+	unsigned get_index() const { return index; }
 };
 
 class STOREInst : public Instruction {

@@ -23,6 +23,9 @@
 */
 
 #include "vm/jit/compiler2/x86_64/X86_64Backend.hpp"
+#include "vm/jit/compiler2/Instructions.hpp"
+#include "vm/jit/compiler2/LoweredInstDAG.hpp"
+#include "vm/jit/compiler2/MethodDescriptor.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -31,6 +34,14 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+
+LoweredInstDAG* X86_64Backend::lowerLOADInst(LOADInst *I) const {
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	//MachineInstruction *minst = loadParameter(I->get_index(), I->get_type());
+	const MethodDescriptor &MD = I->get_Method()->get_MethodDescriptor();
+	LOG("Methoddescriptor: " << MD << nl);
+	return dag;
+}
 
 } // end namespace compiler2
 } // end namespace jit
