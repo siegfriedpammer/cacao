@@ -1,6 +1,6 @@
 dnl m4/junit.m4
 dnl
-dnl Copyright (C) 2008
+dnl Copyright (C) 1996-2013
 dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 dnl 
 dnl This file is part of CACAO.
@@ -31,4 +31,30 @@ AC_ARG_WITH([junit-jar],
             [JUNIT_JAR="/usr/share/java/junit4.jar"])
 AC_MSG_RESULT(${JUNIT_JAR})
 AC_SUBST(JUNIT_JAR)
+])
+
+AC_DEFUN([AC_CHECK_JUNIT_WORKS],[
+AC_CACHE_CHECK([if JUnit works], ac_cv_prog_junit_works, [
+JAVA_TEST=JUnitTest.java
+CLASS_TEST=JUnitTest.class
+cat << \EOF > $JAVA_TEST
+/* [#]line __oline__ "configure" */
+import org.junit.Assert;
+import org.junit.Test;
+public class JUnitTest {
+    @Test
+    public void testTrue() {
+        Assert.assertTrue(true);
+    }
+}
+EOF
+if AC_TRY_COMMAND($JAVAC -classpath ${JUNIT_JAR} $JAVA_TEST) >/dev/null 2>&1; then
+  ac_cv_prog_junit_works=yes
+else
+  AC_MSG_ERROR([The Java compiler $JAVAC failed to compile JUnit tests (see config.log, check the CLASSPATH?)])
+  echo "configure: failed program was:" >&AC_FD_CC
+  cat $JAVA_TEST >&AC_FD_CC
+fi
+rm -f $JAVA_TEST $CLASS_TEST
+])
 ])
