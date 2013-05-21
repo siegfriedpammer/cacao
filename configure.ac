@@ -1,6 +1,6 @@
 dnl configure.ac
 dnl
-dnl Copyright (C) 1996-2012
+dnl Copyright (C) 1996-2013
 dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 dnl 
 dnl This file is part of CACAO.
@@ -670,8 +670,12 @@ esac
 AC_CHECK_WITH_JASMIN_JAR
 AC_CHECK_WITH_JUNIT_JAR
 
-AC_CHECK_JASMIN_WORKS
-AC_CHECK_JUNIT_WORKS
+AC_CHECK_DISABLE_TEST_DEPENDENCY_CHECKS
+
+if test x"${disable_test_dependency_checks}" = "xno"; then
+	AC_CHECK_JASMIN_WORKS
+	AC_CHECK_JUNIT_WORKS
+fi
 
 AC_CHECK_HEADERS(
 	[regex.h], 
