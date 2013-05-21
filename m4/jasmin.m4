@@ -1,6 +1,6 @@
 dnl m4/jasmin.m4
 dnl
-dnl Copyright (C) 2008
+dnl Copyright (C) 1996-2013
 dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 dnl 
 dnl This file is part of CACAO.
@@ -31,4 +31,27 @@ AC_ARG_WITH([jasmin-jar],
             [JASMIN_JAR="/usr/share/java/cup.jar:/usr/share/java/jasmin-sable.jar"])
 AC_MSG_RESULT(${JASMIN_JAR})
 AC_SUBST(JASMIN_JAR)
+])
+
+AC_DEFUN([AC_CHECK_JASMIN_WORKS],[
+AC_CACHE_CHECK([if Jasmin works], ac_cv_prog_jasmin_works, [
+JAVA_TEST=JasminTest.java
+CLASS_TEST=JasminTest.class
+cat << \EOF > $JAVA_TEST
+/* [#]line __oline__ "configure" */
+import jasmin.Main;
+public class JasminTest {
+    static void Main(String args[]) {
+    }
+}
+EOF
+if AC_TRY_COMMAND($JAVAC -classpath ${JASMIN_JAR} $JAVA_TEST) >/dev/null 2>&1; then
+  ac_cv_prog_jasmin_works=yes
+else
+  AC_MSG_ERROR([The Java compiler $JAVAC failed to find Jasmin (see config.log, check the CLASSPATH?)])
+  echo "configure: failed program was:" >&AC_FD_CC
+  cat $JAVA_TEST >&AC_FD_CC
+fi
+rm -f $JAVA_TEST $CLASS_TEST
+])
 ])
