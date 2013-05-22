@@ -78,10 +78,6 @@ codeinfo *code_codeinfo_new(methodinfo *m)
 	patcher_list_create(code);
 
 	STATISTICS(size_codeinfo_NG += sizeof(codeinfo));
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_codeinfo += sizeof(codeinfo);
-#endif
 
 	return code;
 }
@@ -243,10 +239,6 @@ void code_codeinfo_free(codeinfo *code)
 	FREE(code, codeinfo);
 
 	STATISTICS(size_codeinfo_NG -= sizeof(codeinfo));
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_codeinfo -= sizeof(codeinfo);
-#endif
 }
 
 

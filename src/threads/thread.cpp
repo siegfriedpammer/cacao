@@ -304,10 +304,6 @@ static threadobject *thread_new(int32_t flags)
 #endif
 
 		STATISTICS(size_threadobject_NG += sizeof(threadobject));
-#if defined(ENABLE_STATISTICS)
-		if (opt_stat)
-			size_threadobject += sizeof(threadobject);
-#endif
 
 		/* Clear memory. */
 

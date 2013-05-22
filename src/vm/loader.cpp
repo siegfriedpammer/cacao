@@ -1875,13 +1875,6 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	STATISTICS(size_classinfo_NG  += sizeof(classinfo*) * c->interfacescount);
 	STATISTICS(size_fieldinfo_NG  += sizeof(fieldinfo)  * c->fieldscount);
 	STATISTICS(size_methodinfo_NG += sizeof(methodinfo) * c->methodscount);
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat) {
-		size_classinfo  += sizeof(classinfo*) * c->interfacescount;
-		size_fieldinfo  += sizeof(fieldinfo)  * c->fieldscount;
-		size_methodinfo += sizeof(methodinfo) * c->methodscount;
-	}
-#endif
 
 	/* load attribute structures */
 

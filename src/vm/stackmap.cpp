@@ -415,7 +415,6 @@ bool stackmap_load_attribute_stackmaptable(classbuffer *cb, methodinfo *m)
 
 	stack_map = DNEW(stack_map_t);
 
-	STATISTICS(size_stack_map += sizeof(stack_map_t));
 	STATISTICS(size_stack_map_NG += sizeof(stack_map_t));
 
 	/* check buffer size */

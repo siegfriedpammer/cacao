@@ -107,10 +107,6 @@ void* CompilerStub::generate(methodinfo *m)
 	codegen_emit_stub_compiler(jd);
 
 	STATISTICS(count_cstub_len_NG += 3 * SIZEOF_VOID_P + get_code_size());
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		count_cstub_len += 3 * SIZEOF_VOID_P + get_code_size();
-#endif
 
 	/* flush caches */
 
@@ -140,10 +136,6 @@ void* CompilerStub::generate(methodinfo *m)
 	emit_trap_compiler(cd);
 
 	STATISTICS(count_cstub_len_NG += 2 * SIZEOF_VOID_P + get_code_size());
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		count_cstub_len += 2 * SIZEOF_VOID_P + get_code_size();
-#endif
 
 	/* Flush caches. */
 
@@ -249,10 +241,6 @@ void BuiltinStub::generate(methodinfo* m, builtintable_entry* bte)
 	bte->stub = code->entrypoint;
 
 	STATISTICS(size_stub_native_NG += code->mcodelength);
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_stub_native += code->mcodelength;
-#endif
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 	/* disassemble native stub */
@@ -376,13 +364,8 @@ codeinfo* NativeStub::generate(methodinfo* m, functionptr f)
 
 	codegen_finish(jd);
 
-	STATISTICS(size_stub_native_NG += code->mcodelength);
-#if defined(ENABLE_STATISTICS)
 	/* must be done after codegen_finish() */
-
-	if (opt_stat)
-		size_stub_native += code->mcodelength;
-#endif
+	STATISTICS(size_stub_native_NG += code->mcodelength);
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 	/* disassemble native stub */

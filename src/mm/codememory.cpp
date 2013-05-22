@@ -104,14 +104,6 @@ void *codememory_get(size_t size)
 
 		STATISTICS(codememusage_NG += code_memory_size);
 		STATISTICS(maxcodememusage_NG.max(codememusage_NG.get()));
-#if defined(ENABLE_STATISTICS)
-		if (opt_stat) {
-			codememusage += code_memory_size;
-
-			if (codememusage > maxcodememusage)
-				maxcodememusage = codememusage;
-		}
-#endif
 
 		/* allocate the memory */
 

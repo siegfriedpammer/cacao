@@ -240,10 +240,6 @@ static inline JavaString allocate_on_system_heap(size_t size) {
 	java_lang_String::set_fields(h, (java_handle_chararray_t*) a);
 
 	STATISTICS(size_string_NG += sizeof(class_java_lang_String->instancesize));
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_string += sizeof(class_java_lang_String->instancesize);
-#endif
 
 	return h;
 }

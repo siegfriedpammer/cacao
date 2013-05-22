@@ -137,10 +137,6 @@ classinfo *class_create_classinfo(Utf8String classname)
 	classinfo *c;
 
 	STATISTICS(size_classinfo_NG += sizeof(classinfo));
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_classinfo += sizeof(classinfo);
-#endif
 
 	/* we use a safe name for temporarily unnamed classes */
 

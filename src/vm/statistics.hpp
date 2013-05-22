@@ -933,58 +933,58 @@ public:
 /* global variables ***********************************************************/
 
 extern s4 codememusage;
-extern s4 maxcodememusage;
+//extern s4 maxcodememusage;
 
-extern s4 memoryusage;
-extern s4 maxmemusage;
+//extern s4 memoryusage;
+//extern s4 maxmemusage;
 
-extern s4 maxdumpsize;
+//extern s4 maxdumpsize;
 
-extern s4 globalallocateddumpsize;
+//extern s4 globalallocateddumpsize;
 extern s4 globaluseddumpsize;
 
 
 /* variables for measurements *************************************************/
 
-extern s4 size_classinfo;
-extern s4 size_fieldinfo;
-extern s4 size_methodinfo;
-extern s4 size_lineinfo;
-extern s4 size_codeinfo;
+//extern s4 size_classinfo;
+//extern s4 size_fieldinfo;
+//extern s4 size_methodinfo;
+//extern s4 size_lineinfo;
+//extern s4 size_codeinfo;
 
-extern s4 size_stub_native;
+//extern s4 size_stub_native;
 
-extern s4 size_stack_map;
-extern s4 size_string;
+//extern s4 size_stack_map;
+//extern s4 size_string;
 
-extern s4 size_threadobject;
-extern int32_t size_thread_index_t;
-extern int32_t size_stacksize;
+//extern s4 size_threadobject;
+//extern int32_t size_thread_index_t;
+//extern int32_t size_stacksize;
 
-extern s4 size_lock_record;
-extern s4 size_lock_hashtable;
-extern s4 size_lock_waiter;
+//extern s4 size_lock_record;
+//extern s4 size_lock_hashtable;
+//extern s4 size_lock_waiter;
 
-extern int32_t count_linenumbertable;
-extern int32_t size_linenumbertable;
+//extern int32_t count_linenumbertable;
+//extern int32_t size_linenumbertable;
 
-extern s4 size_patchref;
+//extern s4 size_patchref;
 
 //extern u8 count_calls_java_to_native;
 //extern u8 count_calls_native_to_java;
 
-extern int count_const_pool_len;
-extern int count_classref_len;
-extern int count_parsed_desc_len;
-extern int count_vftbl_len;
+//extern int count_const_pool_len;
+//extern int count_classref_len;
+//extern int count_parsed_desc_len;
+//extern int count_vftbl_len;
 //extern int count_all_methods;
 extern int count_methods_marked_used;  /*RTA*/
-extern int count_vmcode_len;
-extern int count_extable_len;
+//extern int count_vmcode_len;
+//extern int count_extable_len;
 //extern int count_class_loads;
 //extern int count_class_inits;
 
-extern int count_utf_len;               /* size of utf hash                   */
+//extern int count_utf_len;               /* size of utf hash                   */
 //extern int count_utf_new;
 extern int count_utf_new_found;
 
@@ -1041,9 +1041,9 @@ extern int count_pcmd_store_comb;
 //extern int count_javaexcsize;
 extern int count_calls;
 //extern int count_tryblocks;
-extern int count_code_len;
-extern int count_data_len;
-extern int count_cstub_len;
+//extern int count_code_len;
+//extern int count_data_len;
+//extern int count_cstub_len;
 //extern int count_max_new_stack;
 //extern int count_upper_bound_new_stack;
 

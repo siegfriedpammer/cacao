@@ -92,14 +92,6 @@ void *mem_alloc(int32_t size)
 
 	STATISTICS(memoryusage_NG += size);
 	STATISTICS(maxmemusage_NG.max(memoryusage_NG.get()));
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat) {
-		memoryusage += size;
-
-		if (memoryusage > maxmemusage)
-			maxmemusage = memoryusage;
-	}
-#endif
 
 	m = memory_checked_alloc(size);
 
@@ -126,10 +118,6 @@ void *mem_realloc(void *src, int32_t len1, int32_t len2)
 			vm_abort("mem_realloc: reallocating memoryblock with address NULL, length != 0");
 
 	STATISTICS(memoryusage_NG += len2 - len1);
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		memoryusage = (memoryusage - len1) + len2;
-#endif
 
 #if defined(ENABLE_MEMCHECK)
 	if (len2 < len1)
@@ -161,10 +149,6 @@ void mem_free(void *m, int32_t size)
 	}
 
 	STATISTICS(memoryusage_NG -= size);
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		memoryusage -= size;
-#endif
 
 #if defined(ENABLE_MEMCHECK)
 	/* destroy the contents */

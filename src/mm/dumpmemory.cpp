@@ -87,12 +87,6 @@ void DumpMemory::add_area(DumpMemoryArea* dma)
 	_size += dma->get_size();
 
 	STATISTICS(maxdumpsize_NG.max(_size));
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat) {
-		if (_size > (size_t) maxdumpsize)
-			maxdumpsize = _size;
-	}
-#endif
 }
 
 
@@ -186,8 +180,6 @@ DumpMemoryBlock* DumpMemoryArea::allocate_new_block(size_t size)
 		dm->add_size(dmb->get_size());
 
 		STATISTICS(maxdumpsize_NG.max(dm->get_size()));
-		if (dm->get_size() > (size_t) maxdumpsize)
-			maxdumpsize = dm->get_size();
 	}
 #endif
 
@@ -264,12 +256,8 @@ DumpMemoryBlock::DumpMemoryBlock(size_t size) : _size(0), _used(0), _block(0)
 	// Allocate a memory block.
 	_block = memory_checked_alloc(_size);
 
-	STATISTICS(globalallocateddumpsize_NG += _size);
-#if defined(ENABLE_STATISTICS)
 	// The amount of globally allocated dump memory (thread safe).
-	if (opt_stat)
-		globalallocateddumpsize += _size;
-#endif
+	STATISTICS(globalallocateddumpsize_NG += _size);
 }
 
 
@@ -283,12 +271,8 @@ DumpMemoryBlock::~DumpMemoryBlock()
 	// Release the memory block.
 	mem_free(_block, /* XXX */ 1);
 
-	STATISTICS(globalallocateddumpsize_NG -= _size);
-#if defined(ENABLE_STATISTICS)
 	// The amount of globally allocated dump memory (thread safe).
-	if (opt_stat)
-		globalallocateddumpsize -= _size;
-#endif
+	STATISTICS(globalallocateddumpsize_NG -= _size);
 }
 
 /*

@@ -579,13 +579,8 @@ void codegen_finish(jitdata *jd)
 
 	mcodelen = (s4) (cd->mcodeptr - cd->mcodebase);
 
+	STATISTICS(count_code_len_NG += mcodelen);
 	STATISTICS(count_data_len_NG += cd->dseglen);
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat) {
-		count_code_len += mcodelen;
-		count_data_len += cd->dseglen;
-	}
-#endif
 
 	alignedmcodelen = MEMORY_ALIGN(mcodelen, MAX_ALIGN);
 

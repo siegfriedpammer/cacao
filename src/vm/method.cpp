@@ -74,7 +74,8 @@ STAT_REGISTER_GROUP_VAR(int,size_lineinfo_NG,0,"size lineinfo","lineinfo",info_s
 STAT_DECLARE_GROUP(memory_stat)
 STAT_REGISTER_SUM_SUBGROUP(table_stat,"info structs","info struct usage",memory_stat)
 STAT_REGISTER_GROUP_VAR(int,count_extable_len_NG,0,"extable len","exception tables",table_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,size_linenumbertable_NG,0,"linenumbertable","linenumber tables",table_stat) // count_linenumbertable ?
+STAT_REGISTER_GROUP_VAR_EXTERN(int,size_linenumbertable_NG,0,"size linenumbertable","size of linenumber tables",table_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,count_linenumbertable_NG,0,"count linenumbertable","number of linenumber tables",table_stat)
 STAT_REGISTER_GROUP_VAR_EXTERN(int,size_patchref_NG,0,"patchref","patcher references",table_stat)
 
 STAT_DECLARE_VAR(int,count_vmcode_len_NG,0)
@@ -178,7 +179,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 	/* all fields of m have been zeroed in load_class_from_classbuffer */
 
 	m->clazz = c;
-	
+
 	if (!suck_check_classbuffer_size(cb, 2 + 2 + 2))
 		return false;
 
@@ -433,10 +434,6 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 					m->linenumbers = MNEW(lineinfo, m->linenumbercount);
 
 					STATISTICS(size_lineinfo_NG += sizeof(lineinfo) * m->linenumbercount);
-#if defined(ENABLE_STATISTICS)
-					if (opt_stat)
-						size_lineinfo += sizeof(lineinfo) * m->linenumbercount;
-#endif
 
 					for (l = 0; l < m->linenumbercount; l++) {
 						m->linenumbers[l].start_pc    = suck_u2(cb);

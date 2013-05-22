@@ -178,10 +178,6 @@ static lock_record_t *lock_record_new(void)
 	lr = NEW(lock_record_t);
 
 	STATISTICS(size_lock_record_NG += sizeof(lock_record_t));
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_lock_record += sizeof(lock_record_t);
-#endif
 
 	/* initialize the members */
 
@@ -235,10 +231,6 @@ static void lock_record_free(lock_record_t *lr)
 	FREE(lr, lock_record_t);
 
 	STATISTICS(size_lock_record_NG -= sizeof(lock_record_t));
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_lock_record -= sizeof(lock_record_t);
-#endif
 }
 
 
@@ -261,10 +253,6 @@ static void lock_hashtable_init(void)
 	lock_hashtable.ptr     = MNEW(lock_record_t *, lock_hashtable.size);
 
 	STATISTICS(size_lock_hashtable_NG += sizeof(lock_record_t *) * lock_hashtable.size);
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_lock_hashtable += sizeof(lock_record_t *) * lock_hashtable.size;
-#endif
 
 	MZERO(lock_hashtable.ptr, lock_record_t *, lock_hashtable.size);
 }
@@ -301,10 +289,6 @@ static void lock_hashtable_grow(void)
 	newtable = MNEW(lock_record_t *, newsize);
 
 	STATISTICS(size_lock_hashtable_NG += sizeof(lock_record_t *) * newsize);
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_lock_hashtable += sizeof(lock_record_t *) * newsize;
-#endif
 
 	MZERO(newtable, lock_record_t *, newsize);
 
@@ -333,10 +317,6 @@ static void lock_hashtable_grow(void)
 	MFREE(oldtable, lock_record_t *, oldsize);
 
 	STATISTICS(size_lock_hashtable_NG -= sizeof(lock_record_t *) * oldsize);
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_lock_hashtable -= sizeof(lock_record_t *) * oldsize;
-#endif
 }
 
 
@@ -1017,10 +997,6 @@ static void lock_record_add_waiter(lock_record_t *lr, threadobject* t)
 	lr->waiters->push_back(t);
 
 	STATISTICS(size_lock_waiter_NG += sizeof(threadobject*));
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_lock_waiter += sizeof(threadobject*);
-#endif
 }
 
 
@@ -1043,10 +1019,6 @@ static void lock_record_remove_waiter(lock_record_t *lr, threadobject* t)
 	lr->waiters->remove(t);
 
 	STATISTICS(size_lock_waiter_NG -= sizeof(threadobject*));
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_lock_waiter -= sizeof(threadobject*);
-#endif
 }
 
 
