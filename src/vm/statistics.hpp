@@ -906,29 +906,6 @@ public:
 /// @cond
 // exclude from doxygen
 
-/* in_  inline statistics */
-
-#define IN_MAX                  9
-#define IN_UNIQUEVIRT           0x0000
-#define IN_UNIQUE_INTERFACE     0x0001
-#define IN_OUTSIDERS            0x0004
-#define IN_MAXDEPTH             0x0008
-#define IN_MAXCODE              0x0010
-#define IN_JCODELENGTH          0x0020
-#define IN_EXCEPTION            0x0040
-#define IN_NOT_UNIQUE_VIRT      0x0080
-#define IN_NOT_UNIQUE_INTERFACE 0x0100
-
-#define N_UNIQUEVIRT            0
-#define N_UNIQUE_INTERFACE      1
-#define N_OUTSIDERS             2
-#define N_MAXDEPTH		3
-#define N_MAXCODE               4
-#define N_JCODELENGTH           5
-#define N_EXCEPTION            6
-#define N_NOT_UNIQUE_VIRT       7
-#define N_NOT_UNIQUE_INTERFACE  8
-
 
 /* function prototypes ********************************************************/
 

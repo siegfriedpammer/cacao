@@ -52,6 +52,7 @@
 #include "vm/method.hpp"
 #include "vm/options.hpp"
 #include "vm/statistics.hpp"
+#include "vm/rt-timing.hpp"
 
 #include "vm/jit/code.hpp"
 
@@ -270,6 +271,10 @@ s8 getcputime(void)
 #endif
 }
 
+RT_REGISTER_GROUP(legacy_group,"legacy group","legacy group")
+RT_REGISTER_GROUP_TIMER(loadingtime_NG,"loading time", "Time for loading classes",legacy_group)
+RT_REGISTER_GROUP_TIMER(compilingtime_NG,"compiling time", "Time for compiling code",legacy_group)
+
 
 /* loadingtime_stop ************************************************************
 
@@ -281,8 +286,10 @@ void loadingtime_start(void)
 {
 	loadingtime_recursion++;
 
-	if (loadingtime_recursion == 1)
+	if (loadingtime_recursion == 1) {
 		loadingstarttime = getcputime();
+		RT_TIMER_START(loadingtime_NG);
+	}
 }
 
 
@@ -297,6 +304,7 @@ void loadingtime_stop(void)
 	if (loadingtime_recursion == 1) {
 		loadingstoptime = getcputime();
 		loadingtime += (loadingstoptime - loadingstarttime);
+		RT_TIMER_STOP(loadingtime_NG);
 	}
 
 	loadingtime_recursion--;
@@ -313,8 +321,10 @@ void compilingtime_start(void)
 {
 	compilingtime_recursion++;
 
-	if (compilingtime_recursion == 1)
+	if (compilingtime_recursion == 1) {
 		compilingstarttime = getcputime();
+		RT_TIMER_START(compilingtime_NG);
+	}
 }
 
 
@@ -329,6 +339,7 @@ void compilingtime_stop(void)
 	if (compilingtime_recursion == 1) {
 		compilingstoptime = getcputime();
 		compilingtime += (compilingstoptime - compilingstarttime);
+		RT_TIMER_STOP(compilingtime_NG);
 	}
 
 	compilingtime_recursion--;
