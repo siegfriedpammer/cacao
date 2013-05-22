@@ -75,6 +75,7 @@ void typecheck_print_vararray(FILE *file, jitdata *jd, s4 *vars, int len)
 /****************************************************************************/
 
 #if defined(TYPECHECK_STATISTICS)
+#warning port to new statistics framework
 int stat_typechecked = 0;
 int stat_methods_with_handlers = 0;
 int stat_methods_maythrow = 0;

@@ -913,9 +913,11 @@ void loadingtime_stop(void);
 void compilingtime_start(void);
 void compilingtime_stop(void);
 
+#if 0
 void statistics_print_date(void);
 void statistics_print_memory_usage(void);
 void statistics_print_gc_memory_usage(void);
+#endif
 
 /// @endcond
 // end exclude from doxygen

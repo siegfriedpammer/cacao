@@ -1975,9 +1975,10 @@ void vm_exit_handler(void)
 	{
 		log_text("CACAO terminated");
 
-#if defined(ENABLE_STATISTICS)
+#if 0 && defined(ENABLE_STATISTICS)
 		if (opt_stat) {
 #ifdef TYPECHECK_STATISTICS
+// XXX TYPECHECK_STATISTICS is currently not usable
 			typecheck_print_statistics(get_logfile());
 #endif
 		}

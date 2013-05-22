@@ -588,7 +588,6 @@ void print_stats(void)
 	print_dynamic_super_statistics();
 #endif
 }
-#endif
 
 /* statistics_print_date *******************************************************
 
@@ -773,6 +772,7 @@ void statistics_print_gc_memory_usage(void)
 		log_println("");
 	}
 }
+#endif
 
 
 /*

@@ -188,7 +188,7 @@ static void memory_thread(void)
 
 		threads_sleep(seconds * 1000, 0);
 
-# if defined(ENABLE_STATISTICS)
+# if 0 && defined(ENABLE_STATISTICS)
 		/* Print current date and time (only when we print to the
 		   stdout). */
 

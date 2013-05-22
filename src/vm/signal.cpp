@@ -307,7 +307,7 @@ void signal_thread_handler(int sig)
 		ThreadList::dump_threads();
 #endif
 
-#if defined(ENABLE_STATISTICS)
+#if 0 && defined(ENABLE_STATISTICS)
 		if (opt_stat)
 			statistics_print_memory_usage();
 #endif
