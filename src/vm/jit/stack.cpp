@@ -121,6 +121,12 @@ STAT_REGISTER_DIST(unsigned int,unsigned int,count_block_stack_NG,0,9,1,0,"stack
 STAT_REGISTER_DIST(unsigned int,unsigned int,count_store_depth_NG,0,9,1,0,"store stack depth dist","Distribution of store stack depth")
 STAT_REGISTER_DIST(unsigned int,unsigned int,count_store_length_NG,0,19,1,0,"store creator chains","Distribution of store creator chains")
 STAT_REGISTER_DIST(unsigned int,unsigned int,count_analyse_iterations_NG,1,4,1,0,"analysis iter.","Distribution of analysis iterations")
+
+static const unsigned int count_method_bb_distribution_NG_range[] = {5,10,15,20,30,40,50,75};
+STAT_REGISTER_DIST_RANGE(unsigned int,unsigned int,count_method_bb_distribution_NG,count_method_bb_distribution_NG_range,8,0,"method bb dist.","Distribution of basic blocks per method")
+
+static const unsigned int count_block_size_distribution_NG_range[] = {0,1,2,3,4,5,6,7,8,9,12,14,16,18,20,25,30};
+STAT_REGISTER_DIST_RANGE(unsigned int,unsigned int,count_block_size_distribution_NG,count_block_size_distribution_NG_range,17,0,"bb size dist.","Distribution of basic block sizes")
 /* stackdata_t *****************************************************************
 
    This struct holds internal data during stack analysis.
@@ -4633,6 +4639,7 @@ icmd_BUILTIN:
 	STATISTICS(count_max_new_stack_NG.max(sd.new_elem - jd->stack));
 
 	STATISTICS(count_analyse_iterations_NG[iteration_count]++);
+	STATISTICS(count_method_bb_distribution_NG[jd->basicblockcount]++);
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 		if (jd->basicblockcount > count_max_basic_blocks)
@@ -4650,6 +4657,7 @@ icmd_BUILTIN:
 		for (; sd.bptr; sd.bptr = sd.bptr->next) {
 			if (sd.bptr->flags > BBREACHED) {
 				STATISTICS(count_block_stack_NG[sd.bptr->indepth]++);
+				STATISTICS(count_block_size_distribution_NG[sd.bptr->icount]++);
 				if (sd.bptr->indepth >= 10)
 					count_block_stack[10]++;
 				else

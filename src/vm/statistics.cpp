@@ -454,6 +454,7 @@ void print_stats(void)
 	dolog("Maximal count of stack elements:   %d", count_max_new_stack);
 	// DONE
 	dolog("Upper bound of max stack elements: %d", count_upper_bound_new_stack);
+	// DONE
 	dolog("Distribution of stack sizes at block boundary");
 	dolog("     0     1     2     3     4     5     6     7     8     9  >=10");
 	dolog("%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d",
@@ -461,6 +462,7 @@ void print_stats(void)
 		  count_block_stack[3], count_block_stack[4], count_block_stack[5],
 		  count_block_stack[6], count_block_stack[7], count_block_stack[8],
 		  count_block_stack[9], count_block_stack[10]);
+	// DONE
 	dolog("Distribution of store stack depth");
 	dolog("     0     1     2     3     4     5     6     7     8     9  >=10");
 	dolog("%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d",
@@ -470,11 +472,13 @@ void print_stats(void)
 		  count_store_depth[9], count_store_depth[10]);
 	dolog("Distribution of store creator chains first part");
 	dolog("     0     1     2     3     4     5     6     7     8     9");
+	// DONE
 	dolog("%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d",
 		  count_store_length[0], count_store_length[1], count_store_length[2],
 		  count_store_length[3], count_store_length[4], count_store_length[5],
 		  count_store_length[6], count_store_length[7], count_store_length[8],
 		  count_store_length[9]);
+	// DONE
 	dolog("Distribution of store creator chains second part");
 	dolog("    10    11    12    13    14    15    16    17    18    19  >=20");
 	dolog("%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d",
@@ -484,6 +488,7 @@ void print_stats(void)
 		  count_store_length[16], count_store_length[17],
 		  count_store_length[18], count_store_length[19],
 		  count_store_length[20]);
+	// DONE
 	dolog("Distribution of analysis iterations");
 	dolog("     1     2     3     4   >=5");
 	dolog("%6d%6d%6d%6d%6d",
@@ -494,6 +499,7 @@ void print_stats(void)
 
 	/* Distribution of basic blocks per method ********************************/
 
+	// DONE
 	log_println("Distribution of basic blocks per method:");
 	log_println("   <=5  <=10  <=15  <=20  <=30  <=40  <=50  <=75   >75");
 
@@ -523,6 +529,7 @@ void print_stats(void)
 
 	/* Distribution of basic block sizes **************************************/
 
+	// DONE
 	log_println("Distribution of basic block sizes:");
 	log_println("     0     1     2     3     4     5     6     7     8     9   <13   <15   <17   <19   <21   <26   <31   >30");
 

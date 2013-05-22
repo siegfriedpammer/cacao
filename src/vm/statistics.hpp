@@ -225,6 +225,66 @@ public:
 };
 
 /**
+ * Statistics Distribution (Range).
+ *
+ * @note: step is a template variable to allow the compiler to remove the /step calculation
+ * in case step equals 1 (most common case).
+ */
+template<typename _COUNT_TYPE, typename _INDEX_TYPE>
+class StatDistRange : public StatEntry {
+private:
+	_COUNT_TYPE  *table;       //< table
+	const _INDEX_TYPE *range;  //< range table
+	const int table_size;      //< size of the table
+public:
+	/**
+	 * Create a new statistics distribution.
+	 * @param[in] name name of the variable
+	 * @param[in] description description of the variable
+	 * @param[in] parent parent group.
+	 * @param[in] range range header
+	 * @param[in] range_size size of the range array
+	 * @param[in] init initial value of the distribution table entries
+	 */
+	StatDistRange(const char* name, const char* description, StatGroup &parent,
+			const _INDEX_TYPE range[], const int range_size, _COUNT_TYPE init)
+			: StatEntry(name, description), range(range), table_size(range_size) {
+		parent.add(this);
+		table = new _COUNT_TYPE[table_size + 1];
+
+		for(int i = 0; i <= table_size; ++i ) {
+			table[i] = init;
+		}
+	}
+
+	virtual ~StatDistRange() {
+		delete table;
+	}
+
+	virtual void print(OStream &O) const {
+		O << description << '(' << name << "):" << nl;
+
+		O << ' ';
+		for(int i = 0; i < table_size; ++i ) {
+			O << setw(5) << range[i] << ']';
+		}
+		O << '(' << setw(4) << range[table_size-1] << nl;
+		for(int i = 0; i < table_size + 1; ++i ) {
+			O << setw(6) << table[i];
+		}
+		O << nl;
+	}
+	/// index operator
+	inline _COUNT_TYPE& operator[](const _INDEX_TYPE v) {
+		for (int i = 0; i < table_size; ++i ) {
+			if (v <= range[i])
+				return table[i];
+		}
+		return table[table_size];
+	}
+};
+
+/**
  * Statistics Variable.
  */
 template<typename _T, _T init>
@@ -319,8 +379,11 @@ public:
 #define STAT_REGISTER_GROUP_VAR(type, var, init, name, description, group) \
 	static cacao::StatVar<type,init> var(name,description,group());
 
-#define STAT_REGISTER_DIST(counttype,indextype, var, start, end, step, init, name, description) \
+#define STAT_REGISTER_DIST(counttype, indextype, var, start, end, step, init, name, description) \
 	static cacao::StatDist<counttype,indextype,step> var(name,description,cacao::StatGroup::root(),start,end,init);
+
+#define STAT_REGISTER_DIST_RANGE(counttype, indextype, var, range, range_size, init, name, description) \
+	static cacao::StatDistRange<counttype,indextype> var(name,description,cacao::StatGroup::root(),range,range_size,init);
 
 #define STAT_REGISTER_GROUP(var,name,description)                              \
 	inline cacao::StatGroup& var##_group() {                                   \
