@@ -178,18 +178,80 @@ public:
 };
 
 /**
+ * Statistics Distribution (abstract base).
+ */
+template<typename _COUNT_TYPE, typename _INDEX_TYPE>
+class StatDistAbst : public StatEntry {
+protected:
+	_COUNT_TYPE  *table;       //< table
+	const int table_size;      //< size of the table
+
+	StatDistAbst(const char* name, const char* description, StatGroup &parent,
+			_INDEX_TYPE table_size, _COUNT_TYPE init)
+			: StatEntry(name, description), table_size(table_size) {
+		parent.add(this);
+		table = new _COUNT_TYPE[table_size + 1];
+
+		for(int i = 0; i <= table_size; ++i ) {
+			table[i] = init;
+		}
+	}
+
+	virtual ~StatDistAbst() {
+		delete table;
+	}
+
+	virtual void print_header(OStream &O) const = 0;
+
+public:
+	virtual void print(OStream &O) const {
+		O << description << '(' << name << "):" << nl;
+
+		print_header(O);
+
+		// ratio
+		_COUNT_TYPE sum = 0;
+		for(int i = 0; i < table_size + 1; ++i ) {
+			O << setw(6) << table[i];
+			sum += table[i];
+		}
+		O << nl;
+		for(int i = 0; i < table_size + 1; ++i ) {
+			O << setw(6) << setprecision(2) << float(table[i])/sum;
+		}
+		O << "  ratio" << nl;
+		// cumulated ratio
+		_COUNT_TYPE cumulated = 0;
+		for(int i = 0; i < table_size + 1; ++i ) {
+			cumulated += table[i];
+			O << setw(6) << setprecision(2) << float(cumulated)/sum;
+		}
+		O << "  cumulated ratio" << nl;
+		O << nl;
+	}
+};
+
+/**
  * Statistics Distribution.
  *
  * @note: step is a template variable to allow the compiler to remove the /step calculation
  * in case step equals 1 (most common case).
  */
 template<typename _COUNT_TYPE, typename _INDEX_TYPE, _INDEX_TYPE step>
-class StatDist : public StatEntry {
+class StatDist : public StatDistAbst<_COUNT_TYPE,_INDEX_TYPE> {
 private:
-	_COUNT_TYPE  *table;  //< table
-	const int table_size; //< size of the table
 	const _INDEX_TYPE start;
 	const _INDEX_TYPE end;
+
+protected:
+	virtual void print_header(OStream &O) const {
+		O << ' ';
+		for(int i = 0; i < this->table_size; ++i ) {
+			O << setw(5) << start + i * step << ']';
+		}
+		O << '(' << setw(4) << start + (this->table_size-1)*step << nl;
+	}
+
 public:
 	/**
 	 * Create a new statistics distribution.
@@ -202,62 +264,21 @@ public:
 	 */
 	StatDist(const char* name, const char* description, StatGroup &parent,
 			_INDEX_TYPE start, _INDEX_TYPE end, _COUNT_TYPE init)
-			: StatEntry(name, description), table_size((end - start)/step + 1),
+			: StatDistAbst<_COUNT_TYPE,_INDEX_TYPE>(name, description, parent,
+			                                        (end - start)/step + 1, init),
 			start(start), end(end) {
 		assert(step);
-		parent.add(this);
-		table = new _COUNT_TYPE[table_size + 1];
-
-		for(int i = 0; i <= table_size; ++i ) {
-			table[i] = init;
-		}
 	}
 
-	virtual ~StatDist() {
-		delete table;
-	}
-
-	virtual void print(OStream &O) const {
-		O << description << '(' << name << "):" << nl;
-
-		O << ' ';
-		for(int i = 0; i < table_size; ++i ) {
-			O << setw(5) << start + i * step << ']';
-		}
-		O << '(' << setw(4) << start + (table_size-1)*step << nl;
-		for(int i = 0; i < table_size + 1; ++i ) {
-			O << setw(6) << table[i];
-		}
-		O << nl;
-		// ratio
-		_COUNT_TYPE sum = 0;
-		for(int i = 0; i < table_size + 1; ++i ) {
-			O << setw(6) << table[i];
-			sum += table[i];
-		}
-		O << nl;
-		for(int i = 0; i < table_size + 1; ++i ) {
-			O << setw(6) << setprecision(2) << float(table[i])/sum;
-		}
-		O << "  ratio" << nl;
-		// cumulated ratio
-		_COUNT_TYPE cumulated = 0;
-		for(int i = 0; i < table_size + 1; ++i ) {
-			cumulated += table[i];
-			O << setw(6) << setprecision(2) << float(cumulated)/sum;
-		}
-		O << "  cumulated ratio" << nl;
-		O << nl;
-	}
 	/// index operator
 	inline _COUNT_TYPE& operator[](const _INDEX_TYPE i) {
 		if (i <= start) {
-			return table[0];
+			return this->table[0];
 		}
 		if (i > end) {
-			return table[table_size];
+			return this->table[this->table_size];
 		}
-		return table[( (i-start)%step == 0 ? (i-start)/step :  (i-start+step)/step )];
+		return this->table[( (i-start)%step == 0 ? (i-start)/step :  (i-start+step)/step )];
 	}
 };
 
@@ -268,11 +289,19 @@ public:
  * in case step equals 1 (most common case).
  */
 template<typename _COUNT_TYPE, typename _INDEX_TYPE>
-class StatDistRange : public StatEntry {
+class StatDistRange : public StatDistAbst<_COUNT_TYPE,_INDEX_TYPE> {
 private:
-	_COUNT_TYPE  *table;       //< table
 	const _INDEX_TYPE *range;  //< range table
-	const int table_size;      //< size of the table
+
+protected:
+	virtual void print_header(OStream &O) const {
+		O << ' ';
+		for(int i = 0; i < this->table_size; ++i ) {
+			O << setw(5) << range[i] << ']';
+		}
+		O << '(' << setw(4) << range[this->table_size-1] << nl;
+	}
+
 public:
 	/**
 	 * Create a new statistics distribution.
@@ -285,54 +314,17 @@ public:
 	 */
 	StatDistRange(const char* name, const char* description, StatGroup &parent,
 			const _INDEX_TYPE range[], const int range_size, _COUNT_TYPE init)
-			: StatEntry(name, description), range(range), table_size(range_size) {
-		parent.add(this);
-		table = new _COUNT_TYPE[table_size + 1];
+			: StatDistAbst<_COUNT_TYPE,_INDEX_TYPE>(name, description, parent,
+			                                        range_size, init),
+			range(range) {}
 
-		for(int i = 0; i <= table_size; ++i ) {
-			table[i] = init;
-		}
-	}
-
-	virtual ~StatDistRange() {
-		delete table;
-	}
-
-	virtual void print(OStream &O) const {
-		O << description << '(' << name << "):" << nl;
-
-		O << ' ';
-		for(int i = 0; i < table_size; ++i ) {
-			O << setw(5) << range[i] << ']';
-		}
-		O << '(' << setw(4) << range[table_size-1] << nl;
-		// ratio
-		_COUNT_TYPE sum = 0;
-		for(int i = 0; i < table_size + 1; ++i ) {
-			O << setw(6) << table[i];
-			sum += table[i];
-		}
-		O << nl;
-		for(int i = 0; i < table_size + 1; ++i ) {
-			O << setw(6) << setprecision(2) << float(table[i])/sum;
-		}
-		O << "  ratio" << nl;
-		// cumulated ratio
-		_COUNT_TYPE cumulated = 0;
-		for(int i = 0; i < table_size + 1; ++i ) {
-			cumulated += table[i];
-			O << setw(6) << setprecision(2) << float(cumulated)/sum;
-		}
-		O << "  cumulated ratio" << nl;
-		O << nl;
-	}
 	/// index operator
 	inline _COUNT_TYPE& operator[](const _INDEX_TYPE v) {
-		for (int i = 0; i < table_size; ++i ) {
+		for (int i = 0; i < this->table_size; ++i ) {
 			if (v <= range[i])
-				return table[i];
+				return this->table[i];
 		}
-		return table[table_size];
+		return this->table[this->table_size];
 	}
 };
 
