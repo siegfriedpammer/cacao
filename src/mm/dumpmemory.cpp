@@ -175,12 +175,10 @@ DumpMemoryBlock* DumpMemoryArea::allocate_new_block(size_t size)
 	_blocks.push_back(dmb);
 
 #if defined(ENABLE_STATISTICS)
-	if (opt_stat) {
-		DumpMemory* dm = DumpMemory::get_current();
-		dm->add_size(dmb->get_size());
+	DumpMemory* dm = DumpMemory::get_current();
+	dm->add_size(dmb->get_size());
 
-		STATISTICS(maxdumpsize.max(dm->get_size()));
-	}
+	STATISTICS(maxdumpsize.max(dm->get_size()));
 #endif
 
 	return dmb;

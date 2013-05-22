@@ -1607,11 +1607,9 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	descriptor_pool_alloc_parsed_descriptors(descpool);
 
 #if defined(ENABLE_STATISTICS)
-	if (opt_stat) {
-		descriptor_pool_get_sizes(descpool, &classrefsize, &descsize);
-		STATISTICS(count_classref_len += classrefsize);
-		STATISTICS(count_parsed_desc_len += descsize);
-	}
+	descriptor_pool_get_sizes(descpool, &classrefsize, &descsize);
+	STATISTICS(count_classref_len += classrefsize);
+	STATISTICS(count_parsed_desc_len += descsize);
 #endif
 
 	RT_TIMER_STOPSTART(descs_timer,setrefs_timer);

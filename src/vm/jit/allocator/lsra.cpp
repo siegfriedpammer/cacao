@@ -147,23 +147,21 @@ bool lsra(jitdata *jd)
 
 #if defined(ENABLE_STATISTICS)
 	/* find conflicts between locals for statistics */
-	if (opt_stat) {
-		ls = jd->ls;
-		/* local Variable Lifetimes are at the end of the lifetime array and  */
-		/* have v_index >= 0 */
-		for (locals_start = ls->lifetimecount-1; (locals_start >=0) &&
-			(ls->lifetime[ls->lt_used[locals_start]].v_index >= 0);
-			 locals_start--);
-		for (i=locals_start + 1; i < ls->lifetimecount; i++)
-			for (j=i+1; j < ls->lifetimecount; j++)
-				if ( !((ls->lifetime[ls->lt_used[i]].i_end
-					   < ls->lifetime[ls->lt_used[j]].i_start)
-					|| (ls->lifetime[ls->lt_used[j]].i_end <
-					   ls->lifetime[ls->lt_used[i]].i_start)) ) {
-					count_locals_conflicts += 2;
-					STATISTICS(count_locals_conflicts += 2);
-				}
-	 }
+	ls = jd->ls;
+	/* local Variable Lifetimes are at the end of the lifetime array and  */
+	/* have v_index >= 0 */
+	for (locals_start = ls->lifetimecount-1; (locals_start >=0) &&
+		(ls->lifetime[ls->lt_used[locals_start]].v_index >= 0);
+		 locals_start--);
+	for (i=locals_start + 1; i < ls->lifetimecount; i++)
+		for (j=i+1; j < ls->lifetimecount; j++)
+			if ( !((ls->lifetime[ls->lt_used[i]].i_end
+				   < ls->lifetime[ls->lt_used[j]].i_start)
+				|| (ls->lifetime[ls->lt_used[j]].i_end <
+				   ls->lifetime[ls->lt_used[i]].i_start)) ) {
+				count_locals_conflicts += 2;
+				STATISTICS(count_locals_conflicts += 2);
+			}
 #endif
 	/* Run LSRA */
 	lsra_main(jd);

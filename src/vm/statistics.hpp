@@ -874,12 +874,8 @@ public:
 		return var;                                                            \
 	}
 
-#define STATISTICS(x) \
-    do { \
-        if (opt_stat) { \
-            x; \
-        } \
-    } while (0)
+#define STATISTICS(x)  do { x; } while (0)
+
 #else
 #define STAT_DECLARE_VAR(type, var, init)
 #define STAT_REGISTER_VAR_EXTERN(type, var, init, name, description)

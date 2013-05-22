@@ -4569,14 +4569,11 @@ icmd_BUILTIN:
 	STATISTICS(count_analyse_iterations[iteration_count]++);
 	STATISTICS(count_method_bb_distribution[jd->basicblockcount]++);
 #if defined(ENABLE_STATISTICS)
-	if (opt_stat) {
-
-		sd.bptr = jd->basicblocks;
-		for (; sd.bptr; sd.bptr = sd.bptr->next) {
-			if (sd.bptr->flags > BBREACHED) {
-				STATISTICS(count_block_stack[sd.bptr->indepth]++);
-				STATISTICS(count_block_size_distribution[sd.bptr->icount]++);
-			}
+	sd.bptr = jd->basicblocks;
+	for (; sd.bptr; sd.bptr = sd.bptr->next) {
+		if (sd.bptr->flags > BBREACHED) {
+			STATISTICS(count_block_stack[sd.bptr->indepth]++);
+			STATISTICS(count_block_size_distribution[sd.bptr->icount]++);
 		}
 	}
 #endif /* defined(ENABLE_STATISTICS) */
