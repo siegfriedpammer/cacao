@@ -156,15 +156,17 @@ public:
 
 /**
  * Statistics Distribution.
+ *
+ * @note: step is a template variable to allow the compiler to remove the /step calculation
+ * in case step equals 1 (most common case).
  */
-template<typename _COUNT_TYPE, typename _INDEX_TYPE>
+template<typename _COUNT_TYPE, typename _INDEX_TYPE, _INDEX_TYPE step>
 class StatDist : public StatEntry {
 private:
-	const int table_size; //< size of the table
 	_COUNT_TYPE  *table;  //< table
-	_INDEX_TYPE start;
-	_INDEX_TYPE end;
-	_INDEX_TYPE step;
+	const int table_size; //< size of the table
+	const _INDEX_TYPE start;
+	const _INDEX_TYPE end;
 public:
 	/**
 	 * Create a new statistics distribution.
@@ -176,9 +178,9 @@ public:
 	 * @param[in] init initial value of the distribution table entries
 	 */
 	StatDist(const char* name, const char* description, StatGroup &parent,
-			_INDEX_TYPE start, _INDEX_TYPE end, _INDEX_TYPE step, _COUNT_TYPE init)
+			_INDEX_TYPE start, _INDEX_TYPE end, _COUNT_TYPE init)
 			: StatEntry(name, description), table_size((end - start)/step + 1),
-			start(start), end(end), step(step) {
+			start(start), end(end) {
 		assert(step);
 		parent.add(this);
 		table = new _COUNT_TYPE[table_size + 1];
@@ -318,7 +320,7 @@ public:
 	static cacao::StatVar<type,init> var(name,description,group());
 
 #define STAT_REGISTER_DIST(counttype,indextype, var, start, end, step, init, name, description) \
-	static cacao::StatDist<counttype,indextype> var(name,description,cacao::StatGroup::root(),start,end,step,init);
+	static cacao::StatDist<counttype,indextype,step> var(name,description,cacao::StatGroup::root(),start,end,init);
 
 #define STAT_REGISTER_GROUP(var,name,description)                              \
 	inline cacao::StatGroup& var##_group() {                                   \
