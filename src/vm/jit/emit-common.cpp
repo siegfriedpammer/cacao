@@ -46,6 +46,11 @@
 
 STAT_REGISTER_VAR(int,count_branches_resolved_NG,0,"resolved branches","resolved branches")
 
+STAT_REGISTER_VAR(int,count_mov_reg_reg_NG,0,"count_mov_reg_reg","Moves reg -> reg")
+STAT_REGISTER_VAR(int,count_mov_mem_reg_NG,0,"count_mov_mem_reg","Moves mem -> reg")
+STAT_REGISTER_VAR(int,count_mov_reg_mem_NG,0,"count_mov_reg_mem","Moves reg -> mem")
+STAT_REGISTER_VAR(int,count_mov_mem_mem_NG,0,"count_mov_mem_mem","Moves mem -> mem")
+
 /* emit_load_s1 ****************************************************************
 
    Emits a possible load of the first source operand.

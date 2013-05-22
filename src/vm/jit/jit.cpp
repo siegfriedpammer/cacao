@@ -253,6 +253,16 @@ STAT_REGISTER_VAR(int,count_methods_NG,0,"compiled methods","Number of compiled 
 STAT_REGISTER_VAR(int,count_javacodesize_NG,0,"java code size","Size of compiled JavaVM instructions")
 STAT_REGISTER_VAR(int,count_javaexcsize_NG,0,"java exc.tbl. size","Size of compiled Exception Tables")
 STAT_REGISTER_VAR(int,count_tryblocks_NG,0,"try blocks","Number of Try-Blocks")
+STAT_REGISTER_VAR(int,count_methods_allocated_by_lsra_NG,0,"meth. alloc. lsra","Methods allocated by LSRA")
+
+STAT_REGISTER_VAR_EXTERN(int,count_interface_size_NG,0,"interface size","Number of interface slots")
+STAT_REGISTER_VAR_EXTERN(int,count_locals_conflicts_NG,0,"locals conflicts","Conflicts between local Variables")
+STAT_REGISTER_VAR_EXTERN(int,count_locals_spilled_NG,0,"locals spilled","Local Variables held in Memory")
+STAT_REGISTER_VAR_EXTERN(int,count_locals_register_NG,0,"locals register","Local Variables held in Registers")
+STAT_REGISTER_VAR_EXTERN(int,count_ss_spilled_NG,0,"ss spilled","Stackslots held in Memory")
+STAT_REGISTER_VAR_EXTERN(int,count_ss_register_NG,0,"ss register","Stackslots held in Registers")
+STAT_REGISTER_VAR_EXTERN(int,count_argument_reg_ss_NG,0,"argument reg ss","Number of Argument stack slots in register")
+STAT_REGISTER_VAR_EXTERN(int,count_argument_mem_ss_NG,0,"argument mem ss","Number of Argument stack slots in memory")
 
 static u1 *jit_compile_intern(jitdata *jd);
 
@@ -724,6 +734,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 				return NULL;
 
 			STATISTICS(count_methods_allocated_by_lsra++);
+			STATISTICS(count_methods_allocated_by_lsra_NG++);
 
 		} else
 # endif /* defined(ENABLE_LSRA) && !defined(ENABLE_SSA) */
@@ -742,11 +753,13 @@ static u1 *jit_compile_intern(jitdata *jd)
 			/*lsra(jd);*/ regalloc(jd);
 			/*eliminate_subbasicblocks(jd);*/
 			STATISTICS(count_methods_allocated_by_lsra++);
+			STATISTICS(count_methods_allocated_by_lsra_NG++);
 
 		} else
 # endif /* defined(ENABLE_SSA) */
 		{
 			STATISTICS(count_locals_conflicts += (jd->maxlocals - 1) * (jd->maxlocals));
+			STATISTICS(count_locals_conflicts_NG += (jd->maxlocals - 1) * (jd->maxlocals));
 
 			regalloc(jd);
 		}

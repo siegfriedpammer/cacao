@@ -1,6 +1,6 @@
 /* src/vm/statistics.hpp - exports global varables for statistics
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -376,7 +376,13 @@ public:
 #endif
 
 #define STAT_DECLARE_VAR(type, var, init) \
-	extern static cacao::StatVar<type,init> var;
+	extern cacao::StatVar<type,init> var;
+
+#define STAT_REGISTER_VAR_EXTERN(type, var, init, name, description) \
+	cacao::StatVar<type,init> var(name,description,cacao::StatGroup::root());
+
+#define STAT_REGISTER_GROUP_VAR_EXTERN(type, var, init, name, description, group) \
+	cacao::StatVar<type,init> var(name,description,group##_group());
 
 #define STAT_REGISTER_VAR(type, var, init, name, description) \
 	static cacao::StatVar<type,init> var(name,description,cacao::StatGroup::root());

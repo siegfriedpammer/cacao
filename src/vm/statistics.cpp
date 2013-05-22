@@ -1,6 +1,6 @@
-/* src/vm/statistics.c - global variables for statistics
+/* src/vm/statistics.cpp - global variables for statistics
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -575,24 +575,39 @@ void print_stats(void)
 
 	/* LSRA statistics ********************************************************/
 
+	// DONE
 	dolog("Moves reg -> reg:     %6d", count_mov_reg_reg);
+	// DONE
 	dolog("Moves mem -> reg:     %6d", count_mov_mem_reg);
+	// DONE
 	dolog("Moves reg -> mem:     %6d", count_mov_reg_mem);
+	// DONE
 	dolog("Moves mem -> mem:     %6d", count_mov_mem_mem);
 
+	// DONE
 	dolog("Methods allocated by LSRA:         %6d",
 		  count_methods_allocated_by_lsra);
+	// DONE
 	dolog("Conflicts between local Variables: %6d", count_locals_conflicts);
+	// DONE
 	dolog("Local Variables held in Memory:    %6d", count_locals_spilled);
+	// DONE
 	dolog("Local Variables held in Registers: %6d", count_locals_register);
+	// DONE
 	dolog("Stackslots held in Memory:         %6d", count_ss_spilled);
+	// DONE
 	dolog("Stackslots held in Registers:      %6d", count_ss_register);
+	// not used!?
 	dolog("Memory moves at BB Boundaries:     %6d", count_mem_move_bb);
+	// DONE
 	dolog("Number of interface slots:         %6d\n", count_interface_size);
+	// DONE
 	dolog("Number of Argument stack slots in register:  %6d",
 		  count_argument_reg_ss);
+	// DONE
 	dolog("Number of Argument stack slots in memory:    %6d\n",
 		  count_argument_mem_ss);
+	// DONE
 	dolog("Number of Methods kept in registers:         %6d\n",
 		  count_method_in_register);
 

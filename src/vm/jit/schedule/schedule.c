@@ -711,6 +711,7 @@ void schedule_do_schedule(scheduledata *sd)
 
 #if defined(ENABLE_STATISTICS)
 		if (opt_stat) {
+			#warning port to the new statistics framework
 			count_schedule_basic_blocks++;
 			count_schedule_nodes += sd->micount;
 			count_schedule_leaders += leaders;
@@ -736,4 +737,5 @@ void schedule_do_schedule(scheduledata *sd)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

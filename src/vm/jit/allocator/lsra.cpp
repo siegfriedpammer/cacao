@@ -1,6 +1,6 @@
-/* src/vm/jit/allocator/lsra.c - linear scan register allocator
+/* src/vm/jit/allocator/lsra.cpp - linear scan register allocator
 
-   Copyright (C) 2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -50,6 +50,8 @@
 
 #include "vm/jit/allocator/liveness.hpp"
 #include "vm/jit/allocator/lsra.hpp"
+
+STAT_DECLARE_VAR(int,count_locals_conflicts_NG,0)
 
 #ifdef USAGE_COUNT
 extern char **prof_m_names;
@@ -157,8 +159,10 @@ bool lsra(jitdata *jd)
 				if ( !((ls->lifetime[ls->lt_used[i]].i_end
 					   < ls->lifetime[ls->lt_used[j]].i_start)
 					|| (ls->lifetime[ls->lt_used[j]].i_end <
-					   ls->lifetime[ls->lt_used[i]].i_start)) )
+					   ls->lifetime[ls->lt_used[i]].i_start)) ) {
 					count_locals_conflicts += 2;
+					STATISTICS(count_locals_conflicts_NG += 2);
+				}
 	 }
 #endif
 	/* Run LSRA */
