@@ -218,11 +218,6 @@ public:
 	}
 
 	virtual void print(OStream &O) const {
-		/*O
-		  << setw(30) << name
-		  //<< setw(10) << var
-		  << " : " << description << nl;
-		*/
 		O << description << '(' << name << "):" << nl;
 
 		O << ' ';
@@ -233,6 +228,25 @@ public:
 		for(int i = 0; i < table_size + 1; ++i ) {
 			O << setw(6) << table[i];
 		}
+		O << nl;
+		// ratio
+		_COUNT_TYPE sum = 0;
+		for(int i = 0; i < table_size + 1; ++i ) {
+			O << setw(6) << table[i];
+			sum += table[i];
+		}
+		O << nl;
+		for(int i = 0; i < table_size + 1; ++i ) {
+			O << setw(6) << setprecision(2) << float(table[i])/sum;
+		}
+		O << "  ratio" << nl;
+		// cumulated ratio
+		_COUNT_TYPE cumulated = 0;
+		for(int i = 0; i < table_size + 1; ++i ) {
+			cumulated += table[i];
+			O << setw(6) << setprecision(2) << float(cumulated)/sum;
+		}
+		O << "  cumulated ratio" << nl;
 		O << nl;
 	}
 	/// index operator
@@ -292,9 +306,24 @@ public:
 			O << setw(5) << range[i] << ']';
 		}
 		O << '(' << setw(4) << range[table_size-1] << nl;
+		// ratio
+		_COUNT_TYPE sum = 0;
 		for(int i = 0; i < table_size + 1; ++i ) {
 			O << setw(6) << table[i];
+			sum += table[i];
 		}
+		O << nl;
+		for(int i = 0; i < table_size + 1; ++i ) {
+			O << setw(6) << setprecision(2) << float(table[i])/sum;
+		}
+		O << "  ratio" << nl;
+		// cumulated ratio
+		_COUNT_TYPE cumulated = 0;
+		for(int i = 0; i < table_size + 1; ++i ) {
+			cumulated += table[i];
+			O << setw(6) << setprecision(2) << float(cumulated)/sum;
+		}
+		O << "  cumulated ratio" << nl;
 		O << nl;
 	}
 	/// index operator
