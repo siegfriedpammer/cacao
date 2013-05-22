@@ -31,6 +31,16 @@ AC_ARG_ENABLE([test-dependency-checks],
                    no) disable_test_dependency_checks=yes;;
                    *) disable_test_dependency_checks=no;;
                esac],
-              [disable_test_dependency_checks=no])
+              [case "${WITH_JAVA_RUNTIME_LIBRARY}" in
+                  cldc1.1 | gnuclasspath)
+                      disable_test_dependency_checks=no
+                      ;;
+                  openjdk | openjdk7)
+                      disable_test_dependency_checks=yes
+                      ;;
+                  *)
+                      AC_MSG_ERROR(unknown classpath configuration ${WITH_JAVA_RUNTIME_LIBRARY})
+                      ;;
+               esac])
 AC_MSG_RESULT(${disable_test_dependency_checks})
 ])
