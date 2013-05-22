@@ -117,6 +117,26 @@ STAT_REGISTER_VAR(int,count_check_bound_NG,0,"check bound","Number of Array Boun
 STAT_REGISTER_VAR(int,count_max_new_stack_NG,0,"max new stack","Maximal count of stack elements")
 STAT_REGISTER_VAR(int,count_upper_bound_new_stack_NG,0,"upper bound new stack","Upper bound of max stack elements")
 
+STAT_REGISTER_GROUP(const_pcmd_stat,"const pcmd","Number of Const Pseudocommands")
+STAT_REGISTER_GROUP_VAR(int,count_pcmd_load_NG,0,"pcmd load","Number of Const Pseudocommands (load)",const_pcmd_stat)
+STAT_REGISTER_GROUP_VAR(int,count_pcmd_zero_NG,0,"pcmd zero","Number of Const Pseudocommands (zero)",const_pcmd_stat)
+
+#if 0
+// not used
+STAT_REGISTER_GROUP(constalu_pcmd_stat,"const alu pcmd","Number of ConstAlu Pseudocommands")
+STAT_REGISTER_GROUP_VAR(int,count_pcmd_const_alu_NG,0,"count_pcmd_const_alu","Number of ConstAlu Pseudocommands",constalu_pcmd_stat)
+STAT_REGISTER_GROUP_VAR(int,count_pcmd_const_bra_NG,0,"count_pcmd_const_bra","Number of ConstAlu Pseudocommands (cmp)",constalu_pcmd_stat)
+STAT_REGISTER_GROUP_VAR(int,count_pcmd_const_store_NG,0,"count_pcmd_const_store","Number of ConstAlu Pseudocommands (store)",constalu_pcmd_stat)
+#endif
+
+STAT_REGISTER_VAR(int,count_pcmd_store_NG,0,"count_pcmd_store","Number of Store    Pseudocommands")
+// count_pcmd_store_comb?
+
+STAT_REGISTER_GROUP(branch_pcmd_stat,"branch pcmd","Number of Branch Pseudocommands")
+STAT_REGISTER_GROUP_VAR(int,count_pcmd_bra_NG,0,"count_pcmd_bra","Number of Branch   Pseudocommands",branch_pcmd_stat)
+STAT_REGISTER_GROUP_VAR(int,count_pcmd_return_NG,0,"count_pcmd_return","Number of Branch   Pseudocommands (rets)",branch_pcmd_stat)
+STAT_REGISTER_GROUP_VAR(int,count_pcmd_returnx_NG,0,"count_pcmd_returnx","Number of Branch   Pseudocommands (Xrets)",branch_pcmd_stat)
+
 STAT_REGISTER_DIST(unsigned int,unsigned int,count_block_stack_NG,0,9,1,0,"stack size dist","Distribution of stack sizes at block boundary")
 STAT_REGISTER_DIST(unsigned int,unsigned int,count_store_depth_NG,0,9,1,0,"store stack depth dist","Distribution of store stack depth")
 STAT_REGISTER_DIST(unsigned int,unsigned int,count_store_length_NG,0,19,1,0,"store creator chains","Distribution of store creator chains")
@@ -2379,6 +2399,7 @@ icmd_NOP:
 
 					case ICMD_RETURN:
 						COUNT(count_pcmd_return);
+						STATISTICS(count_pcmd_return_NG++);
 						CLR_SX;
 						OP0_0;
 						superblockend = true;
@@ -2397,6 +2418,7 @@ icmd_NOP:
 
 					case ICMD_ICONST:
 						COUNT(count_pcmd_load);
+						STATISTICS(count_pcmd_load_NG++);
 						if (len == 0)
 							goto normal_ICONST;
 
@@ -2782,6 +2804,7 @@ normal_ICONST:
 
 					case ICMD_LCONST:
 						COUNT(count_pcmd_load);
+						STATISTICS(count_pcmd_load_NG++);
 						if (len == 0)
 							goto normal_LCONST;
 
@@ -3030,6 +3053,7 @@ normal_ICONST:
 										OP1_BRANCH(TYPE_LNG);
 										BRANCH(tbptr);
 										COUNT(count_pcmd_bra);
+										STATISTICS(count_pcmd_bra_NG++);
 										COUNT(count_pcmd_op);
 										STATISTICS(count_pcmd_op_NG++);
 										break;
@@ -3120,11 +3144,13 @@ normal_LCONST:
 
 					case ICMD_FCONST:
 						COUNT(count_pcmd_load);
+						STATISTICS(count_pcmd_load_NG++);
 						OP0_1(TYPE_FLT);
 						break;
 
 					case ICMD_DCONST:
 						COUNT(count_pcmd_load);
+						STATISTICS(count_pcmd_load_NG++);
 						OP0_1(TYPE_DBL);
 						break;
 
@@ -3133,6 +3159,7 @@ normal_LCONST:
 					case ICMD_ACONST:
 						coalescing_boundary = sd.new_elem;
 						COUNT(count_pcmd_load);
+						STATISTICS(count_pcmd_load_NG++);
 #if SUPPORT_CONST_STORE
 						/* We can only optimize if the ACONST is resolved
 						 * and there is an instruction after it. */
@@ -3310,6 +3337,7 @@ normal_ACONST:
 							}
 						}
 
+						STATISTICS(count_pcmd_store_NG++);
 						STATISTICS(count_store_depth_NG[stackdepth-1]++);
 						STATISTICS(count_store_length_NG[sd.new_elem - curstack]++);
 #if defined(ENABLE_STATISTICS)
@@ -3496,6 +3524,7 @@ store_tail:
 						if (IS_TEMPVAR(curstack))
 							md_return_alloc(jd, curstack);
 						COUNT(count_pcmd_return);
+						STATISTICS(count_pcmd_return_NG++);
 						OP1_0(opcode - ICMD_IRETURN);
 						superblockend = true;
 						sd.jd->returncount++;
@@ -3524,6 +3553,7 @@ store_tail:
 					case ICMD_IFNULL:
 					case ICMD_IFNONNULL:
 						COUNT(count_pcmd_bra);
+						STATISTICS(count_pcmd_bra_NG++);
 						OP1_BRANCH(TYPE_ADR);
 						BRANCH(tbptr);
 						break;
@@ -3535,6 +3565,7 @@ store_tail:
 					case ICMD_IFGT:
 					case ICMD_IFLE:
 						COUNT(count_pcmd_bra);
+						STATISTICS(count_pcmd_bra_NG++);
 						/* iptr->sx.val.i is set implicitly in parse by
 						   clearing the memory or from IF_ICMPxx
 						   optimization. */
@@ -3548,6 +3579,7 @@ store_tail:
 
 					case ICMD_GOTO:
 						COUNT(count_pcmd_bra);
+						STATISTICS(count_pcmd_bra_NG++);
 						OP0_BRANCH;
 						BRANCH(tbptr);
 						superblockend = true;
@@ -3611,6 +3643,7 @@ store_tail:
 					case ICMD_IF_ICMPGT:
 					case ICMD_IF_ICMPLE:
 						COUNT(count_pcmd_bra);
+						STATISTICS(count_pcmd_bra_NG++);
 						OP2_BRANCH(TYPE_INT, TYPE_INT);
 						BRANCH(tbptr);
 						break;
@@ -3618,6 +3651,7 @@ store_tail:
 					case ICMD_IF_ACMPEQ:
 					case ICMD_IF_ACMPNE:
 						COUNT(count_pcmd_bra);
+						STATISTICS(count_pcmd_bra_NG++);
 						OP2_BRANCH(TYPE_ADR, TYPE_ADR);
 						BRANCH(tbptr);
 						break;
@@ -4070,6 +4104,7 @@ icmd_DUP_X2:
 							BRANCH(tbptr);
 
 							COUNT(count_pcmd_bra);
+							STATISTICS(count_pcmd_bra_NG++);
 							break;
 						case ICMD_IFNE:
 							iptr->opc = ICMD_IF_LCMPNE;

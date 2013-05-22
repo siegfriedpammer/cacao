@@ -120,6 +120,32 @@
 # define TRACECOMPILERCALLS()
 #endif
 
+STAT_REGISTER_VAR(int,count_jit_calls_NG,0,"jit calls","Number of JIT compiler calls")
+STAT_REGISTER_VAR(int,count_methods_NG,0,"compiled methods","Number of compiled methods")
+// TODO regression: old framework also printed (count_javacodesize - count_methods * 18)
+STAT_REGISTER_VAR(int,count_javacodesize_NG,0,"java code size","Size of compiled JavaVM instructions")
+STAT_REGISTER_VAR(int,count_javaexcsize_NG,0,"java exc.tbl. size","Size of compiled Exception Tables")
+STAT_REGISTER_VAR(int,count_tryblocks_NG,0,"try blocks","Number of Try-Blocks")
+STAT_REGISTER_VAR(int,count_methods_allocated_by_lsra_NG,0,"meth. alloc. lsra","Methods allocated by LSRA")
+
+STAT_REGISTER_VAR_EXTERN(int,count_interface_size_NG,0,"interface size","Number of interface slots")
+STAT_REGISTER_VAR_EXTERN(int,count_locals_conflicts_NG,0,"locals conflicts","Conflicts between local Variables")
+STAT_REGISTER_VAR_EXTERN(int,count_locals_spilled_NG,0,"locals spilled","Local Variables held in Memory")
+STAT_REGISTER_VAR_EXTERN(int,count_locals_register_NG,0,"locals register","Local Variables held in Registers")
+STAT_REGISTER_VAR_EXTERN(int,count_ss_spilled_NG,0,"ss spilled","Stackslots held in Memory")
+STAT_REGISTER_VAR_EXTERN(int,count_ss_register_NG,0,"ss register","Stackslots held in Registers")
+STAT_REGISTER_VAR_EXTERN(int,count_argument_reg_ss_NG,0,"argument reg ss","Number of Argument stack slots in register")
+STAT_REGISTER_VAR_EXTERN(int,count_argument_mem_ss_NG,0,"argument mem ss","Number of Argument stack slots in memory")
+
+STAT_REGISTER_SUM_GROUP(spill_write_stat,"spills write","Number of Spills (write to memory)")
+STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_write_ila_NG,0,"spill write i/l/a","Int, Long, Array Spills (write to memory)",spill_write_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_write_flt_NG,0,"spill write float","Float Spills (write to memory)",spill_write_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_write_dbl_NG,0,"spill write double","Double Spills (write to memory)",spill_write_stat)
+
+STAT_REGISTER_SUM_GROUP(spill_read_stat,"spills read","Number of Spills (read from memory)")
+STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_read_ila_NG,0,"spill read i/l/a","Int, Long, Array Spills (read from memory)",spill_read_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_read_flt_NG,0,"spill read float","Float Spills (read from memory)",spill_read_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_read_dbl_NG,0,"spill read double","Double Spills (read from memory)",spill_read_stat)
 
 /* jit_init ********************************************************************
 
@@ -246,23 +272,6 @@ jitdata *jit_jitdata_new(methodinfo *m)
    Translates one method to machine code.
 
 *******************************************************************************/
-
-STAT_REGISTER_VAR(int,count_jit_calls_NG,0,"jit calls","Number of JIT compiler calls")
-STAT_REGISTER_VAR(int,count_methods_NG,0,"compiled methods","Number of compiled methods")
-// TODO regression: old framework also printed (count_javacodesize - count_methods * 18)
-STAT_REGISTER_VAR(int,count_javacodesize_NG,0,"java code size","Size of compiled JavaVM instructions")
-STAT_REGISTER_VAR(int,count_javaexcsize_NG,0,"java exc.tbl. size","Size of compiled Exception Tables")
-STAT_REGISTER_VAR(int,count_tryblocks_NG,0,"try blocks","Number of Try-Blocks")
-STAT_REGISTER_VAR(int,count_methods_allocated_by_lsra_NG,0,"meth. alloc. lsra","Methods allocated by LSRA")
-
-STAT_REGISTER_VAR_EXTERN(int,count_interface_size_NG,0,"interface size","Number of interface slots")
-STAT_REGISTER_VAR_EXTERN(int,count_locals_conflicts_NG,0,"locals conflicts","Conflicts between local Variables")
-STAT_REGISTER_VAR_EXTERN(int,count_locals_spilled_NG,0,"locals spilled","Local Variables held in Memory")
-STAT_REGISTER_VAR_EXTERN(int,count_locals_register_NG,0,"locals register","Local Variables held in Registers")
-STAT_REGISTER_VAR_EXTERN(int,count_ss_spilled_NG,0,"ss spilled","Stackslots held in Memory")
-STAT_REGISTER_VAR_EXTERN(int,count_ss_register_NG,0,"ss register","Stackslots held in Registers")
-STAT_REGISTER_VAR_EXTERN(int,count_argument_reg_ss_NG,0,"argument reg ss","Number of Argument stack slots in register")
-STAT_REGISTER_VAR_EXTERN(int,count_argument_mem_ss_NG,0,"argument mem ss","Number of Argument stack slots in memory")
 
 static u1 *jit_compile_intern(jitdata *jd);
 

@@ -80,13 +80,13 @@
 STAT_REGISTER_VAR(int,count_class_loads_NG,0,"class loads","Number of class loads")
 
 STAT_DECLARE_GROUP(memory_stat)
-STAT_REGISTER_SUM_GROUP(info_struct_stat,"info structs","info struct usage",memory_stat)
+STAT_REGISTER_SUM_SUBGROUP(info_struct_stat,"info structs","info struct usage",memory_stat)
 STAT_REGISTER_GROUP_VAR_EXTERN(int,size_classinfo_NG,0,"size classinfo","classinfo",info_struct_stat) // sizeof(classinfo)?
 STAT_REGISTER_GROUP_VAR(int,size_fieldinfo_NG,0,"size fieldinfo","fieldinfo",info_struct_stat) // sizeof(fieldinfo)?
 STAT_REGISTER_GROUP_VAR(int,size_methodinfo_NG,0,"size methodinfo","methodinfo",info_struct_stat) // sizeof(methodinfo)?
 
 
-STAT_REGISTER_SUM_GROUP(misc_code_stat,"misc structs","misc struct usage",memory_stat)
+STAT_REGISTER_SUM_SUBGROUP(misc_code_stat,"misc structs","misc struct usage",memory_stat)
 STAT_REGISTER_GROUP_VAR(int,count_const_pool_len_NG,0,"const pool len","constant pool",misc_code_stat)
 STAT_REGISTER_GROUP_VAR(int,count_classref_len_NG,0,"classref len","classref",misc_code_stat)
 STAT_REGISTER_GROUP_VAR(int,count_parsed_desc_len_NG,0,"parsed desc len","parsed descriptors",misc_code_stat)

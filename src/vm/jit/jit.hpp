@@ -56,7 +56,7 @@ typedef struct exception_entry exception_entry;
 #if defined(ENABLE_LOOP)
 # include "vm/jit/loop/loop.h"
 #endif
-#if defined(ENABLE_SSA) 
+#if defined(ENABLE_SSA)
 # include "vm/jit/optimizing/lsra.hpp"
 #endif
 #if defined(ENABLE_LSRA)
@@ -64,6 +64,14 @@ typedef struct exception_entry exception_entry;
 #endif
 
 #include "vm/jit/verify/typeinfo.hpp"
+
+STAT_DECLARE_VAR(int,count_spills_write_ila_NG,0)
+STAT_DECLARE_VAR(int,count_spills_write_flt_NG,0)
+STAT_DECLARE_VAR(int,count_spills_write_dbl_NG,0)
+
+STAT_DECLARE_VAR(int,count_spills_read_ila_NG,0)
+STAT_DECLARE_VAR(int,count_spills_read_flt_NG,0)
+STAT_DECLARE_VAR(int,count_spills_read_dbl_NG,0)
 
 struct methodinfo;
 struct registerdata;
@@ -78,6 +86,10 @@ struct registerdata;
 	case TYPE_FLT: count_spills_read_flt++; break; \
 	case TYPE_DBL: count_spills_read_dbl++; break; \
 	default: count_spills_read_ila++; break; \
+	switch(var->type) { \
+	case TYPE_FLT: count_spills_read_flt_NG++; break; \
+	case TYPE_DBL: count_spills_read_dbl_NG++; break; \
+	default: count_spills_read_ila_NG++; break; \
 	}
 
 # define COUNT_WRITE_SPILLS(var) \
@@ -85,6 +97,10 @@ struct registerdata;
 	case TYPE_FLT: count_spills_write_flt++; break; \
 	case TYPE_DBL: count_spills_write_dbl++; break; \
 	default: count_spills_write_ila++; break; \
+	switch(var->type) { \
+	case TYPE_FLT: count_spills_write_flt_NG++; break; \
+	case TYPE_DBL: count_spills_write_dbl_NG++; break; \
+	default: count_spills_write_ila_NG++; break; \
 	}
 
 #else

@@ -51,6 +51,11 @@ STAT_REGISTER_VAR(int,count_mov_mem_reg_NG,0,"count_mov_mem_reg","Moves mem -> r
 STAT_REGISTER_VAR(int,count_mov_reg_mem_NG,0,"count_mov_reg_mem","Moves reg -> mem")
 STAT_REGISTER_VAR(int,count_mov_mem_mem_NG,0,"count_mov_mem_mem","Moves mem -> mem")
 
+STAT_REGISTER_SUM_GROUP(emit_branch_stat,"emit branch","Number of branch_emit (total)")
+STAT_REGISTER_GROUP_VAR(int,count_emit_branch_8bit_NG,0,"emit branch 8bit","Number of branch_emit ( 8bit offset)",emit_branch_stat)
+STAT_REGISTER_GROUP_VAR(int,count_emit_branch_16bit_NG,0,"emit branch 16bit","Number of branch_emit (16bit offset)",emit_branch_stat)
+STAT_REGISTER_GROUP_VAR(int,count_emit_branch_32bit_NG,0,"emit branch 32bit","Number of branch_emit (32bit offset)",emit_branch_stat)
+STAT_REGISTER_GROUP_VAR(int,count_emit_branch_64bit_NG,0,"emit branch 64bit","Number of branch_emit (64bit offset)",emit_branch_stat)
 /* emit_load_s1 ****************************************************************
 
    Emits a possible load of the first source operand.
@@ -327,11 +332,17 @@ void emit_bccz(codegendata *cd, basicblock *target, s4 condition, s4 reg, u4 opt
 
 #if defined(ENABLE_STATISTICS)
 		count_emit_branch++;
-		if ((int8_t)disp == disp)  count_emit_branch_8bit++; 
+		if ((int8_t)disp == disp)  count_emit_branch_8bit++;
 		else if ((int16_t)disp == disp) count_emit_branch_16bit++;
 		else if ((int32_t)disp == disp) count_emit_branch_32bit++;
 # if SIZEOF_VOID_P == 8
 		else if ((int64_t)disp == disp) count_emit_branch_64bit++;
+# endif
+		if ((int8_t)disp == disp)  count_emit_branch_8bit_NG++;
+		else if ((int16_t)disp == disp) count_emit_branch_16bit_NG++;
+		else if ((int32_t)disp == disp) count_emit_branch_32bit_NG++;
+# if SIZEOF_VOID_P == 8
+		else if ((int64_t)disp == disp) count_emit_branch_64bit_NG++;
 # endif
 #endif
 
@@ -552,11 +563,17 @@ void emit_label_bccz(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options
 
 #if defined(ENABLE_STATISTICS)
 	count_emit_branch++;
-	if ((int8_t)disp == disp)  count_emit_branch_8bit++; 
+	if ((int8_t)disp == disp)  count_emit_branch_8bit++;
 	else if ((int16_t)disp == disp) count_emit_branch_16bit++;
 	else if ((int32_t)disp == disp) count_emit_branch_32bit++;
 # if SIZEOF_VOID_P == 8
 	else if ((int64_t)disp == disp) count_emit_branch_64bit++;
+# endif
+	if ((int8_t)disp == disp)  count_emit_branch_8bit_NG++;
+	else if ((int16_t)disp == disp) count_emit_branch_16bit_NG++;
+	else if ((int32_t)disp == disp) count_emit_branch_32bit_NG++;
+# if SIZEOF_VOID_P == 8
+	else if ((int64_t)disp == disp) count_emit_branch_64bit_NG++;
 # endif
 #endif
 
@@ -611,11 +628,17 @@ void emit_label(codegendata *cd, s4 label)
 
 #if defined(ENABLE_STATISTICS)
 	count_emit_branch++;
-	if ((int8_t)disp == disp)  count_emit_branch_8bit++; 
+	if ((int8_t)disp == disp)  count_emit_branch_8bit++;
 	else if ((int16_t)disp == disp) count_emit_branch_16bit++;
 	else if ((int32_t)disp == disp) count_emit_branch_32bit++;
 # if SIZEOF_VOID_P == 8
 	else if ((int64_t)disp == disp) count_emit_branch_64bit++;
+# endif
+	if ((int8_t)disp == disp)  count_emit_branch_8bit_NG++;
+	else if ((int16_t)disp == disp) count_emit_branch_16bit_NG++;
+	else if ((int32_t)disp == disp) count_emit_branch_32bit_NG++;
+# if SIZEOF_VOID_P == 8
+	else if ((int64_t)disp == disp) count_emit_branch_64bit_NG++;
 # endif
 #endif
 

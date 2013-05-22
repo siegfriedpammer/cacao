@@ -400,10 +400,13 @@ void print_stats(void)
 
 	// DONE
 	dolog("Size of compiled Exception Tables:      %d", count_javaexcsize);
+	// XXX 4 byte instructions hardcoded oO. I guess this is no longer valid.
 	dolog("Number of Machine-Instructions: %d", count_code_len >> 2);
+	// DONE
 	dolog("Number of Spills (write to memory) <all [i/l/a|flt|dbl]>: %d [%d|%d|%d]",
 		count_spills_write_ila + count_spills_write_flt + count_spills_write_dbl,
 		count_spills_write_ila, count_spills_write_flt, count_spills_write_dbl);
+	// DONE
 	dolog("Number of Spills (read from memory) <all [i/l/a|flt|dbl]>: %d [%d|%d|%d]",
 		count_spills_read_ila + count_spills_read_flt + count_spills_read_dbl,
 		count_spills_read_ila, count_spills_read_flt, count_spills_read_dbl);
@@ -411,14 +414,18 @@ void print_stats(void)
 	dolog("Number of Activ    Pseudocommands: %6d", count_pcmd_activ);
 	// NOT used?!
 	dolog("Number of Drop     Pseudocommands: %6d", count_pcmd_drop);
+	// DONE
 	dolog("Number of Const    Pseudocommands: %6d (zero:%5d)",
 		  count_pcmd_load, count_pcmd_zero);
+	// NOT used?!
 	dolog("Number of ConstAlu Pseudocommands: %6d (cmp: %5d, store:%5d)",
 		  count_pcmd_const_alu, count_pcmd_const_bra, count_pcmd_const_store);
 	// NOT used?!
 	dolog("Number of Move     Pseudocommands: %6d", count_pcmd_move);
 	// DONE
 	dolog("Number of Load     Pseudocommands: %6d", count_load_instruction);
+	// DONE
+	// count_pcmd_store_comb NOT used?!
 	dolog("Number of Store    Pseudocommands: %6d (combined: %5d)",
 		  count_pcmd_store, count_pcmd_store - count_pcmd_store_comb);
 	// DONE
@@ -429,6 +436,7 @@ void print_stats(void)
 	dolog("Number of Mem      Pseudocommands: %6d", count_pcmd_mem);
 	// DONE
 	dolog("Number of Method   Pseudocommands: %6d", count_pcmd_met);
+	// DONE
 	dolog("Number of Branch   Pseudocommands: %6d (rets:%5d, Xrets: %5d)",
 		  count_pcmd_bra, count_pcmd_return, count_pcmd_returnx);
 	// DONE
@@ -446,6 +454,7 @@ void print_stats(void)
 	// DONE
 	dolog("Number of Try-Blocks: %d", count_tryblocks);
 
+	// DONE
 	dolog("Number of branch_emit (total, 8bit/16bit/32bit/64bit offset): %d, %d/%d/%d/%d",
 		count_emit_branch,  count_emit_branch_8bit,  count_emit_branch_16bit,
 							count_emit_branch_32bit, count_emit_branch_64bit);

@@ -440,7 +440,13 @@ public:
 		return var;                                                            \
 	}
 
-#define STAT_REGISTER_SUM_GROUP(var,name,description,group)                    \
+#define STAT_REGISTER_SUM_GROUP(var,name,description)                              \
+	inline cacao::StatSumGroup& var##_group() {                                    \
+		static cacao::StatSumGroup var(name,description, cacao::StatGroup::root());\
+		return var;                                                                \
+	}
+
+#define STAT_REGISTER_SUM_SUBGROUP(var,name,description,group)                 \
 	inline cacao::StatSumGroup& var##_group() {                                \
 		static cacao::StatSumGroup var(name,description, group##_group());     \
 		return var;                                                            \

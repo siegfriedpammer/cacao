@@ -72,7 +72,7 @@ STAT_DECLARE_GROUP(info_struct_stat)
 STAT_REGISTER_GROUP_VAR(int,size_lineinfo_NG,0,"size lineinfo","lineinfo",info_struct_stat) // sizeof(lineinfo)?
 
 STAT_DECLARE_GROUP(memory_stat)
-STAT_REGISTER_SUM_GROUP(table_stat,"info structs","info struct usage",memory_stat)
+STAT_REGISTER_SUM_SUBGROUP(table_stat,"info structs","info struct usage",memory_stat)
 STAT_REGISTER_GROUP_VAR(int,count_extable_len_NG,0,"extable len","exception tables",table_stat)
 STAT_REGISTER_GROUP_VAR_EXTERN(int,size_linenumbertable_NG,0,"linenumbertable","linenumber tables",table_stat) // count_linenumbertable ?
 STAT_REGISTER_GROUP_VAR_EXTERN(int,size_patchref_NG,0,"patchref","patcher references",table_stat)
