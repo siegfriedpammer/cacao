@@ -36,8 +36,227 @@
 
 #include "vm/global.hpp"
 
+#include "toolbox/OStream.hpp"
+
+#include <vector>
+
+namespace cacao {
+/**
+ * Superclass of statistic group entries.
+ */
+class StatEntry {
+protected:
+	const char* name;
+	const char* description;
+public:
+	/**
+	 * Constructor.
+	 */
+	StatEntry(const char* name, const char* description) : name(name), description(description) {}
+	/**
+	 * Print the statistics information to an OStream.
+	 * @param[in,out] O     output stream
+	 */
+	virtual void print(OStream &O) const = 0;
+
+};
+
+/**
+ * Statistics group.
+ * Used to collect a set of StatEntry's
+ */
+class StatGroup : public StatEntry {
+protected:
+	typedef std::vector<StatEntry*> StatEntryList;
+	/**
+	 * List of members.
+	 * @note: this must be a pointer. If it is changes to a normal variable strange
+	 * things will happen!
+	 */
+	StatEntryList *members;
+
+	StatGroup(const char* name, const char* description) : StatEntry(name, description) {
+		members = new StatEntryList();
+	}
+public:
+	/**
+	 * __the__ root group.
+	 * @note never use this variable directly (use StatGroup::root() instead).
+	 * Used for internal purposes only!
+	 */
+	//static StatGroup root_rg;
+	/**
+	 * Get the root group
+	 */
+	static StatGroup& root() {
+		static StatGroup rg("vm","vm");
+		return rg;
+	}
+
+	/**
+	 * Create a new real-time group.
+	 * @param[in] name name of the group
+	 * @param[in] description description of the group
+	 * @param[in] group parent group.
+	 */
+	StatGroup(const char* name, const char* description, StatGroup &group) : StatEntry(name, description) {
+		members = new StatEntryList();
+		group.add(this);
+	}
+
+	~StatGroup() {
+		delete members;
+	}
+
+	/**
+	 * Add an entry to the group
+	 */
+	void add(StatEntry *re) {
+		members->push_back(re);
+	}
+
+	void print(OStream &O) const {
+		O << setw(10) << left << name << right <<"   " << description << nl;
+		//O << indent;
+		for(StatEntryList::const_iterator i = members->begin(), e= members->end(); i != e; ++i) {
+			StatEntry* re = *i;
+			re->print(O);
+		}
+		//O << dedent;
+	}
+};
+
+/**
+ * Summary group.
+ * Used to collect a set of StatEntry's
+ */
+class StatSumGroup : public StatGroup {
+public:
+
+	/**
+	 * Create a new real-time group.
+	 * @param[in] name name of the group
+	 * @param[in] description description of the group
+	 * @param[in] group parent group.
+	 */
+	StatSumGroup(const char* name, const char* description, StatGroup &group)
+			: StatGroup(name,description,group) {}
+	void print(OStream &O) const {
+		O << setw(10) << left << name << right <<"   " << description << nl;
+		//O << indent;
+		for(StatEntryList::const_iterator i = members->begin(), e= members->end(); i != e; ++i) {
+			StatEntry* re = *i;
+			re->print(O);
+		}
+		//O << dedent;
+	}
+};
+
+/**
+ * Statistics Variable.
+ */
+template<typename _T, _T init>
+class StatVar : public StatEntry {
+private:
+	_T  var;    //< variable
+public:
+	/**
+	 * Create a new statistics variable.
+	 * @param[in] name name of the variable
+	 * @param[in] description description of the variable
+	 * @param[in] group parent group.
+	 */
+	StatVar(const char* name, const char* description, StatGroup &parent)
+			: StatEntry(name, description), var(init) {
+		parent.add(this);
+	}
+
+	void print(OStream &O) const {
+		O << setw(10) << var
+		  << setw(20) << name << ": " << description << nl;
+	}
+	/// maximum
+	inline StatVar& max(const _T& i) {
+	  if (i > var)
+		var = i;
+	  return *this;
+	}
+
+	/// mininum
+	inline StatVar& min(const _T& i) {
+	  if (i < var)
+		var = i;
+	  return *this;
+	}
+
+	/// prefix operator
+	inline StatVar& operator++() {
+	  ++var;
+	  return *this;
+	}
+	/// postfix operator
+	inline StatVar operator++(int) {
+	  StatVar copy(*this);
+	  ++var;
+	  return copy;
+	}
+	/// increment operator
+	inline StatVar& operator+=(const _T& i) {
+	  var+=i;
+	  return *this;
+	}
+	/// prefix operator
+	inline StatVar& operator--() {
+	  --var;
+	  return *this;
+	}
+	/// postfix operator
+	inline StatVar operator--(int) {
+	  StatVar copy(*this);
+	  --var;
+	  return copy;
+	}
+	/// decrement operator
+	inline StatVar& operator-=(const _T& i) {
+	  var-=i;
+	  return *this;
+	}
+};
+
+} // end namespace cacao
 
 /* statistic macros ***********************************************************/
+
+#if 0
+#define STAT_REGISTER_VAR(var,name,description)                                \
+	static inline cacao::StatVar& var() {	                                   \
+		static cacao::StatVar var(name,description,cacao::StatGroup::root());  \
+		return var;                                                            \
+	}
+#define STAT_REGISTER_GROUP_VAR(var,name,description,group)                    \
+	static inline cacao::StatVar& var() {	                                   \
+		static cacao::StatVar var(name,description,group());                   \
+		return var;                                                            \
+	}
+#endif
+#define STAT_REGISTER_VAR(type, var, init, name, description) \
+	static cacao::StatVar<type,init> var(name,description,cacao::StatGroup::root());
+
+#define STAT_REGISTER_GROUP_VAR(type, var, init, name, description, group) \
+	static cacao::StatVar<type,init> var(name,description,group());
+
+#define STAT_REGISTER_GROUP(var,name,description)                              \
+	inline cacao::StatGroup& var##_group() {                                   \
+		static cacao::StatGroup var(name,description,cacao::StatGroup::root());\
+		return var;                                                            \
+	}
+
+
+#define STAT_REGISTER_SUBGROUP(var,name,description,group)                     \
+	inline cacao::StatGroup& var##_group() {                                   \
+		static cacao::StatGroup var(name,description, group##_group());        \
+		return var;                                                            \
+	}
 
 #define STATISTICS(x) \
     do { \
@@ -270,4 +489,5 @@ void compiledinvokation(void);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
