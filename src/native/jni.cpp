@@ -163,7 +163,6 @@ jobject jni_NewLocalRef(JNIEnv *env, jobject ref);
 inline void jnicallXmethodnvokation(void)
 {
 	/* XXX do locking here */
-	count_jni_callXmethod_calls++;
 	STATISTICS(count_jni_callXmethod_calls_NG++);
 }
 
@@ -177,7 +176,6 @@ inline void jnicallXmethodnvokation(void)
 inline void jniinvokation(void)
 {
 	/* XXX do locking here */
-	count_jni_calls++;
 	STATISTICS(count_jni_calls_NG++);
 }
 #endif // ENABLE_STATISTICS

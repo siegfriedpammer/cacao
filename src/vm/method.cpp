@@ -174,10 +174,6 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 	m->mutex = new Mutex();
 
 	STATISTICS(count_all_methods_NG++);
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		count_all_methods++;
-#endif
 
 	/* all fields of m have been zeroed in load_class_from_classbuffer */
 
@@ -373,13 +369,6 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 			STATISTICS(count_vmcode_len_NG += m->jcodelength + 18);
 			STATISTICS(count_extable_len_NG +=
 				m->rawexceptiontablelength * sizeof(raw_exception_entry));
-#if defined(ENABLE_STATISTICS)
-			if (opt_stat) {
-				count_vmcode_len += m->jcodelength + 18;
-				count_extable_len +=
-					m->rawexceptiontablelength * sizeof(raw_exception_entry);
-			}
-#endif
 
 			for (j = 0; j < m->rawexceptiontablelength; j++) {
 				u4 idx;

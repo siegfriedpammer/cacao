@@ -188,10 +188,6 @@ static bool initialize_class_intern(classinfo *c)
 			return false;
 
 	STATISTICS(count_class_inits_NG++);
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		count_class_inits++;
-#endif
 
 	/* Initialize super class. */
 

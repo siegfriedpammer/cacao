@@ -71,23 +71,6 @@
 /*#define STACK_VERBOSE*/
 
 
-/* macro for saving #ifdefs ***************************************************/
-
-#if defined(ENABLE_STATISTICS)
-#define STATISTICS_STACKDEPTH_DISTRIBUTION(distr)                    \
-    do {                                                             \
-        if (opt_stat) {                                              \
-            if (stackdepth >= 10)                                    \
-                count_store_depth[10]++;                             \
-            else                                                     \
-                count_store_depth[stackdepth]++;                     \
-        }                                                            \
-    } while (0)
-#else /* !defined(ENABLE_STATISTICS) */
-#define STATISTICS_STACKDEPTH_DISTRIBUTION(distr)
-#endif
-
-
 /* For returnAddresses we use a field of the typeinfo to store from which  */
 /* subroutine the returnAddress will return, if used.                      */
 /* XXX It would be nicer to use typeinfo.typeclass, but the verifier seems */
@@ -2373,7 +2356,6 @@ icmd_NOP:
 
 					case ICMD_CHECKNULL:
 						coalescing_boundary = sd.new_elem;
-						COUNT(count_check_null);
 						STATISTICS(count_check_null_NG++);
 						USE_S1(TYPE_ADR);
 						CLR_SX;
@@ -2398,7 +2380,6 @@ icmd_NOP:
 						break;
 
 					case ICMD_RETURN:
-						COUNT(count_pcmd_return);
 						STATISTICS(count_pcmd_return_NG++);
 						CLR_SX;
 						OP0_0;
@@ -2417,7 +2398,6 @@ icmd_NOP:
 	/************************** ICONST OPTIMIZATIONS **************************/
 
 					case ICMD_ICONST:
-						COUNT(count_pcmd_load);
 						STATISTICS(count_pcmd_load_NG++);
 						if (len == 0)
 							goto normal_ICONST;
@@ -2430,7 +2410,6 @@ icmd_NOP:
 							icmd_iconst_tail:
 								iptr[1].opc = ICMD_NOP;
 								OP1_1(TYPE_INT, TYPE_INT);
-								COUNT(count_pcmd_op);
 								STATISTICS(count_pcmd_op_NG++);
 								break;
 
@@ -2723,7 +2702,6 @@ icmd_NOP:
 								/* XXX constval -> astoreconstval? */
 								iptr->sx.s23.s3.constval = iptr->sx.val.i;
 								OP2_0(TYPE_ADR, TYPE_INT);
-								COUNT(count_pcmd_op);
 								STATISTICS(count_pcmd_op_NG++);
 								break;
 
@@ -2783,7 +2761,6 @@ putconst_tail:
 								}
 
 								iptr[1].opc = ICMD_NOP;
-								COUNT(count_pcmd_op);
 								STATISTICS(count_pcmd_op_NG++);
 								break;
 #endif /* SUPPORT_CONST_STORE */
@@ -2803,7 +2780,6 @@ normal_ICONST:
 	/************************** LCONST OPTIMIZATIONS **************************/
 
 					case ICMD_LCONST:
-						COUNT(count_pcmd_load);
 						STATISTICS(count_pcmd_load_NG++);
 						if (len == 0)
 							goto normal_LCONST;
@@ -2820,7 +2796,6 @@ normal_ICONST:
 								/* instruction of type LONG -> LONG */
 								iptr[1].opc = ICMD_NOP;
 								OP1_1(TYPE_LNG, TYPE_LNG);
-								COUNT(count_pcmd_op);
 								STATISTICS(count_pcmd_op_NG++);
 								break;
 
@@ -3052,9 +3027,7 @@ normal_ICONST:
 
 										OP1_BRANCH(TYPE_LNG);
 										BRANCH(tbptr);
-										COUNT(count_pcmd_bra);
 										STATISTICS(count_pcmd_bra_NG++);
-										COUNT(count_pcmd_op);
 										STATISTICS(count_pcmd_op_NG++);
 										break;
 
@@ -3103,7 +3076,6 @@ normal_ICONST:
 								OP2_0(TYPE_ADR, TYPE_INT);
 
 								iptr[1].opc = ICMD_NOP;
-								COUNT(count_pcmd_op);
 								STATISTICS(count_pcmd_op_NG++);
 								break;
 
@@ -3143,13 +3115,11 @@ normal_LCONST:
 	/************************ END OF LCONST OPTIMIZATIONS *********************/
 
 					case ICMD_FCONST:
-						COUNT(count_pcmd_load);
 						STATISTICS(count_pcmd_load_NG++);
 						OP0_1(TYPE_FLT);
 						break;
 
 					case ICMD_DCONST:
-						COUNT(count_pcmd_load);
 						STATISTICS(count_pcmd_load_NG++);
 						OP0_1(TYPE_DBL);
 						break;
@@ -3158,7 +3128,6 @@ normal_LCONST:
 
 					case ICMD_ACONST:
 						coalescing_boundary = sd.new_elem;
-						COUNT(count_pcmd_load);
 						STATISTICS(count_pcmd_load_NG++);
 #if SUPPORT_CONST_STORE
 						/* We can only optimize if the ACONST is resolved
@@ -3182,7 +3151,6 @@ normal_LCONST:
 								OP2_0(TYPE_ADR, TYPE_INT);
 
 								iptr[1].opc = ICMD_NOP;
-								COUNT(count_pcmd_op);
 								STATISTICS(count_pcmd_op_NG++);
 								break;
 
@@ -3219,7 +3187,6 @@ normal_ACONST:
 					case ICMD_FLOAD:
 					case ICMD_DLOAD:
 					case ICMD_ALOAD:
-						COUNT(count_load_instruction);
 						STATISTICS(count_load_instruction_NG++);
 						type = opcode - ICMD_ILOAD;
 
@@ -3243,11 +3210,8 @@ normal_ACONST:
 					case ICMD_AALOAD:
 						coalescing_boundary = sd.new_elem;
 						iptr->flags.bits |= INS_FLAG_CHECK;
-						COUNT(count_check_null);
 						STATISTICS(count_check_null_NG++);
-						COUNT(count_check_bound);
 						STATISTICS(count_check_bound_NG++);
-						COUNT(count_pcmd_mem);
 						STATISTICS(count_pcmd_mem_NG++);
 						OP2_1(TYPE_ADR, TYPE_INT, opcode - ICMD_IALOAD);
 						break;
@@ -3258,11 +3222,8 @@ normal_ACONST:
 					case ICMD_SALOAD:
 						coalescing_boundary = sd.new_elem;
 						iptr->flags.bits |= INS_FLAG_CHECK;
-						COUNT(count_check_null);
 						STATISTICS(count_check_null_NG++);
-						COUNT(count_check_bound);
 						STATISTICS(count_check_bound_NG++);
-						COUNT(count_pcmd_mem);
 						STATISTICS(count_pcmd_mem_NG++);
 						OP2_1(TYPE_ADR, TYPE_INT, TYPE_INT);
 						break;
@@ -3270,7 +3231,6 @@ normal_ACONST:
 						/* pop 0 push 0 iinc */
 
 					case ICMD_IINC:
-						STATISTICS_STACKDEPTH_DISTRIBUTION(count_store_depth);
 						STATISTICS(count_store_depth_NG[stackdepth]++);
 						javaindex = iptr->s1.varindex;
 						last_store_boundary[javaindex] = sd.new_elem;
@@ -3340,21 +3300,6 @@ normal_ACONST:
 						STATISTICS(count_pcmd_store_NG++);
 						STATISTICS(count_store_depth_NG[stackdepth-1]++);
 						STATISTICS(count_store_length_NG[sd.new_elem - curstack]++);
-#if defined(ENABLE_STATISTICS)
-						if (opt_stat) {
-							count_pcmd_store++;
-							i = sd.new_elem - curstack;
-							if (i >= 20)
-								count_store_length[20]++;
-							else
-								count_store_length[i]++;
-							i = stackdepth - 1;
-							if (i >= 10)
-								count_store_depth[10]++;
-							else
-								count_store_depth[i]++;
-						}
-#endif
 
 						/* check for conflicts as described in Figure 5.2 */
 
@@ -3437,11 +3382,8 @@ store_tail:
 					case ICMD_AASTORE:
 						coalescing_boundary = sd.new_elem;
 						iptr->flags.bits |= INS_FLAG_CHECK;
-						COUNT(count_check_null);
 						STATISTICS(count_check_null_NG++);
-						COUNT(count_check_bound);
 						STATISTICS(count_check_bound_NG++);
-						COUNT(count_pcmd_mem);
 						STATISTICS(count_pcmd_mem_NG++);
 
 						bte = builtintable_get_internal(BUILTIN_FAST_canstore);
@@ -3475,11 +3417,8 @@ store_tail:
 					case ICMD_DASTORE:
 						coalescing_boundary = sd.new_elem;
 						iptr->flags.bits |= INS_FLAG_CHECK;
-						COUNT(count_check_null);
 						STATISTICS(count_check_null_NG++);
-						COUNT(count_check_bound);
 						STATISTICS(count_check_bound_NG++);
-						COUNT(count_pcmd_mem);
 						STATISTICS(count_pcmd_mem_NG++);
 						OP3_0(TYPE_ADR, TYPE_INT, opcode - ICMD_IASTORE);
 						break;
@@ -3490,11 +3429,8 @@ store_tail:
 					case ICMD_SASTORE:
 						coalescing_boundary = sd.new_elem;
 						iptr->flags.bits |= INS_FLAG_CHECK;
-						COUNT(count_check_null);
 						STATISTICS(count_check_null_NG++);
-						COUNT(count_check_bound);
 						STATISTICS(count_check_bound_NG++);
-						COUNT(count_pcmd_mem);
 						STATISTICS(count_pcmd_mem_NG++);
 						OP3_0(TYPE_ADR, TYPE_INT, TYPE_INT);
 						break;
@@ -3523,7 +3459,6 @@ store_tail:
 						/* available in md-abi.c! */
 						if (IS_TEMPVAR(curstack))
 							md_return_alloc(jd, curstack);
-						COUNT(count_pcmd_return);
 						STATISTICS(count_pcmd_return_NG++);
 						OP1_0(opcode - ICMD_IRETURN);
 						superblockend = true;
@@ -3533,7 +3468,6 @@ store_tail:
 
 					case ICMD_ATHROW:
 						coalescing_boundary = sd.new_elem;
-						COUNT(count_check_null);
 						STATISTICS(count_check_null_NG++);
 						OP1_0(TYPE_ADR);
 						curstack = NULL; stackdepth = 0;
@@ -3542,7 +3476,6 @@ store_tail:
 
 					case ICMD_PUTSTATIC:
 						coalescing_boundary = sd.new_elem;
-						COUNT(count_pcmd_mem);
 						STATISTICS(count_pcmd_mem_NG++);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						OP1_0(fmiref->parseddesc.fd->type);
@@ -3552,7 +3485,6 @@ store_tail:
 
 					case ICMD_IFNULL:
 					case ICMD_IFNONNULL:
-						COUNT(count_pcmd_bra);
 						STATISTICS(count_pcmd_bra_NG++);
 						OP1_BRANCH(TYPE_ADR);
 						BRANCH(tbptr);
@@ -3564,7 +3496,6 @@ store_tail:
 					case ICMD_IFGE:
 					case ICMD_IFGT:
 					case ICMD_IFLE:
-						COUNT(count_pcmd_bra);
 						STATISTICS(count_pcmd_bra_NG++);
 						/* iptr->sx.val.i is set implicitly in parse by
 						   clearing the memory or from IF_ICMPxx
@@ -3578,7 +3509,6 @@ store_tail:
 						/* pop 0 push 0 branch */
 
 					case ICMD_GOTO:
-						COUNT(count_pcmd_bra);
 						STATISTICS(count_pcmd_bra_NG++);
 						OP0_BRANCH;
 						BRANCH(tbptr);
@@ -3588,7 +3518,6 @@ store_tail:
 						/* pop 1 push 0 table branch */
 
 					case ICMD_TABLESWITCH:
-						COUNT(count_pcmd_table);
 						STATISTICS(count_pcmd_table_NG++);
 						OP1_BRANCH(TYPE_INT);
 
@@ -3609,7 +3538,6 @@ store_tail:
 						/* pop 1 push 0 table branch */
 
 					case ICMD_LOOKUPSWITCH:
-						COUNT(count_pcmd_table);
 						STATISTICS(count_pcmd_table_NG++);
 						OP1_BRANCH(TYPE_INT);
 
@@ -3629,7 +3557,6 @@ store_tail:
 					case ICMD_MONITORENTER:
 					case ICMD_MONITOREXIT:
 						coalescing_boundary = sd.new_elem;
-						COUNT(count_check_null);
 						STATISTICS(count_check_null_NG++);
 						OP1_0(TYPE_ADR);
 						break;
@@ -3642,7 +3569,6 @@ store_tail:
 					case ICMD_IF_ICMPGE:
 					case ICMD_IF_ICMPGT:
 					case ICMD_IF_ICMPLE:
-						COUNT(count_pcmd_bra);
 						STATISTICS(count_pcmd_bra_NG++);
 						OP2_BRANCH(TYPE_INT, TYPE_INT);
 						BRANCH(tbptr);
@@ -3650,7 +3576,6 @@ store_tail:
 
 					case ICMD_IF_ACMPEQ:
 					case ICMD_IF_ACMPNE:
-						COUNT(count_pcmd_bra);
 						STATISTICS(count_pcmd_bra_NG++);
 						OP2_BRANCH(TYPE_ADR, TYPE_ADR);
 						BRANCH(tbptr);
@@ -3660,9 +3585,7 @@ store_tail:
 
 					case ICMD_PUTFIELD:
 						coalescing_boundary = sd.new_elem;
-						COUNT(count_check_null);
 						STATISTICS(count_check_null_NG++);
-						COUNT(count_pcmd_mem);
 						STATISTICS(count_pcmd_mem_NG++);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						OP2_0(TYPE_ADR, fmiref->parseddesc.fd->type);
@@ -3697,7 +3620,6 @@ store_tail:
 								goto throw_stack_category_error;
 						}
 #endif
-						COUNT(count_dup_instruction);
 						STATISTICS(count_dup_instruction_NG++);
 
 icmd_DUP:
@@ -4015,7 +3937,6 @@ icmd_DUP_X2:
 					case ICMD_IAND:
 					case ICMD_IOR:
 					case ICMD_IXOR:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP2_1(TYPE_INT, TYPE_INT, TYPE_INT);
 						break;
@@ -4053,7 +3974,6 @@ icmd_DUP_X2:
 					case ICMD_LOR:
 					case ICMD_LXOR:
 #endif /* SUPPORT_LONG_LOGICAL */
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP2_1(TYPE_LNG, TYPE_LNG, TYPE_LNG);
 						break;
@@ -4061,7 +3981,6 @@ icmd_DUP_X2:
 					case ICMD_LSHL:
 					case ICMD_LSHR:
 					case ICMD_LUSHR:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP2_1(TYPE_LNG, TYPE_INT, TYPE_LNG);
 						break;
@@ -4071,7 +3990,6 @@ icmd_DUP_X2:
 					case ICMD_FMUL:
 					case ICMD_FDIV:
 					case ICMD_FREM:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP2_1(TYPE_FLT, TYPE_FLT, TYPE_FLT);
 						break;
@@ -4081,13 +3999,11 @@ icmd_DUP_X2:
 					case ICMD_DMUL:
 					case ICMD_DDIV:
 					case ICMD_DREM:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP2_1(TYPE_DBL, TYPE_DBL, TYPE_DBL);
 						break;
 
 					case ICMD_LCMP:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 #if SUPPORT_LONG_CMP_CONST
 						if ((len == 0) || (iptr[1].sx.val.i != 0))
@@ -4103,7 +4019,6 @@ icmd_DUP_X2:
 							OP2_BRANCH(TYPE_LNG, TYPE_LNG);
 							BRANCH(tbptr);
 
-							COUNT(count_pcmd_bra);
 							STATISTICS(count_pcmd_bra_NG++);
 							break;
 						case ICMD_IFNE:
@@ -4140,14 +4055,12 @@ normal_LCMP:
 
 					case ICMD_FCMPL:
 					case ICMD_FCMPG:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP2_1(TYPE_FLT, TYPE_FLT, TYPE_INT);
 						break;
 
 					case ICMD_DCMPL:
 					case ICMD_DCMPG:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP2_1(TYPE_DBL, TYPE_DBL, TYPE_INT);
 						break;
@@ -4158,83 +4071,67 @@ normal_LCMP:
 					case ICMD_INT2BYTE:
 					case ICMD_INT2CHAR:
 					case ICMD_INT2SHORT:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP1_1(TYPE_INT, TYPE_INT);
 						break;
 					case ICMD_LNEG:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP1_1(TYPE_LNG, TYPE_LNG);
 						break;
 					case ICMD_FNEG:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP1_1(TYPE_FLT, TYPE_FLT);
 						break;
 					case ICMD_DNEG:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP1_1(TYPE_DBL, TYPE_DBL);
 						break;
 
 					case ICMD_I2L:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP1_1(TYPE_INT, TYPE_LNG);
 						break;
 					case ICMD_I2F:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP1_1(TYPE_INT, TYPE_FLT);
 						break;
 					case ICMD_I2D:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP1_1(TYPE_INT, TYPE_DBL);
 						break;
 					case ICMD_L2I:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP1_1(TYPE_LNG, TYPE_INT);
 						break;
 					case ICMD_L2F:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP1_1(TYPE_LNG, TYPE_FLT);
 						break;
 					case ICMD_L2D:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP1_1(TYPE_LNG, TYPE_DBL);
 						break;
 					case ICMD_F2I:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP1_1(TYPE_FLT, TYPE_INT);
 						break;
 					case ICMD_F2L:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP1_1(TYPE_FLT, TYPE_LNG);
 						break;
 					case ICMD_F2D:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP1_1(TYPE_FLT, TYPE_DBL);
 						break;
 					case ICMD_D2I:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP1_1(TYPE_DBL, TYPE_INT);
 						break;
 					case ICMD_D2L:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP1_1(TYPE_DBL, TYPE_LNG);
 						break;
 					case ICMD_D2F:
-						COUNT(count_pcmd_op);
 						STATISTICS(count_pcmd_op_NG++);
 						OP1_1(TYPE_DBL, TYPE_FLT);
 						break;
@@ -4278,9 +4175,7 @@ normal_LCMP:
 
 					case ICMD_GETFIELD:
 						coalescing_boundary = sd.new_elem;
-						COUNT(count_check_null);
 						STATISTICS(count_check_null_NG++);
-						COUNT(count_pcmd_mem);
 						STATISTICS(count_pcmd_mem_NG++);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						OP1_1(TYPE_ADR, fmiref->parseddesc.fd->type);
@@ -4290,7 +4185,6 @@ normal_LCMP:
 
 					case ICMD_GETSTATIC:
  						coalescing_boundary = sd.new_elem;
-						COUNT(count_pcmd_mem);
 						STATISTICS(count_pcmd_mem_NG++);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						OP0_1(fmiref->parseddesc.fd->type);
@@ -4340,7 +4234,6 @@ icmd_BUILTIN:
 					case ICMD_INVOKESPECIAL:
 					case ICMD_INVOKEVIRTUAL:
 					case ICMD_INVOKEINTERFACE:
-						COUNT(count_pcmd_met);
 						STATISTICS(count_pcmd_met_NG++);
 
 						/* Check for functions to replace with builtin
@@ -4677,77 +4570,14 @@ icmd_BUILTIN:
 	STATISTICS(count_method_bb_distribution_NG[jd->basicblockcount]++);
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
-		if (jd->basicblockcount > count_max_basic_blocks)
-			count_max_basic_blocks = jd->basicblockcount;
-		count_basic_blocks += jd->basicblockcount;
-		if (jd->instructioncount > count_max_javainstr)
-			count_max_javainstr = jd->instructioncount;
-		count_javainstr += jd->instructioncount;
-		if (jd->stackcount > count_upper_bound_new_stack)
-			count_upper_bound_new_stack = jd->stackcount;
-		if ((sd.new_elem - jd->stack) > count_max_new_stack)
-			count_max_new_stack = (sd.new_elem - jd->stack);
 
 		sd.bptr = jd->basicblocks;
 		for (; sd.bptr; sd.bptr = sd.bptr->next) {
 			if (sd.bptr->flags > BBREACHED) {
 				STATISTICS(count_block_stack_NG[sd.bptr->indepth]++);
 				STATISTICS(count_block_size_distribution_NG[sd.bptr->icount]++);
-				if (sd.bptr->indepth >= 10)
-					count_block_stack[10]++;
-				else
-					count_block_stack[sd.bptr->indepth]++;
-				len = sd.bptr->icount;
-				if (len < 10)
-					count_block_size_distribution[len]++;
-				else if (len <= 12)
-					count_block_size_distribution[10]++;
-				else if (len <= 14)
-					count_block_size_distribution[11]++;
-				else if (len <= 16)
-					count_block_size_distribution[12]++;
-				else if (len <= 18)
-					count_block_size_distribution[13]++;
-				else if (len <= 20)
-					count_block_size_distribution[14]++;
-				else if (len <= 25)
-					count_block_size_distribution[15]++;
-				else if (len <= 30)
-					count_block_size_distribution[16]++;
-				else
-					count_block_size_distribution[17]++;
 			}
 		}
-
-		if (iteration_count == 1)
-			count_analyse_iterations[0]++;
-		else if (iteration_count == 2)
-			count_analyse_iterations[1]++;
-		else if (iteration_count == 3)
-			count_analyse_iterations[2]++;
-		else if (iteration_count == 4)
-			count_analyse_iterations[3]++;
-		else
-			count_analyse_iterations[4]++;
-
-		if (jd->basicblockcount <= 5)
-			count_method_bb_distribution[0]++;
-		else if (jd->basicblockcount <= 10)
-			count_method_bb_distribution[1]++;
-		else if (jd->basicblockcount <= 15)
-			count_method_bb_distribution[2]++;
-		else if (jd->basicblockcount <= 20)
-			count_method_bb_distribution[3]++;
-		else if (jd->basicblockcount <= 30)
-			count_method_bb_distribution[4]++;
-		else if (jd->basicblockcount <= 40)
-			count_method_bb_distribution[5]++;
-		else if (jd->basicblockcount <= 50)
-			count_method_bb_distribution[6]++;
-		else if (jd->basicblockcount <= 75)
-			count_method_bb_distribution[7]++;
-		else
-			count_method_bb_distribution[8]++;
 	}
 #endif /* defined(ENABLE_STATISTICS) */
 

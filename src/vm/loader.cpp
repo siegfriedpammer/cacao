@@ -585,10 +585,6 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 	}
 
 	STATISTICS(count_const_pool_len_NG += (sizeof(u1) + sizeof(void*)) * cpcount);
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		count_const_pool_len += (sizeof(u1) + sizeof(void*)) * cpcount;
-#endif
 
 	/* initialize constantpool */
 	for (idx = 0; idx < cpcount; idx++) {
@@ -684,10 +680,6 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			constant_integer *ci = NEW(constant_integer);
 
 			STATISTICS(count_const_pool_len_NG += sizeof(constant_integer));
-#if defined(ENABLE_STATISTICS)
-			if (opt_stat)
-				count_const_pool_len += sizeof(constant_integer);
-#endif
 
 			if (!suck_check_classbuffer_size(cb, 4))
 				return false;
@@ -704,10 +696,6 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			constant_float *cf = NEW(constant_float);
 
 			STATISTICS(count_const_pool_len_NG += sizeof(constant_float));
-#if defined(ENABLE_STATISTICS)
-			if (opt_stat)
-				count_const_pool_len += sizeof(constant_float);
-#endif
 
 			if (!suck_check_classbuffer_size(cb, 4))
 				return false;
@@ -724,10 +712,6 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			constant_long *cl = NEW(constant_long);
 
 			STATISTICS(count_const_pool_len_NG += sizeof(constant_long));
-#if defined(ENABLE_STATISTICS)
-			if (opt_stat)
-				count_const_pool_len += sizeof(constant_long);
-#endif
 
 			if (!suck_check_classbuffer_size(cb, 8))
 				return false;
@@ -747,10 +731,6 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			constant_double *cd = NEW(constant_double);
 
 			STATISTICS(count_const_pool_len_NG += sizeof(constant_double));
-#if defined(ENABLE_STATISTICS)
-			if (opt_stat)
-				count_const_pool_len += sizeof(constant_double);
-#endif
 
 			if (!suck_check_classbuffer_size(cb, 8))
 				return false;
@@ -851,10 +831,6 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		constant_nameandtype *cn = NEW(constant_nameandtype);
 
 		STATISTICS(count_const_pool_len_NG += sizeof(constant_nameandtype));
-#if defined(ENABLE_STATISTICS)
-		if (opt_stat)
-			count_const_pool_len += sizeof(constant_nameandtype);
-#endif
 
 		/* resolve simple name and descriptor */
 		cn->name = (utf*) class_getconstant(c,
@@ -899,10 +875,6 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		constant_FMIref *fmi = NEW(constant_FMIref);
 
 		STATISTICS(count_const_pool_len_NG += sizeof(constant_FMIref));
-#if defined(ENABLE_STATISTICS)
-		if (opt_stat)
-			count_const_pool_len += sizeof(constant_FMIref);
-#endif
 		/* resolve simple name and descriptor */
 
 		nat = (constant_nameandtype*) class_getconstant(c,
@@ -1637,8 +1609,6 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 		descriptor_pool_get_sizes(descpool, &classrefsize, &descsize);
-		count_classref_len += classrefsize;
-		count_parsed_desc_len += descsize;
 		STATISTICS(count_classref_len_NG += classrefsize);
 		STATISTICS(count_parsed_desc_len_NG += descsize);
 	}
@@ -1962,10 +1932,6 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		return c;
 
 	STATISTICS(count_class_loads_NG++);
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		count_class_loads++;
-#endif
 
 #if !defined(NDEBUG)
 	if (loadverbose)

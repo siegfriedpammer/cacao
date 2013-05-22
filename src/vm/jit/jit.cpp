@@ -280,7 +280,6 @@ u1 *jit_compile(methodinfo *m)
 	u1      *r;
 	jitdata *jd;
 
-	STATISTICS(count_jit_calls++);
 	STATISTICS(count_jit_calls_NG++);
 
 	/* Initialize the static function's class. */
@@ -319,7 +318,6 @@ u1 *jit_compile(methodinfo *m)
 
 	TRACECOMPILERCALLS();
 
-	STATISTICS(count_methods++);
 	STATISTICS(count_methods_NG++);
 
 #if defined(ENABLE_STATISTICS)
@@ -449,7 +447,6 @@ u1 *jit_recompile(methodinfo *m)
 
 	DEBUG_JIT_COMPILEVERBOSE("Recompiling start: ");
 
-	STATISTICS(count_jit_calls++);
 
 #if defined(ENABLE_STATISTICS)
 	/* measure time */
@@ -608,13 +605,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 	STATISTICS(count_javacodesize_NG += m->jcodelength + 18);
 	STATISTICS(count_tryblocks_NG    += jd->exceptiontablelength);
 	STATISTICS(count_javaexcsize_NG  += jd->exceptiontablelength * SIZEOF_VOID_P);
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat) {
-		count_javacodesize += m->jcodelength + 18;
-		count_tryblocks    += jd->exceptiontablelength;
-		count_javaexcsize  += jd->exceptiontablelength * SIZEOF_VOID_P;
-	}
-#endif
 
 	RT_TIMER_STOPSTART(checks_timer,parse_timer);
 
@@ -742,7 +732,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 			if (!lsra(jd))
 				return NULL;
 
-			STATISTICS(count_methods_allocated_by_lsra++);
 			STATISTICS(count_methods_allocated_by_lsra_NG++);
 
 		} else
@@ -761,13 +750,11 @@ static u1 *jit_compile_intern(jitdata *jd)
 			ssa(jd);
 			/*lsra(jd);*/ regalloc(jd);
 			/*eliminate_subbasicblocks(jd);*/
-			STATISTICS(count_methods_allocated_by_lsra++);
 			STATISTICS(count_methods_allocated_by_lsra_NG++);
 
 		} else
 # endif /* defined(ENABLE_SSA) */
 		{
-			STATISTICS(count_locals_conflicts += (jd->maxlocals - 1) * (jd->maxlocals));
 			STATISTICS(count_locals_conflicts_NG += (jd->maxlocals - 1) * (jd->maxlocals));
 
 			regalloc(jd);

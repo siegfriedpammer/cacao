@@ -970,98 +970,98 @@ extern int32_t size_linenumbertable;
 
 extern s4 size_patchref;
 
-extern u8 count_calls_java_to_native;
-extern u8 count_calls_native_to_java;
+//extern u8 count_calls_java_to_native;
+//extern u8 count_calls_native_to_java;
 
 extern int count_const_pool_len;
 extern int count_classref_len;
 extern int count_parsed_desc_len;
 extern int count_vftbl_len;
-extern int count_all_methods;
+//extern int count_all_methods;
 extern int count_methods_marked_used;  /*RTA*/
 extern int count_vmcode_len;
 extern int count_extable_len;
-extern int count_class_loads;
-extern int count_class_inits;
+//extern int count_class_loads;
+//extern int count_class_inits;
 
 extern int count_utf_len;               /* size of utf hash                   */
-extern int count_utf_new;
+//extern int count_utf_new;
 extern int count_utf_new_found;
 
-extern int count_locals_conflicts;
-extern int count_locals_spilled;
-extern int count_locals_register;
-extern int count_ss_spilled;
-extern int count_ss_register;
+//extern int count_locals_conflicts;
+//extern int count_locals_spilled;
+//extern int count_locals_register;
+//extern int count_ss_spilled;
+//extern int count_ss_register;
 extern int count_methods_allocated_by_lsra;
 extern int count_mem_move_bb;
-extern int count_interface_size;
-extern int count_argument_mem_ss;
-extern int count_argument_reg_ss;
-extern int count_method_in_register;
-extern int count_mov_reg_reg;
-extern int count_mov_mem_reg;
-extern int count_mov_reg_mem;
-extern int count_mov_mem_mem;
+//extern int count_interface_size;
+//extern int count_argument_mem_ss;
+//extern int count_argument_reg_ss;
+//extern int count_method_in_register;
+//extern int count_mov_reg_reg;
+//extern int count_mov_mem_reg;
+//extern int count_mov_reg_mem;
+//extern int count_mov_mem_mem;
 
-extern int count_jit_calls;
-extern int count_methods;
-extern int count_spills_read_ila;
-extern int count_spills_read_flt;
-extern int count_spills_read_dbl;
-extern int count_spills_write_ila;
-extern int count_spills_write_flt;
-extern int count_spills_write_dbl;
-extern int count_pcmd_activ;
-extern int count_pcmd_drop;
-extern int count_pcmd_zero;
+//extern int count_jit_calls;
+//extern int count_methods;
+//extern int count_spills_read_ila;
+//extern int count_spills_read_flt;
+//extern int count_spills_read_dbl;
+//extern int count_spills_write_ila;
+//extern int count_spills_write_flt;
+//extern int count_spills_write_dbl;
+//extern int count_pcmd_activ;
+//extern int count_pcmd_drop;
+//extern int count_pcmd_zero;
 extern int count_pcmd_const_store;
 extern int count_pcmd_const_alu;
 extern int count_pcmd_const_bra;
-extern int count_pcmd_load;
+//extern int count_pcmd_load;
 extern int count_pcmd_move;
 extern int count_load_instruction;
-extern int count_pcmd_store;
+//extern int count_pcmd_store;
 extern int count_pcmd_store_comb;
-extern int count_dup_instruction;
-extern int count_pcmd_op;
-extern int count_pcmd_mem;
-extern int count_pcmd_met;
-extern int count_pcmd_bra;
-extern int count_pcmd_table;
-extern int count_pcmd_return;
-extern int count_pcmd_returnx;
-extern int count_check_null;
-extern int count_check_bound;
-extern int count_max_basic_blocks;
-extern int count_basic_blocks;
-extern int count_max_javainstr;
-extern int count_javainstr;
-extern int count_javacodesize;
-extern int count_javaexcsize;
+//extern int count_dup_instruction;
+//extern int count_pcmd_op;
+//extern int count_pcmd_mem;
+//extern int count_pcmd_met;
+//extern int count_pcmd_bra;
+//extern int count_pcmd_table;
+//extern int count_pcmd_return;
+//extern int count_pcmd_returnx;
+//extern int count_check_null;
+//extern int count_check_bound;
+//extern int count_max_basic_blocks;
+//extern int count_basic_blocks;
+//extern int count_max_javainstr;
+//extern int count_javainstr;
+//extern int count_javacodesize;
+//extern int count_javaexcsize;
 extern int count_calls;
-extern int count_tryblocks;
+//extern int count_tryblocks;
 extern int count_code_len;
 extern int count_data_len;
 extern int count_cstub_len;
-extern int count_max_new_stack;
-extern int count_upper_bound_new_stack;
+//extern int count_max_new_stack;
+//extern int count_upper_bound_new_stack;
 
-extern int count_emit_branch;
-extern int count_emit_branch_8bit;
-extern int count_emit_branch_16bit;
-extern int count_emit_branch_32bit;
-extern int count_emit_branch_64bit;
+//extern int count_emit_branch;
+//extern int count_emit_branch_8bit;
+//extern int count_emit_branch_16bit;
+//extern int count_emit_branch_32bit;
+//extern int count_emit_branch_64bit;
 
-extern s4 count_branches_resolved;
-extern s4 count_branches_unresolved;
+//extern s4 count_branches_resolved;
+//extern s4 count_branches_unresolved;
 
-extern int *count_block_stack;
-extern int *count_analyse_iterations;
-extern int *count_method_bb_distribution;
-extern int *count_block_size_distribution;
-extern int *count_store_length;
-extern int *count_store_depth;
+//extern int *count_block_stack;
+//extern int *count_analyse_iterations;
+//extern int *count_method_bb_distribution;
+//extern int *count_block_size_distribution;
+//extern int *count_store_length;
+//extern int *count_store_depth;
                                 /* in_  inline statistics */
 extern int count_in;
 extern int count_in_uniqVirt;
@@ -1086,8 +1086,8 @@ extern s4 count_schedule_critical_path;
 
 /* jni statistics *************************************************************/
 
-extern u8 count_jni_callXmethod_calls;
-extern u8 count_jni_calls;
+//extern u8 count_jni_callXmethod_calls;
+//extern u8 count_jni_calls;
 
 /* function prototypes ********************************************************/
 

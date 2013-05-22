@@ -406,7 +406,6 @@ void codegen_add_branch_ref(codegendata *cd, basicblock *target, s4 condition, s
 	branchref *br;
 	s4         branchmpc;
 
-	STATISTICS(count_branches_unresolved++);
 	STATISTICS(count_branches_unresolved_NG++);
 
 	/* calculate the mpc of the branch instruction */
@@ -580,7 +579,6 @@ void codegen_finish(jitdata *jd)
 
 	mcodelen = (s4) (cd->mcodeptr - cd->mcodebase);
 
-	STATISTICS(count_code_len_NG += mcodelen);
 	STATISTICS(count_data_len_NG += cd->dseglen);
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
@@ -754,7 +752,6 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 	uint64_t *arg_regs;
 	uint64_t *arg_stack;
 
-	STATISTICS(count_calls_java_to_native++);
 	STATISTICS(count_calls_java_to_native_NG++);
 
 	// Get information from method header.

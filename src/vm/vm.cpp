@@ -2297,7 +2297,6 @@ static type vm_call##name##_array(methodinfo *m, uint64_t *array) \
 	md = m->parseddesc;                                           \
 	pv = m->code->entrypoint;                                     \
                                                                   \
-	STATISTICS(count_calls_native_to_java++);                     \
 	STATISTICS(count_calls_native_to_java_NG++);                  \
                                                                   \
 	value = asm_vm_call_method##name(pv, array, md->memuse);      \
@@ -2316,7 +2315,6 @@ static java_handle_t *vm_call_array(methodinfo *m, uint64_t *array)
 	md = m->parseddesc;
 	pv = m->code->entrypoint;
 
-	STATISTICS(count_calls_native_to_java++);
 	STATISTICS(count_calls_native_to_java_NG++);
 
 	o = asm_vm_call_method(pv, array, md->memuse);

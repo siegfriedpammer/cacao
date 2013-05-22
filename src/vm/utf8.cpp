@@ -86,10 +86,6 @@ void Utf8String::initialize(void)
 	intern_table = new Utf8InternTable(HASHTABLE_UTF_SIZE);
 
 	STATISTICS(count_utf_len_NG += sizeof(utf*) * HASHTABLE_UTF_SIZE);
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		count_utf_len += sizeof(utf*) * HASHTABLE_UTF_SIZE;
-#endif
 
 	/* create utf-symbols for pointer comparison of frequently used strings */
 
@@ -118,10 +114,6 @@ inline Utf8String Utf8String::alloc(size_t sz) {
 	Utf* str = (Utf*) mem_alloc(offsetof(Utf,text) + sz + 1);
 
 	STATISTICS(count_utf_new_NG++);
-	#if defined(ENABLE_STATISTICS)
-		if (opt_stat)
-			count_utf_new++;
-	#endif
 
 	str->blength = sz;
 
