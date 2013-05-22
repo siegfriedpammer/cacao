@@ -503,6 +503,18 @@ public:
         } \
     } while (0)
 #else
+#define STAT_DECLARE_VAR(type, var, init)
+#define STAT_REGISTER_VAR_EXTERN(type, var, init, name, description)
+#define STAT_REGISTER_GROUP_VAR_EXTERN(type, var, init, name, description, group)
+#define STAT_REGISTER_VAR(type, var, init, name, description)
+#define STAT_REGISTER_GROUP_VAR(type, var, init, name, description, group)
+#define STAT_REGISTER_DIST(counttype, indextype, var, start, end, step, init, name, description)
+#define STAT_REGISTER_DIST_RANGE(counttype, indextype, var, range, range_size, init, name, description)
+#define STAT_DECLARE_GROUP(var)
+#define STAT_REGISTER_GROUP(var,name,description)
+#define STAT_REGISTER_SUM_GROUP(var,name,description)
+#define STAT_REGISTER_SUM_SUBGROUP(var,name,description,group)
+#define STAT_REGISTER_SUBGROUP(var,name,description,group)
 #define STATISTICS(x)    /* nothing */
 #endif
 
