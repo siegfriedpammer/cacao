@@ -22,13 +22,415 @@
 
 */
 
+/** @file
+ * This file contains the statistics framework.
+ *
+ * The framework provides several facilities to collect information about a
+ * virtual machine invocation. The idea is to create objects of specific
+ * classes which represent a statistic entity. For different task different
+ * classes are provided.
+ *
+ * ### Variables ###
+ *
+ * The most general class is cacao::StatVar. It can be used as a wrapper for
+ * almost any type. Statistic variables of this type can be altered in various
+ * ways although the most common usage is to increment the value. At the end of
+ * the virtual machine run the value is emitted.
+ *
+ * #### Macros ####
+ *
+ * The following macros should be used to define and declare
+ * variables of type cacao::StatVar.
+ *
+ * - STAT_REGISTER_VAR(type, var, init, name, description)
+ * - STAT_DECLARE_VAR(type, var, init)
+ * - STAT_REGISTER_VAR_EXTERN(type, var, init, name, description)
+ * - STAT_REGISTER_GROUP_VAR(type, var, init, name, description, group)
+ * - STAT_REGISTER_GROUP_VAR_EXTERN(type, var, init, name, description, group)
+ *
+ * #### Example ####
+ *
+@code
+// somewhere on a file global scope
+STAT_REGISTER_VAR(int,count_all_methods,0,"all methods","Number of loaded Methods")
+..
+
+void handle_method() {
+  // somewhere inside normal code
+  STATISTICS(count_all_methods++);
+  ...
+}
+@endcode
+ *
+ * Note: The STATISTICS() macro is used to wrap statistics only code.
+ *
+ * ### Distribution Tables ###
+ *
+ * Distribution tables can be used to collect the distribution of a value.
+ * There are two different kinds. The cacao::StatDist has a fixed start, step
+ * and end value whereas cacao::StatDistRange can be used to construct arbitrary
+ * tables. The usage of both classes is the same.
+ *
+ * #### Macros ####
+ *
+ * - STAT_REGISTER_DIST(counttype, indextype, var, start, end, step, init, name, description)
+ * - STAT_REGISTER_DIST_RANGE(counttype, indextype, var, range, range_size, init, name, description)
+ *
+ *
+ * #### Example ####
+ *
+@code
+// somewhere on a file global scope
+STAT_REGISTER_DIST(unsigned int,unsigned int,count_block_stack,0,9,1,0,"stack size dist","Distribution of stack sizes at block boundary")
+
+static const unsigned int count_method_bb_distribution_range[] = {5,10,15,20,30,40,50,75};
+STAT_REGISTER_DIST_RANGE(unsigned int,unsigned int,count_method_bb_distribution,count_method_bb_distribution_range,8,0,"method bb dist.","Distribution of basic blocks per method")
+..
+
+void handle_method() {
+  // somewhere inside normal code
+  STATISTICS(count_block_stack[indepth]++);
+  ...
+  STATISTICS(count_method_bb_distribution[basicblockcount]++);
+  ...
+}
+@endcode
+ *
+ * ### Groups ###
+ *
+ * Groups are used to structure statistics entities.
+ *
+ * #### Macros ####
+ *
+ * - STAT_DECLARE_GROUP(var)
+ * - STAT_REGISTER_GROUP(var,name,description)
+ * - STAT_REGISTER_SUBGROUP(var,name,description,group)
+ *
+ * #### Example ####
+ *
+@code
+// somewhere on a file global scope
+STAT_REGISTER_GROUP(const_pcmd_stat,"const pcmd","Number of Const Pseudocommands")
+STAT_REGISTER_GROUP_VAR(int,count_pcmd_load,0,"pcmd load","Number of Const Pseudocommands (load)",const_pcmd_stat)
+...
+@endcode
+ *
+ * ### Summary Groups ###
+ *
+ * Summary groups are a special form of groups. The only difference is that a
+ * summary group sums up the values of all children and prints it.
+ *
+ * #### Macros ####
+ *
+ * - STAT_REGISTER_SUM_GROUP(var,name,description)
+ * - STAT_REGISTER_SUM_SUBGROUP(var,name,description,group)
+ *
+ * #### Example ####
+ *
+@code
+// somewhere on a file global scope
+STAT_REGISTER_SUM_GROUP(const_pcmd_stat,"const pcmd","Number of Const Pseudocommands")
+STAT_REGISTER_GROUP_VAR(int,count_pcmd_load,0,"pcmd load","Number of Const Pseudocommands (load)",const_pcmd_stat)
+STAT_REGISTER_GROUP_VAR(int,count_pcmd_zero,0,"pcmd zero","Number of Const Pseudocommands (zero)",const_pcmd_stat)
+...
+@endcode
+ *
+ *
+ */
+
+/**
+ * @def STAT_REGISTER_VAR(type, var, init, name, description)
+ *
+ * Register an external statistics variable.
+ *
+ * This macros defines a static variable of type cacao::StatVar<type,init> and
+ * adds it to the root statistics group. All STAT_REGISTER_* macros should only
+ * occur in implementation files. If a variable is used in several compilation
+ * units STAT_REGISTER_VAR_EXTERN() and STAT_DECLARE_VAR() should be used.
+ *
+ * @param type Type of the variable. It should support the basic operators
+ *   (arithmetic, assigment, etc.) as well as operator<<(OStream&, type) for
+ *   printing support.
+ * @param var Name of the statistic variable.
+ * @param init Initial value for the variable.
+ * @param name Printable name of the variable.
+ * @param description Printable description of the variable.
+ *
+ * @see STAT_DECLARE_VAR
+ * @see STAT_REGISTER_VAR_EXTERN
+ * @see STAT_REGISTER_GROUP_VAR
+ **/
+
+/**
+ * @def STAT_DECLARE_VAR(type, var, init)
+ *
+ * Declare an external statistics variable.
+ *
+ * The definition should be done via the STAT_REGISTER_VAR_EXTERN() macro.
+ *
+ * @param type Type of the variable. It should support the basic operators
+ *   (arithmetic, assigment, etc.) as well as operator<<(OStream&, type) for
+ *   printing support.
+ * @param var Name of the statistic variable.
+ * @param init Initial value for the variable.
+ *
+ * @see STAT_REGISTER_VAR_EXTERN
+ **/
+
+/**
+ * @def STAT_REGISTER_VAR_EXTERN(type, var, init, name, description)
+ *
+ * Register an external statistics variable.
+ *
+ * In contrast to STAT_REGISTER_VAR() variables defined via
+ * STAT_REGISTER_VAR_EXTERN() are not declared static static and therefore
+ * allows external binding. If a statistics variable is only used in one
+ * compilation unit, STAT_REGISTER_VAR() is preferable.
+ *
+ * @param type Type of the variable. It should support the basic operators
+ *   (arithmetic, assigment, etc.) as well as operator<<(OStream&, type) for
+ *   printing support.
+ * @param var Name of the statistic variable.
+ * @param init Initial value for the variable.
+ * @param name Printable name of the variable.
+ * @param description Printable description of the variable.
+ *
+ * @see STAT_DECLARE_VAR
+ * @see STAT_REGISTER_VAR
+ **/
+
+/**
+ * @def STAT_REGISTER_GROUP_VAR(type, var, init, name, description, group)
+ *
+ * Register an statistics variable and add it to a group.
+ *
+ * This is the same as STAT_REGISTER_VAR() but the variable is added to group.
+ *
+ * @param type Type of the variable. It should support the basic operators
+ *   (arithmetic, assigment, etc.) as well as operator<<(OStream&, type) for
+ *   printing support.
+ * @param var Name of the statistic variable.
+ * @param init Initial value for the variable.
+ * @param name Printable name of the variable.
+ * @param description Printable description of the variable.
+ * @param group Parent group of this variable.
+ *
+ * @see STAT_REGISTER_VAR
+ * @see STAT_REGISTER_GROUP_VAR_EXTERN
+ **/
+
+/**
+ * @def STAT_REGISTER_GROUP_VAR_EXTERN(type, var, init, name, description, group)
+ *
+ * Register an external statistics variable and add it to a group.
+ *
+ * The difference to STAT_REGISTER_GROUP_VAR() is the same as between
+ * STAT_REGISTER_VAR_EXTERN and STAT_REGISTER_VAR().
+ *
+ * @param type Type of the variable. It should support the basic operators
+ *   (arithmetic, assigment, etc.) as well as operator<<(OStream&, type) for
+ *   printing support.
+ * @param var Name of the statistic variable.
+ * @param init Initial value for the variable.
+ * @param name Printable name of the variable.
+ * @param description Printable description of the variable.
+ * @param group Parent group of this variable.
+ *
+ * @see STAT_DECLARE_VAR
+ * @see STAT_REGISTER_VAR
+ **/
+
+/**
+ * @def STAT_REGISTER_DIST(counttype, indextype, var, start, end, step, init, name, description)
+ *
+ * Define a distribution table (steps).
+ *
+ * This macro creates a distribution table for some statistic values (e.g.
+ * number of basic blocks per method). In principle a static cacao::StatDist
+ * object is created which can be used to collect value distributions.
+ *
+ * The "width of the table columns" are fixed by the step parameter. All columns
+ * have the same width (besides the first and last one).
+ *
+ * <b>Example:</b>
+ * @code
+ * STAT_REGISTER_DIST(unsigned int,unsigned int,count_block_stack,0,9,1,0,"stack size dist","Distribution of stack sizes at block boundary")
+ * @endcode
+ *
+ * <b>Result:</b>
+@verbatim
+Distribution of stack sizes at block boundary(stack size dist):
+     0]    1]    2]    3]    4]    5]    6]    7]    8]    9](   9
+  4017   325    20     8     7     4     1     0     0     0     0
+  0.92  0.07  0.00  0.00  0.00  0.00  0.00  0.00  0.00  0.00  0.00  ratio
+  0.92  0.99  1.00  1.00  1.00  1.00  1.00  1.00  1.00  1.00  1.00  cumulated ratio
+@endverbatim
+ *
+ *
+ * @param counttype Type of the "table entries".
+ *   In most cases unsigned is the right choice.
+ * @param indextype Type of the "table index".
+ *   This is the type of the things you want to count. It should support the
+ *   basic arithmetic operations as well as operator<<(OStream&).
+ * @param var Name of the statistic distribution variable.
+ * @param start Start of the table.
+ * @param end End of the table.
+ * @param step Step size.
+ * @param init Initial value for the variable.
+ * @param name Printable name of the variable.
+ * @param description Printable description of the variable.
+ *
+ * @see cacao::StatDist
+ * @see STAT_REGISTER_DIST_RANGE
+ **/
+
+/**
+ * @def STAT_REGISTER_DIST_RANGE(counttype, indextype, var, range, range_size, init, name, description)
+ *
+ * Define a distribution table (range).
+ *
+ * In contrast to STAT_REGISTER_DIST() the "width of the columns" can be set arbitrary.
+ *
+ * <b>Example:</b>
+ * @code
+ * static const unsigned int count_method_bb_distribution_range[] = {5,10,15,20,30,40,50,75};
+STAT_REGISTER_DIST_RANGE(unsigned int,unsigned int,count_method_bb_distribution,count_method_bb_distribution_range,8,0,"method bb dist.","Distribution of basic blocks per method")
+ * @endcode
+ *
+ * <b>Result:</b>
+@verbatim
+Distribution of basic blocks per method(method bb dist.):
+     5]   10]   15]   20]   30]   40]   50]   75](  75
+   774    96    45    17    15     3     5     3     2
+  0.81  0.10  0.05  0.02  0.02  0.00  0.01  0.00  0.00  ratio
+  0.81  0.91  0.95  0.97  0.99  0.99  0.99  1.00  1.00  cumulated ratio
+@endverbatim
+ *
+ * @param counttype Type of the "table entries".
+ *   In most cases unsigned is the right choice.
+ * @param indextype Type of the "table index".
+ *   This is the type of the things you want to count. It should support the
+ *   basic arithmetic operations as well as operator<<(OStream&).
+ * @param var Name of the statistic distribution variable.
+ * @param range Array of table values.
+ * @param range_size Size of the range array.
+ * @param init Initial value for the variable.
+ * @param name Printable name of the variable.
+ * @param description Printable description of the variable.
+ *
+ * @see cacao::StatDistRange
+ * @see STAT_REGISTER_DIST
+ **/
+
+/**
+ * @def STAT_REGISTER_GROUP(var,name,description)
+ *
+ * Register a statistics group.
+ *
+ * Create a new statistics group and add it to the root group.
+ * Groups are used to organize statistics entries (variables or groups).
+ *
+ * @param var Name of the statistic group.
+ * @param name Printable name of the group.
+ * @param description Printable description of the group.
+ *
+ * @see STAT_DECLARE_GROUP
+ * @see STAT_REGISTER_SUBGROUP
+ **/
+
+/**
+ * @def STAT_REGISTER_SUBGROUP(var,name,description,group)
+ *
+ * Register a statistics group and add it to a group.
+ *
+ * Create a new statistics group and add it to a specified group.
+ *
+ * @param var Name of the statistic group.
+ * @param name Printable name of the group.
+ * @param description Printable description of the group.
+ * @param group Parent group of this variable.
+ *
+ * @see STAT_DECLARE_GROUP
+ * @see STAT_REGISTER_GROUP
+ **/
+
+/**
+ * @def STAT_DECLARE_GROUP(var)
+ *
+ * Declare an external group (or subgroup).
+ *
+ * In contrast to variables are groups always defined at a global scope. This
+ * can be prevented by e.g. an anonymous namespace.
+ *
+ * @param var Variable name of the statistic group.
+ *
+ * @see STAT_REGISTER_GROUP
+ * @see STAT_REGISTER_SUBGROUP
+ **/
+
+/**
+ * @def STAT_REGISTER_SUM_GROUP(var,name,description)
+ *
+ * Register a statistics summary group.
+ *
+ * Create a new statistics group and add it to the root group.
+ * Summary groups are used to calculate the sum of several dependant statistic
+ * entries e.g. memory usage of the compiler
+ *
+ * <b>Example:</b>
+@code
+STAT_REGISTER_SUM_GROUP(info_struct_stat,"info structs","info struct usage")
+STAT_REGISTER_GROUP_VAR(int,size_classinfo,0,"size classinfo","classinfo",info_struct_stat)
+STAT_REGISTER_GROUP_VAR(int,size_fieldinfo,0,"size fieldinfo","fieldinfo",info_struct_stat)
+STAT_REGISTER_GROUP_VAR(int,size_methodinfo,0,"size methodinfo","methodinfo",info_struct_stat)
+STAT_REGISTER_GROUP_VAR(int,size_codeinfo,0,"size codeinfo","codeinfo",info_struct_stat)
+STAT_REGISTER_GROUP_VAR(int,size_lineinfo,0,"size lineinfo","lineinfo",info_struct_stat)
+@endcode
+ *
+ * <b>Result:</b>
+@verbatim
+                size classinfo    147656 : classinfo
+                size fieldinfo     78272 : fieldinfo
+               size methodinfo    830024 : methodinfo
+                 size lineinfo     91192 : lineinfo
+                 size codeinfo    158400 : codeinfo
+                                 -------
+                           sum   1305544 : info struct usage
+@endverbatim
+ * @param var Name of the statistic group.
+ * @param name Printable name of the group.
+ * @param description Printable description of the group.
+ *
+ * @see STAT_REGISTER_SUM_SUBGROUP
+ **/
+
+/**
+ * @def STAT_REGISTER_SUM_SUBGROUP(var,name,description,group)
+ *
+ * Register a statistics summary group.
+ *
+ * Create a new statistics group and add it to a specified group.
+ *
+ * @param var Name of the statistic group.
+ * @param name Printable name of the group.
+ * @param description Printable description of the group.
+ * @param group Parent group of this group.
+ *
+ * @see STAT_REGISTER_SUM_GROUP
+ **/
+
+/**
+ * @def STATISTICS(x)
+ *
+ * Wrapper for statistics only code.
+ **/
 
 #ifndef STATISTICS_HPP_
 #define STATISTICS_HPP_ 1
 
-#if defined(ENABLE_STATISTICS)
-
 #include "config.h"
+
+#if defined(ENABLE_STATISTICS)
 
 #include <stdint.h>
 
@@ -86,12 +488,6 @@ protected:
 		members = new StatEntryList();
 	}
 public:
-	/**
-	 * __the__ root group.
-	 * @note never use this variable directly (use StatGroup::root() instead).
-	 * Used for internal purposes only!
-	 */
-	//static StatGroup root_rg;
 	/**
 	 * Get the root group
 	 */
@@ -435,19 +831,6 @@ public:
 
 /* statistic macros ***********************************************************/
 
-#if 0
-#define STAT_REGISTER_VAR(var,name,description)                                \
-	static inline cacao::StatVar& var() {	                                   \
-		static cacao::StatVar var(name,description,cacao::StatGroup::root());  \
-		return var;                                                            \
-	}
-#define STAT_REGISTER_GROUP_VAR(var,name,description,group)                    \
-	static inline cacao::StatVar& var() {	                                   \
-		static cacao::StatVar var(name,description,group());                   \
-		return var;                                                            \
-	}
-#endif
-
 #define STAT_DECLARE_VAR(type, var, init) \
 	extern cacao::StatVar<type,init> var;
 
@@ -519,6 +902,9 @@ public:
 #endif
 
 #ifdef ENABLE_STATISTICS
+
+/// @cond
+// exclude from doxygen
 
 /* in_  inline statistics */
 
@@ -722,6 +1108,9 @@ void statistics_print_gc_memory_usage(void);
 void mem_usagelog(bool givewarnings);
 
 void compiledinvokation(void);
+
+/// @endcond
+// end exclude from doxygen
 
 #endif /* ENABLE_STATISTICS */
 
