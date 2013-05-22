@@ -109,6 +109,8 @@
 #include "vm/rt-timing.hpp"
 #endif
 
+STAT_DECLARE_GROUP(function_call_stat)
+STAT_REGISTER_GROUP_VAR(u8,count_calls_native_to_java_NG,0,"calls native to java","native-to-java calls",function_call_stat)
 /**
  * This is _the_ VM instance.
  */
@@ -2296,6 +2298,7 @@ static type vm_call##name##_array(methodinfo *m, uint64_t *array) \
 	pv = m->code->entrypoint;                                     \
                                                                   \
 	STATISTICS(count_calls_native_to_java++);                     \
+	STATISTICS(count_calls_native_to_java_NG++);                  \
                                                                   \
 	value = asm_vm_call_method##name(pv, array, md->memuse);      \
                                                                   \
@@ -2314,6 +2317,7 @@ static java_handle_t *vm_call_array(methodinfo *m, uint64_t *array)
 	pv = m->code->entrypoint;
 
 	STATISTICS(count_calls_native_to_java++);
+	STATISTICS(count_calls_native_to_java_NG++);
 
 	o = asm_vm_call_method(pv, array, md->memuse);
 

@@ -65,6 +65,9 @@
 #define INLINELOG(code)
 #endif
 
+
+STAT_REGISTER_VAR(int,count_all_methods_NG,0,"all methods","Number of loaded Methods")
+
 /* global variables ***********************************************************/
 
 methodinfo *method_java_lang_reflect_Method_invoke;
@@ -160,6 +163,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 
 	m->mutex = new Mutex();
 
+	STATISTICS(count_all_methods_NG++);
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_all_methods++;

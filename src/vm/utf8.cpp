@@ -31,6 +31,8 @@
 #include "vm/options.hpp"
 #include "vm/statistics.hpp"
 
+STAT_REGISTER_VAR(int,count_utf_new_NG,0,"utf new","Calls of utf_new")
+
 //****************************************************************************//
 //*****          GLOBAL UTF8-STRING INTERN TABLE                         *****//
 //****************************************************************************//
@@ -113,8 +115,10 @@ bool Utf8String::is_initialized(void)
 inline Utf8String Utf8String::alloc(size_t sz) {
 	Utf* str = (Utf*) mem_alloc(offsetof(Utf,text) + sz + 1);
 
-	#if STATISTICS_ENABLED
-		if (opt_stat) count_utf_new++;
+	STATISTICS(count_utf_new_NG++);
+	#if defined(ENABLE_STATISTICS)
+		if (opt_stat)
+			count_utf_new++;
 	#endif
 
 	str->blength = sz;

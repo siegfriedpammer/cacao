@@ -58,7 +58,7 @@ public:
 	 * @param[in,out] O     output stream
 	 */
 	virtual void print(OStream &O) const = 0;
-	
+
 	virtual ~StatEntry() {}
 
 };
@@ -91,7 +91,7 @@ public:
 	 * Get the root group
 	 */
 	static StatGroup& root() {
-		static StatGroup rg("vm","vm");
+		static StatGroup rg("root stat group","Statistics");
 		return rg;
 	}
 
@@ -118,13 +118,14 @@ public:
 	}
 
 	virtual void print(OStream &O) const {
-		O << setw(10) << left << name << right <<"   " << description << nl;
+		O << nl << description << ':' << nl;
 		//O << indent;
 		for(StatEntryList::const_iterator i = members->begin(), e= members->end(); i != e; ++i) {
 			StatEntry* re = *i;
 			re->print(O);
 		}
 		//O << dedent;
+		O << nl;
 	}
 };
 
@@ -373,17 +374,24 @@ public:
 		return var;                                                            \
 	}
 #endif
+
+#define STAT_DECLARE_VAR(type, var, init) \
+	extern static cacao::StatVar<type,init> var;
+
 #define STAT_REGISTER_VAR(type, var, init, name, description) \
 	static cacao::StatVar<type,init> var(name,description,cacao::StatGroup::root());
 
 #define STAT_REGISTER_GROUP_VAR(type, var, init, name, description, group) \
-	static cacao::StatVar<type,init> var(name,description,group());
+	static cacao::StatVar<type,init> var(name,description,group##_group());
 
 #define STAT_REGISTER_DIST(counttype, indextype, var, start, end, step, init, name, description) \
 	static cacao::StatDist<counttype,indextype,step> var(name,description,cacao::StatGroup::root(),start,end,init);
 
 #define STAT_REGISTER_DIST_RANGE(counttype, indextype, var, range, range_size, init, name, description) \
 	static cacao::StatDistRange<counttype,indextype> var(name,description,cacao::StatGroup::root(),range,range_size,init);
+
+#define STAT_DECLARE_GROUP(var) \
+	inline cacao::StatGroup& var##_group();
 
 #define STAT_REGISTER_GROUP(var,name,description)                              \
 	inline cacao::StatGroup& var##_group() {                                   \

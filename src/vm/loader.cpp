@@ -77,6 +77,8 @@
 
 #include "vm/jit/stubs.hpp"
 
+STAT_REGISTER_VAR(int,count_class_loads_NG,0,"class loads","Number of class loads")
+
 
 /* global variables ***********************************************************/
 
@@ -1922,6 +1924,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	if (c->state & CLASS_LOADED)
 		return c;
 
+	STATISTICS(count_class_loads_NG++);
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_class_loads++;

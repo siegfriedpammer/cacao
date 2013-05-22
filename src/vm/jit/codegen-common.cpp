@@ -107,6 +107,8 @@
 #endif
 
 STAT_REGISTER_VAR(int,count_branches_unresolved_NG,0,"unresolved branches","unresolved branches")
+STAT_DECLARE_GROUP(function_call_stat)
+STAT_REGISTER_GROUP_VAR(u8,count_calls_java_to_native_NG,0,"calls java to native","java-to-native calls",function_call_stat)
 
 struct methodinfo;
 
@@ -746,6 +748,7 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 	uint64_t *arg_stack;
 
 	STATISTICS(count_calls_java_to_native++);
+	STATISTICS(count_calls_java_to_native_NG++);
 
 	// Get information from method header.
 	code = code_get_codeinfo_for_pv(pv);

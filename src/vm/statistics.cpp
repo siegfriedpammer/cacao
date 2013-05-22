@@ -560,11 +560,16 @@ void print_stats(void)
 
 	statistics_print_memory_usage();
 
+	// DONE
 	dolog("Number of class loads:    %6d", count_class_loads);
+	// DONE
 	dolog("Number of class inits:    %6d", count_class_inits);
+	// DONE
 	dolog("Number of loaded Methods: %6d\n", count_all_methods);
 
+	// DONE
 	dolog("Calls of utf_new:                 %6d", count_utf_new);
+	// NOT used?!
 	dolog("Calls of utf_new (element found): %6d\n", count_utf_new_found);
 
 
@@ -607,12 +612,16 @@ void print_stats(void)
 	/* call statistics ********************************************************/
 
 	dolog("Function call statistics:");
+	// DONE
 	dolog("Number of jni->CallXMethod function invokations: %ld",
 		  count_jni_callXmethod_calls);
+	// DONE
 	dolog("Overall number of jni invokations:               %ld",
 		  count_jni_calls);
 
+	// DONE
 	log_println("java-to-native calls:   %10ld", count_calls_java_to_native);
+	// DONE
 	log_println("native-to-java calls:   %10ld", count_calls_native_to_java);
 
 

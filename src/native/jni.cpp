@@ -102,6 +102,9 @@
 
 #endif
 
+STAT_REGISTER_GROUP(function_call_stat,"function calls","Function call statistics")
+STAT_REGISTER_GROUP_VAR(u8,count_jni_callXmethod_calls_NG,0,"jni callXmethod calls","Number of jni->CallXMethod function invokations",function_call_stat)
+STAT_REGISTER_GROUP_VAR(u8,count_jni_calls_NG,0,"jni calls","Overall number of jni invokations",function_call_stat)
 
 /* global variables ***********************************************************/
 
@@ -157,10 +160,11 @@ jobject jni_NewLocalRef(JNIEnv *env, jobject ref);
 
 *******************************************************************************/
 
-void jnicallXmethodnvokation(void)
+inline void jnicallXmethodnvokation(void)
 {
 	/* XXX do locking here */
 	count_jni_callXmethod_calls++;
+	STATISTICS(count_jni_callXmethod_calls_NG++);
 }
 
 
@@ -170,10 +174,11 @@ void jnicallXmethodnvokation(void)
 
 *******************************************************************************/
 
-void jniinvokation(void)
+inline void jniinvokation(void)
 {
 	/* XXX do locking here */
 	count_jni_calls++;
+	STATISTICS(count_jni_calls_NG++);
 }
 #endif // ENABLE_STATISTICS
 
