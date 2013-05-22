@@ -32,6 +32,7 @@
 #include "vm/statistics.hpp"
 
 STAT_REGISTER_VAR(int,count_utf_new_NG,0,"utf new","Calls of utf_new")
+STAT_DECLARE_VAR(int,count_utf_len_NG,0)
 
 //****************************************************************************//
 //*****          GLOBAL UTF8-STRING INTERN TABLE                         *****//
@@ -84,6 +85,7 @@ void Utf8String::initialize(void)
 
 	intern_table = new Utf8InternTable(HASHTABLE_UTF_SIZE);
 
+	STATISTICS(count_utf_len_NG += sizeof(utf*) * HASHTABLE_UTF_SIZE);
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_utf_len += sizeof(utf*) * HASHTABLE_UTF_SIZE;

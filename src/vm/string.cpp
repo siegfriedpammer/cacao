@@ -38,6 +38,8 @@
 
 using namespace cacao;
 
+STAT_DECLARE_VAR(int,size_string_NG,0)
+
 //****************************************************************************//
 //*****          GLOBAL JAVA/LANG/STRING INTERN TABLE                    *****//
 //****************************************************************************//
@@ -237,6 +239,7 @@ static inline JavaString allocate_on_system_heap(size_t size) {
 
 	java_lang_String::set_fields(h, (java_handle_chararray_t*) a);
 
+	STATISTICS(size_string_NG += sizeof(class_java_lang_String->instancesize));
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		size_string += sizeof(class_java_lang_String->instancesize);

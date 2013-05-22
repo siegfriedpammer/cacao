@@ -30,6 +30,9 @@
 #include "vm/options.hpp"               // for checksync
 #include "vm/vm.hpp"                    // for vm_abort
 
+STAT_DECLARE_GROUP(info_struct_stat)
+STAT_REGISTER_GROUP_VAR(int,size_codeinfo_NG,0,"size codeinfo","codeinfo",info_struct_stat) // sizeof(codeinfo)?
+
 struct methodinfo;
 
 /* code_init *******************************************************************
@@ -74,6 +77,7 @@ codeinfo *code_codeinfo_new(methodinfo *m)
 
 	patcher_list_create(code);
 
+	STATISTICS(size_codeinfo_NG += sizeof(codeinfo));
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		size_codeinfo += sizeof(codeinfo);
@@ -238,6 +242,7 @@ void code_codeinfo_free(codeinfo *code)
 
 	FREE(code, codeinfo);
 
+	STATISTICS(size_codeinfo_NG -= sizeof(codeinfo));
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		size_codeinfo -= sizeof(codeinfo);

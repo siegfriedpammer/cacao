@@ -1885,6 +1885,7 @@ u1 *intrp_createcompilerstub(methodinfo *m)
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
+		#warning port to new statistics framework
 		count_cstub_len += COMPILERSTUB_SIZE;
 #endif
 

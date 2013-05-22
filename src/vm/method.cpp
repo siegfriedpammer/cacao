@@ -68,6 +68,16 @@
 
 STAT_REGISTER_VAR(int,count_all_methods_NG,0,"all methods","Number of loaded Methods")
 
+STAT_DECLARE_GROUP(info_struct_stat)
+STAT_REGISTER_GROUP_VAR(int,size_lineinfo_NG,0,"size lineinfo","lineinfo",info_struct_stat) // sizeof(lineinfo)?
+
+STAT_DECLARE_GROUP(memory_stat)
+STAT_REGISTER_SUM_GROUP(table_stat,"info structs","info struct usage",memory_stat)
+STAT_REGISTER_GROUP_VAR(int,count_extable_len_NG,0,"extable len","exception tables",table_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,size_linenumbertable_NG,0,"linenumbertable","linenumber tables",table_stat) // count_linenumbertable ?
+STAT_REGISTER_GROUP_VAR_EXTERN(int,size_patchref_NG,0,"patchref","patcher references",table_stat)
+
+STAT_DECLARE_VAR(int,count_vmcode_len_NG,0)
 /* global variables ***********************************************************/
 
 methodinfo *method_java_lang_reflect_Method_invoke;
@@ -360,6 +370,9 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 
 			m->rawexceptiontable = MNEW(raw_exception_entry, m->rawexceptiontablelength);
 
+			STATISTICS(count_vmcode_len_NG += m->jcodelength + 18);
+			STATISTICS(count_extable_len_NG +=
+				m->rawexceptiontablelength * sizeof(raw_exception_entry));
 #if defined(ENABLE_STATISTICS)
 			if (opt_stat) {
 				count_vmcode_len += m->jcodelength + 18;
@@ -430,11 +443,12 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 
 					m->linenumbers = MNEW(lineinfo, m->linenumbercount);
 
+					STATISTICS(size_lineinfo_NG += sizeof(lineinfo) * m->linenumbercount);
 #if defined(ENABLE_STATISTICS)
 					if (opt_stat)
 						size_lineinfo += sizeof(lineinfo) * m->linenumbercount;
 #endif
-					
+
 					for (l = 0; l < m->linenumbercount; l++) {
 						m->linenumbers[l].start_pc    = suck_u2(cb);
 						m->linenumbers[l].line_number = suck_u2(cb);

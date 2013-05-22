@@ -31,6 +31,11 @@
 #include "vm/vm.hpp"                    // for vm_abort
 #include "vm/options.hpp"
 
+STAT_DECLARE_GROUP(max_mem_stat)
+STAT_DECLARE_GROUP(not_freed_mem_stat)
+STAT_REGISTER_GROUP_VAR(int,maxdumpsize_NG,0,"maxdumpsize","max. dump memory",max_mem_stat)
+STAT_REGISTER_GROUP_VAR(int,globalallocateddumpsize_NG,0,"globalallocateddumpsize","dump memory not freed",not_freed_mem_stat)
+
 /*******************************************************************************
 
   This structure is used for dump memory allocation if cacao
@@ -81,6 +86,7 @@ void DumpMemory::add_area(DumpMemoryArea* dma)
 	// Increase the size count of the dump memory.
 	_size += dma->get_size();
 
+	STATISTICS(maxdumpsize_NG.max(_size));
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 		if (_size > (size_t) maxdumpsize)
@@ -179,6 +185,7 @@ DumpMemoryBlock* DumpMemoryArea::allocate_new_block(size_t size)
 		DumpMemory* dm = DumpMemory::get_current();
 		dm->add_size(dmb->get_size());
 
+		STATISTICS(maxdumpsize_NG.max(dm->get_size()));
 		if (dm->get_size() > (size_t) maxdumpsize)
 			maxdumpsize = dm->get_size();
 	}
@@ -257,6 +264,7 @@ DumpMemoryBlock::DumpMemoryBlock(size_t size) : _size(0), _used(0), _block(0)
 	// Allocate a memory block.
 	_block = memory_checked_alloc(_size);
 
+	STATISTICS(globalallocateddumpsize_NG += _size);
 #if defined(ENABLE_STATISTICS)
 	// The amount of globally allocated dump memory (thread safe).
 	if (opt_stat)
@@ -275,6 +283,7 @@ DumpMemoryBlock::~DumpMemoryBlock()
 	// Release the memory block.
 	mem_free(_block, /* XXX */ 1);
 
+	STATISTICS(globalallocateddumpsize_NG -= _size);
 #if defined(ENABLE_STATISTICS)
 	// The amount of globally allocated dump memory (thread safe).
 	if (opt_stat)

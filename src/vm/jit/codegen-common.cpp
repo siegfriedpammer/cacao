@@ -110,6 +110,11 @@ STAT_REGISTER_VAR(int,count_branches_unresolved_NG,0,"unresolved branches","unre
 STAT_DECLARE_GROUP(function_call_stat)
 STAT_REGISTER_GROUP_VAR(u8,count_calls_java_to_native_NG,0,"calls java to native","java-to-native calls",function_call_stat)
 
+STAT_REGISTER_GROUP(memory_stat,"mem. stat.","Memory usage")
+STAT_REGISTER_SUM_GROUP(code_data_stat,"code data","Code and data usage",memory_stat)
+STAT_REGISTER_GROUP_VAR(int,count_code_len_NG,0,"code len","code length",code_data_stat)
+STAT_REGISTER_GROUP_VAR(int,count_data_len_NG,0,"data len","data length",code_data_stat)
+
 struct methodinfo;
 
 /* codegen_init ****************************************************************
@@ -575,6 +580,8 @@ void codegen_finish(jitdata *jd)
 
 	mcodelen = (s4) (cd->mcodeptr - cd->mcodebase);
 
+	STATISTICS(count_code_len_NG += mcodelen);
+	STATISTICS(count_data_len_NG += cd->dseglen);
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 		count_code_len += mcodelen;

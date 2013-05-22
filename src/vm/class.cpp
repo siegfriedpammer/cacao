@@ -60,6 +60,9 @@
 #include "vm/utf8.hpp"
 #include "vm/string.hpp"
 
+STAT_DECLARE_GROUP(info_struct_stat)
+STAT_DECLARE_VAR(int,size_classinfo_NG,0)
+
 /**
  * Returns the classname of the class, where slashes ('/') are
  * replaced by dots ('.').
@@ -133,6 +136,7 @@ classinfo *class_create_classinfo(Utf8String classname)
 {
 	classinfo *c;
 
+	STATISTICS(size_classinfo_NG += sizeof(classinfo));
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		size_classinfo += sizeof(classinfo);

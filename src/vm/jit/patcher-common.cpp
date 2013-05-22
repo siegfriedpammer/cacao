@@ -55,6 +55,7 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/patcher-common.hpp"
 
+STAT_DECLARE_VAR(int,size_patchref_NG,0)
 
 /* patcher_function_list *******************************************************
 
@@ -106,6 +107,7 @@ void patcher_list_create(codeinfo *code)
 
 void patcher_list_reset(codeinfo *code)
 {
+	STATISTICS(size_patchref_NG -= sizeof(patchref_t) * code->patchers->size());
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		size_patchref -= sizeof(patchref_t) * code->patchers->size();
@@ -250,6 +252,7 @@ patchref_t *patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s
 	// Store patcher in the list (NOTE: structure is copied).
 	code->patchers->push_back(pr);
 
+	STATISTICS(size_patchref_NG += sizeof(patchref_t));
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		size_patchref += sizeof(patchref_t);

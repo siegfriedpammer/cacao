@@ -59,6 +59,11 @@ public:
 	 */
 	virtual void print(OStream &O) const = 0;
 
+	/**
+	 * Get the value of a stat entry.
+	 */
+	virtual unsigned long get_value() const { return 0; }
+
 	virtual ~StatEntry() {}
 
 };
@@ -144,14 +149,31 @@ public:
 	 */
 	StatSumGroup(const char* name, const char* description, StatGroup &group)
 			: StatGroup(name,description,group) {}
+
 	virtual void print(OStream &O) const {
-		O << setw(10) << left << name << right <<"   " << description << nl;
+		unsigned long sum = 0;
+		//O << setw(10) << left << name << right <<"   " << description << nl;
+		O << nl;
 		//O << indent;
 		for(StatEntryList::const_iterator i = members->begin(), e= members->end(); i != e; ++i) {
-			StatEntry* re = *i;
-			re->print(O);
+			StatEntry* se = *i;
+			se->print(O);
+			sum += se->get_value();
 		}
 		//O << dedent;
+		O << setw(40) << "-------" << nl;
+		O << setw(30) << "sum"
+		  << setw(10) << sum
+		  << " : " << description << nl;
+	}
+
+	virtual unsigned long get_value() const {
+		unsigned long sum = 0;
+		for(StatEntryList::const_iterator i = members->begin(), e= members->end(); i != e; ++i) {
+			StatEntry* se = *i;
+			sum += se->get_value();
+		}
+		return sum;
 	}
 };
 
@@ -304,9 +326,16 @@ public:
 		parent.add(this);
 	}
 
+	virtual unsigned long get_value() const {
+		return (unsigned long)var;
+	}
+
+	_T get() const {
+		return var;
+	}
+
 	void print(OStream &O) const {
-		O
-		  << setw(30) << name
+		O << setw(30) << name
 		  << setw(10) << var
 		  << " : " << description << nl;
 	}
@@ -354,6 +383,12 @@ public:
 	/// decrement operator
 	inline StatVar& operator-=(const _T& i) {
 	  var-=i;
+	  return *this;
+	}
+
+	/// assignment operator
+	inline StatVar& operator=(const _T& i) {
+	  var=i;
 	  return *this;
 	}
 };
@@ -405,6 +440,11 @@ public:
 		return var;                                                            \
 	}
 
+#define STAT_REGISTER_SUM_GROUP(var,name,description,group)                    \
+	inline cacao::StatSumGroup& var##_group() {                                \
+		static cacao::StatSumGroup var(name,description, group##_group());     \
+		return var;                                                            \
+	}
 
 #define STAT_REGISTER_SUBGROUP(var,name,description,group)                     \
 	inline cacao::StatGroup& var##_group() {                                   \

@@ -48,6 +48,7 @@
 #  define ADDR_MASK(type, x) (x)
 #endif
 
+STAT_DECLARE_VAR(int,size_linenumbertable_NG,0)
 
 /**
  * Resolve the linenumber.
@@ -80,6 +81,9 @@ LinenumberTable::LinenumberTable(jitdata* jd) : _linenumbers(jd->cd->linenumbers
 	// Get required compiler data.
 	codeinfo* code = jd->code;
 
+	STATISTICS(size_linenumbertable_NG +=
+		sizeof(LinenumberTable) +
+		sizeof(Linenumber) * _linenumbers.size());
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 		count_linenumbertable++;

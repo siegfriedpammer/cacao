@@ -63,6 +63,8 @@
 # include "mm/boehm-gc/include/gc.h"
 #endif
 
+STAT_DECLARE_VAR(int,size_threadobject_NG,0)
+
 struct methodinfo;
 
 /* global variables ***********************************************************/
@@ -301,6 +303,7 @@ static threadobject *thread_new(int32_t flags)
 		t = NEW(threadobject);
 #endif
 
+		STATISTICS(size_threadobject_NG += sizeof(threadobject));
 #if defined(ENABLE_STATISTICS)
 		if (opt_stat)
 			size_threadobject += sizeof(threadobject);

@@ -42,6 +42,11 @@
 # include <sys/types.h>
 #endif
 
+STAT_DECLARE_GROUP(memory_stat)
+STAT_REGISTER_SUBGROUP(max_mem_stat,"max. mem","max. memory",memory_stat)
+STAT_REGISTER_SUBGROUP(not_freed_mem_stat,"not freed","not freed",memory_stat)
+STAT_REGISTER_GROUP_VAR(s4,maxmemusage_NG,0,"maxmemusage","max. heap memory",max_mem_stat)
+STAT_REGISTER_GROUP_VAR(s4,memoryusage_NG,0,"memoryusage","heap memory not freed",not_freed_mem_stat)
 /* memory_mprotect *************************************************************
 
    Convenience function for mprotect.  This function also does error
@@ -85,6 +90,8 @@ void *mem_alloc(int32_t size)
 	if (size == 0)
 		return NULL;
 
+	STATISTICS(memoryusage_NG += size);
+	STATISTICS(maxmemusage_NG.max(memoryusage_NG.get()));
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 		memoryusage += size;
@@ -118,6 +125,7 @@ void *mem_realloc(void *src, int32_t len1, int32_t len2)
 		if (len1 != 0)
 			vm_abort("mem_realloc: reallocating memoryblock with address NULL, length != 0");
 
+	STATISTICS(memoryusage_NG += len2 - len1);
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		memoryusage = (memoryusage - len1) + len2;
@@ -152,6 +160,7 @@ void mem_free(void *m, int32_t size)
 		assert(0);
 	}
 
+	STATISTICS(memoryusage_NG -= size);
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		memoryusage -= size;

@@ -558,6 +558,7 @@ void print_stats(void)
 	}
 	log_finish();
 
+	// DONE
 	statistics_print_memory_usage();
 
 	// DONE
