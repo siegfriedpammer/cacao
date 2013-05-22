@@ -930,15 +930,6 @@ public:
 #define N_NOT_UNIQUE_INTERFACE  8
 
 
-/* instruction scheduler statistics *******************************************/
-
-extern s4 count_schedule_basic_blocks;
-extern s4 count_schedule_nodes;
-extern s4 count_schedule_leaders;
-extern s4 count_schedule_max_leaders;
-extern s4 count_schedule_critical_path;
-
-
 /* function prototypes ********************************************************/
 
 s8 getcputime(void);

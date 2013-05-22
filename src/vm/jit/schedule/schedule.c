@@ -721,19 +721,6 @@ void schedule_do_schedule(scheduledata *sd)
 		STATISTICS(count_schedule_leaders_NG += leaders);
 		STATISTICS(count_schedule_max_leaders_NG.max(leaders));
 		STATISTICS(count_schedule_critical_path_NG += criticalpath);
-
-#if defined(ENABLE_STATISTICS)
-		if (opt_stat) {
-			count_schedule_basic_blocks++;
-			count_schedule_nodes += sd->micount;
-			count_schedule_leaders += leaders;
-
-			if (leaders > count_schedule_max_leaders)
-				count_schedule_max_leaders = leaders;
-
-			count_schedule_critical_path += criticalpath;
-		}
-#endif
 	}
 }
 
