@@ -43,6 +43,13 @@
 #include "vm/statistics.hpp"
 #include "vm/jit/schedule/schedule.h"
 
+#error port to C++ first!
+STAT_REGISTER_GROUP(sched_stat,"inst. sched.","Instruction scheduler statistics:")
+STAT_REGISTER_GROUP_VAR(s4,count_schedule_basic_blocks_NG,0,"num basicblocs","Number of basic blocks")
+STAT_REGISTER_GROUP_VAR(s4,count_schedule_nodes_NG,0,"num nodes","Number of nodes")
+STAT_REGISTER_GROUP_VAR(s4,count_schedule_leaders_NG,0,"num leader nodes","Number of leaders nodes")
+STAT_REGISTER_GROUP_VAR(s4,count_schedule_critical_path_NG,0,"critical path","Length of critical path")
+STAT_REGISTER_GROUP_VAR(s4,count_schedule_max_leaders_NG,"max leader nodes","Number of max. leaders nodes")
 
 /* XXX quick hack */
 s4 stackrange;
@@ -709,9 +716,14 @@ void schedule_do_schedule(scheduledata *sd)
 		}
 		printf("schedule end ---\n\n");
 
+		STATISTICS(count_schedule_basic_blocks_NG++);
+		STATISTICS(count_schedule_nodes_NG += sd->micount);
+		STATISTICS(count_schedule_leaders_NG += leaders);
+		STATISTICS(count_schedule_max_leaders_NG.max(leaders));
+		STATISTICS(count_schedule_critical_path_NG += criticalpath);
+
 #if defined(ENABLE_STATISTICS)
 		if (opt_stat) {
-			#warning port to the new statistics framework
 			count_schedule_basic_blocks++;
 			count_schedule_nodes += sd->micount;
 			count_schedule_leaders += leaders;
