@@ -28,18 +28,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#if defined(HAVE_TIME_H)
-# include <time.h>
-#endif
-
-#if defined(HAVE_SYS_TIME_H)
-# include <sys/time.h>
-#endif
-
-#if defined(HAVE_SYS_RESOURCE_H)
-# include <sys/resource.h>
-#endif
-
 #include "vm/types.hpp"
 
 #include "mm/gc.hpp"
@@ -59,14 +47,8 @@
 
 /* global variables ***********************************************************/
 
-static s8 loadingtime = 0;              /* accumulated loading time           */
-static s8 loadingstarttime = 0;
-static s8 loadingstoptime = 0;
 static s4 loadingtime_recursion = 0;
 
-static s8 compilingtime = 0;            /* accumulated compile time           */
-static s8 compilingstarttime = 0;
-static s8 compilingstoptime = 0;
 static s4 compilingtime_recursion = 0;
 
 s4 codememusage = 0;
@@ -245,32 +227,6 @@ s4 count_schedule_max_leaders = 0;
 s4 count_schedule_critical_path = 0;
 
 
-
-/* getcputime *********************************** ******************************
-
-   Returns the used CPU time in microseconds
-
-*******************************************************************************/
-
-s8 getcputime(void)
-{
-#if defined(HAVE_GETRUSAGE)
-	struct rusage ru;
-	int sec, usec;
-
-	getrusage(RUSAGE_SELF, &ru);
-
-	sec  = ru.ru_utime.tv_sec + ru.ru_stime.tv_sec;
-	usec = ru.ru_utime.tv_usec + ru.ru_stime.tv_usec;
-
-	return sec * 1000000 + usec;
-#else
-	/* If we don't have getrusage, simply return 0. */
-
-	return 0;
-#endif
-}
-
 RT_REGISTER_GROUP(legacy_group,"legacy group","legacy group")
 RT_REGISTER_GROUP_TIMER(loadingtime_NG,"loading time", "Time for loading classes",legacy_group)
 RT_REGISTER_GROUP_TIMER(compilingtime_NG,"compiling time", "Time for compiling code",legacy_group)
@@ -287,7 +243,6 @@ void loadingtime_start(void)
 	loadingtime_recursion++;
 
 	if (loadingtime_recursion == 1) {
-		loadingstarttime = getcputime();
 		RT_TIMER_START(loadingtime_NG);
 	}
 }
@@ -302,8 +257,6 @@ void loadingtime_start(void)
 void loadingtime_stop(void)
 {
 	if (loadingtime_recursion == 1) {
-		loadingstoptime = getcputime();
-		loadingtime += (loadingstoptime - loadingstarttime);
 		RT_TIMER_STOP(loadingtime_NG);
 	}
 
@@ -322,11 +275,9 @@ void compilingtime_start(void)
 	compilingtime_recursion++;
 
 	if (compilingtime_recursion == 1) {
-		compilingstarttime = getcputime();
 		RT_TIMER_START(compilingtime_NG);
 	}
 }
-
 
 /* compilingtime_stop **********************************************************
 
@@ -337,42 +288,11 @@ void compilingtime_start(void)
 void compilingtime_stop(void)
 {
 	if (compilingtime_recursion == 1) {
-		compilingstoptime = getcputime();
-		compilingtime += (compilingstoptime - compilingstarttime);
 		RT_TIMER_STOP(compilingtime_NG);
 	}
 
 	compilingtime_recursion--;
 }
-
-
-/* print_times *****************************************************************
-
-   Prints a summary of CPU time usage.
-
-*******************************************************************************/
-
-void print_times(void)
-{
-	s8 totaltime;
-	s8 runtime;
-
-	totaltime = getcputime();
-	runtime = totaltime - loadingtime - compilingtime;
-
-#if SIZEOF_VOID_P == 8
-	dolog("Time for loading classes: %6ld ms", loadingtime / 1000);
-	dolog("Time for compiling code:  %6ld ms", compilingtime / 1000);
-	dolog("Time for running program: %6ld ms", runtime / 1000);
-	dolog("Total time:               %6ld ms", totaltime / 1000);
-#else
-	dolog("Time for loading classes: %6lld ms", loadingtime / 1000);
-	dolog("Time for compiling code:  %6lld ms", compilingtime / 1000);
-	dolog("Time for running program: %6lld ms", runtime / 1000);
-	dolog("Total time:               %6lld ms", totaltime / 1000);
-#endif
-}
-
 
 /* print_stats *****************************************************************
 
@@ -380,6 +300,7 @@ void print_times(void)
 
 *******************************************************************************/
 
+#if 0
 void print_stats(void)
 {
 	s4    i;
@@ -667,7 +588,7 @@ void print_stats(void)
 	print_dynamic_super_statistics();
 #endif
 }
-
+#endif
 
 /* statistics_print_date *******************************************************
 

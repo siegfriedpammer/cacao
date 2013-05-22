@@ -1962,15 +1962,12 @@ void vm_exit_handler(void)
 
 #if defined(ENABLE_STATISTICS)
 		if (opt_stat) {
-			print_stats();
 			cacao::StatGroup::root().print(cacao::dbg());
 #ifdef TYPECHECK_STATISTICS
 			typecheck_print_statistics(get_logfile());
 #endif
 		}
 
-		if (opt_getcompilingtime)
-			print_times();
 #endif /* defined(ENABLE_STATISTICS) */
 	}
 	/* vm_print_profile(stderr);*/

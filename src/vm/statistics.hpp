@@ -906,26 +906,16 @@ public:
 /// @cond
 // exclude from doxygen
 
-
 /* function prototypes ********************************************************/
-
-s8 getcputime(void);
 
 void loadingtime_start(void);
 void loadingtime_stop(void);
 void compilingtime_start(void);
 void compilingtime_stop(void);
 
-void print_times(void);
-void print_stats(void);
-
 void statistics_print_date(void);
 void statistics_print_memory_usage(void);
 void statistics_print_gc_memory_usage(void);
-
-void mem_usagelog(bool givewarnings);
-
-void compiledinvokation(void);
 
 /// @endcond
 // end exclude from doxygen
