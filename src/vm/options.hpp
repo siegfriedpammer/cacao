@@ -232,6 +232,9 @@ extern int      opt_TraceLinkClass;
 #if defined(ENABLE_RT_TIMING)
 extern FILE    *opt_RtTimingLogfile;
 #endif
+#if defined(ENABLE_STATISTICS)
+extern FILE    *opt_StatisticsLogfile;
+#endif
 #if defined(ENABLE_REPLACEMENT)
 extern int      opt_TraceReplacement;
 #endif

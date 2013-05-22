@@ -1939,12 +1939,27 @@ void vm_exit_handler(void)
 			file = stderr;
 		opt_RtTimingLogfile = file;
 	}
+	{
+		assert(opt_RtTimingLogfile);
+		cacao::OStream OS(opt_RtTimingLogfile);
+		OS << "\nreal-time measurment:\n" << cacao::nl;
+		cacao::RTGroup::root().print(OS);
+	}
+#endif
 
-	assert(opt_RtTimingLogfile);
-	cacao::OStream OS(opt_RtTimingLogfile);
-	OS << cacao::right;
-	OS << "\nreal-time measurment:\n" << cacao::nl;
-	cacao::RTGroup::root().print(OS);
+#if defined(ENABLE_STATISTICS)
+	if (!opt_StatisticsLogfile) {
+		FILE *file = fopen("statistics.log", "w");
+		if (file == NULL)
+			/* fallback to stderr */
+			file = stderr;
+		opt_StatisticsLogfile = file;
+	}
+	{
+		assert(opt_StatisticsLogfile);
+		cacao::OStream OS(opt_StatisticsLogfile);
+		cacao::StatGroup::root().print(OS);
+	}
 #endif
 
 #if defined(ENABLE_CYCLES_STATS)
@@ -1962,7 +1977,6 @@ void vm_exit_handler(void)
 
 #if defined(ENABLE_STATISTICS)
 		if (opt_stat) {
-			cacao::StatGroup::root().print(cacao::dbg());
 #ifdef TYPECHECK_STATISTICS
 			typecheck_print_statistics(get_logfile());
 #endif
