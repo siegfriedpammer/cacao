@@ -432,15 +432,10 @@ STAT_REGISTER_GROUP_VAR(int,size_lineinfo,0,"size lineinfo","lineinfo",info_stru
 
 #if defined(ENABLE_STATISTICS)
 
-#include <stdint.h>
-
-#include "vm/types.hpp"
-
-#include "vm/global.hpp"
+#include <assert.h>
+#include <vector>
 
 #include "toolbox/OStream.hpp"
-
-#include <vector>
 
 namespace cacao {
 /**

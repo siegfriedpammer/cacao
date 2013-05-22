@@ -23,26 +23,11 @@
 */
 
 
-#include "config.h"
-
 #include <stdint.h>
-#include <string.h>
 
-#include "vm/types.hpp"
-
-#include "mm/gc.hpp"
-
-#include "toolbox/logging.hpp"
-
-#include "vm/class.hpp"
-#include "vm/field.hpp"
-#include "vm/global.hpp"
-#include "vm/method.hpp"
-#include "vm/options.hpp"
-#include "vm/statistics.hpp"
 #include "vm/rt-timing.hpp"
-
-#include "vm/jit/code.hpp"
+#include "vm/statistics.hpp"
+#include "vm/types.hpp"
 
 
 /* global variables ***********************************************************/
