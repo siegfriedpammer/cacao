@@ -201,32 +201,41 @@ protected:
 		delete table;
 	}
 
-	virtual void print_header(OStream &O) const = 0;
+	virtual void print_header(OStream &O, int first, int last) const = 0;
 
 public:
 	virtual void print(OStream &O) const {
-		O << description << '(' << name << "):" << nl;
-
-		print_header(O);
-
-		// ratio
 		_COUNT_TYPE sum = 0;
-		for(int i = 0; i < table_size + 1; ++i ) {
-			O << setw(6) << table[i];
-			sum += table[i];
-		}
-		O << nl;
-		for(int i = 0; i < table_size + 1; ++i ) {
-			O << setw(6) << setprecision(2) << float(table[i])/sum;
-		}
-		O << "  ratio" << nl;
-		// cumulated ratio
 		_COUNT_TYPE cumulated = 0;
-		for(int i = 0; i < table_size + 1; ++i ) {
-			cumulated += table[i];
-			O << setw(6) << setprecision(2) << float(cumulated)/sum;
+
+		for(int first = 0, end = table_size +1, last = end;
+				first != end; first = last) {
+			if (end - first > 15) {
+				last = first + 10;
+			} else {
+				last = end;
+			}
+			O << description << '(' << name << (first == 0 ? "):" : ") (cont):") << nl;
+
+			print_header(O,first,last);
+
+			// ratio
+			for(int i = first; i < last; ++i ) {
+				O << setw(6) << table[i];
+				sum += table[i];
+			}
+			O << nl;
+			for(int i = first; i < last; ++i ) {
+				O << setw(6) << setprecision(2) << float(table[i])/sum;
+			}
+			O << "  ratio" << nl;
+			// cumulated ratio
+			for(int i = first; i < last; ++i ) {
+				cumulated += table[i];
+				O << setw(6) << setprecision(2) << float(cumulated)/sum;
+			}
+			O << "  cumulated ratio" << nl;
 		}
-		O << "  cumulated ratio" << nl;
 		O << nl;
 	}
 };
@@ -244,12 +253,16 @@ private:
 	const _INDEX_TYPE end;
 
 protected:
-	virtual void print_header(OStream &O) const {
+	virtual void print_header(OStream &O, int first, int last) const {
 		O << ' ';
-		for(int i = 0; i < this->table_size; ++i ) {
+		int i;
+		for(i = first; i < last && i < this->table_size; ++i ) {
 			O << setw(5) << start + i * step << ']';
 		}
-		O << '(' << setw(4) << start + (this->table_size-1)*step << nl;
+		if (i == this->table_size) {
+			O << '(' << setw(4) << start + (this->table_size-1)*step;
+		}
+		O << nl;
 	}
 
 public:
@@ -294,12 +307,16 @@ private:
 	const _INDEX_TYPE *range;  //< range table
 
 protected:
-	virtual void print_header(OStream &O) const {
+	virtual void print_header(OStream &O, int first, int last) const {
 		O << ' ';
-		for(int i = 0; i < this->table_size; ++i ) {
+		int i;
+		for(i = first; i < last && i < this->table_size; ++i ) {
 			O << setw(5) << range[i] << ']';
 		}
-		O << '(' << setw(4) << range[this->table_size-1] << nl;
+		if (i == this->table_size) {
+			O << '(' << setw(4) << range[this->table_size-1];
+		}
+		O << nl;
 	}
 
 public:
