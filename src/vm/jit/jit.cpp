@@ -247,6 +247,13 @@ jitdata *jit_jitdata_new(methodinfo *m)
 
 *******************************************************************************/
 
+STAT_REGISTER_VAR(int,count_jit_calls_NG,0,"jit calls","Number of JIT compiler calls")
+STAT_REGISTER_VAR(int,count_methods_NG,0,"compiled methods","Number of compiled methods")
+// TODO regression: old framework also printed (count_javacodesize - count_methods * 18)
+STAT_REGISTER_VAR(int,count_javacodesize_NG,0,"java code size","Size of compiled JavaVM instructions")
+STAT_REGISTER_VAR(int,count_javaexcsize_NG,0,"java exc.tbl. size","Size of compiled Exception Tables")
+STAT_REGISTER_VAR(int,count_tryblocks_NG,0,"try blocks","Number of Try-Blocks")
+
 static u1 *jit_compile_intern(jitdata *jd);
 
 u1 *jit_compile(methodinfo *m)
@@ -255,6 +262,7 @@ u1 *jit_compile(methodinfo *m)
 	jitdata *jd;
 
 	STATISTICS(count_jit_calls++);
+	STATISTICS(count_jit_calls_NG++);
 
 	/* Initialize the static function's class. */
 
@@ -293,6 +301,7 @@ u1 *jit_compile(methodinfo *m)
 	TRACECOMPILERCALLS();
 
 	STATISTICS(count_methods++);
+	STATISTICS(count_methods_NG++);
 
 #if defined(ENABLE_STATISTICS)
 	/* measure time */
@@ -577,6 +586,9 @@ static u1 *jit_compile_intern(jitdata *jd)
 		return code->entrypoint;        /* return empty method                */
 	}
 
+	STATISTICS(count_javacodesize_NG += m->jcodelength + 18);
+	STATISTICS(count_tryblocks_NG    += jd->exceptiontablelength);
+	STATISTICS(count_javaexcsize_NG  += jd->exceptiontablelength * SIZEOF_VOID_P);
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 		count_javacodesize += m->jcodelength + 18;

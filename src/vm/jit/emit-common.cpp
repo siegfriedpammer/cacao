@@ -44,6 +44,7 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/patcher-common.hpp"
 
+STAT_REGISTER_VAR(int,count_branches_resolved_NG,0,"resolved branches","resolved branches")
 
 /* emit_load_s1 ****************************************************************
 
@@ -312,6 +313,7 @@ void emit_bccz(codegendata *cd, basicblock *target, s4 condition, s4 reg, u4 opt
 
 	if ((target->mpc >= 0)) {
 		STATISTICS(count_branches_resolved++);
+		STATISTICS(count_branches_resolved_NG++);
 
 		/* calculate the mpc of the branch instruction */
 

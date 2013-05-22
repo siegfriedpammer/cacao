@@ -106,6 +106,8 @@
 #include <vmlog_cacao.h>
 #endif
 
+STAT_REGISTER_VAR(int,count_branches_unresolved_NG,0,"unresolved branches","unresolved branches")
+
 struct methodinfo;
 
 /* codegen_init ****************************************************************
@@ -398,6 +400,7 @@ void codegen_add_branch_ref(codegendata *cd, basicblock *target, s4 condition, s
 	s4         branchmpc;
 
 	STATISTICS(count_branches_unresolved++);
+	STATISTICS(count_branches_unresolved_NG++);
 
 	/* calculate the mpc of the branch instruction */
 

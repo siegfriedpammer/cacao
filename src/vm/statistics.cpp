@@ -376,21 +376,29 @@ void print_stats(void)
 	s4    sum;
 
 
+	// DONE
 	dolog("Number of JIT compiler calls: %6d", count_jit_calls);
+	// DONE
 	dolog("Number of compiled methods:   %6d", count_methods);
 
+	// DONE
 	dolog("Number of compiled basic blocks:               %6d",
 		  count_basic_blocks);
+	// DONE
 	dolog("Number of max. basic blocks per method:        %6d",
 		  count_max_basic_blocks);
 
+	// DONE
 	dolog("Number of compiled JavaVM instructions:        %6d",
 		  count_javainstr);
+	// DONE
 	dolog("Number of max. JavaVM instructions per method: %6d",
 		  count_max_javainstr);
+	// PARTLY DONE
 	dolog("Size of compiled JavaVM instructions:          %6d(%d)",
 		  count_javacodesize, count_javacodesize - count_methods * 18);
 
+	// DONE
 	dolog("Size of compiled Exception Tables:      %d", count_javaexcsize);
 	dolog("Number of Machine-Instructions: %d", count_code_len >> 2);
 	dolog("Number of Spills (write to memory) <all [i/l/a|flt|dbl]>: %d [%d|%d|%d]",
@@ -399,36 +407,52 @@ void print_stats(void)
 	dolog("Number of Spills (read from memory) <all [i/l/a|flt|dbl]>: %d [%d|%d|%d]",
 		count_spills_read_ila + count_spills_read_flt + count_spills_read_dbl,
 		count_spills_read_ila, count_spills_read_flt, count_spills_read_dbl);
+	// NOT used?!
 	dolog("Number of Activ    Pseudocommands: %6d", count_pcmd_activ);
+	// NOT used?!
 	dolog("Number of Drop     Pseudocommands: %6d", count_pcmd_drop);
 	dolog("Number of Const    Pseudocommands: %6d (zero:%5d)",
 		  count_pcmd_load, count_pcmd_zero);
 	dolog("Number of ConstAlu Pseudocommands: %6d (cmp: %5d, store:%5d)",
 		  count_pcmd_const_alu, count_pcmd_const_bra, count_pcmd_const_store);
+	// NOT used?!
 	dolog("Number of Move     Pseudocommands: %6d", count_pcmd_move);
+	// DONE
 	dolog("Number of Load     Pseudocommands: %6d", count_load_instruction);
 	dolog("Number of Store    Pseudocommands: %6d (combined: %5d)",
 		  count_pcmd_store, count_pcmd_store - count_pcmd_store_comb);
+	// DONE
 	dolog("Number of OP       Pseudocommands: %6d", count_pcmd_op);
+	// DONE
 	dolog("Number of DUP      Pseudocommands: %6d", count_dup_instruction);
+	// DONE
 	dolog("Number of Mem      Pseudocommands: %6d", count_pcmd_mem);
+	// DONE
 	dolog("Number of Method   Pseudocommands: %6d", count_pcmd_met);
 	dolog("Number of Branch   Pseudocommands: %6d (rets:%5d, Xrets: %5d)",
 		  count_pcmd_bra, count_pcmd_return, count_pcmd_returnx);
+	// DONE
 	log_println("                resolved branches: %6d", count_branches_resolved);
+	// DONE
 	log_println("              unresolved branches: %6d", count_branches_unresolved);
+	// DONE
 	dolog("Number of Table    Pseudocommands: %6d", count_pcmd_table);
 	dolog("Number of Useful   Pseudocommands: %6d", count_pcmd_table +
 		  count_pcmd_bra + count_pcmd_load + count_pcmd_mem + count_pcmd_op);
+	// DONE
 	dolog("Number of Null Pointer Checks:     %6d", count_check_null);
+	// DONE
 	dolog("Number of Array Bound Checks:      %6d", count_check_bound);
+	// DONE
 	dolog("Number of Try-Blocks: %d", count_tryblocks);
 
 	dolog("Number of branch_emit (total, 8bit/16bit/32bit/64bit offset): %d, %d/%d/%d/%d",
 		count_emit_branch,  count_emit_branch_8bit,  count_emit_branch_16bit,
 							count_emit_branch_32bit, count_emit_branch_64bit);
 
+	// DONE
 	dolog("Maximal count of stack elements:   %d", count_max_new_stack);
+	// DONE
 	dolog("Upper bound of max stack elements: %d", count_upper_bound_new_stack);
 	dolog("Distribution of stack sizes at block boundary");
 	dolog("     0     1     2     3     4     5     6     7     8     9  >=10");
