@@ -1,6 +1,6 @@
 /* src/vm/utf8.cpp - utf8 string functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -31,8 +31,8 @@
 #include "vm/options.hpp"
 #include "vm/statistics.hpp"
 
-STAT_REGISTER_VAR(int,count_utf_new_NG,0,"utf new","Calls of utf_new")
-STAT_DECLARE_VAR(int,count_utf_len_NG,0)
+STAT_REGISTER_VAR(int,count_utf_new,0,"utf new","Calls of utf_new")
+STAT_DECLARE_VAR(int,count_utf_len,0)
 
 //****************************************************************************//
 //*****          GLOBAL UTF8-STRING INTERN TABLE                         *****//
@@ -85,7 +85,7 @@ void Utf8String::initialize(void)
 
 	intern_table = new Utf8InternTable(HASHTABLE_UTF_SIZE);
 
-	STATISTICS(count_utf_len_NG += sizeof(utf*) * HASHTABLE_UTF_SIZE);
+	STATISTICS(count_utf_len += sizeof(utf*) * HASHTABLE_UTF_SIZE);
 
 	/* create utf-symbols for pointer comparison of frequently used strings */
 
@@ -113,7 +113,7 @@ bool Utf8String::is_initialized(void)
 inline Utf8String Utf8String::alloc(size_t sz) {
 	Utf* str = (Utf*) mem_alloc(offsetof(Utf,text) + sz + 1);
 
-	STATISTICS(count_utf_new_NG++);
+	STATISTICS(count_utf_new++);
 
 	str->blength = sz;
 

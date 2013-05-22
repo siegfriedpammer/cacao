@@ -49,8 +49,8 @@
 #include "vm/jit/dseg.hpp"
 #endif
 
-STAT_DECLARE_VAR(int,count_cstub_len_NG,0)
-STAT_DECLARE_VAR(int,size_stub_native_NG,0)
+STAT_DECLARE_VAR(int,count_cstub_len,0)
+STAT_DECLARE_VAR(int,size_stub_native,0)
 
 /**
  * Wrapper for codegen_emit_stub_compiler.
@@ -106,7 +106,7 @@ void* CompilerStub::generate(methodinfo *m)
 
 	codegen_emit_stub_compiler(jd);
 
-	STATISTICS(count_cstub_len_NG += 3 * SIZEOF_VOID_P + get_code_size());
+	STATISTICS(count_cstub_len += 3 * SIZEOF_VOID_P + get_code_size());
 
 	/* flush caches */
 
@@ -135,7 +135,7 @@ void* CompilerStub::generate(methodinfo *m)
 
 	emit_trap_compiler(cd);
 
-	STATISTICS(count_cstub_len_NG += 2 * SIZEOF_VOID_P + get_code_size());
+	STATISTICS(count_cstub_len += 2 * SIZEOF_VOID_P + get_code_size());
 
 	/* Flush caches. */
 
@@ -240,7 +240,7 @@ void BuiltinStub::generate(methodinfo* m, builtintable_entry* bte)
 
 	bte->stub = code->entrypoint;
 
-	STATISTICS(size_stub_native_NG += code->mcodelength);
+	STATISTICS(size_stub_native += code->mcodelength);
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 	/* disassemble native stub */
@@ -365,7 +365,7 @@ codeinfo* NativeStub::generate(methodinfo* m, functionptr f)
 	codegen_finish(jd);
 
 	/* must be done after codegen_finish() */
-	STATISTICS(size_stub_native_NG += code->mcodelength);
+	STATISTICS(size_stub_native += code->mcodelength);
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 	/* disassemble native stub */

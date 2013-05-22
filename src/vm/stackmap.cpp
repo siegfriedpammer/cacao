@@ -1,6 +1,6 @@
 /* src/vm/stackmap.c - class attribute StackMapTable
 
-   Copyright (C) 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -34,7 +34,7 @@
 #include "vm/options.hpp"
 #include "vm/suck.hpp"
 
-STAT_DECLARE_VAR(int,size_stack_map_NG,0)
+STAT_DECLARE_VAR(int,size_stack_map,0)
 
 struct classinfo;
 
@@ -415,7 +415,7 @@ bool stackmap_load_attribute_stackmaptable(classbuffer *cb, methodinfo *m)
 
 	stack_map = DNEW(stack_map_t);
 
-	STATISTICS(size_stack_map_NG += sizeof(stack_map_t));
+	STATISTICS(size_stack_map += sizeof(stack_map_t));
 
 	/* check buffer size */
 

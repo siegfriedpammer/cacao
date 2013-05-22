@@ -77,32 +77,32 @@
 
 #include "vm/jit/stubs.hpp"
 
-STAT_REGISTER_VAR(int,count_class_loads_NG,0,"class loads","Number of class loads")
+STAT_REGISTER_VAR(int,count_class_loads,0,"class loads","Number of class loads")
 
 STAT_DECLARE_GROUP(memory_stat)
 STAT_REGISTER_SUM_SUBGROUP(info_struct_stat,"info structs","info struct usage",memory_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,size_classinfo_NG,0,"size classinfo","classinfo",info_struct_stat) // sizeof(classinfo)?
-STAT_REGISTER_GROUP_VAR(int,size_fieldinfo_NG,0,"size fieldinfo","fieldinfo",info_struct_stat) // sizeof(fieldinfo)?
-STAT_REGISTER_GROUP_VAR(int,size_methodinfo_NG,0,"size methodinfo","methodinfo",info_struct_stat) // sizeof(methodinfo)?
+STAT_REGISTER_GROUP_VAR_EXTERN(int,size_classinfo,0,"size classinfo","classinfo",info_struct_stat) // sizeof(classinfo)?
+STAT_REGISTER_GROUP_VAR(int,size_fieldinfo,0,"size fieldinfo","fieldinfo",info_struct_stat) // sizeof(fieldinfo)?
+STAT_REGISTER_GROUP_VAR(int,size_methodinfo,0,"size methodinfo","methodinfo",info_struct_stat) // sizeof(methodinfo)?
 
 
 STAT_REGISTER_SUM_SUBGROUP(misc_code_stat,"misc structs","misc struct usage",memory_stat)
-STAT_REGISTER_GROUP_VAR(int,count_const_pool_len_NG,0,"const pool len","constant pool",misc_code_stat)
-STAT_REGISTER_GROUP_VAR(int,count_classref_len_NG,0,"classref len","classref",misc_code_stat)
-STAT_REGISTER_GROUP_VAR(int,count_parsed_desc_len_NG,0,"parsed desc len","parsed descriptors",misc_code_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,count_vftbl_len_NG,0,"vftbl len","vftbl",misc_code_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,count_cstub_len_NG,0,"cstub len","compiler stubs",misc_code_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,size_stub_native_NG,0,"stub native","native stubs",misc_code_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,count_utf_len_NG,0,"utf len","utf",misc_code_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,count_vmcode_len_NG,0,"vmcode len","vmcode",misc_code_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,size_stack_map_NG,0,"stack map","stack map",misc_code_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,size_string_NG,0,"string","string",misc_code_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,size_threadobject_NG,0,"threadobject","threadobject",misc_code_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,size_thread_index_t_NG,0,"size_thread_index_t","thread index",misc_code_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,size_stacksize_NG,0,"size_stacksize","stack size",misc_code_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,size_lock_record_NG,0,"size_lock_record","lock record",misc_code_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,size_lock_hashtable_NG,0,"size_lock_hashtable","lock hashtable",misc_code_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,size_lock_waiter_NG,0,"size_lock_waiter","lock waiter",misc_code_stat)
+STAT_REGISTER_GROUP_VAR(int,count_const_pool_len,0,"const pool len","constant pool",misc_code_stat)
+STAT_REGISTER_GROUP_VAR(int,count_classref_len,0,"classref len","classref",misc_code_stat)
+STAT_REGISTER_GROUP_VAR(int,count_parsed_desc_len,0,"parsed desc len","parsed descriptors",misc_code_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,count_vftbl_len,0,"vftbl len","vftbl",misc_code_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,count_cstub_len,0,"cstub len","compiler stubs",misc_code_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,size_stub_native,0,"stub native","native stubs",misc_code_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,count_utf_len,0,"utf len","utf",misc_code_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,count_vmcode_len,0,"vmcode len","vmcode",misc_code_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,size_stack_map,0,"stack map","stack map",misc_code_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,size_string,0,"string","string",misc_code_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,size_threadobject,0,"threadobject","threadobject",misc_code_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,size_thread_index_t,0,"size_thread_index_t","thread index",misc_code_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,size_stacksize,0,"size_stacksize","stack size",misc_code_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,size_lock_record,0,"size_lock_record","lock record",misc_code_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,size_lock_hashtable,0,"size_lock_hashtable","lock hashtable",misc_code_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,size_lock_waiter,0,"size_lock_waiter","lock waiter",misc_code_stat)
 
 
 /* global variables ***********************************************************/
@@ -584,7 +584,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		return false;
 	}
 
-	STATISTICS(count_const_pool_len_NG += (sizeof(u1) + sizeof(void*)) * cpcount);
+	STATISTICS(count_const_pool_len += (sizeof(u1) + sizeof(void*)) * cpcount);
 
 	/* initialize constantpool */
 	for (idx = 0; idx < cpcount; idx++) {
@@ -679,7 +679,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		case CONSTANT_Integer: {
 			constant_integer *ci = NEW(constant_integer);
 
-			STATISTICS(count_const_pool_len_NG += sizeof(constant_integer));
+			STATISTICS(count_const_pool_len += sizeof(constant_integer));
 
 			if (!suck_check_classbuffer_size(cb, 4))
 				return false;
@@ -695,7 +695,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		case CONSTANT_Float: {
 			constant_float *cf = NEW(constant_float);
 
-			STATISTICS(count_const_pool_len_NG += sizeof(constant_float));
+			STATISTICS(count_const_pool_len += sizeof(constant_float));
 
 			if (!suck_check_classbuffer_size(cb, 4))
 				return false;
@@ -711,7 +711,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		case CONSTANT_Long: {
 			constant_long *cl = NEW(constant_long);
 
-			STATISTICS(count_const_pool_len_NG += sizeof(constant_long));
+			STATISTICS(count_const_pool_len += sizeof(constant_long));
 
 			if (!suck_check_classbuffer_size(cb, 8))
 				return false;
@@ -730,7 +730,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		case CONSTANT_Double: {
 			constant_double *cd = NEW(constant_double);
 
-			STATISTICS(count_const_pool_len_NG += sizeof(constant_double));
+			STATISTICS(count_const_pool_len += sizeof(constant_double));
 
 			if (!suck_check_classbuffer_size(cb, 8))
 				return false;
@@ -830,7 +830,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 
 		constant_nameandtype *cn = NEW(constant_nameandtype);
 
-		STATISTICS(count_const_pool_len_NG += sizeof(constant_nameandtype));
+		STATISTICS(count_const_pool_len += sizeof(constant_nameandtype));
 
 		/* resolve simple name and descriptor */
 		cn->name = (utf*) class_getconstant(c,
@@ -874,7 +874,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		constant_nameandtype *nat;
 		constant_FMIref *fmi = NEW(constant_FMIref);
 
-		STATISTICS(count_const_pool_len_NG += sizeof(constant_FMIref));
+		STATISTICS(count_const_pool_len += sizeof(constant_FMIref));
 		/* resolve simple name and descriptor */
 
 		nat = (constant_nameandtype*) class_getconstant(c,
@@ -1609,8 +1609,8 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 		descriptor_pool_get_sizes(descpool, &classrefsize, &descsize);
-		STATISTICS(count_classref_len_NG += classrefsize);
-		STATISTICS(count_parsed_desc_len_NG += descsize);
+		STATISTICS(count_classref_len += classrefsize);
+		STATISTICS(count_parsed_desc_len += descsize);
 	}
 #endif
 
@@ -1872,9 +1872,9 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	RT_TIMER_STOPSTART(verify_timer,attrs_timer);
 
-	STATISTICS(size_classinfo_NG  += sizeof(classinfo*) * c->interfacescount);
-	STATISTICS(size_fieldinfo_NG  += sizeof(fieldinfo)  * c->fieldscount);
-	STATISTICS(size_methodinfo_NG += sizeof(methodinfo) * c->methodscount);
+	STATISTICS(size_classinfo  += sizeof(classinfo*) * c->interfacescount);
+	STATISTICS(size_fieldinfo  += sizeof(fieldinfo)  * c->fieldscount);
+	STATISTICS(size_methodinfo += sizeof(methodinfo) * c->methodscount);
 
 	/* load attribute structures */
 
@@ -1924,7 +1924,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	if (c->state & CLASS_LOADED)
 		return c;
 
-	STATISTICS(count_class_loads_NG++);
+	STATISTICS(count_class_loads++);
 
 #if !defined(NDEBUG)
 	if (loadverbose)

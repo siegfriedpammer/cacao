@@ -60,7 +60,7 @@
 #include <vector>
 #include <utility>
 
-STAT_DECLARE_VAR(int,count_vftbl_len_NG,0)
+STAT_DECLARE_VAR(int,count_vftbl_len,0)
 
 /* debugging macros ***********************************************************/
 
@@ -573,7 +573,7 @@ static classinfo *build_display(classinfo *c)
 	/* Now copy super's display, append c->vftbl and initialize the remaining fields. */
 	if (depth >= DISPLAY_SIZE) {
 		c->vftbl->subtype_overflow = MNEW(vftbl_t *, depth - DISPLAY_SIZE + 1);
-		STATISTICS(count_vftbl_len_NG += sizeof(vftbl_t*) * (depth - DISPLAY_SIZE + 1));
+		STATISTICS(count_vftbl_len += sizeof(vftbl_t*) * (depth - DISPLAY_SIZE + 1));
 		memcpy(c->vftbl->subtype_overflow, super->vftbl->subtype_overflow, sizeof(vftbl_t*) * (depth - DISPLAY_SIZE));
 		c->vftbl->subtype_overflow[depth - DISPLAY_SIZE] = c->vftbl;
 		depth_fixed = DISPLAY_SIZE;
@@ -853,7 +853,7 @@ static classinfo *link_class_intern(classinfo *c)
 	RT_TIMER_STOPSTART(abstract_timer,compute_iftbl_timer);
 
 
-	STATISTICS(count_vftbl_len_NG +=
+	STATISTICS(count_vftbl_len +=
 		sizeof(vftbl_t) + (sizeof(methodptr) * (vftbllength - 1)));
 
 	/* compute interfacetable length */
@@ -966,7 +966,7 @@ static classinfo *link_class_intern(classinfo *c)
 
 	v->interfacevftbllength = MNEW(s4, interfacetablelength);
 
-	STATISTICS(count_vftbl_len_NG += (4 + sizeof(s4)) * v->interfacetablelength);
+	STATISTICS(count_vftbl_len += (4 + sizeof(s4)) * v->interfacetablelength);
 
 	for (i = 0; i < interfacetablelength; i++) {
 		v->interfacevftbllength[i] = 0;
@@ -1308,7 +1308,7 @@ static bool linker_addinterface(classinfo *c, classinfo *ic)
 		v->interfacevftbllength[i] = ic->methodscount;
 		v->interfacetable[-i]      = MNEW(methodptr, ic->methodscount);
 
-		STATISTICS(count_vftbl_len_NG += sizeof(methodptr) *
+		STATISTICS(count_vftbl_len += sizeof(methodptr) *
 			(ic->methodscount + (ic->methodscount == 0)));
 
 		for (j = 0; j < ic->methodscount; j++) {

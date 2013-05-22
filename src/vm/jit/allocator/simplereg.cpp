@@ -49,18 +49,18 @@
 
 #define DEBUG_NAME "simplereg"
 
-STAT_DECLARE_VAR(int,count_locals_spilled_NG,0)
-STAT_DECLARE_VAR(int,count_locals_register_NG,0)
+STAT_DECLARE_VAR(int,count_locals_spilled,0)
+STAT_DECLARE_VAR(int,count_locals_register,0)
 // currently not used!
-STAT_DECLARE_VAR(int,count_ss_spilled_NG,0)
+STAT_DECLARE_VAR(int,count_ss_spilled,0)
 // currently not used!
-STAT_DECLARE_VAR(int,count_ss_register_NG,0)
-STAT_DECLARE_VAR(int,count_interface_size_NG,0)
+STAT_DECLARE_VAR(int,count_ss_register,0)
+STAT_DECLARE_VAR(int,count_interface_size,0)
 // currently not used!
-STAT_DECLARE_VAR(int,count_argument_reg_ss_NG,0)
+STAT_DECLARE_VAR(int,count_argument_reg_ss,0)
 // currently not used!
-STAT_DECLARE_VAR(int,count_argument_mem_ss_NG,0)
-STAT_REGISTER_VAR(int,count_method_in_register_NG,0,"methods in register","Number of Methods kept in registers")
+STAT_DECLARE_VAR(int,count_argument_mem_ss,0)
+STAT_REGISTER_VAR(int,count_method_in_register,0,"methods in register","Number of Methods kept in registers")
 
 /* function prototypes for this file ******************************************/
 
@@ -1775,11 +1775,11 @@ void simplereg_make_statistics(jitdata *jd)
 		/* count how many local variables are held in memory or register */
 		for(i=0; i < jd->localcount; i++) {
 			if (VAR(i)->flags & INMEMORY) {
-				STATISTICS(count_locals_spilled_NG++);
+				STATISTICS(count_locals_spilled++);
 				in_register=false;
 			}
 			else {
-				STATISTICS(count_locals_register_NG++);
+				STATISTICS(count_locals_register++);
 			}
 		}
 
@@ -1835,29 +1835,29 @@ void simplereg_make_statistics(jitdata *jd)
 						case TEMPVAR:
 						case STACKVAR:
 							if (!(src->flags & INMEMORY))
-								STATISTICS(count_ss_register_NG++);
+								STATISTICS(count_ss_register++);
 							else {
-								STATISTICS(count_ss_spilled_NG++);
+								STATISTICS(count_ss_spilled++);
 								in_register=false;
 							}
 							break;
 							/* 					case LOCALVAR: */
 							/* 						if (!(rd->locals[src->varnum][src->type].flags & INMEMORY)) */
-							/* 							STATISTICS(count_ss_register_NG++); */
+							/* 							STATISTICS(count_ss_register++); */
 							/* 						else */
-							/* 							STATISTICS(count_ss_spilled_NG++); */
+							/* 							STATISTICS(count_ss_spilled++); */
 							/* 						break; */
 						case ARGVAR:
 							if (!(src->flags & INMEMORY))
-								STATISTICS(count_argument_mem_ss_NG++);
+								STATISTICS(count_argument_mem_ss++);
 							else
-								STATISTICS(count_argument_reg_ss_NG++);
+								STATISTICS(count_argument_reg_ss++);
 							break;
 
 
 							/* 						if (IS_FLT_DBL_TYPE(src->type)) { */
 							/* 							if (src->varnum < FLT_ARG_CNT) { */
-							/* 								STATISTICS(count_ss_register_NG++); */
+							/* 								STATISTICS(count_ss_register++); */
 							/* 								break; */
 							/* 							} */
 							/* 						} else { */
@@ -1866,11 +1866,11 @@ void simplereg_make_statistics(jitdata *jd)
 							/* #else */
 							/* 							if (src->varnum < INT_ARG_CNT) { */
 							/* #endif */
-							/*								STATISTICS(count_ss_register_NG++); */
+							/*								STATISTICS(count_ss_register++); */
 							/* 								break; */
 							/* 							} */
 							/* 						} */
-							/* 						STATISTICS(count_ss_spilled_NG++); */
+							/* 						STATISTICS(count_ss_spilled++); */
 							/* 						break; */
 						}
 					}
@@ -1884,9 +1884,9 @@ void simplereg_make_statistics(jitdata *jd)
 			bptr = bptr->next;
 		} /* while blocks */
 
-		STATISTICS(count_interface_size_NG += size_interface); /* accummulate the size of the interface (between bb boundaries) */
+		STATISTICS(count_interface_size += size_interface); /* accummulate the size of the interface (between bb boundaries) */
 		if (in_register) {
-			STATISTICS(count_method_in_register_NG++);
+			STATISTICS(count_method_in_register++);
 /* 			printf("INREGISTER: %s%s%s\n",UTF_TEXT(m->class->name), UTF_TEXT(m->name), UTF_TEXT(m->descriptor)); */
 		}
 }

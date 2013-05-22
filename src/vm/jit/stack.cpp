@@ -80,56 +80,56 @@
 #define SBRSTART  typeinfo.elementclass.any
 #endif
 
-STAT_REGISTER_VAR(int,count_basic_blocks_NG,0,"basic blocks","Number of compiled basic blocks")
-STAT_REGISTER_VAR(int,count_max_basic_blocks_NG,0,"max basic blocks","Number of max. basic blocks per method")
-STAT_REGISTER_VAR(int,count_javainstr_NG,0,"java inst","Number of compiled JavaVM instructions")
-STAT_REGISTER_VAR(int,count_max_javainstr_NG,0,"max java inst","Number of max. JavaVM instructions per method")
+STAT_REGISTER_VAR(int,count_basic_blocks,0,"basic blocks","Number of compiled basic blocks")
+STAT_REGISTER_VAR(int,count_max_basic_blocks,0,"max basic blocks","Number of max. basic blocks per method")
+STAT_REGISTER_VAR(int,count_javainstr,0,"java inst","Number of compiled JavaVM instructions")
+STAT_REGISTER_VAR(int,count_max_javainstr,0,"max java inst","Number of max. JavaVM instructions per method")
 
 
-//STAT_REGISTER_VAR(int,count_pcmd_activ_NG,0,"count_pcmd_activ","Number of Activ    Pseudocommands")
-//STAT_REGISTER_VAR(int,count_pcmd_drop_NG,0,"count_pcmd_drop","Number of Drop     Pseudocommands")
-//STAT_REGISTER_VAR(int,count_pcmd_move_NG,0,"count_pcmd_move","Number of Move     Pseudocommands")
-STAT_REGISTER_VAR(int,count_load_instruction_NG,0,"load instruction","Number of Load Pseudocommands")
-STAT_REGISTER_VAR(int,count_pcmd_op_NG,0,"pcmd op","Number of OP Pseudocommands")
-STAT_REGISTER_VAR(int,count_dup_instruction_NG,0,"dup instruction","Number of DUP Pseudocommands")
-STAT_REGISTER_VAR(int,count_pcmd_mem_NG,0,"pcmd mem","Number of Mem Pseudocommands")
-STAT_REGISTER_VAR(int,count_pcmd_met_NG,0,"pcmd met","Number of Method Pseudocommands")
-STAT_REGISTER_VAR(int,count_pcmd_table_NG,0,"pcmd table","Number of Table Pseudocommands")
-STAT_REGISTER_VAR(int,count_check_null_NG,0,"check null","Number of Null Pointer Checks")
-STAT_REGISTER_VAR(int,count_check_bound_NG,0,"check bound","Number of Array Bound Checks")
-STAT_REGISTER_VAR(int,count_max_new_stack_NG,0,"max new stack","Maximal count of stack elements")
-STAT_REGISTER_VAR(int,count_upper_bound_new_stack_NG,0,"upper bound new stack","Upper bound of max stack elements")
+//STAT_REGISTER_VAR(int,count_pcmd_activ,0,"count_pcmd_activ","Number of Activ    Pseudocommands")
+//STAT_REGISTER_VAR(int,count_pcmd_drop,0,"count_pcmd_drop","Number of Drop     Pseudocommands")
+//STAT_REGISTER_VAR(int,count_pcmd_move,0,"count_pcmd_move","Number of Move     Pseudocommands")
+STAT_REGISTER_VAR(int,count_load_instruction,0,"load instruction","Number of Load Pseudocommands")
+STAT_REGISTER_VAR(int,count_pcmd_op,0,"pcmd op","Number of OP Pseudocommands")
+STAT_REGISTER_VAR(int,count_dup_instruction,0,"dup instruction","Number of DUP Pseudocommands")
+STAT_REGISTER_VAR(int,count_pcmd_mem,0,"pcmd mem","Number of Mem Pseudocommands")
+STAT_REGISTER_VAR(int,count_pcmd_met,0,"pcmd met","Number of Method Pseudocommands")
+STAT_REGISTER_VAR(int,count_pcmd_table,0,"pcmd table","Number of Table Pseudocommands")
+STAT_REGISTER_VAR(int,count_check_null,0,"check null","Number of Null Pointer Checks")
+STAT_REGISTER_VAR(int,count_check_bound,0,"check bound","Number of Array Bound Checks")
+STAT_REGISTER_VAR(int,count_max_new_stack,0,"max new stack","Maximal count of stack elements")
+STAT_REGISTER_VAR(int,count_upper_bound_new_stack,0,"upper bound new stack","Upper bound of max stack elements")
 
 STAT_REGISTER_GROUP(const_pcmd_stat,"const pcmd","Number of Const Pseudocommands")
-STAT_REGISTER_GROUP_VAR(int,count_pcmd_load_NG,0,"pcmd load","Number of Const Pseudocommands (load)",const_pcmd_stat)
-STAT_REGISTER_GROUP_VAR(int,count_pcmd_zero_NG,0,"pcmd zero","Number of Const Pseudocommands (zero)",const_pcmd_stat)
+STAT_REGISTER_GROUP_VAR(int,count_pcmd_load,0,"pcmd load","Number of Const Pseudocommands (load)",const_pcmd_stat)
+STAT_REGISTER_GROUP_VAR(int,count_pcmd_zero,0,"pcmd zero","Number of Const Pseudocommands (zero)",const_pcmd_stat)
 
 #if 0
 // not used
 STAT_REGISTER_GROUP(constalu_pcmd_stat,"const alu pcmd","Number of ConstAlu Pseudocommands")
-STAT_REGISTER_GROUP_VAR(int,count_pcmd_const_alu_NG,0,"count_pcmd_const_alu","Number of ConstAlu Pseudocommands",constalu_pcmd_stat)
-STAT_REGISTER_GROUP_VAR(int,count_pcmd_const_bra_NG,0,"count_pcmd_const_bra","Number of ConstAlu Pseudocommands (cmp)",constalu_pcmd_stat)
-STAT_REGISTER_GROUP_VAR(int,count_pcmd_const_store_NG,0,"count_pcmd_const_store","Number of ConstAlu Pseudocommands (store)",constalu_pcmd_stat)
+STAT_REGISTER_GROUP_VAR(int,count_pcmd_const_alu,0,"count_pcmd_const_alu","Number of ConstAlu Pseudocommands",constalu_pcmd_stat)
+STAT_REGISTER_GROUP_VAR(int,count_pcmd_const_bra,0,"count_pcmd_const_bra","Number of ConstAlu Pseudocommands (cmp)",constalu_pcmd_stat)
+STAT_REGISTER_GROUP_VAR(int,count_pcmd_const_store,0,"count_pcmd_const_store","Number of ConstAlu Pseudocommands (store)",constalu_pcmd_stat)
 #endif
 
-STAT_REGISTER_VAR(int,count_pcmd_store_NG,0,"count_pcmd_store","Number of Store    Pseudocommands")
+STAT_REGISTER_VAR(int,count_pcmd_store,0,"count_pcmd_store","Number of Store    Pseudocommands")
 // count_pcmd_store_comb?
 
 STAT_REGISTER_GROUP(branch_pcmd_stat,"branch pcmd","Number of Branch Pseudocommands")
-STAT_REGISTER_GROUP_VAR(int,count_pcmd_bra_NG,0,"count_pcmd_bra","Number of Branch   Pseudocommands",branch_pcmd_stat)
-STAT_REGISTER_GROUP_VAR(int,count_pcmd_return_NG,0,"count_pcmd_return","Number of Branch   Pseudocommands (rets)",branch_pcmd_stat)
-STAT_REGISTER_GROUP_VAR(int,count_pcmd_returnx_NG,0,"count_pcmd_returnx","Number of Branch   Pseudocommands (Xrets)",branch_pcmd_stat)
+STAT_REGISTER_GROUP_VAR(int,count_pcmd_bra,0,"count_pcmd_bra","Number of Branch   Pseudocommands",branch_pcmd_stat)
+STAT_REGISTER_GROUP_VAR(int,count_pcmd_return,0,"count_pcmd_return","Number of Branch   Pseudocommands (rets)",branch_pcmd_stat)
+STAT_REGISTER_GROUP_VAR(int,count_pcmd_returnx,0,"count_pcmd_returnx","Number of Branch   Pseudocommands (Xrets)",branch_pcmd_stat)
 
-STAT_REGISTER_DIST(unsigned int,unsigned int,count_block_stack_NG,0,9,1,0,"stack size dist","Distribution of stack sizes at block boundary")
-STAT_REGISTER_DIST(unsigned int,unsigned int,count_store_depth_NG,0,9,1,0,"store stack depth dist","Distribution of store stack depth")
-STAT_REGISTER_DIST(unsigned int,unsigned int,count_store_length_NG,0,19,1,0,"store creator chains","Distribution of store creator chains")
-STAT_REGISTER_DIST(unsigned int,unsigned int,count_analyse_iterations_NG,1,4,1,0,"analysis iter.","Distribution of analysis iterations")
+STAT_REGISTER_DIST(unsigned int,unsigned int,count_block_stack,0,9,1,0,"stack size dist","Distribution of stack sizes at block boundary")
+STAT_REGISTER_DIST(unsigned int,unsigned int,count_store_depth,0,9,1,0,"store stack depth dist","Distribution of store stack depth")
+STAT_REGISTER_DIST(unsigned int,unsigned int,count_store_length,0,19,1,0,"store creator chains","Distribution of store creator chains")
+STAT_REGISTER_DIST(unsigned int,unsigned int,count_analyse_iterations,1,4,1,0,"analysis iter.","Distribution of analysis iterations")
 
-static const unsigned int count_method_bb_distribution_NG_range[] = {5,10,15,20,30,40,50,75};
-STAT_REGISTER_DIST_RANGE(unsigned int,unsigned int,count_method_bb_distribution_NG,count_method_bb_distribution_NG_range,8,0,"method bb dist.","Distribution of basic blocks per method")
+static const unsigned int count_method_bb_distribution_range[] = {5,10,15,20,30,40,50,75};
+STAT_REGISTER_DIST_RANGE(unsigned int,unsigned int,count_method_bb_distribution,count_method_bb_distribution_range,8,0,"method bb dist.","Distribution of basic blocks per method")
 
-static const unsigned int count_block_size_distribution_NG_range[] = {0,1,2,3,4,5,6,7,8,9,12,14,16,18,20,25,30};
-STAT_REGISTER_DIST_RANGE(unsigned int,unsigned int,count_block_size_distribution_NG,count_block_size_distribution_NG_range,17,0,"bb size dist.","Distribution of basic block sizes")
+static const unsigned int count_block_size_distribution_range[] = {0,1,2,3,4,5,6,7,8,9,12,14,16,18,20,25,30};
+STAT_REGISTER_DIST_RANGE(unsigned int,unsigned int,count_block_size_distribution,count_block_size_distribution_range,17,0,"bb size dist.","Distribution of basic block sizes")
 /* stackdata_t *****************************************************************
 
    This struct holds internal data during stack analysis.
@@ -2356,7 +2356,7 @@ icmd_NOP:
 
 					case ICMD_CHECKNULL:
 						coalescing_boundary = sd.new_elem;
-						STATISTICS(count_check_null_NG++);
+						STATISTICS(count_check_null++);
 						USE_S1(TYPE_ADR);
 						CLR_SX;
 						iptr->dst.varindex = iptr->s1.varindex;
@@ -2380,7 +2380,7 @@ icmd_NOP:
 						break;
 
 					case ICMD_RETURN:
-						STATISTICS(count_pcmd_return_NG++);
+						STATISTICS(count_pcmd_return++);
 						CLR_SX;
 						OP0_0;
 						superblockend = true;
@@ -2398,7 +2398,7 @@ icmd_NOP:
 	/************************** ICONST OPTIMIZATIONS **************************/
 
 					case ICMD_ICONST:
-						STATISTICS(count_pcmd_load_NG++);
+						STATISTICS(count_pcmd_load++);
 						if (len == 0)
 							goto normal_ICONST;
 
@@ -2410,7 +2410,7 @@ icmd_NOP:
 							icmd_iconst_tail:
 								iptr[1].opc = ICMD_NOP;
 								OP1_1(TYPE_INT, TYPE_INT);
-								STATISTICS(count_pcmd_op_NG++);
+								STATISTICS(count_pcmd_op++);
 								break;
 
 							case ICMD_ISUB:
@@ -2702,7 +2702,7 @@ icmd_NOP:
 								/* XXX constval -> astoreconstval? */
 								iptr->sx.s23.s3.constval = iptr->sx.val.i;
 								OP2_0(TYPE_ADR, TYPE_INT);
-								STATISTICS(count_pcmd_op_NG++);
+								STATISTICS(count_pcmd_op++);
 								break;
 
 							case ICMD_PUTSTATIC:
@@ -2761,7 +2761,7 @@ putconst_tail:
 								}
 
 								iptr[1].opc = ICMD_NOP;
-								STATISTICS(count_pcmd_op_NG++);
+								STATISTICS(count_pcmd_op++);
 								break;
 #endif /* SUPPORT_CONST_STORE */
 
@@ -2780,7 +2780,7 @@ normal_ICONST:
 	/************************** LCONST OPTIMIZATIONS **************************/
 
 					case ICMD_LCONST:
-						STATISTICS(count_pcmd_load_NG++);
+						STATISTICS(count_pcmd_load++);
 						if (len == 0)
 							goto normal_LCONST;
 
@@ -2796,7 +2796,7 @@ normal_ICONST:
 								/* instruction of type LONG -> LONG */
 								iptr[1].opc = ICMD_NOP;
 								OP1_1(TYPE_LNG, TYPE_LNG);
-								STATISTICS(count_pcmd_op_NG++);
+								STATISTICS(count_pcmd_op++);
 								break;
 
 							case ICMD_LSUB:
@@ -3027,8 +3027,8 @@ normal_ICONST:
 
 										OP1_BRANCH(TYPE_LNG);
 										BRANCH(tbptr);
-										STATISTICS(count_pcmd_bra_NG++);
-										STATISTICS(count_pcmd_op_NG++);
+										STATISTICS(count_pcmd_bra++);
+										STATISTICS(count_pcmd_op++);
 										break;
 
 									case ICMD_IFNE:
@@ -3076,7 +3076,7 @@ normal_ICONST:
 								OP2_0(TYPE_ADR, TYPE_INT);
 
 								iptr[1].opc = ICMD_NOP;
-								STATISTICS(count_pcmd_op_NG++);
+								STATISTICS(count_pcmd_op++);
 								break;
 
 							case ICMD_PUTSTATIC:
@@ -3115,12 +3115,12 @@ normal_LCONST:
 	/************************ END OF LCONST OPTIMIZATIONS *********************/
 
 					case ICMD_FCONST:
-						STATISTICS(count_pcmd_load_NG++);
+						STATISTICS(count_pcmd_load++);
 						OP0_1(TYPE_FLT);
 						break;
 
 					case ICMD_DCONST:
-						STATISTICS(count_pcmd_load_NG++);
+						STATISTICS(count_pcmd_load++);
 						OP0_1(TYPE_DBL);
 						break;
 
@@ -3128,7 +3128,7 @@ normal_LCONST:
 
 					case ICMD_ACONST:
 						coalescing_boundary = sd.new_elem;
-						STATISTICS(count_pcmd_load_NG++);
+						STATISTICS(count_pcmd_load++);
 #if SUPPORT_CONST_STORE
 						/* We can only optimize if the ACONST is resolved
 						 * and there is an instruction after it. */
@@ -3151,7 +3151,7 @@ normal_LCONST:
 								OP2_0(TYPE_ADR, TYPE_INT);
 
 								iptr[1].opc = ICMD_NOP;
-								STATISTICS(count_pcmd_op_NG++);
+								STATISTICS(count_pcmd_op++);
 								break;
 
 							case ICMD_PUTSTATIC:
@@ -3187,7 +3187,7 @@ normal_ACONST:
 					case ICMD_FLOAD:
 					case ICMD_DLOAD:
 					case ICMD_ALOAD:
-						STATISTICS(count_load_instruction_NG++);
+						STATISTICS(count_load_instruction++);
 						type = opcode - ICMD_ILOAD;
 
 						varindex = iptr->s1.varindex =
@@ -3210,9 +3210,9 @@ normal_ACONST:
 					case ICMD_AALOAD:
 						coalescing_boundary = sd.new_elem;
 						iptr->flags.bits |= INS_FLAG_CHECK;
-						STATISTICS(count_check_null_NG++);
-						STATISTICS(count_check_bound_NG++);
-						STATISTICS(count_pcmd_mem_NG++);
+						STATISTICS(count_check_null++);
+						STATISTICS(count_check_bound++);
+						STATISTICS(count_pcmd_mem++);
 						OP2_1(TYPE_ADR, TYPE_INT, opcode - ICMD_IALOAD);
 						break;
 
@@ -3222,16 +3222,16 @@ normal_ACONST:
 					case ICMD_SALOAD:
 						coalescing_boundary = sd.new_elem;
 						iptr->flags.bits |= INS_FLAG_CHECK;
-						STATISTICS(count_check_null_NG++);
-						STATISTICS(count_check_bound_NG++);
-						STATISTICS(count_pcmd_mem_NG++);
+						STATISTICS(count_check_null++);
+						STATISTICS(count_check_bound++);
+						STATISTICS(count_pcmd_mem++);
 						OP2_1(TYPE_ADR, TYPE_INT, TYPE_INT);
 						break;
 
 						/* pop 0 push 0 iinc */
 
 					case ICMD_IINC:
-						STATISTICS(count_store_depth_NG[stackdepth]++);
+						STATISTICS(count_store_depth[stackdepth]++);
 						javaindex = iptr->s1.varindex;
 						last_store_boundary[javaindex] = sd.new_elem;
 
@@ -3297,9 +3297,9 @@ normal_ACONST:
 							}
 						}
 
-						STATISTICS(count_pcmd_store_NG++);
-						STATISTICS(count_store_depth_NG[stackdepth-1]++);
-						STATISTICS(count_store_length_NG[sd.new_elem - curstack]++);
+						STATISTICS(count_pcmd_store++);
+						STATISTICS(count_store_depth[stackdepth-1]++);
+						STATISTICS(count_store_length[sd.new_elem - curstack]++);
 
 						/* check for conflicts as described in Figure 5.2 */
 
@@ -3382,9 +3382,9 @@ store_tail:
 					case ICMD_AASTORE:
 						coalescing_boundary = sd.new_elem;
 						iptr->flags.bits |= INS_FLAG_CHECK;
-						STATISTICS(count_check_null_NG++);
-						STATISTICS(count_check_bound_NG++);
-						STATISTICS(count_pcmd_mem_NG++);
+						STATISTICS(count_check_null++);
+						STATISTICS(count_check_bound++);
+						STATISTICS(count_pcmd_mem++);
 
 						bte = builtintable_get_internal(BUILTIN_FAST_canstore);
 						md = bte->md;
@@ -3417,9 +3417,9 @@ store_tail:
 					case ICMD_DASTORE:
 						coalescing_boundary = sd.new_elem;
 						iptr->flags.bits |= INS_FLAG_CHECK;
-						STATISTICS(count_check_null_NG++);
-						STATISTICS(count_check_bound_NG++);
-						STATISTICS(count_pcmd_mem_NG++);
+						STATISTICS(count_check_null++);
+						STATISTICS(count_check_bound++);
+						STATISTICS(count_pcmd_mem++);
 						OP3_0(TYPE_ADR, TYPE_INT, opcode - ICMD_IASTORE);
 						break;
 
@@ -3429,9 +3429,9 @@ store_tail:
 					case ICMD_SASTORE:
 						coalescing_boundary = sd.new_elem;
 						iptr->flags.bits |= INS_FLAG_CHECK;
-						STATISTICS(count_check_null_NG++);
-						STATISTICS(count_check_bound_NG++);
-						STATISTICS(count_pcmd_mem_NG++);
+						STATISTICS(count_check_null++);
+						STATISTICS(count_check_bound++);
+						STATISTICS(count_pcmd_mem++);
 						OP3_0(TYPE_ADR, TYPE_INT, TYPE_INT);
 						break;
 
@@ -3459,7 +3459,7 @@ store_tail:
 						/* available in md-abi.c! */
 						if (IS_TEMPVAR(curstack))
 							md_return_alloc(jd, curstack);
-						STATISTICS(count_pcmd_return_NG++);
+						STATISTICS(count_pcmd_return++);
 						OP1_0(opcode - ICMD_IRETURN);
 						superblockend = true;
 						sd.jd->returncount++;
@@ -3468,7 +3468,7 @@ store_tail:
 
 					case ICMD_ATHROW:
 						coalescing_boundary = sd.new_elem;
-						STATISTICS(count_check_null_NG++);
+						STATISTICS(count_check_null++);
 						OP1_0(TYPE_ADR);
 						curstack = NULL; stackdepth = 0;
 						superblockend = true;
@@ -3476,7 +3476,7 @@ store_tail:
 
 					case ICMD_PUTSTATIC:
 						coalescing_boundary = sd.new_elem;
-						STATISTICS(count_pcmd_mem_NG++);
+						STATISTICS(count_pcmd_mem++);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						OP1_0(fmiref->parseddesc.fd->type);
 						break;
@@ -3485,7 +3485,7 @@ store_tail:
 
 					case ICMD_IFNULL:
 					case ICMD_IFNONNULL:
-						STATISTICS(count_pcmd_bra_NG++);
+						STATISTICS(count_pcmd_bra++);
 						OP1_BRANCH(TYPE_ADR);
 						BRANCH(tbptr);
 						break;
@@ -3496,7 +3496,7 @@ store_tail:
 					case ICMD_IFGE:
 					case ICMD_IFGT:
 					case ICMD_IFLE:
-						STATISTICS(count_pcmd_bra_NG++);
+						STATISTICS(count_pcmd_bra++);
 						/* iptr->sx.val.i is set implicitly in parse by
 						   clearing the memory or from IF_ICMPxx
 						   optimization. */
@@ -3509,7 +3509,7 @@ store_tail:
 						/* pop 0 push 0 branch */
 
 					case ICMD_GOTO:
-						STATISTICS(count_pcmd_bra_NG++);
+						STATISTICS(count_pcmd_bra++);
 						OP0_BRANCH;
 						BRANCH(tbptr);
 						superblockend = true;
@@ -3518,7 +3518,7 @@ store_tail:
 						/* pop 1 push 0 table branch */
 
 					case ICMD_TABLESWITCH:
-						STATISTICS(count_pcmd_table_NG++);
+						STATISTICS(count_pcmd_table++);
 						OP1_BRANCH(TYPE_INT);
 
 						table = iptr->dst.table;
@@ -3538,7 +3538,7 @@ store_tail:
 						/* pop 1 push 0 table branch */
 
 					case ICMD_LOOKUPSWITCH:
-						STATISTICS(count_pcmd_table_NG++);
+						STATISTICS(count_pcmd_table++);
 						OP1_BRANCH(TYPE_INT);
 
 						BRANCH_TARGET(iptr->sx.s23.s3.lookupdefault, tbptr);
@@ -3557,7 +3557,7 @@ store_tail:
 					case ICMD_MONITORENTER:
 					case ICMD_MONITOREXIT:
 						coalescing_boundary = sd.new_elem;
-						STATISTICS(count_check_null_NG++);
+						STATISTICS(count_check_null++);
 						OP1_0(TYPE_ADR);
 						break;
 
@@ -3569,14 +3569,14 @@ store_tail:
 					case ICMD_IF_ICMPGE:
 					case ICMD_IF_ICMPGT:
 					case ICMD_IF_ICMPLE:
-						STATISTICS(count_pcmd_bra_NG++);
+						STATISTICS(count_pcmd_bra++);
 						OP2_BRANCH(TYPE_INT, TYPE_INT);
 						BRANCH(tbptr);
 						break;
 
 					case ICMD_IF_ACMPEQ:
 					case ICMD_IF_ACMPNE:
-						STATISTICS(count_pcmd_bra_NG++);
+						STATISTICS(count_pcmd_bra++);
 						OP2_BRANCH(TYPE_ADR, TYPE_ADR);
 						BRANCH(tbptr);
 						break;
@@ -3585,8 +3585,8 @@ store_tail:
 
 					case ICMD_PUTFIELD:
 						coalescing_boundary = sd.new_elem;
-						STATISTICS(count_check_null_NG++);
-						STATISTICS(count_pcmd_mem_NG++);
+						STATISTICS(count_check_null++);
+						STATISTICS(count_pcmd_mem++);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						OP2_0(TYPE_ADR, fmiref->parseddesc.fd->type);
 						break;
@@ -3620,7 +3620,7 @@ store_tail:
 								goto throw_stack_category_error;
 						}
 #endif
-						STATISTICS(count_dup_instruction_NG++);
+						STATISTICS(count_dup_instruction++);
 
 icmd_DUP:
 						src1 = curstack;
@@ -3937,7 +3937,7 @@ icmd_DUP_X2:
 					case ICMD_IAND:
 					case ICMD_IOR:
 					case ICMD_IXOR:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP2_1(TYPE_INT, TYPE_INT, TYPE_INT);
 						break;
 
@@ -3974,14 +3974,14 @@ icmd_DUP_X2:
 					case ICMD_LOR:
 					case ICMD_LXOR:
 #endif /* SUPPORT_LONG_LOGICAL */
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP2_1(TYPE_LNG, TYPE_LNG, TYPE_LNG);
 						break;
 
 					case ICMD_LSHL:
 					case ICMD_LSHR:
 					case ICMD_LUSHR:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP2_1(TYPE_LNG, TYPE_INT, TYPE_LNG);
 						break;
 
@@ -3990,7 +3990,7 @@ icmd_DUP_X2:
 					case ICMD_FMUL:
 					case ICMD_FDIV:
 					case ICMD_FREM:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP2_1(TYPE_FLT, TYPE_FLT, TYPE_FLT);
 						break;
 
@@ -3999,12 +3999,12 @@ icmd_DUP_X2:
 					case ICMD_DMUL:
 					case ICMD_DDIV:
 					case ICMD_DREM:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP2_1(TYPE_DBL, TYPE_DBL, TYPE_DBL);
 						break;
 
 					case ICMD_LCMP:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 #if SUPPORT_LONG_CMP_CONST
 						if ((len == 0) || (iptr[1].sx.val.i != 0))
 							goto normal_LCMP;
@@ -4019,7 +4019,7 @@ icmd_DUP_X2:
 							OP2_BRANCH(TYPE_LNG, TYPE_LNG);
 							BRANCH(tbptr);
 
-							STATISTICS(count_pcmd_bra_NG++);
+							STATISTICS(count_pcmd_bra++);
 							break;
 						case ICMD_IFNE:
 							iptr->opc = ICMD_IF_LCMPNE;
@@ -4055,13 +4055,13 @@ normal_LCMP:
 
 					case ICMD_FCMPL:
 					case ICMD_FCMPG:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP2_1(TYPE_FLT, TYPE_FLT, TYPE_INT);
 						break;
 
 					case ICMD_DCMPL:
 					case ICMD_DCMPG:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP2_1(TYPE_DBL, TYPE_DBL, TYPE_INT);
 						break;
 
@@ -4071,68 +4071,68 @@ normal_LCMP:
 					case ICMD_INT2BYTE:
 					case ICMD_INT2CHAR:
 					case ICMD_INT2SHORT:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP1_1(TYPE_INT, TYPE_INT);
 						break;
 					case ICMD_LNEG:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP1_1(TYPE_LNG, TYPE_LNG);
 						break;
 					case ICMD_FNEG:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP1_1(TYPE_FLT, TYPE_FLT);
 						break;
 					case ICMD_DNEG:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP1_1(TYPE_DBL, TYPE_DBL);
 						break;
 
 					case ICMD_I2L:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP1_1(TYPE_INT, TYPE_LNG);
 						break;
 					case ICMD_I2F:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP1_1(TYPE_INT, TYPE_FLT);
 						break;
 					case ICMD_I2D:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP1_1(TYPE_INT, TYPE_DBL);
 						break;
 					case ICMD_L2I:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP1_1(TYPE_LNG, TYPE_INT);
 						break;
 					case ICMD_L2F:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP1_1(TYPE_LNG, TYPE_FLT);
 						break;
 					case ICMD_L2D:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP1_1(TYPE_LNG, TYPE_DBL);
 						break;
 					case ICMD_F2I:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP1_1(TYPE_FLT, TYPE_INT);
 						break;
 					case ICMD_F2L:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP1_1(TYPE_FLT, TYPE_LNG);
 						break;
 					case ICMD_F2D:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP1_1(TYPE_FLT, TYPE_DBL);
 						break;
 					case ICMD_D2I:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP1_1(TYPE_DBL, TYPE_INT);
 						break;
 					case ICMD_D2L:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP1_1(TYPE_DBL, TYPE_LNG);
 						break;
 					case ICMD_D2F:
-						STATISTICS(count_pcmd_op_NG++);
+						STATISTICS(count_pcmd_op++);
 						OP1_1(TYPE_DBL, TYPE_FLT);
 						break;
 
@@ -4175,8 +4175,8 @@ normal_LCMP:
 
 					case ICMD_GETFIELD:
 						coalescing_boundary = sd.new_elem;
-						STATISTICS(count_check_null_NG++);
-						STATISTICS(count_pcmd_mem_NG++);
+						STATISTICS(count_check_null++);
+						STATISTICS(count_pcmd_mem++);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						OP1_1(TYPE_ADR, fmiref->parseddesc.fd->type);
 						break;
@@ -4185,7 +4185,7 @@ normal_LCMP:
 
 					case ICMD_GETSTATIC:
  						coalescing_boundary = sd.new_elem;
-						STATISTICS(count_pcmd_mem_NG++);
+						STATISTICS(count_pcmd_mem++);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						OP0_1(fmiref->parseddesc.fd->type);
 						break;
@@ -4234,7 +4234,7 @@ icmd_BUILTIN:
 					case ICMD_INVOKESPECIAL:
 					case ICMD_INVOKEVIRTUAL:
 					case ICMD_INVOKEINTERFACE:
-						STATISTICS(count_pcmd_met_NG++);
+						STATISTICS(count_pcmd_met++);
 
 						/* Check for functions to replace with builtin
 						 * functions. */
@@ -4559,23 +4559,23 @@ icmd_BUILTIN:
 
 	/* gather statistics *****************************************************/
 
-	STATISTICS(count_max_basic_blocks_NG.max(jd->basicblockcount));
-	STATISTICS(count_basic_blocks_NG += jd->basicblockcount);
-	STATISTICS(count_max_javainstr_NG.max(jd->instructioncount));
-	STATISTICS(count_javainstr_NG += jd->instructioncount);
-	STATISTICS(count_upper_bound_new_stack_NG.max(jd->stackcount));
-	STATISTICS(count_max_new_stack_NG.max(sd.new_elem - jd->stack));
+	STATISTICS(count_max_basic_blocks.max(jd->basicblockcount));
+	STATISTICS(count_basic_blocks += jd->basicblockcount);
+	STATISTICS(count_max_javainstr.max(jd->instructioncount));
+	STATISTICS(count_javainstr += jd->instructioncount);
+	STATISTICS(count_upper_bound_new_stack.max(jd->stackcount));
+	STATISTICS(count_max_new_stack.max(sd.new_elem - jd->stack));
 
-	STATISTICS(count_analyse_iterations_NG[iteration_count]++);
-	STATISTICS(count_method_bb_distribution_NG[jd->basicblockcount]++);
+	STATISTICS(count_analyse_iterations[iteration_count]++);
+	STATISTICS(count_method_bb_distribution[jd->basicblockcount]++);
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 
 		sd.bptr = jd->basicblocks;
 		for (; sd.bptr; sd.bptr = sd.bptr->next) {
 			if (sd.bptr->flags > BBREACHED) {
-				STATISTICS(count_block_stack_NG[sd.bptr->indepth]++);
-				STATISTICS(count_block_size_distribution_NG[sd.bptr->icount]++);
+				STATISTICS(count_block_stack[sd.bptr->indepth]++);
+				STATISTICS(count_block_size_distribution[sd.bptr->icount]++);
 			}
 		}
 	}

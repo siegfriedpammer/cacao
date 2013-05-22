@@ -61,7 +61,7 @@
 #include "vm/string.hpp"
 
 STAT_DECLARE_GROUP(info_struct_stat)
-STAT_DECLARE_VAR(int,size_classinfo_NG,0)
+STAT_DECLARE_VAR(int,size_classinfo,0)
 
 /**
  * Returns the classname of the class, where slashes ('/') are
@@ -136,7 +136,7 @@ classinfo *class_create_classinfo(Utf8String classname)
 {
 	classinfo *c;
 
-	STATISTICS(size_classinfo_NG += sizeof(classinfo));
+	STATISTICS(size_classinfo += sizeof(classinfo));
 
 	/* we use a safe name for temporarily unnamed classes */
 

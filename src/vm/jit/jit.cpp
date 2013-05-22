@@ -120,32 +120,32 @@
 # define TRACECOMPILERCALLS()
 #endif
 
-STAT_REGISTER_VAR(int,count_jit_calls_NG,0,"jit calls","Number of JIT compiler calls")
-STAT_REGISTER_VAR(int,count_methods_NG,0,"compiled methods","Number of compiled methods")
+STAT_REGISTER_VAR(int,count_jit_calls,0,"jit calls","Number of JIT compiler calls")
+STAT_REGISTER_VAR(int,count_methods,0,"compiled methods","Number of compiled methods")
 // TODO regression: old framework also printed (count_javacodesize - count_methods * 18)
-STAT_REGISTER_VAR(int,count_javacodesize_NG,0,"java code size","Size of compiled JavaVM instructions")
-STAT_REGISTER_VAR(int,count_javaexcsize_NG,0,"java exc.tbl. size","Size of compiled Exception Tables")
-STAT_REGISTER_VAR(int,count_tryblocks_NG,0,"try blocks","Number of Try-Blocks")
-STAT_REGISTER_VAR(int,count_methods_allocated_by_lsra_NG,0,"meth. alloc. lsra","Methods allocated by LSRA")
+STAT_REGISTER_VAR(int,count_javacodesize,0,"java code size","Size of compiled JavaVM instructions")
+STAT_REGISTER_VAR(int,count_javaexcsize,0,"java exc.tbl. size","Size of compiled Exception Tables")
+STAT_REGISTER_VAR(int,count_tryblocks,0,"try blocks","Number of Try-Blocks")
+STAT_REGISTER_VAR(int,count_methods_allocated_by_lsra,0,"meth. alloc. lsra","Methods allocated by LSRA")
 
-STAT_REGISTER_VAR_EXTERN(int,count_interface_size_NG,0,"interface size","Number of interface slots")
-STAT_REGISTER_VAR_EXTERN(int,count_locals_conflicts_NG,0,"locals conflicts","Conflicts between local Variables")
-STAT_REGISTER_VAR_EXTERN(int,count_locals_spilled_NG,0,"locals spilled","Local Variables held in Memory")
-STAT_REGISTER_VAR_EXTERN(int,count_locals_register_NG,0,"locals register","Local Variables held in Registers")
-STAT_REGISTER_VAR_EXTERN(int,count_ss_spilled_NG,0,"ss spilled","Stackslots held in Memory")
-STAT_REGISTER_VAR_EXTERN(int,count_ss_register_NG,0,"ss register","Stackslots held in Registers")
-STAT_REGISTER_VAR_EXTERN(int,count_argument_reg_ss_NG,0,"argument reg ss","Number of Argument stack slots in register")
-STAT_REGISTER_VAR_EXTERN(int,count_argument_mem_ss_NG,0,"argument mem ss","Number of Argument stack slots in memory")
+STAT_REGISTER_VAR_EXTERN(int,count_interface_size,0,"interface size","Number of interface slots")
+STAT_REGISTER_VAR_EXTERN(int,count_locals_conflicts,0,"locals conflicts","Conflicts between local Variables")
+STAT_REGISTER_VAR_EXTERN(int,count_locals_spilled,0,"locals spilled","Local Variables held in Memory")
+STAT_REGISTER_VAR_EXTERN(int,count_locals_register,0,"locals register","Local Variables held in Registers")
+STAT_REGISTER_VAR_EXTERN(int,count_ss_spilled,0,"ss spilled","Stackslots held in Memory")
+STAT_REGISTER_VAR_EXTERN(int,count_ss_register,0,"ss register","Stackslots held in Registers")
+STAT_REGISTER_VAR_EXTERN(int,count_argument_reg_ss,0,"argument reg ss","Number of Argument stack slots in register")
+STAT_REGISTER_VAR_EXTERN(int,count_argument_mem_ss,0,"argument mem ss","Number of Argument stack slots in memory")
 
 STAT_REGISTER_SUM_GROUP(spill_write_stat,"spills write","Number of Spills (write to memory)")
-STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_write_ila_NG,0,"spill write i/l/a","Int, Long, Array Spills (write to memory)",spill_write_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_write_flt_NG,0,"spill write float","Float Spills (write to memory)",spill_write_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_write_dbl_NG,0,"spill write double","Double Spills (write to memory)",spill_write_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_write_ila,0,"spill write i/l/a","Int, Long, Array Spills (write to memory)",spill_write_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_write_flt,0,"spill write float","Float Spills (write to memory)",spill_write_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_write_dbl,0,"spill write double","Double Spills (write to memory)",spill_write_stat)
 
 STAT_REGISTER_SUM_GROUP(spill_read_stat,"spills read","Number of Spills (read from memory)")
-STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_read_ila_NG,0,"spill read i/l/a","Int, Long, Array Spills (read from memory)",spill_read_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_read_flt_NG,0,"spill read float","Float Spills (read from memory)",spill_read_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_read_dbl_NG,0,"spill read double","Double Spills (read from memory)",spill_read_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_read_ila,0,"spill read i/l/a","Int, Long, Array Spills (read from memory)",spill_read_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_read_flt,0,"spill read float","Float Spills (read from memory)",spill_read_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_read_dbl,0,"spill read double","Double Spills (read from memory)",spill_read_stat)
 
 /* jit_init ********************************************************************
 
@@ -280,7 +280,7 @@ u1 *jit_compile(methodinfo *m)
 	u1      *r;
 	jitdata *jd;
 
-	STATISTICS(count_jit_calls_NG++);
+	STATISTICS(count_jit_calls++);
 
 	/* Initialize the static function's class. */
 
@@ -318,7 +318,7 @@ u1 *jit_compile(methodinfo *m)
 
 	TRACECOMPILERCALLS();
 
-	STATISTICS(count_methods_NG++);
+	STATISTICS(count_methods++);
 
 #if defined(ENABLE_STATISTICS)
 	/* measure time */
@@ -602,9 +602,9 @@ static u1 *jit_compile_intern(jitdata *jd)
 		return code->entrypoint;        /* return empty method                */
 	}
 
-	STATISTICS(count_javacodesize_NG += m->jcodelength + 18);
-	STATISTICS(count_tryblocks_NG    += jd->exceptiontablelength);
-	STATISTICS(count_javaexcsize_NG  += jd->exceptiontablelength * SIZEOF_VOID_P);
+	STATISTICS(count_javacodesize += m->jcodelength + 18);
+	STATISTICS(count_tryblocks    += jd->exceptiontablelength);
+	STATISTICS(count_javaexcsize  += jd->exceptiontablelength * SIZEOF_VOID_P);
 
 	RT_TIMER_STOPSTART(checks_timer,parse_timer);
 
@@ -732,7 +732,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 			if (!lsra(jd))
 				return NULL;
 
-			STATISTICS(count_methods_allocated_by_lsra_NG++);
+			STATISTICS(count_methods_allocated_by_lsra++);
 
 		} else
 # endif /* defined(ENABLE_LSRA) && !defined(ENABLE_SSA) */
@@ -750,12 +750,12 @@ static u1 *jit_compile_intern(jitdata *jd)
 			ssa(jd);
 			/*lsra(jd);*/ regalloc(jd);
 			/*eliminate_subbasicblocks(jd);*/
-			STATISTICS(count_methods_allocated_by_lsra_NG++);
+			STATISTICS(count_methods_allocated_by_lsra++);
 
 		} else
 # endif /* defined(ENABLE_SSA) */
 		{
-			STATISTICS(count_locals_conflicts_NG += (jd->maxlocals - 1) * (jd->maxlocals));
+			STATISTICS(count_locals_conflicts += (jd->maxlocals - 1) * (jd->maxlocals));
 
 			regalloc(jd);
 		}

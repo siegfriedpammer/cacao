@@ -66,19 +66,19 @@
 #endif
 
 
-STAT_REGISTER_VAR(int,count_all_methods_NG,0,"all methods","Number of loaded Methods")
+STAT_REGISTER_VAR(int,count_all_methods,0,"all methods","Number of loaded Methods")
 
 STAT_DECLARE_GROUP(info_struct_stat)
-STAT_REGISTER_GROUP_VAR(int,size_lineinfo_NG,0,"size lineinfo","lineinfo",info_struct_stat) // sizeof(lineinfo)?
+STAT_REGISTER_GROUP_VAR(int,size_lineinfo,0,"size lineinfo","lineinfo",info_struct_stat) // sizeof(lineinfo)?
 
 STAT_DECLARE_GROUP(memory_stat)
 STAT_REGISTER_SUM_SUBGROUP(table_stat,"info structs","info struct usage",memory_stat)
-STAT_REGISTER_GROUP_VAR(int,count_extable_len_NG,0,"extable len","exception tables",table_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,size_linenumbertable_NG,0,"size linenumbertable","size of linenumber tables",table_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,count_linenumbertable_NG,0,"count linenumbertable","number of linenumber tables",table_stat)
-STAT_REGISTER_GROUP_VAR_EXTERN(int,size_patchref_NG,0,"patchref","patcher references",table_stat)
+STAT_REGISTER_GROUP_VAR(int,count_extable_len,0,"extable len","exception tables",table_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,size_linenumbertable,0,"size linenumbertable","size of linenumber tables",table_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,count_linenumbertable,0,"count linenumbertable","number of linenumber tables",table_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(int,size_patchref,0,"patchref","patcher references",table_stat)
 
-STAT_DECLARE_VAR(int,count_vmcode_len_NG,0)
+STAT_DECLARE_VAR(int,count_vmcode_len,0)
 /* global variables ***********************************************************/
 
 methodinfo *method_java_lang_reflect_Method_invoke;
@@ -174,7 +174,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 
 	m->mutex = new Mutex();
 
-	STATISTICS(count_all_methods_NG++);
+	STATISTICS(count_all_methods++);
 
 	/* all fields of m have been zeroed in load_class_from_classbuffer */
 
@@ -367,8 +367,8 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 
 			m->rawexceptiontable = MNEW(raw_exception_entry, m->rawexceptiontablelength);
 
-			STATISTICS(count_vmcode_len_NG += m->jcodelength + 18);
-			STATISTICS(count_extable_len_NG +=
+			STATISTICS(count_vmcode_len += m->jcodelength + 18);
+			STATISTICS(count_extable_len +=
 				m->rawexceptiontablelength * sizeof(raw_exception_entry));
 
 			for (j = 0; j < m->rawexceptiontablelength; j++) {
@@ -433,7 +433,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 
 					m->linenumbers = MNEW(lineinfo, m->linenumbercount);
 
-					STATISTICS(size_lineinfo_NG += sizeof(lineinfo) * m->linenumbercount);
+					STATISTICS(size_lineinfo += sizeof(lineinfo) * m->linenumbercount);
 
 					for (l = 0; l < m->linenumbercount; l++) {
 						m->linenumbers[l].start_pc    = suck_u2(cb);

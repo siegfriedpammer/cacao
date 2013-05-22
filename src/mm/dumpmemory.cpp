@@ -33,8 +33,8 @@
 
 STAT_DECLARE_GROUP(max_mem_stat)
 STAT_DECLARE_GROUP(not_freed_mem_stat)
-STAT_REGISTER_GROUP_VAR(int,maxdumpsize_NG,0,"maxdumpsize","max. dump memory",max_mem_stat)
-STAT_REGISTER_GROUP_VAR(int,globalallocateddumpsize_NG,0,"globalallocateddumpsize","dump memory not freed",not_freed_mem_stat)
+STAT_REGISTER_GROUP_VAR(int,maxdumpsize,0,"maxdumpsize","max. dump memory",max_mem_stat)
+STAT_REGISTER_GROUP_VAR(int,globalallocateddumpsize,0,"globalallocateddumpsize","dump memory not freed",not_freed_mem_stat)
 
 /*******************************************************************************
 
@@ -86,7 +86,7 @@ void DumpMemory::add_area(DumpMemoryArea* dma)
 	// Increase the size count of the dump memory.
 	_size += dma->get_size();
 
-	STATISTICS(maxdumpsize_NG.max(_size));
+	STATISTICS(maxdumpsize.max(_size));
 }
 
 
@@ -179,7 +179,7 @@ DumpMemoryBlock* DumpMemoryArea::allocate_new_block(size_t size)
 		DumpMemory* dm = DumpMemory::get_current();
 		dm->add_size(dmb->get_size());
 
-		STATISTICS(maxdumpsize_NG.max(dm->get_size()));
+		STATISTICS(maxdumpsize.max(dm->get_size()));
 	}
 #endif
 
@@ -257,7 +257,7 @@ DumpMemoryBlock::DumpMemoryBlock(size_t size) : _size(0), _used(0), _block(0)
 	_block = memory_checked_alloc(_size);
 
 	// The amount of globally allocated dump memory (thread safe).
-	STATISTICS(globalallocateddumpsize_NG += _size);
+	STATISTICS(globalallocateddumpsize += _size);
 }
 
 
@@ -272,7 +272,7 @@ DumpMemoryBlock::~DumpMemoryBlock()
 	mem_free(_block, /* XXX */ 1);
 
 	// The amount of globally allocated dump memory (thread safe).
-	STATISTICS(globalallocateddumpsize_NG -= _size);
+	STATISTICS(globalallocateddumpsize -= _size);
 }
 
 /*

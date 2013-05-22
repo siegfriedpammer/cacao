@@ -51,7 +51,7 @@
 #include "vm/jit/allocator/liveness.hpp"
 #include "vm/jit/allocator/lsra.hpp"
 
-STAT_DECLARE_VAR(int,count_locals_conflicts_NG,0)
+STAT_DECLARE_VAR(int,count_locals_conflicts,0)
 
 #ifdef USAGE_COUNT
 extern char **prof_m_names;
@@ -161,7 +161,7 @@ bool lsra(jitdata *jd)
 					|| (ls->lifetime[ls->lt_used[j]].i_end <
 					   ls->lifetime[ls->lt_used[i]].i_start)) ) {
 					count_locals_conflicts += 2;
-					STATISTICS(count_locals_conflicts_NG += 2);
+					STATISTICS(count_locals_conflicts += 2);
 				}
 	 }
 #endif

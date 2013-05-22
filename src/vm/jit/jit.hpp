@@ -65,13 +65,13 @@ typedef struct exception_entry exception_entry;
 
 #include "vm/jit/verify/typeinfo.hpp"
 
-STAT_DECLARE_VAR(int,count_spills_write_ila_NG,0)
-STAT_DECLARE_VAR(int,count_spills_write_flt_NG,0)
-STAT_DECLARE_VAR(int,count_spills_write_dbl_NG,0)
+STAT_DECLARE_VAR(int,count_spills_write_ila,0)
+STAT_DECLARE_VAR(int,count_spills_write_flt,0)
+STAT_DECLARE_VAR(int,count_spills_write_dbl,0)
 
-STAT_DECLARE_VAR(int,count_spills_read_ila_NG,0)
-STAT_DECLARE_VAR(int,count_spills_read_flt_NG,0)
-STAT_DECLARE_VAR(int,count_spills_read_dbl_NG,0)
+STAT_DECLARE_VAR(int,count_spills_read_ila,0)
+STAT_DECLARE_VAR(int,count_spills_read_flt,0)
+STAT_DECLARE_VAR(int,count_spills_read_dbl,0)
 
 struct methodinfo;
 struct registerdata;
@@ -87,9 +87,9 @@ struct registerdata;
 	case TYPE_DBL: count_spills_read_dbl++; break; \
 	default: count_spills_read_ila++; break; \
 	switch(var->type) { \
-	case TYPE_FLT: count_spills_read_flt_NG++; break; \
-	case TYPE_DBL: count_spills_read_dbl_NG++; break; \
-	default: count_spills_read_ila_NG++; break; \
+	case TYPE_FLT: count_spills_read_flt++; break; \
+	case TYPE_DBL: count_spills_read_dbl++; break; \
+	default: count_spills_read_ila++; break; \
 	}
 
 # define COUNT_WRITE_SPILLS(var) \
@@ -98,9 +98,9 @@ struct registerdata;
 	case TYPE_DBL: count_spills_write_dbl++; break; \
 	default: count_spills_write_ila++; break; \
 	switch(var->type) { \
-	case TYPE_FLT: count_spills_write_flt_NG++; break; \
-	case TYPE_DBL: count_spills_write_dbl_NG++; break; \
-	default: count_spills_write_ila_NG++; break; \
+	case TYPE_FLT: count_spills_write_flt++; break; \
+	case TYPE_DBL: count_spills_write_dbl++; break; \
+	default: count_spills_write_ila++; break; \
 	}
 
 #else

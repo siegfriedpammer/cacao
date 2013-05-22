@@ -106,14 +106,14 @@
 #include <vmlog_cacao.h>
 #endif
 
-STAT_REGISTER_VAR(int,count_branches_unresolved_NG,0,"unresolved branches","unresolved branches")
+STAT_REGISTER_VAR(int,count_branches_unresolved,0,"unresolved branches","unresolved branches")
 STAT_DECLARE_GROUP(function_call_stat)
-STAT_REGISTER_GROUP_VAR(u8,count_calls_java_to_native_NG,0,"calls java to native","java-to-native calls",function_call_stat)
+STAT_REGISTER_GROUP_VAR(u8,count_calls_java_to_native,0,"calls java to native","java-to-native calls",function_call_stat)
 
 STAT_REGISTER_GROUP(memory_stat,"mem. stat.","Memory usage")
 STAT_REGISTER_SUM_SUBGROUP(code_data_stat,"code data","Code and data usage",memory_stat)
-STAT_REGISTER_GROUP_VAR(int,count_code_len_NG,0,"code len","code length",code_data_stat)
-STAT_REGISTER_GROUP_VAR(int,count_data_len_NG,0,"data len","data length",code_data_stat)
+STAT_REGISTER_GROUP_VAR(int,count_code_len,0,"code len","code length",code_data_stat)
+STAT_REGISTER_GROUP_VAR(int,count_data_len,0,"data len","data length",code_data_stat)
 
 struct methodinfo;
 
@@ -406,7 +406,7 @@ void codegen_add_branch_ref(codegendata *cd, basicblock *target, s4 condition, s
 	branchref *br;
 	s4         branchmpc;
 
-	STATISTICS(count_branches_unresolved_NG++);
+	STATISTICS(count_branches_unresolved++);
 
 	/* calculate the mpc of the branch instruction */
 
@@ -579,8 +579,8 @@ void codegen_finish(jitdata *jd)
 
 	mcodelen = (s4) (cd->mcodeptr - cd->mcodebase);
 
-	STATISTICS(count_code_len_NG += mcodelen);
-	STATISTICS(count_data_len_NG += cd->dseglen);
+	STATISTICS(count_code_len += mcodelen);
+	STATISTICS(count_data_len += cd->dseglen);
 
 	alignedmcodelen = MEMORY_ALIGN(mcodelen, MAX_ALIGN);
 
@@ -747,7 +747,7 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 	uint64_t *arg_regs;
 	uint64_t *arg_stack;
 
-	STATISTICS(count_calls_java_to_native_NG++);
+	STATISTICS(count_calls_java_to_native++);
 
 	// Get information from method header.
 	code = code_get_codeinfo_for_pv(pv);

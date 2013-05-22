@@ -69,9 +69,9 @@
 # define DEBUGLOCKS(format)
 #endif
 
-STAT_DECLARE_VAR(int,size_lock_record_NG,0)
-STAT_DECLARE_VAR(int,size_lock_hashtable_NG,0)
-STAT_DECLARE_VAR(int,size_lock_waiter_NG,0)
+STAT_DECLARE_VAR(int,size_lock_record,0)
+STAT_DECLARE_VAR(int,size_lock_hashtable,0)
+STAT_DECLARE_VAR(int,size_lock_waiter,0)
 
 /******************************************************************************/
 /* MACROS                                                                     */
@@ -177,7 +177,7 @@ static lock_record_t *lock_record_new(void)
 
 	lr = NEW(lock_record_t);
 
-	STATISTICS(size_lock_record_NG += sizeof(lock_record_t));
+	STATISTICS(size_lock_record += sizeof(lock_record_t));
 
 	/* initialize the members */
 
@@ -230,7 +230,7 @@ static void lock_record_free(lock_record_t *lr)
 
 	FREE(lr, lock_record_t);
 
-	STATISTICS(size_lock_record_NG -= sizeof(lock_record_t));
+	STATISTICS(size_lock_record -= sizeof(lock_record_t));
 }
 
 
@@ -252,7 +252,7 @@ static void lock_hashtable_init(void)
 	lock_hashtable.entries = 0;
 	lock_hashtable.ptr     = MNEW(lock_record_t *, lock_hashtable.size);
 
-	STATISTICS(size_lock_hashtable_NG += sizeof(lock_record_t *) * lock_hashtable.size);
+	STATISTICS(size_lock_hashtable += sizeof(lock_record_t *) * lock_hashtable.size);
 
 	MZERO(lock_hashtable.ptr, lock_record_t *, lock_hashtable.size);
 }
@@ -288,7 +288,7 @@ static void lock_hashtable_grow(void)
 	oldtable = lock_hashtable.ptr;
 	newtable = MNEW(lock_record_t *, newsize);
 
-	STATISTICS(size_lock_hashtable_NG += sizeof(lock_record_t *) * newsize);
+	STATISTICS(size_lock_hashtable += sizeof(lock_record_t *) * newsize);
 
 	MZERO(newtable, lock_record_t *, newsize);
 
@@ -316,7 +316,7 @@ static void lock_hashtable_grow(void)
 
 	MFREE(oldtable, lock_record_t *, oldsize);
 
-	STATISTICS(size_lock_hashtable_NG -= sizeof(lock_record_t *) * oldsize);
+	STATISTICS(size_lock_hashtable -= sizeof(lock_record_t *) * oldsize);
 }
 
 
@@ -996,7 +996,7 @@ static void lock_record_add_waiter(lock_record_t *lr, threadobject* t)
 	// Add the thread as last entry to waiters list.
 	lr->waiters->push_back(t);
 
-	STATISTICS(size_lock_waiter_NG += sizeof(threadobject*));
+	STATISTICS(size_lock_waiter += sizeof(threadobject*));
 }
 
 
@@ -1018,7 +1018,7 @@ static void lock_record_remove_waiter(lock_record_t *lr, threadobject* t)
 	// Remove the thread from the waiters.
 	lr->waiters->remove(t);
 
-	STATISTICS(size_lock_waiter_NG -= sizeof(threadobject*));
+	STATISTICS(size_lock_waiter -= sizeof(threadobject*));
 }
 
 

@@ -36,8 +36,8 @@ static s4 loadingtime_recursion = 0;
 static s4 compilingtime_recursion = 0;
 
 RT_REGISTER_GROUP(legacy_group,"legacy group","legacy group")
-RT_REGISTER_GROUP_TIMER(loadingtime_NG,"loading time", "Time for loading classes",legacy_group)
-RT_REGISTER_GROUP_TIMER(compilingtime_NG,"compiling time", "Time for compiling code",legacy_group)
+RT_REGISTER_GROUP_TIMER(loadingtime,"loading time", "Time for loading classes",legacy_group)
+RT_REGISTER_GROUP_TIMER(compilingtime,"compiling time", "Time for compiling code",legacy_group)
 
 
 /* loadingtime_stop ************************************************************
@@ -51,7 +51,7 @@ void loadingtime_start(void)
 	loadingtime_recursion++;
 
 	if (loadingtime_recursion == 1) {
-		RT_TIMER_START(loadingtime_NG);
+		RT_TIMER_START(loadingtime);
 	}
 }
 
@@ -65,7 +65,7 @@ void loadingtime_start(void)
 void loadingtime_stop(void)
 {
 	if (loadingtime_recursion == 1) {
-		RT_TIMER_STOP(loadingtime_NG);
+		RT_TIMER_STOP(loadingtime);
 	}
 
 	loadingtime_recursion--;
@@ -83,7 +83,7 @@ void compilingtime_start(void)
 	compilingtime_recursion++;
 
 	if (compilingtime_recursion == 1) {
-		RT_TIMER_START(compilingtime_NG);
+		RT_TIMER_START(compilingtime);
 	}
 }
 
@@ -96,7 +96,7 @@ void compilingtime_start(void)
 void compilingtime_stop(void)
 {
 	if (compilingtime_recursion == 1) {
-		RT_TIMER_STOP(compilingtime_NG);
+		RT_TIMER_STOP(compilingtime);
 	}
 
 	compilingtime_recursion--;

@@ -35,8 +35,8 @@
 
 STAT_DECLARE_GROUP(max_mem_stat)
 STAT_DECLARE_GROUP(not_freed_mem_stat)
-STAT_REGISTER_GROUP_VAR(int,maxcodememusage_NG,0,"maxcodememusage","max. code memory",max_mem_stat)
-STAT_REGISTER_GROUP_VAR(int,codememusage_NG,0,"codememusage","max. code memory",not_freed_mem_stat)
+STAT_REGISTER_GROUP_VAR(int,maxcodememusage,0,"maxcodememusage","max. code memory",max_mem_stat)
+STAT_REGISTER_GROUP_VAR(int,codememusage,0,"codememusage","max. code memory",not_freed_mem_stat)
 /* global code memory variables ***********************************************/
 
 #define DEFAULT_CODE_MEMORY_SIZE    128 * 1024 /* defaulting to 128kB         */
@@ -102,8 +102,8 @@ void *codememory_get(size_t size)
 
 		code_memory_size = MEMORY_ALIGN(code_memory_size, pagesize);
 
-		STATISTICS(codememusage_NG += code_memory_size);
-		STATISTICS(maxcodememusage_NG.max(codememusage_NG.get()));
+		STATISTICS(codememusage += code_memory_size);
+		STATISTICS(maxcodememusage.max(codememusage.get()));
 
 		/* allocate the memory */
 

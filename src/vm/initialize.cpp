@@ -47,7 +47,7 @@
 #include "vm/statistics.hpp"
 
 
-STAT_REGISTER_VAR(int,count_class_inits_NG,0,"class inits","Number of class inits")
+STAT_REGISTER_VAR(int,count_class_inits,0,"class inits","Number of class inits")
 
 /* private functions **********************************************************/
 
@@ -187,7 +187,7 @@ static bool initialize_class_intern(classinfo *c)
 		if (!link_class(c))
 			return false;
 
-	STATISTICS(count_class_inits_NG++);
+	STATISTICS(count_class_inits++);
 
 	/* Initialize super class. */
 
