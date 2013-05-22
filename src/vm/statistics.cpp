@@ -244,31 +244,6 @@ s4 count_schedule_max_leaders = 0;
 s4 count_schedule_critical_path = 0;
 
 
-/* jnicallXmethodinvokation ***************************************************
-
-   increments the jni CallXMethod invokation count by one
-
-*******************************************************************************/
-
-void jnicallXmethodnvokation(void)
-{
-	/* XXX do locking here */
-	count_jni_callXmethod_calls++;
-}
-
-
-/* jniinvokation *************************************************************
-
-   increments the jni overall  invokation count by one
-
-*******************************************************************************/
-
-void jniinvokation(void)
-{
-	/* XXX do locking here */
-	count_jni_calls++;
-}
-
 
 /* getcputime *********************************** ******************************
 

@@ -229,6 +229,10 @@ extern s4 count_schedule_leaders;
 extern s4 count_schedule_max_leaders;
 extern s4 count_schedule_critical_path;
 
+/* jni statistics *************************************************************/
+
+extern u8 count_jni_callXmethod_calls;
+extern u8 count_jni_calls;
 
 /* function prototypes ********************************************************/
 
@@ -249,8 +253,6 @@ void statistics_print_gc_memory_usage(void);
 void mem_usagelog(bool givewarnings);
 
 void compiledinvokation(void);
-void jnicallXmethodnvokation(void);
-void jniinvokation(void);
 
 #endif /* ENABLE_STATISTICS */
 

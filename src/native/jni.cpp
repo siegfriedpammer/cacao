@@ -150,6 +150,34 @@ jobject jni_NewLocalRef(JNIEnv *env, jobject ref);
 }
 
 
+#ifdef ENABLE_STATISTICS
+/* jnicallXmethodinvokation ***************************************************
+
+   increments the jni CallXMethod invokation count by one
+
+*******************************************************************************/
+
+void jnicallXmethodnvokation(void)
+{
+	/* XXX do locking here */
+	count_jni_callXmethod_calls++;
+}
+
+
+/* jniinvokation *************************************************************
+
+   increments the jni overall  invokation count by one
+
+*******************************************************************************/
+
+void jniinvokation(void)
+{
+	/* XXX do locking here */
+	count_jni_calls++;
+}
+#endif // ENABLE_STATISTICS
+
+
 /* jni_init ********************************************************************
 
    Initialize the JNI subsystem.
