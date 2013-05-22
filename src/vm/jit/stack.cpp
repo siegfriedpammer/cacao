@@ -117,6 +117,10 @@ STAT_REGISTER_VAR(int,count_check_bound_NG,0,"check bound","Number of Array Boun
 STAT_REGISTER_VAR(int,count_max_new_stack_NG,0,"max new stack","Maximal count of stack elements")
 STAT_REGISTER_VAR(int,count_upper_bound_new_stack_NG,0,"upper bound new stack","Upper bound of max stack elements")
 
+STAT_REGISTER_DIST(unsigned int,unsigned int,count_block_stack_NG,0,9,1,0,"stack size dist","Distribution of stack sizes at block boundary")
+STAT_REGISTER_DIST(unsigned int,unsigned int,count_store_depth_NG,0,9,1,0,"store stack depth dist","Distribution of store stack depth")
+STAT_REGISTER_DIST(unsigned int,unsigned int,count_store_length_NG,0,19,1,0,"store creator chains","Distribution of store creator chains")
+STAT_REGISTER_DIST(unsigned int,unsigned int,count_analyse_iterations_NG,1,4,1,0,"analysis iter.","Distribution of analysis iterations")
 /* stackdata_t *****************************************************************
 
    This struct holds internal data during stack analysis.
@@ -3234,6 +3238,7 @@ normal_ACONST:
 
 					case ICMD_IINC:
 						STATISTICS_STACKDEPTH_DISTRIBUTION(count_store_depth);
+						STATISTICS(count_store_depth_NG[stackdepth]++);
 						javaindex = iptr->s1.varindex;
 						last_store_boundary[javaindex] = sd.new_elem;
 
@@ -3299,6 +3304,8 @@ normal_ACONST:
 							}
 						}
 
+						STATISTICS(count_store_depth_NG[stackdepth-1]++);
+						STATISTICS(count_store_length_NG[sd.new_elem - curstack]++);
 #if defined(ENABLE_STATISTICS)
 						if (opt_stat) {
 							count_pcmd_store++;
@@ -4624,6 +4631,8 @@ icmd_BUILTIN:
 	STATISTICS(count_javainstr_NG += jd->instructioncount);
 	STATISTICS(count_upper_bound_new_stack_NG.max(jd->stackcount));
 	STATISTICS(count_max_new_stack_NG.max(sd.new_elem - jd->stack));
+
+	STATISTICS(count_analyse_iterations_NG[iteration_count]++);
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 		if (jd->basicblockcount > count_max_basic_blocks)
@@ -4640,6 +4649,7 @@ icmd_BUILTIN:
 		sd.bptr = jd->basicblocks;
 		for (; sd.bptr; sd.bptr = sd.bptr->next) {
 			if (sd.bptr->flags > BBREACHED) {
+				STATISTICS(count_block_stack_NG[sd.bptr->indepth]++);
 				if (sd.bptr->indepth >= 10)
 					count_block_stack[10]++;
 				else

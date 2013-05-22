@@ -58,6 +58,8 @@ public:
 	 * @param[in,out] O     output stream
 	 */
 	virtual void print(OStream &O) const = 0;
+	
+	virtual ~StatEntry() {}
 
 };
 
@@ -94,7 +96,7 @@ public:
 	}
 
 	/**
-	 * Create a new real-time group.
+	 * Create a new statistics group.
 	 * @param[in] name name of the group
 	 * @param[in] description description of the group
 	 * @param[in] group parent group.
@@ -115,7 +117,7 @@ public:
 		members->push_back(re);
 	}
 
-	void print(OStream &O) const {
+	virtual void print(OStream &O) const {
 		O << setw(10) << left << name << right <<"   " << description << nl;
 		//O << indent;
 		for(StatEntryList::const_iterator i = members->begin(), e= members->end(); i != e; ++i) {
@@ -134,14 +136,14 @@ class StatSumGroup : public StatGroup {
 public:
 
 	/**
-	 * Create a new real-time group.
+	 * Create a new statistics group.
 	 * @param[in] name name of the group
 	 * @param[in] description description of the group
 	 * @param[in] group parent group.
 	 */
 	StatSumGroup(const char* name, const char* description, StatGroup &group)
 			: StatGroup(name,description,group) {}
-	void print(OStream &O) const {
+	virtual void print(OStream &O) const {
 		O << setw(10) << left << name << right <<"   " << description << nl;
 		//O << indent;
 		for(StatEntryList::const_iterator i = members->begin(), e= members->end(); i != e; ++i) {
@@ -149,6 +151,74 @@ public:
 			re->print(O);
 		}
 		//O << dedent;
+	}
+};
+
+/**
+ * Statistics Distribution.
+ */
+template<typename _COUNT_TYPE, typename _INDEX_TYPE>
+class StatDist : public StatEntry {
+private:
+	const int table_size; //< size of the table
+	_COUNT_TYPE  *table;  //< table
+	_INDEX_TYPE start;
+	_INDEX_TYPE end;
+	_INDEX_TYPE step;
+public:
+	/**
+	 * Create a new statistics distribution.
+	 * @param[in] name name of the variable
+	 * @param[in] description description of the variable
+	 * @param[in] parent parent group.
+	 * @param[in] start first entry in the distribution table
+	 * @param[in] end last entry in the distribution table
+	 * @param[in] init initial value of the distribution table entries
+	 */
+	StatDist(const char* name, const char* description, StatGroup &parent,
+			_INDEX_TYPE start, _INDEX_TYPE end, _INDEX_TYPE step, _COUNT_TYPE init)
+			: StatEntry(name, description), table_size((end - start)/step + 1),
+			start(start), end(end), step(step) {
+		assert(step);
+		parent.add(this);
+		table = new _COUNT_TYPE[table_size + 1];
+
+		for(int i = 0; i <= table_size; ++i ) {
+			table[i] = init;
+		}
+	}
+
+	virtual ~StatDist() {
+		delete table;
+	}
+
+	virtual void print(OStream &O) const {
+		/*O
+		  << setw(30) << name
+		  //<< setw(10) << var
+		  << " : " << description << nl;
+		*/
+		O << description << '(' << name << "):" << nl;
+
+		O << ' ';
+		for(int i = 0; i < table_size; ++i ) {
+			O << setw(5) << start + i * step << ']';
+		}
+		O << '(' << setw(4) << start + (table_size-1)*step << nl;
+		for(int i = 0; i < table_size + 1; ++i ) {
+			O << setw(6) << table[i];
+		}
+		O << nl;
+	}
+	/// index operator
+	inline _COUNT_TYPE& operator[](const _INDEX_TYPE i) {
+		if (i <= start) {
+			return table[0];
+		}
+		if (i > end) {
+			return table[table_size];
+		}
+		return table[( (i-start)%step == 0 ? (i-start)/step :  (i-start+step)/step )];
 	}
 };
 
@@ -172,8 +242,10 @@ public:
 	}
 
 	void print(OStream &O) const {
-		O << setw(10) << var
-		  << setw(20) << name << ": " << description << nl;
+		O
+		  << setw(30) << name
+		  << setw(10) << var
+		  << " : " << description << nl;
 	}
 	/// maximum
 	inline StatVar& max(const _T& i) {
@@ -244,6 +316,9 @@ public:
 
 #define STAT_REGISTER_GROUP_VAR(type, var, init, name, description, group) \
 	static cacao::StatVar<type,init> var(name,description,group());
+
+#define STAT_REGISTER_DIST(counttype,indextype, var, start, end, step, init, name, description) \
+	static cacao::StatDist<counttype,indextype> var(name,description,cacao::StatGroup::root(),start,end,step,init);
 
 #define STAT_REGISTER_GROUP(var,name,description)                              \
 	inline cacao::StatGroup& var##_group() {                                   \
