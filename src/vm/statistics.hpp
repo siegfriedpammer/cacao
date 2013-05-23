@@ -437,6 +437,8 @@ STAT_REGISTER_GROUP_VAR(int,size_lineinfo,0,"size lineinfo","lineinfo",info_stru
 
 #include "toolbox/OStream.hpp"
 
+extern bool opt_stat;
+
 namespace cacao {
 /**
  * Superclass of statistic group entries.
@@ -848,28 +850,29 @@ public:
 	static cacao::StatDistRange<counttype,indextype> var(name,description,cacao::StatGroup::root(),range,range_size,init);
 
 #define STAT_DECLARE_GROUP(var) \
-	inline cacao::StatGroup& var##_group();
+	cacao::StatGroup& var##_group();
 
 #define STAT_REGISTER_GROUP(var,name,description)                              \
-	inline cacao::StatGroup& var##_group() {                                   \
+	cacao::StatGroup& var##_group() {                                          \
 		static cacao::StatGroup var(name,description,cacao::StatGroup::root());\
 		return var;                                                            \
 	}
 
-#define STAT_REGISTER_SUM_GROUP(var,name,description)                              \
-	inline cacao::StatSumGroup& var##_group() {                                    \
-		static cacao::StatSumGroup var(name,description, cacao::StatGroup::root());\
-		return var;                                                                \
+#define STAT_REGISTER_SUM_GROUP(var,name,description)                          \
+	cacao::StatSumGroup& var##_group() {                                       \
+		static cacao::StatSumGroup var(name,description,                       \
+		                               cacao::StatGroup::root());              \
+		return var;                                                            \
 	}
 
 #define STAT_REGISTER_SUM_SUBGROUP(var,name,description,group)                 \
-	inline cacao::StatSumGroup& var##_group() {                                \
+	cacao::StatSumGroup& var##_group() {                                       \
 		static cacao::StatSumGroup var(name,description, group##_group());     \
 		return var;                                                            \
 	}
 
 #define STAT_REGISTER_SUBGROUP(var,name,description,group)                     \
-	inline cacao::StatGroup& var##_group() {                                   \
+	cacao::StatGroup& var##_group() {                                          \
 		static cacao::StatGroup var(name,description, group##_group());        \
 		return var;                                                            \
 	}
