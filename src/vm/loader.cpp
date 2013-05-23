@@ -760,8 +760,8 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			if (!suck_check_classbuffer_size(cb, length))
 				return false;
 
-#ifdef ENABLE_VERIFIER
 			Utf8String u = Utf8String::from_utf8((char *) cb->pos, length);
+#ifdef ENABLE_VERIFIER
 
 			if (opt_verify && u == NULL)
 			{
