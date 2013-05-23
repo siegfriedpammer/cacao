@@ -512,14 +512,8 @@ static int stacktrace_depth(stackframeinfo_t *sfi)
 
 java_handle_bytearray_t *stacktrace_get(stackframeinfo_t *sfi)
 {
-	stackframeinfo_t    tmpsfi;
-	int                 depth;
-	int32_t             ba_size;
 	stacktrace_t       *st;
 	stacktrace_entry_t *ste;
-	methodinfo         *m;
-	bool                skip_fillInStackTrace;
-	bool                skip_init;
 
 	CYCLES_STATS_DECLARE_AND_START_WITH_OVERHEAD
 
@@ -528,93 +522,81 @@ java_handle_bytearray_t *stacktrace_get(stackframeinfo_t *sfi)
 		log_println("[stacktrace_get]");
 #endif
 
-	skip_fillInStackTrace = true;
-	skip_init             = true;
+	bool skip_fillInStackTrace = true;
+	bool skip_init             = true;
 
-	depth = stacktrace_depth(sfi);
+	int depth = stacktrace_depth(sfi);
 
 	if (depth == 0)
 		return NULL;
 
-	/* Allocate memory from the GC heap and copy the stacktrace
-	   buffer. */
-	/* ATTENTION: Use a Java byte-array for this to not confuse the
-	   GC. */
-	/* FIXME: We waste some memory here as we skip some entries
-	   later. */
+	// Allocate memory from the GC heap and copy the stacktrace buffer.
+	// ATTENTION: Use a Java byte-array for this to not confuse the GC.
+	// FIXME: We waste some memory here as we skip some entries later.
 
-	ba_size = sizeof(stacktrace_t) + sizeof(stacktrace_entry_t) * depth;
+	int32_t ba_size = sizeof(stacktrace_t) + sizeof(stacktrace_entry_t) * depth;
 
 	ByteArray ba(ba_size);
 
 	if (ba.is_null())
 		goto return_NULL;
 
-	/* Get a stacktrace entry pointer. */
-	/* ATTENTION: We need a critical section here because we use the
-	   byte-array data pointer directly. */
+	// Get a stacktrace entry pointer.
+	// ATTENTION: We need a critical section here because we use the
+	// byte-array data pointer directly.
 
 	LLNI_CRITICAL_START;
 
-	st = (stacktrace_t *) ba.get_raw_data_ptr();
-
+	st  = (stacktrace_t *) ba.get_raw_data_ptr();
 	ste = st->entries;
 
-	/* Iterate over the whole stack. */
+	// Iterate over the whole stack.
+	stackframeinfo_t tmpsfi;
 
 	for (stacktrace_stackframeinfo_fill(&tmpsfi, sfi);
 		 stacktrace_stackframeinfo_end_check(&tmpsfi) == false;
 		 stacktrace_stackframeinfo_next(&tmpsfi)) {
-		/* Get the methodinfo. */
+		// Get the methodinfo
 
-		m = tmpsfi.code->m;
+		methodinfo *m = tmpsfi.code->m;
 
-		/* Skip builtin methods. */
+		// Skip builtin methods
 
 		if (m->flags & ACC_METHOD_BUILTIN)
-			continue;
+		continue;
 
-		/* This logic is taken from
-		   hotspot/src/share/vm/classfile/javaClasses.cpp
-		   (java_lang_Throwable::fill_in_stack_trace). */
+		// This logic is taken from
+		// hotspot/src/share/vm/classfile/javaClasses.cpp
+		// (java_lang_Throwable::fill_in_stack_trace)
 
-		if (skip_fillInStackTrace == true) {
-			/* Check "fillInStackTrace" only once, so we negate the
-			   flag after the first time check. */
+		// the current stack contains the following frames:
+		// * one  or more fillInStackTrace frames for the exception class, we skip these
+		// * zero or more <init>           frames for the exception class, we skip these
+		// * rest of the stack
 
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-			/* For GNU Classpath we also need to skip
-			   VMThrowable.fillInStackTrace(). */
+		// skip Throwable.fillInStackTrace
 
-			if ((m->clazz == class_java_lang_VMThrowable) &&
-				(m->name  == utf8::fillInStackTrace))
+		if (skip_fillInStackTrace) {
+			if (m->name == utf8::fillInStackTrace) {
 				continue;
-#endif
-
-			skip_fillInStackTrace = false;
-
-			if (m->name == utf8::fillInStackTrace)
-				continue;
+			} else {
+				// we saw all fillInStackTrace frames, stop skipping
+				skip_fillInStackTrace = false;
+			}
 		}
 
-		/* Skip <init> methods of the exceptions klass.  If there is
-		   <init> methods that belongs to a superclass of the
-		   exception we are going to skipping them in stack trace. */
+		// Skip <init> methods of any classes deriving from java.lang.Throwable
 
 		if (skip_init == true) {
-			if ((m->name == utf8::init) &&
-				(class_issubclass(m->clazz, class_java_lang_Throwable))) {
+			if (m->name == utf8::init && class_issubclass(m->clazz, class_java_lang_Throwable)) {
 				continue;
-			}
-			else {
-				/* If no "Throwable.init()" method found, we stop
-				   checking it next time. */
-
+			} else {
+				// we saw all <init> frames, stop skipping
 				skip_init = false;
 			}
 		}
 
-		/* Store the stacktrace entry and increment the pointer. */
+		// Store the stacktrace entry and increment the pointer.
 
 		ste->code = tmpsfi.code;
 		ste->pc   = tmpsfi.xpc;
@@ -622,23 +604,17 @@ java_handle_bytearray_t *stacktrace_get(stackframeinfo_t *sfi)
 		ste++;
 	}
 
-	/* Store the number of entries in the stacktrace structure. */
+	// Store the number of entries in the stacktrace structure
 
 	st->length = ste - st->entries;
 
 	LLNI_CRITICAL_END;
-
-	/* release dump memory */
-
-/* 	dump_release(dumpsize); */
 
 	CYCLES_STATS_END_WITH_OVERHEAD(stacktrace_fillInStackTrace,
 								   stacktrace_overhead)
 	return ba.get_handle();
 
 return_NULL:
-/* 	dump_release(dumpsize); */
-
 	CYCLES_STATS_END_WITH_OVERHEAD(stacktrace_fillInStackTrace,
 								   stacktrace_overhead)
 
