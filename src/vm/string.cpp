@@ -47,57 +47,127 @@ struct JavaStringHash {
 		const u2 *cs = str.begin();
 		size_t    sz = str.size();
 
-		return hash(cs, sz);
+		return utf_hashkey((const char*) cs, sz);
 	}
 
-	// compute the hash by XORing word sized chunks of the string.
-	// If the string is not cleanly divisible into word sized chunks, the last chunk
-	// is zero extended to word size.
-	// For strings longer than 16 chars use only 4 chars from the start,
-	// 4 chars from the middle and 4 from the end.
-	static inline u4 hash(const u2 *cs, size_t sz) {
-		const char *bytes = (const char*) cs;
+	/// The hashkey is computed from the utf-text by using up to 8
+	/// characters.  For utf-symbols longer than 15 characters 3 characters
+	/// are taken from the beginning and the end, 2 characters are taken
+	/// from the middle.
+	static inline u4 utf_hashkey(const char *text, u4 length) {
+#define nbs(val) ((u4) *(++text) << val) // get next byte, left shift by val
+#define fbs(val) ((u4) *(  text) << val) // get first byte, left shift by val
 
-#define _16(N) (*reinterpret_cast<const uint16_t*>(bytes + N))
-#define _32(N) (*reinterpret_cast<const uint32_t*>(bytes + N))
-#define _48(N) (_32(N) ^ _16(N+2))
+		const char *start_pos = text;  // pointer to utf text
+		u4          a;
 
-#if SIZEOF_VOID_P == 8
-	#define _64(N) (*reinterpret_cast<const uint64_t*>(bytes + N))
-#else
-	#define _64(N) (_32(N) ^ _32(N+2))
-#endif
+	switch (length) {
+	case 0: // empty string */
+		return 0;
 
-		switch (sz) {
-		case  0: return 0;
-		case  1: return _16(0);
-		case  2: return _32(0); 
-		case  3: return _48(0);
-		case  4: return _64(0);
-		case  5: return _64(0) ^ _16(4);
-		case  6: return _64(0) ^ _32(4);
-		case  7: return _64(0) ^ _48(4);
-		case  8: return _64(0) ^ _64(4);
-		case  9: return _64(0) ^ _64(4) ^ _16(8);
-		case 10: return _64(0) ^ _64(4) ^ _32(8);
-		case 11: return _64(0) ^ _64(4) ^ _48(8);
-		case 12: return _64(0) ^ _64(4) ^ _64(8);
-		case 13: return _64(0) ^ _64(4) ^ _64(8) ^ _16(12);
-		case 14: return _64(0) ^ _64(4) ^ _64(8) ^ _32(12);
-		case 15: return _64(0) ^ _64(4) ^ _64(8) ^ _48(12);
-		case 16: return _64(0) ^ _64(4) ^ _64(8) ^ _64(12);
-		default: return
-			// 4 codepoints from the start
-			_64(0) ^
-			// 4 codepoints from the middle
-			_64(sz/2) ^
-			// 4 codepoints from the end
-			_64(sz - 4);
+	case 1: return fbs(0);
+	case 2: return fbs(0) ^ nbs(3);
+	case 3: return fbs(0) ^ nbs(3) ^ nbs(5);
+	case 4: return fbs(0) ^ nbs(2) ^ nbs(4) ^ nbs(6);
+	case 5: return fbs(0) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(6);
+	case 6: return fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(5) ^ nbs(6);
+	case 7: return fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(5) ^ nbs(6);
+	case 8: return fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(5) ^ nbs(6) ^ nbs(7);
+
+	case 9:
+		a = fbs(0);
+		a ^= nbs(1);
+		a ^= nbs(2);
+		text++;
+		return a ^ nbs(4) ^ nbs(5) ^ nbs(6) ^ nbs(7) ^ nbs(8);
+
+	case 10:
+		a = fbs(0);
+		text++;
+		a ^= nbs(2);
+		a ^= nbs(3);
+		a ^= nbs(4);
+		text++;
+		return a ^ nbs(6) ^ nbs(7) ^ nbs(8) ^ nbs(9);
+
+	case 11:
+		a = fbs(0);
+		text++;
+		a ^= nbs(2);
+		a ^= nbs(3);
+		a ^= nbs(4);
+		text++;
+		return a ^ nbs(6) ^ nbs(7) ^ nbs(8) ^ nbs(9) ^ nbs(10);
+
+	case 12:
+		a = fbs(0);
+		text += 2;
+		a ^= nbs(2);
+		a ^= nbs(3);
+		text++;
+		a ^= nbs(5);
+		a ^= nbs(6);
+		a ^= nbs(7);
+		text++;
+		return a ^ nbs(9) ^ nbs(10);
+
+	case 13:
+		a = fbs(0);
+		a ^= nbs(1);
+		text++;
+		a ^= nbs(3);
+		a ^= nbs(4);
+		text += 2;      
+		a ^= nbs(7);
+		a ^= nbs(8);
+		text += 2;
+		return a ^ nbs(9) ^ nbs(10);
+
+	case 14:
+		a = fbs(0);
+		text += 2;      
+		a ^= nbs(3);
+		a ^= nbs(4);
+		text += 2;      
+		a ^= nbs(7);
+		a ^= nbs(8);
+		text += 2;
+		return a ^ nbs(9) ^ nbs(10) ^ nbs(11);
+
+	case 15:
+		a = fbs(0);
+		text += 2;      
+		a ^= nbs(3);
+		a ^= nbs(4);
+		text += 2;      
+		a ^= nbs(7);
+		a ^= nbs(8);
+		text += 2;
+		return a ^ nbs(9) ^ nbs(10) ^ nbs(11);
+
+	default:  
+       	// 3 characters from beginning
+		a = fbs(0);
+		text += 2;
+		a ^= nbs(3);
+		a ^= nbs(4);
+
+		// 2 characters from middle
+		text = start_pos + (length / 2);
+		a ^= fbs(5);
+		text += 2;
+		a ^= nbs(6);    
+
+		// 3 characters from end
+		text = start_pos + length - 4;
+
+		a ^= fbs(7);
+		text++;
+
+		return a ^ nbs(10) ^ nbs(11);
+#undef fbs
+#undef nbs
 		}
-
-#undef _16
-#undef _32
-#undef _64
 	}
 };
 
