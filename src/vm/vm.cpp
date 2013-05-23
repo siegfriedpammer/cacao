@@ -1935,8 +1935,8 @@ void vm_exit_handler(void)
 	if (!opt_RtTimingLogfile) {
 		FILE *file = fopen("rt-timing.log", "w");
 		if (file == NULL)
-			/* fallback to stderr */
-			file = stderr;
+			/* fallback to stdout */
+			file = stdout;
 		opt_RtTimingLogfile = file;
 	}
 	{
@@ -1951,8 +1951,8 @@ void vm_exit_handler(void)
 	if (!opt_StatisticsLogfile) {
 		FILE *file = fopen("statistics.log", "w");
 		if (file == NULL)
-			/* fallback to stderr */
-			file = stderr;
+			/* fallback to stdout */
+			file = stdout;
 		opt_StatisticsLogfile = file;
 	}
 	{
