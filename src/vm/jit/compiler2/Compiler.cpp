@@ -149,9 +149,9 @@ MachineCode* compile(methodinfo* m)
 
 	//DEBUG_JIT_COMPILEVERBOSE("Recompiling start: ");
 
-	STATISTICS(count_jit_calls++);
+	//STATISTICS(count_jit_calls++);
 
-#if defined(ENABLE_STATISTICS)
+#if 0 && defined(ENABLE_STATISTICS)
 	/* measure time */
 
 	if (opt_getcompilingtime)
@@ -263,7 +263,7 @@ MachineCode* compile(methodinfo* m)
 		return code->entrypoint;        /* return empty method                */
 	}
 
-#if defined(ENABLE_STATISTICS)
+#if 0 && defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 		count_javacodesize += m->jcodelength + 18;
 		count_tryblocks    += JD.jitdata()->exceptiontablelength;
@@ -307,7 +307,7 @@ MachineCode* compile(methodinfo* m)
 		code_codeinfo_free(JD.jitdata()->code);
 	}
 
-#if defined(ENABLE_STATISTICS)
+#if 0 && defined(ENABLE_STATISTICS)
 	/* measure time */
 
 	if (opt_getcompilingtime)
