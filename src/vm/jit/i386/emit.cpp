@@ -962,7 +962,6 @@ static void emit_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 index
 
 void emit_mov_reg_reg(codegendata *cd, s4 reg, s4 dreg)
 {
-	COUNT(count_mov_reg_reg);
 	STATISTICS(count_mov_reg_reg++);
 	*(cd->mcodeptr++) = 0x89;
 	emit_reg((reg),(dreg));
@@ -995,7 +994,6 @@ void emit_movb_imm_reg(codegendata *cd, s4 imm, s4 reg)
 
 void emit_mov_membase_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg)
 {
-	COUNT(count_mov_mem_reg);
 	STATISTICS(count_mov_mem_reg++);
 	*(cd->mcodeptr++) = 0x8b;
 	emit_membase(cd, (basereg),(disp),(reg));
@@ -1008,7 +1006,6 @@ void emit_mov_membase_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg)
  */
 void emit_mov_membase32_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg)
 {
-	COUNT(count_mov_mem_reg);
 	STATISTICS(count_mov_mem_reg++);
 	*(cd->mcodeptr++) = 0x8b;
 	emit_membase32(cd, (basereg),(disp),(reg));
@@ -1017,7 +1014,6 @@ void emit_mov_membase32_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg)
 
 void emit_mov_reg_membase(codegendata *cd, s4 reg, s4 basereg, s4 disp)
 {
-	COUNT(count_mov_reg_mem);
 	STATISTICS(count_mov_reg_mem++);
 	*(cd->mcodeptr++) = 0x89;
 	emit_membase(cd, (basereg),(disp),(reg));
@@ -1026,7 +1022,6 @@ void emit_mov_reg_membase(codegendata *cd, s4 reg, s4 basereg, s4 disp)
 
 void emit_mov_reg_membase32(codegendata *cd, s4 reg, s4 basereg, s4 disp)
 {
-	COUNT(count_mov_reg_mem);
 	STATISTICS(count_mov_reg_mem++);
 	*(cd->mcodeptr++) = 0x89;
 	emit_membase32(cd, (basereg),(disp),(reg));
@@ -1035,7 +1030,6 @@ void emit_mov_reg_membase32(codegendata *cd, s4 reg, s4 basereg, s4 disp)
 
 void emit_mov_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg)
 {
-	COUNT(count_mov_mem_reg);
 	STATISTICS(count_mov_mem_reg++);
 	*(cd->mcodeptr++) = 0x8b;
 	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
@@ -1044,7 +1038,6 @@ void emit_mov_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4
 
 void emit_mov_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale)
 {
-	COUNT(count_mov_reg_mem);
 	STATISTICS(count_mov_reg_mem++);
 	*(cd->mcodeptr++) = 0x89;
 	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
@@ -1053,7 +1046,6 @@ void emit_mov_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 inde
 
 void emit_movw_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale)
 {
-	COUNT(count_mov_reg_mem);
 	STATISTICS(count_mov_reg_mem++);
 	*(cd->mcodeptr++) = 0x66;
 	*(cd->mcodeptr++) = 0x89;
@@ -1063,7 +1055,6 @@ void emit_movw_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 ind
 
 void emit_movb_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale)
 {
-	COUNT(count_mov_reg_mem);
 	STATISTICS(count_mov_reg_mem++);
 	*(cd->mcodeptr++) = 0x88;
 	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
@@ -1072,7 +1063,6 @@ void emit_movb_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 ind
 
 void emit_mov_reg_mem(codegendata *cd, s4 reg, s4 mem)
 {
-	COUNT(count_mov_reg_mem);
 	STATISTICS(count_mov_reg_mem++);
 	*(cd->mcodeptr++) = 0x89;
 	emit_mem((reg),(mem));
@@ -1081,7 +1071,6 @@ void emit_mov_reg_mem(codegendata *cd, s4 reg, s4 mem)
 
 void emit_mov_mem_reg(codegendata *cd, s4 mem, s4 dreg)
 {
-	COUNT(count_mov_mem_reg);
 	STATISTICS(count_mov_mem_reg++);
 	*(cd->mcodeptr++) = 0x8b;
 	emit_mem((dreg),(mem));
@@ -1131,7 +1120,6 @@ void emit_movsbl_reg_reg(codegendata *cd, s4 a, s4 b)
 
 void emit_movsbl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg)
 {
-	COUNT(count_mov_mem_reg);
 	STATISTICS(count_mov_mem_reg++);
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xbe;
@@ -1149,7 +1137,6 @@ void emit_movswl_reg_reg(codegendata *cd, s4 a, s4 b)
 
 void emit_movswl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg)
 {
-	COUNT(count_mov_mem_reg);
 	STATISTICS(count_mov_mem_reg++);
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xbf;
@@ -1176,7 +1163,6 @@ void emit_movzwl_reg_reg(codegendata *cd, s4 a, s4 b)
 
 void emit_movzwl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg)
 {
-	COUNT(count_mov_mem_reg);
 	STATISTICS(count_mov_mem_reg++);
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xb7;

@@ -79,7 +79,7 @@ struct registerdata;
 /* common jit/codegen macros **************************************************/
 
 #if defined(ENABLE_STATISTICS)
-# define COUNT(x)        (x)++
+//# define COUNT(x)        (x)++
 # define COUNT_SPILLS             /* use COUNT_(READ|WRITE)_SPILLS instead */
 # define COUNT_READ_SPILLS(var) \
 	switch(var->type) { \

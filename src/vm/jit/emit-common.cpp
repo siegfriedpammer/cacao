@@ -46,10 +46,10 @@
 
 STAT_REGISTER_VAR(int,count_branches_resolved,0,"resolved branches","resolved branches")
 
-STAT_REGISTER_VAR(int,count_mov_reg_reg,0,"count_mov_reg_reg","Moves reg -> reg")
-STAT_REGISTER_VAR(int,count_mov_mem_reg,0,"count_mov_mem_reg","Moves mem -> reg")
-STAT_REGISTER_VAR(int,count_mov_reg_mem,0,"count_mov_reg_mem","Moves reg -> mem")
-STAT_REGISTER_VAR(int,count_mov_mem_mem,0,"count_mov_mem_mem","Moves mem -> mem")
+STAT_REGISTER_VAR_EXTERN(int,count_mov_reg_reg,0,"count_mov_reg_reg","Moves reg -> reg")
+STAT_REGISTER_VAR_EXTERN(int,count_mov_mem_reg,0,"count_mov_mem_reg","Moves mem -> reg")
+STAT_REGISTER_VAR_EXTERN(int,count_mov_reg_mem,0,"count_mov_reg_mem","Moves reg -> mem")
+//STAT_REGISTER_VAR_EXTERN(int,count_mov_mem_mem,0,"count_mov_mem_mem","Moves mem -> mem")
 
 STAT_REGISTER_SUM_GROUP(emit_branch_stat,"emit branch","Number of branch_emit (total)")
 STAT_REGISTER_GROUP_VAR(int,count_emit_branch_8bit,0,"emit branch 8bit","Number of branch_emit ( 8bit offset)",emit_branch_stat)
