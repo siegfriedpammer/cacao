@@ -36,6 +36,7 @@ libcompiler2_la_SOURCES = \
 	CFGConstructionPass.cpp \
 	CodeGenPass.cpp \
 	Compiler.cpp \
+	Conditional.cpp \
 	DominatorPass.cpp \
 	DomTreePrinterPass.cpp \
 	GraphHelper.cpp \

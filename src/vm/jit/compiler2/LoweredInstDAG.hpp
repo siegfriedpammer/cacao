@@ -52,21 +52,34 @@ class LoweredInstDAG {
 private:
 	Instruction * inst;
 	std::vector<MachineInstruction*> minst;
+	std::vector<std::pair<MachineInstruction*,unsigned> > input_map;
 	MachineInstruction *result;
 public:
-	LoweredInstDAG(Instruction* I) : inst(I), minst(I->op_size()),
+	LoweredInstDAG(Instruction* I) : inst(I), minst(), input_map(I->op_size()),
 			result(NULL) {}
 	Instruction * get_Instruction() const {
 		return inst;
 	}
-
 	void add(MachineInstruction *MI) {
-		assert(std::find(minst.begin(),minst.end(),MI) == minst.end());
 		assert(MI);
+		assert(std::find(minst.begin(),minst.end(),MI) == minst.end());
 		minst.push_back(MI);
+	}
+	void set_input(MachineInstruction *MI) {
+		assert( input_map.size() == MI->size_op());
+		for (unsigned i = 0, e = input_map.size(); i < e ; ++i) {
+			input_map[i] = std::make_pair(MI, i);
+		}
+	}
+	void set_input(unsigned dag_input_idx, MachineInstruction *MI,
+			unsigned minst_input_idx) {
+		assert(dag_input_idx < input_map.size());
+		assert(minst_input_idx < MI->size_op());
+		input_map[dag_input_idx] = std::make_pair(MI, minst_input_idx);
 	}
 	void set_result(MachineInstruction *MI) {
 		assert(MI);
+		assert(std::find(minst.begin(),minst.end(),MI) != minst.end() );
 		result = MI;
 	}
 

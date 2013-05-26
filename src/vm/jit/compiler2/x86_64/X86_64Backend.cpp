@@ -23,10 +23,12 @@
 */
 
 #include "vm/jit/compiler2/x86_64/X86_64Backend.hpp"
+#include "vm/jit/compiler2/x86_64/X86_64Instructions.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/LoweredInstDAG.hpp"
 #include "vm/jit/compiler2/MethodDescriptor.hpp"
 
+#include "toolbox/OStream.hpp"
 #include "toolbox/logging.hpp"
 
 #define DEBUG_NAME "compiler2/x86_64"
@@ -42,10 +44,74 @@ const char* BackendTraits<X86_64>::get_name() const {
 
 template<>
 LoweredInstDAG* BackendTraits<X86_64>::lowerLOADInst(LOADInst *I) const {
+	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	//MachineInstruction *minst = loadParameter(I->get_index(), I->get_type());
 	const MethodDescriptor &MD = I->get_Method()->get_MethodDescriptor();
 	LOG("Methoddescriptor: " << MD << nl);
+	return dag;
+}
+
+template<>
+LoweredInstDAG* BackendTraits<X86_64>::lowerIFInst(IFInst *I) const {
+	assert(I);
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	X86_64CmpInst *cmp = new X86_64CmpInst();
+	X86_64CondJumpInst *cjmp = NULL;
+
+	switch (I->get_condition()) {
+	case Conditional::EQ:
+		cjmp = new X86_64CondJumpInst(X86_64Cond::E);
+		break;
+	case Conditional::LT:
+		cjmp = new X86_64CondJumpInst(X86_64Cond::L);
+		break;
+	case Conditional::LE:
+		cjmp = new X86_64CondJumpInst(X86_64Cond::LE);
+		break;
+	default:
+		err() << Red << "Error: " << reset_color << "Conditioal not supported: "
+		      << bold << I->get_condition() << reset_color << nl;
+		assert(0);
+	}
+	dag->add(cmp);
+	dag->add(cjmp);
+
+	dag->set_input(cmp);
+	dag->set_result(cjmp);
+	return dag;
+}
+
+template<>
+LoweredInstDAG* BackendTraits<X86_64>::lowerADDInst(ADDInst *I) const {
+	assert(I);
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	X86_64AddInst *add = new X86_64AddInst();
+	dag->add(add);
+	dag->set_input(add);
+	dag->set_result(add);
+	return dag;
+}
+
+template<>
+LoweredInstDAG* BackendTraits<X86_64>::lowerSUBInst(SUBInst *I) const {
+	assert(I);
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	X86_64SubInst *sub = new X86_64SubInst();
+	dag->add(sub);
+	dag->set_input(sub);
+	dag->set_result(sub);
+	return dag;
+}
+
+template<>
+LoweredInstDAG* BackendTraits<X86_64>::lowerRETURNInst(RETURNInst *I) const {
+	assert(I);
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	X86_64RetInst *ret = new X86_64RetInst();
+	dag->add(ret);
+	// TODO get the return value!
+	dag->set_result(ret);
 	return dag;
 }
 

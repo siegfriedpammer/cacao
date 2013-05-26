@@ -38,6 +38,32 @@ public:
 
 };
 
+class MachineJumpInst : public MachineInstruction {
+public:
+	MachineJumpInst() : MachineInstruction("MJump",MachineOperand::NONE, 1) {
+		operands[0] = MachineOperand::ABSOLUTE_ADDR | MachineOperand::PIC_ADDR;
+	}
+
+};
+
+class MachinePhiInst : public MachineInstruction {
+public:
+	MachinePhiInst(unsigned operands)
+			: MachineInstruction("MPhi", MachineOperand::REGISTER_VALUE,
+			  operands, MachineOperand::REGISTER_VALUE) {
+	}
+
+};
+
+class MachineConstInst : public MachineInstruction {
+public:
+	/**
+	 * TODO: get const parameter
+	 */
+	MachineConstInst() : MachineInstruction("MConst", MachineOperand::IMMEDIATE, 0) {}
+
+};
+
 /**
  * Load from memory to register
  */

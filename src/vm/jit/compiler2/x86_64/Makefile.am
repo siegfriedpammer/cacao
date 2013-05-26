@@ -29,7 +29,8 @@ noinst_LTLIBRARIES = \
 	libx86_64.la
 
 libx86_64_la_SOURCES = \
-	X86_64Backend.cpp
+	X86_64Backend.cpp \
+	X86_64Instructions.cpp
 
 ## Local variables:
 ## mode: Makefile

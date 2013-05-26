@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/Backend.cpp - Backend
+/* src/vm/jit/compiler2/X86_64Cond.hpp - X86_64Cond
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,45 +22,57 @@
 
 */
 
+#ifndef _JIT_COMPILER2_X86_64COND
+#define _JIT_COMPILER2_X86_64COND
+
+#include "vm/jit/compiler2/x86_64/X86_64.hpp"
 #include "vm/jit/compiler2/Backend.hpp"
-
-#ifdef __X86_64__
-
-#include "vm/jit/compiler2/x86_64/X86_64Backend.hpp"
-cacao::jit::compiler2::Backend* cacao::jit::compiler2::Backend::factory() {
-	static cacao::jit::compiler2::BackendTraits<cacao::jit::compiler2::X86_64> BE;
-	return &BE;
-}
-
-#else
-#error Target not yet ported to the compiler2 backend!
-#endif
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
-
-LoweredInstDAG* Backend::lower(Instruction *I) const {
-	switch(I->get_opcode()) {
-	case Instruction::BeginInstID:  return lowerBeginInst(I->to_BeginInst());
-	case Instruction::LOADInstID:   return lowerLOADInst(I->to_LOADInst());
-	case Instruction::GOTOInstID:   return lowerGOTOInst(I->to_GOTOInst());
-	case Instruction::PHIInstID:    return lowerPHIInst(I->to_PHIInst());
-	case Instruction::IFInstID:     return lowerIFInst(I->to_IFInst());
-	case Instruction::CONSTInstID:  return lowerCONSTInst(I->to_CONSTInst());
-	case Instruction::ADDInstID:    return lowerADDInst(I->to_ADDInst());
-	case Instruction::SUBInstID:    return lowerSUBInst(I->to_SUBInst());
-	case Instruction::RETURNInstID: return lowerRETURNInst(I->to_RETURNInst());
-	}
-	err() << BoldRed << "error: " << reset_color
-		  << " instruction " << BoldWhite
-		  << I << reset_color << " not yet handled by the Backend" << nl;
-	return NULL;
-}
+/**
+ * x86_64 registers flags
+ */
+class X86_64Cond {
+public:
+	enum COND {
+		C,   /* carry (CF = 1). */
+		NAE, /* not above or equal (CF = 1). */
+		NB,  /* not below (CF = 0). */
+		NC,  /* not carry (CF = 0). */
+		AE,  /* above or equal (CF = 0). */
+		Z,   /* zero (ZF = 1). */
+		E,   /* equal (ZF = 1). */
+		NZ,  /* not zero (ZF = 0). */
+		NE,  /* not equal (ZF = 0). */
+		BE,  /* below or equal (CF = 1 or ZF = 1). */
+		NA,  /* not above (CF = 1 or ZF = 1). */
+		NBE, /* not below or equal (CF = 0 and ZF = 0). */
+		A,   /* above (CF = 0 and ZF = 0). */
+		S,   /* sign (SF = 1). */
+		NS,  /* not sign (SF = 0). */
+		P,   /* parity (PF = 1). */
+		PE,  /* parity even (PF = 1). */
+		NP,  /* not parity (PF = 0). */
+		PO,  /* parity odd (PF = 0). */
+		L,   /* less (SF <> OF). */
+		NGE, /* not greater or equal (SF <> OF). */
+		NL,  /* not less (SF = OF). */
+		GE,  /* greater or equal (SF = OF). */
+		LE,  /* less or equal (ZF = 1 or SF <> OF). */
+		NG,  /* not greater (ZF = 1 or SF <> OF). */
+		NLE, /* not less or equal (ZF = 0 and SF = OF). */
+		G,   /* greater (ZF = 0 and SF = OF). */
+		NO_COND
+	};
+};
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
+
+#endif /* _JIT_COMPILER2_X86_64COND */
 
 
 /*

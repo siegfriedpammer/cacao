@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/Conditional.hpp - Conditionals used in the 2nd stage compiler IR
+/* src/vm/jit/compiler2/X86_64Instructions.hpp - X86_64Instructions
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,55 +22,20 @@
 
 */
 
-#ifndef _JIT_COMPILER2_CONDITIONAL
-#define _JIT_COMPILER2_CONDITIONAL
+#include "vm/jit/compiler2/x86_64/X86_64Instructions.hpp"
+#include "vm/jit/compiler2/MachineInstructions.hpp"
+#include "toolbox/logging.hpp"
 
-#include "vm/method.hpp"
+#define DEBUG_NAME "compiler2/x86_64"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-class PrimitiveType;
-class ReferenceType;
-class NumericType;
-class BooleanType;
-class ReturnAddressType;
-class IntegralType;
-class FloatingPointType;
-class ByteType;
-class ShortType;
-class IntType;
-class LongType;
-class CharType;
-class FloatType;
-class DoubleType;
 
-/**
- * Type Class
- *
- * See JVM spec 2.2
- */
-class Conditional {
-public:
-	enum CondID {
-		EQ,
-		NE,
-		LT,
-		GE,
-		GT,
-		LE,
-		NoCond
-	};
-};
-
-OStream& operator<<(OStream &OS, const Conditional::CondID &cond);
-
-} // end namespace cacao
-} // end namespace jit
 } // end namespace compiler2
-
-#endif /* _JIT_COMPILER2_CONDITIONAL */
+} // end namespace jit
+} // end namespace cacao
 
 
 /*

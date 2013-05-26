@@ -78,6 +78,7 @@ protected:
 	Conditional::CondID cond;
 public:
 	explicit CondInst(Conditional::CondID cond) : cond(cond){}
+	Conditional::CondID get_condition() const { return cond; }
 };
 
 

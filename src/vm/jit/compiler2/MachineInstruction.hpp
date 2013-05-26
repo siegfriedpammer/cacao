@@ -51,8 +51,14 @@ protected:
 	MachineOperand result;
 	const char *name;
 public:
+	MachineInstruction(const char * name, MachineOperand result, unsigned num_operands, MachineOperand dflt_type)
+		: operands(num_operands,dflt_type), result(result), name(name) {
+	}
 	MachineInstruction(const char * name, MachineOperand result, unsigned num_operands)
 		: operands(num_operands), result(result), name(name) {
+	}
+	unsigned size_op() const {
+		return operands.size();
 	}
 	MachineOperand& operator[](unsigned i) {
 		return operands[i];
