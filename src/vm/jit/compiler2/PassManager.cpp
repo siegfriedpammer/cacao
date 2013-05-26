@@ -69,8 +69,15 @@ void PassManager::runPasses(JITData &JD) {
 		LOG("start: " << get_Pass_name(*i) << nl);
 		if (!P->run(JD)) {
 			err() << bold << Red << "error" << reset_color << " during pass " << get_Pass_name(*i) << nl;
-			vm_abort("compiler2: error");
+			os::abort("compiler2: error");
 		}
+		#ifndef NDEBUG
+		LOG("verifying: " << get_Pass_name(*i) << nl);
+		if (!P->verify()) {
+			err() << bold << Red << "verification error" << reset_color << " during pass " << get_Pass_name(*i) << nl;
+			os::abort("compiler2: error");
+		}
+		#endif
 		LOG("finished: " << get_Pass_name(*i) << nl);
 	}
 	finalizePasses();

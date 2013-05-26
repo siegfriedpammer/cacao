@@ -100,6 +100,14 @@ public:
 	virtual bool run(JITData &JD) = 0;
 
 	/**
+	 * Verify the Result.
+	 * This method is used to verify the result of the pass. It has the same motivation
+	 * than the assert() statement. It should be only used for debugging purposes
+	 * and might not be called in release builds.
+	 */
+	virtual bool verify() const { return true; }
+
+	/**
 	 * Destructor
 	 */
 	virtual ~Pass() {}
