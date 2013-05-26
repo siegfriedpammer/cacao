@@ -24,6 +24,7 @@
 
 #include "vm/jit/compiler2/x86_64/X86_64Backend.hpp"
 #include "vm/jit/compiler2/x86_64/X86_64Instructions.hpp"
+#include "vm/jit/compiler2/x86_64/X86_64Register.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/LoweredInstDAG.hpp"
 #include "vm/jit/compiler2/MethodDescriptor.hpp"
@@ -109,8 +110,10 @@ LoweredInstDAG* BackendTraits<X86_64>::lowerRETURNInst(RETURNInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	X86_64RetInst *ret = new X86_64RetInst();
+	X86_64RegValInst *reg = new X86_64RegValInst(RAX);
 	dag->add(ret);
-	// TODO get the return value!
+	dag->add(reg);
+	dag->set_input(reg);
 	dag->set_result(ret);
 	return dag;
 }

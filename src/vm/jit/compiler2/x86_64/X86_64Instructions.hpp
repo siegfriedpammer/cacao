@@ -27,6 +27,7 @@
 
 #include "vm/jit/compiler2/x86_64/X86_64.hpp"
 #include "vm/jit/compiler2/x86_64/X86_64Cond.hpp"
+#include "vm/jit/compiler2/x86_64/X86_64Register.hpp"
 #include "vm/jit/compiler2/MachineInstruction.hpp"
 
 namespace cacao {
@@ -83,6 +84,18 @@ class X86_64RetInst : public MachineInstruction {
 public:
 	X86_64RetInst()
 			: MachineInstruction("X86_64RetInst", MachineOperand::NONE, 0) {
+	}
+
+};
+
+class X86_64RegValInst : public MachineInstruction {
+private:
+	X86_64Register &reg;
+public:
+	X86_64RegValInst(X86_64Register &reg)
+			: MachineInstruction("X86_64RegValInst", MachineOperand::REGISTER_VALUE, 1,
+			  MachineOperand::REGISTER_VALUE | MachineOperand::REGISTER_MEM
+		      | MachineOperand::IMMEDIATE), reg(reg) {
 	}
 
 };
