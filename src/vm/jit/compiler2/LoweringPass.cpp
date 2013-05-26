@@ -48,6 +48,7 @@ bool LoweringPass::run(JITData &JD) {
 		LoweredInstDAG* dag = BE->lower(I);
 		if (!dag)
 			return false;
+		lowering_map[I] = dag;
 	}
 
 	return true;
@@ -57,6 +58,22 @@ bool LoweringPass::run(JITData &JD) {
 PassUsage& LoweringPass::get_PassUsage(PassUsage &PU) const {
 	//PU.add_requires(YyyPass::ID);
 	return PU;
+}
+
+bool LoweringPass::verify() const {
+	for(LoweringMapTy::const_iterator i = lowering_map.begin(),
+			e = lowering_map.end(); i != e; ++i) {
+		LoweredInstDAG *dag = i->second;
+		for(unsigned i = 0, e = dag->input_map.size(); i < e ; ++i) {
+			MachineInstruction *MI = dag->input_map[i].first;
+			if (!MI) {
+				LOG("LoweredInstDAG input " << i << " not set! "
+				    "(lowered " << dag->get_Instruction() << ")" << nl);
+				return false;
+			}
+		}
+	}
+	return true;
 }
 
 // the address of this variable is used to identify the pass

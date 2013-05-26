@@ -31,17 +31,23 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+class Instruction;
+class LoweredInstDAG;
 
 /**
  * LoweringPass
  * TODO: more info
  */
 class LoweringPass : public Pass {
+private:
+	typedef std::map<Instruction*,LoweredInstDAG*> LoweringMapTy;
+	LoweringMapTy lowering_map;
 public:
 	static char ID;
 	LoweringPass() : Pass() {}
 	bool run(JITData &JD);
 	PassUsage& get_PassUsage(PassUsage &PA) const;
+	virtual bool verify() const;
 };
 
 } // end namespace compiler2

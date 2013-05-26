@@ -36,6 +36,8 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+class LoweringPass;
+
 /**
  * DAG of machine instruction that replace one Instruction.
  *
@@ -43,16 +45,18 @@ namespace compiler2 {
  * DAG of machine instructions. A LoweredInstDAG stores these machine
  * instructions and contains a mapping from the instruction operands to the
  * operands of the machine instructions.
- * 
+ *
  * Note all machine instructions must be linked i.e. all operands are either
  * connected to the operand map, another machine instruction or a immediate
  * value.
  */
 class LoweredInstDAG {
 private:
+	typedef std::vector<MachineInstruction*> MachineInstListTy;
+	typedef std::vector<std::pair<MachineInstruction*,unsigned> > InputMapTy;
 	Instruction * inst;
-	std::vector<MachineInstruction*> minst;
-	std::vector<std::pair<MachineInstruction*,unsigned> > input_map;
+	MachineInstListTy minst;
+	InputMapTy input_map;
 	MachineInstruction *result;
 public:
 	LoweredInstDAG(Instruction* I) : inst(I), minst(), input_map(I->op_size()),
@@ -82,6 +86,8 @@ public:
 		assert(std::find(minst.begin(),minst.end(),MI) != minst.end() );
 		result = MI;
 	}
+
+	friend class LoweringPass;
 
 };
 
