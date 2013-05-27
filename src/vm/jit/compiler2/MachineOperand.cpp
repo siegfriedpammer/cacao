@@ -24,26 +24,38 @@
 
 #include "vm/jit/compiler2/MachineOperand.hpp"
 #include "toolbox/OStream.hpp"
+#include "toolbox/StringBuf.hpp"
 
+#include <string>
+#include <cstring>
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+VoidOperand NoOperand;
 
-OStream& operator<<(OStream &OS, const MachineOperand &MO) {
-	OS << "MachineOperand [ ";
-	if (MO.takes(MachineOperand::REGISTER_VALUE))
+unsigned VirtualRegister::vreg_counter = 0;
+
+VirtualRegister::VirtualRegister() : vreg(vreg_counter++) {
+	//std::string str = "VREG" + std::to_string(vreg);
+	StringBuf str = "VREG" + to_string(vreg);
+	name = strdup(str.c_str());
+}
+
+OStream& operator<<(OStream &OS, const MachineOperandType &MO) {
+	OS << "MachineOperandType [ ";
+	if (MO.takes(MachineOperandType::REGISTER_VALUE))
 		OS << "RV ";
-	if (MO.takes(MachineOperand::REGISTER_MEM))
+	if (MO.takes(MachineOperandType::REGISTER_MEM))
 		OS << "RM ";
-	if (MO.takes(MachineOperand::IMMEDIATE))
+	if (MO.takes(MachineOperandType::IMMEDIATE))
 		OS << "IM ";
-	if (MO.takes(MachineOperand::ABSOLUTE_ADDR))
+	if (MO.takes(MachineOperandType::ABSOLUTE_ADDR))
 		OS << "AA ";
-	if (MO.takes(MachineOperand::PIC_ADDR))
+	if (MO.takes(MachineOperandType::PIC_ADDR))
 		OS << "PA ";
-	if (MO.takes(MachineOperand::PC_REL_ADDR))
+	if (MO.takes(MachineOperandType::PC_REL_ADDR))
 		OS << "RA ";
 	return OS << ']';
 }

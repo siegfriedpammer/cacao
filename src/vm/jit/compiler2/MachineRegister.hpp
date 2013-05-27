@@ -25,12 +25,17 @@
 #ifndef _JIT_COMPILER2_MACHINEREGISTER
 #define _JIT_COMPILER2_MACHINEREGISTER
 
+#include "vm/jit/compiler2/MachineOperand.hpp"
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
 
-class MachineRegister {
+class MachineRegister : public Register {
+public:
+	MachineRegister(const char *name) : Register(name) {}
+	~MachineRegister() {}
 };
 
 } // end namespace compiler2

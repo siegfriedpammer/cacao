@@ -36,8 +36,85 @@ class OStream;
 namespace jit {
 namespace compiler2 {
 
-
+/**
+ * Operands that can be directly used by the machine (register, memory, stackslot)
+ */
 class MachineOperand {
+public:
+	virtual const char* get_name() const  = 0;
+	virtual ~MachineOperand() {}
+};
+
+class VoidOperand : public MachineOperand {
+public:
+	virtual const char* get_name() const {
+		return "VoidOperand";
+	}
+};
+
+class Register : public MachineOperand {
+protected:
+	const char *name;
+public:
+	Register() {}
+	Register(const char *name) : name(name) {}
+	virtual const char* get_name() const {
+		return name;
+	}
+	virtual ~Register() {}
+};
+
+class UnassignedReg : public Register {
+private:
+	UnassignedReg() : Register("UnassignedReg") {}
+public:
+	static UnassignedReg* factory() {
+		static UnassignedReg instance;
+		return &instance;
+	}
+};
+
+class VirtualRegister : public Register {
+private:
+	static unsigned vreg_counter;
+	const unsigned vreg;
+public:
+	VirtualRegister();
+
+	virtual ~VirtualRegister() {
+		delete[] name;
+	}
+};
+
+class StackSlot : public MachineOperand {
+private:
+	int offset; ///< offset from the framepointer (in bytes)
+public:
+	/**
+	 * @param offset  offset from the framepointer (in bytes)
+	 */
+	StackSlot(int offset) : offset(offset) {}
+	virtual const char* get_name() const {
+		return "StackSlot";
+	}
+};
+
+class Immediate : public MachineOperand {
+public:
+	virtual const char* get_name() const {
+		return "Immediate";
+	}
+};
+
+class Address : public MachineOperand {
+public:
+	virtual const char* get_name() const {
+		return "Address";
+	}
+};
+
+
+class MachineOperandType {
 public:
 	enum TYPE {
 		NONE            = 0,
@@ -54,18 +131,18 @@ private:
 	unsigned type;
 public:
 	/// default constructor
-	MachineOperand() {
+	MachineOperandType() {
 		type = NONE;
 	}
-	MachineOperand(unsigned t) {
+	MachineOperandType(unsigned t) {
 		set_type(t);
 	}
 	/// copy constructor
-	MachineOperand(const MachineOperand &MO) {
+	MachineOperandType(const MachineOperandType &MO) {
 		type = MO.type;
 	}
 	/// copy assignment operator
-	MachineOperand& operator=(const MachineOperand &rhs) {
+	MachineOperandType& operator=(const MachineOperandType &rhs) {
 		type = rhs.type;
 		return *this;
 	}
@@ -81,8 +158,9 @@ public:
 	}
 };
 
+extern VoidOperand NoOperand;
 
-OStream& operator<<(OStream &OS, const MachineOperand &MO);
+OStream& operator<<(OStream &OS, const MachineOperandType &MO);
 
 } // end namespace compiler2
 } // end namespace jit

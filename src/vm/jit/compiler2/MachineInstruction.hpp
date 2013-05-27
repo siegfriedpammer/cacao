@@ -43,27 +43,27 @@ namespace compiler2 {
  */
 class MachineInstruction {
 public:
-	typedef std::vector<MachineOperand> operand_list;
-	typedef std::vector<MachineOperand>::iterator operand_iterator;
-	typedef std::vector<MachineOperand>::const_iterator const_operand_iterator;
+	typedef std::vector<MachineOperand*> operand_list;
+	typedef std::vector<MachineOperand*>::iterator operand_iterator;
+	typedef std::vector<MachineOperand*>::const_iterator const_operand_iterator;
 private:
 	static unsigned id_counter;
 protected:
 	const unsigned id;
 	operand_list operands;
-	MachineOperand result;
+	MachineOperand* result;
 	const char *name;
 public:
-	MachineInstruction(const char * name, MachineOperand result, unsigned num_operands, MachineOperand dflt_type)
-		: id(id_counter++), operands(num_operands,dflt_type), result(result), name(name) {
+	MachineInstruction(const char * name, MachineOperand* result, unsigned num_operands, MachineOperand* dflt)
+		: id(id_counter++), operands(num_operands,dflt), result(result), name(name) {
 	}
-	MachineInstruction(const char * name, MachineOperand result, unsigned num_operands)
+	MachineInstruction(const char * name, MachineOperand* result, unsigned num_operands)
 		: id(id_counter++), operands(num_operands), result(result), name(name) {
 	}
 	unsigned size_op() const {
 		return operands.size();
 	}
-	MachineOperand& operator[](unsigned i) {
+	MachineOperand*& operator[](unsigned i) {
 		return operands[i];
 	}
 	operand_iterator begin() {
@@ -83,6 +83,9 @@ public:
 	}
 	const char* get_name() const {
 		return name;
+	}
+	MachineOperand* get_result() const {
+		return result;
 	}
 };
 

@@ -37,6 +37,8 @@ namespace compiler2 {
  */
 
 class X86_64Register : public MachineRegister {
+public:
+	X86_64Register(const char* name) : MachineRegister(name) {}
 };
 
 extern X86_64Register RAX;

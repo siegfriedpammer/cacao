@@ -28,7 +28,7 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-X86_64Register RAX;
+X86_64Register RAX("RAX");
 
 } // end namespace compiler2
 } // end namespace jit

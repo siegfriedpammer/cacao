@@ -39,9 +39,10 @@ public:
 	/**
 	 * TODO: return type actually is status-flags
 	 */
-	X86_64CmpInst()
-			: MachineInstruction("X86_64CmpInst", MachineOperand::NONE,
-			  2, MachineOperand::REGISTER_VALUE) {
+	X86_64CmpInst(Register *src1, MachineOperand *src2)
+			: MachineInstruction("X86_64CmpInst", &NoOperand, 2) {
+		operands[0] = src1;
+		operands[1] = src2;
 	}
 
 };
@@ -51,8 +52,7 @@ private:
 	X86_64Cond::COND cond;
 public:
 	X86_64CondJumpInst(X86_64Cond::COND cond)
-			: MachineInstruction("X86_64CondJumpInst", MachineOperand::NONE, 1,
-			  MachineOperand::ABSOLUTE_ADDR | MachineOperand::PIC_ADDR),
+			: MachineInstruction("X86_64CondJumpInst", &NoOperand, 0),
 			  cond(cond) {
 	}
 
@@ -60,22 +60,20 @@ public:
 
 class X86_64AddInst : public MachineInstruction {
 public:
-	X86_64AddInst()
-			: MachineInstruction("X86_64AddInst", MachineOperand::REGISTER_VALUE, 2) {
-		operands[0] = MachineOperand::REGISTER_VALUE | MachineOperand::REGISTER_MEM;
-		operands[1] = MachineOperand::REGISTER_VALUE | MachineOperand::REGISTER_MEM
-		            | MachineOperand::IMMEDIATE;
+	X86_64AddInst(Register *dstsrc1, Register *src2)
+			: MachineInstruction("X86_64AddInst", dstsrc1, 2) {
+		operands[0] = dstsrc1;
+		operands[1] = src2;
 	}
 
 };
 
 class X86_64SubInst : public MachineInstruction {
 public:
-	X86_64SubInst()
-			: MachineInstruction("X86_64SubInst", MachineOperand::REGISTER_VALUE, 2) {
-		operands[0] = MachineOperand::REGISTER_VALUE | MachineOperand::REGISTER_MEM;
-		operands[1] = MachineOperand::REGISTER_VALUE | MachineOperand::REGISTER_MEM
-		            | MachineOperand::IMMEDIATE;
+	X86_64SubInst(Register *dstsrc1, Register *src2)
+			: MachineInstruction("X86_64SubInst", dstsrc1, 2) {
+		operands[0] = dstsrc1;
+		operands[1] = src2;
 	}
 
 };
@@ -83,19 +81,7 @@ public:
 class X86_64RetInst : public MachineInstruction {
 public:
 	X86_64RetInst()
-			: MachineInstruction("X86_64RetInst", MachineOperand::NONE, 0) {
-	}
-
-};
-
-class X86_64RegValInst : public MachineInstruction {
-private:
-	X86_64Register &reg;
-public:
-	X86_64RegValInst(X86_64Register &reg)
-			: MachineInstruction("X86_64RegValInst", MachineOperand::REGISTER_VALUE, 1,
-			  MachineOperand::REGISTER_VALUE | MachineOperand::REGISTER_MEM
-		      | MachineOperand::IMMEDIATE), reg(reg) {
+			: MachineInstruction("X86_64RetInst", &NoOperand, 0) {
 	}
 
 };

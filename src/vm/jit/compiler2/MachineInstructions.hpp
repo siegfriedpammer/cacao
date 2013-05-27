@@ -33,24 +33,24 @@ namespace compiler2 {
 
 class MachineLabelInst : public MachineInstruction {
 public:
-	MachineLabelInst() : MachineInstruction("MLabel",
-			MachineOperand::ABSOLUTE_ADDR | MachineOperand::PIC_ADDR, 0) {}
+	MachineLabelInst() : MachineInstruction("MLabel", &NoOperand, 0) {}
 
 };
 
 class MachineJumpInst : public MachineInstruction {
 public:
-	MachineJumpInst() : MachineInstruction("MJump",MachineOperand::NONE, 1) {
-		operands[0] = MachineOperand::ABSOLUTE_ADDR | MachineOperand::PIC_ADDR;
-	}
+	MachineJumpInst() : MachineInstruction("MJump", &NoOperand, 0) {}
 
 };
 
 class MachinePhiInst : public MachineInstruction {
 public:
-	MachinePhiInst(unsigned operands)
-			: MachineInstruction("MPhi", MachineOperand::REGISTER_VALUE,
-			  operands, MachineOperand::REGISTER_VALUE) {
+	MachinePhiInst(unsigned num_operands)
+			: MachineInstruction("MPhi", new VirtualRegister(),
+			  num_operands) {
+		for(int i = 0; i < num_operands; ++i) {
+			operands[i] = UnassignedReg::factory();
+		}
 	}
 
 };
@@ -60,7 +60,7 @@ public:
 	/**
 	 * TODO: get const parameter
 	 */
-	MachineConstInst() : MachineInstruction("MConst", MachineOperand::IMMEDIATE, 0) {}
+	MachineConstInst() : MachineInstruction("MConst", new Immediate(), 0) {}
 
 };
 
@@ -70,10 +70,10 @@ public:
 class MachineLoadInst : public MachineInstruction {
 public:
 	MachineLoadInst(
-			unsigned dst_type = MachineOperand::REGISTER_VALUE,
-			unsigned src_type = MachineOperand::REGISTER_MEM)
-			: MachineInstruction("MLoad", dst_type, 1) {
-		operands[0] = src_type;
+			MachineOperand *dst,
+			MachineOperand *src)
+			: MachineInstruction("MLoad", dst, 1) {
+		operands[0] = src;
 	}
 
 };
@@ -84,13 +84,37 @@ public:
 class MachineStoreInst : public MachineInstruction {
 public:
 	MachineStoreInst(
-			unsigned dst_type = MachineOperand::REGISTER_MEM,
-			unsigned src_type = MachineOperand::REGISTER_VALUE)
-			: MachineInstruction("MStore", dst_type, 1) {
-		operands[0] = src_type;
+			MachineOperand *dst,
+			MachineOperand *src)
+			: MachineInstruction("MStore", dst, 1) {
+		operands[0] = src;
 	}
 
 };
+
+/**
+ * Move register to register
+ */
+class MachineMoveInst : public MachineInstruction {
+public:
+	MachineMoveInst(
+			MachineOperand *dst,
+			MachineOperand *src)
+			: MachineInstruction("MMove", dst, 1) {
+		operands[0] = src;
+	}
+
+};
+class MachineOperandInst : public MachineInstruction {
+private:
+	MachineOperand *MO;
+public:
+	MachineOperandInst(MachineOperand *MO)
+			: MachineInstruction("MachineOperandInst", MO, 0), MO(MO) {
+	}
+
+};
+
 
 } // end namespace compiler2
 } // end namespace jit

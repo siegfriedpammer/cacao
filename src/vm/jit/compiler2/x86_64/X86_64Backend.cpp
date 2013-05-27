@@ -57,7 +57,7 @@ template<>
 LoweredInstDAG* BackendTraits<X86_64>::lowerIFInst(IFInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	X86_64CmpInst *cmp = new X86_64CmpInst();
+	X86_64CmpInst *cmp = new X86_64CmpInst(UnassignedReg::factory(),UnassignedReg::factory());
 	X86_64CondJumpInst *cjmp = NULL;
 
 	switch (I->get_condition()) {
@@ -87,7 +87,8 @@ template<>
 LoweredInstDAG* BackendTraits<X86_64>::lowerADDInst(ADDInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	X86_64AddInst *add = new X86_64AddInst();
+	VirtualRegister *dstsrc1 = new VirtualRegister();
+	X86_64AddInst *add = new X86_64AddInst(dstsrc1,UnassignedReg::factory());
 	dag->add(add);
 	dag->set_input(add);
 	dag->set_result(add);
@@ -98,7 +99,8 @@ template<>
 LoweredInstDAG* BackendTraits<X86_64>::lowerSUBInst(SUBInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	X86_64SubInst *sub = new X86_64SubInst();
+	VirtualRegister *dstsrc1 = new VirtualRegister();
+	X86_64SubInst *sub = new X86_64SubInst(dstsrc1,UnassignedReg::factory());
 	dag->add(sub);
 	dag->set_input(sub);
 	dag->set_result(sub);
@@ -110,7 +112,7 @@ LoweredInstDAG* BackendTraits<X86_64>::lowerRETURNInst(RETURNInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	X86_64RetInst *ret = new X86_64RetInst();
-	X86_64RegValInst *reg = new X86_64RegValInst(RAX);
+	MachineMoveInst *reg = new MachineMoveInst(&RAX, UnassignedReg::factory());
 	dag->add(ret);
 	dag->add(reg);
 	dag->set_input(reg);
