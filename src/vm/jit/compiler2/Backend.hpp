@@ -87,6 +87,7 @@ LoweredInstDAG* BackendTraits<Target>::lowerGOTOInst(GOTOInst *I) const {
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	MachineJumpInst *jump = new MachineJumpInst();
 	dag->add(jump);
+	dag->set_result(jump);
 	return dag;
 }
 

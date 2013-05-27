@@ -37,6 +37,15 @@ namespace jit {
 namespace compiler2 {
 
 class LoweringPass;
+class LoweredInstDAG;
+
+OStream& operator<<(OStream &OS, const LoweredInstDAG &lid);
+inline OStream& operator<<(OStream &OS, const LoweredInstDAG *lid) {
+	if (!lid) {
+		return OS << "(LoweredInstDAG*) NULL";
+	}
+	return OS << *lid;
+}
 
 /**
  * DAG of machine instruction that replace one Instruction.
@@ -76,6 +85,7 @@ public:
 		minst.push_back(MI);
 	}
 	void set_input(MachineInstruction *MI) {
+		assert(MI);
 		assert( input_map.size() == MI->size_op());
 		for (unsigned i = 0, e = input_map.size(); i < e ; ++i) {
 			input_map[i] = std::make_pair(MI, i);
@@ -98,8 +108,8 @@ public:
 	}
 	MachineInstruction* get_result() const {
 		if(!result) {
-			err() << BoldRed << "Error: " << reset_color << "result not set LoweredInstDAG "
-			      "of Instruction  " << inst << nl;
+			err() << BoldRed << "Error: " << reset_color
+			      << "result == NULL " << *this << nl;
 		}
 		assert(result);
 		return result;
@@ -118,7 +128,6 @@ public:
 	friend class LoweringPass;
 
 };
-
 
 } // end namespace compiler2
 } // end namespace jit

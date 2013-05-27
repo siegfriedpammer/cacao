@@ -37,6 +37,8 @@
 
 #include <sstream>
 
+#define DEBUG_NAME "compiler2/MachineInstructionPrinterPass"
+
 namespace {
 std::string get_filename(methodinfo *m, jitdata *jd, std::string prefix = "cfg_", std::string suffix=".dot");
 std::string get_filename(methodinfo *m, jitdata *jd, std::string prefix, std::string suffix)
@@ -76,12 +78,10 @@ protected:
 	LoweringPass *LP;
 	StringBuf name;
     bool verbose;
-	#if 0
 	std::set<EdgeType> data_dep;
 	std::set<EdgeType> sched_dep;
 	std::set<EdgeType> cfg_edges;
 	std::set<EdgeType> begin2end_edges;
-	#endif
 
 public:
 
@@ -127,21 +127,26 @@ public:
 						assert(op_dag);
 						MachineInstruction *result = op_dag->get_result();
 						assert(result);
-						MachineInstruction *op = dag->get_result();
+						MachineInstruction *op = (*dag)[op_idx].first;
+						LOG("Data Edge: " << result << " -> " << op << nl);
 						EdgeType edge = std::make_pair(result,op);
-						//data_dep.insert(edge);
+						data_dep.insert(edge);
 						edges.insert(edge);
 					}
 				}
 				op_idx++;
 			}
-#if 0
 			// add dependency link
 			for(Instruction::DepListTy::const_iterator ii = I->dep_begin(), ee = I->dep_end();
 				ii != ee; ++ii) {
-				nstruction *II = (*ii);
+				Instruction *II = (*ii);
 				if (II) {
-					EdgeType edge = std::make_pair(II,I);
+					LoweredInstDAG *op_dag = LP->get_LoweredInstDAG(II);
+					assert(op_dag);
+					MachineInstruction *result = op_dag->get_result();
+					assert(result);
+					MachineInstruction *op = dag->get_result();
+					EdgeType edge = std::make_pair(result,op);
 					sched_dep.insert(edge);
 					edges.insert(edge);
 				}
@@ -155,16 +160,24 @@ public:
 					if (v) {
 						Instruction *II = (*ii)->to_Instruction();
 						if (II) {
-							EdgeType edge = std::make_pair(EI,II);
+							LoweredInstDAG *op_dag = LP->get_LoweredInstDAG(II);
+							assert(op_dag);
+							MachineInstruction *result = op_dag->get_result();
+							assert(result);
+							MachineInstruction *op = dag->get_result();
+							EdgeType edge = std::make_pair(result,op);
 							cfg_edges.insert(edge);
 							edges.insert(edge);
 						}
 					}
 				}
+				#if 0
 				EdgeType edge = std::make_pair(EI->get_BeginInst(),EI);
 				begin2end_edges.insert(edge);
 				edges.insert(edge);
+				#endif
 			}
+#if 0
 			BeginInst *bi = I->get_BeginInst();
 			if (bi) {
 				clusters[(unsigned long)bi].insert(I);
@@ -183,8 +196,21 @@ public:
 
     StringBuf getNodeLabel(const MachineInstruction &node) const {
 		std::ostringstream sstream;
-		sstream << "[" << node.get_id() << "] "
-		        << node.get_name();
+		MachineOperand *result =node.get_result();
+		assert(result);
+		sstream << result->get_name()
+		        << " = [" << node.get_id() << "] "
+		        << node.get_name() << " ";
+		for (MachineInstruction::const_operand_iterator i = node.begin(), e = node.end();
+				i != e; ++i) {
+			MachineOperand *MO = *i;
+			if (MO) {
+				sstream << MO->get_name() << ", ";
+			} else {
+				sstream << "NULL, ";
+			}
+			//assert(MO);
+		}
 		#if 0
 		for(Instruction::OperandListTy::const_iterator ii = node.op_begin(), ee = node.op_end();
 				ii != ee; ++ii) {
@@ -205,6 +231,7 @@ public:
     StringBuf getNodeAttributes(const MachineInstructionGraph::NodeType &node) const ;
 
     StringBuf getEdgeLabel(const MachineInstructionGraph::EdgeType &e) const ;
+#endif
 
     StringBuf getEdgeAttributes(const MachineInstructionGraph::EdgeType &e) const {
 		StringBuf attr;
@@ -219,7 +246,6 @@ public:
 		}
 		return attr;
 	}
-#endif
 };
 
 } // end anonymous namespace

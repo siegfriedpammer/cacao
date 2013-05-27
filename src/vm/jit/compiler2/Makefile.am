@@ -44,6 +44,7 @@ libcompiler2_la_SOURCES = \
 	JITData.cpp \
 	LoopPass.cpp \
 	LoopSimplificationPass.cpp \
+	LoweredInstDAG.cpp \
 	LoweringPass.cpp \
 	MachineInstruction.cpp \
 	MachineInstructionPrinterPass.cpp \

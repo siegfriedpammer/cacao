@@ -50,6 +50,9 @@ LoweredInstDAG* BackendTraits<X86_64>::lowerLOADInst(LOADInst *I) const {
 	//MachineInstruction *minst = loadParameter(I->get_index(), I->get_type());
 	const MethodDescriptor &MD = I->get_Method()->get_MethodDescriptor();
 	LOG("Methoddescriptor: " << MD << nl);
+	MachineOperandInst *reg = new MachineOperandInst(&RAX);
+	dag->add(reg);
+	dag->set_result(reg);
 	return dag;
 }
 
