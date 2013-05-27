@@ -26,6 +26,7 @@
 #define _TOOLBOX_STRINGBUF_HPP
 
 #include <string>
+#include <sstream>
 
 namespace cacao {
 
@@ -35,6 +36,14 @@ namespace {
 cacao::OStream& operator<<(cacao::OStream &OS, const StringBuf &SB) {
 	return OS << SB.c_str();
 }
+
+} // end namespace cacao
+
+template <typename _T>
+StringBuf to_string(_T val) {
+	std::ostringstream sstream;
+	sstream << val;
+	return sstream.str();
 }
 
 } // end namespace cacao
