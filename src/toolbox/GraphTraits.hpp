@@ -50,12 +50,15 @@ public:
 	typedef typename std::set<EdgeType>::const_iterator const_edge_iterator;
 	typedef typename std::map<unsigned long,std::set<NodeType*> >::iterator cluster_iterator;
 	typedef typename std::map<unsigned long,std::set<NodeType*> >::const_iterator const_cluster_iterator;
+	typedef typename std::map<unsigned long,StringBuf>::iterator cluster_name_iterator;
+	typedef typename std::map<unsigned long,StringBuf>::const_iterator const_cluster_name_iterator;
 
 protected:
 	std::set<NodeType*> nodes;
 	std::set<EdgeType> edges;
 	std::set<EdgeType> successors;
 	std::map<unsigned long,NodeListType> clusters;
+	std::map<unsigned long,StringBuf> cluster_name;
 public:
 
 	const_iterator begin() const {
@@ -106,6 +109,30 @@ public:
 		return clusters.end();
 	}
 
+	cluster_name_iterator cluster_name_begin() {
+		return cluster_name.begin();
+	}
+
+	const_cluster_name_iterator cluster_name_begin() const {
+		return cluster_name.begin();
+	}
+
+	cluster_name_iterator cluster_name_end() {
+		return cluster_name.end();
+	}
+
+	const_cluster_name_iterator cluster_name_end() const {
+		return cluster_name.end();
+	}
+
+	cluster_name_iterator cluster_name_find(unsigned long k) {
+		return cluster_name.find(k);
+	}
+
+	const_cluster_name_iterator cluster_name_find(unsigned long k) const {
+		return cluster_name.find(k);
+	}
+
 	StringBuf getGraphName() const {
 		return "";
 	}
@@ -129,6 +156,7 @@ public:
 	StringBuf getEdgeAttributes(const GraphTraits<GraphTy,NodeTy>::EdgeType &e) const {
 		return "";
 	}
+
 };
 
 template <class GraphTraitsTy>
@@ -165,7 +193,10 @@ public:
 			unsigned long cid = i->first;
 			const std::set<typename GraphTraitsTy::NodeType*> &set = i->second;
 			OS<<"subgraph cluster_" << cid << " {\n";
-			//OS<<"label = \""<< sb <<"\";\n";
+			typename GraphTraitsTy::const_cluster_name_iterator name_it = G.cluster_name_find(cid);
+			if (name_it != G.cluster_name_end()) {
+				OS<<"label = \""<< name_it->second <<"\";\n";
+			}
 			for (typename std::set<typename GraphTraitsTy::NodeType*>::const_iterator ii = set.begin(),
 					ee = set.end(); ii != ee; ++ii) {
 				typename GraphTraitsTy::NodeType &node = (**ii);
