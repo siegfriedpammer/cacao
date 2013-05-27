@@ -46,16 +46,19 @@ public:
 	typedef std::vector<MachineOperand> operand_list;
 	typedef std::vector<MachineOperand>::iterator operand_iterator;
 	typedef std::vector<MachineOperand>::const_iterator const_operand_iterator;
+private:
+	static unsigned id_counter;
 protected:
+	const unsigned id;
 	operand_list operands;
 	MachineOperand result;
 	const char *name;
 public:
 	MachineInstruction(const char * name, MachineOperand result, unsigned num_operands, MachineOperand dflt_type)
-		: operands(num_operands,dflt_type), result(result), name(name) {
+		: id(id_counter++), operands(num_operands,dflt_type), result(result), name(name) {
 	}
 	MachineInstruction(const char * name, MachineOperand result, unsigned num_operands)
-		: operands(num_operands), result(result), name(name) {
+		: id(id_counter++), operands(num_operands), result(result), name(name) {
 	}
 	unsigned size_op() const {
 		return operands.size();
@@ -74,6 +77,9 @@ public:
 	}
 	const_operand_iterator end() const {
 		return operands.end();
+	}
+	unsigned get_id() const {
+		return id;
 	}
 	const char* get_name() const {
 		return name;

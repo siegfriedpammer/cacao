@@ -51,9 +51,15 @@ class LoweringPass;
  * value.
  */
 class LoweredInstDAG {
-private:
+public:
 	typedef std::vector<MachineInstruction*> MachineInstListTy;
-	typedef std::vector<std::pair<MachineInstruction*,unsigned> > InputMapTy;
+	typedef std::pair<MachineInstruction*,unsigned> InputParameterTy;
+	typedef std::vector<InputParameterTy> InputMapTy;
+	typedef MachineInstListTy::iterator mi_iterator;
+	typedef MachineInstListTy::const_iterator const_mi_iterator;
+	typedef InputMapTy::iterator input_iterator;
+	typedef InputMapTy::const_iterator const_input_iterator;
+private:
 	Instruction * inst;
 	MachineInstListTy minst;
 	InputMapTy input_map;
@@ -86,6 +92,28 @@ public:
 		assert(std::find(minst.begin(),minst.end(),MI) != minst.end() );
 		result = MI;
 	}
+	InputParameterTy operator[](unsigned i) const {
+		assert(i < input_map.size());
+		return input_map[i];
+	}
+	MachineInstruction* get_result() const {
+		if(!result) {
+			err() << BoldRed << "Error: " << reset_color << "result not set LoweredInstDAG "
+			      "of Instruction  " << inst << nl;
+		}
+		assert(result);
+		return result;
+	}
+
+	mi_iterator mi_begin() { return minst.begin(); }
+	mi_iterator mi_end() { return minst.end(); }
+	const_mi_iterator mi_begin() const { return minst.begin(); }
+	const_mi_iterator mi_end() const { return minst.end(); }
+
+	input_iterator input_begin() { return input_map.begin(); }
+	input_iterator input_end() { return input_map.end(); }
+	const_input_iterator input_begin() const { return input_map.begin(); }
+	const_input_iterator input_end() const { return input_map.end(); }
 
 	friend class LoweringPass;
 

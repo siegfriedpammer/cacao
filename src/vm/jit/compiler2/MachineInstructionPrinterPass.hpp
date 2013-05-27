@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/LoweringPass.hpp - LoweringPass
+/* src/vm/jit/compiler2/MachineInstructionPrinterPass.hpp - MachineInstructionPrinterPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,46 +22,35 @@
 
 */
 
-#ifndef _JIT_COMPILER2_LOWERINGPASS
-#define _JIT_COMPILER2_LOWERINGPASS
+#ifndef _JIT_COMPILER2_MACHINEINSTRUCTIONPRINTERPASS
+#define _JIT_COMPILER2_MACHINEINSTRUCTIONPRINTERPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/PassUsage.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-class Instruction;
-class LoweredInstDAG;
+class LoweringPass;
 
 /**
- * LoweringPass
+ * MachineInstructionPrinterPass
  * TODO: more info
  */
-class LoweringPass : public Pass {
-private:
-	typedef std::map<Instruction*,LoweredInstDAG*> LoweringMapTy;
-	LoweringMapTy lowering_map;
+class MachineInstructionPrinterPass : public Pass {
 public:
 	static char ID;
-	LoweringPass() : Pass() {}
+	MachineInstructionPrinterPass() : Pass() {}
 	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PA) const;
-	virtual bool verify() const;
-	LoweredInstDAG* get_LoweredInstDAG(Instruction *I) const {
-		LoweringMapTy::const_iterator i = lowering_map.find(I);
-		if (i == lowering_map.end()) {
-			return NULL;
-		}
-		return i->second;
-	}
+	PassUsage& get_PassUsage(PassUsage &PU) const;
 };
 
-} // end namespace compiler2
-} // end namespace jit
 } // end namespace cacao
+} // end namespace jit
+} // end namespace compiler2
 
-#endif /* _JIT_COMPILER2_LOWERINGPASS */
+#endif /* _JIT_COMPILER2_MACHINEINSTRUCTIONPRINTERPASS */
 
 
 /*

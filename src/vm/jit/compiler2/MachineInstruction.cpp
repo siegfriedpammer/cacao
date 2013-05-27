@@ -29,6 +29,8 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+unsigned MachineInstruction::id_counter = 0;
+
 OStream& operator<<(OStream &OS, const MachineInstruction &MI) {
 	OS << MI.get_name();
 	for (MachineInstruction::const_operand_iterator i = MI.begin(),
