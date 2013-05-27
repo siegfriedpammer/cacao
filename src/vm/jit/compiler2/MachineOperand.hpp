@@ -36,6 +36,12 @@ class OStream;
 namespace jit {
 namespace compiler2 {
 
+class VoidOperand;
+class Register;
+class StackSlot;
+class Immediate;
+class Address;
+
 /**
  * Operands that can be directly used by the machine (register, memory, stackslot)
  */
@@ -43,6 +49,12 @@ class MachineOperand {
 public:
 	virtual const char* get_name() const  = 0;
 	virtual ~MachineOperand() {}
+	virtual MachineOperand* to_MachineOperand()     { return this; }
+	virtual VoidOperand*    to_VoidOperand() { return 0; }
+	virtual Register*       to_Register()    { return 0; }
+	virtual StackSlot*      to_StackSlot()   { return 0; }
+	virtual Immediate*      to_Immediate()   { return 0; }
+	virtual Address*        to_Addresss()    { return 0; }
 };
 
 class VoidOperand : public MachineOperand {
@@ -50,7 +62,12 @@ public:
 	virtual const char* get_name() const {
 		return "VoidOperand";
 	}
+	virtual VoidOperand* to_VoidOperand() { return this; }
 };
+
+class UnassignedReg;
+class VirtualRegister;
+class MachineRegister;
 
 class Register : public MachineOperand {
 protected:
@@ -61,6 +78,10 @@ public:
 	virtual const char* get_name() const {
 		return name;
 	}
+	virtual Register* to_Register()               { return this; }
+	virtual UnassignedReg* to_UnassignedReg()     { return 0; }
+	virtual VirtualRegister* to_VirtualRegister() { return 0; }
+	virtual MachineRegister* to_MachineRegister() { return 0; }
 	virtual ~Register() {}
 };
 
@@ -72,6 +93,7 @@ public:
 		static UnassignedReg instance;
 		return &instance;
 	}
+	virtual UnassignedReg* to_UnassignedReg()     { return this; }
 };
 
 class VirtualRegister : public Register {
@@ -81,6 +103,7 @@ private:
 public:
 	VirtualRegister();
 
+	virtual VirtualRegister* to_VirtualRegister() { return this; }
 	virtual ~VirtualRegister() {
 		delete[] name;
 	}
@@ -94,6 +117,7 @@ public:
 	 * @param offset  offset from the framepointer (in bytes)
 	 */
 	StackSlot(int offset) : offset(offset) {}
+	virtual StackSlot* to_StackSlot() { return this; }
 	virtual const char* get_name() const {
 		return "StackSlot";
 	}
@@ -101,6 +125,7 @@ public:
 
 class Immediate : public MachineOperand {
 public:
+	virtual Immediate* to_Immediate() { return this; }
 	virtual const char* get_name() const {
 		return "Immediate";
 	}
@@ -108,6 +133,7 @@ public:
 
 class Address : public MachineOperand {
 public:
+	virtual Address* to_Address() { return this; }
 	virtual const char* get_name() const {
 		return "Address";
 	}

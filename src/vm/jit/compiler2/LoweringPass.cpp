@@ -50,6 +50,27 @@ bool LoweringPass::run(JITData &JD) {
 			return false;
 		lowering_map[I] = dag;
 	}
+	// fix unresolved registers
+	for(Method::const_iterator i = M->begin(), e = M->end(); i != e ; ++i ) {
+		Instruction *I = *i;
+		LoweredInstDAG* dag = lowering_map[I];
+		assert(dag);
+		for(unsigned i = 0, e = dag->input_size(); i < e; ++i) {
+			LoweredInstDAG::InputParameterTy para = (*dag)[i];
+			Register* reg = (*para.first)[para.second]->to_Register();
+			if (reg && reg->to_UnassignedReg()) {
+				// if operand is unassigned
+				Instruction *op = I->get_operand(i)->to_Instruction();
+				assert(op);
+				LoweredInstDAG *op_dag = lowering_map[op];
+				assert(op_dag);
+				MachineOperand *m_op = op_dag->get_result()->get_result();
+				assert(m_op);
+				(*para.first)[para.second] = m_op;
+			}
+		}
+	}
+
 
 	return true;
 }

@@ -32,10 +32,10 @@ namespace compiler2 {
 unsigned MachineInstruction::id_counter = 0;
 
 OStream& operator<<(OStream &OS, const MachineInstruction &MI) {
-	OS << MI.get_name();
+	OS << MI.get_result()->get_name() << " = [" << MI.get_id() << "] " << MI.get_name();
 	for (MachineInstruction::const_operand_iterator i = MI.begin(),
 			e = MI.end(); i != e ; ++i) {
-		OS << ' ' << *i;
+		OS << ' ' << (*i)->get_name();
 	}
 	return OS;
 }

@@ -35,6 +35,7 @@ namespace compiler2 {
 class MachineRegister : public Register {
 public:
 	MachineRegister(const char *name) : Register(name) {}
+	virtual MachineRegister* to_MachineRegister() { return this; }
 	~MachineRegister() {}
 };
 

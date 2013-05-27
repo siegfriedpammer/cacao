@@ -86,6 +86,7 @@ public:
 	}
 	void set_input(MachineInstruction *MI) {
 		assert(MI);
+		assert(std::find(minst.begin(),minst.end(),MI) != minst.end() );
 		assert( input_map.size() == MI->size_op());
 		for (unsigned i = 0, e = input_map.size(); i < e ; ++i) {
 			input_map[i] = std::make_pair(MI, i);
@@ -93,6 +94,8 @@ public:
 	}
 	void set_input(unsigned dag_input_idx, MachineInstruction *MI,
 			unsigned minst_input_idx) {
+		assert(MI);
+		assert(std::find(minst.begin(),minst.end(),MI) != minst.end() );
 		assert(dag_input_idx < input_map.size());
 		assert(minst_input_idx < MI->size_op());
 		input_map[dag_input_idx] = std::make_pair(MI, minst_input_idx);
@@ -124,6 +127,7 @@ public:
 	input_iterator input_end() { return input_map.end(); }
 	const_input_iterator input_begin() const { return input_map.begin(); }
 	const_input_iterator input_end() const { return input_map.end(); }
+	unsigned input_size() const { return input_map.size(); }
 
 	friend class LoweringPass;
 
