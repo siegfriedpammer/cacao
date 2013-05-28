@@ -25,6 +25,8 @@
 #ifndef _JIT_COMPILER2_MACHINEOPERAND
 #define _JIT_COMPILER2_MACHINEOPERAND
 
+#include "toolbox/OStream.hpp"
+
 #include <vector>
 #include <cassert>
 
@@ -111,12 +113,12 @@ public:
 
 class StackSlot : public MachineOperand {
 private:
-	int offset; ///< offset from the framepointer (in bytes)
+	int index; ///< index of the stackslot
 public:
 	/**
-	 * @param offset  offset from the framepointer (in bytes)
+	 * @param index  index of the stackslot
 	 */
-	StackSlot(int offset) : offset(offset) {}
+	StackSlot(int index) : index(index) {}
 	virtual StackSlot* to_StackSlot() { return this; }
 	virtual const char* get_name() const {
 		return "StackSlot";
@@ -187,6 +189,56 @@ public:
 extern VoidOperand NoOperand;
 
 OStream& operator<<(OStream &OS, const MachineOperandType &MO);
+
+inline OStream& operator<<(OStream &OS, const MachineOperand &MO) {
+	return OS << "MachineOperand";
+}
+inline OStream& operator<<(OStream &OS, const MachineOperand *MO) {
+	if (!MO) {
+		return OS << "(MachineOperand) NULL";
+	}
+	return OS << *MO;
+}
+
+inline OStream& operator<<(OStream &OS, const Register &MO) {
+	return OS << "Register";
+}
+inline OStream& operator<<(OStream &OS, const Register *MO) {
+	if (!MO) {
+		return OS << "(Register) NULL";
+	}
+	return OS << *MO;
+}
+
+inline OStream& operator<<(OStream &OS, const StackSlot &MO) {
+	return OS << "StackSlot";
+}
+inline OStream& operator<<(OStream &OS, const StackSlot *MO) {
+	if (!MO) {
+		return OS << "(StackSlot) NULL";
+	}
+	return OS << *MO;
+}
+
+inline OStream& operator<<(OStream &OS, const Immediate &MO) {
+	return OS << "Immediate";
+}
+inline OStream& operator<<(OStream &OS, const Immediate *MO) {
+	if (!MO) {
+		return OS << "(Immediate) NULL";
+	}
+	return OS << *MO;
+}
+
+inline OStream& operator<<(OStream &OS, const Address &MO) {
+	return OS << "Address";
+}
+inline OStream& operator<<(OStream &OS, const Address *MO) {
+	if (!MO) {
+		return OS << "(Address) NULL";
+	}
+	return OS << *MO;
+}
 
 } // end namespace compiler2
 } // end namespace jit
