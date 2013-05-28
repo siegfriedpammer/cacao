@@ -57,6 +57,7 @@
 #include "vm/jit/compiler2/DominatorPass.hpp"
 #include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
 #include "vm/jit/compiler2/ScheduleLatePass.hpp"
+#include "vm/jit/compiler2/ScheduleClickPass.hpp"
 #include "vm/jit/compiler2/DomTreePrinterPass.hpp"
 #include "vm/jit/compiler2/LoweringPass.hpp"
 #include "vm/jit/compiler2/LoopPass.hpp"
@@ -125,8 +126,10 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass(&SSAPrinterPass::ID);
 	PM.add_Pass(&ScheduleEarlyPass::ID);
 	PM.add_Pass(&ScheduleLatePass::ID);
+	PM.add_Pass(&ScheduleClickPass::ID);
 	PM.add_Pass(&BasicBlockSchedulePrinterPass<ScheduleEarlyPass>::ID);
 	PM.add_Pass(&BasicBlockSchedulePrinterPass<ScheduleLatePass>::ID);
+	PM.add_Pass(&BasicBlockSchedulePrinterPass<ScheduleClickPass>::ID);
 	//PM.add_Pass(&LoopSimplificationPass::ID);
 	PM.add_Pass(&DomTreePrinterPass::ID);
 	PM.add_Pass(&LoweringPass::ID);

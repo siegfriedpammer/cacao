@@ -32,6 +32,7 @@
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
 #include "vm/jit/compiler2/ScheduleLatePass.hpp"
+#include "vm/jit/compiler2/ScheduleClickPass.hpp"
 
 #include "toolbox/GraphTraits.hpp"
 
@@ -249,10 +250,14 @@ template <>
 const char* BasicBlockSchedulePrinterPass<ScheduleLatePass>::name = "late";
 template <>
 const char* BasicBlockSchedulePrinterPass<ScheduleEarlyPass>::name = "early";
+template <>
+const char* BasicBlockSchedulePrinterPass<ScheduleClickPass>::name = "click";
+
 
 // register pass
 static PassRegistery<BasicBlockSchedulePrinterPass<ScheduleLatePass> > X_late("BasicBlockSchedulePrinterPass(late)");
 static PassRegistery<BasicBlockSchedulePrinterPass<ScheduleEarlyPass> > X_early("BasicBlockSchedulePrinterPass(early)");
+static PassRegistery<BasicBlockSchedulePrinterPass<ScheduleClickPass> > X_click("BasicBlockSchedulePrinterPass(click)");
 
 // END BasicBlockSchedulePrinterPass
 
