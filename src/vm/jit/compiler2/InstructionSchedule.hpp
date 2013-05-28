@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/BasicBlockSchedule.hpp - BasicBlockSchedule
+/* src/vm/jit/compiler2/InstructionSchedule.hpp - InstructionSchedule
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,61 +22,48 @@
 
 */
 
-#ifndef _JIT_COMPILER2_BASICBLOCKSCHEDULE
-#define _JIT_COMPILER2_BASICBLOCKSCHEDULE
+#ifndef _JIT_COMPILER2_INSTRUCTIONSCHEDULE
+#define _JIT_COMPILER2_INSTRUCTIONSCHEDULE
 
-#include "vm/jit/compiler2/Instruction.hpp"
-#include "vm/jit/compiler2/Method.hpp"
 #include <map>
-#include <set>
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+class BeginInst;
 
 /**
- * BasicBlockSchedule
+ * InstructionSchedule
  * TODO: more info
  */
-class BasicBlockSchedule {
+template <class _Inst>
+class InstructionSchedule {
 public:
-	typedef std::set<Instruction*>::const_iterator const_inst_iterator;
+	typedef typename std::vector<_Inst*> InstructionListTy;
+	typedef typename InstructionListTy::const_iterator const_inst_iterator;
 protected:
-	std::map<const Instruction*, BeginInst*> map;
-	std::map<const BeginInst*, std::set<Instruction*> > bb_map;
-	void set_schedule(const Method* M) {
-		map.clear();
-		for (Method::InstructionListTy::const_iterator i = M->begin(),
-				e = M->end() ; i != e ; ++i) {
-			Instruction *I = *i;
-			BeginInst *BI= I->get_BeginInst();
-			if (BI) {
-				map[I] = BI;
-				bb_map[BI].insert(I);
-			}
-		}
-	}
+	std::map<const BeginInst*, InstructionListTy> map;
 public:
-	BasicBlockSchedule() {}
-	BeginInst* operator[](const Instruction* I) const {
-		return get(I);
+	InstructionSchedule() {}
+	_Inst* operator[](const BeginInst* BI) const {
+		return get(BI);
 	}
-	BeginInst* get(const Instruction* I) const {
-		std::map<const Instruction*, BeginInst*>::const_iterator i = map.find(I);
+	_Inst* get(const BeginInst* BI) const {
+		typename std::map<const BeginInst*, InstructionListTy>::const_iterator i = map.find(BI);
 		if (i == map.end()) {
 			return NULL;
 		}
 		return i->second;
 	}
 	const_inst_iterator inst_begin(const BeginInst* BI) const {
-		std::map<const BeginInst*, std::set<Instruction*> >::const_iterator i = bb_map.find(BI);
-		assert(i != bb_map.end());
+		typename std::map<const BeginInst*, InstructionListTy>::const_iterator i = map.find(BI);
+		assert(i != map.end());
 		return i->second.begin();
 	}
 	const_inst_iterator inst_end(const BeginInst* BI) const {
-		std::map<const BeginInst*, std::set<Instruction*> >::const_iterator i = bb_map.find(BI);
-		assert(i != bb_map.end());
+		typename std::map<const BeginInst*, InstructionListTy>::const_iterator i = map.find(BI);
+		assert(i != map.end());
 		return i->second.end();
 	}
 };
@@ -85,7 +72,7 @@ public:
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_BASICBLOCKSCHEDULE */
+#endif /* _JIT_COMPILER2_INSTRUCTIONSCHEDULE */
 
 
 /*

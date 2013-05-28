@@ -42,6 +42,7 @@ libcompiler2_la_SOURCES = \
 	GraphHelper.cpp \
 	Instruction.cpp \
 	JITData.cpp \
+	ListSchedulingPass.cpp \
 	LoopPass.cpp \
 	LoopSimplificationPass.cpp \
 	LoweredInstDAG.cpp \
