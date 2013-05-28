@@ -97,6 +97,16 @@ void Method::remove_bb(BeginInst *bi) {
 	remove_Instruction(bi);
 }
 
+void Method::clear_schedule() const {
+	// clear schedule
+	for (InstructionListTy::const_iterator i = begin(),
+			e = end() ; i != e ; ++i) {
+		if ((*i)->is_floating()) {
+			(*i)->set_BeginInst(NULL);
+		}
+	}
+}
+
 } // end namespace cacao
 } // end namespace jit
 } // end namespace compiler2

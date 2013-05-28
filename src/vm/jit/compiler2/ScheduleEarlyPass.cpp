@@ -87,6 +87,9 @@ bool ScheduleEarlyPass::run(JITData &JD) {
 			e = M->end() ; i != e ; ++i) {
 		schedule_early(*i);
 	}
+	set_schedule(M);
+	// clear schedule
+	M->clear_schedule();
 	return true;
 }
 

@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/ScheduleEarlyPass.hpp - ScheduleEarlyPass
+/* src/vm/jit/compiler2/BasicBlockSchedule.hpp - BasicBlockSchedule
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,43 +22,55 @@
 
 */
 
-#ifndef _JIT_COMPILER2_SCHEDULEEARLYPASS
-#define _JIT_COMPILER2_SCHEDULEEARLYPASS
+#ifndef _JIT_COMPILER2_BASICBLOCKSCHEDULE
+#define _JIT_COMPILER2_BASICBLOCKSCHEDULE
 
-#include "vm/jit/compiler2/Pass.hpp"
-#include "vm/jit/compiler2/BasicBlockSchedule.hpp"
+#include "vm/jit/compiler2/Instruction.hpp"
+#include "vm/jit/compiler2/Method.hpp"
+#include <map>
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
 
-class Method;
-class Instruction;
-class DominatorTree;
-
 /**
- * ScheduleEarlyPass
- *
- * Based on the algorithm in Click's Phd Thesis, Chapter 6 @cite ClickPHD.
+ * BasicBlockSchedule
+ * TODO: more info
  */
-class ScheduleEarlyPass : public Pass, public BasicBlockSchedule {
-private:
-	DominatorTree *DT;
-	Method *M;
-	void schedule_early(Instruction *I);
+class BasicBlockSchedule {
+protected:
+	std::map<const Instruction*, BeginInst*> map;
+	void set_schedule(const Method* M) {
+		map.clear();
+		for (Method::InstructionListTy::const_iterator i = M->begin(),
+				e = M->end() ; i != e ; ++i) {
+			Instruction *I = *i;
+			BeginInst *BI= I->get_BeginInst();
+			if (BI) {
+				map[I] = BI;
+			}
+		}
+	}
 public:
-	static char ID;
-	ScheduleEarlyPass() : Pass() {}
-	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PU) const;
+	BasicBlockSchedule() {}
+	BeginInst* operator[](const Instruction* I) const {
+		return get(I);
+	}
+	BeginInst* get(const Instruction* I) const {
+		std::map<const Instruction*, BeginInst*>::const_iterator i = map.find(I);
+		if (i == map.end()) {
+			return NULL;
+		}
+		return i->second;
+	}
 };
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_SCHEDULEEARLYPASS */
+#endif /* _JIT_COMPILER2_BASICBLOCKSCHEDULE */
 
 
 /*

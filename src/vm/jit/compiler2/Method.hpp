@@ -130,6 +130,8 @@ public:
 	const MethodDescriptor& get_MethodDescriptor() const {
 		return *method_desc;
 	}
+
+	void clear_schedule() const;
 };
 
 

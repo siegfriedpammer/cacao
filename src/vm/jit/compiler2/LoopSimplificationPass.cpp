@@ -84,12 +84,25 @@ void LoopSimplificationPass::check_loop(Loop *loop) const {
 		// LoopTree
 		LT->loop_map[new_header] = loop;
 
+		// XXX we have to do something with the phi instructions
+		/*
+		 * The phi instruction of the original header have again tow kinds
+		 * of operands. Those from the inner loop and all others.
+		 */
+		for (Instruction::DepListTy::const_iterator i = header->dep_begin(),
+				e = header->dep_end(); i != e; ++i) {
+			//
+			Instruction *I = *i;
+			PHIInst *phi = I->to_PHIInst();
+			if (phi) {
+				LOG("PHI: " << phi << nl);
+			}
+		}
 
 		// install new instructions
 		M->add_bb(new_header);
 		M->add_Instruction(new_exit);
 
-		// XXX we have to do something with the phi instructions
 	}
 	for (Loop::loop_iterator i = loop->loop_begin(), e = loop->loop_end();
 			i != e; ++i) {

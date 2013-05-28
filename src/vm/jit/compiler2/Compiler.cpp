@@ -122,9 +122,11 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass(&SSAConstructionPass::ID);
 	PM.add_Pass(&LoopPass::ID);
 	PM.add_Pass(&DominatorPass::ID);
+	PM.add_Pass(&SSAPrinterPass::ID);
 	PM.add_Pass(&ScheduleEarlyPass::ID);
 	PM.add_Pass(&ScheduleLatePass::ID);
-	PM.add_Pass(&SSAPrinterPass::ID);
+	PM.add_Pass(&BasicBlockSchedulePrinterPass<ScheduleEarlyPass>::ID);
+	PM.add_Pass(&BasicBlockSchedulePrinterPass<ScheduleLatePass>::ID);
 	//PM.add_Pass(&LoopSimplificationPass::ID);
 	PM.add_Pass(&DomTreePrinterPass::ID);
 	PM.add_Pass(&LoweringPass::ID);

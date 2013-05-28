@@ -41,8 +41,23 @@ public:
 	static char ID;
 	SSAPrinterPass() : Pass() {}
 	bool run(JITData &JD);
+	PassUsage& get_PassUsage(PassUsage &PA) const;
 };
 
+/**
+ * BasicBlockSchedulePrinterPass
+ * TODO: more info
+ */
+template <class _T>
+class BasicBlockSchedulePrinterPass : public Pass {
+private:
+	static const char* name;
+public:
+	static char ID;
+	BasicBlockSchedulePrinterPass() : Pass() {}
+	bool run(JITData &JD);
+	PassUsage& get_PassUsage(PassUsage &PA) const;
+};
 } // end namespace cacao
 } // end namespace jit
 } // end namespace compiler2

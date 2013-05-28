@@ -74,7 +74,6 @@ void ScheduleLatePass::schedule_late(Instruction *I) {
 bool ScheduleLatePass::run(JITData &JD) {
 	DT = get_Pass<DominatorPass>();
 	M = JD.get_Method();
-	// clear schedule
 	for (Method::InstructionListTy::const_iterator i = M->begin(),
 			e = M->end() ; i != e ; ++i) {
 		if ((*i)->is_floating()) {
@@ -85,6 +84,9 @@ bool ScheduleLatePass::run(JITData &JD) {
 			e = M->end() ; i != e ; ++i) {
 		schedule_late(*i);
 	}
+	set_schedule(M);
+	// clear schedule
+	M->clear_schedule();
 	return true;
 }
 

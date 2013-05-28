@@ -29,6 +29,10 @@
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 
+#include "vm/jit/compiler2/PassUsage.hpp"
+#include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
+#include "vm/jit/compiler2/ScheduleLatePass.hpp"
+
 #include "toolbox/GraphTraits.hpp"
 
 #include "vm/utf8.hpp"
@@ -73,6 +77,7 @@ class SSAGraph : public GraphTraits<Method,Instruction> {
 protected:
     const Method &M;
 	StringBuf name;
+	BasicBlockSchedule *sched;
     bool verbose;
 	std::set<EdgeType> data_dep;
 	std::set<EdgeType> sched_dep;
@@ -81,7 +86,8 @@ protected:
 
 public:
 
-    SSAGraph(const Method &M, StringBuf name = "SSAGraph", bool verbose = false) : M(M), name(name), verbose(verbose) {
+    SSAGraph(const Method &M, StringBuf name = "SSAGraph", BasicBlockSchedule *sched = NULL, bool verbose = false)
+			: M(M), name(name), sched(sched), verbose(verbose) {
 		for(Method::InstructionListTy::const_iterator i = M.begin(),
 		    e = M.end(); i != e; ++i) {
 			Instruction *I = *i;
@@ -136,7 +142,7 @@ public:
 				edges.insert(edge);
 			}
 			// clustering
-			BeginInst *bi = I->get_BeginInst();
+			BeginInst *bi = (sched) ? sched->get(I) : I->get_BeginInst();
 			if (bi) {
 				clusters[(unsigned long)bi].insert(I);
 			}
@@ -192,6 +198,11 @@ public:
 
 } // end anonymous namespace
 
+// BEGIN SSAPrinterPass
+
+PassUsage& SSAPrinterPass::get_PassUsage(PassUsage &PU) const {
+	return PU;
+}
 // the address of this variable is used to identify the pass
 char SSAPrinterPass::ID = 0;
 
@@ -203,9 +214,47 @@ bool SSAPrinterPass::run(JITData &JD) {
 	StringBuf name = get_filename(JD.get_jitdata()->m,JD.get_jitdata(),"","");
 	StringBuf filename = "ssa_";
 	filename+=name+".dot";
-	GraphPrinter<SSAGraph>::print(filename.c_str(), SSAGraph(*(JD.get_Method()),name));
+	GraphPrinter<SSAGraph>::print(filename.c_str(), SSAGraph(*(JD.get_Method()), name));
 	return true;
 }
+// END SSAPrinterPass
+
+// BEGIN BasicBlockSchedulePrinterPass
+
+template <class _T>
+PassUsage& BasicBlockSchedulePrinterPass<_T>::get_PassUsage(PassUsage &PU) const {
+	PU.add_requires(_T::ID);
+	return PU;
+}
+// the address of this variable is used to identify the pass
+template <class _T>
+char BasicBlockSchedulePrinterPass<_T>::ID = 0;
+
+// run pass
+template <class _T>
+bool BasicBlockSchedulePrinterPass<_T>::run(JITData &JD) {
+	StringBuf name = get_filename(JD.get_jitdata()->m,JD.get_jitdata(),"","");
+	StringBuf filename = "bb_sched_";
+
+	BasicBlockSchedule* sched = get_Pass<_T>();
+
+	filename += BasicBlockSchedulePrinterPass<_T>::name;
+	filename += "_" + name + ".dot";
+	GraphPrinter<SSAGraph>::print(filename.c_str(), SSAGraph(*(JD.get_Method()), name, sched));
+	return true;
+}
+
+// set names
+template <>
+const char* BasicBlockSchedulePrinterPass<ScheduleLatePass>::name = "late";
+template <>
+const char* BasicBlockSchedulePrinterPass<ScheduleEarlyPass>::name = "early";
+
+// register pass
+static PassRegistery<BasicBlockSchedulePrinterPass<ScheduleLatePass> > X_late("BasicBlockSchedulePrinterPass(late)");
+static PassRegistery<BasicBlockSchedulePrinterPass<ScheduleEarlyPass> > X_early("BasicBlockSchedulePrinterPass(early)");
+
+// END BasicBlockSchedulePrinterPass
 
 } // end namespace cacao
 } // end namespace jit
