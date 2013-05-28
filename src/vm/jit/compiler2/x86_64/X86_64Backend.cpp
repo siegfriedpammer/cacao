@@ -25,6 +25,7 @@
 #include "vm/jit/compiler2/x86_64/X86_64Backend.hpp"
 #include "vm/jit/compiler2/x86_64/X86_64Instructions.hpp"
 #include "vm/jit/compiler2/x86_64/X86_64Register.hpp"
+#include "vm/jit/compiler2/x86_64/X86_64MachineMethodDescriptor.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/LoweredInstDAG.hpp"
 #include "vm/jit/compiler2/MethodDescriptor.hpp"
@@ -49,8 +50,8 @@ LoweredInstDAG* BackendTraits<X86_64>::lowerLOADInst(LOADInst *I) const {
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	//MachineInstruction *minst = loadParameter(I->get_index(), I->get_type());
 	const MethodDescriptor &MD = I->get_Method()->get_MethodDescriptor();
-	LOG("Methoddescriptor: " << MD << nl);
-	MachineOperandInst *reg = new MachineOperandInst(&RAX);
+	const X86_64MachineMethodDescriptor MMD(MD);
+	MachineOperandInst *reg = new MachineOperandInst(MMD[I->get_index()]);
 	dag->add(reg);
 	dag->set_result(reg);
 	return dag;

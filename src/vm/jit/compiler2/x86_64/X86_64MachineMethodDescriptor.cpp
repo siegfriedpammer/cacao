@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/X86_64Register.cpp - X86_64Register
+/* src/vm/jit/compiler2/X86_64MachineMethodDescriptor.cpp - X86_64MachineMethodDescriptor
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,33 +22,21 @@
 
 */
 
-#include "vm/jit/compiler2/x86_64/X86_64Register.hpp"
+#include "vm/jit/compiler2/x86_64/X86_64MachineMethodDescriptor.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-X86_64Register RAX("RAX");
-X86_64Register RCX("RCX");
-X86_64Register RDX("RDX");
-X86_64Register RBX("RBX");
-X86_64Register RSP("RSP");
-X86_64Register RBP("RBP");
-X86_64Register RSI("RSI");
-X86_64Register RDI("RDI");
-X86_64Register R8("R8");
-X86_64Register R9("R9");
-X86_64Register R10("R10");
-X86_64Register R11("R11");
-X86_64Register R12("R12");
-X86_64Register R13("R13");
-X86_64Register R14("R14");
-X86_64Register R15("R15");
-
-
-X86_64Register* X86_64IntegerArgumentRegisters[] = {
-&RDI, &RSI, &RDX, &RCX, &R8, &R9
-};
+OStream& operator<<(OStream &OS, const X86_64MachineMethodDescriptor &MMD) {
+	OS << "num args: " << MMD.MD.size() << " [ ";
+	for (unsigned i = 0, e = MMD.MD.size(); i < e; ++i) {
+		Type::TypeID type = MMD.MD[i];
+		MachineOperand *MO = MMD.parameter[i];
+		OS << "(" << type << ")" << MO << " ";
+	}
+	return OS << ']';
+}
 
 } // end namespace compiler2
 } // end namespace jit
@@ -68,4 +56,3 @@ X86_64Register* X86_64IntegerArgumentRegisters[] = {
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */
-

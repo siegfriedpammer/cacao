@@ -42,6 +42,24 @@ public:
 };
 
 extern X86_64Register RAX;
+extern X86_64Register RCX;
+extern X86_64Register RDX;
+extern X86_64Register RBX;
+extern X86_64Register RSP;
+extern X86_64Register RBP;
+extern X86_64Register RSI;
+extern X86_64Register RDI;
+extern X86_64Register R8;
+extern X86_64Register R9;
+extern X86_64Register R10;
+extern X86_64Register R11;
+extern X86_64Register R12;
+extern X86_64Register R13;
+extern X86_64Register R14;
+extern X86_64Register R15;
+
+const unsigned X86_64IntegerArgumentRegisterSize = 6;
+extern X86_64Register* X86_64IntegerArgumentRegisters[];
 
 } // end namespace compiler2
 } // end namespace jit
