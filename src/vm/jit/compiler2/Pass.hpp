@@ -69,6 +69,17 @@ public:
 	}
 
 	/**
+	 * Get the result of a previous compiler pass
+	 *
+	 * Can only be used if ResultType is added to required in get_PassUsage().
+	 */
+	template<class _PassClass>
+	_PassClass *get_Pass_if_available() const {
+		if (!pm->result_ready[&_PassClass::ID])
+			return NULL;
+		return pm->get_Pass_result<_PassClass>();
+	}
+	/**
 	 * Set the requirements for the pass
 	 */
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const {

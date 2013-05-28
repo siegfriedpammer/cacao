@@ -68,6 +68,7 @@ private:
 	typedef std::set<PassInfo::IDTy> PassListTy;
 	typedef std::vector<PassInfo::IDTy> ScheduleListTy;
 	typedef std::map<PassInfo::IDTy,Pass*> PassMapTy;
+	typedef std::map<PassInfo::IDTy,bool> ResultReadyMapTy;
 	/**
 	 * This stores the initialized passes.
 	 * Every Pass can only occure once.
@@ -82,6 +83,10 @@ private:
 	 * The list of passed that should be performed
 	 */
 	PassListTy passes;
+	/**
+	 * Map of ready results
+	 */
+	ResultReadyMapTy result_ready;
 
 	static std::map<PassInfo::IDTy, PassInfo*> &registered_passes() {
 		static std::map<PassInfo::IDTy, PassInfo*> registered_passes;

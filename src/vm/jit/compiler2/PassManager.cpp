@@ -42,6 +42,7 @@ Pass* PassManager::get_initialized_Pass(PassInfo::IDTy ID) {
 		P = PI->create_Pass();
 		P->set_PassManager(this);
 		initialized_passes[ID] = P;
+		result_ready[ID] = false;
 	}
 	return P;
 }
@@ -56,8 +57,10 @@ PassManager::~PassManager() {
 
 void PassManager::initializePasses() {
 	for(ScheduleListTy::iterator i = schedule.begin(), e = schedule.end(); i != e; ++i) {
-		Pass* P = get_initialized_Pass(*i);
-		LOG("initialize: " << get_Pass_name(*i) << nl);
+		PassInfo::IDTy id = *i;
+		result_ready[id] = false;
+		Pass* P = get_initialized_Pass(id);
+		LOG("initialize: " << get_Pass_name(id) << nl);
 		P->initialize();
 	}
 }
@@ -65,28 +68,31 @@ void PassManager::initializePasses() {
 void PassManager::runPasses(JITData &JD) {
 	initializePasses();
 	for(ScheduleListTy::iterator i = schedule.begin(), e = schedule.end(); i != e; ++i) {
-		Pass* P = get_initialized_Pass(*i);
-		LOG("start: " << get_Pass_name(*i) << nl);
+		PassInfo::IDTy id = *i;
+		Pass* P = get_initialized_Pass(id);
+		LOG("start: " << get_Pass_name(id) << nl);
 		if (!P->run(JD)) {
-			err() << bold << Red << "error" << reset_color << " during pass " << get_Pass_name(*i) << nl;
+			err() << bold << Red << "error" << reset_color << " during pass " << get_Pass_name(id) << nl;
 			os::abort("compiler2: error");
 		}
 		#ifndef NDEBUG
-		LOG("verifying: " << get_Pass_name(*i) << nl);
+		LOG("verifying: " << get_Pass_name(id) << nl);
 		if (!P->verify()) {
-			err() << bold << Red << "verification error" << reset_color << " during pass " << get_Pass_name(*i) << nl;
+			err() << bold << Red << "verification error" << reset_color << " during pass " << get_Pass_name(id) << nl;
 			os::abort("compiler2: error");
 		}
 		#endif
-		LOG("finished: " << get_Pass_name(*i) << nl);
+		result_ready[id] = true;
+		LOG("finished: " << get_Pass_name(id) << nl);
 	}
 	finalizePasses();
 }
 
 void PassManager::finalizePasses() {
 	for(ScheduleListTy::iterator i = schedule.begin(), e = schedule.end(); i != e; ++i) {
-		Pass* P = get_initialized_Pass(*i);
-		LOG("finialize: " << get_Pass_name(*i) << nl);
+		PassInfo::IDTy id = *i;
+		Pass* P = get_initialized_Pass(id);
+		LOG("finialize: " << get_Pass_name(id) << nl);
 		P->finalize();
 	}
 }
