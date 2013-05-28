@@ -33,9 +33,14 @@ namespace compiler2 {
 
 
 class MachineRegister : public Register {
+protected:
+	const char *name;
 public:
-	MachineRegister(const char *name) : Register(name) {}
+	MachineRegister(const char *name) : name(name) {}
 	virtual MachineRegister* to_MachineRegister() { return this; }
+	virtual const char* get_name() const {
+		return name;
+	}
 	~MachineRegister() {}
 };
 

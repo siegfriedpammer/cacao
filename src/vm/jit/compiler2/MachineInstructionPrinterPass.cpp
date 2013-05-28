@@ -72,6 +72,23 @@ namespace compiler2 {
 
 namespace {
 
+StringBuf MachineOperandToString(MachineOperand* MO) {
+	if (!MO) {
+		return "NULL";
+	}
+	std::ostringstream sstream;
+	sstream << MO->get_name();
+	if (Register *reg = MO->to_Register()) {
+		if (VirtualRegister *vreg = reg->to_VirtualRegister() ) {
+			sstream << vreg->get_id();
+		}
+	 } else if (StackSlot *slot = MO->to_StackSlot()) {
+		sstream << "(" << slot->get_index() << ")";
+	 }
+
+	return sstream.str();
+}
+
 class MachineInstructionGraph : public GraphTraits<Method,MachineInstruction> {
 protected:
     const Method &M;
@@ -196,20 +213,17 @@ public:
 
     StringBuf getNodeLabel(const MachineInstruction &node) const {
 		std::ostringstream sstream;
-		MachineOperand *result =node.get_result();
+		MachineOperand *result = node.get_result();
 		assert(result);
-		sstream << result->get_name()
+		sstream << MachineOperandToString(result)
 		        << " = [" << node.get_id() << "] "
 		        << node.get_name() << " ";
+
 		for (MachineInstruction::const_operand_iterator i = node.begin(), e = node.end();
 				i != e; ++i) {
 			MachineOperand *MO = *i;
-			if (MO) {
-				sstream << MO->get_name() << ", ";
-			} else {
-				sstream << "NULL, ";
-			}
 			//assert(MO);
+			sstream << MachineOperandToString(MO) << ", ";
 		}
 		#if 0
 		for(Instruction::OperandListTy::const_iterator ii = node.op_begin(), ee = node.op_end();

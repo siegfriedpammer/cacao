@@ -24,10 +24,6 @@
 
 #include "vm/jit/compiler2/MachineOperand.hpp"
 #include "toolbox/OStream.hpp"
-#include "toolbox/StringBuf.hpp"
-
-#include <string>
-#include <cstring>
 
 namespace cacao {
 namespace jit {
@@ -36,12 +32,6 @@ namespace compiler2 {
 VoidOperand NoOperand;
 
 unsigned VirtualRegister::vreg_counter = 0;
-
-VirtualRegister::VirtualRegister() : vreg(vreg_counter++) {
-	//std::string str = "VREG" + std::to_string(vreg);
-	StringBuf str = "VREG" + to_string(vreg);
-	name = strdup(str.c_str());
-}
 
 OStream& operator<<(OStream &OS, const MachineOperandType &MO) {
 	OS << "MachineOperandType [ ";

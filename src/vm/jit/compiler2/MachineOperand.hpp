@@ -72,13 +72,10 @@ class VirtualRegister;
 class MachineRegister;
 
 class Register : public MachineOperand {
-protected:
-	const char *name;
 public:
 	Register() {}
-	Register(const char *name) : name(name) {}
 	virtual const char* get_name() const {
-		return name;
+		return "Register";
 	}
 	virtual Register* to_Register()               { return this; }
 	virtual UnassignedReg* to_UnassignedReg()     { return 0; }
@@ -89,11 +86,14 @@ public:
 
 class UnassignedReg : public Register {
 private:
-	UnassignedReg() : Register("UnassignedReg") {}
+	UnassignedReg() {}
 public:
 	static UnassignedReg* factory() {
 		static UnassignedReg instance;
 		return &instance;
+	}
+	virtual const char* get_name() const {
+		return "UnassignedReg";
 	}
 	virtual UnassignedReg* to_UnassignedReg()     { return this; }
 };
@@ -103,12 +103,13 @@ private:
 	static unsigned vreg_counter;
 	const unsigned vreg;
 public:
-	VirtualRegister();
+	VirtualRegister() : vreg(vreg_counter++) {}
 
 	virtual VirtualRegister* to_VirtualRegister() { return this; }
-	virtual ~VirtualRegister() {
-		delete[] name;
+	virtual const char* get_name() const {
+		return "VREG";
 	}
+	unsigned get_id() const { return vreg; }
 };
 
 class StackSlot : public MachineOperand {
@@ -120,6 +121,7 @@ public:
 	 */
 	StackSlot(int index) : index(index) {}
 	virtual StackSlot* to_StackSlot() { return this; }
+	int get_index() const { return index; }
 	virtual const char* get_name() const {
 		return "StackSlot";
 	}
