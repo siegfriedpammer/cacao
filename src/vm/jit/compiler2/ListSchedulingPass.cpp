@@ -34,6 +34,7 @@
 #include <map>
 #include <list>
 #include <queue>
+#include <deque>
 
 #define DEBUG_NAME "compiler2/ListScheduling"
 
@@ -41,13 +42,43 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+namespace {
+class MyComparator {
+private:
+	const BasicBlockSchedule* sched;
+	unsigned users(Instruction *I) const {
+		unsigned users = 0;
+		for (Instruction::UserListTy::const_iterator i = I->user_begin(),
+				e = I->user_end(); i != e; ++i) {
+			Instruction *user = *i;
+			// only instructions in this basic block
+			if ( sched->get(user) == sched->get(I)) {
+				users++;
+			}
+		}
+		return users;
+	}
+public:
+	MyComparator(const BasicBlockSchedule* sched) : sched(sched) {}
+	bool operator() (Instruction* lhs, Instruction* rhs) const {
+		// BeginInst always first!
+		if (lhs->to_BeginInst()) return false;
+		if (rhs->to_BeginInst()) return true;
+		// prioritize instruction with fewer users in the current bb
+		return users(lhs) > users(rhs);
+	}
+};
+
+} // end anonymous namespace
+
 void ListSchedulingPass::schedule(BeginInst *BI) {
 	// reference to the instruction list of the current basic block
 	InstructionListTy &inst_list = map[BI];
 	// set of already scheduled instructions
 	std::set<Instruction*> scheduled;
 	// queue of ready instructions
-	std::queue<Instruction*> ready;
+	MyComparator comp = MyComparator(sched);
+	std::priority_queue<Instruction*,std::deque<Instruction*>,MyComparator> ready(comp);
 	// Begin is always the first instruction
 	ready.push(BI);
 	for(BasicBlockSchedule::const_inst_iterator i = sched->inst_begin(BI),
@@ -74,7 +105,7 @@ void ListSchedulingPass::schedule(BeginInst *BI) {
 	}
 
 	while (!ready.empty()) {
-		Instruction *I = ready.front();
+		Instruction *I = ready.top();
 		ready.pop();
 		inst_list.push_back(I);
 		scheduled.insert(I);
