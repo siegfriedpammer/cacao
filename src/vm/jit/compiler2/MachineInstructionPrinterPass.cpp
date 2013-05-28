@@ -29,6 +29,7 @@
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/LoweringPass.hpp"
+#include "vm/jit/compiler2/ListSchedulingPass.hpp"
 
 #include "toolbox/GraphTraits.hpp"
 
@@ -103,6 +104,7 @@ protected:
 public:
 
     MachineInstructionGraph(const Method &M, LoweringPass *LP,
+			InstructionSchedule<Instruction> *IS,
 			StringBuf name = "MachineInstructionGraph",bool verbose = false)
 			: M(M), LP(LP), name(name), verbose(verbose) {
 		for(Method::InstructionListTy::const_iterator i = M.begin(),
@@ -194,6 +196,27 @@ public:
 				edges.insert(edge);
 				#endif
 			}
+			if (IS) {
+				for (Method::const_bb_iterator i = M.bb_begin(), e = M.bb_end();
+						i != e; ++i) {
+					BeginInst *BI = *i;
+					MachineInstruction *old = NULL;
+					for(InstructionSchedule<Instruction>::const_inst_iterator
+							i = IS->inst_begin(BI), e = IS->inst_end(BI); i != e ; ++i) {
+						Instruction *I = *i;
+						LoweredInstDAG *op_dag = LP->get_LoweredInstDAG(I);
+						assert(op_dag);
+						MachineInstruction *result = op_dag->get_result();
+						assert(result);
+						if (old) {
+							EdgeType edge = std::make_pair(old,result);
+							edges.insert(edge);
+						}
+						old = result;
+					}
+
+				}
+			}
 #if 0
 			BeginInst *bi = I->get_BeginInst();
 			if (bi) {
@@ -277,10 +300,12 @@ static PassRegistery<MachineInstructionPrinterPass> X("MachineInstructionPrinter
 // run pass
 bool MachineInstructionPrinterPass::run(JITData &JD) {
 	LoweringPass *LP = get_Pass<LoweringPass>();
+	InstructionSchedule<Instruction> *IS = get_Pass_if_available<ListSchedulingPass>();
+
 	StringBuf name = get_filename(JD.get_jitdata()->m,JD.get_jitdata(),"","");
 	StringBuf filename = "minst_";
 	filename+=name+".dot";
-	GraphPrinter<MachineInstructionGraph>::print(filename.c_str(), MachineInstructionGraph(*(JD.get_Method()),LP,name));
+	GraphPrinter<MachineInstructionGraph>::print(filename.c_str(), MachineInstructionGraph(*(JD.get_Method()),LP,IS,name));
 	return true;
 }
 
