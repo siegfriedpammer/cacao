@@ -918,7 +918,9 @@ bool SSAConstructionPass::run(JITData &JD) {
 	basicblock *bb;
 	jitdata *jd = JD.get_jitdata();
 
-	show_method(jd, SHOW_CFG);
+	if (DEBUG_COND) {
+		show_method(jd, SHOW_CFG);
+	}
 
 	// **** BEGIN initializations
 

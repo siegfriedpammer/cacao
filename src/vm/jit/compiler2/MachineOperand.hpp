@@ -212,6 +212,16 @@ inline OStream& operator<<(OStream &OS, const Register *MO) {
 	return OS << *MO;
 }
 
+inline OStream& operator<<(OStream &OS, const VirtualRegister &MO) {
+	return OS << "VReg" << MO.get_id();
+}
+inline OStream& operator<<(OStream &OS, const VirtualRegister *MO) {
+	if (!MO) {
+		return OS << "(VirtualRegister) NULL";
+	}
+	return OS << *MO;
+}
+
 inline OStream& operator<<(OStream &OS, const StackSlot &MO) {
 	return OS << "StackSlot";
 }

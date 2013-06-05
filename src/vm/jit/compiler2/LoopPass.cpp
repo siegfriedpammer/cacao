@@ -36,24 +36,6 @@
 #define DEBUG_NAME "compiler2/LoopPass"
 
 namespace cacao {
-namespace {
-
-template <class _ForwardIterator>
-OStream& print_container(OStream &OS, _ForwardIterator i, const _ForwardIterator &e) {
-	if (i == e)
-		return OS << "[<empty>]";
-	OS << "[" << *i;
-	++i;
-	for( ; i != e ; ++i) {
-		OS << ", " << *i;
-	}
-	return OS << "]";
-}
-
-} // end anonymous namespace
-} // end cacao namespace
-
-namespace cacao {
 namespace jit {
 namespace compiler2 {
 
