@@ -74,6 +74,9 @@ LoweredInstDAG* BackendTraits<X86_64>::lowerIFInst(IFInst *I) const {
 	case Conditional::LE:
 		cjmp = new X86_64CondJumpInst(X86_64Cond::LE);
 		break;
+	case Conditional::GE:
+		cjmp = new X86_64CondJumpInst(X86_64Cond::GE);
+		break;
 	default:
 		err() << Red << "Error: " << reset_color << "Conditioal not supported: "
 		      << bold << I->get_condition() << reset_color << nl;
@@ -121,6 +124,18 @@ LoweredInstDAG* BackendTraits<X86_64>::lowerRETURNInst(RETURNInst *I) const {
 	dag->add(reg);
 	dag->set_input(reg);
 	dag->set_result(ret);
+	return dag;
+}
+
+template<>
+LoweredInstDAG* BackendTraits<X86_64>::lowerMULInst(MULInst *I) const {
+	assert(I);
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	VirtualRegister *dst = new VirtualRegister();
+	X86_64IMulInst *add = new X86_64IMulInst(dst,UnassignedReg::factory(),UnassignedReg::factory());
+	dag->add(add);
+	dag->set_input(add);
+	dag->set_result(add);
 	return dag;
 }
 

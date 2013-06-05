@@ -51,6 +51,7 @@ LoweredInstDAG* Backend::lower(Instruction *I) const {
 	case Instruction::ADDInstID:    return lowerADDInst(I->to_ADDInst());
 	case Instruction::SUBInstID:    return lowerSUBInst(I->to_SUBInst());
 	case Instruction::RETURNInstID: return lowerRETURNInst(I->to_RETURNInst());
+	case Instruction::MULInstID:    return lowerMULInst(I->to_MULInst());
 	}
 	err() << BoldRed << "error: " << reset_color
 		  << " instruction " << BoldWhite

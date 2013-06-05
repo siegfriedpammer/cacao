@@ -65,6 +65,15 @@ public:
 		operands[0] = dstsrc1;
 		operands[1] = src2;
 	}
+};
+
+class X86_64IMulInst : public MachineInstruction {
+public:
+	X86_64IMulInst(Register *dst, Register *src1, Register *src2)
+			: MachineInstruction("X86_64IMulInst", dst, 2) {
+		operands[0] = src1;
+		operands[1] = src2;
+	}
 
 };
 

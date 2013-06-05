@@ -44,6 +44,7 @@ protected:
 	virtual LoweredInstDAG* lowerADDInst(ADDInst *I) const = 0;
 	virtual LoweredInstDAG* lowerSUBInst(SUBInst *I) const = 0;
 	virtual LoweredInstDAG* lowerRETURNInst(RETURNInst *I) const = 0;
+	virtual LoweredInstDAG* lowerMULInst(MULInst *I) const = 0;
 public:
 	static Backend* factory();
 	virtual LoweredInstDAG* lower(Instruction *I) const;
@@ -67,6 +68,7 @@ protected:
 	virtual LoweredInstDAG* lowerADDInst(ADDInst *I) const;
 	virtual LoweredInstDAG* lowerSUBInst(SUBInst *I) const;
 	virtual LoweredInstDAG* lowerRETURNInst(RETURNInst *I) const;
+	virtual LoweredInstDAG* lowerMULInst(MULInst *I) const;
 public:
 	virtual const char* get_name() const;
 };
