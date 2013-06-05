@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/GraphHelper.cpp - GraphHelper
+/* src/vm/jit/compiler2/BasicBlockSchedule.hpp - BasicBlockSchedule
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,42 +22,51 @@
 
 */
 
+#ifndef _JIT_COMPILER2_BASICBLOCKSCHEDULE
+#define _JIT_COMPILER2_BASICBLOCKSCHEDULE
 
-#include "vm/jit/compiler2/GraphHelper.hpp"
-#include "vm/jit/compiler2/Instructions.hpp"
-
-#include <cassert>
-
-#define DEBUG_NAME "compiler2/GraphHelper"
+#include <map>
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-// specialization for BeginInst
-template <>
-DFSTraversal<BeginInst>::NodeListTy& DFSTraversal<BeginInst>::successor(BeginInst *v, NodeListTy& list) {
-	EndInst *ve = v->get_EndInst();
-	assert(ve);
-	if (ve->to_IFInst()) {
-		// the first successor is usually the jump target, the second the fall-through block
-		assert(ve->succ_size() == 2);
-		list.insert(ve->succ_rbegin(),ve->succ_rend());
-	} else {
-		list.insert(ve->succ_begin(),ve->succ_end());
-	}
-	return list;
-}
+class BeginInst;
 
-template <>
-int DFSTraversal<BeginInst>::num_nodes(BeginInst *v) const {
-	assert(v->get_Method());
-	return v->get_Method()->bb_size();
-}
+/**
+ * BasicBlockSchedule
+ * TODO: more info
+ */
+class BasicBlockSchedule {
+public:
+	typedef std::vector<BeginInst*> BasicBlockListTy;
+	typedef BasicBlockListTy::const_iterator const_inst_iterator;
+protected:
+	BasicBlockListTy bb_list;
+public:
+	BasicBlockSchedule() {}
+	BeginInst* operator[](const unsigned i) const {
+		return bb_list[i];
+	}
+	BeginInst* get(const unsigned i) const {
+		return bb_list[i];
+	}
+	const_inst_iterator inst_begin() const {
+		return bb_list.begin();
+	}
+	const_inst_iterator inst_end() const {
+		return bb_list.end();
+	}
+	unsigned size() const {
+		return bb_list.size();
+	}
+};
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
+
+#endif /* _JIT_COMPILER2_BASICBLOCKSCHEDULE */
 
 
 /*

@@ -29,6 +29,7 @@
 #include <set>
 #include <map>
 #include <vector>
+#include <iterator>
 
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "toolbox/logging.hpp"
@@ -146,13 +147,14 @@ public:
 		return is_ancestor(v,w);
 	}
 
-	class iterator {
+	class iterator : public std::iterator<std::input_iterator_tag,_NodeTy*> {
 		private:
 			int index;
 			DFSTraversal *parent;
 		public:
 			explicit iterator (DFSTraversal *parent) : index(0), parent(parent)  {}
 			explicit iterator (DFSTraversal *parent, int index) : index(index), parent(parent){}
+			iterator (const iterator &it) : index(it.index), parent(it.parent){}
 
 			_NodeTy* operator*() const {
 				if(index >= 0 && index < parent->size())
@@ -165,11 +167,21 @@ public:
 					index = -1;
 				return *this;
 			}
+			iterator operator++(int) {
+				iterator tmp(*this);
+				operator++();
+				return tmp;
+			}
 			iterator& operator--() {
 				--index;
 				if (index < 0)
 					index = -1;
 				return *this;
+			}
+			iterator operator--(int) {
+				iterator tmp(*this);
+				operator--();
+				return tmp;
 			}
 
 			/*

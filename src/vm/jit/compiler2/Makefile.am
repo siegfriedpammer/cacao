@@ -33,6 +33,7 @@ noinst_LTLIBRARIES = \
 
 libcompiler2_la_SOURCES = \
 	Backend.cpp \
+	BasicBlockSchedulingPass.cpp \
 	CFGConstructionPass.cpp \
 	CodeGenPass.cpp \
 	Compiler.cpp \

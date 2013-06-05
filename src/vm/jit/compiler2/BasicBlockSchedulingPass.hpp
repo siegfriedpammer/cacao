@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/GraphHelper.cpp - GraphHelper
+/* src/vm/jit/compiler2/BasicBlockSchedulingPass.hpp - BasicBlockSchedulingPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,42 +22,35 @@
 
 */
 
+#ifndef _JIT_COMPILER2_BASICBLOCKSCHEDULINGPASS
+#define _JIT_COMPILER2_BASICBLOCKSCHEDULINGPASS
 
-#include "vm/jit/compiler2/GraphHelper.hpp"
-#include "vm/jit/compiler2/Instructions.hpp"
-
-#include <cassert>
-
-#define DEBUG_NAME "compiler2/GraphHelper"
+#include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/BasicBlockSchedule.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-// specialization for BeginInst
-template <>
-DFSTraversal<BeginInst>::NodeListTy& DFSTraversal<BeginInst>::successor(BeginInst *v, NodeListTy& list) {
-	EndInst *ve = v->get_EndInst();
-	assert(ve);
-	if (ve->to_IFInst()) {
-		// the first successor is usually the jump target, the second the fall-through block
-		assert(ve->succ_size() == 2);
-		list.insert(ve->succ_rbegin(),ve->succ_rend());
-	} else {
-		list.insert(ve->succ_begin(),ve->succ_end());
-	}
-	return list;
-}
 
-template <>
-int DFSTraversal<BeginInst>::num_nodes(BeginInst *v) const {
-	assert(v->get_Method());
-	return v->get_Method()->bb_size();
-}
+/**
+ * BasicBlockSchedulingPass
+ * TODO: more info
+ */
+class BasicBlockSchedulingPass : public Pass, public BasicBlockSchedule {
+public:
+	static char ID;
+	BasicBlockSchedulingPass() : Pass() {}
+	bool run(JITData &JD);
+	PassUsage& get_PassUsage(PassUsage &PA) const;
+	bool verify() const;
+};
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
+
+#endif /* _JIT_COMPILER2_BASICBLOCKSCHEDULINGPASS */
 
 
 /*

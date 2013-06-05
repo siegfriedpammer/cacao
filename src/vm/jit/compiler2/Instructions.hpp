@@ -161,6 +161,8 @@ public:
 	}
 	SuccessorListTy::const_iterator succ_begin() const { return succ_list.begin(); }
 	SuccessorListTy::const_iterator succ_end()   const { return succ_list.end(); }
+	SuccessorListTy::const_reverse_iterator succ_rbegin() const { return succ_list.rbegin(); }
+	SuccessorListTy::const_reverse_iterator succ_rend()   const { return succ_list.rend(); }
 	size_t succ_size() const { return succ_list.size(); }
 
 };
