@@ -64,6 +64,9 @@ public:
 		// BeginInst always first!
 		if (lhs->to_BeginInst()) return false;
 		if (rhs->to_BeginInst()) return true;
+		// PHIs right after BeginInst
+		if (lhs->to_PHIInst()) return false;
+		if (rhs->to_PHIInst()) return true;
 		// prioritize instruction with fewer users in the current bb
 		return users(lhs) > users(rhs);
 	}
