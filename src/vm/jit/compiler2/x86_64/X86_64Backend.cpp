@@ -121,8 +121,8 @@ LoweredInstDAG* BackendTraits<X86_64>::lowerRETURNInst(RETURNInst *I) const {
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	X86_64RetInst *ret = new X86_64RetInst();
 	MachineMoveInst *reg = new MachineMoveInst(&RAX, UnassignedReg::factory());
-	dag->add(ret);
 	dag->add(reg);
+	dag->add(ret);
 	dag->set_input(reg);
 	dag->set_result(ret);
 	return dag;
