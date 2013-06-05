@@ -130,12 +130,28 @@ public:
 		if (!inner || inner == outer) {
 			return false;
 		}
+		if (!outer) {
+			// every loop is a inner loop of no loop
+			return true;
+		}
 		while((inner = inner->get_parent())) {
 			if (inner == outer) {
 				return true;
 			}
 		}
 		return false;
+	}
+	/**
+	 * TODO: cache?
+	 */
+	int loop_nest(Loop *loop) const {
+		if(!loop)
+			return -1;
+		unsigned nest = 0;
+		while((loop = loop->get_parent())) {
+			++nest;
+		}
+		return nest;
 	}
 	virtual ~LoopTree() {
 		for (LoopListTy::iterator i = loops.begin(), e = loops.end();

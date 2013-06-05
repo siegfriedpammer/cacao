@@ -49,13 +49,15 @@ void ScheduleClickPass::schedule(Instruction *I) {
 	 * outside of loop bodies
 	 */
 	BeginInst* latest = late->get(I);
-	BeginInst* earliest = early->get(I);
+	BeginInst* earliest = DT->get_idominator(early->get(I));
 	BeginInst* best = latest;
 
 	while (latest != earliest) {
 		Loop* loop_latest = LT->get_Loop(latest);
 		Loop* loop_best = LT->get_Loop(best);
 		// if the best is in an inner loop
+		LOG2( "Loop best: " << best << " " << LT->loop_nest(loop_best)
+		  << " Loop latest: " << latest << " " << LT->loop_nest(loop_latest) << nl);
 		if ( LT->is_inner_loop(loop_best, loop_latest) ) {
 			best = latest;
 		}
@@ -80,9 +82,9 @@ bool ScheduleClickPass::run(JITData &JD) {
 		BeginInst* earliest = early->get(I);
 		// walk up the dominator tree
 		for (; earliest != latest; latest = DT->get_idominator(latest)) {
-			LOG(latest << nl);
+			LOG(latest << " LoopLevel: " << LT->loop_nest(LT->get_Loop(latest)) << nl);
 		}
-		LOG(latest << nl);
+		LOG(latest << " LoopLevel: " << LT->loop_nest(LT->get_Loop(latest)) << nl);
 
 		schedule(I);
 	}
