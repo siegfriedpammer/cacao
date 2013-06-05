@@ -60,9 +60,9 @@ public:
 
 class X86_64AddInst : public MachineInstruction {
 public:
-	X86_64AddInst(Register *dstsrc1, Register *src2)
-			: MachineInstruction("X86_64AddInst", dstsrc1, 2) {
-		operands[0] = dstsrc1;
+	X86_64AddInst(Register *dst, Register *src1, Register *src2)
+			: MachineInstruction("X86_64AddInst", dst, 2) {
+		operands[0] = src1;
 		operands[1] = src2;
 	}
 };
@@ -79,9 +79,9 @@ public:
 
 class X86_64SubInst : public MachineInstruction {
 public:
-	X86_64SubInst(Register *dstsrc1, Register *src2)
-			: MachineInstruction("X86_64SubInst", dstsrc1, 2) {
-		operands[0] = dstsrc1;
+	X86_64SubInst(Register *dst, Register *src1, Register *src2)
+			: MachineInstruction("X86_64SubInst", dst, 2) {
+		operands[0] = src1;
 		operands[1] = src2;
 	}
 

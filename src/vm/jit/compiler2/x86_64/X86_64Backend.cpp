@@ -51,9 +51,10 @@ LoweredInstDAG* BackendTraits<X86_64>::lowerLOADInst(LOADInst *I) const {
 	//MachineInstruction *minst = loadParameter(I->get_index(), I->get_type());
 	const MethodDescriptor &MD = I->get_Method()->get_MethodDescriptor();
 	const X86_64MachineMethodDescriptor MMD(MD);
-	MachineOperandInst *reg = new MachineOperandInst(MMD[I->get_index()]);
-	dag->add(reg);
-	dag->set_result(reg);
+	VirtualRegister *dst = new VirtualRegister();
+	MachineMoveInst *move = new MachineMoveInst(dst,MMD[I->get_index()]);
+	dag->add(move);
+	dag->set_result(move);
 	return dag;
 }
 
@@ -94,8 +95,8 @@ template<>
 LoweredInstDAG* BackendTraits<X86_64>::lowerADDInst(ADDInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	VirtualRegister *dstsrc1 = new VirtualRegister();
-	X86_64AddInst *add = new X86_64AddInst(dstsrc1,UnassignedReg::factory());
+	VirtualRegister *dst = new VirtualRegister();
+	X86_64AddInst *add = new X86_64AddInst(dst,UnassignedReg::factory(),UnassignedReg::factory());
 	dag->add(add);
 	dag->set_input(add);
 	dag->set_result(add);
@@ -106,8 +107,8 @@ template<>
 LoweredInstDAG* BackendTraits<X86_64>::lowerSUBInst(SUBInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	VirtualRegister *dstsrc1 = new VirtualRegister();
-	X86_64SubInst *sub = new X86_64SubInst(dstsrc1,UnassignedReg::factory());
+	VirtualRegister *dst = new VirtualRegister();
+	X86_64SubInst *sub = new X86_64SubInst(dst,UnassignedReg::factory(),UnassignedReg::factory());
 	dag->add(sub);
 	dag->set_input(sub);
 	dag->set_result(sub);

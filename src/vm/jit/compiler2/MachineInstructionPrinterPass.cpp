@@ -196,6 +196,7 @@ public:
 				edges.insert(edge);
 				#endif
 			}
+			#if 0
 			if (IS) {
 				for (Method::const_bb_iterator i = M.bb_begin(), e = M.bb_end();
 						i != e; ++i) {
@@ -217,6 +218,7 @@ public:
 
 				}
 			}
+			#endif
 #if 0
 			BeginInst *bi = I->get_BeginInst();
 			if (bi) {
