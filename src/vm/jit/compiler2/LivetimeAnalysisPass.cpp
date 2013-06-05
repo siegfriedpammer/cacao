@@ -37,6 +37,7 @@
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
 #include "vm/jit/compiler2/LoweringPass.hpp"
 #include "vm/jit/compiler2/LoopPass.hpp"
+#include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -51,6 +52,7 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 	InstructionSchedule<Instruction> *IS = get_Pass<ListSchedulingPass>();
 	LoweringPass *LP = get_Pass<LoweringPass>();
 	LoopTree *LT = get_Pass<LoopPass>();
+	MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
 	// TODO use better data structor for the register set
 	LiveInMapTy liveIn;
 
@@ -62,11 +64,12 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 		EndInst *EI = BI->get_EndInst();
 		assert(EI);
 		// for all successors
+		LOG3("Number of successors of " << BI << " " << EI->succ_size() << nl);
 		for (EndInst::SuccessorListTy::const_iterator i = EI->succ_begin(),
 				e = EI->succ_end(); i != e ; ++i) {
 			BeginInst *succ = *i;
 			LOG3("Successor of " << BI << ": " << succ << nl);
-			std::set<VirtualRegister*> &succ_live_in = liveIn[succ];
+			std::set<Register*> &succ_live_in = liveIn[succ];
 			// union of all successor liveIns
 			liveIn[BI].insert(succ_live_in.begin(),succ_live_in.end());
 			// add Phi operands
@@ -83,14 +86,29 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 					assert(dag);
 					MachineOperand* op = dag->get_operand((unsigned)index);
 					Register *reg;
-					VirtualRegister *vreg;
-					if ( op &&  (reg = op->to_Register()) && (vreg = reg->to_VirtualRegister()) ) {
-						liveIn[BI].insert(vreg);
-						LOG2("adding " << vreg << " to liveIn of " << BI << nl);
+					if ( op &&  (reg = op->to_Register()) ) {
+						liveIn[BI].insert(reg);
+						LOG2("adding " << reg << " to liveIn of " << BI << nl);
 					}
 				}
 			}
 		}
+
+		// set initial interval
+		MachineInstructionSchedule::MachineInstructionRangeTy range = MIS->get_range(BI);
+		unsigned from = range.first;
+		unsigned to = range.second;
+
+		LOG2("initial liveIn for " << BI << ": ");
+		if (DEBUG_COND) {
+			print_container(dbg(), liveIn[BI].begin(), liveIn[BI].end()) << nl;
+		}
+		for (LiveInSetTy::const_iterator i = liveIn[BI].begin(), e = liveIn[BI].end();
+				i != e ; ++i) {
+			LOG2("adding live range for " << *i << " (" << from << "," << to << ")" << nl);
+			lti_map[*i].add_range(from,to);
+		}
+		#if 0
 		// for all instructions in the current basic block in reversed order
 		for (InstructionSchedule<Instruction>::const_reverse_inst_iterator i = IS->inst_rbegin(BI),
 				e = IS->inst_rend(BI); i != e; ++i) {
@@ -114,6 +132,36 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 				LOG2("removing " << vreg << " to liveIn of " << BI << nl);
 			}
 		}
+		#endif
+		// for all machine instructions in the current basic block in reversed order
+		MachineInstructionSchedule::MachineInstructionRangeTy bb_range = MIS->get_range(BI);
+		for (unsigned inst_lineno = bb_range.first, end_lineno = bb_range.second;
+				inst_lineno < end_lineno; ++inst_lineno) {
+			MachineInstruction *MI = MIS->get(inst_lineno);
+			// output operand
+			{
+				MachineOperand* op = MI->get_result();
+				Register *reg;
+				if ( op &&  (reg = op->to_Register()) ) {
+					LOG2("removing " << reg << " to liveIn of " << BI << nl);
+					LOG2("setting live range from for " << reg << " to " << inst_lineno << nl);
+					lti_map[reg].set_from_if_available(inst_lineno,end_lineno);
+					liveIn[BI].erase(reg);
+				}
+			}
+			// input operands
+			for(MachineInstruction::operand_iterator i = MI->begin(),
+					e = MI->end(); i != e ; ++i) {
+				MachineOperand* op = *i;
+				Register *reg;
+				if ( op &&  (reg = op->to_Register()) ) {
+					LOG2("adding " << reg << " to liveIn of " << BI << nl);
+					LOG2("adding live range for " << reg << " (" << from << "," << inst_lineno << ")" << nl);
+					lti_map[reg].add_range(from,inst_lineno);
+					liveIn[BI].insert(reg);
+				}
+			}
+		}
 		// for each phi function
 		for (Instruction::DepListTy::const_iterator i = BI->rdep_begin(),
 				e = BI->rdep_end() ; i != e; ++i) {
@@ -123,10 +171,9 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 				assert(dag);
 				MachineOperand* op = dag->get_result()->get_result();
 				Register *reg;
-				VirtualRegister *vreg;
-				if ( op &&  (reg = op->to_Register()) && (vreg = reg->to_VirtualRegister()) ) {
-					liveIn[BI].erase(vreg);
-					LOG2("removing " << vreg << " to liveIn of " << BI << nl);
+				if ( op &&  (reg = op->to_Register()) ) {
+					liveIn[BI].erase(reg);
+					LOG2("removing " << reg << " to liveIn of " << BI << nl);
 				}
 			}
 		}
@@ -144,6 +191,17 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 			LOG("LiveIn for " << i->first << ": ");
 			print_container(dbg(), i->second.begin(), i->second.end()) << nl;
 		}
+
+		for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
+				e = lti_map.end(); i != e ; ++i) {
+			const LivetimeInterval &lti = i->second;
+			LOG("Livetime Interval(s) for " << i->first << ":" << nl);
+			for(LivetimeInterval::const_iterator i = lti.begin(), e = lti.end();
+					i != e ; ++i) {
+				LOG("[" << i->first << "," << i->second << ")" << nl);
+			}
+		}
+
 	}
 
 	return true;
@@ -155,6 +213,7 @@ PassUsage& LivetimeAnalysisPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires(ListSchedulingPass::ID);
 	PU.add_requires(LoweringPass::ID);
 	PU.add_requires(LoopPass::ID);
+	PU.add_requires(MachineInstructionSchedulingPass::ID);
 	return PU;
 }
 

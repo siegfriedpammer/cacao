@@ -29,14 +29,54 @@
 
 #include <map>
 #include <set>
+#include <list>
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
 // forward declaration
-class VirtualRegister;
+class Register;
 class BeginInst;
+
+/**
+ * TODO: doc me!
+ */
+class LivetimeInterval {
+public:
+	typedef std::list<std::pair<unsigned,unsigned> > IntervalListTy;
+	typedef IntervalListTy::const_iterator const_iterator;
+private:
+	IntervalListTy intervals;
+public:
+	void add_range(unsigned from, unsigned to) {
+		if ( (intervals.size() > 0) && (intervals.begin()->first == to) ) {
+			intervals.begin()->first = from;
+		} else {
+			intervals.push_front(std::make_pair(from,to));
+		}
+	}
+	void set_from(unsigned from) {
+		assert(intervals.size() > 0);
+		intervals.begin()->first = from;
+	}
+	void set_from_if_available(unsigned from, unsigned to) {
+		if (intervals.size() > 0) {
+			intervals.begin()->first = from;
+		} else {
+			add_range(from,to);
+		}
+	}
+	const_iterator begin() const {
+		return intervals.begin();
+	}
+	const_iterator end() const {
+		return intervals.end();
+	}
+	std::size_t size() const {
+		return intervals.size();
+	}
+};
 
 /**
  * LivetimeAnalysisPass
@@ -46,8 +86,11 @@ class BeginInst;
  */
 class LivetimeAnalysisPass : public Pass {
 private:
-	typedef std::set<VirtualRegister*> LiveInSetTy;
+	typedef std::set<Register*> LiveInSetTy;
 	typedef std::map<BeginInst*,LiveInSetTy> LiveInMapTy;
+	typedef std::map<Register*,LivetimeInterval> LivetimeIntervalMapTy;
+
+	LivetimeIntervalMapTy lti_map;
 public:
 	static char ID;
 	LivetimeAnalysisPass() : Pass() {}
