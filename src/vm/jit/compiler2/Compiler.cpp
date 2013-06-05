@@ -62,6 +62,7 @@
 #include "vm/jit/compiler2/LoweringPass.hpp"
 #include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
+#include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/LivetimeAnalysisPass.hpp"
 #include "vm/jit/compiler2/LoopPass.hpp"
 #include "vm/jit/compiler2/LoopSimplificationPass.hpp"
@@ -138,6 +139,7 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass(&LoweringPass::ID);
 	PM.add_Pass(&ListSchedulingPass::ID);
 	PM.add_Pass(&BasicBlockSchedulingPass::ID);
+	PM.add_Pass(&MachineInstructionSchedulingPass::ID);
 	PM.add_Pass(&LivetimeAnalysisPass::ID);
 	PM.add_Pass(&MachineInstructionPrinterPass::ID);
 	PM.add_Pass(&RegisterAllocatorPass::ID);

@@ -50,6 +50,7 @@ libcompiler2_la_SOURCES = \
 	LoweredInstDAG.cpp \
 	LoweringPass.cpp \
 	MachineInstruction.cpp \
+	MachineInstructionSchedulingPass.cpp \
 	MachineInstructionPrinterPass.cpp \
 	MachineOperand.cpp \
 	Method.cpp \
