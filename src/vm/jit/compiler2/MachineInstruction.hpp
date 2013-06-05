@@ -91,6 +91,7 @@ public:
 	MachineOperand* get_result() const {
 		return result;
 	}
+	virtual OStream& print(OStream &OS) const;
 };
 
 OStream& operator<<(OStream &OS, const MachineInstruction &MI);

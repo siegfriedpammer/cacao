@@ -31,13 +31,21 @@ namespace compiler2 {
 
 unsigned MachineInstruction::id_counter = 0;
 
-OStream& operator<<(OStream &OS, const MachineInstruction &MI) {
-	OS << MI.get_result()->get_name() << " = [" << MI.get_id() << "] " << MI.get_name();
-	for (MachineInstruction::const_operand_iterator i = MI.begin(),
-			e = MI.end(); i != e ; ++i) {
-		OS << ' ' << (*i)->get_name();
+OStream& MachineInstruction::print(OStream &OS) const {
+	OS << "[" << setw(4) << fillzero << get_id() << "] " << get_name();
+	for (MachineInstruction::const_operand_iterator i = begin(),
+			e = end(); i != e ; ++i) {
+		OS << ' ' << (*i);
+	}
+	MachineOperand *result = get_result();
+	if (!result->to_VoidOperand()) {
+		OS << " -> " << result;
 	}
 	return OS;
+}
+
+OStream& operator<<(OStream &OS, const MachineInstruction &MI) {
+	return MI.print(OS);
 }
 OStream& operator<<(OStream &OS, const MachineInstruction *MI) {
 	if (!MI) {
