@@ -66,6 +66,10 @@ public:
 	MachineOperand*& operator[](unsigned i) {
 		return operands[i];
 	}
+	MachineOperand* get(unsigned i) const {
+		assert(i < operands.size());
+		return operands[i];
+	}
 	operand_iterator begin() {
 		return operands.begin();
 	}

@@ -85,6 +85,7 @@ public:
 private:
 	OperandListTy op_list;
 	DepListTy dep_list;
+	DepListTy reverse_dep_list;
 	// this is probably a waste of space
 	static int id_counter;
 
@@ -122,7 +123,9 @@ protected:
 	}
 
 	void append_dep(Instruction* I) {
+		assert(I);
 		dep_list.push_back(I);
+		I->reverse_dep_list.push_back(this);
 	}
 
 	OStream& print_operands(OStream &OS) {
@@ -175,6 +178,8 @@ public:
 
 	DepListTy::const_iterator dep_begin() const { return dep_list.begin(); }
 	DepListTy::const_iterator dep_end()   const { return dep_list.end(); }
+	DepListTy::const_iterator rdep_begin() const { return reverse_dep_list.begin(); }
+	DepListTy::const_iterator rdep_end()   const { return reverse_dep_list.end(); }
 	size_t dep_size() const { return dep_list.size(); }
 
 	/**

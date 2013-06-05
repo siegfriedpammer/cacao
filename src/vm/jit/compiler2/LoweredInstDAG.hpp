@@ -106,6 +106,9 @@ public:
 		result = MI;
 	}
 	InputParameterTy operator[](unsigned i) const {
+		return get(i);
+	}
+	InputParameterTy get(unsigned i) const {
 		assert(i < input_map.size());
 		return input_map[i];
 	}
@@ -116,6 +119,11 @@ public:
 		}
 		assert(result);
 		return result;
+	}
+	MachineOperand* get_operand(unsigned i) const {
+		assert(i < input_map.size());
+		InputParameterTy param = get(i);
+		return param.first->get(param.second);
 	}
 
 	mi_iterator mi_begin() { return minst.begin(); }

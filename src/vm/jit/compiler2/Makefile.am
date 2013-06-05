@@ -44,6 +44,7 @@ libcompiler2_la_SOURCES = \
 	Instruction.cpp \
 	JITData.cpp \
 	ListSchedulingPass.cpp \
+	LivetimeAnalysisPass.cpp \
 	LoopPass.cpp \
 	LoopSimplificationPass.cpp \
 	LoweredInstDAG.cpp \

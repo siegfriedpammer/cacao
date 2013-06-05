@@ -42,6 +42,7 @@ class InstructionSchedule {
 public:
 	typedef typename std::vector<_Inst*> InstructionListTy;
 	typedef typename InstructionListTy::const_iterator const_inst_iterator;
+	typedef typename InstructionListTy::const_reverse_iterator const_reverse_inst_iterator;
 protected:
 	std::map<const BeginInst*, InstructionListTy> map;
 public:
@@ -65,6 +66,16 @@ public:
 		typename std::map<const BeginInst*, InstructionListTy>::const_iterator i = map.find(BI);
 		assert(i != map.end());
 		return i->second.end();
+	}
+	const_reverse_inst_iterator inst_rbegin(const BeginInst* BI) const {
+		typename std::map<const BeginInst*, InstructionListTy>::const_iterator i = map.find(BI);
+		assert(i != map.end());
+		return i->second.rbegin();
+	}
+	const_reverse_inst_iterator inst_rend(const BeginInst* BI) const {
+		typename std::map<const BeginInst*, InstructionListTy>::const_iterator i = map.find(BI);
+		assert(i != map.end());
+		return i->second.rend();
 	}
 };
 

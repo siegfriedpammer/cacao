@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/BasicBlockSchedule.hpp - BasicBlockSchedule
+/* src/vm/jit/compiler2/LivetimeAnalysisPass.hpp - LivetimeAnalysisPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,58 +22,44 @@
 
 */
 
-#ifndef _JIT_COMPILER2_BASICBLOCKSCHEDULE
-#define _JIT_COMPILER2_BASICBLOCKSCHEDULE
+#ifndef _JIT_COMPILER2_LIVETIMEANALYSISPASS
+#define _JIT_COMPILER2_LIVETIMEANALYSISPASS
 
-#include <vector>
+#include "vm/jit/compiler2/Pass.hpp"
+
+#include <map>
+#include <set>
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+// forward declaration
+class VirtualRegister;
 class BeginInst;
 
 /**
- * BasicBlockSchedule
- * TODO: more info
+ * LivetimeAnalysisPass
+ *
+ * Based on the approach from "Linear scan register allocation on SSA form"
+ * by Wimmer and Franz @cite Wimmer2010.
  */
-class BasicBlockSchedule {
+class LivetimeAnalysisPass : public Pass {
+private:
+	typedef std::set<VirtualRegister*> LiveInSetTy;
+	typedef std::map<BeginInst*,LiveInSetTy> LiveInMapTy;
 public:
-	typedef std::vector<BeginInst*> BasicBlockListTy;
-	typedef BasicBlockListTy::const_iterator const_bb_iterator;
-	typedef BasicBlockListTy::const_reverse_iterator const_reverse_bb_iterator;
-protected:
-	BasicBlockListTy bb_list;
-public:
-	BasicBlockSchedule() {}
-	BeginInst* operator[](const unsigned i) const {
-		return bb_list[i];
-	}
-	BeginInst* get(const unsigned i) const {
-		return bb_list[i];
-	}
-	const_bb_iterator bb_begin() const {
-		return bb_list.begin();
-	}
-	const_bb_iterator bb_end() const {
-		return bb_list.end();
-	}
-	const_reverse_bb_iterator bb_rbegin() const {
-		return bb_list.rbegin();
-	}
-	const_reverse_bb_iterator bb_rend() const {
-		return bb_list.rend();
-	}
-	unsigned size() const {
-		return bb_list.size();
-	}
+	static char ID;
+	LivetimeAnalysisPass() : Pass() {}
+	bool run(JITData &JD);
+	PassUsage& get_PassUsage(PassUsage &PA) const;
 };
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_BASICBLOCKSCHEDULE */
+#endif /* _JIT_COMPILER2_LIVETIMEANALYSISPASS */
 
 
 /*

@@ -114,6 +114,9 @@ public:
 	loop_iterator loop_end() {
 		return top_loops.end();
 	}
+	/**
+	 * @bug what if more than one loop are starting at BI?
+	 */
 	Loop* get_Loop(BeginInst *BI) const {
 		std::map<BeginInst*,Loop*>::const_iterator it = loop_map.find(BI);
 		if (it == loop_map.end()) {

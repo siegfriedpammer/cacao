@@ -99,6 +99,19 @@ public:
 	explicit BeginInst(EndInst *end) : Instruction(BeginInstID, Type::VoidTypeID), end(end) {}
 	virtual BeginInst* to_BeginInst() { return this; }
 	virtual BeginInst *get_BeginInst() const { return const_cast<BeginInst*>(this); }
+	int get_predecessor_index(const BeginInst* BI) const {
+		if (BI) {
+			int index = 0;
+			for (PredecessorListTy::const_iterator i = pred_list.begin(),
+					e = pred_list.end(); i != e; ++i) {
+				if (BI == (*i)) {
+					return index;
+				}
+				index++;
+			}
+		}
+		return -1;
+	}
 	BeginInst* get_predecessor(int index) const {
 		if (index < 0 || index > pred_size()) {
 			return NULL;
@@ -531,9 +544,9 @@ public:
 	using Instruction::append_op;
 };
 
-} // end namespace cacao
-} // end namespace jit
 } // end namespace compiler2
+} // end namespace jit
+} // end namespace cacao
 
 #endif /* _JIT_COMPILER2_INSTRUCTIONS */
 

@@ -27,6 +27,7 @@
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/GraphHelper.hpp"
+#include "vm/jit/compiler2/LoopPass.hpp"
 #include "toolbox/logging.hpp"
 
 #include <list>
@@ -45,7 +46,7 @@ bool BasicBlockSchedulingPass::run(JITData &JD) {
 	bb_list.insert(bb_list.begin(),dfs.begin(),dfs.end());
 	if (DEBUG_COND) {
 		LOG("BasicBlockSchedule:" << nl);
-		for (const_inst_iterator i = inst_begin(), e = inst_end(); i != e; ++i) {
+		for (const_bb_iterator i = bb_begin(), e = bb_end(); i != e; ++i) {
 			LOG(*i << nl);
 		}
 	}
@@ -66,6 +67,9 @@ bool BasicBlockSchedulingPass::verify() const {
 				return false;
 			}
 		}
+	}
+	LoopTree *LT = get_Pass_if_available<LoopPass>();
+	if (LT) {
 	}
 	return true;
 }
