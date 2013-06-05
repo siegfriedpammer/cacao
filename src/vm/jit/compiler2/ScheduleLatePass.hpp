@@ -26,7 +26,7 @@
 #define _JIT_COMPILER2_SCHEDULELATEPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
-#include "vm/jit/compiler2/BasicBlockSchedule.hpp"
+#include "vm/jit/compiler2/InstructionLinkSchedule.hpp"
 
 namespace cacao {
 namespace jit {
@@ -42,7 +42,7 @@ class DominatorTree;
  *
  * Based on the algorithm in Click's Phd Thesis, Chapter 6 @cite ClickPHD.
  */
-class ScheduleLatePass : public Pass, public BasicBlockSchedule {
+class ScheduleLatePass : public Pass, public InstructionLinkSchedule {
 private:
 	DominatorTree *DT;
 	Method *M;

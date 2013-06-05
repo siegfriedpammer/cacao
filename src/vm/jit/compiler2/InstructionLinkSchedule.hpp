@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/BasicBlockSchedule.hpp - BasicBlockSchedule
+/* src/vm/jit/compiler2/InstructionLinkSchedule.hpp - InstructionLinkSchedule
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,8 +22,8 @@
 
 */
 
-#ifndef _JIT_COMPILER2_BASICBLOCKSCHEDULE
-#define _JIT_COMPILER2_BASICBLOCKSCHEDULE
+#ifndef _JIT_COMPILER2_INSTRUCTIONLINKSCHEDULE
+#define _JIT_COMPILER2_INSTRUCTIONLINKSCHEDULE
 
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Method.hpp"
@@ -36,10 +36,10 @@ namespace compiler2 {
 
 
 /**
- * BasicBlockSchedule
+ * InstructionLinkSchedule
  * TODO: more info
  */
-class BasicBlockSchedule {
+class InstructionLinkSchedule {
 public:
 	typedef std::set<Instruction*>::const_iterator const_inst_iterator;
 protected:
@@ -58,7 +58,7 @@ protected:
 		}
 	}
 public:
-	BasicBlockSchedule() {}
+	InstructionLinkSchedule() {}
 	BeginInst* operator[](const Instruction* I) const {
 		return get(I);
 	}
@@ -85,7 +85,7 @@ public:
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_BASICBLOCKSCHEDULE */
+#endif /* _JIT_COMPILER2_INSTRUCTIONLINKSCHEDULE */
 
 
 /*

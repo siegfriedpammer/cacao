@@ -45,7 +45,7 @@ namespace compiler2 {
 namespace {
 class MyComparator {
 private:
-	const BasicBlockSchedule* sched;
+	const InstructionLinkSchedule* sched;
 	unsigned users(Instruction *I) const {
 		unsigned users = 0;
 		for (Instruction::UserListTy::const_iterator i = I->user_begin(),
@@ -59,7 +59,7 @@ private:
 		return users;
 	}
 public:
-	MyComparator(const BasicBlockSchedule* sched) : sched(sched) {}
+	MyComparator(const InstructionLinkSchedule* sched) : sched(sched) {}
 	bool operator() (Instruction* lhs, Instruction* rhs) const {
 		// BeginInst always first!
 		if (lhs->to_BeginInst()) return false;
@@ -81,7 +81,7 @@ void ListSchedulingPass::schedule(BeginInst *BI) {
 	std::priority_queue<Instruction*,std::deque<Instruction*>,MyComparator> ready(comp);
 	// Begin is always the first instruction
 	ready.push(BI);
-	for(BasicBlockSchedule::const_inst_iterator i = sched->inst_begin(BI),
+	for(InstructionLinkSchedule::const_inst_iterator i = sched->inst_begin(BI),
 			e = sched->inst_end(BI); i != e; ++i) {
 		Instruction *I = *i;
 		// BI is already in the queue

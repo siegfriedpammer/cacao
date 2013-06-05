@@ -45,16 +45,16 @@ public:
 };
 
 /**
- * BasicBlockSchedulePrinterPass
+ * InstructionLinkSchedulePrinterPass
  * TODO: more info
  */
 template <class _T>
-class BasicBlockSchedulePrinterPass : public Pass {
+class InstructionLinkSchedulePrinterPass : public Pass {
 private:
 	static const char* name;
 public:
 	static char ID;
-	BasicBlockSchedulePrinterPass() : Pass() {}
+	InstructionLinkSchedulePrinterPass() : Pass() {}
 	bool run(JITData &JD);
 	PassUsage& get_PassUsage(PassUsage &PA) const;
 };

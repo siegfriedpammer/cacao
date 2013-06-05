@@ -36,7 +36,7 @@ namespace compiler2 {
 
 class Method;
 class Instruction;
-class BasicBlockSchedule;
+class InstructionLinkSchedule;
 
 /**
  * ListSchedulingPass
@@ -44,7 +44,7 @@ class BasicBlockSchedule;
  */
 class ListSchedulingPass : public Pass, public InstructionSchedule<Instruction> {
 private:
-	BasicBlockSchedule *sched;
+	InstructionLinkSchedule *sched;
 	Method *M;
 	void schedule(BeginInst *BI);
 public:
