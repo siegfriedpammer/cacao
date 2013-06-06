@@ -394,16 +394,16 @@ bool LoopPass::run(JITData &JD) {
 	for (LoopListTy::reverse_iterator i = loops.rbegin(), e = loops.rend();
 			i != e; ++i) {
 		Loop *loop = *i;
-		if (!loop->get_parent()) {
-			add_top_loop(loop);
-		}
 		LOG("Loop: " << loop << nl);
-		if (loop->get_parent()) {
-			Loop *parent = loop->get_parent();
+		Loop *parent = loop->get_parent();
+		if (parent) {
 			LOG("parent: " << parent << nl);
 		} else {
+			add_top_loop(loop);
 			LOG("parent: " << "toplevel" << nl);
 		}
+		// add to loop headers
+		loop_header_map[loop->get_header()].insert(loop);
 	}
 	return true;
 }

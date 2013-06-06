@@ -87,11 +87,14 @@ public:
 	// Note vector needed for std::sort!
 	typedef std::vector<Loop*> LoopListTy;
 	typedef Loop::LoopListTy::iterator loop_iterator;
+	typedef Loop::LoopListTy::const_iterator const_loop_iterator;
+	typedef std::pair<const_loop_iterator, const_loop_iterator> ConstLoopIteratorPair;
 protected:
 	bool reducible;
 	LoopListTy loops;
 	Loop::LoopListTy top_loops;
 	std::map<BeginInst*,Loop*> loop_map;
+	std::map<BeginInst*,Loop::LoopListTy> loop_header_map;
 public:
 	LoopTree() : reducible(true) {}
 
@@ -115,7 +118,7 @@ public:
 		return top_loops.end();
 	}
 	/**
-	 * @bug what if more than one loop are starting at BI?
+	 * Get the inner most loop which contains BI or NULL if not contained in any loop
 	 */
 	Loop* get_Loop(BeginInst *BI) const {
 		std::map<BeginInst*,Loop*>::const_iterator it = loop_map.find(BI);
@@ -123,6 +126,22 @@ public:
 			return NULL;
 		}
 		return it->second;
+	}
+	bool is_loop_header(BeginInst *BI) const {
+		std::map<BeginInst*,Loop::LoopListTy>::const_iterator it = loop_header_map.find(BI);
+		if (it == loop_header_map.end()) {
+			return false;
+		}
+		return true;
+	}
+	ConstLoopIteratorPair get_Loops_from_header(BeginInst *BI) const {
+		std::map<BeginInst*,Loop::LoopListTy>::const_iterator it = loop_header_map.find(BI);
+		if (it == loop_header_map.end()) {
+			// TODO there must be a better approach...
+			static Loop::LoopListTy empty;
+			return std::make_pair(empty.begin(),empty.end());
+		}
+		return std::make_pair(it->second.begin(),it->second.end());
 	}
 	/**
 	 * Test if a loop is a strictly inner loop of another loop.
