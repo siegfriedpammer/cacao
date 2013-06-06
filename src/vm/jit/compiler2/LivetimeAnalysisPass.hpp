@@ -50,11 +50,19 @@ private:
 	IntervalListTy intervals;
 public:
 	void add_range(unsigned from, unsigned to) {
-		if ( (intervals.size() > 0) && (intervals.begin()->first == to) ) {
-			intervals.begin()->first = from;
-		} else {
-			intervals.push_front(std::make_pair(from,to));
+		if (intervals.size() > 0) {
+			if (intervals.begin()->first == to) {
+				// merge intervals
+				intervals.begin()->first = from;
+				return;
+			}
+			if (intervals.begin()->first <= from && intervals.begin()->second >= to) {
+				// already covered
+				return;
+			}
 		}
+		// new interval
+		intervals.push_front(std::make_pair(from,to));
 	}
 	void set_from(unsigned from) {
 		assert(intervals.size() > 0);
