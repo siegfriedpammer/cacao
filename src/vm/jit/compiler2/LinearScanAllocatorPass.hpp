@@ -55,7 +55,7 @@ private:
 	ActiveSetTy active;
 	InactiveSetTy inactive;
 
-	inline bool try_allocate_free_reg(LivetimeInterval* current);
+	inline bool try_allocate_free_reg(JITData &JD,LivetimeInterval* current);
 public:
 	static char ID;
 	LinearScanAllocatorPass() : Pass() {}

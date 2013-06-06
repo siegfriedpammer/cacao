@@ -27,7 +27,9 @@
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/LivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/MachineRegister.hpp"
 
+#include <climits>
 #include <queue>
 #include <deque>
 
@@ -49,12 +51,79 @@ struct StartComparator {
 	}
 };
 
+template <typename Key, typename T>
+bool max_value_comparator(const std::pair<Key,T> &lhs, const std::pair<Key,T> &rhs) {
+	return lhs.second < rhs.second;
+}
+
 } // end anonymous namespace
 typedef std::priority_queue<LivetimeInterval*,std::deque<LivetimeInterval*>, StartComparator> UnhandledSetTy;
 typedef std::list<LivetimeInterval*> HandledSetTy;
 
-inline bool LinearScanAllocatorPass::try_allocate_free_reg(LivetimeInterval *current) {
+inline bool LinearScanAllocatorPass::try_allocate_free_reg(JITData &JD, LivetimeInterval *current) {
+	Backend* backend = JD.get_Backend();
+	RegisterFile* reg_file = backend->get_RegisterFile();
+	assert(reg_file);
+
 	std::map<MachineRegister*,unsigned> free_until_pos;
+	LOG2("try_allocate_free_reg (current=" << current << ")" << nl);
+
+	// set all registers to free
+	for(RegisterFile::const_iterator i = reg_file->begin(), e = reg_file->end();
+			i != e ; ++i) {
+		MachineRegister *reg = *i;
+		free_until_pos[reg] = UINT_MAX;
+	}
+	// set active registes to occupied
+	for (ActiveSetTy::const_iterator i = active.begin(), e = active.end();
+			i != e ; ++i) {
+		MachineRegister *reg = (*i)->get_reg()->to_MachineRegister();
+		// all active intervals must be assigned to machine registers
+		if (DEBUG_COND && !reg) {
+			ABORT_MSG("Interval " << current << " not in a machine reg " << (*i)->get_reg(), "Not yet supported!");
+		}
+		assert(reg);
+		// reg not free!
+		free_until_pos[reg] = 0;
+	}
+	// all intervals in inactive intersection with current
+	for (InactiveSetTy::const_iterator i = inactive.begin(), e = inactive.end();
+			i != e ; ++i) {
+		LivetimeInterval *inact = *i;
+		assert(inact);
+		signed intersection = current->intersects(*inact);
+		if (intersection != -1) {
+			LOG2("interval " << current << " intersects with " << inact << " (inactive) at " << intersection << nl);
+			MachineRegister *reg = inact->get_reg()->to_MachineRegister();
+			assert(reg);
+			// reg not free!
+			free_until_pos[reg] = intersection;
+		}
+
+	}
+	// get the register with the maximum free until number
+	std::map<MachineRegister*,unsigned>::const_iterator i = std::max_element(free_until_pos.begin(),
+		free_until_pos.end(), max_value_comparator<MachineRegister*, unsigned>);
+	assert(i != free_until_pos.end());
+	MachineRegister *reg = i->first;
+	unsigned free_pos = i->second;
+	assert(reg);
+
+	LOG("Selected Register: " << reg << " (free until: " << free_pos << ")" << nl);
+	if ( free_pos == 0) {
+		// no register available without spilling
+		return false;
+	}
+	if ( current->get_end() <= free_pos ) {
+		// register available for the whole interval. jackpot!
+		current->set_reg(reg);
+		return true;
+	}
+	// register available for the first part of the interval
+	current->set_reg(reg);
+	// split current before free_pos
+	ABORT_MSG("Interval Splitting not yet supported!","");
+
 	return true;
 }
 
@@ -125,14 +194,31 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 			}
 		}
 
-		// Try to find a register
-		if (try_allocate_free_reg(current)) {
-			// if allocation successful add current to active
-			active.push_back(current);
+		if (!current->get_reg()->to_MachineRegister()) {
+			// Try to find a register
+			if (try_allocate_free_reg(JD, current)) {
+				// if allocation successful add current to active
+				active.push_back(current);
+			} else {
+				ABORT_MSG("no free register available!","spilling not yet supported!");
+			}
 		} else {
-			assert(0 && "no free register available! spilling not yet supported!");
+			// preallocated
+			active.push_back(current);
+			LOG2("Preallocated: " << current << nl);
 		}
 	}
+	// move all active/inactive to handled
+	handled.insert(handled.end(),inactive.begin(),inactive.end());
+	handled.insert(handled.end(),active.begin(),active.end());
+	for (HandledSetTy::const_iterator i = handled.begin(), e = handled.end();
+			i != e ; ++i) {
+		LivetimeInterval *lti = *i;
+		Register *reg = lti->get_reg();
+		LOG("Assigned Interval " << lti << " to " << reg << nl );
+		assert(reg->to_MachineRegister());
+	}
+
 	return true;
 }
 

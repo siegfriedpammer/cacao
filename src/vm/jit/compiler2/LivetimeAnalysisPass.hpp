@@ -116,6 +116,27 @@ public:
 		return true;
 	}
 
+	signed intersects(const LivetimeInterval &lti) const {
+		for(const_iterator a_i = begin(), b_i = lti.begin(),
+				a_e = end(), b_e = lti.end() ; a_i != a_e && b_i != b_e ; ) {
+			unsigned a_start = a_i->first;
+			unsigned a_end   = a_i->second;
+			unsigned b_start = b_i->first;
+			unsigned b_end   = b_i->second;
+
+			if (b_start > a_end) {
+				++a_i;
+				continue;
+			}
+			if (a_start > b_end) {
+				++b_i;
+				continue;
+			}
+			return std::max(a_start,b_start);
+		}
+		return -1;
+	}
+
 	friend class LivetimeAnalysisPass;
 };
 
