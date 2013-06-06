@@ -177,6 +177,13 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 		}
 
 	}
+	// set reg reference
+	for (LivetimeIntervalMapTy::iterator i = lti_map.begin(),
+			e = lti_map.end(); i != e ; ++i) {
+		LivetimeInterval &lti = i->second;
+		lti.set_reg(i->first);
+	}
+	// debugging
 	if (DEBUG_COND) {
 		for (LiveInMapTy::const_iterator i = liveIn.begin(), e = liveIn.end();
 				i != e ; ++i) {
@@ -184,14 +191,10 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 			print_container(dbg(), i->second.begin(), i->second.end()) << nl;
 		}
 
+		LOG("Livetime Interval(s)" << nl);
 		for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
 				e = lti_map.end(); i != e ; ++i) {
-			const LivetimeInterval &lti = i->second;
-			LOG("Livetime Interval(s) for " << i->first << ":" << nl);
-			for(LivetimeInterval::const_iterator i = lti.begin(), e = lti.end();
-					i != e ; ++i) {
-				LOG("[" << i->first << "," << i->second << ")" << nl);
-			}
+			LOG(i->second << nl);
 		}
 
 	}

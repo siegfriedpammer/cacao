@@ -28,7 +28,9 @@
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/LivetimeAnalysisPass.hpp"
 
+#include <list>
 #include <queue>
+#include <deque>
 
 #include "toolbox/logging.hpp"
 
@@ -38,13 +40,107 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-typedef std::priority_queue<LivetimeInterval*> UnhandledSetTy;
-typedef std::priority_queue<LivetimeInterval*> HandledSetTy;
-typedef std::priority_queue<LivetimeInterval*> InactiveSetTy;
-typedef std::priority_queue<LivetimeInterval*> ActiveSetTy;
+namespace {
+struct StartComparator {
+	bool operator()(const LivetimeInterval *lhs, const LivetimeInterval* rhs) {
+		if(lhs->get_start() > rhs->get_start()) {
+			return true;
+		}
+		return false;
+	}
+};
+
+} // end anonymous namespace
+
+typedef std::priority_queue<LivetimeInterval*,std::deque<LivetimeInterval*>, StartComparator> UnhandledSetTy;
+typedef std::list<LivetimeInterval*> HandledSetTy;
+typedef std::list<LivetimeInterval*> InactiveSetTy;
+typedef std::list<LivetimeInterval*> ActiveSetTy;
+
+namespace {
+
+inline bool try_allocate_free_reg(ActiveSetTy &active, InactiveSetTy &inactive,
+		LivetimeInterval *current) {
+	return true;
+}
+
+} // end anonymous namespace
 
 bool LinearScanAllocatorPass::run(JITData &JD) {
 	LivetimeAnalysisPass *LA = get_Pass<LivetimeAnalysisPass>();
+	UnhandledSetTy unhandled;
+	ActiveSetTy active;
+	HandledSetTy handled;
+	InactiveSetTy inactive;
+
+	for (LivetimeAnalysisPass::iterator i = LA->begin(), e = LA->end();
+			i != e ; ++i) {
+		LivetimeInterval &inter = i->second;
+		unhandled.push(&inter);
+	}
+	while(!unhandled.empty()) {
+		LivetimeInterval *current = unhandled.top();
+		unhandled.pop();
+		unsigned pos = current->get_start();
+		LOG(BoldGreen << "pos:" << setw(4) << pos << " current: " << current << reset_color << nl);
+
+		// check for intervals in active that are handled or inactive
+		LOG2("check for intervals in active that are handled or inactive" << nl);
+		for (ActiveSetTy::iterator i = active.begin(), e = active.end();
+				i != e ; /* ++i */) {
+			LivetimeInterval *act = *i;
+			//LOG2("active LTI " << act << nl);
+			if (act->get_end() <= pos) {
+				LOG2("LTI " << act << " moved from active to handled" << nl);
+				// add to handled
+				handled.push_back(act);
+				// remove from active
+				i = active.erase(i);
+			} else if(act->is_inactive(pos)) {
+				LOG2("LTI " << act << " moved from active to inactive" << nl);
+				// add to inactive
+				inactive.push_back(act);
+				// remove from active
+				i = active.erase(i);
+			} else {
+				// NOTE: erase returns the next element so we can not increment
+				// in the loop header!
+				++i;
+			}
+		}
+		// check for intervals in inactive that are handled or active
+		LOG2("check for intervals in inactive that are handled or active" << nl);
+		for (InactiveSetTy::iterator i = inactive.begin(), e = inactive.end();
+				i != e ; /* ++i */) {
+			LivetimeInterval *inact = *i;
+			//LOG2("active LTI " << act << nl);
+			if (inact->get_end() <= pos) {
+				LOG2("LTI " << inact << " moved from inactive to handled" << nl);
+				// add to handled
+				handled.push_back(inact);
+				// remove from inactive
+				i = inactive.erase(i);
+			} else if(!inact->is_inactive(pos)) {
+				LOG2("LTI " << inact << " moved from inactive to active" << nl);
+				// add to active
+				active.push_back(inact);
+				// remove from inactive
+				i = inactive.erase(i);
+			} else {
+				// NOTE: erase returns the next element so we can not increment
+				// in the loop header!
+				++i;
+			}
+		}
+
+		// Try to find a register
+		if (try_allocate_free_reg(active, inactive, current)) {
+			// if allocation successful add current to active
+			active.push_back(current);
+		} else {
+			assert(0 && "no free register available! spilling not yet supported!");
+		}
+	}
 	return true;
 }
 

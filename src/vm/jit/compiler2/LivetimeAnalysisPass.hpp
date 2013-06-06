@@ -49,6 +49,7 @@ public:
 	typedef IntervalListTy::const_iterator const_iterator;
 private:
 	IntervalListTy intervals;
+	Register *reg;
 	void add_range(unsigned from, unsigned to) {
 		if (intervals.size() > 0) {
 			if (intervals.begin()->first == to) {
@@ -76,6 +77,13 @@ private:
 		}
 	}
 public:
+	LivetimeInterval() : intervals(), reg(NULL) {}
+	void set_reg(Register* r) {
+		reg = r;
+	}
+	Register* get_reg() const {
+		return reg;
+	}
 	const_iterator begin() const {
 		return intervals.begin();
 	}
@@ -85,9 +93,46 @@ public:
 	std::size_t size() const {
 		return intervals.size();
 	}
+	unsigned get_start() const {
+		assert(intervals.size()>0);
+		return intervals.front().first;
+	}
+	unsigned get_end() const {
+		assert(intervals.size()>0);
+		return intervals.back().second;
+	}
+	/**
+	 * Returns true if this interval is active at pos
+	 */
+	bool is_inactive(unsigned pos) const {
+		for(const_iterator i = begin(), e = end(); i != e ; ++i) {
+			if( pos < i->first) {
+				return true;
+			}
+			if( pos < i->second) {
+				return false;
+			}
+		}
+		return true;
+	}
 
 	friend class LivetimeAnalysisPass;
 };
+
+inline OStream& operator<<(OStream &OS, const LivetimeInterval &lti) {
+	OS << lti.get_reg();
+	for(LivetimeInterval::const_iterator i = lti.begin(), e = lti.end();
+			i != e ; ++i) {
+		OS << " [" << i->first << "," << i->second << ")";
+	}
+	return OS;
+}
+inline OStream& operator<<(OStream &OS, const LivetimeInterval *lti) {
+	if (!lti) {
+		return OS << "(LivetimeInterval) NULL";
+	}
+	return OS << *lti;
+}
 
 /**
  * LivetimeAnalysisPass
@@ -96,10 +141,13 @@ public:
  * by Wimmer and Franz @cite Wimmer2010.
  */
 class LivetimeAnalysisPass : public Pass {
+public:
+	typedef std::map<Register*,LivetimeInterval> LivetimeIntervalMapTy;
+	typedef LivetimeIntervalMapTy::const_iterator const_iterator;
+	typedef LivetimeIntervalMapTy::iterator iterator;
 private:
 	typedef std::set<Register*> LiveInSetTy;
 	typedef std::map<BeginInst*,LiveInSetTy> LiveInMapTy;
-	typedef std::map<Register*,LivetimeInterval> LivetimeIntervalMapTy;
 
 	LivetimeIntervalMapTy lti_map;
 public:
@@ -107,6 +155,22 @@ public:
 	LivetimeAnalysisPass() : Pass() {}
 	bool run(JITData &JD);
 	PassUsage& get_PassUsage(PassUsage &PA) const;
+
+	const_iterator begin() const {
+		return lti_map.begin();
+	}
+	const_iterator end() const {
+		return lti_map.end();
+	}
+	iterator begin() {
+		return lti_map.begin();
+	}
+	iterator end() {
+		return lti_map.end();
+	}
+	std::size_t size() const {
+		return lti_map.size();
+	}
 };
 
 } // end namespace compiler2
