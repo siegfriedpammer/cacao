@@ -28,6 +28,7 @@
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/LoweredInstDAG.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
+#include "vm/jit/compiler2/RegisterFile.hpp"
 
 namespace cacao {
 namespace jit {
@@ -49,6 +50,7 @@ public:
 	static Backend* factory();
 	virtual LoweredInstDAG* lower(Instruction *I) const;
 
+	virtual RegisterFile* get_RegisterFile() const = 0;
 	virtual const char* get_name() const = 0;
 };
 /**
@@ -70,6 +72,7 @@ protected:
 	virtual LoweredInstDAG* lowerRETURNInst(RETURNInst *I) const;
 	virtual LoweredInstDAG* lowerMULInst(MULInst *I) const;
 public:
+	virtual RegisterFile* get_RegisterFile() const;
 	virtual const char* get_name() const;
 };
 

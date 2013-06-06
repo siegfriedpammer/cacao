@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/X86_64Register.hpp - X86_64Register
+/* src/vm/jit/compiler2/RegisterFile.hpp - RegisterFile
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,12 +22,8 @@
 
 */
 
-#ifndef _JIT_COMPILER2_X86_64REGISTER
-#define _JIT_COMPILER2_X86_64REGISTER
-
-#include "vm/jit/compiler2/x86_64/X86_64.hpp"
-#include "vm/jit/compiler2/MachineRegister.hpp"
-#include "vm/jit/compiler2/RegisterFile.hpp"
+#ifndef _JIT_COMPILER2_REGISTERFILE
+#define _JIT_COMPILER2_REGISTERFILE
 
 #include <vector>
 
@@ -35,55 +31,27 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-/**
- * x86_64 Register
- */
+class MachineRegister;
 
-class X86_64Register : public MachineRegister {
+class RegisterFile {
 public:
-	X86_64Register(const char* name) : MachineRegister(name) {}
+	typedef std::vector<MachineRegister*>::const_iterator const_iterator;
+protected:
+	std::vector<MachineRegister*> regs;
+	RegisterFile() {}
+public:
+	const_iterator begin() const { return regs.begin(); }
+	const_iterator end()   const { return regs.end();   }
+	std::size_t    size()  const { return regs.size();  }
+	virtual ~RegisterFile() {}
 };
 
-extern X86_64Register RAX;
-extern X86_64Register RCX;
-extern X86_64Register RDX;
-extern X86_64Register RBX;
-extern X86_64Register RSP;
-extern X86_64Register RBP;
-extern X86_64Register RSI;
-extern X86_64Register RDI;
-extern X86_64Register R8;
-extern X86_64Register R9;
-extern X86_64Register R10;
-extern X86_64Register R11;
-extern X86_64Register R12;
-extern X86_64Register R13;
-extern X86_64Register R14;
-extern X86_64Register R15;
 
-const unsigned X86_64IntegerArgumentRegisterSize = 6;
-extern X86_64Register* X86_64IntegerArgumentRegisters[];
-
-
-class X86_64RegisterFile : public RegisterFile {
-private:
-	X86_64RegisterFile() {
-		for(unsigned i = 0; i < X86_64IntegerArgumentRegisterSize ; ++i) {
-			regs.push_back(X86_64IntegerArgumentRegisters[i]);
-		}
-	}
-public:
-	static RegisterFile* factory() {
-		static X86_64RegisterFile rf;
-		return &rf;
-	}
-};
-
-} // end namespace compiler2
-} // end namespace jit
 } // end namespace cacao
+} // end namespace jit
+} // end namespace compiler2
 
-#endif /* _JIT_COMPILER2_X86_64REGISTER */
+#endif /* _JIT_COMPILER2_REGISTERFILE */
 
 
 /*

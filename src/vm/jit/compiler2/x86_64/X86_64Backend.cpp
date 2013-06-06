@@ -149,6 +149,11 @@ LoweredInstDAG* BackendTraits<X86_64>::lowerMULInst(MULInst *I) const {
 	return dag;
 }
 
+template<>
+RegisterFile* BackendTraits<X86_64>::get_RegisterFile() const {
+	return X86_64RegisterFile::factory();
+}
+
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
