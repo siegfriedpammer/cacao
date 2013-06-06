@@ -33,7 +33,6 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
-#include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
 #include "vm/jit/compiler2/LoweringPass.hpp"
 #include "vm/jit/compiler2/LoopPass.hpp"
@@ -49,7 +48,6 @@ namespace compiler2 {
 
 bool LivetimeAnalysisPass::run(JITData &JD) {
 	BasicBlockSchedule *BS = get_Pass<BasicBlockSchedulingPass>();
-	InstructionSchedule<Instruction> *IS = get_Pass<ListSchedulingPass>();
 	LoweringPass *LP = get_Pass<LoweringPass>();
 	LoopTree *LT = get_Pass<LoopPass>();
 	MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
@@ -101,7 +99,7 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 
 		// set initial interval
 		LOG2("initial liveIn for " << BI << ": ");
-		if (DEBUG_COND) {
+		if (DEBUG_COND_N(2)) {
 			print_container(dbg(), liveIn[BI].begin(), liveIn[BI].end()) << nl;
 		}
 		for (LiveInSetTy::const_iterator i = liveIn[BI].begin(), e = liveIn[BI].end();
@@ -109,31 +107,6 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 			LOG2("adding live range for " << *i << " (" << from << "," << to << ")" << nl);
 			lti_map[*i].add_range(from,to);
 		}
-		#if 0
-		// for all instructions in the current basic block in reversed order
-		for (InstructionSchedule<Instruction>::const_reverse_inst_iterator i = IS->inst_rbegin(BI),
-				e = IS->inst_rend(BI); i != e; ++i) {
-			Instruction *I = *i;
-			const LoweredInstDAG *dag = LP->get_LoweredInstDAG(I);
-			assert(dag);
-			for (unsigned i = 0, e = I->op_size(); i < e ; ++i) {
-				MachineOperand* op = dag->get_operand(i);
-				Register *reg;
-				VirtualRegister *vreg;
-				if ( op &&  (reg = op->to_Register()) && (vreg = reg->to_VirtualRegister()) ) {
-					liveIn[BI].insert(vreg);
-					LOG2("line " << setw(4) << fillzero << inst_lineno << " " << "adding " << vreg << " to liveIn of " << BI << nl);
-				}
-			}
-			MachineOperand* op = dag->get_result()->get_result();
-			Register *reg;
-			VirtualRegister *vreg;
-			if ( op &&  (reg = op->to_Register()) && (vreg = reg->to_VirtualRegister()) ) {
-				liveIn[BI].erase(vreg);
-				LOG2("line " << setw(4) << fillzero << inst_lineno << " " << "removing " << vreg << " to liveIn of " << BI << nl);
-			}
-		}
-		#endif
 		// for all machine instructions in the current basic block in reversed order
 		MachineInstructionSchedule::MachineInstructionRangeTy bb_range = MIS->get_range(BI);
 		for (signed inst_lineno = bb_range.second - 1, end_lineno = bb_range.first;
@@ -229,7 +202,6 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 // pass usage
 PassUsage& LivetimeAnalysisPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires(BasicBlockSchedulingPass::ID);
-	PU.add_requires(ListSchedulingPass::ID);
 	PU.add_requires(LoweringPass::ID);
 	PU.add_requires(LoopPass::ID);
 	PU.add_requires(MachineInstructionSchedulingPass::ID);

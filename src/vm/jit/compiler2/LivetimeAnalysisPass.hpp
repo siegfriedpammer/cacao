@@ -38,6 +38,7 @@ namespace compiler2 {
 // forward declaration
 class Register;
 class BeginInst;
+class LivetimeAnalysisPass;
 
 /**
  * TODO: doc me!
@@ -48,7 +49,6 @@ public:
 	typedef IntervalListTy::const_iterator const_iterator;
 private:
 	IntervalListTy intervals;
-public:
 	void add_range(unsigned from, unsigned to) {
 		if (intervals.size() > 0) {
 			if (intervals.begin()->first == to) {
@@ -75,6 +75,7 @@ public:
 			add_range(from,to);
 		}
 	}
+public:
 	const_iterator begin() const {
 		return intervals.begin();
 	}
@@ -84,6 +85,8 @@ public:
 	std::size_t size() const {
 		return intervals.size();
 	}
+
+	friend class LivetimeAnalysisPass;
 };
 
 /**

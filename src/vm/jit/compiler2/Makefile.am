@@ -43,6 +43,7 @@ libcompiler2_la_SOURCES = \
 	GraphHelper.cpp \
 	Instruction.cpp \
 	JITData.cpp \
+	LinearScanAllocatorPass.cpp \
 	ListSchedulingPass.cpp \
 	LivetimeAnalysisPass.cpp \
 	LoopPass.cpp \
