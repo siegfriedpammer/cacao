@@ -27,10 +27,13 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 
+#include <list>
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+class LivetimeInterval;
 
 /**
  * Linear Scan Allocator
@@ -45,6 +48,14 @@ namespace compiler2 {
  * See also Wimmer's Masters Thesis @cite WimmerMScThesis.
  */
 class LinearScanAllocatorPass : public Pass {
+private:
+	typedef std::list<LivetimeInterval*> InactiveSetTy;
+	typedef std::list<LivetimeInterval*> ActiveSetTy;
+
+	ActiveSetTy active;
+	InactiveSetTy inactive;
+
+	inline bool try_allocate_free_reg(LivetimeInterval* current);
 public:
 	static char ID;
 	LinearScanAllocatorPass() : Pass() {}

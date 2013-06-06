@@ -28,7 +28,6 @@
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/LivetimeAnalysisPass.hpp"
 
-#include <list>
 #include <queue>
 #include <deque>
 
@@ -51,27 +50,20 @@ struct StartComparator {
 };
 
 } // end anonymous namespace
-
 typedef std::priority_queue<LivetimeInterval*,std::deque<LivetimeInterval*>, StartComparator> UnhandledSetTy;
 typedef std::list<LivetimeInterval*> HandledSetTy;
-typedef std::list<LivetimeInterval*> InactiveSetTy;
-typedef std::list<LivetimeInterval*> ActiveSetTy;
 
-namespace {
-
-inline bool try_allocate_free_reg(ActiveSetTy &active, InactiveSetTy &inactive,
-		LivetimeInterval *current) {
+inline bool LinearScanAllocatorPass::try_allocate_free_reg(LivetimeInterval *current) {
+	std::map<MachineRegister*,unsigned> free_until_pos;
 	return true;
 }
 
-} // end anonymous namespace
 
 bool LinearScanAllocatorPass::run(JITData &JD) {
 	LivetimeAnalysisPass *LA = get_Pass<LivetimeAnalysisPass>();
+	// local
 	UnhandledSetTy unhandled;
-	ActiveSetTy active;
 	HandledSetTy handled;
-	InactiveSetTy inactive;
 
 	for (LivetimeAnalysisPass::iterator i = LA->begin(), e = LA->end();
 			i != e ; ++i) {
@@ -134,7 +126,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 		}
 
 		// Try to find a register
-		if (try_allocate_free_reg(active, inactive, current)) {
+		if (try_allocate_free_reg(current)) {
 			// if allocation successful add current to active
 			active.push_back(current);
 		} else {
