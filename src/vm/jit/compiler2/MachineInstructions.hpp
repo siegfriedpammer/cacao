@@ -53,6 +53,9 @@ public:
 		}
 	}
 
+	virtual bool is_phi() const {
+		return true;
+	}
 };
 
 class MachineConstInst : public MachineInstruction {

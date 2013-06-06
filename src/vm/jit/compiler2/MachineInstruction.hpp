@@ -91,6 +91,9 @@ public:
 	MachineOperand* get_result() const {
 		return result;
 	}
+	virtual bool is_phi() const {
+		return false;
+	}
 	virtual OStream& print(OStream &OS) const;
 };
 
