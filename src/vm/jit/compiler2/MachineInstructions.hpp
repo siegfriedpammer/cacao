@@ -106,6 +106,9 @@ public:
 			: MachineInstruction("MMove", dst, 1) {
 		operands[0] = src;
 	}
+	virtual bool accepts_immediate(unsigned i) const {
+		return true;
+	}
 
 };
 class MachineOperandInst : public MachineInstruction {

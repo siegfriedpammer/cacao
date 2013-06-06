@@ -29,6 +29,7 @@
 #include "vm/jit/compiler2/MachineInstruction.hpp"
 
 #include <cassert>
+#include <list>
 #include <vector>
 #include <algorithm>
 
@@ -47,6 +48,20 @@ inline OStream& operator<<(OStream &OS, const LoweredInstDAG *lid) {
 	return OS << *lid;
 }
 
+#if 0
+struct MachineParameterDesc {
+	/**
+	 * The machine instruction linked to this parameter
+	 */
+	MachineInstruction *connected_minst;
+	/**
+	 * The number of the operand from connected_minst which is connected to this
+	 * parameter
+	 */
+	unsigned parameter_index;
+};
+#endif
+
 /**
  * DAG of machine instruction that replace one Instruction.
  *
@@ -61,7 +76,7 @@ inline OStream& operator<<(OStream &OS, const LoweredInstDAG *lid) {
  */
 class LoweredInstDAG {
 public:
-	typedef std::vector<MachineInstruction*> MachineInstListTy;
+	typedef std::list<MachineInstruction*> MachineInstListTy;
 	typedef std::pair<MachineInstruction*,unsigned> InputParameterTy;
 	typedef std::vector<InputParameterTy> InputMapTy;
 	typedef MachineInstListTy::iterator mi_iterator;
@@ -130,6 +145,10 @@ public:
 	mi_iterator mi_end() { return minst.end(); }
 	const_mi_iterator mi_begin() const { return minst.begin(); }
 	const_mi_iterator mi_end() const { return minst.end(); }
+
+	mi_iterator mi_insert(mi_iterator position, MachineInstruction* val) {
+		return minst.insert(position, val);
+	}
 
 	input_iterator input_begin() { return input_map.begin(); }
 	input_iterator input_end() { return input_map.end(); }

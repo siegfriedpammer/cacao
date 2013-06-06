@@ -44,8 +44,8 @@ namespace compiler2 {
 class MachineInstruction {
 public:
 	typedef std::vector<MachineOperand*> operand_list;
-	typedef std::vector<MachineOperand*>::iterator operand_iterator;
-	typedef std::vector<MachineOperand*>::const_iterator const_operand_iterator;
+	typedef operand_list::iterator operand_iterator;
+	typedef operand_list::const_iterator const_operand_iterator;
 private:
 	static unsigned id_counter;
 protected:
@@ -90,6 +90,9 @@ public:
 	}
 	MachineOperand* get_result() const {
 		return result;
+	}
+	virtual bool accepts_immediate(unsigned i) const {
+		return false;
 	}
 	virtual bool is_phi() const {
 		return false;
