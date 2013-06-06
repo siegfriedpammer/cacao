@@ -64,6 +64,9 @@ public:
 		// BeginInst always first!
 		if (lhs->to_BeginInst()) return false;
 		if (rhs->to_BeginInst()) return true;
+		// EndInst always last!
+		if (lhs->to_EndInst()) return true;
+		if (rhs->to_EndInst()) return false;
 		// PHIs right after BeginInst
 		if (lhs->to_PHIInst()) return false;
 		if (rhs->to_PHIInst()) return true;
