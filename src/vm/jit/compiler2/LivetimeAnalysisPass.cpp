@@ -40,7 +40,7 @@
 
 #include "toolbox/logging.hpp"
 
-#define DEBUG_NAME "compiler2/livetimeanalysis"
+#define DEBUG_NAME "compiler2/LivetimeAnalysis"
 
 namespace cacao {
 namespace jit {
@@ -113,19 +113,19 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 				inst_lineno >= end_lineno; --inst_lineno) {
 			assert(inst_lineno >= 0);
 			MachineInstruction *MI = MIS->get((unsigned)inst_lineno);
-			if (MI->is_phi()) {
-				// phis are handled differently
-				continue;
-			}
 			// output operand
 			{
 				MachineOperand* op = MI->get_result();
 				Register *reg;
 				if ( op &&  (reg = op->to_Register()) ) {
-					LOG2("line " << setw(4) << fillzero << inst_lineno << " " << "removing " << reg << " to liveIn of " << BI << nl);
-					LOG2("line " << setw(4) << fillzero << inst_lineno << " " << "setting live range from for " << reg << " to " << inst_lineno << nl);
-					lti_map[reg].set_from_if_available(inst_lineno,to);
-					liveIn[BI].erase(reg);
+					// phis are handled differently
+					if (!MI->is_phi()) {
+						LOG2("line " << setw(4) << fillzero << inst_lineno << " " << "removing " << reg << " to liveIn of " << BI << nl);
+						LOG2("line " << setw(4) << fillzero << inst_lineno << " " << "setting live range from for " << reg << " to " << inst_lineno << nl);
+						lti_map[reg].set_from_if_available(inst_lineno,to);
+						liveIn[BI].erase(reg);
+					}
+					lti_map[reg].add_def(inst_lineno);
 				}
 			}
 			// input operands
@@ -134,10 +134,14 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 				MachineOperand* op = *i;
 				Register *reg;
 				if ( op &&  (reg = op->to_Register()) ) {
-					LOG2("line " << setw(4) << fillzero << inst_lineno << " " << "adding " << reg << " to liveIn of " << BI << nl);
-					LOG2("line " << setw(4) << fillzero << inst_lineno << " " << "adding live range for " << reg << " (" << from << "," << inst_lineno << ")" << nl);
-					lti_map[reg].add_range(from,inst_lineno);
-					liveIn[BI].insert(reg);
+					// phis are handled differently
+					if (!MI->is_phi()) {
+						LOG2("line " << setw(4) << fillzero << inst_lineno << " " << "adding " << reg << " to liveIn of " << BI << nl);
+						LOG2("line " << setw(4) << fillzero << inst_lineno << " " << "adding live range for " << reg << " (" << from << "," << inst_lineno << ")" << nl);
+						lti_map[reg].add_range(from,inst_lineno);
+						liveIn[BI].insert(reg);
+					}
+					lti_map[reg].add_use(inst_lineno);
 				}
 			}
 		}
@@ -194,7 +198,12 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 		LOG("Livetime Interval(s)" << nl);
 		for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
 				e = lti_map.end(); i != e ; ++i) {
-			LOG(i->second << nl);
+			LOG(i->second);
+			dbg() << "  use: ";
+			print_container(dbg(),i->second.use_begin(),i->second.use_end());
+			dbg() << "  def: ";
+			print_container(dbg(),i->second.def_begin(),i->second.def_end());
+			dbg() << nl;
 		}
 
 	}
@@ -202,6 +211,31 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 	return true;
 }
 
+bool LivetimeAnalysisPass::verify() const {
+	for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
+			e = lti_map.end(); i != e ; ++i) {
+		const LivetimeInterval &lti = i->second;
+		signed old = -1;
+		for (LivetimeInterval::const_use_iterator i = lti.use_begin(),
+				e = lti.use_end(); i != e; ++i) {
+			if ( old >= (signed)*i) {
+				err() << old << " >= " << (signed)*i << nl;
+				return false;
+			}
+			old = *i;
+		}
+		old = -1;
+		for (LivetimeInterval::const_def_iterator i = lti.def_begin(),
+				e = lti.def_end(); i != e; ++i) {
+			if ( old >= (signed)*i) {
+				err() << old << " >= " << (signed)*i << nl;
+				return false;
+			}
+			old = *i;
+		}
+	}
+	return true;
+}
 // pass usage
 PassUsage& LivetimeAnalysisPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires(BasicBlockSchedulingPass::ID);

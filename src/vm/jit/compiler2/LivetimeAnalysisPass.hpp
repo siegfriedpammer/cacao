@@ -47,9 +47,14 @@ class LivetimeInterval {
 public:
 	typedef std::list<std::pair<unsigned,unsigned> > IntervalListTy;
 	typedef IntervalListTy::const_iterator const_iterator;
+	typedef std::list<unsigned> UseDefTy;
+	typedef UseDefTy::const_iterator const_use_iterator;
+	typedef UseDefTy::const_iterator const_def_iterator;
 private:
 	IntervalListTy intervals;
 	Register *reg;
+	UseDefTy uses;
+	UseDefTy defs;
 	void add_range(unsigned from, unsigned to) {
 		if (intervals.size() > 0) {
 			if (intervals.begin()->first == to) {
@@ -81,18 +86,21 @@ public:
 	void set_reg(Register* r) {
 		reg = r;
 	}
-	Register* get_reg() const {
-		return reg;
-	}
-	const_iterator begin() const {
-		return intervals.begin();
-	}
-	const_iterator end() const {
-		return intervals.end();
-	}
-	std::size_t size() const {
-		return intervals.size();
-	}
+
+	Register* get_reg()            const { return reg; }
+
+	const_iterator begin()         const { return intervals.begin(); }
+	const_iterator end()           const { return intervals.end(); }
+	std::size_t size()             const { return intervals.size(); }
+
+	const_use_iterator use_begin() const { return uses.begin(); }
+	const_use_iterator use_end()   const { return uses.end(); }
+	std::size_t use_size()         const { return uses.size(); }
+
+	const_def_iterator def_begin() const { return defs.begin(); }
+	const_def_iterator def_end()   const { return defs.end(); }
+	std::size_t def_size()         const { return defs.size(); }
+
 	unsigned get_start() const {
 		assert(intervals.size()>0);
 		return intervals.front().first;
@@ -100,6 +108,12 @@ public:
 	unsigned get_end() const {
 		assert(intervals.size()>0);
 		return intervals.back().second;
+	}
+	void add_use(unsigned use) {
+		uses.push_front(use);
+	}
+	void add_def(unsigned def) {
+		defs.push_front(def);
 	}
 	/**
 	 * Returns true if this interval is active at pos
@@ -133,6 +147,15 @@ public:
 				continue;
 			}
 			return std::max(a_start,b_start);
+		}
+		return -1;
+	}
+
+	signed next_use_after(unsigned pos) const {
+		for (const_use_iterator i = use_begin(), e = use_end(); i != e; ++i) {
+			if (*i > pos) {
+				return *i;
+			}
 		}
 		return -1;
 	}
@@ -176,6 +199,8 @@ public:
 	LivetimeAnalysisPass() : Pass() {}
 	bool run(JITData &JD);
 	PassUsage& get_PassUsage(PassUsage &PA) const;
+
+	bool verify() const;
 
 	const_iterator begin() const {
 		return lti_map.begin();
