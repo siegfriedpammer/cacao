@@ -31,6 +31,8 @@
 #include <set>
 #include <list>
 
+#include <climits>
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -47,14 +49,23 @@ class LivetimeInterval {
 public:
 	typedef std::list<std::pair<unsigned,unsigned> > IntervalListTy;
 	typedef IntervalListTy::const_iterator const_iterator;
+	typedef IntervalListTy::iterator iterator;
+	/**
+	 * @Cpp11 this could be changed to std::set where erase returns an
+	 * iterator.
+	 */
 	typedef std::list<unsigned> UseDefTy;
 	typedef UseDefTy::const_iterator const_use_iterator;
 	typedef UseDefTy::const_iterator const_def_iterator;
+	typedef UseDefTy::iterator use_iterator;
+	typedef UseDefTy::iterator def_iterator;
 private:
 	IntervalListTy intervals;
 	Register *reg;
 	UseDefTy uses;
 	UseDefTy defs;
+	bool fixed_interval;
+	LivetimeInterval *next_split;    ///< if splitted, this points to the next iterval
 	void add_range(unsigned from, unsigned to) {
 		if (intervals.size() > 0) {
 			if (intervals.begin()->first == to) {
@@ -82,11 +93,12 @@ private:
 		}
 	}
 public:
-	LivetimeInterval() : intervals(), reg(NULL) {}
+	LivetimeInterval() : intervals(), reg(NULL), uses(), defs(), fixed_interval(false), next_split(NULL) {}
 	void set_reg(Register* r) {
 		reg = r;
 	}
 
+	bool is_fixed_interval()       const { return fixed_interval; }
 	Register* get_reg()            const { return reg; }
 
 	const_iterator begin()         const { return intervals.begin(); }
@@ -115,6 +127,7 @@ public:
 	void add_def(unsigned def) {
 		defs.push_front(def);
 	}
+	void set_fixed() { fixed_interval = true; }
 	/**
 	 * Returns true if this interval is active at pos
 	 */
@@ -160,17 +173,35 @@ public:
 		return -1;
 	}
 
+	signed next_usedef_after(unsigned pos) const {
+		signed next_use = -1;
+		signed next_def = -1;
+		for (const_use_iterator i = use_begin(), e = use_end(); i != e; ++i) {
+			if (*i > pos) {
+				next_use = *i;
+				break;
+			}
+		}
+		for (const_def_iterator i = def_begin(), e = def_end(); i != e; ++i) {
+			if (*i > pos) {
+				next_def = *i;
+				break;
+			}
+		}
+		if (next_use == -1) return next_def;
+		if (next_def == -1) return next_use;
+		return std::min(next_use,next_def);
+	}
+
+	/**
+	 * split this interval at position pos and return a new interval
+	 */
+	LivetimeInterval* split(unsigned pos);
+
 	friend class LivetimeAnalysisPass;
 };
 
-inline OStream& operator<<(OStream &OS, const LivetimeInterval &lti) {
-	OS << lti.get_reg();
-	for(LivetimeInterval::const_iterator i = lti.begin(), e = lti.end();
-			i != e ; ++i) {
-		OS << " [" << i->first << "," << i->second << ")";
-	}
-	return OS;
-}
+inline OStream& operator<<(OStream &OS, const LivetimeInterval &lti);
 inline OStream& operator<<(OStream &OS, const LivetimeInterval *lti) {
 	if (!lti) {
 		return OS << "(LivetimeInterval) NULL";

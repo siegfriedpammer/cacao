@@ -26,14 +26,28 @@
 #define _JIT_COMPILER2_LINEARSCANALLOCATORPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/LivetimeAnalysisPass.hpp"
 
 #include <list>
+#include <queue>
+#include <deque>
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-class LivetimeInterval;
+//class LivetimeInterval;
+
+namespace {
+struct StartComparator {
+	bool operator()(const LivetimeInterval *lhs, const LivetimeInterval* rhs) {
+		if(lhs->get_start() > rhs->get_start()) {
+			return true;
+		}
+		return false;
+	}
+};
+} // end anonymous namespace
 
 /**
  * Linear Scan Allocator
@@ -49,13 +63,18 @@ class LivetimeInterval;
  */
 class LinearScanAllocatorPass : public Pass {
 private:
+	typedef std::priority_queue<LivetimeInterval*,std::deque<LivetimeInterval*>, StartComparator> UnhandledSetTy;
 	typedef std::list<LivetimeInterval*> InactiveSetTy;
 	typedef std::list<LivetimeInterval*> ActiveSetTy;
+	typedef std::list<LivetimeInterval*> HandledSetTy;
 
+	UnhandledSetTy unhandled;
 	ActiveSetTy active;
 	InactiveSetTy inactive;
+	HandledSetTy handled;
 
 	inline bool try_allocate_free_reg(JITData &JD,LivetimeInterval* current);
+	inline bool allocate_blocked_reg(JITData &JD,LivetimeInterval* current);
 public:
 	static char ID;
 	LinearScanAllocatorPass() : Pass() {}

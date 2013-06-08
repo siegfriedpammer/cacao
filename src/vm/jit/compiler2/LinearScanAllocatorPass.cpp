@@ -28,10 +28,9 @@
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/LivetimeAnalysisPass.hpp"
 #include "vm/jit/compiler2/MachineRegister.hpp"
+#include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 
 #include <climits>
-#include <queue>
-#include <deque>
 
 #include "toolbox/logging.hpp"
 
@@ -41,24 +40,11 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-namespace {
-struct StartComparator {
-	bool operator()(const LivetimeInterval *lhs, const LivetimeInterval* rhs) {
-		if(lhs->get_start() > rhs->get_start()) {
-			return true;
-		}
-		return false;
-	}
-};
-
 template <typename Key, typename T>
 bool max_value_comparator(const std::pair<Key,T> &lhs, const std::pair<Key,T> &rhs) {
 	return lhs.second < rhs.second;
 }
 
-} // end anonymous namespace
-typedef std::priority_queue<LivetimeInterval*,std::deque<LivetimeInterval*>, StartComparator> UnhandledSetTy;
-typedef std::list<LivetimeInterval*> HandledSetTy;
 
 inline bool LinearScanAllocatorPass::try_allocate_free_reg(JITData &JD, LivetimeInterval *current) {
 	Backend* backend = JD.get_Backend();
@@ -66,7 +52,7 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(JITData &JD, Livetime
 	assert(reg_file);
 
 	std::map<MachineRegister*,unsigned> free_until_pos;
-	LOG2("try_allocate_free_reg (current=" << current << ")" << nl);
+	LOG2(BoldMagenta << "try_allocate_free_reg (current=" << current << ")" << reset_color << nl);
 
 	// set all registers to free
 	for(RegisterFile::const_iterator i = reg_file->begin(), e = reg_file->end();
@@ -127,12 +113,135 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(JITData &JD, Livetime
 	return true;
 }
 
+inline bool LinearScanAllocatorPass::allocate_blocked_reg(JITData &JD, LivetimeInterval *current) {
+	Backend* backend = JD.get_Backend();
+	RegisterFile* reg_file = backend->get_RegisterFile();
+	assert(reg_file);
+
+	std::map<MachineRegister*,unsigned> next_use_pos;
+	LOG2(BoldCyan << "allocate_blocked_reg (current=" << current << ")" << reset_color << nl);
+
+	// Remember best interval
+	LivetimeInterval *best_lti = NULL;
+	MachineRegister *best_reg = NULL;
+	signed best_next_use_pos = -1;
+
+	// set all registers to free
+	for(RegisterFile::const_iterator i = reg_file->begin(), e = reg_file->end();
+			i != e ; ++i) {
+		MachineRegister *reg = *i;
+		next_use_pos[reg] = UINT_MAX;
+	}
+	// for each interval in active
+	for (ActiveSetTy::const_iterator i = active.begin(), e = active.end();
+			i != e ; ++i) {
+		LivetimeInterval *lti = *i;
+		MachineRegister *reg = lti->get_reg()->to_MachineRegister();
+		assert(reg);
+		signed pos = lti->next_usedef_after(current->get_start());
+		next_use_pos[reg] = pos;
+		if (pos > best_next_use_pos && !lti->is_fixed_interval()) {
+			best_next_use_pos = pos;
+			best_reg = reg;
+			best_lti = lti;
+		}
+	}
+	// for each interval in inactive intersecting with current
+	for (InactiveSetTy::const_iterator i = inactive.begin(), e = inactive.end();
+			i != e ; ++i) {
+		LivetimeInterval *inact = *i;
+		assert(inact);
+		signed intersection = current->intersects(*inact);
+		if (intersection != -1) {
+			LivetimeInterval *lti = *i;
+			MachineRegister *reg = lti->get_reg()->to_MachineRegister();
+			assert(reg);
+			signed pos = lti->next_usedef_after(current->get_start());
+			next_use_pos[reg] = pos;
+			if (pos > best_next_use_pos && !lti->is_fixed_interval()) {
+				best_next_use_pos = pos;
+				best_reg = reg;
+				best_lti = lti;
+			}
+		}
+
+	}
+
+	// get the register with the highest next use position
+	#if 0
+	std::map<MachineRegister*,unsigned>::const_iterator i = std::max_element(next_use_pos.begin(),
+		next_use_pos.end(), max_value_comparator<MachineRegister*, unsigned>);
+	assert(i != next_use_pos.end());
+	MachineRegister *reg = i->first;
+	unsigned use_pos = i->second;
+	#endif
+	MachineRegister *reg = best_reg;
+	unsigned use_pos = best_next_use_pos;
+	LivetimeInterval *lti = best_lti;
+
+	LOG("Selected Register: " << reg << " (free until: " << use_pos << ")" << nl);
+	// FIXME: this is not right! we need the first USE position not interval start!
+	if (current->get_start() > use_pos) {
+		// all other intervals are used before current
+		// so it is best to spill current itself
+		LOG2("all other intervals are used before current so it is best to spill current itself" << nl);
+		// TODO assign spillslot to current
+		// TODO spill current before its first use position that requires a register (??)
+		ABORT_MSG("not implemented","");
+	} else {
+		// spill intervals that currently block reg
+		LOG2("spill intervals that currently block reg" << nl);
+		current->set_reg(reg);
+		// TODO split active interval for reg at position (position is start of current)
+		LOG2("split " << lti << " at " << current->get_start());
+		if (DEBUG_COND_N(2) ){
+			dbg() << " use: ";
+			print_container(dbg(),lti->use_begin(),lti->use_end());
+			dbg() << " def: ";
+			print_container(dbg(),lti->def_begin(),lti->def_end()) << nl;
+		}
+		LivetimeInterval *new_lti = lti->split(current->get_start());
+		active.push_back(current);
+		// add the new interval to unhandled
+		assert(new_lti);
+		unhandled.push(new_lti);
+		LOG2("altered lti: " << lti);
+		if (DEBUG_COND_N(2) ){
+			dbg()<<" use: ";
+			print_container(dbg(),lti->use_begin(),lti->use_end());
+			dbg()<<" def: ";
+			print_container(dbg(),lti->def_begin(),lti->def_end()) << nl;
+		}
+		LOG2("new lti: " << new_lti);
+		if (DEBUG_COND_N(2) ){
+			dbg()<<" use: ";
+			print_container(dbg(),new_lti->use_begin(),new_lti->use_end());
+			dbg()<<" def: ";
+			print_container(dbg(),new_lti->def_begin(),new_lti->def_end()) << nl;
+		}
+		// TODO split an inactive interval for reg at the end of its lifetime hole
+		for (InactiveSetTy::const_iterator i = inactive.begin(), e = inactive.end();
+				i != e ; ++i) {
+			LivetimeInterval *inact = *i;
+			assert(inact);
+			if (inact->get_reg() == reg) {
+				LOG2("split " << inact << " at end of livetime hole" << nl);
+			}
+			ABORT_MSG("not implemented","");
+		}
+	}
+
+	// make sure that current does not intersect with the fixed interval for reg
+	LOG2("make sure that current does not intersect with the fixed interval for reg" << nl);
+	// TODO if current intersects with the fixed interval for reg then split current before this intersection
+	return true;
+}
+
+
 
 bool LinearScanAllocatorPass::run(JITData &JD) {
 	LivetimeAnalysisPass *LA = get_Pass<LivetimeAnalysisPass>();
-	// local
-	UnhandledSetTy unhandled;
-	HandledSetTy handled;
+	MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
 
 	for (LivetimeAnalysisPass::iterator i = LA->begin(), e = LA->end();
 			i != e ; ++i) {
@@ -200,7 +309,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 				// if allocation successful add current to active
 				active.push_back(current);
 			} else {
-				ABORT_MSG("no free register available!","spilling not yet supported!");
+				allocate_blocked_reg(JD, current);
 			}
 		} else {
 			// preallocated
@@ -217,14 +326,23 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 		Register *reg = lti->get_reg();
 		LOG("Assigned Interval " << lti << " to " << reg << nl );
 		assert(reg->to_MachineRegister());
-	}
 
+		#if 0
+		for (LivetimeInterval::const_def_iterator i = lti->def_begin(),
+				e = lti->def_end(); i != e ; ++i) {
+			//
+			MachineInstruction *MI = MIS->get(*i);
+			MI->set_result(
+		}
+		#endif
+	}
 	return true;
 }
 
 // pass usage
 PassUsage& LinearScanAllocatorPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires(LivetimeAnalysisPass::ID);
+	PU.add_requires(MachineInstructionSchedulingPass::ID);
 	return PU;
 }
 

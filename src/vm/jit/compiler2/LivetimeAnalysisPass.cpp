@@ -22,10 +22,12 @@
 
 */
 
-/*
+/**
+ * @file
+ *
  * The algorithm to callculate the livetime information is based on
- * Wimmer and Franz "Linear Scan Register Allocation on SSA Form",
- * 2010.
+ * Wimmer and Franz "Linear Scan Register Allocation on SSA Form", 2010.
+ * @cite Wimmer2010
  *
  */
 
@@ -45,6 +47,85 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+////////////////////// LivetimeInterval
+
+LivetimeInterval* LivetimeInterval::split(unsigned pos) {
+	//sanity checks:
+	if (pos <= get_start() || pos >= get_end()) {
+		// no need to split!?
+		return NULL;
+	}
+	LivetimeInterval *lti = new LivetimeInterval();
+	// copy intervals
+	iterator i = intervals.begin();
+	iterator e = intervals.end();
+	for( ; i != e ; ++i) {
+		if (i->first >= pos) {
+			// livetime hole
+			break;
+		}
+		if (i->second > pos) {
+			// currently active
+			unsigned end = i->second;
+			i->second = pos;
+			//lti->add_range(pos,end);
+			// XXX Wow I am so not sure if this is correct:
+			// If the new range will start at pos it will be
+			// selected for reg allocation in the next iteration
+			// and we end up in splitting another interval which
+			// in ture creates a new interval starting at pos...
+			// But if we let it start at the next usedef things look
+			// better. Because of the phi functions we dont run into
+			// troubles with backedges and loop time intervals,
+			// I guess...
+			signed next_usedef = next_usedef_after(pos);
+			assert(next_usedef != -1);
+			lti->add_range(next_usedef,end);
+			++i;
+			break;
+		}
+	}
+	// move all remaining intervals to the new lti
+	while (i != e) {
+		lti->intervals.push_back(std::make_pair(i->first,i->second));
+		i = intervals.erase(i);
+	}
+	// copy uses
+	for (use_iterator i = uses.begin(), e = uses.end(); i != e ; ) {
+		if (*i >= pos) {
+			lti->add_use(*i);
+			i = uses.erase(i);
+		} else {
+			++i;
+		}
+	}
+	// copy defs
+	for (def_iterator i = defs.begin(), e = defs.end(); i != e ; ) {
+		if (*i >= pos) {
+			lti->add_def(*i);
+			i = defs.erase(i);
+		} else {
+			++i;
+		}
+	}
+	// TODO set reg!
+	VirtualRegister *vreg = new VirtualRegister();
+	lti->set_reg(vreg);
+	// TODO set user at the end of this lti (store)
+	// TODO set def for new lti (load)
+	return lti;
+}
+
+inline OStream& operator<<(OStream &OS, const LivetimeInterval &lti) {
+	OS << lti.get_reg();
+	for(LivetimeInterval::const_iterator i = lti.begin(), e = lti.end();
+			i != e ; ++i) {
+		OS << " [" << i->first << "," << i->second << ")";
+	}
+	return OS;
+}
+
+////////////////////// LivetimeAnalysis
 
 bool LivetimeAnalysisPass::run(JITData &JD) {
 	BasicBlockSchedule *BS = get_Pass<BasicBlockSchedulingPass>();
@@ -126,6 +207,10 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 						liveIn[BI].erase(reg);
 					}
 					lti_map[reg].add_def(inst_lineno);
+					if (reg->to_MachineRegister()) {
+						// this is already in a MachineRegister -> fixed interval
+						lti_map[reg].set_fixed();
+					}
 				}
 			}
 			// input operands
@@ -142,6 +227,10 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 						liveIn[BI].insert(reg);
 					}
 					lti_map[reg].add_use(inst_lineno);
+					if (reg->to_MachineRegister()) {
+						// this is already in a MachineRegister -> fixed interval
+						lti_map[reg].set_fixed();
+					}
 				}
 			}
 		}
