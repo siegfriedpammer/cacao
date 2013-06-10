@@ -49,7 +49,7 @@ public:
 			: MachineInstruction("MPhi", new VirtualRegister(),
 			  num_operands) {
 		for(int i = 0; i < num_operands; ++i) {
-			operands[i] = UnassignedReg::factory();
+			operands[i].op = UnassignedReg::factory();
 		}
 	}
 
@@ -76,7 +76,7 @@ public:
 			MachineOperand *dst,
 			MachineOperand *src)
 			: MachineInstruction("MLoad", dst, 1) {
-		operands[0] = src;
+		operands[0].op = src;
 	}
 
 };
@@ -90,7 +90,7 @@ public:
 			MachineOperand *dst,
 			MachineOperand *src)
 			: MachineInstruction("MStore", dst, 1) {
-		operands[0] = src;
+		operands[0].op = src;
 	}
 
 };
@@ -104,7 +104,7 @@ public:
 			MachineOperand *dst,
 			MachineOperand *src)
 			: MachineInstruction("MMove", dst, 1) {
-		operands[0] = src;
+		operands[0].op = src;
 	}
 	virtual bool accepts_immediate(unsigned i) const {
 		return true;

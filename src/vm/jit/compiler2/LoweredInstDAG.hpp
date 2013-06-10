@@ -48,20 +48,6 @@ inline OStream& operator<<(OStream &OS, const LoweredInstDAG *lid) {
 	return OS << *lid;
 }
 
-#if 0
-struct MachineParameterDesc {
-	/**
-	 * The machine instruction linked to this parameter
-	 */
-	MachineInstruction *connected_minst;
-	/**
-	 * The number of the operand from connected_minst which is connected to this
-	 * parameter
-	 */
-	unsigned parameter_index;
-};
-#endif
-
 /**
  * DAG of machine instruction that replace one Instruction.
  *
@@ -138,7 +124,7 @@ public:
 	MachineOperand* get_operand(unsigned i) const {
 		assert(i < input_map.size());
 		InputParameterTy param = get(i);
-		return param.first->get(param.second);
+		return param.first->get(param.second).op;
 	}
 
 	mi_iterator mi_begin() { return minst.begin(); }

@@ -41,6 +41,7 @@ namespace compiler2 {
 class Register;
 class BeginInst;
 class LivetimeAnalysisPass;
+class MachineOperandDesc;
 
 /**
  * TODO: doc me!
@@ -54,7 +55,7 @@ public:
 	 * @Cpp11 this could be changed to std::set where erase returns an
 	 * iterator.
 	 */
-	typedef std::list<unsigned> UseDefTy;
+	typedef std::list<std::pair<unsigned,MachineOperandDesc*> > UseDefTy;
 	typedef UseDefTy::const_iterator const_use_iterator;
 	typedef UseDefTy::const_iterator const_def_iterator;
 	typedef UseDefTy::iterator use_iterator;
@@ -121,10 +122,16 @@ public:
 		assert(intervals.size()>0);
 		return intervals.back().second;
 	}
-	void add_use(unsigned use) {
+	void add_use(unsigned use, MachineOperandDesc &MOD) {
+		uses.push_front(std::make_pair(use,&MOD));
+	}
+	void add_def(unsigned def, MachineOperandDesc &MOD) {
+		defs.push_front(std::make_pair(def,&MOD));
+	}
+	void add_use(const std::pair<unsigned,MachineOperandDesc*> use) {
 		uses.push_front(use);
 	}
-	void add_def(unsigned def) {
+	void add_def(const std::pair<unsigned,MachineOperandDesc*> def) {
 		defs.push_front(def);
 	}
 	void set_fixed() { fixed_interval = true; }
@@ -166,8 +173,8 @@ public:
 
 	signed next_use_after(unsigned pos) const {
 		for (const_use_iterator i = use_begin(), e = use_end(); i != e; ++i) {
-			if (*i > pos) {
-				return *i;
+			if (i->first > pos) {
+				return i->first;
 			}
 		}
 		return -1;
@@ -177,14 +184,14 @@ public:
 		signed next_use = -1;
 		signed next_def = -1;
 		for (const_use_iterator i = use_begin(), e = use_end(); i != e; ++i) {
-			if (*i > pos) {
-				next_use = *i;
+			if (i->first > pos) {
+				next_use = i->first;
 				break;
 			}
 		}
 		for (const_def_iterator i = def_begin(), e = def_end(); i != e; ++i) {
-			if (*i > pos) {
-				next_def = *i;
+			if (i->first > pos) {
+				next_def = i->first;
 				break;
 			}
 		}
@@ -208,6 +215,7 @@ inline OStream& operator<<(OStream &OS, const LivetimeInterval *lti) {
 	}
 	return OS << *lti;
 }
+inline OStream& operator<<(OStream &OS, const std::pair<unsigned,MachineOperandDesc*> &usedef);
 
 /**
  * LivetimeAnalysisPass

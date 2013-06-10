@@ -92,7 +92,7 @@ LivetimeInterval* LivetimeInterval::split(unsigned pos) {
 	}
 	// copy uses
 	for (use_iterator i = uses.begin(), e = uses.end(); i != e ; ) {
-		if (*i >= pos) {
+		if (i->first >= pos) {
 			lti->add_use(*i);
 			i = uses.erase(i);
 		} else {
@@ -101,7 +101,7 @@ LivetimeInterval* LivetimeInterval::split(unsigned pos) {
 	}
 	// copy defs
 	for (def_iterator i = defs.begin(), e = defs.end(); i != e ; ) {
-		if (*i >= pos) {
+		if (i->first >= pos) {
 			lti->add_def(*i);
 			i = defs.erase(i);
 		} else {
@@ -123,6 +123,9 @@ inline OStream& operator<<(OStream &OS, const LivetimeInterval &lti) {
 		OS << " [" << i->first << "," << i->second << ")";
 	}
 	return OS;
+}
+inline OStream& operator<<(OStream &OS, const std::pair<unsigned,MachineOperandDesc*> &usedef) {
+	return OS << usedef.first;
 }
 
 ////////////////////// LivetimeAnalysis
@@ -196,9 +199,9 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 			MachineInstruction *MI = MIS->get((unsigned)inst_lineno);
 			// output operand
 			{
-				MachineOperand* op = MI->get_result();
+				MachineOperandDesc& MOD = MI->get_result();
 				Register *reg;
-				if ( op &&  (reg = op->to_Register()) ) {
+				if ( MOD.op &&  (reg = MOD.op->to_Register()) ) {
 					// phis are handled differently
 					if (!MI->is_phi()) {
 						LOG2("line " << setw(4) << fillzero << inst_lineno << " " << "removing " << reg << " to liveIn of " << BI << nl);
@@ -206,7 +209,7 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 						lti_map[reg].set_from_if_available(inst_lineno,to);
 						liveIn[BI].erase(reg);
 					}
-					lti_map[reg].add_def(inst_lineno);
+					lti_map[reg].add_def(inst_lineno,MOD);
 					if (reg->to_MachineRegister()) {
 						// this is already in a MachineRegister -> fixed interval
 						lti_map[reg].set_fixed();
@@ -216,9 +219,9 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 			// input operands
 			for(MachineInstruction::operand_iterator i = MI->begin(),
 					e = MI->end(); i != e ; ++i) {
-				MachineOperand* op = *i;
+				MachineOperandDesc& MOD = *i;
 				Register *reg;
-				if ( op &&  (reg = op->to_Register()) ) {
+				if ( MOD.op &&  (reg = MOD.op->to_Register()) ) {
 					// phis are handled differently
 					if (!MI->is_phi()) {
 						LOG2("line " << setw(4) << fillzero << inst_lineno << " " << "adding " << reg << " to liveIn of " << BI << nl);
@@ -226,7 +229,7 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 						lti_map[reg].add_range(from,inst_lineno);
 						liveIn[BI].insert(reg);
 					}
-					lti_map[reg].add_use(inst_lineno);
+					lti_map[reg].add_use(inst_lineno,MOD);
 					if (reg->to_MachineRegister()) {
 						// this is already in a MachineRegister -> fixed interval
 						lti_map[reg].set_fixed();
@@ -241,7 +244,7 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 			if (phi) {
 				const LoweredInstDAG *dag = LP->get_LoweredInstDAG(phi);
 				assert(dag);
-				MachineOperand* op = dag->get_result()->get_result();
+				MachineOperand* op = dag->get_result()->get_result().op;
 				Register *reg;
 				if ( op &&  (reg = op->to_Register()) ) {
 					liveIn[BI].erase(reg);
@@ -307,20 +310,20 @@ bool LivetimeAnalysisPass::verify() const {
 		signed old = -1;
 		for (LivetimeInterval::const_use_iterator i = lti.use_begin(),
 				e = lti.use_end(); i != e; ++i) {
-			if ( old >= (signed)*i) {
-				err() << old << " >= " << (signed)*i << nl;
+			if ( old >= (signed)i->first) {
+				err() << old << " >= " << i->first << nl;
 				return false;
 			}
-			old = *i;
+			old = i->first;
 		}
 		old = -1;
 		for (LivetimeInterval::const_def_iterator i = lti.def_begin(),
 				e = lti.def_end(); i != e; ++i) {
-			if ( old >= (signed)*i) {
-				err() << old << " >= " << (signed)*i << nl;
+			if ( old >= (signed)i->first) {
+				err() << old << " >= " << (signed)i->first << nl;
 				return false;
 			}
-			old = *i;
+			old = i->first;
 		}
 	}
 	return true;

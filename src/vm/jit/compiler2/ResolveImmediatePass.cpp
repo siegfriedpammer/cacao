@@ -64,7 +64,7 @@ bool ResolveImmediatePass::run(JITData &JD) {
 						e = dag->mi_end(); pos != e ; ++pos) {
 					MachineInstruction *MI = *pos;
 					for (unsigned i = 0, e = MI->size_op(); i < e ; ++i) {
-						MachineOperand *MO = MI->get(i);
+						MachineOperand *MO = MI->get(i).op;
 						assert(MO);
 						Immediate *imm = MO->to_Immediate();
 						if (imm && !MI->accepts_immediate(i)) {
@@ -72,7 +72,7 @@ bool ResolveImmediatePass::run(JITData &JD) {
 							VirtualRegister *dst = new VirtualRegister();
 							MachineMoveInst *mov = new MachineMoveInst(dst,imm);
 							dag->mi_insert(pos,mov);
-							(*MI)[i] = dst;
+							(*MI)[i].op = dst;
 							// check if we have modified a dag parameter
 							// handle dag parameters first!
 							for (unsigned dag_it = 0, dag_et = dag->input_size(); dag_it < dag_et ; ++dag_it) {

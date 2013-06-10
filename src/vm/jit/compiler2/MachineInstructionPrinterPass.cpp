@@ -240,7 +240,7 @@ public:
 
     StringBuf getNodeLabel(const MachineInstruction &node) const {
 		std::ostringstream sstream;
-		MachineOperand *result = node.get_result();
+		MachineOperand *result = node.get_result().op;
 		assert(result);
 		sstream << MachineOperandToString(result)
 		        << " = [" << node.get_id() << "] "
@@ -248,7 +248,7 @@ public:
 
 		for (MachineInstruction::const_operand_iterator i = node.begin(), e = node.end();
 				i != e; ++i) {
-			MachineOperand *MO = *i;
+			MachineOperand *MO = i->op;
 			//assert(MO);
 			sstream << MachineOperandToString(MO) << ", ";
 		}

@@ -37,21 +37,31 @@ OStream& MachineInstruction::print(OStream &OS) const {
 			e = end(); i != e ; ++i) {
 		OS << ' ' << (*i);
 	}
-	MachineOperand *result = get_result();
+	MachineOperand *result = get_result().op;
 	if (!result->to_VoidOperand()) {
 		OS << " -> " << result;
 	}
 	return OS;
 }
 
-OStream& operator<<(OStream &OS, const MachineInstruction &MI) {
-	return MI.print(OS);
-}
 OStream& operator<<(OStream &OS, const MachineInstruction *MI) {
 	if (!MI) {
 		return OS << "(MachineInstruction) NULL";
 	}
 	return OS << *MI;
+}
+OStream& operator<<(OStream &OS, const MachineInstruction &MI) {
+	return MI.print(OS);
+}
+
+OStream& operator<<(OStream &OS, const MachineOperandDesc *MOD) {
+	if (!MOD) {
+		return OS << "(MachineOperandDesc) NULL";
+	}
+	return OS << *MOD;
+}
+OStream& operator<<(OStream &OS, const MachineOperandDesc &MOD) {
+	return OS << MOD.op;
 }
 
 } // end namespace compiler2
