@@ -620,6 +620,12 @@ FILTER_PATTERNS        =
 
 FILTER_SOURCE_FILES    = NO
 
+# The CITE_BIB_FILES tag can be used to specify one or more bib files containing
+# the reference definitions. This must be a list of .bib files. The .bib extension
+# is automatically appended if omitted.
+
+CITE_BIB_FILES         = @abs_top_srcdir@/doc/bibliography.bib
+
 #---------------------------------------------------------------------------
 # configuration options related to source browsing
 #---------------------------------------------------------------------------
