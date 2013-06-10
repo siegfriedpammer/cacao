@@ -41,8 +41,8 @@ public:
 	 */
 	X86_64CmpInst(Register *src1, MachineOperand *src2)
 			: MachineInstruction("X86_64CmpInst", &NoOperand, 2) {
-		operands[0] = src1;
-		operands[1] = src2;
+		operands[0].op = src1;
+		operands[1].op = src2;
 	}
 
 };
@@ -62,8 +62,8 @@ class X86_64AddInst : public MachineInstruction {
 public:
 	X86_64AddInst(Register *dst, Register *src1, Register *src2)
 			: MachineInstruction("X86_64AddInst", dst, 2) {
-		operands[0] = src1;
-		operands[1] = src2;
+		operands[0].op = src1;
+		operands[1].op = src2;
 	}
 };
 
@@ -71,8 +71,8 @@ class X86_64IMulInst : public MachineInstruction {
 public:
 	X86_64IMulInst(Register *dst, Register *src1, Register *src2)
 			: MachineInstruction("X86_64IMulInst", dst, 2) {
-		operands[0] = src1;
-		operands[1] = src2;
+		operands[0].op = src1;
+		operands[1].op = src2;
 	}
 
 };
@@ -81,8 +81,8 @@ class X86_64SubInst : public MachineInstruction {
 public:
 	X86_64SubInst(Register *dst, Register *src1, Register *src2)
 			: MachineInstruction("X86_64SubInst", dst, 2) {
-		operands[0] = src1;
-		operands[1] = src2;
+		operands[0].op = src1;
+		operands[1].op = src2;
 	}
 
 };
