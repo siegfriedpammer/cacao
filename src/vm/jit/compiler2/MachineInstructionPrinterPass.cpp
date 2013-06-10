@@ -30,6 +30,8 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/LoweringPass.hpp"
 #include "vm/jit/compiler2/ListSchedulingPass.hpp"
+#include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
+#include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 
 #include "toolbox/GraphTraits.hpp"
 
@@ -303,11 +305,29 @@ static PassRegistery<MachineInstructionPrinterPass> X("MachineInstructionPrinter
 bool MachineInstructionPrinterPass::run(JITData &JD) {
 	LoweringPass *LP = get_Pass<LoweringPass>();
 	InstructionSchedule<Instruction> *IS = get_Pass_if_available<ListSchedulingPass>();
+	BasicBlockSchedule *BS = get_Pass_if_available<BasicBlockSchedulingPass>();
+	MachineInstructionSchedule *MIS = get_Pass_if_available<MachineInstructionSchedulingPass>();
 
 	StringBuf name = get_filename(JD.get_jitdata()->m,JD.get_jitdata(),"","");
 	StringBuf filename = "minst_";
 	filename+=name+".dot";
 	GraphPrinter<MachineInstructionGraph>::print(filename.c_str(), MachineInstructionGraph(*(JD.get_Method()),LP,IS,name));
+
+	if (BS && MIS) {
+		for (BasicBlockSchedule::const_bb_iterator i = BS->bb_begin(),
+				e = BS->bb_end(); i != e ; ++i) {
+			BeginInst *BI = *i;
+			assert(BI);
+			LOG("BasicBlock: " << BI << nl);
+			MachineInstructionSchedule::MachineInstructionRangeTy range = MIS->get_range(BI);
+			assert(range.first != range.second);
+			for (unsigned i = range.first, e = range.second; i < e; ++i) {
+				MachineInstruction *MI = MIS->get(i);
+				assert(MI);
+				LOG("  " << setw(4) << i << ": " << MI << nl);
+			}
+		}
+	}
 	return true;
 }
 
