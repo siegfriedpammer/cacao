@@ -68,9 +68,21 @@ extern X86_64Register* X86_64IntegerArgumentRegisters[];
 class X86_64RegisterFile : public RegisterFile {
 private:
 	X86_64RegisterFile() {
+		#if 0
 		for(unsigned i = 0; i < X86_64IntegerArgumentRegisterSize ; ++i) {
 			regs.push_back(X86_64IntegerArgumentRegisters[i]);
 		}
+		#else
+		regs.push_back(&RDI);
+		regs.push_back(&RSI);
+		#if 0
+		regs.push_back(&RDX);
+		regs.push_back(&RCX);
+		regs.push_back(&R8);
+		regs.push_back(&R9);
+		#endif
+		#endif
+
 	}
 public:
 	static RegisterFile* factory() {
