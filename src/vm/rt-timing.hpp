@@ -471,7 +471,7 @@ public:
 /**
  * Real-time timer.
  *
- * @note could be ported to std::chrono if C++11 is available
+ * @Cpp11 should be ported to std::chrono if C++11 is available
  */
 class RTTimer : public RTEntry {
 private:
