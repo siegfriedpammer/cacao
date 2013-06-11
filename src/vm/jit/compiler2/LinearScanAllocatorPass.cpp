@@ -327,14 +327,16 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 		LOG("Assigned Interval " << lti << " to " << reg << nl );
 		assert(reg->to_MachineRegister());
 
-		#if 0
 		for (LivetimeInterval::const_def_iterator i = lti->def_begin(),
 				e = lti->def_end(); i != e ; ++i) {
-			//
-			MachineInstruction *MI = MIS->get(*i);
-			MI->set_result(
+			MachineOperandDesc *MOD = i->second;
+			MOD->op = lti->get_reg();
 		}
-		#endif
+		for (LivetimeInterval::const_use_iterator i = lti->use_begin(),
+				e = lti->use_end(); i != e ; ++i) {
+			MachineOperandDesc *MOD = i->second;
+			MOD->op = lti->get_reg();
+		}
 	}
 	return true;
 }
