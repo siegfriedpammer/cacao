@@ -67,6 +67,7 @@ private:
 	UseDefTy defs;
 	bool fixed_interval;
 	LivetimeInterval *next_split;    ///< if splitted, this points to the next iterval
+	Register *hint;                  ///< Register hint
 	void add_range(unsigned from, unsigned to) {
 		if (intervals.size() > 0) {
 			if (intervals.begin()->first == to) {
@@ -94,7 +95,8 @@ private:
 		}
 	}
 public:
-	LivetimeInterval() : intervals(), reg(NULL), uses(), defs(), fixed_interval(false), next_split(NULL) {}
+	LivetimeInterval() : intervals(), reg(NULL), uses(), defs(),
+			fixed_interval(false), next_split(NULL), hint(NULL) {}
 	void set_reg(Register* r) {
 		reg = r;
 	}
@@ -180,6 +182,9 @@ public:
 		return -1;
 	}
 
+	void set_hint(Register *reg) { hint = reg; }
+	Register* get_hint() const { return hint; }
+
 	signed next_usedef_after(unsigned pos) const {
 		signed next_use = -1;
 		signed next_def = -1;
@@ -255,6 +260,13 @@ public:
 	}
 	std::size_t size() const {
 		return lti_map.size();
+	}
+	LivetimeInterval* get(Register* reg) {
+		iterator i = lti_map.find(reg);
+		if ( i == lti_map.end()) {
+			return NULL;
+		}
+		return &(i->second);
 	}
 };
 

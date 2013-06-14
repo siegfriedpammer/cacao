@@ -87,13 +87,32 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(JITData &JD, Livetime
 		}
 
 	}
-	// get the register with the maximum free until number
-	std::map<MachineRegister*,unsigned>::const_iterator i = std::max_element(free_until_pos.begin(),
-		free_until_pos.end(), max_value_comparator<MachineRegister*, unsigned>);
-	assert(i != free_until_pos.end());
-	MachineRegister *reg = i->first;
-	unsigned free_pos = i->second;
-	assert(reg);
+	// selected register
+	MachineRegister *reg = NULL;
+	unsigned free_pos;
+	// new scope
+	{
+		// check register hint
+		Register *hint = current->get_hint();
+		LivetimeInterval *hint_lti;
+		if (hint && (hint_lti = LA->get(hint)) ) {
+			if ( hint_lti->get_end() <= current->get_start()) {
+				LOG2("Hint: " << hint_lti << nl);
+				reg = hint_lti->get_reg()->to_MachineRegister();
+				assert(reg);
+				free_pos = free_until_pos[reg];
+			}
+		}
+	}
+	if (!reg) {
+		// get the register with the maximum free until number
+		std::map<MachineRegister*,unsigned>::const_iterator i = std::max_element(free_until_pos.begin(),
+			free_until_pos.end(), max_value_comparator<MachineRegister*, unsigned>);
+		assert(i != free_until_pos.end());
+		reg = i->first;
+		free_pos = i->second;
+		assert(reg);
+	}
 
 	LOG("Selected Register: " << reg << " (free until: " << free_pos << ")" << nl);
 	if ( free_pos == 0) {

@@ -236,6 +236,15 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 					}
 				}
 			}
+			MachineMoveInst *move = MI->to_MachineMoveInst();
+			if (move) {
+				Register *dst = move->get_result().op->to_Register();
+				Register *src = move->get(0).op->to_Register();
+				if (src && dst) {
+					LOG2("HINT: " << dst << ".hint = " << src << nl);
+					lti_map[dst].set_hint(src);
+				}
+			}
 		}
 		// for each phi function
 		for (Instruction::DepListTy::const_iterator i = BI->rdep_begin(),
