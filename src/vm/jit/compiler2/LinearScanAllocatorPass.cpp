@@ -548,9 +548,14 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 
 // pass usage
 PassUsage& LinearScanAllocatorPass::get_PassUsage(PassUsage &PU) const {
+	// requires
 	PU.add_requires(LivetimeAnalysisPass::ID);
 	PU.add_requires(MachineInstructionSchedulingPass::ID);
 	PU.add_requires(LoweringPass::ID);
+	// destroys
+	PU.add_destroys(MachineInstructionSchedulingPass::ID);
+	// not yet updated correctly (might be only changed)
+	PU.add_destroys(LivetimeAnalysisPass::ID);
 	return PU;
 }
 
