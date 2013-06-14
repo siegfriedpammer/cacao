@@ -40,10 +40,10 @@ namespace compiler2 {
  */
 
 class X86_64Register : public MachineRegister {
-private:
-	unsigned index;
-	bool extented_gpr;
 public:
+	const unsigned index;
+	const bool extented_gpr;
+
 	X86_64Register(const char* name,unsigned index,bool extented_gpr)
 		: MachineRegister(name), index(index), extented_gpr(extented_gpr) {}
 	virtual NativeRegister* to_NaviveRegister() {

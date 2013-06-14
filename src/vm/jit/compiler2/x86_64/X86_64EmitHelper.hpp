@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/X86_64Instructions.hpp - X86_64Instructions
+/* src/vm/jit/compiler2/X86_64EmitHelper.hpp - X86_64EmitHelper
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,40 +22,41 @@
 
 */
 
-#include "vm/jit/compiler2/x86_64/X86_64Instructions.hpp"
-#include "vm/jit/compiler2/x86_64/X86_64EmitHelper.hpp"
-#include "vm/jit/compiler2/MachineInstructions.hpp"
-#include "vm/jit/compiler2/CodeMemory.hpp"
+#ifndef _JIT_COMPILER2_X86_64EMITHELPER
+#define _JIT_COMPILER2_X86_64EMITHELPER
 
-#include "toolbox/logging.hpp"
-
-#define DEBUG_NAME "compiler2/x86_64"
+#include "vm/jit/compiler2/x86_64/X86_64Register.hpp"
+#include "vm/types.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-void X86_64RetInst::emit(CodeMemory* CM) const {
-	CodeFragment code = CM->get_Fragment(1);
-	code[0] = 0xc3;
-}
+u1 get_rex(X86_64Register *reg, X86_64Register *rm) {
+	const unsigned rex_w = 3;
+	const unsigned rex_r = 2;
+	//const unsigned rex_x = 1;
+	const unsigned rex_b = 0;
 
-void X86_64MovInst::emit(CodeMemory* CM) const {
-	X86_64Register *src_reg = operands[0].op->to_Register()->to_MachineRegister()->to_NaviveRegister();
-	unsigned src_idx = src_reg->get_index();
-	X86_64Register *dst_reg = result.op->to_Register()->to_MachineRegister()->to_NaviveRegister();
-	unsigned dst_idx = dst_reg->get_index();
+	u1 rex = 0x40;
+	// 64-bit operand size
+	rex |= (1 << rex_w);
 
-	CodeFragment code = CM->get_Fragment(3);
-	code[0] = get_rex(src_reg,dst_reg);
-	code[1] = 0x89; // MOV
-	code[2] = 0xC0 | (0x7 & src_idx) << 3 | (0x7 & dst_idx); // ModRM
+	if (reg->extented_gpr) {
+		rex |= (1 << rex_r);
+	}
+	if (rm->extented_gpr) {
+		rex |= (1 << rex_b);
+	}
+	return rex;
 }
 
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
+
+#endif /* _JIT_COMPILER2_X86_64EMITHELPER */
 
 
 /*
