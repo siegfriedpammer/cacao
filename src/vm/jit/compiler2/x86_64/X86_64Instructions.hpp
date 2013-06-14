@@ -92,6 +92,17 @@ public:
 	X86_64RetInst()
 			: MachineInstruction("X86_64RetInst", &NoOperand, 0) {
 	}
+	virtual void emit(CodeMemory* CM) const;
+
+};
+
+class X86_64MovInst : public MachineInstruction {
+public:
+	X86_64MovInst(MachineRegister *dst, MachineRegister *src)
+			: MachineInstruction("X86_64MovInst", dst, 1) {
+		operands[0].op = src;
+	}
+	virtual void emit(CodeMemory* CM) const;
 
 };
 

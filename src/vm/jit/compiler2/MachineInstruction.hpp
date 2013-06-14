@@ -40,6 +40,7 @@ namespace compiler2 {
 // forward declaration
 class MachineMoveInst;
 class LoweredInstDAG;
+class CodeMemory;
 
 /**
  * Descriptor of a MachineOperand
@@ -143,6 +144,11 @@ public:
 		return NULL;
 	}
 	virtual OStream& print(OStream &OS) const;
+
+	/**
+	 * emit machine code
+	 */
+	virtual void emit(CodeMemory* CM) const;
 };
 
 OStream& operator<<(OStream &OS, const MachineInstruction *MI);

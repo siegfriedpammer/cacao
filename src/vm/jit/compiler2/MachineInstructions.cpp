@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/CodeGenPass.cpp - CodeGenPass
+/* src/vm/jit/compiler2/MachineInstructions.cpp - Machine Instruction Types
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,42 +22,29 @@
 
 */
 
-#include "vm/jit/compiler2/CodeGenPass.hpp"
-#include "vm/jit/compiler2/JITData.hpp"
-#include "vm/jit/compiler2/PassManager.hpp"
-#include "vm/jit/compiler2/PassUsage.hpp"
+#include "vm/jit/compiler2/MachineInstructions.hpp"
+#include "vm/jit/compiler2/Backend.hpp"
 #include "vm/jit/compiler2/CodeMemory.hpp"
-#include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
+
+#include "toolbox/logging.hpp"
+
+#define DEBUG_NAME "compiler2/MachineInstructions"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-bool CodeGenPass::run(JITData &JD) {
-	MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
-	CodeMemory cm;
-	CodeMemory *CM = &cm;
+void MachineLabelInst::emit(CodeMemory* CM) const {
+	CM->add_Label(begin);
+}
 
-	// NOTE reverse so we see jump targets (which are not backedges) before
-	// the jump.
-	for (MachineInstructionSchedule::const_reverse_iterator i = MIS->rbegin(),
-			e = MIS->rend() ; i != e ; ++i ) {
-		MachineInstruction *MI = *i;
-		MI->emit(CM);
+void MachineMoveInst::emit(CodeMemory* CM) const {
+	if (operands[0].op != result.op) {
+		// emit move
+		// TODO maybe we should get this from CM?
+		Backend::factory()->emit_Move(this,CM);
 	}
-	return true;
 }
-
-// pass usage
-PassUsage& CodeGenPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(MachineInstructionSchedulingPass::ID);
-	return PU;
-}
-// the address of this variable is used to identify the pass
-char CodeGenPass::ID = 0;
-
-// registrate Pass
-static PassRegistery<CodeGenPass> X("CodeGenPass");
 
 } // end namespace compiler2
 } // end namespace jit

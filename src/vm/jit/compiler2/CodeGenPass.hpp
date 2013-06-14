@@ -41,6 +41,7 @@ public:
 	static char ID;
 	CodeGenPass() : Pass() {}
 	bool run(JITData &JD);
+	PassUsage& get_PassUsage(PassUsage &PU) const;
 };
 
 } // end namespace compiler2

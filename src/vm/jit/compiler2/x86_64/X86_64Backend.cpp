@@ -154,6 +154,26 @@ RegisterFile* BackendTraits<X86_64>::get_RegisterFile() const {
 	return X86_64RegisterFile::factory();
 }
 
+template<>
+void BackendTraits<X86_64>::emit_Move(const MachineMoveInst *mov, CodeMemory* CM) const {
+	MachineOperand *src = mov->get(0).op;
+	MachineOperand *dst = mov->get_result().op;
+	Register *src_reg = src->to_Register();
+	Register *dst_reg = dst->to_Register();
+	MachineRegister *src_mreg = src_reg->to_MachineRegister();
+	MachineRegister *dst_mreg = dst_reg->to_MachineRegister();
+
+	if (dst_mreg) {
+		if (src_mreg) {
+			// reg to reg move
+			X86_64MovInst move(dst_mreg, src_mreg);
+			move.emit(CM);
+			return;
+		}
+	}
+	ABORT_MSG("x86_64 TODO","non reg-to-reg moves not yet implemented");
+}
+
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

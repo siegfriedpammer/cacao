@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/CodeGenPass.cpp - CodeGenPass
+/* src/vm/jit/compiler2/CodeMemory.cpp - CodeMemory
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,42 +22,33 @@
 
 */
 
-#include "vm/jit/compiler2/CodeGenPass.hpp"
-#include "vm/jit/compiler2/JITData.hpp"
-#include "vm/jit/compiler2/PassManager.hpp"
-#include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/CodeMemory.hpp"
-#include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
+#include "mm/dumpmemory.hpp"
+
+#include <map>
+
+#define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-bool CodeGenPass::run(JITData &JD) {
-	MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
-	CodeMemory cm;
-	CodeMemory *CM = &cm;
-
-	// NOTE reverse so we see jump targets (which are not backedges) before
-	// the jump.
-	for (MachineInstructionSchedule::const_reverse_iterator i = MIS->rbegin(),
-			e = MIS->rend() ; i != e ; ++i ) {
-		MachineInstruction *MI = *i;
-		MI->emit(CM);
-	}
-	return true;
+CodeMemory::CodeMemory() {
+	mcodebase    = (u1*) DumpMemory::allocate(MCODEINITSIZE);
+	mcodeend     = mcodebase + MCODEINITSIZE;
+	mcodesize    = MCODEINITSIZE;
+	//mcodeptr     = mcodebase;
+	mcodeptr     = mcodeend;
 }
 
-// pass usage
-PassUsage& CodeGenPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(MachineInstructionSchedulingPass::ID);
-	return PU;
+void CodeMemory::add_Label(BeginInst *BI) {
+	label_map.insert(std::make_pair(BI,mcodeptr));
 }
-// the address of this variable is used to identify the pass
-char CodeGenPass::ID = 0;
 
-// registrate Pass
-static PassRegistery<CodeGenPass> X("CodeGenPass");
+CodeFragment CodeMemory::get_Fragment(unsigned size) {
+	mcodeptr -= size;
+	return CodeFragment(mcodeptr, size);
+}
 
 } // end namespace compiler2
 } // end namespace jit

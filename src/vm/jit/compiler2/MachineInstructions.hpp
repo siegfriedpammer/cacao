@@ -31,10 +31,15 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-class MachineLabelInst : public MachineInstruction {
-public:
-	MachineLabelInst() : MachineInstruction("MLabel", &NoOperand, 0) {}
+// forward declarations
+class BeginInst;
 
+class MachineLabelInst : public MachineInstruction {
+private:
+	BeginInst *begin;
+public:
+	MachineLabelInst(BeginInst* BI) : MachineInstruction("MLabel", &NoOperand, 0), begin(BI) {}
+	virtual void emit(CodeMemory* CM) const;
 };
 
 class MachineJumpInst : public MachineInstruction {
@@ -96,7 +101,7 @@ public:
 };
 
 /**
- * Move register to register
+ * Move operand to operand
  */
 class MachineMoveInst : public MachineInstruction {
 public:
@@ -112,6 +117,7 @@ public:
 	virtual MachineMoveInst* to_MachineMoveInst() {
 		return this;
 	}
+	virtual void emit(CodeMemory* CM) const;
 
 };
 class MachineOperandInst : public MachineInstruction {

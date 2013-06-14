@@ -36,6 +36,7 @@ libcompiler2_la_SOURCES = \
 	BasicBlockSchedulingPass.cpp \
 	CFGConstructionPass.cpp \
 	CodeGenPass.cpp \
+	CodeMemory.cpp \
 	Compiler.cpp \
 	Conditional.cpp \
 	DominatorPass.cpp \
@@ -51,6 +52,7 @@ libcompiler2_la_SOURCES = \
 	LoweredInstDAG.cpp \
 	LoweringPass.cpp \
 	MachineInstruction.cpp \
+	MachineInstructions.cpp \
 	MachineInstructionSchedulingPass.cpp \
 	MachineInstructionPrinterPass.cpp \
 	MachineOperand.cpp \

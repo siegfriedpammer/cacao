@@ -55,6 +55,10 @@ void MachineInstruction::add_before(MachineInstruction *MI) {
 	parent->add_before(this,MI);
 }
 
+void MachineInstruction::emit(CodeMemory* CM) const {
+	ABORT_MSG("emit not yet implemented", "emit for " << this << " is not yet implemented");
+}
+
 OStream& operator<<(OStream &OS, const MachineInstruction *MI) {
 	if (!MI) {
 		return OS << "(MachineInstruction) NULL";

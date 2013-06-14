@@ -51,6 +51,7 @@ public:
 	virtual LoweredInstDAG* lower(Instruction *I) const;
 
 	virtual RegisterFile* get_RegisterFile() const = 0;
+	virtual void emit_Move(const MachineMoveInst *mov, CodeMemory* CM) const = 0;
 	virtual const char* get_name() const = 0;
 };
 /**
@@ -73,6 +74,7 @@ protected:
 	virtual LoweredInstDAG* lowerMULInst(MULInst *I) const;
 public:
 	virtual RegisterFile* get_RegisterFile() const;
+	virtual void emit_Move(const MachineMoveInst *mov, CodeMemory* CM) const;
 	virtual const char* get_name() const;
 };
 
@@ -80,7 +82,7 @@ template<typename Target>
 LoweredInstDAG* BackendTraits<Target>::lowerBeginInst(BeginInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	MachineLabelInst *label = new MachineLabelInst();
+	MachineLabelInst *label = new MachineLabelInst(I);
 	dag->add(label);
 	dag->set_result(label);
 	return dag;
