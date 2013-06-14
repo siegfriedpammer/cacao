@@ -39,6 +39,11 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+void MachineInstructionSchedulingPass::initialize() {
+	list.clear();
+	map.clear();
+}
+
 bool MachineInstructionSchedulingPass::run(JITData &JD) {
 	BasicBlockSchedule *BS = get_Pass<BasicBlockSchedulingPass>();
 	InstructionSchedule<Instruction> *IS = get_Pass<ListSchedulingPass>();

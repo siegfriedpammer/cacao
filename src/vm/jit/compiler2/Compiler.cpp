@@ -145,6 +145,7 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass(&MachineInstructionSchedulingPass::ID);
 	PM.add_Pass(&LivetimeAnalysisPass::ID);
 	PM.add_Pass(&LinearScanAllocatorPass::ID);
+	PM.add_Pass(&MachineInstructionSchedulingPass::ID);
 	PM.add_Pass(&MachineInstructionPrinterPass::ID);
 	PM.add_Pass(&RegisterAllocatorPass::ID);
 	PM.add_Pass(&CodeGenPass::ID);

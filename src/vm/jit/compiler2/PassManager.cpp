@@ -56,20 +56,16 @@ PassManager::~PassManager() {
 }
 
 void PassManager::initializePasses() {
-	for(ScheduleListTy::iterator i = schedule.begin(), e = schedule.end(); i != e; ++i) {
-		PassInfo::IDTy id = *i;
-		result_ready[id] = false;
-		Pass* P = get_initialized_Pass(id);
-		LOG("initialize: " << get_Pass_name(id) << nl);
-		P->initialize();
-	}
 }
 
 void PassManager::runPasses(JITData &JD) {
 	initializePasses();
 	for(ScheduleListTy::iterator i = schedule.begin(), e = schedule.end(); i != e; ++i) {
 		PassInfo::IDTy id = *i;
+		result_ready[id] = false;
 		Pass* P = get_initialized_Pass(id);
+		LOG("initialize: " << get_Pass_name(id) << nl);
+		P->initialize();
 		LOG("start: " << get_Pass_name(id) << nl);
 		if (!P->run(JD)) {
 			err() << bold << Red << "error" << reset_color << " during pass " << get_Pass_name(id) << nl;
@@ -83,18 +79,13 @@ void PassManager::runPasses(JITData &JD) {
 		}
 		#endif
 		result_ready[id] = true;
-		LOG("finished: " << get_Pass_name(id) << nl);
+		LOG("finialize: " << get_Pass_name(id) << nl);
+		P->finalize();
 	}
 	finalizePasses();
 }
 
 void PassManager::finalizePasses() {
-	for(ScheduleListTy::iterator i = schedule.begin(), e = schedule.end(); i != e; ++i) {
-		PassInfo::IDTy id = *i;
-		Pass* P = get_initialized_Pass(id);
-		LOG("finialize: " << get_Pass_name(id) << nl);
-		P->finalize();
-	}
 }
 
 } // end namespace cacao
