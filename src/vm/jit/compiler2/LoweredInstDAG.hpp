@@ -80,10 +80,19 @@ public:
 	Instruction * get_Instruction() const {
 		return inst;
 	}
+	void add_before(MachineInstruction *mi_old, MachineInstruction *mi_new) {
+		assert(mi_old);
+		assert(mi_new);
+		mi_iterator i = find(minst.begin(),minst.end(),mi_old);
+		if (i != minst.end()) {
+			mi_insert(i,mi_new);
+		}
+	}
 	void add(MachineInstruction *MI) {
 		assert(MI);
 		assert(std::find(minst.begin(),minst.end(),MI) == minst.end());
 		minst.push_back(MI);
+		MI->set_parent(this);
 	}
 	void set_input(MachineInstruction *MI) {
 		assert(MI);
@@ -131,8 +140,11 @@ public:
 	mi_iterator mi_end() { return minst.end(); }
 	const_mi_iterator mi_begin() const { return minst.begin(); }
 	const_mi_iterator mi_end() const { return minst.end(); }
+	std::size_t mi_size() const { return minst.size(); }
 
 	mi_iterator mi_insert(mi_iterator position, MachineInstruction* val) {
+		// TODO update DAG interface?!
+		val->set_parent(this);
 		return minst.insert(position, val);
 	}
 

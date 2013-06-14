@@ -25,7 +25,10 @@
 #ifndef _JIT_COMPILER2_MACHINEINSTRUCTIONSCHEDULE
 #define _JIT_COMPILER2_MACHINEINSTRUCTIONSCHEDULE
 
+#include "vm/jit/compiler2/MachineInstruction.hpp"
+
 #include <map>
+#include <list>
 #include <vector>
 #include <cassert>
 
@@ -34,7 +37,7 @@ namespace jit {
 namespace compiler2 {
 
 class BeginInst;
-class MachineInstruction;
+//class MachineInstruction;
 
 /**
  * MachineInstructionSchedule
@@ -48,8 +51,10 @@ public:
 	typedef MachineInstructionListTy::const_iterator const_iterator;
 	typedef MachineInstructionListTy::const_reverse_iterator const_reverse_iterator;
 protected:
+	typedef std::map<unsigned,std::list<MachineInstruction*> > AddedInstListTy;
 	MachineInstructionListTy list;
 	BasicBlockRangeTy map;
+	AddedInstListTy added_list;
 public:
 	MachineInstructionSchedule() {}
 	MachineInstruction* operator[](const unsigned i) const {
@@ -80,6 +85,27 @@ public:
 	}
 	const_reverse_iterator rend() const {
 		return list.rend();
+	}
+	void add_before(unsigned i, MachineInstruction *MI) {
+		assert(MI);
+		added_list[i].push_front(MI);
+	}
+	/**
+	 * write the added instructions to the DAG
+	 *
+	 * @note This invalidates the schedule
+	 */
+	void insert_added_instruction() {
+		for(unsigned i = 0, e = size(); i < e ; ++i) {
+			AddedInstListTy::const_iterator added_it = added_list.find(i);
+			MachineInstruction *MI = list[i];
+			if (added_it != added_list.end()) {
+				for (std::list<MachineInstruction*>::const_iterator i = added_it->second.begin(),
+						e = added_it->second.end(); i != e; ++i) {
+					MI->add_before(*i);
+				}
+			}
+		}
 	}
 };
 

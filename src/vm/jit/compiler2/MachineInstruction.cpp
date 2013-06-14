@@ -23,7 +23,10 @@
 */
 
 #include "vm/jit/compiler2/MachineInstruction.hpp"
+#include "vm/jit/compiler2/LoweredInstDAG.hpp"
 #include "toolbox/OStream.hpp"
+
+#define DEBUG_NAME "compiler2/MachineInstruction"
 
 namespace cacao {
 namespace jit {
@@ -42,6 +45,14 @@ OStream& MachineInstruction::print(OStream &OS) const {
 		OS << " -> " << result;
 	}
 	return OS;
+}
+
+void MachineInstruction::add_before(MachineInstruction *MI) {
+	assert(parent);
+	LOG2("add before " << this << " : " << MI << nl);
+	LOG2("minst.size: " << parent->mi_size() << nl);
+	//FIXME
+	parent->add_before(this,MI);
 }
 
 OStream& operator<<(OStream &OS, const MachineInstruction *MI) {

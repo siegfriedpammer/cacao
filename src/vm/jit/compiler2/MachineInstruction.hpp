@@ -31,11 +31,15 @@
 
 namespace cacao {
 
-// forward declarations
+// forward declaration
 class OStream;
 
 namespace jit {
 namespace compiler2 {
+
+// forward declaration
+class MachineMoveInst;
+class LoweredInstDAG;
 
 /**
  * Descriptor of a MachineOperand
@@ -64,6 +68,7 @@ public:
 	typedef operand_list::const_iterator const_operand_iterator;
 private:
 	static unsigned id_counter;
+	LoweredInstDAG *parent;
 protected:
 	const unsigned id;
 	operand_list operands;
@@ -76,12 +81,18 @@ public:
 	}
 	#endif
 	MachineInstruction(const char * name, MachineOperand* result, unsigned num_operands)
-		: id(id_counter++), operands(), result(result), name(name) {
+		: parent(NULL), id(id_counter++), operands(), result(result), name(name) {
 		for (unsigned i = 0; i < num_operands ; ++i) {
 			//operands[i].index = i;
 			operands.push_back(MachineOperandDesc(i));
 		}
 	}
+
+	LoweredInstDAG* get_parent() const { return parent; }
+	void set_parent(LoweredInstDAG* dag) { parent = dag; }
+
+	void add_before(MachineInstruction *MI);
+
 	unsigned size_op() const {
 		return operands.size();
 	}
@@ -127,6 +138,9 @@ public:
 	}
 	virtual bool is_phi() const {
 		return false;
+	}
+	virtual MachineMoveInst* to_MachineMoveInst() {
+		return NULL;
 	}
 	virtual OStream& print(OStream &OS) const;
 };

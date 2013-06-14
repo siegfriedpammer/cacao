@@ -109,6 +109,9 @@ public:
 	virtual bool accepts_immediate(unsigned i) const {
 		return true;
 	}
+	virtual MachineMoveInst* to_MachineMoveInst() {
+		return this;
+	}
 
 };
 class MachineOperandInst : public MachineInstruction {
