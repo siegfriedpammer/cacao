@@ -70,7 +70,6 @@
 #include "vm/jit/compiler2/LoopSimplificationPass.hpp"
 #include "vm/jit/compiler2/SSAPrinterPass.hpp"
 #include "vm/jit/compiler2/MachineInstructionPrinterPass.hpp"
-#include "vm/jit/compiler2/RegisterAllocatorPass.hpp"
 #include "vm/jit/compiler2/CodeGenPass.hpp"
 
 #include "vm/jit/compiler2/JITData.hpp"
@@ -147,7 +146,6 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass(&LinearScanAllocatorPass::ID);
 	PM.add_Pass(&MachineInstructionSchedulingPass::ID);
 	PM.add_Pass(&MachineInstructionPrinterPass::ID);
-	PM.add_Pass(&RegisterAllocatorPass::ID);
 	PM.add_Pass(&CodeGenPass::ID);
 
 /*****************************************************************************/
