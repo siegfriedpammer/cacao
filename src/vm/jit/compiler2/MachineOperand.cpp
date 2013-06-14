@@ -32,6 +32,7 @@ namespace compiler2 {
 VoidOperand NoOperand;
 
 unsigned VirtualRegister::vreg_counter = 0;
+unsigned ManagedStackSlot::slot_counter = 0;
 
 OStream& operator<<(OStream &OS, const MachineOperandType &MO) {
 	OS << "MachineOperandType [ ";

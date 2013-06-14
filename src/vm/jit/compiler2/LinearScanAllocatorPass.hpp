@@ -36,7 +36,7 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-//class LivetimeInterval;
+class MachineInstructionSchedule;
 
 namespace {
 struct StartComparator {
@@ -72,6 +72,9 @@ private:
 	ActiveSetTy active;
 	InactiveSetTy inactive;
 	HandledSetTy handled;
+
+	LivetimeAnalysisPass *LA;
+	MachineInstructionSchedule *MIS;
 
 	inline bool try_allocate_free_reg(JITData &JD,LivetimeInterval* current);
 	inline bool allocate_blocked_reg(JITData &JD,LivetimeInterval* current);

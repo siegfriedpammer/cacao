@@ -29,6 +29,7 @@
 #include "vm/jit/compiler2/LivetimeAnalysisPass.hpp"
 #include "vm/jit/compiler2/MachineRegister.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
+#include "vm/jit/compiler2/MachineInstructions.hpp"
 
 #include <climits>
 
@@ -238,6 +239,19 @@ inline bool LinearScanAllocatorPass::allocate_blocked_reg(JITData &JD, LivetimeI
 			dbg()<<" def: ";
 			print_container(dbg(),new_lti->def_begin(),new_lti->def_end()) << nl;
 		}
+		// stack slot
+		ManagedStackSlot *slot = new ManagedStackSlot();
+		// spill
+		MachineInstruction *move_to_stack = new MachineMoveInst(slot,reg);
+		LOG2("spill instruction: " << move_to_stack << nl);
+		MIS->add_before(current->get_start(),move_to_stack);
+		// load
+		MachineInstruction *move_from_stack = new MachineMoveInst(new_lti->get_reg(),slot);
+		LOG2("load instruction: " << move_from_stack << nl);
+		MIS->add_before(new_lti->get_start(),move_from_stack);
+		// register new def (load)
+		new_lti->add_def(new_lti->get_start(),move_from_stack->get_result());
+
 		// TODO split an inactive interval for reg at the end of its lifetime hole
 		for (InactiveSetTy::const_iterator i = inactive.begin(), e = inactive.end();
 				i != e ; ++i) {
@@ -259,8 +273,8 @@ inline bool LinearScanAllocatorPass::allocate_blocked_reg(JITData &JD, LivetimeI
 
 
 bool LinearScanAllocatorPass::run(JITData &JD) {
-	LivetimeAnalysisPass *LA = get_Pass<LivetimeAnalysisPass>();
-	MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
+	LA = get_Pass<LivetimeAnalysisPass>();
+	MIS = get_Pass<MachineInstructionSchedulingPass>();
 
 	for (LivetimeAnalysisPass::iterator i = LA->begin(), e = LA->end();
 			i != e ; ++i) {
@@ -357,6 +371,25 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 			MOD->op = lti->get_reg();
 		}
 	}
+
+	// resolution
+	Method *M = JD.get_Method();
+
+	for (Method::const_bb_iterator i = M->bb_begin(), e = M->bb_end();
+			i != e ; ++i) {
+
+		BeginInst *pred = *i;
+		EndInst *pred_end = pred->get_EndInst();
+		for (EndInst::SuccessorListTy::const_iterator i = pred_end->succ_begin(),
+				e = pred_end->succ_end(); i != e ; ++i) {
+			BeginInst *succ = *i;
+			LOG2("Edge: " << pred << " -> " << succ << nl);
+		}
+	}
+
+	// write back the spill/store instructions
+	MIS->insert_added_instruction();
+
 	return true;
 }
 

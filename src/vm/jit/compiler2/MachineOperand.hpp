@@ -134,6 +134,25 @@ public:
 	}
 };
 
+class ManagedStackSlot : public MachineOperand {
+private:
+	static unsigned slot_counter;
+	int index; ///< index of the stackslot
+public:
+	/**
+	 * FIXME this should be managed
+	 */
+	ManagedStackSlot() : index(slot_counter++) {}
+	//virtual StackSlot* to_StackSlot() { return this; }
+	int get_index() const { return index; }
+	virtual const char* get_name() const {
+		return "ManagedStackSlot";
+	}
+	virtual OStream& print(OStream &OS) const {
+		return OS << get_name() << get_index();
+	}
+};
+
 class Immediate : public MachineOperand {
 public:
 	virtual Immediate* to_Immediate() { return this; }
