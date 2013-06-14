@@ -31,6 +31,8 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+class X86_64Register;
+typedef X86_64Register NativeRegister;
 
 class MachineRegister : public Register {
 protected:
@@ -41,6 +43,7 @@ public:
 	virtual const char* get_name() const {
 		return name;
 	}
+	virtual NativeRegister* to_NaviveRegister() = 0;
 	~MachineRegister() {}
 };
 
