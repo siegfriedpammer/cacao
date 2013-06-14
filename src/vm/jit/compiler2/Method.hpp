@@ -42,6 +42,17 @@ class Instruction;
 class BeginInst;
 class MethodDescriptor;
 
+template <typename _NodeType>
+struct edge {
+	_NodeType predecessor;
+	_NodeType successsor;
+	edge(_NodeType p, _NodeType s) : predecessor(p), successsor(s) {}
+};
+
+template <typename _NodeType>
+edge<_NodeType> make_edge (_NodeType x, _NodeType y) {
+	return ( edge<_NodeType>(x,y) );
+}
 
 class Method {
 public:
@@ -132,6 +143,7 @@ public:
 	}
 
 	void clear_schedule() const;
+
 };
 
 
