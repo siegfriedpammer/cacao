@@ -31,7 +31,13 @@
 
 #include "toolbox/logging.hpp"
 
-#define DEBUG_NAME "compiler2/PassManger"
+// NOTE: the register stuff can not use LOG* macros because comman line
+// arguments are not parsed at registration
+#if 1
+#define MYLOG(EXPR) do { dbg() << EXPR; } while(0)
+#else
+#define MYLOG(EXPR)
+#endif
 
 namespace cacao {
 namespace jit {
@@ -102,11 +108,13 @@ private:
 	}
 	template<class _PassClass>
 	_PassClass* get_Pass_result() {
+		assert_msg(result_ready[&_PassClass::ID], "result for "
+		  << get_Pass_name(&_PassClass::ID) << " is not ready!");
 		return (_PassClass*)initialized_passes[&_PassClass::ID];
 	}
 public:
 	PassManager() {
-		dbg() << "PassManager::PassManager()" << nl;
+		MYLOG("PassManager::PassManager()" << nl);
 	}
 
 	~PassManager();
@@ -115,7 +123,7 @@ public:
 	 * DO NOT CALL THIS MANUALLY. ONLY INVOKE VIA RegisterPass.
 	 */
 	static void register_Pass(PassInfo *PI) {
-		dbg() << "PassManager::register_Pass: " << PI->get_name() << nl;
+		MYLOG("PassManager::register_Pass: " << PI->get_name() << nl);
 		registered_passes().insert(std::make_pair(PI->ID,PI));
 	}
 
@@ -157,7 +165,7 @@ struct PassRegistery : public PassInfo {
 	}
 };
 
-#undef DEBUG_NAME
+#undef MYLOG
 
 } // end namespace cacao
 } // end namespace jit

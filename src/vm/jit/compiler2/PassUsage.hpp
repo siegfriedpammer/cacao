@@ -39,10 +39,13 @@ namespace compiler2 {
  * This is a Container to track dependencies between passes
  */
 class PassUsage {
+public:
+	typedef std::set<PassInfo::IDTy> PIIDSet;
+	typedef PIIDSet::const_iterator const_iterator;
 private:
-	std::set<PassInfo::IDTy> requires;
-	std::set<PassInfo::IDTy> destroys;
-	std::set<PassInfo::IDTy> modifies;
+	PIIDSet requires;
+	PIIDSet destroys;
+	PIIDSet modifies;
 public:
 	PassUsage() {}
 	void add_requires(char &ID) {
@@ -60,6 +63,15 @@ public:
 	bool is_required(char &ID) const {
 		return requires.find(&ID) != requires.end();
 	}
+
+	const_iterator destroys_begin() const { return destroys.begin(); }
+	const_iterator destroys_end()   const { return destroys.end(); }
+
+	const_iterator modifies_begin() const { return destroys.begin(); }
+	const_iterator modifies_end()   const { return destroys.end(); }
+
+	const_iterator requires_begin() const { return destroys.begin(); }
+	const_iterator requires_end()   const { return destroys.end(); }
 };
 
 

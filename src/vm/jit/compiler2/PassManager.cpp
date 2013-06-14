@@ -23,6 +23,7 @@
 */
 
 #include "vm/jit/compiler2/PassManager.hpp"
+#include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/Pass.hpp"
 #include "toolbox/logging.hpp"
 #include "vm/vm.hpp"
@@ -70,6 +71,14 @@ void PassManager::runPasses(JITData &JD) {
 		if (!P->run(JD)) {
 			err() << bold << Red << "error" << reset_color << " during pass " << get_Pass_name(id) << nl;
 			os::abort("compiler2: error");
+		}
+		// invalidating results
+		PassUsage PU;
+		PU = P->get_PassUsage(PU);
+		for (PassUsage::const_iterator i = PU.destroys_begin(), e = PU.destroys_end();
+				i != e; ++i) {
+			result_ready[*i] = false;
+			LOG("mark invalid" << get_Pass_name(*i) << nl);
 		}
 		#ifndef NDEBUG
 		LOG("verifying: " << get_Pass_name(id) << nl);
