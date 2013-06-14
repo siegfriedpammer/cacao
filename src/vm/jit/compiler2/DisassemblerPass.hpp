@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/CodeGenPass.hpp - CodeGenPass
+/* src/vm/jit/compiler2/DisassemblerPass.hpp - DisassemblerPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,11 +22,10 @@
 
 */
 
-#ifndef _JIT_COMPILER2_CODEGENPASS
-#define _JIT_COMPILER2_CODEGENPASS
+#ifndef _JIT_COMPILER2_DISASSEMBLERPASS
+#define _JIT_COMPILER2_DISASSEMBLERPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
-#include "vm/jit/compiler2/CodeMemory.hpp"
 
 namespace cacao {
 namespace jit {
@@ -34,25 +33,22 @@ namespace compiler2 {
 
 
 /**
- * CodeGenPass
+ * DisassemblerPass
  * TODO: more info
  */
-class CodeGenPass : public Pass {
-private:
-	CodeMemory cm;
+class DisassemblerPass : public Pass {
 public:
 	static char ID;
-	CodeGenPass() : Pass() {}
+	DisassemblerPass() : Pass() {}
 	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PU) const;
-	const CodeMemory& get_CodeMemory() const { return cm; }
+	PassUsage& get_PassUsage(PassUsage &PA) const;
 };
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_CODEGENPASS */
+#endif /* _JIT_COMPILER2_DISASSEMBLERPASS */
 
 
 /*

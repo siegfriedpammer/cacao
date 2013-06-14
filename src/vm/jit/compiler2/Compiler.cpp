@@ -71,6 +71,7 @@
 #include "vm/jit/compiler2/SSAPrinterPass.hpp"
 #include "vm/jit/compiler2/MachineInstructionPrinterPass.hpp"
 #include "vm/jit/compiler2/CodeGenPass.hpp"
+#include "vm/jit/compiler2/DisassemblerPass.hpp"
 
 #include "vm/jit/compiler2/JITData.hpp"
 
@@ -147,6 +148,7 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass(&MachineInstructionSchedulingPass::ID);
 	PM.add_Pass(&MachineInstructionPrinterPass::ID);
 	PM.add_Pass(&CodeGenPass::ID);
+	PM.add_Pass(&DisassemblerPass::ID);
 
 /*****************************************************************************/
 /** prolog start jit_compile **/

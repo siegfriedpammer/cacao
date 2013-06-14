@@ -87,6 +87,15 @@ public:
 	 * get a code fragment
 	 */
 	CodeFragment get_Fragment(unsigned size);
+
+	/**
+	 * get the start address of the code memory
+	 */
+	u1* get_start() const { return mcodeptr; }
+	/**
+	 * get the end address of the code memory
+	 */
+	u1* get_end() const { return mcodeend; }
 };
 
 

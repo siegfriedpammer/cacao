@@ -26,7 +26,6 @@
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
-#include "vm/jit/compiler2/CodeMemory.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 
 namespace cacao {
@@ -35,7 +34,6 @@ namespace compiler2 {
 
 bool CodeGenPass::run(JITData &JD) {
 	MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
-	CodeMemory cm;
 	CodeMemory *CM = &cm;
 
 	// NOTE reverse so we see jump targets (which are not backedges) before

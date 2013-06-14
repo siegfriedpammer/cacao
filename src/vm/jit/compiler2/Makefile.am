@@ -39,6 +39,7 @@ libcompiler2_la_SOURCES = \
 	CodeMemory.cpp \
 	Compiler.cpp \
 	Conditional.cpp \
+	DisassemblerPass.cpp \
 	DominatorPass.cpp \
 	DomTreePrinterPass.cpp \
 	GraphHelper.cpp \

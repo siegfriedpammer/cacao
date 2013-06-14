@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/CodeGenPass.hpp - CodeGenPass
+/* src/vm/jit/compiler2/DisassemblerPass.cpp - DisassemblerPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,37 +22,45 @@
 
 */
 
-#ifndef _JIT_COMPILER2_CODEGENPASS
-#define _JIT_COMPILER2_CODEGENPASS
+#include "vm/jit/compiler2/DisassemblerPass.hpp"
+#include "vm/jit/compiler2/PassManager.hpp"
+#include "vm/jit/compiler2/JITData.hpp"
+#include "vm/jit/compiler2/PassUsage.hpp"
+#include "vm/jit/compiler2/CodeGenPass.hpp"
 
-#include "vm/jit/compiler2/Pass.hpp"
-#include "vm/jit/compiler2/CodeMemory.hpp"
+#include "vm/jit/disass.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+bool DisassemblerPass::run(JITData &JD) {
+	CodeGenPass *CG = get_Pass<CodeGenPass>();
+	const CodeMemory &CM = CG->get_CodeMemory();
 
-/**
- * CodeGenPass
- * TODO: more info
- */
-class CodeGenPass : public Pass {
-private:
-	CodeMemory cm;
-public:
-	static char ID;
-	CodeGenPass() : Pass() {}
-	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PU) const;
-	const CodeMemory& get_CodeMemory() const { return cm; }
-};
+	u1 *start = CM.get_start();
+	u1 *end = CM.get_end();
+
+	disassemble(start, end);
+
+	return true;
+}
+
+// pass usage
+PassUsage& DisassemblerPass::get_PassUsage(PassUsage &PU) const {
+	PU.add_requires(CodeGenPass::ID);
+	return PU;
+}
+
+// the address of this variable is used to identify the pass
+char DisassemblerPass::ID = 0;
+
+// register pass
+static PassRegistery<DisassemblerPass> X("DisassemblerPass");
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
-
-#endif /* _JIT_COMPILER2_CODEGENPASS */
 
 
 /*
