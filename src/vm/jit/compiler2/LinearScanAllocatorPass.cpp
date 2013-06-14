@@ -29,6 +29,7 @@
 #include "vm/jit/compiler2/LivetimeAnalysisPass.hpp"
 #include "vm/jit/compiler2/MachineRegister.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
+#include "vm/jit/compiler2/LoweringPass.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
 
 #include <climits>
@@ -270,11 +271,25 @@ inline bool LinearScanAllocatorPass::allocate_blocked_reg(JITData &JD, LivetimeI
 	return true;
 }
 
+namespace {
+
+template <class _T, typename _V>
+struct push_lambda {
+	_T& obj;
+	push_lambda(_T &obj) : obj(obj) {}
+	void operator()(_V x) {
+		obj.push(x);
+	}
+};
+
+} //end anonymous namespace
 
 
 bool LinearScanAllocatorPass::run(JITData &JD) {
 	LA = get_Pass<LivetimeAnalysisPass>();
 	MIS = get_Pass<MachineInstructionSchedulingPass>();
+	LoweringPass *LP = get_Pass<LoweringPass>();
+
 
 	for (LivetimeAnalysisPass::iterator i = LA->begin(), e = LA->end();
 			i != e ; ++i) {
@@ -353,6 +368,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 	// move all active/inactive to handled
 	handled.insert(handled.end(),inactive.begin(),inactive.end());
 	handled.insert(handled.end(),active.begin(),active.end());
+	// set src/dst operands
 	for (HandledSetTy::const_iterator i = handled.begin(), e = handled.end();
 			i != e ; ++i) {
 		LivetimeInterval *lti = *i;
@@ -375,6 +391,88 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 	// resolution
 	Method *M = JD.get_Method();
 
+	// fill live in information
+	// TODO this can be done more efficient I guess
+	push_lambda<UnhandledSetTy,LivetimeInterval*> push_me(unhandled);
+	// FIXME this can be handled with <functional> or C++11
+	std::for_each(handled.begin(),handled.end(),push_me);
+	active.clear();
+	inactive.clear();
+	LOG2("size of unhandled: " << unhandled.size() << nl);
+
+	std::map<BeginInst*,std::set<LivetimeInterval*> > active_map;
+
+	for (Method::const_bb_iterator i = M->bb_begin(), e = M->bb_end();
+			i != e ; ++i) {
+		BeginInst *BI = *i;
+		unsigned pos = MIS->get_range(BI).first;
+		// check for intervals in active that are handled or inactive
+		for (ActiveSetTy::iterator i = active.begin(), e = active.end();
+				i != e ; /* ++i */) {
+			LivetimeInterval *act = *i;
+			//LOG2("active LTI " << act << nl);
+			if (act->get_end() <= pos) {
+				// add to handled
+				//handled.push_back(act);
+				// remove from active
+				i = active.erase(i);
+			} else if(act->is_inactive(pos)) {
+				// add to inactive
+				inactive.push_back(act);
+				// remove from active
+				i = active.erase(i);
+			} else {
+				// NOTE: erase returns the next element so we can not increment
+				// in the loop header!
+				++i;
+			}
+		}
+		// check for intervals in inactive that are handled or active
+		for (InactiveSetTy::iterator i = inactive.begin(), e = inactive.end();
+				i != e ; /* ++i */) {
+			LivetimeInterval *inact = *i;
+			if (inact->get_end() <= pos) {
+				// add to handled
+				//handled.push_back(inact);
+				// remove from inactive
+				i = inactive.erase(i);
+			} else if(!inact->is_inactive(pos)) {
+				// add to active
+				active.push_back(inact);
+				// remove from inactive
+				i = inactive.erase(i);
+			} else {
+				// NOTE: erase returns the next element so we can not increment
+				// in the loop header!
+				++i;
+			}
+		}
+		// check unhandled
+		while(!unhandled.empty()) {
+			LivetimeInterval *current = unhandled.top();
+			if (current->get_start() > pos) {
+				break;
+			}
+			unhandled.pop();
+			if (current->get_end() <= pos) {
+				// handled
+				continue;
+			}
+			if(current->is_inactive(pos)) {
+				// inactive
+				inactive.push_back(current);
+			} else {
+				// active
+				active.push_back(current);
+			}
+
+		}
+		// all in active are now live
+		LOG("active at " << BI << "(" << pos <<"-" << MIS->get_range(BI).second << "): ");
+		DEBUG(print_container(dbg(),active.begin(),active.end()) << nl);
+		active_map[BI].insert(active.begin(),active.end());
+	}
+
 	for (Method::const_bb_iterator i = M->bb_begin(), e = M->bb_end();
 			i != e ; ++i) {
 
@@ -382,8 +480,63 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 		EndInst *pred_end = pred->get_EndInst();
 		for (EndInst::SuccessorListTy::const_iterator i = pred_end->succ_begin(),
 				e = pred_end->succ_end(); i != e ; ++i) {
+			// for each edge pred -> succ
 			BeginInst *succ = *i;
+			MachineInstructionSchedule::MachineInstructionRangeTy succ_range = MIS->get_range(succ);
 			LOG2("Edge: " << pred << " -> " << succ << nl);
+			std::set<LivetimeInterval*> &ltis_succ = active_map[succ];
+			std::set<LivetimeInterval*> &ltis_pred = active_map[succ];
+			for (std::set<LivetimeInterval*>::const_iterator i = ltis_succ.begin(),
+					e = ltis_succ.end(); i != e ; ++i) {
+				// for each live interval lti active at the start of pred
+				LivetimeInterval* lti = *i;
+				// resolve PHIs!
+				if (lti->get_start() == succ_range.first) {
+					LOG("WE HAVE A WINNER!" << nl);
+					assert(lti->def_size() == 1);
+					MachineInstruction *MI = MIS->get(lti->def_front().first);
+					assert( MI->is_phi());
+					LoweredInstDAG *use_dag = MI->get_parent();
+					PHIInst *phi = use_dag->get_Instruction()->to_PHIInst();
+					assert(phi);
+					signed index = succ->get_predecessor_index(pred);
+					assert(index != -1);
+					Instruction *I = phi->get_operand(index)->to_Instruction();
+					assert(I);
+					LoweredInstDAG *def_dag = LP->get_LoweredInstDAG(I);
+					assert(def_dag);
+					Register *pred_reg = def_dag->get_result()->get_result().op->to_Register();
+					Register *succ_reg = MI->get(index).op->to_Register();
+					LOG("result is in: " << pred_reg << " and used in " << succ_reg << nl);
+					if (succ_reg != pred_reg) {
+						ABORT_MSG("Registers not yet aligned!","must insert move from " << pred_reg << " to " << succ_reg);
+					}
+				}
+
+				// TODO this is not a problem at backedges because of the phi functions
+				#if 0
+				// resolve splitted intervals
+				LivetimeInterval *lti_next = lti;
+				while( (lti_next = lti_next->get_next()) ) {
+					if (ltis_pred.find(lti_next) != ltis_pred.end()) {
+						LOG("Found split interval." << lti_next << " is split off " << lti << nl);
+					}
+				}
+				#endif
+			}
+			for (std::set<LivetimeInterval*>::const_iterator i = ltis_pred.begin(),
+					e = ltis_pred.end(); i != e ; ++i) {
+				// for each live interval lti active at the start of pred
+
+				// resolve splitted intervals
+				LivetimeInterval *lti = *i;
+				LivetimeInterval *lti_next = lti;
+				while( (lti_next = lti_next->get_next()) ) {
+					if (ltis_succ.find(lti_next) != ltis_succ.end()) {
+						LOG("Found split interval." << lti_next << " is split off " << lti << nl);
+					}
+				}
+			}
 		}
 	}
 
@@ -397,6 +550,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 PassUsage& LinearScanAllocatorPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires(LivetimeAnalysisPass::ID);
 	PU.add_requires(MachineInstructionSchedulingPass::ID);
+	PU.add_requires(LoweringPass::ID);
 	return PU;
 }
 

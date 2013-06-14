@@ -55,7 +55,8 @@ public:
 	 * @Cpp11 this could be changed to std::set where erase returns an
 	 * iterator.
 	 */
-	typedef std::list<std::pair<unsigned,MachineOperandDesc*> > UseDefTy;
+	typedef std::pair<unsigned,MachineOperandDesc*> UseDefEntryTy;
+	typedef std::list<UseDefEntryTy> UseDefTy;
 	typedef UseDefTy::const_iterator const_use_iterator;
 	typedef UseDefTy::const_iterator const_def_iterator;
 	typedef UseDefTy::iterator use_iterator;
@@ -108,10 +109,12 @@ public:
 	const_iterator end()           const { return intervals.end(); }
 	std::size_t size()             const { return intervals.size(); }
 
+	UseDefEntryTy use_front()      const { return uses.front(); }
 	const_use_iterator use_begin() const { return uses.begin(); }
 	const_use_iterator use_end()   const { return uses.end(); }
 	std::size_t use_size()         const { return uses.size(); }
 
+	UseDefEntryTy def_front()      const { return defs.front(); }
 	const_def_iterator def_begin() const { return defs.begin(); }
 	const_def_iterator def_end()   const { return defs.end(); }
 	std::size_t def_size()         const { return defs.size(); }
@@ -140,6 +143,11 @@ public:
 	/**
 	 * Returns true if this interval is active at pos
 	 */
+
+	LivetimeInterval* get_next() const {
+		return next_split;
+	}
+
 	bool is_inactive(unsigned pos) const {
 		for(const_iterator i = begin(), e = end(); i != e ; ++i) {
 			if( pos < i->first) {

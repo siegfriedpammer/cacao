@@ -108,11 +108,12 @@ LivetimeInterval* LivetimeInterval::split(unsigned pos) {
 			++i;
 		}
 	}
-	// TODO set reg!
+	// create new virtual register
 	VirtualRegister *vreg = new VirtualRegister();
 	lti->set_reg(vreg);
-	// TODO set user at the end of this lti (store)
-	// TODO set def for new lti (load)
+	// set hint to the current register
+	assert(reg->to_MachineRegister());
+	lti->set_hint(reg);
 	return lti;
 }
 
