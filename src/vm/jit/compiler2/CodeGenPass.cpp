@@ -28,12 +28,18 @@
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 
+#include "toolbox/logging.hpp"
+
 #include "mm/codememory.hpp"
 #include "vm/types.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/methodtree.hpp"
 
+#include "vm/jit/disass.hpp"
+
 #include "md.hpp"
+
+#define DEBUG_NAME "compiler2/CodeGen"
 
 namespace cacao {
 namespace jit {
@@ -48,7 +54,15 @@ bool CodeGenPass::run(JITData &JD) {
 	for (MachineInstructionSchedule::const_reverse_iterator i = MIS->rbegin(),
 			e = MIS->rend() ; i != e ; ++i ) {
 		MachineInstruction *MI = *i;
+		u1* start = CM->get_start();
 		MI->emit(CM);
+		LOG2("MInst: " << MI << " emitted instruction:" << nl);
+		u1* end = CM->get_start();
+		if ( start == end) {
+			LOG2("none" << nl);
+		} else {
+			disassemble(CM->get_start(),start);
+		}
 	}
 	// resolve jumps
 	CM->resolve();
