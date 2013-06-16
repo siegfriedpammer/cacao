@@ -74,7 +74,7 @@ public:
 		operands[0].op = src1;
 		operands[1].op = src2;
 	}
-
+	virtual void emit(CodeMemory* CM) const;
 };
 
 class X86_64SubInst : public MachineInstruction {
@@ -93,7 +93,6 @@ public:
 			: MachineInstruction("X86_64RetInst", &NoOperand, 0) {
 	}
 	virtual void emit(CodeMemory* CM) const;
-
 };
 
 class X86_64MovInst : public MachineInstruction {
@@ -103,7 +102,6 @@ public:
 		operands[0].op = src;
 	}
 	virtual void emit(CodeMemory* CM) const;
-
 };
 
 } // end namespace compiler2

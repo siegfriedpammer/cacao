@@ -36,20 +36,31 @@ namespace jit {
 namespace compiler2 {
 
 void X86_64RetInst::emit(CodeMemory* CM) const {
-	CodeFragment code = CM->get_Fragment(1);
+	CodeFragment code = CM->get_CodeFragment(1);
 	code[0] = 0xc3;
 }
 
 void X86_64MovInst::emit(CodeMemory* CM) const {
-	X86_64Register *src_reg = operands[0].op->to_Register()->to_MachineRegister()->to_NaviveRegister();
-	unsigned src_idx = src_reg->get_index();
-	X86_64Register *dst_reg = result.op->to_Register()->to_MachineRegister()->to_NaviveRegister();
-	unsigned dst_idx = dst_reg->get_index();
+	X86_64Register *src_reg = operands[0].op->to_Register()
+		->to_MachineRegister()->to_NaviveRegister();
+	X86_64Register *dst_reg = result.op->to_Register()
+		->to_MachineRegister()->to_NaviveRegister();
 
-	CodeFragment code = CM->get_Fragment(3);
+	CodeFragment code = CM->get_CodeFragment(3);
 	code[0] = get_rex(src_reg,dst_reg);
 	code[1] = 0x89; // MOV
-	code[2] = 0xC0 | (0x7 & src_idx) << 3 | (0x7 & dst_idx); // ModRM
+	code[2] = get_modrm(src_reg,dst_reg);
+}
+
+void X86_64IMulInst::emit(CodeMemory* CM) const {
+	X86_64Register *src_reg = operands[0].op->to_Register()->to_MachineRegister()->to_NaviveRegister();
+	X86_64Register *dst_reg = result.op->to_Register()->to_MachineRegister()->to_NaviveRegister();
+
+	CodeFragment code = CM->get_CodeFragment(4);
+	code[0] = get_rex(src_reg,dst_reg);
+	code[1] = 0x0f; // IMUL1
+	code[2] = 0xaf; // IMUL2
+	code[3] = get_modrm(src_reg,dst_reg);
 }
 
 

@@ -29,6 +29,7 @@
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/LoweredInstDAG.hpp"
 #include "vm/jit/compiler2/MethodDescriptor.hpp"
+#include "vm/jit/compiler2/CodeMemory.hpp"
 
 #include "toolbox/OStream.hpp"
 #include "toolbox/logging.hpp"
@@ -172,6 +173,34 @@ void BackendBase<X86_64>::emit_Move(const MachineMoveInst *mov, CodeMemory* CM) 
 		}
 	}
 	ABORT_MSG("x86_64 TODO","non reg-to-reg moves not yet implemented");
+}
+
+template<>
+void BackendBase<X86_64>::emit_Jump(const MachineJumpInst *jump, CodeMemory* CM) const {
+	GOTOInst *gt = jump->get_parent()->get_Instruction()->to_GOTOInst();
+	assert(gt);
+	assert(gt->succ_size() == 1);
+	BeginInst *BI = gt->succ_front();
+	s4 offset = CM->get_offset(gt->get_BeginInst());
+	switch (offset) {
+	case 0:
+		LOG2("emit_Jump: jump to the next instruction -> can be omitted ("
+		     << gt << " to " << BI << ")"  << nl);
+		return;
+	case CodeMemory::INVALID_OFFSET:
+		LOG2("emit_Jump: target not yet known (" << gt << " to "
+		     << BI << ")"  << nl);
+		// reserve memory and add to resolve later
+		// worst case -> 32bit offset
+		CodeFragment CF = CM->get_CodeFragment(5);
+		CM->resolve_later(BI,CF);
+		return;
+	#if 0
+	default:
+		// create jump
+	#endif
+	}
+	ABORT_MSG("x86_64 TODO","jump not yet implemented");
 }
 
 } // end namespace compiler2

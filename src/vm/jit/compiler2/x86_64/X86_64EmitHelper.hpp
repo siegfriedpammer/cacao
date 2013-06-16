@@ -32,7 +32,7 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-u1 get_rex(X86_64Register *reg, X86_64Register *rm) {
+inline u1 get_rex(X86_64Register *reg, X86_64Register *rm) {
 	const unsigned rex_w = 3;
 	const unsigned rex_r = 2;
 	//const unsigned rex_x = 1;
@@ -51,6 +51,17 @@ u1 get_rex(X86_64Register *reg, X86_64Register *rm) {
 	return rex;
 }
 
+inline u1 get_modrm(X86_64Register *reg, X86_64Register *rm) {
+	const unsigned modrm_mod = 6;
+	const unsigned modrm_reg = 3;
+	const unsigned modrm_rm = 0;
+
+	u1 modrm = 0x3 << modrm_mod;
+	modrm |= reg->get_index() << modrm_reg;
+	modrm |= rm->get_index() << modrm_rm;
+
+	return modrm;
+}
 
 } // end namespace compiler2
 } // end namespace jit
