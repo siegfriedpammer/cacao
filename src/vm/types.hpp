@@ -157,7 +157,13 @@ public:
 	static const unsigned long int min = 0;
 	static const unsigned long int max = ULONG_MAX;
 };
+
+template <class T,class A>
+inline bool fits_into(A a) {
+	return numeric_limits<T>::min <= a && a <= numeric_limits<T>::max;
 }
+
+} // end namespace cacao
 
 #endif // CACAO_TYPES_HPP_
 
