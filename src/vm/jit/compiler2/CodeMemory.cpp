@@ -23,9 +23,14 @@
 */
 
 #include "vm/jit/compiler2/CodeMemory.hpp"
+#include "vm/jit/compiler2/MachineInstruction.hpp"
 #include "mm/dumpmemory.hpp"
 
+#include "toolbox/logging.hpp"
+
 #include <map>
+
+#define DEBUG_NAME "compiler2/CodeMemory"
 
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */
 
@@ -33,6 +38,9 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+s4 CodeFragment::get_offset(const BeginInst *BI) const {
+	return parent->get_offset(BI,code_ptr + size);
+}
 //const s4 CodeMemory::INVALID_OFFSET = std::numeric_limits<s4>::max();
 
 CodeMemory::CodeMemory() {
@@ -47,26 +55,39 @@ void CodeMemory::add_label(const BeginInst *BI) {
 	label_map.insert(std::make_pair(BI,mcodeptr));
 }
 
-s4 CodeMemory::get_offset(const BeginInst *BI) const {
+s4 CodeMemory::get_offset(const BeginInst *BI, u1 *current_pos) const {
 	LabelMapTy::const_iterator i = label_map.find(BI);
 	if (i == label_map.end() ) {
 		return INVALID_OFFSET;
 	}
-	s4 offset = s4(i->second - mcodeptr);
+	// FIXME this is so not safe!
+	s4 offset = s4(i->second - current_pos);
 
 	// this should never happen
-	assert(offset == INVALID_OFFSET);
+	assert(offset != INVALID_OFFSET);
 
 	return offset;
 }
-void CodeMemory::resolve_later(const BeginInst *BI, CodeFragment CM) {
-	resolve_map.insert(std::make_pair(BI,CM));
+void CodeMemory::resolve_later(const BeginInst *BI,
+		const MachineInstruction* MI, CodeFragment CM) {
+	resolve_map.insert(std::make_pair(BI,std::make_pair(MI,CM)));
 }
 
+void CodeMemory::resolve() {
+	LOG2("CodeMemory::resolve" << nl);
+	for (ResolveLaterMapTy::iterator i = resolve_map.begin(),
+			e = resolve_map.end(); i != e; ++i) {
+		const BeginInst *BI = i->first;
+		const MachineInstruction *MI = i->second.first;
+		LOG2("resolve " << MI << " jump to " << BI << nl);
+		CodeFragment &CF = i->second.second;
+		MI->emit(CF);
+	}
+}
 CodeFragment CodeMemory::get_CodeFragment(unsigned size) {
 	assert((mcodeptr - size) >= mcodebase);
 	mcodeptr -= size;
-	return CodeFragment(mcodeptr, size);
+	return CodeFragment(this, mcodeptr, size);
 }
 
 } // end namespace compiler2

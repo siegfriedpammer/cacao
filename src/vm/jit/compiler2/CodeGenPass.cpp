@@ -50,6 +50,8 @@ bool CodeGenPass::run(JITData &JD) {
 		MachineInstruction *MI = *i;
 		MI->emit(CM);
 	}
+	// resolve jumps
+	CM->resolve();
 	// finish
 	finish(JD);
 	return true;

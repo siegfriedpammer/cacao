@@ -36,6 +36,7 @@ namespace compiler2 {
 
 // forward declarations
 class BeginInst;
+class MachineInstruction;
 class CodeMemory;
 
 /**
@@ -49,12 +50,15 @@ class CodeMemory;
  */
 class CodeFragment {
 private:
+	CodeMemory *parent;
 	u1 *code_ptr;
 	unsigned size;
-	CodeFragment(u1 *code_ptr,unsigned size) : code_ptr(code_ptr), size(size) {}
+	CodeFragment(CodeMemory* parent, u1 *code_ptr,unsigned size)
+		: parent(parent), code_ptr(code_ptr), size(size) {}
 public:
 	// Copy Constructor
-	CodeFragment(const CodeFragment &other) : code_ptr(other.code_ptr), size(other.size) {}
+	CodeFragment(const CodeFragment &other) : parent(other.parent),
+		code_ptr(other.code_ptr), size(other.size) {}
 	// Copy assignment operator
 	CodeFragment& operator=(const CodeFragment &other) {
 		code_ptr = other.code_ptr;
@@ -65,6 +69,13 @@ public:
 		assert(i < size);
 		return *(code_ptr + i);
 	}
+	/**
+	 * get the offset from the current position to the label.
+	 *
+	 * @return offset from the current position or INVALID_OFFSET if label
+	 * not found.
+	 */
+	s4 get_offset(const BeginInst *BI) const;
 	friend class CodeMemory;
 };
 
@@ -79,9 +90,18 @@ private:
 	u1             *mcodeptr;       ///< code generation pointer
 
 	typedef std::map<const BeginInst*,u1*> LabelMapTy;
-	typedef std::multimap<const BeginInst*,CodeFragment> ResolveLaterMapTy;
+	typedef std::pair<const MachineInstruction*,CodeFragment> ResolvePointTy;
+	typedef std::multimap<const BeginInst*,ResolvePointTy> ResolveLaterMapTy;
 	LabelMapTy label_map;           ///< label map
 	ResolveLaterMapTy resolve_map;  ///< jumps to be resolved later
+
+	/**
+	 * get the offset from the current position to the label.
+	 *
+	 * @return offset from the current position or INVALID_OFFSET if label
+	 * not found.
+	 */
+	s4 get_offset(const BeginInst *BI, u1 *current_pos) const;
 public:
 	/**
 	 * indicate an invalid offset
@@ -100,12 +120,19 @@ public:
 	 * @return offset from the current position or INVALID_OFFSET if label
 	 * not found.
 	 */
-	s4 get_offset(const BeginInst *BI) const;
+	s4 get_offset(const BeginInst *BI) const {
+		return get_offset(BI,mcodeptr);
+	}
 
 	/**
 	 * add unresolved jump
 	 */
-	void resolve_later(const BeginInst *BI, CodeFragment CM);
+	void resolve_later(const BeginInst *BI, const MachineInstruction*,
+		CodeFragment CM);
+	/**
+	 * resolve jump
+	 */
+	void resolve();
 
 	/**
 	 * get a code fragment
@@ -120,6 +147,8 @@ public:
 	 * get the end address of the code memory
 	 */
 	u1* get_end() const { return mcodeend; }
+
+	friend class CodeFragment;
 };
 
 

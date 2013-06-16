@@ -59,6 +59,11 @@ void MachineInstruction::emit(CodeMemory* CM) const {
 	ABORT_MSG("emit not yet implemented", "emit for " << this << " is not yet implemented");
 }
 
+void MachineInstruction::emit(CodeFragment &CF) const {
+	ABORT_MSG("emit CodeFragment not implemented", "emit for "
+		<< this << " is not implemented");
+}
+
 OStream& operator<<(OStream &OS, const MachineInstruction *MI) {
 	if (!MI) {
 		return OS << "(MachineInstruction) NULL";

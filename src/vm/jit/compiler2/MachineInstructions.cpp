@@ -53,6 +53,12 @@ void MachineJumpInst::emit(CodeMemory* CM) const {
 	Backend::factory()->emit_Jump(this,CM);
 }
 
+void MachineJumpInst::emit(CodeFragment &CF) const {
+	// emit Jump
+	// TODO maybe we should get this from CF?
+	Backend::factory()->emit_Jump(this,CF);
+}
+
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

@@ -41,6 +41,7 @@ namespace compiler2 {
 class MachineMoveInst;
 class LoweredInstDAG;
 class CodeMemory;
+class CodeFragment;
 
 /**
  * Descriptor of a MachineOperand
@@ -149,6 +150,10 @@ public:
 	 * emit machine code
 	 */
 	virtual void emit(CodeMemory* CM) const;
+	/**
+	 * emit machine code
+	 */
+	virtual void emit(CodeFragment &CF) const;
 };
 
 OStream& operator<<(OStream &OS, const MachineInstruction *MI);

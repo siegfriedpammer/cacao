@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_MACHINEOPERAND
 
 #include "toolbox/OStream.hpp"
+#include "vm/types.hpp"
 
 #include <vector>
 #include <cassert>

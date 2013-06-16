@@ -46,6 +46,7 @@ class MachineJumpInst : public MachineInstruction {
 public:
 	MachineJumpInst() : MachineInstruction("MJump", &NoOperand, 0) {}
 	virtual void emit(CodeMemory* CM) const;
+	virtual void emit(CodeFragment &CF) const;
 };
 
 class MachinePhiInst : public MachineInstruction {
@@ -61,6 +62,8 @@ public:
 	virtual bool is_phi() const {
 		return true;
 	}
+	// phis are never emitted
+	virtual void emit(CodeMemory* CM) const {};
 };
 
 class MachineConstInst : public MachineInstruction {
@@ -68,8 +71,10 @@ public:
 	/**
 	 * TODO: get const parameter
 	 */
-	MachineConstInst() : MachineInstruction("MConst", new Immediate(), 0) {}
-
+	MachineConstInst(s8 value) : MachineInstruction("MConst",
+			new Immediate(value), 0) {}
+	// mconsts are never emitted
+	virtual void emit(CodeMemory* CM) const {};
 };
 
 /**

@@ -53,6 +53,7 @@ public:
 	virtual RegisterFile* get_RegisterFile() const = 0;
 	virtual void emit_Move(const MachineMoveInst *mov, CodeMemory* CM) const = 0;
 	virtual void emit_Jump(const MachineJumpInst *mov, CodeMemory* CM) const = 0;
+	virtual void emit_Jump(const MachineJumpInst *mov, CodeFragment &CF) const = 0;
 	virtual const char* get_name() const = 0;
 };
 /**
@@ -77,6 +78,7 @@ public:
 	virtual RegisterFile* get_RegisterFile() const;
 	virtual void emit_Move(const MachineMoveInst *mov, CodeMemory* CM) const;
 	virtual void emit_Jump(const MachineJumpInst *mov, CodeMemory* CM) const;
+	virtual void emit_Jump(const MachineJumpInst *mov, CodeFragment &CF) const;
 	virtual const char* get_name() const;
 };
 
