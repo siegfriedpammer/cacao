@@ -133,33 +133,35 @@ public:
 	virtual const char* get_name() const {
 		return "StackSlot";
 	}
-};
-
-class ManagedStackSlot : public MachineOperand {
-private:
-	static unsigned slot_counter;
-	int index; ///< index of the stackslot
-public:
-	/**
-	 * FIXME this should be managed
-	 */
-	ManagedStackSlot() : index(slot_counter++) {}
-	//virtual StackSlot* to_StackSlot() { return this; }
-	int get_index() const { return index; }
-	virtual const char* get_name() const {
-		return "ManagedStackSlot";
-	}
 	virtual OStream& print(OStream &OS) const {
 		return OS << get_name() << get_index();
 	}
 };
 
-class Immediate : public MachineOperand {
+class ManagedStackSlot : public StackSlot {
+private:
+	static unsigned slot_counter;
 public:
+	/**
+	 * FIXME this should be managed
+	 */
+	ManagedStackSlot() : StackSlot(slot_counter++) {}
+	//virtual StackSlot* to_StackSlot() { return this; }
+	virtual const char* get_name() const {
+		return "ManagedStackSlot";
+	}
+};
+
+class Immediate : public MachineOperand {
+private:
+	s8 value;
+public:
+	Immediate(s8 value) : value(value) {}
 	virtual Immediate* to_Immediate() { return this; }
 	virtual const char* get_name() const {
 		return "Immediate";
 	}
+	s8 get_value() const { return value; }
 };
 
 class Address : public MachineOperand {

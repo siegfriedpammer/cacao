@@ -117,7 +117,7 @@ template<typename Target>
 LoweredInstDAG* BackendBase<Target>::lowerCONSTInst(CONSTInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	MachineConstInst *cnst = new MachineConstInst();
+	MachineConstInst *cnst = new MachineConstInst(I->get_value());
 	dag->add(cnst);
 	dag->set_result(cnst);
 	return dag;

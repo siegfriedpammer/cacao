@@ -33,6 +33,7 @@
 
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Conditional.hpp"
+#include "vm/types.hpp"
 
 namespace cacao {
 namespace jit {
@@ -313,6 +314,17 @@ public:
 		value.d = d;
 	}
 	virtual CONSTInst* to_CONSTInst() { return this; }
+
+	s8 get_value() const {
+		switch(get_type()) {
+		case Type::LongTypeID:   return (s8)value.l;
+		case Type::IntTypeID:    return (s8)value.i;
+		case Type::FloatTypeID:  return (s8)value.f;
+		case Type::DoubleTypeID: return (s8)value.d;
+		default: assert(0); return 0;
+		}
+		return 0;
+	}
 };
 
 class GETFIELDInst : public Instruction {
@@ -470,6 +482,8 @@ public:
 		append_succ(falseBlock);
 	}
 	virtual IFInst* to_IFInst() { return this; }
+	BeginInst* get_then_target() const { return succ_front(); }
+	BeginInst* get_else_target() const { return succ_back(); }
 };
 
 class IF_CMPInst : public Instruction {
