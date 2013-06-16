@@ -46,6 +46,7 @@ public:
 	bool run(JITData &JD);
 	PassUsage& get_PassUsage(PassUsage &PU) const;
 	const CodeMemory& get_CodeMemory() const { return cm; }
+	void finish(JITData &JD);
 };
 
 } // end namespace compiler2

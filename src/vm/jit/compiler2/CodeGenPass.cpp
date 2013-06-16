@@ -43,7 +43,167 @@ bool CodeGenPass::run(JITData &JD) {
 		MachineInstruction *MI = *i;
 		MI->emit(CM);
 	}
+	// finish
+	finish(JD);
 	return true;
+}
+
+/**
+ * finish code generation
+ *
+ * Finishes the code generation. A new memory, large enough for both
+ * data and code, is allocated and data and code are copied together
+ * to their final layout, unresolved jumps are resolved, ...
+ */
+void CodeGenPass::finish(JITData &JD) {
+#if 0
+	s4       mcodelen;
+#if defined(ENABLE_INTRP)
+	s4       ncodelen;
+#endif
+	s4       alignedmcodelen;
+	jumpref *jr;
+	u1      *epoint;
+	s4       alignedlen;
+
+	/* Get required compiler data. */
+
+	codeinfo*     code = jd->code;
+	codegendata*  cd   = jd->cd;
+	registerdata* rd   = jd->rd;
+
+	/* prevent compiler warning */
+
+#if defined(ENABLE_INTRP)
+	ncodelen = 0;
+#endif
+
+	/* calculate the code length */
+
+	mcodelen = (s4) (cd->mcodeptr - cd->mcodebase);
+
+	STATISTICS(count_code_len += mcodelen);
+	STATISTICS(count_data_len += cd->dseglen);
+
+	alignedmcodelen = MEMORY_ALIGN(mcodelen, MAX_ALIGN);
+
+#if defined(ENABLE_INTRP)
+	if (opt_intrp)
+		ncodelen = cd->ncodeptr - cd->ncodebase;
+	else {
+		ncodelen = 0; /* avoid compiler warning */
+	}
+#endif
+
+	cd->dseglen = MEMORY_ALIGN(cd->dseglen, MAX_ALIGN);
+	alignedlen = alignedmcodelen + cd->dseglen;
+
+#if defined(ENABLE_INTRP)
+	if (opt_intrp) {
+		alignedlen += ncodelen;
+	}
+#endif
+
+	/* allocate new memory */
+
+	code->mcodelength = mcodelen + cd->dseglen;
+	code->mcode       = CNEW(u1, alignedlen);
+
+	/* set the entrypoint of the method */
+
+	assert(code->entrypoint == NULL);
+	code->entrypoint = epoint = (code->mcode + cd->dseglen);
+
+	/* fill the data segment (code->entrypoint must already be set!) */
+
+	dseg_finish(jd);
+
+	/* copy code to the new location */
+
+	MCOPY((void *) code->entrypoint, cd->mcodebase, u1, mcodelen);
+
+#if defined(ENABLE_INTRP)
+	/* relocate native dynamic superinstruction code (if any) */
+
+	if (opt_intrp) {
+		cd->mcodebase = code->entrypoint;
+
+		if (ncodelen > 0) {
+			u1 *ncodebase = code->mcode + cd->dseglen + alignedmcodelen;
+
+			MCOPY((void *) ncodebase, cd->ncodebase, u1, ncodelen);
+
+			/* flush the instruction and data caches */
+
+			md_cacheflush(ncodebase, ncodelen);
+
+			/* set some cd variables for dynamic_super_rerwite */
+
+			cd->ncodebase = ncodebase;
+
+		} else {
+			cd->ncodebase = NULL;
+		}
+
+		dynamic_super_rewrite(cd);
+	}
+#endif
+
+	/* Fill runtime information about generated code. */
+
+	code->stackframesize     = cd->stackframesize;
+	code->synchronizedoffset = rd->memuse * 8;
+	code->savedintcount      = INT_SAV_CNT - rd->savintreguse;
+	code->savedfltcount      = FLT_SAV_CNT - rd->savfltreguse;
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+	code->savedadrcount      = ADR_SAV_CNT - rd->savadrreguse;
+#endif
+
+	/* Create the exception table. */
+
+	exceptiontable_create(jd);
+
+	/* Create the linenumber table. */
+
+	code->linenumbertable = new LinenumberTable(jd);
+
+	/* jump table resolving */
+
+	for (jr = cd->jumpreferences; jr != NULL; jr = jr->next)
+		*((functionptr *) ((ptrint) epoint + jr->tablepos)) =
+			(functionptr) ((ptrint) epoint + (ptrint) jr->target->mpc);
+
+	/* patcher resolving */
+
+	patcher_resolve(jd);
+
+#if defined(ENABLE_REPLACEMENT)
+	/* replacement point resolving */
+	{
+		int i;
+		rplpoint *rp;
+
+		rp = code->rplpoints;
+		for (i=0; i<code->rplpointcount; ++i, ++rp) {
+			rp->pc = (u1*) ((ptrint) epoint + (ptrint) rp->pc);
+		}
+	}
+#endif /* defined(ENABLE_REPLACEMENT) */
+
+	/* Insert method into methodtree to find the entrypoint. */
+
+	methodtree_insert(code->entrypoint, code->entrypoint + mcodelen);
+
+#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(__M68K__) || defined(ENABLE_INTRP)
+	/* resolve data segment references */
+
+	dseg_resolve_datareferences(jd);
+#endif
+
+	/* flush the instruction and data caches */
+
+	md_cacheflush(code->mcode, code->mcodelength);
+#endif
 }
 
 // pass usage
