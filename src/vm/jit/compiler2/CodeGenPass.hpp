@@ -46,6 +46,13 @@ public:
 	bool run(JITData &JD);
 	PassUsage& get_PassUsage(PassUsage &PU) const;
 	const CodeMemory& get_CodeMemory() const { return cm; }
+	/**
+	 * finish code generation
+	 *
+	 * Finishes the code generation. A new memory, large enough for both
+	 * data and code, is allocated and data and code are copied together
+	 * to their final layout, unresolved jumps are resolved, ...
+	 */
 	void finish(JITData &JD);
 };
 
