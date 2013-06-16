@@ -45,7 +45,7 @@ public:
 class MachineJumpInst : public MachineInstruction {
 public:
 	MachineJumpInst() : MachineInstruction("MJump", &NoOperand, 0) {}
-
+	virtual void emit(CodeMemory* CM) const;
 };
 
 class MachinePhiInst : public MachineInstruction {

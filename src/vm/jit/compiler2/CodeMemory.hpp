@@ -22,8 +22,8 @@
 
 */
 
-#ifndef _JIT_COMPILER2_CODEMEMERY
-#define _JIT_COMPILER2_CODEMEMERY
+#ifndef _JIT_COMPILER2_CODEMEMORY
+#define _JIT_COMPILER2_CODEMEMORY
 
 #include "vm/types.hpp"
 
@@ -78,15 +78,39 @@ private:
 	s4              mcodesize;      ///< complete size of code area (bytes)
 	u1             *mcodeptr;       ///< code generation pointer
 
-	std::map<BeginInst*,u1*> label_map; ///< label map
+	typedef std::map<const BeginInst*,u1*> LabelMapTy;
+	typedef std::multimap<const BeginInst*,CodeFragment> ResolveLaterMapTy;
+	LabelMapTy label_map;           ///< label map
+	ResolveLaterMapTy resolve_map;  ///< jumps to be resolved later
 public:
-	CodeMemory() ;
-	void add_Label(BeginInst *BI);
+	/**
+	 * indicate an invalid offset
+	 */
+	static const s4 INVALID_OFFSET = numeric_limits<s4>::max;
+
+	CodeMemory();
+	/**
+	 * add a label to the current position.
+	 */
+	void add_label(const BeginInst *BI);
+
+	/**
+	 * get the offset from the current position to the label.
+	 *
+	 * @return offset from the current position or INVALID_OFFSET if label
+	 * not found.
+	 */
+	s4 get_offset(const BeginInst *BI) const;
+
+	/**
+	 * add unresolved jump
+	 */
+	void resolve_later(const BeginInst *BI, CodeFragment CM);
 
 	/**
 	 * get a code fragment
 	 */
-	CodeFragment get_Fragment(unsigned size);
+	CodeFragment get_CodeFragment(unsigned size);
 
 	/**
 	 * get the start address of the code memory
@@ -103,7 +127,7 @@ public:
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_CODEMEMERY */
+#endif /* _JIT_COMPILER2_CODEMEMORY */
 
 
 /*

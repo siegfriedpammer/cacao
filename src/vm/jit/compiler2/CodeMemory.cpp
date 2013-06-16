@@ -33,6 +33,8 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+//const s4 CodeMemory::INVALID_OFFSET = std::numeric_limits<s4>::max();
+
 CodeMemory::CodeMemory() {
 	mcodebase    = (u1*) DumpMemory::allocate(MCODEINITSIZE);
 	mcodeend     = mcodebase + MCODEINITSIZE;
@@ -41,11 +43,28 @@ CodeMemory::CodeMemory() {
 	mcodeptr     = mcodeend;
 }
 
-void CodeMemory::add_Label(BeginInst *BI) {
+void CodeMemory::add_label(const BeginInst *BI) {
 	label_map.insert(std::make_pair(BI,mcodeptr));
 }
 
-CodeFragment CodeMemory::get_Fragment(unsigned size) {
+s4 CodeMemory::get_offset(const BeginInst *BI) const {
+	LabelMapTy::const_iterator i = label_map.find(BI);
+	if (i == label_map.end() ) {
+		return INVALID_OFFSET;
+	}
+	s4 offset = s4(i->second - mcodeptr);
+
+	// this should never happen
+	assert(offset == INVALID_OFFSET);
+
+	return offset;
+}
+void CodeMemory::resolve_later(const BeginInst *BI, CodeFragment CM) {
+	resolve_map.insert(std::make_pair(BI,CM));
+}
+
+CodeFragment CodeMemory::get_CodeFragment(unsigned size) {
+	assert((mcodeptr - size) >= mcodebase);
 	mcodeptr -= size;
 	return CodeFragment(mcodeptr, size);
 }

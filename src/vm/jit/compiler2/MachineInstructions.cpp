@@ -35,15 +35,22 @@ namespace jit {
 namespace compiler2 {
 
 void MachineLabelInst::emit(CodeMemory* CM) const {
-	CM->add_Label(begin);
+	CM->add_label(begin);
 }
 
 void MachineMoveInst::emit(CodeMemory* CM) const {
+	// check for self moves
 	if (operands[0].op != result.op) {
 		// emit move
 		// TODO maybe we should get this from CM?
 		Backend::factory()->emit_Move(this,CM);
 	}
+}
+
+void MachineJumpInst::emit(CodeMemory* CM) const {
+	// emit Jump
+	// TODO maybe we should get this from CM?
+	Backend::factory()->emit_Jump(this,CM);
 }
 
 } // end namespace compiler2
