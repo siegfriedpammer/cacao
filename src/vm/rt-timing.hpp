@@ -22,8 +22,17 @@
 
 */
 
-/** @file
+/**
+ * @file
+ *
  * This file contains the real-time timing utilities.
+ *
+ * @ingroup rt-timing
+ */
+
+/**
+ * @defgroup rt-timing Real-time timing framework
+ * Real-time timing framework.
  *
  * For day to day use only the following macros are of importance:
  * - RT_REGISTER_TIMER(var,name,description)
@@ -40,7 +49,8 @@
  * - RT_DECLARE_TIMER(var)
  * - RT_DECLARE_GROUP(var)
  *
- * A typical usage would look something like this: *
+ * A typical usage would look something like this:
+ *
  * @code
  * // NOTE: toplevel, outside a function!
  * RT_REGISTER_GROUP(my_group,"my-group","this is my very own timing group");
@@ -70,6 +80,11 @@
  * guaranteed that everything is initialized in the right order.
  * Also note that the variable must be global (i.e. they can not be declared as
  * static function variables) otherwise the objects might be destroyed eagerly.
+ */
+
+/**
+ * @addtogroup rt-timing
+ * @{
  */
 
 /**
@@ -174,6 +189,8 @@
  * @def RT_TIMER_STOPSTART(var1,var2)
  * Stop the timer var1 and start the timer var2
  */
+
+/** @} */
 #ifndef _RT_TIMING_HPP
 #define _RT_TIMING_HPP
 
@@ -334,6 +351,12 @@ inline long rt_timing_diff_usec_inline(const timespec &a, const timespec &b)
 #include <vector>
 
 namespace cacao {
+
+/**
+ * @addtogroup rt-timing
+ * @{
+ */
+
 /**
  * Superclass of real-time group entries.
  */
@@ -509,6 +532,8 @@ public:
 		  << setw(20) << name << ": " << description << nl;
 	}
 };
+
+/** @} */
 
 } // end namespace cacao
 

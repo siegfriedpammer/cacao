@@ -22,8 +22,17 @@
 
 */
 
-/** @file
+/**
+ * @file
+ *
  * This file contains the statistics framework.
+ *
+ * @ingroup statistics
+ */
+
+/**
+ * @defgroup statistics Statistics framework
+ * Statistics framework.
  *
  * The framework provides several facilities to collect information about a
  * virtual machine invocation. The idea is to create objects of specific
@@ -50,17 +59,17 @@
  *
  * #### Example ####
  *
-@code
-// somewhere on a file global scope
-STAT_REGISTER_VAR(int,count_all_methods,0,"all methods","Number of loaded Methods")
-..
-
-void handle_method() {
-  // somewhere inside normal code
-  STATISTICS(count_all_methods++);
-  ...
-}
-@endcode
+ * @code
+ * // somewhere on a file global scope
+ * STAT_REGISTER_VAR(int,count_all_methods,0,"all methods","Number of loaded Methods")
+ * ..
+ *
+ * void handle_method() {
+ *   // somewhere inside normal code
+ *   STATISTICS(count_all_methods++);
+ *   ...
+ * }
+ * @endcode
  *
  * Note: The STATISTICS() macro is used to wrap statistics only code.
  *
@@ -79,22 +88,24 @@ void handle_method() {
  *
  * #### Example ####
  *
-@code
-// somewhere on a file global scope
-STAT_REGISTER_DIST(unsigned int,unsigned int,count_block_stack,0,9,1,0,"stack size dist","Distribution of stack sizes at block boundary")
-
-static const unsigned int count_method_bb_distribution_range[] = {5,10,15,20,30,40,50,75};
-STAT_REGISTER_DIST_RANGE(unsigned int,unsigned int,count_method_bb_distribution,count_method_bb_distribution_range,8,0,"method bb dist.","Distribution of basic blocks per method")
-..
-
-void handle_method() {
-  // somewhere inside normal code
-  STATISTICS(count_block_stack[indepth]++);
-  ...
-  STATISTICS(count_method_bb_distribution[basicblockcount]++);
-  ...
-}
-@endcode
+ * @code
+ * // somewhere on a file global scope
+ * STAT_REGISTER_DIST(unsigned int,unsigned int,count_block_stack,0,9,1,0,"stack size dist",
+ *	  "Distribution of stack sizes at block boundary")
+ *
+ * static const unsigned int count_method_bb_distribution_range[] = {5,10,15,20,30,40,50,75};
+ * STAT_REGISTER_DIST_RANGE(unsigned int,unsigned int,count_method_bb_distribution,
+ *	  count_method_bb_distribution_range,8,0,"method bb dist.","Distribution of basic blocks per method")
+ * ...
+ *
+ * void handle_method() {
+ *   // somewhere inside normal code
+ *   STATISTICS(count_block_stack[indepth]++);
+ *   ...
+ *   STATISTICS(count_method_bb_distribution[basicblockcount]++);
+ *   ...
+ * }
+ * @endcode
  *
  * ### Groups ###
  *
@@ -108,12 +119,12 @@ void handle_method() {
  *
  * #### Example ####
  *
-@code
-// somewhere on a file global scope
-STAT_REGISTER_GROUP(const_pcmd_stat,"const pcmd","Number of Const Pseudocommands")
-STAT_REGISTER_GROUP_VAR(int,count_pcmd_load,0,"pcmd load","Number of Const Pseudocommands (load)",const_pcmd_stat)
-...
-@endcode
+ * @code
+ * // somewhere on a file global scope
+ * STAT_REGISTER_GROUP(const_pcmd_stat,"const pcmd","Number of Const Pseudocommands")
+ * STAT_REGISTER_GROUP_VAR(int,count_pcmd_load,0,"pcmd load","Number of Const Pseudocommands (load)",const_pcmd_stat)
+ * ...
+ * @endcode
  *
  * ### Summary Groups ###
  *
@@ -127,15 +138,20 @@ STAT_REGISTER_GROUP_VAR(int,count_pcmd_load,0,"pcmd load","Number of Const Pseud
  *
  * #### Example ####
  *
-@code
-// somewhere on a file global scope
-STAT_REGISTER_SUM_GROUP(const_pcmd_stat,"const pcmd","Number of Const Pseudocommands")
-STAT_REGISTER_GROUP_VAR(int,count_pcmd_load,0,"pcmd load","Number of Const Pseudocommands (load)",const_pcmd_stat)
-STAT_REGISTER_GROUP_VAR(int,count_pcmd_zero,0,"pcmd zero","Number of Const Pseudocommands (zero)",const_pcmd_stat)
-...
-@endcode
+ * @code
+ * // somewhere on a file global scope
+ * STAT_REGISTER_SUM_GROUP(const_pcmd_stat,"const pcmd","Number of Const Pseudocommands")
+ * STAT_REGISTER_GROUP_VAR(int,count_pcmd_load,0,"pcmd load","Number of Const Pseudocommands (load)",const_pcmd_stat)
+ * STAT_REGISTER_GROUP_VAR(int,count_pcmd_zero,0,"pcmd zero","Number of Const Pseudocommands (zero)",const_pcmd_stat)
+ * ...
+ * @endcode
  *
  *
+ */
+
+/**
+ * @addtogroup statistics
+ * @{
  */
 
 /**
@@ -254,7 +270,8 @@ STAT_REGISTER_GROUP_VAR(int,count_pcmd_zero,0,"pcmd zero","Number of Const Pseud
  *
  * <b>Example:</b>
  * @code
- * STAT_REGISTER_DIST(unsigned int,unsigned int,count_block_stack,0,9,1,0,"stack size dist","Distribution of stack sizes at block boundary")
+ * STAT_REGISTER_DIST(unsigned int,unsigned int,count_block_stack,0,9,1,0,"stack size dist",
+ *			"Distribution of stack sizes at block boundary")
  * @endcode
  *
  * <b>Result:</b>
@@ -294,7 +311,8 @@ Distribution of stack sizes at block boundary(stack size dist):
  * <b>Example:</b>
  * @code
  * static const unsigned int count_method_bb_distribution_range[] = {5,10,15,20,30,40,50,75};
-STAT_REGISTER_DIST_RANGE(unsigned int,unsigned int,count_method_bb_distribution,count_method_bb_distribution_range,8,0,"method bb dist.","Distribution of basic blocks per method")
+ * STAT_REGISTER_DIST_RANGE(unsigned int,unsigned int,count_method_bb_distribution,
+ *    count_method_bb_distribution_range,8,0,"method bb dist.","Distribution of basic blocks per method")
  * @endcode
  *
  * <b>Result:</b>
@@ -378,14 +396,14 @@ Distribution of basic blocks per method(method bb dist.):
  * entries e.g. memory usage of the compiler
  *
  * <b>Example:</b>
-@code
-STAT_REGISTER_SUM_GROUP(info_struct_stat,"info structs","info struct usage")
-STAT_REGISTER_GROUP_VAR(int,size_classinfo,0,"size classinfo","classinfo",info_struct_stat)
-STAT_REGISTER_GROUP_VAR(int,size_fieldinfo,0,"size fieldinfo","fieldinfo",info_struct_stat)
-STAT_REGISTER_GROUP_VAR(int,size_methodinfo,0,"size methodinfo","methodinfo",info_struct_stat)
-STAT_REGISTER_GROUP_VAR(int,size_codeinfo,0,"size codeinfo","codeinfo",info_struct_stat)
-STAT_REGISTER_GROUP_VAR(int,size_lineinfo,0,"size lineinfo","lineinfo",info_struct_stat)
-@endcode
+ * @code
+ * STAT_REGISTER_SUM_GROUP(info_struct_stat,"info structs","info struct usage")
+ * STAT_REGISTER_GROUP_VAR(int,size_classinfo,0,"size classinfo","classinfo",info_struct_stat)
+ * STAT_REGISTER_GROUP_VAR(int,size_fieldinfo,0,"size fieldinfo","fieldinfo",info_struct_stat)
+ * STAT_REGISTER_GROUP_VAR(int,size_methodinfo,0,"size methodinfo","methodinfo",info_struct_stat)
+ * STAT_REGISTER_GROUP_VAR(int,size_codeinfo,0,"size codeinfo","codeinfo",info_struct_stat)
+ * STAT_REGISTER_GROUP_VAR(int,size_lineinfo,0,"size lineinfo","lineinfo",info_struct_stat)
+ * @endcode
  *
  * <b>Result:</b>
 @verbatim
@@ -425,6 +443,8 @@ STAT_REGISTER_GROUP_VAR(int,size_lineinfo,0,"size lineinfo","lineinfo",info_stru
  * Wrapper for statistics only code.
  **/
 
+/** @} */
+
 #ifndef STATISTICS_HPP_
 #define STATISTICS_HPP_ 1
 
@@ -440,6 +460,12 @@ STAT_REGISTER_GROUP_VAR(int,size_lineinfo,0,"size lineinfo","lineinfo",info_stru
 extern bool opt_stat;
 
 namespace cacao {
+
+/**
+ * @addtogroup statistics
+ * @{
+ */
+
 /**
  * Superclass of statistic group entries.
  */
@@ -823,6 +849,8 @@ public:
 	  return *this;
 	}
 };
+
+/** @} */
 
 } // end namespace cacao
 
