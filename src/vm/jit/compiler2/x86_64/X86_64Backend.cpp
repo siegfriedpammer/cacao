@@ -65,19 +65,20 @@ LoweredInstDAG* BackendBase<X86_64>::lowerIFInst(IFInst *I) const {
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	X86_64CmpInst *cmp = new X86_64CmpInst(UnassignedReg::factory(),UnassignedReg::factory());
 	X86_64CondJumpInst *cjmp = NULL;
+	BeginInst* then = I->get_then_target();
 
 	switch (I->get_condition()) {
 	case Conditional::EQ:
-		cjmp = new X86_64CondJumpInst(X86_64Cond::E);
+		cjmp = new X86_64CondJumpInst(X86_64Cond::E, then);
 		break;
 	case Conditional::LT:
-		cjmp = new X86_64CondJumpInst(X86_64Cond::L);
+		cjmp = new X86_64CondJumpInst(X86_64Cond::L, then);
 		break;
 	case Conditional::LE:
-		cjmp = new X86_64CondJumpInst(X86_64Cond::LE);
+		cjmp = new X86_64CondJumpInst(X86_64Cond::LE, then);
 		break;
 	case Conditional::GE:
-		cjmp = new X86_64CondJumpInst(X86_64Cond::GE);
+		cjmp = new X86_64CondJumpInst(X86_64Cond::GE, then);
 		break;
 	default:
 		err() << Red << "Error: " << reset_color << "Conditioal not supported: "
@@ -161,18 +162,72 @@ void BackendBase<X86_64>::emit_Move(const MachineMoveInst *mov, CodeMemory* CM) 
 	MachineOperand *dst = mov->get_result().op;
 	Register *src_reg = src->to_Register();
 	Register *dst_reg = dst->to_Register();
-	MachineRegister *src_mreg = src_reg->to_MachineRegister();
-	MachineRegister *dst_mreg = dst_reg->to_MachineRegister();
+	if( dst_reg) {
+		MachineRegister *dst_mreg = dst_reg->to_MachineRegister();
+		assert(dst_mreg);
+		if (src_reg) {
+			MachineRegister *src_mreg = src_reg->to_MachineRegister();
+			assert(src_mreg);
 
-	if (dst_mreg) {
-		if (src_mreg) {
 			// reg to reg move
 			X86_64MovInst move(dst_mreg, src_mreg);
 			move.emit(CM);
 			return;
 		}
+		StackSlot *slot = src->to_StackSlot();
+		if (slot) {
+			// stack to reg move
+			X86_64MovStack2RegInst move(dst_mreg,slot);
+			move.emit(CM);
+			return;
+		}
+		Immediate *imm = src->to_Immediate();
+		if (imm) {
+			// reg to reg move
+			X86_64MovImm2RegInst move(dst_mreg,imm);
+			move.emit(CM);
+			return;
+		}
+	} else {
+		// dst is not a reg
+		if (src_reg) {
+			MachineRegister *src_mreg = src_reg->to_MachineRegister();
+			assert(src_mreg);
+			StackSlot *slot = dst->to_StackSlot();
+			if (slot) {
+				// reg to stack move
+				X86_64MovReg2StackInst move(slot,src_mreg);
+				move.emit(CM);
+				return;
+			}
+		}
 	}
-	ABORT_MSG("x86_64 TODO","non reg-to-reg moves not yet implemented");
+	ABORT_MSG("x86_64 TODO","non reg-to-reg moves not yet implemented (src:"
+		<< src << " dst:" << dst << ")");
+}
+namespace {
+void emit_jump(CodeFragment &code, s4 offset) {
+	LOG2("emit_jump codefragment offset: " << hex << offset << nl);
+	code[0] = 0xe9;
+	code[1] = u1( 0xff & (offset >> (8 * 0)));
+	code[2] = u1( 0xff & (offset >> (8 * 1)));
+	code[3] = u1( 0xff & (offset >> (8 * 2)));
+	code[4] = u1( 0xff & (offset >> (8 * 3)));
+}
+} // end anonymous namespace
+
+template<>
+void BackendBase<X86_64>::emit_Jump(const MachineJumpInst *jump,
+		CodeFragment &CF) const {
+	GOTOInst *gt = jump->get_parent()->get_Instruction()->to_GOTOInst();
+	assert(gt);
+	assert(gt->succ_size() == 1);
+	BeginInst *BI = gt->succ_front();
+	s4 offset = CF.get_offset(BI);
+	assert(offset != 0);
+	assert(offset != CodeMemory::INVALID_OFFSET);
+
+	emit_jump(CF,offset);
 }
 
 template<>
@@ -181,7 +236,7 @@ void BackendBase<X86_64>::emit_Jump(const MachineJumpInst *jump, CodeMemory* CM)
 	assert(gt);
 	assert(gt->succ_size() == 1);
 	BeginInst *BI = gt->succ_front();
-	s4 offset = CM->get_offset(gt->get_BeginInst());
+	s4 offset = CM->get_offset(BI);
 	switch (offset) {
 	case 0:
 		LOG2("emit_Jump: jump to the next instruction -> can be omitted ("
@@ -193,14 +248,12 @@ void BackendBase<X86_64>::emit_Jump(const MachineJumpInst *jump, CodeMemory* CM)
 		// reserve memory and add to resolve later
 		// worst case -> 32bit offset
 		CodeFragment CF = CM->get_CodeFragment(5);
-		CM->resolve_later(BI,CF);
+		// FIXME pass this the resolve me
+		CM->resolve_later(BI,jump,CF);
 		return;
-	#if 0
-	default:
-		// create jump
-	#endif
 	}
-	ABORT_MSG("x86_64 TODO","jump not yet implemented");
+	CodeFragment CF = CM->get_CodeFragment(5);
+	emit_jump(CF,offset);
 }
 
 } // end namespace compiler2

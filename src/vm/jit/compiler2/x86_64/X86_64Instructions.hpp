@@ -44,18 +44,20 @@ public:
 		operands[0].op = src1;
 		operands[1].op = src2;
 	}
-
+	virtual void emit(CodeMemory* CM) const;
 };
 
 class X86_64CondJumpInst : public MachineInstruction {
 private:
 	X86_64Cond::COND cond;
+	BeginInst* target;
 public:
-	X86_64CondJumpInst(X86_64Cond::COND cond)
+	X86_64CondJumpInst(X86_64Cond::COND cond, BeginInst* target)
 			: MachineInstruction("X86_64CondJumpInst", &NoOperand, 0),
-			  cond(cond) {
+			  cond(cond), target(target) {
 	}
-
+	BeginInst* get_BeginInst() const { return target; }
+	virtual void emit(CodeMemory* CM) const;
 };
 
 class X86_64AddInst : public MachineInstruction {
@@ -84,7 +86,7 @@ public:
 		operands[0].op = src1;
 		operands[1].op = src2;
 	}
-
+	virtual void emit(CodeMemory* CM) const;
 };
 
 class X86_64RetInst : public MachineInstruction {
@@ -104,6 +106,32 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
+class X86_64MovStack2RegInst : public MachineInstruction {
+public:
+	X86_64MovStack2RegInst(MachineRegister *dst, StackSlot *slot)
+			: MachineInstruction("X86_64MovStack2RegInst", dst, 1) {
+		operands[0].op = slot;
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class X86_64MovImm2RegInst : public MachineInstruction {
+public:
+	X86_64MovImm2RegInst(MachineRegister *dst, Immediate *imm)
+			: MachineInstruction("X86_64MovImm2RegInst", dst, 1) {
+		operands[0].op = imm;
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class X86_64MovReg2StackInst : public MachineInstruction {
+public:
+	X86_64MovReg2StackInst(StackSlot *slot, MachineRegister *src)
+			: MachineInstruction("X86_64MovReg2StackInst", slot, 1) {
+		operands[0].op = src;
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

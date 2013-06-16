@@ -26,13 +26,14 @@
 #define _JIT_COMPILER2_X86_64EMITHELPER
 
 #include "vm/jit/compiler2/x86_64/X86_64Register.hpp"
+#include "vm/jit/compiler2/CodeMemory.hpp"
 #include "vm/types.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-inline u1 get_rex(X86_64Register *reg, X86_64Register *rm) {
+inline u1 get_rex(X86_64Register *reg, X86_64Register *rm = NULL) {
 	const unsigned rex_w = 3;
 	const unsigned rex_r = 2;
 	//const unsigned rex_x = 1;
@@ -45,23 +46,111 @@ inline u1 get_rex(X86_64Register *reg, X86_64Register *rm) {
 	if (reg->extented_gpr) {
 		rex |= (1 << rex_r);
 	}
-	if (rm->extented_gpr) {
+	if (rm && rm->extented_gpr) {
 		rex |= (1 << rex_b);
 	}
 	return rex;
 }
 
-inline u1 get_modrm(X86_64Register *reg, X86_64Register *rm) {
+inline u1 get_modrm(u1 mod, X86_64Register *reg, X86_64Register *rm) {
 	const unsigned modrm_mod = 6;
 	const unsigned modrm_reg = 3;
 	const unsigned modrm_rm = 0;
 
-	u1 modrm = 0x3 << modrm_mod;
-	modrm |= reg->get_index() << modrm_reg;
-	modrm |= rm->get_index() << modrm_rm;
+	u1 modrm = (0x3 & mod) << modrm_mod;
+	modrm |= (0x7 & reg->get_index()) << modrm_reg;
+	modrm |= (0x7 & rm->get_index()) << modrm_rm;
 
 	return modrm;
 }
+inline u1 get_modrm_reg2reg(X86_64Register *reg, X86_64Register *rm) {
+	return get_modrm(0x3,reg,rm);
+}
+
+struct X86_64InstructionEncoding {
+	template <class T>
+	static void reg2reg(CodeMemory *CM, T opcode,
+			X86_64Register *reg, X86_64Register *rm) {
+		CodeFragment code = CM->get_CodeFragment(2 + sizeof(T));
+
+		code[0] = get_rex(reg,rm);
+
+		for (int i = 0, e = sizeof(T) ; i < e ; ++i) {
+			code[i + 1] = (u1) 0xff & (opcode >> (8 * (e - i - 1)));
+		}
+
+		code[1 + sizeof(T)] = get_modrm_reg2reg(reg,rm);
+	}
+	template <class T>
+	static void reg2rbp_disp8(CodeMemory *CM, T opcode,
+			X86_64Register *reg, s1 disp) {
+		CodeFragment code = CM->get_CodeFragment(3 + sizeof(T));
+
+		code[0] = get_rex(reg);
+
+		for (int i = 0, e = sizeof(T) ; i < e ; ++i) {
+			code[i + 1] = (u1) 0xff & (opcode >> (8 * (e - i - 1)));
+		}
+
+		code[1 + sizeof(T)] = get_modrm(0x1,reg,&RBP);
+		code[2 + sizeof(T)] = u1(disp);
+	}
+	template <class T>
+	static void reg2rbp_disp32(CodeMemory *CM, T opcode,
+			X86_64Register *reg, s4 disp) {
+		CodeFragment code = CM->get_CodeFragment(6 + sizeof(T));
+
+		code[0] = get_rex(reg);
+
+		for (int i = 0, e = sizeof(T) ; i < e ; ++i) {
+			code[i + 1] = (u1) 0xff & (opcode >> (8 * (e - i - 1)));
+		}
+
+		code[1 + sizeof(T)] = get_modrm(0x2,reg,&RBP);
+		code[2 + sizeof(T)] = u1( 0xff & (disp >> (0 * 8)));
+		code[3 + sizeof(T)] = u1( 0xff & (disp >> (1 * 8)));
+		code[4 + sizeof(T)] = u1( 0xff & (disp >> (2 * 8)));
+		code[5 + sizeof(T)] = u1( 0xff & (disp >> (3 * 8)));
+	}
+	template <class O,class I>
+	static void reg2imm(CodeMemory *CM, O opcode,
+			X86_64Register *reg, I imm) {
+		CodeFragment code = CM->get_CodeFragment(1 + sizeof(O) + sizeof(I));
+
+		code[0] = get_rex(reg);
+
+		for (int i = 0, e = sizeof(O) ; i < e ; ++i) {
+			code[i + 1] = (u1) 0xff & (opcode >> (8 * (e - i - 1)));
+		}
+		for (int i = 0, e = sizeof(I) ; i < e ; ++i) {
+			code[i + sizeof(O) + 1] = (u1) 0xff & (imm >> (8 * i));
+		}
+
+	}
+	template <class O,class I>
+	static void imm(CodeMemory *CM, O opcode, I imm) {
+		CodeFragment code = CM->get_CodeFragment(sizeof(O) + sizeof(I));
+
+		for (int i = 0, e = sizeof(O) ; i < e ; ++i) {
+			code[i] = (u1) 0xff & (opcode >> (8 * (e - i - 1)));
+		}
+		for (int i = 0, e = sizeof(I) ; i < e ; ++i) {
+			code[i + sizeof(O)] = (u1) 0xff & (imm >> (8 * i));
+		}
+
+	}
+};
+#if 0
+template <>
+static void X86_64InstructionEncoding::reg2reg<u1>(
+		CodeMemory *CM, u1 opcode,
+		X86_64Register *src, X86_64Register *dst) {
+	CodeFragment code = CM->get_CodeFragment(3);
+	code[0] = get_rex(src,dst);
+	code[1] = opcode;
+	code[2] = get_modrm_reg2reg(src,dst);
+}
+#endif
 
 } // end namespace compiler2
 } // end namespace jit
