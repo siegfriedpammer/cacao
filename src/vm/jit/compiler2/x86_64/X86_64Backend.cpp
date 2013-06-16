@@ -40,12 +40,12 @@ namespace jit {
 namespace compiler2 {
 
 template<>
-const char* BackendTraits<X86_64>::get_name() const {
+const char* BackendBase<X86_64>::get_name() const {
 	return "x86_64";
 }
 
 template<>
-LoweredInstDAG* BackendTraits<X86_64>::lowerLOADInst(LOADInst *I) const {
+LoweredInstDAG* BackendBase<X86_64>::lowerLOADInst(LOADInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	//MachineInstruction *minst = loadParameter(I->get_index(), I->get_type());
@@ -59,7 +59,7 @@ LoweredInstDAG* BackendTraits<X86_64>::lowerLOADInst(LOADInst *I) const {
 }
 
 template<>
-LoweredInstDAG* BackendTraits<X86_64>::lowerIFInst(IFInst *I) const {
+LoweredInstDAG* BackendBase<X86_64>::lowerIFInst(IFInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	X86_64CmpInst *cmp = new X86_64CmpInst(UnassignedReg::factory(),UnassignedReg::factory());
@@ -92,7 +92,7 @@ LoweredInstDAG* BackendTraits<X86_64>::lowerIFInst(IFInst *I) const {
 }
 
 template<>
-LoweredInstDAG* BackendTraits<X86_64>::lowerADDInst(ADDInst *I) const {
+LoweredInstDAG* BackendBase<X86_64>::lowerADDInst(ADDInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *dst = new VirtualRegister();
@@ -107,7 +107,7 @@ LoweredInstDAG* BackendTraits<X86_64>::lowerADDInst(ADDInst *I) const {
 }
 
 template<>
-LoweredInstDAG* BackendTraits<X86_64>::lowerSUBInst(SUBInst *I) const {
+LoweredInstDAG* BackendBase<X86_64>::lowerSUBInst(SUBInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *dst = new VirtualRegister();
@@ -122,7 +122,7 @@ LoweredInstDAG* BackendTraits<X86_64>::lowerSUBInst(SUBInst *I) const {
 }
 
 template<>
-LoweredInstDAG* BackendTraits<X86_64>::lowerRETURNInst(RETURNInst *I) const {
+LoweredInstDAG* BackendBase<X86_64>::lowerRETURNInst(RETURNInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	X86_64RetInst *ret = new X86_64RetInst();
@@ -135,7 +135,7 @@ LoweredInstDAG* BackendTraits<X86_64>::lowerRETURNInst(RETURNInst *I) const {
 }
 
 template<>
-LoweredInstDAG* BackendTraits<X86_64>::lowerMULInst(MULInst *I) const {
+LoweredInstDAG* BackendBase<X86_64>::lowerMULInst(MULInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *dst = new VirtualRegister();
@@ -150,12 +150,12 @@ LoweredInstDAG* BackendTraits<X86_64>::lowerMULInst(MULInst *I) const {
 }
 
 template<>
-RegisterFile* BackendTraits<X86_64>::get_RegisterFile() const {
+RegisterFile* BackendBase<X86_64>::get_RegisterFile() const {
 	return X86_64RegisterFile::factory();
 }
 
 template<>
-void BackendTraits<X86_64>::emit_Move(const MachineMoveInst *mov, CodeMemory* CM) const {
+void BackendBase<X86_64>::emit_Move(const MachineMoveInst *mov, CodeMemory* CM) const {
 	MachineOperand *src = mov->get(0).op;
 	MachineOperand *dst = mov->get_result().op;
 	Register *src_reg = src->to_Register();

@@ -28,7 +28,7 @@
 
 #include "vm/jit/compiler2/x86_64/X86_64Backend.hpp"
 cacao::jit::compiler2::Backend* cacao::jit::compiler2::Backend::factory() {
-	static cacao::jit::compiler2::BackendTraits<cacao::jit::compiler2::X86_64> BE;
+	static cacao::jit::compiler2::BackendBase<cacao::jit::compiler2::X86_64> BE;
 	return &BE;
 }
 

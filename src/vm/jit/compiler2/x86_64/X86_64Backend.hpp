@@ -37,7 +37,7 @@ namespace compiler2 {
  * X86_64 Backend
  */
 template<>
-class BackendTraits<X86_64>;
+class BackendBase<X86_64>;
 #endif
 
 } // end namespace compiler2

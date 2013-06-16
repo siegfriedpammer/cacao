@@ -60,7 +60,7 @@ public:
  * This class containes all target dependent information.
  */
 template <typename Target>
-class BackendTraits : public Backend {
+class BackendBase : public Backend {
 protected:
 	virtual LoweredInstDAG* lowerBeginInst(BeginInst *I) const;
 	virtual LoweredInstDAG* lowerLOADInst(LOADInst *I) const;
@@ -79,7 +79,7 @@ public:
 };
 
 template<typename Target>
-LoweredInstDAG* BackendTraits<Target>::lowerBeginInst(BeginInst *I) const {
+LoweredInstDAG* BackendBase<Target>::lowerBeginInst(BeginInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	MachineLabelInst *label = new MachineLabelInst(I);
@@ -89,7 +89,7 @@ LoweredInstDAG* BackendTraits<Target>::lowerBeginInst(BeginInst *I) const {
 }
 
 template<typename Target>
-LoweredInstDAG* BackendTraits<Target>::lowerGOTOInst(GOTOInst *I) const {
+LoweredInstDAG* BackendBase<Target>::lowerGOTOInst(GOTOInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	MachineJumpInst *jump = new MachineJumpInst();
@@ -99,7 +99,7 @@ LoweredInstDAG* BackendTraits<Target>::lowerGOTOInst(GOTOInst *I) const {
 }
 
 template<typename Target>
-LoweredInstDAG* BackendTraits<Target>::lowerPHIInst(PHIInst *I) const {
+LoweredInstDAG* BackendBase<Target>::lowerPHIInst(PHIInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	MachinePhiInst *phi = new MachinePhiInst(I->op_size());
@@ -110,7 +110,7 @@ LoweredInstDAG* BackendTraits<Target>::lowerPHIInst(PHIInst *I) const {
 }
 
 template<typename Target>
-LoweredInstDAG* BackendTraits<Target>::lowerCONSTInst(CONSTInst *I) const {
+LoweredInstDAG* BackendBase<Target>::lowerCONSTInst(CONSTInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	MachineConstInst *cnst = new MachineConstInst();
