@@ -53,8 +53,8 @@ endif
 
 if ENABLE_RT_TIMING
 RT_TIMING_SOURCES = \
-	rt-timing.c \
-	rt-timing.h
+	rt-timing.cpp \
+	rt-timing.hpp
 endif
 
 if ENABLE_STATISTICS
@@ -135,6 +135,7 @@ libvm_la_SOURCES = \
 	suck.hpp \
 	utf8.cpp \
 	utf8.hpp \
+	utf8.inc \
 	vftbl.hpp \
 	vm.cpp \
 	vm.hpp \

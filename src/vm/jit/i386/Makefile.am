@@ -48,7 +48,7 @@ noinst_LTLIBRARIES = \
 
 if ENABLE_DISASSEMBLER
 DISASS_SOURCES = \
-	disass.c
+	disass.cpp
 endif
 
 libarch_la_SOURCES =  \
