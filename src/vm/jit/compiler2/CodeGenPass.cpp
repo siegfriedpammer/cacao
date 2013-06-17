@@ -64,6 +64,8 @@ bool CodeGenPass::run(JITData &JD) {
 			disassemble(CM->get_start(),start);
 		}
 	}
+	// create stack frame
+	JD.get_Backend()->create_frame(CM,ManagedStackSlot::stack_size());
 	// resolve jumps
 	CM->resolve();
 	// finish

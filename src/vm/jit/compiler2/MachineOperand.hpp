@@ -150,6 +150,9 @@ public:
 	virtual const char* get_name() const {
 		return "ManagedStackSlot";
 	}
+	static u2 stack_size() {
+		return (u2)slot_counter * 8;
+	}
 };
 
 class Immediate : public MachineOperand {
