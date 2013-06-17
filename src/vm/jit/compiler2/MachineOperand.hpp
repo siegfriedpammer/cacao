@@ -39,6 +39,8 @@ class OStream;
 namespace jit {
 namespace compiler2 {
 
+class StackSlotManager;
+
 class VoidOperand;
 class Register;
 class StackSlot;
@@ -138,21 +140,19 @@ public:
 	}
 };
 
-class ManagedStackSlot : public StackSlot {
+class ManagedStackSlot : public MachineOperand {
 private:
-	static unsigned slot_counter;
+	StackSlotManager *parent;
+	ManagedStackSlot(StackSlotManager *SSM) : parent(SSM) {}
 public:
 	/**
 	 * FIXME this should be managed
 	 */
-	ManagedStackSlot() : StackSlot(slot_counter++) {}
-	//virtual StackSlot* to_StackSlot() { return this; }
+	virtual StackSlot* to_StackSlot();
 	virtual const char* get_name() const {
 		return "ManagedStackSlot";
 	}
-	static u2 stack_size() {
-		return (u2)slot_counter * 8;
-	}
+	friend class StackSlotManager;
 };
 
 class Immediate : public MachineOperand {

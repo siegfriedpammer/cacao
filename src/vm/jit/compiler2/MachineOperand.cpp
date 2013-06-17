@@ -23,6 +23,7 @@
 */
 
 #include "vm/jit/compiler2/MachineOperand.hpp"
+#include "vm/jit/compiler2/StackSlotManager.hpp"
 #include "toolbox/OStream.hpp"
 
 namespace cacao {
@@ -32,7 +33,6 @@ namespace compiler2 {
 VoidOperand NoOperand;
 
 unsigned VirtualRegister::vreg_counter = 0;
-unsigned ManagedStackSlot::slot_counter = 0;
 
 OStream& operator<<(OStream &OS, const MachineOperandType &MO) {
 	OS << "MachineOperandType [ ";
@@ -49,6 +49,9 @@ OStream& operator<<(OStream &OS, const MachineOperandType &MO) {
 	if (MO.takes(MachineOperandType::PC_REL_ADDR))
 		OS << "RA ";
 	return OS << ']';
+}
+StackSlot* ManagedStackSlot::to_StackSlot() {
+	return parent->get_StackSlot(this);
 }
 
 } // end namespace compiler2

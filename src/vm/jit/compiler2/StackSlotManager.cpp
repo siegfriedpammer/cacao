@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/JITData.hpp - JITData
+/* src/vm/jit/compiler2/StackSlotManager.cpp - StackSlotManager
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,41 +22,46 @@
 
 */
 
-#ifndef _JIT_COMPILER2_JITDATA
-#define _JIT_COMPILER2_JITDATA
-
-#include "vm/jit/compiler2/Method.hpp"
-#include "vm/jit/compiler2/Backend.hpp"
 #include "vm/jit/compiler2/StackSlotManager.hpp"
-
-// forward declaration
-struct jitdata;
+#include "vm/jit/compiler2/MachineOperand.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-class JITData {
-private:
-	jitdata *jd;
-	Method M;
-	Backend *BE;
-	StackSlotManager SSM;
-public:
-	JITData(jitdata *jd);
-	jitdata *get_jitdata() const {
-		return jd;
+StackSlotManager::~StackSlotManager() {
+	for( StackSlotListTy::iterator i = slots.begin(),
+			e = slots.begin(); i != e; ) {
+		delete i->first;
+		delete i->second;
 	}
-	Method* get_Method() { return &M; }
-	Backend* get_Backend() { return BE; }
-	StackSlotManager* get_StackSlotManager() { return &SSM; }
-};
+}
+
+ManagedStackSlot* StackSlotManager::create_ManagedStackSlot() {
+	static s4 counter = 1;
+	ManagedStackSlot* mslot = new ManagedStackSlot(this);
+	slots.insert(std::make_pair(mslot, new StackSlot(-counter)));
+	counter++;
+	return mslot;
+}
+
+u4 StackSlotManager::get_frame_size() const {
+	// TODO compress stack
+	// for now we only us 8 byte slots
+	return slots.size() * 8;
+}
+
+StackSlot* StackSlotManager::get_StackSlot(ManagedStackSlot* MSS) {
+	StackSlotListTy::const_iterator i = slots.find(MSS);
+	if (i == slots.end()) {
+		return NULL;
+	}
+	return i->second;
+}
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
-
-#endif /* _JIT_COMPILER2_JITDATA */
 
 
 /*

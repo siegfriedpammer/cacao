@@ -241,7 +241,8 @@ inline bool LinearScanAllocatorPass::allocate_blocked_reg(JITData &JD, LivetimeI
 			print_container(dbg(),new_lti->def_begin(),new_lti->def_end()) << nl;
 		}
 		// stack slot
-		ManagedStackSlot *slot = new ManagedStackSlot();
+		ManagedStackSlot *slot = JD.get_StackSlotManager()
+		                            ->create_ManagedStackSlot();
 		// spill
 		MachineInstruction *move_to_stack = new MachineMoveInst(slot,reg);
 		LOG2("spill instruction: " << move_to_stack << nl);

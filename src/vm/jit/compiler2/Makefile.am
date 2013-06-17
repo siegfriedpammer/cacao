@@ -69,6 +69,7 @@ libcompiler2_la_SOURCES = \
 	SSAConstructionPass.cpp \
 	SSAPrinterPass.cpp \
 	StackAnalysisPass.cpp \
+	StackSlotManager.cpp \
 	Type.cpp \
 	Value.cpp \
 	VerifierPass.cpp

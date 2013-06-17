@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/JITData.hpp - JITData
+/* src/vm/jit/compiler2/StackSlotManager.hpp - StackSlotManager
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,41 +22,56 @@
 
 */
 
-#ifndef _JIT_COMPILER2_JITDATA
-#define _JIT_COMPILER2_JITDATA
+#ifndef _JIT_COMPILER2_STACKSLOTMANAGER
+#define _JIT_COMPILER2_STACKSLOTMANAGER
 
-#include "vm/jit/compiler2/Method.hpp"
-#include "vm/jit/compiler2/Backend.hpp"
-#include "vm/jit/compiler2/StackSlotManager.hpp"
+#include "vm/types.hpp"
 
-// forward declaration
-struct jitdata;
+#include <map>
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-class JITData {
+// forward declaration
+class ManagedStackSlot;
+class StackSlot;
+
+/**
+ * StackSlot Manager.
+ *
+ * The StackSlot Manger is used to manage slote for spilled registers
+ * etc.
+ */
+class StackSlotManager {
 private:
-	jitdata *jd;
-	Method M;
-	Backend *BE;
-	StackSlotManager SSM;
+	typedef std::map<ManagedStackSlot*,StackSlot*> StackSlotListTy;
+	StackSlotListTy slots;
 public:
-	JITData(jitdata *jd);
-	jitdata *get_jitdata() const {
-		return jd;
-	}
-	Method* get_Method() { return &M; }
-	Backend* get_Backend() { return BE; }
-	StackSlotManager* get_StackSlotManager() { return &SSM; }
+	StackSlotManager() {}
+	~StackSlotManager();
+
+	/**
+	 * create a new managed stack slot
+	 */
+	ManagedStackSlot* create_ManagedStackSlot();
+
+	/**
+	 * get the size of the stack frame in bytes
+	 */
+	u4 get_frame_size() const;
+
+	/**
+	 * get a stack slot from a managed stack slot
+	 */
+	StackSlot* get_StackSlot(ManagedStackSlot* MSS);
 };
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_JITDATA */
+#endif /* _JIT_COMPILER2_STACKSLOTMANAGER */
 
 
 /*
