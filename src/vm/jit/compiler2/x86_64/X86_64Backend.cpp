@@ -127,9 +127,11 @@ template<>
 LoweredInstDAG* BackendBase<X86_64>::lowerRETURNInst(RETURNInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	X86_64RetInst *ret = new X86_64RetInst();
 	MachineMoveInst *reg = new MachineMoveInst(&RAX, UnassignedReg::factory());
+	X86_64LeaveInst *leave = new X86_64LeaveInst();
+	X86_64RetInst *ret = new X86_64RetInst();
 	dag->add(reg);
+	dag->add(leave);
 	dag->add(ret);
 	dag->set_input(reg);
 	dag->set_result(ret);
@@ -205,6 +207,13 @@ void BackendBase<X86_64>::emit_Move(const MachineMoveInst *mov, CodeMemory* CM) 
 	ABORT_MSG("x86_64 TODO","non reg-to-reg moves not yet implemented (src:"
 		<< src << " dst:" << dst << ")");
 }
+
+template<>
+void BackendBase<X86_64>::create_frame(CodeMemory* CM, u2 framesize) const {
+	X86_64EnterInst enter(framesize);
+	enter.emit(CM);
+}
+
 namespace {
 void emit_jump(CodeFragment &code, s4 offset) {
 	LOG2("emit_jump codefragment offset: " << hex << offset << nl);

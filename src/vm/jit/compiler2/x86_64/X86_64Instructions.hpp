@@ -47,6 +47,23 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
+class X86_64EnterInst : public MachineInstruction {
+private:
+	u2 framesize;
+public:
+	X86_64EnterInst(u2 framesize)
+			: MachineInstruction("X86_64EnterInst", &NoOperand, 0),
+			framesize(framesize) {}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class X86_64LeaveInst : public MachineInstruction {
+public:
+	X86_64LeaveInst()
+			: MachineInstruction("X86_64LeaveInst", &NoOperand, 0) {}
+	virtual void emit(CodeMemory* CM) const;
+};
+
 class X86_64CondJumpInst : public MachineInstruction {
 private:
 	X86_64Cond::COND cond;

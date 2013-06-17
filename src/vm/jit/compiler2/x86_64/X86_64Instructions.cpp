@@ -41,6 +41,20 @@ void X86_64CmpInst::emit(CodeMemory* CM) const {
 
 	X86_64InstructionEncoding::reg2reg<u1>(CM, 0x39, src1_reg, src2_reg);
 }
+
+void X86_64EnterInst::emit(CodeMemory* CM) const {
+	CodeFragment code = CM->get_CodeFragment(4);
+	code[0] = 0xc8;
+	code[1] = (0xff & (framesize >> 0));
+	code[2] = (0xff & (framesize >> 8));
+	code[3] = 0x0;
+}
+
+void X86_64LeaveInst::emit(CodeMemory* CM) const {
+	CodeFragment code = CM->get_CodeFragment(1);
+	code[0] = 0xc9;
+}
+
 void X86_64RetInst::emit(CodeMemory* CM) const {
 	CodeFragment code = CM->get_CodeFragment(1);
 	code[0] = 0xc3;
