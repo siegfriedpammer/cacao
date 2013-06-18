@@ -105,6 +105,7 @@ typedef union {
 
 typedef union {
     int32_t                   i;
+    uint32_t                  u;
     int64_t                   l;
     float                     f;
     double                    d;
