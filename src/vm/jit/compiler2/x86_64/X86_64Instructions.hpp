@@ -39,7 +39,7 @@ public:
 	/**
 	 * TODO: return type actually is status-flags
 	 */
-	X86_64CmpInst(Register *src1, MachineOperand *src2)
+	X86_64CmpInst(Register *src2, MachineOperand *src1)
 			: MachineInstruction("X86_64CmpInst", &NoOperand, 2) {
 		operands[0].op = src1;
 		operands[1].op = src2;
@@ -79,30 +79,30 @@ public:
 
 class X86_64AddInst : public MachineInstruction {
 public:
-	X86_64AddInst(Register *src1, Register *dstsrc2)
-			: MachineInstruction("X86_64AddInst", dstsrc2, 2) {
-		operands[0].op = src1;
-		operands[1].op = dstsrc2;
+	X86_64AddInst(Register *src2, Register *dstsrc1)
+			: MachineInstruction("X86_64AddInst", dstsrc1, 2) {
+		operands[0].op = dstsrc1;
+		operands[1].op = src2;
 	}
 	virtual void emit(CodeMemory* CM) const;
 };
 
 class X86_64IMulInst : public MachineInstruction {
 public:
-	X86_64IMulInst(Register *src1, Register *dstsrc2)
-			: MachineInstruction("X86_64IMulInst", dstsrc2, 2) {
-		operands[0].op = src1;
-		operands[1].op = dstsrc2;
+	X86_64IMulInst(Register *src2, Register *dstsrc1)
+			: MachineInstruction("X86_64IMulInst", dstsrc1, 2) {
+		operands[0].op = dstsrc1;
+		operands[1].op = src2;
 	}
 	virtual void emit(CodeMemory* CM) const;
 };
 
 class X86_64SubInst : public MachineInstruction {
 public:
-	X86_64SubInst(Register *src1, Register *dstsrc2)
-			: MachineInstruction("X86_64SubInst", dstsrc2, 2) {
-		operands[0].op = src1;
-		operands[1].op = dstsrc2;
+	X86_64SubInst(Register *src2, Register *dstsrc1)
+			: MachineInstruction("X86_64SubInst", dstsrc1, 2) {
+		operands[0].op = dstsrc1;
+		operands[1].op = src2;
 	}
 	virtual void emit(CodeMemory* CM) const;
 };

@@ -117,7 +117,8 @@ LoweredInstDAG* BackendBase<X86_64>::lowerIFInst(IFInst *I) const {
 	dag->add(cmp);
 	dag->add(cjmp);
 
-	dag->set_input(cmp);
+	dag->set_input(0,cmp,1);
+	dag->set_input(1,cmp,0);
 	dag->set_result(cjmp);
 	return dag;
 }
@@ -131,8 +132,8 @@ LoweredInstDAG* BackendBase<X86_64>::lowerADDInst(ADDInst *I) const {
 	X86_64AddInst *add = new X86_64AddInst(UnassignedReg::factory(),dst);
 	dag->add(mov);
 	dag->add(add);
-	dag->set_input(0,add,0);
-	dag->set_input(1,mov,0);
+	dag->set_input(1,add,1);
+	dag->set_input(0,mov,0);
 	dag->set_result(add);
 	return dag;
 }
@@ -146,11 +147,27 @@ LoweredInstDAG* BackendBase<X86_64>::lowerSUBInst(SUBInst *I) const {
 	X86_64SubInst *sub = new X86_64SubInst(UnassignedReg::factory(),dst);
 	dag->add(mov);
 	dag->add(sub);
-	dag->set_input(0,sub,0);
-	dag->set_input(1,mov,0);
+	dag->set_input(1,sub,1);
+	dag->set_input(0,mov,0);
 	dag->set_result(sub);
 	return dag;
 }
+
+template<>
+LoweredInstDAG* BackendBase<X86_64>::lowerMULInst(MULInst *I) const {
+	assert(I);
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	VirtualRegister *dst = new VirtualRegister();
+	MachineMoveInst *mov = create_Move(UnassignedReg::factory(), dst);
+	X86_64IMulInst *mul = new X86_64IMulInst(UnassignedReg::factory(),dst);
+	dag->add(mov);
+	dag->add(mul);
+	dag->set_input(1,mul,1);
+	dag->set_input(0,mov,0);
+	dag->set_result(mul);
+	return dag;
+}
+
 
 template<>
 LoweredInstDAG* BackendBase<X86_64>::lowerRETURNInst(RETURNInst *I) const {
@@ -166,22 +183,6 @@ LoweredInstDAG* BackendBase<X86_64>::lowerRETURNInst(RETURNInst *I) const {
 	dag->set_result(ret);
 	return dag;
 }
-
-template<>
-LoweredInstDAG* BackendBase<X86_64>::lowerMULInst(MULInst *I) const {
-	assert(I);
-	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	VirtualRegister *dst = new VirtualRegister();
-	MachineMoveInst *mov = create_Move(UnassignedReg::factory(), dst);
-	X86_64IMulInst *mul = new X86_64IMulInst(UnassignedReg::factory(),dst);
-	dag->add(mov);
-	dag->add(mul);
-	dag->set_input(0,mul,0);
-	dag->set_input(1,mov,0);
-	dag->set_result(mul);
-	return dag;
-}
-
 template<>
 RegisterFile* BackendBase<X86_64>::get_RegisterFile() const {
 	return X86_64RegisterFile::factory();
