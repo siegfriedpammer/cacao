@@ -204,6 +204,15 @@ public:
 		return false;
 	}
 
+	bool is_split_of(const LivetimeInterval &LI) const {
+		for( LivetimeInterval *lti = LI.get_next(); lti; lti = lti->get_next()) {
+			if (lti == this) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	signed intersects(const LivetimeInterval &lti) const {
 		for(const_iterator a_i = begin(), b_i = lti.begin(),
 				a_e = end(), b_e = lti.end() ; a_i != a_e && b_i != b_e ; ) {
