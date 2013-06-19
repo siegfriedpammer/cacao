@@ -35,6 +35,7 @@ OStream& out();
 OStream& err();
 
 class SetWidth;
+class SetZero;
 class SetPrecision;
 class SetIndent;
 class SetPrefix;
@@ -168,6 +169,7 @@ public:
 
 	// manipulators
 	OStream& operator<<(const SetWidth&);
+	OStream& operator<<(const SetZero&);
 	OStream& operator<<(const SetPrecision&);
 	OStream& operator<<(const SetIndent&);
 	OStream& operator<<(const SetPrefix&);
@@ -319,6 +321,15 @@ public:
 friend class OStream;
 };
 
+/// Set width flag and fill zero for next item to be written.
+class SetZero {
+	size_t width;
+public:
+	inline SetZero(size_t width) : width(width) {}
+
+friend class OStream;
+};
+
 /// Set precision flag for next item to be written.
 class SetPrecision {
 	int precision;
@@ -373,6 +384,9 @@ class NoUnderline;
 
 inline static SetWidth setw(size_t w) {
 	return SetWidth(w);
+}
+inline static SetZero setz(size_t w) {
+	return SetZero(w);
 }
 inline static SetPrecision setprecision(int p) {
 	return SetPrecision(p);

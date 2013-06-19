@@ -281,6 +281,11 @@ OStream& OStream::operator<<(const SetWidth& s) {
 
 	return (*this);
 }
+OStream& OStream::operator<<(const SetZero& s) {
+	width = s.width;
+	fill_zero = true;
+	return (*this);
+}
 OStream& OStream::operator<<(const SetPrecision& s) {
 	precision = s.precision;
 
