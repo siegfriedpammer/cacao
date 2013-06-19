@@ -183,10 +183,10 @@ inline OStream& operator<<(OStream &OS, const std::pair<unsigned,MachineOperandD
 ////////////////////// LivetimeAnalysis
 
 bool LivetimeAnalysisPass::run(JITData &JD) {
-	BasicBlockSchedule *BS = get_Pass<BasicBlockSchedulingPass>();
+	BS = get_Pass<BasicBlockSchedulingPass>();
+	MIS = get_Pass<MachineInstructionSchedulingPass>();
 	LoweringPass *LP = get_Pass<LoweringPass>();
 	LoopTree *LT = get_Pass<LoopPass>();
-	MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
 	// TODO use better data structor for the register set
 	LiveInMapTy liveIn;
 
@@ -365,90 +365,76 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 		}
 
 	}
-	if (DEBUG_COND) {
-		LOG(nl << "Liveinterval Table:" << nl);
-		LOG("Line: ");
+	DEBUG(print(dbg()));
 
-		for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
-				e = lti_map.end(); i != e ; ++i) {
-			const LivetimeInterval &lti = i->second;
-			if (lti.get_Register()->to_MachineRegister()) {
-				dbg() << setw(7) << lti.get_Register();
-			} else {
-				dbg() << setw(6) << lti.get_Register();
-			}
-		}
+	return true;
+}
 
-		dbg() << "  Instructions" << nl;
-		for (BasicBlockSchedule::const_bb_iterator i = BS->bb_begin(),
-				e = BS->bb_end(); i != e ; ++i) {
-			BeginInst *BI = *i;
-			assert(BI);
-			LOG(BoldWhite << "BasicBlock: " << BI << reset_color << nl);
-			MachineInstructionSchedule::MachineInstructionRangeTy range = MIS->get_range(BI);
-			assert(range.first != range.second);
-			for (unsigned pos = range.first*2, e = range.second*2; pos < e; ++pos) {
-				MachineInstruction *MI = MIS->get(pos/2);
-				assert(MI);
-				// USELINE
-					// print lineno
-					LOG("  ");
-					dbg() << setz(4) << pos;
-					// print intervals
-					for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
-							e = lti_map.end(); i != e ; ++i) {
-						const LivetimeInterval &lti = i->second;
-						if (lti.is_unhandled(pos) || lti.is_handled(pos)) {
-							dbg() << "      ";
-						} else if (lti.is_active(pos)) {
-							if (lti.get_Register()->to_MachineRegister()) {
-								dbg() << setw(6) << lti.get_Register();
-							} else {
-								dbg() << setw(5) << lti.get_Register();
-							}
-						} else {
-							dbg() << "  --  ";
-						}
-						if (lti.is_use(pos)) {
-							dbg() << "U";
-						} else {
-							dbg() << " ";
-						}
-					}
-					// print instructions
-					dbg() << ": " << MI << nl;
-				// DEFLINE
-					++pos;
-					// print lineno
-					LOG("  ");
-					dbg() << setz(4) << pos;
-					// print intervals
-					for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
-							e = lti_map.end(); i != e ; ++i) {
-						const LivetimeInterval &lti = i->second;
-						if (lti.is_unhandled(pos) || lti.is_handled(pos)) {
-							dbg() << "      ";
-						} else if (lti.is_active(pos)) {
-							if (lti.get_Register()->to_MachineRegister()) {
-								dbg() << setw(6) << lti.get_Register();
-							} else {
-								dbg() << setw(5) << lti.get_Register();
-							}
-						} else {
-							dbg() << "  --  ";
-						}
-						if (lti.is_def(pos)) {
-							dbg() << "D";
-						} else {
-							dbg() << " ";
-						}
-					}
-					dbg() << ": [rslt]" << nl;
-			}
+OStream& LivetimeAnalysisPass::print(OStream& OS) const {
+	OS << nl << "Liveinterval Table:" << nl;
+	OS << "Line:";
+
+	for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
+			e = lti_map.end(); i != e ; ++i) {
+		const LivetimeInterval &lti = i->second;
+		if (lti.get_Register()->to_MachineRegister()) {
+			OS << setw(7) << lti.get_Register();
+		} else {
+			OS << setw(6) << lti.get_Register();
 		}
 	}
 
-	return true;
+	OS << "  Instructions" << nl;
+	for (BasicBlockSchedule::const_bb_iterator i = BS->bb_begin(),
+			e = BS->bb_end(); i != e ; ++i) {
+		BeginInst *BI = *i;
+		assert(BI);
+		OS << BoldWhite << "BasicBlock: " << BI << reset_color << nl;
+		MachineInstructionSchedule::MachineInstructionRangeTy range = MIS->get_range(BI);
+		assert(range.first != range.second);
+		for (unsigned pos = range.first*2, e = range.second*2; pos < e; ) {
+			MachineInstruction *MI = MIS->get(pos/2);
+			assert(MI);
+
+			// print use and def lines
+			for (int i = 0; i <2; ++i) {
+				// print lineno
+				OS << "  ";
+				OS << setz(4) << pos;
+				// print intervals
+				for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
+						e = lti_map.end(); i != e ; ++i) {
+					const LivetimeInterval &lti = i->second;
+					if (lti.is_unhandled(pos) || lti.is_handled(pos)) {
+						OS << "      ";
+					} else if (lti.is_active(pos)) {
+						if (lti.get_Register()->to_MachineRegister()) {
+							OS << setw(6) << lti.get_Register();
+						} else {
+							OS << setw(5) << lti.get_Register();
+						}
+					} else {
+						OS << "  --  ";
+					}
+					if (lti.is_use(pos)) {
+						OS << "U";
+					} else if (lti.is_def(pos)) {
+						OS << "D";
+					} else {
+						OS << " ";
+					}
+				}
+				// print instructions
+				if (i == 0) {
+					OS << ": " << MI << nl;
+				} else {
+					OS << ": [rslt]" << nl;
+				}
+				++pos;
+			}
+		}
+	}
+	return OS;
 }
 
 bool LivetimeAnalysisPass::verify() const {

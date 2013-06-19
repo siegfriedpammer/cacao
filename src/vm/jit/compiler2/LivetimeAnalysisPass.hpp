@@ -45,6 +45,8 @@ class MachineOperand;
 class MachineOperandDesc;
 class StackSlotManager;
 class ManagedStackSlot;
+class BasicBlockSchedule;
+class MachineInstructionSchedule;
 
 /**
  * TODO: doc me!
@@ -282,6 +284,8 @@ private:
 	typedef std::map<BeginInst*,LiveInSetTy> LiveInMapTy;
 
 	LivetimeIntervalMapTy lti_map;
+	BasicBlockSchedule *BS;
+	MachineInstructionSchedule *MIS;
 public:
 	static char ID;
 	LivetimeAnalysisPass() : Pass() {}
@@ -312,6 +316,7 @@ public:
 		}
 		return &(i->second);
 	}
+	OStream& print(OStream& OS) const;
 };
 
 } // end namespace compiler2
