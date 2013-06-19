@@ -267,7 +267,6 @@ inline bool LinearScanAllocatorPass::allocate_blocked_reg(LivetimeInterval *curr
 		// stack slot
 		LOG2("split " << lti << " at " << current->get_start() << nl);
 
-//FIXME
 		split(lti,current->get_start());
 
 		// TODO split an inactive interval for reg at the end of its lifetime hole
@@ -426,6 +425,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 		}
 
 	}
+	DEBUG(LA->print(dbg()));
 
 	// resolution
 	Method *M = jd->get_Method();

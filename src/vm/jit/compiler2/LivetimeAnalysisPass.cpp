@@ -376,11 +376,12 @@ OStream& LivetimeAnalysisPass::print(OStream& OS) const {
 
 	for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
 			e = lti_map.end(); i != e ; ++i) {
-		const LivetimeInterval &lti = i->second;
-		if (lti.get_Register()->to_MachineRegister()) {
-			OS << setw(7) << lti.get_Register();
+		Register *reg = i->first;
+		// this is hardcoded -> do better
+		if (reg->to_MachineRegister()) {
+			OS << setw(7) << reg;
 		} else {
-			OS << setw(6) << lti.get_Register();
+			OS << setw(6) << reg;
 		}
 	}
 
@@ -404,24 +405,46 @@ OStream& LivetimeAnalysisPass::print(OStream& OS) const {
 				// print intervals
 				for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
 						e = lti_map.end(); i != e ; ++i) {
-					const LivetimeInterval &lti = i->second;
-					if (lti.is_unhandled(pos) || lti.is_handled(pos)) {
-						OS << "      ";
-					} else if (lti.is_active(pos)) {
-						if (lti.get_Register()->to_MachineRegister()) {
-							OS << setw(6) << lti.get_Register();
-						} else {
-							OS << setw(5) << lti.get_Register();
-						}
-					} else {
-						OS << "  --  ";
+					const LivetimeInterval *lti = &i->second;
+					if (lti->is_unhandled(pos)) {
+						OS << "       ";
+						continue;
 					}
-					if (lti.is_use(pos)) {
-						OS << "U";
-					} else if (lti.is_def(pos)) {
-						OS << "D";
-					} else {
-						OS << " ";
+					for (; lti ; lti = lti->get_next()) {
+						if (lti->is_handled(pos)) {
+							if (lti->get_next()) {
+								continue;
+							}
+							OS << "       ";
+							break;
+						}
+						if (lti->is_active(pos)) {
+							// avtive
+							if (lti->is_in_Register()) {
+								// in Register
+								if (lti->get_Register()->to_MachineRegister()) {
+									OS << setw(6) << lti->get_Register();
+								} else {
+									OS << setw(5) << lti->get_Register();
+								}
+							} else {
+								// stack slot
+								ManagedStackSlot *slot = lti->get_ManagedStackSlot();
+								OS << "  s" << setz(3) << slot->get_id();
+							}
+							if (lti->is_use(pos)) {
+								OS << "U";
+							} else if (lti->is_def(pos)) {
+								OS << "D";
+							} else {
+								OS << " ";
+							}
+							break;
+						}
+						if (lti->is_inactive(pos)) {
+							OS << "  ---  ";
+							break;
+						}
 					}
 				}
 				// print instructions

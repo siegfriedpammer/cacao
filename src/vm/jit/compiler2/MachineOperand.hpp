@@ -156,8 +156,9 @@ public:
 	virtual const char* get_name() const {
 		return "ManagedStackSlot";
 	}
+	unsigned get_id() const { return id; }
 	virtual OStream& print(OStream &OS) const {
-		return OS << get_name() << id;
+		return OS << get_name() << get_id();
 	}
 	friend class StackSlotManager;
 };
