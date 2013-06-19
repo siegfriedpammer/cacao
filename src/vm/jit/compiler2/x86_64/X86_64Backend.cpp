@@ -82,7 +82,7 @@ LoweredInstDAG* BackendBase<X86_64>::lowerLOADInst(LOADInst *I) const {
 	//FIXME inefficient
 	const X86_64MachineMethodDescriptor MMD(MD);
 	VirtualRegister *dst = new VirtualRegister();
-	MachineMoveInst *move = create_Move(dst,MMD[I->get_index()]);
+	MachineMoveInst *move = create_Move(MMD[I->get_index()],dst);
 	dag->add(move);
 	dag->set_result(move);
 	return dag;
@@ -127,12 +127,12 @@ LoweredInstDAG* BackendBase<X86_64>::lowerADDInst(ADDInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *dst = new VirtualRegister();
-	MachineMoveInst *mov = create_Move(dst, UnassignedReg::factory());
-	X86_64AddInst *add = new X86_64AddInst(dst,dst,UnassignedReg::factory());
+	MachineMoveInst *mov = create_Move(UnassignedReg::factory(), dst);
+	X86_64AddInst *add = new X86_64AddInst(UnassignedReg::factory(),dst);
 	dag->add(mov);
 	dag->add(add);
-	dag->set_input(0,mov,0);
-	dag->set_input(1,add,1);
+	dag->set_input(0,add,0);
+	dag->set_input(1,mov,0);
 	dag->set_result(add);
 	return dag;
 }
@@ -142,12 +142,12 @@ LoweredInstDAG* BackendBase<X86_64>::lowerSUBInst(SUBInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *dst = new VirtualRegister();
-	MachineMoveInst *mov = create_Move(dst, UnassignedReg::factory());
-	X86_64SubInst *sub = new X86_64SubInst(dst,dst,UnassignedReg::factory());
+	MachineMoveInst *mov = create_Move(UnassignedReg::factory(), dst);
+	X86_64SubInst *sub = new X86_64SubInst(UnassignedReg::factory(),dst);
 	dag->add(mov);
 	dag->add(sub);
-	dag->set_input(0,mov,0);
-	dag->set_input(1,sub,1);
+	dag->set_input(0,sub,0);
+	dag->set_input(1,mov,0);
 	dag->set_result(sub);
 	return dag;
 }
@@ -156,7 +156,7 @@ template<>
 LoweredInstDAG* BackendBase<X86_64>::lowerRETURNInst(RETURNInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	MachineMoveInst *reg = create_Move(&RAX, UnassignedReg::factory());
+	MachineMoveInst *reg = create_Move(UnassignedReg::factory(), &RAX);
 	X86_64LeaveInst *leave = new X86_64LeaveInst();
 	X86_64RetInst *ret = new X86_64RetInst();
 	dag->add(reg);
@@ -172,13 +172,13 @@ LoweredInstDAG* BackendBase<X86_64>::lowerMULInst(MULInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *dst = new VirtualRegister();
-	MachineMoveInst *mov = create_Move(dst, UnassignedReg::factory());
-	X86_64IMulInst *sub = new X86_64IMulInst(dst,dst,UnassignedReg::factory());
+	MachineMoveInst *mov = create_Move(UnassignedReg::factory(), dst);
+	X86_64IMulInst *mul = new X86_64IMulInst(UnassignedReg::factory(),dst);
 	dag->add(mov);
-	dag->add(sub);
-	dag->set_input(0,mov,0);
-	dag->set_input(1,sub,1);
-	dag->set_result(sub);
+	dag->add(mul);
+	dag->set_input(0,mul,0);
+	dag->set_input(1,mov,0);
+	dag->set_result(mul);
 	return dag;
 }
 

@@ -58,7 +58,6 @@ public:
 	// phis are never emitted
 	virtual void emit(CodeMemory* CM) const {};
 };
-
 class MachineConstInst : public MachineInstruction {
 public:
 	/**
@@ -70,6 +69,7 @@ public:
 	virtual void emit(CodeMemory* CM) const {};
 };
 
+#if 0
 /**
  * Load from memory to register
  */
@@ -107,7 +107,7 @@ public:
 	}
 
 };
-
+#endif
 class MachineJumpInst : public MachineInstruction {
 public:
 	MachineJumpInst(const char *name)
@@ -122,8 +122,8 @@ public:
 class MachineMoveInst : public MachineInstruction {
 public:
 	MachineMoveInst( const char* name,
-			MachineOperand *dst,
-			MachineOperand *src)
+			MachineOperand *src,
+			MachineOperand *dst)
 			: MachineInstruction(name, dst, 1) {
 		operands[0].op = src;
 	}

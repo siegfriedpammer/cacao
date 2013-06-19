@@ -79,30 +79,30 @@ public:
 
 class X86_64AddInst : public MachineInstruction {
 public:
-	X86_64AddInst(Register *dst, Register *src1, Register *src2)
-			: MachineInstruction("X86_64AddInst", dst, 2) {
+	X86_64AddInst(Register *src1, Register *dstsrc2)
+			: MachineInstruction("X86_64AddInst", dstsrc2, 2) {
 		operands[0].op = src1;
-		operands[1].op = src2;
+		operands[1].op = dstsrc2;
 	}
 	virtual void emit(CodeMemory* CM) const;
 };
 
 class X86_64IMulInst : public MachineInstruction {
 public:
-	X86_64IMulInst(Register *dst, Register *src1, Register *src2)
-			: MachineInstruction("X86_64IMulInst", dst, 2) {
+	X86_64IMulInst(Register *src1, Register *dstsrc2)
+			: MachineInstruction("X86_64IMulInst", dstsrc2, 2) {
 		operands[0].op = src1;
-		operands[1].op = src2;
+		operands[1].op = dstsrc2;
 	}
 	virtual void emit(CodeMemory* CM) const;
 };
 
 class X86_64SubInst : public MachineInstruction {
 public:
-	X86_64SubInst(Register *dst, Register *src1, Register *src2)
-			: MachineInstruction("X86_64SubInst", dst, 2) {
+	X86_64SubInst(Register *src1, Register *dstsrc2)
+			: MachineInstruction("X86_64SubInst", dstsrc2, 2) {
 		operands[0].op = src1;
-		operands[1].op = src2;
+		operands[1].op = dstsrc2;
 	}
 	virtual void emit(CodeMemory* CM) const;
 };
@@ -117,8 +117,8 @@ public:
 
 class X86_64MovInst : public MachineMoveInst {
 public:
-	X86_64MovInst(MachineOperand *dst, MachineOperand *src)
-			: MachineMoveInst("X86_64MovInst", dst, src) {}
+	X86_64MovInst(MachineOperand *src, MachineOperand *dst)
+			: MachineMoveInst("X86_64MovInst", src, dst) {}
 	virtual void emit(CodeMemory* CM) const;
 };
 

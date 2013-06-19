@@ -200,6 +200,8 @@ inline bool LinearScanAllocatorPass::allocate_blocked_reg(JITData &JD, LivetimeI
 	unsigned use_pos = best_next_use_pos;
 	LivetimeInterval *lti = best_lti;
 
+	assert(lti);
+
 	LOG("Selected Register: " << reg << " (free until: " << use_pos << ")" << nl);
 	// FIXME: this is not right! we need the first USE position not interval start!
 	if (current->get_start() > use_pos) {
@@ -244,11 +246,13 @@ inline bool LinearScanAllocatorPass::allocate_blocked_reg(JITData &JD, LivetimeI
 		ManagedStackSlot *slot = JD.get_StackSlotManager()
 		                            ->create_ManagedStackSlot();
 		// spill
-		MachineInstruction *move_to_stack = backend->create_Move(slot,reg);
+		MachineInstruction *move_to_stack = backend->create_Move(reg,slot);
 		LOG2("spill instruction: " << move_to_stack << nl);
 		MIS->add_before(current->get_start(),move_to_stack);
 		// load
-		MachineInstruction *move_from_stack = backend->create_Move(new_lti->get_reg(),slot);
+		// TODO is this really enough? dont we need more loads?
+		MachineInstruction *move_from_stack =
+			backend->create_Move(slot,new_lti->get_reg());
 		LOG2("load instruction: " << move_from_stack << nl);
 		MIS->add_before(new_lti->get_start(),move_from_stack);
 		// register new def (load)
