@@ -65,10 +65,11 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(JITData &JD, Livetime
 	// set active registes to occupied
 	for (ActiveSetTy::const_iterator i = active.begin(), e = active.end();
 			i != e ; ++i) {
-		MachineRegister *reg = (*i)->get_reg()->to_MachineRegister();
+		if (!(*i)->is_in_Register()) continue;
+		MachineRegister *reg = (*i)->get_Register()->to_MachineRegister();
 		// all active intervals must be assigned to machine registers
 		if (DEBUG_COND && !reg) {
-			ABORT_MSG("Interval " << current << " not in a machine reg " << (*i)->get_reg(), "Not yet supported!");
+			ABORT_MSG("Interval " << current << " not in a machine reg " << (*i)->get_Register(), "Not yet supported!");
 		}
 		assert(reg);
 		// reg not free!
@@ -79,10 +80,11 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(JITData &JD, Livetime
 			i != e ; ++i) {
 		LivetimeInterval *inact = *i;
 		assert(inact);
+		if (!inact->is_in_Register()) continue;
 		signed intersection = current->intersects(*inact);
 		if (intersection != -1) {
 			LOG2("interval " << current << " intersects with " << inact << " (inactive) at " << intersection << nl);
-			MachineRegister *reg = inact->get_reg()->to_MachineRegister();
+			MachineRegister *reg = inact->get_Register()->to_MachineRegister();
 			assert(reg);
 			// reg not free!
 			free_until_pos[reg] = intersection;
@@ -100,7 +102,7 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(JITData &JD, Livetime
 		if (hint && (hint_lti = LA->get(hint)) ) {
 			if ( hint_lti->get_end() <= current->get_start()) {
 				LOG2("Hint: " << hint_lti << nl);
-				reg = hint_lti->get_reg()->to_MachineRegister();
+				reg = hint_lti->get_Register()->to_MachineRegister();
 				assert(reg);
 				free_pos = free_until_pos[reg];
 			}
@@ -123,17 +125,109 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(JITData &JD, Livetime
 	}
 	if ( current->get_end() <= free_pos ) {
 		// register available for the whole interval. jackpot!
-		current->set_reg(reg);
+		current->set_Register(reg);
 		return true;
 	}
 	// register available for the first part of the interval
-	current->set_reg(reg);
+	current->set_Register(reg);
 	// split current before free_pos
 	ABORT_MSG("Interval Splitting not yet supported!","");
 
 	return true;
 }
 
+#if 0
+namespace {
+LivetimeInterval* split(LivetimeInterval *split_lti, unsigned pos, ManagedStackSlot *slot) {
+	//sanity checks:
+	assert(pos > split_lti, get_start() && pos < split_lti->get_end());
+
+	LivetimeInterval *stack_interval =  NULL;
+	LivetimeInterval *lti = NULL;
+	// copy intervals
+	LivetimeInterval::iterator i = split_lti->begin();
+	LivetimeInterval::iterator e = split_lti->.end();
+	for( ; i != e ; ++i) {
+		if (i->first >= pos) {
+			// livetime hole
+			break;
+		}
+		if (i->second > pos) {
+			// currently active
+			unsigned end = i->second;
+			i->second = pos;
+			//lti->add_range(pos,end);
+			// XXX Wow I am so not sure if this is correct:
+			// If the new range will start at pos it will be
+			// selected for reg allocation in the next iteration
+			// and we end up in splitting another interval which
+			// in ture creates a new interval starting at pos...
+			// But if we let it start at the next usedef things look
+			// better. Because of the phi functions we dont run into
+			// troubles with backedges and loop time intervals,
+			// I guess...
+
+			signed next_usedef = next_usedef_after(pos);
+			assert(next_usedef != -1);
+			if (next_usedef != end) {
+				lti = new LivetimeInterval();
+				// ok it is not a loop pseudo use
+				lti->add_range(next_usedef,end);
+			}
+			++i;
+			// create stack interval
+			stack_interval = new LivetimeInterval();
+			stack_interval->add_range(pos,next_usedef);
+			stack_interval->set_Register(slot);
+			this->next_split = stack_interval;
+			break;
+		}
+	}
+	if (i == e) {
+		// already at the end
+		return NULL;
+	}
+	if (lti == NULL) {
+		lti = new LivetimeInterval();
+	}
+	if (stack_interval) {
+		stack_interval->next_split == lti;
+	} else {
+		this->next_split == lti;
+	}
+	// move all remaining intervals to the new lti
+	while (i != e) {
+		lti->intervals.push_back(std::make_pair(i->first,i->second));
+		i = intervals.erase(i);
+	}
+	// copy uses
+	for (use_iterator i = uses.begin(), e = uses.end(); i != e ; ) {
+		if (i->first >= pos) {
+			lti->add_use(*i);
+			i = uses.erase(i);
+		} else {
+			++i;
+		}
+	}
+	// copy defs
+	for (def_iterator i = defs.begin(), e = defs.end(); i != e ; ) {
+		if (i->first >= pos) {
+			lti->add_def(*i);
+			i = defs.erase(i);
+		} else {
+			++i;
+		}
+	}
+	// create new virtual register
+	VirtualRegister *vreg = new VirtualRegister();
+	lti->set_Register(vreg);
+	// set hint to the current register
+	assert(reg->to_MachineRegister());
+	lti->set_hint(reg);
+	return lti;
+}
+}
+#endif
 inline bool LinearScanAllocatorPass::allocate_blocked_reg(JITData &JD, LivetimeInterval *current) {
 	Backend* backend = JD.get_Backend();
 	RegisterFile* reg_file = backend->get_RegisterFile();
@@ -157,10 +251,11 @@ inline bool LinearScanAllocatorPass::allocate_blocked_reg(JITData &JD, LivetimeI
 	for (ActiveSetTy::const_iterator i = active.begin(), e = active.end();
 			i != e ; ++i) {
 		LivetimeInterval *lti = *i;
-		MachineRegister *reg = lti->get_reg()->to_MachineRegister();
+		MachineRegister *reg = lti->get_Register()->to_MachineRegister();
 		assert(reg);
 		signed pos = lti->next_usedef_after(current->get_start());
 		next_use_pos[reg] = pos;
+		LOG3("active: " << lti << " pos: " << pos << nl);
 		if (pos > best_next_use_pos && !lti->is_fixed_interval()) {
 			best_next_use_pos = pos;
 			best_reg = reg;
@@ -175,10 +270,11 @@ inline bool LinearScanAllocatorPass::allocate_blocked_reg(JITData &JD, LivetimeI
 		signed intersection = current->intersects(*inact);
 		if (intersection != -1) {
 			LivetimeInterval *lti = *i;
-			MachineRegister *reg = lti->get_reg()->to_MachineRegister();
+			MachineRegister *reg = lti->get_Register()->to_MachineRegister();
 			assert(reg);
 			signed pos = lti->next_usedef_after(current->get_start());
 			next_use_pos[reg] = pos;
+			LOG3("inactive: " << lti << " pos: " << pos << nl);
 			if (pos > best_next_use_pos && !lti->is_fixed_interval()) {
 				best_next_use_pos = pos;
 				best_reg = reg;
@@ -214,56 +310,54 @@ inline bool LinearScanAllocatorPass::allocate_blocked_reg(JITData &JD, LivetimeI
 	} else {
 		// spill intervals that currently block reg
 		LOG2("spill intervals that currently block reg" << nl);
-		current->set_reg(reg);
-		// TODO split active interval for reg at position (position is start of current)
-		LOG2("split " << lti << " at " << current->get_start());
-		if (DEBUG_COND_N(2) ){
-			dbg() << " use: ";
-			print_container(dbg(),lti->use_begin(),lti->use_end());
-			dbg() << " def: ";
-			print_container(dbg(),lti->def_begin(),lti->def_end()) << nl;
-		}
-		LivetimeInterval *new_lti = lti->split(current->get_start());
+		current->set_Register(reg);
 		active.push_back(current);
-		// add the new interval to unhandled
-		assert(new_lti);
-		unhandled.push(new_lti);
-		LOG2("altered lti: " << lti);
-		if (DEBUG_COND_N(2) ){
-			dbg()<<" use: ";
-			print_container(dbg(),lti->use_begin(),lti->use_end());
-			dbg()<<" def: ";
-			print_container(dbg(),lti->def_begin(),lti->def_end()) << nl;
-		}
-		LOG2("new lti: " << new_lti);
-		if (DEBUG_COND_N(2) ){
-			dbg()<<" use: ";
-			print_container(dbg(),new_lti->use_begin(),new_lti->use_end());
-			dbg()<<" def: ";
-			print_container(dbg(),new_lti->def_begin(),new_lti->def_end()) << nl;
-		}
+		// TODO split active interval for reg at position (position is start of current)
 		// stack slot
-		ManagedStackSlot *slot = JD.get_StackSlotManager()
-		                            ->create_ManagedStackSlot();
-		// spill
-		MachineInstruction *move_to_stack = backend->create_Move(reg,slot);
-		LOG2("spill instruction: " << move_to_stack << nl);
-		MIS->add_before(current->get_start(),move_to_stack);
-		// load
-		// TODO is this really enough? dont we need more loads?
-		MachineInstruction *move_from_stack =
-			backend->create_Move(slot,new_lti->get_reg());
-		LOG2("load instruction: " << move_from_stack << nl);
-		MIS->add_before(new_lti->get_start(),move_from_stack);
-		// register new def (load)
-		new_lti->add_def(new_lti->get_start(),move_from_stack->get_result());
+		LOG2("split " << lti << " at " << current->get_start() << nl);
+		lti->split(current->get_start(), JD.get_StackSlotManager());
+		LivetimeInterval *tmp_lti = lti->get_next();
+		if (tmp_lti) {
+			LOG2("altered lti: " << lti << nl);
+			if (!tmp_lti->is_in_Register()) {
+				// StackSlot
+				LivetimeInterval *stack_lti = tmp_lti;
+				unhandled.push(stack_lti);
+				// get slot
+				ManagedStackSlot *slot = stack_lti->get_ManagedStackSlot();
+				assert(slot);
+				// spill
+				MachineInstruction *move_to_stack = backend->create_Move(reg,slot);
+				LOG2("spill instruction: " << move_to_stack << nl);
+				MIS->add_before(current->get_start(),move_to_stack);
 
+				LOG2("stack interval: " << stack_lti << nl);
+				LivetimeInterval *new_lti = stack_lti->get_next();
+				if (new_lti) {
+					// we a new lti
+					LOG2("new lti: " << new_lti << nl);
+					// load
+					MachineInstruction *move_from_stack =
+						backend->create_Move(slot,new_lti->get_Register());
+					LOG2("load instruction: " << move_from_stack << nl);
+					MIS->add_before(new_lti->get_start(),move_from_stack);
+					new_lti->add_def(new_lti->get_start(),move_from_stack->get_result());
+					unhandled.push(new_lti);
+				}
+			} else {
+				LOG2("new lti (no stack): " << tmp_lti << nl);
+				unhandled.push(tmp_lti);
+			}
+			// TODO is this really enough? dont we need more loads?
+			// register new def (load)
+
+		}
 		// TODO split an inactive interval for reg at the end of its lifetime hole
 		for (InactiveSetTy::const_iterator i = inactive.begin(), e = inactive.end();
 				i != e ; ++i) {
 			LivetimeInterval *inact = *i;
 			assert(inact);
-			if (inact->get_reg() == reg) {
+			if (inact->get_Register() == reg) {
 				LOG2("split " << inact << " at end of livetime hole" << nl);
 			}
 			ABORT_MSG("not implemented","");
@@ -356,18 +450,24 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 			}
 		}
 
-		if (!current->get_reg()->to_MachineRegister()) {
-			// Try to find a register
-			if (try_allocate_free_reg(JD, current)) {
-				// if allocation successful add current to active
-				active.push_back(current);
-			} else {
-				allocate_blocked_reg(JD, current);
-			}
-		} else {
+		if (!current->is_in_Register()) {
+			// stackslot
+			active.push_back(current);
+			LOG2("Stackslot: " << current << nl);
+			continue;
+		}
+		if (current->get_Register()->to_MachineRegister()) {
 			// preallocated
 			active.push_back(current);
 			LOG2("Preallocated: " << current << nl);
+			continue;
+		}
+		// Try to find a register
+		if (try_allocate_free_reg(JD, current)) {
+			// if allocation successful add current to active
+			active.push_back(current);
+		} else {
+			allocate_blocked_reg(JD, current);
 		}
 	}
 	// move all active/inactive to handled
@@ -377,20 +477,32 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 	for (HandledSetTy::const_iterator i = handled.begin(), e = handled.end();
 			i != e ; ++i) {
 		LivetimeInterval *lti = *i;
-		Register *reg = lti->get_reg();
-		LOG("Assigned Interval " << lti << " to " << reg << nl );
+		if (!lti->is_in_Register()) continue;
+		Register *reg = lti->get_Register();
 		assert(reg->to_MachineRegister());
-
 		for (LivetimeInterval::const_def_iterator i = lti->def_begin(),
 				e = lti->def_end(); i != e ; ++i) {
 			MachineOperandDesc *MOD = i->second;
-			MOD->op = lti->get_reg();
+			MOD->op = lti->get_Register();
 		}
 		for (LivetimeInterval::const_use_iterator i = lti->use_begin(),
 				e = lti->use_end(); i != e ; ++i) {
 			MachineOperandDesc *MOD = i->second;
-			MOD->op = lti->get_reg();
+			MOD->op = lti->get_Register();
 		}
+	}
+
+	// debug
+	for (LivetimeAnalysisPass::const_iterator i = LA->begin(), e = LA->end();
+			i != e ; ++i) {
+		const LivetimeInterval *lti = &i->second;
+		LOG("Assigned Interval " << lti << nl );
+		assert(!lti->is_in_Register() || lti->get_Register()->to_MachineRegister());
+		while ( (lti = lti->get_next()) ) {
+			LOG("Split Interval " << lti << nl );
+			assert(!lti->is_in_Register() || lti->get_Register()->to_MachineRegister());
+		}
+
 	}
 
 	// resolution
@@ -497,9 +609,10 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 				LivetimeInterval* lti = *i;
 				// resolve PHIs!
 				if (lti->get_start() == succ_range.first) {
-					LOG("WE HAVE A WINNER!" << nl);
+					LOG("WE HAVE A WINNER! " << lti << nl);
 					assert(lti->def_size() == 1);
 					MachineInstruction *MI = MIS->get(lti->def_front().first);
+					LOG3("MINST: " << MI << nl);
 					assert( MI->is_phi());
 					LoweredInstDAG *use_dag = MI->get_parent();
 					PHIInst *phi = use_dag->get_Instruction()->to_PHIInst();

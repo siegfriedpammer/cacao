@@ -41,7 +41,10 @@ namespace compiler2 {
 class Register;
 class BeginInst;
 class LivetimeAnalysisPass;
+class MachineOperand;
 class MachineOperandDesc;
+class StackSlotManager;
+class ManagedStackSlot;
 
 /**
  * TODO: doc me!
@@ -63,7 +66,7 @@ public:
 	typedef UseDefTy::iterator def_iterator;
 private:
 	IntervalListTy intervals;
-	Register *reg;
+	MachineOperand* operand;         ///< store for the interval
 	UseDefTy uses;
 	UseDefTy defs;
 	bool fixed_interval;
@@ -95,15 +98,20 @@ private:
 			add_range(from,to);
 		}
 	}
-public:
-	LivetimeInterval() : intervals(), reg(NULL), uses(), defs(),
-			fixed_interval(false), next_split(NULL), hint(NULL) {}
-	void set_reg(Register* r) {
-		reg = r;
+	static bool compare_usedef(UseDefEntryTy &lhs, UseDefEntryTy &rhs) {
+		return lhs.first < rhs.first;
 	}
+public:
+	LivetimeInterval() : intervals(), operand(NULL), uses(), defs(),
+			fixed_interval(false), next_split(NULL), hint(NULL) {}
+
+	void set_Register(Register* r);
+	Register* get_Register() const;
+	void set_ManagedStackSlot(ManagedStackSlot* s);
+	ManagedStackSlot* get_ManagedStackSlot() const;
+	bool is_in_Register() const;
 
 	bool is_fixed_interval()       const { return fixed_interval; }
-	Register* get_reg()            const { return reg; }
 
 	const_iterator begin()         const { return intervals.begin(); }
 	const_iterator end()           const { return intervals.end(); }
@@ -128,16 +136,18 @@ public:
 		return intervals.back().second;
 	}
 	void add_use(unsigned use, MachineOperandDesc &MOD) {
-		uses.push_front(std::make_pair(use,&MOD));
+		add_use(std::make_pair(use,&MOD));
 	}
 	void add_def(unsigned def, MachineOperandDesc &MOD) {
-		defs.push_front(std::make_pair(def,&MOD));
+		add_def(std::make_pair(def,&MOD));
 	}
 	void add_use(const std::pair<unsigned,MachineOperandDesc*> use) {
 		uses.push_front(use);
+		uses.sort(compare_usedef);
 	}
 	void add_def(const std::pair<unsigned,MachineOperandDesc*> def) {
 		defs.push_front(def);
+		defs.sort(compare_usedef);
 	}
 	void set_fixed() { fixed_interval = true; }
 	/**
@@ -194,8 +204,8 @@ public:
 	Register* get_hint() const { return hint; }
 
 	signed next_usedef_after(unsigned pos) const {
+		assert(pos <= get_end());
 		signed next_use = -1;
-		signed next_def = -1;
 		for (const_use_iterator i = use_begin(), e = use_end(); i != e; ++i) {
 			if (i->first > pos) {
 				next_use = i->first;
@@ -204,19 +214,22 @@ public:
 		}
 		for (const_def_iterator i = def_begin(), e = def_end(); i != e; ++i) {
 			if (i->first > pos) {
-				next_def = i->first;
-				break;
+				return std::min((signed)i->first,next_use);
 			}
 		}
-		if (next_use == -1) return next_def;
-		if (next_def == -1) return next_use;
-		return std::min(next_use,next_def);
+		if (next_use == -1) {
+			// no use def after pos _but_ interval still live -> loop interval
+			// so the next use is the backedge
+			return get_end() ;
+		}
+		return next_use;
 	}
 
 	/**
 	 * split this interval at position pos and return a new interval
 	 */
 	LivetimeInterval* split(unsigned pos);
+	LivetimeInterval* split(unsigned pos, StackSlotManager *SSM);
 
 	friend class LivetimeAnalysisPass;
 };

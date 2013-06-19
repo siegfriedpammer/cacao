@@ -39,6 +39,7 @@
 #include "vm/jit/compiler2/LoweringPass.hpp"
 #include "vm/jit/compiler2/LoopPass.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
+#include "vm/jit/compiler2/MachineOperand.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -49,13 +50,34 @@ namespace jit {
 namespace compiler2 {
 ////////////////////// LivetimeInterval
 
-LivetimeInterval* LivetimeInterval::split(unsigned pos) {
+void LivetimeInterval::set_Register(Register* r) {
+	operand = r;
+}
+
+Register* LivetimeInterval::get_Register() const {
+	Register *r = operand->to_Register();
+	assert(r);
+	return r;
+}
+void LivetimeInterval::set_ManagedStackSlot(ManagedStackSlot* s) {
+	operand = s;
+}
+
+ManagedStackSlot* LivetimeInterval::get_ManagedStackSlot() const {
+	ManagedStackSlot *s = operand->to_ManagedStackSlot();
+	return s;
+}
+
+bool LivetimeInterval::is_in_Register() const {
+	return operand->to_Register() != NULL;
+}
+
+LivetimeInterval* LivetimeInterval::split(unsigned pos, StackSlotManager *SSM) {
 	//sanity checks:
-	if (pos <= get_start() || pos >= get_end()) {
-		// no need to split!?
-		return NULL;
-	}
-	LivetimeInterval *lti = new LivetimeInterval();
+	assert(pos > get_start() && pos < get_end());
+
+	LivetimeInterval *stack_interval =  NULL;
+	LivetimeInterval *lti = NULL;
 	// copy intervals
 	iterator i = intervals.begin();
 	iterator e = intervals.end();
@@ -78,12 +100,33 @@ LivetimeInterval* LivetimeInterval::split(unsigned pos) {
 			// better. Because of the phi functions we dont run into
 			// troubles with backedges and loop time intervals,
 			// I guess...
+
 			signed next_usedef = next_usedef_after(pos);
 			assert(next_usedef != -1);
+			lti = new LivetimeInterval();
+			// ok it is not a loop pseudo use
 			lti->add_range(next_usedef,end);
 			++i;
+			// create stack interval 
+			ManagedStackSlot *slot = SSM->create_ManagedStackSlot(); 
+			stack_interval = new LivetimeInterval();
+			stack_interval->add_range(pos,next_usedef);
+			stack_interval->set_ManagedStackSlot(slot);
+			this->next_split = stack_interval;
 			break;
 		}
+	}
+	if (i == e) {
+		// already at the end
+		return NULL;
+	}
+	if (lti == NULL) {
+		lti = new LivetimeInterval();
+	}
+	if (stack_interval) {
+		stack_interval->next_split = lti;
+	} else {
+		this->next_split = lti;
 	}
 	// move all remaining intervals to the new lti
 	while (i != e) {
@@ -110,19 +153,27 @@ LivetimeInterval* LivetimeInterval::split(unsigned pos) {
 	}
 	// create new virtual register
 	VirtualRegister *vreg = new VirtualRegister();
-	lti->set_reg(vreg);
+	lti->set_Register(vreg);
 	// set hint to the current register
-	assert(reg->to_MachineRegister());
-	lti->set_hint(reg);
+	assert(get_Register()->to_MachineRegister());
+	lti->set_hint(get_Register());
 	return lti;
 }
 
 inline OStream& operator<<(OStream &OS, const LivetimeInterval &lti) {
-	OS << lti.get_reg();
+	if (lti.is_in_Register()) {
+		OS << lti.get_Register();
+	} else {
+		OS << lti.get_ManagedStackSlot();
+	}
 	for(LivetimeInterval::const_iterator i = lti.begin(), e = lti.end();
 			i != e ; ++i) {
 		OS << " [" << i->first << "," << i->second << ")";
 	}
+	OS<<" use: ";
+	print_container(OS,lti.use_begin(),lti.use_end());
+	OS<<" def: ";
+	print_container(OS,lti.def_begin(),lti.def_end());
 	return OS;
 }
 inline OStream& operator<<(OStream &OS, const std::pair<unsigned,MachineOperandDesc*> &usedef) {
@@ -287,7 +338,7 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 	for (LivetimeIntervalMapTy::iterator i = lti_map.begin(),
 			e = lti_map.end(); i != e ; ++i) {
 		LivetimeInterval &lti = i->second;
-		lti.set_reg(i->first);
+		lti.set_Register(i->first);
 	}
 	// debugging
 	if (DEBUG_COND) {

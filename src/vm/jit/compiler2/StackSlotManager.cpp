@@ -39,7 +39,7 @@ StackSlotManager::~StackSlotManager() {
 
 ManagedStackSlot* StackSlotManager::create_ManagedStackSlot() {
 	static s4 counter = 1;
-	ManagedStackSlot* mslot = new ManagedStackSlot(this);
+	ManagedStackSlot* mslot = new ManagedStackSlot(this, counter);
 	slots.insert(std::make_pair(mslot, new StackSlot(-counter)));
 	counter++;
 	return mslot;

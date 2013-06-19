@@ -44,6 +44,7 @@ class StackSlotManager;
 class VoidOperand;
 class Register;
 class StackSlot;
+class ManagedStackSlot;
 class Immediate;
 class Address;
 
@@ -54,12 +55,13 @@ class MachineOperand {
 public:
 	virtual const char* get_name() const  = 0;
 	virtual ~MachineOperand() {}
-	virtual MachineOperand* to_MachineOperand()     { return this; }
-	virtual VoidOperand*    to_VoidOperand() { return 0; }
-	virtual Register*       to_Register()    { return 0; }
-	virtual StackSlot*      to_StackSlot()   { return 0; }
-	virtual Immediate*      to_Immediate()   { return 0; }
-	virtual Address*        to_Addresss()    { return 0; }
+	virtual MachineOperand*   to_MachineOperand()   { return this; }
+	virtual VoidOperand*      to_VoidOperand()      { return 0; }
+	virtual Register*         to_Register()         { return 0; }
+	virtual StackSlot*        to_StackSlot()        { return 0; }
+	virtual ManagedStackSlot* to_ManagedStackSlot() { return 0; }
+	virtual Immediate*        to_Immediate()        { return 0; }
+	virtual Address*          to_Addresss()         { return 0; }
 
 	virtual OStream& print(OStream &OS) const {
 		return OS << get_name();
@@ -143,14 +145,19 @@ public:
 class ManagedStackSlot : public MachineOperand {
 private:
 	StackSlotManager *parent;
-	ManagedStackSlot(StackSlotManager *SSM) : parent(SSM) {}
+	unsigned id;
+	ManagedStackSlot(StackSlotManager *SSM,unsigned id) : parent(SSM), id(id) {}
 public:
 	/**
 	 * FIXME this should be managed
 	 */
 	virtual StackSlot* to_StackSlot();
+	virtual ManagedStackSlot* to_ManagedStackSlot() { return this; }
 	virtual const char* get_name() const {
 		return "ManagedStackSlot";
+	}
+	virtual OStream& print(OStream &OS) const {
+		return OS << get_name() << id;
 	}
 	friend class StackSlotManager;
 };
