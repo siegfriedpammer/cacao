@@ -197,37 +197,38 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 		assert(BI);
 
 		MachineInstructionSchedule::MachineInstructionRangeTy range = MIS->get_range(BI);
-		unsigned from = range.first;
-		unsigned to = range.second;
+		// times 2 to distinguish between uses and defs
+		unsigned from = range.first * 2;
+		unsigned to = range.second * 2;
 
 		EndInst *EI = BI->get_EndInst();
 		assert(EI);
 		// for all successors
-		LOG3("line " << setw(4) << fillzero << from << " " << "Number of successors of " << BI << " " << EI->succ_size() << nl);
+		LOG3("line " << setz(4) << from << " " << "Number of successors of " << BI << " " << EI->succ_size() << nl);
 		for (EndInst::SuccessorListTy::const_iterator i = EI->succ_begin(),
 				e = EI->succ_end(); i != e ; ++i) {
 			BeginInst *succ = *i;
-			LOG3("line " << setw(4) << fillzero << from << " " << "Successor of " << BI << ": " << succ << nl);
+			LOG3("line " << setz(4) << from << " " << "Successor of " << BI << ": " << succ << nl);
 			std::set<Register*> &succ_live_in = liveIn[succ];
 			// union of all successor liveIns
 			liveIn[BI].insert(succ_live_in.begin(),succ_live_in.end());
 			// add Phi operands
 			int index = succ->get_predecessor_index(BI);
 			assert(index != -1);
-			LOG3("line " << setw(4) << fillzero << from << " " << "Predecessor index of " << BI << " in " << succ << " is " << index << nl);
-			LOG3("line " << setw(4) << fillzero << from << " " << "Number of reverse dependency links of " << succ << " is " << succ->dep_size() << nl);
+			LOG3("line " << setz(4) << from << " " << "Predecessor index of " << BI << " in " << succ << " is " << index << nl);
+			LOG3("line " << setz(4) << from << " " << "Number of reverse dependency links of " << succ << " is " << succ->dep_size() << nl);
 			for (Instruction::DepListTy::const_iterator i = succ->rdep_begin(),
 					e = succ->rdep_end() ; i != e; ++i) {
 				PHIInst *phi = (*i)->to_PHIInst();
 				if (phi) {
-					LOG3("line " << setw(4) << fillzero << from << " " << "PHI of " << succ << " is " << phi << nl);
+					LOG3("line " << setz(4) << from << " " << "PHI of " << succ << " is " << phi << nl);
 					const LoweredInstDAG *dag = LP->get_LoweredInstDAG(phi);
 					assert(dag);
 					MachineOperand* op = dag->get_operand((unsigned)index);
 					Register *reg;
 					if ( op &&  (reg = op->to_Register()) ) {
 						liveIn[BI].insert(reg);
-						LOG2("line " << setw(4) << fillzero << from << " " << "adding " << reg << " to liveIn of " << BI << nl);
+						LOG2("line " << setz(4) << from << " " << "adding " << reg << " to liveIn of " << BI << nl);
 					}
 				}
 			}
@@ -245,10 +246,12 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 		}
 		// for all machine instructions in the current basic block in reversed order
 		MachineInstructionSchedule::MachineInstructionRangeTy bb_range = MIS->get_range(BI);
-		for (signed inst_lineno = bb_range.second - 1, end_lineno = bb_range.first;
-				inst_lineno >= end_lineno; --inst_lineno) {
+		unsigned bb_first = bb_range.first * 2;
+		unsigned bb_last = (bb_range.second - 1) * 2;
+		for (signed inst_lineno = bb_last, end_lineno = bb_first;
+				inst_lineno >= end_lineno; inst_lineno-=2) {
 			assert(inst_lineno >= 0);
-			MachineInstruction *MI = MIS->get((unsigned)inst_lineno);
+			MachineInstruction *MI = MIS->get((unsigned)inst_lineno / 2);
 			// output operand
 			{
 				MachineOperandDesc& MOD = MI->get_result();
@@ -256,12 +259,13 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 				if ( MOD.op &&  (reg = MOD.op->to_Register()) ) {
 					// phis are handled differently
 					if (!MI->is_phi()) {
-						LOG2("line " << setw(4) << fillzero << inst_lineno << " " << "removing " << reg << " to liveIn of " << BI << nl);
-						LOG2("line " << setw(4) << fillzero << inst_lineno << " " << "setting live range from for " << reg << " to " << inst_lineno << nl);
-						lti_map[reg].set_from_if_available(inst_lineno,to);
+						LOG2("line " << setz(4) << inst_lineno << " " << "removing " << reg << " to liveIn of " << BI << nl);
+						LOG2("line " << setz(4) << inst_lineno << " " << "setting live range from for " << reg << " to " << inst_lineno << nl);
+						lti_map[reg].set_from_if_available(inst_lineno + 1,to);
 						liveIn[BI].erase(reg);
 					}
-					lti_map[reg].add_def(inst_lineno,MOD);
+					// we set defines to the next (empty line)
+					lti_map[reg].add_def(inst_lineno + 1,MOD);
 					if (reg->to_MachineRegister()) {
 						// this is already in a MachineRegister -> fixed interval
 						lti_map[reg].set_fixed();
@@ -276,9 +280,9 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 				if ( MOD.op &&  (reg = MOD.op->to_Register()) ) {
 					// phis are handled differently
 					if (!MI->is_phi()) {
-						LOG2("line " << setw(4) << fillzero << inst_lineno << " " << "adding " << reg << " to liveIn of " << BI << nl);
-						LOG2("line " << setw(4) << fillzero << inst_lineno << " " << "adding live range for " << reg << " (" << from << "," << inst_lineno << ")" << nl);
-						lti_map[reg].add_range(from,inst_lineno);
+						LOG2("line " << setz(4) << inst_lineno << " " << "adding " << reg << " to liveIn of " << BI << nl);
+						LOG2("line " << setz(4) << inst_lineno << " " << "adding live range for " << reg << " (" << from << "," << inst_lineno+1 << ")" << nl);
+						lti_map[reg].add_range(from,inst_lineno+1);
 						liveIn[BI].insert(reg);
 					}
 					lti_map[reg].add_use(inst_lineno,MOD);
@@ -288,6 +292,7 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 					}
 				}
 			}
+			// set move hint
 			MachineMoveInst *move = MI->to_MachineMoveInst();
 			if (move) {
 				Register *dst = move->get_result().op->to_Register();
@@ -309,7 +314,7 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 				Register *reg;
 				if ( op &&  (reg = op->to_Register()) ) {
 					liveIn[BI].erase(reg);
-					LOG2("line " << setw(4) << fillzero << from << " " << "removing " << reg << " to liveIn of " << BI << nl);
+					LOG2("line " << setz(4) << from << " " << "removing " << reg << " to liveIn of " << BI << nl);
 				}
 			}
 		}
@@ -326,7 +331,7 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 				// for each vreg live so something with the range
 				for (LiveInSetTy::const_iterator i = liveIn[BI].begin(), e = liveIn[BI].end();
 						i != e ; ++i) {
-					unsigned loop_exit_to = MIS->get_range(loop_exit).second;
+					unsigned loop_exit_to = MIS->get_range(loop_exit).second * 2;
 					LOG2("adding live range for " << *i << " (" << from << "," << loop_exit_to << ")" << nl);
 					lti_map[*i].add_range(from,loop_exit_to);
 				}
@@ -351,14 +356,91 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 		LOG("Livetime Interval(s)" << nl);
 		for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
 				e = lti_map.end(); i != e ; ++i) {
-			LOG(i->second);
-			dbg() << "  use: ";
-			print_container(dbg(),i->second.use_begin(),i->second.use_end());
-			dbg() << "  def: ";
-			print_container(dbg(),i->second.def_begin(),i->second.def_end());
-			dbg() << nl;
+			LOG(i->second << nl);
 		}
 
+	}
+	if (DEBUG_COND) {
+		LOG(nl << "Liveinterval Table:" << nl);
+		LOG("Line: ");
+
+		for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
+				e = lti_map.end(); i != e ; ++i) {
+			const LivetimeInterval &lti = i->second;
+			if (lti.get_Register()->to_MachineRegister()) {
+				dbg() << setw(7) << lti.get_Register();
+			} else {
+				dbg() << setw(6) << lti.get_Register();
+			}
+		}
+
+		dbg() << "  Instructions" << nl;
+		for (BasicBlockSchedule::const_bb_iterator i = BS->bb_begin(),
+				e = BS->bb_end(); i != e ; ++i) {
+			BeginInst *BI = *i;
+			assert(BI);
+			LOG(BoldWhite << "BasicBlock: " << BI << reset_color << nl);
+			MachineInstructionSchedule::MachineInstructionRangeTy range = MIS->get_range(BI);
+			assert(range.first != range.second);
+			for (unsigned pos = range.first*2, e = range.second*2; pos < e; ++pos) {
+				MachineInstruction *MI = MIS->get(pos/2);
+				assert(MI);
+				// USELINE
+					// print lineno
+					LOG("  ");
+					dbg() << setz(4) << pos;
+					// print intervals
+					for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
+							e = lti_map.end(); i != e ; ++i) {
+						const LivetimeInterval &lti = i->second;
+						if (lti.is_unhandled(pos) || lti.is_handled(pos)) {
+							dbg() << "      ";
+						} else if (lti.is_active(pos)) {
+							if (lti.get_Register()->to_MachineRegister()) {
+								dbg() << setw(6) << lti.get_Register();
+							} else {
+								dbg() << setw(5) << lti.get_Register();
+							}
+						} else {
+							dbg() << "  --  ";
+						}
+						if (lti.is_use(pos)) {
+							dbg() << "U";
+						} else {
+							dbg() << " ";
+						}
+					}
+					// print instructions
+					dbg() << ": " << MI << nl;
+				// DEFLINE
+					++pos;
+					// print lineno
+					LOG("  ");
+					dbg() << setz(4) << pos;
+					// print intervals
+					for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
+							e = lti_map.end(); i != e ; ++i) {
+						const LivetimeInterval &lti = i->second;
+						if (lti.is_unhandled(pos) || lti.is_handled(pos)) {
+							dbg() << "      ";
+						} else if (lti.is_active(pos)) {
+							if (lti.get_Register()->to_MachineRegister()) {
+								dbg() << setw(6) << lti.get_Register();
+							} else {
+								dbg() << setw(5) << lti.get_Register();
+							}
+						} else {
+							dbg() << "  --  ";
+						}
+						if (lti.is_def(pos)) {
+							dbg() << "D";
+						} else {
+							dbg() << " ";
+						}
+					}
+					dbg() << ": [rslt]" << nl;
+			}
+		}
 	}
 
 	return true;

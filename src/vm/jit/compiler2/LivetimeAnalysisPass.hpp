@@ -158,6 +158,12 @@ public:
 		return next_split;
 	}
 
+	bool is_unhandled(unsigned pos) const {
+		return pos < get_start();
+	}
+	bool is_handled(unsigned pos) const {
+		return pos >= get_end();
+	}
 	bool is_inactive(unsigned pos) const {
 		for(const_iterator i = begin(), e = end(); i != e ; ++i) {
 			if( pos < i->first) {
@@ -168,6 +174,40 @@ public:
 			}
 		}
 		return true;
+	}
+	bool is_active(unsigned pos) const {
+		for(const_iterator i = begin(), e = end(); i != e ; ++i) {
+			if( pos < i->first) {
+				return false;
+			}
+			if( pos < i->second) {
+				return true;
+			}
+		}
+		return false;
+	}
+	bool is_def(unsigned pos) const {
+		for (const_def_iterator i = def_begin(), e = def_end(); i != e; ++i) {
+			if (i->first == pos) {
+				return true;
+			}
+			if (i->first > pos) {
+				return false;
+			}
+		}
+		return false;
+	}
+
+	bool is_use(unsigned pos) const {
+		for (const_use_iterator i = use_begin(), e = use_end(); i != e; ++i) {
+			if (i->first == pos) {
+				return true;
+			}
+			if (i->first > pos) {
+				return false;
+			}
+		}
+		return false;
 	}
 
 	signed intersects(const LivetimeInterval &lti) const {
@@ -187,15 +227,6 @@ public:
 				continue;
 			}
 			return std::max(a_start,b_start);
-		}
-		return -1;
-	}
-
-	signed next_use_after(unsigned pos) const {
-		for (const_use_iterator i = use_begin(), e = use_end(); i != e; ++i) {
-			if (i->first > pos) {
-				return i->first;
-			}
 		}
 		return -1;
 	}
