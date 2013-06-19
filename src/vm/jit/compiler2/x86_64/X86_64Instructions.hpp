@@ -84,6 +84,7 @@ public:
 		operands[0].op = src1;
 		operands[1].op = src2;
 	}
+	virtual void emit(CodeMemory* CM) const;
 };
 
 class X86_64IMulInst : public MachineInstruction {

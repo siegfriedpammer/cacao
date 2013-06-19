@@ -51,6 +51,7 @@ LoweredInstDAG* BackendBase<X86_64>::lowerLOADInst(LOADInst *I) const {
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	//MachineInstruction *minst = loadParameter(I->get_index(), I->get_type());
 	const MethodDescriptor &MD = I->get_Method()->get_MethodDescriptor();
+	//FIXME inefficient
 	const X86_64MachineMethodDescriptor MMD(MD);
 	VirtualRegister *dst = new VirtualRegister();
 	MachineMoveInst *move = new MachineMoveInst(dst,MMD[I->get_index()]);

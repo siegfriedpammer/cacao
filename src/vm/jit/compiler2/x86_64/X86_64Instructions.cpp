@@ -145,6 +145,12 @@ void X86_64IMulInst::emit(CodeMemory* CM) const {
 	X86_64InstructionEncoding::reg2reg<u2>(CM, 0x0faf, src_reg, dst_reg);
 }
 
+void X86_64AddInst::emit(CodeMemory* CM) const {
+	X86_64Register *src_reg = operands[1].op->to_Register()->to_MachineRegister()->to_NaviveRegister();
+	X86_64Register *dst_reg = result.op->to_Register()->to_MachineRegister()->to_NaviveRegister();
+
+	X86_64InstructionEncoding::reg2reg<u1>(CM, 0x03, src_reg, dst_reg);
+}
 void X86_64SubInst::emit(CodeMemory* CM) const {
 	X86_64Register *src_reg = operands[1].op->to_Register()->to_MachineRegister()->to_NaviveRegister();
 	X86_64Register *dst_reg = result.op->to_Register()->to_MachineRegister()->to_NaviveRegister();
