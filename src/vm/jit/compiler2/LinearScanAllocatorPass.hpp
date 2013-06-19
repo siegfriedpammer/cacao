@@ -37,6 +37,7 @@ namespace jit {
 namespace compiler2 {
 
 class MachineInstructionSchedule;
+class Backend;
 
 namespace {
 struct StartComparator {
@@ -75,9 +76,12 @@ private:
 
 	LivetimeAnalysisPass *LA;
 	MachineInstructionSchedule *MIS;
+	Backend *backend;
+	JITData *jd;
 
-	inline bool try_allocate_free_reg(JITData &JD,LivetimeInterval* current);
-	inline bool allocate_blocked_reg(JITData &JD,LivetimeInterval* current);
+	inline bool try_allocate_free_reg(LivetimeInterval* current);
+	inline bool allocate_blocked_reg(LivetimeInterval* current);
+	inline void split(LivetimeInterval *lti, unsigned pos);
 public:
 	static char ID;
 	LinearScanAllocatorPass() : Pass() {}

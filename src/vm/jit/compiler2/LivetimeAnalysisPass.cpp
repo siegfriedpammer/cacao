@@ -263,9 +263,12 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 						LOG2("line " << setz(4) << inst_lineno << " " << "setting live range from for " << reg << " to " << inst_lineno << nl);
 						lti_map[reg].set_from_if_available(inst_lineno + 1,to);
 						liveIn[BI].erase(reg);
+						// we set defines to the next (empty line)
+						lti_map[reg].add_def(inst_lineno + 1,MOD);
+					} else {
+						// we set phi defines to the first def line of the basic block
+						lti_map[reg].add_def(from + 1,MOD);
 					}
-					// we set defines to the next (empty line)
-					lti_map[reg].add_def(inst_lineno + 1,MOD);
 					if (reg->to_MachineRegister()) {
 						// this is already in a MachineRegister -> fixed interval
 						lti_map[reg].set_fixed();
@@ -284,8 +287,10 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 						LOG2("line " << setz(4) << inst_lineno << " " << "adding live range for " << reg << " (" << from << "," << inst_lineno+1 << ")" << nl);
 						lti_map[reg].add_range(from,inst_lineno+1);
 						liveIn[BI].insert(reg);
+						lti_map[reg].add_use(inst_lineno,MOD);
+					} else{
+						lti_map[reg].add_use(from,MOD);
 					}
-					lti_map[reg].add_use(inst_lineno,MOD);
 					if (reg->to_MachineRegister()) {
 						// this is already in a MachineRegister -> fixed interval
 						lti_map[reg].set_fixed();
@@ -453,8 +458,8 @@ bool LivetimeAnalysisPass::verify() const {
 		signed old = -1;
 		for (LivetimeInterval::const_use_iterator i = lti.use_begin(),
 				e = lti.use_end(); i != e; ++i) {
-			if ( old >= (signed)i->first) {
-				err() << old << " >= " << i->first << nl;
+			if ( old > (signed)i->first) {
+				err() << "use not ordered " << old << " > " << i->first << nl;
 				return false;
 			}
 			old = i->first;
@@ -462,8 +467,8 @@ bool LivetimeAnalysisPass::verify() const {
 		old = -1;
 		for (LivetimeInterval::const_def_iterator i = lti.def_begin(),
 				e = lti.def_end(); i != e; ++i) {
-			if ( old >= (signed)i->first) {
-				err() << old << " >= " << (signed)i->first << nl;
+			if ( old > (signed)i->first) {
+				err() << "def not ordered " << old << " > " << i->first << nl;
 				return false;
 			}
 			old = i->first;

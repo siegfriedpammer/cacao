@@ -164,17 +164,6 @@ public:
 	bool is_handled(unsigned pos) const {
 		return pos >= get_end();
 	}
-	bool is_inactive(unsigned pos) const {
-		for(const_iterator i = begin(), e = end(); i != e ; ++i) {
-			if( pos < i->first) {
-				return true;
-			}
-			if( pos < i->second) {
-				return false;
-			}
-		}
-		return true;
-	}
 	bool is_active(unsigned pos) const {
 		for(const_iterator i = begin(), e = end(); i != e ; ++i) {
 			if( pos < i->first) {
@@ -185,6 +174,9 @@ public:
 			}
 		}
 		return false;
+	}
+	bool is_inactive(unsigned pos) const {
+		return !is_active(pos);
 	}
 	bool is_def(unsigned pos) const {
 		for (const_def_iterator i = def_begin(), e = def_end(); i != e; ++i) {
@@ -218,11 +210,11 @@ public:
 			unsigned b_start = b_i->first;
 			unsigned b_end   = b_i->second;
 
-			if (b_start > a_end) {
+			if (b_start >= a_end) {
 				++a_i;
 				continue;
 			}
-			if (a_start > b_end) {
+			if (a_start >= b_end) {
 				++b_i;
 				continue;
 			}
@@ -238,13 +230,13 @@ public:
 		assert(pos <= get_end());
 		signed next_use = -1;
 		for (const_use_iterator i = use_begin(), e = use_end(); i != e; ++i) {
-			if (i->first > pos) {
+			if (i->first >= pos) {
 				next_use = i->first;
 				break;
 			}
 		}
 		for (const_def_iterator i = def_begin(), e = def_end(); i != e; ++i) {
-			if (i->first > pos) {
+			if (i->first >= pos) {
 				return std::min((signed)i->first,next_use);
 			}
 		}
