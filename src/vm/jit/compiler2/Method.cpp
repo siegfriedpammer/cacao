@@ -107,6 +107,28 @@ void Method::clear_schedule() const {
 	}
 }
 
+BeginInst* Method::get_edge_block(BeginInst* pred, BeginInst* succ) {
+	assert(pred);
+	assert(succ);
+	int pred_idx = succ->get_predecessor_index(pred);
+	int succ_idx = pred->get_successor_index(succ);
+	assert(pred_idx != -1);
+	assert(succ_idx != -1);
+	// setpu new block
+	BeginInst* BI = new BeginInst();
+	EndInst* EI = new GOTOInst(BI);
+	EI->succ_list.push_back(BeginInstRef(succ));
+	BI->pred_list.push_back(pred);
+	// insert new block
+	succ->set_predecessor(pred_idx,BI);
+	pred->set_successor(succ_idx,BI);
+	// add to method
+	add_bb(BI);
+	add_Instruction(EI);
+
+	return BI;
+}
+
 } // end namespace cacao
 } // end namespace jit
 } // end namespace compiler2

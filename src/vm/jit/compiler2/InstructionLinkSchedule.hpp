@@ -59,6 +59,11 @@ protected:
 	}
 public:
 	InstructionLinkSchedule() {}
+	void add_Instruction(Instruction *I, BeginInst* BI) {
+		map[I] = BI;
+		bb_map[BI].insert(I);
+	}
+
 	BeginInst* operator[](const Instruction* I) const {
 		return get(I);
 	}

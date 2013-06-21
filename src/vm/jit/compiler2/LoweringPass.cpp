@@ -75,6 +75,18 @@ bool LoweringPass::run(JITData &JD) {
 	return true;
 }
 
+LoweredInstDAG* LoweringPass::set_dag(Instruction *I, LoweredInstDAG* dag) {
+	assert(dag);
+	LoweringMapTy::iterator i = lowering_map.find(I);
+	if (i == lowering_map.end()) {
+		lowering_map[I] = dag;
+		return NULL;
+	}
+	LoweredInstDAG *old = i->second;
+	// FIXME does this work?
+	i->second = dag;
+	return old;
+}
 // pass usage
 PassUsage& LoweringPass::get_PassUsage(PassUsage &PU) const {
 	//PU.add_requires(YyyPass::ID);

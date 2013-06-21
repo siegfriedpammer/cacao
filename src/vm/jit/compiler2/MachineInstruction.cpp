@@ -24,6 +24,8 @@
 
 #include "vm/jit/compiler2/MachineInstruction.hpp"
 #include "vm/jit/compiler2/LoweredInstDAG.hpp"
+#include "vm/jit/compiler2/Instructions.hpp"
+
 #include "toolbox/OStream.hpp"
 
 #define DEBUG_NAME "compiler2/MachineInstruction"
@@ -43,6 +45,16 @@ OStream& MachineInstruction::print(OStream &OS) const {
 	MachineOperand *result = get_result().op;
 	if (!result->to_VoidOperand()) {
 		OS << " -> " << result;
+	}
+	if (get_parent()) {
+		assert(get_parent()->get_Instruction());
+		EndInst* EI = get_parent()->get_Instruction()->to_EndInst();
+		if (EI) {
+			for (EndInst::SuccessorListTy::const_iterator i = EI->succ_begin(),
+					e = EI->succ_end(); i != e; ++i) {
+				OS << ' ' << *i;
+			}
+		}
 	}
 	return OS;
 }

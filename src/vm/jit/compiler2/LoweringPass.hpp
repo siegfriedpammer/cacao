@@ -55,6 +55,7 @@ public:
 		}
 		return i->second;
 	}
+	LoweredInstDAG* set_dag(Instruction *I, LoweredInstDAG* dag);
 };
 
 } // end namespace compiler2

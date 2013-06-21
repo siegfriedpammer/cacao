@@ -144,6 +144,11 @@ public:
 
 	void clear_schedule() const;
 
+	/**
+	 * Get a BeginInst representing an edge
+	 */
+	BeginInst* get_edge_block(BeginInst* pred, BeginInst* succ);
+
 };
 
 

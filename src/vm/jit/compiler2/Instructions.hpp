@@ -495,6 +495,13 @@ public:
 };
 
 class GOTOInst : public EndInst {
+private:
+	/**
+	 * @note this is for expert use only.
+	 * You will have to adjust the successor (and the backlink) manually.
+	 */
+	explicit GOTOInst(BeginInst *begin)
+			: EndInst(GOTOInstID, begin) {}
 public:
 	explicit GOTOInst(BeginInst *begin, BeginInst* targetBlock)
 			: EndInst(GOTOInstID, begin) {

@@ -46,8 +46,11 @@ class ListSchedulingPass : public Pass, public InstructionSchedule<Instruction> 
 private:
 	InstructionLinkSchedule *sched;
 	Method *M;
-	void schedule(BeginInst *BI);
 public:
+	/**
+	 * schedule one basic block
+	 */
+	void schedule(BeginInst *BI);
 	static char ID;
 	ListSchedulingPass() : Pass() {}
 	bool run(JITData &JD);
