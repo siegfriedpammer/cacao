@@ -43,6 +43,9 @@ public:
 	BasicBlockSchedulingPass() : Pass() {}
 	bool run(JITData &JD);
 	PassUsage& get_PassUsage(PassUsage &PA) const;
+	void initialize() {
+		bb_list.clear();
+	}
 	bool verify() const;
 };
 
