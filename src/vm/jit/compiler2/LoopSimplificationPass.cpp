@@ -42,6 +42,7 @@ namespace compiler2 {
 
 void LoopSimplificationPass::check_loop(Loop *loop) const {
 	// of the we have a shared loop header
+	#if 0
 	assert(LT);
 	BeginInst* header = loop->get_header();
 	if (LT->get_Loop(header) != loop) {
@@ -108,6 +109,7 @@ void LoopSimplificationPass::check_loop(Loop *loop) const {
 			i != e; ++i) {
 		check_loop(*i);
 	}
+	#endif
 }
 
 bool LoopSimplificationPass::run(JITData &JD) {
