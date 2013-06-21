@@ -239,7 +239,11 @@ asm_abstractmethoderror:
 	stmfd sp!, {lr}                     /* save return address                */
 	add   a0, sp, #(1*4)                /* pass java sp                       */
 	mov   a1, lr                        /* pass exception address             */
+#if defined(ARM_NO_THUMB_IW)
+	bl    exceptions_asm_new_abstractmethoderror
+#else
 	blx   exceptions_asm_new_abstractmethoderror
+#endif
 	ldmfd sp!, {lr}                     /* restore return address             */
 
 	mov   xptr, res1                    /* get exception pointer              */
@@ -281,7 +285,11 @@ asm_cacheflush:
 	swi   __ARM_NR_cacheflush
 #endif
 
+#if defined(ARM_NO_THUMB_IW)
+	mov   pc, lr
+#else
 	bx    lr
+#endif
 
 
 /* disable exec-stacks ********************************************************/

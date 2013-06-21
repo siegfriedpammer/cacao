@@ -54,6 +54,14 @@ arm | armv4* | armv5* | armv6* | armv7* )
 		ARCH_FLAGS="$ARCH_FLAGS -D__ARMHF__"
 		;;
 	esac
+
+	case "$host_cpu" in
+	armv5* | armv6* | armv7* )
+		;;
+	*)
+		AC_DEFINE(ARM_NO_THUMB_IW, 1, [Old ARM architecture without good Thumb interworking])
+		;;
+	esac
     ;;
 
 hppa2.0 )
