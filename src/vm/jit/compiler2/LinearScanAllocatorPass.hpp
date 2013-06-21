@@ -37,6 +37,7 @@ namespace jit {
 namespace compiler2 {
 
 class MachineInstructionSchedule;
+class MachineMoveInst;
 class Backend;
 
 namespace {
@@ -64,6 +65,8 @@ struct StartComparator {
  */
 class LinearScanAllocatorPass : public Pass {
 private:
+	typedef std::list<MachineMoveInst*> MoveListTy;
+	typedef std::map<std::pair<BeginInst*,BeginInst*>,MoveListTy> MoveMapTy;
 	typedef std::priority_queue<LivetimeInterval*,std::deque<LivetimeInterval*>, StartComparator> UnhandledSetTy;
 	typedef std::list<LivetimeInterval*> InactiveSetTy;
 	typedef std::list<LivetimeInterval*> ActiveSetTy;

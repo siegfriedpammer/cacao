@@ -31,6 +31,9 @@
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/LoweringPass.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
+#include "vm/jit/compiler2/ListSchedulingPass.hpp"
+#include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
+#include "vm/jit/compiler2/ScheduleClickPass.hpp"
 
 #include <climits>
 
@@ -64,8 +67,8 @@ void LinearScanAllocatorPass::split(LivetimeInterval *lti, unsigned pos) {
 			assert(slot);
 			// spill
 			MachineInstruction *move_to_stack = backend->create_Move(reg,slot);
-			LOG2("spill instruction: " << move_to_stack << nl);
-			MIS->add_before(pos,move_to_stack);
+			MIS->add_before(unsigned(pos/2),move_to_stack);
+			LOG2("spill instruction: " << move_to_stack << " pos " << unsigned(pos/2) << nl);
 
 			LOG2("stack interval: " << stack_lti << nl);
 			LivetimeInterval *new_lti = stack_lti->get_next();
@@ -75,8 +78,8 @@ void LinearScanAllocatorPass::split(LivetimeInterval *lti, unsigned pos) {
 				// load
 				MachineInstruction *move_from_stack =
 					backend->create_Move(slot,new_lti->get_Register());
-				LOG2("load instruction: " << move_from_stack << nl);
-				MIS->add_before(new_lti->get_start(),move_from_stack);
+				LOG2("load instruction: " << move_from_stack << " pos " << unsigned(new_lti->get_start() / 2) << nl);
+				MIS->add_before(unsigned(new_lti->get_start()/2),move_from_stack);
 				new_lti->add_def(new_lti->get_start(),move_from_stack->get_result());
 				unhandled.push(new_lti);
 			}
@@ -306,7 +309,10 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 	MIS = get_Pass<MachineInstructionSchedulingPass>();
 	jd = &JD;
 	backend = jd->get_Backend();
+
 	LoweringPass *LP = get_Pass<LoweringPass>();
+	ListSchedulingPass *IS = get_Pass<ListSchedulingPass>();
+	InstructionLinkSchedule *ILS = get_Pass<ScheduleClickPass>();
 
 
 	for (LivetimeAnalysisPass::iterator i = LA->begin(), e = LA->end();
@@ -537,6 +543,8 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 		}
 	}
 
+	MoveMapTy move_map;
+	// for all basic blocks
 	for (Method::const_bb_iterator i = M->bb_begin(), e = M->bb_end();
 			i != e ; ++i) {
 
@@ -545,7 +553,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 		for (EndInst::SuccessorListTy::const_iterator i = pred_end->succ_begin(),
 				e = pred_end->succ_end(); i != e ; ++i) {
 			// for each edge pred -> succ
-			BeginInst *succ = *i;
+			BeginInst *succ = i->get();
 			MachineInstructionSchedule::MachineInstructionRangeTy succ_range = MIS->get_range(succ);
 			LOG2("Edge: " << pred << " -> " << succ << nl);
 			std::set<LivetimeInterval*> &ltis_succ = active_map_begin[succ];
@@ -567,19 +575,19 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 							? (MachineOperand*) lti_succ->get_Register()
 							: (MachineOperand*) lti_succ->get_ManagedStackSlot();
 						if (op_pred != op_succ) {
-							ABORT_MSG("Values not in the same store (" << op_pred
-								<< " vs " << op_succ << ")" , "move not yet implemented");
+							MachineMoveInst* move = backend->create_Move(op_pred,op_succ);
+							move_map[std::make_pair(pred,succ)].push_back(move);
 						}
 
 					}
 				}
 				#if 0
 				// resolve PHIs!
-				if (lti->get_start() == succ_range.first) {
-					LOG("WE HAVE A WINNER! " << lti << nl);
-					assert(lti->def_size() == 1);
-					MachineInstruction *MI = MIS->get(lti->def_front().first);
-					LOG3("MINST: " << MI << nl);
+				if (lti_succ->get_start() == succ_range.first) {
+					LOG("WE HAVE A WINNER! " << lti_succ << nl);
+					assert(lti_succ->def_size() == 1);
+					MachineInstruction *MI = MIS->get(lti_succ->def_front().first);
+					LOG3("PHI: " << MI << nl);
 					assert( MI->is_phi());
 					LoweredInstDAG *use_dag = MI->get_parent();
 					PHIInst *phi = use_dag->get_Instruction()->to_PHIInst();
@@ -590,11 +598,11 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 					assert(I);
 					LoweredInstDAG *def_dag = LP->get_LoweredInstDAG(I);
 					assert(def_dag);
-					Register *pred_reg = def_dag->get_result()->get_result().op->to_Register();
-					Register *succ_reg = MI->get(index).op->to_Register();
-					LOG("result is in: " << pred_reg << " and used in " << succ_reg << nl);
-					if (succ_reg != pred_reg) {
-						ABORT_MSG("Registers not yet aligned!","must insert move from " << pred_reg << " to " << succ_reg);
+					MachineOperand *pred_op = def_dag->get_result()->get_result().op;
+					MachineOperand *succ_op = MI->get(index).op;
+					LOG("result is in: " << pred_op << " and used in " << succ_op << nl);
+					if (succ_op != pred_op) {
+						ABORT_MSG("Registers not yet aligned!","must insert move from " << pred_op << " to " << succ_op);
 					}
 				}
 				#endif
@@ -602,6 +610,48 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 			}
 		}
 	}
+	for (MoveMapTy::const_iterator i = move_map.begin(), e = move_map.end();
+			i != e; ++i) {
+		const MoveListTy &mlist = i->second;
+		BeginInst *pred = i->first.first;
+		BeginInst *succ = i->first.second;
+
+		LOG("Edge " << pred << " -> " << succ << nl);
+		// get block for the move
+		BeginInst* BI = M->get_edge_block(pred,succ);
+		EndInst* EI = BI->get_EndInst();
+		ContainerInst *I = new ContainerInst(BI);
+		M->add_Instruction(I);
+		LoweredInstDAG *dag = new LoweredInstDAG(I);
+
+		MachineMoveInst *move = NULL;
+		for (MoveListTy::const_iterator i = mlist.begin(), e = mlist.end();
+				i != e ; ++i ) {
+			move = *i;
+			LOG("MOVE " << move << nl);
+			dag->add(move);
+		}
+		// mark last move as result
+		assert(move);
+		dag->set_result(move);
+		LP->set_dag(BI,backend->lower(BI));
+		LP->set_dag(I,dag);
+		LP->set_dag(EI,backend->lower(EI));
+		// we have tho fix InstructionLinkSchedule
+		// TODO
+		ILS->add_Instruction(BI,BI);
+		ILS->add_Instruction(I,BI);
+		ILS->add_Instruction(EI,BI);
+		// we have fix InstructionScheduling
+		IS->schedule(BI);
+		// we have to fix BasicBlockScheduling
+		// -> rerun the pass
+	}
+	#if 0
+	ABORT_MSG("Values not in the same store (" << op_pred
+		<< " vs " << op_succ << ")" , "move not yet implemented");
+	#endif
+
 
 	// write back the spill/store instructions
 	MIS->insert_added_instruction();
@@ -615,7 +665,14 @@ PassUsage& LinearScanAllocatorPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires(LivetimeAnalysisPass::ID);
 	PU.add_requires(MachineInstructionSchedulingPass::ID);
 	PU.add_requires(LoweringPass::ID);
+	PU.add_requires(ListSchedulingPass::ID);
+	PU.add_requires(ScheduleClickPass::ID);
+	// modified
+	PU.add_modifies(LoweringPass::ID);
+	PU.add_modifies(ListSchedulingPass::ID);
+	PU.add_modifies(ScheduleClickPass::ID);
 	// destroys
+	PU.add_destroys(BasicBlockSchedulingPass::ID);
 	PU.add_destroys(MachineInstructionSchedulingPass::ID);
 	// not yet updated correctly (might be only changed)
 	PU.add_destroys(LivetimeAnalysisPass::ID);
