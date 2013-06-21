@@ -36,6 +36,7 @@ libtoolbox_la_SOURCES = \
 	buffer.hpp \
 	hashtable.cpp \
 	hashtable.hpp \
+	intern_table.hpp \
 	list.hpp \
 	logging.cpp \
 	logging.hpp \

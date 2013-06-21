@@ -28,10 +28,10 @@ AC_CONFIG_SRCDIR(src/cacao/cacao.cpp)
 AC_CONFIG_AUX_DIR([.])
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
-AM_INIT_AUTOMAKE([1.9.0 dist-bzip2 tar-ustar])
+AM_INIT_AUTOMAKE([1.9.0 dist-xz tar-ustar])
 AM_MAINTAINER_MODE
 
-AM_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADERS([config.h])
 
 AC_PREFIX_DEFAULT(/usr/local/cacao)
 
