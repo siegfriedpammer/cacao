@@ -86,6 +86,7 @@ public:
 		mi_iterator i = find(minst.begin(),minst.end(),mi_old);
 		if (i != minst.end()) {
 			mi_insert(i,mi_new);
+			mi_new->set_parent(this);
 		}
 	}
 	void add(MachineInstruction *MI) {
