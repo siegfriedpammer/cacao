@@ -42,9 +42,15 @@ DFSTraversal<BeginInst>::NodeListTy& DFSTraversal<BeginInst>::successor(BeginIns
 	if (ve->to_IFInst()) {
 		// the first successor is usually the jump target, the second the fall-through block
 		assert(ve->succ_size() == 2);
-		list.insert(ve->succ_rbegin(),ve->succ_rend());
+		for (EndInst::SuccessorListTy::const_reverse_iterator i = ve->succ_rbegin(),
+				e = ve->succ_rend(); i != e; ++i) {
+			list.insert(i->get());
+		}
 	} else {
-		list.insert(ve->succ_begin(),ve->succ_end());
+		for (EndInst::SuccessorListTy::const_iterator i = ve->succ_begin(),
+				e = ve->succ_end(); i != e; ++i) {
+			list.insert(i->get());
+		}
 	}
 	return list;
 }

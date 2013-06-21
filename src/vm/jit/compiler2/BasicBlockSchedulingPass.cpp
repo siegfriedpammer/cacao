@@ -63,7 +63,7 @@ bool BasicBlockSchedulingPass::verify() const {
 			++it;
 			assert(it != EI->succ_end());
 			assert(i+1 < e);
-			if (*it != bb_list[i+1]) {
+			if (it->get() != bb_list[i+1]) {
 				return false;
 			}
 		}

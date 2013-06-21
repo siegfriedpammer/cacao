@@ -88,10 +88,15 @@ public:
  */
 class BeginInst : public Instruction {
 public:
-	typedef std::list<BeginInst*> PredecessorListTy;
+	typedef std::vector<BeginInst*> PredecessorListTy;
 private:
 	EndInst *end;
 	PredecessorListTy pred_list;
+
+	void set_predecessor(int index, BeginInst *BI) {
+		pred_list[index] = BI;
+	}
+	inline void set_successor(int index, BeginInst *BI);
 
 public:
 	explicit BeginInst() : Instruction(BeginInstID, Type::VoidTypeID) {
@@ -124,6 +129,7 @@ public:
 		assert(i != pred_list.end());
 		return *i;
 	}
+	inline int get_successor_index(const BeginInst* BI) const;
 
 	EndInst *get_EndInst() const { return end; }
 	void set_EndInst(EndInst* e) { end = e; }
@@ -134,16 +140,55 @@ public:
 	size_t pred_size() const { return pred_list.size(); }
 
 	friend class EndInst;
+	friend class Method;
 };
+
+/**
+ * this stores a reference to a begin instruction
+ */
+class BeginInstRef {
+private:
+	BeginInst* begin;
+public:
+	// constructor
+	explicit BeginInstRef(BeginInst* BI) : begin(BI) {}
+	/// copy constructor
+	BeginInstRef(const BeginInstRef &other) : begin(other.begin) {}
+	/// copy assignment operator
+	BeginInstRef& operator=(const BeginInstRef &other) {
+		begin = other.begin;
+		return (*this);
+	}
+	// assign BeginInst
+	BeginInstRef& operator=(BeginInst *BI) {
+		begin = BI;
+		return (*this);
+	}
+	// conversion
+	operator BeginInst*() {
+		return begin;
+	}
+	// getter
+	BeginInst* get() const {
+		return begin;
+	}
+};
+
+inline OStream& operator<<(OStream &OS, const BeginInstRef &BIR) {
+	return OS << BIR.get();
+}
 
 /**
  * This Instruction mark the end of a basic block
  */
 class EndInst : public Instruction {
 public:
-	typedef std::vector<BeginInst*> SuccessorListTy;
+	typedef std::vector<BeginInstRef> SuccessorListTy;
 private:
 	SuccessorListTy succ_list;
+	void set_successor(int index, BeginInst *BI) {
+		succ_list[index] = BI;
+	}
 public:
 	explicit EndInst(BeginInst* begin) : Instruction(EndInstID, Type::VoidTypeID, begin) {
 		assert(begin);
@@ -158,10 +203,11 @@ public:
 
 	void append_succ(BeginInst* bi) {
 		assert(bi);
-		succ_list.push_back(bi);
+		succ_list.push_back(BeginInstRef(bi));
 		assert(begin);
 		bi->pred_list.push_back(begin);
 	}
+	#if 0
 	void replace_succ(BeginInst* s_old, BeginInst* s_new) {
 		assert(s_new);
 		// replace the successor of this EndInst with the new block s_new
@@ -173,16 +219,38 @@ public:
 		// remove the predecessor of s_old
 		s_old->pred_list.remove(begin);
 	}
+	#endif
+	int get_successor_index(const BeginInst* BI) const {
+		if (BI) {
+			int index = 0;
+			for (SuccessorListTy::const_iterator i = succ_list.begin(),
+					e = succ_list.end(); i != e; ++i) {
+				if (BI == i->get()) {
+					return index;
+				}
+				index++;
+			}
+		}
+		return -1;
+	}
 	SuccessorListTy::const_iterator succ_begin() const { return succ_list.begin(); }
 	SuccessorListTy::const_iterator succ_end()   const { return succ_list.end(); }
 	SuccessorListTy::const_reverse_iterator succ_rbegin() const { return succ_list.rbegin(); }
 	SuccessorListTy::const_reverse_iterator succ_rend()   const { return succ_list.rend(); }
-	BeginInst* succ_front() const { return succ_list.front(); }
-	BeginInst* succ_back() const { return succ_list.back(); }
+	BeginInstRef &succ_front() { return succ_list.front(); }
+	BeginInstRef &succ_back() { return succ_list.back(); }
 	size_t succ_size() const { return succ_list.size(); }
 
+	friend class BeginInst;
+	friend class Method;
 };
 
+int BeginInst::get_successor_index(const BeginInst* BI) const {
+	return get_EndInst()->get_successor_index(BI);
+}
+void BeginInst::set_successor(int index, BeginInst *BI) {
+	get_EndInst()->set_successor(index,BI);
+}
 
 // Instructions
 
@@ -433,6 +501,10 @@ public:
 		append_succ(targetBlock);
 	}
 	virtual GOTOInst* to_GOTOInst() { return this; }
+	BeginInstRef& get_target() {
+		return succ_front();
+	}
+	friend class Method;
 };
 
 class JSRInst : public Instruction {
@@ -482,8 +554,8 @@ public:
 		append_succ(falseBlock);
 	}
 	virtual IFInst* to_IFInst() { return this; }
-	BeginInst* get_then_target() const { return succ_front(); }
-	BeginInst* get_else_target() const { return succ_back(); }
+	BeginInstRef &get_then_target() { return succ_front(); }
+	BeginInstRef &get_else_target() { return succ_back(); }
 };
 
 class IF_CMPInst : public Instruction {

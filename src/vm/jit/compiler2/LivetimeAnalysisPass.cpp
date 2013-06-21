@@ -207,7 +207,7 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 		LOG3("line " << setz(4) << from << " " << "Number of successors of " << BI << " " << EI->succ_size() << nl);
 		for (EndInst::SuccessorListTy::const_iterator i = EI->succ_begin(),
 				e = EI->succ_end(); i != e ; ++i) {
-			BeginInst *succ = *i;
+			BeginInst *succ = i->get();
 			LOG3("line " << setz(4) << from << " " << "Successor of " << BI << ": " << succ << nl);
 			std::set<Register*> &succ_live_in = liveIn[succ];
 			// union of all successor liveIns

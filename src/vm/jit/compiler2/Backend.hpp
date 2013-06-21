@@ -55,7 +55,7 @@ public:
 	virtual RegisterFile* get_RegisterFile() const = 0;
 	virtual MachineMoveInst* create_Move(MachineOperand *src,
 		MachineOperand* dst) const = 0;
-	virtual MachineJumpInst* create_Jump() const = 0;
+	virtual MachineJumpInst* create_Jump(BeginInstRef &target) const = 0;
 	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM) const = 0;
 	virtual const char* get_name() const = 0;
 };
@@ -81,7 +81,7 @@ public:
 	virtual RegisterFile* get_RegisterFile() const;
 	virtual MachineMoveInst* create_Move(MachineOperand *src,
 		MachineOperand* dst) const;
-	virtual MachineJumpInst* create_Jump() const;
+	virtual MachineJumpInst* create_Jump(BeginInstRef &target) const;
 	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM) const;
 	virtual const char* get_name() const;
 };
@@ -100,7 +100,7 @@ template<typename Target>
 LoweredInstDAG* BackendBase<Target>::lowerGOTOInst(GOTOInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	MachineJumpInst *jump = create_Jump();
+	MachineJumpInst *jump = create_Jump(I->get_target());
 	dag->add(jump);
 	dag->set_result(jump);
 	return dag;

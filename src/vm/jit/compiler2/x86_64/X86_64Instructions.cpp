@@ -200,18 +200,15 @@ void emit_jump(CodeFragment &code, s4 offset) {
 
 } // end anonymous namespace
 void X86_64JumpInst::emit(CodeMemory* CM) const {
-	GOTOInst *gt = get_parent()->get_Instruction()->to_GOTOInst();
-	assert(gt);
-	assert(gt->succ_size() == 1);
-	BeginInst *BI = gt->succ_front();
+	BeginInst *BI = get_BeginInst();
 	s4 offset = CM->get_offset(BI);
 	switch (offset) {
 	case 0:
 		LOG2("emit_Jump: jump to the next instruction -> can be omitted ("
-		     << gt << " to " << BI << ")"  << nl);
+		     << this << " to " << BI << ")"  << nl);
 		return;
 	case CodeMemory::INVALID_OFFSET:
-		LOG2("emit_Jump: target not yet known (" << gt << " to "
+		LOG2("emit_Jump: target not yet known (" << this << " to "
 		     << BI << ")"  << nl);
 		// reserve memory and add to resolve later
 		// worst case -> 32bit offset
@@ -225,10 +222,7 @@ void X86_64JumpInst::emit(CodeMemory* CM) const {
 }
 
 void X86_64JumpInst::emit(CodeFragment &CF) const {
-	GOTOInst *gt = get_parent()->get_Instruction()->to_GOTOInst();
-	assert(gt);
-	assert(gt->succ_size() == 1);
-	BeginInst *BI = gt->succ_front();
+	BeginInst *BI = get_BeginInst();
 	s4 offset = CF.get_offset(BI);
 	assert(offset != 0);
 	assert(offset != CodeMemory::INVALID_OFFSET);

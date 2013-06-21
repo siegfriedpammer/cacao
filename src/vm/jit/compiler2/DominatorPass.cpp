@@ -77,7 +77,10 @@ DominatorTree::NodeTy* DominatorTree::find_nearest_common_dom(NodeTy *a, NodeTy 
 DominatorPass::NodeListTy& DominatorPass::succ(NodeTy *v, NodeListTy& list) {
 	EndInst *ve = v->get_EndInst();
 	assert(ve);
-	list.insert(ve->succ_begin(),ve->succ_end());
+	for (EndInst::SuccessorListTy::const_iterator i = ve->succ_begin(),
+			e = ve->succ_end(); i != e; ++i) {
+		list.insert(i->get());
+	}
 	return list;
 }
 

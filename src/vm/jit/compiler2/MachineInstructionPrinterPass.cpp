@@ -177,9 +177,9 @@ public:
 			if (EI) {
 				for(EndInst::SuccessorListTy::const_iterator ii = EI->succ_begin(), ee = EI->succ_end();
 					ii != ee; ++ii) {
-					Value *v = (*ii);
+					Value *v = ii->get();
 					if (v) {
-						Instruction *II = (*ii)->to_Instruction();
+						Instruction *II = ii->get()->to_Instruction();
 						if (II) {
 							LoweredInstDAG *op_dag = LP->get_LoweredInstDAG(II);
 							assert(op_dag);

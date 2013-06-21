@@ -53,8 +53,8 @@ MachineMoveInst* BackendBase<X86_64>::create_Move(MachineOperand *dst,
 }
 
 template<>
-MachineJumpInst* BackendBase<X86_64>::create_Jump() const {
-	return new X86_64JumpInst();
+MachineJumpInst* BackendBase<X86_64>::create_Jump(BeginInstRef &target) const {
+	return new X86_64JumpInst(target);
 }
 
 namespace {
@@ -94,7 +94,8 @@ LoweredInstDAG* BackendBase<X86_64>::lowerIFInst(IFInst *I) const {
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	X86_64CmpInst *cmp = new X86_64CmpInst(UnassignedReg::factory(),UnassignedReg::factory());
 	X86_64CondJumpInst *cjmp = NULL;
-	BeginInst* then = I->get_then_target();
+	BeginInstRef &then = I->get_then_target();
+	BeginInstRef &els = I->get_else_target();
 
 	switch (I->get_condition()) {
 	case Conditional::EQ:
@@ -114,12 +115,14 @@ LoweredInstDAG* BackendBase<X86_64>::lowerIFInst(IFInst *I) const {
 		      << bold << I->get_condition() << reset_color << nl;
 		assert(0);
 	}
+	X86_64JumpInst *jmp = new X86_64JumpInst(els);
 	dag->add(cmp);
 	dag->add(cjmp);
+	dag->add(jmp);
 
 	dag->set_input(0,cmp,1);
 	dag->set_input(1,cmp,0);
-	dag->set_result(cjmp);
+	dag->set_result(jmp);
 	return dag;
 }
 

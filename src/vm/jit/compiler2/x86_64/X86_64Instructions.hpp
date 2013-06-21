@@ -67,14 +67,20 @@ public:
 class X86_64CondJumpInst : public MachineInstruction {
 private:
 	X86_64Cond::COND cond;
-	BeginInst* target;
+	BeginInstRef &target;
 public:
-	X86_64CondJumpInst(X86_64Cond::COND cond, BeginInst* target)
+	X86_64CondJumpInst(X86_64Cond::COND cond, BeginInstRef &target)
 			: MachineInstruction("X86_64CondJumpInst", &NoOperand, 0),
 			  cond(cond), target(target) {
 	}
-	BeginInst* get_BeginInst() const { return target; }
+	BeginInst* get_BeginInst() const {
+		return target.get();
+	}
 	virtual void emit(CodeMemory* CM) const;
+	virtual OStream& print(OStream &OS) const {
+		return OS << "[" << setz(4) << get_id() << "] "
+			<< get_name() << "-> " << get_BeginInst();
+	}
 };
 
 class X86_64AddInst : public MachineInstruction {
@@ -123,10 +129,20 @@ public:
 };
 
 class X86_64JumpInst : public MachineJumpInst {
+private:
+	BeginInstRef &target;
 public:
-	X86_64JumpInst()	: MachineJumpInst("X86_64JumpInst") {}
+	X86_64JumpInst(BeginInstRef &target) : MachineJumpInst("X86_64JumpInst"),
+		target(target) {}
 	virtual void emit(CodeMemory* CM) const;
 	virtual void emit(CodeFragment &CF) const;
+	virtual OStream& print(OStream &OS) const {
+		return OS << "[" << setz(4) << get_id() << "] "
+			<< get_name() << "-> " << get_BeginInst();
+	}
+	BeginInst* get_BeginInst() const {
+		return target.get();
+	}
 };
 
 } // end namespace compiler2
