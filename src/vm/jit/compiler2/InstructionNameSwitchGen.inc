@@ -82,6 +82,7 @@ case COPYInstID: return "COPYInst";
 case MOVEInstID: return "MOVEInst";
 case GETEXCEPTIONInstID: return "GETEXCEPTIONInst";
 case PHIInstID: return "PHIInst";
+case ContainerInstID: return "ContainerInst";
 case BeginInstID: return "BeginInst";
 case EndInstID: return "EndInst";
 

@@ -82,6 +82,7 @@ class COPYInst;
 class MOVEInst;
 class GETEXCEPTIONInst;
 class PHIInst;
+class ContainerInst;
 class BeginInst;
 class EndInst;
 

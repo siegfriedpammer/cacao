@@ -135,7 +135,7 @@ def main(temps):
 	except IOError as e:
 		print str(e)
 		sys.exit(1)
-	
+
 	keys = {
 	  'generator' : sys.argv[0],
 	  'input_file': args.table.name,
@@ -157,7 +157,7 @@ def main(temps):
 		if not entry:
 			print 'Error in line: ' + str(line_nr) + ' :' + line.strip()
 			continue
-			
+
 		entry = entry.groupdict()
 		# print line
 		for t in temps:

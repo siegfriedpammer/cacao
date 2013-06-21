@@ -632,6 +632,21 @@ public:
 	using Instruction::append_op;
 };
 
+class ContainerInst : public Instruction {
+public:
+	explicit ContainerInst(BeginInst *begin) : Instruction(ContainerInstID, Type::VoidTypeID) {
+		append_dep(begin);
+	}
+	virtual ContainerInst* to_ContainerInst() { return this; }
+
+	virtual BeginInst* get_BeginInst() const {
+		BeginInst *begin = (*dep_begin())->to_BeginInst();
+		assert(begin);
+		return begin;
+	}
+	virtual bool is_floating() const { return false; }
+};
+
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

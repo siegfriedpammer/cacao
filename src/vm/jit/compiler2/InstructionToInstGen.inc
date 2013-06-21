@@ -82,6 +82,7 @@ virtual COPYInst* to_COPYInst() { return NULL; }
 virtual MOVEInst* to_MOVEInst() { return NULL; }
 virtual GETEXCEPTIONInst* to_GETEXCEPTIONInst() { return NULL; }
 virtual PHIInst* to_PHIInst() { return NULL; }
+virtual ContainerInst* to_ContainerInst() { return NULL; }
 virtual BeginInst* to_BeginInst() { return NULL; }
 virtual EndInst* to_EndInst() { return NULL; }
 

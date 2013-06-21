@@ -95,6 +95,8 @@ MOVEInst
 GETEXCEPTIONInst
 PHIInst
 
+# extra instruction
+ContainerInst
 # Control Flow Meta Instructions
 BeginInst
 EndInst

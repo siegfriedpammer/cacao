@@ -82,6 +82,7 @@ COPYInstID,
 MOVEInstID,
 GETEXCEPTIONInstID,
 PHIInstID,
+ContainerInstID,
 BeginInstID,
 EndInstID,
 
