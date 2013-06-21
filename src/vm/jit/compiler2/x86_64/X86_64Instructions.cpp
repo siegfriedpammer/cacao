@@ -100,6 +100,7 @@ inline void emit_imm2reg_move(CodeMemory* CM, Immediate *imm,
 void X86_64MovInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
 	MachineOperand *dst = result.op;
+	if (src == dst) return;
 	Register *src_reg = src->to_Register();
 	Register *dst_reg = dst->to_Register();
 	if( dst_reg) {
