@@ -116,7 +116,7 @@ LivetimeInterval* LivetimeInterval::split(unsigned pos, StackSlotManager *SSM) {
 			break;
 		}
 	}
-	if (i == e) {
+	if (i == e && lti == NULL) {
 		// already at the end
 		return NULL;
 	}
