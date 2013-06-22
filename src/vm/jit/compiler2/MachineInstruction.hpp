@@ -147,7 +147,7 @@ public:
 	void set_result(MachineOperand *MO) {
 		result = MachineOperandDesc(0,MO);
 	}
-	virtual bool accepts_immediate(unsigned i) const {
+	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
 		return false;
 	}
 	virtual bool is_phi() const {

@@ -127,7 +127,7 @@ public:
 			: MachineInstruction(name, dst, 1) {
 		operands[0].op = src;
 	}
-	virtual bool accepts_immediate(unsigned i) const {
+	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
 		return true;
 	}
 	virtual MachineMoveInst* to_MachineMoveInst() {

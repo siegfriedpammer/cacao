@@ -68,8 +68,9 @@ bool ResolveImmediatePass::run(JITData &JD) {
 						MachineOperand *MO = MI->get(i).op;
 						assert(MO);
 						Immediate *imm = MO->to_Immediate();
-						if (imm && !MI->accepts_immediate(i)) {
-							LOG2("MInst (" << MI << ") does not accept immediate as " << i << " parameter" << nl);
+						if (imm && !MI->accepts_immediate(i,imm)) {
+							LOG2("MInst (" << MI << ") does not accept immediate "
+							  << imm << " as " << i << " parameter" << nl);
 							VirtualRegister *dst = new VirtualRegister();
 							MachineMoveInst *mov = backend->create_Move(imm,dst);
 							dag->mi_insert(pos,mov);
