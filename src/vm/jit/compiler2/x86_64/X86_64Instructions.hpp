@@ -96,6 +96,10 @@ public:
 		operands[1].op = src2;
 	}
 	virtual void emit(CodeMemory* CM) const;
+	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
+		if (i != 1) return false;
+		return fits_into<s4>(imm->get_value());
+	}
 };
 
 class X86_64IMulInst : public MachineInstruction {
