@@ -34,12 +34,17 @@
 #include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
 #include "vm/jit/compiler2/ScheduleClickPass.hpp"
+#include "vm/statistics.hpp"
 
 #include <climits>
 
 #include "toolbox/logging.hpp"
 
 #define DEBUG_NAME "compiler2/LinearScanAllocator"
+
+STAT_REGISTER_GROUP(lsra_stat,"LSRA","Linear Scan Register Allocator")
+STAT_REGISTER_GROUP_VAR(unsigned,num_hints_followed,0,"hints followed",
+	"Number of Hints followed (i.e. no move)",lsra_stat)
 
 namespace cacao {
 namespace jit {
@@ -144,11 +149,14 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(LivetimeInterval *cur
 		Register *hint = current->get_hint();
 		LivetimeInterval *hint_lti;
 		if (hint && (hint_lti = LA->get(hint)) ) {
-			if (current->get_start() < hint_lti->get_end() ) {
+			if (current->get_start() <= hint_lti->get_end() ) {
 				LOG2("Hint: " << hint_lti << nl);
 				reg = hint_lti->get_Register()->to_MachineRegister();
 				assert(reg);
 				free_pos = free_until_pos[reg];
+				STATISTICS(num_hints_followed++);
+			} else {
+				LOG2("Hint not followed. Not yet ended: " << hint_lti << nl);
 			}
 		}
 	}
@@ -554,7 +562,13 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 				e = pred_end->succ_end(); i != e ; ++i) {
 			// for each edge pred -> succ
 			BeginInst *succ = i->get();
-			MachineInstructionSchedule::MachineInstructionRangeTy succ_range = MIS->get_range(succ);
+			unsigned bb_start;
+			unsigned bb_end;
+			{
+				MachineInstructionSchedule::MachineInstructionRangeTy succ_range = MIS->get_range(succ);
+				bb_start = succ_range.first * 2;
+				bb_end = succ_range.second * 2;
+			}
 			LOG2("Edge: " << pred << " -> " << succ << nl);
 			std::set<LivetimeInterval*> &ltis_succ = active_map_begin[succ];
 			std::set<LivetimeInterval*> &ltis_pred = active_map_end[pred];
@@ -581,12 +595,11 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 
 					}
 				}
-				#if 0
 				// resolve PHIs!
-				if (lti_succ->get_start() == succ_range.first) {
-					LOG("WE HAVE A WINNER! " << lti_succ << nl);
+				if (lti_succ->get_start() == bb_start) {
+					LOG(BoldCyan << "WE HAVE A WINNER! " << reset_color << lti_succ << nl);
 					assert(lti_succ->def_size() == 1);
-					MachineInstruction *MI = MIS->get(lti_succ->def_front().first);
+					MachineInstruction *MI = lti_succ->def_front().second->get_MachineInstruction();
 					LOG3("PHI: " << MI << nl);
 					assert( MI->is_phi());
 					LoweredInstDAG *use_dag = MI->get_parent();
@@ -599,14 +612,15 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 					LoweredInstDAG *def_dag = LP->get_LoweredInstDAG(I);
 					assert(def_dag);
 					MachineOperand *pred_op = def_dag->get_result()->get_result().op;
-					MachineOperand *succ_op = MI->get(index).op;
-					LOG("result is in: " << pred_op << " and used in " << succ_op << nl);
-					if (succ_op != pred_op) {
-						ABORT_MSG("Registers not yet aligned!","must insert move from " << pred_op << " to " << succ_op);
+					//MachineOperand *succ_op = MI->get(index).op;
+					assert(pred_op == MI->get(index).op);
+					MachineOperand *result_op = MI->get_result().op;
+					LOG("result is in: " << pred_op << " and should be in " << result_op << nl);
+					if (result_op != pred_op) {
+						MachineMoveInst* move = backend->create_Move(pred_op,result_op);
+						move_map[std::make_pair(pred,succ)].push_back(move);
 					}
 				}
-				#endif
-
 			}
 		}
 	}
@@ -624,10 +638,26 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 		M->add_Instruction(I);
 		LoweredInstDAG *dag = new LoweredInstDAG(I);
 
+		// remember "destroyed" registers
+		std::set<Register*> destroyed;
 		MachineMoveInst *move = NULL;
 		for (MoveListTy::const_iterator i = mlist.begin(), e = mlist.end();
 				i != e ; ++i ) {
 			move = *i;
+			MachineOperand *src = move->get(0).op;
+			MachineOperand *dst = move->get_result().op;
+			Register *reg = dst->to_Register();
+			if (reg) {
+				destroyed.insert(reg);
+			}
+			if (destroyed.find(src->to_Register()) != destroyed.end()) {
+				// the value has been overwritten -> stackslot
+				ManagedStackSlot *slot = jd->get_StackSlotManager()->create_ManagedStackSlot();
+				MachineMoveInst *spill = backend->create_Move(src,slot);
+				dag->add_front(spill);
+				move->set_operand(0,slot);
+				LOG2("spill needed: " << spill << nl);
+			}
 			LOG("MOVE " << move << nl);
 			dag->add(move);
 		}

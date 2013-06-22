@@ -89,6 +89,12 @@ public:
 			mi_new->set_parent(this);
 		}
 	}
+	void add_front(MachineInstruction *MI) {
+		assert(MI);
+		assert(std::find(minst.begin(),minst.end(),MI) == minst.end());
+		minst.push_front(MI);
+		MI->set_parent(this);
+	}
 	void add(MachineInstruction *MI) {
 		assert(MI);
 		assert(std::find(minst.begin(),minst.end(),MI) == minst.end());
