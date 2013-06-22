@@ -67,7 +67,7 @@ namespace {
  */
 inline void emit_stack_move(CodeMemory* CM, StackSlot *slot,
 		X86_64Register *reg, bool stack2reg) {
-	s4 index = slot->get_index();
+	s4 index = slot->get_index() * 8;
 	u1 opcode = stack2reg ? 0x8b : 0x89;
 	if (fits_into<s1>(index)) {
 		X86_64InstructionEncoding::reg2rbp_disp8<u1>(CM, opcode, reg,
@@ -173,7 +173,7 @@ void X86_64IMulInst::emit(CodeMemory* CM) const {
 	X86_64Register *src_reg = operands[1].op->to_Register()->to_MachineRegister()->to_NaviveRegister();
 	X86_64Register *dst_reg = result.op->to_Register()->to_MachineRegister()->to_NaviveRegister();
 
-	X86_64InstructionEncoding::reg2reg<u2>(CM, 0x0faf, src_reg, dst_reg);
+	X86_64InstructionEncoding::reg2reg<u2>(CM, 0x0faf, dst_reg, src_reg);
 }
 
 void X86_64AddInst::emit(CodeMemory* CM) const {
