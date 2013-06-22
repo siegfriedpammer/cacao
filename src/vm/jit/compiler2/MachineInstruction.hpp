@@ -42,6 +42,7 @@ class MachineMoveInst;
 class LoweredInstDAG;
 class CodeMemory;
 class CodeFragment;
+class MachineInstruction;
 
 /**
  * Descriptor of a MachineOperand
@@ -51,13 +52,18 @@ class CodeFragment;
  */
 class MachineOperandDesc {
 private:
+	MachineInstruction *parent;
 	unsigned index;
 public:
 	MachineOperand *op;
-	explicit MachineOperandDesc(unsigned index) : index(index), op(NULL) {}
-	explicit MachineOperandDesc(unsigned index, MachineOperand *op) : index(index), op(op) {}
-	explicit MachineOperandDesc(MachineOperand *op) : index(0), op(op) {}
+	explicit MachineOperandDesc(MachineInstruction* parent, unsigned index)
+		: parent(parent), index(index), op(NULL) {}
+	explicit MachineOperandDesc(MachineInstruction* parent, unsigned index,
+		MachineOperand *op) : parent(parent), index(index), op(op) {}
+	explicit MachineOperandDesc(MachineInstruction* parent, MachineOperand *op)
+		: parent(parent), index(0), op(op) {}
 	unsigned get_index() const { return index; }
+	MachineInstruction* get_MachineInstruction() const { return parent; }
 };
 
 /**
@@ -83,15 +89,21 @@ public:
 	}
 	#endif
 	MachineInstruction(const char * name, MachineOperand* result, unsigned num_operands)
-		: parent(NULL), id(id_counter++), operands(), result(result), name(name) {
+		: parent(NULL), id(id_counter++), operands(), result(this, result), name(name) {
 		for (unsigned i = 0; i < num_operands ; ++i) {
 			//operands[i].index = i;
-			operands.push_back(MachineOperandDesc(i));
+			operands.push_back(MachineOperandDesc(this,i));
 		}
 	}
 
 	LoweredInstDAG* get_parent() const { return parent; }
+
 	void set_parent(LoweredInstDAG* dag) { parent = dag; }
+
+	void set_operand(unsigned i,MachineOperand* op) {
+		assert(i < operands.size());
+		operands[i].op = op;
+	}
 
 	void add_before(MachineInstruction *MI);
 
