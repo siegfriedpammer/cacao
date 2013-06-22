@@ -36,10 +36,37 @@ namespace jit {
 namespace compiler2 {
 
 void X86_64CmpInst::emit(CodeMemory* CM) const {
+	#if 0
 	X86_64Register *src1_reg = operands[0].op->to_Register()->to_MachineRegister()->to_NaviveRegister();
 	X86_64Register *src2_reg = operands[1].op->to_Register()->to_MachineRegister()->to_NaviveRegister();
 
 	X86_64InstructionEncoding::reg2reg<u1>(CM, 0x39, src1_reg, src2_reg);
+	#endif
+	MachineOperand *src1 = operands[0].op;
+	MachineOperand *src2 = operands[1].op;
+	Register *src1_reg = src1->to_Register();
+	Register *src2_reg = src2->to_Register();
+	Immediate *imm = src2->to_Immediate();
+	if (src1_reg) {
+		X86_64Register *src1_nreg = src1_reg->to_MachineRegister()->to_NaviveRegister();
+		assert(src1_nreg);
+		if (src2_reg) {
+			X86_64Register *src2_nreg = src1_reg->to_MachineRegister()->to_NaviveRegister();
+			assert(src2_nreg);
+			X86_64InstructionEncoding::reg2reg<u1>(CM, 0x39, src1_nreg, src2_nreg);
+			return;
+		}
+		if (imm) {
+			s4 value = imm->get_value();
+			if (fits_into<s1>(value)) {
+				X86_64InstructionEncoding::reg2imm_modrm<u1,s1>(CM,0x83,7,src1_nreg,(u1)value);
+			} else {
+				X86_64InstructionEncoding::reg2imm_modrm<u1,s4>(CM,0x81,7,src1_nreg,value);
+			}
+			return;
+		}
+	}
+	ABORT_MSG(this << "Operands not supported","src1: " << src1 << " src2: " << src2);
 }
 
 void X86_64EnterInst::emit(CodeMemory* CM) const {
@@ -167,7 +194,7 @@ void X86_64CondJumpInst::emit(CodeMemory* CM) const {
 	LOG2("found offset of " << BI << ": " << offset << nl);
 
 	// only 32bit offset for the time being
-	X86_64InstructionEncoding::imm<u2>(CM, 0x0f80 + cond.code, offset);
+	X86_64InstructionEncoding::imm_op<u2>(CM, 0x0f80 + cond.code, offset);
 }
 void X86_64IMulInst::emit(CodeMemory* CM) const {
 	X86_64Register *src_reg = operands[1].op->to_Register()->to_MachineRegister()->to_NaviveRegister();
@@ -183,10 +210,27 @@ void X86_64AddInst::emit(CodeMemory* CM) const {
 	X86_64InstructionEncoding::reg2reg<u1>(CM, 0x03, src_reg, dst_reg);
 }
 void X86_64SubInst::emit(CodeMemory* CM) const {
-	X86_64Register *src_reg = operands[1].op->to_Register()->to_MachineRegister()->to_NaviveRegister();
-	X86_64Register *dst_reg = result.op->to_Register()->to_MachineRegister()->to_NaviveRegister();
-
-	X86_64InstructionEncoding::reg2reg<u1>(CM, 0x29, src_reg, dst_reg);
+	MachineOperand *src = operands[1].op;
+	MachineOperand *dst = result.op;
+	Register *src_reg = src->to_Register();
+	Register *dst_reg = dst->to_Register();
+	Immediate *imm = src->to_Immediate();
+	if (dst_reg) {
+		X86_64Register *dst_nreg = dst_reg->to_MachineRegister()->to_NaviveRegister();
+		assert(dst_nreg);
+		if (src_reg) {
+			X86_64Register *src_nreg = src_reg->to_MachineRegister()->to_NaviveRegister();
+			assert(src_nreg);
+			X86_64InstructionEncoding::reg2reg<u1>(CM, 0x29, src_nreg, dst_nreg);
+			return;
+		}
+		if (imm) {
+			s4 value = imm->get_value();
+			X86_64InstructionEncoding::reg2imm_modrm<u1,s4>(CM,0x81,5,dst_nreg,value);
+			return;
+		}
+	}
+	ABORT_MSG(this << "Operands not supported","src: " << src << " dst: " << dst);
 }
 
 namespace {

@@ -29,6 +29,7 @@
 #include "vm/jit/compiler2/x86_64/X86_64Cond.hpp"
 #include "vm/jit/compiler2/x86_64/X86_64Register.hpp"
 #include "vm/jit/compiler2/MachineInstruction.hpp"
+#include "vm/types.hpp"
 
 namespace cacao {
 namespace jit {
@@ -45,6 +46,10 @@ public:
 		operands[1].op = src2;
 	}
 	virtual void emit(CodeMemory* CM) const;
+	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
+		if (i != 1) return false;
+		return fits_into<s4>(imm->get_value());
+	}
 };
 
 class X86_64EnterInst : public MachineInstruction {
@@ -111,6 +116,10 @@ public:
 		operands[1].op = src2;
 	}
 	virtual void emit(CodeMemory* CM) const;
+	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
+		if (i != 1) return false;
+		return fits_into<s4>(imm->get_value());
+	}
 };
 
 class X86_64RetInst : public MachineInstruction {

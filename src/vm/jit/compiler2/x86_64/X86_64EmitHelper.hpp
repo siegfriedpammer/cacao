@@ -52,19 +52,25 @@ inline u1 get_rex(X86_64Register *reg, X86_64Register *rm = NULL) {
 	return rex;
 }
 
-inline u1 get_modrm(u1 mod, X86_64Register *reg, X86_64Register *rm) {
+inline u1 get_modrm_u1(u1 mod, u1 reg, u1 rm) {
 	const unsigned modrm_mod = 6;
 	const unsigned modrm_reg = 3;
 	const unsigned modrm_rm = 0;
 
 	u1 modrm = (0x3 & mod) << modrm_mod;
-	modrm |= (0x7 & reg->get_index()) << modrm_reg;
-	modrm |= (0x7 & rm->get_index()) << modrm_rm;
+	modrm |= (0x7 & reg) << modrm_reg;
+	modrm |= (0x7 & rm) << modrm_rm;
 
 	return modrm;
 }
+inline u1 get_modrm(u1 mod, X86_64Register *reg, X86_64Register *rm) {
+	return get_modrm_u1(mod,reg->get_index(), rm->get_index());
+}
 inline u1 get_modrm_reg2reg(X86_64Register *reg, X86_64Register *rm) {
 	return get_modrm(0x3,reg,rm);
+}
+inline u1 get_modrm_1reg(u1 reg, X86_64Register *rm) {
+	return get_modrm_u1(0x3,reg,rm->get_index());
 }
 
 struct X86_64InstructionEncoding {
@@ -128,7 +134,23 @@ struct X86_64InstructionEncoding {
 
 	}
 	template <class O,class I>
-	static void imm(CodeMemory *CM, O opcode, I imm) {
+	static void reg2imm_modrm(CodeMemory *CM, O opcode,
+			u1 reg, X86_64Register *rm, I imm) {
+		CodeFragment code = CM->get_CodeFragment(2 + sizeof(O) + sizeof(I));
+
+		code[0] = get_rex(rm);
+
+		for (int i = 0, e = sizeof(O) ; i < e ; ++i) {
+			code[i + 1] = (u1) 0xff & (opcode >> (8 * (e - i - 1)));
+		}
+		code[1 + sizeof(O)] = get_modrm_1reg(reg,rm);
+		for (int i = 0, e = sizeof(I) ; i < e ; ++i) {
+			code[i + sizeof(O) + 2] = (u1) 0xff & (imm >> (8 * i));
+		}
+
+	}
+	template <class O,class I>
+	static void imm_op(CodeMemory *CM, O opcode, I imm) {
 		CodeFragment code = CM->get_CodeFragment(sizeof(O) + sizeof(I));
 
 		for (int i = 0, e = sizeof(O) ; i < e ; ++i) {
