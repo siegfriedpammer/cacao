@@ -248,6 +248,8 @@ public:
 		}
 		for (const_def_iterator i = def_begin(), e = def_end(); i != e; ++i) {
 			if (i->first >= pos) {
+				if (next_use == -1)
+					return (signed)i->first;
 				return std::min((signed)i->first,next_use);
 			}
 		}

@@ -261,8 +261,10 @@ inline bool LinearScanAllocatorPass::allocate_blocked_reg(LivetimeInterval *curr
 	assert(lti);
 
 	LOG("Selected Register: " << reg << " (free until: " << use_pos << ")" << nl);
-	// FIXME: this is not right! we need the first USE position not interval start!
-	if (current->get_start() > use_pos) {
+	signed current_usepos = current->next_usedef_after(current->get_start());
+	assert(current_usepos != -1);
+	LOG("current usepos: " << current_usepos << nl);
+	if (current_usepos > use_pos) {
 		// all other intervals are used before current
 		// so it is best to spill current itself
 		LOG2("all other intervals are used before current so it is best to spill current itself" << nl);
@@ -286,8 +288,10 @@ inline bool LinearScanAllocatorPass::allocate_blocked_reg(LivetimeInterval *curr
 			LivetimeInterval *inact = *i;
 			assert(inact);
 			if (inact->get_Register() == reg) {
+				assert(lti != inact);
 				LOG2("split " << inact << " at end of livetime hole" << nl);
-				ABORT_MSG("split at end of livetime hole","not implemented");
+				split(inact,current->get_start());
+				//ABORT_MSG("split at end of livetime hole","not implemented");
 			}
 		}
 	}

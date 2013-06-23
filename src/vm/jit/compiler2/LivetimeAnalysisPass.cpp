@@ -110,7 +110,7 @@ LivetimeInterval* LivetimeInterval::split(unsigned pos, StackSlotManager *SSM) {
 			// create stack interval 
 			ManagedStackSlot *slot = SSM->create_ManagedStackSlot(); 
 			stack_interval = new LivetimeInterval();
-			stack_interval->add_range(pos,next_usedef);
+			stack_interval->add_range(pos,next_usedef+1);
 			stack_interval->set_ManagedStackSlot(slot);
 			this->next_split = stack_interval;
 			break;
