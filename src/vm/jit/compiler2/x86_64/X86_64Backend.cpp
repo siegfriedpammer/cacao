@@ -120,8 +120,8 @@ LoweredInstDAG* BackendBase<X86_64>::lowerIFInst(IFInst *I) const {
 	dag->add(cjmp);
 	dag->add(jmp);
 
-	dag->set_input(0,cmp,1);
-	dag->set_input(1,cmp,0);
+	dag->set_input(0,cmp,0);
+	dag->set_input(1,cmp,1);
 	dag->set_result(jmp);
 	return dag;
 }
