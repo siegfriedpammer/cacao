@@ -32,6 +32,7 @@
 
 // forware declaration
 struct methodinfo;
+class Utf8String;
 
 namespace cacao {
 namespace jit {
@@ -70,10 +71,16 @@ private:
 	BBListTy bb_list;
 	BeginInst* init_bb;
 	MethodDescriptor* method_desc;
+	Utf8String &class_name_utf8;
+	Utf8String &method_name_utf8;
+	Utf8String &method_desc_utf8;
 public:
 	Method(methodinfo *m);
 	~Method();
 
+	const Utf8String& get_name_utf8() const { return method_name_utf8; }
+	const Utf8String& get_class_name_utf8() const { return class_name_utf8; }
+	const Utf8String& get_desc_utf8() const { return method_desc_utf8; }
 	/**
 	 * Add instructions to a Method.
 	 *

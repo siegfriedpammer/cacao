@@ -37,13 +37,15 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-Method::Method(methodinfo *m) {
+Method::Method(methodinfo *m) : class_name_utf8(m->clazz->name),
+		method_name_utf8(m->name), method_desc_utf8(m->descriptor) {
 	assert(m);
 	methoddesc *md = m->parseddesc;
 	assert(md);
 	assert(md->paramtypes);
 	method_desc = new MethodDescriptor(md->paramcount);
 	MethodDescriptor &MD = *method_desc;
+
 
 	for (int i = 0, slot = 0; i < md->paramcount; ++i) {
 		int type = md->paramtypes[i].type;
