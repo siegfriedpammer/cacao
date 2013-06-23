@@ -1,6 +1,6 @@
-## tests/Makefile.am
+## tests/regression/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2008
+## Copyright (C) 1996-2005, 2006, 2007, 2008
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -20,28 +20,44 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 
-
-JAVA     = LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(top_builddir)/src/cacao/cacao
+JAVA     = $(top_builddir)/src/cacao/cacao
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
-JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
+JAVACCMD = $(JAVAC) -source 1.5 -target 1.5 -nowarn -bootclasspath $(BOOTCLASSPATH)
 
-SUBDIRS = \
-	regression
+SOURCE_FILES = \
+	$(srcdir)/Test.java
 
-if ENABLE_OPTIMIZATION_FRAMEWORK
-SUBDIRS += \
-	compiler2
-
-endif
 EXTRA_DIST = \
-	$(srcdir)/*.java
+	$(SOURCE_FILES) \
+	Compile.sh
 
 CLEANFILES = \
-	*.class
+	*.class \
+	*.o \
+	*.run \
+	*.thisoutput
+
+OUTPUT_JAVA_TESTS = \
+	Test.fact
+
+check: build run
 
 build:
-	$(JAVACCMD) -d . $(srcdir)/*.java
+	$(JAVACCMD) -d . $(SOURCE_FILES)
 
+run: $(addsuffix .output,$(OUTPUT_JAVA_TESTS))
+
+%.output: %.thisoutput
+	diff $(srcdir)/$@ $<
+
+%.o:
+	LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Compile.sh "$(JAVACMD)" $@ $(srcdir)
+
+%.run: %.o $(srcdir)/%.main.c
+	$(CC) $^ -o $@
+
+%.thisoutput: %.run
+	./$< > $@
 
 ## Local variables:
 ## mode: Makefile
