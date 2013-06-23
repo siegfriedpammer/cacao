@@ -46,6 +46,7 @@ OStream& MachineInstruction::print(OStream &OS) const {
 	if (!result->to_VoidOperand()) {
 		OS << " -> " << result;
 	}
+	#if 0
 	if (get_parent()) {
 		assert(get_parent()->get_Instruction());
 		EndInst* EI = get_parent()->get_Instruction()->to_EndInst();
@@ -56,6 +57,7 @@ OStream& MachineInstruction::print(OStream &OS) const {
 			}
 		}
 	}
+	#endif
 	return OS;
 }
 

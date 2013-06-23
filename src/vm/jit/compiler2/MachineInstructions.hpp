@@ -58,6 +58,7 @@ public:
 	// phis are never emitted
 	virtual void emit(CodeMemory* CM) const {};
 };
+#if 0
 class MachineConstInst : public MachineInstruction {
 public:
 	/**
@@ -69,7 +70,6 @@ public:
 	virtual void emit(CodeMemory* CM) const {};
 };
 
-#if 0
 /**
  * Load from memory to register
  */

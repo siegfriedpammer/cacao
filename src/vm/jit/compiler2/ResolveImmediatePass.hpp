@@ -35,6 +35,7 @@ namespace compiler2 {
 /**
  * ResolveImmediatePass
  * TODO: more info
+ * @todo this does not work!
  */
 class ResolveImmediatePass : public Pass {
 public:

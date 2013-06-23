@@ -46,22 +46,27 @@ void ScheduleClickPass::schedule(Instruction *I) {
 	  return;
 	/**
 	 * We want to schedule a block as late as possible, but
-	 * outside of loop bodies
+	 * outside of loop bodies (except for constants)
+	 * In most cases constants can be encoded in the instructions.
+	 * @todo register pressure
+	 * @todo evaluate this!
 	 */
 	BeginInst* latest = late->get(I);
-	BeginInst* earliest = DT->get_idominator(early->get(I));
 	BeginInst* best = latest;
+	if (I->get_opcode() != Instruction::CONSTInstID) {
+		BeginInst* earliest = DT->get_idominator(early->get(I));
 
-	while (latest != earliest) {
-		Loop* loop_latest = LT->get_Loop(latest);
-		Loop* loop_best = LT->get_Loop(best);
-		// if the best is in an inner loop
-		LOG2( "Loop best: " << best << " " << LT->loop_nest(loop_best)
-		  << " Loop latest: " << latest << " " << LT->loop_nest(loop_latest) << nl);
-		if ( LT->is_inner_loop(loop_best, loop_latest) ) {
-			best = latest;
+		while (latest != earliest) {
+			Loop* loop_latest = LT->get_Loop(latest);
+			Loop* loop_best = LT->get_Loop(best);
+			// if the best is in an inner loop
+			LOG2( "Loop best: " << best << " " << LT->loop_nest(loop_best)
+			  << " Loop latest: " << latest << " " << LT->loop_nest(loop_latest) << nl);
+			if ( LT->is_inner_loop(loop_best, loop_latest) ) {
+				best = latest;
+			}
+			latest = DT->get_idominator(latest);
 		}
-		latest = DT->get_idominator(latest);
 	}
 	LOG("scheduled to " << best << nl);
 	// set the basic block

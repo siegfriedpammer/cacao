@@ -121,9 +121,11 @@ template<typename Target>
 LoweredInstDAG* BackendBase<Target>::lowerCONSTInst(CONSTInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	MachineConstInst *cnst = new MachineConstInst(I->get_value());
-	dag->add(cnst);
-	dag->set_result(cnst);
+	VirtualRegister *reg = new VirtualRegister();
+	Immediate *imm = new Immediate(I->get_value());
+	MachineMoveInst *move = create_Move(imm,reg);
+	dag->add(move);
+	dag->set_result(move);
 	return dag;
 }
 
