@@ -38,7 +38,8 @@ CLEANFILES = \
 	*.thisoutput
 
 OUTPUT_JAVA_TESTS = \
-	Test.fact
+	Test.fact \
+	Test.testParameterLong
 
 check: build run
 

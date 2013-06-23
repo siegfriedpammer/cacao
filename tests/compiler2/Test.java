@@ -52,6 +52,12 @@ static long test2(long n,long a) {
 static long testParameterLong(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
     return a+b+c+d+e+f+g+h+i;
 }
+static long testParameterLong2(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
+    return a+c+e+g+i;
+}
+static long testParameterLong3(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
+    return b+d+f+h;
+}
 static int testParameterInt(int a, int b, int c, int d, int e, int f, int g, int h, int i) {
     return a+b+c+d+e+f+g+h+i;
 }
