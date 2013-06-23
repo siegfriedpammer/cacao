@@ -44,7 +44,7 @@ private:
 public:
 	X86_64MachineMethodDescriptor(const MethodDescriptor &MD) : MD(MD), parameter(MD.size()) {
 		unsigned int_argument_counter = 0;
-		int stackslot_index = 0;
+		int stackslot_index = 2;
 		for (unsigned i = 0, e = MD.size(); i < e; ++i) {
 			Type::TypeID type = MD[i];
 			switch (type) {
