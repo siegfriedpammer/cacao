@@ -85,8 +85,8 @@ private:
 		#else
 		regs.push_back(&RDI);
 		regs.push_back(&RSI);
-		#if 0
 		regs.push_back(&RDX);
+		#if 0
 		regs.push_back(&RCX);
 		regs.push_back(&R8);
 		regs.push_back(&R9);
