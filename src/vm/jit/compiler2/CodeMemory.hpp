@@ -148,6 +148,8 @@ public:
 	 */
 	u1* get_end() const { return mcodeend; }
 
+	u4 size() const { return get_end() - get_start(); }
+
 	friend class CodeFragment;
 };
 
