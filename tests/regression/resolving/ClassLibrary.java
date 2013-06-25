@@ -32,10 +32,10 @@ public enum ClassLibrary {
 	public static void main(String[] args) {
 		System.out.println("Current class library: " + getCurrent());
 
-		Enumeration<String> props = (Enumeration<String>) System.getProperties().propertyNames();
+		Enumeration<?> props = System.getProperties().propertyNames();
 
 		while (props.hasMoreElements()) {
-			String prop = props.nextElement();
+			String prop = String.valueOf(props.nextElement());
 			String str  = prop;
 
 			str = "'" + str + "'";
