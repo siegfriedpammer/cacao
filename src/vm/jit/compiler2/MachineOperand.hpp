@@ -53,7 +53,24 @@ class Address;
  */
 class MachineOperand {
 public:
+	enum OperandID {
+		MachineOperandID,
+		RegisterID,
+		StackSlotID,
+		ManagedStackSlotID,
+		ImmediateID,
+		AddressID,
+		VoidOperandID
+	};
+private:
+	OperandID type;
+public:
+
+	explicit MachineOperand(OperandID type) : type(type) {}
+
+	OperandID get_Type() const { return type; }
 	virtual const char* get_name() const  = 0;
+
 	virtual ~MachineOperand() {}
 	virtual MachineOperand*   to_MachineOperand()   { return this; }
 	virtual VoidOperand*      to_VoidOperand()      { return 0; }
@@ -63,6 +80,14 @@ public:
 	virtual Immediate*        to_Immediate()        { return 0; }
 	virtual Address*          to_Addresss()         { return 0; }
 
+	bool is_MachineOperand()   const { return type == MachineOperandID; }
+	bool is_VoidOperand()      const { return type == VoidOperandID; }
+	bool is_Register()         const { return type == RegisterID; }
+	bool is_StackSlot()        const { return type == StackSlotID; }
+	bool is_ManagedStackSlot() const { return type == ManagedStackSlotID; }
+	bool is_Immediate()        const { return type == ImmediateID; }
+	bool is_Address()          const { return type == AddressID; }
+
 	virtual OStream& print(OStream &OS) const {
 		return OS << get_name();
 	}
@@ -70,6 +95,7 @@ public:
 
 class VoidOperand : public MachineOperand {
 public:
+	VoidOperand() : MachineOperand(VoidOperandID) {}
 	virtual const char* get_name() const {
 		return "VoidOperand";
 	}
@@ -82,7 +108,7 @@ class MachineRegister;
 
 class Register : public MachineOperand {
 public:
-	Register() {}
+	Register() : MachineOperand(RegisterID) {}
 	virtual const char* get_name() const {
 		return "Register";
 	}
@@ -131,7 +157,7 @@ public:
 	/**
 	 * @param index  index of the stackslot
 	 */
-	StackSlot(int index) : index(index) {}
+	StackSlot(int index) : MachineOperand(StackSlotID), index(index) {}
 	virtual StackSlot* to_StackSlot() { return this; }
 	int get_index() const { return index; }
 	virtual const char* get_name() const {
@@ -146,7 +172,8 @@ class ManagedStackSlot : public MachineOperand {
 private:
 	StackSlotManager *parent;
 	unsigned id;
-	ManagedStackSlot(StackSlotManager *SSM,unsigned id) : parent(SSM), id(id) {}
+	ManagedStackSlot(StackSlotManager *SSM,unsigned id)
+		: MachineOperand(ManagedStackSlotID), parent(SSM), id(id) {}
 public:
 	/**
 	 * FIXME this should be managed
@@ -167,7 +194,7 @@ class Immediate : public MachineOperand {
 private:
 	s8 value;
 public:
-	Immediate(s8 value) : value(value) {}
+	Immediate(s8 value) : MachineOperand(ImmediateID), value(value) {}
 	virtual Immediate* to_Immediate() { return this; }
 	virtual const char* get_name() const {
 		return "Immediate";
@@ -177,13 +204,14 @@ public:
 
 class Address : public MachineOperand {
 public:
+	Address() : MachineOperand(AddressID) {}
 	virtual Address* to_Address() { return this; }
 	virtual const char* get_name() const {
 		return "Address";
 	}
 };
 
-
+#if 0
 class MachineOperandType {
 public:
 	enum TYPE {
@@ -227,11 +255,12 @@ public:
 		type = t;
 	}
 };
+#endif
 
 extern VoidOperand NoOperand;
-
+#if 0
 OStream& operator<<(OStream &OS, const MachineOperandType &MO);
-
+#endif
 inline OStream& operator<<(OStream &OS, const MachineOperand &MO) {
 	return MO.print(OS);
 }

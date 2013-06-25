@@ -43,7 +43,7 @@ public:
 	virtual const char* get_name() const {
 		return name;
 	}
-	virtual NativeRegister* to_NaviveRegister() = 0;
+	virtual NativeRegister* to_NativeRegister() = 0;
 	~MachineRegister() {}
 };
 

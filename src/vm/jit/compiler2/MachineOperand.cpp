@@ -33,7 +33,7 @@ namespace compiler2 {
 VoidOperand NoOperand;
 
 unsigned VirtualRegister::vreg_counter = 0;
-
+#if 0
 OStream& operator<<(OStream &OS, const MachineOperandType &MO) {
 	OS << "MachineOperandType [ ";
 	if (MO.takes(MachineOperandType::REGISTER_VALUE))
@@ -50,6 +50,8 @@ OStream& operator<<(OStream &OS, const MachineOperandType &MO) {
 		OS << "RA ";
 	return OS << ']';
 }
+#endif
+
 StackSlot* ManagedStackSlot::to_StackSlot() {
 	return parent->get_StackSlot(this);
 }
