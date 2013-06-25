@@ -8,6 +8,7 @@ New in release 1.6.1 (not yet released)
   * alpha: Regression tests work again.
   * Introduced a new logging framework in more idiomatic C++.
   * PR178, PR179: Introduced checks for junit and jasmin at configure time.
+  * PR184: Repair build on armv4.
   * Assorted minor infrastructure and build fixes and improvements.
 
 New in release 1.6.0 (September 4, 2012)

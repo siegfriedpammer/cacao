@@ -1734,7 +1734,12 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 			/* generate the actual call */
 
+#if defined(ARM_NO_THUMB_IW)
+			M_MOV(REG_LR, REG_PC);
+			M_MOV(REG_PC, REG_PV);
+#else
 			M_BLX(REG_PV);
+#endif
 
 			break;
 
