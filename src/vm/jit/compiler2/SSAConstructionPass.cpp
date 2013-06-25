@@ -36,6 +36,8 @@
 
 #include "toolbox/logging.hpp"
 
+#define DEBUG_NAME "compiler2/ssa"
+
 STAT_DECLARE_GROUP(compiler2_stat)
 STAT_REGISTER_GROUP_VAR(int,num_trivial_phis,0,"# trivial phis","number of trivial phis",compiler2_stat)
 
@@ -764,8 +766,6 @@ cacao::OStream& print_instruction_OS(cacao::OStream &OS, const jitdata *jd, cons
 namespace jit {
 namespace compiler2 {
 
-#define DEBUG_NAME "compiler2/ssa"
-
 void SSAConstructionPass::write_variable(size_t varindex, size_t bb, Value* v) {
 	current_def[varindex][bb] = v;
 }
@@ -1000,11 +1000,13 @@ bool SSAConstructionPass::run(JITData &JD) {
 		int type = md->paramtypes[i].type;
 		int varindex = jd->local_map[slot * 5 + type];
 		LOG("parameter: i = " << i << " slot = " << slot << " type " << get_var_type(type) << nl);
-		assert(varindex != UNUSED);
 
-		Instruction *I = new LOADInst(convert_var_type(type), i, BB[init_basicblock]);
-		write_variable(varindex,init_basicblock,I);
-		M->add_Instruction(I);
+		if (varindex != UNUSED) {
+			// only load if variable is used
+			Instruction *I = new LOADInst(convert_var_type(type), i, BB[init_basicblock]);
+			write_variable(varindex,init_basicblock,I);
+			M->add_Instruction(I);
+		}
 
 		switch (type) {
 			case TYPE_LNG:
