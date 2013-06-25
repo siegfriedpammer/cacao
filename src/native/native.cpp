@@ -350,7 +350,16 @@ void* NativeMethods::resolve_method(methodinfo* m)
 		if (opt_verbosejni)
 			printf("failed ]\n");
 
-		exceptions_throw_unsatisfiedlinkerror(m->name);
+		Buffer<> buf;
+
+		if (m->clazz)
+			buf.write(m->clazz->name)
+			   .write('.');
+
+		buf.write(m->name)
+		   .write(m->descriptor);
+
+		exceptions_throw_unsatisfiedlinkerror(buf.utf8_str());
 	}
 
 	// Hook point just after method resolving finished.
