@@ -36,7 +36,7 @@
 
 #include "toolbox/logging.hpp"
 
-#define DEBUG_NAME "compiler2/ssa"
+#define DEBUG_NAME "compiler2/SSAConstruction"
 
 STAT_DECLARE_GROUP(compiler2_stat)
 STAT_REGISTER_GROUP_VAR(int,num_trivial_phis,0,"# trivial phis","number of trivial phis",compiler2_stat)
@@ -1174,10 +1174,35 @@ bool SSAConstructionPass::run(JITData &JD) {
 				break;
 			case ICMD_FMUL:
 			case ICMD_DMUL:
+				goto _default;
 			case ICMD_IDIV:
 			case ICMD_LDIV:
 			case ICMD_FDIV:
 			case ICMD_DDIV:
+				{
+					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
+					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
+					Type::TypeID type;
+					switch (iptr->opc) {
+					case ICMD_IDIV:
+						type = Type::IntTypeID;
+						break;
+					case ICMD_LDIV:
+						type = Type::LongTypeID;
+						break;
+					case ICMD_FDIV:
+						type = Type::FloatTypeID;
+						break;
+					case ICMD_DDIV:
+						type = Type::DoubleTypeID;
+						break;
+					default: assert(0);
+					}
+					Instruction *result = new DIVInst(type, s1, s2);
+					write_variable(iptr->dst.varindex,bbindex,result);
+					M->add_Instruction(result);
+				}
+				break;
 			case ICMD_IREM:
 			case ICMD_LREM:
 			case ICMD_FREM:
