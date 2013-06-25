@@ -74,6 +74,25 @@ extern X86_64Register R15;
 const unsigned X86_64IntegerArgumentRegisterSize = 6;
 extern X86_64Register* X86_64IntegerArgumentRegisters[];
 
+extern X86_64Register XMM0;
+extern X86_64Register XMM1;
+extern X86_64Register XMM2;
+extern X86_64Register XMM3;
+extern X86_64Register XMM4;
+extern X86_64Register XMM5;
+extern X86_64Register XMM6;
+extern X86_64Register XMM7;
+extern X86_64Register XMM8;
+extern X86_64Register XMM9;
+extern X86_64Register XMM10;
+extern X86_64Register XMM11;
+extern X86_64Register XMM12;
+extern X86_64Register XMM13;
+extern X86_64Register XMM14;
+extern X86_64Register XMM15;
+
+const unsigned X86_64FloatArgumentRegisterSize = 8;
+extern X86_64Register* X86_64FloatArgumentRegisters[];
 
 class X86_64RegisterFile : public RegisterFile {
 private:

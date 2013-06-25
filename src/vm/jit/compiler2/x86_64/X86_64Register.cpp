@@ -45,9 +45,29 @@ X86_64Register R13("R13",0x5,true );
 X86_64Register R14("R14",0x6,true );
 X86_64Register R15("R15",0x7,true );
 
-
 X86_64Register* X86_64IntegerArgumentRegisters[] = {
 &RDI, &RSI, &RDX, &RCX, &R8, &R9
+};
+
+X86_64Register XMM0 ("XMM0" ,0x0,false);
+X86_64Register XMM1 ("XMM1" ,0x1,false);
+X86_64Register XMM2 ("XMM2" ,0x2,false);
+X86_64Register XMM3 ("XMM3" ,0x3,false);
+X86_64Register XMM4 ("XMM4" ,0x4,false);
+X86_64Register XMM5 ("XMM5" ,0x5,false);
+X86_64Register XMM6 ("XMM6" ,0x6,false);
+X86_64Register XMM7 ("XMM7" ,0x7,false);
+X86_64Register XMM8 ("XMM8" ,0x0,true );
+X86_64Register XMM9 ("XMM9" ,0x1,true );
+X86_64Register XMM10("XMM10",0x2,true );
+X86_64Register XMM11("XMM11",0x3,true );
+X86_64Register XMM12("XMM12",0x4,true );
+X86_64Register XMM13("XMM13",0x5,true );
+X86_64Register XMM14("XMM14",0x6,true );
+X86_64Register XMM15("XMM15",0x7,true );
+
+X86_64Register* X86_64FloatArgumentRegisters[] = {
+&XMM0, &XMM1, &XMM2, &XMM3, &XMM4, &XMM5, &XMM6, &XMM7
 };
 
 } // end namespace compiler2

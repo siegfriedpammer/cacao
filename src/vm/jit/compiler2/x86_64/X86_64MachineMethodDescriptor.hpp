@@ -44,6 +44,7 @@ private:
 public:
 	X86_64MachineMethodDescriptor(const MethodDescriptor &MD) : MD(MD), parameter(MD.size()) {
 		unsigned int_argument_counter = 0;
+		unsigned float_argument_counter = 0;
 		int stackslot_index = 2;
 		for (unsigned i = 0, e = MD.size(); i < e; ++i) {
 			Type::TypeID type = MD[i];
@@ -60,6 +61,14 @@ public:
 				break;
 			case Type::FloatTypeID:
 			case Type::DoubleTypeID:
+				if (float_argument_counter < X86_64FloatArgumentRegisterSize) {
+					parameter[i]= X86_64FloatArgumentRegisters[int_argument_counter];
+				} else {
+					parameter[i]= new StackSlot(stackslot_index);
+					stackslot_index++;
+				}
+				float_argument_counter++;
+				break;
 			default:
 				err() << Red << "Error: " << reset_color << "Type not yet supported: "
 					  << bold << type << reset_color << nl;
