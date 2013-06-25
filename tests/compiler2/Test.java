@@ -2,8 +2,10 @@ class Test {
 
 static long c = 0;
 
-static void main(String arg[]) {
+public static void main(String arg[]) {
   System.out.println(fib(15));
+  System.out.println(OverflowLong(15));
+  System.out.println(Long.MIN_VALUE+15);
 }
 
 static long fib(long n) {
@@ -39,6 +41,10 @@ static long fact(long n) {
         res *= n--;
     }
     return res;
+}
+
+static long OverflowLong(long n) {
+	return n + Long.MAX_VALUE;
 }
 
 static long test2(long n,long a) {
