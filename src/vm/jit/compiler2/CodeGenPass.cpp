@@ -57,11 +57,13 @@ bool CodeGenPass::run(JITData &JD) {
 		u1* start = CM->get_start();
 		MI->emit(CM);
 		LOG2("MInst: " << MI << " emitted instruction:" << nl);
-		u1* end = CM->get_start();
-		if ( start == end) {
-			LOG2("none" << nl);
-		} else {
-			disassemble(CM->get_start(),start);
+		if (DEBUG_COND_N(2)) {
+			u1* end = CM->get_start();
+			if ( start == end) {
+				LOG2("none" << nl);
+			} else {
+				disassemble(CM->get_start(),start);
+			}
 		}
 	}
 	// create stack frame

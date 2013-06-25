@@ -453,7 +453,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 	push_lambda<UnhandledSetTy,LivetimeInterval*> push_me(unhandled);
 	// FIXME this can be handled with <functional> or C++11
 	LOG("all handled" << nl);
-	print_container(dbg(),handled.begin(),handled.end()) << nl;
+	DEBUG(print_container(dbg(),handled.begin(),handled.end()) << nl);
 	std::for_each(handled.begin(),handled.end(),push_me);
 	active.clear();
 	inactive.clear();

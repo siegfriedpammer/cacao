@@ -33,7 +33,7 @@
 
 // NOTE: the register stuff can not use LOG* macros because comman line
 // arguments are not parsed at registration
-#if 1
+#if 0
 #define MYLOG(EXPR) do { dbg() << EXPR; } while(0)
 #else
 #define MYLOG(EXPR)
