@@ -39,7 +39,9 @@ CLEANFILES = \
 
 OUTPUT_JAVA_TESTS = \
 	Test.fact \
+	Test.OverflowInt \
 	Test.OverflowLong \
+	Test.OverflowLongIntLong \
 	Test.testParameterLong
 
 check: build run

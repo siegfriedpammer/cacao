@@ -5,7 +5,11 @@ static long c = 0;
 public static void main(String arg[]) {
   System.out.println(fib(15));
   System.out.println(OverflowLong(15));
-  System.out.println(Long.MIN_VALUE+15);
+  System.out.println(Long.MIN_VALUE+14);
+  System.out.println(OverflowInt(15));
+  System.out.println(Integer.MIN_VALUE+14);
+  System.out.println(OverflowLongIntLong(15));
+  System.out.println(Integer.MIN_VALUE+14);
 }
 
 static long fib(long n) {
@@ -45,6 +49,14 @@ static long fact(long n) {
 
 static long OverflowLong(long n) {
 	return n + Long.MAX_VALUE;
+}
+
+static long OverflowLongIntLong(long n) {
+        return (long)((int)n + Integer.MAX_VALUE);
+}
+
+static int OverflowInt(int n) {
+	return n + Integer.MAX_VALUE;
 }
 
 static long test2(long n,long a) {

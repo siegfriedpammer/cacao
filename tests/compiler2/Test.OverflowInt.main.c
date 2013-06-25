@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <inttypes.h>
 
-int64_t OverflowLong(int64_t);
+int32_t OverflowInt(int32_t);
 
 
 int main() {
-    printf("%ld\n", OverflowLong(15));
+    printf("%d\n", OverflowInt(15));
     return 0;
 }
