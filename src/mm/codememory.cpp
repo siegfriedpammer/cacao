@@ -44,9 +44,9 @@ STAT_REGISTER_GROUP_VAR(int,codememusage,0,"codememusage","max. code memory",not
 #if defined(ENABLE_THREADS)
 static Mutex *code_memory_mutex = NULL;
 #endif
-static void  *code_memory       = NULL;
-static int    code_memory_size  = 0;
-static int    pagesize          = 0;
+static void   *code_memory       = NULL;
+static size_t  code_memory_size  = 0;
+static size_t  pagesize          = 0;
 
 
 /* codememory_init *************************************************************
