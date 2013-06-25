@@ -27,7 +27,7 @@ if [ -n "$TIMEOUTPROG" ] ; then
 fi
 
 if [ -z "$TIMEOUTRUN" ] ; then
-	echo >&2 "$0: warning: running without timeout"
+	echo >&2 "$0: info: running without timeout"
 fi
 
 if [ "$1" = "--verbose" ] ; then
