@@ -110,6 +110,7 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(LivetimeInterval *cur
 			i != e ; ++i) {
 		MachineRegister *reg = *i;
 		free_until_pos[reg] = UINT_MAX;
+		LOG3("reg free_until_pos[" << reg << "] = UINT_MAX " << UINT_MAX << nl);
 	}
 	// set active registes to occupied
 	for (ActiveSetTy::const_iterator i = active.begin(), e = active.end();
@@ -123,6 +124,7 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(LivetimeInterval *cur
 		assert(reg);
 		// reg not free!
 		free_until_pos[reg] = 0;
+		LOG3("active " << *i << " free_until_pos[" << reg << "] = 0" << nl);
 	}
 	// all intervals in inactive intersection with current
 	for (InactiveSetTy::const_iterator i = inactive.begin(), e = inactive.end();
@@ -149,14 +151,18 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(LivetimeInterval *cur
 		Register *hint = current->get_hint();
 		LivetimeInterval *hint_lti;
 		if (hint && (hint_lti = LA->get(hint)) ) {
-			if (current->get_start() <= hint_lti->get_end() ) {
-				LOG2("Hint: " << hint_lti << nl);
-				reg = hint_lti->get_Register()->to_MachineRegister();
-				assert(reg);
-				free_pos = free_until_pos[reg];
+			LOG2("Hint: " << hint_lti << nl);
+			reg = hint_lti->get_Register()->to_MachineRegister();
+			assert(reg);
+			free_pos = free_until_pos[reg];
+			// free_pos = 0 indicates that either reg is occupied or is
+			// generally not available for assignment (not in regfile)
+			if (current->get_start() <= hint_lti->get_end() && free_pos != 0) {
+				LOG2(" Followed!" << nl);
 				STATISTICS(num_hints_followed++);
 			} else {
-				LOG2("Hint not followed. Not yet ended: " << hint_lti << nl);
+				LOG2("Not followed!" << nl);
+				reg = NULL;
 			}
 		}
 	}
