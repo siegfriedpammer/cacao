@@ -35,45 +35,88 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-/**
- * @todo create custom wrapper classes for the opcodes
- */
-void emit_arithmetic_with_imm(CodeMemory* CM, const MachineInstruction *MI,
-		u1 opcode_reg_reg, 	u1 opcode_reg_imm8, u1 opcode_reg_imm64,
-		u1 opcode_modrm) {
-	MachineOperand *src1 = MI->get(0).op;
-	MachineOperand *src2 = MI->get(1).op;
+namespace {
+
+template <class A,class B>
+inline A* cast_to(B*);
+
+template <>
+inline X86_64Register* cast_to<X86_64Register>(MachineOperand *op) {
+	Register *reg = op->to_Register();
+	assert(reg);
+	MachineRegister *mreg = reg->to_MachineRegister();
+	assert(mreg);
+	X86_64Register *nreg = mreg->to_NativeRegister();
+	assert(nreg);
+	return nreg;
+}
+
+template <>
+inline Immediate* cast_to<Immediate>(MachineOperand *op) {
+	Immediate* imm = op->to_Immediate();
+	assert(imm);
+	return imm;
+}
+
+} // end anonymous namespace
+
+void X86_64ALUInstruction::emit_impl_RR(CodeMemory* CM,
+		X86_64Register* src1, X86_64Register* src2) const {
+	// switch register width
+	// 64
+	CodeFragment code = CM->get_CodeFragment(3);
+	code[0] = get_rex(src1,src2);
+	code[1] = (alu_id * 0x8) + 3;
+	code[2] = get_modrm_reg2reg(src1,src2);
+}
+
+void X86_64ALUInstruction::emit_impl_RI(CodeMemory* CM,
+		X86_64Register* src1, Immediate* imm) const {
+	if (fits_into<s1>(imm->get_value())) {
+		// switch register width
+		// 64
+		CodeFragment code = CM->get_CodeFragment(3);
+		code[0] = get_rex(src1);
+		code[1] = 0x83;
+		code[2] = get_modrm_1reg(alu_id, src1);
+		return;
+	}
+	assert(0);
+}
+void X86_64ALUInstruction::emit(CodeMemory* CM) const {
+	MachineOperand *src1 = get(0).op;
+	MachineOperand *src2 = get(1).op;
+	#if 0
 	Register *src1_reg = src1->to_Register();
 	Register *src2_reg = src2->to_Register();
 	Immediate *imm = src2->to_Immediate();
-	if (src1_reg) {
-		X86_64Register *src1_nreg = src1_reg->to_MachineRegister()
-			->to_NaviveRegister();
-		assert(src1_nreg);
-		if (src2_reg) {
-			X86_64Register *src2_nreg = src2_reg->to_MachineRegister()
-				->to_NaviveRegister();
-			assert(src2_nreg);
-			X86_64InstructionEncoding::reg2reg<u1>(CM,
-				opcode_reg_reg, src2_nreg, src1_nreg);
+	#endif
+	// switch first operand
+	switch (src1->get_Type()) {
+	case MachineOperand::RegisterID:
+	{
+		X86_64Register *reg1 = cast_to<NativeRegister>(src1);
+
+		// switch second operand
+		switch (src2->get_Type()) {
+		case MachineOperand::RegisterID:
+		{
+			X86_64Register *reg2 = cast_to<NativeRegister>(src2);
+			emit_impl_RR(CM,reg1,reg2);
 			return;
 		}
-		if (imm) {
-			s4 value = imm->get_value();
-			if (fits_into<s1>(value)) {
-				X86_64InstructionEncoding::reg2imm_modrm<u1,s1>(CM,
-					opcode_reg_imm8,opcode_modrm,src1_nreg,(u1)value);
-			} else {
-				X86_64InstructionEncoding::reg2imm_modrm<u1,s4>(CM,
-					opcode_reg_imm64,opcode_modrm,src1_nreg,value);
-			}
+		case MachineOperand::ImmediateID:
+		{
+			Immediate *imm = cast_to<Immediate>(src2);
+			emit_impl_RI(CM,reg1,imm);
 			return;
+		}
+		default: break;
 		}
 	}
-	ABORT_MSG(MI << "Operands not supported","src1: " << src1 << " src2: " << src2);
-}
-void X86_64CmpInst::emit(CodeMemory* CM) const {
-	emit_arithmetic_with_imm(CM,this,0x39,0x83,0x81,7);
+	default: break;
+	}
+	ABORT_MSG(this << ": Operand(s) not supported","src1: " << src1 << " src2: " << src2);
 }
 
 void X86_64EnterInst::emit(CodeMemory* CM) const {
@@ -145,20 +188,20 @@ void X86_64MovInst::emit(CodeMemory* CM) const {
 			assert(src_mreg);
 
 			// reg to reg move
-			emit_reg2reg(CM,dst_mreg->to_NaviveRegister(),
-				src_mreg->to_NaviveRegister());
+			emit_reg2reg(CM,dst_mreg->to_NativeRegister(),
+				src_mreg->to_NativeRegister());
 			return;
 		}
 		StackSlot *slot = src->to_StackSlot();
 		if (slot) {
 			// stack to reg move
-			emit_stack_move(CM,slot,dst_mreg->to_NaviveRegister(),true);
+			emit_stack_move(CM,slot,dst_mreg->to_NativeRegister(),true);
 			return;
 		}
 		Immediate *imm = src->to_Immediate();
 		if (imm) {
 			// im to reg move
-			emit_imm2reg_move(CM,imm,dst_mreg->to_NaviveRegister());
+			emit_imm2reg_move(CM,imm,dst_mreg->to_NativeRegister());
 			return;
 		}
 	} else {
@@ -169,7 +212,7 @@ void X86_64MovInst::emit(CodeMemory* CM) const {
 			StackSlot *slot = dst->to_StackSlot();
 			if (slot) {
 				// reg to stack move
-				emit_stack_move(CM,slot,src_mreg->to_NaviveRegister(),false);
+				emit_stack_move(CM,slot,src_mreg->to_NativeRegister(),false);
 				return;
 			}
 		}
@@ -204,10 +247,52 @@ void X86_64CondJumpInst::emit(CodeMemory* CM) const {
 	X86_64InstructionEncoding::imm_op<u2>(CM, 0x0f80 + cond.code, offset);
 }
 void X86_64IMulInst::emit(CodeMemory* CM) const {
-	X86_64Register *src_reg = operands[1].op->to_Register()->to_MachineRegister()->to_NaviveRegister();
-	X86_64Register *dst_reg = result.op->to_Register()->to_MachineRegister()->to_NaviveRegister();
+	X86_64Register *src_reg = operands[1].op->to_Register()->to_MachineRegister()->to_NativeRegister();
+	X86_64Register *dst_reg = result.op->to_Register()->to_MachineRegister()->to_NativeRegister();
 
 	X86_64InstructionEncoding::reg2reg<u2>(CM, 0x0faf, dst_reg, src_reg);
+}
+
+#if 0
+/**
+ * @todo create custom wrapper classes for the opcodes
+ */
+void emit_arithmetic_with_imm(CodeMemory* CM, const MachineInstruction *MI,
+		u1 opcode_reg_reg, 	u1 opcode_reg_imm8, u1 opcode_reg_imm64,
+		u1 opcode_modrm) {
+	MachineOperand *src1 = MI->get(0).op;
+	MachineOperand *src2 = MI->get(1).op;
+	Register *src1_reg = src1->to_Register();
+	Register *src2_reg = src2->to_Register();
+	Immediate *imm = src2->to_Immediate();
+	if (src1_reg) {
+		X86_64Register *src1_nreg = src1_reg->to_MachineRegister()
+			->to_NativeRegister();
+		assert(src1_nreg);
+		if (src2_reg) {
+			X86_64Register *src2_nreg = src2_reg->to_MachineRegister()
+				->to_NativeRegister();
+			assert(src2_nreg);
+			X86_64InstructionEncoding::reg2reg<u1>(CM,
+				opcode_reg_reg, src2_nreg, src1_nreg);
+			return;
+		}
+		if (imm) {
+			s4 value = imm->get_value();
+			if (fits_into<s1>(value)) {
+				X86_64InstructionEncoding::reg2imm_modrm<u1,s1>(CM,
+					opcode_reg_imm8,opcode_modrm,src1_nreg,(u1)value);
+			} else {
+				X86_64InstructionEncoding::reg2imm_modrm<u1,s4>(CM,
+					opcode_reg_imm64,opcode_modrm,src1_nreg,value);
+			}
+			return;
+		}
+	}
+	ABORT_MSG(MI << "Operands not supported","src1: " << src1 << " src2: " << src2);
+}
+void X86_64CmpInst::emit(CodeMemory* CM) const {
+	emit_arithmetic_with_imm(CM,this,0x39,0x83,0x81,7);
 }
 
 void X86_64AddInst::emit(CodeMemory* CM) const {
@@ -216,6 +301,7 @@ void X86_64AddInst::emit(CodeMemory* CM) const {
 void X86_64SubInst::emit(CodeMemory* CM) const {
 	emit_arithmetic_with_imm(CM,this,0x29,0x83,0x81,5);
 }
+#endif
 
 namespace {
 void emit_jump(CodeFragment &code, s4 offset) {

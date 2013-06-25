@@ -35,6 +35,120 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+/**
+ * This abstract class represents a x86_64 ALU instruction.
+ *
+ *
+ */
+class X86_64ALUInstruction : public MachineInstruction {
+private:
+	u1 alu_id;
+
+void emit_impl_I(CodeMemory* CM, Immediate* imm) const;
+void emit_impl_RI(CodeMemory* CM, X86_64Register* src1,
+	Immediate* imm) const;
+#if 0
+void emit_impl_MR(CodeMemory* CM, X86_64Register* src1,
+	X86_64Register* src2) const;
+#endif
+void emit_impl_RR(CodeMemory* CM, X86_64Register* src1,
+	X86_64Register* src2) const;
+
+public:
+	/**
+	 * @param alu_id this parameter is used to identify the
+	 * instruction. The mapping is as follows:
+	 * - 0 ADD
+	 * - 1 OR
+	 * - 2 ADC
+	 * - 3 SBB
+	 * - 4 AND
+	 * - 5 SUB
+	 * - 6 XOR
+	 * - 7 CMP
+	 */
+	X86_64ALUInstruction(const char * name, MachineOperand *src1,
+			MachineOperand *src2, MachineOperand* result, u1 alu_id)
+			: MachineInstruction(name, result, 2) , alu_id(alu_id) {
+		assert(alu_id < 8);
+		operands[0].op = src1;
+		operands[1].op = src2;
+	}
+	/**
+	 * This must be implemented by subclasses.
+	 */
+	virtual void emit(CodeMemory* CM) const;
+
+	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
+		if (i != 1) return false;
+		return fits_into<s4>(imm->get_value());
+	}
+};
+
+
+
+
+// ALU instructions
+class X86_64AddInst : public X86_64ALUInstruction {
+public:
+	X86_64AddInst(Register *src2, Register *dstsrc1)
+			: X86_64ALUInstruction("X86_64AddInst", dstsrc1, src2, dstsrc1, 0) {
+	}
+};
+class X86_64OrInst : public X86_64ALUInstruction {
+public:
+	X86_64OrInst(Register *src2, Register *dstsrc1)
+			: X86_64ALUInstruction("X86_64OrInst", dstsrc1, src2, dstsrc1, 1) {
+	}
+};
+class X86_64AdcInst : public X86_64ALUInstruction {
+public:
+	X86_64AdcInst(Register *src2, Register *dstsrc1)
+			: X86_64ALUInstruction("X86_64AdcInst", dstsrc1, src2, dstsrc1, 2) {
+	}
+};
+class X86_64SbbInst : public X86_64ALUInstruction {
+public:
+	X86_64SbbInst(Register *src2, Register *dstsrc1)
+			: X86_64ALUInstruction("X86_64SbbInst", dstsrc1, src2, dstsrc1, 3) {
+	}
+};
+class X86_64AndInst : public X86_64ALUInstruction {
+public:
+	X86_64AndInst(Register *src2, Register *dstsrc1)
+			: X86_64ALUInstruction("X86_64AndInst", dstsrc1, src2, dstsrc1, 4) {
+	}
+};
+class X86_64SubInst : public X86_64ALUInstruction {
+public:
+	X86_64SubInst(Register *src2, Register *dstsrc1)
+			: X86_64ALUInstruction("X86_64SubInst", dstsrc1, src2, dstsrc1, 5) {
+	}
+};
+class X86_64XorInst : public X86_64ALUInstruction {
+public:
+	X86_64XorInst(Register *src2, Register *dstsrc1)
+			: X86_64ALUInstruction("X86_64XorInst", dstsrc1, src2, dstsrc1, 6) {
+	}
+};
+class X86_64CmpInst : public X86_64ALUInstruction {
+public:
+	/**
+	 * TODO: return type actually is status-flags
+	 */
+	X86_64CmpInst(Register *src2, MachineOperand *src1)
+			: X86_64ALUInstruction("X86_64CmpInst", src1, src2, &NoOperand, 7) {
+	}
+};
+
+
+
+
+
+
+
+#if 0
+
 class X86_64CmpInst : public MachineInstruction {
 public:
 	/**
@@ -51,6 +165,36 @@ public:
 		return fits_into<s4>(imm->get_value());
 	}
 };
+
+class X86_64AddInst : public MachineInstruction {
+public:
+	X86_64AddInst(Register *src2, Register *dstsrc1)
+			: MachineInstruction("X86_64AddInst", dstsrc1, 2) {
+		operands[0].op = dstsrc1;
+		operands[1].op = src2;
+	}
+	virtual void emit(CodeMemory* CM) const;
+	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
+		if (i != 1) return false;
+		return fits_into<s4>(imm->get_value());
+	}
+};
+
+class X86_64SubInst : public MachineInstruction {
+public:
+	X86_64SubInst(Register *src2, Register *dstsrc1)
+			: MachineInstruction("X86_64SubInst", dstsrc1, 2) {
+		operands[0].op = dstsrc1;
+		operands[1].op = src2;
+	}
+	virtual void emit(CodeMemory* CM) const;
+	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
+		if (i != 1) return false;
+		return fits_into<s4>(imm->get_value());
+	}
+};
+
+#endif
 
 class X86_64EnterInst : public MachineInstruction {
 private:
@@ -88,20 +232,6 @@ public:
 	}
 };
 
-class X86_64AddInst : public MachineInstruction {
-public:
-	X86_64AddInst(Register *src2, Register *dstsrc1)
-			: MachineInstruction("X86_64AddInst", dstsrc1, 2) {
-		operands[0].op = dstsrc1;
-		operands[1].op = src2;
-	}
-	virtual void emit(CodeMemory* CM) const;
-	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
-		if (i != 1) return false;
-		return fits_into<s4>(imm->get_value());
-	}
-};
-
 class X86_64IMulInst : public MachineInstruction {
 public:
 	X86_64IMulInst(Register *src2, Register *dstsrc1)
@@ -110,20 +240,6 @@ public:
 		operands[1].op = src2;
 	}
 	virtual void emit(CodeMemory* CM) const;
-};
-
-class X86_64SubInst : public MachineInstruction {
-public:
-	X86_64SubInst(Register *src2, Register *dstsrc1)
-			: MachineInstruction("X86_64SubInst", dstsrc1, 2) {
-		operands[0].op = dstsrc1;
-		operands[1].op = src2;
-	}
-	virtual void emit(CodeMemory* CM) const;
-	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
-		if (i != 1) return false;
-		return fits_into<s4>(imm->get_value());
-	}
 };
 
 class X86_64RetInst : public MachineInstruction {

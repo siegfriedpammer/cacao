@@ -33,15 +33,19 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-inline u1 get_rex(X86_64Register *reg, X86_64Register *rm = NULL) {
+inline u1 get_rex(X86_64Register *reg, X86_64Register *rm = NULL,
+		bool opsiz64 = true) {
 	const unsigned rex_w = 3;
 	const unsigned rex_r = 2;
 	//const unsigned rex_x = 1;
 	const unsigned rex_b = 0;
 
 	u1 rex = 0x40;
+
 	// 64-bit operand size
-	rex |= (1 << rex_w);
+	if (opsiz64) {
+		rex |= (1 << rex_w);
+	}
 
 	if (reg->extented_gpr) {
 		rex |= (1 << rex_r);

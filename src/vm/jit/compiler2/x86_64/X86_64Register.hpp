@@ -46,7 +46,7 @@ public:
 
 	X86_64Register(const char* name,unsigned index,bool extented_gpr)
 		: MachineRegister(name), index(index), extented_gpr(extented_gpr) {}
-	virtual NativeRegister* to_NaviveRegister() {
+	virtual NativeRegister* to_NativeRegister() {
 		return this;
 	}
 	unsigned get_index() const {
