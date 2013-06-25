@@ -12,6 +12,14 @@ public static void main(String arg[]) {
   System.out.println(Integer.MIN_VALUE+14);
 }
 
+static double mul(double a, double b) {
+    return a * b;
+}
+
+static double div(double a, double b) {
+    return a / b;
+}
+
 static long fib(long n) {
   //System.out.println(++c);
   if (n < 1 )
