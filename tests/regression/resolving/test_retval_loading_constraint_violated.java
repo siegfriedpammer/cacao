@@ -1,47 +1,80 @@
-public class test_retval_loading_constraint_violated {
+public class test_retval_loading_constraint_violated extends TestController {
 
-    public static void main(String[] args) {
-        TestController ct = new TestController();
+	public static void main(String[] args) {
+		new test_retval_loading_constraint_violated();
+	}
 
-        TestLoader ld1 = new TestLoader(ClassLoader.getSystemClassLoader(), "ld1", ct);
-        TestLoader ld2 = new TestLoader(ClassLoader.getSystemClassLoader(), "ld2", ct);
+	test_retval_loading_constraint_violated() {
+		// ***** setup
 
-        ld1.addClassfile("BarUseFoo", "classes1/BarUseFoo.class");
-        ld1.addClassfile("Foo", "classes1/Foo.class");
-        ld1.addDelegation("BarPassFoo", ld2);
-        ld1.addParentDelegation("java.lang.Object");
-        ld1.addParentDelegation("java.lang.String");
+		TestLoader ld1 = new TestLoader("ld1", this);
+		TestLoader ld2 = new TestLoader("ld2", this);
 
-        ld2.addClassfile("BarPassFoo", "classes2/BarPassFoo.class");
-        ld2.addClassfile("Foo", "classes2/Foo.class");
-        ld2.addParentDelegation("java.lang.Object");
-        ld2.addParentDelegation("java.lang.String");
+		ld1.addClassfile("BarUseFoo", "classes1/BarUseFoo.class");
+		ld1.addClassfile("Foo",       "classes1/Foo.class");
+		ld1.addDelegation("BarPassFoo", ld2);
+		ld1.addParentDelegation("java.lang.Object");
+		ld1.addParentDelegation("java.lang.String");
 
+		ld2.addClassfile("BarPassFoo", "classes2/BarPassFoo.class");
+		ld2.addClassfile("Foo",        "classes2/Foo.class");
+		ld2.addParentDelegation("java.lang.Object");
+		ld2.addParentDelegation("java.lang.String");
 
-        // loading & linking BarUseFoo
-        ct.expect("requested", ld1, "BarUseFoo");
-        ct.expectLoadFromSystem(ld1, "java.lang.Object");
-        ct.expect("defined", ld1, "<BarUseFoo>");
-        ct.expect("loaded", ld1, "<BarUseFoo>");
+		// ***** test
 
-        Class cls = ct.loadClass(ld1, "BarUseFoo");
+		// loading & linking BarUseFoo
+		expectRequest(ld1, "BarUseFoo")
+			.expectRequest("java.lang.Object")
+			.expectDelegateToSystem()
+		.expectDefinition();
 
-        // executing BarUseFoo.useReturnedFoo: new BarPassFoo
-        ct.expectDelegation(ld1, ld2, "BarPassFoo");
-        // ...linking BarPassFoo
-        ct.expectLoadFromSystem(ld2, "java.lang.Object");
-        ct.expectDelegationDefinition(ld1, ld2, "BarPassFoo");
+		Class<?> cls = loadClass(ld1, "BarUseFoo");
 
-        // resolving BarPassFoo.createFoo
-        ct.expect("requested", ld2, "Foo");
-        ct.expect("defined", ld2, "<Foo>");
-        ct.expect("requested", ld1, "Foo");
-        // ...the loading constraing (ld1,ld2,Foo) is violated
-        ct.expect("exception", "java.lang.LinkageError", "<BarUseFoo>");
+		switch (ClassLibrary.getCurrent()) {
+		case GNU_CLASSPATH:
+			// executing BarUseFoo.useReturnedFoo: new BarPassFoo
+			expectRequest(ld1, "BarPassFoo")
+				.expectDelegation(ld2)
+					// ...linking BarPassFoo
+					.expectRequest("java.lang.Object")
+					.expectDelegateToSystem()
+				.expectDefinition()
+			.expectLoaded();
 
-        ct.checkStringGetterMustFail(cls, "useReturnedFoo");
+			// resolving BarPassFoo.createFoo
+			expectRequest(ld2, "Foo")
+			.expectDefinition();
 
-        ct.exit();
+			expectRequest(ld1,"Foo");
+			break;
+		case OPEN_JDK:
+			// constructor of java.lang.Method checks descriptor of useReturnedFoo
+			// this forces loading of Foo and String
+			expectRequest(ld1, "java.lang.String")
+			.expectDelegateToSystem();
+
+			// resolving BarPassFoo.createFoo
+			expectRequest(ld1, "Foo")
+			.expectDefinition();
+
+			expectRequest(ld1, "BarPassFoo")
+				.expectDelegation(ld2)
+					.expectRequest("java.lang.Object")
+					.expectDelegateToSystem()
+				.expectDefinition()
+			.expectLoaded();
+
+			expectRequest(ld2, "Foo");
+			break;
+		}
+
+		// ...the loading constraing (ld1,ld2,Foo) is violated
+		expectException(new LinkageError("Foo: loading constraint violated: "));
+
+		checkStringGetterMustFail(cls, "useReturnedFoo");
+
+		exit();
     }
 
 }

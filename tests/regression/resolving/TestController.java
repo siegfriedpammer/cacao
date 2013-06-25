@@ -1,124 +1,170 @@
-import java.util.Vector;
-import java.lang.reflect.Method;
-import java.lang.reflect.InvocationTargetException;
+import java.util.*;
+import java.lang.reflect.*;
 
+// TestController is used to build a list of expected class loading events via ExpectationBuilder.
+// During testing a TestLoader instance then emits the actual events via the report* methods.
 public class TestController {
+	//********************************************************************************************//
+	//***** TEST SETUP
 
-    boolean report_class_ids_ = false;
-    Vector expectations_ = new Vector();
-    boolean failed_ = false;
+	// Expect that loader will be asked to load class with name classname.
+    ExpectationBuilder expectRequest(ClassLoader loader, String classname) {
+        expect(new Request(loader, classname));
 
-    class Expectation {
-        String tag_;
-        String loader1_;
-        String loader2_;
-        String class_;
-
-        public Expectation(String tag, String ld1, String ld2, String cls) {
-            tag_ = tag;
-            loader1_ = ld1;
-            loader2_ = ld2;
-            class_ = cls;
-        }
-
-        public Expectation(String tag, String ld1, String cls) {
-            this(tag, ld1, null, cls);
-        }
-
-        public boolean matches(String tag, String ld1, String ld2, String cls) {
-            return tag_.equals(tag)
-                && loader1_.equals(ld1)
-                && ((loader2_ == ld2) || ((loader2_ != null) && (ld2 != null) && loader2_.equals(ld2)))
-                && class_.equals(cls);
-        }
-
-        public String toString() {
-            return tag_ + ": " + loader1_ + " " + loader2_ + " class=" + class_;
-        }
+        return new ExpectationBuilder(null, loader, classname);
     }
 
-    public void setReportClassIDs(boolean rep) {
-        report_class_ids_ = rep;
+    // Expect that a given exception occurs
+    public void expectException(Throwable exception) {
+		expect(new ExceptionEvent(exception));
     }
 
-    void expect(Expectation exp) {
-        expectations_.add(exp);
-    }
-
-    void expect(String tag, String loader, String classname) {
-        expect(new Expectation(tag, loader, classname));
-    }
-
-    void expect(String tag, String loader1, String loader2, String classname) {
-        expect(new Expectation(tag, loader1, loader2, classname));
-    }
-
-    public void expect(String tag, ClassLoader loader, String classname) {
-        expect(tag, loaderName(loader), classname);
-    }
-
-    public void expect(String tag, ClassLoader loader1, ClassLoader loader2, String classname) {
-        expect(tag, loaderName(loader1), loaderName(loader2), classname);
-    }
-
-    public void expectLoadFromSystem(ClassLoader loader, String classname) {
-        expect("requested", loader, classname);
-        expect("delegated", loader, ClassLoader.getSystemClassLoader(), classname);
-        expect("loaded", loader, "<" + classname + ">");
-    }
-
-    public void expectDelegation(ClassLoader loader1, ClassLoader loader2, String classname) {
-        expect("requested", loader1, classname);
-        expect("delegated", loader1, loader2, classname);
-        expect("requested", loader2, classname);
-    }
-
-    public void expectDelegationDefinition(ClassLoader loader1, ClassLoader loader2, String classname) {
-        expect("defined", loader2, "<" + classname + ">");
-        expect("loaded", loader1, "<" + classname + ">");
-    }
-
-    public void expectDelegationAndDefinition(ClassLoader loader1, ClassLoader loader2, String classname) {
-        expectDelegation(loader1, loader2, classname);
-        expectDelegationDefinition(loader1, loader2, classname);
-    }
-
-    public void expectDelegationAndFound(ClassLoader loader1, ClassLoader loader2, String classname) {
-        expectDelegation(loader1, loader2, classname);
-        expect("found", loader2, "<" + classname + ">");
-        expect("loaded", loader1, "<" + classname + ">");
-    }
-
-    void fail(String message) {
-        log("FAIL: " + message);
-        failed_ = true;
-    }
-
-    void ok(String message) {
-        log("ok: " + message);
-    }
-
-    void fail(String message, String tag, String ld1, String ld2, String cls) {
-        fail(message + ": " + tag + " " + ld1 + " " + ld2 + " class=" + cls);
-    }
-
-    void fail(String message, String tag, String ld1, String ld2, String cls, Expectation exp) {
-        fail(message + ": " + tag + " " + ld1 + " " + ld2 + " class=" + cls
-             + " (expected " + exp.toString() + ")");
-    }
-
-    void ok(String tag, String ld1, String ld2, String cls) {
-        ok(tag + " " + ld1 + " " + ld2 + " class=" + cls);
-    }
-
+    // Check if all expected events have occurred
     public void expectEnd() {
-        if (expectations_.size() != 0)
-            fail("missing reports");
-        else
+        if (_expectations.isEmpty()) {
             ok("got all expected reports");
+        } else {
+            fail("missing reports");
+
+            for (Event e : _expectations) {
+                fail("\t expected: " + e);
+            }
+        }
     }
 
-    public void checkStringGetter(Class cls, String methodname, String expected) {
+	// Used to build the chain of expected class loading events for a test.
+	//
+	// Since class loading consists of recursive calls to loadClass the expectations also form a 
+	// stack.
+	// Every frame of this expectation stack contains a class loader and a class name.
+	// The methods expectRequest and expectDelegation push a stack frame.
+	// The methods expectLoaded, expectDefinition, expectDelegateToSystem and expectFound
+	// pop the current stack frame.
+	// The number of pushs and pops for one class loading must be equal, unless loading
+	// is interrupted by an exception, signal this with TestController.expectException.
+	public class ExpectationBuilder {
+        // Expect that the current class loader will be asked to load class with name classname.
+        // Corresponds to a recursive loadClass call caused by, for example, loading a classes
+        // super class.
+		public ExpectationBuilder expectRequest(String classname) {
+			expect(new Request(this.loader, classname));
+
+			return new ExpectationBuilder(this, this.loader, classname);
+		}
+
+        // Expect that the a given loader will be asked to load the current class.
+        // Corresponds to an recursive loadClass call of another class loader.
+        public ExpectationBuilder expectDelegation(ClassLoader delegate) {
+            expect(new Delegation(loader, delegate, classname));
+            expect(new Request(delegate, classname));
+
+            return new ExpectationBuilder(this, delegate, classname);
+        }
+
+        // Expect that current class loader has finished loading the current class,
+        // you only need this to balance out the pushs and pops when using expectDelegation.
+		public ExpectationBuilder expectLoaded() {
+        	expect(new FinishedLoading(loader, classname));
+
+        	return parent;
+   		}
+
+        // Expect that current class loader has defined the current class.
+        public ExpectationBuilder expectDefinition() {
+            expect(new Definition(loader, classname));
+
+            return expectLoaded();
+        }
+
+        // Expect that current class loader has defined the current class.
+        // And that the current class has a given class id.
+        public ExpectationBuilder expectDefinitionWithClassId(String classId) {
+            expect(new Definition(loader, classname + ":" + classId));
+            expect(new FinishedLoading(loader, classname + ":" + classId));
+
+            return parent;
+        }
+
+        // Expect that the current class loader has delegated loading the current class to the
+        // system class loader.
+		public ExpectationBuilder expectDelegateToSystem() {
+			expect(new Delegation(loader, ClassLoader.getSystemClassLoader(), classname));
+
+        	return expectLoaded();
+		}
+
+		// Expect that the current class loader has found that the current class has already been
+		// loaded.
+		public ExpectationBuilder expectFound() {
+			expect(new FoundLoaded(loader, classname));
+
+            return expectLoaded();
+		}
+
+		// private parts
+
+		private ExpectationBuilder(ExpectationBuilder parent, ClassLoader loader, String classname) {
+            this.parent    = parent;
+            this.loader    = loader;
+            this.classname = classname;
+		}
+
+        private final ExpectationBuilder parent;
+        private final ClassLoader        loader;
+        private final String             classname;
+	}
+
+	//********************************************************************************************//
+	//***** REPORTING CLASS LOADING EVENTS
+
+	// report that loader has been asked to load class
+	public void reportRequest(ClassLoader loader, String classname) {
+		match(new Request(loader, classname));
+	}
+
+	// report that loader will delegate loading of class.
+    public void reportDelegation(ClassLoader loader, ClassLoader delegate, String classname) {
+    	match(new Delegation(loader, delegate, classname));
+    }
+
+    // report that loader has defined class
+    public void reportDefinition(ClassLoader loader, Class<?> cls) {
+        match(new Definition(loader, className(cls)));
+    }
+
+    // report that loader has found class was already loaded
+    public void reportFoundLoaded(ClassLoader loader, Class<?> cls) {
+        match(new FoundLoaded(loader, className(cls)));
+    }
+
+    // report that loader has finished loading a class
+    public void reportLoaded(ClassLoader loader, Class<?> cls) {
+        match(new FinishedLoading(loader, className(cls)));
+    }
+
+    // report that a java.lang.ClassNotFoundException has occurred
+    public void reportClassNotFound(ClassLoader loader, String classname, ClassNotFoundException e) {
+        if (!match(new NotFound(loader, classname)))
+	        e.printStackTrace(System.out);
+    }
+
+    // report that an exception has occurred
+    public void reportException(Throwable ex) {
+    	if (!match(new ExceptionEvent(ex)))
+		   	ex.printStackTrace(System.out);
+    }
+
+    //********************************************************************************************//
+    //***** MISC. TEST HELPERS
+
+    // set if testing should log and check class ids
+	public void setReportClassIDs(boolean rep) {
+		_report_class_ids = rep;
+	}
+
+	// call static no argument string getter function on class and check if it returns
+	// a given string
+    public void checkStringGetter(Class<?> cls, String methodname, String expected) {
         String id = invokeStringGetter(cls, methodname);
         if (id == null)
             fail("could not get return value of " + methodname + "()");
@@ -128,7 +174,8 @@ public class TestController {
             fail("wrong string returned: " + id + ", expected: " + expected);
     }
 
-    public void checkStringGetterMustFail(Class cls, String methodname) {
+    // check that calling a static no argument string getter function on class fails
+    public void checkStringGetterMustFail(Class<?> cls, String methodname) {
         String id = invokeStringGetter(cls, methodname);
         if (id == null)
             ok("method invocation failed as expected: " + methodname + "()");
@@ -136,7 +183,8 @@ public class TestController {
             fail("method invocation did not fail as expected: " + methodname + "()");
     }
 
-    public void checkClassId(Class cls, String expected) {
+    // check that a class has a given class id
+	public void checkClassId(Class<?> cls, String expected) {
         String id = getClassId(cls);
         if (id == null)
             fail("could not get class id");
@@ -146,108 +194,222 @@ public class TestController {
             fail("wrong class id: " + id + ", expected: " + expected);
     }
 
-    public synchronized void match(String tag, String ld1, String ld2, String cls) {
-        if (expectations_.size() == 0) {
-            fail("unexpected", tag, ld1, ld2, cls);
-        }
-        else {
-            Expectation exp = (Expectation) expectations_.firstElement();
-
-            if (exp.matches(tag, ld1, ld2, cls)) {
-                expectations_.remove(0);
-                ok(tag, ld1, ld2, cls);
-            }
-            else {
-                fail("unmatched", tag, ld1, ld2, cls, exp);
-            }
-        }
-    }
-
-    void report(String tag, String loader, String classname) {
-        match(tag, loader, null, classname);
-    }
-
-    void report(String tag, String loader1, String loader2, String classname) {
-        match(tag, loader1, loader2, classname);
-    }
-
-    void report(String tag, ClassLoader loader, String classname) {
-        report(tag, loaderName(loader), classname);
-    }
-
-    void report(String tag, ClassLoader loader, Class cls) {
-        report(tag, loaderName(loader), className(cls));
-    }
-
-    void report(String tag, ClassLoader loader1, ClassLoader loader2, String classname) {
-        report(tag, loaderName(loader1), loaderName(loader2), classname);
-    }
-
-    public void reportRequest(ClassLoader loader, String classname) {
-        report("requested", loader, classname);
-    }
-
-    public void reportUnexpectedClassRequested(ClassLoader loader, String classname) {
-        report("unexpected class requested", loader, classname);
-    }
-
-    public void reportDelegation(ClassLoader loader, ClassLoader delegate, String classname) {
-        report("delegated", loaderName(loader), loaderName(delegate), classname);
-    }
-
-    public void reportDefinition(ClassLoader loader, Class cls) {
-        report("defined", loaderName(loader), className(cls));
-    }
-
-    public void reportFoundLoaded(ClassLoader loader, Class cls) {
-        report("found", loaderName(loader), className(cls));
-    }
-
-    public void reportLoaded(ClassLoader loader, Class cls) {
-        report("loaded", loaderName(loader), className(cls));
-    }
-
-    public void reportClassNotFound(ClassLoader loader, String classname, ClassNotFoundException e) {
-        report("class not found", loaderName(loader), classname);
-    }
-
-    public void reportException(Class cls, Throwable ex) {
-        report("exception", ex.getClass().getName(), className(cls));
-        log("exception was: " + ex);
-        // ex.printStackTrace(System.out);
-    }
-
-    public Class loadClass(ClassLoader loader, String classname) {
+    // load a class with loader
+    public Class<?> loadClass(ClassLoader loader, String classname) {
         try {
-            Class cls = loader.loadClass(classname);
-
-            reportLoaded(loader, cls);
-
-            return cls;
-        }
-        catch (ClassNotFoundException e) {
+            return loader.loadClass(classname);
+        } catch (ClassNotFoundException e) {
             reportClassNotFound(loader, classname, e);
+	        return null;
         }
-
-        return null;
     }
 
-    public void log(String str) {
+    // finish test
+    public void exit() {
+        expectEnd();
+        System.exit(_failed ? 1 : 0);
+    }
+
+    // ***** private parts
+
+	private abstract class Event {
+		public abstract boolean matches(Event e);
+
+		protected final boolean equal(Object a, Object b) {
+			if (a == null)
+				return b == null;
+
+			if (b == null)
+			return a == null;
+
+			return a.equals(b);
+		}
+	}
+
+	private abstract class LoadingEvent extends Event {
+		final ClassLoader loader;
+		final String      classname;
+
+		LoadingEvent(ClassLoader loader, String classname) {
+			this.loader    = loader;
+			this.classname = classname;
+		}
+
+		public boolean matches(Event e) {
+			if (e.getClass() != getClass())
+				return false;
+
+			LoadingEvent le = (LoadingEvent) e;
+
+			return equal(loader,    le.loader)
+			    && equal(classname, le.classname);
+		}
+	}
+
+	private final class Request extends LoadingEvent {
+		Request(ClassLoader loader, String classname) {
+			super(loader, classname);
+		}
+
+		public String toString() {
+			return String.format("requested: %s.loadClass(%s)", loaderName(loader), classname);
+		}
+	}	
+	private final class Definition extends LoadingEvent {
+		Definition(ClassLoader loader, String classname) {
+			super(loader, classname);
+		}
+
+		public String toString() {
+			return String.format("defined: %s.defineClass(%s)", loaderName(loader), classname);
+		}
+	}
+	private final class FoundLoaded extends LoadingEvent {
+		FoundLoaded(ClassLoader loader, String classname) {
+			super(loader, classname);
+		}
+
+		public String toString() {
+			return String.format("found: %s already loaded %s", loaderName(loader), classname);
+		}
+	}
+	private final class FinishedLoading extends LoadingEvent {
+		FinishedLoading(ClassLoader loader, String classname) {
+			super(loader, classname);
+		}
+
+		public String toString() {
+			return String.format("loaded: %s finished loading %s", loaderName(loader), classname);
+		}
+	}
+	private final class NotFound extends LoadingEvent {
+		NotFound(ClassLoader loader, String classname) {
+			super(loader, classname);
+		}
+
+		public String toString() {
+			return String.format("class not found: %s could not find %s", loaderName(loader), classname);
+		}
+	}
+
+	private final class Delegation extends LoadingEvent {
+		final ClassLoader delegate;
+
+		public Delegation(ClassLoader loader, ClassLoader delegate, String classname) {
+			super(loader, classname);
+			
+			this.delegate = delegate;
+		}
+
+		public boolean matches(Event e) {
+			if (!super.matches(e))
+				return false;
+
+			Delegation de = (Delegation) e;
+
+			return equal(delegate,  de.delegate);
+		}
+
+		public String toString() {
+			return String.format("delegated: %s.loadClass(%s) -> %s.loadClass(%s)", loaderName(loader), classname, loaderName(delegate), classname);
+		}
+	}
+
+	private final class ExceptionEvent extends Event {
+		final Throwable exception;
+
+		public ExceptionEvent(Throwable t) {
+			exception = t;
+		}
+
+		public boolean matches(Event e) {
+			if (e.getClass() != ExceptionEvent.class)
+				return false;
+
+			ExceptionEvent ee = (ExceptionEvent) e;
+
+			return equal(exception.toString(), ee.exception.toString());
+		}
+
+		public String toString() {
+			return String.format("exception: %s", exception);
+		}
+	}
+
+    private synchronized boolean match(Event event) {
+    	if (_expectations.isEmpty()) {
+			fail("unexpected", event);
+            return false;
+    	} else {
+    		Event expected = _expectations.peek();
+
+    		if (expected.matches(event)) {
+    			_expectations.remove();
+    			ok(event);
+    			return true;
+    		} else {
+    			fail("unmatched", event, expected);
+    			return false;
+    		}
+    	}
+    }
+
+	private void expect(Event e) {
+		_expectations.add(e);
+	}
+
+	private void fail(Object message) {
+        log("FAIL: " + message);
+        _failed = true;
+    }
+    private void fail(String message, Object o) {
+        fail(message + ": " + o);
+    }
+    private void fail(String message, Object actual, Object expected) {
+        fail(message + ": " + actual + " (expected " + expected + ")");
+    }
+
+    private void ok(Object message) {
+        log("ok: " + message);
+    }
+    private void ok(String tag, String ld1, String ld2, String cls) {
+        ok(tag + " " + ld1 + " " + ld2 + " class=" + cls);
+    }
+
+    private void log(String str) {
         System.out.println(str);
     }
 
-    public String loaderName(ClassLoader loader) {
+    private String loaderName(ClassLoader loader) {
         if (loader == ClassLoader.getSystemClassLoader())
-            return "<SystemClassLoader>";
+            return "SystemClassLoader";
 
-        return (loader == null) ? "<null>" : loader.toString();
+        return (loader == null) ? "null" : loader.toString();
     }
 
-    public String invokeStringGetter(Class cls, String methodname) {
-        try {
-            Method mid = cls.getMethod(methodname, (Class[]) null);
+    private String getClassId(Class<?> cls) {
+        return invokeStringGetter(cls, "id");
+    }
 
-            String id = (String) mid.invoke(null, (Object[]) null);
+    private String className(Class<?> cls) {
+        if (_report_class_ids) {
+            String id = getClassId(cls);
+            if (id != null)
+                return cls.getName() + ":" + id;
+        }
+
+        return cls.getName();
+    }
+
+    private String exceptionName(Throwable t) {
+    	return t.toString();
+    }
+
+    private String invokeStringGetter(Class<?> cls, String methodname) {
+        try {
+            Method mid = cls.getMethod(methodname);
+
+            String id = (String) mid.invoke(null);
 
             return id;
         }
@@ -255,34 +417,18 @@ public class TestController {
             return null;
         }
         catch (InvocationTargetException e) {
-            reportException(cls, e.getCause());
+            reportException(e.getCause());
             return null;
         }
-        catch (Exception e) {
-            reportException(cls, e);
+        catch (Throwable t) {
+            reportException(t);
             return null;
         }
     }
 
-    public String getClassId(Class cls) {
-        return invokeStringGetter(cls, "id");
-    }
-
-    public String className(Class cls) {
-        if (report_class_ids_) {
-            String id = getClassId(cls);
-            if (id != null)
-                return "<" + cls.getName() + ":" + id + ">";
-        }
-
-        return "<" + cls.getName() + ">";
-    }
-
-    public void exit() {
-        expectEnd();
-        System.exit(failed_ ? 1 : 0);
-    }
-
+	final Queue<Event> _expectations     = new LinkedList<Event>();
+	boolean            _report_class_ids = false;
+	boolean            _failed           = false;
 }
 
 // vim: et sw=4

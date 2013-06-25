@@ -1,30 +1,57 @@
-public class test_simple_lazy_load {
+public class test_simple_lazy_load extends TestController {
 
     public static void main(String[] args) {
-        TestController ct = new TestController();
+        new test_simple_lazy_load();
+    }
 
-        TestLoader ld1 = new TestLoader(ClassLoader.getSystemClassLoader(), "ld1", ct);
+    test_simple_lazy_load() {
+        // ***** setup
+
+        TestLoader ld1 = new TestLoader("ld1", this);
 
         ld1.addClassfile("BarUseFoo", "classes1/BarUseFoo.class");
         ld1.addParentDelegation("java.lang.Object");
 
-        ct.expect("requested", ld1, "BarUseFoo");
-        ct.expectLoadFromSystem(ld1, "java.lang.Object");
-        ct.expect("defined", ld1, "<BarUseFoo>");
-        ct.expect("loaded", ld1, "<BarUseFoo>");
+        // OpenJDKs reflection API forces eager loading of classes
+        if (ClassLibrary.getCurrent() == ClassLibrary.OPEN_JDK) {
+            ld1.addClassfile("Foo", "classes1/Foo.class");
+            ld1.addParentDelegation("java.lang.String");
+        }
 
-        Class cls = ct.loadClass(ld1, "BarUseFoo");
-        ct.checkClassId(cls, "classes1/BarUseFoo");
-        ct.expectEnd();
+        // ***** test
+
+        expectRequest(ld1, "BarUseFoo")
+            .expectRequest("java.lang.Object")
+            .expectDelegateToSystem()
+        .expectDefinition();
+
+        if (ClassLibrary.getCurrent() == ClassLibrary.OPEN_JDK) {
+            // constructor of java.lang.Method checks descriptor of idOfFoo
+            // this forces loading of Foo and String
+            expectRequest(ld1, "java.lang.String")
+            .expectDelegateToSystem();
+
+            expectRequest(ld1, "Foo")
+            .expectDefinition();
+        }
+
+        Class<?> cls = loadClass(ld1, "BarUseFoo");
+        checkClassId(cls, "classes1/BarUseFoo");
+        expectEnd();
 
         ld1.addClassfile("Foo", "classes1/Foo.class");
-        ct.setReportClassIDs(true);
-        ct.expect("requested", ld1, "Foo");
-        ct.expect("defined", ld1, "<Foo:classes1/Foo>");
-        ct.checkStringGetter(cls, "idOfFoo", "classes1/Foo");
-        ct.expectEnd();
+        setReportClassIDs(true);
 
-        ct.exit();
+        if (ClassLibrary.getCurrent() == ClassLibrary.GNU_CLASSPATH) {
+            // while OpenJDKs reflection API already forced eager loading of Foo,
+            // classpath allows us to do this lazily
+            expectRequest(ld1, "Foo")
+            .expectDefinitionWithClassId("classes1/Foo");
+        }
+
+        checkStringGetter(cls, "idOfFoo", "classes1/Foo");
+
+        exit();
     }
 
 }

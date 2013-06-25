@@ -30,13 +30,15 @@ JAVA     = $(top_builddir)/src/cacao/cacao
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
 JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
 
-HARNESS_SOURCE_FILES = \
+HARNESS_SOURCE_FILES =            \
 	$(srcdir)/TestController.java \
-	$(srcdir)/TestLoader.java
+	$(srcdir)/TestLoader.java     \
+	$(srcdir)/ClassLibrary.java
 
-HARNESS_CLASS_FILES = \
+HARNESS_CLASS_FILES =    \
 	TestController.class \
-	TestLoader.class
+	TestLoader.class     \
+	ClassLibrary.class
 
 TEST_SOURCE_FILES = \
 	$(srcdir)/test_instance_subtype_violated.java \
