@@ -49,7 +49,9 @@ const char* BackendBase<X86_64>::get_name() const {
 template<>
 MachineMoveInst* BackendBase<X86_64>::create_Move(MachineOperand *dst,
 		MachineOperand* src) const {
-	return new X86_64MovInst(dst, src);
+	return new X86_64MovInst(
+		X86_64SrcOp(dst),
+		X86_64DstOp(src));
 }
 
 template<>
@@ -92,7 +94,10 @@ template<>
 LoweredInstDAG* BackendBase<X86_64>::lowerIFInst(IFInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	X86_64CmpInst *cmp = new X86_64CmpInst(UnassignedReg::factory(),UnassignedReg::factory());
+	X86_64CmpInst *cmp = new X86_64CmpInst(
+		X86_64Src2Op(UnassignedReg::factory()),
+		X86_64Src1Op(UnassignedReg::factory()));
+
 	X86_64CondJumpInst *cjmp = NULL;
 	BeginInstRef &then = I->get_then_target();
 	BeginInstRef &els = I->get_else_target();
@@ -131,8 +136,10 @@ LoweredInstDAG* BackendBase<X86_64>::lowerADDInst(ADDInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *dst = new VirtualRegister();
-	MachineMoveInst *mov = create_Move(UnassignedReg::factory(), dst);
-	X86_64AddInst *add = new X86_64AddInst(UnassignedReg::factory(),dst);
+	MachineMoveInst *mov = create_Move(UnassignedReg::factory(),dst);
+	X86_64AddInst *add = new X86_64AddInst(
+		X86_64Src2Op(UnassignedReg::factory()),
+		X86_64DstSrc1Op(dst));
 	dag->add(mov);
 	dag->add(add);
 	dag->set_input(1,add,1);
@@ -147,7 +154,9 @@ LoweredInstDAG* BackendBase<X86_64>::lowerSUBInst(SUBInst *I) const {
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *dst = new VirtualRegister();
 	MachineMoveInst *mov = create_Move(UnassignedReg::factory(), dst);
-	X86_64SubInst *sub = new X86_64SubInst(UnassignedReg::factory(),dst);
+	X86_64SubInst *sub = new X86_64SubInst(
+		X86_64Src2Op(UnassignedReg::factory()),
+		X86_64DstSrc1Op(dst));
 	dag->add(mov);
 	dag->add(sub);
 	dag->set_input(1,sub,1);
@@ -162,7 +171,9 @@ LoweredInstDAG* BackendBase<X86_64>::lowerMULInst(MULInst *I) const {
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *dst = new VirtualRegister();
 	MachineMoveInst *mov = create_Move(UnassignedReg::factory(), dst);
-	X86_64IMulInst *mul = new X86_64IMulInst(UnassignedReg::factory(),dst);
+	X86_64IMulInst *mul = new X86_64IMulInst(
+		X86_64Src2Op(UnassignedReg::factory()),
+		X86_64DstSrc1Op(dst));
 	dag->add(mov);
 	dag->add(mul);
 	dag->set_input(1,mul,1);

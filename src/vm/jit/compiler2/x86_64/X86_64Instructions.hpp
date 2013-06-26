@@ -36,6 +36,58 @@ namespace jit {
 namespace compiler2 {
 
 /**
+ *
+ * These wrapper classes are used to enforce the correct
+ * ordering of the parameters.
+ *
+ */
+
+/**
+ * Simple wrapper for the operand of an
+ * single operand x86_64 instruction.
+ */
+struct X86_64SrcOp {
+	MachineOperand *op;
+	explicit X86_64SrcOp(MachineOperand *op) : op(op) {}
+};
+/**
+ * Simple wrapper for first operand of an
+ * x86_64 instruction.
+ */
+struct X86_64Src1Op {
+	MachineOperand *op;
+	explicit X86_64Src1Op(MachineOperand *op) : op(op) {}
+};
+/**
+ * Simple wrapper for second operand of an
+ * x86_64 instruction.
+ */
+struct X86_64Src2Op {
+	MachineOperand *op;
+	explicit X86_64Src2Op(MachineOperand *op) : op(op) {}
+};
+/**
+ * Simple wrapper for first operand of an
+ * x86_64 instruction which is also used for the result.
+ */
+struct X86_64DstSrc1Op {
+	MachineOperand *op;
+	explicit X86_64DstSrc1Op(MachineOperand *op) : op(op) {}
+};
+
+/**
+ * Simple wrapper for destination of an
+ * x86_64 instruction.
+ */
+struct X86_64DstOp {
+	MachineOperand *op;
+	explicit X86_64DstOp(MachineOperand *op) : op(op) {}
+};
+
+
+
+
+/**
  * This abstract class represents a x86_64 ALU instruction.
  *
  *
@@ -67,12 +119,19 @@ public:
 	 * - 6 XOR
 	 * - 7 CMP
 	 */
-	X86_64ALUInstruction(const char * name, MachineOperand *src1,
-			MachineOperand *src2, MachineOperand* result, u1 alu_id)
-			: MachineInstruction(name, result, 2) , alu_id(alu_id) {
+	X86_64ALUInstruction(const char * name, const X86_64DstSrc1Op &dstsrc1,
+			const X86_64Src2Op &src2, u1 alu_id)
+			: MachineInstruction(name, dstsrc1.op, 2) , alu_id(alu_id) {
 		assert(alu_id < 8);
-		operands[0].op = src1;
-		operands[1].op = src2;
+		operands[0].op = dstsrc1.op;
+		operands[1].op = src2.op;
+	}
+	X86_64ALUInstruction(const char * name, const X86_64Src1Op &src1,
+			const X86_64Src2Op &src2, u1 alu_id)
+			: MachineInstruction(name, &NoOperand, 2) , alu_id(alu_id) {
+		assert(alu_id < 8);
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
 	}
 	/**
 	 * This must be implemented by subclasses.
@@ -91,44 +150,44 @@ public:
 // ALU instructions
 class X86_64AddInst : public X86_64ALUInstruction {
 public:
-	X86_64AddInst(Register *src2, Register *dstsrc1)
-			: X86_64ALUInstruction("X86_64AddInst", dstsrc1, src2, dstsrc1, 0) {
+	X86_64AddInst(const X86_64Src2Op &src2, const X86_64DstSrc1Op &dstsrc1)
+			: X86_64ALUInstruction("X86_64AddInst", dstsrc1, src2, 0) {
 	}
 };
 class X86_64OrInst : public X86_64ALUInstruction {
 public:
-	X86_64OrInst(Register *src2, Register *dstsrc1)
-			: X86_64ALUInstruction("X86_64OrInst", dstsrc1, src2, dstsrc1, 1) {
+	X86_64OrInst(const X86_64Src2Op &src2, const X86_64DstSrc1Op &dstsrc1)
+			: X86_64ALUInstruction("X86_64OrInst", dstsrc1, src2, 1) {
 	}
 };
 class X86_64AdcInst : public X86_64ALUInstruction {
 public:
-	X86_64AdcInst(Register *src2, Register *dstsrc1)
-			: X86_64ALUInstruction("X86_64AdcInst", dstsrc1, src2, dstsrc1, 2) {
+	X86_64AdcInst(const X86_64Src2Op &src2, const X86_64DstSrc1Op &dstsrc1)
+			: X86_64ALUInstruction("X86_64AdcInst", dstsrc1, src2, 2) {
 	}
 };
 class X86_64SbbInst : public X86_64ALUInstruction {
 public:
-	X86_64SbbInst(Register *src2, Register *dstsrc1)
-			: X86_64ALUInstruction("X86_64SbbInst", dstsrc1, src2, dstsrc1, 3) {
+	X86_64SbbInst(const X86_64Src2Op &src2, const X86_64DstSrc1Op &dstsrc1)
+			: X86_64ALUInstruction("X86_64SbbInst", dstsrc1, src2, 3) {
 	}
 };
 class X86_64AndInst : public X86_64ALUInstruction {
 public:
-	X86_64AndInst(Register *src2, Register *dstsrc1)
-			: X86_64ALUInstruction("X86_64AndInst", dstsrc1, src2, dstsrc1, 4) {
+	X86_64AndInst(const X86_64Src2Op &src2, const X86_64DstSrc1Op &dstsrc1)
+			: X86_64ALUInstruction("X86_64AndInst", dstsrc1, src2, 4) {
 	}
 };
 class X86_64SubInst : public X86_64ALUInstruction {
 public:
-	X86_64SubInst(Register *src2, Register *dstsrc1)
-			: X86_64ALUInstruction("X86_64SubInst", dstsrc1, src2, dstsrc1, 5) {
+	X86_64SubInst(const X86_64Src2Op &src2, const X86_64DstSrc1Op &dstsrc1)
+			: X86_64ALUInstruction("X86_64SubInst", dstsrc1, src2, 5) {
 	}
 };
 class X86_64XorInst : public X86_64ALUInstruction {
 public:
-	X86_64XorInst(Register *src2, Register *dstsrc1)
-			: X86_64ALUInstruction("X86_64XorInst", dstsrc1, src2, dstsrc1, 6) {
+	X86_64XorInst(const X86_64Src2Op &src2, const X86_64DstSrc1Op &dstsrc1)
+			: X86_64ALUInstruction("X86_64XorInst", dstsrc1, src2, 6) {
 	}
 };
 class X86_64CmpInst : public X86_64ALUInstruction {
@@ -136,65 +195,13 @@ public:
 	/**
 	 * TODO: return type actually is status-flags
 	 */
-	X86_64CmpInst(Register *src2, MachineOperand *src1)
-			: X86_64ALUInstruction("X86_64CmpInst", src1, src2, &NoOperand, 7) {
+	X86_64CmpInst(const X86_64Src2Op &src2, const X86_64Src1Op &src1)
+			: X86_64ALUInstruction("X86_64CmpInst", src1, src2, 7) {
 	}
 };
 
 
 
-
-
-
-
-#if 0
-
-class X86_64CmpInst : public MachineInstruction {
-public:
-	/**
-	 * TODO: return type actually is status-flags
-	 */
-	X86_64CmpInst(Register *src2, MachineOperand *src1)
-			: MachineInstruction("X86_64CmpInst", &NoOperand, 2) {
-		operands[0].op = src1;
-		operands[1].op = src2;
-	}
-	virtual void emit(CodeMemory* CM) const;
-	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
-		if (i != 1) return false;
-		return fits_into<s4>(imm->get_value());
-	}
-};
-
-class X86_64AddInst : public MachineInstruction {
-public:
-	X86_64AddInst(Register *src2, Register *dstsrc1)
-			: MachineInstruction("X86_64AddInst", dstsrc1, 2) {
-		operands[0].op = dstsrc1;
-		operands[1].op = src2;
-	}
-	virtual void emit(CodeMemory* CM) const;
-	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
-		if (i != 1) return false;
-		return fits_into<s4>(imm->get_value());
-	}
-};
-
-class X86_64SubInst : public MachineInstruction {
-public:
-	X86_64SubInst(Register *src2, Register *dstsrc1)
-			: MachineInstruction("X86_64SubInst", dstsrc1, 2) {
-		operands[0].op = dstsrc1;
-		operands[1].op = src2;
-	}
-	virtual void emit(CodeMemory* CM) const;
-	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
-		if (i != 1) return false;
-		return fits_into<s4>(imm->get_value());
-	}
-};
-
-#endif
 
 class X86_64EnterInst : public MachineInstruction {
 private:
@@ -234,10 +241,10 @@ public:
 
 class X86_64IMulInst : public MachineInstruction {
 public:
-	X86_64IMulInst(Register *src2, Register *dstsrc1)
-			: MachineInstruction("X86_64IMulInst", dstsrc1, 2) {
-		operands[0].op = dstsrc1;
-		operands[1].op = src2;
+	X86_64IMulInst(const X86_64Src2Op &src2, const X86_64DstSrc1Op &dstsrc1)
+			: MachineInstruction("X86_64IMulInst", dstsrc1.op, 2) {
+		operands[0].op = dstsrc1.op;
+		operands[1].op = src2.op;
 	}
 	virtual void emit(CodeMemory* CM) const;
 };
@@ -252,8 +259,8 @@ public:
 
 class X86_64MovInst : public MachineMoveInst {
 public:
-	X86_64MovInst(MachineOperand *src, MachineOperand *dst)
-			: MachineMoveInst("X86_64MovInst", src, dst) {}
+	X86_64MovInst(const X86_64SrcOp &src, const X86_64DstOp &dst)
+			: MachineMoveInst("X86_64MovInst", src.op, dst.op) {}
 	virtual void emit(CodeMemory* CM) const;
 };
 
