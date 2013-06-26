@@ -27,8 +27,9 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+namespace x86_64 {
 
-OStream& operator<<(OStream &OS, const X86_64MachineMethodDescriptor &MMD) {
+OStream& operator<<(OStream &OS, const MachineMethodDescriptor &MMD) {
 	OS << "num args: " << MMD.MD.size() << " [ ";
 	for (unsigned i = 0, e = MMD.MD.size(); i < e; ++i) {
 		Type::TypeID type = MMD.MD[i];
@@ -38,6 +39,7 @@ OStream& operator<<(OStream &OS, const X86_64MachineMethodDescriptor &MMD) {
 	return OS << ']';
 }
 
+} // end namespace x86_64
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

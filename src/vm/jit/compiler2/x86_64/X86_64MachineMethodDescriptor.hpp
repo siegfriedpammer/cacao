@@ -32,17 +32,18 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+namespace x86_64 {
 
 
 /**
- * X86_64MachineMethodDescriptor
+ * MachineMethodDescriptor
  */
-class X86_64MachineMethodDescriptor {
+class MachineMethodDescriptor {
 private:
 	const MethodDescriptor &MD;
 	std::vector<MachineOperand*> parameter;
 public:
-	X86_64MachineMethodDescriptor(const MethodDescriptor &MD) : MD(MD), parameter(MD.size()) {
+	MachineMethodDescriptor(const MethodDescriptor &MD) : MD(MD), parameter(MD.size()) {
 		unsigned int_argument_counter = 0;
 		unsigned float_argument_counter = 0;
 		int stackslot_index = 2;
@@ -51,8 +52,8 @@ public:
 			switch (type) {
 			case Type::IntTypeID:
 			case Type::LongTypeID:
-				if (int_argument_counter < X86_64IntegerArgumentRegisterSize) {
-					parameter[i]= X86_64IntegerArgumentRegisters[int_argument_counter];
+				if (int_argument_counter < IntegerArgumentRegisterSize) {
+					parameter[i]= IntegerArgumentRegisters[int_argument_counter];
 				} else {
 					parameter[i]= new StackSlot(stackslot_index);
 					stackslot_index++;
@@ -61,8 +62,8 @@ public:
 				break;
 			case Type::FloatTypeID:
 			case Type::DoubleTypeID:
-				if (float_argument_counter < X86_64FloatArgumentRegisterSize) {
-					parameter[i]= X86_64FloatArgumentRegisters[int_argument_counter];
+				if (float_argument_counter < FloatArgumentRegisterSize) {
+					parameter[i]= FloatArgumentRegisters[int_argument_counter];
 				} else {
 					parameter[i]= new StackSlot(stackslot_index);
 					stackslot_index++;
@@ -80,17 +81,18 @@ public:
 		assert(index < parameter.size());
 		return parameter[index];
 	}
-	friend OStream& operator<<(OStream &OS, const X86_64MachineMethodDescriptor &MMD);
+	friend OStream& operator<<(OStream &OS, const MachineMethodDescriptor &MMD);
 };
 
-OStream& operator<<(OStream &OS, const X86_64MachineMethodDescriptor &MMD);
-inline OStream& operator<<(OStream &OS, const X86_64MachineMethodDescriptor *MMD) {
+OStream& operator<<(OStream &OS, const MachineMethodDescriptor &MMD);
+inline OStream& operator<<(OStream &OS, const MachineMethodDescriptor *MMD) {
 	if (!MMD) {
 		return OS << "(X86_64MachineMethodDescriptor) NULL";
 	}
 	return OS << *MMD;
 }
 
+} // end namespace x86_64
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

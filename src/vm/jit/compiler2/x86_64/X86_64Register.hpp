@@ -34,17 +34,18 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+namespace x86_64 {
 
 /**
  * x86_64 Register
  */
 
-class X86_64Register : public MachineRegister {
+class NativeRegister : public MachineRegister {
 public:
 	const unsigned index;
 	const bool extented_gpr;
 
-	X86_64Register(const char* name,unsigned index,bool extented_gpr)
+	NativeRegister(const char* name,unsigned index,bool extented_gpr)
 		: MachineRegister(name), index(index), extented_gpr(extented_gpr) {}
 	virtual NativeRegister* to_NativeRegister() {
 		return this;
@@ -54,52 +55,52 @@ public:
 	}
 };
 
-extern X86_64Register RAX;
-extern X86_64Register RCX;
-extern X86_64Register RDX;
-extern X86_64Register RBX;
-extern X86_64Register RSP;
-extern X86_64Register RBP;
-extern X86_64Register RSI;
-extern X86_64Register RDI;
-extern X86_64Register R8;
-extern X86_64Register R9;
-extern X86_64Register R10;
-extern X86_64Register R11;
-extern X86_64Register R12;
-extern X86_64Register R13;
-extern X86_64Register R14;
-extern X86_64Register R15;
+extern NativeRegister RAX;
+extern NativeRegister RCX;
+extern NativeRegister RDX;
+extern NativeRegister RBX;
+extern NativeRegister RSP;
+extern NativeRegister RBP;
+extern NativeRegister RSI;
+extern NativeRegister RDI;
+extern NativeRegister R8;
+extern NativeRegister R9;
+extern NativeRegister R10;
+extern NativeRegister R11;
+extern NativeRegister R12;
+extern NativeRegister R13;
+extern NativeRegister R14;
+extern NativeRegister R15;
 
-const unsigned X86_64IntegerArgumentRegisterSize = 6;
-extern X86_64Register* X86_64IntegerArgumentRegisters[];
+const unsigned IntegerArgumentRegisterSize = 6;
+extern NativeRegister* IntegerArgumentRegisters[];
 
-extern X86_64Register XMM0;
-extern X86_64Register XMM1;
-extern X86_64Register XMM2;
-extern X86_64Register XMM3;
-extern X86_64Register XMM4;
-extern X86_64Register XMM5;
-extern X86_64Register XMM6;
-extern X86_64Register XMM7;
-extern X86_64Register XMM8;
-extern X86_64Register XMM9;
-extern X86_64Register XMM10;
-extern X86_64Register XMM11;
-extern X86_64Register XMM12;
-extern X86_64Register XMM13;
-extern X86_64Register XMM14;
-extern X86_64Register XMM15;
+extern NativeRegister XMM0;
+extern NativeRegister XMM1;
+extern NativeRegister XMM2;
+extern NativeRegister XMM3;
+extern NativeRegister XMM4;
+extern NativeRegister XMM5;
+extern NativeRegister XMM6;
+extern NativeRegister XMM7;
+extern NativeRegister XMM8;
+extern NativeRegister XMM9;
+extern NativeRegister XMM10;
+extern NativeRegister XMM11;
+extern NativeRegister XMM12;
+extern NativeRegister XMM13;
+extern NativeRegister XMM14;
+extern NativeRegister XMM15;
 
-const unsigned X86_64FloatArgumentRegisterSize = 8;
-extern X86_64Register* X86_64FloatArgumentRegisters[];
+const unsigned FloatArgumentRegisterSize = 8;
+extern NativeRegister* FloatArgumentRegisters[];
 
-class X86_64RegisterFile : public RegisterFile {
+class RegisterFile : public compiler2::RegisterFile {
 private:
-	X86_64RegisterFile() {
+	RegisterFile() {
 		#if 0
-		for(unsigned i = 0; i < X86_64IntegerArgumentRegisterSize ; ++i) {
-			regs.push_back(X86_64IntegerArgumentRegisters[i]);
+		for(unsigned i = 0; i < IntegerArgumentRegisterSize ; ++i) {
+			regs.push_back(IntegerArgumentRegisters[i]);
 		}
 		#else
 		regs.push_back(&RDI);
@@ -115,11 +116,12 @@ private:
 	}
 public:
 	static RegisterFile* factory() {
-		static X86_64RegisterFile rf;
+		static RegisterFile rf;
 		return &rf;
 	}
 };
 
+} // end namespace x86_64
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

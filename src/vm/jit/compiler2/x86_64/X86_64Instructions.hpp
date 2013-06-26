@@ -34,6 +34,7 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+namespace x86_64 {
 
 /**
  *
@@ -46,42 +47,42 @@ namespace compiler2 {
  * Simple wrapper for the operand of an
  * single operand x86_64 instruction.
  */
-struct X86_64SrcOp {
+struct SrcOp {
 	MachineOperand *op;
-	explicit X86_64SrcOp(MachineOperand *op) : op(op) {}
+	explicit SrcOp(MachineOperand *op) : op(op) {}
 };
 /**
  * Simple wrapper for first operand of an
  * x86_64 instruction.
  */
-struct X86_64Src1Op {
+struct Src1Op {
 	MachineOperand *op;
-	explicit X86_64Src1Op(MachineOperand *op) : op(op) {}
+	explicit Src1Op(MachineOperand *op) : op(op) {}
 };
 /**
  * Simple wrapper for second operand of an
  * x86_64 instruction.
  */
-struct X86_64Src2Op {
+struct Src2Op {
 	MachineOperand *op;
-	explicit X86_64Src2Op(MachineOperand *op) : op(op) {}
+	explicit Src2Op(MachineOperand *op) : op(op) {}
 };
 /**
  * Simple wrapper for first operand of an
  * x86_64 instruction which is also used for the result.
  */
-struct X86_64DstSrc1Op {
+struct DstSrc1Op {
 	MachineOperand *op;
-	explicit X86_64DstSrc1Op(MachineOperand *op) : op(op) {}
+	explicit DstSrc1Op(MachineOperand *op) : op(op) {}
 };
 
 /**
  * Simple wrapper for destination of an
  * x86_64 instruction.
  */
-struct X86_64DstOp {
+struct DstOp {
 	MachineOperand *op;
-	explicit X86_64DstOp(MachineOperand *op) : op(op) {}
+	explicit DstOp(MachineOperand *op) : op(op) {}
 };
 
 
@@ -92,19 +93,19 @@ struct X86_64DstOp {
  *
  *
  */
-class X86_64ALUInstruction : public MachineInstruction {
+class ALUInstruction : public MachineInstruction {
 private:
 	u1 alu_id;
 
 void emit_impl_I(CodeMemory* CM, Immediate* imm) const;
-void emit_impl_RI(CodeMemory* CM, X86_64Register* src1,
+void emit_impl_RI(CodeMemory* CM, NativeRegister* src1,
 	Immediate* imm) const;
 #if 0
-void emit_impl_MR(CodeMemory* CM, X86_64Register* src1,
-	X86_64Register* src2) const;
+void emit_impl_MR(CodeMemory* CM, NativeRegister* src1,
+	NativeRegister* src2) const;
 #endif
-void emit_impl_RR(CodeMemory* CM, X86_64Register* src1,
-	X86_64Register* src2) const;
+void emit_impl_RR(CodeMemory* CM, NativeRegister* src1,
+	NativeRegister* src2) const;
 
 public:
 	/**
@@ -119,15 +120,15 @@ public:
 	 * - 6 XOR
 	 * - 7 CMP
 	 */
-	X86_64ALUInstruction(const char * name, const X86_64DstSrc1Op &dstsrc1,
-			const X86_64Src2Op &src2, u1 alu_id)
+	ALUInstruction(const char * name, const DstSrc1Op &dstsrc1,
+			const Src2Op &src2, u1 alu_id)
 			: MachineInstruction(name, dstsrc1.op, 2) , alu_id(alu_id) {
 		assert(alu_id < 8);
 		operands[0].op = dstsrc1.op;
 		operands[1].op = src2.op;
 	}
-	X86_64ALUInstruction(const char * name, const X86_64Src1Op &src1,
-			const X86_64Src2Op &src2, u1 alu_id)
+	ALUInstruction(const char * name, const Src1Op &src1,
+			const Src2Op &src2, u1 alu_id)
 			: MachineInstruction(name, &NoOperand, 2) , alu_id(alu_id) {
 		assert(alu_id < 8);
 		operands[0].op = src1.op;
@@ -148,84 +149,84 @@ public:
 
 
 // ALU instructions
-class X86_64AddInst : public X86_64ALUInstruction {
+class AddInst : public ALUInstruction {
 public:
-	X86_64AddInst(const X86_64Src2Op &src2, const X86_64DstSrc1Op &dstsrc1)
-			: X86_64ALUInstruction("X86_64AddInst", dstsrc1, src2, 0) {
+	AddInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
+			: ALUInstruction("X86_64AddInst", dstsrc1, src2, 0) {
 	}
 };
-class X86_64OrInst : public X86_64ALUInstruction {
+class OrInst : public ALUInstruction {
 public:
-	X86_64OrInst(const X86_64Src2Op &src2, const X86_64DstSrc1Op &dstsrc1)
-			: X86_64ALUInstruction("X86_64OrInst", dstsrc1, src2, 1) {
+	OrInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
+			: ALUInstruction("X86_64OrInst", dstsrc1, src2, 1) {
 	}
 };
-class X86_64AdcInst : public X86_64ALUInstruction {
+class AdcInst : public ALUInstruction {
 public:
-	X86_64AdcInst(const X86_64Src2Op &src2, const X86_64DstSrc1Op &dstsrc1)
-			: X86_64ALUInstruction("X86_64AdcInst", dstsrc1, src2, 2) {
+	AdcInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
+			: ALUInstruction("X86_64AdcInst", dstsrc1, src2, 2) {
 	}
 };
-class X86_64SbbInst : public X86_64ALUInstruction {
+class SbbInst : public ALUInstruction {
 public:
-	X86_64SbbInst(const X86_64Src2Op &src2, const X86_64DstSrc1Op &dstsrc1)
-			: X86_64ALUInstruction("X86_64SbbInst", dstsrc1, src2, 3) {
+	SbbInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
+			: ALUInstruction("X86_64SbbInst", dstsrc1, src2, 3) {
 	}
 };
-class X86_64AndInst : public X86_64ALUInstruction {
+class AndInst : public ALUInstruction {
 public:
-	X86_64AndInst(const X86_64Src2Op &src2, const X86_64DstSrc1Op &dstsrc1)
-			: X86_64ALUInstruction("X86_64AndInst", dstsrc1, src2, 4) {
+	AndInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
+			: ALUInstruction("X86_64AndInst", dstsrc1, src2, 4) {
 	}
 };
-class X86_64SubInst : public X86_64ALUInstruction {
+class SubInst : public ALUInstruction {
 public:
-	X86_64SubInst(const X86_64Src2Op &src2, const X86_64DstSrc1Op &dstsrc1)
-			: X86_64ALUInstruction("X86_64SubInst", dstsrc1, src2, 5) {
+	SubInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
+			: ALUInstruction("X86_64SubInst", dstsrc1, src2, 5) {
 	}
 };
-class X86_64XorInst : public X86_64ALUInstruction {
+class XorInst : public ALUInstruction {
 public:
-	X86_64XorInst(const X86_64Src2Op &src2, const X86_64DstSrc1Op &dstsrc1)
-			: X86_64ALUInstruction("X86_64XorInst", dstsrc1, src2, 6) {
+	XorInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
+			: ALUInstruction("X86_64XorInst", dstsrc1, src2, 6) {
 	}
 };
-class X86_64CmpInst : public X86_64ALUInstruction {
+class CmpInst : public ALUInstruction {
 public:
 	/**
 	 * TODO: return type actually is status-flags
 	 */
-	X86_64CmpInst(const X86_64Src2Op &src2, const X86_64Src1Op &src1)
-			: X86_64ALUInstruction("X86_64CmpInst", src1, src2, 7) {
+	CmpInst(const Src2Op &src2, const Src1Op &src1)
+			: ALUInstruction("X86_64CmpInst", src1, src2, 7) {
 	}
 };
 
 
 
 
-class X86_64EnterInst : public MachineInstruction {
+class EnterInst : public MachineInstruction {
 private:
 	u2 framesize;
 public:
-	X86_64EnterInst(u2 framesize)
+	EnterInst(u2 framesize)
 			: MachineInstruction("X86_64EnterInst", &NoOperand, 0),
 			framesize(framesize) {}
 	virtual void emit(CodeMemory* CM) const;
 };
 
-class X86_64LeaveInst : public MachineInstruction {
+class LeaveInst : public MachineInstruction {
 public:
-	X86_64LeaveInst()
+	LeaveInst()
 			: MachineInstruction("X86_64LeaveInst", &NoOperand, 0) {}
 	virtual void emit(CodeMemory* CM) const;
 };
 
-class X86_64CondJumpInst : public MachineInstruction {
+class CondJumpInst : public MachineInstruction {
 private:
-	X86_64Cond::COND cond;
+	Cond::COND cond;
 	BeginInstRef &target;
 public:
-	X86_64CondJumpInst(X86_64Cond::COND cond, BeginInstRef &target)
+	CondJumpInst(Cond::COND cond, BeginInstRef &target)
 			: MachineInstruction("X86_64CondJumpInst", &NoOperand, 0),
 			  cond(cond), target(target) {
 	}
@@ -239,9 +240,9 @@ public:
 	}
 };
 
-class X86_64IMulInst : public MachineInstruction {
+class IMulInst : public MachineInstruction {
 public:
-	X86_64IMulInst(const X86_64Src2Op &src2, const X86_64DstSrc1Op &dstsrc1)
+	IMulInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
 			: MachineInstruction("X86_64IMulInst", dstsrc1.op, 2) {
 		operands[0].op = dstsrc1.op;
 		operands[1].op = src2.op;
@@ -249,26 +250,26 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
-class X86_64RetInst : public MachineInstruction {
+class RetInst : public MachineInstruction {
 public:
-	X86_64RetInst()
+	RetInst()
 			: MachineInstruction("X86_64RetInst", &NoOperand, 0) {
 	}
 	virtual void emit(CodeMemory* CM) const;
 };
 
-class X86_64MovInst : public MachineMoveInst {
+class MovInst : public MachineMoveInst {
 public:
-	X86_64MovInst(const X86_64SrcOp &src, const X86_64DstOp &dst)
+	MovInst(const SrcOp &src, const DstOp &dst)
 			: MachineMoveInst("X86_64MovInst", src.op, dst.op) {}
 	virtual void emit(CodeMemory* CM) const;
 };
 
-class X86_64JumpInst : public MachineJumpInst {
+class JumpInst : public MachineJumpInst {
 private:
 	BeginInstRef &target;
 public:
-	X86_64JumpInst(BeginInstRef &target) : MachineJumpInst("X86_64JumpInst"),
+	JumpInst(BeginInstRef &target) : MachineJumpInst("X86_64JumpInst"),
 		target(target) {}
 	virtual void emit(CodeMemory* CM) const;
 	virtual void emit(CodeFragment &CF) const;
@@ -281,6 +282,7 @@ public:
 	}
 };
 
+} // end namespace x86_64
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

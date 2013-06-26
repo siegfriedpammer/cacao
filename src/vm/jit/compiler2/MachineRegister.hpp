@@ -31,8 +31,11 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-class X86_64Register;
-typedef X86_64Register NativeRegister;
+namespace x86_64 {
+class NativeRegister;
+} // end namespace x86_64
+
+typedef x86_64::NativeRegister NativeRegister;
 
 class MachineRegister : public Register {
 protected:

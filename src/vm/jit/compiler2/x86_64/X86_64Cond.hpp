@@ -31,16 +31,17 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+namespace x86_64 {
 /**
  * x86_64 registers flags
  */
-class X86_64Cond {
+class Cond {
 public:
 	struct COND {
 		const u1 code;
 	private:
 		COND(u1 code) : code(code) {}
-		friend class X86_64Cond;
+		friend class Cond;
 	};
 #if 0
 	enum COND {
@@ -110,7 +111,7 @@ public:
 // declare
 // :'<,'>s/J\([^ ]*\) [^ ]* 7\(.\) cb Jump if \(.*\)\.$/\tstatic const COND \1; \/\/\/< \3/cg
 // define
-// :'<,'>s/J\([^ ]*\) [^ ]* 7\(.\) cb Jump if \(.*\)\.$/const X86_64Cond::COND X86_64Cond::\1 = {0x0\L\2};/cg
+// :'<,'>s/J\([^ ]*\) [^ ]* 7\(.\) cb Jump if \(.*\)\.$/const Cond::COND Cond::\1 = {0x0\L\2};/cg
 
 // raw data
 JO rel8off 70 cb Jump if overflow (OF = 1).
@@ -146,6 +147,7 @@ JG rel8off 7F cb Jump if greater (ZF = 0 and SF = OF).
 #endif
 };
 
+} // end namespace x86_64
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

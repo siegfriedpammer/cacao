@@ -41,6 +41,9 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+// BackendBase must be specialized in namespace compiler2!
+using namespace x86_64;
+
 template<>
 const char* BackendBase<X86_64>::get_name() const {
 	return "x86_64";
@@ -49,14 +52,14 @@ const char* BackendBase<X86_64>::get_name() const {
 template<>
 MachineMoveInst* BackendBase<X86_64>::create_Move(MachineOperand *dst,
 		MachineOperand* src) const {
-	return new X86_64MovInst(
-		X86_64SrcOp(dst),
-		X86_64DstOp(src));
+	return new MovInst(
+		SrcOp(dst),
+		DstOp(src));
 }
 
 template<>
 MachineJumpInst* BackendBase<X86_64>::create_Jump(BeginInstRef &target) const {
-	return new X86_64JumpInst(target);
+	return new JumpInst(target);
 }
 
 namespace {
@@ -71,7 +74,7 @@ inline T align_to(T val) {
 
 template<>
 void BackendBase<X86_64>::create_frame(CodeMemory* CM, StackSlotManager *SSM) const {
-	X86_64EnterInst enter(align_to<16>(SSM->get_frame_size()));
+	EnterInst enter(align_to<16>(SSM->get_frame_size()));
 	enter.emit(CM);
 }
 
@@ -82,7 +85,7 @@ LoweredInstDAG* BackendBase<X86_64>::lowerLOADInst(LOADInst *I) const {
 	//MachineInstruction *minst = loadParameter(I->get_index(), I->get_type());
 	const MethodDescriptor &MD = I->get_Method()->get_MethodDescriptor();
 	//FIXME inefficient
-	const X86_64MachineMethodDescriptor MMD(MD);
+	const MachineMethodDescriptor MMD(MD);
 	VirtualRegister *dst = new VirtualRegister();
 	MachineMoveInst *move = create_Move(MMD[I->get_index()],dst);
 	dag->add(move);
@@ -94,33 +97,33 @@ template<>
 LoweredInstDAG* BackendBase<X86_64>::lowerIFInst(IFInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	X86_64CmpInst *cmp = new X86_64CmpInst(
-		X86_64Src2Op(UnassignedReg::factory()),
-		X86_64Src1Op(UnassignedReg::factory()));
+	CmpInst *cmp = new CmpInst(
+		Src2Op(UnassignedReg::factory()),
+		Src1Op(UnassignedReg::factory()));
 
-	X86_64CondJumpInst *cjmp = NULL;
+	CondJumpInst *cjmp = NULL;
 	BeginInstRef &then = I->get_then_target();
 	BeginInstRef &els = I->get_else_target();
 
 	switch (I->get_condition()) {
 	case Conditional::EQ:
-		cjmp = new X86_64CondJumpInst(X86_64Cond::E, then);
+		cjmp = new CondJumpInst(Cond::E, then);
 		break;
 	case Conditional::LT:
-		cjmp = new X86_64CondJumpInst(X86_64Cond::L, then);
+		cjmp = new CondJumpInst(Cond::L, then);
 		break;
 	case Conditional::LE:
-		cjmp = new X86_64CondJumpInst(X86_64Cond::LE, then);
+		cjmp = new CondJumpInst(Cond::LE, then);
 		break;
 	case Conditional::GE:
-		cjmp = new X86_64CondJumpInst(X86_64Cond::GE, then);
+		cjmp = new CondJumpInst(Cond::GE, then);
 		break;
 	default:
 		err() << Red << "Error: " << reset_color << "Conditioal not supported: "
 		      << bold << I->get_condition() << reset_color << nl;
 		assert(0);
 	}
-	X86_64JumpInst *jmp = new X86_64JumpInst(els);
+	JumpInst *jmp = new JumpInst(els);
 	dag->add(cmp);
 	dag->add(cjmp);
 	dag->add(jmp);
@@ -137,9 +140,9 @@ LoweredInstDAG* BackendBase<X86_64>::lowerADDInst(ADDInst *I) const {
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *dst = new VirtualRegister();
 	MachineMoveInst *mov = create_Move(UnassignedReg::factory(),dst);
-	X86_64AddInst *add = new X86_64AddInst(
-		X86_64Src2Op(UnassignedReg::factory()),
-		X86_64DstSrc1Op(dst));
+	AddInst *add = new AddInst(
+		Src2Op(UnassignedReg::factory()),
+		DstSrc1Op(dst));
 	dag->add(mov);
 	dag->add(add);
 	dag->set_input(1,add,1);
@@ -154,9 +157,9 @@ LoweredInstDAG* BackendBase<X86_64>::lowerSUBInst(SUBInst *I) const {
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *dst = new VirtualRegister();
 	MachineMoveInst *mov = create_Move(UnassignedReg::factory(), dst);
-	X86_64SubInst *sub = new X86_64SubInst(
-		X86_64Src2Op(UnassignedReg::factory()),
-		X86_64DstSrc1Op(dst));
+	SubInst *sub = new SubInst(
+		Src2Op(UnassignedReg::factory()),
+		DstSrc1Op(dst));
 	dag->add(mov);
 	dag->add(sub);
 	dag->set_input(1,sub,1);
@@ -171,9 +174,9 @@ LoweredInstDAG* BackendBase<X86_64>::lowerMULInst(MULInst *I) const {
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *dst = new VirtualRegister();
 	MachineMoveInst *mov = create_Move(UnassignedReg::factory(), dst);
-	X86_64IMulInst *mul = new X86_64IMulInst(
-		X86_64Src2Op(UnassignedReg::factory()),
-		X86_64DstSrc1Op(dst));
+	IMulInst *mul = new IMulInst(
+		Src2Op(UnassignedReg::factory()),
+		DstSrc1Op(dst));
 	dag->add(mov);
 	dag->add(mul);
 	dag->set_input(1,mul,1);
@@ -188,8 +191,8 @@ LoweredInstDAG* BackendBase<X86_64>::lowerRETURNInst(RETURNInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	MachineMoveInst *reg = create_Move(UnassignedReg::factory(), &RAX);
-	X86_64LeaveInst *leave = new X86_64LeaveInst();
-	X86_64RetInst *ret = new X86_64RetInst();
+	LeaveInst *leave = new LeaveInst();
+	RetInst *ret = new RetInst();
 	dag->add(reg);
 	dag->add(leave);
 	dag->add(ret);
@@ -198,8 +201,8 @@ LoweredInstDAG* BackendBase<X86_64>::lowerRETURNInst(RETURNInst *I) const {
 	return dag;
 }
 template<>
-RegisterFile* BackendBase<X86_64>::get_RegisterFile() const {
-	return X86_64RegisterFile::factory();
+compiler2::RegisterFile* BackendBase<X86_64>::get_RegisterFile() const {
+	return x86_64::RegisterFile::factory();
 }
 
 } // end namespace compiler2
