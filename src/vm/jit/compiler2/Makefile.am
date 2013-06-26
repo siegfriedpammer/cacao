@@ -33,6 +33,7 @@ libcompiler2_la_SOURCES = \
 	Method.cpp \
 	PassManager.cpp \
 	SSAConstructionPass.cpp \
+	SSAPrinterPass.cpp \
 	Type.cpp
 
 

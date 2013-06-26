@@ -25,12 +25,17 @@
 #ifndef _JIT_COMPILER2_VALUE
 #define _JIT_COMPILER2_VALUE
 
+#include <cstddef>
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-class Value {
+class Instruction;
 
+class Value {
+public:
+	virtual Instruction* to_Instruction() { return NULL; }
 };
 
 

@@ -207,6 +207,8 @@ public:
 	Method* get_method() const { return method; }
 
 	unsigned get_number_operands() const { return number_of_operands; }
+	OperandListTy::const_iterator begin() const { return operand_list.begin(); }
+	OperandListTy::const_iterator end()   const { return operand_list.end(); }
 
 	bool is_terminator() const;              ///< true if the instruction terminates a basic block
 
@@ -265,6 +267,63 @@ public:
 	virtual GETEXCEPTIONInst*     to_GETEXCEPTIONInst()     { return NULL; }
 	virtual PHIInst*              to_PHIInst()              { return NULL; }
 
+	const char* get_name() const {
+		switch (id) {
+			case NOPInstID:              return "NOPInst";
+			case POPInstID:              return "POPInst";
+			case CHECKNULLInstID:        return "CHECKNULLInst";
+			case ARRAYLENGTHInstID:      return "ARRAYLENGTHInst";
+			case NEGInstID:              return "NEGInst";
+			case CASTInstID:             return "CASTInst";
+			case ADDInstID:              return "ADDInst";
+			case SUBInstID:              return "SUBInst";
+			case MULInstID:              return "MULInst";
+			case DIVInstID:              return "DIVInst";
+			case REMInstID:              return "REMInst";
+			case SHLInstID:              return "SHLInst";
+			case USHRInstID:             return "USHRInst";
+			case ANDInstID:              return "ANDInst";
+			case ORInstID:               return "ORInst";
+			case XORInstID:              return "XORInst";
+			case CMPInstID:              return "CMPInst";
+			case CONSTInstID:            return "CONSTInst";
+			case GETFIELDInstID:         return "GETFIELDInst";
+			case PUTFIELDInstID:         return "PUTFIELDInst";
+			case PUTSTATICInstID:        return "PUTSTATICInst";
+			case GETSTATICInstID:        return "GETSTATICInst";
+			case INCInstID:              return "INCInst";
+			case ASTOREInstID:           return "ASTOREInst";
+			case ALOADInstID:            return "ALOADInst";
+			case RETInstID:              return "RETInst";
+			case LOADInstID:             return "LOADInst";
+			case STOREInstID:            return "STOREInst";
+			case NEWInstID:              return "NEWInst";
+			case NEWARRAYInstID:         return "NEWARRAYInst";
+			case ANEWARRAYInstID:        return "ANEWARRAYInst";
+			case MULTIANEWARRAYInstID:   return "MULTIANEWARRAYInst";
+			case CHECKCASTInstID:        return "CHECKCASTInst";
+			case INSTANCEOFInstID:       return "INSTANCEOFInst";
+			case GOTOInstID:             return "GOTOInst";
+			case JSRInstID:              return "JSRInst";
+			case BUILTINInstID:          return "BUILTINInst";
+			case INVOKEVIRTUALInstID:    return "INVOKEVIRTUALInst";
+			case INVOKESPECIALInstID:    return "INVOKESPECIALInst";
+			case INVOKESTATICInstID:     return "INVOKESTATICInst";
+			case INVOKEINTERFACEInstID:  return "INVOKEINTERFACEInst";
+			case IFInstID:               return "IFInst";
+			case IF_CMPInstID:           return "IF_CMPInst";
+			case TABLESWITCHInstID:      return "TABLESWITCHInst";
+			case LOOKUPSWITCHInstID:     return "LOOKUPSWITCHInst";
+			case RETURNInstID:           return "RETURNInst";
+			case THROWInstID:            return "THROWInst";
+			case COPYInstID:             return "COPYInst";
+			case MOVEInstID:             return "MOVEInst";
+			case GETEXCEPTIONInstID:     return "GETEXCEPTIONInst";
+			case PHIInstID:              return "PHIInst";
+			case NoInstID:               return "NoInst";
+		}
+		return "Unknown Instruction";
+	}
 };
 
 

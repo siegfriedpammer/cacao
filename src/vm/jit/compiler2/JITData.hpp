@@ -25,6 +25,7 @@
 #ifndef _JIT_COMPILER2_Method
 #define _JIT_COMPILER2_Method
 
+#include "vm/jit/compiler2/Method.hpp"
 
 // forward declaration
 struct jitdata;
@@ -36,11 +37,13 @@ namespace compiler2 {
 class JITData {
 private:
 	jitdata *jd;
+	Method M;
 public:
 	JITData(jitdata *jd) : jd(jd) {}
 	jitdata *jitdata() const {
 		return jd;
 	}
+	Method* get_Method() { return &M; }
 };
 
 
