@@ -30,6 +30,7 @@
 #include "vm/jit/compiler2/LoweredInstDAG.hpp"
 #include "vm/jit/compiler2/MethodDescriptor.hpp"
 #include "vm/jit/compiler2/CodeMemory.hpp"
+#include "vm/jit/compiler2/StackSlotManager.hpp"
 
 #include "toolbox/OStream.hpp"
 #include "toolbox/logging.hpp"
@@ -46,6 +47,33 @@ const char* BackendBase<X86_64>::get_name() const {
 }
 
 template<>
+MachineMoveInst* BackendBase<X86_64>::create_Move(MachineOperand *dst,
+		MachineOperand* src) const {
+	return new X86_64MovInst(dst, src);
+}
+
+template<>
+MachineJumpInst* BackendBase<X86_64>::create_Jump() const {
+	return new X86_64JumpInst();
+}
+
+namespace {
+
+template <unsigned size, class T>
+inline T align_to(T val) {
+	T rem =(val % size);
+	return val + ( rem == 0 ? 0 : size - rem);
+}
+
+} // end anonymous namespace
+
+template<>
+void BackendBase<X86_64>::create_frame(CodeMemory* CM, StackSlotManager *SSM) const {
+	X86_64EnterInst enter(align_to<16>(SSM->get_frame_size()));
+	enter.emit(CM);
+}
+
+template<>
 LoweredInstDAG* BackendBase<X86_64>::lowerLOADInst(LOADInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
@@ -54,7 +82,7 @@ LoweredInstDAG* BackendBase<X86_64>::lowerLOADInst(LOADInst *I) const {
 	//FIXME inefficient
 	const X86_64MachineMethodDescriptor MMD(MD);
 	VirtualRegister *dst = new VirtualRegister();
-	MachineMoveInst *move = new MachineMoveInst(dst,MMD[I->get_index()]);
+	MachineMoveInst *move = create_Move(dst,MMD[I->get_index()]);
 	dag->add(move);
 	dag->set_result(move);
 	return dag;
@@ -99,7 +127,7 @@ LoweredInstDAG* BackendBase<X86_64>::lowerADDInst(ADDInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *dst = new VirtualRegister();
-	MachineMoveInst *mov = new MachineMoveInst(dst, UnassignedReg::factory());
+	MachineMoveInst *mov = create_Move(dst, UnassignedReg::factory());
 	X86_64AddInst *add = new X86_64AddInst(dst,dst,UnassignedReg::factory());
 	dag->add(mov);
 	dag->add(add);
@@ -114,7 +142,7 @@ LoweredInstDAG* BackendBase<X86_64>::lowerSUBInst(SUBInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *dst = new VirtualRegister();
-	MachineMoveInst *mov = new MachineMoveInst(dst, UnassignedReg::factory());
+	MachineMoveInst *mov = create_Move(dst, UnassignedReg::factory());
 	X86_64SubInst *sub = new X86_64SubInst(dst,dst,UnassignedReg::factory());
 	dag->add(mov);
 	dag->add(sub);
@@ -128,7 +156,7 @@ template<>
 LoweredInstDAG* BackendBase<X86_64>::lowerRETURNInst(RETURNInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	MachineMoveInst *reg = new MachineMoveInst(&RAX, UnassignedReg::factory());
+	MachineMoveInst *reg = create_Move(&RAX, UnassignedReg::factory());
 	X86_64LeaveInst *leave = new X86_64LeaveInst();
 	X86_64RetInst *ret = new X86_64RetInst();
 	dag->add(reg);
@@ -144,7 +172,7 @@ LoweredInstDAG* BackendBase<X86_64>::lowerMULInst(MULInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *dst = new VirtualRegister();
-	MachineMoveInst *mov = new MachineMoveInst(dst, UnassignedReg::factory());
+	MachineMoveInst *mov = create_Move(dst, UnassignedReg::factory());
 	X86_64IMulInst *sub = new X86_64IMulInst(dst,dst,UnassignedReg::factory());
 	dag->add(mov);
 	dag->add(sub);
@@ -157,113 +185,6 @@ LoweredInstDAG* BackendBase<X86_64>::lowerMULInst(MULInst *I) const {
 template<>
 RegisterFile* BackendBase<X86_64>::get_RegisterFile() const {
 	return X86_64RegisterFile::factory();
-}
-
-template<>
-void BackendBase<X86_64>::emit_Move(const MachineMoveInst *mov, CodeMemory* CM) const {
-	MachineOperand *src = mov->get(0).op;
-	MachineOperand *dst = mov->get_result().op;
-	Register *src_reg = src->to_Register();
-	Register *dst_reg = dst->to_Register();
-	if( dst_reg) {
-		MachineRegister *dst_mreg = dst_reg->to_MachineRegister();
-		assert(dst_mreg);
-		if (src_reg) {
-			MachineRegister *src_mreg = src_reg->to_MachineRegister();
-			assert(src_mreg);
-
-			// reg to reg move
-			X86_64MovInst move(dst_mreg, src_mreg);
-			move.emit(CM);
-			return;
-		}
-		StackSlot *slot = src->to_StackSlot();
-		if (slot) {
-			// stack to reg move
-			X86_64MovStack2RegInst move(dst_mreg,slot);
-			move.emit(CM);
-			return;
-		}
-		Immediate *imm = src->to_Immediate();
-		if (imm) {
-			// reg to reg move
-			X86_64MovImm2RegInst move(dst_mreg,imm);
-			move.emit(CM);
-			return;
-		}
-	} else {
-		// dst is not a reg
-		if (src_reg) {
-			MachineRegister *src_mreg = src_reg->to_MachineRegister();
-			assert(src_mreg);
-			StackSlot *slot = dst->to_StackSlot();
-			if (slot) {
-				// reg to stack move
-				X86_64MovReg2StackInst move(slot,src_mreg);
-				move.emit(CM);
-				return;
-			}
-		}
-	}
-	ABORT_MSG("x86_64 TODO","non reg-to-reg moves not yet implemented (src:"
-		<< src << " dst:" << dst << ")");
-}
-
-template<>
-void BackendBase<X86_64>::create_frame(CodeMemory* CM, u2 framesize) const {
-	X86_64EnterInst enter(framesize);
-	enter.emit(CM);
-}
-
-namespace {
-void emit_jump(CodeFragment &code, s4 offset) {
-	LOG2("emit_jump codefragment offset: " << hex << offset << nl);
-	code[0] = 0xe9;
-	code[1] = u1( 0xff & (offset >> (8 * 0)));
-	code[2] = u1( 0xff & (offset >> (8 * 1)));
-	code[3] = u1( 0xff & (offset >> (8 * 2)));
-	code[4] = u1( 0xff & (offset >> (8 * 3)));
-}
-} // end anonymous namespace
-
-template<>
-void BackendBase<X86_64>::emit_Jump(const MachineJumpInst *jump,
-		CodeFragment &CF) const {
-	GOTOInst *gt = jump->get_parent()->get_Instruction()->to_GOTOInst();
-	assert(gt);
-	assert(gt->succ_size() == 1);
-	BeginInst *BI = gt->succ_front();
-	s4 offset = CF.get_offset(BI);
-	assert(offset != 0);
-	assert(offset != CodeMemory::INVALID_OFFSET);
-
-	emit_jump(CF,offset);
-}
-
-template<>
-void BackendBase<X86_64>::emit_Jump(const MachineJumpInst *jump, CodeMemory* CM) const {
-	GOTOInst *gt = jump->get_parent()->get_Instruction()->to_GOTOInst();
-	assert(gt);
-	assert(gt->succ_size() == 1);
-	BeginInst *BI = gt->succ_front();
-	s4 offset = CM->get_offset(BI);
-	switch (offset) {
-	case 0:
-		LOG2("emit_Jump: jump to the next instruction -> can be omitted ("
-		     << gt << " to " << BI << ")"  << nl);
-		return;
-	case CodeMemory::INVALID_OFFSET:
-		LOG2("emit_Jump: target not yet known (" << gt << " to "
-		     << BI << ")"  << nl);
-		// reserve memory and add to resolve later
-		// worst case -> 32bit offset
-		CodeFragment CF = CM->get_CodeFragment(5);
-		// FIXME pass this the resolve me
-		CM->resolve_later(BI,jump,CF);
-		return;
-	}
-	CodeFragment CF = CM->get_CodeFragment(5);
-	emit_jump(CF,offset);
 }
 
 } // end namespace compiler2

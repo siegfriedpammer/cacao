@@ -244,11 +244,11 @@ inline bool LinearScanAllocatorPass::allocate_blocked_reg(JITData &JD, LivetimeI
 		ManagedStackSlot *slot = JD.get_StackSlotManager()
 		                            ->create_ManagedStackSlot();
 		// spill
-		MachineInstruction *move_to_stack = new MachineMoveInst(slot,reg);
+		MachineInstruction *move_to_stack = backend->create_Move(slot,reg);
 		LOG2("spill instruction: " << move_to_stack << nl);
 		MIS->add_before(current->get_start(),move_to_stack);
 		// load
-		MachineInstruction *move_from_stack = new MachineMoveInst(new_lti->get_reg(),slot);
+		MachineInstruction *move_from_stack = backend->create_Move(new_lti->get_reg(),slot);
 		LOG2("load instruction: " << move_from_stack << nl);
 		MIS->add_before(new_lti->get_start(),move_from_stack);
 		// register new def (load)

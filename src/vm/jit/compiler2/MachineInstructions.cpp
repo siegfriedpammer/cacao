@@ -38,27 +38,6 @@ void MachineLabelInst::emit(CodeMemory* CM) const {
 	CM->add_label(begin);
 }
 
-void MachineMoveInst::emit(CodeMemory* CM) const {
-	// check for self moves
-	if (operands[0].op != result.op) {
-		// emit move
-		// TODO maybe we should get this from CM?
-		Backend::factory()->emit_Move(this,CM);
-	}
-}
-
-void MachineJumpInst::emit(CodeMemory* CM) const {
-	// emit Jump
-	// TODO maybe we should get this from CM?
-	Backend::factory()->emit_Jump(this,CM);
-}
-
-void MachineJumpInst::emit(CodeFragment &CF) const {
-	// emit Jump
-	// TODO maybe we should get this from CF?
-	Backend::factory()->emit_Jump(this,CF);
-}
-
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

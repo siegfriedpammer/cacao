@@ -42,13 +42,6 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
-class MachineJumpInst : public MachineInstruction {
-public:
-	MachineJumpInst() : MachineInstruction("MJump", &NoOperand, 0) {}
-	virtual void emit(CodeMemory* CM) const;
-	virtual void emit(CodeFragment &CF) const;
-};
-
 class MachinePhiInst : public MachineInstruction {
 public:
 	MachinePhiInst(unsigned num_operands)
@@ -105,26 +98,6 @@ public:
 
 };
 
-/**
- * Move operand to operand
- */
-class MachineMoveInst : public MachineInstruction {
-public:
-	MachineMoveInst(
-			MachineOperand *dst,
-			MachineOperand *src)
-			: MachineInstruction("MMove", dst, 1) {
-		operands[0].op = src;
-	}
-	virtual bool accepts_immediate(unsigned i) const {
-		return true;
-	}
-	virtual MachineMoveInst* to_MachineMoveInst() {
-		return this;
-	}
-	virtual void emit(CodeMemory* CM) const;
-
-};
 class MachineOperandInst : public MachineInstruction {
 private:
 	MachineOperand *MO;
@@ -135,6 +108,34 @@ public:
 
 };
 
+class MachineJumpInst : public MachineInstruction {
+public:
+	MachineJumpInst(const char *name)
+		: MachineInstruction(name, &NoOperand, 0) {}
+	virtual void emit(CodeMemory* CM) const = 0;
+	virtual void emit(CodeFragment &CF) const = 0;
+};
+
+/**
+ * Move operand to operand
+ */
+class MachineMoveInst : public MachineInstruction {
+public:
+	MachineMoveInst( const char* name,
+			MachineOperand *dst,
+			MachineOperand *src)
+			: MachineInstruction(name, dst, 1) {
+		operands[0].op = src;
+	}
+	virtual bool accepts_immediate(unsigned i) const {
+		return true;
+	}
+	virtual MachineMoveInst* to_MachineMoveInst() {
+		return this;
+	}
+	virtual void emit(CodeMemory* CM) const = 0;
+
+};
 
 } // end namespace compiler2
 } // end namespace jit

@@ -115,41 +115,20 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
-class X86_64MovInst : public MachineInstruction {
+class X86_64MovInst : public MachineMoveInst {
 public:
-	X86_64MovInst(MachineRegister *dst, MachineRegister *src)
-			: MachineInstruction("X86_64MovInst", dst, 1) {
-		operands[0].op = src;
-	}
+	X86_64MovInst(MachineOperand *dst, MachineOperand *src)
+			: MachineMoveInst("X86_64MovInst", dst, src) {}
 	virtual void emit(CodeMemory* CM) const;
 };
 
-class X86_64MovStack2RegInst : public MachineInstruction {
+class X86_64JumpInst : public MachineJumpInst {
 public:
-	X86_64MovStack2RegInst(MachineRegister *dst, StackSlot *slot)
-			: MachineInstruction("X86_64MovStack2RegInst", dst, 1) {
-		operands[0].op = slot;
-	}
+	X86_64JumpInst()	: MachineJumpInst("X86_64JumpInst") {}
 	virtual void emit(CodeMemory* CM) const;
+	virtual void emit(CodeFragment &CF) const;
 };
 
-class X86_64MovImm2RegInst : public MachineInstruction {
-public:
-	X86_64MovImm2RegInst(MachineRegister *dst, Immediate *imm)
-			: MachineInstruction("X86_64MovImm2RegInst", dst, 1) {
-		operands[0].op = imm;
-	}
-	virtual void emit(CodeMemory* CM) const;
-};
-
-class X86_64MovReg2StackInst : public MachineInstruction {
-public:
-	X86_64MovReg2StackInst(StackSlot *slot, MachineRegister *src)
-			: MachineInstruction("X86_64MovReg2StackInst", slot, 1) {
-		operands[0].op = src;
-	}
-	virtual void emit(CodeMemory* CM) const;
-};
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

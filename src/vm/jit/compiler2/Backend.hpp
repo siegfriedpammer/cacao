@@ -34,6 +34,8 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+class StackSlotManager;
+
 class Backend {
 protected:
 	virtual LoweredInstDAG* lowerBeginInst(BeginInst *I) const = 0;
@@ -51,10 +53,10 @@ public:
 	virtual LoweredInstDAG* lower(Instruction *I) const;
 
 	virtual RegisterFile* get_RegisterFile() const = 0;
-	virtual void emit_Move(const MachineMoveInst *mov, CodeMemory* CM) const = 0;
-	virtual void emit_Jump(const MachineJumpInst *mov, CodeMemory* CM) const = 0;
-	virtual void create_frame(CodeMemory* CM, u2 framesize) const = 0;
-	virtual void emit_Jump(const MachineJumpInst *mov, CodeFragment &CF) const = 0;
+	virtual MachineMoveInst* create_Move(MachineOperand *dst,
+		MachineOperand* src) const = 0;
+	virtual MachineJumpInst* create_Jump() const = 0;
+	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM) const = 0;
 	virtual const char* get_name() const = 0;
 };
 /**
@@ -77,10 +79,10 @@ protected:
 	virtual LoweredInstDAG* lowerMULInst(MULInst *I) const;
 public:
 	virtual RegisterFile* get_RegisterFile() const;
-	virtual void emit_Move(const MachineMoveInst *mov, CodeMemory* CM) const;
-	virtual void emit_Jump(const MachineJumpInst *mov, CodeMemory* CM) const;
-	virtual void create_frame(CodeMemory* CM, u2 framesize) const;
-	virtual void emit_Jump(const MachineJumpInst *mov, CodeFragment &CF) const;
+	virtual MachineMoveInst* create_Move(MachineOperand *dst,
+		MachineOperand* src) const;
+	virtual MachineJumpInst* create_Jump() const;
+	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM) const;
 	virtual const char* get_name() const;
 };
 
@@ -98,7 +100,7 @@ template<typename Target>
 LoweredInstDAG* BackendBase<Target>::lowerGOTOInst(GOTOInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	MachineJumpInst *jump = new MachineJumpInst();
+	MachineJumpInst *jump = create_Jump();
 	dag->add(jump);
 	dag->set_result(jump);
 	return dag;

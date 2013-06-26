@@ -40,6 +40,7 @@ namespace jit {
 namespace compiler2 {
 
 bool ResolveImmediatePass::run(JITData &JD) {
+	Backend *backend = JD.get_Backend();
 	BasicBlockSchedule *BS = get_Pass<BasicBlockSchedulingPass>();
 	InstructionSchedule<Instruction> *IS = get_Pass<ListSchedulingPass>();
 	LoweringPass *LP = get_Pass<LoweringPass>();
@@ -70,7 +71,7 @@ bool ResolveImmediatePass::run(JITData &JD) {
 						if (imm && !MI->accepts_immediate(i)) {
 							LOG2("MInst (" << MI << ") does not accept immediate as " << i << " parameter" << nl);
 							VirtualRegister *dst = new VirtualRegister();
-							MachineMoveInst *mov = new MachineMoveInst(dst,imm);
+							MachineMoveInst *mov = backend->create_Move(dst,imm);
 							dag->mi_insert(pos,mov);
 							(*MI)[i].op = dst;
 							// check if we have modified a dag parameter

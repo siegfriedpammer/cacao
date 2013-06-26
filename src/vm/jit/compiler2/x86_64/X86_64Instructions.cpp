@@ -60,17 +60,9 @@ void X86_64RetInst::emit(CodeMemory* CM) const {
 	code[0] = 0xc3;
 }
 
-void X86_64MovInst::emit(CodeMemory* CM) const {
-	X86_64Register *src_reg = operands[0].op->to_Register()
-		->to_MachineRegister()->to_NaviveRegister();
-	X86_64Register *dst_reg = result.op->to_Register()
-		->to_MachineRegister()->to_NaviveRegister();
-
-	X86_64InstructionEncoding::reg2reg<u1>(CM, 0x89, src_reg, dst_reg);
-}
-
 namespace {
 /**
+ * stack from/to reg
  * @param stack2reg true if we move from stack to register
  */
 inline void emit_stack_move(CodeMemory* CM, StackSlot *slot,
@@ -85,8 +77,71 @@ inline void emit_stack_move(CodeMemory* CM, StackSlot *slot,
 			(s4)index);
 	}
 }
+/**
+ * reg to reg
+ */
+inline void emit_reg2reg(CodeMemory* CM, X86_64Register *dst,
+		X86_64Register *src) {
+	X86_64InstructionEncoding::reg2reg<u1>(CM, 0x89, src, dst);
+}
+
+/**
+ * imm to reg
+ */
+inline void emit_imm2reg_move(CodeMemory* CM, Immediate *imm,
+		X86_64Register *dst) {
+
+	u1 opcode = 0xb8 + dst->get_index();
+	X86_64InstructionEncoding::reg2imm<u1>(CM, opcode, dst, imm->get_value());
+}
 
 } // end anonymous namespace
+
+void X86_64MovInst::emit(CodeMemory* CM) const {
+	MachineOperand *src = operands[0].op;
+	MachineOperand *dst = result.op;
+	Register *src_reg = src->to_Register();
+	Register *dst_reg = dst->to_Register();
+	if( dst_reg) {
+		MachineRegister *dst_mreg = dst_reg->to_MachineRegister();
+		assert(dst_mreg);
+		if (src_reg) {
+			MachineRegister *src_mreg = src_reg->to_MachineRegister();
+			assert(src_mreg);
+
+			// reg to reg move
+			emit_reg2reg(CM,dst_mreg->to_NaviveRegister(),
+				src_mreg->to_NaviveRegister());
+			return;
+		}
+		StackSlot *slot = src->to_StackSlot();
+		if (slot) {
+			// stack to reg move
+			emit_stack_move(CM,slot,dst_mreg->to_NaviveRegister(),true);
+			return;
+		}
+		Immediate *imm = src->to_Immediate();
+		if (imm) {
+			// im to reg move
+			emit_imm2reg_move(CM,imm,dst_mreg->to_NaviveRegister());
+			return;
+		}
+	} else {
+		// dst is not a reg
+		if (src_reg) {
+			MachineRegister *src_mreg = src_reg->to_MachineRegister();
+			assert(src_mreg);
+			StackSlot *slot = dst->to_StackSlot();
+			if (slot) {
+				// reg to stack move
+				emit_stack_move(CM,slot,src_mreg->to_NaviveRegister(),false);
+				return;
+			}
+		}
+	}
+	ABORT_MSG("x86_64 TODO","non reg-to-reg moves not yet implemented (src:"
+		<< src << " dst:" << dst << ")");
+}
 
 void X86_64CondJumpInst::emit(CodeMemory* CM) const {
 	BeginInst *BI = get_BeginInst();
@@ -113,31 +168,6 @@ void X86_64CondJumpInst::emit(CodeMemory* CM) const {
 	// only 32bit offset for the time being
 	X86_64InstructionEncoding::imm<u2>(CM, 0x0f80 + cond.code, offset);
 }
-void X86_64MovStack2RegInst::emit(CodeMemory* CM) const {
-	StackSlot *slot = operands[0].op->to_StackSlot();
-	X86_64Register *dst_reg = result.op->to_Register()
-		->to_MachineRegister()->to_NaviveRegister();
-
-	emit_stack_move(CM,slot,dst_reg,true);
-}
-
-void X86_64MovImm2RegInst::emit(CodeMemory* CM) const {
-	Immediate *imm = operands[0].op->to_Immediate();
-	X86_64Register *dst_reg = result.op->to_Register()
-		->to_MachineRegister()->to_NaviveRegister();
-
-	u1 opcode = 0xb8 + dst_reg->get_index();
-	X86_64InstructionEncoding::reg2imm<u1>(CM, opcode, dst_reg, imm->get_value());
-}
-
-void X86_64MovReg2StackInst::emit(CodeMemory* CM) const {
-	StackSlot *slot = result.op->to_StackSlot();
-	X86_64Register *src_reg = operands[0].op->to_Register()
-		->to_MachineRegister()->to_NaviveRegister();
-
-	emit_stack_move(CM,slot,src_reg,false);
-}
-
 void X86_64IMulInst::emit(CodeMemory* CM) const {
 	X86_64Register *src_reg = operands[1].op->to_Register()->to_MachineRegister()->to_NaviveRegister();
 	X86_64Register *dst_reg = result.op->to_Register()->to_MachineRegister()->to_NaviveRegister();
@@ -157,6 +187,55 @@ void X86_64SubInst::emit(CodeMemory* CM) const {
 
 	X86_64InstructionEncoding::reg2reg<u1>(CM, 0x29, src_reg, dst_reg);
 }
+
+namespace {
+void emit_jump(CodeFragment &code, s4 offset) {
+	LOG2("emit_jump codefragment offset: " << hex << offset << nl);
+	code[0] = 0xe9;
+	code[1] = u1( 0xff & (offset >> (8 * 0)));
+	code[2] = u1( 0xff & (offset >> (8 * 1)));
+	code[3] = u1( 0xff & (offset >> (8 * 2)));
+	code[4] = u1( 0xff & (offset >> (8 * 3)));
+}
+
+} // end anonymous namespace
+void X86_64JumpInst::emit(CodeMemory* CM) const {
+	GOTOInst *gt = get_parent()->get_Instruction()->to_GOTOInst();
+	assert(gt);
+	assert(gt->succ_size() == 1);
+	BeginInst *BI = gt->succ_front();
+	s4 offset = CM->get_offset(BI);
+	switch (offset) {
+	case 0:
+		LOG2("emit_Jump: jump to the next instruction -> can be omitted ("
+		     << gt << " to " << BI << ")"  << nl);
+		return;
+	case CodeMemory::INVALID_OFFSET:
+		LOG2("emit_Jump: target not yet known (" << gt << " to "
+		     << BI << ")"  << nl);
+		// reserve memory and add to resolve later
+		// worst case -> 32bit offset
+		CodeFragment CF = CM->get_CodeFragment(5);
+		// FIXME pass this the resolve me
+		CM->resolve_later(BI,this,CF);
+		return;
+	}
+	CodeFragment CF = CM->get_CodeFragment(5);
+	emit_jump(CF,offset);
+}
+
+void X86_64JumpInst::emit(CodeFragment &CF) const {
+	GOTOInst *gt = get_parent()->get_Instruction()->to_GOTOInst();
+	assert(gt);
+	assert(gt->succ_size() == 1);
+	BeginInst *BI = gt->succ_front();
+	s4 offset = CF.get_offset(BI);
+	assert(offset != 0);
+	assert(offset != CodeMemory::INVALID_OFFSET);
+
+	emit_jump(CF,offset);
+}
+
 
 } // end namespace compiler2
 } // end namespace jit
