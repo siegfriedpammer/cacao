@@ -45,6 +45,7 @@ class LongType;
 class CharType;
 class FloatType;
 class DoubleType;
+class VoidType;
 
 /**
  * Type Class
@@ -68,7 +69,7 @@ public:
 		CharTypeID,
 		FloatTypeID,
 		DoubleTypeID,
-		NoTypeID
+		VoidTypeID
 	};
 
 	const TypeID type;
@@ -99,6 +100,7 @@ public:
 	inline bool isCharType()          const { return type == CharTypeID; }
 	inline bool isFloatType()         const { return type == FloatTypeID; }
 	inline bool isDoubleType()        const { return type == DoubleTypeID; }
+	inline bool isVoidType()          const { return type == VoidTypeID; }
 
 
 	virtual PrimitiveType*     toPrimitiveType()     { return NULL; }
@@ -115,6 +117,7 @@ public:
 	virtual CharType*          toCharType()          { return NULL; }
 	virtual FloatType*         toFloatType()         { return NULL; }
 	virtual DoubleType*        toDoubleType()        { return NULL; }
+	virtual VoidType*          toVoidType()          { return NULL; }
 };
 
 class PrimitiveType : public Type {
@@ -248,6 +251,14 @@ public:
 	virtual DoubleType* toDoubleType() { return this; }
 };
 
+/**
+ *
+ */
+class VoidType : public Type {
+public:
+	explicit VoidType() : Type(VoidTypeID) {}
+	virtual VoidType* toVoidType() { return this; }
+};
 
 
 } // end namespace cacao

@@ -73,7 +73,7 @@ public:
 
 class NOPInst : public Instruction {
 public:
-	explicit NOPInst(Type::TypeID type) : Instruction(NOPInstID, type) {}
+	explicit NOPInst() : Instruction(NOPInstID, Type::VoidTypeID) {}
 	virtual NOPInst* to_NOPInst() { return this; }
 };
 
