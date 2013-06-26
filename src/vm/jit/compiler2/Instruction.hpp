@@ -33,6 +33,8 @@
 
 #include "vm/jit/compiler2/Value.hpp"
 #include "vm/jit/compiler2/Type.hpp"
+#include "vm/jit/compiler2/Method.hpp"
+
 #include <vector>
 #include <stddef.h>
 
@@ -190,15 +192,19 @@ protected:
 	unsigned number_of_operands;
 	BasicBlock *parent;				   ///< BasicBlock containing the instruction or NULL
 	Type::TypeID type;
+	Method* method;
 
 	explicit Instruction() : id(NoInstID) {}
 
 public:
 	explicit Instruction(InstID id, Type::TypeID type) : id(id), type(type) {}
 
-	InstID getOpcode() const { return id; } ///< return the opcode of the instruction (icmd.hpp)
-	BasicBlock *getParent() const;          ///< get the BasicBlock in which the instruction is contained.
-                                            ///< NULL if not attached to any block.
+	InstID get_opcode() const { return id; } ///< return the opcode of the instruction (icmd.hpp)
+	BasicBlock *get_parent() const;          ///< get the BasicBlock in which the instruction is contained.
+                                             ///< NULL if not attached to any block.
+
+	void set_method(Method* M) { method = M; }
+	Method* get_method() const { return method; }
 
 	unsigned get_number_operands() const { return number_of_operands; }
 

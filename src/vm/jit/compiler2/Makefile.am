@@ -30,6 +30,7 @@ noinst_LTLIBRARIES = \
 
 libcompiler2_la_SOURCES = \
 	Compiler.cpp \
+	Method.cpp \
 	PassManager.cpp \
 	SSAConstructionPass.cpp \
 	Type.cpp

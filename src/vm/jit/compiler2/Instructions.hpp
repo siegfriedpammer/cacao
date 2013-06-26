@@ -60,6 +60,14 @@ public:
 	}
 };
 
+class MultiOpInst : public Instruction {
+public:
+	explicit MultiOpInst(InstID id, Type::TypeID type) : Instruction(id, type) {}
+	void add_operand(Value* op) {
+		operand_list.push_back(op);
+	}
+};
+
 class CondInst : public BinaryInst {
 protected:
 	Conditional::CondID cond;
@@ -107,15 +115,15 @@ public:
 	virtual CASTInst* to_CASTInst() { return this; }
 };
 
-class ADDInst : public Instruction {
+class ADDInst : public BinaryInst {
 public:
-	explicit ADDInst(Type::TypeID type) : Instruction(ADDInstID, type) {}
+	explicit ADDInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(SUBInstID, type, S1, S2) {}
 	virtual ADDInst* to_ADDInst() { return this; }
 };
 
-class SUBInst : public Instruction {
+class SUBInst : public BinaryInst{
 public:
-	explicit SUBInst(Type::TypeID type) : Instruction(SUBInstID, type) {}
+	explicit SUBInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(SUBInstID, type, S1, S2) {}
 	virtual SUBInst* to_SUBInst() { return this; }
 };
 
@@ -174,8 +182,30 @@ public:
 };
 
 class CONSTInst : public Instruction {
+private:
+	typedef union {
+		int32_t                   i;
+		int64_t                   l;
+		float                     f;
+		double                    d;
+		void                     *anyptr;
+		java_handle_t            *stringconst;       /* for ACONST with string    */
+		classref_or_classinfo     c;                 /* for ACONST with class     */
+	} val_operand_t;
+	val_operand_t value;
 public:
-	explicit CONSTInst(Type::TypeID type) : Instruction(CONSTInstID, type) {}
+	explicit CONSTInst(int32_t i) : Instruction(CONSTInstID, Type::IntTypeID) {
+		value.i = i;
+	}
+	explicit CONSTInst(int64_t l) : Instruction(CONSTInstID, Type::LongTypeID) {
+		value.l = l;
+	}
+	explicit CONSTInst(float f) : Instruction(CONSTInstID, Type::FloatTypeID) {
+		value.f = f;
+	}
+	explicit CONSTInst(double d) : Instruction(CONSTInstID, Type::DoubleTypeID) {
+		value.d = d;
+	}
 	virtual CONSTInst* to_CONSTInst() { return this; }
 };
 
@@ -307,9 +337,9 @@ public:
 	virtual INVOKESPECIALInst* to_INVOKESPECIALInst() { return this; }
 };
 
-class INVOKESTATICInst : public Instruction {
+class INVOKESTATICInst : public MultiOpInst {
 public:
-	explicit INVOKESTATICInst(Type::TypeID type) : Instruction(INVOKESTATICInstID, type) {}
+	explicit INVOKESTATICInst(Type::TypeID type) : MultiOpInst(INVOKESTATICInstID, type) {}
 	virtual INVOKESTATICInst* to_INVOKESTATICInst() { return this; }
 };
 
@@ -344,9 +374,9 @@ public:
 	virtual LOOKUPSWITCHInst* to_LOOKUPSWITCHInst() { return this; }
 };
 
-class RETURNInst : public Instruction {
+class RETURNInst : public UnaryInst {
 public:
-	explicit RETURNInst(Type::TypeID type) : Instruction(RETURNInstID, type) {}
+	explicit RETURNInst(Type::TypeID type, Value* S1) : UnaryInst(RETURNInstID, type, S1) {}
 	virtual RETURNInst* to_RETURNInst() { return this; }
 };
 

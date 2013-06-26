@@ -775,509 +775,17 @@ namespace compiler2 {
 #define DEBUG_NAME "compiler2/ssa"
 
 Instruction* SSAConstructionPass::get_Instruction(jitdata *jd, instruction *iptr) {
-	switch (iptr->opc) {
-	case ICMD_POP:
-	case ICMD_CHECKNULL:
-//		SHOW_S1(OS, iptr);
-//		break;
-
-//		/* unary */
-	case ICMD_ARRAYLENGTH:
-	case ICMD_INEG:
-	case ICMD_LNEG:
-	case ICMD_FNEG:
-	case ICMD_DNEG:
-	case ICMD_I2L:
-	case ICMD_I2F:
-	case ICMD_I2D:
-	case ICMD_L2I:
-	case ICMD_L2F:
-	case ICMD_L2D:
-	case ICMD_F2I:
-	case ICMD_F2L:
-	case ICMD_F2D:
-	case ICMD_D2I:
-	case ICMD_D2L:
-	case ICMD_D2F:
-	case ICMD_INT2BYTE:
-	case ICMD_INT2CHAR:
-	case ICMD_INT2SHORT:
-//		SHOW_S1(OS, iptr);
-//		SHOW_DST(OS, iptr);
-//		break;
-
-		/* binary */
-	case ICMD_IADD:
-	case ICMD_LADD:
-	case ICMD_FADD:
-	case ICMD_DADD:
-	case ICMD_ISUB:
-	case ICMD_LSUB:
-	case ICMD_FSUB:
-	case ICMD_DSUB:
-	case ICMD_IMUL:
-	case ICMD_LMUL:
-	case ICMD_FMUL:
-	case ICMD_DMUL:
-	case ICMD_IDIV:
-	case ICMD_LDIV:
-	case ICMD_FDIV:
-	case ICMD_DDIV:
-	case ICMD_IREM:
-	case ICMD_LREM:
-	case ICMD_FREM:
-	case ICMD_DREM:
-	case ICMD_ISHL:
-	case ICMD_LSHL:
-	case ICMD_ISHR:
-	case ICMD_LSHR:
-	case ICMD_IUSHR:
-	case ICMD_LUSHR:
-	case ICMD_IAND:
-	case ICMD_LAND:
-	case ICMD_IOR:
-	case ICMD_LOR:
-	case ICMD_IXOR:
-	case ICMD_LXOR:
-	case ICMD_LCMP:
-	case ICMD_FCMPL:
-	case ICMD_FCMPG:
-	case ICMD_DCMPL:
-	case ICMD_DCMPG:
-//		SHOW_S1(OS, iptr);
-//		SHOW_S2(OS, iptr);
-//		SHOW_DST(OS, iptr);
-//		break;
-
-		/* binary/const INT */
-	case ICMD_IADDCONST:
-	case ICMD_ISUBCONST:
-	case ICMD_IMULCONST:
-	case ICMD_IMULPOW2:
-	case ICMD_IDIVPOW2:
-	case ICMD_IREMPOW2:
-	case ICMD_IANDCONST:
-	case ICMD_IORCONST:
-	case ICMD_IXORCONST:
-	case ICMD_ISHLCONST:
-	case ICMD_ISHRCONST:
-	case ICMD_IUSHRCONST:
-	case ICMD_LSHLCONST:
-	case ICMD_LSHRCONST:
-	case ICMD_LUSHRCONST:
-//		SHOW_S1(OS, iptr);
-//		SHOW_INT_CONST(OS, iptr->sx.val.i);	
-//		SHOW_DST(OS, iptr);
-//		break;
-
-		/* ?ASTORECONST (trinary/const INT) */
-	case ICMD_IASTORECONST:
-	case ICMD_BASTORECONST:
-	case ICMD_CASTORECONST:
-	case ICMD_SASTORECONST:
-//		SHOW_S1(OS, iptr);
-//		SHOW_S2(OS, iptr);
-//		SHOW_INT_CONST(OS, iptr->sx.s23.s3.constval);
-//		break;
-
-		/* const INT */
-	case ICMD_ICONST:
-//		SHOW_INT_CONST(OS, iptr->sx.val.i);	
-//		SHOW_DST(OS, iptr);
-//		break;
-
-		/* binary/const LNG */
-	case ICMD_LADDCONST:
-	case ICMD_LSUBCONST:
-	case ICMD_LMULCONST:
-	case ICMD_LMULPOW2:
-	case ICMD_LDIVPOW2:
-	case ICMD_LREMPOW2:
-	case ICMD_LANDCONST:
-	case ICMD_LORCONST:
-	case ICMD_LXORCONST:
-//		SHOW_S1(OS, iptr);
-//		SHOW_LNG_CONST(OS, iptr->sx.val.l);
-//		SHOW_DST(OS, iptr);
-//		break;
-
-		/* trinary/const LNG (<= pointer size) */
-	case ICMD_LASTORECONST:
-//		SHOW_S1(OS, iptr);
-//		SHOW_S2(OS, iptr);
-//		SHOW_ADR_CONST(OS, iptr->sx.s23.s3.constval);
-//		break;
-
-		/* const LNG */
-	case ICMD_LCONST:
-//		SHOW_LNG_CONST(OS, iptr->sx.val.l);	
-//		SHOW_DST(OS, iptr);
-//		break;
-
-		/* const FLT */
-	case ICMD_FCONST:
-//		SHOW_FLT_CONST(OS, iptr->sx.val.f);	
-//		SHOW_DST(OS, iptr);
-//		break;
-
-		/* const DBL */
-	case ICMD_DCONST:
-//		SHOW_DBL_CONST(OS, iptr->sx.val.d);	
-//		SHOW_DST(OS, iptr);
-//		break;
-
-		/* const ADR */
-	case ICMD_ACONST:
-//		if (iptr->flags.bits & INS_FLAG_CLASS) {
-//			SHOW_ADR_CONST(OS, iptr->sx.val.anyptr);
-//			SHOW_CLASSREF_OR_CLASSINFO(OS, iptr->sx.val.c);
-//		}
-//		else if (iptr->sx.val.anyptr == NULL) {
-//			OS << "NULL ";
-//		}
-//		else {
-//			SHOW_ADR_CONST(OS, iptr->sx.val.anyptr);
-//			SHOW_STRING(OS, iptr->sx.val.stringconst);
-//		}
-//		SHOW_DST(OS, iptr);
-//		break;
-
-	case ICMD_AASTORECONST:
-//		SHOW_S1(OS, iptr);
-//		SHOW_S2(OS, iptr);
-//		printf("%p ", (void*) iptr->sx.s23.s3.constval);
-//		break;
-
-	case ICMD_GETFIELD:        /* 1 -> 1 */
-	case ICMD_PUTFIELD:        /* 2 -> 0 */
- 	case ICMD_PUTSTATIC:       /* 1 -> 0 */
-	case ICMD_GETSTATIC:       /* 0 -> 1 */
-	case ICMD_PUTSTATICCONST:  /* 0 -> 0 */
-	case ICMD_PUTFIELDCONST:   /* 1 -> 0 */
-//		if (opcode != ICMD_GETSTATIC && opcode != ICMD_PUTSTATICCONST) {
-//			SHOW_S1(OS, iptr);
-//			if (opcode == ICMD_PUTFIELD) {
-//				SHOW_S2(OS, iptr);
-//			}
-//		}
-//		INSTRUCTION_GET_FIELDREF(iptr, fmiref);
-//		SHOW_FIELD(OS, fmiref);
-//
-//		if (opcode == ICMD_GETSTATIC || opcode == ICMD_GETFIELD) {
-//			SHOW_DST(OS, iptr);
-//		}
-//		break;
-
-	case ICMD_IINC:
-//		SHOW_S1_LOCAL(OS, iptr);
-//		SHOW_INT_CONST(OS, iptr->sx.val.i);
-//		SHOW_DST_LOCAL(OS, iptr);
-//		break;
-
-	case ICMD_IASTORE:
-	case ICMD_SASTORE:
-	case ICMD_BASTORE:
-	case ICMD_CASTORE:
-	case ICMD_LASTORE:
-	case ICMD_DASTORE:
-	case ICMD_FASTORE:
-	case ICMD_AASTORE:
-//		SHOW_S1(OS, iptr);
-//		SHOW_S2(OS, iptr);
-//		SHOW_S3(OS, iptr);
-//		break;
-
-	case ICMD_IALOAD:
-	case ICMD_SALOAD:
-	case ICMD_BALOAD:
-	case ICMD_CALOAD:
-	case ICMD_LALOAD:
-	case ICMD_DALOAD:
-	case ICMD_FALOAD:
-	case ICMD_AALOAD:
-//		SHOW_S1(OS, iptr);
-//		SHOW_S2(OS, iptr);
-//		SHOW_DST(OS, iptr);
-//		break;
-
-	case ICMD_RET:
-//		SHOW_S1_LOCAL(OS, iptr);
-//		if (stage >= SHOW_STACK) {
-//			printf(" ---> L%03d", iptr->dst.block->nr);
-//		}
-//		break;
-		goto _default;
-
-	case ICMD_ILOAD:
-		return new LOADInst(Type::IntTypeID, iptr->s1.varindex);
-	case ICMD_LLOAD:
-		return new LOADInst(Type::LongTypeID, iptr->s1.varindex);
-	case ICMD_FLOAD:
-		return new LOADInst(Type::FloatTypeID, iptr->s1.varindex);
-	case ICMD_DLOAD:
-		return new LOADInst(Type::DoubleTypeID, iptr->s1.varindex);
-	case ICMD_ALOAD:
-//		SHOW_S1_LOCAL(OS, iptr);
-//		SHOW_DST(OS, iptr);
-//		break;
-
-	case ICMD_ISTORE:
-	case ICMD_LSTORE:
-	case ICMD_FSTORE:
-	case ICMD_DSTORE:
-	case ICMD_ASTORE:
-//		SHOW_S1(OS, iptr);
-//		SHOW_DST_LOCAL(OS, iptr);
-//		if (stage >= SHOW_STACK && iptr->sx.s23.s3.javaindex != UNUSED)
-//			printf(" (javaindex %d)", iptr->sx.s23.s3.javaindex);
-//		if (iptr->flags.bits & INS_FLAG_RETADDR) {
-//			printf(" (retaddr L%03d)", RETADDR_FROM_JAVALOCAL(iptr->sx.s23.s2.retaddrnr));
-//		}
-//		break;
-
-	case ICMD_NEW:
-//		SHOW_DST(OS, iptr);
-//		break;
-//
-	case ICMD_NEWARRAY:
-//		SHOW_DST(OS, iptr);
-//		break;
-
-	case ICMD_ANEWARRAY:
-//		SHOW_DST(OS, iptr);
-//		break;
-
-	case ICMD_MULTIANEWARRAY:
-//		if (stage >= SHOW_STACK) {
-//			argp = iptr->sx.s23.s2.args;
-//			i = iptr->s1.argcount;
-//			while (i--) {
-//				SHOW_VARIABLE(OS, *(argp++));
-//			}
-//		}
-//		else {
-//			printf("argcount=%d ", iptr->s1.argcount);
-//		}
-//		class_classref_or_classinfo_print(iptr->sx.s23.s3.c);
-//		putchar(' ');
-//		SHOW_DST(OS, iptr);
-//		break;
-
-	case ICMD_CHECKCAST:
-//		SHOW_S1(OS, iptr);
-//		class_classref_or_classinfo_print(iptr->sx.s23.s3.c);
-//		putchar(' ');
-//		SHOW_DST(OS, iptr);
-//		break;
-//
-	case ICMD_INSTANCEOF:
-//		SHOW_S1(OS, iptr);
-//		SHOW_DST(OS, iptr);
-//		break;
-
-	case ICMD_INLINE_START:
-	case ICMD_INLINE_END:
-	case ICMD_INLINE_BODY:
-#if 0
-#if defined(ENABLE_INLINING)
-		{
-			insinfo_inline *ii = iptr->sx.s23.s3.inlineinfo;
-			show_inline_info(jd, ii, opcode, stage);
-		}
-#endif
-#endif
-//		break;
-
-	case ICMD_BUILTIN:
-//		if (stage >= SHOW_STACK) {
-//			argp = iptr->sx.s23.s2.args;
-//			i = iptr->s1.argcount;
-//			while (i--) {
-//				if ((iptr->s1.argcount - 1 - i) == iptr->sx.s23.s3.bte->md->paramcount)
-//					printf(" pass-through: ");
-//				SHOW_VARIABLE(OS, *(argp++));
-//			}
-//		}
-//		printf("%s ", iptr->sx.s23.s3.bte->cname);
-//		if (iptr->sx.s23.s3.bte->md->returntype.type != TYPE_VOID) {
-//			SHOW_DST(OS, iptr);
-//		}
-//		break;
-
-	case ICMD_INVOKEVIRTUAL:
-	case ICMD_INVOKESPECIAL:
-	case ICMD_INVOKESTATIC:
-	case ICMD_INVOKEINTERFACE:
-//		if (stage >= SHOW_STACK) {
-//			methoddesc *md;
-//			INSTRUCTION_GET_METHODDESC(iptr, md);
-//			argp = iptr->sx.s23.s2.args;
-//			i = iptr->s1.argcount;
-//			while (i--) {
-//				if ((iptr->s1.argcount - 1 - i) == md->paramcount)
-//					printf(" pass-through: ");
-//				SHOW_VARIABLE(OS, *(argp++));
-//			}
-//		}
-//		INSTRUCTION_GET_METHODREF(iptr, fmiref);
-//		method_methodref_print(fmiref);
-//		if (fmiref->parseddesc.md->returntype.type != TYPE_VOID) {
-//			putchar(' ');
-//			SHOW_DST(OS, iptr);
-//		}
-//		break;
-
-	case ICMD_IFEQ:
-	case ICMD_IFNE:
-	case ICMD_IFLT:
-	case ICMD_IFGE:
-	case ICMD_IFGT:
-	case ICMD_IFLE:
-//		SHOW_S1(OS, iptr);
-//		SHOW_INT_CONST(OS, iptr->sx.val.i);	
-//		SHOW_TARGET(OS, iptr->dst);
-//		break;
-
-	case ICMD_IF_LEQ:
-	case ICMD_IF_LNE:
-	case ICMD_IF_LLT:
-		goto _default;
-	case ICMD_IF_LGE:
-		{
-			Instruction *konst = new CONSTInst(Type::LongTypeID, iptr->sx.val.l);
-			Instruction *s1 = bla;
-			Instruction *result = new IFInst(Type::LongTypeID, s1, konst, Conditional::GE);
-			return result;
-		}
-	case ICMD_IF_LGT:
-	case ICMD_IF_LLE:
-//		SHOW_S1(OS, iptr);
-//		SHOW_LNG_CONST(OS, iptr->sx.val.l);	
-//		SHOW_TARGET(OS, iptr->dst);
-//		break;
-//
-	case ICMD_GOTO:
-//		SHOW_TARGET(OS, iptr->dst);
-//		break;
-
-	case ICMD_JSR:
-//		SHOW_TARGET(OS, iptr->sx.s23.s3.jsrtarget);
-//		SHOW_DST(OS, iptr);
-//		break;
-
-	case ICMD_IFNULL:
-	case ICMD_IFNONNULL:
-//		SHOW_S1(OS, iptr);
-//		SHOW_TARGET(OS, iptr->dst);
-//		break;
-
-	case ICMD_IF_ICMPEQ:
-	case ICMD_IF_ICMPNE:
-	case ICMD_IF_ICMPLT:
-	case ICMD_IF_ICMPGE:
-	case ICMD_IF_ICMPGT:
-	case ICMD_IF_ICMPLE:
-
-	case ICMD_IF_LCMPEQ:
-	case ICMD_IF_LCMPNE:
-	case ICMD_IF_LCMPLT:
-	case ICMD_IF_LCMPGE:
-	case ICMD_IF_LCMPGT:
-	case ICMD_IF_LCMPLE:
-
-	case ICMD_IF_ACMPEQ:
-	case ICMD_IF_ACMPNE:
-//		SHOW_S1(OS, iptr);
-//		SHOW_S2(OS, iptr);
-//		SHOW_TARGET(OS, iptr->dst);
-//		break;
-
-	case ICMD_TABLESWITCH:
-//		SHOW_S1(OS, iptr);
-//		table = iptr->dst.table;
-//
-//		i = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
-//
-//		printf("high=%d low=%d count=%d\n", iptr->sx.s23.s3.tablehigh, iptr->sx.s23.s2.tablelow, i);
-//		while (--i >= 0) {
-//			printf("\t\t%d --> ", (int) (table - iptr->dst.table));
-//			printf("L%03d\n", table->block->nr);
-//			table++;
-//		}
-//
-//		break;
-
-	case ICMD_LOOKUPSWITCH:
-//		SHOW_S1(OS, iptr);
-//
-//		printf("count=%d, default=L%03d\n",
-//			   iptr->sx.s23.s2.lookupcount,
-//			   iptr->sx.s23.s3.lookupdefault.block->nr);
-//
-//		lookup = iptr->dst.lookup;
-//		i = iptr->sx.s23.s2.lookupcount;
-//
-//		while (--i >= 0) {
-//			printf("\t\t%d --> L%03d\n",
-//				   lookup->value,
-//				   lookup->target.block->nr);
-//			lookup++;
-//		}
-//		break;
-
-	case ICMD_FRETURN:
-	case ICMD_IRETURN:
-	case ICMD_DRETURN:
-	case ICMD_LRETURN:
-//		SHOW_S1(OS, iptr);
-//		break;
-//
-	case ICMD_ARETURN:
-	case ICMD_ATHROW:
-//		SHOW_S1(OS, iptr);
-//		if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-//			/* XXX this needs more work */
-#if 0
-			unresolved_class_debug_dump(iptr->sx.s23.s2.uc, stdout);
-#endif
-//		}
-//		break;
-
- 	case ICMD_COPY:
- 	case ICMD_MOVE:
-//		SHOW_S1(OS, iptr);
-//		SHOW_DST(OS, iptr);
-//		break;
-	case ICMD_GETEXCEPTION:
-//		SHOW_DST(OS, iptr);
-//		break;
-#if defined(ENABLE_SSA)	
-	case ICMD_PHI:
-//		printf("[ ");
-//		for (i = 0; i < iptr->s1.argcount; ++i) {
-//			SHOW_VARIABLE(OS, iptr->sx.s23.s2.iargs[i]->dst.varindex);
-//		}
-//		printf("] ");
-//		SHOW_DST(OS, iptr);
-//		if (iptr->flags.bits & (1 << 0)) OS << "used ";
-//		if (iptr->flags.bits & (1 << 1)) OS << "redundantAll ";
-//		if (iptr->flags.bits & (1 << 2)) OS << "redundantOne ";
-//		break;
-#endif
-	default:
-		goto _default;
-	}
-	return NULL;
-	_default:
-		err() << BoldRed << "error: " << reset_color << "operation " << BoldWhite
-		      << icmd_table[iptr->opc].name << reset_color << " not yet supported!" << nl;
-		assert(false);
-	return NULL;
 }
 
 bool SSAConstructionPass::run(JITData &JD) {
+	Method M;
+
 	basicblock *bb;
 	jitdata *jd = JD.jitdata();
+
+	// Local Value Numbering Map, size #bb times #var, initialized to NULL
+	std::vector<std::vector<Value*> > current_def(jd->basicblockcount,std::vector<Value*>(jd->vartop,NULL));
+
 	show_method(jd, SHOW_CFG);
 
 	for(size_t i = 0, e = jd->vartop; i != e ; ++i) {
@@ -1290,10 +798,619 @@ bool SSAConstructionPass::run(JITData &JD) {
 		instruction *iptr;
 		LOG("basicblock: " << bb->nr << nl);
 		FOR_EACH_INSTRUCTION(bb,iptr) {
-			LOG("iptr: ");
-			print_instruction_OS(dbg(), jd, *iptr);
-			get_Instruction(jd, iptr);
-			LOG(nl);
+			LOG("iptr: " << icmd_table[iptr->opc].name << nl);
+			switch (iptr->opc) {
+			case ICMD_NOP:
+				//M.add_instruction(new NOPInst());
+				break;
+			case ICMD_POP:
+			case ICMD_CHECKNULL:
+		//		SHOW_S1(OS, iptr);
+		//		break;
+
+		//		/* unary */
+			case ICMD_ARRAYLENGTH:
+			case ICMD_INEG:
+			case ICMD_LNEG:
+			case ICMD_FNEG:
+			case ICMD_DNEG:
+			case ICMD_I2L:
+			case ICMD_I2F:
+			case ICMD_I2D:
+			case ICMD_L2I:
+			case ICMD_L2F:
+			case ICMD_L2D:
+			case ICMD_F2I:
+			case ICMD_F2L:
+			case ICMD_F2D:
+			case ICMD_D2I:
+			case ICMD_D2L:
+			case ICMD_D2F:
+			case ICMD_INT2BYTE:
+			case ICMD_INT2CHAR:
+			case ICMD_INT2SHORT:
+		//		SHOW_S1(OS, iptr);
+		//		SHOW_DST(OS, iptr);
+		//		break;
+
+				/* binary */
+			case ICMD_IADD:
+				goto _default;
+			case ICMD_LADD:
+				{
+					Value *s1 = current_def[bb->nr][iptr->s1.varindex];
+					Value *s2 = current_def[bb->nr][iptr->sx.s23.s2.varindex];
+					Instruction *result = new SUBInst(Type::LongTypeID, s1, s2);
+					M.add_instruction(result);
+				}
+				break;
+			case ICMD_FADD:
+			case ICMD_DADD:
+			case ICMD_ISUB:
+			case ICMD_LSUB:
+			case ICMD_FSUB:
+			case ICMD_DSUB:
+			case ICMD_IMUL:
+			case ICMD_LMUL:
+			case ICMD_FMUL:
+			case ICMD_DMUL:
+			case ICMD_IDIV:
+			case ICMD_LDIV:
+			case ICMD_FDIV:
+			case ICMD_DDIV:
+			case ICMD_IREM:
+			case ICMD_LREM:
+			case ICMD_FREM:
+			case ICMD_DREM:
+			case ICMD_ISHL:
+			case ICMD_LSHL:
+			case ICMD_ISHR:
+			case ICMD_LSHR:
+			case ICMD_IUSHR:
+			case ICMD_LUSHR:
+			case ICMD_IAND:
+			case ICMD_LAND:
+			case ICMD_IOR:
+			case ICMD_LOR:
+			case ICMD_IXOR:
+			case ICMD_LXOR:
+			case ICMD_LCMP:
+			case ICMD_FCMPL:
+			case ICMD_FCMPG:
+			case ICMD_DCMPL:
+			case ICMD_DCMPG:
+		//		SHOW_S1(OS, ipt);
+		//		SHOW_S2(OS, iptr);
+		//		SHOW_DST(OS, iptr);
+		//		break;
+
+				/* binary/const INT */
+			case ICMD_IADDCONST:
+			case ICMD_ISUBCONST:
+			case ICMD_IMULCONST:
+			case ICMD_IMULPOW2:
+			case ICMD_IDIVPOW2:
+			case ICMD_IREMPOW2:
+			case ICMD_IANDCONST:
+			case ICMD_IORCONST:
+			case ICMD_IXORCONST:
+			case ICMD_ISHLCONST:
+			case ICMD_ISHRCONST:
+			case ICMD_IUSHRCONST:
+			case ICMD_LSHLCONST:
+			case ICMD_LSHRCONST:
+			case ICMD_LUSHRCONST:
+		//		SHOW_S1(OS, iptr);
+		//		SHOW_INT_CONST(OS, iptr->sx.val.i);	
+		//		SHOW_DST(OS, iptr);
+		//		break;
+
+				/* ?ASTORECONST (trinary/const INT) */
+			case ICMD_IASTORECONST:
+			case ICMD_BASTORECONST:
+			case ICMD_CASTORECONST:
+			case ICMD_SASTORECONST:
+		//		SHOW_S1(OS, iptr);
+		//		SHOW_S2(OS, iptr);
+		//		SHOW_INT_CONST(OS, iptr->sx.s23.s3.constval);
+		//		break;
+
+				/* const INT */
+			case ICMD_ICONST:
+		//		SHOW_INT_CONST(OS, iptr->sx.val.i);	
+		//		SHOW_DST(OS, iptr);
+		//		break;
+
+				/* binary/const LNG */
+			case ICMD_LADDCONST:
+				goto _default;
+			case ICMD_LSUBCONST:
+				{
+					Value *konst = new CONSTInst(iptr->sx.val.l);
+					Value *s1 = current_def[bb->nr][iptr->s1.varindex];
+					Instruction *result = new SUBInst(Type::LongTypeID, s1, konst);
+					M.add_instruction(result);
+				}
+				break;
+			case ICMD_LMULCONST:
+			case ICMD_LMULPOW2:
+			case ICMD_LDIVPOW2:
+			case ICMD_LREMPOW2:
+			case ICMD_LANDCONST:
+			case ICMD_LORCONST:
+			case ICMD_LXORCONST:
+		//		SHOW_S1(OS, iptr);
+		//		SHOW_LNG_CONST(OS, iptr->sx.val.l);
+		//		SHOW_DST(OS, iptr);
+		//		break;
+
+				/* trinary/const LNG (<= pointer size) */
+			case ICMD_LASTORECONST:
+		//		SHOW_S1(OS, iptr);
+		//		SHOW_S2(OS, iptr);
+		//		SHOW_ADR_CONST(OS, iptr->sx.s23.s3.constval);
+		//		break;
+
+				/* const LNG */
+				goto _default;
+			case ICMD_LCONST:
+				{
+					Instruction *I = new CONSTInst(iptr->sx.val.l);
+					current_def[bb->nr][iptr->dst.varindex] = I;
+					M.add_instruction(I);
+				}
+				break;
+		//		SHOW_LNG_CONST(OS, iptr->sx.val.l);	
+		//		SHOW_DST(OS, iptr);
+		//		break;
+
+				/* const FLT */
+			case ICMD_FCONST:
+		//		SHOW_FLT_CONST(OS, iptr->sx.val.f);	
+		//		SHOW_DST(OS, iptr);
+		//		break;
+
+				/* const DBL */
+			case ICMD_DCONST:
+		//		SHOW_DBL_CONST(OS, iptr->sx.val.d);	
+		//		SHOW_DST(OS, iptr);
+		//		break;
+
+				/* const ADR */
+			case ICMD_ACONST:
+		//		if (iptr->flags.bits & INS_FLAG_CLASS) {
+		//			SHOW_ADR_CONST(OS, iptr->sx.val.anyptr);
+		//			SHOW_CLASSREF_OR_CLASSINFO(OS, iptr->sx.val.c);
+		//		}
+		//		else if (iptr->sx.val.anyptr == NULL) {
+		//			OS << "NULL ";
+		//		}
+		//		else {
+		//			SHOW_ADR_CONST(OS, iptr->sx.val.anyptr);
+		//			SHOW_STRING(OS, iptr->sx.val.stringconst);
+		//		}
+		//		SHOW_DST(OS, iptr);
+		//		break;
+
+			case ICMD_AASTORECONST:
+		//		SHOW_S1(OS, iptr);
+		//		SHOW_S2(OS, iptr);
+		//		printf("%p ", (void*) iptr->sx.s23.s3.constval);
+		//		break;
+
+			case ICMD_GETFIELD:        /* 1 -> 1 */
+			case ICMD_PUTFIELD:        /* 2 -> 0 */
+			case ICMD_PUTSTATIC:       /* 1 -> 0 */
+			case ICMD_GETSTATIC:       /* 0 -> 1 */
+			case ICMD_PUTSTATICCONST:  /* 0 -> 0 */
+			case ICMD_PUTFIELDCONST:   /* 1 -> 0 */
+		//		if (opcode != ICMD_GETSTATIC && opcode != ICMD_PUTSTATICCONST) {
+		//			SHOW_S1(OS, iptr);
+		//			if (opcode == ICMD_PUTFIELD) {
+		//				SHOW_S2(OS, iptr);
+		//			}
+		//		}
+		//		INSTRUCTION_GET_FIELDREF(iptr, fmiref);
+		//		SHOW_FIELD(OS, fmiref);
+		//
+		//		if (opcode == ICMD_GETSTATIC || opcode == ICMD_GETFIELD) {
+		//			SHOW_DST(OS, iptr);
+		//		}
+		//		break;
+
+			case ICMD_IINC:
+		//		SHOW_S1_LOCAL(OS, iptr);
+		//		SHOW_INT_CONST(OS, iptr->sx.val.i);
+		//		SHOW_DST_LOCAL(OS, iptr);
+		//		break;
+
+			case ICMD_IASTORE:
+			case ICMD_SASTORE:
+			case ICMD_BASTORE:
+			case ICMD_CASTORE:
+			case ICMD_LASTORE:
+			case ICMD_DASTORE:
+			case ICMD_FASTORE:
+			case ICMD_AASTORE:
+		//		SHOW_S1(OS, iptr);
+		//		SHOW_S2(OS, iptr);
+		//		SHOW_S3(OS, iptr);
+		//		break;
+
+			case ICMD_IALOAD:
+			case ICMD_SALOAD:
+			case ICMD_BALOAD:
+			case ICMD_CALOAD:
+			case ICMD_LALOAD:
+			case ICMD_DALOAD:
+			case ICMD_FALOAD:
+			case ICMD_AALOAD:
+		//		SHOW_S1(OS, iptr);
+		//		SHOW_S2(OS, iptr);
+		//		SHOW_DST(OS, iptr);
+		//		break;
+
+			case ICMD_RET:
+		//		SHOW_S1_LOCAL(OS, iptr);
+		//		if (stage >= SHOW_STACK) {
+		//			printf(" ---> L%03d", iptr->dst.block->nr);
+		//		}
+		//		break;
+				goto _default;
+
+			case ICMD_ILOAD:
+				{
+					Instruction *I = new LOADInst(Type::IntTypeID, iptr->s1.varindex);
+					current_def[bb->nr][iptr->dst.varindex] = I;
+					M.add_instruction(I);
+				}
+				break;
+			case ICMD_LLOAD:
+				{
+					Instruction *I = new LOADInst(Type::LongTypeID, iptr->s1.varindex);
+					current_def[bb->nr][iptr->dst.varindex] = I;
+					M.add_instruction(I);
+				}
+				break;
+			case ICMD_FLOAD:
+				{
+					Instruction *I = new LOADInst(Type::FloatTypeID, iptr->s1.varindex);
+					current_def[bb->nr][iptr->dst.varindex] = I;
+					M.add_instruction(I);
+				}
+				break;
+			case ICMD_DLOAD:
+				{
+					Instruction *I = new LOADInst(Type::DoubleTypeID, iptr->s1.varindex);
+					current_def[bb->nr][iptr->dst.varindex] = I;
+					M.add_instruction(I);
+				}
+				break;
+			case ICMD_ALOAD:
+		//		SHOW_S1_LOCAL(OS, iptr);
+		//		SHOW_DST(OS, iptr);
+		//		break;
+
+			case ICMD_ISTORE:
+			case ICMD_LSTORE:
+			case ICMD_FSTORE:
+			case ICMD_DSTORE:
+			case ICMD_ASTORE:
+		//		SHOW_S1(OS, iptr);
+		//		SHOW_DST_LOCAL(OS, iptr);
+		//		if (stage >= SHOW_STACK && iptr->sx.s23.s3.javaindex != UNUSED)
+		//			printf(" (javaindex %d)", iptr->sx.s23.s3.javaindex);
+		//		if (iptr->flags.bits & INS_FLAG_RETADDR) {
+		//			printf(" (retaddr L%03d)", RETADDR_FROM_JAVALOCAL(iptr->sx.s23.s2.retaddrnr));
+		//		}
+		//		break;
+
+			case ICMD_NEW:
+		//		SHOW_DST(OS, iptr);
+		//		break;
+		//
+			case ICMD_NEWARRAY:
+		//		SHOW_DST(OS, iptr);
+		//		break;
+
+			case ICMD_ANEWARRAY:
+		//		SHOW_DST(OS, iptr);
+		//		break;
+
+			case ICMD_MULTIANEWARRAY:
+		//		if (stage >= SHOW_STACK) {
+		//			argp = iptr->sx.s23.s2.args;
+		//			i = iptr->s1.argcount;
+		//			while (i--) {
+		//				SHOW_VARIABLE(OS, *(argp++));
+		//			}
+		//		}
+		//		else {
+		//			printf("argcount=%d ", iptr->s1.argcount);
+		//		}
+		//		class_classref_or_classinfo_print(iptr->sx.s23.s3.c);
+		//		putchar(' ');
+		//		SHOW_DST(OS, iptr);
+		//		break;
+
+			case ICMD_CHECKCAST:
+		//		SHOW_S1(OS, iptr);
+		//		class_classref_or_classinfo_print(iptr->sx.s23.s3.c);
+		//		putchar(' ');
+		//		SHOW_DST(OS, iptr);
+		//		break;
+		//
+			case ICMD_INSTANCEOF:
+		//		SHOW_S1(OS, iptr);
+		//		SHOW_DST(OS, iptr);
+		//		break;
+
+			case ICMD_INLINE_START:
+			case ICMD_INLINE_END:
+			case ICMD_INLINE_BODY:
+		#if 0
+		#if defined(ENABLE_INLINING)
+				{
+					insinfo_inline *ii = iptr->sx.s23.s3.inlineinfo;
+					show_inline_info(jd, ii, opcode, stage);
+				}
+		#endif
+		#endif
+		//		break;
+
+			case ICMD_BUILTIN:
+		//		if (stage >= SHOW_STACK) {
+		//			argp = iptr->sx.s23.s2.args;
+		//			i = iptr->s1.argcount;
+		//			while (i--) {
+		//				if ((iptr->s1.argcount - 1 - i) == iptr->sx.s23.s3.bte->md->paramcount)
+		//					printf(" pass-through: ");
+		//				SHOW_VARIABLE(OS, *(argp++));
+		//			}
+		//		}
+		//		printf("%s ", iptr->sx.s23.s3.bte->cname);
+		//		if (iptr->sx.s23.s3.bte->md->returntype.type != TYPE_VOID) {
+		//			SHOW_DST(OS, iptr);
+		//		}
+		//		break;
+
+			case ICMD_INVOKEVIRTUAL:
+			case ICMD_INVOKESPECIAL:
+				goto _default;
+			case ICMD_INVOKESTATIC:
+				{
+					methoddesc *md;
+					constant_FMIref   *fmiref;
+					INSTRUCTION_GET_METHODDESC(iptr, md);
+					INSTRUCTION_GET_METHODREF(iptr, fmiref);
+
+					// get return type
+					Type::TypeID type;
+					switch (fmiref->parseddesc.md->returntype.type) {
+					case TYPE_INT:
+						type = Type::IntTypeID;
+						break;
+					case TYPE_LNG:
+						type = Type::LongTypeID;
+						break;
+					case TYPE_FLT:
+						type = Type::FloatTypeID;
+						break;
+					case TYPE_DBL:
+						type = Type::DoubleTypeID;
+						break;
+					case TYPE_VOID:
+						type = Type::VoidTypeID;
+						break;
+					case TYPE_ADR:
+						//type = Type::TypeID;
+						//break;
+					case TYPE_RET:
+						//type = Type::TypeID;
+						//break;
+					default:
+						err() << BoldRed << "error: " << reset_color << " type " << BoldWhite
+							  << fmiref->parseddesc.md->returntype.type << reset_color
+							  << " not yet supported! (see vm/global.h)" << nl;
+						assert(false);
+					}
+					// create instruction
+					INVOKESTATICInst *I = new INVOKESTATICInst(type);
+					// get arguments
+					s4 *argp = iptr->sx.s23.s2.args;
+					int32_t i = iptr->s1.argcount;
+					while (i--) {
+						// TODO understand
+						//if ((iptr->s1.argcount - 1 - i) == md->paramcount)
+						//	printf(" pass-through: ");
+						I->add_operand(current_def[bb->nr][*(argp++)]);
+					}
+
+					M.add_instruction(I);
+				}
+				break;
+			case ICMD_INVOKEINTERFACE:
+		//		if (stage >= SHOW_STACK) {
+		//			methoddesc *md;
+		//			INSTRUCTION_GET_METHODDESC(iptr, md);
+		//			argp = iptr->sx.s23.s2.args;
+		//			i = iptr->s1.argcount;
+		//			while (i--) {
+		//				if ((iptr->s1.argcount - 1 - i) == md->paramcount)
+		//					printf(" pass-through: ");
+		//				SHOW_VARIABLE(OS, *(argp++));
+		//			}
+		//		}
+		//		INSTRUCTION_GET_METHODREF(iptr, fmiref);
+		//		method_methodref_print(fmiref);
+		//		if (fmiref->parseddesc.md->returntype.type != TYPE_VOID) {
+		//			putchar(' ');
+		//			SHOW_DST(OS, iptr);
+		//		}
+		//		break;
+
+			case ICMD_IFEQ:
+			case ICMD_IFNE:
+			case ICMD_IFLT:
+			case ICMD_IFGE:
+			case ICMD_IFGT:
+			case ICMD_IFLE:
+		//		SHOW_S1(OS, iptr);
+		//		SHOW_INT_CONST(OS, iptr->sx.val.i);	
+		//		SHOW_TARGET(OS, iptr->dst);
+		//		break;
+
+			case ICMD_IF_LEQ:
+				goto _default;
+			case ICMD_IF_LNE:
+				{
+					Value *konst = new CONSTInst(iptr->sx.val.l);
+					Value *s1 = current_def[bb->nr][iptr->s1.varindex];
+					Instruction *result = new IFInst(Type::LongTypeID, s1, konst, Conditional::NE);
+					M.add_instruction(result);
+				}
+				break;
+			case ICMD_IF_LLT:
+				goto _default;
+			case ICMD_IF_LGE:
+				{
+					Value *konst = new CONSTInst(iptr->sx.val.l);
+					Value *s1 = current_def[bb->nr][iptr->s1.varindex];
+					assert(s1);
+					Instruction *result = new IFInst(Type::LongTypeID, s1, konst, Conditional::GE);
+					M.add_instruction(result);
+				}
+				break;
+			case ICMD_IF_LGT:
+			case ICMD_IF_LLE:
+		//		SHOW_S1(OS, iptr);
+		//		SHOW_LNG_CONST(OS, iptr->sx.val.l);	
+		//		SHOW_TARGET(OS, iptr->dst);
+		//		break;
+		//
+			case ICMD_GOTO:
+		//		SHOW_TARGET(OS, iptr->dst);
+		//		break;
+
+			case ICMD_JSR:
+		//		SHOW_TARGET(OS, iptr->sx.s23.s3.jsrtarget);
+		//		SHOW_DST(OS, iptr);
+		//		break;
+
+			case ICMD_IFNULL:
+			case ICMD_IFNONNULL:
+		//		SHOW_S1(OS, iptr);
+		//		SHOW_TARGET(OS, iptr->dst);
+		//		break;
+
+			case ICMD_IF_ICMPEQ:
+			case ICMD_IF_ICMPNE:
+			case ICMD_IF_ICMPLT:
+			case ICMD_IF_ICMPGE:
+			case ICMD_IF_ICMPGT:
+			case ICMD_IF_ICMPLE:
+
+			case ICMD_IF_LCMPEQ:
+			case ICMD_IF_LCMPNE:
+			case ICMD_IF_LCMPLT:
+			case ICMD_IF_LCMPGE:
+			case ICMD_IF_LCMPGT:
+			case ICMD_IF_LCMPLE:
+
+			case ICMD_IF_ACMPEQ:
+			case ICMD_IF_ACMPNE:
+		//		SHOW_S1(OS, iptr);
+		//		SHOW_S2(OS, iptr);
+		//		SHOW_TARGET(OS, iptr->dst);
+		//		break;
+
+			case ICMD_TABLESWITCH:
+		//		SHOW_S1(OS, iptr);
+		//		table = iptr->dst.table;
+		//
+		//		i = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
+		//
+		//		printf("high=%d low=%d count=%d\n", iptr->sx.s23.s3.tablehigh, iptr->sx.s23.s2.tablelow, i);
+		//		while (--i >= 0) {
+		//			printf("\t\t%d --> ", (int) (table - iptr->dst.table));
+		//			printf("L%03d\n", table->block->nr);
+		//			table++;
+		//		}
+		//
+		//		break;
+
+			case ICMD_LOOKUPSWITCH:
+		//		SHOW_S1(OS, iptr);
+		//
+		//		printf("count=%d, default=L%03d\n",
+		//			   iptr->sx.s23.s2.lookupcount,
+		//			   iptr->sx.s23.s3.lookupdefault.block->nr);
+		//
+		//		lookup = iptr->dst.lookup;
+		//		i = iptr->sx.s23.s2.lookupcount;
+		//
+		//		while (--i >= 0) {
+		//			printf("\t\t%d --> L%03d\n",
+		//				   lookup->value,
+		//				   lookup->target.block->nr);
+		//			lookup++;
+		//		}
+		//		break;
+
+			case ICMD_FRETURN:
+			case ICMD_IRETURN:
+			case ICMD_DRETURN:
+			case ICMD_LRETURN:
+				{
+					Value *s1 = current_def[bb->nr][iptr->s1.varindex];
+					Instruction *result = new RETURNInst(Type::LongTypeID, s1);
+					M.add_instruction(result);
+				}
+				break;
+		//		SHOW_S1(OS, iptr);
+		//		break;
+		//
+			case ICMD_ARETURN:
+			case ICMD_ATHROW:
+		//		SHOW_S1(OS, iptr);
+		//		if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+		//			/* XXX this needs more work */
+		#if 0
+					unresolved_class_debug_dump(iptr->sx.s23.s2.uc, stdout);
+		#endif
+		//		}
+		//		break;
+
+			case ICMD_COPY:
+			case ICMD_MOVE:
+		//		SHOW_S1(OS, iptr);
+		//		SHOW_DST(OS, iptr);
+		//		break;
+			case ICMD_GETEXCEPTION:
+		//		SHOW_DST(OS, iptr);
+		//		break;
+		#if defined(ENABLE_SSA)	
+			case ICMD_PHI:
+		//		printf("[ ");
+		//		for (i = 0; i < iptr->s1.argcount; ++i) {
+		//			SHOW_VARIABLE(OS, iptr->sx.s23.s2.iargs[i]->dst.varindex);
+		//		}
+		//		printf("] ");
+		//		SHOW_DST(OS, iptr);
+		//		if (iptr->flags.bits & (1 << 0)) OS << "used ";
+		//		if (iptr->flags.bits & (1 << 1)) OS << "redundantAll ";
+		//		if (iptr->flags.bits & (1 << 2)) OS << "redundantOne ";
+		//		break;
+		#endif
+			default:
+				goto _default;
+			}
+			continue;
+
+			_default:
+				err() << BoldRed << "error: " << reset_color << "operation " << BoldWhite
+					  << icmd_table[iptr->opc].name << reset_color << " not yet supported!" << nl;
+				assert(false);
 		}
 	}
 	return true;

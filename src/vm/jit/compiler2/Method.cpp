@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/Method.hpp - Method
+/* src/vm/jit/compiler2/Method.cpp - Method
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,35 +22,22 @@
 
 */
 
-#ifndef _JIT_COMPILER2_METHOD
-#define _JIT_COMPILER2_METHOD
-
-#include <vector>
+#include "vm/jit/compiler2/Method.hpp"
+#include "vm/jit/compiler2/Instruction.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-// forware declaration
-class Instruction;
-
-class Method {
-public:
-	typedef std::vector<Instruction*> InstructionList;
-private:
-	InstructionList inst_list;
-public:
-	Method() {}
-	void add_instruction(Instruction* I);
-};
+void Method::add_instruction(Instruction* I) {
+	I->set_method(this);
+	inst_list.push_back(I);
+}
 
 
 } // end namespace cacao
 } // end namespace jit
 } // end namespace compiler2
-
-#endif /* _JIT_COMPILER2_METHOD */
-
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -65,3 +52,4 @@ public:
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */
+
