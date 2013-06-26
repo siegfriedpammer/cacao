@@ -778,7 +778,7 @@ Instruction* SSAConstructionPass::get_Instruction(jitdata *jd, instruction *iptr
 }
 
 bool SSAConstructionPass::run(JITData &JD) {
-	Method M;
+	Method &M = *(JD.get_Method());
 
 	basicblock *bb;
 	jitdata *jd = JD.jitdata();
@@ -926,9 +926,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 				goto _default;
 			case ICMD_LSUBCONST:
 				{
-					Value *konst = new CONSTInst(iptr->sx.val.l);
+					Instruction *konst = new CONSTInst(iptr->sx.val.l);
 					Value *s1 = current_def[bb->nr][iptr->s1.varindex];
 					Instruction *result = new SUBInst(Type::LongTypeID, s1, konst);
+					M.add_instruction(konst);
 					M.add_instruction(result);
 				}
 				break;
@@ -1264,9 +1265,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 				goto _default;
 			case ICMD_IF_LNE:
 				{
-					Value *konst = new CONSTInst(iptr->sx.val.l);
+					Instruction *konst = new CONSTInst(iptr->sx.val.l);
 					Value *s1 = current_def[bb->nr][iptr->s1.varindex];
 					Instruction *result = new IFInst(Type::LongTypeID, s1, konst, Conditional::NE);
+					M.add_instruction(konst);
 					M.add_instruction(result);
 				}
 				break;
@@ -1274,10 +1276,11 @@ bool SSAConstructionPass::run(JITData &JD) {
 				goto _default;
 			case ICMD_IF_LGE:
 				{
-					Value *konst = new CONSTInst(iptr->sx.val.l);
+					Instruction *konst = new CONSTInst(iptr->sx.val.l);
 					Value *s1 = current_def[bb->nr][iptr->s1.varindex];
 					assert(s1);
 					Instruction *result = new IFInst(Type::LongTypeID, s1, konst, Conditional::GE);
+					M.add_instruction(konst);
 					M.add_instruction(result);
 				}
 				break;
