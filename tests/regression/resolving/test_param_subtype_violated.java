@@ -1,32 +1,55 @@
+/* regression/resolving/test_param_subtype_violated.java
+
+   Copyright (C) 1996-2013
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301, USA.
+*/
+
 public class test_param_subtype_violated extends TestController {
 
-    public static void main(String[] args) {
-        new test_param_subtype_violated();
-    }
+	public static void main(String[] args) {
+		new test_param_subtype_violated();
+	}
 
-    test_param_subtype_violated() {
-        // ***** setup
+	test_param_subtype_violated() {
+		// ***** setup
 
-        TestLoader ld1 = new TestLoader("ld1", this);
-        TestLoader ld2 = new TestLoader("ld2", this);
-        TestLoader ld3 = new TestLoader("ld3", this);
+		TestLoader ld1 = new TestLoader("ld1", this);
+		TestLoader ld2 = new TestLoader("ld2", this);
+		TestLoader ld3 = new TestLoader("ld3", this);
 
-        ld1.addClassfile("BarUseFoo", "classes1/BarUseFoo.class");
-        ld1.addClassfile("Foo",       "classes1/Foo.class");
-        ld1.addParentDelegation("java.lang.Object");
-        ld1.addParentDelegation("java.lang.String");
+		ld1.addClassfile("BarUseFoo", "classes1/BarUseFoo.class");
+		ld1.addClassfile("Foo",       "classes1/Foo.class");
+		ld1.addParentDelegation("java.lang.Object");
+		ld1.addParentDelegation("java.lang.String");
 
-        ld2.addClassfile("BarPassFoo", "classes2/BarPassFoo.class");
-        ld2.addDelegation("BarUseFoo",  ld1);
-        ld2.addDelegation("Foo",        ld1);
-        ld2.addDelegation("DerivedFoo", ld3);
-        ld2.addParentDelegation("java.lang.Object");
-        ld2.addParentDelegation("java.lang.String");
+		ld2.addClassfile("BarPassFoo", "classes2/BarPassFoo.class");
+		ld2.addDelegation("BarUseFoo",  ld1);
+		ld2.addDelegation("Foo",        ld1);
+		ld2.addDelegation("DerivedFoo", ld3);
+		ld2.addParentDelegation("java.lang.Object");
+		ld2.addParentDelegation("java.lang.String");
 
-        ld3.addClassfile("Foo",        "classes3/Foo.class");
-        ld3.addClassfile("DerivedFoo", "classes3/DerivedFoo.class");
-        ld3.addParentDelegation("java.lang.Object");
-        ld3.addParentDelegation("java.lang.String");
+		ld3.addClassfile("Foo",        "classes3/Foo.class");
+		ld3.addClassfile("DerivedFoo", "classes3/DerivedFoo.class");
+		ld3.addParentDelegation("java.lang.Object");
+		ld3.addParentDelegation("java.lang.String");
 
 		// ***** test
 
@@ -108,4 +131,16 @@ public class test_param_subtype_violated extends TestController {
 	}
 }
 
-// vim: et sw=4
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: java
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */
