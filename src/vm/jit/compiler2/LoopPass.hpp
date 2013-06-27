@@ -36,19 +36,94 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+class BeginInst;
+
 class Loop {
+public:
+	typedef std::set<Loop*> LoopListTy;
+	typedef LoopListTy::iterator loop_iterator;
 private:
 	BeginInst *header;
+	BeginInst *exit;
+	Loop      *parent;
+	LoopListTy inner_loops;
 public:
+	Loop(BeginInst *header, BeginInst *exit) : header(header), exit(exit), parent(NULL) {}
+	BeginInst *get_header() const {
+		return header;
+	}
+	BeginInst *get_exit() const {
+		return exit;
+	}
+	Loop *get_parent() const {
+		return parent;
+	}
+	loop_iterator loop_begin() {
+		return inner_loops.begin();
+	}
+	loop_iterator loop_end() {
+		return inner_loops.end();
+	}
+	void add_inner_loop(Loop* inner_loop) {
+		if(!inner_loop->parent) {
+			inner_loop->parent = this;
+			inner_loops.insert(inner_loop);
+		}
+	}
+	void set_parent(Loop* outer_loop) {
+		if (outer_loop) {
+			outer_loop->add_inner_loop(this);
+		}
+	}
 };
 
 class LoopTree {
 public:
-	typedef BeginInst NodeTy;
+	// Note vector needed for std::sort!
+	typedef std::vector<Loop*> LoopListTy;
+	typedef Loop::LoopListTy::iterator loop_iterator;
+protected:
+	bool reducible;
+	LoopListTy loops;
+	Loop::LoopListTy top_loops;
+public:
+	LoopTree() : reducible(true) {}
+
+	bool is_reducible() const {
+		return reducible;
+	}
+	Loop *add_loop(BeginInst* header, BeginInst *exit) {
+		Loop *loop =new Loop(header,exit);
+		loops.push_back(loop);
+		return loop;
+	}
+	void add_top_loop(Loop* loop) {
+		if(loop) {
+			top_loops.insert(loop);
+		}
+	}
+	loop_iterator loop_begin() {
+		return top_loops.begin();
+	}
+	loop_iterator loop_end() {
+		return top_loops.end();
+	}
+	virtual ~LoopTree() {
+		for (LoopListTy::iterator i = loops.begin(), e = loops.end();
+				i != e; ++i) {
+			delete *i;
+		}
+	}
 };
 
 /**
  * Calculate the Loop Tree.
+ *
+ * The algorithm used here is based on the method proposed in
+ * "Testing Flow Graph Reducibility" by Tarjan @cite Tarjan1974
+ * with the modifications "SSA-Based Reduction of Operator Strengh" by
+ * Vick @cite VickMScThesis. See also Click's Phd Thesis, Chapter 6
+ * @cite ClickPHD.
  */
 class LoopPass : public Pass , public LoopTree {
 private:
@@ -81,7 +156,6 @@ public:
 	static char ID;
 	LoopPass() : Pass() {}
 	bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
 };
 
 } // end namespace compiler2

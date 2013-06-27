@@ -107,7 +107,7 @@ public:
 		return _size;
 	}
 
-	const _NodeTy* operator[](unsigned i) const {
+	_NodeTy* operator[](unsigned i) const {
 		return vertex[i];
 	}
 
