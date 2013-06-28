@@ -793,7 +793,7 @@ Value* SSAConstructionPass::read_variable_recursive(size_t varindex, size_t bb) 
 		return NULL;
 	}
 	if (!sealed_blocks[bb]) {
-		PHIInst *phi = new PHIInst(convert_var_type(varindex), BB[bb]);
+		PHIInst *phi = new PHIInst(var_type_tbl[varindex], BB[bb]);
 		incomplete_phi[bb][varindex] = phi;
 		M->add_Instruction(phi);
 		val = phi;
@@ -802,7 +802,7 @@ Value* SSAConstructionPass::read_variable_recursive(size_t varindex, size_t bb) 
 		BeginInst *pred = *(BB[bb]->pred_begin());
 		val = read_variable(varindex, beginToIndex[pred]);
 	} else {
-		PHIInst *phi = new PHIInst(convert_var_type(varindex), BB[bb]);
+		PHIInst *phi = new PHIInst(var_type_tbl[varindex], BB[bb]);
 		write_variable(varindex, bb, phi);
 		M->add_Instruction(phi);
 		val = add_phi_operands(varindex, phi);
