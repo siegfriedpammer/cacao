@@ -32,7 +32,6 @@
 #define _JIT_COMPILER2_INSTRUCTION
 
 #include "vm/jit/compiler2/Value.hpp"
-#include "vm/jit/compiler2/Type.hpp"
 #include "vm/jit/compiler2/Method.hpp"
 
 // for Instruction::reset
@@ -100,12 +99,11 @@ private:
 protected:
 	const InstID opcode;
 	BasicBlock *parent;				   ///< BasicBlock containing the instruction or NULL
-	Type::TypeID type;
 	Method* method;
 	const int id;
 	BeginInst* begin;
 
-	explicit Instruction() : opcode(NoInstID), id(-1), begin(NULL) {}
+	explicit Instruction() : Value(Type::VoidTypeID), opcode(NoInstID), id(-1), begin(NULL) {}
 
 	void append_op(Value* v) {
 		op_list.push_back(v);
@@ -138,7 +136,7 @@ protected:
 
 public:
 	explicit Instruction(InstID opcode, Type::TypeID type, BeginInst* begin = NULL)
-			: opcode(opcode), type(type), id(id_counter++), begin(begin) {}
+			: Value(type), opcode(opcode), id(id_counter++), begin(begin) {}
 
 	virtual ~Instruction() {
 		LOG("deleting instruction: " << this << nl);
@@ -157,7 +155,6 @@ public:
 
 	int get_id() const { return id; } ///< return a unique identifier for this instruction
 	InstID get_opcode() const { return opcode; } ///< return the opcode of the instruction
-	Type::TypeID get_type() const { return type; } ///< get the value type of the instruction
 
 	void set_Method(Method* M) { method = M; }
 	Method* get_Method() const { return method; }

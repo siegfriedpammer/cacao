@@ -1175,7 +1175,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						break;
 					default: assert(0);
 					}
-					Instruction *result = new CASTInst(type_from,type_to, s1);
+					Instruction *result = new CASTInst(type_to, s1);
 					write_variable(iptr->dst.varindex,bbindex,result);
 					M->add_Instruction(result);
 					break;

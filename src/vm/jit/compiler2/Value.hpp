@@ -25,11 +25,12 @@
 #ifndef _JIT_COMPILER2_VALUE
 #define _JIT_COMPILER2_VALUE
 
+#include "vm/jit/compiler2/Type.hpp"
+#include "toolbox/logging.hpp"
+
 #include <cstddef>
 #include <list>
 #include <algorithm>
-
-#include "toolbox/logging.hpp"
 
 #include <cassert>
 
@@ -44,6 +45,7 @@ class Value {
 public:
 	typedef std::list<Instruction*> UserListTy;
 protected:
+	Type::TypeID type;
 	UserListTy user_list;
 	void append_user(Instruction* I) {
 		assert(I);
@@ -72,6 +74,8 @@ protected:
 		return OS;
 	}
 public:
+	Value(Type::TypeID type) : type(type) {}
+	Type::TypeID get_type() const { return type; } ///< get the value type of the instruction
 
 	virtual ~Value();
 

@@ -286,10 +286,8 @@ public:
 
 class CASTInst : public UnaryInst {
 public:
-	explicit CASTInst(Type::TypeID type_from, Type::TypeID type_to, Value *s1)
-		: UnaryInst(CASTInstID, type_to, s1) {
-		assert(s1->to_Instruction());
-		assert(type_from == s1->to_Instruction()->get_type());
+	explicit CASTInst(Type::TypeID type, Value *s1)
+		: UnaryInst(CASTInstID, type, s1) {
 	}
 	virtual CASTInst* to_CASTInst() { return this; }
 };
@@ -563,6 +561,8 @@ public:
 		append_op(S2);
 		append_succ(trueBlock);
 		append_succ(falseBlock);
+		assert(S1->get_type() == S2->get_type());
+		type = S1->get_type();
 	}
 	virtual IFInst* to_IFInst() { return this; }
 	BeginInstRef &get_then_target() { return succ_front(); }
@@ -597,8 +597,7 @@ public:
 	/// value return
 	explicit RETURNInst(BeginInst *begin, Value* S1) : EndInst(RETURNInstID, begin) {
 		append_op(S1);
-		assert(S1->to_Instruction());
-		type = S1->to_Instruction()->get_type();
+		type = S1->get_type();
 	}
 	virtual RETURNInst* to_RETURNInst() { return this; }
 };
