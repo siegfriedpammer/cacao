@@ -54,7 +54,7 @@ public:
 	virtual LoweredInstDAG* lower(Instruction *I) const;
 
 	virtual RegisterFile* get_RegisterFile() const = 0;
-	virtual MachineMoveInst* create_Move(MachineOperand *src,
+	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const = 0;
 	virtual MachineJumpInst* create_Jump(BeginInstRef &target) const = 0;
 	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM) const = 0;
@@ -81,7 +81,7 @@ protected:
 	virtual LoweredInstDAG* lowerCASTInst(CASTInst *I) const;
 public:
 	virtual RegisterFile* get_RegisterFile() const;
-	virtual MachineMoveInst* create_Move(MachineOperand *src,
+	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const;
 	virtual MachineJumpInst* create_Jump(BeginInstRef &target) const;
 	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM) const;
@@ -125,7 +125,7 @@ LoweredInstDAG* BackendBase<Target>::lowerCONSTInst(CONSTInst *I) const {
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *reg = new VirtualRegister();
 	Immediate *imm = new Immediate(I->get_value());
-	MachineMoveInst *move = create_Move(imm,reg);
+	MachineInstruction *move = create_Move(imm,reg);
 	dag->add(move);
 	dag->set_result(move);
 	return dag;

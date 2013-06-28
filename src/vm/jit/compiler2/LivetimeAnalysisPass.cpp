@@ -298,10 +298,9 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 				}
 			}
 			// set move hint
-			MachineMoveInst *move = MI->to_MachineMoveInst();
-			if (move) {
-				Register *dst = move->get_result().op->to_Register();
-				Register *src = move->get(0).op->to_Register();
+			if (MI->is_move()) {
+				Register *dst = MI->get_result().op->to_Register();
+				Register *src = MI->get(0).op->to_Register();
 				if (src && dst) {
 					LOG2("HINT: " << dst << ".hint = " << src << nl);
 					lti_map[dst].set_hint(src);

@@ -115,7 +115,7 @@ public:
 	virtual void emit(CodeMemory* CM) const = 0;
 	virtual void emit(CodeFragment &CF) const = 0;
 };
-
+#if 0
 /**
  * Move operand to operand
  */
@@ -136,6 +136,7 @@ public:
 	virtual void emit(CodeMemory* CM) const = 0;
 
 };
+#endif
 
 } // end namespace compiler2
 } // end namespace jit

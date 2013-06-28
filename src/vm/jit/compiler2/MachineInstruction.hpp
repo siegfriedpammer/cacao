@@ -153,6 +153,9 @@ public:
 	virtual bool is_phi() const {
 		return false;
 	}
+	virtual bool is_move() const {
+		return false;
+	}
 	virtual MachineMoveInst* to_MachineMoveInst() {
 		return NULL;
 	}

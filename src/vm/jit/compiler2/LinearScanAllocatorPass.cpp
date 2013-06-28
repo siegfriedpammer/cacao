@@ -599,7 +599,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 							? (MachineOperand*) lti_succ->get_Register()
 							: (MachineOperand*) lti_succ->get_ManagedStackSlot();
 						if (op_pred != op_succ) {
-							MachineMoveInst* move = backend->create_Move(op_pred,op_succ);
+							MachineInstruction* move = backend->create_Move(op_pred,op_succ);
 							move_map[std::make_pair(pred,succ)].push_back(move);
 						}
 
@@ -627,7 +627,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 					MachineOperand *result_op = MI->get_result().op;
 					LOG("result is in: " << pred_op << " and should be in " << result_op << nl);
 					if (result_op != pred_op) {
-						MachineMoveInst* move = backend->create_Move(pred_op,result_op);
+						MachineInstruction* move = backend->create_Move(pred_op,result_op);
 						move_map[std::make_pair(pred,succ)].push_back(move);
 					}
 				}
@@ -650,7 +650,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 
 		// remember "destroyed" registers
 		std::set<Register*> destroyed;
-		MachineMoveInst *move = NULL;
+		MachineInstruction *move = NULL;
 		for (MoveListTy::const_iterator i = mlist.begin(), e = mlist.end();
 				i != e ; ++i ) {
 			move = *i;
@@ -663,7 +663,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 			if (destroyed.find(src->to_Register()) != destroyed.end()) {
 				// the value has been overwritten -> stackslot
 				ManagedStackSlot *slot = jd->get_StackSlotManager()->create_ManagedStackSlot();
-				MachineMoveInst *spill = backend->create_Move(src,slot);
+				MachineInstruction *spill = backend->create_Move(src,slot);
 				dag->add_front(spill);
 				move->set_operand(0,slot);
 				LOG2("spill needed: " << spill << nl);

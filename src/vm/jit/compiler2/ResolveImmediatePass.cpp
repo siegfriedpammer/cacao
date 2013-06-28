@@ -72,7 +72,7 @@ bool ResolveImmediatePass::run(JITData &JD) {
 							LOG2("MInst (" << MI << ") does not accept immediate "
 							  << imm << " as " << i << " parameter" << nl);
 							VirtualRegister *dst = new VirtualRegister();
-							MachineMoveInst *mov = backend->create_Move(imm,dst);
+							MachineInstruction *mov = backend->create_Move(imm,dst);
 							dag->mi_insert(pos,mov);
 							(*MI)[i].op = dst;
 							// check if we have modified a dag parameter
