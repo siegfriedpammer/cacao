@@ -154,10 +154,15 @@ public:
 		//
 		NO_ENCODING
 	};
+private:
+	OperandSize op_size;
 public:
 	GPInstruction(const char * name, MachineOperand* result,
 		OperandSize op_size, unsigned num_operands) :
-			X86_64Instruction(name, result, num_operands) {}
+			X86_64Instruction(name, result, num_operands),
+			op_size(op_size) {}
+
+	OperandSize get_op_size() const { return op_size; }
 };
 
 /**

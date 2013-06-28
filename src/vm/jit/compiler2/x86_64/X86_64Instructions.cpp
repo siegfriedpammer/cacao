@@ -72,63 +72,108 @@ GPInstruction::OperandSize get_OperandSize_from_Type(const Type::TypeID type) {
 	return GPInstruction::NO_SIZE;
 }
 
-void ALUInstruction::emit_impl_RR(CodeMemory* CM,
-		NativeRegister* src1, NativeRegister* src2) const {
-	// switch register width
-	// 64
-	CodeFragment code = CM->get_CodeFragment(3);
-	code[0] = get_rex(src1,src2);
-	code[1] = (alu_id * 0x8) + 3;
-	code[2] = get_modrm_reg2reg(src1,src2);
-}
-
 void ALUInstruction::emit_impl_RI(CodeMemory* CM,
 		NativeRegister* src1, Immediate* imm) const {
 	if (fits_into<s1>(imm->get_value())) {
 		// switch register width
 		// 64
-		CodeFragment code = CM->get_CodeFragment(3);
-		code[0] = get_rex(src1);
-		code[1] = 0x83;
-		code[2] = get_modrm_1reg(alu_id, src1);
-		return;
 	}
 	assert(0);
 }
-void ALUInstruction::emit(CodeMemory* CM) const {
-	MachineOperand *src1 = get(0).op;
-	MachineOperand *src2 = get(1).op;
-	#if 0
-	Register *src1_reg = src1->to_Register();
-	Register *src2_reg = src2->to_Register();
-	Immediate *imm = src2->to_Immediate();
-	#endif
-	// switch first operand
+
+GPInstruction::OpEncoding get_OpEncoding(MachineOperand *src1,
+		MachineOperand *src2, GPInstruction::OperandSize op_size) {
+
 	switch (src1->get_Type()) {
 	case MachineOperand::RegisterID:
 	{
-		NativeRegister *reg1 = cast_to<NativeRegister>(src1);
+		//NativeRegister *reg1 = cast_to<NativeRegister>(src1);
 
 		// switch second operand
 		switch (src2->get_Type()) {
 		case MachineOperand::RegisterID:
 		{
-			NativeRegister *reg2 = cast_to<NativeRegister>(src2);
-			emit_impl_RR(CM,reg1,reg2);
-			return;
+			switch (op_size) {
+			case GPInstruction::OS_8 : return GPInstruction::RegReg8;
+			case GPInstruction::OS_16: return GPInstruction::RegReg16;
+			case GPInstruction::OS_32: return GPInstruction::RegReg32;
+			case GPInstruction::OS_64: return GPInstruction::RegReg64;
+			default: break;
+			}
 		}
 		case MachineOperand::ImmediateID:
 		{
 			Immediate *imm = cast_to<Immediate>(src2);
-			emit_impl_RI(CM,reg1,imm);
-			return;
+			if (fits_into<s1>(imm->get_value())) {
+				// 8bit
+				switch (op_size) {
+				case GPInstruction::OS_8 : return GPInstruction::Reg8Imm8;
+				case GPInstruction::OS_16: return GPInstruction::Reg16Imm8;
+				case GPInstruction::OS_32: return GPInstruction::Reg32Imm8;
+				case GPInstruction::OS_64: return GPInstruction::Reg64Imm8;
+				default: break;
+				}
+			}
+			switch (op_size) {
+			case GPInstruction::OS_8 : // can this happen?
+			case GPInstruction::OS_16: return GPInstruction::Reg16Imm16;
+			case GPInstruction::OS_32: return GPInstruction::Reg32Imm32;
+			case GPInstruction::OS_64: return GPInstruction::Reg64Imm64;
+			default: break;
+			}
 		}
 		default: break;
 		}
 	}
 	default: break;
 	}
-	ABORT_MSG(this << ": Operand(s) not supported","src1: " << src1 << " src2: " << src2);
+	return GPInstruction::NO_ENCODING;
+}
+
+void ALUInstruction::emit(CodeMemory* CM) const {
+	MachineOperand *src1 = get(0).op;
+	MachineOperand *src2 = get(1).op;
+
+	switch (get_OpEncoding(src1,src2,get_op_size())) {
+	case GPInstruction::RegReg64:
+	{
+		NativeRegister *reg1 = cast_to<NativeRegister>(src1);
+		NativeRegister *reg2 = cast_to<NativeRegister>(src2);
+
+		CodeFragment code = CM->get_CodeFragment(3);
+		code[0] = get_rex(reg1,reg2);
+		code[1] = (alu_id * 0x8) + 3;
+		code[2] = get_modrm_reg2reg(reg1,reg2);
+		return;
+	}
+	case GPInstruction::RegReg32:
+	{
+		NativeRegister *reg1 = cast_to<NativeRegister>(src1);
+		NativeRegister *reg2 = cast_to<NativeRegister>(src2);
+
+		CodeFragment code = CM->get_CodeFragment(2);
+		code[0] = (alu_id * 0x8) + 3;
+		code[1] = get_modrm_reg2reg(reg1,reg2);
+		return;
+	}
+	case GPInstruction::Reg64Imm8:
+	{
+		NativeRegister *reg1 = cast_to<NativeRegister>(src1);
+		Immediate *imm = cast_to<Immediate>(src2);
+		CodeFragment code = CM->get_CodeFragment(4);
+		code[0] = get_rex(reg1);
+		code[1] = 0x83;
+		code[2] = get_modrm_1reg(alu_id, reg1);
+		code[3] = (s1)imm->get_value();
+		return;
+	}
+	//case GPInstruction::Reg64Imm64: break;
+	default: break;
+	}
+
+	ABORT_MSG(this << ": Operand(s) not supported",
+		"src1: " << src1 << " src2: " << src2 << " op_size: "
+		<< get_op_size() * 8 << "bit");
 }
 
 void EnterInst::emit(CodeMemory* CM) const {
