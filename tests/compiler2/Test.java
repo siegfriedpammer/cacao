@@ -56,15 +56,18 @@ static long fact(long n) {
 }
 
 static long OverflowLong(long n) {
-	return n + Long.MAX_VALUE;
+    return n + Long.MAX_VALUE;
 }
 
 static long OverflowLongIntLong(long n) {
-        return (long)((int)n + Integer.MAX_VALUE);
+    int y = 1;
+    y += Integer.MAX_VALUE;
+    y -= Integer.MIN_VALUE;
+    return n + y;
 }
 
 static int OverflowInt(int n) {
-	return n + Integer.MAX_VALUE;
+    return n + Integer.MAX_VALUE;
 }
 
 static long test2(long n,long a) {
