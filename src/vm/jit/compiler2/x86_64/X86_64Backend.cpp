@@ -200,6 +200,35 @@ LoweredInstDAG* BackendBase<X86_64>::lowerRETURNInst(RETURNInst *I) const {
 	dag->set_result(ret);
 	return dag;
 }
+
+template<>
+LoweredInstDAG* BackendBase<X86_64>::lowerCASTInst(CASTInst *I) const {
+  assert(I);
+  LoweredInstDAG *dag = new LoweredInstDAG(I);
+  Type::TypeID from = I->get_operand(0)->to_Instruction()->get_type();
+  Type::TypeID to = I->get_type();
+
+  switch (from) {
+  case Type::IntTypeID:
+	  switch (to) {
+	  case Type::LongTypeID:
+	  {
+		  MachineInstruction *mov = new MovSXInst(SrcOp(UnassignedReg::factory()),
+			  DstOp(new VirtualRegister()),GPRegister::R32, GPRegister::R64);
+		  dag->add(mov);
+		  dag->set_input(mov);
+		  dag->set_result(mov);
+		  return dag;
+	  }
+	  default: break;
+	  }
+	  break;
+  default: break;
+  }
+  ABORT_MSG("Cast not supported!", "From " << from << " to " << to );
+  return NULL;
+}
+
 template<>
 compiler2::RegisterFile* BackendBase<X86_64>::get_RegisterFile() const {
 	return x86_64::RegisterFile::factory();

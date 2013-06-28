@@ -222,6 +222,35 @@ void MovInst::emit(CodeMemory* CM) const {
 		<< src << " dst:" << dst << ")");
 }
 
+void MovSXInst::emit(CodeMemory* CM) const {
+	MachineOperand *src = operands[0].op;
+	MachineOperand *dst = result.op;
+	NativeRegister *src_reg = cast_to<NativeRegister>(src);
+	NativeRegister *dst_reg = cast_to<NativeRegister>(dst);
+
+	switch (from) {
+	case GPRegister::R8: break;
+	case GPRegister::R16: break;
+	case GPRegister::R32:
+		switch (to) {
+		case GPRegister::R64:
+		{
+			// r32 -> r64
+			CodeFragment code = CM->get_CodeFragment(3);
+			code[0] = get_rex(dst_reg,src_reg);
+			code[1] = 0x63;
+			code[2] = get_modrm_reg2reg(dst_reg,src_reg);
+			return;
+		}
+		default: break;
+		}
+		break;
+	default: break;
+	}
+
+	ABORT_MSG("x86_64 sext cast not supported","from " << from << "bits to "
+		<< to << "bits");
+}
 void CondJumpInst::emit(CodeMemory* CM) const {
 	BeginInst *BI = get_BeginInst();
 	s4 offset = CM->get_offset(BI);

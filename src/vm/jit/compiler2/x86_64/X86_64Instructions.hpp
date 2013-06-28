@@ -265,6 +265,20 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
+/**
+ * Move with Sign-Extension
+ */
+class MovSXInst : public MachineMoveInst {
+GPRegister::Type from;
+GPRegister::Type to;
+public:
+	MovSXInst(const SrcOp &src, const DstOp &dst, GPRegister::Type from,
+			GPRegister::Type to) : MachineMoveInst("X86_64MovSXInst",
+				src.op, dst.op),
+			from(from), to(to) {}
+	virtual void emit(CodeMemory* CM) const;
+};
+
 class JumpInst : public MachineJumpInst {
 private:
 	BeginInstRef &target;
