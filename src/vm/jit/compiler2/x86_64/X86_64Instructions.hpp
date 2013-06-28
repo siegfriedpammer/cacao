@@ -89,13 +89,23 @@ struct DstOp {
 /**
  * Superclass for general purpose register instruction
  */
-class GPInstruction : public MachineInstruction {
+class X86_64Instruction : public MachineInstruction {
 public:
-	enum OperationSize {
+	X86_64Instruction(const char *name, MachineOperand* result,
+		unsigned num_operands) :
+			MachineInstruction(name, result, num_operands) {}
+};
+/**
+ * Superclass for general purpose register instruction
+ */
+class GPInstruction : public X86_64Instruction {
+public:
+	enum OperandSize {
 		OS_8  = 1,
 		OS_16 = 2,
 		OS_32 = 4,
-		OS_64 = 8
+		OS_64 = 8,
+		NO_SIZE = 0
 	};
 	enum OperandType {
 		// Reg
@@ -146,9 +156,28 @@ public:
 	};
 public:
 	GPInstruction(const char * name, MachineOperand* result,
-		unsigned num_operands) : MachineInstruction(name, result,
-		num_operands) {}
+		OperandSize op_size, unsigned num_operands) :
+			X86_64Instruction(name, result, num_operands) {}
 };
+
+/**
+ * Move super instruction
+ */
+class MoveInst : public X86_64Instruction {
+public:
+	MoveInst( const char* name,
+			MachineOperand *src,
+			MachineOperand *dst)
+			: X86_64Instruction(name, dst, 1) {
+		operands[0].op = src;
+	}
+	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
+		return true;
+	}
+	virtual bool is_move() const { return true; }
+};
+
+GPInstruction::OperandSize get_OperandSize_from_Type(const Type::TypeID type);
 
 /**
  * This abstract class represents a x86_64 ALU instruction.
@@ -183,15 +212,15 @@ public:
 	 * - 7 CMP
 	 */
 	ALUInstruction(const char * name, const DstSrc1Op &dstsrc1,
-			const Src2Op &src2, u1 alu_id)
-			: GPInstruction(name, dstsrc1.op, 2) , alu_id(alu_id) {
+			const Src2Op &src2, OperandSize op_size, u1 alu_id)
+			: GPInstruction(name, dstsrc1.op, op_size, 2) , alu_id(alu_id) {
 		assert(alu_id < 8);
 		operands[0].op = dstsrc1.op;
 		operands[1].op = src2.op;
 	}
 	ALUInstruction(const char * name, const Src1Op &src1,
-			const Src2Op &src2, u1 alu_id)
-			: GPInstruction(name, &NoOperand, 2) , alu_id(alu_id) {
+			const Src2Op &src2, OperandSize op_size, u1 alu_id)
+			: GPInstruction(name, &NoOperand, op_size, 2) , alu_id(alu_id) {
 		assert(alu_id < 8);
 		operands[0].op = src1.op;
 		operands[1].op = src2.op;
@@ -213,44 +242,51 @@ public:
 // ALU instructions
 class AddInst : public ALUInstruction {
 public:
-	AddInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-			: ALUInstruction("X86_64AddInst", dstsrc1, src2, 0) {
+	AddInst(const Src2Op &src2, const DstSrc1Op &dstsrc1,
+		OperandSize op_size)
+			: ALUInstruction("X86_64AddInst", dstsrc1, src2, op_size, 0) {
 	}
 };
 class OrInst : public ALUInstruction {
 public:
-	OrInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-			: ALUInstruction("X86_64OrInst", dstsrc1, src2, 1) {
+	OrInst(const Src2Op &src2, const DstSrc1Op &dstsrc1,
+		OperandSize op_size)
+			: ALUInstruction("X86_64OrInst", dstsrc1, src2, op_size, 1) {
 	}
 };
 class AdcInst : public ALUInstruction {
 public:
-	AdcInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-			: ALUInstruction("X86_64AdcInst", dstsrc1, src2, 2) {
+	AdcInst(const Src2Op &src2, const DstSrc1Op &dstsrc1,
+		OperandSize op_size)
+			: ALUInstruction("X86_64AdcInst", dstsrc1, src2, op_size, 2) {
 	}
 };
 class SbbInst : public ALUInstruction {
 public:
-	SbbInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-			: ALUInstruction("X86_64SbbInst", dstsrc1, src2, 3) {
+	SbbInst(const Src2Op &src2, const DstSrc1Op &dstsrc1,
+		OperandSize op_size)
+			: ALUInstruction("X86_64SbbInst", dstsrc1, src2, op_size, 3) {
 	}
 };
 class AndInst : public ALUInstruction {
 public:
-	AndInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-			: ALUInstruction("X86_64AndInst", dstsrc1, src2, 4) {
+	AndInst(const Src2Op &src2, const DstSrc1Op &dstsrc1,
+		OperandSize op_size)
+			: ALUInstruction("X86_64AndInst", dstsrc1, src2, op_size, 4) {
 	}
 };
 class SubInst : public ALUInstruction {
 public:
-	SubInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-			: ALUInstruction("X86_64SubInst", dstsrc1, src2, 5) {
+	SubInst(const Src2Op &src2, const DstSrc1Op &dstsrc1,
+		OperandSize op_size)
+			: ALUInstruction("X86_64SubInst", dstsrc1, src2, op_size, 5) {
 	}
 };
 class XorInst : public ALUInstruction {
 public:
-	XorInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-			: ALUInstruction("X86_64XorInst", dstsrc1, src2, 6) {
+	XorInst(const Src2Op &src2, const DstSrc1Op &dstsrc1,
+		OperandSize op_size)
+			: ALUInstruction("X86_64XorInst", dstsrc1, src2, op_size, 6) {
 	}
 };
 class CmpInst : public ALUInstruction {
@@ -258,38 +294,39 @@ public:
 	/**
 	 * TODO: return type actually is status-flags
 	 */
-	CmpInst(const Src2Op &src2, const Src1Op &src1)
-			: ALUInstruction("X86_64CmpInst", src1, src2, 7) {
+	CmpInst(const Src2Op &src2, const Src1Op &src1,
+		OperandSize op_size)
+			: ALUInstruction("X86_64CmpInst", src1, src2, op_size, 7) {
 	}
 };
 
 
 
 
-class EnterInst : public GPInstruction {
+class EnterInst : public X86_64Instruction {
 private:
 	u2 framesize;
 public:
 	EnterInst(u2 framesize)
-			: GPInstruction("X86_64EnterInst", &NoOperand, 0),
+			: X86_64Instruction("X86_64EnterInst", &NoOperand, 0),
 			framesize(framesize) {}
 	virtual void emit(CodeMemory* CM) const;
 };
 
-class LeaveInst : public GPInstruction {
+class LeaveInst : public X86_64Instruction {
 public:
 	LeaveInst()
-			: GPInstruction("X86_64LeaveInst", &NoOperand, 0) {}
+			: X86_64Instruction("X86_64LeaveInst", &NoOperand, 0) {}
 	virtual void emit(CodeMemory* CM) const;
 };
 
-class CondJumpInst : public GPInstruction {
+class CondJumpInst : public X86_64Instruction {
 private:
 	Cond::COND cond;
 	BeginInstRef &target;
 public:
 	CondJumpInst(Cond::COND cond, BeginInstRef &target)
-			: GPInstruction("X86_64CondJumpInst", &NoOperand, 0),
+			: X86_64Instruction("X86_64CondJumpInst", &NoOperand, 0),
 			  cond(cond), target(target) {
 	}
 	BeginInst* get_BeginInst() const {
@@ -304,8 +341,9 @@ public:
 
 class IMulInst : public GPInstruction {
 public:
-	IMulInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-			: GPInstruction("X86_64IMulInst", dstsrc1.op, 2) {
+	IMulInst(const Src2Op &src2, const DstSrc1Op &dstsrc1,
+		OperandSize op_size)
+			: GPInstruction("X86_64IMulInst", dstsrc1.op, op_size, 2) {
 		operands[0].op = dstsrc1.op;
 		operands[1].op = src2.op;
 	}
@@ -314,29 +352,29 @@ public:
 
 class RetInst : public GPInstruction {
 public:
-	RetInst()
-			: GPInstruction("X86_64RetInst", &NoOperand, 0) {
+	RetInst(OperandSize op_size)
+			: GPInstruction("X86_64RetInst", &NoOperand, op_size, 0) {
 	}
 	virtual void emit(CodeMemory* CM) const;
 };
 
-class MovInst : public MachineMoveInst {
+class MovInst : public MoveInst {
 public:
 	MovInst(const SrcOp &src, const DstOp &dst)
-			: MachineMoveInst("X86_64MovInst", src.op, dst.op) {}
+			: MoveInst("X86_64MovInst", src.op, dst.op) {}
 	virtual void emit(CodeMemory* CM) const;
 };
 
 /**
  * Move with Sign-Extension
  */
-class MovSXInst : public MachineMoveInst {
-GPInstruction::OperationSize from;
-GPInstruction::OperationSize to;
+class MovSXInst : public MoveInst {
+GPInstruction::OperandSize from;
+GPInstruction::OperandSize to;
 public:
 	MovSXInst(const SrcOp &src, const DstOp &dst,
-			GPInstruction::OperationSize from, GPInstruction::OperationSize to)
-				: MachineMoveInst("X86_64MovSXInst", src.op, dst.op),
+			GPInstruction::OperandSize from, GPInstruction::OperandSize to)
+				: MoveInst("X86_64MovSXInst", src.op, dst.op),
 				from(from), to(to) {}
 	virtual void emit(CodeMemory* CM) const;
 };

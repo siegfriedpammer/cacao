@@ -50,7 +50,7 @@ const char* BackendBase<X86_64>::get_name() const {
 }
 
 template<>
-MachineMoveInst* BackendBase<X86_64>::create_Move(MachineOperand *dst,
+MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *dst,
 		MachineOperand* src) const {
 	return new MovInst(
 		SrcOp(dst),
@@ -87,7 +87,7 @@ LoweredInstDAG* BackendBase<X86_64>::lowerLOADInst(LOADInst *I) const {
 	//FIXME inefficient
 	const MachineMethodDescriptor MMD(MD);
 	VirtualRegister *dst = new VirtualRegister();
-	MachineMoveInst *move = create_Move(MMD[I->get_index()],dst);
+	MachineInstruction *move = create_Move(MMD[I->get_index()],dst);
 	dag->add(move);
 	dag->set_result(move);
 	return dag;
@@ -96,109 +96,170 @@ LoweredInstDAG* BackendBase<X86_64>::lowerLOADInst(LOADInst *I) const {
 template<>
 LoweredInstDAG* BackendBase<X86_64>::lowerIFInst(IFInst *I) const {
 	assert(I);
-	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	CmpInst *cmp = new CmpInst(
-		Src2Op(UnassignedReg::factory()),
-		Src1Op(UnassignedReg::factory()));
+	Type::TypeID type = I->get_type();
+	switch (type) {
+	case Type::ByteTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+	{
+		// Integer types
+		LoweredInstDAG *dag = new LoweredInstDAG(I);
+		CmpInst *cmp = new CmpInst(
+			Src2Op(UnassignedReg::factory()),
+			Src1Op(UnassignedReg::factory()),
+			get_OperandSize_from_Type(type));
 
-	CondJumpInst *cjmp = NULL;
-	BeginInstRef &then = I->get_then_target();
-	BeginInstRef &els = I->get_else_target();
+		CondJumpInst *cjmp = NULL;
+		BeginInstRef &then = I->get_then_target();
+		BeginInstRef &els = I->get_else_target();
 
-	switch (I->get_condition()) {
-	case Conditional::EQ:
-		cjmp = new CondJumpInst(Cond::E, then);
-		break;
-	case Conditional::LT:
-		cjmp = new CondJumpInst(Cond::L, then);
-		break;
-	case Conditional::LE:
-		cjmp = new CondJumpInst(Cond::LE, then);
-		break;
-	case Conditional::GE:
-		cjmp = new CondJumpInst(Cond::GE, then);
-		break;
-	default:
-		err() << Red << "Error: " << reset_color << "Conditioal not supported: "
-		      << bold << I->get_condition() << reset_color << nl;
-		assert(0);
+		switch (I->get_condition()) {
+		case Conditional::EQ:
+			cjmp = new CondJumpInst(Cond::E, then);
+			break;
+		case Conditional::LT:
+			cjmp = new CondJumpInst(Cond::L, then);
+			break;
+		case Conditional::LE:
+			cjmp = new CondJumpInst(Cond::LE, then);
+			break;
+		case Conditional::GE:
+			cjmp = new CondJumpInst(Cond::GE, then);
+			break;
+		default:
+			err() << Red << "Error: " << reset_color << "Conditioal not supported: "
+				  << bold << I->get_condition() << reset_color << nl;
+			assert(0);
+		}
+		JumpInst *jmp = new JumpInst(els);
+		dag->add(cmp);
+		dag->add(cjmp);
+		dag->add(jmp);
+
+		dag->set_input(0,cmp,0);
+		dag->set_input(1,cmp,1);
+		dag->set_result(jmp);
+		return dag;
 	}
-	JumpInst *jmp = new JumpInst(els);
-	dag->add(cmp);
-	dag->add(cjmp);
-	dag->add(jmp);
-
-	dag->set_input(0,cmp,0);
-	dag->set_input(1,cmp,1);
-	dag->set_result(jmp);
-	return dag;
+	default: break;
+	}
+	ABORT_MSG("Lowering IF not supported", "Inst: " << I << " type: " << type);
+	return NULL;
 }
 
 template<>
 LoweredInstDAG* BackendBase<X86_64>::lowerADDInst(ADDInst *I) const {
 	assert(I);
-	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	VirtualRegister *dst = new VirtualRegister();
-	MachineMoveInst *mov = create_Move(UnassignedReg::factory(),dst);
-	AddInst *add = new AddInst(
-		Src2Op(UnassignedReg::factory()),
-		DstSrc1Op(dst));
-	dag->add(mov);
-	dag->add(add);
-	dag->set_input(1,add,1);
-	dag->set_input(0,mov,0);
-	dag->set_result(add);
-	return dag;
+	Type::TypeID type = I->get_type();
+	switch (type) {
+	case Type::ByteTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+	{
+		// Integer types
+		LoweredInstDAG *dag = new LoweredInstDAG(I);
+		VirtualRegister *dst = new VirtualRegister();
+		MachineInstruction *mov = create_Move(UnassignedReg::factory(),dst);
+		AddInst *add = new AddInst(
+			Src2Op(UnassignedReg::factory()),
+			DstSrc1Op(dst),
+			get_OperandSize_from_Type(type));
+		dag->add(mov);
+		dag->add(add);
+		dag->set_input(1,add,1);
+		dag->set_input(0,mov,0);
+		dag->set_result(add);
+		return dag;
+	}
+	default: break;
+	}
+	ABORT_MSG("Lowering IF not supported", "Inst: " << I << " type: " << type);
+	return NULL;
 }
 
 template<>
 LoweredInstDAG* BackendBase<X86_64>::lowerSUBInst(SUBInst *I) const {
 	assert(I);
-	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	VirtualRegister *dst = new VirtualRegister();
-	MachineMoveInst *mov = create_Move(UnassignedReg::factory(), dst);
-	SubInst *sub = new SubInst(
-		Src2Op(UnassignedReg::factory()),
-		DstSrc1Op(dst));
-	dag->add(mov);
-	dag->add(sub);
-	dag->set_input(1,sub,1);
-	dag->set_input(0,mov,0);
-	dag->set_result(sub);
-	return dag;
+	Type::TypeID type = I->get_type();
+	switch (type) {
+	case Type::ByteTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+	{
+		LoweredInstDAG *dag = new LoweredInstDAG(I);
+		VirtualRegister *dst = new VirtualRegister();
+		MachineInstruction *mov = create_Move(UnassignedReg::factory(), dst);
+		SubInst *sub = new SubInst(
+			Src2Op(UnassignedReg::factory()),
+			DstSrc1Op(dst),
+			get_OperandSize_from_Type(type));
+		dag->add(mov);
+		dag->add(sub);
+		dag->set_input(1,sub,1);
+		dag->set_input(0,mov,0);
+		dag->set_result(sub);
+		return dag;
+	}
+	default: break;
+	}
+	ABORT_MSG("Lowering IF not supported", "Inst: " << I << " type: " << type);
+	return NULL;
 }
 
 template<>
 LoweredInstDAG* BackendBase<X86_64>::lowerMULInst(MULInst *I) const {
 	assert(I);
-	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	VirtualRegister *dst = new VirtualRegister();
-	MachineMoveInst *mov = create_Move(UnassignedReg::factory(), dst);
-	IMulInst *mul = new IMulInst(
-		Src2Op(UnassignedReg::factory()),
-		DstSrc1Op(dst));
-	dag->add(mov);
-	dag->add(mul);
-	dag->set_input(1,mul,1);
-	dag->set_input(0,mov,0);
-	dag->set_result(mul);
-	return dag;
+	Type::TypeID type = I->get_type();
+	switch (type) {
+	case Type::ByteTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+	{
+		LoweredInstDAG *dag = new LoweredInstDAG(I);
+		VirtualRegister *dst = new VirtualRegister();
+		MachineInstruction *mov = create_Move(UnassignedReg::factory(), dst);
+		IMulInst *mul = new IMulInst(
+			Src2Op(UnassignedReg::factory()),
+			DstSrc1Op(dst),
+			get_OperandSize_from_Type(type));
+		dag->add(mov);
+		dag->add(mul);
+		dag->set_input(1,mul,1);
+		dag->set_input(0,mov,0);
+		dag->set_result(mul);
+		return dag;
+	}
+	default: break;
+	}
+	ABORT_MSG("Lowering IF not supported", "Inst: " << I << " type: " << type);
+	return NULL;
 }
 
 
 template<>
 LoweredInstDAG* BackendBase<X86_64>::lowerRETURNInst(RETURNInst *I) const {
 	assert(I);
-	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	MachineMoveInst *reg = create_Move(UnassignedReg::factory(), &RAX);
-	LeaveInst *leave = new LeaveInst();
-	RetInst *ret = new RetInst();
-	dag->add(reg);
-	dag->add(leave);
-	dag->add(ret);
-	dag->set_input(reg);
-	dag->set_result(ret);
-	return dag;
+	Type::TypeID type = I->get_type();
+	switch (type) {
+	case Type::ByteTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+	{
+		LoweredInstDAG *dag = new LoweredInstDAG(I);
+		MachineInstruction *reg = create_Move(UnassignedReg::factory(), &RAX);
+		LeaveInst *leave = new LeaveInst();
+		RetInst *ret = new RetInst(get_OperandSize_from_Type(type));
+		dag->add(reg);
+		dag->add(leave);
+		dag->add(ret);
+		dag->set_input(reg);
+		dag->set_result(ret);
+		return dag;
+	}
+	default: break;
+	}
+	ABORT_MSG("Lowering IF not supported", "Inst: " << I << " type: " << type);
+	return NULL;
 }
 
 template<>

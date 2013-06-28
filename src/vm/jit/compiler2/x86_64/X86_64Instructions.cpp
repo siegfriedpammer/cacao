@@ -61,6 +61,17 @@ inline Immediate* cast_to<Immediate>(MachineOperand *op) {
 
 } // end anonymous namespace
 
+GPInstruction::OperandSize get_OperandSize_from_Type(const Type::TypeID type) {
+	switch (type) {
+	case Type::ByteTypeID: return GPInstruction::OS_8;
+	case Type::IntTypeID:  return GPInstruction::OS_32;
+	case Type::LongTypeID: return GPInstruction::OS_64;
+	default: break;
+	}
+	ABORT_MSG("Type Not supported!","get_OperandSize_from_Type: " << type);
+	return GPInstruction::NO_SIZE;
+}
+
 void ALUInstruction::emit_impl_RR(CodeMemory* CM,
 		NativeRegister* src1, NativeRegister* src2) const {
 	// switch register width
