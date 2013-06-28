@@ -23,6 +23,7 @@
 */
 
 #include "vm/jit/compiler2/Type.hpp"
+#include "toolbox/OStream.hpp"
 
 #include "toolbox/OStream.hpp"
 
@@ -86,6 +87,26 @@ OStream& operator<<(OStream &OS, const Type::TypeID &type) {
 	}
 	assert(0 && "unreachable");
 	return OS;
+}
+const char* get_type_name(const Type::TypeID &type) {
+	switch(type) {
+		case Type::PrimitiveTypeID: return "PrimitiveTypeID";
+		case Type::ReferenceTypeID: return "ReferenceTypeID";
+		case Type::NumericTypeID: return "NumericTypeID";
+		case Type::BooleanTypeID: return "BooleanTypeID";
+		case Type::ReturnAddressTypeID: return "ReturnAddressTypeID";
+		case Type::IntegralTypeID: return "IntegralTypeID";
+		case Type::FloatingPointTypeID: return "FloatingPointTypeID";
+		case Type::ByteTypeID: return "ByteTypeID";
+		case Type::ShortTypeID: return "ShortTypeID";
+		case Type::IntTypeID: return "IntTypeID";
+		case Type::LongTypeID: return "LongTypeID";
+		case Type::CharTypeID: return "CharTypeID";
+		case Type::FloatTypeID: return "FloatTypeID";
+		case Type::DoubleTypeID: return "DoubleTypeID";
+		case Type::VoidTypeID: return "VoidTypeID";
+	}
+	return "UnknownType";
 }
 #if 0
 /**

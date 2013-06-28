@@ -72,6 +72,7 @@ public:
 		VoidTypeID
 	};
 
+#if 0
 	const TypeID type;
 
 	explicit Type(TypeID type) : type(type) {}
@@ -118,8 +119,13 @@ public:
 	virtual FloatType*         toFloatType()         { return NULL; }
 	virtual DoubleType*        toDoubleType()        { return NULL; }
 	virtual VoidType*          toVoidType()          { return NULL; }
+#endif
 };
 
+const char* get_type_name(const Type::TypeID &type);
+
+
+#if 0
 class PrimitiveType : public Type {
 protected:
 	explicit PrimitiveType(TypeID id) : Type(id) {}
@@ -259,6 +265,8 @@ public:
 	explicit VoidType() : Type(VoidTypeID) {}
 	virtual VoidType* toVoidType() { return this; }
 };
+
+#endif
 
 // conversion functions
 const char * get_var_type(int type);

@@ -32,7 +32,8 @@ namespace compiler2 {
 int Instruction::id_counter = 0;
 
 OStream& operator<<(OStream &OS, const Instruction &I) {
-	return OS << "[" << I.get_id() << ": " << I.get_name() << "]";
+	return OS << "[" << I.get_id() << ": " << I.get_name() << " ("
+		<< I.get_type() << ")]";
 }
 OStream& operator<<(OStream &OS, const Instruction *I) {
 	if(!I) {

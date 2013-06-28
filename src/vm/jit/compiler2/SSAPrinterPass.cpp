@@ -161,8 +161,8 @@ public:
 
     StringBuf getNodeLabel(const Instruction &node) const {
 		std::ostringstream sstream;
-		sstream << "[" << node.get_id() << "] "
-		        << node.get_name();
+		sstream << "[" << node.get_id() << ": " << node.get_name() << " ("
+				<< get_type_name(node.get_type()) << ")]";
 		for(Instruction::OperandListTy::const_iterator ii = node.op_begin(), ee = node.op_end();
 				ii != ee; ++ii) {
 			sstream << " ";
