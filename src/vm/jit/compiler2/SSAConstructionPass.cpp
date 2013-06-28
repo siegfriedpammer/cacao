@@ -1107,6 +1107,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_LNEG:
 			case ICMD_FNEG:
 			case ICMD_DNEG:
+				goto _default;
 			case ICMD_I2L:
 			case ICMD_I2F:
 			case ICMD_I2D:
@@ -1119,6 +1120,66 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_D2I:
 			case ICMD_D2L:
 			case ICMD_D2F:
+				{
+					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
+					Type::TypeID type_from;
+					Type::TypeID type_to;
+					switch (iptr->opc) {
+					case ICMD_I2L:
+						type_from = Type::IntTypeID;
+						type_to = Type::LongTypeID;
+						break;
+					case ICMD_I2F:
+						type_from = Type::IntTypeID;
+						type_to = Type::FloatTypeID;
+						break;
+					case ICMD_I2D:
+						type_from = Type::IntTypeID;
+						type_to = Type::DoubleTypeID;
+						break;
+					case ICMD_L2I:
+						type_from = Type::LongTypeID;
+						type_to = Type::IntTypeID;
+						break;
+					case ICMD_L2F:
+						type_from = Type::LongTypeID;
+						type_to = Type::FloatTypeID;
+						break;
+					case ICMD_L2D:
+						type_from = Type::LongTypeID;
+						type_to = Type::DoubleTypeID;
+						break;
+					case ICMD_F2I:
+						type_from = Type::FloatTypeID;
+						type_to = Type::IntTypeID;
+						break;
+					case ICMD_F2L:
+						type_from = Type::FloatTypeID;
+						type_to = Type::LongTypeID;
+						break;
+					case ICMD_F2D:
+						type_from = Type::FloatTypeID;
+						type_to = Type::DoubleTypeID;
+						break;
+					case ICMD_D2I:
+						type_from = Type::DoubleTypeID;
+						type_to = Type::IntTypeID;
+						break;
+					case ICMD_D2L:
+						type_from = Type::DoubleTypeID;
+						type_to = Type::LongTypeID;
+						break;
+					case ICMD_D2F:
+						type_from = Type::DoubleTypeID;
+						type_to = Type::FloatTypeID;
+						break;
+					default: assert(0);
+					}
+					Instruction *result = new CASTInst(type_from,type_to, s1);
+					write_variable(iptr->dst.varindex,bbindex,result);
+					M->add_Instruction(result);
+					break;
+				}
 			case ICMD_INT2BYTE:
 			case ICMD_INT2CHAR:
 			case ICMD_INT2SHORT:
