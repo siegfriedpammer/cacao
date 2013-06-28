@@ -1,4 +1,4 @@
-/* regression/resolving/classes1/Foo.java
+/* regression/resolving/classes3/Foo.java
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
