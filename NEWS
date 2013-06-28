@@ -1,4 +1,4 @@
-New in release 1.6.1 (not yet released)
+New in release 1.6.1 (June 28, 2013)
 
   * Support for OpenJDK 7.
   * ARM: Support for hard-float systems (PR172).
