@@ -86,14 +86,76 @@ struct DstOp {
 };
 
 
-
+/**
+ * Superclass for general purpose register instruction
+ */
+class GPInstruction : public MachineInstruction {
+public:
+	enum OperationSize {
+		OS_8  = 1,
+		OS_16 = 2,
+		OS_32 = 4,
+		OS_64 = 8
+	};
+	enum OperandType {
+		// Reg
+		Reg8,
+		Reg16,
+		Reg32,
+		Reg64,
+		// Memory
+		Mem8,
+		Mem16,
+		Mem32,
+		Mem64,
+		//
+		NO_RESULT
+	};
+	enum OpEncoding {
+		// Immediate to Register
+		Reg8Imm8,
+		Reg16Imm16,
+		Reg32Imm32,
+		Reg64Imm64,
+		// Immediate to Memory
+		Mem8Imm8,
+		Mem16Imm16,
+		Mem32Imm32,
+		Mem64Imm64,
+		// Immediate 8 to Register
+		Reg16Imm8,
+		Reg32Imm8,
+		Reg64Imm8,
+		// Register to Register
+		RegReg8,
+		RegReg16,
+		RegReg32,
+		RegReg64,
+		// Memory to Register
+		RegMem8,
+		RegMem16,
+		RegMem32,
+		RegMem64,
+		// Register to Memory
+		MemReg8,
+		MemReg16,
+		MemReg32,
+		MemReg64,
+		//
+		NO_ENCODING
+	};
+public:
+	GPInstruction(const char * name, MachineOperand* result,
+		unsigned num_operands) : MachineInstruction(name, result,
+		num_operands) {}
+};
 
 /**
  * This abstract class represents a x86_64 ALU instruction.
  *
  *
  */
-class ALUInstruction : public MachineInstruction {
+class ALUInstruction : public GPInstruction {
 private:
 	u1 alu_id;
 
@@ -122,14 +184,14 @@ public:
 	 */
 	ALUInstruction(const char * name, const DstSrc1Op &dstsrc1,
 			const Src2Op &src2, u1 alu_id)
-			: MachineInstruction(name, dstsrc1.op, 2) , alu_id(alu_id) {
+			: GPInstruction(name, dstsrc1.op, 2) , alu_id(alu_id) {
 		assert(alu_id < 8);
 		operands[0].op = dstsrc1.op;
 		operands[1].op = src2.op;
 	}
 	ALUInstruction(const char * name, const Src1Op &src1,
 			const Src2Op &src2, u1 alu_id)
-			: MachineInstruction(name, &NoOperand, 2) , alu_id(alu_id) {
+			: GPInstruction(name, &NoOperand, 2) , alu_id(alu_id) {
 		assert(alu_id < 8);
 		operands[0].op = src1.op;
 		operands[1].op = src2.op;
@@ -204,30 +266,30 @@ public:
 
 
 
-class EnterInst : public MachineInstruction {
+class EnterInst : public GPInstruction {
 private:
 	u2 framesize;
 public:
 	EnterInst(u2 framesize)
-			: MachineInstruction("X86_64EnterInst", &NoOperand, 0),
+			: GPInstruction("X86_64EnterInst", &NoOperand, 0),
 			framesize(framesize) {}
 	virtual void emit(CodeMemory* CM) const;
 };
 
-class LeaveInst : public MachineInstruction {
+class LeaveInst : public GPInstruction {
 public:
 	LeaveInst()
-			: MachineInstruction("X86_64LeaveInst", &NoOperand, 0) {}
+			: GPInstruction("X86_64LeaveInst", &NoOperand, 0) {}
 	virtual void emit(CodeMemory* CM) const;
 };
 
-class CondJumpInst : public MachineInstruction {
+class CondJumpInst : public GPInstruction {
 private:
 	Cond::COND cond;
 	BeginInstRef &target;
 public:
 	CondJumpInst(Cond::COND cond, BeginInstRef &target)
-			: MachineInstruction("X86_64CondJumpInst", &NoOperand, 0),
+			: GPInstruction("X86_64CondJumpInst", &NoOperand, 0),
 			  cond(cond), target(target) {
 	}
 	BeginInst* get_BeginInst() const {
@@ -240,20 +302,20 @@ public:
 	}
 };
 
-class IMulInst : public MachineInstruction {
+class IMulInst : public GPInstruction {
 public:
 	IMulInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-			: MachineInstruction("X86_64IMulInst", dstsrc1.op, 2) {
+			: GPInstruction("X86_64IMulInst", dstsrc1.op, 2) {
 		operands[0].op = dstsrc1.op;
 		operands[1].op = src2.op;
 	}
 	virtual void emit(CodeMemory* CM) const;
 };
 
-class RetInst : public MachineInstruction {
+class RetInst : public GPInstruction {
 public:
 	RetInst()
-			: MachineInstruction("X86_64RetInst", &NoOperand, 0) {
+			: GPInstruction("X86_64RetInst", &NoOperand, 0) {
 	}
 	virtual void emit(CodeMemory* CM) const;
 };
@@ -269,13 +331,13 @@ public:
  * Move with Sign-Extension
  */
 class MovSXInst : public MachineMoveInst {
-GPRegister::Type from;
-GPRegister::Type to;
+GPInstruction::OperationSize from;
+GPInstruction::OperationSize to;
 public:
-	MovSXInst(const SrcOp &src, const DstOp &dst, GPRegister::Type from,
-			GPRegister::Type to) : MachineMoveInst("X86_64MovSXInst",
-				src.op, dst.op),
-			from(from), to(to) {}
+	MovSXInst(const SrcOp &src, const DstOp &dst,
+			GPInstruction::OperationSize from, GPInstruction::OperationSize to)
+				: MachineMoveInst("X86_64MovSXInst", src.op, dst.op),
+				from(from), to(to) {}
 	virtual void emit(CodeMemory* CM) const;
 };
 

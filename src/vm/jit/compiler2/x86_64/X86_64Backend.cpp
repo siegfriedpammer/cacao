@@ -214,7 +214,8 @@ LoweredInstDAG* BackendBase<X86_64>::lowerCASTInst(CASTInst *I) const {
 	  case Type::LongTypeID:
 	  {
 		  MachineInstruction *mov = new MovSXInst(SrcOp(UnassignedReg::factory()),
-			  DstOp(new VirtualRegister()),GPRegister::R32, GPRegister::R64);
+			  DstOp(new VirtualRegister()),
+			  GPInstruction::OS_32, GPInstruction::OS_64);
 		  dag->add(mov);
 		  dag->set_input(mov);
 		  dag->set_result(mov);

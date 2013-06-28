@@ -229,11 +229,11 @@ void MovSXInst::emit(CodeMemory* CM) const {
 	NativeRegister *dst_reg = cast_to<NativeRegister>(dst);
 
 	switch (from) {
-	case GPRegister::R8: break;
-	case GPRegister::R16: break;
-	case GPRegister::R32:
+	case GPInstruction::OS_8: break;
+	case GPInstruction::OS_16: break;
+	case GPInstruction::OS_32:
 		switch (to) {
-		case GPRegister::R64:
+		case GPInstruction::OS_64:
 		{
 			// r32 -> r64
 			CodeFragment code = CM->get_CodeFragment(3);

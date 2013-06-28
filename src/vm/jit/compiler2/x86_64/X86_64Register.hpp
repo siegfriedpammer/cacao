@@ -57,13 +57,6 @@ public:
 
 class GPRegister : public NativeRegister {
 public:
-	enum Type {
-		R8  = 1,
-		R16 = 2,
-		R32 = 4,
-		R64 = 8,
-		NONE = 0
-	};
 	GPRegister(const char* name,unsigned index,bool extented_gpr) :
 		NativeRegister(name,index,extented_gpr) {}
 };
