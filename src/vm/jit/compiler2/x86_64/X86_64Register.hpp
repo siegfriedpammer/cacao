@@ -55,42 +55,54 @@ public:
 	}
 };
 
-extern NativeRegister RAX;
-extern NativeRegister RCX;
-extern NativeRegister RDX;
-extern NativeRegister RBX;
-extern NativeRegister RSP;
-extern NativeRegister RBP;
-extern NativeRegister RSI;
-extern NativeRegister RDI;
-extern NativeRegister R8;
-extern NativeRegister R9;
-extern NativeRegister R10;
-extern NativeRegister R11;
-extern NativeRegister R12;
-extern NativeRegister R13;
-extern NativeRegister R14;
-extern NativeRegister R15;
+class GPRegister : public NativeRegister {
+public:
+	GPRegister(const char* name,unsigned index,bool extented_gpr) :
+		NativeRegister(name,index,extented_gpr) {}
+};
+
+class SSERegister : public NativeRegister {
+public:
+	SSERegister(const char* name,unsigned index,bool extented_gpr) :
+		NativeRegister(name,index,extented_gpr) {}
+};
+
+extern GPRegister RAX;
+extern GPRegister RCX;
+extern GPRegister RDX;
+extern GPRegister RBX;
+extern GPRegister RSP;
+extern GPRegister RBP;
+extern GPRegister RSI;
+extern GPRegister RDI;
+extern GPRegister R8;
+extern GPRegister R9;
+extern GPRegister R10;
+extern GPRegister R11;
+extern GPRegister R12;
+extern GPRegister R13;
+extern GPRegister R14;
+extern GPRegister R15;
 
 const unsigned IntegerArgumentRegisterSize = 6;
 extern NativeRegister* IntegerArgumentRegisters[];
 
-extern NativeRegister XMM0;
-extern NativeRegister XMM1;
-extern NativeRegister XMM2;
-extern NativeRegister XMM3;
-extern NativeRegister XMM4;
-extern NativeRegister XMM5;
-extern NativeRegister XMM6;
-extern NativeRegister XMM7;
-extern NativeRegister XMM8;
-extern NativeRegister XMM9;
-extern NativeRegister XMM10;
-extern NativeRegister XMM11;
-extern NativeRegister XMM12;
-extern NativeRegister XMM13;
-extern NativeRegister XMM14;
-extern NativeRegister XMM15;
+extern SSERegister XMM0;
+extern SSERegister XMM1;
+extern SSERegister XMM2;
+extern SSERegister XMM3;
+extern SSERegister XMM4;
+extern SSERegister XMM5;
+extern SSERegister XMM6;
+extern SSERegister XMM7;
+extern SSERegister XMM8;
+extern SSERegister XMM9;
+extern SSERegister XMM10;
+extern SSERegister XMM11;
+extern SSERegister XMM12;
+extern SSERegister XMM13;
+extern SSERegister XMM14;
+extern SSERegister XMM15;
 
 const unsigned FloatArgumentRegisterSize = 8;
 extern NativeRegister* FloatArgumentRegisters[];
