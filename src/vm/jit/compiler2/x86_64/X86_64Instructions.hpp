@@ -168,12 +168,13 @@ public:
 /**
  * Move super instruction
  */
-class MoveInst : public X86_64Instruction {
+class MoveInst : public GPInstruction {
 public:
 	MoveInst( const char* name,
 			MachineOperand *src,
-			MachineOperand *dst)
-			: X86_64Instruction(name, dst, 1) {
+			MachineOperand *dst,
+			OperandSize op_size)
+			: GPInstruction(name, dst, op_size, 1) {
 		operands[0].op = src;
 	}
 	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
@@ -365,8 +366,9 @@ public:
 
 class MovInst : public MoveInst {
 public:
-	MovInst(const SrcOp &src, const DstOp &dst)
-			: MoveInst("X86_64MovInst", src.op, dst.op) {}
+	MovInst(const SrcOp &src, const DstOp &dst,
+		GPInstruction::OperandSize op_size)
+			: MoveInst("X86_64MovInst", src.op, dst.op, op_size) {}
 	virtual void emit(CodeMemory* CM) const;
 };
 
@@ -379,7 +381,7 @@ GPInstruction::OperandSize to;
 public:
 	MovSXInst(const SrcOp &src, const DstOp &dst,
 			GPInstruction::OperandSize from, GPInstruction::OperandSize to)
-				: MoveInst("X86_64MovSXInst", src.op, dst.op),
+				: MoveInst("X86_64MovSXInst", src.op, dst.op, to),
 				from(from), to(to) {}
 	virtual void emit(CodeMemory* CM) const;
 };

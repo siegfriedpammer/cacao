@@ -54,7 +54,8 @@ MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *dst,
 		MachineOperand* src) const {
 	return new MovInst(
 		SrcOp(dst),
-		DstOp(src));
+		DstOp(src),
+		get_OperandSize_from_Type(dst->get_type()));
 }
 
 template<>
@@ -87,7 +88,10 @@ LoweredInstDAG* BackendBase<X86_64>::lowerLOADInst(LOADInst *I) const {
 	//FIXME inefficient
 	const MachineMethodDescriptor MMD(MD);
 	VirtualRegister *dst = new VirtualRegister(I->get_type());
-	MachineInstruction *move = create_Move(MMD[I->get_index()],dst);
+	MachineInstruction *move = new MovInst(
+		SrcOp(MMD[I->get_index()]),
+		DstOp(dst),
+		get_OperandSize_from_Type(I->get_type()));
 	dag->add(move);
 	dag->set_result(move);
 	return dag;
@@ -159,7 +163,10 @@ LoweredInstDAG* BackendBase<X86_64>::lowerADDInst(ADDInst *I) const {
 		// Integer types
 		LoweredInstDAG *dag = new LoweredInstDAG(I);
 		VirtualRegister *dst = new VirtualRegister(type);
-		MachineInstruction *mov = create_Move(new UnassignedReg(type),dst);
+		MachineInstruction *mov = new MovInst(
+			SrcOp(new UnassignedReg(type)),
+			DstOp(dst),
+			get_OperandSize_from_Type(type));
 		AddInst *add = new AddInst(
 			Src2Op(new UnassignedReg(type)),
 			DstSrc1Op(dst),
@@ -188,7 +195,10 @@ LoweredInstDAG* BackendBase<X86_64>::lowerSUBInst(SUBInst *I) const {
 	{
 		LoweredInstDAG *dag = new LoweredInstDAG(I);
 		VirtualRegister *dst = new VirtualRegister(type);
-		MachineInstruction *mov = create_Move(new UnassignedReg(type), dst);
+		MachineInstruction *mov = new MovInst(
+			SrcOp(new UnassignedReg(type)),
+			DstOp( dst),
+			get_OperandSize_from_Type(type));
 		SubInst *sub = new SubInst(
 			Src2Op(new UnassignedReg(type)),
 			DstSrc1Op(dst),
@@ -217,7 +227,10 @@ LoweredInstDAG* BackendBase<X86_64>::lowerMULInst(MULInst *I) const {
 	{
 		LoweredInstDAG *dag = new LoweredInstDAG(I);
 		VirtualRegister *dst = new VirtualRegister(type);
-		MachineInstruction *mov = create_Move(new UnassignedReg(type), dst);
+		MachineInstruction *mov = new MovInst(
+			SrcOp(new UnassignedReg(type)),
+			DstOp( dst),
+			get_OperandSize_from_Type(type));
 		IMulInst *mul = new IMulInst(
 			Src2Op(new UnassignedReg(type)),
 			DstSrc1Op(dst),
@@ -246,7 +259,10 @@ LoweredInstDAG* BackendBase<X86_64>::lowerRETURNInst(RETURNInst *I) const {
 	case Type::LongTypeID:
 	{
 		LoweredInstDAG *dag = new LoweredInstDAG(I);
-		MachineInstruction *reg = create_Move(new UnassignedReg(type), &RAX);
+		MachineInstruction *reg = new MovInst(
+			SrcOp(new UnassignedReg(type)),
+			DstOp( &RAX),
+			get_OperandSize_from_Type(type));
 		LeaveInst *leave = new LeaveInst();
 		RetInst *ret = new RetInst(get_OperandSize_from_Type(type));
 		dag->add(reg);
@@ -274,7 +290,8 @@ LoweredInstDAG* BackendBase<X86_64>::lowerCASTInst(CASTInst *I) const {
 	  switch (to) {
 	  case Type::LongTypeID:
 	  {
-		  MachineInstruction *mov = new MovSXInst(SrcOp(new UnassignedReg(from)),
+		  MachineInstruction *mov = new MovSXInst(
+			  SrcOp(new UnassignedReg(from)),
 			  DstOp(new VirtualRegister(to)),
 			  GPInstruction::OS_32, GPInstruction::OS_64);
 		  dag->add(mov);

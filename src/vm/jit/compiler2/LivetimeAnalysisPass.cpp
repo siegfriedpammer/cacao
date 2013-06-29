@@ -107,8 +107,8 @@ LivetimeInterval* LivetimeInterval::split(unsigned pos, StackSlotManager *SSM) {
 			// ok it is not a loop pseudo use
 			lti->add_range(next_usedef,end);
 			++i;
-			// create stack interval 
-			ManagedStackSlot *slot = SSM->create_ManagedStackSlot(); 
+			// create stack interval
+			ManagedStackSlot *slot = SSM->create_ManagedStackSlot(get_Register()->get_type());
 			stack_interval = new LivetimeInterval();
 			stack_interval->add_range(pos,next_usedef+1);
 			stack_interval->set_ManagedStackSlot(slot);
@@ -152,7 +152,7 @@ LivetimeInterval* LivetimeInterval::split(unsigned pos, StackSlotManager *SSM) {
 		}
 	}
 	// create new virtual register
-	VirtualRegister *vreg = new VirtualRegister(get_type());
+	VirtualRegister *vreg = new VirtualRegister(get_Register()->get_type());
 	lti->set_Register(vreg);
 	// set hint to the current register
 	assert(get_Register()->to_MachineRegister());
