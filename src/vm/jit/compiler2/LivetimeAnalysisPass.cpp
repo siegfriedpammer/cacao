@@ -152,7 +152,7 @@ LivetimeInterval* LivetimeInterval::split(unsigned pos, StackSlotManager *SSM) {
 		}
 	}
 	// create new virtual register
-	VirtualRegister *vreg = new VirtualRegister();
+	VirtualRegister *vreg = new VirtualRegister(get_type());
 	lti->set_Register(vreg);
 	// set hint to the current register
 	assert(get_Register()->to_MachineRegister());

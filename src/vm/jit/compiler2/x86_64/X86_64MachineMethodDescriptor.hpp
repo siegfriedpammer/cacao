@@ -55,7 +55,7 @@ public:
 				if (int_argument_counter < IntegerArgumentRegisterSize) {
 					parameter[i]= IntegerArgumentRegisters[int_argument_counter];
 				} else {
-					parameter[i]= new StackSlot(stackslot_index);
+					parameter[i]= new StackSlot(stackslot_index,type);
 					stackslot_index++;
 				}
 				int_argument_counter++;
@@ -65,7 +65,7 @@ public:
 				if (float_argument_counter < FloatArgumentRegisterSize) {
 					parameter[i]= FloatArgumentRegisters[int_argument_counter];
 				} else {
-					parameter[i]= new StackSlot(stackslot_index);
+					parameter[i]= new StackSlot(stackslot_index,type);
 					stackslot_index++;
 				}
 				float_argument_counter++;

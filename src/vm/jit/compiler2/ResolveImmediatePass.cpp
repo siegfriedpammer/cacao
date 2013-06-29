@@ -71,7 +71,7 @@ bool ResolveImmediatePass::run(JITData &JD) {
 						if (imm && !MI->accepts_immediate(i,imm)) {
 							LOG2("MInst (" << MI << ") does not accept immediate "
 							  << imm << " as " << i << " parameter" << nl);
-							VirtualRegister *dst = new VirtualRegister();
+							VirtualRegister *dst = new VirtualRegister(imm->get_type());
 							MachineInstruction *mov = backend->create_Move(imm,dst);
 							dag->mi_insert(pos,mov);
 							(*MI)[i].op = dst;

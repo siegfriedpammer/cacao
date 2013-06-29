@@ -45,8 +45,12 @@ public:
 	const unsigned index;
 	const bool extented_gpr;
 
+	/**
+	 * XXX HACK VoidTypeID!
+	 */
 	NativeRegister(const char* name,unsigned index,bool extented_gpr)
-		: MachineRegister(name), index(index), extented_gpr(extented_gpr) {}
+		: MachineRegister(name, Type::VoidTypeID),
+		index(index), extented_gpr(extented_gpr) {}
 	virtual NativeRegister* to_NativeRegister() {
 		return this;
 	}

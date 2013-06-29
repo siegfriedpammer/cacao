@@ -25,6 +25,7 @@
 #ifndef _JIT_COMPILER2_STACKSLOTMANAGER
 #define _JIT_COMPILER2_STACKSLOTMANAGER
 
+#include "vm/jit/compiler2/Type.hpp"
 #include "vm/types.hpp"
 
 #include <map>
@@ -54,7 +55,7 @@ public:
 	/**
 	 * create a new managed stack slot
 	 */
-	ManagedStackSlot* create_ManagedStackSlot();
+	ManagedStackSlot* create_ManagedStackSlot(Type::TypeID type);
 
 	/**
 	 * get the size of the stack frame in bytes

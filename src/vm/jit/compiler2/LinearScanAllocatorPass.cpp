@@ -662,7 +662,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 			}
 			if (destroyed.find(src->to_Register()) != destroyed.end()) {
 				// the value has been overwritten -> stackslot
-				ManagedStackSlot *slot = jd->get_StackSlotManager()->create_ManagedStackSlot();
+				ManagedStackSlot *slot = jd->get_StackSlotManager()->create_ManagedStackSlot(src->get_type());
 				MachineInstruction *spill = backend->create_Move(src,slot);
 				dag->add_front(spill);
 				move->set_operand(0,slot);
