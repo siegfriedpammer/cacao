@@ -112,7 +112,7 @@ template<typename Target>
 LoweredInstDAG* BackendBase<Target>::lowerPHIInst(PHIInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	MachinePhiInst *phi = new MachinePhiInst(I->op_size());
+	MachinePhiInst *phi = new MachinePhiInst(I->op_size(),I->get_type());
 	dag->add(phi);
 	dag->set_input(phi);
 	dag->set_result(phi);
@@ -123,8 +123,8 @@ template<typename Target>
 LoweredInstDAG* BackendBase<Target>::lowerCONSTInst(CONSTInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	VirtualRegister *reg = new VirtualRegister();
-	Immediate *imm = new Immediate(I->get_value());
+	VirtualRegister *reg = new VirtualRegister(I->get_type());
+	Immediate *imm = new Immediate(I->get_value(), I->get_type());
 	MachineInstruction *move = create_Move(imm,reg);
 	dag->add(move);
 	dag->set_result(move);

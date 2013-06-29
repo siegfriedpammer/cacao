@@ -25,6 +25,7 @@
 #ifndef _JIT_COMPILER2_MACHINEOPERAND
 #define _JIT_COMPILER2_MACHINEOPERAND
 
+#include "vm/jit/compiler2/Type.hpp"
 #include "toolbox/OStream.hpp"
 #include "vm/types.hpp"
 
@@ -64,11 +65,15 @@ public:
 	};
 private:
 	OperandID op_id;
+	Type::TypeID type;
 public:
 
-	explicit MachineOperand(OperandID op_id) : op_id(op_id) {}
+	explicit MachineOperand(OperandID op_id, Type::TypeID type)
+		: op_id(op_id), type(type) {}
 
 	OperandID get_OperandID() const { return op_id; }
+	Type::TypeID get_type() const { return type; }
+
 	virtual const char* get_name() const  = 0;
 
 	virtual ~MachineOperand() {}
@@ -89,13 +94,13 @@ public:
 	bool is_Address()          const { return op_id == AddressID; }
 
 	virtual OStream& print(OStream &OS) const {
-		return OS << get_name();
+		return OS << get_name() << " (" << get_type() << ")";
 	}
 };
 
 class VoidOperand : public MachineOperand {
 public:
-	VoidOperand() : MachineOperand(VoidOperandID) {}
+	VoidOperand() : MachineOperand(VoidOperandID, Type::VoidTypeID) {}
 	virtual const char* get_name() const {
 		return "VoidOperand";
 	}
@@ -108,7 +113,7 @@ class MachineRegister;
 
 class Register : public MachineOperand {
 public:
-	Register() : MachineOperand(RegisterID) {}
+	Register(Type::TypeID type) : MachineOperand(RegisterID, type) {}
 	virtual const char* get_name() const {
 		return "Register";
 	}
@@ -120,13 +125,8 @@ public:
 };
 
 class UnassignedReg : public Register {
-private:
-	UnassignedReg() {}
 public:
-	static UnassignedReg* factory() {
-		static UnassignedReg instance;
-		return &instance;
-	}
+	UnassignedReg(Type::TypeID type) : Register(type) {}
 	virtual const char* get_name() const {
 		return "UnassignedReg";
 	}
@@ -138,14 +138,15 @@ private:
 	static unsigned vreg_counter;
 	const unsigned vreg;
 public:
-	VirtualRegister() : vreg(vreg_counter++) {}
+	VirtualRegister(Type::TypeID type) : Register(type),
+		vreg(vreg_counter++) {}
 
 	virtual VirtualRegister* to_VirtualRegister() { return this; }
 	virtual const char* get_name() const {
 		return "vreg";
 	}
 	virtual OStream& print(OStream &OS) const {
-		return OS << get_name() << get_id();
+		return MachineOperand::print(OS) << get_id();
 	}
 	unsigned get_id() const { return vreg; }
 };
@@ -157,14 +158,15 @@ public:
 	/**
 	 * @param index  index of the stackslot
 	 */
-	StackSlot(int index) : MachineOperand(StackSlotID), index(index) {}
+	StackSlot(int index, Type::TypeID type)
+		: MachineOperand(StackSlotID, type), index(index) {}
 	virtual StackSlot* to_StackSlot() { return this; }
 	int get_index() const { return index; }
 	virtual const char* get_name() const {
 		return "StackSlot";
 	}
 	virtual OStream& print(OStream &OS) const {
-		return OS << get_name() << get_index();
+		return MachineOperand::print(OS) << get_index();
 	}
 };
 
@@ -172,8 +174,8 @@ class ManagedStackSlot : public MachineOperand {
 private:
 	StackSlotManager *parent;
 	unsigned id;
-	ManagedStackSlot(StackSlotManager *SSM,unsigned id)
-		: MachineOperand(ManagedStackSlotID), parent(SSM), id(id) {}
+	ManagedStackSlot(StackSlotManager *SSM,unsigned id, Type::TypeID type)
+		: MachineOperand(ManagedStackSlotID,type), parent(SSM), id(id) {}
 public:
 	/**
 	 * FIXME this should be managed
@@ -185,7 +187,7 @@ public:
 	}
 	unsigned get_id() const { return id; }
 	virtual OStream& print(OStream &OS) const {
-		return OS << get_name() << get_id();
+		return MachineOperand::print(OS) << get_id();
 	}
 	friend class StackSlotManager;
 };
@@ -194,7 +196,8 @@ class Immediate : public MachineOperand {
 private:
 	s8 value;
 public:
-	Immediate(s8 value) : MachineOperand(ImmediateID), value(value) {}
+	Immediate(s8 value, Type::TypeID type)
+		: MachineOperand(ImmediateID, type), value(value) {}
 	virtual Immediate* to_Immediate() { return this; }
 	virtual const char* get_name() const {
 		return "Immediate";
@@ -204,7 +207,10 @@ public:
 
 class Address : public MachineOperand {
 public:
-	Address() : MachineOperand(AddressID) {}
+	/**
+	 * @todo ReturnAddressTypeID is not correct
+	 */
+	Address() : MachineOperand(AddressID, Type::ReturnAddressTypeID) {}
 	virtual Address* to_Address() { return this; }
 	virtual const char* get_name() const {
 		return "Address";

@@ -44,11 +44,11 @@ public:
 
 class MachinePhiInst : public MachineInstruction {
 public:
-	MachinePhiInst(unsigned num_operands)
-			: MachineInstruction("MPhi", new VirtualRegister(),
+	MachinePhiInst(unsigned num_operands, Type::TypeID type)
+			: MachineInstruction("MPhi", new VirtualRegister(type),
 			  num_operands) {
 		for(int i = 0; i < num_operands; ++i) {
-			operands[i].op = UnassignedReg::factory();
+			operands[i].op = new UnassignedReg(type);
 		}
 	}
 

@@ -41,7 +41,8 @@ class MachineRegister : public Register {
 protected:
 	const char *name;
 public:
-	MachineRegister(const char *name) : name(name) {}
+	MachineRegister(const char *name, Type::TypeID type)
+		: Register(type), name(name) {}
 	virtual MachineRegister* to_MachineRegister() { return this; }
 	virtual const char* get_name() const {
 		return name;
