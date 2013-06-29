@@ -63,12 +63,12 @@ public:
 		VoidOperandID
 	};
 private:
-	OperandID type;
+	OperandID op_id;
 public:
 
-	explicit MachineOperand(OperandID type) : type(type) {}
+	explicit MachineOperand(OperandID op_id) : op_id(op_id) {}
 
-	OperandID get_Type() const { return type; }
+	OperandID get_OperandID() const { return op_id; }
 	virtual const char* get_name() const  = 0;
 
 	virtual ~MachineOperand() {}
@@ -80,13 +80,13 @@ public:
 	virtual Immediate*        to_Immediate()        { return 0; }
 	virtual Address*          to_Addresss()         { return 0; }
 
-	bool is_MachineOperand()   const { return type == MachineOperandID; }
-	bool is_VoidOperand()      const { return type == VoidOperandID; }
-	bool is_Register()         const { return type == RegisterID; }
-	bool is_StackSlot()        const { return type == StackSlotID; }
-	bool is_ManagedStackSlot() const { return type == ManagedStackSlotID; }
-	bool is_Immediate()        const { return type == ImmediateID; }
-	bool is_Address()          const { return type == AddressID; }
+	bool is_MachineOperand()   const { return op_id == MachineOperandID; }
+	bool is_VoidOperand()      const { return op_id == VoidOperandID; }
+	bool is_Register()         const { return op_id == RegisterID; }
+	bool is_StackSlot()        const { return op_id == StackSlotID; }
+	bool is_ManagedStackSlot() const { return op_id == ManagedStackSlotID; }
+	bool is_Immediate()        const { return op_id == ImmediateID; }
+	bool is_Address()          const { return op_id == AddressID; }
 
 	virtual OStream& print(OStream &OS) const {
 		return OS << get_name();

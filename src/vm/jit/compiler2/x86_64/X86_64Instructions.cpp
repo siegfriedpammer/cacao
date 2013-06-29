@@ -84,13 +84,13 @@ void ALUInstruction::emit_impl_RI(CodeMemory* CM,
 GPInstruction::OpEncoding get_OpEncoding(MachineOperand *src1,
 		MachineOperand *src2, GPInstruction::OperandSize op_size) {
 
-	switch (src1->get_Type()) {
+	switch (src1->get_OperandID()) {
 	case MachineOperand::RegisterID:
 	{
 		//NativeRegister *reg1 = cast_to<NativeRegister>(src1);
 
 		// switch second operand
-		switch (src2->get_Type()) {
+		switch (src2->get_OperandID()) {
 		case MachineOperand::RegisterID:
 		{
 			switch (op_size) {
