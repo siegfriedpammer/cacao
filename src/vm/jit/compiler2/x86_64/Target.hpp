@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/MachineRegister.hpp - MachineRegister
+/* src/vm/jit/compiler2/Target.hpp - X86_64 Target
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,36 +22,31 @@
 
 */
 
-#ifndef _JIT_COMPILER2_MACHINEREGISTER
-#define _JIT_COMPILER2_MACHINEREGISTER
+#ifndef _JIT_COMPILER2_X86_64TARGET
+#define _JIT_COMPILER2_X86_64TARGET
 
-#include "vm/jit/compiler2/MachineOperand.hpp"
-
-#include "Target.hpp"
+#include "vm/jit/compiler2/x86_64/X86_64.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-class MachineRegister : public Register {
-protected:
-	const char *name;
-public:
-	MachineRegister(const char *name, Type::TypeID type)
-		: Register(type), name(name) {}
-	virtual MachineRegister* to_MachineRegister() { return this; }
-	virtual const char* get_name() const {
-		return name;
-	}
-	virtual NativeRegister* to_NativeRegister() = 0;
-	~MachineRegister() {}
-};
+namespace x86_64 {
+
+// forward declarations
+class NativeRegister;
+// typedefs
+typedef X86_64 Target;
+
+} // end namespace x86_64
+
+typedef x86_64::NativeRegister NativeRegister;
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_MACHINEREGISTER */
+#endif /* _JIT_COMPILER2_X86_64TARGET */
 
 
 /*
