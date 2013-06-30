@@ -26,14 +26,16 @@
 #define _JIT_COMPILER2_MACHINEREGISTER
 
 #include "vm/jit/compiler2/MachineOperand.hpp"
+#include "vm/jit/compiler2/RegisterFile.hpp"
 
-#include "Target.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
 class MachineRegister : public Register {
+public:
+//	typedef u8 ID; ///< identify a machine register
 protected:
 	const char *name;
 public:
@@ -43,7 +45,9 @@ public:
 	virtual const char* get_name() const {
 		return name;
 	}
+//	virtual ID get_ID() const = 0;
 	virtual NativeRegister* to_NativeRegister() = 0;
+	virtual MachineResource get_MachineResource() const = 0;
 	~MachineRegister() {}
 };
 

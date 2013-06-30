@@ -29,6 +29,11 @@ namespace jit {
 namespace compiler2 {
 namespace x86_64 {
 
+NativeRegister::NativeRegister(Type::TypeID type,
+	X86_64Register* reg) : MachineRegister(reg->name, type),
+	reg(reg) {
+}
+
 GPRegister RAX("RAX",0x0,false);
 GPRegister RCX("RCX",0x1,false);
 GPRegister RDX("RDX",0x2,false);
@@ -46,7 +51,7 @@ GPRegister R13("R13",0x5,true );
 GPRegister R14("R14",0x6,true );
 GPRegister R15("R15",0x7,true );
 
-NativeRegister* IntegerArgumentRegisters[] = {
+GPRegister* IntegerArgumentRegisters[] = {
 &RDI, &RSI, &RDX, &RCX, &R8, &R9
 };
 
@@ -67,7 +72,7 @@ SSERegister XMM13("XMM13",0x5,true );
 SSERegister XMM14("XMM14",0x6,true );
 SSERegister XMM15("XMM15",0x7,true );
 
-NativeRegister* FloatArgumentRegisters[] = {
+SSERegister* FloatArgumentRegisters[] = {
 &XMM0, &XMM1, &XMM2, &XMM3, &XMM4, &XMM5, &XMM6, &XMM7
 };
 

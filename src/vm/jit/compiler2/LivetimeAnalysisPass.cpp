@@ -71,6 +71,9 @@ ManagedStackSlot* LivetimeInterval::get_ManagedStackSlot() const {
 bool LivetimeInterval::is_in_Register() const {
 	return operand->to_Register() != NULL;
 }
+Type::TypeID LivetimeInterval::get_type() const {
+	return operand->get_type();
+}
 
 LivetimeInterval* LivetimeInterval::split(unsigned pos, StackSlotManager *SSM) {
 	//sanity checks:
@@ -108,7 +111,7 @@ LivetimeInterval* LivetimeInterval::split(unsigned pos, StackSlotManager *SSM) {
 			lti->add_range(next_usedef,end);
 			++i;
 			// create stack interval
-			ManagedStackSlot *slot = SSM->create_ManagedStackSlot(get_Register()->get_type());
+			ManagedStackSlot *slot = SSM->create_ManagedStackSlot(get_type());
 			stack_interval = new LivetimeInterval();
 			stack_interval->add_range(pos,next_usedef+1);
 			stack_interval->set_ManagedStackSlot(slot);
@@ -152,7 +155,7 @@ LivetimeInterval* LivetimeInterval::split(unsigned pos, StackSlotManager *SSM) {
 		}
 	}
 	// create new virtual register
-	VirtualRegister *vreg = new VirtualRegister(get_Register()->get_type());
+	VirtualRegister *vreg = new VirtualRegister(get_type());
 	lti->set_Register(vreg);
 	// set hint to the current register
 	assert(get_Register()->to_MachineRegister());

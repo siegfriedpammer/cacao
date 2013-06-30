@@ -30,7 +30,7 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-Backend* factory() {
+Backend* Backend::factory() {
 	static BackendBase<Target> BE;
 	return &BE;
 }

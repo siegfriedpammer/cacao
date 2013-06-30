@@ -42,14 +42,26 @@ template <class A,class B>
 inline A* cast_to(B*);
 
 template <>
-inline NativeRegister* cast_to<NativeRegister>(MachineOperand *op) {
+inline X86_64Register* cast_to<X86_64Register>(MachineOperand *op) {
 	Register *reg = op->to_Register();
 	assert(reg);
 	MachineRegister *mreg = reg->to_MachineRegister();
 	assert(mreg);
 	NativeRegister *nreg = mreg->to_NativeRegister();
 	assert(nreg);
-	return nreg;
+	X86_64Register *xreg = nreg->get_X86_64Register();
+	assert(xreg);
+	return xreg;
+}
+
+template <>
+inline X86_64Register* cast_to<X86_64Register>(MachineRegister *mreg) {
+	assert(mreg);
+	NativeRegister *nreg = mreg->to_NativeRegister();
+	assert(nreg);
+	X86_64Register *xreg = nreg->get_X86_64Register();
+	assert(xreg);
+	return xreg;
 }
 
 template <>
@@ -72,14 +84,16 @@ GPInstruction::OperandSize get_OperandSize_from_Type(const Type::TypeID type) {
 	return GPInstruction::NO_SIZE;
 }
 
+#if 0
 void ALUInstruction::emit_impl_RI(CodeMemory* CM,
-		NativeRegister* src1, Immediate* imm) const {
+		X86_64Register* src1, Immediate* imm) const {
 	if (fits_into<s1>(imm->get_value())) {
 		// switch register width
 		// 64
 	}
 	assert(0);
 }
+#endif
 
 GPInstruction::OpEncoding get_OpEncoding(MachineOperand *src1,
 		MachineOperand *src2, GPInstruction::OperandSize op_size) {
@@ -87,7 +101,7 @@ GPInstruction::OpEncoding get_OpEncoding(MachineOperand *src1,
 	switch (src1->get_OperandID()) {
 	case MachineOperand::RegisterID:
 	{
-		//NativeRegister *reg1 = cast_to<NativeRegister>(src1);
+		//X86_64Register *reg1 = cast_to<X86_64Register>(src1);
 
 		// switch second operand
 		switch (src2->get_OperandID()) {
@@ -137,8 +151,8 @@ void ALUInstruction::emit(CodeMemory* CM) const {
 	switch (get_OpEncoding(src1,src2,get_op_size())) {
 	case GPInstruction::RegReg64:
 	{
-		NativeRegister *reg1 = cast_to<NativeRegister>(src1);
-		NativeRegister *reg2 = cast_to<NativeRegister>(src2);
+		X86_64Register *reg1 = cast_to<X86_64Register>(src1);
+		X86_64Register *reg2 = cast_to<X86_64Register>(src2);
 
 		CodeFragment code = CM->get_CodeFragment(3);
 		code[0] = get_rex(reg1,reg2);
@@ -148,8 +162,8 @@ void ALUInstruction::emit(CodeMemory* CM) const {
 	}
 	case GPInstruction::RegReg32:
 	{
-		NativeRegister *reg1 = cast_to<NativeRegister>(src1);
-		NativeRegister *reg2 = cast_to<NativeRegister>(src2);
+		X86_64Register *reg1 = cast_to<X86_64Register>(src1);
+		X86_64Register *reg2 = cast_to<X86_64Register>(src2);
 
 		CodeFragment code = CM->get_CodeFragment(2);
 		code[0] = (alu_id * 0x8) + 3;
@@ -158,7 +172,7 @@ void ALUInstruction::emit(CodeMemory* CM) const {
 	}
 	case GPInstruction::Reg64Imm8:
 	{
-		NativeRegister *reg1 = cast_to<NativeRegister>(src1);
+		X86_64Register *reg1 = cast_to<X86_64Register>(src1);
 		Immediate *imm = cast_to<Immediate>(src2);
 		CodeFragment code = CM->get_CodeFragment(4);
 		code[0] = get_rex(reg1);
@@ -200,7 +214,7 @@ namespace {
  * @param stack2reg true if we move from stack to register
  */
 inline void emit_stack_move(CodeMemory* CM, StackSlot *slot,
-		NativeRegister *reg, bool stack2reg) {
+		X86_64Register *reg, bool stack2reg) {
 	s4 index = slot->get_index() * 8;
 	u1 opcode = stack2reg ? 0x8b : 0x89;
 	if (fits_into<s1>(index)) {
@@ -214,8 +228,8 @@ inline void emit_stack_move(CodeMemory* CM, StackSlot *slot,
 /**
  * reg to reg
  */
-inline void emit_reg2reg(CodeMemory* CM, NativeRegister *dst,
-		NativeRegister *src) {
+inline void emit_reg2reg(CodeMemory* CM, X86_64Register *dst,
+		X86_64Register *src) {
 	InstructionEncoding::reg2reg<u1>(CM, 0x89, src, dst);
 }
 
@@ -223,7 +237,7 @@ inline void emit_reg2reg(CodeMemory* CM, NativeRegister *dst,
  * imm to reg
  */
 inline void emit_imm2reg_move(CodeMemory* CM, Immediate *imm,
-		NativeRegister *dst) {
+		X86_64Register *dst) {
 
 	u1 opcode = 0xb8 + dst->get_index();
 	InstructionEncoding::reg2imm<u1>(CM, opcode, dst, imm->get_value());
@@ -245,20 +259,20 @@ void MovInst::emit(CodeMemory* CM) const {
 			assert(src_mreg);
 
 			// reg to reg move
-			emit_reg2reg(CM,dst_mreg->to_NativeRegister(),
-				src_mreg->to_NativeRegister());
+			emit_reg2reg(CM,cast_to<X86_64Register>(dst_mreg),
+				cast_to<X86_64Register>(src_mreg));
 			return;
 		}
 		StackSlot *slot = src->to_StackSlot();
 		if (slot) {
 			// stack to reg move
-			emit_stack_move(CM,slot,dst_mreg->to_NativeRegister(),true);
+			emit_stack_move(CM,slot,cast_to<X86_64Register>(dst_mreg),true);
 			return;
 		}
 		Immediate *imm = src->to_Immediate();
 		if (imm) {
 			// im to reg move
-			emit_imm2reg_move(CM,imm,dst_mreg->to_NativeRegister());
+			emit_imm2reg_move(CM,imm,cast_to<X86_64Register>(dst_mreg));
 			return;
 		}
 	} else {
@@ -269,7 +283,7 @@ void MovInst::emit(CodeMemory* CM) const {
 			StackSlot *slot = dst->to_StackSlot();
 			if (slot) {
 				// reg to stack move
-				emit_stack_move(CM,slot,src_mreg->to_NativeRegister(),false);
+				emit_stack_move(CM,slot,cast_to<X86_64Register>(src_mreg),false);
 				return;
 			}
 		}
@@ -281,8 +295,8 @@ void MovInst::emit(CodeMemory* CM) const {
 void MovSXInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
 	MachineOperand *dst = result.op;
-	NativeRegister *src_reg = cast_to<NativeRegister>(src);
-	NativeRegister *dst_reg = cast_to<NativeRegister>(dst);
+	X86_64Register *src_reg = cast_to<X86_64Register>(src);
+	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
 
 	switch (from) {
 	case GPInstruction::OS_8: break;
@@ -333,8 +347,8 @@ void CondJumpInst::emit(CodeMemory* CM) const {
 	InstructionEncoding::imm_op<u2>(CM, 0x0f80 + cond.code, offset);
 }
 void IMulInst::emit(CodeMemory* CM) const {
-	NativeRegister *src_reg = operands[1].op->to_Register()->to_MachineRegister()->to_NativeRegister();
-	NativeRegister *dst_reg = result.op->to_Register()->to_MachineRegister()->to_NativeRegister();
+	X86_64Register *src_reg = cast_to<X86_64Register>(operands[1].op);
+	X86_64Register *dst_reg = cast_to<X86_64Register>(result.op);
 
 	InstructionEncoding::reg2reg<u2>(CM, 0x0faf, dst_reg, src_reg);
 }

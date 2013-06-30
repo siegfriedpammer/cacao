@@ -98,19 +98,30 @@ void LinearScanAllocatorPass::split(LivetimeInterval *lti, unsigned pos) {
 	}
 }
 
+namespace {
+
+MachineResource get_MachineResource_from_MachineRegister(const MachineRegister* reg) {
+	return reg->get_MachineResource();
+}
+MachineRegister* get_MachineRegister_from_MachineResouce(const MachineResource& res) {
+	return res.create_MachineRegister();
+}
+
+} // end anonymous namespace
+
 inline bool LinearScanAllocatorPass::try_allocate_free_reg(LivetimeInterval *current) {
-	RegisterFile* reg_file = backend->get_RegisterFile();
+	RegisterFile* reg_file = backend->get_RegisterFile(current->get_type());
 	assert(reg_file);
 
-	std::map<MachineRegister*,unsigned> free_until_pos;
+	std::map<MachineResource,unsigned> free_until_pos;
 	LOG2(BoldMagenta << "try_allocate_free_reg (current=" << current << ")" << reset_color << nl);
 
 	// set all registers to free
 	for(RegisterFile::const_iterator i = reg_file->begin(), e = reg_file->end();
 			i != e ; ++i) {
-		MachineRegister *reg = *i;
-		free_until_pos[reg] = UINT_MAX;
-		LOG3("reg free_until_pos[" << reg << "] = UINT_MAX " << UINT_MAX << nl);
+		MachineResource res = *i;
+		free_until_pos[res] = UINT_MAX;
+		//LOG3("res free_until_pos[" << res << "] = UINT_MAX " << UINT_MAX << nl);
 	}
 	// set active registes to occupied
 	for (ActiveSetTy::const_iterator i = active.begin(), e = active.end();
@@ -123,7 +134,7 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(LivetimeInterval *cur
 		}
 		assert(reg);
 		// reg not free!
-		free_until_pos[reg] = 0;
+		free_until_pos[get_MachineResource_from_MachineRegister(reg)] = 0;
 		LOG3("active " << *i << " free_until_pos[" << reg << "] = 0" << nl);
 	}
 	// all intervals in inactive intersection with current
@@ -138,7 +149,7 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(LivetimeInterval *cur
 			MachineRegister *reg = inact->get_Register()->to_MachineRegister();
 			assert(reg);
 			// reg not free!
-			free_until_pos[reg] = intersection;
+			free_until_pos[get_MachineResource_from_MachineRegister(reg)] = intersection;
 		}
 
 	}
@@ -154,7 +165,7 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(LivetimeInterval *cur
 			LOG2("Hint: " << hint_lti << nl);
 			reg = hint_lti->get_Register()->to_MachineRegister();
 			assert(reg);
-			free_pos = free_until_pos[reg];
+			free_pos = free_until_pos[get_MachineResource_from_MachineRegister(reg)];
 			// free_pos = 0 indicates that either reg is occupied or is
 			// generally not available for assignment (not in regfile)
 			if (current->get_start() <= hint_lti->get_end() && free_pos != 0) {
@@ -168,10 +179,10 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(LivetimeInterval *cur
 	}
 	if (!reg) {
 		// get the register with the maximum free until number
-		std::map<MachineRegister*,unsigned>::const_iterator i = std::max_element(free_until_pos.begin(),
-			free_until_pos.end(), max_value_comparator<MachineRegister*, unsigned>);
+		std::map<MachineResource,unsigned>::const_iterator i = std::max_element(free_until_pos.begin(),
+			free_until_pos.end(), max_value_comparator<MachineResource, unsigned>);
 		assert(i != free_until_pos.end());
-		reg = i->first;
+		reg = get_MachineRegister_from_MachineResouce(i->first);
 		free_pos = i->second;
 		assert(reg);
 	}
@@ -196,10 +207,10 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(LivetimeInterval *cur
 }
 
 inline bool LinearScanAllocatorPass::allocate_blocked_reg(LivetimeInterval *current) {
-	RegisterFile* reg_file = backend->get_RegisterFile();
+	RegisterFile* reg_file = backend->get_RegisterFile(current->get_type());
 	assert(reg_file);
 
-	std::map<MachineRegister*,unsigned> next_use_pos;
+	std::map<MachineResource,unsigned> next_use_pos;
 	LOG2(BoldCyan << "allocate_blocked_reg (current=" << current << ")" << reset_color << nl);
 
 	// Remember best interval
@@ -210,8 +221,8 @@ inline bool LinearScanAllocatorPass::allocate_blocked_reg(LivetimeInterval *curr
 	// set all registers to free
 	for(RegisterFile::const_iterator i = reg_file->begin(), e = reg_file->end();
 			i != e ; ++i) {
-		MachineRegister *reg = *i;
-		next_use_pos[reg] = UINT_MAX;
+		MachineResource res = *i;
+		next_use_pos[res] = UINT_MAX;
 	}
 	// for each interval in active
 	for (ActiveSetTy::const_iterator i = active.begin(), e = active.end();
@@ -221,7 +232,7 @@ inline bool LinearScanAllocatorPass::allocate_blocked_reg(LivetimeInterval *curr
 		MachineRegister *reg = lti->get_Register()->to_MachineRegister();
 		assert(reg);
 		signed pos = lti->next_usedef_after(current->get_start());
-		next_use_pos[reg] = pos;
+		next_use_pos[get_MachineResource_from_MachineRegister(reg)] = pos;
 		LOG3("active: " << lti << " pos: " << pos << nl);
 		if (pos > best_next_use_pos && !lti->is_fixed_interval()) {
 			best_next_use_pos = pos;
@@ -241,7 +252,7 @@ inline bool LinearScanAllocatorPass::allocate_blocked_reg(LivetimeInterval *curr
 			MachineRegister *reg = lti->get_Register()->to_MachineRegister();
 			assert(reg);
 			signed pos = lti->next_usedef_after(current->get_start());
-			next_use_pos[reg] = pos;
+			next_use_pos[get_MachineResource_from_MachineRegister(reg)] = pos;
 			LOG3("inactive: " << lti << " pos: " << pos << nl);
 			if (pos > best_next_use_pos && !lti->is_fixed_interval()) {
 				best_next_use_pos = pos;
@@ -254,7 +265,7 @@ inline bool LinearScanAllocatorPass::allocate_blocked_reg(LivetimeInterval *curr
 
 	// get the register with the highest next use position
 	#if 0
-	std::map<MachineRegister*,unsigned>::const_iterator i = std::max_element(next_use_pos.begin(),
+	std::map<MachineResource,unsigned>::const_iterator i = std::max_element(next_use_pos.begin(),
 		next_use_pos.end(), max_value_comparator<MachineRegister*, unsigned>);
 	assert(i != next_use_pos.end());
 	MachineRegister *reg = i->first;

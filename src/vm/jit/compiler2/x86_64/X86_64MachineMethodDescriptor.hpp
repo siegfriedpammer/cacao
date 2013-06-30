@@ -52,8 +52,10 @@ public:
 			switch (type) {
 			case Type::IntTypeID:
 			case Type::LongTypeID:
+			#if 0
 				if (int_argument_counter < IntegerArgumentRegisterSize) {
-					parameter[i]= IntegerArgumentRegisters[int_argument_counter];
+					parameter[i]= new NativeRegister(type,
+						*IntegerArgumentRegisters[int_argument_counter]);
 				} else {
 					parameter[i]= new StackSlot(stackslot_index,type);
 					stackslot_index++;
@@ -63,13 +65,15 @@ public:
 			case Type::FloatTypeID:
 			case Type::DoubleTypeID:
 				if (float_argument_counter < FloatArgumentRegisterSize) {
-					parameter[i]= FloatArgumentRegisters[int_argument_counter];
+					parameter[i]= new NativeRegister(type,
+						*FloatArgumentRegisters[int_argument_counter]);
 				} else {
 					parameter[i]= new StackSlot(stackslot_index,type);
 					stackslot_index++;
 				}
 				float_argument_counter++;
 				break;
+			#endif
 			default:
 				err() << Red << "Error: " << reset_color << "Type not yet supported: "
 					  << bold << type << reset_color << nl;

@@ -53,7 +53,7 @@ public:
 	static Backend* factory();
 	virtual LoweredInstDAG* lower(Instruction *I) const;
 
-	virtual RegisterFile* get_RegisterFile() const = 0;
+	virtual RegisterFile* get_RegisterFile(Type::TypeID type) const = 0;
 	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const = 0;
 	virtual MachineJumpInst* create_Jump(BeginInstRef &target) const = 0;
@@ -80,7 +80,7 @@ protected:
 	virtual LoweredInstDAG* lowerMULInst(MULInst *I) const;
 	virtual LoweredInstDAG* lowerCASTInst(CASTInst *I) const;
 public:
-	virtual RegisterFile* get_RegisterFile() const;
+	virtual RegisterFile* get_RegisterFile(Type::TypeID type) const;
 	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const;
 	virtual MachineJumpInst* create_Jump(BeginInstRef &target) const;

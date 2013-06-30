@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_LIVETIMEANALYSISPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/Type.hpp"
 
 #include <map>
 #include <set>
@@ -112,6 +113,8 @@ public:
 	void set_ManagedStackSlot(ManagedStackSlot* s);
 	ManagedStackSlot* get_ManagedStackSlot() const;
 	bool is_in_Register() const;
+
+	Type::TypeID get_type() const;
 
 	bool is_fixed_interval()       const { return fixed_interval; }
 

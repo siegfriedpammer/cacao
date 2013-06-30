@@ -35,11 +35,11 @@ namespace x86_64 {
 
 // forward declarations
 class NativeRegister;
-// typedefs
-typedef X86_64 Target;
 
 } // end namespace x86_64
 
+// typedefs
+typedef x86_64::X86_64 Target;
 typedef x86_64::NativeRegister NativeRegister;
 
 } // end namespace compiler2

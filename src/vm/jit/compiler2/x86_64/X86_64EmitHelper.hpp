@@ -34,7 +34,7 @@ namespace jit {
 namespace compiler2 {
 namespace x86_64 {
 
-inline u1 get_rex(NativeRegister *reg, NativeRegister *rm = NULL,
+inline u1 get_rex(X86_64Register *reg, X86_64Register *rm = NULL,
 		bool opsiz64 = true) {
 	const unsigned rex_w = 3;
 	const unsigned rex_r = 2;
@@ -48,10 +48,10 @@ inline u1 get_rex(NativeRegister *reg, NativeRegister *rm = NULL,
 		rex |= (1 << rex_w);
 	}
 
-	if (reg->extented_gpr) {
+	if (reg->extented) {
 		rex |= (1 << rex_r);
 	}
-	if (rm && rm->extented_gpr) {
+	if (rm && rm->extented) {
 		rex |= (1 << rex_b);
 	}
 	return rex;
@@ -68,20 +68,20 @@ inline u1 get_modrm_u1(u1 mod, u1 reg, u1 rm) {
 
 	return modrm;
 }
-inline u1 get_modrm(u1 mod, NativeRegister *reg, NativeRegister *rm) {
+inline u1 get_modrm(u1 mod, X86_64Register *reg, X86_64Register *rm) {
 	return get_modrm_u1(mod,reg->get_index(), rm->get_index());
 }
-inline u1 get_modrm_reg2reg(NativeRegister *reg, NativeRegister *rm) {
+inline u1 get_modrm_reg2reg(X86_64Register *reg, X86_64Register *rm) {
 	return get_modrm(0x3,reg,rm);
 }
-inline u1 get_modrm_1reg(u1 reg, NativeRegister *rm) {
+inline u1 get_modrm_1reg(u1 reg, X86_64Register *rm) {
 	return get_modrm_u1(0x3,reg,rm->get_index());
 }
 
 struct InstructionEncoding {
 	template <class T>
 	static void reg2reg(CodeMemory *CM, T opcode,
-			NativeRegister *reg, NativeRegister *rm) {
+			X86_64Register *reg, X86_64Register *rm) {
 		CodeFragment code = CM->get_CodeFragment(2 + sizeof(T));
 
 		code[0] = get_rex(reg,rm);
@@ -94,7 +94,7 @@ struct InstructionEncoding {
 	}
 	template <class T>
 	static void reg2rbp_disp8(CodeMemory *CM, T opcode,
-			NativeRegister *reg, s1 disp) {
+			X86_64Register *reg, s1 disp) {
 		CodeFragment code = CM->get_CodeFragment(3 + sizeof(T));
 
 		code[0] = get_rex(reg);
@@ -108,7 +108,7 @@ struct InstructionEncoding {
 	}
 	template <class T>
 	static void reg2rbp_disp32(CodeMemory *CM, T opcode,
-			NativeRegister *reg, s4 disp) {
+			X86_64Register *reg, s4 disp) {
 		CodeFragment code = CM->get_CodeFragment(6 + sizeof(T));
 
 		code[0] = get_rex(reg);
@@ -125,7 +125,7 @@ struct InstructionEncoding {
 	}
 	template <class O,class I>
 	static void reg2imm(CodeMemory *CM, O opcode,
-			NativeRegister *reg, I imm) {
+			X86_64Register *reg, I imm) {
 		CodeFragment code = CM->get_CodeFragment(1 + sizeof(O) + sizeof(I));
 
 		code[0] = get_rex(reg);
@@ -140,7 +140,7 @@ struct InstructionEncoding {
 	}
 	template <class O,class I>
 	static void reg2imm_modrm(CodeMemory *CM, O opcode,
-			u1 reg, NativeRegister *rm, I imm) {
+			u1 reg, X86_64Register *rm, I imm) {
 		CodeFragment code = CM->get_CodeFragment(2 + sizeof(O) + sizeof(I));
 
 		code[0] = get_rex(rm);
@@ -171,7 +171,7 @@ struct InstructionEncoding {
 template <>
 static void InstructionEncoding::reg2reg<u1>(
 		CodeMemory *CM, u1 opcode,
-		NativeRegister *src, NativeRegister *dst) {
+		X86_64Register *src, X86_64Register *dst) {
 	CodeFragment code = CM->get_CodeFragment(3);
 	code[0] = get_rex(src,dst);
 	code[1] = opcode;

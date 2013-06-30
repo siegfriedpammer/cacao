@@ -25,19 +25,41 @@
 #ifndef _JIT_COMPILER2_REGISTERFILE
 #define _JIT_COMPILER2_REGISTERFILE
 
+#include "vm/types.hpp"
+#include "Target.hpp"
+
 #include <vector>
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-class MachineRegister;
+class NativeResource {
+public:
+	typedef u8 ID;
+	virtual ID get_ID() const = 0;
+	//virtual NativeRegister* get_NativeRegister() = 0;
+	virtual MachineRegister* create_MachineRegister() = 0;
+};
+
+class MachineResource {
+private:
+	NativeResource *res;
+public:
+	MachineResource(NativeResource *res) : res(res) {}
+	bool operator<(const MachineResource &other) const {
+		return res->get_ID() < other.res->get_ID();
+	}
+	MachineRegister* create_MachineRegister() const {
+		return res->create_MachineRegister();
+	}
+};
 
 class RegisterFile {
 public:
-	typedef std::vector<MachineRegister*>::const_iterator const_iterator;
+	typedef std::vector<MachineResource>::const_iterator const_iterator;
 protected:
-	std::vector<MachineRegister*> regs;
+	std::vector<MachineResource> regs;
 	RegisterFile() {}
 public:
 	const_iterator begin() const { return regs.begin(); }

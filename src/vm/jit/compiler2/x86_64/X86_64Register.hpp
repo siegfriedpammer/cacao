@@ -40,35 +40,54 @@ namespace x86_64 {
  * x86_64 Register
  */
 
-class NativeRegister : public MachineRegister {
-public:
-	const unsigned index;
-	const bool extented_gpr;
+class X86_64Register;
 
-	/**
-	 * XXX HACK VoidTypeID!
-	 */
-	NativeRegister(const char* name,unsigned index,bool extented_gpr)
-		: MachineRegister(name, Type::VoidTypeID),
-		index(index), extented_gpr(extented_gpr) {}
+/**
+ * This represents a machine register usage.
+ *
+ * It consists of a reference to the physical register and a type. This
+ * abstraction is needed because registers can be used several times
+ * with different types, e.g. DH vs. eDX vs. EDX vs. RDX.
+ */
+class NativeRegister : public MachineRegister {
+private:
+	X86_64Register *reg;
+public:
+	NativeRegister(Type::TypeID type, X86_64Register* reg);
 	virtual NativeRegister* to_NativeRegister() {
 		return this;
 	}
-	unsigned get_index() const {
-		return index;
+	X86_64Register* get_X86_64Register() const {
+		return reg;
 	}
 };
 
-class GPRegister : public NativeRegister {
+class X86_64Register {
 public:
-	GPRegister(const char* name,unsigned index,bool extented_gpr) :
-		NativeRegister(name,index,extented_gpr) {}
+	const unsigned index;
+	const bool extented;
+	const char* name;
+
+	X86_64Register(const char* name,unsigned index,bool extented)
+		: index(index), extented(extented), name(name) {}
+	unsigned get_index() const {
+		return index;
+	}
+	bool operator==(const X86_64Register &other) const {
+		return this == &other;
+	}
 };
 
-class SSERegister : public NativeRegister {
+class GPRegister : public X86_64Register {
+public:
+	GPRegister(const char* name,unsigned index,bool extented_gpr) :
+		X86_64Register(name,index,extented_gpr) {}
+};
+
+class SSERegister : public X86_64Register {
 public:
 	SSERegister(const char* name,unsigned index,bool extented_gpr) :
-		NativeRegister(name,index,extented_gpr) {}
+		X86_64Register(name,index,extented_gpr) {}
 };
 
 extern GPRegister RAX;
@@ -89,7 +108,7 @@ extern GPRegister R14;
 extern GPRegister R15;
 
 const unsigned IntegerArgumentRegisterSize = 6;
-extern NativeRegister* IntegerArgumentRegisters[];
+extern GPRegister* IntegerArgumentRegisters[];
 
 extern SSERegister XMM0;
 extern SSERegister XMM1;
@@ -109,7 +128,7 @@ extern SSERegister XMM14;
 extern SSERegister XMM15;
 
 const unsigned FloatArgumentRegisterSize = 8;
-extern NativeRegister* FloatArgumentRegisters[];
+extern SSERegister* FloatArgumentRegisters[];
 
 class RegisterFile : public compiler2::RegisterFile {
 private:
@@ -118,10 +137,10 @@ private:
 		for(unsigned i = 0; i < IntegerArgumentRegisterSize ; ++i) {
 			regs.push_back(IntegerArgumentRegisters[i]);
 		}
-		#else
 		regs.push_back(&RDI);
 		regs.push_back(&RSI);
 		regs.push_back(&RDX);
+		#else
 		#if 0
 		regs.push_back(&RCX);
 		regs.push_back(&R8);

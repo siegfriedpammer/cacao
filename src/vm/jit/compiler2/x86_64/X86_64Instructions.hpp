@@ -194,15 +194,15 @@ class ALUInstruction : public GPInstruction {
 private:
 	u1 alu_id;
 
+#if 0
 void emit_impl_I(CodeMemory* CM, Immediate* imm) const;
 void emit_impl_RI(CodeMemory* CM, NativeRegister* src1,
 	Immediate* imm) const;
-#if 0
 void emit_impl_MR(CodeMemory* CM, NativeRegister* src1,
 	NativeRegister* src2) const;
-#endif
 void emit_impl_RR(CodeMemory* CM, NativeRegister* src1,
 	NativeRegister* src2) const;
+#endif
 
 public:
 	/**

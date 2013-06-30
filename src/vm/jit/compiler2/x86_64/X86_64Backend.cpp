@@ -257,6 +257,7 @@ LoweredInstDAG* BackendBase<X86_64>::lowerRETURNInst(RETURNInst *I) const {
 	case Type::ByteTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
+	#if 0
 	{
 		LoweredInstDAG *dag = new LoweredInstDAG(I);
 		MachineInstruction *reg = new MovInst(
@@ -272,6 +273,7 @@ LoweredInstDAG* BackendBase<X86_64>::lowerRETURNInst(RETURNInst *I) const {
 		dag->set_result(ret);
 		return dag;
 	}
+	#endif
 	default: break;
 	}
 	ABORT_MSG("Lowering IF not supported", "Inst: " << I << " type: " << type);
@@ -309,7 +311,8 @@ LoweredInstDAG* BackendBase<X86_64>::lowerCASTInst(CASTInst *I) const {
 }
 
 template<>
-compiler2::RegisterFile* BackendBase<X86_64>::get_RegisterFile() const {
+compiler2::RegisterFile*
+BackendBase<X86_64>::get_RegisterFile(Type::TypeID type) const {
 	return x86_64::RegisterFile::factory();
 }
 

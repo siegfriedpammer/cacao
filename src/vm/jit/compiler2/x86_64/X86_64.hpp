@@ -28,7 +28,7 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
-
+namespace x86_64 {
 
 /**
  * X86_64
@@ -36,6 +36,7 @@ namespace compiler2 {
 class X86_64 {};
 
 
+} // end namespace x86_64
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
