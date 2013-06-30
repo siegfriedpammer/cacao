@@ -197,9 +197,7 @@ void finalizer_run(void *o, void *p)
 
 	if (exceptions_get_exception() != NULL) {
 		LOG("[finalizer exception]" << cacao::nl);
-#if !defined(NDEBUG)
-		exceptions_print_stacktrace();
-#endif
+		DEBUG(exceptions_print_stacktrace());
 	}
 
 	/* if we had an exception in the finalizer, ignore it */
