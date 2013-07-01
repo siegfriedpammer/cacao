@@ -41,6 +41,12 @@ namespace {
 template <class A,class B>
 inline A* cast_to(B*);
 
+template <class A,A>
+inline A* cast_to(A* a) {
+	assert(a);
+	return a;
+}
+
 template <>
 inline X86_64Register* cast_to<X86_64Register>(MachineOperand *op) {
 	Register *reg = op->to_Register();
