@@ -105,14 +105,14 @@ int  debug_is_debugging_enabled(const char *);
 #else
 
 #define DEBUG_COND_WITH_NAME_N(DBG_NAME,VERBOSE)  false
-#define DEBUG_WITH_NAME_N(DBG_NAME, VERBOSE, STMT) do { } while(0)
+#define DEBUG_WITH_NAME_N(DEBUG_NAME, VERBOSE, STMT) do { } while(0)
 
-#endif // end NDEBUG
+#endif // end ENABLE_LOGGING
 
 
 #define DEBUG_COND_WITH_NAME(DBG_NAME) DEBUG_COND_WITH_NAME_N(DBG_NAME,0)
 #define DEBUG_COND_N(VERBOSE)          DEBUG_COND_WITH_NAME_N(DEBUG_NAME,VERBOSE)
-#define DEBUG_COND                     DEBUG_N(0)
+#define DEBUG_COND                     DEBUG_COND_N(0)
 
 #define DEBUG_WITH_NAME(DBG_NAME, STMT) DEBUG_WITH_NAME_N(DBG_NAME,0, STMT)
 #define DEBUG_N(VERBOSE,STMT) DEBUG_WITH_NAME_N(DEBUG_NAME,VERBOSE, STMT)
