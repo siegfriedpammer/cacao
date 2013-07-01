@@ -1,6 +1,6 @@
-/* src/vm/jit/cfg.hpp - build a control-flow graph
+/* src/vm/jit/loop/VariableSet.cpp
 
-   Copyright (C) 2006-2013
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -22,30 +22,19 @@
 
 */
 
+#include "VariableSet.hpp"
 
-#ifndef CFG_HPP_
-#define CFG_HPP_ 1
+std::ostream& operator<<(std::ostream& out, const VariableSet& set)
+{
+	out << "[ ";
+	for (std::set<s4>::const_iterator it = set._variables.begin(); it != set._variables.end(); ++it)
+	{
+		out << *it << " ";
+	}
+	out << "]";
 
-struct jitdata;
-
-/* defines ********************************************************************/
-
-#define CFG_UNKNOWN_PREDECESSORS    -1
-
-
-/* function prototypes ********************************************************/
-
-bool cfg_build(jitdata *jd);
-
-void cfg_add_root(jitdata *jd);
-void cfg_clear(jitdata *jd);
-void cfg_add_exceptional_edges(jitdata *jd);
-void cfg_remove_root(jitdata *jd);
-
-
-
-#endif // CFG_HPP_
-
+	return out;
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -60,3 +49,4 @@ void cfg_remove_root(jitdata *jd);
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */
+

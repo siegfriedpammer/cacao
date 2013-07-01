@@ -54,7 +54,7 @@ typedef struct exception_entry exception_entry;
 #include "vm/jit/ir/instruction.hpp"
 
 #if defined(ENABLE_LOOP)
-# include "vm/jit/loop/loop.h"
+# include "vm/jit/loop/loop.hpp"
 #endif
 #if defined(ENABLE_SSA)
 # include "vm/jit/optimizing/lsra.hpp"
@@ -126,7 +126,7 @@ struct jitdata {
 	codegendata     *cd;
 	registerdata    *rd;
 #if defined(ENABLE_LOOP)
-	loopdata        *ld;
+	MethodLoopData  *ld;
 #endif
 #if defined(ENABLE_SSA) || defined(ENABLE_LSRA)
 	lsradata        *ls;
@@ -335,6 +335,10 @@ struct basicblock {
 	insinfo_inline *inlineinfo; /* inlineinfo for the start of this block     */
 
 	s4            mpc;          /* machine code pc at start of block          */
+
+#if defined(ENABLE_LOOP)
+	BasicblockLoopData *ld;
+#endif
 
 	/* TODO: those fields are probably usefull for other passes as well. */
 

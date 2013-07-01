@@ -1,6 +1,6 @@
-/* src/vm/jit/cfg.hpp - build a control-flow graph
+/* src/vm/jit/loop/ValueMap.hpp
 
-   Copyright (C) 2006-2013
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -22,30 +22,38 @@
 
 */
 
+#ifndef _VALUE_MAP_HPP
+#define _VALUE_MAP_HPP
 
-#ifndef CFG_HPP_
-#define CFG_HPP_ 1
+#include <vector>
 
-struct jitdata;
+#include "Value.hpp"
 
-/* defines ********************************************************************/
+/**
+ * Contains a Value-object for every variable.
+ * Initially every variable v is mapped to the value v + 0.
+ */
+class ValueMap
+{
+	std::vector<Value> _values;
 
-#define CFG_UNKNOWN_PREDECESSORS    -1
+public:
 
+	//explicit ValueMap(size_t varCount);
 
-/* function prototypes ********************************************************/
+	Value& operator[](size_t varIndex);
+};
 
-bool cfg_build(jitdata *jd);
+inline Value& ValueMap::operator[](size_t varIndex)
+{
+	for (size_t i = _values.size(); i <= varIndex; i++)
+	{
+		_values.push_back(Value::newAddition(i, 0));
+	}
+	return _values[varIndex];
+}
 
-void cfg_add_root(jitdata *jd);
-void cfg_clear(jitdata *jd);
-void cfg_add_exceptional_edges(jitdata *jd);
-void cfg_remove_root(jitdata *jd);
-
-
-
-#endif // CFG_HPP_
-
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -60,3 +68,4 @@ void cfg_remove_root(jitdata *jd);
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */
+

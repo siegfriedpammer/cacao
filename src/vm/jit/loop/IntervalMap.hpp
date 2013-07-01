@@ -1,6 +1,6 @@
-/* src/vm/jit/cfg.hpp - build a control-flow graph
+/* src/vm/jit/loop/IntervalMap.hpp
 
-   Copyright (C) 2006-2013
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -22,30 +22,59 @@
 
 */
 
+#ifndef _INTERVAL_MAP_HPP
+#define _INTERVAL_MAP_HPP
 
-#ifndef CFG_HPP_
-#define CFG_HPP_ 1
+#include <iostream>
+#include <cassert>
+#include <algorithm>
 
-struct jitdata;
+#include "Interval.hpp"
+#include "DynamicVector.hpp"
 
-/* defines ********************************************************************/
+/**
+ * Maps variable names to intervals.
+ */
+class IntervalMap
+{
+	DynamicVector<Interval> _intervals;
 
-#define CFG_UNKNOWN_PREDECESSORS    -1
+public:
+
+	size_t size() const { return _intervals.size(); }
+
+	/**
+	 * Returns the interval of the specified variable.
+	 */
+	Interval& operator[](size_t varIndex);
+
+	/**
+	 * Computes the union set of this map with the specified map.
+	 * This object will hold the result.
+	 */
+	void unionWith(const IntervalMap&);
 
 
-/* function prototypes ********************************************************/
-
-bool cfg_build(jitdata *jd);
-
-void cfg_add_root(jitdata *jd);
-void cfg_clear(jitdata *jd);
-void cfg_add_exceptional_edges(jitdata *jd);
-void cfg_remove_root(jitdata *jd);
+	friend std::ostream& operator<<(std::ostream&, IntervalMap&);
+};
 
 
+inline Interval& IntervalMap::operator[](size_t varIndex)
+{
+	return _intervals[varIndex];
+}
 
-#endif // CFG_HPP_
+inline void IntervalMap::unionWith(const IntervalMap& other)
+{
+	_intervals.resize(std::min(_intervals.size(), other._intervals.size()));
 
+	for (size_t i = 0; i < _intervals.size(); i++)
+	{
+		_intervals[i].unionWith(other._intervals[i]);
+	}
+}
+
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -60,3 +89,4 @@ void cfg_remove_root(jitdata *jd);
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */
+

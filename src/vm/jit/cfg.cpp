@@ -514,6 +514,22 @@ void cfg_remove_root(jitdata *jd) {
 	}
 }
 
+void cfg_clear(jitdata *jd)
+{
+	basicblock *b;
+	
+	for (b = jd->basicblocks; b != NULL; b = b->next)
+	{
+		if (b->type == BBTYPE_EXH)
+			b->predecessorcount = -1;
+		else
+			b->predecessorcount = 0;
+		b->successorcount = 0;
+		b->predecessors = NULL;
+		b->successors = NULL;
+	}
+}
+
 #if defined(ENABLE_SSA)
 
 static void cfg_eliminate_edges_to_unreachable(jitdata *jd);
@@ -705,7 +721,6 @@ static void cfg_eliminate_edges_to_unreachable(jitdata *jd) {
 		}
 	}
 }
-
 
 #endif
 

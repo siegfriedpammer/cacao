@@ -1,6 +1,6 @@
-/* src/vm/jit/loop/graph.h - control flow graph header
+/* src/vm/jit/loop/dominator.hpp
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -22,29 +22,19 @@
 
 */
 
+#ifndef _DOMINATOR_HPP
+#define _DOMINATOR_HPP
 
-#ifndef _GRAPH_H
-#define _GRAPH_H
+#include "loop.hpp"
 
-#include "config.h"
-#include "vm/types.hpp"
+// The number of the basicblock jd->ld->root.
+#define ROOT_NUMBER (-1)
 
-#include "vm/method.hpp"
+void createRoot(jitdata*);
+void calculateDominators(jitdata*);
+void buildDominatorTree(jitdata*);
 
-#include "vm/jit/loop/loop.h"
-
-
-/* function prototypes ********************************************************/
-
-void LoopContainerInit(methodinfo *m, struct LoopContainer *lc, int i);
-void depthFirst(jitdata *jd);
-void dF(methodinfo *m, loopdata *ld, int from, int blockIndex);
-void dF_Exception(methodinfo *m, loopdata *ld, int from, int blockIndex);
-
-void resultPass1(methodinfo *);
-
-#endif /* _GRAPH_H */
-
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -52,9 +42,11 @@ void resultPass1(methodinfo *);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
+

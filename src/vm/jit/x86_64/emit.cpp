@@ -331,7 +331,7 @@ void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 
 void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
 {
-	if (INSTRUCTION_MUST_CHECK(iptr)) {
+	if (checkbounds && INSTRUCTION_MUST_CHECK(iptr)) {
         M_ILD(REG_ITMP3, s1, OFFSET(java_array_t, size));
         M_ICMP(REG_ITMP3, s2);
 		M_BULT(8);

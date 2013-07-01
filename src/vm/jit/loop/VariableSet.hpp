@@ -1,6 +1,6 @@
-/* src/vm/jit/cfg.hpp - build a control-flow graph
+/* src/vm/jit/loop/VariableSet.hpp
 
-   Copyright (C) 2006-2013
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -22,30 +22,37 @@
 
 */
 
+#ifndef _VARIABLE_SET
+#define _VARIABLE_SET
 
-#ifndef CFG_HPP_
-#define CFG_HPP_ 1
+#include <set>
+#include <iostream>
 
-struct jitdata;
+#include "vm/types.hpp"
 
-/* defines ********************************************************************/
+/**
+ * A container for variables names.
+ * Every variable is contained no more than once.
+ */
+class VariableSet
+{
+	std::set<s4> _variables;
 
-#define CFG_UNKNOWN_PREDECESSORS    -1
+public:
 
+	typedef std::set<s4>::iterator iterator;
+	
+	void insert(s4 variableIndex) { _variables.insert(variableIndex); }
+	void remove(s4 variableIndex) { _variables.erase(variableIndex); }
+	bool contains(s4 variableIndex) { return _variables.find(variableIndex) != _variables.end(); }
 
-/* function prototypes ********************************************************/
+	std::set<s4>::iterator begin() { return _variables.begin(); }
+	std::set<s4>::iterator end() { return _variables.end(); }
 
-bool cfg_build(jitdata *jd);
+	friend std::ostream& operator<<(std::ostream&, const VariableSet&);
+};
 
-void cfg_add_root(jitdata *jd);
-void cfg_clear(jitdata *jd);
-void cfg_add_exceptional_edges(jitdata *jd);
-void cfg_remove_root(jitdata *jd);
-
-
-
-#endif // CFG_HPP_
-
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -60,3 +67,4 @@ void cfg_remove_root(jitdata *jd);
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */
+

@@ -1,9 +1,7 @@
-/* src/vm/jit/loop/analyze.h - bound check removal header
+/* src/vm/jit/loop/analyze.hpp
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2012
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,29 +20,22 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
 */
 
+#ifndef _ANALYZE_HPP
+#define _ANALYZE_HPP
 
-#ifndef _ANALYZE_H
-#define _ANALYZE_H
+#include "loop.hpp"
 
-#include "config.h"
+void analyzeLoops(jitdata* jd);
+void findLeaves(jitdata* jd);
 
-#include "vm/jit/jit.hpp"
+/**
+ * Removes all array bound checks that are fully redundant.
+ */
+void removeFullyRedundantChecks(jitdata*);
 
-
-/* function prototypes ********************************************************/
-
-void optimize_loops(jitdata *jd);
-
-#endif /* _ANALYZE_H */
-
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -52,9 +43,11 @@ void optimize_loops(jitdata *jd);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
+

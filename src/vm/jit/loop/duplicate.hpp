@@ -1,6 +1,6 @@
-/* src/vm/jit/cfg.hpp - build a control-flow graph
+/* src/vm/jit/loop/duplicate.hpp
 
-   Copyright (C) 2006-2013
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -22,30 +22,16 @@
 
 */
 
+#ifndef _DUPLICATE_HPP
+#define _DUPLICATE_HPP
 
-#ifndef CFG_HPP_
-#define CFG_HPP_ 1
+#include "loop.hpp"
 
-struct jitdata;
+bool findFreeVariable(jitdata* jd);
+void removePartiallyRedundantChecks(jitdata* jd);
+void groupArrayBoundsChecks(jitdata* jd);
 
-/* defines ********************************************************************/
-
-#define CFG_UNKNOWN_PREDECESSORS    -1
-
-
-/* function prototypes ********************************************************/
-
-bool cfg_build(jitdata *jd);
-
-void cfg_add_root(jitdata *jd);
-void cfg_clear(jitdata *jd);
-void cfg_add_exceptional_edges(jitdata *jd);
-void cfg_remove_root(jitdata *jd);
-
-
-
-#endif // CFG_HPP_
-
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -60,3 +46,4 @@ void cfg_remove_root(jitdata *jd);
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */
+
