@@ -39,7 +39,7 @@ public:
 	typedef u8 ID;
 	virtual ID get_ID() const = 0;
 	//virtual NativeRegister* get_NativeRegister() = 0;
-	virtual MachineRegister* create_MachineRegister() = 0;
+	virtual MachineRegister* create_MachineRegister(Type::TypeID type) = 0;
 };
 
 class MachineResource {
@@ -50,8 +50,8 @@ public:
 	bool operator<(const MachineResource &other) const {
 		return res->get_ID() < other.res->get_ID();
 	}
-	MachineRegister* create_MachineRegister() const {
-		return res->create_MachineRegister();
+	MachineRegister* create_MachineRegister(Type::TypeID type) const {
+		return res->create_MachineRegister(type);
 	}
 };
 

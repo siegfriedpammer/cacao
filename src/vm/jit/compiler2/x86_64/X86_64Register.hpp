@@ -29,6 +29,8 @@
 #include "vm/jit/compiler2/MachineRegister.hpp"
 #include "vm/jit/compiler2/RegisterFile.hpp"
 
+#include "toolbox/logging.hpp"
+
 #include <vector>
 
 namespace cacao {
@@ -60,9 +62,10 @@ public:
 	X86_64Register* get_X86_64Register() const {
 		return reg;
 	}
+	inline MachineResource get_MachineResource() const;
 };
 
-class X86_64Register {
+class X86_64Register : public NativeResource {
 public:
 	const unsigned index;
 	const bool extented;
@@ -76,7 +79,16 @@ public:
 	bool operator==(const X86_64Register &other) const {
 		return this == &other;
 	}
+	virtual ID get_ID() const {
+		return (ID)this;
+	}
+	virtual MachineRegister* create_MachineRegister(Type::TypeID type) {
+		return new NativeRegister(type,this);
+	}
 };
+MachineResource NativeRegister::get_MachineResource() const {
+	return MachineResource(reg);
+}
 
 class GPRegister : public X86_64Register {
 public:
@@ -131,28 +143,31 @@ const unsigned FloatArgumentRegisterSize = 8;
 extern SSERegister* FloatArgumentRegisters[];
 
 class RegisterFile : public compiler2::RegisterFile {
-private:
-	RegisterFile() {
-		#if 0
-		for(unsigned i = 0; i < IntegerArgumentRegisterSize ; ++i) {
-			regs.push_back(IntegerArgumentRegisters[i]);
-		}
-		regs.push_back(&RDI);
-		regs.push_back(&RSI);
-		regs.push_back(&RDX);
-		#else
-		#if 0
-		regs.push_back(&RCX);
-		regs.push_back(&R8);
-		regs.push_back(&R9);
-		#endif
-		#endif
-
-	}
 public:
-	static RegisterFile* factory() {
-		static RegisterFile rf;
-		return &rf;
+	RegisterFile(Type::TypeID type) {
+		switch (type) {
+		case Type::ByteTypeID:
+		case Type::IntTypeID:
+		case Type::LongTypeID:
+			#if 0
+			for(unsigned i = 0; i < IntegerArgumentRegisterSize ; ++i) {
+				regs.push_back(IntegerArgumentRegisters[i]);
+			}
+			#else
+			regs.push_back(&RDI);
+			regs.push_back(&RSI);
+			regs.push_back(&RDX);
+			#if 0
+			regs.push_back(&RCX);
+			regs.push_back(&R8);
+			regs.push_back(&R9);
+			#endif
+			#endif
+			return;
+		default: break;
+		}
+		ABORT_MSG("X86_64 Register File Type Not supported!",
+			"Type: " << type);
 	}
 };
 

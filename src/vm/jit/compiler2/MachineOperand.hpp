@@ -94,7 +94,7 @@ public:
 	bool is_Address()          const { return op_id == AddressID; }
 
 	virtual OStream& print(OStream &OS) const {
-		return OS << get_name() << " (" << get_type() << ")";
+		return OS << get_name() /* << " (" << get_type() << ")" */;
 	}
 };
 

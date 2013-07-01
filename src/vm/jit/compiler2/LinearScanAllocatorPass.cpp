@@ -103,8 +103,8 @@ namespace {
 MachineResource get_MachineResource_from_MachineRegister(const MachineRegister* reg) {
 	return reg->get_MachineResource();
 }
-MachineRegister* get_MachineRegister_from_MachineResouce(const MachineResource& res) {
-	return res.create_MachineRegister();
+MachineRegister* get_MachineRegister_from_MachineResource(const MachineResource& res, Type::TypeID type) {
+	return res.create_MachineRegister(type);
 }
 
 } // end anonymous namespace
@@ -112,6 +112,7 @@ MachineRegister* get_MachineRegister_from_MachineResouce(const MachineResource& 
 inline bool LinearScanAllocatorPass::try_allocate_free_reg(LivetimeInterval *current) {
 	RegisterFile* reg_file = backend->get_RegisterFile(current->get_type());
 	assert(reg_file);
+	Type::TypeID type = current->get_type();
 
 	std::map<MachineResource,unsigned> free_until_pos;
 	LOG2(BoldMagenta << "try_allocate_free_reg (current=" << current << ")" << reset_color << nl);
@@ -182,7 +183,7 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(LivetimeInterval *cur
 		std::map<MachineResource,unsigned>::const_iterator i = std::max_element(free_until_pos.begin(),
 			free_until_pos.end(), max_value_comparator<MachineResource, unsigned>);
 		assert(i != free_until_pos.end());
-		reg = get_MachineRegister_from_MachineResouce(i->first);
+		reg = get_MachineRegister_from_MachineResource(i->first,type);
 		free_pos = i->second;
 		assert(reg);
 	}
