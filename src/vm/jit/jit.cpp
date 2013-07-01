@@ -209,10 +209,7 @@ jitdata *jit_jitdata_new(methodinfo *m)
 	jd->rd    = (registerdata*) DumpMemory::allocate(sizeof(registerdata));
 #if defined(ENABLE_LOOP)
 	if (opt_loops)
-	{
 		jd->ld    = new MethodLoopData;
-	}
-	//jd->ld    = (MethodLoopData*) DumpMemory::allocate(sizeof(MethodLoopData));
 #endif
 
 	/* Allocate codeinfo memory from the heap as we need to keep them. */
