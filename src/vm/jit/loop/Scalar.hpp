@@ -29,7 +29,7 @@
 #include <iostream>
 #include <cassert>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 #include "NumericInstruction.hpp"
 
 

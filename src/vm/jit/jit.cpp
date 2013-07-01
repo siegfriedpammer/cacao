@@ -687,7 +687,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 				return NULL;
 		}
 #endif
-		RT_TIMING_GET_TIME(time_loop);
+		RT_TIMER_STOPSTART(ra_timer,loop_timer);
 
 #if defined(ENABLE_PROFILING)
 		/* Basic block reordering.  I think this should be done after

@@ -27,7 +27,7 @@
 
 #include <limits>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 /**
  * Represents the result of the addition of a certain IR-variable with a certain constant.

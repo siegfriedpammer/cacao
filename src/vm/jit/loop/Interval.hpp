@@ -28,7 +28,7 @@
 #include <limits>
 #include <iostream>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 #include "Scalar.hpp"
 
 /**

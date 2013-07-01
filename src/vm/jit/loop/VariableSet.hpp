@@ -28,7 +28,7 @@
 #include <set>
 #include <iostream>
 
-#include "vm/types.h"
+#include "vm/types.hpp"
 
 /**
  * A container for variables names.
