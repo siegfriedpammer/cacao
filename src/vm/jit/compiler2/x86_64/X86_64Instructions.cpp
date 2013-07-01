@@ -55,6 +55,34 @@ inline X86_64Register* cast_to<X86_64Register>(MachineOperand *op) {
 }
 
 template <>
+inline X86_64Register* cast_to<X86_64Register>(X86_64Register *reg) {
+	assert(reg);
+	return reg;
+}
+
+template <>
+inline StackSlot* cast_to<StackSlot>(MachineOperand *op) {
+	switch (op->get_OperandID()) {
+	case MachineOperand::ManagedStackSlotID:
+		{
+			ManagedStackSlot *mslot = op->to_ManagedStackSlot();
+			assert(mslot);
+			StackSlot *slot = mslot->to_StackSlot();
+			assert(slot);
+			return slot;
+		}
+	case MachineOperand::StackSlotID:
+		{
+			StackSlot *slot = op->to_StackSlot();
+			assert(slot);
+			return slot;
+		}
+	default: break;
+	}
+	assert(0 && "Not a stackslot");
+	return NULL;
+}
+template <>
 inline X86_64Register* cast_to<X86_64Register>(MachineRegister *mreg) {
 	assert(mreg);
 	NativeRegister *nreg = mreg->to_NativeRegister();
@@ -133,6 +161,34 @@ GPInstruction::OpEncoding get_OpEncoding(MachineOperand *src1,
 			case GPInstruction::OS_16: return GPInstruction::Reg16Imm16;
 			case GPInstruction::OS_32: return GPInstruction::Reg32Imm32;
 			case GPInstruction::OS_64: return GPInstruction::Reg64Imm64;
+			default: break;
+			}
+		}
+		case MachineOperand::StackSlotID:
+		case MachineOperand::ManagedStackSlotID:
+		{
+			switch (op_size) {
+			case GPInstruction::OS_8 : return GPInstruction::RegMem8;
+			case GPInstruction::OS_16: return GPInstruction::RegMem16;
+			case GPInstruction::OS_32: return GPInstruction::RegMem32;
+			case GPInstruction::OS_64: return GPInstruction::RegMem64;
+			default: break;
+			}
+		}
+		default: break;
+		}
+	}
+	case MachineOperand::ManagedStackSlotID:
+	{
+		// switch second operand
+		switch (src2->get_OperandID()) {
+		case MachineOperand::RegisterID:
+		{
+			switch (op_size) {
+			case GPInstruction::OS_8 : return GPInstruction::MemReg8;
+			case GPInstruction::OS_16: return GPInstruction::MemReg16;
+			case GPInstruction::OS_32: return GPInstruction::MemReg32;
+			case GPInstruction::OS_64: return GPInstruction::MemReg64;
 			default: break;
 			}
 		}
@@ -248,9 +304,99 @@ inline void emit_imm2reg_move(CodeMemory* CM, Immediate *imm,
 void MovInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
 	MachineOperand *dst = result.op;
-	if (src == dst) return;
-	Register *src_reg = src->to_Register();
-	Register *dst_reg = dst->to_Register();
+
+	switch (get_OpEncoding(dst,src,get_op_size())) {
+	case GPInstruction::RegReg64:
+	{
+		X86_64Register *reg_dst = cast_to<X86_64Register>(dst);
+		X86_64Register *reg_src = cast_to<X86_64Register>(src);
+		if (reg_dst == reg_src) return;
+
+		CodeFragment code = CM->get_CodeFragment(3);
+		code[0] = get_rex(reg_dst,reg_src);
+		code[1] = 0x8b;
+		code[2] = get_modrm_reg2reg(reg_dst,reg_src);
+		return;
+	}
+	case GPInstruction::RegReg32:
+	{
+		X86_64Register *reg_dst = cast_to<X86_64Register>(dst);
+		X86_64Register *reg_src = cast_to<X86_64Register>(src);
+		if (reg_dst == reg_src) return;
+
+		CodeFragment code = CM->get_CodeFragment(2);
+		code[0] = 0x8b;
+		code[1] = get_modrm_reg2reg(reg_dst,reg_src);
+		return;
+	}
+	case GPInstruction::RegMem64:
+	{
+		StackSlot *slot = cast_to<StackSlot>(src);
+		X86_64Register *reg_dst = cast_to<X86_64Register>(dst);
+		emit_stack_move(CM,slot,cast_to<X86_64Register>(reg_dst),true);
+		return;
+	}
+	case GPInstruction::MemReg64:
+	{
+		X86_64Register *reg_src = cast_to<X86_64Register>(src);
+		StackSlot *slot = cast_to<StackSlot>(dst);
+		emit_stack_move(CM,slot,cast_to<X86_64Register>(reg_src),false);
+		return;
+	}
+	case GPInstruction::Reg64Imm8:
+	case GPInstruction::Reg64Imm64:
+	{
+		Immediate *imm = cast_to<Immediate>(src);
+		X86_64Register *reg_dst = cast_to<X86_64Register>(dst);
+
+		u1 opcode = 0xb8 + reg_dst->get_index();
+		InstructionEncoding::reg2imm<u1,s8>(CM, opcode, reg_dst, imm->get_value());
+		return;
+	}
+	case GPInstruction::Reg32Imm8:
+	case GPInstruction::Reg32Imm32:
+	{
+		s4 imm = cast_to<Immediate>(src)->get_value();
+		X86_64Register *reg_dst = cast_to<X86_64Register>(dst);
+
+		CodeFragment code = CM->get_CodeFragment(5);
+		code[0] = 0xb8 + reg_dst->get_index();
+		code[1] = (u1) 0xff & (imm >> 0x00);
+		code[2] = (u1) 0xff & (imm >> 0x08);
+		code[3] = (u1) 0xff & (imm >> 0x10);
+		code[4] = (u1) 0xff & (imm >> 0x18);
+		return;
+	}
+	#if 0
+	case GPInstruction::Reg64Imm8:
+	{
+		X86_64Register *reg_dst = cast_to<X86_64Register>(dst);
+		Immediate *imm = cast_to<Immediate>(src);
+		CodeFragment code = CM->get_CodeFragment(4);
+		code[0] = get_rex(reg_dst);
+		code[1] = 0x83;
+		code[2] = get_modrm_1reg(alu_id, reg_dst);
+		code[3] = (s1)imm->get_value();
+		return;
+	}
+	#endif
+	//case GPInstruction::Reg64Imm64: break;
+	default: break;
+	}
+
+	ABORT_MSG(this << ": Operand(s) not supported",
+		"dst: " << dst << " src: " << src << " op_size: "
+		<< get_op_size() * 8 << "bit");
+
+
+
+
+
+
+#if 0
+
+
+
 	if( dst_reg) {
 		MachineRegister *dst_mreg = dst_reg->to_MachineRegister();
 		assert(dst_mreg);
@@ -290,6 +436,7 @@ void MovInst::emit(CodeMemory* CM) const {
 	}
 	ABORT_MSG("x86_64 TODO","non reg-to-reg moves not yet implemented (src:"
 		<< src << " dst:" << dst << ")");
+#endif
 }
 
 void MovSXInst::emit(CodeMemory* CM) const {
