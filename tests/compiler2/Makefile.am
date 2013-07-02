@@ -44,7 +44,8 @@ OUTPUT_JAVA_TESTS = \
 	Test.OverflowLongIntLong \
 	Test.testParameterLong \
 	Test.testParameterLong2 \
-	Test.testParameterLong3
+	Test.testParameterLong3 \
+	Test.testParameterDouble
 
 check: build run
 

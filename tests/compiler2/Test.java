@@ -10,6 +10,7 @@ public static void main(String arg[]) {
   System.out.println(Integer.MIN_VALUE+14);
   System.out.println(OverflowLongIntLong(15));
   System.out.println(Integer.MIN_VALUE+14);
+  System.out.println(testParameterDouble(.1,.2,.3,.4,.5,.6,.7,.8,.9));
 }
 
 static double mul(double a, double b) {
