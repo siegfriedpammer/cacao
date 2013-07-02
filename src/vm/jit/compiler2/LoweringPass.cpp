@@ -30,7 +30,7 @@
 
 #include "toolbox/logging.hpp"
 
-#define DEBUG_NAME "compiler2/lowering"
+#define DEBUG_NAME "compiler2/LoweringPass"
 
 namespace cacao {
 namespace jit {
@@ -55,18 +55,36 @@ bool LoweringPass::run(JITData &JD) {
 		Instruction *I = *i;
 		LoweredInstDAG* dag = lowering_map[I];
 		assert(dag);
+		LOG3("Inst: " << I << " inpu_size: " << dag->input_size() << nl);
 		for(unsigned i = 0, e = dag->input_size(); i < e; ++i) {
-			LoweredInstDAG::InputParameterTy para = (*dag)[i];
-			Register* reg = (*para.first)[para.second].op->to_Register();
+			MachineOperandDesc &para = dag->get(i);
+			if (DEBUG_COND_N(3)) {
+				MachineInstruction *MI = para.get_MachineInstruction();
+				LOG3("MInst: " << MI << " size " <<  MI->size_op() << nl);
+				for (unsigned i = 0, e = MI->size_op(); i < e ; ++i) {
+					LOG3("    param: " << i << " " << MI->get(i) << nl);
+				}
+			}
+			Register* reg = para.op->to_Register();
+			LOG3("reg: " << reg << nl);
 			if (reg && reg->to_UnassignedReg()) {
 				// if operand is unassigned
+				LOG3("unassigned!" << nl);
 				Instruction *op = I->get_operand(i)->to_Instruction();
 				assert(op);
 				LoweredInstDAG *op_dag = lowering_map[op];
 				assert(op_dag);
 				MachineOperand *m_op = op_dag->get_result()->get_result().op;
 				assert(m_op);
-				(*para.first)[para.second].op = m_op;
+				LOG3("unassigned! Operand-Inst: " << op << " operand " << m_op << nl);
+				para.op = m_op;
+			}
+			if (DEBUG_COND_N(3)) {
+				MachineInstruction *MI = para.get_MachineInstruction();
+				LOG3("MInst: " << MI << " size " <<  MI->size_op() << nl);
+				for (unsigned i = 0, e = MI->size_op(); i < e ; ++i) {
+					LOG3("    param: " << i << " " << MI->get(i) << nl);
+				}
 			}
 		}
 	}
@@ -98,7 +116,7 @@ bool LoweringPass::verify() const {
 			e = lowering_map.end(); i != e; ++i) {
 		LoweredInstDAG *dag = i->second;
 		for(unsigned i = 0, e = dag->input_map.size(); i < e ; ++i) {
-			MachineInstruction *MI = dag->input_map[i].first;
+			MachineInstruction *MI = dag->input_map[i]->get_MachineInstruction();
 			if (!MI) {
 				LOG("LoweredInstDAG input " << i << " not set! "
 				    "(lowered " << dag->get_Instruction() << ")" << nl);

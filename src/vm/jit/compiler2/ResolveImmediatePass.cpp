@@ -40,6 +40,7 @@ namespace jit {
 namespace compiler2 {
 
 bool ResolveImmediatePass::run(JITData &JD) {
+#if 0
 	Backend *backend = JD.get_Backend();
 	BasicBlockSchedule *BS = get_Pass<BasicBlockSchedulingPass>();
 	InstructionSchedule<Instruction> *IS = get_Pass<ListSchedulingPass>();
@@ -96,6 +97,7 @@ bool ResolveImmediatePass::run(JITData &JD) {
 			} while (restart);
 		}
 	}
+#endif
 	return true;
 }
 

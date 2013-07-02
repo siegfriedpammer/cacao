@@ -149,7 +149,7 @@ public:
 						assert(op_dag);
 						MachineInstruction *result = op_dag->get_result();
 						assert(result);
-						MachineInstruction *op = (*dag)[op_idx].first;
+						MachineInstruction *op = dag->get(op_idx).get_MachineInstruction();
 						LOG("Data Edge: " << result << " -> " << op << nl);
 						EdgeType edge = std::make_pair(result,op);
 						data_dep.insert(edge);

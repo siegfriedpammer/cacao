@@ -63,8 +63,7 @@ inline OStream& operator<<(OStream &OS, const LoweredInstDAG *lid) {
 class LoweredInstDAG {
 public:
 	typedef std::list<MachineInstruction*> MachineInstListTy;
-	typedef std::pair<MachineInstruction*,unsigned> InputParameterTy;
-	typedef std::vector<InputParameterTy> InputMapTy;
+	typedef std::vector<MachineOperandDesc*> InputMapTy;
 	typedef MachineInstListTy::iterator mi_iterator;
 	typedef MachineInstListTy::const_iterator const_mi_iterator;
 	typedef InputMapTy::iterator input_iterator;
@@ -106,7 +105,7 @@ public:
 		assert(std::find(minst.begin(),minst.end(),MI) != minst.end() );
 		assert( input_map.size() == MI->size_op());
 		for (unsigned i = 0, e = input_map.size(); i < e ; ++i) {
-			input_map[i] = std::make_pair(MI, i);
+			input_map[i] = &(*MI)[i];
 		}
 	}
 	void set_input(unsigned dag_input_idx, MachineInstruction *MI,
@@ -115,19 +114,19 @@ public:
 		assert(std::find(minst.begin(),minst.end(),MI) != minst.end() );
 		assert(dag_input_idx < input_map.size());
 		assert(minst_input_idx < MI->size_op());
-		input_map[dag_input_idx] = std::make_pair(MI, minst_input_idx);
+		input_map[dag_input_idx] = &(*MI)[minst_input_idx];
 	}
 	void set_result(MachineInstruction *MI) {
 		assert(MI);
 		assert(std::find(minst.begin(),minst.end(),MI) != minst.end() );
 		result = MI;
 	}
-	InputParameterTy operator[](unsigned i) const {
+	MachineOperandDesc& operator[](unsigned i) const {
 		return get(i);
 	}
-	InputParameterTy get(unsigned i) const {
+	MachineOperandDesc& get(unsigned i) const {
 		assert(i < input_map.size());
-		return input_map[i];
+		return *input_map[i];
 	}
 	MachineInstruction* get_result() const {
 		if(!result) {
@@ -138,9 +137,7 @@ public:
 		return result;
 	}
 	MachineOperand* get_operand(unsigned i) const {
-		assert(i < input_map.size());
-		InputParameterTy param = get(i);
-		return param.first->get(param.second).op;
+		return get(i).op;
 	}
 
 	mi_iterator mi_begin() { return minst.begin(); }
