@@ -65,7 +65,7 @@ public:
 			case Type::DoubleTypeID:
 				if (float_argument_counter < FloatArgumentRegisterSize) {
 					parameter[i]= new NativeRegister(type,
-						FloatArgumentRegisters[int_argument_counter]);
+						FloatArgumentRegisters[float_argument_counter]);
 				} else {
 					parameter[i]= new StackSlot(stackslot_index,type);
 					stackslot_index++;
@@ -73,9 +73,8 @@ public:
 				float_argument_counter++;
 				break;
 			default:
-				err() << Red << "Error: " << reset_color << "Type not yet supported: "
-					  << bold << type << reset_color << nl;
-				assert(0);
+				ABORT_MSG("x86_64 MachineMethodDescriptor: Type not yet "
+					"supported!", "Type: " << type);
 			}
 		}
 	}

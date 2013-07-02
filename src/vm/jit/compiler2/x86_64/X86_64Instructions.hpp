@@ -177,9 +177,6 @@ public:
 			: GPInstruction(name, dst, op_size, 1) {
 		operands[0].op = src;
 	}
-	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
-		return true;
-	}
 	virtual bool is_move() const { return true; }
 };
 
@@ -369,6 +366,9 @@ public:
 	MovInst(const SrcOp &src, const DstOp &dst,
 		GPInstruction::OperandSize op_size)
 			: MoveInst("X86_64MovInst", src.op, dst.op, op_size) {}
+	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
+		return true;
+	}
 	virtual void emit(CodeMemory* CM) const;
 };
 
@@ -401,6 +401,41 @@ public:
 	BeginInst* get_BeginInst() const {
 		return target.get();
 	}
+};
+// Double & Float operations
+
+class AddSDInst : public GPInstruction {
+public:
+	AddSDInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
+			: GPInstruction("X86_64AddSDInst", dstsrc1.op, OS_64, 2) {
+		operands[0].op = dstsrc1.op;
+		operands[1].op = src2.op;
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class AddSSInst : public GPInstruction {
+public:
+	AddSSInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
+			: GPInstruction("X86_64AddSSInst", dstsrc1.op, OS_32, 2) {
+		operands[0].op = dstsrc1.op;
+		operands[1].op = src2.op;
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class MovSDInst : public MoveInst {
+public:
+	MovSDInst(const SrcOp &src, const DstOp &dst)
+			: MoveInst("X86_64MovSDInst", src.op, dst.op, OS_64) {}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class MovSSInst : public MoveInst {
+public:
+	MovSSInst(const SrcOp &src, const DstOp &dst)
+			: MoveInst("X86_64MovSSInst", src.op, dst.op, OS_32) {}
+	virtual void emit(CodeMemory* CM) const;
 };
 
 } // end namespace x86_64

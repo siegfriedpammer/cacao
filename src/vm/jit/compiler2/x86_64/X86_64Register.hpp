@@ -164,6 +164,17 @@ public:
 			#endif
 			#endif
 			return;
+		case Type::DoubleTypeID:
+			#if 0
+			for(unsigned i = 0; i < FloatArgumentRegisterSize ; ++i) {
+				regs.push_back(FloatArgumentRegisters[i]);
+			}
+			#else
+			regs.push_back(&XMM0);
+			regs.push_back(&XMM1);
+			regs.push_back(&XMM2);
+			#endif
+			return;
 		default: break;
 		}
 		ABORT_MSG("X86_64 Register File Type Not supported!",

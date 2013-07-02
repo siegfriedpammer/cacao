@@ -52,10 +52,24 @@ const char* BackendBase<X86_64>::get_name() const {
 template<>
 MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *dst,
 		MachineOperand* src) const {
-	return new MovInst(
-		SrcOp(dst),
-		DstOp(src),
-		get_OperandSize_from_Type(dst->get_type()));
+	Type::TypeID type = dst->get_type();
+	switch (type) {
+	case Type::ByteTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+		return new MovInst(
+			SrcOp(dst),
+			DstOp(src),
+			get_OperandSize_from_Type(dst->get_type()));
+	case Type::DoubleTypeID:
+		return new MovSDInst(
+			SrcOp(dst),
+			DstOp(src));
+	default: break;
+	}
+	ABORT_MSG("x86_64: Move not supported",
+		"Inst: " << src << " -> " << dst << " type: " << type);
+	return NULL;
 }
 
 template<>
@@ -87,11 +101,28 @@ LoweredInstDAG* BackendBase<X86_64>::lowerLOADInst(LOADInst *I) const {
 	const MethodDescriptor &MD = I->get_Method()->get_MethodDescriptor();
 	//FIXME inefficient
 	const MachineMethodDescriptor MMD(MD);
-	VirtualRegister *dst = new VirtualRegister(I->get_type());
-	MachineInstruction *move = new MovInst(
-		SrcOp(MMD[I->get_index()]),
-		DstOp(dst),
-		get_OperandSize_from_Type(I->get_type()));
+	Type::TypeID type = I->get_type();
+	VirtualRegister *dst = new VirtualRegister(type);
+	MachineInstruction *move = NULL;
+	switch (type) {
+	case Type::ByteTypeID:
+	case Type::ShortTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+		move = new MovInst(
+			SrcOp(MMD[I->get_index()]),
+			DstOp(dst),
+			get_OperandSize_from_Type(type));
+			break;
+	case Type::DoubleTypeID:
+		move = new MovSDInst(
+			SrcOp(MMD[I->get_index()]),
+			DstOp(dst));
+			break;
+	default:
+		ABORT_MSG("x86_64 type not supported: ",
+			  I << " type: " << type);
+	}
 	dag->add(move);
 	dag->set_result(move);
 	return dag;
@@ -131,9 +162,8 @@ LoweredInstDAG* BackendBase<X86_64>::lowerIFInst(IFInst *I) const {
 			cjmp = new CondJumpInst(Cond::GE, then);
 			break;
 		default:
-			err() << Red << "Error: " << reset_color << "Conditioal not supported: "
-				  << bold << I->get_condition() << reset_color << nl;
-			assert(0);
+			ABORT_MSG("x86_64 Conditioal not supported: ",
+				  I << " cond: " << I->get_condition());
 		}
 		JumpInst *jmp = new JumpInst(els);
 		dag->add(cmp);
@@ -147,7 +177,7 @@ LoweredInstDAG* BackendBase<X86_64>::lowerIFInst(IFInst *I) const {
 	}
 	default: break;
 	}
-	ABORT_MSG("x86_64: Lowering IF not supported",
+	ABORT_MSG("x86_64: Lowering not supported",
 		"Inst: " << I << " type: " << type);
 	return NULL;
 }
@@ -179,9 +209,26 @@ LoweredInstDAG* BackendBase<X86_64>::lowerADDInst(ADDInst *I) const {
 		dag->set_result(add);
 		return dag;
 	}
+	case Type::DoubleTypeID:
+	{
+		LoweredInstDAG *dag = new LoweredInstDAG(I);
+		VirtualRegister *dst = new VirtualRegister(type);
+		MachineInstruction *mov = new MovSDInst(
+			SrcOp(new UnassignedReg(type)),
+			DstOp(dst));
+		AddSDInst *add = new AddSDInst(
+			Src2Op(new UnassignedReg(type)),
+			DstSrc1Op(dst));
+		dag->add(mov);
+		dag->add(add);
+		dag->set_input(1,add,1);
+		dag->set_input(0,mov,0);
+		dag->set_result(add);
+		return dag;
+	}
 	default: break;
 	}
-	ABORT_MSG("Lowering IF not supported", "Inst: " << I << " type: " << type);
+	ABORT_MSG("x86_64: Lowering not supported", "Inst: " << I << " type: " << type);
 	return NULL;
 }
 
@@ -213,7 +260,7 @@ LoweredInstDAG* BackendBase<X86_64>::lowerSUBInst(SUBInst *I) const {
 	}
 	default: break;
 	}
-	ABORT_MSG("Lowering IF not supported", "Inst: " << I << " type: " << type);
+	ABORT_MSG("x86_64: Lowering not supported", "Inst: " << I << " type: " << type);
 	return NULL;
 }
 
@@ -245,7 +292,7 @@ LoweredInstDAG* BackendBase<X86_64>::lowerMULInst(MULInst *I) const {
 	}
 	default: break;
 	}
-	ABORT_MSG("Lowering IF not supported", "Inst: " << I << " type: " << type);
+	ABORT_MSG("x86_64: Lowering not supported", "Inst: " << I << " type: " << type);
 	return NULL;
 }
 
@@ -273,9 +320,24 @@ LoweredInstDAG* BackendBase<X86_64>::lowerRETURNInst(RETURNInst *I) const {
 		dag->set_result(ret);
 		return dag;
 	}
+	case Type::DoubleTypeID:
+	{
+		LoweredInstDAG *dag = new LoweredInstDAG(I);
+		MachineInstruction *reg = new MovSDInst(
+			SrcOp(new UnassignedReg(type)),
+			DstOp(new NativeRegister(type,&XMM0)));
+		LeaveInst *leave = new LeaveInst();
+		RetInst *ret = new RetInst(get_OperandSize_from_Type(type));
+		dag->add(reg);
+		dag->add(leave);
+		dag->add(ret);
+		dag->set_input(reg);
+		dag->set_result(ret);
+		return dag;
+	}
 	default: break;
 	}
-	ABORT_MSG("x86_64 Lowering Return not supported",
+	ABORT_MSG("x86_64 Lowering not supported",
 		"Inst: " << I << " type: " << type);
 	return NULL;
 }
