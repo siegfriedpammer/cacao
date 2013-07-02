@@ -1191,6 +1191,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 				goto _default;
 			case ICMD_IADD:
 			case ICMD_LADD:
+			case ICMD_FADD:
+			case ICMD_DADD:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
 					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
@@ -1202,6 +1204,12 @@ bool SSAConstructionPass::run(JITData &JD) {
 					case ICMD_LADD:
 						type = Type::LongTypeID;
 						break;
+					case ICMD_FADD:
+						type = Type::FloatTypeID;
+						break;
+					case ICMD_DADD:
+						type = Type::DoubleTypeID;
+						break;
 					default: assert(0);
 					}
 					Instruction *result = new ADDInst(type, s1, s2);
@@ -1209,8 +1217,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 					M->add_Instruction(result);
 				}
 				break;
-			case ICMD_FADD:
-			case ICMD_DADD:
 			case ICMD_ISUB:
 			case ICMD_LSUB:
 			case ICMD_FSUB:
