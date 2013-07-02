@@ -1,4 +1,4 @@
-/* src/vm/jit/inline/inline.c - method inlining
+/* src/vm/jit/inline/inline.cpp - method inlining
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -55,7 +55,7 @@
 #include "vm/jit/stack.hpp"
 
 #include "vm/jit/inline/inline.hpp"
-#include "vm/jit/loop/loop.h"
+#include "vm/jit/loop/loop.hpp"
 
 #include "vm/jit/verify/typecheck.hpp"
 
