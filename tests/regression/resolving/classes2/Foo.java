@@ -22,13 +22,13 @@
 */
 
 public class Foo {
-		public static String id() {
-				return "classes2/Foo";
-		}
+	public static String id() {
+		return "classes2/Foo";
+	}
 
-		public String virtualId() {
-				return id();
-		}
+	public String virtualId() {
+		return id();
+	}
 }
 
 /*
