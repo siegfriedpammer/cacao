@@ -61,6 +61,7 @@ public:
 		code_ptr(other.code_ptr), size(other.size) {}
 	// Copy assignment operator
 	CodeFragment& operator=(const CodeFragment &other) {
+		parent = other.parent;
 		code_ptr = other.code_ptr;
 		size = other.size;
 		return *this;
@@ -84,14 +85,15 @@ public:
  */
 class CodeMemory {
 private:
+	typedef std::map<const BeginInst*,u1*> LabelMapTy;
+	typedef std::pair<const MachineInstruction*,CodeFragment> ResolvePointTy;
+	typedef std::multimap<const BeginInst*,ResolvePointTy> ResolveLaterMapTy;
+
 	u1             *mcodebase;      ///< base pointer of code area
 	u1             *mcodeend;       ///< pointer to end of code area
 	s4              mcodesize;      ///< complete size of code area (bytes)
 	u1             *mcodeptr;       ///< code generation pointer
 
-	typedef std::map<const BeginInst*,u1*> LabelMapTy;
-	typedef std::pair<const MachineInstruction*,CodeFragment> ResolvePointTy;
-	typedef std::multimap<const BeginInst*,ResolvePointTy> ResolveLaterMapTy;
 	LabelMapTy label_map;           ///< label map
 	ResolveLaterMapTy resolve_map;  ///< jumps to be resolved later
 

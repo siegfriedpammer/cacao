@@ -43,12 +43,11 @@ s4 CodeFragment::get_offset(const BeginInst *BI) const {
 }
 //const s4 CodeMemory::INVALID_OFFSET = std::numeric_limits<s4>::max();
 
-CodeMemory::CodeMemory() {
-	mcodebase    = (u1*) DumpMemory::allocate(MCODEINITSIZE);
-	mcodeend     = mcodebase + MCODEINITSIZE;
-	mcodesize    = MCODEINITSIZE;
-	//mcodeptr     = mcodebase;
-	mcodeptr     = mcodeend;
+CodeMemory::CodeMemory() :
+	mcodebase((u1*) DumpMemory::allocate(MCODEINITSIZE)),
+	mcodeend(mcodebase + MCODEINITSIZE),
+	mcodesize(MCODEINITSIZE),
+	mcodeptr(mcodeend) {
 }
 
 void CodeMemory::add_label(const BeginInst *BI) {
