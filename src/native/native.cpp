@@ -350,6 +350,7 @@ void* NativeMethods::resolve_method(methodinfo* m)
 		if (opt_verbosejni)
 			printf("failed ]\n");
 
+#ifdef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK
 		Buffer<> buf;
 
 		if (m->clazz)
@@ -360,6 +361,9 @@ void* NativeMethods::resolve_method(methodinfo* m)
 		   .write(m->descriptor);
 
 		exceptions_throw_unsatisfiedlinkerror(buf.utf8_str());
+#else
+		exceptions_throw_unsatisfiedlinkerror(m->name);
+#endif
 	}
 
 	// Hook point just after method resolving finished.
