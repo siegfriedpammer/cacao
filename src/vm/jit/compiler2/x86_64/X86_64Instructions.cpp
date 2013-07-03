@@ -601,7 +601,7 @@ void JumpInst::emit(CodeFragment &CF) const {
 }
 
 
-void AddSDInst::emit(CodeMemory* CM) const {
+void SSEAluInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[1].op;
 	MachineOperand *dst = result.op;
 
@@ -614,23 +614,11 @@ void AddSDInst::emit(CodeMemory* CM) const {
 		CodeFragment code = CM->get_CodeFragment(4);
 		code[0] = 0xf2;
 		code[1] = 0x0f;
-		code[2] = 0x58;
+		code[2] = opcode;
 		code[3] = get_modrm_reg2reg(dst_reg,src_reg);
 		return;
 	}
-	default: break;
-	}
-	ABORT_MSG(this << ": Operand(s) not supported",
-		"dst: " << dst << " src: " << src << " op_size: "
-		<< get_op_size() * 8 << "bit");
-}
-
-void AddSSInst::emit(CodeMemory* CM) const {
-	MachineOperand *src = operands[1].op;
-	MachineOperand *dst = result.op;
-
-	switch (get_OpEncoding(dst,src,get_op_size())) {
-	case GPInstruction::RegReg64:
+	case GPInstruction::RegReg32:
 	{
 		X86_64Register *src_reg = cast_to<X86_64Register>(src);
 		X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
@@ -638,7 +626,7 @@ void AddSSInst::emit(CodeMemory* CM) const {
 		CodeFragment code = CM->get_CodeFragment(4);
 		code[0] = 0xf3;
 		code[1] = 0x0f;
-		code[2] = 0x58;
+		code[2] = opcode;
 		code[3] = get_modrm_reg2reg(dst_reg,src_reg);
 		return;
 	}
@@ -752,6 +740,30 @@ void MovSSInst::emit(CodeMemory* CM) const {
 		<< get_op_size() * 8 << "bit");
 }
 
+void CVTSI2SDInst::emit(CodeMemory* CM) const {
+	MachineOperand *src = operands[0].op;
+	MachineOperand *dst = result.op;
+
+	switch (from) {
+	case GPInstruction::OS_64:
+	{
+		X86_64Register *src_reg = cast_to<X86_64Register>(src);
+		X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
+
+		CodeFragment code = CM->get_CodeFragment(5);
+		code[0] = 0xf3;
+		code[1] = get_rex(dst_reg,src_reg);
+		code[2] = 0x0f;
+		code[3] = 0x2a;
+		code[4] = get_modrm_reg2reg(dst_reg,src_reg);
+		return;
+	}
+	default: break;
+	}
+	ABORT_MSG(this << ": Operand(s) not supported",
+		"dst: " << dst << " src: " << src << " op_size: "
+		<< get_op_size() * 8 << "bit");
+}
 } // end namespace x86_64
 } // end namespace compiler2
 } // end namespace jit

@@ -403,26 +403,109 @@ public:
 	}
 };
 // Double & Float operations
+/**
+ * Convert Dword Integer to Scalar Double-Precision FP Value
+ */
+class CVTSI2SDInst : public MoveInst {
+	GPInstruction::OperandSize from;
+public:
+	CVTSI2SDInst(const SrcOp &src, const DstOp &dst,
+			GPInstruction::OperandSize from, GPInstruction::OperandSize to)
+				: MoveInst("X86_64CVTSI2SDInst", src.op, dst.op, to),
+				from(from) {}
+	virtual void emit(CodeMemory* CM) const;
+};
 
-class AddSDInst : public GPInstruction {
+/// SSE Alu Instruction
+class SSEAluInst : public GPInstruction {
+private:
+	u1 opcode;
+protected:
+	SSEAluInst(const char* name, const Src2Op &src2, const DstSrc1Op &dstsrc1,
+			u1 opcode, GPInstruction::OperandSize op_size)
+			: GPInstruction(name, dstsrc1.op, op_size, 2), opcode(opcode) {
+		operands[0].op = dstsrc1.op;
+		operands[1].op = src2.op;
+	}
+public:
+	virtual void emit(CodeMemory* CM) const;
+};
+/// SSE Alu Instruction (Double-Precision)
+class SSEAluSDInst : public SSEAluInst {
+protected:
+	SSEAluSDInst(const char* name, const Src2Op &src2, const DstSrc1Op &dstsrc1,
+		u1 opcode)
+			: SSEAluInst(name, src2, dstsrc1, opcode, GPInstruction::OS_64) {}
+};
+/// SSE Alu Instruction (Single-Precision)
+class SSEAluSSInst : public SSEAluInst {
+protected:
+	SSEAluSSInst(const char* name, const Src2Op &src2, const DstSrc1Op &dstsrc1,
+		u1 opcode)
+			: SSEAluInst(name, src2, dstsrc1, opcode, GPInstruction::OS_32) {}
+};
+
+// Double-Precision
+
+/// Add Scalar Double-Precision Floating-Point Values
+class AddSDInst : public SSEAluSDInst {
 public:
 	AddSDInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-			: GPInstruction("X86_64AddSDInst", dstsrc1.op, OS_64, 2) {
-		operands[0].op = dstsrc1.op;
-		operands[1].op = src2.op;
-	}
-	virtual void emit(CodeMemory* CM) const;
+		: SSEAluSDInst("X86_64AddSDInst", src2, dstsrc1, 0x58) {}
 };
+/// Multiply Scalar Double-Precision Floating-Point Values
+class MulSDInst : public SSEAluSDInst {
+public:
+	MulSDInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
+		: SSEAluSDInst("X86_64MulSDInst", src2, dstsrc1, 0x59) {}
+};
+/// Subtract Scalar Double-Precision Floating-Point Values
+class SubSDInst : public SSEAluSDInst {
+public:
+	SubSDInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
+		: SSEAluSDInst("X86_64SubSDInst", src2, dstsrc1, 0x5c) {}
+};
+/// Divide Scalar Double-Precision Floating-Point Values
+class DivSDInst : public SSEAluSDInst {
+public:
+	DivSDInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
+		: SSEAluSDInst("X86_64DivSDInst", src2, dstsrc1, 0x5e) {}
+};
+// SQRTSD Compute Square Root of Scalar Double-Precision Floating-Point Value 0x51
+// MINSD Return Minimum Scalar Double-Precision Floating-Point Value 0x5d
+// MAXSD Return Maximum Scalar Double-Precision Floating-Point Value 0x5f
 
-class AddSSInst : public GPInstruction {
+
+// Single-Precision
+
+/// Add Scalar Single-Precision Floating-Point Values
+class AddSSInst : public SSEAluSSInst {
 public:
 	AddSSInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-			: GPInstruction("X86_64AddSSInst", dstsrc1.op, OS_32, 2) {
-		operands[0].op = dstsrc1.op;
-		operands[1].op = src2.op;
-	}
-	virtual void emit(CodeMemory* CM) const;
+		: SSEAluSSInst("X86_64AddSSInst", src2, dstsrc1, 0x58) {}
 };
+/// Multiply Scalar Single-Precision Floating-Point Values
+class MulSSInst : public SSEAluSSInst {
+public:
+	MulSSInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
+		: SSEAluSSInst("X86_64MulSSInst", src2, dstsrc1, 0x59) {}
+};
+/// Subtract Scalar Single-Precision Floating-Point Values
+class SubSSInst : public SSEAluSSInst {
+public:
+	SubSSInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
+		: SSEAluSSInst("X86_64SubSSInst", src2, dstsrc1, 0x5c) {}
+};
+/// Divide Scalar Single-Precision Floating-Point Values
+class DivSSInst : public SSEAluSSInst {
+public:
+	DivSSInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
+		: SSEAluSSInst("X86_64DivSSInst", src2, dstsrc1, 0x5e) {}
+};
+// SQRTSS Compute Square Root of Scalar Single-Precision Floating-Point Value 0x51
+// MINSS Return Minimum Scalar Single-Precision Floating-Point Value 0x5d
+// MAXSS Return Maximum Scalar Single-Precision Floating-Point Value 0x5f
+
 
 class MovSDInst : public MoveInst {
 public:
