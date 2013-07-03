@@ -47,6 +47,7 @@ LoweredInstDAG* Backend::lower(Instruction *I) const {
 	case Instruction::SUBInstID:    return lowerSUBInst(I->to_SUBInst());
 	case Instruction::RETURNInstID: return lowerRETURNInst(I->to_RETURNInst());
 	case Instruction::MULInstID:    return lowerMULInst(I->to_MULInst());
+	case Instruction::DIVInstID:    return lowerDIVInst(I->to_DIVInst());
 	case Instruction::CASTInstID:   return lowerCASTInst(I->to_CASTInst());
 	default: break;
 	}

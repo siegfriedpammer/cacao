@@ -1221,9 +1221,34 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_LSUB:
 			case ICMD_FSUB:
 			case ICMD_DSUB:
-				goto _default;
+				{
+					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
+					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
+					Type::TypeID type;
+					switch (iptr->opc) {
+					case ICMD_ISUB:
+						type = Type::IntTypeID;
+						break;
+					case ICMD_LSUB:
+						type = Type::LongTypeID;
+						break;
+					case ICMD_FSUB:
+						type = Type::FloatTypeID;
+						break;
+					case ICMD_DSUB:
+						type = Type::DoubleTypeID;
+						break;
+					default: assert(0);
+					}
+					Instruction *result = new SUBInst(type, s1, s2);
+					write_variable(iptr->dst.varindex,bbindex,result);
+					M->add_Instruction(result);
+				}
+				break;
 			case ICMD_IMUL:
 			case ICMD_LMUL:
+			case ICMD_FMUL:
+			case ICMD_DMUL:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
 					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
@@ -1235,6 +1260,12 @@ bool SSAConstructionPass::run(JITData &JD) {
 					case ICMD_LMUL:
 						type = Type::LongTypeID;
 						break;
+					case ICMD_FMUL:
+						type = Type::FloatTypeID;
+						break;
+					case ICMD_DMUL:
+						type = Type::DoubleTypeID;
+						break;
 					default: assert(0);
 					}
 					Instruction *result = new MULInst(type, s1, s2);
@@ -1242,9 +1273,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 					M->add_Instruction(result);
 				}
 				break;
-			case ICMD_FMUL:
-			case ICMD_DMUL:
-				goto _default;
 			case ICMD_IDIV:
 			case ICMD_LDIV:
 			case ICMD_FDIV:
@@ -1370,10 +1398,12 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		SHOW_INT_CONST(OS, iptr->sx.s23.s3.constval);
 		//		break;
 
-				/* const INT */
 				goto _default;
+
 			case ICMD_ICONST:
 			case ICMD_LCONST:
+			case ICMD_FCONST:
+			case ICMD_DCONST:
 				{
 					Instruction *I;
 					switch (iptr->opc) {
@@ -1382,6 +1412,12 @@ bool SSAConstructionPass::run(JITData &JD) {
 						break;
 					case ICMD_LCONST:
 						I = new CONSTInst(iptr->sx.val.l);
+						break;
+					case ICMD_FCONST:
+						I = new CONSTInst(iptr->sx.val.f);
+						break;
+					case ICMD_DCONST:
+						I = new CONSTInst(iptr->sx.val.d);
 						break;
 					default: assert(0);
 					}
@@ -1412,6 +1448,15 @@ bool SSAConstructionPass::run(JITData &JD) {
 				}
 				break;
 			case ICMD_LMULCONST:
+			{
+				Instruction *konst = new CONSTInst(iptr->sx.val.l);
+				Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+				Instruction *result = new MULInst(Type::LongTypeID, s1, konst);
+				M->add_Instruction(konst);
+				write_variable(iptr->dst.varindex,bbindex,result);
+				M->add_Instruction(result);
+			}
+			break;
 			case ICMD_LMULPOW2:
 			case ICMD_LDIVPOW2:
 			case ICMD_LREMPOW2:
@@ -1428,21 +1473,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		SHOW_S1(OS, iptr);
 		//		SHOW_S2(OS, iptr);
 		//		SHOW_ADR_CONST(OS, iptr->sx.s23.s3.constval);
-		//		break;
-
-				/* const LNG */
-				goto _default;
-
-				/* const FLT */
-			case ICMD_FCONST:
-		//		SHOW_FLT_CONST(OS, iptr->sx.val.f);	
-		//		SHOW_DST(OS, iptr);
-		//		break;
-
-				/* const DBL */
-			case ICMD_DCONST:
-		//		SHOW_DBL_CONST(OS, iptr->sx.val.d);	
-		//		SHOW_DST(OS, iptr);
 		//		break;
 
 				/* const ADR */
@@ -1604,13 +1634,13 @@ bool SSAConstructionPass::run(JITData &JD) {
 				goto _default;
 			case ICMD_ISTORE:
 			case ICMD_LSTORE:
+			case ICMD_FSTORE:
+			case ICMD_DSTORE:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
 					write_variable(iptr->dst.varindex,bbindex,s1);
 				}
 				break;
-			case ICMD_FSTORE:
-			case ICMD_DSTORE:
 			case ICMD_ASTORE:
 		//		SHOW_S1(OS, iptr);
 		//		SHOW_DST_LOCAL(OS, iptr);
@@ -2063,10 +2093,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 			continue;
 
 			_default:
-				err() << BoldRed << "error: " << reset_color << "operation " << BoldWhite
-					  << icmd_table[iptr->opc].name << " (" << iptr->opc << ")"
-					  << reset_color << " not yet supported!" << nl;
-				assert(false);
+				ABORT_MSG(icmd_table[iptr->opc].name << " (" << iptr->opc << ")",
+					"Operation not yet supported!");
 		}
 
 		if (!BB[bbindex]->get_EndInst()) {

@@ -48,6 +48,7 @@ protected:
 	virtual LoweredInstDAG* lowerSUBInst(SUBInst *I) const = 0;
 	virtual LoweredInstDAG* lowerRETURNInst(RETURNInst *I) const = 0;
 	virtual LoweredInstDAG* lowerMULInst(MULInst *I) const = 0;
+	virtual LoweredInstDAG* lowerDIVInst(DIVInst *I) const = 0;
 	virtual LoweredInstDAG* lowerCASTInst(CASTInst *I) const = 0;
 public:
 	static Backend* factory();
@@ -78,6 +79,7 @@ protected:
 	virtual LoweredInstDAG* lowerSUBInst(SUBInst *I) const;
 	virtual LoweredInstDAG* lowerRETURNInst(RETURNInst *I) const;
 	virtual LoweredInstDAG* lowerMULInst(MULInst *I) const;
+	virtual LoweredInstDAG* lowerDIVInst(DIVInst *I) const;
 	virtual LoweredInstDAG* lowerCASTInst(CASTInst *I) const;
 public:
 	virtual RegisterFile* get_RegisterFile(Type::TypeID type) const;
