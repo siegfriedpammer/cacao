@@ -186,114 +186,138 @@ template<>
 LoweredInstDAG* BackendBase<X86_64>::lowerADDInst(ADDInst *I) const {
 	assert(I);
 	Type::TypeID type = I->get_type();
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	VirtualRegister *dst = new VirtualRegister(type);
+	MachineInstruction *mov = create_Move(new UnassignedReg(type),dst);
+	MachineInstruction *alu = NULL;
+
 	switch (type) {
 	case Type::ByteTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
-	{
-		// Integer types
-		LoweredInstDAG *dag = new LoweredInstDAG(I);
-		VirtualRegister *dst = new VirtualRegister(type);
-		MachineInstruction *mov = new MovInst(
-			SrcOp(new UnassignedReg(type)),
-			DstOp(dst),
-			get_OperandSize_from_Type(type));
-		AddInst *add = new AddInst(
+		alu = new AddInst(
 			Src2Op(new UnassignedReg(type)),
 			DstSrc1Op(dst),
 			get_OperandSize_from_Type(type));
-		dag->add(mov);
-		dag->add(add);
-		dag->set_input(1,add,1);
-		dag->set_input(0,mov,0);
-		dag->set_result(add);
-		return dag;
-	}
+		break;
 	case Type::DoubleTypeID:
-	{
-		LoweredInstDAG *dag = new LoweredInstDAG(I);
-		VirtualRegister *dst = new VirtualRegister(type);
-		MachineInstruction *mov = new MovSDInst(
-			SrcOp(new UnassignedReg(type)),
-			DstOp(dst));
-		AddSDInst *add = new AddSDInst(
+		alu = new AddSDInst(
 			Src2Op(new UnassignedReg(type)),
 			DstSrc1Op(dst));
-		dag->add(mov);
-		dag->add(add);
-		dag->set_input(1,add,1);
-		dag->set_input(0,mov,0);
-		dag->set_result(add);
-		return dag;
+		break;
+	default:
+		ABORT_MSG("x86_64: Lowering not supported",
+			"Inst: " << I << " type: " << type);
 	}
-	default: break;
-	}
-	ABORT_MSG("x86_64: Lowering not supported", "Inst: " << I << " type: " << type);
-	return NULL;
+	dag->add(mov);
+	dag->add(alu);
+	dag->set_input(1,alu,1);
+	dag->set_input(0,mov,0);
+	dag->set_result(alu);
+	return dag;
 }
 
 template<>
 LoweredInstDAG* BackendBase<X86_64>::lowerSUBInst(SUBInst *I) const {
 	assert(I);
 	Type::TypeID type = I->get_type();
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	VirtualRegister *dst = new VirtualRegister(type);
+	MachineInstruction *mov = create_Move(new UnassignedReg(type),dst);
+	MachineInstruction *alu = NULL;
+
 	switch (type) {
 	case Type::ByteTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
-	{
-		LoweredInstDAG *dag = new LoweredInstDAG(I);
-		VirtualRegister *dst = new VirtualRegister(type);
-		MachineInstruction *mov = new MovInst(
-			SrcOp(new UnassignedReg(type)),
-			DstOp( dst),
-			get_OperandSize_from_Type(type));
-		SubInst *sub = new SubInst(
+		alu = new SubInst(
 			Src2Op(new UnassignedReg(type)),
 			DstSrc1Op(dst),
 			get_OperandSize_from_Type(type));
-		dag->add(mov);
-		dag->add(sub);
-		dag->set_input(1,sub,1);
-		dag->set_input(0,mov,0);
-		dag->set_result(sub);
-		return dag;
+		break;
+	case Type::DoubleTypeID:
+		alu = new SubSDInst(
+			Src2Op(new UnassignedReg(type)),
+			DstSrc1Op(dst));
+		break;
+	default:
+		ABORT_MSG("x86_64: Lowering not supported",
+			"Inst: " << I << " type: " << type);
 	}
-	default: break;
-	}
-	ABORT_MSG("x86_64: Lowering not supported", "Inst: " << I << " type: " << type);
-	return NULL;
+	dag->add(mov);
+	dag->add(alu);
+	dag->set_input(1,alu,1);
+	dag->set_input(0,mov,0);
+	dag->set_result(alu);
+	return dag;
 }
 
 template<>
 LoweredInstDAG* BackendBase<X86_64>::lowerMULInst(MULInst *I) const {
 	assert(I);
 	Type::TypeID type = I->get_type();
+
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	VirtualRegister *dst = new VirtualRegister(type);
+	MachineInstruction *mov = create_Move(new UnassignedReg(type),dst);
+	MachineInstruction *alu = NULL;
+
 	switch (type) {
 	case Type::ByteTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
-	{
-		LoweredInstDAG *dag = new LoweredInstDAG(I);
-		VirtualRegister *dst = new VirtualRegister(type);
-		MachineInstruction *mov = new MovInst(
-			SrcOp(new UnassignedReg(type)),
-			DstOp( dst),
-			get_OperandSize_from_Type(type));
-		IMulInst *mul = new IMulInst(
+		alu = new IMulInst(
 			Src2Op(new UnassignedReg(type)),
 			DstSrc1Op(dst),
 			get_OperandSize_from_Type(type));
-		dag->add(mov);
-		dag->add(mul);
-		dag->set_input(1,mul,1);
-		dag->set_input(0,mov,0);
-		dag->set_result(mul);
-		return dag;
+		break;
+	case Type::DoubleTypeID:
+		alu = new MulSDInst(
+			Src2Op(new UnassignedReg(type)),
+			DstSrc1Op(dst));
+		break;
+	default:
+		ABORT_MSG("x86_64: Lowering not supported",
+			"Inst: " << I << " type: " << type);
 	}
-	default: break;
+	dag->add(mov);
+	dag->add(alu);
+	dag->set_input(1,alu,1);
+	dag->set_input(0,mov,0);
+	dag->set_result(alu);
+	return dag;
+}
+
+template<>
+LoweredInstDAG* BackendBase<X86_64>::lowerDIVInst(DIVInst *I) const {
+	assert(I);
+	Type::TypeID type = I->get_type();
+
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	VirtualRegister *dst = new VirtualRegister(type);
+	MachineInstruction *mov = create_Move(new UnassignedReg(type), dst);
+	MachineInstruction *alu = NULL;
+
+	switch (type) {
+	case Type::ByteTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+		break;
+	case Type::DoubleTypeID:
+		alu = new DivSDInst(
+			Src2Op(new UnassignedReg(type)),
+			DstSrc1Op(dst));
+		break;
+	default:
+		ABORT_MSG("x86_64: Lowering not supported",
+			"Inst: " << I << " type: " << type);
 	}
-	ABORT_MSG("x86_64: Lowering not supported", "Inst: " << I << " type: " << type);
-	return NULL;
+	dag->add(mov);
+	dag->add(alu);
+	dag->set_input(1,alu,1);
+	dag->set_input(0,mov,0);
+	dag->set_result(alu);
+	return dag;
 }
 
 
@@ -366,9 +390,25 @@ LoweredInstDAG* BackendBase<X86_64>::lowerCASTInst(CASTInst *I) const {
 	  default: break;
 	  }
 	  break;
+  case Type::LongTypeID:
+	  switch (to) {
+	  case Type::DoubleTypeID:
+	  {
+		  MachineInstruction *mov = new CVTSI2SDInst(
+			  SrcOp(new UnassignedReg(from)),
+			  DstOp(new VirtualRegister(to)),
+			  GPInstruction::OS_64, GPInstruction::OS_64);
+		  dag->add(mov);
+		  dag->set_input(mov);
+		  dag->set_result(mov);
+		  return dag;
+	  }
+	  default: break;
+	  }
+	  break;
   default: break;
   }
-  ABORT_MSG("Cast not supported!", "From " << from << " to " << to );
+  ABORT_MSG("x86_64 Cast not supported!", "From " << from << " to " << to );
   return NULL;
 }
 
