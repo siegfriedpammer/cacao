@@ -44,11 +44,11 @@ java.lang.NegativeArraySizeException
    at extest.main(extest.java)
 
 OutOfMemoryError:                                      OK
-java.lang.OutOfMemoryError
+java.lang.OutOfMemoryError: Java heap space
    at extest.main(extest.java)
 
 OutOfMemoryError (multianewarray):                     OK
-java.lang.OutOfMemoryError
+java.lang.OutOfMemoryError: Java heap space
    at extest.main(extest.java)
 
 
@@ -99,7 +99,7 @@ Caused by: java.lang.NullPointerException
    at extest.main(extest.java)
 
 UnsatisfiedLinkError:                                  OK
-java.lang.UnsatisfiedLinkError: nsub
+java.lang.UnsatisfiedLinkError: extest.nsub()V
    at extest.main(extest.java)
 
 NullPointerException (native):                         OK
@@ -111,7 +111,7 @@ java.lang.NullPointerException
 special exceptions----------------------------------------
 
 OutOfMemoryError (array clone):                        OK
-java.lang.OutOfMemoryError
+java.lang.OutOfMemoryError: Java heap space
    at [B.clone(Native Method)
    at extest.main(extest.java)
 

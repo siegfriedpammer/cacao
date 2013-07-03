@@ -1004,13 +1004,8 @@ void exceptions_throw_nosuchmethoderror(classinfo *c, Utf8String name, Utf8Strin
 
 void exceptions_throw_outofmemoryerror(void)
 {
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	exceptions_throw_utf_utf(utf8::java_lang_OutOfMemoryError,
 	                         Utf8String::from_utf8("Java heap space"));
-#else
-	exceptions_throw_utf(utf8::java_lang_OutOfMemoryError);
-#endif
-
 }
 
 
