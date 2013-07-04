@@ -1,3 +1,10 @@
+New in release 1.6.2 (not yet released)
+
+  * New statistics framework.
+  * Loop optimization (disabled by default).
+  * Boehm GC upgraded to 7.2d.
+  * Fixed PR185 (noisy finalizer exceptions).
+
 New in release 1.6.1 (June 28, 2013)
 
   * Support for OpenJDK 7.
