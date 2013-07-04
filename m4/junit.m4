@@ -48,7 +48,7 @@ public class JUnitTest {
     }
 }
 EOF
-if AC_TRY_COMMAND($JAVAC -classpath ${JUNIT_JAR} $JAVA_TEST) >/dev/null 2>&1; then
+if AC_TRY_COMMAND($JAVAC -source 1.5 -target 1.5 -classpath ${JUNIT_JAR} $JAVA_TEST) >/dev/null 2>&1; then
   ac_cv_prog_junit_works=yes
 else
   AC_MSG_ERROR([The Java compiler $JAVAC failed to compile JUnit tests (see config.log, check the CLASSPATH?)])
