@@ -1,6 +1,6 @@
 ## tests/regression/resolving/Makefile.am
 ##
-## Copyright (C) 1996-2012
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -30,13 +30,15 @@ JAVA     = $(top_builddir)/src/cacao/cacao
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
 JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
 
-HARNESS_SOURCE_FILES = \
+HARNESS_SOURCE_FILES =            \
 	$(srcdir)/TestController.java \
-	$(srcdir)/TestLoader.java
+	$(srcdir)/TestLoader.java     \
+	$(srcdir)/ClassLibrary.java
 
-HARNESS_CLASS_FILES = \
+HARNESS_CLASS_FILES =    \
 	TestController.class \
-	TestLoader.class
+	TestLoader.class     \
+	ClassLibrary.class
 
 TEST_SOURCE_FILES = \
 	$(srcdir)/test_instance_subtype_violated.java \

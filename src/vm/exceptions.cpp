@@ -74,6 +74,10 @@
 java_object_t *_no_threads_exceptionptr = NULL;
 #endif
 
+/***
+ * Get the the name of a classinfo* for an exception message
+ */
+static inline Utf8String get_classname_for_exception(classinfo *c);
 
 /* exceptions_get_exception ****************************************************
 
@@ -1000,7 +1004,8 @@ void exceptions_throw_nosuchmethoderror(classinfo *c, Utf8String name, Utf8Strin
 
 void exceptions_throw_outofmemoryerror(void)
 {
-	exceptions_throw_utf(utf8::java_lang_OutOfMemoryError);
+	exceptions_throw_utf_utf(utf8::java_lang_OutOfMemoryError,
+	                         Utf8String::from_utf8("Java heap space"));
 }
 
 
@@ -1226,11 +1231,11 @@ void exceptions_throw_arraystoreexception(void)
 
 java_handle_t *exceptions_new_classcastexception(java_handle_t *o)
 {
-	classinfo     *c;
+	classinfo *c;
 
 	LLNI_class_get(o, c);
 
-	Utf8String classname = c->name;
+	Utf8String classname = get_classname_for_exception(c);
 
 	return exceptions_new_utf_utf(utf8::java_lang_ClassCastException, classname);
 }
@@ -1845,6 +1850,14 @@ void exceptions_print_stacktrace(void)
 
 		fflush(stderr);
 	}
+}
+
+static inline Utf8String get_classname_for_exception(classinfo *c) {
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+	return Utf8String::from_utf8_slash_to_dot(c->name);
+#else
+	return c->name;
+#endif
 }
 
 /*

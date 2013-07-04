@@ -1,123 +1,161 @@
+/* regression/resolving/TestLoader.java - instrumented class loader
+
+   Copyright (C) 1996-2013
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301, USA.
+*/
+
 import java.util.Hashtable;
 import java.io.*;
 
+// A simple class loader that logs events.
 public class TestLoader extends ClassLoader {
+	public TestLoader(String name, TestController controller) {
+		this(getSystemClassLoader(), name, controller);
+	}
 
-    Hashtable registry_;
-    String name_;
-    TestController controller_;
+	public TestLoader(ClassLoader parent, String name, TestController controller) {
+		super(parent);
+		name_       = name;
+		controller_ = controller;
+		registry_   = new Hashtable<String, Entry>();
+	}
 
-    class Entry {
-    }
+	// tell loader to load class from given file
+	public void addClassfile(String classname, String filename) {
+		registry_.put(classname, new ClassfileEntry(filename));
+	}
 
-    class ClassfileEntry extends Entry {
-        public String filename_;
-        public ClassfileEntry(String filename) { filename_ = filename; }
-    }
+	// tell loader to delegate loading to given other loader
+	public void addDelegation(String classname, ClassLoader loader) {
+		registry_.put(classname, new DelegationEntry(loader));
+	}
 
-    class DelegationEntry extends Entry {
-        public ClassLoader loader_;
-        public DelegationEntry(ClassLoader loader) { loader_ = loader; }
-    }
+	// tell loader to delegate loading of class to it's parent
+	public void addParentDelegation(String classname) {
+		addDelegation(classname, getParent());
+	}
 
-    class SuperDelegationEntry extends Entry {
-    }
+	@Override
+	public Class<?> loadClass(String classname) throws ClassNotFoundException {
+		controller_.reportRequest(this, classname);
 
-    public TestLoader(ClassLoader parent, String name, TestController controller) {
-        super(parent);
-        name_ = name;
-        controller_ = controller;
-        registry_ = new Hashtable();
-    }
+		Entry entry = registry_.get(classname);
 
-    public void addClassfile(String classname, String filename) {
-        registry_.put(classname, new ClassfileEntry(filename));
-    }
+		if (entry == null) {
+			throw new ClassNotFoundException(this + " does not know how to load class " + classname);
+		}
 
-    public void addDelegation(String classname, ClassLoader loader) {
-        registry_.put(classname, new DelegationEntry(loader));
-    }
+		Class<?> cls = entry.loadClass(classname);
 
-    public void addParentDelegation(String classname) {
-        registry_.put(classname, new DelegationEntry(getParent()));
-    }
+		controller_.reportLoaded(this, cls);
 
-    public void addSuperDelegation(String classname) {
-        registry_.put(classname, new SuperDelegationEntry());
-    }
+		return cls;
+	}
 
-    public String toString() {
-        return "TestLoader<" + name_ + ">";
-    }
+	@Override
+	public String toString() {
+		return "TestLoader(" + name_ + ")";
+	}
 
-    public Class loadClass(String classname) throws ClassNotFoundException {
-        controller_.reportRequest(this, classname);
+	// ***** private parts
 
-        Entry entry = (Entry) registry_.get(classname);
+	private abstract class Entry {
+		abstract Class<?> loadClass(String classname) throws ClassNotFoundException;
+	}
 
-        if (entry == null) {
-            controller_.reportUnexpectedClassRequested(this, classname);
-            throw new ClassNotFoundException(this + " does not know how to load class " + classname);
-        }
+	private class ClassfileEntry extends Entry {
+		public String filename_;
+		public ClassfileEntry(String filename) { filename_ = filename; }
 
-        if (entry instanceof ClassfileEntry) {
-            Class cls = findLoadedClass(classname);
+		Class<?> loadClass(String classname) throws ClassNotFoundException {
+			Class<?> cls = findLoadedClass(classname);
 
-            if (cls != null) {
-                controller_.reportFoundLoaded(this, cls);
-                return cls;
-            }
+			if (cls != null) {
+				controller_.reportFoundLoaded(TestLoader.this, cls);
+				return cls;
+			}
 
-            String filename = ((ClassfileEntry)entry).filename_;
+			String filename = filename_;
 
-            try {
-                byte[] bytes = slurpFile(filename);
+			try {
+				byte[] bytes = slurpFile(filename);
 
-                cls = defineClass(classname, bytes, 0, bytes.length);
+				cls = defineClass(classname, bytes, 0, bytes.length);
 
-                controller_.reportDefinition(this, cls);
+				controller_.reportDefinition(TestLoader.this, cls);
 
-                return cls;
-            }
-            catch (Exception e) {
-                throw new ClassNotFoundException(e.toString());
-            }
-        }
-        else if (entry instanceof DelegationEntry) {
-            ClassLoader delegate = ((DelegationEntry)entry).loader_;
+				return cls;
+			}
+			catch (Exception e) {
+				throw new ClassNotFoundException(e.toString());
+			}            
+		}
+	}
 
-            controller_.reportDelegation(this, delegate, classname);
+	private class DelegationEntry extends Entry {
+		public ClassLoader delegate;
 
-            Class cls = delegate.loadClass(classname);
+		public DelegationEntry(ClassLoader loader) { delegate = loader; }
 
-            controller_.reportLoaded(this, cls);
+		Class<?> loadClass(String classname) throws ClassNotFoundException {
+			controller_.reportDelegation(TestLoader.this, delegate, classname);
 
-            return cls;
-        }
+			return delegate.loadClass(classname);      
+		}
+	}
 
-        throw new ClassNotFoundException("unknown TestLoader entry: " + entry);
-    }
+	private byte[] slurpFile(String filename) throws IOException {
+		File file = new File(filename);
+		InputStream is = new FileInputStream(file);
+		long len = file.length();
+		if (len > Integer.MAX_VALUE)
+			throw new IOException("file " + file.getName() + " is too large");
+		byte[] bytes = new byte[(int) len];
 
-    byte[] slurpFile(String filename) throws IOException {
-        File file = new File(filename);
-        InputStream is = new FileInputStream(file);
-        long len = file.length();
-        if (len > Integer.MAX_VALUE)
-            throw new IOException("file " + file.getName() + " is too large");
-        byte[] bytes = new byte[(int) len];
+		int ofs = 0;
+		int read = 0;
+		while ((ofs < len) && (read = is.read(bytes, ofs, bytes.length - ofs)) >= 0)
+			ofs += read;
 
-        int ofs = 0;
-        int read = 0;
-        while ((ofs < len) && (read = is.read(bytes, ofs, bytes.length - ofs)) >= 0)
-            ofs += read;
+		if (ofs < len)
+			throw new IOException("error reading file " + file.getName());
 
-        if (ofs < len)
-            throw new IOException("error reading file " + file.getName());
+		is.close();
+		return bytes;
+	}
 
-        is.close();
-        return bytes;
-    }
+	private final Hashtable<String, Entry> registry_;
+	private final String                   name_;
+	private final TestController           controller_;
 }
 
-// vim: et sw=4
-
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: java
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */

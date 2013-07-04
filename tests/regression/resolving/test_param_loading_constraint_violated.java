@@ -1,52 +1,126 @@
-public class test_param_loading_constraint_violated {
+/* regression/resolving/test_param_loading_constraint_violated.java
 
-    public static void main(String[] args) {
-        TestController ct = new TestController();
+   Copyright (C) 1996-2013
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
-        TestLoader ld1 = new TestLoader(ClassLoader.getSystemClassLoader(), "ld1", ct);
-        TestLoader ld2 = new TestLoader(ClassLoader.getSystemClassLoader(), "ld2", ct);
+   This file is part of CACAO.
 
-        ld1.addClassfile("BarUseFoo", "classes1/BarUseFoo.class");
-        ld1.addClassfile("Foo", "classes1/Foo.class");
-        ld1.addParentDelegation("java.lang.Object");
-        ld1.addParentDelegation("java.lang.String");
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
 
-        ld2.addClassfile("BarPassFoo", "classes2/BarPassFoo.class");
-        ld2.addClassfile("Foo", "classes2/Foo.class");
-        ld2.addDelegation("BarUseFoo", ld1);
-        ld2.addParentDelegation("java.lang.Object");
-        ld2.addParentDelegation("java.lang.String");
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301, USA.
+*/
 
-        // loading & linking BarPassFoo
-        ct.expect("requested", ld2, "BarPassFoo");
-        ct.expectLoadFromSystem(ld2, "java.lang.Object");
-        ct.expect("defined", ld2, "<BarPassFoo>");
-        ct.expect("loaded", ld2, "<BarPassFoo>");
+public class test_param_loading_constraint_violated extends TestController {
 
-        Class cls = ct.loadClass(ld2, "BarPassFoo");
+	public static void main(String[] args) {
+		new test_param_loading_constraint_violated();
+	}
 
-        // executing BarPassFoo.passit: new Foo
-        ct.expect("requested", ld2, "Foo");
-        ct.expect("defined", ld2, "<Foo>");
+	test_param_loading_constraint_violated() {
+		// ***** setup
 
-        // executing BarPassFoo.passit: new BarUseFoo
-        ct.expectDelegation(ld2, ld1, "BarUseFoo");
-        // ...linking BarUseFoo
-        ct.expectLoadFromSystem(ld1, "java.lang.Object");
-        ct.expectDelegationDefinition(ld2, ld1, "BarUseFoo");
+		TestLoader ld1 = new TestLoader("ld1", this);
+		TestLoader ld2 = new TestLoader("ld2", this);
 
-        // resolving Foo.virtualId() from BarUseFoo
-        ct.expect("requested", ld1, "Foo");
+		ld1.addClassfile("BarUseFoo", "classes1/BarUseFoo.class");
+		ld1.addClassfile("Foo",       "classes1/Foo.class");
+		ld1.addParentDelegation("java.lang.Object");
+		ld1.addParentDelegation("java.lang.String");
 
-        // the loading constraing (ld1,ld2,Foo) is violated
-        ct.expect("exception", "java.lang.LinkageError", "<BarPassFoo>");
+		ld2.addClassfile("BarPassFoo", "classes2/BarPassFoo.class");
+		ld2.addClassfile("Foo",        "classes2/Foo.class");
+		ld2.addDelegation("BarUseFoo", ld1);
+		ld2.addParentDelegation("java.lang.Object");
+		ld2.addParentDelegation("java.lang.String");
 
-        ct.checkStringGetterMustFail(cls, "passit");
+		// OpenJDKs reflection API causes us to load DerivedFoo
+		if (ClassLibrary.getCurrent() == ClassLibrary.OPEN_JDK)
+			ld2.addClassfile("DerivedFoo", "classes2/DerivedFoo.class");
 
-        ct.exit();
-    }
+		// loading BarPassFoo
+		expectRequest(ld2, "BarPassFoo")
+			// linking BarPassFoo
+			.expectRequest("java.lang.Object")
+			.expectDelegateToSystem()
+		.expectDefinition();
 
+		Class<?> cls = loadClass(ld2, "BarPassFoo");
+
+		switch (ClassLibrary.getCurrent()) {
+		case GNU_CLASSPATH:
+			// executing BarPassFoo.passit: new Foo
+			expectRequest(ld2, "Foo")
+			.expectDefinition();
+
+			// executing BarPassFoo.passit: new BarUseFoo
+			expectRequest(ld2, "BarUseFoo")
+				.expectDelegation(ld1)
+					// ...linking BarUseFoo
+					.expectRequest("java.lang.Object")
+					.expectDelegateToSystem()
+				.expectDefinition()
+			.expectLoaded();
+
+			// resolving Foo.virtualId() from BarUseFoo
+			expectRequest(ld1, "Foo");
+			break;
+		case OPEN_JDK:
+			// constructor of java.lang.Method checks descriptor of passit
+			// this forces loading of Foo and String
+			expectRequest(ld2, "java.lang.String")
+			.expectDelegateToSystem();
+
+			// executing BarPassFoo.passit: new Foo
+			expectRequest(ld2, "Foo")
+			.expectDefinition();
+
+			expectRequest(ld2, "DerivedFoo")
+			.expectDefinition();
+
+			// executing BarPassFoo.passit: new BarUseFoo
+			expectRequest(ld2, "BarUseFoo")
+				.expectDelegation(ld1)
+					// ...linking BarUseFoo
+					.expectRequest("java.lang.Object")
+					.expectDelegateToSystem()
+				.expectDefinition()
+			.expectLoaded();
+
+			// resolving Foo.virtualId() from BarUseFoo
+			expectRequest(ld1, "Foo");
+			break;
+		}
+
+		// the loading constraing (ld1,ld2,Foo) is violated
+		expectException(new LinkageError("Foo: loading constraint violated: "));
+
+		checkStringGetterMustFail(cls, "passit");
+
+		exit();
+	}
 }
 
-// vim: et sw=4
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: java
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */
