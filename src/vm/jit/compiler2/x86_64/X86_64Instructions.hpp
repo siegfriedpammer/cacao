@@ -235,7 +235,12 @@ public:
 
 	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
 		if (i != 1) return false;
-		return fits_into<s4>(imm->get_value());
+		switch (imm->get_type()) {
+		case Type::IntTypeID: return true;
+		case Type::LongTypeID: return fits_into<s4>(imm->get_Long());
+		default: break;
+		}
+		return false;
 	}
 };
 

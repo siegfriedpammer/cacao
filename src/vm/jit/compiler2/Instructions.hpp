@@ -385,6 +385,9 @@ public:
 	}
 	virtual CONSTInst* to_CONSTInst() { return this; }
 
+	/**
+	 * @bug this does not what one might expect! Do not use!
+	 */
 	s8 get_value() const {
 		switch(get_type()) {
 		case Type::LongTypeID:   return (s8)value.l;
@@ -394,6 +397,22 @@ public:
 		default: assert(0); return 0;
 		}
 		return 0;
+	}
+	double get_Int() const {
+		assert(type == Type::IntTypeID);
+		return value.i;
+	}
+	double get_Long() const {
+		assert(type == Type::LongTypeID);
+		return value.l;
+	}
+	double get_Float() const {
+		assert(type == Type::FloatTypeID);
+		return value.f;
+	}
+	double get_Double() const {
+		assert(type == Type::DoubleTypeID);
+		return value.d;
 	}
 };
 

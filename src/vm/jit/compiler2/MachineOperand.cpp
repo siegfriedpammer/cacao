@@ -23,8 +23,9 @@
 */
 
 #include "vm/jit/compiler2/MachineOperand.hpp"
+#include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/StackSlotManager.hpp"
-#include "toolbox/OStream.hpp"
+#include "toolbox/logging.hpp"
 
 namespace cacao {
 namespace jit {
@@ -55,6 +56,75 @@ OStream& operator<<(OStream &OS, const MachineOperandType &MO) {
 StackSlot* ManagedStackSlot::to_StackSlot() {
 	return parent->get_StackSlot(this);
 }
+
+Immediate::Immediate(CONSTInst *I)
+		: MachineOperand(ImmediateID,I->get_type()) {
+	switch (get_type()) {
+	case Type::IntTypeID:
+		value.i = I->get_Int();
+		break;
+	case Type::LongTypeID:
+		value.l = I->get_Long();
+		break;
+	case Type::FloatTypeID:
+		value.f = I->get_Float();
+		break;
+	case Type::DoubleTypeID:
+		value.d = I->get_Double();
+		break;
+	default:
+		assert(0);
+		break;
+	}
+}
+template<>
+s8 Immediate::get_value() const {
+	switch (get_type()) {
+	case Type::IntTypeID: return (s8)value.i;
+	case Type::LongTypeID: return (s8)value.l;
+	default: break;
+	}
+	ABORT_MSG("TypeNotSupported: Immediate::get_value<s8>",
+		"type " << get_type());
+	return 0;
+}
+
+template<>
+s4 Immediate::get_value() const {
+	switch (get_type()) {
+	case Type::IntTypeID: return (s4)value.i;
+	case Type::LongTypeID:
+		if (fits_into<s4>(value.l)) {
+			return (s4)value.l;
+		}
+		break;
+	default: break;
+	}
+	ABORT_MSG("TypeNotSupported: Immediate::get_value<s8>",
+		"type " << get_type());
+	return 0;
+}
+
+template<>
+s1 Immediate::get_value() const {
+	switch (get_type()) {
+	case Type::IntTypeID:
+		if (fits_into<s1>(value.i)) {
+			return (s1)value.i;
+		}
+		break;
+	case Type::LongTypeID:
+		if (fits_into<s1>(value.l)) {
+			return (s1)value.l;
+		}
+		break;
+	default: break;
+	}
+	ABORT_MSG("TypeNotSupported: Immediate::get_value<s8>",
+		"type " << get_type());
+	return 0;
+}
+
 
 } // end namespace compiler2
 } // end namespace jit

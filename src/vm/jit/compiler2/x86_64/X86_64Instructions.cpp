@@ -154,7 +154,10 @@ GPInstruction::OpEncoding get_OpEncoding(MachineOperand *src1,
 		case MachineOperand::ImmediateID:
 		{
 			Immediate *imm = cast_to<Immediate>(src2);
-			if (fits_into<s1>(imm->get_value())) {
+			if ( (imm->get_type() == Type::IntTypeID
+					&& fits_into<s1>(imm->get_Int())) ||
+					(imm->get_type() == Type::LongTypeID
+					&& fits_into<s1>(imm->get_Long())) ) {
 				// 8bit
 				switch (op_size) {
 				case GPInstruction::OS_8 : return GPInstruction::Reg8Imm8;
@@ -242,7 +245,7 @@ void ALUInstruction::emit(CodeMemory* CM) const {
 		code[0] = get_rex(reg1);
 		code[1] = 0x83;
 		code[2] = get_modrm_1reg(alu_id, reg1);
-		code[3] = (s1)imm->get_value();
+		code[3] = imm->get_value<s1>();
 		return;
 	}
 	//case GPInstruction::Reg64Imm64: break;
@@ -304,7 +307,7 @@ inline void emit_imm2reg_move(CodeMemory* CM, Immediate *imm,
 		X86_64Register *dst) {
 
 	u1 opcode = 0xb8 + dst->get_index();
-	InstructionEncoding::reg2imm<u1>(CM, opcode, dst, imm->get_value());
+	InstructionEncoding::reg2imm<u1>(CM, opcode, dst, imm->get_value<s8>());
 }
 
 } // end anonymous namespace
@@ -358,13 +361,14 @@ void MovInst::emit(CodeMemory* CM) const {
 		X86_64Register *reg_dst = cast_to<X86_64Register>(dst);
 
 		u1 opcode = 0xb8 + reg_dst->get_index();
-		InstructionEncoding::reg2imm<u1,s8>(CM, opcode, reg_dst, imm->get_value());
+		InstructionEncoding::reg2imm<u1,s8>(CM, opcode, reg_dst,
+			imm->get_value<s8>());
 		return;
 	}
 	case GPInstruction::Reg32Imm8:
 	case GPInstruction::Reg32Imm32:
 	{
-		s4 imm = cast_to<Immediate>(src)->get_value();
+		s4 imm = cast_to<Immediate>(src)->get_value<s4>();
 		X86_64Register *reg_dst = cast_to<X86_64Register>(dst);
 
 		CodeFragment code = CM->get_CodeFragment(5);

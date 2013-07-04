@@ -126,7 +126,7 @@ LoweredInstDAG* BackendBase<Target>::lowerCONSTInst(CONSTInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *reg = new VirtualRegister(I->get_type());
-	Immediate *imm = new Immediate(I->get_value(), I->get_type());
+	Immediate *imm = new Immediate(I);
 	MachineInstruction *move = create_Move(imm,reg);
 	dag->add(move);
 	dag->set_result(move);

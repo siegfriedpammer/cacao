@@ -48,6 +48,7 @@ class StackSlot;
 class ManagedStackSlot;
 class Immediate;
 class Address;
+class CONSTInst;
 
 /**
  * Operands that can be directly used by the machine (register, memory, stackslot)
@@ -194,15 +195,63 @@ public:
 
 class Immediate : public MachineOperand {
 private:
-	s8 value;
+	typedef union {
+		int32_t                   i;
+		int64_t                   l;
+		float                     f;
+		double                    d;
+		void                     *anyptr;
+		java_handle_t            *stringconst;       /* for ACONST with string    */
+		classref_or_classinfo     c;                 /* for ACONST with class     */
+	} val_operand_t;
+	val_operand_t value;
 public:
-	Immediate(s8 value, Type::TypeID type)
-		: MachineOperand(ImmediateID, type), value(value) {}
+	Immediate(CONSTInst *I);
+	#if 0
+	Immediate(s4 val, Type::TypeID type)
+			: MachineOperand(ImmediateID, type) {
+		assert(type == Type::IntTypeID);
+		value.i = val;
+	}
+	Immediate(s8 val, Type::TypeID type)
+			: MachineOperand(ImmediateID, type) {
+		assert(type == Type::LongTypeID);
+		value.l = val;
+	}
+	Immediate(float val, Type::TypeID type)
+			: MachineOperand(ImmediateID, type) {
+		assert(type == Type::FloatTypeID);
+		value.f = val;
+	}
+	Immediate(double val, Type::TypeID type)
+			: MachineOperand(ImmediateID, type) {
+		assert(type == Type::DoubleTypeID);
+		value.d = val;
+	}
+	#endif
 	virtual Immediate* to_Immediate() { return this; }
 	virtual const char* get_name() const {
 		return "Immediate";
 	}
-	s8 get_value() const { return value; }
+	template<typename T>
+	T get_value() const;
+
+	double get_Int() const {
+		assert(get_type() == Type::IntTypeID);
+		return value.i;
+	}
+	double get_Long() const {
+		assert(get_type() == Type::LongTypeID);
+		return value.l;
+	}
+	double get_Float() const {
+		assert(get_type() == Type::FloatTypeID);
+		return value.f;
+	}
+	double get_Double() const {
+		assert(get_type() == Type::DoubleTypeID);
+		return value.d;
+	}
 };
 
 class Address : public MachineOperand {
