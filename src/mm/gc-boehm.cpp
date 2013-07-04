@@ -34,20 +34,7 @@
 #include "vm/os.hpp"                    // for os
 #include "vm/rt-timing.hpp"             // for RT_REGISTER_GROUP, etc
 
-#if defined(ENABLE_THREADS) && defined(__LINUX__)
-#define GC_LINUX_THREADS
-#endif
-#if defined(ENABLE_THREADS) && defined(__IRIX__)
-#define GC_IRIX_THREADS
-#endif
-#if defined(ENABLE_THREADS) && defined(__DARWIN__)
-#define GC_DARWIN_THREADS
-#endif
-#if defined(ENABLE_THREADS) && defined(__SOLARIS__)
-#define GC_SOLARIS_THREADS
-#endif
-
-#include "boehm-gc/include/gc.h"        // for GC_get_heap_size, etc
+#include "gc-boehm.hpp"
 #include "boehm-gc/include/javaxfc.h"   // for GC_finalize_all
 
 struct methodinfo;
