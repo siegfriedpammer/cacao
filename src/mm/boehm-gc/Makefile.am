@@ -30,7 +30,7 @@
 # else
 # SUBDIRS =
 # endif
-SUBDIRS =
+SUBDIRS = libatomic_ops
 
 ACLOCAL_AMFLAGS = -I m4
 AM_CPPFLAGS = \
