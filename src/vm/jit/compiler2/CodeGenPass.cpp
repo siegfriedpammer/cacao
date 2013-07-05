@@ -76,19 +76,20 @@ bool CodeGenPass::run(JITData &JD) {
 	JD.get_Backend()->create_frame(CM,JD.get_StackSlotManager());
 	// resolve jumps
 	CM->resolve();
+	// resolve data
+	CM->resolve_data();
 	// finish
 	finish(JD);
 	return true;
 }
 
 void CodeGenPass::finish(JITData &JD) {
-	s4       mcodelen;
-	s4       alignedmcodelen;
 #if 0
+	s4       alignedmcodelen;
 	jumpref *jr;
+	s4       alignedlen;
 #endif
 	u1      *epoint;
-	//s4       alignedlen;
 
 	/* Get required compiler data. */
 
@@ -103,32 +104,58 @@ void CodeGenPass::finish(JITData &JD) {
 
 	/* calculate the code length */
 
-	mcodelen = (s4) (cm.get_end() - cm.get_start());
+	s4 mcodelen = (s4) (cm.get_end() - cm.get_start());
+	s4 alignedmcodelen = MEMORY_ALIGN(mcodelen, MAX_ALIGN);
+	s4 dseglen = (s4) cm.data_size();
+	s4 aligneddseglen = MEMORY_ALIGN(dseglen, MAX_ALIGN);
+
+
+	s4 alignedlen = alignedmcodelen + aligneddseglen;
 
 #if 0
 	STATISTICS(count_code_len += mcodelen);
 	STATISTICS(count_data_len += cd->dseglen);
 #endif
 
-	alignedmcodelen = MEMORY_ALIGN(mcodelen, MAX_ALIGN);
-
-#if 0
-	cd->dseglen = MEMORY_ALIGN(cd->dseglen, MAX_ALIGN);
-	alignedlen = alignedmcodelen + cd->dseglen;
-#endif
-
-
 	/* allocate new memory */
 
-	code->mcodelength = mcodelen;
-	code->mcode       = CNEW(u1, alignedmcodelen);
+	code->mcodelength = mcodelen + aligneddseglen;
+	code->mcode       = CNEW(u1, alignedlen);
 
 	/* set the entrypoint of the method */
 
 	assert(code->entrypoint == NULL);
-	code->entrypoint = epoint = (code->mcode);
+	code->entrypoint = epoint = (code->mcode + aligneddseglen);
 
 	/* fill the data segment (code->entrypoint must already be set!) */
+
+	size_t offset = 1;
+	/// @Cpp11 Could use vector::data()
+	for (CodeMemory::const_data_iterator i = cm.data_begin(),
+			e = cm.data_end() ; i != e; ++i) {
+		u1* ptr = epoint - offset++;
+		*ptr = *i;
+		LOG3("" << ptr
+		  << ": " << hex << *i << " " << *ptr << dec << nl);
+		assert(ptr >= code->mcode);
+	}
+
+	LOG2("mcode: " << code->mcode << nl);
+	LOG2("entry: " << code->entrypoint << nl);
+
+	if (DEBUG_COND_N(2)) {
+		for(u8 *ptr = reinterpret_cast<u8*>(code->mcode),
+				*e = reinterpret_cast<u8*>(code->entrypoint); ptr < e; ++ptr) {
+			LOG2("" << setz(16) << hex << ptr
+			  << ": " << setz(16) << (u8)*ptr << dec << nl);
+		}
+	}
+
+#if 0
+	STATISTICS(count_code_len += mcodelen);
+	STATISTICS(count_data_len += cd->dseglen);
+#endif
+
 
 #if 0
 	dseg_finish(jd);

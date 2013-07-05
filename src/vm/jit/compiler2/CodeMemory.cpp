@@ -41,6 +41,9 @@ namespace compiler2 {
 s4 CodeFragment::get_offset(const BeginInst *BI) const {
 	return parent->get_offset(BI,code_ptr + size);
 }
+s4 CodeFragment::get_offset(std::size_t index) const {
+	return parent->get_offset(index,code_ptr + size);
+}
 //const s4 CodeMemory::INVALID_OFFSET = std::numeric_limits<s4>::max();
 
 CodeMemory::CodeMemory() :
@@ -67,6 +70,19 @@ s4 CodeMemory::get_offset(const BeginInst *BI, u1 *current_pos) const {
 
 	return offset;
 }
+
+s4 CodeMemory::get_offset(std::size_t index, u1 *current_pos) const {
+	// FIXME this is so not safe!
+	//s4 offset = s4(get_start() - current_pos - index);
+	u1* start = get_start();
+	std::ptrdiff_t offset = start - current_pos - index;
+	LOG2("start:   " << hex << setz(16) << start << dec << nl);
+	LOG2("current: " << hex << setz(16) << current_pos << dec << nl);
+	LOG2("offset:  " << setw(16) << offset << nl);
+
+	return offset;
+}
+
 void CodeMemory::resolve_later(const BeginInst *BI,
 		const MachineInstruction* MI, CodeFragment CM) {
 	resolve_map.insert(std::make_pair(BI,std::make_pair(MI,CM)));
@@ -83,6 +99,19 @@ void CodeMemory::resolve() {
 		MI->emit(CF);
 	}
 }
+
+void CodeMemory::resolve_data() {
+	LOG2("CodeMemory::resolve_data" << nl);
+	for (ResolveDataMapTy::iterator i = resolve_data_map.begin(),
+			e = resolve_data_map.end(); i != e; ++i) {
+		std::size_t index = i->first;
+		const MachineInstruction *MI = i->second.first;
+		CodeFragment &CF = i->second.second;
+		LOG2("resolve " << MI << " data to " << index << nl);
+		MI->emit(CF);
+	}
+}
+
 CodeFragment CodeMemory::get_CodeFragment(unsigned size) {
 	assert((mcodeptr - size) >= mcodebase);
 	mcodeptr -= size;

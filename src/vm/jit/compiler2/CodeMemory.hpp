@@ -28,6 +28,7 @@
 #include "vm/types.hpp"
 
 #include <map>
+#include <vector>
 #include <cassert>
 
 namespace cacao {
@@ -77,6 +78,12 @@ public:
 	 * not found.
 	 */
 	s4 get_offset(const BeginInst *BI) const;
+	/**
+	 * get the offset from the current position to the data segment index.
+	 *
+	 * @return offset from the current positioni
+	 */
+	s4 get_offset(std::size_t index) const;
 	friend class CodeMemory;
 };
 
@@ -85,17 +92,25 @@ public:
  */
 class CodeMemory {
 private:
+	typedef std::vector<u1> DataSegTy;
+public:
+	typedef DataSegTy::const_iterator const_data_iterator;
+private:
 	typedef std::map<const BeginInst*,u1*> LabelMapTy;
 	typedef std::pair<const MachineInstruction*,CodeFragment> ResolvePointTy;
 	typedef std::multimap<const BeginInst*,ResolvePointTy> ResolveLaterMapTy;
+	typedef std::multimap<std::size_t,ResolvePointTy> ResolveDataMapTy;
 
 	u1             *mcodebase;      ///< base pointer of code area
 	u1             *mcodeend;       ///< pointer to end of code area
 	s4              mcodesize;      ///< complete size of code area (bytes)
 	u1             *mcodeptr;       ///< code generation pointer
 
+	DataSegTy dataseg;              ///< data segment
+
 	LabelMapTy label_map;           ///< label map
 	ResolveLaterMapTy resolve_map;  ///< jumps to be resolved later
+	ResolveDataMapTy  resolve_data_map; ///< date segment
 
 	/**
 	 * get the offset from the current position to the label.
@@ -104,6 +119,12 @@ private:
 	 * not found.
 	 */
 	s4 get_offset(const BeginInst *BI, u1 *current_pos) const;
+	/**
+	 * get the offset from the current position to the data segment index.
+	 *
+	 * @return offset from the current positioni
+	 */
+	s4 get_offset(std::size_t index, u1 *current_pos) const;
 public:
 	/**
 	 * indicate an invalid offset
@@ -126,6 +147,32 @@ public:
 		return get_offset(BI,mcodeptr);
 	}
 
+	template<typename T>
+	std::size_t insert_dataseg(T val, const MachineInstruction* MI,
+			CodeFragment CF) {
+		/// @Cpp11 Could use vector::data()
+		u1* data = reinterpret_cast<u1*>(&val);
+		for (signed i = sizeof(T) -1; i >= 0 ; --i) {
+			dataseg.push_back(data[i]);
+		}
+		resolve_data_map.insert(std::make_pair(dataseg.size(),
+			std::make_pair(MI,CF)));
+		return dataseg.size();
+	}
+	const_data_iterator data_begin() const {
+		return dataseg.begin();
+	}
+	const_data_iterator data_end() const {
+		return dataseg.end();
+	}
+
+	/**
+	 * get data segment size (in bytes)
+	 */
+	std::size_t data_size() const {
+		return dataseg.size();
+	}
+
 	/**
 	 * add unresolved jump
 	 */
@@ -135,6 +182,11 @@ public:
 	 * resolve jump
 	 */
 	void resolve();
+
+	/**
+	 * resolve data
+	 */
+	void resolve_data();
 
 	/**
 	 * get a code fragment

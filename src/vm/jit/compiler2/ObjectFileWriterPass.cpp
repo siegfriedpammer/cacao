@@ -28,6 +28,9 @@
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/CodeGenPass.hpp"
 #include "vm/jit/compiler2/MethodDescriptor.hpp"
+
+#include "vm/jit/codegen-common.hpp"
+
 #include "toolbox/logging.hpp"
 
 #include "vm/jit/jit.hpp"
@@ -67,7 +70,7 @@ namespace compiler2 {
 bool ObjectFileWriterPass::run(JITData &JD) {
 	Method *M = JD.get_Method();
 	CodeGenPass *CG = get_Pass<CodeGenPass>();
-	const CodeMemory &CM = CG->get_CodeMemory();
+	codeinfo*     code = JD.get_jitdata()->code;
 
 	const char* bfd_arch = "i386:x86-64";
 	const char* bfd_target = "elf64-x86-64";
@@ -107,22 +110,41 @@ bool ObjectFileWriterPass::run(JITData &JD) {
 	// set format
 	bfd_set_format(abfd, bfd_object);
 
-	// create section
-	LOG2("create section" << nl);
-	asection *section = bfd_make_section_anyway_with_flags(abfd, ".text",
+	// get section lengths
+	std::size_t dseglen = code->entrypoint - code->mcode;
+	std::size_t codelen = code->mcodelength - dseglen;
+	//dseglen =0;
+
+	// create data_section
+	asection *data_section = NULL;
+	if (dseglen) {
+		LOG2("create data_section" << nl);
+		data_section = bfd_make_section_anyway_with_flags(abfd, ".rodata",
+			SEC_HAS_CONTENTS | SEC_ALLOC | SEC_LOAD | SEC_READONLY | SEC_DATA );
+		check_bfd_error(data_section);
+		// set data_section size
+		LOG2("set data_section size" << nl);
+		check_bfd_error(bfd_set_section_size(abfd, data_section, dseglen));
+		// set alignment
+		data_section->alignment_power = 2;
+	}
+
+	// create code_section
+	LOG2("create code_section" << nl);
+	asection *code_section = bfd_make_section_anyway_with_flags(abfd, ".text",
 		SEC_HAS_CONTENTS | SEC_ALLOC | SEC_LOAD | SEC_READONLY | SEC_CODE );
-	check_bfd_error(section);
-	// set section size
-	LOG2("set section size" << nl);
-	check_bfd_error(bfd_set_section_size(abfd, section,CM.size()));
+	check_bfd_error(code_section);
+	// set code_section size
+	LOG2("set code_section size" << nl);
+	check_bfd_error(bfd_set_section_size(abfd, code_section,codelen));
 	// set alignment
-	section->alignment_power = 2;
+	code_section->alignment_power = 2;
 
 	// create symbol
 	LOG2("create symbol" << nl);
 	asymbol *new_smbl = bfd_make_empty_symbol (abfd);
 	new_smbl->name = symbol_name.c_str();
-	new_smbl->section = section;
+	new_smbl->section = code_section;
 	new_smbl->flags = BSF_GLOBAL;
 
 	// symbol list
@@ -136,8 +158,14 @@ bool ObjectFileWriterPass::run(JITData &JD) {
 
 	// set contents
 	// this starts writing so do it at the end
-	LOG2("set section contents" << nl);
-	check_bfd_error(bfd_set_section_contents(abfd, section, CM.get_start(),0,CM.size()));
+	if (dseglen) {
+		LOG2("set data_section contents" << nl);
+		check_bfd_error(bfd_set_section_contents(abfd,
+			data_section, code->mcode,0,dseglen));
+	}
+	LOG2("set code_section contents" << nl);
+	check_bfd_error(bfd_set_section_contents(abfd,
+		code_section, code->entrypoint,0,codelen));
 
 	// close file
 	bfd_close(abfd);
