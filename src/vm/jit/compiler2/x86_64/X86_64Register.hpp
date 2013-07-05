@@ -149,7 +149,7 @@ public:
 		case Type::ByteTypeID:
 		case Type::IntTypeID:
 		case Type::LongTypeID:
-			#if 0
+			#if 1
 			for(unsigned i = 0; i < IntegerArgumentRegisterSize ; ++i) {
 				regs.push_back(IntegerArgumentRegisters[i]);
 			}
@@ -165,7 +165,7 @@ public:
 			#endif
 			return;
 		case Type::DoubleTypeID:
-			#if 0
+			#if 1
 			for(unsigned i = 0; i < FloatArgumentRegisterSize ; ++i) {
 				regs.push_back(FloatArgumentRegisters[i]);
 			}
