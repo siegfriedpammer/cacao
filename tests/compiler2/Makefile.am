@@ -61,7 +61,7 @@ run: $(OUTPUT_JAVA_TESTS)
 	LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Compile.sh "$(JAVACMD)" $@ $(srcdir)
 
 %.run: %.o $(srcdir)/%.main.c
-	$(CC) $^ -o $@
+	$(CC) -O0 $^ -o $@
 
 %.thisoutput: %.run
 	./$< > $@

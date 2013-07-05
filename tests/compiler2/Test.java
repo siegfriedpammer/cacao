@@ -1,3 +1,5 @@
+import java.lang.Math.*;
+
 class Test {
 
 static long c = 0;
@@ -11,6 +13,7 @@ public static void main(String arg[]) {
   System.out.println(OverflowLongIntLong(15));
   System.out.println(Integer.MIN_VALUE+14);
   System.out.println(testParameterDouble(.1,.2,.3,.4,.5,.6,.7,.8,.9));
+  System.out.println(pi_spigot(10));
 }
 
 static double mul(double a, double b) {
@@ -54,6 +57,28 @@ static long fact(long n) {
         res *= n--;
     }
     return res;
+}
+
+static double pi() {
+    return Math.PI;
+}
+static double pi_spigot(long num_digits) {
+    double pi = 0;
+    for (long i = 0; i < num_digits; ++i) {
+        // fake power
+        long p =1;
+        for (long j = 0; j < i; ++j) {
+            p *= 16;
+        }
+        long d1 = 8*i + 1;
+        long d2 = 8*i + 4;
+        long d3 = 8*i + 5;
+        long d4 = 8*i + 6;
+
+        pi += 1/(double)p * ( 4/(double)d1 - 2/(double)d2
+            - 1/(double)d3 - 1/(double)d4 );
+    }
+    return pi;
 }
 
 static long OverflowLong(long n) {
