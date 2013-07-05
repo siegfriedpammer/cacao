@@ -69,7 +69,14 @@ ManagedStackSlot* LivetimeInterval::get_ManagedStackSlot() const {
 }
 
 bool LivetimeInterval::is_in_Register() const {
-	return operand->to_Register() != NULL;
+	if(operand)
+		return operand->to_Register() != NULL;
+	return false;
+}
+bool LivetimeInterval::is_in_StackSlot() const {
+	if(operand)
+		return operand->to_ManagedStackSlot() != NULL;
+	return false;
 }
 Type::TypeID LivetimeInterval::get_type() const {
 	return operand->get_type();
@@ -77,7 +84,7 @@ Type::TypeID LivetimeInterval::get_type() const {
 
 LivetimeInterval* LivetimeInterval::split(unsigned pos, StackSlotManager *SSM) {
 	//sanity checks:
-	assert(pos > get_start() && pos < get_end());
+	assert(pos >= get_start() && pos < get_end());
 
 	LivetimeInterval *stack_interval =  NULL;
 	LivetimeInterval *lti = NULL;
@@ -166,8 +173,10 @@ LivetimeInterval* LivetimeInterval::split(unsigned pos, StackSlotManager *SSM) {
 OStream& operator<<(OStream &OS, const LivetimeInterval &lti) {
 	if (lti.is_in_Register()) {
 		OS << lti.get_Register();
-	} else {
+	} else if (lti.is_in_StackSlot()) {
 		OS << lti.get_ManagedStackSlot();
+	} else {
+		OS << "No Operand!";
 	}
 	for(LivetimeInterval::const_iterator i = lti.begin(), e = lti.end();
 			i != e ; ++i) {
@@ -346,11 +355,21 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 		}
 
 	}
-	// set reg reference
-	for (LivetimeIntervalMapTy::iterator i = lti_map.begin(),
-			e = lti_map.end(); i != e ; ++i) {
+	// set reg reference and delete empty intervals
+	for (iterator i = lti_map.begin(),
+			e = lti_map.end(); i != e ; ) {
 		LivetimeInterval &lti = i->second;
-		lti.set_Register(i->first);
+		if (lti.size() == 0) {
+			LOG2(BoldGreen << "info: " << reset_color <<
+				"removing empty livetime interval: " << lti << nl);
+			/// @Cpp11 erase returns an interator to the next element in C++11
+			iterator del = i;
+			++i;
+			lti_map.erase(del);
+		} else {
+			lti.set_Register(i->first);
+			++i;
+		}
 	}
 	// debugging
 	if (DEBUG_COND) {

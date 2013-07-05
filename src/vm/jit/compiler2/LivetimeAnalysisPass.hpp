@@ -113,6 +113,7 @@ public:
 	void set_ManagedStackSlot(ManagedStackSlot* s);
 	ManagedStackSlot* get_ManagedStackSlot() const;
 	bool is_in_Register() const;
+	bool is_in_StackSlot() const;
 
 	Type::TypeID get_type() const;
 
@@ -164,9 +165,11 @@ public:
 	}
 
 	bool is_unhandled(unsigned pos) const {
+		if (intervals.size() == 0) return false;
 		return pos < get_start();
 	}
 	bool is_handled(unsigned pos) const {
+		if (intervals.size() == 0) return true;
 		return pos >= get_end();
 	}
 	bool is_active(unsigned pos) const {
