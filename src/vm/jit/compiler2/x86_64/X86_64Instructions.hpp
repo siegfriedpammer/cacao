@@ -519,6 +519,17 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
+class MovImmSDInst : public MoveInst {
+private:
+	// mutable because changed in emit (which is const)
+	mutable std::size_t data_index;
+public:
+	MovImmSDInst(const SrcOp &src, const DstOp &dst)
+			: MoveInst("X86_64MovImmSDInst", src.op, dst.op, OS_64) {}
+	virtual void emit(CodeMemory* CM) const;
+	virtual void emit(CodeFragment &CF) const;
+};
+
 class MovSSInst : public MoveInst {
 public:
 	MovSSInst(const SrcOp &src, const DstOp &dst)

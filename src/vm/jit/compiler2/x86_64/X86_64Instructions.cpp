@@ -720,6 +720,35 @@ void MovSDInst::emit(CodeMemory* CM) const {
 		<< get_op_size() * 8 << "bit");
 }
 
+void MovImmSDInst::emit(CodeMemory* CM) const {
+	Immediate *imm = cast_to<Immediate>(operands[0].op);
+	X86_64Register *dst = cast_to<X86_64Register>(result.op);
+	CodeFragment code = CM->get_CodeFragment(8);
+	code[0] = 0xf3;
+	code[1] = 0x0f;
+	code[2] = 0x7e;
+	// RIP-Relateive addressing mod=00b, rm=101b, + disp32
+	code[3] = get_modrm_u1(0x0,dst->get_index(),0x5);
+	#if 1
+	code[4] = 0xaa;
+	code[5] = 0xaa;
+	code[6] = 0xaa;
+	code[7] = 0xaa;
+	#endif
+	data_index = CM->insert_dataseg(imm->get_Double(),this,code);
+}
+
+void MovImmSDInst::emit(CodeFragment &CF) const {
+	s4 offset = CF.get_offset(data_index);
+	assert(offset != 0);
+	assert(offset != CodeMemory::INVALID_OFFSET);
+	CF[4] = u1(0xff & (offset >>  0));
+	CF[5] = u1(0xff & (offset >>  8));
+	CF[6] = u1(0xff & (offset >> 16));
+	CF[7] = u1(0xff & (offset >> 24));
+}
+
+
 void MovSSInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
 	MachineOperand *dst = result.op;

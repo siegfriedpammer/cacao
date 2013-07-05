@@ -50,21 +50,28 @@ const char* BackendBase<X86_64>::get_name() const {
 }
 
 template<>
-MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *dst,
-		MachineOperand* src) const {
+MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *src,
+		MachineOperand* dst) const {
 	Type::TypeID type = dst->get_type();
 	switch (type) {
 	case Type::ByteTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
 		return new MovInst(
-			SrcOp(dst),
-			DstOp(src),
-			get_OperandSize_from_Type(dst->get_type()));
+			SrcOp(src),
+			DstOp(dst),
+			get_OperandSize_from_Type(type));
 	case Type::DoubleTypeID:
-		return new MovSDInst(
-			SrcOp(dst),
-			DstOp(src));
+		switch (src->get_OperandID()) {
+		case MachineOperand::ImmediateID:
+			return new MovImmSDInst(
+				SrcOp(src),
+				DstOp(dst));
+		default:
+			return new MovSDInst(
+				SrcOp(src),
+				DstOp(dst));
+		}
 	default: break;
 	}
 	ABORT_MSG("x86_64: Move not supported",
