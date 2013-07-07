@@ -37,10 +37,14 @@ namespace compiler2 {
 namespace x86_64 {
 
 /**
+ * @addtogroup x86_64_operand x86_64 Operand Helper
  *
  * These wrapper classes are used to enforce the correct
  * ordering of the parameters.
  *
+ * See Item 18 in "Efficient C++" @cite Meyers2005.
+ *
+ * @{
  */
 
 /**
@@ -85,6 +89,9 @@ struct DstOp {
 	explicit DstOp(MachineOperand *op) : op(op) {}
 };
 
+/**
+ * @}
+ */
 
 /**
  * Superclass for general purpose register instruction
