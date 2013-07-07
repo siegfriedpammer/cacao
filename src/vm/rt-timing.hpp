@@ -92,16 +92,16 @@
  * Register a new (toplevel) timer. Create a timer and add it to the toplevel
  * timing group RTGroup::root().
  *
- * @note This macro creates a new global variable with the name var_rt and
- * a function RTTimer& var(). Consider using namespaces to avoid name clashes.
+ * @note This macro creates a function RTTimer& var(). Consider using namespaces
+ * to avoid name clashes.
  */
 
 /**
  * @def RT_REGISTER_GROUP_TIMER(var,name,description,group)
  * Register a new timer. Create a timer and add it to group specified.
  *
- * @note This macro creates a new global variable with the name var_rt and
- * a function RTTimer& var(). Consider using namespaces to avoid name clashes.
+ * @note This macro creates a function RTTimer& var(). Consider using namespaces
+ * to avoid name clashes.
  */
 
 /**
@@ -109,16 +109,16 @@
  * Register a new (toplevel) group. Create a group and add it to the toplevel
  * timing group RTGroup::root().
  *
- * @note This macro creates a new global variable with the name var_rg and
- * a function RTGroup& var(). Consider using namespaces to avoid name clashes.
+ * @note This macro creates a function RTGroup& var(). Consider using namespaces
+ * to avoid name clashes.
  */
 
 /**
  * @def RT_REGISTER_SUBGROUP(var,name,description,group)
  * Register a new subgroup. Create a group and add it to group specified.
  *
- * @note This macro creates a new global variable with the name var_rg and
- * a function RTGroup& var(). Consider using namespaces to avoid name clashes.
+ * @note This macro creates a function RTGroup& var(). Consider using namespaces
+ * to avoid name clashes.
  */
 
 /**
@@ -550,53 +550,55 @@ public:
 
 } // end namespace cacao
 
+#undef _RT_LOG
+
 #define RT_REGISTER_TIMER(var,name,description)                              \
-	static cacao::RTTimer var##_rt(name,description,cacao::RTGroup::root()); \
 	static inline cacao::RTTimer& var() {	                                 \
-		return var##_rt;                                                     \
+		static cacao::RTTimer v(name,description,cacao::RTGroup::root());    \
+		return v;                                                            \
 	}
 
 #define RT_REGISTER_GROUP_TIMER(var,name,description,group)                  \
-	static cacao::RTTimer var##_rt(name, description, group());              \
 	static inline cacao::RTTimer& var() {                                    \
-		return var##_rt;                                                     \
+		static cacao::RTTimer v(name, description, group());                 \
+		return v;                                                            \
 	}
 
 #define RT_REGISTER_GROUP(var,name,description)                              \
-	static cacao::RTGroup var##_rg(name,description,cacao::RTGroup::root()); \
 	inline cacao::RTGroup& var() {                                           \
-		return var##_rg;                                                     \
+		static cacao::RTGroup v(name,description,cacao::RTGroup::root());    \
+		return v;                                                            \
 	}
 
 #define RT_REGISTER_SUBGROUP(var,name,description,group)                     \
-	static cacao::RTGroup var##_rg(name, description, group());              \
 	inline cacao::RTGroup& var() {                                           \
-		return var##_rg;                                                     \
+		static cacao::RTGroup v(name, description, group());                 \
+		return v;                                                            \
 	}
 
 
 #define RT_REGISTER_TIMER_EXTERN(var,name,description)                       \
-	static cacao::RTTimer var##_rt(name,description,cacao::RTGroup::root()); \
 	inline cacao::RTTimer& var() {	                                         \
-		return var##_rt;                                                     \
+		static cacao::RTTimer v(name,description,cacao::RTGroup::root());    \
+		return v;                                                            \
 	}
 
 #define RT_REGISTER_GROUP_TIMER_EXTERN(var,name,description,group)           \
-	static cacao::RTTimer var##_rt(name, description, group());              \
 	inline cacao::RTTimer& var() {                                           \
-		return var##_rt;                                                     \
+		static cacao::RTTimer v(name, description, group());                 \
+		return v;                                                            \
 	}
 
 #define RT_REGISTER_GROUP_EXTERN(var,name,description)                       \
-	static cacao::RTGroup var##_rg(name,description,cacao::RTGroup::root()); \
 	inline cacao::RTGroup& var() {                                           \
-		return var##_rg;                                                     \
+		static cacao::RTGroup v(name,description,cacao::RTGroup::root());    \
+		return v;                                                            \
 	}
 
 #define RT_REGISTER_SUBGROUP_EXTERN(var,name,description,group)              \
-	static cacao::RTGroup var##_rg(name, description, group());              \
 	inline cacao::RTGroup& var() {                                           \
-		return var##_rg;                                                     \
+		static cacao::RTGroup v(name, description, group());                 \
+		return v;                                                            \
 	}
 
 #define RT_DECLARE_TIMER(var) inline cacao::RTTimer& var();
