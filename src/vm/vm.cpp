@@ -1601,6 +1601,7 @@ bool VM::start_runtime_agents()
 	return true;
 }
 
+static void write_logfiles();
 
 /* vm_run **********************************************************************
 
@@ -1616,6 +1617,8 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 #if !defined(NDEBUG)
 	if (opt_CompileAll) {
 		vm_compile_all();
+		/* write logfiles */
+		write_logfiles();
 		return;
 	}
 #endif
@@ -1662,6 +1665,8 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 #if !defined(NDEBUG)
 	if (opt_CompileMethod != NULL) {
 		vm_compile_method(mainname);
+		/* write logfiles */
+		write_logfiles();
 		return;
 	}
 #endif
@@ -1769,6 +1774,9 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	if (!thread_detach_current_thread())
 		os::abort("vm_run: Could not detach main thread.");
 #endif
+
+	/* write logfiles */
+	write_logfiles();
 
 	/* Destroy the JavaVM. */
 
@@ -1931,6 +1939,33 @@ void vm_exit_handler(void)
 # endif
 #endif /* !defined(NDEBUG) */
 
+#if defined(ENABLE_CYCLES_STATS)
+	builtin_print_cycles_stats(log_get_logfile());
+	stacktrace_print_cycles_stats(log_get_logfile());
+#endif
+
+	if (opt_verbose
+#if defined(ENABLE_STATISTICS)
+		|| opt_getcompilingtime || opt_stat
+#endif
+	   )
+	{
+		log_text("CACAO terminated");
+
+#if 0 && defined(ENABLE_STATISTICS)
+		if (opt_stat) {
+#ifdef TYPECHECK_STATISTICS
+// XXX TYPECHECK_STATISTICS is currently not usable
+			typecheck_print_statistics(get_logfile());
+#endif
+		}
+
+#endif /* defined(ENABLE_STATISTICS) */
+	}
+	/* vm_print_profile(stderr);*/
+}
+
+static void write_logfiles() {
 #if defined(ENABLE_RT_TIMING)
 	if (!opt_RtTimingLogfile) {
 		FILE *file = fopen("rt-timing.log", "w");
@@ -1962,32 +1997,7 @@ void vm_exit_handler(void)
 	}
 #endif
 
-#if defined(ENABLE_CYCLES_STATS)
-	builtin_print_cycles_stats(log_get_logfile());
-	stacktrace_print_cycles_stats(log_get_logfile());
-#endif
-
-	if (opt_verbose
-#if defined(ENABLE_STATISTICS)
-		|| opt_getcompilingtime || opt_stat
-#endif
-	   )
-	{
-		log_text("CACAO terminated");
-
-#if 0 && defined(ENABLE_STATISTICS)
-		if (opt_stat) {
-#ifdef TYPECHECK_STATISTICS
-// XXX TYPECHECK_STATISTICS is currently not usable
-			typecheck_print_statistics(get_logfile());
-#endif
-		}
-
-#endif /* defined(ENABLE_STATISTICS) */
-	}
-	/* vm_print_profile(stderr);*/
 }
-
 
 /* vm_abort_disassemble ********************************************************
 
