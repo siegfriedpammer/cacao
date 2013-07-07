@@ -208,7 +208,15 @@
 
 #include "vm/global.hpp"
 
-#include "toolbox/OStream.hpp"
+#include "toolbox/logging.hpp"
+
+// debugging macro
+// @note: LOG* can not be used because opt_DebugName is not initialized
+#if 0
+#define _RT_LOG(expr) do { cacao::dbg() <<expr;} while (0)
+#else
+#define _RT_LOG(expr)
+#endif
 
 namespace {
 #if 0
@@ -369,7 +377,15 @@ public:
 	/**
 	 * Constructor.
 	 */
-	RTEntry(const char* name, const char* description) : name(name), description(description) {}
+	RTEntry(const char* name, const char* description) : name(name), description(description) {
+		_RT_LOG("RTEntry() name: " << name << nl);
+	}
+	/**
+	 * Destructor.
+	 */
+	virtual ~RTEntry() {
+		_RT_LOG("~RTEntry() name: " << name << nl);
+	}
 	/**
 	 * Print the timing information to an OStream.
 	 * @param[in,out] O     output stream
@@ -400,14 +416,9 @@ private:
 
 	RTGroup(const char* name, const char* description) : RTEntry(name, description) {
 		members = new RTEntryList();
+		_RT_LOG("RTGroup() name: " << name << nl);
 	}
 public:
-	/**
-	 * __the__ root group.
-	 * @note never use this variable directly (use RTGroup::root() instead).
-	 * Used for internal purposes only!
-	 */
-	static RTGroup root_rg;
 	/**
 	 * Get the root group
 	 */
@@ -427,7 +438,8 @@ public:
 		group.add(this);
 	}
 
-	~RTGroup() {
+	virtual ~RTGroup() {
+		_RT_LOG("~RTGroup() name: " << name << nl);
 		delete members;
 	}
 
@@ -447,7 +459,7 @@ public:
 		return time;
 	}
 
-	void print(OStream &O,timespec ref = invalid_ts) const {
+	virtual void print(OStream &O,timespec ref = invalid_ts) const {
 		timespec duration = time();
 		if (ref == invalid_ts)
 			ref = duration;
@@ -486,8 +498,16 @@ public:
 	 */
 	RTTimer(const char* name, const char* description, RTGroup &parent) : RTEntry(name, description) {
 		//reset();
+		_RT_LOG("RTTimer() name: " << name << nl);
 		duration = 0;
 		parent.add(this);
+	}
+
+	/**
+	 * Destructor
+	 */
+	virtual ~RTTimer() {
+		_RT_LOG("~RTTimer() name: " << name << nl);
 	}
 
 	/**
@@ -517,7 +537,7 @@ public:
 		return ts;
 	}
 
-	void print(OStream &O,timespec ref = invalid_ts) const {
+	virtual void print(OStream &O,timespec ref = invalid_ts) const {
 		timespec ts = time();
 		int percent;
 
