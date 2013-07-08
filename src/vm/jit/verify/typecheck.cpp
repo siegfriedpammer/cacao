@@ -22,7 +22,16 @@
 
 */
 
-/*
+/**
+ * @defgroup verify Bytecode Verification
+ * Bytecode Verification
+ */
+
+/**
+@file
+@ingroup verify
+
+Typechecker
 
 What's the purpose of the `typechecker`?
 ----------------------------------------
@@ -68,7 +77,7 @@ many properties of Java bytecode which make type checking hard. Some of
 them are not even addressed in the JVM spec. Some problems and their
 solutions:
 
-*) Finding a good representation of the union of two reference types is
+- Finding a good representation of the union of two reference types is
 difficult because of multiple inheritance of interfaces. 
 
 	Solution: The typeinfo system can represent such "merged" types by a
@@ -79,7 +88,7 @@ difficult because of multiple inheritance of interfaces.
 	represents the result of merging two interface types "InterfaceA"
 	and "InterfaceB".
 
-*) When the code of a method is verified, there may still be unresolved
+- When the code of a method is verified, there may still be unresolved
 references to classes/methods/fields in the code, which we may not force
 to be resolved eagerly. (A similar problem arises because of the special
 checks for protected members.)
@@ -91,7 +100,7 @@ checks for protected members.)
 	checked. (See the constrain_unresolved_... and the resolve_...
 	methods.)[3]
 
-*) Checks for uninitialized object instances are hard because after the
+- Checks for uninitialized object instances are hard because after the
 invocation of <init> on an uninitialized object *all* slots/variables
 referring to this object (and exactly those slots/variables) must be
 marked as initialized.
@@ -115,20 +124,15 @@ there are no more changes. Theoretically it would be wise to sort the
 basic blocks topologically beforehand, but the number of average/max
 iterations observed is so low, that this was not deemed necessary.
 
-[3] This is similar to a method proposed by: Alessandro Coglio et al., A
-Formal Specification of Java Class Loading, Technical Report, Kestrel
-Institute April 2000, revised July 2000 
-http://www.kestrel.edu/home/people/coglio/loading.pdf
+[3] This is similar to a method proposed by: Alessandro Coglio et al.,
+"A Formal Specification of Java Class Loading" @cite Coglio2000.
 An important difference is that Coglio's subtype constraints are checked
 after loading, while our constraints are checked when the field/method
 is accessed for the first time, so we can guarantee lexically correct
 error reporting.
 
-[4] Alessandro Coglio
-    Improving the official specification of Java bytecode verification
-    Proceedings of the 3rd ECOOP Workshop on Formal Techniques for Java Programs
-    June 2001
-    citeseer.ist.psu.edu/article/coglio03improving.html
+[4] Alessandro Coglio "Improving the official specification of Java bytecode
+verification" @cite Coglio2003.
 */
 
 
