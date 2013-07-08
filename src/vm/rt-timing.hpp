@@ -407,15 +407,10 @@ public:
 class RTGroup : public RTEntry {
 private:
 	typedef std::vector<RTEntry*> RTEntryList;
-	/**
-	 * List of members.
-	 * @note: this must be a pointer. If it is changes to a normal variable strange
-	 * things will happen!
-	 */
-	RTEntryList *members;
+	/// List of members.
+	RTEntryList members;
 
 	RTGroup(const char* name, const char* description) : RTEntry(name, description) {
-		members = new RTEntryList();
 		_RT_LOG("RTGroup() name: " << name << nl);
 	}
 public:
@@ -434,25 +429,23 @@ public:
 	 * @param[in] group parent group.
 	 */
 	RTGroup(const char* name, const char* description, RTGroup &group) : RTEntry(name, description) {
-		members = new RTEntryList();
 		group.add(this);
 	}
 
 	virtual ~RTGroup() {
 		_RT_LOG("~RTGroup() name: " << name << nl);
-		delete members;
 	}
 
 	/**
 	 * Add an entry to the group
 	 */
 	void add(RTEntry *re) {
-		members->push_back(re);
+		members.push_back(re);
 	}
 
 	virtual timespec time() const {
 		timespec time = {0,0};
-		for(RTEntryList::const_iterator i = members->begin(), e = members->end(); i != e; ++i) {
+		for(RTEntryList::const_iterator i = members.begin(), e = members.end(); i != e; ++i) {
 			RTEntry* re = *i;
 			time += re->time();
 		}
@@ -465,7 +458,7 @@ public:
 			ref = duration;
 		// O << setw(10) << left << name << right <<"   " << description << nl;
 		//O << indent;
-		for(RTEntryList::const_iterator i = members->begin(), e= members->end(); i != e; ++i) {
+		for(RTEntryList::const_iterator i = members.begin(), e = members.end(); i != e; ++i) {
 			RTEntry* re = *i;
 			re->print(O,duration);
 		}
