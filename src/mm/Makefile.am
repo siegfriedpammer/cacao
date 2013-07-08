@@ -63,6 +63,7 @@ libmm_la_SOURCES = \
 	dumpmemory.hpp \
 	$(GC_FILE) \
 	gc.hpp \
+	gc-boehm.hpp \
 	memory.cpp \
 	memory.hpp
 

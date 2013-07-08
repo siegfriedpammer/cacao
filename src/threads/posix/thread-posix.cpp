@@ -73,22 +73,7 @@ typedef struct {
 # include <semaphore.h>
 #endif
 
-#if defined(__LINUX__)
-# define GC_LINUX_THREADS
-#elif defined(__IRIX__)
-# define GC_IRIX_THREADS
-#elif defined(__DARWIN__)
-# define GC_DARWIN_THREADS
-#elif defined(__SOLARIS__)
-# define GC_SOLARIS_THREADS
-#endif
-
-#if defined(ENABLE_GC_BOEHM)
-// We need to include Boehm's gc.h here because it overrides
-// pthread_create and friends.
-# include "mm/boehm-gc/include/gc.h"     // for GC_get_stack_base, etc
-# include "mm/boehm-gc/include/gc_pthread_redirects.h"
-#endif
+#include "mm/gc-boehm.hpp"
 
 struct methodinfo;
 

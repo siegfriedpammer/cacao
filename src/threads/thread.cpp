@@ -48,20 +48,9 @@
 #include "vm/utf8.hpp"                  // for Utf8String
 #include "vm/vm.hpp"                    // for vm_abort
 
-#if defined(ENABLE_GC_BOEHM)
-# if defined(__LINUX__)
-#  define GC_LINUX_THREADS
-# elif defined(__IRIX__)
-#  define GC_IRIX_THREADS
-# elif defined(__DARWIN__)
-#  define GC_DARWIN_THREADS
-# elif defined(__SOLARIS__)
-#  define GC_SOLARIS_THREADS
-# endif
 // We need to include Boehm's gc.h here
 // for GC_register_my_thread and friends.
-# include "mm/boehm-gc/include/gc.h"
-#endif
+#include "mm/gc-boehm.hpp"
 
 STAT_DECLARE_VAR(int,size_threadobject,0)
 

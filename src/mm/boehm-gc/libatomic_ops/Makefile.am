@@ -1,6 +1,7 @@
 SUBDIRS = src doc tests
 
-#distclean-local:
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = pkgconfig/atomic_ops.pc
+noinst_DATA = pkgconfig/atomic_ops-uninstalled.pc
 
-dist-hook:
-	-rm $(distdir)/config.status
+#distclean-local:
