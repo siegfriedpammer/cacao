@@ -190,6 +190,9 @@ ALIASES                =
 # Alias for C++11 comments
 ALIASES += "Cpp11=\xrefitem cpp11 \"C++11\" \"C++11 List\""
 ALIASES += "cpp11=\xrefitem cpp11 \"C++11\" \"C++11 List\""
+# Alias for "footnote" commands
+ALIASES += "fn{1}=<sup>\ref ref\1 \"\1\"</sup>" # footnote reference
+ALIASES += "footnote{1}=\anchor ref\1 \fn{\1}"  # footnote definition
 
 # Set the OPTIMIZE_OUTPUT_FOR_C tag to YES if your project consists of C 
 # sources only. Doxygen will then generate output that is more tailored for C. 

@@ -56,10 +56,10 @@ possible.
 Basically the typechecker solves the data flow equations of the method.
 This is done in the usual way for a forward data flow analysis: Starting
 from the entry point of the method the typechecker follows the CFG and
-records the type of each stack slot and local variable at each point[1].
+records the type of each stack slot and local variable at each point @fn{1}.
 When two or more control flow paths merge at a point, the union of the
 types for each slot/variable is taken. The algorithm continues to follow
-all possible paths[2] until the recorded types do not change anymore (ie.
+all possible paths @fn{2} until the recorded types do not change anymore (ie.
 the equations have been solved).
 
 If the solution has been reached and the resulting types are valid for
@@ -91,14 +91,14 @@ difficult because of multiple inheritance of interfaces.
 - When the code of a method is verified, there may still be unresolved
 references to classes/methods/fields in the code, which we may not force
 to be resolved eagerly. (A similar problem arises because of the special
-checks for protected members.)
+checks for protected members.)@fn{3}
 
 	Solution: The typeinfo system knows how to deal with unresolved
 	class references. Whenever a check has to be performed for an
 	unresolved type, the type is annotated with constraints representing
 	the check. Later, when the type is resolved, the constraints are
 	checked. (See the constrain_unresolved_... and the resolve_...
-	methods.)[3]
+	methods.)
 
 - Checks for uninitialized object instances are hard because after the
 invocation of <init> on an uninitialized object *all* slots/variables
@@ -108,31 +108,31 @@ marked as initialized.
 	Solution: The JVM spec describes a solution, which has been
 	implemented in this typechecker.
 
-Note that some checks mentioned in the JVM spec are unnecessary[4] and
+Note that some checks mentioned in the JVM spec are unnecessary @fn{4} and
 not performed by either the reference implementation, or this implementation.
 
 
 --- Footnotes
 
-[1] Actually only the types of slots/variables at the start of each
+@footnote{1} Actually only the types of slots/variables at the start of each
 basic block are remembered. Within a basic block the algorithm only keeps
 the types of the slots/variables for the "current" instruction which is
 being analysed. 
 
-[2] Actually the algorithm iterates through the basic block list until
+@footnote{2} Actually the algorithm iterates through the basic block list until
 there are no more changes. Theoretically it would be wise to sort the
 basic blocks topologically beforehand, but the number of average/max
 iterations observed is so low, that this was not deemed necessary.
 
-[3] This is similar to a method proposed by: Alessandro Coglio et al.,
+@footnote{3} This is similar to a method proposed by: Alessandro Coglio et al.,
 "A Formal Specification of Java Class Loading" @cite Coglio2000.
 An important difference is that Coglio's subtype constraints are checked
 after loading, while our constraints are checked when the field/method
 is accessed for the first time, so we can guarantee lexically correct
 error reporting.
 
-[4] Alessandro Coglio "Improving the official specification of Java bytecode
-verification" @cite Coglio2003.
+@footnote{4} Alessandro Coglio "Improving the official specification of Java
+bytecode verification" @cite Coglio2003.
 */
 
 
