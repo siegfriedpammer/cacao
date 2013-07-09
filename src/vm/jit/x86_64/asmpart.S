@@ -27,7 +27,7 @@
 
 #include "vm/jit/x86_64/arch.hpp"
 #include "vm/jit/x86_64/md-abi.hpp"
-#include "vm/jit/x86_64/md-asm.hpp"
+#include "md-asm.hpp"
 
 #include "vm/jit/abi-asm.hpp"
 #include "vm/jit/methodheader.hpp"
