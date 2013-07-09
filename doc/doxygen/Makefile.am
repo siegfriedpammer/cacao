@@ -21,6 +21,9 @@
 ## 02110-1301, USA.
 
 
+EXTRA_DIST = \
+	mainpage.doxygen
+
 dist_noinst_DATA = \
 	Doxyfile.in
 

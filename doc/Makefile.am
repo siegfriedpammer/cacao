@@ -31,6 +31,7 @@ dist_noinst_DATA = \
 	jsr.bib
 
 EXTRA_DIST = \
+	bibliography.bib \
 	design_onstack_replacement.txt \
 	inlining_stacktrace.txt \
 	native_threads.txt \
