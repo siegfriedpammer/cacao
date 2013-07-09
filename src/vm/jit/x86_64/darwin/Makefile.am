@@ -1,4 +1,4 @@
-## src/vm/jit/x86_64/Makefile.am
+## src/vm/jit/x86_64/darwin/Makefile.am
 ##
 ## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,51 +21,18 @@
 ## 02110-1301, USA.
 
 
-AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_builddir) -I$(top_builddir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
-AM_CCASFLAGS = $(AM_CPPFLAGS) $(AM_LDFLAGS)
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_builddir)/src
 
 LIBS =
 
-DIST_SUBDIRS = \
-	darwin    \
-	freebsd    \
-	linux      \
-	solaris
+noinst_HEADERS = \
+	md-asm.hpp
 
-SUBDIRS = $(OS_DIR)
+# noinst_LTLIBRARIES = \
+# 	libmd.la
 
-noinst_HEADERS =  \
-	arch.hpp      \
-	              \
-	md-atomic.hpp
-
-noinst_LTLIBRARIES = libarch.la
-
-if ENABLE_DISASSEMBLER
-DISASS_SOURCES = \
-	disass.cpp
-endif
-
-libarch_la_SOURCES =  \
-	asmpart.S         \
-	codegen.cpp       \
-	codegen.hpp       \
-	$(DISASS_SOURCES) \
-	emit.cpp          \
-	emit.hpp          \
-	patcher.cpp       \
-	                  \
-	md-abi.cpp        \
-	md-abi.hpp        \
-	md-stubs.hpp      \
-	md-trap.hpp       \
-	md.cpp            \
-	md.hpp
-
-libarch_la_LIBADD = \
-	$(OS_DIR)/libmd.la
-
-$(srcdir)/asmpart.S: $(top_builddir)/config.h
+# libmd_la_SOURCES = \
+# 	md-os.cpp
 
 
 ## Local variables:

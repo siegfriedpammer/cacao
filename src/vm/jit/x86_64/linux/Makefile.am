@@ -1,7 +1,8 @@
 ## src/vm/jit/x86_64/linux/Makefile.am
 ##
 ## Copyright (C) 1996-2013
-## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO##
+## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+##
 ## This file is part of CACAO.
 ##
 ## This program is free software; you can redistribute it and/or

@@ -1,4 +1,4 @@
-/* src/vm/jit/x86_64/linux/md-asm.hpp - assembler defines for x86_64 Linux ABI
+/* src/vm/jit/x86_64/darwin/md-asm.hpp - assembler defines for x86_64 Darwin ABI
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
