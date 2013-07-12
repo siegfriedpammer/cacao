@@ -38,8 +38,9 @@
 #include "vm/rt-timing.hpp"
 
 namespace cacao {
+
 timespec RTEntry::invalid_ts = {-1,-1};
-RTGroup RTGroup::root_rg("vm","vm timer");
+
 }
 
 /*

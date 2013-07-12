@@ -92,16 +92,16 @@
  * Register a new (toplevel) timer. Create a timer and add it to the toplevel
  * timing group RTGroup::root().
  *
- * @note This macro creates a new global variable with the name var_rt and
- * a function RTTimer& var(). Consider using namespaces to avoid name clashes.
+ * @note This macro creates a function RTTimer& var(). Consider using namespaces
+ * to avoid name clashes.
  */
 
 /**
  * @def RT_REGISTER_GROUP_TIMER(var,name,description,group)
  * Register a new timer. Create a timer and add it to group specified.
  *
- * @note This macro creates a new global variable with the name var_rt and
- * a function RTTimer& var(). Consider using namespaces to avoid name clashes.
+ * @note This macro creates a function RTTimer& var(). Consider using namespaces
+ * to avoid name clashes.
  */
 
 /**
@@ -109,16 +109,16 @@
  * Register a new (toplevel) group. Create a group and add it to the toplevel
  * timing group RTGroup::root().
  *
- * @note This macro creates a new global variable with the name var_rg and
- * a function RTGroup& var(). Consider using namespaces to avoid name clashes.
+ * @note This macro creates a function RTGroup& var(). Consider using namespaces
+ * to avoid name clashes.
  */
 
 /**
  * @def RT_REGISTER_SUBGROUP(var,name,description,group)
  * Register a new subgroup. Create a group and add it to group specified.
  *
- * @note This macro creates a new global variable with the name var_rg and
- * a function RTGroup& var(). Consider using namespaces to avoid name clashes.
+ * @note This macro creates a function RTGroup& var(). Consider using namespaces
+ * to avoid name clashes.
  */
 
 /**
@@ -208,7 +208,15 @@
 
 #include "vm/global.hpp"
 
-#include "toolbox/OStream.hpp"
+#include "toolbox/logging.hpp"
+
+// debugging macro
+// @note: LOG* can not be used because opt_DebugName is not initialized
+#if 0
+#define _RT_LOG(expr) do { cacao::dbg() <<expr;} while (0)
+#else
+#define _RT_LOG(expr)
+#endif
 
 namespace {
 #if 0
@@ -369,7 +377,15 @@ public:
 	/**
 	 * Constructor.
 	 */
-	RTEntry(const char* name, const char* description) : name(name), description(description) {}
+	RTEntry(const char* name, const char* description) : name(name), description(description) {
+		_RT_LOG("RTEntry() name: " << name << nl);
+	}
+	/**
+	 * Destructor.
+	 */
+	virtual ~RTEntry() {
+		_RT_LOG("~RTEntry() name: " << name << nl);
+	}
 	/**
 	 * Print the timing information to an OStream.
 	 * @param[in,out] O     output stream
@@ -391,23 +407,13 @@ public:
 class RTGroup : public RTEntry {
 private:
 	typedef std::vector<RTEntry*> RTEntryList;
-	/**
-	 * List of members.
-	 * @note: this must be a pointer. If it is changes to a normal variable strange
-	 * things will happen!
-	 */
-	RTEntryList *members;
+	/// List of members.
+	RTEntryList members;
 
 	RTGroup(const char* name, const char* description) : RTEntry(name, description) {
-		members = new RTEntryList();
+		_RT_LOG("RTGroup() name: " << name << nl);
 	}
 public:
-	/**
-	 * __the__ root group.
-	 * @note never use this variable directly (use RTGroup::root() instead).
-	 * Used for internal purposes only!
-	 */
-	static RTGroup root_rg;
 	/**
 	 * Get the root group
 	 */
@@ -423,37 +429,36 @@ public:
 	 * @param[in] group parent group.
 	 */
 	RTGroup(const char* name, const char* description, RTGroup &group) : RTEntry(name, description) {
-		members = new RTEntryList();
 		group.add(this);
 	}
 
-	~RTGroup() {
-		delete members;
+	virtual ~RTGroup() {
+		_RT_LOG("~RTGroup() name: " << name << nl);
 	}
 
 	/**
 	 * Add an entry to the group
 	 */
 	void add(RTEntry *re) {
-		members->push_back(re);
+		members.push_back(re);
 	}
 
 	virtual timespec time() const {
 		timespec time = {0,0};
-		for(RTEntryList::const_iterator i = members->begin(), e = members->end(); i != e; ++i) {
+		for(RTEntryList::const_iterator i = members.begin(), e = members.end(); i != e; ++i) {
 			RTEntry* re = *i;
 			time += re->time();
 		}
 		return time;
 	}
 
-	void print(OStream &O,timespec ref = invalid_ts) const {
+	virtual void print(OStream &O,timespec ref = invalid_ts) const {
 		timespec duration = time();
 		if (ref == invalid_ts)
 			ref = duration;
 		// O << setw(10) << left << name << right <<"   " << description << nl;
 		//O << indent;
-		for(RTEntryList::const_iterator i = members->begin(), e= members->end(); i != e; ++i) {
+		for(RTEntryList::const_iterator i = members.begin(), e = members.end(); i != e; ++i) {
 			RTEntry* re = *i;
 			re->print(O,duration);
 		}
@@ -486,8 +491,16 @@ public:
 	 */
 	RTTimer(const char* name, const char* description, RTGroup &parent) : RTEntry(name, description) {
 		//reset();
+		_RT_LOG("RTTimer() name: " << name << nl);
 		duration = 0;
 		parent.add(this);
+	}
+
+	/**
+	 * Destructor
+	 */
+	virtual ~RTTimer() {
+		_RT_LOG("~RTTimer() name: " << name << nl);
 	}
 
 	/**
@@ -517,7 +530,7 @@ public:
 		return ts;
 	}
 
-	void print(OStream &O,timespec ref = invalid_ts) const {
+	virtual void print(OStream &O,timespec ref = invalid_ts) const {
 		timespec ts = time();
 		int percent;
 
@@ -537,53 +550,55 @@ public:
 
 } // end namespace cacao
 
+#undef _RT_LOG
+
 #define RT_REGISTER_TIMER(var,name,description)                              \
-	static cacao::RTTimer var##_rt(name,description,cacao::RTGroup::root()); \
 	static inline cacao::RTTimer& var() {	                                 \
-		return var##_rt;                                                     \
+		static cacao::RTTimer v(name,description,cacao::RTGroup::root());    \
+		return v;                                                            \
 	}
 
 #define RT_REGISTER_GROUP_TIMER(var,name,description,group)                  \
-	static cacao::RTTimer var##_rt(name, description, group());              \
 	static inline cacao::RTTimer& var() {                                    \
-		return var##_rt;                                                     \
+		static cacao::RTTimer v(name, description, group());                 \
+		return v;                                                            \
 	}
 
 #define RT_REGISTER_GROUP(var,name,description)                              \
-	static cacao::RTGroup var##_rg(name,description,cacao::RTGroup::root()); \
 	inline cacao::RTGroup& var() {                                           \
-		return var##_rg;                                                     \
+		static cacao::RTGroup v(name,description,cacao::RTGroup::root());    \
+		return v;                                                            \
 	}
 
 #define RT_REGISTER_SUBGROUP(var,name,description,group)                     \
-	static cacao::RTGroup var##_rg(name, description, group());              \
 	inline cacao::RTGroup& var() {                                           \
-		return var##_rg;                                                     \
+		static cacao::RTGroup v(name, description, group());                 \
+		return v;                                                            \
 	}
 
 
 #define RT_REGISTER_TIMER_EXTERN(var,name,description)                       \
-	static cacao::RTTimer var##_rt(name,description,cacao::RTGroup::root()); \
 	inline cacao::RTTimer& var() {	                                         \
-		return var##_rt;                                                     \
+		static cacao::RTTimer v(name,description,cacao::RTGroup::root());    \
+		return v;                                                            \
 	}
 
 #define RT_REGISTER_GROUP_TIMER_EXTERN(var,name,description,group)           \
-	static cacao::RTTimer var##_rt(name, description, group());              \
 	inline cacao::RTTimer& var() {                                           \
-		return var##_rt;                                                     \
+		static cacao::RTTimer v(name, description, group());                 \
+		return v;                                                            \
 	}
 
 #define RT_REGISTER_GROUP_EXTERN(var,name,description)                       \
-	static cacao::RTGroup var##_rg(name,description,cacao::RTGroup::root()); \
 	inline cacao::RTGroup& var() {                                           \
-		return var##_rg;                                                     \
+		static cacao::RTGroup v(name,description,cacao::RTGroup::root());    \
+		return v;                                                            \
 	}
 
 #define RT_REGISTER_SUBGROUP_EXTERN(var,name,description,group)              \
-	static cacao::RTGroup var##_rg(name, description, group());              \
 	inline cacao::RTGroup& var() {                                           \
-		return var##_rg;                                                     \
+		static cacao::RTGroup v(name, description, group());                 \
+		return v;                                                            \
 	}
 
 #define RT_DECLARE_TIMER(var) inline cacao::RTTimer& var();
