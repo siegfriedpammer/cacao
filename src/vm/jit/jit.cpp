@@ -362,7 +362,10 @@ u1 *jit_compile(methodinfo *m)
 
 #if defined(ENABLE_REPLACEMENT) && defined(ENABLE_INLINING)
 	if (opt_Inline && (jd->m->hitcountdown > 0) && (jd->code->optlevel == 0)) {
-		jd->flags |= JITDATA_FLAG_COUNTDOWN;
+		if (!opt_InlineMethod
+				|| jd->m->name.hash() == Utf8String::from_utf8(opt_InlineMethod,strlen(opt_InlineMethod)).hash() ) {
+			jd->flags |= JITDATA_FLAG_COUNTDOWN;
+		}
 	}
 #endif
 

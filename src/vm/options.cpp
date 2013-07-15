@@ -192,6 +192,7 @@ int      opt_InlineAll                    = 0;
 int      opt_InlineCount                  = INT_MAX;
 int      opt_InlineMaxSize                = INT_MAX;
 int      opt_InlineMinSize                = 0;
+char*    opt_InlineMethod                 = NULL;
 #endif
 #endif
 int      opt_PrintConfig                  = 0;
@@ -278,6 +279,7 @@ enum {
 	OPT_InlineCount,
 	OPT_InlineMaxSize,
 	OPT_InlineMinSize,
+	OPT_InlineMethod,
 	OPT_PrintConfig,
 	OPT_PrintWarnings,
 	OPT_ProfileGCMemoryUsage,
@@ -354,6 +356,7 @@ option_t options_XX[] = {
 	{ "InlineCount",                  OPT_InlineCount,                  OPT_TYPE_VALUE,   "stop inlining after the given number of roots" },
 	{ "InlineMaxSize",                OPT_InlineMaxSize,                OPT_TYPE_VALUE,   "maximum size for inlined result" },
 	{ "InlineMinSize",                OPT_InlineMinSize,                OPT_TYPE_VALUE,   "minimum size for inlined result" },
+	{ "InlineMethod",                 OPT_InlineMethod,                 OPT_TYPE_VALUE,   "inline only specified method" },
 #endif
 #endif
 	{ "PrintConfig",                  OPT_PrintConfig,                  OPT_TYPE_BOOLEAN, "print VM configuration" },
@@ -786,6 +789,9 @@ void options_xx(JavaVMInitArgs *vm_args)
 		case OPT_InlineMinSize:
 			if (value != NULL)
 				opt_InlineMinSize = os::atoi(value);
+			break;
+		case OPT_InlineMethod:
+			opt_InlineMethod = value;
 			break;
 #endif
 #endif
