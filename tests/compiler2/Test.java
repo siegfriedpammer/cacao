@@ -3,6 +3,7 @@ import java.lang.Math.*;
 class Test {
 
 static long c = 0;
+static long stat = 42;
 
 public static void main(String arg[]) {
   System.out.println(fib(15));
@@ -13,7 +14,16 @@ public static void main(String arg[]) {
   System.out.println(OverflowLongIntLong(15));
   System.out.println(Integer.MIN_VALUE+14);
   System.out.println(testParameterDouble(.1,.2,.3,.4,.5,.6,.7,.8,.9));
-  System.out.println(pi_spigot(10));
+  for (int i =0; i < 2000; ++i ) {
+    System.out.println(pi_spigot(10));
+  }
+  for (int i =0; i < 2000; ++i ) {
+    System.out.println(pi());
+  }
+}
+
+static long test_getstatic() {
+    return stat;
 }
 
 static double mul(double a, double b) {
