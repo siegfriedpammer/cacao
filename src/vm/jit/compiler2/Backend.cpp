@@ -37,18 +37,19 @@ Backend* Backend::factory() {
 
 LoweredInstDAG* Backend::lower(Instruction *I) const {
 	switch(I->get_opcode()) {
-	case Instruction::BeginInstID:  return lowerBeginInst(I->to_BeginInst());
-	case Instruction::LOADInstID:   return lowerLOADInst(I->to_LOADInst());
-	case Instruction::GOTOInstID:   return lowerGOTOInst(I->to_GOTOInst());
-	case Instruction::PHIInstID:    return lowerPHIInst(I->to_PHIInst());
-	case Instruction::IFInstID:     return lowerIFInst(I->to_IFInst());
-	case Instruction::CONSTInstID:  return lowerCONSTInst(I->to_CONSTInst());
-	case Instruction::ADDInstID:    return lowerADDInst(I->to_ADDInst());
-	case Instruction::SUBInstID:    return lowerSUBInst(I->to_SUBInst());
-	case Instruction::RETURNInstID: return lowerRETURNInst(I->to_RETURNInst());
-	case Instruction::MULInstID:    return lowerMULInst(I->to_MULInst());
-	case Instruction::DIVInstID:    return lowerDIVInst(I->to_DIVInst());
-	case Instruction::CASTInstID:   return lowerCASTInst(I->to_CASTInst());
+	case Instruction::BeginInstID:     return lowerBeginInst(I->to_BeginInst());
+	case Instruction::LOADInstID:      return lowerLOADInst(I->to_LOADInst());
+	case Instruction::GOTOInstID:      return lowerGOTOInst(I->to_GOTOInst());
+	case Instruction::PHIInstID:       return lowerPHIInst(I->to_PHIInst());
+	case Instruction::IFInstID:        return lowerIFInst(I->to_IFInst());
+	case Instruction::CONSTInstID:     return lowerCONSTInst(I->to_CONSTInst());
+	case Instruction::ADDInstID:       return lowerADDInst(I->to_ADDInst());
+	case Instruction::SUBInstID:       return lowerSUBInst(I->to_SUBInst());
+	case Instruction::RETURNInstID:    return lowerRETURNInst(I->to_RETURNInst());
+	case Instruction::MULInstID:       return lowerMULInst(I->to_MULInst());
+	case Instruction::DIVInstID:       return lowerDIVInst(I->to_DIVInst());
+	case Instruction::CASTInstID:      return lowerCASTInst(I->to_CASTInst());
+	case Instruction::GETSTATICInstID: return lowerGETSTATICInst(I->to_GETSTATICInst());
 	default: break;
 	}
 	err() << BoldRed << "error: " << reset_color
