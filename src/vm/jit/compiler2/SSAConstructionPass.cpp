@@ -1500,7 +1500,17 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_GETFIELD:        /* 1 -> 1 */
 			case ICMD_PUTFIELD:        /* 2 -> 0 */
 			case ICMD_PUTSTATIC:       /* 1 -> 0 */
+				goto _default;
 			case ICMD_GETSTATIC:       /* 0 -> 1 */
+				{
+					constant_FMIref *fmiref;
+					INSTRUCTION_GET_FIELDREF(iptr, fmiref);
+					Type::TypeID type = convert_var_type(fmiref->parseddesc.fd->type);
+					Instruction *getstatic = new GETSTATICInst(type,fmiref,INSTRUCTION_IS_RESOLVED(iptr));
+					write_variable(iptr->dst.varindex,bbindex,getstatic);
+					M->add_Instruction(getstatic);
+				}
+				break;
 			case ICMD_PUTSTATICCONST:  /* 0 -> 0 */
 			case ICMD_PUTFIELDCONST:   /* 1 -> 0 */
 		//		if (opcode != ICMD_GETSTATIC && opcode != ICMD_PUTSTATICCONST) {

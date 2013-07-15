@@ -435,9 +435,17 @@ public:
 };
 
 class GETSTATICInst : public Instruction {
+private:
+	constant_FMIref *fmiref;
+	bool resolved;
 public:
-	explicit GETSTATICInst(Type::TypeID type) : Instruction(GETSTATICInstID, type) {}
+	/**
+	 * @param resolved This _should_ not change during compilation
+	 */
+	explicit GETSTATICInst(Type::TypeID type, constant_FMIref *fmiref, bool resolved)
+		: Instruction(GETSTATICInstID, type), fmiref(fmiref), resolved(resolved) {}
 	virtual GETSTATICInst* to_GETSTATICInst() { return this; }
+	bool is_resolved() const { return resolved; }
 };
 
 class INCInst : public Instruction {
