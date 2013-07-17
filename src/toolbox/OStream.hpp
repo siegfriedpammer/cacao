@@ -221,6 +221,9 @@ private:
 	/// true iff we are at the beginning of a new line
 	bool newline;
 
+	/// supports ansi escape codes
+	bool use_color;
+
 	enum IntegerFormat {
 		IntFmt_decimal,
 		IntFmt_octal,

@@ -66,11 +66,12 @@ NoUnderline nounderline;
 
 OStream::OStream(FILE *file) : file(file), newline(true) {
 	assert(file);
-
 	init_flag_defaults();
+	// in practice all tty's support ansi escape codes
+	use_color = isatty(fileno(file));
 }
 
-OStream::OStream(const OStream& os) : file(os.file), newline(os.newline) {
+OStream::OStream(const OStream& os) : file(os.file), newline(os.newline), use_color(os.use_color) {
 	init_flag_defaults();
 }
 
@@ -376,6 +377,8 @@ OStream& OStream::operator<<(const ThreadId&) {
 }
 
 OStream& OStream::operator<<(Color c) {
+	if (!use_color) return (*this);
+
 	switch (c) {
 	case Black:       return (*this) << "\033[30m";
 	case Red:         return (*this) << "\033[31m";
@@ -401,18 +404,23 @@ OStream& OStream::operator<<(Color c) {
 	return (*this);
 }
 OStream& OStream::operator<<(const ResetColor&) {
+	if (!use_color) return (*this);
 	return (*this) << "\033[0m";
 }
 OStream& OStream::operator<<(const Bold&) {
+	if (!use_color) return (*this);
 	return (*this) << "\033[1m";
 }
 OStream& OStream::operator<<(const NoBold&) {
+	if (!use_color) return (*this);
 	return (*this) << "\033[21m";
 }
 OStream& OStream::operator<<(const Underline&) {
+	if (!use_color) return (*this);
 	return (*this) << "\033[4m";
 }
 OStream& OStream::operator<<(const NoUnderline&) {
+	if (!use_color) return (*this);
 	return (*this) << "\033[24m";
 }
 
