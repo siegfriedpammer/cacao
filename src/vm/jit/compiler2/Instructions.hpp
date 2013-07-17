@@ -398,15 +398,15 @@ public:
 		}
 		return 0;
 	}
-	double get_Int() const {
+	int32_t get_Int() const {
 		assert(type == Type::IntTypeID);
 		return value.i;
 	}
-	double get_Long() const {
+	int64_t get_Long() const {
 		assert(type == Type::LongTypeID);
 		return value.l;
 	}
-	double get_Float() const {
+	float get_Float() const {
 		assert(type == Type::FloatTypeID);
 		return value.f;
 	}
