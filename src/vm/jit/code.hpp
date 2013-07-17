@@ -33,6 +33,9 @@
 #include "vm/jit/methodheader.hpp"      // for CodeInfoPointer
 #include "vm/types.hpp"                 // for u1, s4
 
+#include "toolbox/future.hpp"           // for cacao::shared_ptr
+#include "vm/jit/Patcher.hpp"           // for cacao::Patcher
+
 class LinenumberTable;
 struct exceptiontable_t;
 struct methodinfo;
@@ -51,6 +54,11 @@ enum CodeFlag {
 	CODE_FLAG_TLH          = 0x0008
 };
 
+/**
+ * @Cpp11 should be std::shared_ptr or const std::unique_ptr
+ */
+typedef cacao::shared_ptr<cacao::Patcher> PatcherPtrTy;
+typedef LockedList<PatcherPtrTy> PatcherListTy;
 
 /* codeinfo *******************************************************************
 
@@ -89,7 +97,8 @@ struct codeinfo {
 	LinenumberTable* linenumbertable;
 
 	/* patcher list */
-	LockedList<patchref_t>* patchers;
+	//LockedList<patchref_t>* patchers;
+	PatcherListTy* patchers;
 
 	/* replacement */
 #if defined(ENABLE_REPLACEMENT)

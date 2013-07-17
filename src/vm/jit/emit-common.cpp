@@ -278,13 +278,14 @@ void emit_patcher_traps(jitdata *jd)
 	code = jd->code;
 
 	// Generate patcher traps code.
-	for (List<patchref_t>::iterator it = code->patchers->begin(); it != code->patchers->end(); it++) {
-		patchref_t& pr = *it;
+	for (PatcherListTy::iterator i = code->patchers->begin(),
+			e = code->patchers->end(); i != e; ++i) {
+		PatcherPtrTy& pr = *i;
 
 		/* Calculate the patch position where the original machine
 		   code is located and the trap should be placed. */
 
-		tmpmcodeptr = (u1 *) (cd->mcodebase + pr.mpc);
+		tmpmcodeptr = (u1 *) (cd->mcodebase + pr->get_mpc());
 
 		/* Patch in the trap to call the signal handler (done at
 		   compile time). */
@@ -299,7 +300,7 @@ void emit_patcher_traps(jitdata *jd)
 		/* Remember the original machine code which is patched
 		   back in later (done at runtime). */
 
-		pr.mcode = mcode;
+		pr->set_mcode(mcode);
 	}
 }
 
