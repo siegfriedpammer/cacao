@@ -420,6 +420,11 @@ LoweredInstDAG* BackendBase<X86_64>::lowerCASTInst(CASTInst *I) const {
 }
 
 template<>
+LoweredInstDAG* BackendBase<X86_64>::lowerGETSTATICInst(GETSTATICInst *I) const {
+	assert(0);
+}
+
+template<>
 compiler2::RegisterFile*
 BackendBase<X86_64>::get_RegisterFile(Type::TypeID type) const {
 	return new x86_64::RegisterFile(type);

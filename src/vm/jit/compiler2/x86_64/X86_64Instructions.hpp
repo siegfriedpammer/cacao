@@ -398,6 +398,22 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
+/**
+ * Move data seg to register
+ */
+class MovDSEGInst : public MoveInst {
+private:
+	// mutable because changed in emit (which is const)
+	mutable std::size_t data_index;
+public:
+	MovDSEGInst(const SrcOp &src, const DstOp &dst,
+		GPInstruction::OperandSize size, std::size_t data_index)
+			: MoveInst("X86_64MovDSEGInst", src.op, dst.op, size),
+			data_index(data_index) {}
+	virtual void emit(CodeMemory* CM) const;
+	virtual void emit(CodeFragment &CF) const;
+};
+
 class JumpInst : public MachineJumpInst {
 private:
 	BeginInstRef &target;

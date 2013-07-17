@@ -480,6 +480,59 @@ void MovSXInst::emit(CodeMemory* CM) const {
 	ABORT_MSG("x86_64 sext cast not supported","from " << from << "bits to "
 		<< to << "bits");
 }
+
+void MovDSEGInst::emit(CodeMemory* CM) const {
+	X86_64Register *dst = cast_to<X86_64Register>(result.op);
+	switch (get_op_size()) {
+	case OS_8:
+	case OS_16:
+	case OS_32:
+		break;
+	case OS_64:
+		{
+			CodeFragment code = CM->get_CodeFragment(7);
+			code[0] = get_rex(dst);
+			code[1] = 0x8b;
+			// RIP-Relateive addressing mod=00b, rm=101b, + disp32
+			code[2] = get_modrm_u1(0x0,dst->get_index(),0x5);
+			#if 1
+			code[3] = 0xaa;
+			code[4] = 0xaa;
+			code[5] = 0xaa;
+			code[6] = 0xaa;
+			#endif
+		}
+		return;
+	default: break;
+	}
+	ABORT_MSG(this << ": Operand(s) not supported",
+		"op_size: " << get_op_size() * 8 << "bit");
+}
+
+void MovDSEGInst::emit(CodeFragment &CF) const {
+	s4 offset = CF.get_offset(data_index);
+	assert(offset != 0);
+	assert(offset != CodeMemory::INVALID_OFFSET);
+	switch (get_op_size()) {
+	case OS_8:
+	case OS_16:
+	case OS_32:
+		break;
+	case OS_64:
+		{
+			CF[3] = u1(0xff & (offset >>  0));
+			CF[4] = u1(0xff & (offset >>  8));
+			CF[5] = u1(0xff & (offset >> 16));
+			CF[6] = u1(0xff & (offset >> 24));
+		}
+		return;
+	default: break;
+	}
+	ABORT_MSG(this << ": Operand(s) not supported",
+		"op_size: " << get_op_size() * 8 << "bit");
+}
+
+
 void CondJumpInst::emit(CodeMemory* CM) const {
 	BeginInst *BI = get_BeginInst();
 	s4 offset = CM->get_offset(BI);
