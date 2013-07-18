@@ -26,12 +26,13 @@
 #include "vm/jit/Patcher.hpp"
 #include "toolbox/logging.hpp"
 
+#include "vm/jit/emit-common.hpp"        /* for emit_trap */
 #include "codegen.hpp"                   /* for PATCHER_CALL_SIZE */
 
 #define DEBUG_NAME "Patcher"
 namespace cacao{
 
-Patcher::Patcher() {
+Patcher::Patcher() : done(false) {
 	LOG2("Patcher ctor" << nl);
 }
 
@@ -48,13 +49,6 @@ OStream& Patcher::print(OStream &OS) const {
 	OS << "\tpatcher";
 	OS << " type:" << get_name();
 	OS << " pc:0x" << (void*) get_mpc();
-	#if PATCHER_CALL_SIZE == 4
-	OS << " mcode:" << (uint32_t) get_mcode();
-	#elif PATCHER_CALL_SIZE == 2
-	OS << " mcode:" << (uint16_t) get_mcode();
-	#else
-	# error Unknown PATCHER_CALL_SIZE
-	#endif
 	// Display machine code of patched position.
 #if 0 && defined(ENABLE_DISASSEMBLER)
 	printf("\t\tcurrent -> ");
@@ -65,6 +59,48 @@ OStream& Patcher::print(OStream &OS) const {
 	return OS;
 }
 
+void LegacyPatcher::emit() {
+	codegendata *cd = jd->cd;
+
+	/* Calculate the patch position where the original machine
+	   code is located and the trap should be placed. */
+
+	u1 *tmpmcodeptr = (u1 *) (cd->mcodebase + pr.mpc);
+
+	/* Patch in the trap to call the signal handler (done at
+	   compile time). */
+
+	u1 *savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr          */
+	cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position */
+
+	uint32_t mcode = emit_trap(cd);
+
+	cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr   */
+
+	/* Remember the original machine code which is patched
+	   back in later (done at runtime). */
+
+	pr.mcode = mcode;
+}
+
+bool LegacyPatcher::check_is_patched() const {
+	// Validate the instruction at the patching position is the same
+	// instruction as the patcher structure contains.
+	uint32_t mcode = *((uint32_t*) pr.mpc);
+
+#if PATCHER_CALL_SIZE == 4
+	if (mcode != pr->get_mcode()) {
+#elif PATCHER_CALL_SIZE == 2
+	if ((uint16_t) mcode != (uint16_t) pr.mcode) {
+#else
+#error Unknown PATCHER_CALL_SIZE
+#endif
+		// The code differs.
+		return false;
+	}
+
+	return true;
+}
 
 /**
  * patcher_function_list
@@ -111,6 +147,13 @@ const char* LegacyPatcher::get_name() const {
 OStream& LegacyPatcher::print(OStream &OS) const {
 	Patcher::print(OS);
 	// Display information about patcher.
+	#if PATCHER_CALL_SIZE == 4
+	OS << " mcode:" << (uint32_t) pr.mcode;
+	#elif PATCHER_CALL_SIZE == 2
+	OS << " mcode:" << (uint16_t) pr.mcode;
+	#else
+	# error Unknown PATCHER_CALL_SIZE
+	#endif
 	OS << " datap:" << (void*) pr.datap;
 	OS << " ref:0x" << (uintptr_t) pr.ref;
 	return OS;

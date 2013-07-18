@@ -201,7 +201,7 @@ patchref_t *patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s
 	pr.done        = false;
 
 	// Store patcher in the list (NOTE: structure is copied).
-	cacao::LegacyPatcher *legacy =  new cacao::LegacyPatcher(pr);
+	cacao::LegacyPatcher *legacy =  new cacao::LegacyPatcher(jd,pr);
 	PatcherPtrTy ptr(legacy);
 	code->patchers->push_back(ptr);
 
@@ -232,11 +232,8 @@ patchref_t *patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s
  *
  * @param jd JIT data-structure
  */
-void patcher_resolve(jitdata* jd)
+void patcher_resolve(codeinfo* code)
 {
-	// Get required compiler data.
-	codeinfo* code = jd->code;
-
 	for (PatcherListTy::iterator i = code->patchers->begin(),
 			e = code->patchers->end(); i != e; ++i) {
 		PatcherPtrTy& pr = (*i);
@@ -244,36 +241,6 @@ void patcher_resolve(jitdata* jd)
 		pr->reposition((intptr_t) code->entrypoint);
 	}
 }
-
-
-/**
- * Check if the patcher is already patched.  This is done by comparing
- * the machine instruction.
- *
- * @param pr Patcher structure.
- *
- * @return true if patched, false otherwise.
- */
-bool patcher_is_patched(PatcherPtrTy &pr)
-{
-	// Validate the instruction at the patching position is the same
-	// instruction as the patcher structure contains.
-	uint32_t mcode = *((uint32_t*) pr->get_mpc());
-
-#if PATCHER_CALL_SIZE == 4
-	if (mcode != pr->get_mcode()) {
-#elif PATCHER_CALL_SIZE == 2
-	if ((uint16_t) mcode != (uint16_t) pr->get_mcode()) {
-#else
-#error Unknown PATCHER_CALL_SIZE
-#endif
-		// The code differs.
-		return false;
-	}
-
-	return true;
-}
-
 
 /**
  *
@@ -291,7 +258,7 @@ bool patcher_is_patched_at(void* pc)
 	}
 
 	// Validate the instruction.
-	return patcher_is_patched(*pr);
+	return (*pr)->check_is_patched();
 }
 
 

@@ -47,27 +47,26 @@ class OStream;
  * been removed.
  */
 class Patcher {
+private:
+	bool done;
+	/**
+	 * This function performs the patching.
+	 */
+	virtual bool patch_impl() = 0;
 public:
 	Patcher();
 	virtual ~Patcher();
 
 	/**
-	 * This function performs the patching.
+	 * This a wrapper to set the done flag.
 	 */
-	virtual bool patch() = 0;
-
-	/**
-	 * set the machine code to be patched back in
-	 *
-	 * @deprecated
-	 */
-	virtual void set_mcode(uint32_t mcode) = 0;
-	/**
-	 * get the machine code to be patched back in
-	 *
-	 * @deprecated
-	 */
-	virtual uintptr_t get_mcode() const = 0;
+	bool patch() {
+		if (patch_impl()) {
+			done = true;
+			return true;
+		}
+		return false;
+	}
 	/**
 	 * get the absolute position in code segment
 	 *
@@ -75,13 +74,34 @@ public:
 	 */
 	virtual uintptr_t get_mpc() const = 0;
 	/**
+	 * Generates the code for the patcher traps.
+	 */
+	virtual void emit() = 0;
+	/**
 	 * reposition to another base
 	 */
 	virtual void reposition(intptr_t base) = 0;
 	/**
-	 * already patched
+	 * Check already patched
+	 *
+	 * In contrast to check_is_patched this method simply
+	 * queries a boolean variable whereas check_is_patched
+	 * inspects to machine code.
+	 *
+	 * @see check_is_patched
 	 */
-	virtual bool is_patched() const = 0;
+	bool is_patched() const {
+		return done;
+	}
+	/**
+	 * Check if the patcher is already patched.
+	 *
+	 * This is done by comparing the machine instruction.
+	 *
+	 * @return true if patched, false otherwise.
+	 * @see is_patched
+	 */
+	virtual bool check_is_patched() const = 0;
 	/**
 	 * print patcher information
 	 */
@@ -94,22 +114,13 @@ public:
 
 class LegacyPatcher : public Patcher {
 private:
+	jitdata *jd;
 	patchref_t pr;
-public:
-
-	LegacyPatcher(const patchref_t &pr) : Patcher(), pr(pr) {}
-
-	/**
-	 * return the raw resource
-	 */
-	patchref_t* get() {
-		return &pr;
-	}
 
 	/**
 	 * Call the legacy patching function
 	 */
-	virtual bool patch() {
+	virtual bool patch_impl() {
 		// define the patcher function
 		bool (*patcher_function)(patchref_t *);
 		// cast the passed function to a patcher function
@@ -118,29 +129,73 @@ public:
 		bool result = (patcher_function)(&pr);
 
 		if (result) {
+			// XXX this might be omitted
 			pr.done = true;
 			return true;
 		}
 		return false;
 	}
-	virtual void set_mcode(uint32_t mcode) {
-		pr.mcode = mcode;
+
+public:
+
+	LegacyPatcher(jitdata *jd, const patchref_t &pr)
+		: Patcher(), jd(jd), pr(pr) {}
+
+	/**
+	 * return the raw resource
+	 */
+	patchref_t* get() {
+		return &pr;
 	}
-	virtual uintptr_t get_mcode() const {
-		return pr.mcode;
-	}
+
 	virtual uintptr_t get_mpc() const {
 		return pr.mpc;
 	}
+	virtual void emit();
 	virtual void reposition(intptr_t base) {
 		pr.mpc   += base;
 		pr.datap  = (intptr_t) (pr.disp + base);
 	}
-	virtual bool is_patched() const {
-		return pr.done;
-	}
+	/**
+	 * Check if the patcher is already patched.
+	 *
+	 * This is done by comparing the machine instruction.
+	 *
+	 * @return true if patched, false otherwise.
+	 */
+	virtual bool check_is_patched() const;
+
 	virtual const char* get_name() const;
 	virtual OStream& print(OStream &OS) const;
+};
+
+/**
+ * Base class for all (non-legacy) patcher
+ */
+class PatcherBase : public Patcher {
+private:
+	uint32_t  mcode;
+	uintptr_t mpc;
+public:
+	PatcherBase(uintptr_t mpc) : Patcher(), mcode(0), mpc(mpc) {}
+
+	virtual void set_mcode(uint32_t mcode) {
+		this->mcode = mcode;
+	}
+	#if 0
+	virtual uintptr_t get_mcode() const {
+		return mcode;
+	}
+	#endif
+	virtual uintptr_t get_mpc() const {
+		return mpc;
+	}
+	virtual void reposition(intptr_t base) {
+		this->mpc   += base;
+	}
+	virtual const char* get_name() const {
+		return "PatcherBase";
+	}
 };
 
 } // end namespace cacao

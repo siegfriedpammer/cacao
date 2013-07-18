@@ -266,41 +266,13 @@ void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
 
 void emit_patcher_traps(jitdata *jd)
 {
-	codegendata *cd;
-	codeinfo    *code;
-	u1          *savedmcodeptr;
-	u1          *tmpmcodeptr;
-	uint32_t     mcode;
-
-	/* get required compiler data */
-
-	cd   = jd->cd;
-	code = jd->code;
+	codeinfo* code = jd->code;
 
 	// Generate patcher traps code.
 	for (PatcherListTy::iterator i = code->patchers->begin(),
 			e = code->patchers->end(); i != e; ++i) {
 		PatcherPtrTy& pr = *i;
-
-		/* Calculate the patch position where the original machine
-		   code is located and the trap should be placed. */
-
-		tmpmcodeptr = (u1 *) (cd->mcodebase + pr->get_mpc());
-
-		/* Patch in the trap to call the signal handler (done at
-		   compile time). */
-
-		savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr          */
-		cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position */
-
-		mcode = emit_trap(cd);
-
-		cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr   */
-
-		/* Remember the original machine code which is patched
-		   back in later (done at runtime). */
-
-		pr->set_mcode(mcode);
+		pr->emit();
 	}
 }
 

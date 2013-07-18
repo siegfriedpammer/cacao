@@ -74,7 +74,7 @@ void patcher_list_show(codeinfo *code);
 
 patchref_t *patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp);
 
-void patcher_resolve(jitdata* jd);
+void patcher_resolve(codeinfo* code);
 
 bool patcher_is_patched(patchref_t* pr);
 bool patcher_is_patched_at(void* pc);

@@ -670,7 +670,7 @@ void codegen_finish(jitdata *jd)
 
 	/* patcher resolving */
 
-	patcher_resolve(jd);
+	patcher_resolve(jd->code);
 
 #if defined(ENABLE_REPLACEMENT)
 	/* replacement point resolving */
