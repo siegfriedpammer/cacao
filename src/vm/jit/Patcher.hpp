@@ -126,14 +126,7 @@ private:
 		// cast the passed function to a patcher function
 		patcher_function = (bool (*)(patchref_t *)) (ptrint) pr.patcher;
 
-		bool result = (patcher_function)(&pr);
-
-		if (result) {
-			// XXX this might be omitted
-			pr.done = true;
-			return true;
-		}
-		return false;
+		return (patcher_function)(&pr);
 	}
 
 public:

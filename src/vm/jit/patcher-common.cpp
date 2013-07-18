@@ -198,7 +198,6 @@ patchref_t *patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s
 	pr.patcher     = patcher;
 	pr.ref         = ref;
 	pr.mcode       = 0;
-	pr.done        = false;
 
 	// Store patcher in the list (NOTE: structure is copied).
 	cacao::LegacyPatcher *legacy =  new cacao::LegacyPatcher(jd,pr);

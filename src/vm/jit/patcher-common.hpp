@@ -55,7 +55,6 @@ struct patchref_t {
 	functionptr  patcher;       /* patcher function to call                   */
 	void*        ref;           /* reference passed                           */
 	uint32_t     mcode;         /* machine code to be patched back in         */
-	bool         done;          /* XXX preliminary: patch already applied?    */
 };
 
 
