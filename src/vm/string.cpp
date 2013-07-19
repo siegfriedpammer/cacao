@@ -119,7 +119,7 @@ struct JavaStringHash {
 		text++;
 		a ^= nbs(3);
 		a ^= nbs(4);
-		text += 2;      
+		text += 2;
 		a ^= nbs(7);
 		a ^= nbs(8);
 		text += 2;
@@ -127,10 +127,10 @@ struct JavaStringHash {
 
 	case 14:
 		a = fbs(0);
-		text += 2;      
+		text += 2;
 		a ^= nbs(3);
 		a ^= nbs(4);
-		text += 2;      
+		text += 2;
 		a ^= nbs(7);
 		a ^= nbs(8);
 		text += 2;
@@ -138,16 +138,16 @@ struct JavaStringHash {
 
 	case 15:
 		a = fbs(0);
-		text += 2;      
+		text += 2;
 		a ^= nbs(3);
 		a ^= nbs(4);
-		text += 2;      
+		text += 2;
 		a ^= nbs(7);
 		a ^= nbs(8);
 		text += 2;
 		return a ^ nbs(9) ^ nbs(10) ^ nbs(11);
 
-	default:  
+	default:
        	// 3 characters from beginning
 		a = fbs(0);
 		text += 2;
@@ -158,7 +158,7 @@ struct JavaStringHash {
 		text = start_pos + (length / 2);
 		a ^= fbs(5);
 		text += 2;
-		a ^= nbs(6);    
+		a ^= nbs(6);
 
 		// 3 characters from end
 		text = start_pos + length - 4;
@@ -187,7 +187,7 @@ struct JavaStringEq {
 	}
 };
 
-typedef InternTable<JavaString, JavaStringHash, JavaStringEq, 1> 
+typedef InternTable<JavaString, JavaStringHash, JavaStringEq, 1>
         JavaStringInternTable;
 
 static JavaStringInternTable* intern_table = NULL;
@@ -198,7 +198,7 @@ static JavaStringInternTable* intern_table = NULL;
 
 /* JavaString::initialize ******************************************************
 
-	Initialize string subsystem 
+	Initialize string subsystem
 
 *******************************************************************************/
 
@@ -215,7 +215,7 @@ void JavaString::initialize() {
 	Check is string subsystem is initialized
 
 *******************************************************************************/
-	
+
 bool JavaString::is_initialized() {
 	return intern_table != NULL;
 }
@@ -237,8 +237,8 @@ bool JavaString::is_initialized() {
 		dst_size ... numbers of chars in new string
 	TEMPLATE PARAMETERS:
 		Src ........... The char type used to initialize the String (u1 or u2)
-		Allocator ..... An allocation function, it allocats and initializes a new 
-		                java/lang/String with a given size. The contents of the 
+		Allocator ..... An allocation function, it allocats and initializes a new
+		                java/lang/String with a given size. The contents of the
 		                strings char[] can be undefined.
 		Initializer ... A function that copies the given chars into the strings
 		                private char[].
@@ -270,7 +270,7 @@ static inline java_handle_t* makeJavaString(const Src *src, size_t src_size, siz
 
 	if (!success) return NULL;
 
-	return str;	
+	return str;
 }
 
 //***** ALLOCATORS
@@ -428,7 +428,7 @@ JavaString JavaString::from_utf16(const u2 *cs, size_t sz) {
 
 	Creates a new java/lang/String with a given char[]
 
-	WARNING: the char[] is not copied or validated, 
+	WARNING: the char[] is not copied or validated,
 	         you must make sure it is never changed.
 
 *******************************************************************************/
@@ -489,7 +489,7 @@ JavaString JavaString::intern() const {
 
 const u2* JavaString::begin() const {
 	assert(str);
-		
+
 	java_handle_chararray_t *array = java_lang_String::get_value(str);
 
 	if (array == NULL) {
@@ -544,7 +544,7 @@ size_t JavaString::utf8_size() const {
 
 /* JavaString::to_chars ********************************************************
 
-	Decodes java/lang/String into newly allocated string (debugging) 
+	Decodes java/lang/String into newly allocated string (debugging)
 
 	NOTE:
 		You must free the string allocated yourself with MFREE
@@ -566,12 +566,12 @@ char *JavaString::to_chars() const {
 
 	*dst = '\0';
 
-	return buf;	
+	return buf;
 }
 
 /* JavaString::to_utf8() *******************************************************
 
-	make utf symbol from java.lang.String 
+	make utf symbol from java.lang.String
 
 *******************************************************************************/
 
@@ -583,14 +583,14 @@ Utf8String JavaString::to_utf8() const {
 
 /* JavaString::to_utf8_dot_to_slash() ******************************************
 
-	make utf symbol from java.lang.String 
+	make utf symbol from java.lang.String
 	replace '/' with '.'
 
 *******************************************************************************/
 
 Utf8String JavaString::to_utf8_dot_to_slash() const {
 	if (str == NULL) return utf8::empty;
-		
+
 	return Utf8String::from_utf16_dot_to_slash(begin(), size());
 }
 
@@ -607,7 +607,7 @@ Utf8String JavaString::to_utf8_dot_to_slash() const {
 void JavaString::fprint(FILE *stream) const
 {
 	const uint16_t* cs = begin();
-	size_t          sz = size();  
+	size_t          sz = size();
 
 	for (size_t i = 0; i < sz; i++) {
 		char c = cs[i];
@@ -619,7 +619,7 @@ void JavaString::fprint(FILE *stream) const
 void JavaString::fprint_printable_ascii(FILE *stream) const
 {
 	const uint16_t* cs = begin();
-	size_t          sz = size();  
+	size_t          sz = size();
 
 	for (size_t i = 0; i < sz; i++) {
 		char c = cs[i];
@@ -634,7 +634,7 @@ OStream& operator<<(OStream& os, JavaString js) {
 	const u2 *cs = js.begin();
 
 	if (cs == NULL) {
-		// string has been allocated by java code 
+		// string has been allocated by java code
 		// but <init> has not been called on it yet.
 		return os << "<uninitialized string>";
 	} else {
@@ -643,10 +643,10 @@ OStream& operator<<(OStream& os, JavaString js) {
 		for (const u2 *end = js.end(); cs != end; ++cs) {
 			os << ((char) *cs);
 		}
-	
+
 		os << '"';
 
-		return os;	
+		return os;
 	}
 }
 
