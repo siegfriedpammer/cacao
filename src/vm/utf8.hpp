@@ -44,7 +44,7 @@ struct utf;
 	A Utf8String always contains either a valid (possibly empty) UTF-8 string
 	or NULL.
 	You can check for NULL like you would with any normal pointer.
-	Invoking any method except operator utf*() on a NULL string leads to 
+	Invoking any method except operator utf*() on a NULL string leads to
 	undefined behaviour.
 
 	Use a Utf8String like a pointer, i.e. always pass by value.
@@ -160,7 +160,7 @@ class Utf8String {
 		/*** MISC ******************************************/
 
 		bool is_valid_name() const;
-		
+
 		// TODO: remove (only used in loader.cpp)
 		static const size_t sizeof_utf;
 	private:
@@ -170,10 +170,10 @@ class Utf8String {
 			size_t blength;    // text length in bytes
 				               // (does NOT include zero terminator)
 			size_t utf16_size; // number of utf16 codepoints in string
-			
+
 			char   text[sizeof(void*)]; // string content
 				                        // directly embedded in struct utf
-				                        // aligned to pointer size    
+				                        // aligned to pointer size
 		};
 
 		Utf *_data;
@@ -181,7 +181,7 @@ class Utf8String {
 		static Utf8String alloc(size_t);
 		static void       free(Utf8String);
 
-		template<uint8_t (*Fn)(uint8_t)> 
+		template<uint8_t (*Fn)(uint8_t)>
 		friend struct EagerStringBuilder;
 		friend struct LazyStringBuilder;
 		friend struct Utf8Eq;

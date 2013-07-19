@@ -62,9 +62,9 @@ struct Utf8Eq {
 		          b.size,   b.hash,   b.text);
 	}
 
-	static bool eq(size_t a_sz, size_t a_hash, const char *a_cs, 
+	static bool eq(size_t a_sz, size_t a_hash, const char *a_cs,
 	                      size_t b_sz, size_t b_hash, const char *b_cs) {
-		return (a_sz   == b_sz)   && 
+		return (a_sz   == b_sz)   &&
 		       (a_hash == b_hash) &&
 		       (memcmp(a_cs, b_cs, a_sz) == 0);
 	}
@@ -128,7 +128,7 @@ void Utf8String::free(Utf8String u) {
 //****************************************************************************//
 
 /* init/update/finish_hash *****************************************************
-	
+
 	These routines are used to compute the hash for a utf-8 string byte by byte.
 
 	Use like this:
@@ -138,7 +138,7 @@ void Utf8String::free(Utf8String u) {
 			hash = update_hash( hash, byte );
 
 		hash = finish_hash(hash);
-		
+
 	The algorithm is the "One-at-a-time" algorithm as published
 	by Bob Jenkins on http://burtleburtle.net/bob/hash/doobs.html.
 
@@ -289,21 +289,21 @@ Utf8String Utf8String::from_utf8(const char *cs, size_t sz) {
 }
 
 Utf8String Utf8String::from_utf8_dot_to_slash(const char *cs, size_t sz) {
-	return utf8::transform<Utf8String>(cs, sz, 
+	return utf8::transform<Utf8String>(cs, sz,
 	                                   EagerStringBuilder<dot_to_slash>(sz));
 }
 
 Utf8String Utf8String::from_utf16(const u2 *cs, size_t sz) {
 	size_t blength = utf8::num_bytes(cs, sz);
 
-	return utf16::transform<Utf8String>(cs, sz, 
+	return utf16::transform<Utf8String>(cs, sz,
 	                                    EagerStringBuilder<identity>(blength));
 }
 
 Utf8String Utf8String::from_utf16_dot_to_slash(const u2 *cs, size_t sz) {
 	size_t blength = utf8::num_bytes(cs, sz);
 
-	return utf16::transform<Utf8String>(cs, sz, 
+	return utf16::transform<Utf8String>(cs, sz,
 	                                    EagerStringBuilder<dot_to_slash>(blength));
 }
 
@@ -341,7 +341,7 @@ Utf8String::utf16_iterator Utf8String::utf16_begin() const {
 
 /* Utf8String::substring *******************************************************
 
-	Access last element, accessing a null or empty string leads to 
+	Access last element, accessing a null or empty string leads to
 	undefined behaviour
 
 *******************************************************************************/
@@ -369,9 +369,9 @@ bool Utf8String::is_valid_name() const {
 	for (; it != end; it++) {
 		unsigned char c = *it;
 
-		if (c < 0x20)                                     
+		if (c < 0x20)
 			return false; // disallow control chars
-		if (c == 0xc0 && ((unsigned char) it[1]) == 0x80) 
+		if (c == 0xc0 && ((unsigned char) it[1]) == 0x80)
 			return false; // disallow zero
 	}
 
@@ -404,7 +404,7 @@ struct SafeCodePointCounter {
 
 		void utf8(uint8_t) const {}
 		void utf16(uint16_t) { count++; }
-	
+
 		long finish() { return count; }
 		long abort()  { return -1;    }
 	private:
@@ -417,7 +417,7 @@ long utf8::num_codepoints(const char *cs, size_t sz) {
 
 /* utf8::num_bytes *************************************************************
 
-	Calculate how many bytes a UTF-8 encoded version of a UTF-16 string 
+	Calculate how many bytes a UTF-8 encoded version of a UTF-16 string
 	would need.
 
 *******************************************************************************/
@@ -430,7 +430,7 @@ struct ByteCounter {
 
 		void utf8(uint8_t) { count++; }
 		void utf16(uint16_t) const {}
-	
+
 		size_t finish() { return count; }
 	private:
 		size_t count;
@@ -456,7 +456,7 @@ size_t utf8::num_bytes(const u2 *cs, size_t sz)
 
 extern const char *utf8_text(utf *u) { return Utf8String(u).begin(); }
 extern const char *utf8_end (utf *u) { return Utf8String(u).end();   }
-   
+
 extern size_t utf8_size(utf *u) { return Utf8String(u).size(); }
 extern size_t utf8_hash(utf *u) { return Utf8String(u).hash(); }
 
@@ -480,12 +480,12 @@ class DisplayPrintableAscii {
 
 			out = (c >= 32 && c <= 127) ? c : '?';
 			out = Fn(c);
-			
+
 			fputc(out, _dst);
 		}
 
 		uint16_t replacement() const { return '?'; }
-		
+
 		void finish() {fflush(_dst);}
 		void abort()  const {}
 	private:
@@ -527,7 +527,7 @@ void utf_display_printable_ascii_classname(Utf8String u)
 
 
 /* utf_sprint_convert_to_latin1 ************************************************
-	
+
    Write utf symbol into c-string (for debugging purposes).
    Characters are converted to 8-bit Latin-1, non-Latin-1 characters yield
    invalid results.
@@ -543,7 +543,7 @@ class SprintConvertToLatin1 {
 
 		void utf8 (uint8_t c) const {}
 		void utf16(uint16_t c) { *_dst++ = Fn(c); }
-		
+
 		void finish() { *_dst = '\0'; }
 		void abort() const {}
 	private:
@@ -563,7 +563,7 @@ void utf_sprint_convert_to_latin1(char *buffer, utf *u)
 
 
 /* utf_sprint_convert_to_latin1_classname **************************************
-	
+
    Write utf symbol into c-string with `/' converted to `.' (for debugging
    purposes).
    Characters are converted to 8-bit Latin-1, non-Latin-1 characters yield
@@ -584,7 +584,7 @@ void utf_sprint_convert_to_latin1_classname(char *buffer, utf *u)
 
 
 /* utf_strcat_convert_to_latin1 ************************************************
-	
+
    Like libc strcat, but uses an utf8 string.
    Characters are converted to 8-bit Latin-1, non-Latin-1 characters yield
    invalid results.
@@ -598,7 +598,7 @@ void utf_strcat_convert_to_latin1(char *buffer, utf *u)
 
 
 /* utf_strcat_convert_to_latin1_classname **************************************
-	
+
    Like libc strcat, but uses an utf8 string.
    Characters are converted to 8-bit Latin-1, non-Latin-1 characters yield
    invalid results.
@@ -612,7 +612,7 @@ void utf_strcat_convert_to_latin1_classname(char *buffer, utf *u)
 
 
 /* utf_fprint_printable_ascii **************************************************
-	
+
    Write utf symbol into file.
    Non-printable and non-ASCII characters are printed as '?'.
 
@@ -628,7 +628,7 @@ void utf_fprint_printable_ascii(FILE *file, Utf8String u)
 
 
 /* utf_fprint_printable_ascii_classname ****************************************
-	
+
    Write utf symbol into file with `/' converted to `.'.
    Non-printable and non-ASCII characters are printed as '?'.
 
