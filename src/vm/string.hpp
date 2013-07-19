@@ -55,7 +55,7 @@ class JavaString {
 		static JavaString from_utf8(Utf8String);
 		static JavaString from_utf8(const char*, size_t);
 
-		static inline JavaString from_utf8(const char *cs) {
+		static JavaString from_utf8(const char *cs) {
 			return from_utf8(cs, std::strlen(cs));
 		}
 
@@ -99,10 +99,10 @@ class JavaString {
 		void fprint(FILE*) const;
 		void fprint_printable_ascii(FILE*) const;
 
-		inline JavaString() : str(0) {}
-		inline JavaString(java_handle_t *h) : str(h) {}
+		JavaString() : str(0) {}
+		JavaString(java_handle_t *h) : str(h) {}
 
-		inline operator java_handle_t*() const { return str; }
+		operator java_handle_t*() const { return str; }
 
 		friend cacao::OStream& operator<<(cacao::OStream&, JavaString);
 	private:

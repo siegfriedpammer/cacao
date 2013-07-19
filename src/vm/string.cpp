@@ -45,7 +45,7 @@ STAT_DECLARE_VAR(int,size_string,0)
 //****************************************************************************//
 
 struct JavaStringHash {
-	inline uint32_t operator()(JavaString str) const {
+	uint32_t operator()(JavaString str) const {
 		const u2 *cs = str.begin();
 		size_t    sz = str.size();
 
@@ -56,7 +56,7 @@ struct JavaStringHash {
 	/// characters.  For utf-symbols longer than 15 characters 3 characters
 	/// are taken from the beginning and the end, 2 characters are taken
 	/// from the middle.
-	static inline u4 utf_hashkey(const char *text, u4 length) {
+	static u4 utf_hashkey(const char *text, u4 length) {
 #define nbs(val) ((u4) *(++text) << val) // get next byte, left shift by val
 #define fbs(val) ((u4) *(  text) << val) // get first byte, left shift by val
 
@@ -174,7 +174,7 @@ struct JavaStringHash {
 };
 
 struct JavaStringEq {
-	inline bool operator()(JavaString a, JavaString b) const {
+	bool operator()(JavaString a, JavaString b) const {
 		size_t a_sz = a.size();
 		size_t b_sz = b.size();
 
@@ -328,10 +328,10 @@ class Utf8Decoder {
 
 		Utf8Decoder(u2 *dst) : _dst(dst) {}
 
-		inline void utf16(uint16_t c) { *_dst++ = Fn(c); }
+		void utf16(uint16_t c) { *_dst++ = Fn(c); }
 
-		inline bool finish() const { return true;  }
-		inline bool abort()  const { return false; }
+		bool finish() const { return true;  }
+		bool abort()  const { return false; }
 	private:
 		u2 *_dst;
 };
@@ -465,7 +465,7 @@ JavaString JavaString::from_array(java_handle_t *array, int32_t count, int32_t o
 struct LazyStringCopy {
 	LazyStringCopy(JavaString src) : src(src) {}
 
-	inline operator JavaString() const {
+	operator JavaString() const {
 		return makeJavaString(src.begin(), src.size(), src.size(),
 	                          allocate_on_system_heap, init_from_utf16);
 	}
