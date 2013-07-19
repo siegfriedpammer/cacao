@@ -205,7 +205,7 @@ public:
 	OStream& operator<<(const Underline&);
 	OStream& operator<<(const NoUnderline&);
 
-	inline void set_file(FILE *file) { this->file = file; }
+	void set_file(FILE *file) { this->file = file; }
 private:
 	void on_newline();
 
@@ -316,7 +316,7 @@ private:
 class SetWidth {
 	size_t width;
 public:
-	inline SetWidth(size_t width) : width(width) {}
+	SetWidth(size_t width) : width(width) {}
 
 friend class OStream;
 };
@@ -325,7 +325,7 @@ friend class OStream;
 class SetZero {
 	size_t width;
 public:
-	inline SetZero(size_t width) : width(width) {}
+	SetZero(size_t width) : width(width) {}
 
 friend class OStream;
 };
@@ -334,7 +334,7 @@ friend class OStream;
 class SetPrecision {
 	int precision;
 public:
-	inline SetPrecision(int precision) : precision(precision) {}
+	SetPrecision(int precision) : precision(precision) {}
 
 friend class OStream;
 };
@@ -343,7 +343,7 @@ friend class OStream;
 class SetIndent {
 	size_t indent;
 public:
-	inline SetIndent(size_t indent) : indent(indent) {}
+	SetIndent(size_t indent) : indent(indent) {}
 
 friend class OStream;
 };
@@ -353,7 +353,7 @@ class SetPrefix {
 	const char *prefix;
 	Color       color;
 public:
-	inline SetPrefix(const char *prefix, Color color)
+	SetPrefix(const char *prefix, Color color)
 	 : prefix(prefix), color(color) {}
 
 friend class OStream;
