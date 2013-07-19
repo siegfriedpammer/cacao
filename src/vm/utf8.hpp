@@ -69,7 +69,7 @@ class Utf8String {
 		/*** CONSTRUCTORS  ******************************************/
 
 		// constructs a null string
-		inline Utf8String() : _data(0) {}
+		Utf8String() : _data(0) {}
 
 		// construct from a buffer with a given length
 		// validates that input is really UTF-8
@@ -77,10 +77,10 @@ class Utf8String {
 		static Utf8String from_utf8(const char*, size_t);
 		static Utf8String from_utf8_dot_to_slash(const char*, size_t);
 
-		inline static Utf8String from_utf8(const char *cs) {
+		static Utf8String from_utf8(const char *cs) {
 			return from_utf8(cs, strlen(cs));
 		}
-		inline static Utf8String from_utf8_dot_to_slash(const char *cs) {
+		static Utf8String from_utf8_dot_to_slash(const char *cs) {
 			return from_utf8_dot_to_slash(cs, strlen(cs));
 		}
 
@@ -94,24 +94,24 @@ class Utf8String {
 		// constructs a Utf8String with a given content
 		// is only public for interop with legacy C code
 		// NOTE: does NOT perform any checks
-		inline Utf8String(utf *u) : _data((Utf*) u) {}
+		Utf8String(utf *u) : _data((Utf*) u) {}
 
 		/*** ITERATION     ******************************************/
 
 		// iterator over the bytes in a string
 		typedef const char* byte_iterator;
 
-		inline byte_iterator begin() const { return _data->text; }
-		inline byte_iterator end()   const { return begin() + size(); }
+		byte_iterator begin() const { return _data->text; }
+		byte_iterator end()   const { return begin() + size(); }
 
 		// iterator over UTF-16 codepoints in a string
 		class utf16_iterator {
 			public:
-				inline uint32_t operator*() const { return codepoint; }
+				uint32_t operator*() const { return codepoint; }
 
 				void operator++();
 
-				inline operator void*() { return bytes == end ? this : 0; }
+				operator void*() { return bytes == end ? this : 0; }
 			private:
 				utf16_iterator(byte_iterator,size_t);
 
@@ -126,32 +126,32 @@ class Utf8String {
 
 		/*** HASHING       ******************************************/
 
-		inline size_t hash() const { return _data->hash; }
+		size_t hash() const { return _data->hash; }
 
 		/*** COMPARISONS   ******************************************/
 
 		/*** ACCESSORS     ******************************************/
 
 		// access first element
-		inline char front() const { return begin()[0]; }
+		char front() const { return begin()[0]; }
 
 		// access last element
-		inline char back() const { return begin()[size() - 1]; }
+		char back() const { return begin()[size() - 1]; }
 
-		inline char operator[](size_t idx) const { return begin()[idx]; }
+		char operator[](size_t idx) const { return begin()[idx]; }
 
 		// get the number of bytes in string, excluding zero terminator.
-		inline size_t size() const { return _data->blength; }
+		size_t size() const { return _data->blength; }
 
 		// get the number of utf16 codepoints in string
-		inline size_t utf16_size() const { return _data->utf16_size; }
+		size_t utf16_size() const { return _data->utf16_size; }
 
 		// for checking against NULL,
 		// also allows interop with legacy C code
-		inline operator void*() const { return _data; }
-//		inline operator utf*() const { return (utf*) _data; }
+		operator void*() const { return _data; }
+//		operator utf*() const { return (utf*) _data; }
 
-		inline utf* c_ptr() const { return (utf*) _data; }
+		utf* c_ptr() const { return (utf*) _data; }
 
 		// create substring
 		Utf8String substring(size_t from ) const;
@@ -178,8 +178,8 @@ class Utf8String {
 
 		Utf *_data;
 
-		static inline Utf8String alloc(size_t);
-		static inline void       free(Utf8String);
+		static Utf8String alloc(size_t);
+		static void       free(Utf8String);
 
 		template<uint8_t (*Fn)(uint8_t)> 
 		friend struct EagerStringBuilder;

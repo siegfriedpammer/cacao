@@ -47,22 +47,22 @@ struct Utf8Key {
 	const size_t      hash;
 };
 struct Utf8Hash {
-	inline size_t operator()(Utf8String     u) const { return u.hash(); }
-	inline size_t operator()(const Utf8Key& k) const { return k.hash;   }
+	size_t operator()(Utf8String     u) const { return u.hash(); }
+	size_t operator()(const Utf8Key& k) const { return k.hash;   }
 };
 struct Utf8Eq {
-	inline bool operator()(Utf8String a, Utf8String b) const
+	bool operator()(Utf8String a, Utf8String b) const
 	{
 		return eq(a.size(), a.hash(), a.begin(),
 		          b.size(), b.hash(), b.begin());
 	}
-	inline bool operator()(Utf8String a, const Utf8Key& b) const
+	bool operator()(Utf8String a, const Utf8Key& b) const
 	{
 		return eq(a.size(), a.hash(), a.begin(),
 		          b.size,   b.hash,   b.text);
 	}
 
-	static inline bool eq(size_t a_sz, size_t a_hash, const char *a_cs, 
+	static bool eq(size_t a_sz, size_t a_hash, const char *a_cs, 
 	                      size_t b_sz, size_t b_hash, const char *b_cs) {
 		return (a_sz   == b_sz)   && 
 		       (a_hash == b_hash) &&
@@ -110,7 +110,7 @@ bool Utf8String::is_initialized(void)
 
 // TODO: move definition of struct utf here
 
-inline Utf8String Utf8String::alloc(size_t sz) {
+Utf8String Utf8String::alloc(size_t sz) {
 	Utf* str = (Utf*) mem_alloc(offsetof(Utf,text) + sz + 1);
 
 	STATISTICS(count_utf_new++);
@@ -119,7 +119,7 @@ inline Utf8String Utf8String::alloc(size_t sz) {
 
 	return Utf8String((utf*) str);
 }
-inline void Utf8String::free(Utf8String u) {
+void Utf8String::free(Utf8String u) {
 	mem_free(u._data, offsetof(Utf,text) + u.size() + 1);
 }
 
@@ -180,12 +180,12 @@ static inline size_t compute_hash(const char *cs, size_t sz) {
 
 struct StringBuilderBase {
 	public:
-		inline StringBuilderBase(size_t sz) : _hash(0), _codepoints(0) {}
+		StringBuilderBase(size_t sz) : _hash(0), _codepoints(0) {}
 
-		inline void utf8 (uint8_t  c) { _hash = update_hash(_hash, c); }
-		inline void utf16(uint16_t c) { _codepoints++; }
+		void utf8 (uint8_t  c) { _hash = update_hash(_hash, c); }
+		void utf16(uint16_t c) { _codepoints++; }
 
-		inline void finish() {
+		void finish() {
 			_hash = finish_hash(_hash);
 		}
 	protected:
@@ -200,12 +200,12 @@ struct EagerStringBuilder : private StringBuilderBase {
 	public:
 		typedef utf_utils::Tag<utf_utils::VISIT_BOTH, utf_utils::ABORT_ON_ERROR> Tag;
 
-		inline EagerStringBuilder(size_t sz) : StringBuilderBase(sz) {
+		EagerStringBuilder(size_t sz) : StringBuilderBase(sz) {
 			_out  = Utf8String::alloc(sz);
 			_text = (char*) _out.begin();
 		}
 
-		inline void utf8(uint8_t c) {
+		void utf8(uint8_t c) {
 			c = Fn(c);
 
 			StringBuilderBase::utf8(c);
@@ -215,7 +215,7 @@ struct EagerStringBuilder : private StringBuilderBase {
 
 		using StringBuilderBase::utf16;
 
-		inline Utf8String finish() {
+		Utf8String finish() {
 			StringBuilderBase::finish();
 
 			*_text                 = '\0';
@@ -229,7 +229,7 @@ struct EagerStringBuilder : private StringBuilderBase {
 			return intern;
 		}
 
-		inline Utf8String abort() {
+		Utf8String abort() {
 			Utf8String::free(_out);
 			return 0;
 		}
@@ -245,13 +245,13 @@ struct LazyStringBuilder : private StringBuilderBase {
 	public:
 		typedef utf_utils::Tag<utf_utils::VISIT_BOTH, utf_utils::ABORT_ON_ERROR> Tag;
 
-		inline LazyStringBuilder(const char *src, size_t sz)
+		LazyStringBuilder(const char *src, size_t sz)
 		 : StringBuilderBase(sz), src(src), sz(sz) {}
 
 		using StringBuilderBase::utf8;
 		using StringBuilderBase::utf16;
 
-		inline Utf8String finish() {
+		Utf8String finish() {
 			StringBuilderBase::finish();
 
 			return intern_table->intern(Utf8Key(src, sz, _hash), *this);
@@ -272,7 +272,7 @@ struct LazyStringBuilder : private StringBuilderBase {
 			return str;
 		}
 
-		inline Utf8String abort() { return 0; }
+		Utf8String abort() { return 0; }
 	private:
 		const char *src;
 		size_t      sz;
@@ -402,11 +402,11 @@ struct SafeCodePointCounter {
 
 		SafeCodePointCounter() : count(0) {}
 
-		inline void utf8(uint8_t) const {}
-		inline void utf16(uint16_t) { count++; }
+		void utf8(uint8_t) const {}
+		void utf16(uint16_t) { count++; }
 	
-		inline long finish() { return count; }
-		inline long abort()  { return -1;    }
+		long finish() { return count; }
+		long abort()  { return -1;    }
 	private:
 		long count;
 };
@@ -428,10 +428,10 @@ struct ByteCounter {
 
 		ByteCounter() : count(0) {}
 
-		inline void utf8(uint8_t) { count++; }
-		inline void utf16(uint16_t) const {}
+		void utf8(uint8_t) { count++; }
+		void utf16(uint16_t) const {}
 	
-		inline size_t finish() { return count; }
+		size_t finish() { return count; }
 	private:
 		size_t count;
 };
@@ -472,10 +472,10 @@ class DisplayPrintableAscii {
 	public:
 		typedef utf_utils::Tag<utf_utils::VISIT_UTF16, utf_utils::REPLACE_ON_ERROR> Tag;
 
-		inline DisplayPrintableAscii(FILE *dst) : _dst(dst) {}
+		DisplayPrintableAscii(FILE *dst) : _dst(dst) {}
 
-		inline void utf8 (uint8_t c) const {}
-		inline void utf16(uint16_t c) {
+		void utf8 (uint8_t c) const {}
+		void utf16(uint16_t c) {
 			char out;
 
 			out = (c >= 32 && c <= 127) ? c : '?';
@@ -484,10 +484,10 @@ class DisplayPrintableAscii {
 			fputc(out, _dst);
 		}
 
-		inline uint16_t replacement() const { return '?'; }
+		uint16_t replacement() const { return '?'; }
 		
-		inline void finish() {fflush(_dst);}
-		inline void abort()  const {}
+		void finish() {fflush(_dst);}
+		void abort()  const {}
 	private:
 		FILE* _dst;
 };
@@ -539,13 +539,13 @@ class SprintConvertToLatin1 {
 	public:
 		typedef utf_utils::Tag<utf_utils::VISIT_UTF16, utf_utils::IGNORE_ERRORS> Tag;
 
-		inline SprintConvertToLatin1(char* dst) : _dst(dst) {}
+		SprintConvertToLatin1(char* dst) : _dst(dst) {}
 
-		inline void utf8 (uint8_t c) const {}
-		inline void utf16(uint16_t c) { *_dst++ = Fn(c); }
+		void utf8 (uint8_t c) const {}
+		void utf16(uint16_t c) { *_dst++ = Fn(c); }
 		
-		inline void finish() { *_dst = '\0'; }
-		inline void abort() const {}
+		void finish() { *_dst = '\0'; }
+		void abort() const {}
 	private:
 		char* _dst;
 };
@@ -645,8 +645,8 @@ void utf_fprint_printable_ascii_classname(FILE *file, Utf8String u)
 struct Utf8Validator {
 	typedef utf_utils::Tag<utf_utils::VISIT_NONE, utf_utils::ABORT_ON_ERROR> Tag;
 
-	inline bool finish() { return true;  }
-	inline bool abort()  { return false; }
+	bool finish() { return true;  }
+	bool abort()  { return false; }
 };
 
 const size_t Utf8String::sizeof_utf = sizeof(Utf8String::Utf);
