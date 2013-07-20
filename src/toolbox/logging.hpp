@@ -60,7 +60,7 @@ OStream& dbg();
 			}                                                        \
 																	 \
 			if (cacao::Debug::prefix_enabled) {                      \
-				stream << setprefix(DEBUG_NAME, cacao::log_color()); \
+				stream << setprefix(DBG_NAME, cacao::log_color());   \
 			}                                                        \
 																	 \
 			{ stream << EXPR ; }                                     \
@@ -79,11 +79,11 @@ Color log_color();
 
 #else // defined(ENABLE_LOGGING)
 
-#define LOG_WITH_NAME_N(DEBUG_NAME, VERBOSE,  STMT) do { } while(0)
+#define LOG_WITH_NAME_N(DBG_NAME, VERBOSE,  STMT) do { } while(0)
 
 #endif // defined(ENABLE_LOGGING)
 
-#define LOG_WITH_NAME(DEBUG_NAME, STMT) LOG_WITH_NAME_N(DEBUG_NAME, 0, STMT)
+#define LOG_WITH_NAME(DBG_NAME, STMT) LOG_WITH_NAME_N(DBG_NAME, 0, STMT)
 #define LOG_N(VERBOSE, STMT) LOG_WITH_NAME_N(DEBUG_NAME, VERBOSE, STMT)
 /// Analogous to DEBUG
 #define LOG(STMT) LOG_N(0, STMT)
