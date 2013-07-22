@@ -126,15 +126,17 @@ typedef union {
 
 /*** flags (32 bits) ***/
 
-#define INS_FLAG_BASICBLOCK    0x01    /* marks a basic block start           */
-#define INS_FLAG_UNRESOLVED    0x02    /* contains unresolved field/meth/class*/
-#define INS_FLAG_CLASS         0x04    /* for ACONST, PUT*CONST with class    */
-#define INS_FLAG_ARRAY         0x08    /* for CHECKCAST/INSTANCEOF with array */
-#define INS_FLAG_CHECK         0x10    /* for *ALOAD|*ASTORE: check index     */
-                                       /* for BUILTIN: check exception        */
-#define INS_FLAG_KILL_PREV     0x04    /* for *STORE, invalidate prev local   */
-#define INS_FLAG_KILL_NEXT     0x08    /* for *STORE, invalidate next local   */
-#define INS_FLAG_RETADDR       0x10    /* for ASTORE: op is a returnAddress   */
+enum InstructionFlag {
+	INS_FLAG_BASICBLOCK = 0x01,  // marks a basic block start
+	INS_FLAG_UNRESOLVED = 0x02,  // contains unresolved field/meth/class
+	INS_FLAG_CLASS      = 0x04,  // for ACONST, PUT*CONST with class
+	INS_FLAG_ARRAY      = 0x08,  // for CHECKCAST/INSTANCEOF with array
+	INS_FLAG_CHECK      = 0x10,  // for *ALOAD|*ASTORE: check index
+	                             // for BUILTIN: check exception
+	INS_FLAG_KILL_PREV  = 0x04,  // for *STORE, invalidate prev local
+	INS_FLAG_KILL_NEXT  = 0x08,  // for *STORE, invalidate next local
+	INS_FLAG_RETADDR    = 0x10   // for ASTORE: op is a returnAddress
+};
 
 #define INS_FLAG_ID_SHIFT      5
 #define INS_FLAG_ID_MASK       (~0 << INS_FLAG_ID_SHIFT)
