@@ -242,21 +242,24 @@ enum MethodFlag {
 
 /* data structures of the runtime system **************************************/
 
-/* java_object_t ***************************************************************
+/* java_object_t **************************************************************/
 
-   All objects (and arrays) which resides on the heap need the
-   following header at the beginning of the data structure.
-
-   TODO: Include detailed description from the Wiki (ObjectHeader) here.
-
-*******************************************************************************/
-
-#define HDRFLAG_MARK1         0x02
-#define HDRFLAG_MARK2         0x04
-#define HDRFLAG_UNCOLLECTABLE 0x08
-#define HDRFLAG_HASH_TAKEN    0x10
-#define HDRFLAG_HASH_ATTACHED 0x20
-#define HDRFLAG_REFERENCING   0x40
+/**
+ * All objects (and arrays) which resides on the heap need the
+ * following header at the beginning of the data structure.
+ *
+ * TODO: Include detailed description from the Wiki (ObjectHeader) here.
+ *
+ * @Cpp11 Use an enum class for better scoping.
+ */
+enum HeaderFlag {
+	HDRFLAG_MARK1         = 0x02,
+	HDRFLAG_MARK2         = 0x04,
+	HDRFLAG_UNCOLLECTABLE = 0x08,
+	HDRFLAG_HASH_TAKEN    = 0x10,
+	HDRFLAG_HASH_ATTACHED = 0x20,
+	HDRFLAG_REFERENCING   = 0x40
+};
 
 struct vftbl_t;
 
