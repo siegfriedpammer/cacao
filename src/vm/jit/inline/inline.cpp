@@ -797,11 +797,11 @@ static basicblock * create_block(inline_node *container,
 
 	BASICBLOCK_INIT(n_bptr, iln->m);
 
-	n_bptr->iinstr = container->inlined_iinstr_cursor;
-	n_bptr->next = n_bptr + 1;
-	n_bptr->nr = container->ctx->next_block_number++;
+	n_bptr->iinstr  = container->inlined_iinstr_cursor;
+	n_bptr->next    = n_bptr + 1;
+	n_bptr->nr      = container->ctx->next_block_number++;
 	n_bptr->indepth = indepth;
-	n_bptr->flags = BBFINISHED; /* XXX */
+	n_bptr->flags   = basicblock::FINISHED; /* XXX */
 
 	/* set the inlineinfo of the new block */
 
@@ -910,7 +910,7 @@ static basicblock * create_body_block(inline_node *iln,
 
 	/* translate javalocals info (not for dead code) */
 
-	if (n_bptr->flags >= BBREACHED)
+	if (n_bptr->flags >= basicblock::REACHED)
 		n_bptr->javalocals = translate_javalocals(iln, o_bptr->javalocals);
 
 	return n_bptr;
@@ -956,8 +956,8 @@ static basicblock * create_epilog_block(inline_node *caller, inline_node *callee
 
 	/* set block flags & type */
 
-	n_bptr->flags = /* XXX original block flags */ BBFINISHED;
-	n_bptr->type = BBTYPE_STD;
+	n_bptr->flags = basicblock::FINISHED; // XXX original block flags
+	n_bptr->type  = basicblock::TYPE_STD;
 
 	return n_bptr;
 }
@@ -1470,7 +1470,7 @@ static void inline_rewrite_method(inline_node *iln)
 	o_bptr = iln->jd->basicblocks;
 	for (; o_bptr; o_bptr = o_bptr->next) {
 
-		if (o_bptr->flags < BBREACHED) {
+		if (o_bptr->flags < basicblock::REACHED) {
 
 			/* ignore the dummy end block */
 
@@ -1942,8 +1942,8 @@ static void inline_write_exception_handlers(inline_node *master, inline_node *il
 		/* create the monitorexit handler */
 		n_bptr = create_block(master, iln, iln,
 							  iln->n_passthroughcount + 1);
-		n_bptr->type = BBTYPE_EXH;
-		n_bptr->flags = BBFINISHED;
+		n_bptr->type  = basicblock::TYPE_EXH;
+		n_bptr->flags = basicblock::FINISHED;
 
 		exvar = inline_new_variable(master->ctx->resultjd, TYPE_ADR, 0);
 		n_bptr->invars[iln->n_passthroughcount] = exvar;
@@ -2078,9 +2078,9 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 
 	/* write the dummy end block */
 
-	n_bptr = create_block(iln, iln, iln, 0);
-	n_bptr->flags = BBUNDEF;
-	n_bptr->type = BBTYPE_STD;
+	n_bptr        = create_block(iln, iln, iln, 0);
+	n_bptr->flags = basicblock::UNDEF;
+	n_bptr->type  = basicblock::TYPE_STD;
 
 	/* store created code in jitdata */
 
@@ -2784,7 +2784,7 @@ static bool inline_analyse_code(inline_node *iln)
 
 		/* skip dead code */
 
-		if (bptr->flags < BBREACHED)
+		if (bptr->flags < basicblock::REACHED)
 			continue;
 
 		/* allocate the buffer of active exception handlers */
@@ -3048,7 +3048,7 @@ static void inline_post_process(jitdata *jd)
 	/* iterate over all basic blocks */
 
 	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
-		if (bptr->flags < BBREACHED)
+		if (bptr->flags < basicblock::REACHED)
 			continue;
 
 		/* make invars live */

@@ -1155,7 +1155,7 @@ bool codegen_emit(jitdata *jd)
 		bptr->mpc = (s4) (cd->mcodeptr - cd->mcodebase);
 
 		// Is this basic block reached?
-		if (bptr->flags < BBREACHED)
+		if (bptr->flags < basicblock::REACHED)
 			continue;
 
 		// Branch resolving.
@@ -1183,7 +1183,7 @@ bool codegen_emit(jitdata *jd)
 			emit_profile_basicblock(cd, code, bptr);
 
 			// If this is an exception handler, start profiling again.
-			if (bptr->type == BBTYPE_EXH)
+			if (bptr->type == basicblock::TYPE_EXH)
 				emit_profile_cycle_start(cd, code);
 		}
 #endif
@@ -1204,7 +1204,7 @@ bool codegen_emit(jitdata *jd)
 			while (indepth > 0) {
 				indepth--;
 				var = VAR(bptr->invars[indepth]);
-				if ((indepth == bptr->indepth-1) && (bptr->type == BBTYPE_EXH)) {
+				if ((indepth == bptr->indepth-1) && (bptr->type == basicblock::TYPE_EXH)) {
 					if (!IS_INMEMORY(src->flags))
 						d = var->vv.regoff;
 					else
@@ -1221,7 +1221,7 @@ bool codegen_emit(jitdata *jd)
 			while (indepth > 0) {
 				indepth--;
 				var = VAR(bptr->invars[indepth]);
-				if ((indepth == bptr->indepth-1) && (bptr->type == BBTYPE_EXH)) {
+				if ((indepth == bptr->indepth-1) && (bptr->type == basicblock::TYPE_EXH)) {
 					d = codegen_reg_of_var(0, var, REG_ITMP1_XPTR);
 					// XXX M68K: Actually this is M_ADRMOVE(REG_ATMP1_XPTR, d);
 					// XXX Sparc64: Here we use REG_ITMP2_XPTR, fix this!
@@ -1709,7 +1709,7 @@ bool codegen_emit(jitdata *jd)
 					codegen_emit_phi_moves(jd, bptr);
 				}
 #endif
-				if (iptr->dst.block->type == BBTYPE_EXH)
+				if (iptr->dst.block->type == basicblock::TYPE_EXH)
 					fixup_exc_handler_interface(jd, iptr->dst.block);
 				emit_br(cd, iptr->dst.block);
 				ALIGNCODENOP;
@@ -1717,7 +1717,7 @@ bool codegen_emit(jitdata *jd)
 
 			case ICMD_JSR:        /* ... ==> ...                              */
 
-				assert(iptr->sx.s23.s3.jsrtarget.block->type != BBTYPE_EXH);
+				assert(iptr->sx.s23.s3.jsrtarget.block->type != basicblock::TYPE_EXH);
 				emit_br(cd, iptr->sx.s23.s3.jsrtarget.block);
 				ALIGNCODENOP;
 				break;
@@ -1725,7 +1725,7 @@ bool codegen_emit(jitdata *jd)
 			case ICMD_IFNULL:     /* ..., value ==> ...                       */
 			case ICMD_IFNONNULL:
 
-				assert(iptr->dst.block->type != BBTYPE_EXH);
+				assert(iptr->dst.block->type != basicblock::TYPE_EXH);
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 #if SUPPORT_BRANCH_CONDITIONAL_ONE_INTEGER_REGISTER
 				emit_bccz(cd, iptr->dst.block, iptr->opc - ICMD_IFNULL, s1, BRANCH_OPT_NONE);
@@ -1748,7 +1748,7 @@ bool codegen_emit(jitdata *jd)
 				// register directly. Reason is, that register content is
 				// not 32-bit clean. Fix this!
 
-				assert(iptr->dst.block->type != BBTYPE_EXH);
+				assert(iptr->dst.block->type != basicblock::TYPE_EXH);
 
 #if SUPPORT_BRANCH_CONDITIONAL_ONE_INTEGER_REGISTER
 				if (iptr->sx.val.i == 0) {
@@ -1774,7 +1774,7 @@ bool codegen_emit(jitdata *jd)
 			case ICMD_IF_LGT:
 			case ICMD_IF_LLE:
 
-				assert(iptr->dst.block->type != BBTYPE_EXH);
+				assert(iptr->dst.block->type != basicblock::TYPE_EXH);
 
 				// Generate architecture specific instructions.
 				codegen_emit_instruction(jd, iptr);
@@ -1783,7 +1783,7 @@ bool codegen_emit(jitdata *jd)
 			case ICMD_IF_ACMPEQ:  /* ..., value, value ==> ...                */
 			case ICMD_IF_ACMPNE:  /* op1 = target JavaVM pc                   */
 
-				assert(iptr->dst.block->type != BBTYPE_EXH);
+				assert(iptr->dst.block->type != basicblock::TYPE_EXH);
 
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 				s2 = emit_load_s2(jd, iptr, REG_ITMP2);
@@ -1817,7 +1817,7 @@ bool codegen_emit(jitdata *jd)
 			case ICMD_IF_ICMPEQ:  /* ..., value, value ==> ...                */
 			case ICMD_IF_ICMPNE:  /* op1 = target JavaVM pc                   */
 
-				assert(iptr->dst.block->type != BBTYPE_EXH);
+				assert(iptr->dst.block->type != basicblock::TYPE_EXH);
 
 #if SUPPORT_BRANCH_CONDITIONAL_TWO_INTEGER_REGISTERS
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
@@ -1840,7 +1840,7 @@ bool codegen_emit(jitdata *jd)
 			case ICMD_IF_ICMPLE:
 			case ICMD_IF_ICMPGE:
 
-				assert(iptr->dst.block->type != BBTYPE_EXH);
+				assert(iptr->dst.block->type != basicblock::TYPE_EXH);
 
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 				s2 = emit_load_s2(jd, iptr, REG_ITMP2);
@@ -1867,7 +1867,7 @@ bool codegen_emit(jitdata *jd)
 			case ICMD_IF_LCMPLE:
 			case ICMD_IF_LCMPGE:
 
-				assert(iptr->dst.block->type != BBTYPE_EXH);
+				assert(iptr->dst.block->type != basicblock::TYPE_EXH);
 
 				// Generate architecture specific instructions.
 				codegen_emit_instruction(jd, iptr);
@@ -2304,7 +2304,7 @@ gen_method:
 		}
 #endif
 
-		if (bptr->next && bptr->next->type == BBTYPE_EXH)
+		if (bptr->next && bptr->next->type == basicblock::TYPE_EXH)
 			fixup_exc_handler_interface(jd, bptr->next);
 
 	} // for all basic blocks

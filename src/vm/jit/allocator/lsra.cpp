@@ -117,7 +117,7 @@ bool lsra(jitdata *jd)
 	b_index = 0;
 	while (b_index < m->basicblockcount ) {
 
-		if (m->basicblocks[b_index].flags >= BBREACHED) {
+		if (m->basicblocks[b_index].flags >= basicblock::REACHED) {
 
 			in=m->basicblocks[b_index].instack;
 			ind=m->basicblocks[b_index].indepth;
@@ -474,7 +474,7 @@ void lsra_add_cfg(jitdata *jd, int from, int to) {
 	/* TODO: Setup BasicBlock array before to avoid this */
 	/*       best together with using the basicblock list, so lsra works */
 	/*       with opt_loops, too */
-	for (;(to < m->basicblockcount) && (m->basicblocks[to].flags < BBREACHED); to++);
+	for (;(to < m->basicblockcount) && (m->basicblocks[to].flags < basicblock::REACHED); to++);
 
 	for (n=ls->succ[from]; (n!= NULL) && (n->value != to); n=n->next);
 	if (n != NULL) return; /* edge from->to already existing */
@@ -523,7 +523,7 @@ void lsra_add_exceptions(jitdata *jd) {
 			log_text("Exceptionhandler Basicblocknummer invalid\n");
 			abort();
 		}
-		if (m->basicblocks[ex->handler->nr].flags < BBREACHED) {
+		if (m->basicblocks[ex->handler->nr].flags < basicblock::REACHED) {
 			log_text("Exceptionhandler Basicblocknummer not reachable\n");
 			abort();
 		}
@@ -537,7 +537,7 @@ void lsra_add_exceptions(jitdata *jd) {
 		/* to the appropriate handler */
 		for (i=ex->start->nr; (i <= ex->end->nr) &&
 				 (i < m->basicblockcount); i++)
-			if (m->basicblocks[i].flags >= BBREACHED)
+			if (m->basicblocks[i].flags >= basicblock::REACHED)
 				lsra_add_cfg(jd, i, ex->handler->nr);
 	}
 #ifdef LSRA_DEBUG_VERBOSE
@@ -560,7 +560,7 @@ void lsra_add_jsr(jitdata *jd, int from, int to) {
 	/* TODO: Setup BasicBlock array before to avoid this */
 	/*       best together with using the basicblock list, so lsra works */
 	/*       with opt_loops, too */
-	for (; (to < m->basicblockcount) && (m->basicblocks[to].flags < BBREACHED);
+	for (; (to < m->basicblockcount) && (m->basicblocks[to].flags < basicblock::REACHED);
 		 to++);
 #ifdef LSRA_DEBUG_CHECK
 		if (to == m->basicblockcount)
@@ -571,7 +571,7 @@ void lsra_add_jsr(jitdata *jd, int from, int to) {
 
 	/* from + 1 ist the return Basic Block Index */
 	for (from++; (from < m->basicblockcount) &&
-			 (m->basicblocks[from].flags < BBREACHED); from++);
+			 (m->basicblocks[from].flags < basicblock::REACHED); from++);
 #ifdef LSRA_DEBUG_CHECK
 	if (from == m->basicblockcount)
 		{ log_text("Invalid return basic block index for jsr\n"); assert(0); }
@@ -621,7 +621,7 @@ void lsra_add_sub( jitdata *jd, int b_index, struct _list *ret,
 		visited[b_index] = true;
 		next_block = false;
 
-		if (m->basicblocks[b_index].flags < BBREACHED)
+		if (m->basicblocks[b_index].flags < basicblock::REACHED)
 			next_block = true;
 		if (!next_block && !(m->basicblocks[b_index].icount))
 			next_block = true;
@@ -697,7 +697,7 @@ void lsra_make_cfg(jitdata *jd) {
 
 	b_index=0;
 	while (b_index < m->basicblockcount ) {
-		if ((m->basicblocks[b_index].flags >= BBREACHED) &&
+		if ((m->basicblocks[b_index].flags >= basicblock::REACHED) &&
 			(len = m->basicblocks[b_index].icount)) {
 			/* block is valid and contains instructions	*/
 
@@ -800,7 +800,7 @@ void lsra_make_cfg(jitdata *jd) {
 					break;
 			} /* switch (ip->opc)*/
 		}     /* if ((m->basicblocks[blockIndex].icount)&& */
-		      /*     (m->basicblocks[b_index].flags >= BBREACHED)) */
+		      /*     (m->basicblocks[b_index].flags >= basicblock::REACHED)) */
 		b_index++;
 	}             /* while (b_index < m->basicblockcount ) */
 }
@@ -1937,11 +1937,11 @@ void lsra_join_lifetimes(jitdata *jd,int b_index) {
 	ls = jd->ls;
 
 	/* do not join instack of Exception Handler */
-	if (m->basicblocks[b_index].type == BBTYPE_EXH)
+	if (m->basicblocks[b_index].type == basicblock::TYPE_EXH)
 		return;
 	in=m->basicblocks[b_index].instack;
 	/* do not join first instack element of a subroutine header */
-	if (m->basicblocks[b_index].type == BBTYPE_SBR)
+	if (m->basicblocks[b_index].type == basicblock::TYPE_SBR)
 		in=in->prev;
 
 	if (in != NULL) {
@@ -2171,12 +2171,12 @@ void lsra_scan_registers_canditates(jitdata *jd, int b_index)
 	m  = jd->m;
 	ls = jd->ls;
 
-    /* get instruction count for BB and remember the max instruction count */
+	/* get instruction count for BB and remember the max instruction count */
 	/* of all BBs */
 	iindex = m->basicblocks[b_index].icount - 1;
 
 	src = m->basicblocks[b_index].instack;
-	if (m->basicblocks[b_index].type != BBTYPE_STD) {
+	if (m->basicblocks[b_index].type != basicblock::TYPE_STD) {
 		lsra_new_stack(ls, src, b_index, 0);
 		src = src->prev;
 	}

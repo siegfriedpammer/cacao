@@ -41,15 +41,15 @@ void createRoot(jitdata* jd)
 	assert(jd->basicblocks);
 
 	// Create a new basicblock and initialize all fields that will be used.
-	jd->ld->root = new basicblock;
-	jd->ld->root->nr = ROOT_NUMBER;
-	jd->ld->root->type = BBTYPE_STD;
+	jd->ld->root       = new basicblock;
+	jd->ld->root->nr   = ROOT_NUMBER;
+	jd->ld->root->type = basicblock::TYPE_STD;
 	jd->ld->root->successorcount = 1;   // at least 1 arrayslot for jd->basicblocks
 
 	// Find all exception handling basicblocks.
 	for (basicblock* block = jd->basicblocks->next; block != 0; block = block->next)
 	{
-		if (block->type == BBTYPE_EXH)
+		if (block->type == basicblock::TYPE_EXH)
 			jd->ld->root->successorcount++;
 	}
 
@@ -59,7 +59,7 @@ void createRoot(jitdata* jd)
 	s4 index = 1;
 	for (basicblock* block = jd->basicblocks->next; block != 0; block = block->next)
 	{
-		if (block->type == BBTYPE_EXH)
+		if (block->type == basicblock::TYPE_EXH)
 		{
 			jd->ld->root->successors[index] = block;
 			index++;

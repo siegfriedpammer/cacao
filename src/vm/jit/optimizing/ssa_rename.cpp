@@ -541,8 +541,8 @@ void ssa_rename_(jitdata *jd, graphdata *gd, dominatordata *dd, int n) {
 	/* change use of instack Interface stackslots except top SBR and EXH */
 	/* stackslots */
 
-	if ((ls->basicblocks[n]->type == BBTYPE_EXH) ||
-		(ls->basicblocks[n]->type == BBTYPE_SBR)) {
+	if ((ls->basicblocks[n]->type == basicblock::TYPE_EXH) ||
+		(ls->basicblocks[n]->type == basicblock::TYPE_SBR)) {
 		in_d--;
 	}
 /* 	out   = ls->basicblocks[n]->outvars; */

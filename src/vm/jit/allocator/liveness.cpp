@@ -162,11 +162,11 @@ void liveness_join_lifetimes(jitdata *jd, int b_index) {
 	m  = jd->m;
 
 	/* do not join instack of Exception Handler */
-	if (m->basicblocks[b_index].type == BBTYPE_EXH)
+	if (m->basicblocks[b_index].type == basicblock::TYPE_EXH)
 		return;
 	in=m->basicblocks[b_index].instack;
 	/* do not join first instack element of a subroutine header */
-	if (m->basicblocks[b_index].type == BBTYPE_SBR)
+	if (m->basicblocks[b_index].type == basicblock::TYPE_SBR)
 		in=in->prev;
 
 	if (in != NULL) {
@@ -203,7 +203,7 @@ void liveness_setup(jitdata *jd) {
 
 			/* adapt in- and outstacks for LSRA */
 			src = m->basicblocks[b_index].instack;
-			if (m->basicblocks[b_index].type != BBTYPE_STD) {
+			if (m->basicblocks[b_index].type != basicblock::TYPE_STD) {
 #ifdef LV_DEBUG_CHECK
 				if (src == NULL) {
 #ifdef LV_DEBUG_VERBOSE
@@ -388,7 +388,7 @@ void liveness_scan_basicblock(jitdata *jd, int b_index,
 	bv_reset(sets->kill, lifetimes);
 	bv_reset(sets->gen, lifetimes);
 	src = m->basicblocks[b_index].instack;
-	if (m->basicblocks[b_index].type != BBTYPE_STD) {
+	if (m->basicblocks[b_index].type != basicblock::TYPE_STD) {
 		liveness_set_stack(ls, b_index, iindex, src, sets, LV_KILL);
 		src = src->prev;
 	}
@@ -507,7 +507,7 @@ void liveness(jitdata *jd) {
 
 #ifdef LV_DEBUG_CHECK
 	s = m->basicblocks[b_index].instack;
-	if ((s != NULL) && (m->basicblocks[b_index].flags != BBTYPE_STD))
+	if ((s != NULL) && (m->basicblocks[b_index].flags != basicblock::TYPE_STD))
 		s = s->prev;
 	for( ; s != NULL; s = s->prev) {
 #ifdef LV_DEBUG_VERBOSE

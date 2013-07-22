@@ -666,16 +666,16 @@ static basicblock * stack_clone_block(stackdata_t *sd, basicblock *b)
 	clone = DNEW(basicblock);
 	*clone  = *b;
 
-	clone->iinstr = NULL;
-	clone->inlocals = NULL;
+	clone->iinstr     = NULL;
+	clone->inlocals   = NULL;
 	clone->javalocals = NULL;
-	clone->invars = NULL;
+	clone->invars     = NULL;
 
-	clone->original = (b->original) ? b->original : b;
-	clone->copied_to = clone->original->copied_to;
+	clone->original            = (b->original) ? b->original : b;
+	clone->copied_to           = clone->original->copied_to;
 	clone->original->copied_to = clone;
-	clone->next = NULL;
-	clone->flags = BBREACHED;
+	clone->next                = NULL;
+	clone->flags               = basicblock::REACHED;
 
 	stack_append_block(sd, clone);
 
@@ -745,8 +745,8 @@ static void stack_merge_locals(stackdata_t *sd, basicblock *b)
 	for (i=0; i<sd->maxlocals; ++i) {
 		if (b->javalocals[i] != UNUSED && b->javalocals[i] != sd->javalocals[i]) {
 			b->javalocals[i] = UNUSED;
-			if (b->flags >= BBFINISHED)
-				b->flags = BBTYPECHECK_REACHED;
+			if (b->flags >= basicblock::FINISHED)
+				b->flags = basicblock::TYPECHECK_REACHED;
 			if (b->nr <= sd->bptr->nr)
 				sd->repeat = true;
 		}
@@ -764,8 +764,8 @@ static void stack_merge_locals(stackdata_t *sd, basicblock *b)
 				printf("JSR MISMATCH: setting variable %d to VOID\n", i);
 #endif
 				dv->type = TYPE_VOID;
-				if (b->flags >= BBFINISHED)
-					b->flags = BBTYPECHECK_REACHED;
+				if (b->flags >= basicblock::FINISHED)
+					b->flags = basicblock::TYPECHECK_REACHED;
 				sd->repeat = true; /* This is very rare, so just repeat */
 			}
 		}
@@ -1173,7 +1173,7 @@ static basicblock *stack_mark_reached(stackdata_t *sd, basicblock *b, stackeleme
 	if (b->nr <= sd->bptr->nr)
 		b->bitflags |= BBFLAG_REPLACEMENT;
 
-	if (b->flags < BBREACHED) {
+	if (b->flags < basicblock::REACHED) {
 		/* b is reached for the first time. Create its invars. */
 
 #if defined(STACK_VERBOSE)
@@ -1182,7 +1182,7 @@ static basicblock *stack_mark_reached(stackdata_t *sd, basicblock *b, stackeleme
 
 		stack_create_invars(sd, b, curstack, stackdepth);
 
-		b->flags = BBREACHED;
+		b->flags = basicblock::REACHED;
 
 		return b;
 	}
@@ -1223,7 +1223,7 @@ static basicblock *stack_mark_reached_from_outvars(stackdata_t *sd, basicblock *
 	if (b->nr <= sd->bptr->nr)
 		b->bitflags |= BBFLAG_REPLACEMENT;
 
-	if (b->flags < BBREACHED) {
+	if (b->flags < basicblock::REACHED) {
 		/* b is reached for the first time. Create its invars. */
 
 #if defined(STACK_VERBOSE)
@@ -1232,7 +1232,7 @@ static basicblock *stack_mark_reached_from_outvars(stackdata_t *sd, basicblock *
 
 		stack_create_invars_from_outvars(sd, b);
 
-		b->flags = BBREACHED;
+		b->flags = basicblock::REACHED;
 
 		return b;
 	}
@@ -1283,7 +1283,7 @@ static bool stack_reach_next_block(stackdata_t *sd)
 		if (iptr->line == 0) printf("goto with line 0 in L%03d\n", sd->bptr->nr);
 #endif
 
-		if (tbptr->flags < BBFINISHED)
+		if (tbptr->flags < basicblock::FINISHED)
 			sd->repeat = true; /* XXX check if we really need to repeat */
 	}
 
@@ -1316,7 +1316,7 @@ static bool stack_reach_handlers(stackdata_t *sd)
 	for (i=0; sd->handlers[i]; ++i) {
 		tbptr = sd->handlers[i]->handler;
 
-		tbptr->type = BBTYPE_EXH;
+		tbptr->type             = basicblock::TYPE_EXH;
 		tbptr->predecessorcount = CFG_UNKNOWN_PREDECESSORS;
 
 		/* reach (and specialize) the handler block */
@@ -1483,7 +1483,7 @@ bool stack_reanalyse_block(stackdata_t *sd)
 
 	/* mark block as finished */
 
-	b->flags = BBFINISHED;
+	b->flags = basicblock::FINISHED;
 
 	/* initialize locals at the start of this block */
 
@@ -2158,9 +2158,9 @@ bool stack_analyse(jitdata *jd)
 
 	/* initialize flags and invars (none) of first block */
 
-	jd->basicblocks[0].flags = BBREACHED;
-	jd->basicblocks[0].invars = NULL;
-	jd->basicblocks[0].indepth = 0;
+	jd->basicblocks[0].flags    = basicblock::REACHED;
+	jd->basicblocks[0].invars   = NULL;
+	jd->basicblocks[0].indepth  = 0;
 	jd->basicblocks[0].inlocals =
 		DMNEW(varinfo, jd->localcount + VERIFIER_EXTRA_LOCALS);
 	MCOPY(jd->basicblocks[0].inlocals, jd->var, varinfo,
@@ -2190,13 +2190,13 @@ bool stack_analyse(jitdata *jd)
 
 		for (; sd.bptr; sd.bptr = sd.bptr->next) {
 
-			if (sd.bptr->flags == BBDELETED) {
+			if (sd.bptr->flags == basicblock::DELETED) {
 				/* This block has been deleted - do nothing. */
 
 				continue;
 			}
 
-			if (sd.bptr->flags == BBTYPECHECK_REACHED) {
+			if (sd.bptr->flags == basicblock::TYPECHECK_REACHED) {
 				/* re-analyse a block because its input changed */
 
 				deadcode = false;
@@ -2208,7 +2208,7 @@ bool stack_analyse(jitdata *jd)
 				continue;
 			}
 
-			if (superblockend && (sd.bptr->flags < BBREACHED)) {
+			if (superblockend && (sd.bptr->flags < basicblock::REACHED)) {
 				/* This block has not been reached so far, and we
 				   don't fall into it, so we'll have to iterate
 				   again. */
@@ -2217,14 +2217,14 @@ bool stack_analyse(jitdata *jd)
 				continue;
 			}
 
-			if (sd.bptr->flags > BBREACHED) {
+			if (sd.bptr->flags > basicblock::REACHED) {
 				/* This block is already finished. */
 
 				superblockend = true;
 				continue;
 			}
 
-			if (sd.bptr->original && sd.bptr->original->flags < BBFINISHED) {
+			if (sd.bptr->original && sd.bptr->original->flags < basicblock::FINISHED) {
 				/* This block is a clone and the original has not been
 				   analysed, yet. Analyse it on the next
 				   iteration. */
@@ -2244,7 +2244,7 @@ bool stack_analyse(jitdata *jd)
 				/* We know that sd.bptr->flags == BBREACHED. */
 				/* This block has been reached before.    */
 
-				assert(sd.bptr->flags == BBREACHED);
+				assert(sd.bptr->flags == basicblock::REACHED);
 				stackdepth = sd.bptr->indepth;
 
 				/* find exception handlers for this block */
@@ -2296,7 +2296,7 @@ bool stack_analyse(jitdata *jd)
 
 				/* mark the block as analysed */
 
-				sd.bptr->flags = BBFINISHED;
+				sd.bptr->flags = basicblock::FINISHED;
 
 				/* reset variables for dependency checking */
 
@@ -4199,7 +4199,7 @@ normal_LCMP:
 						OP0_1(TYPE_RET);
 
 						tbptr = iptr->sx.s23.s3.jsrtarget.block;
-						tbptr->type = BBTYPE_SBR;
+						tbptr->type = basicblock::TYPE_SBR;
 
 						assert(sd.bptr->next);  /* XXX exception */
 						sd.var[curstack->varnum].vv.retaddr = sd.bptr->next;
@@ -4571,7 +4571,7 @@ icmd_BUILTIN:
 #if defined(ENABLE_STATISTICS)
 	sd.bptr = jd->basicblocks;
 	for (; sd.bptr; sd.bptr = sd.bptr->next) {
-		if (sd.bptr->flags > BBREACHED) {
+		if (sd.bptr->flags > basicblock::REACHED) {
 			STATISTICS(count_block_stack[sd.bptr->indepth]++);
 			STATISTICS(count_block_size_distribution[sd.bptr->icount]++);
 		}

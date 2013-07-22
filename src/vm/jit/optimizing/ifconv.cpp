@@ -147,7 +147,7 @@ bool ifconv_static(jitdata *jd)
 	for (; bcount >= 0; bcount--, bptr++) {
 		/* Deleted basic blocks are just skipped. */
 
-		if (bptr->flags == BBDELETED)
+		if (bptr->flags == basicblock::DELETED)
 			continue;
 
 		/* We need at least 3 basic blocks including the current one. */
@@ -403,8 +403,8 @@ bool ifconv_static(jitdata *jd)
 
 				/* delete the 2 following basic blocks */
 
-				bptr[1].flags = BBDELETED;
-				bptr[2].flags = BBDELETED;
+				bptr[1].flags = basicblock::DELETED;
+				bptr[2].flags = basicblock::DELETED;
 				bptr[1].icount = 0;
 				bptr[2].icount = 0;
 

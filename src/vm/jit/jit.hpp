@@ -277,22 +277,6 @@ static inline bool var_is_saved(const jitdata *jd, s4 i) {
 
 /* basicblock *****************************************************************/
 
-/* flags */
-
-#define BBDELETED            -2
-#define BBUNDEF              -1
-#define BBREACHED            0
-#define BBFINISHED           1
-
-#define BBTYPECHECK_UNDEF    2
-#define BBTYPECHECK_REACHED  3
-
-enum BasicBlockType {
-	BBTYPE_STD = 0,  // standard basic block type
-	BBTYPE_EXH = 1,  // exception handler basic block type
-	BBTYPE_SBR = 2   // subroutine basic block type
-};
-
 #define BBFLAG_REPLACEMENT   0x01  /* put a replacement point at the start    */
 
 /* XXX basicblock wastes quite a lot of memory by having four flag fields     */
@@ -303,10 +287,29 @@ enum BasicBlockType {
 /* XXX "flags" should probably be called "state", as it is an integer state   */
 
 struct basicblock {
+	/**
+	 * State of block during stack analysis.
+	 */
+	enum State {
+		DELETED           = -2,
+		UNDEF             = -1,
+		REACHED           =  0,
+		FINISHED          =  1,
+
+		TYPECHECK_UNDEF   =  2,
+		TYPECHECK_REACHED =  3
+	};
+
+	enum Type {
+		TYPE_STD = 0,  // standard basic block type
+		TYPE_EXH = 1,  // exception handler basic block type
+		TYPE_SBR = 2   // subroutine basic block type
+	};
+
 	s4                  nr;           /* basic block number                         */
-	s4                  flags;        /* used during stack analysis, init with -1   */
+	State               flags;        /* used during stack analysis, init with -1   */
 	s4                  bitflags;     /* OR of BBFLAG_... constants, init with 0    */
-	BasicBlockType      type;         /* basic block type (std, xhandler, subroutine*/
+	Type                type;         /* basic block type (std, xhandler, subroutine*/
 	s4                  lflags;       /* used during loop copying, init with 0	  */
 
 	s4                  icount;       /* number of intermediate code instructions   */
@@ -344,7 +347,7 @@ struct basicblock {
 
 	/* TODO: those fields are probably usefull for other passes as well. */
 
-#if defined(ENABLE_SSA)         
+#if defined(ENABLE_SSA)
 	basicblock   *idom;         /* Immediate dominator, parent in dominator tree */
 	basicblock  **domsuccessors;/* Children in dominator tree                 */
 	s4            domsuccessorcount;
@@ -417,13 +420,13 @@ struct basicblock {
 #define BASICBLOCK_INIT(bptr,m)                        \
 	do {                                               \
 		bptr->mpc    = -1;                             \
-		bptr->flags  = -1;                             \
-		bptr->type   = BBTYPE_STD;                     \
+		bptr->flags  = basicblock::UNDEF;              \
+		bptr->type   = basicblock::TYPE_STD;           \
 		bptr->method = (m);                            \
 	} while (0)
 
 static inline bool basicblock_reached(const basicblock *bptr) {
-	return (bptr->flags >= BBREACHED);
+	return (bptr->flags >= basicblock::REACHED);
 }
 
 

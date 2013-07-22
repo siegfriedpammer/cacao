@@ -107,7 +107,7 @@ void lsra(jitdata *jd) {
 	b_index = 0;
 	while (b_index < jd->basicblockcount ) {
 
-		if (jd->basicblocks[b_index].flags >= BBREACHED) {
+		if (jd->basicblocks[b_index].flags >= basicblock::REACHED) {
 
 			in=m->basicblocks[b_index].instack;
 			ind=m->basicblocks[b_index].indepth;

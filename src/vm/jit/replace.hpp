@@ -85,9 +85,9 @@ struct rplalloc {
 /* XXX what to do about overlapping rplpoints? */
 /* CAUTION: Do not change the numerical values. These are used as     */
 /*          indices into replace_normalize_type_map.                  */
-#define RPLPOINT_TYPE_STD     BBTYPE_STD
-#define RPLPOINT_TYPE_EXH     BBTYPE_EXH
-#define RPLPOINT_TYPE_SBR     BBTYPE_SBR
+#define RPLPOINT_TYPE_STD     basicblock::TYPE_STD
+#define RPLPOINT_TYPE_EXH     basicblock::TYPE_EXH
+#define RPLPOINT_TYPE_SBR     basicblock::TYPE_SBR
 #define RPLPOINT_TYPE_CALL    3
 #define RPLPOINT_TYPE_INLINE  4
 #define RPLPOINT_TYPE_RETURN  5

@@ -575,11 +575,11 @@ static void ssa_create_phi_moves(ssa_info *ssa) {
 
 	for (bptr = ssa->jd->basicblocks; bptr; bptr = bptr->next) {
 		if (bptr->type == 666) {
-			bptr->type = BBTYPE_STD;
+			bptr->type = basicblock::TYPE_STD;
 			continue;
 		}
 		if (! bptr->vp) continue;
-		if (! (bptr->flags >= BBREACHED)) continue;
+		if (! (bptr->flags >= basicblock::REACHED)) continue;
 		gt = false;
 		for (iptr = bptr->iinstr; iptr != bptr->iinstr + bptr->icount; ++iptr) {
 			switch (icmd_table[iptr->opc].controlflow) {
@@ -618,7 +618,7 @@ static void ssa_create_phi_moves(ssa_info *ssa) {
 				gt = false;
 		}
 		if (! bptr->next) continue;
-		if (! (bptr->next->flags >= BBREACHED)) continue;
+		if (! (bptr->next->flags >= basicblock::REACHED)) continue;
 		if (bptr->next->type == 666) continue;
 		if (!gt) crate_fallthrough(ssa, bptr);
 	}

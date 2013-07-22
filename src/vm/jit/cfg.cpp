@@ -140,13 +140,13 @@ bool cfg_build(jitdata *jd)
 
 	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
 
-		if (bptr->type == BBTYPE_EXH) {
+		if (bptr->type == basicblock::TYPE_EXH) {
 			/* predecessorcount for exception handlers is initialized to -1,
 			   so we need to fix it to 0. */
 			bptr->predecessorcount += 1;
 		}
 
-		if ((bptr->icount == 0) || (bptr->flags == BBUNDEF))
+		if ((bptr->icount == 0) || (bptr->flags == basicblock::UNDEF))
 			continue;
 
 		iptr = bptr->iinstr + bptr->icount - 1;
@@ -276,7 +276,7 @@ bool cfg_build(jitdata *jd)
 
 				/* An exception handler has no predecessors. */
 
-				if (tbptr->type != BBTYPE_EXH)
+				if (tbptr->type != basicblock::TYPE_EXH)
 					tbptr->predecessorcount++;
 			}
 			break;
@@ -289,7 +289,7 @@ bool cfg_build(jitdata *jd)
 	bptr = jd->basicblocks;
 
 	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
-		if ((bptr->icount == 0) || (bptr->flags == BBUNDEF))
+		if ((bptr->icount == 0) || (bptr->flags == basicblock::UNDEF))
 			continue;
 
 		iptr = bptr->iinstr + bptr->icount - 1;
@@ -442,7 +442,7 @@ goto_tail:
 
 				/* An exception handler has no predecessors. */
 
-				if (tbptr->type != BBTYPE_EXH) {
+				if (tbptr->type != basicblock::TYPE_EXH) {
 					cfg_allocate_predecessors(tbptr);
 
 					tbptr->predecessors[tbptr->predecessorcount] = bptr;
@@ -476,12 +476,12 @@ void cfg_add_root(jitdata *jd) {
 	MZERO(root, basicblock, 1);
 
 	root->successorcount = 1;
-	root->successors = DMNEW(basicblock *, 1);
-	root->successors[0] = zero;
-	root->next = zero;
-	root->nr = 0;
-	root->type = BBTYPE_STD;
-	root->method = jd->m;
+	root->successors     = DMNEW(basicblock *, 1);
+	root->successors[0]  = zero;
+	root->next           = zero;
+	root->nr             = 0;
+	root->type           = basicblock::TYPE_STD;
+	root->method         = jd->m;
 
 	if (zero->predecessorcount == 0) {
 		zero->predecessors = DNEW(basicblock *);
@@ -516,17 +516,13 @@ void cfg_remove_root(jitdata *jd) {
 
 void cfg_clear(jitdata *jd)
 {
-	basicblock *b;
-	
-	for (b = jd->basicblocks; b != NULL; b = b->next)
+
+	for (basicblock *b = jd->basicblocks; b != NULL; b = b->next)
 	{
-		if (b->type == BBTYPE_EXH)
-			b->predecessorcount = -1;
-		else
-			b->predecessorcount = 0;
-		b->successorcount = 0;
-		b->predecessors = NULL;
-		b->successors = NULL;
+		b->predecessorcount = (b->type == basicblock::TYPE_EXH) ? -1 : 0;
+		b->successorcount   = 0;
+		b->predecessors     = NULL;
+		b->successors       = NULL;
 	}
 }
 
@@ -704,7 +700,7 @@ static void cfg_eliminate_edges_to_unreachable(jitdata *jd) {
 
 			/* Mark as unreachable. */
 
-			it->flags = BBUNDEF;
+			it->flags = basicblock::UNDEF;
 
 			/* As this block got unreachable, it is no more a predecessor
 			   of its successors. */

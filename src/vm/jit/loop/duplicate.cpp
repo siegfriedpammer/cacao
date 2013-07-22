@@ -182,10 +182,10 @@ namespace
 	{
 		basicblock* block = new basicblock;
 		memset(block, 0, sizeof(basicblock));
-		block->ld = new BasicblockLoopData;
+		block->ld     = new BasicblockLoopData;
 		block->method = jd->m;
-		block->flags = BBFINISHED;
-		block->mpc = -1;
+		block->flags  = basicblock::FINISHED;
+		block->mpc    = -1;
 		block->icount = numInstructions;
 		block->iinstr = new instruction[numInstructions];
 		memset(block->iinstr, 0, sizeof(instruction) * numInstructions);

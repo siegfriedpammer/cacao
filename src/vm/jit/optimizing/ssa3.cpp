@@ -1013,7 +1013,7 @@ void fix_exception_handlers(jitdata *jd) {
 	/* For each exception handler block, create one block with a prologue block */
 
 	FOR_EACH_BASICBLOCK(jd, bptr) {
-		if (bptr->type == BBTYPE_EXH) {
+		if (bptr->type == basicblock::TYPE_EXH) {
 
 			/*
 
@@ -1038,7 +1038,7 @@ void fix_exception_handlers(jitdata *jd) {
 
 			*/
 
-			bptr->type = BBTYPE_STD;
+			bptr->type = basicblock::TYPE_STD;
 			bptr->predecessorcount = 0; /* legacy */
 
 			/* Create basicblock with 2 instructions */
@@ -1078,7 +1078,7 @@ void fix_exception_handlers(jitdata *jd) {
 			exh->nr = jd->basicblockcount;
 			jd->basicblockcount += 1;
 			exh->mpc = -1;
-			exh->type = BBTYPE_EXH;
+			exh->type = basicblock::TYPE_EXH;
 			exh->icount = 2;
 			exh->iinstr = iptr;
 /*
@@ -1087,7 +1087,7 @@ void fix_exception_handlers(jitdata *jd) {
 			exh->outvars[0] = v;
 */
 			exh->predecessorcount = -1; /* legacy */
-			exh->flags = BBFINISHED;
+			exh->flags  = basicblock::FINISHED;
 			exh->method = jd->m;
 
 			basicblock_chain_add(&chain, exh);
@@ -1171,16 +1171,16 @@ void unfix_exception_handlers(jitdata *jd) {
 #endif
 
 	FOR_EACH_BASICBLOCK(jd, bptr) {
-		if (bptr->type == BBTYPE_EXH) {
+		if (bptr->type == basicblock::TYPE_EXH) {
 			assert(bptr->iinstr[1].opc == ICMD_GOTO);
 			exh = bptr->iinstr[1].dst.block;
 
-			bptr->type = BBDELETED;
-			bptr->icount = 0;
-			bptr->indepth = 0;
+			bptr->type     = basicblock::DELETED;
+			bptr->icount   = 0;
+			bptr->indepth  = 0;
 			bptr->outdepth = 0;
-			exh->type = BBTYPE_EXH;
-			bptr->vp = exh;
+			exh->type      = basicblock::TYPE_EXH;
+			bptr->vp       = exh;
 
 			/* bptr is no more a predecessor of exh */
 
@@ -1553,7 +1553,7 @@ static void ssa_enter_process_block(ssa_info *ssa, basicblock *bb) {
 
 	/* The root basicblock needs special treatment. */
 
-	if (bb->predecessorcount == 0 && bb->type != BBTYPE_EXH) {
+	if (bb->predecessorcount == 0 && bb->type != basicblock::TYPE_EXH) {
 		state_array_assert_no_items(bbi->locals->state_array);
 		state_array_allocate_items(bbi->locals->state_array);
 		ssa_enter_init_locals(bbi->locals->state_array);
@@ -1567,7 +1567,7 @@ static void ssa_enter_process_block(ssa_info *ssa, basicblock *bb) {
 
 	/* Not true with inlining. */
 
-	if (bb->type == BBTYPE_EXH) {
+	if (bb->type == basicblock::TYPE_EXH) {
 		state_array_assert_no_items(bbi->stack->state_array);
 		state_array_allocate_items(bbi->stack->state_array);
 	}
@@ -1887,14 +1887,13 @@ static basicblock *ssa_leave_create_transition_block_intern(
 
 	bb->nr = ssa->jd->basicblockcount;
 	ssa->jd->basicblockcount += 1;
-	bb->mpc = -1;
+	bb->mpc    = -1;
 	bb->method = ssa->jd->m;
-	bb->type = BBTYPE_STD;
-	bb->icount =
-		reserved_insns +
-		toi->locals->phis->count +
-		toi->stack->phis->count +
-		1;
+	bb->type   = basicblock::TYPE_STD;
+	bb->icount = reserved_insns
+	           + toi->locals->phis->count
+	           + toi->stack->phis->count
+	           + 1;
 	bb->iinstr = DMNEW(instruction, bb->icount);
 	MZERO(bb->iinstr, instruction, bb->icount);
 
@@ -2165,7 +2164,7 @@ static basicblock *ssa_leave_create_transition_exception_handler(
 
 	/* Remove old prologue. */
 
-	to->flags = BBDELETED;
+	to->flags = basicblock::DELETED;
 
 	/* Create new exception handler. */
 
@@ -2176,7 +2175,7 @@ static basicblock *ssa_leave_create_transition_exception_handler(
 		basicblock_get_ex_predecessor_index(from, pei, to),
 		1
 	);
-	exh->type = BBTYPE_EXH;
+	exh->type = basicblock::TYPE_EXH;
 
 	/* Copy goto to real exception handler at the end of the exception handler
 	   prologue. */
@@ -2341,7 +2340,7 @@ void ssa_simple_leave(ssa_info_t *ssa) {
 	unsigned uses_count;
 
 	FOR_EACH_BASICBLOCK(ssa->jd, bptr) {
-		if (bptr->type == BBTYPE_EXH) {
+		if (bptr->type == basicblock::TYPE_EXH) {
 			/* (Aritifical) exception handler blocks will be eliminated. */
 			continue;
 		}

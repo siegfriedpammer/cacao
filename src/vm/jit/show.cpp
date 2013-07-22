@@ -453,7 +453,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 	code = jd->code;
 	cd   = jd->cd;
 
-	if (bptr->flags != BBDELETED) {
+	if (bptr->flags != basicblock::DELETED) {
 #if defined(ENABLE_INTRP)
 		if (opt_intrp) {
 			deadcode = false;
@@ -462,28 +462,28 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 		else
 #endif
 		{
-			deadcode = (bptr->flags < BBREACHED);
+			deadcode = (bptr->flags < basicblock::REACHED);
 			irstage = stage;
 		}
 
 		printf("======== %sL%03d ======== %s(flags: %d, bitflags: %01x, next: %d, type: ",
 #if defined(ENABLE_REPLACEMENT)
-				(bptr->bitflags & BBFLAG_REPLACEMENT) ? "<REPLACE> " : 
+				(bptr->bitflags & BBFLAG_REPLACEMENT) ? "<REPLACE> " :
 #endif
 														"",
-			   bptr->nr, 
+			   bptr->nr,
 			   (deadcode && stage >= SHOW_STACK) ? "DEADCODE! " : "",
-			   bptr->flags, bptr->bitflags, 
+			   bptr->flags, bptr->bitflags,
 			   (bptr->next) ? (bptr->next->nr) : -1);
 
 		switch (bptr->type) {
-		case BBTYPE_STD:
+		case basicblock::TYPE_STD:
 			printf("STD");
 			break;
-		case BBTYPE_EXH:
+		case basicblock::TYPE_EXH:
 			printf("EXH");
 			break;
-		case BBTYPE_SBR:
+		case basicblock::TYPE_SBR:
 			printf("SBR");
 			break;
 		}

@@ -1258,9 +1258,9 @@ CLASS_FUNC(basicblock_func) {
 				case F_SUCCESSORS:
 					return get_iter(arg->get.result, successors_iter_func, state->root, bptr);
 				case F_REACHED:
-					return get_bool(arg->get.result, bptr->flags >= BBREACHED);
+					return get_bool(arg->get.result, bptr->flags >= basicblock::REACHED);
 				case F_EXCEPTION_HANDLER:
-					return get_bool(arg->get.result, bptr->type == BBTYPE_EXH);
+					return get_bool(arg->get.result, bptr->type == basicblock::TYPE_EXH);
 				case F_IDOM:
 					return get_obj(arg->get.result, basicblock_func, state->root, bptr->idom);
 				case F_DOM_SUCCESSORS:
@@ -1279,7 +1279,7 @@ CLASS_FUNC(basicblock_func) {
 			*arg->str.result = PyString_FromFormat("BB_%d", bptr->nr);
 			return 0;
 		case CLASS_METHOD_CALL:
-			switch (arg->method_call.method) {	
+			switch (arg->method_call.method) {
 				case F_SHOW:
 					show_basicblock(state->root->jd, bptr, SHOW_CFG);
 					return 0;
@@ -1296,7 +1296,7 @@ ITERATOR_FUNC(basicblocks_iter_func) {
 	switch (op) {
 		case ITERATOR_INIT:
 			state->pos = jd->basicblocks;
-			return 0;	
+			return 0;
 		case ITERATOR_GET:
 			return get_obj(arg->get.result, basicblock_func, state->root, state->pos);
 		case ITERATOR_FORWARD:

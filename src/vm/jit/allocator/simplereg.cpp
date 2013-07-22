@@ -1289,7 +1289,7 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 	bptr = jd->basicblocks;
 
 	while (bptr != NULL) {
-		if (bptr->flags >= BBREACHED) {
+		if (bptr->flags >= basicblock::REACHED) {
 
 			LOG(cacao::nl << "allocating block L" << cacao::setw(3)
 			              << cacao::fillzero << bptr->nr << cacao::nl);
@@ -1788,7 +1788,7 @@ void simplereg_make_statistics(jitdata *jd)
 		bptr = jd->basicblocks;
 
 		while (bptr != NULL) {
-			if (bptr->flags >= BBREACHED) {
+			if (bptr->flags >= basicblock::REACHED) {
 
 #if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
 			if (!opt_lsra) {

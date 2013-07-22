@@ -70,7 +70,7 @@ namespace
 			std::stringstream str;
 			str << bb->nr;
 
-			if (bb->type == BBTYPE_EXH)
+			if (bb->type == basicblock::TYPE_EXH)
 				str << "*";
 			else
 				str << " ";

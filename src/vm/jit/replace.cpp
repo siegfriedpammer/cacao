@@ -414,7 +414,7 @@ bool replace_create_replacement_points(jitdata *jd)
 
 		/* skip dead code */
 
-		if (bptr->flags < BBFINISHED)
+		if (bptr->flags < basicblock::FINISHED)
 			continue;
 
 		/* get info about this block */
@@ -565,7 +565,7 @@ bool replace_create_replacement_points(jitdata *jd)
 	for (bptr = jd->basicblocks; bptr; bptr = bptr->next) {
 		/* skip dead code */
 
-		if (bptr->flags < BBFINISHED)
+		if (bptr->flags < basicblock::FINISHED)
 			continue;
 
 		/* get info about this block */
@@ -1103,7 +1103,7 @@ static void replace_read_executionstate(rplpoint *rp,
 
 	/* in some cases the top stack slot is passed in REG_ITMP1 */
 
-	if (rp->type == BBTYPE_EXH) {
+	if (rp->type == basicblock::TYPE_EXH) {
 		topslot = TOP_IS_IN_ITMP1;
 	}
 
@@ -1341,7 +1341,7 @@ static void replace_write_executionstate(rplpoint *rp,
 
 	/* in some cases the top stack slot is passed in REG_ITMP1 */
 
-	if (rp->type == BBTYPE_EXH) {
+	if (rp->type == basicblock::TYPE_EXH) {
 		topslot = TOP_IS_IN_ITMP1;
 	}
 

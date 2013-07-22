@@ -243,7 +243,7 @@ handle_basic_block(verifier_state *state)
 	DOLOG(show_basicblock(jd, state->bptr, SHOW_STACK));
 
 	superblockend = false;
-	state->bptr->flags = BBFINISHED;
+	state->bptr->flags = basicblock::FINISHED;
 
 	/* prevent compiler warnings */
 
@@ -339,7 +339,7 @@ handle_basic_block(verifier_state *state)
 	if (!superblockend) {
 		OLD_LOG("reaching following block");
 		tbptr = state->bptr->next;
-		while (tbptr->flags == BBDELETED) {
+		while (tbptr->flags == basicblock::DELETED) {
 			tbptr = tbptr->next;
 		}
 		if (!typestate_reach(state,tbptr,state->bptr->outvars, jd->var,
@@ -393,7 +393,7 @@ bool typecheck_infer_types(jitdata *jd)
 
 	/* initialize the basic block flags for the following CFG traversal */
 
-	typecheck_init_flags(&state, BBFINISHED);
+	typecheck_init_flags(&state, basicblock::FINISHED);
 
     /* number of local variables */
     
@@ -430,31 +430,29 @@ bool typecheck_infer_types(jitdata *jd)
 
     OLD_LOG("Exception handler stacks set.\n");
 
-    /* loop while there are still blocks to be checked */
-    do {
+	// loop while there are still blocks to be checked
+	do {
 		TYPECHECK_COUNT(count_iterations);
 
-        state.repeat = false;
-        
-        state.bptr = state.basicblocks;
+		state.repeat = false;
+		state.bptr   = state.basicblocks;
 
-        for (; state.bptr; state.bptr = state.bptr->next) {
-            OLD_LOGSTR1("---- BLOCK %04d, ",state.bptr->nr);
-            OLD_LOGSTR1("blockflags: %d\n",state.bptr->flags);
-            OLD_LOGFLUSH;
-            
-		    /* verify reached block */	
-            if (state.bptr->flags == BBTYPECHECK_REACHED) {
-                if (!handle_basic_block(&state))
+		for (; state.bptr; state.bptr = state.bptr->next) {
+			OLD_LOGSTR1("---- BLOCK %04d, ",state.bptr->nr);
+			OLD_LOGSTR1("blockflags: %d\n",state.bptr->flags);
+			OLD_LOGFLUSH;
+
+			// verify reached block
+			if (state.bptr->flags == basicblock::TYPECHECK_REACHED) {
+				if (!handle_basic_block(&state))
 					return false;
-            }
-        } /* for blocks */
+			}
+		} // for blocks
 
-        OLD_LOGIF(state.repeat,"state.repeat == true");
-    } while (state.repeat);
+		OLD_LOGIF(state.repeat,"state.repeat == true");
+	} while (state.repeat);
 
 	/* statistics */
-	
 	/* reset the flags of blocks we haven't reached */
 
 	typecheck_reset_flags(&state);
@@ -465,7 +463,7 @@ bool typecheck_infer_types(jitdata *jd)
 
 	/* everything's ok */
 
-    OLD_LOGimp("exiting type inference");
+	OLD_LOGimp("exiting type inference");
 	return true;
 }
 

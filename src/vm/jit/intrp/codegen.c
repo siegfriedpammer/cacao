@@ -336,9 +336,9 @@ bool intrp_codegen(jitdata *jd)
 
 	dseg_addlinenumbertablesize(cd);
 
-#if 0	
+#if 0
 	/* initialize mcode variables */
-	
+
 	cd->mcodeptr = cd->mcodebase;
 	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
 #endif
@@ -355,9 +355,9 @@ bool intrp_codegen(jitdata *jd)
 			gen_DUP(cd);
 			gen_ASTORE(cd, index2offset(m->maxlocals));
 		}
-		
+
 		gen_MONITORENTER(cd);
-	}			
+	}
 #endif
 
 	if (opt_verbosecall)
@@ -371,10 +371,10 @@ bool intrp_codegen(jitdata *jd)
 
 		bptr->mpc = (s4) (cd->mcodeptr - cd->mcodebase);
 
-		if (bptr->flags != BBDELETED) {
+		if (bptr->flags != basicblock::DELETED) {
 
 		/* walk through all instructions */
-		
+
 		len = bptr->icount;
 
 		gen_BBSTART;
@@ -1766,12 +1766,12 @@ dont_opt_IF_LCMPxx:
 										   iptr->opc);
 			return false;
 	} /* switch */
-		
+
 	} /* for instruction */
 
 	gen_BBEND;
 
-	} /* if (bptr->flags != BBDELETED) */
+	} /* if (bptr->flags != basicblock::DELETED) */
 	} /* for basic block */
 
 	dseg_createlinenumbertable(cd);
@@ -1863,7 +1863,7 @@ u1 *intrp_createcompilerstub(methodinfo *m)
 
 	if (m->flags & ACC_NATIVE) {
 		stackframesize = m->parseddesc->paramslots;
-	} 
+	}
 	else {
 		stackframesize = m->maxlocals;
 
@@ -1878,7 +1878,7 @@ u1 *intrp_createcompilerstub(methodinfo *m)
 	gen_BBSTART;
 	gen_TRANSLATE(cd, m);
 	gen_BBEND;
-	
+
 #ifdef VM_PROFILING
 	vm_block_insert(cd->mcodeptr);
 #endif
@@ -1892,7 +1892,7 @@ u1 *intrp_createcompilerstub(methodinfo *m)
 	/* release dump area */
 
 	DRELEASE;
-	
+
 	return (u1 *) s;
 }
 
@@ -2245,7 +2245,7 @@ u1 *createcalljavafunction(methodinfo *m)
 
 
 	/* generate code */
-	
+
 	gen_BBSTART;
 	gen_INVOKESTATIC(cd, (Inst **)m->stubroutine, md->paramslots, 0);
 	gen_END(cd);

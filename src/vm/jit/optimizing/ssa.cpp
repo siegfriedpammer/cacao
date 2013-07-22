@@ -368,7 +368,7 @@ void ssa_init(jitdata *jd) {
 	if (compileverbose)
 		printf("ssa_init: BB %3i flags %3x\n",bptr->nr, bptr->flags);
 #endif
-		if (bptr->flags >= BBREACHED) {
+		if (bptr->flags >= basicblock::REACHED) {
 
 			/* 'valid' Basic Block */
 
@@ -541,8 +541,8 @@ void ssa_set_interface(jitdata *jd, basicblock *bptr, s4 *interface_map) {
 
 	/* ignore top Stackelement of instack in case of EXH or SBR blocks */
 	/* These are no Interface stackslots! */
-	if ((bptr->type == BBTYPE_EXH) ||
-		(bptr->type == BBTYPE_SBR)) {
+	if ((bptr->type == basicblock::TYPE_EXH) ||
+		(bptr->type == basicblock::TYPE_SBR)) {
 		in_d--;
 	}
 

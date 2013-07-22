@@ -136,13 +136,13 @@ bool reorder(jitdata *jd)
 		printf("L%03d, ", bptr->nr);
 
 		switch (bptr->type) {
-		case BBTYPE_STD:
+		case basicblock::TYPE_STD:
 			printf("STD");
 			break;
-		case BBTYPE_EXH:
+		case basicblock::TYPE_EXH:
 			printf("EXH");
 			break;
-		case BBTYPE_SBR:
+		case basicblock::TYPE_SBR:
 			printf("SBR");
 			break;
 		}
