@@ -161,7 +161,7 @@ static void replace_statistics_source_frame(sourceframe_t *frame);
        jd...............current jitdata
 	   iinfo............inlining info for the current position
 	   rp...............pre-allocated (uninitialized) rplpoint
-	   type.............RPLPOINT_TYPE constant
+	   type.............rplpoint::TYPE constant
 	   iptr.............current instruction
 	   *pra.............current rplalloc pointer
 	   javalocals.......the javalocals at the current point
@@ -288,7 +288,7 @@ static insinfo_inline * replace_create_inline_start_replacement_point(
 	calleeinfo->rp = rp;
 
 	replace_create_replacement_point(jd, calleeinfo->parent, rp,
-			RPLPOINT_TYPE_INLINE, iptr, pra,
+			rplpoint::TYPE_INLINE, iptr, pra,
 			javalocals,
 			calleeinfo->stackvars, calleeinfo->stackvarscount,
 			calleeinfo->paramcount);
@@ -589,7 +589,7 @@ bool replace_create_replacement_points(jitdata *jd)
 					bptr->javalocals, bptr->invars + i, bptr->indepth - i, 0);
 
 			if (JITDATA_HAS_FLAG_COUNTDOWN(jd))
-				rp[-1].flags |= RPLPOINT_FLAG_COUNTDOWN;
+				rp[-1].flags |= rplpoint::FLAG_COUNTDOWN;
 		}
 
 		/* iterate over the instructions */
@@ -605,7 +605,7 @@ bool replace_create_replacement_points(jitdata *jd)
 
 					i = (iinfo) ? iinfo->throughcount : 0;
 					replace_create_replacement_point(jd, iinfo, rp++,
-							RPLPOINT_TYPE_CALL, iptr, &ra,
+							rplpoint::TYPE_CALL, iptr, &ra,
 							javalocals, iptr->sx.s23.s2.args,
 							iptr->s1.argcount - i,
 							md->paramcount);
@@ -620,7 +620,7 @@ bool replace_create_replacement_points(jitdata *jd)
 
 					i = (iinfo) ? iinfo->throughcount : 0;
 					replace_create_replacement_point(jd, iinfo, rp++,
-							RPLPOINT_TYPE_CALL, iptr, &ra,
+							rplpoint::TYPE_CALL, iptr, &ra,
 							javalocals, iptr->sx.s23.s2.args,
 							iptr->s1.argcount - i,
 							md->paramcount);
@@ -640,13 +640,13 @@ bool replace_create_replacement_points(jitdata *jd)
 				case ICMD_DRETURN:
 				case ICMD_ARETURN:
 					replace_create_replacement_point(jd, iinfo, rp++,
-							RPLPOINT_TYPE_RETURN, iptr, &ra,
+							rplpoint::TYPE_RETURN, iptr, &ra,
 							NULL, &(iptr->s1.varindex), 1, 0);
 					break;
 
 				case ICMD_RETURN:
 					replace_create_replacement_point(jd, iinfo, rp++,
-							RPLPOINT_TYPE_RETURN, iptr, &ra,
+							rplpoint::TYPE_RETURN, iptr, &ra,
 							NULL, NULL, 0, 0);
 					break;
 
@@ -669,9 +669,9 @@ bool replace_create_replacement_points(jitdata *jd)
 					}
 					/* create a non-trappable rplpoint */
 					replace_create_replacement_point(jd, iinfo, rp++,
-							RPLPOINT_TYPE_BODY, iptr, &ra,
+							rplpoint::TYPE_BODY, iptr, &ra,
 							jl, NULL, 0, 0);
-					rp[-1].flags |= RPLPOINT_FLAG_NOTRAP;
+					rp[-1].flags |= rplpoint::FLAG_NOTRAP;
 					break;
 
 				case ICMD_INLINE_END:
@@ -769,10 +769,10 @@ void replace_activate_replacement_points(codeinfo *code, bool mappable)
 	i = code->rplpointcount;
 	rp = code->rplpoints;
 	for (; i--; rp++) {
-		if (rp->flags & RPLPOINT_FLAG_NOTRAP)
+		if (rp->flags & rplpoint::FLAG_NOTRAP)
 			continue;
 
-		if (mappable && (rp->type == RPLPOINT_TYPE_RETURN))
+		if (mappable && (rp->type == rplpoint::TYPE_RETURN))
 			continue;
 
 		count++;
@@ -790,12 +790,12 @@ void replace_activate_replacement_points(codeinfo *code, bool mappable)
 	i = code->rplpointcount;
 	rp = code->rplpoints + i;
 	while (rp--, i--) {
-		assert(!(rp->flags & RPLPOINT_FLAG_ACTIVE));
+		assert(!(rp->flags & rplpoint::FLAG_ACTIVE));
 
-		if (rp->flags & RPLPOINT_FLAG_NOTRAP)
+		if (rp->flags & rplpoint::FLAG_NOTRAP)
 			continue;
 
-		if (mappable && (rp->type == RPLPOINT_TYPE_RETURN))
+		if (mappable && (rp->type == rplpoint::TYPE_RETURN))
 			continue;
 
 		DOLOG( printf("activate replacement point:\n");
@@ -817,7 +817,7 @@ void replace_activate_replacement_points(codeinfo *code, bool mappable)
 # endif
 #endif
 
-		rp->flags |= RPLPOINT_FLAG_ACTIVE;
+		rp->flags |= rplpoint::FLAG_ACTIVE;
 	}
 
 	assert(savedmcode == code->savedmcode);
@@ -848,8 +848,8 @@ void replace_deactivate_replacement_points(codeinfo *code)
 		i = code->rplpointcount;
 		rp = code->rplpoints;
 		for (; i--; rp++) {
-			if ((rp->flags & (RPLPOINT_FLAG_ACTIVE | RPLPOINT_FLAG_COUNTDOWN))
-					== RPLPOINT_FLAG_COUNTDOWN)
+			if ((rp->flags & (rplpoint::FLAG_ACTIVE | rplpoint::FLAG_COUNTDOWN))
+					== rplpoint::FLAG_COUNTDOWN)
 			{
 #if 0
 				*(s4*) (rp->pc + 9) = 0; /* XXX machine dependent! */
@@ -868,7 +868,7 @@ void replace_deactivate_replacement_points(codeinfo *code)
 	rp = code->rplpoints;
 	count = 0;
 	for (; i--; rp++) {
-		if (!(rp->flags & RPLPOINT_FLAG_ACTIVE))
+		if (!(rp->flags & rplpoint::FLAG_ACTIVE))
 			continue;
 
 		count++;
@@ -890,7 +890,7 @@ void replace_deactivate_replacement_points(codeinfo *code)
 # endif
 #endif
 
-		rp->flags &= ~RPLPOINT_FLAG_ACTIVE;
+		rp->flags &= ~rplpoint::FLAG_ACTIVE;
 
 		savedmcode += REPLACEMENT_PATCH_SIZE;
 	}
@@ -1070,13 +1070,13 @@ static sourceframe_t *replace_new_sourceframe(sourcestate_t *ss)
 *******************************************************************************/
 
 static s4 replace_normalize_type_map[] = {
-/* RPLPOINT_TYPE_STD    |--> */ RPLPOINT_TYPE_STD,
-/* RPLPOINT_TYPE_EXH    |--> */ RPLPOINT_TYPE_STD,
-/* RPLPOINT_TYPE_SBR    |--> */ RPLPOINT_TYPE_STD,
-/* RPLPOINT_TYPE_CALL   |--> */ RPLPOINT_TYPE_CALL,
-/* RPLPOINT_TYPE_INLINE |--> */ RPLPOINT_TYPE_CALL,
-/* RPLPOINT_TYPE_RETURN |--> */ RPLPOINT_TYPE_RETURN,
-/* RPLPOINT_TYPE_BODY   |--> */ RPLPOINT_TYPE_STD
+/* rplpoint::TYPE_STD    |--> */ rplpoint::TYPE_STD,
+/* rplpoint::TYPE_EXH    |--> */ rplpoint::TYPE_STD,
+/* rplpoint::TYPE_SBR    |--> */ rplpoint::TYPE_STD,
+/* rplpoint::TYPE_CALL   |--> */ rplpoint::TYPE_CALL,
+/* rplpoint::TYPE_INLINE |--> */ rplpoint::TYPE_CALL,
+/* rplpoint::TYPE_RETURN |--> */ rplpoint::TYPE_RETURN,
+/* rplpoint::TYPE_BODY   |--> */ rplpoint::TYPE_STD
 };
 
 
@@ -1254,7 +1254,7 @@ static void replace_read_executionstate(rplpoint *rp,
 
 	for (; count--; ra++) {
 		if (ra->index == RPLALLOC_SYNC) {
-			assert(rp->type == RPLPOINT_TYPE_INLINE);
+			assert(rp->type == rplpoint::TYPE_INLINE);
 
 			/* only read synchronization slots when traversing an inline point */
 
@@ -1408,7 +1408,7 @@ static void replace_write_executionstate(rplpoint *rp,
 
 	for (; count--; ra++) {
 		if (ra->index == RPLALLOC_SYNC) {
-			assert(rp->type == RPLPOINT_TYPE_INLINE);
+			assert(rp->type == rplpoint::TYPE_INLINE);
 
 			/* only write synchronization slots when traversing an inline point */
 
@@ -1924,7 +1924,7 @@ void replace_push_activation_record(executionstate_t *es,
 
 	assert(es);
 	assert(!rpcall || callerframe);
-    assert(!rpcall || rpcall->type == RPLPOINT_TYPE_CALL);
+    assert(!rpcall || rpcall->type == rplpoint::TYPE_CALL);
 	assert(!rpcall || rpcall == callerframe->torp);
 	assert(calleeframe);
 	assert(!callerframe || calleeframe == callerframe->down);
@@ -2404,7 +2404,7 @@ sourcestate_t *replace_recover_source_state(rplpoint *rp,
 
 			rp = rp->parent;
 
-			assert(rp->type == RPLPOINT_TYPE_INLINE);
+			assert(rp->type == rplpoint::TYPE_INLINE);
 			REPLACE_COUNT(stat_unroll_inline);
 		}
 		else {
@@ -2435,7 +2435,7 @@ after_machine_frame:
 			DOLOG( printf("found replacement point.\n");
 					replace_replacement_point_println(rp, 1); );
 
-			assert(rp->type == RPLPOINT_TYPE_CALL);
+			assert(rp->type == rplpoint::TYPE_CALL);
 			REPLACE_COUNT(stat_unroll_call);
 		}
 	} /* end loop over source frames */
@@ -2529,7 +2529,7 @@ static bool replace_map_source_state(sourcestate_t *ss)
 			frame->torp = rp;
 		}
 
-		if (rp->type == RPLPOINT_TYPE_CALL) {
+		if (rp->type == rplpoint::TYPE_CALL) {
 			parent = NULL;
 		}
 		else {
@@ -2658,7 +2658,7 @@ static void replace_build_execution_state(sourcestate_t *ss,
 
 		DOLOG( executionstate_println(es); );
 
-		if (rp->type == RPLPOINT_TYPE_CALL) {
+		if (rp->type == rplpoint::TYPE_CALL) {
 			parent = NULL;
 		}
 		else {
@@ -2830,12 +2830,12 @@ bool replace_handler(u1 *pc, executionstate_t *es)
 
 	/* search for a replacement point at the given PC */
 
-	rp = replace_find_replacement_point_for_pc(code, pc, (RPLPOINT_FLAG_ACTIVE | RPLPOINT_FLAG_COUNTDOWN));
+	rp = replace_find_replacement_point_for_pc(code, pc, (rplpoint::FLAG_ACTIVE | rplpoint::FLAG_COUNTDOWN));
 
 	/* check if the replacement point belongs to given PC and is active */
 
 	if ((rp != NULL) && (rp->pc == pc)
-	    && (rp->flags & (RPLPOINT_FLAG_ACTIVE | RPLPOINT_FLAG_COUNTDOWN))) {
+	    && (rp->flags & (rplpoint::FLAG_ACTIVE | rplpoint::FLAG_COUNTDOWN))) {
 
 		DOLOG( printf("valid replacement point\n"); );
 
@@ -3056,11 +3056,11 @@ void replace_replacement_point_println(rplpoint *rp, int depth)
 	printf("rplpoint (id %d) %p pc:%p+%d type:%s",
 			rp->id, (void*)rp,rp->pc,rp->callsize,
 			replace_type_str[rp->type]);
-	if (rp->flags & RPLPOINT_FLAG_NOTRAP)
+	if (rp->flags & rplpoint::FLAG_NOTRAP)
 		printf(" NOTRAP");
-	if (rp->flags & RPLPOINT_FLAG_COUNTDOWN)
+	if (rp->flags & rplpoint::FLAG_COUNTDOWN)
 		printf(" COUNTDOWN");
-	if (rp->flags & RPLPOINT_FLAG_ACTIVE)
+	if (rp->flags & rplpoint::FLAG_ACTIVE)
 		printf(" ACTIVE");
 	printf(" parent:%p\n", (void*)rp->parent);
 	for (j=0; j<depth; ++j)

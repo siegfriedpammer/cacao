@@ -82,23 +82,6 @@ struct rplalloc {
 #error value of INMEMORY is too big to fit in rplalloc.flags
 #endif
 
-
-/* XXX what to do about overlapping rplpoints? */
-/* CAUTION: Do not change the numerical values. These are used as     */
-/*          indices into replace_normalize_type_map.                  */
-#define RPLPOINT_TYPE_STD     basicblock::TYPE_STD
-#define RPLPOINT_TYPE_EXH     basicblock::TYPE_EXH
-#define RPLPOINT_TYPE_SBR     basicblock::TYPE_SBR
-#define RPLPOINT_TYPE_CALL    3
-#define RPLPOINT_TYPE_INLINE  4
-#define RPLPOINT_TYPE_RETURN  5
-#define RPLPOINT_TYPE_BODY    6
-
-#define RPLPOINT_FLAG_NOTRAP     0x01  /* rplpoint cannot be trapped */
-#define RPLPOINT_FLAG_COUNTDOWN  0x02  /* count down hits            */
-#define RPLPOINT_FLAG_ACTIVE     0x08  /* trap is active             */
-
-
 #if !defined(NDEBUG)
 #define RPLPOINT_CHECK(type)     , RPLPOINT_TYPE_##type
 #define RPLPOINT_CHECK_BB(bptr)  , (bptr)->type
@@ -107,19 +90,39 @@ struct rplalloc {
 #define RPLPOINT_CHECK_BB(bptr)
 #endif
 
-
 /* An `rplpoint` represents a replacement point in a compiled method  */
 
 struct rplpoint {
-	u1          *pc;           /* machine code PC of this point       */
-	methodinfo  *method;       /* source method this point is in      */
-	rplpoint    *parent;       /* rplpoint of the inlined body        */ /* XXX unify with code */
-	rplalloc    *regalloc;     /* pointer to register index table     */
-	s4           id;           /* id of the rplpoint within method    */
-	s4           callsize;     /* size of call code in bytes          */
-	unsigned int regalloccount:20; /* number of local allocations     */
-	unsigned int type:4;           /* RPLPOINT_TYPE_... constant      */
-	unsigned int flags:8;          /* OR of RPLPOINT_... constants    */
+	/**
+	 * CAUTION: Do not change the numerical values. These are used as
+	 *          indices into replace_normalize_type_map.
+	 * XXX what to do about overlapping rplpoints?
+	 */
+	enum Type {
+		TYPE_STD     = basicblock::TYPE_STD,
+		TYPE_EXH     = basicblock::TYPE_EXH,
+		TYPE_SBR     = basicblock::TYPE_SBR,
+		TYPE_CALL    = 3,
+		TYPE_INLINE  = 4,
+		TYPE_RETURN  = 5,
+		TYPE_BODY    = 6
+	};
+
+	enum Flag {
+		FLAG_NOTRAP    = 0x01,  // rplpoint cannot be trapped
+		FLAG_COUNTDOWN = 0x02,  // count down hits
+		FLAG_ACTIVE    = 0x08   // trap is active
+	};
+
+	u1          *pc;               /* machine code PC of this point    */
+	methodinfo  *method;           /* source method this point is in   */
+	rplpoint    *parent;           /* rplpoint of the inlined body     */ /* XXX unify with code */
+	rplalloc    *regalloc;         /* pointer to register index table  */
+	s4           id;               /* id of the rplpoint within method */
+	s4           callsize;         /* size of call code in bytes       */
+	unsigned int regalloccount:20; /* number of local allocations      */
+	Type         type:4;           /* type of replacement point        */
+	unsigned int flags:8;          /* OR of Flag constants             */
 };
 
 

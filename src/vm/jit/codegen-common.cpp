@@ -502,7 +502,7 @@ void codegen_set_replacement_point_notrap(codegendata *cd)
 {
 	assert(cd->replacementpoint);
 	assert(cd->replacementpoint->type == type);
-	assert(cd->replacementpoint->flags & RPLPOINT_FLAG_NOTRAP);
+	assert(cd->replacementpoint->flags & rplpoint::FLAG_NOTRAP);
 
 	cd->replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
 
@@ -526,7 +526,7 @@ void codegen_set_replacement_point(codegendata *cd)
 {
 	assert(cd->replacementpoint);
 	assert(cd->replacementpoint->type == type);
-	assert(!(cd->replacementpoint->flags & RPLPOINT_FLAG_NOTRAP));
+	assert(!(cd->replacementpoint->flags & rplpoint::FLAG_NOTRAP));
 
 	cd->replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
 
@@ -1169,7 +1169,7 @@ bool codegen_emit(jitdata *jd)
 		// Generate countdown trap code.
 		methodinfo* m = jd->m;
 		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
-			if (cd->replacementpoint[-1].flags & RPLPOINT_FLAG_COUNTDOWN) {
+			if (cd->replacementpoint[-1].flags & rplpoint::FLAG_COUNTDOWN) {
 				MCODECHECK(32);
 				emit_trap_countdown(cd, &(m->hitcountdown));
 			}
