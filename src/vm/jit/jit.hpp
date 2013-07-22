@@ -287,9 +287,11 @@ static inline bool var_is_saved(const jitdata *jd, s4 i) {
 #define BBTYPECHECK_UNDEF    2
 #define BBTYPECHECK_REACHED  3
 
-#define BBTYPE_STD           0  /* standard basic block type                  */
-#define BBTYPE_EXH           1  /* exception handler basic block type         */
-#define BBTYPE_SBR           2  /* subroutine basic block type                */
+enum BasicBlockType {
+	BBTYPE_STD = 0,  // standard basic block type
+	BBTYPE_EXH = 1,  // exception handler basic block type
+	BBTYPE_SBR = 2   // subroutine basic block type
+};
 
 #define BBFLAG_REPLACEMENT   0x01  /* put a replacement point at the start    */
 
@@ -301,40 +303,40 @@ static inline bool var_is_saved(const jitdata *jd, s4 i) {
 /* XXX "flags" should probably be called "state", as it is an integer state   */
 
 struct basicblock {
-	s4            nr;           /* basic block number                         */
-	s4            flags;        /* used during stack analysis, init with -1   */
-	s4            bitflags;     /* OR of BBFLAG_... constants, init with 0    */
-	s4            type;         /* basic block type (std, xhandler, subroutine*/
-	s4            lflags;       /* used during loop copying, init with 0	  */
+	s4                  nr;           /* basic block number                         */
+	s4                  flags;        /* used during stack analysis, init with -1   */
+	s4                  bitflags;     /* OR of BBFLAG_... constants, init with 0    */
+	BasicBlockType      type;         /* basic block type (std, xhandler, subroutine*/
+	s4                  lflags;       /* used during loop copying, init with 0	  */
 
-	s4            icount;       /* number of intermediate code instructions   */
-	instruction  *iinstr;       /* pointer to intermediate code instructions  */
+	s4                  icount;       /* number of intermediate code instructions   */
+	instruction        *iinstr;       /* pointer to intermediate code instructions  */
 
-	varinfo      *inlocals;     /* copy of locals on block entry              */
-	s4           *javalocals;   /* map from java locals to cacao variables[+] */
-	s4           *invars;       /* array of in-variables at begin of block    */
-	s4           *outvars;      /* array of out-variables at end of block     */
-	s4            indepth;      /* stack depth at begin of basic block        */
-	s4            outdepth;     /* stack depth end of basic block             */
-	s4            varstart;     /* index of first non-invar block variable    */
-	s4            varcount;     /* number of non-invar block variables        */
+	varinfo            *inlocals;     /* copy of locals on block entry              */
+	s4                 *javalocals;   /* map from java locals to cacao variables[+] */
+	s4                 *invars;       /* array of in-variables at begin of block    */
+	s4                 *outvars;      /* array of out-variables at end of block     */
+	s4                  indepth;      /* stack depth at begin of basic block        */
+	s4                  outdepth;     /* stack depth end of basic block             */
+	s4                  varstart;     /* index of first non-invar block variable    */
+	s4                  varcount;     /* number of non-invar block variables        */
 
-	s4            predecessorcount;
-	s4            successorcount;
-	basicblock  **predecessors; /* array of predecessor basic blocks          */
-	basicblock  **successors;   /* array of successor basic blocks            */
+	s4                  predecessorcount;
+	s4                  successorcount;
+	basicblock        **predecessors; /* array of predecessor basic blocks          */
+	basicblock        **successors;   /* array of successor basic blocks            */
 
-	branchref    *branchrefs;   /* list of branches to be patched             */
+	branchref          *branchrefs;   /* list of branches to be patched             */
 
-	basicblock   *next;         /* used to build a BB list (instead of array) */
-	basicblock   *copied_to;    /* points to the copy of this basic block	  */
+	basicblock         *next;         /* used to build a BB list (instead of array) */
+	basicblock         *copied_to;    /* points to the copy of this basic block	  */
                                 /* when loop nodes are copied                 */
-	basicblock   *original;     /* block of which this block is a clone       */
+	basicblock         *original;     /* block of which this block is a clone       */
 	                            /* NULL for the original block itself         */
-	methodinfo   *method;       /* method this block belongs to               */
-	insinfo_inline *inlineinfo; /* inlineinfo for the start of this block     */
+	methodinfo         *method;       /* method this block belongs to               */
+	insinfo_inline     *inlineinfo; /* inlineinfo for the start of this block     */
 
-	s4            mpc;          /* machine code pc at start of block          */
+	s4                  mpc;          /* machine code pc at start of block          */
 
 #if defined(ENABLE_LOOP)
 	BasicblockLoopData *ld;
