@@ -163,19 +163,26 @@ enum Type {
 
 /* Constant pool tags *********************************************************/
 
-#define CONSTANT_Class                 7
-#define CONSTANT_Fieldref              9
-#define CONSTANT_Methodref            10
-#define CONSTANT_InterfaceMethodref   11
-#define CONSTANT_String                8
-#define CONSTANT_Integer               3
-#define CONSTANT_Float                 4
-#define CONSTANT_Long                  5
-#define CONSTANT_Double                6
-#define CONSTANT_NameAndType          12
-#define CONSTANT_Utf8                  1
+/**
+ * Types for entries of a classes constant pool
+ *
+ * @Cpp11 Use an enum class to set storage type to uint8_t...	by
+ */
+enum ConstantPoolTag {
+	CONSTANT_Class              =  7,
+	CONSTANT_Fieldref           =  9,
+	CONSTANT_Methodref          = 10,
+	CONSTANT_InterfaceMethodref = 11,
+	CONSTANT_String             =  8,
+	CONSTANT_Integer            =  3,
+	CONSTANT_Float              =  4,
+	CONSTANT_Long               =  5,
+	CONSTANT_Double             =  6,
+	CONSTANT_NameAndType        = 12,
+	CONSTANT_Utf8               =  1,
 
-#define CONSTANT_UNUSED                0
+	CONSTANT_UNUSED             =  0
+};
 
 
 /* Class/Field/Method access and property flags *******************************/
