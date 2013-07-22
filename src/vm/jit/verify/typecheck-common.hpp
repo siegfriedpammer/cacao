@@ -251,7 +251,7 @@ typedef struct verifier_state {
 	s4 exinvars;
 	
     exception_entry **handlers;           /* active exception handlers */
-	
+
     bool repeat;            /* if true, blocks are iterated over again */
     bool initmethod;             /* true if this is an "<init>" method */
 
@@ -271,8 +271,8 @@ typedef struct verifier_state {
 	typecheck_jsr_t **jsrinfos;      /* subroutine info for each block */
 } verifier_state;
 
-void typecheck_init_flags(verifier_state *state, s4 minflags);
-void typecheck_reset_flags(verifier_state *state);
+void typecheck_init_state(verifier_state *state, basicblock::State minstate);
+void typecheck_reset_state(verifier_state *state);
 
 bool typecheck_copy_types(verifier_state *state,
 						  s4 *srcvars, s4 *dstvars, s4 n);

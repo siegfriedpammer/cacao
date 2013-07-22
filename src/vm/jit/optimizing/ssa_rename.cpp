@@ -277,7 +277,7 @@ void ssa_rename_init(jitdata *jd, graphdata *gd)
 	/* as first step cummulate the num_defs array for locals and iovars       */
 	/* last element is the maximum var count */
 
-	ls->var_0 = DMNEW(int, max(1, ls->ssavarcount + 1));
+	ls->var_0 = DMNEW(int, MAX(1, ls->ssavarcount + 1));
 	ls->var_0[0] = 0;
 	ls->varcount_with_indices = 0;
 	for(i = 0; i < ls->ssavarcount; i++) {
@@ -297,9 +297,9 @@ void ssa_rename_init(jitdata *jd, graphdata *gd)
 
 	/* Initialization */
 
-	ls->count     = DMNEW(int, max(1, ls->ssavarcount));
-	ls->stack     = DMNEW(int *, max(1, ls->ssavarcount));
-	ls->stack_top = DMNEW(int, max(1, ls->ssavarcount));
+	ls->count     = DMNEW(int,   MAX(1, ls->ssavarcount));
+	ls->stack     = DMNEW(int *, MAX(1, ls->ssavarcount));
+	ls->stack_top = DMNEW(int,   MAX(1, ls->ssavarcount));
 	for(a = 0; a < ls->ssavarcount; a++) {
 		ls->count[a] = 0;
 		ls->stack_top[a] = 0;
@@ -316,7 +316,7 @@ void ssa_rename_init(jitdata *jd, graphdata *gd)
 
 		ls->num_var_use = DMNEW(int *, ls->basicblockcount);
 		for(i = 0; i < ls->basicblockcount; i++) {
-			ls->num_var_use[i] =DMNEW(int, max(1, ls->varcount_with_indices));
+			ls->num_var_use[i] =DMNEW(int, MAX(1, ls->varcount_with_indices));
 			for(a = 0; a < ls->varcount_with_indices; a++)
 				ls->num_var_use[i][a] = 0;
 		}
@@ -324,7 +324,7 @@ void ssa_rename_init(jitdata *jd, graphdata *gd)
 		/* Create the use_sites Array of Bitvectors*/
 		/* use max(1,..), to ensure that the array is created! */
 
-		ls->use_sites =  DMNEW(bitvector, max(1, ls->varcount_with_indices));
+		ls->use_sites =  DMNEW(bitvector, MAX(1, ls->varcount_with_indices));
 		for(a = 0; a < ls->varcount_with_indices; a++)
 			ls->use_sites[a] = bv_new(ls->basicblockcount);
 	}
@@ -515,7 +515,7 @@ void ssa_rename_(jitdata *jd, graphdata *gd, dominatordata *dd, int n) {
 
 	_SSA_CHECK_BOUNDS(n, 0, ls->basicblockcount);
 
-	def_count = DMNEW(int, max(1, ls->ssavarcount));
+	def_count = DMNEW(int, MAX(1, ls->ssavarcount));
 	for(i = 0; i < ls->ssavarcount; i++)
 		def_count[i] = 0;
 

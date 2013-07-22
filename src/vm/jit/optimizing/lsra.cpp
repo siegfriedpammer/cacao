@@ -51,6 +51,8 @@
 
 #include "toolbox/logging.hpp"
 
+STAT_DECLARE_VAR(int,count_locals_conflicts,0)
+
 extern const char *string_java_lang_InternalError;
 /* function prototypes */
 void lsra_setup(jitdata *);
@@ -325,19 +327,19 @@ void lsra_reg_setup(jitdata *jd,
 		/* of the method itself have to be regarded, or mismatch before    */
 		/* block 0 with parameter copy could happen! */
 
-		argintreguse = max(rd->argintreguse, md->argintreguse);
-		argfltreguse = max(rd->argfltreguse, md->argfltreguse);
+		argintreguse = MAX(rd->argintreguse, md->argintreguse);
+		argfltreguse = MAX(rd->argfltreguse, md->argfltreguse);
 
 		int_sav_top = int_reg->sav_top = INT_SAV_CNT;
 		int_reg->sav_reg = DMNEW(int, int_reg->sav_top);
 		int_reg->tmp_top = INT_TMP_CNT +
-			max(0, (INT_ARG_CNT - argintreguse));
+			MAX(0, (INT_ARG_CNT - argintreguse));
 		int_reg->tmp_reg = DMNEW(int, int_reg->tmp_top);
 
 		flt_sav_top =flt_reg->sav_top = FLT_SAV_CNT;
 		flt_reg->sav_reg = DMNEW(int, flt_reg->sav_top);
 		flt_reg->tmp_top = FLT_TMP_CNT +
-			max(0 , (FLT_ARG_CNT - argfltreguse));
+			MAX(0 , (FLT_ARG_CNT - argfltreguse));
 		flt_reg->tmp_reg = DMNEW(int, flt_reg->tmp_top);
 
 		/* copy temp and unused argument registers to flt_reg->tmp_reg and */
@@ -479,8 +481,8 @@ void lsra_main(jitdata *jd)
 	}
 #endif
 
-	ls->active_tmp = DMNEW( struct lifetime *, max(INT_REG_CNT, FLT_REG_CNT));
-	ls->active_sav = DMNEW( struct lifetime *, max(INT_REG_CNT, FLT_REG_CNT));
+	ls->active_tmp = DMNEW( struct lifetime *, MAX(INT_REG_CNT, FLT_REG_CNT));
+	ls->active_sav = DMNEW( struct lifetime *, MAX(INT_REG_CNT, FLT_REG_CNT));
 
 	lsra_reg_use=INT_SAV_CNT; /* init to no saved reg used... */
 	_lsra_main(jd, ls->lt_int, ls->lt_int_count, &int_reg,
@@ -860,7 +862,7 @@ void lsra_calc_lifetime_length(jitdata *jd)
 	ls = jd->ls;
 
 	icount_block = DMNEW(int, ls->basicblockcount);
-	icount_block[0] = icount = 0 /* + ls->max_vars_with_indices + 1 */;
+	icount_block[0] = icount = 0 /* + ls->MAX_vars_with_indices + 1 */;
 	for (i=1; i < ls->basicblockcount; i++) {
 		if (ls->sorted[i-1] != -1)
 			icount += ls->basicblocks[ls->sorted[i-1]]->icount + 1 +

@@ -371,7 +371,7 @@ bool intrp_codegen(jitdata *jd)
 
 		bptr->mpc = (s4) (cd->mcodeptr - cd->mcodebase);
 
-		if (bptr->flags != basicblock::DELETED) {
+		if (bptr->state != basicblock::DELETED) {
 
 		/* walk through all instructions */
 
@@ -1771,7 +1771,7 @@ dont_opt_IF_LCMPxx:
 
 	gen_BBEND;
 
-	} /* if (bptr->flags != basicblock::DELETED) */
+	} /* if (bptr->state != basicblock::DELETED) */
 	} /* for basic block */
 
 	dseg_createlinenumbertable(cd);

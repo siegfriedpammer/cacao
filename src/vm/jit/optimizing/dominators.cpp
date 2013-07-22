@@ -623,7 +623,7 @@ void dominator_tree_validate(jitdata *jd, dominatordata *_dd) {
 	dd = compute_Dominators(gd, jd->basicblockcount);
 
 	for (bptr = jd->basicblocks; bptr; bptr = bptr->next) {
-		if (bptr->flags >= basicblock::REACHED) {
+		if (bptr->state >= basicblock::REACHED) {
 			if (bptr->idom == NULL) {
 				if (!(dd->idom[bptr->nr] == -1)) {
 					printf("-- %d %d\n", dd->idom[bptr->nr], bptr->nr);
@@ -638,7 +638,7 @@ void dominator_tree_validate(jitdata *jd, dominatordata *_dd) {
 	computeDF(gd, dd, jd->basicblockcount, 0);
 
 	for (bptr = jd->basicblocks; bptr; bptr = bptr->next) {
-		if (bptr->flags >= basicblock::REACHED) {
+		if (bptr->state >= basicblock::REACHED) {
 			assert(bptr->domfrontiercount == dd->num_DF[bptr->nr]);
 			for (itnr = dd->DF[bptr->nr]; itnr != dd->DF[bptr->nr] + dd->num_DF[bptr->nr]; ++itnr) {
 				found = false;

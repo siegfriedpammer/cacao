@@ -801,7 +801,7 @@ static basicblock * create_block(inline_node *container,
 	n_bptr->next    = n_bptr + 1;
 	n_bptr->nr      = container->ctx->next_block_number++;
 	n_bptr->indepth = indepth;
-	n_bptr->flags   = basicblock::FINISHED; /* XXX */
+	n_bptr->state   = basicblock::FINISHED; /* XXX */
 
 	/* set the inlineinfo of the new block */
 
@@ -891,8 +891,8 @@ static basicblock * create_body_block(inline_node *iln,
 	n_bptr = create_block(iln, iln, iln,
 						  o_bptr->indepth + iln->n_passthroughcount);
 
-	n_bptr->type = o_bptr->type;
-	n_bptr->flags = o_bptr->flags;
+	n_bptr->type     = o_bptr->type;
+	n_bptr->state    = o_bptr->state;
 	n_bptr->bitflags = o_bptr->bitflags;
 
 	/* resolve references to this block */
@@ -910,7 +910,7 @@ static basicblock * create_body_block(inline_node *iln,
 
 	/* translate javalocals info (not for dead code) */
 
-	if (n_bptr->flags >= basicblock::REACHED)
+	if (n_bptr->state >= basicblock::REACHED)
 		n_bptr->javalocals = translate_javalocals(iln, o_bptr->javalocals);
 
 	return n_bptr;
@@ -956,7 +956,7 @@ static basicblock * create_epilog_block(inline_node *caller, inline_node *callee
 
 	/* set block flags & type */
 
-	n_bptr->flags = basicblock::FINISHED; // XXX original block flags
+	n_bptr->state = basicblock::FINISHED; // XXX original block flags
 	n_bptr->type  = basicblock::TYPE_STD;
 
 	return n_bptr;
@@ -1470,7 +1470,7 @@ static void inline_rewrite_method(inline_node *iln)
 	o_bptr = iln->jd->basicblocks;
 	for (; o_bptr; o_bptr = o_bptr->next) {
 
-		if (o_bptr->flags < basicblock::REACHED) {
+		if (o_bptr->state < basicblock::REACHED) {
 
 			/* ignore the dummy end block */
 
@@ -1483,7 +1483,7 @@ static void inline_rewrite_method(inline_node *iln)
 			DOLOG(
 			printf("%s* skipping old L%03d (flags=%d, type=%d, oid=%d) of ",
 					indent,
-					o_bptr->nr, o_bptr->flags, o_bptr->type,
+					o_bptr->nr, o_bptr->state, o_bptr->type,
 					o_bptr->indepth);
 			method_println(iln->m);
 			);
@@ -1504,7 +1504,7 @@ static void inline_rewrite_method(inline_node *iln)
 		DOLOG(
 		printf("%s* rewriting old L%03d (flags=%d, type=%d, oid=%d) of ",
 				indent,
-				o_bptr->nr, o_bptr->flags, o_bptr->type,
+				o_bptr->nr, o_bptr->state, o_bptr->type,
 				o_bptr->indepth);
 		method_println(iln->m);
 		show_basicblock(iln->jd, o_bptr, SHOW_STACK);
@@ -1943,7 +1943,7 @@ static void inline_write_exception_handlers(inline_node *master, inline_node *il
 		n_bptr = create_block(master, iln, iln,
 							  iln->n_passthroughcount + 1);
 		n_bptr->type  = basicblock::TYPE_EXH;
-		n_bptr->flags = basicblock::FINISHED;
+		n_bptr->state = basicblock::FINISHED;
 
 		exvar = inline_new_variable(master->ctx->resultjd, TYPE_ADR, 0);
 		n_bptr->invars[iln->n_passthroughcount] = exvar;
@@ -2079,7 +2079,7 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 	/* write the dummy end block */
 
 	n_bptr        = create_block(iln, iln, iln, 0);
-	n_bptr->flags = basicblock::UNDEF;
+	n_bptr->state = basicblock::UNDEF;
 	n_bptr->type  = basicblock::TYPE_STD;
 
 	/* store created code in jitdata */
@@ -2784,7 +2784,7 @@ static bool inline_analyse_code(inline_node *iln)
 
 		/* skip dead code */
 
-		if (bptr->flags < basicblock::REACHED)
+		if (bptr->state < basicblock::REACHED)
 			continue;
 
 		/* allocate the buffer of active exception handlers */
@@ -3048,7 +3048,7 @@ static void inline_post_process(jitdata *jd)
 	/* iterate over all basic blocks */
 
 	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
-		if (bptr->flags < basicblock::REACHED)
+		if (bptr->state < basicblock::REACHED)
 			continue;
 
 		/* make invars live */

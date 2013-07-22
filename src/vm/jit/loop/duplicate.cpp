@@ -184,7 +184,7 @@ namespace
 		memset(block, 0, sizeof(basicblock));
 		block->ld     = new BasicblockLoopData;
 		block->method = jd->m;
-		block->flags  = basicblock::FINISHED;
+		block->state  = basicblock::FINISHED;
 		block->mpc    = -1;
 		block->icount = numInstructions;
 		block->iinstr = new instruction[numInstructions];

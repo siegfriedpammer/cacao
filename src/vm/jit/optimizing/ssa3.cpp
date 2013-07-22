@@ -1087,7 +1087,7 @@ void fix_exception_handlers(jitdata *jd) {
 			exh->outvars[0] = v;
 */
 			exh->predecessorcount = -1; /* legacy */
-			exh->flags  = basicblock::FINISHED;
+			exh->state  = basicblock::FINISHED;
 			exh->method = jd->m;
 
 			basicblock_chain_add(&chain, exh);
@@ -1175,7 +1175,7 @@ void unfix_exception_handlers(jitdata *jd) {
 			assert(bptr->iinstr[1].opc == ICMD_GOTO);
 			exh = bptr->iinstr[1].dst.block;
 
-			bptr->type     = basicblock::DELETED;
+			bptr->state    = basicblock::DELETED;
 			bptr->icount   = 0;
 			bptr->indepth  = 0;
 			bptr->outdepth = 0;
@@ -2164,7 +2164,7 @@ static basicblock *ssa_leave_create_transition_exception_handler(
 
 	/* Remove old prologue. */
 
-	to->flags = basicblock::DELETED;
+	to->state = basicblock::DELETED;
 
 	/* Create new exception handler. */
 

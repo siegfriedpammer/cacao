@@ -1258,9 +1258,9 @@ CLASS_FUNC(basicblock_func) {
 				case F_SUCCESSORS:
 					return get_iter(arg->get.result, successors_iter_func, state->root, bptr);
 				case F_REACHED:
-					return get_bool(arg->get.result, bptr->flags >= basicblock::REACHED);
+					return get_bool(arg->get.result, bptr->state >= basicblock::REACHED);
 				case F_EXCEPTION_HANDLER:
-					return get_bool(arg->get.result, bptr->type == basicblock::TYPE_EXH);
+					return get_bool(arg->get.result, bptr->type  == basicblock::TYPE_EXH);
 				case F_IDOM:
 					return get_obj(arg->get.result, basicblock_func, state->root, bptr->idom);
 				case F_DOM_SUCCESSORS:

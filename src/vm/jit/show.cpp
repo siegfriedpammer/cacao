@@ -453,7 +453,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 	code = jd->code;
 	cd   = jd->cd;
 
-	if (bptr->flags != basicblock::DELETED) {
+	if (bptr->state != basicblock::DELETED) {
 #if defined(ENABLE_INTRP)
 		if (opt_intrp) {
 			deadcode = false;
@@ -462,7 +462,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 		else
 #endif
 		{
-			deadcode = (bptr->flags < basicblock::REACHED);
+			deadcode = (bptr->state < basicblock::REACHED);
 			irstage = stage;
 		}
 
@@ -473,7 +473,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 														"",
 			   bptr->nr,
 			   (deadcode && stage >= SHOW_STACK) ? "DEADCODE! " : "",
-			   bptr->flags, bptr->bitflags,
+			   bptr->state, bptr->bitflags,
 			   (bptr->next) ? (bptr->next->nr) : -1);
 
 		switch (bptr->type) {

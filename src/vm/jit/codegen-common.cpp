@@ -1155,7 +1155,7 @@ bool codegen_emit(jitdata *jd)
 		bptr->mpc = (s4) (cd->mcodeptr - cd->mcodebase);
 
 		// Is this basic block reached?
-		if (bptr->flags < basicblock::REACHED)
+		if (bptr->state < basicblock::REACHED)
 			continue;
 
 		// Branch resolving.

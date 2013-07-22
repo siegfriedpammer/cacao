@@ -146,7 +146,7 @@ bool cfg_build(jitdata *jd)
 			bptr->predecessorcount += 1;
 		}
 
-		if ((bptr->icount == 0) || (bptr->flags == basicblock::UNDEF))
+		if ((bptr->icount == 0) || (bptr->state == basicblock::UNDEF))
 			continue;
 
 		iptr = bptr->iinstr + bptr->icount - 1;
@@ -289,7 +289,7 @@ bool cfg_build(jitdata *jd)
 	bptr = jd->basicblocks;
 
 	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
-		if ((bptr->icount == 0) || (bptr->flags == basicblock::UNDEF))
+		if ((bptr->icount == 0) || (bptr->state == basicblock::UNDEF))
 			continue;
 
 		iptr = bptr->iinstr + bptr->icount - 1;
@@ -557,7 +557,7 @@ void cfg_add_exceptional_edges(jitdata *jd) {
 		/* Prepare for reachability calculation. */
 		bptr->vp = NULL;
 
-		if (bptr->flags == BBUNDEF) {
+		if (bptr->state == basicblock::UNDEF) {
 			continue;
 		}
 
@@ -700,7 +700,7 @@ static void cfg_eliminate_edges_to_unreachable(jitdata *jd) {
 
 			/* Mark as unreachable. */
 
-			it->flags = basicblock::UNDEF;
+			it->state = basicblock::UNDEF;
 
 			/* As this block got unreachable, it is no more a predecessor
 			   of its successors. */

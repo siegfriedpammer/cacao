@@ -284,8 +284,6 @@ static inline bool var_is_saved(const jitdata *jd, s4 i) {
 /* combined without loss of efficiency. The first one could be combined with  */
 /* the others by using bitfields.                                             */
 
-/* XXX "flags" should probably be called "state", as it is an integer state   */
-
 struct basicblock {
 	/**
 	 * State of block during stack analysis.
@@ -307,7 +305,7 @@ struct basicblock {
 	};
 
 	s4                  nr;           /* basic block number                         */
-	State               flags;        /* used during stack analysis, init with -1   */
+	State               state;        /* used during stack analysis, init with -1   */
 	s4                  bitflags;     /* OR of BBFLAG_... constants, init with 0    */
 	Type                type;         /* basic block type (std, xhandler, subroutine*/
 	s4                  lflags;       /* used during loop copying, init with 0	  */
@@ -420,13 +418,13 @@ struct basicblock {
 #define BASICBLOCK_INIT(bptr,m)                        \
 	do {                                               \
 		bptr->mpc    = -1;                             \
-		bptr->flags  = basicblock::UNDEF;              \
+		bptr->state  = basicblock::UNDEF;              \
 		bptr->type   = basicblock::TYPE_STD;           \
 		bptr->method = (m);                            \
 	} while (0)
 
 static inline bool basicblock_reached(const basicblock *bptr) {
-	return (bptr->flags >= basicblock::REACHED);
+	return (bptr->state >= basicblock::REACHED);
 }
 
 

@@ -243,7 +243,7 @@ handle_basic_block(verifier_state *state)
 	DOLOG(show_basicblock(jd, state->bptr, SHOW_STACK));
 
 	superblockend = false;
-	state->bptr->flags = basicblock::FINISHED;
+	state->bptr->state = basicblock::FINISHED;
 
 	/* prevent compiler warnings */
 
@@ -339,7 +339,7 @@ handle_basic_block(verifier_state *state)
 	if (!superblockend) {
 		OLD_LOG("reaching following block");
 		tbptr = state->bptr->next;
-		while (tbptr->flags == basicblock::DELETED) {
+		while (tbptr->state == basicblock::DELETED) {
 			tbptr = tbptr->next;
 		}
 		if (!typestate_reach(state,tbptr,state->bptr->outvars, jd->var,
@@ -393,10 +393,10 @@ bool typecheck_infer_types(jitdata *jd)
 
 	/* initialize the basic block flags for the following CFG traversal */
 
-	typecheck_init_flags(&state, basicblock::FINISHED);
+	typecheck_init_state(&state, basicblock::FINISHED);
 
     /* number of local variables */
-    
+
     /* In <init> methods we use an extra local variable to indicate whether */
     /* the 'this' reference has been initialized.                           */
 	/*         TYPE_VOID...means 'this' has not been initialized,           */
@@ -404,11 +404,11 @@ bool typecheck_infer_types(jitdata *jd)
 
     state.numlocals = state.jd->localcount;
 	state.validlocals = state.numlocals;
-    if (state.initmethod) 
+    if (state.initmethod)
 		state.numlocals++; /* VERIFIER_EXTRA_LOCALS */
 
     /* allocate the buffer of active exception handlers */
-	
+
     state.handlers = (exception_entry**) DumpMemory::allocate(sizeof(exception_entry*) * (state.jd->exceptiontablelength + 1));
 
 	/* save local variables */
@@ -438,12 +438,12 @@ bool typecheck_infer_types(jitdata *jd)
 		state.bptr   = state.basicblocks;
 
 		for (; state.bptr; state.bptr = state.bptr->next) {
-			OLD_LOGSTR1("---- BLOCK %04d, ",state.bptr->nr);
-			OLD_LOGSTR1("blockflags: %d\n",state.bptr->flags);
+			OLD_LOGSTR1("---- BLOCK %04d, ", state.bptr->nr);
+			OLD_LOGSTR1("blockflags: %d\n", state.bptr->state);
 			OLD_LOGFLUSH;
 
 			// verify reached block
-			if (state.bptr->flags == basicblock::TYPECHECK_REACHED) {
+			if (state.bptr->state == basicblock::TYPECHECK_REACHED) {
 				if (!handle_basic_block(&state))
 					return false;
 			}
@@ -455,7 +455,7 @@ bool typecheck_infer_types(jitdata *jd)
 	/* statistics */
 	/* reset the flags of blocks we haven't reached */
 
-	typecheck_reset_flags(&state);
+	typecheck_reset_state(&state);
 
 	/* restore locals */
 

@@ -279,7 +279,7 @@ static bool typecheck_stackbased_reach(verifier_state *state,
 
 	assert(destblock);
 
-	if (destblock->flags == basicblock::TYPECHECK_UNDEF) {
+	if (destblock->state == basicblock::TYPECHECK_UNDEF) {
 		/* The destblock has never been reached before */
 
 		TYPECHECK_COUNT(stat_copied);
@@ -317,7 +317,7 @@ static bool typecheck_stackbased_reach(verifier_state *state,
 
 	if (changed) {
 		OLD_LOG("\tchanged!");
-		destblock->flags = basicblock::TYPECHECK_REACHED;
+		destblock->state = basicblock::TYPECHECK_REACHED;
 		/* XXX is this check ok? */
 		if (destblock->nr <= state->bptr->nr) {
 			OLD_LOG("\tREPEAT!");
@@ -553,7 +553,7 @@ static typedescriptor_t *typecheck_stackbased_jsr(verifier_state *state,
 	tbptr = state->iptr->sx.s23.s3.jsrtarget.block;
 	jsr = state->jsrinfos[tbptr->nr];
 
-	if (jsr && tbptr->flags == basicblock::FINISHED) {
+	if (jsr && tbptr->state == basicblock::FINISHED) {
 
 		OLD_LOG1("another JSR to analysed subroutine L%03d", tbptr->nr);
 		if (jsr->active) {
@@ -605,18 +605,18 @@ static typedescriptor_t *typecheck_stackbased_jsr(verifier_state *state,
 		jsr->next = state->topjsr;
 		state->topjsr = jsr;
 
-		assert(state->iptr->sx.s23.s3.jsrtarget.block->flags == basicblock::TYPECHECK_REACHED);
+		assert(state->iptr->sx.s23.s3.jsrtarget.block->state == basicblock::TYPECHECK_REACHED);
 
-		tbptr->flags = basicblock::FINISHED;
+		tbptr->state = basicblock::FINISHED;
 
 		for (tbptr = state->basicblocks; tbptr != NULL; tbptr = tbptr->next) {
-			jsr->blockflags[tbptr->nr] = tbptr->flags;
+			jsr->blockflags[tbptr->nr] = tbptr->state;
 
-			if (tbptr->flags == basicblock::TYPECHECK_REACHED)
-				tbptr->flags = basicblock::FINISHED;
+			if (tbptr->state == basicblock::TYPECHECK_REACHED)
+				tbptr->state = basicblock::FINISHED;
 		}
 
-		state->iptr->sx.s23.s3.jsrtarget.block->flags = basicblock::TYPECHECK_REACHED;
+		state->iptr->sx.s23.s3.jsrtarget.block->state = basicblock::TYPECHECK_REACHED;
 	}
 
 	/* register this block as a caller, if not already done */
@@ -809,7 +809,7 @@ bool typecheck_stackbased(jitdata *jd)
 
 	/* initialize block flags */
 
-	typecheck_init_flags(&state, basicblock::UNDEF);
+	typecheck_init_state(&state, basicblock::UNDEF);
 
 	/* iterate until fixpoint reached */
 
@@ -821,14 +821,14 @@ bool typecheck_stackbased(jitdata *jd)
 
 		for (state.bptr = state.basicblocks; state.bptr != NULL; state.bptr = state.bptr->next) {
 
-			if (state.bptr->flags != basicblock::TYPECHECK_REACHED)
+			if (state.bptr->state != basicblock::TYPECHECK_REACHED)
 				continue;
 
 			DOLOG( show_basicblock(jd, state.bptr, SHOW_PARSE); );
 
 			/* mark this block as analysed */
 
-			state.bptr->flags = basicblock::FINISHED;
+			state.bptr->state = basicblock::FINISHED;
 
 			/* determine the active exception handlers for this block */
 			/* XXX could use a faster algorithm with sorted lists or  */
@@ -935,9 +935,9 @@ bool typecheck_stackbased(jitdata *jd)
 			/* restore REACHED flags */
 
 			for (tbptr = state.basicblocks; tbptr != NULL; tbptr = tbptr->next) {
-				assert(tbptr->flags != basicblock::TYPECHECK_REACHED);
+				assert(tbptr->state != basicblock::TYPECHECK_REACHED);
 				if (state.topjsr->blockflags[tbptr->nr] == basicblock::TYPECHECK_REACHED) {
-					tbptr->flags = basicblock::TYPECHECK_REACHED;
+					tbptr->state = basicblock::TYPECHECK_REACHED;
 					state.repeat = true;
 				}
 			}
@@ -951,7 +951,7 @@ bool typecheck_stackbased(jitdata *jd)
 
 	/* reset block flags */
 
-	typecheck_reset_flags(&state);
+	typecheck_reset_state(&state);
 
 	OLD_LOG("typecheck_stackbased successful");
 

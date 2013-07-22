@@ -157,18 +157,18 @@ void typecheck_print_statistics(FILE *file) {
 #endif /* defined(TYPECHECK_STATISTICS) */
 
 
-/* typecheck_init_flags ********************************************************
+/* typecheck_init_state ********************************************************
 
-   Initialize the basic block flags for the following CFG traversal.
+   Initialize the basic block state for the following CFG traversal.
 
    IN:
        state............the current state of the verifier
-       minflags.........minimum flags value of blocks that should be
+       minflags.........minimum state value of blocks that should be
                         considered
 
 *******************************************************************************/
 
-void typecheck_init_flags(verifier_state *state, s4 minflags)
+void typecheck_init_state(verifier_state *state, basicblock::State minstate)
 {
 	basicblock *block;
 
@@ -177,52 +177,52 @@ void typecheck_init_flags(verifier_state *state, s4 minflags)
 	for (block = state->basicblocks; block; block = block->next) {
 
 #ifdef TYPECHECK_DEBUG
-		// check for invalid flags
-		if (block->flags != basicblock::FINISHED &&
-		    block->flags != basicblock::DELETED  &&
-		    block->flags != basicblock::UNDEF)
+		// check for invalid state
+		if (block->state != basicblock::FINISHED &&
+		    block->state != basicblock::DELETED  &&
+		    block->state != basicblock::UNDEF)
 		{
-			OLD_LOGSTR1("block flags: %d\n",block->flags); OLD_LOGFLUSH;
+			OLD_LOGSTR1("block state: %d\n",block->state); OLD_LOGFLUSH;
 			TYPECHECK_ASSERT(false);
 		}
 #endif
 
-		if (block->flags >= minflags) {
-			block->flags = basicblock::TYPECHECK_UNDEF;
+		if (block->state >= minstate) {
+			block->state = basicblock::TYPECHECK_UNDEF;
 		}
 	}
 
 	// the first block is always reached
 
-	if (state->basicblockcount && state->basicblocks[0].flags == basicblock::TYPECHECK_UNDEF)
-		state->basicblocks[0].flags = basicblock::TYPECHECK_REACHED;
+	if (state->basicblockcount && state->basicblocks[0].state == basicblock::TYPECHECK_UNDEF)
+		state->basicblocks[0].state = basicblock::TYPECHECK_REACHED;
 }
 
 
-/* typecheck_reset_flags *******************************************************
+/* typecheck_reset_state *******************************************************
 
-   Reset the flags of basic blocks we have not reached.
+   Reset the state of basic blocks we have not reached.
 
    IN:
        state............the current state of the verifier
 
 *******************************************************************************/
 
-void typecheck_reset_flags(verifier_state *state)
+void typecheck_reset_state(verifier_state *state)
 {
-	// check for invalid flags at exit
+	// check for invalid state at exit
 
 #ifdef TYPECHECK_DEBUG
 	for (basicblock *block = state->basicblocks; block; block = block->next) {
-		if (block->flags != basicblock::DELETED  &&
-		    block->flags != basicblock::UNDEF    &&
-		    block->flags != basicblock::FINISHED &&
-		    block->flags != basicblock::TYPECHECK_UNDEF) // typecheck may never reach
+		if (block->state != basicblock::DELETED  &&
+		    block->state != basicblock::UNDEF    &&
+		    block->state != basicblock::FINISHED &&
+		    block->state != basicblock::TYPECHECK_UNDEF) // typecheck may never reach
 		                                                 // some exception handlers,
 		                                                 // that's ok.
 		{
-			OLD_LOG2("block L%03d has invalid flags after typecheck: %d",
-				 block->nr,block->flags);
+			OLD_LOG2("block L%03d has invalid state after typecheck: %d",
+				 block->nr,block->state);
 			TYPECHECK_ASSERT(false);
 		}
 	}
@@ -231,8 +231,8 @@ void typecheck_reset_flags(verifier_state *state)
 	// Delete blocks we never reached
 
 	for (basicblock *block = state->basicblocks; block; block = block->next) {
-		if (block->flags == basicblock::TYPECHECK_UNDEF)
-			block->flags = basicblock::DELETED;
+		if (block->state == basicblock::TYPECHECK_UNDEF)
+			block->state = basicblock::DELETED;
 	}
 }
 
@@ -426,7 +426,7 @@ bool typestate_reach(verifier_state *state,
 
 	destloc = destblock->inlocals;
 
-	if (destblock->flags == basicblock::TYPECHECK_UNDEF) {
+	if (destblock->state == basicblock::TYPECHECK_UNDEF) {
 		/* The destblock has never been reached before */
 
 		TYPECHECK_COUNT(stat_copied);
@@ -453,7 +453,7 @@ bool typestate_reach(verifier_state *state,
 
 	if (changed) {
 		OLD_LOG("changed!");
-		destblock->flags = basicblock::TYPECHECK_REACHED;
+		destblock->state = basicblock::TYPECHECK_REACHED;
 		if (destblock->nr <= state->bptr->nr) {
 			OLD_LOG("REPEAT!");
 			state->repeat = true;

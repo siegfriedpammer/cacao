@@ -510,7 +510,7 @@ static basicblock *create_block(ssa_info *ssa, basicblock *from, basicblock *to)
 	mid->nr = ssa->jd->basicblockcount;
 	ssa->jd->basicblockcount += 1;
 	mid->mpc = -1;
-	mid->type = 666;
+	mid->type = (basicblock::Type) 666;
 	mid->icount = toi->phi_count + 1;
 	iptr = mid->iinstr = DMNEW(instruction, mid->icount);
 	MZERO(mid->iinstr, instruction, mid->icount);
@@ -579,7 +579,7 @@ static void ssa_create_phi_moves(ssa_info *ssa) {
 			continue;
 		}
 		if (! bptr->vp) continue;
-		if (! (bptr->flags >= basicblock::REACHED)) continue;
+		if (! (bptr->state >= basicblock::REACHED)) continue;
 		gt = false;
 		for (iptr = bptr->iinstr; iptr != bptr->iinstr + bptr->icount; ++iptr) {
 			switch (icmd_table[iptr->opc].controlflow) {
@@ -618,7 +618,7 @@ static void ssa_create_phi_moves(ssa_info *ssa) {
 				gt = false;
 		}
 		if (! bptr->next) continue;
-		if (! (bptr->next->flags >= basicblock::REACHED)) continue;
+		if (! (bptr->next->state >= basicblock::REACHED)) continue;
 		if (bptr->next->type == 666) continue;
 		if (!gt) crate_fallthrough(ssa, bptr);
 	}

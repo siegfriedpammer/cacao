@@ -61,10 +61,6 @@
 /* #define USAGE_PER_INSTR */    /* divide usagecount by lifetimelength */
 
 
-
-#define min(a,b) ((a)<(b)?(a):(b))
-#define max(a,b) ((a)<(b)?(b):(a))
-
 struct site {
 	int b_index;
 	int iindex;

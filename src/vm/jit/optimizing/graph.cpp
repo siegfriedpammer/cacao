@@ -223,7 +223,7 @@ void graph_make_cfg(jitdata *jd,graphdata *gd) {
 	graph_add_edge(gd, 0, 1);
 
 	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
-		if (bptr->flags >= basicblock::REACHED) {
+		if (bptr->state >= basicblock::REACHED) {
 			if ((len = bptr->icount)) {
 				/* set iptr to last non NOP instruction	*/
 				iptr = bptr->iinstr + bptr->icount -1;
@@ -323,7 +323,7 @@ void graph_make_cfg(jitdata *jd,graphdata *gd) {
 					break;
 			    } /* switch (iptr->opc)*/
 		    }     /* if (bptr->icount) */
-	    }         /* if (bptr->flags >= basicblock::REACHED) */
+	    }         /* if (bptr->state >= basicblock::REACHED) */
 	}             /* for (bptr = ...; bptr != NULL; bptr = bptr->next) */
 
  	graph_add_exceptions(jd, gd);
@@ -365,17 +365,17 @@ void graph_add_exceptions(jitdata *jd, graphdata *gd) {
 #endif
 
 		_GRAPH_ASSERT(ex->handler->nr < jd->new_basicblockcount);
-		_GRAPH_ASSERT(ex->handler->flags >= basicblock::REACHED);
+		_GRAPH_ASSERT(ex->handler->state >= basicblock::REACHED);
 		_GRAPH_ASSERT(ex->start->nr <= ex->end->nr);
 
 		/* loop all valid Basic Blocks of the guarded area and add CFG edges  */
 		/* to the appropriate handler */
 		for (bptr = ex->start; (bptr != NULL) && (bptr != ex->end); bptr = bptr->next)
-			if (bptr->flags >= basicblock::REACHED)
+			if (bptr->state >= basicblock::REACHED)
 				graph_add_cfg(jd, gd, bptr, ex->handler);
 
 		_GRAPH_ASSERT((bptr != NULL)
-					  && ((bptr->flags >=basicblock::REACHED) || (bptr == ex->end)));
+					  && ((bptr->state >=basicblock::REACHED) || (bptr == ex->end)));
 	}
 #ifdef GRAPH_DEBUG_VERBOSE
 	if (compileverbose)
@@ -396,7 +396,7 @@ void graph_add_cfg( jitdata *jd, graphdata *gd, basicblock *from,
 	/*       best together with using the basicblock list, so lsra works */
 	/*       with opt_loops, too */
 
-	for (; (to != NULL) && (to->flags < basicblock::REACHED); to = to->next);
+	for (; (to != NULL) && (to->state < basicblock::REACHED); to = to->next);
 
 	_GRAPH_ASSERT(to != NULL);
 
@@ -481,7 +481,7 @@ void graph_init_basicblock(jitdata *jd, basicblock *bptr, int b_index) {
 		bptr->icount     = 0;
 		bptr->iinstr     = NULL;
 		bptr->type       = basicblock::TYPE_STD;
-		bptr->flags      = basicblock::FINISHED;
+		bptr->state      = basicblock::FINISHED;
 		bptr->invars     = NULL;
 		bptr->outvars    = NULL;
 		bptr->indepth    = 0;
@@ -671,7 +671,7 @@ void transform_BB(jitdata *jd, graphdata *gd) {
 	/* so take the one before, to insert new blocks after it */
 	last_block = &(jd->basicblocks[jd->basicblockcount - 1]);
 	_GRAPH_ASSERT(last_block->next->next  == NULL);
-	_GRAPH_ASSERT(last_block->next->flags <= basicblock::REACHED);
+	_GRAPH_ASSERT(last_block->next->state <= basicblock::REACHED);
 	last_block->next->nr = ls->basicblockcount;
 
 	/* look through new blocks */

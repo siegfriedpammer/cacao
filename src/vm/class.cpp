@@ -1486,7 +1486,7 @@ bool class_isanysubclass(classinfo *sub, classinfo *super)
 		/* java.lang.Object is the only super class of any
 		   interface. */
 
-		if (sub->flags & ACC_INTERFACE)
+		if (sub->state & ACC_INTERFACE)
 			return (super == class_java_lang_Object);
 
 #if USES_NEW_SUBTYPE

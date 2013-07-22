@@ -704,10 +704,10 @@ void _lt_scanlifetimes(jitdata *jd, graphdata *gd, basicblock *bptr,
 
 #ifdef LT_DEBUG_VERBOSE
 	if (compileverbose)
-		printf("_lt_scanlifetimes: BB %3i flags %3i\n", b_index, bptr->flags);
+		printf("_lt_scanlifetimes: BB %3i flags %3i\n", b_index, bptr->state);
 #endif
 
-	if (bptr->flags >= basicblock::REACHED) {
+	if (bptr->state >= basicblock::REACHED) {
 
 /* 		b_index = bptr->nr; */
 
@@ -816,7 +816,7 @@ void _lt_scanlifetimes(jitdata *jd, graphdata *gd, basicblock *bptr,
 				lt_usage(jd, v, b_index, iindex, LT_DEF);
 			}
 		} /* for (;iindex >= 0; iindex--, iptr--) */
-	} /* if (bptr->flags >= basicblock::REACHED) */
+	} /* if (bptr->state >= basicblock::REACHED) */
 } /* scan_lifetimes */
 
 

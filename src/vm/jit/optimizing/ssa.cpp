@@ -366,9 +366,9 @@ void ssa_init(jitdata *jd) {
 	for(; bptr != NULL; bptr = bptr->next) {
 #ifdef SSA_DEBUG_VERBOSE
 	if (compileverbose)
-		printf("ssa_init: BB %3i flags %3x\n",bptr->nr, bptr->flags);
+		printf("ssa_init: BB %3i state %3x\n",bptr->nr, bptr->state);
 #endif
-		if (bptr->flags >= basicblock::REACHED) {
+		if (bptr->state >= basicblock::REACHED) {
 
 			/* 'valid' Basic Block */
 

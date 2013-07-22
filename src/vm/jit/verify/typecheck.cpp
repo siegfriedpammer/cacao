@@ -537,7 +537,7 @@ handle_basic_block(verifier_state *state)
 	OLD_LOGFLUSH;
 
 	superblockend      = false;
-	state->bptr->flags = basicblock::FINISHED;
+	state->bptr->state = basicblock::FINISHED;
 
 	/* prevent compiler warnings */
 
@@ -635,7 +635,7 @@ handle_basic_block(verifier_state *state)
 	if (!superblockend) {
 		OLD_LOG("reaching following block");
 		tbptr = state->bptr->next;
-		while (tbptr->flags == basicblock::DELETED) {
+		while (tbptr->state == basicblock::DELETED) {
 			tbptr = tbptr->next;
 #ifdef TYPECHECK_DEBUG
 			/* this must be checked in parse.c */
@@ -730,7 +730,7 @@ bool typecheck(jitdata *jd)
 
 	/* initialize the basic block flags for the following CFG traversal */
 
-	typecheck_init_flags(&state, basicblock::FINISHED);
+	typecheck_init_state(&state, basicblock::FINISHED);
 
     /* number of local variables */
 
@@ -784,11 +784,11 @@ bool typecheck(jitdata *jd)
 
 		for (; state.bptr; state.bptr = state.bptr->next) {
 			OLD_LOGSTR1("---- BLOCK %04d, ",state.bptr->nr);
-			OLD_LOGSTR1("blockflags: %d\n",state.bptr->flags);
+			OLD_LOGSTR1("blockflags: %d\n",state.bptr->state);
 			OLD_LOGFLUSH;
 
 			// verify reached block
-			if (state.bptr->flags == basicblock::TYPECHECK_REACHED) {
+			if (state.bptr->state == basicblock::TYPECHECK_REACHED) {
 				if (!handle_basic_block(&state))
 					return false;
 			}
@@ -808,7 +808,7 @@ bool typecheck(jitdata *jd)
 
 	/* reset the flags of blocks we haven't reached */
 
-	typecheck_reset_flags(&state);
+	typecheck_reset_state(&state);
 
 	/* restore locals */
 
