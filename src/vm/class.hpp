@@ -52,13 +52,16 @@ struct methodinfo;
 
 /* class state defines ********************************************************/
 
-#define CLASS_LOADING         0x0001
-#define CLASS_LOADED          0x0002
-#define CLASS_LINKING         0x0004
-#define CLASS_LINKED          0x0008
-#define CLASS_INITIALIZING    0x0010
-#define CLASS_INITIALIZED     0x0020
-#define CLASS_ERROR           0x0040
+enum ClassState {
+	CLASS_LOADING      = 0x0001,
+	CLASS_LOADED       = 0x0002,
+	CLASS_LINKING      = 0x0004,
+	CLASS_LINKED       = 0x0008,
+	CLASS_INITIALIZING = 0x0010,
+	CLASS_INITIALIZED  = 0x0020,
+	CLASS_ERROR        = 0x0040
+};
+
 
 /* classinfo ******************************************************************/
 
