@@ -187,56 +187,58 @@ enum ConstantPoolTag {
 
 /* Class/Field/Method access and property flags *******************************/
 
-#define ACC_UNDEF               -1      /* used internally                    */
-#define ACC_NONE                 0      /* used internally                    */
+enum {
+	ACC_UNDEF        =     -1,      // used internally
+	ACC_NONE         =      0,      // used internally
 
-#define ACC_PUBLIC          0x0001
-#define ACC_PRIVATE         0x0002
-#define ACC_PROTECTED       0x0004
-#define ACC_STATIC          0x0008
-#define ACC_FINAL           0x0010
-#define ACC_SUPER           0x0020
-#define ACC_SYNCHRONIZED    0x0020
-#define ACC_VOLATILE        0x0040
-#define ACC_BRIDGE          0x0040
-#define ACC_TRANSIENT       0x0080
-#define ACC_VARARGS         0x0080
-#define ACC_NATIVE          0x0100
-#define ACC_INTERFACE       0x0200
-#define ACC_ABSTRACT        0x0400
-#define ACC_STRICT          0x0800
-#define ACC_SYNTHETIC       0x1000
-#define ACC_ANNOTATION      0x2000
-#define ACC_ENUM            0x4000
-#define ACC_MIRANDA         0x8000
+	ACC_PUBLIC       = 0x0001,
+	ACC_PRIVATE      = 0x0002,
+	ACC_PROTECTED    = 0x0004,
+	ACC_STATIC       = 0x0008,
+	ACC_FINAL        = 0x0010,
+	ACC_SUPER        = 0x0020,
+	ACC_SYNCHRONIZED = 0x0020,
+	ACC_VOLATILE     = 0x0040,
+	ACC_BRIDGE       = 0x0040,
+	ACC_TRANSIENT    = 0x0080,
+	ACC_VARARGS      = 0x0080,
+	ACC_NATIVE       = 0x0100,
+	ACC_INTERFACE    = 0x0200,
+	ACC_ABSTRACT     = 0x0400,
+	ACC_STRICT       = 0x0800,
+	ACC_SYNTHETIC    = 0x1000,
+	ACC_ANNOTATION   = 0x2000,
+	ACC_ENUM         = 0x4000,
+	ACC_MIRANDA      = 0x8000
+};
 
 /* special flags used in classinfo ********************************************/
 
-#define ACC_CLASS_REFLECT_MASK      0x0000ffff/* flags reported by reflection */
+enum ClassFlag {
+	ACC_CLASS_REFLECT_MASK      = 0x0000ffff, // flags reported by reflection
 
-#define ACC_CLASS_PRIMITIVE         0x00010000
-#define ACC_CLASS_MEMBER            0x00020000
-#define ACC_CLASS_ANONYMOUS         0x00040000
+	ACC_CLASS_PRIMITIVE         = 0x00010000,
+	ACC_CLASS_MEMBER            = 0x00020000,
+	ACC_CLASS_ANONYMOUS         = 0x00040000,
 
-#define ACC_CLASS_HAS_POINTERS      0x00080000/* instance contains pointers   */
+	ACC_CLASS_HAS_POINTERS      = 0x00080000, // instance contains pointers
 
-#define ACC_CLASS_REFERENCE_MASK    0x00700000
-#define ACC_CLASS_REFERENCE_SOFT    0x00100000
-#define ACC_CLASS_REFERENCE_WEAK    0x00200000
-#define ACC_CLASS_REFERENCE_PHANTOM 0x00400000
-
+	ACC_CLASS_REFERENCE_MASK    = 0x00700000,
+	ACC_CLASS_REFERENCE_SOFT    = 0x00100000,
+	ACC_CLASS_REFERENCE_WEAK    = 0x00200000,
+	ACC_CLASS_REFERENCE_PHANTOM = 0x00400000
+};
 
 /* special flags used in methodinfo *******************************************/
 
-#define ACC_METHOD_BUILTIN     0x00010000     /* use for descriptor parsing   */
-#define ACC_METHOD_IMPLEMENTED 0x00020000     /* there is an implementation   */
-#define ACC_METHOD_MONOMORPHIC 0x00040000     /* currently monomorphic method */
-#define ACC_METHOD_EA          0x00080000     /* method being escape analyzed */
-#define ACC_METHOD_MONOMORPHY_USED \
-                               0x00100000
-#define ACC_METHOD_PARENT_MONOMORPHY_USED \
-                               0x00200000
-
+enum MethodFlag {
+	ACC_METHOD_BUILTIN                = 0x00010000, // use for descriptor parsing
+	ACC_METHOD_IMPLEMENTED            = 0x00020000, // there is an implementation
+	ACC_METHOD_MONOMORPHIC            = 0x00040000, // currently monomorphic method
+	ACC_METHOD_EA                     = 0x00080000, // method being escape analyzed
+	ACC_METHOD_MONOMORPHY_USED        = 0x00100000,
+	ACC_METHOD_PARENT_MONOMORPHY_USED = 0x00200000
+};
 
 /* data structures of the runtime system **************************************/
 
