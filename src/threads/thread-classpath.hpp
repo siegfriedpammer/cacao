@@ -27,15 +27,9 @@
 #define THREAD_CLASSPATH_HPP_ 1
 
 #include "config.h"
+#include "threads/thread.hpp"
 #include "vm/global.hpp"
 #include "vm/types.hpp"
-
-// Include early to get threadobject.
-#if defined(ENABLE_THREADS)
-# include "threads/posix/thread-posix.hpp"
-#else
-# include "threads/none/thread-none.hpp"
-#endif
 
 struct classinfo;
 class java_lang_Thread;

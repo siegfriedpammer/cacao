@@ -26,6 +26,10 @@
 #ifndef THREAD_POSIX_HPP_
 #define THREAD_POSIX_HPP_ 1
 
+#ifndef THREAD_HPP_
+# error "Do not directly include this header, include threads/thread.hpp instead"
+#endif
+
 #include "config.h"
 
 #include <pthread.h>
@@ -52,17 +56,20 @@ class DumpMemory;
 
 *******************************************************************************/
 
-#define THREAD_FLAG_JAVA        0x01    /* a normal Java thread               */
-#define THREAD_FLAG_INTERNAL    0x02    /* CACAO internal thread              */
-#define THREAD_FLAG_DAEMON      0x04    /* daemon thread                      */
-#define THREAD_FLAG_IN_NATIVE   0x08    /* currently executing native code    */
+enum ThreadFlag {
+	THREAD_FLAG_JAVA      = 0x01,   // a normal Java thread
+	THREAD_FLAG_INTERNAL  = 0x02,   // CACAO internal thread
+	THREAD_FLAG_DAEMON    = 0x04,   // daemon thread
+	THREAD_FLAG_IN_NATIVE = 0x08    // currently executing native code
+};
 
-#define SUSPEND_REASON_NONE      0      /* no reason to suspend               */
-#define SUSPEND_REASON_JAVA      1      /* suspended from java.lang.Thread    */
-#define SUSPEND_REASON_STOPWORLD 2      /* suspended from stop-the-world      */
-#define SUSPEND_REASON_DUMP      3      /* suspended from threadlist dumping  */
-#define SUSPEND_REASON_JVMTI     4      /* suspended from JVMTI agent         */
-
+enum SuspendReason {
+	SUSPEND_REASON_NONE      = 0,   // no reason to suspend
+	SUSPEND_REASON_JAVA      = 1,   // suspended from java.lang.Thread
+	SUSPEND_REASON_STOPWORLD = 2,   // suspended from stop-the-world
+	SUSPEND_REASON_DUMP      = 3,   // suspended from threadlist dumping
+	SUSPEND_REASON_JVMTI     = 4    // suspended from JVMTI agent
+};
 
 typedef struct threadobject threadobject;
 
@@ -73,7 +80,7 @@ struct threadobject {
 
 	s4                    index;        /* thread index, starting with 1      */
 	u4                    flags;        /* flag field                         */
-	u4                    state;        /* state field                        */
+	ThreadState           state;        /* state field                        */
 	bool                  is_in_active_list; /* for debugging only            */
 
 	pthread_t             tid;          /* pthread id                         */
@@ -103,7 +110,7 @@ struct threadobject {
 	bool                  park_permit;
 
 	bool                  suspended;    /* is this thread suspended?          */
-	s4                    suspend_reason; /* reason for suspending            */
+	SuspendReason         suspend_reason; /* reason for suspending            */
 
 	u1                   *pc;           /* current PC (used for profiling)    */
 
@@ -265,8 +272,8 @@ void threads_start_thread(threadobject *thread, functionptr function);
 
 void threads_set_thread_priority(pthread_t tid, int priority);
 
-bool threads_suspend_thread(threadobject *thread, int32_t reason);
-bool threads_resume_thread(threadobject *thread, int32_t reason);
+bool threads_suspend_thread(threadobject *thread, SuspendReason reason);
+bool threads_resume_thread(threadobject *thread, SuspendReason reason);
 void threads_suspend_ack();
 
 void threads_join_all_threads(void);

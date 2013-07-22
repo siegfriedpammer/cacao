@@ -24,8 +24,8 @@
 
 #define __STDC_LIMIT_MACROS
 
-#include "threads/posix/thread-posix.hpp" // for threadobject, etc
-#include <assert.h>                       // for assert
+#include "threads/thread.hpp"           // for threadobject, etc
+#include <assert.h>                     // for assert
 #include <errno.h>                      // for errno, EINTR
 #include <pthread.h>                    // for pthread_attr_init, etc
 #include <sched.h>                      // for sched_param, sched_yield, etc
@@ -423,9 +423,9 @@ void threads_impl_thread_clear(threadobject *t)
 
 	t->thinlock = 0;
 
-	t->index = 0;
-	t->flags = 0;
-	t->state = 0;
+	t->index             = 0;
+	t->flags             = 0;
+	t->state             = THREAD_STATE_NEW;
 	t->is_in_active_list = false;
 
 	t->tid = 0;
@@ -435,14 +435,14 @@ void threads_impl_thread_clear(threadobject *t)
 #endif
 
 	t->interrupted = false;
-	t->signaled = false;
+	t->signaled    = false;
 
-	t->suspended = false;
-	t->suspend_reason = 0;
+	t->suspended      = false;
+	t->suspend_reason = SUSPEND_REASON_NONE;
 
 	t->pc = NULL;
 
-	t->_exceptionptr = NULL;
+	t->_exceptionptr   = NULL;
 	t->_stackframeinfo = NULL;
 	t->_localref_table = NULL;
 
@@ -1026,7 +1026,7 @@ static void threads_suspend_self()
  * @param reason Reason for suspending the given thread.
  * @return True of operation was successful, false otherwise.
  */
-bool threads_suspend_thread(threadobject *thread, int32_t reason)
+bool threads_suspend_thread(threadobject *thread, SuspendReason reason)
 {
 	// Sanity check.
 	assert(reason != SUSPEND_REASON_NONE);
@@ -1073,7 +1073,7 @@ bool threads_suspend_thread(threadobject *thread, int32_t reason)
  * @param reason Reason for suspending the given thread.
  * @return True of operation was successful, false otherwise.
  */
-bool threads_resume_thread(threadobject *thread, int32_t reason)
+bool threads_resume_thread(threadobject *thread, SuspendReason reason)
 {
 	// Sanity check.
 	assert(thread != THREADOBJECT);

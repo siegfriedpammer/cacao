@@ -28,20 +28,10 @@
 
 #include "config.h"
 
-#include "vm/types.hpp"
-
-// Include early to get threadobject.
-#if defined(ENABLE_THREADS)
-# include "threads/posix/thread-posix.hpp"
-#else
-# include "threads/none/thread-none.hpp"
-#endif
-
-#include "vm/os.hpp"
-
 #include "native/llni.hpp"
-
 #include "vm/global.hpp"
+#include "vm/os.hpp"
+#include "vm/types.hpp"
 #include "vm/utf8.hpp"
 
 // short-hand for '#ifdef ENABLE_THREADS' block
@@ -57,22 +47,24 @@
 
 /* thread states **************************************************************/
 
-#define THREAD_STATE_NEW              0
-#define THREAD_STATE_RUNNABLE         1
-#define THREAD_STATE_BLOCKED          2
-#define THREAD_STATE_WAITING          3
-#define THREAD_STATE_TIMED_WAITING    4
-#define THREAD_STATE_TERMINATED       5
-#define THREAD_STATE_PARKED           6
-#define THREAD_STATE_TIMED_PARKED     7
-
+enum ThreadState {
+	THREAD_STATE_NEW           = 0,
+	THREAD_STATE_RUNNABLE      = 1,
+	THREAD_STATE_BLOCKED       = 2,
+	THREAD_STATE_WAITING       = 3,
+	THREAD_STATE_TIMED_WAITING = 4,
+	THREAD_STATE_TERMINATED    = 5,
+	THREAD_STATE_PARKED        = 6,
+	THREAD_STATE_TIMED_PARKED  = 7
+};
 
 /* thread priorities **********************************************************/
 
-#define MIN_PRIORITY     1
-#define NORM_PRIORITY    5
-#define MAX_PRIORITY     10
-
+enum ThreadPriority {
+	MIN_PRIORITY  =  1,
+	NORM_PRIORITY =  5,
+	MAX_PRIORITY  = 10
+};
 
 /* debug **********************************************************************/
 
@@ -95,6 +87,13 @@
 #if defined(__LINUX__)
 /* XXX Remove for exact-GC. */
 extern bool threads_pthreads_implementation_nptl;
+#endif
+
+// Include early to get threadobject.
+#if defined(ENABLE_THREADS)
+# include "threads/posix/thread-posix.hpp"
+#else
+# include "threads/none/thread-none.hpp"
 #endif
 
 /* inline functions ***********************************************************/

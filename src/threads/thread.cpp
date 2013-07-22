@@ -759,7 +759,7 @@ intptr_t threads_get_current_tid(void)
  * the new state is valid. It is best to not call this method directly
  * but call the specific setter methods below.
  */
-static inline void thread_set_state(threadobject *t, int state)
+static inline void thread_set_state(threadobject *t, ThreadState state)
 {
 	// Set the state of our internal threadobject.
 	t->state = state;
