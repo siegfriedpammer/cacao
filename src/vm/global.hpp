@@ -113,19 +113,27 @@ typedef struct java_objectarray_t java_objectarray_t;
 
 /* basic data types ***********************************************************/
 
-/* The JavaVM types must numbered in the same order as the ICMD_Ixxx
-   to ICMD_Axxx instructions (LOAD and STORE).  All other types can be
-   numbered arbitrarily. */
+/**
+ * Types used internally by JITTED code.
+ *
+ * The JavaVM types must numbered in the same order as the ICMD_Ixxx
+ * to ICMD_Axxx instructions (LOAD and STORE).  All other types can be
+ * numbered arbitrarily.
+ *
+ * @Cpp11 Use an enum class for better scoping and control over
+ *        storage type.
+ */
+enum Type {
+	TYPE_INT  =  0,
+	TYPE_LNG  =  1,
+	TYPE_FLT  =  2,
+	TYPE_DBL  =  3,
+	TYPE_ADR  =  4,
 
-#define TYPE_INT     0
-#define TYPE_LNG     1
-#define TYPE_FLT     2
-#define TYPE_DBL     3
-#define TYPE_ADR     4
+	TYPE_RET  =  8,   // must not share bits with TYPE_FLT or TYPE_LNG
 
-#define TYPE_RET     8   /* must not share bits with TYPE_FLT or TYPE_LNG */
-
-#define TYPE_VOID    10
+	TYPE_VOID = 10
+};
 
 
 #define IS_INT_LNG_TYPE(a)      (!((a) & TYPE_FLT))
