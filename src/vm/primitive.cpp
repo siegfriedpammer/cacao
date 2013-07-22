@@ -56,7 +56,7 @@
 
 *******************************************************************************/
 
-primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = {
+primitivetypeinfo primitivetype_table[PRIMITIVETYPE_MAX] = {
 	{ "int"     , NULL, NULL, NULL, "java/lang/Integer",   'I', "[I", NULL },
 	{ "long"    , NULL, NULL, NULL, "java/lang/Long",      'J', "[J", NULL },
 	{ "float"   , NULL, NULL, NULL, "java/lang/Float",     'F', "[F", NULL },
@@ -97,7 +97,7 @@ void Primitive::initialize_table()
 
 	/* Load and link primitive-type classes and array-classes. */
 
-	for (int i = 0; i < PRIMITIVETYPE_COUNT; i++) {
+	for (int i = 0; i < PRIMITIVETYPE_MAX; i++) {
 		/* Skip dummy entries. */
 
 		if (primitivetype_table[i].cname == NULL)
@@ -164,7 +164,7 @@ void Primitive::initialize_table()
 	/* We use two for-loops to have the array-classes already in the
 	   primitive-type table (hint: annotations in wrapper-classes). */
 
-	for (int i = 0; i < PRIMITIVETYPE_COUNT; i++) {
+	for (int i = 0; i < PRIMITIVETYPE_MAX; i++) {
 		/* Skip dummy entries. */
 
 		if (primitivetype_table[i].cname == NULL)
@@ -203,21 +203,18 @@ void Primitive::initialize_table()
  */
 void Primitive::post_initialize_table()
 {
-	classinfo *c;
-	int        i;
-
 	TRACESUBSYSTEMINITIALIZATION("primitive_postinit");
 
 	assert(class_java_lang_Class);
 	assert(class_java_lang_Class->vftbl);
 
-	for (i = 0; i < PRIMITIVETYPE_COUNT; i++) {
+	for (int i = 0; i < PRIMITIVETYPE_MAX; i++) {
 		/* Skip dummy entries. */
 
 		if (primitivetype_table[i].cname == NULL)
 			continue;
 
-		c = primitivetype_table[i].class_primitive;
+		classinfo *c = primitivetype_table[i].class_primitive;
 
 		c->object.header.vftbl = class_java_lang_Class->vftbl;
 	}
@@ -233,16 +230,15 @@ void Primitive::post_initialize_table()
  */
 classinfo* Primitive::get_class_by_name(Utf8String name)
 {
-	int i;
-
 	/* search table of primitive classes */
 
-	for (i = 0; i < PRIMITIVETYPE_COUNT; i++)
+	for (int i = 0; i < PRIMITIVETYPE_MAX; i++)
 		if (primitivetype_table[i].name == name)
 			return primitivetype_table[i].class_primitive;
 
 	/* keep compiler happy */
 
+	assert(false);
 	return NULL;
 }
 
@@ -317,16 +313,15 @@ classinfo* Primitive::get_class_by_char(char ch)
  */
 classinfo* Primitive::get_arrayclass_by_name(Utf8String name)
 {
-	int i;
-
 	/* search table of primitive classes */
 
-	for (i = 0; i < PRIMITIVETYPE_COUNT; i++)
+	for (int i = 0; i < PRIMITIVETYPE_MAX; i++)
 		if (primitivetype_table[i].name == name)
 			return primitivetype_table[i].arrayclass;
 
 	/* keep compiler happy */
 
+	assert(false);
 	return NULL;
 }
 
@@ -353,11 +348,9 @@ classinfo* Primitive::get_arrayclass_by_type(int type)
  */
 int Primitive::get_type_by_wrapperclass(classinfo *c)
 {
-	int i;
-
 	/* Search primitive table. */
 
-	for (i = 0; i < PRIMITIVETYPE_COUNT; i++)
+	for (int i = 0; i < PRIMITIVETYPE_MAX; i++)
 		if (primitivetype_table[i].class_wrap == c)
 			return i;
 
@@ -378,7 +371,7 @@ int Primitive::get_type_by_primitiveclass(classinfo *c)
 {
 	/* Search primitive table. */
 
-	for (int i = 0; i < PRIMITIVETYPE_COUNT; i++)
+	for (int i = 0; i < PRIMITIVETYPE_MAX; i++)
 		if (primitivetype_table[i].class_primitive == c)
 			return i;
 	
@@ -449,7 +442,6 @@ java_handle_t* Primitive::box(int type, imm_union value)
 imm_union Primitive::unbox(java_handle_t *h)
 {
 	classinfo *c;
-	int        type;
 	imm_union  value;
 
 	if (h == NULL) {
@@ -459,7 +451,7 @@ imm_union Primitive::unbox(java_handle_t *h)
 
 	LLNI_class_get(h, c);
 
-	type = get_type_by_wrapperclass(c);
+	int type = get_type_by_wrapperclass(c);
 
 	switch (type) {
 	case PRIMITIVETYPE_BOOLEAN:

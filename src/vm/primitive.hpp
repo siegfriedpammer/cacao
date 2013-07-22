@@ -38,27 +38,29 @@ struct classinfo;
 
 /* primitive data types *******************************************************/
 
-/* These values are used in parsed descriptors and in some other
-   places were the different types handled internally as TYPE_INT have
-   to be distinguished. */
+/**
+ * JVM types
+ *
+ * These values are used in parsed descriptors and in some other
+ * places were the different types handled internally as TYPE_INT have
+ * to be distinguished.
+ *
+ * CAUTION: Don't change the numerical values! These constants are
+ * used as indices into the primitive type table.
+ */
+enum PrimitiveType {
+	PRIMITIVETYPE_INT     = TYPE_INT,
+	PRIMITIVETYPE_LONG    = TYPE_LNG,
+	PRIMITIVETYPE_FLOAT   = TYPE_FLT,
+	PRIMITIVETYPE_DOUBLE  = TYPE_DBL,
+	PRIMITIVETYPE_BYTE    = 5,
+	PRIMITIVETYPE_CHAR    = 6,
+	PRIMITIVETYPE_SHORT   = 7,
+	PRIMITIVETYPE_BOOLEAN = 8,
+	PRIMITIVETYPE_VOID    = TYPE_VOID,
 
-#define PRIMITIVETYPE_COUNT  11  /* number of primitive types (+ dummies)     */
-
-/* CAUTION: Don't change the numerical values! These constants are
-   used as indices into the primitive type table. */
-
-#define PRIMITIVETYPE_INT     TYPE_INT
-#define PRIMITIVETYPE_LONG    TYPE_LNG
-#define PRIMITIVETYPE_FLOAT   TYPE_FLT
-#define PRIMITIVETYPE_DOUBLE  TYPE_DBL
-#define PRIMITIVETYPE_DUMMY1  TYPE_ADR     /* not used! */
-#define PRIMITIVETYPE_BYTE    5
-#define PRIMITIVETYPE_CHAR    6
-#define PRIMITIVETYPE_SHORT   7
-#define PRIMITIVETYPE_BOOLEAN 8
-#define PRIMITIVETYPE_DUMMY2  9            /* not used! */
-#define PRIMITIVETYPE_VOID    TYPE_VOID
-
+	PRIMITIVETYPE_MAX     = 11  // maximum value of a primitive type
+};
 
 class Primitive {
 public:
@@ -116,7 +118,7 @@ struct primitivetypeinfo {
 /* This array can be indexed by the PRIMITIVETYPE_ and ARRAYTYPE_
    constants (except ARRAYTYPE_OBJECT). */
 
-extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
+extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_MAX];
 
 /* this function is in src/vm/primitivecore.c */
 void       primitive_init(void);
