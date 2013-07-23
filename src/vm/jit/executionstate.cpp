@@ -31,15 +31,12 @@
 #include "md-abi.hpp"                   // for FLT_REG_CNT, INT_REG_CNT
 #include "md.hpp"                       // for md_codegen_get_pv_from_pc, etc
 #include "vm/descriptor.hpp"            // for methoddesc
+#include "vm/exceptions.hpp"            // for exceptions_handle_exception
 #include "vm/jit/abi.hpp"               // for nregdescfloat, nregdescint
 #include "vm/jit/code.hpp"              // for codeinfo, etc
 #include "vm/method.hpp"                // for method_print, methodinfo
 #include "vm/os.hpp"                    // for os
 #include "vm/types.hpp"                 // for s4, ptrint, u1, u8
-
-
-//#include "vm/exceptions.hpp"
-
 
 /**
  * Restore callee-saved registers (including the RA register),
@@ -150,11 +147,6 @@ void executionstate_pop_stackframe(executionstate_t *es)
 # endif
 #endif /* !defined(NDEBUG) */
 }
-
-
-// XXX Move this prototype somewhere else!
-void *exceptions_handle_exception(java_object_t *xptro, void *xpc, void *pv, void *sp);
-
 
 /**
  * Performs stack unwinding in case of an exception. This is done by
