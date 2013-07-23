@@ -437,7 +437,7 @@ bool typevector_checkreference(varinfo *set,int index);
 bool typevector_checkretaddr(varinfo *set,int index);
 
 /* element write access */
-void typevector_store(varinfo *set,int index,int type,typeinfo_t *info);
+void typevector_store(varinfo *set,int index, Type type,typeinfo_t *info);
 void typevector_store_retaddr(varinfo *set,int index,typeinfo_t *info);
 bool typevector_init_object(varinfo *set,void *ins,classref_or_classinfo initclass,int size);
 

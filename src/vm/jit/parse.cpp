@@ -2099,7 +2099,7 @@ invoke_method:
 			for (t=0; t<5; t++) {
 				varindex = local_map[5*i + t];
 				if (varindex != UNUSED) {
-					VAR(varindex)->type = t;
+					VAR(varindex)->type = (Type) t;
 					reversemap[varindex] = i;
 				}
 			}

@@ -357,7 +357,7 @@ static inline void instruction_set_uses(instruction *iptr, s4 *buf, s4 *uses, un
 #define VARS_CATEGORY_STACK 1
 #define VARS_CATEGORY_OTHERS 2
 
-#define VAR_TYPE_SUBSTITUED 666
+#define VAR_TYPE_SUBSTITUED ((Type) 666)
 
 #define OLD_INDEX_UNUSED -2
 

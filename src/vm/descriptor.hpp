@@ -38,6 +38,7 @@ typedef struct methoddesc      methoddesc;
 #include <stdint.h>
 
 #include "vm/types.hpp"
+#include "vm/primitive.hpp"
 
 #include "toolbox/hashtable.hpp"
 
@@ -94,10 +95,10 @@ struct descriptor_pool {
 /* data structures for parsed field/method descriptors ************************/
 
 struct typedesc {
-	constant_classref *classref;      /* class reference for TYPE_ADR types   */
-	u1                 type;          /* TYPE_??? constant [1]                */
-	u1                 primitivetype; /* (PRIMITIVE)TYPE_??? constant [2]     */
-	u1                 arraydim;      /* array dimension (0 if no array)      */
+	constant_classref *classref;          // class reference for TYPE_ADR types
+	Type               type          : 8; // TYPE_??? constant [1]
+	PrimitiveType      primitivetype : 8; // (PRIMITIVE)TYPE_??? constant [2]
+	u1                 arraydim;          // array dimension (0 if no array)
 };
 
 /* [1]...the type field contains the basic type used within the VM. So ints,  */

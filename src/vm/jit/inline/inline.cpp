@@ -539,7 +539,7 @@ static void inline_candidates_println(inline_context *ctx)
 
 /* variable handling **********************************************************/
 
-static s4 inline_new_variable(jitdata *jd, s4 type, s4 flags)
+static s4 inline_new_variable(jitdata *jd, Type type, s4 flags)
 {
 	s4 index;
 	s4 newcount;
@@ -552,7 +552,7 @@ static s4 inline_new_variable(jitdata *jd, s4 type, s4 flags)
 		jd->varcount = newcount;
 	}
 
-	jd->var[index].type = type;
+	jd->var[index].type  = type;
 	jd->var[index].flags = flags;
 
 	return index;
@@ -574,7 +574,7 @@ static s4 inline_new_variable_clone(jitdata *jd, jitdata *origjd, s4 origidx)
 }
 
 
-static s4 inline_new_temp_variable(jitdata *jd, s4 type)
+static s4 inline_new_temp_variable(jitdata *jd, Type type)
 {
 	return inline_new_variable(jd, type, 0);
 }
@@ -620,7 +620,7 @@ static s4 *create_variable_map(inline_node *callee)
 
 			v = &(callee->jd->var[varindex]);
 			assert(v->type == t || v->type == TYPE_VOID); /* XXX stack leaves VOID */
-			v->type = t; /* XXX restore if it is TYPE_VOID */
+			v->type = (Type) t; /* XXX restore if it is TYPE_VOID */
 
 			avail = callee->ctx->resultjd->local_map[5*(callee->localsoffset + i) + t];
 

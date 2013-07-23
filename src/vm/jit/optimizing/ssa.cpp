@@ -861,8 +861,8 @@ void dead_code_elimination(jitdata *jd, graphdata *gd) {
 			if (compileverbose)
 				printf("dce: var %3i removed\n", lt->v_index);
 #endif
-			VAR(lt->v_index)->type = UNUSED;
-			lt->type = UNUSED;
+			VAR(lt->v_index)->type = (Type) UNUSED;
+			lt->type = (Type) UNUSED;
 			lt->def = NULL;
 /* 			jd->var */
 		} /* if (lt->use == NULL) */
@@ -974,8 +974,8 @@ void copy_propagation(jitdata *jd, graphdata *gd) {
 
 				/* invalidate lt */
 
-				lt->type = UNUSED;
-				VAR(lt->v_index)->type = UNUSED;
+				lt->type = (Type) UNUSED;
+				VAR(lt->v_index)->type = (Type) UNUSED;
 
 				/* add s_lt again to Worklist W */
 
@@ -1053,8 +1053,8 @@ void copy_propagation(jitdata *jd, graphdata *gd) {
 
 				/* invalidate lt */
 
-				lt->type = UNUSED;
-				VAR(lt->v_index)->type = UNUSED;
+				lt->type = (Type) UNUSED;
+				VAR(lt->v_index)->type = (Type) UNUSED;
 
 				/* add s_lt again to Worklist W */
 				wl_add(W, s_lt->v_index);

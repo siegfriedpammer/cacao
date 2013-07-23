@@ -28,7 +28,7 @@
 	constant_FMIref *mref;           /* reference to the called method */
 	methoddesc *md;                 /* descriptor of the called method */
 	Utf8String mname;                                   /* method name */
-    u1 rtype;                          /* return type of called method */
+    Type rtype;                        /* return type of called method */
 #if !defined(TYPECHECK_TYPEINFERER)
 	methodinfo *mi;                        /* resolved method (if any) */
 	Utf8String mclassname;               /* name of the method's class */

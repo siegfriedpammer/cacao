@@ -103,7 +103,7 @@
 	}
 	else {
 		methoddesc *md;
-		u1 rtype;
+		Type        rtype;
 #if !defined(TYPECHECK_TYPEINFERER)
 		s4 i;
 #endif

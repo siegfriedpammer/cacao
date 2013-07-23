@@ -41,8 +41,8 @@ struct jitdata;
 /************************* pseudo variable structure **************************/
 
 struct varinfo {
-	s4 type;                   /* basic type of variable                     */
-	s4 flags;                  /* flags (SAVED, INMEMORY)                    */
+	Type type;                 /* basic type of variable                     */
+	s4   flags;                /* flags (SAVED, INMEMORY)                    */
 	union {
 		s4 regoff;             /* register number or memory offset           */
 		s4 i;

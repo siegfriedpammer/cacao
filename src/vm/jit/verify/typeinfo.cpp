@@ -190,7 +190,7 @@ typevector_checkretaddr(varinfo *vec,int index)
 *******************************************************************************/
 
 void
-typevector_store(varinfo *vec,int index,int type,typeinfo_t *info)
+typevector_store(varinfo *vec,int index, Type type, typeinfo_t *info)
 {
 	TYPEINFO_ASSERT(vec);
 

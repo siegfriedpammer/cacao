@@ -27,46 +27,46 @@
 #define STACK_HPP_ 1
 
 #include "config.h"                     // for ENABLE_VERIFIER
+#include "vm/global.hpp"                // for Type
 #include "vm/jit/ir/icmd.hpp"           // for ::ICMD_ACONST
 #include "vm/jit/ir/instruction.hpp"    // for instruction, etc
-#include "vm/jit/reg.hpp"
-#include "vm/method.hpp"                // for methodinfo
+#include "vm/jit/reg.hpp"               // for varinfo
 #include "vm/types.hpp"                 // for s4
-
+ 
 struct jitdata;
 
 /* stack element structure ****************************************************/
 
-/* flags */
+enum VariableFlag {
+	SAVEDVAR    =   1,   // variable has to survive method invocations
+	INMEMORY    =   2,   // variable stored in memory
+	SAVREG      =   4,   // allocated to a saved register
+	ARGREG      =   8,   // allocated to an arg register
+	PASSTHROUGH =  32,   // stackslot was passed-through by an ICMD
+	PREALLOC    =  64,   // preallocated var like for ARGVARS.
+	                     // Used with the new var system
+	INOUT       = 128    // variable is an invar or/and an outvar
+};
 
-#define SAVEDVAR      1         /* variable has to survive method invocations */
-#define INMEMORY      2         /* variable stored in memory                  */
-#define SAVREG        4         /* allocated to a saved register              */
-#define ARGREG        8         /* allocated to an arg register               */
-#define PASSTHROUGH  32         /* stackslot was passed-through by an ICMD    */
-#define PREALLOC     64         /* preallocated var like for ARGVARS. Used    */
-                                /* with the new var system */
-#define INOUT    128            /* variable is an invar or/and an outvar      */
+// check flags
+static inline bool IS_SAVEDVAR(s4 flags) { return flags & SAVEDVAR; }
+static inline bool IS_INMEMORY(s4 flags) { return flags & INMEMORY; }
 
-#define IS_SAVEDVAR(x)    ((x) & SAVEDVAR)
-#define IS_INMEMORY(x)    ((x) & INMEMORY)
-
+enum VariableKind {
+	UNDEFVAR = 0,   // stack slot will become temp during regalloc
+	TEMPVAR  = 1,   // stack slot is temp register
+	STACKVAR = 2,   // stack slot is numbered stack slot
+	LOCALVAR = 3,   // stack slot is local variable
+	ARGVAR   = 4    // stack slot is argument variable
+};
 
 /* variable kinds */
-
-#define UNDEFVAR   0            /* stack slot will become temp during regalloc*/
-#define TEMPVAR    1            /* stack slot is temp register                */
-#define STACKVAR   2            /* stack slot is numbered stack slot          */
-#define LOCALVAR   3            /* stack slot is local variable               */
-#define ARGVAR     4            /* stack slot is argument variable            */
-
-
 struct stackelement_t {
 	stackelement_t *prev;       /* pointer to next element towards bottom     */
 	instruction    *creator;    /* instruction that created this element      */
-	s4              type;       /* slot type of stack element                 */
+	Type            type;       /* slot type of stack element                 */
 	s4              flags;      /* flags (SAVED, INMEMORY)                    */
-	s4              varkind;    /* kind of variable or register               */
+	VariableKind    varkind;    /* kind of variable or register               */
 	s4              varnum;     /* number of variable                         */
 };
 

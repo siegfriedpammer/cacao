@@ -337,7 +337,7 @@ descriptor_to_typedesc(descriptor_pool *pool, const char *utf_ptr, const char *e
 	if (name) {
 		/* a reference type */
 		td->type = TYPE_ADR;
-		td->primitivetype = TYPE_ADR;
+		td->primitivetype = (PrimitiveType) TYPE_ADR;
 		td->arraydim = 0;
 		for (utf_ptr = name.begin(); *utf_ptr == '['; ++utf_ptr)
 			td->arraydim++;
@@ -931,7 +931,7 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, Utf8String desc,
 
 	if ((mflags != ACC_UNDEF) && !(mflags & ACC_STATIC)) {
 		td->type = TYPE_ADR;
-		td->primitivetype = TYPE_ADR;
+		td->primitivetype = (PrimitiveType) TYPE_ADR;
 		td->arraydim = 0;
 		td->classref = thisclass;
 
@@ -1078,7 +1078,7 @@ void descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
 		/* fill in first argument `this' */
 
 		td->type = TYPE_ADR;
-		td->primitivetype = TYPE_ADR;
+		td->primitivetype = (PrimitiveType) TYPE_ADR;
 		td->arraydim = 0;
 		td->classref = thisclass;
 

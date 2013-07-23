@@ -75,7 +75,8 @@ jd->var and jd->varcount will be set for this renamed vars.
 void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd)
 {
 	int i, mi, l, j, p, t;
-	int type, flags;
+	Type type;
+	int flags;
 	methoddesc *md = jd->m->parseddesc;
 
 	varinfo *new_vars;
@@ -175,7 +176,7 @@ void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd)
 
 	new_vars = DMNEW(varinfo, ls->vartop);
 	for(i = 0; i < ls->vartop ; i++)
-		new_vars[i].type = UNUSED;
+		new_vars[i].type = (Type) UNUSED;
 	for(i = 0; i < jd->varcount; i++) {
 			p = ls->new_varindex[i];
 			if (p != UNUSED) {

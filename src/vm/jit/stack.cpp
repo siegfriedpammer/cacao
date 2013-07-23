@@ -396,8 +396,8 @@ struct stackdata_t {
 #define OP2_1(type1, type2, typed)                                   \
     do {                                                             \
         POP_S1_S2(type1, type2);                                     \
-        GET_NEW_VAR(sd, new_index, (typed));                         \
-        DST(typed, new_index);                                       \
+        GET_NEW_VAR(sd, new_index, ((Type) (typed)));                \
+        DST(((Type) (typed)), new_index);                            \
         stackdepth--;                                                \
     } while (0)
 
@@ -2068,7 +2068,7 @@ bool stack_analyse(jitdata *jd)
 	int           opcode;         /* opcode of current instruction            */
 	int           i, varindex;
 	int           javaindex;
-	int           type;           /* operand type                             */
+	Type          type;           /* operand type                             */
 	int           len;            /* # of instructions after the current one  */
 	bool          superblockend;  /* if true, no fallthrough to next block    */
 	bool          deadcode;       /* true if no live code has been reached    */
@@ -3188,7 +3188,7 @@ normal_ACONST:
 					case ICMD_DLOAD:
 					case ICMD_ALOAD:
 						STATISTICS(count_load_instruction++);
-						type = opcode - ICMD_ILOAD;
+						type = (Type) (opcode - ICMD_ILOAD);
 
 						varindex = iptr->s1.varindex =
 							jd->local_map[iptr->s1.varindex * 5 + type];
@@ -3263,7 +3263,7 @@ normal_ACONST:
 					case ICMD_ASTORE:
 						REQUIRE(1);
 
-						type = opcode - ICMD_ISTORE;
+						type = (Type) (opcode - ICMD_ISTORE);
 						javaindex = iptr->dst.varindex;
 						varindex = iptr->dst.varindex =
 							jd->local_map[javaindex * 5 + type];

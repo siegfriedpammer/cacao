@@ -480,14 +480,14 @@ static void typecheck_invalidate_locals(verifier_state *state, s4 index, bool tw
 
 #define STORE_LOCAL(t, index)                                        \
     do {                                                             \
-         s4 temp_t = (t);                                            \
+         Type temp_t = (t);                                          \
          typecheck_invalidate_locals(state, (index), false);         \
          typevector_store(jd->var, (index), (temp_t), NULL);         \
     } while (0)
 
 #define STORE_LOCAL_2_WORD(t, index)                                 \
     do {                                                             \
-         s4 temp_t = (t);                                            \
+         Type temp_t = (t);                                          \
          typecheck_invalidate_locals(state, (index), true);          \
          typevector_store(jd->var, (index), (temp_t), NULL);         \
     } while (0)
