@@ -42,10 +42,15 @@
 #include "vm/jit/abi-asm.hpp"
 #include "vm/jit/asmpart.hpp"
 #include "vm/jit/builtin.hpp"
+#include "vm/jit/code.hpp"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/dseg.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
+#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/replace.hpp"
+#include "vm/jit/trace.hpp"
+#include "vm/jit/trap.hpp"
 
 #include "vm/jit/sparc64/solaris/macro_rename.hpp"
 
@@ -337,6 +342,7 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 					break;
 				default:
 					vm_abort("emit_branch: unknown condition %d", condition);
+					break;
 				}
 				
 				/* branch delay */
@@ -370,6 +376,7 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 					break;
 				default:
 					vm_abort("emit_branch: unknown condition %d", condition);
+					break;
 				}
 
 				/* branch delay */
@@ -415,6 +422,7 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 				break;
 			default:
 				vm_abort("emit_branch: unknown condition %d", condition);
+				break;
 			}
 
 			/* branch delay */
@@ -540,6 +548,7 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 
 		default:
 			vm_abort("emit_classcast_check: unknown condition %d", condition);
+			break;
 		}
 
 		M_NOP;
@@ -714,6 +723,11 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 		M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
 		M_ALD(REG_OUT0, REG_SP, CSTACK + syncslot_offset); /* delay */
 		break;
+	case TYPE_VOID:
+		break;
+	default:
+		assert(false);
+		break;	
 	}
 }
 #endif

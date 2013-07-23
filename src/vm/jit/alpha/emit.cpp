@@ -45,6 +45,7 @@
 #include "vm/jit/asmpart.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/jit/code.hpp"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/dseg.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
@@ -87,6 +88,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 			break;
 		default:
 			vm_abort("emit_load: unknown type %d", src->type);
+			break;
 		}
 
 		reg = tempreg;
@@ -130,6 +132,7 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 			break;
 		default:
 			vm_abort("emit_store: unknown type %d", dst->type);
+			break;
 		}
 	}
 }
@@ -191,6 +194,7 @@ void emit_copy(jitdata *jd, instruction *iptr)
 				break;
 			default:
 				vm_abort("emit_copy: unknown type %d", src->type);
+				break;
 			}
 		}
 
@@ -331,6 +335,7 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 				break;
 			default:
 				vm_abort("emit_branch: unknown condition %d", condition);
+				break;
 			}
 		}
 	}
@@ -406,6 +411,7 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 			break;
 		default:
 			vm_abort("emit_classcast_check: unknown condition %d", condition);
+			break;
 		}
 		M_ALD_INTERN(s1, REG_ZERO, TRAP_ClassCastException);
 	}
@@ -576,6 +582,11 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 	case TYPE_DBL:
 		M_DST(REG_FRESULT, REG_SP, syncslot_offset);
 		break;
+	case TYPE_VOID:
+		break;
+	default:
+		assert(false);
+		break;
 	}
 
 	disp = dseg_add_functionptr(cd, LOCK_monitor_exit);
@@ -592,6 +603,11 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 	case TYPE_FLT:
 	case TYPE_DBL:
 		M_DLD(REG_FRESULT, REG_SP, syncslot_offset);
+		break;
+	case TYPE_VOID:
+		break;
+	default:
+		assert(false);
 		break;
 	}
 }
@@ -668,6 +684,9 @@ void emit_verbosecall_enter(jitdata *jd)
 			case TYPE_DBL:
 				M_DST(s, REG_SP, (1 + i) * 8);
 				break;
+			default:
+				assert(false);
+				break;
 			}
 		}
 	}
@@ -699,6 +718,9 @@ void emit_verbosecall_enter(jitdata *jd)
 			case TYPE_FLT:
 			case TYPE_DBL:
 				M_DLD(s, REG_SP, (1 + i) * 8);
+				break;
+			default:
+				assert(false);
 				break;
 			}
 		}
@@ -773,6 +795,9 @@ void emit_verbosecall_exit(jitdata *jd)
 	case TYPE_DBL:
 		M_DST(REG_FRESULT, REG_SP, 1 * 8);
 		break;
+	default:
+		assert(false);
+		break;
 	}
 
 	disp = dseg_add_address(cd, m);
@@ -796,6 +821,9 @@ void emit_verbosecall_exit(jitdata *jd)
 	case TYPE_FLT:
 	case TYPE_DBL:
 		M_DLD(REG_FRESULT, REG_SP, 1 * 8);
+		break;
+	default:
+		assert(false);
 		break;
 	}
 

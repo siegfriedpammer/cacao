@@ -62,6 +62,7 @@
 #include "vm/jit/parse.hpp"
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/reg.hpp"
+#include "vm/jit/stacktrace.hpp"
 
 
 /**
@@ -1296,7 +1297,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				break;
 #endif
 			default:
-				assert(0);
+				assert(false);
+				break;
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1344,7 +1346,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				break;
 #endif
 			default:
-				assert(0);
+				assert(false);
+				break;
 			}
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
@@ -1377,7 +1380,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				break;
 #endif
 			default:
-				assert(0);
+				assert(false);
+				break;
 			}
 			break;
 
@@ -2442,6 +2446,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 			case TYPE_DBL:
 				assert(s1 < 8);
 				M_DST(s1, REG_SP, (cd->stackframesize - 9 + s1) * 8);
+				break;
+			default:
 				break;
 			}
 		}

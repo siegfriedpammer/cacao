@@ -39,13 +39,18 @@
 #include "vm/descriptor.hpp"            // for typedesc, methoddesc, etc
 #include "vm/options.hpp"
 #include "vm/vm.hpp"
-
+   
 #include "vm/jit/abi.hpp"
+#include "vm/jit/abi-asm.hpp"
 #include "vm/jit/asmpart.hpp"
 #include "vm/jit/builtin.hpp"
+#include "vm/jit/code.hpp"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/dseg.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
+#include "vm/jit/patcher-common.hpp"
+#include "vm/jit/replace.hpp"
 #include "vm/jit/trace.hpp"
 #include "vm/jit/trap.hpp"
 
@@ -314,6 +319,11 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 	case TYPE_DBL:
 		M_DST(REG_FRESULT, REG_SP, syncslot_offset + 8);
 		break;
+	case TYPE_VOID:
+		break;
+	default:
+		assert(false);
+		break;
 	}
 
 	M_ALD(REG_A0, REG_SP, syncslot_offset);
@@ -333,6 +343,11 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 		break;
 	case TYPE_DBL:
 		M_DLD(REG_FRESULT, REG_SP, syncslot_offset + 8);
+		break;
+	case TYPE_VOID:
+		break;
+	default:
+		assert(false);
 		break;
 	}
 }
@@ -396,6 +411,9 @@ void emit_verbosecall_enter(jitdata *jd)
 			case TYPE_DBL:
 				M_DST(s, REG_SP, LA_SIZE+PA_SIZE+i*8);
 				break;
+			default:
+				assert(false);
+				break;
 			}
 		}
 	}
@@ -430,6 +448,9 @@ void emit_verbosecall_enter(jitdata *jd)
 			case TYPE_FLT:
 			case TYPE_DBL:
 				M_DLD(s, REG_SP, LA_SIZE+PA_SIZE+i*8);
+				break;
+			default:
+				assert(false);
 				break;
 			}
 		}
@@ -488,6 +509,9 @@ void emit_verbosecall_exit(jitdata *jd)
 	case TYPE_DBL:
 		M_DST(REG_FRESULT, REG_SP, LA_SIZE+PA_SIZE+0*8);
 		break;
+	default:
+		assert(false);
+		break;
 	}
 
 	disp = dseg_add_address(cd, m);
@@ -512,6 +536,9 @@ void emit_verbosecall_exit(jitdata *jd)
 	case TYPE_FLT:
 	case TYPE_DBL:
 		M_DLD(REG_FRESULT, REG_SP, LA_SIZE+PA_SIZE+0*8);
+		break;
+	default:
+		assert(false);
 		break;
 	}
 
@@ -611,6 +638,7 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 					break;
 				default:
 					vm_abort("emit_branch: unknown condition %d", condition);
+					break;
 				}
 			}
 		}
@@ -639,6 +667,7 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 				break;
 			default:
 				vm_abort("emit_branch: unknown condition %d", condition);
+				break;
 			}
 		}
 	}
@@ -720,6 +749,7 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 			break;
 		default:
 			vm_abort("emit_classcast_check: unknown condition %d", condition);
+			break;
 		}
 
 		/* ALD is 4 byte aligned, ILD 2, onyl LWZ is byte aligned */

@@ -1812,6 +1812,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 				M_DLD_INTERN(d, REG_ITMP1, 0);
 				break;
+			default:
+				assert(false);
+				break;
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1862,6 +1865,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				s1 = emit_load_s1(jd, iptr, REG_FTMP2);
 				M_DST_INTERN(s1, REG_ITMP1, 0);
 				break;
+			default:
+				assert(false);
+				break;
 			}
 			break;
 
@@ -1901,6 +1907,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				break;
 			case TYPE_DBL:
 				M_DST_INTERN(REG_ZERO, REG_ITMP1, 0);
+				break;
+			default:
+				assert(false);
 				break;
 			}
 			break;
@@ -1949,6 +1958,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			case TYPE_DBL:				
 				d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 				M_DLD(d, s1, disp);
+				break;
+			default:
+				assert(false);
 				break;
 			}
 			emit_store_dst(jd, iptr, d);
@@ -2005,6 +2017,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			case TYPE_DBL:
 				M_DST(s2, s1, disp);
 				break;
+			default:
+				assert(false);
+				break;
 			}
 			break;
 
@@ -2041,6 +2056,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				break;
 			case TYPE_DBL:
 				M_DST(REG_ZERO, s1, disp);
+				break;
+			default:
+				assert(false);
 				break;
 			}
 			break;
@@ -3415,6 +3433,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 #endif
 	case TYPE_VOID:
 		break;
+	default:
+		assert(false);
+		break;
 	}
 
 	/* remove native stackframe info */
@@ -3454,6 +3475,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		break;
 #endif
 	case TYPE_VOID:
+		break;
+	default:
+		assert(false);
 		break;
 	}
 

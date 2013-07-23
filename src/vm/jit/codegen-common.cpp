@@ -2085,6 +2085,9 @@ gen_method:
 #endif
 							break;
 #endif
+						default:
+							assert(false);
+							break;
 						}
 					}
 					else {
@@ -2137,6 +2140,9 @@ gen_method:
 							M_DST(s1, REG_SP, d);
 							break;
 #endif
+						default:
+							assert(false);
+							break;
 						}
 					}
 				}
@@ -2210,6 +2216,9 @@ gen_method:
 #endif
 
 				case TYPE_VOID:
+					break;
+				default:
+					assert(false);
 					break;
 				}
 

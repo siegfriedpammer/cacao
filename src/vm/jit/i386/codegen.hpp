@@ -33,6 +33,8 @@
 
 #include "vm/jit/jit.hpp"
 
+#include "toolbox/logging.hpp"          // for log_text (used in M_FMOV)
+
 
 #if defined(ENABLE_LSRA)
 /* let LSRA allocate reserved registers (REG_ITMP[1|2|3]) */

@@ -2539,7 +2539,7 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 
 	/* box the return value if necesarry */
 
-	if (m->parseddesc->returntype.primitivetype != TYPE_ADR)
+	if (m->parseddesc->returntype.primitivetype != (PrimitiveType) TYPE_ADR)
 		ro = Primitive::box(m->parseddesc->returntype.primitivetype, value);
 
 	/* check for an exception */

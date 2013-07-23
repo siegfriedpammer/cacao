@@ -200,6 +200,9 @@ void md_param_alloc(methoddesc *md)
 				stacksize++;
 			}
 			break;
+		default:
+			assert(false);
+			break;
 		}
 	}
 

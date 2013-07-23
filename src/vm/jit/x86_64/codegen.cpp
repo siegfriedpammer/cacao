@@ -1561,6 +1561,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 					M_LST(REG_ITMP2, REG_ITMP1, 0);
 				}
 				break;
+			default:
+				assert(false);
+				break;
 			}
 			codegen_emit_patchable_barrier(iptr, cd, pr, fi);
 			break;
@@ -2372,6 +2375,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 			case TYPE_DBL:
 				M_DST(s1, REG_SP, i * 8);
 				break;
+			default:
+				assert(false);
+				break;
 			}
 		}
 	}
@@ -2403,6 +2409,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 			case TYPE_FLT:
 			case TYPE_DBL:
 				M_DLD(s1, REG_SP, i * 8);
+				break;
+			default:
+				assert(false);
 				break;
 			}
 		}
@@ -2449,6 +2458,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 				M_DST(REG_FTMP1, REG_SP, s2);
 			}
 			break;
+		default:
+			assert(false);
+			break;
 		}
 	}
 
@@ -2490,6 +2502,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		case PRIMITIVETYPE_SHORT:
 			M_SSEXT(REG_RESULT, REG_RESULT);
 			break;
+		default:
+			break;
 		}
 		M_LST(REG_RESULT, REG_SP, 0 * 8);
 		break;
@@ -2498,6 +2512,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		M_DST(REG_FRESULT, REG_SP, 0 * 8);
 		break;
 	case TYPE_VOID:
+		break;
+	default:
+		assert(false);
 		break;
 	}
 
@@ -2522,6 +2539,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		M_DLD(REG_FRESULT, REG_SP, 0 * 8);
 		break;
 	case TYPE_VOID:
+		break;
+	default:
+		assert(false);
 		break;
 	}
 

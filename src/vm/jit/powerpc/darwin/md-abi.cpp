@@ -35,6 +35,7 @@
 
 #include "vm/jit/abi.hpp"
 #include "vm/jit/code.hpp"
+#include "vm/jit/codegen-common.hpp" // for PACK_REGS
 #include "vm/jit/stack.hpp"
 
 

@@ -1245,6 +1245,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 				M_DLD(d, s1, disp);
 				break;
+			default:
+				assert(false);
+				break;
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1291,6 +1294,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				break;
 			case TYPE_DBL:
 				M_DST(s2, s1, disp);
+				break;
+			default:
+				assert(false);
 				break;
 			}
 			break;
@@ -2048,6 +2054,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 			case TYPE_DBL:
 				M_DST(s1, REG_SP, LA_SIZE + PA_SIZE + 4 * 8 + i * 8);
 				break;
+			default:
+				assert(false);
+				break;
 			}
 		}
 	}
@@ -2082,6 +2091,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 			case TYPE_FLT:
 			case TYPE_DBL:
 				M_DLD(s1, REG_SP, LA_SIZE + PA_SIZE + 4 * 8 + i * 8);
+				break;
+			default:
+				assert(false);
 				break;
 			}
 		}

@@ -51,6 +51,7 @@
 #include "vm/resolve.hpp"
 
 #include "vm/jit/code.hpp"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/disass.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/patcher-common.hpp"

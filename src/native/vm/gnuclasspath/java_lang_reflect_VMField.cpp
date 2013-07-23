@@ -275,6 +275,10 @@ JNIEXPORT jobject JNICALL Java_java_lang_reflect_VMField_get(JNIEnv *env, jobjec
 
 	case TYPE_ADR:
 		return (jobject) _field_get_handle(f, o);
+
+	default:
+		assert(false);
+		break;
 	}
 
 	// Now box the primitive types.
@@ -767,6 +771,10 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, jobject _
 
 		_field_set_handle(df, o, value);
 		return;
+
+	default:
+		assert(false);
+		break;
 	}
 
 	/* raise exception */

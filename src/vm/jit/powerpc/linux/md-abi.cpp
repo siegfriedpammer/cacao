@@ -36,6 +36,7 @@
 
 #include "vm/jit/abi.hpp"
 #include "vm/jit/code.hpp"
+#include "vm/jit/codegen-common.hpp" // for PACK_REGS
 #include "vm/jit/stack.hpp"
 
 
@@ -244,7 +245,8 @@ void md_param_alloc(methoddesc *md)
 			break;
 
 		default:
-			assert(0);
+			assert(false);
+			break;
 		}
 	}
 
@@ -356,7 +358,8 @@ void md_param_alloc_native(methoddesc *md)
 			break;
 
 		default:
-			assert(0);
+			assert(false);
+			break;
 		}
 	}
 
@@ -452,6 +455,9 @@ void md_return_alloc(jitdata *jd, stackelement_t *stackslot)
 					rd->argfltreguse = 1;
 				
 				v->vv.regoff = REG_FRESULT;
+				break;
+
+			default:
 				break;
 			}
 		}

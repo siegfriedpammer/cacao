@@ -204,7 +204,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 	fieldinfo*          fi;
 	unresolved_field*   uf;
 	int32_t             fieldtype;
-	int32_t             s1, s2, s3, d;
+	int32_t             s1, s2, s3, d = 0;
 	int32_t             disp;
 
 	// Get required compiler data.
@@ -2510,6 +2510,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 			case TYPE_DBL:
 				M_DST(s1, REG_SP, i * 8);
 				break;
+			default:
+				assert(false);
+				break;
 			}
 		}
 	}
@@ -2546,6 +2549,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 				break;
 			case TYPE_DBL:
 				M_DLD(s1, REG_SP, i * 8);
+				break;
+			default:
+				assert(false);
 				break;
 			}
 		}
@@ -2637,6 +2643,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		break;
 	case TYPE_VOID:
 		break;
+	default:
+		assert(false);
+		break;
 	}
 
 	/* remove native stackframe info */
@@ -2665,6 +2674,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		M_DLD(REG_FRESULT, REG_SP, 0 * 8);
 		break;
 	case TYPE_VOID:
+		break;
+	default:
+		assert(false);
 		break;
 	}
 

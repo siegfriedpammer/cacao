@@ -27,6 +27,7 @@
 #include "config.h"
 
 #include <stdint.h>
+#include "mm/memory.hpp"
 
 #define ucontext broken_glibc_ucontext
 #define ucontext_t broken_glibc_ucontext_t

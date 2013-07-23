@@ -28,9 +28,11 @@
 #define EMIT_COMMON_HPP_ 1
 
 #include "config.h"                     // for ENABLE_THREADS
+#include <cassert>                      // for assert
 #include <stdint.h>                     // for int32_t, uint32_t
 #include "arch.hpp"
 #include "codegen.hpp"
+#include "vm/jit/codegen-common.hpp"    // for codegendata
 #include "vm/types.hpp"                 // for s4, u4, s8
 
 struct basicblock;

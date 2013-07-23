@@ -1963,6 +1963,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 				M_DLD(d, REG_ITMP1, 0);
 				break;
+			default:
+				assert(false);
+				break;
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -2004,6 +2007,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 				emit_fstpl_membase(cd, REG_ITMP1, 0);
 				break;
+			default:
+				assert(false);
+				break;
 			}
 			break;
 
@@ -2038,7 +2044,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				M_IST_IMM(((s4)iptr->sx.s23.s2.constval) >> 31, REG_ITMP1, 4);
 				break;
 			default:
-				assert(0);
+				assert(false);
+				break;
 			}
 			break;
 
@@ -2082,6 +2089,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			case TYPE_DBL:				
 				d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 				M_DLD32(d, s1, disp);
+				break;
+			default:
+				assert(false);
 				break;
 			}
 			emit_store_dst(jd, iptr, d);
@@ -2139,6 +2149,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			case TYPE_DBL:
 				emit_fstpl_membase32(cd, s1, disp);
 				break;
+			default:
+				assert(false);
+				break;
 			}
 			break;
 
@@ -2173,7 +2186,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				M_IST32_IMM(((s4)iptr->sx.s23.s2.constval) >> 31, s1, disp + 4);
 				break;
 			default:
-				assert(0);
+				assert(false);
+				break;
 			}
 			break;
 
@@ -3014,6 +3028,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 			M_LLD(REG_ITMP12_PACKED, REG_SP, s1);
 			M_LST(REG_ITMP12_PACKED, REG_SP, s2);
 			break;
+		default:
+			assert(false);
+			break;
 		}
 	}
 
@@ -3056,6 +3073,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		case PRIMITIVETYPE_SHORT:
 			M_SSEXT(REG_RESULT, REG_RESULT);
 			break;
+		default:
+			break;
 		}
 		M_IST(REG_RESULT, REG_SP, 1 * 8);
 		break;
@@ -3069,6 +3088,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		emit_fstl_membase(cd, REG_SP, 1 * 8);
 		break;
 	case TYPE_VOID:
+		break;
+	default:
+		assert(false);
 		break;
 	}
 
@@ -3100,6 +3122,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		emit_fldl_membase(cd, REG_SP, 1 * 8);
 		break;
 	case TYPE_VOID:
+		break;
+	default:
+		assert(false);
 		break;
 	}
 

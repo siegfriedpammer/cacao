@@ -43,9 +43,11 @@
 #include "vm/statistics.hpp"
 
 #include "vm/jit/abi.hpp"
+#include "vm/jit/abi-asm.hpp"
 #include "vm/jit/asmpart.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/jit/code.hpp"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/dseg.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
@@ -96,6 +98,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 			break;
 		default:
 			vm_abort("emit_load: unknown type %d", src->type);
+			break;
 		}
 
 		reg = tempreg;
@@ -212,6 +215,7 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 			break;
 		default:
 			vm_abort("emit_store: unknown type %d", dst->type);
+			break;
 		}
 	}
 }
@@ -331,6 +335,7 @@ void emit_copy(jitdata *jd, instruction *iptr)
 				break;
 			default:
 				vm_abort("emit_copy: unknown type %d", src->type);
+				break;
 			}
 		}
 
@@ -409,6 +414,7 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 options)
 			break;
 		default:
 			vm_abort("emit_branch: unknown condition %d", condition);
+			break;
 		}
 	}
 }
@@ -490,6 +496,7 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 			break;
 		default:
 			vm_abort("emit_classcast_check: unknown condition %d", condition);
+			break;
 		}
 		M_ALD_MEM(s1, TRAP_ClassCastException);
 	}
@@ -659,6 +666,13 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 	case TYPE_DBL:
 		emit_fstpl_membase(cd, REG_SP, syncslot_offset);
 		break;
+
+	case TYPE_VOID:
+		break;
+
+	default:
+		assert(false);
+		break;
 	}
 
 	M_AST(REG_ITMP2, REG_SP, 0);
@@ -683,6 +697,13 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 
 	case TYPE_DBL:
 		emit_fldl_membase(cd, REG_SP, syncslot_offset);
+		break;
+
+	case TYPE_VOID:
+		break;
+
+	default:
+		assert(false);
 		break;
 	}
 }
@@ -860,6 +881,9 @@ void emit_verbosecall_exit(jitdata *jd)
 	case TYPE_DBL:
 		M_DSTNP(REG_NULL, REG_SP, 2 * 4);
 		break;
+	default:
+		assert(false);
+		break;
 	}
 
 	M_AST_IMM(m, REG_SP, 0 * 4);
@@ -877,6 +901,9 @@ void emit_verbosecall_exit(jitdata *jd)
 		break;
 	case TYPE_LNG:
 		M_LLD(REG_RESULT_PACKED, REG_SP, 2 * 4);
+		break;
+	default:
+		assert(false);
 		break;
 	}
 

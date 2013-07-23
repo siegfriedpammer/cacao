@@ -44,6 +44,7 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/abi-asm.hpp"
+#include "vm/jit/codegen-common.hpp" // for GET_LOW_REG, GET_HIGH_REG
 
 
 /* argument_jitarray_load ******************************************************
@@ -98,6 +99,9 @@ imm_union argument_jitarray_load(methoddesc *md, int32_t index,
 			} else {
 				ret.l = (int64_t)arg_regs[index];
 			}
+			break;
+		default:
+			assert(false);
 			break;
 	}
 
@@ -166,6 +170,9 @@ imm_union argument_jitreturn_load(methoddesc *md, uint64_t *return_regs)
 			break;
 		case TYPE_DBL:
 			ret.l = *(int64_t *)return_regs;
+			break;
+		default:
+			assert(false);
 			break;
 	}
 
@@ -443,6 +450,9 @@ uint64_t *argument_vmarray_from_valist(methodinfo *m, java_handle_t *o, va_list 
 			value.a = va_arg(ap, void*);
 			argument_vmarray_store_adr(array, pd, static_cast<java_handle_t*>(value.a));
 			break;
+		default:
+			assert(false);
+			break;
 		}
 	}
 
@@ -516,6 +526,9 @@ uint64_t *argument_vmarray_from_jvalue(methodinfo *m, java_handle_t *o,
 
 		case TYPE_ADR: 
 			argument_vmarray_store_adr(array, pd, (java_handle_t *) args[j].l);
+			break;
+		default:
+			assert(false);
 			break;
 		}
 	}
