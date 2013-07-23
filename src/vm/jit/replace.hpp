@@ -83,7 +83,7 @@ struct rplalloc {
 #endif
 
 #if !defined(NDEBUG)
-#define RPLPOINT_CHECK(type)     , RPLPOINT_TYPE_##type
+#define RPLPOINT_CHECK(type)     , rplpoint::TYPE_##type
 #define RPLPOINT_CHECK_BB(bptr)  , (bptr)->type
 #else
 #define RPLPOINT_CHECK(type)

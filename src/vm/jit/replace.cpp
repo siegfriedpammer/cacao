@@ -177,7 +177,7 @@ static void replace_statistics_source_frame(sourceframe_t *frame);
 static void replace_create_replacement_point(jitdata *jd,
 											 insinfo_inline *iinfo,
 											 rplpoint *rp,
-											 s4 type,
+											 rplpoint::Type type,
 											 instruction *iptr,
 											 rplalloc **pra,
 											 s4 *javalocals,
@@ -194,13 +194,13 @@ static void replace_create_replacement_point(jitdata *jd,
 
 	REPLACE_COUNT(stat_rploints);
 
-	rp->method = (iinfo) ? iinfo->method : jd->m;
-	rp->pc = NULL;        /* set by codegen */
+	rp->method   = (iinfo) ? iinfo->method : jd->m;
+	rp->pc       = NULL;        /* set by codegen */
 	rp->callsize = 0;     /* set by codegen */
 	rp->regalloc = ra;
-	rp->flags = 0;
-	rp->type = type;
-	rp->id = iptr->flags.bits >> INS_FLAG_ID_SHIFT;
+	rp->flags    = 0;
+	rp->type     = type;
+	rp->id       = iptr->flags.bits >> INS_FLAG_ID_SHIFT;
 
 	/* XXX unify these two fields */
 	rp->parent = (iinfo) ? iinfo->rp : NULL;
@@ -216,9 +216,9 @@ static void replace_create_replacement_point(jitdata *jd,
 			ra->index = i;
 			if (index >= 0) {
 				v = VAR(index);
-				ra->flags = v->flags & (INMEMORY);
+				ra->flags  = v->flags & (INMEMORY);
 				ra->regoff = v->vv.regoff;
-				ra->type = v->type;
+				ra->type   = v->type;
 			}
 			else {
 				ra->regoff = RETADDR_FROM_JAVALOCAL(index);
@@ -585,7 +585,7 @@ bool replace_create_replacement_points(jitdata *jd)
 
 			i = (iinfo) ? iinfo->throughcount : 0;
 			replace_create_replacement_point(jd, iinfo, rp++,
-					bptr->type, bptr->iinstr, &ra,
+					(rplpoint::Type) bptr->type, bptr->iinstr, &ra,
 					bptr->javalocals, bptr->invars + i, bptr->indepth - i, 0);
 
 			if (JITDATA_HAS_FLAG_COUNTDOWN(jd))
@@ -1105,7 +1105,7 @@ static void replace_read_executionstate(rplpoint *rp,
 
 	/* in some cases the top stack slot is passed in REG_ITMP1 */
 
-	if (rp->type == basicblock::TYPE_EXH) {
+	if (rp->type == rplpoint::TYPE_EXH) {
 		topslot = TOP_IS_IN_ITMP1;
 	}
 
@@ -1343,7 +1343,7 @@ static void replace_write_executionstate(rplpoint *rp,
 
 	/* in some cases the top stack slot is passed in REG_ITMP1 */
 
-	if (rp->type == basicblock::TYPE_EXH) {
+	if (rp->type == rplpoint::TYPE_EXH) {
 		topslot = TOP_IS_IN_ITMP1;
 	}
 
