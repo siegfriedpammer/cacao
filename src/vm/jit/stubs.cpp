@@ -23,31 +23,29 @@
 
 */
 
-
-#include "config.h"
-
-#include <stdint.h>
-
-// Include machine dependent headers.
-#include "md.hpp"
-
-#include "mm/codememory.hpp"
-#include "mm/dumpmemory.hpp"
-
-#include "vm/method.hpp"
-#include "vm/options.hpp"
-
-#include "vm/jit/abi.hpp"
-#include "vm/jit/code.hpp"
-#include "vm/jit/codegen-common.hpp"
-#include "vm/jit/disass.hpp"
-#include "vm/jit/emit-common.hpp"
-#include "vm/jit/jit.hpp"
-#include "vm/jit/show.hpp"
 #include "vm/jit/stubs.hpp"
-#ifdef ENABLE_DISASSEMBLER
+#include <stdint.h>                     // for uint8_t
+#include "arch.hpp"                     // for JIT_COMPILER_VIA_SIGNAL
+#include "config.h"                     // for ENABLE_JIT
+#include "md-stubs.hpp"                 // for CompilerStub::get_code_size
+#include "md.hpp"                       // for md_cacheflush
+#include "mm/codememory.hpp"
+#include "mm/dumpmemory.hpp"            // for DumpMemory, DumpMemoryArea
+#include "vm/descriptor.hpp"            // for methoddesc, typedesc, etc
+#include "vm/jit/abi.hpp"               // for md_param_alloc_native
+#include "vm/jit/builtin.hpp"           // for builtintable_entry
+#include "vm/jit/code.hpp"              // for code_unflag_leafmethod, etc
+#include "vm/jit/codegen-common.hpp"    // for codegen_emit_stub_native, etc
+#include "vm/jit/disass.hpp"
 #include "vm/jit/dseg.hpp"
-#endif
+#include "vm/jit/emit-common.hpp"       // for emit_trap_compiler
+#include "vm/jit/jit.hpp"               // for jitdata, jit_jitdata_new
+#include "vm/jit/reg.hpp"               // for reg_setup
+#include "vm/jit/show.hpp"
+#include "vm/method.hpp"                // for methodinfo
+#include "vm/options.hpp"               // for opt_verbosecall
+#include "vm/statistics.hpp"            // for StatVar
+#include "vm/types.hpp"                 // for ptrint, u1
 
 STAT_DECLARE_VAR(int,count_cstub_len,0)
 STAT_DECLARE_VAR(int,size_stub_native,0)

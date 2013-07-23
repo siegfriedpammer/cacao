@@ -31,6 +31,7 @@
 
 #include "vm/jit/builtin.hpp"
 #include "mm/memory.hpp"
+#include "mm/dumpmemory.hpp"
 
 #include "vm/array.hpp"
 #include "vm/exceptions.hpp"

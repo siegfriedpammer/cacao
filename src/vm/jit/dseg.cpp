@@ -23,14 +23,17 @@
 */
 
 #include "vm/jit/dseg.hpp"
-#include <assert.h>
-#include "config.h"
-#include "mm/dumpmemory.hpp"
-#include "mm/memory.hpp"
-#include "vm/options.hpp"
-#include "vm/types.hpp"
-#include "vm/jit/codegen-common.hpp"
+#include <assert.h>                     // for assert
+#include <stdio.h>                      // for printf
+#include "config.h"                     // for SIZEOF_VOID_P
+#include "mm/dumpmemory.hpp"            // for DNEW
+#include "vm/jit/code.hpp"              // for codeinfo
+#include "vm/jit/codegen-common.hpp"    // for codegendata, dataref, etc
+#include "vm/jit/jit.hpp"               // for jitdata, etc
 #include "vm/jit/methodheader.hpp"
+#include "vm/options.hpp"               // for opt_debugcolor
+#include "vm/types.hpp"                 // for s4, s8, u4, ptrint, u1
+
 
 
 /* dseg_finish *****************************************************************

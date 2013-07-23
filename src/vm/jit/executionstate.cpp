@@ -22,22 +22,23 @@
 
 */
 
-
-#include "config.h"
-
-#include <stdint.h>
-#include <cstdio>
-
-#include "arch.hpp"
-#include "md.hpp"
-#include "md-abi.hpp"
-
-#include "vm/exceptions.hpp"
-#include "vm/descriptor.hpp"
-#include "vm/os.hpp"
-
-#include "vm/jit/abi.hpp"
 #include "vm/jit/executionstate.hpp"
+#include <stdint.h>                     // for uintptr_t, int32_t, uint8_t, etc
+#include <string.h>                     // for memcmp
+#include <cstdio>                       // for printf
+#include "config.h"                     // for SIZEOF_VOID_P
+#include "arch.hpp"
+#include "md-abi.hpp"                   // for FLT_REG_CNT, INT_REG_CNT
+#include "md.hpp"                       // for md_codegen_get_pv_from_pc, etc
+#include "vm/descriptor.hpp"            // for methoddesc
+#include "vm/jit/abi.hpp"               // for nregdescfloat, nregdescint
+#include "vm/jit/code.hpp"              // for codeinfo, etc
+#include "vm/method.hpp"                // for method_print, methodinfo
+#include "vm/os.hpp"                    // for os
+#include "vm/types.hpp"                 // for s4, ptrint, u1, u8
+
+
+//#include "vm/exceptions.hpp"
 
 
 /**

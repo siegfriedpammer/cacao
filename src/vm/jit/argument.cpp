@@ -30,6 +30,8 @@
 
 #include "arch.hpp"
 
+#include "mm/dumpmemory.hpp"
+
 #include "native/llni.hpp"
 
 #include "vm/array.hpp"

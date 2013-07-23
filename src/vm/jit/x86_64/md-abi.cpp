@@ -30,8 +30,10 @@
 
 #include "vm/descriptor.hpp"
 #include "vm/global.hpp"
+#include "vm/method.hpp"
 
 #include "vm/jit/abi.hpp"
+#include "vm/jit/code.hpp"
 #include "vm/jit/jit.hpp" /* for REG_* (maybe can be removed) */
 #include "vm/jit/stack.hpp"
 

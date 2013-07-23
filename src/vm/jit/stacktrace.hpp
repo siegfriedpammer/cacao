@@ -26,17 +26,17 @@
 #ifndef STACKTRACE_HPP_
 #define STACKTRACE_HPP_ 1
 
-#include "config.h"
+#include <stdint.h>                     // for int32_t
+#include "config.h"                     // for ENABLE_JAVASE, ENABLE_JIT, etc
+#include "vm/global.hpp"                // for java_handle_objectarray_t, etc
+#include "vm/loader.hpp"                // for classloader_t
 
 #include "vm/types.hpp"
-
 #include "md-abi.hpp"
-
-#include "vm/loader.hpp"
-#include "vm/global.hpp"
 
 struct classinfo;
 struct codeinfo;
+struct threadobject;
 
 /* stackframeinfo **************************************************************
 

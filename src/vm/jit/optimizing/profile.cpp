@@ -36,13 +36,14 @@
 #include "threads/threadlist.hpp"
 #include "threads/thread.hpp"
 
-#include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
 #include "vm/classcache.hpp"
 #include "vm/method.hpp"
 #include "vm/options.hpp"
 #include "vm/string.hpp"
 
+#include "vm/jit/builtin.hpp"
+#include "vm/jit/code.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/methodheader.hpp"
 #include "vm/jit/methodtree.hpp"

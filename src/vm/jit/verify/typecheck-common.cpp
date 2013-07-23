@@ -31,6 +31,7 @@
 
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
+#include "vm/method.hpp"
 
 #include "vm/jit/show.hpp"
 

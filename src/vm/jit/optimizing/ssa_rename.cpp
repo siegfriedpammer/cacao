@@ -28,13 +28,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "mm/memory.hpp"
+#include "mm/dumpmemory.hpp"
 
 #include "toolbox/bitvector.hpp"
 #include "toolbox/worklist.hpp"
 
 #include "vm/jit/builtin.hpp"
 
+#include "vm/jit/code.hpp"
 #include "vm/jit/jit.hpp" /* icmd_table */
 
 #include "vm/jit/optimizing/dominators.hpp"

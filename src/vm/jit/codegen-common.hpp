@@ -26,34 +26,29 @@
 #ifndef CODEGEN_COMMON_HPP_
 #define CODEGEN_COMMON_HPP_ 1
 
-/* forward typedefs ***********************************************************/
-
-typedef struct codegendata            codegendata;
-typedef struct branchref              branchref;
-typedef struct branch_label_ref_t     branch_label_ref_t;
-typedef struct jumpref                jumpref;
-typedef struct dataref                dataref;
-
-struct patchref_t;
-
 #include "config.h"
-#include "vm/types.hpp"
+#include "arch.hpp"
+#include "md-abi.hpp"                   // for REG_ITMP1, REG_ITMP2, etc
+#include "vm/global.hpp"                // for functionptr, java_handle_t, etc
+#include "vm/types.hpp"                 // for s4, u1, u4, u2
 
-#include "toolbox/list.hpp"
-
-#include "vm/jit/builtin.hpp"
-#include "vm/descriptor.hpp"
-#include "vm/global.hpp"
-
-#include "vm/jit/jit.hpp"
-#include "vm/jit/reg.hpp"
-#include "vm/jit/code.hpp"
-#include "vm/jit/linenumbertable.hpp"
-#include "vm/jit/replace.hpp"
-
+class Linenumber;
+struct basicblock;
+struct branch_label_ref_t;
+struct branchref;
+struct codegendata;
+struct dataref;
 struct dsegentry;
+struct fieldinfo;
+struct instruction;
+struct jitdata;
+struct jumpref;
+struct methoddesc;
 struct methodinfo;
+struct patchref_t;
+struct rplpoint;
 struct varinfo;
+template <class T> class DumpList;
 
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */
 #define DSEGINITSIZE  (1<<12)       /*  4 Kbyte data area initialization size */

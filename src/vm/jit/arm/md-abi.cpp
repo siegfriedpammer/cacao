@@ -29,9 +29,11 @@
 #include "vm/jit/arm/md-abi.hpp"
 
 #include "vm/descriptor.hpp"
+#include "vm/method.hpp"
 #include "vm/global.hpp"
 
 #include "vm/jit/abi.hpp"
+#include "vm/jit/code.hpp"
 
 
 /* register descripton array **************************************************/

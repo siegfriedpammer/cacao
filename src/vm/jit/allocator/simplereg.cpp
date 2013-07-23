@@ -24,6 +24,7 @@
 */
 
 
+#include "vm/jit/allocator/simplereg.hpp"
 #include "config.h"
 
 #include <cassert>
@@ -35,17 +36,18 @@
 #include "md-abi.hpp"
 
 #include "mm/memory.hpp"
+#include "mm/dumpmemory.hpp"
 
-#include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/method.hpp"
 #include "vm/options.hpp"
 #include "vm/resolve.hpp"
 
 #include "vm/jit/abi.hpp"
+#include "vm/jit/builtin.hpp"
+#include "vm/jit/code.hpp"
 #include "vm/jit/reg.hpp"
 #include "vm/jit/show.hpp"
-#include "vm/jit/allocator/simplereg.hpp"
 
 #define DEBUG_NAME "simplereg"
 

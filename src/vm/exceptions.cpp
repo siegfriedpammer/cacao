@@ -22,50 +22,43 @@
 
 */
 
-
-#include "config.h"
-
-#include <cassert>
-#include <cstring>
-#include <cstdarg>
-#include <cstdlib>
-
-#include "vm/types.hpp"
-
-#include "md-abi.hpp"
-
-#include "native/llni.hpp"
-#include "native/native.hpp"
-
-#include "threads/lock.hpp"
-#include "threads/thread.hpp"
-
-#include "toolbox/util.hpp"
-#include "toolbox/buffer.hpp"
-
-#include "vm/jit/builtin.hpp"
-#include "vm/class.hpp"
 #include "vm/exceptions.hpp"
-#include "vm/global.hpp"
-#include "vm/globals.hpp"
-#include "vm/javaobjects.hpp"
-#include "vm/loader.hpp"
-#include "vm/method.hpp"
-#include "vm/options.hpp"
-#include "vm/os.hpp"
-#include "vm/resolve.hpp"
-#include "vm/string.hpp"
-#include "vm/vm.hpp"
-
+#include <stdint.h>                     // for uintptr_t
+#include <cassert>                      // for assert
+#include <cstring>
+#include <cstdio>                       // for fprintf, printf, putc, etc
+#include <cstdarg>                      // for va_list
+#include "config.h"                     // for ENABLE_THREADS, etc
+#include "md-abi.hpp"
+#include "jit/code.hpp"                 // for codeinfo, etc
+#include "native/llni.hpp"
+#include "native/native.hpp"            // for native_new_and_init_string, etc
+#include "threads/lock.hpp"             // for lock_monitor_exit
+#include "threads/thread.hpp"           // for threadobject, etc
+#include "toolbox/buffer.hpp"           // for Buffer
+#include "toolbox/logging.hpp"          // for log_finish, log_print, etc
+#include "vm/class.hpp"                 // for classinfo, etc
+#include "vm/global.hpp"                // for java_handle_t, etc
+#include "vm/globals.hpp"               // for class_java_lang_Object, etc
+#include "vm/javaobjects.hpp"           // for java_lang_Throwable, etc
 #include "vm/jit/asmpart.hpp"
-#include "vm/jit/exceptiontable.hpp"
+#include "vm/jit/builtin.hpp"           // for builtin_new, etc
+#include "vm/jit/exceptiontable.hpp"    // for exceptiontable_entry_t, etc
 #include "vm/jit/methodheader.hpp"
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/show.hpp"
-#include "vm/jit/stacktrace.hpp"
-#include "vm/jit/trace.hpp"
-
-#include "toolbox/logging.hpp"
+#include "vm/jit/stacktrace.hpp"        // for stacktrace_print_exception, etc
+#include "vm/jit/trace.hpp"             // for trace_exception
+#include "vm/linker.hpp"                // for link_class
+#include "vm/loader.hpp"                // for load_class_bootstrap, etc
+#include "vm/method.hpp"                // for methodinfo
+#include "vm/options.hpp"               // for opt_TraceExceptions, etc
+#include "vm/os.hpp"                    // for os
+#include "vm/references.hpp"            // for classref_or_classinfo
+#include "vm/resolve.hpp"               // for resolve_classref_eager
+#include "vm/string.hpp"                // for JavaString
+#include "vm/types.hpp"                 // for s4, u1, u4
+#include "vm/vm.hpp"                    // for VM, vm_call_method
 
 #define DEBUG_NAME "exceptions"
 

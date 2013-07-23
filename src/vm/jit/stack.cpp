@@ -22,42 +22,42 @@
 
 */
 
-
-#include "config.h"
-
-#include <cassert>
-#include <cstdio>
-#include <cstring>
+#include "vm/jit/stack.hpp"
+#include <stdint.h>                     // for int32_t
+#include <cassert>                      // for assert
 #include <climits>
-
+#include <cstdio>                       // for NULL
+#include <cstring>
+#include "config.h"                     // for ENABLE_VERIFIER, etc
 #include "arch.hpp"
 #include "md-abi.hpp"
-
-#include "mm/memory.hpp"
-
 #include "native/native.hpp"
-
+#include "mm/dumpmemory.hpp"
 #include "toolbox/logging.hpp"
-
-#include "vm/jit/builtin.hpp"
+#include "vm/descriptor.hpp"            // for methoddesc, typedesc, etc
 #include "vm/exceptions.hpp"
-#include "vm/global.hpp"
-#include "vm/options.hpp"
-#include "vm/resolve.hpp"
-#include "vm/types.hpp"
-#include "vm/statistics.hpp"
-#include "vm/jit/abi.hpp"
+#include "vm/global.hpp"                // for Type::TYPE_INT, etc
+#include "vm/jit/abi.hpp"               // for md_return_alloc
+#include "vm/jit/builtin.hpp"           // for builtintable_get_internal, etc
 #include "vm/jit/cfg.hpp"
+#include "vm/jit/code.hpp"              // for code_unflag_leafmethod
 #include "vm/jit/codegen-common.hpp"
+#include "vm/jit/jit.hpp"               // for basicblock, jitdata, etc
 #include "vm/jit/parse.hpp"
+#include "vm/jit/reg.hpp"               // for varinfo, etc
 #include "vm/jit/show.hpp"
+#include "vm/jit/verify/typeinfo.hpp"   // for typeinfo_t
+#include "vm/options.hpp"               // for opt_verify
+#include "vm/references.hpp"            // for classref_or_classinfo, etc
+#include "vm/resolve.hpp"               // for unresolved_field
+#include "vm/statistics.hpp"            // for StatVar, StatDist, etc
+#include "vm/types.hpp"                 // for s4, ptrint
 
 #if defined(ENABLE_DISASSEMBLER)
 # include "vm/jit/disass.hpp"
 #endif
 
-#include "vm/jit/jit.hpp"
-#include "vm/jit/stack.hpp"
+struct stackdata_t;
 
 #if 0
 #if defined(ENABLE_SSA)

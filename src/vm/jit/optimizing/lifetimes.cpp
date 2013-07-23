@@ -28,7 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "mm/memory.hpp"
+#include "mm/dumpmemory.hpp"
 
 #include "toolbox/bitvector.hpp"
 #include "toolbox/worklist.hpp"

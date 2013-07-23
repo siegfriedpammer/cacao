@@ -26,13 +26,14 @@
 #ifndef STACK_HPP_
 #define STACK_HPP_ 1
 
-#include "config.h"
-#include "vm/types.hpp"
+#include "config.h"                     // for ENABLE_VERIFIER
+#include "vm/jit/ir/icmd.hpp"           // for ::ICMD_ACONST
+#include "vm/jit/ir/instruction.hpp"    // for instruction, etc
 #include "vm/jit/reg.hpp"
+#include "vm/method.hpp"                // for methodinfo
+#include "vm/types.hpp"                 // for s4
 
-/* forward typedefs ***********************************************************/
-
-struct stackelement_t;
+struct jitdata;
 
 /* stack element structure ****************************************************/
 

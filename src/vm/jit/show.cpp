@@ -22,38 +22,48 @@
 
 */
 
-
-#include "config.h"
-
-#include <assert.h>
-#include <stdint.h>
-
-#include "vm/types.hpp"
-
-#include "threads/lock.hpp"
-
-#include "vm/field.hpp"
-#include "vm/global.hpp"
-#include "vm/jit/builtin.hpp"
-#include "vm/options.hpp"
-#include "vm/string.hpp"
-#include "vm/vm.hpp"
-
-#include "vm/jit/abi.hpp"
-#include "vm/jit/jit.hpp"
 #include "vm/jit/show.hpp"
+#include <assert.h>                     // for assert
+#include <stdint.h>                     // for int32_t
+#include <stdio.h>                      // for printf, putchar, fflush
+#include "codegen-common.hpp"           // for codegendata
+#include "config.h"                     // for ENABLE_DEBUG_FILTER, etc
+#include "patcher-common.hpp"           // for patcher_list_show
+#include "replace.hpp"
+#include "threads/lock.hpp"
+#include "threads/mutex.hpp"            // for Mutex
+#include "threads/thread.hpp"           // for threadobject, etc
+#include "toolbox/buffer.hpp"           // for Buffer
+#include "toolbox/list.hpp"             // for LockedList
+#include "vm/class.hpp"
+#include "vm/descriptor.hpp"            // for methoddesc, typedesc
+#include "vm/field.hpp"                 // for field_fieldref_print
+#include "vm/global.hpp"                // for imm_union, Type::TYPE_RET, etc
+#include "vm/jit/abi.hpp"               // for abi_registers_integer_name
+#include "vm/jit/builtin.hpp"           // for builtintable_entry
+#include "vm/jit/code.hpp"              // for codeinfo, etc
 #include "vm/jit/disass.hpp"
-#include "vm/jit/stack.hpp"
+#include "vm/jit/ir/icmd.hpp"           // for ::ICMD_GETSTATIC, etc
+#include "vm/jit/ir/instruction.hpp"    // for instruction, etc
+#include "vm/jit/jit.hpp"               // for basicblock, jitdata, etc
 #include "vm/jit/parse.hpp"
 #include "vm/jit/patcher-common.hpp"
+#include "vm/jit/reg.hpp"               // for varinfo, etc
+#include "vm/jit/stack.hpp"
+#include "vm/method.hpp"                // for methodinfo, etc
+#include "vm/options.hpp"               // for opt_filter_show_method, etc
+#include "vm/references.hpp"            // for classref_or_classinfo, etc
+#include "vm/string.hpp"                // for JavaString
+#include "vm/types.hpp"                 // for s4, ptrint, u1, u2
+#include "vm/utf8.hpp"                  // for utf_display_printable_ascii
+#include "vm/vm.hpp"                    // for vm_abort
+
 
 #if defined(ENABLE_DEBUG_FILTER)
 # include <sys/types.h>
-# include <regex.h>
+# include <regex.h>                     // for regcomp, regerror, regexec, etc
 # include "threads/thread.hpp"
 #endif
-
-#include "toolbox/buffer.hpp"
 
 /* global variables ***********************************************************/
 

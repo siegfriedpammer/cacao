@@ -146,6 +146,7 @@ bytecode verification" @cite Coglio2003.
 #ifdef ENABLE_VERIFIER
 
 #include "mm/memory.hpp"
+#include "mm/dumpmemory.hpp"
 
 #include "native/native.hpp"
 

@@ -28,7 +28,7 @@
 #include "config.h"
 # include <cassert>
 
-#include "mm/memory.hpp"
+#include "mm/dumpmemory.hpp"
 
 #include "toolbox/bitvector.hpp"
 

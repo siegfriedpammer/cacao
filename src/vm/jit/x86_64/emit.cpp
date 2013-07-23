@@ -42,6 +42,8 @@
 
 #include "vm/jit/abi.hpp"
 #include "vm/jit/abi-asm.hpp"
+#include "vm/jit/builtin.hpp"
+#include "vm/jit/code.hpp"
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"

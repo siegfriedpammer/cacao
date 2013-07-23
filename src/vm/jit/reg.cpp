@@ -22,19 +22,16 @@
 
 */
 
-
+#include "vm/jit/reg.hpp"
+#include <cassert>                      // for assert
 #include "config.h"
-
-#include <cassert>
-
-#include "vm/types.hpp"
-
 #include "arch.hpp"
 #include "md-abi.hpp"
-
-#include "vm/jit/abi.hpp"
-#include "vm/jit/reg.hpp"
-
+#include "mm/dumpmemory.hpp"            // for DNEW, DMNEW
+#include "vm/jit/abi.hpp"               // for nregdescfloat, nregdescint
+#include "vm/jit/jit.hpp"               // for jitdata
+#include "vm/method.hpp"                // for methodinfo
+#include "vm/types.hpp"                 // for s4
 
 /* reg_setup *******************************************************************
 

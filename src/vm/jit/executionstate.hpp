@@ -26,20 +26,14 @@
 #ifndef EXECUTIONSTATE_HPP_
 #define EXECUTIONSTATE_HPP_ 1
 
-/* forward typedefs ***********************************************************/
-
-typedef struct executionstate_t executionstate_t;
-
-
+#include <stdint.h>                     // for uint8_t, uint64_t, etc
 #include "config.h"
-
-#include <stdint.h>
-
 #include "arch.hpp"
 #include "md-abi.hpp"
+#include "vm/global.hpp"                // for java_handle_t
 
-#include "vm/jit/code.hpp"
-
+struct codeinfo;
+struct executionstate_t;
 
 /* configuration of native stack slot size ************************************/
 

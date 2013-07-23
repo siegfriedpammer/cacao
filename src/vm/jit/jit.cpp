@@ -22,46 +22,45 @@
 
 */
 
-
-#include "config.h"
-
-#include <cassert>
-#include <stdint.h>
-
-#include "vm/types.hpp"
-
-#include "md.hpp"
-
-#include "native/native.hpp"
-
-#include "toolbox/logging.hpp"
-
-#include "threads/mutex.hpp"
-
-#include "vm/class.hpp"
-#include "vm/global.hpp"
-#include "vm/globals.hpp"
-#include "vm/hook.hpp"
-#include "vm/initialize.hpp"
-#include "vm/method.hpp"
-#include "vm/options.hpp"
-#include "vm/rt-timing.hpp"
-#include "vm/statistics.hpp"
-
-#include "vm/jit/cfg.hpp"
-
-#include "vm/jit/codegen-common.hpp"
-#include "vm/jit/disass.hpp"
-#include "vm/jit/dseg.hpp"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/parse.hpp"
-#include "vm/jit/reg.hpp"
+#include <cassert>                         // for assert
+#include <stdint.h>                        // for uintptr_t
+#include "config.h"                        // for ENABLE_JIT, etc
+#include "md.hpp"                          // for md_cacheflush
+#include "mm/dumpmemory.hpp"               // for DumpMemory, DumpMemoryArea
+#include "native/native.hpp"               // for NativeMethods
+#include "threads/mutex.hpp"               // for Mutex
+#include "toolbox/logging.hpp"             // for log_message_method, etc
+#include "vm/class.hpp"                    // for classinfo
+#include "vm/global.hpp"                   // for functionptr
+#include "vm/globals.hpp"
+#include "vm/hook.hpp"                     // for jit_generated
+#include "vm/initialize.hpp"               // for initialize_class
+#include "vm/jit/allocator/simplereg.hpp"  // for regalloc, etc
+#include "vm/jit/cfg.hpp"                  // for cfg_build
+#include "vm/jit/code.hpp"                 // for codeinfo, etc
+#include "vm/jit/codegen-common.hpp"       // for codegen_setup, etc
+#include "vm/jit/disass.hpp"
+#include "vm/jit/dseg.hpp"                 // for dseg_display
+#include "vm/jit/jit.hpp"
+#include "vm/jit/ir/bytecode.hpp"
+#include "vm/jit/ir/icmd.hpp"              // for ::ICMD_IFNONNULL, etc
+#include "vm/jit/optimizing/ifconv.hpp"    // for ifconv_static
+#include "vm/jit/optimizing/reorder.hpp"
+#include "vm/jit/parse.hpp"                // for parse
+#include "vm/jit/python.h"
+#include "vm/jit/reg.hpp"                  // for reg_setup, registerdata
+#include "vm/jit/show.hpp"                 // for show_filters_apply, etc
+#include "vm/jit/stack.hpp"                // for stack_analyse, stack_init
+#include "vm/jit/stubs.hpp"                // for NativeStub
+#include "vm/jit/verify/typecheck.hpp"     // for typecheck
+#include "vm/method.hpp"                   // for methodinfo, method_print
+#include "vm/options.hpp"                  // for compileverbose, etc
+#include "vm/rt-timing.hpp"
+#include "vm/statistics.hpp"               // for StatSumGroup, StatVar, etc
+#include "vm/types.hpp"                    // for u1, s4, ptrint
+#include "vm/vm.hpp"                       // for VM, vm_abort
 
-#include "vm/jit/show.hpp"
-#include "vm/jit/stack.hpp"
-#include "vm/jit/stubs.hpp"
-
-#include "vm/jit/allocator/simplereg.hpp"
 #if defined(ENABLE_LSRA) && !defined(ENABLE_SSA)
 # include "vm/jit/allocator/lsra.hpp"
 #endif
@@ -75,18 +74,13 @@
 # include "vm/jit/inline/inline.hpp"
 #endif
 
-#include "vm/jit/ir/bytecode.hpp"
-
 #if defined(ENABLE_IFCONV)
 # include "vm/jit/optimizing/ifconv.hpp"
 #endif
 
-#include "vm/jit/optimizing/reorder.hpp"
-
-#include "vm/jit/python.h"
-
-#include "vm/jit/verify/typecheck.hpp"
-
+#if defined(ENABLE_LOOP)
+# include "vm/jit/loop/loop.hpp"
+#endif
 
 /* debug macros ***************************************************************/
 

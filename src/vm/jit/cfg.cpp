@@ -24,15 +24,13 @@
 
 */
 
-#include "config.h"
-
 #include "vm/jit/cfg.hpp"
-
-#include <assert.h>
-
-#include "mm/memory.hpp"
-
-#include "vm/jit/jit.hpp"
+#include <assert.h>                     // for assert
+#include "config.h"
+#include "mm/dumpmemory.hpp"            // for DMNEW
+#include "vm/jit/ir/icmd.hpp"           // for ::ICMD_NOP, etc
+#include "vm/jit/ir/instruction.hpp"    // for instruction, etc
+#include "vm/jit/jit.hpp"               // for basicblock, jitdata, etc
 #include "vm/jit/stack.hpp"
 
 

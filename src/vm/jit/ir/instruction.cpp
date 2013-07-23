@@ -22,14 +22,10 @@
 
 */
 
-
-#include "config.h"
-
-#include "vm/descriptor.hpp"
-
 #include "vm/jit/ir/instruction.hpp"
-#include "vm/jit/builtin.hpp"
-#include "vm/resolve.hpp"
+#include "vm/jit/builtin.hpp"           // for builtintable_entry
+#include "vm/method.hpp"                // for methodinfo
+#include "vm/resolve.hpp"               // for unresolved_method
 
 methoddesc* instruction_call_site(const instruction* iptr)
 {

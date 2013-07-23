@@ -26,12 +26,13 @@
 #ifndef _SHOW_HPP
 #define _SHOW_HPP
 
-#include "config.h"
-#include "vm/types.hpp"
+#include "config.h"                     // for ENABLE_DEBUG_FILTER
+#include "vm/types.hpp"                 // for s4
 
-struct jitdata;
 struct basicblock;
 struct instruction;
+struct jitdata;
+struct methodinfo;
 
 /* compiler stage defines *****************************************************/
 

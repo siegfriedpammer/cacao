@@ -49,6 +49,7 @@
 
 #include "mm/gc.hpp"
 #include "mm/memory.hpp"
+#include "mm/dumpmemory.hpp"
 
 #include "native/llni.hpp"
 

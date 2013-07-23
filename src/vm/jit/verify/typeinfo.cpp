@@ -28,6 +28,8 @@
 #include <assert.h>
 #include <string.h>
 
+#include "mm/dumpmemory.hpp"
+
 #include "toolbox/logging.hpp"
 
 #include "vm/array.hpp"

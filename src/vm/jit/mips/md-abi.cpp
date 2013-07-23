@@ -39,6 +39,7 @@
 #include "vm/method.hpp"
 
 #include "vm/jit/abi.hpp"
+#include "vm/jit/code.hpp"
 #include "vm/jit/stack.hpp"
 
 

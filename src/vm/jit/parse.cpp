@@ -22,38 +22,42 @@
 
 */
 
-
-#include "config.h"
-
-#include <assert.h>
-#include <string.h>
-
-#include "vm/types.hpp"
-
-#include "mm/memory.hpp"
-
+#include "vm/jit/parse.hpp"
+#include <assert.h>                     // for assert
+#include <string.h>                     // for NULL
+#include "config.h"                     // for ENABLE_VERIFIER, etc
 #include "native/native.hpp"
-
+#include "mm/dumpmemory.hpp"            // for DumpMemory
 #include "threads/lock.hpp"
-
 #include "toolbox/logging.hpp"
-
-#include "vm/breakpoint.hpp"
-#include "vm/jit/builtin.hpp"
+#include "vm/breakpoint.hpp"            // for BreakpointTable
+#include "vm/class.hpp"                 // for class_getconstant, etc
+#include "vm/descriptor.hpp"            // for methoddesc
 #include "vm/exceptions.hpp"
 #include "vm/global.hpp"
-#include "vm/linker.hpp"
-#include "vm/loader.hpp"
-#include "vm/options.hpp"
-#include "vm/resolve.hpp"
-#include "vm/statistics.hpp"
-#include "vm/string.hpp"
-#include "vm/suck.hpp"
-
-#include "vm/jit/jit.hpp"
+#include "vm/jit/builtin.hpp"           // for builtintable_get_internal
+#include "vm/jit/code.hpp"              // for code_unflag_leafmethod
+#include "vm/jit/ir/bytecode.hpp"       // for ::BC_aload_0, ::BC_astore_0, etc
+#include "vm/jit/ir/icmd.hpp"           // for ::ICMD_NOP, ::ICMD_BUILTIN, etc
+#include "vm/jit/ir/instruction.hpp"    // for instruction, etc
+#include "vm/jit/jit.hpp"               // for jitdata, basicblock, etc
 #include "vm/jit/parse.hpp"
+#include "vm/jit/reg.hpp"               // for varinfo
+#include "vm/jit/stack.hpp"             // for stackelement_t
+#include "vm/linker.hpp"
+#include "vm/loader.hpp"                // for constant_double, etc
+#include "vm/method.hpp"                // for methodinfo, etc
+#include "vm/options.hpp"               // for checksync
+#include "vm/references.hpp"            // for classref_or_classinfo, etc
+#include "vm/resolve.hpp"               // for resolve_classref, etc
+#include "vm/statistics.hpp"
+#include "vm/string.hpp"                // for JavaString
+#include "vm/suck.hpp"
+#include "vm/types.hpp"                 // for s4, u1, u2, u4
+#include "vm/utf8.hpp"                  // for Utf8String
 
-#include "vm/jit/ir/bytecode.hpp"
+struct parsedata_t;
+struct utf;
 
 /* macros for verifier checks during parsing **********************************/
 

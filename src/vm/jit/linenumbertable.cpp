@@ -22,25 +22,19 @@
 
 */
 
-
-#include "config.h"
-
-#include <assert.h>
-#include <stdint.h>
-
-#include <algorithm>
-
-#include "toolbox/list.hpp"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/options.hpp"
-# include "vm/statistics.hpp"
-#endif
-
-#include "vm/jit/code.hpp"
-#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/linenumbertable.hpp"
-
+#include <assert.h>                     // for assert
+#include <stdint.h>                     // for int32_t, uintptr_t
+#include <algorithm>                    // for find_if, for_each
+#include <list>                         // for _List_iterator
+#include "config.h"                     // for ENABLE_STATISTICS
+#include "toolbox/list.hpp"             // for DumpList
+#include "vm/jit/code.hpp"              // for codeinfo
+#include "vm/jit/codegen-common.hpp"    // for codegendata
+#include "vm/jit/ir/instruction.hpp"    // for insinfo_inline, instruction, etc
+#include "vm/jit/jit.hpp"               // for jitdata
+#include "vm/os.hpp"                    // for os
+#include "vm/statistics.hpp"            // for StatVar
 
 #if defined(__S390__)
 #  define ADDR_MASK(type, x) ((type)((uintptr_t)(x) & 0x7FFFFFFF))

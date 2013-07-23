@@ -32,7 +32,7 @@
 
 #include "vm/types.hpp"
 
-#include "mm/memory.hpp"
+#include "mm/dumpmemory.hpp"
 
 #include "threads/lock.hpp"
 #include "threads/mutex.hpp"
@@ -41,6 +41,7 @@
 #include "toolbox/logging.hpp"
 
 #include "vm/jit/builtin.hpp"
+#include "vm/jit/code.hpp"
 #include "vm/class.hpp"
 #include "vm/global.hpp"
 #include "vm/initialize.hpp"
@@ -48,6 +49,7 @@
 #include "vm/options.hpp"
 #include "vm/statistics.hpp"
 
+#include "vm/jit/code.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/parse.hpp"
 #include "vm/jit/reg.hpp"

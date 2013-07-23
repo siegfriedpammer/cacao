@@ -36,6 +36,7 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.hpp"
+#include "vm/jit/code.hpp"
 #include "vm/jit/codegen-common.hpp"
 
 /**

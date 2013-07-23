@@ -22,32 +22,36 @@
 
 */
 
-#include "config.h"
-
-#include <assert.h>
-
-#include "vm/types.hpp"
-
-#include "mm/dumpmemory.hpp"
-#include "mm/memory.hpp"
-
-#include "vm/access.hpp"
-#include "vm/classcache.hpp"
-#include "vm/descriptor.hpp"
-#include "vm/exceptions.hpp"
-#include "vm/field.hpp"
-#include "vm/global.hpp"
-#include "vm/globals.hpp"
-#include "vm/linker.hpp"
-#include "vm/loader.hpp"
-#include "vm/options.hpp"
-#include "vm/primitive.hpp"
 #include "vm/resolve.hpp"
-
-#include "toolbox/buffer.hpp"
-
+#include <assert.h>                     // for assert
+#include <stdint.h>                     // for int32_t
+#include "config.h"                     // for ENABLE_VERIFIER
+#include "mm/dumpmemory.hpp"            // for DNEW
+#include "mm/memory.hpp"
+#include "toolbox/buffer.hpp"           // for Buffer
+#include "vm/access.hpp"                // for access_is_accessible_member, etc
+#include "vm/class.hpp"                 // for classinfo, etc
+#include "vm/classcache.hpp"            // for classcache_add_constraint, etc
+#include "vm/descriptor.hpp"            // for typedesc, methoddesc, etc
+#include "vm/exceptions.hpp"
+#include "vm/field.hpp"                 // for fieldinfo
+#include "vm/global.hpp"                // for Type::TYPE_ADR, etc
+#include "vm/globals.hpp"
+#include "vm/jit/builtin.hpp"           // for builtin_instanceof
+#include "vm/jit/ir/icmd.hpp"           // for ::ICMD_GETFIELD, etc
+#include "vm/jit/ir/instruction.hpp"    // for instruction, etc
 #include "vm/jit/jit.hpp"
-#include "vm/jit/verify/typeinfo.hpp"
+#include "vm/jit/reg.hpp"               // for varinfo
+#include "vm/jit/verify/typeinfo.hpp"   // for typeinfo_t, etc
+#include "vm/linker.hpp"                // for link_class
+#include "vm/loader.hpp"                // for load_class_from_classloader
+#include "vm/method.hpp"                // for methodinfo
+#include "vm/options.hpp"               // for opt_verify
+#include "vm/primitive.hpp"             // for Primitive
+#include "vm/types.hpp"                 // for s4
+
+struct jitdata;
+
 
 
 /******************************************************************************/

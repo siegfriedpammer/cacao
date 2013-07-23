@@ -22,33 +22,31 @@
 
 */
 
-
-#include "config.h"
-
-#include <cstdio>
-
-#include "md-abi.hpp"
-
-#include "native/llni.hpp"
-
-#include "threads/thread.hpp"
-
-#include "toolbox/logging.hpp"
-#include "toolbox/buffer.hpp"
-
-#include "vm/array.hpp"
-#include "vm/global.hpp"
-#include "vm/globals.hpp"
-#include "vm/hook.hpp"
-#include "vm/javaobjects.hpp"
-#include "vm/options.hpp"
-#include "vm/string.hpp"
-#include "vm/utf8.hpp"
-
-#include "vm/jit/argument.hpp"
-#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/trace.hpp"
+#include <cstdio>
+#include "config.h"                     // for ENABLE_DEBUG_FILTER, etc
+#include "md-abi.hpp"
+#include "native/llni.hpp"
+#include "threads/thread.hpp"           // for threadobject
+#include "toolbox/logging.hpp"
+#include "toolbox/buffer.hpp"           // for Buffer
+#include "vm/array.hpp"
+#include "vm/class.hpp"                 // for classinfo
+#include "vm/descriptor.hpp"            // for methoddesc, typedesc
+#include "vm/global.hpp"                // for imm_union, java_object_t, etc
+#include "vm/globals.hpp"               // for class_java_lang_Class, etc
+#include "vm/hook.hpp"                  // for method_enter, method_exit
+#include "vm/javaobjects.hpp"           // for java_lang_Throwable, etc
+#include "vm/jit/argument.hpp"          // for argument_jitarray_load, etc
+#include "vm/jit/code.hpp"              // for codeinfo
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/show.hpp"
+#include "vm/method.hpp"                // for methodinfo, etc
+#include "vm/options.hpp"               // for opt_TraceBuiltinCalls, etc
+#include "vm/string.hpp"                // for JavaString
+#include "vm/types.hpp"                 // for s4
+#include "vm/utf8.hpp"                  // for Utf8String
+#include "vm/vftbl.hpp"                 // for vftbl_t
 
 #if !defined(NDEBUG)
 

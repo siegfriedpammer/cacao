@@ -41,6 +41,7 @@
 
 #include "vm/jit/abi.hpp"
 #include "vm/jit/asmpart.hpp"
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/dseg.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"

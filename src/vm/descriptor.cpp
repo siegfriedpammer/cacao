@@ -22,25 +22,25 @@
 
 */
 
-
-#include "config.h"
-
-#include <cassert>
-
-#include "vm/types.hpp"
-
-#include "md-abi.hpp"
-
-#include "mm/memory.hpp"
-
 #include "vm/descriptor.hpp"
+#include <cassert>
+#include <new>                          // for operator new
+#include "config.h"                     // for ENABLE_JIT
+#include "md-abi.hpp"
+#include "mm/dumpmemory.hpp"            // for DumpMemory
+#include "threads/mutex.hpp"            // for Mutex
+#include "vm/class.hpp"                 // for classinfo
 #include "vm/exceptions.hpp"
+#include "vm/global.hpp"                // for Type::TYPE_ADR, etc
+#include "vm/jit/abi.hpp"               // for md_param_alloc, etc
 #include "vm/options.hpp"
 #include "vm/primitive.hpp"
-#include "vm/vm.hpp"
+#include "vm/references.hpp"            // for parseddesc_t, etc
+#include "vm/types.hpp"                 // for u4, u1, s4, s2, u2
+#include "vm/vm.hpp"                    // for vm_abort
 
-#include "vm/jit/abi.hpp"
-
+struct classref_hash_entry;
+struct descriptor_hash_entry;
 
 /* constants (private to descriptor.c) ****************************************/
 

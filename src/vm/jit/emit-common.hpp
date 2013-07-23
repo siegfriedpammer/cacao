@@ -27,14 +27,18 @@
 #ifndef EMIT_COMMON_HPP_
 #define EMIT_COMMON_HPP_ 1
 
-#include "config.h"
-#include "vm/types.hpp"
-
+#include "config.h"                     // for ENABLE_THREADS
+#include <stdint.h>                     // for int32_t, uint32_t
 #include "arch.hpp"
 #include "codegen.hpp"
+#include "vm/types.hpp"                 // for s4, u4, s8
 
-#include "vm/jit/codegen-common.hpp"
-
+struct basicblock;
+struct codegendata;
+struct codeinfo;
+struct instruction;
+struct jitdata;
+struct varinfo;
 
 /* branch labels **************************************************************/
 

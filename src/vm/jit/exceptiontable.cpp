@@ -22,20 +22,16 @@
 
 */
 
-
-#include "config.h"
-
-#include <assert.h>
-#include <stdint.h>
-
-#include "mm/memory.hpp"
-
-#include "toolbox/logging.hpp"
-
-#include "vm/jit/code.hpp"
 #include "vm/jit/exceptiontable.hpp"
-#include "vm/jit/jit.hpp"
-
+#include "config.h"
+#include <assert.h>                     // for assert
+#include <stdint.h>                     // for uint8_t
+#include "mm/memory.hpp"                // for NEW
+#include "toolbox/logging.hpp"          // for log_print, log_finish, etc
+#include "vm/class.hpp"                 // for class_classref_print, etc
+#include "vm/jit/code.hpp"              // for codeinfo
+#include "vm/jit/jit.hpp"               // for exception_entry, jitdata, etc
+#include "vm/method.hpp"                // for method_print
 
 /* exceptiontable_create *******************************************************
 

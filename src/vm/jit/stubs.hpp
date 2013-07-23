@@ -26,10 +26,12 @@
 #define _STUBS_HPP
 
 #include "config.h"
+#include "vm/global.hpp"                // for functionptr
 
-#include "vm/jit/code.hpp"
-
+struct builtintable_entry;
+struct codeinfo;
 struct methodinfo;
+
 
 /**
  * Class for compiler stub generation.

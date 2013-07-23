@@ -26,11 +26,12 @@
 #ifndef _VM_JIT_TRACE_HPP
 #define _VM_JIT_TRACE_HPP
 
+#include <stdint.h>                     // for uint64_t
 #include "config.h"
 
-#include <stdint.h>
-
+struct java_object_t;
 struct methodinfo;
+
 
 #if !defined(NDEBUG)
 

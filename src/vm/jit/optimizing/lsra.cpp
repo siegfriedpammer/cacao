@@ -31,7 +31,7 @@
 #include "arch.hpp"
 #include "md-abi.hpp"
 
-#include "mm/memory.hpp"
+#include "mm/dumpmemory.hpp"
 
 #include "toolbox/bitvector.hpp"
 
@@ -40,6 +40,7 @@
 #include "vm/method.hpp"
 
 #include "vm/jit/abi.hpp"
+#include "vm/jit/code.hpp"
 #include "vm/jit/reg.hpp"
 #include "vm/jit/jit.hpp"
 

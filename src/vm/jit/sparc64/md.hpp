@@ -32,7 +32,7 @@
 #include <stdint.h>
 
 #include "vm/types.hpp"
-
+#include "vm/jit/code.hpp"
 #include "vm/jit/codegen-common.hpp"
 
 

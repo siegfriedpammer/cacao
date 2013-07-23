@@ -30,6 +30,7 @@
 #include <string.h>
 
 #include "mm/memory.hpp"
+#include "mm/dumpmemory.hpp"
 
 #include "native/native.hpp"
 

@@ -31,6 +31,7 @@
 #include <cassert>
 #include <stdint.h>
 
+#include "vm/jit/code.hpp"
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/methodtree.hpp"
 

@@ -22,27 +22,25 @@
 
 */
 
-
+#include "vm/jit/emit-common.hpp"
 #include "config.h"
-
-#include <cassert>
-#include <stdint.h>
-
 #include <algorithm>
-
-#include "vm/types.hpp"
-
+#include <cassert>                      // for assert
+#include <stdint.h>                     // for int32_t, uint32_t
+#include <list>                         // for _List_iterator, etc
 #include "arch.hpp"
 #include "codegen.hpp"
-
-#include "toolbox/list.hpp"
-
+#include "codegen-common.hpp"           // for codegendata, etc
+#include "toolbox/list.hpp"             // for DumpList, LockedList, List
+#include "vm/jit/code.hpp"              // for codeinfo
+#include "vm/jit/ir/instruction.hpp"    // for instruction, etc
+#include "vm/jit/jit.hpp"               // for basicblock, jitdata
+#include "vm/jit/patcher-common.hpp"    // for patchref_t
 #include "vm/options.hpp"
 #include "vm/statistics.hpp"
+#include "vm/types.hpp"                 // for s4, u1, u4
 
-#include "vm/jit/emit-common.hpp"
-#include "vm/jit/jit.hpp"
-#include "vm/jit/patcher-common.hpp"
+struct varinfo;
 
 STAT_REGISTER_VAR(int,count_branches_resolved,0,"resolved branches","resolved branches")
 
