@@ -39,6 +39,7 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/jit.hpp"
+#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/trap.hpp"
 
 

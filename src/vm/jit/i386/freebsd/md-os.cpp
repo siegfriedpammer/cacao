@@ -40,6 +40,7 @@
 
 #include "vm/jit/asmpart.hpp"
 #include "vm/jit/executionstate.hpp"
+#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.hpp"
 

@@ -45,6 +45,7 @@
 #include "vm/jit/disass.hpp"
 #include "vm/jit/stack.hpp"
 #include "vm/jit/parse.hpp"
+#include "vm/jit/patcher-common.hpp"
 
 #if defined(ENABLE_DEBUG_FILTER)
 # include <sys/types.h>

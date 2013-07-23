@@ -26,22 +26,21 @@
 #ifndef CODE_HPP_
 #define CODE_HPP_ 1
 
-#include "config.h"
+#include "config.h"                     // for ENABLE_REPLACEMENT, ENABLE_PROFILING
+#include <assert.h>                     // for assert
+#include <stdint.h>                     // for int32_t, uint8_t, uint32_t, etc
+#include <stdlib.h>                     // for NULL
+#include "vm/jit/methodheader.hpp"      // for CodeInfoPointer
+#include "vm/types.hpp"                 // for u1, s4
 
-#include <assert.h>
-#include <stdint.h>
-
-#include "vm/types.hpp"
-
-#include "toolbox/list.hpp"
-
-#include "vm/jit/exceptiontable.hpp"
-#include "vm/jit/linenumbertable.hpp"
-#include "vm/jit/methodheader.hpp"
-#include "vm/jit/patcher-common.hpp"
-#include "vm/jit/replace.hpp"
-
+class LinenumberTable;
+struct exceptiontable_t;
 struct methodinfo;
+struct patchref_t;
+struct rplalloc;
+struct rplpoint;
+template <class T> class LockedList;
+
 
 /* constants ******************************************************************/
 

@@ -37,6 +37,7 @@
 
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/executionstate.hpp"
+#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/trap.hpp"
 
 
