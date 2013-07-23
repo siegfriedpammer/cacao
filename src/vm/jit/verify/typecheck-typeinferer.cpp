@@ -38,7 +38,7 @@
 
 #include "vm/access.hpp"
 #include "vm/array.hpp"
-#include "vm/jit/builtin.hpp"
+#include "vm/descriptor.hpp"            // for typedesc, methoddesc, etc
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
 #include "vm/options.hpp"
@@ -46,6 +46,7 @@
 #include "vm/resolve.hpp"
 #include "vm/vm.hpp"
 
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/show.hpp"
 #include "vm/jit/parse.hpp"

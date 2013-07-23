@@ -33,6 +33,8 @@
 #include "toolbox/bitvector.hpp"
 #include "toolbox/worklist.hpp"
 
+#include "vm/descriptor.hpp"
+
 #include "vm/jit/cfg.hpp"
 #include "vm/jit/builtin.hpp"
 

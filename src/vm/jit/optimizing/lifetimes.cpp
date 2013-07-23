@@ -33,11 +33,14 @@
 #include "toolbox/bitvector.hpp"
 #include "toolbox/worklist.hpp"
 
-#include "vm/jit/builtin.hpp"
-#include "vm/resolve.hpp"
 #include "vm/exceptions.hpp"
+#include "vm/descriptor.hpp"
+#include "vm/resolve.hpp"
 #include "vm/string.hpp"
 
+#include "vm/jit/builtin.hpp"
+#include "vm/jit/jit.hpp"
+#include "vm/jit/optimizing/dominators.hpp"
 #include "vm/jit/optimizing/graph.hpp"
 #include "vm/jit/optimizing/lsra.hpp"
 #include "vm/jit/optimizing/ssa.hpp"

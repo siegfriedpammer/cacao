@@ -60,9 +60,9 @@
 #include "toolbox/util.hpp"
 
 #include "vm/array.hpp"
-#include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
 #include "vm/cycles-stats.hpp"
+#include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.hpp"
 #include "vm/globals.hpp"
@@ -72,6 +72,7 @@
 #include "vm/primitive.hpp"
 #include "vm/rt-timing.hpp"
 
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/stubs.hpp"
 #include "vm/jit/trace.hpp"

@@ -24,6 +24,7 @@
 
 #include "vm/jit/ir/instruction.hpp"
 #include "vm/jit/builtin.hpp"           // for builtintable_entry
+#include "vm/descriptor.hpp"            // for typedesc
 #include "vm/method.hpp"                // for methodinfo
 #include "vm/resolve.hpp"               // for unresolved_method
 
@@ -40,6 +41,9 @@ methoddesc* instruction_call_site(const instruction* iptr)
 	}
 }
 
+Type instruction_call_site_return_type(const instruction* iptr) {
+   return (Type) instruction_call_site(iptr)->returntype.type;
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.

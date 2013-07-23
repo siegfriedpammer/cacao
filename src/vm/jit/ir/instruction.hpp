@@ -26,26 +26,20 @@
 #ifndef _INSTRUCTION_HPP
 #define _INSTRUCTION_HPP
 
-// Forward typedefs.
-typedef struct instruction instruction;
-typedef struct insinfo_inline insinfo_inline;
-
-
-#include "config.h"
-
-#include <stdint.h>
-
-#include "vm/descriptor.hpp"
-#include "vm/references.hpp"
-
-#include "vm/jit/replace.hpp"
-
-#include "vm/jit/ir/icmd.hpp"
+#include "config.h"                     // for SIZEOF_VOID_PTR
+#include <stdint.h>                     // for int32_t, uint32_t, etc
+#include "vm/global.hpp"                // for Type, Type::Type_Void, etc
+#include "vm/jit/ir/icmd.hpp"           // for icmdtable_entry_t, etc
+#include "vm/references.hpp"            // for classref_or_classinfo, etc
+#include "vm/resolve.hpp"               // for unresolved_method (used in macro)
+#include "vm/types.hpp"                 // for u2, u4
 
 struct basicblock;
-struct unresolved_class;
-struct unresolved_method;
-struct unresolved_field;
+struct insinfo_inline;
+struct instruction;
+struct methoddesc;
+struct methodinfo;
+struct rplpoint;
 
 // Instruction structure.
 
@@ -244,6 +238,7 @@ struct insinfo_inline {
 /* Additional instruction accessors */
 
 methoddesc* instruction_call_site(const instruction* iptr);
+Type        instruction_call_site_return_type(const instruction* iptr);
 
 static inline bool instruction_has_dst(const instruction* iptr)
 {
@@ -251,7 +246,7 @@ static inline bool instruction_has_dst(const instruction* iptr)
 		(icmd_table[iptr->opc].dataflow == DF_INVOKE) ||
 		(icmd_table[iptr->opc].dataflow == DF_BUILTIN)
 		) {
-		return instruction_call_site(iptr)->returntype.type != TYPE_VOID;
+		return instruction_call_site_return_type(iptr) != TYPE_VOID;
 	}
 	else {
 		return icmd_table[iptr->opc].dataflow >= DF_DST_BASE;

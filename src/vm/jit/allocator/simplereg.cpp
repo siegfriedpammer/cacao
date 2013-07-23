@@ -38,6 +38,7 @@
 #include "mm/memory.hpp"
 #include "mm/dumpmemory.hpp"
 
+#include "vm/descriptor.hpp"            // for typedesc, methoddesc, etc
 #include "vm/exceptions.hpp"
 #include "vm/method.hpp"
 #include "vm/options.hpp"

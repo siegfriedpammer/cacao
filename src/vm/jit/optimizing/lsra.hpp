@@ -34,6 +34,9 @@
 
 #include "toolbox/bitvector.hpp"
 
+struct basicblock;
+struct jitdata;
+
 #if !defined(NDEBUG)
 # include <assert.h>
 # define LSRA_DEBUG_CHECK

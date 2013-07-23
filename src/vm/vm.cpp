@@ -84,6 +84,7 @@
 #include "vm/jit/argument.hpp"
 #include "vm/jit/asmpart.hpp"
 #include "vm/jit/code.hpp"
+#include "vm/jit/stacktrace.hpp"
 
 #if defined(ENABLE_DISASSEMBLER)
 # include "vm/jit/disass.hpp"

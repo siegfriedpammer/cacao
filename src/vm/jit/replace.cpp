@@ -45,6 +45,7 @@
 #include "toolbox/logging.hpp"
 
 #include "vm/classcache.hpp"
+#include "vm/descriptor.hpp"
 #include "vm/globals.hpp"
 #include "vm/options.hpp"
 #include "vm/string.hpp"
@@ -62,6 +63,7 @@
 #include "vm/jit/replace.hpp"
 #include "vm/jit/show.hpp"
 #include "vm/jit/stack.hpp"
+#include "vm/jit/stacktrace.hpp"
 
 
 #define REPLACE_PATCH_DYNAMIC_CALL

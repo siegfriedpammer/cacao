@@ -29,6 +29,7 @@
 #include <stdint.h>
 
 #include "arch.hpp"
+#include "md-abi.hpp"
 
 #include "mm/dumpmemory.hpp"
 

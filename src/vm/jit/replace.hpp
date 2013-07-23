@@ -30,6 +30,7 @@
 #include "config.h"                     // for ENABLE_JIT, etc
 #include "arch.hpp"                     // for HAS_ADDRESS_REGISTER_FILE
 #include "md-abi.hpp"                   // for FLT_REG_CNT, INT_SAV_CNT
+#include "vm/jit/jit.hpp"               // for basicblock::Type
 #include "vm/types.hpp"                 // for s4, u1, ptrint, u4, s8
 
 struct codeinfo;

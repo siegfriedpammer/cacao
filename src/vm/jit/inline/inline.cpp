@@ -40,15 +40,15 @@
 
 #include "toolbox/logging.hpp"
 
-#include "vm/jit/builtin.hpp"
-#include "vm/jit/code.hpp"
 #include "vm/class.hpp"
+#include "vm/descriptor.hpp"            // for typedesc, methoddesc, etc
 #include "vm/global.hpp"
 #include "vm/initialize.hpp"
 #include "vm/method.hpp"
 #include "vm/options.hpp"
 #include "vm/statistics.hpp"
 
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/code.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/parse.hpp"

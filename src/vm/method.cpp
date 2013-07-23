@@ -41,6 +41,7 @@
 #include "vm/breakpoint.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
+#include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.hpp"
 #include "vm/globals.hpp"
@@ -53,6 +54,7 @@
 #include "vm/utf8.hpp"
 #include "vm/vm.hpp"
 #include "vm/stackmap.hpp"
+#include "vm/statistics.hpp"
 
 #include "vm/jit/code.hpp"
 #include "vm/jit/methodheader.hpp"

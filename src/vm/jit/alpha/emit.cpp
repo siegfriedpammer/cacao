@@ -37,6 +37,7 @@
 
 #include "threads/lock.hpp"
 
+#include "vm/descriptor.hpp"            // for typedesc, methoddesc, etc
 #include "vm/options.hpp"
 
 #include "vm/jit/abi.hpp"

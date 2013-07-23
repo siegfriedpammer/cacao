@@ -50,6 +50,7 @@
 #include "vm/jit/parse.hpp"                // for parse
 #include "vm/jit/python.h"
 #include "vm/jit/reg.hpp"                  // for reg_setup, registerdata
+#include "vm/jit/replace.hpp"              // for replace_activate_replacement_points
 #include "vm/jit/show.hpp"                 // for show_filters_apply, etc
 #include "vm/jit/stack.hpp"                // for stack_analyse, stack_init
 #include "vm/jit/stubs.hpp"                // for NativeStub

@@ -26,44 +26,45 @@
 #ifndef JIT_HPP_
 #define JIT_HPP_ 1
 
-/* forward typedefs ***********************************************************/
-
-typedef struct jitdata jitdata;
-typedef struct basicblock basicblock;
-typedef struct exception_entry exception_entry;
-
-
-#include "config.h"
-#include "vm/types.hpp"
-
-#include "vm/global.hpp"
-#include "vm/references.hpp"
-#include "vm/resolve.hpp"
+#include <stddef.h>                     // for NULL
+#include "arch.hpp"                     // for JIT_COMPILER_VIA_SIGNAL
+#include "config.h"                     // for ENABLE_SSA, ENABLE_INLINING, etc
+#include "vm/jit/optimizing/lsra.hpp"   // for lsradata
+#include "vm/jit/reg.hpp"               // for varinfo
+#include "vm/jit/stack.hpp"             // for PREALLOC
+#include "vm/references.hpp"            // for classref_or_classinfo
 #include "vm/statistics.hpp"
-#include "vm/jit/codegen-common.hpp"
-#include "vm/jit/reg.hpp"
-#include "vm/jit/replace.hpp"
-#include "vm/jit/stack.hpp"
-#include "vm/jit/stacktrace.hpp"
+#include "vm/types.hpp"                 // for s4, u1, u4
 
 #if defined(ENABLE_INLINING)
 # include "vm/jit/inline/inline.hpp"
 #endif
 
-#include "vm/jit/ir/bytecode.hpp"
-#include "vm/jit/ir/instruction.hpp"
-
 #if defined(ENABLE_LOOP)
 # include "vm/jit/loop/loop.hpp"
 #endif
+
 #if defined(ENABLE_SSA)
 # include "vm/jit/optimizing/lsra.hpp"
 #endif
+
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.hpp"
 #endif
 
-#include "vm/jit/verify/typeinfo.hpp"
+struct basicblock;
+struct branchref;
+struct codegendata;
+struct codeinfo;
+struct exception_entry;
+struct insinfo_inline;
+struct instruction;
+struct interface_info;
+struct jitdata;
+struct methodinfo;
+struct registerdata;
+struct stackelement_t;
+
 
 STAT_DECLARE_VAR(int,count_spills_write_ila,0)
 STAT_DECLARE_VAR(int,count_spills_write_flt,0)
@@ -73,8 +74,6 @@ STAT_DECLARE_VAR(int,count_spills_read_ila,0)
 STAT_DECLARE_VAR(int,count_spills_read_flt,0)
 STAT_DECLARE_VAR(int,count_spills_read_dbl,0)
 
-struct methodinfo;
-struct registerdata;
 
 /* common jit/codegen macros **************************************************/
 

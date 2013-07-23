@@ -26,28 +26,24 @@
 #ifndef RESOLVE_HPP_
 #define RESOLVE_HPP_ 1
 
-/* forward declarations *******************************************************/
-
-typedef struct unresolved_class unresolved_class;
-typedef struct unresolved_field unresolved_field;
-typedef struct unresolved_method unresolved_method;
-typedef struct unresolved_subtype_set unresolved_subtype_set;
-
-
-#include "config.h"
-#include "vm/types.hpp"
-
-#include "vm/references.hpp"
-
-#include "vm/jit/jit.hpp"
-#include "vm/jit/reg.hpp"
-
-#include "vm/jit/ir/instruction.hpp"
-#include "vm/jit/verify/typeinfo.hpp"
+#include <stdio.h>                      // for FILE, NULL
+#include "config.h"                     // for ENABLE_VERIFIER
+#include "vm/jit/verify/typeinfo.hpp"   // for typeinfo_t, etc
+#include "vm/references.hpp"            // for classref_or_classinfo
+#include "vm/types.hpp"                 // for s4
+#include "vm/utf8.hpp"                  // for Utf8String
 
 struct classinfo;
 struct fieldinfo;
+struct instruction;
+struct jitdata;
 struct methodinfo;
+struct typedesc;
+struct unresolved_class;
+struct unresolved_field;
+struct unresolved_method;
+struct unresolved_subtype_set;
+
 
 /* constants ******************************************************************/
 

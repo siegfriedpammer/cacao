@@ -28,7 +28,11 @@
 
 #include "config.h"
 
-#include "vm/jit/optimizing/dominators.hpp"
+struct lifetime;
+struct jitdata;
+struct graphdata;
+struct dominatordata;
+struct stackelement_t;
 
 #if !defined(NDEBUG)
 # include <assert.h>
@@ -51,9 +55,9 @@
 
 typedef struct site *lt_iterator;
 void lt_scanlifetimes(jitdata *, graphdata *, dominatordata *);
-void lt_add_ss(struct lifetime *, stackelement_t *);
-void lt_remove_use_site(struct lifetime *lt, int block, int iindex);
-void lt_move_use_sites(struct lifetime *from, struct lifetime *to);
+void lt_add_ss(lifetime *, stackelement_t *);
+void lt_remove_use_site(lifetime *lt, int block, int iindex);
+void lt_move_use_sites(lifetime *from, lifetime *to);
 void lt_lifeness_analysis(jitdata *, graphdata *);
 
 #endif // LIFETIMES_HPP_
