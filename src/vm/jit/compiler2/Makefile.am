@@ -41,9 +41,11 @@ libcompiler2_la_SOURCES = \
 	CFGConstructionPass.cpp \
 	CodeGenPass.cpp \
 	CodeMemory.cpp \
+	CodeSegment.cpp \
 	Compiler.cpp \
 	Conditional.cpp \
 	DisassemblerPass.cpp \
+	DataSegment.cpp \
 	DominatorPass.cpp \
 	DomTreePrinterPass.cpp \
 	GraphHelper.cpp \
@@ -71,6 +73,7 @@ libcompiler2_la_SOURCES = \
 	ScheduleClickPass.cpp \
 	ScheduleEarlyPass.cpp \
 	ScheduleLatePass.cpp \
+	Segment.cpp \
 	SSAConstructionPass.cpp \
 	SSAPrinterPass.cpp \
 	StackAnalysisPass.cpp \
