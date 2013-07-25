@@ -510,7 +510,7 @@ void MovDSEGInst::emit(CodeMemory* CM) const {
 }
 
 void MovDSEGInst::emit(CodeFragment &CF) const {
-	s4 offset = CF.get_offset(data_index);
+	s4 offset = CF.get_CodeMemory()->get_offset(data_index,CF);
 	assert(offset != 0);
 	assert(offset != CodeMemory::INVALID_OFFSET);
 	switch (get_op_size()) {
@@ -650,7 +650,7 @@ void JumpInst::emit(CodeMemory* CM) const {
 
 void JumpInst::emit(CodeFragment &CF) const {
 	BeginInst *BI = get_BeginInst();
-	s4 offset = CF.get_offset(BI);
+	s4 offset = CF.get_CodeMemory()->get_offset(BI,CF);
 	assert(offset != 0);
 	assert(offset != CodeMemory::INVALID_OFFSET);
 
@@ -792,7 +792,7 @@ void MovImmSDInst::emit(CodeMemory* CM) const {
 }
 
 void MovImmSDInst::emit(CodeFragment &CF) const {
-	s4 offset = CF.get_offset(data_index);
+	s4 offset = CF.get_CodeMemory()->get_offset(data_index,CF);
 	assert(offset != 0);
 	assert(offset != CodeMemory::INVALID_OFFSET);
 	CF[4] = u1(0xff & (offset >>  0));

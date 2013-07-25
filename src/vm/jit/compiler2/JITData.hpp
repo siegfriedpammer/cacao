@@ -28,6 +28,7 @@
 #include "vm/jit/compiler2/Method.hpp"
 #include "vm/jit/compiler2/Backend.hpp"
 #include "vm/jit/compiler2/StackSlotManager.hpp"
+#include "vm/jit/compiler2/CodeMemory.hpp"
 
 // forward declaration
 struct jitdata;
@@ -42,6 +43,7 @@ private:
 	Method M;
 	Backend *BE;
 	StackSlotManager SSM;
+	CodeMemory cm;
 public:
 	JITData(jitdata *jd);
 	jitdata *get_jitdata() const {
@@ -50,6 +52,7 @@ public:
 	Method* get_Method() { return &M; }
 	Backend* get_Backend() { return BE; }
 	StackSlotManager* get_StackSlotManager() { return &SSM; }
+	CodeMemory* get_CodeMemory() { return &cm; }
 };
 
 } // end namespace compiler2

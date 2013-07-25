@@ -49,7 +49,7 @@ namespace compiler2 {
 
 bool CodeGenPass::run(JITData &JD) {
 	MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
-	CodeMemory *CM = &cm;
+	CodeMemory *CM = JD.get_CodeMemory();
 
 	// NOTE reverse so we see jump targets (which are not backedges) before
 	// the jump.
@@ -57,8 +57,8 @@ bool CodeGenPass::run(JITData &JD) {
 			e = MIS->rend() ; i != e ; ++i ) {
 		MachineInstruction *MI = *i;
 		u1* start = CM->get_start();
-		MI->emit(CM);
 		LOG2("MInst: " << MI << " emitted instruction:" << nl);
+		MI->emit(CM);
 		if (DEBUG_COND_N(2)) {
 			u1* end = CM->get_start();
 			if ( start == end) {
@@ -104,9 +104,9 @@ void CodeGenPass::finish(JITData &JD) {
 
 	/* calculate the code length */
 
-	s4 mcodelen = (s4) (cm.get_end() - cm.get_start());
+	s4 mcodelen = (s4) (JD.get_CodeMemory()->get_end() - JD.get_CodeMemory()->get_start());
 	s4 alignedmcodelen = MEMORY_ALIGN(mcodelen, MAX_ALIGN);
-	s4 dseglen = (s4) cm.data_size();
+	s4 dseglen = (s4) JD.get_CodeMemory()->data_size();
 	s4 aligneddseglen = MEMORY_ALIGN(dseglen, MAX_ALIGN);
 
 
@@ -131,8 +131,8 @@ void CodeGenPass::finish(JITData &JD) {
 
 	size_t offset = 1;
 	/// @Cpp11 Could use vector::data()
-	for (CodeMemory::const_data_iterator i = cm.data_begin(),
-			e = cm.data_end() ; i != e; ++i) {
+	for (CodeMemory::const_data_iterator i = JD.get_CodeMemory()->data_begin(),
+			e = JD.get_CodeMemory()->data_end() ; i != e; ++i) {
 		u1* ptr = epoint - offset++;
 		*ptr = *i;
 		LOG3("" << ptr
@@ -163,7 +163,7 @@ void CodeGenPass::finish(JITData &JD) {
 
 	/* copy code to the new location */
 
-	MCOPY((void *) code->entrypoint, cm.get_start(), u1, mcodelen);
+	MCOPY((void *) code->entrypoint, JD.get_CodeMemory()->get_start(), u1, mcodelen);
 
 	/* Fill runtime information about generated code. */
 
@@ -192,17 +192,17 @@ void CodeGenPass::finish(JITData &JD) {
 
 #if 0
 	code->linenumbertable = new LinenumberTable(jd);
-#endif
 
 	/* jump table resolving */
-#if 0
 	for (jr = cd->jumpreferences; jr != NULL; jr = jr->next)
 		*((functionptr *) ((ptrint) epoint + jr->tablepos)) =
 			(functionptr) ((ptrint) epoint + (ptrint) jr->target->mpc);
 
+#endif
 	/* patcher resolving */
 
-	patcher_resolve(jd);
+	patcher_resolve(code);
+#if 0
 #if defined(ENABLE_REPLACEMENT)
 	/* replacement point resolving */
 	{

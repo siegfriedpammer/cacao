@@ -38,14 +38,11 @@ namespace compiler2 {
  * TODO: more info
  */
 class CodeGenPass : public Pass {
-private:
-	CodeMemory cm;
 public:
 	static char ID;
 	CodeGenPass() : Pass() {}
 	bool run(JITData &JD);
 	PassUsage& get_PassUsage(PassUsage &PU) const;
-	const CodeMemory& get_CodeMemory() const { return cm; }
 	/**
 	 * finish code generation
 	 *
