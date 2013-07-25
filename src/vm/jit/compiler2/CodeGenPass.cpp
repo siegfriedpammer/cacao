@@ -84,6 +84,9 @@ bool CodeGenPass::run(JITData &JD) {
 }
 
 void CodeGenPass::finish(JITData &JD) {
+	CodeMemory *CM = JD.get_CodeMemory();
+	CodeSegment &CS = CM->get_CodeSegment();
+	DataSegment &DS = CM->get_DataSegment();
 #if 0
 	s4       alignedmcodelen;
 	jumpref *jr;
@@ -104,6 +107,7 @@ void CodeGenPass::finish(JITData &JD) {
 
 	/* calculate the code length */
 
+	#if 0
 	s4 mcodelen = (s4) (JD.get_CodeMemory()->get_end() - JD.get_CodeMemory()->get_start());
 	s4 alignedmcodelen = MEMORY_ALIGN(mcodelen, MAX_ALIGN);
 	s4 dseglen = (s4) JD.get_CodeMemory()->data_size();
@@ -111,6 +115,7 @@ void CodeGenPass::finish(JITData &JD) {
 
 
 	s4 alignedlen = alignedmcodelen + aligneddseglen;
+	#endif
 
 #if 0
 	STATISTICS(count_code_len += mcodelen);
@@ -119,16 +124,19 @@ void CodeGenPass::finish(JITData &JD) {
 
 	/* allocate new memory */
 
-	code->mcodelength = mcodelen + aligneddseglen;
-	code->mcode       = CNEW(u1, alignedlen);
+	// Note that the DataSegment and the CodeSegment shall be aligned!
+	code->mcodelength = DS.size() + CS.size();
+	code->mcode       = CNEW(u1, code->mcodelength);
 
 	/* set the entrypoint of the method */
 
 	assert(code->entrypoint == NULL);
-	code->entrypoint = epoint = (code->mcode + aligneddseglen);
+	code->entrypoint = epoint = (code->mcode + DS.size());
 
 	/* fill the data segment (code->entrypoint must already be set!) */
+	MCOPY((void *) code->mcode, DS.get_start(), u1, DS.size());
 
+	#if 0
 	size_t offset = 1;
 	/// @Cpp11 Could use vector::data()
 	for (CodeMemory::const_data_iterator i = JD.get_CodeMemory()->data_begin(),
@@ -139,6 +147,7 @@ void CodeGenPass::finish(JITData &JD) {
 		  << ": " << hex << *i << " " << *ptr << dec << nl);
 		assert(ptr >= code->mcode);
 	}
+	#endif
 
 	LOG2("mcode: " << code->mcode << nl);
 	LOG2("entry: " << code->entrypoint << nl);
@@ -163,7 +172,8 @@ void CodeGenPass::finish(JITData &JD) {
 
 	/* copy code to the new location */
 
-	MCOPY((void *) code->entrypoint, JD.get_CodeMemory()->get_start(), u1, mcodelen);
+	CS.reverse();
+	MCOPY((void *) code->entrypoint, CS.get_start(), u1, CS.size());
 
 	/* Fill runtime information about generated code. */
 
@@ -219,7 +229,7 @@ void CodeGenPass::finish(JITData &JD) {
 #endif
 	/* Insert method into methodtree to find the entrypoint. */
 
-	methodtree_insert(code->entrypoint, code->entrypoint + mcodelen);
+	methodtree_insert(code->entrypoint, code->entrypoint + CS.size());
 
 #if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(__M68K__) || defined(ENABLE_INTRP)
 	/* resolve data segment references */

@@ -27,6 +27,7 @@
 #include "mm/dumpmemory.hpp"
 
 #include "toolbox/logging.hpp"
+#include "Target.hpp"
 
 #include <map>
 
@@ -38,30 +39,50 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+#if 0
 s4 CodeFragment::get_offset(const BeginInst *BI) const {
 	return parent->get_offset(BI,code_ptr + size);
 }
 s4 CodeFragment::get_offset(std::size_t index) const {
 	return parent->get_offset(index,code_ptr + size);
 }
+#endif
 //const s4 CodeMemory::INVALID_OFFSET = std::numeric_limits<s4>::max();
 
 CodeMemory::CodeMemory() :
 	mcodebase((u1*) DumpMemory::allocate(MCODEINITSIZE)),
 	mcodeend(mcodebase + MCODEINITSIZE),
 	mcodesize(MCODEINITSIZE),
-	mcodeptr(mcodeend) {
+	mcodeptr(mcodeend),
+	cseg(this),
+	dseg(this){
 }
 
 void CodeMemory::add_label(const BeginInst *BI) {
+	LOG2("CodeMemory::add_label"<<nl);
 	label_map.insert(std::make_pair(BI,mcodeptr));
+	cseg.insert_tag(CSLabel(BI));
 }
-
+s4 CodeMemory::get_offset(CodeSegment::IdxTy to, CodeSegment::IdxTy from) const {
+	// Note that from/to is swapped because CodeSegment is written upside down!
+	return s4(from.idx) - s4(to.idx);
+}
+s4 CodeMemory::get_offset(DataSegment::IdxTy to, CodeSegment::IdxTy from) const {
+	// Note that from is swapped because CodeSegment is written upside down!
+	return s4(from.idx) - s4(cseg.end().idx) - s4(to.idx);
+}
+#if 0
 s4 CodeMemory::get_offset(const BeginInst *BI, u1 *current_pos) const {
 	LabelMapTy::const_iterator i = label_map.find(BI);
 	if (i == label_map.end() ) {
 		return INVALID_OFFSET;
 	}
+	#ifndef NDEBUG
+	if (!cseg.contains_tag(CSLabel(BI))) {
+		cseg.print(dbg());
+		assert(cseg.contains_tag(CSLabel(BI)));
+	}
+	#endif
 	// FIXME this is so not safe!
 	s4 offset = s4(i->second - current_pos);
 
@@ -81,6 +102,10 @@ s4 CodeMemory::get_offset(std::size_t index, u1 *current_pos) const {
 	LOG2("offset:  " << setw(16) << offset << nl);
 
 	return offset;
+}
+#endif
+void CodeMemory::require_linking(const MachineInstruction* MI, CodeFragment CF) {
+	linklist.push_back(std::make_pair(MI,CF));
 }
 
 void CodeMemory::resolve_later(const BeginInst *BI,
@@ -113,9 +138,13 @@ void CodeMemory::resolve_data() {
 }
 
 CodeFragment CodeMemory::get_CodeFragment(unsigned size) {
-	assert((mcodeptr - size) >= mcodebase);
-	mcodeptr -= size;
-	return CodeFragment(this, mcodeptr, size);
+	return cseg.get_Ref(size);
+}
+
+CodeFragment CodeMemory::get_aligned_CodeFragment(unsigned size) {
+	std::size_t nops = Target::alignment
+		- (std::size_t(mcodeptr - size) % Target::alignment);
+	return cseg.get_Ref(size + nops);
 }
 
 } // end namespace compiler2

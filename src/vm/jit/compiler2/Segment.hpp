@@ -29,6 +29,7 @@
 #include <cassert>
 #include <vector>
 #include <map>
+#include <algorithm>
 
 #include "toolbox/logging.hpp"
 
@@ -75,59 +76,120 @@ bool operator==(SegmentTag<Tag> *lhs, SegmentTag<Tag> *rhs) {
 template <typename Tag>
 class Segment {
 public:
+	/**
+	 * Prevent mixing indices.
+	 *
+	 * See Item 18 in "Efficient C++" @cite Meyers2005.
+	 */
+	struct IdxTy {
+		std::size_t idx;
+
+		/// default constructor
+		IdxTy() : idx(-1) {}
+		/// explicit constructor
+		explicit IdxTy(std::size_t idx) : idx(idx) {}
+		/// copy assignment operator
+		IdxTy& operator=(const IdxTy &other) {
+			idx = other.idx;
+			return *this;
+		}
+		IdxTy operator+(std::size_t i) const {
+			return IdxTy(idx + i);
+		}
+		bool operator==(const IdxTy &other) const {
+			return idx == other.idx;
+		}
+		#if 0
+		bool operator==(std::size_t other) const {
+			return idx == other;
+		}
+		#endif
+	};
 	typedef SegRef<Tag> Ref;
 private:
-	typedef typename std::map<SegmentTag<Tag>*,std::size_t,classcomp<Tag> > EntriesTy;
+	typedef typename std::map<SegmentTag<Tag>*,IdxTy,classcomp<Tag> > EntriesTy;
 	CodeMemory *CM;
 	std::vector<u1> content;             ///< content of the segment
 	EntriesTy entries;                   ///< tagged entries
 
+	u1& operator[](IdxTy i) {
+		return operator[](i.idx);
+	}
 	u1& operator[](std::size_t i) {
 		assert(i >= 0);
 		assert(i < content.size());
 		return content[i];
 	}
 	/// insert tag
-	void insert_tag(SegmentTag<Tag>* tag, std::size_t o) {
+	IdxTy insert_tag(SegmentTag<Tag>* tag, IdxTy o) {
 		LOG2("Segment: insert " << *tag << nl);
 		entries[tag] = o;
+		return o;
 	}
 	/// contains tag
 	bool contains_tag_intern(SegmentTag<Tag>* tag) const {
 		return entries.find(tag) != entries.end();
 	}
 	/// get index
-	bool get_index_intern(SegmentTag<Tag>* tag) const {
+	IdxTy get_index_intern(SegmentTag<Tag>* tag) const {
 		typename EntriesTy::const_iterator i = entries.find(tag);
-		if ( i != entries.end()) return entries.size();
+		if ( i != entries.end()) return end();
 		return i->second;
 	}
 public:
 	/// Constructor
 	Segment(CodeMemory *CM) : CM(CM), content() {}
 	/// Constructor with default capacity
-	Segment(CodeMemory *CM, std::size_t capacity) : CM(CM), content() {
+	Segment(CodeMemory *CM, IdxTy capacity) : CM(CM), content() {
 		content.reserve(capacity);
 	}
 	/// Get containing CodeMemory
 	CodeMemory* get_CodeMemory() const { return CM; }
+	CodeMemory& get_CodeMemory() { return *CM; }
+
+	/**
+	 * get size
+	 *
+	 * @deprecated this should only be evalable in the closed variant
+	 */
+	std::size_t size() const { return content.size(); }
+	/// get end
+	IdxTy end() const { return IdxTy(-1); }
+
+	/**
+	 * get start address
+	 *
+	 * @deprecated this should only be evalable in the closed variant
+	 */
+	u1* get_start() {
+		return &content.front();
+	}
+	/**
+	 * reverse content
+	 *
+	 * @deprecated this should only be evalable in the closed variant
+	 */
+	void reverse() {
+		std::reverse(content.begin(), content.end());
+	}
+	
 
 	/// get a reference to the segment
 	Ref get_Ref(std::size_t t) {
 		std::size_t start = content.size();
 		content.resize(start + t);
-		return Ref(this,start,t);
+		return Ref(this,IdxTy(start),t);
 	}
 
 	/// insert tag
 	template<typename Tag2>
-	void insert_tag(Tag2 tag, const Ref &ref) {
-		insert_tag(new Tag2(tag),ref.get_index());
+	IdxTy insert_tag(Tag2 tag, const Ref &ref) {
+		return insert_tag(new Tag2(tag),ref.get_index());
 	}
 	/// insert tag
 	template<typename Tag2>
-	void insert_tag(Tag2 tag) {
-		insert_tag(new Tag2(tag),content.size());
+	IdxTy insert_tag(Tag2 tag) {
+		return insert_tag(new Tag2(tag),IdxTy(content.size()));
 	}
 	#if 0
 	/// insert tag
@@ -147,10 +209,10 @@ public:
 	/**
 	 * get the index of a tag
 	 *
-	 * @return the index of the tag or size() if not found
+	 * @return the index of the tag or end() if not found
 	 */
 	template<typename Tag2>
-	std::size_t get_index(Tag2 tag) const {
+	IdxTy get_index(Tag2 tag) const {
 		return get_index_intern(&tag);
 	}
 	#if 0
@@ -189,11 +251,13 @@ public:
  */
 template <typename Tag>
 class SegRef {
+public:
+	typedef typename Segment<Tag>::IdxTy IdxTy;
 private:
 	Segment<Tag> *parent;
-	std::size_t index;
+	IdxTy index;
 	std::size_t _size;
-	SegRef(Segment<Tag>* parent, std::size_t index, std::size_t _size)
+	SegRef(Segment<Tag>* parent, IdxTy index, std::size_t _size)
 		: parent(parent), index(index), _size(_size) {}
 public:
 	/// Copy Constructor
@@ -207,6 +271,9 @@ public:
 		return *this;
 	}
 	/// Get a sub-segment
+	SegRef operator+(IdxTy v) {
+		return operator+(v.idx);
+	}
 	SegRef operator+(std::size_t v) {
 		assert(v >= 0);
 		assert(_size - v >= 0);
@@ -217,20 +284,27 @@ public:
 	u1& operator[](std::size_t i) {
 		assert(i >= 0);
 		assert(i < size());
-		return (*parent)[index + i];
+		return (*parent)[index.idx + i];
+	}
+	u1& operator[](IdxTy i) {
+		return operator[](i.idx);
 	}
 	/// Get containing segment
 	Segment<Tag>* get_Segment() const {
 		return parent;
 	}
+	Segment<Tag>& get_Segment() {
+		return *parent;
+	}
 	/// Get index
-	std::size_t get_index() const {
+	IdxTy get_index() const {
 		return index;
 	}
 	/// size of the reference
 	std::size_t size() const {
 		return _size;
 	}
+	friend class Segment<Tag>;
 };
 
 template <class Type>
@@ -264,6 +338,27 @@ inline OStream& operator<<(OStream &OS, SegmentTag<Type> *tag) {
 	return OS << *tag;
 }
 
+
+template <class Type, class ConstTy, Type t>
+class ConstTag : public SegmentTag<Type> {
+protected:
+	virtual u8 hash() const {
+		if (sizeof(ConstTy) == sizeof(u1))
+			return u8(*reinterpret_cast<const u1*>(&c));
+		if (sizeof(ConstTy) == sizeof(u2))
+			return u8(*reinterpret_cast<const u2*>(&c));
+		if (sizeof(ConstTy) == sizeof(u4))
+			return u8(*reinterpret_cast<const u4*>(&c));
+		return *reinterpret_cast<const u8*>(&c);
+	}
+public:
+	ConstTag(ConstTy c) : SegmentTag<Type>(t), c(c) {}
+	virtual OStream& print(OStream &OS) const {
+		return OS << "ConstTag Type: " << t << " ptr: " << c;
+	}
+private:
+	ConstTy c;
+};
 
 template <class Type, class Ptr, Type t>
 class PointerTag : public SegmentTag<Type> {

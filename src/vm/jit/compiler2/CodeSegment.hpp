@@ -41,10 +41,15 @@ enum CodeSegmentType {
 
 typedef PointerTag<CodeSegmentType,const BeginInst,LabelID> CSLabel;
 
+#if 0
 class CodeSegment : public Segment<CodeSegmentType> {
 public:
 	CodeSegment(CodeMemory *CM) : Segment<CodeSegmentType>(CM) {}
 };
+#endif
+typedef Segment<CodeSegmentType> CodeSegment;
+
+typedef SegRef<CodeSegmentType> CodeFragment;
 
 } // end namespace compiler2
 } // end namespace jit

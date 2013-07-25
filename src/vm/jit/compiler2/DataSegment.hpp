@@ -32,12 +32,14 @@ namespace jit {
 namespace compiler2 {
 
 enum DataSegmentType {
+	DoubleID
 };
 
-class DataSegment : public Segment<DataSegmentType> {
-public:
-	DataSegment(CodeMemory *CM) : Segment<DataSegmentType>(CM) {}
-};
+typedef ConstTag<DataSegmentType,double,DoubleID> DSDouble;
+
+typedef Segment<DataSegmentType> DataSegment;
+
+typedef SegRef<DataSegmentType> DataFragment;
 
 
 } // end namespace compiler2

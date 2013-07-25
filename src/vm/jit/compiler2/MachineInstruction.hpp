@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_MACHINEINSTRUCTION
 
 #include "vm/jit/compiler2/MachineOperand.hpp"
+#include "vm/jit/compiler2/CodeSegment.hpp"
 
 #include <vector>
 
@@ -41,7 +42,6 @@ namespace compiler2 {
 class MachineMoveInst;
 class LoweredInstDAG;
 class CodeMemory;
-class CodeFragment;
 class MachineInstruction;
 
 /**
