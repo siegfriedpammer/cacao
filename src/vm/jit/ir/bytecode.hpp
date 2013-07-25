@@ -44,7 +44,7 @@ extern bytecode_t bytecode[256];
 
 /* Java bytecodes *************************************************************/
 
-enum {
+enum ByteCode {
 	BC_nop             = 0,
 
 	BC_aconst_null     = 1,

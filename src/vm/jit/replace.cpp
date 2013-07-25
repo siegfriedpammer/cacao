@@ -515,6 +515,8 @@ bool replace_create_replacement_points(jitdata *jd)
 						MCOPY(javalocals, iinfo->javalocals_end, s4, m->maxlocals);
 					iinfo = iinfo->parent;
 					break;
+				default:
+					break;
 			}
 
 			if (iptr == bptr->iinstr)
@@ -682,6 +684,8 @@ bool replace_create_replacement_points(jitdata *jd)
 					if (iinfo->javalocals_end)
 						MCOPY(javalocals, iinfo->javalocals_end, s4, m->maxlocals);
 					iinfo = iinfo->parent;
+					break;
+				default:
 					break;
 			}
 		} /* end instruction loop */

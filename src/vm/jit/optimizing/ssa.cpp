@@ -1063,6 +1063,8 @@ void copy_propagation(jitdata *jd, graphdata *gd) {
 					_ssa_print_lt(s_lt);
 #endif
 				break;
+			default:
+				break;
 			}
 		} /* if (lt->def->iindex < 0 ) */
 	} /* while(!wl_is_empty(W)) */

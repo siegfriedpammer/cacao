@@ -1990,6 +1990,8 @@ static void stack_change_to_tempvar(stackdata_t *sd, stackelement_t * sp,
 					break;
 				/* IMPORTANT: If any ICMD sets the PASSTHROUGH flag of a */
 				/* stackslot, it must be added in this switch!           */
+                default:
+                    break;
 			}
 		}
 	}
@@ -2065,7 +2067,7 @@ bool stack_analyse(jitdata *jd)
 	int           stackdepth;
 	stackelement_t *curstack;       /* current stack top                        */
 	stackelement_t *copy;
-	int           opcode;         /* opcode of current instruction            */
+	ICMD          opcode;         /* opcode of current instruction            */
 	int           i, varindex;
 	int           javaindex;
 	Type          type;           /* operand type                             */
@@ -2694,6 +2696,8 @@ icmd_NOP:
 										iptr->opc = ICMD_SASTORECONST;
 										iptr->flags.bits |= INS_FLAG_CHECK;
 										break;
+                                    default:
+                                        break;
 								}
 
 								iptr[1].opc = ICMD_NOP;
@@ -2745,7 +2749,8 @@ putconst_tail:
 											goto throw_stack_type_error;
 										break;
 									default:
-										assert(0);
+										assert(false);
+                                        break;
 								}
 #endif /* defined(ENABLE_VERIFIER) */
 
@@ -2758,6 +2763,8 @@ putconst_tail:
 										iptr->opc = ICMD_PUTFIELDCONST;
 										OP1_0(TYPE_ADR);
 										break;
+                                    default:
+                                        break;
 								}
 
 								iptr[1].opc = ICMD_NOP;

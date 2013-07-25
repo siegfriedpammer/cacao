@@ -951,7 +951,6 @@ void show_javalocals_array(jitdata *jd, s4 *vars, int n, int stage)
 
 void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 {
-	u2                 opcode;
 	branch_target_t   *table;
 	lookup_target_t   *lookup;
 	constant_FMIref   *fmiref;
@@ -960,7 +959,7 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 
 	/* get the opcode and the condition */
 
-	opcode    =  iptr->opc;
+	ICMD opcode = iptr->opc;
 
 	printf("%s ", icmd_table[opcode].name);
 
@@ -1453,6 +1452,9 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 		if (iptr->flags.bits & (1 << 2)) printf("redundantOne ");
 		break;
 #endif
+	// ignore other ICMDs
+	default:
+		break;
 	}
 	fflush(stdout);
 }

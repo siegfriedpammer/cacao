@@ -1049,7 +1049,7 @@ static void close_body_block(inline_node *iln,
 /* inlined code generation ****************************************************/
 
 static instruction * inline_instruction(inline_node *iln,
-										s4 opcode,
+										ICMD         opcode,
 										instruction *o_iptr)
 {
 	instruction *n_iptr;
@@ -1197,7 +1197,7 @@ static s4 emit_inlining_prolog(inline_node *iln,
 				n_ins = inline_instruction(iln, ICMD_COPY, o_iptr);
 			}
 			else {
-				n_ins = inline_instruction(iln, ICMD_ISTORE + type, o_iptr);
+				n_ins = inline_instruction(iln, ICMD(ICMD_ISTORE + type), o_iptr);
 				n_ins->sx.s23.s3.javaindex = UNUSED;
 			}
 			n_ins->s1.varindex = varindex;
@@ -1417,6 +1417,8 @@ clone_call:
 		case ICMD_FSTORE:
 		case ICMD_DSTORE:
 			stack_javalocals_store(n_iptr, iln->javalocals);
+			break;
+		default:
 			break;
 	}
 }
@@ -1652,9 +1654,9 @@ static void inline_rewrite_method(inline_node *iln)
 							DOLOG( printf("USING RESULTLOCAL %d\n", iln->n_resultlocal); );
 							/* This relies on the same sequence of types for */
 							/* ?STORE and ?RETURN opcodes.                   */
-							n_iptr->opc = ICMD_ISTORE + (o_iptr->opc - ICMD_IRETURN);
-							n_iptr->s1.varindex = retidx;
-							n_iptr->dst.varindex = iln->n_resultlocal;
+							n_iptr->opc                 = ICMD(ICMD_ISTORE + (o_iptr->opc - ICMD_IRETURN));
+							n_iptr->s1.varindex         = retidx;
+							n_iptr->dst.varindex        = iln->n_resultlocal;
 							n_iptr->sx.s23.s3.javaindex = UNUSED; /* XXX set real javaindex? */
 
 							retcount = 0;
@@ -2857,6 +2859,8 @@ static bool inline_analyse_code(inline_node *iln)
 				case ICMD_DRETURN:
 					/* extra ICMD_MOVE may be necessary */
 					iln->cumul_instructioncount++;
+					break;
+				default:
 					break;
 			}
 		}

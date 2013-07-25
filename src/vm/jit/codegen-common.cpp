@@ -2370,7 +2370,7 @@ void codegen_emit_phi_moves(jitdata *jd, basicblock *bptr)
 		s = VAR(ls->lifetime[lt_s].v_index);
 		
 
-		if (d->type == -1) {
+		if (d->type == Type(-1)) {
 #if defined(SSA_DEBUG_VERBOSE)
 			if (compileverbose)
 				printf("...returning - phi lifetimes where joined\n");
@@ -2378,7 +2378,7 @@ void codegen_emit_phi_moves(jitdata *jd, basicblock *bptr)
 			continue;
 		}
 
-		if (s->type == -1) {
+		if (s->type == Type(-1)) {
 #if defined(SSA_DEBUG_VERBOSE)
 			if (compileverbose)
 				printf("...returning - phi lifetimes where joined\n");
@@ -2386,8 +2386,8 @@ void codegen_emit_phi_moves(jitdata *jd, basicblock *bptr)
 			continue;
 		}
 
-		tmp_i.opc = 0;
-		tmp_i.s1.varindex = ls->lifetime[lt_s].v_index;
+		tmp_i.opc          = ICMD_NOP;
+		tmp_i.s1.varindex  = ls->lifetime[lt_s].v_index;
 		tmp_i.dst.varindex = ls->lifetime[lt_d].v_index;
 		emit_copy(jd, &tmp_i);
 

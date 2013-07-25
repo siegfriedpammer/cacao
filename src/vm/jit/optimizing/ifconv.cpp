@@ -129,7 +129,7 @@ bool ifconv_static(jitdata *jd)
 	s4          *pattern;
 	s4           patternsize;
 	s4          *p;
-	u2           opcode;
+	ICMD         opcode;
 	u2           condition;
 	u2           complement;
 	s4           i;
@@ -259,7 +259,7 @@ bool ifconv_static(jitdata *jd)
 
 					p = pattern + (icount * 2 * i) + (icount * 0) + j;
 
-					opcode = *p;
+					opcode = (ICMD) *p;
 
 					if (tiptr->opc != opcode)
 						goto nomatch;
@@ -351,7 +351,7 @@ bool ifconv_static(jitdata *jd)
 
 					p = pattern + (icount * 2 * i) + (icount * 1) + j;
 
-					opcode = *p;
+					opcode = (ICMD) *p;
 
 					/* If we add a NOP, skip the current instruction
 					   and set the stack of the next instruction
@@ -377,7 +377,7 @@ bool ifconv_static(jitdata *jd)
 					/* For the first basic block we have to set the
 					   complementary condition. */
 
-					tiptr->opc = *p | (condition << 8);
+					tiptr->opc = (ICMD) (*p | (condition << 8));
 
 					/* if we add a NOP, set the stacks correctly */
 
@@ -388,7 +388,7 @@ bool ifconv_static(jitdata *jd)
 
 				/* tag the conditional branch instruction as conditional */
 
-				iptr->opc |= condition << 8;
+				iptr->opc = (ICMD) (iptr->opc | (condition << 8));
 
 				/* add the instructions to the current basic block */
 
@@ -412,6 +412,7 @@ bool ifconv_static(jitdata *jd)
 
 				break;
 
+			default:
 			nomatch:
 				;
 			}

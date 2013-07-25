@@ -34,7 +34,7 @@
 
 
 // JavaVM operation codes (sorted).
-enum {
+enum ICMD {
 	ICMD_NOP               = BC_nop,
 
 	ICMD_ACONST            = BC_aconst_null,

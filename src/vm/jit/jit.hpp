@@ -468,7 +468,7 @@ void *jit_asm_compile(methodinfo *m, void* mptr, void* sp, void* ra);
 #endif
 void *jit_compile_handle(methodinfo *m, void *pv, void *ra, void *mptr);
 
-s4 jit_complement_condition(s4 opcode);
+ICMD jit_complement_condition(ICMD opcode);
 
 void jit_renumber_basicblocks(jitdata *jd);
 #if !defined(NDEBUG)

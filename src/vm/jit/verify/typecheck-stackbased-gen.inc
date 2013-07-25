@@ -1958,6 +1958,10 @@
   GENERATED  	break;
   GENERATED  
   GENERATED  
+             default:
+               break;
+
+
 #undef GENERATED
 /* vim:filetype=c:
  */

@@ -574,7 +574,7 @@ static void ssa_create_phi_moves(ssa_info *ssa) {
 	bool gt;
 
 	for (bptr = ssa->jd->basicblocks; bptr; bptr = bptr->next) {
-		if (bptr->type == 666) {
+		if (bptr->type == basicblock::Type(666)) {
 			bptr->type = basicblock::TYPE_STD;
 			continue;
 		}
@@ -619,7 +619,7 @@ static void ssa_create_phi_moves(ssa_info *ssa) {
 		}
 		if (! bptr->next) continue;
 		if (! (bptr->next->state >= basicblock::REACHED)) continue;
-		if (bptr->next->type == 666) continue;
+		if (bptr->next->type == basicblock::Type(666)) continue;
 		if (!gt) crate_fallthrough(ssa, bptr);
 	}
 }

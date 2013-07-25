@@ -137,7 +137,7 @@ struct utf;
     iptr++; ircount++
 
 #define OP_PREPARE_FLAGS(o, f)                                       \
-    iptr->opc         = (o);                                         \
+    iptr->opc         = (ICMD) (o);                                  \
     iptr->line        = currentline;                                 \
     iptr->flags.bits |= (f) | (ircount << INS_FLAG_ID_SHIFT);
 
@@ -608,7 +608,7 @@ bool parse(jitdata *jd)
 
 	s4           bcindex;               /* bytecode instruction index         */
 	s4           nextbc;                /* start of next bytecode instruction */
-	s4           opcode;                /* bytecode instruction opcode        */
+	ByteCode     opcode;                /* bytecode instruction opcode        */
 
 	s4           irindex;               /* IR instruction index               */
 	s4           ircount;               /* IR instruction count               */
@@ -720,7 +720,7 @@ next_linenumber:
 fetch_opcode:
 		/* fetch next opcode  */	
 
-		opcode = SUCK_BE_U1(m->jcode + bcindex);
+		opcode = (ByteCode) SUCK_BE_U1(m->jcode + bcindex);
 
 		/* If the previous instruction was a block-end instruction,
 		   mark the current bytecode instruction as basic-block
@@ -1209,7 +1209,7 @@ jsr_tail:
 			CHECK_BYTECODE_INDEX(i);
 			MARK_BASICBLOCK(&pd, i);
 			blockend = true;
-			OP_PREPARE_ZEROFLAGS(BC_jsr);
+			OP_PREPARE_ZEROFLAGS(ICMD_JSR);
 			iptr->sx.s23.s3.jsrtarget.insindex = i;
 			PINC;
 			break;
@@ -1744,72 +1744,87 @@ invoke_method:
 
 		/* Unused opcodes ************************************************** */
 
-		case 186:
-		case 203:
-		case 204:
-		case 205:
-		case 206:
-		case 207:
-		case 208:
-		case 209:
-		case 210:
-		case 211:
-		case 212:
-		case 213:
-		case 214:
-		case 215:
-		case 216:
-		case 217:
-		case 218:
-		case 219:
-		case 220:
-		case 221:
-		case 222:
-		case 223:
-		case 224:
-		case 225:
-		case 226:
-		case 227:
-		case 228:
-		case 229:
-		case 230:
-		case 231:
-		case 232:
-		case 233:
-		case 234:
-		case 235:
-		case 236:
-		case 237:
-		case 238:
-		case 239:
-		case 240:
-		case 241:
-		case 242:
-		case 243:
-		case 244:
-		case 245:
-		case 246:
-		case 247:
-		case 248:
-		case 249:
-		case 250:
-		case 251:
-		case 252:
-		case 253:
-		case 254:
-		case 255:
+        default:
 			exceptions_throw_verifyerror(m, "Illegal opcode %d at instr %d\n",
 										 opcode, ircount);
 			return false;
 			break;
 #endif /* defined(ENABLE_VERIFIER) */
 
-		/* opcodes that don't require translation *****************************/
+        /* opcodes that don't require translation *****************************/
+        case BC_iaload:
+        case BC_laload:
+        case BC_faload:
+        case BC_daload:
+        case BC_aaload:
+        case BC_baload:
+        case BC_caload:
+        case BC_saload:
+        case BC_iastore:
+        case BC_lastore:
+        case BC_fastore:
+        case BC_dastore:
+        case BC_bastore:
+        case BC_castore:
+        case BC_sastore:
+        case BC_pop:
+        case BC_pop2:
+        case BC_dup:
+        case BC_iadd:
+        case BC_ladd:
+        case BC_fadd:
+        case BC_dadd:
+        case BC_isub:
+        case BC_lsub:
+        case BC_fsub:
+        case BC_dsub:
+        case BC_imul:
+        case BC_lmul:
+        case BC_fmul:
+        case BC_dmul:
+        case BC_fdiv:
+        case BC_ddiv:
+        case BC_ineg:
+        case BC_lneg:
+        case BC_fneg:
+        case BC_dneg:
+        case BC_ishl:
+        case BC_lshl:
+        case BC_ishr:
+        case BC_lshr:
+        case BC_iushr:
+        case BC_lushr:
+        case BC_iand:
+        case BC_land:
+        case BC_ior:
+        case BC_lor:
+        case BC_ixor:
+        case BC_lxor:
+        case BC_i2l:
+        case BC_i2f:
+        case BC_i2d:
+        case BC_l2i:
+        case BC_l2f:
+        case BC_l2d:
+        case BC_f2d:
+        case BC_d2f:
+        case BC_int2byte:
+        case BC_int2char:
+        case BC_int2short:
+        case BC_lcmp:
+        case BC_fcmpl:
+        case BC_fcmpg:
+        case BC_dcmpl:
+        case BC_dcmpg:
+        case BC_arraylength:
+        case BC_impdep1:
+        case BC_impdep2:
+            /* Straight-forward translation to HIR. */
+            OP(opcode);
+            break;
 
-		default:
-			/* Straight-forward translation to HIR. */
-			OP(opcode);
-			break;
+//        default:
+
 
 		} /* end switch */
 
@@ -2013,6 +2028,8 @@ invoke_method:
 				lookup++;
 			}
 			break;
+        default:
+            break;
 		}
 	}
 

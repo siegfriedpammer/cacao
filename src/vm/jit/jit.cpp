@@ -1074,7 +1074,7 @@ void *jit_compile_handle(methodinfo *m, void *pv, void *ra, void *mptr)
 
 *******************************************************************************/
 
-s4 jit_complement_condition(s4 opcode)
+ICMD jit_complement_condition(ICMD opcode)
 {
 	switch (opcode) {
 	case ICMD_IFNULL:
@@ -1087,9 +1087,9 @@ s4 jit_complement_condition(s4 opcode)
 		/* check if opcode is odd */
 
 		if (opcode & 0x1)
-			return opcode + 1;
+			return ICMD(opcode + 1);
 		else
-			return opcode - 1;
+			return ICMD(opcode - 1);
 	}
 }
 

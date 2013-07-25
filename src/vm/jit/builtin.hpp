@@ -33,6 +33,7 @@
 #include "fdlibm/fdlibm.h"              // for fmod, isnan
 #include "threads/lock.hpp"             // for lock_monitor_enter, etc
 #include "vm/global.hpp"                // for functionptr, java_handle_t, etc
+#include "vm/jit/ir/icmd.hpp"           // for ICMD
 #include "vm/types.hpp"                 // for s8, s4, u1, u4
 #include "vm/utf8.hpp"                  // for Utf8String
 
@@ -66,7 +67,7 @@ struct vftbl_t;
 /* builtin functions table ****************************************************/
 
 struct builtintable_entry {
-	s4           opcode;                /* opcode which is replaced           */
+	ICMD         opcode;                /* opcode which is replaced           */
 	u4           flags;                 /* e.g. check for exception           */
 	functionptr  fp;                    /* function pointer of builtin        */
 	u1          *stub;                  /* pointer to builtin stub code       */

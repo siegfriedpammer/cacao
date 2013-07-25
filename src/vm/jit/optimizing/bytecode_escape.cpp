@@ -407,6 +407,10 @@ static u1 jcode_get_u1(jcode_t *jc) {
 	return ret;
 }
 
+static ByteCode jcode_get_bytecode(jcode_t *jc) {
+	return (ByteCode) jcode_get_u1(jc);
+}
+
 static s2 jcode_get_s2(jcode_t *jc) {
 	s2 ret;
 	if (jcode_test_has_bytes(jc, 2)) {
@@ -749,14 +753,11 @@ static void bc_escape_analysis_escape_invoke_parameters(
 static void bc_escape_analysis_parse_invoke(bc_escape_analysis_t *be, jcode_t *jc) {
 	constant_FMIref *fmi;
 	methoddesc *md;
-	u1 opc;
-	u2 cp_index;
-	s2 i;
 	resolve_result_t result;
 	methodinfo *mi;
 
-	opc = jcode_get_u1(jc);
-	cp_index = jcode_get_u2(jc);
+	ByteCode opc      = jcode_get_bytecode(jc);
+	u2       cp_index = jcode_get_u2(jc);
 
 	/* Get method reference */
 
@@ -840,7 +841,7 @@ static void bc_escape_analysis_parse_tableswitch(
 	s4 high, low, def;
 	s4 i;
 
-	jcode_get_u1(jc); /* opcode */
+	jcode_get_bytecode(jc); /* opcode */
 
 	jcode_align_bytecode_index(jc, 4);
 
@@ -866,7 +867,7 @@ static void bc_escape_analysis_parse_lookupswitch(
 	s4 npairs;
 	s4 i;
 
-	jcode_get_u1(jc); /* opcode */
+	jcode_get_bytecode(jc); /* opcode */
 
 	jcode_align_bytecode_index(jc, 4);
 
@@ -895,7 +896,6 @@ static void bc_escape_analysis_parse_lookupswitch(
 }
 
 static void bc_escape_analysis_process_basicblock(bc_escape_analysis_t *be, jcode_t *jc) {
-	u1 opc;
 	op_stack_slot_t value1, value2, value3, value4;
 	u1 dim;
 	int length;
@@ -916,7 +916,7 @@ static void bc_escape_analysis_process_basicblock(bc_escape_analysis_t *be, jcod
 
 		jcode_record_instruction_start(jc);
 
-		opc = jcode_get_u1(jc);
+		ByteCode opc = jcode_get_bytecode(jc);
 
 		length = bytecode[opc].length;
 
@@ -1575,7 +1575,7 @@ static void bc_escape_analysis_process_basicblock(bc_escape_analysis_t *be, jcod
 				/* All except iinc have a length of 4. */
 				length = 4;
 
-				switch (jcode_get_u1(jc)) {
+				switch (jcode_get_bytecode(jc)) {
 					case BC_iload:
 					case BC_fload:
 						op_stack_push_unknown(be->stack);
@@ -1623,6 +1623,9 @@ static void bc_escape_analysis_process_basicblock(bc_escape_analysis_t *be, jcod
 						bc_escape_analysis_dirty(be, jcode_get_u2(jc));
 						length = 6;
 						/* Do nothing. */
+						break;
+					default:
+						assert(false);
 						break;
 				}
 				break;

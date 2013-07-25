@@ -487,7 +487,7 @@ static builtintable_entry builtintable_internal[] = {
 	/* stop entry */
 
 	{
-		255,
+		(ICMD) 255,
 		0,
 		NULL,
 		NULL,
@@ -1064,7 +1064,7 @@ static builtintable_entry builtintable_automatic[] = {
 	/* prevent a compiler warning if everything is supported (e.g. i386) */
 
 	{
-		255,
+		(ICMD) 255,
 		0,
 		NULL,
 		NULL,
@@ -1163,7 +1163,7 @@ static builtintable_entry builtintable_function[] = {
 	/* stop entry */
 
 	{
-		255,
+		(ICMD) 255,
 		0,
 		NULL,
 		NULL,

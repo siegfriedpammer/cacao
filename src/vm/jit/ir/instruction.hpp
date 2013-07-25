@@ -145,22 +145,22 @@ typedef union {
 /* The instruction format for the intermediate representation: */
 
 struct instruction {
-    u2                      opc;    /* opcode       */
-    u2                      line;   /* line number  */
+    ICMD                    opc   : 16; // opcode
+    u2                      line;       // line number
 #if SIZEOF_VOID_P == 8
-    flags_operand_t         flags;  /* 4 bytes      */
+    flags_operand_t         flags;      // 4 bytes
 #endif
-    s1_operand_t            s1;     /* pointer-size */
+    s1_operand_t            s1;         // pointer-size
     union {
         struct {
-            s2_operand_t    s2;     /* pointer-size */
-            s3_operand_t    s3;     /* pointer-size */
-        } s23;                      /*     XOR      */
-        val_operand_t       val;    /*  long-size   */
+            s2_operand_t    s2;         // pointer-size
+            s3_operand_t    s3;         // pointer-size
+        } s23;                          //     XOR
+        val_operand_t       val;        //  long-size
     } sx;
-    dst_operand_t           dst;    /* pointer-size */
+    dst_operand_t           dst;        // pointer-size
 #if SIZEOF_VOID_P == 4
-    flags_operand_t         flags;  /* 4 bytes      */
+    flags_operand_t         flags;      // 4 bytes
 #endif
 #if defined(ENABLE_ESCAPE_REASON)
 	void *escape_reasons;
