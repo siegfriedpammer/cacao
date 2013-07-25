@@ -31,9 +31,12 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-struct DataSegmentTag {};
+enum DataSegmentType {
+};
 
-class DataSegment : public Segment<DataSegmentTag> {
+class DataSegment : public Segment<DataSegmentType> {
+public:
+	DataSegment(CodeMemory *CM) : Segment<DataSegmentType>(CM) {}
 };
 
 

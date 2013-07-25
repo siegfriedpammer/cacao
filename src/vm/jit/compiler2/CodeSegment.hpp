@@ -26,21 +26,24 @@
 #define _JIT_COMPILER2_CODESEGMENT
 
 #include "vm/jit/compiler2/Segment.hpp"
+#include "vm/jit/compiler2/Instructions.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
 // forward declarations
-class BeginInst;
+//class BeginInst;
 
 enum CodeSegmentType {
 	LabelID
 };
 
-typedef PointerTag<CodeSegmentType,BeginInst,LabelID> CSLabel;
+typedef PointerTag<CodeSegmentType,const BeginInst,LabelID> CSLabel;
 
 class CodeSegment : public Segment<CodeSegmentType> {
+public:
+	CodeSegment(CodeMemory *CM) : Segment<CodeSegmentType>(CM) {}
 };
 
 } // end namespace compiler2
