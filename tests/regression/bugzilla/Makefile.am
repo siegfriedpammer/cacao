@@ -21,9 +21,10 @@
 ## 02110-1301, USA.
 
 
-JAVA     = LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(top_builddir)/src/cacao/cacao
+JAVA     = $(top_builddir)/src/cacao/cacao
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
 JAVACCMD = $(JAVAC) -source 1.5 -target 1.5 -nowarn -bootclasspath $(BOOTCLASSPATH)
+JAVAENV  = LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs
 
 EXTRA_DIST = \
 	$(srcdir)/*.java $(srcdir)/*.j
@@ -34,11 +35,11 @@ CLEANFILES = \
 check: build run
 
 build:
-	$(JAVACMD) -cp $(JASMIN_JAR) jasmin.Main $(srcdir)/*.j
-	$(JAVACCMD) -classpath $(JUNIT_JAR):$(builddir) -d . $(srcdir)/*.java
+	$(JAVAENV) $(JAVACMD) -cp $(JASMIN_JAR) jasmin.Main $(srcdir)/*.j
+	$(JAVAENV) $(JAVACCMD) -classpath $(JUNIT_JAR):$(builddir) -d . $(srcdir)/*.java
 
 run:
-	$(JAVACMD) -classpath $(JUNIT_JAR):. org.junit.runner.JUnitCore All
+	$(JAVAENV) $(JAVACMD) -Dcacao.test.javacmd="$(JAVACMD)" -classpath $(JUNIT_JAR):. org.junit.runner.JUnitCore All
 
 
 ## Local variables:
