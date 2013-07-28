@@ -31,9 +31,7 @@
 #include <map>
 #include <algorithm>
 
-#include "toolbox/logging.hpp"
-
-#define DEBUG_NAME "compiler2/Segment"
+#include "toolbox/OStream.hpp"
 
 namespace cacao {
 namespace jit {
@@ -42,7 +40,7 @@ namespace compiler2 {
 // forward declarations
 class CodeMemory;
 
-template <typename Tag>
+template <typename Tag, typename RefCategory>
 class SegRef;
 
 template <class Type>
@@ -51,7 +49,6 @@ class SegmentTag;
 template <typename Tag>
 struct classcomp {
 	bool operator() (const SegmentTag<Tag> *lhs, const SegmentTag<Tag> *rhs) const {
-		LOG2("classcomp"<<nl);
 		return *lhs<*rhs;
 	}
 };
@@ -70,10 +67,14 @@ bool operator==(SegmentTag<Tag> *lhs, SegmentTag<Tag> *rhs) {
 }
 #endif
 
+struct NormalRefCategory {};
+struct ReverseRefCategory {};
+
+
 /**
  * A segment of the code memory
  */
-template <typename Tag>
+template <typename Tag, typename RefCategory>
 class Segment {
 public:
 	/**
@@ -96,6 +97,9 @@ public:
 		IdxTy operator+(std::size_t i) const {
 			return IdxTy(idx + i);
 		}
+		IdxTy operator-(std::size_t i) const {
+			return IdxTy(idx - i);
+		}
 		bool operator==(const IdxTy &other) const {
 			return idx == other.idx;
 		}
@@ -105,24 +109,18 @@ public:
 		}
 		#endif
 	};
-	typedef SegRef<Tag> Ref;
+	typedef SegRef<Tag,RefCategory> Ref;
 private:
 	typedef typename std::map<SegmentTag<Tag>*,IdxTy,classcomp<Tag> > EntriesTy;
 	CodeMemory *CM;
 	std::vector<u1> content;             ///< content of the segment
 	EntriesTy entries;                   ///< tagged entries
 
-	u1& operator[](IdxTy i) {
-		return operator[](i.idx);
-	}
-	u1& operator[](std::size_t i) {
-		assert(i >= 0);
-		assert(i < content.size());
-		return content[i];
-	}
+	/// invalid index
+	static inline IdxTy invalid_index() { return IdxTy(-1); }
+
 	/// insert tag
 	IdxTy insert_tag(SegmentTag<Tag>* tag, IdxTy o) {
-		LOG2("Segment: insert " << *tag << nl);
 		entries[tag] = o;
 		return o;
 	}
@@ -133,7 +131,7 @@ private:
 	/// get index
 	IdxTy get_index_intern(SegmentTag<Tag>* tag) const {
 		typename EntriesTy::const_iterator i = entries.find(tag);
-		if ( i != entries.end()) return end();
+		if ( i == entries.end()) return invalid_index();
 		return i->second;
 	}
 public:
@@ -153,8 +151,12 @@ public:
 	 * @deprecated this should only be evalable in the closed variant
 	 */
 	std::size_t size() const { return content.size(); }
-	/// get end
-	IdxTy end() const { return IdxTy(-1); }
+
+	/// is invalid index
+	static inline bool is_invalid(IdxTy idx) { return idx == invalid_index(); }
+
+	/// next free index
+	IdxTy get_next_index() const { return IdxTy(content.size()); }
 
 	/**
 	 * get start address
@@ -165,6 +167,28 @@ public:
 		return &content.front();
 	}
 	/**
+	 * get end address
+	 *
+	 * @deprecated this should only be evalable in the closed variant
+	 */
+	u1* get_end() {
+		return get_start() + size();
+	}
+	/// write content
+	u1& operator[](IdxTy i) {
+		return operator[](i.idx);
+	}
+	u1& operator[](std::size_t i) {
+		assert(i >= 0);
+		assert(i < content.size());
+		return content[i];
+	}
+	/// get content
+	u1 at(std::size_t i) const {
+		assert(i < content.size());
+		return content[i];
+	}
+	/**
 	 * reverse content
 	 *
 	 * @deprecated this should only be evalable in the closed variant
@@ -172,7 +196,6 @@ public:
 	void reverse() {
 		std::reverse(content.begin(), content.end());
 	}
-	
 
 	/// get a reference to the segment
 	Ref get_Ref(std::size_t t) {
@@ -238,7 +261,7 @@ public:
 		}
 	}
 
-	friend class SegRef<Tag>;
+	friend class SegRef<Tag,RefCategory>;
 };
 
 /**
@@ -249,22 +272,23 @@ public:
  *
  * It can be used like an u1 array.
  */
-template <typename Tag>
+template <typename Tag, typename RefCategory>
 class SegRef {
 public:
-	typedef typename Segment<Tag>::IdxTy IdxTy;
+	typedef RefCategory ref_category;
+	typedef typename Segment<Tag,RefCategory>::IdxTy IdxTy;
 private:
-	Segment<Tag> *parent;
+	Segment<Tag,RefCategory> *parent;
 	IdxTy index;
 	std::size_t _size;
-	SegRef(Segment<Tag>* parent, IdxTy index, std::size_t _size)
+	SegRef(Segment<Tag,RefCategory>* parent, IdxTy index, std::size_t _size)
 		: parent(parent), index(index), _size(_size) {}
 public:
 	/// Copy Constructor
-	SegRef(const SegRef<Tag> &other) : parent(other.parent),
+	SegRef(const SegRef<Tag,RefCategory> &other) : parent(other.parent),
 		index(other.index), _size(other.size()) {}
 	/// Copy assignment operator
-	SegRef& operator=(const SegRef<Tag> &other) {
+	SegRef& operator=(const SegRef<Tag,RefCategory> &other) {
 		parent = other.parent;
 		index = other.index;
 		_size = other.size();
@@ -282,30 +306,60 @@ public:
 	}
 	/// access data
 	u1& operator[](std::size_t i) {
-		assert(i >= 0);
-		assert(i < size());
-		return (*parent)[index.idx + i];
+		return doAccess(*this,i,RefCategory());
 	}
+
 	u1& operator[](IdxTy i) {
 		return operator[](i.idx);
 	}
 	/// Get containing segment
-	Segment<Tag>* get_Segment() const {
+	Segment<Tag,RefCategory>* get_Segment() const {
 		return parent;
 	}
-	Segment<Tag>& get_Segment() {
+	Segment<Tag,RefCategory>& get_Segment() {
 		return *parent;
 	}
 	/// Get index
-	IdxTy get_index() const {
+	IdxTy get_index_begin() const {
 		return index;
+	}
+	/// Get index
+	IdxTy get_index_end() const {
+		return index + _size;
 	}
 	/// size of the reference
 	std::size_t size() const {
 		return _size;
 	}
-	friend class Segment<Tag>;
+	friend class Segment<Tag,RefCategory>;
 };
+
+// specialization for Normal Segments
+#if 0
+template <typename Tag>
+inline u1& SegRef<Tag,NormalRefCategory>::operator[](std::size_t i) {
+	assert(i < size());
+	return (*parent)[index.idx + i];
+}
+// specialization for Normal Segments
+template <typename Tag>
+inline u1& SegRef<Tag,ReverseRefCategory>::operator[](std::size_t i) {
+	assert(i < size());
+	return (*parent)[index.idx + size() - i - 1];
+}
+#endif
+
+template <typename Tag, typename RefCategory>
+inline u1& doAccess(SegRef<Tag,RefCategory> &ref, std::size_t i, NormalRefCategory) {
+	assert(i < ref.size());
+	return ref.get_Segment()[ref.get_index_start().idx + i];
+}
+
+template <typename Tag, typename RefCategory>
+inline u1& doAccess(SegRef<Tag,RefCategory> &ref, std::size_t i, ReverseRefCategory) {
+	assert(i < ref.size());
+	return ref.get_Segment()[ref.get_index_end().idx - 1 - i];
+}
 
 template <class Type>
 class SegmentTag {
@@ -314,11 +368,9 @@ protected:
 	virtual u8 hash() const = 0;
 public:
 	bool operator==(const SegmentTag& other) const {
-		LOG2("Segment::operator=="<<nl);
 		return type == other.type && hash() == other.hash();
 	}
 	bool operator<(const SegmentTag& other) const {
-		LOG2("Segment::operator<"<<nl);
 		if (type == other.type)
 			return hash() < other.hash();
 		return type < other.type;
@@ -378,8 +430,6 @@ private:
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
-
-#undef DEBUG_NAME
 
 #endif /* _JIT_COMPILER2_SEGMENT */
 

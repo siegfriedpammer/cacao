@@ -37,9 +37,8 @@ enum DataSegmentType {
 
 typedef ConstTag<DataSegmentType,double,DoubleID> DSDouble;
 
-typedef Segment<DataSegmentType> DataSegment;
-
-typedef SegRef<DataSegmentType> DataFragment;
+typedef Segment<DataSegmentType,NormalRefCategory> DataSegment;
+typedef SegRef<DataSegmentType,NormalRefCategory> DataFragment;
 
 
 } // end namespace compiler2

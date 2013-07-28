@@ -93,16 +93,20 @@ public:
  * CodeMemory
  */
 class CodeMemory {
+	#if 0
 private:
 	typedef std::vector<u1> DataSegTy;
 public:
 	typedef DataSegTy::const_iterator const_data_iterator;
-private:
-	typedef std::map<const BeginInst*,u1*> LabelMapTy;
+	#endif
+public:
 	typedef std::pair<const MachineInstruction*,CodeFragment> ResolvePointTy;
+private:
+	typedef std::list<ResolvePointTy> LinkListTy;
+	#if 0
+	typedef std::map<const BeginInst*,u1*> LabelMapTy;
 	typedef std::multimap<const BeginInst*,ResolvePointTy> ResolveLaterMapTy;
 	typedef std::multimap<std::size_t,ResolvePointTy> ResolveDataMapTy;
-	typedef std::list<ResolvePointTy> LinkListTy;
 
 	u1             *mcodebase;      ///< base pointer of code area
 	u1             *mcodeend;       ///< pointer to end of code area
@@ -114,6 +118,7 @@ private:
 	LabelMapTy label_map;           ///< label map
 	ResolveLaterMapTy resolve_map;  ///< jumps to be resolved later
 	ResolveDataMapTy  resolve_data_map; ///< date segment
+	#endif
 
 	LinkListTy linklist;            ///< instructions that require linking
 
@@ -134,7 +139,6 @@ private:
 	 * @return offset from the current positioni
 	 */
 	s4 get_offset(std::size_t index, u1 *current_pos) const;
-	#endif
 	/**
 	 */
 	template<typename T,std::size_t size>
@@ -149,12 +153,8 @@ private:
 		dataseg.resize(index + size);
 		return index;
 	}
+	#endif
 public:
-	/**
-	 * indicate an invalid offset
-	 */
-	static const s4 INVALID_OFFSET = numeric_limits<s4>::max;
-
 	CodeMemory();
 
 	/// get CodeSegment
@@ -172,7 +172,7 @@ public:
 
 	s4 get_offset(CodeSegment::IdxTy to, CodeSegment::IdxTy from) const;
 	s4 get_offset(CodeSegment::IdxTy to) const {
-		return get_offset(to, cseg.end());
+		return get_offset(to, cseg.get_next_index());
 	}
 	/**
 	 * @deprecated this should be moved to FixedCodeMemory or so
@@ -224,6 +224,7 @@ public:
 	#endif
 	void require_linking(const MachineInstruction*, CodeFragment CF);
 
+	#if 0
 	/**
 	 * add unresolved jump
 	 */
@@ -238,19 +239,25 @@ public:
 	 * resolve data
 	 */
 	void resolve_data();
+	#endif
+	/*
+	 * @deprecated this should be moved to FixedCodeMemory or so
+	 */
+	void link();
 
 	/**
 	 * get a code fragment
 	 */
-	CodeFragment get_CodeFragment(unsigned size);
+	CodeFragment get_CodeFragment(std::size_t size);
 
 	/**
 	 * get an aligned code fragment
 	 *
 	 * @return A CodeFragment aligend to Target::alignment.
 	 */
-	CodeFragment get_aligned_CodeFragment(unsigned size);
+	CodeFragment get_aligned_CodeFragment(std::size_t size);
 
+	#if 0
 	/**
 	 * get the start address of the code memory
 	 */
@@ -262,7 +269,8 @@ public:
 
 	u4 size() const { return get_end() - get_start(); }
 
-	//friend class CodeFragment;
+	friend class CodeFragment;
+	#endif
 };
 
 

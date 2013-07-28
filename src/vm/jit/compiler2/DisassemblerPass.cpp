@@ -26,10 +26,15 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
-#include "vm/jit/compiler2/CodeGenPass.hpp"
 
+#include "vm/jit/jit.hpp"
 #include "vm/jit/disass.hpp"
 #include "vm/jit/code.hpp"
+
+
+#include "toolbox/logging.hpp"
+
+#define DEBUG_NAME "compiler2/DisassemblerPass"
 
 namespace cacao {
 namespace jit {
@@ -37,22 +42,15 @@ namespace compiler2 {
 
 bool DisassemblerPass::run(JITData &JD) {
 #if defined(ENABLE_DISASSEMBLER)
-	CodeGenPass *CG = get_Pass<CodeGenPass>();
-	// FIXME this should be ResolvedCodeMemory or something
-	const CodeMemory *CM = JD.get_CodeMemory();
+	codeinfo *cd = JD.get_jitdata()->code;
+	u1 *start = cd->entrypoint;
+	u1 *end = cd->mcode + cd->mcodelength;
 
-	u1 *start = CM->get_start();
-	u1 *end = CM->get_end();
+	LOG2("DisassemblerPass: start: " << start << " end " << end << nl);
 
 	disassemble(start, end);
 #endif
 	return true;
-}
-
-// pass usage
-PassUsage& DisassemblerPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(CodeGenPass::ID);
-	return PU;
 }
 
 // the address of this variable is used to identify the pass

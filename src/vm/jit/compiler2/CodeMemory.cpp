@@ -30,6 +30,7 @@
 #include "Target.hpp"
 
 #include <map>
+#include <functional>
 
 #define DEBUG_NAME "compiler2/CodeMemory"
 
@@ -50,17 +51,12 @@ s4 CodeFragment::get_offset(std::size_t index) const {
 //const s4 CodeMemory::INVALID_OFFSET = std::numeric_limits<s4>::max();
 
 CodeMemory::CodeMemory() :
-	mcodebase((u1*) DumpMemory::allocate(MCODEINITSIZE)),
-	mcodeend(mcodebase + MCODEINITSIZE),
-	mcodesize(MCODEINITSIZE),
-	mcodeptr(mcodeend),
 	cseg(this),
 	dseg(this){
 }
 
 void CodeMemory::add_label(const BeginInst *BI) {
-	LOG2("CodeMemory::add_label"<<nl);
-	label_map.insert(std::make_pair(BI,mcodeptr));
+	LOG2("CodeMemory::add_label " << *BI <<nl);
 	cseg.insert_tag(CSLabel(BI));
 }
 s4 CodeMemory::get_offset(CodeSegment::IdxTy to, CodeSegment::IdxTy from) const {
@@ -69,7 +65,7 @@ s4 CodeMemory::get_offset(CodeSegment::IdxTy to, CodeSegment::IdxTy from) const 
 }
 s4 CodeMemory::get_offset(DataSegment::IdxTy to, CodeSegment::IdxTy from) const {
 	// Note that from is swapped because CodeSegment is written upside down!
-	return s4(from.idx) - s4(cseg.end().idx) - s4(to.idx);
+	return s4(from.idx) - s4(cseg.get_next_index().idx) - s4(to.idx);
 }
 #if 0
 s4 CodeMemory::get_offset(const BeginInst *BI, u1 *current_pos) const {
@@ -105,9 +101,27 @@ s4 CodeMemory::get_offset(std::size_t index, u1 *current_pos) const {
 }
 #endif
 void CodeMemory::require_linking(const MachineInstruction* MI, CodeFragment CF) {
+	LOG2("LinkMeLater: " << MI << nl);
 	linklist.push_back(std::make_pair(MI,CF));
 }
 
+namespace {
+/// @Cpp11 use std::function
+struct LinkMeClass : std::unary_function<void, CodeMemory::ResolvePointTy&> {
+    void operator()(CodeMemory::ResolvePointTy &link_me) {
+		const MachineInstruction *MI = link_me.first;
+		CodeFragment &CF = link_me.second;
+		LOG2("LinkMe " << MI << nl);
+		MI->link(CF);
+	}
+} LinkMe;
+
+} // end anonymous namespace
+
+void CodeMemory::link() {
+	std::for_each(linklist.begin(),linklist.end(),LinkMe);
+}
+#if 0
 void CodeMemory::resolve_later(const BeginInst *BI,
 		const MachineInstruction* MI, CodeFragment CM) {
 	resolve_map.insert(std::make_pair(BI,std::make_pair(MI,CM)));
@@ -136,14 +150,15 @@ void CodeMemory::resolve_data() {
 		MI->emit(CF);
 	}
 }
+#endif
 
-CodeFragment CodeMemory::get_CodeFragment(unsigned size) {
+CodeFragment CodeMemory::get_CodeFragment(std::size_t size) {
 	return cseg.get_Ref(size);
 }
 
-CodeFragment CodeMemory::get_aligned_CodeFragment(unsigned size) {
+CodeFragment CodeMemory::get_aligned_CodeFragment(std::size_t size) {
 	std::size_t nops = Target::alignment
-		- (std::size_t(mcodeptr - size) % Target::alignment);
+		- (std::size_t(cseg.size() - size) % Target::alignment);
 	return cseg.get_Ref(size + nops);
 }
 

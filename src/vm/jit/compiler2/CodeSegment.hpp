@@ -47,9 +47,9 @@ public:
 	CodeSegment(CodeMemory *CM) : Segment<CodeSegmentType>(CM) {}
 };
 #endif
-typedef Segment<CodeSegmentType> CodeSegment;
 
-typedef SegRef<CodeSegmentType> CodeFragment;
+typedef Segment<CodeSegmentType,ReverseRefCategory> CodeSegment;
+typedef SegRef<CodeSegmentType,ReverseRefCategory> CodeFragment;
 
 } // end namespace compiler2
 } // end namespace jit

@@ -50,34 +50,37 @@ namespace compiler2 {
 bool CodeGenPass::run(JITData &JD) {
 	MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
 	CodeMemory *CM = JD.get_CodeMemory();
+	CodeSegment &CS = CM->get_CodeSegment();
 
 	// NOTE reverse so we see jump targets (which are not backedges) before
 	// the jump.
 	for (MachineInstructionSchedule::const_reverse_iterator i = MIS->rbegin(),
 			e = MIS->rend() ; i != e ; ++i ) {
 		MachineInstruction *MI = *i;
-		u1* start = CM->get_start();
+		std::size_t start = CS.size();
 		LOG2("MInst: " << MI << " emitted instruction:" << nl);
 		MI->emit(CM);
 		if (DEBUG_COND_N(2)) {
-			u1* end = CM->get_start();
+			std::size_t end = CS.size();
 			if ( start == end) {
 				LOG2("none" << nl);
 			} else {
+				std::vector<u1> tmp;
+				while(start != end--) {
+					tmp.push_back(CS.at(end));
+				}
 #if defined(ENABLE_DISASSEMBLER)
-				disassemble(end,start);
+				disassemble(&tmp.front(), &tmp.front() + tmp.size());
 #else
-				// TODO print hex
+				// TODO print hex code
 #endif
 			}
 		}
 	}
 	// create stack frame
 	JD.get_Backend()->create_frame(CM,JD.get_StackSlotManager());
-	// resolve jumps
-	CM->resolve();
-	// resolve data
-	CM->resolve_data();
+	// link code memory
+	CM->link();
 	// finish
 	finish(JD);
 	return true;

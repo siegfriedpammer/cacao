@@ -41,7 +41,6 @@ public:
 	static char ID;
 	DisassemblerPass() : Pass() {}
 	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PA) const;
 };
 
 } // end namespace compiler2
