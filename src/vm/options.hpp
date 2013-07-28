@@ -206,6 +206,7 @@ extern int      opt_InlineCount;
 extern int      opt_InlineMaxSize;
 extern int      opt_InlineMinSize;
 extern char*    opt_InlineMethod;
+extern Utf8String opt_InlineMethodUtf;
 #endif
 #endif
 extern int      opt_PrintConfig;

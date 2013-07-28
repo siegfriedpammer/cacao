@@ -193,6 +193,7 @@ int      opt_InlineCount                  = INT_MAX;
 int      opt_InlineMaxSize                = INT_MAX;
 int      opt_InlineMinSize                = 0;
 char*    opt_InlineMethod                 = NULL;
+Utf8String opt_InlineMethodUtf;
 #endif
 #endif
 int      opt_PrintConfig                  = 0;
@@ -791,6 +792,9 @@ void options_xx(JavaVMInitArgs *vm_args)
 				opt_InlineMinSize = os::atoi(value);
 			break;
 		case OPT_InlineMethod:
+			// we can not yet set opt_InlineMethodUtf because
+			// the utf8 subsystem is not yet initialized!
+			//opt_InlineMethodUtf = Utf8String::from_utf8(opt_InlineMethod);
 			opt_InlineMethod = value;
 			break;
 #endif
