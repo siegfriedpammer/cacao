@@ -166,6 +166,18 @@ struct InstructionEncoding {
 		}
 
 	}
+	template <class O,class I>
+	static void imm_op(CodeFragment &code, O opcode, I imm) {
+		assert(code.size() == (sizeof(O) + sizeof(I)));
+
+		for (int i = 0, e = sizeof(O) ; i < e ; ++i) {
+			code[i] = (u1) 0xff & (opcode >> (8 * (e - i - 1)));
+		}
+		for (int i = 0, e = sizeof(I) ; i < e ; ++i) {
+			code[i + sizeof(O)] = (u1) 0xff & (imm >> (8 * i));
+		}
+
+	}
 };
 #if 0
 template <>

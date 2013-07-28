@@ -257,6 +257,85 @@ void ALUInstruction::emit(CodeMemory* CM) const {
 		<< get_op_size() * 8 << "bit");
 }
 
+void emit_nop(CodeFragment code, int length)
+{
+    assert(length >= 0 && length <= 9);
+	unsigned mcodeptr = 0;
+    switch (length) {
+	case 0:
+		break;
+    case 1:
+        code[mcodeptr++] = 0x90;
+        break;
+    case 2:
+        code[mcodeptr++] = 0x66;
+        code[mcodeptr++] = 0x90;
+        break;
+    case 3:
+        code[mcodeptr++] = 0x0f;
+        code[mcodeptr++] = 0x1f;
+        code[mcodeptr++] = 0x00;
+        break;
+    case 4:
+        code[mcodeptr++] = 0x0f;
+        code[mcodeptr++] = 0x1f;
+        code[mcodeptr++] = 0x40;
+        code[mcodeptr++] = 0x00;
+        break;
+    case 5:
+        code[mcodeptr++] = 0x0f;
+        code[mcodeptr++] = 0x1f;
+        code[mcodeptr++] = 0x44;
+        code[mcodeptr++] = 0x00;
+        code[mcodeptr++] = 0x00;
+        break;
+    case 6:
+        code[mcodeptr++] = 0x66;
+        code[mcodeptr++] = 0x0f;
+        code[mcodeptr++] = 0x1f;
+        code[mcodeptr++] = 0x44;
+        code[mcodeptr++] = 0x00;
+        code[mcodeptr++] = 0x00;
+        break;
+    case 7:
+        code[mcodeptr++] = 0x0f;
+        code[mcodeptr++] = 0x1f;
+        code[mcodeptr++] = 0x80;
+        code[mcodeptr++] = 0x00;
+        code[mcodeptr++] = 0x00;
+        code[mcodeptr++] = 0x00;
+        code[mcodeptr++] = 0x00;
+        break;
+    case 8:
+        code[mcodeptr++] = 0x0f;
+        code[mcodeptr++] = 0x1f;
+        code[mcodeptr++] = 0x84;
+        code[mcodeptr++] = 0x00;
+        code[mcodeptr++] = 0x00;
+        code[mcodeptr++] = 0x00;
+        code[mcodeptr++] = 0x00;
+        code[mcodeptr++] = 0x00;
+        break;
+    case 9:
+        code[mcodeptr++] = 0x66;
+        code[mcodeptr++] = 0x0f;
+        code[mcodeptr++] = 0x1f;
+        code[mcodeptr++] = 0x84;
+        code[mcodeptr++] = 0x00;
+        code[mcodeptr++] = 0x00;
+        code[mcodeptr++] = 0x00;
+        code[mcodeptr++] = 0x00;
+        code[mcodeptr++] = 0x00;
+        break;
+    }
+}
+void PatchInst::emit(CodeMemory* CM) const {
+	CodeFragment code = CM->get_aligned_CodeFragment(2);
+	code[0] = 0x0f;
+	code[1] = 0x0b;
+	emit_nop(code + 2, code.size() - 2);
+}
+
 void EnterInst::emit(CodeMemory* CM) const {
 	CodeFragment code = CM->get_CodeFragment(4);
 	code[0] = 0xc8;
@@ -481,6 +560,7 @@ void MovSXInst::emit(CodeMemory* CM) const {
 		<< to << "bits");
 }
 
+#if 0
 void MovDSEGInst::emit(CodeMemory* CM) const {
 	X86_64Register *dst = cast_to<X86_64Register>(result.op);
 	switch (get_op_size()) {
@@ -509,8 +589,8 @@ void MovDSEGInst::emit(CodeMemory* CM) const {
 		"op_size: " << get_op_size() * 8 << "bit");
 }
 
-void MovDSEGInst::emit(CodeFragment &CF) const {
-	s4 offset = CF.get_CodeMemory()->get_offset(data_index,CF);
+void MovDSEGInst::link(CodeFragment &CF) const {
+	s4 offset = CF.get_Segment()->get_offset(data_index,CF);
 	assert(offset != 0);
 	assert(offset != CodeMemory::INVALID_OFFSET);
 	switch (get_op_size()) {
@@ -531,33 +611,43 @@ void MovDSEGInst::emit(CodeFragment &CF) const {
 	ABORT_MSG(this << ": Operand(s) not supported",
 		"op_size: " << get_op_size() * 8 << "bit");
 }
-
+#endif
 
 void CondJumpInst::emit(CodeMemory* CM) const {
 	BeginInst *BI = get_BeginInst();
-	s4 offset = CM->get_offset(BI);
-	switch (offset) {
-	case 0:
-		ABORT_MSG("x86_64 ERROR","CondJump offset 0 oO!");
-	case CodeMemory::INVALID_OFFSET:
+	CodeSegment &CS = CM->get_CodeSegment();
+	CodeSegment::IdxTy idx = CS.get_index(CSLabel(BI));
+	if (CodeSegment::is_invalid(idx)) {
 		LOG2("X86_64CondJumpInst: target not yet known (" << this << " to "
 		     << BI << ")"  << nl);
 		// reserve memory and add to resolve later
 		// worst case -> 32bit offset
-		CodeFragment CF = CM->get_CodeFragment(5);
+		CodeFragment CF = CM->get_CodeFragment(6);
 		// FIXME pass this the resolve me
-		CM->resolve_later(BI,this,CF);
+		CM->require_linking(this,CF);
 		return;
-	#if 0
-	default:
-		// create jump
-	#endif
+	}
+	s4 offset = CM->get_offset(idx);
+	if (offset == 0) {
+		ABORT_MSG("x86_64 ERROR","CondJump offset 0 oO!");
+		return;
 	}
 	LOG2("found offset of " << BI << ": " << offset << nl);
 
 	// only 32bit offset for the time being
 	InstructionEncoding::imm_op<u2>(CM, 0x0f80 + cond.code, offset);
 }
+
+void CondJumpInst::link(CodeFragment &CF) const {
+	BeginInst *BI = get_BeginInst();
+	CodeSegment &CS = CF.get_Segment();
+	CodeSegment::IdxTy idx = CS.get_index(CSLabel(BI));
+	s4 offset = CS.get_CodeMemory().get_offset(idx,CF.get_index_end());
+	assert(offset != 0);
+
+	InstructionEncoding::imm_op<u2>(CF, 0x0f80 + cond.code, offset);
+}
+
 void IMulInst::emit(CodeMemory* CM) const {
 	X86_64Register *src_reg = cast_to<X86_64Register>(operands[1].op);
 	X86_64Register *dst_reg = cast_to<X86_64Register>(result.op);
@@ -628,31 +718,36 @@ void emit_jump(CodeFragment &code, s4 offset) {
 } // end anonymous namespace
 void JumpInst::emit(CodeMemory* CM) const {
 	BeginInst *BI = get_BeginInst();
-	s4 offset = CM->get_offset(BI);
-	switch (offset) {
-	case 0:
-		LOG2("emit_Jump: jump to the next instruction -> can be omitted ("
-		     << this << " to " << BI << ")"  << nl);
-		return;
-	case CodeMemory::INVALID_OFFSET:
+	CodeSegment &CS = CM->get_CodeSegment();
+	CodeSegment::IdxTy idx = CS.get_index(CSLabel(BI));
+	if (CodeSegment::is_invalid(idx)) {
 		LOG2("emit_Jump: target not yet known (" << this << " to "
 		     << BI << ")"  << nl);
 		// reserve memory and add to resolve later
 		// worst case -> 32bit offset
 		CodeFragment CF = CM->get_CodeFragment(5);
 		// FIXME pass this the resolve me
-		CM->resolve_later(BI,this,CF);
+		CM->require_linking(this,CF);
+		return;
+	}
+	s4 offset = CM->get_offset(idx);
+	if (offset == 0) {
+		LOG2("emit_Jump: jump to the next instruction -> can be omitted ("
+		     << this << " to " << BI << ")"  << nl);
 		return;
 	}
 	CodeFragment CF = CM->get_CodeFragment(5);
 	emit_jump(CF,offset);
 }
 
-void JumpInst::emit(CodeFragment &CF) const {
+void JumpInst::link(CodeFragment &CF) const {
 	BeginInst *BI = get_BeginInst();
-	s4 offset = CF.get_CodeMemory()->get_offset(BI,CF);
+	CodeSegment &CS = CF.get_Segment();
+	CodeSegment::IdxTy idx = CS.get_index(CSLabel(BI));
+	LOG2("JumpInst:link BI: " << BI << " CF begin: "
+		<< CF.get_index_begin().idx << " CF end: " << CF.get_index_end().idx);
+	s4 offset = CS.get_CodeMemory().get_offset(idx,CF.get_index_begin());
 	assert(offset != 0);
-	assert(offset != CodeMemory::INVALID_OFFSET);
 
 	emit_jump(CF,offset);
 }
@@ -788,13 +883,15 @@ void MovImmSDInst::emit(CodeMemory* CM) const {
 	code[6] = 0xaa;
 	code[7] = 0xaa;
 	#endif
-	data_index = CM->insert_dataseg(imm->get_Double(),this,code);
+	data_index = CM->get_DataSegment().insert_tag(DSDouble(imm->get_Double()));
+	CM->require_linking(this,code);
 }
 
-void MovImmSDInst::emit(CodeFragment &CF) const {
-	s4 offset = CF.get_CodeMemory()->get_offset(data_index,CF);
+void MovImmSDInst::link(CodeFragment &CF) const {
+	CodeSegment &CS = CF.get_Segment();
+	s4 offset = CS.get_CodeMemory().get_offset(data_index,CF.get_index_end());
+
 	assert(offset != 0);
-	assert(offset != CodeMemory::INVALID_OFFSET);
 	CF[4] = u1(0xff & (offset >>  0));
 	CF[5] = u1(0xff & (offset >>  8));
 	CF[6] = u1(0xff & (offset >> 16));

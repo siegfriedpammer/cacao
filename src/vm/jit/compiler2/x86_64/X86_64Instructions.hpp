@@ -29,11 +29,16 @@
 #include "vm/jit/compiler2/x86_64/X86_64Cond.hpp"
 #include "vm/jit/compiler2/x86_64/X86_64Register.hpp"
 #include "vm/jit/compiler2/MachineInstruction.hpp"
+#include "vm/jit/compiler2/DataSegment.hpp"
 #include "vm/types.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+
+// forward declaration
+class Patcher;
+
 namespace x86_64 {
 
 /**
@@ -316,6 +321,15 @@ public:
 };
 
 
+class PatchInst : public X86_64Instruction {
+private:
+	Patcher *patcher;
+public:
+	PatchInst(Patcher *patcher)
+			: X86_64Instruction("X86_64PatchInst", &NoOperand, 0),
+			patcher(patcher) {}
+	virtual void emit(CodeMemory* CM) const;
+};
 
 
 class EnterInst : public X86_64Instruction {
@@ -348,6 +362,7 @@ public:
 		return target.get();
 	}
 	virtual void emit(CodeMemory* CM) const;
+	virtual void link(CodeFragment &CF) const;
 	virtual OStream& print(OStream &OS) const {
 		return OS << "[" << setz(4) << get_id() << "] "
 			<< get_name() << "-> " << get_BeginInst();
@@ -401,6 +416,7 @@ public:
 /**
  * Move data seg to register
  */
+#if 0
 class MovDSEGInst : public MoveInst {
 private:
 	// mutable because changed in emit (which is const)
@@ -411,8 +427,9 @@ public:
 			: MoveInst("X86_64MovDSEGInst", src.op, dst.op, size),
 			data_index(data_index) {}
 	virtual void emit(CodeMemory* CM) const;
-	virtual void emit(CodeFragment &CF) const;
+	virtual void link(CodeFragment &CF) const;
 };
+#endif
 
 class JumpInst : public MachineJumpInst {
 private:
@@ -421,7 +438,7 @@ public:
 	JumpInst(BeginInstRef &target) : MachineJumpInst("X86_64JumpInst"),
 		target(target) {}
 	virtual void emit(CodeMemory* CM) const;
-	virtual void emit(CodeFragment &CF) const;
+	virtual void link(CodeFragment &CF) const;
 	virtual OStream& print(OStream &OS) const {
 		return OS << "[" << setz(4) << get_id() << "] "
 			<< get_name() << "-> " << get_BeginInst();
@@ -545,12 +562,13 @@ public:
 class MovImmSDInst : public MoveInst {
 private:
 	// mutable because changed in emit (which is const)
-	mutable std::size_t data_index;
+	mutable DataSegment::IdxTy data_index;
 public:
 	MovImmSDInst(const SrcOp &src, const DstOp &dst)
-			: MoveInst("X86_64MovImmSDInst", src.op, dst.op, OS_64) {}
+			: MoveInst("X86_64MovImmSDInst", src.op, dst.op, OS_64),
+				data_index(0) {}
 	virtual void emit(CodeMemory* CM) const;
-	virtual void emit(CodeFragment &CF) const;
+	virtual void link(CodeFragment &CF) const;
 };
 
 class MovSSInst : public MoveInst {

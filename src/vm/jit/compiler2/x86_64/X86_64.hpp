@@ -25,6 +25,8 @@
 #ifndef _JIT_COMPILER2_X86_64
 #define _JIT_COMPILER2_X86_64
 
+#include <cstddef>
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -33,7 +35,10 @@ namespace x86_64 {
 /**
  * X86_64
  */
-class X86_64 {};
+class X86_64 {
+public:
+	static const std::size_t alignment = 2;
+};
 
 
 } // end namespace x86_64
