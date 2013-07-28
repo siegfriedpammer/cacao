@@ -113,7 +113,7 @@ public:
 	MachineJumpInst(const char *name)
 		: MachineInstruction(name, &NoOperand, 0) {}
 	virtual void emit(CodeMemory* CM) const = 0;
-	virtual void emit(CodeFragment &CF) const = 0;
+	virtual void link(CodeFragment &CF) const = 0;
 };
 #if 0
 /**

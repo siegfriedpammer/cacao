@@ -73,8 +73,8 @@ void MachineInstruction::emit(CodeMemory* CM) const {
 	ABORT_MSG("emit not yet implemented", "emit for " << this << " is not yet implemented");
 }
 
-void MachineInstruction::emit(CodeFragment &CF) const {
-	ABORT_MSG("emit CodeFragment not implemented", "emit for "
+void MachineInstruction::link(CodeFragment &CF) const {
+	ABORT_MSG("link not implemented", "link for "
 		<< this << " is not implemented");
 }
 
