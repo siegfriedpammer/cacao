@@ -446,6 +446,7 @@ public:
 		: Instruction(GETSTATICInstID, type), fmiref(fmiref), resolved(resolved) {}
 	virtual GETSTATICInst* to_GETSTATICInst() { return this; }
 	bool is_resolved() const { return resolved; }
+	constant_FMIref* get_fmiref() const { return fmiref; }
 };
 
 class INCInst : public Instruction {
