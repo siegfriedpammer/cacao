@@ -238,6 +238,36 @@ LoweredInstDAG* BackendBase<X86_64>::lowerADDInst(ADDInst *I) const {
 }
 
 template<>
+LoweredInstDAG* BackendBase<X86_64>::lowerANDInst(ANDInst *I) const {
+	assert(I);
+	Type::TypeID type = I->get_type();
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	VirtualRegister *dst = new VirtualRegister(type);
+	MachineInstruction *mov = create_Move(new UnassignedReg(type),dst);
+	MachineInstruction *alu = NULL;
+
+	switch (type) {
+	case Type::ByteTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+		alu = new AndInst(
+			Src2Op(new UnassignedReg(type)),
+			DstSrc1Op(dst),
+			get_OperandSize_from_Type(type));
+		break;
+	default:
+		ABORT_MSG("x86_64: Lowering not supported",
+			"Inst: " << I << " type: " << type);
+	}
+	dag->add(mov);
+	dag->add(alu);
+	dag->set_input(1,alu,1);
+	dag->set_input(0,mov,0);
+	dag->set_result(alu);
+	return dag;
+}
+
+template<>
 LoweredInstDAG* BackendBase<X86_64>::lowerSUBInst(SUBInst *I) const {
 	assert(I);
 	Type::TypeID type = I->get_type();
@@ -319,10 +349,12 @@ LoweredInstDAG* BackendBase<X86_64>::lowerDIVInst(DIVInst *I) const {
 	MachineInstruction *alu = NULL;
 
 	switch (type) {
+	#if 0
 	case Type::ByteTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
 		break;
+	#endif
 	case Type::DoubleTypeID:
 		alu = new DivSDInst(
 			Src2Op(new UnassignedReg(type)),
@@ -340,6 +372,43 @@ LoweredInstDAG* BackendBase<X86_64>::lowerDIVInst(DIVInst *I) const {
 	return dag;
 }
 
+template<>
+LoweredInstDAG* BackendBase<X86_64>::lowerREMInst(REMInst *I) const {
+	assert(I);
+	Type::TypeID type = I->get_type();
+
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	#if 0
+	VirtualRegister *dst = new VirtualRegister(type);
+	MachineInstruction *mov = create_Move(new UnassignedReg(type), dst);
+	MachineInstruction *alu;
+
+	switch (type) {
+	#if 0
+	case Type::ByteTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+		break;
+	#endif
+	case Type::DoubleTypeID:
+		alu = new DivSDInst(
+			Src2Op(new UnassignedReg(type)),
+			DstSrc1Op(dst));
+		break;
+	default:
+		ABORT_MSG("x86_64: Lowering not supported",
+			"Inst: " << I << " type: " << type);
+	}
+	dag->add(mov);
+	dag->add(alu);
+	dag->set_input(1,alu,1);
+	dag->set_input(0,mov,0);
+	dag->set_result(alu);
+	#endif
+		ABORT_MSG("x86_64: Lowering not supported",
+			"Inst: " << I << " type: " << type);
+	return dag;
+}
 
 template<>
 LoweredInstDAG* BackendBase<X86_64>::lowerRETURNInst(RETURNInst *I) const {
