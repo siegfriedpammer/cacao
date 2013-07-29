@@ -38,124 +38,25 @@ namespace jit {
 namespace compiler2 {
 
 // forward declarations
-class BeginInst;
 class MachineInstruction;
-class CodeMemory;
-
-#if 0
-/**
- * Code fragments
- *
- * Code fregments are used to write instructions to the CodeMemory. It abstracts
- * the fact that code memory is written upside down and achitecure dependent
- * properties such as endianess.
- *
- * It can be used just like an u1 array.
- */
-class CodeFragment {
-private:
-	CodeMemory *parent;
-	u1 *code_ptr;
-	unsigned _size;
-	CodeFragment(CodeMemory* parent, u1 *code_ptr,unsigned _size)
-		: parent(parent), code_ptr(code_ptr), _size(_size) {}
-public:
-	// Copy Constructor
-	CodeFragment(const CodeFragment &other) : parent(other.parent),
-		code_ptr(other.code_ptr), _size(other.size()) {}
-	// Copy assignment operator
-	CodeFragment& operator=(const CodeFragment &other) {
-		parent = other.parent;
-		code_ptr = other.code_ptr;
-		_size = other.size();
-		return *this;
-	}
-	CodeFragment operator+(unsigned v) {
-		assert( signed(_size) - signed(v) >= 0);
-		CodeFragment CF(parent, code_ptr + v, _size - v);
-		return CF;
-	}
-	u1& operator[](unsigned i) {
-		assert(i < size());
-		return *(code_ptr + i);
-	}
-	CodeMemory* get_CodeMemory() const {
-		return parent;
-	}
-	unsigned size() const {
-		return _size;
-	}
-	friend class CodeMemory;
-};
-#endif
 
 /**
  * CodeMemory
  */
 class CodeMemory {
-	#if 0
-private:
-	typedef std::vector<u1> DataSegTy;
-public:
-	typedef DataSegTy::const_iterator const_data_iterator;
-	#endif
 public:
 	typedef std::pair<const MachineInstruction*,CodeFragment> ResolvePointTy;
 private:
 	typedef std::list<ResolvePointTy> LinkListTy;
-	#if 0
-	typedef std::map<const BeginInst*,u1*> LabelMapTy;
-	typedef std::multimap<const BeginInst*,ResolvePointTy> ResolveLaterMapTy;
-	typedef std::multimap<std::size_t,ResolvePointTy> ResolveDataMapTy;
-
-	u1             *mcodebase;      ///< base pointer of code area
-	u1             *mcodeend;       ///< pointer to end of code area
-	s4              mcodesize;      ///< complete size of code area (bytes)
-	u1             *mcodeptr;       ///< code generation pointer
-
-	DataSegTy dataseg;              ///< data segment
-
-	LabelMapTy label_map;           ///< label map
-	ResolveLaterMapTy resolve_map;  ///< jumps to be resolved later
-	ResolveDataMapTy  resolve_data_map; ///< date segment
-	#endif
 
 	LinkListTy linklist;            ///< instructions that require linking
 
 	CodeSegment cseg;               ///< code segment
 	DataSegment dseg;               ///< data segment
 
-	#if 0
-	/**
-	 * get the offset from the current position to the label.
-	 *
-	 * @return offset from the current position or INVALID_OFFSET if label
-	 * not found.
-	 */
-	s4 get_offset(const BeginInst *BI, u1 *current_pos) const;
-	/**
-	 * get the offset from the current position to the data segment index.
-	 *
-	 * @return offset from the current positioni
-	 */
-	s4 get_offset(std::size_t index, u1 *current_pos) const;
-	/**
-	 */
-	template<typename T,std::size_t size>
-	std::size_t get_index(T t, u1 *current_pos) {
-		static std::map<T,std::size_t> map;
-		typename std::map<T,std::size_t>::iterator i = map.find(t);
-
-		if (i != map.end()) {
-			return i->second;
-		}
-		std::size_t index = dataseg.size();
-		dataseg.resize(index + size);
-		return index;
-	}
-	#endif
 public:
-	CodeMemory();
+	/// constructor
+	CodeMemory() : cseg(this), dseg(this) {}
 
 	/// get CodeSegment
 	const CodeSegment& get_CodeSegment() const { return cseg; }
@@ -165,10 +66,6 @@ public:
 	const DataSegment& get_DataSegment() const { return dseg; }
 	/// get DataSegment
 	DataSegment& get_DataSegment()             { return dseg; }
-	/**
-	 * add a label to the current position.
-	 */
-	void add_label(const BeginInst *BI);
 
 	s4 get_offset(CodeSegment::IdxTy to, CodeSegment::IdxTy from) const;
 	s4 get_offset(CodeSegment::IdxTy to, CodeFragment &CF) const {
@@ -184,69 +81,12 @@ public:
 	s4 get_offset(DataSegment::IdxTy to, CodeFragment &CF) const {
 		return get_offset(to, CF.get_end());
 	}
-	#if 0
-	/**
-	 * get the offset from the current position to the label.
-	 *
-	 * @return offset from the current position or INVALID_OFFSET if label
-	 * not found.
-	 */
-	s4 get_offset(const BeginInst *BI) const {
-		return get_offset(BI,mcodeptr);
-	}
-	/**
-	 * get the offset from the current position to the label.
-	 *
-	 * @return offset from the current position or INVALID_OFFSET if label
-	 * not found.
-	 */
-	s4 get_offset(const BeginInst *BI, const CodeFragment &CF) const {
-		u1 *current_pos = CF.code_ptr + CF.size();
-		return get_offset(BI,current_pos);
-	}
-	/**
-	 * get the offset from the current position to the data segment index.
-	 *
-	 * @return offset from the current positioni
-	 */
-	s4 get_offset(std::size_t index, const CodeFragment &CF) const { 
-		u1 *current_pos = CF.code_ptr + CF.size();
-		return get_offset(index,current_pos);
-	}
-
-	const_data_iterator data_begin() const {
-		return dataseg.begin();
-	}
-	const_data_iterator data_end() const {
-		return dataseg.end();
-	}
-
-	/**
-	 * get data segment size (in bytes)
-	 */
-	std::size_t data_size() const {
-		return dataseg.size();
-	}
-	#endif
+	/// Add a MachineInstruction that require linking
 	void require_linking(const MachineInstruction*, CodeFragment CF);
 
-	#if 0
 	/**
-	 * add unresolved jump
-	 */
-	void resolve_later(const BeginInst *BI, const MachineInstruction*,
-		CodeFragment CM);
-	/**
-	 * resolve jump
-	 */
-	void resolve();
-
-	/**
-	 * resolve data
-	 */
-	void resolve_data();
-	#endif
-	/*
+	 * Link instructions.
+	 *
 	 * @deprecated this should be moved to FixedCodeMemory or so
 	 */
 	void link();
@@ -263,20 +103,6 @@ public:
 	 */
 	CodeFragment get_aligned_CodeFragment(std::size_t size);
 
-	#if 0
-	/**
-	 * get the start address of the code memory
-	 */
-	u1* get_start() const { return mcodeptr; }
-	/**
-	 * get the end address of the code memory
-	 */
-	u1* get_end() const { return mcodeend; }
-
-	u4 size() const { return get_end() - get_start(); }
-
-	friend class CodeFragment;
-	#endif
 };
 
 

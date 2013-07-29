@@ -40,29 +40,11 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-#if 0
-s4 CodeFragment::get_offset(const BeginInst *BI) const {
-	return parent->get_offset(BI,code_ptr + size);
-}
-s4 CodeFragment::get_offset(std::size_t index) const {
-	return parent->get_offset(index,code_ptr + size);
-}
-#endif
-//const s4 CodeMemory::INVALID_OFFSET = std::numeric_limits<s4>::max();
-
-CodeMemory::CodeMemory() :
-	cseg(this),
-	dseg(this){
-}
-
-void CodeMemory::add_label(const BeginInst *BI) {
-	LOG2("CodeMemory::add_label " << *BI <<nl);
-	cseg.insert_tag(CSLabel(BI));
-}
 s4 CodeMemory::get_offset(CodeSegment::IdxTy to, CodeSegment::IdxTy from) const {
 	// Note that from/to is swapped because CodeSegment is written upside down!
 	return s4(from.idx) - s4(to.idx);
 }
+
 s4 CodeMemory::get_offset(DataSegment::IdxTy to, CodeSegment::IdxTy from) const {
 	// Note that from is swapped because CodeSegment is written upside down!
 	return -(
@@ -70,45 +52,14 @@ s4 CodeMemory::get_offset(DataSegment::IdxTy to, CodeSegment::IdxTy from) const 
 		+
 		s4(cseg.size()) - 1 - s4(to.idx));
 }
-#if 0
-s4 CodeMemory::get_offset(const BeginInst *BI, u1 *current_pos) const {
-	LabelMapTy::const_iterator i = label_map.find(BI);
-	if (i == label_map.end() ) {
-		return INVALID_OFFSET;
-	}
-	#ifndef NDEBUG
-	if (!cseg.contains_tag(CSLabel(BI))) {
-		cseg.print(dbg());
-		assert(cseg.contains_tag(CSLabel(BI)));
-	}
-	#endif
-	// FIXME this is so not safe!
-	s4 offset = s4(i->second - current_pos);
 
-	// this should never happen
-	assert(offset != INVALID_OFFSET);
-
-	return offset;
-}
-
-s4 CodeMemory::get_offset(std::size_t index, u1 *current_pos) const {
-	// FIXME this is so not safe!
-	//s4 offset = s4(get_start() - current_pos - index);
-	u1* start = get_start();
-	std::ptrdiff_t offset = start - current_pos - index;
-	LOG2("start:   " << hex << setz(16) << start << dec << nl);
-	LOG2("current: " << hex << setz(16) << current_pos << dec << nl);
-	LOG2("offset:  " << setw(16) << offset << nl);
-
-	return offset;
-}
-#endif
 void CodeMemory::require_linking(const MachineInstruction* MI, CodeFragment CF) {
 	LOG2("LinkMeLater: " << MI << nl);
 	linklist.push_back(std::make_pair(MI,CF));
 }
 
 namespace {
+
 /// @Cpp11 use std::function
 struct LinkMeClass : std::unary_function<void, CodeMemory::ResolvePointTy&> {
     void operator()(CodeMemory::ResolvePointTy &link_me) {
@@ -124,36 +75,6 @@ struct LinkMeClass : std::unary_function<void, CodeMemory::ResolvePointTy&> {
 void CodeMemory::link() {
 	std::for_each(linklist.begin(),linklist.end(),LinkMe);
 }
-#if 0
-void CodeMemory::resolve_later(const BeginInst *BI,
-		const MachineInstruction* MI, CodeFragment CM) {
-	resolve_map.insert(std::make_pair(BI,std::make_pair(MI,CM)));
-}
-
-void CodeMemory::resolve() {
-	LOG2("CodeMemory::resolve" << nl);
-	for (ResolveLaterMapTy::iterator i = resolve_map.begin(),
-			e = resolve_map.end(); i != e; ++i) {
-		const BeginInst *BI = i->first;
-		const MachineInstruction *MI = i->second.first;
-		LOG2("resolve " << MI << " jump to " << BI << nl);
-		CodeFragment &CF = i->second.second;
-		MI->emit(CF);
-	}
-}
-
-void CodeMemory::resolve_data() {
-	LOG2("CodeMemory::resolve_data" << nl);
-	for (ResolveDataMapTy::iterator i = resolve_data_map.begin(),
-			e = resolve_data_map.end(); i != e; ++i) {
-		std::size_t index = i->first;
-		const MachineInstruction *MI = i->second.first;
-		CodeFragment &CF = i->second.second;
-		LOG2("resolve " << MI << " data to " << index << nl);
-		MI->emit(CF);
-	}
-}
-#endif
 
 CodeFragment CodeMemory::get_CodeFragment(std::size_t size) {
 	return cseg.get_Ref(size);
