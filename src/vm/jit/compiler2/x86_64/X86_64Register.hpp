@@ -149,6 +149,7 @@ public:
 		case Type::ByteTypeID:
 		case Type::IntTypeID:
 		case Type::LongTypeID:
+		case Type::ReferenceTypeID:
 			#if 1
 			for(unsigned i = 0; i < IntegerArgumentRegisterSize ; ++i) {
 				regs.push_back(IntegerArgumentRegisters[i]);

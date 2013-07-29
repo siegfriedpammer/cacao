@@ -32,11 +32,20 @@
 #include "vm/jit/compiler2/MethodDescriptor.hpp"
 #include "vm/jit/compiler2/CodeMemory.hpp"
 #include "vm/jit/compiler2/StackSlotManager.hpp"
+#include "vm/jit/Patcher.hpp"
+#include "vm/jit/jit.hpp"
+#include "vm/jit/code.hpp"
+#include "vm/class.hpp"
+#include "vm/field.hpp"
 
 #include "toolbox/OStream.hpp"
 #include "toolbox/logging.hpp"
 
 #define DEBUG_NAME "compiler2/x86_64"
+
+// code.hpp fix
+#undef RAX
+#undef XMM0
 
 namespace cacao {
 namespace jit {
@@ -422,7 +431,47 @@ LoweredInstDAG* BackendBase<X86_64>::lowerCASTInst(CASTInst *I) const {
 
 template<>
 LoweredInstDAG* BackendBase<X86_64>::lowerGETSTATICInst(GETSTATICInst *I) const {
-	assert(0);
+	assert(I);
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	DataSegment &DS = get_JITData()->get_CodeMemory()->get_DataSegment();
+	DataSegment::IdxTy idx = DS.get_index(DSFMIRef(I->get_fmiref()));
+	if (DataSegment::is_invalid(idx)) {
+		DataFragment data = DS.get_Ref(sizeof(void*));
+		idx = DS.insert_tag(DSFMIRef(I->get_fmiref()),data);
+	}
+
+	if (I->is_resolved()) {
+		fieldinfo* fi = I->get_fmiref()->p.field;
+
+		if (!class_is_or_almost_initialized(fi->clazz)) {
+			//PROFILE_CYCLE_STOP;
+			Patcher *patcher = new InitializeClassPatcher(fi->clazz);
+			PatcherPtrTy ptr(patcher);
+			get_JITData()->get_jitdata()->code->patchers->push_back(ptr);
+			MachineInstruction *pi = new PatchInst(patcher);
+			dag->add(pi);
+			//PROFILE_CYCLE_START;
+		}
+
+	} else {
+		assert(0 && "Not yet implemented");
+		#if 0
+		unresolved_field* uf = iptr->sx.s23.s3.uf;
+		fieldtype = uf->fieldref->parseddesc.fd->type;
+		disp      = dseg_add_unique_address(cd, 0);
+
+		pr = patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
+
+		fi = NULL;		/* Silence compiler warning */
+		#endif
+	}
+	VirtualRegister *addr = new VirtualRegister(Type::ReferenceTypeID);
+	MovDSEGInst *dmov = new MovDSEGInst(DstOp(addr),idx);
+	MachineInstruction* mov = create_Move(addr,new VirtualRegister(I->get_type()));
+	dag->add(dmov);
+	dag->add(mov);
+	dag->set_result(mov);
+	return dag;
 }
 
 template<>

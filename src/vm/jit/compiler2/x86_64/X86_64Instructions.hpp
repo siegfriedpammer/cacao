@@ -33,11 +33,11 @@
 #include "vm/types.hpp"
 
 namespace cacao {
-namespace jit {
-namespace compiler2 {
-
 // forward declaration
 class Patcher;
+
+namespace jit {
+namespace compiler2 {
 
 namespace x86_64 {
 
@@ -176,6 +176,9 @@ public:
 
 	OperandSize get_op_size() const { return op_size; }
 };
+
+GPInstruction::OperandSize get_operand_size_from_Type(Type::TypeID type);
+void emit_nop(CodeFragment code, int length);
 
 /**
  * Move super instruction
@@ -416,20 +419,17 @@ public:
 /**
  * Move data seg to register
  */
-#if 0
-class MovDSEGInst : public MoveInst {
+class MovDSEGInst : public GPInstruction {
 private:
 	// mutable because changed in emit (which is const)
-	mutable std::size_t data_index;
+	DataSegment::IdxTy data_index;
 public:
-	MovDSEGInst(const SrcOp &src, const DstOp &dst,
-		GPInstruction::OperandSize size, std::size_t data_index)
-			: MoveInst("X86_64MovDSEGInst", src.op, dst.op, size),
+	MovDSEGInst(const DstOp &dst, DataSegment::IdxTy &data_index)
+			: GPInstruction("X86_64MovDSEGInst", dst.op, get_operand_size_from_Type(dst.op->get_type()), 0),
 			data_index(data_index) {}
 	virtual void emit(CodeMemory* CM) const;
 	virtual void link(CodeFragment &CF) const;
 };
-#endif
 
 class JumpInst : public MachineJumpInst {
 private:

@@ -211,6 +211,23 @@ GPInstruction::OpEncoding get_OpEncoding(MachineOperand *src1,
 	return GPInstruction::NO_ENCODING;
 }
 
+GPInstruction::OperandSize get_operand_size_from_Type(Type::TypeID type) {
+	switch (type) {
+	case Type::ByteTypeID:
+		return GPInstruction::OS_8;
+	case Type::IntTypeID:
+	case Type::FloatTypeID:
+		return GPInstruction::OS_32;
+	case Type::LongTypeID:
+	case Type::DoubleTypeID:
+	case Type::ReferenceTypeID:
+		return GPInstruction::OS_64;
+	default: break;
+	}
+	ABORT_MSG("x86_64: get operand size not support",
+		"type: " << type);
+}
+
 void ALUInstruction::emit(CodeMemory* CM) const {
 	MachineOperand *src1 = get(0).op;
 	MachineOperand *src2 = get(1).op;
@@ -257,8 +274,7 @@ void ALUInstruction::emit(CodeMemory* CM) const {
 		<< get_op_size() * 8 << "bit");
 }
 
-void emit_nop(CodeFragment code, int length)
-{
+void emit_nop(CodeFragment code, int length) {
     assert(length >= 0 && length <= 9);
 	unsigned mcodeptr = 0;
     switch (length) {
@@ -560,7 +576,6 @@ void MovSXInst::emit(CodeMemory* CM) const {
 		<< to << "bits");
 }
 
-#if 0
 void MovDSEGInst::emit(CodeMemory* CM) const {
 	X86_64Register *dst = cast_to<X86_64Register>(result.op);
 	switch (get_op_size()) {
@@ -581,6 +596,7 @@ void MovDSEGInst::emit(CodeMemory* CM) const {
 			code[5] = 0xaa;
 			code[6] = 0xaa;
 			#endif
+			CM->require_linking(this,code);
 		}
 		return;
 	default: break;
@@ -590,9 +606,13 @@ void MovDSEGInst::emit(CodeMemory* CM) const {
 }
 
 void MovDSEGInst::link(CodeFragment &CF) const {
-	s4 offset = CF.get_Segment()->get_offset(data_index,CF);
+	CodeMemory &CM = CF.get_Segment().get_CodeMemory();
+	s4 offset = CM.get_offset(data_index,CF);
+	LOG2(this << " offset: " << offset << " data index: " << data_index.idx << " CF end index "
+			<< CF.get_end().idx << nl);
+	LOG2("dseg->size " << CM.get_DataSegment().size()
+		<< " cseg->size " << CM.get_CodeSegment().size() << nl );
 	assert(offset != 0);
-	assert(offset != CodeMemory::INVALID_OFFSET);
 	switch (get_op_size()) {
 	case OS_8:
 	case OS_16:
@@ -611,7 +631,6 @@ void MovDSEGInst::link(CodeFragment &CF) const {
 	ABORT_MSG(this << ": Operand(s) not supported",
 		"op_size: " << get_op_size() * 8 << "bit");
 }
-#endif
 
 void CondJumpInst::emit(CodeMemory* CM) const {
 	BeginInst *BI = get_BeginInst();
@@ -642,7 +661,7 @@ void CondJumpInst::link(CodeFragment &CF) const {
 	BeginInst *BI = get_BeginInst();
 	CodeSegment &CS = CF.get_Segment();
 	CodeSegment::IdxTy idx = CS.get_index(CSLabel(BI));
-	s4 offset = CS.get_CodeMemory().get_offset(idx,CF.get_index_end());
+	s4 offset = CS.get_CodeMemory().get_offset(idx,CF);
 	assert(offset != 0);
 
 	InstructionEncoding::imm_op<u2>(CF, 0x0f80 + cond.code, offset);
@@ -744,9 +763,9 @@ void JumpInst::link(CodeFragment &CF) const {
 	BeginInst *BI = get_BeginInst();
 	CodeSegment &CS = CF.get_Segment();
 	CodeSegment::IdxTy idx = CS.get_index(CSLabel(BI));
-	LOG2("JumpInst:link BI: " << BI << " CF begin: "
-		<< CF.get_index_begin().idx << " CF end: " << CF.get_index_end().idx);
-	s4 offset = CS.get_CodeMemory().get_offset(idx,CF.get_index_begin());
+	LOG2("JumpInst:link BI: " << BI << " idx: " << idx.idx << " CF begin: "
+		<< CF.get_begin().idx << " CF end: " << CF.get_end().idx << nl);
+	s4 offset = CS.get_CodeMemory().get_offset(idx,CF);
 	assert(offset != 0);
 
 	emit_jump(CF,offset);
@@ -883,13 +902,19 @@ void MovImmSDInst::emit(CodeMemory* CM) const {
 	code[6] = 0xaa;
 	code[7] = 0xaa;
 	#endif
-	data_index = CM->get_DataSegment().insert_tag(DSDouble(imm->get_Double()));
+	DataFragment DF = CM->get_DataSegment().get_Ref(sizeof(double));
+	data_index = CM->get_DataSegment().insert_tag(DSDouble(imm->get_Double()),DF);
 	CM->require_linking(this,code);
 }
 
 void MovImmSDInst::link(CodeFragment &CF) const {
-	CodeSegment &CS = CF.get_Segment();
-	s4 offset = CS.get_CodeMemory().get_offset(data_index,CF.get_index_end());
+	CodeMemory &CM = CF.get_Segment().get_CodeMemory();
+	s4 offset = CM.get_offset(data_index,CF);
+	LOG2(this << " offset: " << offset << " data index: " << data_index.idx << " CF end index "
+			<< CF.get_end().idx << nl);
+	LOG2("dseg->size " << CM.get_DataSegment().size()
+		<< " cseg->size " << CM.get_CodeSegment().size() << nl );
+	assert(offset != 0);
 
 	assert(offset != 0);
 	CF[4] = u1(0xff & (offset >>  0));
