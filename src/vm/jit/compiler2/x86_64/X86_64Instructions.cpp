@@ -26,6 +26,7 @@
 #include "vm/jit/compiler2/x86_64/X86_64EmitHelper.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
 #include "vm/jit/compiler2/CodeMemory.hpp"
+#include "vm/jit/Patcher.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -226,6 +227,7 @@ GPInstruction::OperandSize get_operand_size_from_Type(Type::TypeID type) {
 	}
 	ABORT_MSG("x86_64: get operand size not support",
 		"type: " << type);
+	return GPInstruction::NO_SIZE;
 }
 
 void ALUInstruction::emit(CodeMemory* CM) const {
@@ -350,6 +352,12 @@ void PatchInst::emit(CodeMemory* CM) const {
 	code[0] = 0x0f;
 	code[1] = 0x0b;
 	emit_nop(code + 2, code.size() - 2);
+	CM->require_linking(this,code);
+}
+void PatchInst::link(CodeFragment &CF) const {
+	CodeMemory &CM = CF.get_Segment().get_CodeMemory();
+	patcher->reposition(CM.get_offset(CF.get_begin()));
+	LOG2(this << " link: reposition: " << patcher->get_mpc() << nl);
 }
 
 void EnterInst::emit(CodeMemory* CM) const {

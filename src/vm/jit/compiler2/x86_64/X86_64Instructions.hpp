@@ -332,6 +332,7 @@ public:
 			: X86_64Instruction("X86_64PatchInst", &NoOperand, 0),
 			patcher(patcher) {}
 	virtual void emit(CodeMemory* CM) const;
+	virtual void link(CodeFragment &CF) const;
 };
 
 

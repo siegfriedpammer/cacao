@@ -215,6 +215,8 @@ void CodeGenPass::finish(JITData &JD) {
 	/* patcher resolving */
 
 	patcher_resolve(code);
+	LOG2("Patchers:" << nl);
+	DEBUG2(patcher_list_show(code));
 #if 0
 #if defined(ENABLE_REPLACEMENT)
 	/* replacement point resolving */

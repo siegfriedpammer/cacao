@@ -38,11 +38,7 @@ namespace compiler2 {
  * TODO: more info
  */
 class CodeGenPass : public Pass {
-public:
-	static char ID;
-	CodeGenPass() : Pass() {}
-	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PU) const;
+private:
 	/**
 	 * finish code generation
 	 *
@@ -51,6 +47,11 @@ public:
 	 * to their final layout, unresolved jumps are resolved, ...
 	 */
 	void finish(JITData &JD);
+public:
+	static char ID;
+	CodeGenPass() : Pass() {}
+	bool run(JITData &JD);
+	PassUsage& get_PassUsage(PassUsage &PU) const;
 };
 
 } // end namespace compiler2

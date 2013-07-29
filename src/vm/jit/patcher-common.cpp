@@ -57,8 +57,9 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/patcher-common.hpp"
 
-STAT_DECLARE_VAR(int,size_patchref,0)
+#define DEBUG_NAME "Patcher"
 
+STAT_DECLARE_VAR(int,size_patchref,0)
 
 /* patcher_list_create *********************************************************
 
@@ -238,6 +239,7 @@ void patcher_resolve(codeinfo* code)
 		PatcherPtrTy& pr = (*i);
 
 		pr->reposition((intptr_t) code->entrypoint);
+		LOG2("Patcher " << pr->get_name() << " reposition: " << pr->get_mpc() <<  cacao::nl);
 	}
 }
 
