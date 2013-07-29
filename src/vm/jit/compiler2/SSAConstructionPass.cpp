@@ -1305,6 +1305,30 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_LREM:
 			case ICMD_FREM:
 			case ICMD_DREM:
+				{
+					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
+					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
+					Type::TypeID type;
+					switch (iptr->opc) {
+					case ICMD_IREM:
+						type = Type::IntTypeID;
+						break;
+					case ICMD_LREM:
+						type = Type::LongTypeID;
+						break;
+					case ICMD_FREM:
+						type = Type::FloatTypeID;
+						break;
+					case ICMD_DREM:
+						type = Type::DoubleTypeID;
+						break;
+					default: assert(0);
+					}
+					Instruction *result = new REMInst(type, s1, s2);
+					write_variable(iptr->dst.varindex,bbindex,result);
+					M->add_Instruction(result);
+				}
+				break;
 			case ICMD_ISHL:
 			case ICMD_LSHL:
 			case ICMD_ISHR:
@@ -1457,10 +1481,25 @@ bool SSAConstructionPass::run(JITData &JD) {
 				M->add_Instruction(result);
 			}
 			break;
+			case ICMD_LANDCONST:
+				{
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+					Instruction *konst = new CONSTInst(iptr->sx.val.i);
+					Instruction *result;
+					switch (iptr->opc) {
+					case ICMD_LANDCONST:
+						result = new ANDInst(Type::LongTypeID, s1, konst);
+						break;
+					default: assert(0);
+					}
+					M->add_Instruction(konst);
+					write_variable(iptr->dst.varindex,bbindex,result);
+					M->add_Instruction(result);
+				}
+				break;
 			case ICMD_LMULPOW2:
 			case ICMD_LDIVPOW2:
 			case ICMD_LREMPOW2:
-			case ICMD_LANDCONST:
 			case ICMD_LORCONST:
 			case ICMD_LXORCONST:
 		//		SHOW_S1(OS, iptr);
@@ -1808,9 +1847,9 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		break;
 
 			case ICMD_IFLT:
-			case ICMD_IFGE:
 			case ICMD_IFGT:
 				goto _default;
+			case ICMD_IFGE:
 			case ICMD_IFEQ:
 			case ICMD_IFNE:
 			case ICMD_IFLE:
@@ -1825,6 +1864,9 @@ bool SSAConstructionPass::run(JITData &JD) {
 						break;
 					case ICMD_IFLE:
 						cond = Conditional::LE;
+						break;
+					case ICMD_IFGE:
+						cond = Conditional::GE;
 						break;
 					default:
 						ABORT_MSG("unreachable","unreachable");

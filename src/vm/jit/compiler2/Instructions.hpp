@@ -316,9 +316,9 @@ public:
 	virtual DIVInst* to_DIVInst() { return this; }
 };
 
-class REMInst : public Instruction {
+class REMInst : public BinaryInst {
 public:
-	explicit REMInst(Type::TypeID type) : Instruction(REMInstID, type) {}
+	explicit REMInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(REMInstID, type, S1, S2) {}
 	virtual REMInst* to_REMInst() { return this; }
 };
 

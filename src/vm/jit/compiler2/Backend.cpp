@@ -43,10 +43,12 @@ LoweredInstDAG* Backend::lower(Instruction *I) const {
 	case Instruction::IFInstID:        return lowerIFInst(I->to_IFInst());
 	case Instruction::CONSTInstID:     return lowerCONSTInst(I->to_CONSTInst());
 	case Instruction::ADDInstID:       return lowerADDInst(I->to_ADDInst());
+	case Instruction::ANDInstID:       return lowerANDInst(I->to_ANDInst());
 	case Instruction::SUBInstID:       return lowerSUBInst(I->to_SUBInst());
 	case Instruction::RETURNInstID:    return lowerRETURNInst(I->to_RETURNInst());
 	case Instruction::MULInstID:       return lowerMULInst(I->to_MULInst());
 	case Instruction::DIVInstID:       return lowerDIVInst(I->to_DIVInst());
+	case Instruction::REMInstID:       return lowerREMInst(I->to_REMInst());
 	case Instruction::CASTInstID:      return lowerCASTInst(I->to_CASTInst());
 	case Instruction::GETSTATICInstID: return lowerGETSTATICInst(I->to_GETSTATICInst());
 	default: break;

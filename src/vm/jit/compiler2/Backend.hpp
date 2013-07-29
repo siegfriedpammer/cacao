@@ -49,10 +49,12 @@ protected:
 	virtual LoweredInstDAG* lowerIFInst(IFInst *I) const = 0;
 	virtual LoweredInstDAG* lowerCONSTInst(CONSTInst *I) const = 0;
 	virtual LoweredInstDAG* lowerADDInst(ADDInst *I) const = 0;
+	virtual LoweredInstDAG* lowerANDInst(ANDInst *I) const = 0;
 	virtual LoweredInstDAG* lowerSUBInst(SUBInst *I) const = 0;
 	virtual LoweredInstDAG* lowerRETURNInst(RETURNInst *I) const = 0;
 	virtual LoweredInstDAG* lowerMULInst(MULInst *I) const = 0;
 	virtual LoweredInstDAG* lowerDIVInst(DIVInst *I) const = 0;
+	virtual LoweredInstDAG* lowerREMInst(REMInst *I) const = 0;
 	virtual LoweredInstDAG* lowerCASTInst(CASTInst *I) const = 0;
 	virtual LoweredInstDAG* lowerGETSTATICInst(GETSTATICInst *I) const = 0;
 	Backend(JITData *JD) : JD(JD) {}
@@ -83,10 +85,12 @@ protected:
 	virtual LoweredInstDAG* lowerIFInst(IFInst *I) const;
 	virtual LoweredInstDAG* lowerCONSTInst(CONSTInst *I) const;
 	virtual LoweredInstDAG* lowerADDInst(ADDInst *I) const;
+	virtual LoweredInstDAG* lowerANDInst(ANDInst *I) const;
 	virtual LoweredInstDAG* lowerSUBInst(SUBInst *I) const;
 	virtual LoweredInstDAG* lowerRETURNInst(RETURNInst *I) const;
 	virtual LoweredInstDAG* lowerMULInst(MULInst *I) const;
 	virtual LoweredInstDAG* lowerDIVInst(DIVInst *I) const;
+	virtual LoweredInstDAG* lowerREMInst(REMInst *I) const;
 	virtual LoweredInstDAG* lowerCASTInst(CASTInst *I) const;
 	virtual LoweredInstDAG* lowerGETSTATICInst(GETSTATICInst *I) const;
 public:
