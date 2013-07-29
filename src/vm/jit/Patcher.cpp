@@ -26,6 +26,8 @@
 #include "vm/jit/Patcher.hpp"
 #include "toolbox/logging.hpp"
 
+#include "vm/initialize.hpp"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/emit-common.hpp"        /* for emit_trap */
 #include "codegen.hpp"                   /* for PATCHER_CALL_SIZE */
 
@@ -159,6 +161,24 @@ OStream& LegacyPatcher::print(OStream &OS) const {
 	return OS;
 }
 
+bool InitializeClassPatcher::patch_impl() {
+	if (!(c->state & CLASS_INITIALIZED))
+		if (!initialize_class(c))
+			return false;
+	return true;
+}
+
+/**
+ * @todo implement
+ */
+void InitializeClassPatcher::emit() {
+}
+/**
+ * @todo implement
+ */
+bool InitializeClassPatcher::check_is_patched() const {
+	return is_patched();
+}
 } // end namespace cacao
 
 /*

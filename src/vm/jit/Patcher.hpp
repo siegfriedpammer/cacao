@@ -170,7 +170,8 @@ private:
 	uint32_t  mcode;
 	uintptr_t mpc;
 public:
-	PatcherBase(uintptr_t mpc) : Patcher(), mcode(0), mpc(mpc) {}
+	PatcherBase() : Patcher(), mcode(0), mpc(0) {}
+	explicit PatcherBase(uintptr_t mpc) : Patcher(), mcode(0), mpc(mpc) {}
 
 	virtual void set_mcode(uint32_t mcode) {
 		this->mcode = mcode;
@@ -188,6 +189,20 @@ public:
 	}
 	virtual const char* get_name() const {
 		return "PatcherBase";
+	}
+};
+
+class InitializeClassPatcher : public PatcherBase {
+private:
+	classinfo *c;
+
+	virtual bool patch_impl();
+public:
+	virtual void emit();
+	virtual bool check_is_patched() const;
+	InitializeClassPatcher(classinfo *c) : c(c) {}
+	virtual const char* get_name() const {
+		return "InitializeClassPatcher";
 	}
 };
 
