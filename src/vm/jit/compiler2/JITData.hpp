@@ -30,6 +30,8 @@
 #include "vm/jit/compiler2/StackSlotManager.hpp"
 #include "vm/jit/compiler2/CodeMemory.hpp"
 
+#include <memory>
+
 // forward declaration
 struct jitdata;
 
@@ -41,7 +43,7 @@ class JITData {
 private:
 	jitdata *jd;
 	Method M;
-	Backend *BE;
+	std::auto_ptr<Backend> BE;
 	StackSlotManager SSM;
 	CodeMemory cm;
 public:
@@ -50,7 +52,7 @@ public:
 		return jd;
 	}
 	Method* get_Method() { return &M; }
-	Backend* get_Backend() { return BE; }
+	Backend* get_Backend() { return BE.get(); }
 	StackSlotManager* get_StackSlotManager() { return &SSM; }
 	CodeMemory* get_CodeMemory() { return &cm; }
 };

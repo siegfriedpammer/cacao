@@ -26,6 +26,7 @@
 #include "vm/jit/compiler2/x86_64/X86_64Instructions.hpp"
 #include "vm/jit/compiler2/x86_64/X86_64Register.hpp"
 #include "vm/jit/compiler2/x86_64/X86_64MachineMethodDescriptor.hpp"
+#include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/LoweredInstDAG.hpp"
 #include "vm/jit/compiler2/MethodDescriptor.hpp"

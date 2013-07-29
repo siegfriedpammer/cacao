@@ -34,9 +34,13 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+// forward declarations
 class StackSlotManager;
+class JITData;
 
 class Backend {
+private:
+	JITData *JD;
 protected:
 	virtual LoweredInstDAG* lowerBeginInst(BeginInst *I) const = 0;
 	virtual LoweredInstDAG* lowerLOADInst(LOADInst *I) const = 0;
@@ -51,8 +55,10 @@ protected:
 	virtual LoweredInstDAG* lowerDIVInst(DIVInst *I) const = 0;
 	virtual LoweredInstDAG* lowerCASTInst(CASTInst *I) const = 0;
 	virtual LoweredInstDAG* lowerGETSTATICInst(GETSTATICInst *I) const = 0;
+	Backend(JITData *JD) : JD(JD) {}
 public:
-	static Backend* factory();
+	static Backend* factory(JITData *JD);
+	JITData* get_JITData() const { return JD; };
 	virtual LoweredInstDAG* lower(Instruction *I) const;
 
 	virtual RegisterFile* get_RegisterFile(Type::TypeID type) const = 0;
@@ -84,6 +90,7 @@ protected:
 	virtual LoweredInstDAG* lowerCASTInst(CASTInst *I) const;
 	virtual LoweredInstDAG* lowerGETSTATICInst(GETSTATICInst *I) const;
 public:
+	BackendBase(JITData *JD) : Backend(JD) {}
 	virtual RegisterFile* get_RegisterFile(Type::TypeID type) const;
 	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const;

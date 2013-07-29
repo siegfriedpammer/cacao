@@ -30,9 +30,8 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-Backend* Backend::factory() {
-	static BackendBase<Target> BE;
-	return &BE;
+Backend* Backend::factory(JITData *JD) {
+	return new BackendBase<Target>(JD);
 }
 
 LoweredInstDAG* Backend::lower(Instruction *I) const {

@@ -29,7 +29,7 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-JITData::JITData(jitdata *jd) : jd(jd), M(jd->m), BE(Backend::factory()) {}
+JITData::JITData(jitdata *jd) : jd(jd), M(jd->m), BE(Backend::factory(this)) {}
 
 } // end namespace compiler2
 } // end namespace jit
