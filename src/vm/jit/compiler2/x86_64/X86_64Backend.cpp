@@ -108,6 +108,9 @@ template<>
 void BackendBase<X86_64>::create_frame(CodeMemory* CM, StackSlotManager *SSM) const {
 	EnterInst enter(align_to<16>(SSM->get_frame_size()));
 	enter.emit(CM);
+	// fix alignment
+	CodeFragment CF = CM->get_aligned_CodeFragment(0);
+	emit_nop(CF,CF.size());
 }
 
 template<>
