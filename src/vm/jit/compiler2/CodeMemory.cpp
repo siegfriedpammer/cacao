@@ -65,7 +65,10 @@ s4 CodeMemory::get_offset(CodeSegment::IdxTy to, CodeSegment::IdxTy from) const 
 }
 s4 CodeMemory::get_offset(DataSegment::IdxTy to, CodeSegment::IdxTy from) const {
 	// Note that from is swapped because CodeSegment is written upside down!
-	return s4(from.idx) - s4(cseg.get_next_index().idx) - s4(to.idx);
+	return -(
+		s4(dseg.size()) - s4(from.idx)
+		+
+		s4(cseg.size()) - 1 - s4(to.idx));
 }
 #if 0
 s4 CodeMemory::get_offset(const BeginInst *BI, u1 *current_pos) const {
@@ -157,8 +160,7 @@ CodeFragment CodeMemory::get_CodeFragment(std::size_t size) {
 }
 
 CodeFragment CodeMemory::get_aligned_CodeFragment(std::size_t size) {
-	std::size_t nops = Target::alignment
-		- (std::size_t(cseg.size() - size) % Target::alignment);
+	std::size_t nops = (cseg.size() + size) % Target::alignment;
 	return cseg.get_Ref(size + nops);
 }
 

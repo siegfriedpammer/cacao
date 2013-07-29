@@ -155,8 +155,15 @@ public:
 	/// is invalid index
 	static inline bool is_invalid(IdxTy idx) { return idx == invalid_index(); }
 
-	/// next free index
-	IdxTy get_next_index() const { return IdxTy(content.size()); }
+	/**
+	 * Get the start index of next Reference in line.
+	 *
+	 * Note that the index may or may not be already present. In the later
+	 * case the the index of the future Reference will be returned
+	 */
+	IdxTy get_following_index() const {
+		return getFollowingIndex(*this,RefCategory());
+	}
 
 	/**
 	 * get start address
@@ -207,12 +214,12 @@ public:
 	/// insert tag
 	template<typename Tag2>
 	IdxTy insert_tag(Tag2 tag, const Ref &ref) {
-		return insert_tag(new Tag2(tag),ref.get_index());
+		return insert_tag(new Tag2(tag),ref.get_begin());
 	}
 	/// insert tag
 	template<typename Tag2>
 	IdxTy insert_tag(Tag2 tag) {
-		return insert_tag(new Tag2(tag),IdxTy(content.size()));
+		return insert_tag(new Tag2(tag),get_following_index());
 	}
 	#if 0
 	/// insert tag
@@ -295,14 +302,10 @@ public:
 		return *this;
 	}
 	/// Get a sub-segment
-	SegRef operator+(IdxTy v) {
-		return operator+(v.idx);
-	}
 	SegRef operator+(std::size_t v) {
 		assert(v >= 0);
 		assert(_size - v >= 0);
-		SegRef CF(parent, index + v, _size - v);
-		return CF;
+		return SegRef(parent, getAddStartIndex(*this,v,RefCategory()), _size - v);
 	}
 	/// access data
 	u1& operator[](std::size_t i) {
@@ -319,12 +322,61 @@ public:
 	Segment<Tag,RefCategory>& get_Segment() {
 		return *parent;
 	}
-	/// Get index
-	IdxTy get_index_begin() const {
+	/**
+	 * Get the index of the first element.
+	 *
+	 * Return the index of the first element with respect to RefCategory
+	 * (i.e. the element written by operator[0]). Note that get_begin() might
+	 * be greater than get_end() depending on RefCategory.
+	 *
+	 * @see get_end()
+	 */
+	IdxTy get_begin() const {
+		return getBegin(*this,RefCategory());
+	}
+	/**
+	 * Get the index of the first element after the reference.
+	 *
+	 * Return the index of the first element after the refenrence with respect
+	 * to RefCategory  (i.e. the element that would be written by
+	 * operator[size()], which is not allowed). Note that get_begin() might
+	 * be greater than get_end() depending on RefCategory.
+	 *
+	 * @see get_begin()
+	 */
+	IdxTy get_end() const {
+		return getEnd(*this,RefCategory());
+	}
+	/**
+	 * Get the raw start index.
+	 *
+	 * This returns the begin (i.e. the lowest index) of the raw
+	 * reference. It does not take the RefCategory into account. Also
+	 * the assertion get_index_begin_raw() <= get_index_end_raw() always holds.
+	 *
+	 * In most cases the use of get_begin() and get_end() is preferable.
+	 *
+	 * @see get_index_end_raw()
+	 * @see get_begin()
+	 * @see get_end()
+	 */
+	IdxTy get_index_begin_raw() const {
 		return index;
 	}
-	/// Get index
-	IdxTy get_index_end() const {
+	/**
+	 * Get the raw end index.
+	 *
+	 * This returns the end (i.e. last index plus one) of the raw
+	 * reference. It does not take the RefCategory into account. Also
+	 * the assertion get_index_begin_raw() <= get_index_end_raw() always holds.
+	 *
+	 * In most cases the use of get_begin() and get_end() is preferable.
+	 *
+	 * @see get_index_begin_raw()
+	 * @see get_begin()
+	 * @see get_end()
+	 */
+	IdxTy get_index_end_raw() const {
 		return index + _size;
 	}
 	/// size of the reference
@@ -348,17 +400,71 @@ inline u1& SegRef<Tag,ReverseRefCategory>::operator[](std::size_t i) {
 	return (*parent)[index.idx + size() - i - 1];
 }
 #endif
-
+/// access data
 template <typename Tag, typename RefCategory>
-inline u1& doAccess(SegRef<Tag,RefCategory> &ref, std::size_t i, NormalRefCategory) {
+inline u1&
+doAccess(SegRef<Tag,RefCategory> &ref, std::size_t i, NormalRefCategory) {
 	assert(i < ref.size());
-	return ref.get_Segment()[ref.get_index_start().idx + i];
+	return ref.get_Segment()[ref.get_index_begin_raw().idx + i];
+}
+/// access data
+template <typename Tag, typename RefCategory>
+inline u1&
+doAccess(SegRef<Tag,RefCategory> &ref, std::size_t i, ReverseRefCategory) {
+	assert(i < ref.size());
+	return ref.get_Segment()[ref.get_index_end_raw().idx - 1 - i];
 }
 
+/// get subreference
 template <typename Tag, typename RefCategory>
-inline u1& doAccess(SegRef<Tag,RefCategory> &ref, std::size_t i, ReverseRefCategory) {
-	assert(i < ref.size());
-	return ref.get_Segment()[ref.get_index_end().idx - 1 - i];
+inline typename SegRef<Tag,RefCategory>::IdxTy
+getAddStartIndex(SegRef<Tag,RefCategory> &ref, std::size_t v, NormalRefCategory) {
+	return ref.get_index_begin_raw() + v;
+}
+/// get subreference
+template <typename Tag, typename RefCategory>
+inline typename SegRef<Tag,RefCategory>::IdxTy
+getAddStartIndex(SegRef<Tag,RefCategory> &ref, std::size_t v, ReverseRefCategory) {
+	return ref.get_index_begin_raw();
+}
+
+/// get first index
+template <typename Tag, typename RefCategory>
+inline typename SegRef<Tag,RefCategory>::IdxTy
+getBegin(const SegRef<Tag,RefCategory> &ref, NormalRefCategory) {
+	return ref.get_index_begin_raw();
+}
+/// get first index
+template <typename Tag, typename RefCategory>
+inline typename SegRef<Tag,RefCategory>::IdxTy
+getBegin(const SegRef<Tag,RefCategory> &ref, ReverseRefCategory) {
+	return ref.get_index_end_raw() -1;
+}
+
+/// get last but one index
+template <typename Tag, typename RefCategory>
+inline typename SegRef<Tag,RefCategory>::IdxTy
+getEnd(const SegRef<Tag,RefCategory> &ref, NormalRefCategory) {
+	return ref.get_index_end_raw();
+}
+/// get last but one index
+template <typename Tag, typename RefCategory>
+inline typename SegRef<Tag,RefCategory>::IdxTy
+getEnd(const SegRef<Tag,RefCategory> &ref, ReverseRefCategory) {
+	return ref.get_index_begin_raw() -1;
+}
+
+// get last index of a segment
+template <typename Tag, typename RefCategory>
+inline typename Segment<Tag,RefCategory>::IdxTy
+getFollowingIndex(const Segment<Tag,RefCategory> &ref, NormalRefCategory) {
+	return typename Segment<Tag,RefCategory>::IdxTy(ref.size());
+}
+// get last index of a segment
+template <typename Tag, typename RefCategory>
+inline typename Segment<Tag,RefCategory>::IdxTy
+getFollowingIndex(const Segment<Tag,RefCategory> &ref, ReverseRefCategory) {
+	return typename Segment<Tag,RefCategory>::IdxTy(ref.size() - 1);
 }
 
 template <class Type>
@@ -421,7 +527,7 @@ protected:
 public:
 	PointerTag(Ptr *ptr) : SegmentTag<Type>(t), ptr(ptr) {}
 	virtual OStream& print(OStream &OS) const {
-		return OS << "PointerTag Type: " << t << " ptr: " << *ptr;
+		return OS << "PointerTag Type: " << t << " ptr: " << ptr;
 	}
 private:
 	Ptr *ptr;

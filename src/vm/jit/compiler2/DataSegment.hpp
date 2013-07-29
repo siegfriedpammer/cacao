@@ -26,16 +26,19 @@
 #define _JIT_COMPILER2_DATASEGMENT
 
 #include "vm/jit/compiler2/Segment.hpp"
+#include "vm/references.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
 enum DataSegmentType {
-	DoubleID
+	DoubleID,
+	FMIRefID
 };
 
 typedef ConstTag<DataSegmentType,double,DoubleID> DSDouble;
+typedef PointerTag<DataSegmentType,constant_FMIref,FMIRefID> DSFMIRef;
 
 typedef Segment<DataSegmentType,NormalRefCategory> DataSegment;
 typedef SegRef<DataSegmentType,NormalRefCategory> DataFragment;

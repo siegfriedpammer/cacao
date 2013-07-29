@@ -171,13 +171,19 @@ public:
 	void add_label(const BeginInst *BI);
 
 	s4 get_offset(CodeSegment::IdxTy to, CodeSegment::IdxTy from) const;
+	s4 get_offset(CodeSegment::IdxTy to, CodeFragment &CF) const {
+		return get_offset(to, CF.get_end());
+	}
 	s4 get_offset(CodeSegment::IdxTy to) const {
-		return get_offset(to, cseg.get_next_index());
+		return get_offset(to, cseg.get_following_index());
 	}
 	/**
 	 * @deprecated this should be moved to FixedCodeMemory or so
 	 */
 	s4 get_offset(DataSegment::IdxTy to, CodeSegment::IdxTy from) const;
+	s4 get_offset(DataSegment::IdxTy to, CodeFragment &CF) const {
+		return get_offset(to, CF.get_end());
+	}
 	#if 0
 	/**
 	 * get the offset from the current position to the label.
