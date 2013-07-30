@@ -502,6 +502,92 @@ LoweredInstDAG* BackendBase<X86_64>::lowerCASTInst(CASTInst *I) const {
 }
 
 template<>
+LoweredInstDAG* BackendBase<X86_64>::lowerINVOKESTATICInst(INVOKESTATICInst *I) const {
+	assert(I);
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	Type::TypeID type = I->get_type();
+	MethodDescriptor &MD = I->get_MethodDescriptor();
+	MachineMethodDescriptor MMD(MD);
+
+	// operands for the call
+	VirtualRegister *addr = new VirtualRegister(Type::ReferenceTypeID);
+	MachineOperand *result = &NoOperand;
+
+	// get return value
+	switch (type) {
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+		result = new NativeRegister(type,&RAX);
+		break;
+	default:
+		ABORT_MSG("x86_64 Lowering not supported",
+		"Inst: " << I << " type: " << type);
+		return NULL;
+	}
+
+	// create call
+	MachineInstruction* call = new CallInst(SrcOp(addr),DstOp(result),I->op_size());
+	// move values to parameters
+	for (std::size_t i = 0; i < I->op_size(); ++i ) {
+		MachineInstruction* mov = create_Move(
+			new UnassignedReg(MD[i]),
+			MMD[i]
+		);
+		dag->add(mov);
+		dag->set_input(i,mov,0);
+		// set call operand
+		call->set_operand(i+1,MMD[i]);
+	}
+	// spill caller saved
+
+	// load address
+	DataSegment &DS = get_JITData()->get_CodeMemory()->get_DataSegment();
+	DataSegment::IdxTy idx = DS.get_index(DSFMIRef(I->get_fmiref()));
+	if (DataSegment::is_invalid(idx)) {
+		DataFragment data = DS.get_Ref(sizeof(void*));
+		idx = DS.insert_tag(DSFMIRef(I->get_fmiref()),data);
+	}
+	if (I->is_resolved()) {
+		LOG2("INVOKESTATICInst: is resolved" << nl);
+		// write stubroutine
+		//methodinfo*         lm;             // Local methodinfo for ICMD_INVOKE*.
+		//lm = I->get_fmiref()->p.method;
+		//lm->stubroutine;
+	} else {
+		LOG2("INVOKESTATICInst: is notresolved" << nl);
+	}
+	MovDSEGInst *dmov = new MovDSEGInst(DstOp(addr),idx);
+	dag->add(dmov);
+
+	// add call
+	dag->add(call);
+	// get result
+	if (result != &NoOperand) {
+		MachineInstruction *reg = new MovInst(
+			SrcOp(result),
+			DstOp(new VirtualRegister(type)),
+			get_OperandSize_from_Type(type));
+		dag->add(reg);
+		dag->set_result(reg);
+	}
+	return dag;
+	#if 0
+	if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+		unresolved_method*  um;
+		um = iptr->sx.s23.s3.um;
+		disp = dseg_add_unique_address(cd, um);
+
+		patcher_add_patch_ref(jd, PATCHER_invokestatic_special,
+							  um, disp);
+	}
+	else {
+		methodinfo*         lm;             // Local methodinfo for ICMD_INVOKE*.
+		lm = iptr->sx.s23.s3.fmiref->p.method;
+		disp = dseg_add_functionptr(cd, lm->stubroutine);
+	}
+	#endif
+}
+template<>
 LoweredInstDAG* BackendBase<X86_64>::lowerGETSTATICInst(GETSTATICInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);

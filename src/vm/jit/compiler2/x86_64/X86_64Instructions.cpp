@@ -378,6 +378,13 @@ void RetInst::emit(CodeMemory* CM) const {
 	code[0] = 0xc3;
 }
 
+void CallInst::emit(CodeMemory* CM) const {
+	CodeFragment code = CM->get_CodeFragment(2);
+	X86_64Register *reg_src = cast_to<X86_64Register>(operands[0].op);
+	//code[0] = get_rex(reg_src);
+	code[0] = 0xff;
+	code[1] = get_modrm_1reg(2, reg_src);
+}
 namespace {
 /**
  * stack from/to reg

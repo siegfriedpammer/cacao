@@ -392,6 +392,16 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
+class CallInst : public GPInstruction {
+public:
+	CallInst(const SrcOp &src, const DstOp &dst, unsigned argc)
+			: GPInstruction("X86_64CallInst", dst.op, OS_64, 1 + argc) {
+		operands[0].op = src.op;
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+
 class MovInst : public MoveInst {
 public:
 	MovInst(const SrcOp &src, const DstOp &dst,
