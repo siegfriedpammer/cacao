@@ -1484,7 +1484,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_LANDCONST:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
-					Instruction *konst = new CONSTInst(iptr->sx.val.i);
+					Instruction *konst = new CONSTInst(iptr->sx.val.l);
 					Instruction *result;
 					switch (iptr->opc) {
 					case ICMD_LANDCONST:
@@ -1809,16 +1809,18 @@ bool SSAConstructionPass::run(JITData &JD) {
 							  << " not yet supported! (see vm/global.h)" << nl;
 						assert(false);
 					}
-					// create instruction
-					INVOKESTATICInst *I = new INVOKESTATICInst(type);
 					// get arguments
 					s4 *argp = iptr->sx.s23.s2.args;
 					int32_t i = iptr->s1.argcount;
+					// create instruction
+
+					INVOKESTATICInst *I = new INVOKESTATICInst(type,i,fmiref,
+						INSTRUCTION_IS_RESOLVED(iptr));
 					while (i--) {
 						// TODO understand
 						//if ((iptr->s1.argcount - 1 - i) == md->paramcount)
 						//	printf(" pass-through: ");
-						I->append_op(read_variable(*(argp++),bbindex));
+						I->append_parameter(read_variable(*(argp++),bbindex));
 					}
 					if (type != Type::VoidTypeID) {
 						write_variable(iptr->dst.varindex,bbindex,I);

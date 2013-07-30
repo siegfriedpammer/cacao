@@ -57,6 +57,7 @@ protected:
 	virtual LoweredInstDAG* lowerREMInst(REMInst *I) const = 0;
 	virtual LoweredInstDAG* lowerCASTInst(CASTInst *I) const = 0;
 	virtual LoweredInstDAG* lowerGETSTATICInst(GETSTATICInst *I) const = 0;
+	virtual LoweredInstDAG* lowerINVOKESTATICInst(INVOKESTATICInst *I) const = 0;
 	Backend(JITData *JD) : JD(JD) {}
 public:
 	static Backend* factory(JITData *JD);
@@ -93,6 +94,7 @@ protected:
 	virtual LoweredInstDAG* lowerREMInst(REMInst *I) const;
 	virtual LoweredInstDAG* lowerCASTInst(CASTInst *I) const;
 	virtual LoweredInstDAG* lowerGETSTATICInst(GETSTATICInst *I) const;
+	virtual LoweredInstDAG* lowerINVOKESTATICInst(INVOKESTATICInst *I) const;
 public:
 	BackendBase(JITData *JD) : Backend(JD) {}
 	virtual RegisterFile* get_RegisterFile(Type::TypeID type) const;

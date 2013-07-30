@@ -33,6 +33,7 @@
 
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Conditional.hpp"
+#include "vm/jit/compiler2/MethodDescriptor.hpp"
 #include "vm/types.hpp"
 
 namespace cacao {
@@ -569,8 +570,27 @@ public:
 };
 
 class INVOKESTATICInst : public MultiOpInst {
+private:
+	MethodDescriptor MD;
+	constant_FMIref *fmiref;
+	bool resolved;
 public:
-	explicit INVOKESTATICInst(Type::TypeID type) : MultiOpInst(INVOKESTATICInstID, type) {}
+	explicit INVOKESTATICInst(Type::TypeID type, unsigned size,
+		constant_FMIref *fmiref, bool resolved)
+		: MultiOpInst(INVOKESTATICInstID, type), MD(size),
+		fmiref(fmiref), resolved(resolved) {}
+	void append_parameter(Value *V) {
+		std::size_t i = op_size();
+		assert(i < MD.size());
+		MD[i] = V->get_type();
+		append_op(V);
+	}
+	MethodDescriptor& get_MethodDescriptor() {
+		assert(MD.size() == op_size());
+		return MD;
+	}
+	bool is_resolved() const { return resolved; }
+	constant_FMIref* get_fmiref() const { return fmiref; }
 	virtual INVOKESTATICInst* to_INVOKESTATICInst() { return this; }
 };
 

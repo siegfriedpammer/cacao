@@ -51,6 +51,7 @@ LoweredInstDAG* Backend::lower(Instruction *I) const {
 	case Instruction::REMInstID:       return lowerREMInst(I->to_REMInst());
 	case Instruction::CASTInstID:      return lowerCASTInst(I->to_CASTInst());
 	case Instruction::GETSTATICInstID: return lowerGETSTATICInst(I->to_GETSTATICInst());
+	case Instruction::INVOKESTATICInstID: return lowerINVOKESTATICInst(I->to_INVOKESTATICInst());
 	default: break;
 	}
 	err() << BoldRed << "error: " << reset_color

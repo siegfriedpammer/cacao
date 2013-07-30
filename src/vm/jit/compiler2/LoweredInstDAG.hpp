@@ -108,6 +108,11 @@ public:
 			input_map[i] = &(*MI)[i];
 		}
 	}
+	/**
+	 *
+	 * @todo make this save! (types for dag_input and minst_input_idx)
+	 *
+	 */
 	void set_input(unsigned dag_input_idx, MachineInstruction *MI,
 			unsigned minst_input_idx) {
 		assert(MI);
