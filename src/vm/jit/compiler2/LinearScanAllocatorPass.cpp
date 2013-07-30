@@ -331,8 +331,52 @@ struct push_lambda {
 	}
 };
 
+
+/// @Cpp11 use std::function instead
+struct _lti_same_operand
+		: public std::binary_function<LivetimeInterval*,LivetimeInterval*,bool> {
+	bool operator()(LivetimeInterval *lhs, LivetimeInterval *rhs) const {
+		return lhs->get_Register() == rhs->get_Register() ||
+			lhs->get_ManagedStackSlot() == rhs->get_ManagedStackSlot();
+	}
+} lti_same_operand;
+
 } //end anonymous namespace
 
+void LinearScanAllocatorPass::split_blocking_ltis(LivetimeInterval* current) {
+	MachineRegister *reg = current->get_Register()->to_MachineRegister();
+	assert(reg);
+	// spill intervals that currently block reg
+	LOG2("spill intervals that currently block reg" << nl);
+	LOG2("current " << current << " " << (void*) current->get_Register() <<  nl);
+	// split active
+	for (ActiveSetTy::const_iterator i = active.begin(), e = active.end();
+			i != e ; ++i) {
+		LivetimeInterval *act = *i;
+		assert(act);
+		if (!act->is_in_Register()) continue;
+		LOG2("active " << act << " " << (void *) act->get_Register() << nl);
+		if (act->get_Register() && *act->get_Register()->to_MachineRegister() == reg) {
+			assert(current != act);
+			LOG2("split " << act << " at " << current->get_start() << nl);
+			split(act,current->get_start());
+		}
+	}
+
+	// split inactive
+	for (InactiveSetTy::const_iterator i = inactive.begin(), e = inactive.end();
+			i != e ; ++i) {
+		LivetimeInterval *inact = *i;
+		assert(inact);
+		if (!inact->is_in_Register()) continue;
+		LOG2("inactive " << inact << nl);
+		if (inact->get_Register() && *inact->get_Register()->to_MachineRegister() == reg) {
+			assert(current != inact);
+			LOG2("split " << inact << " at end of livetime hole" << nl);
+			split(inact,current->get_start());
+		}
+	}
+}
 
 bool LinearScanAllocatorPass::run(JITData &JD) {
 	LA = get_Pass<LivetimeAnalysisPass>();
@@ -413,8 +457,9 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 		}
 		if (current->get_Register()->to_MachineRegister()) {
 			// preallocated
-			active.push_back(current);
 			LOG2("Preallocated: " << current << nl);
+			split_blocking_ltis(current);
+			active.push_back(current);
 			continue;
 		}
 		// Try to find a register
@@ -591,7 +636,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 				bb_start = succ_range.first * 2;
 				bb_end = succ_range.second * 2;
 			}
-			LOG2("Edge: " << pred << " -> " << succ << nl);
+			LOG2(BoldGreen << "Edge: " << pred << " -> " << succ << reset_color << nl);
 			std::set<LivetimeInterval*> &ltis_succ = active_map_begin[succ];
 			std::set<LivetimeInterval*> &ltis_pred = active_map_end[pred];
 			for (std::set<LivetimeInterval*>::const_iterator i = ltis_succ.begin(),

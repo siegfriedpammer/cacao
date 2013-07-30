@@ -62,7 +62,8 @@ public:
 	X86_64Register* get_X86_64Register() const {
 		return reg;
 	}
-	inline MachineResource get_MachineResource() const;
+	MachineResource get_MachineResource() const;
+	virtual bool operator==(MachineRegister* reg) const;
 };
 
 class X86_64Register : public NativeResource {
@@ -86,8 +87,14 @@ public:
 		return new NativeRegister(type,this);
 	}
 };
-MachineResource NativeRegister::get_MachineResource() const {
+inline MachineResource NativeRegister::get_MachineResource() const {
 	return MachineResource(reg);
+}
+inline bool NativeRegister::operator==(MachineRegister* reg) const {
+	NativeRegister *nreg = reg->to_NativeRegister();
+	if (!nreg) return false;
+
+	return get_X86_64Register() == nreg->get_X86_64Register();
 }
 
 class GPRegister : public X86_64Register {

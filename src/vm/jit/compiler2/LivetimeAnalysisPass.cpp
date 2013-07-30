@@ -85,6 +85,11 @@ Type::TypeID LivetimeInterval::get_type() const {
 LivetimeInterval* LivetimeInterval::split(unsigned pos, StackSlotManager *SSM) {
 	//sanity checks:
 	assert(pos >= get_start() && pos < get_end());
+	// NOTE Note that the end of an interval shall be a use position
+	// (even) (what about for phi input intervals input for phi?).
+	// in special cases (eg fixed intervals) this is not the case
+	// -> force it
+	//pos -= (pos & 1);
 
 	LivetimeInterval *stack_interval =  NULL;
 	LivetimeInterval *lti = NULL;
@@ -97,6 +102,7 @@ LivetimeInterval* LivetimeInterval::split(unsigned pos, StackSlotManager *SSM) {
 			break;
 		}
 		if (i->second > pos) {
+			signed next_usedef = next_usedef_after(pos);
 			// currently active
 			unsigned end = i->second;
 			i->second = pos;
@@ -111,11 +117,12 @@ LivetimeInterval* LivetimeInterval::split(unsigned pos, StackSlotManager *SSM) {
 			// troubles with backedges and loop time intervals,
 			// I guess...
 
-			signed next_usedef = next_usedef_after(pos);
 			assert(next_usedef != -1);
-			lti = new LivetimeInterval();
-			// ok it is not a loop pseudo use
-			lti->add_range(next_usedef,end);
+			//if (next_usedef != end) {
+				// ok it is not a loop pseudo use
+				lti = new LivetimeInterval();
+				lti->add_range(next_usedef,end);
+			//}
 			++i;
 			// create stack interval
 			ManagedStackSlot *slot = SSM->create_ManagedStackSlot(get_type());

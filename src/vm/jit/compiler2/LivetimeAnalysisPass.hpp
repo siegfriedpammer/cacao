@@ -244,7 +244,10 @@ public:
 	Register* get_hint() const { return hint; }
 
 	signed next_usedef_after(unsigned pos) const {
-		assert(pos <= get_end());
+		//assert(pos <= get_end());
+		if (pos > get_end()) {
+			return -1;
+		}
 		signed next_use = -1;
 		for (const_use_iterator i = use_begin(), e = use_end(); i != e; ++i) {
 			if (i->first >= pos) {

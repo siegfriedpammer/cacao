@@ -48,6 +48,7 @@ public:
 //	virtual ID get_ID() const = 0;
 	virtual NativeRegister* to_NativeRegister() = 0;
 	virtual MachineResource get_MachineResource() const = 0;
+	virtual bool operator==(MachineRegister*) const = 0;
 	~MachineRegister() {}
 };
 

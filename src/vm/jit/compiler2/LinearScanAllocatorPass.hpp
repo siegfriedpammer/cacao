@@ -82,9 +82,10 @@ private:
 	Backend *backend;
 	JITData *jd;
 
-	inline bool try_allocate_free_reg(LivetimeInterval* current);
-	inline bool allocate_blocked_reg(LivetimeInterval* current);
-	inline void split(LivetimeInterval *lti, unsigned pos);
+	bool try_allocate_free_reg(LivetimeInterval* current);
+	bool allocate_blocked_reg(LivetimeInterval* current);
+	void split_blocking_ltis(LivetimeInterval* current);
+	void split(LivetimeInterval *lti, unsigned pos);
 public:
 	static char ID;
 	LinearScanAllocatorPass() : Pass() {}
