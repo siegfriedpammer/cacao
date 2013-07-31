@@ -169,6 +169,9 @@ public:
 	 * emit machine code
 	 */
 	virtual void link(CodeFragment &CF) const;
+
+	/// destructor
+	virtual ~MachineInstruction() {}
 };
 
 OStream& operator<<(OStream &OS, const MachineInstruction *MI);
