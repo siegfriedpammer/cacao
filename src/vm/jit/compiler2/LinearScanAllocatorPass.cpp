@@ -665,6 +665,8 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 				// resolve PHIs!
 				if (lti_succ->get_start() == bb_start) {
 					LOG(BoldCyan << "WE HAVE A WINNER! " << reset_color << lti_succ << nl);
+					// XXX should this even happen?
+					if (lti_succ->is_in_StackSlot()) continue;
 					assert(lti_succ->def_size() == 1);
 					MachineInstruction *MI = lti_succ->def_front().second->get_MachineInstruction();
 					LOG3("PHI: " << MI << nl);
@@ -715,18 +717,29 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 			MachineOperand *dst = move->get_result().op;
 			Register *reg = dst->to_Register();
 			if (reg) {
+				assert(dst->is_Register());
 				destroyed.insert(reg);
 			}
 			if (destroyed.find(src->to_Register()) != destroyed.end()) {
 				// the value has been overwritten -> stackslot
-				ManagedStackSlot *slot = jd->get_StackSlotManager()->create_ManagedStackSlot(src->get_type());
-				MachineInstruction *spill = backend->create_Move(src,slot);
-				dag->add_front(spill);
-				move->set_operand(0,slot);
-				LOG2("spill needed: " << spill << nl);
+				if (dst->is_ManagedStackSlot()) {
+					// dst is a stack slot
+					LOG("MOVE " << move << nl);
+					dag->add_front(move);
+				} else {
+					assert(dst->is_Register());
+					ManagedStackSlot *slot = jd->get_StackSlotManager()->create_ManagedStackSlot(src->get_type());
+					MachineInstruction *spill = backend->create_Move(src,slot);
+					dag->add_front(spill);
+					move->set_operand(0,slot);
+					LOG2("spill needed: " << spill << nl);
+					LOG("MOVE " << move << nl);
+					dag->add(move);
+				}
+			} else {
+				LOG("MOVE " << move << nl);
+				dag->add(move);
 			}
-			LOG("MOVE " << move << nl);
-			dag->add(move);
 		}
 		// mark last move as result
 		assert(move);
