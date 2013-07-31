@@ -469,10 +469,10 @@ void MovInst::emit(CodeMemory* CM) const {
 	{
 		Immediate *imm = cast_to<Immediate>(src);
 		X86_64Register *reg_dst = cast_to<X86_64Register>(dst);
-
-		u1 opcode = 0xb8 + reg_dst->get_index();
-		InstructionEncoding::reg2imm<u1,s8>(CM, opcode, reg_dst,
-			imm->get_value<s8>());
+		CodeFragment code = CM->get_CodeFragment(10);
+		code[0] = REX() + REX::W + OpReg(reg_dst);
+		code[1] = 0xb8 + reg_dst->get_index();
+		InstructionEncoding::imm<s8>(code+2, imm->get_value<s8>());
 		return;
 	}
 	case GPInstruction::Reg32Imm8:

@@ -34,6 +34,60 @@ namespace jit {
 namespace compiler2 {
 namespace x86_64 {
 
+/**
+ * Opcode ref field.
+ */
+struct OpReg {
+	X86_64Register *reg;
+	OpReg(X86_64Register *reg) : reg(reg) {}
+	X86_64Register* operator->() const {
+		return reg;
+	}
+	X86_64Register* operator*() const {
+		return reg;
+	}
+};
+
+/**
+ * REX Prefix Builder.
+ */
+struct REX {
+	enum Field {
+		W = 3, ///< 0 = Operand size determined by CS.D
+			   ///< 1 = 64 Bit Operand Size
+		R = 2, ///< Extension of the ModR/M reg field
+		X = 1, ///< Extension of the SIB index field
+		B = 0  ///< Extension of the ModR/M r/m field, SIB base field, or Opcode reg field
+	};
+	u1 rex;
+
+	REX() : rex(0x4 << 4) {}
+
+	/// convert to u1
+	operator u1() {
+		return rex;
+	}
+	/**
+	 * @note (binary) operator+ is evaluated left to right
+	 */
+	REX& operator+(Field f) {
+		rex |= 1 << f;
+		return *this;
+	}
+	/**
+	 * @note (binary) operator- is evaluated left to right
+	 */
+	REX& operator-(Field f) {
+		rex &= ~(1 << f);
+		return *this;
+	}
+	REX& operator+(OpReg reg) {
+		if (reg->extented)
+			rex |= 1 << B;
+		return *this;
+	}
+};
+
 inline u1 get_rex(X86_64Register *reg, X86_64Register *rm = NULL,
 		bool opsiz64 = true) {
 	const unsigned rex_w = 3;
@@ -175,6 +229,15 @@ struct InstructionEncoding {
 		}
 		for (int i = 0, e = sizeof(I) ; i < e ; ++i) {
 			code[i + sizeof(O)] = (u1) 0xff & (imm >> (8 * i));
+		}
+
+	}
+	template <class I>
+	static void imm(CodeFragment code,I imm) {
+		assert(code.size() == sizeof(I));
+
+		for (int i = 0, e = sizeof(I) ; i < e ; ++i) {
+			code[i] = (u1) 0xff & (imm >> (8 * i));
 		}
 
 	}
