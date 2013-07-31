@@ -29,6 +29,8 @@
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/DominatorPass.hpp"
+#include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
+#include "vm/jit/compiler2/LoopPass.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -39,7 +41,6 @@ namespace jit {
 namespace compiler2 {
 
 void ScheduleLatePass::schedule_late(Instruction *I) {
-	LOG("schedule_late: " << I << nl);
 	for (Value::UserListTy::const_iterator i = I->user_begin(),
 			e = I->user_end(); i != e; ++i) {
 		Instruction *user = (*i);
@@ -50,6 +51,7 @@ void ScheduleLatePass::schedule_late(Instruction *I) {
 	}
 	if (I->get_BeginInst())
 		return;
+	LOG1("schedule_late: " << I << nl);
 	BeginInst* block = NULL;
 	for (Value::UserListTy::const_iterator i = I->user_begin(),
 			e = I->user_end(); i != e; ++i) {
@@ -68,11 +70,41 @@ void ScheduleLatePass::schedule_late(Instruction *I) {
 		}
 	}
 	assert(block);
-	I->set_BeginInst(block);
+	/**
+	 * We want to schedule a block as late as possible, but
+	 * outside of loop bodies (except for constants)
+	 * In most cases constants can be encoded in the instructions.
+	 * @todo register pressure
+	 * @todo evaluate this!
+	 */
+	BeginInst* latest = block;
+	BeginInst* best = latest;
+	//if (I->get_opcode() != Instruction::CONSTInstID) {
+	BeginInst* earliest = DT->get_idominator(early->get(I));
+	LOG1("Sched.Late: " << latest << nl);
+	LOG1("Sched.Early: " << early->get(I) << nl);
+
+	while (latest != earliest) {
+		Loop* loop_latest = LT->get_Loop(latest);
+		Loop* loop_best = LT->get_Loop(best);
+		// if the best is in an inner loop
+		LOG2( "Loop best: " << best << " " << LT->loop_nest(loop_best)
+		  << " Loop latest: " << latest << " " << LT->loop_nest(loop_latest) << nl);
+		if ( LT->is_inner_loop(loop_best, loop_latest) ) {
+			best = latest;
+		}
+		latest = DT->get_idominator(latest);
+	}
+	//}
+	LOG("scheduled to " << best << nl);
+	// set the basic block
+	I->set_BeginInst(best);
 }
 
 bool ScheduleLatePass::run(JITData &JD) {
 	DT = get_Pass<DominatorPass>();
+	LT = get_Pass<LoopPass>();
+	early = get_Pass<ScheduleEarlyPass>();
 	M = JD.get_Method();
 	for (Method::InstructionListTy::const_iterator i = M->begin(),
 			e = M->end() ; i != e ; ++i) {
@@ -92,6 +124,8 @@ bool ScheduleLatePass::run(JITData &JD) {
 
 PassUsage& ScheduleLatePass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires(DominatorPass::ID);
+	PU.add_requires(ScheduleEarlyPass::ID);
+	PU.add_requires(LoopPass::ID);
 	return PU;
 }
 // the address of this variable is used to identify the pass

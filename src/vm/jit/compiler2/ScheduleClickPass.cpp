@@ -23,14 +23,11 @@
 */
 
 #include "vm/jit/compiler2/ScheduleClickPass.hpp"
-#include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
 #include "vm/jit/compiler2/ScheduleLatePass.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
-#include "vm/jit/compiler2/DominatorPass.hpp"
-#include "vm/jit/compiler2/LoopPass.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -40,58 +37,16 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-void ScheduleClickPass::schedule(Instruction *I) {
-	// do not schedule non-floating instructions
-	if (!I->is_floating())
-	  return;
-	/**
-	 * We want to schedule a block as late as possible, but
-	 * outside of loop bodies (except for constants)
-	 * In most cases constants can be encoded in the instructions.
-	 * @todo register pressure
-	 * @todo evaluate this!
-	 */
-	BeginInst* latest = late->get(I);
-	BeginInst* best = latest;
-	if (I->get_opcode() != Instruction::CONSTInstID) {
-		BeginInst* earliest = DT->get_idominator(early->get(I));
-
-		while (latest != earliest) {
-			Loop* loop_latest = LT->get_Loop(latest);
-			Loop* loop_best = LT->get_Loop(best);
-			// if the best is in an inner loop
-			LOG2( "Loop best: " << best << " " << LT->loop_nest(loop_best)
-			  << " Loop latest: " << latest << " " << LT->loop_nest(loop_latest) << nl);
-			if ( LT->is_inner_loop(loop_best, loop_latest) ) {
-				best = latest;
-			}
-			latest = DT->get_idominator(latest);
-		}
-	}
-	LOG("scheduled to " << best << nl);
-	// set the basic block
-	I->set_BeginInst(best);
-}
-
 bool ScheduleClickPass::run(JITData &JD) {
 	M = JD.get_Method();
-	DT = get_Pass<DominatorPass>();
-	LT = get_Pass<LoopPass>();
-	early = get_Pass<ScheduleEarlyPass>();
 	late = get_Pass<ScheduleLatePass>();
 	for (Method::InstructionListTy::const_iterator i = M->begin(),
 			e = M->end() ; i != e ; ++i) {
 		Instruction *I = *i;
-		LOG("schedule_click: " << I << nl);
-		BeginInst* latest = late->get(I);
-		BeginInst* earliest = early->get(I);
-		// walk up the dominator tree
-		for (; earliest != latest; latest = DT->get_idominator(latest)) {
-			LOG(latest << " LoopLevel: " << LT->loop_nest(LT->get_Loop(latest)) << nl);
+		LOG1("schedule_click: " << I << nl);
+		if (I->is_floating()) {
+			I->set_BeginInst(late->get(I));
 		}
-		LOG(latest << " LoopLevel: " << LT->loop_nest(LT->get_Loop(latest)) << nl);
-
-		schedule(I);
 	}
 	set_schedule(M);
 	// clear schedule
@@ -100,10 +55,7 @@ bool ScheduleClickPass::run(JITData &JD) {
 }
 
 PassUsage& ScheduleClickPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(DominatorPass::ID);
-	PU.add_requires(ScheduleEarlyPass::ID);
 	PU.add_requires(ScheduleLatePass::ID);
-	PU.add_requires(LoopPass::ID);
 	return PU;
 }
 // the address of this variable is used to identify the pass

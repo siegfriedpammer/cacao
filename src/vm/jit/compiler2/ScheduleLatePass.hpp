@@ -36,6 +36,7 @@ namespace compiler2 {
 class Method;
 class Instruction;
 class DominatorTree;
+class LoopTree;
 
 /**
  * ScheduleLatePass
@@ -45,6 +46,8 @@ class DominatorTree;
 class ScheduleLatePass : public Pass, public InstructionLinkSchedule {
 private:
 	DominatorTree *DT;
+	LoopTree *LT;
+	InstructionLinkSchedule *early;
 	Method *M;
 	void schedule_late(Instruction *I);
 public:
