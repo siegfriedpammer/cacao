@@ -153,7 +153,9 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass(&MachineInstructionSchedulingPass::ID);
 	PM.add_Pass(&MachineInstructionPrinterPass::ID);
 	PM.add_Pass(&CodeGenPass::ID);
-	PM.add_Pass(&DisassemblerPass::ID);
+	if (opt_showdisassemble) {
+		PM.add_Pass(&DisassemblerPass::ID);
+	}
 	PM.add_Pass(&ObjectFileWriterPass::ID);
 
 /*****************************************************************************/
