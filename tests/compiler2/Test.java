@@ -14,12 +14,23 @@ public static void main(String arg[]) {
   System.out.println(OverflowLongIntLong(15));
   System.out.println(Integer.MIN_VALUE+14);
   System.out.println(testParameterDouble(.1,.2,.3,.4,.5,.6,.7,.8,.9));
+  /*
   for (int i =0; i < 2000; ++i ) {
     System.out.println(pi_spigot(10));
   }
   for (int i =0; i < 2000; ++i ) {
     System.out.println(pi());
   }
+  */
+  System.out.println(test_test());
+}
+
+static long test_test() {
+  long x =0 ;
+  for (long i =0; i < 2000; ++i ) {
+    x += fact(i & 0xf);
+  }
+  return x;
 }
 
 static long test_getstatic() {
@@ -87,6 +98,29 @@ static double pi_spigot(long num_digits) {
 
         pi += 1/(double)p * ( 4/(double)d1 - 2/(double)d2
             - 1/(double)d3 - 1/(double)d4 );
+    }
+    return pi;
+}
+
+static double pi_spigot_nodseg(long num_digits) {
+    long l0 = 0;
+    long l1 = 1;
+    long l2 = 2;
+    long l4 = 4;
+    double pi = l0;
+    for (long i = 0; i < num_digits; ++i) {
+        // fake power
+        long p =1;
+        for (long j = 0; j < i; ++j) {
+            p *= 16;
+        }
+        long d1 = 8*i + 1;
+        long d2 = 8*i + 4;
+        long d3 = 8*i + 5;
+        long d4 = 8*i + 6;
+
+        pi += (double)l1/(double)p * ( (double)l4/(double)d1 - (double)l2/(double)d2
+            - (double)l1/(double)d3 - (double)l1/(double)d4 );
     }
     return pi;
 }
