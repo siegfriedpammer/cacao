@@ -82,14 +82,14 @@ bool ObjectFileWriterPass::run(JITData &JD) {
 	LOG("Object file name: " << filename.c_str() << nl);
 	LOG(".text symbol name: " << symbol_name.c_str() << nl);
 
-	if (DEBUG_COND) {
+	if (DEBUG_COND_N(3)) {
 		const char ** target_list = bfd_target_list();
 		while (*target_list) {
 			LOG("target: " << *target_list << nl);
 			++target_list;
 		}
 	}
-	if (DEBUG_COND) {
+	if (DEBUG_COND_N(3)) {
 		const char ** arch_list = bfd_arch_list();
 		while (*arch_list) {
 			LOG("arch: " << *arch_list << nl);
