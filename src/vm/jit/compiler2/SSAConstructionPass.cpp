@@ -746,7 +746,7 @@ cacao::OStream& print_instruction_OS(cacao::OStream &OS, const jitdata *jd, cons
 	case ICMD_GETEXCEPTION:
 		SHOW_DST(OS, iptr);
 		break;
-#if defined(ENABLE_SSA)	
+#if defined(ENABLE_SSA)
 	case ICMD_PHI:
 		printf("[ ");
 		for (i = 0; i < iptr->s1.argcount; ++i) {
@@ -770,18 +770,30 @@ namespace jit {
 namespace compiler2 {
 
 void SSAConstructionPass::write_variable(size_t varindex, size_t bb, Value* v) {
+	LOG2("write variable(" << varindex << "," << bb << ") = " << v << nl);
 	current_def[varindex][bb] = v;
 }
 
 Value* SSAConstructionPass::read_variable(size_t varindex, size_t bb) {
+	LOG2("read variable(" << varindex << "," << bb << ")" << nl);
 	Value* v = current_def[varindex][bb];
+	#if 0
 	if (v) {
 		// local value numbering
 		return v;
 	}
 	// global value numbering
 	return read_variable_recursive(varindex, bb);
-
+	#endif
+	if (v) {
+		// local value numbering
+		//v = v;
+	} else {
+		// global value numbering
+		v = read_variable_recursive(varindex, bb);
+	}
+	LOG2("Value: " << v << nl);
+	return v;
 }
 
 Value* SSAConstructionPass::read_variable_recursive(size_t varindex, size_t bb) {
@@ -826,7 +838,6 @@ Value* SSAConstructionPass::add_phi_operands(size_t varindex, PHIInst *phi) {
 
 Value* SSAConstructionPass::try_remove_trivial_phi(PHIInst *phi) {
 	Value *same = NULL;
-	// TODO: slicing!! perhaps we should overload Value::operator==(Instruction *)
 	for(Instruction::OperandListTy::const_iterator i = phi->op_begin(),
 			e = phi->op_end(); i != e; ++i) {
 		Value *op = *i;
@@ -841,11 +852,29 @@ Value* SSAConstructionPass::try_remove_trivial_phi(PHIInst *phi) {
 	if (same == NULL) {
 		same = NULL; // Phi instruction not reachable
 	}
-	LOG(BoldGreen << "removed PHI! " << reset_color << (long)phi << nl);
+	LOG(BoldGreen << "going to remove PHI: " << reset_color << phi << nl);
+	if (DEBUG_COND_N(2)) {
+		for (std::size_t i = 0, e = current_def.size(); i < e; ++i) {
+			for (std::size_t j = 0, e = current_def[i].size(); j < e; ++j) {
+				if (current_def[i][j] == phi) {
+					LOG2("current_def["<<i<<"]["<<j<<"] will be invalid" << nl);
+				}
+			}
+		}
+	}
 	STATISTICS(num_trivial_phis++);
 	std::list<Instruction*> users(phi->user_begin(),phi->user_end());
 	users.remove(phi);
 	phi->replace_value(same);
+	// update table
+	// XXX this should be done in a smarter way (e.g. by using value references)
+	for (std::size_t i = 0, e = current_def.size(); i < e; ++i) {
+		for (std::size_t j = 0, e = current_def[i].size(); j < e; ++j) {
+			if (current_def[i][j] == phi) {
+				current_def[i][j]  = same;
+			}
+		}
+	}
 	// TODO delete phi
 	M->remove_Instruction(phi);
 
@@ -2178,6 +2207,14 @@ bool SSAConstructionPass::run(JITData &JD) {
 		}
 	}
 	#endif
+	return true;
+}
+
+bool SSAConstructionPass::verify() const {
+	for (Method::const_iterator i = M->begin(), e = M->end() ; i != e ; ++i) {
+		Instruction *I = *i;
+		if (!I->verify()) return false;
+	}
 	return true;
 }
 

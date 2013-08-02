@@ -57,18 +57,19 @@ private:
 	//
 	std::vector<bool> filled_blocks;
 	std::vector<Type::TypeID> var_type_tbl;
-	inline void write_variable(size_t varindex, size_t bb, Value *V);
-	inline Value* read_variable(size_t varindex, size_t bb);
-	inline Value* read_variable_recursive(size_t varindex, size_t bb);
-	inline Value* add_phi_operands(size_t varindex, PHIInst *phi);
-	inline Value* try_remove_trivial_phi(PHIInst *phi);
-	inline void seal_block(size_t bb);
-	inline bool try_seal_block(basicblock *bb);
+	void write_variable(size_t varindex, size_t bb, Value *V);
+	Value* read_variable(size_t varindex, size_t bb);
+	Value* read_variable_recursive(size_t varindex, size_t bb);
+	Value* add_phi_operands(size_t varindex, PHIInst *phi);
+	Value* try_remove_trivial_phi(PHIInst *phi);
+	void seal_block(size_t bb);
+	bool try_seal_block(basicblock *bb);
 	void print_current_def() const;
 public:
 	static char ID;
 	SSAConstructionPass() : Pass() {}
-	bool run(JITData &JD);
+	virtual bool run(JITData &JD);
+	virtual bool verify() const;
 };
 
 } // end namespace cacao
