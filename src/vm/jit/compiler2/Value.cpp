@@ -32,6 +32,26 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+OStream& operator<<(OStream &OS, const Value *V) {
+	if (!V)
+		return OS << "Value NULL";
+	return OS << *V;
+}
+OStream& Value::print(OStream &OS) const {
+	OS << "[Value ";
+	for(UserListTy::const_iterator i = user_list.begin(), e = user_list.end(); i != e; ++i) {
+		Instruction *I = *i;
+		OS << I->get_id() << " ";
+	}
+	return print_users(OS) << "]";
+}
+OStream& Value::print_users(OStream &OS) const {
+	OS << "Users of " << this << nl ;
+	for(UserListTy::const_iterator i = user_list.begin(), e = user_list.end(); i != e; ++i) {
+		OS << "user: " << *i << nl;
+	}
+	return OS;
+}
 void Value::replace_value(Value *v) {
 	LOG("Value::replace_value(this=" << this << ",v=" << v << ")" << nl );
 	UserListTy::iterator i;
@@ -48,6 +68,25 @@ void Value::replace_value(Value *v) {
 		assert( size > user_list.size());
 	}
 }
+#if 0
+void Value::remove_user(Instruction* I) {
+	#if 0 & NDEBUG
+	size_t size = user_list.size();
+	#endif
+	LOG("Value::remove_user(this=" << this << ",I=" << I << ")" << nl );
+	user_list.remove(I);
+	#if 0
+	if (!( size > user_list.size())) {
+		WARING_MSG("corrupt double link detected","Instruction " << I << " used " << this);
+	}
+	UserListTy::iterator f = user_list.find(I);
+	if (f != user_list.end()) {
+		user_list.erase(f);
+	}
+	user_list.erase(std::find(user_list.begin(),user_list.end(),I));
+	#endif
+}
+#endif
 Value::~Value()
 {
 #if 0

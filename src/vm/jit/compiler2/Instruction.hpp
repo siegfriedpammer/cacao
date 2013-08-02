@@ -46,6 +46,9 @@
 #include <cstddef>
 
 namespace cacao {
+
+class OStream;
+
 namespace jit {
 namespace compiler2 {
 
@@ -54,8 +57,6 @@ class BasicBlock;
 
 // include instruction declaration
 #include "vm/jit/compiler2/InstructionDeclGen.inc"
-
-#define DEBUG_NAME "compiler2/Instruction"
 
 /**
  * Instruction super class.
@@ -72,7 +73,7 @@ class BasicBlock;
 class Instruction : public Value {
 public:
 	typedef std::vector<Value*> OperandListTy;
-	typedef std::vector<Instruction*> DepListTy;
+	typedef std::list<Instruction*> DepListTy;
 
 	enum InstID {
 
@@ -103,22 +104,15 @@ protected:
 	const int id;
 	BeginInst* begin;
 
-	explicit Instruction() : Value(Type::VoidTypeID), opcode(NoInstID), id(-1), begin(NULL) {}
+	explicit Instruction() : Value(Type::VoidTypeID), opcode(NoInstID), id(-1), begin(NULL) {
+	}
 
 	void append_op(Value* v) {
 		op_list.push_back(v);
 		v->append_user(this);
 	}
 
-	void replace_op(Value* v_old, Value* v_new) {
-		LOG("Instruction:::replace_op(this=" << this << ",v_old=" << v_old << ",v_new=" << v_new << ")" << nl );
-		DEBUG(print_operands(dbg()));
-		std::replace(op_list.begin(),op_list.end(),v_old,v_new);
-		DEBUG(print_operands(dbg()));
-		v_old->remove_user(this);
-		if (v_new)
-			v_new->append_user(this);
-	}
+	void replace_op(Value* v_old, Value* v_new);
 
 	void append_dep(Instruction* I) {
 		assert(I);
@@ -126,32 +120,17 @@ protected:
 		I->reverse_dep_list.push_back(this);
 	}
 
-	OStream& print_operands(OStream &OS) {
-		OS << "Operands of " << this << " (" << get_name() << ")" << nl ;
-		for(OperandListTy::iterator i = op_list.begin(), e = op_list.end(); i != e; ++i) {
-			OS << "OP: " << *i << nl;
-		}
-		return OS;
-	}
+	/**
+	 * @todo use Value::print_operands
+	 */
+	OStream& print_operands(OStream &OS);
 
 public:
 	explicit Instruction(InstID opcode, Type::TypeID type, BeginInst* begin = NULL)
-			: Value(type), opcode(opcode), id(id_counter++), begin(begin) {}
-
-	virtual ~Instruction() {
-		LOG("deleting instruction: " << this << nl);
-		#if 0
-		// remove from users
-		for( OperandListTy::iterator i = op_list.begin(), e = op_list.end(); i != e ; ++i) {
-			Value *v = *i;
-			//assert(v != (Value*)this);
-			// might be a NULL operand
-			//if (v) {
-				v->remove_user(this);
-			//}
-		}
-		#endif
+			: Value(type), opcode(opcode), id(id_counter++), begin(begin) {
 	}
+
+	virtual ~Instruction();
 
 	int get_id() const { return id; } ///< return a unique identifier for this instruction
 	InstID get_opcode() const { return opcode; } ///< return the opcode of the instruction
@@ -172,6 +151,12 @@ public:
 		}
 		return -1;
 	}
+
+	/// check if the instruction is in a correct state
+	virtual bool verify() const;
+
+	/// check if the instruction has a homogeneous signature
+	virtual bool is_homogeneous() const { return true; }
 
 	DepListTy::const_iterator dep_begin() const { return dep_list.begin(); }
 	DepListTy::const_iterator dep_end()   const { return dep_list.end(); }
@@ -217,11 +202,15 @@ public:
 		return "Unknown Instruction";
 	}
 
+	virtual OStream& print(OStream& OS) const;
+
 	// needed to access replace_op in replace_value
 	friend class Value;
 };
 
-OStream& operator<<(OStream &OS, const Instruction &I);
+inline OStream& operator<<(OStream &OS, const Instruction &I) {
+	return I.print(OS);
+}
 OStream& operator<<(OStream &OS, const Instruction *I);
 
 } // end namespace compiler2

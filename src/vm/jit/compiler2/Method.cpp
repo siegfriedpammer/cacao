@@ -73,7 +73,7 @@ Method::~Method() {
 	for(InstructionListTy::iterator i = inst_list.begin(),
 			e = inst_list.end(); i != e ; ++i) {
 		Instruction *I = *i;
-		delete I;
+		//delete I;
 	}
 }
 
@@ -85,10 +85,11 @@ void Method::add_Instruction(Instruction* I) {
 }
 
 void Method::remove_Instruction(Instruction* I) {
+	inst_list.remove(I);
 	#if 0
 	std::replace(inst_list.begin(),	inst_list.end(),I,(Instruction*)0);
-	delete I;
 	#endif
+	delete I;
 }
 
 void Method::add_bb(BeginInst *bi) {

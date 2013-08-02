@@ -26,7 +26,6 @@
 #define _JIT_COMPILER2_VALUE
 
 #include "vm/jit/compiler2/Type.hpp"
-#include "toolbox/logging.hpp"
 
 #include <cstddef>
 #include <list>
@@ -35,12 +34,14 @@
 #include <cassert>
 
 namespace cacao {
+
+class OStream;
+
 namespace jit {
 namespace compiler2 {
 
 class Instruction;
 
-#define DEBUG_NAME "compiler2/Value"
 class Value {
 public:
 	typedef std::list<Instruction*> UserListTy;
@@ -51,28 +52,7 @@ protected:
 		assert(I);
 		user_list.push_back(I);
 	}
-	void remove_user(Instruction* I) {
-		#ifndef NDEBUG
-		size_t size = user_list.size();
-		#endif
-		LOG("Value::remove_user(this=" << this << ",I=" << I << ")" << nl );
-		user_list.remove(I);
-		assert( size > user_list.size());
-		#if 0
-		UserListTy::iterator f = user_list.find(I);
-		if (f != user_list.end()) {
-			user_list.erase(f);
-		}
-		user_list.erase(std::find(user_list.begin(),user_list.end(),I));
-		#endif
-	}
-	OStream& print_users(OStream &OS) {
-		OS << "Users of " << this << nl ;
-		for(UserListTy::iterator i = user_list.begin(), e = user_list.end(); i != e; ++i) {
-			OS << "User: " << *i << nl;
-		}
-		return OS;
-	}
+	OStream& print_users(OStream &OS) const;
 public:
 	Value(Type::TypeID type) : type(type) {}
 	Type::TypeID get_type() const { return type; } ///< get the value type of the instruction
@@ -90,11 +70,17 @@ public:
 
 	virtual Instruction* to_Instruction() { return NULL; }
 
+	/// print
+	virtual OStream& print(OStream &OS) const;
+
 	// we need this to access append_user
 	friend class Instruction;
 };
 
-#undef DEBUG_NAME
+inline OStream& operator<<(OStream &OS, const Value &V) {
+	return V.print(OS);
+}
+OStream& operator<<(OStream &OS, const Value *V);
 
 } // end namespace compiler2
 } // end namespace jit

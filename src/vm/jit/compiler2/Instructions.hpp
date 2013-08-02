@@ -291,6 +291,7 @@ public:
 		: UnaryInst(CASTInstID, type, s1) {
 	}
 	virtual CASTInst* to_CASTInst() { return this; }
+	virtual bool is_homogeneous() const { return false; }
 };
 
 class ADDInst : public BinaryInst {

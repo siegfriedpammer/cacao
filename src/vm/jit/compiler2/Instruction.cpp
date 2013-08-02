@@ -25,21 +25,73 @@
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 
+#include "toolbox/logging.hpp"
+
+#define DEBUG_NAME "compiler2/Instruction"
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
 int Instruction::id_counter = 0;
 
-OStream& operator<<(OStream &OS, const Instruction &I) {
-	return OS << "[" << I.get_id() << ": " << I.get_name() << " ("
-		<< I.get_type() << ")]";
-}
 OStream& operator<<(OStream &OS, const Instruction *I) {
-	if(!I) {
+	if (!I)
 		return OS << "Instruction is NULL";
-	}
 	return OS << *I;
+}
+OStream& Instruction::print(OStream& OS) const {
+	return OS << "[" << get_id() << ": " << get_name() << " ("
+		<< get_type() << ")]";
+}
+
+Instruction::~Instruction() {
+	LOG("deleting instruction: " << this << nl);
+	#if 1
+	// remove from users
+	for( OperandListTy::iterator i = op_list.begin(), e = op_list.end(); i != e ; ++i) {
+		Value *v = *i;
+		//assert(v != (Value*)this);
+		// might be a NULL operand
+		//if (v) {
+			v->user_list.remove(this);
+		//}
+	}
+	for( DepListTy::iterator i = dep_list.begin(), e = dep_list.end(); i != e ; ++i) {
+		Instruction *I = *i;
+		I->reverse_dep_list.remove(this);
+	}
+	#endif
+}
+void Instruction::replace_op(Value* v_old, Value* v_new) {
+	LOG("Instruction:::replace_op(this=" << this << ",v_old=" << v_old << ",v_new=" << v_new << ")" << nl );
+	DEBUG(print_operands(dbg()));
+	std::replace(op_list.begin(),op_list.end(),v_old,v_new);
+	DEBUG(print_operands(dbg()));
+	v_old->user_list.remove(this);
+	if (v_new)
+		v_new->append_user(this);
+}
+OStream& Instruction::print_operands(OStream &OS) {
+	OS << "Operands of " << this << " (" << get_name() << ")" << nl ;
+	for(OperandListTy::iterator i = op_list.begin(), e = op_list.end(); i != e; ++i) {
+		OS << "OP: " << *i << nl;
+	}
+	return OS;
+}
+bool Instruction::verify() const {
+	if (is_homogeneous()) {
+		for(OperandListTy::const_iterator i = op_list.begin(), e = op_list.end(); i != e; ++i) {
+			Value *V = *i;
+			if (V->get_type() != get_type()) {
+				LOG(BoldRed  << "Instruction verification error" <<  reset_color << nl
+					<< " this type " << *this
+					<< " is not operand type " << V << " type: " << V->get_type() << nl  );
+				return false;
+			}
+		}
+	}
+	return true;
 }
 
 
