@@ -89,8 +89,9 @@ private:
 public:
 	static char ID;
 	LinearScanAllocatorPass() : Pass() {}
-	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PA) const;
+	virtual bool run(JITData &JD);
+	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
+	virtual bool verify() const;
 };
 
 } // end namespace compiler2

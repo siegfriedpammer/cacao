@@ -129,6 +129,8 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(LivetimeInterval *cur
 			i != e ; ++i) {
 		if (!(*i)->is_in_Register()) continue;
 		MachineRegister *reg = (*i)->get_Register()->to_MachineRegister();
+		// only consider valid regs
+		if (!reg_file->contains(reg)) continue;
 		// all active intervals must be assigned to machine registers
 		if (DEBUG_COND && !reg) {
 			ABORT_MSG("Interval " << current << " not in a machine reg " << (*i)->get_Register(), "Not yet supported!");
@@ -149,6 +151,8 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(LivetimeInterval *cur
 			LOG2("interval " << current << " intersects with " << inact << " (inactive) at " << intersection << nl);
 			MachineRegister *reg = inact->get_Register()->to_MachineRegister();
 			assert(reg);
+			// only consider valid regs
+			if (!reg_file->contains(reg)) continue;
 			// reg not free!
 			free_until_pos[get_MachineResource_from_MachineRegister(reg)] = intersection;
 		}
@@ -166,14 +170,20 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(LivetimeInterval *cur
 			LOG2("Hint: " << hint_lti << nl);
 			reg = hint_lti->get_Register()->to_MachineRegister();
 			assert(reg);
-			free_pos = free_until_pos[get_MachineResource_from_MachineRegister(reg)];
-			// free_pos = 0 indicates that either reg is occupied or is
-			// generally not available for assignment (not in regfile)
-			if (current->get_start() <= hint_lti->get_end() && free_pos != 0) {
-				LOG2(" Followed!" << nl);
-				STATISTICS(num_hints_followed++);
+			// only consider valid regs
+			if (reg_file->contains(reg)) {
+				free_pos = free_until_pos[get_MachineResource_from_MachineRegister(reg)];
+				// free_pos = 0 indicates that either reg is occupied or is
+				// generally not available for assignment (not in regfile)
+				if (current->get_start() <= hint_lti->get_end() && free_pos != 0) {
+					LOG2(" Followed!" << nl);
+					STATISTICS(num_hints_followed++);
+				} else {
+					LOG2("Not followed!" << nl);
+					reg = NULL;
+				}
 			} else {
-				LOG2("Not followed!" << nl);
+				LOG2("Not followed! (invalid hint!)" << nl);
 				reg = NULL;
 			}
 		}
@@ -232,6 +242,8 @@ inline bool LinearScanAllocatorPass::allocate_blocked_reg(LivetimeInterval *curr
 		if (!lti->is_in_Register()) continue;
 		MachineRegister *reg = lti->get_Register()->to_MachineRegister();
 		assert(reg);
+		// only consider valid regs
+		if (!reg_file->contains(reg)) continue;
 		signed pos = lti->next_usedef_after(current->get_start());
 		next_use_pos[get_MachineResource_from_MachineRegister(reg)] = pos;
 		LOG3("active: " << lti << " pos: " << pos << nl);
@@ -252,6 +264,8 @@ inline bool LinearScanAllocatorPass::allocate_blocked_reg(LivetimeInterval *curr
 			LivetimeInterval *lti = *i;
 			MachineRegister *reg = lti->get_Register()->to_MachineRegister();
 			assert(reg);
+			// only consider valid regs
+			if (!reg_file->contains(reg)) continue;
 			signed pos = lti->next_usedef_after(current->get_start());
 			next_use_pos[get_MachineResource_from_MachineRegister(reg)] = pos;
 			LOG3("inactive: " << lti << " pos: " << pos << nl);
@@ -685,7 +699,14 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 					assert(pred_op == MI->get(index).op);
 					MachineOperand *result_op = MI->get_result().op;
 					LOG("result is in: " << pred_op << " and should be in " << result_op << nl);
+					assert(pred_op->is_Register());
+					assert(result_op->is_Register());
+					assert(pred_op->to_Register()->to_MachineRegister());
+					assert(result_op->to_Register()->to_MachineRegister());
+					//if (pred_op->to_Register()->to_MachineRegister() ==
+					//		result_op->to_Register()->to_MachineRegister()) {
 					if (result_op != pred_op) {
+						LOG("adding move " << pred_op << " to " << result_op << nl);
 						MachineInstruction* move = backend->create_Move(pred_op,result_op);
 						move_map[std::make_pair(pred,succ)].push_back(move);
 					}
@@ -766,6 +787,21 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 	// write back the spill/store instructions
 	MIS->insert_added_instruction();
 
+	return true;
+}
+
+bool LinearScanAllocatorPass::verify() const {
+	for (MachineInstructionSchedule::const_iterator i = MIS->begin(),
+			e = MIS->end(); i != e; ++i) {
+		MachineInstruction *MI = *i;
+		MachineOperand *op = MI->get_result().op;
+		if (!op->is_StackSlot() &&
+				op->is_Register() && !op->to_Register()->to_MachineRegister() ) {
+			LOG("Not allocatd: " << MI << nl);
+			return false;
+		}
+
+	}
 	return true;
 }
 

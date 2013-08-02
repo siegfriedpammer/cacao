@@ -25,6 +25,7 @@
 #ifndef _JIT_COMPILER2_REGISTERFILE
 #define _JIT_COMPILER2_REGISTERFILE
 
+#include "vm/jit/compiler2/Type.hpp"
 #include "vm/types.hpp"
 #include "Target.hpp"
 
@@ -34,12 +35,16 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+// forward declaration
+class MachineRegister;
+
 class NativeResource {
 public:
 	typedef u8 ID;
 	virtual ID get_ID() const = 0;
 	//virtual NativeRegister* get_NativeRegister() = 0;
 	virtual MachineRegister* create_MachineRegister(Type::TypeID type) = 0;
+	virtual bool operator==(const NativeResource&) const = 0;
 };
 
 class MachineResource {
@@ -53,6 +58,9 @@ public:
 	MachineRegister* create_MachineRegister(Type::TypeID type) const {
 		return res->create_MachineRegister(type);
 	}
+	bool operator==(const MachineResource &other) const {
+		return *res == *other.res;
+	}
 };
 
 class RegisterFile {
@@ -65,6 +73,7 @@ public:
 	const_iterator begin() const { return regs.begin(); }
 	const_iterator end()   const { return regs.end();   }
 	std::size_t    size()  const { return regs.size();  }
+	bool contains(MachineRegister *MR) const;
 	virtual ~RegisterFile() {}
 };
 

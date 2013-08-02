@@ -79,6 +79,7 @@ bool LivetimeInterval::is_in_StackSlot() const {
 	return false;
 }
 Type::TypeID LivetimeInterval::get_type() const {
+	if (!operand) return Type::VoidTypeID;
 	return operand->get_type();
 }
 
@@ -185,6 +186,7 @@ OStream& operator<<(OStream &OS, const LivetimeInterval &lti) {
 	} else {
 		OS << "No Operand!";
 	}
+	OS << " (" << lti.get_type() << ")";
 	for(LivetimeInterval::const_iterator i = lti.begin(), e = lti.end();
 			i != e ; ++i) {
 		OS << " [" << i->first << "," << i->second << ")";
