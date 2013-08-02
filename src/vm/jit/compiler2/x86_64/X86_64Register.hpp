@@ -77,7 +77,7 @@ public:
 	unsigned get_index() const {
 		return index;
 	}
-	bool operator==(const X86_64Register &other) const {
+	virtual bool operator==(const NativeResource &other) const {
 		return this == &other;
 	}
 	virtual ID get_ID() const {
@@ -161,6 +161,7 @@ public:
 			for(unsigned i = 0; i < IntegerArgumentRegisterSize ; ++i) {
 				regs.push_back(IntegerArgumentRegisters[i]);
 			}
+			assert(regs.size() == IntegerArgumentRegisterSize);
 			#else
 			regs.push_back(&RDI);
 			regs.push_back(&RSI);
@@ -177,6 +178,7 @@ public:
 			for(unsigned i = 0; i < FloatArgumentRegisterSize ; ++i) {
 				regs.push_back(FloatArgumentRegisters[i]);
 			}
+			assert(regs.size() == FloatArgumentRegisterSize);
 			#else
 			regs.push_back(&XMM0);
 			regs.push_back(&XMM1);
