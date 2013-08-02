@@ -63,6 +63,7 @@ template<>
 MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *src,
 		MachineOperand* dst) const {
 	Type::TypeID type = dst->get_type();
+	assert(type == src->get_type());
 	switch (type) {
 	case Type::ByteTypeID:
 	case Type::IntTypeID:

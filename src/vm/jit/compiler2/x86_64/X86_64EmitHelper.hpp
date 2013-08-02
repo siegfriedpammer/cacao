@@ -232,12 +232,12 @@ struct InstructionEncoding {
 		}
 
 	}
-	template <class I>
-	static void imm(CodeFragment code,I imm) {
-		assert(code.size() == sizeof(I));
+	template <class I,class Seg>
+	static void imm(Seg seg,I imm) {
+		assert(seg.size() == sizeof(I));
 
 		for (int i = 0, e = sizeof(I) ; i < e ; ++i) {
-			code[i] = (u1) 0xff & (imm >> (8 * i));
+			seg[i] = (u1) 0xff & *(reinterpret_cast<u1*>(&imm) + i);
 		}
 
 	}

@@ -848,6 +848,7 @@ void MovSDInst::emit(CodeMemory* CM) const {
 
 		s4 index = src_slot->get_index() * 8;
 
+		#if 0
 		if (fits_into<s1>(index)) {
 			CodeFragment code = CM->get_CodeFragment(5);
 			code[0] = 0xf2;
@@ -855,16 +856,21 @@ void MovSDInst::emit(CodeMemory* CM) const {
 			code[2] = 0x10;
 			code[3] = get_modrm(0x1,dst_reg,&RBP);
 			code[4] = u1( 0xff & (index >> (0 * 8)));
-		} else {
+		} else
+		#endif
+		{
 			CodeFragment code = CM->get_CodeFragment(8);
 			code[0] = 0xf2;
 			code[1] = 0x0f;
 			code[2] = 0x10;
 			code[3] = get_modrm(0x2,dst_reg,&RBP);
+			InstructionEncoding::imm(code+4,index);
+			#if 0
 			code[4] = u1( 0xff & (index >> (0 * 8)));
 			code[5] = u1( 0xff & (index >> (1 * 8)));
 			code[6] = u1( 0xff & (index >> (2 * 8)));
 			code[7] = u1( 0xff & (index >> (3 * 8)));
+			#endif
 		}
 		return;
 	}
@@ -875,6 +881,7 @@ void MovSDInst::emit(CodeMemory* CM) const {
 
 		s4 index = dst_slot->get_index() * 8;
 
+		#if 0
 		if (fits_into<s1>(index)) {
 			CodeFragment code = CM->get_CodeFragment(5);
 			code[0] = 0xf2;
@@ -882,16 +889,21 @@ void MovSDInst::emit(CodeMemory* CM) const {
 			code[2] = 0x11;
 			code[3] = get_modrm(0x1,src_reg,&RBP);
 			code[4] = u1( 0xff & (index >> (0 * 8)));
-		} else {
+		} else
+		#endif
+		{
 			CodeFragment code = CM->get_CodeFragment(8);
 			code[0] = 0xf2;
 			code[1] = 0x0f;
 			code[2] = 0x11;
 			code[3] = get_modrm(0x2,src_reg,&RBP);
+			InstructionEncoding::imm(code+4,index);
+			#if 0
 			code[4] = u1( 0xff & (index >> (0 * 8)));
 			code[5] = u1( 0xff & (index >> (1 * 8)));
 			code[6] = u1( 0xff & (index >> (2 * 8)));
 			code[7] = u1( 0xff & (index >> (3 * 8)));
+			#endif
 		}
 		return;
 	}
@@ -918,6 +930,7 @@ void MovImmSDInst::emit(CodeMemory* CM) const {
 	code[7] = 0xaa;
 	#endif
 	DataFragment DF = CM->get_DataSegment().get_Ref(sizeof(double));
+	InstructionEncoding::imm<double>(DF,imm->get_Double());
 	data_index = CM->get_DataSegment().insert_tag(DSDouble(imm->get_Double()),DF);
 	CM->require_linking(this,code);
 }
@@ -974,7 +987,7 @@ void CVTSI2SDInst::emit(CodeMemory* CM) const {
 		X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
 
 		CodeFragment code = CM->get_CodeFragment(5);
-		code[0] = 0xf3;
+		code[0] = 0xf2;
 		code[1] = get_rex(dst_reg,src_reg);
 		code[2] = 0x0f;
 		code[3] = 0x2a;
