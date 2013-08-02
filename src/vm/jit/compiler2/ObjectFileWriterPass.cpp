@@ -67,6 +67,8 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+#define FAKE_DATASEC
+
 bool ObjectFileWriterPass::run(JITData &JD) {
 	Method *M = JD.get_Method();
 	CodeGenPass *CG = get_Pass<CodeGenPass>();
@@ -136,9 +138,42 @@ bool ObjectFileWriterPass::run(JITData &JD) {
 	check_bfd_error(code_section);
 	// set code_section size
 	LOG2("set code_section size" << nl);
+	#ifdef FAKE_DATASEC
+	if (dseglen) {
+		codelen = 8 + dseglen + codelen;
+	}
+	#endif
 	check_bfd_error(bfd_set_section_size(abfd, code_section,codelen));
 	// set alignment
 	code_section->alignment_power = 2;
+
+	#if 0
+	// create relocation entries
+	reloc_howto_type* howto = bfd_reloc_type_lookup(abfd, BFD_RELOC_32_PCREL);
+	arelent reloc_entry = {
+		0,
+		4,
+		0,
+		howto
+	};
+	char *err;
+	bfd_install_relocation(
+		abfd,
+		&reloc_entry,
+		NULL,
+		8,
+		//code_section,
+		data_section,
+		&err);
+	#if 0
+	bfd_reloc_status_type bfd_install_relocation
+		(bfd *abfd,
+		arelent *reloc_entry,
+		void *data, bfd_vma data_start,
+		asection *input_section,
+		char **error_message);
+	#endif
+	#endif
 
 	// create symbol
 	LOG2("create symbol" << nl);
@@ -164,6 +199,22 @@ bool ObjectFileWriterPass::run(JITData &JD) {
 			data_section, code->mcode,0,dseglen));
 	}
 	LOG2("set code_section contents" << nl);
+	#ifdef FAKE_DATASEC
+	if (dseglen) {
+		std::vector<u1> buffer(codelen);
+		buffer[0] = 0xe9; // jmp rel32
+		buffer[1] = ((dseglen + 3) >> 0) & 0xff;
+		buffer[2] = ((dseglen + 3) >> 8) & 0xff;
+		buffer[3] = ((dseglen + 3) >>16) & 0xff;
+		buffer[4] = ((dseglen + 3) >>32) & 0xff;
+		// copy dataseg
+		memcpy(&buffer[8],code->mcode,dseglen);
+		// copy codeseg
+		memcpy(&buffer[8+dseglen],code->entrypoint,codelen - (dseglen + 8));
+		check_bfd_error(bfd_set_section_contents(abfd,
+			code_section, &buffer.front(),0,codelen));
+	} else
+	#endif
 	check_bfd_error(bfd_set_section_contents(abfd,
 		code_section, code->entrypoint,0,codelen));
 
