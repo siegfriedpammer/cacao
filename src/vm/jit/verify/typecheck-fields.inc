@@ -26,16 +26,18 @@
 {
 	unresolved_field *uf;
 	constant_FMIref *fieldref;
+#if !defined(TYPECHECK_TYPEINFERER)
 	typeinfo_t *instanceti;
 	typeinfo_t *valueti;
-#if !defined(TYPECHECK_TYPEINFERER)
 	resolve_result_t result;
 #endif
 
 	TYPECHECK_COUNT(stat_ins_field);
 
+#if !defined(TYPECHECK_TYPEINFERER)
 	instanceti = (instance) ? &(instance->typeinfo) : NULL;
 	valueti    = (value && value->type == TYPE_ADR) ? &(value->typeinfo) : NULL;
+#endif
 
 	/* get the field reference from the instruction */
 

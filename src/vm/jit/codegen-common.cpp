@@ -137,12 +137,12 @@ void codegen_init(void)
 
 void codegen_setup(jitdata *jd)
 {
-	methodinfo  *m;
+	//methodinfo  *m;
 	codegendata *cd;
 
 	/* get required compiler data */
 
-	m  = jd->m;
+	//m  = jd->m;
 	cd = jd->cd;
 
 	/* initialize members */
@@ -1530,13 +1530,14 @@ bool codegen_emit(jitdata *jd)
 #else
 			{
 				fieldinfo* fi;
-				patchref_t* pr;
+				//patchref_t* pr;
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 					unresolved_field* uf = iptr->sx.s23.s3.uf;
 					fieldtype = uf->fieldref->parseddesc.fd->type;
 					disp      = dseg_add_unique_address(cd, 0);
 
-					pr = patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
+					//pr = patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
+					patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
 
 					fi = NULL;		/* Silence compiler warning */
 				}
@@ -1551,7 +1552,7 @@ bool codegen_emit(jitdata *jd)
 						PROFILE_CYCLE_START;
 					}
 
-					pr = NULL;		/* Silence compiler warning */
+					//pr = NULL;		/* Silence compiler warning */
 				}
 
 				// XXX X86_64: Here We had this:

@@ -283,7 +283,7 @@ static inline void stacktrace_stackframeinfo_next(stackframeinfo_t *tmpsfi)
 	void             *pv;
 	void             *sp;
 	void             *ra;
-	void             *xpc;
+	//void             *xpc;
 	uint32_t          framesize;
 	stackframeinfo_t *prevsfi;
 
@@ -297,8 +297,8 @@ static inline void stacktrace_stackframeinfo_next(stackframeinfo_t *tmpsfi)
 	pv   = tmpsfi->pv;
 	sp   = tmpsfi->sp;
 	ra   = tmpsfi->ra;
-	xpc  = tmpsfi->xpc;
- 
+	//xpc  = tmpsfi->xpc;
+
 	/* Get the current stack frame size. */
 
 	framesize = md_stacktrace_get_framesize(code);

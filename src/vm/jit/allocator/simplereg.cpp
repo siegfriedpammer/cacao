@@ -299,7 +299,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 {
 	methodinfo   *m;
 	codeinfo     *code;
-	codegendata  *cd;
+	//codegendata  *cd;
 	registerdata *rd;
 
 	int     s, t, tt, saved;
@@ -317,7 +317,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 
 	m    = jd->m;
 	code = jd->code;
-	cd   = jd->cd;
+	//cd   = jd->cd;
 	rd   = jd->rd;
 
 	/* rd->memuse was already set in stack.c to allocate stack space
@@ -546,7 +546,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 {
 	methodinfo   *m;
-	codegendata  *cd;
+	//codegendata  *cd;
 	registerdata *rd;
 	methoddesc *md;
 
@@ -563,7 +563,7 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 	/* get required compiler data */
 
 	m  = jd->m;
-	cd = jd->cd;
+	//cd = jd->cd;
 	rd = jd->rd;
 
 	md = m->parseddesc;
@@ -750,7 +750,7 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 static void simplereg_allocate_locals(jitdata *jd)
 {
 	codeinfo     *code;
-	codegendata  *cd;
+	//codegendata  *cd;
 	registerdata *rd;
 
 	int     s, t, tt, varindex;
@@ -764,7 +764,7 @@ static void simplereg_allocate_locals(jitdata *jd)
 	/* get required compiler data */
 
 	code = jd->code;
-	cd   = jd->cd;
+	//cd   = jd->cd;
 	rd   = jd->rd;
 
 	if (code_is_leafmethod(code)) {
@@ -1265,7 +1265,7 @@ static bool simplereg_alloc_dup(jitdata *jd, s4 srcindex, s4 dstindex)
 
 static void simplereg_allocate_temporaries(jitdata *jd)
 {
-	methodinfo         *m;
+	//methodinfo         *m;
 	registerdata       *rd;
 	s4                  i;
 	s4                  len;
@@ -1282,7 +1282,7 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 
 	/* get required compiler data */
 
-	m  = jd->m;
+	//m  = jd->m;
 	rd = jd->rd;
 
 	/* initialize temp registers */
@@ -1750,9 +1750,9 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 #if defined(ENABLE_STATISTICS)
 void simplereg_make_statistics(jitdata *jd)
 {
-	methodinfo   *m;
-	codegendata  *cd;
-	registerdata *rd;
+	//methodinfo   *m;
+	//codegendata  *cd;
+	//registerdata *rd;
 	int i;
 	s4 len;
 #if 0
@@ -1763,13 +1763,13 @@ void simplereg_make_statistics(jitdata *jd)
 	basicblock  *bptr;
 	int size_interface; /* == maximum size of in/out stack at basic block boundaries */
 	bool in_register;
-	varinfo *var;
+	//varinfo *var;
 
 	/* get required compiler data */
 
-	m  = jd->m;
-	cd = jd->cd;
-	rd = jd->rd;
+	//m  = jd->m;
+	//cd = jd->cd;
+	//rd = jd->rd;
 
 	in_register = true;
 
@@ -1803,7 +1803,7 @@ void simplereg_make_statistics(jitdata *jd)
 
 				while (len) {
 					len--;
-					var = VAR(bptr->invars[len]);
+					//var = VAR(bptr->invars[len]);
 
 					/* invars statistics (currently none) */
 				}
@@ -1814,7 +1814,7 @@ void simplereg_make_statistics(jitdata *jd)
 
 				while (len) {
 					len--;
-					var = VAR(bptr->outvars[len]);
+					//var = VAR(bptr->outvars[len]);
 
 					/* outvars statistics (currently none) */
 				}

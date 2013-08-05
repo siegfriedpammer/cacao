@@ -351,9 +351,9 @@ static typedescriptor_t *typecheck_stackbased_verify_fieldaccess(
 		typedescriptor_t *value,
 		typedescriptor_t *stack)
 {
-	jitdata *jd;
+	//jitdata *jd;
 
-	jd = state->jd;
+	//jd = state->jd;
 
 #define TYPECHECK_STACKBASED
 #define EXCEPTION  do { return NULL; } while (0)
@@ -546,10 +546,10 @@ static typedescriptor_t *typecheck_stackbased_jsr(verifier_state *state,
 {
 	typecheck_jsr_t *jsr;
 	basicblock *tbptr;
-	jitdata *jd;
+	//jitdata *jd;
 	s4 i;
 
-	jd = state->jd;
+	//jd = state->jd;
 
 	tbptr = state->iptr->sx.s23.s3.jsrtarget.block;
 	jsr = state->jsrinfos[tbptr->nr];

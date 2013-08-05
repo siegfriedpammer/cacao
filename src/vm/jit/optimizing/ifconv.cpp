@@ -99,7 +99,7 @@ static s4 ifconv_pattern_4[][2][4] = {
    ATTENTION: Don't change order!  It depends on the Java bytecode opcode!
 
 *******************************************************************************/
-
+#if 0
 static s4 ifconv_condition_complement[6] = {
 	/* !ICMD_IFEQ */    ICMD_IFNE,
 	/* !ICMD_IFNE */    ICMD_IFEQ,
@@ -108,6 +108,7 @@ static s4 ifconv_condition_complement[6] = {
 	/* !ICMD_IFGT */    ICMD_IFLE,
 	/* !ICMD_IFLE */    ICMD_IFGT,
 };
+#endif
 
 
 /* ifconv_static ***************************************************************
@@ -131,7 +132,7 @@ bool ifconv_static(jitdata *jd)
 	s4          *p;
 	ICMD         opcode;
 	u2           condition;
-	u2           complement;
+	//u2           complement;
 	s4           i;
 	s4           j;
 
@@ -339,7 +340,7 @@ bool ifconv_static(jitdata *jd)
 
 				/* get the condition array index */
 
-				complement = ifconv_condition_complement[condition - ICMD_IFEQ];
+				//complement = ifconv_condition_complement[condition - ICMD_IFEQ];
 
 				/* Set the new instructions, first basic block 1... */
 

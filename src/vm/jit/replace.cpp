@@ -1097,7 +1097,9 @@ static void replace_read_executionstate(rplpoint *rp,
 	sourceframe_t *frame;
 	int            topslot;
 	stackslot_t   *sp;
+#if defined(__I386__)
 	stackslot_t   *basesp;
+#endif
 
 	code = code_find_codeinfo_for_pc(rp->pc);
 	m = rp->method;
@@ -1115,7 +1117,9 @@ static void replace_read_executionstate(rplpoint *rp,
 
 	/* calculate base stack pointer */
 
+#if defined(__I386__)
 	basesp = sp + code->stackframesize;
+#endif
 
 	/* create the source frame */
 
@@ -1320,16 +1324,16 @@ static void replace_write_executionstate(rplpoint *rp,
 										 bool topframe)
 {
 	methodinfo     *m;
-	codeinfo       *code;
+	//codeinfo       *code;
 	int             count;
 	int             i;
 	rplalloc       *ra;
 	sourceframe_t  *frame;
 	int             topslot;
 	stackslot_t    *sp;
-	stackslot_t    *basesp;
+	//stackslot_t    *basesp;
 
-	code = code_find_codeinfo_for_pc(rp->pc);
+	//code = code_find_codeinfo_for_pc(rp->pc);
 	m = rp->method;
 	topslot = TOP_IS_NORMAL;
 
@@ -1343,7 +1347,7 @@ static void replace_write_executionstate(rplpoint *rp,
 
 	sp = (stackslot_t *) es->sp;
 
-	basesp = sp + code->stackframesize;
+	//basesp = sp + code->stackframesize;
 
 	/* in some cases the top stack slot is passed in REG_ITMP1 */
 
@@ -1996,7 +2000,7 @@ rplpoint * replace_find_replacement_point(codeinfo *code,
 										  sourceframe_t *frame,
 										  rplpoint *parent)
 {
-	methodinfo *m;
+	//methodinfo *m;
 	rplpoint *rp;
 	s4        i;
 	s4        j;
@@ -2009,7 +2013,7 @@ rplpoint * replace_find_replacement_point(codeinfo *code,
 	DOLOG( printf("searching replacement point for:\n");
 		   replace_source_frame_println(frame); );
 
-	m = frame->method;
+	//m = frame->method;
 
 	DOLOG( printf("code = %p\n", (void*)code); );
 

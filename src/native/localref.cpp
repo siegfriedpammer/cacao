@@ -445,7 +445,9 @@ void localref_native_enter(methodinfo *m, uint64_t *argument_regs, uint64_t *arg
 	localref_table *lrt;
 	methoddesc     *md;
 	imm_union       arg;
+#if defined(ENABLE_HANDLES)
 	java_handle_t  *h;
+#endif
 	int i;
 
 	/* get local reference table from thread */
@@ -467,11 +469,15 @@ void localref_native_enter(methodinfo *m, uint64_t *argument_regs, uint64_t *arg
 			if (arg.a == NULL)
 				continue;
 
+#if !defined(ENABLE_HANDLES)
+			/* ... and insert them into the table */
+
+			localref_add((java_object_t *) arg.a);
+#else
 			/* ... and insert them into the table */
 
 			h = localref_add((java_object_t *) arg.a);
 
-#if defined(ENABLE_HANDLES)
 			/* update the modified parameter if necesarry */
 
 			arg.a = (void *) h;

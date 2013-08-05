@@ -834,14 +834,14 @@ void emit_verbosecall_exit(jitdata *jd)
 {
 	methodinfo   *m;
 	codegendata  *cd;
-	registerdata *rd;
+	//registerdata *rd;
 	methoddesc   *md;
 
 	/* get required compiler data */
 
 	m  = jd->m;
 	cd = jd->cd;
-	rd = jd->rd;
+	//rd = jd->rd;
 
 	md = m->parseddesc;
 

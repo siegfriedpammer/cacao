@@ -2274,12 +2274,14 @@ static bool inline_post_parse_heuristics(const inline_node *caller,
 static bool inline_afterwards_heuristics(const inline_node *caller,
 										 const inline_node *callee)
 {
+#if defined(INLINE_MAX_ICMD_EXPANSION) || defined(INLINE_MAX_BLOCK_EXPANSION)
 	inline_node *cumulator;
 
 #if defined(INLINE_DEPTH_FIRST)
 	cumulator = caller;
 #else
 	cumulator = caller->ctx->master;
+#endif
 #endif
 
 	if (0

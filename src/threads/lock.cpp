@@ -690,14 +690,14 @@ static void sable_flc_waiting(uintptr_t lw_cache, threadobject *t, java_handle_t
 	/* Lockword is still the way it was seen before */
 	if (lockword.is_thin_lock() && (lockword.get_thin_lock_thread_index() == index))
 	{
-		threadobject *f;
+		//threadobject *f;
 		/* Add tuple (t, o) to the other thread's FLC list */
 		t->flc_object = o;
 		t->flc_next = t_other->flc_list;
 		t_other->flc_list = t;
 		if (t->flc_next == 0)
 			t_other->flc_tail = t;
-		f = t_other->flc_tail;
+		//f = t_other->flc_tail;
 
 		// The other thread will clear flc_object.
 		while (t->flc_object)
