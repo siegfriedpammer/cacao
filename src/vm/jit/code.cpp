@@ -25,6 +25,7 @@
 #include "vm/jit/code.hpp"
 #include "mm/codememory.hpp"            // for CFREE
 #include "mm/memory.hpp"                // for OFFSET, FREE, NEW
+#include "vm/jit/linenumbertable.hpp"   // for LinenumberTable
 #include "vm/jit/methodtree.hpp"        // for methodtree_find, etc
 #include "vm/jit/patcher-common.hpp"    // for patcher_list_create, etc
 #include "vm/jit/replace.hpp"           // for replace_free_replacement_points

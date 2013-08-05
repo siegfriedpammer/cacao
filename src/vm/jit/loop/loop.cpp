@@ -24,6 +24,7 @@
 
 #include <sstream>
 #include <algorithm>
+#include <queue>
 
 #include "loop.hpp"
 #include "dominator.hpp"

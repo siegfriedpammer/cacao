@@ -46,6 +46,7 @@
 #include "vm/jit/ir/icmd.hpp"           // for ::ICMD_GETSTATIC, etc
 #include "vm/jit/ir/instruction.hpp"    // for instruction, etc
 #include "vm/jit/jit.hpp"               // for basicblock, jitdata, etc
+#include "vm/jit/linenumbertable.hpp"   // for LinenumberTable
 #include "vm/jit/parse.hpp"
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/reg.hpp"               // for varinfo, etc
