@@ -572,7 +572,10 @@ static u1 *jit_compile_intern(jitdata *jd)
 		if (f == NULL)
 			return NULL;
 
-		code = NativeStub::generate(m, (functionptr) f);
+		// XXX reinterpret_cast is used to prevend a compiler warning
+		// The Native* framework requires a rework to make it type safer
+		// and to get rid of this hack
+		code = NativeStub::generate(m, *reinterpret_cast<functionptr*>(&f));
 
 		/* Native methods are never recompiled. */
 

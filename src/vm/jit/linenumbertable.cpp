@@ -224,7 +224,7 @@ void linenumbertable_list_entry_add_inline_end(codegendata *cd, instruction *ipt
 	cd->linenumbers->push_front(ln);
 
 	// End marker with PC of start of body.
-	Linenumber lne(-1, (void*) insinfo->startmpc);
+	Linenumber lne(-1, (void*) (std::ptrdiff_t)insinfo->startmpc);
 
 	cd->linenumbers->push_front(lne);
 }

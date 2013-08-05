@@ -603,7 +603,7 @@ template<typename _COUNT_TYPE, typename _INDEX_TYPE>
 class StatDistAbst : public StatEntry {
 protected:
 	_COUNT_TYPE  *table;       //< table
-	const int table_size;      //< size of the table
+	const std::size_t table_size;      //< size of the table
 
 	StatDistAbst(const char* name, const char* description, StatGroup &parent,
 			_INDEX_TYPE table_size, _COUNT_TYPE init)
@@ -611,7 +611,7 @@ protected:
 		parent.add(this);
 		table = new _COUNT_TYPE[table_size + 1];
 
-		for(int i = 0; i <= table_size; ++i ) {
+		for(std::size_t i = 0; i <= table_size; ++i ) {
 			table[i] = init;
 		}
 	}
@@ -620,7 +620,7 @@ protected:
 		delete table;
 	}
 
-	virtual void print_header(OStream &O, int first, int last) const = 0;
+	virtual void print_header(OStream &O, std::size_t first, std::size_t last) const = 0;
 
 public:
 	virtual void print(OStream &O) const {
@@ -672,9 +672,9 @@ private:
 	const _INDEX_TYPE end;
 
 protected:
-	virtual void print_header(OStream &O, int first, int last) const {
+	virtual void print_header(OStream &O, std::size_t first, std::size_t last) const {
 		O << ' ';
-		int i;
+		std::size_t i;
 		for(i = first; i < last && i < this->table_size; ++i ) {
 			O << setw(5) << start + i * step << ']';
 		}
@@ -726,9 +726,9 @@ private:
 	const _INDEX_TYPE *range;  //< range table
 
 protected:
-	virtual void print_header(OStream &O, int first, int last) const {
+	virtual void print_header(OStream &O, std::size_t first, std::size_t last) const {
 		O << ' ';
-		int i;
+		std::size_t i;
 		for(i = first; i < last && i < this->table_size; ++i ) {
 			O << setw(5) << range[i] << ']';
 		}
@@ -756,7 +756,7 @@ public:
 
 	/// index operator
 	inline _COUNT_TYPE& operator[](const _INDEX_TYPE v) {
-		for (int i = 0; i < this->table_size; ++i ) {
+		for (std::size_t i = 0; i < this->table_size; ++i ) {
 			if (v <= range[i])
 				return this->table[i];
 		}
