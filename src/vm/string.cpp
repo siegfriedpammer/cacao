@@ -67,21 +67,77 @@ struct JavaStringHash {
 	case 0: // empty string */
 		return 0;
 
-	case 1: return fbs(0);
-	case 2: return fbs(0) ^ nbs(3);
-	case 3: return fbs(0) ^ nbs(3) ^ nbs(5);
-	case 4: return fbs(0) ^ nbs(2) ^ nbs(4) ^ nbs(6);
-	case 5: return fbs(0) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(6);
-	case 6: return fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(5) ^ nbs(6);
-	case 7: return fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(5) ^ nbs(6);
-	case 8: return fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(5) ^ nbs(6) ^ nbs(7);
+	case 1:
+		return fbs(0);
+	case 2:
+		// fbs(0) ^ nbs(3);
+		a = fbs(0);
+		a ^= nbs(3);
+		return a;
+	case 3:
+		// fbs(0) ^ nbs(3) ^ nbs(5);
+		a = fbs(0);
+		a ^= nbs(3);
+		a ^= nbs(5);
+		return a;
+	case 4:
+		// fbs(0) ^ nbs(2) ^ nbs(4) ^ nbs(6);
+		a = fbs(0);
+		a ^= nbs(2);
+		a ^= nbs(4);
+		a ^= nbs(6);
+		return a;
+	case 5:
+		// fbs(0) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(6);
+		a = fbs(0);
+		a ^= nbs(2);
+		a ^= nbs(3);
+		a ^= nbs(4);
+		a ^= nbs(6);
+		return a;
+	case 6:
+		// fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(5) ^ nbs(6);
+		a = fbs(0);
+		a ^= nbs(1);
+		a ^= nbs(2);
+		a ^= nbs(3);
+		a ^= nbs(5);
+		a ^= nbs(6);
+		return a;
+	case 7:
+		// fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(5) ^ nbs(6);
+		a = fbs(0);
+		a ^= nbs(1);
+		a ^= nbs(2);
+		a ^= nbs(3);
+		a ^= nbs(4);
+		a ^= nbs(5);
+		a ^= nbs(6);
+		return a;
+	case 8:
+		// fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(5) ^ nbs(6) ^ nbs(7);
+		a = fbs(0);
+		a ^= nbs(1);
+		a ^= nbs(2);
+		a ^= nbs(3);
+		a ^= nbs(4);
+		a ^= nbs(5);
+		a ^= nbs(6);
+		a ^= nbs(7);
+		return a;
 
 	case 9:
 		a = fbs(0);
 		a ^= nbs(1);
 		a ^= nbs(2);
 		text++;
-		return a ^ nbs(4) ^ nbs(5) ^ nbs(6) ^ nbs(7) ^ nbs(8);
+		// a ^ nbs(4) ^ nbs(5) ^ nbs(6) ^ nbs(7) ^ nbs(8);
+		a ^= nbs(4);
+		a ^= nbs(5);
+		a ^= nbs(6);
+		a ^= nbs(7);
+		a ^= nbs(8);
+		return a;
 
 	case 10:
 		a = fbs(0);
@@ -90,7 +146,12 @@ struct JavaStringHash {
 		a ^= nbs(3);
 		a ^= nbs(4);
 		text++;
-		return a ^ nbs(6) ^ nbs(7) ^ nbs(8) ^ nbs(9);
+		// a ^ nbs(6) ^ nbs(7) ^ nbs(8) ^ nbs(9);
+		a ^= nbs(6);
+		a ^= nbs(7);
+		a ^= nbs(8);
+		a ^= nbs(9);
+		return a;
 
 	case 11:
 		a = fbs(0);
@@ -99,7 +160,13 @@ struct JavaStringHash {
 		a ^= nbs(3);
 		a ^= nbs(4);
 		text++;
-		return a ^ nbs(6) ^ nbs(7) ^ nbs(8) ^ nbs(9) ^ nbs(10);
+		// a ^ nbs(6) ^ nbs(7) ^ nbs(8) ^ nbs(9) ^ nbs(10);
+		a ^= nbs(6);
+		a ^= nbs(7);
+		a ^= nbs(8);
+		a ^= nbs(9);
+		a ^= nbs(10);
+		return a;
 
 	case 12:
 		a = fbs(0);
@@ -111,7 +178,10 @@ struct JavaStringHash {
 		a ^= nbs(6);
 		a ^= nbs(7);
 		text++;
-		return a ^ nbs(9) ^ nbs(10);
+		// a ^ nbs(9) ^ nbs(10);
+		a ^= nbs(9);
+		a ^= nbs(10);
+		return a;
 
 	case 13:
 		a = fbs(0);
@@ -123,7 +193,10 @@ struct JavaStringHash {
 		a ^= nbs(7);
 		a ^= nbs(8);
 		text += 2;
-		return a ^ nbs(9) ^ nbs(10);
+		// a ^ nbs(9) ^ nbs(10);
+		a ^= nbs(9);
+		a ^= nbs(10);
+		return a;
 
 	case 14:
 		a = fbs(0);
@@ -134,7 +207,11 @@ struct JavaStringHash {
 		a ^= nbs(7);
 		a ^= nbs(8);
 		text += 2;
-		return a ^ nbs(9) ^ nbs(10) ^ nbs(11);
+		// a ^ nbs(9) ^ nbs(10) ^ nbs(11);
+		a ^= nbs(9);
+		a ^= nbs(10);
+		a ^= nbs(11);
+		return a;
 
 	case 15:
 		a = fbs(0);
@@ -145,7 +222,11 @@ struct JavaStringHash {
 		a ^= nbs(7);
 		a ^= nbs(8);
 		text += 2;
-		return a ^ nbs(9) ^ nbs(10) ^ nbs(11);
+		// a ^ nbs(9) ^ nbs(10) ^ nbs(11);
+		a ^= nbs(9);
+		a ^= nbs(10);
+		a ^= nbs(11);
+		return a;
 
 	default:
        	// 3 characters from beginning
@@ -166,7 +247,10 @@ struct JavaStringHash {
 		a ^= fbs(7);
 		text++;
 
-		return a ^ nbs(10) ^ nbs(11);
+		// a ^ nbs(10) ^ nbs(11);
+		a ^= nbs(10);
+		a ^= nbs(11);
+		return a;
 #undef fbs
 #undef nbs
 		}
