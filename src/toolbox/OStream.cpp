@@ -237,10 +237,14 @@ OStream& OStream::operator<<(unsigned long long n) {
 	init_transient_flags();
 	return (*this);
 }
+/**
+ * @Cpp11 Flag %a introduced in C99, disable hex float for now
+ */
 OStream& OStream::operator<<(double n) {
 	on_newline();
 
-	PRINT_FLOAT(f, e, a, n);
+	//PRINT_FLOAT(f, e, a, n);
+	PRINT_FLOAT(f, e, e, n);
 
 	init_transient_flags();
 	return (*this);
