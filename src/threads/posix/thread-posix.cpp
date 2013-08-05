@@ -29,7 +29,9 @@
 #include <errno.h>                      // for errno, EINTR
 #include <pthread.h>                    // for pthread_attr_init, etc
 #include <sched.h>                      // for sched_param, sched_yield, etc
+#if !defined(__DARWIN__)
 #include <semaphore.h>                  // for sem_t, sem_destroy, etc
+#endif
 #include <signal.h>                     // for pthread_kill, SIGUSR1
 #include <stdint.h>                     // for INT32_MAX
 #include <stdlib.h>                     // for NULL
