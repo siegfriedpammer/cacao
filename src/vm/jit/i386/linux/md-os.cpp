@@ -24,7 +24,9 @@
 */
 
 
-#define _GNU_SOURCE                   /* include REG_ defines from ucontext.h */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 
 #include "config.h"
 

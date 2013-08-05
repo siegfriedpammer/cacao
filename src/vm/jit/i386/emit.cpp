@@ -769,7 +769,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	codeinfo     *code;
 	codegendata  *cd;
 	registerdata *rd;
-	methoddesc   *md;
+	//methoddesc   *md;
 	int32_t       stackframesize;
 	int           i;
 	int           align_off;             /* offset for alignment compensation */
@@ -784,7 +784,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	cd   = jd->cd;
 	rd   = jd->rd;
 
-	md = m->parseddesc;
+	//md = m->parseddesc;
 
 	/* mark trace code */
 
@@ -843,7 +843,7 @@ void emit_verbosecall_exit(jitdata *jd)
 {
 	methodinfo   *m;
 	codegendata  *cd;
-	registerdata *rd;
+	//registerdata *rd;
 	methoddesc   *md;
 
 	if (!JITDATA_HAS_FLAG_VERBOSECALL(jd))
@@ -853,7 +853,7 @@ void emit_verbosecall_exit(jitdata *jd)
 
 	m  = jd->m;
 	cd = jd->cd;
-	rd = jd->rd;
+	//rd = jd->rd;
 
 	md = m->parseddesc;
 

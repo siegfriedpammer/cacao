@@ -1822,7 +1822,9 @@ void replace_patch_future_calls(u1 *ra,
 	u1            *patchpos;
 	methodptr      entrypoint;
 	methodptr      oldentrypoint;
+#if !defined(__I386__)
 	bool           atentry;
+#endif
 	void          *pv;
 	codeinfo      *calleecode;
 	methodinfo    *calleem;
@@ -1844,9 +1846,11 @@ void replace_patch_future_calls(u1 *ra,
 
 	/* check if we are at an method entry rplpoint at the innermost frame */
 
+#if !defined(__I386__)
 	atentry = (calleeframe->down == NULL)
 			&& !(calleem->flags & ACC_STATIC)
 			&& (calleeframe->fromrp->id == 0); /* XXX */
+#endif
 
 	/* get the position to patch, in case it was a statically bound call   */
 

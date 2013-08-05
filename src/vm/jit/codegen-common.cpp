@@ -1018,8 +1018,10 @@ bool codegen_emit(jitdata *jd)
 	builtintable_entry* bte = 0;
 	methoddesc*         md;
 	int32_t             s1, s2, /*s3,*/ d;
+#if !defined(__I386__)
 	int32_t             fieldtype;
 	int32_t             disp;
+#endif
 	int                 i;
 
 	// Get required compiler data.

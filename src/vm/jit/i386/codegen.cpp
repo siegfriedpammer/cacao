@@ -313,7 +313,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 	fieldinfo*          fi;
 	unresolved_field*   uf;
 	int32_t             fieldtype;
-	int32_t             s1, s2, s3, d;
+	int32_t             s1 = 0;         // silence compiler warning
+	int32_t             s2, s3, d;
 	int32_t             disp;
 
 	// Get required compiler data.
@@ -330,7 +331,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				emit_fldz(cd);
 
 				/* -0.0 */
-				if (iptr->sx.val.i == 0x80000000) {
+				if ((uint32_t)iptr->sx.val.i == 0x80000000) {
 					emit_fchs(cd);
 				}
 
@@ -350,7 +351,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
-		
+
 		case ICMD_DCONST:     /* ...  ==> ..., constant                       */
 
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
@@ -358,7 +359,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				emit_fldz(cd);
 
 				/* -0.0 */
-				if (iptr->sx.val.l == 0x8000000000000000LL) {
+				if ((uint64_t)iptr->sx.val.l == 0x8000000000000000LL) {
 					emit_fchs(cd);
 				}
 
@@ -566,7 +567,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			/* don't use REG_ITMP1 */
 			s1 = emit_load_s1_high(jd, iptr, REG_ITMP2);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP3);
-			if (s2 == GET_HIGH_REG(d)) {
+			if ((uint32_t)s2 == GET_HIGH_REG(d)) {
 				M_INTMOVE(s1, REG_ITMP2);
 				M_ISUBB(s2, REG_ITMP2);
 				M_INTMOVE(REG_ITMP2, GET_HIGH_REG(d));
@@ -1044,7 +1045,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			/* REG_ITMP1 probably contains low 32-bit of destination */
 			s1 = emit_load_s1_high(jd, iptr, REG_ITMP2);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP3);
-			if (s2 == GET_HIGH_REG(d))
+			if ((uint32_t)s2 == GET_HIGH_REG(d))
 				M_AND(s1, GET_HIGH_REG(d));
 			else {
 				M_INTMOVE(s1, GET_HIGH_REG(d));
@@ -1102,7 +1103,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			/* REG_ITMP1 probably contains low 32-bit of destination */
 			s1 = emit_load_s1_high(jd, iptr, REG_ITMP2);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP3);
-			if (s2 == GET_HIGH_REG(d))
+			if ((uint32_t)s2 == GET_HIGH_REG(d))
 				M_OR(s1, GET_HIGH_REG(d));
 			else {
 				M_INTMOVE(s1, GET_HIGH_REG(d));
@@ -1160,7 +1161,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			/* REG_ITMP1 probably contains low 32-bit of destination */
 			s1 = emit_load_s1_high(jd, iptr, REG_ITMP2);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP3);
-			if (s2 == GET_HIGH_REG(d))
+			if ((uint32_t)s2 == GET_HIGH_REG(d))
 				M_XOR(s1, GET_HIGH_REG(d));
 			else {
 				M_INTMOVE(s1, GET_HIGH_REG(d));
@@ -2457,6 +2458,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 		case ICMD_INVOKEVIRTUAL:
 			M_ALD(REG_ITMP1, REG_SP, 0 * 8);
+			// XXX s1 may be uninitialized?
 			emit_nullpointer_check(cd, iptr, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
