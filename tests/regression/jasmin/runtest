@@ -62,12 +62,12 @@ do
 
 	if grep 'ERROR:' "$TEST" >/dev/null ; then
 		EXPECTSTATUS=1
-		EXPECTERROR=$(grep 'ERROR:.*' "$TEST" | sed 's,.*ERROR:[ \t]*,,')
+		EXPECTERROR=$(grep 'ERROR:.*' "$TEST" | sed "s,.*ERROR:[ `printf \\\t`]*,,")
 	fi
 
 	if grep 'ICMD:' "$TEST" >/dev/null ; then
 		CHECKICMD=1
-		EXPECTICMD=$(grep 'ICMD:.*' "$TEST" | sed 's,.*ICMD:[ \t]*,,')
+		EXPECTICMD=$(grep 'ICMD:.*' "$TEST" | sed "s,.*ICMD:[ `printf \\\t`]*,,")
 	fi
 
 	# run the test
@@ -85,7 +85,7 @@ do
 	fi
 
 	if [ $EXPECTSTATUS -eq 0 ] ; then
-		grep 'OUTPUT:' "$TEST" | sed 's,.*OUTPUT:[ \t]*,,' >"$TESTEXPECT"
+		grep 'OUTPUT:' "$TEST" | sed "s,.*OUTPUT:[ `printf \\\t`]*,," >"$TESTEXPECT"
 
 		if diff -u "$TESTEXPECT" "$TESTOUT" ; then
 			if [ $TESTSTATUS -eq 0 ] ; then
