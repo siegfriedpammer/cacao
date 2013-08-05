@@ -447,8 +447,6 @@ static void show_inline_info(jitdata *jd, insinfo_inline *ii, s4 opcode, s4 stag
 #if !defined(NDEBUG)
 void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 {
-	codeinfo    *code;
-	codegendata *cd;
 	s4           i;
 	bool         deadcode;
 	instruction *iptr;
@@ -460,10 +458,6 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 	s4           currentlinenumber;
 #endif
 
-	/* get required compiler data */
-
-	code = jd->code;
-	cd   = jd->cd;
 
 	if (bptr->state != basicblock::DELETED) {
 #if defined(ENABLE_INTRP)
@@ -586,6 +580,9 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 		if ((stage >= SHOW_CODE) && JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd) &&
 			(!deadcode)) 
 		{
+			codeinfo    *code = code = jd->code;
+			codegendata *cd = cd   = jd->cd;
+
 			printf("\n");
 			pc         = (void *) (code->mcode + cd->dseglen + bptr->mpc);
 			linenumber = 0;

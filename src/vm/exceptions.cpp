@@ -896,7 +896,9 @@ void exceptions_throw_internalerror(const char *message, ...)
 
 	/* generate message */
 
+	va_start(ap, message);
 	buf.writevf(message,ap);
+	va_end(ap);
 
 	/* throw exception */
 

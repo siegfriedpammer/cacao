@@ -546,7 +546,7 @@ RT_REGISTER_GROUP_TIMER(codegen_timer,       "compiler","codegen",              
 static u1 *jit_compile_intern(jitdata *jd)
 {
 	methodinfo  *m;
-	codegendata *cd;
+	//codegendata *cd;
 	codeinfo    *code;
 
 	RT_TIMER_START(checks_timer);
@@ -558,7 +558,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 #endif
 	m    = jd->m;
 	code = jd->code;
-	cd   = jd->cd;
+	//cd   = jd->cd;
 
 #if defined(ENABLE_DEBUG_FILTER)
 	show_filters_apply(jd->m);
@@ -841,7 +841,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		else if (JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd)) {
 # if defined(ENABLE_DISASSEMBLER)
 			DISASSEMBLE(code->entrypoint,
-						code->entrypoint + (code->mcodelength - cd->dseglen));
+						code->entrypoint + (code->mcodelength - jd->cd->dseglen));
 # endif
 		}
 
