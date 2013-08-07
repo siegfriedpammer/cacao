@@ -703,6 +703,149 @@ void codegen_finish(jitdata *jd)
 	md_cacheflush(code->mcode, code->mcodelength);
 }
 
+namespace {
+/**
+ * Outsource stack adjustment logic to reduce in-code `#if defined`s.
+ *
+ * @note should be moved to a backend code unit.
+ */
+#if defined(__ALPHA__)
+struct FrameInfo {
+	u1 *sp;
+	int32_t framesize;
+	FrameInfo(u1 *sp, int32_t framesize) : sp(sp), framesize(framesize) {}
+	uint8_t  *get_datasp()    const { return  sp + framesize - SIZEOF_VOID_P; }
+	uint8_t  *get_javasp()    const { return  sp + framesize; }
+	uint64_t *get_arg_regs()  const { return (uint64_t *) sp; }
+	uint64_t *get_arg_stack() const { return (uint64_t *) get_javasp(); }
+	uint64_t *get_ret_regs()  const { return (uint64_t *) sp; }
+};
+#elif defined(__ARM__)
+struct FrameInfo {
+	u1 *sp;
+	int32_t framesize;
+	FrameInfo(u1 *sp, int32_t framesize) : sp(sp), framesize(framesize) {}
+	uint8_t  *get_datasp()    const { return  sp + framesize - SIZEOF_VOID_P; }
+	uint8_t  *get_javasp()    const { return  sp + framesize; }
+	uint64_t *get_arg_regs()  const { return (uint64_t *) sp; }
+	uint64_t *get_arg_stack() const { return (uint64_t *) get_javasp(); }
+	uint64_t *get_ret_regs()  const { return (uint64_t *) sp; }
+};
+#elif defined(__I386__)
+struct FrameInfo {
+	u1 *sp;
+	int32_t framesize;
+	FrameInfo(u1 *sp, int32_t framesize) : sp(sp), framesize(framesize) {}
+	uint8_t  *get_datasp()    const { return sp + framesize; }
+	uint8_t  *get_javasp()    const { return sp + framesize + SIZEOF_VOID_P; }
+	uint64_t *get_arg_regs()  const { return (uint64_t *) sp; }
+	uint64_t *get_arg_stack() const { return (uint64_t *) get_javasp(); }
+	uint64_t *get_ret_regs()  const { return (uint64_t *) (sp + 2 * SIZEOF_VOID_P); }
+};
+#elif defined(__M68K__)
+struct FrameInfo {
+	u1 *sp;
+	int32_t framesize;
+	FrameInfo(u1 *sp, int32_t framesize) : sp(sp), framesize(framesize) {}
+	uint8_t  *get_datasp()    const { return sp + framesize; }
+	uint8_t  *get_javasp()    const { return sp + framesize + SIZEOF_VOID_P; }
+	uint64_t *get_arg_regs()  const { return (uint64_t *) sp; }
+	uint64_t *get_arg_stack() const { return (uint64_t *) get_javasp(); }
+	uint64_t *get_ret_regs()  const { return (uint64_t *) (sp + 2 * 8); }
+};
+#elif defined(__MIPS__)
+struct FrameInfo {
+	u1 *sp;
+	int32_t framesize;
+	FrameInfo(u1 *sp, int32_t framesize) : sp(sp), framesize(framesize) {}
+	/* MIPS always uses 8 bytes to store the RA */
+	uint8_t  *get_datasp()    const { return  sp + framesize - 8; }
+	uint8_t  *get_javasp()    const { return  sp + framesize; }
+	uint64_t *get_arg_regs()  const {
+# if SIZEOF_VOID_P == 8
+		return (uint64_t *) sp;
+# else
+		return (uint64_t *) (sp + 5 * 8);
+# endif
+	}
+	uint64_t *get_ret_regs()  const {
+# if SIZEOF_VOID_P == 8
+		return (uint64_t *) sp;
+# else
+		return (uint64_t *) (sp + 1 * 8);
+# endif
+	}
+	uint64_t *get_arg_stack() const { return (uint64_t *) get_javasp(); }
+};
+#elif defined(__S390__)
+struct FrameInfo {
+	u1 *sp;
+	int32_t framesize;
+	FrameInfo(u1 *sp, int32_t framesize) : sp(sp), framesize(framesize) {}
+	uint8_t  *get_datasp()    const { return sp + framesize - 8; }
+	uint8_t  *get_javasp()    const { return  sp + framesize; }
+	uint64_t *get_arg_regs()  const { return (uint64_t *) (sp + 96); }
+	uint64_t *get_arg_stack() const { return (uint64_t *) get_javasp(); }
+	uint64_t *get_ret_regs()  const { return (uint64_t *) (sp + 96); }
+};
+#elif defined(__POWERPC__)
+struct FrameInfo {
+	u1 *sp;
+	int32_t framesize;
+	FrameInfo(u1 *sp, int32_t framesize) : sp(sp), framesize(framesize) {}
+	uint8_t  *get_datasp()    const { return  sp + framesize; }
+	uint8_t  *get_javasp()    const { return  sp + framesize; }
+	uint64_t *get_arg_regs()  const {
+		return (uint64_t *) (sp + LA_SIZE + 4 * SIZEOF_VOID_P);
+	}
+	uint64_t *get_arg_stack() const { return (uint64_t *) get_javasp(); }
+	uint64_t *get_ret_regs()  const {
+		return (uint64_t *) (sp + LA_SIZE + 2 * SIZEOF_VOID_P);
+	}
+};
+#elif defined(__POWERPC64__)
+struct FrameInfo {
+	u1 *sp;
+	int32_t framesize;
+	FrameInfo(u1 *sp, int32_t framesize) : sp(sp), framesize(framesize) {}
+	uint8_t  *get_datasp()    const { return  sp + framesize; }
+	uint8_t  *get_javasp()    const { return  sp + framesize; }
+	uint64_t *get_arg_regs()  const {
+		return (uint64_t *) (sp + PA_SIZE + LA_SIZE + 4 * SIZEOF_VOID_P);
+	}
+	uint64_t *get_arg_stack() const { return (uint64_t *) get_javasp(); }
+	uint64_t *get_ret_regs()  const {
+		return (uint64_t *) (sp + PA_SIZE + LA_SIZE + 2 * SIZEOF_VOID_P);
+	}
+};
+#elif defined(__X86_64__)
+struct FrameInfo {
+	u1 *sp;
+	int32_t framesize;
+	FrameInfo(u1 *sp, int32_t framesize) : sp(sp), framesize(framesize) {}
+	uint8_t  *get_datasp()    const { return sp + framesize; }
+	uint8_t  *get_javasp()    const { return sp + framesize + SIZEOF_VOID_P; }
+	uint64_t *get_arg_regs()  const { return (uint64_t *) sp; }
+	uint64_t *get_arg_stack() const { return (uint64_t *) get_javasp(); }
+	uint64_t *get_ret_regs()  const { return (uint64_t *) sp; }
+};
+#else
+// dummy
+struct FrameInfo {
+	FrameInfo(u1 *sp, int32_t framesize) : sp(sp), framesize(framesize) {
+		/* XXX is was unable to do this port for SPARC64, sorry. (-michi) */
+		/* XXX maybe we need to pass the RA as argument there */
+		os::abort("codegen_start_native_call: unsupported architecture");
+	}
+	uint8_t  *get_datasp()    const { return NULL; }
+	uint8_t  *get_javasp()    const { return NULL; }
+	uint64_t *get_arg_regs()  const { return NULL; }
+	uint64_t *get_arg_stack() const { return NULL; }
+	uint64_t *get_ret_regs()  const { return NULL; }
+};
+#endif
+
+} // end anonymous namespace
 
 /* codegen_start_native_call ***************************************************
 
@@ -743,11 +886,6 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 	methodinfo       *m;
 	int32_t           framesize;
 
-	uint8_t  *datasp;
-	uint8_t  *javasp;
-	uint64_t *arg_regs;
-	uint64_t *arg_stack;
-
 	STATISTICS(count_calls_java_to_native++);
 
 	// Get information from method header.
@@ -763,51 +901,19 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 
 	/* calculate needed values */
 
-#if defined(__ALPHA__) || defined(__ARM__)
-	datasp    = sp + framesize - SIZEOF_VOID_P;
-	javasp    = sp + framesize;
-	arg_regs  = (uint64_t *) sp;
-	arg_stack = (uint64_t *) javasp;
-#elif defined(__MIPS__)
-	/* MIPS always uses 8 bytes to store the RA */
-	datasp    = sp + framesize - 8;
-	javasp    = sp + framesize;
-# if SIZEOF_VOID_P == 8
-	arg_regs  = (uint64_t *) sp;
-# else
-	arg_regs  = (uint64_t *) (sp + 5 * 8);
-# endif
-	arg_stack = (uint64_t *) javasp;
-#elif defined(__S390__)
-	datasp    = sp + framesize - 8;
-	javasp    = sp + framesize;
-	arg_regs  = (uint64_t *) (sp + 96);
-	arg_stack = (uint64_t *) javasp;
-#elif defined(__I386__) || defined(__M68K__) || defined(__X86_64__)
-	datasp    = sp + framesize;
-	javasp    = sp + framesize + SIZEOF_VOID_P;
-	arg_regs  = (uint64_t *) sp;
-	arg_stack = (uint64_t *) javasp;
-#elif defined(__POWERPC__)
-	datasp    = sp + framesize;
-	javasp    = sp + framesize;
-	arg_regs  = (uint64_t *) (sp + LA_SIZE + 4 * SIZEOF_VOID_P);
-	arg_stack = (uint64_t *) javasp;
-#elif defined(__POWERPC64__)
-	datasp    = sp + framesize;
-	javasp    = sp + framesize;
-	arg_regs  = (uint64_t *) (sp + PA_SIZE + LA_SIZE + 4 * SIZEOF_VOID_P);
-	arg_stack = (uint64_t *) javasp;
-#else
-	/* XXX is was unable to do this port for SPARC64, sorry. (-michi) */
-	/* XXX maybe we need to pass the RA as argument there */
-	os::abort("codegen_start_native_call: unsupported architecture");
+	FrameInfo FI(sp,framesize);
+
+	uint8_t  *datasp = FI.get_datasp();
+	//uint8_t  *javasp = FI.get_javasp();
+#if defined(ENABLE_HANDLES) || !defined(NDEBUG)
+	uint64_t *arg_regs = FI.get_arg_regs();
+	uint64_t *arg_stack = FI.get_arg_stack();
 #endif
 
 	/* get data structures from stack */
 
 	sfi = (stackframeinfo_t *) (datasp - sizeof(stackframeinfo_t));
-	lrt = (localref_table *)   (datasp - sizeof(stackframeinfo_t) - 
+	lrt = (localref_table *)   (datasp - sizeof(stackframeinfo_t) -
 								sizeof(localref_table));
 
 #if defined(ENABLE_JNI)
@@ -862,11 +968,8 @@ java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 	java_handle_t    *e;
 	java_object_t    *o;
 	codeinfo         *code;
-	methodinfo       *m;
 	int32_t           framesize;
 
-	uint8_t  *datasp;
-	uint64_t *ret_regs;
 
 	// Get information from method header.
 	code = code_get_codeinfo_for_pv(pv);
@@ -875,42 +978,18 @@ java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 	framesize = md_stacktrace_get_framesize(code);
 
 	// Get the methodinfo.
-	m = code->m;
+#if defined(ENABLE_HANDLES) || !defined(NDEBUG)
+	methodinfo *m = code->m;
 	assert(m != NULL);
+#endif
 
 	/* calculate needed values */
 
-#if defined(__ALPHA__) || defined(__ARM__)
-	datasp   = sp + framesize - SIZEOF_VOID_P;
-	ret_regs = (uint64_t *) sp;
-#elif defined(__MIPS__)
-	/* MIPS always uses 8 bytes to store the RA */
-	datasp   = sp + framesize - 8;
-# if SIZEOF_VOID_P == 8
-	ret_regs = (uint64_t *) sp;
-# else
-	ret_regs = (uint64_t *) (sp + 1 * 8);
-# endif
-#elif defined(__S390__)
-	datasp   = sp + framesize - 8;
-	ret_regs = (uint64_t *) (sp + 96);
-#elif defined(__I386__)
-	datasp   = sp + framesize;
-	ret_regs = (uint64_t *) (sp + 2 * SIZEOF_VOID_P);
-#elif defined(__M68K__)
-	datasp   = sp + framesize;
-	ret_regs = (uint64_t *) (sp + 2 * 8);
-#elif defined(__X86_64__)
-	datasp   = sp + framesize;
-	ret_regs = (uint64_t *) sp;
-#elif defined(__POWERPC__)
-	datasp   = sp + framesize;
-	ret_regs = (uint64_t *) (sp + LA_SIZE + 2 * SIZEOF_VOID_P);
-#elif defined(__POWERPC64__)
-	datasp   = sp + framesize;
-	ret_regs = (uint64_t *) (sp + PA_SIZE + LA_SIZE + 2 * SIZEOF_VOID_P);
-#else
-	os::abort("codegen_finish_native_call: unsupported architecture");
+	FrameInfo FI(sp,framesize);
+
+	uint8_t  *datasp = FI.get_datasp();
+#if defined(ENABLE_HANDLES) || !defined(NDEBUG)
+	uint64_t *ret_regs = FI.get_ret_regs();
 #endif
 
 	/* get data structures from stack */
