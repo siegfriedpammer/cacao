@@ -122,7 +122,9 @@ VM* VM::_vm = NULL;
 
 s4 vms = 0;                             /* number of VMs created              */
 
+#if !defined(NDEBUG)
 static classinfo *mainclass = NULL;
+#endif
 
 #if defined(ENABLE_INTRP)
 u1 *intrp_main_stack = NULL;

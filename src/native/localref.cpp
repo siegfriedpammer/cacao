@@ -119,11 +119,13 @@ bool localref_table_init(void)
 
 bool localref_table_destroy(void)
 {
+#if !defined(ENABLE_GC_BOEHM)
 	localref_table *lrt;
 
 	lrt = LOCALREFTABLE;
 	assert(lrt != NULL);
 	assert(lrt->prev == NULL);
+#endif
 
 	DEBUGLOCALREF("table destroy", -1);
 
@@ -442,7 +444,6 @@ void localref_del(java_handle_t *localref)
 
 void localref_native_enter(methodinfo *m, uint64_t *argument_regs, uint64_t *argument_stack)
 {
-	localref_table *lrt;
 	methoddesc     *md;
 	imm_union       arg;
 #if defined(ENABLE_HANDLES)
@@ -452,8 +453,8 @@ void localref_native_enter(methodinfo *m, uint64_t *argument_regs, uint64_t *arg
 
 	/* get local reference table from thread */
 
-	lrt = LOCALREFTABLE;
-	assert(lrt != NULL);
+	//localref_table *lrt = LOCALREFTABLE;
+	//assert(lrt != NULL);
 	assert(m != NULL);
 
 	md = m->parseddesc;
