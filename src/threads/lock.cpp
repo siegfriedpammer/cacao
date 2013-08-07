@@ -538,7 +538,7 @@ static void lock_hashtable_remove(threadobject *t, java_handle_t *o)
 
 static void lock_record_finalizer(java_handle_t *o, void *p)
 {
-#if !defined(NDEBUG)
+#if defined(ENABLE_LOGGING)
 	classinfo     *c;
 
 	LLNI_class_get(o, c);

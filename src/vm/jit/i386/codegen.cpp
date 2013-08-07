@@ -314,7 +314,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 	unresolved_field*   uf;
 	int32_t             fieldtype;
 	int32_t             s1 = 0;         // silence compiler warning
-	int32_t             s2, s3, d;
+	int32_t             s2, s3;
+	int32_t             d = 0;          // silence compiler warning
 	int32_t             disp;
 
 	// Get required compiler data.

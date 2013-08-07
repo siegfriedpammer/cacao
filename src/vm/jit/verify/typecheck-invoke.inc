@@ -37,6 +37,7 @@
 	bool callinginit;                      /* true if <init> is called */
 	instruction *ins;
 	classref_or_classinfo initclass;
+	initclass.any = NULL;                     // silence compiler warning
 	typedesc *td;
 #if defined(TYPECHECK_VARIABLESBASED)
 	s4 argindex;                            /* argument variable index */

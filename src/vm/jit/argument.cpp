@@ -101,7 +101,8 @@ imm_union argument_jitarray_load(methoddesc *md, int32_t index,
 			}
 			break;
 		default:
-			assert(false);
+			ret.l = 0;
+			assert(0 && "unreachable");
 			break;
 	}
 
@@ -172,7 +173,8 @@ imm_union argument_jitreturn_load(methoddesc *md, uint64_t *return_regs)
 			ret.l = *(int64_t *)return_regs;
 			break;
 		default:
-			assert(false);
+			ret.l = 0;
+			assert(0 && "unreachable");
 			break;
 	}
 
