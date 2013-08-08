@@ -37,6 +37,7 @@
 #include "threads/condition.hpp"        // for Condition
 #include "threads/mutex.hpp"            // for Mutex
 #include "threads/threadlist.hpp"       // for ThreadList
+#include "threads/ThreadRuntime.hpp"    // for ThreadRuntime
 #include "toolbox/logging.hpp"
 #include "vm/finalizer.hpp"             // for Finalizer
 #include "vm/globals.hpp"               // for class_java_lang_Thread
@@ -55,6 +56,8 @@
 STAT_DECLARE_VAR(int,size_threadobject,0)
 
 struct methodinfo;
+
+using namespace cacao;
 
 /* global variables ***********************************************************/
 
@@ -888,7 +891,7 @@ void thread_set_state_terminated(threadobject *t)
 
 threadobject *thread_get_thread(java_handle_t *h)
 {
-	return ThreadRuntime::get_threadobject_from_thread(h);
+	return ThreadRuntime::get_thread_from_object(h);
 }
 
 

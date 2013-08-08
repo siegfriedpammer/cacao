@@ -45,6 +45,7 @@
 #include "threads/mutex.hpp"            // for MutexLocker
 #include "threads/thread.hpp"           // for DEBUGTHREADS, etc
 #include "threads/threadlist.hpp"       // for ThreadList
+#include "threads/ThreadRuntime.hpp"    // for ThreadRuntime
 #include "vm/class.hpp"                 // for class_resolveclassmethod, etc
 #include "vm/exceptions.hpp"            // for exceptions_get_exception, etc
 #include "vm/global.hpp"                // for java_handle_t, functionptr
@@ -76,6 +77,8 @@ typedef struct {
 #include "mm/gc-boehm.hpp"
 
 struct methodinfo;
+
+using namespace cacao;
 
 #if defined(__DARWIN__)
 /* Darwin has no working semaphore implementation.  This one is taken

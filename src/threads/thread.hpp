@@ -260,14 +260,6 @@ bool          thread_handle_is_interrupted(java_handle_t *th);
 void          thread_handle_interrupt(java_handle_t *th);
 int           thread_handle_get_state(java_handle_t *th);
 
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-#include "thread-classpath.hpp"
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-#include "thread-openjdk.hpp"
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
-#include "thread-cldc11.hpp"
-#endif
-
 #endif // THREAD_HPP_
 
 

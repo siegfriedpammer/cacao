@@ -1,4 +1,4 @@
-/* src/threads/thread-classpath.cpp - thread functions specific to the GNU classpath library
+/* src/threads/ThreadRuntime-classpath.cpp - thread functions specific to the GNU classpath library
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,32 +22,31 @@
 
 */
 
-
-#include "thread-classpath.hpp"
+#include "threads/ThreadRuntime.hpp"
 #include "mm/gc.hpp"
+#include "threads/threadlist.hpp"
 #include "vm/globals.hpp"
+#include "vm/global.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/exceptions.hpp"
 
-#include "threadlist.hpp"
+using namespace cacao;
 
-#if defined(ENABLE_THREADS) && defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-
-classinfo *ThreadRuntimeClasspath::get_thread_class_from_object(java_handle_t *object) {
+classinfo *ThreadRuntime::get_thread_class_from_object(java_handle_t *object) {
 	return class_java_lang_VMThread;
 }
 
-java_handle_t *ThreadRuntimeClasspath::get_vmthread_handle(const java_lang_Thread &jlt) {
+java_handle_t *ThreadRuntime::get_vmthread_handle(const java_lang_Thread &jlt) {
 	java_lang_VMThread jlvmt(jlt.get_vmThread());
 	return jlvmt.get_handle();
 }
 
-java_handle_t *ThreadRuntimeClasspath::get_thread_exception_handler(const java_lang_Thread &jlt)
+java_handle_t *ThreadRuntime::get_thread_exception_handler(const java_lang_Thread &jlt)
 {
 	return jlt.get_exceptionHandler();
 }
 
-methodinfo *ThreadRuntimeClasspath::get_threadgroup_remove_method(classinfo *c)
+methodinfo *ThreadRuntime::get_threadgroup_remove_method(classinfo *c)
 {
 	return class_resolveclassmethod(c,
 									utf8::removeThread,
@@ -56,7 +55,7 @@ methodinfo *ThreadRuntimeClasspath::get_threadgroup_remove_method(classinfo *c)
 									true);
 }
 
-methodinfo *ThreadRuntimeClasspath::get_thread_init_method()
+methodinfo *ThreadRuntime::get_thread_init_method()
 {
 	return class_resolveclassmethod(class_java_lang_Thread,
 									utf8::init,
@@ -65,7 +64,7 @@ methodinfo *ThreadRuntimeClasspath::get_thread_init_method()
 									true);
 }
 
-void ThreadRuntimeClasspath::setup_thread_vmdata(const java_lang_Thread& jlt, threadobject *t)
+void ThreadRuntime::setup_thread_vmdata(const java_lang_Thread& jlt, threadobject *t)
 {
 	/* Get the java.lang.VMThread object and do some sanity checks. */
 	java_lang_VMThread jlvmt(jlt.get_vmThread());
@@ -76,23 +75,23 @@ void ThreadRuntimeClasspath::setup_thread_vmdata(const java_lang_Thread& jlt, th
 	jlvmt.set_vmdata(t);
 }
 
-void ThreadRuntimeClasspath::print_thread_name(const java_lang_Thread& jlt, FILE *stream)
+void ThreadRuntime::print_thread_name(const java_lang_Thread& jlt, FILE *stream)
 {
 	java_handle_t* name = jlt.get_name();
 	JavaString(name).fprint(stream);
 }
 
-void ThreadRuntimeClasspath::set_javathread_state(threadobject *t, int state)
+void ThreadRuntime::set_javathread_state(threadobject *t, int state)
 {
 }
 
-threadobject *ThreadRuntimeClasspath::get_threadobject_from_thread(java_handle_t *h)
+threadobject *ThreadRuntime::get_thread_from_object(java_handle_t *h)
 {
 	java_lang_VMThread jlvmt(h);
 	return jlvmt.get_vmdata();
 }
 
-void ThreadRuntimeClasspath::thread_create_initial_threadgroups(java_handle_t **threadgroup_system, java_handle_t **threadgroup_main)
+void ThreadRuntime::thread_create_initial_threadgroups(java_handle_t **threadgroup_system, java_handle_t **threadgroup_main)
 {
 	/* Allocate and initialize the main thread group. */
 
@@ -106,7 +105,7 @@ void ThreadRuntimeClasspath::thread_create_initial_threadgroups(java_handle_t **
 	*threadgroup_system = *threadgroup_main;
 }
 
-bool ThreadRuntimeClasspath::invoke_thread_initializer(java_lang_Thread& jlt, threadobject *t, methodinfo *thread_method_init, java_handle_t *name, java_handle_t *group)
+bool ThreadRuntime::invoke_thread_initializer(java_lang_Thread& jlt, threadobject *t, methodinfo *thread_method_init, java_handle_t *name, java_handle_t *group)
 {
 	java_handle_t *h = builtin_new(class_java_lang_VMThread);
 
@@ -152,13 +151,10 @@ bool ThreadRuntimeClasspath::invoke_thread_initializer(java_lang_Thread& jlt, th
 	return true;
 }
 
-void ThreadRuntimeClasspath::clear_heap_reference(java_lang_Thread& jlt)
+void ThreadRuntime::clear_heap_reference(java_lang_Thread& jlt)
 {
 	// Nothing to do.
 }
-
-#endif /* ENABLE_THREADS && WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH */
-
 
 /*
  * These are local overrides for various environment variables in Emacs.
