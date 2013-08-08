@@ -261,24 +261,13 @@ static void thread_create_initial_thread(void)
 
 static threadobject *thread_new(int32_t flags)
 {
-	int32_t       index;
 	threadobject *t;
-	
-	/* Lock the thread lists */
-
-	ThreadList::lock();
-
-	index = ThreadList::get_free_thread_index();
+	int32_t       index;
 
 	/* Allocate a thread data structure. */
 
 	/* First, try to get one from the free-list. */
-
-	t = ThreadList::get_free_thread();
-
-	/* Unlock the thread lists. */
-
-	ThreadList::unlock();
+	ThreadList::get_free_thread(&t, &index);
 
 	if (t != NULL) {
 		/* Equivalent of MZERO on the else path */

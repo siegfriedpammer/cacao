@@ -953,16 +953,17 @@ bool thread_detach_current_thread(void)
 	t->tid = 0;
 	t->waitmutex->unlock();
 
-	ThreadList::lock();
+	{
+		MutexLocker lock(ThreadList::mutex());
 
-	/* Free the internal thread data-structure. */
+		/* Free the internal thread data-structure. */
 
-	thread_free(t);
+		thread_free(t);
 
-	/* Signal that this thread has finished and leave the mutex. */
+		/* Signal that this thread has finished and leave the mutex. */
 
-	cond_join->signal();
-	ThreadList::unlock();
+		cond_join->signal();
+	}
 
 	t->suspendmutex->lock();
 	t->suspendmutex->unlock();
@@ -1135,7 +1136,7 @@ void threads_join_all_threads(void)
 
 	/* enter join mutex */
 
-	ThreadList::lock();
+	MutexLocker lock(ThreadList::mutex());
 
 	/* Wait for condition as long as we have non-daemon threads.  We
 	   compare against 1 because the current (main thread) is also a
@@ -1143,10 +1144,6 @@ void threads_join_all_threads(void)
 
 	while (ThreadList::get_number_of_non_daemon_threads() > 1)
 		ThreadList::wait_cond(cond_join);
-
-	/* leave join mutex */
-
-	ThreadList::unlock();
 }
 
 

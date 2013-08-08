@@ -96,10 +96,10 @@ static void profile_thread(void)
 		threads_sleep(0, nanos);
 		runs++;
 
+#if 0
 		// Lock the thread lists.
 		ThreadList::lock();
 
-#if 0
 		/* iterate over all started threads */
 
 		for (t = ThreadList_first(); t != NULL; t = ThreadList_next(t)) {
@@ -158,10 +158,10 @@ static void profile_thread(void)
 				}
 			}
 		}
-#endif
 
 		// Unlock the thread lists.
 		ThreadList::unlock();
+#endif
 	}
 }
 #endif
