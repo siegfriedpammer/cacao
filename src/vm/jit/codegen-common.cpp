@@ -1123,11 +1123,9 @@ bool codegen_emit(jitdata *jd)
 	// Emit code for the method prolog.
 	codegen_emit_prolog(jd);
 
-#if defined(ENABLE_THREADS)
 	// Emit code to call monitorenter function.
 	if (checksync && code_is_synchronized(code))
 		emit_monitor_enter(jd, rd->memuse * 8);
-#endif
 
 #if !defined(NDEBUG)
 	// Call trace function.
@@ -1948,12 +1946,10 @@ nowperformreturn:
 					emit_verbosecall_exit(jd);
 #endif
 
-#if defined(ENABLE_THREADS)
 				// Emit code to call monitorexit function.
 				if (checksync && code_is_synchronized(code)) {
 					emit_monitor_exit(jd, rd->memuse * 8);
 				}
-#endif
 
 				// Generate method profiling code.
 				PROFILE_CYCLE_STOP;

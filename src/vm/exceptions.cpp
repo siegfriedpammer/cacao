@@ -851,14 +851,13 @@ void exceptions_throw_instantiationerror(classinfo *c)
 void exceptions_throw_internalerror(const char *message, ...)
 {
 	va_list  ap;
-
-	/* allocate memory */
-
 	Buffer<> buf;
 
 	/* generate message */
 
+	va_start(ap, message);
 	buf.writevf(message,ap);
+	va_end(ap);
 
 	/* throw exception */
 

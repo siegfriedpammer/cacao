@@ -625,7 +625,6 @@ void emit_recompute_pv(codegendata *cd)
 /**
  * Generates synchronization code to enter a monitor.
  */
-#if defined(ENABLE_THREADS)
 void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
 {
 	int32_t i, slots;
@@ -682,13 +681,11 @@ void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
 	}
 # endif
 }
-#endif
 
 
 /**
  * Generates synchronization code to leave a monitor.
  */
-#if defined(ENABLE_THREADS)
 void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 {
 	int32_t disp;
@@ -730,7 +727,6 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 		break;	
 	}
 }
-#endif
 
 
 /* emit_patcher_stubs **********************************************************
@@ -803,7 +799,6 @@ void emit_patcher_stubs(jitdata *jd)
 
 		/* move pointer to java_objectheader onto stack */
 
-#if defined(ENABLE_THREADS)
 		/* create a virtual java_objectheader */
 
 		(void) dseg_add_unique_address(cd, NULL);                  /* flcword */
@@ -812,9 +807,6 @@ void emit_patcher_stubs(jitdata *jd)
 
 		M_LDA(REG_ITMP3, REG_PV, disp);
 		M_AST(REG_ITMP3, REG_SP, JITSTACK + 4 * 8);
-#else
-		/* do nothing */
-#endif
 
 		/* move machine code onto stack */
 

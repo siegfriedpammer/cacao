@@ -27,7 +27,7 @@
 #ifndef EMIT_COMMON_HPP_
 #define EMIT_COMMON_HPP_ 1
 
-#include "config.h"                     // for ENABLE_THREADS
+#include "config.h"
 #include <cassert>                      // for assert
 #include <stdint.h>                     // for int32_t, uint32_t
 #include "arch.hpp"
@@ -218,10 +218,8 @@ void emit_recompute_pv(codegendata* cd);
 void emit_fastpath_monitor_enter(jitdata* jd, instruction* iptr, int d);
 void emit_fastpath_monitor_exit(jitdata* jd, instruction* iptr, int d);
 
-#if defined(ENABLE_THREADS)
 void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset);
 void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset);
-#endif
 
 #if defined(ENABLE_PROFILING)
 void emit_profile_method(codegendata* cd, codeinfo* code);

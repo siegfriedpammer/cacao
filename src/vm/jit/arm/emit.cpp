@@ -684,7 +684,6 @@ void emit_recompute_pv(codegendata *cd)
 /**
  * Generates synchronization code to enter a monitor.
  */
-#if defined(ENABLE_THREADS)
 void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
 {
 	int32_t disp, p;
@@ -737,13 +736,11 @@ void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
 	}
 # endif
 }
-#endif
 
 
 /**
  * Generates synchronization code to leave a monitor.
  */
-#if defined(ENABLE_THREADS)
 void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 {
 	int32_t disp;
@@ -794,7 +791,6 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 		break;
 	}
 }
-#endif
 
 
 /* emit_verbosecall_enter ******************************************************

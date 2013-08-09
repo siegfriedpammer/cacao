@@ -464,10 +464,6 @@ jint JVM_IHashCode(JNIEnv* env, jobject handle)
 
 void JVM_MonitorWait(JNIEnv* env, jobject handle, jlong ms)
 {
-#if defined(ENABLE_THREADS)
-	java_handle_t *o;
-#endif
-
 	TRACEJVMCALLS(("JVM_MonitorWait(env=%p, handle=%p, ms=%ld)", env, handle, ms));
     if (ms < 0) {
 /* 		exceptions_throw_illegalargumentexception("argument out of range"); */
@@ -475,11 +471,7 @@ void JVM_MonitorWait(JNIEnv* env, jobject handle, jlong ms)
 		return;
 	}
 
-#if defined(ENABLE_THREADS)
-	o = (java_handle_t *) handle;
-
-	lock_wait_for_object(o, ms, 0);
-#endif
+	lock_wait_for_object((java_handle_t*) handle, ms, 0);
 }
 
 
@@ -487,17 +479,9 @@ void JVM_MonitorWait(JNIEnv* env, jobject handle, jlong ms)
 
 void JVM_MonitorNotify(JNIEnv* env, jobject handle)
 {
-#if defined(ENABLE_THREADS)
-	java_handle_t *o;
-#endif
-
 	TRACEJVMCALLS(("JVM_MonitorNotify(env=%p, handle=%p)", env, handle));
 
-#if defined(ENABLE_THREADS)
-	o = (java_handle_t *) handle;
-
-	lock_notify_object(o);
-#endif
+	lock_notify_object((java_handle_t*) handle);
 }
 
 
@@ -505,17 +489,9 @@ void JVM_MonitorNotify(JNIEnv* env, jobject handle)
 
 void JVM_MonitorNotifyAll(JNIEnv* env, jobject handle)
 {
-#if defined(ENABLE_THREADS)
-	java_handle_t *o;
-#endif
-
 	TRACEJVMCALLS(("JVM_MonitorNotifyAll(env=%p, handle=%p)", env, handle));
 
-#if defined(ENABLE_THREADS)
-	o = (java_handle_t *) handle;
-
-	lock_notify_all_object(o);
-#endif
+	lock_notify_all_object((java_handle_t*) handle);
 }
 
 
