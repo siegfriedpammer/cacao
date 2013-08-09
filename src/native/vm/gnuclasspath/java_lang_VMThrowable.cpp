@@ -45,6 +45,7 @@
 #include "vm/javaobjects.hpp"
 #include "vm/loader.hpp"
 #include "vm/string.hpp"
+#include "vm/vm.hpp"
 
 #include "vm/jit/code.hpp"
 #include "vm/jit/linenumbertable.hpp"

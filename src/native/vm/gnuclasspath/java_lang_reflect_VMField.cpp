@@ -52,6 +52,7 @@
 #include "vm/resolve.hpp"
 #include "vm/string.hpp"
 #include "vm/utf8.hpp"
+#include "vm/vm.hpp"
 
 
 /* _field_access_check *********************************************************

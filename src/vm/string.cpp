@@ -295,7 +295,7 @@ static inline JavaString allocate_on_system_heap(size_t size) {
 	if (h == NULL) return NULL;
 
 	// set string VTABLE and lockword
-	WITH_THREADS(Lockword(h->lockword).init());
+	Lockword(h->lockword).init();
 	h->vftbl = class_java_lang_String->vftbl;
 
 	// allocate array
@@ -304,7 +304,7 @@ static inline JavaString allocate_on_system_heap(size_t size) {
 
 	// set array VTABLE, lockword and length
 	a->header.objheader.vftbl = Primitive::get_arrayclass_by_type(ARRAYTYPE_CHAR)->vftbl;
-	WITH_THREADS(Lockword(a->header.objheader.lockword).init());
+	Lockword(a->header.objheader.lockword).init();
 	a->header.size            = size;
 
 	java_lang_String::set_fields(h, (java_handle_chararray_t*) a);

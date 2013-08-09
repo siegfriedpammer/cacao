@@ -30,20 +30,17 @@
 
 #include "native/llni.hpp"
 #include "vm/global.hpp"
+#include "vm/options.hpp"    // for opt_DebugThreads
 #include "vm/os.hpp"
 #include "vm/types.hpp"
-#include "vm/utf8.hpp"
+#include "vm/utf8.hpp"       // for Utf8String
 
-// short-hand for '#ifdef ENABLE_THREADS' block
-#if defined(ENABLE_THREADS)
-	#define WITH_THREADS(X) X
-#else
-	#define WITH_THREADS(X)
-#endif
-
-/* only define the following stuff with thread enabled ************************/
-
-#if defined(ENABLE_THREADS)
+class  Condition;
+class  DumpMemory;
+struct localref_table;
+class  Mutex;
+struct stackframeinfo_t;
+struct JavaVMAttachArgs;
 
 /* thread states **************************************************************/
 
@@ -58,12 +55,109 @@ enum ThreadState {
 	THREAD_STATE_TIMED_PARKED  = 7
 };
 
+enum ThreadFlag {
+  THREAD_FLAG_JAVA      = 0x01,   // a normal Java thread
+  THREAD_FLAG_INTERNAL  = 0x02,   // CACAO internal thread
+  THREAD_FLAG_DAEMON    = 0x04,   // daemon thread
+  THREAD_FLAG_IN_NATIVE = 0x08    // currently executing native code
+};
+
+enum SuspendReason {
+  SUSPEND_REASON_NONE      = 0,   // no reason to suspend
+  SUSPEND_REASON_JAVA      = 1,   // suspended from java.lang.Thread
+  SUSPEND_REASON_STOPWORLD = 2,   // suspended from stop-the-world
+  SUSPEND_REASON_DUMP      = 3,   // suspended from threadlist dumping
+  SUSPEND_REASON_JVMTI     = 4    // suspended from JVMTI agent
+};
+
 /* thread priorities **********************************************************/
 
 enum ThreadPriority {
 	MIN_PRIORITY  =  1,
 	NORM_PRIORITY =  5,
 	MAX_PRIORITY  = 10
+};
+
+/* threadobject ***************************************************************/
+
+#if defined(ENABLE_THREADS)
+# include "threads/posix/threadobject.hpp"
+#else
+# include "threads/none/threadobject.hpp"
+#endif
+
+struct threadobject {
+	//*****  platform specific thread data
+	cacao::detail::threadobject impl;
+
+	java_object_t        *object;       /* link to java.lang.Thread object    */
+
+	ptrint                thinlock;     /* pre-computed thin lock value       */
+	u4                    flags;        /* flag field                         */
+	ThreadState           state;        /* state field                        */
+	
+	//***** for ThreadList
+	bool                  is_in_active_list; /* for debugging only            */
+	s4                    index;        /* thread index, starting with 1      */
+
+	//***** for the sable tasuki lock extension */
+	bool                  flc_bit;
+	struct threadobject  *flc_list;     /* FLC list head for this thread      */
+	struct threadobject  *flc_tail;     /* tail pointer for FLC list          */
+	struct threadobject  *flc_next;     /* next pointer for FLC list          */
+	java_handle_t        *flc_object;
+	Mutex*                flc_lock;     /* controlling access to these fields */
+	Condition*            flc_cond;
+
+	//***** these are used for the wait/notify implementation
+	Mutex*                waitmutex;
+	Condition*            waitcond;
+
+	Mutex*                suspendmutex; /* lock before suspending this thread */
+	Condition*            suspendcond;  /* notify to resume this thread       */
+
+	bool                  interrupted;
+	bool                  signaled;
+	bool                  park_permit;
+
+	bool                  suspended;    /* is this thread suspended?          */
+	SuspendReason         suspend_reason; /* reason for suspending            */
+
+	u1                   *pc;           /* current PC (used for profiling)    */
+
+	java_object_t        *_exceptionptr;     /* current exception             */
+	stackframeinfo_t     *_stackframeinfo;   /* current native stackframeinfo */
+	localref_table       *_localref_table;   /* JNI local references          */
+
+#if defined(ENABLE_INTRP)
+	Cell                 *_global_sp;        /* stack pointer for interpreter */
+#endif
+
+#if defined(ENABLE_GC_CACAO)
+	bool                  gc_critical;  /* indicates a critical section       */
+
+	sourcestate_t        *ss;
+	executionstate_t     *es;
+#endif
+
+	DumpMemory*          _dumpmemory;     ///< Dump memory structure.
+
+#if defined(ENABLE_DEBUG_FILTER)
+	u2                    filterverbosecallctr[2]; /* counters for verbose call filter */
+#endif
+
+#if !defined(NDEBUG)
+	s4                    tracejavacallindent;
+	u4                    tracejavacallcount;
+#endif
+
+#if defined(ENABLE_TLH)
+	tlh_t                 tlh;
+#endif
+
+#if defined(ENABLE_ESCAPE_REASON)
+	void *escape_reasons;
+#endif
 };
 
 /* debug **********************************************************************/
@@ -89,33 +183,48 @@ enum ThreadPriority {
 extern bool threads_pthreads_implementation_nptl;
 #endif
 
-// Include early to get threadobject.
+
+/* state for trace java call **************************************************/
+
+#if !defined(NDEBUG)
+#	define TRACEJAVACALLINDENT (THREADOBJECT->tracejavacallindent)
+#	define TRACEJAVACALLCOUNT  (THREADOBJECT->tracejavacallcount)
+#endif
+
+
+/* counter for verbose call filter ********************************************/
+
+#if defined(ENABLE_DEBUG_FILTER)
+#	define FILTERVERBOSECALLCTR (THREADOBJECT->filterverbosecallctr)
+#endif
+
+
+/* native-world flags *********************************************************/
+
+#if defined(ENABLE_GC_CACAO)
+# define THREAD_NATIVEWORLD_ENTER THREADOBJECT->flags |=  THREAD_FLAG_IN_NATIVE
+# define THREAD_NATIVEWORLD_EXIT  THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE
+#else
+# define THREAD_NATIVEWORLD_ENTER /*nop*/
+# define THREAD_NATIVEWORLD_EXIT  /*nop*/
+#endif
+
+
+/* inline functions ***********************************************************/
+
+inline static threadobject* thread_get_current(void);
+
 #if defined(ENABLE_THREADS)
 # include "threads/posix/thread-posix.hpp"
 #else
 # include "threads/none/thread-none.hpp"
 #endif
 
-/* inline functions ***********************************************************/
-
-/* thread_get_current_object **************************************************
-
-   Return the Java object of the current thread.
-   
-   RETURN VALUE:
-       the Java object
-
-*******************************************************************************/
-
-inline static java_handle_t *thread_get_current_object(void)
-{
-	threadobject  *t;
-	java_handle_t *o;
-
-	t = THREADOBJECT;
-	o = LLNI_WRAP(t->object);
-
-	return o;
+/***
+ * Return the java.lang.Thread object for the current thread.
+ */
+inline static java_handle_t *thread_get_current_object(void) {
+	return LLNI_WRAP(thread_get_current()->object);
 }
 
 
@@ -201,6 +310,16 @@ inline static bool thread_current_is_attached(void)
 	return thread_is_attached(t);
 }
 
+inline static struct stackframeinfo_t* threads_get_current_stackframeinfo(void)
+{
+	return THREADOBJECT->_stackframeinfo;
+}
+
+inline static void threads_set_current_stackframeinfo(struct stackframeinfo_t* sfi)
+{
+	THREADOBJECT->_stackframeinfo = sfi;
+}
+
 
 /* function prototypes ********************************************************/
 
@@ -222,6 +341,7 @@ void          thread_fprint_name(threadobject *t, FILE *stream);
 void          thread_print_info(threadobject *t);
 
 intptr_t      threads_get_current_tid(void);
+intptr_t      threads_get_tid(threadobject*);
 
 void          thread_set_state_runnable(threadobject *t);
 void          thread_set_state_waiting(threadobject *t);
@@ -235,6 +355,30 @@ threadobject *thread_get_thread(java_handle_t *h);
 bool          threads_thread_is_alive(threadobject *t);
 bool          thread_is_interrupted(threadobject *t);
 void          thread_set_interrupted(threadobject *t, bool interrupted);
+void          threads_thread_interrupt(threadobject *thread);
+
+
+void threads_start_thread(threadobject *thread, functionptr function);
+
+void threads_set_thread_priority(threadobject *t, int priority);
+
+bool threads_suspend_thread(threadobject *thread, SuspendReason reason);
+bool threads_resume_thread(threadobject *thread, SuspendReason reason);
+void threads_suspend_ack();
+
+void threads_join_all_threads(void);
+
+void threads_sleep(int64_t millis, int32_t nanos);
+
+void threads_wait_with_timeout_relative(threadobject *t, s8 millis, s4 nanos);
+
+void threads_park(bool absolute, int64_t nanos);
+void threads_unpark(threadobject *thread);
+
+#if defined(ENABLE_TLH)
+void threads_tlh_add_frame();
+void threads_tlh_remove_frame();
+#endif
 
 /* implementation specific functions */
 
@@ -252,8 +396,6 @@ void          threads_impl_clear_heap_pointers(threadobject *t);
 void          threads_impl_thread_start(threadobject *thread, functionptr f);
 
 void          threads_yield(void);
-
-#endif /* ENABLE_THREADS */
 
 void          thread_handle_set_priority(java_handle_t *th, int);
 bool          thread_handle_is_interrupted(java_handle_t *th);

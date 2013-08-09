@@ -49,6 +49,7 @@
 #include "vm/options.hpp"
 #include "vm/os.hpp"
 #include "vm/resolve.hpp"
+#include "vm/vm.hpp"
 
 #include "vm/jit/code.hpp"
 #include "vm/jit/codegen-common.hpp"

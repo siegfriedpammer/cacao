@@ -1284,7 +1284,7 @@ jint jni_EnsureLocalCapacity(JNIEnv* env, jint capacity)
 
 	/* get local reference table (thread specific) */
 
-	lrt = LOCALREFTABLE;
+	lrt = THREADOBJECT->_localref_table;
 
 	/* check if capacity elements are available in the local references table */
 
@@ -3674,21 +3674,17 @@ jint _Jv_JNI_DestroyJavaVM(JavaVM *javavm)
 
 static int jni_attach_current_thread(void **p_env, void *thr_args, bool isdaemon)
 {
-#if defined(ENABLE_THREADS)
-	JavaVMAttachArgs *vm_aargs;
-	bool              result;
-
     /* If the current thread has already been attached, this operation
 	   is a no-op. */
 
-	result = thread_current_is_attached();
+	bool result = thread_current_is_attached();
 
 	if (result == true) {
 		*p_env = VM::get_current()->get_jnienv();
 		return JNI_OK;
 	}
 
-	vm_aargs = (JavaVMAttachArgs *) thr_args;
+	JavaVMAttachArgs *vm_aargs = (JavaVMAttachArgs *) thr_args;
 
 	if (vm_aargs != NULL) {
 		if ((vm_aargs->version != JNI_VERSION_1_2) &&
@@ -3701,7 +3697,6 @@ static int jni_attach_current_thread(void **p_env, void *thr_args, bool isdaemon
 
 	if (!localref_table_init())
 		return JNI_ERR;
-#endif
 
 	*p_env = VM::get_current()->get_jnienv();
 
@@ -3743,15 +3738,12 @@ jint jni_AttachCurrentThread(JavaVM *javavm, void **p_env, void *thr_args)
 
 jint jni_DetachCurrentThread(JavaVM *vm)
 {
-#if defined(ENABLE_THREADS)
-	bool result;
-
 	TRACEJNICALLS(("jni_DetachCurrentThread(vm=%p)", vm));
 
     /* If the current thread has already been detached, this operation
 	   is a no-op. */
 
-	result = thread_current_is_attached();
+	bool result = thread_current_is_attached();
 
 	if (result == false)
 		return true;
@@ -3765,7 +3757,6 @@ jint jni_DetachCurrentThread(JavaVM *vm)
 
 	if (!thread_detach_current_external_thread())
 		return JNI_ERR;
-#endif
 
 	return JNI_OK;
 }
@@ -3789,13 +3780,11 @@ jint jni_GetEnv(JavaVM *javavm, void **env, jint version)
 		return JNI_EDETACHED;
 	}
 
-#if defined(ENABLE_THREADS)
 	if (thread_get_current() == NULL) {
 		*env = NULL;
 
 		return JNI_EDETACHED;
 	}
-#endif
 
 	/* Check the JNI version. */
 
@@ -3805,9 +3794,7 @@ jint jni_GetEnv(JavaVM *javavm, void **env, jint version)
 	}
 
 #if defined(ENABLE_JVMTI)
-	if ((version & JVMTI_VERSION_MASK_INTERFACE_TYPE) 
-		== JVMTI_VERSION_INTERFACE_JVMTI) {
-
+	if ((version & JVMTI_VERSION_MASK_INTERFACE_TYPE) == JVMTI_VERSION_INTERFACE_JVMTI) {
 		*env = (void *) jvmti_new_environment();
 
 		if (env != NULL)

@@ -27,15 +27,11 @@
 #define _THREADLIST_HPP
 
 #include "config.h"
-#include <utility>
 #include <stdint.h>
-
+#include "threads/condition.hpp"
 #include "threads/thread.hpp"
-
 #include "toolbox/list.hpp"
-
 #include "vm/global.hpp"
-
 
 /* ThreadList *****************************************************************/
 
@@ -57,16 +53,6 @@ private:
 	static int32_t             _last_index;
 
 	static void                 remove_from_active_thread_list(threadobject* t);
-private:
-	// Comparator class.
-	class comparator : public std::binary_function<threadobject*, int32_t, bool> {
-	public:
-		bool operator() (const threadobject* t, const int32_t index) const
-		{
-			return (t->index == index);
-		}
-	};
-
 public:
 	static Mutex&         mutex() { return _mutex; }
 

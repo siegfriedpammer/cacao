@@ -50,10 +50,9 @@
 
 /* global variables ***********************************************************/
 
-#if defined(ENABLE_THREADS)
 static Mutex     *finalizer_thread_mutex;
 static Condition *finalizer_thread_cond;
-#endif
+
 
 /* finalizer_init **************************************************************
 
@@ -65,10 +64,8 @@ bool finalizer_init(void)
 {
 	TRACESUBSYSTEMINITIALIZATION("finalizer_init");
 
-#if defined(ENABLE_THREADS)
 	finalizer_thread_mutex = new Mutex();
 	finalizer_thread_cond  = new Condition();
-#endif
 
 	/* everything's ok */
 
@@ -84,7 +81,6 @@ bool finalizer_init(void)
 
 *******************************************************************************/
 
-#if defined(ENABLE_THREADS)
 static void finalizer_thread(void)
 {
 	while (true) {
@@ -109,7 +105,6 @@ static void finalizer_thread(void)
 		LOG("[finalizer thread    : status=sleeping]" << cacao::nl);
 	}
 }
-#endif
 
 
 /* finalizer_start_thread ******************************************************
@@ -118,7 +113,6 @@ static void finalizer_thread(void)
 
 *******************************************************************************/
 
-#if defined(ENABLE_THREADS)
 bool finalizer_start_thread(void)
 {
 	Utf8String name = Utf8String::from_utf8("Finalizer");
@@ -130,7 +124,6 @@ bool finalizer_start_thread(void)
 
 	return true;
 }
-#endif
 
 
 /* finalizer_notify ************************************************************

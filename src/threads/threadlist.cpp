@@ -26,8 +26,8 @@
 #include "config.h"
 
 #include <stdint.h>
-
 #include <algorithm>
+#include <functional>
 
 #include "threads/mutex.hpp"
 #include "threads/threadlist.hpp"
@@ -217,6 +217,13 @@ int32_t ThreadList::get_number_of_non_daemon_threads(void)
 	return nondaemons;
 }
 
+// Comparator class.
+class comparator : public std::binary_function<threadobject*, int32_t, bool> {
+public:
+	bool operator() (const threadobject* t, const int32_t index) const {
+		return (t->index == index);
+	}
+};
 
 /**
  * Return the thread object with the given index.

@@ -43,11 +43,6 @@ STAT_REGISTER_GROUP_VAR(int,globalallocateddumpsize,0,"globalallocateddumpsize",
 
 *******************************************************************************/
 
-#if !defined(ENABLE_THREADS)
-static dumpinfo_t _no_threads_dumpinfo;
-#endif
-
-
 /**
  * Allocate a new thread-local dump memory structure.
  */

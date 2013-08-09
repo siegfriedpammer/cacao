@@ -1356,7 +1356,6 @@ void stacktrace_print_current(void)
  * stackframeinfo block. If the thread is not inside the native
  * world, the created stacktrace is not complete!
  */
-#if defined(ENABLE_THREADS)
 stacktrace_t* stacktrace_get_of_thread(threadobject* t)
 {
 	stackframeinfo_t*        sfi;
@@ -1375,7 +1374,6 @@ stacktrace_t* stacktrace_get_of_thread(threadobject* t)
 
 	return st;
 }
-#endif
 
 
 /* stacktrace_print_of_thread **************************************************
@@ -1388,7 +1386,6 @@ stacktrace_t* stacktrace_get_of_thread(threadobject* t)
 
 *******************************************************************************/
 
-#if defined(ENABLE_THREADS)
 void stacktrace_print_of_thread(threadobject *t)
 {
 	stackframeinfo_t *sfi;
@@ -1421,7 +1418,6 @@ void stacktrace_print_of_thread(threadobject *t)
 		stacktrace_print_entry(m, linenumber);
 	}
 }
-#endif
 
 
 /* stacktrace_print_exception **************************************************

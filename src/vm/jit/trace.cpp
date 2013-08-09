@@ -50,14 +50,6 @@
 
 #if !defined(NDEBUG)
 
-/* global variables ***********************************************************/
-
-#if !defined(ENABLE_THREADS)
-s4 _no_threads_tracejavacallindent = 0;
-u4 _no_threads_tracejavacallcount  = 0;
-#endif
-
-
 /* trace_java_call_print_argument **********************************************
 
    XXX: Document me!

@@ -179,7 +179,6 @@ methodinfo *code_get_methodinfo_for_pv(void *pv)
 #if defined(ENABLE_REPLACEMENT)
 int code_get_sync_slot_count(codeinfo *code)
 {
-#ifdef ENABLE_THREADS
 	int count;
 	
 	assert(code);
@@ -198,12 +197,6 @@ int code_get_sync_slot_count(codeinfo *code)
 #endif
 
 	return count;
-
-#else /* !ENABLE_THREADS */
-	
-	return 0;
-
-#endif /* ENABLE_THREADS */
 }
 #endif /* defined(ENABLE_REPLACEMENT) */
 

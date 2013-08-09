@@ -26,6 +26,10 @@
 #ifndef THREAD_NONE_HPP_
 #define THREAD_NONE_HPP_ 1
 
+#ifndef THREAD_HPP_
+# error "Do not directly include this header, include threads/thread.hpp instead"
+#endif
+
 #include "config.h"
 
 #include <stdint.h>
@@ -38,62 +42,27 @@
 #include "vm/jit/stacktrace.hpp"
 
 
-/* define some stuff we need to no-ops ****************************************/
-
-#define THREADOBJECT      NULL
-
-#define threadobject      void
-
-
-/* native-world flags *********************************************************/
-
-#define THREAD_NATIVEWORLD_ENTER /*nop*/
-#define THREAD_NATIVEWORLD_EXIT  /*nop*/
-
-
-#if defined(ENABLE_DEBUG_FILTER)
-extern u2 _no_threads_filterverbosecallctr[2];
-#define FILTERVERBOSECALLCTR (_no_threads_filterverbosecallctr)
-#endif
-
-/* state for trace java call **************************************************/
-
-#if !defined(NDEBUG)
-extern s4 _no_threads_tracejavacallindent;
-#define TRACEJAVACALLINDENT (_no_threads_tracejavacallindent)
-
-extern u4 _no_threads_tracejavacallcount;
-#define TRACEJAVACALLCOUNT (_no_threads_tracejavacallcount)
-#endif
-
-
 /* global variables ***********************************************************/
 
-extern stackframeinfo_t *_no_threads_stackframeinfo;
+#define THREADOBJECT thread_current
 
+extern threadobject *thread_current;
 
 /* inline functions ***********************************************************/
 
-inline static java_handle_t *thread_get_current_object(void)
-{
-	java_handle_t *o;
-
-	/* We return a fake java.lang.Thread object, otherwise we get
-	   NullPointerException's in GNU Classpath. */
-
-	o = builtin_new(class_java_lang_Thread);
-
-	return o;
+/**
+ * Return the threadobject for the current thread.
+ */
+inline static threadobject* thread_get_current() {
+   return thread_current;
 }
 
-inline static stackframeinfo_t *threads_get_current_stackframeinfo(void)
+/**
+ * Set the threadobject for the current thread.
+ */
+inline static void thread_set_current(threadobject* t)
 {
-	return _no_threads_stackframeinfo;
-}
-
-inline static void threads_set_current_stackframeinfo(stackframeinfo_t *sfi)
-{
-	_no_threads_stackframeinfo = sfi;
+   thread_current = t;
 }
 
 #endif // THREAD_NONE_HPP_

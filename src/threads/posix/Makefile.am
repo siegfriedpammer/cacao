@@ -29,9 +29,10 @@ noinst_LTLIBRARIES = \
 	libthreadsposix.la
 
 libthreadsposix_la_SOURCES = \
-	condition-posix.hpp \
-	mutex-posix.hpp \
-	thread-posix.cpp \
+	condition-posix.hpp      \
+	mutex-posix.hpp          \
+	threadobject.hpp         \
+	thread-posix.cpp         \
 	thread-posix.hpp
 
 

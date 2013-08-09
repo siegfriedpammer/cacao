@@ -44,6 +44,8 @@
 #include "vm/jit/argument.hpp"
 
 
+#define LOCALREFTABLE    (THREADOBJECT->_localref_table)
+
 /* debug **********************************************************************/
 
 #if !defined(NDEBUG)
@@ -62,14 +64,6 @@
 #else
 # define DEBUGLOCALREF(message, index)
 #endif
-
-
-/* global variables ***********************************************************/
-
-#if !defined(ENABLE_THREADS)
-localref_table *_no_threads_localref_table;
-#endif
-
 
 /* some forward declarations **************************************************/
 

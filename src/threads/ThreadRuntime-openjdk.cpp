@@ -30,6 +30,7 @@
 #include "vm/global.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/exceptions.hpp"
+#include "vm/vm.hpp"
 
 using namespace cacao;
 

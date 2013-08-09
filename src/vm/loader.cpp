@@ -124,7 +124,6 @@ void loader_preinit(void)
 {
 	TRACESUBSYSTEMINITIALIZATION("loader_preinit");
 
-#if defined(ENABLE_THREADS)
 	// Get current list of classpath entries.
 	SuckClasspath& suckclasspath = VM::get_current()->get_suckclasspath();
 
@@ -136,7 +135,6 @@ void loader_preinit(void)
 		if (lce->type == CLASSPATH_ARCHIVE)
 			lce->mutex = new Mutex();
 	}
-#endif
 
 	/* initialize classloader hashtable, 10 entries should be enough */
 

@@ -372,13 +372,7 @@ OStream& OStream::operator<<(const Flush&) {
 }
 
 OStream& OStream::operator<<(const ThreadId&) {
-#ifdef ENABLE_THREADS
-	ptrint tid = threads_get_current_tid();
-
-	return (*this) << "[" << hex << setw(16) << fillzero << tid << dec << "]";
-#else
-	return (*this) << "[thread-id]";
-#endif
+	return (*this) << "[" << hex << setw(16) << fillzero << threads_get_current_tid() << dec << "]";
 }
 
 OStream& OStream::operator<<(Color c) {

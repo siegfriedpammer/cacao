@@ -29,8 +29,10 @@ noinst_LTLIBRARIES = \
 	libthreadsnone.la
 
 libthreadsnone_la_SOURCES = \
-	lock.hpp \
-	thread-none.cpp \
+	condition-none.hpp      \
+	mutex-none.hpp          \
+	threadobject.hpp        \
+	thread-none.cpp         \
 	thread-none.hpp
 
 

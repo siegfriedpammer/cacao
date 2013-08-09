@@ -30,7 +30,7 @@
 #include <assert.h>                     // for assert
 #include <stdint.h>                     // for int32_t, int8_t, int16_t, etc
 #include <stdio.h>                      // for NULL, printf
-#include "config.h"                     // for ENABLE_THREADS
+#include "config.h"
 #include "linker.hpp"                   // for arraydescriptor
 #include "mm/gc.hpp"                    // for GCCriticalSection, etc
 #include "native/llni.hpp"              // for LLNI_vftbl_direct
@@ -162,9 +162,7 @@ inline Array::Array(int32_t size, classinfo* arrayclass)
 
 	LLNI_vftbl_direct(a) = arrayclass->vftbl;
 
-#if defined(ENABLE_THREADS)
 	Lockword(a->objheader.lockword).init();
-#endif
 
 	a->size = size;
 

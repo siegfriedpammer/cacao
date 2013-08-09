@@ -1,7 +1,8 @@
-/* src/threads/condition.hpp - condition variable
+/* src/threads/NONE/mutex-none.hpp - dummy mutual exclusion functions
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2008 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -23,18 +24,19 @@
 */
 
 
-#ifndef _CONDITION_HPP
-#define _CONDITION_HPP
+#ifndef _MUTEX_NONE_HPP
+#define _MUTEX_NONE_HPP
 
-#include "config.h"
+/**
+ * Dummy implementation of a mutex.
+ */
+class Mutex {
+public:
+	void lock() {}
+	void unlock() {}
+};
 
-#if defined(ENABLE_THREADS)
-# include "threads/posix/condition-posix.hpp"
-#else
-# include "threads/none/condition-none.hpp"
-#endif
-
-#endif /* _CONDITION_HPP */
+#endif /* _MUTEX_NONE_HPP */
 
 
 /*

@@ -1,6 +1,6 @@
-/* src/threads/condition.hpp - condition variable
+/* src/threads/posix/threadobject.hpp - POSIX thread data structure
 
-   Copyright (C) 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,19 +23,39 @@
 */
 
 
-#ifndef _CONDITION_HPP
-#define _CONDITION_HPP
+#ifndef THREADOBJECT_POSIX_HPP_
+#define THREADOBJECT_POSIX_HPP_ 1
+
+#ifndef THREAD_HPP_
+# error "Do not directly include this header, include threads/thread.hpp instead"
+#endif
 
 #include "config.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/posix/condition-posix.hpp"
-#else
-# include "threads/none/condition-none.hpp"
+#include <pthread.h>
+#include <ucontext.h>
+
+/* threadobject ****************************************************************
+
+   Struct holding thread local variables.
+
+*******************************************************************************/
+
+namespace cacao {
+namespace detail {
+
+struct threadobject {
+	pthread_t             tid;          /* pthread id                         */
+
+#ifdef __DARWIN__
+	mach_port_t           mach_thread;       /* Darwin thread id              */
 #endif
+};
 
-#endif /* _CONDITION_HPP */
+} // end namespace detail
+} // end namespace cacao
 
+#endif // THREADOBJECT_POSIX_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -73,7 +73,7 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_setPriority0(JNIEnv *env, jobject _
 	if (t == NULL)
 		return;
 
-	threads_set_thread_priority(t->tid, newPriority);
+	threads_set_thread_priority(t, newPriority);
 #endif
 }
 

@@ -37,12 +37,11 @@
 #include <sys/time.h>                   // for timeval, gettimeofday
 #include <sys/types.h>                  // for int32_t, int64_t
 #include <time.h>                       // for timespec
-#include "condition-posix.hpp"          // for Condition
 #include "config.h"                     // for ENABLE_GC_BOEHM, etc
-#include "mutex-posix.hpp"              // for Mutex
 #include "native/llni.hpp"              // for LLNI_class_get, LLNI_WRAP
+#include "threads/condition.hpp"        // for Condition
 #include "threads/lock.hpp"             // for lock_monitor_enter, etc
-#include "threads/mutex.hpp"            // for MutexLocker
+#include "threads/mutex.hpp"            // for Mutex
 #include "threads/thread.hpp"           // for DEBUGTHREADS, etc
 #include "threads/threadlist.hpp"       // for ThreadList
 #include "threads/ThreadRuntime.hpp"    // for ThreadRuntime
@@ -156,6 +155,7 @@ typedef struct {
 /* prototypes *****************************************************************/
 
 static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos);
+static void threads_set_thread_priority(pthread_t tid, int priority);
 
 
 /******************************************************************************/
@@ -431,10 +431,10 @@ void threads_impl_thread_clear(threadobject *t)
 	t->state             = THREAD_STATE_NEW;
 	t->is_in_active_list = false;
 
-	t->tid = 0;
+	t->impl.tid = 0;
 
 #if defined(__DARWIN__)
-	t->mach_thread = 0;
+	t->impl.mach_thread = 0;
 #endif
 
 	t->interrupted = false;
@@ -477,35 +477,12 @@ void threads_impl_thread_reuse(threadobject *t)
 {
 	/* get the pthread id */
 
-	t->tid = pthread_self();
-
-#if defined(ENABLE_DEBUG_FILTER)
-	/* Initialize filter counters */
-	t->filterverbosecallctr[0] = 0;
-	t->filterverbosecallctr[1] = 0;
-#endif
-
-#if !defined(NDEBUG)
-	t->tracejavacallindent = 0;
-	t->tracejavacallcount = 0;
-#endif
-
-	t->flc_bit = false;
-	t->flc_next = NULL;
-	t->flc_list = NULL;
-
-/* 	not really needed */
-	t->flc_object = NULL;
-
-#if defined(ENABLE_TLH)
-	tlh_destroy(&(t->tlh));
-	tlh_init(&(t->tlh));
-#endif
+	t->impl.tid = pthread_self();
 }
 
 void threads_impl_clear_heap_pointers(threadobject *t)
 {
-	t->object = 0;
+	t->object     = 0;
 	t->flc_object = 0;
 }
 
@@ -691,7 +668,7 @@ static void *threads_startup_thread(void *arg)
 
 	/* set our priority */
 
-	threads_set_thread_priority(t->tid, jlt.get_priority());
+	threads_set_thread_priority(t->impl.tid, jlt.get_priority());
 
 	/* tell threads_startup_thread that we registered ourselves */
 	/* CAUTION: *startup becomes invalid with this!             */
@@ -798,7 +775,7 @@ void threads_impl_thread_start(threadobject *thread, functionptr f)
 
 	/* create the thread */
 
-	result = pthread_create(&(thread->tid), &attr, threads_startup_thread, &startup);
+	result = pthread_create(&(thread->impl.tid), &attr, threads_startup_thread, &startup);
 
 	if (result != 0)
 		os::abort_errnum(result, "threads_impl_thread_start: pthread_create failed");
@@ -835,7 +812,13 @@ void threads_impl_thread_start(threadobject *thread, functionptr f)
 
 ******************************************************************************/
 
-void threads_set_thread_priority(pthread_t tid, int priority)
+void threads_set_thread_priority(threadobject *t, int priority)
+{
+	threads_set_thread_priority(t->impl.tid, priority);
+}
+
+
+static void threads_set_thread_priority(pthread_t tid, int priority)
 {
 	struct sched_param schedp;
 	int policy;
@@ -953,7 +936,7 @@ bool thread_detach_current_thread(void)
 	(void) lock_monitor_exit(jlt.get_handle());
 
 	t->waitmutex->lock();
-	t->tid = 0;
+	t->impl.tid = 0;
 	t->waitmutex->unlock();
 
 	{
@@ -1056,9 +1039,9 @@ bool threads_suspend_thread(threadobject *thread, SuspendReason reason)
 	}
 	else {
 		// Send the suspend signal to the other thread.
-		if (!thread->tid)
+		if (!thread->impl.tid)
 			return false;
-		if (pthread_kill(thread->tid, SIGUSR1) != 0)
+		if (pthread_kill(thread->impl.tid, SIGUSR1) != 0)
 			os::abort_errno("threads_suspend_thread: pthread_kill failed");
 
 		// Wait for the thread to acknowledge the suspension.
@@ -1350,8 +1333,8 @@ void threads_thread_interrupt(threadobject *t)
 
 	/* Interrupt blocking system call using a signal. */
 
-	if (t->tid)
-		pthread_kill(t->tid, Signal_INTERRUPT_SYSTEM_CALL);
+	if (t->impl.tid)
+		pthread_kill(t->impl.tid, Signal_INTERRUPT_SYSTEM_CALL);
 
 	t->waitcond->signal();
 
@@ -1374,7 +1357,7 @@ void threads_sleep(int64_t millis, int32_t nanos)
 	bool             interrupted;
 
 	if (millis < 0) {
-/* 		exceptions_throw_illegalargumentexception("timeout value is negative"); */
+/* 		exceptions_throw_illegalargumentexception(); */
 		exceptions_throw_illegalargumentexception();
 		return;
 	}
@@ -1471,17 +1454,13 @@ void threads_yield(void)
 	sched_yield();
 }
 
-#if defined(ENABLE_TLH)
 
-void threads_tlh_add_frame() {
-	tlh_add_frame(&(THREADOBJECT->tlh));
+/***
+ * Return the tid of a thread.
+ */
+intptr_t threads_get_tid(threadobject *t) {
+	return t->impl.tid;
 }
-
-void threads_tlh_remove_frame() {
-	tlh_remove_frame(&(THREADOBJECT->tlh));
-}
-
-#endif
 
 
 /*

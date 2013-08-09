@@ -75,7 +75,6 @@ static s4 runs = 0;
 static s4 hits = 0;
 static s4 misses = 0;
 
-#if defined(ENABLE_THREADS)
 static void profile_thread(void)
 {
 	s4            nanos;
@@ -111,7 +110,7 @@ static void profile_thread(void)
 			/* send SIGUSR2 to thread to get the current PC */
 			/* XXX write a threads-function for that */
 
-			pthread_kill(t->tid, SIGUSR2);
+			pthread_kill(t->impl.tid, SIGUSR2);
 
 			/* the thread object now contains the current thread PC */
 
@@ -164,8 +163,6 @@ static void profile_thread(void)
 #endif
 	}
 }
-#endif
-
 
 /* profile_start_thread ********************************************************
 
@@ -173,7 +170,6 @@ static void profile_thread(void)
 
 *******************************************************************************/
 
-#if defined(ENABLE_THREADS)
 bool profile_start_thread(void)
 {
 	Utf8String name = Utf8String::from_utf8("Profiling Sampler");
@@ -185,7 +181,6 @@ bool profile_start_thread(void)
 
 	return true;
 }
-#endif
 
 
 /**

@@ -212,13 +212,9 @@ void classcache_print_statistics(FILE *file) {
 	/*          NOT synchronized!              */
 	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
-#if defined(ENABLE_THREADS)
-# define CLASSCACHE_LOCK()      classcache_hashtable_mutex->lock();
-# define CLASSCACHE_UNLOCK()    classcache_hashtable_mutex->unlock();
-#else
-# define CLASSCACHE_LOCK()
-# define CLASSCACHE_UNLOCK()
-#endif
+#define CLASSCACHE_LOCK()      classcache_hashtable_mutex->lock();
+#define CLASSCACHE_UNLOCK()    classcache_hashtable_mutex->unlock();
+
 
 /*============================================================================*/
 /* GLOBAL VARIABLES                                                           */
@@ -226,9 +222,7 @@ void classcache_print_statistics(FILE *file) {
 
 hashtable hashtable_classcache;
 
-#if defined(ENABLE_THREADS)
 static Mutex *classcache_hashtable_mutex;
-#endif
 
 
 /*============================================================================*/
@@ -258,11 +252,9 @@ bool classcache_init(void)
 
 	hashtable_create(&hashtable_classcache, CLASSCACHE_INIT_SIZE);
 
-#if defined(ENABLE_THREADS)
 	/* create utf hashtable mutex */
 
 	classcache_hashtable_mutex = new Mutex();
-#endif
 
 	/* everything's ok */
 

@@ -2341,7 +2341,7 @@ void JVM_SetThreadPriority(JNIEnv* env, jobject jthread, jint prio)
 	if (t == NULL)
 		return;
 
-	threads_set_thread_priority(t->tid, prio);
+	threads_set_thread_priority(t, prio);
 }
 
 

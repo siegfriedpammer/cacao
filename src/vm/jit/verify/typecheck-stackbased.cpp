@@ -27,6 +27,7 @@
 
 #include <assert.h>
 
+#include "vm/method.hpp"
 #include "vm/types.hpp"
 
 #include "vm/jit/builtin.hpp"

@@ -1,4 +1,4 @@
-/* src/threads/none/lock.hpp - fake lock implementation
+/* src/threads/none/threadobject.hpp - Dummy thread data structure
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,16 +23,23 @@
 */
 
 
-#ifndef LOCK_HPP_
-#define LOCK_HPP_ 1
+#ifndef THREADOBJECT_NONE_HPP_
+#define THREADOBJECT_NONE_HPP_ 1
 
-/* define some stuff to no-ops *************************************************/
+#ifndef THREAD_HPP_
+# error "Do not directly include this header, include threads/thread.hpp instead"
+#endif
 
-#define LOCK_MONITOR_ENTER(o)
-#define LOCK_MONITOR_EXIT(o)
+namespace cacao {
+namespace detail {
 
-#endif // _LOCK_HPP_
+struct threadobject {
+};
 
+} // end namespace detail
+} // end namespace cacao
+
+#endif // THREADOBJECT_NONE_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.

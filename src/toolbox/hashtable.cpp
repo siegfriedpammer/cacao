@@ -41,13 +41,11 @@ void hashtable_create(hashtable *hash, u4 size)
 {
 	/* initialize locking pointer */
 
-#if defined(ENABLE_THREADS)
 	/* We need to seperately allocate a mutex here, as we need to
 	   store the lock object in the new hashtable if it's resized.
 	   Otherwise we get an IllegalMonitorStateException. */
 
 	hash->mutex   = new Mutex();
-#endif
 
 	/* set initial hash values */
 
@@ -76,14 +74,12 @@ hashtable *hashtable_resize(hashtable *hash, u4 size)
 
 	hashtable_create(newhash, size);
 
-#if defined(ENABLE_THREADS)
 	/* We need to store the old lock object in the new hashtable.
 	   Otherwise we get an IllegalMonitorStateException. */
 
 	delete newhash->mutex;
 
-	newhash->mutex   = hash->mutex;
-#endif
+	newhash->mutex = hash->mutex;
 
 	/* store the number of entries in the new hashtable */
 

@@ -90,14 +90,8 @@ void lock_schedule_lockrecord_removal(java_handle_t *o);
 
 /* defines ********************************************************************/
 
-/* only define the following stuff with thread enabled ************************/
-
-#if defined(ENABLE_THREADS)
-
 #define LOCK_MONITOR_ENTER(o)    lock_monitor_enter((java_handle_t *) LLNI_QUICKWRAP(o))
 #define LOCK_MONITOR_EXIT(o)     lock_monitor_exit((java_handle_t *) LLNI_QUICKWRAP(o))
-
-#endif
 
 #endif // LOCK_HPP_
 

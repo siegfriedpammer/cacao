@@ -28,7 +28,7 @@
 #include <cstring>
 #include <cstdio>                       // for fprintf, printf, putc, etc
 #include <cstdarg>                      // for va_list
-#include "config.h"                     // for ENABLE_THREADS, etc
+#include "config.h"
 #include "md-abi.hpp"
 #include "jit/code.hpp"                 // for codeinfo, etc
 #include "native/llni.hpp"
@@ -62,12 +62,6 @@
 
 #define DEBUG_NAME "exceptions"
 
-/* for raising exceptions from native methods *********************************/
-
-#if !defined(ENABLE_THREADS)
-java_object_t *_no_threads_exceptionptr = NULL;
-#endif
-
 /***
  * Get the the name of a classinfo* for an exception message
  */
@@ -81,25 +75,14 @@ static inline Utf8String get_classname_for_exception(classinfo *c);
 
 java_handle_t *exceptions_get_exception(void)
 {
-	java_object_t *o;
-	java_handle_t *e;
-#if defined(ENABLE_THREADS)
-	threadobject  *t;
-
-	t = THREADOBJECT;
-#endif
+	threadobject *t = THREADOBJECT;
 
 	/* Get the exception. */
 
 	LLNI_CRITICAL_START;
 
-#if defined(ENABLE_THREADS)
-	o = t->_exceptionptr;
-#else
-	o = _no_threads_exceptionptr;
-#endif
-
-	e = LLNI_WRAP(o);
+	java_object_t *o = t->_exceptionptr;
+	java_handle_t *e = LLNI_WRAP(o);
 
 	LLNI_CRITICAL_END;
 
@@ -117,30 +100,19 @@ java_handle_t *exceptions_get_exception(void)
 
 void exceptions_set_exception(java_handle_t *e)
 {
-	threadobject  *t;
-	java_object_t *o;
-
-#if defined(ENABLE_THREADS)
-	t = THREADOBJECT;
-#else
-	t = NULL;
-#endif
+	threadobject *t = THREADOBJECT;
 
 	/* Set the exception. */
 
 	LLNI_CRITICAL_START;
 
-	o = LLNI_UNWRAP(e);
+	java_object_t *o = LLNI_UNWRAP(e);
 
 	LOG("[exceptions_set_exception  : t=" << (void *) t
 	    << ", o=" << (void *) o
 	    << ", class=" << o->vftbl->clazz << "]" << cacao::nl);
 
-#if defined(ENABLE_THREADS)
 	t->_exceptionptr = o;
-#else
-	_no_threads_exceptionptr = o;
-#endif
 
 	LLNI_CRITICAL_END;
 }
@@ -154,23 +126,13 @@ void exceptions_set_exception(java_handle_t *e)
 
 void exceptions_clear_exception(void)
 {
-	threadobject *t;
-
-#if defined(ENABLE_THREADS)
-	t = THREADOBJECT;
-#else
-	t = NULL;
-#endif
+	threadobject *t = THREADOBJECT;
 
 	/* Set the exception. */
 
 	LOG("[exceptions_clear_exception: t=" << (void *) t << cacao::nl);
 
-#if defined(ENABLE_THREADS)
 	t->_exceptionptr = NULL;
-#else
-	_no_threads_exceptionptr = NULL;
-#endif
 }
 
 
@@ -1470,9 +1432,6 @@ extern "C" void *exceptions_handle_exception(java_object_t *xptro, void *xpc, vo
 	s4                      i;
 	classref_or_classinfo   cr;
 	classinfo              *c;
-#if defined(ENABLE_THREADS)
-	java_object_t          *o;
-#endif
 	void                   *result;
 
 #ifdef __S390__
@@ -1607,19 +1566,17 @@ extern "C" void *exceptions_handle_exception(java_object_t *xptro, void *xpc, vo
 	}
 	}
 
-#if defined(ENABLE_THREADS)
 	/* Is this method realization synchronized? */
 
 	if (code_is_synchronized(code)) {
 		/* Get synchronization object. */
 
-		o = *((java_object_t **) (((uintptr_t) sp) + code->synchronizedoffset));
+		java_object_t *o = *((java_object_t **) (((uintptr_t) sp) + code->synchronizedoffset));
 
 		assert(o != NULL);
 
 		lock_monitor_exit(LLNI_QUICKWRAP(o));
 	}
-#endif
 
 	/* none of the exceptions catch this one */
 
@@ -1751,11 +1708,6 @@ void exceptions_print_stacktrace(void)
 	classinfo        *c;
 	methodinfo       *m;
 
-#if defined(ENABLE_THREADS)
-	threadobject     *t;
-	java_lang_Thread *to;
-#endif
-
 	/* Get and clear exception because we are calling Java code
 	   again. */
 
@@ -1791,19 +1743,17 @@ void exceptions_print_stacktrace(void)
 
 		fprintf(stderr, "Exception ");
 
-#if defined(ENABLE_THREADS)
 		/* Print thread name.  We get the thread here explicitly as we
 		   need it afterwards. */
 
-		t  = thread_get_current();
-		to = (java_lang_Thread *) LLNI_WRAP(t->object);
+		threadobject     *t  = thread_get_current();
+		java_lang_Thread *to = (java_lang_Thread *) LLNI_WRAP(t->object);
 
 		if (to != NULL) {
 			fprintf(stderr, "in thread \"");
 			thread_fprint_name(t, stderr);
 			fprintf(stderr, "\" ");
 		}
-#endif
 
 		/* Print the stacktrace. */
 

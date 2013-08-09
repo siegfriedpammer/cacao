@@ -28,7 +28,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <cassert>
+#include <inttypes.h>
 
+#include "vm/method.hpp"
 #include "vm/types.hpp"
 
 #include "threads/thread.hpp"
@@ -103,19 +105,7 @@ FILE* log_get_logfile()
 
 void log_start(void)
 {
-	FILE* log = get_log();
-
-#if defined(ENABLE_THREADS)
-	ptrint tid = threads_get_current_tid();
-
-# if SIZEOF_VOID_P == 8
-	fprintf(log, "LOG: [0x%016lx] ", tid);
-# else
-	fprintf(log, "LOG: [0x%08x] ", tid);
-# endif
-#else
-	fputs("LOG: ", log);
-#endif
+	fprintf(get_log(), "LOG: [0x%"PRIxPTR"] ", threads_get_current_tid());
 }
 
 /* log_finish ******************************************************************

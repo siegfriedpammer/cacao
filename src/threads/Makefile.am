@@ -58,12 +58,11 @@ endif
 noinst_LTLIBRARIES = \
 	libthreads.la
 
-if ENABLE_THREADS
 libthreads_la_SOURCES = \
 	atomic.cpp \
 	atomic.hpp \
 	condition.hpp \
-	lock.cpp \
+	lock.cpp                \
 	lock.hpp \
 	lockword.cpp \
 	lockword.hpp \
@@ -75,9 +74,6 @@ libthreads_la_SOURCES = \
 	$(THREAD_RUNTIME_SOURCES) \
 	thread.cpp \
 	thread.hpp
-else
-libthreads_la_SOURCES =
-endif
 
 libthreads_la_LIBADD = \
 	$(THREAD_LIB)
