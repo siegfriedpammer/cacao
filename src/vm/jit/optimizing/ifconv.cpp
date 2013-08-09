@@ -125,14 +125,14 @@ bool ifconv_static(jitdata *jd)
 	instruction *iptr;
 	instruction *tiptr;
 	s4           bcount;
-	s4           icount;
-	s4          *pattern;
-	s4           patternsize;
+	s4           icount = 0;
+	s4          *pattern = NULL;
+	s4           patternsize = 0;
 	s4          *p;
 	ICMD         opcode;
 	u2           condition;
 	//u2           complement;
-	s4           i;
+	s4           i = 0;
 	s4           j;
 
 	/* get required compiler data */
