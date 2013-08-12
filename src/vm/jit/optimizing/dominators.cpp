@@ -38,7 +38,6 @@
 #include "vm/jit/optimizing/dominators.hpp"
 
 #include "vm/jit/show.hpp"
-#include "vm/jit/python.h"
 
 #if !defined(NDEBUG)
 /* # define DOM_DEBUG_CHECK */

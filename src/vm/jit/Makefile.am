@@ -208,17 +208,6 @@ libjit_la_LIBADD = \
 	$(INTRP_LIB) \
 	$(ARCH_LIB)
 
-if ENABLE_PYTHON
-libjit_la_SOURCES += \
-	python.c \
-	python.h
-AM_CPPFLAGS += \
-	@PYTHON_CSPEC@
-LIBS += \
-	@PYTHON_LSPEC@
-endif
-
-
 ## Local variables:
 ## mode: Makefile
 ## indent-tabs-mode: t

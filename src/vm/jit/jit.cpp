@@ -48,7 +48,6 @@
 #include "vm/jit/optimizing/ifconv.hpp"    // for ifconv_static
 #include "vm/jit/optimizing/reorder.hpp"
 #include "vm/jit/parse.hpp"                // for parse
-#include "vm/jit/python.h"
 #include "vm/jit/reg.hpp"                  // for reg_setup, registerdata
 #include "vm/jit/replace.hpp"              // for replace_activate_replacement_points
 #include "vm/jit/show.hpp"                 // for show_filters_apply, etc

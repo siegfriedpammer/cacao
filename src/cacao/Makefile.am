@@ -71,11 +71,6 @@ if ENABLE_RT_TIMING
 cacao_LDFLAGS += -lrt
 endif
 
-if ENABLE_PYTHON
-cacao_LDFLAGS += \
-    @PYTHON_LSPEC@
-endif
-
 libjvm_la_SOURCES =
 
 # Dummy C++ source to cause C++ linking.
