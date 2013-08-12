@@ -156,10 +156,6 @@ void lock_init(void)
 	/* initialize lock hashtable */
 
 	lock_hashtable_init();
-
-#if defined(ENABLE_VMLOG)
-	vmlog_cacao_init_lock();
-#endif
 }
 
 

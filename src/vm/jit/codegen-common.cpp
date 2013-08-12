@@ -103,9 +103,6 @@
 #include "vm/jit/intrp/intrp.h"
 #endif
 
-#if defined(ENABLE_VMLOG)
-#include <vmlog_cacao.h>
-#endif
 
 STAT_REGISTER_VAR(int,count_branches_unresolved,0,"unresolved branches","unresolved branches")
 STAT_DECLARE_GROUP(function_call_stat)

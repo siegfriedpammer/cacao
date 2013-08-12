@@ -69,10 +69,6 @@
 #define REPLACE_PATCH_DYNAMIC_CALL
 /*#define REPLACE_PATCH_ALL*/
 
-#if defined(ENABLE_VMLOG)
-#include <vmlog_cacao.h>
-#endif
-
 
 /*** debugging ****************************************************************/
 
@@ -2390,10 +2386,6 @@ sourcestate_t *replace_recover_source_state(rplpoint *rp,
 
 		replace_read_executionstate(rp, es, ss, ss->frames == NULL);
 
-#if defined(ENABLE_VMLOG)
-		vmlog_cacao_unrol_method(ss->frames->method);
-#endif
-
 #if defined(REPLACE_STATISTICS)
 		REPLACE_COUNT(stat_frames);
 		depth++;
@@ -2661,10 +2653,6 @@ static void replace_build_execution_state(sourcestate_t *ss,
 
 		es->code = ss->frames->tocode;
 		prevframe = ss->frames;
-
-#if defined(ENABLE_VMLOG)
-		vmlog_cacao_rerol_method(ss->frames->method);
-#endif
 
 		replace_write_executionstate(rp, es, ss, ss->frames->down == NULL);
 

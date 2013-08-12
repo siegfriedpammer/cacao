@@ -77,10 +77,6 @@
 #include "vm/jit/stubs.hpp"
 #include "vm/jit/trace.hpp"
 
-#if defined(ENABLE_VMLOG)
-#include <vmlog_cacao.h>
-#endif
-
 
 /* include builtin tables *****************************************************/
 
@@ -2202,12 +2198,6 @@ void builtin_print_cycles_stats(FILE *file)
 	fprintf(file,"\n");
 }
 #endif /* defined(ENABLE_CYCLES_STATS) */
-
-
-#if defined(ENABLE_VMLOG)
-#define NDEBUG
-#include <vmlog_cacao.c>
-#endif
 
 
 /*

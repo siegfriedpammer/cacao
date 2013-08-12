@@ -485,7 +485,6 @@ fi
 AC_CHECK_ENABLE_DUMP
 AC_CHECK_ENABLE_MEMCHECK
 AC_CHECK_ENABLE_HANDLES
-AC_CHECK_ENABLE_VMLOG
 AC_CHECK_ENABLE_LOGGING
 AC_CHECK_ENABLE_DISASSEMBLER
 AC_CHECK_ENABLE_STATISTICS
@@ -697,11 +696,6 @@ AC_CHECK_HEADERS(
 		if test x"${NDEBUG}" = "xno"; then
 			AC_DEFINE(ENABLE_DEBUG_FILTER, 1, [debug filter])
 		fi
-		dnl If vmlog enambled and regex.h available, enable vmlogfilter
-		AM_CONDITIONAL([ENABLE_VMLOGFILTER], [test x"${ENABLE_VMLOG}" = "xyes"])
-	],
-	[
-		AM_CONDITIONAL([ENABLE_VMLOGFILTER], [false])
 	]
 )
 
@@ -739,8 +733,6 @@ AC_CONFIG_FILES([Makefile]
 		[contrib/Makefile]
 		[contrib/setenvinstalled]
 		[contrib/setenvsource]
-		[contrib/vmlog/Makefile]
-		[contrib/vmlog/t/Makefile]
 		[doc/Makefile]
 		[doc/doxygen/Makefile]
 		[doc/doxygen/Doxyfile]

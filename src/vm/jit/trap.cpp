@@ -215,10 +215,6 @@ void trap_handle(int sig, void *xpc, void *context)
 		log_println("[trap_handle: sig=%d, type=%d, val=%p, pv=%p, sp=%p, ra=%p, xpc=%p]", sig, type, val, pv, sp, ra, xpc);
 #endif
 
-#if defined(ENABLE_VMLOG)
-	vmlog_cacao_signl_type(type);
-#endif
-
 	/* Fill and add a stackframeinfo. */
 
 	stacktrace_stackframeinfo_add(&sfi, pv, sp, ra, xpc);
