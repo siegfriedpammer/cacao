@@ -252,7 +252,7 @@ patchref_t *patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s
 
 	STATISTICS(size_patchref += sizeof(patchref_t));
 
-#if defined(ENABLE_JIT) && (defined(__I386__) || defined(__M68K__) || defined(__SPARC_64__) || defined(__X86_64__))
+#if defined(ENABLE_JIT) && (defined(__I386__) || defined(__SPARC_64__) || defined(__X86_64__))
 
 	/* XXX We can remove that when we don't use UD2 anymore on i386
 	   and x86_64. */

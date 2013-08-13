@@ -86,7 +86,7 @@ extern disassemble_info info;
 extern bool disass_initialized;
 #endif
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__S390__) || defined(__M68K__)
+#if defined(__I386__) || defined(__X86_64__) || defined(__S390__)
 extern char disass_buf[512];
 extern s4   disass_len;
 #endif

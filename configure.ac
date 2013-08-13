@@ -76,12 +76,6 @@ i386 | i486 | i586 | i686 )
     JAVA_ARCH="i386"
     ;;
 
-m68k )
-    ARCH_DIR="m68k"
-    ARCH_FLAGS="-D__M68K__"
-    JAVA_ARCH="m68k"
-    ;;
-
 mips )
     ARCH_DIR="mips"
     ARCH_FLAGS="-D__MIPS__"
@@ -769,8 +763,6 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/inline/Makefile]
 		[src/vm/jit/ir/Makefile]
 		[src/vm/jit/loop/Makefile]
-		[src/vm/jit/m68k/Makefile]
-		[src/vm/jit/m68k/linux/Makefile]
 		[src/vm/jit/mips/Makefile]
 		[src/vm/jit/mips/irix/Makefile]
 		[src/vm/jit/mips/linux/Makefile]

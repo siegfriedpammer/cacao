@@ -38,7 +38,6 @@ DIST_SUBDIRS = \
 	alpha \
 	arm \
 	i386 \
-	m68k \
 	mips \
 	parisc \
 	powerpc \
