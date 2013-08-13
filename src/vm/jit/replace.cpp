@@ -948,11 +948,6 @@ static void replace_read_value(executionstate_t *es,
 			if (ra->type == TYPE_FLT)
 				javaval->f = javaval->d;
 		}
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-		else if (IS_ADR_TYPE(ra->type)) {
-			javaval->p = es->adrregs[ra->regoff];
-		}
-#endif
 		else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 			if (ra->type == TYPE_LNG) {
@@ -1009,10 +1004,6 @@ static void replace_write_value(executionstate_t *es,
 				es->intregs[GET_LOW_REG(ra->regoff)] = javaval->words.lo;
 				es->intregs[GET_HIGH_REG(ra->regoff)] = javaval->words.hi;
 				break;
-#endif
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-			case TYPE_ADR:
-				es->adrregs[ra->regoff] = javaval->p;
 #endif
 			default:
 				es->intregs[ra->regoff] = javaval->p;
@@ -1573,23 +1564,6 @@ void md_push_stackframe(executionstate_t *es, codeinfo *calleecode, u1 *ra)
 		*(u8*)&(es->fltregs[reg]) = 0x44dead4444dead44ULL;
 #endif
 	}
-
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	/* save adr registers */
-
-	reg = ADR_REG_CNT;
-	for (i=0; i<calleecode->savedadrcount; ++i) {
-		while (nregdescadr[--reg] != REG_SAV)
-			;
-		basesp -= 1;
-		*((uintptr_t*) basesp) = es->adrregs[reg];
-
-		/* XXX may not clobber saved regs used by native code! */
-#if !defined(NDEBUG) && 0
-		es->adrregs[reg] = (ptrint) 0x44dead4444dead44ULL;
-#endif
-	}
-#endif
 }
 
 
@@ -2161,17 +2135,9 @@ static void replace_pop_native_frame(executionstate_t *es,
 			frame->nativesavflt[j++] = es->fltregs[i];
 	}
 
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	j = 0;
-	for (i=0; i<ADR_REG_CNT; ++i) {
-		if (nregdescadr[i] == REG_SAV)
-			frame->nativesavadr[j++] = es->adrregs[i];
-	}
-#endif
-
 	/* restore saved registers */
 
-#if defined(ENABLE_GC_CACAO) && !defined(HAS_ADDRESS_REGISTER_FILE)
+#if defined(ENABLE_GC_CACAO)
 	j = 0;
 	for (i=0; i<INT_REG_CNT; ++i) {
 		if (nregdescint[i] == REG_SAV)
@@ -2192,21 +2158,6 @@ static void replace_pop_native_frame(executionstate_t *es,
 		if (nregdescfloat[i] == REG_SAV)
 			es->fltregs[i] = 0.0;
 	}
-
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-# if defined(ENABLE_GC_CACAO)
-	j = 0;
-	for (i=0; i<ADR_REG_CNT; ++i) {
-		if (nregdescadr[i] == REG_SAV)
-			es->adrregs[i] = sfi->adrregs[j++];
-	}
-# else
-	for (i=0; i<ADR_REG_CNT; ++i) {
-		if (nregdescadr[i] == REG_SAV)
-			es->adrregs[i] = 0;
-	}
-# endif
-#endif
 
 	/* restore codeinfo of the native stub */
 
@@ -2276,17 +2227,10 @@ static void replace_push_native_frame(executionstate_t *es, sourcestate_t *ss)
 
 #if defined(ENABLE_GC_CACAO)
 	j = 0;
-# if !defined(HAS_ADDRESS_REGISTER_FILE)
 	for (i=0; i<INT_REG_CNT; ++i) {
 		if (nregdescint[i] == REG_SAV)
 			frame->sfi->intregs[j++] = es->intregs[i];
 	}
-# else
-	for (i=0; i<ADR_REG_CNT; ++i) {
-		if (nregdescadr[i] == REG_SAV)
-			frame->sfi->adrregs[j++] = es->adrregs[i];
-	}
-# endif
 
 	/* XXX leave float registers untouched here */
 #endif
@@ -2304,14 +2248,6 @@ static void replace_push_native_frame(executionstate_t *es, sourcestate_t *ss)
 		if (nregdescfloat[i] == REG_SAV)
 			es->fltregs[i] = frame->nativesavflt[j++];
 	}
-
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	j = 0;
-	for (i=0; i<ADR_REG_CNT; ++i) {
-		if (nregdescadr[i] == REG_SAV)
-			es->adrregs[i] = frame->nativesavadr[j++];
-	}
-#endif
 
 	/* skip the native frame on the machine stack */
 
@@ -3124,9 +3060,6 @@ void replace_show_replacement_points(codeinfo *code)
 	printf("\ttotal allocations : %d\n",code->regalloccount);
 	printf("\tsaved int regs    : %d\n",code->savedintcount);
 	printf("\tsaved flt regs    : %d\n",code->savedfltcount);
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	printf("\tsaved adr regs    : %d\n",code->savedadrcount);
-#endif
 	printf("\tmemuse            : %d\n",code->memuse);
 
 	printf("\n");

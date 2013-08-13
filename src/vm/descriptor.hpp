@@ -34,17 +34,11 @@ typedef struct paramdesc       paramdesc;
 typedef struct methoddesc      methoddesc;
 
 #include "config.h"
-
 #include <stdint.h>
-
+#include "toolbox/hashtable.hpp"
 #include "vm/types.hpp"
 #include "vm/primitive.hpp"
-
-#include "toolbox/hashtable.hpp"
-
 #include "vm/utf8.hpp"
-
-#include "arch.hpp"		/* needed for HAS_ADDRESS_REGISTER_FILE */
 
 struct classinfo;
 struct constant_classref;
@@ -121,9 +115,6 @@ struct methoddesc {
 	s2         paramslots;      /* like above but LONG,DOUBLE count twice     */
 	s4         argintreguse;    /* number of used integer argument registers  */
 	s4         argfltreguse;    /* number of used float argument registers    */
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	s4         argadrreguse;    /* number of used address registers */
-#endif
 	s4         memuse;          /* number of stack slots used                 */
 	paramdesc *params;          /* allocated parameter descriptions [3]       */
 	Mutex     *pool_lock;       /* synchronizes access to params              */

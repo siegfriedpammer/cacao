@@ -42,15 +42,6 @@ extern s4 nregdescint[];
 extern char *regs[];
 extern s4 nregdescfloat[];
 
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-extern s4 nregdescadr[];
-
-extern const char *abi_registers_address_name[];
-extern const s4    abi_registers_address_argument[];
-extern const s4    abi_registers_address_saved[];
-extern const s4    abi_registers_address_temporary[];
-#endif
-
 extern const char *abi_registers_integer_name[];
 extern const s4    abi_registers_integer_argument[];
 extern const s4    abi_registers_integer_saved[];

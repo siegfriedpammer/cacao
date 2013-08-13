@@ -81,9 +81,6 @@ struct codeinfo {
 	int32_t       synchronizedoffset;   /* stack offset of synchronized obj.  */
 	uint8_t       savedintcount;        /* number of callee saved int regs    */
 	uint8_t       savedfltcount;        /* number of callee saved flt regs    */
-# if defined(HAS_ADDRESS_REGISTER_FILE)
-	uint8_t       savedadrcount;        /* number of callee saved adr regs    */
-# endif
 
 	exceptiontable_t  *exceptiontable;
 	LinenumberTable* linenumbertable;

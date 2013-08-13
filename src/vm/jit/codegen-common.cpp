@@ -650,9 +650,6 @@ void codegen_finish(jitdata *jd)
 	code->synchronizedoffset = rd->memuse * 8;
 	code->savedintcount      = INT_SAV_CNT - rd->savintreguse;
 	code->savedfltcount      = FLT_SAV_CNT - rd->savfltreguse;
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	code->savedadrcount      = ADR_SAV_CNT - rd->savadrreguse;
-#endif
 
 	/* Create the exception table. */
 
@@ -1114,9 +1111,6 @@ bool codegen_emit(jitdata *jd)
 	int32_t savedregs_num = 0;
 	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
 	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse);
-#ifdef HAS_ADDRESS_REGISTER_FILE
-	savedregs_num += (ADR_SAV_CNT - rd->savadrreguse);
-#endif
 
 	// Calculate size of stackframe.
 	cd->stackframesize = rd->memuse + savedregs_num;

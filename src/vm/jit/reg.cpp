@@ -78,42 +78,6 @@ void reg_setup(jitdata *jd)
 	assert(rd->savintreguse == INT_SAV_CNT);
 	assert(rd->tmpintreguse == INT_TMP_CNT);
 
-#ifdef HAS_ADDRESS_REGISTER_FILE
-	/* setup the address register table */
-
-	rd->argadrregs = DMNEW(s4, ADR_ARG_CNT);
-	rd->tmpadrregs = DMNEW(s4, ADR_TMP_CNT);
-	rd->savadrregs = DMNEW(s4, ADR_SAV_CNT);
-	rd->freeargadrregs = DMNEW(s4, ADR_ARG_CNT);
-	rd->freetmpadrregs = DMNEW(s4, ADR_TMP_CNT);
-	rd->freesavadrregs = DMNEW(s4, ADR_SAV_CNT);
-
-	/*rd->adrreg_argnum = 0; XXX ask twisti */
-	rd->argadrreguse = 0;
-	rd->tmpadrreguse = 0;
-	rd->savadrreguse = 0;
-
-	for (i = 0; i < ADR_REG_CNT; i++) {
-		switch (nregdescadr[i]) {
-		case REG_RET:
-			rd->adrreg_ret = i;
-			break;
-		case REG_SAV:
-			rd->savadrregs[rd->savadrreguse++] = i;
-			break;
-		case REG_TMP:
-  			rd->tmpadrregs[rd->tmpadrreguse++] = i;
-			break;
-		case REG_ARG:
-			rd->argadrregs[rd->argadrreguse++] = i;
-			break;
-		}
-	}
-	assert(rd->savadrreguse == ADR_SAV_CNT);
-	assert(rd->tmpadrreguse == ADR_TMP_CNT);
-	assert(rd->argadrreguse == ADR_ARG_CNT);
-#endif
-
 	/* setup the float register table */
 
 	rd->tmpfltregs = DMNEW(s4, FLT_TMP_CNT);
@@ -158,9 +122,6 @@ void reg_setup(jitdata *jd)
 
 	/* Set rd->arg*reguse to *_ARG_CNBT to not use unused argument            */
 	/* registers as temp registers  */
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	rd->argadrreguse = 0;
-#endif /* defined(HAS_ADDRESS_REGISTER_FILE) */
 	rd->argintreguse = 0;
 	rd->argfltreguse = 0;
 }

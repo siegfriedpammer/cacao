@@ -59,9 +59,6 @@ struct executionstate_t {
 
 	uintptr_t  intregs[INT_REG_CNT];                       /* register values */
 	double     fltregs[FLT_REG_CNT];                       /* register values */
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	uintptr_t  adrregs[ADR_REG_CNT];                       /* register values */
-#endif
 
 	codeinfo  *code;                      /* codeinfo corresponding to the pv */
 };
