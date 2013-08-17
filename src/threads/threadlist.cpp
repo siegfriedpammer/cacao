@@ -55,7 +55,7 @@ int32_t             ThreadList::_last_index = 0;
 
 
 /**
- * 0 info for all threads running in the VM.  This function is
+ * Dumps info for all threads running in the VM.  This function is
  * called when SIGQUIT (<ctrl>-\) is sent to the VM.
  */
 void ThreadList::dump_threads()
@@ -140,9 +140,14 @@ void ThreadList::get_active_java_threads(List<threadobject*> &list)
 
 
 /**
- * Return a free thread object.
+ * Get the next free thread object.
  *
- * @return free thread object or NULL if none available
+ * Gets the next free thread object and a thread index for it.
+ * The results are stored into the passed pointers.
+ *
+ * If no free thread is available `*thread' will contain NULL.
+ * `*index' will always, even if no free thread is available,
+ * contain a valid index you can use for a new thread.
  */
 void ThreadList::get_free_thread(threadobject **thread, int32_t *index) {
 	MutexLocker lock(_mutex);
