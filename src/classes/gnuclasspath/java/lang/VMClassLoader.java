@@ -2,6 +2,9 @@
    required by ClassLoader
    Copyright (C) 1998, 2001, 2002, 2004, 2005, 2006 Free Software Foundation
 
+   Copyright (C) 1996-2013
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+
 This file is part of GNU Classpath.
 
 GNU Classpath is free software; you can redistribute it and/or modify
@@ -74,48 +77,27 @@ final class VMClassLoader
 {
 
 
-  /** packages loaded by the bootstrap class loader */
-  static final HashMap definedPackages = new HashMap();
-
   /** jars from property java.boot.class.path */
   static final HashMap bootjars = new HashMap();
   
 
-  /**
-   * Converts the array string of native package names to
-   * Packages. The packages are then put into the
-   * definedPackages hashMap
-   */
-  static
-  {
-    String[] packages = getBootPackages();
-    
-    if( packages != null)
-      {
-        String specName = 
-              SystemProperties.getProperty("java.specification.name");
-        String vendor =
-              SystemProperties.getProperty("java.specification.vendor");
-        String version =
-              SystemProperties.getProperty("java.specification.version");
-        
-        Package p;
-              
-        for(int i = 0; i < packages.length; i++)
-          {
-            p = new Package(packages[i],
-                  specName,
-                  vendor,
-                  version,
-                  "GNU Classpath",
-                  "GNU",
-                  Configuration.CLASSPATH_VERSION,
-                  null,
-                  null);
+  private static final String specName =
+    SystemProperties.getProperty("java.specification.name");
+  private static final String vendor =
+    SystemProperties.getProperty("java.specification.vendor");
+  private static final String version =
+    SystemProperties.getProperty("java.specification.version");
 
-            definedPackages.put(packages[i], p);
-          }
-      }
+  public static Package createBootPackage(String name) {
+    return new Package(name,
+                       specName,
+                       vendor,
+                       version,
+                       "GNU Classpath",
+                       "GNU",
+                       Configuration.CLASSPATH_VERSION,
+                       null,
+                       null);
   }
 
   
@@ -260,57 +242,6 @@ final class VMClassLoader
 
 
   /**
-   * Returns a String[] of native package names. The default
-   * implementation tries to load a list of package from
-   * the META-INF/INDEX.LIST file in the boot jar file.
-   * If not found or if any exception is raised, it returns
-   * an empty array. You may decide this needs native help.
-   */
-  private static String[] getBootPackages()
-  {
-    try
-      {
-        Enumeration indexListEnumeration = getResources("META-INF/INDEX.LIST");
-        Set packageSet = new HashSet();
-
-        while (indexListEnumeration.hasMoreElements())
-          {
-            try
-              {
-                String line;
-                int lineToSkip = 3;
-                BufferedReader reader = new BufferedReader(
-                                                           new InputStreamReader(
-                                                                                 ((URL) indexListEnumeration.nextElement()).openStream()));
-                while ((line = reader.readLine()) != null)
-                  {
-                    if (lineToSkip == 0)
-                      {
-                        if (line.length() == 0)
-                          lineToSkip = 1;
-                        else
-                          packageSet.add(line.replace('/', '.'));
-                      }
-                    else
-                      lineToSkip--;
-                  }
-                reader.close();
-              }
-            catch (IOException e)
-              {
-                // Empty catch block on purpose
-              }
-          }
-        return (String[]) packageSet.toArray(new String[packageSet.size()]);
-      }
-    catch (Exception e)
-      {
-        return new String[0];
-      }
-  }
-
-
-  /**
    * Helper to get a package from the bootstrap class loader.
    *
    * @param name the name to find
@@ -318,7 +249,7 @@ final class VMClassLoader
    */
   static Package getPackage(String name)
   {
-    return (Package)definedPackages.get(name);
+    return getBootPackage(name);
   }
 
 
@@ -330,9 +261,7 @@ final class VMClassLoader
    */
   static Package[] getPackages()
   {
-    Package[] packages = new Package[definedPackages.size()];
-    definedPackages.values().toArray(packages);
-    return packages;
+    return getBootPackages();
   }
 
   /**
@@ -458,4 +387,7 @@ final class VMClassLoader
         return defineClass(loader, name, data, offset, len, pd);
       }
   }
+
+  private static final native Package getBootPackage(String name);
+  private static final native Package[] getBootPackages();
 }

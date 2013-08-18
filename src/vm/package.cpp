@@ -1,6 +1,6 @@
 /* src/vm/package.cpp - Java boot-package functions
 
-   Copyright (C) 2007-2013
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -35,6 +35,8 @@
 
 // Package list.
 
+Mutex Package::_mutex;
+
 static std::set<Utf8String>& packages() {
 	static std::set<Utf8String> _packages;
 
@@ -48,8 +50,7 @@ static std::set<Utf8String>& packages() {
  */
 void Package::add(Utf8String packagename)
 {
-	// Intern the Java string to get a unique address.
-/* 	s = JavaString(packagename).intern(); */
+	MutexLocker lock(_mutex);
 
 #if !defined(NDEBUG)
 	if (opt_DebugPackage) {
@@ -62,7 +63,7 @@ void Package::add(Utf8String packagename)
 #endif
 
 	// Add the package name.
-	packages().insert(packagename);
+	::packages().insert(packagename);
 }
 
 
@@ -75,7 +76,9 @@ void Package::add(Utf8String packagename)
  */
 Utf8String Package::find(Utf8String packagename)
 {
-	std::set<Utf8String>&          pkgs = packages();
+	MutexLocker lock(_mutex);
+
+	std::set<Utf8String>&          pkgs = ::packages();
 	std::set<Utf8String>::iterator it   = pkgs.find(packagename);
 
 	if (it == pkgs.end())
@@ -84,6 +87,10 @@ Utf8String Package::find(Utf8String packagename)
 	return *it;
 }
 
+const std::set<Utf8String> &Package::packages()
+{
+	return ::packages();
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.

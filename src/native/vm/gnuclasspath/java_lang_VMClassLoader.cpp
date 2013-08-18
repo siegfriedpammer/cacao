@@ -58,6 +58,7 @@
 #include "vm/loader.hpp"
 #include "vm/options.hpp"
 #include "vm/os.hpp"
+#include "vm/package.hpp"
 #include "vm/primitive.hpp"
 #include "vm/statistics.hpp"
 #include "vm/string.hpp"
@@ -565,6 +566,68 @@ JNIEXPORT jclass JNICALL Java_java_lang_VMClassLoader_findLoadedClass(JNIEnv *en
 	return (jclass) LLNI_classinfo_wrap(c);
 }
 
+/*
+ * Class:     java/lang/VMClassLoader
+ * Method:    getBootPackage
+ * Signature: (Ljava/lang/String;)Ljava/lang/Package;
+ */
+JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_getBootPackage(JNIEnv *env, jclass clazz, jstring name)
+{
+	Utf8String u(JavaString((java_handle_t *) name).to_utf8());
+	if (!Package::find(u))
+		return NULL;
+
+	classinfo *c = LLNI_classinfo_unwrap(clazz);
+	methodinfo *m = class_resolveclassmethod(
+		c,
+		Utf8String::from_utf8("createBootPackage"),
+		Utf8String::from_utf8("(Ljava/lang/String;)Ljava/lang/Package;"),
+		NULL,
+		true);
+	assert(m);
+
+	java_handle_t *hm = vm_call_method(m, name);
+	return (jobject) hm;
+}
+
+/*
+ * Class:     java/lang/VMClassLoader
+ * Method:    getBootPackages
+ * Signature: ()[Ljava/lang/Package;
+ */
+JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_getBootPackages(JNIEnv *env, jclass clazz)
+{
+	classinfo *c = LLNI_classinfo_unwrap(clazz);
+	methodinfo *m = class_resolveclassmethod(
+		c,
+		Utf8String::from_utf8("createBootPackage"),
+		Utf8String::from_utf8("(Ljava/lang/String;)Ljava/lang/Package;"),
+		NULL,
+		true);
+	assert(m);
+
+	AnyClassLocker<Package> lock;
+	const std::set<Utf8String> &packages(Package::packages());
+	int num = packages.size();
+
+	classinfo *pc = load_class_bootstrap(Utf8String::from_utf8("java/lang/Package"));
+	if (!pc)
+		return NULL;
+	ObjectArray result(num, pc);
+	std::set<Utf8String>::const_iterator it = packages.begin();
+	for (int i=0; it != packages.end(); ++it, i++) {
+		JavaString package_name = JavaString::from_utf8(*it);
+		java_handle_t *hs = package_name;
+		if (!hs)
+			return NULL;
+		java_handle_t *h = vm_call_method(m, package_name);
+		if (!h)
+			return NULL;
+		result.set_element(i, h);
+	}
+	return result.get_handle();
+}
+
 } // extern "C"
 
 
@@ -576,11 +639,13 @@ static JNINativeMethod methods[] = {
 	{ (char*) "resolveClass",               (char*) "(Ljava/lang/Class;)V",                                                                             (void*) (uintptr_t) &Java_java_lang_VMClassLoader_resolveClass               },
 	{ (char*) "loadClass",                  (char*) "(Ljava/lang/String;Z)Ljava/lang/Class;",                                                           (void*) (uintptr_t) &Java_java_lang_VMClassLoader_loadClass                  },
 	{ (char*) "nativeGetResources",         (char*) "(Ljava/lang/String;)Ljava/util/Vector;",                                                           (void*) (uintptr_t) &Java_java_lang_VMClassLoader_nativeGetResources         },
-	{ (char*) "getSystemAssertionStatus",   (char*) "()Z",                                                                                              (void*) (uintptr_t) &Java_java_lang_VMClassLoader_getSystemAssertionStatus     },
+	{ (char*) "getSystemAssertionStatus",   (char*) "()Z",                                                                                              (void*) (uintptr_t) &Java_java_lang_VMClassLoader_getSystemAssertionStatus   },
 	{ (char*) "defaultAssertionStatus",     (char*) "()Z",                                                                                              (void*) (uintptr_t) &Java_java_lang_VMClassLoader_defaultAssertionStatus },
 	{ (char*) "packageAssertionStatus0",    (char*) "(Ljava/lang/Boolean;Ljava/lang/Boolean;)Ljava/util/Map;",                                          (void*) (uintptr_t) &Java_java_lang_VMClassLoader_packageAssertionStatus0    },
 	{ (char*) "classAssertionStatus0",      (char*) "(Ljava/lang/Boolean;Ljava/lang/Boolean;)Ljava/util/Map;",                                          (void*) (uintptr_t) &Java_java_lang_VMClassLoader_classAssertionStatus0      },
 	{ (char*) "findLoadedClass",            (char*) "(Ljava/lang/ClassLoader;Ljava/lang/String;)Ljava/lang/Class;",                                     (void*) (uintptr_t) &Java_java_lang_VMClassLoader_findLoadedClass            },
+	{ (char*) "getBootPackage",             (char*) "(Ljava/lang/String;)Ljava/lang/Package;",                                                          (void*) (uintptr_t) &Java_java_lang_VMClassLoader_getBootPackage             },
+	{ (char*) "getBootPackages",            (char*) "()[Ljava/lang/Package;",                                                                           (void*) (uintptr_t) &Java_java_lang_VMClassLoader_getBootPackages            },
 };
 
 

@@ -1,6 +1,6 @@
 /* src/vm/package.hpp - Java boot-package functions
 
-   Copyright (C) 2007-2013
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -26,7 +26,10 @@
 #ifndef PACKAGE_HPP_
 #define PACKAGE_HPP_ 1
 
+#include <set>
+
 #include "config.h"
+#include "threads/mutex.hpp"
 #include "vm/utf8.hpp"
 
 /**
@@ -34,8 +37,16 @@
  */
 class Package {
 public:
-	static void       add (Utf8String packagename);
+	static void lock() { _mutex.lock(); }
+	static void unlock() { _mutex.unlock(); }
+
+	static void add (Utf8String packagename);
 	static Utf8String find(Utf8String packagename);
+
+	static const std::set<Utf8String> &packages();
+
+private:
+	static Mutex _mutex;
 };
 
 #endif // VM_PACKAGE_HPP_
