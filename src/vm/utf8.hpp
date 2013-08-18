@@ -1,6 +1,6 @@
 /* src/vm/utf8.hpp - utf8 string functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -76,6 +76,7 @@ class Utf8String {
 		// constructs a null string on error
 		static Utf8String from_utf8(const char*, size_t);
 		static Utf8String from_utf8_dot_to_slash(const char*, size_t);
+		static Utf8String from_utf8_slash_to_dot(const char*, size_t);
 
 		static Utf8String from_utf8(const char *cs) {
 			return from_utf8(cs, strlen(cs));

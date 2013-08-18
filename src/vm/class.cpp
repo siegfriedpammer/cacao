@@ -81,9 +81,6 @@ extern java_handle_t* class_get_classname(classinfo* c)
    Derive the package name from the class name and store it in the
    struct.
 
-   An internal package name consists of the package name plus the
-   trailing '/', e.g. "java/lang/".
-
    For classes in the unnamed package, the package name is set to
    NULL.
 
@@ -111,11 +108,11 @@ void class_set_packagename(classinfo *c)
 
 	for (; (p > start) && (*p != '/'); --p);
 
-	/* If we found a '/' we set the package name plus the trailing
-	   '/'.  Otherwise we set the packagename to NULL. */
+	/* If we found a '/' we set the package name.  Otherwise we set the
+	   packagename to NULL. */
 
 	if (p > start)
-		c->packagename = Utf8String::from_utf8(start, p - start + 1);
+		c->packagename = Utf8String::from_utf8_slash_to_dot(start, p - start);
 	else
 		c->packagename = NULL;
 }

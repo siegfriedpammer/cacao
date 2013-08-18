@@ -1797,7 +1797,7 @@ void exceptions_print_stacktrace(void)
 
 static inline Utf8String get_classname_for_exception(classinfo *c) {
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-	return Utf8String::from_utf8_slash_to_dot(c->name);
+	return Utf8String::from_utf8_slash_to_dot(c->name.begin(), c->name.size());
 #else
 	return c->name;
 #endif

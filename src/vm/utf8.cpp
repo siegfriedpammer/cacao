@@ -293,6 +293,11 @@ Utf8String Utf8String::from_utf8_dot_to_slash(const char *cs, size_t sz) {
 	                                   EagerStringBuilder<dot_to_slash>(sz));
 }
 
+Utf8String Utf8String::from_utf8_slash_to_dot(const char *cs, size_t sz) {
+	return utf8::transform<Utf8String>(cs, sz,
+	                                   EagerStringBuilder<slash_to_dot>(sz));
+}
+
 Utf8String Utf8String::from_utf16(const u2 *cs, size_t sz) {
 	size_t blength = utf8::num_bytes(cs, sz);
 
@@ -305,13 +310,6 @@ Utf8String Utf8String::from_utf16_dot_to_slash(const u2 *cs, size_t sz) {
 
 	return utf16::transform<Utf8String>(cs, sz,
 	                                    EagerStringBuilder<dot_to_slash>(blength));
-}
-
-Utf8String Utf8String::from_utf8_slash_to_dot(Utf8String u) {
-	size_t sz = u.size();
-
-	return utf8::transform<Utf8String>(u.begin(), sz,
-	                                   EagerStringBuilder<slash_to_dot>(sz));
 }
 
 /* Utf8String::utf16_iterator **************************************************
