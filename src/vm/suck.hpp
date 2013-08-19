@@ -28,13 +28,13 @@
 
 #include "config.h"
 #include <list>
-
 #include "vm/types.hpp"
 
 struct classbuffer;
 struct classinfo;
 struct hashtable;
 class Mutex;
+class ZipFile;
 
 /* list_classpath_entry *******************************************************/
 
@@ -49,7 +49,7 @@ typedef struct list_classpath_entry {
 	char              *path;
 	s4                 pathlen;
 #if defined(ENABLE_ZLIB)
-	hashtable         *htclasses;
+	ZipFile           *zip;
 #endif
 } list_classpath_entry;
 
