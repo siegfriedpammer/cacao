@@ -63,36 +63,35 @@ using namespace cacao;
 
 #define field_load_NOVALUE  0xffffffff /* must be bigger than any u2 value! */
 
-bool field_load(classbuffer *cb, fieldinfo *f, DescriptorPool& descpool)
+bool field_load(ClassBuffer& cb, fieldinfo *f, DescriptorPool& descpool)
 {
-	classinfo *c;
 	u4 attrnum, i;
 	u4 pindex = field_load_NOVALUE;     /* constantvalue_index */
 	Utf8String u;
 
 	/* Get class. */
 
-	c = cb->clazz;
+	classinfo *c = cb.get_class();
 
 	f->clazz = c;
 
 	/* Get access flags. */
 
-	if (!suck_check_classbuffer_size(cb, 2 + 2 + 2))
+	if (!cb.check_size(2 + 2 + 2))
 		return false;
 
-	f->flags = suck_u2(cb);
+	f->flags = cb.read_u2();
 
 	/* Get name. */
 
-	if (!(u = (utf*) class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+	if (!(u = (utf*) class_getconstant(c, cb.read_u2(), CONSTANT_Utf8)))
 		return false;
 
 	f->name = u;
 
 	/* Get descriptor. */
 
-	if (!(u = (utf*) class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+	if (!(u = (utf*) class_getconstant(c, cb.read_u2(), CONSTANT_Utf8)))
 		return false;
 
 	f->descriptor = u;
@@ -214,25 +213,25 @@ bool field_load(classbuffer *cb, fieldinfo *f, DescriptorPool& descpool)
 
 	/* read attributes */
 
-	if (!suck_check_classbuffer_size(cb, 2))
+	if (!cb.check_size(2))
 		return false;
 
-	attrnum = suck_u2(cb);
+	attrnum = cb.read_u2();
 
 	for (i = 0; i < attrnum; i++) {
-		if (!suck_check_classbuffer_size(cb, 2))
+		if (!cb.check_size(2))
 			return false;
 
-		if (!(u = (utf*) class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+		if (!(u = (utf*) class_getconstant(c, cb.read_u2(), CONSTANT_Utf8)))
 			return false;
 
 		if (u == utf8::ConstantValue) {
-			if (!suck_check_classbuffer_size(cb, 4 + 2))
+			if (!cb.check_size(4 + 2))
 				return false;
 
 			/* check attribute length */
 
-			if (suck_u4(cb) != 2) {
+			if (cb.read_u4() != 2) {
 				exceptions_throw_classformaterror(c, "Wrong size for VALUE attribute");
 				return false;
 			}
@@ -246,7 +245,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, DescriptorPool& descpool)
 
 			/* index of value in constantpool */
 
-			pindex = suck_u2(cb);
+			pindex = cb.read_u2();
 
 			/* initialize field with value from constantpool */
 

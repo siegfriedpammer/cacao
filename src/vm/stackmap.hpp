@@ -52,8 +52,9 @@ typedef struct Uninitialized_variable_info_t     Uninitialized_variable_info_t;
 #include "config.h"
 #include "vm/types.hpp"
 
-struct classbuffer;
 struct methodinfo;
+
+namespace cacao { struct ClassBuffer; }
 
 /* verification_type_info *****************************************************/
 
@@ -206,7 +207,7 @@ union stack_map_frame_t {
 
 /* function prototypes ********************************************************/
 
-bool stackmap_load_attribute_stackmaptable(classbuffer *cb, methodinfo *m);
+bool stackmap_load_attribute_stackmaptable(cacao::ClassBuffer& cb, methodinfo *m);
 
 #endif // STACKMAP_HPP_
 

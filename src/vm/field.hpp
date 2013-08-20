@@ -39,7 +39,10 @@ struct classinfo;
 struct constant_FMIref;
 struct typedesc;
 
-namespace cacao { struct DescriptorPool; }
+namespace cacao {
+   struct ClassBuffer;
+   struct DescriptorPool;
+}
 
 /* fieldinfo ******************************************************************/
 
@@ -67,7 +70,7 @@ struct fieldinfo {	      /* field of a class                                 */
 
 /* function prototypes ********************************************************/
 
-bool       field_load(classbuffer *cb, fieldinfo *f, cacao::DescriptorPool& descpool);
+bool       field_load(cacao::ClassBuffer& cb, fieldinfo *f, cacao::DescriptorPool& descpool);
 classinfo *field_get_type(fieldinfo *f);
 void       field_free(fieldinfo *f);
 

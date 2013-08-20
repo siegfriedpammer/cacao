@@ -81,12 +81,8 @@ static int scandir_filter(const struct dirent *a)
  */
 void SuckClasspath::add(char *classpath)
 {
-	list_classpath_entry *lce;
 	char                 *start;
 	char                 *end;
-	char                 *filename;
-	s4                    filenamelen;
-	bool                  is_zip;
 	char                 *cwd;
 	s4                    cwdlen;
 
@@ -98,8 +94,8 @@ void SuckClasspath::add(char *classpath)
 		for (end = start; ((*end) != '\0') && ((*end) != ':'); end++);
 
 		if (start != end) {
-			is_zip = false;
-			filenamelen = end - start;
+			bool   is_zip      = false;
+			size_t filenamelen = end - start;
 
 			if (filenamelen > 4) {
 				if ((strncasecmp(end - 4, ".zip", 4) == 0) ||
@@ -120,8 +116,7 @@ void SuckClasspath::add(char *classpath)
 
 			/* allocate memory for filename and fill it */
 
-			filename = MNEW(char, filenamelen + cwdlen + strlen("/") +
-							strlen("0"));
+			char *filename = MNEW(char, filenamelen + cwdlen + strlen("/") + strlen("0"));
 
 			if (cwd) {
 				strcpy(filename, cwd);
@@ -136,12 +131,10 @@ void SuckClasspath::add(char *classpath)
 				filename[filenamelen] = '\0';
 			}
 
-			lce = NULL;
-
 			if (is_zip) {
 #if defined(ENABLE_ZLIB)
 				if (ZipFile *zip = ZipFile::open(filename)) {
-					lce = NEW(list_classpath_entry);
+					list_classpath_entry *lce = NEW(list_classpath_entry);
 
 					lce->type    = CLASSPATH_ARCHIVE;
 					lce->zip     = zip;
@@ -152,8 +145,9 @@ void SuckClasspath::add(char *classpath)
 
 					if (opt_verboseclass)
 						printf("[Opened %s]\n", filename);
-				}
 
+					push_back(lce);
+				}
 #else
 				os::abort("suck_add: zip/jar files not supported");
 #endif
@@ -165,17 +159,14 @@ void SuckClasspath::add(char *classpath)
 					filenamelen++;
 				}
 
-				lce = NEW(list_classpath_entry);
+				list_classpath_entry *lce = NEW(list_classpath_entry);
 
 				lce->type    = CLASSPATH_PATH;
 				lce->path    = filename;
 				lce->pathlen = filenamelen;
-			}
 
-			/* add current classpath entry, if no error */
-
-			if (lce != NULL)
 				push_back(lce);
+			}
 		}
 
 		/* goto next classpath entry, skip ':' delimiter */
@@ -338,161 +329,29 @@ void SuckClasspath::add_from_property(const char *key)
 }
 
 
-/* suck_check_classbuffer_size *************************************************
+inline void ClassBuffer::init(classinfo *clazz, uint8_t *data, size_t sz, const char *path) {
+	this->clazz = clazz;
+	this->data  = data;
+	this->pos   = data;
+	this->end   = data + sz;
+	this->path  = path;
+}
 
-   Assert that at least <len> bytes are left to read <len> is limited
-   to the range of non-negative s4 values.
-
-*******************************************************************************/
-
-bool suck_check_classbuffer_size(classbuffer *cb, s4 len)
-{
-#ifdef ENABLE_VERIFIER
-	if (len < 0 || ((cb->data + cb->size) - cb->pos) < len) {
-		exceptions_throw_classformaterror(cb->clazz, "Truncated class file");
-		return false;
-	}
-#endif /* ENABLE_VERIFIER */
-
-	return true;
+ClassBuffer::ClassBuffer(classinfo *clazz, uint8_t *data, size_t sz, const char *path) {
+	init(clazz, data, sz, path);
 }
 
 
-u1 suck_u1(classbuffer *cb)
-{
-	u1 a = read_u1_be(cb->pos);
-	cb->pos++;
+/***
+ *	Loads class file corresponding to given classinfo into new ClassBuffer.
+ *	All directories of the searchpath are used to find the classfile (<classname>.class).
+ *    Use operator bool to check if initialization was successfull.
+ */
+ClassBuffer::ClassBuffer(classinfo *c) {
+	init(NULL, NULL, 0, NULL);
 
-	return a;
-}
-
-
-u2 suck_u2(classbuffer *cb)
-{
-	u2 a = read_u2_be(cb->pos);
-	cb->pos += 2;
-
-	return a;
-}
-
-
-u4 suck_u4(classbuffer *cb)
-{
-	u4 a = read_u4_be(cb->pos);
-	cb->pos += 4;
-
-	return a;
-}
-
-
-u8 suck_u8(classbuffer *cb)
-{
-	u8 a = read_u8_be(cb->pos);
-	cb->pos += 8;
-
-	return a;
-}
-
-
-float suck_float(classbuffer *cb)
-{
-	float f;
-
-#if WORDS_BIGENDIAN == 0
-	u1 buffer[4];
-	u2 i;
-
-	for (i = 0; i < 4; i++)
-		buffer[3 - i] = suck_u1(cb);
-
-	MCOPY((u1 *) (&f), buffer, u1, 4);
-#else
-	suck_nbytes((u1*) (&f), cb, 4);
-#endif
-
-	assert(sizeof(float) == 4);
-	
-	return f;
-}
-
-
-double suck_double(classbuffer *cb)
-{
-	double d;
-
-#if WORDS_BIGENDIAN == 0
-	u1 buffer[8];
-	u2 i;	
-
-# if defined(__ARM__) && defined(__ARMEL__) && !defined(__VFP_FP__)
-	/*
-	 * On little endian ARM processors when using FPA, word order
-	 * of doubles is still big endian. So take that into account
-	 * here. When using VFP, word order of doubles follows byte
-	 * order. (michi 2005/07/24)
-	 */
-	for (i = 0; i < 4; i++)
-		buffer[3 - i] = suck_u1(cb);
-	for (i = 0; i < 4; i++)
-		buffer[7 - i] = suck_u1(cb);
-# else
-	for (i = 0; i < 8; i++)
-		buffer[7 - i] = suck_u1(cb);
-# endif /* defined(__ARM__) && ... */
-
-	MCOPY((u1 *) (&d), buffer, u1, 8);
-#else 
-	suck_nbytes((u1*) (&d), cb, 8);
-#endif
-
-	assert(sizeof(double) == 8);
-	
-	return d;
-}
-
-
-/* suck_nbytes *****************************************************************
-
-   Transfer block of classfile data into a buffer.
-
-*******************************************************************************/
-
-void suck_nbytes(u1 *buffer, classbuffer *cb, s4 len)
-{
-	MCOPY(buffer, cb->pos, u1, len);
-	cb->pos += len;
-}
-
-
-/* suck_skip_nbytes ************************************************************
-
-   Skip block of classfile data.
-
-*******************************************************************************/
-
-void suck_skip_nbytes(classbuffer *cb, s4 len)
-{
-	cb->pos += len;
-}
-
-
-/* suck_start ******************************************************************
-
-   Returns true if classbuffer is already loaded or a file for the
-   specified class has succussfully been read in. All directories of
-   the searchpath are used to find the classfile (<classname>.class).
-   Returns NULL if no classfile is found and writes an error message.
-	
-*******************************************************************************/
-
-classbuffer *suck_start(classinfo *c)
-{
-	/* initialize return value */
-
-	classbuffer *cb = NULL;
-
-	/* get the classname as char string (do it here for the warning at
-       the end of the function) */
+	// get the classname as char string 
+	// (do it here for the warning at the end of the function)
 
 	size_t filenamelen = c->name.size() + strlen(".class") + strlen("0");
 
@@ -505,20 +364,18 @@ classbuffer *suck_start(classinfo *c)
 	// Get current list of classpath entries.
 	SuckClasspath& suckclasspath = VM::get_current()->get_suckclasspath();
 
-	/* walk through all classpath entries */
+	// walk through all classpath entries
 
-	for (SuckClasspath::iterator it = suckclasspath.begin(); it != suckclasspath.end() && cb == NULL; it++) {
+	for (SuckClasspath::iterator it = suckclasspath.begin(); it != suckclasspath.end(); it++) {
 		list_classpath_entry *lce = *it;
 
 #if defined(ENABLE_ZLIB)
 		if (lce->type == CLASSPATH_ARCHIVE) {
 
-			/* enter a monitor on zip/jar archives */
-
+			// enter a monitor on zip/jar archives
 			MutexLocker lock(*lce->mutex);
 
-			/* try to get the file in current archive */
-
+			// try to get the file in current archive
 			if (ZipFile::EntryRef zip = lce->zip->find(c->name)) {
 				// found class, fill in classbuffer
 				size_t   size = zip->uncompressedsize;
@@ -526,12 +383,8 @@ classbuffer *suck_start(classinfo *c)
 
 				zip->get(data);
 
-				cb        = NEW(classbuffer);
-				cb->clazz = c;
-				cb->size  = size;
-				cb->data  = data;
-				cb->pos   = data;
-				cb->path  = lce->path;
+				init(c, data, size, lce->path);
+				return;
 			}
 		} else {
 #endif /* defined(ENABLE_ZLIB) */
@@ -553,26 +406,22 @@ classbuffer *suck_start(classinfo *c)
 				size_t bytes_read = os::fread(data, 1, size, classfile);
 				os::fclose(classfile);
 
-				if (bytes_read != size)
-					suck_stop(cb);
+				if (bytes_read != size) {
+					free();
+					return;
+				}
 
-				cb        = NEW(classbuffer);
-				cb->clazz = c;
-				cb->size  = size;
-				cb->data  = data;
-				cb->pos   = data;
-				cb->path  = lce->path;
+				init(c, data, size, lce->path);
+				return;
 			}
 #if defined(ENABLE_ZLIB)
 		}
 #endif
 	}
 
+	// if we get here, we could not find the file
 	if (opt_verbose)
-		if (cb == NULL)
-			dolog("Warning: Can not open class file '%s'", filename.c_str());
-
-	return cb;
+		dolog("Warning: Can not open class file '%s'", filename.c_str());
 }
 
 
@@ -585,12 +434,10 @@ classbuffer *suck_start(classinfo *c)
 	
 *******************************************************************************/
 
-void suck_stop(classbuffer *cb)
-{
-	/* free memory */
+void ClassBuffer::free() {
+	// free memory
 
-	MFREE(cb->data, u1, cb->size);
-	FREE(cb, classbuffer);
+	MFREE(data, u1, end - data);
 }
 
 

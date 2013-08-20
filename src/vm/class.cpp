@@ -43,6 +43,7 @@
 
 #include "toolbox/logging.hpp"
 
+#include "vm/annotation.hpp"
 #include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
@@ -62,6 +63,8 @@
 
 STAT_DECLARE_GROUP(info_struct_stat)
 STAT_DECLARE_VAR(int,size_classinfo,0)
+
+using namespace cacao;
 
 /**
  * Returns the classname of the class, where slashes ('/') are
@@ -229,14 +232,10 @@ void class_postset_header_vftbl(void)
 
 classinfo *class_define(Utf8String name, classloader_t *cl, int32_t length, uint8_t *data, java_handle_t *pd)
 {
-	classinfo   *c;
-	classinfo   *r;
-	classbuffer *cb;
-
 	if (name != NULL) {
 		/* check if this class has already been defined */
 
-		c = classcache_lookup_defined_or_initiated(cl, name);
+		classinfo *c = classcache_lookup_defined_or_initiated(cl, name);
 
 		if (c != NULL) {
 			exceptions_throw_linkageerror("duplicate class definition: ", c);
@@ -246,7 +245,7 @@ classinfo *class_define(Utf8String name, classloader_t *cl, int32_t length, uint
 
 	/* create a new classinfo struct */
 
-	c = class_create_classinfo(name);
+	classinfo *c = class_create_classinfo(name);
 
 #if defined(ENABLE_STATISTICS)
 	/* measure time */
@@ -255,26 +254,17 @@ classinfo *class_define(Utf8String name, classloader_t *cl, int32_t length, uint
 		loadingtime_start();
 #endif
 
-	/* build a classbuffer with the given data */
-
-	cb = NEW(classbuffer);
-
-	cb->clazz = c;
-	cb->size  = length;
-	cb->data  = data;
-	cb->pos   = cb->data;
-
 	/* preset the defining classloader */
 
 	c->classloader = cl;
 
+	/* build a classbuffer with the given data */
+
+	ClassBuffer cb(c, data, length);
+
 	/* load the class from this buffer */
 
-	r = load_class_from_classbuffer(cb);
-
-	/* free memory */
-
-	FREE(cb, classbuffer);
+	classinfo *r = load_class_from_classbuffer(cb);
 
 #if defined(ENABLE_STATISTICS)
 	/* measure time */
@@ -328,25 +318,20 @@ classinfo *class_define(Utf8String name, classloader_t *cl, int32_t length, uint
 
 *******************************************************************************/
 
-static bool class_load_attribute_sourcefile(classbuffer *cb)
+static bool class_load_attribute_sourcefile(ClassBuffer& cb)
 {
-	classinfo *c;
-	u4         attribute_length;
-	u2         sourcefile_index;
-	Utf8String sourcefile;
-
 	/* get classinfo */
 
-	c = cb->clazz;
+	classinfo *c = cb.get_class();
 
 	/* check buffer size */
 
-	if (!suck_check_classbuffer_size(cb, 4 + 2))
+	if (!cb.check_size(4 + 2))
 		return false;
 
 	/* check attribute length */
 
-	attribute_length = suck_u4(cb);
+	u4 attribute_length = cb.read_u4();
 
 	if (attribute_length != 2) {
 		exceptions_throw_classformaterror(c, "Wrong size for VALUE attribute");
@@ -362,8 +347,8 @@ static bool class_load_attribute_sourcefile(classbuffer *cb)
 
 	/* get sourcefile */
 
-	sourcefile_index = suck_u2(cb);
-	sourcefile = (utf*) class_getconstant(c, sourcefile_index, CONSTANT_Utf8);
+	u2         sourcefile_index = cb.read_u2();
+	Utf8String sourcefile       = (utf*) class_getconstant(c, sourcefile_index, CONSTANT_Utf8);
 
 	if (sourcefile == NULL)
 		return false;
@@ -388,27 +373,21 @@ static bool class_load_attribute_sourcefile(classbuffer *cb)
 *******************************************************************************/
 
 #if defined(ENABLE_JAVASE)
-static bool class_load_attribute_enclosingmethod(classbuffer *cb)
-{
-	classinfo             *c;
-	u4                     attribute_length;
-	u2                     class_index;
-	u2                     method_index;
+static bool class_load_attribute_enclosingmethod(ClassBuffer& cb) {
 	classref_or_classinfo  cr;
-	constant_nameandtype  *cn;
 
 	/* get classinfo */
 
-	c = cb->clazz;
+	classinfo *c = cb.get_class();
 
 	/* check buffer size */
 
-	if (!suck_check_classbuffer_size(cb, 4 + 2 + 2))
+	if (!cb.check_size(4 + 2 + 2))
 		return false;
 
 	/* check attribute length */
 
-	attribute_length = suck_u4(cb);
+	u4 attribute_length = cb.read_u4();
 
 	if (attribute_length != 4) {
 		exceptions_throw_classformaterror(c, "Wrong size for VALUE attribute");
@@ -424,13 +403,13 @@ static bool class_load_attribute_enclosingmethod(classbuffer *cb)
 
 	/* get class index */
 
-	class_index = suck_u2(cb);
-	cr.ref = (constant_classref*) innerclass_getconstant(c, class_index, CONSTANT_Class);
+	u2 class_index = cb.read_u2();
+	cr.ref         = (constant_classref*) innerclass_getconstant(c, class_index, CONSTANT_Class);
 
 	/* get method index */
 
-	method_index = suck_u2(cb);
-	cn = (constant_nameandtype*) innerclass_getconstant(c, method_index, CONSTANT_NameAndType);
+	u2                    method_index = cb.read_u2();
+	constant_nameandtype *cn           = (constant_nameandtype*) innerclass_getconstant(c, method_index, CONSTANT_NameAndType);
 
 	/* store info in classinfo */
 
@@ -459,37 +438,27 @@ static bool class_load_attribute_enclosingmethod(classbuffer *cb)
 
 *******************************************************************************/
 
-bool class_load_attributes(classbuffer *cb)
+bool class_load_attributes(ClassBuffer& cb)
 {
-	classinfo             *c;
-	uint16_t               attributes_count;
-	uint16_t               attribute_name_index;
-	Utf8String             attribute_name;
-	innerclassinfo        *info;
-	classref_or_classinfo  inner;
-	classref_or_classinfo  outer;
-	Utf8String             name;
-	uint16_t               flags;
-	int                    i, j;
+	classref_or_classinfo outer, inner;
 
-	c = cb->clazz;
+	classinfo *c = cb.get_class();
 
 	/* get attributes count */
 
-	if (!suck_check_classbuffer_size(cb, 2))
+	if (!cb.check_size(2))
 		return false;
 
-	attributes_count = suck_u2(cb);
+	uint16_t attributes_count = cb.read_u2();
 
-	for (i = 0; i < attributes_count; i++) {
+	for (int i = 0; i < attributes_count; i++) {
 		/* get attribute name */
 
-		if (!suck_check_classbuffer_size(cb, 2))
+		if (!cb.check_size(2))
 			return false;
 
-		attribute_name_index = suck_u2(cb);
-		attribute_name =
-			(utf*) class_getconstant(c, attribute_name_index, CONSTANT_Utf8);
+		uint16_t   attribute_name_index = cb.read_u2();
+		Utf8String attribute_name       = (utf*) class_getconstant(c, attribute_name_index, CONSTANT_Utf8);
 
 		if (attribute_name == NULL)
 			return false;
@@ -502,32 +471,32 @@ bool class_load_attributes(classbuffer *cb)
 				return false;
 			}
 				
-			if (!suck_check_classbuffer_size(cb, 4 + 2))
+			if (!cb.check_size(4 + 2))
 				return false;
 
 			/* skip attribute length */
-			suck_u4(cb);
+			cb.read_u4();
 
 			/* number of records */
-			c->innerclasscount = suck_u2(cb);
+			c->innerclasscount = cb.read_u2();
 
-			if (!suck_check_classbuffer_size(cb, (2 + 2 + 2 + 2) * c->innerclasscount))
+			if (!cb.check_size((2 + 2 + 2 + 2) * c->innerclasscount))
 				return false;
 
 			/* allocate memory for innerclass structure */
 			c->innerclass = MNEW(innerclassinfo, c->innerclasscount);
 
-			for (j = 0; j < c->innerclasscount; j++) {
+			for (int j = 0; j < c->innerclasscount; j++) {
 				/* The innerclass structure contains a class with an encoded
 				   name, its defining scope, its simple name and a bitmask of
 				   the access flags. */
    								
-				info = c->innerclass + j;
+				innerclassinfo *info = c->innerclass + j;
 
-				inner.ref = (constant_classref*) innerclass_getconstant(c, suck_u2(cb), CONSTANT_Class);
-				outer.ref = (constant_classref*) innerclass_getconstant(c, suck_u2(cb), CONSTANT_Class);
-				name      = (utf*) innerclass_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
-				flags     = suck_u2(cb);
+				inner.ref         = (constant_classref*) innerclass_getconstant(c, cb.read_u2(), CONSTANT_Class);
+				outer.ref         = (constant_classref*) innerclass_getconstant(c, cb.read_u2(), CONSTANT_Class);
+				Utf8String  name  = (utf*) innerclass_getconstant(c, cb.read_u2(), CONSTANT_Utf8);
+				uint16_t    flags = cb.read_u2();
 
 				/* If the current inner-class is the currently loaded
 				   class check for some special flags. */

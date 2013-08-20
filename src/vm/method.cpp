@@ -159,9 +159,8 @@ void method_init(void)
 
 *******************************************************************************/
 
-bool method_load(classbuffer *cb, methodinfo *m, DescriptorPool& descpool)
+bool method_load(ClassBuffer& cb, methodinfo *m, DescriptorPool& descpool)
 {
-	classinfo *c;
 	int argcount;
 	s4         i, j, k, l;
 	Utf8String u;
@@ -176,7 +175,7 @@ bool method_load(classbuffer *cb, methodinfo *m, DescriptorPool& descpool)
 
 	/* get classinfo */
 
-	c = cb->clazz;
+	classinfo *c = cb.get_class();
 
 	m->mutex = new Mutex();
 
@@ -186,16 +185,16 @@ bool method_load(classbuffer *cb, methodinfo *m, DescriptorPool& descpool)
 
 	m->clazz = c;
 
-	if (!suck_check_classbuffer_size(cb, 2 + 2 + 2))
+	if (!cb.check_size(2 + 2 + 2))
 		return false;
 
 	/* access flags */
 
-	m->flags = suck_u2(cb);
+	m->flags = cb.read_u2();
 
 	/* name */
 
-	name_index = suck_u2(cb);
+	name_index = cb.read_u2();
 
 	if (!(u = (utf*) class_getconstant(c, name_index, CONSTANT_Utf8)))
 		return false;
@@ -204,7 +203,7 @@ bool method_load(classbuffer *cb, methodinfo *m, DescriptorPool& descpool)
 
 	/* descriptor */
 
-	descriptor_index = suck_u2(cb);
+	descriptor_index = cb.read_u2();
 
 	if (!(u = (utf*) class_getconstant(c, descriptor_index, CONSTANT_Utf8)))
 		return false;
@@ -297,20 +296,20 @@ bool method_load(classbuffer *cb, methodinfo *m, DescriptorPool& descpool)
 	if (!(m->flags & ACC_ABSTRACT))
 		m->flags |= ACC_METHOD_IMPLEMENTED;
 		
-	if (!suck_check_classbuffer_size(cb, 2))
+	if (!cb.check_size(2))
 		return false;
 
 	/* attributes count */
 
-	attributes_count = suck_u2(cb);
+	attributes_count = cb.read_u2();
 
 	for (i = 0; i < attributes_count; i++) {
-		if (!suck_check_classbuffer_size(cb, 2))
+		if (!cb.check_size(2))
 			return false;
 
 		/* attribute name index */
 
-		attribute_name_index = suck_u2(cb);
+		attribute_name_index = cb.read_u2();
 
 		attribute_name =
 			(utf*) class_getconstant(c, attribute_name_index, CONSTANT_Utf8);
@@ -331,22 +330,22 @@ bool method_load(classbuffer *cb, methodinfo *m, DescriptorPool& descpool)
 				return false;
 			}
 
-			if (!suck_check_classbuffer_size(cb, 4 + 2 + 2))
+			if (!cb.check_size(4 + 2 + 2))
 				return false;
 
-			suck_u4(cb);
-			m->maxstack = suck_u2(cb);
-			m->maxlocals = suck_u2(cb);
+			cb.read_u4();
+			m->maxstack  = cb.read_u2();
+			m->maxlocals = cb.read_u2();
 
 			if (m->maxlocals < argcount) {
 				exceptions_throw_classformaterror(c, "Arguments can't fit into locals");
 				return false;
 			}
 			
-			if (!suck_check_classbuffer_size(cb, 4))
+			if (!cb.check_size(4))
 				return false;
 
-			m->jcodelength = suck_u4(cb);
+			m->jcodelength = cb.read_u4();
 
 			if (m->jcodelength == 0) {
 				exceptions_throw_classformaterror(c, "Code of a method has length 0");
@@ -358,17 +357,17 @@ bool method_load(classbuffer *cb, methodinfo *m, DescriptorPool& descpool)
 				return false;
 			}
 
-			if (!suck_check_classbuffer_size(cb, m->jcodelength))
+			if (!cb.check_size(m->jcodelength))
 				return false;
 
 			m->jcode = MNEW(u1, m->jcodelength);
-			suck_nbytes(m->jcode, cb, m->jcodelength);
+			cb.read_nbytes(m->jcode, m->jcodelength);
 
-			if (!suck_check_classbuffer_size(cb, 2))
+			if (!cb.check_size(2))
 				return false;
 
-			m->rawexceptiontablelength = suck_u2(cb);
-			if (!suck_check_classbuffer_size(cb, (2 + 2 + 2 + 2) * m->rawexceptiontablelength))
+			m->rawexceptiontablelength = cb.read_u2();
+			if (!cb.check_size((2 + 2 + 2 + 2) * m->rawexceptiontablelength))
 				return false;
 
 			m->rawexceptiontable = MNEW(raw_exception_entry, m->rawexceptiontablelength);
@@ -379,11 +378,11 @@ bool method_load(classbuffer *cb, methodinfo *m, DescriptorPool& descpool)
 
 			for (j = 0; j < m->rawexceptiontablelength; j++) {
 				u4 idx;
-				m->rawexceptiontable[j].startpc   = suck_u2(cb);
-				m->rawexceptiontable[j].endpc     = suck_u2(cb);
-				m->rawexceptiontable[j].handlerpc = suck_u2(cb);
+				m->rawexceptiontable[j].startpc   = cb.read_u2();
+				m->rawexceptiontable[j].endpc     = cb.read_u2();
+				m->rawexceptiontable[j].handlerpc = cb.read_u2();
 
-				idx = suck_u2(cb);
+				idx = cb.read_u2();
 
 				if (!idx) {
 					m->rawexceptiontable[j].catchtype.any = NULL;
@@ -396,20 +395,20 @@ bool method_load(classbuffer *cb, methodinfo *m, DescriptorPool& descpool)
 				}
 			}
 
-			if (!suck_check_classbuffer_size(cb, 2))
+			if (!cb.check_size(2))
 				return false;
 
 			/* code attributes count */
 
-			code_attributes_count = suck_u2(cb);
+			code_attributes_count = cb.read_u2();
 
 			for (k = 0; k < code_attributes_count; k++) {
-				if (!suck_check_classbuffer_size(cb, 2))
+				if (!cb.check_size(2))
 					return false;
 
 				/* code attribute name index */
 
-				code_attribute_name_index = suck_u2(cb);
+				code_attribute_name_index = cb.read_u2();
 
 				code_attribute_name =
 					(utf*) class_getconstant(c, code_attribute_name_index, CONSTANT_Utf8);
@@ -422,19 +421,18 @@ bool method_load(classbuffer *cb, methodinfo *m, DescriptorPool& descpool)
 				if (code_attribute_name == utf8::LineNumberTable) {
 					/* LineNumberTable */
 
-					if (!suck_check_classbuffer_size(cb, 4 + 2))
+					if (!cb.check_size(4 + 2))
 						return false;
 
 					/* attribute length */
 
-					(void) suck_u4(cb);
+					(void) cb.read_u4();
 
 					/* line number table length */
 
-					m->linenumbercount = suck_u2(cb);
+					m->linenumbercount = cb.read_u2();
 
-					if (!suck_check_classbuffer_size(cb,
-												(2 + 2) * m->linenumbercount))
+					if (!cb.check_size((2 + 2) * m->linenumbercount))
 						return false;
 
 					m->linenumbers = MNEW(lineinfo, m->linenumbercount);
@@ -442,8 +440,8 @@ bool method_load(classbuffer *cb, methodinfo *m, DescriptorPool& descpool)
 					STATISTICS(size_lineinfo += sizeof(lineinfo) * m->linenumbercount);
 
 					for (l = 0; l < m->linenumbercount; l++) {
-						m->linenumbers[l].start_pc    = suck_u2(cb);
-						m->linenumbers[l].line_number = suck_u2(cb);
+						m->linenumbers[l].start_pc    = cb.read_u2();
+						m->linenumbers[l].line_number = cb.read_u2();
 					}
 				}
 #if defined(ENABLE_JAVASE)
@@ -462,32 +460,32 @@ bool method_load(classbuffer *cb, methodinfo *m, DescriptorPool& descpool)
 						return false;
 					}
 
-					if (!suck_check_classbuffer_size(cb, 4 + 2))
+					if (!cb.check_size(4 + 2))
 						return false;
 
 					// Attribute length.
-					(void) suck_u4(cb);
+					(void) cb.read_u4();
 
-					m->localvarcount = suck_u2(cb);
+					m->localvarcount = cb.read_u2();
 
-					if (!suck_check_classbuffer_size(cb, 10 * m->localvarcount))
+					if (!cb.check_size(10 * m->localvarcount))
 						return false;
 
 					m->localvars = MNEW(localvarinfo, m->localvarcount);
 
 					for (l = 0; l < m->localvarcount; l++) {
-						m->localvars[l].start_pc = suck_u2(cb);
-						m->localvars[l].length   = suck_u2(cb);
+						m->localvars[l].start_pc = cb.read_u2();
+						m->localvars[l].length   = cb.read_u2();
 
-						uint16_t name_index = suck_u2(cb);
+						uint16_t name_index = cb.read_u2();
 						if (!(m->localvars[l].name = (utf*) class_getconstant(c, name_index, CONSTANT_Utf8)))
 							return false;
 
-						uint16_t descriptor_index = suck_u2(cb);
+						uint16_t descriptor_index = cb.read_u2();
 						if (!(m->localvars[l].descriptor = (utf*) class_getconstant(c, descriptor_index, CONSTANT_Utf8)))
 							return false;
 
-						m->localvars[l].index = suck_u2(cb);
+						m->localvars[l].index = cb.read_u2();
 
 						// XXX Check if index is in range.
 						// XXX Check if index already taken.
@@ -511,16 +509,16 @@ bool method_load(classbuffer *cb, methodinfo *m, DescriptorPool& descpool)
 				return false;
 			}
 
-			if (!suck_check_classbuffer_size(cb, 4 + 2))
+			if (!cb.check_size(4 + 2))
 				return false;
 
 			/* attribute length */
 
-			(void) suck_u4(cb);
+			(void) cb.read_u4();
 
-			m->thrownexceptionscount = suck_u2(cb);
+			m->thrownexceptionscount = cb.read_u2();
 
-			if (!suck_check_classbuffer_size(cb, 2 * m->thrownexceptionscount))
+			if (!cb.check_size(2 * m->thrownexceptionscount))
 				return false;
 
 			m->thrownexceptions = MNEW(classref_or_classinfo, m->thrownexceptionscount);
@@ -528,7 +526,7 @@ bool method_load(classbuffer *cb, methodinfo *m, DescriptorPool& descpool)
 			for (j = 0; j < m->thrownexceptionscount; j++) {
 				/* the classref is created later */
 				if (!((m->thrownexceptions)[j].any =
-					  (utf*) class_getconstant(c, suck_u2(cb), CONSTANT_Class)))
+					  (utf*) class_getconstant(c, cb.read_u2(), CONSTANT_Class)))
 					return false;
 			}
 		}

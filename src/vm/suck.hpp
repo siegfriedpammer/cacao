@@ -28,9 +28,11 @@
 
 #include "config.h"
 #include <list>
+
+#include "toolbox/endianess.hpp"
+#include "vm/exceptions.hpp"
 #include "vm/types.hpp"
 
-struct classbuffer;
 struct classinfo;
 struct hashtable;
 class Mutex;
@@ -43,7 +45,7 @@ enum {
 	CLASSPATH_ARCHIVE
 };
 
-typedef struct list_classpath_entry {
+struct list_classpath_entry {
 	Mutex             *mutex;	        /* mutex locking on zip/jar files */
 	s4                 type;
 	char              *path;
@@ -51,7 +53,7 @@ typedef struct list_classpath_entry {
 #if defined(ENABLE_ZLIB)
 	ZipFile           *zip;
 #endif
-} list_classpath_entry;
+};
 
 /**
  * Classpath entries list.
@@ -67,35 +69,129 @@ public:
 	// make functions of std::list visible
 	using std::list<list_classpath_entry*>::begin;
 	using std::list<list_classpath_entry*>::end;
+
+	using std::list<list_classpath_entry*>::size;
 };
 
+/* classbuffer ****************************************************************/
 
-/* signed suck defines ********************************************************/
+namespace cacao {
+	struct ClassBuffer {
+		/// Locate and load class file for class
+		ClassBuffer(Utf8String classname);
+		ClassBuffer(classinfo *clazz);
 
-#define suck_s1(a)    (s1) suck_u1((a))
-#define suck_s2(a)    (s2) suck_u2((a))
-#define suck_s4(a)    (s4) suck_u4((a))
-#define suck_s8(a)    (s8) suck_u8((a))
+		/// Initialize with an already loaded class file
+		ClassBuffer(classinfo *clazz, uint8_t *data, size_t sz, const char *path = NULL);
 
+		/// Check if an error occured while creating this classbuffer
+		operator bool() { return data != NULL; }
 
-/* function prototypes ********************************************************/
+		/// Assert that at least <sz> bytes are left to read
+		bool check_size(size_t sz);
 
-bool suck_check_classbuffer_size(classbuffer *cb, s4 len);
+		uint8_t  read_u1();
+		uint16_t read_u2();
+		uint32_t read_u4();
+		uint64_t read_u8();
 
-u1 suck_u1(classbuffer *cb);
-u2 suck_u2(classbuffer *cb);
-u4 suck_u4(classbuffer *cb);
-u8 suck_u8(classbuffer *cb);
+		int32_t read_s4();
+		int64_t read_s8();
 
-float suck_float(classbuffer *cb);
-double suck_double(classbuffer *cb);
+		float  read_float();
+		double read_double();
 
-void suck_nbytes(u1 *buffer, classbuffer *cb, s4 len);
-void suck_skip_nbytes(classbuffer *cb, s4 len);
+		/// Transfer block of classfile into a buffer
+		void read_nbytes(uint8_t *dst, size_t num_bytes);
 
-classbuffer *suck_start(classinfo *c);
+		/// Skip block of classfile data
+		void skip_nbytes(size_t num_bytes);
 
-void suck_stop(classbuffer *cb);
+		/// The number of unread bytes in the buffer
+		size_t remaining();
+
+		/// Free memory held by this classbuffer
+		void free();
+
+		inline classinfo     *get_class() { return clazz; }
+		inline const uint8_t *get_data()  { return pos;   }
+		inline const char    *get_path()  { return path;  }
+	private:
+		ClassBuffer(const ClassBuffer&);
+		ClassBuffer& operator=(const ClassBuffer&);
+
+		void init(classinfo*, uint8_t*, size_t, const char*);
+
+		classinfo  *clazz;      // pointer to classinfo structure
+		uint8_t    *data;       // pointer to start of buffer
+		uint8_t    *pos;        // pointer to current position in buffer
+		uint8_t    *end;        // pointer to end of buffer
+		const char *path;       // path to file (for debugging)
+	};
+
+	inline bool ClassBuffer::check_size(size_t sz) {
+#ifdef ENABLE_VERIFIER
+		if (remaining() < sz) {
+			exceptions_throw_classformaterror(clazz, "Truncated class file");
+			return false;
+		}
+#endif
+		return true;
+	}
+
+	inline uint8_t ClassBuffer::read_u1() {
+		uint8_t u = read_u1_be(pos);
+		skip_nbytes(sizeof(uint8_t));
+		return u;
+	}
+	inline uint16_t ClassBuffer::read_u2() {
+		uint16_t u = read_u2_be(pos);
+		skip_nbytes(sizeof(uint16_t));
+		return u;
+	}
+	inline uint32_t ClassBuffer::read_u4() {
+		uint32_t u = read_u4_be(pos);
+		skip_nbytes(sizeof(uint32_t));
+		return u;
+	}
+	inline uint64_t ClassBuffer::read_u8() {
+		uint64_t u = read_u8_be(pos);
+		skip_nbytes(sizeof(uint64_t));
+		return u;
+	}
+	inline int32_t ClassBuffer::read_s4() {
+		int32_t u = read_s4_be(pos);
+		skip_nbytes(sizeof(int32_t));
+		return u;
+	}
+	inline int64_t ClassBuffer::read_s8() {
+		int64_t u = read_s8_be(pos);
+		skip_nbytes(sizeof(int64_t));
+		return u;
+	}
+	inline float ClassBuffer::read_float() {
+		float u = read_float_be(pos);
+		skip_nbytes(sizeof(float));
+		return u;
+	}
+	inline double ClassBuffer::read_double() {
+		double u = read_double_be(pos);
+		skip_nbytes(sizeof(double));
+		return u;
+	}
+
+	inline void ClassBuffer::read_nbytes(u1 *dst, size_t num_bytes) {
+		MCOPY(dst, pos, u1, num_bytes);
+		skip_nbytes(num_bytes);
+	}
+	inline void ClassBuffer::skip_nbytes(size_t num_bytes) {
+		pos += num_bytes;
+	}
+
+	inline size_t ClassBuffer::remaining() {
+		return end - pos;
+	}
+}
 
 #endif // SUCK_HPP_
 

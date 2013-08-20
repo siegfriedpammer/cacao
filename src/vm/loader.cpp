@@ -484,19 +484,17 @@ void loader_load_all_classes(void)
 
 *******************************************************************************/
 
-bool loader_skip_attribute_body(classbuffer *cb)
+bool loader_skip_attribute_body(ClassBuffer& cb)
 {
-	u4 attribute_length;
-
-	if (!suck_check_classbuffer_size(cb, 4))
+	if (!cb.check_size(4))
 		return false;
 
-	attribute_length = suck_u4(cb);
+	u4 attribute_length = cb.read_u4();
 
-	if (!suck_check_classbuffer_size(cb, attribute_length))
+	if (!cb.check_size(attribute_length))
 		return false;
 
-	suck_skip_nbytes(cb, attribute_length);
+	cb.skip_nbytes(attribute_length);
 
 	return true;
 }
@@ -515,37 +513,36 @@ bool loader_skip_attribute_body(classbuffer *cb)
 // been traversed the references can be resolved (only in specific order).
 
 /* CONSTANT_Class entries */
-typedef struct forward_class {
+struct forward_class {
 	u2 thisindex;
 	u2 name_index;
-} forward_class;
+};
 
 /* CONSTANT_String */
-typedef struct forward_string {
+struct forward_string {
 	u2 thisindex;
 	u2 string_index;
-} forward_string;
+};
 
 /* CONSTANT_NameAndType */
-typedef struct forward_nameandtype {
+struct forward_nameandtype {
 	u2 thisindex;
 	u2 name_index;
 	u2 sig_index;
-} forward_nameandtype;
+};
 
 /* CONSTANT_Fieldref, CONSTANT_Methodref or CONSTANT_InterfaceMethodref */
-typedef struct forward_fieldmethint {
+struct forward_fieldmethint {
 	u2 thisindex;
 	u1 tag;
 	u2 class_index;
 	u2 nameandtype_index;
-} forward_fieldmethint;
+};
 
-static bool load_constantpool(classbuffer *cb, DescriptorPool& descpool)
-{
-	classinfo *c;
-	u4 idx;
 
+
+
+static bool load_constantpool(ClassBuffer& cb, DescriptorPool& descpool) {
 	DumpList<forward_class>        forward_classes;
 	DumpList<forward_string>       forward_strings;
 	DumpList<forward_nameandtype>  forward_nameandtypes;
@@ -556,21 +553,20 @@ static bool load_constantpool(classbuffer *cb, DescriptorPool& descpool)
 	forward_nameandtype nfn;
 	forward_fieldmethint nff;
 
-	u4 cpcount;
-	u1 *cptags;
-	void** cpinfos;
+	classinfo *c = cb.get_class();
 
-	c = cb->clazz;
-
-	/* number of entries in the constant_pool table plus one */
-	if (!suck_check_classbuffer_size(cb, 2))
+	// number of entries in the constant_pool table plus one
+	if (!cb.check_size(2))
 		return false;
 
-	cpcount = c->cpcount = suck_u2(cb);
+	u2 cpcount = c->cpcount = cb.read_u2();
 
-	/* allocate memory */
-	cptags  = c->cptags  = MNEW(u1, cpcount);
-	cpinfos = c->cpinfos = MNEW(void*, cpcount);
+	// allocate memory
+	u1    *cptags  = c->cptags  = MNEW(u1, cpcount);
+	void **cpinfos = c->cpinfos = MNEW(void*, cpcount);
+
+	// NOTE: MNEW zero initializes allcated memory, 
+	//       cptags and cpinfos require this
 
 	if (cpcount < 1) {
 		exceptions_throw_classformaterror(c, "Illegal constant pool size");
@@ -579,36 +575,30 @@ static bool load_constantpool(classbuffer *cb, DescriptorPool& descpool)
 
 	STATISTICS(count_const_pool_len += (sizeof(u1) + sizeof(void*)) * cpcount);
 
-	/* initialize constantpool */
-	for (idx = 0; idx < cpcount; idx++) {
-		cptags[idx] = CONSTANT_UNUSED;
-		cpinfos[idx] = NULL;
-	}
-
-
 	/******* first pass *******/
 	// entries which cannot be resolved now are written into
 	// temporary structures and traversed again later
 
-	idx = 1;
+	u2 idx = 1;
+
 	while (idx < cpcount) {
 		u4 t;
 
 		/* get constant type */
-		if (!suck_check_classbuffer_size(cb, 1))
+		if (!cb.check_size(1))
 			return false;
 
-		t = suck_u1(cb);
+		t = cb.read_u1();
 
 		switch (t) {
 		case CONSTANT_Class:
 			nfc.thisindex = idx;
 
 			/* reference to CONSTANT_NameAndType */
-			if (!suck_check_classbuffer_size(cb, 2))
+			if (!cb.check_size(2))
 				return false;
 
-			nfc.name_index = suck_u2(cb);
+			nfc.name_index = cb.read_u2();
 
 			forward_classes.push_front(nfc);
 
@@ -619,10 +609,10 @@ static bool load_constantpool(classbuffer *cb, DescriptorPool& descpool)
 			nfs.thisindex = idx;
 
 			/* reference to CONSTANT_Utf8_info with string characters */
-			if (!suck_check_classbuffer_size(cb, 2))
+			if (!cb.check_size(2))
 				return false;
 
-			nfs.string_index = suck_u2(cb);
+			nfs.string_index = cb.read_u2();
 
 			forward_strings.push_front(nfs);
 
@@ -632,15 +622,15 @@ static bool load_constantpool(classbuffer *cb, DescriptorPool& descpool)
 		case CONSTANT_NameAndType:
 			nfn.thisindex = idx;
 
-			if (!suck_check_classbuffer_size(cb, 2 + 2))
+			if (!cb.check_size(2 + 2))
 				return false;
 
 			/* reference to CONSTANT_Utf8_info containing simple name */
-			nfn.name_index = suck_u2(cb);
+			nfn.name_index = cb.read_u2();
 
 			/* reference to CONSTANT_Utf8_info containing field or method
 			   descriptor */
-			nfn.sig_index = suck_u2(cb);
+			nfn.sig_index = cb.read_u2();
 
 			forward_nameandtypes.push_front(nfn);
 
@@ -654,15 +644,15 @@ static bool load_constantpool(classbuffer *cb, DescriptorPool& descpool)
 			/* constant type */
 			nff.tag = t;
 
-			if (!suck_check_classbuffer_size(cb, 2 + 2))
+			if (!cb.check_size(2 + 2))
 				return false;
 
 			/* class or interface type that contains the declaration of the
 			   field or method */
-			nff.class_index = suck_u2(cb);
+			nff.class_index = cb.read_u2();
 
 			/* name and descriptor of the field or method */
-			nff.nameandtype_index = suck_u2(cb);
+			nff.nameandtype_index = cb.read_u2();
 
 			forward_fieldmethints.push_front(nff);
 
@@ -674,10 +664,10 @@ static bool load_constantpool(classbuffer *cb, DescriptorPool& descpool)
 
 			STATISTICS(count_const_pool_len += sizeof(constant_integer));
 
-			if (!suck_check_classbuffer_size(cb, 4))
+			if (!cb.check_size(4))
 				return false;
 
-			ci->value    = suck_s4(cb);
+			ci->value    = cb.read_s4();
 			cptags[idx]  = CONSTANT_Integer;
 			cpinfos[idx] = ci;
 
@@ -690,11 +680,11 @@ static bool load_constantpool(classbuffer *cb, DescriptorPool& descpool)
 
 			STATISTICS(count_const_pool_len += sizeof(constant_float));
 
-			if (!suck_check_classbuffer_size(cb, 4))
+			if (!cb.check_size(4))
 				return false;
 
-			cf->value = suck_float(cb);
-			cptags[idx] = CONSTANT_Float;
+			cf->value    = cb.read_float();
+			cptags[idx]  = CONSTANT_Float;
 			cpinfos[idx] = cf;
 
 			idx++;
@@ -706,10 +696,10 @@ static bool load_constantpool(classbuffer *cb, DescriptorPool& descpool)
 
 			STATISTICS(count_const_pool_len += sizeof(constant_long));
 
-			if (!suck_check_classbuffer_size(cb, 8))
+			if (!cb.check_size(8))
 				return false;
 
-			cl->value = suck_s8(cb);
+			cl->value = cb.read_s8();
 			cptags[idx] = CONSTANT_Long;
 			cpinfos[idx] = cl;
 			idx += 2;
@@ -725,11 +715,11 @@ static bool load_constantpool(classbuffer *cb, DescriptorPool& descpool)
 
 			STATISTICS(count_const_pool_len += sizeof(constant_double));
 
-			if (!suck_check_classbuffer_size(cb, 8))
+			if (!cb.check_size(8))
 				return false;
 
-			cd->value = suck_double(cb);
-			cptags[idx] = CONSTANT_Double;
+			cd->value    = cb.read_double();
+			cptags[idx]  = CONSTANT_Double;
 			cpinfos[idx] = cd;
 			idx += 2;
 			if (idx > cpcount) {
@@ -743,17 +733,17 @@ static bool load_constantpool(classbuffer *cb, DescriptorPool& descpool)
 			u4 length;
 
 			/* number of bytes in the bytes array (not string-length) */
-			if (!suck_check_classbuffer_size(cb, 2))
+			if (!cb.check_size(2))
 				return false;
 
-			length = suck_u2(cb);
+			length = cb.read_u2();
 			cptags[idx] = CONSTANT_Utf8;
 
 			/* validate the string */
-			if (!suck_check_classbuffer_size(cb, length))
+			if (!cb.check_size(length))
 				return false;
 
-			Utf8String u = Utf8String::from_utf8((char *) cb->pos, length);
+			Utf8String u = Utf8String::from_utf8((char *) cb.get_data(), length);
 #ifdef ENABLE_VERIFIER
 
 			if (opt_verify && u == NULL)
@@ -766,13 +756,13 @@ static bool load_constantpool(classbuffer *cb, DescriptorPool& descpool)
 			cpinfos[idx] = u.c_ptr();
 
 			/* skip bytes of the string (buffer size check above) */
-			suck_skip_nbytes(cb, length);
+			cb.skip_nbytes(length);
 			idx++;
 			break;
 		}
 
 		default:
-			exceptions_throw_classformaterror(c, "Illegal constant pool type");
+			exceptions_throw_classformaterror(c, "Illegal constant pool type '%u'", t);
 			return false;
 		}  /* end switch */
 	} /* end while */
@@ -921,11 +911,11 @@ static bool load_constantpool(classbuffer *cb, DescriptorPool& descpool)
 *******************************************************************************/
 
 #if defined(ENABLE_JAVASE)
-bool loader_load_attribute_signature(classbuffer *cb, Utf8String& signature)
+bool loader_load_attribute_signature(ClassBuffer& cb, Utf8String& signature)
 {
 	/* get classinfo */
 
-	classinfo *c = cb->clazz;
+	classinfo *c = cb.get_class();
 
 	/* destination must be NULL */
 
@@ -936,12 +926,12 @@ bool loader_load_attribute_signature(classbuffer *cb, Utf8String& signature)
 
 	/* check remaining bytecode */
 
-	if (!suck_check_classbuffer_size(cb, 4 + 2))
+	if (!cb.check_size(4 + 2))
 		return false;
 
 	/* check attribute length */
 
-	u4 attribute_length = suck_u4(cb);
+	u4 attribute_length = cb.read_u4();
 
 	if (attribute_length != 2) {
 		exceptions_throw_classformaterror(c, "Wrong size for VALUE attribute");
@@ -950,7 +940,7 @@ bool loader_load_attribute_signature(classbuffer *cb, Utf8String& signature)
 
 	/* get signature */
 
-	u2 signature_index = suck_u2(cb);
+	u2 signature_index = cb.read_u2();
 
 	signature = (utf*) class_getconstant(c, signature_index, CONSTANT_Utf8);
 
@@ -1239,7 +1229,6 @@ RT_REGISTER_GROUP_TIMER(cache_timer,"boot","store in classcache",boot_group)
 
 classinfo *load_class_bootstrap(Utf8String name)
 {
-	classbuffer *cb;
 	classinfo   *c;
 	classinfo   *r;
 
@@ -1294,9 +1283,9 @@ classinfo *load_class_bootstrap(Utf8String name)
 
 	/* load classdata, throw exception on error */
 
-	cb = suck_start(c);
+	ClassBuffer cb(c);
 
-	if (cb == NULL) {
+	if (!cb) {
 		exceptions_throw_classnotfoundexception(name);
 		return NULL;
 	}
@@ -1340,12 +1329,12 @@ classinfo *load_class_bootstrap(Utf8String name)
 	if (opt_verboseclass && r) {
 		printf("[Loaded ");
 		utf_display_printable_ascii_classname(name);
-		printf(" from %s]\n", cb->path);
+		printf(" from %s]\n", cb.get_path());
 	}
 
 	/* free memory */
 
-	suck_stop(cb);
+	cb.free();
 
 #if defined(ENABLE_STATISTICS)
 	/* measure time */
@@ -1372,7 +1361,7 @@ classinfo *load_class_bootstrap(Utf8String name)
 
 *******************************************************************************/
 
-static bool load_class_from_classbuffer_intern(classbuffer *cb)
+static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 {
 	classinfo          *tc;
 	Utf8String          name;
@@ -1387,22 +1376,22 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	/* Get the classbuffer's class. */
 
-	classinfo *c = cb->clazz;
+	classinfo *c = cb.get_class();
 
-	if (!suck_check_classbuffer_size(cb, 4 + 2 + 2))
+	if (!cb.check_size(4 + 2 + 2))
 		return false;
 
 	/* check signature */
 
-	if (suck_u4(cb) != MAGIC) {
+	if (cb.read_u4() != MAGIC) {
 		exceptions_throw_classformaterror(c, "Bad magic number");
 		return false;
 	}
 
 	/* check version */
 
-	u4 mi = suck_u2(cb);
-	u4 ma = suck_u2(cb);
+	u4 mi = cb.read_u2();
+	u4 ma = cb.read_u2();
 
 	if (!(ma < MAJOR_VERSION || (ma == MAJOR_VERSION && mi <= MINOR_VERSION))) {
 		exceptions_throw_unsupportedclassversionerror(c, ma, mi);
@@ -1426,13 +1415,13 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	/* ACC flags */
 
-	if (!suck_check_classbuffer_size(cb, 2))
+	if (!cb.check_size(2))
 		return false;
 
 	/* We OR the flags here, as we set already some flags in
 	   class_create_classinfo. */
 
-	c->flags |= suck_u2(cb);
+	c->flags |= cb.read_u2();
 
 	/* check ACC flags consistency */
 
@@ -1463,12 +1452,12 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		return false;
 	}
 
-	if (!suck_check_classbuffer_size(cb, 2 + 2))
+	if (!cb.check_size(2 + 2))
 		return false;
 
 	/* This class. */
 
-	index = suck_u2(cb);
+	index = cb.read_u2();
 
 	name = (utf *) class_getconstant(c, index, CONSTANT_Class);
 
@@ -1489,7 +1478,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	c->super = NULL;
 
-	index = suck_u2(cb);
+	index = cb.read_u2();
 
 	if (index == 0) {
 		supername = NULL;
@@ -1531,12 +1520,12 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	/* Parse the super interfaces. */
 
-	if (!suck_check_classbuffer_size(cb, 2))
+	if (!cb.check_size(2))
 		return false;
 
-	c->interfacescount = suck_u2(cb);
+	c->interfacescount = cb.read_u2();
 
-	if (!suck_check_classbuffer_size(cb, 2 * c->interfacescount))
+	if (!cb.check_size(2 * c->interfacescount))
 		return false;
 
 	c->interfaces = MNEW(classinfo*, c->interfacescount);
@@ -1546,7 +1535,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	interfacesnames = (Utf8String*) DumpMemory::allocate(sizeof(Utf8String) * c->interfacescount);
 
 	for (int32_t i = 0; i < c->interfacescount; i++) {
-		index = suck_u2(cb);
+		index = cb.read_u2();
 
 		Utf8String u = (utf *) class_getconstant(c, index, CONSTANT_Class);
 
@@ -1560,10 +1549,10 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	/* Parse fields. */
 
-	if (!suck_check_classbuffer_size(cb, 2))
+	if (!cb.check_size(2))
 		return false;
 
-	c->fieldscount = suck_u2(cb);
+	c->fieldscount = cb.read_u2();
   	c->fields      = MNEW(fieldinfo, c->fieldscount);
 
 	MZERO(c->fields, fieldinfo, c->fieldscount);
@@ -1577,10 +1566,10 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	/* Parse methods. */
 
-	if (!suck_check_classbuffer_size(cb, 2))
+	if (!cb.check_size(2))
 		return false;
 
-	c->methodscount = suck_u2(cb);
+	c->methodscount = cb.read_u2();
 	c->methods      = MNEW(methodinfo, c->methodscount);
 
 	MZERO(c->methods, methodinfo, c->methodscount);
@@ -1868,15 +1857,13 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	if (!class_load_attributes(cb))
 		return false;
 
-	/* Pre Java 1.5 version don't check this. This implementation is
-	   like Java 1.5 do it: for class file version 45.3 we don't check
-	   it, older versions are checked. */
+	// Pre Java 1.5 version don't check this. This implementation is
+	// like Java 1.5 do it: for class file version 45.3 we don't check
+	// it, older versions are checked.
 
 	if (((ma == 45) && (mi > 3)) || (ma > 45)) {
-		/* check if all data has been read */
-		s4 classdata_left = ((cb->data + cb->size) - cb->pos);
-
-		if (classdata_left > 0) {
+		// check if all data has been read
+		if (cb.remaining() != 0) {
 			exceptions_throw_classformaterror(c, "Extra bytes at the end of class file");
 			return false;
 		}
@@ -1897,14 +1884,14 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 *******************************************************************************/
 
-classinfo *load_class_from_classbuffer(classbuffer *cb)
+classinfo *load_class_from_classbuffer(ClassBuffer& cb)
 {
 	classinfo *c;
 	bool       result;
 
 	/* Get the classbuffer's class. */
 
-	c = cb->clazz;
+	c = cb.get_class();
 
 	/* Check if the class is already loaded. */
 

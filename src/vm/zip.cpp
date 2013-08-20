@@ -188,7 +188,7 @@ ZipFile *ZipFile::open(const char *path) {
 	u1 *filep = (u1*) mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0);
 
 	// some older compilers, like DEC OSF cc, don't like comparisons
-    // on void* type
+	// on void* type
 
 	if ((ptrint) filep == (ptrint) MAP_FAILED)
 		return NULL;
