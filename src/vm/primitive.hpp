@@ -47,12 +47,17 @@ struct classinfo;
  *
  * CAUTION: Don't change the numerical values! These constants are
  * used as indices into the primitive type table.
+ *
+ * @todo PRIMITIVETYPE_DUMMY1 is only used to keep this enum interchangeable
+ * with the Type enum. It is an artefact from the transition from C to C++
+ * (i.e. #defines to enums). Should be replaced (e.g. by a new enum).
  */
 enum PrimitiveType {
 	PRIMITIVETYPE_INT     = TYPE_INT,
 	PRIMITIVETYPE_LONG    = TYPE_LNG,
 	PRIMITIVETYPE_FLOAT   = TYPE_FLT,
 	PRIMITIVETYPE_DOUBLE  = TYPE_DBL,
+	PRIMITIVETYPE_DUMMY1  = TYPE_ADR,  // XXX not used!
 	PRIMITIVETYPE_BYTE    = 5,
 	PRIMITIVETYPE_CHAR    = 6,
 	PRIMITIVETYPE_SHORT   = 7,
