@@ -61,16 +61,6 @@ struct localref_table {
 	} refs[LOCALREFTABLE_CAPACITY];     /* references            */
 };
 
-
-#if defined(ENABLE_THREADS)
-#define LOCALREFTABLE    (THREADOBJECT->_localref_table)
-#else
-extern localref_table *_no_threads_localref_table;
-
-#define LOCALREFTABLE    (_no_threads_localref_table)
-#endif
-
-
 /* function prototypes ********************************************************/
 
 bool localref_table_init(void);

@@ -604,7 +604,6 @@ uint32_t emit_trap(codegendata *cd)
 /**
  * Generates synchronization code to enter a monitor.
  */
-#if defined(ENABLE_THREADS)
 void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
 {
 	int align_off;
@@ -630,13 +629,11 @@ void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
 	M_MOV_IMM(LOCK_monitor_enter, REG_ITMP3);
 	M_CALL(REG_ITMP3);
 }
-#endif
 
 
 /**
  * Generates synchronization code to leave a monitor.
  */
-#if defined(ENABLE_THREADS)
 void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 {
 	// Get required compiler data.
@@ -707,7 +704,6 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 		break;
 	}
 }
-#endif
 
 
 /**

@@ -1,4 +1,4 @@
-/* src/threads/thread-cldc11.cpp - thread functions specific to the CLDC 1.1 library
+/* src/threads/ThreadRuntime-cldc11.cpp - thread functions specific to the CLDC 1.1 library
 
    Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,69 +22,68 @@
 
 */
 
-
-#include "thread-cldc11.hpp"
-
-
+#include "threads/ThreadRuntime.hpp"
 #include "mm/gc.hpp"
-#include "vm/exceptions.hpp"
+#include "threads/threadlist.hpp"
 #include "vm/globals.hpp"
+#include "vm/global.hpp"
 #include "vm/javaobjects.hpp"
-#include "threadlist.hpp"
+#include "vm/exceptions.hpp"
+#include "vm/vm.hpp"
 
-#if defined(ENABLE_THREADS) && defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
+using namespace cacao;
 
-classinfo *ThreadRuntimeCldc11::get_thread_class_from_object(java_handle_t *object) {
+classinfo *ThreadRuntime::get_thread_class_from_object(java_handle_t *object) {
 	classinfo *c;
 	LLNI_class_get(object, c);
 	return c;
 }
 
-java_handle_t *ThreadRuntimeCldc11::get_vmthread_handle(const java_lang_Thread &jlt) {
+java_handle_t *ThreadRuntime::get_vmthread_handle(const java_lang_Thread &jlt) {
 	return jlt.get_handle();
 }
 
-java_handle_t *ThreadRuntimeCldc11::get_thread_exception_handler(const java_lang_Thread &jlt)
+java_handle_t *ThreadRuntime::get_thread_exception_handler(const java_lang_Thread &jlt)
 {
 	#error unknown
 }
 
-methodinfo *ThreadRuntimeCldc11::get_threadgroup_remove_method(classinfo *c)
+methodinfo *ThreadRuntime::get_threadgroup_remove_method(classinfo *c)
 {
 	#error unknown
 }
 
-methodinfo *ThreadRuntimeCldc11::get_thread_init_method()
+methodinfo *ThreadRuntime::get_thread_init_method()
 {
 	#error unknown
 }
 
-void ThreadRuntimeCldc11::setup_thread_vmdata(const java_lang_Thread& jlt, threadobject *t)
+void ThreadRuntime::setup_thread_vmdata(const java_lang_Thread& jlt, threadobject *t)
 {
 	// Nothing to do.
 }
 
-void ThreadRuntimeCldc11::print_thread_name(const java_lang_Thread& jlt, FILE *stream)
+void ThreadRuntime::print_thread_name(const java_lang_Thread& jlt, FILE *stream)
 {
 	#error unknown
 }
 
-void ThreadRuntimeCldc11::set_javathread_state(threadobject *t, int state)
+void ThreadRuntime::set_javathread_state(threadobject *t, int state)
 {
 	// Nothing to do.
 }
 
-threadobject *ThreadRuntimeCldc11::get_threadobject_from_thread(java_handle_t *h)
+threadobject *ThreadRuntime::get_thread_from_object(java_handle_t *h)
 {
 	#error unknown
 }
 
-void ThreadRuntimeCldc11::thread_create_initial_threadgroups(java_handle_t **threadgroup_system, java_handle_t **threadgroup_main)
+void ThreadRuntime::thread_create_initial_threadgroups(java_handle_t **threadgroup_system, java_handle_t **threadgroup_main)
 {
 	#error unknown
 }
 
-bool ThreadRuntimeCldc11::invoke_thread_initializer(java_lang_Thread& jlt, threadobject *t, methodinfo *thread_method_init, java_handle_t *name, java_handle_t *group)
+bool ThreadRuntime::invoke_thread_initializer(java_lang_Thread& jlt, threadobject *t, methodinfo *thread_method_init, java_handle_t *name, java_handle_t *group)
 {
 	// Set the thread data-structure in the Java thread object.
 	jlt.set_vm_thread(t);
@@ -100,9 +99,6 @@ void ThreadRuntimeOpenjdk::clear_heap_reference(java_lang_Thread& jlt)
 {
 	// Nothing to do.
 }
-
-#endif /* ENABLE_THREADS && WITH_JAVA_RUNTIME_LIBRARY_OPENJDK */
-
 
 /*
  * These are local overrides for various environment variables in Emacs.

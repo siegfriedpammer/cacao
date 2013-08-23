@@ -101,7 +101,6 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 
 *******************************************************************************/
 
-#if defined(ENABLE_THREADS)
 void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 {
 	threadobject *thread;
@@ -118,7 +117,6 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 
 	thread->pc = pc;
 }
-#endif
 
 
 /**

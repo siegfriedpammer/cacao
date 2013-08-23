@@ -232,14 +232,12 @@ jitdata *jit_jitdata_new(methodinfo *m)
 
 	/* Set codeinfo flags. */
 
-#if defined(ENABLE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
 		code_flag_synchronized(code);
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
 		code_unflag_leafmethod(code);
 	else
-#endif
 		code_flag_leafmethod(code);
 
 	/* initialize variables */

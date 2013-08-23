@@ -43,16 +43,26 @@ THREAD_LIB = \
 	none/libthreadsnone.la
 endif
 
+if WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH
+THREAD_RUNTIME_SOURCES = ThreadRuntime-classpath.cpp
+else
+if WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1
+THREAD_RUNTIME_SOURCES = ThreadRuntime-cldc11.cpp
+else
+if WITH_JAVA_RUNTIME_LIBRARY_OPENJDK
+THREAD_RUNTIME_SOURCES = ThreadRuntime-openjdk.cpp
+endif
+endif
+endif
 
 noinst_LTLIBRARIES = \
 	libthreads.la
 
-if ENABLE_THREADS
 libthreads_la_SOURCES = \
 	atomic.cpp \
 	atomic.hpp \
 	condition.hpp \
-	lock.cpp \
+	lock.cpp                \
 	lock.hpp \
 	lockword.cpp \
 	lockword.hpp \
@@ -60,17 +70,10 @@ libthreads_la_SOURCES = \
 	mutex.hpp \
 	threadlist.cpp \
 	threadlist.hpp \
-	thread-classpath.cpp \
-	thread-classpath.hpp \
-	thread-cldc11.cpp \
-	thread-cldc11.hpp \
-	thread-openjdk.cpp \
-	thread-openjdk.hpp \
+	ThreadRuntime.hpp \
+	$(THREAD_RUNTIME_SOURCES) \
 	thread.cpp \
 	thread.hpp
-else
-libthreads_la_SOURCES =
-endif
 
 libthreads_la_LIBADD = \
 	$(THREAD_LIB)

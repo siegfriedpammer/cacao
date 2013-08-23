@@ -1,4 +1,4 @@
-/* src/threads/thread-cldc11.hpp - thread functions specific to the CLDC 1.1 library
+/* src/threads/ThreadRuntime.hpp - thread functions specific to classpath libraries
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,11 +23,11 @@
 */
 
 
-#ifndef THREAD_CLDC11_HPP_
-#define THREAD_CLDC11_HPP_ 1
+#ifndef THREAD_RUNTIME_HPP_
+#define THREAD_RUNTIME_HPP_ 1
 
 #include "config.h"
-#include "threads/thread.hpp"
+#include <cstdio>
 #include "vm/global.hpp"
 #include "vm/types.hpp"
 
@@ -36,31 +36,26 @@ class java_lang_Thread;
 struct methodinfo;
 struct threadobject;
 
-/* only define the following stuff with thread enabled ************************/
+namespace cacao {
 
-#if defined(ENABLE_THREADS) && defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
-
-struct ThreadRuntimeCldc11 {
-	static classinfo     *get_thread_class_from_object(java_handle_t *object);
-	static java_handle_t *get_vmthread_handle(const java_lang_Thread &jlt);
-	static java_handle_t *get_thread_exception_handler(const java_lang_Thread &jlt);
-	static methodinfo    *get_threadgroup_remove_method(classinfo *c);
-	static methodinfo    *get_thread_init_method();
-	static void           setup_thread_vmdata(const java_lang_Thread& jlt, threadobject *t);
-	static void           print_thread_name(const java_lang_Thread& jlt, FILE *stream);
-	static void           set_javathread_state(threadobject *t, int state);
-	static threadobject  *get_threadobject_from_thread(java_handle_t *h);
+struct ThreadRuntime {
+	static threadobject  *get_thread_from_object(java_handle_t *h);
+   static classinfo     *get_thread_class_from_object(java_handle_t *object);
+   static java_handle_t *get_vmthread_handle(const java_lang_Thread &jlt);
+   static java_handle_t *get_thread_exception_handler(const java_lang_Thread &jlt);
+   static methodinfo    *get_threadgroup_remove_method(classinfo *c);
+   static methodinfo    *get_thread_init_method();
+   static void           setup_thread_vmdata(const java_lang_Thread& jlt, threadobject *t);
+   static void           print_thread_name(const java_lang_Thread& jlt, FILE *stream);
+   static void           set_javathread_state(threadobject *t, int state);
 	static void           thread_create_initial_threadgroups(java_handle_t **threadgroup_system, java_handle_t **threadgroup_main);
 	static bool           invoke_thread_initializer(java_lang_Thread& jlt, threadobject *t, methodinfo *thread_method_init, java_handle_t *name, java_handle_t *group);
 	static void           clear_heap_reference(java_lang_Thread& jlt);
 };
 
-typedef ThreadRuntimeCldc11 ThreadRuntime;
+} // end namespace cacao
 
-#endif /* ENABLE_THREADS */
-
-#endif // THREAD_CLDC11_HPP_
-
+#endif // THREAD_RUNTIME_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.

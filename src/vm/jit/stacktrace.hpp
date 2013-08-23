@@ -104,10 +104,8 @@ java_handle_objectarray_t *stacktrace_get_stack(void);
 void                       stacktrace_print(stacktrace_t *st);
 void                       stacktrace_print_current(void);
 
-#if defined(ENABLE_THREADS)
 stacktrace_t*              stacktrace_get_of_thread(threadobject *t);
 void                       stacktrace_print_of_thread(threadobject *t);
-#endif
 
 void                       stacktrace_print_exception(java_handle_t *h);
 

@@ -24,6 +24,7 @@
 
 #include "threads/thread.hpp"
 #include <assert.h>                     // for assert
+#include <inttypes.h> 
 #include <stddef.h>                     // for NULL, size_t
 #include <stdint.h>                     // for int32_t, intptr_t
 #include <string.h>                     // for strstr
@@ -31,12 +32,14 @@
 #include "config.h"                     // for ENABLE_GC_BOEHM, etc
 #include "lockword.hpp"                 // for Lockword
 #include "mm/dumpmemory.hpp"            // for DumpMemory
+#include "mm/gc.hpp"                    // for gc_register_current_thread, etc
 #include "mm/memory.hpp"                // for GCNEW_UNCOLLECTABLE, MNEW, etc
 #include "native/llni.hpp"              // for LLNI_WRAP, LLNI_DIRECT
 #include "threads/atomic.hpp"           // for write_memory_barrier
 #include "threads/condition.hpp"        // for Condition
 #include "threads/mutex.hpp"            // for Mutex
 #include "threads/threadlist.hpp"       // for ThreadList
+#include "threads/ThreadRuntime.hpp"    // for ThreadRuntime
 #include "toolbox/logging.hpp"
 #include "vm/finalizer.hpp"             // for Finalizer
 #include "vm/globals.hpp"               // for class_java_lang_Thread
@@ -48,13 +51,11 @@
 #include "vm/utf8.hpp"                  // for Utf8String
 #include "vm/vm.hpp"                    // for vm_abort
 
-// We need to include Boehm's gc.h here
-// for GC_register_my_thread and friends.
-#include "mm/gc-boehm.hpp"
-
 STAT_DECLARE_VAR(int,size_threadobject,0)
 
 struct methodinfo;
+
+using namespace cacao;
 
 /* global variables ***********************************************************/
 
@@ -261,32 +262,20 @@ static void thread_create_initial_thread(void)
 
 static threadobject *thread_new(int32_t flags)
 {
-	int32_t       index;
 	threadobject *t;
-	
-	/* Lock the thread lists */
-
-	ThreadList::lock();
-
-	index = ThreadList::get_free_thread_index();
+	int32_t       index;
 
 	/* Allocate a thread data structure. */
 
 	/* First, try to get one from the free-list. */
-
-	t = ThreadList::get_free_thread();
-
-	/* Unlock the thread lists. */
-
-	ThreadList::unlock();
+	ThreadList::get_free_thread(&t, &index);
 
 	if (t != NULL) {
 		/* Equivalent of MZERO on the else path */
 
 		threads_impl_thread_clear(t);
-	}
-	else {
-#if defined(ENABLE_GC_BOEHM)
+	} else {
+#ifdef ENABLE_GC_BOEHM
 		t = GCNEW_UNCOLLECTABLE(threadobject, 1);
 #else
 		t = NEW(threadobject);
@@ -308,11 +297,11 @@ static threadobject *thread_new(int32_t flags)
 		t->suspendmutex = new Mutex();
 		t->suspendcond = new Condition();
 
-#if defined(ENABLE_TLH)
+#ifdef ENABLE_TLH
 		tlh_init(&(t->tlh));
 #endif
 
-#if defined(ENABLE_GC_CACAO)
+#ifdef ENABLE_GC_CACAO
 		/* Register reference to java.lang.Thread with the GC. */
 		/* FIXME is it ok to do this only once? */
 
@@ -332,8 +321,29 @@ static threadobject *thread_new(int32_t flags)
 	t->flags     = flags;
 	t->state     = THREAD_STATE_NEW;
 
-#if defined(ENABLE_GC_CACAO)
+#ifdef ENABLE_GC_CACAO
 	t->flags    |= THREAD_FLAG_IN_NATIVE; 
+#endif
+
+#ifdef ENABLE_DEBUG_FILTER
+	// Initialize filter counters
+	t->filterverbosecallctr[0] = 0;
+	t->filterverbosecallctr[1] = 0;
+#endif
+
+#ifndef NDEBUG
+	t->tracejavacallindent = 0;
+	t->tracejavacallcount = 0;
+#endif
+
+	t->flc_bit    = false;
+	t->flc_next   = NULL;
+	t->flc_list   = NULL;
+	t->flc_object = NULL; // not really needed
+
+#ifdef ENABLE_TLH
+	tlh_destroy(&(t->tlh));
+	tlh_init(&(t->tlh));
 #endif
 
 	/* Initialize the implementation-specific bits. */
@@ -570,31 +580,10 @@ bool thread_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
  */
 bool thread_attach_current_external_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 {
-	int result;
+	gc_register_current_thread();
 
-#if defined(ENABLE_GC_BOEHM)
-	struct GC_stack_base sb;
-
-	/* Register the thread with Boehm-GC.  This must happen before the
-	   thread allocates any memory from the GC heap.*/
-
-	result = GC_get_stack_base(&sb);
-
-	if (result != GC_SUCCESS)
-		vm_abort("threads_attach_current_thread: GC_get_stack_base failed");
-
-	GC_register_my_thread(&sb);
-#endif
-
-	result = thread_attach_current_thread(vm_aargs, isdaemon);
-
-	if (result == false) {
-#if defined(ENABLE_GC_BOEHM)
-		/* Unregister the thread. */
-
-		GC_unregister_my_thread();
-#endif
-
+	if (thread_attach_current_thread(vm_aargs, isdaemon) == false) {
+		gc_unregister_current_thread();
 		return false;
 	}
 
@@ -610,22 +599,16 @@ bool thread_attach_current_external_thread(JavaVMAttachArgs *vm_aargs, bool isda
  */
 bool thread_detach_current_external_thread(void)
 {
-	int result;
-
-	result = thread_detach_current_thread();
-
-	if (result == false)
+	if (thread_detach_current_thread() == false)
 		return false;
 
-#if defined(ENABLE_GC_BOEHM)
-	/* Unregister the thread with Boehm-GC.  This must happen after
-	   the thread allocates any memory from the GC heap. */
+	// Unregister the thread with GC.
+	// This must happen after the thread allocates any memory from the GC heap.
+	// NOTE: Don't detach the main thread.  
+	//       This is a workaround for OpenJDK's java launcher.
 
-	/* Don't detach the main thread.  This is a workaround for
-	   OpenJDK's java launcher. */
 	if (thread_get_current()->index != 1)
-		GC_unregister_my_thread();
-#endif
+		gc_unregister_current_thread();
 
 	return true;
 }
@@ -684,14 +667,9 @@ void thread_print_info(threadobject *t)
 		printf(" prio=%d", jlt.get_priority());
 	}
 
-#if SIZEOF_VOID_P == 8
-	printf(" t=0x%016lx tid=0x%016lx (%ld)",
-		   (ptrint) t, (ptrint) t->tid, (ptrint) t->tid);
-#else
-	printf(" t=0x%08x tid=0x%08x (%d)",
-		   (ptrint) t, (ptrint) t->tid, (ptrint) t->tid);
-#endif
+	ptrint tid = threads_get_tid(t);
 
+	printf(" t=0x%"PRIxPTR" tid=0x%"PRIxPTR" (%"PRIdPTR")", (uintptr_t) t, tid, tid);
 	printf(" index=%d", t->index);
 
 	/* Print thread state. */
@@ -740,16 +718,9 @@ void thread_print_info(threadobject *t)
 
 intptr_t threads_get_current_tid(void)
 {
-	threadobject *thread;
+	threadobject *t = thread_get_current();
 
-	thread = THREADOBJECT;
-
-	/* this may happen during bootstrap */
-
-	if (thread == NULL)
-		return 0;
-
-	return (intptr_t) thread->tid;
+	return t ? threads_get_tid(t) : 0;
 }
 
 
@@ -899,7 +870,7 @@ void thread_set_state_terminated(threadobject *t)
 
 threadobject *thread_get_thread(java_handle_t *h)
 {
-	return ThreadRuntime::get_threadobject_from_thread(h);
+	return ThreadRuntime::get_thread_from_object(h);
 }
 
 
@@ -993,7 +964,7 @@ void thread_handle_set_priority(java_handle_t *th, int priority)
 	/* For GNU classpath, this should not happen, because both
 	   setPriority() and start() are synchronized. */
 	assert(t != 0);
-	threads_set_thread_priority(t->tid, priority);
+	threads_set_thread_priority(t, priority);
 }
 
 /* thread_handle_is_interrupted ************************************************
@@ -1040,6 +1011,19 @@ int thread_handle_get_state(java_handle_t *th)
 	threadobject *t = thread_get_thread(th);
 	return t ? cacaothread_get_state(t) : THREAD_STATE_NEW;
 }
+
+
+#if defined(ENABLE_TLH)
+
+void threads_tlh_add_frame() {
+	tlh_add_frame(&(THREADOBJECT->tlh));
+}
+
+void threads_tlh_remove_frame() {
+	tlh_remove_frame(&(THREADOBJECT->tlh));
+}
+
+#endif
 
 
 /*

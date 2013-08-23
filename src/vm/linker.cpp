@@ -132,7 +132,7 @@ void linker_preinit(void)
 
 	interfaceindex = 0;
 
-#if defined(ENABLE_THREADS) && !USES_NEW_SUBTYPE
+#if !USES_NEW_SUBTYPE
 	/* create the global mutex */
 
 	linker_classrenumber_lock = new Mutex();

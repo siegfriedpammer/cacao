@@ -27,6 +27,7 @@
 #define BUFFER_HPP_ 1
 
 #include <inttypes.h>
+#include <cstdarg>
 #include "mm/memory.hpp"
 #include "toolbox/utf_utils.hpp"
 #include "vm/global.hpp"            // for MAX

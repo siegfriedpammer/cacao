@@ -264,10 +264,8 @@ enum HeaderFlag {
 struct vftbl_t;
 
 struct java_object_t {                 /* header for all objects              */
-	vftbl_t *vftbl;                    /* pointer to virtual function table   */
-#if defined(ENABLE_THREADS)
+	vftbl_t       *vftbl;              /* pointer to virtual function table   */
 	uintptr_t      lockword;
-#endif
 #if defined(ENABLE_GC_CACAO)
 	uintptr_t      hdrflags;           /* word containing the GC bits         */
 #endif

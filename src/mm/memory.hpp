@@ -137,9 +137,7 @@ void *mem_alloc(int32_t size);
 void  mem_free(void *m, int32_t size);
 void *mem_realloc(void *src, int32_t len1, int32_t len2);
 
-#if defined(ENABLE_THREADS)
 bool  memory_start_thread(void);
-#endif
 
 // **** a stl style memory allocator
 template<class T> 

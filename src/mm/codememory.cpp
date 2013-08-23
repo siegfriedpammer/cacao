@@ -25,7 +25,7 @@
 #include "mm/codememory.hpp"
 #include <stdlib.h>                     // for NULL
 #include <sys/mman.h>                   // for MAP_PRIVATE, PROT_EXEC, etc
-#include "config.h"                     // for ENABLE_THREADS
+#include "config.h"
 #include "mm/memory.hpp"                // for MEMORY_ALIGN, ALIGNSIZE
 #include "threads/mutex.hpp"            // for Mutex
 #include "vm/options.hpp"
@@ -41,9 +41,7 @@ STAT_REGISTER_GROUP_VAR(int,codememusage,0,"codememusage","max. code memory",not
 
 #define DEFAULT_CODE_MEMORY_SIZE    128 * 1024 /* defaulting to 128kB         */
 
-#if defined(ENABLE_THREADS)
-static Mutex *code_memory_mutex = NULL;
-#endif
+static Mutex  *code_memory_mutex = NULL;
 static void   *code_memory       = NULL;
 static size_t  code_memory_size  = 0;
 static size_t  pagesize          = 0;
@@ -59,11 +57,9 @@ void codememory_init(void)
 {
 	TRACESUBSYSTEMINITIALIZATION("codememory_init");
 
-#if defined(ENABLE_THREADS)
 	/* create mutex for code memory */
 
 	code_memory_mutex = new Mutex();
-#endif
 
 	/* Get the pagesize of this architecture. */
 

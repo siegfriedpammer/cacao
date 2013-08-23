@@ -452,7 +452,6 @@ static builtintable_entry builtintable_internal[] = {
 		NULL
 	},
 
-#if defined(ENABLE_THREADS)
 	{
 		ICMD_MONITORENTER,
 		BUILTINTABLE_FLAG_STUB,
@@ -481,8 +480,6 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		EMIT_FASTPATH_monitor_exit
 	},
-#endif
-
 
 	/* stop entry */
 

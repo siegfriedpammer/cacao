@@ -1133,16 +1133,14 @@ bool codegen_emit(jitdata *jd)
 #endif
 
 	// Space to save argument of monitor_enter.
-#if defined(ENABLE_THREADS)
 	if (checksync && code_is_synchronized(code))
-# if STACKFRAME_SYNC_NEEDS_TWO_SLOTS
+#if STACKFRAME_SYNC_NEEDS_TWO_SLOTS
 		/* On some architectures the stack position for the argument can
 		   not be shared with place to save the return register values to
 		   survive monitor_exit since both values reside in the same register. */
 		cd->stackframesize += 2;
-# else
+#else
 		cd->stackframesize += 1;
-# endif
 #endif
 
 	// Keep stack of non-leaf functions 16-byte aligned for calls into
@@ -1206,11 +1204,9 @@ bool codegen_emit(jitdata *jd)
 	// Emit code for the method prolog.
 	codegen_emit_prolog(jd);
 
-#if defined(ENABLE_THREADS)
 	// Emit code to call monitorenter function.
 	if (checksync && code_is_synchronized(code))
 		emit_monitor_enter(jd, rd->memuse * 8);
-#endif
 
 #if !defined(NDEBUG)
 	// Call trace function.
@@ -2032,12 +2028,10 @@ nowperformreturn:
 					emit_verbosecall_exit(jd);
 #endif
 
-#if defined(ENABLE_THREADS)
 				// Emit code to call monitorexit function.
 				if (checksync && code_is_synchronized(code)) {
 					emit_monitor_exit(jd, rd->memuse * 8);
 				}
-#endif
 
 				// Generate method profiling code.
 				PROFILE_CYCLE_STOP;

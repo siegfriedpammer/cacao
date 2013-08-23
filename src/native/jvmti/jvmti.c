@@ -888,8 +888,8 @@ RunAgentThread (jvmtiEnv * env, jthread thread, jvmtiStartFunction proc,
 		sp.__sched_priority = sched_get_priority_min(SCHED_FIFO);
 	}
 	pthread_attr_setschedparam(&threadattr,&sp);
-	if (pthread_create(&((threadobject*) 
-						 thread)->tid, &threadattr, &threadstartup, &rap)) {
+	if (pthread_create(&((threadobject*)
+						 thread)->impl.tid, &threadattr, &threadstartup, &rap)) {
 		log_text("pthread_create failed");
 		assert(0);
 	}
@@ -1118,7 +1118,7 @@ GetFrameCount (jvmtiEnv * env, jthread thread, jint * count_ptr)
 
 /* GetThreadState **************************************************************
 
-   Get the state of a thread. 
+   Get the state of a thread.
 
 *******************************************************************************/
 
@@ -1128,10 +1128,10 @@ GetThreadState (jvmtiEnv * env, jthread thread, jint * thread_state_ptr)
 	java_lang_Thread* th = (java_lang_Thread*)thread;
 	threadobject* t = (threadobject*)th->vmThread;
 
-    CHECK_PHASE_START
-    CHECK_PHASE(JVMTI_PHASE_LIVE)
-    CHECK_PHASE_END;
-        
+	CHECK_PHASE_START
+	CHECK_PHASE(JVMTI_PHASE_LIVE)
+	CHECK_PHASE_END;
+
 	if(!builtin_instanceof(thread,class_java_lang_Thread))
 		return JVMTI_ERROR_INVALID_THREAD;
 

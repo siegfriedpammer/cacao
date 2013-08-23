@@ -1462,10 +1462,6 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 
 #if defined(ENABLE_DEBUG_FILTER)
 
-#if !defined(ENABLE_THREADS)
-u2 _no_threads_filterverbosecallctr[2] = { 0, 0 };
-#endif
-
 struct show_filter {
 	/* Boolean indicating if filter is enabled. */
 	u1 enabled;

@@ -1,4 +1,4 @@
-/* src/threads/thread-openjdk.cpp - thread functions specific to the OpenJDK library
+/* src/threads/ThreadRuntime-openjdk.cpp - thread functions specific to the OpenJDK library
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,36 +23,33 @@
 */
 
 
-#include "thread-openjdk.hpp"
-
-#include "vm/global.hpp"
-#include "vm/globals.hpp"
-
+#include "threads/ThreadRuntime.hpp"
 #include "mm/gc.hpp"
+#include "threads/threadlist.hpp"
 #include "vm/globals.hpp"
+#include "vm/global.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/exceptions.hpp"
+#include "vm/vm.hpp"
 
-#include "threadlist.hpp"
+using namespace cacao;
 
-#if defined(ENABLE_THREADS) && defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-
-classinfo *ThreadRuntimeOpenjdk::get_thread_class_from_object(java_handle_t *object) {
+classinfo *ThreadRuntime::get_thread_class_from_object(java_handle_t *object) {
 	classinfo *c;
 	LLNI_class_get(object, c);
 	return c;
 }
 
-java_handle_t *ThreadRuntimeOpenjdk::get_vmthread_handle(const java_lang_Thread &jlt) {
+java_handle_t *ThreadRuntime::get_vmthread_handle(const java_lang_Thread &jlt) {
 	return jlt.get_handle();
 }
 
-java_handle_t *ThreadRuntimeOpenjdk::get_thread_exception_handler(const java_lang_Thread &jlt)
+java_handle_t *ThreadRuntime::get_thread_exception_handler(const java_lang_Thread &jlt)
 {
 	return jlt.get_uncaughtExceptionHandler();
 }
 
-methodinfo *ThreadRuntimeOpenjdk::get_threadgroup_remove_method(classinfo *c)
+methodinfo *ThreadRuntime::get_threadgroup_remove_method(classinfo *c)
 {
 	return class_resolveclassmethod(c,
 									utf8::remove,
@@ -61,7 +58,7 @@ methodinfo *ThreadRuntimeOpenjdk::get_threadgroup_remove_method(classinfo *c)
 									true);
 }
 
-methodinfo *ThreadRuntimeOpenjdk::get_thread_init_method()
+methodinfo *ThreadRuntime::get_thread_init_method()
 {
 	return class_resolveclassmethod(class_java_lang_Thread,
 									utf8::init,
@@ -70,12 +67,12 @@ methodinfo *ThreadRuntimeOpenjdk::get_thread_init_method()
 									true);
 }
 
-void ThreadRuntimeOpenjdk::setup_thread_vmdata(const java_lang_Thread& jlt, threadobject *t)
+void ThreadRuntime::setup_thread_vmdata(const java_lang_Thread& jlt, threadobject *t)
 {
 	// Nothing to do.
 }
 
-void ThreadRuntimeOpenjdk::print_thread_name(const java_lang_Thread& jlt, FILE *stream)
+void ThreadRuntime::print_thread_name(const java_lang_Thread& jlt, FILE *stream)
 {
 	/* FIXME: In OpenJDK and CLDC the name is a char[]. */
 	//java_chararray_t *name;
@@ -84,7 +81,7 @@ void ThreadRuntimeOpenjdk::print_thread_name(const java_lang_Thread& jlt, FILE *
 	utf_display_printable_ascii(utf8::null);
 }
 
-void ThreadRuntimeOpenjdk::set_javathread_state(threadobject *t, int state)
+void ThreadRuntime::set_javathread_state(threadobject *t, int state)
 {
 	// Set the state of the java.lang.Thread object.
 	java_lang_Thread thread(LLNI_WRAP(t->object));
@@ -92,13 +89,13 @@ void ThreadRuntimeOpenjdk::set_javathread_state(threadobject *t, int state)
 	thread.set_threadStatus(state);
 }
 
-threadobject *ThreadRuntimeOpenjdk::get_threadobject_from_thread(java_handle_t *h)
+threadobject *ThreadRuntime::get_thread_from_object(java_handle_t *h)
 {
 	/* XXX This is just a quick hack. */
 	return ThreadList::get_thread_from_java_object(h);
 }
 
-void ThreadRuntimeOpenjdk::thread_create_initial_threadgroups(java_handle_t **threadgroup_system, java_handle_t **threadgroup_main)
+void ThreadRuntime::thread_create_initial_threadgroups(java_handle_t **threadgroup_system, java_handle_t **threadgroup_main)
 {
 	java_handle_t *name;
 	methodinfo    *m;
@@ -135,7 +132,7 @@ void ThreadRuntimeOpenjdk::thread_create_initial_threadgroups(java_handle_t **th
 
 }
 
-bool ThreadRuntimeOpenjdk::invoke_thread_initializer(java_lang_Thread& jlt, threadobject *t, methodinfo *thread_method_init, java_handle_t *name, java_handle_t *group)
+bool ThreadRuntime::invoke_thread_initializer(java_lang_Thread& jlt, threadobject *t, methodinfo *thread_method_init, java_handle_t *name, java_handle_t *group)
 {
 	/* Set the priority.  java.lang.Thread.<init> requires it because
 	   it sets the priority of the current thread to the parent's one
@@ -152,14 +149,12 @@ bool ThreadRuntimeOpenjdk::invoke_thread_initializer(java_lang_Thread& jlt, thre
 	return true;
 }
 
-void ThreadRuntimeOpenjdk::clear_heap_reference(java_lang_Thread& jlt)
+void ThreadRuntime::clear_heap_reference(java_lang_Thread& jlt)
 {
 #ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	jlt.set_me(0);
 #endif
 }
-
-#endif /* ENABLE_THREADS && WITH_JAVA_RUNTIME_LIBRARY_OPENJDK */
 
 
 /*

@@ -26,8 +26,8 @@
 #include "config.h"
 
 #include <stdint.h>
-
 #include <algorithm>
+#include <functional>
 
 #include "threads/mutex.hpp"
 #include "threads/threadlist.hpp"
@@ -45,7 +45,6 @@ Mutex               ThreadList::_mutex;                // a mutex for all thread
 
 List<threadobject*> ThreadList::_active_thread_list;   // list of active threads
 List<threadobject*> ThreadList::_free_thread_list;     // list of free threads
-List<int32_t>       ThreadList::_free_index_list;      // list of free thread indexes
 
 int32_t             ThreadList::_number_of_started_java_threads;
 int32_t             ThreadList::_number_of_active_java_threads;
@@ -64,7 +63,7 @@ void ThreadList::dump_threads()
 	// XXX we should stop the world here and remove explicit
 	//     thread suspension from the loop below.
 	// Lock the thread lists.
-	lock();
+	MutexLocker lock(_mutex);
 
 	printf("Full thread dump CACAO "VERSION_FULL":\n");
 
@@ -97,9 +96,6 @@ void ThreadList::dump_threads()
 		if (t != self)
 			(void) threads_resume_thread(t, SUSPEND_REASON_DUMP);
 	}
-
-	// Unlock the thread lists.
-	unlock();
 }
 
 
@@ -112,14 +108,10 @@ void ThreadList::dump_threads()
  */
 void ThreadList::get_active_threads(List<threadobject*> &list)
 {
-	// Lock the thread lists.
-	lock();
+	MutexLocker lock(_mutex);
 
 	// Use the assignment operator to create a copy of the thread list.
 	list = _active_thread_list;
-
-	// Unlock the thread lists.
-	unlock();
 }
 
 
@@ -132,8 +124,7 @@ void ThreadList::get_active_threads(List<threadobject*> &list)
  */
 void ThreadList::get_active_java_threads(List<threadobject*> &list)
 {
-	// Lock the thread lists.
-	lock();
+	MutexLocker lock(_mutex);
 
 	// Iterate over all active threads.
 	for (List<threadobject*>::iterator it = _active_thread_list.begin(); it != _active_thread_list.end(); it++) {
@@ -145,61 +136,34 @@ void ThreadList::get_active_java_threads(List<threadobject*> &list)
 
 		list.push_back(t);
 	}
-
-	// Unlock the thread lists.
-	unlock();
 }
 
 
 /**
- * Return a free thread object.
+ * Get the next free thread object.
  *
- * @return free thread object or NULL if none available
+ * Gets the next free thread object and a thread index for it.
+ * The results are stored into the passed pointers.
+ *
+ * If no free thread is available `*thread' will contain NULL.
+ * `*index' will always, even if no free thread is available,
+ * contain a valid index you can use for a new thread.
  */
-threadobject* ThreadList::get_free_thread()
-{
-	threadobject* t = NULL;
-
-	lock();
+void ThreadList::get_free_thread(threadobject **thread, int32_t *index) {
+	MutexLocker lock(_mutex);
 
 	// Do we have free threads in the free-list?
 	if (_free_thread_list.empty() == false) {
 		// Yes, get the index and remove it from the free list.
-		t = _free_thread_list.front();
-		_free_thread_list.remove(t);
+		threadobject* t = _free_thread_list.front();
+		_free_thread_list.pop_front();
+
+		*thread = t;
+		*index  = t->index;
+	} else {
+		*thread = NULL;
+		*index  = ++_last_index;
 	}
-
-	unlock();
-
-	return t;
-}
-
-
-/**
- * Return a free thread index.
- *
- * @return free thread index
- */
-int32_t ThreadList::get_free_thread_index()
-{
-	int32_t index;
-
-	lock();
-
-	// Do we have free indexes in the free-list?
-	if (_free_index_list.empty() == false) {
-		// Yes, get the index and remove it from the free list.
-		index = _free_index_list.front();
-		_free_index_list.remove(index);
-	}
-	else {
-		// Get a new the thread index.
-		index = ++_last_index;
-	}
-
-	unlock();
-
-	return index;
 }
 
 
@@ -216,7 +180,7 @@ int32_t ThreadList::get_number_of_daemon_java_threads(void)
 	int number = 0;
 
 	// Lock the thread lists.
-	lock();
+	MutexLocker lock(_mutex);
 
 	// Iterate over all active threads.
 	for (List<threadobject*>::iterator it = _active_thread_list.begin(); it != _active_thread_list.end(); it++) {
@@ -229,9 +193,6 @@ int32_t ThreadList::get_number_of_daemon_java_threads(void)
 		if (thread_is_daemon(t))
 			number++;
 	}
-
-	// Unlock the thread lists.
-	unlock();
 
 	return number;
 }
@@ -247,9 +208,9 @@ int32_t ThreadList::get_number_of_daemon_java_threads(void)
  */
 int32_t ThreadList::get_number_of_non_daemon_threads(void)
 {
-	int nondaemons = 0;
+	MutexLocker lock(_mutex);
 
-	lock();
+	int nondaemons = 0;
 
 	for (List<threadobject*>::iterator it = _active_thread_list.begin(); it != _active_thread_list.end(); it++) {
 		threadobject* t = *it;
@@ -258,11 +219,16 @@ int32_t ThreadList::get_number_of_non_daemon_threads(void)
 			nondaemons++;
 	}
 
-	unlock();
-
 	return nondaemons;
 }
 
+// Comparator class.
+class comparator : public std::binary_function<threadobject*, int32_t, bool> {
+public:
+	bool operator() (const threadobject* t, const int32_t index) const {
+		return (t->index == index);
+	}
+};
 
 /**
  * Return the thread object with the given index.
@@ -271,13 +237,12 @@ int32_t ThreadList::get_number_of_non_daemon_threads(void)
  */
 threadobject* ThreadList::get_thread_by_index(int32_t index)
 {
-	lock();
+	MutexLocker lock(_mutex);
 
 	List<threadobject*>::iterator it = find_if(_active_thread_list.begin(), _active_thread_list.end(), std::bind2nd(comparator(), index));
 
 	// No thread found.
 	if (it == _active_thread_list.end()) {
-		unlock();
 		return NULL;
 	}
 
@@ -285,11 +250,9 @@ threadobject* ThreadList::get_thread_by_index(int32_t index)
 
 	// The thread found is in state new.
 	if (t->state == THREAD_STATE_NEW) {
-		unlock();
 		return NULL;
 	}
 
-	unlock();
 	return t;
 }
 
@@ -301,31 +264,26 @@ threadobject* ThreadList::get_thread_by_index(int32_t index)
  */
 threadobject* ThreadList::get_thread_from_java_object(java_handle_t* h)
 {
-	List<threadobject*>::iterator it;
-	threadobject* t;
-	bool          equal;
+	MutexLocker lock(_mutex);
 
-	lock();
+	for (List<threadobject*>::iterator it = _active_thread_list.begin(); it != _active_thread_list.end(); it++) {
+		threadobject* t = *it;
 
-	for (it = _active_thread_list.begin(); it != _active_thread_list.end(); it++) {
-		t = *it;
-
+		bool equal;
 		LLNI_equals(t->object, h, equal);
 
 		if (equal == true) {
-			unlock();
 			return t;
 		}
 	}
-
-	unlock();
 
 	return NULL;
 }
 
 void ThreadList::deactivate_thread(threadobject *t)
 {
-	ThreadListLocker lock;
+	MutexLocker lock(_mutex);
+
 	remove_from_active_thread_list(t);
 	threads_impl_clear_heap_pointers(t); // allow it to be garbage collected
 }
@@ -337,7 +295,7 @@ void ThreadList::deactivate_thread(threadobject *t)
  */
 void ThreadList::release_thread(threadobject* t, bool needs_deactivate)
 {
-	lock();
+	MutexLocker lock(_mutex);
 
 	if (needs_deactivate)
 		// Move thread from active thread list to free thread list.
@@ -345,30 +303,9 @@ void ThreadList::release_thread(threadobject* t, bool needs_deactivate)
 	else
 		assert(!t->is_in_active_list);
 
-	add_to_free_thread_list(t);
-
-	// Add thread index to free index list.
-	add_to_free_index_list(t->index);
-
-	unlock();
+	_free_thread_list.push_back(t);
 }
 
-
-/* C interface functions ******************************************************/
-
-extern "C" {
-	void ThreadList_lock() { ThreadList::lock(); }
-	void ThreadList_unlock() { ThreadList::unlock(); }
-	void ThreadList_dump_threads() { ThreadList::dump_threads(); }
-	threadobject* ThreadList_get_free_thread() { return ThreadList::get_free_thread(); }
-	int32_t ThreadList_get_free_thread_index() { return ThreadList::get_free_thread_index(); }
-	void ThreadList_add_to_active_thread_list(threadobject* t) { ThreadList::add_to_active_thread_list(t); }
-	threadobject* ThreadList_get_thread_by_index(int32_t index) { return ThreadList::get_thread_by_index(index); }
-	threadobject* ThreadList_get_main_thread() { return ThreadList::get_main_thread(); }
-	threadobject* ThreadList_get_thread_from_java_object(java_handle_t* h) { return ThreadList::get_thread_from_java_object(h); }
-
-	int32_t ThreadList_get_number_of_non_daemon_threads() { return ThreadList::get_number_of_non_daemon_threads(); }
-}
 
 /*
  * These are local overrides for various environment variables in Emacs.

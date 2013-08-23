@@ -27,7 +27,7 @@
 #include <cstdlib>                      // for NULL
 #include "arch.hpp"
 #include "class.hpp"                    // for class_resolvemethod
-#include "config.h"                     // for ENABLE_THREADS, etc
+#include "config.h"
 #include "global.hpp"                   // for functionptr
 #include "mm/gc.hpp"                    // for heap_alloc
 #include "mm/memory.hpp"                // for GCNEW
@@ -63,7 +63,7 @@ bool signal_init(void)
 
 	TRACESUBSYSTEMINITIALIZATION("signal_init");
 
-#if defined(__LINUX__) && defined(ENABLE_THREADS)
+#if defined(__LINUX__)
 	/* XXX Remove for exact-GC. */
 	if (threads_pthreads_implementation_nptl) {
 #endif
@@ -90,7 +90,7 @@ bool signal_init(void)
 	if (sigprocmask(SIG_BLOCK, &mask, NULL) != 0)
 		os::abort_errno("signal_init: sigprocmask failed");
 
-#if defined(__LINUX__) && defined(ENABLE_THREADS)
+#if defined(__LINUX__)
 	/* XXX Remove for exact-GC. */
 	}
 #endif
@@ -175,24 +175,18 @@ bool signal_init(void)
 #endif
 #endif /* !defined(ENABLE_JIT) */
 
-#if defined(ENABLE_THREADS)
 	/* SIGHUP handler for threads_thread_interrupt */
 
 	signal_register_signal(Signal_INTERRUPT_SYSTEM_CALL, (functionptr) signal_handler_sighup, 0);
-#endif
 
-#if defined(ENABLE_THREADS)
 	/* SIGUSR1 handler for thread suspension */
 
-	signal_register_signal(SIGUSR1, (functionptr) signal_handler_sigusr1,
-						   SA_SIGINFO);
-#endif
+	signal_register_signal(SIGUSR1, (functionptr) signal_handler_sigusr1, SA_SIGINFO);
 
-#if defined(ENABLE_THREADS) && defined(ENABLE_PROFILING)
+#ifdef ENABLE_PROFILING
 	/* SIGUSR2 handler for profiling sampling */
 
-	signal_register_signal(SIGUSR2, (functionptr) md_signal_handler_sigusr2,
-						   SA_SIGINFO);
+	signal_register_signal(SIGUSR2, (functionptr) md_signal_handler_sigusr2, SA_SIGINFO);
 #endif
 
 #endif /* !defined(__CYGWIN__) */
@@ -261,9 +255,7 @@ static void signal_thread(void)
 	for (;;) {
 		/* just wait for a signal */
 
-#if defined(ENABLE_THREADS)
 		thread_set_state_waiting(t);
-#endif
 
 		// sigwait can return EINTR (unlike what the Linux man-page
 		// says).
@@ -274,9 +266,7 @@ static void signal_thread(void)
 		if (result != 0)
 			os::abort_errnum(result, "signal_thread: sigwait failed");
 
-#if defined(ENABLE_THREADS)
 		thread_set_state_runnable(t);
-#endif
 
 		/* Handle the signal. */
 
@@ -303,9 +293,7 @@ void signal_thread_handler(int sig)
 
 	case SIGQUIT:
 		/* print a thread dump */
-#if defined(ENABLE_THREADS)
 		ThreadList::dump_threads();
-#endif
 
 #if 0 && defined(ENABLE_STATISTICS)
 		if (opt_stat)
@@ -342,7 +330,6 @@ void signal_thread_handler(int sig)
 
 bool signal_start_thread(void)
 {
-#if defined(ENABLE_THREADS)
 	Utf8String name = Utf8String::from_utf8("Signal Handler");
 
 	if (!threads_thread_start_internal(name, signal_thread))
@@ -351,9 +338,6 @@ bool signal_start_thread(void)
 	/* everything's ok */
 
 	return true;
-#else
-#warning FIX ME!
-#endif
 }
 
 
@@ -364,12 +348,10 @@ bool signal_start_thread(void)
 
 *******************************************************************************/
 
-#if defined(ENABLE_THREADS)
 void signal_handler_sighup(int sig, siginfo_t *siginfo, void *_p)
 {
 	/* do nothing */
 }
-#endif
 
 
 /* signal_handler_sigusr1 ******************************************************
@@ -378,14 +360,11 @@ void signal_handler_sighup(int sig, siginfo_t *siginfo, void *_p)
 
 *******************************************************************************/
 
-#if defined(ENABLE_THREADS)
 void signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p)
 {
 	// Really suspend ourselves by acknowledging the suspension.
 	threads_suspend_ack();
 }
-#endif
-
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -425,7 +425,7 @@ bool gc_suspend(threadobject *thread, u1 *pc, u1 *sp)
 	}
 
 	/* thread was forcefully suspended */
-	GC_LOG( dolog("GC: Suspending thread (tid=%p)", thread->tid); );
+	GC_LOG( dolog("GC: Suspending thread (tid=%p)", thread->impl.tid); );
 
 	/* check where this thread came to a halt */
 	if (thread->flags & THREAD_FLAG_IN_NATIVE) {

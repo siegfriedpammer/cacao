@@ -49,6 +49,7 @@ public:
 	using std::list<T>::empty;
 	using std::list<T>::end;
 	using std::list<T>::front;
+	using std::list<T>::pop_front;
 	using std::list<T>::push_back;
 	using std::list<T>::push_front;
 	using std::list<T>::rbegin;

@@ -33,9 +33,9 @@
 #include "mm/gc.hpp"                    // for heap_hashcode, etc
 #include "mm/memory.hpp"                // for MNEW, MZERO, FREE, MFREE, etc
 #include "native/llni.hpp"              // for LLNI_DIRECT, LLNI_class_get
-#include "posix/condition-posix.hpp"    // for Condition
-#include "posix/mutex-posix.hpp"        // for Mutex
-#include "posix/thread-posix.hpp"       // for threadobject, etc
+#include "threads/condition.hpp"        // for Condition
+#include "threads/mutex.hpp"            // for Mutex
+#include "threads/thread.hpp"           // for threadobject, etc
 #include "threads/atomic.hpp"           // for memory_barrier, etc
 #include "threads/threadlist.hpp"       // for ThreadList
 #include "toolbox/OStream.hpp"          // for OStream, nl

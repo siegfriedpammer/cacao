@@ -154,7 +154,7 @@ class InternTable {
 
 			Segment& segment = segment_for_hash(hash);
 
-			WITH_THREADS(MutexLocker lock(segment.mutex);)
+			MutexLocker lock(segment.mutex);
 
 			segment.rehash_if_full();
 
@@ -254,9 +254,7 @@ class InternTable {
 			size_t threshold;   /* table will be resized when count gets
 			                       greater than threshold */
 			_Eq     eq;         /* used to compare entries for equality */
-#if defined(ENABLE_THREADS)
-			Mutex     mutex;    /* for locking this segment */
-#endif
+			Mutex   mutex;     /* for locking this segment */
 		};
 
 		// TODO: replace with C++11 delegating constructor

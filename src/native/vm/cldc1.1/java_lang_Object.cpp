@@ -83,9 +83,7 @@ JNIEXPORT jint JNICALL Java_java_lang_Object_hashCode(JNIEnv *env, jobject _this
  */
 JNIEXPORT void JNICALL Java_java_lang_Object_notify(JNIEnv *env, jobject _this)
 {
-#if defined(ENABLE_THREADS)
 	lock_notify_object((java_handle_t *) _this);
-#endif
 }
 
 
@@ -96,9 +94,7 @@ JNIEXPORT void JNICALL Java_java_lang_Object_notify(JNIEnv *env, jobject _this)
  */
 JNIEXPORT void JNICALL Java_java_lang_Object_notifyAll(JNIEnv *env, jobject _this)
 {
-#if defined(ENABLE_THREADS)
 	lock_notify_all_object((java_handle_t *) _this);
-#endif
 }
 
 
@@ -109,9 +105,7 @@ JNIEXPORT void JNICALL Java_java_lang_Object_notifyAll(JNIEnv *env, jobject _thi
  */
 JNIEXPORT void JNICALL Java_java_lang_Object_wait(JNIEnv *env, jobject _this, jlong timeout)
 {
-#if defined(ENABLE_THREADS)
 	lock_wait_for_object((java_handle_t *) _this, timeout, 0);
-#endif
 }
 
 } // extern "C"

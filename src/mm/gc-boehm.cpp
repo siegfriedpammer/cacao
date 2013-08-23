@@ -25,7 +25,7 @@
 #include "mm/gc.hpp"
 #include <stddef.h>                     // for size_t, NULL
 #include <stdint.h>                     // for int64_t, uint8_t
-#include "config.h"                     // for ENABLE_THREADS
+#include "config.h"
 #include "mm/memory.hpp"                // for MSET
 #include "toolbox/logging.hpp"          // for dolog
 #include "vm/exceptions.hpp"
@@ -244,6 +244,28 @@ void *gc_out_of_memory(size_t bytes_requested)
 	in_gc_out_of_memory = false;
 
 	return NULL;
+}
+
+void gc_register_current_thread()
+{
+#ifdef ENABLE_THREADS
+	// Register the thread with Boehm-GC.  
+	// This must happen before the thread allocates any memory from the GC heap.
+
+	struct GC_stack_base sb;
+
+	if (GC_get_stack_base(&sb) != GC_SUCCESS)
+		vm_abort("threads_attach_current_thread: GC_get_stack_base failed");
+
+	GC_register_my_thread(&sb);
+#endif
+}
+
+void gc_unregister_current_thread()
+{
+#ifdef ENABLE_THREADS
+	GC_unregister_my_thread();
+#endif
 }
 
 

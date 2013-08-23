@@ -37,7 +37,9 @@
 #include <cstring>
 #include <sys/time.h>
 
+#include "vm/method.hpp"
 #include "vm/types.hpp"
+#include "vm/vm.hpp"
 
 #include "arch.hpp"
 #include "md-abi.hpp"
@@ -863,9 +865,7 @@ java_handle_t *builtin_new(classinfo *c)
 
 	LLNI_vftbl_direct(o) = c->vftbl;
 
-#if defined(ENABLE_THREADS)
 	Lockword(LLNI_DIRECT(o)->lockword).init();
-#endif
 
 	CYCLES_STATS_GET(cycles_end);
 	RT_TIMER_STOP(bi_new_timer);
@@ -940,9 +940,7 @@ java_handle_t *builtin_tlh_new(classinfo *c)
 
 	LLNI_vftbl_direct(o) = c->vftbl;
 
-# if defined(ENABLE_THREADS)
 	Lockword(LLNI_DIRECT(o)->lockword).init();
-# endif
 
 	CYCLES_STATS_GET(cycles_end);
 
@@ -1015,9 +1013,7 @@ java_object_t *builtin_fast_new(classinfo *c)
 
 	o->vftbl = c->vftbl;
 
-#if defined(ENABLE_THREADS)
 	Lockword(LLNI_DIRECT(o)->lockword).init();
-#endif
 
 	CYCLES_STATS_GET(cycles_end);
 
@@ -2146,9 +2142,7 @@ java_handle_t *builtin_clone(void *env, java_handle_t *o)
 		heap_init_objectheader(LLNI_DIRECT(co), size);
 #endif
 
-#if defined(ENABLE_THREADS)
 		Lockword(LLNI_DIRECT(co)->lockword).init();
-#endif
 
 		LLNI_CRITICAL_END;
 
@@ -2181,9 +2175,7 @@ java_handle_t *builtin_clone(void *env, java_handle_t *o)
 	heap_init_objectheader(LLNI_DIRECT(co), c->instancesize);
 #endif
 
-#if defined(ENABLE_THREADS)
 	Lockword(LLNI_DIRECT(co)->lockword).init();
-#endif
 
 	LLNI_CRITICAL_END;
 

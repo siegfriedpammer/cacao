@@ -515,7 +515,6 @@ void emit_fastpath_monitor_exit(jitdata* jd, instruction* iptr, int d)
 /**
  * Generates synchronization code to enter a monitor.
  */
-#if defined(ENABLE_THREADS)
 void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
 {
 	int32_t p;
@@ -524,7 +523,7 @@ void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
 	methodinfo*  m  = jd->m;
 	codegendata* cd = jd->cd;
 
-# if !defined(NDEBUG)
+#ifndef NDEBUG
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
 		M_LSUB_IMM((INT_ARG_CNT + FLT_ARG_CNT) * 8, REG_SP);
 
@@ -536,7 +535,7 @@ void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
 
 		syncslot_offset += (INT_ARG_CNT + FLT_ARG_CNT) * 8;
 	}
-# endif
+#endif
 
 	/* decide which monitor enter function to call */
 
@@ -553,7 +552,7 @@ void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
 	M_MOV_IMM(LOCK_monitor_enter, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
-# if !defined(NDEBUG)
+#ifndef NDEBUG
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
 
 		for (p = 0; p < INT_ARG_CNT; p++)
@@ -564,15 +563,13 @@ void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
 
 		M_LADD_IMM((INT_ARG_CNT + FLT_ARG_CNT) * 8, REG_SP);
 	}
-# endif
-}
 #endif
+}
 
 
 /**
  * Generates synchronization code to leave a monitor.
  */
-#if defined(ENABLE_THREADS)
 void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 {
 	// Get required compiler data.
@@ -624,7 +621,6 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 		break;
 	}
 }
-#endif
 
 
 /**

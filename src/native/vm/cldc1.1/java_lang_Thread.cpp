@@ -64,17 +64,15 @@ JNIEXPORT jobject JNICALL Java_java_lang_Thread_currentThread(JNIEnv *env, jclas
  */
 JNIEXPORT void JNICALL Java_java_lang_Thread_setPriority0(JNIEnv *env, jobject _this, jint oldPriority, jint newPriority)
 {
-#if defined(ENABLE_THREADS)
 	java_lang_Thread jlt(_this);
-	threadobject* t = jlt.get_vm_thread();
+	threadobject    *t = jlt.get_vm_thread();
 
 	// The threadobject is null when a thread is created in Java. The
 	// priority is set later during startup.
 	if (t == NULL)
 		return;
 
-	threads_set_thread_priority(t->tid, newPriority);
-#endif
+	threads_set_thread_priority(t, newPriority);
 }
 
 
@@ -85,9 +83,7 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_setPriority0(JNIEnv *env, jobject _
  */
 JNIEXPORT void JNICALL Java_java_lang_Thread_sleep(JNIEnv *env, jclass clazz, jlong millis)
 {
-#if defined(ENABLE_THREADS)
 	threads_sleep(millis, 0);
-#endif
 }
 
 
@@ -98,10 +94,8 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_sleep(JNIEnv *env, jclass clazz, jl
  */
 JNIEXPORT void JNICALL Java_java_lang_Thread_start0(JNIEnv *env, jobject _this)
 {
-#if defined(ENABLE_THREADS)
 	java_lang_Thread jlt(_this);
 	threads_thread_start(jlt.get_handle());
-#endif
 }
 
 
@@ -112,20 +106,13 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_start0(JNIEnv *env, jobject _this)
  */
 JNIEXPORT jboolean JNICALL Java_java_lang_Thread_isAlive(JNIEnv *env, jobject _this)
 {
-#if defined(ENABLE_THREADS)
 	java_lang_Thread jlt(_this);
-	threadobject* t = jlt.get_vm_thread();
+	threadobject    *t = jlt.get_vm_thread();
 
 	if (t == NULL)
 		return 0;
 
-	bool result = threads_thread_is_alive(t);
-
-	return result;
-#else
-	// If threads are disabled, the only thread running is alive.
-	return 1;
-#endif
+	return threads_thread_is_alive(t);
 }
 
 
@@ -136,11 +123,7 @@ JNIEXPORT jboolean JNICALL Java_java_lang_Thread_isAlive(JNIEnv *env, jobject _t
  */
 JNIEXPORT s4 JNICALL Java_java_lang_Thread_activeCount(JNIEnv *env, jclass clazz)
 {
-#if defined(ENABLE_THREADS)
 	return ThreadList::get_number_of_non_daemon_threads();
-#else
-	return 1;
-#endif
 }
 
 
@@ -151,11 +134,10 @@ JNIEXPORT s4 JNICALL Java_java_lang_Thread_activeCount(JNIEnv *env, jclass clazz
  */
 JNIEXPORT void JNICALL Java_java_lang_Thread_interrupt0(JNIEnv *env, jobject _this)
 {
-#if defined(ENABLE_THREADS)
 	java_lang_Thread jlt(_this);
-        threadobject* t = jlt.get_vm_thread();
-        threads_thread_interrupt(t);
-#endif
+	threadobject    *t = jlt.get_vm_thread();
+
+	threads_thread_interrupt(t);
 }
 
 #if 0
@@ -177,9 +159,7 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_internalExit(JNIEnv *env, jobject _
  */
 JNIEXPORT void JNICALL Java_java_lang_Thread_yield(JNIEnv *env, jclass clazz)
 {
-#if defined(ENABLE_THREADS)
 	threads_yield();
-#endif
 }
 
 } // extern "C"

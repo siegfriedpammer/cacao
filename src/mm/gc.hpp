@@ -142,6 +142,8 @@ void    gc_invoke_finalizers(void);
 void    gc_finalize_all(void);
 void*   gc_out_of_memory(size_t bytes_requested);
 
+void gc_register_current_thread();
+void gc_unregister_current_thread();
 
 /* inlined functions **********************************************************/
 

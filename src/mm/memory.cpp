@@ -165,7 +165,6 @@ void mem_free(void *m, int32_t size)
 
 *******************************************************************************/
 
-#if defined(ENABLE_THREADS) && !defined(NDEBUG)
 static void memory_thread(void)
 {
 	int32_t seconds;
@@ -207,7 +206,6 @@ static void memory_thread(void)
 # endif
 	}
 }
-#endif
 
 
 /* memory_start_thread *********************************************************
@@ -216,7 +214,6 @@ static void memory_thread(void)
 
 *******************************************************************************/
 
-#if defined(ENABLE_THREADS) && !defined(NDEBUG)
 bool memory_start_thread(void)
 {
 	Utf8String name = Utf8String::from_utf8("Memory Profiler");
@@ -230,7 +227,6 @@ bool memory_start_thread(void)
 
 	return true;
 }
-#endif
 
 
 /*

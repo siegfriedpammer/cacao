@@ -1270,12 +1270,10 @@ VM::VM(JavaVMInitArgs* vm_args)
 
 	gc_init(opt_heapmaxsize, opt_heapstartsize);
 
-#if defined(ENABLE_THREADS)
 	/* AFTER: gc_init */
 
   	threads_preinit();
 	lock_init();
-#endif
 
 	/* install architecture dependent signal handlers */
 
@@ -1406,10 +1404,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* BEFORE: threads_init */
 
 	initialize_init();
-
-#if defined(ENABLE_THREADS)
   	threads_init();
-#endif
 
 	/* Initialize the native VM subsystem. */
 	/* AFTER: threads_init (at least for SUN's classes) */
@@ -1424,7 +1419,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 		os::abort("vm_create: profile_init failed");
 #endif
 
-#if defined(ENABLE_THREADS)
 	/* start the signal handler thread */
 
 #if defined(__LINUX__)
@@ -1439,26 +1433,27 @@ VM::VM(JavaVMInitArgs* vm_args)
 	if (!finalizer_start_thread())
 		os::abort("vm_create: finalizer_start_thread failed");
 
-# if !defined(NDEBUG)
+#if !defined(NDEBUG)
 	/* start the memory profiling thread */
 
 	if (opt_ProfileMemoryUsage || opt_ProfileGCMemoryUsage)
 		if (!memory_start_thread())
 			os::abort("vm_create: memory_start_thread failed");
-# endif
+#endif
 
+#ifdef ENABLE_THREADS
 	// Start the recompilation thread (must be done before the
 	// profiling thread).
 	// FIXME Only works for one recompiler.
 	_recompiler.start();
+#endif
 
-# if defined(ENABLE_PROFILING)
+#if defined(ENABLE_PROFILING)
 	/* start the profile sampling thread */
 
 /* 	if (opt_prof) */
 /* 		if (!profile_start_thread()) */
 /* 			os::abort("vm_create: profile_start_thread failed"); */
-# endif
 #endif
 
 	/* Increment the number of VMs. */
@@ -1770,13 +1765,11 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 		status = 1;
 	}
 
-#if defined(ENABLE_THREADS)
     /* Detach the main thread so that it appears to have ended when
 	   the application's main method exits. */
 
 	if (!thread_detach_current_thread())
 		os::abort("vm_run: Could not detach main thread.");
-#endif
 
 	/* write logfiles */
 	write_logfiles();
@@ -1799,7 +1792,6 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 
 int vm_destroy(JavaVM *vm)
 {
-#if defined(ENABLE_THREADS)
 	/* Create a a trivial new Java waiter thread called
 	   "DestroyJavaVM". */
 
@@ -1814,7 +1806,6 @@ int vm_destroy(JavaVM *vm)
 	/* Wait until we are the last non-daemon thread. */
 
 	threads_join_all_threads();
-#endif
 
 	// Hook point before the VM is actually destroyed.
 	Hook::vm_shutdown();

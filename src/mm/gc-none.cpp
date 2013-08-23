@@ -161,6 +161,17 @@ void gc_finalize_all(void)
 }
 
 
+void gc_register_current_thread()
+{
+	/* nop */
+}
+
+void gc_unregister_current_thread()
+{
+	/* nop */
+}
+
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

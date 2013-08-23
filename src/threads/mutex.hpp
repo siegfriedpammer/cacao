@@ -30,6 +30,8 @@
 
 #if defined(ENABLE_THREADS)
 # include "threads/posix/mutex-posix.hpp"
+#else
+# include "threads/none/mutex-none.hpp"
 #endif
 
 /**

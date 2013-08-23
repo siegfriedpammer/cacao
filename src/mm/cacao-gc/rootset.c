@@ -230,7 +230,7 @@ static rootset_t *rootset_from_thread(threadobject *thread, rootset_t *rs)
 
 #if defined(ENABLE_THREADS)
 	GC_ASSERT(thread != NULL);
-	GC_LOG( dolog("GC: Acquiring Root-Set from thread (tid=%p) ...", (void *) thread->tid); );
+	GC_LOG( dolog("GC: Acquiring Root-Set from thread (tid=%p) ...", (void *) thread->impl.tid); );
 #else
 	GC_ASSERT(thread == NULL);
 	GC_LOG( dolog("GC: Acquiring Root-Set from single-thread ..."); );
@@ -375,7 +375,7 @@ void rootset_writeback(rootset_t *rs)
 		if (thread != ROOTSET_DUMMY_THREAD) {
 #if defined(ENABLE_THREADS)
 			GC_ASSERT(thread != NULL);
-			GC_LOG( dolog("GC: Writing back Root-Set to thread (tid=%p) ...", (void *) thread->tid); );
+			GC_LOG( dolog("GC: Writing back Root-Set to thread (tid=%p) ...", (void *) thread->impl.tid); );
 #else
 			GC_ASSERT(thread == NULL);
 			GC_LOG( dolog("GC: Writing back Root-Set to single-thread ..."); );
@@ -414,7 +414,7 @@ void rootset_print(rootset_t *rs)
 			printf("\tGlobal Root Set:\n");
 		} else {
 #if defined(ENABLE_THREADS)
-			printf("\tLocal Root Set with Thread-Id %p:\n", (void *) rs->thread->tid);
+			printf("\tLocal Root Set with Thread-Id %p:\n", (void *) rs->thread->impl.tid);
 #else
 			printf("\tLocal Root Set:\n");
 #endif

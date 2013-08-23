@@ -1,4 +1,4 @@
-/* src/threads/posix/thread-posix.hpp - POSIX thread functions
+/* src/threads/threadobject.hpp - POSIX thread data structure
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -37,118 +37,12 @@
 
 #include "vm/types.hpp"
 
-
-// Includes required by Thread.
-
 #if defined(ENABLE_TLH)
 # include "mm/tlh.hpp"
 #endif
 
 #include "threads/condition.hpp"
 #include "threads/mutex.hpp"
-
-/* forward declarations */
-class DumpMemory;
-
-/* threadobject ****************************************************************
-
-   Struct holding thread local variables.
-
-*******************************************************************************/
-
-enum ThreadFlag {
-	THREAD_FLAG_JAVA      = 0x01,   // a normal Java thread
-	THREAD_FLAG_INTERNAL  = 0x02,   // CACAO internal thread
-	THREAD_FLAG_DAEMON    = 0x04,   // daemon thread
-	THREAD_FLAG_IN_NATIVE = 0x08    // currently executing native code
-};
-
-enum SuspendReason {
-	SUSPEND_REASON_NONE      = 0,   // no reason to suspend
-	SUSPEND_REASON_JAVA      = 1,   // suspended from java.lang.Thread
-	SUSPEND_REASON_STOPWORLD = 2,   // suspended from stop-the-world
-	SUSPEND_REASON_DUMP      = 3,   // suspended from threadlist dumping
-	SUSPEND_REASON_JVMTI     = 4    // suspended from JVMTI agent
-};
-
-typedef struct threadobject threadobject;
-
-struct threadobject {
-	java_object_t        *object;       /* link to java.lang.Thread object    */
-
-	ptrint                thinlock;     /* pre-computed thin lock value       */
-
-	s4                    index;        /* thread index, starting with 1      */
-	u4                    flags;        /* flag field                         */
-	ThreadState           state;        /* state field                        */
-	bool                  is_in_active_list; /* for debugging only            */
-
-	pthread_t             tid;          /* pthread id                         */
-
-#if defined(__DARWIN__)
-	mach_port_t           mach_thread;       /* Darwin thread id              */
-#endif
-
-	/* for the sable tasuki lock extension */
-	bool                  flc_bit;
-	struct threadobject  *flc_list;     /* FLC list head for this thread      */
-	struct threadobject  *flc_tail;     /* tail pointer for FLC list          */
-	struct threadobject  *flc_next;     /* next pointer for FLC list          */
-	java_handle_t        *flc_object;
-	Mutex*                flc_lock;     /* controlling access to these fields */
-	Condition*            flc_cond;
-
-	/* these are used for the wait/notify implementation                      */
-	Mutex*                waitmutex;
-	Condition*            waitcond;
-
-	Mutex*                suspendmutex; /* lock before suspending this thread */
-	Condition*            suspendcond;  /* notify to resume this thread       */
-
-	bool                  interrupted;
-	bool                  signaled;
-	bool                  park_permit;
-
-	bool                  suspended;    /* is this thread suspended?          */
-	SuspendReason         suspend_reason; /* reason for suspending            */
-
-	u1                   *pc;           /* current PC (used for profiling)    */
-
-	java_object_t        *_exceptionptr;     /* current exception             */
-	struct stackframeinfo_t     *_stackframeinfo;   /* current native stackframeinfo */
-	struct localref_table       *_localref_table;   /* JNI local references          */
-
-#if defined(ENABLE_INTRP)
-	Cell                 *_global_sp;        /* stack pointer for interpreter */
-#endif
-
-#if defined(ENABLE_GC_CACAO)
-	bool                  gc_critical;  /* indicates a critical section       */
-
-	sourcestate_t        *ss;
-	executionstate_t     *es;
-#endif
-
-	DumpMemory*          _dumpmemory;     ///< Dump memory structure.
-
-#if defined(ENABLE_DEBUG_FILTER)
-	u2                    filterverbosecallctr[2]; /* counters for verbose call filter */
-#endif
-
-#if !defined(NDEBUG)
-	s4                    tracejavacallindent;
-	u4                    tracejavacallcount;
-#endif
-
-#if defined(ENABLE_TLH)
-	tlh_t                 tlh;
-#endif
-
-#if defined(ENABLE_ESCAPE_REASON)
-	void *escape_reasons;
-#endif
-};
-
 
 /* current threadobject *******************************************************/
 
@@ -168,29 +62,6 @@ extern pthread_key_t thread_current_key;
 #endif /* defined(HAVE___THREAD) */
 
 
-/* native-world flags *********************************************************/
-
-#if defined(ENABLE_GC_CACAO)
-# define THREAD_NATIVEWORLD_ENTER THREADOBJECT->flags |=  THREAD_FLAG_IN_NATIVE
-# define THREAD_NATIVEWORLD_EXIT  THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE
-#else
-# define THREAD_NATIVEWORLD_ENTER /*nop*/
-# define THREAD_NATIVEWORLD_EXIT  /*nop*/
-#endif
-
-
-/* counter for verbose call filter ********************************************/
-
-#if defined(ENABLE_DEBUG_FILTER)
-#	define FILTERVERBOSECALLCTR (THREADOBJECT->filterverbosecallctr)
-#endif
-
-/* state for trace java call **************************************************/
-
-#if !defined(NDEBUG)
-#	define TRACEJAVACALLINDENT (THREADOBJECT->tracejavacallindent)
-#	define TRACEJAVACALLCOUNT (THREADOBJECT->tracejavacallcount)
-#endif
 
 inline static threadobject* thread_get_current(void);
 
@@ -254,45 +125,7 @@ inline static void thread_set_current(threadobject* t)
 #endif
 }
 
-
-inline static struct stackframeinfo_t* threads_get_current_stackframeinfo(void)
-{
-	return THREADOBJECT->_stackframeinfo;
-}
-
-inline static void threads_set_current_stackframeinfo(struct stackframeinfo_t* sfi)
-{
-	THREADOBJECT->_stackframeinfo = sfi;
-}
-
-
-/* functions ******************************************************************/
-
-void threads_start_thread(threadobject *thread, functionptr function);
-
-void threads_set_thread_priority(pthread_t tid, int priority);
-
-bool threads_suspend_thread(threadobject *thread, SuspendReason reason);
-bool threads_resume_thread(threadobject *thread, SuspendReason reason);
-void threads_suspend_ack();
-
-void threads_join_all_threads(void);
-
-void threads_sleep(int64_t millis, int32_t nanos);
-
-void threads_wait_with_timeout_relative(threadobject *t, s8 millis, s4 nanos);
-
-void threads_thread_interrupt(threadobject *thread);
-
-void threads_park(bool absolute, int64_t nanos);
-void threads_unpark(threadobject *thread);
-
-#if defined(ENABLE_TLH)
-void threads_tlh_add_frame();
-void threads_tlh_remove_frame();
-#endif
-
-#endif // THREAD_POSIX_HPP_
+#endif // THREADOBJECT_POSIX_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.

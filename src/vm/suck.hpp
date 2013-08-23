@@ -44,9 +44,7 @@ enum {
 };
 
 typedef struct list_classpath_entry {
-#if defined(ENABLE_THREADS)
 	Mutex             *mutex;	        /* mutex locking on zip/jar files */
-#endif
 	s4                 type;
 	char              *path;
 	s4                 pathlen;

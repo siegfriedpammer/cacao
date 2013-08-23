@@ -1,4 +1,4 @@
-/* src/threads/condition.hpp - condition variable
+/* src/threads/NONE/condition-none.hpp - dummy condition variable
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,18 +23,25 @@
 */
 
 
-#ifndef _CONDITION_HPP
-#define _CONDITION_HPP
+#ifndef _CONDITION_NONE_HPP
+#define _CONDITION_NONE_HPP
 
-#include "config.h"
+class Mutex;
+struct timespec;
 
-#if defined(ENABLE_THREADS)
-# include "threads/posix/condition-posix.hpp"
-#else
-# include "threads/none/condition-none.hpp"
-#endif
+/**
+ * Dummy condition variable.
+ */
+class Condition {
+public:
+	void broadcast() {}
+	void signal() {}
+	void timedwait(Mutex* mutex, const timespec* abstime) {}
+	void wait(Mutex* mutex) {}
+	void wait(Mutex& mutex) {}
+};
 
-#endif /* _CONDITION_HPP */
+#endif /* _CONDITION_NONE_HPP */
 
 
 /*

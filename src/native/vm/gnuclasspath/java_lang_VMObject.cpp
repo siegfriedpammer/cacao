@@ -82,9 +82,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMObject_clone(JNIEnv* env, jclass claz
  */
 JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv* env, jclass clazz, jobject _this)
 {
-#if defined(ENABLE_THREADS)
 	lock_notify_object(_this);
-#endif
 }
 
 
@@ -95,9 +93,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv* env, jclass clazz,
  */
 JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv* env, jclass clazz, jobject _this)
 {
-#if defined(ENABLE_THREADS)
 	lock_notify_all_object(_this);
-#endif
 }
 
 
@@ -108,9 +104,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv* env, jclass cla
  */
 JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv* env, jclass clazz, jobject o, jlong ms, jint ns)
 {
-#if defined(ENABLE_THREADS)
 	lock_wait_for_object(o, ms, ns);
-#endif
 }
 
 } // extern "C"

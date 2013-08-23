@@ -26,7 +26,6 @@
 #ifndef HASHTABLE_HPP_
 #define HASHTABLE_HPP_ 1
 
-#include "config.h"                     // for ENABLE_THREADS
 #include "vm/types.hpp"                 // for u4
 
 class Mutex;
@@ -84,9 +83,7 @@ hashtable.ptr-->+-------------------+
 /* hashtable ******************************************************************/
 
 struct hashtable {            
-#if defined(ENABLE_THREADS)
 	Mutex              *mutex;          /* required for locking               */
-#endif
 	u4                  size;           /* current size of the hashtable      */
 	u4                  entries;        /* number of entries in the table     */
 	void              **ptr;            /* pointer to hashtable               */

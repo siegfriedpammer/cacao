@@ -1597,28 +1597,20 @@ invoke_method:
 		/* synchronization instructions ***************************************/
 
 		case BC_monitorenter:
-#if defined(ENABLE_THREADS)
 			if (checksync) {
 				bte = builtintable_get_internal(LOCK_monitor_enter);
 				OP_BUILTIN_CHECK_EXCEPTION(bte);
-			}
-			else
-#endif
-			{
+			} else {
 				OP_CHECK_EXCEPTION(ICMD_CHECKNULL);
 				OP(ICMD_POP);
 			}
 			break;
 
 		case BC_monitorexit:
-#if defined(ENABLE_THREADS)
 			if (checksync) {
 				bte = builtintable_get_internal(LOCK_monitor_exit);
 				OP_BUILTIN_CHECK_EXCEPTION(bte);
-			}
-			else
-#endif
-			{
+			} else {
 				OP_CHECK_EXCEPTION(ICMD_CHECKNULL);
 				OP(ICMD_POP);
 			}

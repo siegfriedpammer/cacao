@@ -111,7 +111,11 @@ public:
 	int64_t get_inittime()    { return _inittime; }
 
 	Properties&      get_properties     () { return _properties; }
+
+#if defined(ENABLE_THREADS)
 	Recompiler&      get_recompiler     () { return _recompiler; } // REMOVEME
+#endif
+
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 #ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	HPI&             get_hpi            () { return _hpi; }
