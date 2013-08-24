@@ -582,7 +582,7 @@ jint JVM_GetLastErrorString(char* buf, int len)
 	return hpi.get_system().GetLastErrorString(buf, len);
 #else
 	//XXX IMPLEMENT ME!
-	return NULL;
+	return 0;
 #endif
 }
 
@@ -2763,7 +2763,7 @@ jint JVM_InitializeSocketLibrary()
 	HPI& hpi = VM::get_current()->get_hpi();
 	return hpi.initialize_socket_library();
 #else
-	return NULL;
+	return 0;
 #endif
 }
 
