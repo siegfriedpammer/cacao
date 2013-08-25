@@ -640,7 +640,7 @@ static void *threads_startup_thread(void *arg)
 	threads_sem_wait(startup->psem_first);
 
 #if defined(__DARWIN__)
-	t->mach_thread = mach_thread_self();
+	t->impl.mach_thread = mach_thread_self();
 #endif
 
 	/* Now that we are in the new thread, we can store the internal
@@ -1461,7 +1461,7 @@ void threads_yield(void)
  * Return the tid of a thread.
  */
 intptr_t threads_get_tid(threadobject *t) {
-	return t->impl.tid;
+	return static_cast<intptr_t>(t->impl.tid);
 }
 
 
