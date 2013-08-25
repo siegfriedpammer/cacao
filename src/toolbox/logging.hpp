@@ -28,6 +28,8 @@
 
 #include "config.h"
 
+#include "vm/os.hpp"
+
 #include <stdio.h>
 #include <stdarg.h>
 
@@ -90,6 +92,45 @@ Color log_color();
 #define LOG1(STMT) LOG_N(1, STMT)
 #define LOG2(STMT) LOG_N(2, STMT)
 #define LOG3(STMT) LOG_N(3, STMT)
+
+#define WARING_MSG(EXPR_SHORT, EXPR_LONG)                                     \
+	do {                                                                      \
+		cacao::OStream stream = cacao::err();                                 \
+																			  \
+		{ stream << cacao::BoldWhite << __FILE__ << ":" << __LINE__ << ": "   \
+		{ stream << cacao::BoldMagenta << "warning: " ; }                     \
+		{ stream << cacao::BoldWhite << EXPR_SHORT << cacao::reset_color ; }  \
+		{ stream << cacao::nl << EXPR_LONG << cacao::nl; }                    \
+	} while (0)
+
+#ifndef NDEBUG
+#define assert_msg(COND, EXPR)                                                \
+	do {                                                                      \
+		if ( ! (COND) ) {                                                     \
+			cacao::OStream stream = cacao::err();                             \
+		                                                                      \
+			{ stream << cacao::BoldRed << "assertion failed: " ; }            \
+			{ stream << cacao::BoldWhite<<"`"#COND"'"<< cacao::reset_color; } \
+			{ stream << cacao::nl << EXPR << cacao::nl ; }                    \
+			assert( COND );                                                   \
+		}                                                                     \
+	} while (0)
+#else
+
+#define assert_msg(COND, EXPR) /* nothing */
+
+#endif
+
+
+#define ABORT_MSG(EXPR_SHORT, EXPR_LONG)                                      \
+	do {                                                                      \
+		cacao::OStream stream = cacao::err();                                 \
+		                                                                      \
+		{ stream << cacao::BoldRed << "error: " ; }                           \
+		{ stream << cacao::BoldWhite << EXPR_SHORT << cacao::reset_color ; }  \
+		{ stream << cacao::nl << EXPR_LONG << cacao::nl; }                    \
+		os::abort();                                                          \
+	} while (0)
 
 } // end namespace cacao
 

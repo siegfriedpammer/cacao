@@ -421,6 +421,19 @@ extern NoBold      nobold;
 extern Underline   underline;
 extern NoUnderline nounderline;
 
+// helper templates
+template <class _ForwardIterator>
+inline OStream& print_container(OStream &OS, _ForwardIterator i, const _ForwardIterator &e) {
+	if (i == e)
+		return OS << "[<empty>]";
+	OS << "[" << *i;
+	++i;
+	for( ; i != e ; ++i) {
+		OS << ", " << *i;
+	}
+	return OS << "]";
+}
+
 } // end namespace cacao
 
 #endif // OSTREAM_HPP_
