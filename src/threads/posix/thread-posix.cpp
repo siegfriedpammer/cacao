@@ -1461,7 +1461,14 @@ void threads_yield(void)
  * Return the tid of a thread.
  */
 intptr_t threads_get_tid(threadobject *t) {
+	// pthread_t is a pointer type in OS X 
+	// and a unsigned integer on linux.
+	// Thus we need different casts
+#ifdef __DARWIN__
+	return reinterpret_cast<intptr_t>(t->impl.tid);
+#else
 	return static_cast<intptr_t>(t->impl.tid);
+#endif
 }
 
 
