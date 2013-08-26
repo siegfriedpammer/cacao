@@ -96,10 +96,6 @@
 #include "vm/jit/optimizing/profile.hpp"
 #include "vm/jit/optimizing/recompiler.hpp"
 
-#if defined(ENABLE_PYTHON)
-# include "vm/jit/python.h"
-#endif
-
 #include "vm/jit/trap.hpp"
 
 #if defined(ENABLE_RT_TIMING)
@@ -1337,10 +1333,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 	jit_init();
 	code_init();
 	methodtree_init();
-
-#if defined(ENABLE_PYTHON)
-	pythonpass_init();
-#endif
 
 	/* AFTER: utf8_init, classcache_init */
 

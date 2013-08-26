@@ -52,8 +52,6 @@
 #include "vm/jit/optimizing/ssa_rename.hpp"
 #include "vm/jit/optimizing/ssa_phi.hpp"
 
-#include "vm/jit/python.h"
-
 #if defined(SSA_DEBUG_VERBOSE)
 #include "vm/options.hpp"   /* compileverbose */
 #endif
