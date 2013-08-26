@@ -1,6 +1,6 @@
-/* src/vm/jit/methodtree.c - AVL tree of methods
+/* src/vm/jit/methodtree.cpp - AVL tree of methods
 
-   Copyright (C) 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -184,10 +184,6 @@ void *methodtree_find(void *pc)
 
 	if (pv == NULL) {
 		/* No method was found.  Let's dump a stacktrace. */
-
-#if defined(ENABLE_VMLOG)
-		vmlog_cacao_signl("SIGSEGV");
-#endif
 
 		log_println("We received a SIGSEGV and tried to handle it, but we were");
 		log_println("unable to find a Java method at:");

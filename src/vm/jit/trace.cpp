@@ -168,11 +168,6 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 #endif
 	}
 
-#if defined(ENABLE_VMLOG)
-	vmlog_cacao_enter_method(m);
-	return;
-#endif
-
 	// Hook point on entry into Java method.
 	Hook::method_enter(m);
 
@@ -263,11 +258,6 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 			return;
 #endif
 	}
-
-#if defined(ENABLE_VMLOG)
-	vmlog_cacao_leave_method(m);
-	return;
-#endif
 
 	// Hook point upon exit from Java method.
 	Hook::method_exit(m);

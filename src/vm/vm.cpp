@@ -102,10 +102,6 @@
 
 #include "vm/jit/trap.hpp"
 
-#if defined(ENABLE_VMLOG)
-#include <vmlog_cacao.h>
-#endif
-
 #if defined(ENABLE_RT_TIMING)
 #include "vm/rt-timing.hpp"
 #endif
@@ -710,21 +706,12 @@ VM::VM(JavaVMInitArgs* vm_args)
 	opt_stacksize     = STACK_SIZE;
 
 	// First of all, parse the -XX options.
-
-#if defined(ENABLE_VMLOG)
-	vmlog_cacao_init_options();
-#endif
-
 	options_xx(vm_args);
 
 	// After -XX options are parsed, print the build-time
 	// configuration, if requested.
 	if (opt_PrintConfig)
 		print_build_time_config();
-
-#if defined(ENABLE_VMLOG)
-	vmlog_cacao_init();
-#endif
 
 	/* We need to check if the actual size of a java.lang.Class object
 	   is smaller or equal than the assumption made in
