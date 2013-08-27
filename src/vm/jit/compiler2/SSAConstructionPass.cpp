@@ -903,14 +903,14 @@ void SSAConstructionPass::print_current_def() const {
 			Instruction *I;
 			int max = 20;
 			if (!v) {
-				dbg() << setw(max) << "NULL";
+				out() << setw(max) << "NULL";
 			} else if ( (I = v->to_Instruction()) ) {
-				dbg() << setw(max) << I->get_name();
+				out() << setw(max) << I->get_name();
 			} else {
-				dbg() << setw(max) << "VALUE";
+				out() << setw(max) << "VALUE";
 			}
 		}
-		dbg() << nl;
+		out() << nl;
 	}
 }
 

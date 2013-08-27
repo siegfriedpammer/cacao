@@ -295,7 +295,7 @@ bool LoopPass::run(JITData &JD) {
 
 			LOG2("Q=P= ");
 			DEBUG2(print_container(dbg(), Q.begin(),Q.end()));
-			dbg() << nl;
+			LOG2(nl);
 
 			// Q contains the sources of the backedges to w.
 			// It must be order from smallest to largest preorder source to

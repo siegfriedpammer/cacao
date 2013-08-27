@@ -237,7 +237,7 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 		// set initial interval
 		LOG2("initial liveIn for " << BI << ": ");
 		if (DEBUG_COND_N(2)) {
-			print_container(dbg(), liveIn[BI].begin(), liveIn[BI].end()) << nl;
+			print_container(out(), liveIn[BI].begin(), liveIn[BI].end()) << nl;
 		}
 		for (LiveInSetTy::const_iterator i = liveIn[BI].begin(), e = liveIn[BI].end();
 				i != e ; ++i) {
@@ -355,7 +355,7 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 		for (LiveInMapTy::const_iterator i = liveIn.begin(), e = liveIn.end();
 				i != e ; ++i) {
 			LOG("LiveIn for " << i->first << ": ");
-			print_container(dbg(), i->second.begin(), i->second.end()) << nl;
+			print_container(out(), i->second.begin(), i->second.end()) << nl;
 		}
 
 		LOG("Livetime Interval(s)" << nl);
