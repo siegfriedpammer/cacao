@@ -79,7 +79,7 @@ INLINE_LIB = \
 	inline/libinline.la
 endif
 
-if ENABLE_OPTIMIZATION_FRAMEWORK
+if ENABLE_COMPILER2
 SUBDIRS += \
        compiler2
 
@@ -216,7 +216,7 @@ libjit_la_LIBADD = \
 	$(INTRP_LIB) \
 	$(ARCH_LIB)
 
-if ENABLE_OPTIMIZATION_FRAMEWORK
+if ENABLE_COMPILER2
 libjit_la_LIBADD += \
        $(COMPILER2_LIB)
 endif

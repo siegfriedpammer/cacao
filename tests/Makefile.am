@@ -28,7 +28,7 @@ JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
 SUBDIRS = \
 	regression
 
-if ENABLE_OPTIMIZATION_FRAMEWORK
+if ENABLE_COMPILER2
 SUBDIRS += \
 	compiler2
 

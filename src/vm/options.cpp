@@ -172,7 +172,7 @@ int      opt_DebugProperties              = 0;
 int      opt_DebugStackFrameInfo          = 0;
 int      opt_DebugStackTrace              = 0;
 int      opt_DebugThreads                 = 0;
-#ifdef ENABLE_OPTIMIZATION_FRAMEWORK
+#ifdef ENABLE_COMPILER2
 bool     opt_DebugCompiler2               = false;
 #endif
 #if defined(ENABLE_DISASSEMBLER)
@@ -259,7 +259,7 @@ enum {
 	OPT_DebugVerbose,
 	OPT_DebugPrintThread,
 #endif
-#ifdef ENABLE_OPTIMIZATION_FRAMEWORK
+#ifdef ENABLE_COMPILER2
 	OPT_DebugCompiler2,
 #endif
 	OPT_DebugLocalReferences,
@@ -327,7 +327,7 @@ option_t options_XX[] = {
 	{ "DebugVerbose",                 OPT_DebugVerbose,                 OPT_TYPE_VALUE,   "verbosity level for debugging (default=0)"},
 	{ "DebugPrintThread",             OPT_DebugPrintThread,             OPT_TYPE_BOOLEAN, "print thread id"},
 #endif
-#ifdef ENABLE_OPTIMIZATION_FRAMEWORK
+#ifdef ENABLE_COMPILER2
 	{ "DebugCompiler2",               OPT_DebugCompiler2,               OPT_TYPE_BOOLEAN, "compiler with compiler2"},
 #endif
 	{ "DebugLocalReferences",         OPT_DebugLocalReferences,         OPT_TYPE_BOOLEAN, "print debug information for local reference tables" },
@@ -737,7 +737,7 @@ void options_xx(JavaVMInitArgs *vm_args)
 			opt_DebugThreads = enable;
 			break;
 
-#ifdef ENABLE_OPTIMIZATION_FRAMEWORK
+#ifdef ENABLE_COMPILER2
 		case OPT_DebugCompiler2:
 			opt_DebugCompiler2 = enable;
 			break;

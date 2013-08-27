@@ -2233,7 +2233,7 @@ static void vm_compile_all(void)
 *******************************************************************************/
 
 #if !defined(NDEBUG)
-#if defined(ENABLE_OPTIMIZATION_FRAMEWORK)
+#if defined(ENABLE_COMPILER2)
 #include "vm/jit/compiler2/Compiler.hpp"
 #endif
 static void vm_compile_method(char* mainname)
@@ -2289,7 +2289,7 @@ static void vm_compile_method(char* mainname)
 		os::abort("vm_compile_method: java.lang.NoSuchMethodException: %s.%s",
 				 opt_CompileMethod, opt_CompileSignature ? opt_CompileSignature : "");
 
-#if defined(ENABLE_OPTIMIZATION_FRAMEWORK)
+#if defined(ENABLE_COMPILER2)
 	if (opt_DebugCompiler2) {
 		cacao::jit::compiler2::compile(m);
 	} else

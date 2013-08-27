@@ -82,7 +82,7 @@
 # include "vm/jit/loop/loop.hpp"
 #endif
 
-#if defined(ENABLE_OPTIMIZATION_FRAMEWORK)
+#if defined(ENABLE_COMPILER2)
 #include "vm/jit/compiler2/Compiler.hpp"
 #endif
 
@@ -948,7 +948,7 @@ codeinfo *jit_get_current_code(methodinfo *m)
 
 	/* otherwise: recompile */
 
-#if defined(ENABLE_OPTIMIZATION_FRAMEWORK)
+#if defined(ENABLE_COMPILER2)
 	if (!cacao::jit::compiler2::compile(m))
 		return NULL;
 #else

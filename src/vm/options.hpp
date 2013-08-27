@@ -185,7 +185,7 @@ extern int      opt_DebugPackage;
 extern int      opt_DebugStackFrameInfo;
 extern int      opt_DebugStackTrace;
 extern int      opt_DebugThreads;
-#ifdef ENABLE_OPTIMIZATION_FRAMEWORK
+#ifdef ENABLE_COMPILER2
 extern bool     opt_DebugCompiler2;
 #endif
 #if defined(ENABLE_DISASSEMBLER)

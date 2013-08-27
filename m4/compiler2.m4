@@ -1,4 +1,4 @@
-dnl m4/optimization-framework.m4
+dnl m4/compiler2.m4
 dnl
 dnl Copyright (C) 2013
 dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,19 +23,19 @@ dnl 02110-1301, USA.
 
 dnl enable the optimization framework
 
-AC_DEFUN([AC_CHECK_ENABLE_OPTIMIZATION_FRAMEWORK],[
+AC_DEFUN([AC_CHECK_ENABLE_COMPILER2],[
 AC_MSG_CHECKING(enable optimization framework)
-AC_ARG_ENABLE([optimization-framework],
-              [AS_HELP_STRING(--enable-optimization-framework,enable experimental optimization framework [[default=no]])],
+AC_ARG_ENABLE([compiler2],
+              [AS_HELP_STRING(--enable-compiler2,enable new second stage compiler [[default=no]])],
               [case "${enableval}" in
-                   yes) ENABLE_OPTIMIZATION_FRAMEWORK=yes;;
-                   *) ENABLE_OPTIMIZATION_FRAMEWORK=no;;
+                   yes) ENABLE_COMPILER2=yes;;
+                   *) ENABLE_COMPILER2=no;;
                esac],
-              [ENABLE_OPTIMIZATION_FRAMEWORK=no])
-AC_MSG_RESULT(${ENABLE_OPTIMIZATION_FRAMEWORK})
-AM_CONDITIONAL([ENABLE_OPTIMIZATION_FRAMEWORK], test x"${ENABLE_OPTIMIZATION_FRAMEWORK}" = "xyes")
+              [ENABLE_COMPILER2=no])
+AC_MSG_RESULT(${ENABLE_COMPILER2})
+AM_CONDITIONAL([ENABLE_COMPILER2], test x"${ENABLE_COMPILER2}" = "xyes")
 
-if test x"${ENABLE_OPTIMIZATION_FRAMEWORK}" = "xyes"; then
-    AC_DEFINE([ENABLE_OPTIMIZATION_FRAMEWORK], 1, [enable optimization framework])
+if test x"${ENABLE_COMPILER2}" = "xyes"; then
+    AC_DEFINE([ENABLE_COMPILER2], 1, [enable new second stage compiler (compiler2)])
 fi
 ])
