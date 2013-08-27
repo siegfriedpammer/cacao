@@ -64,7 +64,11 @@ bool CodeGenPass::run(JITData &JD) {
 			if ( start == end) {
 				LOG2("none" << nl);
 			} else {
-				disassemble(CM->get_start(),start);
+#if defined(ENABLE_DISASSEMBLER)
+				disassemble(end,start);
+#else
+				// TODO print hex
+#endif
 			}
 		}
 	}

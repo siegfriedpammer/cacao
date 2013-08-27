@@ -33,6 +33,10 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/code.hpp"
 
+#if !defined(WITH_BINUTILS_DISASSEMBLER)
+#error ObjectFileWriterPass requires binutils bfd library.
+#endif
+
 #include <bfd.h>
 #include <string>
 

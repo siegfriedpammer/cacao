@@ -36,6 +36,7 @@ namespace jit {
 namespace compiler2 {
 
 bool DisassemblerPass::run(JITData &JD) {
+#if defined(ENABLE_DISASSEMBLER)
 	CodeGenPass *CG = get_Pass<CodeGenPass>();
 	const CodeMemory &CM = CG->get_CodeMemory();
 
@@ -43,7 +44,7 @@ bool DisassemblerPass::run(JITData &JD) {
 	u1 *end = CM.get_end();
 
 	disassemble(start, end);
-
+#endif
 	return true;
 }
 
