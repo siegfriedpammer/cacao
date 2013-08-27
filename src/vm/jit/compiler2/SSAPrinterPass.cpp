@@ -38,6 +38,7 @@
 
 #include "vm/utf8.hpp"
 #include "vm/jit/jit.hpp"
+#include "vm/class.hpp"
 
 #include <sstream>
 

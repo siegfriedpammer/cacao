@@ -29,6 +29,7 @@
 #include "vm/jit/compiler2/CodeGenPass.hpp"
 
 #include "vm/jit/disass.hpp"
+#include "vm/jit/code.hpp"
 
 namespace cacao {
 namespace jit {

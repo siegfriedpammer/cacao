@@ -24,6 +24,8 @@
 
 #include "vm/jit/compiler2/Type.hpp"
 
+#include "toolbox/OStream.hpp"
+
 #include <cassert>
 
 namespace cacao {

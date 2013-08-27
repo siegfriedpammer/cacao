@@ -28,6 +28,8 @@
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 
+#include "vm/descriptor.hpp"
+
 #include "vm/jit/jit.hpp"
 #include "vm/jit/show.hpp"
 #include "vm/jit/ir/icmd.hpp"

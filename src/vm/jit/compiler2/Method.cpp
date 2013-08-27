@@ -28,6 +28,8 @@
 #include "vm/jit/compiler2/MethodDescriptor.hpp"
 
 #include "vm/method.hpp"
+#include "vm/class.hpp"
+#include "vm/descriptor.hpp"
 #include "vm/jit/jit.hpp"
 
 #include <cassert>

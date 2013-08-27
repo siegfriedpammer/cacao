@@ -37,6 +37,8 @@
 
 #include "vm/jit/disass.hpp"
 
+#include "mm/memory.hpp"
+
 #include "md.hpp"
 
 #define DEBUG_NAME "compiler2/CodeGen"

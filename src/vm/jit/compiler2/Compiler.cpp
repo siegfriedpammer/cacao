@@ -29,6 +29,7 @@
 #include "vm/rt-timing.hpp"
 #include "vm/statistics.hpp"
 #include "vm/jit/cfg.hpp"
+#include "vm/jit/code.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/parse.hpp"
 #include "vm/jit/show.hpp"
@@ -77,6 +78,8 @@
 #include "vm/jit/compiler2/JITData.hpp"
 
 #include "vm/options.hpp"
+
+#include "mm/dumpmemory.hpp"
 
 #if 0
 RT_REGISTER_GROUP(compiler2_group,"compiler2","second-stage compiler")

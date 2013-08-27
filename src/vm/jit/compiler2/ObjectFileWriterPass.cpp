@@ -30,6 +30,9 @@
 #include "vm/jit/compiler2/MethodDescriptor.hpp"
 #include "toolbox/logging.hpp"
 
+#include "vm/jit/jit.hpp"
+#include "vm/jit/code.hpp"
+
 #include <bfd.h>
 #include <string>
 
