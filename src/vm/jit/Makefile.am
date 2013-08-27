@@ -79,6 +79,14 @@ INLINE_LIB = \
 	inline/libinline.la
 endif
 
+if ENABLE_OPTIMIZATION_FRAMEWORK
+SUBDIRS += \
+       compiler2
+
+COMPILER2_LIB = \
+       compiler2/libcompiler2.la
+endif
+
 if ENABLE_LOOP
 SUBDIRS += \
 	loop
@@ -207,6 +215,12 @@ libjit_la_LIBADD = \
 	$(VERIFIER_LIB) \
 	$(INTRP_LIB) \
 	$(ARCH_LIB)
+
+if ENABLE_OPTIMIZATION_FRAMEWORK
+libjit_la_LIBADD += \
+       $(COMPILER2_LIB)
+endif
+
 
 ## Local variables:
 ## mode: Makefile
