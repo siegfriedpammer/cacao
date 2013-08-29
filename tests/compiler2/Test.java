@@ -83,6 +83,13 @@ static long fact(long n) {
 static double pi() {
     return Math.PI;
 }
+static long fake_power(long v, long i) {
+    long p =1;
+    for (long j = 0; j < i; ++j) {
+        p *= v;
+    }
+    return p;
+}
 static double pi_spigot(long num_digits) {
     double pi = 0;
     for (long i = 0; i < num_digits; ++i) {

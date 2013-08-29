@@ -39,9 +39,11 @@ CLEANFILES = \
 
 OUTPUT_JAVA_TESTS = \
 	Test.fact \
+	Test.fake_power \
 	Test.OverflowInt \
 	Test.OverflowLong \
 	Test.OverflowLongIntLong \
+	Test.pi \
 	Test.testParameterLong \
 	Test.testParameterLong2 \
 	Test.testParameterLong3 \
@@ -57,7 +59,7 @@ run: $(OUTPUT_JAVA_TESTS)
 %: %.thisoutput
 	diff $(srcdir)/$@.output $<
 
-%.o:
+%.o: build
 	LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Compile.sh "$(JAVACMD)" $@ $(srcdir)
 
 %.run: %.o $(srcdir)/%.main.c
