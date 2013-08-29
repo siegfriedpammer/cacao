@@ -28,6 +28,8 @@
 #include "vm/jit/compiler2/MachineOperand.hpp"
 #include "vm/jit/compiler2/RegisterFile.hpp"
 
+#include "toolbox/logging.hpp"
+
 
 namespace cacao {
 namespace jit {
@@ -49,6 +51,14 @@ public:
 	virtual NativeRegister* to_NativeRegister() = 0;
 	virtual MachineResource get_MachineResource() const = 0;
 	virtual bool operator==(MachineRegister*) const = 0;
+	virtual bool operator==(Register* reg) const {
+		//out() << "MachineRegister::operator==" << this << " == " << reg << nl;
+		MachineRegister *mreg = reg->to_MachineRegister();
+		if (!mreg) {
+			return false;
+		}
+		return operator==(mreg);
+	}
 	~MachineRegister() {}
 };
 

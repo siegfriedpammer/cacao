@@ -123,7 +123,9 @@ public:
 	virtual VirtualRegister* to_VirtualRegister() { return 0; }
 	virtual MachineRegister* to_MachineRegister() { return 0; }
 	virtual ~Register() {}
+	virtual bool operator==(Register *other) const = 0;
 };
+
 
 class UnassignedReg : public Register {
 public:
@@ -132,6 +134,9 @@ public:
 		return "UnassignedReg";
 	}
 	virtual UnassignedReg* to_UnassignedReg()     { return this; }
+	virtual bool operator==(Register *other) const {
+		return false;
+	}
 };
 
 class VirtualRegister : public Register {
@@ -150,6 +155,13 @@ public:
 		return MachineOperand::print(OS) << get_id();
 	}
 	unsigned get_id() const { return vreg; }
+	virtual bool operator==(Register *other) const {
+		VirtualRegister *vreg = other->to_VirtualRegister();
+		if (!vreg) {
+			return false;
+		}
+		return get_id() == vreg->get_id();
+	}
 };
 
 class StackSlot : public MachineOperand {

@@ -66,6 +66,8 @@ public:
 	virtual bool operator==(MachineRegister* reg) const;
 };
 
+OStream& operator<<(OStream &OS, const X86_64Register& reg);
+
 class X86_64Register : public NativeResource {
 public:
 	const unsigned index;
@@ -78,6 +80,7 @@ public:
 		return index;
 	}
 	virtual bool operator==(const NativeResource &other) const {
+		//out() << "X86_64Register::operator== " << get_ID() << " == " << other.get_ID() << nl;
 		return this == &other;
 	}
 	virtual ID get_ID() const {
@@ -87,14 +90,18 @@ public:
 		return new NativeRegister(type,this);
 	}
 };
+inline OStream& operator<<(OStream &OS, const X86_64Register& reg) {
+	return OS << reg.name << " ID: " << reg.get_ID();
+}
 inline MachineResource NativeRegister::get_MachineResource() const {
 	return MachineResource(reg);
 }
 inline bool NativeRegister::operator==(MachineRegister* reg) const {
+	//out() << "NativeRegister::operator== " << this << " == " << reg << nl;
 	NativeRegister *nreg = reg->to_NativeRegister();
 	if (!nreg) return false;
 
-	return get_X86_64Register() == nreg->get_X86_64Register();
+	return *get_X86_64Register() == *nreg->get_X86_64Register();
 }
 
 class GPRegister : public X86_64Register {

@@ -392,6 +392,16 @@ void LinearScanAllocatorPass::split_blocking_ltis(LivetimeInterval* current) {
 	}
 }
 
+namespace {
+struct ClassRegPtrComp {
+	bool operator() (Register* lhs, Register* rhs) const {
+		if (lhs->operator==(rhs))
+			false;
+		return lhs < rhs;
+	}
+};
+} // end anonymous namespace
+
 bool LinearScanAllocatorPass::run(JITData &JD) {
 	LA = get_Pass<LivetimeAnalysisPass>();
 	MIS = get_Pass<MachineInstructionSchedulingPass>();
@@ -729,7 +739,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 		LoweredInstDAG *dag = new LoweredInstDAG(I);
 
 		// remember "destroyed" registers
-		std::set<Register*> destroyed;
+		std::set<Register*,ClassRegPtrComp> destroyed;
 		MachineInstruction *move = NULL;
 		for (MoveListTy::const_iterator i = mlist.begin(), e = mlist.end();
 				i != e ; ++i ) {
@@ -738,14 +748,16 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 			MachineOperand *dst = move->get_result().op;
 			Register *reg = dst->to_Register();
 			if (reg) {
-				assert(dst->is_Register());
+				LOG2("destroyed: " << reg << " " << (void*) reg << nl);
+
 				destroyed.insert(reg);
 			}
+			LOG2("used:      " << src->to_Register() << " " << (void*) src->to_Register() << nl);
 			if (destroyed.find(src->to_Register()) != destroyed.end()) {
 				// the value has been overwritten -> stackslot
 				if (dst->is_ManagedStackSlot()) {
 					// dst is a stack slot
-					LOG("MOVE " << move << nl);
+					LOG("MOVE (to stackslot)" << move << nl);
 					dag->add_front(move);
 				} else {
 					assert(dst->is_Register());
