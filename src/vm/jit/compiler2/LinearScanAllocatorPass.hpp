@@ -86,6 +86,7 @@ private:
 	bool allocate_blocked_reg(LivetimeInterval* current);
 	void split_blocking_ltis(LivetimeInterval* current);
 	void split(LivetimeInterval *lti, unsigned pos);
+	void resolve();
 public:
 	static char ID;
 	LinearScanAllocatorPass() : Pass() {}

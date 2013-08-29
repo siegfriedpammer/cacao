@@ -392,26 +392,11 @@ void LinearScanAllocatorPass::split_blocking_ltis(LivetimeInterval* current) {
 	}
 }
 
-namespace {
-struct ClassRegPtrComp {
-	bool operator() (Register* lhs, Register* rhs) const {
-		if (lhs->operator==(rhs))
-			false;
-		return lhs < rhs;
-	}
-};
-} // end anonymous namespace
-
 bool LinearScanAllocatorPass::run(JITData &JD) {
 	LA = get_Pass<LivetimeAnalysisPass>();
 	MIS = get_Pass<MachineInstructionSchedulingPass>();
 	jd = &JD;
 	backend = jd->get_Backend();
-
-	LoweringPass *LP = get_Pass<LoweringPass>();
-	ListSchedulingPass *IS = get_Pass<ListSchedulingPass>();
-	InstructionLinkSchedule *ILS = get_Pass<ScheduleClickPass>();
-
 
 	for (LivetimeAnalysisPass::iterator i = LA->begin(), e = LA->end();
 			i != e ; ++i) {
@@ -531,6 +516,28 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 
 	}
 	DEBUG(LA->print(dbg()));
+
+
+	resolve();
+
+	return true;
+}
+
+namespace {
+struct ClassRegPtrComp {
+	bool operator() (Register* lhs, Register* rhs) const {
+		if (lhs->operator==(rhs)) {
+			return false;
+		}
+		return lhs < rhs;
+	}
+};
+} // end anonymous namespace
+
+void LinearScanAllocatorPass::resolve() {
+	LoweringPass *LP = get_Pass<LoweringPass>();
+	ListSchedulingPass *IS = get_Pass<ListSchedulingPass>();
+	InstructionLinkSchedule *ILS = get_Pass<ScheduleClickPass>();
 
 	// resolution
 	Method *M = jd->get_Method();
@@ -741,8 +748,10 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 		// remember "destroyed" registers
 		std::set<Register*,ClassRegPtrComp> destroyed;
 		MachineInstruction *move = NULL;
+		LOG2("create moves" << nl);
 		for (MoveListTy::const_iterator i = mlist.begin(), e = mlist.end();
 				i != e ; ++i ) {
+			LOG2(nl);
 			move = *i;
 			MachineOperand *src = move->get(0).op;
 			MachineOperand *dst = move->get_result().op;
@@ -766,7 +775,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 					dag->add_front(spill);
 					move->set_operand(0,slot);
 					LOG2("spill needed: " << spill << nl);
-					LOG("MOVE " << move << nl);
+					LOG("MOVE2 " << move << nl);
 					dag->add(move);
 				}
 			} else {
@@ -798,8 +807,6 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 
 	// write back the spill/store instructions
 	MIS->insert_added_instruction();
-
-	return true;
 }
 
 bool LinearScanAllocatorPass::verify() const {
