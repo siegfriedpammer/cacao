@@ -160,7 +160,7 @@ LivetimeInterval* LivetimeInterval::split(unsigned pos, StackSlotManager *SSM) {
 	return lti;
 }
 
-inline OStream& operator<<(OStream &OS, const LivetimeInterval &lti) {
+OStream& operator<<(OStream &OS, const LivetimeInterval &lti) {
 	if (lti.is_in_Register()) {
 		OS << lti.get_Register();
 	} else {
@@ -176,7 +176,7 @@ inline OStream& operator<<(OStream &OS, const LivetimeInterval &lti) {
 	print_container(OS,lti.def_begin(),lti.def_end());
 	return OS;
 }
-inline OStream& operator<<(OStream &OS, const std::pair<unsigned,MachineOperandDesc*> &usedef) {
+OStream& operator<<(OStream &OS, const std::pair<unsigned,MachineOperandDesc*> &usedef) {
 	return OS << usedef.first;
 }
 

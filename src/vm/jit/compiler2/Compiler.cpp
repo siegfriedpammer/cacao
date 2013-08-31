@@ -211,7 +211,7 @@ MachineCode* compile(methodinfo* m)
 		jd->flags |= JITDATA_FLAG_VERBOSECALL;
 
 #if defined(ENABLE_INLINING)
-#warning Inlining currently disabled (broken)
+	//XXX #warning Inlining currently disabled (broken)
 #if 0
 	if (opt_Inline)
 		jd->flags |= JITDATA_FLAG_INLINE;
@@ -268,7 +268,7 @@ MachineCode* compile(methodinfo* m)
 		if (f == NULL)
 			return NULL;
 
-		code = NativeStub::generate(m, (functionptr) f);
+		code = NativeStub::generate(m, *reinterpret_cast<functionptr*>(&f));
 
 		/* Native methods are never recompiled. */
 

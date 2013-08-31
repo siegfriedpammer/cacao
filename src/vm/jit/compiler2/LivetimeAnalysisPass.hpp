@@ -270,14 +270,14 @@ public:
 	friend class LivetimeAnalysisPass;
 };
 
-inline OStream& operator<<(OStream &OS, const LivetimeInterval &lti);
+OStream& operator<<(OStream &OS, const LivetimeInterval &lti);
 inline OStream& operator<<(OStream &OS, const LivetimeInterval *lti) {
 	if (!lti) {
 		return OS << "(LivetimeInterval) NULL";
 	}
 	return OS << *lti;
 }
-inline OStream& operator<<(OStream &OS, const std::pair<unsigned,MachineOperandDesc*> &usedef);
+OStream& operator<<(OStream &OS, const std::pair<unsigned,MachineOperandDesc*> &usedef);
 
 /**
  * LivetimeAnalysisPass

@@ -88,7 +88,7 @@ void CodeGenPass::finish(JITData &JD) {
 	jumpref *jr;
 #endif
 	u1      *epoint;
-	s4       alignedlen;
+	//s4       alignedlen;
 
 	/* Get required compiler data. */
 

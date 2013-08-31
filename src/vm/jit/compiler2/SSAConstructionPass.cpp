@@ -46,7 +46,7 @@ STAT_REGISTER_GROUP_VAR(int,num_trivial_phis,0,"# trivial phis","number of trivi
 namespace cacao {
 
 namespace {
-
+#if 0
 OStream& show_variable_intern_OS(OStream &OS, const jitdata *jd, s4 index, int stage)
 {
 	char type;
@@ -111,6 +111,7 @@ OStream& show_variable_intern_OS(OStream &OS, const jitdata *jd, s4 index, int s
 
 	return OS;
 }
+#endif
 
 #define SHOW_TARGET(OS, target)                                      \
         if (stage >= SHOW_PARSE) {                                   \
@@ -941,7 +942,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 	 * Their current definitions are stored in a value numbering table.
 	 * The number of variables is already known at this point for both types.
 	 */
-	unsigned int num_variables = jd->vartop;
+	//unsigned int num_variables = jd->vartop;
 	// last block used for argument loading
 	unsigned int num_basicblocks = jd->basicblockcount;
 	unsigned int init_basicblock = 0;
@@ -1718,6 +1719,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 					case ICMD_IFLE:
 						cond = Conditional::LE;
 						break;
+					default:
+						ABORT_MSG("unreachable","unreachable");
 					}
 					Instruction *konst = new CONSTInst(iptr->sx.val.i);
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
@@ -1752,6 +1755,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 					case ICMD_IF_LGE:
 						cond = Conditional::GE;
 						break;
+					default:
+						ABORT_MSG("unreachable","unreachable");
 					}
 					Instruction *konst = new CONSTInst(iptr->sx.val.l);
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
@@ -1812,6 +1817,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 					case ICMD_IF_ICMPLE:
 						cond = Conditional::LE;
 						break;
+					default:
+						ABORT_MSG("unreachable","unreachable");
 					}
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
 					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
@@ -1846,6 +1853,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 					case ICMD_IF_LCMPLE:
 						cond = Conditional::LE;
 						break;
+					default:
+						ABORT_MSG("unreachable","unreachable");
 					}
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
 					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
