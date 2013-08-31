@@ -435,6 +435,7 @@ static inline bool init_from_utf16(const u2 *src, size_t src_size, u2 *dst) {
 namespace {
 	inline uint16_t identity(uint16_t c)     { return c; }
 	inline uint16_t slash_to_dot(uint16_t c) { return (c == '/') ? '.' : c; }
+	inline uint16_t dot_to_slash(uint16_t c) { return (c == '.') ? '/' : c; }
 }
 
 /* JavaString::from_utf8 *******************************************************
@@ -467,6 +468,21 @@ JavaString JavaString::from_utf8(const char *cs, size_t sz) {
 JavaString JavaString::from_utf8_slash_to_dot(Utf8String u) {
 	return makeJavaString(u.begin(), u.size(), u.utf16_size(),
 	                      allocate_with_GC, init_from_utf8<slash_to_dot>);
+}
+
+/* JavaString::from_utf8_dot_to_slash ******************************************
+
+	Create a new java/lang/String filled with text decoded from an UTF-8 string.
+	Replaces '.' with '/'.
+
+	NOTE:
+		If the input is not valid UTF-8 the process aborts!
+
+*******************************************************************************/
+
+JavaString JavaString::from_utf8_dot_to_slash(Utf8String u) {
+	return makeJavaString(u.begin(), u.size(), u.utf16_size(),
+	                      allocate_with_GC, init_from_utf8<dot_to_slash>);
 }
 
 /* JavaString::literal *********************************************************

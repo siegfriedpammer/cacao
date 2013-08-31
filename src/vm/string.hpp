@@ -1,6 +1,6 @@
 /* src/vm/string.hpp - string header
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -62,6 +62,9 @@ class JavaString {
 		// creates a new object of type java/lang/String from a utf-text,
 		// changes '/' to '.'
 		static JavaString from_utf8_slash_to_dot(Utf8String);
+		// creates a new object of type java/lang/String from a utf-text,
+		// changes '.' to '/'
+		static JavaString from_utf8_dot_to_slash(Utf8String);
 		// creates and interns a java/lang/String
 		static JavaString literal(Utf8String);
 
