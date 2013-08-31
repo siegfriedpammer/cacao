@@ -269,14 +269,14 @@ void trap_handle(int sig, void *xpc, void *context)
 		break;
 
 #if defined(__I386__) && defined(ENABLE_REPLACEMENT)
-# warning Port the below stuff to use the patching subsystem.
+	// XXX #warning Port the below stuff to use the patching subsystem.
 	case TRAP_COUNTDOWN:
 		p = NULL;
 		(void) replace_handler((uint8_t*) xpc - 13, &es);
 		break;
 #endif
 #if defined(__X86_64__) && defined(ENABLE_REPLACEMENT)
-# warning Port the below stuff to use the patching subsystem.
+	// XXX #warning Port the below stuff to use the patching subsystem.
 	case TRAP_COUNTDOWN:
 		p = NULL;
 		(void) replace_handler((uint8_t*) xpc - 19, &es);
