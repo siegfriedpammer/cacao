@@ -71,7 +71,7 @@ namespace compiler2 {
 
 bool ObjectFileWriterPass::run(JITData &JD) {
 	Method *M = JD.get_Method();
-	CodeGenPass *CG = get_Pass<CodeGenPass>();
+	//CodeGenPass *CG = get_Pass<CodeGenPass>();
 	codeinfo*     code = JD.get_jitdata()->code;
 
 	const char* bfd_arch = "i386:x86-64";

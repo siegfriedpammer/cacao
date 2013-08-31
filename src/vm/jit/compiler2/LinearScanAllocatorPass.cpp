@@ -346,6 +346,7 @@ struct push_lambda {
 };
 
 
+#if 0
 /// @Cpp11 use std::function instead
 struct _lti_same_operand
 		: public std::binary_function<LivetimeInterval*,LivetimeInterval*,bool> {
@@ -354,6 +355,7 @@ struct _lti_same_operand
 			lhs->get_ManagedStackSlot() == rhs->get_ManagedStackSlot();
 	}
 } lti_same_operand;
+#endif
 
 } //end anonymous namespace
 

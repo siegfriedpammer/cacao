@@ -70,11 +70,13 @@ Method::Method(methodinfo *m) : class_name_utf8(m->clazz->name),
 
 Method::~Method() {
 	delete method_desc;
+	#if 0
 	for(InstructionListTy::iterator i = inst_list.begin(),
 			e = inst_list.end(); i != e ; ++i) {
 		Instruction *I = *i;
-		//delete I;
+		delete I;
 	}
+	#endif
 }
 
 void Method::add_Instruction(Instruction* I) {

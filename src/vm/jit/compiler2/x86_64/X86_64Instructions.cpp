@@ -89,6 +89,7 @@ inline StackSlot* cast_to<StackSlot>(MachineOperand *op) {
 	assert(0 && "Not a stackslot");
 	return NULL;
 }
+#if 0
 template <>
 inline X86_64Register* cast_to<X86_64Register>(MachineRegister *mreg) {
 	assert(mreg);
@@ -98,7 +99,7 @@ inline X86_64Register* cast_to<X86_64Register>(MachineRegister *mreg) {
 	assert(xreg);
 	return xreg;
 }
-
+#endif
 template <>
 inline Immediate* cast_to<Immediate>(MachineOperand *op) {
 	Immediate* imm = op->to_Immediate();
@@ -402,6 +403,7 @@ inline void emit_stack_move(CodeMemory* CM, StackSlot *slot,
 			(s4)index);
 	}
 }
+#if 0
 /**
  * reg to reg
  */
@@ -419,6 +421,7 @@ inline void emit_imm2reg_move(CodeMemory* CM, Immediate *imm,
 	u1 opcode = 0xb8 + dst->get_index();
 	InstructionEncoding::reg2imm<u1>(CM, opcode, dst, imm->get_value<s8>());
 }
+#endif
 
 } // end anonymous namespace
 
