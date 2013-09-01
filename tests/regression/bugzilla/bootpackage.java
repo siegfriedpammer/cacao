@@ -1,4 +1,4 @@
-/* tests/regression/bugzilla/PR185.java
+/* tests/regression/bugzilla/bootpackage.java
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,19 +22,12 @@
 
 */
 
-import org.junit.Test;
-import static org.junit.Assert.*;
+package boottest;
 
-public class PR185 {
-    @Test
-    public void test() {
-        try {
-            String[] result = SecondaryVMRunner.run(
-                System.getProperty("cacao.test.javacmd"), "finalizer_exceptions");
-            assertEquals(result[0], "out:Success!\n");
-            assertTrue(result[1].isEmpty());
-        } catch (Exception e) {
-            fail(e.toString());
-        }
+class bootpackage {
+    public static void main(String[] args) {
+        Package p = bootpackage.class.getPackage();
+        System.out.println(p.getName());
+        System.out.println("vendor:" + p.getImplementationVendor());
     }
 }
