@@ -90,6 +90,10 @@ public:
 		assert(MI);
 		added_list[i].push_front(MI);
 	}
+	void add_after(unsigned i, MachineInstruction *MI) {
+		assert(MI);
+		added_list[i].push_back(MI);
+	}
 	/**
 	 * write the added instructions to the DAG
 	 *
