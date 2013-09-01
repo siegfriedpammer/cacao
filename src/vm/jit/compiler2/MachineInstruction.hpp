@@ -82,14 +82,15 @@ protected:
 	operand_list operands;
 	MachineOperandDesc result;
 	const char *name;
+	const char *comment;
 public:
 	#if 0
 	MachineInstruction(const char * name, MachineOperand* result, unsigned num_operands, MachineOperand* dflt)
 		: id(id_counter++), operands(num_operands,dflt), result(result), name(name) {
 	}
 	#endif
-	MachineInstruction(const char * name, MachineOperand* result, unsigned num_operands)
-		: parent(NULL), id(id_counter++), operands(), result(this, result), name(name) {
+	MachineInstruction(const char * name, MachineOperand* result, unsigned num_operands, const char* comment = NULL)
+		: parent(NULL), id(id_counter++), operands(), result(this, result), name(name), comment(comment) {
 		for (unsigned i = 0; i < num_operands ; ++i) {
 			//operands[i].index = i;
 			operands.push_back(MachineOperandDesc(this,i));
@@ -99,6 +100,9 @@ public:
 	LoweredInstDAG* get_parent() const { return parent; }
 
 	void set_parent(LoweredInstDAG* dag) { parent = dag; }
+
+	void set_comment(const char* c) { comment = c; }
+	const char* get_comment() const { return comment; }
 
 	void set_operand(unsigned i,MachineOperand* op) {
 		assert(i < operands.size());

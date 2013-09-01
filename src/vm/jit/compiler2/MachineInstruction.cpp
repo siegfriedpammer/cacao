@@ -58,6 +58,9 @@ OStream& MachineInstruction::print(OStream &OS) const {
 		}
 	}
 	#endif
+	if (comment) {
+		OS << " # " << comment;
+	}
 	return OS;
 }
 
