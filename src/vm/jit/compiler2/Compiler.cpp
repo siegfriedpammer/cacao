@@ -67,6 +67,7 @@
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/LivetimeAnalysisPass.hpp"
 #include "vm/jit/compiler2/LinearScanAllocatorPass.hpp"
+#include "vm/jit/compiler2/SpillAllAllocatorPass.hpp"
 #include "vm/jit/compiler2/LoopPass.hpp"
 #include "vm/jit/compiler2/LoopSimplificationPass.hpp"
 #include "vm/jit/compiler2/SSAPrinterPass.hpp"
@@ -148,7 +149,8 @@ MachineCode* compile(methodinfo* m)
 	//PM.add_Pass(&ResolveImmediatePass::ID);
 	PM.add_Pass(&MachineInstructionSchedulingPass::ID);
 	PM.add_Pass(&LivetimeAnalysisPass::ID);
-	PM.add_Pass(&LinearScanAllocatorPass::ID);
+	//PM.add_Pass(&LinearScanAllocatorPass::ID);
+	PM.add_Pass(&SpillAllAllocatorPass::ID);
 	PM.add_Pass(&BasicBlockSchedulingPass::ID);
 	PM.add_Pass(&MachineInstructionSchedulingPass::ID);
 	PM.add_Pass(&MachineInstructionPrinterPass::ID);

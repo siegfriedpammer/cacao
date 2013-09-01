@@ -75,6 +75,7 @@ libcompiler2_la_SOURCES = \
 	ScheduleEarlyPass.cpp \
 	ScheduleLatePass.cpp \
 	Segment.cpp \
+	SpillAllAllocatorPass.cpp \
 	SSAConstructionPass.cpp \
 	SSAPrinterPass.cpp \
 	StackAnalysisPass.cpp \
