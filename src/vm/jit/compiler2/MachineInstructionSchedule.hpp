@@ -35,13 +35,43 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+/**
+ * @defgroup low-level-ir Low Level IR
+ * @ingroup compiler2
+ *
+ * @{
+ */
+
+///////////////////
 
 class BeginInst;
 //class MachineInstruction;
 
+///////////////////
+
+// forward declarations
+class ScheduledMachineInstruction;
+class MachineBasicBlock;
+class MachineInstructionSchedule;
+
 /**
- * MachineInstructionSchedule
- * TODO: more info
+ * A MachineInstruction which is part of a schedule.
+ *
+ */
+class ScheduledMachineInstruction {
+};
+
+/**
+ * A basic block of (scheduled) machine instructions.
+ *
+ * A MachineBasicBlock contains an ordered collection of
+ * ScheduledMachineInstructions.
+ */
+class MachineBasicBlock {
+};
+
+/**
+ * A machine instruction schedule.
  */
 class MachineInstructionSchedule {
 public:
@@ -112,6 +142,9 @@ public:
 		}
 	}
 };
+
+// end in group llir
+/// @}
 
 } // end namespace compiler2
 } // end namespace jit

@@ -148,17 +148,17 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass(&BasicBlockSchedulingPass::ID);
 	//PM.add_Pass(&ResolveImmediatePass::ID);
 	PM.add_Pass(&MachineInstructionSchedulingPass::ID);
-	PM.add_Pass(&LivetimeAnalysisPass::ID);
+	//PM.add_Pass(&LivetimeAnalysisPass::ID);
 	//PM.add_Pass(&LinearScanAllocatorPass::ID);
-	PM.add_Pass(&SpillAllAllocatorPass::ID);
-	PM.add_Pass(&BasicBlockSchedulingPass::ID);
-	PM.add_Pass(&MachineInstructionSchedulingPass::ID);
-	PM.add_Pass(&MachineInstructionPrinterPass::ID);
-	PM.add_Pass(&CodeGenPass::ID);
+	//PM.add_Pass(&SpillAllAllocatorPass::ID);
+	//PM.add_Pass(&BasicBlockSchedulingPass::ID);
+	//PM.add_Pass(&MachineInstructionSchedulingPass::ID);
+	//PM.add_Pass(&MachineInstructionPrinterPass::ID);
+	//PM.add_Pass(&CodeGenPass::ID);
 	if (opt_showdisassemble) {
-		PM.add_Pass(&DisassemblerPass::ID);
+		//PM.add_Pass(&DisassemblerPass::ID);
 	}
-	PM.add_Pass(&ObjectFileWriterPass::ID);
+	//PM.add_Pass(&ObjectFileWriterPass::ID);
 
 /*****************************************************************************/
 /** prolog start jit_compile **/
