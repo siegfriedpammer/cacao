@@ -1,4 +1,4 @@
-## tests/gtest/Makefile.am
+## tests/gtest/compiler2/Makefile.am
 ##
 ## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -20,35 +20,19 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 
-
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)
 
-# set default search extension
 AM_DEFAULT_SOURCE_EXT = .cpp
 
-# set gtest flags
 AM_CPPFLAGS += $(GTEST_CPPFLAGS)
 AM_CXXFLAGS  = $(GTEST_CXXFLAGS)
 AM_LDFLAGS   = $(GTEST_LDFLAGS)
 LIBS        += $(GTEST_LIBS)
 
-# build current directory before subdirectories (libgtest_main.a)
-SUBDIRS = .
+LDADD=$(top_builddir)/tests/gtest/libgtest_main.a
 
-# define gtest_main library
-check_LIBRARIES = libgtest_main.a
-
-# add gtest_main
-LDADD=libgtest_main.a
-
-# test cases
-TESTS = sample
-
+TESTS = mis_test
 check_PROGRAMS = $(TESTS)
-
-if ENABLE_COMPILER2
-SUBDIRS +=  compiler2
-endif
 
 ## Local variables:
 ## mode: Makefile
