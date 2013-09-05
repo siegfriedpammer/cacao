@@ -97,7 +97,10 @@ public:
 	bool operator!=(const ScheduledMachineInstruction& rhs) const { return it != rhs.it; }
 	bool operator<( const ScheduledMachineInstruction& rhs) const { return it->index < rhs.it->index; }
 	bool operator>( const ScheduledMachineInstruction& rhs) const { return rhs < *this; }
-	MachineInstruction*& operator*() {return it->inst;}
+	MachineInstruction*& operator*() { return it->inst; }
+	MachineInstruction*  operator*() const { return it->inst; }
+	MachineInstruction*& operator->() { return it->inst; }
+	MachineInstruction*  operator->() const { return it->inst; }
 
 private:
 	intern_iterator it;
