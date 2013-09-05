@@ -30,6 +30,7 @@ AM_LDFLAGS   = $(GTEST_LDFLAGS)
 LIBS        += $(GTEST_LIBS)
 
 LDADD=$(top_builddir)/tests/gtest/libgtest_main.a
+LDADD+=$(top_builddir)/src/cacao/libjvm.la
 
 TESTS = mis_test
 check_PROGRAMS = $(TESTS)
