@@ -25,6 +25,8 @@
 #include "gtest/gtest.h"
 #include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
 
+#include <queue>
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -276,6 +278,81 @@ TEST(MachineBasicBlock, test_order2) {
 	EXPECT_LT(smi[1],inserted);
 	EXPECT_LT(smi[2],inserted);
 	EXPECT_GT(smi[3],inserted);
+}
+
+/**
+ * test priority queue
+ */
+TEST(MachineBasicBlock, test_priority_queue) {
+	MachineBasicBlock MBB;
+
+	// store first id
+	MachineInstruction *MI = new TestMachineInstruction();
+	unsigned first = MI->get_id();
+	MBB.push_back(MI);
+	MBB.push_back(new TestMachineInstruction());
+	MBB.push_back(new TestMachineInstruction());
+	MBB.push_back(new TestMachineInstruction());
+
+	EXPECT_EQ(MBB.size(), 4);
+
+	std::priority_queue<ScheduledMachineInstruction,
+		std::vector<ScheduledMachineInstruction>,
+		std::greater<ScheduledMachineInstruction> > q;
+
+	for (ScheduledMachineInstruction i = MBB.begin(), e = MBB.end();
+			i != e; ++i) {
+		q.push(i);
+	}
+
+	EXPECT_EQ(q.top()->get_id(), first + 0); q.pop();
+	EXPECT_EQ(q.top()->get_id(), first + 1); q.pop();
+	EXPECT_EQ(q.top()->get_id(), first + 2); q.pop();
+	EXPECT_EQ(q.top()->get_id(), first + 3); q.pop();
+
+	EXPECT_TRUE(q.empty());
+}
+
+/**
+ * test priority queue
+ */
+TEST(MachineBasicBlock, test_priority_queue1) {
+	MachineBasicBlock MBB;
+
+	// store first id
+	MachineInstruction *MI = new TestMachineInstruction();
+	unsigned first = MI->get_id();
+	MBB.push_back(MI);
+	MBB.push_back(new TestMachineInstruction());
+	MBB.push_back(new TestMachineInstruction());
+	MBB.push_back(new TestMachineInstruction());
+
+	EXPECT_EQ(MBB.size(), 4);
+
+	std::priority_queue<ScheduledMachineInstruction,
+		std::vector<ScheduledMachineInstruction>,
+		std::greater<ScheduledMachineInstruction> > q;
+
+	for (ScheduledMachineInstruction i = MBB.begin(), e = MBB.end();
+			i != e; ++i) {
+		q.push(i);
+	}
+
+	EXPECT_EQ(q.top()->get_id(), first + 0); q.pop();
+	EXPECT_EQ(q.top()->get_id(), first + 1); q.pop();
+	EXPECT_EQ(q.top()->get_id(), first + 2); q.pop();
+	// insert after the second element and add to queue
+	{
+		ScheduledMachineInstruction i = ++MBB.begin();
+		MBB.insert_after(i,new TestMachineInstruction());
+		++i;
+		EXPECT_EQ(i->get_id(), first + 4);
+		q.push(i);
+	}
+	EXPECT_EQ(q.top()->get_id(), first + 4); q.pop();
+	EXPECT_EQ(q.top()->get_id(), first + 3); q.pop();
+
+	EXPECT_TRUE(q.empty());
 }
 
 } // end namespace compiler2
