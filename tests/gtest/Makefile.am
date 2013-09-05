@@ -1,6 +1,6 @@
-## tests/Makefile.am
+## tests/gtest/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2008
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -21,27 +21,30 @@
 ## 02110-1301, USA.
 
 
-JAVA     = LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(top_builddir)/src/cacao/cacao
-JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
-JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
+AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)
 
-SUBDIRS = \
-	regression
+# set default search extension
+AM_DEFAULT_SOURCE_EXT = .cpp
 
-if HAVE_GTEST
-SUBDIRS += \
-	gtest
-endif
+# set gtest flags
+AM_CPPFLAGS += $(GTEST_CPPFLAGS)
+AM_CXXFLAGS  = $(GTEST_CXXFLAGS)
+AM_LDFLAGS   = $(GTEST_LDFLAGS)
+LIBS        += $(GTEST_LIBS)
 
-EXTRA_DIST = \
-	$(srcdir)/*.java
+# build current directory before subdirectories (libgtest_main.a)
+SUBDIRS = .
 
-CLEANFILES = \
-	*.class
+# define gtest_main library
+check_LIBRARIES = libgtest_main.a
 
-build:
-	$(JAVACCMD) -d . $(srcdir)/*.java
+# add gtest_main
+LDADD=libgtest_main.a
 
+# test cases
+TESTS = sample
+
+check_PROGRAMS = $(TESTS)
 
 ## Local variables:
 ## mode: Makefile

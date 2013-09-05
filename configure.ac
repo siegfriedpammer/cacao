@@ -689,6 +689,8 @@ if test x"${disable_test_dependency_checks}" = "xno"; then
 	AC_CHECK_JUNIT_WORKS
 fi
 
+GTEST_LIB_CHECK
+
 AC_CHECK_HEADERS(
 	[regex.h], 
 	[
@@ -794,6 +796,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/x86_64/linux/Makefile]
 		[src/vm/jit/x86_64/solaris/Makefile]
 		[tests/Makefile]
+		[tests/gtest/Makefile]
 		[tests/regression/Makefile]
 		[tests/regression/assertion/Makefile]
 		[tests/regression/base/Makefile]
