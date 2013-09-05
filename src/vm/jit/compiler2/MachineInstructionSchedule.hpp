@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_MACHINEINSTRUCTIONSCHEDULE
 
 #include "vm/jit/compiler2/MachineInstruction.hpp"
+#include "toolbox/future.hpp"
 
 #include <map>
 #include <list>
@@ -50,20 +51,24 @@ class BeginInst;
 ///////////////////
 
 // forward declarations
-class ScheduledMachineInstruction;
+//class ScheduledMachineInstruction;
 class MachineBasicBlock;
 class MachineInstructionSchedule;
 
+class MachineBasicBlockImpl;
 
 /**
  * A MachineInstruction which is part of a schedule.
  *
  */
+#if 0
 class ScheduledMachineInstruction {
 public:
 	MachineInstruction* operator*();
 	bool operator<(const ScheduledMachineInstruction&);
 };
+#endif
+typedef std::list<MachineInstruction*>::iterator ScheduledMachineInstruction;
 
 
 /**
@@ -74,12 +79,24 @@ public:
  */
 class MachineBasicBlock {
 public:
+	MachineBasicBlock();
+	/// returns the number of elements
+	std::size_t size() const;
 	/// Appends the given element value to the end of the container.
 	void push_back(MachineInstruction* value);
+	/// inserts value to the beginning
+	void push_front(MachineInstruction* value);
 	/// inserts value before the element pointed to by pos
 	void insert_before(ScheduledMachineInstruction pos, MachineInstruction* value);
 	/// inserts value after the element pointed to by pos
 	void insert_after(ScheduledMachineInstruction pos, MachineInstruction* value);
+	/// returns an iterator to the beginning
+	ScheduledMachineInstruction begin();
+	/// returns an iterator to the end
+	ScheduledMachineInstruction end();
+private:
+	MachineBasicBlock(MachineBasicBlockImpl* pImpl) : pImpl(pImpl) {}
+	shared_ptr<MachineBasicBlockImpl> pImpl;
 };
 
 /**
@@ -90,6 +107,67 @@ class NewMachineInstructionSchedule {
 
 // end in group llir
 /// @}
+
+class MachineBasicBlockImpl {
+private:
+	std::list<MachineInstruction*> list;
+public:
+	/// returns the number of elements
+	std::size_t size() const {
+		return list.size();
+	}
+	/// Appends the given element value to the end of the container.
+	void push_back(MachineInstruction* value) {
+		list.push_back(value);
+	}
+	/// inserts value to the beginning
+	void push_front(MachineInstruction* value) {
+		list.push_front(value);
+	}
+
+	/// inserts value before the element pointed to by pos
+	void insert_before(ScheduledMachineInstruction pos, MachineInstruction* value) {
+		list.insert(pos,value);
+	}
+	/// inserts value after the element pointed to by pos
+	void insert_after(ScheduledMachineInstruction pos, MachineInstruction* value) {
+		list.insert(++pos,value);
+	}
+	/// returns an iterator to the beginning
+	ScheduledMachineInstruction begin() {
+		return list.begin();
+	}
+	/// returns an iterator to the end
+	ScheduledMachineInstruction end() {
+		return list.end();
+	}
+};
+
+// MachineBasicBlock definitions
+
+inline MachineBasicBlock::MachineBasicBlock() : pImpl(new MachineBasicBlockImpl) {}
+
+inline std::size_t MachineBasicBlock::size() const {
+	return pImpl->size();
+}
+inline void MachineBasicBlock::push_back(MachineInstruction* value) {
+	pImpl->push_back(value);
+}
+inline void MachineBasicBlock::push_front(MachineInstruction* value) {
+	pImpl->push_front(value);
+}
+inline void MachineBasicBlock::insert_before(ScheduledMachineInstruction pos, MachineInstruction* value) {
+	pImpl->insert_before(pos,value);
+}
+inline void MachineBasicBlock::insert_after(ScheduledMachineInstruction pos, MachineInstruction* value) {
+	pImpl->insert_after(pos,value);
+}
+ScheduledMachineInstruction MachineBasicBlock::begin() {
+	return pImpl->begin();
+}
+ScheduledMachineInstruction MachineBasicBlock::end() {
+	return pImpl->end();
+}
 
 /**
  * A machine instruction schedule.
