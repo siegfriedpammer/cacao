@@ -54,12 +54,17 @@ class ScheduledMachineInstruction;
 class MachineBasicBlock;
 class MachineInstructionSchedule;
 
+
 /**
  * A MachineInstruction which is part of a schedule.
  *
  */
 class ScheduledMachineInstruction {
+public:
+	MachineInstruction* operator*();
+	bool operator<(const ScheduledMachineInstruction&);
 };
+
 
 /**
  * A basic block of (scheduled) machine instructions.
@@ -68,7 +73,23 @@ class ScheduledMachineInstruction {
  * ScheduledMachineInstructions.
  */
 class MachineBasicBlock {
+public:
+	/// Appends the given element value to the end of the container.
+	void push_back(MachineInstruction* value);
+	/// inserts value before the element pointed to by pos
+	void insert_before(ScheduledMachineInstruction pos, MachineInstruction* value);
+	/// inserts value after the element pointed to by pos
+	void insert_after(ScheduledMachineInstruction pos, MachineInstruction* value);
 };
+
+/**
+ * A machine instruction schedule.
+ */
+class NewMachineInstructionSchedule {
+};
+
+// end in group llir
+/// @}
 
 /**
  * A machine instruction schedule.
@@ -142,9 +163,6 @@ public:
 		}
 	}
 };
-
-// end in group llir
-/// @}
 
 } // end namespace compiler2
 } // end namespace jit
