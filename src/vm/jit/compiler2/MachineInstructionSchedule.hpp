@@ -51,7 +51,7 @@ class BeginInst;
 ///////////////////
 
 // forward declarations
-//class ScheduledMachineInstruction;
+class ScheduledMachineInstruction;
 class MachineBasicBlock;
 class MachineInstructionSchedule;
 
@@ -61,14 +61,40 @@ class MachineBasicBlockImpl;
  * A MachineInstruction which is part of a schedule.
  *
  */
-#if 0
-class ScheduledMachineInstruction {
+class ScheduledMachineInstruction : public std::iterator<std::bidirectional_iterator_tag,
+															MachineInstruction*> {
+private:
+	typedef std::list<MachineInstruction*>::iterator intern_iterator;
 public:
-	MachineInstruction* operator*();
-	bool operator<(const ScheduledMachineInstruction&);
+	ScheduledMachineInstruction() {}
+	ScheduledMachineInstruction(intern_iterator it) : it(it) {}
+	ScheduledMachineInstruction(const ScheduledMachineInstruction& other) : it(other.it) {}
+	ScheduledMachineInstruction& operator++() {
+		++it;
+		return *this;
+	}
+	ScheduledMachineInstruction operator++(int) {
+		ScheduledMachineInstruction tmp(*this);
+		operator++();
+		return tmp;
+	}
+	ScheduledMachineInstruction& operator--() {
+		--it;
+		return *this;
+	}
+	ScheduledMachineInstruction operator--(int) {
+		ScheduledMachineInstruction tmp(*this);
+		operator--();
+		return tmp;
+	}
+	bool operator==(const ScheduledMachineInstruction& rhs) const { return it == rhs.it; }
+	bool operator!=(const ScheduledMachineInstruction& rhs) const { return it != rhs.it; }
+	MachineInstruction*& operator*() {return *it;}
+
+private:
+	std::list<MachineInstruction*>::iterator it;
+	friend class MachineBasicBlockImpl;
 };
-#endif
-typedef std::list<MachineInstruction*>::iterator ScheduledMachineInstruction;
 
 
 /**
@@ -127,11 +153,11 @@ public:
 
 	/// inserts value before the element pointed to by pos
 	void insert_before(ScheduledMachineInstruction pos, MachineInstruction* value) {
-		list.insert(pos,value);
+		list.insert(pos.it,value);
 	}
 	/// inserts value after the element pointed to by pos
 	void insert_after(ScheduledMachineInstruction pos, MachineInstruction* value) {
-		list.insert(++pos,value);
+		list.insert(++pos.it,value);
 	}
 	/// returns an iterator to the beginning
 	ScheduledMachineInstruction begin() {
