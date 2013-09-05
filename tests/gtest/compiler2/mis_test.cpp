@@ -202,6 +202,82 @@ TEST(MachineBasicBlock, test_insert_before2) {
 	check_MBB(MBB,first,5,array);
 }
 
+/**
+ * test the total ordering of MachineInstruction
+ */
+TEST(MachineBasicBlock, test_order) {
+	MachineBasicBlock MBB;
+
+	// store first id
+	MachineInstruction *MI = new TestMachineInstruction();
+	unsigned first = MI->get_id();
+	MBB.push_back(MI);
+	MBB.push_back(new TestMachineInstruction());
+	MBB.push_back(new TestMachineInstruction());
+	MBB.push_back(new TestMachineInstruction());
+
+	EXPECT_EQ(MBB.size(), 4);
+
+	// store ScheduledMachineInstructions
+	ScheduledMachineInstruction smi[4];
+
+	unsigned counter = 0;
+	for (ScheduledMachineInstruction i = MBB.begin(), e = MBB.end();
+			i != e; ++i) {
+		smi[counter++] = i;
+	}
+
+	EXPECT_LT(smi[0],smi[1]);
+	EXPECT_LT(smi[1],smi[2]);
+	EXPECT_LT(smi[2],smi[3]);
+}
+
+/**
+ * test the total ordering of MachineInstruction
+ */
+TEST(MachineBasicBlock, test_order2) {
+	MachineBasicBlock MBB;
+
+	// store first id
+	MachineInstruction *MI = new TestMachineInstruction();
+	unsigned first = MI->get_id();
+	MBB.push_back(MI);
+	MBB.push_back(new TestMachineInstruction());
+	MBB.push_back(new TestMachineInstruction());
+	MBB.push_back(new TestMachineInstruction());
+
+	EXPECT_EQ(MBB.size(), 4);
+
+	// store ScheduledMachineInstructions
+	ScheduledMachineInstruction smi[4];
+
+	unsigned counter = 0;
+	for (ScheduledMachineInstruction i = MBB.begin(), e = MBB.end();
+			i != e; ++i) {
+		smi[counter++] = i;
+	}
+
+	EXPECT_LT(smi[0],smi[1]);
+	EXPECT_LT(smi[1],smi[2]);
+	EXPECT_LT(smi[2],smi[3]);
+
+	// insert after the third element
+	ScheduledMachineInstruction inserted = MBB.begin();
+	std::advance(inserted,2);
+	MBB.insert_after(inserted,new TestMachineInstruction());
+	++inserted;
+
+	EXPECT_EQ((*inserted)->get_id(), first + 4);
+
+	unsigned array[] = {0, 1, 2, 4, 3};
+	check_MBB(MBB,first,5,array);
+
+	EXPECT_LT(smi[0],inserted);
+	EXPECT_LT(smi[1],inserted);
+	EXPECT_LT(smi[2],inserted);
+	EXPECT_GT(smi[3],inserted);
+}
+
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
