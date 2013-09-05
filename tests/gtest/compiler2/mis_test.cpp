@@ -55,7 +55,7 @@ inline void check_MBB(MachineBasicBlock &MBB, unsigned first, unsigned size, uns
 
 } // end anonymous namespace
 
-TEST(MachineInstructionSchedule, test_push_back) {
+TEST(MachineBasicBlock, test_push_back) {
 	MachineBasicBlock MBB;
 
 	// store first id
@@ -70,7 +70,7 @@ TEST(MachineInstructionSchedule, test_push_back) {
 	check_MBB(MBB,first,4,array);
 }
 
-TEST(MachineInstructionSchedule, test_push_front) {
+TEST(MachineBasicBlock, test_push_front) {
 	MachineBasicBlock MBB;
 
 	// store first id
@@ -85,7 +85,7 @@ TEST(MachineInstructionSchedule, test_push_front) {
 	check_MBB(MBB,first,4,array);
 }
 
-TEST(MachineInstructionSchedule, test_insert_after) {
+TEST(MachineBasicBlock, test_insert_after) {
 	MachineBasicBlock MBB;
 
 	// store first id
@@ -114,7 +114,7 @@ TEST(MachineInstructionSchedule, test_insert_after) {
  * to a newly inserted element that was inserted after the
  * current one
  */
-TEST(MachineInstructionSchedule, test_insert_after2) {
+TEST(MachineBasicBlock, test_insert_after2) {
 	MachineBasicBlock MBB;
 
 	// store first id
@@ -144,7 +144,7 @@ TEST(MachineInstructionSchedule, test_insert_after2) {
 	check_MBB(MBB,first,5,array);
 }
 
-TEST(MachineInstructionSchedule, test_insert_before) {
+TEST(MachineBasicBlock, test_insert_before) {
 	MachineBasicBlock MBB;
 
 	// store first id
@@ -173,7 +173,7 @@ TEST(MachineInstructionSchedule, test_insert_before) {
  * to a newly inserted element that was inserted before the
  * current one
  */
-TEST(MachineInstructionSchedule, test_insert_before2) {
+TEST(MachineBasicBlock, test_insert_before2) {
 	MachineBasicBlock MBB;
 
 	// store first id
