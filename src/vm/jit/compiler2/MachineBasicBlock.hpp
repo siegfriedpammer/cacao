@@ -37,20 +37,57 @@ namespace compiler2 {
 // forward declarations
 class MachineInstruction;
 class MachineBasicBlockImpl;
+class MIIterator;
 
-struct MIEntry {
-	MIEntry(MachineInstruction* inst, std::size_t index) : inst(inst), index(index) {}
-	shared_ptr<MachineInstruction> inst;
-	std::size_t index;
+/**
+ * A basic block of (scheduled) machine instructions.
+ *
+ * A MachineBasicBlock contains an ordered collection of
+ * MachineInstructions. These MachineInstructions can be accessed via
+ * MIIterators. These "smart-iterators" are not only used for access
+ * but also for ordering MachineInstructions.
+ *
+ * Once a MachineInstruction is added, the MachineBasicBlock takes over
+ * the responsability for deleting it.
+ *
+ * @ingroup low-level-ir
+ */
+class MachineBasicBlock {
+public:
+	/// construct an empty MachineBasicBlock
+	MachineBasicBlock();
+	/// returns the number of elements
+	std::size_t size() const;
+	/// Appends the given element value to the end of the container.
+	void push_back(MachineInstruction* value);
+	/// inserts value to the beginning
+	void push_front(MachineInstruction* value);
+	/// inserts value before the element pointed to by pos
+	void insert_before(MIIterator pos, MachineInstruction* value);
+	/// inserts value after the element pointed to by pos
+	void insert_after(MIIterator pos, MachineInstruction* value);
+	/// returns an iterator to the beginning
+	MIIterator begin();
+	/// returns an iterator to the end
+	MIIterator end();
+private:
+	MachineBasicBlock(MachineBasicBlockImpl* pImpl) : pImpl(pImpl) {}
+	shared_ptr<MachineBasicBlockImpl> pImpl;
 };
 
 /**
  * A MachineInstruction which is part of a schedule.
+ *
  * @ingroup low-level-ir
  */
 class MIIterator : public std::iterator<std::bidirectional_iterator_tag,
 															MachineInstruction*> {
 private:
+	struct MIEntry {
+		MIEntry(MachineInstruction* inst, std::size_t index) : inst(inst), index(index) {}
+		shared_ptr<MachineInstruction> inst;
+		std::size_t index;
+	};
 	typedef std::list<MIEntry>::iterator intern_iterator;
 public:
 	MIIterator() {}
@@ -89,47 +126,14 @@ private:
 };
 
 /**
- * A basic block of (scheduled) machine instructions.
- *
- * A MachineBasicBlock contains an ordered collection of
- * MachineInstructions. These MachineInstructions can be accessed via
- * MIIterators. These "smart-iterators" are not only used for access
- * but also for ordering MachineInstructions.
- *
- * Once a MachineInstruction is added, the MachineBasicBlock takes over
- * the responsability for deleting it.
- *
- * @ingroup low-level-ir
+ * MachineBasicBlock implementation
  */
-class MachineBasicBlock {
-public:
-	/// construct an empty MachineBasicBlock
-	MachineBasicBlock();
-	/// returns the number of elements
-	std::size_t size() const;
-	/// Appends the given element value to the end of the container.
-	void push_back(MachineInstruction* value);
-	/// inserts value to the beginning
-	void push_front(MachineInstruction* value);
-	/// inserts value before the element pointed to by pos
-	void insert_before(MIIterator pos, MachineInstruction* value);
-	/// inserts value after the element pointed to by pos
-	void insert_after(MIIterator pos, MachineInstruction* value);
-	/// returns an iterator to the beginning
-	MIIterator begin();
-	/// returns an iterator to the end
-	MIIterator end();
-private:
-	MachineBasicBlock(MachineBasicBlockImpl* pImpl) : pImpl(pImpl) {}
-	shared_ptr<MachineBasicBlockImpl> pImpl;
-};
-
 class MachineBasicBlockImpl {
 private:
-	std::list<MIEntry> list;
+	std::list<MIIterator::MIEntry> list;
 
 	struct IncrementMIEntry {
-		void operator()(MIEntry& MIE) {
+		void operator()(MIIterator::MIEntry& MIE) {
 			++MIE.index;;
 		}
 	};
@@ -140,17 +144,17 @@ public:
 	}
 	/// Appends the given element value to the end of the container.
 	void push_back(MachineInstruction* value) {
-		list.push_back(MIEntry(value,size()));
+		list.push_back(MIIterator::MIEntry(value,size()));
 	}
 	/// inserts value to the beginning
 	void push_front(MachineInstruction* value) {
 		std::for_each(list.begin(),list.end(),IncrementMIEntry());
-		list.push_front(MIEntry(value,0));
+		list.push_front(MIIterator::MIEntry(value,0));
 	}
 
 	/// inserts value before the element pointed to by pos
 	void insert_before(MIIterator pos, MachineInstruction* value) {
-		list.insert(pos.it,MIEntry(value,pos.it->index));
+		list.insert(pos.it,MIIterator::MIEntry(value,pos.it->index));
 		std::for_each(pos.it,list.end(),IncrementMIEntry());
 	}
 	/// inserts value after the element pointed to by pos
