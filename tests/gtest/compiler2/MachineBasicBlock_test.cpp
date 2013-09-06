@@ -23,7 +23,8 @@
 */
 
 #include "gtest/gtest.h"
-#include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
+#include "vm/jit/compiler2/MachineBasicBlock.hpp"
+#include "vm/jit/compiler2/MachineInstruction.hpp"
 
 #include <queue>
 
