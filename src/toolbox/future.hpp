@@ -26,6 +26,7 @@
 #ifndef FUTURE_HPP_
 #define FUTURE_HPP_ 1
 
+#include "config.h"
 
 // get shared_ptr
 #if HAVE_STD_TR1_SHARED_PTR
