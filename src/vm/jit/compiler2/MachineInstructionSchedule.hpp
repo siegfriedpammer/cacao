@@ -59,7 +59,7 @@ class MachineBasicBlockImpl;
 
 struct MIEntry {
 	MIEntry(MachineInstruction* inst, std::size_t index) : inst(inst), index(index) {}
-	MachineInstruction* inst;
+	shared_ptr<MachineInstruction> inst;
 	std::size_t index;
 };
 
@@ -97,10 +97,10 @@ public:
 	bool operator!=(const MIIterator& rhs) const { return it != rhs.it; }
 	bool operator<( const MIIterator& rhs) const { return it->index < rhs.it->index; }
 	bool operator>( const MIIterator& rhs) const { return rhs < *this; }
-	MachineInstruction*& operator*() { return it->inst; }
-	MachineInstruction*  operator*() const { return it->inst; }
-	MachineInstruction*& operator->() { return it->inst; }
-	MachineInstruction*  operator->() const { return it->inst; }
+	MachineInstruction* operator*()        { return it->inst.get(); }
+	MachineInstruction* operator*()  const { return it->inst.get(); }
+	MachineInstruction* operator->()       { return it->inst.get(); }
+	MachineInstruction* operator->() const { return it->inst.get(); }
 
 private:
 	intern_iterator it;
@@ -111,10 +111,16 @@ private:
  * A basic block of (scheduled) machine instructions.
  *
  * A MachineBasicBlock contains an ordered collection of
- * MIIterators.
+ * MachineInstructions. These MachineInstructions can be accessed via
+ * MIIterators. These "smart-iterators" are not only used for access
+ * but also for ordering MachineInstructions.
+ *
+ * Once a MachineInstruction is added, the MachineBasicBlock takes over
+ * the responsability for deleting it.
  */
 class MachineBasicBlock {
 public:
+	/// construct an empty MachineBasicBlock
 	MachineBasicBlock();
 	/// returns the number of elements
 	std::size_t size() const;
