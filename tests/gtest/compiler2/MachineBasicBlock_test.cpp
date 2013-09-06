@@ -1,4 +1,4 @@
-/* tests/gtest/compiler2/mis_test.cpp - MachineInstructionSchedule tests
+/* tests/gtest/compiler2/MachineBasicBlock_test.cpp - MachineBasicBlock tests
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -49,7 +49,7 @@ inline void check_MBB(MachineBasicBlock &MBB, unsigned first, unsigned size, uns
 	EXPECT_EQ(MBB.size(), size);
 
 	unsigned counter = 0;
-	for (ScheduledMachineInstruction i = MBB.begin(), e = MBB.end();
+	for (MIIterator i = MBB.begin(), e = MBB.end();
 			i != e; ++i) {
 		EXPECT_EQ((*i)->get_id(),first + array[counter++]);
 	}
@@ -102,7 +102,7 @@ TEST(MachineBasicBlock, test_insert_after) {
 
 	// insert after the third element
 	{
-		ScheduledMachineInstruction i = MBB.begin();
+		MIIterator i = MBB.begin();
 		std::advance(i,2);
 		MBB.insert_after(i,new TestMachineInstruction());
 	}
@@ -112,7 +112,7 @@ TEST(MachineBasicBlock, test_insert_after) {
 }
 
 /**
- * test if the ScheduledMachineInstruction corretly iterates
+ * test if the MIIterator corretly iterates
  * to a newly inserted element that was inserted after the
  * current one
  */
@@ -130,7 +130,7 @@ TEST(MachineBasicBlock, test_insert_after2) {
 	EXPECT_EQ(MBB.size(), 4);
 
 	{
-		ScheduledMachineInstruction i = MBB.begin();
+		MIIterator i = MBB.begin();
 		EXPECT_EQ((*i++)->get_id(),first + 0);
 		EXPECT_EQ((*i++)->get_id(),first + 1);
 		EXPECT_EQ((*i  )->get_id(),first + 2);
@@ -161,7 +161,7 @@ TEST(MachineBasicBlock, test_insert_before) {
 
 	// insert before the third element
 	{
-		ScheduledMachineInstruction i = MBB.begin();
+		MIIterator i = MBB.begin();
 		std::advance(i,2);
 		MBB.insert_before(i,new TestMachineInstruction());
 	}
@@ -171,7 +171,7 @@ TEST(MachineBasicBlock, test_insert_before) {
 }
 
 /**
- * test if the ScheduledMachineInstruction does not iterater
+ * test if the MIIterator does not iterater
  * to a newly inserted element that was inserted before the
  * current one
  */
@@ -189,7 +189,7 @@ TEST(MachineBasicBlock, test_insert_before2) {
 	EXPECT_EQ(MBB.size(), 4);
 
 	{
-		ScheduledMachineInstruction i = MBB.begin();
+		MIIterator i = MBB.begin();
 		EXPECT_EQ((*i++)->get_id(),first + 0);
 		EXPECT_EQ((*i++)->get_id(),first + 1);
 		EXPECT_EQ((*i  )->get_id(),first + 2);
@@ -220,11 +220,11 @@ TEST(MachineBasicBlock, test_order) {
 
 	EXPECT_EQ(MBB.size(), 4);
 
-	// store ScheduledMachineInstructions
-	ScheduledMachineInstruction smi[4];
+	// store MIIterators
+	MIIterator smi[4];
 
 	unsigned counter = 0;
-	for (ScheduledMachineInstruction i = MBB.begin(), e = MBB.end();
+	for (MIIterator i = MBB.begin(), e = MBB.end();
 			i != e; ++i) {
 		smi[counter++] = i;
 	}
@@ -250,11 +250,11 @@ TEST(MachineBasicBlock, test_order2) {
 
 	EXPECT_EQ(MBB.size(), 4);
 
-	// store ScheduledMachineInstructions
-	ScheduledMachineInstruction smi[4];
+	// store MIIterators
+	MIIterator smi[4];
 
 	unsigned counter = 0;
-	for (ScheduledMachineInstruction i = MBB.begin(), e = MBB.end();
+	for (MIIterator i = MBB.begin(), e = MBB.end();
 			i != e; ++i) {
 		smi[counter++] = i;
 	}
@@ -264,7 +264,7 @@ TEST(MachineBasicBlock, test_order2) {
 	EXPECT_LT(smi[2],smi[3]);
 
 	// insert after the third element
-	ScheduledMachineInstruction inserted = MBB.begin();
+	MIIterator inserted = MBB.begin();
 	std::advance(inserted,2);
 	MBB.insert_after(inserted,new TestMachineInstruction());
 	++inserted;
@@ -296,11 +296,11 @@ TEST(MachineBasicBlock, test_priority_queue) {
 
 	EXPECT_EQ(MBB.size(), 4);
 
-	std::priority_queue<ScheduledMachineInstruction,
-		std::vector<ScheduledMachineInstruction>,
-		std::greater<ScheduledMachineInstruction> > q;
+	std::priority_queue<MIIterator,
+		std::vector<MIIterator>,
+		std::greater<MIIterator> > q;
 
-	for (ScheduledMachineInstruction i = MBB.begin(), e = MBB.end();
+	for (MIIterator i = MBB.begin(), e = MBB.end();
 			i != e; ++i) {
 		q.push(i);
 	}
@@ -329,11 +329,11 @@ TEST(MachineBasicBlock, test_priority_queue1) {
 
 	EXPECT_EQ(MBB.size(), 4);
 
-	std::priority_queue<ScheduledMachineInstruction,
-		std::vector<ScheduledMachineInstruction>,
-		std::greater<ScheduledMachineInstruction> > q;
+	std::priority_queue<MIIterator,
+		std::vector<MIIterator>,
+		std::greater<MIIterator> > q;
 
-	for (ScheduledMachineInstruction i = MBB.begin(), e = MBB.end();
+	for (MIIterator i = MBB.begin(), e = MBB.end();
 			i != e; ++i) {
 		q.push(i);
 	}
@@ -343,7 +343,7 @@ TEST(MachineBasicBlock, test_priority_queue1) {
 	EXPECT_EQ(q.top()->get_id(), first + 2); q.pop();
 	// insert after the second element and add to queue
 	{
-		ScheduledMachineInstruction i = ++MBB.begin();
+		MIIterator i = ++MBB.begin();
 		MBB.insert_after(i,new TestMachineInstruction());
 		++i;
 		EXPECT_EQ(i->get_id(), first + 4);
