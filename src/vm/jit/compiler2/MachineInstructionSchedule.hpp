@@ -51,7 +51,7 @@ class BeginInst;
 ///////////////////
 
 // forward declarations
-class ScheduledMachineInstruction;
+class MIIterator;
 class MachineBasicBlock;
 class MachineInstructionSchedule;
 
@@ -67,36 +67,36 @@ struct MIEntry {
  * A MachineInstruction which is part of a schedule.
  *
  */
-class ScheduledMachineInstruction : public std::iterator<std::bidirectional_iterator_tag,
+class MIIterator : public std::iterator<std::bidirectional_iterator_tag,
 															MachineInstruction*> {
 private:
 	typedef std::list<MIEntry>::iterator intern_iterator;
 public:
-	ScheduledMachineInstruction() {}
-	ScheduledMachineInstruction(intern_iterator it) : it(it) {}
-	ScheduledMachineInstruction(const ScheduledMachineInstruction& other) : it(other.it) {}
-	ScheduledMachineInstruction& operator++() {
+	MIIterator() {}
+	MIIterator(intern_iterator it) : it(it) {}
+	MIIterator(const MIIterator& other) : it(other.it) {}
+	MIIterator& operator++() {
 		++it;
 		return *this;
 	}
-	ScheduledMachineInstruction operator++(int) {
-		ScheduledMachineInstruction tmp(*this);
+	MIIterator operator++(int) {
+		MIIterator tmp(*this);
 		operator++();
 		return tmp;
 	}
-	ScheduledMachineInstruction& operator--() {
+	MIIterator& operator--() {
 		--it;
 		return *this;
 	}
-	ScheduledMachineInstruction operator--(int) {
-		ScheduledMachineInstruction tmp(*this);
+	MIIterator operator--(int) {
+		MIIterator tmp(*this);
 		operator--();
 		return tmp;
 	}
-	bool operator==(const ScheduledMachineInstruction& rhs) const { return it == rhs.it; }
-	bool operator!=(const ScheduledMachineInstruction& rhs) const { return it != rhs.it; }
-	bool operator<( const ScheduledMachineInstruction& rhs) const { return it->index < rhs.it->index; }
-	bool operator>( const ScheduledMachineInstruction& rhs) const { return rhs < *this; }
+	bool operator==(const MIIterator& rhs) const { return it == rhs.it; }
+	bool operator!=(const MIIterator& rhs) const { return it != rhs.it; }
+	bool operator<( const MIIterator& rhs) const { return it->index < rhs.it->index; }
+	bool operator>( const MIIterator& rhs) const { return rhs < *this; }
 	MachineInstruction*& operator*() { return it->inst; }
 	MachineInstruction*  operator*() const { return it->inst; }
 	MachineInstruction*& operator->() { return it->inst; }
@@ -111,7 +111,7 @@ private:
  * A basic block of (scheduled) machine instructions.
  *
  * A MachineBasicBlock contains an ordered collection of
- * ScheduledMachineInstructions.
+ * MIIterators.
  */
 class MachineBasicBlock {
 public:
@@ -123,13 +123,13 @@ public:
 	/// inserts value to the beginning
 	void push_front(MachineInstruction* value);
 	/// inserts value before the element pointed to by pos
-	void insert_before(ScheduledMachineInstruction pos, MachineInstruction* value);
+	void insert_before(MIIterator pos, MachineInstruction* value);
 	/// inserts value after the element pointed to by pos
-	void insert_after(ScheduledMachineInstruction pos, MachineInstruction* value);
+	void insert_after(MIIterator pos, MachineInstruction* value);
 	/// returns an iterator to the beginning
-	ScheduledMachineInstruction begin();
+	MIIterator begin();
 	/// returns an iterator to the end
-	ScheduledMachineInstruction end();
+	MIIterator end();
 private:
 	MachineBasicBlock(MachineBasicBlockImpl* pImpl) : pImpl(pImpl) {}
 	shared_ptr<MachineBasicBlockImpl> pImpl;
@@ -169,20 +169,20 @@ public:
 	}
 
 	/// inserts value before the element pointed to by pos
-	void insert_before(ScheduledMachineInstruction pos, MachineInstruction* value) {
+	void insert_before(MIIterator pos, MachineInstruction* value) {
 		list.insert(pos.it,MIEntry(value,pos.it->index));
 		std::for_each(pos.it,list.end(),IncrementMIEntry());
 	}
 	/// inserts value after the element pointed to by pos
-	void insert_after(ScheduledMachineInstruction pos, MachineInstruction* value) {
+	void insert_after(MIIterator pos, MachineInstruction* value) {
 		insert_before(++pos,value);
 	}
 	/// returns an iterator to the beginning
-	ScheduledMachineInstruction begin() {
+	MIIterator begin() {
 		return list.begin();
 	}
 	/// returns an iterator to the end
-	ScheduledMachineInstruction end() {
+	MIIterator end() {
 		return list.end();
 	}
 };
@@ -200,16 +200,16 @@ inline void MachineBasicBlock::push_back(MachineInstruction* value) {
 inline void MachineBasicBlock::push_front(MachineInstruction* value) {
 	pImpl->push_front(value);
 }
-inline void MachineBasicBlock::insert_before(ScheduledMachineInstruction pos, MachineInstruction* value) {
+inline void MachineBasicBlock::insert_before(MIIterator pos, MachineInstruction* value) {
 	pImpl->insert_before(pos,value);
 }
-inline void MachineBasicBlock::insert_after(ScheduledMachineInstruction pos, MachineInstruction* value) {
+inline void MachineBasicBlock::insert_after(MIIterator pos, MachineInstruction* value) {
 	pImpl->insert_after(pos,value);
 }
-ScheduledMachineInstruction MachineBasicBlock::begin() {
+inline MIIterator MachineBasicBlock::begin() {
 	return pImpl->begin();
 }
-ScheduledMachineInstruction MachineBasicBlock::end() {
+inline MIIterator MachineBasicBlock::end() {
 	return pImpl->end();
 }
 
