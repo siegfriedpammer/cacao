@@ -42,7 +42,7 @@ check_LIBRARIES = libgtest_main.a
 LDADD=libgtest_main.a
 
 # test cases
-TESTS = sample
+TESTS = sample ordered_list_test
 
 check_PROGRAMS = $(TESTS)
 
