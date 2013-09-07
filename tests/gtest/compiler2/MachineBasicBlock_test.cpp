@@ -306,10 +306,10 @@ TEST(MachineBasicBlock, test_priority_queue) {
 		q.push(i);
 	}
 
-	EXPECT_EQ(q.top()->get_id(), first + 0); q.pop();
-	EXPECT_EQ(q.top()->get_id(), first + 1); q.pop();
-	EXPECT_EQ(q.top()->get_id(), first + 2); q.pop();
-	EXPECT_EQ(q.top()->get_id(), first + 3); q.pop();
+	EXPECT_EQ((*q.top())->get_id(), first + 0); q.pop();
+	EXPECT_EQ((*q.top())->get_id(), first + 1); q.pop();
+	EXPECT_EQ((*q.top())->get_id(), first + 2); q.pop();
+	EXPECT_EQ((*q.top())->get_id(), first + 3); q.pop();
 
 	EXPECT_TRUE(q.empty());
 }
@@ -339,19 +339,19 @@ TEST(MachineBasicBlock, test_priority_queue1) {
 		q.push(i);
 	}
 
-	EXPECT_EQ(q.top()->get_id(), first + 0); q.pop();
-	EXPECT_EQ(q.top()->get_id(), first + 1); q.pop();
-	EXPECT_EQ(q.top()->get_id(), first + 2); q.pop();
+	EXPECT_EQ((*q.top())->get_id(), first + 0); q.pop();
+	EXPECT_EQ((*q.top())->get_id(), first + 1); q.pop();
+	EXPECT_EQ((*q.top())->get_id(), first + 2); q.pop();
 	// insert after the second element and add to queue
 	{
 		MIIterator i = ++MBB.begin();
 		MBB.insert_after(i,new TestMachineInstruction());
 		++i;
-		EXPECT_EQ(i->get_id(), first + 4);
+		EXPECT_EQ((*i)->get_id(), first + 4);
 		q.push(i);
 	}
-	EXPECT_EQ(q.top()->get_id(), first + 4); q.pop();
-	EXPECT_EQ(q.top()->get_id(), first + 3); q.pop();
+	EXPECT_EQ((*q.top())->get_id(), first + 4); q.pop();
+	EXPECT_EQ((*q.top())->get_id(), first + 3); q.pop();
 
 	EXPECT_TRUE(q.empty());
 }

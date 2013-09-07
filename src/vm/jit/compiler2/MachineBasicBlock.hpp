@@ -26,9 +26,8 @@
 #define _JIT_COMPILER2_MACHINEBASICBLOCK
 
 #include "toolbox/future.hpp"
+#include "toolbox/ordered_list.hpp"
 
-#include <algorithm>
-#include <list>
 
 namespace cacao {
 namespace jit {
@@ -36,8 +35,6 @@ namespace compiler2 {
 
 // forward declarations
 class MachineInstruction;
-class MachineBasicBlockImpl;
-class MIIterator;
 
 /**
  * A basic block of (scheduled) machine instructions.
@@ -54,8 +51,9 @@ class MIIterator;
  */
 class MachineBasicBlock {
 public:
+	typedef ordered_list<MachineInstruction*>::iterator iterator;
 	/// construct an empty MachineBasicBlock
-	MachineBasicBlock();
+	MachineBasicBlock() {};
 	/// returns the number of elements
 	std::size_t size() const;
 	/// Appends the given element value to the end of the container.
@@ -63,139 +61,40 @@ public:
 	/// inserts value to the beginning
 	void push_front(MachineInstruction* value);
 	/// inserts value before the element pointed to by pos
-	void insert_before(MIIterator pos, MachineInstruction* value);
+	void insert_before(iterator pos, MachineInstruction* value);
 	/// inserts value after the element pointed to by pos
-	void insert_after(MIIterator pos, MachineInstruction* value);
+	void insert_after(iterator pos, MachineInstruction* value);
 	/// returns an iterator to the beginning
-	MIIterator begin();
+	iterator begin();
 	/// returns an iterator to the end
-	MIIterator end();
+	iterator end();
 private:
-	MachineBasicBlock(MachineBasicBlockImpl* pImpl) : pImpl(pImpl) {}
-	shared_ptr<MachineBasicBlockImpl> pImpl;
+	ordered_list<MachineInstruction*> list;
 };
-
-/**
- * A MachineInstruction which is part of a schedule.
- *
- * @ingroup low-level-ir
- */
-class MIIterator : public std::iterator<std::bidirectional_iterator_tag,
-															MachineInstruction*> {
-private:
-	struct MIEntry {
-		MIEntry(MachineInstruction* inst, std::size_t index) : inst(inst), index(index) {}
-		shared_ptr<MachineInstruction> inst;
-		std::size_t index;
-	};
-	typedef std::list<MIEntry>::iterator intern_iterator;
-public:
-	MIIterator() {}
-	MIIterator(intern_iterator it) : it(it) {}
-	MIIterator(const MIIterator& other) : it(other.it) {}
-	MIIterator& operator++() {
-		++it;
-		return *this;
-	}
-	MIIterator operator++(int) {
-		MIIterator tmp(*this);
-		operator++();
-		return tmp;
-	}
-	MIIterator& operator--() {
-		--it;
-		return *this;
-	}
-	MIIterator operator--(int) {
-		MIIterator tmp(*this);
-		operator--();
-		return tmp;
-	}
-	bool operator==(const MIIterator& rhs) const { return it == rhs.it; }
-	bool operator!=(const MIIterator& rhs) const { return it != rhs.it; }
-	bool operator<( const MIIterator& rhs) const { return it->index < rhs.it->index; }
-	bool operator>( const MIIterator& rhs) const { return rhs < *this; }
-	MachineInstruction* operator*()        { return it->inst.get(); }
-	MachineInstruction* operator*()  const { return it->inst.get(); }
-	MachineInstruction* operator->()       { return it->inst.get(); }
-	MachineInstruction* operator->() const { return it->inst.get(); }
-
-private:
-	intern_iterator it;
-	friend class MachineBasicBlockImpl;
-};
-
-/**
- * MachineBasicBlock implementation
- */
-class MachineBasicBlockImpl {
-private:
-	std::list<MIIterator::MIEntry> list;
-
-	struct IncrementMIEntry {
-		void operator()(MIIterator::MIEntry& MIE) {
-			++MIE.index;;
-		}
-	};
-public:
-	/// returns the number of elements
-	std::size_t size() const {
-		return list.size();
-	}
-	/// Appends the given element value to the end of the container.
-	void push_back(MachineInstruction* value) {
-		list.push_back(MIIterator::MIEntry(value,size()));
-	}
-	/// inserts value to the beginning
-	void push_front(MachineInstruction* value) {
-		std::for_each(list.begin(),list.end(),IncrementMIEntry());
-		list.push_front(MIIterator::MIEntry(value,0));
-	}
-
-	/// inserts value before the element pointed to by pos
-	void insert_before(MIIterator pos, MachineInstruction* value) {
-		list.insert(pos.it,MIIterator::MIEntry(value,pos.it->index));
-		std::for_each(pos.it,list.end(),IncrementMIEntry());
-	}
-	/// inserts value after the element pointed to by pos
-	void insert_after(MIIterator pos, MachineInstruction* value) {
-		insert_before(++pos,value);
-	}
-	/// returns an iterator to the beginning
-	MIIterator begin() {
-		return list.begin();
-	}
-	/// returns an iterator to the end
-	MIIterator end() {
-		return list.end();
-	}
-};
-
-// MachineBasicBlock definitions
-
-inline MachineBasicBlock::MachineBasicBlock() : pImpl(new MachineBasicBlockImpl) {}
 
 inline std::size_t MachineBasicBlock::size() const {
-	return pImpl->size();
+	return list.size();
 }
 inline void MachineBasicBlock::push_back(MachineInstruction* value) {
-	pImpl->push_back(value);
+	list.push_back(value);
 }
 inline void MachineBasicBlock::push_front(MachineInstruction* value) {
-	pImpl->push_front(value);
+	list.push_front(value);
 }
-inline void MachineBasicBlock::insert_before(MIIterator pos, MachineInstruction* value) {
-	pImpl->insert_before(pos,value);
+inline void MachineBasicBlock::insert_before(iterator pos, MachineInstruction* value) {
+	list.insert_before(pos,value);
 }
-inline void MachineBasicBlock::insert_after(MIIterator pos, MachineInstruction* value) {
-	pImpl->insert_after(pos,value);
+inline void MachineBasicBlock::insert_after(iterator pos, MachineInstruction* value) {
+	list.insert_after(pos,value);
 }
-inline MIIterator MachineBasicBlock::begin() {
-	return pImpl->begin();
+inline MachineBasicBlock::iterator MachineBasicBlock::begin() {
+	return list.begin();
 }
-inline MIIterator MachineBasicBlock::end() {
-	return pImpl->end();
+inline MachineBasicBlock::iterator MachineBasicBlock::end() {
+	return list.end();
 }
+
+typedef MachineBasicBlock::iterator MIIterator;
 
 } // end namespace compiler2
 } // end namespace jit
