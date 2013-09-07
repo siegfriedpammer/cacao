@@ -65,12 +65,20 @@ private:
 
 	typedef typename std::list<Entry>::iterator intern_iterator;
 public:
+	typedef T value_type;
+	typedef Allocator allocator_type;
+	typedef typename allocator_type::reference reference;
+	typedef typename allocator_type::const_reference const_reference;
+	typedef typename allocator_type::pointer pointer;
+	typedef typename allocator_type::const_pointer const_pointer;
 	class iterator;
 
 	/// construct an empty MachineBasicBlock
 	ordered_list() {}
 	/// copy constructor
-	ordered_list(const std::list<Entry> &list) : list(list) {}
+	ordered_list(const ordered_list<T,Allocator> &other) : list(other.list) {}
+	/// copy assignment operator
+	ordered_list& operator=(const ordered_list<T,Allocator> &other);
 	/// returns the number of elements
 	std::size_t size() const;
 	/// Appends the given element value to the end of the container.
@@ -126,6 +134,12 @@ public:
 
 };
 
+template <class T, class Allocator>
+inline ordered_list<T,Allocator>&
+ordered_list<T,Allocator>::operator=(const ordered_list<T,Allocator> &other) {
+	list = other.list;
+	return *this;
+}
 /// returns the number of elements
 template <class T, class Allocator>
 inline std::size_t ordered_list<T, Allocator>::size() const {
