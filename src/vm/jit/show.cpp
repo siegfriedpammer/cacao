@@ -580,8 +580,8 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 		if ((stage >= SHOW_CODE) && JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd) &&
 			(!deadcode)) 
 		{
-			codeinfo    *code = code = jd->code;
-			codegendata *cd = cd   = jd->cd;
+			codeinfo    *code = jd->code;
+			codegendata *cd = jd->cd;
 
 			printf("\n");
 			pc         = (void *) (code->mcode + cd->dseglen + bptr->mpc);
