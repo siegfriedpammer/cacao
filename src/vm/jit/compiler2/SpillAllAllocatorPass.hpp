@@ -40,7 +40,6 @@ class MachineInstructionSchedule;
 class MachineInstruction;
 class Backend;
 
-namespace {
 struct MyStartComparator {
 	bool operator()(const LivetimeInterval *lhs, const LivetimeInterval* rhs) {
 		if(lhs->get_start() > rhs->get_start()) {
@@ -49,7 +48,6 @@ struct MyStartComparator {
 		return false;
 	}
 };
-} // end anonymous namespace
 
 /**
  * Spill All Allocator

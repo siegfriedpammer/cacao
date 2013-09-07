@@ -47,7 +47,7 @@ public:
 	MachinePhiInst(unsigned num_operands, Type::TypeID type)
 			: MachineInstruction("MPhi", new VirtualRegister(type),
 			  num_operands) {
-		for(int i = 0; i < num_operands; ++i) {
+		for(unsigned i = 0; i < num_operands; ++i) {
 			operands[i].op = new UnassignedReg(type);
 		}
 	}

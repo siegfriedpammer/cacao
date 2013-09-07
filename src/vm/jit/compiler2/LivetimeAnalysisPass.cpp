@@ -434,9 +434,9 @@ OStream& LivetimeAnalysisPass::print(OStream& OS) const {
 				OS << "  ";
 				OS << setz(4) << pos;
 				// print intervals
-				for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
-						e = lti_map.end(); i != e ; ++i) {
-					const LivetimeInterval *lti = &i->second;
+				for (LivetimeIntervalMapTy::const_iterator ii = lti_map.begin(),
+						e = lti_map.end(); ii != e ; ++ii) {
+					const LivetimeInterval *lti = &ii->second;
 					// print cell entry!
 					if (lti->is_unhandled(pos)) {
 						OS << "       ";

@@ -247,7 +247,7 @@ MachineCode* compile(methodinfo* m)
 /** prolog start jit_compile_intern **/
 /*****************************************************************************/
 
-	codegendata *cd;
+	//codegendata *cd;
 	codeinfo    *code;
 
 	//RT_TIMER_START(checks_timer);
@@ -258,7 +258,7 @@ MachineCode* compile(methodinfo* m)
 	JD.get_jitdata()->ls = NULL;
 #endif
 	code = JD.get_jitdata()->code;
-	cd   = JD.get_jitdata()->cd;
+	//cd   = JD.get_jitdata()->cd;
 
 #if defined(ENABLE_DEBUG_FILTER)
 	show_filters_apply(JD.get_jitdata()->m);

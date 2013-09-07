@@ -990,7 +990,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 	beginToIndex.clear();
 	BB.clear();
 	BB.resize(num_basicblocks, NULL);
-	for(int i = 0; i < num_basicblocks; ++i) {
+	for(std::size_t i = 0; i < num_basicblocks; ++i) {
 		BeginInst *bi  = new BeginInst();
 		BB[i] = bi;
 		beginToIndex.insert(std::make_pair(bi,i));
@@ -1111,7 +1111,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			// we dont need it
 			continue;
 		}
-		s4 bbindex = bb->nr;
+		std::size_t bbindex = (std::size_t)bb->nr;
 		instruction *iptr;
 		LOG("basicblock: " << bbindex << nl);
 
@@ -1151,55 +1151,55 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_D2F:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
-					Type::TypeID type_from;
+					//Type::TypeID type_from;
 					Type::TypeID type_to;
 					switch (iptr->opc) {
 					case ICMD_I2L:
-						type_from = Type::IntTypeID;
+						//type_from = Type::IntTypeID;
 						type_to = Type::LongTypeID;
 						break;
 					case ICMD_I2F:
-						type_from = Type::IntTypeID;
+						//type_from = Type::IntTypeID;
 						type_to = Type::FloatTypeID;
 						break;
 					case ICMD_I2D:
-						type_from = Type::IntTypeID;
+						//type_from = Type::IntTypeID;
 						type_to = Type::DoubleTypeID;
 						break;
 					case ICMD_L2I:
-						type_from = Type::LongTypeID;
+						//type_from = Type::LongTypeID;
 						type_to = Type::IntTypeID;
 						break;
 					case ICMD_L2F:
-						type_from = Type::LongTypeID;
+						//type_from = Type::LongTypeID;
 						type_to = Type::FloatTypeID;
 						break;
 					case ICMD_L2D:
-						type_from = Type::LongTypeID;
+						//type_from = Type::LongTypeID;
 						type_to = Type::DoubleTypeID;
 						break;
 					case ICMD_F2I:
-						type_from = Type::FloatTypeID;
+						//type_from = Type::FloatTypeID;
 						type_to = Type::IntTypeID;
 						break;
 					case ICMD_F2L:
-						type_from = Type::FloatTypeID;
+						//type_from = Type::FloatTypeID;
 						type_to = Type::LongTypeID;
 						break;
 					case ICMD_F2D:
-						type_from = Type::FloatTypeID;
+						//type_from = Type::FloatTypeID;
 						type_to = Type::DoubleTypeID;
 						break;
 					case ICMD_D2I:
-						type_from = Type::DoubleTypeID;
+						//type_from = Type::DoubleTypeID;
 						type_to = Type::IntTypeID;
 						break;
 					case ICMD_D2L:
-						type_from = Type::DoubleTypeID;
+						//type_from = Type::DoubleTypeID;
 						type_to = Type::LongTypeID;
 						break;
 					case ICMD_D2F:
-						type_from = Type::DoubleTypeID;
+						//type_from = Type::DoubleTypeID;
 						type_to = Type::FloatTypeID;
 						break;
 					default: assert(0);
@@ -1803,9 +1803,9 @@ bool SSAConstructionPass::run(JITData &JD) {
 				goto _default;
 			case ICMD_INVOKESTATIC:
 				{
-					methoddesc *md;
+					//methoddesc *md;
 					constant_FMIref   *fmiref;
-					INSTRUCTION_GET_METHODDESC(iptr, md);
+					//INSTRUCTION_GET_METHODDESC(iptr, md);
 					INSTRUCTION_GET_METHODREF(iptr, fmiref);
 
 					// get return type

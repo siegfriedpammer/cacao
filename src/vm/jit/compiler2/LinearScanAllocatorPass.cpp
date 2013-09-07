@@ -287,7 +287,7 @@ inline bool LinearScanAllocatorPass::allocate_blocked_reg(LivetimeInterval *curr
 	unsigned use_pos = i->second;
 	#endif
 	MachineRegister *reg = best_reg;
-	unsigned use_pos = best_next_use_pos;
+	signed use_pos = best_next_use_pos;
 	LivetimeInterval *lti = best_lti;
 
 	assert(lti);
@@ -567,45 +567,45 @@ void LinearScanAllocatorPass::resolve() {
 		unsigned pos = bb_begin;
 		for(int i = 0; i < 2; ++i) {
 			// check for intervals in active that are handled or inactive
-			for (ActiveSetTy::iterator i = active.begin(), e = active.end();
-					i != e ; /* ++i */) {
-				LivetimeInterval *act = *i;
+			for (ActiveSetTy::iterator ii = active.begin(), e = active.end();
+					ii != e ; /* ++ii */) {
+				LivetimeInterval *act = *ii;
 				LOG3("active LTI " << act << nl);
 				if (act->is_handled(pos)) {
 					LOG3("act->hddld " << act << nl);
 					// add to handled
 					//handled.push_back(act);
 					// remove from active
-					i = active.erase(i);
+					ii = active.erase(ii);
 				} else if(act->is_inactive(pos)) {
 					LOG3("act->inact " << act << nl);
 					// add to inactive
 					inactive.push_back(act);
 					// remove from active
-					i = active.erase(i);
+					ii = active.erase(ii);
 				} else {
 					// NOTE: erase returns the next element so we can not increment
 					// in the loop header!
-					++i;
+					++ii;
 				}
 			}
 			// check for intervals in inactive that are handled or active
-			for (InactiveSetTy::iterator i = inactive.begin(), e = inactive.end();
-					i != e ; /* ++i */) {
-				LivetimeInterval *inact = *i;
+			for (InactiveSetTy::iterator ii = inactive.begin(), e = inactive.end();
+					ii != e ; /* ++ii */) {
+				LivetimeInterval *inact = *ii;
 				LOG3("inactive LTI " << inact << nl);
 				if (inact->is_handled(pos)) {
 					LOG3("inact->hndld " << inact << nl);
 					// add to handled
 					//handled.push_back(inact);
 					// remove from inactive
-					i = inactive.erase(i);
+					ii = inactive.erase(ii);
 				} else if(inact->is_active(pos)) {
 					LOG3("inact->act " << inact << nl);
 					// add to active
 					active.push_back(inact);
 					// remove from inactive
-					i = inactive.erase(i);
+					ii = inactive.erase(ii);
 				} else {
 					// NOTE: erase returns the next element so we can not increment
 					// in the loop header!
@@ -663,11 +663,11 @@ void LinearScanAllocatorPass::resolve() {
 			// for each edge pred -> succ
 			BeginInst *succ = i->get();
 			unsigned bb_start;
-			unsigned bb_end;
+			//unsigned bb_end;
 			{
 				MachineInstructionSchedule::MachineInstructionRangeTy succ_range = MIS->get_range(succ);
 				bb_start = succ_range.first * 2;
-				bb_end = succ_range.second * 2;
+				//bb_end = succ_range.second * 2;
 			}
 			LOG2(BoldGreen << "Edge: " << pred << " -> " << succ << reset_color << nl);
 			std::set<LivetimeInterval*> &ltis_succ = active_map_begin[succ];

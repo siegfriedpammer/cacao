@@ -259,7 +259,7 @@ int DFSTraversal<_NodeTy>::dfs(_NodeTy * v)
 	int my_n = ++n;
 	LOG("my_n for " << (long)v << " (" << my_n << ") " << nl);
 	index[v] = my_n;
-	assert(vertex.size() > my_n);
+	assert(vertex.size() > (unsigned)my_n);
 	vertex[my_n] = v;
 	// TODO this can be done better
 	NodeListTy succ_v;

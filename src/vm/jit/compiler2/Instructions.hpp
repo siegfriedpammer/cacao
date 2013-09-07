@@ -120,7 +120,7 @@ public:
 		return -1;
 	}
 	BeginInst* get_predecessor(int index) const {
-		if (index < 0 || index > pred_size()) {
+		if (index < 0 || (unsigned)index > pred_size()) {
 			return NULL;
 		}
 		PredecessorListTy::const_iterator i = pred_list.begin();
