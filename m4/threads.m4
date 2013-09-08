@@ -60,8 +60,8 @@ case "${ENABLE_THREADS}" in
         OS_FLAGS="$OS_FLAGS -D_REENTRANT"
 
         dnl We changed OS_FLAGS, set CFLAGS again.
-        CFLAGS="$OPT_CFLAGS $ARCH_FLAGS $OS_FLAGS $CC_FLAGS"
-        CXXFLAGS="$OPT_CXXFLAGS $ARCH_FLAGS $OS_FLAGS $CXX_FLAGS"
+        dnl CFLAGS="$OPT_CFLAGS $ARCH_FLAGS $OS_FLAGS $CC_FLAGS"
+        dnl CXXFLAGS="$OPT_CXXFLAGS $ARCH_FLAGS $OS_FLAGS $CXX_FLAGS"
 
         dnl tell boehm to support threads as well
         ac_configure_args="$ac_configure_args --enable-boehm-threads=posix"

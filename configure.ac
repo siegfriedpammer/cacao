@@ -35,6 +35,76 @@ AC_CONFIG_HEADERS([config.h])
 
 AC_PREFIX_DEFAULT(/usr/local/cacao)
 
+dnl
+dnl preprocessor/compiler/linker flags and output variable guide
+dnl ============================================================
+dnl
+dnl The behavior of autoconf/automake regarding variables and compiler flags is
+dnl a bit tricky. There are many ways of getting things done but only a few of
+dnl them are desirable. This guide in an indent to make things clearer.
+dnl
+dnl Names and Tools
+dnl ---------------
+dnl Choose the right variable for the right tool:
+dnl  - *CFLAGS: C-compiler flags. Used to turn warnings on or off, to set
+dnl             optimization behavior, etc.
+dnl  - *CXXFLAGS: Same for the C++ compiler.
+dnl  - *CPPFLAGS: Those are preprocessor flags used to set includes (-I),
+dnl               defines (-D), etc.
+dnl  - *LDFLAGS: Linker flags. Most commonly used to set up libraries and
+dnl              library-paths.
+dnl
+dnl There are more less common predefined variables. Consult [1] for more
+dnl details.
+dnl
+dnl User Variables
+dnl --------------
+dnl CFLAGS, CXXFLAGS, CPPFLAGS, LDFLAGS are reserved for the user, aka the
+dnl person building cacao. __NEVER__ set one of these variables in configure.ac,
+dnl Makefile.am nor in m4 macros. Choose their AM_* alternatives instead.
+dnl See [2] for more info.
+dnl
+dnl AM_* shadow variables
+dnl ---------------------
+dnl AM_CFLAGS, AM_CXXFLAGS, AM_CPPFLAGS, AM_LDFLAGS are the right variables to
+dnl place additional flags needed for configuration.
+dnl
+dnl CACAO specific variables
+dnl ------------------------
+dnl Beside the standard variables the following CACAO uses the following names
+dnl for specific tasks:
+dnl
+dnl  - CC_FLAGS: This variable is used to set compiler-vendor specific
+dnl              C-compiler flags.
+dnl  - CXX_FLAGS: Same for C++.
+dnl  - ARCH_FLAGS: Flags specific to the architecture. Note that these flags
+dnl                are used for C and C++ compilation.
+dnl  - OS_FLAGS: Operating system flags. Also used for C and C++.
+dnl
+dnl Choose the variable (AM_* or CACAO specific) which is the most appropriate.
+dnl
+dnl Note: These variables are only available during autoconf. You can not use
+dnl them in Makefile.am. Use the AM_* instead.
+dnl
+dnl Variable ordering
+dnl -----------------
+dnl The CACAO specific variables are append to AM_CFLAGS/AM_CXXFLAGS in the
+dnl same order they are described above (i.e. ARCH_FLAGS overwrites CC_FLAGS,
+dnl OS_FLAGS overwrites ARCH_FLAGS).
+dnl
+dnl User variables (CFLAGS, CXXFLAGS, ...) are the most dominant variants.
+dnl They can be used by users to overrule configuration decisions, e.g.
+dnl `make CXXFLAGS="-g -O0" sample.cpp`.
+dnl
+dnl For more information on variable and flag ordering see [3].
+dnl
+dnl --
+dnl
+dnl [1]: http://www.gnu.org/savannah-checkouts/gnu/autoconf/manual/autoconf-2.69/html_node/Preset-Output-Variables.html
+dnl [2]: http://www.gnu.org/software/automake/manual/html_node/User-Variables.html
+dnl [3]: http://www.gnu.org/software/automake/manual/html_node/Flag-Variables-Ordering.html
+dnl
+
 
 dnl Host CPU type.
 case "$host_cpu" in
@@ -217,35 +287,31 @@ AC_ARG_ENABLE([optimizations],
               [disable_optimizations=no])
 AC_MSG_RESULT(${disable_optimizations})
 
-dnl Set optimization and debugging for all architectures and systems.
-dnl NOTE: Setting the CFLAGS/CXXFLAGS only works before calling AC_PROG_CC/AC_PROG_CXX.
-if test x"$CFLAGS" = "x"; then
-    OPT_CFLAGS="-g"
-else
-    OPT_CFLAGS=$CFLAGS
-fi
-if test x"${disable_optimizations}" = "xyes"; then
-    OPT_CFLAGS="$OPT_CFLAGS -O0"
-else
-    OPT_CFLAGS="$OPT_CFLAGS -O2"
-fi
-OPT_CFLAGS="$OPT_CFLAGS -fno-strict-aliasing"
+dnl save initial CFLAGS/CXXFLAGS before AC_PROG_CC/AC_PROC_CXX
+init_cflags="$CFLAGS"
+init_cxxflags="$CXXFLAGS"
 
-if test x"$CXXFLAGS" = "x"; then
-    OPT_CXXFLAGS="-g"
-else
-    OPT_CXXFLAGS=$CXXFLAGS
-fi
 if test x"${disable_optimizations}" = "xyes"; then
-    OPT_CXXFLAGS="$OPT_CXXFLAGS -O0"
+    AM_CFLAGS="$AM_CFLAGS -g -O0"
 else
-    OPT_CXXFLAGS="$OPT_CXXFLAGS -O2"
+    AM_CFLAGS="$AM_CFLAGS -O2"
 fi
-OPT_CXXFLAGS="$OPT_CXXFLAGS -fno-strict-aliasing"
+AM_CFLAGS="$AM_CFLAGS -fno-strict-aliasing"
+
+if test x"${disable_optimizations}" = "xyes"; then
+    AM_CXXFLAGS="$AM_CXXFLAGS -g -O0"
+else
+    AM_CXXFLAGS="$AM_CXXFLAGS -O2"
+fi
+AM_CXXFLAGS="$AM_CXXFLAGS -fno-strict-aliasing"
 
 dnl Check for compiler.
 AC_PROG_CC
 AC_PROG_CXX
+
+dnl discard CFLAGS/CXXFLAGS set by AC_PROG_CC/AC_PROG_CXX
+CFLAGS="$init_cflags"
+CXXFLAGS="$init_cxxflags"
 
 dnl Check compiler vendor.
 AX_COMPILER_VENDOR
@@ -267,15 +333,15 @@ sun )
     CXX_FLAGS="$CXX_FLAGS"
     ;;
 
-* )    
+* )
     AC_MSG_ERROR([$ax_cv_c_compiler_vendor compilers are currently not supported.])
     ;;
 esac
 
 dnl Temporary set the CFLAGS for configure tests (e.g. inline keyword)
 dnl we set it properly at the end of this file.
-CFLAGS="$OPT_CFLAGS $ARCH_FLAGS $OS_FLAGS $CC_FLAGS"
-CXXFLAGS="$OPT_CXXFLAGS $ARCH_FLAGS $OS_FLAGS $CXX_FLAGS"
+dnl CFLAGS="$AM_CFLAGS $ARCH_FLAGS $OS_FLAGS $CC_FLAGS"
+dnl CXXFLAGS="$AM_CXXFLAGS $ARCH_FLAGS $OS_FLAGS $CXX_FLAGS"
 
 dnl set interpreter flags
 AC_SUBST(INTRP_CFLAGS)
@@ -479,8 +545,8 @@ AC_CHECK_ENABLE_GC
 AC_CHECK_ENABLE_DEBUG
 AC_CHECK_ENABLE_WERROR
 if test x"${enable_werror}" == "xyes"; then
-	OPT_CXXFLAGS="$OPT_CXXFLAGS -Werror"
-	OPT_CFLAGS="$OPT_CFLAGS -Werror"
+	AM_CXXFLAGS="$AM_CXXFLAGS -Werror"
+	AM_CFLAGS="$AM_CFLAGS -Werror"
 fi
 AC_CHECK_ENABLE_DUMP
 AC_CHECK_ENABLE_MEMCHECK
@@ -714,12 +780,12 @@ AC_VERSION_DETAIL
 AC_VERSION_CONFIG
 
 dnl Finally pass flags to Makefiles.
-CFLAGS="$OPT_CFLAGS"
-CXXFLAGS="$OPT_CXXFLAGS"
+dnl CFLAGS="$AM_CFLAGS"
+dnl CXXFLAGS="$AM_CXXFLAGS"
 
-AM_CFLAGS="$CC_FLAGS $ARCH_FLAGS $OS_FLAGS"
-AM_CXXFLAGS="$CXX_FLAGS $ARCH_FLAGS $OS_FLAGS"
-AM_CPPFLAGS="$CPPFLAGS"
+AM_CFLAGS="$AM_CFLAGS $CC_FLAGS $ARCH_FLAGS $OS_FLAGS"
+AM_CXXFLAGS="$AM_CXXFLAGS $CXX_FLAGS $ARCH_FLAGS $OS_FLAGS"
+AM_CPPFLAGS="$AM_CPPFLAGS"
 
 AC_SUBST(AM_CFLAGS)
 AC_SUBST(AM_CXXFLAGS)
