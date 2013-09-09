@@ -53,6 +53,9 @@ private:
 		Entry(T value, std::size_t index) : value(value), index(index) {}
 		T value;
 		std::size_t index;
+		bool operator==(const Entry& other) const {
+			return index == other.index && value == other.value;
+		}
 	};
 	/// Increment function struct
 	struct IncrementEntry {
@@ -79,20 +82,26 @@ public:
 	ordered_list(const ordered_list<T,Allocator> &other) : list(other.list) {}
 	/// copy assignment operator
 	ordered_list& operator=(const ordered_list<T,Allocator> &other);
+	/// checks if the container has no elements.
+	bool empty() const;
 	/// returns the number of elements
 	std::size_t size() const;
+	/// returns the maximum possible number of elements
+	std::size_t max_size() const;
 	/// Appends the given element value to the end of the container.
 	void push_back(const T& value);
 	/// inserts value to the beginning
 	void push_front(const T& value);
 	/// inserts value before the element pointed to by pos
-	void insert_before(iterator pos, const T& value);
-	/// inserts value after the element pointed to by pos
-	void insert_after(iterator pos, const T& value);
+	void insert(iterator pos, const T& value);
 	/// returns an iterator to the beginning
 	iterator begin();
 	/// returns an iterator to the end
 	iterator end();
+	/// removes all elements from the container
+	void clear();
+	/// exchanges the contents of the container with those of other
+	void swap(ordered_list<T,Allocator> &other);
 
 	/// iterator
 	class iterator : public std::iterator<std::bidirectional_iterator_tag,T> {
@@ -132,51 +141,88 @@ public:
 		friend class ordered_list<T,Allocator>;
 	};
 
+	// friends
+	template<class _T,class _Allocator>
+	friend bool operator==(const ordered_list<_T,_Allocator>& lhs,
+						   const ordered_list<_T,_Allocator>& rhs);
+	template<class _T,class _Allocator>
+	friend bool operator==(const typename ordered_list<_T,_Allocator>::Entry& lhs,
+						   const typename ordered_list<_T,_Allocator>::Entry& rhs);
+
 };
 
+/// equality
+template< class T, class Allocator>
+inline bool operator==(const ordered_list<T,Allocator>& lhs,
+                       const ordered_list<T,Allocator>& rhs) {
+	return lhs.list == rhs.list;
+}
+
+/// inequality
+template< class T, class Allocator>
+inline bool operator!=(const ordered_list<T,Allocator>& lhs,
+                       const ordered_list<T,Allocator>& rhs) {
+	return !(lhs == rhs);
+}
+
+// implementations
 template <class T, class Allocator>
 inline ordered_list<T,Allocator>&
 ordered_list<T,Allocator>::operator=(const ordered_list<T,Allocator> &other) {
 	list = other.list;
 	return *this;
 }
-/// returns the number of elements
+
+template <class T, class Allocator>
+inline bool ordered_list<T, Allocator>::empty() const {
+	return list.empty();
+}
+
 template <class T, class Allocator>
 inline std::size_t ordered_list<T, Allocator>::size() const {
 	return list.size();
 }
-/// Appends the given element value to the end of the container.
+
+template <class T, class Allocator>
+inline std::size_t ordered_list<T, Allocator>::max_size() const {
+	return list.max_size();
+}
+
 template <class T, class Allocator>
 inline void ordered_list<T, Allocator>::push_back(const T& value) {
 	list.push_back(Entry(value,size()));
 }
-/// inserts value to the beginning
+
 template <class T, class Allocator>
 inline void ordered_list<T, Allocator>::push_front(const T& value) {
 	std::for_each(list.begin(),list.end(),IncrementEntry());
 	list.push_front(Entry(value,0));
 }
 
-/// inserts value before the element pointed to by pos
 template <class T, class Allocator>
-inline void ordered_list<T, Allocator>::insert_before(typename ordered_list<T, Allocator>::iterator pos, const T& value) {
+inline void ordered_list<T, Allocator>::insert(typename ordered_list<T, Allocator>::iterator pos, const T& value) {
 	list.insert(pos.it,Entry(value,pos.it->index));
 	std::for_each(pos.it,list.end(),IncrementEntry());
 }
-/// inserts value after the element pointed to by pos
-template <class T, class Allocator>
-inline void ordered_list<T, Allocator>::insert_after(typename ordered_list<T, Allocator>::iterator pos, const T& value) {
-	insert_before(++pos,value);
-}
-/// returns an iterator to the beginning
+
 template <class T, class Allocator>
 inline typename ordered_list<T, Allocator>::iterator ordered_list<T, Allocator>::begin() {
 	return list.begin();
 }
-/// returns an iterator to the end
+
 template <class T, class Allocator>
 inline typename ordered_list<T, Allocator>::iterator ordered_list<T, Allocator>::end() {
 	return list.end();
+}
+
+template <class T, class Allocator>
+inline void ordered_list<T, Allocator>::clear() {
+	return list.clear();
+}
+
+template <class T, class Allocator>
+inline void ordered_list<T, Allocator>::swap(ordered_list<T,Allocator> &other) {
+	list.swap(other.list);
 }
 
 } // end namespace cacao

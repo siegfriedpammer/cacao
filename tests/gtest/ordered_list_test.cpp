@@ -71,60 +71,7 @@ TEST(ordered_list, test_push_front) {
 	check_list(list,4,array);
 }
 
-TEST(ordered_list, test_insert_after) {
-	ordered_list<int> list;
-
-	list.push_back(0);
-	list.push_back(1);
-	list.push_back(2);
-	list.push_back(3);
-
-	EXPECT_EQ(list.size(), 4);
-
-	// insert after the third element
-	{
-		ordered_list<int>::iterator i = list.begin();
-		std::advance(i,2);
-		list.insert_after(i,4);
-	}
-
-	unsigned array[] = {0, 1, 2, 4, 3};
-	check_list(list,5,array);
-}
-
-/**
- * test if the ordered_list<int>::iterator corretly iterates
- * to a newly inserted element that was inserted after the
- * current one
- */
-TEST(ordered_list, test_insert_after2) {
-	ordered_list<int> list;
-
-	list.push_back(0);
-	list.push_back(1);
-	list.push_back(2);
-	list.push_back(3);
-
-	EXPECT_EQ(list.size(), 4);
-
-	{
-		ordered_list<int>::iterator i = list.begin();
-		EXPECT_EQ(*i++,0);
-		EXPECT_EQ(*i++,1);
-		EXPECT_EQ((*i  ),2);
-		list.insert_after(i,4);
-		EXPECT_EQ(*i++,2);
-		EXPECT_EQ(*i++,4);
-		EXPECT_EQ(*i++,3);
-
-		EXPECT_EQ(i,list.end());
-	}
-
-	unsigned array[] = {0, 1, 2, 4, 3};
-	check_list(list,5,array);
-}
-
-TEST(ordered_list, test_insert_before) {
+TEST(ordered_list, test_insert) {
 	ordered_list<int> list;
 
 	list.push_back(0);
@@ -138,7 +85,7 @@ TEST(ordered_list, test_insert_before) {
 	{
 		ordered_list<int>::iterator i = list.begin();
 		std::advance(i,2);
-		list.insert_before(i,4);
+		list.insert(i,4);
 	}
 
 	unsigned array[] = {0, 1, 4, 2, 3};
@@ -150,7 +97,7 @@ TEST(ordered_list, test_insert_before) {
  * to a newly inserted element that was inserted before the
  * current one
  */
-TEST(ordered_list, test_insert_before2) {
+TEST(ordered_list, test_insert2) {
 	ordered_list<int> list;
 
 	list.push_back(0);
@@ -165,7 +112,7 @@ TEST(ordered_list, test_insert_before2) {
 		EXPECT_EQ(*i++,0);
 		EXPECT_EQ(*i++,1);
 		EXPECT_EQ((*i  ),2);
-		list.insert_before(i,4);
+		list.insert(i,4);
 		EXPECT_EQ(*i++,2);
 		EXPECT_EQ(*i++,3);
 
@@ -231,9 +178,9 @@ TEST(ordered_list, test_order2) {
 
 	// insert after the third element
 	ordered_list<int>::iterator inserted = list.begin();
-	std::advance(inserted,2);
-	list.insert_after(inserted,4);
-	++inserted;
+	std::advance(inserted,3);
+	list.insert(inserted,4);
+	--inserted;
 
 	EXPECT_EQ((*inserted), 4);
 
@@ -303,9 +250,10 @@ TEST(ordered_list, test_priority_queue1) {
 	EXPECT_EQ(*q.top(), 2); q.pop();
 	// insert after the second element and add to queue
 	{
-		ordered_list<int>::iterator i = ++list.begin();
-		list.insert_after(i,4);
-		++i;
+		ordered_list<int>::iterator i = list.begin();
+		std::advance(i,3);
+		list.insert(i,4);
+		--i;
 		EXPECT_EQ(*i, 4);
 		q.push(i);
 	}
@@ -313,6 +261,72 @@ TEST(ordered_list, test_priority_queue1) {
 	EXPECT_EQ(*q.top(), 3); q.pop();
 
 	EXPECT_TRUE(q.empty());
+}
+
+TEST(ordered_list, test_copy_ctor) {
+	ordered_list<int> list;
+
+	list.push_back(0);
+	list.push_back(1);
+	list.push_back(2);
+	list.push_back(3);
+
+	ordered_list<int> list2(list);
+
+	EXPECT_TRUE(list == list2);
+	list.clear();
+	EXPECT_TRUE(list.empty());
+	EXPECT_TRUE(list != list2);
+
+	unsigned array[] = {0, 1, 2, 3};
+	check_list(list2,4,array);
+}
+
+TEST(ordered_list, test_copy_assigment) {
+	ordered_list<int> list;
+
+	list.push_back(0);
+	list.push_back(1);
+	list.push_back(2);
+	list.push_back(3);
+
+	ordered_list<int> list2;
+	list2 = list;
+
+	EXPECT_TRUE(list == list2);
+	list.clear();
+	EXPECT_TRUE(list.empty());
+	EXPECT_TRUE(list != list2);
+
+	unsigned array[] = {0, 1, 2, 3};
+	check_list(list2,4,array);
+}
+
+TEST(ordered_list, test_swap) {
+	ordered_list<int> list1;
+
+	list1.push_back(0);
+	list1.push_back(1);
+	list1.push_back(2);
+	list1.push_back(3);
+
+	ordered_list<int> list2;
+
+	list2.push_front(0);
+	list2.push_front(1);
+	list2.push_front(2);
+	list2.push_front(3);
+
+	unsigned array1[] = {0, 1, 2, 3};
+	unsigned array2[] = {3, 2, 1, 0};
+
+	check_list(list1,4,array1);
+	check_list(list2,4,array2);
+
+	swap(list1,list2);
+
+	check_list(list1,4,array2);
+	check_list(list2,4,array1);
 }
 
 /*
