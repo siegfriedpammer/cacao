@@ -31,6 +31,10 @@
 
 namespace cacao {
 
+// forward declaration
+template<class T, class Allocator, class intern_iterator>
+class ordered_iterator;
+
 /**
  * An ordered_list is an indexed sequence container. It shares most
  * characteristics with a std::list with the difference that its iterators are
@@ -74,7 +78,10 @@ public:
 	typedef typename allocator_type::const_reference const_reference;
 	typedef typename allocator_type::pointer pointer;
 	typedef typename allocator_type::const_pointer const_pointer;
-	class iterator;
+	typedef ordered_iterator<T, Allocator,
+		typename std::list<Entry>::iterator> iterator;
+	typedef ordered_iterator<const T, Allocator,
+		typename std::list<Entry>::const_iterator> const_iterator;
 
 	/// construct an empty MachineBasicBlock
 	ordered_list() {}
@@ -98,48 +105,14 @@ public:
 	iterator begin();
 	/// returns an iterator to the end
 	iterator end();
+	/// returns a const_iterator to the beginning
+	const_iterator begin() const;
+	/// returns a const_iterator to the end
+	const_iterator end() const;
 	/// removes all elements from the container
 	void clear();
 	/// exchanges the contents of the container with those of other
 	void swap(ordered_list<T,Allocator> &other);
-
-	/// iterator
-	class iterator : public std::iterator<std::bidirectional_iterator_tag,T> {
-	public:
-		iterator() {}
-		iterator(intern_iterator it) : it(it) {}
-		iterator(const iterator& other) : it(other.it) {}
-		iterator& operator++() {
-			++it;
-			return *this;
-		}
-		iterator operator++(int) {
-			iterator tmp(*this);
-			operator++();
-			return tmp;
-		}
-		iterator& operator--() {
-			--it;
-			return *this;
-		}
-		iterator operator--(int) {
-			iterator tmp(*this);
-			operator--();
-			return tmp;
-		}
-		bool operator==(const iterator& rhs) const { return it == rhs.it; }
-		bool operator!=(const iterator& rhs) const { return it != rhs.it; }
-		bool operator<( const iterator& rhs) const { return it->index < rhs.it->index; }
-		bool operator>( const iterator& rhs) const { return rhs < *this; }
-		T& operator*()        { return it->value; }
-		const T& operator*()  const { return it->value; }
-		T* operator->()       { return it->value; }
-		const T* operator->() const { return it->value; }
-
-	private:
-		intern_iterator it;
-		friend class ordered_list<T,Allocator>;
-	};
 
 	// friends
 	template<class _T,class _Allocator>
@@ -165,7 +138,58 @@ inline bool operator!=(const ordered_list<T,Allocator>& lhs,
 	return !(lhs == rhs);
 }
 
-// implementations
+
+/**
+ * ordered iterator
+ */
+template<class T, class Allocator, class intern_iterator>
+class ordered_iterator : public std::iterator<std::bidirectional_iterator_tag,T> {
+public:
+	ordered_iterator() {}
+	ordered_iterator(intern_iterator it) : it(it) {}
+	ordered_iterator(const ordered_iterator& other) : it(other.it) {}
+	ordered_iterator& operator++() {
+		++it;
+		return *this;
+	}
+	ordered_iterator operator++(int) {
+		ordered_iterator tmp(*this);
+		operator++();
+		return tmp;
+	}
+	ordered_iterator& operator--() {
+		--it;
+		return *this;
+	}
+	ordered_iterator operator--(int) {
+		ordered_iterator tmp(*this);
+		operator--();
+		return tmp;
+	}
+	bool operator==(const ordered_iterator& rhs) const { return it == rhs.it; }
+	bool operator!=(const ordered_iterator& rhs) const { return it != rhs.it; }
+	bool operator<( const ordered_iterator& rhs) const { return it->index < rhs.it->index; }
+	bool operator>( const ordered_iterator& rhs) const { return rhs < *this; }
+	typename std::iterator<std::bidirectional_iterator_tag,T>::reference
+		operator*() { return it->value; }
+	const typename std::iterator<std::bidirectional_iterator_tag,T>::reference
+		operator*() const { return it->value; }
+	T* operator->()       { return it->value; }
+	const T* operator->() const { return it->value; }
+	#if 0
+	/// conversion to const_iterator
+	operator ordered_iterator<T,Allocator, intern_list,
+			typename intern_list::const_iterator> () {
+		return ordered_iterator<T,Allocator,intern_list,
+				typename intern_list::const_iterator>(it);
+	}
+	#endif
+private:
+	intern_iterator it;
+	friend class ordered_list<T,Allocator>;
+};
+
+// implementation
 template <class T, class Allocator>
 inline ordered_list<T,Allocator>&
 ordered_list<T,Allocator>::operator=(const ordered_list<T,Allocator> &other) {
@@ -211,7 +235,19 @@ inline typename ordered_list<T, Allocator>::iterator ordered_list<T, Allocator>:
 }
 
 template <class T, class Allocator>
+inline typename ordered_list<T, Allocator>::const_iterator
+ordered_list<T, Allocator>::begin() const {
+	return list.begin();
+}
+
+template <class T, class Allocator>
 inline typename ordered_list<T, Allocator>::iterator ordered_list<T, Allocator>::end() {
+	return list.end();
+}
+
+template <class T, class Allocator>
+inline typename ordered_list<T, Allocator>::const_iterator
+ordered_list<T, Allocator>::end() const {
 	return list.end();
 }
 
