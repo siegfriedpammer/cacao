@@ -51,11 +51,11 @@ dnl             optimization behavior, etc.
 dnl  - *CXXFLAGS: Same for the C++ compiler.
 dnl  - *CPPFLAGS: Those are preprocessor flags used to set includes (-I),
 dnl               defines (-D), etc.
-dnl  - *LDFLAGS: Linker flags. Most commonly used to set up libraries and
-dnl              library-paths.
+dnl  - *LDFLAGS: Linker flags. Most commonly used to set up linker paths.
+dnl              (Not for adding libraries! There are other variables like LIBS
+dnl              for that purpose.)
 dnl
-dnl There are more less common predefined variables. Consult [1] for more
-dnl details.
+dnl There are more predefined variables. Consult [1] for more details.
 dnl
 dnl User Variables
 dnl --------------
