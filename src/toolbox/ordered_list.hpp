@@ -32,8 +32,10 @@
 namespace cacao {
 
 // forward declaration
-template<class T, class Allocator, class intern_iterator>
-class ordered_iterator;
+template<class T, class Allocator, class intern_list>
+class _ordered_iterator;
+template<class T, class Allocator, class intern_list>
+class _ordered_const_iterator;
 
 /**
  * An ordered_list is an indexed sequence container. It shares most
@@ -78,10 +80,10 @@ public:
 	typedef typename allocator_type::const_reference const_reference;
 	typedef typename allocator_type::pointer pointer;
 	typedef typename allocator_type::const_pointer const_pointer;
-	typedef ordered_iterator<T, Allocator,
-		typename std::list<Entry>::iterator> iterator;
-	typedef ordered_iterator<const T, Allocator,
-		typename std::list<Entry>::const_iterator> const_iterator;
+	typedef _ordered_iterator<T, Allocator,
+		typename std::list<Entry> > iterator;
+	typedef _ordered_const_iterator<T, Allocator,
+		typename std::list<Entry> > const_iterator;
 
 	/// construct an empty MachineBasicBlock
 	ordered_list() {}
@@ -142,50 +144,92 @@ inline bool operator!=(const ordered_list<T,Allocator>& lhs,
 /**
  * ordered iterator
  */
-template<class T, class Allocator, class intern_iterator>
-class ordered_iterator : public std::iterator<std::bidirectional_iterator_tag,T> {
+template<class T, class Allocator, class intern_list>
+class _ordered_iterator : public std::iterator<std::bidirectional_iterator_tag,T> {
 public:
-	ordered_iterator() {}
-	ordered_iterator(intern_iterator it) : it(it) {}
-	ordered_iterator(const ordered_iterator& other) : it(other.it) {}
-	ordered_iterator& operator++() {
+	typedef typename std::iterator<std::bidirectional_iterator_tag,T>
+		::reference reference;
+	typedef typename std::iterator<std::bidirectional_iterator_tag,T>
+		::pointer pointer;
+	_ordered_iterator() {}
+	_ordered_iterator(typename intern_list::iterator it) : it(it) {}
+	_ordered_iterator(const _ordered_iterator& other) : it(other.it) {}
+	_ordered_iterator& operator++() {
 		++it;
 		return *this;
 	}
-	ordered_iterator operator++(int) {
-		ordered_iterator tmp(*this);
+	_ordered_iterator operator++(int) {
+		_ordered_iterator tmp(*this);
 		operator++();
 		return tmp;
 	}
-	ordered_iterator& operator--() {
+	_ordered_iterator& operator--() {
 		--it;
 		return *this;
 	}
-	ordered_iterator operator--(int) {
-		ordered_iterator tmp(*this);
+	_ordered_iterator operator--(int) {
+		_ordered_iterator tmp(*this);
 		operator--();
 		return tmp;
 	}
-	bool operator==(const ordered_iterator& rhs) const { return it == rhs.it; }
-	bool operator!=(const ordered_iterator& rhs) const { return it != rhs.it; }
-	bool operator<( const ordered_iterator& rhs) const { return it->index < rhs.it->index; }
-	bool operator>( const ordered_iterator& rhs) const { return rhs < *this; }
-	typename std::iterator<std::bidirectional_iterator_tag,T>::reference
-		operator*() { return it->value; }
-	const typename std::iterator<std::bidirectional_iterator_tag,T>::reference
-		operator*() const { return it->value; }
-	T* operator->()       { return it->value; }
-	const T* operator->() const { return it->value; }
-	#if 0
-	/// conversion to const_iterator
-	operator ordered_iterator<T,Allocator, intern_list,
-			typename intern_list::const_iterator> () {
-		return ordered_iterator<T,Allocator,intern_list,
-				typename intern_list::const_iterator>(it);
-	}
-	#endif
+	bool operator==(const _ordered_iterator& rhs) const { return it == rhs.it; }
+	bool operator!=(const _ordered_iterator& rhs) const { return it != rhs.it; }
+	bool operator<( const _ordered_iterator& rhs) const { return it->index < rhs.it->index; }
+	bool operator>( const _ordered_iterator& rhs) const { return rhs < *this; }
+	reference       operator*()        { return it->value; }
+	const reference operator*()  const { return it->value; }
+	pointer         operator->()       { return it->value; }
+	const pointer   operator->() const { return it->value; }
 private:
-	intern_iterator it;
+	typename intern_list::iterator it;
+	friend class ordered_list<T,Allocator>;
+	friend class _ordered_const_iterator<T,Allocator,intern_list>;
+};
+
+/**
+ * ordered const_iterator
+ */
+template<class T, class Allocator, class intern_list>
+class _ordered_const_iterator : public std::iterator<std::bidirectional_iterator_tag,const T> {
+public:
+	typedef typename std::iterator<std::bidirectional_iterator_tag,const T>
+		::reference reference;
+	typedef typename std::iterator<std::bidirectional_iterator_tag,const T>
+		::pointer pointer;
+	_ordered_const_iterator() {}
+	_ordered_const_iterator(typename intern_list::const_iterator it) : it(it) {}
+	_ordered_const_iterator(const _ordered_const_iterator& other) : it(other.it) {}
+	// convert from non const version
+	_ordered_const_iterator(const _ordered_iterator<T,Allocator,
+			intern_list>& other) : it(other.it) {}
+	_ordered_const_iterator& operator++() {
+		++it;
+		return *this;
+	}
+	_ordered_const_iterator operator++(int) {
+		_ordered_const_iterator tmp(*this);
+		operator++();
+		return tmp;
+	}
+	_ordered_const_iterator& operator--() {
+		--it;
+		return *this;
+	}
+	_ordered_const_iterator operator--(int) {
+		_ordered_const_iterator tmp(*this);
+		operator--();
+		return tmp;
+	}
+	bool operator==(const _ordered_const_iterator& rhs) const { return it == rhs.it; }
+	bool operator!=(const _ordered_const_iterator& rhs) const { return it != rhs.it; }
+	bool operator<( const _ordered_const_iterator& rhs) const { return it->index < rhs.it->index; }
+	bool operator>( const _ordered_const_iterator& rhs) const { return rhs < *this; }
+	reference       operator*()        { return it->value; }
+	const reference operator*()  const { return it->value; }
+	pointer         operator->()       { return it->value; }
+	const pointer   operator->() const { return it->value; }
+private:
+	typename intern_list::const_iterator it;
 	friend class ordered_list<T,Allocator>;
 };
 
