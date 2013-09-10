@@ -365,6 +365,40 @@ TEST(ordered_list, test_const_iterator2) {
 	}
 }
 
+TEST(ordered_list, test_reverse_iterator) {
+	ordered_list<int> list;
+
+	list.push_back(0);
+	list.push_back(1);
+	list.push_back(2);
+	list.push_back(3);
+
+	EXPECT_EQ(list.size(),4);
+
+	int counter = 4;
+	for (ordered_list<int>::reverse_iterator i = list.rbegin(),
+			e = list.rend(); i != e; ++i) {
+		EXPECT_EQ(*i, --counter);
+	}
+}
+
+TEST(ordered_list, test_const_reverse_iterator) {
+	ordered_list<int> list;
+
+	list.push_back(0);
+	list.push_back(1);
+	list.push_back(2);
+	list.push_back(3);
+
+	EXPECT_EQ(list.size(),4);
+
+	int counter = 4;
+	for (ordered_list<int>::const_reverse_iterator i = list.rbegin(),
+			e = list.rend(); i != e; ++i) {
+		EXPECT_EQ(*i, --counter);
+	}
+}
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

@@ -84,6 +84,8 @@ public:
 		typename std::list<Entry> > iterator;
 	typedef _ordered_const_iterator<T, Allocator,
 		typename std::list<Entry> > const_iterator;
+	typedef std::reverse_iterator<iterator> reverse_iterator;
+	typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
 
 	/// construct an empty MachineBasicBlock
 	ordered_list() {}
@@ -111,6 +113,14 @@ public:
 	const_iterator begin() const;
 	/// returns a const_iterator to the end
 	const_iterator end() const;
+	/// returns a reverse iterator to the beginning
+	reverse_iterator rbegin();
+	/// returns a reverse iterator to the end
+	reverse_iterator rend();
+	/// returns a const reverse iterator to the beginning
+	const_reverse_iterator rbegin() const;
+	/// returns a const reverse iterator to the end
+	const_reverse_iterator rend() const;
 	/// removes all elements from the container
 	void clear();
 	/// exchanges the contents of the container with those of other
@@ -293,6 +303,30 @@ template <class T, class Allocator>
 inline typename ordered_list<T, Allocator>::const_iterator
 ordered_list<T, Allocator>::end() const {
 	return list.end();
+}
+
+template <class T, class Allocator>
+inline typename ordered_list<T, Allocator>::reverse_iterator
+ordered_list<T, Allocator>::rbegin() {
+	return list.rbegin();
+}
+
+template <class T, class Allocator>
+inline typename ordered_list<T, Allocator>::reverse_iterator
+ordered_list<T, Allocator>::rend() {
+	return list.rend();
+}
+
+template <class T, class Allocator>
+inline typename ordered_list<T, Allocator>::const_reverse_iterator
+ordered_list<T, Allocator>::rbegin() const {
+	return list.rbegin();
+}
+
+template <class T, class Allocator>
+inline typename ordered_list<T, Allocator>::const_reverse_iterator
+ordered_list<T, Allocator>::rend() const {
+	return list.rend();
 }
 
 template <class T, class Allocator>
