@@ -24,8 +24,11 @@ AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(A
 
 AM_DEFAULT_SOURCE_EXT = .cpp
 
+# ignore gtest warnings
+GTEST_CXXFLAGS += -Wno-variadic-macros -Wno-sign-compare
+
 AM_CPPFLAGS += $(GTEST_CPPFLAGS)
-AM_CXXFLAGS  = $(GTEST_CXXFLAGS)
+AM_CXXFLAGS += $(GTEST_CXXFLAGS)
 AM_LDFLAGS   = $(GTEST_LDFLAGS)
 LIBS        += $(GTEST_LIBS)
 
