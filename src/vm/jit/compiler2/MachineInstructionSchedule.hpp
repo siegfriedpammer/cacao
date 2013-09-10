@@ -25,8 +25,7 @@
 #ifndef _JIT_COMPILER2_MACHINEINSTRUCTIONSCHEDULE
 #define _JIT_COMPILER2_MACHINEINSTRUCTIONSCHEDULE
 
-#include "vm/jit/compiler2/MachineInstruction.hpp"
-#include "vm/jit/compiler2/MachineBasicBlock.hpp"
+#include "toolbox/ordered_list.hpp"
 #include "toolbox/future.hpp"
 
 #include <map>
@@ -37,99 +36,105 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
-//
+
 // forward declarations
-class BeginInst;
+class MachineBasicBlock;
+class MachineInstructionSchedule;
 
+class MBBIterator {
+	typedef ordered_list<MachineBasicBlock*>::iterator iterator;
+	MachineInstructionSchedule *parent;
+	iterator it;
+	/// empty constructor
+	MBBIterator() {}
+public:
+	typedef iterator::reference reference;
+	typedef iterator::pointer pointer;
 
-/**
- * @defgroup low-level-ir Low Level IR
- * @ingroup compiler2
- *
- */
+	MBBIterator(MachineInstructionSchedule *parent, const iterator &it)
+		: parent(parent), it(it) {}
+	MBBIterator(const MBBIterator& other) : parent(other.parent), it(other.it) {}
+	MBBIterator& operator++() {
+		++it;
+		return *this;
+	}
+	MachineInstructionSchedule* get_parent() const { return parent; }
+	MBBIterator operator++(int) {
+		MBBIterator tmp(*this);
+		operator++();
+		return tmp;
+	}
+	MBBIterator& operator--() {
+		--it;
+		return *this;
+	}
+	MBBIterator operator--(int) {
+		MBBIterator tmp(*this);
+		operator--();
+		return tmp;
+	}
+	bool operator==(const MBBIterator& rhs) const {
+		assert(parent == rhs.parent);
+		return it == rhs.it;
+	}
+	bool operator<( const MBBIterator& rhs) const {
+		assert(parent == rhs.parent);
+		return it < rhs.it;
+	}
+	bool operator!=(const MBBIterator& rhs) const { return !(*this == rhs); }
+	bool operator>( const MBBIterator& rhs) const { return rhs < *this; }
+	reference       operator*()        { return *it; }
+	const reference operator*()  const { return *it; }
+	pointer         operator->()       { return &*it; }
+	const pointer   operator->() const { return &*it; }
 
-/**
- * A machine instruction schedule.
- *
- * @ingroup low-level-ir
- */
-class NewMachineInstructionSchedule {
+	friend class MachineInstructionSchedule;
+	friend class MachineBasicBlock;
 };
 
+class MBBBuilder {
+private:
+	MachineBasicBlock *MBB;
+public:
+	MBBBuilder();
+	friend class MachineInstructionSchedule;
+};
 
-
-/**
- * A machine instruction schedule.
- */
 class MachineInstructionSchedule {
 public:
-	typedef std::vector<MachineInstruction*> MachineInstructionListTy;
-	typedef std::pair<unsigned,unsigned> MachineInstructionRangeTy;
-	typedef std::map<BeginInst*,MachineInstructionRangeTy> BasicBlockRangeTy;
-	typedef MachineInstructionListTy::const_iterator const_iterator;
-	typedef MachineInstructionListTy::const_reverse_iterator const_reverse_iterator;
-protected:
-	typedef std::map<unsigned,std::list<MachineInstruction*> > AddedInstListTy;
-	MachineInstructionListTy list;
-	BasicBlockRangeTy map;
-	AddedInstListTy added_list;
-public:
-	MachineInstructionSchedule() {}
-	MachineInstruction* operator[](const unsigned i) const {
-		return get(i);
-	}
-	MachineInstruction* get(const unsigned i) const {
-		assert(i < size());
-		return list[i];
-	}
-	MachineInstructionRangeTy get_range(BeginInst* BI) const {
-		BasicBlockRangeTy::const_iterator i = map.find(BI);
-		if (i == map.end()) {
-			return std::make_pair(0,0);
-		}
-		return i->second;
-	}
-	std::size_t size() const {
-		return list.size();
-	}
-	const_iterator begin() const {
-		return list.begin();
-	}
-	const_iterator end() const {
-		return list.end();
-	}
-	const_reverse_iterator rbegin() const {
-		return list.rbegin();
-	}
-	const_reverse_iterator rend() const {
-		return list.rend();
-	}
-	void add_before(unsigned i, MachineInstruction *MI) {
-		assert(MI);
-		added_list[i].push_front(MI);
-	}
-	void add_after(unsigned i, MachineInstruction *MI) {
-		assert(MI);
-		added_list[i].push_back(MI);
-	}
-	/**
-	 * write the added instructions to the DAG
-	 *
-	 * @note This invalidates the schedule
-	 */
-	void insert_added_instruction() {
-		for(unsigned i = 0, e = size(); i < e ; ++i) {
-			AddedInstListTy::const_iterator added_it = added_list.find(i);
-			MachineInstruction *MI = list[i];
-			if (added_it != added_list.end()) {
-				for (std::list<MachineInstruction*>::const_iterator i = added_it->second.begin(),
-						e = added_it->second.end(); i != e; ++i) {
-					MI->add_before(*i);
-				}
-			}
-		}
-	}
+	typedef MBBIterator iterator;
+	/// construct an empty MachineInstructionSchedule
+	MachineInstructionSchedule() {};
+	/// returns the number of elements
+	std::size_t size() const;
+	/// Appends the given element value to the end of the container.
+	MachineInstructionSchedule::iterator push_back(const MBBBuilder& value);
+	/// inserts value to the beginning
+	MachineInstructionSchedule::iterator push_front(const MBBBuilder& value);
+	/// inserts value before the element pointed to by pos
+	MachineInstructionSchedule::iterator insert_before(iterator pos, const MBBBuilder& value);
+	/// inserts value after the element pointed to by pos
+	MachineInstructionSchedule::iterator insert_after(iterator pos, const MBBBuilder& value);
+	/// returns an iterator to the beginning
+	iterator begin();
+	/// returns an iterator to the end
+	iterator end();
+private:
+	ordered_list<MachineBasicBlock*> list;
 };
+
+inline std::size_t MachineInstructionSchedule::size() const {
+	return list.size();
+}
+inline MachineInstructionSchedule::iterator MachineInstructionSchedule::insert_after(iterator pos, const MBBBuilder& value) {
+	return insert_before(++pos,value);
+}
+inline MachineInstructionSchedule::iterator MachineInstructionSchedule::begin() {
+	return iterator(this,list.begin());
+}
+inline MachineInstructionSchedule::iterator MachineInstructionSchedule::end() {
+	return iterator(this,list.end());
+}
 
 } // end namespace compiler2
 } // end namespace jit

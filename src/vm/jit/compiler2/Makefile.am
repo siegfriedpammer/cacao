@@ -58,8 +58,10 @@ libcompiler2_la_SOURCES = \
 	LoopSimplificationPass.cpp \
 	LoweredInstDAG.cpp \
 	LoweringPass.cpp \
+	MachineBasicBlock.cpp \
 	MachineInstruction.cpp \
 	MachineInstructions.cpp \
+	MachineInstructionSchedule.cpp \
 	MachineInstructionSchedulingPass.cpp \
 	MachineInstructionPrinterPass.cpp \
 	MachineOperand.cpp \

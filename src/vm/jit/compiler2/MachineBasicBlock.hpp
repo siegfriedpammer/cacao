@@ -25,7 +25,7 @@
 #ifndef _JIT_COMPILER2_MACHINEBASICBLOCK
 #define _JIT_COMPILER2_MACHINEBASICBLOCK
 
-#include "toolbox/future.hpp"
+#include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
 #include "toolbox/ordered_list.hpp"
 
 
@@ -35,6 +35,52 @@ namespace compiler2 {
 
 // forward declarations
 class MachineInstruction;
+class MachineInstructionSchedule;
+
+class MIIterator {
+	typedef ordered_list<MachineInstruction*>::iterator iterator;
+	typedef MBBIterator block_iterator;
+	block_iterator block_it;
+	iterator it;
+public:
+	typedef iterator::reference reference;
+	typedef iterator::pointer pointer;
+
+	MIIterator(const block_iterator &block_it, const iterator& it)
+		: block_it(block_it), it(it) {}
+	MIIterator(const MIIterator& other)
+		: block_it(other.block_it), it(other.it) {}
+	MIIterator& operator++();
+	MIIterator& operator--();
+	MIIterator operator++(int) {
+		MIIterator tmp(*this);
+		operator++();
+		return tmp;
+	}
+	MIIterator operator--(int) {
+		MIIterator tmp(*this);
+		operator--();
+		return tmp;
+	}
+	bool operator==(const MIIterator& rhs) const {
+		if (block_it == rhs.block_it)
+			return it == rhs.it;
+		return false;
+	}
+	bool operator<( const MIIterator& rhs) const {
+		if (block_it == rhs.block_it)
+			return it < rhs.it;
+		return block_it < rhs.block_it;
+	}
+	bool operator!=(const MIIterator& rhs) const { return !(*this == rhs); }
+	bool operator>( const MIIterator& rhs) const { return rhs < *this; }
+	reference       operator*()        { return *it; }
+	const reference operator*()  const { return *it; }
+	pointer         operator->()       { return &*it; }
+	const pointer   operator->() const { return &*it; }
+
+	friend class MachineBasicBlock;
+};
 
 /**
  * A basic block of (scheduled) machine instructions.
@@ -50,10 +96,15 @@ class MachineInstruction;
  * @ingroup low-level-ir
  */
 class MachineBasicBlock {
+private:
+	MBBIterator my_it;
+	/// empty constructor
+	MachineBasicBlock() {}
 public:
 	typedef ordered_list<MachineInstruction*>::iterator iterator;
+	typedef ordered_list<MachineInstruction*>::const_iterator const_iterator;
 	/// construct an empty MachineBasicBlock
-	MachineBasicBlock() {};
+	MachineBasicBlock(const MBBIterator &my_it) : my_it(my_it) {};
 	/// returns the number of elements
 	std::size_t size() const;
 	/// Appends the given element value to the end of the container.
@@ -68,9 +119,42 @@ public:
 	iterator begin();
 	/// returns an iterator to the end
 	iterator end();
+	/// returns an const iterator to the beginning
+	const_iterator begin() const;
+	/// returns an const iterator to the end
+	const_iterator end() const;
+	/// get a MIIterator form a interator
+	MIIterator convert(iterator pos);
 private:
 	ordered_list<MachineInstruction*> list;
+	friend class MBBBuilder;
+	friend class MachineInstructionSchedule;
 };
+
+inline MIIterator& MIIterator::operator++() {
+	++it;
+	if (it == (*block_it)->end()) {
+		// end of basic block
+		++block_it;
+		if (block_it != block_it.get_parent()->end()) {
+			it = (*block_it)->begin();
+		}
+	}
+	return *this;
+}
+inline MIIterator& MIIterator::operator--() {
+	if (it == (*block_it)->begin()) {
+		// begin of basic block
+		if (block_it == block_it.get_parent()->begin()) {
+			return *this;
+		}
+		--block_it;
+		it = (*block_it)->end();
+	}
+	--it;
+	return *this;
+}
+
 
 inline std::size_t MachineBasicBlock::size() const {
 	return list.size();
@@ -82,10 +166,10 @@ inline void MachineBasicBlock::push_front(MachineInstruction* value) {
 	list.push_front(value);
 }
 inline void MachineBasicBlock::insert_before(iterator pos, MachineInstruction* value) {
-	list.insert_before(pos,value);
+	list.insert(pos,value);
 }
 inline void MachineBasicBlock::insert_after(iterator pos, MachineInstruction* value) {
-	list.insert_after(pos,value);
+	list.insert(++pos,value);
 }
 inline MachineBasicBlock::iterator MachineBasicBlock::begin() {
 	return list.begin();
@@ -93,8 +177,18 @@ inline MachineBasicBlock::iterator MachineBasicBlock::begin() {
 inline MachineBasicBlock::iterator MachineBasicBlock::end() {
 	return list.end();
 }
-
-typedef MachineBasicBlock::iterator MIIterator;
+inline MachineBasicBlock::const_iterator MachineBasicBlock::begin() const {
+	return list.begin();
+}
+inline MachineBasicBlock::const_iterator MachineBasicBlock::end() const {
+	return list.end();
+}
+inline MIIterator MachineBasicBlock::convert(iterator pos) {
+	if (pos == end()) {
+		return ++convert(--pos);
+	}
+	return MIIterator(my_it,pos);
+}
 
 } // end namespace compiler2
 } // end namespace jit

@@ -35,7 +35,7 @@ LIBS        += $(GTEST_LIBS)
 LDADD=$(top_builddir)/tests/gtest/libgtest_main.a
 LDADD+=$(top_builddir)/src/cacao/libjvm.la
 
-TESTS = MachineBasicBlock_test
+TESTS = MachineBasicBlock_test MachineInstructionSchedule_test
 check_PROGRAMS = $(TESTS)
 
 ## Local variables:
