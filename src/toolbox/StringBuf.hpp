@@ -32,12 +32,9 @@ namespace cacao {
 
 typedef std::string StringBuf;
 
-namespace {
-cacao::OStream& operator<<(cacao::OStream &OS, const StringBuf &SB) {
+inline cacao::OStream& operator<<(cacao::OStream &OS, const StringBuf &SB) {
 	return OS << SB.c_str();
 }
-
-} // end namespace cacao
 
 template <typename _T>
 StringBuf to_string(_T val) {
