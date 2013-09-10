@@ -56,6 +56,7 @@ bool max_value_comparator(const std::pair<Key,T> &lhs, const std::pair<Key,T> &r
 }
 
 void LinearScanAllocatorPass::split(LivetimeInterval *lti, unsigned pos) {
+#if 0
 	// split interval
 	MachineRegister *reg = lti->get_Register()->to_MachineRegister();
 
@@ -96,6 +97,7 @@ void LinearScanAllocatorPass::split(LivetimeInterval *lti, unsigned pos) {
 		// register new def (load)
 
 	}
+#endif
 }
 
 namespace {
@@ -537,6 +539,7 @@ struct ClassRegPtrComp {
 } // end anonymous namespace
 
 void LinearScanAllocatorPass::resolve() {
+#if 0
 	LoweringPass *LP = get_Pass<LoweringPass>();
 	ListSchedulingPass *IS = get_Pass<ListSchedulingPass>();
 	InstructionLinkSchedule *ILS = get_Pass<ScheduleClickPass>();
@@ -809,9 +812,11 @@ void LinearScanAllocatorPass::resolve() {
 
 	// write back the spill/store instructions
 	MIS->insert_added_instruction();
+#endif
 }
 
 bool LinearScanAllocatorPass::verify() const {
+#if 0
 	for (MachineInstructionSchedule::const_iterator i = MIS->begin(),
 			e = MIS->end(); i != e; ++i) {
 		MachineInstruction *MI = *i;
@@ -823,6 +828,7 @@ bool LinearScanAllocatorPass::verify() const {
 		}
 
 	}
+#endif
 	return true;
 }
 

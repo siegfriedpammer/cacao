@@ -48,6 +48,7 @@ namespace jit {
 namespace compiler2 {
 
 bool CodeGenPass::run(JITData &JD) {
+#if 0
 	MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
 	CodeMemory *CM = JD.get_CodeMemory();
 	CodeSegment &CS = CM->get_CodeSegment();
@@ -83,6 +84,7 @@ bool CodeGenPass::run(JITData &JD) {
 	CM->link();
 	// finish
 	finish(JD);
+#endif
 	return true;
 }
 
@@ -216,7 +218,9 @@ void CodeGenPass::finish(JITData &JD) {
 
 	patcher_resolve(code);
 	LOG2("Patchers:" << nl);
+	#if !defined(NDEBUG)
 	DEBUG2(patcher_list_show(code));
+	#endif
 #if 0
 #if defined(ENABLE_REPLACEMENT)
 	/* replacement point resolving */

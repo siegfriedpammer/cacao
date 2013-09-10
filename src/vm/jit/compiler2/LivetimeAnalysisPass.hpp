@@ -304,8 +304,8 @@ private:
 	typedef std::map<BeginInst*,LiveInSetTy> LiveInMapTy;
 
 	LivetimeIntervalMapTy lti_map;
-	BasicBlockSchedule *BS;
-	MachineInstructionSchedule *MIS;
+	//BasicBlockSchedule *BS;
+	//MachineInstructionSchedule *MIS;
 public:
 	static char ID;
 	LivetimeAnalysisPass() : Pass() {}

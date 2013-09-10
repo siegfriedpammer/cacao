@@ -80,6 +80,7 @@ MachineRegister* get_use_Register(Backend *backend, unsigned pos, Type::TypeID t
 }
 
 bool SpillAllAllocatorPass::run(JITData &JD) {
+#if 0
 	LA = get_Pass<LivetimeAnalysisPass>();
 	MIS = get_Pass<MachineInstructionSchedulingPass>();
 	jd = &JD;
@@ -130,7 +131,7 @@ bool SpillAllAllocatorPass::run(JITData &JD) {
 				MachineOperandDesc *MOD = i->second;
 				MOD->op = lti->get_Register();
 			}
-		} 
+		}
 		else if (lti->is_in_StackSlot()) {
 			ManagedStackSlot *slot = lti->get_ManagedStackSlot();
 
@@ -161,11 +162,13 @@ bool SpillAllAllocatorPass::run(JITData &JD) {
 	DEBUG(LA->print(dbg()));
 	// write back the spill/store instructions
 	MIS->insert_added_instruction();
+#endif
 	return true;
 }
 
 
 bool SpillAllAllocatorPass::verify() const {
+#if 0
 	for (MachineInstructionSchedule::const_iterator i = MIS->begin(),
 			e = MIS->end(); i != e; ++i) {
 		MachineInstruction *MI = *i;
@@ -177,6 +180,7 @@ bool SpillAllAllocatorPass::verify() const {
 		}
 
 	}
+#endif
 	return true;
 }
 

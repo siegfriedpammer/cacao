@@ -44,6 +44,7 @@
 #define DEBUG_NAME "compiler2/MachineInstructionPrinterPass"
 
 namespace {
+#if 0
 std::string get_filename(methodinfo *m, jitdata *jd, std::string prefix = "cfg_", std::string suffix=".dot");
 std::string get_filename(methodinfo *m, jitdata *jd, std::string prefix, std::string suffix)
 {
@@ -68,6 +69,7 @@ std::string get_filename(methodinfo *m, jitdata *jd, std::string prefix, std::st
 
 	return filename;
 }
+#endif
 } // end anonymous namespace
 
 namespace cacao {
@@ -304,6 +306,7 @@ static PassRegistery<MachineInstructionPrinterPass> X("MachineInstructionPrinter
 
 // run pass
 bool MachineInstructionPrinterPass::run(JITData &JD) {
+	#if 0
 	LoweringPass *LP = get_Pass<LoweringPass>();
 	InstructionSchedule<Instruction> *IS = get_Pass_if_available<ListSchedulingPass>();
 	BasicBlockSchedule *BS = get_Pass_if_available<BasicBlockSchedulingPass>();
@@ -329,6 +332,7 @@ bool MachineInstructionPrinterPass::run(JITData &JD) {
 			}
 		}
 	}
+#endif
 	return true;
 }
 

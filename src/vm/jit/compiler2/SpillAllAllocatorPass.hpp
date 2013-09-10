@@ -66,10 +66,12 @@ private:
 	UnhandledSetTy unhandled;
 	HandledSetTy handled;
 
+	#if 0
 	LivetimeAnalysisPass *LA;
 	MachineInstructionSchedule *MIS;
 	Backend *backend;
 	JITData *jd;
+	#endif
 
 public:
 	static char ID;

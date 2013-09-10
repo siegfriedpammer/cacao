@@ -40,11 +40,14 @@ namespace jit {
 namespace compiler2 {
 
 void MachineInstructionSchedulingPass::initialize() {
+#if 0
 	list.clear();
 	map.clear();
+#endif
 }
 
 bool MachineInstructionSchedulingPass::run(JITData &JD) {
+#if 0
 	BasicBlockSchedule *BS = get_Pass<BasicBlockSchedulingPass>();
 	InstructionSchedule<Instruction> *IS = get_Pass<ListSchedulingPass>();
 	LoweringPass *LP = get_Pass<LoweringPass>();
@@ -85,6 +88,7 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 			}
 		}
 	}
+#endif
 	return true;
 }
 

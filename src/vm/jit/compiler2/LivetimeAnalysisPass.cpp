@@ -204,6 +204,7 @@ OStream& operator<<(OStream &OS, const std::pair<unsigned,MachineOperandDesc*> &
 ////////////////////// LivetimeAnalysis
 
 bool LivetimeAnalysisPass::run(JITData &JD) {
+#if 0
 	BS = get_Pass<BasicBlockSchedulingPass>();
 	MIS = get_Pass<MachineInstructionSchedulingPass>();
 	LoweringPass *LP = get_Pass<LoweringPass>();
@@ -396,11 +397,12 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 
 	}
 	DEBUG(print(dbg()));
-
+#endif
 	return true;
 }
 
 OStream& LivetimeAnalysisPass::print(OStream& OS) const {
+#if 0
 	OS << nl << "Liveinterval Table:" << nl;
 	OS << "Line: ";
 
@@ -491,6 +493,7 @@ OStream& LivetimeAnalysisPass::print(OStream& OS) const {
 			}
 		}
 	}
+#endif
 	return OS;
 }
 
