@@ -54,6 +54,7 @@ namespace compiler2 {
 
 // Forward declarations
 class BasicBlock;
+class InstructionVisitor;
 
 // include instruction declaration
 #include "vm/jit/compiler2/InstructionDeclGen.inc"
@@ -201,6 +202,9 @@ public:
 		}
 		return "Unknown Instruction";
 	}
+
+	/// Visitor
+	virtual void accept(InstructionVisitor& v) = 0;
 
 	virtual OStream& print(OStream& OS) const;
 

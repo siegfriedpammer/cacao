@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/InstructionIDGen.inc - Instruction IDs
+/* src/vm/jit/compiler2/InstructionVisitor.hpp - InstructionVisitor
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,69 +22,30 @@
 
 */
 
-/*
-WARNING: THIS FILE IS AUTO-GENERATED! DO NOT ALTER!
-Instead have a look at the generator (./instruction_gen.py)
-and the input file (./instruction_table.csv).
-*/
+#ifndef _JIT_COMPILER2_INSTRUCTIONVISITOR
+#define _JIT_COMPILER2_INSTRUCTIONVISITOR
 
-LoadInstID,
-UnaryInstID,
-BinaryInstID,
-NOPInstID,
-POPInstID,
-CHECKNULLInstID,
-ARRAYLENGTHInstID,
-NEGInstID,
-CASTInstID,
-ADDInstID,
-SUBInstID,
-MULInstID,
-DIVInstID,
-REMInstID,
-SHLInstID,
-USHRInstID,
-ANDInstID,
-ORInstID,
-XORInstID,
-CMPInstID,
-CONSTInstID,
-GETFIELDInstID,
-PUTFIELDInstID,
-PUTSTATICInstID,
-GETSTATICInstID,
-INCInstID,
-ASTOREInstID,
-ALOADInstID,
-RETInstID,
-LOADInstID,
-STOREInstID,
-NEWInstID,
-NEWARRAYInstID,
-ANEWARRAYInstID,
-MULTIANEWARRAYInstID,
-CHECKCASTInstID,
-INSTANCEOFInstID,
-GOTOInstID,
-JSRInstID,
-BUILTINInstID,
-INVOKEVIRTUALInstID,
-INVOKESPECIALInstID,
-INVOKESTATICInstID,
-INVOKEINTERFACEInstID,
-IFInstID,
-IF_CMPInstID,
-TABLESWITCHInstID,
-LOOKUPSWITCHInstID,
-RETURNInstID,
-THROWInstID,
-COPYInstID,
-MOVEInstID,
-GETEXCEPTIONInstID,
-PHIInstID,
-ContainerInstID,
-BeginInstID,
-EndInstID,
+namespace cacao {
+namespace jit {
+namespace compiler2 {
+
+
+// include instruction declaration
+#include "vm/jit/compiler2/InstructionDeclGen.inc"
+
+class InstructionVisitor {
+public:
+virtual void visit_default() = 0;
+#include "vm/jit/compiler2/InstructionVisitorGen.inc"
+
+};
+
+} // end namespace compiler2
+} // end namespace jit
+} // end namespace cacao
+
+#endif /* _JIT_COMPILER2_INSTRUCTIONVISITOR */
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
