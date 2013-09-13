@@ -121,6 +121,14 @@ public:
 	const_reverse_iterator rbegin() const;
 	/// returns a const reverse iterator to the end
 	const_reverse_iterator rend() const;
+	/// access the first element
+	const_reference front() const;
+	/// access the last element
+	const_reference back() const;
+	/// access the first element
+	reference front();
+	/// access the last element
+	reference back();
 	/// removes all elements from the container
 	void clear();
 	/// exchanges the contents of the container with those of other
@@ -329,6 +337,26 @@ ordered_list<T, Allocator>::rend() const {
 	return list.rend();
 }
 
+template <class T, class Allocator>
+inline typename ordered_list<T, Allocator>::reference
+ordered_list<T, Allocator>::front() {
+	return list.front().value;
+}
+template <class T, class Allocator>
+inline typename ordered_list<T, Allocator>::reference
+ordered_list<T, Allocator>::back() {
+	return list.back().value;
+}
+template <class T, class Allocator>
+inline typename ordered_list<T, Allocator>::const_reference
+ordered_list<T, Allocator>::front() const {
+	return list.front().value;
+}
+template <class T, class Allocator>
+inline typename ordered_list<T, Allocator>::const_reference
+ordered_list<T, Allocator>::back() const {
+	return list.back().value;
+}
 template <class T, class Allocator>
 inline void ordered_list<T, Allocator>::clear() {
 	return list.clear();

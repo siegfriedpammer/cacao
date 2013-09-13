@@ -329,6 +329,33 @@ TEST(ordered_list, test_swap) {
 	check_list(list2,4,array1);
 }
 
+TEST(ordered_list, test_swap2) {
+	ordered_list<int> list1;
+
+	list1.push_back(0);
+	list1.push_back(1);
+	list1.push_back(2);
+	list1.push_back(3);
+
+	ordered_list<int> list2;
+
+	list2.push_front(0);
+	list2.push_front(1);
+	list2.push_front(2);
+	list2.push_front(3);
+
+	unsigned array1[] = {0, 1, 2, 3};
+	unsigned array2[] = {3, 2, 1, 0};
+
+	check_list(list1,4,array1);
+	check_list(list2,4,array2);
+
+	list1.swap(list2);
+
+	check_list(list1,4,array2);
+	check_list(list2,4,array1);
+}
+
 TEST(ordered_list, test_const_iterator1) {
 	ordered_list<int> list;
 
@@ -399,6 +426,51 @@ TEST(ordered_list, test_const_reverse_iterator) {
 	}
 }
 
+TEST(ordered_list, test_decrement) {
+	ordered_list<int> list;
+
+	list.push_back(0);
+	list.push_back(1);
+	list.push_back(2);
+	list.push_back(3);
+
+	EXPECT_EQ(list.size(),4);
+	ordered_list<int>::iterator i = list.begin();
+	ordered_list<int>::iterator e = list.end();
+	int counter = 4;
+	do {
+		e--;
+		EXPECT_EQ(*e, --counter);
+	} while (i != e);
+}
+
+TEST(ordered_list, test_front_back) {
+	ordered_list<int> list;
+
+	list.push_back(0);
+	list.push_back(1);
+	list.push_back(2);
+	list.push_back(3);
+
+	EXPECT_EQ(list.size(),4);
+	EXPECT_EQ(list.front(),0);
+	EXPECT_EQ(list.back(),3);
+}
+
+TEST(ordered_list, test_const_front_back) {
+	ordered_list<int> list;
+
+	list.push_back(0);
+	list.push_back(1);
+	list.push_back(2);
+	list.push_back(3);
+
+	const ordered_list<int> clist(list);
+
+	EXPECT_EQ(clist.size(),4);
+	EXPECT_EQ(clist.front(),0);
+	EXPECT_EQ(clist.back(),3);
+}
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
