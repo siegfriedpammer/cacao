@@ -30,6 +30,7 @@
 #include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
 #include "vm/jit/compiler2/LoweringPass.hpp"
+#include "vm/jit/compiler2/MachineBasicBlock.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -47,17 +48,25 @@ void MachineInstructionSchedulingPass::initialize() {
 }
 
 bool MachineInstructionSchedulingPass::run(JITData &JD) {
-#if 0
 	BasicBlockSchedule *BS = get_Pass<BasicBlockSchedulingPass>();
 	InstructionSchedule<Instruction> *IS = get_Pass<ListSchedulingPass>();
 	LoweringPass *LP = get_Pass<LoweringPass>();
+
+	// store BeginInst <=> MachineBasicBlock
+	//std::map<BeginInst*,MBBIterator> map;
+	std::map<BeginInst*,MachineBasicBlock*> map;
 
 	// for all basic blocks
 	for (BasicBlockSchedule::const_bb_iterator i = BS->bb_begin(),
 			e = BS->bb_end(); i != e ; ++i) {
 		BeginInst *BI = *i;
 		assert(BI);
-		unsigned begin = list.size();
+		// create MachineBasicBlock
+		MachineBasicBlock *MBB = *push_front(MBBBuilder());
+		//MBBIterator iMBB = push_front(MBBBuilder());
+		//MachineBasicBlock *MBB = *iMBB;
+		//map.insert(std::make_pair(BI,iMBB)); //map[BI] = iMBB;
+		map[BI] = MBB;
 		// for all instructions in the current basic block
 		for (InstructionSchedule<Instruction>::const_inst_iterator i = IS->inst_begin(BI),
 				e = IS->inst_end(BI); i != e; ++i) {
@@ -67,28 +76,31 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 			for (LoweredInstDAG::const_mi_iterator i = dag->mi_begin() ,
 					e = dag->mi_end(); i != e ; ++i) {
 				MachineInstruction *MI = *i;
-				list.push_back(MI);
-			}
-		}
-		unsigned end = list.size();
-		map[BI] = std::make_pair(begin,end);
-	}
-	if (DEBUG_COND) {
-		for (BasicBlockSchedule::const_bb_iterator i = BS->bb_begin(),
-				e = BS->bb_end(); i != e ; ++i) {
-			BeginInst *BI = *i;
-			assert(BI);
-			LOG("BasicBlock: " << BI << nl);
-			MachineInstructionRangeTy range = get_range(BI);
-			assert(range.first != range.second);
-			for (unsigned i = range.first, e = range.second; i < e; ++i) {
-				MachineInstruction *MI = get(i);
-				assert(MI);
-				LOG("  " << setw(4) << i << ": " << MI << nl);
+				MBB->push_back(MI);
 			}
 		}
 	}
-#endif
+	return true;
+}
+
+// verify
+bool MachineInstructionSchedulingPass::verify() const {
+	for (MachineInstructionSchedule::const_iterator i = begin(), e = end();
+			i != e; ++i) {
+		MachineBasicBlock *MBB = *i;
+		MachineInstruction *front = MBB->front();
+		if(!front->is_label()) {
+			LOG(BoldRed << "error" << BoldWhite << "first Instruction ("
+				<< *front << ") not a label" << reset_color << nl);
+			return false;
+		}
+		#if 0
+		for (MachineBasicBlock::const_iterator i = MBB->begin(), e = MBB->end();
+				i != e ; ++i) {
+			MachineInstruction *MI = *i;
+		}
+		#endif
+	}
 	return true;
 }
 

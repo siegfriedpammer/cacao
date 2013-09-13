@@ -41,9 +41,10 @@ class MachineInstructionSchedulingPass : public Pass, public MachineInstructionS
 public:
 	static char ID;
 	MachineInstructionSchedulingPass() : Pass() {}
-	void initialize();
-	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PA) const;
+	virtual void initialize();
+	virtual bool run(JITData &JD);
+	virtual bool verify() const;
+	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
 };
 
 } // end namespace compiler2
