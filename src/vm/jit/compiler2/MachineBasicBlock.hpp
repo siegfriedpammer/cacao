@@ -103,6 +103,10 @@ private:
 public:
 	typedef ordered_list<MachineInstruction*>::iterator iterator;
 	typedef ordered_list<MachineInstruction*>::const_iterator const_iterator;
+	typedef ordered_list<MachineInstruction*>::reference reference;
+	typedef ordered_list<MachineInstruction*>::const_reference const_reference;
+	typedef ordered_list<MachineInstruction*>::pointer pointer;
+	typedef ordered_list<MachineInstruction*>::const_pointer const_pointer;
 	/// construct an empty MachineBasicBlock
 	MachineBasicBlock(const MBBIterator &my_it) : my_it(my_it) {};
 	/// returns the number of elements
@@ -123,6 +127,15 @@ public:
 	const_iterator begin() const;
 	/// returns an const iterator to the end
 	const_iterator end() const;
+	/// access the first element
+	const_reference front() const;
+	/// access the last element
+	const_reference back() const;
+	/// access the first element
+	reference front();
+	/// access the last element
+	reference back();
+
 	/// get a MIIterator form a interator
 	MIIterator convert(iterator pos);
 private:
@@ -182,6 +195,18 @@ inline MachineBasicBlock::const_iterator MachineBasicBlock::begin() const {
 }
 inline MachineBasicBlock::const_iterator MachineBasicBlock::end() const {
 	return list.end();
+}
+inline MachineBasicBlock::const_reference MachineBasicBlock::front() const {
+	return list.front();
+}
+inline MachineBasicBlock::const_reference MachineBasicBlock::back() const {
+	return list.back();
+}
+inline MachineBasicBlock::reference MachineBasicBlock::front() {
+	return list.front();
+}
+inline MachineBasicBlock::reference MachineBasicBlock::back() {
+	return list.back();
 }
 inline MIIterator MachineBasicBlock::convert(iterator pos) {
 	if (pos == end()) {
