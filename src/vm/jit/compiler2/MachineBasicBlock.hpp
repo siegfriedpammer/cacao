@@ -28,8 +28,11 @@
 #include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
 #include "toolbox/ordered_list.hpp"
 
-
 namespace cacao {
+
+// forward declarations
+class OStream;
+
 namespace jit {
 namespace compiler2 {
 
@@ -97,9 +100,11 @@ public:
  */
 class MachineBasicBlock {
 private:
+	static std::size_t id_counter;
+	std::size_t id;
 	MBBIterator my_it;
 	/// empty constructor
-	MachineBasicBlock() {}
+	MachineBasicBlock() : id(id_counter++) {}
 public:
 	typedef ordered_list<MachineInstruction*>::iterator iterator;
 	typedef ordered_list<MachineInstruction*>::const_iterator const_iterator;
@@ -108,7 +113,8 @@ public:
 	typedef ordered_list<MachineInstruction*>::pointer pointer;
 	typedef ordered_list<MachineInstruction*>::const_pointer const_pointer;
 	/// construct an empty MachineBasicBlock
-	MachineBasicBlock(const MBBIterator &my_it) : my_it(my_it) {};
+	MachineBasicBlock(const MBBIterator &my_it)
+		: id(id_counter++),  my_it(my_it) {};
 	/// returns the number of elements
 	std::size_t size() const;
 	/// Appends the given element value to the end of the container.
@@ -138,6 +144,8 @@ public:
 
 	/// get a MIIterator form a interator
 	MIIterator convert(iterator pos);
+	/// print
+	OStream& print(OStream& OS) const;
 private:
 	ordered_list<MachineInstruction*> list;
 	friend class MBBBuilder;
@@ -213,6 +221,10 @@ inline MIIterator MachineBasicBlock::convert(iterator pos) {
 		return ++convert(--pos);
 	}
 	return MIIterator(my_it,pos);
+}
+
+inline OStream& operator<<(OStream& OS, MachineBasicBlock& MBB) {
+	return MBB.print(OS);
 }
 
 } // end namespace compiler2

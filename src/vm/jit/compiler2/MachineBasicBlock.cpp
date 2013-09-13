@@ -24,12 +24,18 @@
 
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
+#include "toolbox/OStream.hpp"
 
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+std::size_t MachineBasicBlock::id_counter = 0;
+
+OStream& MachineBasicBlock::print(OStream& OS) const {
+	return OS << "MBB:" << setz(4) << id;
+}
 
 } // end namespace compiler2
 } // end namespace jit
