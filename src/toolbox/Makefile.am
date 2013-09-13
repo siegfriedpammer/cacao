@@ -29,6 +29,7 @@ noinst_LTLIBRARIES = \
 	libtoolbox.la
 
 libtoolbox_la_SOURCES = \
+	assert.hpp \
 	avl.cpp \
 	avl.hpp \
 	bitvector.cpp \
