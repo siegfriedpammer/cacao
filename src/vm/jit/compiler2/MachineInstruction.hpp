@@ -154,6 +154,9 @@ public:
 	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
 		return false;
 	}
+	virtual bool is_label() const {
+		return false;
+	}
 	virtual bool is_phi() const {
 		return false;
 	}

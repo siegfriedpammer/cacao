@@ -40,6 +40,9 @@ private:
 public:
 	MachineLabelInst(BeginInst* BI) : MachineInstruction("MLabel", &NoOperand, 0), begin(BI) {}
 	virtual void emit(CodeMemory* CM) const;
+	virtual bool is_label() const {
+		return true;
+	}
 };
 
 class MachinePhiInst : public MachineInstruction {
