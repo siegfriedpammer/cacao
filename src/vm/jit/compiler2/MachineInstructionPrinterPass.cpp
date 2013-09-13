@@ -32,6 +32,7 @@
 #include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
+#include "vm/jit/compiler2/MachineBasicBlock.hpp"
 
 #include "toolbox/GraphTraits.hpp"
 
@@ -43,6 +44,11 @@
 
 #define DEBUG_NAME "compiler2/MachineInstructionPrinterPass"
 
+namespace cacao {
+namespace jit {
+namespace compiler2 {
+
+#if 0
 namespace {
 #if 0
 std::string get_filename(methodinfo *m, jitdata *jd, std::string prefix = "cfg_", std::string suffix=".dot");
@@ -71,10 +77,6 @@ std::string get_filename(methodinfo *m, jitdata *jd, std::string prefix, std::st
 }
 #endif
 } // end anonymous namespace
-
-namespace cacao {
-namespace jit {
-namespace compiler2 {
 
 namespace {
 
@@ -293,6 +295,7 @@ public:
 };
 
 } // end anonymous namespace
+#endif
 
 PassUsage& MachineInstructionPrinterPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires(LoweringPass::ID);
@@ -306,6 +309,19 @@ static PassRegistery<MachineInstructionPrinterPass> X("MachineInstructionPrinter
 
 // run pass
 bool MachineInstructionPrinterPass::run(JITData &JD) {
+	MachineInstructionSchedule *MIS = get_Pass_if_available<MachineInstructionSchedulingPass>();
+	if (MIS) {
+		for (MachineInstructionSchedule::iterator i = MIS->begin(), e = MIS->end();
+				i != e; ++i) {
+			MachineBasicBlock *MBB = *i;
+			LOG(*MBB << nl);
+			for (MachineBasicBlock::iterator i = MBB->begin(), e = MBB->end();
+					i != e ; ++i) {
+				MachineInstruction *MI = *i;
+				LOG(*MI << nl);
+			}
+		}
+	}
 	#if 0
 	LoweringPass *LP = get_Pass<LoweringPass>();
 	InstructionSchedule<Instruction> *IS = get_Pass_if_available<ListSchedulingPass>();

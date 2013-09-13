@@ -148,6 +148,7 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass(&BasicBlockSchedulingPass::ID);
 	//PM.add_Pass(&ResolveImmediatePass::ID);
 	PM.add_Pass(&MachineInstructionSchedulingPass::ID);
+	PM.add_Pass(&MachineInstructionPrinterPass::ID);
 	//PM.add_Pass(&LivetimeAnalysisPass::ID);
 	//PM.add_Pass(&LinearScanAllocatorPass::ID);
 	//PM.add_Pass(&SpillAllAllocatorPass::ID);

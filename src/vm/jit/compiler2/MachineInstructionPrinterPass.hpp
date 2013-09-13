@@ -42,8 +42,8 @@ class MachineInstructionPrinterPass : public Pass {
 public:
 	static char ID;
 	MachineInstructionPrinterPass() : Pass() {}
-	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PU) const;
+	virtual bool run(JITData &JD);
+	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
 };
 
 } // end namespace cacao
