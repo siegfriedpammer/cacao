@@ -90,6 +90,61 @@ public:
 
 	friend class MachineInstructionSchedule;
 	friend class MachineBasicBlock;
+	friend class const_MBBIterator;
+};
+
+class const_MBBIterator {
+	typedef ordered_list<MachineBasicBlock*>::const_iterator const_iterator;
+	const MachineInstructionSchedule *parent;
+	const_iterator it;
+	/// empty constructor
+	const_MBBIterator() {}
+public:
+	typedef const_iterator::reference reference;
+	typedef const_iterator::pointer pointer;
+
+	const_MBBIterator(const MachineInstructionSchedule *parent,
+		const const_iterator &it) : parent(parent), it(it) {}
+	const_MBBIterator(const const_MBBIterator& other) : parent(other.parent),
+		it(other.it) {}
+	const_MBBIterator(const MBBIterator& other) : parent(other.parent),
+		it(other.it) {}
+	const_MBBIterator& operator++() {
+		++it;
+		return *this;
+	}
+	const MachineInstructionSchedule* get_parent() const { return parent; }
+	const_MBBIterator operator++(int) {
+		const_MBBIterator tmp(*this);
+		operator++();
+		return tmp;
+	}
+	const_MBBIterator& operator--() {
+		--it;
+		return *this;
+	}
+	const_MBBIterator operator--(int) {
+		const_MBBIterator tmp(*this);
+		operator--();
+		return tmp;
+	}
+	bool operator==(const const_MBBIterator& rhs) const {
+		assert(parent == rhs.parent);
+		return it == rhs.it;
+	}
+	bool operator<( const const_MBBIterator& rhs) const {
+		assert(parent == rhs.parent);
+		return it < rhs.it;
+	}
+	bool operator!=(const const_MBBIterator& rhs) const { return !(*this == rhs); }
+	bool operator>( const const_MBBIterator& rhs) const { return rhs < *this; }
+	reference       operator*()        { return *it; }
+	const reference operator*()  const { return *it; }
+	pointer         operator->()       { return &*it; }
+	const pointer   operator->() const { return &*it; }
+
+	friend class MachineInstructionSchedule;
+	friend class MachineBasicBlock;
 };
 
 class MBBBuilder {
@@ -103,6 +158,7 @@ public:
 class MachineInstructionSchedule {
 public:
 	typedef MBBIterator iterator;
+	typedef const_MBBIterator const_iterator;
 	/// construct an empty MachineInstructionSchedule
 	MachineInstructionSchedule() {};
 	/// returns the number of elements
@@ -119,6 +175,10 @@ public:
 	iterator begin();
 	/// returns an iterator to the end
 	iterator end();
+	/// returns an const iterator to the beginning
+	const_iterator begin() const;
+	/// returns an const iterator to the end
+	const_iterator end() const;
 private:
 	ordered_list<MachineBasicBlock*> list;
 };
@@ -134,6 +194,14 @@ inline MachineInstructionSchedule::iterator MachineInstructionSchedule::begin() 
 }
 inline MachineInstructionSchedule::iterator MachineInstructionSchedule::end() {
 	return iterator(this,list.end());
+}
+inline MachineInstructionSchedule::const_iterator
+MachineInstructionSchedule::begin() const {
+	return const_iterator(this,list.begin());
+}
+inline MachineInstructionSchedule::const_iterator
+MachineInstructionSchedule::end() const {
+	return const_iterator(this,list.end());
 }
 
 } // end namespace compiler2
