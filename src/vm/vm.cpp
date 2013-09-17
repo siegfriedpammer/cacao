@@ -1477,6 +1477,7 @@ void VM::print_build_time_config(void)
 #endif
 	puts("  CFLAGS     : "VERSION_CFLAGS"");
 	puts("  CXXFLAGS   : "VERSION_CXXFLAGS"");
+	puts("  CPPFLAGS   : "VERSION_CPPFLAGS"");
 
 	puts("");
 
