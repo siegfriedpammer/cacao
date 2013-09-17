@@ -54,18 +54,20 @@ dnl Host CPU type.
 case "$host_cpu" in
 alpha | alphaev56 | alphapca56 )
     ARCH_DIR="alpha"
-    ARCH_FLAGS="-mieee -D__ALPHA__"
+    AM_CFLAGS="$AM_CFLAGS -mieee"
+    AM_CXXFLAGS="$AM_CXXFLAGS -mieee"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__ALPHA__"
     JAVA_ARCH="alpha"
     ;;
 
 arm | armv4* | armv5* | armv6* | armv7* )
     ARCH_DIR="arm"
-    ARCH_FLAGS="-D__ARM__"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__ARM__"
     JAVA_ARCH="arm"
 
     case "$host" in
 	*-gnueabihf)
-		ARCH_FLAGS="$ARCH_FLAGS -D__ARMHF__"
+		AM_CPPFLAGS="$AM_CPPFLAGS -D__ARMHF__"
 		;;
 	esac
 
@@ -80,63 +82,73 @@ arm | armv4* | armv5* | armv6* | armv7* )
 
 hppa2.0 )
     ARCH_DIR="parisc"
-    ARCH_FLAGS="-D__PARISC__"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__PARISC__"
     JAVA_ARCH="hppa"
     ;;
 
 i386 | i486 | i586 | i686 )
     ARCH_DIR="i386"
-    ARCH_FLAGS="-m32 -D__I386__"
+    AM_CFLAGS="$AM_CFLAGS -m32"
+    AM_CXXFLAGS="$AM_CXXFLAGS -m32"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__I386__"
     JAVA_ARCH="i386"
     ;;
 
 mips )
     ARCH_DIR="mips"
-    ARCH_FLAGS="-D__MIPS__"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__MIPS__"
     JAVA_ARCH="mips"
     ;;
 
 mipsel )
     ARCH_DIR="mips"
-    ARCH_FLAGS="-D__MIPS__"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__MIPS__"
     JAVA_ARCH="mipsel"
     ;;
 
 powerpc )
     ARCH_DIR="powerpc"
-    ARCH_FLAGS="-m32 -D__POWERPC__"
+    AM_CFLAGS="$AM_CFLAGS -m32"
+    AM_CXXFLAGS="$AM_CXXFLAGS -m32"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__POWERPC__"
     JAVA_ARCH="ppc"
     ;;
 
 powerpc64 )
     ARCH_DIR="powerpc64"
-    ARCH_FLAGS="-m64 -D__POWERPC64__"
+    AM_CFLAGS="$AM_CFLAGS -m64"
+    AM_CXXFLAGS="$AM_CXXFLAGS -m64"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__POWERPC64__"
     JAVA_ARCH="ppc64"
     ;;
 
 s390 )
     ARCH_DIR="s390"
-    ARCH_FLAGS="-D__S390__"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__S390__"
     JAVA_ARCH="s390"
     ;;
 
 sparc | sparc64 )
     ARCH_DIR="sparc64"
-    ARCH_FLAGS="-mcpu=v9 -m64 -D__SPARC_64__"
+    AM_CFLAGS="$AM_CFLAGS -mcpu=v9 -m64"
+    AM_CXXFLAGS="$AM_CXXFLAGS -mcpu=v9 -m64"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__SPARC_64__"
     dnl Is this correct for 64-bits?
     JAVA_ARCH="sparc"
     ;;
 
 x86_64 )
     ARCH_DIR="x86_64"
-    ARCH_FLAGS="-m64 -D__X86_64__"
+    AM_CFLAGS="$AM_CFLAGS -m64"
+    AM_CXXFLAGS="$AM_CXXFLAGS -m64"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__X86_64__"
     JAVA_ARCH="amd64"
     ;;
 
 xdspcore )
     ARCH_DIR="xdspcore"
     ENABLE_STATICVM="yes"
-    ARCH_FLAGS="-D__XDSPCORE__"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__XDSPCORE__"
     USE_SCHEDULER="1"
     ;;
 
@@ -151,51 +163,51 @@ case "$host_os" in
 *cygwin* )
     OS_DIR="cygwin"
     OS_FLAGS="-D__WINDOWS__ -D__CYGWIN__ -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
+    INTRP_CFLAGS="-Wall -Wno-long-long $OS_FLAGS"
     ;;
 
 *darwin* )
     OS_DIR="darwin"
     OS_FLAGS="-D__DARWIN__ -D_XOPEN_SOURCE=600 -D_DARWIN_C_SOURCE -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
+    INTRP_CFLAGS="-Wall -Wno-long-long $OS_FLAGS"
     ;;
 
 dnl Must be BEFORE *freebsd*.
 *kfreebsd*-gnu)
     OS_DIR="freebsd"
     OS_FLAGS="-D__FREEBSD__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
+    INTRP_CFLAGS="-Wall -Wno-long-long $OS_FLAGS"
     ;;
 
 *freebsd* )
     OS_DIR="freebsd"
     OS_FLAGS="-D__FREEBSD__ -D_XOPEN_SOURCE_EXTENDED -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
+    INTRP_CFLAGS="-Wall -Wno-long-long $OS_FLAGS"
     ;;
 
 *irix* )
     OS_DIR="irix"
     OS_FLAGS="-D__IRIX__ -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="$ARCH_FLAGS $OS_FLAGS"
+    INTRP_CFLAGS="$OS_FLAGS"
     ;;
 
 dnl Must be BEFORE *linux*.
 *uclinux | *elf )
     OS_DIR="uclinux"
     OS_FLAGS="-D__LINUX__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
+    INTRP_CFLAGS="-Wall -Wno-long-long $OS_FLAGS"
     ;;
 
 *linux* | *Linux* )
     OS_DIR="linux"
     OS_FLAGS="-D__LINUX__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
+    INTRP_CFLAGS="-Wall -Wno-long-long $OS_FLAGS"
     ;;
 
 *netbsd* )
     OS_DIR="netbsd"
     OS_FLAGS="-D__NETBSD__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
+    INTRP_CFLAGS="-Wall -Wno-long-long $OS_FLAGS"
     ;;
 
 *solaris* )
@@ -206,7 +218,7 @@ dnl Must be BEFORE *linux*.
     OS_FLAGS="-D__SOLARIS__ -D_POSIX_C_SOURCE=200112L -D__EXTENSIONS__ -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
     CC_FLAGS="-D_XOPEN_SOURCE=600"
     CXX_FLAGS="-D_XOPEN_SOURCE=500"
-    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
+    INTRP_CFLAGS="-Wall -Wno-long-long $OS_FLAGS"
     ;;
 
 * )
@@ -289,8 +301,8 @@ esac
 
 dnl Temporary set the CFLAGS for configure tests (e.g. inline keyword)
 dnl we set it properly at the end of this file.
-dnl CFLAGS="$AM_CFLAGS $ARCH_FLAGS $OS_FLAGS $CC_FLAGS"
-dnl CXXFLAGS="$AM_CXXFLAGS $ARCH_FLAGS $OS_FLAGS $CXX_FLAGS"
+dnl CFLAGS="$AM_CFLAGS $OS_FLAGS $CC_FLAGS"
+dnl CXXFLAGS="$AM_CXXFLAGS $OS_FLAGS $CXX_FLAGS"
 
 dnl set interpreter flags
 AC_SUBST(INTRP_CFLAGS)
@@ -730,8 +742,8 @@ dnl Finally pass flags to Makefiles.
 dnl CFLAGS="$AM_CFLAGS"
 dnl CXXFLAGS="$AM_CXXFLAGS"
 
-AM_CFLAGS="$AM_CFLAGS $CC_FLAGS $ARCH_FLAGS $OS_FLAGS"
-AM_CXXFLAGS="$AM_CXXFLAGS $CXX_FLAGS $ARCH_FLAGS $OS_FLAGS"
+AM_CFLAGS="$AM_CFLAGS $CC_FLAGS $OS_FLAGS"
+AM_CXXFLAGS="$AM_CXXFLAGS $CXX_FLAGS $OS_FLAGS"
 AM_CPPFLAGS="$AM_CPPFLAGS"
 
 AC_SUBST(AM_CFLAGS)
