@@ -208,8 +208,9 @@ dnl Must be BEFORE *linux*.
     dnl not set when cpp is called with -std=c99, therefore we add them
     dnl here.
     AM_CPPFLAGS="$AM_CPPFLAGS -D__SOLARIS__ -D_POSIX_C_SOURCE=200112L -D__EXTENSIONS__ -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
-    CC_FLAGS="-D_XOPEN_SOURCE=600"
-    CXX_FLAGS="-D_XOPEN_SOURCE=500"
+    dnl TODO check if still needed
+    AM_CFLAGS="$AM_CFLAGS -D_XOPEN_SOURCE=600"
+    AM_CXXFLAGS="$AM_CXXFLAGS -D_XOPEN_SOURCE=500"
     ;;
 
 * )
@@ -267,18 +268,16 @@ AX_COMPILER_VENDOR
 dnl Set compiler flags depending on the compiler vendor.
 case "$ax_cv_c_compiler_vendor" in
 gnu )
-    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long $CC_FLAGS"
-    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long $CXX_FLAGS"
+    AM_CFLAGS="-std=c99 -pedantic -Wall -Wno-long-long $AM_CFLAGS"
+    AM_CXXFLAGS="-std=c++98 -pedantic -Wall -Wno-long-long $AM_CXXFLAGS"
     ;;
 
 sgi )
-    CC_FLAGS="-c99 $CC_FLAGS"
-    CXX_FLAGS="$CXX_FLAGS"
+    AM_CFLAGS="-c99 $AM_CFLAGS"
     ;;
 
 sun )
-    CC_FLAGS="-xc99 $CC_FLAGS"
-    CXX_FLAGS="$CXX_FLAGS"
+    AM_CFLAGS="-xc99 $AM_CFLAGS"
     ;;
 
 * )
@@ -288,8 +287,8 @@ esac
 
 dnl Temporary set the CFLAGS for configure tests (e.g. inline keyword)
 dnl we set it properly at the end of this file.
-dnl CFLAGS="$AM_CFLAGS $CC_FLAGS"
-dnl CXXFLAGS="$AM_CXXFLAGS $CXX_FLAGS"
+dnl CFLAGS="$AM_CFLAGS"
+dnl CXXFLAGS="$AM_CXXFLAGS"
 
 dnl define and substitute some architecture specific variables
 AC_DEFINE_UNQUOTED([ARCH_DIR], "${ARCH_DIR}", [architecture directory])
@@ -725,10 +724,6 @@ AC_VERSION_CONFIG
 dnl Finally pass flags to Makefiles.
 dnl CFLAGS="$AM_CFLAGS"
 dnl CXXFLAGS="$AM_CXXFLAGS"
-
-AM_CFLAGS="$AM_CFLAGS $CC_FLAGS"
-AM_CXXFLAGS="$AM_CXXFLAGS $CXX_FLAGS"
-AM_CPPFLAGS="$AM_CPPFLAGS"
 
 AC_SUBST(AM_CFLAGS)
 AC_SUBST(AM_CXXFLAGS)
