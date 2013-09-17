@@ -219,9 +219,12 @@ dnl Must be BEFORE *linux*.
 esac
 
 
-AC_MSG_CHECKING(whether to disable optimizations and build with -g -O0)
+dnl XXX: flag `-g` is not influenced by this arg!
+dnl (configure with CFLAGS, CXXFLAGS to disable `-g`)
+dnl AC_MSG_CHECKING(whether to disable optimizations and build with -g -O0)
+AC_MSG_CHECKING(whether to disable optimizations and build with -O0)
 AC_ARG_ENABLE([optimizations],
-              [AS_HELP_STRING(--disable-optimizations,build with -g -O0 [[default=no]])],
+              [AS_HELP_STRING(--disable-optimizations,build with -O0 [[default=no]])],
               [case "${enableval}" in
                    no) disable_optimizations=yes;;
                    *) disable_optimizations=no;;
