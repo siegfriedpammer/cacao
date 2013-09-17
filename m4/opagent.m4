@@ -46,9 +46,9 @@ AC_ARG_ENABLE([opagent],
 AC_MSG_RESULT(${ENABLE_OPAGENT})
 
 if test x"${ENABLE_OPAGENT}" = "xyes"; then
-    CFLAGS="$CFLAGS $OPAGENT_CFLAGS"
-    CPPFLAGS="$CPPFLAGS $OPAGENT_CFLAGS"
-    LDFLAGS="$LDFLAGS $OPAGENT_LDFLAGS"
+    AM_CFLAGS="$AM_CFLAGS $OPAGENT_CFLAGS"
+    AM_CPPFLAGS="$AM_CPPFLAGS $OPAGENT_CFLAGS"
+    AM_LDFLAGS="$AM_LDFLAGS $OPAGENT_LDFLAGS"
     AC_CHECK_HEADERS([opagent.h],, [AC_MSG_ERROR(cannot find opagent.h)])
     AC_CHECK_LIB(opagent, op_open_agent,, [AC_MSG_ERROR(cannot find libopagent)])
     AC_DEFINE([ENABLE_OPAGENT], 1, [use opagent])
