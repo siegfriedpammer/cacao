@@ -1,6 +1,6 @@
 dnl m4/opagent.m4
 dnl
-dnl Copyright (C) 2008
+dnl Copyright (C) 1996-2013
 dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 dnl 
 dnl This file is part of CACAO.
@@ -25,15 +25,13 @@ dnl check if opagent library should be used
 AC_DEFUN([AC_CHECK_ENABLE_OPAGENT],[
 AC_ARG_WITH([opagent-includedir],
             [AS_HELP_STRING(--with-opagent-includedir=<path>,location of opagent header files [[default=/usr/include]])],
-            [OPAGENT_CFLAGS=-I"${withval}"],
+            [OPAGENT_CPPFLAGS=-I"${withval}"],
             [])
-AC_SUBST(OPAGENT_CFLAGS)
 
 AC_ARG_WITH([opagent-libdir],
             [AS_HELP_STRING(--with-opagent-libdir=<path>,location of opagent library [[default=/usr/lib/oprofile]])],
             [OPAGENT_LDFLAGS=-L"${withval}"],
             [OPAGENT_LDFLAGS=-L/usr/lib/oprofile])
-AC_SUBST(OPAGENT_LDFLAGS)
 
 AC_MSG_CHECKING(whether Oprofile opagent support code should be compiled)
 AC_ARG_ENABLE([opagent],
@@ -46,8 +44,7 @@ AC_ARG_ENABLE([opagent],
 AC_MSG_RESULT(${ENABLE_OPAGENT})
 
 if test x"${ENABLE_OPAGENT}" = "xyes"; then
-    AM_CFLAGS="$AM_CFLAGS $OPAGENT_CFLAGS"
-    AM_CPPFLAGS="$AM_CPPFLAGS $OPAGENT_CFLAGS"
+    AM_CPPFLAGS="$AM_CPPFLAGS $OPAGENT_CPPFLAGS"
     AM_LDFLAGS="$AM_LDFLAGS $OPAGENT_LDFLAGS"
     AC_CHECK_HEADERS([opagent.h],, [AC_MSG_ERROR(cannot find opagent.h)])
     AC_CHECK_LIB(opagent, op_open_agent,, [AC_MSG_ERROR(cannot find libopagent)])
