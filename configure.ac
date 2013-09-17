@@ -162,52 +162,52 @@ dnl Host operating system type.
 case "$host_os" in
 *cygwin* )
     OS_DIR="cygwin"
-    OS_FLAGS="-D__WINDOWS__ -D__CYGWIN__ -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $OS_FLAGS"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__WINDOWS__ -D__CYGWIN__ -D__STDC_FORMAT_MACROS"
+    INTRP_CFLAGS="-Wall -Wno-long-long"
     ;;
 
 *darwin* )
     OS_DIR="darwin"
-    OS_FLAGS="-D__DARWIN__ -D_XOPEN_SOURCE=600 -D_DARWIN_C_SOURCE -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $OS_FLAGS"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__DARWIN__ -D_XOPEN_SOURCE=600 -D_DARWIN_C_SOURCE -D__STDC_FORMAT_MACROS"
+    INTRP_CFLAGS="-Wall -Wno-long-long"
     ;;
 
 dnl Must be BEFORE *freebsd*.
 *kfreebsd*-gnu)
     OS_DIR="freebsd"
-    OS_FLAGS="-D__FREEBSD__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $OS_FLAGS"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__FREEBSD__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
+    INTRP_CFLAGS="-Wall -Wno-long-long"
     ;;
 
 *freebsd* )
     OS_DIR="freebsd"
-    OS_FLAGS="-D__FREEBSD__ -D_XOPEN_SOURCE_EXTENDED -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $OS_FLAGS"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__FREEBSD__ -D_XOPEN_SOURCE_EXTENDED -D__STDC_FORMAT_MACROS"
+    INTRP_CFLAGS="-Wall -Wno-long-long"
     ;;
 
 *irix* )
     OS_DIR="irix"
-    OS_FLAGS="-D__IRIX__ -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="$OS_FLAGS"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__IRIX__ -D__STDC_FORMAT_MACROS"
+    INTRP_CFLAGS=""
     ;;
 
 dnl Must be BEFORE *linux*.
 *uclinux | *elf )
     OS_DIR="uclinux"
-    OS_FLAGS="-D__LINUX__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $OS_FLAGS"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__LINUX__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
+    INTRP_CFLAGS="-Wall -Wno-long-long"
     ;;
 
 *linux* | *Linux* )
     OS_DIR="linux"
-    OS_FLAGS="-D__LINUX__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $OS_FLAGS"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__LINUX__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
+    INTRP_CFLAGS="-Wall -Wno-long-long"
     ;;
 
 *netbsd* )
     OS_DIR="netbsd"
-    OS_FLAGS="-D__NETBSD__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $OS_FLAGS"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__NETBSD__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
+    INTRP_CFLAGS="-Wall -Wno-long-long"
     ;;
 
 *solaris* )
@@ -215,10 +215,10 @@ dnl Must be BEFORE *linux*.
     dnl On solaris the architecture defines 'sparc', 'sun', 'unix' are
     dnl not set when cpp is called with -std=c99, therefore we add them
     dnl here.
-    OS_FLAGS="-D__SOLARIS__ -D_POSIX_C_SOURCE=200112L -D__EXTENSIONS__ -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__SOLARIS__ -D_POSIX_C_SOURCE=200112L -D__EXTENSIONS__ -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
     CC_FLAGS="-D_XOPEN_SOURCE=600"
     CXX_FLAGS="-D_XOPEN_SOURCE=500"
-    INTRP_CFLAGS="-Wall -Wno-long-long $OS_FLAGS"
+    INTRP_CFLAGS="-Wall -Wno-long-long"
     ;;
 
 * )
@@ -243,9 +243,7 @@ init_cxxflags="$CXXFLAGS"
 
 dnl Set optimization and debugging for all architectures and systems.
 if test x"$CFLAGS" = "x"; then
-    AM_CFLAGS="-g"
-else
-    AM_CFLAGS=""
+    AM_CFLAGS="$AM_CFLAGS -g"
 fi
 if test x"${disable_optimizations}" = "xyes"; then
     AM_CFLAGS="$AM_CFLAGS -O0"
@@ -255,9 +253,7 @@ fi
 AM_CFLAGS="$AM_CFLAGS -fno-strict-aliasing"
 
 if test x"$CXXFLAGS" = "x"; then
-    AM_CXXFLAGS="-g"
-else
-    AM_CXXFLAGS=""
+    AM_CXXFLAGS="$AM_CXXFLAGS -g"
 fi
 if test x"${disable_optimizations}" = "xyes"; then
     AM_CXXFLAGS="$AM_CXXFLAGS -O0"
@@ -301,8 +297,8 @@ esac
 
 dnl Temporary set the CFLAGS for configure tests (e.g. inline keyword)
 dnl we set it properly at the end of this file.
-dnl CFLAGS="$AM_CFLAGS $OS_FLAGS $CC_FLAGS"
-dnl CXXFLAGS="$AM_CXXFLAGS $OS_FLAGS $CXX_FLAGS"
+dnl CFLAGS="$AM_CFLAGS $CC_FLAGS"
+dnl CXXFLAGS="$AM_CXXFLAGS $CXX_FLAGS"
 
 dnl set interpreter flags
 AC_SUBST(INTRP_CFLAGS)
@@ -742,8 +738,8 @@ dnl Finally pass flags to Makefiles.
 dnl CFLAGS="$AM_CFLAGS"
 dnl CXXFLAGS="$AM_CXXFLAGS"
 
-AM_CFLAGS="$AM_CFLAGS $CC_FLAGS $OS_FLAGS"
-AM_CXXFLAGS="$AM_CXXFLAGS $CXX_FLAGS $OS_FLAGS"
+AM_CFLAGS="$AM_CFLAGS $CC_FLAGS"
+AM_CXXFLAGS="$AM_CXXFLAGS $CXX_FLAGS"
 AM_CPPFLAGS="$AM_CPPFLAGS"
 
 AC_SUBST(AM_CFLAGS)
