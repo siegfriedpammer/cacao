@@ -21,7 +21,6 @@
 ## 02110-1301, USA.
 
 
-AM_CFLAGS = $(INTRP_CFLAGS)
 AM_CPPFLAGS += -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir) -I$(top_builddir)/src
 
 LIBS =

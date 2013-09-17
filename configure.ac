@@ -163,51 +163,43 @@ case "$host_os" in
 *cygwin* )
     OS_DIR="cygwin"
     AM_CPPFLAGS="$AM_CPPFLAGS -D__WINDOWS__ -D__CYGWIN__ -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long"
     ;;
 
 *darwin* )
     OS_DIR="darwin"
     AM_CPPFLAGS="$AM_CPPFLAGS -D__DARWIN__ -D_XOPEN_SOURCE=600 -D_DARWIN_C_SOURCE -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long"
     ;;
 
 dnl Must be BEFORE *freebsd*.
 *kfreebsd*-gnu)
     OS_DIR="freebsd"
     AM_CPPFLAGS="$AM_CPPFLAGS -D__FREEBSD__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long"
     ;;
 
 *freebsd* )
     OS_DIR="freebsd"
     AM_CPPFLAGS="$AM_CPPFLAGS -D__FREEBSD__ -D_XOPEN_SOURCE_EXTENDED -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long"
     ;;
 
 *irix* )
     OS_DIR="irix"
     AM_CPPFLAGS="$AM_CPPFLAGS -D__IRIX__ -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS=""
     ;;
 
 dnl Must be BEFORE *linux*.
 *uclinux | *elf )
     OS_DIR="uclinux"
     AM_CPPFLAGS="$AM_CPPFLAGS -D__LINUX__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long"
     ;;
 
 *linux* | *Linux* )
     OS_DIR="linux"
     AM_CPPFLAGS="$AM_CPPFLAGS -D__LINUX__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long"
     ;;
 
 *netbsd* )
     OS_DIR="netbsd"
     AM_CPPFLAGS="$AM_CPPFLAGS -D__NETBSD__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long"
     ;;
 
 *solaris* )
@@ -218,7 +210,6 @@ dnl Must be BEFORE *linux*.
     AM_CPPFLAGS="$AM_CPPFLAGS -D__SOLARIS__ -D_POSIX_C_SOURCE=200112L -D__EXTENSIONS__ -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
     CC_FLAGS="-D_XOPEN_SOURCE=600"
     CXX_FLAGS="-D_XOPEN_SOURCE=500"
-    INTRP_CFLAGS="-Wall -Wno-long-long"
     ;;
 
 * )
@@ -299,9 +290,6 @@ dnl Temporary set the CFLAGS for configure tests (e.g. inline keyword)
 dnl we set it properly at the end of this file.
 dnl CFLAGS="$AM_CFLAGS $CC_FLAGS"
 dnl CXXFLAGS="$AM_CXXFLAGS $CXX_FLAGS"
-
-dnl set interpreter flags
-AC_SUBST(INTRP_CFLAGS)
 
 dnl define and substitute some architecture specific variables
 AC_DEFINE_UNQUOTED([ARCH_DIR], "${ARCH_DIR}", [architecture directory])
