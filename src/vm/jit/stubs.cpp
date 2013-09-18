@@ -164,7 +164,7 @@ void CompilerStub::remove(void* stub)
 
 *******************************************************************************/
 
-#if defined(ENABLE_DISASSEMBLER)
+#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 static void codegen_disassemble_stub(methodinfo *m, u1 *start, u1 *end)
 {
 	printf("Stub code: ");
