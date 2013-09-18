@@ -451,12 +451,6 @@ static bool linker_overwrite_method(methodinfo *mg,
 									methodinfo *ms,
 									method_worklist **wl)
 {
-	classinfo *cg;
-	classinfo *cs;
-
-	cg = mg->clazz;
-	cs = ms->clazz;
-
 	/* overriding a final method is illegal */
 
 	if (mg->flags & ACC_FINAL) {
@@ -472,7 +466,7 @@ static bool linker_overwrite_method(methodinfo *mg,
 
 	if ((ms->name != utf8::init)
 			&& !classcache_add_constraints_for_params(
-				cs->classloader, cg->classloader, mg))
+				ms->clazz->classloader, mg->clazz->classloader, mg))
 	{
 		return false;
 	}

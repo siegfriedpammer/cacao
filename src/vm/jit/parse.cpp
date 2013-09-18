@@ -622,7 +622,7 @@ bool parse(jitdata *jd)
 	constant_classref  *cr;
 	constant_classref  *compr;
 	classinfo          *c;
-	builtintable_entry *bte;
+	builtintable_entry *bte = NULL; // prevent maybe-uninitialized warning
 	constant_FMIref    *fmi;
 	methoddesc         *md;
 	unresolved_method  *um;
@@ -1741,6 +1741,8 @@ invoke_method:
 										 opcode, ircount);
 			return false;
 			break;
+#else
+		default: break;
 #endif /* defined(ENABLE_VERIFIER) */
 
         /* opcodes that don't require translation *****************************/

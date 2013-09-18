@@ -736,8 +736,10 @@ static void stack_create_locals(stackdata_t *sd, basicblock *b)
 static void stack_merge_locals(stackdata_t *sd, basicblock *b)
 {
 	s4 i;
+#if defined(ENABLE_VERIFIER)
 	varinfo *dv;
 	varinfo *sv;
+#endif
 
 	/* If a javalocal is mapped to different cacao locals along the */
 	/* incoming control-flow edges, it becomes undefined.           */

@@ -1345,10 +1345,7 @@ bool resolve_field(unresolved_field *ref,
 {
 	classinfo *referer;
 	classinfo *container;
-	classinfo *declarer;
-	constant_classref *fieldtyperef;
 	fieldinfo *fi;
-	resolve_result_t checkresult;
 
 	assert(ref);
 	assert(result);
@@ -1418,7 +1415,7 @@ resolved_the_field:
 	/* Checking opt_verify is ok here, because the NULL iptr guarantees */
 	/* that no missing parts of an instruction will be accessed.        */
 	if (opt_verify) {
-		checkresult = resolve_field_verifier_checks(
+		resolve_result_t checkresult = resolve_field_verifier_checks(
 				ref->referermethod,
 				ref->fieldref,
 				container,
@@ -1431,7 +1428,7 @@ resolved_the_field:
 		if (checkresult != resolveSucceeded)
 			return (bool) checkresult;
 
-		declarer = fi->clazz;
+		classinfo *declarer = fi->clazz;
 		assert(declarer);
 		assert(declarer->state & CLASS_LOADED);
 		assert(declarer->state & CLASS_LINKED);
@@ -1448,7 +1445,7 @@ resolved_the_field:
 				return (bool) checkresult;
 		}
 
-		fieldtyperef = ref->fieldref->parseddesc.fd->classref;
+		constant_classref *fieldtyperef = ref->fieldref->parseddesc.fd->classref;
 
 		/* for PUT* instructions we have to check the constraints on the value type */
 		if (((ref->flags & RESOLVE_PUTFIELD) != 0) && fi->type == TYPE_ADR) {
@@ -2060,12 +2057,7 @@ bool resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **re
 {
 	classinfo *referer;
 	classinfo *container;
-	classinfo *declarer;
 	methodinfo *mi;
-	typedesc *paramtypes;
-	int instancecount;
-	int i;
-	resolve_result_t checkresult;
 
 	assert(ref);
 	assert(result);
@@ -2154,7 +2146,7 @@ resolved_the_method:
 #ifdef ENABLE_VERIFIER
 	if (opt_verify) {
 
-		checkresult = resolve_method_verifier_checks(
+		resolve_result_t checkresult = resolve_method_verifier_checks(
 				ref->referermethod,
 				ref->methodref,
 				mi,
@@ -2168,12 +2160,14 @@ resolved_the_method:
 		if (!resolve_method_loading_constraints(referer, mi))
 			return false;
 
-		declarer = mi->clazz;
+		classinfo *declarer = mi->clazz;
 		assert(declarer);
 		assert(referer->state & CLASS_LINKED);
 
 		/* for non-static methods we have to check the constraints on the         */
 		/* instance type                                                          */
+
+		int instancecount;
 
 		if (!(ref->flags & RESOLVE_STATIC)) {
 			checkresult = resolve_and_check_subtype_set(ref->referermethod,
@@ -2192,9 +2186,9 @@ resolved_the_method:
 		/* check subtype constraints for TYPE_ADR parameters */
 
 		assert(mi->parseddesc->paramcount == ref->methodref->parseddesc.md->paramcount);
-		paramtypes = mi->parseddesc->paramtypes;
+		typedesc *paramtypes = mi->parseddesc->paramtypes;
 
-		for (i = 0; i < mi->parseddesc->paramcount-instancecount; i++) {
+		for (int i = 0; i < mi->parseddesc->paramcount-instancecount; i++) {
 			if (paramtypes[i+instancecount].type == TYPE_ADR) {
 				if (ref->paramconstraints) {
 					checkresult = resolve_and_check_subtype_set(ref->referermethod,
