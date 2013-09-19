@@ -305,7 +305,7 @@ void md_param_alloc_native(methoddesc *md)
 					freguse++;
 				}
 				else {
-					int i, r;
+					int i;
 					if (backfill) {
 						for (i=0; i<freguse; i++)
 							if (!sregused[i])

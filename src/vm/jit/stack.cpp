@@ -2486,7 +2486,7 @@ icmd_NOP:
 									iptr->sx.val.i = 29;
 								else if (iptr->sx.val.i == 0x40000000)
 									iptr->sx.val.i = 30;
-								else if (iptr->sx.val.i == 0x80000000)
+								else if (iptr->sx.val.u == 0x80000000)
 									iptr->sx.val.i = 31;
 								else
 									goto normal_ICONST;

@@ -888,7 +888,7 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 
 	uint8_t  *datasp = FI.get_datasp();
 	//uint8_t  *javasp = FI.get_javasp();
-#if defined(ENABLE_HANDLES) || !defined(NDEBUG)
+#if defined(ENABLE_HANDLES) || ( !defined(NDEBUG) && !defined(__ARM__) )
 	uint64_t *arg_regs = FI.get_arg_regs();
 	uint64_t *arg_stack = FI.get_arg_stack();
 #endif
@@ -971,7 +971,7 @@ java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 	FrameInfo FI(sp,framesize);
 
 	uint8_t  *datasp = FI.get_datasp();
-#if defined(ENABLE_HANDLES) || !defined(NDEBUG)
+#if defined(ENABLE_HANDLES) || ( !defined(NDEBUG) && !defined(__ARM__) )
 	uint64_t *ret_regs = FI.get_ret_regs();
 #endif
 
@@ -1661,14 +1661,19 @@ bool codegen_emit(jitdata *jd)
 #else
 			{
 				fieldinfo* fi;
-				patchref_t* pr;
+#if defined(USES_PATCHABLE_MEMORY_BARRIER)
+				patchref_t* pr = NULL;
+#endif
 
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 					unresolved_field* uf = iptr->sx.s23.s3.uf;
 					fieldtype = uf->fieldref->parseddesc.fd->type;
 					disp      = dseg_add_unique_address(cd, 0);
 
-					pr = patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
+#if defined(USES_PATCHABLE_MEMORY_BARRIER)
+					pr =
+#endif
+					patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
 
 					fi = NULL;		/* Silence compiler warning */
 				}
@@ -1682,8 +1687,6 @@ bool codegen_emit(jitdata *jd)
 						patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz, 0);
 						PROFILE_CYCLE_START;
 					}
-
-					pr = NULL;		/* Silence compiler warning */
 				}
 
 				// XXX X86_64: Here We had this:
