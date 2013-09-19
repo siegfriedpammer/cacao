@@ -39,7 +39,6 @@ struct assertion_name_t {
 	char      *name;
 	bool       enabled;
 	bool       package;
-/* 	listnode_t linkage; */
 };
 
 /* -ea/-esa/-da/-dsa options **************************************************/

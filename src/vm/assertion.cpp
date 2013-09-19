@@ -79,13 +79,8 @@ void assertion_ea_da(const char *name, bool enabled)
 
 	if ((len > 2) && (strcmp(name + (len - 3), "...") == 0)) {
 		package = true;
-		assertion_package_count += 1;
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-		buf[len - 2] = '\0';
-		buf[len - 3] = '/';
-#else
 		buf[len - 3] = '\0';
-#endif
+		assertion_package_count += 1;
 	}
 	else {
 		assertion_class_count += 1;
