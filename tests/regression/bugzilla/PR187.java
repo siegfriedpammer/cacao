@@ -42,7 +42,7 @@ public class PR187 {
         try {
             String[] result = SecondaryVMRunner.run(
                 System.getProperty("cacao.test.javacmd"), "-cp boottest.jar boottest.bootpackage");
-            assertEquals(result[0], "out:boottest\nout:vendor:FantasyVendor\n");
+            assertEquals("out:boottest\nout:vendor:FantasyVendor\n", result[0]);
             assertTrue(result[1].isEmpty());
         } catch (Exception e) {
             fail(e.toString());
@@ -57,7 +57,7 @@ public class PR187 {
             String expect = "out:boottest\nout:vendor:";
             String[] result = SecondaryVMRunner.run(
                 System.getProperty("cacao.test.javacmd"), "-Xbootclasspath/a:boottest.jar boottest.bootpackage");
-            assertEquals(result[0].substring(0, expect.length()), expect);
+            assertEquals(expect, result[0].substring(0, expect.length()));
             assertTrue(result[1].isEmpty());
         } catch (Exception e) {
             fail(e.toString());

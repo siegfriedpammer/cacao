@@ -683,7 +683,6 @@ dnl check for some programs we need
 case "${WITH_JAVA_RUNTIME_LIBRARY}" in
     cldc1.1 | gnuclasspath)
         AC_PROG_JAVAC
-        AC_PROG_JAR
         ;;
     openjdk | openjdk7)
         ;;
@@ -692,6 +691,7 @@ case "${WITH_JAVA_RUNTIME_LIBRARY}" in
         ;;
 esac
 
+AC_PROG_JAR
 AC_CHECK_WITH_JASMIN_JAR
 AC_CHECK_WITH_JUNIT_JAR
 

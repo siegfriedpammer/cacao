@@ -31,7 +31,7 @@ public class PR185 {
         try {
             String[] result = SecondaryVMRunner.run(
                 System.getProperty("cacao.test.javacmd"), "finalizer_exceptions");
-            assertEquals(result[0], "out:Success!\n");
+            assertEquals("out:Success!\n", result[0]);
             assertTrue(result[1].isEmpty());
         } catch (Exception e) {
             fail(e.toString());
