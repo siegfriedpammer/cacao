@@ -61,11 +61,13 @@ public class finalizer_exceptions {
         System.gc();
         System.gc();
         System.runFinalization();
+        long timestamp_start = System.currentTimeMillis();
         try {
             synchronized (Tester.lock) {
                 // Don't stop at the first throwing finalizer. We want the
                 // exception to escape and be dealt with at the JVM level.
-                while (Tester.hadWithException < 3 || !Tester.hadWithoutException)
+                while (System.currentTimeMillis() - 2000 < timestamp_start &&
+                       (Tester.hadWithException < 3 || !Tester.hadWithoutException))
                     Tester.lock.wait(2000);
             }
         } catch (Exception e) {
