@@ -405,24 +405,9 @@ static inline void free_from_system_heap(JavaString str) {
 
 // ***** COPY CONTENTS INTO STRING
 
-template<uint16_t (*Fn)(uint16_t)>
-class Utf8Decoder {
-	public:
-		typedef utf_utils::Tag<utf_utils::VISIT_UTF16, utf_utils::ABORT_ON_ERROR> Tag;
-
-		Utf8Decoder(u2 *dst) : _dst(dst) {}
-
-		void utf16(uint16_t c) { *_dst++ = Fn(c); }
-
-		bool finish() const { return true;  }
-		bool abort()  const { return false; }
-	private:
-		u2 *_dst;
-};
-
-template<uint16_t (*Fn)(uint16_t)>
+template<typename Iterator>
 static inline bool init_from_utf8(const char *src, size_t src_size, u2 *dst) {
-	return utf8::transform<bool>(src, src_size, Utf8Decoder<Fn>(dst));
+	return utf8::decode(Iterator(src), Iterator(src + src_size), dst);
 }
 
 static inline bool init_from_utf16(const u2 *src, size_t src_size, u2 *dst) {
@@ -430,13 +415,6 @@ static inline bool init_from_utf16(const u2 *src, size_t src_size, u2 *dst) {
 	return true;
 }
 
-// ***** CHARACTER TRANSFORMERS
-
-namespace {
-	inline uint16_t identity(uint16_t c)     { return c; }
-	inline uint16_t slash_to_dot(uint16_t c) { return (c == '/') ? '.' : c; }
-	inline uint16_t dot_to_slash(uint16_t c) { return (c == '.') ? '/' : c; }
-}
 
 /* JavaString::from_utf8 *******************************************************
 
@@ -447,12 +425,12 @@ namespace {
 
 JavaString JavaString::from_utf8(Utf8String u) {
 	return makeJavaString(u.begin(), u.size(), u.utf16_size(),
-	                      allocate_with_GC, init_from_utf8<identity>);
+	                      allocate_with_GC, init_from_utf8<const char*>);
 }
 
 JavaString JavaString::from_utf8(const char *cs, size_t sz) {
 	return makeJavaString(cs, sz, utf8::num_codepoints(cs, sz),
-	                      allocate_with_GC, init_from_utf8<identity>);
+	                      allocate_with_GC, init_from_utf8<const char*>);
 }
 
 /* JavaString::from_utf8_slash_to_dot ******************************************
@@ -467,7 +445,7 @@ JavaString JavaString::from_utf8(const char *cs, size_t sz) {
 
 JavaString JavaString::from_utf8_slash_to_dot(Utf8String u) {
 	return makeJavaString(u.begin(), u.size(), u.utf16_size(),
-	                      allocate_with_GC, init_from_utf8<slash_to_dot>);
+	                      allocate_with_GC, init_from_utf8<utf8::SlashToDot>);
 }
 
 /* JavaString::from_utf8_dot_to_slash ******************************************
@@ -482,7 +460,7 @@ JavaString JavaString::from_utf8_slash_to_dot(Utf8String u) {
 
 JavaString JavaString::from_utf8_dot_to_slash(Utf8String u) {
 	return makeJavaString(u.begin(), u.size(), u.utf16_size(),
-	                      allocate_with_GC, init_from_utf8<dot_to_slash>);
+	                      allocate_with_GC, init_from_utf8<utf8::DotToSlash>);
 }
 
 /* JavaString::literal *********************************************************
@@ -499,7 +477,7 @@ JavaString JavaString::from_utf8_dot_to_slash(Utf8String u) {
 
 JavaString JavaString::literal(Utf8String u) {
 	JavaString str = makeJavaString(u.begin(), u.size(), u.utf16_size(),
-	                                allocate_on_system_heap, init_from_utf8<identity>);
+	                                allocate_on_system_heap, init_from_utf8<const char*>);
 
 
 	JavaString intern_str = intern_table->intern(str);
@@ -602,7 +580,6 @@ const u2* JavaString::begin() const {
 
 	int32_t   offset = java_lang_String::get_offset(str);
 	uint16_t* ptr    = ca.get_raw_data_ptr();
-//	uint16_t* ptr    = ((java_chararray_t*)array)->data;
 
 	return ptr + offset;
 }

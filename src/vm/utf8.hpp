@@ -100,7 +100,7 @@ class Utf8String {
 		/*** ITERATION     ******************************************/
 
 		// iterator over the bytes in a string
-		typedef const char* byte_iterator;
+		typedef const char*    byte_iterator;
 
 		byte_iterator begin() const { return _data->text; }
 		byte_iterator end()   const { return begin() + size(); }
@@ -182,7 +182,6 @@ class Utf8String {
 		static Utf8String alloc(size_t);
 		static void       free(Utf8String);
 
-		template<uint8_t (*Fn)(uint8_t)>
 		friend struct EagerStringBuilder;
 		friend struct LazyStringBuilder;
 		friend struct Utf8Eq;
@@ -224,24 +223,19 @@ OStream& operator<<(OStream& os, const Utf8String &u);
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-#define UTF_AT(u, IDX) (utf8_text(u)[IDX])
-#define UTF_TEXT(u)    utf8_text(u)
+// these are only used in jvmti and cacaodbg
+
 #define UTF_END(u)     utf8_end(u)
 #define UTF_SIZE(u)    utf8_size(u)
-#define UTF_HASH(u)    utf8_hash(u)
 
-extern const char *utf8_text(utf*);
 extern const char *utf8_end(utf*);
 extern size_t      utf8_size(utf*);
-extern size_t      utf8_hash(utf*);
 
-// these are only used in jvmti
+void utf_sprint_convert_to_latin1(char *buffer, Utf8String u);
+void utf_sprint_convert_to_latin1_classname(char *buffer, Utf8String u);
 
-void utf_sprint_convert_to_latin1(char *buffer, utf *u);
-void utf_sprint_convert_to_latin1_classname(char *buffer, utf *u);
-
-void utf_strcat_convert_to_latin1(char *buffer, utf *u);
-void utf_strcat_convert_to_latin1_classname(char *buffer, utf *u);
+void utf_strcat_convert_to_latin1(char *buffer, Utf8String u);
+void utf_strcat_convert_to_latin1_classname(char *buffer, Utf8String u);
 
 #endif // UTF8_HPP_
 

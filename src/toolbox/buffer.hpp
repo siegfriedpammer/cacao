@@ -50,7 +50,7 @@
 
 *******************************************************************************/
 
-template<typename Allocator = MemoryAllocator<u1> >
+template<typename Allocator = MemoryAllocator<uint8_t> >
 class Buffer {
 	public:
 		// construct a buffer with size
@@ -68,7 +68,7 @@ class Buffer {
 		inline Buffer& write(JavaString);
 		inline Buffer& write(const char*);
 		inline Buffer& write(const char*, size_t);
-		inline Buffer& write(const u2*,   size_t);
+		inline Buffer& write(const uint16_t*,   size_t);
 
 		/// write to buffer, replacing '/' by '.'
 		inline Buffer& write_slash_to_dot(const char*);
@@ -119,8 +119,8 @@ class Buffer {
 		inline Utf8String utf8_str();
 
 		/// get raw contents of buffer (not necessarily zero terminated).
-		inline u1* data();
-		inline const u1* data() const;
+		inline uint8_t* data();
+		inline const uint8_t* data() const;
 
 		/// get size of buffer contents
 		inline size_t size();
@@ -135,7 +135,7 @@ class Buffer {
 
 		/// advance buffer position by n bytes
 		/// O(1)
-		inline void skip(size_t num_bytes); 
+		inline void skip(size_t num_bytes);
 
 		/// remove data from the back of this buffer.
 		/// O(1)
@@ -152,21 +152,18 @@ class Buffer {
 		///non-assignable
 		Buffer& operator=(const Buffer&);
 
-		u1       *_start, *_end, *_pos;
+		uint8_t  *_start, *_end, *_pos;
 		Allocator _alloc;
 
 		// used to encode utf16 strings to utf8
-		class Encode {
-			public:
-				typedef utf_utils::Tag<utf_utils::VISIT_UTF8, utf_utils::IGNORE_ERRORS> Tag;
+		struct Encode : utf16::VisitorBase<void> {
+			typedef void ReturnType;
 
-				inline Encode(Buffer& dst) : _dst(dst) {}
+			Encode(Buffer& dst) : _dst(dst) {}
 
-				inline void utf8 (uint8_t c) { _dst.write(c); }
-
-				inline void finish() const {}
-			private:
-				Buffer& _dst;
+			void utf8 (uint8_t c) { _dst.write(c); }
+		private:
+			Buffer& _dst;
 		};
 };
 
@@ -257,7 +254,7 @@ Buffer<Allocator>& Buffer<Allocator>::write(const char *cs, size_t sz)
 	return *this;
 }
 
-/* Buffer::write(const u2*, size_t) ********************************************
+/* Buffer::write(const uint16_t*, size_t) **************************************
 
 	Encode utf-16 string with a given length into buffer
 	Does NOT inserts a zero terminator.
@@ -265,9 +262,9 @@ Buffer<Allocator>& Buffer<Allocator>::write(const char *cs, size_t sz)
 *******************************************************************************/
 
 template<typename Allocator>
-Buffer<Allocator>& Buffer<Allocator>::write(const u2 *cs, size_t sz)
+Buffer<Allocator>& Buffer<Allocator>::write(const uint16_t *cs, size_t sz)
 {
-	utf16::transform<void>(cs, sz, Encode(*this));
+	utf16::transform(cs, cs + sz, Encode(*this));
 
 	return *this;
 }
@@ -518,13 +515,13 @@ Utf8String Buffer<Allocator>::utf8_str()
 *******************************************************************************/
 
 template<typename Allocator>
-u1* Buffer<Allocator>::data()
+uint8_t* Buffer<Allocator>::data()
 {
 	return _start;
 }
 
 template<typename Allocator>
-const u1* Buffer<Allocator>::data() const
+const uint8_t* Buffer<Allocator>::data() const
 {
 	return _start;
 }
@@ -620,4 +617,5 @@ void Buffer<Allocator>::ensure_capacity(size_t write_size)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

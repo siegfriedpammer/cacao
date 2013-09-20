@@ -34,6 +34,7 @@
 STAT_REGISTER_VAR(int,count_utf_new,0,"utf new","Calls of utf_new")
 STAT_DECLARE_VAR(int,count_utf_len,0)
 
+
 //****************************************************************************//
 //*****          GLOBAL UTF8-STRING INTERN TABLE                         *****//
 //****************************************************************************//
@@ -178,8 +179,10 @@ static inline size_t compute_hash(const char *cs, size_t sz) {
 
 // create & intern string
 
-struct StringBuilderBase {
+struct StringBuilderBase : utf8::VisitorBase<Utf8String, utf8::ABORT_ON_ERROR> {
 	public:
+		typedef Utf8String ReturnType;
+
 		StringBuilderBase(size_t sz) : _hash(0), _codepoints(0) {}
 
 		void utf8 (uint8_t  c) { _hash = update_hash(_hash, c); }
@@ -195,10 +198,9 @@ struct StringBuilderBase {
 
 // Builds a new utf8 string, always allocates a new string.
 // If the string was already interned, throw it away
-template<uint8_t (*Fn)(uint8_t)>
-struct EagerStringBuilder : private StringBuilderBase {
+struct EagerStringBuilder : StringBuilderBase {
 	public:
-		typedef utf_utils::Tag<utf_utils::VISIT_BOTH, utf_utils::ABORT_ON_ERROR> Tag;
+		typedef Utf8String ReturnType;
 
 		EagerStringBuilder(size_t sz) : StringBuilderBase(sz) {
 			_out  = Utf8String::alloc(sz);
@@ -206,8 +208,6 @@ struct EagerStringBuilder : private StringBuilderBase {
 		}
 
 		void utf8(uint8_t c) {
-			c = Fn(c);
-
 			StringBuilderBase::utf8(c);
 
 			*_text++ = c;
@@ -241,9 +241,9 @@ struct EagerStringBuilder : private StringBuilderBase {
 
 // Builds a new utf8 string.
 // Only allocates a new string if the string was not already intern_table.
-struct LazyStringBuilder : private StringBuilderBase {
+struct LazyStringBuilder : StringBuilderBase {
 	public:
-		typedef utf_utils::Tag<utf_utils::VISIT_BOTH, utf_utils::ABORT_ON_ERROR> Tag;
+		typedef Utf8String ReturnType;
 
 		LazyStringBuilder(const char *src, size_t sz)
 		 : StringBuilderBase(sz), src(src), sz(sz) {}
@@ -278,38 +278,28 @@ struct LazyStringBuilder : private StringBuilderBase {
 		size_t      sz;
 };
 
-namespace {
-	inline uint8_t identity(uint8_t c)     { return c; }
-	inline uint8_t slash_to_dot(uint8_t c) { return (c == '/') ? '.' : c; }
-	inline uint8_t dot_to_slash(uint8_t c) { return (c == '.') ? '/' : c; }
-}
-
 Utf8String Utf8String::from_utf8(const char *cs, size_t sz) {
-	return utf8::transform<Utf8String>(cs, sz, LazyStringBuilder(cs, sz));
+	return utf8::transform(cs, cs + sz, LazyStringBuilder(cs, sz));
 }
 
 Utf8String Utf8String::from_utf8_dot_to_slash(const char *cs, size_t sz) {
-	return utf8::transform<Utf8String>(cs, sz,
-	                                   EagerStringBuilder<dot_to_slash>(sz));
+	return utf8::transform(utf8::dot_to_slash(cs, cs + sz), EagerStringBuilder(sz));
 }
 
 Utf8String Utf8String::from_utf8_slash_to_dot(const char *cs, size_t sz) {
-	return utf8::transform<Utf8String>(cs, sz,
-	                                   EagerStringBuilder<slash_to_dot>(sz));
+	return utf8::transform(utf8::slash_to_dot(cs, cs + sz), EagerStringBuilder(sz));
 }
 
 Utf8String Utf8String::from_utf16(const u2 *cs, size_t sz) {
 	size_t blength = utf8::num_bytes(cs, sz);
 
-	return utf16::transform<Utf8String>(cs, sz,
-	                                    EagerStringBuilder<identity>(blength));
+	return utf16::transform(cs, cs + sz, EagerStringBuilder(blength));
 }
 
 Utf8String Utf8String::from_utf16_dot_to_slash(const u2 *cs, size_t sz) {
 	size_t blength = utf8::num_bytes(cs, sz);
 
-	return utf16::transform<Utf8String>(cs, sz,
-	                                    EagerStringBuilder<dot_to_slash>(blength));
+	return utf16::transform(utf16::dot_to_slash(cs, cs + sz), EagerStringBuilder(blength));
 }
 
 /* Utf8String::utf16_iterator **************************************************
@@ -394,9 +384,9 @@ bool Utf8String::is_valid_name() const {
 
 *******************************************************************************/
 
-struct SafeCodePointCounter {
+struct SafeCodePointCounter : utf8::VisitorBase<long, utf8::ABORT_ON_ERROR> {
 	public:
-		typedef utf_utils::Tag<utf_utils::VISIT_UTF16, utf_utils::ABORT_ON_ERROR> Tag;
+		typedef long ReturnType;
 
 		SafeCodePointCounter() : count(0) {}
 
@@ -410,7 +400,7 @@ struct SafeCodePointCounter {
 };
 
 long utf8::num_codepoints(const char *cs, size_t sz) {
-	return utf8::transform<long>(cs, sz, SafeCodePointCounter());
+	return utf8::transform(cs, cs + sz, SafeCodePointCounter());
 }
 
 /* utf8::num_bytes *************************************************************
@@ -420,9 +410,9 @@ long utf8::num_codepoints(const char *cs, size_t sz) {
 
 *******************************************************************************/
 
-struct ByteCounter {
+struct ByteCounter : utf8::VisitorBase<size_t, utf8::IGNORE_ERRORS> {
 	public:
-		typedef utf_utils::Tag<utf_utils::VISIT_UTF8, utf_utils::IGNORE_ERRORS> Tag;
+		typedef size_t ReturnType;
 
 		ByteCounter() : count(0) {}
 
@@ -436,7 +426,7 @@ struct ByteCounter {
 
 size_t utf8::num_bytes(const u2 *cs, size_t sz)
 {
-	return utf16::transform<size_t>(cs, sz, ByteCounter());
+	return utf16::transform(cs, cs + sz, ByteCounter());
 }
 
 //****************************************************************************//
@@ -465,19 +455,14 @@ extern size_t utf8_hash(utf *u) { return Utf8String(u).hash(); }
 
 *******************************************************************************/
 
-template<uint8_t (*Fn)(uint8_t)>
-class DisplayPrintableAscii {
+class DisplayPrintableAscii : public utf8::VisitorBase<void, utf8::REPLACE_ON_ERROR> {
 	public:
-		typedef utf_utils::Tag<utf_utils::VISIT_UTF16, utf_utils::REPLACE_ON_ERROR> Tag;
+		typedef void ReturnType;
 
 		DisplayPrintableAscii(FILE *dst) : _dst(dst) {}
 
-		void utf8 (uint8_t c) const {}
 		void utf16(uint16_t c) {
-			char out;
-
-			out = (c >= 32 && c <= 127) ? c : '?';
-			out = Fn(c);
+			char out = (c >= 32 && c <= 127) ? c : '?';
 
 			fputc(out, _dst);
 		}
@@ -485,7 +470,6 @@ class DisplayPrintableAscii {
 		uint16_t replacement() const { return '?'; }
 
 		void finish() {fflush(_dst);}
-		void abort()  const {}
 	private:
 		FILE* _dst;
 };
@@ -498,8 +482,7 @@ void utf_display_printable_ascii(Utf8String u)
 		return;
 	}
 
-	utf8::transform<void>(u.begin(), u.size(),
-	                      DisplayPrintableAscii<identity>(stdout));
+	utf8::transform(u, DisplayPrintableAscii(stdout));
 }
 
 
@@ -519,8 +502,7 @@ void utf_display_printable_ascii_classname(Utf8String u)
 		return;
 	}
 
-	utf8::transform<void>(u.begin(), u.size(),
-	                      DisplayPrintableAscii<slash_to_dot>(stdout));
+	utf8::transform(utf8::slash_to_dot(u), DisplayPrintableAscii(stdout));
 }
 
 
@@ -532,31 +514,27 @@ void utf_display_printable_ascii_classname(Utf8String u)
 
 *******************************************************************************/
 
-template<uint8_t (*Fn)(uint8_t)>
-class SprintConvertToLatin1 {
+class SprintConvertToLatin1 : public utf8::VisitorBase<void, utf8::IGNORE_ERRORS> {
 	public:
-		typedef utf_utils::Tag<utf_utils::VISIT_UTF16, utf_utils::IGNORE_ERRORS> Tag;
+		typedef void ReturnType;
 
 		SprintConvertToLatin1(char* dst) : _dst(dst) {}
 
-		void utf8 (uint8_t c) const {}
-		void utf16(uint16_t c) { *_dst++ = Fn(c); }
+		void utf16(uint16_t c) { *_dst++ = c; }
 
 		void finish() { *_dst = '\0'; }
-		void abort() const {}
 	private:
 		char* _dst;
 };
 
-void utf_sprint_convert_to_latin1(char *buffer, utf *u)
+void utf_sprint_convert_to_latin1(char *buffer, Utf8String u)
 {
 	if (!u) {
 		strcpy(buffer, "NULL");
 		return;
 	}
 
-	utf8::transform<void>(UTF_TEXT(u), UTF_SIZE(u),
-	                      SprintConvertToLatin1<identity>(buffer));
+	utf8::transform(u, SprintConvertToLatin1(buffer));
 }
 
 
@@ -569,15 +547,14 @@ void utf_sprint_convert_to_latin1(char *buffer, utf *u)
 
 *******************************************************************************/
 
-void utf_sprint_convert_to_latin1_classname(char *buffer, utf *u)
+void utf_sprint_convert_to_latin1_classname(char *buffer, Utf8String u)
 {
 	if (!u) {
 		strcpy(buffer, "NULL");
 		return;
 	}
 
-	utf8::transform<void>(UTF_TEXT(u), UTF_SIZE(u),
-	                      SprintConvertToLatin1<slash_to_dot>(buffer));
+	utf8::transform(utf8::slash_to_dot(u), SprintConvertToLatin1(buffer));
 }
 
 
@@ -620,8 +597,7 @@ void utf_fprint_printable_ascii(FILE *file, Utf8String u)
 {
 	if (!u) return;
 
-	utf8::transform<void>(u.begin(), u.size(),
-	                      DisplayPrintableAscii<identity>(file));
+	utf8::transform(u, DisplayPrintableAscii(file));
 }
 
 
@@ -636,12 +612,11 @@ void utf_fprint_printable_ascii_classname(FILE *file, Utf8String u)
 {
 	if (!u) return;
 
-	utf8::transform<void>(u.begin(), u.size(),
-	                      DisplayPrintableAscii<slash_to_dot>(file));
+	utf8::transform(utf8::slash_to_dot(u), DisplayPrintableAscii(file));
 }
 
-struct Utf8Validator {
-	typedef utf_utils::Tag<utf_utils::VISIT_NONE, utf_utils::ABORT_ON_ERROR> Tag;
+struct Utf8Validator : utf8::VisitorBase<bool, utf8::ABORT_ON_ERROR> {
+	typedef bool ReturnType;
 
 	bool finish() { return true;  }
 	bool abort()  { return false; }
@@ -657,7 +632,7 @@ OStream& operator<<(OStream& os, const Utf8String &u) {
   return os;
 }
 
-}
+} // end namespace cacao
 
 /*
  * These are local overrides for various environment variables in Emacs.
