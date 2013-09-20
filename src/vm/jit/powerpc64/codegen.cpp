@@ -208,7 +208,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 	methodinfo*         lm;             // Local methodinfo for ICMD_INVOKE*.
 	unresolved_method*  um;
 	fieldinfo*          fi;
-	unresolved_field*   uf;
+	unresolved_field*   uf = NULL;      // prevent warning
 	int32_t             fieldtype;
 	int32_t             s1, s2, s3, d;
 	int32_t             disp;
