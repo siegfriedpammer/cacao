@@ -25,6 +25,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT(cacao, 1.6.2pre, cacao@cacaojvm.org)
 AC_CONFIG_SRCDIR(src/cacao/cacao.cpp)
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([.])
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
