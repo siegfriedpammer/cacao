@@ -261,6 +261,9 @@ dnl Check for compiler.
 AC_PROG_CC
 AC_PROG_CXX
 
+dnl Check if compiler is usable
+AC_CHECK_COMPILER
+
 dnl discard CFLAGS/CXXFLAGS set by AC_PROG_CC/AC_PROG_CXX
 CFLAGS="$init_cflags"
 CXXFLAGS="$init_cxxflags"
