@@ -11,3 +11,6 @@
 
 # ignore libtool warnings
 .* : ^libtool.*
+
+# ignore clang unused argument warnings
+.* : ^clang.*argument unused during compilation/*
