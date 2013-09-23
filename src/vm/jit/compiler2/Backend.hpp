@@ -67,7 +67,7 @@ public:
 	virtual RegisterFile* get_RegisterFile(Type::TypeID type) const = 0;
 	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const = 0;
-	virtual MachineJumpInst* create_Jump(BeginInstRef &target) const = 0;
+	virtual MachineInstruction* create_Jump(BeginInstRef &target) const = 0;
 	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM) const = 0;
 	virtual const char* get_name() const = 0;
 };
@@ -100,7 +100,7 @@ public:
 	virtual RegisterFile* get_RegisterFile(Type::TypeID type) const;
 	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const;
-	virtual MachineJumpInst* create_Jump(BeginInstRef &target) const;
+	virtual MachineInstruction* create_Jump(BeginInstRef &target) const;
 	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM) const;
 	virtual const char* get_name() const;
 };
@@ -109,7 +109,7 @@ template<typename Target>
 LoweredInstDAG* BackendBase<Target>::lowerBeginInst(BeginInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	MachineLabelInst *label = new MachineLabelInst(I);
+	MachineInstruction *label = new MachineLabelStub(I);
 	dag->add(label);
 	dag->set_result(label);
 	return dag;
@@ -119,7 +119,7 @@ template<typename Target>
 LoweredInstDAG* BackendBase<Target>::lowerGOTOInst(GOTOInst *I) const {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	MachineJumpInst *jump = create_Jump(I->get_target());
+	MachineInstruction *jump = create_Jump(I->get_target());
 	dag->add(jump);
 	dag->set_result(jump);
 	return dag;

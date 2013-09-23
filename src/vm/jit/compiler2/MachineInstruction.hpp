@@ -27,6 +27,7 @@
 
 #include "vm/jit/compiler2/MachineOperand.hpp"
 #include "vm/jit/compiler2/CodeSegment.hpp"
+#include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
 
 #include <vector>
 
@@ -40,6 +41,8 @@ namespace compiler2 {
 
 // forward declaration
 class MachineMoveInst;
+class MachineLabelInst;
+class MachineInstStub;
 class LoweredInstDAG;
 class CodeMemory;
 class MachineInstruction;
@@ -163,7 +166,18 @@ public:
 	virtual bool is_move() const {
 		return false;
 	}
+	virtual bool is_stub() const {
+		return false;
+	}
 	virtual MachineMoveInst* to_MachineMoveInst() {
+		return NULL;
+	}
+	#if 0
+	virtual MachineLabelInst* to_MachineLabelInst() {
+		return NULL;
+	}
+	#endif
+	virtual MachineInstStub* to_MachineInstStub() {
 		return NULL;
 	}
 	virtual OStream& print(OStream &OS) const;

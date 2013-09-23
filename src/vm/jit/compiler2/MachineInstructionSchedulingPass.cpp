@@ -34,7 +34,7 @@
 
 #include "toolbox/logging.hpp"
 
-#define DEBUG_NAME "compiler2/machineinstructionscheduling"
+#define DEBUG_NAME "compiler2/MachineInstructionSchedulingPass"
 
 namespace cacao {
 namespace jit {
@@ -46,6 +46,28 @@ void MachineInstructionSchedulingPass::initialize() {
 	map.clear();
 #endif
 }
+
+class MyVisitor : public MachineStubVisitor {
+private:
+	typedef std::map<BeginInst*,MachineBasicBlock*> MapTy;
+	MachineBasicBlock::iterator i;
+	MapTy &map;
+public:
+	MyVisitor(MachineBasicBlock::iterator i, MapTy &map) : i(i), map(map) {}
+
+	virtual void visit(MachineLabelStub *MS) {
+		MapTy::iterator it = map.find(MS->get_BeginInst());
+		assert(it != map.end());
+		MachineBasicBlock *MBB = it->second;
+		*i = MS->transform(MBB);
+	}
+	virtual void visit(MachineJumpStub *MS) {
+		MapTy::iterator it = map.find(MS->get_BeginInst());
+		assert(it != map.end());
+		MachineBasicBlock *MBB = it->second;
+		*i = MS->transform(MBB);
+	}
+};
 
 bool MachineInstructionSchedulingPass::run(JITData &JD) {
 	BasicBlockSchedule *BS = get_Pass<BasicBlockSchedulingPass>();
@@ -80,6 +102,20 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 			}
 		}
 	}
+	// stubs!
+	for (MachineInstructionSchedule::const_iterator i = begin(), e = end();
+			i != e; ++i) {
+		MachineBasicBlock *MBB = *i;
+		for (MachineBasicBlock::iterator i = MBB->begin(), e = MBB->end();
+				i != e ; ++i) {
+			MachineInstruction *MI = *i;
+			if (MI->is_stub()) {
+				MachineInstStub *stub = MI->to_MachineInstStub();
+				MyVisitor v(i,map);
+				stub->accepts(v);
+			}
+		}
+	}
 	return true;
 }
 
@@ -89,17 +125,22 @@ bool MachineInstructionSchedulingPass::verify() const {
 			i != e; ++i) {
 		MachineBasicBlock *MBB = *i;
 		MachineInstruction *front = MBB->front();
+		// check for label
 		if(!front->is_label()) {
-			LOG(BoldRed << "error" << BoldWhite << "first Instruction ("
+			LOG(BoldRed << "error " << BoldWhite << "first Instruction ("
 				<< *front << ") not a label" << reset_color << nl);
 			return false;
 		}
-		#if 0
+		// check for stub
 		for (MachineBasicBlock::const_iterator i = MBB->begin(), e = MBB->end();
 				i != e ; ++i) {
 			MachineInstruction *MI = *i;
+			if(MI->is_stub()) {
+				LOG(BoldRed << "error " << BoldWhite << "stub Instruction ("
+					<< *MI << ") " << reset_color << nl);
+				return false;
+			}
 		}
-		#endif
 	}
 	return true;
 }

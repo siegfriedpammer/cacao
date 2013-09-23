@@ -31,17 +31,75 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-// forward declarations
-class BeginInst;
+// forward declaration
+class MachineLabelStub;
+class MachineJumpStub;
 
-class MachineLabelInst : public MachineInstruction {
+class MachineStubVisitor {
+public:
+	virtual void visit(MachineLabelStub *MS) {}
+	virtual void visit(MachineJumpStub *MS) {}
+};
+/**
+ * Stub. A stub is an intermediate machine instruction used during
+ * the construction of a MachineInstructionSchedule. It will be replaced by
+ * a concrete MachineInst.
+ */
+class MachineInstStub : public MachineInstruction {
+public:
+	MachineInstStub(const char * name, MachineOperand* result, unsigned num_operands, const char* comment = NULL)
+		: MachineInstruction(name, result, num_operands, comment) {}
+	virtual bool is_stub() const {
+		return true;
+	}
+	virtual MachineInstStub* to_MachineInstStub() {
+		return this;
+	}
+	virtual void accepts(MachineStubVisitor &visitor) = 0;
+};
+
+class MachineJumpStub : public MachineInstStub {
 private:
 	BeginInst *begin;
 public:
-	MachineLabelInst(BeginInst* BI) : MachineInstruction("MLabel", &NoOperand, 0), begin(BI) {}
+	MachineJumpStub(const char * name, BeginInst* begin, MachineOperand* result, unsigned num_operands, const char* comment = NULL)
+		: MachineInstStub(name, result, num_operands, comment), begin(begin) {}
+	BeginInst* get_BeginInst() const {
+		return begin;
+	}
+	virtual void accepts(MachineStubVisitor &visitor) {
+		visitor.visit(this);
+	}
+	virtual MachineInstruction* transform(MachineBasicBlock *MBB) = 0;
+};
+
+class MachineLabelInst : public MachineInstruction {
+private:
+	MachineBasicBlock *MBB;
+public:
+	MachineLabelInst(MachineBasicBlock *MBB) : MachineInstruction("MLabel", &NoOperand, 0), MBB(MBB) {}
 	virtual void emit(CodeMemory* CM) const;
 	virtual bool is_label() const {
 		return true;
+	}
+	MachineBasicBlock* get_MachineBasicBlock() const {
+		return MBB;
+	}
+};
+
+class MachineLabelStub : public MachineInstStub {
+private:
+	BeginInst *begin;
+public:
+	MachineLabelStub(BeginInst *begin) : MachineInstStub("MLabelStub", &NoOperand, 0), begin(begin) {}
+	BeginInst* get_BeginInst() const {
+		return begin;
+	}
+	virtual void accepts(MachineStubVisitor &visitor) {
+		visitor.visit(this);
+	}
+	virtual MachineInstruction* transform(MachineBasicBlock *MBB) {
+		return new MachineLabelInst(MBB);
 	}
 };
 

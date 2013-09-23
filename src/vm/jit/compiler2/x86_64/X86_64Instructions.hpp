@@ -356,20 +356,17 @@ public:
 class CondJumpInst : public X86_64Instruction {
 private:
 	Cond::COND cond;
-	BeginInstRef &target;
+	MachineBasicBlock *target;
 public:
-	CondJumpInst(Cond::COND cond, BeginInstRef &target)
+	CondJumpInst(Cond::COND cond, MachineBasicBlock *target)
 			: X86_64Instruction("X86_64CondJumpInst", &NoOperand, 0),
 			  cond(cond), target(target) {
 	}
-	BeginInst* get_BeginInst() const {
-		return target.get();
-	}
 	virtual void emit(CodeMemory* CM) const;
 	virtual void link(CodeFragment &CF) const;
-	virtual OStream& print(OStream &OS) const {
-		return OS << "[" << setz(4) << get_id() << "] "
-			<< get_name() << "-> " << get_BeginInst();
+	virtual OStream& print(OStream &OS) const;
+	MachineBasicBlock* get_MachineBasicBlock() const {
+		return target;
 	}
 };
 
@@ -444,18 +441,15 @@ public:
 
 class JumpInst : public MachineJumpInst {
 private:
-	BeginInstRef &target;
+	MachineBasicBlock *target;
 public:
-	JumpInst(BeginInstRef &target) : MachineJumpInst("X86_64JumpInst"),
+	JumpInst(MachineBasicBlock *target) : MachineJumpInst("X86_64JumpInst"),
 		target(target) {}
 	virtual void emit(CodeMemory* CM) const;
 	virtual void link(CodeFragment &CF) const;
-	virtual OStream& print(OStream &OS) const {
-		return OS << "[" << setz(4) << get_id() << "] "
-			<< get_name() << "-> " << get_BeginInst();
-	}
-	BeginInst* get_BeginInst() const {
-		return target.get();
+	virtual OStream& print(OStream &OS) const;
+	MachineBasicBlock* get_MachineBasicBlock() const {
+		return target;
 	}
 };
 // Double & Float operations
@@ -588,6 +582,30 @@ public:
 			: MoveInst("X86_64MovSSInst", src.op, dst.op, OS_32) {}
 	virtual void emit(CodeMemory* CM) const;
 };
+
+// STUBS
+
+class JumpInstStub : public MachineJumpStub {
+public:
+	JumpInstStub(BeginInst *begin)
+		: MachineJumpStub("X86_64JumpInstStub", begin, &NoOperand,0) {}
+	virtual MachineInstruction* transform(MachineBasicBlock *MBB) {
+		return new JumpInst(MBB);
+	}
+};
+
+class CondJumpInstStub : public MachineJumpStub {
+private:
+	Cond::COND cond;
+public:
+	CondJumpInstStub(Cond::COND cond, BeginInst *begin)
+			: MachineJumpStub("X86_64CondJumpInst", begin, &NoOperand, 0),
+			  cond(cond) {}
+	virtual MachineInstruction* transform(MachineBasicBlock *MBB) {
+		return new CondJumpInst(cond, MBB);
+	}
+};
+
 
 } // end namespace x86_64
 } // end namespace compiler2

@@ -91,8 +91,8 @@ MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *src,
 }
 
 template<>
-MachineJumpInst* BackendBase<X86_64>::create_Jump(BeginInstRef &target) const {
-	return new JumpInst(target);
+MachineInstruction* BackendBase<X86_64>::create_Jump(BeginInstRef &target) const {
+	return new JumpInstStub(target.get());
 }
 
 namespace {
@@ -165,28 +165,28 @@ LoweredInstDAG* BackendBase<X86_64>::lowerIFInst(IFInst *I) const {
 			Src1Op(new UnassignedReg(type)),
 			get_OperandSize_from_Type(type));
 
-		CondJumpInst *cjmp = NULL;
+		MachineInstruction *cjmp = NULL;
 		BeginInstRef &then = I->get_then_target();
 		BeginInstRef &els = I->get_else_target();
 
 		switch (I->get_condition()) {
 		case Conditional::EQ:
-			cjmp = new CondJumpInst(Cond::E, then);
+			cjmp = new CondJumpInstStub(Cond::E, then.get());
 			break;
 		case Conditional::LT:
-			cjmp = new CondJumpInst(Cond::L, then);
+			cjmp = new CondJumpInstStub(Cond::L, then.get());
 			break;
 		case Conditional::LE:
-			cjmp = new CondJumpInst(Cond::LE, then);
+			cjmp = new CondJumpInstStub(Cond::LE, then.get());
 			break;
 		case Conditional::GE:
-			cjmp = new CondJumpInst(Cond::GE, then);
+			cjmp = new CondJumpInstStub(Cond::GE, then.get());
 			break;
 		default:
 			ABORT_MSG("x86_64 Conditioal not supported: ",
 				  I << " cond: " << I->get_condition());
 		}
-		JumpInst *jmp = new JumpInst(els);
+		MachineInstruction *jmp = new JumpInstStub(els.get());
 		dag->add(cmp);
 		dag->add(cjmp);
 		dag->add(jmp);

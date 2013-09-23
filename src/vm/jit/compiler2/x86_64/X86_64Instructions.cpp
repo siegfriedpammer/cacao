@@ -25,6 +25,7 @@
 #include "vm/jit/compiler2/x86_64/X86_64Instructions.hpp"
 #include "vm/jit/compiler2/x86_64/X86_64EmitHelper.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
+#include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/CodeMemory.hpp"
 #include "vm/jit/Patcher.hpp"
 
@@ -651,6 +652,8 @@ void MovDSEGInst::link(CodeFragment &CF) const {
 }
 
 void CondJumpInst::emit(CodeMemory* CM) const {
+	assert(0);
+	#if 0
 	BeginInst *BI = get_BeginInst();
 	CodeSegment &CS = CM->get_CodeSegment();
 	CodeSegment::IdxTy idx = CS.get_index(CSLabel(BI));
@@ -673,9 +676,12 @@ void CondJumpInst::emit(CodeMemory* CM) const {
 
 	// only 32bit offset for the time being
 	InstructionEncoding::imm_op<u2>(CM, 0x0f80 + cond.code, offset);
+	#endif
 }
 
 void CondJumpInst::link(CodeFragment &CF) const {
+	assert(0);
+	#if 0
 	BeginInst *BI = get_BeginInst();
 	CodeSegment &CS = CF.get_Segment();
 	CodeSegment::IdxTy idx = CS.get_index(CSLabel(BI));
@@ -683,8 +689,13 @@ void CondJumpInst::link(CodeFragment &CF) const {
 	assert(offset != 0);
 
 	InstructionEncoding::imm_op<u2>(CF, 0x0f80 + cond.code, offset);
+	#endif
 }
 
+OStream& CondJumpInst::print(OStream &OS) const {
+	return OS << "[" << setz(4) << get_id() << "] "
+		<< get_name() << "-> " << *target;
+}
 void IMulInst::emit(CodeMemory* CM) const {
 	X86_64Register *src_reg = cast_to<X86_64Register>(operands[1].op);
 	X86_64Register *dst_reg = cast_to<X86_64Register>(result.op);
@@ -743,6 +754,7 @@ void SubInst::emit(CodeMemory* CM) const {
 #endif
 
 namespace {
+#if 0
 void emit_jump(CodeFragment &code, s4 offset) {
 	LOG2("emit_jump codefragment offset: " << hex << offset << nl);
 	code[0] = 0xe9;
@@ -752,8 +764,11 @@ void emit_jump(CodeFragment &code, s4 offset) {
 	code[4] = u1( 0xff & (offset >> (8 * 3)));
 }
 
+#endif
 } // end anonymous namespace
 void JumpInst::emit(CodeMemory* CM) const {
+	assert(0);
+	#if 0
 	BeginInst *BI = get_BeginInst();
 	CodeSegment &CS = CM->get_CodeSegment();
 	CodeSegment::IdxTy idx = CS.get_index(CSLabel(BI));
@@ -775,9 +790,12 @@ void JumpInst::emit(CodeMemory* CM) const {
 	}
 	CodeFragment CF = CM->get_CodeFragment(5);
 	emit_jump(CF,offset);
+	#endif
 }
 
 void JumpInst::link(CodeFragment &CF) const {
+	assert(0);
+	#if 0
 	BeginInst *BI = get_BeginInst();
 	CodeSegment &CS = CF.get_Segment();
 	CodeSegment::IdxTy idx = CS.get_index(CSLabel(BI));
@@ -787,8 +805,13 @@ void JumpInst::link(CodeFragment &CF) const {
 	assert(offset != 0);
 
 	emit_jump(CF,offset);
+	#endif
 }
 
+OStream& JumpInst::print(OStream &OS) const {
+	return OS << "[" << setz(4) << get_id() << "] "
+		<< get_name() << "-> " << *target;
+}
 
 void SSEAluInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[1].op;
