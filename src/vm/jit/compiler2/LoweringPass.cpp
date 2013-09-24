@@ -27,8 +27,8 @@
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/LoweredInstDAG.hpp"
-
 #include "toolbox/logging.hpp"
+#include "Target.hpp"
 
 #define DEBUG_NAME "compiler2/LoweringPass"
 
@@ -42,10 +42,12 @@ bool LoweringPass::run(JITData &JD) {
 	Backend *BE = JD.get_Backend();
 
 	LOG("Lowering to target: " << BE->get_name() << nl);
+	LoweringVisitor LV(BE);
 
 	for(Method::const_iterator i = M->begin(), e = M->end(); i != e ; ++i ) {
 		Instruction *I = *i;
-		LoweredInstDAG* dag = BE->lower(I);
+		I->accept(LV);
+		LoweredInstDAG* dag = LV.get_dag();
 		if (!dag)
 			return false;
 		lowering_map[I] = dag;

@@ -114,8 +114,7 @@ void BackendBase<X86_64>::create_frame(CodeMemory* CM, StackSlotManager *SSM) co
 	emit_nop(CF,CF.size());
 }
 
-template<>
-LoweredInstDAG* BackendBase<X86_64>::lowerLOADInst(LOADInst *I) const {
+void LoweringVisitor::visit(LOADInst *I) {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	//MachineInstruction *minst = loadParameter(I->get_index(), I->get_type());
@@ -146,11 +145,10 @@ LoweredInstDAG* BackendBase<X86_64>::lowerLOADInst(LOADInst *I) const {
 	}
 	dag->add(move);
 	dag->set_result(move);
-	return dag;
+	set_dag(dag);
 }
 
-template<>
-LoweredInstDAG* BackendBase<X86_64>::lowerIFInst(IFInst *I) const {
+void LoweringVisitor::visit(IFInst *I) {
 	assert(I);
 	Type::TypeID type = I->get_type();
 	switch (type) {
@@ -194,22 +192,21 @@ LoweredInstDAG* BackendBase<X86_64>::lowerIFInst(IFInst *I) const {
 		dag->set_input(0,cmp,0);
 		dag->set_input(1,cmp,1);
 		dag->set_result(jmp);
-		return dag;
+		set_dag(dag);
+		return;
 	}
 	default: break;
 	}
 	ABORT_MSG("x86_64: Lowering not supported",
 		"Inst: " << I << " type: " << type);
-	return NULL;
 }
 
-template<>
-LoweredInstDAG* BackendBase<X86_64>::lowerADDInst(ADDInst *I) const {
+void LoweringVisitor::visit(ADDInst *I) {
 	assert(I);
 	Type::TypeID type = I->get_type();
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *dst = new VirtualRegister(type);
-	MachineInstruction *mov = create_Move(new UnassignedReg(type),dst);
+	MachineInstruction *mov = get_Backend()->create_Move(new UnassignedReg(type),dst);
 	MachineInstruction *alu = NULL;
 
 	switch (type) {
@@ -235,16 +232,15 @@ LoweredInstDAG* BackendBase<X86_64>::lowerADDInst(ADDInst *I) const {
 	dag->set_input(1,alu,1);
 	dag->set_input(0,mov,0);
 	dag->set_result(alu);
-	return dag;
+	set_dag(dag);
 }
 
-template<>
-LoweredInstDAG* BackendBase<X86_64>::lowerANDInst(ANDInst *I) const {
+void LoweringVisitor::visit(ANDInst *I) {
 	assert(I);
 	Type::TypeID type = I->get_type();
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *dst = new VirtualRegister(type);
-	MachineInstruction *mov = create_Move(new UnassignedReg(type),dst);
+	MachineInstruction *mov = get_Backend()->create_Move(new UnassignedReg(type),dst);
 	MachineInstruction *alu = NULL;
 
 	switch (type) {
@@ -265,16 +261,15 @@ LoweredInstDAG* BackendBase<X86_64>::lowerANDInst(ANDInst *I) const {
 	dag->set_input(1,alu,1);
 	dag->set_input(0,mov,0);
 	dag->set_result(alu);
-	return dag;
+	set_dag(dag);
 }
 
-template<>
-LoweredInstDAG* BackendBase<X86_64>::lowerSUBInst(SUBInst *I) const {
+void LoweringVisitor::visit(SUBInst *I) {
 	assert(I);
 	Type::TypeID type = I->get_type();
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *dst = new VirtualRegister(type);
-	MachineInstruction *mov = create_Move(new UnassignedReg(type),dst);
+	MachineInstruction *mov = get_Backend()->create_Move(new UnassignedReg(type),dst);
 	MachineInstruction *alu = NULL;
 
 	switch (type) {
@@ -300,17 +295,16 @@ LoweredInstDAG* BackendBase<X86_64>::lowerSUBInst(SUBInst *I) const {
 	dag->set_input(1,alu,1);
 	dag->set_input(0,mov,0);
 	dag->set_result(alu);
-	return dag;
+	set_dag(dag);
 }
 
-template<>
-LoweredInstDAG* BackendBase<X86_64>::lowerMULInst(MULInst *I) const {
+void LoweringVisitor::visit(MULInst *I) {
 	assert(I);
 	Type::TypeID type = I->get_type();
 
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *dst = new VirtualRegister(type);
-	MachineInstruction *mov = create_Move(new UnassignedReg(type),dst);
+	MachineInstruction *mov = get_Backend()->create_Move(new UnassignedReg(type),dst);
 	MachineInstruction *alu = NULL;
 
 	switch (type) {
@@ -336,17 +330,16 @@ LoweredInstDAG* BackendBase<X86_64>::lowerMULInst(MULInst *I) const {
 	dag->set_input(1,alu,1);
 	dag->set_input(0,mov,0);
 	dag->set_result(alu);
-	return dag;
+	set_dag(dag);
 }
 
-template<>
-LoweredInstDAG* BackendBase<X86_64>::lowerDIVInst(DIVInst *I) const {
+void LoweringVisitor::visit(DIVInst *I) {
 	assert(I);
 	Type::TypeID type = I->get_type();
 
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *dst = new VirtualRegister(type);
-	MachineInstruction *mov = create_Move(new UnassignedReg(type), dst);
+	MachineInstruction *mov = get_Backend()->create_Move(new UnassignedReg(type), dst);
 	MachineInstruction *alu = NULL;
 
 	switch (type) {
@@ -370,18 +363,17 @@ LoweredInstDAG* BackendBase<X86_64>::lowerDIVInst(DIVInst *I) const {
 	dag->set_input(1,alu,1);
 	dag->set_input(0,mov,0);
 	dag->set_result(alu);
-	return dag;
+	set_dag(dag);
 }
 
-template<>
-LoweredInstDAG* BackendBase<X86_64>::lowerREMInst(REMInst *I) const {
+void LoweringVisitor::visit(REMInst *I) {
 	assert(I);
 	Type::TypeID type = I->get_type();
 
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	#if 0
 	VirtualRegister *dst = new VirtualRegister(type);
-	MachineInstruction *mov = create_Move(new UnassignedReg(type), dst);
+	MachineInstruction *mov = get_Backend()->create_Move(new UnassignedReg(type), dst);
 	MachineInstruction *alu;
 
 	switch (type) {
@@ -408,11 +400,10 @@ LoweredInstDAG* BackendBase<X86_64>::lowerREMInst(REMInst *I) const {
 	#endif
 		ABORT_MSG("x86_64: Lowering not supported",
 			"Inst: " << I << " type: " << type);
-	return dag;
+	set_dag(dag);
 }
 
-template<>
-LoweredInstDAG* BackendBase<X86_64>::lowerRETURNInst(RETURNInst *I) const {
+void LoweringVisitor::visit(RETURNInst *I) {
 	assert(I);
 	Type::TypeID type = I->get_type();
 	switch (type) {
@@ -432,7 +423,8 @@ LoweredInstDAG* BackendBase<X86_64>::lowerRETURNInst(RETURNInst *I) const {
 		dag->add(ret);
 		dag->set_input(reg);
 		dag->set_result(ret);
-		return dag;
+		set_dag(dag);
+		return;
 	}
 	case Type::DoubleTypeID:
 	{
@@ -447,17 +439,16 @@ LoweredInstDAG* BackendBase<X86_64>::lowerRETURNInst(RETURNInst *I) const {
 		dag->add(ret);
 		dag->set_input(reg);
 		dag->set_result(ret);
-		return dag;
+		set_dag(dag);
+		return;
 	}
 	default: break;
 	}
 	ABORT_MSG("x86_64 Lowering not supported",
 		"Inst: " << I << " type: " << type);
-	return NULL;
 }
 
-template<>
-LoweredInstDAG* BackendBase<X86_64>::lowerCASTInst(CASTInst *I) const {
+void LoweringVisitor::visit(CASTInst *I) {
   assert(I);
   LoweredInstDAG *dag = new LoweredInstDAG(I);
   Type::TypeID from = I->get_operand(0)->to_Instruction()->get_type();
@@ -475,7 +466,8 @@ LoweredInstDAG* BackendBase<X86_64>::lowerCASTInst(CASTInst *I) const {
 		  dag->add(mov);
 		  dag->set_input(mov);
 		  dag->set_result(mov);
-		  return dag;
+		  set_dag(dag);
+		  return;
 	  }
 	  default: break;
 	  }
@@ -491,7 +483,8 @@ LoweredInstDAG* BackendBase<X86_64>::lowerCASTInst(CASTInst *I) const {
 		  dag->add(mov);
 		  dag->set_input(mov);
 		  dag->set_result(mov);
-		  return dag;
+		  set_dag(dag);
+		  return;
 	  }
 	  default: break;
 	  }
@@ -499,11 +492,9 @@ LoweredInstDAG* BackendBase<X86_64>::lowerCASTInst(CASTInst *I) const {
   default: break;
   }
   ABORT_MSG("x86_64 Cast not supported!", "From " << from << " to " << to );
-  return NULL;
 }
 
-template<>
-LoweredInstDAG* BackendBase<X86_64>::lowerINVOKESTATICInst(INVOKESTATICInst *I) const {
+void LoweringVisitor::visit(INVOKESTATICInst *I) {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	Type::TypeID type = I->get_type();
@@ -523,14 +514,13 @@ LoweredInstDAG* BackendBase<X86_64>::lowerINVOKESTATICInst(INVOKESTATICInst *I) 
 	default:
 		ABORT_MSG("x86_64 Lowering not supported",
 		"Inst: " << I << " type: " << type);
-		return NULL;
 	}
 
 	// create call
 	MachineInstruction* call = new CallInst(SrcOp(addr),DstOp(result),I->op_size());
 	// move values to parameters
 	for (std::size_t i = 0; i < I->op_size(); ++i ) {
-		MachineInstruction* mov = create_Move(
+		MachineInstruction* mov = get_Backend()->create_Move(
 			new UnassignedReg(MD[i]),
 			MMD[i]
 		);
@@ -542,7 +532,7 @@ LoweredInstDAG* BackendBase<X86_64>::lowerINVOKESTATICInst(INVOKESTATICInst *I) 
 	// spill caller saved
 
 	// load address
-	DataSegment &DS = get_JITData()->get_CodeMemory()->get_DataSegment();
+	DataSegment &DS = get_Backend()->get_JITData()->get_CodeMemory()->get_DataSegment();
 	DataSegment::IdxTy idx = DS.get_index(DSFMIRef(I->get_fmiref()));
 	if (DataSegment::is_invalid(idx)) {
 		DataFragment data = DS.get_Ref(sizeof(void*));
@@ -571,7 +561,7 @@ LoweredInstDAG* BackendBase<X86_64>::lowerINVOKESTATICInst(INVOKESTATICInst *I) 
 		dag->add(reg);
 		dag->set_result(reg);
 	}
-	return dag;
+	set_dag(dag);
 	#if 0
 	if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 		unresolved_method*  um;
@@ -588,11 +578,11 @@ LoweredInstDAG* BackendBase<X86_64>::lowerINVOKESTATICInst(INVOKESTATICInst *I) 
 	}
 	#endif
 }
-template<>
-LoweredInstDAG* BackendBase<X86_64>::lowerGETSTATICInst(GETSTATICInst *I) const {
+
+void LoweringVisitor::visit(GETSTATICInst *I) {
 	assert(I);
 	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	DataSegment &DS = get_JITData()->get_CodeMemory()->get_DataSegment();
+	DataSegment &DS = get_Backend()->get_JITData()->get_CodeMemory()->get_DataSegment();
 	DataSegment::IdxTy idx = DS.get_index(DSFMIRef(I->get_fmiref()));
 	if (DataSegment::is_invalid(idx)) {
 		DataFragment data = DS.get_Ref(sizeof(void*));
@@ -606,7 +596,7 @@ LoweredInstDAG* BackendBase<X86_64>::lowerGETSTATICInst(GETSTATICInst *I) const 
 			//PROFILE_CYCLE_STOP;
 			Patcher *patcher = new InitializeClassPatcher(fi->clazz);
 			PatcherPtrTy ptr(patcher);
-			get_JITData()->get_jitdata()->code->patchers->push_back(ptr);
+			get_Backend()->get_JITData()->get_jitdata()->code->patchers->push_back(ptr);
 			MachineInstruction *pi = new PatchInst(patcher);
 			dag->add(pi);
 			//PROFILE_CYCLE_START;
@@ -626,11 +616,11 @@ LoweredInstDAG* BackendBase<X86_64>::lowerGETSTATICInst(GETSTATICInst *I) const 
 	}
 	VirtualRegister *addr = new VirtualRegister(Type::ReferenceTypeID);
 	MovDSEGInst *dmov = new MovDSEGInst(DstOp(addr),idx);
-	MachineInstruction* mov = create_Move(addr,new VirtualRegister(I->get_type()));
+	MachineInstruction* mov = get_Backend()->create_Move(addr,new VirtualRegister(I->get_type()));
 	dag->add(dmov);
 	dag->add(mov);
 	dag->set_result(mov);
-	return dag;
+	set_dag(dag);
 }
 
 template<>

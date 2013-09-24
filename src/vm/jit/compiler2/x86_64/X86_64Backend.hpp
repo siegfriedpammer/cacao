@@ -31,15 +31,31 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+namespace x86_64 {
 
-#if 0
-/**
- * X86_64 Backend
- */
-template<>
-class BackendBase<X86_64>;
-#endif
 
+class LoweringVisitor : public LoweringVisitorBase {
+public:
+	LoweringVisitor(Backend *backend) : LoweringVisitorBase(backend) {}
+
+	// make LoweringVisitorBases visit visible
+	using LoweringVisitorBase::visit;
+
+	virtual void visit(LOADInst *I);
+	virtual void visit(IFInst *I);
+	virtual void visit(ADDInst *I);
+	virtual void visit(ANDInst *I);
+	virtual void visit(SUBInst *I);
+	virtual void visit(MULInst *I);
+	virtual void visit(DIVInst *I);
+	virtual void visit(REMInst *I);
+	virtual void visit(RETURNInst *I);
+	virtual void visit(CASTInst *I);
+	virtual void visit(INVOKESTATICInst *I);
+	virtual void visit(GETSTATICInst *I);
+};
+
+} // end namespace x86_64
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

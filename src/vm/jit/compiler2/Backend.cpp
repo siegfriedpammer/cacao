@@ -34,31 +34,45 @@ Backend* Backend::factory(JITData *JD) {
 	return new BackendBase<Target>(JD);
 }
 
-LoweredInstDAG* Backend::lower(Instruction *I) const {
-	switch(I->get_opcode()) {
-	case Instruction::BeginInstID:     return lowerBeginInst(I->to_BeginInst());
-	case Instruction::LOADInstID:      return lowerLOADInst(I->to_LOADInst());
-	case Instruction::GOTOInstID:      return lowerGOTOInst(I->to_GOTOInst());
-	case Instruction::PHIInstID:       return lowerPHIInst(I->to_PHIInst());
-	case Instruction::IFInstID:        return lowerIFInst(I->to_IFInst());
-	case Instruction::CONSTInstID:     return lowerCONSTInst(I->to_CONSTInst());
-	case Instruction::ADDInstID:       return lowerADDInst(I->to_ADDInst());
-	case Instruction::ANDInstID:       return lowerANDInst(I->to_ANDInst());
-	case Instruction::SUBInstID:       return lowerSUBInst(I->to_SUBInst());
-	case Instruction::RETURNInstID:    return lowerRETURNInst(I->to_RETURNInst());
-	case Instruction::MULInstID:       return lowerMULInst(I->to_MULInst());
-	case Instruction::DIVInstID:       return lowerDIVInst(I->to_DIVInst());
-	case Instruction::REMInstID:       return lowerREMInst(I->to_REMInst());
-	case Instruction::CASTInstID:      return lowerCASTInst(I->to_CASTInst());
-	case Instruction::GETSTATICInstID: return lowerGETSTATICInst(I->to_GETSTATICInst());
-	case Instruction::INVOKESTATICInstID: return lowerINVOKESTATICInst(I->to_INVOKESTATICInst());
-	default: break;
-	}
-	err() << BoldRed << "error: " << reset_color
-		  << " instruction " << BoldWhite
-		  << I << reset_color << " not yet handled by the Backend" << nl;
-	return NULL;
+void LoweringVisitorBase::visit(BeginInst* I) {
+	assert(I);
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	MachineInstruction *label = new MachineLabelStub(I);
+	dag->add(label);
+	dag->set_result(label);
+	set_dag(dag);
 }
+
+void LoweringVisitorBase::visit(GOTOInst* I) {
+	assert(I);
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	MachineInstruction *jump = backend->create_Jump(I->get_target());
+	dag->add(jump);
+	dag->set_result(jump);
+	set_dag(dag);
+}
+
+void LoweringVisitorBase::visit(PHIInst* I) {
+	assert(I);
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	MachinePhiInst *phi = new MachinePhiInst(I->op_size(),I->get_type());
+	dag->add(phi);
+	dag->set_input(phi);
+	dag->set_result(phi);
+	set_dag(dag);
+}
+
+void LoweringVisitorBase::visit(CONSTInst* I) {
+	assert(I);
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	VirtualRegister *reg = new VirtualRegister(I->get_type());
+	Immediate *imm = new Immediate(I);
+	MachineInstruction *move = backend->create_Move(imm,reg);
+	dag->add(move);
+	dag->set_result(move);
+	set_dag(dag);
+}
+
 
 } // end namespace compiler2
 } // end namespace jit

@@ -28,7 +28,7 @@
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/LoweredInstDAG.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
-#include "vm/jit/compiler2/RegisterFile.hpp"
+#include "vm/jit/compiler2/InstructionVisitor.hpp"
 
 namespace cacao {
 namespace jit {
@@ -37,32 +37,16 @@ namespace compiler2 {
 // forward declarations
 class StackSlotManager;
 class JITData;
+class RegisterFile;
 
 class Backend {
 private:
 	JITData *JD;
 protected:
-	virtual LoweredInstDAG* lowerBeginInst(BeginInst *I) const = 0;
-	virtual LoweredInstDAG* lowerLOADInst(LOADInst *I) const = 0;
-	virtual LoweredInstDAG* lowerGOTOInst(GOTOInst *I) const = 0;
-	virtual LoweredInstDAG* lowerPHIInst(PHIInst *I) const = 0;
-	virtual LoweredInstDAG* lowerIFInst(IFInst *I) const = 0;
-	virtual LoweredInstDAG* lowerCONSTInst(CONSTInst *I) const = 0;
-	virtual LoweredInstDAG* lowerADDInst(ADDInst *I) const = 0;
-	virtual LoweredInstDAG* lowerANDInst(ANDInst *I) const = 0;
-	virtual LoweredInstDAG* lowerSUBInst(SUBInst *I) const = 0;
-	virtual LoweredInstDAG* lowerRETURNInst(RETURNInst *I) const = 0;
-	virtual LoweredInstDAG* lowerMULInst(MULInst *I) const = 0;
-	virtual LoweredInstDAG* lowerDIVInst(DIVInst *I) const = 0;
-	virtual LoweredInstDAG* lowerREMInst(REMInst *I) const = 0;
-	virtual LoweredInstDAG* lowerCASTInst(CASTInst *I) const = 0;
-	virtual LoweredInstDAG* lowerGETSTATICInst(GETSTATICInst *I) const = 0;
-	virtual LoweredInstDAG* lowerINVOKESTATICInst(INVOKESTATICInst *I) const = 0;
 	Backend(JITData *JD) : JD(JD) {}
 public:
 	static Backend* factory(JITData *JD);
 	JITData* get_JITData() const { return JD; };
-	virtual LoweredInstDAG* lower(Instruction *I) const;
 
 	virtual RegisterFile* get_RegisterFile(Type::TypeID type) const = 0;
 	virtual MachineInstruction* create_Move(MachineOperand *src,
@@ -78,23 +62,6 @@ public:
  */
 template <typename Target>
 class BackendBase : public Backend {
-protected:
-	virtual LoweredInstDAG* lowerBeginInst(BeginInst *I) const;
-	virtual LoweredInstDAG* lowerLOADInst(LOADInst *I) const;
-	virtual LoweredInstDAG* lowerGOTOInst(GOTOInst *I) const;
-	virtual LoweredInstDAG* lowerPHIInst(PHIInst *I) const;
-	virtual LoweredInstDAG* lowerIFInst(IFInst *I) const;
-	virtual LoweredInstDAG* lowerCONSTInst(CONSTInst *I) const;
-	virtual LoweredInstDAG* lowerADDInst(ADDInst *I) const;
-	virtual LoweredInstDAG* lowerANDInst(ANDInst *I) const;
-	virtual LoweredInstDAG* lowerSUBInst(SUBInst *I) const;
-	virtual LoweredInstDAG* lowerRETURNInst(RETURNInst *I) const;
-	virtual LoweredInstDAG* lowerMULInst(MULInst *I) const;
-	virtual LoweredInstDAG* lowerDIVInst(DIVInst *I) const;
-	virtual LoweredInstDAG* lowerREMInst(REMInst *I) const;
-	virtual LoweredInstDAG* lowerCASTInst(CASTInst *I) const;
-	virtual LoweredInstDAG* lowerGETSTATICInst(GETSTATICInst *I) const;
-	virtual LoweredInstDAG* lowerINVOKESTATICInst(INVOKESTATICInst *I) const;
 public:
 	BackendBase(JITData *JD) : Backend(JD) {}
 	virtual RegisterFile* get_RegisterFile(Type::TypeID type) const;
@@ -105,48 +72,33 @@ public:
 	virtual const char* get_name() const;
 };
 
-template<typename Target>
-LoweredInstDAG* BackendBase<Target>::lowerBeginInst(BeginInst *I) const {
-	assert(I);
-	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	MachineInstruction *label = new MachineLabelStub(I);
-	dag->add(label);
-	dag->set_result(label);
-	return dag;
-}
+class LoweringVisitorBase : public InstructionVisitor {
+private:
+	LoweredInstDAG *dag;
+	Backend *backend;
+protected:
+	void set_dag(LoweredInstDAG* dag) {
+		this->dag = dag;
+	}
+	Backend* get_Backend() const {
+		return backend;
+	}
+public:
+	LoweringVisitorBase(Backend *backend) : backend(backend) {}
+	virtual void visit_default(Instruction *I) {
+		ABORT_MSG("LoweringVisitor","Instruction " << BoldWhite
+		  << *I << reset_color << " not yet handled by the Backend");
+	}
+	// make InstructionVisitors visit visible
+	using InstructionVisitor::visit;
 
-template<typename Target>
-LoweredInstDAG* BackendBase<Target>::lowerGOTOInst(GOTOInst *I) const {
-	assert(I);
-	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	MachineInstruction *jump = create_Jump(I->get_target());
-	dag->add(jump);
-	dag->set_result(jump);
-	return dag;
-}
+	virtual void visit(BeginInst* I);
+	virtual void visit(GOTOInst* I);
+	virtual void visit(PHIInst* I);
+	virtual void visit(CONSTInst* I);
 
-template<typename Target>
-LoweredInstDAG* BackendBase<Target>::lowerPHIInst(PHIInst *I) const {
-	assert(I);
-	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	MachinePhiInst *phi = new MachinePhiInst(I->op_size(),I->get_type());
-	dag->add(phi);
-	dag->set_input(phi);
-	dag->set_result(phi);
-	return dag;
-}
-
-template<typename Target>
-LoweredInstDAG* BackendBase<Target>::lowerCONSTInst(CONSTInst *I) const {
-	assert(I);
-	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	VirtualRegister *reg = new VirtualRegister(I->get_type());
-	Immediate *imm = new Immediate(I);
-	MachineInstruction *move = create_Move(imm,reg);
-	dag->add(move);
-	dag->set_result(move);
-	return dag;
-}
+	LoweredInstDAG* get_dag() const { return dag; }
+};
 
 
 } // end namespace compiler2
