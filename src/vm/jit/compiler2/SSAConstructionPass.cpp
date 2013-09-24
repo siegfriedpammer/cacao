@@ -2058,35 +2058,42 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		SHOW_S2(OS, iptr);
 		//		SHOW_TARGET(OS, iptr->dst);
 		//		break;
+				goto _default;
 
 			case ICMD_TABLESWITCH:
-		//		SHOW_S1(OS, iptr);
-		//		table = iptr->dst.table;
-		//
-		//		i = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
-		//
-		//		printf("high=%d low=%d count=%d\n", iptr->sx.s23.s3.tablehigh, iptr->sx.s23.s2.tablelow, i);
-		//		while (--i >= 0) {
-		//			printf("\t\t%d --> ", (int) (table - iptr->dst.table));
-		//			printf("L%03d\n", table->block->nr);
-		//			table++;
-		//		}
-		//
-		//		break;
-				goto _default;
+				{
+					s4 tablehigh = iptr->sx.s23.s3.tablehigh;
+					s4 tablelow  = iptr->sx.s23.s2.tablelow;
+
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+					TABLESWITCHInst *result = new TABLESWITCHInst(BB[bbindex], s1,
+						TABLESWITCHInst::LOW(tablelow),
+						TABLESWITCHInst::HIGH(tablehigh));
+
+					s4 i = tablehigh - tablelow + 1;
+					branch_target_t *table = iptr->dst.table;
+					while (--i >= 0) {
+						result->append_succ(BB[table->block->nr]);
+						++table;
+					}
+					M->add_Instruction(result);
+				}
+				break;
 
 			case ICMD_LOOKUPSWITCH:
 				{
+					s4 lookupcount = iptr->sx.s23.s2.lookupcount;
+
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
-					LOOKUPSWITCHInst *result = new LOOKUPSWITCHInst(BB[bbindex], s1);
+					LOOKUPSWITCHInst *result = new LOOKUPSWITCHInst(BB[bbindex], s1, lookupcount);
 
 					// add case targets
 					lookup_target_t *lookup = iptr->dst.lookup;
-					s4 i = iptr->sx.s23.s2.lookupcount;
-					while (--i >= 0) {
+					for (s4 i = 0; i < lookupcount; ++i) {
 						// lookup->value
 						result->append_succ(BB[lookup->target.block->nr]);
-						lookup++;
+						result->set_match(i, LOOKUPSWITCHInst::MATCH(lookup->value));
+						++lookup;
 					}
 					// add default target
 					BeginInst *defaultBlock = BB[iptr->sx.s23.s3.lookupdefault.block->nr];

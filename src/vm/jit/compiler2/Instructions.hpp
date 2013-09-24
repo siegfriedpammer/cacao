@@ -670,21 +670,69 @@ public:
 	virtual void accept(InstructionVisitor& v) { v.visit(*this); }
 };
 
-class TABLESWITCHInst : public Instruction {
+class TABLESWITCHInst : public EndInst {
+private:
+	s4 tablelow;
+	s4 tablehigh;
 public:
-	explicit TABLESWITCHInst(Type::TypeID type) : Instruction(TABLESWITCHInstID, type) {}
+	/// wrapper for type safety
+	struct LOW {
+		s4 low;
+		explicit LOW(s4 low) : low(low) {}
+	};
+	/// wrapper for type safety
+	struct HIGH {
+		s4 high;
+		explicit HIGH(s4 high) : high(high) {}
+	};
+	/// constructor
+	explicit TABLESWITCHInst(BeginInst *begin, Value* S1, LOW low, HIGH high)
+			: EndInst(TABLESWITCHInstID, begin), tablelow(low.low), tablehigh(high.high) {
+		assert(tablehigh >= tablelow);
+		append_op(S1);
+		type = Type::IntTypeID;
+	}
 	virtual TABLESWITCHInst* to_TABLESWITCHInst() { return this; }
 	virtual void accept(InstructionVisitor& v) { v.visit(*this); }
+	virtual bool verify() const {
+		if (succ_size() != tablehigh - tablelow + 1) {
+			ERROR_MSG("TABLESWITCH verification error","Number of successors (" << succ_size()
+				<< ") not equal to targets (" << tablehigh - tablelow +1 << ")");
+			return false;
+		}
+		return Instruction::verify();
+	}
 };
 
 class LOOKUPSWITCHInst : public EndInst {
+private:
+	s4 lookupcount;
+	std::vector<s4> matches;
 public:
-	explicit LOOKUPSWITCHInst(BeginInst *begin, Value* S1)
-			: EndInst(LOOKUPSWITCHInstID, begin) {
+	/// wrapper for type safety
+	struct MATCH {
+		s4 match;
+		explicit MATCH(s4 match) : match(match) {}
+	};
+	explicit LOOKUPSWITCHInst(BeginInst *begin, Value* S1, s4 lookupcount)
+			: EndInst(LOOKUPSWITCHInstID, begin), lookupcount(lookupcount), matches(lookupcount) {
 		append_op(S1);
+		type = Type::IntTypeID;
 	}
 	virtual LOOKUPSWITCHInst* to_LOOKUPSWITCHInst() { return this; }
 	virtual void accept(InstructionVisitor& v) { v.visit(*this); }
+	void set_match(s4 index, MATCH match) {
+		assert(index >= 0 && index < lookupcount);
+		matches[index] = match.match;
+	}
+	virtual bool verify() const {
+		if (succ_size() != lookupcount + 1) {
+			ERROR_MSG("LOOKUPSWITCH verification error","Number of successors (" << succ_size()
+				<< ") not equal to targets (" << lookupcount + 1 << ")");
+			return false;
+		}
+		return Instruction::verify();
+	}
 };
 
 class RETURNInst : public EndInst {
