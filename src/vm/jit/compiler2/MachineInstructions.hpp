@@ -70,6 +70,9 @@ public:
 	virtual void accepts(MachineStubVisitor &visitor) {
 		visitor.visit(this);
 	}
+	virtual bool is_jump() const {
+		return true;
+	}
 	virtual MachineInstruction* transform(MachineBasicBlock *MBB) = 0;
 };
 

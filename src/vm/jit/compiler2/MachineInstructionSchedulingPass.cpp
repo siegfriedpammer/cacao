@@ -84,7 +84,7 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 		BeginInst *BI = *i;
 		assert(BI);
 		// create MachineBasicBlock
-		MachineBasicBlock *MBB = *push_front(MBBBuilder());
+		MachineBasicBlock *MBB = *push_back(MBBBuilder());
 		//MBBIterator iMBB = push_front(MBBBuilder());
 		//MachineBasicBlock *MBB = *iMBB;
 		//map.insert(std::make_pair(BI,iMBB)); //map[BI] = iMBB;
@@ -96,9 +96,16 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 			const LoweredInstDAG *dag = LP->get_LoweredInstDAG(I);
 			assert(dag);
 			for (LoweredInstDAG::const_mi_iterator i = dag->mi_begin() ,
-					e = dag->mi_end(); i != e ; ++i) {
+					e = dag->mi_end(); i != e ;) {
 				MachineInstruction *MI = *i;
 				MBB->push_back(MI);
+				// start new basic block if there are several jump instructions
+				++i;
+				if (MI->is_jump() && i != e) {
+					MBB = *push_back(MBBBuilder());
+					MachineInstruction *label = new MachineLabelInst(MBB);
+					MBB->push_back(label);
+				}
 			}
 		}
 	}

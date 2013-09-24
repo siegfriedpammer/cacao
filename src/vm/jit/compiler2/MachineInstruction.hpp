@@ -169,6 +169,9 @@ public:
 	virtual bool is_stub() const {
 		return false;
 	}
+	virtual bool is_jump() const {
+		return false;
+	}
 	virtual MachineMoveInst* to_MachineMoveInst() {
 		return NULL;
 	}

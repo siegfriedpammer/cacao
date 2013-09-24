@@ -362,6 +362,9 @@ public:
 			: X86_64Instruction("X86_64CondJumpInst", &NoOperand, 0),
 			  cond(cond), target(target) {
 	}
+	virtual bool is_jump() const {
+		return true;
+	}
 	virtual void emit(CodeMemory* CM) const;
 	virtual void link(CodeFragment &CF) const;
 	virtual OStream& print(OStream &OS) const;
@@ -445,6 +448,9 @@ private:
 public:
 	JumpInst(MachineBasicBlock *target) : MachineJumpInst("X86_64JumpInst"),
 		target(target) {}
+	virtual bool is_jump() const {
+		return true;
+	}
 	virtual void emit(CodeMemory* CM) const;
 	virtual void link(CodeFragment &CF) const;
 	virtual OStream& print(OStream &OS) const;
