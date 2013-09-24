@@ -27,9 +27,9 @@
 
 #include "config.h"
 
-#include "vm/jit/s390/arch.h"
-#include "vm/jit/s390/md-abi.h"
-#include "vm/jit/s390/md-asm.h"
+#include "vm/jit/s390/arch.hpp"
+#include "vm/jit/s390/md-abi.hpp"
+#include "vm/jit/s390/md-asm.hpp"
 
 #include "vm/jit/abi-asm.hpp"
 #include "vm/jit/methodheader.hpp"

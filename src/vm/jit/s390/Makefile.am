@@ -27,9 +27,9 @@ AM_CCASFLAGS = $(AM_CPPFLAGS) $(AM_LDFLAGS)
 LIBS =
 
 noinst_HEADERS = \
-	arch.h \
+	arch.hpp \
 	\
-	md-asm.h \
+	md-asm.hpp \
 	md-atomic.hpp
 
 noinst_LTLIBRARIES = \
@@ -42,19 +42,19 @@ endif
 
 libarch_la_SOURCES = \
 	asmpart.S \
-	codegen.c \
-	codegen.h \
+	codegen.cpp \
+	codegen.hpp \
 	$(DISASS_SOURCES) \
-	emit.c \
-	emit.h \
-	patcher.c \
+	emit.cpp \
+	emit.hpp \
+	patcher.cpp \
 	\
-	md-abi.c \
-	md-abi.h \
+	md-abi.cpp \
+	md-abi.hpp \
 	md-stubs.hpp \
-	md-trap.h \
-	md.c \
-	md.h
+	md-trap.hpp \
+	md.cpp \
+	md.hpp
 
 $(srcdir)/asmpart.S: $(top_builddir)/config.h
 

@@ -1,6 +1,6 @@
-/* src/vm/jit/s390/md.c - machine dependent s390 Linux functions
+/* src/vm/jit/s390/md.cpp - machine dependent s390 Linux functions
 
-   Copyright (C) 2006-2013
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,45 +23,28 @@
 */
 
 
-#define _GNU_SOURCE
-
 #include "config.h"
 
-#include <assert.h>
+
+#include <cassert>
 #include <stdint.h>
-#include <stdlib.h>
-#include <ucontext.h>
 
-#include "vm/jit/s390/md-abi.h"
+#include "vm/types.hpp"
 
-#include "threads/thread.hpp"
+#include "vm/jit/s390/codegen.hpp"
+#include "vm/jit/s390/md-abi.hpp"
 
 #include "vm/exceptions.hpp"
-#include "vm/signallocal.hpp"
+#include "vm/vm.hpp"
 
 #include "vm/jit/abi.hpp"
-#include "vm/jit/executionstate.hpp"
-#include "vm/jit/methodheader.hpp"
-#include "vm/jit/methodtree.hpp"
-#include "vm/jit/stacktrace.hpp"
-#include "vm/jit/trap.hpp"
-
-#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
-#include "vm/options.hpp" /* XXX debug */
-#endif
-
+#include "vm/jit/code.hpp"
 #include "vm/jit/codegen-common.hpp"
-#include "vm/jit/s390/codegen.h"
-#include "vm/jit/s390/md.h"
-
-
-/* prototypes *****************************************************************/
-
-u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp);
-
-void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p);
-
-void md_dump_context(u1 *pc, mcontext_t *mc);
+#include "vm/jit/executionstate.hpp"
+#include "vm/jit/jit.hpp"
+#include "vm/jit/methodtree.hpp"
+#include "vm/jit/patcher-common.hpp"
+#include "vm/jit/trap.hpp"
 
 /* md_init *********************************************************************
 
@@ -71,60 +54,6 @@ void md_dump_context(u1 *pc, mcontext_t *mc);
 
 void md_init(void)
 {
-}
-
-/* md_dump_context ************************************************************
- 
-   Logs the machine context
-  
-*******************************************************************************/
-
-void md_dump_context(u1 *pc, mcontext_t *mc) {
-	int i;
-	u1 *pv;
-	methodinfo *m;
-
-	union {
-		u8 l;
-		fpreg_t fr;
-	} freg;
-
-	log_println("Dumping context.");
-
-	log_println("Program counter: 0x%08X", pc);
-
-	pv = methodtree_find_nocheck(pc);
-
-	if (pv == NULL) {
-		log_println("No java method found at location.");
-	} else {
-		m = (*(codeinfo **)(pv + CodeinfoPointer))->m;
-		log_println(
-			"Java method: class %s, method %s, descriptor %s.",
-			UTF_TEXT(m->clazz->name), UTF_TEXT(m->name), UTF_TEXT(m->descriptor)
-		);
-	}
-
-#if defined(ENABLE_DISASSEMBLER)
-	log_println("Printing instruction at program counter:");
-	disassinstr(pc);
-#endif
-
-	log_println("General purpose registers:");
-
-	for (i = 0; i < 16; i++) {
-		log_println("\tr%d:\t0x%08X\t%d", i, mc->gregs[i], mc->gregs[i]);
-	}
-
-	log_println("Floating point registers:");
-
-	for (i = 0; i < 16; i++) {
-		freg.fr.d = mc->fpregs.fprs[i].d;
-		log_println("\tf%d\t0x%016llX\t(double)%e\t(float)%f", i, freg.l, freg.fr.d, freg.fr.f);
-	}
-
-	log_println("Dumping the current stacktrace:");
-	stacktrace_print_current();
 }
 
 /**
@@ -169,10 +98,10 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 
 	void* xpc = siginfo->si_addr;
 
-	if (N_RR_GET_OPC(xpc) == OPC_DR) { /* DR */
+	if (N_RR_GET_OPC((uint8_t*) xpc) == OPC_DR) { /* DR */
 
-		int r1 = N_RR_GET_REG1(xpc);
-		int r2 = N_RR_GET_REG2(xpc);
+		int r1 = N_RR_GET_REG1((uint8_t*) xpc);
+		int r2 = N_RR_GET_REG2((uint8_t*) xpc);
 
 		if (
 			(_mc->gregs[r1] == 0xFFFFFFFF) &&
@@ -405,9 +334,9 @@ bool md_trap_decode(trapinfo_t* trp, int sig, void* xpc, executionstate_t* es)
 {
 	switch (sig) {
 	case TRAP_SIGILL:
-		if (N_RR_GET_OPC(xpc) == OPC_ILL) {
-			int32_t reg = N_ILL_GET_REG(xpc);
-			trp->type  = N_ILL_GET_TYPE(xpc);
+		if (N_RR_GET_OPC((uint8_t*) xpc) == OPC_ILL) {
+			int32_t reg = N_ILL_GET_REG((uint8_t*) xpc);
+			trp->type  = N_ILL_GET_TYPE((uint8_t*) xpc);
 			trp->value = es->intregs[reg];
 			return true;
 		}
@@ -417,11 +346,11 @@ bool md_trap_decode(trapinfo_t* trp, int sig, void* xpc, executionstate_t* es)
 	{
 		int is_null;
 		int32_t base;
-		switch (N_RX_GET_OPC(xpc)) {
+		switch (N_RX_GET_OPC((uint8_t*) xpc)) {
 			case OPC_L:
 			case OPC_ST:
 			case OPC_CL: /* array size check on NULL array */
-				base = N_RX_GET_BASE(xpc);
+				base = N_RX_GET_BASE((uint8_t*) xpc);
 				if (base == 0) {
 					is_null = 1;
 				} else if (es->intregs[base] == 0) {
@@ -447,8 +376,8 @@ bool md_trap_decode(trapinfo_t* trp, int sig, void* xpc, executionstate_t* es)
 
 	case TRAP_SIGFPE:
 	{
-		if (N_RR_GET_OPC(xpc) == OPC_DR) {
-			int r2 = N_RR_GET_REG2(xpc);
+		if (N_RR_GET_OPC((uint8_t*) xpc) == OPC_DR) {
+			int r2 = N_RR_GET_REG2((uint8_t*) xpc);
 			if (es->intregs[r2] == 0) {
 				trp->type = TRAP_ArithmeticException;
 				trp->value = 0;
@@ -478,6 +407,7 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
 }
 #endif
 
+extern "C" {
 void md_handle_exception(int32_t *regs, int64_t *fregs, int32_t *out) {
 
 	uint8_t *xptr;
@@ -511,9 +441,9 @@ void md_handle_exception(int32_t *regs, int64_t *fregs, int32_t *out) {
 
 		++loops;
 
-		pv = methodtree_find(xpc);
+		pv = (uint8_t*) methodtree_find(xpc);
 
-		handler = exceptions_handle_exception((java_object_t *)xptr, xpc, pv, sp);
+		handler = (uint8_t*) exceptions_handle_exception((java_object_t *)xptr, xpc, pv, sp);
 
 		if (handler == NULL) {
 
@@ -581,6 +511,7 @@ void md_handle_exception(int32_t *regs, int64_t *fregs, int32_t *out) {
 
 	out[2] = (loops == 1);
 }
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -588,7 +519,7 @@ void md_handle_exception(int32_t *regs, int64_t *fregs, int32_t *out) {
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

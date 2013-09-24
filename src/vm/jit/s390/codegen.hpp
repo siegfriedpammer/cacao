@@ -1,6 +1,6 @@
-/* src/vm/jit/s390/codegen.h - code generation macros for s390
+/* src/vm/jit/s390/codegen.hpp - code generation macros for s390
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -835,9 +835,10 @@ static inline uint8_t N_ILL_GET_TYPE(uint8_t *instrp) {
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

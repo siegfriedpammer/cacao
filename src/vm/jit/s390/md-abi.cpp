@@ -1,4 +1,4 @@
-/* src/vm/jit/s390/md-abi.c - s390 Linux ABI
+/* src/vm/jit/s390/md-abi.cpp - s390 Linux ABI
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -24,15 +24,18 @@
 
 
 #include "config.h"
+#include "vm/types.hpp"
+
+#include "vm/jit/s390/md-abi.hpp"
 
 #include "vm/descriptor.hpp"
 #include "vm/global.hpp"
-#include "vm/types.hpp"
+#include "vm/method.hpp"
 
-#include "vm/jit/jit.hpp"
+#include "vm/jit/abi.hpp"
+#include "vm/jit/code.hpp"
+#include "vm/jit/codegen-common.hpp" // for PACK_REGS
 #include "vm/jit/stack.hpp"
-
-#include "vm/jit/s390/md-abi.h"
 
 #include <assert.h>
 
