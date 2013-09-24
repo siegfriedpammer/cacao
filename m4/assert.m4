@@ -22,25 +22,6 @@ dnl 02110-1301, USA.
 
 dnl Advanced C++ assertion support
 
-dnl check if STATIC_ASSERT should be enabled
-
-AC_DEFUN([AC_CHECK_ENABLE_STATIC_ASSERT],[
-AC_MSG_CHECKING(whether STATIC_ASSERT should be enabled)
-AC_ARG_ENABLE([static-assert],
-              [AS_HELP_STRING(--enable-static-assert,enable static assertions [[default=yes]])],
-              [case "${enableval}" in
-                   yes) ENABLE_STATIC_ASSERT=yes;;
-                   *)   ENABLE_STATIC_ASSERT=no;;
-               esac],
-              [ENABLE_STATIC_ASSERT=yes])
-AC_MSG_RESULT(${ENABLE_STATIC_ASSERT})
-AM_CONDITIONAL([ENABLE_STATIC_ASSERT], test x"${ENABLE_STATIC_ASSERT}" = "xyes")
-
-if test x"${ENABLE_STATIC_ASSERT}" = "xyes"; then
-    AC_DEFINE([ENABLE_STATIC_ASSERT], 1, [enable static assertions])
-fi
-])
-
 dnl check if C++11 builtin static assertions are available
 
 AC_DEFUN([AC_CHECK_HAVE_BUILTIN_STATIC_ASSERT],[

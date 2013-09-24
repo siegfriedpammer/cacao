@@ -27,7 +27,7 @@
 #define ASSERT_HPP_ 1
 
 #include <cassert>        // for assert
-#include "config.h"       // for ENABLE_STATIC_ASSERT, ENABLE_EXPENSIVE_ASSERT
+#include "config.h"       // for HAS_BUILTIN_STATIC_ASSERT, ENABLE_EXPENSIVE_ASSERT
 
 /***
  * An assertion that is evaluated at compile time.
@@ -49,30 +49,25 @@
  *
  * @remark The fallback version cannot handle multiple STATIC_ASSERTs on one line.
  */
-#ifdef ENABLE_STATIC_ASSERT
-#  ifdef HAS_BUILTIN_STATIC_ASSERT
-#     define STATIC_ASSERT(EXPR, MSG) static_assert(EXPR, MSG);
-#  else
-#     define STATIC_ASSERT(EXPR, MSG)                                            \
-         typedef ::cacao::static_assert_test<                                    \
-            sizeof(::cacao::STATIC_ASSERTION_FAILURE<static_cast<bool>((EXPR))>) \
-         > CONCAT(static_assert_, __LINE__) __attribute__((unused));
-
-      namespace cacao {
-         template <bool expr> struct STATIC_ASSERTION_FAILURE;
-
-         template <> struct STATIC_ASSERTION_FAILURE<true> { enum { value = 1 }; };
-
-         // STATIC_ASSERTION_FAILURE<false> is undefined, that's the whole trick
-
-         template<int expr> struct static_assert_test {};
-      }
-
-#     define CONCAT(A, B)   CONCAT_(A, B)
-#     define CONCAT_(A, B)  A ## B
-#  endif
+#ifdef HAS_BUILTIN_STATIC_ASSERT
+#	define STATIC_ASSERT(EXPR, MSG) static_assert(EXPR, MSG);
 #else
-#  define STATIC_ASSERT(EXPR, MSG) // do nothing
+#	define STATIC_ASSERT(EXPR, MSG)                                            \
+		typedef ::cacao::static_assert_test<                                    \
+			sizeof(::cacao::STATIC_ASSERTION_FAILURE<static_cast<bool>((EXPR))>) \
+		> CONCAT(static_assert_, __LINE__) __attribute__((unused));
+
+	namespace cacao {
+		template <bool expr> struct STATIC_ASSERTION_FAILURE;
+
+		template <> struct STATIC_ASSERTION_FAILURE<true> { enum { value = 1 }; };
+
+		// STATIC_ASSERTION_FAILURE<false> is undefined, that's the whole trick
+
+		template<int expr> struct static_assert_test {};
+	}
+#	define CONCAT(A, B)   CONCAT_(A, B)
+#	define CONCAT_(A, B)  A ## B
 #endif
 
 
@@ -85,9 +80,9 @@
  *  --enable-expensive-assert
  */
 #ifdef ENABLE_EXPENSIVE_ASSERT
-#  define EXPENSIVE_ASSERT(EXPR) assert(EXPR)
+#	define EXPENSIVE_ASSERT(EXPR) assert(EXPR)
 #else
-#  define EXPENSIVE_ASSERT(EXPR) (static_cast<void>(0))
+#	define EXPENSIVE_ASSERT(EXPR) (static_cast<void>(0))
 #endif
 
 
