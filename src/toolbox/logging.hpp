@@ -121,14 +121,18 @@ Color log_color();
 
 #endif
 
-
-#define ABORT_MSG(EXPR_SHORT, EXPR_LONG)                                      \
+#define ERROR_MSG(EXPR_SHORT, EXPR_LONG)                                      \
 	do {                                                                      \
 		cacao::OStream stream = cacao::err();                                 \
 		                                                                      \
 		{ stream << cacao::BoldRed << "error: " ; }                           \
 		{ stream << cacao::BoldWhite << EXPR_SHORT << cacao::reset_color ; }  \
 		{ stream << cacao::nl << EXPR_LONG << cacao::nl; }                    \
+	} while (0)
+
+#define ABORT_MSG(EXPR_SHORT, EXPR_LONG)                                      \
+	do {                                                                      \
+		ERROR_MSG(EXPR_SHORT, EXPR_LONG);                                     \
 		os::abort();                                                          \
 	} while (0)
 
