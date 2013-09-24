@@ -50,6 +50,7 @@ libcompiler2_la_SOURCES = \
 	DomTreePrinterPass.cpp \
 	GraphHelper.cpp \
 	Instruction.cpp \
+	InstructionVisitor.cpp \
 	JITData.cpp \
 	LinearScanAllocatorPass.cpp \
 	ListSchedulingPass.cpp \

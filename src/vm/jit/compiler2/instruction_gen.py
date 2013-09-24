@@ -180,7 +180,10 @@ if __name__ == '__main__':
 			'case {name}ID: return "{name}";\n',
 			cpp_header+cpp_generation_disclaimer,cpp_footer),
 		Template('InstructionVisitorGen.inc','Instruction Visitor',
-			'virtual void visit({name}& I) {{visit_default();}}\n',
+			'virtual void visit({name}* I);\n',
+			cpp_header+cpp_generation_disclaimer,cpp_footer),
+		Template('InstructionVisitorImplGen.inc','Instruction Visitor',
+			'void InstructionVisitor::visit({name}* I) {{visit_default(I);}}\n',
 			cpp_header+cpp_generation_disclaimer,cpp_footer),
 	]
 	main(temps)

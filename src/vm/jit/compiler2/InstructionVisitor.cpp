@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/InstructionVisitor.hpp - InstructionVisitor
+/* src/vm/jit/compiler2/InstructionVisitor.cpp - InstructionVisitor
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,31 +22,19 @@
 
 */
 
-#ifndef _JIT_COMPILER2_INSTRUCTIONVISITOR
-#define _JIT_COMPILER2_INSTRUCTIONVISITOR
+#include "vm/jit/compiler2/InstructionVisitor.hpp"
+#include "vm/jit/compiler2/Instructions.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-// forward declaration
-class Instruction;
-
-// include instruction declaration
-#include "vm/jit/compiler2/InstructionDeclGen.inc"
-
-class InstructionVisitor {
-public:
-virtual void visit_default(Instruction* I) = 0;
-#include "vm/jit/compiler2/InstructionVisitorGen.inc"
-
-};
+#include "vm/jit/compiler2/InstructionVisitorImplGen.inc"
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_INSTRUCTIONVISITOR */
 
 
 /*
