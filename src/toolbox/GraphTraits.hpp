@@ -26,8 +26,8 @@
 #define _GRAPH_TRAITS_HPP
 
 #include "toolbox/OStream.hpp"
-#include "toolbox/StringBuf.hpp"
 
+#include <string>
 #include <set>
 #include <map>
 #include <utility>
@@ -50,15 +50,15 @@ public:
 	typedef typename std::set<EdgeType>::const_iterator const_edge_iterator;
 	typedef typename std::map<unsigned long,std::set<NodeType*> >::iterator cluster_iterator;
 	typedef typename std::map<unsigned long,std::set<NodeType*> >::const_iterator const_cluster_iterator;
-	typedef typename std::map<unsigned long,StringBuf>::iterator cluster_name_iterator;
-	typedef typename std::map<unsigned long,StringBuf>::const_iterator const_cluster_name_iterator;
+	typedef typename std::map<unsigned long,std::string>::iterator cluster_name_iterator;
+	typedef typename std::map<unsigned long,std::string>::const_iterator const_cluster_name_iterator;
 
 protected:
 	std::set<NodeType*> nodes;
 	std::set<EdgeType> edges;
 	std::set<EdgeType> successors;
 	std::map<unsigned long,NodeListType> clusters;
-	std::map<unsigned long,StringBuf> cluster_name;
+	std::map<unsigned long,std::string> cluster_name;
 public:
 
 	const_iterator begin() const {
@@ -133,28 +133,28 @@ public:
 		return cluster_name.find(k);
 	}
 
-	StringBuf getGraphName() const {
-		return "";
+	OStream& getGraphName(OStream &OS) const {
+		return OS;
 	}
 
 	unsigned long getNodeID(const GraphTraits<GraphTy,NodeTy>::NodeType &node) const {
 		return (unsigned long)&node;
 	}
 
-	StringBuf getNodeLabel(const GraphTraits<GraphTy,NodeTy>::NodeType &node) const {
-		return "";
+	OStream& getNodeLabel(OStream &OS, const GraphTraits<GraphTy,NodeTy>::NodeType &node) const {
+		return OS;
 	}
 
-	StringBuf getNodeAttributes(const GraphTraits<GraphTy,NodeTy>::NodeType &node) const {
-		return "";
+	OStream& getNodeAttributes(OStream &OS, const GraphTraits<GraphTy,NodeTy>::NodeType &node) const {
+		return OS;
 	}
 
-	StringBuf getEdgeLabel(const GraphTraits<GraphTy,NodeTy>::EdgeType &e) const {
-		return "";
+	OStream& getEdgeLabel(OStream &OS, const GraphTraits<GraphTy,NodeTy>::EdgeType &e) const {
+		return OS;
 	}
 
-	StringBuf getEdgeAttributes(const GraphTraits<GraphTy,NodeTy>::EdgeType &e) const {
-		return "";
+	OStream& getEdgeAttributes(OStream &OS, const GraphTraits<GraphTy,NodeTy>::EdgeType &e) const {
+		return OS;
 	}
 
 };
@@ -176,14 +176,16 @@ public:
 	static void printHeader(OStream &OS, const GraphTraitsTy &G) {
 		OS<<"digraph g1 {\n";
 		OS<<"node [shape = box];\n";
-		OS<<"label = \""<< G.getGraphName() <<"\";\n";
+		OS<<"label = \"";
+		G.getGraphName(OS) <<"\";\n";
 	}
 
 	static void printNodes(OStream &OS, const GraphTraitsTy &G) {
 		for(typename GraphTraitsTy::const_iterator i = G.begin(), e = G.end(); i != e; ++i) {
 			typename GraphTraitsTy::NodeType &node(**i);
-			OS<< "\"node_" << G.getNodeID(node) << "\"" << "[label=\"" << G.getNodeLabel(node)
-			  << "\", " << G.getNodeAttributes(node) << "];\n";
+			OS<< "\"node_" << G.getNodeID(node) << "\"" << "[label=\"";
+			G.getNodeLabel(OS,node) << "\", ";
+			G.getNodeAttributes(OS,node) << "];\n";
 		}
 	}
 
@@ -211,8 +213,9 @@ public:
 			typename GraphTraitsTy::NodeType &a(*i->first);
 			typename GraphTraitsTy::NodeType &b(*i->second);
 			OS<< "\"node_" << G.getNodeID(a) << "\" -> " << "\"node_" << G.getNodeID(b) << "\""
-			  << "[label=\"" << G.getEdgeLabel(*i)
-			  << "\", " << G.getEdgeAttributes(*i) << "];\n";
+			  << "[label=\"";
+			G.getEdgeLabel(OS,*i) << "\", ";
+			G.getEdgeAttributes(OS,*i) << "];\n";
 		}
 	}
 
