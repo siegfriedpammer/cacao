@@ -54,6 +54,7 @@ public:
 	virtual void visit(INVOKESTATICInst *I);
 	virtual void visit(GETSTATICInst *I);
 	virtual void visit(LOOKUPSWITCHInst *I);
+	virtual void visit(TABLESWITCHInst *I);
 };
 
 } // end namespace x86_64

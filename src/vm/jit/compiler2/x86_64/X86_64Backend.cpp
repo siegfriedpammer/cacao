@@ -654,6 +654,44 @@ void LoweringVisitor::visit(LOOKUPSWITCHInst *I) {
 	set_dag(dag);
 }
 
+void LoweringVisitor::visit(TABLESWITCHInst *I) {
+	assert(I);
+	Type::TypeID type = I->get_type();
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	VirtualRegister *src = new VirtualRegister(type);
+	MachineInstruction *mov = get_Backend()->create_Move(new UnassignedReg(type), src);
+	dag->add(mov);
+
+	s4 low = I->get_low();
+	s4 high = I->get_high();
+
+	// adjust offset
+	if (low != 0) {
+		SubInst *sub = new SubInst(
+			Src2Op(new Immediate(low,Type::IntType())),
+			DstSrc1Op(src),
+			get_OperandSize_from_Type(type)
+		);
+		dag->add(sub);
+		high -= low;
+	}
+	// check range
+	CmpInst *cmp = new CmpInst(
+		Src2Op(new Immediate(high,Type::IntType())),
+		Src1Op(src),
+		get_OperandSize_from_Type(type));
+	MachineInstruction *cjmp = new CondJumpInstStub(Cond::G, I->succ_front().get());
+	dag->add(cmp);
+	dag->add(cjmp);
+
+	// TODO load data segment and jump
+	// assert(0 && "load data segment and jump"));
+	// load table entry
+	dag->set_input(0,mov,0);
+	dag->set_result(cjmp);
+	set_dag(dag);
+}
+
 template<>
 compiler2::RegisterFile*
 BackendBase<X86_64>::get_RegisterFile(Type::TypeID type) const {
