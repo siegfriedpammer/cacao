@@ -68,16 +68,14 @@ public:
 		}
 	}
 
-    StringBuf getGraphName() const {
-		return "DomTreeGraph";
+    OStream& getGraphName(OStream& OS) const {
+		return OS << "DomTreeGraph";
 	}
 
-    StringBuf getNodeLabel(const BeginInst &node) const {
-		std::ostringstream sstream;
-		sstream << "[" << getNodeID(node) << "] "
+    OStream& getNodeLabel(OStream& OS, const BeginInst &node) const {
+		return OS << "[" << getNodeID(node) << "] "
 		        << node.get_name() << " "
 				<< dfs[(BeginInst*)&node];
-		return sstream.str();
 	}
 
 };
