@@ -1,9 +1,7 @@
 /* src/vm/jit/s390/asmpart.S - Java-C interface functions for s390
 
-   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2013
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -58,8 +56,6 @@
 	.globl asm_builtin_d2l
 
 
-asm_abstractmethoderror:
-	.long 0
 asm_builtin_f2i:
 	.long 0
 asm_builtin_f2l:
@@ -86,6 +82,22 @@ L_bras_##tag:                                                                   
 	la     %r12, L_offsets - L_bras_##tag (%r12, %r14);  /* load PLT address */     \
 	l      %r14, L_offset_##func - L_bras_##tag (%r14);  /* load offset to func */  \
 	bas    %r14, 0(%r14, %r12);
+
+asm_abstractmethoderror:
+	st    ra, 56(sp)
+	st    %r12, 48(sp)
+	lr    a0, sp
+	lr    a1, ra
+	ahi   a1, -4
+	ahi   sp, -96
+	CALL_PIC(exceptions_asm_new_abstractmethoderror, ame)
+	ahi   sp, 96
+	lr    xptr, a0
+	l     %r12, 48(sp)
+	l     ra, 56(sp)
+	lr    a1, ra
+	ahi   a1, -4
+	j     L_asm_handle_exception
 
 /********************* function asm_calljavafunction ***************************
 *                                                                              *
@@ -351,6 +363,8 @@ L_offset_builtin_throw_exception:
 	.long  builtin_throw_exception@PLTOFF
 L_offset_md_handle_exception:
 	.long  md_handle_exception@PLTOFF
+L_offset_exceptions_asm_new_abstractmethoderror:
+	.long  exceptions_asm_new_abstractmethoderror@PLTOFF
 
 
 /*
