@@ -28,7 +28,6 @@ DIST_SUBDIRS = \
 SUBDIRS = $(OS_DIR)
 
 AM_CPPFLAGS += -I$(top_srcdir)/src -I$(top_builddir) -I$(top_builddir)/src
-AM_CCASFLAGS = $(AM_CPPFLAGS)
 
 LIBS =
 

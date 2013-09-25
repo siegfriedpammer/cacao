@@ -724,7 +724,7 @@ void JavaString::fprint_printable_ascii(FILE *stream) const
 	for (size_t i = 0; i < sz; i++) {
 		char c = cs[i];
 
-		c = (c >= 32 && c <= 127) ? c : '?';
+		c = (c >= 32 && (unsigned char)c <= 127) ? c : '?';
 
 		fputc(c, stream);
 	}

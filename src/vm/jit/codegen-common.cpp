@@ -1852,6 +1852,8 @@ bool codegen_emit(jitdata *jd)
 					case ICMD_IF_ACMPNE:
 						emit_bne(cd, iptr->dst.block, s1, s2);
 						break;
+					default:
+						break;
 				}
 #elif SUPPORT_BRANCH_CONDITIONAL_CONDITION_REGISTER
 				M_ACMP(s1, s2);
@@ -1864,6 +1866,8 @@ bool codegen_emit(jitdata *jd)
 						break;
 					case ICMD_IF_ACMPNE:
 						emit_beqz(cd, iptr->dst.block, REG_ITMP1);
+						break;
+					default:
 						break;
 				}
 #else

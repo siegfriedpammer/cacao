@@ -179,7 +179,7 @@ class InternTable {
 				this->entries     = new Entry[capacity];
 				this->capacity    = capacity;
 				this->count       = 0;
-				this->threshold   = capacity * load_factor;
+				this->threshold   = size_t(capacity * load_factor);
 				this->load_factor = load_factor;
 			}
 
@@ -225,7 +225,7 @@ class InternTable {
 				// resize table
 				capacity  = capacity * 2;
 				entries   = new Entry[capacity];
-				threshold = capacity * load_factor;
+				threshold = size_t(capacity * load_factor);
 
 				// re-insert all entries
 				for ( ; it != end; it++ ) {
