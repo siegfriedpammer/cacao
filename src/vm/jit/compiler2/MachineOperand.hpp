@@ -219,28 +219,22 @@ private:
 	val_operand_t value;
 public:
 	Immediate(CONSTInst *I);
-	#if 0
-	Immediate(s4 val, Type::TypeID type)
+	Immediate(s4 val, Type::IntType type)
 			: MachineOperand(ImmediateID, type) {
-		assert(type == Type::IntTypeID);
 		value.i = val;
 	}
-	Immediate(s8 val, Type::TypeID type)
+	Immediate(s8 val, Type::LongType type)
 			: MachineOperand(ImmediateID, type) {
-		assert(type == Type::LongTypeID);
 		value.l = val;
 	}
-	Immediate(float val, Type::TypeID type)
+	Immediate(float val, Type::FloatType type)
 			: MachineOperand(ImmediateID, type) {
-		assert(type == Type::FloatTypeID);
 		value.f = val;
 	}
-	Immediate(double val, Type::TypeID type)
+	Immediate(double val, Type::DoubleType type)
 			: MachineOperand(ImmediateID, type) {
-		assert(type == Type::DoubleTypeID);
 		value.d = val;
 	}
-	#endif
 	virtual Immediate* to_Immediate() { return this; }
 	virtual const char* get_name() const {
 		return "Immediate";
