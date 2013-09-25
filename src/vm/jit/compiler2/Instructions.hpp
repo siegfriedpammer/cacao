@@ -187,6 +187,8 @@ inline OStream& operator<<(OStream &OS, const BeginInstRef &BIR) {
 class EndInst : public Instruction {
 public:
 	typedef std::vector<BeginInstRef> SuccessorListTy;
+	typedef SuccessorListTy::const_iterator succ_const_iterator;
+	typedef SuccessorListTy::const_reverse_iterator succ_const_reverse_iterator;
 private:
 	SuccessorListTy succ_list;
 	void set_successor(int index, BeginInst *BI) {
@@ -705,9 +707,12 @@ public:
 };
 
 class LOOKUPSWITCHInst : public EndInst {
+public:
+	typedef std::vector<s4> MatchTy;
+	typedef MatchTy::iterator match_iterator;
 private:
 	s4 lookupcount;
-	std::vector<s4> matches;
+	MatchTy matches;
 public:
 	/// wrapper for type safety
 	struct MATCH {
@@ -724,6 +729,15 @@ public:
 	void set_match(s4 index, MATCH match) {
 		assert(index >= 0 && index < lookupcount);
 		matches[index] = match.match;
+	}
+	s4 get_match(s4 index) {
+		return matches[index];
+	}
+	match_iterator match_begin() {
+		return matches.begin();
+	}
+	match_iterator match_end() {
+		return matches.end();
 	}
 	virtual bool verify() const {
 		if (succ_size() != lookupcount + 1) {

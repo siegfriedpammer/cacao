@@ -53,6 +53,7 @@ public:
 	virtual void visit(CASTInst *I);
 	virtual void visit(INVOKESTATICInst *I);
 	virtual void visit(GETSTATICInst *I);
+	virtual void visit(LOOKUPSWITCHInst *I);
 };
 
 } // end namespace x86_64

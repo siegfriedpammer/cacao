@@ -623,6 +623,37 @@ void LoweringVisitor::visit(GETSTATICInst *I) {
 	set_dag(dag);
 }
 
+void LoweringVisitor::visit(LOOKUPSWITCHInst *I) {
+	assert(I);
+	Type::TypeID type = I->get_type();
+	LoweredInstDAG *dag = new LoweredInstDAG(I);
+	VirtualRegister *src = new VirtualRegister(type);
+	MachineInstruction *mov = get_Backend()->create_Move(new UnassignedReg(type), src);
+	dag->add(mov);
+
+	LOOKUPSWITCHInst::succ_const_iterator s = I->succ_begin();
+	for(LOOKUPSWITCHInst::match_iterator i = I->match_begin(),
+			e = I->match_end(); i != e; ++i) {
+		CmpInst *cmp = new CmpInst(
+			Src2Op(new Immediate(*i,Type::IntType())),
+			Src1Op(src),
+			get_OperandSize_from_Type(type));
+		MachineInstruction *cjmp = new CondJumpInstStub(Cond::E, s->get());
+		dag->add(cmp);
+		dag->add(cjmp);
+		++s;
+	}
+
+	// default
+	MachineInstruction *jmp = new JumpInstStub(s->get());
+	dag->add(jmp);
+	assert(++s == I->succ_end());
+
+	dag->set_input(0,mov,0);
+	dag->set_result(jmp);
+	set_dag(dag);
+}
+
 template<>
 compiler2::RegisterFile*
 BackendBase<X86_64>::get_RegisterFile(Type::TypeID type) const {
