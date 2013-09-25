@@ -25,6 +25,7 @@
 #ifndef OSTREAM_HPP_
 #define OSTREAM_HPP_ 1
 
+#include <string>
 #include <cstdio>
 
 namespace cacao {
@@ -432,6 +433,10 @@ inline OStream& print_container(OStream &OS, _ForwardIterator i, const _ForwardI
 		OS << ", " << *i;
 	}
 	return OS << "]";
+}
+
+inline OStream& operator<<(OStream &OS, const std::string &t) {
+	return OS << t.c_str();
 }
 
 } // end namespace cacao
