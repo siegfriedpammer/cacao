@@ -2070,12 +2070,19 @@ bool SSAConstructionPass::run(JITData &JD) {
 						TABLESWITCHInst::LOW(tablelow),
 						TABLESWITCHInst::HIGH(tablehigh));
 
-					s4 i = tablehigh - tablelow + 1;
+					s4 count = tablehigh - tablelow + 1;
+					LOG("tableswitch  high=" << tablehigh << " low=" << tablelow << " count=" << count << nl);
 					branch_target_t *table = iptr->dst.table;
-					while (--i >= 0) {
-						result->append_succ(BB[table->block->nr]);
-						++table;
+					BeginInst* def = BB[table[0].block->nr];
+					LOG("idx: " << 0 << " BeginInst: " << BB[table[0].block->nr]
+						<< "(block.nr=" << table[0].block->nr << ")"<< nl);
+					++table;
+					for (s4 i = 0; i < count ; ++i) {
+						LOG("idx: " << i << " BeginInst: " << BB[table[i].block->nr]
+							<< "(block.nr=" << table[i].block->nr << ")"<< nl);
+						result->append_succ(BB[table[i].block->nr]);
 					}
+					result->append_succ(def);
 					M->add_Instruction(result);
 				}
 				break;

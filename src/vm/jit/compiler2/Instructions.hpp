@@ -98,7 +98,7 @@ private:
 	void set_predecessor(int index, BeginInst *BI) {
 		pred_list[index] = BI;
 	}
-	inline void set_successor(int index, BeginInst *BI);
+	void set_successor(int index, BeginInst *BI);
 
 public:
 	explicit BeginInst() : Instruction(BeginInstID, Type::VoidTypeID) {
@@ -131,7 +131,7 @@ public:
 		assert(i != pred_list.end());
 		return *i;
 	}
-	inline int get_successor_index(const BeginInst* BI) const;
+	int get_successor_index(const BeginInst* BI) const;
 
 	EndInst *get_EndInst() const { return end; }
 	void set_EndInst(EndInst* e) { end = e; }
@@ -246,15 +246,20 @@ public:
 	BeginInstRef &succ_back() { return succ_list.back(); }
 	size_t succ_size() const { return succ_list.size(); }
 
+	BeginInstRef& get_successor(size_t i) {
+		assert(i < succ_size());
+		return succ_list[i];
+	}
+
 	friend class BeginInst;
 	friend class Method;
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
-int BeginInst::get_successor_index(const BeginInst* BI) const {
+inline int BeginInst::get_successor_index(const BeginInst* BI) const {
 	return get_EndInst()->get_successor_index(BI);
 }
-void BeginInst::set_successor(int index, BeginInst *BI) {
+inline void BeginInst::set_successor(int index, BeginInst *BI) {
 	get_EndInst()->set_successor(index,BI);
 }
 
@@ -439,6 +444,17 @@ public:
 		return value.d;
 	}
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
+	virtual OStream& print(OStream& OS) const {
+		Instruction::print(OS);
+		switch(get_type()){
+		case Type::IntTypeID:    return OS << " = " << get_Int();
+		case Type::LongTypeID:   return OS << " = " << get_Long();
+		case Type::FloatTypeID:  return OS << " = " << get_Float();
+		case Type::DoubleTypeID: return OS << " = " << get_Double();
+		default: break;
+		}
+		return OS;
+	}
 };
 
 class GETFIELDInst : public Instruction {
@@ -694,10 +710,14 @@ public:
 		append_op(S1);
 		type = Type::IntTypeID;
 	}
+
+	s4 get_low() const { return tablelow; }
+	s4 get_high() const { return tablehigh; }
 	virtual TABLESWITCHInst* to_TABLESWITCHInst() { return this; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
+
 	virtual bool verify() const {
-		if (succ_size() != tablehigh - tablelow + 1) {
+		if (succ_size() != tablehigh - tablelow + 1 + 1) {
 			ERROR_MSG("TABLESWITCH verification error","Number of successors (" << succ_size()
 				<< ") not equal to targets (" << tablehigh - tablelow +1 << ")");
 			return false;
