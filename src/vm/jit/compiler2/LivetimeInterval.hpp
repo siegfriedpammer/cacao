@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_LIVETIMEINTERVAL
 
 #include "vm/jit/compiler2/Type.hpp"
+#include "vm/jit/compiler2/MachineBasicBlock.hpp"
 
 #include <map>
 #include <set>
@@ -48,6 +49,44 @@ class ManagedStackSlot;
 class BasicBlockSchedule;
 class MachineInstructionSchedule;
 
+class UseDef {
+public:
+	enum Type {
+		Use,
+		Def
+	};
+
+	/// constructor
+	UseDef(Type type, MachineBasicBlock::iterator it,
+		MachineOperandDesc *op) : type(type), it(it), op(op) {}
+	/// Is a def position
+	bool is_def() const { return type == Def; }
+	/// Is a use position
+	bool is_use() const { return type == Use; }
+	/** Is a pseudo use position.
+	 * A pseudo use position is used to mark backedges.
+	 */
+	bool is_pseudo_use() const { return op == NULL; }
+
+	/// Get operand
+	MachineOperandDesc* get_operand() const { return op; }
+	/// Get instruction iterator
+	MachineBasicBlock::iterator get_iterator() const { return it; }
+private:
+	/// Type
+	Type type;
+	/// Iterator pointing to the instruction
+	MachineBasicBlock::iterator it;
+	/// Source/Destination Operand
+	MachineOperandDesc* op;
+};
+
+/// UseDef less then operator
+inline bool operator<(const UseDef& lhs,const UseDef& rhs) {
+	return lhs.get_iterator() < rhs.get_iterator();
+}
+
+
 /**
  * TODO: doc me!
  */
@@ -56,23 +95,22 @@ public:
 	typedef std::list<std::pair<unsigned,unsigned> > IntervalListTy;
 	typedef IntervalListTy::const_iterator const_iterator;
 	typedef IntervalListTy::iterator iterator;
+
 	/**
 	 * @Cpp11 this could be changed to std::set where erase returns an
 	 * iterator.
 	 */
-	typedef std::pair<unsigned,MachineOperandDesc*> UseDefEntryTy;
-	typedef std::list<UseDefEntryTy> UseDefTy;
+	typedef std::list<UseDef> UseDefTy;
 	typedef UseDefTy::const_iterator const_use_iterator;
 	typedef UseDefTy::const_iterator const_def_iterator;
 	typedef UseDefTy::iterator use_iterator;
 	typedef UseDefTy::iterator def_iterator;
 private:
+	#if 0
 	IntervalListTy intervals;
 	MachineOperand* operand;         ///< store for the interval
-	UseDefTy uses;
-	UseDefTy defs;
-	bool fixed_interval;
-	LivetimeInterval *next_split;    ///< if splitted, this points to the next iterval
+	UseDefTy usedefs;
+	//bool fixed_interval;
 	Register *hint;                  ///< Register hint
 	void add_range(unsigned from, unsigned to) {
 		if (intervals.size() > 0) {
@@ -100,10 +138,12 @@ private:
 			add_range(from,to);
 		}
 	}
-	static bool compare_usedef(UseDefEntryTy &lhs, UseDefEntryTy &rhs) {
+	static bool compare_usedef(UseDef &lhs, UseDef &rhs) {
 		return lhs.first < rhs.first;
 	}
+	#endif
 public:
+	#if 0
 	LivetimeInterval() : intervals(), operand(NULL), uses(), defs(),
 			fixed_interval(false), next_split(NULL), hint(NULL) {}
 
@@ -122,12 +162,12 @@ public:
 	const_iterator end()           const { return intervals.end(); }
 	std::size_t size()             const { return intervals.size(); }
 
-	UseDefEntryTy use_front()      const { return uses.front(); }
+	UseDef use_front()      const { return uses.front(); }
 	const_use_iterator use_begin() const { return uses.begin(); }
 	const_use_iterator use_end()   const { return uses.end(); }
 	std::size_t use_size()         const { return uses.size(); }
 
-	UseDefEntryTy def_front()      const { return defs.front(); }
+	UseDef def_front()      const { return defs.front(); }
 	const_def_iterator def_begin() const { return defs.begin(); }
 	const_def_iterator def_end()   const { return defs.end(); }
 	std::size_t def_size()         const { return defs.size(); }
@@ -274,18 +314,12 @@ public:
 	 */
 	LivetimeInterval* split(unsigned pos);
 	LivetimeInterval* split(unsigned pos, StackSlotManager *SSM);
-
+#endif
 	friend class LivetimeAnalysisPass;
 };
 
 OStream& operator<<(OStream &OS, const LivetimeInterval &lti);
-inline OStream& operator<<(OStream &OS, const LivetimeInterval *lti) {
-	if (!lti) {
-		return OS << "(LivetimeInterval) NULL";
-	}
-	return OS << *lti;
-}
-OStream& operator<<(OStream &OS, const std::pair<unsigned,MachineOperandDesc*> &usedef);
+OStream& operator<<(OStream &OS, const LivetimeInterval *lti);
 
 } // end namespace compiler2
 } // end namespace jit

@@ -48,160 +48,6 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
-////////////////////// LivetimeInterval
-
-void LivetimeInterval::set_Register(Register* r) {
-	operand = r;
-}
-
-Register* LivetimeInterval::get_Register() const {
-	Register *r = operand->to_Register();
-	assert(r);
-	return r;
-}
-void LivetimeInterval::set_ManagedStackSlot(ManagedStackSlot* s) {
-	operand = s;
-}
-
-ManagedStackSlot* LivetimeInterval::get_ManagedStackSlot() const {
-	ManagedStackSlot *s = operand->to_ManagedStackSlot();
-	return s;
-}
-
-bool LivetimeInterval::is_in_Register() const {
-	if(operand)
-		return operand->to_Register() != NULL;
-	return false;
-}
-bool LivetimeInterval::is_in_StackSlot() const {
-	if(operand)
-		return operand->to_ManagedStackSlot() != NULL;
-	return false;
-}
-Type::TypeID LivetimeInterval::get_type() const {
-	if (!operand) return Type::VoidTypeID;
-	return operand->get_type();
-}
-
-LivetimeInterval* LivetimeInterval::split(unsigned pos, StackSlotManager *SSM) {
-	//sanity checks:
-	assert(pos >= get_start() && pos < get_end());
-	// NOTE Note that the end of an interval shall be a use position
-	// (even) (what about for phi input intervals input for phi?).
-	// in special cases (eg fixed intervals) this is not the case
-	// -> force it
-	//pos -= (pos & 1);
-
-	LivetimeInterval *stack_interval =  NULL;
-	LivetimeInterval *lti = NULL;
-	// copy intervals
-	iterator i = intervals.begin();
-	iterator e = intervals.end();
-	for( ; i != e ; ++i) {
-		if (i->first >= pos) {
-			// livetime hole
-			break;
-		}
-		if (i->second > pos) {
-			signed next_usedef = next_usedef_after(pos);
-			// currently active
-			unsigned end = i->second;
-			i->second = pos;
-			//lti->add_range(pos,end);
-			// XXX Wow I am so not sure if this is correct:
-			// If the new range will start at pos it will be
-			// selected for reg allocation in the next iteration
-			// and we end up in splitting another interval which
-			// in ture creates a new interval starting at pos...
-			// But if we let it start at the next usedef things look
-			// better. Because of the phi functions we dont run into
-			// troubles with backedges and loop time intervals,
-			// I guess...
-
-			assert(next_usedef != -1);
-			//if (next_usedef != end) {
-				// ok it is not a loop pseudo use
-				lti = new LivetimeInterval();
-				lti->add_range(next_usedef,end);
-			//}
-			++i;
-			// create stack interval
-			ManagedStackSlot *slot = SSM->create_ManagedStackSlot(get_type());
-			stack_interval = new LivetimeInterval();
-			stack_interval->add_range(pos,next_usedef+1);
-			stack_interval->set_ManagedStackSlot(slot);
-			this->next_split = stack_interval;
-			break;
-		}
-	}
-	if (i == e && lti == NULL) {
-		// already at the end
-		return NULL;
-	}
-	if (lti == NULL) {
-		lti = new LivetimeInterval();
-	}
-	if (stack_interval) {
-		stack_interval->next_split = lti;
-	} else {
-		this->next_split = lti;
-	}
-	// move all remaining intervals to the new lti
-	while (i != e) {
-		lti->intervals.push_back(std::make_pair(i->first,i->second));
-		i = intervals.erase(i);
-	}
-	// copy uses
-	for (use_iterator i = uses.begin(), e = uses.end(); i != e ; ) {
-		if (i->first >= pos) {
-			lti->add_use(*i);
-			i = uses.erase(i);
-		} else {
-			++i;
-		}
-	}
-	// copy defs
-	for (def_iterator i = defs.begin(), e = defs.end(); i != e ; ) {
-		if (i->first >= pos) {
-			lti->add_def(*i);
-			i = defs.erase(i);
-		} else {
-			++i;
-		}
-	}
-	// create new virtual register
-	VirtualRegister *vreg = new VirtualRegister(get_type());
-	lti->set_Register(vreg);
-	// set hint to the current register
-	assert(get_Register()->to_MachineRegister());
-	lti->set_hint(get_Register());
-	return lti;
-}
-
-OStream& operator<<(OStream &OS, const LivetimeInterval &lti) {
-	if (lti.is_in_Register()) {
-		OS << lti.get_Register();
-	} else if (lti.is_in_StackSlot()) {
-		OS << lti.get_ManagedStackSlot();
-	} else {
-		OS << "No Operand!";
-	}
-	OS << " (" << lti.get_type() << ")";
-	for(LivetimeInterval::const_iterator i = lti.begin(), e = lti.end();
-			i != e ; ++i) {
-		OS << " [" << i->first << "," << i->second << ")";
-	}
-	OS<<" use: ";
-	print_container(OS,lti.use_begin(),lti.use_end());
-	OS<<" def: ";
-	print_container(OS,lti.def_begin(),lti.def_end());
-	return OS;
-}
-OStream& operator<<(OStream &OS, const std::pair<unsigned,MachineOperandDesc*> &usedef) {
-	return OS << usedef.first;
-}
-
-////////////////////// LivetimeAnalysis
 
 bool LivetimeAnalysisPass::run(JITData &JD) {
 #if 0
@@ -498,6 +344,7 @@ OStream& LivetimeAnalysisPass::print(OStream& OS) const {
 }
 
 bool LivetimeAnalysisPass::verify() const {
+#if 0
 	for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
 			e = lti_map.end(); i != e ; ++i) {
 		const LivetimeInterval &lti = i->second;
@@ -520,6 +367,7 @@ bool LivetimeAnalysisPass::verify() const {
 			old = i->first;
 		}
 	}
+#endif
 	return true;
 }
 // pass usage

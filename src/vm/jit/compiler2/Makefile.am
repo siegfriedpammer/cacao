@@ -55,6 +55,7 @@ libcompiler2_la_SOURCES = \
 	LinearScanAllocatorPass.cpp \
 	ListSchedulingPass.cpp \
 	LivetimeAnalysisPass.cpp \
+	LivetimeInterval.cpp \
 	LoopPass.cpp \
 	LoopSimplificationPass.cpp \
 	LoweredInstDAG.cpp \

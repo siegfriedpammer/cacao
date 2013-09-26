@@ -42,9 +42,11 @@ class Backend;
 
 struct StartComparator {
 	bool operator()(const LivetimeInterval *lhs, const LivetimeInterval* rhs) {
+		#if 0
 		if(lhs->get_start() > rhs->get_start()) {
 			return true;
 		}
+		#endif
 		return false;
 	}
 };

@@ -49,7 +49,7 @@ STAT_REGISTER_GROUP_VAR(unsigned,num_hints_followed,0,"hints followed",
 namespace cacao {
 namespace jit {
 namespace compiler2 {
-
+#if 0
 template <typename Key, typename T>
 bool max_value_comparator(const std::pair<Key,T> &lhs, const std::pair<Key,T> &rhs) {
 	return lhs.second < rhs.second;
@@ -851,12 +851,13 @@ PassUsage& LinearScanAllocatorPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_destroys(LivetimeAnalysisPass::ID);
 	return PU;
 }
-
 // the address of this variable is used to identify the pass
 char LinearScanAllocatorPass::ID = 0;
 
 // register pass
 static PassRegistery<LinearScanAllocatorPass> X("LinearScanAllocatorPass");
+
+#endif
 
 } // end namespace compiler2
 } // end namespace jit
