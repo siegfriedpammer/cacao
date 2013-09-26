@@ -26,7 +26,9 @@
 #define _JIT_COMPILER2_DATASEGMENT
 
 #include "vm/jit/compiler2/Segment.hpp"
-#include "vm/references.hpp"
+
+// forward declaration
+struct constant_FMIref;
 
 namespace cacao {
 namespace jit {
