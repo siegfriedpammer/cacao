@@ -144,6 +144,8 @@ public:
 
 	/// get a MIIterator form a interator
 	MIIterator convert(iterator pos);
+	/// get self iterator
+	MBBIterator self_iterator() const;
 	/// print
 	OStream& print(OStream& OS) const;
 private:
@@ -221,6 +223,9 @@ inline MIIterator MachineBasicBlock::convert(iterator pos) {
 		return ++convert(--pos);
 	}
 	return MIIterator(my_it,pos);
+}
+inline MBBIterator MachineBasicBlock::self_iterator() const {
+	return my_it;
 }
 
 inline OStream& operator<<(OStream& OS, MachineBasicBlock& MBB) {
