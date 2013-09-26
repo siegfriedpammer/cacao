@@ -685,6 +685,16 @@ void LoweringVisitor::visit(TABLESWITCHInst *I) {
 	dag->add(cjmp);
 
 	// TODO load data segment and jump
+	// load address
+	DataSegment &DS = get_Backend()->get_JITData()->get_CodeMemory()->get_DataSegment();
+	DataFragment data = DS.get_Ref(sizeof(void*) * (high - low + 1));
+	DataSegment::IdxTy idx = data.get_begin();
+	VirtualRegister *addr = new VirtualRegister(Type::ReferenceTypeID);
+	WARNING_MSG("TODO","add offset");
+	MovDSEGInst *dmov = new MovDSEGInst(DstOp(addr),idx);
+	dag->add(dmov);
+	MachineInstruction *jmp = new IndirectJumpInst(SrcOp(addr));
+	dag->add(jmp);
 	// assert(0 && "load data segment and jump"));
 	// load table entry
 	dag->set_input(0,mov,0);

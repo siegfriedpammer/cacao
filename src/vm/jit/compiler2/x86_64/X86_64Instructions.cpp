@@ -813,6 +813,19 @@ OStream& JumpInst::print(OStream &OS) const {
 		<< get_name() << "-> " << *target;
 }
 
+void IndirectJumpInst::emit(CodeMemory* CM) const {
+	X86_64Register *src_reg = cast_to<X86_64Register>(operands[0].op);
+	CodeFragment code = CM->get_CodeFragment(2);
+	code[0] = 0xff;
+	WARNING_MSG("Not yet implemented","No support for indirect jump yet.");
+	code[1] = get_modrm_1reg(0,src_reg);
+	return;
+}
+
+OStream& IndirectJumpInst::print(OStream &OS) const {
+	return OS << "[" << setz(4) << get_id() << "] "
+		<< get_name() << "-> " << operands[0].op;
+}
 void SSEAluInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[1].op;
 	MachineOperand *dst = result.op;

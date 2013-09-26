@@ -458,6 +458,18 @@ public:
 		return target;
 	}
 };
+class IndirectJumpInst : public X86_64Instruction {
+public:
+	IndirectJumpInst(const SrcOp &src)
+			: X86_64Instruction("X86_64IndirectJumpInst", &NoOperand, 1) {
+		operands[0].op = src.op;
+	}
+	virtual bool is_jump() const {
+		return true;
+	}
+	virtual void emit(CodeMemory* CM) const;
+	virtual OStream& print(OStream &OS) const;
+};
 // Double & Float operations
 /**
  * Convert Dword Integer to Scalar Double-Precision FP Value
