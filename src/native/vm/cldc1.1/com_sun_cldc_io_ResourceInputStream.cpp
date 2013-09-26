@@ -39,6 +39,8 @@
 
 #include "threads/mutex.hpp"
 
+#include "toolbox/endianess.hpp"
+
 #include "vm/array.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/javaobjects.hpp"

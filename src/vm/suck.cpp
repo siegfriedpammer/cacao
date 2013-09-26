@@ -34,10 +34,11 @@
 
 #include "threads/mutex.hpp"
 
+#include "toolbox/buffer.hpp"
+#include "toolbox/endianess.hpp"
 #include "toolbox/hashtable.hpp"
 #include "toolbox/list.hpp"
 #include "toolbox/logging.hpp"
-#include "toolbox/buffer.hpp"
 
 #include "vm/exceptions.hpp"
 #include "vm/loader.hpp"
@@ -47,6 +48,8 @@
 #include "vm/suck.hpp"
 #include "vm/vm.hpp"
 #include "vm/zip.hpp"
+
+using namespace cacao;
 
 
 /* scandir_filter **************************************************************
@@ -357,9 +360,7 @@ bool suck_check_classbuffer_size(classbuffer *cb, s4 len)
 
 u1 suck_u1(classbuffer *cb)
 {
-	u1 a;
-
-	a = SUCK_BE_U1(cb->pos);
+	u1 a = read_u1_be(cb->pos);
 	cb->pos++;
 
 	return a;
@@ -368,9 +369,7 @@ u1 suck_u1(classbuffer *cb)
 
 u2 suck_u2(classbuffer *cb)
 {
-	u2 a;
-
-	a = SUCK_BE_U2(cb->pos);
+	u2 a = read_u2_be(cb->pos);
 	cb->pos += 2;
 
 	return a;
@@ -379,9 +378,7 @@ u2 suck_u2(classbuffer *cb)
 
 u4 suck_u4(classbuffer *cb)
 {
-	u4 a;
-
-	a = SUCK_BE_U4(cb->pos);
+	u4 a = read_u4_be(cb->pos);
 	cb->pos += 4;
 
 	return a;
@@ -390,9 +387,7 @@ u4 suck_u4(classbuffer *cb)
 
 u8 suck_u8(classbuffer *cb)
 {
-	u8 a;
-
-	a = SUCK_BE_U8(cb->pos);
+	u8 a = read_u8_be(cb->pos);
 	cb->pos += 8;
 
 	return a;

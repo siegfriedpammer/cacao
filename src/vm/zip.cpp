@@ -33,6 +33,7 @@
 
 #include "mm/memory.hpp"
 
+#include "toolbox/endianess.hpp"
 #include "toolbox/hashtable.hpp"
 
 #include "mm/memory.hpp"
@@ -43,6 +44,8 @@
 #include "vm/utf8.hpp"
 #include "vm/vm.hpp"
 #include "vm/zip.hpp"
+
+using namespace cacao;
 
 
 /* start size for classes hashtable *******************************************/
@@ -111,8 +114,6 @@
 #define CDSFH_RELATIVE_OFFSET        42
 #define CDSFH_FILENAME               46
 
-typedef struct cdsfh cdsfh;
-
 struct cdsfh {
 	u2 compressionmethod;
 	u4 compressedsize;
@@ -174,7 +175,7 @@ ZipFile *ZipFile::open(const char *path) {
 	if (read(fd, lfh_signature, SIGNATURE_LENGTH) != SIGNATURE_LENGTH)
 		return NULL;
 
-	if (SUCK_LE_U4(lfh_signature) != LFH_SIGNATURE)
+	if (read_u4_le(lfh_signature) != LFH_SIGNATURE)
 		return NULL;
 
 	// get the file length
@@ -195,13 +196,13 @@ ZipFile *ZipFile::open(const char *path) {
 	// find end of central directory record
 
 	for (p = filep + len; p >= filep; p--)
-		if (SUCK_LE_U4(p) == EOCDR_SIGNATURE)
+		if (read_u4_le(p) == EOCDR_SIGNATURE)
 			break;
 
 	// get number of entries in central directory
 
-	eocdr.entries = SUCK_LE_U2(p + EOCDR_ENTRIES);
-	eocdr.offset  = SUCK_LE_U4(p + EOCDR_OFFSET);
+	eocdr.entries = read_u2_le(p + EOCDR_ENTRIES);
+	eocdr.offset  = read_u4_le(p + EOCDR_OFFSET);
 
 	// create hashtable for filenames
 
@@ -214,18 +215,18 @@ ZipFile *ZipFile::open(const char *path) {
 	for (s4 i = 0; i < eocdr.entries; i++) {
 		// check file header signature
 
-		if (SUCK_LE_U4(p) != CDSFH_SIGNATURE)
+		if (read_u4_le(p) != CDSFH_SIGNATURE)
 			return NULL;
 
 		// we found an entry
 
-		cdsfh.compressionmethod = SUCK_LE_U2(p + CDSFH_COMPRESSION_METHOD);
-		cdsfh.compressedsize    = SUCK_LE_U4(p + CDSFH_COMPRESSED_SIZE);
-		cdsfh.uncompressedsize  = SUCK_LE_U4(p + CDSFH_UNCOMPRESSED_SIZE);
-		cdsfh.filenamelength    = SUCK_LE_U2(p + CDSFH_FILE_NAME_LENGTH);
-		cdsfh.extrafieldlength  = SUCK_LE_U2(p + CDSFH_EXTRA_FIELD_LENGTH);
-		cdsfh.filecommentlength = SUCK_LE_U2(p + CDSFH_FILE_COMMENT_LENGTH);
-		cdsfh.relativeoffset    = SUCK_LE_U4(p + CDSFH_RELATIVE_OFFSET);
+		cdsfh.compressionmethod = read_u2_le(p + CDSFH_COMPRESSION_METHOD);
+		cdsfh.compressedsize    = read_u4_le(p + CDSFH_COMPRESSED_SIZE);
+		cdsfh.uncompressedsize  = read_u4_le(p + CDSFH_UNCOMPRESSED_SIZE);
+		cdsfh.filenamelength    = read_u2_le(p + CDSFH_FILE_NAME_LENGTH);
+		cdsfh.extrafieldlength  = read_u2_le(p + CDSFH_EXTRA_FIELD_LENGTH);
+		cdsfh.filecommentlength = read_u2_le(p + CDSFH_FILE_COMMENT_LENGTH);
+		cdsfh.relativeoffset    = read_u4_le(p + CDSFH_RELATIVE_OFFSET);
 
 		// create utf8 string of filename, strip .class from classes
 
@@ -282,13 +283,13 @@ void ZipFileEntry::get(uint8_t *dst) const {
 
 	// read stuff from local file header
 
-	lfh.filenamelength   = SUCK_LE_U2(data + LFH_FILE_NAME_LENGTH);
-	lfh.extrafieldlength = SUCK_LE_U2(data + LFH_EXTRA_FIELD_LENGTH);
+	lfh.filenamelength   = read_u2_le(data + LFH_FILE_NAME_LENGTH);
+	lfh.extrafieldlength = read_u2_le(data + LFH_EXTRA_FIELD_LENGTH);
 
 	u1 *indata = data
- 	           + LFH_HEADER_SIZE
- 	           + lfh.filenamelength
- 	           + lfh.extrafieldlength;
+	           + LFH_HEADER_SIZE
+	           + lfh.filenamelength
+	           + lfh.extrafieldlength;
 
 	// how is the file stored?
 

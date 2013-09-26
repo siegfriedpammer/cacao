@@ -677,8 +677,8 @@ static bool load_constantpool(classbuffer *cb, DescriptorPool& descpool)
 			if (!suck_check_classbuffer_size(cb, 4))
 				return false;
 
-			ci->value = suck_s4(cb);
-			cptags[idx] = CONSTANT_Integer;
+			ci->value    = suck_s4(cb);
+			cptags[idx]  = CONSTANT_Integer;
 			cpinfos[idx] = ci;
 
 			idx++;
