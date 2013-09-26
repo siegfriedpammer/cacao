@@ -694,7 +694,8 @@ void CondJumpInst::link(CodeFragment &CF) const {
 
 OStream& CondJumpInst::print(OStream &OS) const {
 	return OS << "[" << setz(4) << get_id() << "] "
-		<< get_name() << "-> " << *target;
+		<< get_name() << "-> " << *target
+		<< " (else " << **(++current->self_iterator()) << ")";
 }
 void IMulInst::emit(CodeMemory* CM) const {
 	X86_64Register *src_reg = cast_to<X86_64Register>(operands[1].op);
@@ -823,9 +824,31 @@ void IndirectJumpInst::emit(CodeMemory* CM) const {
 }
 
 OStream& IndirectJumpInst::print(OStream &OS) const {
-	return OS << "[" << setz(4) << get_id() << "] "
-		<< get_name() << "-> " << operands[0].op;
+	OS << "[" << setz(4) << get_id() << "] "
+		<< get_name() << "-> " << operands[0].op << " targets: ";
+	print_ptr_container(OS,begin(),end());
+	return OS;
 }
+
+namespace {
+struct MyFancyFunction {
+	MachineJumpStub::LookupFn& Fn;
+	IndirectJumpInst* jump;
+	MyFancyFunction(MachineJumpStub::LookupFn& Fn, IndirectJumpInst* jump)
+		: Fn(Fn), jump(jump) {}
+	void operator()(BeginInst* BI) const {
+		jump->add_target(Fn(BI));
+	}
+};
+}
+
+MachineInstruction* IndirectJumpStub::transform(LookupFn &Fn) {
+	IndirectJumpInst* MI = new IndirectJumpInst(SrcOp(src));
+	std::for_each(begin(),end(),MyFancyFunction(Fn,MI));
+	//std::bind1st(std::mem_fun(&IndirectJumpInst::add_target), MI));
+	return MI;
+}
+
 void SSEAluInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[1].op;
 	MachineOperand *dst = result.op;

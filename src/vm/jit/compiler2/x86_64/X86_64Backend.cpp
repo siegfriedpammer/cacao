@@ -693,7 +693,12 @@ void LoweringVisitor::visit(TABLESWITCHInst *I) {
 	WARNING_MSG("TODO","add offset");
 	MovDSEGInst *dmov = new MovDSEGInst(DstOp(addr),idx);
 	dag->add(dmov);
-	MachineInstruction *jmp = new IndirectJumpInst(SrcOp(addr));
+	IndirectJumpStub *jmp = new IndirectJumpStub(SrcOp(addr));
+	// adding targets
+	for(TABLESWITCHInst::succ_const_iterator i = ++I->succ_begin(),
+			e = I->succ_end(); i != e; ++i) {
+		jmp->add_target(i->get());
+	}
 	dag->add(jmp);
 	// assert(0 && "load data segment and jump"));
 	// load table entry

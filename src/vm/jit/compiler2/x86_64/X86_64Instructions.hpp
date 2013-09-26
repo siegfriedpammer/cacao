@@ -356,11 +356,20 @@ public:
 class CondJumpInst : public X86_64Instruction {
 private:
 	Cond::COND cond;
+	/**
+	 * The `then` basic block (i.e. the jump target)
+	 */
 	MachineBasicBlock *target;
+	/**
+	 * This stores a pointer to the current basic block (i.e. the basic block
+	 * that is terminated by this instruction. It is used to get the the
+	 * `else` basic block which is the successor of current.
+	 */
+	MachineBasicBlock *current;
 public:
-	CondJumpInst(Cond::COND cond, MachineBasicBlock *target)
+	CondJumpInst(Cond::COND cond, MachineBasicBlock *target, MachineBasicBlock *current)
 			: X86_64Instruction("X86_64CondJumpInst", &NoOperand, 0),
-			  cond(cond), target(target) {
+			  cond(cond), target(target), current(current) {
 	}
 	virtual bool is_jump() const {
 		return true;
@@ -460,6 +469,12 @@ public:
 };
 class IndirectJumpInst : public X86_64Instruction {
 public:
+	typedef std::list<MachineBasicBlock*> TargetListTy;
+	typedef TargetListTy::const_iterator target_const_iterator;
+private:
+	 /// List of possible targets.
+	TargetListTy targets;
+public:
 	IndirectJumpInst(const SrcOp &src)
 			: X86_64Instruction("X86_64IndirectJumpInst", &NoOperand, 1) {
 		operands[0].op = src.op;
@@ -469,6 +484,11 @@ public:
 	}
 	virtual void emit(CodeMemory* CM) const;
 	virtual OStream& print(OStream &OS) const;
+	void add_target(MachineBasicBlock *MBB) {
+		targets.push_back(MBB);
+	}
+	target_const_iterator begin() const { return targets.begin(); }
+	target_const_iterator end()   const { return targets.end(); }
 };
 // Double & Float operations
 /**
@@ -604,26 +624,54 @@ public:
 // STUBS
 
 class JumpInstStub : public MachineJumpStub {
+private:
+	BeginInst *begin;
 public:
 	JumpInstStub(BeginInst *begin)
-		: MachineJumpStub("X86_64JumpInstStub", begin, &NoOperand,0) {}
-	virtual MachineInstruction* transform(MachineBasicBlock *MBB) {
-		return new JumpInst(MBB);
+		: MachineJumpStub("X86_64JumpInstStub", &NoOperand,0),
+		begin(begin) {}
+	virtual MachineInstruction* transform(LookupFn &Fn) {
+		return new JumpInst(Fn(begin));
 	}
 };
 
 class CondJumpInstStub : public MachineJumpStub {
 private:
 	Cond::COND cond;
+	MachineBasicBlock *current;
+	BeginInst *begin;
 public:
 	CondJumpInstStub(Cond::COND cond, BeginInst *begin)
-			: MachineJumpStub("X86_64CondJumpInst", begin, &NoOperand, 0),
-			  cond(cond) {}
-	virtual MachineInstruction* transform(MachineBasicBlock *MBB) {
-		return new CondJumpInst(cond, MBB);
+			: MachineJumpStub("X86_64CondJumpInst", &NoOperand, 0),
+			  cond(cond), begin(begin) {}
+	virtual MachineInstruction* transform(LookupFn &Fn) {
+		assert(current);
+		return new CondJumpInst(cond, Fn(begin), current);
+	}
+	virtual void set_current(MachineBasicBlock *MBB) {
+		current = MBB;
 	}
 };
+class IndirectJumpStub : public MachineJumpStub {
+public:
+	typedef std::list<BeginInst*> TargetListTy;
+	typedef TargetListTy::const_iterator target_const_iterator;
+private:
+	 /// List of possible targets.
+	TargetListTy targets;
+	MachineOperand *src;
+public:
+	IndirectJumpStub(const SrcOp &src)
+			: MachineJumpStub("X86_64IndirectJumpStub", &NoOperand, 1),
+			src(src.op) {}
+	void add_target(BeginInst *BI) {
+		targets.push_back(BI);
+	}
+	target_const_iterator begin() const { return targets.begin(); }
+	target_const_iterator end()   const { return targets.end(); }
 
+	virtual MachineInstruction* transform(LookupFn &Fn);
+};
 
 } // end namespace x86_64
 } // end namespace compiler2
