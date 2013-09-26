@@ -435,6 +435,18 @@ inline OStream& print_container(OStream &OS, _ForwardIterator i, const _ForwardI
 	return OS << "]";
 }
 
+template <class _ForwardIterator>
+inline OStream& print_ptr_container(OStream &OS, _ForwardIterator i, const _ForwardIterator &e) {
+	if (i == e)
+		return OS << "[<empty>]";
+	OS << "[" << **i;
+	++i;
+	for( ; i != e ; ++i) {
+		OS << ", " << **i;
+	}
+	return OS << "]";
+}
+
 inline OStream& operator<<(OStream &OS, const std::string &t) {
 	return OS << t.c_str();
 }
