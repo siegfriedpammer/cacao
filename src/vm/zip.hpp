@@ -1,6 +1,6 @@
 /* src/vm/zip.hpp - ZIP file handling for bootstrap classloader
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -27,11 +27,13 @@
 #define ZIP_HPP_ 1
 
 #include "config.h"
-#include "vm/types.hpp"
+
+#ifdef ENABLE_ZLIB
 
 #include "toolbox/hashtable.hpp"
 
 #include "vm/suck.hpp"
+#include "vm/types.hpp"
 #include "vm/utf8.hpp"
 
 struct classinfo;
@@ -91,6 +93,7 @@ hashtable               *zip_open(char *path);
 hashtable_zipfile_entry *zip_find(list_classpath_entry *lce, Utf8String u);
 classbuffer             *zip_get(list_classpath_entry *lce, classinfo *c);
 
+#endif // ENABLE_ZLIB
 
 #endif // ZIP_HPP_
 
@@ -106,4 +109,5 @@ classbuffer             *zip_get(list_classpath_entry *lce, classinfo *c);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

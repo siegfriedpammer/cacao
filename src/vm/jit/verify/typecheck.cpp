@@ -154,7 +154,7 @@ bytecode verification" @cite Coglio2003.
 
 #include "vm/access.hpp"
 #include "vm/array.hpp"
-#include "vm/jit/builtin.hpp"
+#include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/field.hpp"
 #include "vm/global.hpp"
@@ -163,6 +163,7 @@ bytecode verification" @cite Coglio2003.
 #include "vm/primitive.hpp"
 #include "vm/resolve.hpp"
 
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/parse.hpp"
 #include "vm/jit/show.hpp"

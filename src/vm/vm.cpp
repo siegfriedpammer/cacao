@@ -25,19 +25,13 @@
 
 #include "config.h"
 
+#include <cassert>
+#include <cerrno>
+#include <cstdlib>
+#include <exception>
 #include <stdint.h>
 
-#include <exception>
-
-#include <assert.h>
-#include <errno.h>
-#include <stdlib.h>
-
-#include "vm/types.hpp"
-
 #include "md-abi.hpp"
-
-#include "vm/jit/abi-asm.hpp"
 
 #include "mm/codememory.hpp"
 #include "mm/dumpmemory.hpp"
@@ -57,14 +51,10 @@
 #include "toolbox/logging.hpp"
 
 #include "vm/array.hpp"
-
-#if defined(ENABLE_ASSERTION)
 #include "vm/assertion.hpp"
-#endif
-
-#include "vm/jit/builtin.hpp"
 #include "vm/classcache.hpp"
 #include "vm/exceptions.hpp"
+#include "vm/descriptor.hpp"
 #include "vm/finalizer.hpp"
 #include "vm/global.hpp"
 #include "vm/globals.hpp"
@@ -75,32 +65,30 @@
 #include "vm/os.hpp"
 #include "vm/primitive.hpp"
 #include "vm/properties.hpp"
+#include "vm/rt-timing.hpp"
 #include "vm/signallocal.hpp"
 #include "vm/statistics.hpp"
 #include "vm/string.hpp"
 #include "vm/suck.hpp"
+#include "vm/types.hpp"
 #include "vm/vm.hpp"
 
+#include "vm/jit/abi-asm.hpp"
 #include "vm/jit/argument.hpp"
 #include "vm/jit/asmpart.hpp"
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/code.hpp"
-#include "vm/jit/stacktrace.hpp"
-
-#if defined(ENABLE_DISASSEMBLER)
-# include "vm/jit/disass.hpp"
-#endif
-
+#include "vm/jit/disass.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/methodtree.hpp"
+#include "vm/jit/stacktrace.hpp"
+#include "vm/jit/trap.hpp"
 
 #include "vm/jit/optimizing/profile.hpp"
 #include "vm/jit/optimizing/recompiler.hpp"
 
-#include "vm/jit/trap.hpp"
+using namespace cacao;
 
-#if defined(ENABLE_RT_TIMING)
-#include "vm/rt-timing.hpp"
-#endif
 
 STAT_DECLARE_GROUP(function_call_stat)
 STAT_REGISTER_GROUP_VAR(u8,count_calls_native_to_java,0,"calls native to java","native-to-java calls",function_call_stat)

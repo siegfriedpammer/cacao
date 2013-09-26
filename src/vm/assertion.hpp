@@ -1,6 +1,6 @@
 /* src/vm/assertion.hpp - assertion options
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -28,6 +28,8 @@
 
 #include "config.h"
 
+#ifdef ENABLE_ASSERTION
+
 #include <stdint.h>
 
 #include "toolbox/list.hpp"
@@ -53,6 +55,8 @@ extern bool    assertion_system_enabled;
 /* function prototypes ********************************************************/
 
 void assertion_ea_da(const char *name, bool enabled);
+
+#endif // ENABLE_ASSERTION
 
 #endif // _ASSERTION_HPP
 

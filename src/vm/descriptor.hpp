@@ -26,22 +26,18 @@
 #ifndef DESCRIPTOR_HPP_
 #define DESCRIPTOR_HPP_ 1
 
-/* forward typedefs ***********************************************************/
-
-typedef struct descriptor_pool descriptor_pool;
-typedef struct typedesc        typedesc;
-typedef struct paramdesc       paramdesc;
-typedef struct methoddesc      methoddesc;
-
 #include "config.h"
 #include <stdint.h>
 #include "toolbox/hashtable.hpp"
-#include "vm/types.hpp"
-#include "vm/primitive.hpp"
+#include "vm/global.hpp"         // for Type
+#include "vm/primitive.hpp"      // for PrimitiveType
 #include "vm/utf8.hpp"
 
 struct classinfo;
 struct constant_classref;
+struct methoddesc;
+struct paramdesc;
+struct typedesc;
 
 /* data structures ************************************************************/
 

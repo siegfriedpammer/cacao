@@ -63,7 +63,7 @@
 #include "native/localref.hpp"
 #include "native/native.hpp"
 
-#include "vm/jit/builtin.hpp"
+#include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/field.hpp"
 #include "vm/options.hpp"
@@ -73,11 +73,9 @@
 #include "vm/jit/code.hpp"
 #include "vm/jit/codegen-common.hpp"
 
-#if defined(ENABLE_DISASSEMBLER)
-# include "vm/jit/disass.hpp"
-#endif
-
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/dseg.hpp"
+#include "vm/jit/disass.hpp"
 #include "vm/jit/exceptiontable.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
@@ -114,6 +112,9 @@ STAT_REGISTER_GROUP_VAR(int,count_code_len,0,"code len","code length",code_data_
 STAT_REGISTER_GROUP_VAR(int,count_data_len,0,"data len","data length",code_data_stat)
 
 struct methodinfo;
+
+using namespace cacao;
+
 
 /* codegen_init ****************************************************************
 

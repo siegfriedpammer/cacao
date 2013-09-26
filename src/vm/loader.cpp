@@ -26,11 +26,9 @@
 
 #include "config.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-
-#include "vm/types.hpp"
+#include <cstdlib>
+#include <cstring>
+#include <cassert>
 
 #include "mm/dumpmemory.hpp"
 #include "mm/memory.hpp"
@@ -46,6 +44,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/classcache.hpp"
 #include "vm/exceptions.hpp"
+#include "vm/descriptor.hpp"
 #include "vm/field.hpp"
 #include "vm/global.hpp"
 #include "vm/globals.hpp"
@@ -61,21 +60,20 @@
 #include "vm/rt-timing.hpp"
 #include "vm/string.hpp"
 #include "vm/suck.hpp"
+#include "vm/statistics.hpp"
+#include "vm/types.hpp"
 #include "vm/vm.hpp"
-
+#include "vm/zip.hpp"
 
 #if defined(ENABLE_JAVASE)
 # include "vm/annotation.hpp"
 # include "vm/stackmap.hpp"
 #endif
 
-# include "vm/statistics.hpp"
-
-#if defined(ENABLE_ZLIB)
-# include "vm/zip.hpp"
-#endif
-
 #include "vm/jit/stubs.hpp"
+
+using namespace cacao;
+
 
 STAT_REGISTER_VAR(int,count_class_loads,0,"class loads","Number of class loads")
 

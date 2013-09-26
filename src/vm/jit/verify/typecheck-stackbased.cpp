@@ -30,17 +30,18 @@
 #include "vm/method.hpp"
 #include "vm/types.hpp"
 
-#include "vm/jit/builtin.hpp"
 #include "mm/memory.hpp"
 #include "mm/dumpmemory.hpp"
 
 #include "vm/array.hpp"
+#include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/field.hpp"
 #include "vm/global.hpp"
 #include "vm/globals.hpp"
 #include "vm/primitive.hpp"
 
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/parse.hpp"
 #include "vm/jit/show.hpp"
 #include "vm/jit/stack.hpp"
