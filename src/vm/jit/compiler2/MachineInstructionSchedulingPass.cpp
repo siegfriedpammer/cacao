@@ -47,27 +47,54 @@ void MachineInstructionSchedulingPass::initialize() {
 #endif
 }
 
-class MyVisitor : public MachineStubVisitor {
+
+namespace {
+
+class UpdateCurrentVisitor : public MachineStubVisitor {
+private:
+	MachineBasicBlock *MBB;
+public:
+	UpdateCurrentVisitor(MachineBasicBlock *MBB) : MBB(MBB) {}
+
+	using MachineStubVisitor::visit;
+
+	virtual void visit(MachineJumpStub *MS) {
+		MS->set_current(MBB);
+	}
+};
+
+class UpdateTargetVisitor : public MachineStubVisitor {
 private:
 	typedef std::map<BeginInst*,MachineBasicBlock*> MapTy;
+	struct LookupMap : public MachineJumpStub::LookupFn {
+		MapTy &map;
+		/// constructor
+		LookupMap(MapTy &map) : map(map) {}
+		/// lookup operator
+		virtual MachineBasicBlock* operator()(BeginInst* BI) const {
+			MapTy::iterator it = map.find(BI);
+			assert(it != map.end());
+			return it->second;
+		}
+	};
+
 	MachineBasicBlock::iterator i;
-	MapTy &map;
+	LookupMap lookup;
 public:
-	MyVisitor(MachineBasicBlock::iterator i, MapTy &map) : i(i), map(map) {}
+	UpdateTargetVisitor(MachineBasicBlock::iterator i, MapTy &map) : i(i), lookup(map) {}
+
+	using MachineStubVisitor::visit;
 
 	virtual void visit(MachineLabelStub *MS) {
-		MapTy::iterator it = map.find(MS->get_BeginInst());
-		assert(it != map.end());
-		MachineBasicBlock *MBB = it->second;
+		MachineBasicBlock *MBB = lookup(MS->get_BeginInst());
 		*i = MS->transform(MBB);
 	}
 	virtual void visit(MachineJumpStub *MS) {
-		MapTy::iterator it = map.find(MS->get_BeginInst());
-		assert(it != map.end());
-		MachineBasicBlock *MBB = it->second;
-		*i = MS->transform(MBB);
+		*i = MS->transform(lookup);
 	}
 };
+
+} // end anonymous namespace
 
 bool MachineInstructionSchedulingPass::run(JITData &JD) {
 	BasicBlockSchedule *BS = get_Pass<BasicBlockSchedulingPass>();
@@ -101,6 +128,11 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 				MBB->push_back(MI);
 				// start new basic block if there are several jump instructions
 				++i;
+				if (MI->is_stub()) {
+					MachineInstStub *stub = MI->to_MachineInstStub();
+					UpdateCurrentVisitor v(MBB);
+					stub->accepts(v);
+				}
 				if (MI->is_jump() && i != e) {
 					MBB = *push_back(MBBBuilder());
 					MachineInstruction *label = new MachineLabelInst(MBB);
@@ -118,7 +150,7 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 			MachineInstruction *MI = *i;
 			if (MI->is_stub()) {
 				MachineInstStub *stub = MI->to_MachineInstStub();
-				MyVisitor v(i,map);
+				UpdateTargetVisitor v(i,map);
 				stub->accepts(v);
 			}
 		}

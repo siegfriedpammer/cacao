@@ -59,21 +59,21 @@ public:
 };
 
 class MachineJumpStub : public MachineInstStub {
-private:
-	BeginInst *begin;
 public:
-	MachineJumpStub(const char * name, BeginInst* begin, MachineOperand* result, unsigned num_operands, const char* comment = NULL)
-		: MachineInstStub(name, result, num_operands, comment), begin(begin) {}
-	BeginInst* get_BeginInst() const {
-		return begin;
-	}
+	struct LookupFn : public std::unary_function<BeginInst&, MachineBasicBlock*>{
+		virtual MachineBasicBlock* operator()(BeginInst* BI) const = 0;
+	};
+
+	MachineJumpStub(const char * name, MachineOperand* result, unsigned num_operands, const char* comment = NULL)
+		: MachineInstStub(name, result, num_operands, comment) {}
 	virtual void accepts(MachineStubVisitor &visitor) {
 		visitor.visit(this);
 	}
 	virtual bool is_jump() const {
 		return true;
 	}
-	virtual MachineInstruction* transform(MachineBasicBlock *MBB) = 0;
+	virtual MachineInstruction* transform(LookupFn &Fn) = 0;
+	virtual void set_current(MachineBasicBlock *MBB) {}
 };
 
 class MachineLabelInst : public MachineInstruction {
