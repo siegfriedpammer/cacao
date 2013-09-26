@@ -23,127 +23,959 @@
 */
 
 #include "vm/descriptor.hpp"
+#include "config.h"                     // for ENABLE_JIT
+
 #include <cassert>
 #include <new>                          // for operator new
-#include "config.h"                     // for ENABLE_JIT
-#include "md-abi.hpp"
+
 #include "mm/dumpmemory.hpp"            // for DumpMemory
+
 #include "threads/mutex.hpp"            // for Mutex
+
+#include "toolbox/buffer.hpp"
+#include "toolbox/logging.hpp"
+
 #include "vm/class.hpp"                 // for classinfo
 #include "vm/exceptions.hpp"
 #include "vm/global.hpp"                // for Type::TYPE_ADR, etc
-#include "vm/jit/abi.hpp"               // for md_param_alloc, etc
 #include "vm/options.hpp"
 #include "vm/primitive.hpp"
 #include "vm/references.hpp"            // for parseddesc_t, etc
 #include "vm/types.hpp"                 // for u4, u1, s4, s2, u2
+#include "vm/utf8.hpp"                  // for Utf8String, etc
 #include "vm/vm.hpp"                    // for vm_abort
 
-struct classref_hash_entry;
-struct descriptor_hash_entry;
+#include "vm/jit/abi.hpp"               // for md_param_alloc, etc
 
-/* constants (private to descriptor.c) ****************************************/
+using namespace cacao;
 
-/* initial number of entries for the classrefhash of a descriptor_pool */
-/* (currently the hash is never grown!) */
-#define CLASSREFHASH_INIT_SIZE  64
+#define DEBUG_NAME "descriptor"
 
-/* initial number of entries for the descriptorhash of a descriptor_pool */
-/* (currently the hash is never grown!) */
-#define DESCRIPTORHASH_INIT_SIZE  128
 
-/* data structures (private to descriptor.c) **********************************/
+/***
+ *
+ *	Field & method descriptor parsing
+ *
+ *	See JVM Spec §4.3.2 (Field Descriptors) and §4.3.3 (Method Descriptors)
+ *
+ *	All methods return true on success and throw an exception on error.
+ *	They also check if the parsed type is valid for its position, for example 
+ *	a field type can't be void but a return type can.
+ *
+ *	Calling a check or parse method consumes the input.
+ *	In the following example the call to parse_field_descriptor() will fail
+ *	because check_field_descriptor() has consumed the whole descriptor.
+ *	@code
+ *		DescriptorParser p(pool, Utf8String::from_utf8("J"));
+ *		if (!p.check_field_descriptor())
+ *			return false;
+ *		if (!p.parse_field_descriptor(&t))
+ *			return false;
+ *	@endcode
+ */
+struct DescriptorParser {
+	DescriptorParser(DescriptorPool *pool, Utf8String desc);
 
-typedef struct classref_hash_entry classref_hash_entry;
-typedef struct descriptor_hash_entry descriptor_hash_entry;
+	/***
+	 *	Check if descriptor is valid.
+	 *	Any class references in descriptor will be added to pool
+	 */
+	bool check_field_descriptor();
+	bool check_param_descriptor(Type &dst);
+	bool check_return_descriptor();
 
-/* entry struct for the classrefhash of descriptor_pool */
-struct classref_hash_entry {
-	classref_hash_entry *hashlink;  /* for hash chaining            */
-	Utf8String           name;      /* name of the class refered to */
-	u2                   index;     /* index into classref table    */
+	/***
+	 *	Parse descriptor into typedesc.
+	 *	Descriptor must have previously been checked with check_*_descriptor()
+	 *	All class references are looked up in pool.
+	 */
+	bool parse_field_descriptor(typedesc *dst);
+	bool parse_param_descriptor(typedesc *dst);
+	bool parse_return_descriptor(typedesc *dst);
+
+	/***
+	 *	Start parsing a method descriptors parameter list
+	 */
+	bool start_param_list();
+
+	/***
+	 *	Check if the parameter list we are currently parsing 
+	 *	has more parameters to parse.
+	 */
+	bool has_more_params();
+private:
+	enum ParserFlag {
+		FORBID_VOID_TYPE,
+		EXPECT_END_OF_INPUT
+	};
+
+	enum ParseResult {
+		PARSE_ERROR,
+		PRIMITIVE_TYPE,
+		REFERENCE_TYPE
+	};
+
+
+	template<int flags>
+	bool check_type(const char *descriptor_type, Type& t);
+
+	template<int flags>
+	bool parse_type(const char *descriptor_type, typedesc *t);
+
+	template<int flags>
+	ParseResult parse_type(Type& t, PrimitiveType& p,
+	                       Utf8String& classname, size_t& arraydim);
+
+	bool parse_classname(Utf8String& classname);
+	bool parse_arraytype(Utf8String& classname, size_t& arraydim);
+
+	bool skip_classname();
+
+	bool read(char&);
+	void unread();
+
+	bool has_more_input() const;
+
+	/// throws a classformat error and returns false
+	bool throw_error(const char *reason, ...);
+
+	DescriptorPool *const pool;
+	const char     *descriptor_type;  // what kind of descriptor we are currently parsing
+	const char     *pos, *end;        // text of descriptor
 };
 
-/* entry struct for the descriptorhash of descriptor_pool */
-struct descriptor_hash_entry {
-	descriptor_hash_entry *hashlink;
-	Utf8String             desc;
-	parseddesc_t           parseddesc;
-	s2                     paramslots; /* number of params, LONG/DOUBLE counted as 2 */
-};
+inline DescriptorParser::DescriptorParser(DescriptorPool *pool, Utf8String desc)
+ : pool(pool), pos(desc.begin()), end(desc.end()) {}
+
+inline bool DescriptorParser::check_field_descriptor() {
+	Type dummy;
+
+	return check_type<FORBID_VOID_TYPE | EXPECT_END_OF_INPUT>("field", dummy);
+}
+inline bool DescriptorParser::check_param_descriptor(Type &dst) {
+	return check_type<FORBID_VOID_TYPE>("parameter", dst);
+}
+inline bool DescriptorParser::check_return_descriptor() {
+	Type dummy;
+
+	return check_type<EXPECT_END_OF_INPUT>("return type", dummy);
+}
+
+inline bool DescriptorParser::parse_field_descriptor(typedesc *dst) {
+	return parse_type<FORBID_VOID_TYPE | EXPECT_END_OF_INPUT>("field", dst);
+}
+inline bool DescriptorParser::parse_param_descriptor(typedesc *dst) {
+	return parse_type<FORBID_VOID_TYPE>("parameter", dst);
+}
+inline bool DescriptorParser::parse_return_descriptor(typedesc *dst) {
+	return parse_type<EXPECT_END_OF_INPUT>("return type", dst);
+}
+
+inline bool DescriptorParser::start_param_list() {
+	descriptor_type = "method";
+
+	char c = 0;
+
+	if (!read(c))
+		return false;
+
+	if (c != '(')
+		return throw_error("Method descriptor does not start with '('");
+
+	return true;
+}
+
+inline bool DescriptorParser::has_more_params() {
+	if (!has_more_input())
+		return false;
+	if (*pos == ')') {
+		pos++;
+		return false;
+	}
+
+	return true;
+}
+
+inline bool DescriptorParser::has_more_input() const {
+	return pos != end;
+}
+
+template<int flags>
+inline bool DescriptorParser::check_type(const char *descriptor_type, Type& dst) {
+	this->descriptor_type = descriptor_type;
+
+	Type          type;
+	PrimitiveType primtype;
+	Utf8String    classname;
+	size_t        arraydim = 0;
+
+	switch (parse_type<flags>(type, primtype, classname, arraydim)) {
+	case PARSE_ERROR:
+		return false;
+	case PRIMITIVE_TYPE:
+		dst = type;
+		return true;
+	case REFERENCE_TYPE:
+		// descriptor is array or class type
+		dst = type;
+		return pool->add_class(classname);
+	default:
+		assert(false);
+		return false;
+	}
+}
+
+template<int flags>
+inline bool DescriptorParser::parse_type(const char *descriptor_type, typedesc *dst) {
+	this->descriptor_type = descriptor_type;
+
+	Type          type     = TYPE_INT;
+	PrimitiveType primtype = PRIMITIVETYPE_INT;
+	Utf8String    classname;
+	size_t        arraydim = 0;
+
+	switch (parse_type<flags>(type, primtype, classname, arraydim)) {
+	case PARSE_ERROR:
+		return false;
+	case PRIMITIVE_TYPE:
+		dst->classref      = NULL;
+		dst->type          = type;
+		dst->primitivetype = primtype;
+		dst->arraydim      = 0;
+		return true;
+	case REFERENCE_TYPE:
+		dst->classref      = pool->lookup_classref(classname);
+		dst->type          = TYPE_ADR;
+		dst->primitivetype = (PrimitiveType) TYPE_ADR;
+		dst->arraydim      = arraydim;
+		return true;
+	default:
+		assert(false);
+		return false;
+	}
+}
+
+template<int flags>
+inline DescriptorParser::ParseResult DescriptorParser::parse_type(Type&          t,
+                                                                  PrimitiveType& p,
+                                                                  Utf8String&    classname,
+                                                                  size_t&        arraydim) {
+	ParseResult result;
+	char        c = 0;
+
+	if (!read(c))
+		return PARSE_ERROR;
+
+	switch (c) {
+	case 'B':
+		t      = TYPE_INT;
+		p      = PRIMITIVETYPE_BYTE;
+		result = PRIMITIVE_TYPE;
+		break;
+	case 'C':
+		t      = TYPE_INT;
+		p      = PRIMITIVETYPE_CHAR;
+		result = PRIMITIVE_TYPE;
+		break;
+	case 'D':
+		t      = TYPE_DBL;
+		p      = PRIMITIVETYPE_DOUBLE;
+		result = PRIMITIVE_TYPE;
+		break;
+	case 'F':
+		t      = TYPE_FLT;
+		p      = PRIMITIVETYPE_FLOAT;
+		result = PRIMITIVE_TYPE;
+		break;
+	case 'I':
+		t      = TYPE_INT;
+		p      = PRIMITIVETYPE_INT;
+		result = PRIMITIVE_TYPE;
+		break;
+	case 'J':
+		t      = TYPE_LNG;
+		p      = PRIMITIVETYPE_LONG;
+		result = PRIMITIVE_TYPE;
+		break;
+	case 'S':
+		t      = TYPE_INT;
+		p      = PRIMITIVETYPE_SHORT;
+		result = PRIMITIVE_TYPE;
+		break;
+	case 'Z':
+		t      = TYPE_INT;
+		p      = PRIMITIVETYPE_BOOLEAN;
+		result = PRIMITIVE_TYPE;
+		break;
+	case 'V':
+		if (flags & FORBID_VOID_TYPE) {
+			throw_error("Type void is illegal");
+			return PARSE_ERROR;
+		}
+
+		t      = TYPE_VOID;
+		p      = PRIMITIVETYPE_VOID;
+		result = PRIMITIVE_TYPE;
+		break;
+
+	case 'L': // object (L<classname>;)
+		if (!parse_classname(classname))
+			return PARSE_ERROR;
+
+		t        = TYPE_ADR;
+		arraydim = 0;
+		result   = REFERENCE_TYPE;
+		break;
+	case '[': // array type
+		unread(); // parse_arraytype counts the '['
+
+		if (!parse_arraytype(classname, arraydim))
+			return PARSE_ERROR;
+
+		t      = TYPE_ADR;
+		result = REFERENCE_TYPE;
+		break;
+	default:
+		throw_error("Illegal character '%c'", c);
+		return PARSE_ERROR;
+	}
+
+	if ((flags & EXPECT_END_OF_INPUT) && has_more_input()) {
+		throw_error("Unexpected characters at end of descriptor");
+		return PARSE_ERROR;
+	}
+
+	return result;
+}
+
+inline bool DescriptorParser::parse_classname(Utf8String& classname) {
+	// find end of classname
+
+	const char *mark = pos;
+
+	if (!skip_classname())
+		return false;
+
+	// utf8 string from classname
+
+	Utf8String str = Utf8String::from_utf8(mark, pos - mark - 1);
+
+	if (str == NULL)
+		return throw_error("Class name is not valid UTF-8");
+
+	// done
+
+	classname = str;
+	return true;
+}
+
+inline bool DescriptorParser::parse_arraytype(Utf8String& classname, size_t& arraydim) {
+	size_t array_dimension = 0;
+
+	const char *mark = pos;
+
+	char c = 0;
+
+	// skip leading '['
+
+	while (true) {
+		if (!read(c))
+			return false;
+		if (c != '[')
+			break;
+
+		array_dimension++;
+	}
+
+	if (array_dimension > 255)
+		return throw_error("Too large array dimension: %lu", array_dimension);
+
+	// check if element type is valid
+
+	switch (c) {
+	case 'B': // primitive type
+	case 'C':
+	case 'D':
+	case 'F':
+	case 'I':
+	case 'J':
+	case 'S':
+	case 'Z':
+		break;
+
+	case 'L': // object (L<classname>;)
+		if(!skip_classname())
+			return false;
+
+		break;
+
+	default:
+		return throw_error("Illegal type of array element '%c'", c);
+	}
+
+	classname = Utf8String::from_utf8(mark, pos - mark);
+
+	if (classname == NULL)
+		return throw_error("Name is not valid utf8: '%s'", mark);
+
+	arraydim = array_dimension;
+
+	return true;
+}
+
+inline bool DescriptorParser::skip_classname() {
+	// classname is delimited by 'L' and ';'
+	// but at this point the 'L' was already consumed
+
+	while (true) {
+		char c = 0;
+
+		if (!read(c))
+			return false;
+		if (c == ';')
+			return true;
+	}
+}
+
+inline bool DescriptorParser::read(char& c) {
+	if (pos == end)
+		return throw_error("Truncated descriptor");
+
+	c = *pos++;
+	return true;
+}
+
+inline void DescriptorParser::unread() {
+	pos--;
+}
+
+inline bool DescriptorParser::throw_error(const char *reason, ...) {
+	assert(descriptor_type);
+
+	Buffer<> buf;
+	va_list  ap;
+
+	va_start(ap, reason);
+	buf.write("Invalid ").write(descriptor_type).write(" descriptor: ").writevf(reason, ap);
+	va_end(ap);
+
+	exceptions_throw_classformaterror(pool->get_referer(), buf.utf8_str());
+	return false;
+}
+
+//******************************************************************************
+//	Descriptor pool
+//******************************************************************************
+
+// initial number of entries for the classrefhash of a descriptor pool
+#define CLASSREFHASH_INIT_SIZE  256
+
+// initial number of entries for the fieldrefhash of a descriptor pool
+#define FIELDREFHASH_INIT_SIZE  256
 
 
-/****************************************************************************/
-/* MACROS FOR DESCRIPTOR PARSING (private to descriptor.c)                  */
-/****************************************************************************/
+DescriptorPool::DescriptorPool(classinfo *referer) : classrefhash(CLASSREFHASH_INIT_SIZE),
+                                                     fieldrefhash(FIELDREFHASH_INIT_SIZE),
+                                                     referer(referer),
+                                                     fieldcount(0),
+                                                     methodcount(0),
+                                                     paramcount(0),
+                                                     descriptorsize(0),
+                                                     classrefs(NULL),
+                                                     mutex(new Mutex()),
+                                                     descriptors(NULL),
+                                                     descriptors_next(NULL) {}
 
-/* SKIP_FIELDDESCRIPTOR:
- * utf_ptr must point to the first character of a field descriptor.
- * After the macro call utf_ptr points to the first character after
- * the field descriptor.
- *
- * CAUTION: This macro does not check for an unexpected end of the
- * descriptor. Better use SKIP_FIELDDESCRIPTOR_SAFE.
+/***
+ * Allocate an object from the descriptor pools private block of memory.
+ * This function performs no checks, you can only allocate objects you have
+ * previously added via add_field or add_method.
  */
-#define SKIP_FIELDDESCRIPTOR(utf_ptr)							\
-	do { while (*(utf_ptr)=='[') (utf_ptr)++;					\
-		if (*(utf_ptr)++=='L')									\
-			while(*(utf_ptr)++ != ';') /* skip */; } while(0)
+template<typename T>
+T *DescriptorPool::allocate(size_t size) {
+	T *t = (T*) descriptors_next;
 
-/* SKIP_FIELDDESCRIPTOR_SAFE:
- * utf_ptr must point to the first character of a field descriptor.
- * After the macro call utf_ptr points to the first character after
- * the field descriptor.
+	descriptors_next += size;
+
+	return t;
+}
+
+
+/***
+ * Add the given class reference to the pool
  *
- * Input:
- *     utf_ptr....points to first char of descriptor
- *     end_ptr....points to first char after the end of the string
- *     errorflag..must be initialized (to false) by the caller!
- * Output:
- *     utf_ptr....points to first char after the descriptor
- *     errorflag..set to true if the string ended unexpectedly
+ * @return false iff an exception was thrown.
+*/
+bool DescriptorPool::add_class(Utf8String name) {
+	LOG("DescriptorPool::add_class(" << name << ")");
+
+	assert(name);
+
+	/* find a place in the hashtable */
+
+	ClassrefHash::EntryRef ref = classrefhash.find(name);
+
+	if (ref)
+		return true; // classname was already present
+
+	/* check if the name is a valid classname */
+
+	if (!name.is_valid_name()) {
+		exceptions_throw_classformaterror(referer, "Invalid class name");
+		return false; /* exception */
+	}
+
+	/* XXX check maximum array dimension */
+
+	classrefhash.insert(ref, name, classrefhash.size());
+	return true;
+}
+
+
+/***
+ * Check the given descriptor and add it to the pool
+ *
+ * @param desc the field descriptor to add.
+ * @return false iff an exception has been thrown
  */
-#define SKIP_FIELDDESCRIPTOR_SAFE(utf_ptr,end_ptr,errorflag)			\
-	do { while ((utf_ptr) != (end_ptr) && *(utf_ptr)=='[') (utf_ptr)++;	\
-		if ((utf_ptr) == (end_ptr))										\
-			(errorflag) = true;											\
-		else															\
-			if (*(utf_ptr)++=='L') {									\
-				while((utf_ptr) != (end_ptr) && *(utf_ptr)++ != ';')	\
-					/* skip */;											\
-				if ((utf_ptr)[-1] != ';')								\
-					(errorflag) = true; }} while(0)
+bool DescriptorPool::add_field(Utf8String desc) {
+	LOG("DescriptorPool::add_field(" << ((void*) this) << ", " << desc << ")\n");
 
-/****************************************************************************/
-/* DEBUG HELPERS                                                            */
-/****************************************************************************/
+	// check if field descriptor was already in table
 
-/*#define DESCRIPTOR_VERBOSE*/
+	FieldrefHash::EntryRef ref = fieldrefhash.find(desc);
 
-/****************************************************************************/
-/* FUNCTIONS                                                                */
-/****************************************************************************/
+	if (ref)
+		return true;
 
-/* descriptor_to_basic_type ****************************************************
+	// check the descriptor
 
-   Return the basic type to use for a value with this descriptor.
+	DescriptorParser parser(this, desc);
 
-   IN:
-       utf..............descriptor utf string
+	if (!parser.check_field_descriptor())
+		return false;
 
-   OUT:
-       A TYPE_* constant.
+	// add the descriptor to the pool
 
-   PRECONDITIONS:
-       This function assumes that the descriptor has passed 
-	   descriptor_pool_add checks and that it does not start with '('.
+	fieldrefhash.insert(ref, desc, (typedesc*) NULL);
 
-*******************************************************************************/
+	// done
 
-int descriptor_to_basic_type(Utf8String descriptor)
+	fieldcount++;
+	return true;
+}
+
+/***
+ * Check the given descriptor and add it to the pool
+ *
+ * @param desc the method descriptor to add.
+ * @return false iff an exception has been thrown
+ */
+ssize_t DescriptorPool::add_method(Utf8String desc) {
+	LOG("DescriptorPool::add_method(" << ((void*) this) << ", " << desc << ")\n");
+
+	assert(desc);
+
+	// check the descriptor
+
+	DescriptorParser parser(this, desc);
+
+	size_t argcount = 0;
+
+	// check parameters
+
+	if (!parser.start_param_list())
+		return -1;
+
+	while (parser.has_more_params()) {
+		// We cannot count the `this' argument here because
+		// we don't know if the method is static.
+
+		paramcount++;
+
+		Type type;
+
+		if (!parser.check_param_descriptor(type))
+			return -1;
+
+		argcount += IS_2_WORD_TYPE(type) ? 2 : 1;
+	}
+
+	if (argcount > 255) {
+		exceptions_throw_classformaterror(referer, "Too many arguments in signature");
+		return -1;
+	}
+
+	// check return type
+
+	if (!parser.check_return_descriptor())
+		return -1;
+
+	// done
+
+	methodcount++;
+	return argcount;
+}
+
+
+/***
+ * Create a table containing all the classrefs which were added to the pool
+ *
+ * @param[out] count  if count is non-NULL, this is set to the number
+ *                    of classrefs in the table
+ * @return a pointer to the constant_classref table
+ */
+constant_classref *DescriptorPool::create_classrefs(s4 *count)
 {
+	size_t nclasses;
+
+	nclasses  = classrefhash.size();
+	classrefs = MNEW(constant_classref,nclasses);
+
+	// fill the constant_classref structs
+
+	for (ClassrefHash::Iterator it = classrefhash.begin(), end = classrefhash.end(); it != end; ++it) {
+		CLASSREF_INIT(classrefs[it->value()], referer, it->key());
+	}
+
+	if (count)
+		*count = nclasses;
+
+	return classrefs;
+}
+
+
+/***
+ *  Return the constant_classref for the given class name
+ *
+ * @param classname  name of the class to look up
+ * @return a pointer to the constant_classref, or
+ *           NULL if an exception has been thrown
+ */
+constant_classref *DescriptorPool::lookup_classref(Utf8String classname)
+{
+	assert(classrefs);
+	assert(classname);
+
+	if (ClassrefHash::EntryRef ref = classrefhash.find(classname)) {
+		return classrefs + ref->value();
+	} else {
+		exceptions_throw_internalerror("Class reference not found in descriptor pool");
+		return NULL;
+	}
+}
+
+
+/***
+ * Allocate space for the parsed descriptors
+ *
+ * @note
+ *    This function must be called after all descriptors have been added
+ *    with DescriptorPool::add.
+ */
+void DescriptorPool::alloc_parsed_descriptors() {
+	/* TWISTI: paramcount + 1: we don't know if the method is static or   */
+	/* not, i have no better solution yet.                                */
+
+	size_t size = fieldcount  * sizeof(typedesc)
+		        + methodcount * (sizeof(methoddesc) - sizeof(typedesc))
+		        + paramcount  * sizeof(typedesc)
+		        + methodcount * sizeof(typedesc);      // possible `this' pointer
+
+	descriptorsize = size;
+
+	if (size) {
+		descriptors      = MNEW(u1, size);
+		descriptors_next = descriptors;
+	}
+}
+
+
+/***
+ *  Parse the given field descriptor
+ *
+ * @param pool the descriptor_pool
+ * @param desc the field descriptor
+ * @return a pointer to the parsed field descriptor, or
+ *         NULL if an exception has been thrown
+ *
+ * @note
+ *    DescriptorPool::alloc_parsed_descriptors must be called (once)
+ *    before this function is used.
+ */
+typedesc *DescriptorPool::parse_field_descriptor(Utf8String desc) {
+	assert(descriptors);
+	assert(descriptors_next);
+
+	// lookup the descriptor in the hashtable
+
+	FieldrefHash::EntryRef ref = fieldrefhash.find(desc);
+
+	assert(ref);
+
+	typedesc *td = ref->value();
+
+	if (!td) {
+		// field has been parsed yet.
+		td = allocate<typedesc>();
+
+		DescriptorParser parser(this, desc);
+
+		if (!parser.parse_field_descriptor(td))
+			return NULL;
+
+		ref->value() = td;
+	}
+
+	return td;
+}
+
+
+/***
+ * Parse the given method descriptor
+ * 
+ * @param desc      the method descriptor
+ * @param mflags    the method flags
+ * @param thisclass classref to the class containing the method.
+ *                  This is ignored if mflags contains ACC_STATIC.
+ *                  The classref is stored for inserting the 'this' argument.
+ * @return a pointer to the parsed method descriptor, 
+ *         or NULL if an exception has been thrown
+ *
+ * @note
+ *      descriptor_pool::alloc_parsed_descriptors must be called
+ *     (once) before this function is used.
+ */
+methoddesc *DescriptorPool::parse_method_descriptor(Utf8String         desc,
+										            s4                 mflags,
+                                                    constant_classref *thisclass) {
+	LOG("DescriptorPool::parse_method_descriptor(" << ((void*) this) << ", " << mflags << ", " << thisclass << ")\n");
+
+	assert(descriptors);
+	assert(descriptors_next);
+
+	// check that it is a method descriptor
+
+	if (desc[0] != '(') {
+		exceptions_throw_classformaterror(referer,
+										  "Field descriptor used in method reference");
+		return NULL;
+	}
+
+	methoddesc *md = allocate<methoddesc>(offsetof(methoddesc, paramtypes));
+	md->pool_lock  = mutex;
+
+	s2 paramcount = 0;
+	s2 paramslots = 0;
+
+	// count the `this' pointer
+
+	if ((mflags != ACC_UNDEF) && !(mflags & ACC_STATIC)) {
+		typedesc *td = allocate<typedesc>();
+
+		td->type          = TYPE_ADR;
+		td->arraydim      = 0;
+		td->classref      = thisclass;
+
+		paramcount++;
+		paramslots++;
+	}
+
+	// parse parameters
+
+	DescriptorParser parser(this, desc);
+
+	if (!parser.start_param_list())
+		return NULL;
+
+	while (parser.has_more_params()) {
+		// parse a parameter type
+
+		typedesc *td = allocate<typedesc>();
+
+		if (!parser.parse_param_descriptor(td))
+			return NULL;
+
+		if (IS_2_WORD_TYPE(td->type))
+			paramslots++;
+
+		paramcount++;
+		paramslots++;
+	}
+
+	md->paramcount = paramcount;
+	md->paramslots = paramslots;
+
+	// Skip possible `this' pointer in paramtypes array to allow a possible
+	// memory move later in parse.
+	// We store the thisclass reference, so we can later correctly fill in
+	// the parameter slot of the 'this' argument.
+
+	if (mflags == ACC_UNDEF) {
+		typedesc *td = allocate<typedesc>();
+
+		td->classref = thisclass;
+	}
+
+	// parse return type
+
+	if (!parser.parse_return_descriptor(&md->returntype))
+		return NULL;
+
+	// If mflags != ACC_UNDEF we parse a real loaded method, so do
+	// param prealloc.  Otherwise we do this in stack analysis.
+
+	if (mflags != ACC_UNDEF) {
+		if (md->paramcount > 0) {
+			// allocate memory for params
+
+			md->params = MNEW(paramdesc, md->paramcount);
+		} else {
+			md->params = METHODDESC_NOPARAMS;
+		}
+
+		// fill the paramdesc
+		// md_param_alloc has to be called if md->paramcount == 0,
+		// too, so it can make the reservation for the Linkage Area,
+		// Return Register...
+
+#if defined(ENABLE_JIT)
+		// As builtin-functions are native functions, we have
+		// to pre-allocate for the native ABI.
+
+		if (mflags & ACC_METHOD_BUILTIN)
+			md_param_alloc_native(md);
+		else
+			md_param_alloc(md);
+#endif
+
+		// params already initialized; no need to lock
+		md->pool_lock = NULL;
+	} else {
+		// params will be allocated later by
+		// methoddesc::params_from_paramtypes if necessary
+
+		md->params = NULL;
+	}
+
+	return md;
+}
+
+/***
+ * Create the paramdescs for a method descriptor. This function is
+ * called when we know whether the method is static or not. This
+ * function does nothing if md->params != NULL (checked atomically).
+ *
+ * @param mflags the ACC_* access flags of the method. Only the
+ *               ACC_STATIC bit is checked.
+ *               The value ACC_UNDEF is NOT allowed.
+ *
+ * @post parms != NULL
+ */
+void methoddesc::params_from_paramtypes(s4 mflags) {
+	bool has_lock = pool_lock != NULL;
+
+	if (pool_lock)
+		pool_lock->lock();
+	if (params) {
+		if (has_lock)
+			pool_lock->unlock();
+		return;
+	}
+
+	assert(params == NULL);
+	assert(mflags != ACC_UNDEF);
+
+	typedesc *td = paramtypes;
+
+	/* check for `this' pointer */
+
+	if (!(mflags & ACC_STATIC)) {
+		constant_classref *thisclass;
+
+		/* fetch class reference from reserved param slot */
+		thisclass = td[paramcount].classref;
+		assert(thisclass);
+
+		if (paramcount > 0) {
+			/* shift param types by 1 argument */
+			MMOVE(td + 1, td, typedesc, paramcount);
+		}
+
+		/* fill in first argument `this' */
+
+		td->type          = TYPE_ADR;
+		td->primitivetype = (PrimitiveType) TYPE_ADR;
+		td->arraydim      = 0;
+		td->classref      = thisclass;
+
+		paramcount++;
+		paramslots++;
+	}
+
+	// if the method has params, process them
+
+	if (paramcount > 0) {
+		// allocate memory for params
+		params = MNEW(paramdesc, paramcount);
+	} else {
+		params = METHODDESC_NOPARAMS;
+	}
+
+	// fill the paramdesc
+	// md_param_alloc has to be called if md->paramcount == 0, too, so
+	// it can make the reservation for the Linkage Area, Return Register, ...
+
+#if defined(ENABLE_JIT)
+	// As builtin-functions are native functions, we have to
+	// pre-allocate for the native ABI.
+
+	if (mflags & ACC_METHOD_BUILTIN)
+		md_param_alloc_native(this);
+	else
+		md_param_alloc(this);
+#endif
+
+	if (has_lock)
+		pool_lock->unlock();
+}
+
+classinfo *DescriptorPool::get_referer() {
+	return referer;
+}
+
+/***
+ * Get the sizes of the class reference table and the parsed descriptors
+ *
+ * @param[out] classrefsize  set to size of the class reference table
+ * @param[out] descsize      set to size of the parsed descriptors
+ *
+ * @note
+ *     This function may only be called after both
+ *     descriptor_pool::create_classrefs, and
+ *     descriptor_pool::alloc_parsed_descriptors
+ *     have been called.
+ */
+void DescriptorPool::get_sizes(size_t *classrefsize, size_t *descsize) {
+	assert((!fieldcount && !methodcount) || descriptors);
+	assert(classrefs);
+	assert(classrefsize);
+	assert(descsize);
+
+	*classrefsize = classrefhash.size() * sizeof(constant_classref);
+	*descsize     = descriptorsize;
+}
+
+
+/***
+ * Return the basic type to use for a value with this descriptor.
+ *
+ * @pre This function assumes that the descriptor has passed
+ *      DescriptorPool::add_field checks and that it does not start with '('.
+ */
+Type descriptor_to_basic_type(Utf8String descriptor) {
 	assert(descriptor.size() >= 1);
-	
+
 	switch (descriptor[0]) {
 	case 'Z':
 	case 'B':
@@ -167,991 +999,8 @@ int descriptor_to_basic_type(Utf8String descriptor)
 
 	default:
 		vm_abort("descriptor_to_basic_type: invalid type %c", descriptor[0]);
+		return TYPE_VOID;
 	}
-
-	/* keep the compiler happy */
-
-	return 0;
-}
-
-
-/* descriptor_typesize *********************************************************
-
-   Return the size in bytes needed for the given type.
-
-   IN:
-       td..............typedesc describing the type
-
-   OUT:
-       The number of bytes
-
-*******************************************************************************/
-
-int descriptor_typesize(typedesc *td)
-{
-	assert(td);
-
-	switch (td->type) {
-	case TYPE_INT:
-	case TYPE_FLT:
-		return 4;
-
-	case TYPE_LNG:
-	case TYPE_DBL:
-		return 8;
-
-	case TYPE_ADR:
-		return SIZEOF_VOID_P;
-
-	default:
-		vm_abort("descriptor_typesize: invalid type %d", td->type);
-	}
-
-	/* keep the compiler happy */
-
-	return 0;
-}
-
-
-/* name_from_descriptor ********************************************************
-
-   Return the class name indicated by the given descriptor
-   (Internally used helper function)
-
-   IN:
-       c................class containing the descriptor
-       utf_ptr..........first character of descriptor
-       end_ptr..........first character after the end of the string
-       mode.............a combination (binary or) of the following flags:
-
-               (Flags marked with * are the default settings.)
-
-               How to handle "V" descriptors:
-
-			     * DESCRIPTOR_VOID.....handle it like other primitive types
-                   DESCRIPTOR_NOVOID...treat it as an error
-
-               How to deal with extra characters after the end of the
-               descriptor:
-
-			     * DESCRIPTOR_NOCHECKEND...ignore (useful for parameter lists)
-                   DESCRIPTOR_CHECKEND.....treat them as an error
-
-   OUT:
-       *next............if non-NULL, *next is set to the first character after
-                        the descriptor. (Undefined if an error occurs.)
-       *name............set to the utf name of the class
-
-   RETURN VALUE:
-       true.............descriptor parsed successfully
-	   false............an exception has been thrown
-
-*******************************************************************************/
-
-#define DESCRIPTOR_VOID          0      /* default */
-#define DESCRIPTOR_NOVOID        0x0040
-#define DESCRIPTOR_NOCHECKEND    0      /* default */
-#define DESCRIPTOR_CHECKEND      0x1000
-
-static bool 
-name_from_descriptor(classinfo *c,
-					 const char *utf_ptr, const char *end_ptr,
-					 const char **next, int mode, Utf8String *name)
-{
-	const char *start = utf_ptr;
-	bool error = false;
-
-	assert(c);
-	assert(utf_ptr);
-	assert(end_ptr);
-	assert(name);
-	
-	*name = NULL;		
-	SKIP_FIELDDESCRIPTOR_SAFE(utf_ptr, end_ptr, error);
-
-	if (mode & DESCRIPTOR_CHECKEND)
-		error |= (utf_ptr != end_ptr);
-	
-	if (!error) {
-		if (next) *next = utf_ptr;
-		
-		switch (*start) {
-		  case 'V':
-			  if (mode & DESCRIPTOR_NOVOID)
-				  break;
-			  /* FALLTHROUGH! */
-		  case 'I':
-		  case 'J':
-		  case 'F':
-		  case 'D':
-		  case 'B':
-		  case 'C':
-		  case 'S':
-		  case 'Z':
-			  return true;
-			  
-		  case 'L':
-			  start++;
-			  utf_ptr--;
-			  /* FALLTHROUGH! */
-		  case '[':
-			  *name = Utf8String::from_utf8(start, utf_ptr - start);
-			  return true;
-		}
-	}
-
-	exceptions_throw_classformaterror(c, "Invalid descriptor");
-	return false;
-}
-
-
-/* descriptor_to_typedesc ******************************************************
- 
-   Parse the given type descriptor and fill a typedesc struct
-   (Internally used helper function)
-
-   IN:
-       pool.............the descriptor pool
-	   utf_ptr..........points to first character of type descriptor
-	   end_pos..........points after last character of the whole descriptor
-
-   OUT:
-       *next............set to next character after type descriptor
-	   *d...............filled with parsed information
-
-   RETURN VALUE:
-       true.............parsing succeeded  
-	   false............an exception has been thrown
-
-*******************************************************************************/
-
-static bool
-descriptor_to_typedesc(descriptor_pool *pool, const char *utf_ptr, const char *end_pos,
-					   const char **next, typedesc *td)
-{
-	Utf8String name;
-	
-	if (!name_from_descriptor(pool->referer, utf_ptr, end_pos, next, 0, &name))
-		return false;
-
-	if (name) {
-		/* a reference type */
-		td->type = TYPE_ADR;
-		td->primitivetype = (PrimitiveType) TYPE_ADR;
-		td->arraydim = 0;
-		for (utf_ptr = name.begin(); *utf_ptr == '['; ++utf_ptr)
-			td->arraydim++;
-		td->classref = descriptor_pool_lookup_classref(pool, name);
-
-	} else {
-		/* a primitive type */
-		switch (*utf_ptr) {
-		case 'B': 
-			td->primitivetype = PRIMITIVETYPE_BYTE;
-			td->type = TYPE_INT;
-			break;
-		case 'C':
-			td->primitivetype = PRIMITIVETYPE_CHAR;
-			td->type = TYPE_INT;
-			break;
-		case 'S':  
-			td->primitivetype = PRIMITIVETYPE_SHORT;
-			td->type = TYPE_INT;
-			break;
-		case 'Z':
-			td->primitivetype = PRIMITIVETYPE_BOOLEAN;
-			td->type = TYPE_INT;
-			break;
-		case 'I':
-			td->primitivetype = PRIMITIVETYPE_INT;
-			td->type = TYPE_INT;
-			break;
-		case 'D':
-			td->primitivetype = PRIMITIVETYPE_DOUBLE;
-			td->type = TYPE_DBL;
-			break;
-		case 'F':
-			td->primitivetype = PRIMITIVETYPE_FLOAT;
-			td->type = TYPE_FLT;
-			break;
-		case 'J':
-			td->primitivetype = PRIMITIVETYPE_LONG;
-			td->type = TYPE_LNG;
-			break;
-		case 'V':
-			td->primitivetype = PRIMITIVETYPE_VOID;
-			td->type = TYPE_VOID;
-			break;
-		default:
-			assert(false);
-		}
-
-		td->arraydim = 0;
-		td->classref = NULL;
-	}
-
-	return true;
-}
-
-
-/* descriptor_pool_new *********************************************************
- 
-   Allocate a new descriptor_pool
-
-   IN:
-       referer..........class for which to create the pool
-
-   RETURN VALUE:
-       a pointer to the new descriptor_pool
-
-*******************************************************************************/
-
-descriptor_pool * 
-descriptor_pool_new(classinfo *referer)
-{
-	descriptor_pool *pool;
-	u4 hashsize;
-	u4 slot;
-
-	pool = (descriptor_pool*) DumpMemory::allocate(sizeof(descriptor_pool));
-	assert(pool);
-
-	pool->referer = referer;
-	pool->fieldcount = 0;
-	pool->methodcount = 0;
-	pool->paramcount = 0;
-	pool->descriptorsize = 0;
-	pool->descriptors = NULL;
-	pool->descriptors_next = NULL;
-	pool->classrefs = NULL;
-	pool->descriptor_kind = NULL;
-	pool->descriptor_kind_next = NULL;
-
-	hashsize = CLASSREFHASH_INIT_SIZE;
-	pool->classrefhash.size = hashsize;
-	pool->classrefhash.entries = 0;
-	pool->classrefhash.ptr = (void **) DumpMemory::allocate(sizeof(void*) * hashsize);
-	for (slot=0; slot<hashsize; ++slot)
-		pool->classrefhash.ptr[slot] = NULL;
-
-	hashsize = DESCRIPTORHASH_INIT_SIZE;
-	pool->descriptorhash.size = hashsize;
-	pool->descriptorhash.entries = 0;
-	pool->descriptorhash.ptr = (void**) DumpMemory::allocate(sizeof(void*) * hashsize);
-	for (slot=0; slot<hashsize; ++slot)
-		pool->descriptorhash.ptr[slot] = NULL;
-
-	return pool;
-}
-
-
-/* descriptor_pool_add_class ***************************************************
- 
-   Add the given class reference to the pool
-
-   IN:
-       pool.............the descriptor_pool
-	   name.............the class reference to add
-
-   RETURN VALUE:
-       true.............reference has been added
-	   false............an exception has been thrown
-
-*******************************************************************************/
-
-bool 
-descriptor_pool_add_class(descriptor_pool *pool, Utf8String name)
-{
-	u4 key,slot;
-	classref_hash_entry *c;
-	
-	assert(pool);
-	assert(name);
-
-#ifdef DESCRIPTOR_VERBOSE
-	fprintf(stderr,"descriptor_pool_add_class(%p,",(void*)pool);
-	utf_fprint_printable_ascii(stderr,name);fprintf(stderr,")\n");
-#endif
-
-	/* find a place in the hashtable */
-
-	key  = name.hash();
-	slot = key & (pool->classrefhash.size - 1);
-	c    = (classref_hash_entry *) pool->classrefhash.ptr[slot];
-
-	while (c) {
-		if (c->name == name)
-			return true; /* already stored */
-		c = c->hashlink;
-	}
-
-	/* check if the name is a valid classname */
-
-	if (!Utf8String(name).is_valid_name()) {
-		exceptions_throw_classformaterror(pool->referer, "Invalid class name");
-		return false; /* exception */
-	}
-
-	/* XXX check maximum array dimension */
-	
-	c = (classref_hash_entry*) DumpMemory::allocate(sizeof(classref_hash_entry));
-	c->name = name;
-	c->index = pool->classrefhash.entries++;
-	c->hashlink = (classref_hash_entry *) pool->classrefhash.ptr[slot];
-	pool->classrefhash.ptr[slot] = c;
-
-	return true;
-}
-
-
-/* descriptor_pool_add *********************************************************
- 
-   Check the given descriptor and add it to the pool
-
-   IN:
-       pool.............the descriptor_pool
-	   desc.............the descriptor to add. Maybe a field or method desc.
-
-   OUT:
-       *paramslots......if non-NULL, set to the number of parameters.
-	                    LONG and DOUBLE are counted twice
-
-   RETURN VALUE:
-       true.............descriptor has been added
-	   false............an exception has been thrown
-
-*******************************************************************************/
-
-bool 
-descriptor_pool_add(descriptor_pool *pool, Utf8String desc, int *paramslots)
-{
-	u4 key,slot;
-	descriptor_hash_entry *d;
-	const char *utf_ptr;
-	const char *end_pos;
-	Utf8String name;
-	s4 argcount = 0;
-	
-#ifdef DESCRIPTOR_VERBOSE
-	fprintf(stderr,"descriptor_pool_add(%p,",(void*)pool);
-	utf_fprint_printable_ascii(stderr,desc);fprintf(stderr,")\n");
-#endif
-
-	assert(pool);
-	assert(desc);
-
-	/* find a place in the hashtable */
-
-	key  = desc.hash();
-	slot = key & (pool->descriptorhash.size - 1);
-	d    = (descriptor_hash_entry *) pool->descriptorhash.ptr[slot];
-
-	/* Save all method descriptors in the hashtable, since the parsed         */
-	/* descriptor may vary between differenf methods (static vs. non-static). */
-
-	utf_ptr = desc.begin();
-
-	if (*utf_ptr != '(') {
-		while (d) {
-			if (d->desc == desc) {
-				if (paramslots)
-					*paramslots = d->paramslots;
-				return true; /* already stored */
-			}
-			d = d->hashlink;
-		}
-	}
-
-	/* add the descriptor to the pool */
-
-	d = (descriptor_hash_entry*) DumpMemory::allocate(sizeof(descriptor_hash_entry));
-	d->desc = desc;
-	d->parseddesc.any = NULL;
-	d->hashlink = (descriptor_hash_entry *) pool->descriptorhash.ptr[slot];
-	pool->descriptorhash.ptr[slot] = d;
-
-	/* now check the descriptor */
-
-	end_pos = desc.end();
-	
-	if (*utf_ptr == '(') {
-		/* a method descriptor */
-
-		pool->methodcount++;
-		utf_ptr++;
-
-		/* check arguments */
-
-		while ((utf_ptr != end_pos) && (*utf_ptr != ')')) {
-			pool->paramcount++;
-
-			/* We cannot count the `this' argument here because
-			 * we don't know if the method is static. */
-
-			if (*utf_ptr == 'J' || *utf_ptr == 'D')
-				argcount += 2;
-			else
-				argcount++;
-
-			if (!name_from_descriptor(pool->referer, utf_ptr, end_pos, &utf_ptr,
-								      DESCRIPTOR_NOVOID, &name))
-				return false;
-
-			if (name)
-				if (!descriptor_pool_add_class(pool, name))
-					return false;
-		}
-
-		if (utf_ptr == end_pos) {
-			exceptions_throw_classformaterror(pool->referer,
-											  "Missing ')' in method descriptor");
-			return false;
-		}
-
-		utf_ptr++; /* skip ')' */
-
-		if (!name_from_descriptor(pool->referer, utf_ptr, end_pos, NULL,
-							  	  DESCRIPTOR_CHECKEND, &name))
-			return false;
-
-		if (name)
-			if (!descriptor_pool_add_class(pool,name))
-				return false;
-
-		if (argcount > 255) {
-			exceptions_throw_classformaterror(pool->referer,
-											  "Too many arguments in signature");
-			return false;
-		}
-
-	} else {
-		/* a field descriptor */
-
-		pool->fieldcount++;
-		
-	    if (!name_from_descriptor(pool->referer, utf_ptr, end_pos, NULL,
-						    	  DESCRIPTOR_NOVOID | DESCRIPTOR_CHECKEND,
-								  &name))
-			return false;
-
-		if (name)
-			if (!descriptor_pool_add_class(pool,name))
-				return false;
-	}
-
-	d->paramslots = argcount;
-
-	if (paramslots)
-		*paramslots = argcount;
-
-	return true;
-}
-
-
-/* descriptor_pool_create_classrefs ********************************************
- 
-   Create a table containing all the classrefs which were added to the pool
-
-   IN:
-       pool.............the descriptor_pool
-
-   OUT:
-       *count...........if count is non-NULL, this is set to the number
-	                    of classrefs in the table
-
-   RETURN VALUE:
-       a pointer to the constant_classref table
-
-*******************************************************************************/
-
-constant_classref * 
-descriptor_pool_create_classrefs(descriptor_pool *pool, s4 *count)
-{
-	u4 nclasses;
-	u4 slot;
-	classref_hash_entry *c;
-	constant_classref *ref;
-	
-	assert(pool);
-
-	nclasses = pool->classrefhash.entries;
-	pool->classrefs = MNEW(constant_classref,nclasses);
-
-	/* fill the constant_classref structs */
-
-	for (slot = 0; slot < pool->classrefhash.size; ++slot) {
-		c = (classref_hash_entry *) pool->classrefhash.ptr[slot];
-		while (c) {
-			ref = pool->classrefs + c->index;
-			CLASSREF_INIT(*ref, pool->referer, c->name);
-			c = c->hashlink;
-		}
-	}
-
-	if (count)
-		*count = nclasses;
-
-	return pool->classrefs;
-}
-
-
-/* descriptor_pool_lookup_classref *********************************************
- 
-   Return the constant_classref for the given class name
-
-   IN:
-       pool.............the descriptor_pool
-	   classname........name of the class to look up
-
-   RETURN VALUE:
-       a pointer to the constant_classref, or
-	   NULL if an exception has been thrown
-
-*******************************************************************************/
-
-constant_classref * 
-descriptor_pool_lookup_classref(descriptor_pool *pool, Utf8String classname)
-{
-	u4 key,slot;
-	classref_hash_entry *c;
-
-	assert(pool);
-	assert(pool->classrefs);
-	assert(classname);
-
-	key  = classname.hash();
-	slot = key & (pool->classrefhash.size - 1);
-	c    = (classref_hash_entry *) pool->classrefhash.ptr[slot];
-
-	while (c) {
-		if (c->name == classname)
-			return pool->classrefs + c->index;
-		c = c->hashlink;
-	}
-
-	exceptions_throw_internalerror("Class reference not found in descriptor pool");
-	return NULL;
-}
-
-
-/* descriptor_pool_alloc_parsed_descriptors ************************************
- 
-   Allocate space for the parsed descriptors
-
-   IN:
-       pool.............the descriptor_pool
-
-   NOTE:
-       This function must be called after all descriptors have been added
-	   with descriptor_pool_add.
-
-*******************************************************************************/
-
-void 
-descriptor_pool_alloc_parsed_descriptors(descriptor_pool *pool)
-{
-	u4 size;
-	
-	assert(pool);
-
-	/* TWISTI: paramcount + 1: we don't know if the method is static or   */
-	/* not, i have no better solution yet.                                */
-
-	size =
-		pool->fieldcount * sizeof(typedesc) +
-		pool->methodcount * (sizeof(methoddesc) - sizeof(typedesc)) +
-		pool->paramcount * sizeof(typedesc) +
-		pool->methodcount * sizeof(typedesc);      /* possible `this' pointer */
-
-	pool->descriptorsize = size;
-	if (size) {
-		size += sizeof(Mutex);	/* prepend Mutex */
-		pool->descriptors = MNEW(u1, size);
-		/* call Mutex constructor */
-		new (reinterpret_cast<Mutex*>(pool->descriptors)) Mutex;
-		pool->descriptors += sizeof(Mutex);
-		pool->descriptors_next = pool->descriptors;
-	}
-
-	size = pool->fieldcount + pool->methodcount;
-	if (size) {
-		pool->descriptor_kind = (u1*) DumpMemory::allocate(sizeof(u1) * size);
-		pool->descriptor_kind_next = pool->descriptor_kind;
-	}
-}
-
-
-/* descriptor_pool_parse_field_descriptor **************************************
- 
-   Parse the given field descriptor
-
-   IN:
-       pool.............the descriptor_pool
-	   desc.............the field descriptor
-
-   RETURN VALUE:
-       a pointer to the parsed field descriptor, or
-	   NULL if an exception has been thrown
-
-   NOTE:
-       descriptor_pool_alloc_parsed_descriptors must be called (once)
-       before this function is used.
-
-*******************************************************************************/
-
-typedesc * 
-descriptor_pool_parse_field_descriptor(descriptor_pool *pool, Utf8String desc)
-{
-	u4 key,slot;
-	descriptor_hash_entry *d;
-	typedesc *td;
-
-	assert(pool);
-	assert(pool->descriptors);
-	assert(pool->descriptors_next);
-
-	/* lookup the descriptor in the hashtable */
-
-	key  = desc.hash();
-	slot = key & (pool->descriptorhash.size - 1);
-	d    = (descriptor_hash_entry *) pool->descriptorhash.ptr[slot];
-
-	while (d) {
-		if (d->desc == desc) {
-			/* found */
-			if (d->parseddesc.fd)
-				return d->parseddesc.fd;
-			break;
-		}
-		d = d->hashlink;
-	}
-
-	assert(d);
-	
-	if (desc[0] == '(') {
-		exceptions_throw_classformaterror(pool->referer,
-										  "Method descriptor used in field reference");
-		return NULL;
-	}
-
-	td = (typedesc *) pool->descriptors_next;
-	pool->descriptors_next += sizeof(typedesc);
-	
-	if (!descriptor_to_typedesc(pool, desc.begin(), desc.end(), NULL, td))
-		return NULL;
-
-	*(pool->descriptor_kind_next++) = 'f';
-
-	d->parseddesc.fd = td;
-
-	return td;
-}
-
-
-/* descriptor_pool_parse_method_descriptor *************************************
- 
-   Parse the given method descriptor
-
-   IN:
-       pool.............the descriptor_pool
-       desc.............the method descriptor
-       mflags...........the method flags
-	   thisclass........classref to the class containing the method.
-	   					This is ignored if mflags contains ACC_STATIC.
-						The classref is stored for inserting the 'this' argument.
-
-   RETURN VALUE:
-       a pointer to the parsed method descriptor, or
-	   NULL if an exception has been thrown
-
-   NOTE: 
-       descriptor_pool_alloc_parsed_descriptors must be called
-       (once) before this function is used.
-
-*******************************************************************************/
-
-methoddesc * 
-descriptor_pool_parse_method_descriptor(descriptor_pool *pool, Utf8String desc,
-										s4 mflags,constant_classref *thisclass)
-{
-	u4 key, slot;
-	descriptor_hash_entry *d;
-	methoddesc            *md;
-	typedesc              *td;
-	const char *utf_ptr;
-	const char *end_pos;
-	s2 paramcount = 0;
-	s2 paramslots = 0;
-
-#ifdef DESCRIPTOR_VERBOSE
-	fprintf(stderr,"descriptor_pool_parse_method_descriptor(%p,%d,%p,",
-			(void*)pool,(int)mflags,(void*)thisclass);
-	utf_fprint_printable_ascii(stderr,desc); fprintf(stderr,")\n");
-#endif
-
-	assert(pool);
-	assert(pool->descriptors);
-	assert(pool->descriptors_next);
-
-	/* check that it is a method descriptor */
-	
-	if (desc[0] != '(') {
-		exceptions_throw_classformaterror(pool->referer,
-										  "Field descriptor used in method reference");
-		return NULL;
-	}
-
-	/* lookup the descriptor in the hashtable */
-
-	key  = desc.hash();
-	slot = key & (pool->descriptorhash.size - 1);
-	d   = (descriptor_hash_entry *) pool->descriptorhash.ptr[slot];
-
-	/* find an un-parsed descriptor */
-
-	while (d) {
-		if (d->desc == desc)
-			if (!d->parseddesc.md)
-				break;
-		d = d->hashlink;
-	}
-
-	assert(d);
-
-	md = (methoddesc *) pool->descriptors_next;
-	md->pool_lock = reinterpret_cast<Mutex*>(pool->descriptors - sizeof(Mutex));
-	pool->descriptors_next += sizeof(methoddesc) - sizeof(typedesc);
-
-	utf_ptr = desc.begin() + 1; /* skip '(' */
-	end_pos = desc.end();
-
-	td = md->paramtypes;
-
-	/* count the `this' pointer */
-
-	if ((mflags != ACC_UNDEF) && !(mflags & ACC_STATIC)) {
-		td->type = TYPE_ADR;
-		td->primitivetype = (PrimitiveType) TYPE_ADR;
-		td->arraydim = 0;
-		td->classref = thisclass;
-
-		td++;
-		pool->descriptors_next += sizeof(typedesc);
-		paramcount++;
-		paramslots++;
-	}
-
-	while (*utf_ptr != ')') {
-		/* parse a parameter type */
-
-		if (!descriptor_to_typedesc(pool, utf_ptr, end_pos, &utf_ptr, td))
-			return NULL;
-
-		if (IS_2_WORD_TYPE(td->type))
-			paramslots++;
-		
-		td++;
-		pool->descriptors_next += sizeof(typedesc);
-		paramcount++;
-		paramslots++;
-	}
-	utf_ptr++; /* skip ')' */
-
-	/* Skip possible `this' pointer in paramtypes array to allow a possible   */
-	/* memory move later in parse.                                            */
-	/* We store the thisclass reference, so we can later correctly fill in    */
-	/* the parameter slot of the 'this' argument.                             */
-
-	if (mflags == ACC_UNDEF) {
-		td->classref = thisclass;
-		td++;
-		pool->descriptors_next += sizeof(typedesc);
-	}
-
-	/* parse return type */
-
-	if (!descriptor_to_typedesc(pool, utf_ptr, end_pos, NULL,
-								&(md->returntype)))
-		return NULL;
-
-	md->paramcount = paramcount;
-	md->paramslots = paramslots;
-
-	/* If mflags != ACC_UNDEF we parse a real loaded method, so do
-	   param prealloc.  Otherwise we do this in stack analysis. */
-
-	if (mflags != ACC_UNDEF) {
-		if (md->paramcount > 0) {
-			/* allocate memory for params */
-
-			md->params = MNEW(paramdesc, md->paramcount);
-		}
-		else {
-			md->params = METHODDESC_NOPARAMS;
-		}
-
-		/* fill the paramdesc */
-		/* md_param_alloc has to be called if md->paramcount == 0,
-		   too, so it can make the reservation for the Linkage Area,
-		   Return Register... */
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-		if (!opt_intrp)
-# endif
-			{
-				/* As builtin-functions are native functions, we have
-				   to pre-allocate for the native ABI. */
-
-				if (mflags & ACC_METHOD_BUILTIN)
-					md_param_alloc_native(md);
-				else
-					md_param_alloc(md);
-			}
-#endif
-
-		/* params already initialized; no need to lock */
-		md->pool_lock = NULL;
-	}
-	else {
-		/* params will be allocated later by
-		   descriptor_params_from_paramtypes if necessary */
-
-		md->params = NULL;
-	}
-
-	*(pool->descriptor_kind_next++) = 'm';
-
-	d->parseddesc.md = md;
-
-	return md;
-}
-
-/* descriptor_params_from_paramtypes *******************************************
- 
-   Create the paramdescs for a method descriptor. This function is
-   called when we know whether the method is static or not. This
-   function does nothing if md->params != NULL (checked atomically).
-
-   IN:
-       md...............the parsed method descriptor
-	   mflags...........the ACC_* access flags of the method. Only the
-	                    ACC_STATIC bit is checked.
-						The value ACC_UNDEF is NOT allowed.
-
-   POSTCONDITION:
-       md->parms != NULL
-
-*******************************************************************************/
-
-void descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
-{
-	bool has_lock = md->pool_lock;
-
-	assert(md);
-	if (md->pool_lock)
-		md->pool_lock->lock();
-	if (md->params) {
-		if (has_lock)
-			md->pool_lock->unlock();
-		return;
-	}
-	assert(md->params == NULL);
-	assert(mflags != ACC_UNDEF);
-
-	typedesc *td = md->paramtypes;
-
-	/* check for `this' pointer */
-
-	if (!(mflags & ACC_STATIC)) {
-		constant_classref *thisclass;
-
-		/* fetch class reference from reserved param slot */
-		thisclass = td[md->paramcount].classref;
-		assert(thisclass);
-
-		if (md->paramcount > 0) {
-			/* shift param types by 1 argument */
-			MMOVE(td + 1, td, typedesc, md->paramcount);
-		}
-
-		/* fill in first argument `this' */
-
-		td->type = TYPE_ADR;
-		td->primitivetype = (PrimitiveType) TYPE_ADR;
-		td->arraydim = 0;
-		td->classref = thisclass;
-
-		md->paramcount++;
-		md->paramslots++;
-	}
-
-	/* if the method has params, process them */
-
-	if (md->paramcount > 0) {
-		/* allocate memory for params */
-
-		md->params = MNEW(paramdesc, md->paramcount);
-
-	} else {
-		md->params = METHODDESC_NOPARAMS;
-	}
-
-	/* fill the paramdesc */
-	/* md_param_alloc has to be called if md->paramcount == 0, too, so
-	   it can make the reservation for the Linkage Area, Return
-	   Register.. */
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (!opt_intrp)
-# endif
-		{
-			/* As builtin-functions are native functions, we have to
-			   pre-allocate for the native ABI. */
-
-			if (mflags & ACC_METHOD_BUILTIN)
-				md_param_alloc_native(md);
-			else
-				md_param_alloc(md);
-		}
-#endif
-
-	if (has_lock)
-		md->pool_lock->unlock();
-}
-
-
-/* descriptor_pool_get_sizes ***************************************************
- 
-   Get the sizes of the class reference table and the parsed descriptors
-
-   IN:
-       pool.............the descriptor_pool
-
-   OUT:
-       *classrefsize....set to size of the class reference table
-	   *descsize........set to size of the parsed descriptors
-
-   NOTE:
-       This function may only be called after both
-	       descriptor_pool_create_classrefs, and
-		   descriptor_pool_alloc_parsed_descriptors
-	   have been called.
-
-*******************************************************************************/
-
-void 
-descriptor_pool_get_sizes(descriptor_pool *pool, u4 *classrefsize, u4 *descsize)
-{
-	assert(pool);
-	assert((!pool->fieldcount && !pool->methodcount) || pool->descriptors);
-	assert(pool->classrefs);
-	assert(classrefsize);
-	assert(descsize);
-
-	*classrefsize = pool->classrefhash.entries * sizeof(constant_classref);
-	*descsize = pool->descriptorsize;
 }
 
 
@@ -1159,27 +1008,17 @@ descriptor_pool_get_sizes(descriptor_pool *pool, u4 *classrefsize, u4 *descsize)
 /* DEBUG HELPERS                                                            */
 /****************************************************************************/
 
-#ifndef NDEBUG
-/* descriptor_debug_print_typedesc *********************************************
- 
-   Print the given typedesc to the given stream
-
-   IN:
-	   file.............stream to print to
-	   d................the parsed descriptor
-
-*******************************************************************************/
-
-void 
-descriptor_debug_print_typedesc(FILE *file,typedesc *d)
-{
+/***
+ * Print the given typedesc to the given stream
+ */
+void descriptor_debug_print_typedesc(FILE *file,typedesc *d) {
 	int ch;
 
 	if (!d) {
 		fprintf(file,"(typedesc *)NULL");
 		return;
 	}
-	
+
 	if (d->type == TYPE_ADR) {
 		if (d->classref)
 			utf_fprint_printable_ascii(file,d->classref->name);
@@ -1205,24 +1044,15 @@ descriptor_debug_print_typedesc(FILE *file,typedesc *d)
 		fprintf(file,"[%d]",d->arraydim);
 }
 
-/* descriptor_debug_print_paramdesc ********************************************
- 
-   Print the given paramdesc to the given stream
-
-   IN:
-	   file.............stream to print to
-	   d................the parameter descriptor
-
-*******************************************************************************/
-
-void
-descriptor_debug_print_paramdesc(FILE *file,paramdesc *d)
-{
+/***
+ * Print the given paramdesc to the given stream
+ */
+void descriptor_debug_print_paramdesc(FILE *file,paramdesc *d) {
 	if (!d) {
 		fprintf(file,"(paramdesc *)NULL");
 		return;
 	}
-	
+
 	if (d->inmemory) {
 		fprintf(file,"<m%d>",d->regoff);
 	}
@@ -1231,26 +1061,17 @@ descriptor_debug_print_paramdesc(FILE *file,paramdesc *d)
 	}
 }
 
-/* descriptor_debug_print_methoddesc *******************************************
- 
-   Print the given methoddesc to the given stream
-
-   IN:
-	   file.............stream to print to
-	   d................the parsed descriptor
-
-*******************************************************************************/
-
-void 
-descriptor_debug_print_methoddesc(FILE *file,methoddesc *d)
-{
+/***
+ * Print the given methoddesc to the given stream
+ */
+void descriptor_debug_print_methoddesc(FILE *file,methoddesc *d) {
 	int i;
-	
+
 	if (!d) {
 		fprintf(file,"(methoddesc *)NULL");
 		return;
 	}
-	
+
 	fputc('(',file);
 	for (i=0; i<d->paramcount; ++i) {
 		if (i)
@@ -1266,97 +1087,6 @@ descriptor_debug_print_methoddesc(FILE *file,methoddesc *d)
 	descriptor_debug_print_typedesc(file,&(d->returntype));
 }
 
-/* descriptor_pool_debug_dump **************************************************
- 
-   Print the state of the descriptor_pool to the given stream
-
-   IN:
-       pool.............the descriptor_pool
-	   file.............stream to print to
-
-*******************************************************************************/
-
-void 
-descriptor_pool_debug_dump(descriptor_pool *pool,FILE *file)
-{
-	u4 slot;
-	u1 *pos;
-	u1 *kind;
-	u4 size;
-	
-	fprintf(file,"======[descriptor_pool for ");
-	utf_fprint_printable_ascii(file,pool->referer->name);
-	fprintf(file,"]======\n");
-
-	fprintf(file,"fieldcount:     %d\n",pool->fieldcount);
-	fprintf(file,"methodcount:    %d\n",pool->methodcount);
-	fprintf(file,"paramcount:     %d\n",pool->paramcount);
-	fprintf(file,"classrefcount:  %d\n",pool->classrefhash.entries);
-	fprintf(file,"descriptorsize: %d bytes\n",pool->descriptorsize);
-	fprintf(file,"classrefsize:   %d bytes\n",
-			(int)(pool->classrefhash.entries * sizeof(constant_classref)));
-
-	fprintf(file,"class references:\n");
-	for (slot=0; slot<pool->classrefhash.size; ++slot) {
-		classref_hash_entry *c = (classref_hash_entry *) pool->classrefhash.ptr[slot];
-		while (c) {
-			fprintf(file,"    %4d: ",c->index);
-			utf_fprint_printable_ascii(file,c->name);
-			fprintf(file,"\n");
-			c = c->hashlink;
-		}
-	}
-
-	fprintf(file,"hashed descriptors:\n");
-	for (slot=0; slot<pool->descriptorhash.size; ++slot) {
-		descriptor_hash_entry *c = (descriptor_hash_entry *) pool->descriptorhash.ptr[slot];
-		while (c) {
-			fprintf(file,"    %p: ",c->parseddesc.any);
-			utf_fprint_printable_ascii(file,c->desc);
-			fprintf(file,"\n");
-			c = c->hashlink;
-		}
-	}
-
-	fprintf(file,"descriptors:\n");
-	if (pool->descriptors) {
-		pos = pool->descriptors;
-		size = pool->descriptors_next - pool->descriptors;
-		fprintf(file,"    size: %d bytes\n",size);
-		
-		if (pool->descriptor_kind) {
-			kind = pool->descriptor_kind;
-
-			while (pos < (pool->descriptors + size)) {
-				fprintf(file,"    %p: ",pos);
-				switch (*kind++) {
-					case 'f':
-						descriptor_debug_print_typedesc(file,(typedesc*)pos);
-						pos += sizeof(typedesc);
-						break;
-					case 'm':
-						descriptor_debug_print_methoddesc(file,(methoddesc*)pos);
-						pos += ((methoddesc*)pos)->paramcount * sizeof(typedesc);
-						pos += sizeof(methoddesc) - sizeof(typedesc);
-						break;
-					default:
-						fprintf(file,"INVALID KIND");
-				}
-				fputc('\n',file);
-			}
-		}
-		else {
-			while (size >= sizeof(void*)) {
-				fprintf(file,"    %p\n",*((void**)pos));
-				pos += sizeof(void*);
-				size -= sizeof(void*);
-			}
-		}
-	}
-
-	fprintf(file,"==========================================================\n");
-}
-#endif /* !defined(NDEBUG) */
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -1371,4 +1101,3 @@ descriptor_pool_debug_dump(descriptor_pool *pool,FILE *file)
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */
-

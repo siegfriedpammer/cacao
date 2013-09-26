@@ -1448,7 +1448,7 @@ jsr_tail:
 
 			md = fmi->parseddesc.md;
 
-			descriptor_params_from_paramtypes(md, ACC_STATIC);
+			md->params_from_paramtypes(ACC_STATIC);
 
 			goto invoke_method;
 
@@ -1480,7 +1480,7 @@ invoke_nonstatic_method:
 
 			md = fmi->parseddesc.md;
 
-			descriptor_params_from_paramtypes(md, 0);
+			md->params_from_paramtypes(0);
 
 invoke_method:
 			code_unflag_leafmethod(code);

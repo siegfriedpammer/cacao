@@ -493,7 +493,7 @@ bool typecheck_init_locals(verifier_state *state, bool newthis)
 
 	/* allocate parameter descriptors if necessary */
 
-	descriptor_params_from_paramtypes(state->m->parseddesc, state->m->flags);
+	state->m->parseddesc->params_from_paramtypes(state->m->flags);
 
 	/* pre-initialize variables as TYPE_VOID */
 

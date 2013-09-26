@@ -65,6 +65,7 @@ using namespace cacao;
 
 STAT_DECLARE_VAR(int,count_vftbl_len,0)
 
+
 /* debugging macros ***********************************************************/
 
 #if !defined(NDEBUG)
@@ -951,9 +952,9 @@ static classinfo *link_class_intern(classinfo *c)
 		fieldinfo *f = &(c->fields[i]);
 
 		if (!(f->flags & ACC_STATIC)) {
-			dsize = descriptor_typesize(f->parseddesc);
-			c->instancesize = MEMORY_ALIGN(c->instancesize, dsize);
-			f->offset = c->instancesize;
+			dsize            = f->parseddesc->typesize();
+			c->instancesize  = MEMORY_ALIGN(c->instancesize, dsize);
+			f->offset        = c->instancesize;
 			c->instancesize += dsize;
 		}
 	}

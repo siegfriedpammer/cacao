@@ -53,6 +53,7 @@ extern "C" java_object_t *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra)
 void exceptions_throw_abstractmethoderror(void);
 void exceptions_throw_classcircularityerror(classinfo *c);
 void exceptions_throw_classformaterror(classinfo *c, const char *message, ...);
+void exceptions_throw_classformaterror(classinfo *c, Utf8String message);
 void exceptions_throw_classnotfoundexception(Utf8String name);
 void exceptions_throw_noclassdeffounderror(Utf8String name);
 void exceptions_throw_noclassdeffounderror_cause(java_handle_t *cause);

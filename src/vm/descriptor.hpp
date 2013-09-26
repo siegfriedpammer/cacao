@@ -27,17 +27,26 @@
 #define DESCRIPTOR_HPP_ 1
 
 #include "config.h"
-#include <stdint.h>
-#include "toolbox/hashtable.hpp"
-#include "vm/global.hpp"         // for Type
-#include "vm/primitive.hpp"      // for PrimitiveType
-#include "vm/utf8.hpp"
 
+#include <cstddef>                      // for size_t
+#include <cstdio>                       // for FILE
+#include <stdint.h>                     // for uint32_t, uint8_t
+#include <sys/types.h>                  // for ssize_t
+
+#include "toolbox/hashtable.hpp"        // for InsertOnlyStringEntry, etc
+
+#include "vm/global.hpp"                // for Type, Type::TYPE_ADR, etc
+#include "vm/primitive.hpp"             // for PrimitiveType
+#include "vm/types.hpp"                 // for s4, u2, s2, u1
+#include "vm/utf8.hpp"                  // for Utf8String
+
+class Mutex;
 struct classinfo;
 struct constant_classref;
-struct methoddesc;
-struct paramdesc;
 struct typedesc;
+struct paramdesc;
+struct methoddesc;
+
 
 /* data structures ************************************************************/
 
@@ -66,29 +75,67 @@ struct typedesc;
 /*            done.                                                           */
 /*----------------------------------------------------------------------------*/
 
-struct descriptor_pool {
+struct descriptor_pool;
+
+namespace cacao {
+
+struct DescriptorPool {
+	DescriptorPool(classinfo *referer);
+
+	bool    add_class(Utf8String name);
+	bool    add_field(Utf8String desc);
+	ssize_t add_method(Utf8String desc); // returns number of paramslots method needs,
+	                                     // or -1 on error
+
+	constant_classref *create_classrefs(s4 *count);
+	constant_classref *lookup_classref(Utf8String classname);
+
+	void alloc_parsed_descriptors();
+
+	typedesc   *parse_field_descriptor(Utf8String desc);
+	methoddesc *parse_method_descriptor(Utf8String desc, s4 mflags, constant_classref *thisclass);
+
+	classinfo *get_referer();
+
+	void get_sizes(size_t *classrefsize, size_t *descsize);
+private:
+	template<typename T>
+	inline T *allocate(size_t size = sizeof(T));
+
+	typedef HashTable<InsertOnlyNameValuePair<u2> >        ClassrefHash;
+	typedef HashTable<InsertOnlyNameValuePair<typedesc*> > FieldrefHash;
+
+	ClassrefHash  classrefhash;
+	FieldrefHash  fieldrefhash;
+
 	classinfo         *referer;
-	u4                 fieldcount;
-	u4                 methodcount;
-	u4                 paramcount;
-	u4                 descriptorsize;
-	u1                *descriptors;
-	u1                *descriptors_next;
-	hashtable          descriptorhash;
+	size_t             fieldcount;
+	size_t             methodcount;
+	size_t             paramcount;
+	size_t             descriptorsize;
 	constant_classref *classrefs;
-	hashtable          classrefhash;
-	u1                *descriptor_kind;       /* useful for debugging */
-	u1                *descriptor_kind_next;  /* useful for debugging */
+	Mutex             *mutex;
+
+	// we allocate all typedesc & methoddesc from a big chunk of memory
+	// created in alloc_parsed_descriptors
+	uint8_t           *descriptors;
+	uint8_t           *descriptors_next;
 };
+
+
+} // end namespace cacao
 
 
 /* data structures for parsed field/method descriptors ************************/
 
 struct typedesc {
-	constant_classref *classref;          // class reference for TYPE_ADR types
-	Type               type          : 8; // TYPE_??? constant [1]
-	PrimitiveType      primitivetype : 8; // (PRIMITIVE)TYPE_??? constant [2]
-	u1                 arraydim;          // array dimension (0 if no array)
+	// return the size in bytes needed for the given type.
+	inline size_t typesize() const;
+
+	constant_classref *classref;          /* class reference for TYPE_ADR types   */
+	Type               type          : 8; /* TYPE_??? constant [1]                */
+	PrimitiveType      primitivetype : 8; /* (PRIMITIVE)TYPE_??? constant [2]     */
+	u1                 arraydim;          /* array dimension (0 if no array)      */
 };
 
 /* [1]...the type field contains the basic type used within the VM. So ints,  */
@@ -99,7 +146,7 @@ struct typedesc {
 
 struct paramdesc {
 #if defined(__MIPS__)
-	u1   type;                  /* TYPE_??? of the register allocated         */
+	Type     type : 8;          /* TYPE_??? of the register allocated         */
 #endif
 	bool     inmemory;          /* argument in register or on stack           */
 	uint32_t index;             /* index into argument register array         */
@@ -107,6 +154,8 @@ struct paramdesc {
 };
 
 struct methoddesc {
+	void params_from_paramtypes(s4 mflags);
+
 	s2         paramcount;      /* number of parameters                       */
 	s2         paramslots;      /* like above but LONG,DOUBLE count twice     */
 	s4         argintreguse;    /* number of used integer argument registers  */
@@ -136,35 +185,32 @@ struct methoddesc {
 
 /* function prototypes ********************************************************/
 
-descriptor_pool * descriptor_pool_new(classinfo *referer);
+Type descriptor_to_basic_type(Utf8String desc);
 
-bool descriptor_pool_add_class(descriptor_pool *pool, Utf8String name);
-bool descriptor_pool_add(descriptor_pool *pool,Utf8String desc,int *paramslots);
+void descriptor_debug_print_typedesc(FILE*,typedesc*);
+void descriptor_debug_print_methoddesc(FILE*,methoddesc*);
 
-int  descriptor_to_basic_type(Utf8String desc);
-int  descriptor_typesize(typedesc *td);
+/* inline functions    ********************************************************/
 
-constant_classref * descriptor_pool_create_classrefs(descriptor_pool *pool,
-													 s4 *count);
-constant_classref * descriptor_pool_lookup_classref(descriptor_pool *pool,Utf8String classname);
+inline size_t typedesc::typesize() const {
+	switch (type) {
+	case TYPE_INT:
+	case TYPE_FLT:
+		return 4;
 
-void descriptor_pool_alloc_parsed_descriptors(descriptor_pool *pool);
+	case TYPE_LNG:
+	case TYPE_DBL:
+		return 8;
 
-typedesc *descriptor_pool_parse_field_descriptor(descriptor_pool *pool, Utf8String desc);
-methoddesc *descriptor_pool_parse_method_descriptor(descriptor_pool *pool, Utf8String desc, s4 mflags,
-													constant_classref *thisclass);
+	case TYPE_ADR:
+		return SIZEOF_VOID_P;
 
-void descriptor_params_from_paramtypes(methoddesc *md, s4 mflags);
+	default:
+		assert(false && "Illegal Type");
+		return 0;
+	}
+}
 
-void descriptor_pool_get_sizes(descriptor_pool *pool, u4 *classrefsize,
-							   u4 *descsize);
-
-#ifndef NDEBUG
-void descriptor_debug_print_typedesc(FILE *file,typedesc *d);
-void descriptor_debug_print_methoddesc(FILE *file,methoddesc *d);
-void descriptor_debug_print_paramdesc(FILE *file,paramdesc *d);
-void descriptor_pool_debug_dump(descriptor_pool *pool, FILE *file);
-#endif /* !defined(NDEBUG) */
 
 #endif // DESCRIPTOR_HPP_
 

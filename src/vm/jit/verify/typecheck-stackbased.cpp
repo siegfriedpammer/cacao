@@ -739,7 +739,7 @@ bool typecheck_stackbased(jitdata *jd)
 
 	/* allocate parameter descriptors if necessary */
 
-	descriptor_params_from_paramtypes(state.m->parseddesc, state.m->flags);
+	state.m->parseddesc->params_from_paramtypes(state.m->flags);
 
 	/* allocate the stack buffers */
 
@@ -1033,4 +1033,3 @@ static void typecheck_stackbased_show_state(verifier_state *state,
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */
-

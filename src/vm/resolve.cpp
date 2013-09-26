@@ -22,6 +22,7 @@
 
 */
 
+
 #include "vm/resolve.hpp"
 #include <assert.h>                     // for assert
 #include <stdint.h>                     // for int32_t
@@ -51,7 +52,6 @@
 #include "vm/types.hpp"                 // for s4
 
 struct jitdata;
-
 
 
 /******************************************************************************/
@@ -2018,7 +2018,7 @@ resolve_result_t resolve_method_lazy(methodinfo *refmethod,
 
 	/* have the method params already been parsed? no, do it. */
 
-	descriptor_params_from_paramtypes(mi->parseddesc, mi->flags);
+	mi->parseddesc->params_from_paramtypes(mi->flags);
 
 	/* cache the result of the resolution */
 
@@ -2030,27 +2030,27 @@ resolve_result_t resolve_method_lazy(methodinfo *refmethod,
 }
 
 /* resolve_method **************************************************************
- 
+
    Resolve an unresolved method reference
-  
+
    IN:
        ref..............struct containing the reference
        mode.............mode of resolution:
                             resolveLazy...only resolve if it does not
                                           require loading classes
                             resolveEager..load classes if necessary
-  
+
    OUT:
        *result..........set to the result of resolution, or to NULL if
                         the reference has not been resolved
                         In the case of an exception, *result is
                         guaranteed to be set to NULL.
-  
+
    RETURN VALUE:
-       true.............everything ok 
+       true.............everything ok
                         (*result may still be NULL for resolveLazy)
        false............an exception has been thrown
-   
+
 *******************************************************************************/
 
 bool resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
@@ -2135,7 +2135,7 @@ bool resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **re
 
 	/* have the method params already been parsed? no, do it. */
 
-	descriptor_params_from_paramtypes(mi->parseddesc, mi->flags);
+	mi->parseddesc->params_from_paramtypes(mi->flags);
 
 	/* cache the resolution */
 
@@ -2145,7 +2145,6 @@ resolved_the_method:
 
 #ifdef ENABLE_VERIFIER
 	if (opt_verify) {
-
 		resolve_result_t checkresult = resolve_method_verifier_checks(
 				ref->referermethod,
 				ref->methodref,
@@ -2621,9 +2620,7 @@ unresolved_method * resolve_create_unresolved_method(classinfo *referer,
 #endif
 
 	/* allocate params if necessary */
-	descriptor_params_from_paramtypes(
-		methodref->parseddesc.md,
-		(invokestatic) ? ACC_STATIC : ACC_NONE);
+	methodref->parseddesc.md->params_from_paramtypes(invokestatic ? ACC_STATIC : ACC_NONE);
 
 	/* create the data structure */
 	ref = NEW(unresolved_method);
@@ -2639,9 +2636,9 @@ unresolved_method * resolve_create_unresolved_method(classinfo *referer,
 
 
 /* resolve_constrain_unresolved_method_instance ********************************
- 
+
    Record subtype constraints for the instance argument of a method call.
-  
+
    IN:
        ref..............the unresolved_method structure of the call
        referer..........the class containing the reference

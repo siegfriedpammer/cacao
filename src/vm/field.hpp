@@ -27,18 +27,19 @@
 #define _FIELD_HPP
 
 #include "config.h"
-#include "vm/global.hpp"
-#include "vm/types.hpp"
-#include "vm/utf8.hpp"
 
-struct classinfo;
+#include <stdint.h>                     // for int32_t
+
+#include "vm/global.hpp"                // for imm_union, etc
+#include "vm/types.hpp"                 // for s4
+#include "vm/utf8.hpp"                  // for Utf8String
+
 struct classbuffer;
+struct classinfo;
 struct constant_FMIref;
-struct descriptor_pool;
 struct typedesc;
 
 namespace cacao { struct DescriptorPool; }
-
 
 /* fieldinfo ******************************************************************/
 
@@ -66,7 +67,7 @@ struct fieldinfo {	      /* field of a class                                 */
 
 /* function prototypes ********************************************************/
 
-bool       field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool);
+bool       field_load(classbuffer *cb, fieldinfo *f, cacao::DescriptorPool& descpool);
 classinfo *field_get_type(fieldinfo *f);
 void       field_free(fieldinfo *f);
 

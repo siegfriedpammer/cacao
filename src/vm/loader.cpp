@@ -24,55 +24,63 @@
 */
 
 
+#include "vm/loader.hpp"
 #include "config.h"
 
-#include <cstdlib>
-#include <cstring>
 #include <cassert>
+#include <cstdlib>
+#include <cstddef>                      // for size_t
+#include <cstdio>                       // for printf, fprintf
+#include <cstring>                      // for memset, strstr, strlen, etc
+#include <list>                         // for _List_iterator, etc
 
-#include "mm/dumpmemory.hpp"
-#include "mm/memory.hpp"
+#include "mm/dumpmemory.hpp"            // for DumpMemory, DumpMemoryArea
+#include "mm/gc.hpp"                    // for heap_hashcode
 
 #include "native/llni.hpp"
 
-#include "threads/mutex.hpp"
+#include "threads/mutex.hpp"            // for Mutex
 
-#include "toolbox/hashtable.hpp"
-#include "toolbox/list.hpp"
-#include "toolbox/logging.hpp"
+#include "toolbox/hashtable.hpp"        // for hashtable, hashtable_create
+#include "toolbox/list.hpp"             // for DumpList
+#include "toolbox/logging.hpp"          // for log_message_class, etc
 
-#include "vm/jit/builtin.hpp"
-#include "vm/classcache.hpp"
+#include "vm/class.hpp"                 // for classinfo, etc
+#include "vm/classcache.hpp"            // for classcache_store, etc
+#include "vm/descriptor.hpp"            // for DescriptorPool, methoddesc, etc
 #include "vm/exceptions.hpp"
 #include "vm/descriptor.hpp"
-#include "vm/field.hpp"
+#include "vm/field.hpp"                 // for fieldinfo, field_load
 #include "vm/global.hpp"
-#include "vm/globals.hpp"
-#include "vm/hook.hpp"
-#include "vm/javaobjects.hpp"
+#include "vm/globals.hpp"               // for class_java_io_Serializable, etc
+#include "vm/hook.hpp"                  // for class_loaded
+#include "vm/javaobjects.hpp"           // for java_lang_ClassLoader
 #include "vm/linker.hpp"
-#include "vm/loader.hpp"
-#include "vm/method.hpp"
-#include "vm/options.hpp"
-#include "vm/package.hpp"
-#include "vm/primitive.hpp"
+#include "vm/method.hpp"                // for methodinfo, etc
+#include "vm/options.hpp"               // for opt_verify, loadverbose, etc
+#include "vm/package.hpp"               // for Package
+#include "vm/primitive.hpp"             // for Primitive
+#include "vm/references.hpp"            // for constant_FMIref, etc
 #include "vm/resolve.hpp"
 #include "vm/rt-timing.hpp"
-#include "vm/string.hpp"
-#include "vm/suck.hpp"
 #include "vm/statistics.hpp"
-#include "vm/types.hpp"
-#include "vm/vm.hpp"
-#include "vm/zip.hpp"
+#include "vm/string.hpp"                // for JavaString
+#include "vm/suck.hpp"                  // for suck_check_classbuffer_size, etc
+#include "vm/types.hpp"                 // for u2, u1, u4, s4
+#include "vm/vm.hpp"                    // for VM, vm_call_method
+#include "vm/zip.hpp"                   // for hashtable_zipfile_entry
+
+#include "vm/jit/builtin.hpp"
+#include "vm/jit/stubs.hpp"             // for NativeStub
 
 #if defined(ENABLE_JAVASE)
 # include "vm/annotation.hpp"
 # include "vm/stackmap.hpp"
 #endif
 
-#include "vm/jit/stubs.hpp"
-
 using namespace cacao;
+
+struct classinfo;
 
 
 STAT_REGISTER_VAR(int,count_class_loads,0,"class loads","Number of class loads")
@@ -160,7 +168,7 @@ void loader_preinit(void)
          exception functions themselves.
 
 *******************************************************************************/
- 
+
 void loader_init(void)
 {
 	TRACESUBSYSTEMINITIALIZATION("loader_init");
@@ -478,7 +486,7 @@ void loader_load_all_classes(void)
 /* loader_skip_attribute_body **************************************************
 
    Skips an attribute the attribute_name_index has already been read.
-	
+
    attribute_info {
        u2 attribute_name_index;
        u4 attribute_length;
@@ -513,9 +521,9 @@ bool loader_skip_attribute_body(classbuffer *cb)
 
 *******************************************************************************/
 
-/* The following structures are used to save information which cannot be 
-   processed during the first pass. After the complete constantpool has 
-   been traversed the references can be resolved (only in specific order). */
+// The following structures are used to save information which cannot be
+// processed during the first pass. After the complete constantpool has
+// been traversed the references can be resolved (only in specific order).
 
 /* CONSTANT_Class entries */
 typedef struct forward_class {
@@ -544,7 +552,7 @@ typedef struct forward_fieldmethint {
 	u2 nameandtype_index;
 } forward_fieldmethint;
 
-static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
+static bool load_constantpool(classbuffer *cb, DescriptorPool& descpool)
 {
 	classinfo *c;
 	u4 idx;
@@ -590,8 +598,8 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 
 
 	/******* first pass *******/
-	/* entries which cannot be resolved now are written into 
-	   temporary structures and traversed again later        */
+	// entries which cannot be resolved now are written into
+	// temporary structures and traversed again later
 
 	idx = 1;
 	while (idx < cpcount) {
@@ -773,7 +781,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			idx++;
 			break;
 		}
-										
+
 		default:
 			exceptions_throw_classformaterror(c, "Illegal constant pool type");
 			return false;
@@ -799,7 +807,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 
 		/* add all class references to the descriptor_pool */
 
-		if (!descriptor_pool_add_class(descpool, name))
+		if (!descpool.add_class(name))
 			return false;
 
 		cptags[it->thisindex] = CONSTANT_Class;
@@ -882,8 +890,20 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 
 		/* add all descriptors in {Field,Method}ref to the descriptor_pool */
 
-		if (!descriptor_pool_add(descpool, nat->descriptor, NULL))
-			return false;
+		switch (it->tag) {
+		case CONSTANT_Fieldref:
+			if (!descpool.add_field(nat->descriptor))
+				return false;
+			break;
+		case CONSTANT_Methodref:
+		case CONSTANT_InterfaceMethodref:
+			if (descpool.add_method(nat->descriptor) == -1)
+				return false;
+			break;
+		default:
+			assert(false);
+			break;
+		}
 
 		/* the classref is created later */
 
@@ -1016,7 +1036,7 @@ RT_REGISTER_GROUP_TIMER(clcache_timer,"classloader","store in classcache",cl_gro
    IN:
        name.............the classname
 	   cl...............user-defined class loader
-	   
+
    RETURN VALUE:
        the loaded class, or
 	   NULL if an exception has been thrown
@@ -1193,7 +1213,7 @@ classinfo *load_class_from_classloader(Utf8String name, classloader_t *cl)
 		}
 
 		return c;
-	} 
+	}
 
 	c = load_class_bootstrap(name);
 
@@ -1212,7 +1232,7 @@ RT_REGISTER_GROUP_TIMER(load_timer,"boot","load from class buffer",boot_group)
 RT_REGISTER_GROUP_TIMER(cache_timer,"boot","store in classcache",boot_group)
 
 /* load_class_bootstrap ********************************************************
-	
+
    Load the class with the given name using the bootstrap class loader.
 
    IN:
@@ -1293,13 +1313,13 @@ classinfo *load_class_bootstrap(Utf8String name)
 	}
 
 	RT_TIMER_STOPSTART(suck_timer,load_timer);
-	
+
 	/* load the class from the buffer */
 
 	r = load_class_from_classbuffer(cb);
 
 	RT_TIMER_STOPSTART(load_timer,cache_timer);
-	
+
 	if (r == NULL) {
 		/* the class could not be loaded, free the classinfo struct */
 
@@ -1325,7 +1345,7 @@ classinfo *load_class_bootstrap(Utf8String name)
 	}
 
 	RT_TIMER_STOP(cache_timer);
-	
+
 	/* SUN compatible -verbose:class output */
 
 	if (opt_verboseclass && r) {
@@ -1353,31 +1373,23 @@ classinfo *load_class_bootstrap(Utf8String name)
 
 
 /* load_class_from_classbuffer_intern ******************************************
-	
+
    Loads a class from a classbuffer into a given classinfo structure.
    Super-classes are also loaded at this point and some verfication
    checks are done.
 
    SYNCHRONIZATION:
        This function is NOT synchronized!
-   
+
 *******************************************************************************/
 
 static bool load_class_from_classbuffer_intern(classbuffer *cb)
 {
-	classinfo          *c;
 	classinfo          *tc;
 	Utf8String          name;
 	Utf8String          supername;
 	Utf8String         *interfacesnames;
 	int16_t             index;
-
-	u4 ma, mi;
-	descriptor_pool *descpool;
-#if defined(ENABLE_STATISTICS)
-	u4 classrefsize;
-	u4 descsize;
-#endif
 
 	// Create new dump memory area.
 	DumpMemoryArea dma;
@@ -1386,7 +1398,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	/* Get the classbuffer's class. */
 
-	c = cb->clazz;
+	classinfo *c = cb->clazz;
 
 	if (!suck_check_classbuffer_size(cb, 4 + 2 + 2))
 		return false;
@@ -1400,8 +1412,8 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	/* check version */
 
-	mi = suck_u2(cb);
-	ma = suck_u2(cb);
+	u4 mi = suck_u2(cb);
+	u4 ma = suck_u2(cb);
 
 	if (!(ma < MAJOR_VERSION || (ma == MAJOR_VERSION && mi <= MINOR_VERSION))) {
 		exceptions_throw_unsupportedclassversionerror(c, ma, mi);
@@ -1412,7 +1424,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	/* create a new descriptor pool */
 
-	descpool = descriptor_pool_new(c);
+	DescriptorPool descpool(c);
 
 	RT_TIMER_STOPSTART(ndpool_timer,cpool_timer);
 
@@ -1583,7 +1595,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	c->methods      = MNEW(methodinfo, c->methodscount);
 
 	MZERO(c->methods, methodinfo, c->methodscount);
-	
+
 	for (int32_t i = 0; i < c->methodscount; i++) {
 		if (!method_load(cb, &(c->methods[i]), descpool))
 			return false;
@@ -1593,19 +1605,20 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	/* create the class reference table */
 
-	c->classrefs =
-		descriptor_pool_create_classrefs(descpool, &(c->classrefcount));
+	c->classrefs = descpool.create_classrefs(&(c->classrefcount));
 
 	RT_TIMER_STOPSTART(classrefs_timer,descs_timer);
 
 	/* allocate space for the parsed descriptors */
 
-	descriptor_pool_alloc_parsed_descriptors(descpool);
+	descpool.alloc_parsed_descriptors();
 
 #if defined(ENABLE_STATISTICS)
-	descriptor_pool_get_sizes(descpool, &classrefsize, &descsize);
-	STATISTICS(count_classref_len += classrefsize);
-	STATISTICS(count_parsed_desc_len += descsize);
+	size_t classrefsize, descsize;
+
+	descpool.get_sizes(&classrefsize, &descsize);
+	count_classref_len    += classrefsize;
+	count_parsed_desc_len += descsize;
 #endif
 
 	RT_TIMER_STOPSTART(descs_timer,setrefs_timer);
@@ -1615,14 +1628,14 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	for (int32_t i = 0; i < c->cpcount; i++) {
 		if (c->cptags[i] == CONSTANT_Class) {
 			Utf8String name = (utf *) c->cpinfos[i];
-			c->cpinfos[i] = descriptor_pool_lookup_classref(descpool, name);
+			c->cpinfos[i] = descpool.lookup_classref(name);
 		}
 	}
 
 	/* Resolve the super class. */
 
 	if (supername != NULL) {
-		constant_classref *cr = descriptor_pool_lookup_classref(descpool, supername);
+		constant_classref *cr = descpool.lookup_classref(supername);
 
 		if (cr == NULL)
 			return false;
@@ -1659,7 +1672,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	for (int32_t i = 0; i < c->interfacescount; i++) {
 		Utf8String         u  = interfacesnames[i];
-		constant_classref *cr = descriptor_pool_lookup_classref(descpool, u);
+		constant_classref *cr = descpool.lookup_classref(u);
 
 		if (cr == NULL)
 			return false;
@@ -1695,9 +1708,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	/* Parse the field descriptors. */
 
 	for (int32_t i = 0; i < c->fieldscount; i++) {
-		c->fields[i].parseddesc =
-			descriptor_pool_parse_field_descriptor(descpool,
-												   c->fields[i].descriptor);
+		c->fields[i].parseddesc = descpool.parse_field_descriptor(c->fields[i].descriptor);
 		if (!c->fields[i].parseddesc)
 			return false;
 	}
@@ -1708,9 +1719,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	for (int32_t i = 0; i < c->methodscount; i++) {
 		methodinfo *m = &c->methods[i];
-		m->parseddesc =
-			descriptor_pool_parse_method_descriptor(descpool, m->descriptor,
-													m->flags, class_get_self_classref(m->clazz));
+		m->parseddesc = descpool.parse_method_descriptor(m->descriptor, m->flags, class_get_self_classref(m->clazz));
 		if (!m->parseddesc)
 			return false;
 
@@ -1719,8 +1728,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 				continue;
 
 			if ((m->rawexceptiontable[j].catchtype.ref =
-				 descriptor_pool_lookup_classref(descpool,
-						(utf *) m->rawexceptiontable[j].catchtype.any)) == NULL)
+				descpool.lookup_classref((utf *) m->rawexceptiontable[j].catchtype.any)) == NULL)
 				return false;
 		}
 
@@ -1728,8 +1736,8 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 			if (!m->thrownexceptions[j].any)
 				continue;
 
-			if ((m->thrownexceptions[j].ref = descriptor_pool_lookup_classref(descpool,
-						(utf *) m->thrownexceptions[j].any)) == NULL)
+			if ((m->thrownexceptions[j].ref =
+				descpool.lookup_classref((utf *) m->thrownexceptions[j].any)) == NULL)
 				return false;
 		}
 	}
@@ -1745,9 +1753,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		switch (c->cptags[i]) {
 		case CONSTANT_Fieldref:
 			fmi = (constant_FMIref *) c->cpinfos[i];
-			fmi->parseddesc.fd =
-				descriptor_pool_parse_field_descriptor(descpool,
-													   fmi->descriptor);
+			fmi->parseddesc.fd = descpool.parse_field_descriptor(fmi->descriptor);
 			if (!fmi->parseddesc.fd)
 				return false;
 
@@ -1767,11 +1773,9 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 														CONSTANT_Class);
 			if (!fmi->p.classref)
 				return false;
-			fmi->parseddesc.md =
-				descriptor_pool_parse_method_descriptor(descpool,
-														fmi->descriptor,
-														ACC_UNDEF,
-														fmi->p.classref);
+			fmi->parseddesc.md = descpool.parse_method_descriptor(fmi->descriptor,
+			                                                      ACC_UNDEF,
+			                                                      fmi->p.classref);
 			if (!fmi->parseddesc.md)
 				return false;
 			break;
@@ -1901,7 +1905,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
    SYNCHRONIZATION:
        This function is NOT synchronized!
-   
+
 *******************************************************************************/
 
 classinfo *load_class_from_classbuffer(classbuffer *cb)
@@ -1965,7 +1969,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	RETURN VALUE:
 	    c....................the array class C has been loaded
-		other classinfo......the array class was found in the class cache, 
+		other classinfo......the array class was found in the class cache,
 		                     C has been freed
 	    NULL.................an exception has been thrown
 
@@ -2096,8 +2100,8 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 	clonedesc->returntype.type     = TYPE_ADR;
 	clonedesc->returntype.classref = classrefs + 1;
 	clonedesc->returntype.arraydim = 0;
-	/* initialize params to "empty", add real params below in
-	   descriptor_params_from_paramtypes */
+	// initialize params to "empty", add real params below in
+	// params_from_paramtypes
 	clonedesc->paramcount = 0;
 	clonedesc->paramslots = 0;
 	clonedesc->paramtypes[0].classref = classrefs + 0;
@@ -2121,7 +2125,7 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 
 	/* parse the descriptor to get the register allocation */
 
-	descriptor_params_from_paramtypes(clonedesc, clone->flags);
+	clonedesc->params_from_paramtypes(clone->flags);
 
 	clone->code = NativeStub::generate(clone, BUILTIN_clone);
 
@@ -2143,7 +2147,7 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 /* loader_close ****************************************************************
 
    Frees all resources.
-	
+
 *******************************************************************************/
 
 void loader_close(void)

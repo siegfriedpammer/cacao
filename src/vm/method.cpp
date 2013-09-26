@@ -23,42 +23,46 @@
 */
 
 
-#include "config.h"
+#include "vm/method.hpp"
+#include "config.h"                     // for ENABLE_ANNOTATIONS, etc
 
-#include <assert.h>
-#include <stdint.h>
-#include <stdio.h>
-
-#include "vm/types.hpp"
+#include <cassert>                      // for assert
+#include <cstdio>                       // for printf
+#include <stdint.h>                     // for int32_t
 
 #include "mm/memory.hpp"
 
 #include "native/llni.hpp"
 
-#include "threads/mutex.hpp"
+#include "threads/mutex.hpp"            // for Mutex
 
-#include "vm/array.hpp"
-#include "vm/breakpoint.hpp"
-#include "vm/jit/builtin.hpp"
-#include "vm/class.hpp"
+#include "vm/annotation.hpp"
+#include "vm/array.hpp"                 // for ObjectArray, ClassArray
+#include "vm/breakpoint.hpp"            // for BreakpointTable
+#include "vm/class.hpp"                 // for classinfo, etc
 #include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
-#include "vm/global.hpp"
+#include "vm/global.hpp"                // for java_handle_bytearray_t, etc
 #include "vm/globals.hpp"
 #include "vm/linker.hpp"
-#include "vm/loader.hpp"
-#include "vm/method.hpp"
-#include "vm/options.hpp"
-#include "vm/resolve.hpp"
-#include "vm/suck.hpp"
-#include "vm/utf8.hpp"
-#include "vm/vm.hpp"
+#include "vm/loader.hpp"                // for loader_skip_attribute_body, etc
+#include "vm/options.hpp"               // for opt_debugcolor, opt_verify, etc
+#include "vm/references.hpp"            // for classref_or_classinfo, etc
+#include "vm/resolve.hpp"               // for resolve_class_from_typedesc, etc
 #include "vm/stackmap.hpp"
 #include "vm/statistics.hpp"
+#include "vm/suck.hpp"                  // for suck_u2, etc
+#include "vm/types.hpp"                 // for s4, u2, u1, u4
+#include "vm/utf8.hpp"                  // for Utf8String, etc
+#include "vm/vftbl.hpp"                 // for vftbl_t
+#include "vm/vm.hpp"                    // for vm_abort
 
-#include "vm/jit/code.hpp"
+#include "vm/jit/builtin.hpp"           // for builtintable_entry
+#include "vm/jit/code.hpp"              // for code_free_code_of_method, etc
 #include "vm/jit/methodheader.hpp"
-#include "vm/jit/stubs.hpp"
+#include "vm/jit/stubs.hpp"             // for CompilerStub, NativeStub
+
+using namespace cacao;
 
 
 #if !defined(NDEBUG) && defined(ENABLE_INLINING)
@@ -155,7 +159,7 @@ void method_init(void)
 
 *******************************************************************************/
 
-bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
+bool method_load(classbuffer *cb, methodinfo *m, DescriptorPool& descpool)
 {
 	classinfo *c;
 	int argcount;
@@ -207,7 +211,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 
 	m->descriptor = u;
 
-	if (!descriptor_pool_add(descpool, u, &argcount))
+	if ((argcount = descpool.add_method(u)) == -1)
 		return false;
 
 #ifdef ENABLE_VERIFIER
@@ -743,10 +747,10 @@ int32_t method_get_parametercount(methodinfo *m)
 	int32_t     paramcount = 0; /* the parameter count of m */
 
 	md = m->parseddesc;
-	
+
 	/* is the descriptor fully parsed? */
 
-	descriptor_params_from_paramtypes(md, m->flags);
+	md->params_from_paramtypes(m->flags);
 
 	paramcount = md->paramcount;
 
@@ -781,7 +785,7 @@ java_handle_objectarray_t *method_get_parametertypearray(methodinfo *m)
 
 	/* is the descriptor fully parsed? */
 
-	descriptor_params_from_paramtypes(md, m->flags);
+	md->params_from_paramtypes(m->flags);
 
 	paramtypes = md->paramtypes;
 	paramcount = md->paramcount;
@@ -1217,7 +1221,7 @@ void method_println(methodinfo *m)
 {
 	if (opt_debugcolor) printf("\033[31m");	/* red */
 	method_print(m);
-	if (opt_debugcolor) printf("\033[m");	
+	if (opt_debugcolor) printf("\033[m");
 	printf("\n");
 }
 #endif /* !defined(NDEBUG) */

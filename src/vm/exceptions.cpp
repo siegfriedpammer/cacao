@@ -714,9 +714,17 @@ void exceptions_throw_classformaterror(classinfo *c, const char *message, ...)
 
 	/* throw exception */
 
-	exceptions_throw_utf_utf(utf8::java_lang_ClassFormatError, buf.utf8_str());
+	exceptions_throw_classformaterror(c, buf.utf8_str());
 }
 
+void exceptions_throw_classformaterror(classinfo *c, Utf8String message)
+{
+	/* throw exception */
+
+	printf("throw new ClassFormatError(\"%s\")\n", message.begin());
+
+	exceptions_throw_utf_utf(utf8::java_lang_ClassFormatError, message);
+}
 
 /* exceptions_throw_classnotfoundexception *************************************
 
