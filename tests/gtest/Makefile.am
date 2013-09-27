@@ -42,10 +42,12 @@ SUBDIRS = .
 check_LIBRARIES = libgtest_main.a
 
 # add gtest_main
-LDADD=libgtest_main.a
+LDADD=libgtest_main.a \
+	$(top_builddir)/src/cacao/libjvm.la
 
 # test cases
-TESTS = sample
+TESTS = sample \
+	logging_test
 
 check_PROGRAMS = $(TESTS)
 
