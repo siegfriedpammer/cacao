@@ -694,8 +694,8 @@ void CondJumpInst::link(CodeFragment &CF) const {
 
 OStream& CondJumpInst::print(OStream &OS) const {
 	return OS << "[" << setz(4) << get_id() << "] "
-		<< get_name() << "-> " << *target
-		<< " (else " << **(++current->self_iterator()) << ")";
+		<< get_name() << "-> " << *(successors.front())
+		<< " (else " << *(successors.back()) << ")";
 }
 void IMulInst::emit(CodeMemory* CM) const {
 	X86_64Register *src_reg = cast_to<X86_64Register>(operands[1].op);
@@ -811,7 +811,7 @@ void JumpInst::link(CodeFragment &CF) const {
 
 OStream& JumpInst::print(OStream &OS) const {
 	return OS << "[" << setz(4) << get_id() << "] "
-		<< get_name() << "-> " << *target;
+		<< get_name() << "-> " << *(successors.front());
 }
 
 void IndirectJumpInst::emit(CodeMemory* CM) const {
@@ -826,7 +826,7 @@ void IndirectJumpInst::emit(CodeMemory* CM) const {
 OStream& IndirectJumpInst::print(OStream &OS) const {
 	OS << "[" << setz(4) << get_id() << "] "
 		<< get_name() << "-> " << operands[0].op << " targets: ";
-	print_ptr_container(OS,begin(),end());
+	print_ptr_container(OS,successor_begin(),successor_end());
 	return OS;
 }
 

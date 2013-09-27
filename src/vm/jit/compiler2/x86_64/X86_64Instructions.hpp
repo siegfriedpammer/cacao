@@ -356,20 +356,12 @@ public:
 class CondJumpInst : public X86_64Instruction {
 private:
 	Cond::COND cond;
-	/**
-	 * The `then` basic block (i.e. the jump target)
-	 */
-	MachineBasicBlock *target;
-	/**
-	 * This stores a pointer to the current basic block (i.e. the basic block
-	 * that is terminated by this instruction. It is used to get the the
-	 * `else` basic block which is the successor of current.
-	 */
-	MachineBasicBlock *current;
 public:
 	CondJumpInst(Cond::COND cond, MachineBasicBlock *target, MachineBasicBlock *current)
 			: X86_64Instruction("X86_64CondJumpInst", &NoOperand, 0),
-			  cond(cond), target(target), current(current) {
+			  cond(cond) {
+		successors.push_back(SuccessorProxy(target,SuccessorProxy::Explicit()));
+		successors.push_back(SuccessorProxy(current,SuccessorProxy::Implicit()));
 	}
 	virtual bool is_jump() const {
 		return true;
@@ -378,7 +370,7 @@ public:
 	virtual void link(CodeFragment &CF) const;
 	virtual OStream& print(OStream &OS) const;
 	MachineBasicBlock* get_MachineBasicBlock() const {
-		return target;
+		return successors.front();
 	}
 };
 
@@ -398,6 +390,7 @@ public:
 	RetInst(OperandSize op_size)
 			: GPInstruction("X86_64RetInst", &NoOperand, op_size, 0) {
 	}
+	virtual bool is_end() const { return true; }
 	virtual void emit(CodeMemory* CM) const;
 };
 
@@ -452,11 +445,10 @@ public:
 };
 
 class JumpInst : public MachineJumpInst {
-private:
-	MachineBasicBlock *target;
 public:
-	JumpInst(MachineBasicBlock *target) : MachineJumpInst("X86_64JumpInst"),
-		target(target) {}
+	JumpInst(MachineBasicBlock *target) : MachineJumpInst("X86_64JumpInst") {
+		successors.push_back(SuccessorProxy(target,SuccessorProxy::Explicit()));
+	}
 	virtual bool is_jump() const {
 		return true;
 	}
@@ -464,16 +456,10 @@ public:
 	virtual void link(CodeFragment &CF) const;
 	virtual OStream& print(OStream &OS) const;
 	MachineBasicBlock* get_MachineBasicBlock() const {
-		return target;
+		return successors.front();
 	}
 };
 class IndirectJumpInst : public X86_64Instruction {
-public:
-	typedef std::list<MachineBasicBlock*> TargetListTy;
-	typedef TargetListTy::const_iterator target_const_iterator;
-private:
-	 /// List of possible targets.
-	TargetListTy targets;
 public:
 	IndirectJumpInst(const SrcOp &src)
 			: X86_64Instruction("X86_64IndirectJumpInst", &NoOperand, 1) {
@@ -485,10 +471,8 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 	virtual OStream& print(OStream &OS) const;
 	void add_target(MachineBasicBlock *MBB) {
-		targets.push_back(MBB);
+		successors.push_back(SuccessorProxy(MBB,SuccessorProxy::Explicit()));
 	}
-	target_const_iterator begin() const { return targets.begin(); }
-	target_const_iterator end()   const { return targets.end(); }
 };
 // Double & Float operations
 /**
