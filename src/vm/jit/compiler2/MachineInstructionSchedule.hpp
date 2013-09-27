@@ -50,6 +50,9 @@ class MBBIterator {
 public:
 	typedef iterator::reference reference;
 	typedef iterator::pointer pointer;
+	typedef iterator::iterator_category iterator_category;
+	typedef iterator::value_type value_type;
+	typedef iterator::difference_type difference_type;
 
 	MBBIterator(MachineInstructionSchedule *parent, const iterator &it)
 		: parent(parent), it(it) {}
@@ -102,6 +105,9 @@ class const_MBBIterator {
 public:
 	typedef const_iterator::reference reference;
 	typedef const_iterator::pointer pointer;
+	typedef const_iterator::iterator_category iterator_category;
+	typedef const_iterator::value_type value_type;
+	typedef const_iterator::difference_type difference_type;
 
 	const_MBBIterator(const MachineInstructionSchedule *parent,
 		const const_iterator &it) : parent(parent), it(it) {}
@@ -159,6 +165,8 @@ class MachineInstructionSchedule {
 public:
 	typedef MBBIterator iterator;
 	typedef const_MBBIterator const_iterator;
+	typedef std::reverse_iterator<iterator> reverse_iterator;
+	typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
 	/// construct an empty MachineInstructionSchedule
 	MachineInstructionSchedule() {};
 	/// returns the number of elements
@@ -179,6 +187,15 @@ public:
 	const_iterator begin() const;
 	/// returns an const iterator to the end
 	const_iterator end() const;
+
+	/// returns an reverse_iterator to the beginning
+	reverse_iterator rbegin();
+	/// returns an reverse_iterator to the end
+	reverse_iterator rend();
+	/// returns an const reverse_iterator to the beginning
+	const_reverse_iterator rbegin() const;
+	/// returns an const reverse_iterator to the end
+	const_reverse_iterator rend() const;
 private:
 	ordered_list<MachineBasicBlock*> list;
 };
@@ -189,10 +206,12 @@ inline std::size_t MachineInstructionSchedule::size() const {
 inline MachineInstructionSchedule::iterator MachineInstructionSchedule::insert_after(iterator pos, const MBBBuilder& value) {
 	return insert_before(++pos,value);
 }
-inline MachineInstructionSchedule::iterator MachineInstructionSchedule::begin() {
+inline MachineInstructionSchedule::iterator
+MachineInstructionSchedule::begin() {
 	return iterator(this,list.begin());
 }
-inline MachineInstructionSchedule::iterator MachineInstructionSchedule::end() {
+inline MachineInstructionSchedule::iterator
+MachineInstructionSchedule::end() {
 	return iterator(this,list.end());
 }
 inline MachineInstructionSchedule::const_iterator
@@ -202,6 +221,23 @@ MachineInstructionSchedule::begin() const {
 inline MachineInstructionSchedule::const_iterator
 MachineInstructionSchedule::end() const {
 	return const_iterator(this,list.end());
+}
+
+inline MachineInstructionSchedule::reverse_iterator
+MachineInstructionSchedule::rbegin() {
+	return reverse_iterator(iterator(this,list.end()));
+}
+inline MachineInstructionSchedule::reverse_iterator
+MachineInstructionSchedule::rend() {
+	return reverse_iterator(iterator(this,list.begin()));
+}
+inline MachineInstructionSchedule::const_reverse_iterator
+MachineInstructionSchedule::rbegin() const {
+	return const_reverse_iterator(const_iterator(this,list.end()));
+}
+inline MachineInstructionSchedule::const_reverse_iterator
+MachineInstructionSchedule::rend() const {
+	return const_reverse_iterator(const_iterator(this,list.begin()));
 }
 
 } // end namespace compiler2

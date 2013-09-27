@@ -32,6 +32,49 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+
+namespace {
+
+template <class _Iterator>
+void check(_Iterator begin, _Iterator end, MachineBasicBlock *expect[],size_t size) {
+	size_t counter = 0;
+	for (; begin != end; ++begin) {
+		EXPECT_EQ(expect[counter++], *begin);
+	}
+	EXPECT_EQ(counter, size);
+}
+
+}
+
+TEST(MachineInstructionSchedule, test_reverse) {
+	MachineInstructionSchedule MIS;
+
+	MachineBasicBlock *BB1 = *MIS.push_back(MBBBuilder());
+	MachineBasicBlock *BB2 = *MIS.push_back(MBBBuilder());
+	MachineBasicBlock *BB3 = *MIS.push_back(MBBBuilder());
+	MachineBasicBlock *BB4 = *MIS.push_back(MBBBuilder());
+
+	EXPECT_EQ(MIS.size(), 4);
+
+	{
+		MachineBasicBlock *expect[] = {BB1, BB2, BB3, BB4};
+		check(MIS.begin(), MIS.end(), expect,4);
+	}
+	{
+		MachineBasicBlock *expect[] = {BB4, BB3, BB2, BB1};
+		check(MIS.rbegin(), MIS.rend(), expect,4);
+	}
+	const MachineInstructionSchedule &cMIS = MIS;
+	{
+		MachineBasicBlock *expect[] = {BB1, BB2, BB3, BB4};
+		check(cMIS.begin(), cMIS.end(), expect,4);
+	}
+	{
+		MachineBasicBlock *expect[] = {BB4, BB3, BB2, BB1};
+		check(cMIS.rbegin(), cMIS.rend(), expect,4);
+	}
+}
+
 #if 0
 /**
  * test the total ordering of MachineBasicBlock
