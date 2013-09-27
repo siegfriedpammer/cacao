@@ -26,16 +26,22 @@
 #ifndef UTF8_HPP_
 #define UTF8_HPP_ 1
 
-/* forward typedefs ***********************************************************/
+#include "config.h"                     // used in utf8.inc
 
-#include "config.h"
+#include <cstddef>                      // for size_t
+#include <cstdio>                       // for FILE
+#include <cstring>                      // for strlen
+#include <stdint.h>                     // for uint32_t, uint8_t
 
-#include <stdio.h>
-#include <string.h>
-
-#include "vm/types.hpp"
-
+namespace cacao { class OStream; }
 struct utf;
+
+/// forward declare input_iterator_tag here so we don't have to include <iterator>
+/// We try to keep the includes in utf8.hpp to a minimum since it is included in
+/// pretty much every file in cacao
+namespace std {
+	struct input_iterator_tag;
+}
 
 /* Utf8String ******************************************************************
 
@@ -44,7 +50,7 @@ struct utf;
 	A Utf8String always contains either a valid (possibly empty) UTF-8 string
 	or NULL.
 	You can check for NULL like you would with any normal pointer.
-	Invoking any method except operator utf*() on a NULL string leads to
+	Invoking any method except operator void*() or c_ptr() on a NULL string leads to
 	undefined behaviour.
 
 	Use a Utf8String like a pointer, i.e. always pass by value.
@@ -89,47 +95,62 @@ class Utf8String {
 		static Utf8String from_utf8_slash_to_dot(Utf8String);
 
 		// construct from a UTF-16 string with a given length
-		static Utf8String from_utf16(const u2*, size_t);
-		static Utf8String from_utf16_dot_to_slash(const u2*, size_t);
+		static Utf8String from_utf16(const uint16_t*, size_t);
+		static Utf8String from_utf16_dot_to_slash(const uint16_t*, size_t);
 
 		// constructs a Utf8String with a given content
 		// is only public for interop with legacy C code
 		// NOTE: does NOT perform any checks
-		Utf8String(utf *u) : _data((Utf*) u) {}
+		Utf8String(utf *u) : _data((Data*) u) {}
 
 		/*** ITERATION     ******************************************/
 
 		// iterator over the bytes in a string
-		typedef const char*    byte_iterator;
+		typedef const char* byte_iterator;
 
 		byte_iterator begin() const { return _data->text; }
 		byte_iterator end()   const { return begin() + size(); }
 
 		// iterator over UTF-16 codepoints in a string
-		class utf16_iterator {
-			public:
-				uint32_t operator*() const { return codepoint; }
+		struct utf16_iterator {
+			typedef std::input_iterator_tag iterator_category;
+			typedef std::ptrdiff_t          difference_type;
+			typedef uint16_t                value_type;
+			typedef const value_type*       pointer;
+			typedef const value_type&       reference;
 
-				void operator++();
+			uint16_t operator*();
 
-				operator void*() { return bytes == end ? this : 0; }
-			private:
-				utf16_iterator(byte_iterator,size_t);
+			void operator++() { current = next; }
 
-				uint32_t      codepoint;
-				byte_iterator bytes;
-				byte_iterator end;
+			bool operator!=(const utf16_iterator& it) {
+				return current != it.current;
+			}
+		private:
+			utf16_iterator(byte_iterator it) : current(it), next(it) {}
+
+			byte_iterator current, next;
 
 			friend class Utf8String;
 		};
 
-		utf16_iterator utf16_begin() const;
+		utf16_iterator utf16_begin() const { return utf16_iterator(begin()); }
+		utf16_iterator utf16_end()   const { return utf16_iterator(end());   }
 
 		/*** HASHING       ******************************************/
 
 		size_t hash() const { return _data->hash; }
 
 		/*** COMPARISONS   ******************************************/
+
+		/// check if utf-8 strings contains the same utf-16
+		/// codepoints as a utf-16 string
+		bool equals(const uint16_t *cs, size_t sz);
+
+		/// check if utf-8 strings contains same bytes as C string
+		bool equals(const char *cs) {
+			return strcmp(begin(), cs) == 0;
+		}
 
 		/*** ACCESSORS     ******************************************/
 
@@ -142,7 +163,7 @@ class Utf8String {
 		char operator[](size_t idx) const { return begin()[idx]; }
 
 		// get the number of bytes in string, excluding zero terminator.
-		size_t size() const { return _data->blength; }
+		size_t size() const { return _data->utf8_size; }
 
 		// get the number of utf16 codepoints in string
 		size_t utf16_size() const { return _data->utf16_size; }
@@ -150,7 +171,6 @@ class Utf8String {
 		// for checking against NULL,
 		// also allows interop with legacy C code
 		operator void*() const { return _data; }
-//		operator utf*() const { return (utf*) _data; }
 
 		utf* c_ptr() const { return (utf*) _data; }
 
@@ -166,10 +186,9 @@ class Utf8String {
 		static const size_t sizeof_utf;
 	private:
 		// MUST be a POD type
-		struct Utf {
+		struct Data {
 			size_t hash;       // cached hash of the string
-			size_t blength;    // text length in bytes
-				               // (does NOT include zero terminator)
+			size_t utf8_size;  // text length in bytes (does NOT include zero terminator)
 			size_t utf16_size; // number of utf16 codepoints in string
 
 			char   text[sizeof(void*)]; // string content
@@ -177,15 +196,21 @@ class Utf8String {
 				                        // aligned to pointer size
 		};
 
-		Utf *_data;
+		static inline Data *alloc(size_t hash,
+		                          size_t utf8_size,
+		                          size_t utf16_size);
 
-		static Utf8String alloc(size_t);
-		static void       free(Utf8String);
+		static void free(Utf8String u);
 
-		friend struct EagerStringBuilder;
-		friend struct LazyStringBuilder;
-		friend struct Utf8Eq;
+		Data *_data;
+
+		template<typename Iterator>
+		friend struct FromUtf8Builder;
+
+		template<typename Iterator>
+		friend struct FromUtf16Builder;
 };
+
 
 // ***** UTF-8 HELPER FUNCTIONS
 
@@ -194,7 +219,7 @@ namespace utf8 {
 	extern long num_codepoints(const char*, size_t);
 
 	// count how many bytes a utf-8 version would need
-	extern size_t num_bytes(const u2*, size_t);
+	extern size_t num_bytes(const uint16_t*, size_t);
 
 	// named constants for common utf8 strings
 	#define UTF8(NAME, STR) extern Utf8String NAME;

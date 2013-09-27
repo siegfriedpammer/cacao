@@ -23,11 +23,11 @@
 */
 
 #include "vm/utf8.hpp"
-#include "mm/memory.hpp"
-#include "toolbox/intern_table.hpp"
-#include "toolbox/logging.hpp"
-#include "toolbox/OStream.hpp"
-#include "toolbox/utf_utils.hpp"
+#include <iterator>
+#include "mm/memory.hpp"                // for mem_alloc, mem_free
+#include "toolbox/logging.hpp"          // for OStream
+#include "toolbox/intern_table.hpp"     // for InternTable
+#include "toolbox/utf_utils.hpp"        // for transform, Tag, etc
 #include "vm/options.hpp"
 #include "vm/statistics.hpp"
 
@@ -41,40 +41,66 @@ STAT_DECLARE_VAR(int,count_utf_len,0)
 //*****          GLOBAL UTF8-STRING INTERN TABLE                         *****//
 //****************************************************************************//
 
+// used to for tag dispatch
+struct utf8_tag  {};
+struct utf16_tag {};
+
 struct InternedUtf8String {
 	InternedUtf8String()             : string(0) {}
 	InternedUtf8String(Utf8String u) : string(u) {}
+
+	/// Interface to HashTable
 
 	bool is_empty()    const { return string == ((utf*) 0); }
 	bool is_occupied() const { return string != ((utf*) 0); }
 	bool is_deleted()  const { return false; }
 
-	size_t      size()  const { return string.size();  }
-	size_t      hash()  const { return string.hash();  }
-	const char* begin() const { return string.begin(); }
+	template<typename T>
+	void set_occupied(const T& t) { string = t.get_string(); }
+
+//	template<typename Iterator>
+//	bool operator==(const FromUtf16Builder<Iterator>& t) const;
 
 	template<typename T>
-	void set_occupied(T t) {
-		string = t.get_string();
+	bool operator==(const T& t) const {
+		return equal(t.hash(), t.size(), t.begin(), t.tag());
 	}
 
-	template<typename T>
-	bool operator==(T t) const {
-		return (size() == t.size()) &&
-		       (hash() == t.hash()) &&
-		       (memcmp(begin(), t.begin(), size()) == 0);
+	template<typename Iterator>
+	bool equal(size_t _hash, size_t _size, Iterator it, utf8_tag) const {
+		return hash() == _hash
+		    && size() == _size
+		    && std::equal(it, it + _size, begin());
 	}
+
+	template<typename Iterator>
+	bool equal(size_t _hash, size_t _size, Iterator it, utf16_tag) const {
+		return hash()       == _hash
+		    && utf16_size() == _size
+		    && std::equal(it, it + _size, utf16_begin());
+	}
+
+	/// used by operator==
+
+	utf8_tag tag() const { return utf8_tag(); }
+
+	size_t hash() const { return string.hash(); }
+	size_t size() const { return string.size(); }
+
+	size_t utf16_size() const { return string.utf16_size(); }
+
+	Utf8String::byte_iterator begin() const { return string.begin(); }
+	Utf8String::byte_iterator end()   const { return string.end();   }
+
+	Utf8String::utf16_iterator utf16_begin() const { return string.utf16_begin(); }
+	Utf8String::utf16_iterator utf16_end()   const { return string.utf16_end();   }
+
+	/// used by set_occupied
 
 	Utf8String get_string() const { return string; }
 private:
-	friend OStream& operator<<(OStream& os, InternedUtf8String j);
-
 	Utf8String string;
 };
-
-OStream& operator<<(OStream& os, InternedUtf8String j) {
-	return os << "InternedUtf8String(" << j.string << ")";
-}
 
 static InternTable<InternedUtf8String> intern_table;
 
@@ -87,15 +113,13 @@ void Utf8String::initialize(void)
 
 	assert(!is_initialized());
 
-	/* create utf8 intern table */
-
 	intern_table.initialize(HASHTABLE_UTF_SIZE);
 
 	STATISTICS(count_utf_len += sizeof(utf*) * HASHTABLE_UTF_SIZE);
 
-	/* create utf-symbols for pointer comparison of frequently used strings */
+	// create utf-symbols for pointer comparison of frequently used strings
 
-#define UTF8( NAME, STR ) utf8::NAME = Utf8String::from_utf8( STR );
+#define UTF8(NAME, STR) utf8::NAME = Utf8String::from_utf8(STR);
 #include "vm/utf8.inc"
 }
 
@@ -114,20 +138,22 @@ bool Utf8String::is_initialized(void)
 //*****          INTERNAL DATA REPRESENTATION                            *****//
 //****************************************************************************//
 
-// TODO: move definition of struct utf here
-
-Utf8String Utf8String::alloc(size_t sz) {
-	Utf* str = (Utf*) mem_alloc(offsetof(Utf,text) + sz + 1);
+/// allocate a Utf8String with given hash and size
+/// You still have to fill in the strings text!
+inline Utf8String::Data* Utf8String::alloc(size_t hash,
+		                                   size_t utf8_size,
+		                                   size_t utf16_size) {
+	Data* str = (Data*) mem_alloc(offsetof(Data,text) + utf8_size + 1);
 
 	STATISTICS(count_utf_new++);
 
-	str->blength = sz;
+	str->hash       = hash;
+	str->utf8_size  = utf8_size;
+	str->utf16_size = utf16_size;
 
-	return Utf8String((utf*) str);
+	return str;
 }
-void Utf8String::free(Utf8String u) {
-	mem_free(u._data, offsetof(Utf,text) + u.size() + 1);
-}
+
 
 //****************************************************************************//
 //*****          HASHING                                                 *****//
@@ -168,15 +194,6 @@ static inline size_t finish_hash(size_t hash)
 	return hash;
 }
 
-static inline size_t compute_hash(const char *cs, size_t sz) {
-	size_t hash = 0;
-
-	for (const char *end = cs + sz; cs != end; cs++) {
-		hash = update_hash(hash, *cs);
-	}
-
-	return finish_hash(hash);
-}
 
 //****************************************************************************//
 //*****          UTF-8 STRING                                            *****//
@@ -184,131 +201,158 @@ static inline size_t compute_hash(const char *cs, size_t sz) {
 
 // create & intern string
 
-struct StringBuilderBase : utf8::VisitorBase<Utf8String, utf8::ABORT_ON_ERROR> {
-	public:
-		typedef Utf8String ReturnType;
-
-		StringBuilderBase(size_t sz) : _hash(0), _codepoints(0) {}
-
-		void utf8 (uint8_t  c) { _hash = update_hash(_hash, c); }
-		void utf16(uint16_t c) { _codepoints++; }
-
-		void finish() {
-			_hash = finish_hash(_hash);
-		}
-	protected:
-		size_t _hash;
-		size_t _codepoints;
-};
-
-// Builds a new utf8 string, always allocates a new string.
-// If the string was already interned, throw it away
-struct EagerStringBuilder : StringBuilderBase {
-	public:
-		typedef Utf8String ReturnType;
-
-		EagerStringBuilder(size_t sz) : StringBuilderBase(sz) {
-			_out  = Utf8String::alloc(sz);
-			_text = (char*) _out.begin();
-		}
-
-		void utf8(uint8_t c) {
-			StringBuilderBase::utf8(c);
-
-			*_text++ = c;
-		}
-
-		using StringBuilderBase::utf16;
-
-		Utf8String finish() {
-			StringBuilderBase::finish();
-
-			*_text                 = '\0';
-			_out._data->utf16_size = _codepoints;
-			_out._data->hash       = _hash;
-
-			Utf8String intern = intern_table.intern(InternedUtf8String(_out)).get_string();
-
-			if (intern != _out) Utf8String::free(_out);
-
-			return intern;
-		}
-
-		Utf8String abort() {
-			Utf8String::free(_out);
-			return 0;
-		}
-	private:
-		Utf8String _out;
-		char      *_text;
-};
-
-
 // Builds a new utf8 string.
 // Only allocates a new string if the string was not already intern_table.
-struct LazyStringBuilder : StringBuilderBase {
-	public:
-		typedef Utf8String ReturnType;
+template<typename Iterator>
+struct FromUtf8Builder : utf8::VisitorBase<Utf8String, utf8::ABORT_ON_ERROR> {
+	FromUtf8Builder(Iterator text, size_t utf8_size)
+	 : _hash(0), _utf8_size(utf8_size), _utf16_size(0), _text(text) {}
 
-		size_t      size()  const { return sz;    }
-		size_t      hash()  const { return _hash; }
-		const char *begin() const { return src; }
+	/// interface to utf8::transform
 
-		LazyStringBuilder(const char *src, size_t sz)
-		 : StringBuilderBase(sz), src(src), sz(sz) {}
+	typedef Utf8String ReturnType;
 
-		using StringBuilderBase::utf8;
-		using StringBuilderBase::utf16;
+	void utf8 (uint8_t  c) {
+		_hash = update_hash(_hash, c);
+	}
 
-		Utf8String finish() {
-			StringBuilderBase::finish();
+	void utf16(uint16_t c) {
+		_utf16_size++;
+	}
 
-			return intern_table.intern(*this).get_string();
-		}
+	Utf8String finish() {
+		_hash = finish_hash(_hash);
 
-		// lazily construct an utf8-string
-		Utf8String get_string() const {
-			Utf8String str = Utf8String::alloc(sz);
+		return intern_table.intern(*this).get_string();
+	}
 
-			str._data->utf16_size = _codepoints;
-			str._data->hash       = _hash;
+	Utf8String abort() {
+		return 0;
+	}
 
-			char *text = (char*) str.begin();
+	/// interface to HashTable
 
-			memcpy(text, src, sz);
-			text[sz] = '\0';
+	size_t hash() const { return _hash; }
 
-			return str;
-		}
+	/// interface to InternTableEntry
 
-		Utf8String abort() { return 0; }
-	private:
-		const char *src;
-		size_t      sz;
+	utf8_tag tag() const { return utf8_tag(); }
+
+	Iterator begin() const { return _text; }
+
+	size_t size() const { return _utf8_size; }
+
+	Utf8String get_string() const {
+		Utf8String::Data *u  = Utf8String::alloc(_hash, _utf8_size, _utf16_size);
+		char             *cs = u->text;
+
+		cs  = std::copy(_text, _text + _utf8_size, cs);
+		*cs = '\0';
+
+		return (utf*) u;
+	}
+private:
+	size_t   _hash;
+	size_t   _utf8_size;
+	size_t   _utf16_size;
+	Iterator _text;
 };
 
+
+// Builds a new utf8 string from an utf16 string.
+// Only allocates a new string if the string was not already intern_table.
+template<typename Iterator>
+struct FromUtf16Builder : utf8::VisitorBase<Utf8String, utf8::ABORT_ON_ERROR> {
+	FromUtf16Builder(Iterator text, size_t utf16_size)
+	 : _hash(0), _utf8_size(0), _utf16_size(utf16_size), _text(text) {}
+
+	/// interface to utf8::transform
+
+	typedef Utf8String ReturnType;
+
+	void utf8 (uint8_t  c) {
+		_hash = update_hash(_hash, c);
+		_utf8_size++;
+	}
+
+	Utf8String finish() {
+		_hash = finish_hash(_hash);
+
+		return intern_table.intern(*this).get_string();
+	}
+
+	Utf8String abort() {
+		return 0;
+	}
+
+	/// interface to HashTable
+
+	size_t hash() const { return _hash; }
+
+	/// interface to InternTableEntry
+
+	utf16_tag tag() const { return utf16_tag(); }
+
+	Iterator begin() const { return _text; }
+
+	size_t size() const { return _utf16_size; }
+
+	Utf8String get_string() const {
+		Utf8String::Data *u  = Utf8String::alloc(_hash, _utf8_size, _utf16_size);
+		char             *cs = u->text;
+
+		utf16::encode(_text, _text + _utf16_size, cs);
+		cs[_utf8_size] = '\0';
+
+		return (utf*) u;
+	}
+private:
+	size_t   _hash;
+	size_t   _utf8_size;
+	size_t   _utf16_size;
+	Iterator _text;
+};
+
+
+template<typename Iterator>
+static inline Utf8String string_from_utf8(const char *cs, size_t size) {
+	Iterator begin = cs;
+	Iterator end   = cs + size;
+
+	return utf8::transform(begin, end, FromUtf8Builder<Iterator>(begin, size));
+}
+
+template<typename Iterator>
+static inline Utf8String string_from_utf16(const uint16_t *cs, size_t size) {
+	Iterator begin = cs;
+	Iterator end   = cs + size;
+
+	return utf16::transform(begin, end, FromUtf16Builder<Iterator>(begin, size));
+}
+
+
 Utf8String Utf8String::from_utf8(const char *cs, size_t sz) {
-	return utf8::transform(cs, cs + sz, LazyStringBuilder(cs, sz));
+	return string_from_utf8<const char*>(cs, sz);
 }
 
 Utf8String Utf8String::from_utf8_dot_to_slash(const char *cs, size_t sz) {
-	return utf8::transform(utf8::dot_to_slash(cs, cs + sz), EagerStringBuilder(sz));
+	return string_from_utf8<utf8::DotToSlash>(cs, sz);
 }
 
 Utf8String Utf8String::from_utf8_slash_to_dot(const char *cs, size_t sz) {
-	return utf8::transform(utf8::slash_to_dot(cs, cs + sz), EagerStringBuilder(sz));
+	return string_from_utf8<utf8::SlashToDot>(cs, sz);
 }
 
-Utf8String Utf8String::from_utf16(const u2 *cs, size_t sz) {
-	size_t blength = utf8::num_bytes(cs, sz);
-
-	return utf16::transform(cs, cs + sz, EagerStringBuilder(blength));
+Utf8String Utf8String::from_utf8_slash_to_dot(Utf8String u) {
+	return string_from_utf8<utf8::SlashToDot>(u.begin(), u.size());
 }
 
-Utf8String Utf8String::from_utf16_dot_to_slash(const u2 *cs, size_t sz) {
-	size_t blength = utf8::num_bytes(cs, sz);
+Utf8String Utf8String::from_utf16(const uint16_t *cs, size_t sz) {
+	return string_from_utf16<const uint16_t*>(cs, sz);
+}
 
-	return utf16::transform(utf16::dot_to_slash(cs, cs + sz), EagerStringBuilder(blength));
+Utf8String Utf8String::from_utf16_dot_to_slash(const uint16_t *cs, size_t sz) {
+	return string_from_utf16<utf16::DotToSlash>(cs, sz);
 }
 
 /* Utf8String::utf16_iterator **************************************************
@@ -317,24 +361,11 @@ Utf8String Utf8String::from_utf16_dot_to_slash(const u2 *cs, size_t sz) {
 
 *******************************************************************************/
 
-Utf8String::utf16_iterator::utf16_iterator(byte_iterator bs, size_t sz)
-: codepoint(0), bytes(bs), end(bs + sz) {
-	this->operator++();
-}
-
-void Utf8String::utf16_iterator::operator++()
+uint16_t Utf8String::utf16_iterator::operator*()
 {
-	if (bytes != end)
-		codepoint = utf8::decode_char(bytes);
-	else
-		codepoint = -1;
+	return utf8::decode_char(next);
 }
 
-Utf8String::utf16_iterator Utf8String::utf16_begin() const {
-	assert(_data);
-
-	return utf16_iterator(_data->text, _data->blength);
-}
 
 /* Utf8String::substring *******************************************************
 
@@ -362,12 +393,11 @@ bool Utf8String::is_valid_name() const {
 	Utf8String::byte_iterator it  = this->begin();
 	Utf8String::byte_iterator end = this->end();
 
-
 	for (; it != end; it++) {
 		unsigned char c = *it;
 
 		if (c < 0x20)
-			return false; // disallow control chars
+			return false; // disallow control characters
 		if (c == 0xc0 && ((unsigned char) it[1]) == 0x80)
 			return false; // disallow zero
 	}
@@ -394,18 +424,16 @@ bool Utf8String::is_valid_name() const {
 *******************************************************************************/
 
 struct SafeCodePointCounter : utf8::VisitorBase<long, utf8::ABORT_ON_ERROR> {
-	public:
-		typedef long ReturnType;
+	typedef long ReturnType;
 
-		SafeCodePointCounter() : count(0) {}
+	SafeCodePointCounter() : count(0) {}
 
-		void utf8(uint8_t) const {}
-		void utf16(uint16_t) { count++; }
+	void utf16(uint16_t) { count++; }
 
-		long finish() { return count; }
-		long abort()  { return -1;    }
-	private:
-		long count;
+	long finish() { return count; }
+	long abort()  { return -1;    }
+private:
+	long count;
 };
 
 long utf8::num_codepoints(const char *cs, size_t sz) {
@@ -420,20 +448,18 @@ long utf8::num_codepoints(const char *cs, size_t sz) {
 *******************************************************************************/
 
 struct ByteCounter : utf8::VisitorBase<size_t, utf8::IGNORE_ERRORS> {
-	public:
-		typedef size_t ReturnType;
+	typedef size_t ReturnType;
 
-		ByteCounter() : count(0) {}
+	ByteCounter() : count(0) {}
 
-		void utf8(uint8_t) { count++; }
-		void utf16(uint16_t) const {}
+	void utf8(uint8_t) { count++; }
 
-		size_t finish() { return count; }
-	private:
-		size_t count;
+	size_t finish() { return count; }
+private:
+	size_t count;
 };
 
-size_t utf8::num_bytes(const u2 *cs, size_t sz)
+size_t utf8::num_bytes(const uint16_t *cs, size_t sz)
 {
 	return utf16::transform(cs, cs + sz, ByteCounter());
 }
@@ -464,23 +490,20 @@ extern size_t utf8_hash(utf *u) { return Utf8String(u).hash(); }
 
 *******************************************************************************/
 
-class DisplayPrintableAscii : public utf8::VisitorBase<void, utf8::REPLACE_ON_ERROR> {
-	public:
-		typedef void ReturnType;
+struct DisplayPrintableAscii : utf8::VisitorBase<void, utf8::REPLACE_ON_ERROR> {
+	typedef void ReturnType;
 
-		DisplayPrintableAscii(FILE *dst) : _dst(dst) {}
+	DisplayPrintableAscii(FILE *dst) : _dst(dst) {}
 
-		void utf16(uint16_t c) {
-			char out = (c >= 32 && c <= 127) ? c : '?';
+	void utf16(uint16_t c) {
+		fputc((c >= 32 && c <= 127) ? c : '?', _dst);
+	}
 
-			fputc(out, _dst);
-		}
+	uint16_t replacement() const { return '?'; }
 
-		uint16_t replacement() const { return '?'; }
-
-		void finish() {fflush(_dst);}
-	private:
-		FILE* _dst;
+	void finish() {fflush(_dst);}
+private:
+	FILE *_dst;
 };
 
 void utf_display_printable_ascii(Utf8String u)
@@ -523,17 +546,16 @@ void utf_display_printable_ascii_classname(Utf8String u)
 
 *******************************************************************************/
 
-class SprintConvertToLatin1 : public utf8::VisitorBase<void, utf8::IGNORE_ERRORS> {
-	public:
-		typedef void ReturnType;
+struct SprintConvertToLatin1 : utf8::VisitorBase<void, utf8::IGNORE_ERRORS> {
+	typedef void ReturnType;
 
-		SprintConvertToLatin1(char* dst) : _dst(dst) {}
+	SprintConvertToLatin1(char* dst) : _dst(dst) {}
 
-		void utf16(uint16_t c) { *_dst++ = c; }
+	void utf16(uint16_t c) { *_dst++ = c; }
 
-		void finish() { *_dst = '\0'; }
-	private:
-		char* _dst;
+	void finish() { *_dst = '\0'; }
+private:
+	char *_dst;
 };
 
 void utf_sprint_convert_to_latin1(char *buffer, Utf8String u)
@@ -589,7 +611,7 @@ void utf_strcat_convert_to_latin1(char *buffer, utf *u)
 
 *******************************************************************************/
 
-void utf_strcat_convert_to_latin1_classname(char *buffer, utf *u)
+void utf_strcat_convert_to_latin1_classname(char *buffer, Utf8String u)
 {
 	utf_sprint_convert_to_latin1_classname(buffer + strlen(buffer), u);
 }
@@ -624,14 +646,7 @@ void utf_fprint_printable_ascii_classname(FILE *file, Utf8String u)
 	utf8::transform(utf8::slash_to_dot(u), DisplayPrintableAscii(file));
 }
 
-struct Utf8Validator : utf8::VisitorBase<bool, utf8::ABORT_ON_ERROR> {
-	typedef bool ReturnType;
-
-	bool finish() { return true;  }
-	bool abort()  { return false; }
-};
-
-const size_t Utf8String::sizeof_utf = sizeof(Utf8String::Utf);
+const size_t Utf8String::sizeof_utf = sizeof(Utf8String::Data);
 
 namespace cacao {
 
