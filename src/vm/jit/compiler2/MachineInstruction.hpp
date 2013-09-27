@@ -70,6 +70,37 @@ public:
 };
 
 /**
+ * Proxy to encode explicit and implicit successors.
+ *
+ * The target of an unconditional jump is an explicit successor (i.e. the
+ * target is specified explicitly). The else branch of a conditional jump
+ * (i.e. the following block) is an implicit successor.
+ *
+ * For implicit successors the source block is stored. Whenever the real
+ * successor is requested the block following the source block is returned.
+ * Therefore implicit successors might change if a block is inserted after the
+ * source block.
+ */
+class SuccessorProxy {
+public:
+	struct Explicit {};
+	struct Implicit {};
+private:
+	enum Type { ExplTy, ImplTy };
+	MachineBasicBlock *entry;
+	Type type;
+public:
+	/// Constructor. Construct explicit successor.
+	explicit SuccessorProxy(MachineBasicBlock* MBB, Explicit)
+		: entry(MBB), type(ExplTy) {}
+	/// Constructor. Construct implicit successor.
+	explicit SuccessorProxy(MachineBasicBlock* MBB, Implicit)
+		: entry(MBB), type(ImplTy) {}
+	/// convert to MachineBasicBlock
+	operator MachineBasicBlock*() const;
+};
+
+/**
  * Superclass for all machine dependent instructions
  */
 class MachineInstruction {
@@ -77,12 +108,16 @@ public:
 	typedef std::vector<MachineOperandDesc> operand_list;
 	typedef operand_list::iterator operand_iterator;
 	typedef operand_list::const_iterator const_operand_iterator;
+	typedef std::list<SuccessorProxy> successor_list;
+	typedef successor_list::iterator successor_iterator;
+	typedef successor_list::const_iterator const_successor_iterator;
 private:
 	static unsigned id_counter;
 	LoweredInstDAG *parent;
 protected:
 	const unsigned id;
 	operand_list operands;
+	successor_list successors;
 	MachineOperandDesc result;
 	const char *name;
 	const char *comment;
@@ -139,6 +174,18 @@ public:
 	const_operand_iterator end() const {
 		return operands.end();
 	}
+	successor_iterator successor_begin() {
+		return successors.begin();
+	}
+	successor_iterator successor_end() {
+		return successors.end();
+	}
+	const_successor_iterator successor_begin() const {
+		return successors.begin();
+	}
+	const_successor_iterator successor_end() const {
+		return successors.end();
+	}
 	unsigned get_id() const {
 		return id;
 	}
@@ -171,6 +218,9 @@ public:
 	}
 	virtual bool is_jump() const {
 		return false;
+	}
+	virtual bool is_end() const {
+		return is_jump();
 	}
 	virtual MachineMoveInst* to_MachineMoveInst() {
 		return NULL;

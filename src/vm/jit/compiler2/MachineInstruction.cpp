@@ -25,6 +25,7 @@
 #include "vm/jit/compiler2/MachineInstruction.hpp"
 #include "vm/jit/compiler2/LoweredInstDAG.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
+#include "vm/jit/compiler2/MachineBasicBlock.hpp"
 
 #include "toolbox/OStream.hpp"
 
@@ -34,6 +35,11 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+SuccessorProxy::operator MachineBasicBlock*() const {
+	if (type == ExplTy)
+		return entry;
+	return *(++(entry->self_iterator()));
+}
 unsigned MachineInstruction::id_counter = 0;
 
 OStream& MachineInstruction::print(OStream &OS) const {
