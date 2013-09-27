@@ -717,7 +717,12 @@ public:
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 
 	virtual bool verify() const {
-		if (succ_size() != tablehigh - tablelow + 1 + 1) {
+		if (tablehigh < tablelow ) {
+			ERROR_MSG("TABLESWITCH verification error","tablehigh ("<<tablehigh
+				<< ") is greater then tablelow ("<< tablelow << ")");
+			return false;
+		}
+		if (succ_size() != std::size_t(tablehigh - tablelow + 1 + 1)) {
 			ERROR_MSG("TABLESWITCH verification error","Number of successors (" << succ_size()
 				<< ") not equal to targets (" << tablehigh - tablelow +1 << ")");
 			return false;
@@ -760,7 +765,12 @@ public:
 		return matches.end();
 	}
 	virtual bool verify() const {
-		if (succ_size() != lookupcount + 1) {
+		if ( lookupcount < 0) {
+			ERROR_MSG("LOOKUPSWITCH verification error","Lookup count is negative ("
+				<< lookupcount << ")");
+			return false;
+		}
+		if (succ_size() != std::size_t(lookupcount + 1)) {
 			ERROR_MSG("LOOKUPSWITCH verification error","Number of successors (" << succ_size()
 				<< ") not equal to targets (" << lookupcount + 1 << ")");
 			return false;
