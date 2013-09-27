@@ -221,6 +221,8 @@ namespace utf8 {
 	// count how many bytes a utf-8 version would need
 	extern size_t num_bytes(const uint16_t*, size_t);
 
+	extern size_t compute_hash(const uint16_t *cs, size_t);
+
 	// named constants for common utf8 strings
 	#define UTF8(NAME, STR) extern Utf8String NAME;
 	#include "vm/utf8.inc"

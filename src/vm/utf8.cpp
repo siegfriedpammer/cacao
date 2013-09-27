@@ -464,6 +464,30 @@ size_t utf8::num_bytes(const uint16_t *cs, size_t sz)
 	return utf16::transform(cs, cs + sz, ByteCounter());
 }
 
+
+/***
+ * Compute the hash of a UTF-16 string.
+ * The hash will be the same as for the UTF-8 encoded version of this string
+ */
+struct Utf16Hasher : utf16::VisitorBase<size_t> {
+	typedef size_t ReturnType;
+
+	Utf16Hasher() : hash(0) {}
+
+	void utf8(uint8_t c) {
+		hash = update_hash(hash, c);
+	}
+
+	size_t finish() { return finish_hash(hash); }
+private:
+	size_t hash;
+};
+
+size_t utf8::compute_hash(const uint16_t *cs, size_t sz) {
+	return utf16::transform(cs, cs + sz, Utf16Hasher());
+}
+
+
 //****************************************************************************//
 //*****          GLOBAL UTF8-STRING CONSTANTS                            *****//
 //****************************************************************************//
