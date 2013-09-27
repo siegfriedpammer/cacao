@@ -164,10 +164,17 @@ bool MachineInstructionSchedulingPass::verify() const {
 			i != e; ++i) {
 		MachineBasicBlock *MBB = *i;
 		MachineInstruction *front = MBB->front();
+		MachineInstruction *back = MBB->back();
 		// check for label
 		if(!front->is_label()) {
-			LOG(BoldRed << "error " << BoldWhite << "first Instruction ("
-				<< *front << ") not a label" << reset_color << nl);
+			ERROR_MSG("verification failed", "first Instruction ("
+				<< *front << ") not a label");
+			return false;
+		}
+		// check for end
+		if(!back->is_end()) {
+			ERROR_MSG("verification failed", "last Instruction ("
+				<< *back << ") not a control flow transfer instruction");
 			return false;
 		}
 		// check for stub
