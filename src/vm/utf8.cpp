@@ -31,6 +31,8 @@
 #include "vm/options.hpp"
 #include "vm/statistics.hpp"
 
+using namespace cacao;
+
 STAT_REGISTER_VAR(int,count_utf_new,0,"utf new","Calls of utf_new")
 STAT_DECLARE_VAR(int,count_utf_len,0)
 
@@ -39,41 +41,42 @@ STAT_DECLARE_VAR(int,count_utf_len,0)
 //*****          GLOBAL UTF8-STRING INTERN TABLE                         *****//
 //****************************************************************************//
 
-struct Utf8Key {
-	Utf8Key(const char *text, size_t size, size_t hash)
-	 : text(text), size(size), hash(hash) {}
+struct InternedUtf8String {
+	InternedUtf8String()             : string(0) {}
+	InternedUtf8String(Utf8String u) : string(u) {}
 
-	const char* const text;
-	const size_t      size;
-	const size_t      hash;
-};
-struct Utf8Hash {
-	size_t operator()(Utf8String     u) const { return u.hash(); }
-	size_t operator()(const Utf8Key& k) const { return k.hash;   }
-};
-struct Utf8Eq {
-	bool operator()(Utf8String a, Utf8String b) const
-	{
-		return eq(a.size(), a.hash(), a.begin(),
-		          b.size(), b.hash(), b.begin());
-	}
-	bool operator()(Utf8String a, const Utf8Key& b) const
-	{
-		return eq(a.size(), a.hash(), a.begin(),
-		          b.size,   b.hash,   b.text);
+	bool is_empty()    const { return string == ((utf*) 0); }
+	bool is_occupied() const { return string != ((utf*) 0); }
+	bool is_deleted()  const { return false; }
+
+	size_t      size()  const { return string.size();  }
+	size_t      hash()  const { return string.hash();  }
+	const char* begin() const { return string.begin(); }
+
+	template<typename T>
+	void set_occupied(T t) {
+		string = t.get_string();
 	}
 
-	static bool eq(size_t a_sz, size_t a_hash, const char *a_cs,
-	                      size_t b_sz, size_t b_hash, const char *b_cs) {
-		return (a_sz   == b_sz)   &&
-		       (a_hash == b_hash) &&
-		       (memcmp(a_cs, b_cs, a_sz) == 0);
+	template<typename T>
+	bool operator==(T t) const {
+		return (size() == t.size()) &&
+		       (hash() == t.hash()) &&
+		       (memcmp(begin(), t.begin(), size()) == 0);
 	}
+
+	Utf8String get_string() const { return string; }
+private:
+	friend OStream& operator<<(OStream& os, InternedUtf8String j);
+
+	Utf8String string;
 };
 
-typedef InternTable<Utf8String, Utf8Hash, Utf8Eq, 1> Utf8InternTable;
+OStream& operator<<(OStream& os, InternedUtf8String j) {
+	return os << "InternedUtf8String(" << j.string << ")";
+}
 
-static Utf8InternTable *intern_table;
+static InternTable<InternedUtf8String> intern_table;
 
 // initial size of intern table
 #define HASHTABLE_UTF_SIZE 16384
@@ -82,9 +85,11 @@ void Utf8String::initialize(void)
 {
 	TRACESUBSYSTEMINITIALIZATION("utf8_init");
 
+	assert(!is_initialized());
+
 	/* create utf8 intern table */
 
-	intern_table = new Utf8InternTable(HASHTABLE_UTF_SIZE);
+	intern_table.initialize(HASHTABLE_UTF_SIZE);
 
 	STATISTICS(count_utf_len += sizeof(utf*) * HASHTABLE_UTF_SIZE);
 
@@ -102,7 +107,7 @@ void Utf8String::initialize(void)
 
 bool Utf8String::is_initialized(void)
 {
-	return intern_table != NULL;
+	return intern_table.is_initialized();
 }
 
 //****************************************************************************//
@@ -222,7 +227,7 @@ struct EagerStringBuilder : StringBuilderBase {
 			_out._data->utf16_size = _codepoints;
 			_out._data->hash       = _hash;
 
-			Utf8String intern = intern_table->intern(_out);
+			Utf8String intern = intern_table.intern(InternedUtf8String(_out)).get_string();
 
 			if (intern != _out) Utf8String::free(_out);
 
@@ -245,6 +250,10 @@ struct LazyStringBuilder : StringBuilderBase {
 	public:
 		typedef Utf8String ReturnType;
 
+		size_t      size()  const { return sz;    }
+		size_t      hash()  const { return _hash; }
+		const char *begin() const { return src; }
+
 		LazyStringBuilder(const char *src, size_t sz)
 		 : StringBuilderBase(sz), src(src), sz(sz) {}
 
@@ -254,11 +263,11 @@ struct LazyStringBuilder : StringBuilderBase {
 		Utf8String finish() {
 			StringBuilderBase::finish();
 
-			return intern_table->intern(Utf8Key(src, sz, _hash), *this);
+			return intern_table.intern(*this).get_string();
 		}
 
 		// lazily construct an utf8-string
-		operator Utf8String() const {
+		Utf8String get_string() const {
 			Utf8String str = Utf8String::alloc(sz);
 
 			str._data->utf16_size = _codepoints;
@@ -628,8 +637,7 @@ namespace cacao {
 
 // OStream operators
 OStream& operator<<(OStream& os, const Utf8String &u) {
-  os << u.begin();
-  return os;
+  return os << (u ? u.begin() : "(nil)");
 }
 
 } // end namespace cacao
