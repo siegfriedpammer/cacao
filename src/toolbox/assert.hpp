@@ -29,7 +29,13 @@
 #include <cassert>        // for assert
 #include "config.h"       // for HAS_BUILTIN_STATIC_ASSERT, ENABLE_EXPENSIVE_ASSERT
 
-/***
+/**
+ * @file
+ * Additional assertion macros
+ */
+
+/**
+ * @def STATIC_ASSERT(EXPR, MSG)
  * An assertion that is evaluated at compile time.
  *
  * The evaluated expression must be a compile time constant.
@@ -71,7 +77,8 @@
 #endif
 
 
-/***
+/**
+ * @def EXPENSIVE_ASSERT(EXPR)
  * An assertion that performs computations too expensive even for a normal
  * debug build.
  *
