@@ -207,7 +207,7 @@ public:
 void EdgeAttributeVisitor::visit(TABLESWITCHInst* I) {
 	int index = I->get_successor_index(target);
 	if (index == -1) return;
-	if (index == I->succ_size() -1) {
+	if (std::size_t(index) == I->succ_size() - 1) {
 		OS << "label=\"default\"";
 	}
 	else {
