@@ -126,11 +126,25 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 
 	}
 
-	// fix phi instructions
 	for (const_iterator i = begin(), e = end(); i != e; ++i) {
 		MachineBasicBlock *MBB = *i;
+		LOG2("MBB: " << *MBB << nl);
+		// fix phi instructions
 		UpdatePhiOperand functor(inst_map);
 		std::for_each(MBB->phi_begin(), MBB->phi_end(), functor);
+		// split basic blocks
+		for (MachineBasicBlock::iterator i = MBB->begin(), e = MBB->end();
+				i != e; ) {
+			MachineInstruction *MI = *i;
+			++i;
+			if (MI->is_jump() && i != e) {
+				MachineBasicBlock *new_MBB = *insert_after(MBB->self_iterator(),MBBBuilder());
+				assert(new_MBB);
+				LOG2("new MBB: " << *new_MBB << nl);
+				move_instructions(i,e,*MBB,*new_MBB);
+				break;
+			}
+		}
 	}
 	return true;
 }
