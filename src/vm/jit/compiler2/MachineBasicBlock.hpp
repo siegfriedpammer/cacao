@@ -124,6 +124,16 @@ public:
 	void insert_before(iterator pos, MachineInstruction* value);
 	/// inserts value after the element pointed to by pos
 	void insert_after(iterator pos, MachineInstruction* value);
+	/// inserts elements from range [first, last) before pos
+	template<class InputIt>
+	void insert_before(iterator pos, InputIt first, InputIt last);
+	/// inserts elements from range [first, last) after pos
+	template<class InputIt>
+	void insert_after(iterator pos, InputIt first, InputIt last);
+	/// erases element
+	iterator erase(iterator pos);
+	/// erases elements
+	iterator erase(iterator first, iterator last);
 	/// returns an iterator to the beginning
 	iterator begin();
 	/// returns an iterator to the end
@@ -201,6 +211,24 @@ inline void MachineBasicBlock::insert_before(iterator pos, MachineInstruction* v
 inline void MachineBasicBlock::insert_after(iterator pos, MachineInstruction* value) {
 	list.insert(++pos,value);
 }
+template<class InputIt>
+inline void MachineBasicBlock::insert_before(iterator pos,
+		InputIt first, InputIt last) {
+	list.insert(pos,first,last);
+}
+template<class InputIt>
+inline void MachineBasicBlock::insert_after(iterator pos,
+		InputIt first, InputIt last) {
+	list.insert(++pos,first,last);
+}
+inline MachineBasicBlock::iterator
+MachineBasicBlock::erase(iterator pos) {
+	return list.erase(pos);
+}
+inline MachineBasicBlock::iterator
+MachineBasicBlock::erase(iterator first, iterator last) {
+	return list.erase(first,last);
+}
 inline MachineBasicBlock::iterator MachineBasicBlock::begin() {
 	return list.begin();
 }
@@ -247,6 +275,15 @@ inline MachineBasicBlock::const_phi_iterator MachineBasicBlock::phi_begin() cons
 inline MachineBasicBlock::const_phi_iterator MachineBasicBlock::phi_end() const {
 	return phi.end();
 }
+
+
+template <class InputIterator>
+inline void move_instructions(InputIterator first, InputIterator last,
+		MachineBasicBlock &from, MachineBasicBlock &to) {
+	to.insert_before(to.end(),first,last);
+	from.erase(first,last);
+}
+
 
 } // end namespace compiler2
 } // end namespace jit
