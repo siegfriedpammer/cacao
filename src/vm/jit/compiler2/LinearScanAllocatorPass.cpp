@@ -29,7 +29,6 @@
 #include "vm/jit/compiler2/LivetimeAnalysisPass.hpp"
 #include "vm/jit/compiler2/MachineRegister.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
-#include "vm/jit/compiler2/LoweringPass.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
 #include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
@@ -837,11 +836,9 @@ PassUsage& LinearScanAllocatorPass::get_PassUsage(PassUsage &PU) const {
 	// requires
 	PU.add_requires(LivetimeAnalysisPass::ID);
 	PU.add_requires(MachineInstructionSchedulingPass::ID);
-	PU.add_requires(LoweringPass::ID);
 	PU.add_requires(ListSchedulingPass::ID);
 	PU.add_requires(ScheduleClickPass::ID);
 	// modified
-	PU.add_modifies(LoweringPass::ID);
 	PU.add_modifies(ListSchedulingPass::ID);
 	PU.add_modifies(ScheduleClickPass::ID);
 	// destroys

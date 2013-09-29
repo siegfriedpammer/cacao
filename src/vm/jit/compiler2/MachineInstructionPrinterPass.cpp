@@ -28,7 +28,6 @@
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
-#include "vm/jit/compiler2/LoweringPass.hpp"
 #include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
@@ -298,7 +297,7 @@ public:
 #endif
 
 PassUsage& MachineInstructionPrinterPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(LoweringPass::ID);
+	PU.add_requires(MachineInstructionSchedulingPass::ID);
 	return PU;
 }
 // the address of this variable is used to identify the pass
@@ -309,17 +308,16 @@ static PassRegistery<MachineInstructionPrinterPass> X("MachineInstructionPrinter
 
 // run pass
 bool MachineInstructionPrinterPass::run(JITData &JD) {
-	MachineInstructionSchedule *MIS = get_Pass_if_available<MachineInstructionSchedulingPass>();
-	if (MIS) {
-		for (MachineInstructionSchedule::iterator i = MIS->begin(), e = MIS->end();
-				i != e; ++i) {
-			MachineBasicBlock *MBB = *i;
-			LOG(*MBB << nl);
-			for (MachineBasicBlock::iterator i = MBB->begin(), e = MBB->end();
-					i != e ; ++i) {
-				MachineInstruction *MI = *i;
-				LOG(*MI << nl);
-			}
+	MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
+	assert(MIS);
+	for (MachineInstructionSchedule::iterator i = MIS->begin(), e = MIS->end();
+			i != e; ++i) {
+		MachineBasicBlock *MBB = *i;
+		LOG(*MBB << nl);
+		for (MachineBasicBlock::iterator i = MBB->begin(), e = MBB->end();
+				i != e ; ++i) {
+			MachineInstruction *MI = *i;
+			LOG(*MI << nl);
 		}
 	}
 	#if 0

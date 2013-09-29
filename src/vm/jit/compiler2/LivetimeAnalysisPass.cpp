@@ -36,7 +36,6 @@
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
-#include "vm/jit/compiler2/LoweringPass.hpp"
 #include "vm/jit/compiler2/LoopPass.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineOperand.hpp"
@@ -373,7 +372,6 @@ bool LivetimeAnalysisPass::verify() const {
 // pass usage
 PassUsage& LivetimeAnalysisPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires(BasicBlockSchedulingPass::ID);
-	PU.add_requires(LoweringPass::ID);
 	PU.add_requires(LoopPass::ID);
 	PU.add_requires(MachineInstructionSchedulingPass::ID);
 	return PU;

@@ -29,7 +29,6 @@
 
 #include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
-#include "vm/jit/compiler2/LoweringPass.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 
 #include "Target.hpp"
@@ -185,7 +184,6 @@ bool MachineInstructionSchedulingPass::verify() const {
 PassUsage& MachineInstructionSchedulingPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires(BasicBlockSchedulingPass::ID);
 	PU.add_requires(ListSchedulingPass::ID);
-	PU.add_requires(LoweringPass::ID);
 	return PU;
 }
 

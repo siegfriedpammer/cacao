@@ -29,7 +29,6 @@
 
 #include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
-#include "vm/jit/compiler2/LoweringPass.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -103,9 +102,11 @@ bool ResolveImmediatePass::run(JITData &JD) {
 
 // pass usage
 PassUsage& ResolveImmediatePass::get_PassUsage(PassUsage &PU) const {
+	#if 0
 	PU.add_requires(BasicBlockSchedulingPass::ID);
 	PU.add_requires(ListSchedulingPass::ID);
 	PU.add_requires(LoweringPass::ID);
+	#endif
 	return PU;
 }
 

@@ -23,7 +23,6 @@
 */
 
 #include "vm/jit/compiler2/MachineInstruction.hpp"
-#include "vm/jit/compiler2/LoweredInstDAG.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 
@@ -68,14 +67,6 @@ OStream& MachineInstruction::print(OStream &OS) const {
 		OS << " # " << comment;
 	}
 	return OS;
-}
-
-void MachineInstruction::add_before(MachineInstruction *MI) {
-	assert(parent);
-	LOG2("add before " << this << " : " << MI << nl);
-	LOG2("minst.size: " << parent->mi_size() << nl);
-	//FIXME
-	parent->add_before(this,MI);
 }
 
 void MachineInstruction::emit(CodeMemory* CM) const {

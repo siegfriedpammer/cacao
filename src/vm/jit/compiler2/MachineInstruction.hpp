@@ -44,7 +44,6 @@ class MachineMoveInst;
 class MachinePhiInst;
 class MachineLabelInst;
 class MachineInstStub;
-class LoweredInstDAG;
 class CodeMemory;
 class MachineInstruction;
 
@@ -114,7 +113,6 @@ public:
 	typedef successor_list::const_iterator const_successor_iterator;
 private:
 	static unsigned id_counter;
-	LoweredInstDAG *parent;
 protected:
 	const unsigned id;
 	operand_list operands;
@@ -130,16 +128,12 @@ public:
 	}
 	#endif
 	MachineInstruction(const char * name, MachineOperand* result, unsigned num_operands, const char* comment = NULL)
-		: parent(NULL), id(id_counter++), operands(), result(this, result), name(name), comment(comment), block(NULL) {
+		: id(id_counter++), operands(), result(this, result), name(name), comment(comment), block(NULL) {
 		for (unsigned i = 0; i < num_operands ; ++i) {
 			//operands[i].index = i;
 			operands.push_back(MachineOperandDesc(this,i));
 		}
 	}
-
-	LoweredInstDAG* get_parent() const { return parent; }
-
-	void set_parent(LoweredInstDAG* dag) { parent = dag; }
 
 	void set_comment(const char* c) { comment = c; }
 	const char* get_comment() const { return comment; }
@@ -154,8 +148,6 @@ public:
 	MachineBasicBlock* get_block() const {
 		return block;
 	}
-
-	void add_before(MachineInstruction *MI);
 
 	unsigned size_op() const {
 		return operands.size();

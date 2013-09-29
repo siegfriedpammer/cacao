@@ -60,7 +60,6 @@
 #include "vm/jit/compiler2/ScheduleLatePass.hpp"
 #include "vm/jit/compiler2/ScheduleClickPass.hpp"
 #include "vm/jit/compiler2/DomTreePrinterPass.hpp"
-#include "vm/jit/compiler2/LoweringPass.hpp"
 #include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
 #include "vm/jit/compiler2/ResolveImmediatePass.hpp"
@@ -143,13 +142,12 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass(&InstructionLinkSchedulePrinterPass<ScheduleClickPass>::ID);
 	//PM.add_Pass(&LoopSimplificationPass::ID);
 	PM.add_Pass(&DomTreePrinterPass::ID);
-	PM.add_Pass(&LoweringPass::ID);
 	PM.add_Pass(&ListSchedulingPass::ID);
 	PM.add_Pass(&BasicBlockSchedulingPass::ID);
 	//PM.add_Pass(&ResolveImmediatePass::ID);
 	PM.add_Pass(&MachineInstructionSchedulingPass::ID);
 	PM.add_Pass(&MachineInstructionPrinterPass::ID);
-	//PM.add_Pass(&LivetimeAnalysisPass::ID);
+	PM.add_Pass(&LivetimeAnalysisPass::ID);
 	//PM.add_Pass(&LinearScanAllocatorPass::ID);
 	//PM.add_Pass(&SpillAllAllocatorPass::ID);
 	//PM.add_Pass(&BasicBlockSchedulingPass::ID);

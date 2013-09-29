@@ -58,8 +58,6 @@ libcompiler2_la_SOURCES = \
 	LivetimeInterval.cpp \
 	LoopPass.cpp \
 	LoopSimplificationPass.cpp \
-	LoweredInstDAG.cpp \
-	LoweringPass.cpp \
 	MachineBasicBlock.cpp \
 	MachineInstruction.cpp \
 	MachineInstructions.cpp \
