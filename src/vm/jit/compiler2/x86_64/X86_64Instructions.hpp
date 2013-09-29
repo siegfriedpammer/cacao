@@ -362,6 +362,8 @@ public:
 			  cond(cond) {
 		successors.push_back(SuccessorProxy(target,SuccessorProxy::Explicit()));
 		successors.push_back(SuccessorProxy(current,SuccessorProxy::Implicit()));
+		assert(current);
+		set_block(current);
 	}
 	virtual bool is_jump() const {
 		return true;
@@ -622,18 +624,14 @@ public:
 class CondJumpInstStub : public MachineJumpStub {
 private:
 	Cond::COND cond;
-	MachineBasicBlock *current;
 	BeginInst *begin;
 public:
 	CondJumpInstStub(Cond::COND cond, BeginInst *begin)
 			: MachineJumpStub("X86_64CondJumpInst", &NoOperand, 0),
 			  cond(cond), begin(begin) {}
 	virtual MachineInstruction* transform(LookupFn &Fn) {
-		assert(current);
-		return new CondJumpInst(cond, Fn(begin), current);
-	}
-	virtual void set_current(MachineBasicBlock *MBB) {
-		current = MBB;
+		assert(block);
+		return new CondJumpInst(cond, Fn(begin), block);
 	}
 };
 class IndirectJumpStub : public MachineJumpStub {
