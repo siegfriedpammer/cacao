@@ -41,6 +41,7 @@ namespace compiler2 {
 
 // forward declaration
 class MachineMoveInst;
+class MachinePhiInst;
 class MachineLabelInst;
 class MachineInstStub;
 class LoweredInstDAG;
@@ -121,6 +122,7 @@ protected:
 	MachineOperandDesc result;
 	const char *name;
 	const char *comment;
+	MachineBasicBlock *block;
 public:
 	#if 0
 	MachineInstruction(const char * name, MachineOperand* result, unsigned num_operands, MachineOperand* dflt)
@@ -128,7 +130,7 @@ public:
 	}
 	#endif
 	MachineInstruction(const char * name, MachineOperand* result, unsigned num_operands, const char* comment = NULL)
-		: parent(NULL), id(id_counter++), operands(), result(this, result), name(name), comment(comment) {
+		: parent(NULL), id(id_counter++), operands(), result(this, result), name(name), comment(comment), block(NULL) {
 		for (unsigned i = 0; i < num_operands ; ++i) {
 			//operands[i].index = i;
 			operands.push_back(MachineOperandDesc(this,i));
@@ -145,6 +147,12 @@ public:
 	void set_operand(unsigned i,MachineOperand* op) {
 		assert(i < operands.size());
 		operands[i].op = op;
+	}
+	void set_block(MachineBasicBlock* MBB) {
+		block = MBB;
+	}
+	MachineBasicBlock* get_block() const {
+		return block;
 	}
 
 	void add_before(MachineInstruction *MI);
@@ -231,6 +239,9 @@ public:
 	}
 	#endif
 	virtual MachineInstStub* to_MachineInstStub() {
+		return NULL;
+	}
+	virtual MachinePhiInst* to_MachinePhiInst() {
 		return NULL;
 	}
 	virtual OStream& print(OStream &OS) const;

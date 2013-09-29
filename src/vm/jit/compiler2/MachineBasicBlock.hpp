@@ -39,6 +39,7 @@ namespace compiler2 {
 // forward declarations
 class MachineInstruction;
 class MachineInstructionSchedule;
+class MachinePhiInst;
 
 class MIIterator {
 	typedef ordered_list<MachineInstruction*>::iterator iterator;
@@ -99,12 +100,6 @@ public:
  * @ingroup low-level-ir
  */
 class MachineBasicBlock {
-private:
-	static std::size_t id_counter;
-	std::size_t id;
-	MBBIterator my_it;
-	/// empty constructor
-	MachineBasicBlock() : id(id_counter++) {}
 public:
 	typedef ordered_list<MachineInstruction*>::iterator iterator;
 	typedef ordered_list<MachineInstruction*>::const_iterator const_iterator;
@@ -112,6 +107,10 @@ public:
 	typedef ordered_list<MachineInstruction*>::const_reference const_reference;
 	typedef ordered_list<MachineInstruction*>::pointer pointer;
 	typedef ordered_list<MachineInstruction*>::const_pointer const_pointer;
+
+	typedef std::list<MachinePhiInst*> PhiListTy;
+	typedef PhiListTy::const_iterator const_phi_iterator;
+
 	/// construct an empty MachineBasicBlock
 	MachineBasicBlock(const MBBIterator &my_it)
 		: id(id_counter++),  my_it(my_it) {};
@@ -142,6 +141,13 @@ public:
 	/// access the last element
 	reference back();
 
+	/// Appends the given element value to the list of phis.
+	void insert_phi(MachinePhiInst* value);
+	/// returns an const iterator to the phi instructions
+	const_phi_iterator phi_begin() const;
+	/// returns an const iterator to the phi instructions
+	const_phi_iterator phi_end() const;
+
 	/// get a MIIterator form a interator
 	MIIterator convert(iterator pos);
 	/// get self iterator
@@ -149,7 +155,14 @@ public:
 	/// print
 	OStream& print(OStream& OS) const;
 private:
+	static std::size_t id_counter;
+	std::size_t id;
+	MBBIterator my_it;
+	/// empty constructor
+	MachineBasicBlock() : id(id_counter++) {}
 	ordered_list<MachineInstruction*> list;
+	PhiListTy phi;
+
 	friend class MBBBuilder;
 	friend class MachineInstructionSchedule;
 };
@@ -181,12 +194,6 @@ inline MIIterator& MIIterator::operator--() {
 
 inline std::size_t MachineBasicBlock::size() const {
 	return list.size();
-}
-inline void MachineBasicBlock::push_back(MachineInstruction* value) {
-	list.push_back(value);
-}
-inline void MachineBasicBlock::push_front(MachineInstruction* value) {
-	list.push_front(value);
 }
 inline void MachineBasicBlock::insert_before(iterator pos, MachineInstruction* value) {
 	list.insert(pos,value);
@@ -230,6 +237,15 @@ inline MBBIterator MachineBasicBlock::self_iterator() const {
 
 inline OStream& operator<<(OStream& OS, MachineBasicBlock& MBB) {
 	return MBB.print(OS);
+}
+inline void MachineBasicBlock::insert_phi(MachinePhiInst* value) {
+	phi.push_back(value);
+}
+inline MachineBasicBlock::const_phi_iterator MachineBasicBlock::phi_begin() const {
+	return phi.begin();
+}
+inline MachineBasicBlock::const_phi_iterator MachineBasicBlock::phi_end() const {
+	return phi.end();
 }
 
 } // end namespace compiler2

@@ -23,7 +23,7 @@
 */
 
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
-#include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
+#include "vm/jit/compiler2/MachineInstruction.hpp"
 #include "toolbox/OStream.hpp"
 
 
@@ -35,6 +35,18 @@ std::size_t MachineBasicBlock::id_counter = 0;
 
 OStream& MachineBasicBlock::print(OStream& OS) const {
 	return OS << "MBB:" << setz(4) << id;
+}
+
+void MachineBasicBlock::push_back(MachineInstruction* value) {
+	//assert(!value->get_block());
+	value->set_block(this);
+	list.push_back(value);
+}
+
+void MachineBasicBlock::push_front(MachineInstruction* value) {
+	//assert(!value->get_block());
+	value->set_block(this);
+	list.push_front(value);
 }
 
 } // end namespace compiler2

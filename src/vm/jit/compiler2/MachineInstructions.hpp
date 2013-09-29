@@ -73,7 +73,6 @@ public:
 		return true;
 	}
 	virtual MachineInstruction* transform(LookupFn &Fn) = 0;
-	virtual void set_current(MachineBasicBlock *MBB) {}
 };
 
 class MachineLabelInst : public MachineInstruction {
@@ -107,10 +106,12 @@ public:
 };
 
 class MachinePhiInst : public MachineInstruction {
+private:
+	PHIInst *phi;
 public:
-	MachinePhiInst(unsigned num_operands, Type::TypeID type)
+	MachinePhiInst(unsigned num_operands, Type::TypeID type, PHIInst* phi)
 			: MachineInstruction("MPhi", new VirtualRegister(type),
-			  num_operands) {
+			  num_operands), phi(phi) {
 		for(unsigned i = 0; i < num_operands; ++i) {
 			operands[i].op = new UnassignedReg(type);
 		}
@@ -119,8 +120,15 @@ public:
 	virtual bool is_phi() const {
 		return true;
 	}
+	virtual MachinePhiInst* to_MachinePhiInst() {
+		return this;
+	}
 	// phis are never emitted
 	virtual void emit(CodeMemory* CM) const {};
+
+	PHIInst* get_PHIInst() const {
+		return phi;
+	}
 };
 #if 0
 class MachineConstInst : public MachineInstruction {
