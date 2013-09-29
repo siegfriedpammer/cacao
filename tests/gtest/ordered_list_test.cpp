@@ -124,6 +124,36 @@ TEST(ordered_list, test_insert2) {
 }
 
 /**
+ * test insert range
+ */
+TEST(ordered_list, test_insert_range) {
+	ordered_list<int> list;
+
+	list.push_back(0);
+	list.push_back(1);
+	list.push_back(2);
+	list.push_back(3);
+
+	EXPECT_EQ(list.size(), 4);
+
+	// insert before the third element
+	{
+		std::list<int> slist;
+		slist.push_back(4);
+		slist.push_back(5);
+		slist.push_back(6);
+		slist.push_back(7);
+
+		ordered_list<int>::iterator i = list.begin();
+		std::advance(i,2);
+		list.insert(i,slist.begin(), slist.end());
+	}
+
+	unsigned array[] = {0, 1, 4, 5, 6, 7, 2, 3};
+	check_list(list,8,array);
+}
+
+/**
  * test the total ordering of MachineInstruction
  */
 TEST(ordered_list, test_order) {
@@ -262,6 +292,54 @@ TEST(ordered_list, test_priority_queue1) {
 
 	EXPECT_TRUE(q.empty());
 }
+
+TEST(ordered_list, test_insert_range_priority) {
+	ordered_list<int> list;
+
+	list.push_back(0);
+	list.push_back(1);
+	list.push_back(2);
+	list.push_back(3);
+
+	EXPECT_EQ(list.size(), 4);
+
+	// insert before the third element
+	{
+		std::list<int> slist;
+		slist.push_back(4);
+		slist.push_back(5);
+		slist.push_back(6);
+		slist.push_back(7);
+
+		ordered_list<int>::iterator i = list.begin();
+		std::advance(i,3);
+		list.insert(i,slist.begin(), slist.end());
+	}
+
+	std::priority_queue<ordered_list<int>::iterator,
+		std::vector<ordered_list<int>::iterator>,
+		std::greater<ordered_list<int>::iterator> > q;
+
+	for (ordered_list<int>::iterator i = list.begin(), e = list.end();
+			i != e; ++i) {
+		q.push(i);
+	}
+
+	EXPECT_EQ(*q.top(), 0); q.pop();
+	EXPECT_EQ(*q.top(), 1); q.pop();
+	EXPECT_EQ(*q.top(), 2); q.pop();
+	EXPECT_EQ(*q.top(), 4); q.pop();
+	EXPECT_EQ(*q.top(), 5); q.pop();
+	EXPECT_EQ(*q.top(), 6); q.pop();
+	EXPECT_EQ(*q.top(), 7); q.pop();
+	EXPECT_EQ(*q.top(), 3); q.pop();
+
+	EXPECT_TRUE(q.empty());
+
+	unsigned array[] = {0, 1, 2, 4, 5, 6, 7, 3};
+	check_list(list,8,array);
+}
+
 
 TEST(ordered_list, test_copy_ctor) {
 	ordered_list<int> list;

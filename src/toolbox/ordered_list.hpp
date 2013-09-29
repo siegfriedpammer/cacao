@@ -54,6 +54,9 @@ class _ordered_const_iterator;
 template <class T,class Allocator = std::allocator<T> >
 class ordered_list {
 private:
+	struct Entry;
+	typedef typename std::list<Entry>::iterator intern_iterator;
+
 	/// tagged list entry
 	struct Entry {
 		Entry(T value, std::size_t index) : value(value), index(index) {}
@@ -61,6 +64,17 @@ private:
 		std::size_t index;
 		bool operator==(const Entry& other) const {
 			return index == other.index && value == other.value;
+		}
+	};
+	/// Inserter
+	struct Inserter {
+		std::list<Entry> &list;
+		intern_iterator pos;
+		std::size_t index;
+		Inserter(std::list<Entry> &list, intern_iterator pos)
+			: list(list), pos(pos), index(pos->index) {}
+		void operator()(T& value) {
+			list.insert(pos, Entry(value,index++));
 		}
 	};
 	/// Increment function struct
@@ -86,7 +100,6 @@ private:
 	/// internal storage
 	std::list<Entry> list;
 
-	typedef typename std::list<Entry>::iterator intern_iterator;
 public:
 	typedef T value_type;
 	typedef Allocator allocator_type;
@@ -120,6 +133,9 @@ public:
 	void push_front(const T& value);
 	/// inserts value before the element pointed to by pos
 	void insert(iterator pos, const T& value);
+	/// inserts elements from range [first, last) before the element pointed to by pos
+	template<class InputIt>
+	void insert(iterator pos, InputIt first, InputIt last);
 	/// erases element
 	iterator erase(iterator pos );
 	/// erases elements
@@ -308,6 +324,16 @@ template <class T, class Allocator>
 inline void ordered_list<T, Allocator>::insert(typename ordered_list<T, Allocator>::iterator pos, const T& value) {
 	list.insert(pos.it,Entry(value,pos.it->index));
 	std::for_each(pos.it,list.end(),IncrementEntry());
+}
+
+template <class T, class Allocator>
+template <class InputIt>
+inline void ordered_list<T, Allocator>::insert(
+		typename ordered_list<T, Allocator>::iterator pos,
+		InputIt first, InputIt last) {
+	typename std::list<Entry>::iterator it = pos.it;
+	std::for_each(first,last,Inserter(list,pos.it));
+	std::for_each(it,list.end(),IncreasingEntry((--it)->index+1));
 }
 
 template <class T, class Allocator>
