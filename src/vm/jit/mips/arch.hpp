@@ -36,7 +36,6 @@
 #if SIZEOF_VOID_P == 8
 
 #define SUPPORT_DIVISION                 1
-#define SUPPORT_LONG                     1
 
 #define SUPPORT_I2F                      1
 #define SUPPORT_I2D                      1
@@ -92,7 +91,6 @@
 #else /* SIZEOF_VOID_P == 8 */
 
 #define SUPPORT_DIVISION                 1
-#define SUPPORT_LONG                     1
 
 #define SUPPORT_I2F                      0
 #define SUPPORT_I2D                      0
@@ -198,4 +196,5 @@
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

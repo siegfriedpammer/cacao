@@ -1,6 +1,6 @@
 /* src/vm/jit/s390/arch.h - architecture defines for S390
 
-   Copyright (C) 1996-2010
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -32,7 +32,6 @@
 /* define architecture features ***********************************************/
 
 #define SUPPORT_DIVISION                 1
-#define SUPPORT_LONG                     1
 
 #define SUPPORT_I2F                      1
 #define SUPPORT_I2D                      1
@@ -126,9 +125,10 @@
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

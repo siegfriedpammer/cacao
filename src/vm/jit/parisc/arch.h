@@ -1,6 +1,6 @@
 /* src/vm/jit/parisc/arch.h - architecture defines for PA-RISC
 
-   Copyright (C) 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -34,7 +34,6 @@
 /*  #define USEBUILTINTABLE */
 
 #define SUPPORT_DIVISION                 0
-#define SUPPORT_LONG                     1
 
 #define SUPPORT_I2F                      1
 #define SUPPORT_I2D                      1
@@ -109,4 +108,5 @@
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

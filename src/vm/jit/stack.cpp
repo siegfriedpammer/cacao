@@ -3953,7 +3953,7 @@ icmd_DUP_X2:
 					case ICMD_LDIV:
 					case ICMD_LREM:
 						coalescing_boundary = sd.new_elem;
-#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
+#if !(SUPPORT_DIVISION && SUPPORT_LONG_DIV)
 						bte = iptr->sx.s23.s3.bte;
 						md = bte->md;
 
@@ -3973,7 +3973,7 @@ icmd_DUP_X2:
 						}
 						/* FALLTHROUGH */
 
-#endif /* !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV) */
+#endif
 
 					case ICMD_LMUL:
 					case ICMD_LADD:

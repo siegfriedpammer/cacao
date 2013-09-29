@@ -34,7 +34,6 @@
 /* define architecture features ***********************************************/
 
 #define SUPPORT_DIVISION                 1
-#define SUPPORT_LONG                     1
 
 #define SUPPORT_FMOD                     0
 #define SUPPORT_FICVT                    0
@@ -127,4 +126,5 @@
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

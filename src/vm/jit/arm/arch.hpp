@@ -34,7 +34,6 @@
 /* define architecture features ***********************************************/
 
 #define SUPPORT_DIVISION                 0
-#define SUPPORT_LONG                     1
 
 #define SUPPORT_I2F                      1
 #define SUPPORT_I2D                      1
