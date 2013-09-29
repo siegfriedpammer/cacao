@@ -426,6 +426,25 @@ TEST(ordered_list, test_const_reverse_iterator) {
 	}
 }
 
+TEST(ordered_list, test_const_reverse_iterator2) {
+	ordered_list<int> list;
+
+	list.push_back(0);
+	list.push_back(1);
+	list.push_back(2);
+	list.push_back(3);
+
+	EXPECT_EQ(list.size(),4);
+
+	const ordered_list<int> &clist = list;
+
+	int counter = 4;
+	for (ordered_list<int>::const_reverse_iterator i = clist.rbegin(),
+			e = clist.rend(); i != e; ++i) {
+		EXPECT_EQ(*i, --counter);
+	}
+}
+
 TEST(ordered_list, test_decrement) {
 	ordered_list<int> list;
 
@@ -471,6 +490,45 @@ TEST(ordered_list, test_const_front_back) {
 	EXPECT_EQ(clist.front(),0);
 	EXPECT_EQ(clist.back(),3);
 }
+
+TEST(ordered_list, test_erase_single) {
+	ordered_list<int> list;
+
+	list.push_back(0);
+	list.push_back(1);
+	list.push_back(2);
+	list.push_back(3);
+
+	unsigned array1[] = {0, 1, 2, 3};
+	unsigned array2[] = {0, 1, 3};
+
+	check_list(list,4,array1);
+	list.erase(++++list.begin());
+	check_list(list,3,array2);
+}
+
+TEST(ordered_list, test_erase_range) {
+	ordered_list<int> list;
+
+	list.push_back(0);
+	list.push_back(1);
+	list.push_back(2);
+	list.push_back(3);
+	list.push_back(4);
+	list.push_back(5);
+	list.push_back(6);
+	list.push_back(7);
+	list.push_back(8);
+	list.push_back(9);
+
+	unsigned array1[] = {0, 1, 2, 3, 4, 5, 6, 7 ,8 ,9};
+	unsigned array2[] = {0, 1, 8 ,9};
+
+	check_list(list,10,array1);
+	list.erase(++++list.begin(),----list.end());
+	check_list(list,4,array2);
+}
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

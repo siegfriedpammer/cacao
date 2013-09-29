@@ -66,7 +66,21 @@ private:
 	/// Increment function struct
 	struct IncrementEntry {
 		void operator()(Entry& E) {
-			++E.index;;
+			++E.index;
+		}
+	};
+	/// Increasing function struct
+	struct IncreasingEntry {
+		std::size_t index;
+		IncreasingEntry(std::size_t index) : index(index) {}
+		void operator()(Entry& E) {
+			E.index = index++;
+		}
+	};
+	/// Decrement function struct
+	struct DecrementEntry {
+		void operator()(Entry& E) {
+			--E.index;
 		}
 	};
 	/// internal storage
@@ -95,6 +109,7 @@ public:
 	ordered_list& operator=(const ordered_list<T,Allocator> &other);
 	/// checks if the container has no elements.
 	bool empty() const;
+
 	/// returns the number of elements
 	std::size_t size() const;
 	/// returns the maximum possible number of elements
@@ -105,6 +120,10 @@ public:
 	void push_front(const T& value);
 	/// inserts value before the element pointed to by pos
 	void insert(iterator pos, const T& value);
+	/// erases element
+	iterator erase(iterator pos );
+	/// erases elements
+	iterator erase(iterator first, iterator last);
 	/// returns an iterator to the beginning
 	iterator begin();
 	/// returns an iterator to the end
@@ -289,6 +308,26 @@ template <class T, class Allocator>
 inline void ordered_list<T, Allocator>::insert(typename ordered_list<T, Allocator>::iterator pos, const T& value) {
 	list.insert(pos.it,Entry(value,pos.it->index));
 	std::for_each(pos.it,list.end(),IncrementEntry());
+}
+
+template <class T, class Allocator>
+inline typename ordered_list<T, Allocator>::iterator
+ordered_list<T, Allocator>::erase(
+		typename ordered_list<T, Allocator>::iterator pos) {
+	typename std::list<Entry>::iterator it = list.erase(pos.it);
+	std::for_each(it,list.end(),DecrementEntry());
+	return it;
+}
+
+template <class T, class Allocator>
+inline typename ordered_list<T, Allocator>::iterator
+ordered_list<T, Allocator>::erase(
+		typename ordered_list<T, Allocator>::iterator first,
+		typename ordered_list<T, Allocator>::iterator last) {
+	std::size_t index = first.it->index;
+	typename std::list<Entry>::iterator it = list.erase(first.it,last.it);
+	std::for_each(it,list.end(),IncreasingEntry(index));
+	return it;
 }
 
 template <class T, class Allocator>
