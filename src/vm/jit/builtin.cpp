@@ -1357,36 +1357,6 @@ s8 builtin_lushr(s8 a, s4 b)
 #endif
 
 
-#if !SUPPORT_LONG_LOGICAL
-s8 builtin_land(s8 a, s8 b)
-{
-	s8 c;
-
-	c = a & b; 
-
-	return c;
-}
-
-s8 builtin_lor(s8 a, s8 b)
-{
-	s8 c;
-
-	c = a | b; 
-
-	return c;
-}
-
-s8 builtin_lxor(s8 a, s8 b) 
-{
-	s8 c;
-
-	c = a ^ b; 
-
-	return c;
-}
-#endif
-
-
 s4 builtin_lcmp(s8 a, s8 b)
 { 
 	if (a < b)

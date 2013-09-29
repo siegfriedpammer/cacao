@@ -3001,7 +3001,7 @@ normal_ICONST:
 								goto normal_LCONST;
 #endif /* SUPPORT_LONG_REM_POW2 */
 
-#if SUPPORT_LONG_LOGICAL && SUPPORT_CONST_LOGICAL
+#if SUPPORT_CONST_LOGICAL
 
 							case ICMD_LAND:
 								iptr->opc = ICMD_LANDCONST;
@@ -3014,9 +3014,8 @@ normal_ICONST:
 							case ICMD_LXOR:
 								iptr->opc = ICMD_LXORCONST;
 								goto icmd_lconst_tail;
-#endif /* SUPPORT_LONG_LOGICAL && SUPPORT_CONST_LOGICAL */
+#endif
 
-#if SUPPORT_LONG_CMP_CONST
 							case ICMD_LCMP:
 								if ((len <= 1) || (iptr[2].sx.val.i != 0))
 									goto normal_LCONST;
@@ -3064,7 +3063,6 @@ normal_ICONST:
 										goto normal_LCONST;
 								} /* end switch on opcode after LCONST - LCMP */
 								break;
-#endif /* SUPPORT_LONG_CMP_CONST */
 
 #if SUPPORT_CONST_STORE
 							case ICMD_LASTORE:
@@ -3978,11 +3976,9 @@ icmd_DUP_X2:
 					case ICMD_LMUL:
 					case ICMD_LADD:
 					case ICMD_LSUB:
-#if SUPPORT_LONG_LOGICAL
 					case ICMD_LAND:
 					case ICMD_LOR:
 					case ICMD_LXOR:
-#endif /* SUPPORT_LONG_LOGICAL */
 						STATISTICS(count_pcmd_op++);
 						OP2_1(TYPE_LNG, TYPE_LNG, TYPE_LNG);
 						break;
@@ -4014,7 +4010,6 @@ icmd_DUP_X2:
 
 					case ICMD_LCMP:
 						STATISTICS(count_pcmd_op++);
-#if SUPPORT_LONG_CMP_CONST
 						if ((len == 0) || (iptr[1].sx.val.i != 0))
 							goto normal_LCMP;
 
@@ -4050,7 +4045,6 @@ icmd_DUP_X2:
 						}
 						break;
 normal_LCMP:
-#endif /* SUPPORT_LONG_CMP_CONST */
 						bte = builtintable_get_internal(BUILTIN_lcmp);
 
 						iptr->opc            = ICMD_BUILTIN;

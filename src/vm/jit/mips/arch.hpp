@@ -49,8 +49,6 @@
 
 #define SUPPORT_LONG_ADD                 1
 #define SUPPORT_LONG_CMP                 1
-#define SUPPORT_LONG_CMP_CONST           1
-#define SUPPORT_LONG_LOGICAL             1
 #define SUPPORT_LONG_SHIFT               1
 #define SUPPORT_LONG_MUL                 1
 #define SUPPORT_LONG_DIV                 1
@@ -104,8 +102,6 @@
 
 #define SUPPORT_LONG_ADD                 1
 #define SUPPORT_LONG_CMP                 0
-#define SUPPORT_LONG_CMP_CONST           1
-#define SUPPORT_LONG_LOGICAL             1
 #define SUPPORT_LONG_SHIFT               0
 #define SUPPORT_LONG_MUL                 0
 #define SUPPORT_LONG_DIV                 0

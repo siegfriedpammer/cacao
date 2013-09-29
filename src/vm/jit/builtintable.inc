@@ -521,51 +521,6 @@ static builtintable_entry builtintable_automatic[] = {
 	},
 #endif
 
-#if !SUPPORT_LONG_LOGICAL
-	{
-		ICMD_LAND,
-		0,
-		BUILTIN_land,
-		NULL,
-		NULL,
-		"land",
-		"(JJ)J",
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL
-	},
-	{
-		ICMD_LOR,
-		0,
-		BUILTIN_lor,
-		NULL,
-		NULL,
-		"lor",
-		"(JJ)J",
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL
-	},
-	{
-		ICMD_LXOR,
-		0,
-		BUILTIN_lxor,
-		NULL,
-		NULL,
-		"lxor",
-		"(JJ)J",
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL
-	},
-#endif
-
 #if !SUPPORT_LONG_SHIFT
 	{
 		ICMD_LSHL,
