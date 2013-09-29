@@ -26,7 +26,6 @@
 #define _JIT_COMPILER2_BACKEND
 
 #include "vm/jit/compiler2/Instructions.hpp"
-#include "vm/jit/compiler2/LoweredInstDAG.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
 #include "vm/jit/compiler2/InstructionVisitor.hpp"
 
@@ -38,6 +37,7 @@ namespace compiler2 {
 class StackSlotManager;
 class JITData;
 class RegisterFile;
+class MachineBasicBlock;
 
 class Backend {
 private:
@@ -52,6 +52,7 @@ public:
 	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const = 0;
 	virtual MachineInstruction* create_Jump(BeginInstRef &target) const = 0;
+	virtual MachineInstruction* create_Jump(MachineBasicBlock *target) const = 0;
 	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM) const = 0;
 	virtual const char* get_name() const = 0;
 };
@@ -68,27 +69,51 @@ public:
 	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const;
 	virtual MachineInstruction* create_Jump(BeginInstRef &target) const;
+	virtual MachineInstruction* create_Jump(MachineBasicBlock *target) const;
 	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM) const;
 	virtual const char* get_name() const;
 };
 
 class LoweringVisitorBase : public InstructionVisitor {
-private:
-	LoweredInstDAG *dag;
-	Backend *backend;
 protected:
-	void set_dag(LoweredInstDAG* dag) {
-		this->dag = dag;
-	}
+	typedef std::map<BeginInst*,MachineBasicBlock*> MapTy;
+	typedef std::map<Instruction*,MachineOperand*> InstructionMapTy;
+private:
+	Backend *backend;
+	MachineBasicBlock* current;
+	MapTy &map;
+	InstructionMapTy &inst_map;
+protected:
 	Backend* get_Backend() const {
 		return backend;
 	}
+	MachineBasicBlock* get(BeginInst* BI) const {
+		assert(BI);
+		MapTy::const_iterator it = map.find(BI);
+		assert_msg(it != map.end(), "MachineBasicBlock for BeginInst "<< *BI << " not found");
+		return it->second;
+	}
+	MachineOperand* get_op(Instruction* I) const {
+		assert(I);
+		InstructionMapTy::const_iterator it = inst_map.find(I);
+		assert_msg(it != inst_map.end(), "operand for instruction " << *I << "not found");
+		return it->second;
+	}
+	void set_op(Instruction* I, MachineOperand* op) const {
+		assert(I);
+		assert(op);
+		inst_map[I] = op;
+	}
 public:
-	LoweringVisitorBase(Backend *backend) : backend(backend) {}
+	LoweringVisitorBase(Backend *backend,MachineBasicBlock* current,
+		MapTy &map, InstructionMapTy &inst_map)
+			: backend(backend), current(current), map(map), inst_map(inst_map) {}
+
 	virtual void visit_default(Instruction *I) {
 		ABORT_MSG("LoweringVisitor","Instruction " << BoldWhite
 		  << *I << reset_color << " not yet handled by the Backend");
 	}
+	MachineBasicBlock* get_current() const { return current; }
 	// make InstructionVisitors visit visible
 	using InstructionVisitor::visit;
 
@@ -96,8 +121,6 @@ public:
 	virtual void visit(GOTOInst* I);
 	virtual void visit(PHIInst* I);
 	virtual void visit(CONSTInst* I);
-
-	LoweredInstDAG* get_dag() const { return dag; }
 };
 
 

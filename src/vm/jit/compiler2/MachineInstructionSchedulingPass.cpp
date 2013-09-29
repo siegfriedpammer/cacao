@@ -32,6 +32,8 @@
 #include "vm/jit/compiler2/LoweringPass.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 
+#include "Target.hpp"
+
 #include "toolbox/logging.hpp"
 
 #define DEBUG_NAME "compiler2/MachineInstructionSchedulingPass"
@@ -49,7 +51,7 @@ void MachineInstructionSchedulingPass::initialize() {
 
 
 namespace {
-
+#if 0
 class UpdateCurrentVisitor : public MachineStubVisitor {
 private:
 	MachineBasicBlock *MBB;
@@ -62,35 +64,29 @@ public:
 		MS->set_current(MBB);
 	}
 };
+#endif
 
-class UpdateTargetVisitor : public MachineStubVisitor {
-private:
-	typedef std::map<BeginInst*,MachineBasicBlock*> MapTy;
-	struct LookupMap : public MachineJumpStub::LookupFn {
-		MapTy &map;
-		/// constructor
-		LookupMap(MapTy &map) : map(map) {}
-		/// lookup operator
-		virtual MachineBasicBlock* operator()(BeginInst* BI) const {
-			MapTy::iterator it = map.find(BI);
-			assert(it != map.end());
-			return it->second;
+struct UpdatePhiOperand : public std::unary_function<MachinePhiInst*,void> {
+	typedef std::map<Instruction*,MachineOperand*> InstMapTy;
+	InstMapTy inst_map;
+	/// constructor
+	UpdatePhiOperand(InstMapTy &inst_map) : inst_map(inst_map) {}
+	/// function operator
+	virtual void operator()(MachinePhiInst* phi) const {
+		PHIInst* phi_inst = phi->get_PHIInst();
+		assert(phi_inst);
+		Instruction::const_op_iterator op = phi_inst->op_begin();
+
+		for (MachineInstruction::operand_iterator i = phi->begin(),
+				e = phi->end(); i != e; ++i) {
+			Instruction *I = (*op)->to_Instruction();
+			assert(I);
+			InstMapTy::const_iterator it = inst_map.find(I);
+			assert(it != inst_map.end());
+			// set operand
+			i->op = it->second;
+			++op;
 		}
-	};
-
-	MachineBasicBlock::iterator i;
-	LookupMap lookup;
-public:
-	UpdateTargetVisitor(MachineBasicBlock::iterator i, MapTy &map) : i(i), lookup(map) {}
-
-	using MachineStubVisitor::visit;
-
-	virtual void visit(MachineLabelStub *MS) {
-		MachineBasicBlock *MBB = lookup(MS->get_BeginInst());
-		*i = MS->transform(MBB);
-	}
-	virtual void visit(MachineJumpStub *MS) {
-		*i = MS->transform(lookup);
 	}
 };
 
@@ -99,78 +95,68 @@ public:
 bool MachineInstructionSchedulingPass::run(JITData &JD) {
 	BasicBlockSchedule *BS = get_Pass<BasicBlockSchedulingPass>();
 	InstructionSchedule<Instruction> *IS = get_Pass<ListSchedulingPass>();
-	LoweringPass *LP = get_Pass<LoweringPass>();
-
-	// store BeginInst <=> MachineBasicBlock
-	//std::map<BeginInst*,MBBIterator> map;
 	std::map<BeginInst*,MachineBasicBlock*> map;
 
-	// for all basic blocks
+	// create machine basic blocks
 	for (BasicBlockSchedule::const_bb_iterator i = BS->bb_begin(),
 			e = BS->bb_end(); i != e ; ++i) {
 		BeginInst *BI = *i;
 		assert(BI);
 		// create MachineBasicBlock
 		MachineBasicBlock *MBB = *push_back(MBBBuilder());
-		//MBBIterator iMBB = push_front(MBBBuilder());
-		//MachineBasicBlock *MBB = *iMBB;
-		//map.insert(std::make_pair(BI,iMBB)); //map[BI] = iMBB;
 		map[BI] = MBB;
-		// for all instructions in the current basic block
+	}
+
+	Backend *BE = JD.get_Backend();
+	std::map<Instruction*,MachineOperand*> inst_map;
+
+	// lower instructions
+	// XXX ensure dominator ordering!
+	for (std::map<BeginInst*,MachineBasicBlock*>::const_iterator i = map.begin(),
+			e = map.end(); i != e; ++i) {
+		BeginInst *BI = i->first;
+		MachineBasicBlock *MBB = i->second;
+
+		LoweringVisitor LV(BE,MBB,map,inst_map);
+
 		for (InstructionSchedule<Instruction>::const_inst_iterator i = IS->inst_begin(BI),
 				e = IS->inst_end(BI); i != e; ++i) {
 			Instruction *I = *i;
-			const LoweredInstDAG *dag = LP->get_LoweredInstDAG(I);
-			assert(dag);
-			for (LoweredInstDAG::const_mi_iterator i = dag->mi_begin() ,
-					e = dag->mi_end(); i != e ;) {
-				MachineInstruction *MI = *i;
-				MBB->push_back(MI);
-				// start new basic block if there are several jump instructions
-				++i;
-				if (MI->is_stub()) {
-					MachineInstStub *stub = MI->to_MachineInstStub();
-					UpdateCurrentVisitor v(MBB);
-					stub->accepts(v);
-				}
-				if (MI->is_jump() && i != e) {
-					MBB = *push_back(MBBBuilder());
-					MachineInstruction *label = new MachineLabelInst(MBB);
-					MBB->push_back(label);
-				}
-			}
+			I->accept(LV);
 		}
+
 	}
-	// stubs!
-	for (MachineInstructionSchedule::const_iterator i = begin(), e = end();
-			i != e; ++i) {
+
+	// fix phi instructions
+	for (const_iterator i = begin(), e = end(); i != e; ++i) {
 		MachineBasicBlock *MBB = *i;
-		for (MachineBasicBlock::iterator i = MBB->begin(), e = MBB->end();
-				i != e ; ++i) {
-			MachineInstruction *MI = *i;
-			if (MI->is_stub()) {
-				MachineInstStub *stub = MI->to_MachineInstStub();
-				UpdateTargetVisitor v(i,map);
-				stub->accepts(v);
-			}
-		}
+		UpdatePhiOperand functor(inst_map);
+		std::for_each(MBB->phi_begin(), MBB->phi_end(), functor);
 	}
 	return true;
 }
 
 // verify
 bool MachineInstructionSchedulingPass::verify() const {
+	#if 0
 	for (MachineInstructionSchedule::const_iterator i = begin(), e = end();
 			i != e; ++i) {
 		MachineBasicBlock *MBB = *i;
+		if(MBB->size() == 0) {
+			ERROR_MSG("verification failed", "MachineBasicBlock ("
+				<< *MBB << ") empty");
+			return false;
+		}
+		#if 0
 		MachineInstruction *front = MBB->front();
-		MachineInstruction *back = MBB->back();
 		// check for label
 		if(!front->is_label()) {
 			ERROR_MSG("verification failed", "first Instruction ("
 				<< *front << ") not a label");
 			return false;
 		}
+		#endif
+		MachineInstruction *back = MBB->back();
 		// check for end
 		if(!back->is_end()) {
 			ERROR_MSG("verification failed", "last Instruction ("
@@ -182,12 +168,16 @@ bool MachineInstructionSchedulingPass::verify() const {
 				i != e ; ++i) {
 			MachineInstruction *MI = *i;
 			if(MI->is_stub()) {
-				LOG(BoldRed << "error " << BoldWhite << "stub Instruction ("
-					<< *MI << ") " << reset_color << nl);
+				ERROR_MSG("stub Instruction",*MI);
+				return false;
+			}
+			if(!MI->get_block()) {
+				ERROR_MSG("No block", *MI);
 				return false;
 			}
 		}
 	}
+	#endif
 	return true;
 }
 

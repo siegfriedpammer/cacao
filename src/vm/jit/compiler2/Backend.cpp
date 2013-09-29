@@ -23,6 +23,7 @@
 */
 
 #include "vm/jit/compiler2/Backend.hpp"
+#include "vm/jit/compiler2/MachineBasicBlock.hpp"
 
 #include "Target.hpp"
 
@@ -36,41 +37,33 @@ Backend* Backend::factory(JITData *JD) {
 
 void LoweringVisitorBase::visit(BeginInst* I) {
 	assert(I);
-	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	MachineInstruction *label = new MachineLabelStub(I);
-	dag->add(label);
-	dag->set_result(label);
-	set_dag(dag);
+	MachineInstruction *label = new MachineLabelInst(get_current());
+	get_current()->push_back(label);
+	//set_op(I,label->get_result().op);
 }
 
 void LoweringVisitorBase::visit(GOTOInst* I) {
 	assert(I);
-	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	MachineInstruction *jump = backend->create_Jump(I->get_target());
-	dag->add(jump);
-	dag->set_result(jump);
-	set_dag(dag);
+	MachineInstruction *jump = backend->create_Jump(get(I->get_target().get()));
+	get_current()->push_back(jump);
+	set_op(I,jump->get_result().op);
 }
 
 void LoweringVisitorBase::visit(PHIInst* I) {
 	assert(I);
-	LoweredInstDAG *dag = new LoweredInstDAG(I);
-	MachinePhiInst *phi = new MachinePhiInst(I->op_size(),I->get_type());
-	dag->add(phi);
-	dag->set_input(phi);
-	dag->set_result(phi);
-	set_dag(dag);
+	MachinePhiInst *phi = new MachinePhiInst(I->op_size(),I->get_type(),I);
+	get_current()->push_back(phi);
+	get_current()->insert_phi(phi);
+	set_op(I,phi->get_result().op);
 }
 
 void LoweringVisitorBase::visit(CONSTInst* I) {
 	assert(I);
-	LoweredInstDAG *dag = new LoweredInstDAG(I);
 	VirtualRegister *reg = new VirtualRegister(I->get_type());
 	Immediate *imm = new Immediate(I);
 	MachineInstruction *move = backend->create_Move(imm,reg);
-	dag->add(move);
-	dag->set_result(move);
-	set_dag(dag);
+	get_current()->push_back(move);
+	set_op(I,move->get_result().op);
 }
 
 
