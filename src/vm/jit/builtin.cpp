@@ -1264,7 +1264,7 @@ s4 builtin_irem(s4 a, s4 b)
 
 ******************************************************************************/
 
-#if !(SUPPORT_LONG && SUPPORT_LONG_ADD)
+#if !SUPPORT_LONG_ADD
 s8 builtin_ladd(s8 a, s8 b)
 {
 	s8 c;
@@ -1291,10 +1291,10 @@ s8 builtin_lneg(s8 a)
 
 	return c;
 }
-#endif /* !(SUPPORT_LONG && SUPPORT_LONG_ADD) */
+#endif
 
 
-#if !(SUPPORT_LONG && SUPPORT_LONG_MUL)
+#if !SUPPORT_LONG_MUL
 s8 builtin_lmul(s8 a, s8 b)
 {
 	s8 c;
@@ -1303,10 +1303,10 @@ s8 builtin_lmul(s8 a, s8 b)
 
 	return c;
 }
-#endif /* !(SUPPORT_LONG && SUPPORT_LONG_MUL) */
+#endif
 
 
-#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV) || defined (DISABLE_GC)
+#if !(SUPPORT_DIVISION && SUPPORT_LONG_DIV) || defined (DISABLE_GC)
 s8 builtin_ldiv(s8 a, s8 b)
 {
 	s8 c;
@@ -1324,10 +1324,10 @@ s8 builtin_lrem(s8 a, s8 b)
 
 	return c;
 }
-#endif /* !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV) */
+#endif
 
 
-#if !(SUPPORT_LONG && SUPPORT_LONG_SHIFT)
+#if !SUPPORT_LONG_SHIFT
 s8 builtin_lshl(s8 a, s4 b)
 {
 	s8 c;
@@ -1354,37 +1354,7 @@ s8 builtin_lushr(s8 a, s4 b)
 
 	return c;
 }
-#endif /* !(SUPPORT_LONG && SUPPORT_LONG_SHIFT) */
-
-
-#if !(SUPPORT_LONG && SUPPORT_LONG_LOGICAL)
-s8 builtin_land(s8 a, s8 b)
-{
-	s8 c;
-
-	c = a & b; 
-
-	return c;
-}
-
-s8 builtin_lor(s8 a, s8 b)
-{
-	s8 c;
-
-	c = a | b; 
-
-	return c;
-}
-
-s8 builtin_lxor(s8 a, s8 b) 
-{
-	s8 c;
-
-	c = a ^ b; 
-
-	return c;
-}
-#endif /* !(SUPPORT_LONG && SUPPORT_LONG_LOGICAL) */
+#endif
 
 
 s4 builtin_lcmp(s8 a, s8 b)
@@ -1810,22 +1780,22 @@ double builtin_i2d(s4 a)
 #endif /* !(SUPPORT_DOUBLE && SUPPORT_I2D) */
 
 
-#if !(SUPPORT_LONG && SUPPORT_FLOAT && SUPPORT_L2F)
+#if !(SUPPORT_FLOAT && SUPPORT_L2F)
 float builtin_l2f(s8 a)
 {
 	float f = (float) a;
 	return f;
 }
-#endif /* !(SUPPORT_LONG && SUPPORT_FLOAT && SUPPORT_L2F) */
+#endif
 
 
-#if !(SUPPORT_LONG && SUPPORT_DOUBLE && SUPPORT_L2D)
+#if !(SUPPORT_DOUBLE && SUPPORT_L2D)
 double builtin_l2d(s8 a)
 {
 	double d = (double) a;
 	return d;
 }
-#endif /* !(SUPPORT_LONG && SUPPORT_DOUBLE && SUPPORT_L2D) */
+#endif
 
 
 #if !(SUPPORT_FLOAT && SUPPORT_F2I) || defined(ENABLE_INTRP) || defined(DISABLE_GC)
@@ -1856,7 +1826,7 @@ s4 builtin_f2i(float a)
 #endif /* !(SUPPORT_FLOAT && SUPPORT_F2I) || defined(ENABLE_INTRP) || defined(DISABLE_GC) */
 
 
-#if !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_F2L) || defined(DISABLE_GC)
+#if !(SUPPORT_FLOAT && SUPPORT_F2L) || defined(DISABLE_GC)
 s8 builtin_f2l(float a)
 {
 	s8 l;
@@ -1881,7 +1851,7 @@ s8 builtin_f2l(float a)
 		return 9223372036854775807L;
 		return (-9223372036854775808L); */
 }
-#endif /* !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_F2L) */
+#endif
 
 
 #if !(SUPPORT_DOUBLE && SUPPORT_D2I) || defined(ENABLE_INTRP) || defined(DISABLE_GC)
@@ -1906,7 +1876,7 @@ s4 builtin_d2i(double a)
 #endif /* !(SUPPORT_DOUBLE && SUPPORT_D2I) || defined(ENABLE_INTRP) || defined(DISABLE_GC) */
 
 
-#if !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_D2L) || defined(DISABLE_GC)
+#if !(SUPPORT_DOUBLE && SUPPORT_D2L) || defined(DISABLE_GC)
 s8 builtin_d2l(double a)
 {
 	double d;
@@ -1925,7 +1895,7 @@ s8 builtin_d2l(double a)
 		return 9223372036854775807LL;
 	return (-9223372036854775807LL-1);
 }
-#endif /* !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_D2L) */
+#endif
 
 
 #if !(SUPPORT_FLOAT && SUPPORT_DOUBLE)

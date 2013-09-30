@@ -32,7 +32,6 @@
 /* define architecture features ***********************************************/
 
 #define SUPPORT_DIVISION                 1
-#define SUPPORT_LONG                     1
 
 #define SUPPORT_I2F                      1
 #define SUPPORT_I2D                      1
@@ -46,8 +45,6 @@
 
 #define SUPPORT_LONG_ADD                 1
 #define SUPPORT_LONG_CMP                 1
-#define SUPPORT_LONG_CMP_CONST           1
-#define SUPPORT_LONG_LOGICAL             1
 #define SUPPORT_LONG_SHIFT               1
 #define SUPPORT_LONG_MUL                 1
 #define SUPPORT_LONG_DIV                 1
@@ -123,4 +120,5 @@
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

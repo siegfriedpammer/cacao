@@ -142,7 +142,7 @@ static builtintable_entry builtintable_internal[] = {
 	},
 #endif
 
-#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV) || defined(DISABLE_GC)
+#if !(SUPPORT_DIVISION && SUPPORT_LONG_DIV) || defined(DISABLE_GC)
 	{
 		ICMD_LDIV,
 		0,
@@ -504,7 +504,7 @@ static builtintable_entry builtintable_internal[] = {
 
 static builtintable_entry builtintable_automatic[] = {
 
-#if !(SUPPORT_LONG && SUPPORT_LONG_CMP)
+#if !SUPPORT_LONG_CMP
 	{
 		ICMD_LCMP,
 		0,
@@ -521,52 +521,7 @@ static builtintable_entry builtintable_automatic[] = {
 	},
 #endif
 
-#if !(SUPPORT_LONG && SUPPORT_LONG_LOGICAL)
-	{
-		ICMD_LAND,
-		0,
-		BUILTIN_land,
-		NULL,
-		NULL,
-		"land",
-		"(JJ)J",
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL
-	},
-	{
-		ICMD_LOR,
-		0,
-		BUILTIN_lor,
-		NULL,
-		NULL,
-		"lor",
-		"(JJ)J",
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL
-	},
-	{
-		ICMD_LXOR,
-		0,
-		BUILTIN_lxor,
-		NULL,
-		NULL,
-		"lxor",
-		"(JJ)J",
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL
-	},
-#endif /* !(SUPPORT_LONG && SUPPORT_LONG_LOGICAL) */
-
-#if !(SUPPORT_LONG && SUPPORT_LONG_SHIFT)
+#if !SUPPORT_LONG_SHIFT
 	{
 		ICMD_LSHL,
 		0,
@@ -609,9 +564,9 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL
 	},
-#endif /* !(SUPPORT_LONG && SUPPORT_LONG_SHIFT) */
+#endif
 
-#if !(SUPPORT_LONG && SUPPORT_LONG_ADD)
+#if !SUPPORT_LONG_ADD
 	{
 		ICMD_LADD,
 		0,
@@ -654,9 +609,9 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL
 	},
-#endif /* !(SUPPORT_LONG && SUPPORT_LONG_ADD) */
+#endif
 
-#if !(SUPPORT_LONG && SUPPORT_LONG_MUL)
+#if !SUPPORT_LONG_MUL
 	{
 		ICMD_LMUL,
 		0,
@@ -707,7 +662,7 @@ static builtintable_entry builtintable_automatic[] = {
 	},
 #endif
 
-#if !(SUPPORT_LONG && SUPPORT_FLOAT && SUPPORT_L2F)
+#if !(SUPPORT_FLOAT && SUPPORT_L2F)
 	{
 		ICMD_L2F,
 		0,
@@ -724,7 +679,7 @@ static builtintable_entry builtintable_automatic[] = {
 	},
 #endif
 
-#if !(SUPPORT_LONG && SUPPORT_DOUBLE && SUPPORT_L2D)
+#if !(SUPPORT_DOUBLE && SUPPORT_L2D)
 	{
 		ICMD_L2D,
 		0,
@@ -758,7 +713,7 @@ static builtintable_entry builtintable_automatic[] = {
 	},
 #endif
 
-#if !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_F2L)
+#if !(SUPPORT_FLOAT && SUPPORT_F2L)
 	{
 		ICMD_F2L,
 		0,
@@ -792,7 +747,7 @@ static builtintable_entry builtintable_automatic[] = {
 	},
 #endif
 
-#if !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_D2L)
+#if !(SUPPORT_DOUBLE && SUPPORT_D2L)
 	{
 		ICMD_D2L,
 		0,
