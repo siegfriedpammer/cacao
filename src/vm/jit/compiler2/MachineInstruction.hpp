@@ -148,7 +148,7 @@ public:
 		return block;
 	}
 
-	unsigned size_op() const {
+	unsigned op_size() const {
 		return operands.size();
 	}
 	MachineOperandDesc& operator[](unsigned i) {

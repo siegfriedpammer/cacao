@@ -111,6 +111,9 @@ public:
 	typedef std::list<MachinePhiInst*> PhiListTy;
 	typedef PhiListTy::const_iterator const_phi_iterator;
 
+	typedef std::vector<MachineBasicBlock*> PredListTy;
+	typedef PredListTy::const_iterator const_pred_iterator;
+
 	/// construct an empty MachineBasicBlock
 	MachineBasicBlock(const MBBIterator &my_it)
 		: id(id_counter++),  my_it(my_it) {};
@@ -157,6 +160,27 @@ public:
 	const_phi_iterator phi_begin() const;
 	/// returns an const iterator to the phi instructions
 	const_phi_iterator phi_end() const;
+	/// returns the number of phi nodes
+	std::size_t phi_size() const;
+
+	/**
+	 * Appends the given element value to the list of predecessors.
+	 * @note Ensure that the PHI instructions are updated as well.
+	 */
+	void insert_pred(MachineBasicBlock* value);
+	/// returns an const iterator to the predecessors
+	const_pred_iterator pred_begin() const;
+	/// returns an const iterator to the predecessors
+	const_pred_iterator pred_end() const;
+	/// returns the number of predecessor nodes
+	std::size_t pred_size() const;
+	/// Get the i'th predecessor
+	MachineBasicBlock* get_predecessor(std::size_t i) const;
+	/**
+	 * Get predecessor index
+	 * @return the predecessor index of MBB or pred_size() if not found
+	 */
+	std::size_t get_predecessor_index(MachineBasicBlock* MBB) const;
 
 	/// get a MIIterator form a interator
 	MIIterator convert(iterator pos);
@@ -175,6 +199,7 @@ private:
 	MachineBasicBlock() : id(id_counter++) {}
 	ordered_list<MachineInstruction*> list;
 	PhiListTy phi;
+	PredListTy predecessors;
 
 	friend class MBBBuilder;
 	friend class MachineInstructionSchedule;
@@ -292,7 +317,36 @@ inline MachineBasicBlock::const_phi_iterator MachineBasicBlock::phi_begin() cons
 inline MachineBasicBlock::const_phi_iterator MachineBasicBlock::phi_end() const {
 	return phi.end();
 }
+inline std::size_t MachineBasicBlock::phi_size() const {
+	return phi.size();
+}
 
+inline void MachineBasicBlock::insert_pred(MachineBasicBlock* value) {
+	predecessors.push_back(value);
+}
+inline MachineBasicBlock::const_pred_iterator MachineBasicBlock::pred_begin() const {
+	return predecessors.begin();
+}
+inline MachineBasicBlock::const_pred_iterator MachineBasicBlock::pred_end() const {
+	return predecessors.end();
+}
+inline std::size_t MachineBasicBlock::pred_size() const {
+	return predecessors.size();
+}
+inline MachineBasicBlock* MachineBasicBlock::get_predecessor(std::size_t i) const {
+	assert(i < predecessors.size());
+	return predecessors[i];
+}
+inline std::size_t
+MachineBasicBlock::get_predecessor_index(MachineBasicBlock* MBB) const {
+	std::size_t i = 0, e = pred_size();
+	for (; i < e; ++i) {
+		if (predecessors[i] == MBB) {
+			return i;
+		}
+	}
+	return i;
+}
 
 template <class InputIterator>
 inline void move_instructions(InputIterator first, InputIterator last,

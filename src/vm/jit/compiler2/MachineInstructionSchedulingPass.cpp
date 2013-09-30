@@ -110,6 +110,15 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 			I->accept(LV);
 		}
 
+		// fix predecessors
+		for (BeginInst::const_pred_iterator i = BI->pred_begin(),
+				e = BI->pred_end(); i != e; ++i) {
+			BeginInst *pred = (*i)->get_BeginInst();
+			std::map<BeginInst*,MachineBasicBlock*>::const_iterator it = map.find(pred);
+			assert(it != map.end());
+			MBB->insert_pred(it->second);
+		}
+
 	}
 
 	for (const_iterator i = begin(), e = end(); i != e; ++i) {
@@ -161,6 +170,19 @@ bool MachineInstructionSchedulingPass::verify() const {
 				<< *back << ") not a control flow transfer instruction");
 			return false;
 		}
+
+		std::size_t num_pred = MBB->pred_size();
+		// check phis
+		for (MachineBasicBlock::const_phi_iterator i = MBB->phi_begin(), e = MBB->phi_end();
+				i != e; ++i) {
+			MachinePhiInst *phi = *i;
+			if (phi->op_size() != num_pred) {
+				ERROR_MSG("verification failed", "Machine basic block (" << *MBB << ") has "
+					<< num_pred << " predecessors but phi node (" << *phi << ") has " << phi->op_size());
+				return false;
+			}
+		}
+
 		for (MachineBasicBlock::const_iterator i = MBB->begin(), e = MBB->end();
 				i != e ; ++i) {
 			MachineInstruction *MI = *i;

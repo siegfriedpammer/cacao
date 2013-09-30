@@ -91,6 +91,7 @@ public:
 class BeginInst : public Instruction {
 public:
 	typedef std::vector<BeginInst*> PredecessorListTy;
+	typedef PredecessorListTy::const_iterator const_pred_iterator;
 private:
 	EndInst *end;
 	PredecessorListTy pred_list;
@@ -137,9 +138,9 @@ public:
 	void set_EndInst(EndInst* e) { end = e; }
 	virtual bool is_floating() const { return false; }
 
-	PredecessorListTy::const_iterator pred_begin() const { return pred_list.begin(); }
-	PredecessorListTy::const_iterator pred_end()   const { return pred_list.end(); }
-	size_t pred_size() const { return pred_list.size(); }
+	const_pred_iterator pred_begin() const { return pred_list.begin(); }
+	const_pred_iterator pred_end()   const { return pred_list.end(); }
+	std::size_t pred_size() const { return pred_list.size(); }
 
 	friend class EndInst;
 	friend class Method;
