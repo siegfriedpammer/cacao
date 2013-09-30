@@ -151,7 +151,6 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 
 // verify
 bool MachineInstructionSchedulingPass::verify() const {
-	#if 0
 	for (MachineInstructionSchedule::const_iterator i = begin(), e = end();
 			i != e; ++i) {
 		MachineBasicBlock *MBB = *i;
@@ -190,7 +189,6 @@ bool MachineInstructionSchedulingPass::verify() const {
 			}
 		}
 	}
-	#endif
 	return true;
 }
 

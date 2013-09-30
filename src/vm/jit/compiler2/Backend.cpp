@@ -37,9 +37,11 @@ Backend* Backend::factory(JITData *JD) {
 
 void LoweringVisitorBase::visit(BeginInst* I) {
 	assert(I);
+	#if 0
 	MachineInstruction *label = new MachineLabelInst(get_current());
 	get_current()->push_back(label);
 	//set_op(I,label->get_result().op);
+	#endif
 }
 
 void LoweringVisitorBase::visit(GOTOInst* I) {
