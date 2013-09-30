@@ -697,6 +697,15 @@ OStream& CondJumpInst::print(OStream &OS) const {
 		<< get_name() << "-> " << *(successors.front())
 		<< " (else " << *(successors.back()) << ")";
 }
+
+void CondJumpInst::set_block(MachineBasicBlock* MBB) {
+	assert(successor_size() == 2);
+	MachineInstruction::set_block(MBB);
+	successors.back() = SuccessorProxy(MBB,SuccessorProxy::Implicit());
+
+}
+
+
 void IMulInst::emit(CodeMemory* CM) const {
 	X86_64Register *src_reg = cast_to<X86_64Register>(operands[1].op);
 	X86_64Register *dst_reg = cast_to<X86_64Register>(result.op);

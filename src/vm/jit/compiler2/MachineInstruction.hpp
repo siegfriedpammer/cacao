@@ -142,7 +142,7 @@ public:
 		assert(i < operands.size());
 		operands[i].op = op;
 	}
-	void set_block(MachineBasicBlock* MBB) {
+	virtual void set_block(MachineBasicBlock* MBB) {
 		block = MBB;
 	}
 	MachineBasicBlock* get_block() const {
@@ -185,6 +185,9 @@ public:
 	}
 	const_successor_iterator successor_end() const {
 		return successors.end();
+	}
+	std::size_t successor_size() const {
+		return successors.size();
 	}
 	unsigned get_id() const {
 		return id;

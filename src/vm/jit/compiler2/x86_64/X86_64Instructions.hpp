@@ -370,6 +370,7 @@ public:
 	}
 	virtual void emit(CodeMemory* CM) const;
 	virtual void link(CodeFragment &CF) const;
+	virtual void set_block(MachineBasicBlock* MBB);
 	virtual OStream& print(OStream &OS) const;
 	MachineBasicBlock* get_MachineBasicBlock() const {
 		return successors.front();
