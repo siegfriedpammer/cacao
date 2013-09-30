@@ -608,54 +608,6 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
-// STUBS
-
-class JumpInstStub : public MachineJumpStub {
-private:
-	BeginInst *begin;
-public:
-	JumpInstStub(BeginInst *begin)
-		: MachineJumpStub("X86_64JumpInstStub", &NoOperand,0),
-		begin(begin) {}
-	virtual MachineInstruction* transform(LookupFn &Fn) {
-		return new JumpInst(Fn(begin));
-	}
-};
-
-class CondJumpInstStub : public MachineJumpStub {
-private:
-	Cond::COND cond;
-	BeginInst *begin;
-public:
-	CondJumpInstStub(Cond::COND cond, BeginInst *begin)
-			: MachineJumpStub("X86_64CondJumpInst", &NoOperand, 0),
-			  cond(cond), begin(begin) {}
-	virtual MachineInstruction* transform(LookupFn &Fn) {
-		assert(block);
-		return new CondJumpInst(cond, Fn(begin), block);
-	}
-};
-class IndirectJumpStub : public MachineJumpStub {
-public:
-	typedef std::list<BeginInst*> TargetListTy;
-	typedef TargetListTy::const_iterator target_const_iterator;
-private:
-	 /// List of possible targets.
-	TargetListTy targets;
-	MachineOperand *src;
-public:
-	IndirectJumpStub(const SrcOp &src)
-			: MachineJumpStub("X86_64IndirectJumpStub", &NoOperand, 1),
-			src(src.op) {}
-	void add_target(BeginInst *BI) {
-		targets.push_back(BI);
-	}
-	target_const_iterator begin() const { return targets.begin(); }
-	target_const_iterator end()   const { return targets.end(); }
-
-	virtual MachineInstruction* transform(LookupFn &Fn);
-};
-
 } // end namespace x86_64
 } // end namespace compiler2
 } // end namespace jit

@@ -34,10 +34,12 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+#if 0
 void MachineLabelInst::emit(CodeMemory* CM) const {
 	// XXX CM->get_CodeSegment().insert_tag(CSLabel(begin));
 	assert(0);
 }
+#endif
 
 } // end namespace compiler2
 } // end namespace jit

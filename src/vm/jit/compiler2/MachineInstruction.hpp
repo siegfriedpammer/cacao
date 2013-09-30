@@ -43,7 +43,6 @@ namespace compiler2 {
 class MachineMoveInst;
 class MachinePhiInst;
 class MachineLabelInst;
-class MachineInstStub;
 class CodeMemory;
 class MachineInstruction;
 
@@ -216,9 +215,6 @@ public:
 	virtual bool is_move() const {
 		return false;
 	}
-	virtual bool is_stub() const {
-		return false;
-	}
 	virtual bool is_jump() const {
 		return false;
 	}
@@ -233,9 +229,6 @@ public:
 		return NULL;
 	}
 	#endif
-	virtual MachineInstStub* to_MachineInstStub() {
-		return NULL;
-	}
 	virtual MachinePhiInst* to_MachinePhiInst() {
 		return NULL;
 	}

@@ -31,50 +31,7 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-// forward declaration
-class MachineLabelStub;
-class MachineJumpStub;
-
-class MachineStubVisitor {
-public:
-	virtual void visit(MachineLabelStub *MS) {}
-	virtual void visit(MachineJumpStub *MS) {}
-};
-/**
- * Stub. A stub is an intermediate machine instruction used during
- * the construction of a MachineInstructionSchedule. It will be replaced by
- * a concrete MachineInst.
- */
-class MachineInstStub : public MachineInstruction {
-public:
-	MachineInstStub(const char * name, MachineOperand* result, unsigned num_operands, const char* comment = NULL)
-		: MachineInstruction(name, result, num_operands, comment) {}
-	virtual bool is_stub() const {
-		return true;
-	}
-	virtual MachineInstStub* to_MachineInstStub() {
-		return this;
-	}
-	virtual void accepts(MachineStubVisitor &visitor) = 0;
-};
-
-class MachineJumpStub : public MachineInstStub {
-public:
-	struct LookupFn : public std::unary_function<BeginInst&, MachineBasicBlock*>{
-		virtual MachineBasicBlock* operator()(BeginInst* BI) const = 0;
-	};
-
-	MachineJumpStub(const char * name, MachineOperand* result, unsigned num_operands, const char* comment = NULL)
-		: MachineInstStub(name, result, num_operands, comment) {}
-	virtual void accepts(MachineStubVisitor &visitor) {
-		visitor.visit(this);
-	}
-	virtual bool is_jump() const {
-		return true;
-	}
-	virtual MachineInstruction* transform(LookupFn &Fn) = 0;
-};
-
+#if 0
 class MachineLabelInst : public MachineInstruction {
 private:
 	MachineBasicBlock *MBB;
@@ -88,22 +45,7 @@ public:
 		return MBB;
 	}
 };
-
-class MachineLabelStub : public MachineInstStub {
-private:
-	BeginInst *begin;
-public:
-	MachineLabelStub(BeginInst *begin) : MachineInstStub("MLabelStub", &NoOperand, 0), begin(begin) {}
-	BeginInst* get_BeginInst() const {
-		return begin;
-	}
-	virtual void accepts(MachineStubVisitor &visitor) {
-		visitor.visit(this);
-	}
-	virtual MachineInstruction* transform(MachineBasicBlock *MBB) {
-		return new MachineLabelInst(MBB);
-	}
-};
+#endif
 
 class MachinePhiInst : public MachineInstruction {
 private:

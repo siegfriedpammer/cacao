@@ -51,7 +51,6 @@ public:
 	virtual RegisterFile* get_RegisterFile(Type::TypeID type) const = 0;
 	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const = 0;
-	virtual MachineInstruction* create_Jump(BeginInstRef &target) const = 0;
 	virtual MachineInstruction* create_Jump(MachineBasicBlock *target) const = 0;
 	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM) const = 0;
 	virtual const char* get_name() const = 0;
@@ -68,7 +67,6 @@ public:
 	virtual RegisterFile* get_RegisterFile(Type::TypeID type) const;
 	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const;
-	virtual MachineInstruction* create_Jump(BeginInstRef &target) const;
 	virtual MachineInstruction* create_Jump(MachineBasicBlock *target) const;
 	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM) const;
 	virtual const char* get_name() const;

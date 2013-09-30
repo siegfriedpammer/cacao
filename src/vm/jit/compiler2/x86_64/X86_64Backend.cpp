@@ -91,12 +91,6 @@ MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *src,
 }
 
 template<>
-MachineInstruction* BackendBase<X86_64>::create_Jump(BeginInstRef &target) const {
-	assert(0&&"fixme");
-	return new JumpInstStub(target.get());
-}
-
-template<>
 MachineInstruction* BackendBase<X86_64>::create_Jump(MachineBasicBlock *target) const {
 	return new JumpInst(target);
 }

@@ -839,25 +839,6 @@ OStream& IndirectJumpInst::print(OStream &OS) const {
 	return OS;
 }
 
-namespace {
-struct MyFancyFunction {
-	MachineJumpStub::LookupFn& Fn;
-	IndirectJumpInst* jump;
-	MyFancyFunction(MachineJumpStub::LookupFn& Fn, IndirectJumpInst* jump)
-		: Fn(Fn), jump(jump) {}
-	void operator()(BeginInst* BI) const {
-		jump->add_target(Fn(BI));
-	}
-};
-}
-
-MachineInstruction* IndirectJumpStub::transform(LookupFn &Fn) {
-	IndirectJumpInst* MI = new IndirectJumpInst(SrcOp(src));
-	std::for_each(begin(),end(),MyFancyFunction(Fn,MI));
-	//std::bind1st(std::mem_fun(&IndirectJumpInst::add_target), MI));
-	return MI;
-}
-
 void SSEAluInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[1].op;
 	MachineOperand *dst = result.op;

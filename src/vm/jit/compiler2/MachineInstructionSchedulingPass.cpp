@@ -50,20 +50,6 @@ void MachineInstructionSchedulingPass::initialize() {
 
 
 namespace {
-#if 0
-class UpdateCurrentVisitor : public MachineStubVisitor {
-private:
-	MachineBasicBlock *MBB;
-public:
-	UpdateCurrentVisitor(MachineBasicBlock *MBB) : MBB(MBB) {}
-
-	using MachineStubVisitor::visit;
-
-	virtual void visit(MachineJumpStub *MS) {
-		MS->set_current(MBB);
-	}
-};
-#endif
 
 struct UpdatePhiOperand : public std::unary_function<MachinePhiInst*,void> {
 	typedef std::map<Instruction*,MachineOperand*> InstMapTy;
@@ -175,14 +161,10 @@ bool MachineInstructionSchedulingPass::verify() const {
 				<< *back << ") not a control flow transfer instruction");
 			return false;
 		}
-		// check for stub
 		for (MachineBasicBlock::const_iterator i = MBB->begin(), e = MBB->end();
 				i != e ; ++i) {
 			MachineInstruction *MI = *i;
-			if(MI->is_stub()) {
-				ERROR_MSG("stub Instruction",*MI);
-				return false;
-			}
+			// check for block
 			if(!MI->get_block()) {
 				ERROR_MSG("No block", *MI);
 				return false;
