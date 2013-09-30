@@ -165,6 +165,9 @@ public:
 	/// print
 	OStream& print(OStream& OS) const;
 private:
+	/// update instruction block
+	void update(MachineInstruction *MI);
+
 	static std::size_t id_counter;
 	std::size_t id;
 	MBBIterator my_it;
@@ -205,21 +208,35 @@ inline MIIterator& MIIterator::operator--() {
 inline std::size_t MachineBasicBlock::size() const {
 	return list.size();
 }
+inline void MachineBasicBlock::push_back(MachineInstruction* value) {
+	update(value);
+	list.push_back(value);
+}
+inline void MachineBasicBlock::push_front(MachineInstruction* value) {
+	update(value);
+	list.push_front(value);
+}
 inline void MachineBasicBlock::insert_before(iterator pos, MachineInstruction* value) {
+	update(value);
 	list.insert(pos,value);
 }
 inline void MachineBasicBlock::insert_after(iterator pos, MachineInstruction* value) {
+	update(value);
 	list.insert(++pos,value);
 }
 template<class InputIt>
 inline void MachineBasicBlock::insert_before(iterator pos,
 		InputIt first, InputIt last) {
 	list.insert(pos,first,last);
+	std::for_each(first,last,
+		std::bind1st(std::mem_fun(&MachineBasicBlock::update), this));
 }
 template<class InputIt>
 inline void MachineBasicBlock::insert_after(iterator pos,
 		InputIt first, InputIt last) {
 	list.insert(++pos,first,last);
+	std::for_each(first,last,
+		std::bind1st(std::mem_fun(&MachineBasicBlock::update), this));
 }
 inline MachineBasicBlock::iterator
 MachineBasicBlock::erase(iterator pos) {

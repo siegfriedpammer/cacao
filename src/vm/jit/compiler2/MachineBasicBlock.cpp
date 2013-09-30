@@ -37,16 +37,8 @@ OStream& MachineBasicBlock::print(OStream& OS) const {
 	return OS << "MBB:" << setz(4) << id;
 }
 
-void MachineBasicBlock::push_back(MachineInstruction* value) {
-	//assert(!value->get_block());
-	value->set_block(this);
-	list.push_back(value);
-}
-
-void MachineBasicBlock::push_front(MachineInstruction* value) {
-	//assert(!value->get_block());
-	value->set_block(this);
-	list.push_front(value);
+void MachineBasicBlock::update(MachineInstruction *MI) {
+	MI->set_block(this);
 }
 
 } // end namespace compiler2
