@@ -313,7 +313,8 @@ bool MachineInstructionPrinterPass::run(JITData &JD) {
 	for (MachineInstructionSchedule::iterator i = MIS->begin(), e = MIS->end();
 			i != e; ++i) {
 		MachineBasicBlock *MBB = *i;
-		LOG(*MBB << nl);
+		LOG(*MBB << " ");
+		print_ptr_container(dbg(),MBB->pred_begin(),MBB->pred_end()) << nl;
 		for (MachineBasicBlock::iterator i = MBB->begin(), e = MBB->end();
 				i != e ; ++i) {
 			MachineInstruction *MI = *i;

@@ -23,9 +23,11 @@
 */
 
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
-#include "vm/jit/compiler2/MachineInstruction.hpp"
+#include "vm/jit/compiler2/MachineInstructions.hpp"
 #include "toolbox/OStream.hpp"
 
+#include "toolbox/logging.hpp"
+#define DEBUG_NAME "compiler2/MachineBasicBlock"
 
 namespace cacao {
 namespace jit {
@@ -39,6 +41,23 @@ OStream& MachineBasicBlock::print(OStream& OS) const {
 
 void MachineBasicBlock::update(MachineInstruction *MI) {
 	MI->set_block(this);
+}
+
+void MoveEdgeFunctor::operator()(MachineInstruction* MI) {
+	if (MI->is_jump()) {
+		for (MachineInstruction::const_successor_iterator i = MI->successor_begin(),
+				e = MI->successor_end(); i != e; ++i) {
+			MachineBasicBlock *MBB = *i;
+			for (MachineBasicBlock::pred_iterator i = MBB->pred_begin(),
+					e = MBB->pred_end(); i != e; ++i) {
+				if (**i == from) {
+					LOG("Instruction " << *MI << " moved from " << from
+						<< " to " << to << " predecessor of MBB: " << *MBB << nl);
+					*i = &to;
+				}
+			}
+		}
+	}
 }
 
 } // end namespace compiler2

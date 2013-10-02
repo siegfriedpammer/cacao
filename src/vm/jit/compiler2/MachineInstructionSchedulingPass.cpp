@@ -135,6 +135,7 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 			if (MI->is_jump() && i != e) {
 				MachineBasicBlock *new_MBB = *insert_after(MBB->self_iterator(),MBBBuilder());
 				assert(new_MBB);
+				new_MBB->insert_pred(MBB);
 				LOG2("new MBB: " << *new_MBB << nl);
 				move_instructions(i,e,*MBB,*new_MBB);
 				break;

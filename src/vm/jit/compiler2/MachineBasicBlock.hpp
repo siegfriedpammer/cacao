@@ -113,6 +113,7 @@ public:
 
 	typedef std::vector<MachineBasicBlock*> PredListTy;
 	typedef PredListTy::const_iterator const_pred_iterator;
+	typedef PredListTy::iterator pred_iterator;
 
 	/// construct an empty MachineBasicBlock
 	MachineBasicBlock(const MBBIterator &my_it)
@@ -172,6 +173,10 @@ public:
 	const_pred_iterator pred_begin() const;
 	/// returns an const iterator to the predecessors
 	const_pred_iterator pred_end() const;
+	/// returns an iterator to the predecessors
+	pred_iterator pred_begin();
+	/// returns an iterator to the predecessors
+	pred_iterator pred_end();
 	/// returns the number of predecessor nodes
 	std::size_t pred_size() const;
 	/// Get the i'th predecessor
@@ -188,6 +193,8 @@ public:
 	MBBIterator self_iterator() const;
 	/// print
 	OStream& print(OStream& OS) const;
+	/// equality operator
+	bool operator==(const MachineBasicBlock &other) const;
 private:
 	/// update instruction block
 	void update(MachineInstruction *MI);
@@ -330,6 +337,12 @@ inline MachineBasicBlock::const_pred_iterator MachineBasicBlock::pred_begin() co
 inline MachineBasicBlock::const_pred_iterator MachineBasicBlock::pred_end() const {
 	return predecessors.end();
 }
+inline MachineBasicBlock::pred_iterator MachineBasicBlock::pred_begin() {
+	return predecessors.begin();
+}
+inline MachineBasicBlock::pred_iterator MachineBasicBlock::pred_end() {
+	return predecessors.end();
+}
 inline std::size_t MachineBasicBlock::pred_size() const {
 	return predecessors.size();
 }
@@ -348,9 +361,32 @@ MachineBasicBlock::get_predecessor_index(MachineBasicBlock* MBB) const {
 	return i;
 }
 
+inline bool MachineBasicBlock::operator==(const MachineBasicBlock &other) const {
+	//return this == &other;
+	return id == other.id;
+}
+
+struct MoveEdgeFunctor : public std::unary_function<MachineInstruction*,void> {
+	MachineBasicBlock &from;
+	MachineBasicBlock &to;
+	MoveEdgeFunctor(MachineBasicBlock &from, MachineBasicBlock &to)
+		: from(from), to(to) {}
+	void operator()(MachineInstruction* MI);
+};
+
+/**
+ * Move instructions to another basic block.
+ *
+ * @note this also updates the predecessor list for the target basic blocks
+ * of jump instructions. Example if a JUMP to BB_target is moved from
+ * BB_from to BB_to than all occurrences of BB_from in BB_targets predecessor
+ * list are replaced with BB_to.
+ */
 template <class InputIterator>
 inline void move_instructions(InputIterator first, InputIterator last,
 		MachineBasicBlock &from, MachineBasicBlock &to) {
+	MoveEdgeFunctor Fn(from,to);
+	std::for_each(first,last,Fn);
 	to.insert_before(to.end(),first,last);
 	from.erase(first,last);
 }
