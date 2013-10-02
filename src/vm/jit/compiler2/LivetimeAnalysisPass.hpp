@@ -41,16 +41,18 @@ namespace compiler2 {
  */
 class LivetimeAnalysisPass : public Pass {
 public:
-	typedef std::map<Register*,LivetimeInterval> LivetimeIntervalMapTy;
+	typedef std::map<MachineOperand*,LivetimeInterval> LivetimeIntervalMapTy;
 	typedef LivetimeIntervalMapTy::const_iterator const_iterator;
 	typedef LivetimeIntervalMapTy::iterator iterator;
 private:
-	typedef std::set<Register*> LiveInSetTy;
-	typedef std::map<BeginInst*,LiveInSetTy> LiveInMapTy;
+	typedef std::set<MachineOperand*> LiveInSetTy;
+	typedef std::map<MachineBasicBlock*,LiveInSetTy> LiveInMapTy;
+
+	struct UnionLiveIn;
+	class InsertPhiOperands;
 
 	LivetimeIntervalMapTy lti_map;
-	//BasicBlockSchedule *BS;
-	//MachineInstructionSchedule *MIS;
+	MachineInstructionSchedule *MIS;
 public:
 	static char ID;
 	LivetimeAnalysisPass() : Pass() {}
@@ -74,8 +76,8 @@ public:
 	std::size_t size() const {
 		return lti_map.size();
 	}
-	LivetimeInterval* get(Register* reg) {
-		iterator i = lti_map.find(reg);
+	LivetimeInterval* get(MachineOperand* operand) {
+		iterator i = lti_map.find(operand);
 		if ( i == lti_map.end()) {
 			return NULL;
 		}

@@ -22,15 +22,6 @@
 
 */
 
-/**
- * @file
- *
- * The algorithm to callculate the livetime information is based on
- * Wimmer and Franz "Linear Scan Register Allocation on SSA Form", 2010.
- * @cite Wimmer2010
- *
- */
-
 #include "vm/jit/compiler2/LivetimeAnalysisPass.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
@@ -48,18 +39,106 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+namespace {
+
+MachineInstruction::successor_iterator
+get_successor_begin(MachineBasicBlock* MBB) {
+	return MBB->back()->successor_begin();
+}
+
+MachineInstruction::successor_iterator
+get_successor_end(MachineBasicBlock* MBB) {
+	return MBB->back()->successor_end();
+}
+
+} // end anonymous namespace
+
+/**
+ * @Cpp11 use std::function
+ */
+class LivetimeAnalysisPass::InsertPhiOperands : public std::unary_function<MachineBasicBlock*,void> {
+private:
+	/// Phi inserter
+	struct PhiOperandInserter : public std::unary_function<MachinePhiInst*,void> {
+		LiveInSetTy &live;
+		std::size_t index;
+		/// constructor
+		PhiOperandInserter(LiveInSetTy &live, std::size_t index)
+			: live(live), index(index) {}
+
+		void operator()(MachinePhiInst* phi) {
+			live.insert(phi->get(index).op);
+		}
+	};
+
+	LiveInSetTy &live;
+	MachineBasicBlock *current;
+public:
+	/// constructor
+	InsertPhiOperands(LiveInSetTy &live, MachineBasicBlock *current)
+		: live(live), current(current) {}
+
+	void operator()(MachineBasicBlock* MBB) {
+		std::for_each(MBB->phi_begin(), MBB->phi_end(),
+			PhiOperandInserter(live,MBB->get_predecessor_index(current)));
+	}
+};
+
+/**
+ * @Cpp11 use std::function
+ */
+struct LivetimeAnalysisPass::UnionLiveIn : public std::unary_function<MachineBasicBlock*,void> {
+	LiveInSetTy &live_set;
+	LiveInMapTy &live_map;
+
+	/// Constructor
+	UnionLiveIn(LiveInSetTy &live_set, LiveInMapTy &live_map)
+		: live_set(live_set), live_map(live_map) {}
+
+	void operator()(MachineBasicBlock* MBB) {
+		LiveInSetTy &other_set = live_map[MBB];
+		live_set.insert(other_set.begin(), other_set.end());
+	}
+};
+
+
 bool LivetimeAnalysisPass::run(JITData &JD) {
-#if 0
-	BS = get_Pass<BasicBlockSchedulingPass>();
 	MIS = get_Pass<MachineInstructionSchedulingPass>();
-	LoweringPass *LP = get_Pass<LoweringPass>();
-	LoopTree *LT = get_Pass<LoopPass>();
+	//LoweringPass *LP = get_Pass<LoweringPass>();
+	//LoopTree *LT = get_Pass<LoopPass>();
 	// TODO use better data structor for the register set
 	LiveInMapTy liveIn;
 
 	// for all basic blocks in reverse order
-	for (BasicBlockSchedule::const_reverse_bb_iterator i = BS->bb_rbegin(),
-			e = BS->bb_rend(); i != e ; ++i) {
+	for (MachineInstructionSchedule::const_reverse_iterator i = MIS->rbegin(),
+			e = MIS->rend(); i != e ; ++i) {
+		MachineBasicBlock* BB = *i;
+		LOG2("BasicBlock: " << *BB << nl);
+		// get live set
+		LiveInSetTy &live = liveIn[BB];
+
+		// live == union of successor.liveIn for each successor of BB
+		std::for_each(get_successor_begin(BB), get_successor_end(BB), UnionLiveIn(live,liveIn));
+
+		// for each phi function of successors of BB
+		#if 0
+		for(MachineInstruction::successor_iterator i = get_successor_begin(BB),
+				e = get_successor_end(BB); i != e; ++i) {
+			MachineBasicBlock *succ_MBB = *i;
+			std::size_t index = succ_MBB->get_predecessor_index(BB);
+			assert_msg(index != succ_MBB->pred_size(),
+				"BasicBlock: " << * BB << " not found in predecessor list of " << succ_MBB);
+			for (MachineBasicBlock::const_phi_iterator i = succ_MBB->phi_begin(),
+					e = succ_MBB->phi_end(); i != e ; ++i ) {
+				MachinePhiInst *phi = *i;
+				live.insert(phi->get(index).op);
+			}
+		}
+		#else
+		std::for_each(get_successor_begin(BB), get_successor_end(BB), InsertPhiOperands(live,BB));
+		#endif
+	}
+#if 0
 		BeginInst *BI = *i;
 		assert(BI);
 
