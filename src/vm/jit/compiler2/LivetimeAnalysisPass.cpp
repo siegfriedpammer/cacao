@@ -51,12 +51,14 @@ get_successor_end(MachineBasicBlock* MBB) {
 	return MBB->back()->successor_end();
 }
 
-} // end anonymous namespace
+typedef LivetimeAnalysisPass::LiveInSetTy LiveInSetTy;
+typedef LivetimeAnalysisPass::LiveInMapTy LiveInMapTy;
+typedef LivetimeAnalysisPass::LivetimeIntervalMapTy LivetimeIntervalMapTy;
 
 /**
  * @Cpp11 use std::function
  */
-class LivetimeAnalysisPass::InsertPhiOperands : public std::unary_function<MachineBasicBlock*,void> {
+class InsertPhiOperands : public std::unary_function<MachineBasicBlock*,void> {
 private:
 	/// Phi inserter
 	struct PhiOperandInserter : public std::unary_function<MachinePhiInst*,void> {
@@ -87,7 +89,7 @@ public:
 /**
  * @Cpp11 use std::function
  */
-struct LivetimeAnalysisPass::UnionLiveIn : public std::unary_function<MachineBasicBlock*,void> {
+struct UnionLiveIn : public std::unary_function<MachineBasicBlock*,void> {
 	LiveInSetTy &live_set;
 	LiveInMapTy &live_map;
 
@@ -101,6 +103,76 @@ struct LivetimeAnalysisPass::UnionLiveIn : public std::unary_function<MachineBas
 	}
 };
 
+/**
+ * @Cpp11 use std::function
+ */
+class AddOperandInterval : public std::unary_function<MachineOperand*,void> {
+private:
+	LivetimeIntervalMapTy &lti_map;
+	MachineBasicBlock *BB;
+public:
+	/// Constructor
+	AddOperandInterval(LivetimeIntervalMapTy &lti_map, MachineBasicBlock *BB)
+		: lti_map(lti_map), BB(BB) {}
+	void operator()(MachineOperand* op) {
+		assert(op);
+		assert(op != &NoOperand);
+		LOG2("AddOperandInterval: op=" << *op << " BasicBlock: " << &BB);
+		lti_map[op].add_range(UseDef(UseDef::Pseudo,BB->mi_first()),
+			UseDef(UseDef::Pseudo,BB->mi_last()));
+	}
+};
+
+/**
+ * @Cpp11 use std::function
+ */
+class ProcessInOperands : public std::unary_function<MachineOperandDesc,void> {
+private:
+	LivetimeIntervalMapTy &lti_map;
+	MachineBasicBlock *BB;
+	MIIterator i;
+public:
+	/// Constructor
+	ProcessInOperands(LivetimeIntervalMapTy &lti_map, MachineBasicBlock *BB, MIIterator i)
+		: lti_map(lti_map), BB(BB), i(i) {}
+	void operator()(MachineOperandDesc op) {
+		LOG2("ProcessInOperand: op=" << *(op.op) << " range form: "
+			<< BB->front() << " to " << **i << nl);
+		lti_map[op.op].add_range(UseDef(UseDef::Pseudo,BB->mi_first()),
+			UseDef(UseDef::Use,i));
+	}
+};
+
+/**
+ * @Cpp11 use std::function
+ */
+struct RemovePhi : public std::unary_function<MachinePhiInst*,void> {
+	LiveInSetTy &live;
+	/// constructor
+	RemovePhi(LiveInSetTy &live) : live(live) {}
+
+	void operator()(MachinePhiInst* phi) {
+		live.erase(phi->get_result().op);
+	}
+};
+
+#if 0
+/**
+ * @Cpp11 use std::function
+ */
+class ProcessInOutOperands : public std::unary_function<MachineOperand*,void> {
+private:
+	LivetimeIntervalMapTy &lti_map;
+	MachineBasicBlock *BB;
+public:
+	/// Constructor
+	ProcessInOutOperands(LivetimeIntervalMapTy &lti_map, MachineBasicBlock *BB)
+		: lti_map(lti_map), BB(BB) {}
+	void operator()(MachineInstruction* MI) {
+	}
+};
+#endif
+} // end anonymous namespace
 
 bool LivetimeAnalysisPass::run(JITData &JD) {
 	MIS = get_Pass<MachineInstructionSchedulingPass>();
@@ -137,6 +209,28 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 		#else
 		std::for_each(get_successor_begin(BB), get_successor_end(BB), InsertPhiOperands(live,BB));
 		#endif
+
+		// for each operand in live
+		std::for_each(live.begin(),live.end(),AddOperandInterval(lti_map,BB));
+
+		// for each operation op of BB in reverse order
+		for(MachineBasicBlock::reverse_iterator i = BB->rbegin(), e = BB->rend(); i != e ; ++i) {
+			LOG2("MInst: " << **i << nl);
+			// for each output operand of MI
+			{
+				MachineOperand *op = (*i)->get_result().op;
+				if (op != &NoOperand) {
+					lti_map[op].set_from(UseDef(UseDef::Def,BB->convert(i)));
+				}
+			}
+			// for each input operand of MI
+			std::for_each((*i)->begin(),(*i)->end(), ProcessInOperands(lti_map, BB, BB->convert(i)));
+		}
+
+		// for each phi of BB
+		std::for_each(BB->phi_begin(), BB->phi_end(), RemovePhi(live));
+
+		// if b is loopheader
 	}
 #if 0
 		BeginInst *BI = *i;

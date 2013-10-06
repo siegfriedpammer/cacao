@@ -44,12 +44,11 @@ public:
 	typedef std::map<MachineOperand*,LivetimeInterval> LivetimeIntervalMapTy;
 	typedef LivetimeIntervalMapTy::const_iterator const_iterator;
 	typedef LivetimeIntervalMapTy::iterator iterator;
-private:
+
 	typedef std::set<MachineOperand*> LiveInSetTy;
 	typedef std::map<MachineBasicBlock*,LiveInSetTy> LiveInMapTy;
+private:
 
-	struct UnionLiveIn;
-	class InsertPhiOperands;
 
 	LivetimeIntervalMapTy lti_map;
 	MachineInstructionSchedule *MIS;
