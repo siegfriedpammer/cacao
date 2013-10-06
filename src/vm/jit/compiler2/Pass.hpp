@@ -82,9 +82,9 @@ public:
 	/**
 	 * Set the requirements for the pass
 	 */
-	virtual PassUsage& get_PassUsage(PassUsage &PA) const {
+	virtual PassUsage& get_PassUsage(PassUsage &PU) const {
 		// default: require nothing, destroy nothing
-		return PA;
+		return PU;
 	}
 
 	/**

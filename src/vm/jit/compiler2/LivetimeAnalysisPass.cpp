@@ -117,7 +117,7 @@ public:
 	void operator()(MachineOperand* op) {
 		assert(op);
 		assert(op != &NoOperand);
-		LOG2("AddOperandInterval: op=" << *op << " BasicBlock: " << &BB);
+		LOG2("AddOperandInterval: op=" << *op << " BasicBlock: " << *BB << nl);
 		lti_map[op].add_range(UseDef(UseDef::Pseudo,BB->mi_first()),
 			UseDef(UseDef::Pseudo,BB->mi_last()));
 	}

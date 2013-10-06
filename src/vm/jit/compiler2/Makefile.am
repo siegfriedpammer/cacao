@@ -65,6 +65,8 @@ libcompiler2_la_SOURCES = \
 	MachineInstructionSchedule.cpp \
 	MachineInstructionSchedulingPass.cpp \
 	MachineInstructionPrinterPass.cpp \
+	MachineLoop.cpp \
+	MachineLoopPass.cpp \
 	MachineOperand.cpp \
 	Method.cpp \
 	MethodDescriptor.cpp \

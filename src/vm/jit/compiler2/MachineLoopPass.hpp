@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/LoopPass.cpp - LoopPass
+/* src/vm/jit/compiler2/MachineLoopPass.hpp - MachineLoopPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,34 +22,23 @@
 
 */
 
-#include "vm/jit/compiler2/LoopPass.hpp"
+#ifndef _JIT_COMPILER2_MACHINELOOPPASS
+#define _JIT_COMPILER2_MACHINELOOPPASS
+
+#include "vm/jit/compiler2/LoopPassBase.hpp"
+#include "vm/jit/compiler2/MachineLoop.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-template<>
-PassUsage& LoopPass::get_PassUsage(PassUsage &PU) const {
-	// default: require nothing, destroy nothing
-	return PU;
-}
-
-template<>
-LoopPass::NodeType* LoopPass::get_init_node(JITData &JD) {
-	Method *M = JD.get_Method();
-	return M->get_init_bb();
-}
-
-// the address of this variable is used to identify the pass
-template<>
-char LoopPass::ID = 0;
-
-// register pass
-static PassRegistery<LoopPass> X("LoopPass");
+typedef LoopPassBase<MachineBasicBlock> MachineLoopPass;
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
+
+#endif /* _JIT_COMPILER2_MACHINELOOPPASS */
 
 
 /*
@@ -65,4 +54,3 @@ static PassRegistery<LoopPass> X("LoopPass");
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */
-

@@ -212,6 +212,8 @@ public:
 	MIIterator mi_last();
 	/// get self iterator
 	MBBIterator self_iterator() const;
+	/// get parent
+	MachineInstructionSchedule* get_parent() const;
 	/// print
 	OStream& print(OStream& OS) const;
 	/// equality operator
@@ -357,6 +359,9 @@ inline MIIterator MachineBasicBlock::mi_last() {
 }
 inline MBBIterator MachineBasicBlock::self_iterator() const {
 	return my_it;
+}
+inline MachineInstructionSchedule* MachineBasicBlock::get_parent() const {
+	return my_it.get_parent();
 }
 
 inline OStream& operator<<(OStream& OS, MachineBasicBlock& MBB) {

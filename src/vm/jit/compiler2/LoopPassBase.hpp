@@ -77,10 +77,13 @@ private:
 	void Link(const NodeType *v, const NodeType *w);
 	const NodeType* Eval(const NodeType *v);
 	void Compress(const NodeType *v);
+
+	NodeType* get_init_node(JITData &JD);
 public:
 	static char ID;
 	LoopPassBase() : Pass() {}
-	bool run(JITData &JD);
+	virtual bool run(JITData &JD);
+	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
 };
 
 template<class NodeType>
@@ -102,8 +105,7 @@ public:
 
 template <class _T>
 inline bool LoopPassBase<_T>::run(JITData &JD) {
-	Method *M = JD.get_Method();
-	DFSTraversal<NodeType> dfs(M->get_init_bb());
+	DFSTraversal<NodeType> dfs(get_init_node(JD));
 	int size = dfs.size();
 
 	std::vector<std::set<int> > backedges(size);

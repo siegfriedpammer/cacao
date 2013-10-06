@@ -167,6 +167,7 @@ public:
 	typedef const_MBBIterator const_iterator;
 	typedef std::reverse_iterator<iterator> reverse_iterator;
 	typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
+	typedef iterator::reference reference;
 	/// construct an empty MachineInstructionSchedule
 	MachineInstructionSchedule() {};
 	/// returns the number of elements
@@ -196,6 +197,10 @@ public:
 	const_reverse_iterator rbegin() const;
 	/// returns an const reverse_iterator to the end
 	const_reverse_iterator rend() const;
+	/// access the first element
+	reference front();
+	/// access the last element
+	reference back();
 private:
 	ordered_list<MachineBasicBlock*> list;
 };
@@ -213,6 +218,12 @@ MachineInstructionSchedule::begin() {
 inline MachineInstructionSchedule::iterator
 MachineInstructionSchedule::end() {
 	return iterator(this,list.end());
+}
+inline MachineInstructionSchedule::reference MachineInstructionSchedule::front() {
+	return list.front();
+}
+inline MachineInstructionSchedule::reference MachineInstructionSchedule::back() {
+	return list.back();
 }
 inline MachineInstructionSchedule::const_iterator
 MachineInstructionSchedule::begin() const {
