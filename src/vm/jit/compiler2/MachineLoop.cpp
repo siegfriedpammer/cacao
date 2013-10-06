@@ -23,6 +23,7 @@
 */
 
 #include "vm/jit/compiler2/MachineLoop.hpp"
+#include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/MachineInstruction.hpp"
 #include "toolbox/OStream.hpp"
 
@@ -32,7 +33,7 @@ namespace compiler2 {
 
 
 OStream& operator<<(OStream &OS, const MachineLoop &L) {
-	return OS << L.get_header() << " <- " << L.get_exit();
+	return OS << *L.get_header() << " <- " << *L.get_exit();
 }
 
 OStream& operator<<(OStream &OS, const MachineLoop *L) {

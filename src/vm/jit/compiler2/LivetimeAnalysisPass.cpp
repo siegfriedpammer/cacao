@@ -26,9 +26,8 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
-#include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
-#include "vm/jit/compiler2/LoopPass.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
+#include "vm/jit/compiler2/MachineLoopPass.hpp"
 #include "vm/jit/compiler2/MachineOperand.hpp"
 
 #include "toolbox/logging.hpp"
@@ -156,29 +155,41 @@ struct RemovePhi : public std::unary_function<MachinePhiInst*,void> {
 	}
 };
 
-#if 0
 /**
  * @Cpp11 use std::function
  */
-class ProcessInOutOperands : public std::unary_function<MachineOperand*,void> {
+class ProcessLoops : public std::unary_function<MachineLoop*,void> {
 private:
+	struct ForEachLiveOperand : public std::unary_function<MachineOperand*,void> {
+		LivetimeIntervalMapTy &lti_map;
+		MachineBasicBlock *BB;
+		MachineLoop *loop;
+		/// contructor
+		ForEachLiveOperand(LivetimeIntervalMapTy &lti_map, MachineBasicBlock *BB,MachineLoop *loop)
+			:  lti_map(lti_map), BB(BB), loop(loop) {}
+		void operator()(MachineOperand* op) {
+			lti_map[op].add_range(UseDef(UseDef::Pseudo,BB->mi_first()),
+				UseDef(UseDef::Pseudo,loop->get_exit()->mi_last()));
+		}
+	};
 	LivetimeIntervalMapTy &lti_map;
 	MachineBasicBlock *BB;
+	LiveInSetTy &live;
 public:
 	/// Constructor
-	ProcessInOutOperands(LivetimeIntervalMapTy &lti_map, MachineBasicBlock *BB)
-		: lti_map(lti_map), BB(BB) {}
-	void operator()(MachineInstruction* MI) {
+	ProcessLoops(LivetimeIntervalMapTy &lti_map, MachineBasicBlock *BB,
+		LiveInSetTy &live) : lti_map(lti_map), BB(BB), live(live) {}
+	void operator()(MachineLoop* loop) {
+		std::for_each(live.begin(),live.end(), ForEachLiveOperand(lti_map, BB, loop));
 	}
 };
-#endif
+
 } // end anonymous namespace
 
 bool LivetimeAnalysisPass::run(JITData &JD) {
 	MIS = get_Pass<MachineInstructionSchedulingPass>();
-	//LoweringPass *LP = get_Pass<LoweringPass>();
-	//LoopTree *LT = get_Pass<LoopPass>();
-	// TODO use better data structor for the register set
+	MachineLoopTree *MLT = get_Pass<MachineLoopPass>();
+	// TODO use better data structure for the register set
 	LiveInMapTy liveIn;
 
 	// for all basic blocks in reverse order
@@ -230,9 +241,18 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 		// for each phi of BB
 		std::for_each(BB->phi_begin(), BB->phi_end(), RemovePhi(live));
 
-		// if b is loopheader
+		// if b is loop header
+		if (MLT->is_loop_header(BB)) {
+			MachineLoopTree::ConstLoopIteratorPair loops = MLT->get_Loops_from_header(BB);
+			std::for_each (loops.first, loops.second, ProcessLoops(lti_map, BB, live));
+		}
 	}
 #if 0
+	for (MachineLoopTree::loop_iterator i = MLT->loop_begin(), e = MLT->loop_end();
+			i != e; ++i) {
+		MachineLoop *loop = *i;
+		LOG("Loop: " << *loop << nl);
+	}
 		BeginInst *BI = *i;
 		assert(BI);
 
@@ -544,8 +564,7 @@ bool LivetimeAnalysisPass::verify() const {
 }
 // pass usage
 PassUsage& LivetimeAnalysisPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(BasicBlockSchedulingPass::ID);
-	PU.add_requires(LoopPass::ID);
+	PU.add_requires(MachineLoopPass::ID);
 	PU.add_requires(MachineInstructionSchedulingPass::ID);
 	return PU;
 }
