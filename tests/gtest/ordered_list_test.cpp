@@ -224,6 +224,23 @@ TEST(ordered_list, test_order2) {
 }
 
 /**
+ * test the total ordering of MachineInstruction
+ */
+TEST(ordered_list, test_order_begin_end) {
+	ordered_list<int> list;
+
+	list.push_back(0);
+	list.push_back(1);
+	list.push_back(2);
+	list.push_back(3);
+
+	EXPECT_EQ(list.size(), 4);
+
+	EXPECT_LT(list.begin(),--list.end());
+	EXPECT_GT(--list.end(),list.begin());
+}
+
+/**
  * test priority queue
  */
 TEST(ordered_list, test_priority_queue) {
