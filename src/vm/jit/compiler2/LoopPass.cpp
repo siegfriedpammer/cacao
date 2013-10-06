@@ -28,6 +28,8 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
 
+#include "toolbox/UnionFind.hpp"
+
 #include <list>
 #include <set>
 
@@ -41,111 +43,15 @@ namespace compiler2 {
 
 namespace {
 
-
-template <typename T>
-class UnionFind {
-public:
-	/**
-	 * Create a new set
-	 *
-	 * @param s elements
-	 **/
-	virtual void make_set(T s) = 0;
-	/**
-	 * union the set that contains r with the set that contains s
-	 *
-	 * @param r repres of a set
-	 * @param s repres of a set
-	 * @return the new repres
-	 *
-	 **/
-	virtual T set_union(T r, T s) = 0;
-	/**
-	 * find the repres to of a given element x
-	 *
-	 * @param x an element of the union find ds
-	 * @return the repres of x
-	 **/
-	virtual T find(T x) = 0;
-
-};
-
-template <typename T>
-class UnionFindImpl : public UnionFind<T> {
-private:
-	typedef typename std::set<T> SetTy;
-	typedef typename std::set<SetTy> SetSetTy;
-	SetSetTy sets;
-	T &my_end;
-
-	typename SetSetTy::iterator find_it(T x) {
-		for (typename SetSetTy::iterator i = sets.begin(), e = sets.end();
-				i != e; ++i) {
-			SetTy set = *i;
-			if (std::find(set.begin(),set.end(),x) != set.end()) {
-				return i;
-			}
-		}
-		return sets.end();
-	}
-public:
-	UnionFindImpl(T &end) : my_end(end) {}
-
-	virtual void make_set(T s) {
-		assert(find(s) == end() && "Element already in a set!");
-		LOG2("UnionFindImpl:make_set: " << s << nl);
-		SetTy list;
-		list.insert(s);
-		sets.insert(list);
-	}
-
-	virtual T set_union(T r, T s) {
-		typename SetSetTy::iterator r_it, s_it;
-		r_it = find_it(r);
-		s_it = find_it(s);
-
-		if ( r_it == s_it )
-			return *(r_it->begin());
-		if ( r_it == sets.end() || s_it == sets.end() )
-			return end();
-		SetTy merged;
-		merged.insert(s_it->begin(), s_it->end());
-		merged.insert(r_it->begin(), r_it->end());
-
-		LOG2("UnionFindImpl:merginig: ");
-		DEBUG2(print_container(dbg(), s_it->begin(), s_it->end()) << " and ");
-		DEBUG2(print_container(dbg(), r_it->begin(), r_it->end()) << nl);
-		LOG2("UnionFindImpl:result: ");
-		DEBUG2(print_container(dbg(), merged.begin(), merged.end()) << nl);
-
-		sets.erase(s_it);
-		sets.erase(r_it);
-		sets.insert(merged);
-		return *merged.begin();
-	}
-
-	virtual inline T find(T x) {
-		typename SetSetTy::iterator i = find_it(x);
-		LOG2("UnionFindImpl:find: " << x << nl);
-		if (i != sets.end())
-			return *(*i).begin();
-		return end();
-	}
-
-	T &end() {
-		return my_end;
-	}
-
-};
-
+template<class NodeType>
 class LoopComparator {
 private:
-	DFSTraversal<BeginInst> &dfs;
+	DFSTraversal<NodeType> &dfs;
 public:
-	LoopComparator(DFSTraversal<BeginInst> &dfs) : dfs(dfs) {}
+	LoopComparator(DFSTraversal<NodeType> &dfs) : dfs(dfs) {}
 	bool operator() (const Loop *a, const Loop* b) {
-		BeginInst *a_i = a->get_header();
-		BeginInst *b_i = b->get_header();
+		NodeType *a_i = a->get_header();
+		NodeType *b_i = b->get_header();
 		if (dfs[a_i] == dfs[b_i]) {
 			a_i = a->get_exit();
 			b_i = b->get_exit();
@@ -157,9 +63,10 @@ public:
 } // end namespace anonymous
 
 
+template<>
 bool LoopPass::run(JITData &JD) {
 	Method *M = JD.get_Method();
-	DFSTraversal<BeginInst> dfs(M->get_init_bb());
+	DFSTraversal<NodeType> dfs(M->get_init_bb());
 	int size = dfs.size();
 
 	std::vector<std::set<int> > backedges(size);
@@ -177,16 +84,16 @@ bool LoopPass::run(JITData &JD) {
 
 
 	// initialization
-	for (DFSTraversal<BeginInst>::iterator i = dfs.begin(), e = dfs.end();
+	for (DFSTraversal<NodeType>::iterator i = dfs.begin(), e = dfs.end();
 			i != e ; ++i) {
 		int v = i.get_index();
 
 		unionfind.make_set(v);
 		// get successors
-		DFSTraversal<BeginInst>::iterator_list successors;
+		DFSTraversal<NodeType>::iterator_list successors;
 		i.get_successors(successors);
 
-		for (DFSTraversal<BeginInst>::iterator_list::iterator ii = successors.begin(),
+		for (DFSTraversal<NodeType>::iterator_list::iterator ii = successors.begin(),
 				ee = successors.end(); ii != ee ; ++ii) {
 			int w = (*ii).get_index();
 			// edge v -> w
@@ -210,39 +117,41 @@ bool LoopPass::run(JITData &JD) {
 	}
 
 
+	#if 0
 	for (int w = 0; w < size ; ++w ) {
 		std::set<int> set = treeedges[w];
 		// print treeedge
 		for(std::set<int>::iterator i = set.begin(), e = set.end(); i != e ; ++i) {
 			int v = *i;
-			LOG2("treeedge:    " << setw(3) << v << " -> " << setw(3) << w << nl);
+			//LOG2("treeedge:    " << setw(3) << v << " -> " << setw(3) << w << nl);
 		}
 		// print backedge
 		set = backedges[w];
 		for(std::set<int>::iterator i = set.begin(), e = set.end(); i != e ; ++i) {
 			int v = *i;
-			LOG2("backedge:    " << setw(3) << v << " -> " << setw(3) << w << nl);
+			//LOG2("backedge:    " << setw(3) << v << " -> " << setw(3) << w << nl);
 		}
 		// print forwardedge
 		set = forwardedges[w];
 		for(std::set<int>::iterator i = set.begin(), e = set.end(); i != e ; ++i) {
 			int v = *i;
-			LOG2("forwardedge: " << setw(3) << v << " -> " << setw(3) << w << nl);
+			//LOG2("forwardedge: " << setw(3) << v << " -> " << setw(3) << w << nl);
 		}
 		// print crossedge
 		set = crossedges[w];
 		for(std::set<int>::iterator i = set.begin(), e = set.end(); i != e ; ++i) {
 			int v = *i;
-			LOG2("crossedge:   " << setw(3) << v << " -> " << setw(3) << w << nl);
+			//LOG2("crossedge:   " << setw(3) << v << " -> " << setw(3) << w << nl);
 		}
 	}
+	#endif
 
 	std::set<int> P;
 	std::set<int> Q;
-	for (DFSTraversal<BeginInst>::reverse_iterator i = dfs.rbegin(), e = dfs.rend();
+	for (DFSTraversal<NodeType>::reverse_iterator i = dfs.rbegin(), e = dfs.rend();
 			i != e ; --i) {
 		int w = i.get_index();
-		LOG2("w=" << w << nl);
+		//LOG2("w=" << w << nl);
 
 		P.clear();
 		Q.clear();
@@ -271,9 +180,9 @@ bool LoopPass::run(JITData &JD) {
 				}
 			}
 
-			LOG2("Q=P= ");
-			DEBUG2(print_container(dbg(), Q.begin(),Q.end()));
-			LOG2(nl);
+			//LOG2("Q=P= ");
+			//DEBUG2(print_container(dbg(), Q.begin(),Q.end()));
+			//LOG2(nl);
 
 			// Q contains the sources of the backedges to w.
 			// It must be order from smallest to largest preorder source to
@@ -286,7 +195,7 @@ bool LoopPass::run(JITData &JD) {
 					x = *x_it;
 					Q.erase(x_it);
 				}
-				LOG2("x=" << x << nl);
+				//LOG2("x=" << x << nl);
 
 				// is loop header?
 				if (backedges[x].size() != 0) {
@@ -310,10 +219,10 @@ bool LoopPass::run(JITData &JD) {
 				for(std::set<int>::iterator i = incoming.begin(), e = incoming.end();
 						i != e; ++i) {
 					int y = *i;
-					LOG2("y=" << y << nl);
+					//LOG2("y=" << y << nl);
 					int y_r = unionfind.find(y);
 					assert(y_r != end);
-					LOG2("y_r=" << y_r << nl);
+					//LOG2("y_r=" << y_r << nl);
 
 					//LOG("ND(w)=" << dfs.num_decendants(w) << nl);
 					// test for reducibility
@@ -352,33 +261,33 @@ bool LoopPass::run(JITData &JD) {
 
 	}
 	for (int w = 0; w < size ; ++w ) {
-		LOG2("highpt[" << w << "]=" << highpt[w] << nl);
+		//LOG2("highpt[" << w << "]=" << highpt[w] << nl);
 	}
 	for (int w = 0; w < size ; ++w ) {
 		Loop *loop = index_to_loop[w];
 		if (!loop) {
-			LOG2("loop(" << dfs[w] << ") not in a loop" << nl);
+			//LOG2("loop(" << dfs[w] << ") not in a loop" << nl);
 			continue;
 		}
 		loop_map[dfs[w]] = loop;
-		LOG2("loop(header = " << dfs[w] << ") = " << loop << nl);
+		//LOG2("loop(header = " << dfs[w] << ") = " << loop << nl);
 	}
 
 	// sort from outermost to innermost loop
-	LoopComparator compare_loop(dfs);
+	LoopComparator<NodeType> compare_loop(dfs);
 	std::sort(loops.begin(), loops.end(), compare_loop);
 
-	// add BeginInst to loops
+	// add NodeType to loops
 	for (LoopListTy::reverse_iterator i = loops.rbegin(), e = loops.rend();
 			i != e; ++i) {
 		Loop *loop = *i;
-		LOG("Loop: " << loop << nl);
+		//LOG("Loop: " << loop << nl);
 		Loop *parent = loop->get_parent();
 		if (parent) {
-			LOG("parent: " << parent << nl);
+			//LOG("parent: " << parent << nl);
 		} else {
 			add_top_loop(loop);
-			LOG("parent: " << "toplevel" << nl);
+			//LOG("parent: " << "toplevel" << nl);
 		}
 		// add to loop headers
 		loop_header_map[loop->get_header()].insert(loop);
@@ -387,6 +296,7 @@ bool LoopPass::run(JITData &JD) {
 }
 
 // the address of this variable is used to identify the pass
+template<>
 char LoopPass::ID = 0;
 
 // register pass
