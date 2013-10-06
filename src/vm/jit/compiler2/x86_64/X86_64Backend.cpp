@@ -399,12 +399,13 @@ void LoweringVisitor::visit(RETURNInst *I) {
 	case Type::IntTypeID:
 	case Type::LongTypeID:
 	{
+		MachineOperand *ret_reg = new NativeRegister(type,&RAX);
 		MachineInstruction *reg = new MovInst(
 			SrcOp(src_op),
-			DstOp(new NativeRegister(type,&RAX)),
+			DstOp(ret_reg),
 			get_OperandSize_from_Type(type));
 		LeaveInst *leave = new LeaveInst();
-		RetInst *ret = new RetInst(get_OperandSize_from_Type(type));
+		RetInst *ret = new RetInst(get_OperandSize_from_Type(type),SrcOp(ret_reg));
 		get_current()->push_back(reg);
 		get_current()->push_back(leave);
 		get_current()->push_back(ret);
@@ -413,11 +414,12 @@ void LoweringVisitor::visit(RETURNInst *I) {
 	}
 	case Type::DoubleTypeID:
 	{
+		MachineOperand *ret_reg = new NativeRegister(type,&XMM0);
 		MachineInstruction *reg = new MovSDInst(
 			SrcOp(src_op),
-			DstOp(new NativeRegister(type,&XMM0)));
+			DstOp(ret_reg));
 		LeaveInst *leave = new LeaveInst();
-		RetInst *ret = new RetInst(get_OperandSize_from_Type(type));
+		RetInst *ret = new RetInst(get_OperandSize_from_Type(type),SrcOp(ret_reg));
 		get_current()->push_back(reg);
 		get_current()->push_back(leave);
 		get_current()->push_back(ret);

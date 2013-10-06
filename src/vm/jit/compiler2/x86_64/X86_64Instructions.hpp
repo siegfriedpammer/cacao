@@ -390,8 +390,18 @@ public:
 
 class RetInst : public GPInstruction {
 public:
+	/// void return
 	RetInst(OperandSize op_size)
 			: GPInstruction("X86_64RetInst", &NoOperand, op_size, 0) {
+	}
+	/**
+	 * Non-void return. The source operand is only used to guide
+	 * the register allocator. The user must ensure that the value
+	 * really is in the correct register (e.g. by inserting a move)
+	 */
+	RetInst(OperandSize op_size, const SrcOp &src)
+			: GPInstruction("X86_64RetInst", &NoOperand, op_size, 1) {
+		operands[0].op = src.op;
 	}
 	virtual bool is_end() const { return true; }
 	virtual void emit(CodeMemory* CM) const;
