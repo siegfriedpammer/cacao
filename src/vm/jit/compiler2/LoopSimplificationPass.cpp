@@ -35,7 +35,7 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
-
+#if 0
 ///////////////////////////////////////////////////////////////////////////////
 // LoopSimplificationPass
 ///////////////////////////////////////////////////////////////////////////////
@@ -152,7 +152,7 @@ char LoopSimplificationPass::ID = 0;
 
 // register pass
 static PassRegistery<LoopSimplificationPass> X("LoopSimplificationPass");
-
+#endif
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

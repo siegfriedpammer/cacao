@@ -36,9 +36,7 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-class Loop;
-class LoopTree;
-
+#if 0
 /**
  * Split Loop header with multipe backedges
  */
@@ -53,7 +51,7 @@ public:
 	bool run(JITData &JD);
 	PassUsage& get_PassUsage(PassUsage &PA) const;
 };
-
+#endif
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

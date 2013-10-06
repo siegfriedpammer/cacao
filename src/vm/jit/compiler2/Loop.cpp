@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/ScheduleLatePass.hpp - ScheduleLatePass
+/* src/vm/jit/compiler2/Loop.cpp - LoopPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,46 +22,29 @@
 
 */
 
-#ifndef _JIT_COMPILER2_SCHEDULELATEPASS
-#define _JIT_COMPILER2_SCHEDULELATEPASS
-
-#include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/Loop.hpp"
-#include "vm/jit/compiler2/InstructionLinkSchedule.hpp"
+#include "vm/jit/compiler2/Instructions.hpp"
+#include "toolbox/OStream.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
 
-class Method;
-class Instruction;
-class DominatorTree;
+OStream& operator<<(OStream &OS, const Loop &L) {
+	return OS << L.get_header() << " <- " << L.get_exit();
+}
 
-/**
- * ScheduleLatePass
- *
- * Based on the algorithm in Click's Phd Thesis, Chapter 6 @cite ClickPHD.
- */
-class ScheduleLatePass : public Pass, public InstructionLinkSchedule {
-private:
-	DominatorTree *DT;
-	LoopTree *LT;
-	InstructionLinkSchedule *early;
-	Method *M;
-	void schedule_late(Instruction *I);
-public:
-	static char ID;
-	ScheduleLatePass() : Pass() {}
-	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PU) const;
-};
+OStream& operator<<(OStream &OS, const Loop *L) {
+	if (!L) {
+		return OS << "Loop is NULL";
+	}
+	return OS << *L;
+}
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
-
-#endif /* _JIT_COMPILER2_SCHEDULELATEPASS */
 
 
 /*
@@ -77,3 +60,4 @@ public:
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */
+

@@ -56,6 +56,7 @@ libcompiler2_la_SOURCES = \
 	ListSchedulingPass.cpp \
 	LivetimeAnalysisPass.cpp \
 	LivetimeInterval.cpp \
+	Loop.cpp \
 	LoopPass.cpp \
 	LoopSimplificationPass.cpp \
 	MachineBasicBlock.cpp \
