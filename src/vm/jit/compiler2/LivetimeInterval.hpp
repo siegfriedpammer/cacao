@@ -53,12 +53,12 @@ class UseDef {
 public:
 	enum Type {
 		Use,
-		Def
+		Def,
+		Pseudo
 	};
 
 	/// constructor
-	UseDef(Type type, MachineBasicBlock::iterator it,
-		MachineOperandDesc *op) : type(type), it(it), op(op) {}
+	UseDef(Type type, MIIterator it) : type(type), it(it) {}
 	/// Is a def position
 	bool is_def() const { return type == Def; }
 	/// Is a use position
@@ -66,33 +66,35 @@ public:
 	/** Is a pseudo use position.
 	 * A pseudo use position is used to mark backedges.
 	 */
-	bool is_pseudo_use() const { return op == NULL; }
+	bool is_pseudo_use() const { return type == Pseudo; }
 
-	/// Get operand
-	MachineOperandDesc* get_operand() const { return op; }
 	/// Get instruction iterator
-	MachineBasicBlock::iterator get_iterator() const { return it; }
+	MIIterator get_iterator() const { return it; }
 private:
 	/// Type
 	Type type;
 	/// Iterator pointing to the instruction
-	MachineBasicBlock::iterator it;
-	/// Source/Destination Operand
-	MachineOperandDesc* op;
+	MIIterator it;
 };
 
-/// UseDef less then operator
+struct LivetimeRange {
+	UseDef start;
+	UseDef end;
+	LivetimeRange(const UseDef &start, const UseDef &end)
+		: start(start), end(end) {}
+};
+
+/// less then operator
 inline bool operator<(const UseDef& lhs,const UseDef& rhs) {
 	return lhs.get_iterator() < rhs.get_iterator();
 }
-
 
 /**
  * TODO: doc me!
  */
 class LivetimeInterval {
 public:
-	typedef std::list<std::pair<unsigned,unsigned> > IntervalListTy;
+	typedef std::list<LivetimeRange> IntervalListTy;
 	typedef IntervalListTy::const_iterator const_iterator;
 	typedef IntervalListTy::iterator iterator;
 
@@ -100,14 +102,24 @@ public:
 	 * @Cpp11 this could be changed to std::set where erase returns an
 	 * iterator.
 	 */
-	typedef std::list<UseDef> UseDefTy;
-	typedef UseDefTy::const_iterator const_use_iterator;
-	typedef UseDefTy::const_iterator const_def_iterator;
-	typedef UseDefTy::iterator use_iterator;
-	typedef UseDefTy::iterator def_iterator;
+	typedef std::multiset<UseDef> UseListTy;
+	typedef std::multiset<UseDef> DefListTy;
+	typedef UseListTy::const_iterator const_use_iterator;
+	typedef DefListTy::const_iterator const_def_iterator;
+	typedef UseListTy::iterator use_iterator;
+	typedef DefListTy::iterator def_iterator;
 private:
-	#if 0
 	IntervalListTy intervals;
+	UseListTy uses;
+	DefListTy defs;
+
+	void insert_usedef(const UseDef &usedef) {
+		if (usedef.is_use())
+			uses.insert(usedef);
+		if (usedef.is_def())
+			defs.insert(usedef);
+	}
+	#if 0
 	MachineOperand* operand;         ///< store for the interval
 	UseDefTy usedefs;
 	//bool fixed_interval;
@@ -143,6 +155,11 @@ private:
 	}
 	#endif
 public:
+	/**
+	 * A range the range [first, last] to the interval
+	 */
+	void add_range(UseDef first, UseDef last);
+	void set_from(UseDef from);
 	#if 0
 	LivetimeInterval() : intervals(), operand(NULL), uses(), defs(),
 			fixed_interval(false), next_split(NULL), hint(NULL) {}

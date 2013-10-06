@@ -23,6 +23,7 @@
 */
 
 #include "vm/jit/compiler2/LivetimeInterval.hpp"
+#include "vm/jit/compiler2/MachineInstruction.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -32,6 +33,39 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+void LivetimeInterval::add_range(UseDef first, UseDef last) {
+	//LOG("first " << **first.get_iterator() << " last " << **last.get_iterator() << nl);
+	assert(!(last < first));
+
+	insert_usedef(first);
+	insert_usedef(last);
+
+	if (!intervals.empty()) {
+		if (!(intervals.front().start < last) && !(last < intervals.front().start)) {
+			// merge intervals
+			intervals.front().start = first;
+			return;
+		}
+		if (!(first < intervals.front().start) && !(intervals.front().end < last)) {
+			// already covered
+			return;
+		}
+		assert_msg(first < intervals.front().end,
+			"For the time being ranges can only be added to the beginning.");
+	}
+	LivetimeRange range(first,last);
+	// new interval
+	intervals.push_front(range);
+}
+
+void LivetimeInterval::set_from(UseDef from) {
+	assert(!intervals.empty());
+	//assert_msg(!(intervals.front().start < from),
+	//	**from.get_iterator() << " not lesser or equal then " << **intervals.front().start.get_iterator());
+
+	insert_usedef(from);
+	intervals.front().start = from;
+}
 #if 0
 void LivetimeInterval::set_Register(Register* r) {
 	operand = r;
