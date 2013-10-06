@@ -35,6 +35,10 @@ namespace compiler2 {
 
 namespace {
 
+struct TestInst : public MachineInstruction {
+	TestInst() : MachineInstruction("TestInst", &NoOperand, 0) {}
+};
+
 template <class _Iterator>
 void check(_Iterator begin, _Iterator end, MachineBasicBlock *expect[],size_t size) {
 	size_t counter = 0;
@@ -73,6 +77,29 @@ TEST(MachineInstructionSchedule, test_reverse) {
 		MachineBasicBlock *expect[] = {BB4, BB3, BB2, BB1};
 		check(cMIS.rbegin(), cMIS.rend(), expect,4);
 	}
+}
+TEST(MachineInstructionSchedule, test_bb_iterator_ordering) {
+	MachineInstructionSchedule MIS;
+
+	MachineBasicBlock *BB1 = *MIS.push_back(MBBBuilder());
+	MachineBasicBlock *BB2 = *MIS.push_back(MBBBuilder());
+	MachineBasicBlock *BB3 = *MIS.push_back(MBBBuilder());
+	MachineBasicBlock *BB4 = *MIS.push_back(MBBBuilder());
+	BB1->push_back(new TestInst());
+	BB1->push_back(new TestInst());
+	BB2->push_back(new TestInst());
+	BB2->push_back(new TestInst());
+	BB3->push_back(new TestInst());
+	BB3->push_back(new TestInst());
+	BB4->push_back(new TestInst());
+	BB4->push_back(new TestInst());
+
+	EXPECT_EQ(MIS.size(), 4);
+
+	EXPECT_LT(BB1->begin(),--BB1->end());
+	EXPECT_LT(BB2->begin(),--BB2->end());
+	EXPECT_LT(BB3->begin(),--BB3->end());
+	EXPECT_LT(BB4->begin(),--BB4->end());
 }
 
 #if 0

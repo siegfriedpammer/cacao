@@ -108,6 +108,11 @@ public:
 	typedef ordered_list<MachineInstruction*>::pointer pointer;
 	typedef ordered_list<MachineInstruction*>::const_pointer const_pointer;
 
+	typedef ordered_list<MachineInstruction*>::reverse_iterator
+		reverse_iterator;
+	typedef ordered_list<MachineInstruction*>::const_reverse_iterator
+		const_reverse_iterator;
+
 	typedef std::list<MachinePhiInst*> PhiListTy;
 	typedef PhiListTy::const_iterator const_phi_iterator;
 
@@ -118,6 +123,8 @@ public:
 	/// construct an empty MachineBasicBlock
 	MachineBasicBlock(const MBBIterator &my_it)
 		: id(id_counter++),  my_it(my_it) {};
+	/// checks if the basic block has no elements.
+	bool empty() const;
 	/// returns the number of elements
 	std::size_t size() const;
 	/// Appends the given element value to the end of the container.
@@ -146,6 +153,14 @@ public:
 	const_iterator begin() const;
 	/// returns an const iterator to the end
 	const_iterator end() const;
+	/// returns an reverse_iterator to the beginning
+	reverse_iterator rbegin();
+	/// returns an reverse_iterator to the end
+	reverse_iterator rend();
+	/// returns an const reverse_iterator to the beginning
+	const_reverse_iterator rbegin() const;
+	/// returns an const reverse_iterator to the end
+	const_reverse_iterator rend() const;
 	/// access the first element
 	const_reference front() const;
 	/// access the last element
@@ -187,8 +202,14 @@ public:
 	 */
 	std::size_t get_predecessor_index(MachineBasicBlock* MBB) const;
 
-	/// get a MIIterator form a interator
+	/// get a MIIterator form a iterator
 	MIIterator convert(iterator pos);
+	/// get a MIIterator form a iterator
+	MIIterator convert(reverse_iterator pos);
+	/// returns an MIIterator to the first element
+	MIIterator mi_first();
+	/// returns an MIIterator to the last element (included)
+	MIIterator mi_last();
 	/// get self iterator
 	MBBIterator self_iterator() const;
 	/// print
@@ -237,6 +258,9 @@ inline MIIterator& MIIterator::operator--() {
 }
 
 
+inline bool MachineBasicBlock::empty() const {
+	return list.empty();
+}
 inline std::size_t MachineBasicBlock::size() const {
 	return list.size();
 }
@@ -290,6 +314,18 @@ inline MachineBasicBlock::const_iterator MachineBasicBlock::begin() const {
 inline MachineBasicBlock::const_iterator MachineBasicBlock::end() const {
 	return list.end();
 }
+inline MachineBasicBlock::reverse_iterator MachineBasicBlock::rbegin() {
+	return list.rbegin();
+}
+inline MachineBasicBlock::reverse_iterator MachineBasicBlock::rend() {
+	return list.rend();
+}
+inline MachineBasicBlock::const_reverse_iterator MachineBasicBlock::rbegin() const {
+	return list.rbegin();
+}
+inline MachineBasicBlock::const_reverse_iterator MachineBasicBlock::rend() const {
+	return list.rend();
+}
 inline MachineBasicBlock::const_reference MachineBasicBlock::front() const {
 	return list.front();
 }
@@ -307,6 +343,17 @@ inline MIIterator MachineBasicBlock::convert(iterator pos) {
 		return ++convert(--pos);
 	}
 	return MIIterator(my_it,pos);
+}
+inline MIIterator MachineBasicBlock::convert(reverse_iterator pos) {
+	return convert(--(pos.base()));
+}
+inline MIIterator MachineBasicBlock::mi_first() {
+	assert(!empty());
+	return convert(begin());
+}
+inline MIIterator MachineBasicBlock::mi_last() {
+	assert(!empty());
+	return convert(--end());
 }
 inline MBBIterator MachineBasicBlock::self_iterator() const {
 	return my_it;
