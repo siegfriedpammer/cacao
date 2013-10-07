@@ -70,6 +70,9 @@ public:
 		// PHIs right after BeginInst
 		if (lhs->to_PHIInst()) return false;
 		if (rhs->to_PHIInst()) return true;
+		// LOADInst first
+		if (lhs->to_LOADInst()) return false;
+		if (rhs->to_LOADInst()) return true;
 		// prioritize instruction with fewer users in the current bb
 		return users(lhs) > users(rhs);
 	}
