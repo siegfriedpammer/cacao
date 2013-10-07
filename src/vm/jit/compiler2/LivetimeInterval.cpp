@@ -66,6 +66,22 @@ void LivetimeInterval::set_from(UseDef from) {
 	insert_usedef(from);
 	intervals.front().start = from;
 }
+LivetimeInterval::State LivetimeInterval::get_State(MIIterator pos) const {
+	State state = Unhandled;
+
+	if (!empty() && back().end.get_iterator() < pos) {
+		return Handled;
+	}
+	for (const_iterator i = begin(), e = end(); i != e; ++i) {
+		if (pos < i->start.get_iterator())
+			break;
+		if (pos <= i->end.get_iterator()) {
+			return Active;
+		}
+		state = Inactive;
+	}
+	return state;
+}
 #if 0
 void LivetimeInterval::set_Register(Register* r) {
 	operand = r;

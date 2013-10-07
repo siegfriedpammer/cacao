@@ -115,13 +115,34 @@ public:
 		: lti_map(lti_map), BB(BB) {}
 	void operator()(MachineOperand* op) {
 		assert(op);
-		assert(op != &NoOperand);
-		LOG2("AddOperandInterval: op=" << *op << " BasicBlock: " << *BB << nl);
-		lti_map[op].add_range(UseDef(UseDef::Pseudo,BB->mi_first()),
-			UseDef(UseDef::Pseudo,BB->mi_last()));
+		if (op->needs_allocation()) {
+			LOG2("AddOperandInterval: op=" << *op << " BasicBlock: " << *BB << nl);
+			lti_map[op].add_range(UseDef(UseDef::Pseudo,BB->mi_first()),
+				UseDef(UseDef::Pseudo,BB->mi_last()));
+		}
 	}
 };
 
+/**
+ * @Cpp11 use std::function
+ */
+class ProcessOutOperands : public std::unary_function<MachineOperandDesc,void> {
+private:
+	LivetimeIntervalMapTy &lti_map;
+	MIIterator i;
+	LiveInSetTy &live;
+public:
+	/// Constructor
+	ProcessOutOperands(LivetimeIntervalMapTy &lti_map, MIIterator i, LiveInSetTy &live)
+		: lti_map(lti_map), i(i), live(live) {}
+	void operator()(MachineOperandDesc op) {
+		if (op.op->needs_allocation()) {
+			LOG2("ProcessOutOperand: op=" << *(op.op) << " set form: " << **i << nl);
+			lti_map[op.op].set_from(UseDef(UseDef::Def,i));
+			live.erase(op.op);
+		}
+	}
+};
 /**
  * @Cpp11 use std::function
  */
@@ -130,15 +151,19 @@ private:
 	LivetimeIntervalMapTy &lti_map;
 	MachineBasicBlock *BB;
 	MIIterator i;
+	LiveInSetTy &live;
 public:
 	/// Constructor
-	ProcessInOperands(LivetimeIntervalMapTy &lti_map, MachineBasicBlock *BB, MIIterator i)
-		: lti_map(lti_map), BB(BB), i(i) {}
+	ProcessInOperands(LivetimeIntervalMapTy &lti_map, MachineBasicBlock *BB,
+		MIIterator i, LiveInSetTy &live) : lti_map(lti_map), BB(BB), i(i), live(live) {}
 	void operator()(MachineOperandDesc op) {
-		LOG2("ProcessInOperand: op=" << *(op.op) << " range form: "
-			<< BB->front() << " to " << **i << nl);
-		lti_map[op.op].add_range(UseDef(UseDef::Pseudo,BB->mi_first()),
-			UseDef(UseDef::Use,i));
+		if (op.op->needs_allocation()) {
+			LOG2("ProcessInOperand: op=" << *(op.op) << " range form: "
+				<< BB->front() << " to " << **i << nl);
+			lti_map[op.op].add_range(UseDef(UseDef::Pseudo,BB->mi_first()),
+				UseDef(UseDef::Use,i));
+			live.insert(op.op);
+		}
 	}
 };
 
@@ -151,6 +176,7 @@ struct RemovePhi : public std::unary_function<MachinePhiInst*,void> {
 	RemovePhi(LiveInSetTy &live) : live(live) {}
 
 	void operator()(MachinePhiInst* phi) {
+		LOG2("Remove phi result" << *phi->get_result().op << nl);
 		live.erase(phi->get_result().op);
 	}
 };
@@ -168,6 +194,7 @@ private:
 		ForEachLiveOperand(LivetimeIntervalMapTy &lti_map, MachineBasicBlock *BB,MachineLoop *loop)
 			:  lti_map(lti_map), BB(BB), loop(loop) {}
 		void operator()(MachineOperand* op) {
+			assert(op->needs_allocation());
 			lti_map[op].add_range(UseDef(UseDef::Pseudo,BB->mi_first()),
 				UseDef(UseDef::Pseudo,loop->get_exit()->mi_last()));
 		}
@@ -226,16 +253,21 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 
 		// for each operation op of BB in reverse order
 		for(MachineBasicBlock::reverse_iterator i = BB->rbegin(), e = BB->rend(); i != e ; ++i) {
+			// phis are handled separately
+			if ((*i)->is_phi()) continue;
+
 			LOG2("MInst: " << **i << nl);
 			// for each output operand of MI
-			{
+			ProcessOutOperands(lti_map, BB->convert(i), live)((*i)->get_result());
+			if (0) {
 				MachineOperand *op = (*i)->get_result().op;
-				if (op != &NoOperand) {
+				if (op->needs_allocation()) {
 					lti_map[op].set_from(UseDef(UseDef::Def,BB->convert(i)));
+					live.erase(op);
 				}
 			}
 			// for each input operand of MI
-			std::for_each((*i)->begin(),(*i)->end(), ProcessInOperands(lti_map, BB, BB->convert(i)));
+			std::for_each((*i)->begin(),(*i)->end(), ProcessInOperands(lti_map, BB, BB->convert(i), live));
 		}
 
 		// for each phi of BB
@@ -246,6 +278,9 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 			MachineLoopTree::ConstLoopIteratorPair loops = MLT->get_Loops_from_header(BB);
 			std::for_each (loops.first, loops.second, ProcessLoops(lti_map, BB, live));
 		}
+
+		LOG2("LiveIn " << *BB << ": ");
+		DEBUG2(print_container(dbg(),live.begin(), live.end()) << nl);
 	}
 #if 0
 	for (MachineLoopTree::loop_iterator i = MLT->loop_begin(), e = MLT->loop_end();
@@ -434,12 +469,37 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 		}
 
 	}
-	DEBUG(print(dbg()));
 #endif
+	OStream fout(fopen("LiveIntervalTable.csv","w"));
+	print(fout);
 	return true;
 }
 
 OStream& LivetimeAnalysisPass::print(OStream& OS) const {
+	OS << "BasicBlock;Instruction;";
+	for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
+			e = lti_map.end(); i != e ; ++i) {
+		MachineOperand *op = i->first;
+		OS << *op << ";";
+	}
+	OS << nl;
+	for (MachineInstructionSchedule::const_iterator i = MIS->begin(), e = MIS->end(); i != e; ++i) {
+		MachineBasicBlock *BB = *i;
+		for (MachineBasicBlock::iterator i = BB->begin(), e = BB->end(); i != e; ++i) {
+			MIIterator pos = BB->convert(i);
+			OS << *BB << ";" << **pos << ";";
+			for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
+					e = lti_map.end(); i != e ; ++i) {
+				switch (i->second.get_State(pos)){
+				case LivetimeInterval::Active: OS << "active"; break;
+				case LivetimeInterval::Inactive: OS << "inactive"; break;
+				default: break;
+				}
+				OS << ";";
+			}
+			OS << nl;
+		}
+	}
 #if 0
 	OS << nl << "Liveinterval Table:" << nl;
 	OS << "Line: ";
@@ -562,6 +622,7 @@ bool LivetimeAnalysisPass::verify() const {
 #endif
 	return true;
 }
+
 // pass usage
 PassUsage& LivetimeAnalysisPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires(MachineLoopPass::ID);

@@ -98,6 +98,13 @@ public:
 	typedef IntervalListTy::const_iterator const_iterator;
 	typedef IntervalListTy::iterator iterator;
 
+	enum State {
+		Unhandled, ///< Interval no yet started
+		Active,    ///< Interval is live
+		Inactive,  ///< Interval is inactive
+		Handled    ///< Interval is finished
+	};
+
 	/**
 	 * @Cpp11 this could be changed to std::set where erase returns an
 	 * iterator.
@@ -160,6 +167,7 @@ public:
 	 */
 	void add_range(UseDef first, UseDef last);
 	void set_from(UseDef from);
+	State get_State(MIIterator pos) const;
 	#if 0
 	LivetimeInterval() : intervals(), operand(NULL), uses(), defs(),
 			fixed_interval(false), next_split(NULL), hint(NULL) {}
@@ -174,11 +182,14 @@ public:
 	Type::TypeID get_type() const;
 
 	bool is_fixed_interval()       const { return fixed_interval; }
-
+#endif
 	const_iterator begin()         const { return intervals.begin(); }
 	const_iterator end()           const { return intervals.end(); }
 	std::size_t size()             const { return intervals.size(); }
-
+	bool empty()                   const { return intervals.empty(); }
+	LivetimeRange front()          const { return intervals.front(); }
+	LivetimeRange back()           const { return intervals.back(); }
+#if 0
 	UseDef use_front()      const { return uses.front(); }
 	const_use_iterator use_begin() const { return uses.begin(); }
 	const_use_iterator use_end()   const { return uses.end(); }
