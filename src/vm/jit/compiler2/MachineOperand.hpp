@@ -94,6 +94,19 @@ public:
 	bool is_Immediate()        const { return op_id == ImmediateID; }
 	bool is_Address()          const { return op_id == AddressID; }
 
+	/**
+	 * True if operand is virtual and must be assigned
+	 * during register allocation
+	 */
+	virtual bool is_virtual() const { return false; }
+	/**
+	 * Return true if operand is processed during register allocation.
+	 * This implies is_virtual().
+	 *
+	 * @see is_virtual()
+	 */
+	virtual bool needs_allocation() const { return is_virtual(); }
+
 	virtual OStream& print(OStream &OS) const {
 		return OS << get_name() /* << " (" << get_type() << ")" */;
 	}
@@ -118,6 +131,7 @@ public:
 	virtual const char* get_name() const {
 		return "Register";
 	}
+	virtual bool needs_allocation() const { return true; }
 	virtual Register* to_Register()               { return this; }
 	virtual UnassignedReg* to_UnassignedReg()     { return 0; }
 	virtual VirtualRegister* to_VirtualRegister() { return 0; }
@@ -154,6 +168,7 @@ public:
 	virtual OStream& print(OStream &OS) const {
 		return MachineOperand::print(OS) << get_id();
 	}
+	virtual bool is_virtual() const { return true; }
 	unsigned get_id() const { return vreg; }
 	virtual bool operator==(Register *other) const {
 		VirtualRegister *vreg = other->to_VirtualRegister();
@@ -198,6 +213,7 @@ public:
 	virtual const char* get_name() const {
 		return "ManagedStackSlot";
 	}
+	virtual bool is_virtual() const { return true; }
 	unsigned get_id() const { return id; }
 	virtual OStream& print(OStream &OS) const {
 		return MachineOperand::print(OS) << get_id();
