@@ -40,6 +40,7 @@ namespace compiler2 {
 // forward declarations
 class MachineBasicBlock;
 class MachineInstructionSchedule;
+class MIIterator;
 
 class MBBIterator {
 	typedef ordered_list<MachineBasicBlock*>::iterator iterator;
@@ -201,6 +202,11 @@ public:
 	reference front();
 	/// access the last element
 	reference back();
+
+	/// returns an const MIIterator to the beginning
+	MIIterator mi_begin();
+	/// returns an const MIIterator to the end
+	MIIterator mi_end();
 private:
 	ordered_list<MachineBasicBlock*> list;
 };

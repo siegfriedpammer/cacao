@@ -86,6 +86,16 @@ public:
 	friend class MachineBasicBlock;
 };
 
+inline bool operator<=(const MIIterator &lhs, const MIIterator& rhs) {
+	return !(rhs < lhs);
+}
+inline bool operator>(const MIIterator &lhs, const MIIterator& rhs) {
+	return !(lhs <= rhs);
+}
+inline bool operator>=(const MIIterator &lhs, const MIIterator& rhs) {
+	return !(lhs < rhs);
+}
+
 /**
  * A basic block of (scheduled) machine instructions.
  *

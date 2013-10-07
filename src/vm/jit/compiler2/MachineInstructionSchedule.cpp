@@ -48,6 +48,13 @@ MachineInstructionSchedule::insert_before(iterator pos,
 	return value.MBB->my_it = --pos;
 }
 
+MIIterator MachineInstructionSchedule::mi_begin() {
+  return front()->convert(front()->begin());
+}
+MIIterator MachineInstructionSchedule::mi_end() {
+  return back()->convert(back()->end());
+}
+
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
