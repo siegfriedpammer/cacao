@@ -1,4 +1,4 @@
-/* src/vm/jit/verify/typecheck.c - typechecking (part of bytecode verification)
+/* src/vm/jit/verify/typecheck.cpp - typechecking (part of bytecode verification)
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO

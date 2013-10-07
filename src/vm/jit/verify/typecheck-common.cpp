@@ -1,4 +1,4 @@
-/* src/vm/jit/verify/typecheck-common.c - shared verifier code
+/* src/vm/jit/verify/typecheck-common.cpp - shared verifier code
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
