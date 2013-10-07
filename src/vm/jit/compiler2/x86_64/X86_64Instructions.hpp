@@ -371,7 +371,7 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 	virtual void link(CodeFragment &CF) const;
 	virtual void set_block(MachineBasicBlock* MBB);
-	virtual OStream& print(OStream &OS) const;
+	virtual OStream& print_successor_label(OStream &OS,std::size_t index) const;
 	MachineBasicBlock* get_MachineBasicBlock() const {
 		return successors.front();
 	}
@@ -467,7 +467,6 @@ public:
 	}
 	virtual void emit(CodeMemory* CM) const;
 	virtual void link(CodeFragment &CF) const;
-	virtual OStream& print(OStream &OS) const;
 	MachineBasicBlock* get_MachineBasicBlock() const {
 		return successors.front();
 	}
@@ -482,7 +481,6 @@ public:
 		return true;
 	}
 	virtual void emit(CodeMemory* CM) const;
-	virtual OStream& print(OStream &OS) const;
 	void add_target(MachineBasicBlock *MBB) {
 		successors.push_back(SuccessorProxy(MBB,SuccessorProxy::Explicit()));
 	}

@@ -188,6 +188,9 @@ public:
 	std::size_t successor_size() const {
 		return successors.size();
 	}
+	bool successor_empty() const {
+		return successors.empty();
+	}
 	unsigned get_id() const {
 		return id;
 	}
@@ -232,15 +235,14 @@ public:
 	virtual MachinePhiInst* to_MachinePhiInst() {
 		return NULL;
 	}
-	virtual OStream& print(OStream &OS) const;
+	/// print instruction
+	OStream& print(OStream &OS) const;
+	/// print successor label
+	virtual OStream& print_successor_label(OStream &OS,std::size_t index) const;
 
-	/**
-	 * emit machine code
-	 */
+	/// emit machine code
 	virtual void emit(CodeMemory* CM) const;
-	/**
-	 * emit machine code
-	 */
+	/// link machine code
 	virtual void link(CodeFragment &CF) const;
 
 	/// destructor

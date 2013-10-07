@@ -651,6 +651,15 @@ void MovDSEGInst::link(CodeFragment &CF) const {
 		"op_size: " << get_op_size() * 8 << "bit");
 }
 
+OStream& CondJumpInst::print_successor_label(OStream &OS,std::size_t index) const{
+	switch(index){
+	case 0: return OS << "then";
+	case 1: return OS << "else";
+	default: assert(0); break;
+	}
+	return OS << index;
+}
+
 void CondJumpInst::emit(CodeMemory* CM) const {
 	assert(0);
 	#if 0
@@ -690,12 +699,6 @@ void CondJumpInst::link(CodeFragment &CF) const {
 
 	InstructionEncoding::imm_op<u2>(CF, 0x0f80 + cond.code, offset);
 	#endif
-}
-
-OStream& CondJumpInst::print(OStream &OS) const {
-	return OS << "[" << setz(4) << get_id() << "] "
-		<< get_name() << "-> " << *(successors.front())
-		<< " (else " << *(successors.back()) << ")";
 }
 
 void CondJumpInst::set_block(MachineBasicBlock* MBB) {
@@ -818,11 +821,6 @@ void JumpInst::link(CodeFragment &CF) const {
 	#endif
 }
 
-OStream& JumpInst::print(OStream &OS) const {
-	return OS << "[" << setz(4) << get_id() << "] "
-		<< get_name() << "-> " << *(successors.front());
-}
-
 void IndirectJumpInst::emit(CodeMemory* CM) const {
 	X86_64Register *src_reg = cast_to<X86_64Register>(operands[0].op);
 	CodeFragment code = CM->get_CodeFragment(2);
@@ -830,13 +828,6 @@ void IndirectJumpInst::emit(CodeMemory* CM) const {
 	WARNING_MSG("Not yet implemented","No support for indirect jump yet.");
 	code[1] = get_modrm_1reg(0,src_reg);
 	return;
-}
-
-OStream& IndirectJumpInst::print(OStream &OS) const {
-	OS << "[" << setz(4) << get_id() << "] "
-		<< get_name() << "-> " << operands[0].op << " targets: ";
-	print_ptr_container(OS,successor_begin(),successor_end());
-	return OS;
 }
 
 void SSEAluInst::emit(CodeMemory* CM) const {
