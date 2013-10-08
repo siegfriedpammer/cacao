@@ -268,6 +268,26 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 	return true;
 }
 
+namespace {
+/**
+ * @Cpp11 use std::function
+ */
+struct PrintLivetimeState : public std::unary_function<LivetimeIntervalMapTy::value_type,void> {
+	OStream &OS;
+	MIIterator pos;
+	PrintLivetimeState(OStream &OS, MIIterator pos) : OS(OS), pos(pos) {}
+	void operator()(LivetimeIntervalMapTy::value_type lti) {
+		switch (lti.second.get_State(pos)){
+		case LivetimeInterval::Active: OS << "active"; break;
+		case LivetimeInterval::Inactive: OS << "inactive"; break;
+		default: break;
+		}
+		OS << ";";
+	}
+};
+
+} // end anonymous namespace
+
 OStream& LivetimeAnalysisPass::print(OStream& OS) const {
 	OS << "BasicBlock;Instruction;";
 	for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
@@ -278,18 +298,22 @@ OStream& LivetimeAnalysisPass::print(OStream& OS) const {
 	OS << nl;
 	for (MachineInstructionSchedule::const_iterator i = MIS->begin(), e = MIS->end(); i != e; ++i) {
 		MachineBasicBlock *BB = *i;
-		for (MachineBasicBlock::iterator i = BB->begin(), e = BB->end(); i != e; ++i) {
+		// print label
+		MIIterator pos = BB->mi_first();
+		OS << *BB << ";" << **pos << ";";
+		std::for_each(lti_map.begin(),lti_map.end(),PrintLivetimeState(OS,pos));
+		OS << nl;
+		// print phis
+		for (MachineBasicBlock::const_phi_iterator i = BB->phi_begin(), e = BB->phi_end(); i != e; ++i) {
+			OS << *BB << ";" << **i << ";";
+			std::for_each(lti_map.begin(),lti_map.end(),PrintLivetimeState(OS,pos));
+			OS << nl;
+		}
+		// print other instructions
+		for (MachineBasicBlock::iterator i = ++BB->begin(), e = BB->end(); i != e; ++i) {
 			MIIterator pos = BB->convert(i);
 			OS << *BB << ";" << **pos << ";";
-			for (LivetimeIntervalMapTy::const_iterator i = lti_map.begin(),
-					e = lti_map.end(); i != e ; ++i) {
-				switch (i->second.get_State(pos)){
-				case LivetimeInterval::Active: OS << "active"; break;
-				case LivetimeInterval::Inactive: OS << "inactive"; break;
-				default: break;
-				}
-				OS << ";";
-			}
+			std::for_each(lti_map.begin(),lti_map.end(),PrintLivetimeState(OS,pos));
 			OS << nl;
 		}
 	}

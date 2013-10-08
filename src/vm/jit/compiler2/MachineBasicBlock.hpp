@@ -28,6 +28,7 @@
 #include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
 #include "toolbox/ordered_list.hpp"
 
+#include "toolbox/future.hpp" // for all_of, none_of
 namespace cacao {
 
 // forward declarations
@@ -269,6 +270,7 @@ inline MIIterator& MIIterator::operator--() {
 	return *this;
 }
 
+bool check_is_phi(MachineInstruction *value);
 
 inline bool MachineBasicBlock::empty() const {
 	return list.empty();
@@ -277,24 +279,29 @@ inline std::size_t MachineBasicBlock::size() const {
 	return list.size();
 }
 inline void MachineBasicBlock::push_back(MachineInstruction* value) {
+	assert(!check_is_phi(value));
 	update(value);
 	list.push_back(value);
 }
 inline void MachineBasicBlock::push_front(MachineInstruction* value) {
+	assert(!check_is_phi(value));
 	update(value);
 	list.push_front(value);
 }
 inline void MachineBasicBlock::insert_before(iterator pos, MachineInstruction* value) {
+	assert(!check_is_phi(value));
 	update(value);
 	list.insert(pos,value);
 }
 inline void MachineBasicBlock::insert_after(iterator pos, MachineInstruction* value) {
+	assert(!check_is_phi(value));
 	update(value);
 	list.insert(++pos,value);
 }
 template<class InputIt>
 inline void MachineBasicBlock::insert_before(iterator pos,
 		InputIt first, InputIt last) {
+	assert(none_of(first,last,check_is_phi));
 	list.insert(pos,first,last);
 	std::for_each(first,last,
 		std::bind1st(std::mem_fun(&MachineBasicBlock::update), this));
@@ -302,6 +309,7 @@ inline void MachineBasicBlock::insert_before(iterator pos,
 template<class InputIt>
 inline void MachineBasicBlock::insert_after(iterator pos,
 		InputIt first, InputIt last) {
+	assert(none_of(first,last,check_is_phi));
 	list.insert(++pos,first,last);
 	std::for_each(first,last,
 		std::bind1st(std::mem_fun(&MachineBasicBlock::update), this));

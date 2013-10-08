@@ -315,7 +315,16 @@ bool MachineInstructionPrinterPass::run(JITData &JD) {
 		MachineBasicBlock *MBB = *i;
 		LOG(*MBB << " ");
 		print_ptr_container(dbg(),MBB->pred_begin(),MBB->pred_end()) << nl;
-		for (MachineBasicBlock::iterator i = MBB->begin(), e = MBB->end();
+		// print label
+		LOG(*MBB->front() << nl);
+		// print phi
+		for (MachineBasicBlock::const_phi_iterator i = MBB->phi_begin(),
+				e = MBB->phi_end(); i != e; ++i) {
+			MachinePhiInst *phi = *i;
+			LOG(*phi << nl);
+		}
+		// print remaining instructions
+		for (MachineBasicBlock::iterator i = ++MBB->begin(),  e = MBB->end();
 				i != e ; ++i) {
 			MachineInstruction *MI = *i;
 			LOG(*MI << nl);

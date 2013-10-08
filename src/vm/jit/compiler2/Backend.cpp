@@ -53,7 +53,7 @@ void LoweringVisitorBase::visit(GOTOInst* I) {
 void LoweringVisitorBase::visit(PHIInst* I) {
 	assert(I);
 	MachinePhiInst *phi = new MachinePhiInst(I->op_size(),I->get_type(),I);
-	get_current()->push_back(phi);
+	//get_current()->push_back(phi);
 	get_current()->insert_phi(phi);
 	set_op(I,phi->get_result().op);
 }

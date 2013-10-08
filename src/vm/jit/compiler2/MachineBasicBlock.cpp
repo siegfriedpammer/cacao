@@ -60,6 +60,10 @@ void MoveEdgeFunctor::operator()(MachineInstruction* MI) {
 	}
 }
 
+bool check_is_phi(MachineInstruction *value) {
+	return value->is_phi();
+}
+
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
