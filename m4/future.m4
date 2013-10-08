@@ -32,5 +32,31 @@ AC_DEFUN([AC_CHECK_FUTURE],[
   AC_CHECK_HEADER([boost/shared_ptr.hpp], [
     AC_DEFINE([HAVE_BOOST_SHARED_PTR], 1, [boost::shared_ptr is available])
   ])
+  dnl all_of any_of none_of
+  AC_MSG_CHECKING([whether standard all_of, any_of, none_of are available])
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+  #include <algorithm>
+  #include <set>
+  bool pred(int x) { return true; }
+  ]],[[
+  std::set<int> s;
+  std::all_of(s.begin(),s.end(),pred);
+  std::any_of(s.begin(),s.end(),pred);
+  std::none_of(s.begin(),s.end(),pred);
+  ]])
+  ],[
+    AC_MSG_RESULT([yes])
+    AC_DEFINE([HAVE_STD_ALL_ANY_NONE_OF], 1, [std::all_of/any_of/none_of is available])
+  ], [
+    AC_MSG_RESULT([no])
+  ])
+
+  AC_CHECK_HEADER([boost/algorithm/cxx11/all_of.hpp], [
+  AC_CHECK_HEADER([boost/algorithm/cxx11/any_of.hpp], [
+  AC_CHECK_HEADER([boost/algorithm/cxx11/none_of.hpp], [
+    AC_DEFINE([HAVE_BOOST_ALL_ANY_NONE_OF], 1, [boost::algorithm::all_of/any_of/none_of is available])
+  ])
+  ])
+  ])
   AC_LANG_POP([C++])
 ])
