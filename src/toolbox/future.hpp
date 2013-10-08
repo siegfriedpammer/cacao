@@ -49,7 +49,58 @@ using boost::shared_ptr;
 #error "No definition for shared_ptr found"
 #endif
 
+
+// get all_of any_of none_of templates
+#if HAVE_STD_ALL_ANY_NONE_OF
+
+#include <algorithm>
+
+namespace cacao {
+using std::all_of;
+using std::any_of;
+using std::none_of;
+} // end namespace cacao
+
+#elif HAVE_BOOST_ALL_ANY_NONE_OF
+#include <boost/algorithm/cxx11/all_of.hpp>
+#include <boost/algorithm/cxx11/any_of.hpp>
+#include <boost/algorithm/cxx11/none_of.hpp>
+
+namespace cacao {
+using boost::algorithm::all_of;
+using boost::algorithm::any_of;
+using boost::algorithm::none_of;
+} // end namespace cacao
+
+#else
+namespace cacao {
+template< class InputIt, class UnaryPredicate >
+bool all_of(InputIt first, InputIt last, UnaryPredicate p) {
+    for (; first != last; ++first) {
+        if (!p(*first)) return false;
+    }
+    return true;
+}
+
+template< class InputIt, class UnaryPredicate >
+bool any_of(InputIt first, InputIt last, UnaryPredicate p) {
+    for (; first != last; ++first) {
+        if (p(*first)) return true;
+    }
+    return false;
+}
+
+template< class InputIt, class UnaryPredicate >
+bool none_of(InputIt first, InputIt last, UnaryPredicate p) {
+    for (; first != last; ++first) {
+        if (p(*first)) return false;
+    }
+    return true;
+}
+} // end namespace cacao
 #endif
+
+#endif /* FUTURE_HPP_ */
 
 /*
  * These are local overrides for various environment variables in Emacs.
