@@ -24,6 +24,7 @@
 
 #include "vm/jit/compiler2/Backend.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
+#include "vm/jit/compiler2/MachineInstructions.hpp"
 
 #include "Target.hpp"
 
@@ -37,11 +38,9 @@ Backend* Backend::factory(JITData *JD) {
 
 void LoweringVisitorBase::visit(BeginInst* I) {
 	assert(I);
-	#if 0
-	MachineInstruction *label = new MachineLabelInst(get_current());
+	MachineInstruction *label = new MachineLabelInst();
 	get_current()->push_back(label);
 	//set_op(I,label->get_result().op);
-	#endif
 }
 
 void LoweringVisitorBase::visit(GOTOInst* I) {

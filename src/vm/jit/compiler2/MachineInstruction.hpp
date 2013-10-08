@@ -42,7 +42,6 @@ namespace compiler2 {
 // forward declaration
 class MachineMoveInst;
 class MachinePhiInst;
-class MachineLabelInst;
 class CodeMemory;
 class MachineInstruction;
 

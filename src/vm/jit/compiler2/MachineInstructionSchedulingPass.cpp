@@ -136,6 +136,7 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 				MachineBasicBlock *new_MBB = *insert_after(MBB->self_iterator(),MBBBuilder());
 				assert(new_MBB);
 				new_MBB->insert_pred(MBB);
+				new_MBB->push_front(new MachineLabelInst());
 				LOG2("new MBB: " << *new_MBB << nl);
 				move_instructions(i,e,*MBB,*new_MBB);
 				break;
@@ -155,7 +156,6 @@ bool MachineInstructionSchedulingPass::verify() const {
 				<< *MBB << ") empty");
 			return false;
 		}
-		#if 0
 		MachineInstruction *front = MBB->front();
 		// check for label
 		if(!front->is_label()) {
@@ -163,7 +163,6 @@ bool MachineInstructionSchedulingPass::verify() const {
 				<< *front << ") not a label");
 			return false;
 		}
-		#endif
 		MachineInstruction *back = MBB->back();
 		// check for end
 		if(!back->is_end()) {

@@ -31,21 +31,14 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-#if 0
 class MachineLabelInst : public MachineInstruction {
-private:
-	MachineBasicBlock *MBB;
 public:
-	MachineLabelInst(MachineBasicBlock *MBB) : MachineInstruction("MLabel", &NoOperand, 0), MBB(MBB) {}
+	MachineLabelInst() : MachineInstruction("MLabel", &NoOperand, 0) {}
 	virtual void emit(CodeMemory* CM) const;
 	virtual bool is_label() const {
 		return true;
 	}
-	MachineBasicBlock* get_MachineBasicBlock() const {
-		return MBB;
-	}
 };
-#endif
 
 class MachinePhiInst : public MachineInstruction {
 private:
