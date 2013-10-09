@@ -28,6 +28,7 @@
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/GraphHelper.hpp"
 #include "vm/jit/compiler2/LoopPass.hpp"
+#include "vm/jit/compiler2/DominatorPass.hpp"
 #include "toolbox/logging.hpp"
 
 #include <list>
@@ -40,10 +41,10 @@ namespace compiler2 {
 
 bool BasicBlockSchedulingPass::run(JITData &JD) {
 	Method *M = JD.get_Method();
-	std::list<BeginInst*> queue;
 	DFSTraversal<BeginInst> dfs(M->get_init_bb());
-	bb_list.reserve(dfs.size());
-	bb_list.insert(bb_list.begin(),dfs.begin(),dfs.end());
+	// XXX this is not sufficient in more complicated cases
+	insert(begin(),dfs.begin(),dfs.end());
+
 	if (DEBUG_COND) {
 		LOG("BasicBlockSchedule:" << nl);
 		for (const_bb_iterator i = bb_begin(), e = bb_end(); i != e; ++i) {
@@ -54,6 +55,8 @@ bool BasicBlockSchedulingPass::run(JITData &JD) {
 }
 
 bool BasicBlockSchedulingPass::verify() const {
+	// check if ordering (obsolete)
+	#if 0
 	for (unsigned i = 0, e = bb_list.size() ; i < e ; ++i) {
 		BeginInst *BI = bb_list[i];
 		assert(BI);
@@ -68,7 +71,24 @@ bool BasicBlockSchedulingPass::verify() const {
 			}
 		}
 	}
-	LoopTree *LT = get_Pass_if_available<LoopPass>();
+	#endif
+	// check dominator property
+	DominatorTree *DT = get_Pass<DominatorPass>();
+	std::set<BeginInst*> handled;
+	for (BasicBlockSchedule::const_bb_iterator i = bb_begin(), e = bb_end();
+			i !=e ; ++i) {
+		BeginInst *idom = DT->get_idominator(*i);
+		if (idom) {
+			if (handled.find(idom) == handled.end()) {
+				ERROR_MSG("Dominator property violated!","immediate dominator (" << *idom
+					<< ") of " << **i << "not already scheduled" );
+				return false;
+			}
+		}
+		handled.insert(*i);
+	}
+	// check contiguous loop property
+	LoopTree *LT = get_Pass<LoopPass>();
 	if (LT) {
 	}
 	return true;
@@ -76,7 +96,8 @@ bool BasicBlockSchedulingPass::verify() const {
 
 // pass usage
 PassUsage& BasicBlockSchedulingPass::get_PassUsage(PassUsage &PU) const {
-	//PU.add_requires(YyyPass::ID);
+	PU.add_requires(DominatorPass::ID);
+	PU.add_requires(LoopPass::ID);
 	return PU;
 }
 

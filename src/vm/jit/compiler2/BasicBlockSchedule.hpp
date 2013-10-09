@@ -40,18 +40,35 @@ class BeginInst;
 class BasicBlockSchedule {
 public:
 	typedef std::vector<BeginInst*> BasicBlockListTy;
+	typedef BasicBlockListTy::iterator bb_iterator;
 	typedef BasicBlockListTy::const_iterator const_bb_iterator;
 	typedef BasicBlockListTy::const_reverse_iterator const_reverse_bb_iterator;
-protected:
+private:
 	BasicBlockListTy bb_list;
+protected:
+	void clear() {
+		bb_list.clear();
+	}
+	template<class InputIterator>
+	void insert(bb_iterator pos, InputIterator first, InputIterator last) {
+		bb_list.insert(pos,first,last);
+	}
+	bb_iterator begin() {
+		return bb_list.begin();
+	}
+	bb_iterator end() {
+		return bb_list.end();
+	}
 public:
 	BasicBlockSchedule() {}
+#if 0
 	BeginInst* operator[](const unsigned i) const {
 		return bb_list[i];
 	}
 	BeginInst* get(const unsigned i) const {
 		return bb_list[i];
 	}
+#endif
 	const_bb_iterator bb_begin() const {
 		return bb_list.begin();
 	}
@@ -64,7 +81,7 @@ public:
 	const_reverse_bb_iterator bb_rend() const {
 		return bb_list.rend();
 	}
-	unsigned size() const {
+	std::size_t size() const {
 		return bb_list.size();
 	}
 };

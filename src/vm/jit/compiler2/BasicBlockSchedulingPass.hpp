@@ -44,7 +44,7 @@ public:
 	bool run(JITData &JD);
 	PassUsage& get_PassUsage(PassUsage &PA) const;
 	void initialize() {
-		bb_list.clear();
+		clear();
 	}
 	bool verify() const;
 };
