@@ -541,7 +541,7 @@ void LinearScanAllocatorPass::resolve() {
 #if 0
 	LoweringPass *LP = get_Pass<LoweringPass>();
 	ListSchedulingPass *IS = get_Pass<ListSchedulingPass>();
-	InstructionLinkSchedule *ILS = get_Pass<ScheduleClickPass>();
+	GlobalSchedule *GS = get_Pass<ScheduleClickPass>();
 
 	// resolution
 	Method *M = jd->get_Method();
@@ -793,11 +793,11 @@ void LinearScanAllocatorPass::resolve() {
 		LP->set_dag(BI,backend->lower(BI));
 		LP->set_dag(I,dag);
 		LP->set_dag(EI,backend->lower(EI));
-		// we have tho fix InstructionLinkSchedule
+		// we have tho fix GlobalSchedule
 		// TODO
-		ILS->add_Instruction(BI,BI);
-		ILS->add_Instruction(I,BI);
-		ILS->add_Instruction(EI,BI);
+		GS->add_Instruction(BI,BI);
+		GS->add_Instruction(I,BI);
+		GS->add_Instruction(EI,BI);
 		// we have fix InstructionScheduling
 		IS->schedule(BI);
 		// we have to fix BasicBlockScheduling

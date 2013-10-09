@@ -45,16 +45,16 @@ public:
 };
 
 /**
- * InstructionLinkSchedulePrinterPass
+ * GlobalSchedulePrinterPass
  * TODO: more info
  */
 template <class _T>
-class InstructionLinkSchedulePrinterPass : public Pass {
+class GlobalSchedulePrinterPass : public Pass {
 private:
 	static const char* name;
 public:
 	static char ID;
-	InstructionLinkSchedulePrinterPass() : Pass() {}
+	GlobalSchedulePrinterPass() : Pass() {}
 	bool run(JITData &JD);
 	PassUsage& get_PassUsage(PassUsage &PA) const;
 };

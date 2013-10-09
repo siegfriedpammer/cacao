@@ -36,7 +36,7 @@ namespace compiler2 {
 
 class Method;
 class Instruction;
-class InstructionLinkSchedule;
+class GlobalSchedule;
 
 /**
  * ListSchedulingPass
@@ -44,7 +44,7 @@ class InstructionLinkSchedule;
  */
 class ListSchedulingPass : public Pass, public InstructionSchedule<Instruction> {
 private:
-	InstructionLinkSchedule *sched;
+	GlobalSchedule *sched;
 	Method *M;
 public:
 	/**

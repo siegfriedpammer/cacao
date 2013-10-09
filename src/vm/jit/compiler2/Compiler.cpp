@@ -138,9 +138,9 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass(&ScheduleEarlyPass::ID);
 	PM.add_Pass(&ScheduleLatePass::ID);
 	PM.add_Pass(&ScheduleClickPass::ID);
-	PM.add_Pass(&InstructionLinkSchedulePrinterPass<ScheduleEarlyPass>::ID);
-	PM.add_Pass(&InstructionLinkSchedulePrinterPass<ScheduleLatePass>::ID);
-	PM.add_Pass(&InstructionLinkSchedulePrinterPass<ScheduleClickPass>::ID);
+	PM.add_Pass(&GlobalSchedulePrinterPass<ScheduleEarlyPass>::ID);
+	PM.add_Pass(&GlobalSchedulePrinterPass<ScheduleLatePass>::ID);
+	PM.add_Pass(&GlobalSchedulePrinterPass<ScheduleClickPass>::ID);
 	//PM.add_Pass(&LoopSimplificationPass::ID);
 	PM.add_Pass(&DomTreePrinterPass::ID);
 	PM.add_Pass(&ListSchedulingPass::ID);

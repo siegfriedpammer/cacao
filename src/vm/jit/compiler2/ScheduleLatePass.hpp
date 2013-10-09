@@ -27,7 +27,7 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/Loop.hpp"
-#include "vm/jit/compiler2/InstructionLinkSchedule.hpp"
+#include "vm/jit/compiler2/GlobalSchedule.hpp"
 
 namespace cacao {
 namespace jit {
@@ -43,11 +43,11 @@ class DominatorTree;
  *
  * Based on the algorithm in Click's Phd Thesis, Chapter 6 @cite ClickPHD.
  */
-class ScheduleLatePass : public Pass, public InstructionLinkSchedule {
+class ScheduleLatePass : public Pass, public GlobalSchedule {
 private:
 	DominatorTree *DT;
 	LoopTree *LT;
-	InstructionLinkSchedule *early;
+	GlobalSchedule *early;
 	Method *M;
 	void schedule_late(Instruction *I);
 public:

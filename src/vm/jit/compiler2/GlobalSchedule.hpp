@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/InstructionLinkSchedule.hpp - InstructionLinkSchedule
+/* src/vm/jit/compiler2/GlobalSchedule.hpp - GlobalSchedule
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,8 +22,8 @@
 
 */
 
-#ifndef _JIT_COMPILER2_INSTRUCTIONLINKSCHEDULE
-#define _JIT_COMPILER2_INSTRUCTIONLINKSCHEDULE
+#ifndef _JIT_COMPILER2_GLOBALSCHEDULE
+#define _JIT_COMPILER2_GLOBALSCHEDULE
 
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Method.hpp"
@@ -36,10 +36,10 @@ namespace compiler2 {
 
 
 /**
- * InstructionLinkSchedule
+ * GlobalSchedule
  * TODO: more info
  */
-class InstructionLinkSchedule {
+class GlobalSchedule {
 public:
 	typedef std::set<Instruction*>::const_iterator const_inst_iterator;
 protected:
@@ -58,7 +58,7 @@ protected:
 		}
 	}
 public:
-	InstructionLinkSchedule() {}
+	GlobalSchedule() {}
 	void add_Instruction(Instruction *I, BeginInst* BI) {
 		map[I] = BI;
 		bb_map[BI].insert(I);
@@ -90,7 +90,7 @@ public:
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_INSTRUCTIONLINKSCHEDULE */
+#endif /* _JIT_COMPILER2_GLOBALSCHEDULE */
 
 
 /*

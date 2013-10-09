@@ -79,7 +79,7 @@ class SSAGraph : public GraphTraits<Method,Instruction> {
 protected:
     const Method &M;
 	std::string name;
-	InstructionLinkSchedule *sched;
+	GlobalSchedule *sched;
     bool verbose;
 	std::set<EdgeType> data_dep;
 	std::set<EdgeType> sched_dep;
@@ -88,7 +88,7 @@ protected:
 
 public:
 
-    SSAGraph(const Method &M, std::string name = "SSAGraph", InstructionLinkSchedule *sched = NULL, bool verbose = false)
+    SSAGraph(const Method &M, std::string name = "SSAGraph", GlobalSchedule *sched = NULL, bool verbose = false)
 			: M(M), name(name), sched(sched), verbose(verbose) {
 		for(Method::InstructionListTy::const_iterator i = M.begin(),
 		    e = M.end(); i != e; ++i) {
@@ -256,26 +256,26 @@ bool SSAPrinterPass::run(JITData &JD) {
 }
 // END SSAPrinterPass
 
-// BEGIN InstructionLinkSchedulePrinterPass
+// BEGIN GlobalSchedulePrinterPass
 
 template <class _T>
-PassUsage& InstructionLinkSchedulePrinterPass<_T>::get_PassUsage(PassUsage &PU) const {
+PassUsage& GlobalSchedulePrinterPass<_T>::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires(_T::ID);
 	return PU;
 }
 // the address of this variable is used to identify the pass
 template <class _T>
-char InstructionLinkSchedulePrinterPass<_T>::ID = 0;
+char GlobalSchedulePrinterPass<_T>::ID = 0;
 
 // run pass
 template <class _T>
-bool InstructionLinkSchedulePrinterPass<_T>::run(JITData &JD) {
+bool GlobalSchedulePrinterPass<_T>::run(JITData &JD) {
 	std::string name = get_filename(JD.get_jitdata()->m,JD.get_jitdata(),"","");
 	std::string filename = "bb_sched_";
 
-	InstructionLinkSchedule* sched = get_Pass<_T>();
+	GlobalSchedule* sched = get_Pass<_T>();
 
-	filename += InstructionLinkSchedulePrinterPass<_T>::name;
+	filename += GlobalSchedulePrinterPass<_T>::name;
 	filename += "_" + name + ".dot";
 	GraphPrinter<SSAGraph>::print(filename.c_str(), SSAGraph(*(JD.get_Method()), name, sched));
 	return true;
@@ -283,19 +283,19 @@ bool InstructionLinkSchedulePrinterPass<_T>::run(JITData &JD) {
 
 // set names
 template <>
-const char* InstructionLinkSchedulePrinterPass<ScheduleLatePass>::name = "late";
+const char* GlobalSchedulePrinterPass<ScheduleLatePass>::name = "late";
 template <>
-const char* InstructionLinkSchedulePrinterPass<ScheduleEarlyPass>::name = "early";
+const char* GlobalSchedulePrinterPass<ScheduleEarlyPass>::name = "early";
 template <>
-const char* InstructionLinkSchedulePrinterPass<ScheduleClickPass>::name = "click";
+const char* GlobalSchedulePrinterPass<ScheduleClickPass>::name = "click";
 
 
 // register pass
-static PassRegistery<InstructionLinkSchedulePrinterPass<ScheduleLatePass> > X_late("InstructionLinkSchedulePrinterPass(late)");
-static PassRegistery<InstructionLinkSchedulePrinterPass<ScheduleEarlyPass> > X_early("InstructionLinkSchedulePrinterPass(early)");
-static PassRegistery<InstructionLinkSchedulePrinterPass<ScheduleClickPass> > X_click("InstructionLinkSchedulePrinterPass(click)");
+static PassRegistery<GlobalSchedulePrinterPass<ScheduleLatePass> > X_late("GlobalSchedulePrinterPass(late)");
+static PassRegistery<GlobalSchedulePrinterPass<ScheduleEarlyPass> > X_early("GlobalSchedulePrinterPass(early)");
+static PassRegistery<GlobalSchedulePrinterPass<ScheduleClickPass> > X_click("GlobalSchedulePrinterPass(click)");
 
-// END InstructionLinkSchedulePrinterPass
+// END GlobalSchedulePrinterPass
 
 } // end namespace cacao
 } // end namespace jit

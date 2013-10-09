@@ -26,7 +26,7 @@
 #define _JIT_COMPILER2_SCHEDULEEARLYPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
-#include "vm/jit/compiler2/InstructionLinkSchedule.hpp"
+#include "vm/jit/compiler2/GlobalSchedule.hpp"
 
 namespace cacao {
 namespace jit {
@@ -42,7 +42,7 @@ class DominatorTree;
  *
  * Based on the algorithm in Click's Phd Thesis, Chapter 6 @cite ClickPHD.
  */
-class ScheduleEarlyPass : public Pass, public InstructionLinkSchedule {
+class ScheduleEarlyPass : public Pass, public GlobalSchedule {
 private:
 	DominatorTree *DT;
 	Method *M;
