@@ -53,7 +53,6 @@ namespace jit {
 namespace compiler2 {
 
 // Forward declarations
-class BasicBlock;
 class InstructionVisitor;
 
 // include instruction declaration
@@ -105,7 +104,6 @@ private:
 
 protected:
 	const InstID opcode;
-	BasicBlock *parent;				   ///< BasicBlock containing the instruction or NULL
 	Method* method;
 	const int id;
 	BeginInst* begin;
