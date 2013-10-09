@@ -67,7 +67,7 @@ arm | armv4* | armv5* | armv6* | armv7* )
     JAVA_ARCH="arm"
 
     case "$host" in
-	*-gnueabihf)
+	*-hardfloat-*-gnueabi | *-gnueabihf)
 		AM_CPPFLAGS="$AM_CPPFLAGS -D__ARMHF__"
 		;;
 	esac
