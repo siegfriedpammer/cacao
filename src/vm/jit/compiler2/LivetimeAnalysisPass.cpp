@@ -278,7 +278,18 @@ struct PrintLivetimeState : public std::unary_function<LivetimeIntervalMapTy::va
 	PrintLivetimeState(OStream &OS, MIIterator pos) : OS(OS), pos(pos) {}
 	void operator()(LivetimeIntervalMapTy::value_type lti) {
 		switch (lti.second.get_State(pos)){
-		case LivetimeInterval::Active: OS << "active"; break;
+		case LivetimeInterval::Active:
+		{
+			bool use = lti.second.is_use_at(pos);
+			bool def = lti.second.is_def_at(pos);
+			if (use)
+				OS << "use";
+			if (def)
+				OS << "def";
+			if (!(use || def))
+				OS << "active";
+			break;
+		}
 		case LivetimeInterval::Inactive: OS << "inactive"; break;
 		default: break;
 		}

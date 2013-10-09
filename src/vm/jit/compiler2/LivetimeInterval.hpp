@@ -168,6 +168,8 @@ public:
 	void add_range(UseDef first, UseDef last);
 	void set_from(UseDef from);
 	State get_State(MIIterator pos) const;
+	bool is_use_at(MIIterator pos) const;
+	bool is_def_at(MIIterator pos) const;
 	#if 0
 	LivetimeInterval() : intervals(), operand(NULL), uses(), defs(),
 			fixed_interval(false), next_split(NULL), hint(NULL) {}
