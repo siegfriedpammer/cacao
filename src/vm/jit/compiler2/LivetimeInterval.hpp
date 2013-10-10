@@ -39,9 +39,10 @@ namespace jit {
 namespace compiler2 {
 
 // forward declaration
-class Register;
+class LivetimeIntervalImpl;
 class BeginInst;
 class LivetimeAnalysisPass;
+class Register;
 class MachineOperand;
 class MachineOperandDesc;
 class StackSlotManager;
@@ -84,14 +85,7 @@ struct LivetimeRange {
 		: start(start), end(end) {}
 };
 
-/// less then operator
-inline bool operator<(const UseDef& lhs,const UseDef& rhs) {
-	return lhs.get_iterator() < rhs.get_iterator();
-}
 
-/**
- * TODO: doc me!
- */
 class LivetimeInterval {
 public:
 	typedef std::list<LivetimeRange> IntervalListTy;
@@ -104,6 +98,42 @@ public:
 		Inactive,  ///< Interval is inactive
 		Handled    ///< Interval is finished
 	};
+	/// construtor
+	LivetimeInterval();
+	/// copy constructor
+	LivetimeInterval(const LivetimeInterval &other);
+	/// copy assignment operator
+	LivetimeInterval& operator=(const LivetimeInterval &other);
+
+	/**
+	 * A range the range [first, last] to the interval
+	 */
+	void add_range(UseDef first, UseDef last);
+	void set_from(UseDef from);
+	State get_State(MIIterator pos) const;
+	bool is_use_at(MIIterator pos) const;
+	bool is_def_at(MIIterator pos) const;
+
+	const_iterator begin() const;
+	const_iterator end() const;
+	std::size_t size() const;
+	bool empty() const;
+	LivetimeRange front() const;
+	LivetimeRange back() const;
+private:
+	shared_ptr<LivetimeIntervalImpl> pimpl;
+};
+
+class LivetimeIntervalImpl {
+public:
+	typedef LivetimeInterval::IntervalListTy IntervalListTy;
+	typedef LivetimeInterval::const_iterator const_iterator;
+	typedef LivetimeInterval::iterator iterator;
+
+	typedef LivetimeInterval::State State;
+/**
+ * TODO: doc me!
+ */
 
 	/**
 	 * @Cpp11 this could be changed to std::set where erase returns an
@@ -348,8 +378,59 @@ public:
 	friend class LivetimeAnalysisPass;
 };
 
+// LivetimeInterval
+
+inline LivetimeInterval::LivetimeInterval() : pimpl(new LivetimeIntervalImpl()){}
+inline LivetimeInterval::LivetimeInterval(const LivetimeInterval &other) : pimpl(other.pimpl) {}
+inline LivetimeInterval& LivetimeInterval::operator=(const LivetimeInterval &other) {
+	pimpl = other.pimpl;
+	return *this;
+}
+inline void LivetimeInterval::add_range(UseDef first, UseDef last) {
+	pimpl->add_range(first, last);
+}
+inline void LivetimeInterval::set_from(UseDef from) {
+	pimpl->set_from(from);
+}
+inline LivetimeInterval::State LivetimeInterval::get_State(MIIterator pos) const {
+	return pimpl->get_State(pos);
+}
+inline bool LivetimeInterval::is_use_at(MIIterator pos) const {
+	return pimpl->is_use_at(pos);
+}
+inline bool LivetimeInterval::is_def_at(MIIterator pos) const {
+	return pimpl->is_def_at(pos);
+}
+
+inline LivetimeInterval::const_iterator LivetimeInterval::begin() const {
+	return pimpl->begin();
+}
+inline LivetimeInterval::const_iterator LivetimeInterval::end() const {
+	return pimpl->end();
+}
+inline std::size_t LivetimeInterval::size() const {
+	return pimpl->size();
+}
+inline bool LivetimeInterval::empty() const {
+	return pimpl->empty();
+}
+inline LivetimeRange LivetimeInterval::front() const {
+	return pimpl->front();
+}
+inline LivetimeRange LivetimeInterval::back() const {
+	return pimpl->back();
+}
+
+/// less then operator
+inline bool operator<(const UseDef& lhs,const UseDef& rhs) {
+	return lhs.get_iterator() < rhs.get_iterator();
+}
+
 OStream& operator<<(OStream &OS, const LivetimeInterval &lti);
 OStream& operator<<(OStream &OS, const LivetimeInterval *lti);
+
+OStream& operator<<(OStream &OS, const UseDef &usedef);
+OStream& operator<<(OStream &OS, const LivetimeRange &range);
 
 } // end namespace compiler2
 } // end namespace jit

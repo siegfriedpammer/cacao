@@ -75,12 +75,10 @@ public:
 	std::size_t size() const {
 		return lti_map.size();
 	}
-	LivetimeInterval* get(MachineOperand* operand) {
+	LivetimeInterval& get(MachineOperand* operand) {
 		iterator i = lti_map.find(operand);
-		if ( i == lti_map.end()) {
-			return NULL;
-		}
-		return &(i->second);
+		assert(i != lti_map.end());
+		return i->second;
 	}
 	OStream& print(OStream& OS) const;
 };

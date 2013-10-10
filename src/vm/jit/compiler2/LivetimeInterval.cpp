@@ -33,7 +33,7 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-void LivetimeInterval::add_range(UseDef first, UseDef last) {
+void LivetimeIntervalImpl::add_range(UseDef first, UseDef last) {
 	//LOG("first " << **first.get_iterator() << " last " << **last.get_iterator() << nl);
 	assert(!(last < first));
 
@@ -58,7 +58,7 @@ void LivetimeInterval::add_range(UseDef first, UseDef last) {
 	intervals.push_front(range);
 }
 
-void LivetimeInterval::set_from(UseDef from) {
+void LivetimeIntervalImpl::set_from(UseDef from) {
 	assert(!intervals.empty());
 	//assert_msg(!(intervals.front().start < from),
 	//	**from.get_iterator() << " not lesser or equal then " << **intervals.front().start.get_iterator());
@@ -67,67 +67,67 @@ void LivetimeInterval::set_from(UseDef from) {
 	intervals.front().start = from;
 }
 
-LivetimeInterval::State LivetimeInterval::get_State(MIIterator pos) const {
-	State state = Unhandled;
+LivetimeIntervalImpl::State LivetimeIntervalImpl::get_State(MIIterator pos) const {
+	State state = LivetimeInterval::Unhandled;
 
 	if (!empty() && back().end.get_iterator() < pos) {
-		return Handled;
+		return LivetimeInterval::Handled;
 	}
 	for (const_iterator i = begin(), e = end(); i != e; ++i) {
 		if (pos < i->start.get_iterator())
 			break;
 		if (pos <= i->end.get_iterator()) {
-			return Active;
+			return LivetimeInterval::Active;
 		}
-		state = Inactive;
+		state = LivetimeInterval::Inactive;
 	}
 	return state;
 }
 
-bool LivetimeInterval::is_use_at(MIIterator pos) const {
+bool LivetimeIntervalImpl::is_use_at(MIIterator pos) const {
 	return uses.find(UseDef(UseDef::Pseudo,pos)) != uses.end();
 }
 
-bool LivetimeInterval::is_def_at(MIIterator pos) const {
+bool LivetimeIntervalImpl::is_def_at(MIIterator pos) const {
 	return defs.find(UseDef(UseDef::Pseudo,pos)) != defs.end();
 }
 
 
 #if 0
-void LivetimeInterval::set_Register(Register* r) {
+void LivetimeIntervalImpl::set_Register(Register* r) {
 	operand = r;
 }
 
-Register* LivetimeInterval::get_Register() const {
+Register* LivetimeIntervalImpl::get_Register() const {
 	Register *r = operand->to_Register();
 	assert(r);
 	return r;
 }
-void LivetimeInterval::set_ManagedStackSlot(ManagedStackSlot* s) {
+void LivetimeIntervalImpl::set_ManagedStackSlot(ManagedStackSlot* s) {
 	operand = s;
 }
 
-ManagedStackSlot* LivetimeInterval::get_ManagedStackSlot() const {
+ManagedStackSlot* LivetimeIntervalImpl::get_ManagedStackSlot() const {
 	ManagedStackSlot *s = operand->to_ManagedStackSlot();
 	return s;
 }
 
-bool LivetimeInterval::is_in_Register() const {
+bool LivetimeIntervalImpl::is_in_Register() const {
 	if(operand)
 		return operand->to_Register() != NULL;
 	return false;
 }
-bool LivetimeInterval::is_in_StackSlot() const {
+bool LivetimeIntervalImpl::is_in_StackSlot() const {
 	if(operand)
 		return operand->to_ManagedStackSlot() != NULL;
 	return false;
 }
-Type::TypeID LivetimeInterval::get_type() const {
+Type::TypeID LivetimeIntervalImpl::get_type() const {
 	if (!operand) return Type::VoidTypeID;
 	return operand->get_type();
 }
 
-LivetimeInterval* LivetimeInterval::split(unsigned pos, StackSlotManager *SSM) {
+LivetimeIntervalImpl* LivetimeIntervalImpl::split(unsigned pos, StackSlotManager *SSM) {
 	//sanity checks:
 	assert(pos >= get_start() && pos < get_end());
 	// NOTE Note that the end of an interval shall be a use position
@@ -136,8 +136,8 @@ LivetimeInterval* LivetimeInterval::split(unsigned pos, StackSlotManager *SSM) {
 	// -> force it
 	//pos -= (pos & 1);
 
-	LivetimeInterval *stack_interval =  NULL;
-	LivetimeInterval *lti = NULL;
+	LivetimeIntervalImpl *stack_interval =  NULL;
+	LivetimeIntervalImpl *lti = NULL;
 	// copy intervals
 	iterator i = intervals.begin();
 	iterator e = intervals.end();
@@ -165,13 +165,13 @@ LivetimeInterval* LivetimeInterval::split(unsigned pos, StackSlotManager *SSM) {
 			assert(next_usedef != -1);
 			//if (next_usedef != end) {
 				// ok it is not a loop pseudo use
-				lti = new LivetimeInterval();
+				lti = new LivetimeIntervalImpl();
 				lti->add_range(next_usedef,end);
 			//}
 			++i;
 			// create stack interval
 			ManagedStackSlot *slot = SSM->create_ManagedStackSlot(get_type());
-			stack_interval = new LivetimeInterval();
+			stack_interval = new LivetimeIntervalImpl();
 			stack_interval->add_range(pos,next_usedef+1);
 			stack_interval->set_ManagedStackSlot(slot);
 			this->next_split = stack_interval;
@@ -183,7 +183,7 @@ LivetimeInterval* LivetimeInterval::split(unsigned pos, StackSlotManager *SSM) {
 		return NULL;
 	}
 	if (lti == NULL) {
-		lti = new LivetimeInterval();
+		lti = new LivetimeIntervalImpl();
 	}
 	if (stack_interval) {
 		stack_interval->next_split = lti;
@@ -231,6 +231,16 @@ OStream& operator<<(OStream &OS, const LivetimeInterval *lti) {
 		return OS << "(LivetimeInterval) NULL";
 	}
 	return OS << *lti;
+}
+
+OStream& operator<<(OStream &OS, const UseDef &usedef) {
+	if (usedef.is_use()) OS << "Use";
+	if (usedef.is_def()) OS << "Def";
+	if (usedef.is_pseudo_use()) OS << "PseudoUse";
+	return OS << " " << *usedef.get_iterator(); 
+}
+OStream& operator<<(OStream &OS, const LivetimeRange &range) {
+	return OS << "LivetimeRange " << range.start << " - " << range.end;
 }
 
 } // end namespace compiler2
