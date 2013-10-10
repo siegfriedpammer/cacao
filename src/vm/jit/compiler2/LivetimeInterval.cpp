@@ -224,7 +224,7 @@ LivetimeIntervalImpl* LivetimeIntervalImpl::split(unsigned pos, StackSlotManager
 
 #endif
 OStream& operator<<(OStream &OS, const LivetimeInterval &lti) {
-	return OS << "LivetimeInterval";
+	return OS << "LivetimeInterval (" << lti.front().start << ")";
 }
 OStream& operator<<(OStream &OS, const LivetimeInterval *lti) {
 	if (!lti) {

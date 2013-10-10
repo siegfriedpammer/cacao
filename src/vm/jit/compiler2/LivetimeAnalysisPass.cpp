@@ -102,6 +102,16 @@ struct UnionLiveIn : public std::unary_function<MachineBasicBlock*,void> {
 	}
 };
 
+
+inline LivetimeInterval& find_or_insert(LivetimeIntervalMapTy &lti_map, MachineOperand* op) {
+	LivetimeIntervalMapTy::iterator i = lti_map.find(op);
+	if (i == lti_map.end()) {
+		LivetimeInterval lti(op);
+		i = lti_map.insert(std::make_pair(op,lti)).first;
+	}
+	return i->second;
+}
+
 /**
  * @Cpp11 use std::function
  */
@@ -117,7 +127,7 @@ public:
 		assert(op);
 		if (op->needs_allocation()) {
 			LOG2("AddOperandInterval: op=" << *op << " BasicBlock: " << *BB << nl);
-			lti_map[op].add_range(UseDef(UseDef::Pseudo,BB->mi_first()),
+			find_or_insert(lti_map,op).add_range(UseDef(UseDef::Pseudo,BB->mi_first()),
 				UseDef(UseDef::Pseudo,BB->mi_last()));
 		}
 	}
@@ -138,7 +148,7 @@ public:
 	void operator()(MachineOperandDesc op) {
 		if (op.op->needs_allocation()) {
 			LOG2("ProcessOutOperand: op=" << *(op.op) << " set form: " << **i << nl);
-			lti_map[op.op].set_from(UseDef(UseDef::Def,i));
+			find_or_insert(lti_map,op.op).set_from(UseDef(UseDef::Def,i));
 			live.erase(op.op);
 		}
 	}
@@ -160,7 +170,7 @@ public:
 		if (op.op->needs_allocation()) {
 			LOG2("ProcessInOperand: op=" << *(op.op) << " range form: "
 				<< BB->front() << " to " << **i << nl);
-			lti_map[op.op].add_range(UseDef(UseDef::Pseudo,BB->mi_first()),
+			find_or_insert(lti_map,op.op).add_range(UseDef(UseDef::Pseudo,BB->mi_first()),
 				UseDef(UseDef::Use,i));
 			live.insert(op.op);
 		}
@@ -195,7 +205,7 @@ private:
 			:  lti_map(lti_map), BB(BB), loop(loop) {}
 		void operator()(MachineOperand* op) {
 			assert(op->needs_allocation());
-			lti_map[op].add_range(UseDef(UseDef::Pseudo,BB->mi_first()),
+			find_or_insert(lti_map,op).add_range(UseDef(UseDef::Pseudo,BB->mi_first()),
 				UseDef(UseDef::Pseudo,loop->get_exit()->mi_last()));
 		}
 	};

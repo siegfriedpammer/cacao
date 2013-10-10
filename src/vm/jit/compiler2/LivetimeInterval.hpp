@@ -99,7 +99,7 @@ public:
 		Handled    ///< Interval is finished
 	};
 	/// construtor
-	LivetimeInterval();
+	LivetimeInterval(MachineOperand*);
 	/// copy constructor
 	LivetimeInterval(const LivetimeInterval &other);
 	/// copy assignment operator
@@ -113,6 +113,8 @@ public:
 	State get_State(MIIterator pos) const;
 	bool is_use_at(MIIterator pos) const;
 	bool is_def_at(MIIterator pos) const;
+	MachineOperand* get_operand() const;
+	void get_operand(MachineOperand* op);
 
 	const_iterator begin() const;
 	const_iterator end() const;
@@ -149,6 +151,7 @@ private:
 	IntervalListTy intervals;
 	UseListTy uses;
 	DefListTy defs;
+	MachineOperand* operand;         ///< store for the interval
 
 	void insert_usedef(const UseDef &usedef) {
 		if (usedef.is_use())
@@ -157,7 +160,6 @@ private:
 			defs.insert(usedef);
 	}
 	#if 0
-	MachineOperand* operand;         ///< store for the interval
 	UseDefTy usedefs;
 	//bool fixed_interval;
 	Register *hint;                  ///< Register hint
@@ -192,6 +194,8 @@ private:
 	}
 	#endif
 public:
+	/// construtor
+	LivetimeIntervalImpl(MachineOperand* op): operand(op) {}
 	/**
 	 * A range the range [first, last] to the interval
 	 */
@@ -200,6 +204,9 @@ public:
 	State get_State(MIIterator pos) const;
 	bool is_use_at(MIIterator pos) const;
 	bool is_def_at(MIIterator pos) const;
+	MachineOperand* get_operand() const { return operand; }
+	void get_operand(MachineOperand* op) { operand = op; }
+
 	#if 0
 	LivetimeInterval() : intervals(), operand(NULL), uses(), defs(),
 			fixed_interval(false), next_split(NULL), hint(NULL) {}
@@ -380,7 +387,7 @@ public:
 
 // LivetimeInterval
 
-inline LivetimeInterval::LivetimeInterval() : pimpl(new LivetimeIntervalImpl()){}
+inline LivetimeInterval::LivetimeInterval(MachineOperand* op) : pimpl(new LivetimeIntervalImpl(op)){}
 inline LivetimeInterval::LivetimeInterval(const LivetimeInterval &other) : pimpl(other.pimpl) {}
 inline LivetimeInterval& LivetimeInterval::operator=(const LivetimeInterval &other) {
 	pimpl = other.pimpl;
@@ -419,6 +426,12 @@ inline LivetimeRange LivetimeInterval::front() const {
 }
 inline LivetimeRange LivetimeInterval::back() const {
 	return pimpl->back();
+}
+inline MachineOperand* LivetimeInterval::get_operand() const {
+	return pimpl->get_operand();
+}
+inline void LivetimeInterval::get_operand(MachineOperand* op) {
+	return pimpl->get_operand(op);
 }
 
 /// less then operator
