@@ -111,6 +111,12 @@ public:
 	void add_range(UseDef first, UseDef last);
 	void set_from(UseDef from);
 	State get_State(MIIterator pos) const;
+	#if 0
+	bool is_unhandled(MIIterator pos) const;
+	bool is_handled(MIIterator pos) const;
+	bool is_active(MIIterator pos) const;
+	bool is_inactive(MIIterator pos) const;
+	#endif
 	bool is_use_at(MIIterator pos) const;
 	bool is_def_at(MIIterator pos) const;
 	MachineOperand* get_operand() const;

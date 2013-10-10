@@ -40,17 +40,6 @@ class MachineInstructionSchedule;
 class MachineInstruction;
 class Backend;
 
-struct StartComparator {
-	bool operator()(const LivetimeInterval *lhs, const LivetimeInterval* rhs) {
-		#if 0
-		if(lhs->get_start() > rhs->get_start()) {
-			return true;
-		}
-		#endif
-		return false;
-	}
-};
-
 /**
  * Linear Scan Allocator
  *
@@ -65,12 +54,16 @@ struct StartComparator {
  */
 class LinearScanAllocatorPass : public Pass {
 private:
+	struct StartComparator {
+		bool operator()(const LivetimeInterval &lhs, const LivetimeInterval &rhs);
+	};
+
 	typedef std::list<MachineInstruction*> MoveListTy;
 	typedef std::map<std::pair<BeginInst*,BeginInst*>,MoveListTy> MoveMapTy;
-	typedef std::priority_queue<LivetimeInterval*,std::deque<LivetimeInterval*>, StartComparator> UnhandledSetTy;
-	typedef std::list<LivetimeInterval*> InactiveSetTy;
-	typedef std::list<LivetimeInterval*> ActiveSetTy;
-	typedef std::list<LivetimeInterval*> HandledSetTy;
+	typedef std::priority_queue<LivetimeInterval,std::deque<LivetimeInterval>, StartComparator> UnhandledSetTy;
+	typedef std::list<LivetimeInterval> InactiveSetTy;
+	typedef std::list<LivetimeInterval> ActiveSetTy;
+	typedef std::list<LivetimeInterval> HandledSetTy;
 
 	UnhandledSetTy unhandled;
 	ActiveSetTy active;
@@ -82,14 +75,15 @@ private:
 	Backend *backend;
 	JITData *jd;
 
-	bool try_allocate_free_reg(LivetimeInterval* current);
-	bool allocate_blocked_reg(LivetimeInterval* current);
-	void split_blocking_ltis(LivetimeInterval* current);
+	bool try_allocate_free_reg(LivetimeInterval& current);
+	bool allocate_blocked_reg(LivetimeInterval& current);
+	void split_blocking_ltis(LivetimeInterval& current);
 	void split(LivetimeInterval *lti, unsigned pos);
 	void resolve();
 public:
 	static char ID;
 	LinearScanAllocatorPass() : Pass() {}
+	virtual void initialize();
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
 	virtual bool verify() const;

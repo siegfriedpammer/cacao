@@ -48,6 +48,13 @@ STAT_REGISTER_GROUP_VAR(unsigned,num_hints_followed,0,"hints followed",
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+
+bool LinearScanAllocatorPass::StartComparator::operator()(const LivetimeInterval &lhs,
+		const LivetimeInterval &rhs) {
+	return rhs.front().start < lhs.front().start;
+}
+
+
 #if 0
 template <typename Key, typename T>
 bool max_value_comparator(const std::pair<Key,T> &lhs, const std::pair<Key,T> &rhs) {
@@ -395,44 +402,70 @@ void LinearScanAllocatorPass::split_blocking_ltis(LivetimeInterval* current) {
 	}
 }
 
+#endif
+
+void LinearScanAllocatorPass::initialize() {
+	while (!unhandled.empty()) {
+		unhandled.pop();
+	}
+	handled.clear();
+	inactive.clear();
+	active.clear();
+}
+
+namespace {
+#if 0
+/**
+ * @Cpp11 use std::function
+ */
+class CheckActive : public std::unary_function<LivetimeInterval&,void> {
+private:
+	MIIterator position;
+public:
+	/// Constructor
+	CheckActive() {}
+	void operator()(LivetimeInterval& lti) {
+	}
+};
+#endif
+} // end anonymous namespace
+
 bool LinearScanAllocatorPass::run(JITData &JD) {
 	LA = get_Pass<LivetimeAnalysisPass>();
+#if 0
 	MIS = get_Pass<MachineInstructionSchedulingPass>();
 	jd = &JD;
 	backend = jd->get_Backend();
+#endif
 
 	for (LivetimeAnalysisPass::iterator i = LA->begin(), e = LA->end();
 			i != e ; ++i) {
 		LivetimeInterval &inter = i->second;
-		unhandled.push(&inter);
+		unhandled.push(inter);
 	}
 	while(!unhandled.empty()) {
-		LivetimeInterval *current = unhandled.top();
+		LivetimeInterval current = unhandled.top();
 		unhandled.pop();
-		unsigned pos = current->get_start();
-		LOG(BoldGreen << "pos:" << setw(4) << pos << " current: " << current << reset_color << nl);
+		LOG("current: " << current << nl);
+		MIIterator pos = current.front().start.get_iterator();
 
 		// check for intervals in active that are handled or inactive
 		LOG2("check for intervals in active that are handled or inactive" << nl);
 		for (ActiveSetTy::iterator i = active.begin(), e = active.end();
 				i != e ; /* ++i */) {
-			LivetimeInterval *act = *i;
-			//LOG2("active LTI " << act << nl);
-			if (act->is_handled(pos)) {
+			LivetimeInterval act = *i;
+			switch (act.get_State(pos)) {
+			case LivetimeInterval::Handled:
 				LOG2("LTI " << act << " moved from active to handled" << nl);
-				// add to handled
 				handled.push_back(act);
-				// remove from active
 				i = active.erase(i);
-			} else if(act->is_inactive(pos)) {
+				break;
+			case LivetimeInterval::Inactive:
 				LOG2("LTI " << act << " moved from active to inactive" << nl);
-				// add to inactive
 				inactive.push_back(act);
-				// remove from active
 				i = active.erase(i);
-			} else {
-				// NOTE: erase returns the next element so we can not increment
-				// in the loop header!
+				break;
+			default:
 				++i;
 			}
 		}
@@ -440,26 +473,32 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 		LOG2("check for intervals in inactive that are handled or active" << nl);
 		for (InactiveSetTy::iterator i = inactive.begin(), e = inactive.end();
 				i != e ; /* ++i */) {
-			LivetimeInterval *inact = *i;
-			//LOG2("active LTI " << act << nl);
-			if (inact->is_handled(pos)) {
+			LivetimeInterval inact = *i;
+			switch (inact.get_State(pos)) {
+			case LivetimeInterval::Handled:
 				LOG2("LTI " << inact << " moved from inactive to handled" << nl);
-				// add to handled
 				handled.push_back(inact);
-				// remove from inactive
 				i = inactive.erase(i);
-			} else if(inact->is_active(pos)) {
+				break;
+			case LivetimeInterval::Active:
 				LOG2("LTI " << inact << " moved from inactive to active" << nl);
-				// add to active
 				active.push_back(inact);
-				// remove from inactive
 				i = inactive.erase(i);
-			} else {
-				// NOTE: erase returns the next element so we can not increment
-				// in the loop header!
+				break;
+			default:
 				++i;
 			}
 		}
+		if (current.get_operand()->is_virtual()) {
+			// Try to find a register
+			if (!try_allocate_free_reg(current)) {
+				allocate_blocked_reg(current);
+			}
+		}
+		// add current to active
+		active.push_back(current);
+	}
+#if 0
 
 		if (!current->is_in_Register()) {
 			// stackslot
@@ -473,13 +512,6 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 			split_blocking_ltis(current);
 			active.push_back(current);
 			continue;
-		}
-		// Try to find a register
-		if (try_allocate_free_reg(current)) {
-			// if allocation successful add current to active
-			active.push_back(current);
-		} else {
-			allocate_blocked_reg(current);
 		}
 	}
 
@@ -522,6 +554,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 
 
 	resolve();
+	#endif
 
 	return true;
 }
@@ -831,6 +864,7 @@ bool LinearScanAllocatorPass::verify() const {
 	return true;
 }
 
+
 // pass usage
 PassUsage& LinearScanAllocatorPass::get_PassUsage(PassUsage &PU) const {
 	// requires
@@ -848,13 +882,13 @@ PassUsage& LinearScanAllocatorPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_destroys(LivetimeAnalysisPass::ID);
 	return PU;
 }
+
 // the address of this variable is used to identify the pass
 char LinearScanAllocatorPass::ID = 0;
 
 // register pass
 static PassRegistery<LinearScanAllocatorPass> X("LinearScanAllocatorPass");
 
-#endif
 
 } // end namespace compiler2
 } // end namespace jit
