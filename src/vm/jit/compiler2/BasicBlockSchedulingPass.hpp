@@ -32,12 +32,16 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+// forward declaration
+class Method;
 
 /**
  * BasicBlockSchedulingPass
  * TODO: more info
  */
 class BasicBlockSchedulingPass : public Pass, public BasicBlockSchedule {
+private:
+	Method *M;
 public:
 	static char ID;
 	BasicBlockSchedulingPass() : Pass() {}

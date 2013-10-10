@@ -32,6 +32,7 @@
 #include "toolbox/logging.hpp"
 
 #include <list>
+#include <deque>
 
 #define DEBUG_NAME "compiler2/BasciBlockSchedulingPass"
 
@@ -40,10 +41,20 @@ namespace jit {
 namespace compiler2 {
 
 bool BasicBlockSchedulingPass::run(JITData &JD) {
-	Method *M = JD.get_Method();
+	M = JD.get_Method();
+
 	DFSTraversal<BeginInst> dfs(M->get_init_bb());
 	// XXX this is not sufficient in more complicated cases
 	insert(begin(),dfs.begin(),dfs.end());
+
+	#if 0
+	// random order
+	std::deque<BeginInst*> bbs(M->bb_begin(),M->bb_end());
+	std::remove(bbs.begin(),bbs.end(),M->get_init_bb());
+	std::random_shuffle(bbs.begin(),bbs.end());
+	bbs.push_front(M->get_init_bb());
+	insert(begin(),bbs.begin(),bbs.end());
+	#endif
 
 	if (DEBUG_COND) {
 		LOG("BasicBlockSchedule:" << nl);
@@ -54,7 +65,38 @@ bool BasicBlockSchedulingPass::run(JITData &JD) {
 	return true;
 }
 
+namespace {
+// push loops recursively in reverse order
+void push_loops_inbetween(std::list<Loop*> &active, Loop* inner, Loop* outer) {
+	if (inner == outer) return;
+	push_loops_inbetween(active,inner->get_parent(),outer);
+	active.push_back(inner);
+}
+} // anonymous namespace
+
+
+namespace tree {
+
+template <>
+inline Loop* get_parent(Loop* a) {
+	return a->get_parent();
+}
+
+template <>
+inline Loop* get_root() {
+	return NULL;
+}
+
+} // end namespace tree
+
 bool BasicBlockSchedulingPass::verify() const {
+	// check init basic block
+	if (*bb_begin() != M->get_init_bb()) {
+		ERROR_MSG("Schedule does not start with init basic block!",
+			"Init basic block is " << M->get_init_bb()
+			<< " but schedule starts with " << *bb_begin());
+		return false;
+	}
 	// check if ordering (obsolete)
 	#if 0
 	for (unsigned i = 0, e = bb_list.size() ; i < e ; ++i) {
@@ -89,7 +131,36 @@ bool BasicBlockSchedulingPass::verify() const {
 	}
 	// check contiguous loop property
 	LoopTree *LT = get_Pass<LoopPass>();
-	if (LT) {
+	std::set<Loop*> finished;
+	std::list<Loop*> active;
+	// sentinel
+	active.push_back(NULL);
+	for (BasicBlockSchedule::const_bb_iterator i = bb_begin(), e = bb_end();
+			i !=e ; ++i) {
+		BeginInst *BI = *i;
+		Loop *loop = LT->get_Loop(BI);
+		Loop *top = active.back();
+
+		if ( loop && finished.find(loop) != finished.end()) {
+				ERROR_MSG("Loop property violated!","Loop " << *loop
+					<< " already finished but " << *BI << " occurred" );
+				return false;
+		}
+
+		if (loop == top) {
+			// same loop
+			continue;
+		}
+		// new loop(s)
+		// find least common ancestor
+		Loop *lca = tree::find_least_common_ancestor(loop, top);
+		while (top != lca) {
+			assert(!active.empty());
+			finished.insert(top);
+			active.pop_back();
+			top = active.back();
+		}
+		push_loops_inbetween(active,loop,lca);
 	}
 	return true;
 }
