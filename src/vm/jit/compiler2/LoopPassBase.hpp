@@ -72,11 +72,13 @@ private:
 	EdgeMapTy label;
 
 	NodeListTy& succ(const NodeType *v, NodeListTy &list);
+	#if 0
 	void DFS(const NodeType * v);
 
 	void Link(const NodeType *v, const NodeType *w);
 	const NodeType* Eval(const NodeType *v);
 	void Compress(const NodeType *v);
+	#endif
 
 	NodeType* get_init_node(JITData &JD);
 public:
