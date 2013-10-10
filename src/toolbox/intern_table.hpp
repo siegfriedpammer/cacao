@@ -31,6 +31,7 @@
 
 #include "threads/mutex.hpp"
 
+#include "toolbox/assert.hpp"
 #include "toolbox/hashtable.hpp"
 #include "toolbox/util.hpp"
 
@@ -44,6 +45,9 @@
  *
  *	InternTable has the same requirements on elements you want to insert into
  *	the table as HashTable.
+ *
+ *	InternTable is meant to be used as a global, so its constructor and desctructor
+ *	do no real work. You have to call initialize() and destroy() manually.
  *
  *	@tparam _Entry              The type of element stored in the table.
  *		                        Must fulfill the same requirements as a
@@ -63,15 +67,15 @@ struct InternTable {
 	static const size_t DEFAULT_INITIAL_CAPACITY = 256;
 	static const size_t DEFAULT_LOAD_FACTOR      = 85;
 
-	InternTable() : initialized(false) {}
+	InternTable() : segments(0) {}
 
 	void initialize(size_t initial_capacity = DEFAULT_INITIAL_CAPACITY, size_t load_factor = DEFAULT_LOAD_FACTOR) {
-		assert(!initialized);
+		assert(!is_initialized());
 		assert(load_factor      > 0);
 		assert(load_factor      < 100);
 		assert(initial_capacity > 0);
 
-		initialized = true;
+		segments = new Segment[concurrency_factor];
 
 		// evenly divide capacity among segments
 		size_t cap = divide_rounding_up(initial_capacity, concurrency_factor);
@@ -81,43 +85,47 @@ struct InternTable {
 		}
 	}
 
-	bool is_initialized() const { return initialized; }
+	void destroy() {
+		delete [] segments;
+		segments = 0;
+	}
+
+	bool is_initialized() const { return segments != 0; }
 
 	template<typename Thunk>
 	const Entry& intern(const Thunk& t) {
-			size_t hash = t.hash();
+		EXPENSIVE_ASSERT(is_initialized());
 
-			return segments[hash % concurrency_factor].intern(t);
-		}
+		size_t hash = t.hash();
+
+		return segments[hash % concurrency_factor].intern(t);
+	}
 private:
 	InternTable(const InternTable&);            // non-copyable
 	InternTable& operator=(const InternTable&); // non-assignable
 
 	struct Segment {
-		Segment() : mutex(0) {}
-
-		~Segment() { delete mutex; }
-
 		void initialize(size_t initial_capacity, size_t load_factor) {
 			ht.set_load_factor(load_factor);
 			ht.reserve(initial_capacity);
+		}
 
-			mutex = new Mutex();
+		void destroy() {
+			ht.clear();
 		}
 
 		template<typename Thunk>
 		const Entry& intern(const Thunk& thunk) {
-			MutexLocker lock(*mutex);
+			MutexLocker lock(mutex);
 
 			return ht.insert(thunk);
 		}
 
 		HashTable<Entry>  ht;
-		Mutex            *mutex;  // for locking this segment
+		Mutex             mutex;  // for locking this segment
 	};
 
-	Segment segments[concurrency_factor]; // the sub-hashtables
-	bool    initialized;
+	Segment *segments; // the sub-hashtables
 };
 
 #endif // INTERN_TABLE_HPP_
