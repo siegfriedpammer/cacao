@@ -171,6 +171,8 @@ public:
 	typedef iterator::reference reference;
 	/// construct an empty MachineInstructionSchedule
 	MachineInstructionSchedule() {};
+	/// checks if the schedule has no elements.
+	bool empty() const;
 	/// returns the number of elements
 	std::size_t size() const;
 	/// Appends the given element value to the end of the container.
@@ -211,6 +213,9 @@ private:
 	ordered_list<MachineBasicBlock*> list;
 };
 
+inline bool MachineInstructionSchedule::empty() const {
+	return list.empty();
+}
 inline std::size_t MachineInstructionSchedule::size() const {
 	return list.size();
 }

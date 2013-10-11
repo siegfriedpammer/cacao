@@ -102,6 +102,170 @@ TEST(MachineInstructionSchedule, test_bb_iterator_ordering) {
 	EXPECT_LT(BB4->begin(),--BB4->end());
 }
 
+TEST(MachineInstructionSchedule, test_mi_empty_schedule) {
+	MachineInstructionSchedule MIS;
+
+	MIIterator begin = MIS.mi_begin();
+	MIIterator end = MIS.mi_end();
+
+	EXPECT_EQ(begin,end);
+}
+
+TEST(MachineInstructionSchedule, test_mi_iterator_update1) {
+	MachineInstructionSchedule MIS;
+	MachineBasicBlock *BB1 = *MIS.push_back(MBBBuilder());
+
+	MachineInstruction *ti1 = new TestInst();
+	MachineInstruction *ti2 = new TestInst();
+	MachineInstruction *ti3 = new TestInst();
+	MachineInstruction *ti4 = new TestInst();
+
+	BB1->push_back(ti1);
+
+	MIIterator begin = MIS.mi_begin();
+	MIIterator end = MIS.mi_end();
+
+	BB1->push_back(ti2);
+	BB1->push_back(ti3);
+	BB1->push_back(ti4);
+
+	EXPECT_EQ(ti1,*begin);
+	EXPECT_EQ(ti2,*++begin);
+	EXPECT_EQ(ti3,*++begin);
+	EXPECT_EQ(ti4,*++begin);
+
+	EXPECT_EQ(end,++begin);
+}
+
+TEST(MachineInstructionSchedule, test_mi_iterator_update2) {
+	MachineInstructionSchedule MIS;
+	MachineBasicBlock *BB1 = *MIS.push_back(MBBBuilder());
+	MachineBasicBlock *BB2 = *MIS.push_back(MBBBuilder());
+	MachineBasicBlock *BB3 = *MIS.push_back(MBBBuilder());
+	MachineBasicBlock *BB4 = *MIS.push_back(MBBBuilder());
+
+	MachineInstruction *ti1 = new TestInst();
+	MachineInstruction *ti2 = new TestInst();
+	MachineInstruction *ti3 = new TestInst();
+	MachineInstruction *ti4 = new TestInst();
+
+	BB1->push_back(ti1);
+
+	MIIterator begin = MIS.mi_begin();
+	MIIterator end = MIS.mi_end();
+
+	BB2->push_back(ti2);
+	BB3->push_back(ti3);
+	BB4->push_back(ti4);
+
+	EXPECT_EQ(ti1,*begin);
+	EXPECT_EQ(ti2,*++begin);
+	EXPECT_EQ(ti3,*++begin);
+	EXPECT_EQ(ti4,*++begin);
+
+	EXPECT_EQ(end,++begin);
+}
+
+TEST(MachineInstructionSchedule, test_mi_iterate_empty_blocks1) {
+	MachineInstructionSchedule MIS;
+	MachineBasicBlock *BB1 = *MIS.push_back(MBBBuilder());
+	MachineBasicBlock *BB2 = *MIS.push_back(MBBBuilder());
+	MachineBasicBlock *BB3 = *MIS.push_back(MBBBuilder());
+	MachineBasicBlock *BB4 = *MIS.push_back(MBBBuilder());
+
+	MachineInstruction *ti1 = new TestInst();
+	MachineInstruction *ti2 = new TestInst();
+	MachineInstruction *ti3 = new TestInst();
+	MachineInstruction *ti4 = new TestInst();
+
+	BB1->push_back(ti1);
+	BB2->push_back(ti2);
+	BB3->push_back(ti3);
+	BB4->push_back(ti4);
+
+	MIIterator begin = MIS.mi_begin();
+	MIIterator end = MIS.mi_end();
+
+	EXPECT_EQ(ti1,*begin);
+	EXPECT_EQ(ti2,*++begin);
+	EXPECT_EQ(ti3,*++begin);
+	EXPECT_EQ(ti4,*++begin);
+
+	EXPECT_EQ(end,++begin);
+}
+
+TEST(MachineInstructionSchedule, test_mi_iterate_empty_blocks2) {
+	MachineInstructionSchedule MIS;
+	MachineBasicBlock *BB1 = *MIS.push_back(MBBBuilder());
+	MachineBasicBlock *BB2 = *MIS.push_back(MBBBuilder());
+	MachineBasicBlock *BB3 = *MIS.push_back(MBBBuilder());
+	MachineBasicBlock *BB4 = *MIS.push_back(MBBBuilder());
+
+	EXPECT_TRUE(BB1);
+	EXPECT_TRUE(BB2);
+	EXPECT_TRUE(BB3);
+	EXPECT_TRUE(BB4);
+
+	MachineInstruction *ti1 = new TestInst();
+	MachineInstruction *ti2 = new TestInst();
+	MachineInstruction *ti3 = new TestInst();
+	MachineInstruction *ti4 = new TestInst();
+
+	BB1->push_back(ti1);
+	BB2->push_back(ti2);
+	BB3->push_back(ti3);
+	BB4->push_back(ti4);
+
+	MIIterator begin = MIS.mi_begin();
+	MIIterator end = MIS.mi_end();
+
+	EXPECT_EQ(ti4,*--end);
+	EXPECT_EQ(ti3,*--end);
+	EXPECT_EQ(ti2,*--end);
+	EXPECT_EQ(ti1,*--end);
+
+	EXPECT_EQ(begin,end);
+}
+
+TEST(MachineInstructionSchedule, test_mi_end_ordering) {
+	MachineInstructionSchedule MIS;
+
+	MIIterator end = MIS.mi_end();
+
+	MachineBasicBlock *BB1 = *MIS.push_back(MBBBuilder());
+	MachineBasicBlock *BB2 = *MIS.push_back(MBBBuilder());
+	MachineBasicBlock *BB3 = *MIS.push_back(MBBBuilder());
+	MachineBasicBlock *BB4 = *MIS.push_back(MBBBuilder());
+
+	EXPECT_TRUE(BB1);
+	EXPECT_TRUE(BB2);
+	EXPECT_TRUE(BB3);
+	EXPECT_TRUE(BB4);
+
+	MachineInstruction *ti1 = new TestInst();
+	MachineInstruction *ti2 = new TestInst();
+	MachineInstruction *ti3 = new TestInst();
+	MachineInstruction *ti4 = new TestInst();
+
+	BB1->push_back(ti1);
+	BB2->push_back(ti2);
+	BB3->push_back(ti3);
+	BB4->push_back(ti4);
+
+	MIIterator begin = MIS.mi_begin();
+
+	EXPECT_EQ(ti1,*begin);
+	EXPECT_LT(begin,end);
+	EXPECT_EQ(ti2,*++begin);
+	EXPECT_LT(begin,end);
+	EXPECT_EQ(ti3,*++begin);
+	EXPECT_LT(begin,end);
+	EXPECT_EQ(ti4,*++begin);
+	EXPECT_LT(begin,end);
+
+	EXPECT_EQ(end,++begin);
+}
+
 #if 0
 /**
  * test the total ordering of MachineBasicBlock

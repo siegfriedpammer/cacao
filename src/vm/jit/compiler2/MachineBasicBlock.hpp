@@ -43,18 +43,30 @@ class MachineInstructionSchedule;
 class MachinePhiInst;
 
 class MIIterator {
-	typedef ordered_list<MachineInstruction*>::iterator iterator;
+	typedef ordered_list<MachineInstruction*>::iterator _iterator;
 	typedef MBBIterator block_iterator;
 	block_iterator block_it;
-	iterator it;
+	_iterator it;
+	static _iterator _end;
 public:
-	typedef iterator::reference reference;
-	typedef iterator::pointer pointer;
+	typedef _iterator::reference reference;
+	typedef _iterator::pointer pointer;
 
-	MIIterator(const block_iterator &block_it, const iterator& it)
+	/// construct end element
+	MIIterator(const block_iterator &block_it)
+		: block_it(block_it), it(_end) {}
+	/// constructor
+	MIIterator(const block_iterator &block_it, const _iterator& it)
 		: block_it(block_it), it(it) {}
+	/// copy constructor
 	MIIterator(const MIIterator& other)
 		: block_it(other.block_it), it(other.it) {}
+	/// copy assignment operator
+	MIIterator& operator=(const MIIterator& other) {
+		block_it = other.block_it;
+		it = other.it;
+		return *this;
+	}
 	MIIterator& operator++();
 	MIIterator& operator--();
 	MIIterator operator++(int) {
@@ -68,13 +80,20 @@ public:
 		return tmp;
 	}
 	bool operator==(const MIIterator& rhs) const {
+		if (it == _end && rhs.it == _end)
+			return true;
 		if (block_it == rhs.block_it)
 			return it == rhs.it;
 		return false;
 	}
 	bool operator<( const MIIterator& rhs) const {
-		if (block_it == rhs.block_it)
+		if (it == _end)
+			return false;
+		if (rhs.it == _end)
+			return true;
+		if (block_it == rhs.block_it) {
 			return it < rhs.it;
+		}
 		return block_it < rhs.block_it;
 	}
 	bool operator!=(const MIIterator& rhs) const { return !(*this == rhs); }
@@ -83,6 +102,8 @@ public:
 	const reference operator*()  const { return *it; }
 	pointer         operator->()       { return &*it; }
 	const pointer   operator->() const { return &*it; }
+
+	bool is_end() const;
 
 	friend class MachineBasicBlock;
 };
@@ -251,15 +272,23 @@ inline MIIterator& MIIterator::operator++() {
 	if (it == (*block_it)->end()) {
 		// end of basic block
 		++block_it;
-		if (block_it != block_it.get_parent()->end()) {
+		// Note: by convention MachineBasicBlock blocks are not
+		// allowed to be empty. Therefor we can safely assume
+		// that (*block_it)->begin() != (*block_it)->end().
+		if (block_it == block_it.get_parent()->end()) {
+			it = _end;
+		}
+		else {
 			it = (*block_it)->begin();
 		}
 	}
 	return *this;
 }
 inline MIIterator& MIIterator::operator--() {
-	if (it == (*block_it)->begin()) {
+	if (it == _end || it == (*block_it)->begin()) {
 		// begin of basic block
+		// XXX I think this can be removed. Iterating beyond begin
+		// is undefined.
 		if (block_it == block_it.get_parent()->begin()) {
 			return *this;
 		}
@@ -269,6 +298,14 @@ inline MIIterator& MIIterator::operator--() {
 	--it;
 	return *this;
 }
+
+inline bool MIIterator::is_end() const {
+	assert(*block_it);
+	assert((*block_it)->get_parent());
+	return *this == (*block_it)->get_parent()->mi_end();
+}
+
+OStream& operator<<(OStream&, const MIIterator&);
 
 bool check_is_phi(MachineInstruction *value);
 

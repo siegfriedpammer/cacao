@@ -49,10 +49,14 @@ MachineInstructionSchedule::insert_before(iterator pos,
 }
 
 MIIterator MachineInstructionSchedule::mi_begin() {
-  return front()->convert(front()->begin());
+	if (empty()) return mi_end();
+	// Note: by convention MachineBasicBlock blocks are not
+	// allowed to be empty. Therefor we can safely assume
+	// that front()->begin() != front()->end().
+	return MIIterator(begin(),front()->begin());
 }
 MIIterator MachineInstructionSchedule::mi_end() {
-  return back()->convert(back()->end());
+  return MIIterator(end());
 }
 
 } // end namespace compiler2

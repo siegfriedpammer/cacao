@@ -33,6 +33,8 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+MIIterator::_iterator MIIterator::_end;
+
 std::size_t MachineBasicBlock::id_counter = 0;
 
 OStream& MachineBasicBlock::print(OStream& OS) const {
@@ -62,6 +64,12 @@ void MoveEdgeFunctor::operator()(MachineInstruction* MI) {
 
 bool check_is_phi(MachineInstruction *value) {
 	return value->is_phi();
+}
+
+OStream& operator<<(OStream &OS, const MIIterator &it) {
+	if (it.is_end())
+		return OS << "MIIterator end";
+	return OS << *it;
 }
 
 } // end namespace compiler2
