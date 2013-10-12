@@ -46,15 +46,20 @@ public:
 	const unsigned index;
 	const bool extented;
 	const char* name;
+	const MachineOperand::IdentifyOffsetTy offset;
+	const MachineOperand::IdentifySizeTy size;
 
-	X86_64Register(const char* name,unsigned index,bool extented)
-		: index(index), extented(extented), name(name) {}
+	X86_64Register(const char* name,unsigned index,bool extented,
+		MachineOperand::IdentifyOffsetTy offset,
+		MachineOperand::IdentifySizeTy size)
+			: index(index), extented(extented), name(name), offset(offset),
+			size(size) {}
 	unsigned get_index() const {
 		return index;
 	}
 	virtual MachineOperand::IdentifyTy id_base()         const = 0;
-	virtual MachineOperand::IdentifyOffsetTy id_offset() const = 0;
-	virtual MachineOperand::IdentifySizeTy id_size()     const = 0;
+	virtual MachineOperand::IdentifyOffsetTy id_offset() const { return offset; }
+	virtual MachineOperand::IdentifySizeTy id_size()     const { return size; }
 };
 
 /**
@@ -88,22 +93,22 @@ class GPRegister : public X86_64Register {
 private:
 	static const uint8_t base;
 public:
-	GPRegister(const char* name,unsigned index,bool extented_gpr) :
-		X86_64Register(name,index,extented_gpr) {}
+	GPRegister(const char* name,unsigned index,bool extented_gpr,
+		MachineOperand::IdentifyOffsetTy offset,
+		MachineOperand::IdentifySizeTy size)
+		: X86_64Register(name,index,extented_gpr, offset, size) {}
 	virtual MachineOperand::IdentifyTy id_base()         const { return static_cast<const void*>(&base); }
-	virtual MachineOperand::IdentifyOffsetTy id_offset() const;
-	virtual MachineOperand::IdentifySizeTy id_size()     const { return 1; }
 };
 
 class SSERegister : public X86_64Register {
 private:
 	static const uint8_t base;
 public:
-	SSERegister(const char* name,unsigned index,bool extented_gpr) :
-		X86_64Register(name,index,extented_gpr) {}
+	SSERegister(const char* name,unsigned index,bool extented_gpr,
+		MachineOperand::IdentifyOffsetTy offset,
+		MachineOperand::IdentifySizeTy size)
+		: X86_64Register(name,index,extented_gpr, offset, size) {}
 	virtual MachineOperand::IdentifyTy id_base()         const { return static_cast<const void*>(&base); }
-	virtual MachineOperand::IdentifyOffsetTy id_offset() const;
-	virtual MachineOperand::IdentifySizeTy id_size()     const { return 1; }
 };
 
 extern GPRegister RAX;
