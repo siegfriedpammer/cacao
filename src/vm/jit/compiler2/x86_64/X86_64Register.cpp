@@ -34,11 +34,20 @@ NativeRegister::NativeRegister(Type::TypeID type,
 	reg(reg) {
 }
 
-const uint8_t NativeRegister::base = 0;
-NativeRegister::IdentifyOffsetTy NativeRegister::id_offset() const {
-	if (reg->extented)
-		return reg->index + 0x8;
-	return reg->index;
+const uint8_t GPRegister::base = 0;
+
+MachineOperand::IdentifyOffsetTy GPRegister::id_offset() const {
+	if (extented)
+		return index + 0x8;
+	return index;
+}
+
+const uint8_t SSERegister::base = 0;
+
+MachineOperand::IdentifyOffsetTy SSERegister::id_offset() const {
+	if (extented)
+		return index + 0x8;
+	return index;
 }
 
 GPRegister RAX("RAX",0x0,false);

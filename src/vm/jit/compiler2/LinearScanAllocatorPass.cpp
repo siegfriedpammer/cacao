@@ -699,6 +699,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 }
 
 namespace {
+#if 0
 struct ClassRegPtrComp {
 	bool operator() (Register* lhs, Register* rhs) const {
 		if (lhs->operator==(rhs)) {
@@ -707,6 +708,7 @@ struct ClassRegPtrComp {
 		return lhs < rhs;
 	}
 };
+#endif
 } // end anonymous namespace
 
 void LinearScanAllocatorPass::resolve() {

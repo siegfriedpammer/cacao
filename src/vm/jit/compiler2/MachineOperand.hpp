@@ -65,6 +65,9 @@ public:
 		AddressID,
 		VoidOperandID
 	};
+	typedef const void* IdentifyTy;
+	typedef std::size_t IdentifyOffsetTy;
+	typedef std::size_t IdentifySizeTy;
 private:
 	OperandID op_id;
 	Type::TypeID type;
@@ -72,9 +75,6 @@ protected:
 	/**
 	 * TODO describe
 	 */
-	typedef const void* IdentifyTy;
-	typedef std::size_t IdentifyOffsetTy;
-	typedef std::size_t IdentifySizeTy;
 	virtual IdentifyTy id_base()         const { return static_cast<const void*>(this); }
 	virtual IdentifyOffsetTy id_offset() const { return 0; }
 	virtual IdentifySizeTy id_size()     const { return 1; }
@@ -157,7 +157,6 @@ public:
 	virtual VirtualRegister* to_VirtualRegister() { return 0; }
 	virtual MachineRegister* to_MachineRegister() { return 0; }
 	virtual ~Register() {}
-	virtual bool operator==(Register *other) const = 0;
 };
 
 
@@ -168,9 +167,6 @@ public:
 		return "UnassignedReg";
 	}
 	virtual UnassignedReg* to_UnassignedReg()     { return this; }
-	virtual bool operator==(Register *other) const {
-		return false;
-	}
 };
 
 class VirtualRegister : public Register {
@@ -190,13 +186,6 @@ public:
 	}
 	virtual bool is_virtual() const { return true; }
 	unsigned get_id() const { return vreg; }
-	virtual bool operator==(Register *other) const {
-		VirtualRegister *vreg = other->to_VirtualRegister();
-		if (!vreg) {
-			return false;
-		}
-		return get_id() == vreg->get_id();
-	}
 };
 
 class StackSlot : public MachineOperand {

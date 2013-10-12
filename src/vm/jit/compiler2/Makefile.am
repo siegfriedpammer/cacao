@@ -74,7 +74,6 @@ libcompiler2_la_SOURCES = \
 	ParserPass.cpp \
 	Pass.cpp \
 	PassManager.cpp \
-	RegisterFile.cpp \
 	ResolveImmediatePass.cpp \
 	ScheduleClickPass.cpp \
 	ScheduleEarlyPass.cpp \
