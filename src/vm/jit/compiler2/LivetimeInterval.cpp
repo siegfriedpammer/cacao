@@ -93,6 +93,25 @@ bool LivetimeIntervalImpl::is_def_at(MIIterator pos) const {
 }
 
 
+MIIterator next_intersection(const LivetimeInterval &a,
+		const LivetimeInterval &b, MIIterator pos, MIIterator end) {
+	for(LivetimeInterval::const_iterator a_i = a.begin(), b_i = b.begin(),
+			a_e = a.end(), b_e = b.end() ; a_i != a_e && b_i != b_e ; ) {
+
+		if (a_i->end < b_i->start) {
+			++a_i;
+			continue;
+		}
+		if (b_i->end < a_i->start) {
+			++b_i;
+			continue;
+		}
+		return std::max(a_i->start.get_iterator(),b_i->start.get_iterator());
+	}
+	return end;
+}
+
+
 #if 0
 void LivetimeIntervalImpl::set_Register(Register* r) {
 	operand = r;
@@ -224,7 +243,7 @@ LivetimeIntervalImpl* LivetimeIntervalImpl::split(unsigned pos, StackSlotManager
 
 #endif
 OStream& operator<<(OStream &OS, const LivetimeInterval &lti) {
-	return OS << "LivetimeInterval (" << lti.front().start << ")";
+	return OS << "LivetimeInterval (" << lti.front().start << ") in " << *lti.get_operand();
 }
 OStream& operator<<(OStream &OS, const LivetimeInterval *lti) {
 	if (!lti) {

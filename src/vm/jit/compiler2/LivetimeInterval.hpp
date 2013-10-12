@@ -120,7 +120,7 @@ public:
 	bool is_use_at(MIIterator pos) const;
 	bool is_def_at(MIIterator pos) const;
 	MachineOperand* get_operand() const;
-	void get_operand(MachineOperand* op);
+	void set_operand(MachineOperand* op);
 
 	const_iterator begin() const;
 	const_iterator end() const;
@@ -211,7 +211,7 @@ public:
 	bool is_use_at(MIIterator pos) const;
 	bool is_def_at(MIIterator pos) const;
 	MachineOperand* get_operand() const { return operand; }
-	void get_operand(MachineOperand* op) { operand = op; }
+	void set_operand(MachineOperand* op) { operand = op; }
 
 	#if 0
 	LivetimeInterval() : intervals(), operand(NULL), uses(), defs(),
@@ -234,6 +234,7 @@ public:
 	bool empty()                   const { return intervals.empty(); }
 	LivetimeRange front()          const { return intervals.front(); }
 	LivetimeRange back()           const { return intervals.back(); }
+
 #if 0
 	UseDef use_front()      const { return uses.front(); }
 	const_use_iterator use_begin() const { return uses.begin(); }
@@ -436,9 +437,12 @@ inline LivetimeRange LivetimeInterval::back() const {
 inline MachineOperand* LivetimeInterval::get_operand() const {
 	return pimpl->get_operand();
 }
-inline void LivetimeInterval::get_operand(MachineOperand* op) {
-	return pimpl->get_operand(op);
+inline void LivetimeInterval::set_operand(MachineOperand* op) {
+	pimpl->set_operand(op);
 }
+
+MIIterator next_intersection(const LivetimeInterval &a,
+	const LivetimeInterval &b, MIIterator pos, MIIterator end);
 
 /// less then operator
 inline bool operator<(const UseDef& lhs,const UseDef& rhs) {

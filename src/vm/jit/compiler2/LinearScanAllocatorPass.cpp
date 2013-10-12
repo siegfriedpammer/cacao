@@ -106,18 +106,145 @@ void LinearScanAllocatorPass::split(LivetimeInterval *lti, unsigned pos) {
 #endif
 }
 
+#endif
+
+namespace {
+/**
+ * @Cpp11 use std::function
+ */
+struct FreeUntilCompare: public std::binary_function<MachineOperand*,MachineOperand*,bool> {
+	bool operator()(MachineOperand *lhs, MachineOperand *rhs) {
+		bool r = lhs->aquivalence_less(*rhs);
+		//LOG2("FreeUntilCompare: " << *lhs << " aquivalence_less " << *rhs << "=" << r << nl);
+		return r;
+	}
+};
+
+} // end anonymous namespace
+
+typedef std::map<MachineOperand*,MIIterator,FreeUntilCompare> FreeUntilMap;
+
 namespace {
 
+#if 0
 MachineResource get_MachineResource_from_MachineRegister(const MachineRegister* reg) {
 	return reg->get_MachineResource();
 }
 MachineRegister* get_MachineRegister_from_MachineResource(const MachineResource& res, Type::TypeID type) {
 	return res.create_MachineRegister(type);
 }
+#endif
+
+/**
+ * @Cpp11 use std::function
+ */
+struct InitFreeUntilMap: public std::unary_function<MachineOperand*,void> {
+	FreeUntilMap &free_until_pos;
+	MIIterator end;
+	/// Constructor
+	InitFreeUntilMap(FreeUntilMap &free_until_pos,
+		MIIterator end) : free_until_pos(free_until_pos), end(end) {}
+
+	void operator()(MachineOperand *MO) {
+		free_until_pos.insert(std::make_pair(MO,end));
+	}
+};
+
+
+/**
+ * @Cpp11 use std::function
+ */
+struct SetActive: public std::unary_function<LivetimeInterval&,void> {
+	FreeUntilMap &free_until_pos;
+	MIIterator start;
+	/// Constructor
+	SetActive(FreeUntilMap &free_until_pos,
+		MIIterator start) : free_until_pos(free_until_pos), start(start) {}
+
+	void operator()(LivetimeInterval& lti) {
+		MachineOperand *MO = lti.get_operand();
+		LOG2("SetActive: " << lti << " operand: " << *MO << nl);
+		FreeUntilMap::iterator i = free_until_pos.find(MO);
+		if (i != free_until_pos.end()) {
+			LOG("set to zero" << nl);
+			i->second = start;
+		}
+	}
+};
+
+
+/**
+ * @Cpp11 use std::function
+ */
+struct SetIntersection: public std::unary_function<LivetimeInterval&,void> {
+	FreeUntilMap &free_until_pos;
+	LivetimeInterval &current;
+	MIIterator pos;
+	MIIterator end;
+	/// Constructor
+	SetIntersection(FreeUntilMap &free_until_pos,
+		LivetimeInterval &current, MIIterator pos, MIIterator end)
+		: free_until_pos(free_until_pos), current(current), pos(pos), end(end) {}
+
+	void operator()(LivetimeInterval& lti) {
+		MachineOperand *MO = lti.get_operand();
+		FreeUntilMap::iterator i = free_until_pos.find(MO);
+		if (i != free_until_pos.end()) {
+			i->second = next_intersection(lti,current,pos,end);
+		}
+	}
+};
+
+
+/**
+ * @Cpp11 use std::function
+ */
+struct FreeUntilMaxCompare
+		: public std::binary_function<const FreeUntilMap::value_type&, const FreeUntilMap::value_type&,bool> {
+	bool operator()(const FreeUntilMap::value_type &lhs, const FreeUntilMap::value_type &rhs) {
+		return lhs.second < rhs.second;
+	}
+};
 
 } // end anonymous namespace
 
-inline bool LinearScanAllocatorPass::try_allocate_free_reg(LivetimeInterval *current) {
+inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current, MIIterator pos) {
+	// set free until pos of all physical operands to maximum
+	FreeUntilMap free_until_pos;
+	OperandFile op_file;
+	backend->get_OperandFile(op_file,current.get_operand());
+	// set to end
+	std::for_each(op_file.begin(),op_file.end(),InitFreeUntilMap(free_until_pos, MIS->mi_end()));
+
+	// for each interval in active set free until pos to zero
+	std::for_each(active.begin(), active.end(), SetActive(free_until_pos, MIS->mi_begin()));
+
+	// for each interval in inactive set free until pos to next intersection
+	std::for_each(active.begin(), active.end(), SetIntersection(free_until_pos, current,pos,MIS->mi_end()));
+
+	for (FreeUntilMap::iterator i = free_until_pos.begin(), e = free_until_pos.end(); i != e; ++i) {
+		LOG((i->first) << ": " << i->second << nl);
+	}
+
+	// XXX hints!
+	// get operand with highest free until pos
+	FreeUntilMap::value_type x = *std::max_element(free_until_pos.begin(), free_until_pos.end(), FreeUntilMaxCompare());
+	LOG2("reg: " << x.first << " pos: " << x.second << nl);
+
+	if (x.second == MIS->mi_begin()) {
+		// no register available without spilling
+		return false;
+	}
+	if (current.back().end.get_iterator() < x.second) {
+		// register available for the whole interval
+		current.set_operand(x.first);
+		return true;
+	}
+	// register available for the first part of the interval
+	ABORT_MSG("Not yet implemented","splitting intervals not yet implemented");
+	return true;
+}
+#if 0
 	RegisterFile* reg_file = backend->get_RegisterFile(current->get_type());
 	assert(reg_file);
 	Type::TypeID type = current->get_type();
@@ -224,8 +351,12 @@ inline bool LinearScanAllocatorPass::try_allocate_free_reg(LivetimeInterval *cur
 
 	return true;
 }
+#endif
 
-inline bool LinearScanAllocatorPass::allocate_blocked_reg(LivetimeInterval *current) {
+inline bool LinearScanAllocatorPass::allocate_blocked(LivetimeInterval &current) {
+	return false;
+}
+#if 0
 	RegisterFile* reg_file = backend->get_RegisterFile(current->get_type());
 	assert(reg_file);
 
@@ -432,11 +563,9 @@ public:
 
 bool LinearScanAllocatorPass::run(JITData &JD) {
 	LA = get_Pass<LivetimeAnalysisPass>();
-#if 0
 	MIS = get_Pass<MachineInstructionSchedulingPass>();
 	jd = &JD;
 	backend = jd->get_Backend();
-#endif
 
 	for (LivetimeAnalysisPass::iterator i = LA->begin(), e = LA->end();
 			i != e ; ++i) {
@@ -489,10 +618,20 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 				++i;
 			}
 		}
+
+		LOG2("active: ");
+		DEBUG2(print_container(dbg(),active.begin(),active.end())<<nl);
+		LOG2("inactive: ");
+		DEBUG2(print_container(dbg(),inactive.begin(),inactive.end())<<nl);
+
 		if (current.get_operand()->is_virtual()) {
 			// Try to find a register
-			if (!try_allocate_free_reg(current)) {
-				allocate_blocked_reg(current);
+			if (!try_allocate_free(current,pos)) {
+				if (!allocate_blocked(current)) {
+					ERROR_MSG("Register allocation failed",
+						"could not allocate register for " << current);
+					return false;
+				}
 			}
 		}
 		// add current to active
