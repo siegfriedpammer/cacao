@@ -54,6 +54,7 @@ class X86_64Register;
 class NativeRegister : public MachineRegister {
 private:
 	X86_64Register *reg;
+	static const uint8_t base;
 public:
 	NativeRegister(Type::TypeID type, X86_64Register* reg);
 	virtual NativeRegister* to_NativeRegister() {
@@ -64,6 +65,9 @@ public:
 	}
 	MachineResource get_MachineResource() const;
 	virtual bool operator==(MachineRegister* reg) const;
+	virtual IdentifyTy id_base()         const { return static_cast<const void*>(&base); }
+	virtual IdentifyOffsetTy id_offset() const;
+	virtual IdentifySizeTy id_size()     const { return 1; }
 };
 
 OStream& operator<<(OStream &OS, const X86_64Register& reg);

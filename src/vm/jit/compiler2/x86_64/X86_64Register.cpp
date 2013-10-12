@@ -34,6 +34,13 @@ NativeRegister::NativeRegister(Type::TypeID type,
 	reg(reg) {
 }
 
+const uint8_t NativeRegister::base = 0;
+NativeRegister::IdentifyOffsetTy NativeRegister::id_offset() const {
+	if (reg->extented)
+		return reg->index + 0x8;
+	return reg->index;
+}
+
 GPRegister RAX("RAX",0x0,false);
 GPRegister RCX("RCX",0x1,false);
 GPRegister RDX("RDX",0x2,false);
@@ -77,6 +84,53 @@ SSERegister* FloatArgumentRegisters[] = {
 };
 
 } // end namespace x86_64
+using namespace x86_64;
+
+template<>
+OperandFile&
+BackendBase<X86_64>::get_OperandFile(OperandFile& OF,MachineOperand *MO) const {
+	Type::TypeID type = MO->get_type();
+
+	switch (type) {
+	case Type::ByteTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+	case Type::ReferenceTypeID:
+		#if 1
+		for(unsigned i = 0; i < IntegerArgumentRegisterSize ; ++i) {
+			OF.push_back(new x86_64::NativeRegister(type,IntegerArgumentRegisters[i]));
+		}
+		assert(OF.size() == IntegerArgumentRegisterSize);
+		#else
+		regs.push_back(&RDI);
+		regs.push_back(&RSI);
+		regs.push_back(&RDX);
+		#if 0
+		regs.push_back(&RCX);
+		regs.push_back(&R8);
+		regs.push_back(&R9);
+		#endif
+		#endif
+		return OF;
+	case Type::DoubleTypeID:
+		#if 1
+		for(unsigned i = 0; i < FloatArgumentRegisterSize ; ++i) {
+			OF.push_back(new x86_64::NativeRegister(type,FloatArgumentRegisters[i]));
+		}
+		assert(OF.size() == FloatArgumentRegisterSize);
+		#else
+		regs.push_back(&XMM0);
+		regs.push_back(&XMM1);
+		regs.push_back(&XMM2);
+		#endif
+		return OF;
+	default: break;
+	}
+	ABORT_MSG("X86_64 Register File Type Not supported!",
+		"Type: " << type);
+	return OF;
+}
+
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

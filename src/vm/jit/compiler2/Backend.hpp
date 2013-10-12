@@ -48,7 +48,8 @@ public:
 	static Backend* factory(JITData *JD);
 	JITData* get_JITData() const { return JD; };
 
-	virtual RegisterFile* get_RegisterFile(Type::TypeID type) const = 0;
+	//virtual RegisterFile* get_RegisterFile(Type::TypeID type) const = 0;
+	virtual OperandFile& get_OperandFile(OperandFile& OF,MachineOperand *MO) const = 0;
 	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const = 0;
 	virtual MachineInstruction* create_Jump(MachineBasicBlock *target) const = 0;
@@ -64,7 +65,8 @@ template <typename Target>
 class BackendBase : public Backend {
 public:
 	BackendBase(JITData *JD) : Backend(JD) {}
-	virtual RegisterFile* get_RegisterFile(Type::TypeID type) const;
+	//virtual RegisterFile* get_RegisterFile(Type::TypeID type) const;
+	virtual OperandFile& get_OperandFile(OperandFile& OF,MachineOperand *MO) const;
 	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const;
 	virtual MachineInstruction* create_Jump(MachineBasicBlock *target) const;

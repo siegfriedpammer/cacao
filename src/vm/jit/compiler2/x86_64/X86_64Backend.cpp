@@ -675,11 +675,14 @@ void LoweringVisitor::visit(TABLESWITCHInst *I) {
 	set_op(I,cjmp->get_result().op);
 }
 
+#if 0
 template<>
 compiler2::RegisterFile*
 BackendBase<X86_64>::get_RegisterFile(Type::TypeID type) const {
 	return new x86_64::RegisterFile(type);
 }
+#endif
+
 
 } // end namespace compiler2
 } // end namespace jit

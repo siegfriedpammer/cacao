@@ -29,6 +29,7 @@
 #include "toolbox/OStream.hpp"
 #include "vm/types.hpp"
 
+#include <list>
 #include <vector>
 #include <cassert>
 
@@ -67,6 +68,16 @@ public:
 private:
 	OperandID op_id;
 	Type::TypeID type;
+protected:
+	/**
+	 * TODO describe
+	 */
+	typedef const void* IdentifyTy;
+	typedef std::size_t IdentifyOffsetTy;
+	typedef std::size_t IdentifySizeTy;
+	virtual IdentifyTy id_base()         const { return static_cast<const void*>(this); }
+	virtual IdentifyOffsetTy id_offset() const { return 0; }
+	virtual IdentifySizeTy id_size()     const { return 1; }
 public:
 
 	explicit MachineOperand(OperandID op_id, Type::TypeID type)
@@ -93,6 +104,15 @@ public:
 	bool is_ManagedStackSlot() const { return op_id == ManagedStackSlotID; }
 	bool is_Immediate()        const { return op_id == ImmediateID; }
 	bool is_Address()          const { return op_id == AddressID; }
+
+	/**
+	 */
+	bool aquivalence_less(const MachineOperand& MO) const {
+		if (id_base() != MO.id_base()) {
+			return id_base() < MO.id_base();
+		}
+		return id_offset()+id_size() <= MO.id_offset();
+	}
 
 	/**
 	 * True if operand is virtual and must be assigned
@@ -347,6 +367,8 @@ inline OStream& operator<<(OStream &OS, const MachineOperand *MO) {
 	}
 	return OS << *MO;
 }
+
+typedef std::list<MachineOperand*> OperandFile;
 
 
 } // end namespace compiler2
