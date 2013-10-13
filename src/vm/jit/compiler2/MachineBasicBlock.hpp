@@ -40,6 +40,7 @@ namespace compiler2 {
 // forward declarations
 class MachineInstruction;
 class MachineInstructionSchedule;
+class MachineOperand;
 class MachinePhiInst;
 
 class MIIterator {
@@ -497,6 +498,9 @@ inline void move_instructions(InputIterator first, InputIterator last,
 	to.insert_before(to.end(),first,last);
 	from.erase(first,last);
 }
+
+MachinePhiInst* get_phi_from_operand(MachineBasicBlock *MBB,
+	MachineOperand* op);
 
 
 } // end namespace compiler2

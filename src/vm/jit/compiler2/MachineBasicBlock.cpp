@@ -72,6 +72,30 @@ OStream& operator<<(OStream &OS, const MIIterator &it) {
 	return OS << *it;
 }
 
+namespace {
+
+struct TargetOperandEqualPred
+		: public std::unary_function<MachineInstruction*,bool> {
+	MachineOperand *op;
+	/// constructor
+	TargetOperandEqualPred(MachineOperand *op) : op(op) {}
+	/// function call operand
+	bool operator()(MachineInstruction* MI) {
+		return MI->get_result().op == op;
+	}
+};
+
+} // end anonymous namespace
+
+MachinePhiInst* get_phi_from_operand(MachineBasicBlock *MBB,
+		MachineOperand* op) {
+	MachineBasicBlock::const_phi_iterator it
+		= std::find_if(MBB->phi_begin(), MBB->phi_end(), TargetOperandEqualPred(op));
+	if (it != MBB->phi_end())
+		return *it;
+	return NULL;
+}
+
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
