@@ -98,16 +98,14 @@ public:
 		Inactive,  ///< Interval is inactive
 		Handled    ///< Interval is finished
 	};
-	/// construtor
+	/// constructor
 	LivetimeInterval(MachineOperand*);
 	/// copy constructor
 	LivetimeInterval(const LivetimeInterval &other);
 	/// copy assignment operator
 	LivetimeInterval& operator=(const LivetimeInterval &other);
 
-	/**
-	 * A range the range [first, last] to the interval
-	 */
+	/// A range the range [first, last] to the interval
 	void add_range(UseDef first, UseDef last);
 	void set_from(UseDef from);
 	State get_State(MIIterator pos) const;
@@ -117,10 +115,19 @@ public:
 	bool is_active(MIIterator pos) const;
 	bool is_inactive(MIIterator pos) const;
 	#endif
+	/// Is use position
 	bool is_use_at(MIIterator pos) const;
+	/// Is def position
 	bool is_def_at(MIIterator pos) const;
+	/// Get the current store of the interval
 	MachineOperand* get_operand() const;
+	/// Set the current store of the interval
 	void set_operand(MachineOperand* op);
+	/**
+	 * Get the initial operand. This is needed to identify phi instructions
+	 * as they do not have an MIIterator associated with them.
+	 */
+	MachineOperand* get_init_operand() const;
 
 	const_iterator begin() const;
 	const_iterator end() const;
@@ -158,6 +165,7 @@ private:
 	UseListTy uses;
 	DefListTy defs;
 	MachineOperand* operand;         ///< store for the interval
+	MachineOperand* init_operand;    ///< initial operand for the interval
 
 	void insert_usedef(const UseDef &usedef) {
 		if (usedef.is_use())
@@ -201,7 +209,7 @@ private:
 	#endif
 public:
 	/// construtor
-	LivetimeIntervalImpl(MachineOperand* op): operand(op) {}
+	LivetimeIntervalImpl(MachineOperand* op): operand(op), init_operand(op) {}
 	/**
 	 * A range the range [first, last] to the interval
 	 */
@@ -212,6 +220,7 @@ public:
 	bool is_def_at(MIIterator pos) const;
 	MachineOperand* get_operand() const { return operand; }
 	void set_operand(MachineOperand* op) { operand = op; }
+	MachineOperand* get_init_operand() const { return init_operand; }
 
 	#if 0
 	LivetimeInterval() : intervals(), operand(NULL), uses(), defs(),
@@ -436,6 +445,9 @@ inline LivetimeRange LivetimeInterval::back() const {
 }
 inline MachineOperand* LivetimeInterval::get_operand() const {
 	return pimpl->get_operand();
+}
+inline MachineOperand* LivetimeInterval::get_init_operand() const {
+	return pimpl->get_init_operand();
 }
 inline void LivetimeInterval::set_operand(MachineOperand* op) {
 	pimpl->set_operand(op);
