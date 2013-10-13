@@ -54,16 +54,16 @@ class MachineInstruction;
 class MachineOperandDesc {
 private:
 	MachineInstruction *parent;
-	unsigned index;
+	std::size_t index;
 public:
 	MachineOperand *op;
-	explicit MachineOperandDesc(MachineInstruction* parent, unsigned index)
+	explicit MachineOperandDesc(MachineInstruction* parent, std::size_t index)
 		: parent(parent), index(index), op(NULL) {}
-	explicit MachineOperandDesc(MachineInstruction* parent, unsigned index,
+	explicit MachineOperandDesc(MachineInstruction* parent, std::size_t index,
 		MachineOperand *op) : parent(parent), index(index), op(op) {}
 	explicit MachineOperandDesc(MachineInstruction* parent, MachineOperand *op)
 		: parent(parent), index(0), op(op) {}
-	unsigned get_index() const { return index; }
+	std::size_t get_index() const { return index; }
 	MachineInstruction* get_MachineInstruction() const { return parent; }
 };
 
@@ -110,9 +110,9 @@ public:
 	typedef successor_list::iterator successor_iterator;
 	typedef successor_list::const_iterator const_successor_iterator;
 private:
-	static unsigned id_counter;
+	static std::size_t id_counter;
 protected:
-	const unsigned id;
+	const std::size_t id;
 	operand_list operands;
 	successor_list successors;
 	MachineOperandDesc result;
@@ -121,13 +121,13 @@ protected:
 	MachineBasicBlock *block;
 public:
 	#if 0
-	MachineInstruction(const char * name, MachineOperand* result, unsigned num_operands, MachineOperand* dflt)
+	MachineInstruction(const char * name, MachineOperand* result, std::size_t num_operands, MachineOperand* dflt)
 		: id(id_counter++), operands(num_operands,dflt), result(result), name(name) {
 	}
 	#endif
-	MachineInstruction(const char * name, MachineOperand* result, unsigned num_operands, const char* comment = NULL)
+	MachineInstruction(const char * name, MachineOperand* result, std::size_t num_operands, const char* comment = NULL)
 		: id(id_counter++), operands(), result(this, result), name(name), comment(comment), block(NULL) {
-		for (unsigned i = 0; i < num_operands ; ++i) {
+		for (std::size_t i = 0; i < num_operands ; ++i) {
 			//operands[i].index = i;
 			operands.push_back(MachineOperandDesc(this,i));
 		}
@@ -136,7 +136,7 @@ public:
 	void set_comment(const char* c) { comment = c; }
 	const char* get_comment() const { return comment; }
 
-	void set_operand(unsigned i,MachineOperand* op) {
+	void set_operand(std::size_t i,MachineOperand* op) {
 		assert(i < operands.size());
 		operands[i].op = op;
 	}
@@ -147,15 +147,15 @@ public:
 		return block;
 	}
 
-	unsigned op_size() const {
+	std::size_t op_size() const {
 		return operands.size();
 	}
-	MachineOperandDesc& operator[](unsigned i) {
+	MachineOperandDesc& operator[](std::size_t i) {
 		assert(i < operands.size());
 		assert(operands[i].get_index() == i);
 		return operands[i];
 	}
-	const MachineOperandDesc& get(unsigned i) const {
+	const MachineOperandDesc& get(std::size_t i) const {
 		assert(i < operands.size());
 		assert(operands[i].get_index() == i);
 		return operands[i];
@@ -190,7 +190,7 @@ public:
 	bool successor_empty() const {
 		return successors.empty();
 	}
-	unsigned get_id() const {
+	std::size_t get_id() const {
 		return id;
 	}
 	const char* get_name() const {
@@ -205,7 +205,7 @@ public:
 	void set_result(MachineOperand *MO) {
 		result = MachineOperandDesc(0,MO);
 	}
-	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
+	virtual bool accepts_immediate(std::size_t i, Immediate *imm) const {
 		return false;
 	}
 	virtual bool is_label() const {

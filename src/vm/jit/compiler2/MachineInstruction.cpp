@@ -39,7 +39,7 @@ SuccessorProxy::operator MachineBasicBlock*() const {
 		return entry;
 	return *(++(entry->self_iterator()));
 }
-unsigned MachineInstruction::id_counter = 0;
+std::size_t MachineInstruction::id_counter = 0;
 
 OStream& MachineInstruction::print(OStream &OS) const {
 	// print id

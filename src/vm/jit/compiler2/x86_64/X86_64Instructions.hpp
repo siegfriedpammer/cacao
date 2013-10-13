@@ -104,7 +104,7 @@ struct DstOp {
 class X86_64Instruction : public MachineInstruction {
 public:
 	X86_64Instruction(const char *name, MachineOperand* result,
-		unsigned num_operands) :
+		std::size_t num_operands) :
 			MachineInstruction(name, result, num_operands) {}
 };
 /**
@@ -170,7 +170,7 @@ private:
 	OperandSize op_size;
 public:
 	GPInstruction(const char * name, MachineOperand* result,
-		OperandSize op_size, unsigned num_operands) :
+		OperandSize op_size, std::size_t num_operands) :
 			X86_64Instruction(name, result, num_operands),
 			op_size(op_size) {}
 
@@ -248,7 +248,7 @@ public:
 	 */
 	virtual void emit(CodeMemory* CM) const;
 
-	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
+	virtual bool accepts_immediate(std::size_t i, Immediate *imm) const {
 		if (i != 1) return false;
 		switch (imm->get_type()) {
 		case Type::IntTypeID: return true;
@@ -409,7 +409,7 @@ public:
 
 class CallInst : public GPInstruction {
 public:
-	CallInst(const SrcOp &src, const DstOp &dst, unsigned argc)
+	CallInst(const SrcOp &src, const DstOp &dst, std::size_t argc)
 			: GPInstruction("X86_64CallInst", dst.op, OS_64, 1 + argc) {
 		operands[0].op = src.op;
 	}
@@ -422,7 +422,7 @@ public:
 	MovInst(const SrcOp &src, const DstOp &dst,
 		GPInstruction::OperandSize op_size)
 			: MoveInst("X86_64MovInst", src.op, dst.op, op_size) {}
-	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
+	virtual bool accepts_immediate(std::size_t i, Immediate *imm) const {
 		return true;
 	}
 	virtual void emit(CodeMemory* CM) const;
