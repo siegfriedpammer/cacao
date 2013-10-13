@@ -40,20 +40,25 @@ void LivetimeIntervalImpl::add_range(UseDef first, UseDef last) {
 	insert_usedef(first);
 	insert_usedef(last);
 
-	if (!intervals.empty()) {
-		if (!(intervals.front().start < last) && !(last < intervals.front().start)) {
-			// merge intervals
-			intervals.front().start = first;
-			return;
-		}
-		if (!(first < intervals.front().start) && !(intervals.front().end < last)) {
-			// already covered
-			return;
-		}
-		assert_msg(first < intervals.front().end,
-			"For the time being ranges can only be added to the beginning.");
-	}
 	LivetimeRange range(first,last);
+	for (IntervalListTy::iterator i = intervals.begin(), e = intervals.end();
+			i != e; ) {
+		LivetimeRange &current = *i;
+		if (range.end < current.start) {
+			break;
+		}
+		if (current.end < range.start) {
+			++i;
+			continue;
+		}
+		if (current.start <= range.start) {
+			range.start = current.start;
+		}
+		if (range.end < current.end) {
+			range.end = current.end;
+		}
+		i = intervals.erase(i);
+	}
 	// new interval
 	intervals.push_front(range);
 }
@@ -110,7 +115,22 @@ MIIterator next_intersection(const LivetimeInterval &a,
 	}
 	return end;
 }
+namespace {
+OStream& operator<<(OStream &OS, const LivetimeIntervalImpl &lti) {
+	return OS << "LivetimeIntervalImpl (" << lti.front().start << ") in " << *lti.get_operand();
+}
+} // end anonymous namespace
 
+MachineOperand* LivetimeIntervalImpl::get_operand(MIIterator pos) const {
+	LOG2("get_operand(this:" << *this << " pos:" << pos << ")" <<nl);
+	if (back().end.get_iterator() < pos) {
+		LivetimeInterval lti_next = get_next();
+		assert(lti_next.pimpl);
+		return lti_next.get_operand(pos);
+	}
+	assert(!(pos < front().start.get_iterator()));
+	return get_operand();
+}
 
 #if 0
 void LivetimeIntervalImpl::set_Register(Register* r) {

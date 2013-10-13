@@ -121,6 +121,8 @@ public:
 	bool is_def_at(MIIterator pos) const;
 	/// Get the current store of the interval
 	MachineOperand* get_operand() const;
+	/// Get the store of the interval at position pos
+	MachineOperand* get_operand(MIIterator pos) const;
 	/// Set the current store of the interval
 	void set_operand(MachineOperand* op);
 	/**
@@ -128,6 +130,9 @@ public:
 	 * as they do not have an MIIterator associated with them.
 	 */
 	MachineOperand* get_init_operand() const;
+
+	/// get next split interval
+	LivetimeInterval get_next() const;
 
 	const_iterator begin() const;
 	const_iterator end() const;
@@ -137,6 +142,9 @@ public:
 	LivetimeRange back() const;
 private:
 	shared_ptr<LivetimeIntervalImpl> pimpl;
+	/// constructor
+	LivetimeInterval();
+	friend class LivetimeIntervalImpl;
 };
 
 class LivetimeIntervalImpl {
@@ -166,6 +174,7 @@ private:
 	DefListTy defs;
 	MachineOperand* operand;         ///< store for the interval
 	MachineOperand* init_operand;    ///< initial operand for the interval
+	LivetimeInterval next;
 
 	void insert_usedef(const UseDef &usedef) {
 		if (usedef.is_use())
@@ -209,7 +218,7 @@ private:
 	#endif
 public:
 	/// construtor
-	LivetimeIntervalImpl(MachineOperand* op): operand(op), init_operand(op) {}
+	LivetimeIntervalImpl(MachineOperand* op): operand(op), init_operand(op), next(LivetimeInterval()) {}
 	/**
 	 * A range the range [first, last] to the interval
 	 */
@@ -221,6 +230,9 @@ public:
 	MachineOperand* get_operand() const { return operand; }
 	void set_operand(MachineOperand* op) { operand = op; }
 	MachineOperand* get_init_operand() const { return init_operand; }
+	LivetimeInterval get_next() const { return next; }
+
+	MachineOperand* get_operand(MIIterator pos) const;
 
 	#if 0
 	LivetimeInterval() : intervals(), operand(NULL), uses(), defs(),
@@ -397,12 +409,13 @@ public:
 	 */
 	LivetimeInterval* split(unsigned pos);
 	LivetimeInterval* split(unsigned pos, StackSlotManager *SSM);
-#endif
 	friend class LivetimeAnalysisPass;
+#endif
 };
 
 // LivetimeInterval
 
+inline LivetimeInterval::LivetimeInterval() : pimpl((LivetimeIntervalImpl*)0){}
 inline LivetimeInterval::LivetimeInterval(MachineOperand* op) : pimpl(new LivetimeIntervalImpl(op)){}
 inline LivetimeInterval::LivetimeInterval(const LivetimeInterval &other) : pimpl(other.pimpl) {}
 inline LivetimeInterval& LivetimeInterval::operator=(const LivetimeInterval &other) {
@@ -446,6 +459,9 @@ inline LivetimeRange LivetimeInterval::back() const {
 inline MachineOperand* LivetimeInterval::get_operand() const {
 	return pimpl->get_operand();
 }
+inline MachineOperand* LivetimeInterval::get_operand(MIIterator pos) const {
+	return pimpl->get_operand(pos);
+}
 inline MachineOperand* LivetimeInterval::get_init_operand() const {
 	return pimpl->get_init_operand();
 }
@@ -459,6 +475,9 @@ MIIterator next_intersection(const LivetimeInterval &a,
 /// less then operator
 inline bool operator<(const UseDef& lhs,const UseDef& rhs) {
 	return lhs.get_iterator() < rhs.get_iterator();
+}
+inline bool operator<=(const UseDef& lhs,const UseDef& rhs) {
+	return lhs.get_iterator() <= rhs.get_iterator();
 }
 
 OStream& operator<<(OStream &OS, const LivetimeInterval &lti);

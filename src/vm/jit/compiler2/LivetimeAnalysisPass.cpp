@@ -205,6 +205,8 @@ private:
 			:  lti_map(lti_map), BB(BB), loop(loop) {}
 		void operator()(MachineOperand* op) {
 			assert(op->needs_allocation());
+			LOG2("ProcessLoops: operand " << op << " range from " << BB->mi_first()
+				<< " to " << loop->get_exit()->mi_last() << nl );
 			find_or_insert(lti_map,op).add_range(UseDef(UseDef::Pseudo,BB->mi_first()),
 				UseDef(UseDef::Pseudo,loop->get_exit()->mi_last()));
 		}
@@ -217,6 +219,7 @@ public:
 	ProcessLoops(LivetimeIntervalMapTy &lti_map, MachineBasicBlock *BB,
 		LiveInSetTy &live) : lti_map(lti_map), BB(BB), live(live) {}
 	void operator()(MachineLoop* loop) {
+		LOG2("ProcessLoop: " << *loop << nl);
 		std::for_each(live.begin(),live.end(), ForEachLiveOperand(lti_map, BB, loop));
 	}
 };
