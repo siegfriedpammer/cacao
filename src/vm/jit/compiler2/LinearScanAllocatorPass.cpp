@@ -692,11 +692,18 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 	DEBUG(LA->print(dbg()));
 
 
-	resolve();
 	#endif
+	resolve();
 
+	for (LivetimeAnalysisPass::const_iterator i = LA->begin(), e = LA->end();
+			i != e ; ++i) {
+		const LivetimeInterval *lti = &i->second;
+		LOG("Assigned Interval " << lti << " (init: " << *lti->get_init_operand() << ")" <<nl );
+	}
 	return true;
 }
+
+typedef std::map<MachineBasicBlock*, std::list<LivetimeInterval> > BBtoLTI_Map;
 
 namespace {
 #if 0
@@ -709,9 +716,144 @@ struct ClassRegPtrComp {
 	}
 };
 #endif
+/**
+ * @Cpp11 use std::function
+ */
+template <class BinaryOperation>
+class CfgEdgeFunctor : public std::unary_function<MachineBasicBlock*,void> {
+private:
+	BinaryOperation op;
+public:
+	/// Constructor
+	CfgEdgeFunctor(BinaryOperation op) : op(op) {}
+	void operator()(MachineBasicBlock *predecessor) {
+		std::for_each(predecessor->back()->successor_begin(),
+			predecessor->back()->successor_end(), std::bind1st(op,predecessor));
+	}
+};
+/// Wrap class template argument.
+template <class BinaryOperation>
+CfgEdgeFunctor<BinaryOperation>	CfgEdge(BinaryOperation op) {
+	return CfgEdgeFunctor<BinaryOperation>(op);
+}
+
+class CalcBBtoLTIMap : public std::unary_function<MachineBasicBlock*,void> {
+private:
+	LivetimeAnalysisPass* LA;
+	BBtoLTI_Map &bb2lti_map;
+
+	struct inner : public std::unary_function<LivetimeAnalysisPass::LivetimeIntervalMapTy::value_type,void> {
+		MachineBasicBlock *MBB;
+		BBtoLTI_Map &bb2lti_map;
+		/// constructor
+		inner(MachineBasicBlock *MBB, BBtoLTI_Map &bb2lti_map) : MBB(MBB), bb2lti_map(bb2lti_map) {}
+		/// function call operator
+		void operator()(argument_type lti_pair) {
+			LivetimeInterval &lti = lti_pair.second;
+			if (lti.get_State(MBB->mi_first()) == LivetimeInterval::Active) {
+				bb2lti_map[MBB].push_back(lti);
+			}
+		}
+	};
+public:
+	/// constructor
+	CalcBBtoLTIMap(LivetimeAnalysisPass* LA, BBtoLTI_Map &bb2lti_map)
+		: LA(LA), bb2lti_map(bb2lti_map) {}
+	/// function call operator
+	void operator()(MachineBasicBlock *MBB) {
+		std::for_each(LA->begin(),LA->end(),inner(MBB,bb2lti_map));
+	}
+};
+struct Move {
+	MachineOperand *from;
+	MachineOperand *to;
+	Move(MachineOperand *from, MachineOperand *to) : from(from), to(to) {}
+};
+
+bool operator<(const Move &lhs, const Move &rhs) {
+#error continue here
+}
+
+typedef std::set<Move> MoveMapTy;
+
+class ForEachLiveiterval : public std::unary_function<LivetimeInterval&,void> {
+private:
+	MachineBasicBlock *predecessor;
+	MachineBasicBlock *successor;
+	LivetimeAnalysisPass *LA;
+	MoveMapTy &move_map;
+public:
+	/// constructor
+	ForEachLiveiterval(MachineBasicBlock *predecessor, MachineBasicBlock *successor,
+		LivetimeAnalysisPass *LA, MoveMapTy &move_map) :
+		predecessor(predecessor), successor(successor), LA(LA), move_map(move_map) {}
+	/// function call operator
+	void operator()(LivetimeInterval& lti) const {
+		LOG2("live: " << lti << " op: " << *lti.get_init_operand() << nl);
+
+		MachineOperand *move_from;
+		if (lti.front().start.get_iterator() == successor->mi_first()) {
+			MachinePhiInst *phi = get_phi_from_operand(successor, lti.get_init_operand());
+			assert(phi);
+			LOG2("starts at successor begin: " << *phi << nl);
+			std::size_t index = successor->get_predecessor_index(predecessor);
+			MachineOperand *op = phi->get(index).op;
+			if (op->is_Immediate()) {
+				ABORT_MSG("PHI with immediate operand", "Can not yet handle phis with immediate operands");
+				move_from = NULL;
+			} else {
+				move_from = LA->get(op).get_operand(predecessor->mi_last());
+			}
+
+		}
+		else {
+			move_from = lti.get_operand(predecessor->mi_last());
+		}
+		MachineOperand *move_to = lti.get_operand();
+		if (move_from != move_to) {
+			std::pair<MoveMapTy::iterator,bool> res = move_map.insert(Move(move_from,move_to));
+			if (!res.second) {
+				LOG2("SWAP detected!");
+				MachineOperand *tmp = new VirtualRegister(move_to->get_type());
+				move_map.insert(Move(move_from,tmp));
+				move_map.insert(Move(tmp,move_to));
+				#error continue here
+			}
+		}
+	}
+};
+
+class ForEachCfgEdge : public std::binary_function<MachineBasicBlock*,MachineBasicBlock*,void> {
+private:
+	BBtoLTI_Map &bb2lti_map;
+	LivetimeAnalysisPass *LA;
+public:
+	/// constructor
+	ForEachCfgEdge(BBtoLTI_Map &bb2lti_map, LivetimeAnalysisPass *LA)
+		: bb2lti_map(bb2lti_map), LA(LA) {}
+	/// function call operator
+	void operator()(MachineBasicBlock *predecessor, MachineBasicBlock *successor) const {
+		LOG2("edge " << *predecessor << " -> " << *successor << nl);
+		MoveMapTy move_map;
+		BBtoLTI_Map::mapped_type &lti_live_set = bb2lti_map[successor];
+		std::for_each(lti_live_set.begin(), lti_live_set.end(),
+			ForEachLiveiterval(predecessor,successor, LA, move_map));
+		for (MoveMapTy::const_iterator i = move_map.begin(), e = move_map.end();
+				i != e; ++i) {
+			LOG2("need move from " << i->from << " to " << i->to << nl);
+		}
+	}
+};
+
 } // end anonymous namespace
 
 void LinearScanAllocatorPass::resolve() {
+
+	// calculate basicblock to live interval map
+	BBtoLTI_Map bb2lti_map;
+	std::for_each(MIS->begin(), MIS->end(), CalcBBtoLTIMap(LA,bb2lti_map));
+	// for each cfg edge from predecessor to successor (implemented in ForEachCfgEdge)
+	std::for_each(MIS->begin(), MIS->end(), CfgEdge(ForEachCfgEdge(bb2lti_map,LA)));
 #if 0
 	LoweringPass *LP = get_Pass<LoweringPass>();
 	ListSchedulingPass *IS = get_Pass<ListSchedulingPass>();
