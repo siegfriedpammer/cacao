@@ -55,8 +55,8 @@
 /* floating point registers */
 
 #define REG_FRESULT      1   /* to deliver floating point method results      */
-#define REG_FTMP1       16   /* temporary floating point register             */
-#define REG_FTMP2       17   /* temporary floating point register             */
+#define REG_FTMP1       14   /* temporary floating point register             */
+#define REG_FTMP2       15   /* temporary floating point register             */
 #define REG_FTMP3        0   /* temporary floating point register             */
 
 #define REG_IFTMP       16   /* temporary integer and floating point register */
@@ -103,4 +103,5 @@
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
