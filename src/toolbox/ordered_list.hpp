@@ -98,7 +98,8 @@ private:
 		}
 	};
 	/// internal storage
-	std::list<Entry> list;
+	typedef std::list<Entry> intern_list;
+	intern_list list;
 
 public:
 	typedef T value_type;
@@ -132,7 +133,7 @@ public:
 	/// inserts value to the beginning
 	void push_front(const T& value);
 	/// inserts value before the element pointed to by pos
-	void insert(iterator pos, const T& value);
+	iterator insert(iterator pos, const T& value);
 	/// inserts elements from range [first, last) before the element pointed to by pos
 	template<class InputIt>
 	void insert(iterator pos, InputIt first, InputIt last);
@@ -321,9 +322,12 @@ inline void ordered_list<T, Allocator>::push_front(const T& value) {
 }
 
 template <class T, class Allocator>
-inline void ordered_list<T, Allocator>::insert(typename ordered_list<T, Allocator>::iterator pos, const T& value) {
-	list.insert(pos.it,Entry(value,pos.it->index));
+inline typename ordered_list<T, Allocator>::iterator
+ordered_list<T, Allocator>::insert(typename ordered_list<T, Allocator>::iterator pos,
+		const T& value) {
+	typename intern_list::iterator it = list.insert(pos.it,Entry(value,pos.it->index));
 	std::for_each(pos.it,list.end(),IncrementEntry());
+	return iterator(it);
 }
 
 template <class T, class Allocator>
