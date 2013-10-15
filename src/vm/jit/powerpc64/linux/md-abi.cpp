@@ -103,11 +103,11 @@ s4 nregdescfloat[] = {
 	/*ftmp3,  fa0/v0,     fa1,     fa2,     fa3,     fa4,     fa5,     fa6,   */
 	REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
 
-	/*  fa7,     fa8,     fa9,    fa10,    fa11,    fa12,   ftmp1,   ftmp2,   */
-	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_RES, REG_RES,
+	/*  fa7,     fa8,     fa9,    fa10,    fa11,    fa12,     fs0,     fs1,   */
+	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_SAV, REG_SAV,
 
-	/*  fs0,     fs1,     fs2,     fs3,     fs4,     fs5,     fs6,     fs7    */
-	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
+	/*  ftmp1, ftmp2,     fs2,     fs3,     fs4,     fs5,     fs6,     fs7    */
+	REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
 
 	/*  fs8,     fs9,    fs10,    fs11,    fs12,    fs13,    fs14,    fs15    */
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
@@ -132,8 +132,8 @@ const s4 abi_registers_float_argument[] = {
 };
 
 const s4 abi_registers_float_saved[] = {
-	16, /* fs0  */
-	17, /* fs1  */
+	14, /* fs0  */
+	15, /* fs1  */
 	18, /* fs2  */
 	19, /* fs3  */
 	20, /* fs4  */
