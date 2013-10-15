@@ -767,14 +767,23 @@ public:
 struct Move {
 	MachineOperand *from;
 	MachineOperand *to;
-	Move(MachineOperand *from, MachineOperand *to) : from(from), to(to) {}
+	Move* dep;
+	bool scheduled;
+	Move(MachineOperand *from, MachineOperand *to) : from(from), to(to), dep(NULL), scheduled(false) {}
+	bool is_scheduled() const { return scheduled; }
 };
 
+#if 0
 bool operator<(const Move &lhs, const Move &rhs) {
-#error continue here
+	if (lhs.from < rhs.from)
+		return true;
+	if (rhs.from < lhs.from)
+		return false;
+	return lhs.to < rhs.to;
 }
+#endif
 
-typedef std::set<Move> MoveMapTy;
+typedef std::list<Move> MoveMapTy;
 
 class ForEachLiveiterval : public std::unary_function<LivetimeInterval&,void> {
 private:
@@ -811,37 +820,94 @@ public:
 		}
 		MachineOperand *move_to = lti.get_operand();
 		if (move_from != move_to) {
-			std::pair<MoveMapTy::iterator,bool> res = move_map.insert(Move(move_from,move_to));
-			if (!res.second) {
-				LOG2("SWAP detected!");
-				MachineOperand *tmp = new VirtualRegister(move_to->get_type());
-				move_map.insert(Move(move_from,tmp));
-				move_map.insert(Move(tmp,move_to));
-				#error continue here
-			}
+			move_map.push_back(Move(move_from,move_to));
 		}
 	}
 };
+
+struct MachineOperandCmp : public std::binary_function<MachineOperand*,MachineOperand*,bool> {
+	bool operator()(MachineOperand *lhs, MachineOperand *rhs) const {
+		return lhs->aquivalence_less(*rhs);
+	}
+};
+
+
+inline OStream& operator<<(OStream &OS, const Move &move) {
+	return OS << "move from " << *move.from << " to " << *move.to;
+}
+
+void schedule(std::list<Move*> &scheduled, MoveMapTy &move_map, std::list<Move*> &stack) {
+	Move* node = stack.back();
+	// already scheduled?
+	if (node->is_scheduled()) {
+		stack.pop_back();
+		return;
+	}
+	if (node->dep && !node->dep->is_scheduled()) {
+		if (std::find(stack.begin(),stack.end(),node->dep) == stack.end()) {
+			LOG2("cycle detected!" << nl);
+			MachineOperand *tmp = new VirtualRegister(node->to->get_type());
+			move_map.push_back(Move(tmp, node->to));
+			node->to = tmp;
+			node->dep = NULL;
+		} else {
+			stack.push_back(node->dep);
+			schedule(scheduled, move_map, stack);
+		}
+	}
+	LOG2("schedule: " << *node << nl);
+	stack.pop_back();
+	scheduled.push_back(node);
+	node->scheduled = true;
+}
+
+void order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *successor,
+		MoveMapTy &move_map) {
+
+	if (move_map.empty()) return;
+	// calculate data dependency graph (DDG)
+	std::map<MachineOperand*,Move*,MachineOperandCmp> read_from;
+
+	// create graph nodes
+	for (MoveMapTy::iterator i = move_map.begin(), e = move_map.end(); i != e; ++i) {
+		LOG2("need move from " << i->from << " to " << i->to << nl);
+		read_from[i->from] = &*i;
+	}
+	// create graph edges
+	for (MoveMapTy::iterator i = move_map.begin(), e = move_map.end(); i != e; ++i) {
+		i->dep = read_from[i->to];
+	}
+	// nodes already scheduled
+	std::list<Move*> scheduled;
+	std::list<Move*> stack;
+
+	for (MoveMapTy::iterator i = move_map.begin(), e = move_map.end(); i != e; ++i) {
+		stack.push_back(&*i);
+		schedule(scheduled, move_map, stack);
+		assert(stack.empty());
+	}
+
+}
 
 class ForEachCfgEdge : public std::binary_function<MachineBasicBlock*,MachineBasicBlock*,void> {
 private:
 	BBtoLTI_Map &bb2lti_map;
 	LivetimeAnalysisPass *LA;
+
 public:
 	/// constructor
 	ForEachCfgEdge(BBtoLTI_Map &bb2lti_map, LivetimeAnalysisPass *LA)
 		: bb2lti_map(bb2lti_map), LA(LA) {}
 	/// function call operator
 	void operator()(MachineBasicBlock *predecessor, MachineBasicBlock *successor) const {
-		LOG2("edge " << *predecessor << " -> " << *successor << nl);
 		MoveMapTy move_map;
+		LOG2("edge " << *predecessor << " -> " << *successor << nl);
 		BBtoLTI_Map::mapped_type &lti_live_set = bb2lti_map[successor];
+		// for each live interval live at successor
 		std::for_each(lti_live_set.begin(), lti_live_set.end(),
 			ForEachLiveiterval(predecessor,successor, LA, move_map));
-		for (MoveMapTy::const_iterator i = move_map.begin(), e = move_map.end();
-				i != e; ++i) {
-			LOG2("need move from " << i->from << " to " << i->to << nl);
-		}
+		// order and insert move
+		order_and_insert_move(predecessor, successor, move_map);
 	}
 };
 
