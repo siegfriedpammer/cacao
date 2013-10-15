@@ -113,6 +113,9 @@ public:
 		}
 		return id_offset()+id_size() <= MO.id_offset();
 	}
+	bool aquivalent(const MachineOperand& MO) const {
+		return !(aquivalence_less(MO) || MO.aquivalence_less(*this));
+	}
 
 	/**
 	 * True if operand is virtual and must be assigned
