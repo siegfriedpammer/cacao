@@ -63,13 +63,13 @@ void LivetimeIntervalImpl::add_range(UseDef first, UseDef last) {
 	intervals.push_front(range);
 }
 
-void LivetimeIntervalImpl::set_from(UseDef from) {
-	assert(!intervals.empty());
-	//assert_msg(!(intervals.front().start < from),
-	//	**from.get_iterator() << " not lesser or equal then " << **intervals.front().start.get_iterator());
-
-	insert_usedef(from);
-	intervals.front().start = from;
+void LivetimeIntervalImpl::set_from(UseDef from, UseDef to) {
+	if(intervals.empty()) {
+		add_range(from, to);
+	} else {
+		insert_usedef(from);
+		intervals.front().start = from;
+	}
 }
 
 LivetimeIntervalImpl::State LivetimeIntervalImpl::get_State(MIIterator pos) const {

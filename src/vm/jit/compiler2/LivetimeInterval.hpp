@@ -120,7 +120,8 @@ public:
 
 	/// A range the range [first, last] to the interval
 	void add_range(UseDef first, UseDef last);
-	void set_from(UseDef from);
+	/// Set from. If no interval available add range from to.
+	void set_from(UseDef from, UseDef to);
 	State get_State(MIIterator pos) const;
 	#if 0
 	bool is_unhandled(MIIterator pos) const;
@@ -245,7 +246,7 @@ public:
 	 * A range the range [first, last] to the interval
 	 */
 	void add_range(UseDef first, UseDef last);
-	void set_from(UseDef from);
+	void set_from(UseDef from, UseDef to);
 	State get_State(MIIterator pos) const;
 	bool is_use_at(MIIterator pos) const;
 	bool is_def_at(MIIterator pos) const;
@@ -445,8 +446,8 @@ inline LivetimeInterval& LivetimeInterval::operator=(const LivetimeInterval &oth
 inline void LivetimeInterval::add_range(UseDef first, UseDef last) {
 	pimpl->add_range(first, last);
 }
-inline void LivetimeInterval::set_from(UseDef from) {
-	pimpl->set_from(from);
+inline void LivetimeInterval::set_from(UseDef from, UseDef to) {
+	pimpl->set_from(from, to);
 }
 inline LivetimeInterval::State LivetimeInterval::get_State(MIIterator pos) const {
 	return pimpl->get_State(pos);

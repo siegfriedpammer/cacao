@@ -146,15 +146,16 @@ class ProcessOutOperands : public std::unary_function<MachineOperandDesc,void> {
 private:
 	LivetimeIntervalMapTy &lti_map;
 	MIIterator i;
+	MIIterator e;
 	LiveInSetTy &live;
 public:
 	/// Constructor
-	ProcessOutOperands(LivetimeIntervalMapTy &lti_map, MIIterator i, LiveInSetTy &live)
-		: lti_map(lti_map), i(i), live(live) {}
+	ProcessOutOperands(LivetimeIntervalMapTy &lti_map, MIIterator i, MIIterator e,
+		LiveInSetTy &live) : lti_map(lti_map), i(i), e(e), live(live) {}
 	void operator()(MachineOperandDesc &op) {
 		if (op.op->needs_allocation()) {
 			LOG2("ProcessOutOperand: op=" << *(op.op) << " set form: " << **i << nl);
-			find_or_insert(lti_map,op.op).set_from(UseDef(UseDef::Def,i,&op));
+			find_or_insert(lti_map,op.op).set_from(UseDef(UseDef::Def,i,&op), UseDef(UseDef::Pseudo,e));
 			live.erase(op.op);
 		}
 	}
@@ -263,7 +264,7 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 
 			LOG2("MInst: " << **i << nl);
 			// for each output operand of MI
-			ProcessOutOperands(lti_map, BB->convert(i), live)((*i)->get_result());
+			ProcessOutOperands(lti_map, BB->convert(i), BB->mi_last(), live)((*i)->get_result());
 
 			// for each input operand of MI
 			std::for_each((*i)->begin(),(*i)->end(), ProcessInOperands(lti_map, BB, BB->convert(i), live));
