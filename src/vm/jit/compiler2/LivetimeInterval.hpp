@@ -123,12 +123,6 @@ public:
 	/// Set from. If no interval available add range from to.
 	void set_from(UseDef from, UseDef to);
 	State get_State(MIIterator pos) const;
-	#if 0
-	bool is_unhandled(MIIterator pos) const;
-	bool is_handled(MIIterator pos) const;
-	bool is_active(MIIterator pos) const;
-	bool is_inactive(MIIterator pos) const;
-	#endif
 	/// Is use position
 	bool is_use_at(MIIterator pos) const;
 	/// Is def position
@@ -205,40 +199,6 @@ private:
 		if (usedef.is_def())
 			defs.insert(usedef);
 	}
-	#if 0
-	UseDefTy usedefs;
-	//bool fixed_interval;
-	Register *hint;                  ///< Register hint
-	void add_range(unsigned from, unsigned to) {
-		if (intervals.size() > 0) {
-			if (intervals.begin()->first == to) {
-				// merge intervals
-				intervals.begin()->first = from;
-				return;
-			}
-			if (intervals.begin()->first <= from && intervals.begin()->second >= to) {
-				// already covered
-				return;
-			}
-		}
-		// new interval
-		intervals.push_front(std::make_pair(from,to));
-	}
-	void set_from(unsigned from) {
-		assert(intervals.size() > 0);
-		intervals.begin()->first = from;
-	}
-	void set_from_if_available(unsigned from, unsigned to) {
-		if (intervals.size() > 0) {
-			intervals.begin()->first = from;
-		} else {
-			add_range(from,to);
-		}
-	}
-	static bool compare_usedef(UseDef &lhs, UseDef &rhs) {
-		return lhs.first < rhs.first;
-	}
-	#endif
 public:
 	/// construtor
 	LivetimeIntervalImpl(MachineOperand* op): operand(op), init_operand(op), next(LivetimeInterval()) {}
@@ -257,21 +217,6 @@ public:
 
 	MachineOperand* get_operand(MIIterator pos) const;
 
-	#if 0
-	LivetimeInterval() : intervals(), operand(NULL), uses(), defs(),
-			fixed_interval(false), next_split(NULL), hint(NULL) {}
-
-	void set_Register(Register* r);
-	Register* get_Register() const;
-	void set_ManagedStackSlot(ManagedStackSlot* s);
-	ManagedStackSlot* get_ManagedStackSlot() const;
-	bool is_in_Register() const;
-	bool is_in_StackSlot() const;
-
-	Type::TypeID get_type() const;
-
-	bool is_fixed_interval()       const { return fixed_interval; }
-#endif
 	const_iterator begin()         const { return intervals.begin(); }
 	const_iterator end()           const { return intervals.end(); }
 	std::size_t size()             const { return intervals.size(); }
@@ -286,152 +231,6 @@ public:
 	const_def_iterator def_begin() const { return defs.begin(); }
 	const_def_iterator def_end()   const { return defs.end(); }
 	std::size_t def_size()         const { return defs.size(); }
-#if 0
-
-	unsigned get_start() const {
-		assert(intervals.size()>0);
-		return intervals.front().first;
-	}
-	unsigned get_end() const {
-		assert(intervals.size()>0);
-		return intervals.back().second;
-	}
-	void add_use(unsigned use, MachineOperandDesc &MOD) {
-		add_use(std::make_pair(use,&MOD));
-	}
-	void add_def(unsigned def, MachineOperandDesc &MOD) {
-		add_def(std::make_pair(def,&MOD));
-	}
-	void add_use(const std::pair<unsigned,MachineOperandDesc*> use) {
-		uses.push_front(use);
-		uses.sort(compare_usedef);
-	}
-	void add_def(const std::pair<unsigned,MachineOperandDesc*> def) {
-		defs.push_front(def);
-		defs.sort(compare_usedef);
-	}
-	void set_fixed() { fixed_interval = true; }
-	/**
-	 * Returns true if this interval is active at pos
-	 */
-
-	LivetimeInterval* get_next() const {
-		return next_split;
-	}
-
-	bool is_unhandled(unsigned pos) const {
-		if (intervals.size() == 0) return false;
-		return pos < get_start();
-	}
-	bool is_handled(unsigned pos) const {
-		if (intervals.size() == 0) return true;
-		return pos >= get_end();
-	}
-	bool is_active(unsigned pos) const {
-		for(const_iterator i = begin(), e = end(); i != e ; ++i) {
-			if( pos < i->first) {
-				return false;
-			}
-			if( pos < i->second) {
-				return true;
-			}
-		}
-		return false;
-	}
-	bool is_inactive(unsigned pos) const {
-		return !is_active(pos);
-	}
-	bool is_def(unsigned pos) const {
-		for (const_def_iterator i = def_begin(), e = def_end(); i != e; ++i) {
-			if (i->first == pos) {
-				return true;
-			}
-			if (i->first > pos) {
-				return false;
-			}
-		}
-		return false;
-	}
-
-	bool is_use(unsigned pos) const {
-		for (const_use_iterator i = use_begin(), e = use_end(); i != e; ++i) {
-			if (i->first == pos) {
-				return true;
-			}
-			if (i->first > pos) {
-				return false;
-			}
-		}
-		return false;
-	}
-
-	bool is_split_of(const LivetimeInterval &LI) const {
-		for( LivetimeInterval *lti = LI.get_next(); lti; lti = lti->get_next()) {
-			if (lti == this) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	signed intersects(const LivetimeInterval &lti) const {
-		for(const_iterator a_i = begin(), b_i = lti.begin(),
-				a_e = end(), b_e = lti.end() ; a_i != a_e && b_i != b_e ; ) {
-			unsigned a_start = a_i->first;
-			unsigned a_end   = a_i->second;
-			unsigned b_start = b_i->first;
-			unsigned b_end   = b_i->second;
-
-			if (b_start >= a_end) {
-				++a_i;
-				continue;
-			}
-			if (a_start >= b_end) {
-				++b_i;
-				continue;
-			}
-			return std::max(a_start,b_start);
-		}
-		return -1;
-	}
-
-	void set_hint(Register *reg) { hint = reg; }
-	Register* get_hint() const { return hint; }
-
-	signed next_usedef_after(unsigned pos) const {
-		//assert(pos <= get_end());
-		if (pos > get_end()) {
-			return -1;
-		}
-		signed next_use = -1;
-		for (const_use_iterator i = use_begin(), e = use_end(); i != e; ++i) {
-			if (i->first >= pos) {
-				next_use = i->first;
-				break;
-			}
-		}
-		for (const_def_iterator i = def_begin(), e = def_end(); i != e; ++i) {
-			if (i->first >= pos) {
-				if (next_use == -1)
-					return (signed)i->first;
-				return std::min((signed)i->first,next_use);
-			}
-		}
-		if (next_use == -1) {
-			// no use def after pos _but_ interval still live -> loop interval
-			// so the next use is the backedge
-			return get_end() ;
-		}
-		return next_use;
-	}
-
-	/**
-	 * split this interval at position pos and return a new interval
-	 */
-	LivetimeInterval* split(unsigned pos);
-	LivetimeInterval* split(unsigned pos, StackSlotManager *SSM);
-	friend class LivetimeAnalysisPass;
-#endif
 };
 
 // LivetimeInterval
