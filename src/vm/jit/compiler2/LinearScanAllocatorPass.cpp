@@ -30,9 +30,7 @@
 #include "vm/jit/compiler2/MachineRegister.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
-#include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
-#include "vm/jit/compiler2/ScheduleClickPass.hpp"
 #include "vm/statistics.hpp"
 
 #include <climits>
@@ -545,6 +543,19 @@ void LinearScanAllocatorPass::initialize() {
 }
 
 namespace {
+
+/**
+ * @Cpp11 use std::function
+ */
+struct SetUseDefOperand: public std::unary_function<const UseDef&,void> {
+	MachineOperand *op;
+	/// Constructor
+	SetUseDefOperand(MachineOperand* op) : op(op) {}
+	void operator()(const UseDef &usedef) {
+		usedef.get_operand()->op = op;
+	}
+};
+
 #if 0
 /**
  * @Cpp11 use std::function
@@ -700,6 +711,13 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 		const LivetimeInterval *lti = &i->second;
 		LOG("Assigned Interval " << lti << " (init: " << *lti->get_init_operand() << ")" <<nl );
 	}
+	// set operands
+	for (LivetimeAnalysisPass::iterator i = LA->begin(), e = LA->end();
+			i != e ; ++i) {
+		LivetimeInterval *lti = &i->second;
+		std::for_each(lti->use_begin(), lti->use_end(), SetUseDefOperand(lti->get_operand()));
+		std::for_each(lti->def_begin(), lti->def_end(), SetUseDefOperand(lti->get_operand()));
+	}
 	return true;
 }
 
@@ -819,7 +837,7 @@ public:
 			move_from = lti.get_operand(predecessor->mi_last());
 		}
 		MachineOperand *move_to = lti.get_operand();
-		if (move_from != move_to) {
+		if (!move_from->aquivalent(*move_to)) {
 			move_map.push_back(Move(move_from,move_to));
 		}
 	}
@@ -836,8 +854,11 @@ inline OStream& operator<<(OStream &OS, const Move &move) {
 	return OS << "move from " << *move.from << " to " << *move.to;
 }
 
-void schedule(std::list<Move*> &scheduled, MoveMapTy &move_map, std::list<Move*> &stack) {
+void schedule(std::list<MachineInstruction*> &scheduled, MoveMapTy &move_map,
+		Backend *backend, std::list<Move*> &stack) {
 	Move* node = stack.back();
+	assert(!node->from->aquivalent(*node->to));
+	LOG2("schedule pre: " << *node << nl);
 	// already scheduled?
 	if (node->is_scheduled()) {
 		stack.pop_back();
@@ -852,17 +873,17 @@ void schedule(std::list<Move*> &scheduled, MoveMapTy &move_map, std::list<Move*>
 			node->dep = NULL;
 		} else {
 			stack.push_back(node->dep);
-			schedule(scheduled, move_map, stack);
+			schedule(scheduled, move_map, backend, stack);
 		}
 	}
-	LOG2("schedule: " << *node << nl);
+	LOG2("schedule post: " << *node << nl);
 	stack.pop_back();
-	scheduled.push_back(node);
+	scheduled.push_back(backend->create_Move(node->from,node->to));
 	node->scheduled = true;
 }
 
 void order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *successor,
-		MoveMapTy &move_map) {
+		Backend *backend, MoveMapTy &move_map) {
 
 	if (move_map.empty()) return;
 	// calculate data dependency graph (DDG)
@@ -878,26 +899,28 @@ void order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *su
 		i->dep = read_from[i->to];
 	}
 	// nodes already scheduled
-	std::list<Move*> scheduled;
+	std::list<MachineInstruction*> scheduled;
 	std::list<Move*> stack;
 
 	for (MoveMapTy::iterator i = move_map.begin(), e = move_map.end(); i != e; ++i) {
 		stack.push_back(&*i);
-		schedule(scheduled, move_map, stack);
+		schedule(scheduled, move_map, backend, stack);
 		assert(stack.empty());
 	}
 
+	std::copy(scheduled.begin(), scheduled.end(), get_edge_inserter(predecessor, successor));
 }
 
 class ForEachCfgEdge : public std::binary_function<MachineBasicBlock*,MachineBasicBlock*,void> {
 private:
 	BBtoLTI_Map &bb2lti_map;
 	LivetimeAnalysisPass *LA;
+	Backend *backend;
 
 public:
 	/// constructor
-	ForEachCfgEdge(BBtoLTI_Map &bb2lti_map, LivetimeAnalysisPass *LA)
-		: bb2lti_map(bb2lti_map), LA(LA) {}
+	ForEachCfgEdge(BBtoLTI_Map &bb2lti_map, LivetimeAnalysisPass *LA, Backend *backend)
+		: bb2lti_map(bb2lti_map), LA(LA), backend(backend) {}
 	/// function call operator
 	void operator()(MachineBasicBlock *predecessor, MachineBasicBlock *successor) const {
 		MoveMapTy move_map;
@@ -907,7 +930,7 @@ public:
 		std::for_each(lti_live_set.begin(), lti_live_set.end(),
 			ForEachLiveiterval(predecessor,successor, LA, move_map));
 		// order and insert move
-		order_and_insert_move(predecessor, successor, move_map);
+		order_and_insert_move(predecessor, successor, backend, move_map);
 	}
 };
 
@@ -919,7 +942,9 @@ void LinearScanAllocatorPass::resolve() {
 	BBtoLTI_Map bb2lti_map;
 	std::for_each(MIS->begin(), MIS->end(), CalcBBtoLTIMap(LA,bb2lti_map));
 	// for each cfg edge from predecessor to successor (implemented in ForEachCfgEdge)
-	std::for_each(MIS->begin(), MIS->end(), CfgEdge(ForEachCfgEdge(bb2lti_map,LA)));
+	std::for_each(MIS->begin(), MIS->end(), CfgEdge(ForEachCfgEdge(bb2lti_map,LA,backend)));
+	// remove all phis
+	std::for_each(MIS->begin(), MIS->end(), std::mem_fun(&MachineBasicBlock::phi_clear));
 #if 0
 	LoweringPass *LP = get_Pass<LoweringPass>();
 	ListSchedulingPass *IS = get_Pass<ListSchedulingPass>();
@@ -1219,14 +1244,9 @@ PassUsage& LinearScanAllocatorPass::get_PassUsage(PassUsage &PU) const {
 	// requires
 	PU.add_requires(LivetimeAnalysisPass::ID);
 	PU.add_requires(MachineInstructionSchedulingPass::ID);
-	PU.add_requires(ListSchedulingPass::ID);
-	PU.add_requires(ScheduleClickPass::ID);
 	// modified
-	PU.add_modifies(ListSchedulingPass::ID);
-	PU.add_modifies(ScheduleClickPass::ID);
+	PU.add_modifies(MachineInstructionSchedulingPass::ID);
 	// destroys
-	PU.add_destroys(BasicBlockSchedulingPass::ID);
-	PU.add_destroys(MachineInstructionSchedulingPass::ID);
 	// not yet updated correctly (might be only changed)
 	PU.add_destroys(LivetimeAnalysisPass::ID);
 	return PU;
