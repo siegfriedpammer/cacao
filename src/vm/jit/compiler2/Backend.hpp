@@ -96,7 +96,7 @@ protected:
 	MachineOperand* get_op(Instruction* I) const {
 		assert(I);
 		InstructionMapTy::const_iterator it = inst_map.find(I);
-		assert_msg(it != inst_map.end(), "operand for instruction " << *I << "not found");
+		assert_msg(it != inst_map.end(), "operand for instruction " << *I << " not found");
 		return it->second;
 	}
 	void set_op(Instruction* I, MachineOperand* op) const {

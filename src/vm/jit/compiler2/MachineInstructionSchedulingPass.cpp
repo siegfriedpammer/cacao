@@ -96,17 +96,17 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 	std::map<Instruction*,MachineOperand*> inst_map;
 
 	// lower instructions
-	// XXX ensure dominator ordering!
-	for (std::map<BeginInst*,MachineBasicBlock*>::const_iterator i = map.begin(),
-			e = map.end(); i != e; ++i) {
-		BeginInst *BI = i->first;
-		MachineBasicBlock *MBB = i->second;
+	for (BasicBlockSchedule::const_bb_iterator i = BS->bb_begin(),
+			e = BS->bb_end(); i != e ; ++i) {
+		BeginInst *BI = *i;
+		MachineBasicBlock *MBB = map[BI];
 
 		LoweringVisitor LV(BE,MBB,map,inst_map);
 
 		for (InstructionSchedule<Instruction>::const_inst_iterator i = IS->inst_begin(BI),
 				e = IS->inst_end(BI); i != e; ++i) {
 			Instruction *I = *i;
+			LOG2("lower: " << *I << nl);
 			I->accept(LV);
 		}
 
