@@ -96,6 +96,24 @@ MachinePhiInst* get_phi_from_operand(MachineBasicBlock *MBB,
 	return NULL;
 }
 
+std::insert_iterator<MachineBasicBlock> get_edge_inserter(
+		MachineBasicBlock *from, MachineBasicBlock *to) {
+	MachineInstruction *jump = from->back();
+	// sanity checks
+	assert(std::find(jump->successor_begin(),jump->successor_end(), to)
+		!= jump->successor_end());
+	assert(std::find(to->pred_begin(), to->pred_end(),from) != to->pred_end());
+
+	if (jump->successor_size() == 1) {
+		return std::inserter(*from, --from->end());
+	}
+	if (to->pred_size() == 1) {
+		return std::inserter(*to, ++to->begin());
+	}
+	ABORT_MSG("get_edge_inserter","Creating Blocks not yet implemented");
+	return std::inserter(*to, ++to->begin());
+}
+
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

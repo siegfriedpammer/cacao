@@ -134,17 +134,16 @@ inline bool operator>=(const MIIterator &lhs, const MIIterator& rhs) {
  */
 class MachineBasicBlock {
 public:
-	typedef ordered_list<MachineInstruction*>::iterator iterator;
-	typedef ordered_list<MachineInstruction*>::const_iterator const_iterator;
-	typedef ordered_list<MachineInstruction*>::reference reference;
-	typedef ordered_list<MachineInstruction*>::const_reference const_reference;
-	typedef ordered_list<MachineInstruction*>::pointer pointer;
-	typedef ordered_list<MachineInstruction*>::const_pointer const_pointer;
+	typedef ordered_list<MachineInstruction*> Container;
+	typedef Container::iterator iterator;
+	typedef Container::const_iterator const_iterator;
+	typedef Container::reference reference;
+	typedef Container::const_reference const_reference;
+	typedef Container::pointer pointer;
+	typedef Container::const_pointer const_pointer;
 
-	typedef ordered_list<MachineInstruction*>::reverse_iterator
-		reverse_iterator;
-	typedef ordered_list<MachineInstruction*>::const_reverse_iterator
-		const_reverse_iterator;
+	typedef Container::reverse_iterator reverse_iterator;
+	typedef Container::const_reverse_iterator const_reverse_iterator;
 
 	typedef std::list<MachinePhiInst*> PhiListTy;
 	typedef PhiListTy::const_iterator const_phi_iterator;
@@ -166,6 +165,11 @@ public:
 	void push_front(MachineInstruction* value);
 	/// inserts value before the element pointed to by pos
 	void insert_before(iterator pos, MachineInstruction* value);
+	/**
+	 * inserts value before the element pointed to by pos
+	 * @note for standard library compatibility.
+	 */
+	iterator insert(iterator pos, MachineInstruction* value);
 	/// inserts value after the element pointed to by pos
 	void insert_after(iterator pos, MachineInstruction* value);
 	/// inserts elements from range [first, last) before pos
@@ -211,6 +215,8 @@ public:
 	const_phi_iterator phi_end() const;
 	/// returns the number of phi nodes
 	std::size_t phi_size() const;
+	/// removes all phi nodes
+	void phi_clear();
 
 	/**
 	 * Appends the given element value to the list of predecessors.
@@ -251,6 +257,7 @@ public:
 	OStream& print(OStream& OS) const;
 	/// equality operator
 	bool operator==(const MachineBasicBlock &other) const;
+
 private:
 	/// update instruction block
 	void update(MachineInstruction *MI);
@@ -260,7 +267,7 @@ private:
 	MBBIterator my_it;
 	/// empty constructor
 	MachineBasicBlock() : id(id_counter++) {}
-	ordered_list<MachineInstruction*> list;
+	Container list;
 	PhiListTy phi;
 	PredListTy predecessors;
 
@@ -330,6 +337,12 @@ inline void MachineBasicBlock::insert_before(iterator pos, MachineInstruction* v
 	assert(!check_is_phi(value));
 	update(value);
 	list.insert(pos,value);
+}
+inline MachineBasicBlock::iterator MachineBasicBlock::insert(iterator pos,
+		MachineInstruction* value) {
+	assert(!check_is_phi(value));
+	update(value);
+	return list.insert(pos,value);
 }
 inline void MachineBasicBlock::insert_after(iterator pos, MachineInstruction* value) {
 	assert(!check_is_phi(value));
@@ -435,6 +448,9 @@ inline MachineBasicBlock::const_phi_iterator MachineBasicBlock::phi_end() const 
 inline std::size_t MachineBasicBlock::phi_size() const {
 	return phi.size();
 }
+inline void MachineBasicBlock::phi_clear() {
+	return phi.clear();
+}
 
 inline void MachineBasicBlock::insert_pred(MachineBasicBlock* value) {
 	predecessors.push_back(value);
@@ -502,6 +518,17 @@ inline void move_instructions(InputIterator first, InputIterator last,
 MachinePhiInst* get_phi_from_operand(MachineBasicBlock *MBB,
 	MachineOperand* op);
 
+/**
+ * Get an edge inserter.
+ *
+ * This may return an iterator to the end of predecessor block,
+ * if the predecessor has only one successor, an iterator to
+ * the beginning of the successor block, if the successor has
+ * only one predecessor, or else an iterator to a newly allocated
+ * block.
+ */
+std::insert_iterator<MachineBasicBlock> get_edge_inserter(
+		MachineBasicBlock *from, MachineBasicBlock *to);
 
 } // end namespace compiler2
 } // end namespace jit
