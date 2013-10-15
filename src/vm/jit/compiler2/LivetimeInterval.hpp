@@ -59,7 +59,9 @@ public:
 	};
 
 	/// constructor
-	UseDef(Type type, MIIterator it) : type(type), it(it) {}
+	UseDef(Type type, MIIterator it, MachineOperandDesc *op = NULL) : type(type), it(it), op(op) {
+		assert(type == Pseudo || op);
+	}
 	/// Is a def position
 	bool is_def() const { return type == Def; }
 	/// Is a use position
@@ -71,11 +73,15 @@ public:
 
 	/// Get instruction iterator
 	MIIterator get_iterator() const { return it; }
+	/// Get operand descriptor
+	MachineOperandDesc* get_operand() const { return op; }
 private:
 	/// Type
 	Type type;
 	/// Iterator pointing to the instruction
 	MIIterator it;
+	/// Operand
+	MachineOperandDesc *op;
 };
 
 struct LivetimeRange {
@@ -91,6 +97,13 @@ public:
 	typedef std::list<LivetimeRange> IntervalListTy;
 	typedef IntervalListTy::const_iterator const_iterator;
 	typedef IntervalListTy::iterator iterator;
+
+	typedef std::multiset<UseDef> UseListTy;
+	typedef std::multiset<UseDef> DefListTy;
+	typedef UseListTy::const_iterator const_use_iterator;
+	typedef DefListTy::const_iterator const_def_iterator;
+	typedef UseListTy::iterator use_iterator;
+	typedef DefListTy::iterator def_iterator;
 
 	enum State {
 		Unhandled, ///< Interval no yet started
@@ -140,6 +153,15 @@ public:
 	bool empty() const;
 	LivetimeRange front() const;
 	LivetimeRange back() const;
+
+	// uses
+	const_use_iterator use_begin() const;
+	const_use_iterator use_end() const;
+	std::size_t use_size() const;
+	// defs
+	const_def_iterator def_begin() const;
+	const_def_iterator def_end() const;
+	std::size_t def_size() const;
 private:
 	shared_ptr<LivetimeIntervalImpl> pimpl;
 	/// constructor
@@ -256,16 +278,14 @@ public:
 	LivetimeRange front()          const { return intervals.front(); }
 	LivetimeRange back()           const { return intervals.back(); }
 
-#if 0
-	UseDef use_front()      const { return uses.front(); }
 	const_use_iterator use_begin() const { return uses.begin(); }
 	const_use_iterator use_end()   const { return uses.end(); }
 	std::size_t use_size()         const { return uses.size(); }
 
-	UseDef def_front()      const { return defs.front(); }
 	const_def_iterator def_begin() const { return defs.begin(); }
 	const_def_iterator def_end()   const { return defs.end(); }
 	std::size_t def_size()         const { return defs.size(); }
+#if 0
 
 	unsigned get_start() const {
 		assert(intervals.size()>0);
@@ -467,6 +487,27 @@ inline MachineOperand* LivetimeInterval::get_init_operand() const {
 }
 inline void LivetimeInterval::set_operand(MachineOperand* op) {
 	pimpl->set_operand(op);
+}
+
+// uses
+inline LivetimeInterval::const_use_iterator LivetimeInterval::use_begin() const {
+	return pimpl->use_begin();
+}
+inline LivetimeInterval::const_use_iterator LivetimeInterval::use_end() const {
+	return pimpl->use_end();
+}
+inline std::size_t LivetimeInterval::use_size() const {
+	return pimpl->use_size();
+}
+// defs
+inline LivetimeInterval::const_def_iterator LivetimeInterval::def_begin() const {
+	return pimpl->def_begin();
+}
+inline LivetimeInterval::const_def_iterator LivetimeInterval::def_end() const {
+	return pimpl->def_end();
+}
+inline std::size_t LivetimeInterval::def_size() const {
+	return pimpl->def_size();
 }
 
 MIIterator next_intersection(const LivetimeInterval &a,
