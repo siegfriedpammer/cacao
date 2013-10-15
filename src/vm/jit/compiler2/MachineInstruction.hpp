@@ -79,6 +79,7 @@ public:
  * Therefore implicit successors might change if a block is inserted after the
  * source block.
  */
+#if 0
 class SuccessorProxy {
 public:
 	struct Explicit {};
@@ -97,6 +98,7 @@ public:
 	/// convert to MachineBasicBlock
 	operator MachineBasicBlock*() const;
 };
+#endif
 
 /**
  * Superclass for all machine dependent instructions
@@ -106,7 +108,7 @@ public:
 	typedef std::vector<MachineOperandDesc> operand_list;
 	typedef operand_list::iterator operand_iterator;
 	typedef operand_list::const_iterator const_operand_iterator;
-	typedef std::list<SuccessorProxy> successor_list;
+	typedef std::list<MachineBasicBlock*> successor_list;
 	typedef successor_list::iterator successor_iterator;
 	typedef successor_list::const_iterator const_successor_iterator;
 private:
@@ -180,6 +182,12 @@ public:
 	}
 	const_successor_iterator successor_begin() const {
 		return successors.begin();
+	}
+	MachineBasicBlock* successor_front() const {
+		return successors.front();
+	}
+	MachineBasicBlock* successor_back() const {
+		return successors.back();
 	}
 	const_successor_iterator successor_end() const {
 		return successors.end();

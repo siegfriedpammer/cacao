@@ -661,14 +661,15 @@ OStream& CondJumpInst::print_successor_label(OStream &OS,std::size_t index) cons
 }
 
 void CondJumpInst::emit(CodeMemory* CM) const {
-	assert(0);
-	#if 0
-	BeginInst *BI = get_BeginInst();
+	// emit else jump (if needed)
+	jump.emit(CM);
+	// emit then jump
+	MachineBasicBlock *MBB = successor_front();
 	CodeSegment &CS = CM->get_CodeSegment();
-	CodeSegment::IdxTy idx = CS.get_index(CSLabel(BI));
+	CodeSegment::IdxTy idx = CS.get_index(CSLabel(MBB));
 	if (CodeSegment::is_invalid(idx)) {
 		LOG2("X86_64CondJumpInst: target not yet known (" << this << " to "
-		     << BI << ")"  << nl);
+		     << *MBB << ")"  << nl);
 		// reserve memory and add to resolve later
 		// worst case -> 32bit offset
 		CodeFragment CF = CM->get_CodeFragment(6);
@@ -681,33 +682,22 @@ void CondJumpInst::emit(CodeMemory* CM) const {
 		ABORT_MSG("x86_64 ERROR","CondJump offset 0 oO!");
 		return;
 	}
-	LOG2("found offset of " << BI << ": " << offset << nl);
+	LOG2("found offset of " << *MBB << ": " << offset << nl);
 
 	// only 32bit offset for the time being
 	InstructionEncoding::imm_op<u2>(CM, 0x0f80 + cond.code, offset);
-	#endif
 }
 
 void CondJumpInst::link(CodeFragment &CF) const {
-	assert(0);
-	#if 0
-	BeginInst *BI = get_BeginInst();
+	MachineBasicBlock *MBB = successor_front();
 	CodeSegment &CS = CF.get_Segment();
-	CodeSegment::IdxTy idx = CS.get_index(CSLabel(BI));
+	CodeSegment::IdxTy idx = CS.get_index(CSLabel(MBB));
 	s4 offset = CS.get_CodeMemory().get_offset(idx,CF);
 	assert(offset != 0);
 
 	InstructionEncoding::imm_op<u2>(CF, 0x0f80 + cond.code, offset);
-	#endif
+	jump.link(CF);
 }
-
-void CondJumpInst::set_block(MachineBasicBlock* MBB) {
-	assert(successor_size() == 2);
-	MachineInstruction::set_block(MBB);
-	successors.back() = SuccessorProxy(MBB,SuccessorProxy::Implicit());
-
-}
-
 
 void IMulInst::emit(CodeMemory* CM) const {
 	X86_64Register *src_reg = cast_to<X86_64Register>(operands[1].op);
@@ -767,7 +757,7 @@ void SubInst::emit(CodeMemory* CM) const {
 #endif
 
 namespace {
-#if 0
+
 void emit_jump(CodeFragment &code, s4 offset) {
 	LOG2("emit_jump codefragment offset: " << hex << offset << nl);
 	code[0] = 0xe9;
@@ -777,17 +767,14 @@ void emit_jump(CodeFragment &code, s4 offset) {
 	code[4] = u1( 0xff & (offset >> (8 * 3)));
 }
 
-#endif
 } // end anonymous namespace
 void JumpInst::emit(CodeMemory* CM) const {
-	assert(0);
-	#if 0
-	BeginInst *BI = get_BeginInst();
+	MachineBasicBlock *MBB = successor_front();
 	CodeSegment &CS = CM->get_CodeSegment();
-	CodeSegment::IdxTy idx = CS.get_index(CSLabel(BI));
+	CodeSegment::IdxTy idx = CS.get_index(CSLabel(MBB));
 	if (CodeSegment::is_invalid(idx)) {
 		LOG2("emit_Jump: target not yet known (" << this << " to "
-		     << BI << ")"  << nl);
+		     << *MBB << ")"  << nl);
 		// reserve memory and add to resolve later
 		// worst case -> 32bit offset
 		CodeFragment CF = CM->get_CodeFragment(5);
@@ -798,27 +785,23 @@ void JumpInst::emit(CodeMemory* CM) const {
 	s4 offset = CM->get_offset(idx);
 	if (offset == 0) {
 		LOG2("emit_Jump: jump to the next instruction -> can be omitted ("
-		     << this << " to " << BI << ")"  << nl);
+		     << this << " to " << *MBB << ")"  << nl);
 		return;
 	}
 	CodeFragment CF = CM->get_CodeFragment(5);
 	emit_jump(CF,offset);
-	#endif
 }
 
 void JumpInst::link(CodeFragment &CF) const {
-	assert(0);
-	#if 0
-	BeginInst *BI = get_BeginInst();
+	MachineBasicBlock *MBB = successor_front();
 	CodeSegment &CS = CF.get_Segment();
-	CodeSegment::IdxTy idx = CS.get_index(CSLabel(BI));
-	LOG2("JumpInst:link BI: " << BI << " idx: " << idx.idx << " CF begin: "
+	CodeSegment::IdxTy idx = CS.get_index(CSLabel(MBB));
+	LOG2("JumpInst:link BI: " << *MBB << " idx: " << idx.idx << " CF begin: "
 		<< CF.get_begin().idx << " CF end: " << CF.get_end().idx << nl);
 	s4 offset = CS.get_CodeMemory().get_offset(idx,CF);
 	assert(offset != 0);
 
 	emit_jump(CF,offset);
-	#endif
 }
 
 void IndirectJumpInst::emit(CodeMemory* CM) const {

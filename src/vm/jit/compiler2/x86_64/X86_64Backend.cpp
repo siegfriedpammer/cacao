@@ -168,30 +168,30 @@ void LoweringVisitor::visit(IFInst *I) {
 
 		switch (I->get_condition()) {
 		case Conditional::EQ:
-			cjmp = new CondJumpInst(Cond::E, get(then.get()),get_current());
+			cjmp = new CondJumpInst(Cond::E, get(then.get()),get(els.get()));
 			break;
 		case Conditional::LT:
-			cjmp = new CondJumpInst(Cond::L, get(then.get()),get_current());
+			cjmp = new CondJumpInst(Cond::L, get(then.get()),get(els.get()));
 			break;
 		case Conditional::LE:
-			cjmp = new CondJumpInst(Cond::LE, get(then.get()),get_current());
+			cjmp = new CondJumpInst(Cond::LE, get(then.get()),get(els.get()));
 			break;
 		case Conditional::GE:
-			cjmp = new CondJumpInst(Cond::GE, get(then.get()),get_current());
+			cjmp = new CondJumpInst(Cond::GE, get(then.get()),get(els.get()));
 			break;
 		case Conditional::NE:
-			cjmp = new CondJumpInst(Cond::NE, get(then.get()),get_current());
+			cjmp = new CondJumpInst(Cond::NE, get(then.get()),get(els.get()));
 			break;
 		default:
 			ABORT_MSG("x86_64 Conditional not supported: ",
 				  I << " cond: " << I->get_condition());
 		}
-		MachineInstruction *jmp = new JumpInst(get(els.get()));
+		//MachineInstruction *jmp = new JumpInst(get(els.get()));
 		get_current()->push_back(cmp);
 		get_current()->push_back(cjmp);
-		get_current()->push_back(jmp);
+		//get_current()->push_back(jmp);
 
-		set_op(I,jmp->get_result().op);
+		set_op(I,cjmp->get_result().op);
 		return;
 	}
 	default: break;
@@ -599,6 +599,7 @@ void LoweringVisitor::visit(GETSTATICInst *I) {
 }
 
 void LoweringVisitor::visit(LOOKUPSWITCHInst *I) {
+	assert_msg(0 , "Fix CondJump");
 	assert(I);
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
 	Type::TypeID type = I->get_type();
@@ -610,7 +611,7 @@ void LoweringVisitor::visit(LOOKUPSWITCHInst *I) {
 			Src2Op(new Immediate(*i,Type::IntType())),
 			Src1Op(src_op),
 			get_OperandSize_from_Type(type));
-		MachineInstruction *cjmp = new CondJumpInst(Cond::E, get(s->get()),get_current());
+		MachineInstruction *cjmp = new CondJumpInst(Cond::E, get(s->get()),get((++s)->get()));
 		get_current()->push_back(cmp);
 		get_current()->push_back(cjmp);
 		++s;
@@ -625,6 +626,7 @@ void LoweringVisitor::visit(LOOKUPSWITCHInst *I) {
 }
 
 void LoweringVisitor::visit(TABLESWITCHInst *I) {
+	assert_msg(0 , "Fix CondJump");
 	assert(I);
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
 	Type::TypeID type = I->get_type();
@@ -650,7 +652,7 @@ void LoweringVisitor::visit(TABLESWITCHInst *I) {
 		Src2Op(new Immediate(high,Type::IntType())),
 		Src1Op(src),
 		get_OperandSize_from_Type(type));
-	MachineInstruction *cjmp = new CondJumpInst(Cond::G, get(I->succ_front().get()),get_current());
+	MachineInstruction *cjmp = new CondJumpInst(Cond::G, get(I->succ_front().get()),get((++I->succ_begin())->get()));
 	get_current()->push_back(cmp);
 	get_current()->push_back(cjmp);
 

@@ -353,30 +353,6 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
-class CondJumpInst : public X86_64Instruction {
-private:
-	Cond::COND cond;
-public:
-	CondJumpInst(Cond::COND cond, MachineBasicBlock *target, MachineBasicBlock *current)
-			: X86_64Instruction("X86_64CondJumpInst", &NoOperand, 0),
-			  cond(cond) {
-		successors.push_back(SuccessorProxy(target,SuccessorProxy::Explicit()));
-		successors.push_back(SuccessorProxy(current,SuccessorProxy::Implicit()));
-		assert(current);
-		set_block(current);
-	}
-	virtual bool is_jump() const {
-		return true;
-	}
-	virtual void emit(CodeMemory* CM) const;
-	virtual void link(CodeFragment &CF) const;
-	virtual void set_block(MachineBasicBlock* MBB);
-	virtual OStream& print_successor_label(OStream &OS,std::size_t index) const;
-	MachineBasicBlock* get_MachineBasicBlock() const {
-		return successors.front();
-	}
-};
-
 class IMulInst : public GPInstruction {
 public:
 	IMulInst(const Src2Op &src2, const DstSrc1Op &dstsrc1,
@@ -460,17 +436,41 @@ public:
 class JumpInst : public MachineJumpInst {
 public:
 	JumpInst(MachineBasicBlock *target) : MachineJumpInst("X86_64JumpInst") {
-		successors.push_back(SuccessorProxy(target,SuccessorProxy::Explicit()));
+		successors.push_back(target);
 	}
 	virtual bool is_jump() const {
 		return true;
 	}
 	virtual void emit(CodeMemory* CM) const;
 	virtual void link(CodeFragment &CF) const;
-	MachineBasicBlock* get_MachineBasicBlock() const {
-		return successors.front();
+};
+
+class CondJumpInst : public X86_64Instruction {
+private:
+	Cond::COND cond;
+	/// jump to the else target
+	JumpInst jump;
+public:
+	CondJumpInst(Cond::COND cond, MachineBasicBlock *then_target, MachineBasicBlock *else_target)
+			: X86_64Instruction("X86_64CondJumpInst", &NoOperand, 0),
+			  cond(cond), jump(else_target) {
+		successors.push_back(then_target);
+		successors.push_back(else_target);
+	}
+	virtual bool is_jump() const {
+		return true;
+	}
+	virtual void emit(CodeMemory* CM) const;
+	virtual void link(CodeFragment &CF) const;
+	virtual OStream& print_successor_label(OStream &OS,std::size_t index) const;
+	MachineBasicBlock* get_then() const {
+		return successor_front();
+	}
+	MachineBasicBlock* get_else() const {
+		return successor_back();
 	}
 };
+
 class IndirectJumpInst : public X86_64Instruction {
 public:
 	IndirectJumpInst(const SrcOp &src)
@@ -482,7 +482,7 @@ public:
 	}
 	virtual void emit(CodeMemory* CM) const;
 	void add_target(MachineBasicBlock *MBB) {
-		successors.push_back(SuccessorProxy(MBB,SuccessorProxy::Explicit()));
+		successors.push_back(MBB);
 	}
 };
 // Double & Float operations

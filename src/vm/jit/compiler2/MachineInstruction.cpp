@@ -34,11 +34,6 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-SuccessorProxy::operator MachineBasicBlock*() const {
-	if (type == ExplTy)
-		return entry;
-	return *(++(entry->self_iterator()));
-}
 std::size_t MachineInstruction::id_counter = 0;
 
 OStream& MachineInstruction::print(OStream &OS) const {
