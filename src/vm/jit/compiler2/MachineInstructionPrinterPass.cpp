@@ -314,7 +314,7 @@ bool MachineInstructionPrinterPass::run(JITData &JD) {
 			i != e; ++i) {
 		MachineBasicBlock *MBB = *i;
 		LOG(*MBB << " ");
-		print_ptr_container(dbg(),MBB->pred_begin(),MBB->pred_end()) << nl;
+		DEBUG(print_ptr_container(dbg(),MBB->pred_begin(),MBB->pred_end()) << nl);
 		// print label
 		LOG(*MBB->front() << nl);
 		// print phi
