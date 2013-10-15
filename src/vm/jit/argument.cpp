@@ -1,6 +1,6 @@
 /* src/vm/jit/argument.cpp - argument passing from and to JIT methods
 
-   Copyright (C) 2007-2013
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -426,10 +426,13 @@ uint64_t *argument_vmarray_from_valist(methodinfo *m, java_handle_t *o, va_list 
 
 		case TYPE_FLT:
 #if defined(__ALPHA__) || defined(__POWERPC__) || defined(__POWERPC64__)
-			/* This is required to load the correct float value in
-			   assembler code. */
+			// The assembler code loads these directly and unconditionally into
+			// the argument registers.
 
-			value.d = (double) va_arg(ap, double);
+			if (!pd->inmemory)
+				value.d = (double) va_arg(ap, double);
+			else
+				value.f = (float) va_arg(ap, double);
 #else
 			value.f = (float) va_arg(ap, double);
 #endif

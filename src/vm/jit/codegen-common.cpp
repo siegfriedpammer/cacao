@@ -2181,13 +2181,9 @@ gen_method:
 
 #if !defined(ENABLE_SOFTFLOAT)
 						case TYPE_FLT:
-#if SIZEOF_VOID_P == 4
 							s1 = emit_load(jd, iptr, var, REG_FTMP1);
 							M_FST(s1, REG_SP, d);
 							break;
-#else
-							/* fall-through */
-#endif
 
 						case TYPE_DBL:
 							s1 = emit_load(jd, iptr, var, REG_FTMP1);
