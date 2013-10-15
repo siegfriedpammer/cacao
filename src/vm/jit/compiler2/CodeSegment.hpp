@@ -33,13 +33,13 @@ namespace jit {
 namespace compiler2 {
 
 // forward declarations
-//class BeginInst;
+class MachineBasicBlock;
 
 enum CodeSegmentType {
 	LabelID
 };
 
-typedef PointerTag<CodeSegmentType,const BeginInst,LabelID> CSLabel;
+typedef PointerTag<CodeSegmentType,const MachineBasicBlock,LabelID> CSLabel;
 
 #if 0
 class CodeSegment : public Segment<CodeSegmentType> {

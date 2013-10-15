@@ -27,6 +27,7 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
+#include "vm/jit/compiler2/MachineBasicBlock.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -48,7 +49,6 @@ namespace jit {
 namespace compiler2 {
 
 bool CodeGenPass::run(JITData &JD) {
-#if 0
 	MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
 	CodeMemory *CM = JD.get_CodeMemory();
 	CodeSegment &CS = CM->get_CodeSegment();
@@ -57,24 +57,28 @@ bool CodeGenPass::run(JITData &JD) {
 	// the jump.
 	for (MachineInstructionSchedule::const_reverse_iterator i = MIS->rbegin(),
 			e = MIS->rend() ; i != e ; ++i ) {
-		MachineInstruction *MI = *i;
-		std::size_t start = CS.size();
-		LOG2("MInst: " << MI << " emitted instruction:" << nl);
-		MI->emit(CM);
-		if (DEBUG_COND_N(2)) {
-			std::size_t end = CS.size();
-			if ( start == end) {
-				LOG2("none" << nl);
-			} else {
-				std::vector<u1> tmp;
-				while(start != end--) {
-					tmp.push_back(CS.at(end));
+		MachineBasicBlock *MBB = *i;
+		for (MachineBasicBlock::const_reverse_iterator i = MBB->rbegin(),
+				e = MBB->rend(); i != e ; ++i) {
+			MachineInstruction *MI = *i;
+			std::size_t start = CS.size();
+			LOG2("MInst: " << MI << " emitted instruction:" << nl);
+			MI->emit(CM);
+			if (DEBUG_COND_N(2)) {
+				std::size_t end = CS.size();
+				if ( start == end) {
+					LOG2("none" << nl);
+				} else {
+					std::vector<u1> tmp;
+					while(start != end--) {
+						tmp.push_back(CS.at(end));
+					}
+	#if defined(ENABLE_DISASSEMBLER)
+					disassemble(&tmp.front(), &tmp.front() + tmp.size());
+	#else
+					// TODO print hex code
+	#endif
 				}
-#if defined(ENABLE_DISASSEMBLER)
-				disassemble(&tmp.front(), &tmp.front() + tmp.size());
-#else
-				// TODO print hex code
-#endif
 			}
 		}
 	}
@@ -84,7 +88,6 @@ bool CodeGenPass::run(JITData &JD) {
 	CM->link();
 	// finish
 	finish(JD);
-#endif
 	return true;
 }
 
