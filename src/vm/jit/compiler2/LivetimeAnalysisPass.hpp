@@ -55,10 +55,11 @@ private:
 public:
 	static char ID;
 	LivetimeAnalysisPass() : Pass() {}
-	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PA) const;
+	virtual bool run(JITData &JD);
+	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
 
-	bool verify() const;
+	virtual bool verify() const;
+	virtual void initialize();
 
 	const_iterator begin() const {
 		return lti_map.begin();

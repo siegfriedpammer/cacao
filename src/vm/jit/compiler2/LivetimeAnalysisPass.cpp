@@ -38,6 +38,11 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+void LivetimeAnalysisPass::initialize() {
+	lti_map.clear();
+	MIS = NULL;
+}
+
 namespace {
 
 MachineInstruction::successor_iterator
@@ -49,6 +54,7 @@ MachineInstruction::successor_iterator
 get_successor_end(MachineBasicBlock* MBB) {
 	return MBB->back()->successor_end();
 }
+
 
 typedef LivetimeAnalysisPass::LiveInSetTy LiveInSetTy;
 typedef LivetimeAnalysisPass::LiveInMapTy LiveInMapTy;
@@ -145,10 +151,10 @@ public:
 	/// Constructor
 	ProcessOutOperands(LivetimeIntervalMapTy &lti_map, MIIterator i, LiveInSetTy &live)
 		: lti_map(lti_map), i(i), live(live) {}
-	void operator()(MachineOperandDesc op) {
+	void operator()(MachineOperandDesc &op) {
 		if (op.op->needs_allocation()) {
 			LOG2("ProcessOutOperand: op=" << *(op.op) << " set form: " << **i << nl);
-			find_or_insert(lti_map,op.op).set_from(UseDef(UseDef::Def,i));
+			find_or_insert(lti_map,op.op).set_from(UseDef(UseDef::Def,i,&op));
 			live.erase(op.op);
 		}
 	}
@@ -166,12 +172,12 @@ public:
 	/// Constructor
 	ProcessInOperands(LivetimeIntervalMapTy &lti_map, MachineBasicBlock *BB,
 		MIIterator i, LiveInSetTy &live) : lti_map(lti_map), BB(BB), i(i), live(live) {}
-	void operator()(MachineOperandDesc op) {
+	void operator()(MachineOperandDesc &op) {
 		if (op.op->needs_allocation()) {
 			LOG2("ProcessInOperand: op=" << *(op.op) << " range form: "
 				<< BB->front() << " to " << **i << nl);
 			find_or_insert(lti_map,op.op).add_range(UseDef(UseDef::Pseudo,BB->mi_first()),
-				UseDef(UseDef::Use,i));
+				UseDef(UseDef::Use,i,&op));
 			live.insert(op.op);
 		}
 	}
