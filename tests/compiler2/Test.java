@@ -25,6 +25,10 @@ public static void main(String arg[]) {
   System.out.println(test_test());
 }
 
+static void test_deadcode() {
+  int a = 1;
+}
+
 static long test_test() {
   long x =0 ;
   for (long i =0; i < 2000; ++i ) {
