@@ -72,6 +72,23 @@ void LivetimeIntervalImpl::set_from(UseDef from, UseDef to) {
 	}
 }
 
+LivetimeIntervalImpl::State LivetimeIntervalImpl::get_State(UseDef pos) const {
+	State state = LivetimeInterval::Unhandled;
+
+	if (!empty() && back().end < pos) {
+		return LivetimeInterval::Handled;
+	}
+	for (const_iterator i = begin(), e = end(); i != e; ++i) {
+		if (pos < i->start)
+			break;
+		if (pos <= i->end) {
+			return LivetimeInterval::Active;
+		}
+		state = LivetimeInterval::Inactive;
+	}
+	return state;
+}
+
 LivetimeIntervalImpl::State LivetimeIntervalImpl::get_State(MIIterator pos) const {
 	State state = LivetimeInterval::Unhandled;
 
@@ -98,8 +115,8 @@ bool LivetimeIntervalImpl::is_def_at(MIIterator pos) const {
 }
 
 
-MIIterator next_intersection(const LivetimeInterval &a,
-		const LivetimeInterval &b, MIIterator pos, MIIterator end) {
+UseDef next_intersection(const LivetimeInterval &a,
+		const LivetimeInterval &b, UseDef pos, UseDef end) {
 	for(LivetimeInterval::const_iterator a_i = a.begin(), b_i = b.begin(),
 			a_e = a.end(), b_e = b.end() ; a_i != a_e && b_i != b_e ; ) {
 
@@ -111,7 +128,7 @@ MIIterator next_intersection(const LivetimeInterval &a,
 			++b_i;
 			continue;
 		}
-		return std::max(a_i->start.get_iterator(),b_i->start.get_iterator());
+		return std::max(a_i->start,b_i->start);
 	}
 	return end;
 }
@@ -276,7 +293,7 @@ OStream& operator<<(OStream &OS, const UseDef &usedef) {
 	if (usedef.is_use()) OS << "Use";
 	if (usedef.is_def()) OS << "Def";
 	if (usedef.is_pseudo_use()) OS << "PseudoUse";
-	return OS << " " << *usedef.get_iterator(); 
+	return OS << " " << usedef.get_iterator();
 }
 OStream& operator<<(OStream &OS, const LivetimeRange &range) {
 	return OS << "LivetimeRange " << range.start << " - " << range.end;

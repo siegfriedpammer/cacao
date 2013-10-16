@@ -123,6 +123,7 @@ public:
 	/// Set from. If no interval available add range from to.
 	void set_from(UseDef from, UseDef to);
 	State get_State(MIIterator pos) const;
+	State get_State(UseDef pos) const;
 	/// Is use position
 	bool is_use_at(MIIterator pos) const;
 	/// Is def position
@@ -208,6 +209,7 @@ public:
 	void add_range(UseDef first, UseDef last);
 	void set_from(UseDef from, UseDef to);
 	State get_State(MIIterator pos) const;
+	State get_State(UseDef pos) const;
 	bool is_use_at(MIIterator pos) const;
 	bool is_def_at(MIIterator pos) const;
 	MachineOperand* get_operand() const { return operand; }
@@ -249,6 +251,9 @@ inline void LivetimeInterval::set_from(UseDef from, UseDef to) {
 	pimpl->set_from(from, to);
 }
 inline LivetimeInterval::State LivetimeInterval::get_State(MIIterator pos) const {
+	return pimpl->get_State(pos);
+}
+inline LivetimeInterval::State LivetimeInterval::get_State(UseDef pos) const {
 	return pimpl->get_State(pos);
 }
 inline bool LivetimeInterval::is_use_at(MIIterator pos) const {
@@ -310,15 +315,26 @@ inline std::size_t LivetimeInterval::def_size() const {
 	return pimpl->def_size();
 }
 
-MIIterator next_intersection(const LivetimeInterval &a,
-	const LivetimeInterval &b, MIIterator pos, MIIterator end);
+UseDef next_intersection(const LivetimeInterval &a,
+	const LivetimeInterval &b, UseDef pos, UseDef end);
 
 /// less then operator
 inline bool operator<(const UseDef& lhs,const UseDef& rhs) {
-	return lhs.get_iterator() < rhs.get_iterator();
+	if (lhs.get_iterator() < rhs.get_iterator() )
+		return true;
+	if (rhs.get_iterator() < lhs.get_iterator() )
+		return false;
+	// iterators are equal
+	if (lhs.is_use() && !rhs.is_use())
+		return true;
+	return false;
+}
+
+inline bool operator==(const UseDef& lhs,const UseDef& rhs) {
+	return !(lhs < rhs || rhs < lhs);
 }
 inline bool operator<=(const UseDef& lhs,const UseDef& rhs) {
-	return lhs.get_iterator() <= rhs.get_iterator();
+	return lhs < rhs || lhs == rhs;
 }
 
 OStream& operator<<(OStream &OS, const LivetimeInterval &lti);
