@@ -98,6 +98,7 @@ struct SetActive: public std::unary_function<LivetimeInterval&,void> {
 		FreeUntilMap::iterator i = free_until_pos.find(MO);
 		if (i != free_until_pos.end()) {
 			//LOG2("set to zero" << nl);
+			LOG2("SetActive: " << lti << " operand: " << *MO << " to " << start << nl);
 			i->second = start;
 		}
 	}
@@ -122,6 +123,7 @@ struct SetIntersection: public std::unary_function<LivetimeInterval&,void> {
 		FreeUntilMap::iterator i = free_until_pos.find(MO);
 		if (i != free_until_pos.end()) {
 			i->second = next_intersection(lti,current,pos,end);
+			LOG2("SetIntersection: " << lti << " operand: " << *MO << " to " << i->second << nl);
 		}
 	}
 };
@@ -178,7 +180,7 @@ inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current
 		SetActive(free_until_pos, UseDef(UseDef::Pseudo,MIS->mi_begin())));
 
 	// for each interval in inactive set free until pos to next intersection
-	std::for_each(active.begin(), active.end(),
+	std::for_each(inactive.begin(), inactive.end(),
 		SetIntersection(free_until_pos, current,pos,UseDef(UseDef::Pseudo,MIS->mi_end())));
 
 	LOG2("free_until_pos:" << nl);
