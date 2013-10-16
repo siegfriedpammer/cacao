@@ -164,14 +164,14 @@ public:
 	/// inserts value to the beginning
 	void push_front(MachineInstruction* value);
 	/// inserts value before the element pointed to by pos
-	void insert_before(iterator pos, MachineInstruction* value);
+	iterator insert_before(iterator pos, MachineInstruction* value);
 	/**
 	 * inserts value before the element pointed to by pos
 	 * @note for standard library compatibility.
 	 */
 	iterator insert(iterator pos, MachineInstruction* value);
 	/// inserts value after the element pointed to by pos
-	void insert_after(iterator pos, MachineInstruction* value);
+	iterator insert_after(iterator pos, MachineInstruction* value);
 	/// inserts elements from range [first, last) before pos
 	template<class InputIt>
 	void insert_before(iterator pos, InputIt first, InputIt last);
@@ -258,6 +258,8 @@ public:
 	/// equality operator
 	bool operator==(const MachineBasicBlock &other) const;
 
+	/// get a iterator form a MIIterator
+	static iterator convert(MIIterator pos);
 private:
 	/// update instruction block
 	void update(MachineInstruction *MI);
@@ -333,10 +335,11 @@ inline void MachineBasicBlock::push_front(MachineInstruction* value) {
 	update(value);
 	list.push_front(value);
 }
-inline void MachineBasicBlock::insert_before(iterator pos, MachineInstruction* value) {
+inline MachineBasicBlock::iterator MachineBasicBlock::insert_before(iterator pos,
+		MachineInstruction* value) {
 	assert(!check_is_phi(value));
 	update(value);
-	list.insert(pos,value);
+	return list.insert(pos,value);
 }
 inline MachineBasicBlock::iterator MachineBasicBlock::insert(iterator pos,
 		MachineInstruction* value) {
@@ -344,10 +347,11 @@ inline MachineBasicBlock::iterator MachineBasicBlock::insert(iterator pos,
 	update(value);
 	return list.insert(pos,value);
 }
-inline void MachineBasicBlock::insert_after(iterator pos, MachineInstruction* value) {
+inline MachineBasicBlock::iterator MachineBasicBlock::insert_after(iterator pos,
+		MachineInstruction* value) {
 	assert(!check_is_phi(value));
 	update(value);
-	list.insert(++pos,value);
+	return list.insert(++pos,value);
 }
 template<class InputIt>
 inline void MachineBasicBlock::insert_before(iterator pos,
@@ -417,6 +421,9 @@ inline MIIterator MachineBasicBlock::convert(iterator pos) {
 }
 inline MIIterator MachineBasicBlock::convert(reverse_iterator pos) {
 	return convert(--(pos.base()));
+}
+inline MachineBasicBlock::iterator MachineBasicBlock::convert(MIIterator pos) {
+	return pos.it;
 }
 inline MIIterator MachineBasicBlock::mi_first() {
 	assert(!empty());
@@ -529,6 +536,9 @@ MachinePhiInst* get_phi_from_operand(MachineBasicBlock *MBB,
  */
 std::insert_iterator<MachineBasicBlock> get_edge_inserter(
 		MachineBasicBlock *from, MachineBasicBlock *to);
+
+MIIterator insert_before(MIIterator pos, MachineInstruction* value);
+MIIterator insert_after(MIIterator pos, MachineInstruction* value);
 
 } // end namespace compiler2
 } // end namespace jit

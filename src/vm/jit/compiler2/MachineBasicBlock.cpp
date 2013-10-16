@@ -114,6 +114,16 @@ std::insert_iterator<MachineBasicBlock> get_edge_inserter(
 	return std::inserter(*to, ++to->begin());
 }
 
+
+MIIterator insert_before(MIIterator pos, MachineInstruction* value) {
+	MachineBasicBlock *MBB = (*pos)->get_block();
+	return MBB->convert(MBB->insert_before(MachineBasicBlock::convert(pos), value));
+}
+MIIterator insert_after(MIIterator pos, MachineInstruction* value) {
+	MachineBasicBlock *MBB = (*pos)->get_block();
+	return MBB->convert(MBB->insert_after(MachineBasicBlock::convert(pos), value));
+}
+
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
