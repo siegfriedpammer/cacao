@@ -75,7 +75,7 @@ private:
 	Backend *backend;
 	JITData *jd;
 
-	bool try_allocate_free(LivetimeInterval& current, MIIterator pos);
+	bool try_allocate_free(LivetimeInterval& current, UseDef pos);
 	bool allocate_blocked(LivetimeInterval& current);
 	void split_blocking_ltis(LivetimeInterval& current);
 	void split(LivetimeInterval *lti, unsigned pos);

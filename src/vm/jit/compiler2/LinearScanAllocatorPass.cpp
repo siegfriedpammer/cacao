@@ -64,17 +64,17 @@ struct FreeUntilCompare: public std::binary_function<MachineOperand*,MachineOper
 	}
 };
 
-typedef std::map<MachineOperand*,MIIterator,FreeUntilCompare> FreeUntilMap;
+typedef std::map<MachineOperand*,UseDef,FreeUntilCompare> FreeUntilMap;
 
 /**
  * @Cpp11 use std::function
  */
 struct InitFreeUntilMap: public std::unary_function<MachineOperand*,void> {
 	FreeUntilMap &free_until_pos;
-	MIIterator end;
+	UseDef end;
 	/// Constructor
 	InitFreeUntilMap(FreeUntilMap &free_until_pos,
-		MIIterator end) : free_until_pos(free_until_pos), end(end) {}
+		UseDef end) : free_until_pos(free_until_pos), end(end) {}
 
 	void operator()(MachineOperand *MO) {
 		free_until_pos.insert(std::make_pair(MO,end));
@@ -87,17 +87,17 @@ struct InitFreeUntilMap: public std::unary_function<MachineOperand*,void> {
  */
 struct SetActive: public std::unary_function<LivetimeInterval&,void> {
 	FreeUntilMap &free_until_pos;
-	MIIterator start;
+	UseDef start;
 	/// Constructor
 	SetActive(FreeUntilMap &free_until_pos,
-		MIIterator start) : free_until_pos(free_until_pos), start(start) {}
+		UseDef start) : free_until_pos(free_until_pos), start(start) {}
 
 	void operator()(LivetimeInterval& lti) {
 		MachineOperand *MO = lti.get_operand();
-		LOG2("SetActive: " << lti << " operand: " << *MO << nl);
+		//LOG2("SetActive: " << lti << " operand: " << *MO << nl);
 		FreeUntilMap::iterator i = free_until_pos.find(MO);
 		if (i != free_until_pos.end()) {
-			LOG("set to zero" << nl);
+			//LOG2("set to zero" << nl);
 			i->second = start;
 		}
 	}
@@ -110,11 +110,11 @@ struct SetActive: public std::unary_function<LivetimeInterval&,void> {
 struct SetIntersection: public std::unary_function<LivetimeInterval&,void> {
 	FreeUntilMap &free_until_pos;
 	LivetimeInterval &current;
-	MIIterator pos;
-	MIIterator end;
+	UseDef pos;
+	UseDef end;
 	/// Constructor
 	SetIntersection(FreeUntilMap &free_until_pos,
-		LivetimeInterval &current, MIIterator pos, MIIterator end)
+		LivetimeInterval &current, UseDef pos, UseDef end)
 		: free_until_pos(free_until_pos), current(current), pos(pos), end(end) {}
 
 	void operator()(LivetimeInterval& lti) {
@@ -149,41 +149,66 @@ struct SetUseDefOperand: public std::unary_function<const UseDef&,void> {
 	}
 };
 
+
+MIIterator insert_move_before(MachineInstruction* move, UseDef usedef) {
+	MIIterator free_until_pos_reg = usedef.get_iterator();
+	while ((*free_until_pos_reg)->is_label()) {
+		--free_until_pos_reg;
+		assert((*free_until_pos_reg)->is_end());
+		--free_until_pos_reg;
+	}
+	return insert_before(free_until_pos_reg, move);
+
+}
+
 } // end anonymous namespace
 
-inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current, MIIterator pos) {
+inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current, UseDef pos) {
+	LOG2(Magenta << "try_allocate_free: " << current << reset_color << nl);
 	// set free until pos of all physical operands to maximum
 	FreeUntilMap free_until_pos;
 	OperandFile op_file;
 	backend->get_OperandFile(op_file,current.get_operand());
 	// set to end
-	std::for_each(op_file.begin(),op_file.end(),InitFreeUntilMap(free_until_pos, MIS->mi_end()));
+	std::for_each(op_file.begin(),op_file.end(),
+		InitFreeUntilMap(free_until_pos, UseDef(UseDef::Pseudo,MIS->mi_end())));
 
 	// for each interval in active set free until pos to zero
-	std::for_each(active.begin(), active.end(), SetActive(free_until_pos, MIS->mi_begin()));
+	std::for_each(active.begin(), active.end(),
+		SetActive(free_until_pos, UseDef(UseDef::Pseudo,MIS->mi_begin())));
 
 	// for each interval in inactive set free until pos to next intersection
-	std::for_each(active.begin(), active.end(), SetIntersection(free_until_pos, current,pos,MIS->mi_end()));
+	std::for_each(active.begin(), active.end(),
+		SetIntersection(free_until_pos, current,pos,UseDef(UseDef::Pseudo,MIS->mi_end())));
 
+	LOG2("free_until_pos:" << nl);
 	for (FreeUntilMap::iterator i = free_until_pos.begin(), e = free_until_pos.end(); i != e; ++i) {
-		LOG((i->first) << ": " << i->second << nl);
+		LOG2("  " << (i->first) << ": " << i->second << nl);
 	}
 
 	// XXX hints!
 	// get operand with highest free until pos
 	FreeUntilMap::value_type x = *std::max_element(free_until_pos.begin(), free_until_pos.end(), FreeUntilMaxCompare());
 	LOG2("reg: " << x.first << " pos: " << x.second << nl);
+	MachineOperand *reg = x.first;
+	UseDef free_until_pos_reg = x.second;
 
-	if (x.second == MIS->mi_begin()) {
+	if (free_until_pos_reg == UseDef(UseDef::Pseudo,MIS->mi_begin())) {
 		// no register available without spilling
 		return false;
 	}
-	if (current.back().end.get_iterator() < x.second) {
+	if (current.back().end < free_until_pos_reg) {
 		// register available for the whole interval
-		current.set_operand(x.first);
+		current.set_operand(reg);
+		LOG2("assigned operand: " << *reg << nl);
 		return true;
 	}
 	// register available for the first part of the interval
+	MachineOperand *tmp = new VirtualRegister(reg->get_type());
+	MachineInstruction *move = backend->create_Move(reg,tmp);
+	MIIterator split_pos = insert_move_before(move,free_until_pos_reg);
+	assert_msg(pos.get_iterator() < split_pos, "pos: " << pos << " free_until_pos_reg "
+		<< free_until_pos_reg << " split: " << split_pos);
 	ABORT_MSG("Not yet implemented","splitting intervals not yet implemented");
 	return true;
 }
@@ -215,8 +240,8 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 	while(!unhandled.empty()) {
 		LivetimeInterval current = unhandled.top();
 		unhandled.pop();
-		LOG("current: " << current << nl);
-		MIIterator pos = current.front().start.get_iterator();
+		LOG(BoldCyan << "current: " << current << reset_color<< nl);
+		UseDef pos = current.front().start;
 
 		// check for intervals in active that are handled or inactive
 		LOG2("check for intervals in active that are handled or inactive" << nl);
@@ -225,12 +250,12 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 			LivetimeInterval act = *i;
 			switch (act.get_State(pos)) {
 			case LivetimeInterval::Handled:
-				LOG2("LTI " << act << " moved from active to handled" << nl);
+				LOG2("  LTI " << act << " moved from active to handled" << nl);
 				handled.push_back(act);
 				i = active.erase(i);
 				break;
 			case LivetimeInterval::Inactive:
-				LOG2("LTI " << act << " moved from active to inactive" << nl);
+				LOG2("  LTI " << act << " moved from active to inactive" << nl);
 				inactive.push_back(act);
 				i = active.erase(i);
 				break;
@@ -245,12 +270,12 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 			LivetimeInterval inact = *i;
 			switch (inact.get_State(pos)) {
 			case LivetimeInterval::Handled:
-				LOG2("LTI " << inact << " moved from inactive to handled" << nl);
+				LOG2("  LTI " << inact << " moved from inactive to handled" << nl);
 				handled.push_back(inact);
 				i = inactive.erase(i);
 				break;
 			case LivetimeInterval::Active:
-				LOG2("LTI " << inact << " moved from inactive to active" << nl);
+				LOG2("  LTI " << inact << " moved from inactive to active" << nl);
 				active.push_back(inact);
 				i = inactive.erase(i);
 				break;
