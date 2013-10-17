@@ -177,15 +177,15 @@ inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current
 	backend->get_OperandFile(op_file,current.get_operand());
 	// set to end
 	std::for_each(op_file.begin(),op_file.end(),
-		InitFreeUntilMap(free_until_pos, UseDef(UseDef::Pseudo,MIS->mi_end())));
+		InitFreeUntilMap(free_until_pos, UseDef(UseDef::PseudoDef,MIS->mi_end())));
 
 	// for each interval in active set free until pos to zero
 	std::for_each(active.begin(), active.end(),
-		SetActive(free_until_pos, UseDef(UseDef::Pseudo,MIS->mi_begin())));
+		SetActive(free_until_pos, UseDef(UseDef::PseudoUse,MIS->mi_begin())));
 
 	// for each interval in inactive set free until pos to next intersection
 	std::for_each(inactive.begin(), inactive.end(),
-		SetIntersection(free_until_pos, current,pos,UseDef(UseDef::Pseudo,MIS->mi_end())));
+		SetIntersection(free_until_pos, current,pos,UseDef(UseDef::PseudoDef,MIS->mi_end())));
 
 	LOG2("free_until_pos:" << nl);
 	for (FreeUntilMap::iterator i = free_until_pos.begin(), e = free_until_pos.end(); i != e; ++i) {
@@ -199,7 +199,7 @@ inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current
 	MachineOperand *reg = x.first;
 	UseDef free_until_pos_reg = x.second;
 
-	if (free_until_pos_reg == UseDef(UseDef::Pseudo,MIS->mi_begin())) {
+	if (free_until_pos_reg == UseDef(UseDef::PseudoUse,MIS->mi_begin())) {
 		// no register available without spilling
 		return false;
 	}
@@ -282,7 +282,7 @@ void split_active_position(LivetimeInterval &lti, UseDef current_pos, UseDef nex
 	unhandled.push(new_lti);
 
 	// move from stack
-	if (!next_use_pos.is_pseudo_use()) {
+	if (!next_use_pos.is_pseudo()) {
 		// if the next use position is no real use/def we can ignore it
 		// the moves, if required, will be inserted by the resolution phase
 		MachineOperand *vreg = new VirtualRegister(MO->get_type());
@@ -346,7 +346,7 @@ inline bool LinearScanAllocatorPass::allocate_blocked(LivetimeInterval &current)
 	backend->get_OperandFile(op_file,current.get_operand());
 	// set to end
 	std::for_each(op_file.begin(),op_file.end(),
-		InitFreeUntilMap(next_use_pos, UseDef(UseDef::Pseudo,MIS->mi_end())));
+		InitFreeUntilMap(next_use_pos, UseDef(UseDef::PseudoDef,MIS->mi_end())));
 
 	// for each interval it in active set next use to next use after start of current
 	std::for_each(active.begin(), active.end(),
@@ -354,7 +354,7 @@ inline bool LinearScanAllocatorPass::allocate_blocked(LivetimeInterval &current)
 
 	// for each interval in inactive intersecting with current  set next pos to next use
 	std::for_each(inactive.begin(), inactive.end(),
-		SetNextUseInactive(next_use_pos, current, current.front().start, UseDef(UseDef::Pseudo,MIS->mi_end())));
+		SetNextUseInactive(next_use_pos, current, current.front().start, UseDef(UseDef::PseudoDef,MIS->mi_end())));
 
 	LOG2("next_use_pos:" << nl);
 	for (FreeUntilMap::iterator i = next_use_pos.begin(), e = next_use_pos.end(); i != e; ++i) {

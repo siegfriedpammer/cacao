@@ -107,11 +107,11 @@ LivetimeIntervalImpl::State LivetimeIntervalImpl::get_State(MIIterator pos) cons
 }
 
 bool LivetimeIntervalImpl::is_use_at(MIIterator pos) const {
-	return uses.find(UseDef(UseDef::Pseudo,pos)) != uses.end();
+	return uses.find(UseDef(UseDef::PseudoUse,pos)) != uses.end();
 }
 
 bool LivetimeIntervalImpl::is_def_at(MIIterator pos) const {
-	return defs.find(UseDef(UseDef::Pseudo,pos)) != defs.end();
+	return defs.find(UseDef(UseDef::PseudoDef,pos)) != defs.end();
 }
 
 
@@ -277,10 +277,10 @@ LivetimeInterval LivetimeIntervalImpl::split_inactive(UseDef pos, MachineOperand
 		lti.pimpl->intervals.push_back(*tmp);
 		intervals.erase(tmp);
 	}
-	assert(lti.front().start.is_pseudo_use());
+	assert(lti.front().start.is_pseudo());
 	assert((*lti.front().start.get_iterator())->is_label());
 	// set the start of the livetime interval to the end of the livetime hole
-	lti.set_from(UseDef(UseDef::Pseudo,--lti.front().start.get_iterator()),lti.front().end);
+	lti.set_from(UseDef(UseDef::PseudoDef,--lti.front().start.get_iterator()),lti.front().end);
 	assert((*lti.front().start.get_iterator())->is_end());
 
 	return lti;
@@ -429,7 +429,7 @@ OStream& operator<<(OStream &OS, const LivetimeInterval *lti) {
 OStream& operator<<(OStream &OS, const UseDef &usedef) {
 	if (usedef.is_use()) OS << "Use";
 	if (usedef.is_def()) OS << "Def";
-	if (usedef.is_pseudo_use()) OS << "PseudoUse";
+	if (usedef.is_pseudo()) OS << "Pseudo";
 	return OS << " " << usedef.get_iterator();
 }
 OStream& operator<<(OStream &OS, const LivetimeRange &range) {

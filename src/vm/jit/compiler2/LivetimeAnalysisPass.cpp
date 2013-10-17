@@ -133,8 +133,8 @@ public:
 		assert(op);
 		if (op->needs_allocation()) {
 			LOG2("AddOperandInterval: op=" << *op << " BasicBlock: " << *BB << nl);
-			find_or_insert(lti_map,op).add_range(UseDef(UseDef::Pseudo,BB->mi_first()),
-				UseDef(UseDef::Pseudo,BB->mi_last()));
+			find_or_insert(lti_map,op).add_range(UseDef(UseDef::PseudoUse,BB->mi_first()),
+				UseDef(UseDef::PseudoDef,BB->mi_last()));
 		}
 	}
 };
@@ -155,7 +155,7 @@ public:
 	void operator()(MachineOperandDesc &op) {
 		if (op.op->needs_allocation()) {
 			LOG2("ProcessOutOperand: op=" << *(op.op) << " set form: " << **i << nl);
-			find_or_insert(lti_map,op.op).set_from(UseDef(UseDef::Def,i,&op), UseDef(UseDef::Pseudo,e));
+			find_or_insert(lti_map,op.op).set_from(UseDef(UseDef::Def,i,&op), UseDef(UseDef::PseudoDef,e));
 			live.erase(op.op);
 		}
 	}
@@ -177,7 +177,7 @@ public:
 		if (op.op->needs_allocation()) {
 			LOG2("ProcessInOperand: op=" << *(op.op) << " range form: "
 				<< BB->front() << " to " << **i << nl);
-			find_or_insert(lti_map,op.op).add_range(UseDef(UseDef::Pseudo,BB->mi_first()),
+			find_or_insert(lti_map,op.op).add_range(UseDef(UseDef::PseudoUse,BB->mi_first()),
 				UseDef(UseDef::Use,i,&op));
 			live.insert(op.op);
 		}
@@ -214,8 +214,8 @@ private:
 			assert(op->needs_allocation());
 			LOG2("ProcessLoops: operand " << op << " range from " << BB->mi_first()
 				<< " to " << loop->get_exit()->mi_last() << nl );
-			find_or_insert(lti_map,op).add_range(UseDef(UseDef::Pseudo,BB->mi_first()),
-				UseDef(UseDef::Pseudo,loop->get_exit()->mi_last()));
+			find_or_insert(lti_map,op).add_range(UseDef(UseDef::PseudoUse,BB->mi_first()),
+				UseDef(UseDef::PseudoDef,loop->get_exit()->mi_last()));
 		}
 	};
 	LivetimeIntervalMapTy &lti_map;

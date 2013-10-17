@@ -55,21 +55,25 @@ public:
 	enum Type {
 		Use,
 		Def,
-		Pseudo
+		PseudoUse,
+		PseudoDef
 	};
 
 	/// constructor
 	UseDef(Type type, MIIterator it, MachineOperandDesc *op = NULL) : type(type), it(it), op(op) {
-		assert(type == Pseudo || op);
+		assert(type == PseudoUse || type == PseudoDef || op);
 	}
 	/// Is a def position
 	bool is_def() const { return type == Def; }
 	/// Is a use position
 	bool is_use() const { return type == Use; }
-	/** Is a pseudo use position.
-	 * A pseudo use position is used to mark backedges.
-	 */
-	bool is_pseudo_use() const { return type == Pseudo; }
+	/// Is a pseudo def position
+	bool is_pseudo_def() const { return type == PseudoDef; }
+	/// Is a pseudo use position
+	bool is_pseudo_use() const { return type == PseudoUse; }
+	/// Is a pseudo use/def
+	bool is_pseudo() const { return is_pseudo_use() || is_pseudo_def(); }
+
 
 	/// Get instruction iterator
 	MIIterator get_iterator() const { return it; }
@@ -356,7 +360,7 @@ inline bool operator<(const UseDef& lhs,const UseDef& rhs) {
 	if (rhs.get_iterator() < lhs.get_iterator() )
 		return false;
 	// iterators are equal
-	if (lhs.is_use() && rhs.is_def())
+	if ( (lhs.is_use() || lhs.is_pseudo_use() ) && (rhs.is_def() || rhs.is_pseudo_def() ) )
 		return true;
 	return false;
 }
