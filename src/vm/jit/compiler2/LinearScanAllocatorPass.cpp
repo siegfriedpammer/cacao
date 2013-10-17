@@ -661,6 +661,7 @@ void schedule(std::list<MachineInstruction*> &scheduled, MoveMapTy &move_map,
 			queue.push_back(&move_map.back());
 			node->to = tmp;
 			node->dep = NULL;
+			ABORT_MSG("Cycle Detected!","No re-allocation strategy yet!");
 		} else {
 			stack.push_back(node->dep);
 			schedule(scheduled, move_map, queue, backend, stack);
@@ -762,6 +763,15 @@ void LinearScanAllocatorPass::resolve() {
 	// calculate basicblock to live interval map
 	BBtoLTI_Map bb2lti_map;
 	std::for_each(MIS->begin(), MIS->end(), CalcBBtoLTIMap(LA,bb2lti_map));
+
+	if (DEBUG_COND_N(2))
+	for (BBtoLTI_Map::const_iterator i = bb2lti_map.begin(), e = bb2lti_map.end(); i != e ; ++i) {
+		LOG2("live at: " << *i->first << nl);
+		for (BBtoLTI_Map::mapped_type::const_iterator ii = i->second.begin(), ee = i->second.end(); ii != ee ; ++ii) {
+			LOG2("  " << *ii << nl);
+		}
+	}
+
 	// for each cfg edge from predecessor to successor (implemented in ForEachCfgEdge)
 	std::for_each(MIS->begin(), MIS->end(), CfgEdge(ForEachCfgEdge(bb2lti_map,LA,backend)));
 	// remove all phis
