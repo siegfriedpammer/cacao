@@ -426,12 +426,6 @@ classloader_t *loader_hashtable_classloader_find(java_handle_t *cl)
 
 void loader_load_all_classes(void)
 {
-#if defined(ENABLE_ZLIB)
-	hashtable               *ht;
-	hashtable_zipfile_entry *htzfe;
-	Utf8String               u;
-#endif
-
 	// Get current list of classpath entries.
 	SuckClasspath& suckclasspath = VM::get_current()->get_suckclasspath();
 
@@ -442,35 +436,30 @@ void loader_load_all_classes(void)
 		if (lce->type == CLASSPATH_ARCHIVE) {
 			/* get the classes hashtable */
 
-			ht = lce->htclasses;
+			ZipFile *zip = lce->zip;
 
-			for (uint32_t slot = 0; slot < ht->size; slot++) {
-				htzfe = (hashtable_zipfile_entry *) ht->ptr[slot];
+			for (ZipFile::Iterator it = zip->begin(), end = zip->end(); it != end; ++it) {
+				const ZipFileEntry& entry = *it;
 
-				for (; htzfe; htzfe = htzfe->hashlink) {
-					u = htzfe->filename;
+				Utf8String filename = entry.filename;
 
-					/* skip all entries in META-INF and .properties,
-                       .png files */
+				// skip all entries in META-INF, .properties and .png files
 
-					if (!strncmp(u.begin(), "META-INF", strlen("META-INF")) ||
-						strstr(u.begin(), ".properties") ||
-						strstr(u.begin(), ".png"))
-						continue;
+				if (!strncmp(filename.begin(), "META-INF", strlen("META-INF")) ||
+				    strstr(filename.begin(), ".properties") ||
+				    strstr(filename.begin(), ".png"))
+					continue;
 
-					/* load class from bootstrap classloader */
+				// load class from bootstrap classloader
 
-					if (!load_class_bootstrap(u)) {
-						fprintf(stderr, "Error loading: ");
-						utf_fprint_printable_ascii_classname(stderr, u);
-						fprintf(stderr, "\n");
+				if (!load_class_bootstrap(filename)) {
+					err() << "Error loading class: '" << filename << "'" << nl;
 
-#if !defined(NDEBUG)
-						/* print out exception and cause */
+#ifndef NDEBUG
+					// print out exception and cause
 
-						exceptions_print_current_exception();
+					exceptions_print_current_exception();
 #endif
-					}
 				}
 			}
 

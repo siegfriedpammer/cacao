@@ -327,20 +327,15 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv
   		path = NULL;
 
 #if defined(ENABLE_ZLIB)
-		if (lce->type == CLASSPATH_ARCHIVE) {
+		if (lce->type == CLASSPATH_ARCHIVE && lce->zip->find(utfname)) {
+			pathlen = strlen("jar:file://") + lce->pathlen + strlen("!/") + namelen + strlen("0");
 
-			if (zip_find(lce, utfname)) {
-				pathlen = strlen("jar:file://") + lce->pathlen + strlen("!/") +
-					namelen + strlen("0");
+			tmppath = MNEW(char, pathlen);
 
-				tmppath = MNEW(char, pathlen);
+			sprintf(tmppath, "jar:file://%s!/%s", lce->path, namestart);
+			path = JavaString::from_utf8(tmppath),
 
-				sprintf(tmppath, "jar:file://%s!/%s", lce->path, namestart);
-				path = JavaString::from_utf8(tmppath),
-
-				MFREE(tmppath, char, pathlen);
-			}
-
+			MFREE(tmppath, char, pathlen);
 		} else {
 #endif /* defined(ENABLE_ZLIB) */
 			pathlen = strlen("file://") + lce->pathlen + namelen + strlen("0");

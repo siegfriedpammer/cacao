@@ -49,89 +49,29 @@
 #include "vm/zip.hpp"
 
 
-static java_handle_t* zip_read_resource(list_classpath_entry *lce, Utf8String name)
-{
-	hashtable_zipfile_entry *htzfe;
-	lfh                      lfh;
-	u1                      *indata;
-	u1                      *outdata;
-	z_stream                 zs;
-	int                      err;
-	
-	classinfo *ci;
+static java_handle_t* zip_read_resource(list_classpath_entry *lce, Utf8String name) {
+	// try to find the class in the current archive
 
-	/* try to find the class in the current archive */
+	const ZipFileEntry *zip = lce->zip->find(c->name);
 
-	htzfe = zip_find(lce, name);
-
-	if (htzfe == NULL)
+	if (zip == NULL)
 		return NULL;
 
-	/* read stuff from local file header */
+	// load data from zip file
 
-	lfh.filenamelength   = SUCK_LE_U2(htzfe->data + LFH_FILE_NAME_LENGTH);
-	lfh.extrafieldlength = SUCK_LE_U2(htzfe->data + LFH_EXTRA_FIELD_LENGTH);
+	size_t   size = zip->uncompressedsize;
+	uint8_t *data = MNEW(u1, size);
 
-	indata = htzfe->data +
-		LFH_HEADER_SIZE +
-		lfh.filenamelength +
-		lfh.extrafieldlength;
+	zip->get(data);
 
-	/* allocate buffer for uncompressed data */
-
-	outdata = MNEW(u1, htzfe->uncompressedsize);
-
-	/* how is the file stored? */
-
-	switch (htzfe->compressionmethod) {
-	case Z_DEFLATED:
-		/* fill z_stream structure */
-
-		zs.next_in   = indata;
-		zs.avail_in  = htzfe->compressedsize;
-		zs.next_out  = outdata;
-		zs.avail_out = htzfe->uncompressedsize;
-
-		zs.zalloc = Z_NULL;
-		zs.zfree  = Z_NULL;
-		zs.opaque = Z_NULL;
-
-		/* initialize this inflate run */
-
-		if (inflateInit2(&zs, -MAX_WBITS) != Z_OK)
-			vm_abort("zip_get: inflateInit2 failed: %s", strerror(errno));
-
-		/* decompress the file into buffer */
-
-		err = inflate(&zs, Z_SYNC_FLUSH);
-
-		if ((err != Z_STREAM_END) && (err != Z_OK))
-			vm_abort("zip_get: inflate failed: %s", strerror(errno));
-
-		/* finish this inflate run */
-
-		if (inflateEnd(&zs) != Z_OK)
-			vm_abort("zip_get: inflateEnd failed: %s", strerror(errno));
-		break;
-
-	case 0:
-		/* uncompressed file, just copy the data */
-		MCOPY(outdata, indata, u1, htzfe->compressedsize);
-		break;
-
-	default:
-		vm_abort("zip_get: unknown compression method %d",
-				 htzfe->compressionmethod);
-	}
-		
-	// Create a file descriptor object.
-	ci = load_class_bootstrap(Utf8String::from_utf8("com/sun/cldchi/jvm/FileDescriptor"));
-	java_handle_t* h = native_new_and_init(ci);
+ 	// Create a file descriptor object.
+	classinfo     *ci = load_class_bootstrap(Utf8String::from_utf8("com/sun/cldchi/jvm/FileDescriptor"));
+	java_handle_t *h  = native_new_and_init(ci);
 
 	if (h == NULL)
 		return NULL;
 
-	com_sun_cldchi_jvm_FileDescriptor fd(h, (int64_t) outdata, 0, htzfe->uncompressedsize);
+	com_sun_cldchi_jvm_FileDescriptor fd(h, (int64_t) data, 0, size);
 
 	return fd.get_handle();
 }
@@ -208,15 +148,11 @@ JNIEXPORT jobject JNICALL Java_com_sun_cldc_io_ResourceInputStream_open(JNIEnv *
 
 #if defined(ENABLE_ZLIB)
 		if (lce->type == CLASSPATH_ARCHIVE) {
-
 			/* enter a monitor on zip/jar archives */
-			lce->mutex->lock();
+			MutexLocker(lce->mutex);
 
 			/* try to get the file in current archive */
 			descriptor = zip_read_resource(lce, uname);
-
-			/* leave the monitor */
-			lce->mutex->unlock();
 
 			if (descriptor != NULL) { /* file exists */
 				break;
