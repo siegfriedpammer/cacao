@@ -473,6 +473,20 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 				}
 			}
 		}
+		else {
+			// fixed interval
+			for (ActiveSetTy::iterator i = active.begin(), e = active.end(); i != e ; ++i ) {
+				LivetimeInterval act = *i;
+				if (current.get_operand()->aquivalent(*act.get_operand())) {
+					MachineInstruction *MI = *pos.get_iterator();
+					if (!(MI->is_move() && MI->get_result().op->aquivalent(*MI->get(0).op))) {
+						ERROR_MSG("Fixed Interval is blocked",
+							"spilling not yet implemented " << current);
+						return false;
+					}
+				}
+			}
+		}
 		// add current to active
 		active.push_back(current);
 		LOG2("LTI " << current << " moved from unhandled to handled" << nl);
