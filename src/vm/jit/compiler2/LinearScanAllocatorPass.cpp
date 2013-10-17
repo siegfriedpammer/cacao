@@ -270,18 +270,25 @@ inline MachineOperand* get_stackslot(Backend *backend, Type::TypeID type) {
 	return backend->get_JITData()->get_StackSlotManager()->create_ManagedStackSlot(type);
 }
 
-void split_active_position(LivetimeInterval &lti, UseDef current_pos, UseDef next_use_pos, Backend *backend,
+void split_active_position(LivetimeInterval lti, UseDef current_pos, UseDef next_use_pos, Backend *backend,
 		LinearScanAllocatorPass::UnhandledSetTy &unhandled) {
 	MachineOperand *MO = lti.get_operand();
 
-	// move to stack
-	MachineOperand *stackslot = get_stackslot(backend,MO->get_type());
-	MachineInstruction *move_to_stack = backend->create_Move(MO,stackslot);
-	MIIterator split_pos = insert_move_before(move_to_stack,current_pos);
-	LivetimeInterval new_lti = lti.split_active(split_pos);
-	// XXX should we add the stack interval?
-	unhandled.push(new_lti);
-
+	MachineOperand *stackslot = NULL;
+	if(current_pos.is_pseudo() && lti.front().start == current_pos) {
+		// we are trying to spill a phi interval
+		stackslot = get_stackslot(backend,MO->get_type());
+		lti.set_operand(stackslot);
+	}
+	else {
+		// move to stack
+		stackslot = get_stackslot(backend,MO->get_type());
+		MachineInstruction *move_to_stack = backend->create_Move(MO,stackslot);
+		MIIterator split_pos = insert_move_before(move_to_stack,current_pos);
+		lti = lti.split_active(split_pos);
+		// XXX should we add the stack interval?
+		// unhandled.push(new_lti);
+	}
 	// move from stack
 	if (!next_use_pos.is_pseudo()) {
 		// if the next use position is no real use/def we can ignore it
@@ -289,8 +296,8 @@ void split_active_position(LivetimeInterval &lti, UseDef current_pos, UseDef nex
 		MachineOperand *vreg = new VirtualRegister(MO->get_type());
 		MachineInstruction *move_from_stack = backend->create_Move(stackslot, vreg);
 		MIIterator split_pos = insert_move_before(move_from_stack,next_use_pos);
-		LivetimeInterval new_lti2 = new_lti.split_active(split_pos);
-		unhandled.push(new_lti2);
+		lti = lti.split_active(split_pos);
+		unhandled.push(lti);
 	}
 }
 
