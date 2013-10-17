@@ -139,7 +139,7 @@ OStream& operator<<(OStream &OS, const LivetimeIntervalImpl &lti) {
 } // end anonymous namespace
 
 MachineOperand* LivetimeIntervalImpl::get_operand(MIIterator pos) const {
-	LOG2("get_operand(this:" << *this << " pos:" << pos << ")" <<nl);
+	//LOG2("get_operand(this:" << *this << " pos:" << pos << ")" <<nl);
 	if (back().end.get_iterator() < pos) {
 		LivetimeInterval lti_next = get_next();
 		assert(lti_next.pimpl);
@@ -149,6 +149,142 @@ MachineOperand* LivetimeIntervalImpl::get_operand(MIIterator pos) const {
 	return get_operand();
 }
 
+UseDef LivetimeIntervalImpl::next_usedef_after(UseDef pos) const {
+	// search use
+	for (const_use_iterator i = use_begin(), e = use_end(); i != e; ++i) {
+		if (pos < *i) {
+			UseDef use = *i;
+			// search def
+			for (const_def_iterator i = def_begin(), e = def_end(); i != e; ++i) {
+				if (pos < *i) {
+					if (*i < use)
+						return *i;
+					break;
+				}
+			}
+			return use;
+		}
+	}
+	// possible because phi functions do not have use sites
+	return back().end;
+}
+
+inline void LivetimeIntervalImpl::move_use_def(LivetimeIntervalImpl *from, LivetimeIntervalImpl *to, UseDef pos) {
+	// copy uses
+	LOG2("copy uses" << nl);
+	{
+		const_use_iterator i = from->use_begin(), e = from->use_end();
+		for (; i!= e && *i < pos; ++i) {
+			LOG2("  keep " << *i << nl);
+		}
+		while(i != e) {
+			const_use_iterator tmp = i++;
+			LOG2("  move " << *tmp << nl);
+			to->uses.insert(*tmp);
+			from->uses.erase(tmp);
+		}
+	}
+	LOG2("copy defs" << nl);
+	// copy defs
+	{
+		const_def_iterator i = from->def_begin(), e = from->def_end();
+		for (; i!= e && *i < pos; ++i) {
+			LOG2("  keep " << *i << nl);
+		}
+		while(i != e) {
+			const_def_iterator tmp = i++;
+			LOG2("  move " << *tmp << nl);
+			to->defs.insert(*tmp);
+			from->defs.erase(tmp);
+		}
+	}
+}
+
+
+LivetimeInterval LivetimeIntervalImpl::split_active(MIIterator pos) {
+	MachineInstruction *MI = *pos;
+	assert(!has_next());
+	assert(get_State(pos) == LivetimeInterval::Active);
+	assert(MI->op_size() == 1);
+	assert(MI->is_move());
+
+	UseDef use(UseDef::Use, pos, &MI->get(0));
+	UseDef def(UseDef::Def, pos, &MI->get_result());
+
+	LOG2("Split " << *this << " at " << pos << nl);
+	LOG2("new use: " << use << nl);
+	LOG2("new def: " << def << nl);
+
+	// new iterval
+	next = new LivetimeInterval(get_init_operand());
+	LivetimeInterval &lti = *next;
+	lti.set_operand(def.get_operand()->op);
+
+	// copy uses defs
+	move_use_def(this, lti.pimpl.get(), def);
+
+	LOG2("copy ranges" << nl);
+	// copy ranges
+	iterator i = intervals.begin(), e = intervals.end();
+	for (; i != e && i->end < def; ++i) {
+		LOG2("  keep " << *i << nl);
+	}
+	assert(i != e);
+	assert(i->start < def);
+
+	// split range
+	iterator tmp = i++;
+	intervals.insert(tmp,LivetimeRange(tmp->start,use));
+	insert_usedef(use);
+	lti.pimpl->intervals.push_front(LivetimeRange(def,tmp->end));
+	lti.pimpl->insert_usedef(def);
+	intervals.erase(tmp);
+
+	while(i != e) {
+		iterator tmp = i++;
+		LOG2("  move " << *tmp << nl);
+		lti.pimpl->intervals.push_back(*tmp);
+		intervals.erase(tmp);
+	}
+
+	return lti;
+}
+
+LivetimeInterval LivetimeIntervalImpl::split_inactive(UseDef pos, MachineOperand* MO) {
+	assert(!has_next());
+	assert(get_State(pos) == LivetimeInterval::Inactive);
+
+	LOG2("Split " << *this << " at " << pos << nl);
+
+	next = new LivetimeInterval(get_init_operand());
+	LivetimeInterval &lti = *next;
+	lti.set_operand(MO);
+
+	// copy uses defs
+	move_use_def(this, lti.pimpl.get(), pos);
+
+	LOG2("copy ranges" << nl);
+	// copy ranges
+	iterator i = intervals.begin(), e = intervals.end();
+	for (; i != e && i->start < pos; ++i) {
+		LOG2("  keep " << *i << nl);
+	}
+	assert(i != e);
+
+	while(i != e) {
+		iterator tmp = i++;
+		LOG2("  move " << *tmp << nl);
+		lti.pimpl->intervals.push_back(*tmp);
+		intervals.erase(tmp);
+	}
+	assert(lti.front().start.is_pseudo_use());
+	assert((*lti.front().start.get_iterator())->is_label());
+	// set the start of the livetime interval to the end of the livetime hole
+	lti.set_from(UseDef(UseDef::Pseudo,--lti.front().start.get_iterator()),lti.front().end);
+	assert((*lti.front().start.get_iterator())->is_end());
+
+	return lti;
+}
 #if 0
 void LivetimeIntervalImpl::set_Register(Register* r) {
 	operand = r;
@@ -280,7 +416,8 @@ LivetimeIntervalImpl* LivetimeIntervalImpl::split(unsigned pos, StackSlotManager
 
 #endif
 OStream& operator<<(OStream &OS, const LivetimeInterval &lti) {
-	return OS << "LivetimeInterval (" << lti.front().start << ") in " << *lti.get_operand();
+	return OS << "LivetimeInterval (" << lti.front().start << ") in "
+		<< *lti.get_operand() << " (init:"  << *lti.get_init_operand() << ")";
 }
 OStream& operator<<(OStream &OS, const LivetimeInterval *lti) {
 	if (!lti) {

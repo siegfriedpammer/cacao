@@ -112,7 +112,7 @@ public:
 		Handled    ///< Interval is finished
 	};
 	/// constructor
-	LivetimeInterval(MachineOperand*);
+	explicit LivetimeInterval(MachineOperand*);
 	/// copy constructor
 	LivetimeInterval(const LivetimeInterval &other);
 	/// copy assignment operator
@@ -140,8 +140,22 @@ public:
 	 */
 	MachineOperand* get_init_operand() const;
 
+	/**
+	 * Split interval at active pos.
+	 * @param pos Must be a move/copy instruction with one input and one output
+	 */
+	LivetimeInterval split_active(MIIterator pos);
+	/**
+	 * Split interval at inactive pos.
+	 */
+	LivetimeInterval split_inactive(UseDef pos, MachineOperand* MO);
+
+	/// get next use def after pos
+	UseDef next_usedef_after(UseDef) const;
+
 	/// get next split interval
 	LivetimeInterval get_next() const;
+	bool has_next() const;
 
 	const_iterator begin() const;
 	const_iterator end() const;
@@ -160,8 +174,6 @@ public:
 	std::size_t def_size() const;
 private:
 	shared_ptr<LivetimeIntervalImpl> pimpl;
-	/// constructor
-	LivetimeInterval();
 	friend class LivetimeIntervalImpl;
 };
 
@@ -192,7 +204,7 @@ private:
 	DefListTy defs;
 	MachineOperand* operand;         ///< store for the interval
 	MachineOperand* init_operand;    ///< initial operand for the interval
-	LivetimeInterval next;
+	LivetimeInterval *next;
 
 	void insert_usedef(const UseDef &usedef) {
 		if (usedef.is_use())
@@ -200,9 +212,10 @@ private:
 		if (usedef.is_def())
 			defs.insert(usedef);
 	}
+	static void move_use_def(LivetimeIntervalImpl *from, LivetimeIntervalImpl *to, UseDef pos);
 public:
 	/// construtor
-	LivetimeIntervalImpl(MachineOperand* op): operand(op), init_operand(op), next(LivetimeInterval()) {}
+	LivetimeIntervalImpl(MachineOperand* op): operand(op), init_operand(op), next(NULL) {}
 	/**
 	 * A range the range [first, last] to the interval
 	 */
@@ -215,9 +228,13 @@ public:
 	MachineOperand* get_operand() const { return operand; }
 	void set_operand(MachineOperand* op) { operand = op; }
 	MachineOperand* get_init_operand() const { return init_operand; }
-	LivetimeInterval get_next() const { return next; }
+	LivetimeInterval get_next() const { return *next; }
+	bool has_next() const { return bool(next); }
+	LivetimeInterval split_active(MIIterator pos);
+	LivetimeInterval split_inactive(UseDef pos, MachineOperand* MO);
 
 	MachineOperand* get_operand(MIIterator pos) const;
+	UseDef next_usedef_after(UseDef) const;
 
 	const_iterator begin()         const { return intervals.begin(); }
 	const_iterator end()           const { return intervals.end(); }
@@ -237,7 +254,6 @@ public:
 
 // LivetimeInterval
 
-inline LivetimeInterval::LivetimeInterval() : pimpl((LivetimeIntervalImpl*)0){}
 inline LivetimeInterval::LivetimeInterval(MachineOperand* op) : pimpl(new LivetimeIntervalImpl(op)){}
 inline LivetimeInterval::LivetimeInterval(const LivetimeInterval &other) : pimpl(other.pimpl) {}
 inline LivetimeInterval& LivetimeInterval::operator=(const LivetimeInterval &other) {
@@ -293,6 +309,21 @@ inline MachineOperand* LivetimeInterval::get_init_operand() const {
 inline void LivetimeInterval::set_operand(MachineOperand* op) {
 	pimpl->set_operand(op);
 }
+inline UseDef LivetimeInterval::next_usedef_after(UseDef pos) const {
+	return pimpl->next_usedef_after(pos);
+}
+inline LivetimeInterval LivetimeInterval::split_active(MIIterator pos) {
+	return pimpl->split_active(pos);
+}
+inline LivetimeInterval LivetimeInterval::split_inactive(UseDef pos, MachineOperand* MO) {
+	return pimpl->split_inactive(pos, MO);
+}
+inline LivetimeInterval LivetimeInterval::get_next() const {
+	return pimpl->get_next();
+}
+inline bool LivetimeInterval::has_next() const {
+	return pimpl->has_next();
+}
 
 // uses
 inline LivetimeInterval::const_use_iterator LivetimeInterval::use_begin() const {
@@ -325,13 +356,16 @@ inline bool operator<(const UseDef& lhs,const UseDef& rhs) {
 	if (rhs.get_iterator() < lhs.get_iterator() )
 		return false;
 	// iterators are equal
-	if (lhs.is_use() && !rhs.is_use())
+	if (lhs.is_use() && rhs.is_def())
 		return true;
 	return false;
 }
 
+inline bool operator!=(const UseDef& lhs,const UseDef& rhs) {
+	return (lhs < rhs || rhs < lhs);
+}
 inline bool operator==(const UseDef& lhs,const UseDef& rhs) {
-	return !(lhs < rhs || rhs < lhs);
+	return !(lhs != rhs);
 }
 inline bool operator<=(const UseDef& lhs,const UseDef& rhs) {
 	return lhs < rhs || lhs == rhs;
