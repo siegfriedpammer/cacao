@@ -122,8 +122,11 @@ struct SetIntersection: public std::unary_function<LivetimeInterval&,void> {
 		MachineOperand *MO = lti.get_operand();
 		FreeUntilMap::iterator i = free_until_pos.find(MO);
 		if (i != free_until_pos.end()) {
-			i->second = next_intersection(lti,current,pos,end);
-			LOG2("SetIntersection: " << lti << " operand: " << *MO << " to " << i->second << nl);
+			UseDef inter = next_intersection(lti,current,pos,end);
+			if (inter != end) {
+				i->second = next_intersection(lti,current,pos,end);
+				LOG2("SetIntersection: " << lti << " operand: " << *MO << " to " << i->second << nl);
+			}
 		}
 	}
 };
@@ -147,6 +150,7 @@ struct SetUseDefOperand: public std::unary_function<const UseDef&,void> {
 	/// Constructor
 	SetUseDefOperand(MachineOperand* op) : op(op) {}
 	void operator()(const UseDef &usedef) {
+		LOG2("  set def operand " << usedef << " to " << op << nl);
 		usedef.get_operand()->op = op;
 	}
 };
@@ -215,7 +219,175 @@ inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current
 	return true;
 }
 
+namespace {
+/**
+ * @Cpp11 use std::function
+ */
+struct SetNextUseActive: public std::unary_function<LivetimeInterval&,void> {
+	FreeUntilMap &next_use_pos;
+	UseDef pos;
+	/// Constructor
+	SetNextUseActive(FreeUntilMap &next_use_pos,
+		UseDef pos) : next_use_pos(next_use_pos), pos(pos) {}
+
+	void operator()(LivetimeInterval& lti) {
+		MachineOperand *MO = lti.get_operand();
+		//LOG2("SetActive: " << lti << " operand: " << *MO << nl);
+		FreeUntilMap::iterator i = next_use_pos.find(MO);
+		if (i != next_use_pos.end()) {
+			//LOG2("set to zero" << nl);
+			i->second = lti.next_usedef_after(pos);
+			LOG2("SetNextUseActive: " << lti << " operand: " << *MO << " to " << i->second << nl);
+		}
+	}
+};
+
+/**
+ * @Cpp11 use std::function
+ */
+struct SetNextUseInactive: public std::unary_function<LivetimeInterval&,void> {
+	FreeUntilMap &free_until_pos;
+	LivetimeInterval &current;
+	UseDef pos;
+	UseDef end;
+	/// Constructor
+	SetNextUseInactive(FreeUntilMap &free_until_pos,
+		LivetimeInterval &current, UseDef pos, UseDef end)
+		: free_until_pos(free_until_pos), current(current), pos(pos), end(end) {}
+
+	void operator()(LivetimeInterval& lti) {
+		MachineOperand *MO = lti.get_operand();
+		FreeUntilMap::iterator i = free_until_pos.find(MO);
+		if (i != free_until_pos.end() && next_intersection(lti,current,pos,end) != end) {
+			i->second = lti.next_usedef_after(pos);
+			LOG2("SetNextUseInactive: " << lti << " operand: " << *MO << " to " << i->second << nl);
+		}
+	}
+};
+
+inline MachineOperand* get_stackslot(Backend *backend, Type::TypeID type) {
+	return backend->get_JITData()->get_StackSlotManager()->create_ManagedStackSlot(type);
+}
+
+void split_active_position(LivetimeInterval &lti, UseDef current_pos, UseDef next_use_pos, Backend *backend,
+		LinearScanAllocatorPass::UnhandledSetTy &unhandled) {
+	MachineOperand *MO = lti.get_operand();
+
+	// move to stack
+	MachineOperand *stackslot = get_stackslot(backend,MO->get_type());
+	MachineInstruction *move_to_stack = backend->create_Move(MO,stackslot);
+	MIIterator split_pos = insert_move_before(move_to_stack,current_pos);
+	LivetimeInterval new_lti = lti.split_active(split_pos);
+	// XXX should we add the stack interval?
+	unhandled.push(new_lti);
+
+	// move from stack
+	if (!next_use_pos.is_pseudo_use()) {
+		// if the next use position is no real use/def we can ignore it
+		// the moves, if required, will be inserted by the resolution phase
+		MachineOperand *vreg = new VirtualRegister(MO->get_type());
+		MachineInstruction *move_from_stack = backend->create_Move(stackslot, vreg);
+		MIIterator split_pos = insert_move_before(move_from_stack,next_use_pos);
+		LivetimeInterval new_lti2 = new_lti.split_active(split_pos);
+		unhandled.push(new_lti2);
+	}
+}
+
+/**
+ * @Cpp11 use std::function
+ */
+struct SplitActive: public std::unary_function<LivetimeInterval&,void> {
+	MachineOperand *reg;
+	UseDef pos;
+	UseDef next_use_pos;
+	Backend *backend;
+	LinearScanAllocatorPass::UnhandledSetTy &unhandled;
+	/// Constructor
+	SplitActive(MachineOperand *reg , UseDef pos, UseDef next_use_pos, Backend *backend,
+		LinearScanAllocatorPass::UnhandledSetTy &unhandled)
+			: reg(reg), pos(pos), next_use_pos(next_use_pos), backend(backend), unhandled(unhandled) {}
+
+	void operator()(LivetimeInterval& lti) {
+		MachineOperand *MO = lti.get_operand();
+		if (reg->aquivalent(*MO)) {
+			split_active_position(lti,pos,next_use_pos,backend, unhandled);
+		}
+	}
+};
+
+/**
+ * @Cpp11 use std::function
+ */
+struct SplitInactive: public std::unary_function<LivetimeInterval&,void> {
+	MachineOperand *reg;
+	UseDef pos;
+	LinearScanAllocatorPass::UnhandledSetTy &unhandled;
+	/// Constructor
+	SplitInactive(MachineOperand *reg , UseDef pos,	LinearScanAllocatorPass::UnhandledSetTy &unhandled)
+			: reg(reg), pos(pos), unhandled(unhandled) {}
+
+	void operator()(LivetimeInterval& lti) {
+		MachineOperand *MO = lti.get_operand();
+		if (reg->aquivalent(*MO)) {
+			//ABORT_MSG("Spill current not yet implemented","not yet implemented");
+			LivetimeInterval new_lti = lti.split_inactive(pos, new VirtualRegister(reg->get_type()));
+			assert(lti.front().start < new_lti.front().start);
+			unhandled.push(new_lti);
+		}
+	}
+};
+} // end anonymous namespace
+
 inline bool LinearScanAllocatorPass::allocate_blocked(LivetimeInterval &current) {
+	LOG2(Blue << "allocate_blocked: " << current << reset_color << nl);
+	// set free until pos of all physical operands to maximum
+	FreeUntilMap next_use_pos;
+	OperandFile op_file;
+	backend->get_OperandFile(op_file,current.get_operand());
+	// set to end
+	std::for_each(op_file.begin(),op_file.end(),
+		InitFreeUntilMap(next_use_pos, UseDef(UseDef::Pseudo,MIS->mi_end())));
+
+	// for each interval it in active set next use to next use after start of current
+	std::for_each(active.begin(), active.end(),
+		SetNextUseActive(next_use_pos, current.front().start));
+
+	// for each interval in inactive intersecting with current  set next pos to next use
+	std::for_each(inactive.begin(), inactive.end(),
+		SetNextUseInactive(next_use_pos, current, current.front().start, UseDef(UseDef::Pseudo,MIS->mi_end())));
+
+	LOG2("next_use_pos:" << nl);
+	for (FreeUntilMap::iterator i = next_use_pos.begin(), e = next_use_pos.end(); i != e; ++i) {
+		LOG2("  " << (i->first) << ": " << i->second << nl);
+	}
+
+	// get register with highest nextUsePos
+	FreeUntilMap::value_type x = *std::max_element(next_use_pos.begin(), next_use_pos.end(), FreeUntilMaxCompare());
+	MachineOperand *reg = x.first;
+	UseDef next_use_pos_reg = x.second;
+	LOG2("reg: " << *reg << " pos: " << next_use_pos_reg << nl);
+
+	UseDef next_use_pos_current = current.next_usedef_after(current.front().start);
+	if (next_use_pos_reg < next_use_pos_current) {
+		// all other intervals are used before current
+		// so spill current
+		ERROR_MSG("Spill current not yet implemented","not yet implemented");
+		return false;
+	}
+	else {
+		// spill intervals that currently block reg
+
+		// split for each interval it in active that blocks reg (there can be only one)
+		std::for_each(active.begin(), active.end(),
+			SplitActive(reg, current.front().start, next_use_pos_reg, backend, unhandled));
+
+		// spill each interval it in inactive for reg at the end of the livetime hole
+		std::for_each(inactive.begin(), inactive.end(),
+			SplitInactive(reg, current.front().start, unhandled));
+		current.set_operand(reg);
+		LOG2("assigned operand: " << *reg << nl);
+		return true;
+	}
 	return false;
 }
 
@@ -303,22 +475,28 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 		}
 		// add current to active
 		active.push_back(current);
+		LOG2("LTI " << current << " moved from unhandled to handled" << nl);
+	}
+
+	// move everything to handled
+	for (ActiveSetTy::iterator i = active.begin(), e = active.end(); i != e ; /* ++i */) {
+		handled.push_back(*i);
+		i = active.erase(i);
+	}
+	for (InactiveSetTy::iterator i = inactive.begin(), e = inactive.end(); i != e ; /* ++i */) {
+		handled.push_back(*i);
+		i = inactive.erase(i);
 	}
 
 	// resolve
 	resolve();
 
-	for (LivetimeAnalysisPass::const_iterator i = LA->begin(), e = LA->end();
-			i != e ; ++i) {
-		const LivetimeInterval *lti = &i->second;
-		LOG("Assigned Interval " << lti << " (init: " << *lti->get_init_operand() << ")" <<nl );
-	}
 	// set operands
-	for (LivetimeAnalysisPass::iterator i = LA->begin(), e = LA->end();
-			i != e ; ++i) {
-		LivetimeInterval *lti = &i->second;
-		std::for_each(lti->use_begin(), lti->use_end(), SetUseDefOperand(lti->get_operand()));
-		std::for_each(lti->def_begin(), lti->def_end(), SetUseDefOperand(lti->get_operand()));
+	for (HandledSetTy::const_iterator i = handled.begin(), e = handled.end(); i != e ; ++i) {
+		LivetimeInterval lti = *i;
+		LOG("Assigned Interval " << lti << " (init: " << *lti.get_init_operand() << ")" <<nl );
+		std::for_each(lti.use_begin(), lti.use_end(), SetUseDefOperand(lti.get_operand()));
+		std::for_each(lti.def_begin(), lti.def_end(), SetUseDefOperand(lti.get_operand()));
 	}
 	return true;
 }
@@ -362,6 +540,9 @@ private:
 			LivetimeInterval &lti = lti_pair.second;
 			if (lti.get_State(MBB->mi_first()) == LivetimeInterval::Active) {
 				bb2lti_map[MBB].push_back(lti);
+			}
+			else if (lti.has_next()) {
+				operator()(argument_type(lti_pair.first,lti.get_next()));
 			}
 		}
 	};
@@ -529,7 +710,7 @@ public:
 } // end anonymous namespace
 
 void LinearScanAllocatorPass::resolve() {
-
+	LOG(BoldGreen << "resolve: " << nl);
 	// calculate basicblock to live interval map
 	BBtoLTI_Map bb2lti_map;
 	std::for_each(MIS->begin(), MIS->end(), CalcBBtoLTIMap(LA,bb2lti_map));

@@ -53,7 +53,7 @@ class Backend;
  * See also Wimmer's Masters Thesis @cite WimmerMScThesis.
  */
 class LinearScanAllocatorPass : public Pass {
-private:
+public:
 	struct StartComparator {
 		bool operator()(const LivetimeInterval &lhs, const LivetimeInterval &rhs);
 	};
@@ -64,6 +64,7 @@ private:
 	typedef std::list<LivetimeInterval> InactiveSetTy;
 	typedef std::list<LivetimeInterval> ActiveSetTy;
 	typedef std::list<LivetimeInterval> HandledSetTy;
+private:
 
 	UnhandledSetTy unhandled;
 	ActiveSetTy active;
