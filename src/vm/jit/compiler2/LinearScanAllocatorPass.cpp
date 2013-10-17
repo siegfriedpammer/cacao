@@ -337,6 +337,25 @@ struct SplitInactive: public std::unary_function<LivetimeInterval&,void> {
 		}
 	}
 };
+
+inline void split_current(LivetimeInterval &current, Type::TypeID type, UseDef pos, UseDef end,
+		LinearScanAllocatorPass::UnhandledSetTy &unhandled, Backend *backend) {
+	LOG2("Spill current (" << current << ") at " << pos << nl);
+	// create move
+	MachineOperand *stackslot = get_stackslot(backend,type);
+	// only create new register if there is a user
+	if ( pos != end) {
+		MachineOperand *vreg = new VirtualRegister(type);
+		MachineInstruction *move_from_stack = backend->create_Move(stackslot,vreg);
+		// split
+		MIIterator split_pos = insert_move_before(move_from_stack,pos);
+		LivetimeInterval new_lti = current.split_active(split_pos);
+		unhandled.push(new_lti);
+	}
+	// set operand
+	current.set_operand(stackslot);
+}
+
 } // end anonymous namespace
 
 inline bool LinearScanAllocatorPass::allocate_blocked(LivetimeInterval &current) {
@@ -373,10 +392,13 @@ inline bool LinearScanAllocatorPass::allocate_blocked(LivetimeInterval &current)
 	if (next_use_pos_reg < next_use_pos_current) {
 		// all other intervals are used before current
 		// so spill current
-		ERROR_MSG("Spill current not yet implemented","not yet implemented");
-		return false;
+		split_current(current,current.get_operand()->get_type(), next_use_pos_current,
+			UseDef(UseDef::PseudoDef,MIS->mi_end()), unhandled, backend);
+		//ERROR_MSG("Spill current not yet implemented","not yet implemented");
+		return true;
 	}
 	else {
+		LOG2("Spill intervals blocking: " << *reg << nl);
 		// spill intervals that currently block reg
 
 		// split for each interval it in active that blocks reg (there can be only one)
