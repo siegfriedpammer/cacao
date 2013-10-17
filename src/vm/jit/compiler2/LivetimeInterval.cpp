@@ -149,7 +149,7 @@ MachineOperand* LivetimeIntervalImpl::get_operand(MIIterator pos) const {
 	return get_operand();
 }
 
-UseDef LivetimeIntervalImpl::next_usedef_after(UseDef pos) const {
+UseDef LivetimeIntervalImpl::next_usedef_after(UseDef pos, UseDef end) const {
 	// search use
 	for (const_use_iterator i = use_begin(), e = use_end(); i != e; ++i) {
 		if (pos < *i) {
@@ -166,7 +166,7 @@ UseDef LivetimeIntervalImpl::next_usedef_after(UseDef pos) const {
 		}
 	}
 	// possible because phi functions do not have use sites
-	return back().end;
+	return end;
 }
 
 inline void LivetimeIntervalImpl::move_use_def(LivetimeIntervalImpl *from, LivetimeIntervalImpl *to, UseDef pos) {

@@ -154,8 +154,8 @@ public:
 	 */
 	LivetimeInterval split_inactive(UseDef pos, MachineOperand* MO);
 
-	/// get next use def after pos
-	UseDef next_usedef_after(UseDef) const;
+	/// get next use def after pos (if not found return end)
+	UseDef next_usedef_after(UseDef pos, UseDef end) const;
 
 	/// get next split interval
 	LivetimeInterval get_next() const;
@@ -238,7 +238,7 @@ public:
 	LivetimeInterval split_inactive(UseDef pos, MachineOperand* MO);
 
 	MachineOperand* get_operand(MIIterator pos) const;
-	UseDef next_usedef_after(UseDef) const;
+	UseDef next_usedef_after(UseDef,UseDef) const;
 
 	const_iterator begin()         const { return intervals.begin(); }
 	const_iterator end()           const { return intervals.end(); }
@@ -313,8 +313,8 @@ inline MachineOperand* LivetimeInterval::get_init_operand() const {
 inline void LivetimeInterval::set_operand(MachineOperand* op) {
 	pimpl->set_operand(op);
 }
-inline UseDef LivetimeInterval::next_usedef_after(UseDef pos) const {
-	return pimpl->next_usedef_after(pos);
+inline UseDef LivetimeInterval::next_usedef_after(UseDef pos, UseDef end) const {
+	return pimpl->next_usedef_after(pos,end);
 }
 inline LivetimeInterval LivetimeInterval::split_active(MIIterator pos) {
 	return pimpl->split_active(pos);

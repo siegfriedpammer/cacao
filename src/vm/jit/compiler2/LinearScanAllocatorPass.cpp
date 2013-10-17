@@ -226,9 +226,10 @@ namespace {
 struct SetNextUseActive: public std::unary_function<LivetimeInterval&,void> {
 	FreeUntilMap &next_use_pos;
 	UseDef pos;
+	UseDef end;
 	/// Constructor
 	SetNextUseActive(FreeUntilMap &next_use_pos,
-		UseDef pos) : next_use_pos(next_use_pos), pos(pos) {}
+		UseDef pos, UseDef end) : next_use_pos(next_use_pos), pos(pos), end(end) {}
 
 	void operator()(LivetimeInterval& lti) {
 		MachineOperand *MO = lti.get_operand();
@@ -236,7 +237,7 @@ struct SetNextUseActive: public std::unary_function<LivetimeInterval&,void> {
 		FreeUntilMap::iterator i = next_use_pos.find(MO);
 		if (i != next_use_pos.end()) {
 			//LOG2("set to zero" << nl);
-			i->second = lti.next_usedef_after(pos);
+			i->second = lti.next_usedef_after(pos,end);
 			LOG2("SetNextUseActive: " << lti << " operand: " << *MO << " to " << i->second << nl);
 		}
 	}
@@ -259,7 +260,7 @@ struct SetNextUseInactive: public std::unary_function<LivetimeInterval&,void> {
 		MachineOperand *MO = lti.get_operand();
 		FreeUntilMap::iterator i = free_until_pos.find(MO);
 		if (i != free_until_pos.end() && next_intersection(lti,current,pos,end) != end) {
-			i->second = lti.next_usedef_after(pos);
+			i->second = lti.next_usedef_after(pos,end);
 			LOG2("SetNextUseInactive: " << lti << " operand: " << *MO << " to " << i->second << nl);
 		}
 	}
@@ -350,7 +351,7 @@ inline bool LinearScanAllocatorPass::allocate_blocked(LivetimeInterval &current)
 
 	// for each interval it in active set next use to next use after start of current
 	std::for_each(active.begin(), active.end(),
-		SetNextUseActive(next_use_pos, current.front().start));
+		SetNextUseActive(next_use_pos, current.front().start, UseDef(UseDef::PseudoDef,MIS->mi_end())));
 
 	// for each interval in inactive intersecting with current  set next pos to next use
 	std::for_each(inactive.begin(), inactive.end(),
@@ -367,7 +368,8 @@ inline bool LinearScanAllocatorPass::allocate_blocked(LivetimeInterval &current)
 	UseDef next_use_pos_reg = x.second;
 	LOG2("reg: " << *reg << " pos: " << next_use_pos_reg << nl);
 
-	UseDef next_use_pos_current = current.next_usedef_after(current.front().start);
+	UseDef next_use_pos_current = current.next_usedef_after(current.front().start,
+		UseDef(UseDef::PseudoDef,MIS->mi_end()));
 	if (next_use_pos_reg < next_use_pos_current) {
 		// all other intervals are used before current
 		// so spill current
