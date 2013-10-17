@@ -162,6 +162,11 @@ public:
 		assert(operands[i].get_index() == i);
 		return operands[i];
 	}
+	MachineOperandDesc& get(std::size_t i) {
+		assert(i < operands.size());
+		assert(operands[i].get_index() == i);
+		return operands[i];
+	}
 	operand_iterator begin() {
 		return operands.begin();
 	}
