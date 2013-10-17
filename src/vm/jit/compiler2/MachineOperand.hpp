@@ -225,7 +225,7 @@ public:
 	virtual const char* get_name() const {
 		return "ManagedStackSlot";
 	}
-	virtual bool is_virtual() const { return true; }
+	//virtual bool is_virtual() const { return true; }
 	unsigned get_id() const { return id; }
 	virtual OStream& print(OStream &OS) const {
 		return MachineOperand::print(OS) << get_id();
