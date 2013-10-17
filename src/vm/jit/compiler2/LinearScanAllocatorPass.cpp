@@ -644,7 +644,7 @@ inline OStream& operator<<(OStream &OS, const Move &move) {
 }
 
 void schedule(std::list<MachineInstruction*> &scheduled, MoveMapTy &move_map,
-		Backend *backend, std::list<Move*> &stack) {
+		std::list<Move*> &queue, Backend *backend, std::list<Move*> &stack) {
 	Move* node = stack.back();
 	assert(!node->from->aquivalent(*node->to));
 	LOG2("schedule pre: " << *node << nl);
@@ -658,17 +658,42 @@ void schedule(std::list<MachineInstruction*> &scheduled, MoveMapTy &move_map,
 			LOG2("cycle detected!" << nl);
 			MachineOperand *tmp = new VirtualRegister(node->to->get_type());
 			move_map.push_back(Move(tmp, node->to));
+			queue.push_back(&move_map.back());
 			node->to = tmp;
 			node->dep = NULL;
 		} else {
 			stack.push_back(node->dep);
-			schedule(scheduled, move_map, backend, stack);
+			schedule(scheduled, move_map, queue, backend, stack);
 		}
 	}
 	LOG2("schedule post: " << *node << nl);
 	stack.pop_back();
 	scheduled.push_back(backend->create_Move(node->from,node->to));
 	node->scheduled = true;
+}
+
+template <class OutputIterator>
+struct RefToPointerInserterImpl: public std::unary_function<Move&,void> {
+	OutputIterator i;
+	/// constructor
+	RefToPointerInserterImpl(OutputIterator i) : i(i) {}
+	/// call operator
+	void operator()(Move& move) {
+		*i = &move;
+	}
+};
+/// wrapper
+template <class OutputIterator>
+inline RefToPointerInserterImpl<OutputIterator> RefToPointerInserter(OutputIterator i) {
+	return RefToPointerInserterImpl<OutputIterator>(i);
+}
+
+bool compare_moves(Move *lhs, Move *rhs) {
+	if (!lhs->dep)
+		return true;
+	if (!rhs->dep)
+		return false;
+	return lhs < rhs;
 }
 
 void order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *successor,
@@ -690,10 +715,17 @@ void order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *su
 	// nodes already scheduled
 	std::list<MachineInstruction*> scheduled;
 	std::list<Move*> stack;
+	std::list<Move*> queue;
+	std::for_each(move_map.begin(), move_map.end(), RefToPointerInserter(std::back_inserter(queue)));
+	assert(move_map.size() == queue.size());
 
-	for (MoveMapTy::iterator i = move_map.begin(), e = move_map.end(); i != e; ++i) {
-		stack.push_back(&*i);
-		schedule(scheduled, move_map, backend, stack);
+	while (!queue.empty()) {
+		// sort and pop element
+		queue.sort(compare_moves);
+		stack.push_back(queue.front());
+		queue.pop_front();
+		// schedule
+		schedule(scheduled, move_map, queue, backend, stack);
 		assert(stack.empty());
 	}
 
