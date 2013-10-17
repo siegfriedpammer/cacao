@@ -124,8 +124,11 @@ struct SetIntersection: public std::unary_function<LivetimeInterval&,void> {
 		if (i != free_until_pos.end()) {
 			UseDef inter = next_intersection(lti,current,pos,end);
 			if (inter != end) {
-				i->second = next_intersection(lti,current,pos,end);
-				LOG2("SetIntersection: " << lti << " operand: " << *MO << " to " << i->second << nl);
+				UseDef inter = next_intersection(lti,current,pos,end);
+				if (inter < i->second) {
+					i->second = inter;
+					LOG2("SetIntersection: " << lti << " operand: " << *MO << " to " << i->second << nl);
+				}
 			}
 		}
 	}
@@ -215,7 +218,8 @@ inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current
 	MIIterator split_pos = insert_move_before(move,free_until_pos_reg);
 	assert_msg(pos.get_iterator() < split_pos, "pos: " << pos << " free_until_pos_reg "
 		<< free_until_pos_reg << " split: " << split_pos);
-	ABORT_MSG("Not yet implemented","splitting intervals not yet implemented");
+	LivetimeInterval lti = current.split_active(split_pos);
+	unhandled.push(lti);
 	return true;
 }
 
@@ -363,6 +367,25 @@ inline void split_current(LivetimeInterval &current, Type::TypeID type, UseDef p
 	current.set_operand(stackslot);
 }
 
+OStream& print_code(OStream &OS, MIIterator pos, MIIterator min, MIIterator max,
+		MIIterator::difference_type before, MIIterator::difference_type after) {
+	MIIterator i = pos;
+	MIIterator e = pos;
+	before = std::min(before,std::distance(min,pos));
+	after = std::min(after,std::distance(pos,max));
+	std::advance(i,-before);
+	std::advance(e,after+1);
+
+	OS << "..." << nl;
+	for ( ; i != e ; ++i) {
+		if (i == pos) {
+			OS << BoldYellow;
+		}
+		OS << i << reset_color << nl;
+	}
+	return OS << "..." << nl;
+}
+
 } // end anonymous namespace
 
 inline bool LinearScanAllocatorPass::allocate_blocked(LivetimeInterval &current) {
@@ -447,6 +470,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 		unhandled.pop();
 		LOG(BoldCyan << "current: " << current << reset_color<< nl);
 		UseDef pos = current.front().start;
+		DEBUG3(print_code(dbg(), pos.get_iterator(),MIS->mi_begin(), MIS->mi_end(), 2,2));
 
 		// check for intervals in active that are handled or inactive
 		LOG2("check for intervals in active that are handled or inactive" << nl);
@@ -583,11 +607,18 @@ private:
 		/// function call operator
 		void operator()(argument_type lti_pair) {
 			LivetimeInterval &lti = lti_pair.second;
-			if (lti.get_State(MBB->mi_first()) == LivetimeInterval::Active) {
+			if (lti.get_State(UseDef(UseDef::PseudoUse,MBB->mi_first())) == LivetimeInterval::Active) {
 				bb2lti_map[MBB].push_back(lti);
 			}
-			else if (lti.has_next()) {
-				operator()(argument_type(lti_pair.first,lti.get_next()));
+			else {
+				// we need to add the _initial_ lti to find the correct location later on.
+				LivetimeInterval lti_next = lti;
+				while (lti_next.has_next()) {
+					lti_next = lti_next.get_next();
+					if (lti_next.get_State(UseDef(UseDef::PseudoUse,MBB->mi_first())) == LivetimeInterval::Active) {
+						bb2lti_map[MBB].push_back(lti);
+					}
+				}
 			}
 		}
 	};

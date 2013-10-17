@@ -52,6 +52,9 @@ class MIIterator {
 public:
 	typedef _iterator::reference reference;
 	typedef _iterator::pointer pointer;
+	typedef _iterator::iterator_category iterator_category;
+	typedef _iterator::value_type value_type;
+	typedef _iterator::difference_type difference_type;
 
 	/// construct end element
 	MIIterator(const block_iterator &block_it)
