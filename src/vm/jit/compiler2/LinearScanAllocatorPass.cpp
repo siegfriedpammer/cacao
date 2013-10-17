@@ -703,35 +703,67 @@ inline OStream& operator<<(OStream &OS, const Move &move) {
 	return OS << "move from " << *move.from << " to " << *move.to;
 }
 
-void schedule(std::list<MachineInstruction*> &scheduled, MoveMapTy &move_map,
-		std::list<Move*> &queue, Backend *backend, std::list<Move*> &stack) {
-	Move* node = stack.back();
-	assert(!node->from->aquivalent(*node->to));
-	LOG2("schedule pre: " << *node << nl);
-	// already scheduled?
-	if (node->is_scheduled()) {
-		stack.pop_back();
-		return;
-	}
-	if (node->dep && !node->dep->is_scheduled()) {
-		if (std::find(stack.begin(),stack.end(),node->dep) == stack.end()) {
-			LOG2("cycle detected!" << nl);
+inline bool is_stack2stack_move(Move* move) {
+	return (move->from->is_ManagedStackSlot() || move->from->is_StackSlot() ) &&
+		(move->to->is_ManagedStackSlot() || move->to->is_StackSlot());
+}
+
+class MoveScheduler {
+private:
+	std::list<MachineInstruction*> &scheduled;
+	MoveMapTy &move_map;
+	std::list<Move*> &queue;
+	Backend *backend;
+	std::list<Move*> &stack;
+	bool need_allocation;
+public:
+	/// constructor
+	MoveScheduler(std::list<MachineInstruction*> &scheduled, MoveMapTy &move_map,
+		std::list<Move*> &queue, Backend *backend, std::list<Move*> &stack)
+		: scheduled(scheduled), move_map(move_map), queue(queue), backend(backend), stack(stack),
+			need_allocation(false) {}
+	/// call operator
+	void operator()() {
+		Move* node = stack.back();
+		assert(!node->from->aquivalent(*node->to));
+		LOG2("schedule pre: " << *node << nl);
+		// already scheduled?
+		if (node->is_scheduled()) {
+			stack.pop_back();
+			return;
+		}
+		if (is_stack2stack_move(node)){
+			LOG2("Stack to stack move detected!" << nl);
 			MachineOperand *tmp = new VirtualRegister(node->to->get_type());
 			move_map.push_back(Move(tmp, node->to));
 			queue.push_back(&move_map.back());
 			node->to = tmp;
 			node->dep = NULL;
-			ABORT_MSG("Cycle Detected!","No re-allocation strategy yet!");
-		} else {
-			stack.push_back(node->dep);
-			schedule(scheduled, move_map, queue, backend, stack);
+			need_allocation = true;
+			//ABORT_MSG("Stack to stack move detected!","No re-allocation strategy yet!");
 		}
+		if (node->dep && !node->dep->is_scheduled()) {
+			if (std::find(stack.begin(),stack.end(),node->dep) == stack.end()) {
+				LOG2("cycle detected!" << nl);
+				MachineOperand *tmp = new VirtualRegister(node->to->get_type());
+				move_map.push_back(Move(tmp, node->to));
+				queue.push_back(&move_map.back());
+				node->to = tmp;
+				node->dep = NULL;
+				need_allocation = true;
+				//ABORT_MSG("Cycle Detected!","No re-allocation strategy yet!");
+			} else {
+				stack.push_back(node->dep);
+				operator()();
+			}
+		}
+		LOG2("schedule post: " << *node << nl);
+		stack.pop_back();
+		scheduled.push_back(backend->create_Move(node->from,node->to));
+		node->scheduled = true;
 	}
-	LOG2("schedule post: " << *node << nl);
-	stack.pop_back();
-	scheduled.push_back(backend->create_Move(node->from,node->to));
-	node->scheduled = true;
-}
+	bool need_register_allocation() const { return need_allocation; }
+};
 
 template <class OutputIterator>
 struct RefToPointerInserterImpl: public std::unary_function<Move&,void> {
@@ -780,14 +812,20 @@ void order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *su
 	std::for_each(move_map.begin(), move_map.end(), RefToPointerInserter(std::back_inserter(queue)));
 	assert(move_map.size() == queue.size());
 
+	MoveScheduler scheduler(scheduled, move_map, queue, backend, stack);
+
 	while (!queue.empty()) {
 		// sort and pop element
 		queue.sort(compare_moves);
 		stack.push_back(queue.front());
 		queue.pop_front();
 		// schedule
-		schedule(scheduled, move_map, queue, backend, stack);
+		scheduler();
 		assert(stack.empty());
+	}
+
+	if (scheduler.need_register_allocation()) {
+		ABORT_MSG("Register allocation for resolution neeede!","No re-allocation strategy yet!");
 	}
 
 	std::copy(scheduled.begin(), scheduled.end(), get_edge_inserter(predecessor, successor));
