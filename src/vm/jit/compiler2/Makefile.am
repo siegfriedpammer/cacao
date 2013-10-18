@@ -81,7 +81,8 @@ libcompiler2_la_SOURCES = \
 	StackSlotManager.cpp \
 	Type.cpp \
 	Value.cpp \
-	VerifierPass.cpp
+	VerifierPass.cpp \
+	DeadcodeEliminationPass.cpp
 
 libcompiler2_la_SOURCES += XxxPass.cpp
 
