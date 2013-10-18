@@ -83,6 +83,8 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 			M_LLD(tempreg, REG_SP, disp);
 			break;
 		case TYPE_FLT:
+			M_FLD(tempreg, REG_SP, disp);
+			break;
 		case TYPE_DBL:
 			M_DLD(tempreg, REG_SP, disp);
 			break;
@@ -127,6 +129,8 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 			M_LST(d, REG_SP, disp);
 			break;
 		case TYPE_FLT:
+			M_FST(d, REG_SP, disp);
+			break;
 		case TYPE_DBL:
 			M_DST(d, REG_SP, disp);
 			break;
