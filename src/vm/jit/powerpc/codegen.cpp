@@ -166,19 +166,20 @@ void codegen_emit_prolog(jitdata* jd)
  				if (!IS_INMEMORY(var->flags))
  					emit_fmove(cd, s1, var->vv.regoff);
 				else
-					M_DST(s1, REG_SP, var->vv.regoff);
+					if (IS_2_WORD_TYPE(t))
+						M_DST(s1, REG_SP, var->vv.regoff);
+					else
+						M_FST(s1, REG_SP, var->vv.regoff);
  			}
 			else {
  				if (!IS_INMEMORY(var->flags))
-					M_DLD(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
+					if (IS_2_WORD_TYPE(t))
+						M_DLD(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
+					else
+						M_FLD(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
 				else {
-#if 1
-					M_DLD(REG_FTMP1, REG_SP, cd->stackframesize * 8 + s1);
-					M_DST(REG_FTMP1, REG_SP, var->vv.regoff);
-#else
 					/* Reuse Memory Position on Caller Stack */
 					var->vv.regoff = cd->stackframesize * 8 + s1;
-#endif
 				}
 			}
 		}
@@ -2348,7 +2349,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 				break;
 
 			case TYPE_FLT:
-				M_DLD(REG_FTMP1, REG_SP, s1);
+				M_FLD(REG_FTMP1, REG_SP, s1);
 				M_FST(REG_FTMP1, REG_SP, s2);
 				break;
 
