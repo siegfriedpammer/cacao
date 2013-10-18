@@ -360,6 +360,12 @@ inline OStream& operator<<(OStream &OS, const MachineOperand *MO) {
 	return OS << *MO;
 }
 
+struct MachineOperandComp : std::binary_function<MachineOperand*,MachineOperand*,bool> {
+	bool operator()(MachineOperand* lhs, MachineOperand *rhs) const {
+		return lhs->aquivalence_less(*rhs);
+	}
+};
+
 typedef std::list<MachineOperand*> OperandFile;
 
 

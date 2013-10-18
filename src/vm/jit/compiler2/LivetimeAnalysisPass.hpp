@@ -27,11 +27,11 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/LivetimeInterval.hpp"
+#include "vm/jit/compiler2/MachineOperand.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
-
 
 /**
  * LivetimeAnalysisPass
@@ -41,7 +41,7 @@ namespace compiler2 {
  */
 class LivetimeAnalysisPass : public Pass {
 public:
-	typedef std::map<MachineOperand*,LivetimeInterval> LivetimeIntervalMapTy;
+	typedef std::map<MachineOperand*,LivetimeInterval,MachineOperandComp> LivetimeIntervalMapTy;
 	typedef LivetimeIntervalMapTy::const_iterator const_iterator;
 	typedef LivetimeIntervalMapTy::iterator iterator;
 
