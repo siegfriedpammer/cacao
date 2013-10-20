@@ -39,25 +39,43 @@ namespace compiler2 {
 bool DeadcodeEliminationPass::run(JITData &JD) {
 	Method *M = JD.get_Method();
 
+	// this work list is used by the algorithm to store the instructions which
+	// have to be reconsidered. at the beginning it therefore contains all
+	// instructions.
+	// it is indexed with the ids of the instructions
 	Method::InstructionListTy workList(M->begin(), M->end());
 
 	// will be used to look up whether an instruction is currently contained in the
 	// worklist to avoid inserting an instruction which is already in the list.
+	// it is indexed with the ids of the instructions
 	// TODO: verify if we ca be sure that ids of instructions are consecutive and
-	// starting from zero
+	// starting from zero and that max{instruction id} == workList.size()
 	std::vector<bool> inWorkList(workList.size(), true);
 
 	// will be used to mark instructions as dead.
+	// it is indexed with the ids of the instructions
 	// TODO: verify if we ca be sure that ids of instructions are consecutive and
-	// starting from zero
+	// starting from zero and that max{instruction id} == workList.size()
 	std::vector<bool> dead(workList.size(), false);
+
+	// used to track for each instruction the number of its users which are
+	// already dead
+	// it is indexed with the ids of the instructions
+	// TODO: verify if we ca be sure that ids of instructions are consecutive and
+	// starting from zero and that max{instruction id} == workList.size()
+	std::vector<int> deadUsers(workList.size(), 0);
+
+	Method::InstructionListTy liveInstructions;
+	Method::InstructionListTy deadInstructions;
 
 	while (!workList.empty()) {
 		Instruction *I = workList.front();
 		workList.pop_front();
 		inWorkList[I->get_id()] = false;
 
-		if (I->user_size() == 0) {
+		// the first condition to be met for an instruction to be considered
+		// 'dead' is that all its users are 'dead'.
+		if (I->user_size() == deadUsers[I->get_id()]) {
 			if (I->get_opcode() == Instruction::BeginInstID) {
 				// TODO: remove BeginInst only if its corresponding
 				// "end" instruction is dead
@@ -66,10 +84,44 @@ bool DeadcodeEliminationPass::run(JITData &JD) {
 				// influence the method output
 
 				dead[I->get_id()] = true;
-				// TODO: remove instruction from the user list of its operands and place
-				// each operand on the workList
+
+				// insert the dead instructions in the order they should be deleted
+				deadInstructions.push_back(I);
+
+				for (Instruction::OperandListTy::const_iterator
+						i = I->op_begin(), e = I->op_end(); i != e; i++) {
+					Instruction *Op = dynamic_cast<Instruction*>(*i);
+					
+					if (Op) {
+						deadUsers[Op->get_id()]++;
+
+						if (!inWorkList[Op->get_id()]) {
+							workList.push_back(Op);
+						}
+					}
+				}
 			}
 		}
+	}
+
+	// collect the living instructions (i.e., the instructions which are not dead)
+	for (Method::const_iterator i = M->begin(), e = M->end(); i != e; i++) {
+		Instruction *I = *i;
+		if (dead[I->get_id()]) {
+			LOG("Dead: " << I << nl);
+		} else {
+			liveInstructions.push_back(I);
+			LOG("Live: " << I << nl);
+		}
+	}
+
+	M->replace_instruction_list(liveInstructions.begin(), liveInstructions.end());
+
+	// delete the dead instructions
+	while (!deadInstructions.empty()) {
+		Instruction *I = deadInstructions.front();
+		deadInstructions.pop_front();
+		delete I;
 	}
 
 	return true;
