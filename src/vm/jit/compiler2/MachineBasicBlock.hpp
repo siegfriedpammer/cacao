@@ -528,6 +528,7 @@ inline void move_instructions(InputIterator first, InputIterator last,
 MachinePhiInst* get_phi_from_operand(MachineBasicBlock *MBB,
 	MachineOperand* op);
 
+MIIterator get_edge_iterator(MachineBasicBlock *from, MachineBasicBlock *to);
 /**
  * Get an edge inserter.
  *
@@ -537,8 +538,10 @@ MachinePhiInst* get_phi_from_operand(MachineBasicBlock *MBB,
  * only one predecessor, or else an iterator to a newly allocated
  * block.
  */
+#if 0
 std::insert_iterator<MachineBasicBlock> get_edge_inserter(
 		MachineBasicBlock *from, MachineBasicBlock *to);
+#endif
 
 MIIterator insert_before(MIIterator pos, MachineInstruction* value);
 MIIterator insert_after(MIIterator pos, MachineInstruction* value);

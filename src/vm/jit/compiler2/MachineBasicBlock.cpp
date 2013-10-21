@@ -96,8 +96,7 @@ MachinePhiInst* get_phi_from_operand(MachineBasicBlock *MBB,
 	return NULL;
 }
 
-std::insert_iterator<MachineBasicBlock> get_edge_inserter(
-		MachineBasicBlock *from, MachineBasicBlock *to) {
+MIIterator get_edge_iterator(MachineBasicBlock *from, MachineBasicBlock *to) {
 	MachineInstruction *jump = from->back();
 	// sanity checks
 	assert(std::find(jump->successor_begin(),jump->successor_end(), to)
@@ -105,14 +104,22 @@ std::insert_iterator<MachineBasicBlock> get_edge_inserter(
 	assert(std::find(to->pred_begin(), to->pred_end(),from) != to->pred_end());
 
 	if (jump->successor_size() == 1) {
-		return std::inserter(*from, --from->end());
+		return from->mi_last();
 	}
 	if (to->pred_size() == 1) {
-		return std::inserter(*to, ++to->begin());
+		return ++to->mi_first();
 	}
 	ABORT_MSG("get_edge_inserter","Creating Blocks not yet implemented");
-	return std::inserter(*to, ++to->begin());
+	return ++to->mi_first();
 }
+
+#if 0
+std::insert_iterator<MachineBasicBlock> get_edge_inserter(
+		MachineBasicBlock *from, MachineBasicBlock *to) {
+	MIIterator last = get_edge_iterator(from,to);
+	return std::inserter(*last.block_it(), last);
+}
+#endif
 
 
 MIIterator insert_before(MIIterator pos, MachineInstruction* value) {
