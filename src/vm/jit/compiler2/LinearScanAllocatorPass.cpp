@@ -454,17 +454,7 @@ void LinearScanAllocatorPass::initialize() {
 	active.clear();
 }
 
-bool LinearScanAllocatorPass::run(JITData &JD) {
-	LA = get_Pass<LivetimeAnalysisPass>();
-	MIS = get_Pass<MachineInstructionSchedulingPass>();
-	jd = &JD;
-	backend = jd->get_Backend();
-
-	for (LivetimeAnalysisPass::iterator i = LA->begin(), e = LA->end();
-			i != e ; ++i) {
-		LivetimeInterval &inter = i->second;
-		unhandled.push(inter);
-	}
+bool LinearScanAllocatorPass::allocate_unhandled() {
 	while(!unhandled.empty()) {
 		LivetimeInterval current = unhandled.top();
 		unhandled.pop();
@@ -556,9 +546,24 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 		handled.push_back(*i);
 		i = inactive.erase(i);
 	}
+	return true;
+}
 
+bool LinearScanAllocatorPass::run(JITData &JD) {
+	LA = get_Pass<LivetimeAnalysisPass>();
+	MIS = get_Pass<MachineInstructionSchedulingPass>();
+	jd = &JD;
+	backend = jd->get_Backend();
+
+	for (LivetimeAnalysisPass::iterator i = LA->begin(), e = LA->end();
+			i != e ; ++i) {
+		LivetimeInterval &inter = i->second;
+		unhandled.push(inter);
+	}
+	// allocate
+	if (!allocate_unhandled()) return false;
 	// resolve
-	resolve();
+	if (!resolve())	return false;
 
 	// set operands
 	for (HandledSetTy::const_iterator i = handled.begin(), e = handled.end(); i != e ; ++i) {
@@ -631,14 +636,6 @@ public:
 		std::for_each(LA->begin(),LA->end(),inner(MBB,bb2lti_map));
 	}
 };
-struct Move {
-	MachineOperand *from;
-	MachineOperand *to;
-	Move* dep;
-	bool scheduled;
-	Move(MachineOperand *from, MachineOperand *to) : from(from), to(to), dep(NULL), scheduled(false) {}
-	bool is_scheduled() const { return scheduled; }
-};
 
 #if 0
 bool operator<(const Move &lhs, const Move &rhs) {
@@ -649,8 +646,6 @@ bool operator<(const Move &lhs, const Move &rhs) {
 	return lhs.to < rhs.to;
 }
 #endif
-
-typedef std::list<Move> MoveMapTy;
 
 class ForEachLiveiterval : public std::unary_function<LivetimeInterval&,void> {
 private:
@@ -708,6 +703,14 @@ inline bool is_stack2stack_move(Move* move) {
 		(move->to->is_ManagedStackSlot() || move->to->is_StackSlot());
 }
 
+bool compare_moves(Move *lhs, Move *rhs) {
+	if (!lhs->dep)
+		return true;
+	if (!rhs->dep)
+		return false;
+	return lhs < rhs;
+}
+
 class MoveScheduler {
 private:
 	std::list<MachineInstruction*> &scheduled;
@@ -743,11 +746,14 @@ public:
 			//ABORT_MSG("Stack to stack move detected!","No re-allocation strategy yet!");
 		}
 		if (node->dep && !node->dep->is_scheduled()) {
-			if (std::find(stack.begin(),stack.end(),node->dep) == stack.end()) {
+			std::list<Move*>::iterator i = std::find(stack.begin(),stack.end(),node->dep);
+			if (i != stack.end()) {
 				LOG2("cycle detected!" << nl);
 				MachineOperand *tmp = new VirtualRegister(node->to->get_type());
 				move_map.push_back(Move(tmp, node->to));
-				queue.push_back(&move_map.back());
+				Move *tmp_move = &move_map.back();
+				tmp_move->dep = *i;
+				queue.push_back(tmp_move);
 				node->to = tmp;
 				node->dep = NULL;
 				need_allocation = true;
@@ -781,18 +787,61 @@ inline RefToPointerInserterImpl<OutputIterator> RefToPointerInserter(OutputItera
 	return RefToPointerInserterImpl<OutputIterator>(i);
 }
 
-bool compare_moves(Move *lhs, Move *rhs) {
-	if (!lhs->dep)
-		return true;
-	if (!rhs->dep)
-		return false;
-	return lhs < rhs;
+inline LivetimeInterval& find_or_insert(
+		LivetimeAnalysisPass::LivetimeIntervalMapTy &lti_map, MachineOperand* op) {
+	LivetimeAnalysisPass::LivetimeIntervalMapTy::iterator i = lti_map.find(op);
+	if (i == lti_map.end()) {
+		LivetimeInterval lti(op);
+		i = lti_map.insert(std::make_pair(op,lti)).first;
+	}
+	return i->second;
 }
+/**
+ * @Cpp11 use std::function
+ */
+class ProcessOutOperands : public std::unary_function<MachineOperandDesc,void> {
+private:
+	LivetimeAnalysisPass::LivetimeIntervalMapTy &lti_map;
+	MIIterator i;
+	MIIterator e;
+public:
+	/// Constructor
+	ProcessOutOperands(LivetimeAnalysisPass::LivetimeIntervalMapTy &lti_map,
+			MIIterator i, MIIterator e)
+				: lti_map(lti_map), i(i), e(e) {}
+	void operator()(MachineOperandDesc &op) {
+		if (op.op->is_virtual()) {
+			find_or_insert(lti_map,op.op).set_from(UseDef(UseDef::Def,i,&op), UseDef(UseDef::PseudoDef,e));
+		}
+	}
+};
+/**
+ * @Cpp11 use std::function
+ */
+class ProcessInOperands : public std::unary_function<MachineOperandDesc,void> {
+private:
+	LivetimeAnalysisPass::LivetimeIntervalMapTy &lti_map;
+	MIIterator first;
+	MIIterator current;
+public:
+	/// Constructor
+	ProcessInOperands(LivetimeAnalysisPass::LivetimeIntervalMapTy &lti_map,
+		MIIterator first, MIIterator current) : lti_map(lti_map), first(first),
+		current(current) {}
+	void operator()(MachineOperandDesc &op) {
+		if (op.op->is_virtual()) {
+			find_or_insert(lti_map,op.op).add_range(UseDef(UseDef::PseudoUse,first),
+				UseDef(UseDef::Use,current,&op));
+		}
+	}
+};
 
-void order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *successor,
-		Backend *backend, MoveMapTy &move_map) {
+} // end anonymous namespace
 
-	if (move_map.empty()) return;
+bool LinearScanAllocatorPass::order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *successor,
+		MoveMapTy &move_map) {
+
+	if (move_map.empty()) return true;
 	// calculate data dependency graph (DDG)
 	std::map<MachineOperand*,Move*,MachineOperandCmp> read_from;
 
@@ -824,23 +873,35 @@ void order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *su
 		assert(stack.empty());
 	}
 
-	if (scheduler.need_register_allocation()) {
-		ABORT_MSG("Register allocation for resolution neeede!","No re-allocation strategy yet!");
+	MIIterator last = get_edge_iterator(predecessor, successor);
+	MIIterator first = last;
+	// insert first element
+	insert_before(last,scheduled.front());
+	--first;
+	for (std::list<MachineInstruction*>::const_iterator i = ++scheduled.begin(),
+			e  = scheduled.end(); i != e ; ++i) {
+		insert_before(last, *i);
 	}
-
-	std::copy(scheduled.begin(), scheduled.end(), get_edge_inserter(predecessor, successor));
+	if (scheduler.need_register_allocation()) {
+		LOG2("Register allocation for resolution needed!"<<nl);
+		if (!reg_alloc_resolve_block(first,last)) {
+			ERROR_MSG("Resolution Failed", "Could not assign register");
+			return false;
+		}
+	}
+	return true;
 }
 
-class ForEachCfgEdge : public std::binary_function<MachineBasicBlock*,MachineBasicBlock*,void> {
+class LinearScanAllocatorPass::ForEachCfgEdge : public std::binary_function<MachineBasicBlock*,MachineBasicBlock*,void> {
 private:
 	BBtoLTI_Map &bb2lti_map;
-	LivetimeAnalysisPass *LA;
-	Backend *backend;
+	LinearScanAllocatorPass *super;
+	mutable bool result;
 
 public:
 	/// constructor
-	ForEachCfgEdge(BBtoLTI_Map &bb2lti_map, LivetimeAnalysisPass *LA, Backend *backend)
-		: bb2lti_map(bb2lti_map), LA(LA), backend(backend) {}
+	ForEachCfgEdge(BBtoLTI_Map &bb2lti_map, LinearScanAllocatorPass *super)
+		: bb2lti_map(bb2lti_map), super(super), result(true) {}
 	/// function call operator
 	void operator()(MachineBasicBlock *predecessor, MachineBasicBlock *successor) const {
 		MoveMapTy move_map;
@@ -848,15 +909,60 @@ public:
 		BBtoLTI_Map::mapped_type &lti_live_set = bb2lti_map[successor];
 		// for each live interval live at successor
 		std::for_each(lti_live_set.begin(), lti_live_set.end(),
-			ForEachLiveiterval(predecessor,successor, LA, move_map));
+			ForEachLiveiterval(predecessor,successor, super->LA, move_map));
 		// order and insert move
-		order_and_insert_move(predecessor, successor, backend, move_map);
+		result &= super->order_and_insert_move(predecessor, successor, move_map);
 	}
+	bool get_result() const { return result; }
 };
 
-} // end anonymous namespace
 
-void LinearScanAllocatorPass::resolve() {
+bool LinearScanAllocatorPass::reg_alloc_resolve_block(MIIterator first, MIIterator last) {
+	assert(active.empty());
+	assert(inactive.empty());
+	assert(unhandled.empty());
+	std::size_t handled_size = handled.size();
+	/// calculate state sets
+	for (HandledSetTy::iterator i = handled.begin(), e = handled.end();
+			i != e ; /* ++i */ ) {
+		LivetimeInterval lti = *i;
+		switch (lti.get_State(first)) {
+		case LivetimeInterval::Active:
+			active.push_back(lti);
+			i = handled.erase(i);
+			break;
+		case LivetimeInterval::Inactive:
+			inactive.push_back(lti);
+			i = handled.erase(i);
+			break;
+		default:
+			++i;
+			break;
+		}
+	}
+	/// calculate intervals
+	LivetimeAnalysisPass::LivetimeIntervalMapTy lti_map;
+	MIIterator current = last;
+	while (first != current) {
+		--current;
+		// for each output operand of MI
+		ProcessOutOperands(lti_map, current, last)((*current)->get_result());
+		// for each input operand of MI
+		std::for_each((*current)->begin(),(*current)->end(),
+			ProcessInOperands(lti_map, current, last));
+	}
+	for(LivetimeAnalysisPass::LivetimeIntervalMapTy::iterator i = lti_map.begin(),
+			e = lti_map.end(); i != e; ++i) {
+		unhandled.push(i->second);
+	}
+	handled_size += unhandled.size();
+	allocate_unhandled();
+	assert_msg(handled.size() == handled_size, "handled.size(): " << handled.size() << " != handled_size: "
+		<< handled_size);
+	return true;
+}
+
+bool LinearScanAllocatorPass::resolve() {
 	LOG(BoldGreen << "resolve: " << nl);
 	// calculate basicblock to live interval map
 	BBtoLTI_Map bb2lti_map;
@@ -871,9 +977,11 @@ void LinearScanAllocatorPass::resolve() {
 	}
 
 	// for each cfg edge from predecessor to successor (implemented in ForEachCfgEdge)
-	std::for_each(MIS->begin(), MIS->end(), CfgEdge(ForEachCfgEdge(bb2lti_map,LA,backend)));
+	ForEachCfgEdge for_cfg_edge(bb2lti_map,this);
+	std::for_each(MIS->begin(), MIS->end(), CfgEdge(for_cfg_edge));
 	// remove all phis
 	std::for_each(MIS->begin(), MIS->end(), std::mem_fun(&MachineBasicBlock::phi_clear));
+	return for_cfg_edge.get_result();
 }
 
 bool LinearScanAllocatorPass::verify() const {

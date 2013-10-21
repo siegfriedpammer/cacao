@@ -40,6 +40,16 @@ class MachineInstructionSchedule;
 class MachineInstruction;
 class Backend;
 
+struct Move {
+	MachineOperand *from;
+	MachineOperand *to;
+	Move* dep;
+	bool scheduled;
+	Move(MachineOperand *from, MachineOperand *to) : from(from), to(to), dep(NULL), scheduled(false) {}
+	bool is_scheduled() const { return scheduled; }
+};
+typedef std::list<Move> MoveMapTy;
+
 /**
  * Linear Scan Allocator
  *
@@ -59,7 +69,7 @@ public:
 	};
 
 	typedef std::list<MachineInstruction*> MoveListTy;
-	typedef std::map<std::pair<BeginInst*,BeginInst*>,MoveListTy> MoveMapTy;
+	//typedef std::map<std::pair<BeginInst*,BeginInst*>,MoveListTy> MoveMapTy;
 	typedef std::priority_queue<LivetimeInterval,std::deque<LivetimeInterval>, StartComparator> UnhandledSetTy;
 	typedef std::list<LivetimeInterval> InactiveSetTy;
 	typedef std::list<LivetimeInterval> ActiveSetTy;
@@ -78,9 +88,12 @@ private:
 
 	bool try_allocate_free(LivetimeInterval& current, UseDef pos);
 	bool allocate_blocked(LivetimeInterval& current);
-	void split_blocking_ltis(LivetimeInterval& current);
-	void split(LivetimeInterval *lti, unsigned pos);
-	void resolve();
+	bool allocate_unhandled();
+	bool resolve();
+	bool reg_alloc_resolve_block(MIIterator first, MIIterator last);
+	bool order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *successor,
+			MoveMapTy &move_map);
+	class ForEachCfgEdge;
 public:
 	static char ID;
 	LinearScanAllocatorPass() : Pass() {}
