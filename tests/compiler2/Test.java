@@ -84,6 +84,22 @@ static long fact(long n) {
     return res;
 }
 
+static long fact2(long n) {
+  if ((n & 1) == 0) {
+    long res = 1;
+    while (1 < n) {
+        res *= n--;
+    }
+    return res;
+  } else {
+    long res = 1;
+    while (1 < n) {
+        res *= n--;
+    }
+    return res;
+  }
+}
+
 static double pi() {
     return Math.PI;
 }
