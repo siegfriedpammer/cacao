@@ -98,14 +98,9 @@ BackendBase<X86_64>::get_OperandFile(OperandFile& OF,MachineOperand *MO) const {
 		}
 		assert(OF.size() == IntegerArgumentRegisterSize);
 		#else
-		regs.push_back(&RDI);
-		regs.push_back(&RSI);
-		regs.push_back(&RDX);
-		#if 0
-		regs.push_back(&RCX);
-		regs.push_back(&R8);
-		regs.push_back(&R9);
-		#endif
+		OF.push_back(new x86_64::NativeRegister(type,&RDI));
+		OF.push_back(new x86_64::NativeRegister(type,&RSI));
+		OF.push_back(new x86_64::NativeRegister(type,&RDX));
 		#endif
 		return OF;
 	case Type::DoubleTypeID:
