@@ -33,6 +33,8 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+// forward declaration
+class Pass;
 
 /**
  * PassUsage
@@ -46,22 +48,27 @@ private:
 	PIIDSet requires;
 	PIIDSet destroys;
 	PIIDSet modifies;
-public:
-	PassUsage() {}
-	void add_requires(char &ID) {
-		requires.insert(&ID);
-	}
-
-	void add_destroys(char &ID) {
-		destroys.insert(&ID);
-	}
-
-	void add_modifies(char &ID) {
-		modifies.insert(&ID);
-	}
 
 	bool is_required(char &ID) const {
 		return requires.find(&ID) != requires.end();
+	}
+
+public:
+	PassUsage() {}
+
+	template<class PassName>
+	void add_requires() {
+		requires.insert(&PassName::ID);
+	}
+
+	template<class PassName>
+	void add_destroys() {
+		destroys.insert(&PassName::ID);
+	}
+
+	template<class PassName>
+	void add_modifies() {
+		modifies.insert(&PassName::ID);
 	}
 
 	const_iterator destroys_begin() const { return destroys.begin(); }
@@ -72,6 +79,8 @@ public:
 
 	const_iterator requires_begin() const { return destroys.begin(); }
 	const_iterator requires_end()   const { return destroys.end(); }
+
+	friend class Pass;
 };
 
 

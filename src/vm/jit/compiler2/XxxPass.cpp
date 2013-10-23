@@ -37,7 +37,7 @@ bool XxxPass::run(JITData &JD) {
 
 // pass usage
 PassUsage& XxxPass::get_PassUsage(PassUsage &PU) const {
-	//PU.add_requires(YyyPass::ID);
+	//PU.add_requires<YyyPass>();
 	return PU;
 }
 

@@ -260,7 +260,7 @@ bool SSAPrinterPass::run(JITData &JD) {
 
 template <class _T>
 PassUsage& GlobalSchedulePrinterPass<_T>::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(_T::ID);
+	PU.add_requires<_T>();
 	return PU;
 }
 // the address of this variable is used to identify the pass

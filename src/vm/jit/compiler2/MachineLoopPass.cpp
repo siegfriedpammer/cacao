@@ -32,7 +32,7 @@ namespace compiler2 {
 
 template<>
 PassUsage& MachineLoopPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(MachineInstructionSchedulingPass::ID);
+	PU.add_requires<MachineInstructionSchedulingPass>();
 	return PU;
 }
 

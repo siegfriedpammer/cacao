@@ -198,8 +198,8 @@ bool MachineInstructionSchedulingPass::verify() const {
 
 // pass usage
 PassUsage& MachineInstructionSchedulingPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(BasicBlockSchedulingPass::ID);
-	PU.add_requires(ListSchedulingPass::ID);
+	PU.add_requires<BasicBlockSchedulingPass>();
+	PU.add_requires<ListSchedulingPass>();
 	return PU;
 }
 

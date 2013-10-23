@@ -166,7 +166,7 @@ bool ListSchedulingPass::run(JITData &JD) {
 }
 
 PassUsage& ListSchedulingPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(ScheduleClickPass::ID);
+	PU.add_requires<ScheduleClickPass>();
 	return PU;
 }
 // the address of this variable is used to identify the pass

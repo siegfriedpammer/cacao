@@ -258,7 +258,7 @@ void CodeGenPass::finish(JITData &JD) {
 
 // pass usage
 PassUsage& CodeGenPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(MachineInstructionSchedulingPass::ID);
+	PU.add_requires<MachineInstructionSchedulingPass>();
 	return PU;
 }
 // the address of this variable is used to identify the pass

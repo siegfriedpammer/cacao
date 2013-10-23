@@ -143,8 +143,8 @@ bool LoopSimplificationPass::run(JITData &JD) {
 }
 
 PassUsage& LoopSimplificationPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(LoopPass::ID);
-	PU.add_modifies(LoopPass::ID);
+	PU.add_requires<LoopPass>();
+	PU.add_modifies<LoopPass>();
 	return PU;
 }
 // the address of this variable is used to identify the pass

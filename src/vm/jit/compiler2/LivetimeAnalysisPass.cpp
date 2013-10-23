@@ -381,8 +381,8 @@ bool LivetimeAnalysisPass::verify() const {
 
 // pass usage
 PassUsage& LivetimeAnalysisPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(MachineLoopPass::ID);
-	PU.add_requires(MachineInstructionSchedulingPass::ID);
+	PU.add_requires<MachineLoopPass>();
+	PU.add_requires<MachineInstructionSchedulingPass>();
 	return PU;
 }
 

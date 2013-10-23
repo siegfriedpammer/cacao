@@ -227,7 +227,7 @@ bool ObjectFileWriterPass::run(JITData &JD) {
 
 // pass usage
 PassUsage& ObjectFileWriterPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(CodeGenPass::ID);
+	PU.add_requires<CodeGenPass>();
 	return PU;
 }
 

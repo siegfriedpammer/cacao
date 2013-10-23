@@ -103,9 +103,9 @@ bool ResolveImmediatePass::run(JITData &JD) {
 // pass usage
 PassUsage& ResolveImmediatePass::get_PassUsage(PassUsage &PU) const {
 	#if 0
-	PU.add_requires(BasicBlockSchedulingPass::ID);
-	PU.add_requires(ListSchedulingPass::ID);
-	PU.add_requires(LoweringPass::ID);
+	PU.add_requires<BasicBlockSchedulingPass>();
+	PU.add_requires<ListSchedulingPass>();
+	PU.add_requires<LoweringPass>();
 	#endif
 	return PU;
 }

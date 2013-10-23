@@ -60,7 +60,7 @@ bool ScheduleClickPass::run(JITData &JD) {
 }
 
 PassUsage& ScheduleClickPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(ScheduleLatePass::ID);
+	PU.add_requires<ScheduleLatePass>();
 	return PU;
 }
 // the address of this variable is used to identify the pass

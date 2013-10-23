@@ -167,8 +167,8 @@ bool BasicBlockSchedulingPass::verify() const {
 
 // pass usage
 PassUsage& BasicBlockSchedulingPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(DominatorPass::ID);
-	PU.add_requires(LoopPass::ID);
+	PU.add_requires<DominatorPass>();
+	PU.add_requires<LoopPass>();
 	return PU;
 }
 

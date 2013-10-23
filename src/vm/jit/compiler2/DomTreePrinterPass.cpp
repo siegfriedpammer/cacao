@@ -83,7 +83,7 @@ public:
 } // end anonymous namespace
 
 PassUsage& DomTreePrinterPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(DominatorPass::ID);
+	PU.add_requires<DominatorPass>();
 	return PU;
 }
 // the address of this variable is used to identify the pass

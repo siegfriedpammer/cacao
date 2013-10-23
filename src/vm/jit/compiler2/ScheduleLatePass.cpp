@@ -123,9 +123,9 @@ bool ScheduleLatePass::run(JITData &JD) {
 }
 
 PassUsage& ScheduleLatePass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(DominatorPass::ID);
-	PU.add_requires(ScheduleEarlyPass::ID);
-	PU.add_requires(LoopPass::ID);
+	PU.add_requires<DominatorPass>();
+	PU.add_requires<ScheduleEarlyPass>();
+	PU.add_requires<LoopPass>();
 	return PU;
 }
 // the address of this variable is used to identify the pass
