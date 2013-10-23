@@ -161,11 +161,7 @@ struct SetUseDefOperand: public std::unary_function<const UseDef&,void> {
 
 MIIterator insert_move_before(MachineInstruction* move, UseDef usedef) {
 	MIIterator free_until_pos_reg = usedef.get_iterator();
-	while ((*free_until_pos_reg)->is_label()) {
-		--free_until_pos_reg;
-		assert((*free_until_pos_reg)->is_end());
-		--free_until_pos_reg;
-	}
+	assert(!(*free_until_pos_reg)->is_label());
 	return insert_before(free_until_pos_reg, move);
 
 }
@@ -279,10 +275,23 @@ void split_active_position(LivetimeInterval lti, UseDef current_pos, UseDef next
 	MachineOperand *MO = lti.get_operand();
 
 	MachineOperand *stackslot = NULL;
-	if(current_pos.is_pseudo() && lti.front().start == current_pos) {
-		// we are trying to spill a phi interval
-		stackslot = get_stackslot(backend,MO->get_type());
-		lti.set_operand(stackslot);
+	if (current_pos.is_pseudo()) {
+		// We do not create moves for pseudo positions. This is handled during
+		// resolve.
+		if(lti.front().start == current_pos) {
+			// we are trying to spill a phi output operand interval
+			// just set the operand
+			stackslot = get_stackslot(backend,MO->get_type());
+			lti.set_operand(stackslot);
+		}
+		else {
+			// we are trying to spill a phi output operand interval
+			// split without a move
+			stackslot = get_stackslot(backend,MO->get_type());
+			lti = lti.split_phi_active(current_pos.get_iterator(),stackslot);
+			// XXX should we add the stack interval?
+			unhandled.push(lti);
+		}
 	}
 	else {
 		// move to stack
@@ -291,7 +300,7 @@ void split_active_position(LivetimeInterval lti, UseDef current_pos, UseDef next
 		MIIterator split_pos = insert_move_before(move_to_stack,current_pos);
 		lti = lti.split_active(split_pos);
 		// XXX should we add the stack interval?
-		// unhandled.push(new_lti);
+		unhandled.push(lti);
 	}
 	// move from stack
 	if (!next_use_pos.is_pseudo()) {
@@ -419,9 +428,10 @@ inline bool LinearScanAllocatorPass::allocate_blocked(LivetimeInterval &current)
 
 	UseDef next_use_pos_current = current.next_usedef_after(current.front().start,
 		UseDef(UseDef::PseudoDef,MIS->mi_end()));
-	if (next_use_pos_reg < next_use_pos_current) {
+	if (next_use_pos_reg < next_use_pos_current && !current.front().start.is_def()) {
 		// all other intervals are used before current
 		// so spill current
+		// if the start of the current interval is a definition, we need to assign a register
 		split_current(current,current.get_operand()->get_type(), next_use_pos_current,
 			UseDef(UseDef::PseudoDef,MIS->mi_end()), unhandled, backend);
 		//ERROR_MSG("Spill current not yet implemented","not yet implemented");
@@ -873,7 +883,7 @@ bool LinearScanAllocatorPass::order_and_insert_move(MachineBasicBlock *predecess
 		assert(stack.empty());
 	}
 
-	MIIterator last = get_edge_iterator(predecessor, successor);
+	MIIterator last = get_edge_iterator(predecessor, successor,backend);
 	MIIterator first = last;
 	// insert first element
 	insert_before(last,scheduled.front());
@@ -884,10 +894,13 @@ bool LinearScanAllocatorPass::order_and_insert_move(MachineBasicBlock *predecess
 	}
 	if (scheduler.need_register_allocation()) {
 		LOG2("Register allocation for resolution needed!"<<nl);
+		ERROR_MSG("Resolution Failed", "Could not assign register");
+		#if 0
 		if (!reg_alloc_resolve_block(first,last)) {
 			ERROR_MSG("Resolution Failed", "Could not assign register");
 			return false;
 		}
+		#endif
 	}
 	return true;
 }
@@ -983,8 +996,23 @@ bool LinearScanAllocatorPass::resolve() {
 	std::for_each(MIS->begin(), MIS->end(), std::mem_fun(&MachineBasicBlock::phi_clear));
 	return for_cfg_edge.get_result();
 }
+namespace {
 
+inline bool is_virtual(const MachineOperandDesc &op) {
+	return op.op->is_virtual();
+}
+
+} // end anonymous namespace
 bool LinearScanAllocatorPass::verify() const {
+	for(MIIterator i = MIS->mi_begin(), e = MIS->mi_end(); i != e ; ++i) {
+		MachineInstruction *MI = *i;
+		// result virtual
+		if (MI->get_result().op->is_virtual() || any_of(MI->begin(), MI->end(), is_virtual)) {
+			ERROR_MSG("Unallocated Operand!","Instruction " << *MI << " contains unallocated operands.");
+			return false;
+		}
+
+	}
 #if 0
 	for (MachineInstructionSchedule::const_iterator i = MIS->begin(),
 			e = MIS->end(); i != e; ++i) {

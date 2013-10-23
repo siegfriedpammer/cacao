@@ -42,6 +42,7 @@ class MachineInstruction;
 class MachineInstructionSchedule;
 class MachineOperand;
 class MachinePhiInst;
+class Backend;
 
 class MIIterator {
 	typedef ordered_list<MachineInstruction*>::iterator _iterator;
@@ -528,7 +529,11 @@ inline void move_instructions(InputIterator first, InputIterator last,
 MachinePhiInst* get_phi_from_operand(MachineBasicBlock *MBB,
 	MachineOperand* op);
 
-MIIterator get_edge_iterator(MachineBasicBlock *from, MachineBasicBlock *to);
+/// get a new basic block for a given edge
+MachineBasicBlock* get_edge_block(MachineBasicBlock *from, MachineBasicBlock *to,
+	Backend *backend);
+MIIterator get_edge_iterator(MachineBasicBlock *from, MachineBasicBlock *to,
+	Backend *backend);
 /**
  * Get an edge inserter.
  *

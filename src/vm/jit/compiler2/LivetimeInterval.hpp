@@ -153,6 +153,10 @@ public:
 	 * Split interval at inactive pos.
 	 */
 	LivetimeInterval split_inactive(UseDef pos, MachineOperand* MO);
+	/**
+	 * Split a phi input operand
+	 */
+	LivetimeInterval split_phi_active(MIIterator pos, MachineOperand* MO);
 
 	/// get next use def after pos (if not found return end)
 	UseDef next_usedef_after(UseDef pos, UseDef end) const;
@@ -232,10 +236,11 @@ public:
 	MachineOperand* get_operand() const { return operand; }
 	void set_operand(MachineOperand* op) { operand = op; }
 	MachineOperand* get_init_operand() const { return init_operand; }
-	LivetimeInterval get_next() const { return *next; }
+	LivetimeInterval get_next() const { assert(has_next()); return *next; }
 	bool has_next() const { return bool(next); }
 	LivetimeInterval split_active(MIIterator pos);
 	LivetimeInterval split_inactive(UseDef pos, MachineOperand* MO);
+	LivetimeInterval split_phi_active(MIIterator pos, MachineOperand* MO);
 
 	MachineOperand* get_operand(MIIterator pos) const;
 	UseDef next_usedef_after(UseDef,UseDef) const;
@@ -321,6 +326,9 @@ inline LivetimeInterval LivetimeInterval::split_active(MIIterator pos) {
 }
 inline LivetimeInterval LivetimeInterval::split_inactive(UseDef pos, MachineOperand* MO) {
 	return pimpl->split_inactive(pos, MO);
+}
+inline LivetimeInterval LivetimeInterval::split_phi_active(MIIterator pos, MachineOperand* MO) {
+	return pimpl->split_phi_active(pos, MO);
 }
 inline LivetimeInterval LivetimeInterval::get_next() const {
 	return pimpl->get_next();

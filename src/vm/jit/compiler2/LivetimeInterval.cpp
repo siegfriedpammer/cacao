@@ -139,8 +139,9 @@ OStream& operator<<(OStream &OS, const LivetimeIntervalImpl &lti) {
 } // end anonymous namespace
 
 MachineOperand* LivetimeIntervalImpl::get_operand(MIIterator pos) const {
-	//LOG2("get_operand(this:" << *this << " pos:" << pos << ")" <<nl);
+	LOG2("get_operand(this:" << *this << " pos:" << pos << ")" <<nl);
 	if (back().end.get_iterator() < pos) {
+		assert(has_next());
 		LivetimeInterval lti_next = get_next();
 		assert(lti_next.pimpl);
 		return lti_next.get_operand(pos);
@@ -202,6 +203,13 @@ inline void LivetimeIntervalImpl::move_use_def(LivetimeIntervalImpl *from, Livet
 
 
 LivetimeInterval LivetimeIntervalImpl::split_active(MIIterator pos) {
+	LOG2("split_active " << *this << " at " << pos << nl);
+	if (DEBUG_COND_N(3)) {
+		MIIterator tmp = pos;
+		LOG3("pre  " << --tmp << nl);
+		LOG3(">>   " << ++tmp << nl);
+		LOG3("post " << ++tmp << nl);
+	}
 	MachineInstruction *MI = *pos;
 	assert(!has_next());
 	assert(get_State(pos) == LivetimeInterval::Active);
@@ -211,7 +219,6 @@ LivetimeInterval LivetimeIntervalImpl::split_active(MIIterator pos) {
 	UseDef use(UseDef::Use, pos, &MI->get(0));
 	UseDef def(UseDef::Def, pos, &MI->get_result());
 
-	LOG2("Split " << *this << " at " << pos << nl);
 	LOG2("new use: " << use << nl);
 	LOG2("new def: " << def << nl);
 
@@ -285,136 +292,55 @@ LivetimeInterval LivetimeIntervalImpl::split_inactive(UseDef pos, MachineOperand
 
 	return lti;
 }
-#if 0
-void LivetimeIntervalImpl::set_Register(Register* r) {
-	operand = r;
-}
 
-Register* LivetimeIntervalImpl::get_Register() const {
-	Register *r = operand->to_Register();
-	assert(r);
-	return r;
-}
-void LivetimeIntervalImpl::set_ManagedStackSlot(ManagedStackSlot* s) {
-	operand = s;
-}
+LivetimeInterval LivetimeIntervalImpl::split_phi_active(MIIterator pos, MachineOperand* MO) {
+	LOG2("split_phi_active " << *this << " at " << pos << nl);
+	MachineInstruction *MI = *pos;
+	assert(!has_next());
+	assert(get_State(pos) == LivetimeInterval::Active);
+	assert(MI->is_label());
 
-ManagedStackSlot* LivetimeIntervalImpl::get_ManagedStackSlot() const {
-	ManagedStackSlot *s = operand->to_ManagedStackSlot();
-	return s;
-}
+	MIIterator pos_end = pos;
+	UseDef use(UseDef::PseudoUse, pos);
+	UseDef def(UseDef::PseudoDef, --pos_end);
 
-bool LivetimeIntervalImpl::is_in_Register() const {
-	if(operand)
-		return operand->to_Register() != NULL;
-	return false;
-}
-bool LivetimeIntervalImpl::is_in_StackSlot() const {
-	if(operand)
-		return operand->to_ManagedStackSlot() != NULL;
-	return false;
-}
-Type::TypeID LivetimeIntervalImpl::get_type() const {
-	if (!operand) return Type::VoidTypeID;
-	return operand->get_type();
-}
+	LOG2("new def: " << def << nl);
+	LOG2("new use: " << use << nl);
 
-LivetimeIntervalImpl* LivetimeIntervalImpl::split(unsigned pos, StackSlotManager *SSM) {
-	//sanity checks:
-	assert(pos >= get_start() && pos < get_end());
-	// NOTE Note that the end of an interval shall be a use position
-	// (even) (what about for phi input intervals input for phi?).
-	// in special cases (eg fixed intervals) this is not the case
-	// -> force it
-	//pos -= (pos & 1);
+	// new iterval
+	next = new LivetimeInterval(get_init_operand());
+	LivetimeInterval &lti = *next;
+	lti.set_operand(MO);
 
-	LivetimeIntervalImpl *stack_interval =  NULL;
-	LivetimeIntervalImpl *lti = NULL;
-	// copy intervals
-	iterator i = intervals.begin();
-	iterator e = intervals.end();
-	for( ; i != e ; ++i) {
-		if (i->first >= pos) {
-			// livetime hole
-			break;
-		}
-		if (i->second > pos) {
-			signed next_usedef = next_usedef_after(pos);
-			// currently active
-			unsigned end = i->second;
-			i->second = pos;
-			//lti->add_range(pos,end);
-			// XXX Wow I am so not sure if this is correct:
-			// If the new range will start at pos it will be
-			// selected for reg allocation in the next iteration
-			// and we end up in splitting another interval which
-			// in ture creates a new interval starting at pos...
-			// But if we let it start at the next usedef things look
-			// better. Because of the phi functions we dont run into
-			// troubles with backedges and loop time intervals,
-			// I guess...
+	// copy uses defs
+	move_use_def(this, lti.pimpl.get(), def);
 
-			assert(next_usedef != -1);
-			//if (next_usedef != end) {
-				// ok it is not a loop pseudo use
-				lti = new LivetimeIntervalImpl();
-				lti->add_range(next_usedef,end);
-			//}
-			++i;
-			// create stack interval
-			ManagedStackSlot *slot = SSM->create_ManagedStackSlot(get_type());
-			stack_interval = new LivetimeIntervalImpl();
-			stack_interval->add_range(pos,next_usedef+1);
-			stack_interval->set_ManagedStackSlot(slot);
-			this->next_split = stack_interval;
-			break;
-		}
+	LOG2("copy ranges" << nl);
+	// copy ranges
+	iterator i = intervals.begin(), e = intervals.end();
+	for (; i != e && i->end < use; ++i) {
+		LOG2("  keep " << *i << nl);
 	}
-	if (i == e && lti == NULL) {
-		// already at the end
-		return NULL;
+	assert(i != e);
+
+	// split range
+	iterator tmp = i++;
+	intervals.insert(tmp,LivetimeRange(tmp->start,def));
+	insert_usedef(use);
+	lti.pimpl->intervals.push_front(LivetimeRange(use,tmp->end));
+	lti.pimpl->insert_usedef(def);
+	intervals.erase(tmp);
+
+	while(i != e) {
+		iterator tmp = i++;
+		LOG2("  move " << *tmp << nl);
+		lti.pimpl->intervals.push_back(*tmp);
+		intervals.erase(tmp);
 	}
-	if (lti == NULL) {
-		lti = new LivetimeIntervalImpl();
-	}
-	if (stack_interval) {
-		stack_interval->next_split = lti;
-	} else {
-		this->next_split = lti;
-	}
-	// move all remaining intervals to the new lti
-	while (i != e) {
-		lti->intervals.push_back(std::make_pair(i->first,i->second));
-		i = intervals.erase(i);
-	}
-	// copy uses
-	for (use_iterator i = uses.begin(), e = uses.end(); i != e ; ) {
-		if (i->first >= pos) {
-			lti->add_use(*i);
-			i = uses.erase(i);
-		} else {
-			++i;
-		}
-	}
-	// copy defs
-	for (def_iterator i = defs.begin(), e = defs.end(); i != e ; ) {
-		if (i->first >= pos) {
-			lti->add_def(*i);
-			i = defs.erase(i);
-		} else {
-			++i;
-		}
-	}
-	// create new virtual register
-	VirtualRegister *vreg = new VirtualRegister(get_type());
-	lti->set_Register(vreg);
-	// set hint to the current register
-	assert(get_Register()->to_MachineRegister());
-	lti->set_hint(get_Register());
+
 	return lti;
 }
 
-#endif
 OStream& operator<<(OStream &OS, const LivetimeInterval &lti) {
 	return OS << "LivetimeInterval (" << lti.front().start << ") in "
 		<< *lti.get_operand() << " (init:"  << *lti.get_init_operand() << ")";
