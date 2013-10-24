@@ -846,10 +846,37 @@ public:
 	}
 };
 
+class ForEachCfgEdge : public std::binary_function<MachineBasicBlock*,MachineBasicBlock*,void> {
+private:
+	BBtoLTI_Map &bb2lti_map;
+	EdgeMoveMapTy &edge_move_map;
+	LivetimeAnalysisPass *LA;
+
+public:
+	/// constructor
+	ForEachCfgEdge(BBtoLTI_Map &bb2lti_map, EdgeMoveMapTy &edge_move_map, LivetimeAnalysisPass *LA)
+		: bb2lti_map(bb2lti_map), edge_move_map(edge_move_map), LA(LA) {}
+	/// function call operator
+	void operator()(MachineBasicBlock *predecessor, MachineBasicBlock *successor) const {
+		MoveMapTy &move_map = edge_move_map[Edge(predecessor,successor)];
+		LOG2("edge " << *predecessor << " -> " << *successor << nl);
+		BBtoLTI_Map::mapped_type &lti_live_set = bb2lti_map[successor];
+		// for each live interval live at successor
+		std::for_each(lti_live_set.begin(), lti_live_set.end(),
+			ForEachLiveiterval(predecessor,successor, LA, move_map));
+	}
+};
+
 } // end anonymous namespace
 
-bool LinearScanAllocatorPass::order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *successor,
-		MoveMapTy &move_map) {
+//bool LinearScanAllocatorPass::order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *successor,
+//		MoveMapTy &move_map) {
+bool LinearScanAllocatorPass::order_and_insert_move(EdgeMoveMapTy::value_type &entry) {
+	MachineBasicBlock *predecessor = entry.first.predecessor;
+	MachineBasicBlock *successor = entry.first.successor;
+	MoveMapTy &move_map = entry.second;
+
+	LOG2("order_and_insert_move: " << *predecessor << " -> " << *successor << nl);
 
 	if (move_map.empty()) return true;
 	// calculate data dependency graph (DDG)
@@ -904,30 +931,6 @@ bool LinearScanAllocatorPass::order_and_insert_move(MachineBasicBlock *predecess
 	}
 	return true;
 }
-
-class LinearScanAllocatorPass::ForEachCfgEdge : public std::binary_function<MachineBasicBlock*,MachineBasicBlock*,void> {
-private:
-	BBtoLTI_Map &bb2lti_map;
-	LinearScanAllocatorPass *super;
-	mutable bool result;
-
-public:
-	/// constructor
-	ForEachCfgEdge(BBtoLTI_Map &bb2lti_map, LinearScanAllocatorPass *super)
-		: bb2lti_map(bb2lti_map), super(super), result(true) {}
-	/// function call operator
-	void operator()(MachineBasicBlock *predecessor, MachineBasicBlock *successor) const {
-		MoveMapTy move_map;
-		LOG2("edge " << *predecessor << " -> " << *successor << nl);
-		BBtoLTI_Map::mapped_type &lti_live_set = bb2lti_map[successor];
-		// for each live interval live at successor
-		std::for_each(lti_live_set.begin(), lti_live_set.end(),
-			ForEachLiveiterval(predecessor,successor, super->LA, move_map));
-		// order and insert move
-		result &= super->order_and_insert_move(predecessor, successor, move_map);
-	}
-	bool get_result() const { return result; }
-};
 
 
 bool LinearScanAllocatorPass::reg_alloc_resolve_block(MIIterator first, MIIterator last) {
@@ -989,38 +992,36 @@ bool LinearScanAllocatorPass::resolve() {
 		}
 	}
 
+	EdgeMoveMapTy edge_move_map;
 	// for each cfg edge from predecessor to successor (implemented in ForEachCfgEdge)
-	ForEachCfgEdge for_cfg_edge(bb2lti_map,this);
-	std::for_each(MIS->begin(), MIS->end(), CfgEdge(for_cfg_edge));
+	std::for_each(MIS->begin(), MIS->end(), CfgEdge(ForEachCfgEdge(bb2lti_map,edge_move_map,LA)));
+	// order and insert move
+	for (EdgeMoveMapTy::iterator i = edge_move_map.begin(), e = edge_move_map.end(); i != e ; ++i) {
+		if (!order_and_insert_move(*i)) {
+			return false;
+		}
+	}
 	// remove all phis
 	std::for_each(MIS->begin(), MIS->end(), std::mem_fun(&MachineBasicBlock::phi_clear));
-	return for_cfg_edge.get_result();
+
+	return true;
 }
 namespace {
 
+#if 0
 inline bool is_virtual(const MachineOperandDesc &op) {
 	return op.op->is_virtual();
 }
+#endif
 
 } // end anonymous namespace
 bool LinearScanAllocatorPass::verify() const {
+#if 0
 	for(MIIterator i = MIS->mi_begin(), e = MIS->mi_end(); i != e ; ++i) {
 		MachineInstruction *MI = *i;
 		// result virtual
 		if (MI->get_result().op->is_virtual() || any_of(MI->begin(), MI->end(), is_virtual)) {
 			ERROR_MSG("Unallocated Operand!","Instruction " << *MI << " contains unallocated operands.");
-			return false;
-		}
-
-	}
-#if 0
-	for (MachineInstructionSchedule::const_iterator i = MIS->begin(),
-			e = MIS->end(); i != e; ++i) {
-		MachineInstruction *MI = *i;
-		MachineOperand *op = MI->get_result().op;
-		if (!op->is_StackSlot() &&
-				op->is_Register() && !op->to_Register()->to_MachineRegister() ) {
-			LOG("Not allocatd: " << MI << nl);
 			return false;
 		}
 

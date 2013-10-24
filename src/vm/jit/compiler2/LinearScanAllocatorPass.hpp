@@ -48,7 +48,21 @@ struct Move {
 	Move(MachineOperand *from, MachineOperand *to) : from(from), to(to), dep(NULL), scheduled(false) {}
 	bool is_scheduled() const { return scheduled; }
 };
+struct Edge {
+	MachineBasicBlock *predecessor;
+	MachineBasicBlock *successor;
+	Edge(MachineBasicBlock *predecessor, MachineBasicBlock *successor) :
+		predecessor(predecessor), successor(successor) {}
+};
+
+inline bool operator<(const Edge &lhs, const Edge &rhs) {
+	if (lhs.predecessor < rhs.predecessor) return true;
+	if (lhs.predecessor > rhs.predecessor) return false;
+	return lhs.successor < rhs.successor;
+}
+
 typedef std::list<Move> MoveMapTy;
+typedef std::map<Edge,MoveMapTy> EdgeMoveMapTy;
 
 /**
  * Linear Scan Allocator
@@ -91,9 +105,9 @@ private:
 	bool allocate_unhandled();
 	bool resolve();
 	bool reg_alloc_resolve_block(MIIterator first, MIIterator last);
-	bool order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *successor,
-			MoveMapTy &move_map);
-	class ForEachCfgEdge;
+	bool order_and_insert_move(EdgeMoveMapTy::value_type &entry);
+	//bool order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *successor,
+	//		MoveMapTy &move_map);
 public:
 	static char ID;
 	LinearScanAllocatorPass() : Pass() {}
