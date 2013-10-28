@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_DEADCODEELIMINATIONPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/Instruction.hpp"
 
 namespace cacao {
 namespace jit {
@@ -37,6 +38,9 @@ namespace compiler2 {
  * TODO: more info
  */
 class DeadcodeEliminationPass : public Pass {
+private:
+	typedef std::map<Instruction*,bool> InstBoolMapTy;
+	typedef std::map<Instruction*,int> InstIntMapTy;
 public:
 	static char ID;
 	DeadcodeEliminationPass() : Pass() {}
