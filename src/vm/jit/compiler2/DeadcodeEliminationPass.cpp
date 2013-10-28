@@ -58,16 +58,13 @@ bool DeadcodeEliminationPass::run(JITData &JD) {
 
 	// will be used to look up whether an instruction is currently contained in the
 	// worklist to avoid inserting an instruction which is already in the list.
-	// it is indexed with the ids of the instructions
 	InstBoolMapTy inWorkList;
 
 	// will be used to mark instructions as dead.
-	// it is indexed with the ids of the instructions
 	InstBoolMapTy dead;
 
 	// used to track for each instruction the number of its users which are
 	// already dead
-	// it is indexed with the ids of the instructions
 	InstIntMapTy deadUsers;
 
 	Method::InstructionListTy liveInstructions;
