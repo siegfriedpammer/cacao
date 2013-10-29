@@ -82,7 +82,8 @@ libcompiler2_la_SOURCES = \
 	Type.cpp \
 	Value.cpp \
 	VerifierPass.cpp \
-	DeadcodeEliminationPass.cpp
+	DeadcodeEliminationPass.cpp \
+	ConstantPropagationPass.cpp
 
 libcompiler2_la_SOURCES += XxxPass.cpp
 

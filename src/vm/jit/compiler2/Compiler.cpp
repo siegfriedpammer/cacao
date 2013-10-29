@@ -75,6 +75,7 @@
 #include "vm/jit/compiler2/DisassemblerPass.hpp"
 #include "vm/jit/compiler2/ObjectFileWriterPass.hpp"
 #include "vm/jit/compiler2/DeadcodeEliminationPass.hpp"
+#include "vm/jit/compiler2/ConstantPropagationPass.hpp"
 
 #include "vm/jit/compiler2/JITData.hpp"
 
@@ -135,6 +136,7 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass(&LoopPass::ID);
 	PM.add_Pass(&DominatorPass::ID);
 	PM.add_Pass(&SSAPrinterPass::ID);
+	PM.add_Pass(&ConstantPropagationPass::ID);
     PM.add_Pass(&DeadcodeEliminationPass::ID);
 	PM.add_Pass(&ScheduleEarlyPass::ID);
 	PM.add_Pass(&ScheduleLatePass::ID);
