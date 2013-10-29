@@ -137,7 +137,7 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass(&DominatorPass::ID);
 	PM.add_Pass(&SSAPrinterPass::ID);
 	PM.add_Pass(&ConstantPropagationPass::ID);
-    PM.add_Pass(&DeadcodeEliminationPass::ID);
+	PM.add_Pass(&DeadcodeEliminationPass::ID);
 	PM.add_Pass(&ScheduleEarlyPass::ID);
 	PM.add_Pass(&ScheduleLatePass::ID);
 	PM.add_Pass(&ScheduleClickPass::ID);
