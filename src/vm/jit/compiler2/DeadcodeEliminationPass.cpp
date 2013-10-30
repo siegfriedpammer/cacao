@@ -92,7 +92,7 @@ bool DeadcodeEliminationPass::run(JITData &JD) {
 
 				for (Instruction::OperandListTy::const_iterator
 						i = I->op_begin(), e = I->op_end(); i != e; i++) {
-					Instruction *Op = dynamic_cast<Instruction*>(*i);
+					Instruction *Op = (*i)->to_Instruction();
 					
 					if (Op) {
 						deadUsers[Op]++;
