@@ -122,6 +122,10 @@ bool ConstantPropagationPass::run(JITData &JD) {
 	// will be used to look up whether an instruction is currently contained in the
 	// worklist to avoid inserting an instruction which is already in the list.
 	InstBoolMapTy inWorkList;
+	for (Method::const_iterator i = workList.begin(), e = workList.end();
+			i != e; i++) {
+		inWorkList[*i] = true;
+	}
 	
 	// used to track for each instruction the number of its operands which are
 	// already known to be constant
@@ -137,6 +141,10 @@ bool ConstantPropagationPass::run(JITData &JD) {
 					e = I->user_end(); i != e; i++) {
 				Instruction *user = *i;
 				constantOperands[user]++;
+				if (!inWorkList[user]) {
+					workList.push_back(user);
+					inWorkList[user] = true;
+				}
 			}
 
 			if (I->get_opcode() != Instruction::CONSTInstID) {

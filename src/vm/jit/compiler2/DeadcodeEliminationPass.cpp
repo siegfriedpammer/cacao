@@ -59,6 +59,10 @@ bool DeadcodeEliminationPass::run(JITData &JD) {
 	// will be used to look up whether an instruction is currently contained in the
 	// worklist to avoid inserting an instruction which is already in the list.
 	InstBoolMapTy inWorkList;
+	for (Method::const_iterator i = workList.begin(), e = workList.end();
+			i != e; i++) {
+		inWorkList[*i] = true;
+	}
 
 	// will be used to mark instructions as dead.
 	InstBoolMapTy dead;
@@ -84,7 +88,6 @@ bool DeadcodeEliminationPass::run(JITData &JD) {
 			} else if (!affectsMethodOutput(I->get_opcode())) {
 				// TODO: consider here all instructions that could possibly
 				// influence the method output
-
 				dead[I] = true;
 
 				// insert the dead instructions in the order they should be deleted
@@ -99,6 +102,7 @@ bool DeadcodeEliminationPass::run(JITData &JD) {
 
 						if (!inWorkList[Op]) {
 							workList.push_back(Op);
+							inWorkList[Op] = true;
 						}
 					}
 				}
