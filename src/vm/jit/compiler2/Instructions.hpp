@@ -61,6 +61,7 @@ public:
 		append_op(S1);
 		append_op(S2);
 	}
+	virtual BinaryInst* to_BinaryInst() { return this; }
 };
 
 class MultiOpInst : public Instruction {
