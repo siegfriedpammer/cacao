@@ -26,12 +26,13 @@
 #define _JIT_COMPILER2_CONSTANTPROPAGATIONPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
-#include "vm/jit/compiler2/Instruction.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+// forward declaration
+class Instruction;
 
 /**
  * ConstantPropagationPass

@@ -27,8 +27,8 @@
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/Method.hpp"
-#include "vm/jit/compiler2/ScheduleClickPass.hpp"
 #include "toolbox/logging.hpp"
+#include "vm/jit/compiler2/Instruction.hpp"
 
 #define DEBUG_NAME "compiler2/deadcodeeliminationpass"
 

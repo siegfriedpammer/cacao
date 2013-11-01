@@ -26,6 +26,7 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
+#include "vm/jit/compiler2/Instruction.hpp"
 
 #define DEBUG_NAME "compiler2/constantpropagationpass"
 
