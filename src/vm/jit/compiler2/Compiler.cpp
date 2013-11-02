@@ -67,6 +67,7 @@
 #include "vm/jit/compiler2/LivetimeAnalysisPass.hpp"
 #include "vm/jit/compiler2/LinearScanAllocatorPass.hpp"
 #include "vm/jit/compiler2/LoopPass.hpp"
+#include "vm/jit/compiler2/LoopTreePrinterPass.hpp"
 #include "vm/jit/compiler2/LoopSimplificationPass.hpp"
 #include "vm/jit/compiler2/SSAPrinterPass.hpp"
 #include "vm/jit/compiler2/MachineInstructionPrinterPass.hpp"
@@ -132,7 +133,9 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass(&CFGConstructionPass::ID);
 	PM.add_Pass(&SSAConstructionPass::ID);
 	PM.add_Pass(&LoopPass::ID);
+	PM.add_Pass(&LoopTreePrinterPass::ID);
 	PM.add_Pass(&DominatorPass::ID);
+	PM.add_Pass(&DomTreePrinterPass::ID);
 	PM.add_Pass(&SSAPrinterPass::ID);
 	PM.add_Pass(&ScheduleEarlyPass::ID);
 	PM.add_Pass(&ScheduleLatePass::ID);
@@ -141,7 +144,6 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass(&GlobalSchedulePrinterPass<ScheduleLatePass>::ID);
 	PM.add_Pass(&GlobalSchedulePrinterPass<ScheduleClickPass>::ID);
 	//PM.add_Pass(&LoopSimplificationPass::ID);
-	PM.add_Pass(&DomTreePrinterPass::ID);
 	PM.add_Pass(&ListSchedulingPass::ID);
 	PM.add_Pass(&BasicBlockSchedulingPass::ID);
 	//PM.add_Pass(&ResolveImmediatePass::ID);
