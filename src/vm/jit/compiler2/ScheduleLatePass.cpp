@@ -40,22 +40,18 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-void ScheduleLatePass::schedule_late(Instruction *I) {
-	for (Value::UserListTy::const_iterator i = I->user_begin(),
-			e = I->user_end(); i != e; ++i) {
-		Instruction *user = (*i);
-		assert(user);
-		if (!user->get_BeginInst()) {
-			schedule_late(user);
-		}
-	}
-	if (I->get_BeginInst())
-		return;
-	LOG1("schedule_late: " << I << nl);
-	BeginInst* block = NULL;
-	for (Value::UserListTy::const_iterator i = I->user_begin(),
-			e = I->user_end(); i != e; ++i) {
-		Instruction *user = (*i);
+namespace {
+
+struct ScheduleLate : public std::unary_function<Instruction*,void> {
+	Instruction *I;
+	BeginInst *&block;
+	DominatorTree *DT;
+	// ctor
+	ScheduleLate(Instruction *I, BeginInst *&block, DominatorTree *DT) :
+		I(I), block(block), DT(DT) {}
+
+	// function call operator
+	void operator()(Instruction* user) {
 		assert(user);
 		BeginInst* user_block = user->get_BeginInst();
 		assert(user_block);
@@ -68,6 +64,45 @@ void ScheduleLatePass::schedule_late(Instruction *I) {
 		} else {
 			block = DT->find_nearest_common_dom(block,user->get_BeginInst());
 		}
+	}
+};
+
+
+struct ScheduleUser : public std::unary_function<Instruction*,void> {
+	ScheduleLatePass *parent;
+	ScheduleUser(ScheduleLatePass *parent) : parent(parent) {}
+	void operator()(Instruction* user) {
+		assert(user);
+		if (!user->get_BeginInst()) {
+			parent->schedule_late(user);
+		}
+	}
+};
+
+} // end anonymous namespace
+
+void ScheduleLatePass::schedule_late(Instruction *I) {
+	// for each user
+	std::for_each(I->user_begin(), I->user_end(), ScheduleUser(this));
+	// for each dependent instruction
+	std::for_each(I->rdep_begin(), I->rdep_end(), ScheduleUser(this));
+	if (I->get_BeginInst())
+		return;
+	LOG1("schedule_late: " << I << nl);
+	BeginInst* block = NULL;
+	// for all users
+	std::for_each(I->user_begin(), I->user_end(), ScheduleLate(I,block,DT));
+	// for all dependant instructions
+	std::for_each(I->rdep_begin(), I->rdep_end(), ScheduleLate(I,block,DT));
+
+	if (!block) {
+		// block is unused (e.g. dead code)
+		// XXX for the time being use early
+		block = early->get(I);
+		LOG("scheduled to " << block << nl);
+		// set the basic block
+		I->set_BeginInst(block);
+		return;
 	}
 	assert(block);
 	/**

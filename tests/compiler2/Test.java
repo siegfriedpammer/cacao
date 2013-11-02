@@ -41,6 +41,34 @@ static long test_getstatic() {
     return stat;
 }
 
+static long test_global_state(long x) {
+    long y = stat;
+    stat = x;
+    long s = test_getstatic();
+    return x * y * s;
+}
+
+static long mul(long a, long b) {
+    return a * b;
+}
+
+static long div(long a, long b) {
+    return a / b;
+}
+static long test_side_effect(long x, long y) {
+    long t = x;
+    long i = x;
+    do {
+      if ( x < y) {
+          return mul(x,y);
+      } else if (x > y) {
+          return div(x,y);
+      }
+      t *= --i;
+    } while (i > 1);
+    return t;
+}
+
 static double mul(double a, double b) {
     return a * b;
 }

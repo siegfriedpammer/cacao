@@ -83,6 +83,7 @@ OStream& operator<<(OStream &OS, const Type::TypeID &type) {
 		case Type::CharTypeID: return OS << "CharTypeID";
 		case Type::FloatTypeID: return OS << "FloatTypeID";
 		case Type::DoubleTypeID: return OS << "DoubleTypeID";
+		case Type::GlobalStateTypeID: return OS << "GlobalStateTypeID";
 		case Type::VoidTypeID: return OS << "VoidTypeID";
 	}
 	assert(0 && "unreachable");
@@ -104,6 +105,7 @@ const char* get_type_name(const Type::TypeID &type) {
 		case Type::CharTypeID: return "CharTypeID";
 		case Type::FloatTypeID: return "FloatTypeID";
 		case Type::DoubleTypeID: return "DoubleTypeID";
+		case Type::GlobalStateTypeID: return "GlobalStateTypeID";
 		case Type::VoidTypeID: return "VoidTypeID";
 	}
 	return "UnknownType";

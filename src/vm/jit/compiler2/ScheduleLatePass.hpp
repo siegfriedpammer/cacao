@@ -49,8 +49,8 @@ private:
 	LoopTree *LT;
 	GlobalSchedule *early;
 	Method *M;
-	void schedule_late(Instruction *I);
 public:
+	void schedule_late(Instruction *I);
 	static char ID;
 	ScheduleLatePass() : Pass() {}
 	bool run(JITData &JD);

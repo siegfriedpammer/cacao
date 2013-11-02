@@ -69,6 +69,7 @@ public:
 		CharTypeID,
 		FloatTypeID,
 		DoubleTypeID,
+		GlobalStateTypeID,
 		VoidTypeID
 	};
 
@@ -113,6 +114,9 @@ public:
 	};
 	struct DoubleType {
 		operator Type::TypeID() { return DoubleTypeID; }
+	};
+	struct GlobalStateType {
+		operator Type::TypeID() { return GlobalStateTypeID; }
 	};
 	struct VoidType {
 		operator Type::TypeID() { return VoidTypeID; }

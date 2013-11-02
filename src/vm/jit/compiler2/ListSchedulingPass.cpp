@@ -78,7 +78,55 @@ public:
 	}
 };
 
+typedef std::priority_queue<Instruction*,std::deque<Instruction*>,MyComparator> PriorityQueueTy;
+
+struct FindLeader2 : public std::unary_function<Value*,void> {
+	std::set<Instruction*> &scheduled;
+	GlobalSchedule *sched;
+	Instruction *I;
+	bool &leader;
+	/// constructor
+	FindLeader2(std::set<Instruction*> &scheduled, GlobalSchedule *sched, Instruction *I, bool &leader)
+		: scheduled(scheduled), sched(sched), I(I), leader(leader) {}
+	/// function call operator
+	void operator()(Value *value) {
+		Instruction *op = value->to_Instruction();
+		assert(op);
+		if (op && sched->get(I) == sched->get(op) && scheduled.find(op) == scheduled.end() ) {
+			leader = false;
+		}
+	}
+};
+
+struct FindLeader : public std::unary_function<Instruction*,void> {
+	std::set<Instruction*> &scheduled;
+	GlobalSchedule *sched;
+	PriorityQueueTy &ready;
+	BeginInst *BI;
+	/// constructor
+	FindLeader(std::set<Instruction*> &scheduled, GlobalSchedule *sched, PriorityQueueTy &ready, BeginInst *BI)
+		: scheduled(scheduled), sched(sched), ready(ready), BI(BI) {}
+
+	/// function call operator
+	void operator()(Instruction* I) {
+		// only instructions in this basic block
+		if ( sched->get(I) != sched->get(BI)) {
+			return;
+		}
+		bool leader = true;
+		// for each operand
+		std::for_each(I->op_begin(), I->op_end(), FindLeader2(scheduled, sched, I, leader));
+		// for each dependency
+		std::for_each(I->dep_begin(), I->dep_end(), FindLeader2(scheduled, sched, I, leader));
+		if (leader) {
+			LOG("leader: " << I << nl);
+			ready.push(I);
+		}
+	}
+};
+
 } // end anonymous namespace
+
 
 void ListSchedulingPass::schedule(BeginInst *BI) {
 	// reference to the instruction list of the current basic block
@@ -87,7 +135,7 @@ void ListSchedulingPass::schedule(BeginInst *BI) {
 	std::set<Instruction*> scheduled;
 	// queue of ready instructions
 	MyComparator comp = MyComparator(sched);
-	std::priority_queue<Instruction*,std::deque<Instruction*>,MyComparator> ready(comp);
+	PriorityQueueTy ready(comp);
 	// Begin is always the first instruction
 	ready.push(BI);
 	for(GlobalSchedule::const_inst_iterator i = sched->inst_begin(BI),
@@ -99,14 +147,13 @@ void ListSchedulingPass::schedule(BeginInst *BI) {
 		//LOG("Instruction: " << I << nl);
 		//fill_ready(sched, ready, I);
 		bool leader = true;
-		for(Instruction::OperandListTy::const_iterator i = I->op_begin(),
-				e = I->op_end(); i != e; ++i) {
-			Instruction *op = (*i)->to_Instruction();
-			if (op && sched->get(I) == sched->get(op) ) {
-				leader = false;
-				break;
-			}
-		}
+
+		LOG3("schedule(initial leader): " << I << " #op " << I->op_size()  << " #dep " << I->dep_size() << nl);
+		// for each operand
+		std::for_each(I->op_begin(), I->op_end(), FindLeader2(scheduled, sched, I, leader));
+		// for each dependency
+		std::for_each(I->dep_begin(), I->dep_end(), FindLeader2(scheduled, sched, I, leader));
+
 		if (leader) {
 			LOG("initial leader: " << I << nl);
 			ready.push(I);
@@ -116,29 +163,15 @@ void ListSchedulingPass::schedule(BeginInst *BI) {
 	while (!ready.empty()) {
 		Instruction *I = ready.top();
 		ready.pop();
+		if (scheduled.find(I) != scheduled.end()){
+			continue;
+		}
 		inst_list.push_back(I);
 		scheduled.insert(I);
-		for (Instruction::UserListTy::const_iterator i = I->user_begin(),
-				e = I->user_end(); i != e; ++i) {
-			Instruction *I = *i;
-			// only instructions in this basic block
-			if ( sched->get(I) != sched->get(BI)) {
-				continue;
-			}
-			bool leader = true;
-			for(Instruction::OperandListTy::const_iterator i = I->op_begin(),
-					e = I->op_end(); i != e; ++i) {
-				Instruction *op = (*i)->to_Instruction();
-				if (op && sched->get(I) == sched->get(op) && scheduled.find(op) == scheduled.end() ) {
-					leader = false;
-					break;
-				}
-			}
-			if (leader) {
-				LOG("leader: " << I << nl);
-				ready.push(I);
-			}
-		}
+		// for all users
+		std::for_each(I->user_begin(), I->user_end(), FindLeader(scheduled,sched,ready,BI));
+		// for all dependant instruction
+		std::for_each(I->rdep_begin(), I->rdep_end(), FindLeader(scheduled,sched,ready,BI));
 	}
 	for(const_inst_iterator i = inst_begin(BI), e = inst_end(BI); i != e ; ++i) {
 		Instruction *I = *i;

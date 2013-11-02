@@ -164,9 +164,10 @@ public:
 
 	const_dep_iterator dep_begin() const { return dep_list.begin(); }
 	const_dep_iterator dep_end()   const { return dep_list.end(); }
+	size_t dep_size() const { return dep_list.size(); }
 	const_dep_iterator rdep_begin() const { return reverse_dep_list.begin(); }
 	const_dep_iterator rdep_end()   const { return reverse_dep_list.end(); }
-	size_t dep_size() const { return dep_list.size(); }
+	size_t rdep_size() const { return reverse_dep_list.size(); }
 
 	/**
 	 * Get the corresponding BeginInst.
@@ -185,10 +186,10 @@ public:
 		return false;
 	}
 
-	/**
-	 * True if the instruction has no fixed control dependencies
-	 */
+	/// True if the instruction has no fixed control dependencies
 	virtual bool is_floating() const { return true; }
+	/// True the instruction has side effects
+	virtual bool has_side_effects() const { return false; }
 
 	// casting functions
 	virtual Instruction*          to_Instruction()          { return this; }
