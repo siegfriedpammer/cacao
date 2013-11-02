@@ -480,9 +480,20 @@ public:
 };
 
 class PUTSTATICInst : public Instruction {
+private:
+	constant_FMIref *fmiref;
+	bool resolved;
 public:
-	explicit PUTSTATICInst(Type::TypeID type) : Instruction(PUTSTATICInstID, type) {}
+	/**
+	 * @param resolved This _should_ not change during compilation
+	 */
+	explicit PUTSTATICInst(Value *value, constant_FMIref *fmiref, bool resolved)
+			: Instruction(PUTSTATICInstID, value->get_type()), fmiref(fmiref), resolved(resolved) {
+		append_op(value);
+	}
 	virtual PUTSTATICInst* to_PUTSTATICInst() { return this; }
+	bool is_resolved() const { return resolved; }
+	constant_FMIref* get_fmiref() const { return fmiref; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 

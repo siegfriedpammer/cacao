@@ -1567,8 +1567,16 @@ bool SSAConstructionPass::run(JITData &JD) {
 
 			case ICMD_GETFIELD:        /* 1 -> 1 */
 			case ICMD_PUTFIELD:        /* 2 -> 0 */
-			case ICMD_PUTSTATIC:       /* 1 -> 0 */
 				goto _default;
+			case ICMD_PUTSTATIC:       /* 1 -> 0 */
+				{
+					constant_FMIref *fmiref;
+					INSTRUCTION_GET_FIELDREF(iptr, fmiref);
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+					Instruction *putstatic = new PUTSTATICInst(s1,fmiref,INSTRUCTION_IS_RESOLVED(iptr));
+					M->add_Instruction(putstatic);
+				}
+				break;
 			case ICMD_GETSTATIC:       /* 0 -> 1 */
 				{
 					constant_FMIref *fmiref;
