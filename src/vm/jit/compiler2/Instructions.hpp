@@ -56,6 +56,13 @@ public:
 	}
 };
 
+/**
+ * Binary Instruction. Not a real instruction. For convenience only.
+ *
+ * @note Idea: create a ArithmeticInst superclass which features a method
+ * e.g. simplify() which returns the result of the operands if they are
+ * constants.
+ */
 class BinaryInst : public Instruction {
 public:
 	explicit BinaryInst(InstID id, Type::TypeID type, Value* S1, Value* S2) : Instruction(id, type) {
