@@ -126,46 +126,46 @@ MachineCode* compile(methodinfo* m)
 
 	LOG(bold << bold << "Compiler Start: " << reset_color << *m << nl);
 
-	PM.add_Pass(&ParserPass::ID);
-	PM.add_Pass(&StackAnalysisPass::ID);
+	PM.add_Pass<ParserPass>();
+	PM.add_Pass<StackAnalysisPass>();
 #ifdef ENABLE_VERIFIER
-	PM.add_Pass(&VerifierPass::ID);
+	PM.add_Pass<VerifierPass>();
 #endif
-	PM.add_Pass(&CFGConstructionPass::ID);
-	PM.add_Pass(&SSAConstructionPass::ID);
-	PM.add_Pass(&ExamplePass::ID);
-	PM.add_Pass(&LoopPass::ID);
-	PM.add_Pass(&LoopTreePrinterPass::ID);
-	PM.add_Pass(&DominatorPass::ID);
-	PM.add_Pass(&DomTreePrinterPass::ID);
-	PM.add_Pass(&SSAPrinterPass::ID);
-	PM.add_Pass(&ScheduleEarlyPass::ID);
-	PM.add_Pass(&ScheduleLatePass::ID);
-	PM.add_Pass(&ScheduleClickPass::ID);
-	PM.add_Pass(&GlobalSchedulePrinterPass<ScheduleEarlyPass>::ID);
-	PM.add_Pass(&GlobalSchedulePrinterPass<ScheduleLatePass>::ID);
-	PM.add_Pass(&GlobalSchedulePrinterPass<ScheduleClickPass>::ID);
-	//PM.add_Pass(&LoopSimplificationPass::ID);
-	PM.add_Pass(&ListSchedulingPass::ID);
-	PM.add_Pass(&BasicBlockSchedulingPass::ID);
-	//PM.add_Pass(&ResolveImmediatePass::ID);
-	PM.add_Pass(&MachineInstructionSchedulingPass::ID);
-	PM.add_Pass(&MachineInstructionPrinterPass::ID);
-	PM.add_Pass(&MachineLoopPass::ID);
+	PM.add_Pass<CFGConstructionPass>();
+	PM.add_Pass<SSAConstructionPass>();
+	PM.add_Pass<ExamplePass>();
+	PM.add_Pass<LoopPass>();
+	PM.add_Pass<LoopTreePrinterPass>();
+	PM.add_Pass<DominatorPass>();
+	PM.add_Pass<DomTreePrinterPass>();
+	PM.add_Pass<SSAPrinterPass>();
+	PM.add_Pass<ScheduleEarlyPass>();
+	PM.add_Pass<ScheduleLatePass>();
+	PM.add_Pass<ScheduleClickPass>();
+	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleEarlyPass> >();
+	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleLatePass> >();
+	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleClickPass> >();
+	//PM.add_Pass<LoopSimplificationPass>();
+	PM.add_Pass<ListSchedulingPass>();
+	PM.add_Pass<BasicBlockSchedulingPass>();
+	//PM.add_Pass<ResolveImmediatePass>();
+	PM.add_Pass<MachineInstructionSchedulingPass>();
+	PM.add_Pass<MachineInstructionPrinterPass>();
+	PM.add_Pass<MachineLoopPass>();
 
-	PM.add_Pass(&LivetimeAnalysisPass::ID);
-	PM.add_Pass(&LinearScanAllocatorPass::ID);
-	PM.add_Pass(&MachineInstructionPrinterPass::ID);
+	PM.add_Pass<LivetimeAnalysisPass>();
+	PM.add_Pass<LinearScanAllocatorPass>();
+	PM.add_Pass<MachineInstructionPrinterPass>();
 
-	PM.add_Pass(&LivetimeAnalysisPass::ID);
-	PM.add_Pass(&LinearScanAllocatorPass::ID);
-	PM.add_Pass(&MachineInstructionPrinterPass::ID);
+	PM.add_Pass<LivetimeAnalysisPass>();
+	PM.add_Pass<LinearScanAllocatorPass>();
+	PM.add_Pass<MachineInstructionPrinterPass>();
 
-	PM.add_Pass(&CodeGenPass::ID);
+	PM.add_Pass<CodeGenPass>();
 	if (opt_showdisassemble) {
-		PM.add_Pass(&DisassemblerPass::ID);
+		PM.add_Pass<DisassemblerPass>();
 	}
-	PM.add_Pass(&ObjectFileWriterPass::ID);
+	PM.add_Pass<ObjectFileWriterPass>();
 
 /*****************************************************************************/
 /** prolog start jit_compile **/

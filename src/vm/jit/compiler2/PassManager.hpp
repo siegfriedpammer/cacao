@@ -145,7 +145,9 @@ public:
 	/**
 	 * add a compiler pass
 	 */
-	void add_Pass(PassInfo::IDTy ID) {
+	template<class _PassClass>
+	void add_Pass() {
+		PassInfo::IDTy ID = &_PassClass::ID;
 		assert(registered_passes()[ID] && "Pass not registered");
 		passes.insert(ID);
 		schedule.push_back(ID);
