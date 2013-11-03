@@ -48,6 +48,7 @@ libcompiler2_la_SOURCES = \
 	DataSegment.cpp \
 	DominatorPass.cpp \
 	DomTreePrinterPass.cpp \
+	ExamplePass.cpp \
 	GraphHelper.cpp \
 	Instruction.cpp \
 	InstructionVisitor.cpp \

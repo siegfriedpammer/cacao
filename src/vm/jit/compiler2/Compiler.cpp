@@ -55,6 +55,7 @@
 #endif
 #include "vm/jit/compiler2/CFGConstructionPass.hpp"
 #include "vm/jit/compiler2/SSAConstructionPass.hpp"
+#include "vm/jit/compiler2/ExamplePass.hpp"
 #include "vm/jit/compiler2/DominatorPass.hpp"
 #include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
 #include "vm/jit/compiler2/ScheduleLatePass.hpp"
@@ -132,6 +133,7 @@ MachineCode* compile(methodinfo* m)
 #endif
 	PM.add_Pass(&CFGConstructionPass::ID);
 	PM.add_Pass(&SSAConstructionPass::ID);
+	PM.add_Pass(&ExamplePass::ID);
 	PM.add_Pass(&LoopPass::ID);
 	PM.add_Pass(&LoopTreePrinterPass::ID);
 	PM.add_Pass(&DominatorPass::ID);
