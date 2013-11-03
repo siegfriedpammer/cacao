@@ -34,78 +34,94 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+/// Operation function object class
+template <typename T, Instruction::InstID ID>
+struct Operation : public std::binary_function<T,T,T> {
+	T operator()(const T &lhs, const T &rhs) const ;
+};
+
+/// Template specialization for ADDInstID
+template <typename T>
+struct Operation<T, Instruction::ADDInstID> :
+		public std::binary_function<T,T,T> {
+	T operator()(const T &lhs, const T &rhs) const {
+		return lhs + rhs;
+	}
+};
+
+/// Template specialization for SUBInstID
+template <typename T>
+struct Operation<T, Instruction::SUBInstID> :
+		public std::binary_function<T,T,T> {
+	T operator()(const T &lhs, const T &rhs) const {
+		return lhs - rhs;
+	}
+};
+
+/// Template specialization for MULInstID
+template <typename T>
+struct Operation<T, Instruction::MULInstID> :
+		public std::binary_function<T,T,T> {
+	T operator()(const T &lhs, const T &rhs) const {
+		return lhs * rhs;
+	}
+};
+
+/// Template specialization for DIVInstID
+template <typename T>
+struct Operation<T, Instruction::DIVInstID> :
+		public std::binary_function<T,T,T> {
+	T operator()(const T &lhs, const T &rhs) const {
+		return lhs / rhs;
+	}
+};
+
+/// function wrapper for Operation
+template <typename T>
+inline T operate(Instruction::InstID ID, const T &lhs, const T &rhs) {
+	switch (ID) {
+		case Instruction::ADDInstID:
+			return Operation<T,Instruction::ADDInstID>()(lhs, rhs);
+		case Instruction::SUBInstID:
+			return Operation<T,Instruction::SUBInstID>()(lhs, rhs);
+		case Instruction::MULInstID:
+			return Operation<T,Instruction::MULInstID>()(lhs, rhs);
+		case Instruction::DIVInstID:
+			return Operation<T,Instruction::DIVInstID>()(lhs, rhs);
+		default:
+			assert(0 && "not implemented");
+			break;
+	}
+	// unreachable - dummy result
+	return lhs;
+}
+
 CONSTInst *foldBinaryInst(BinaryInst *inst) {
 	CONSTInst *op1 = inst->get_operand(0)->to_Instruction()->to_CONSTInst();
 	CONSTInst *op2 = inst->get_operand(1)->to_Instruction()->to_CONSTInst();
 	assert(op1 && op2);
 
-	switch (inst->get_opcode()) {
-		case Instruction::ADDInstID:
-			switch (inst->get_type()) {
-				case Type::IntTypeID:
-					return new CONSTInst(op1->get_Int() + op2->get_Int());
-				case Type::LongTypeID:
-					return new CONSTInst(op1->get_Long() + op2->get_Long());
-				case Type::FloatTypeID:
-					return new CONSTInst(op1->get_Float() + op2->get_Float());
-				case Type::DoubleTypeID:
-					return new CONSTInst(op1->get_Double() + op2->get_Double());
-				default:
-					assert(0);
-					return 0;
-			}
-			break;
-		case Instruction::SUBInstID:
-			switch (inst->get_type()) {
-				case Type::IntTypeID:
-					return new CONSTInst(op1->get_Int() - op2->get_Int());
-				case Type::LongTypeID:
-					return new CONSTInst(op1->get_Long() - op2->get_Long());
-				case Type::FloatTypeID:
-					return new CONSTInst(op1->get_Float() - op2->get_Float());
-				case Type::DoubleTypeID:
-					return new CONSTInst(op1->get_Double() - op2->get_Double());
-				default:
-					assert(0);
-					return 0;
-			}
-			break;
-		case Instruction::MULInstID:
-			switch (inst->get_type()) {
-				case Type::IntTypeID:
-					return new CONSTInst(op1->get_Int() * op2->get_Int());
-				case Type::LongTypeID:
-					return new CONSTInst(op1->get_Long() * op2->get_Long());
-				case Type::FloatTypeID:
-					return new CONSTInst(op1->get_Float() * op2->get_Float());
-				case Type::DoubleTypeID:
-					return new CONSTInst(op1->get_Double() * op2->get_Double());
-				default:
-					assert(0);
-					return 0;
-			}
-			break;
-		case Instruction::DIVInstID:
-			switch (inst->get_type()) {
-				case Type::IntTypeID:
-					return new CONSTInst(op1->get_Int() / op2->get_Int());
-				case Type::LongTypeID:
-					return new CONSTInst(op1->get_Long() / op2->get_Long());
-				case Type::FloatTypeID:
-					return new CONSTInst(op1->get_Float() / op2->get_Float());
-				case Type::DoubleTypeID:
-					return new CONSTInst(op1->get_Double() / op2->get_Double());
-				default:
-					assert(0);
-					return 0;
-			}
-			break;
+	switch (inst->get_type()) {
+		case Type::IntTypeID:
+			return new CONSTInst(operate(inst->get_opcode(), op1->get_Int(),
+				op2->get_Int()));
+		case Type::LongTypeID:
+			return new CONSTInst(operate(inst->get_opcode(), op1->get_Long(),
+				op2->get_Long()));
+		case Type::FloatTypeID:
+			return new CONSTInst(operate(inst->get_opcode(), op1->get_Float(),
+				op2->get_Float()));
+		case Type::DoubleTypeID:
+			return new CONSTInst(operate(inst->get_opcode(), op1->get_Double(),
+				op2->get_Double()));
 		default:
+			assert(0);
 			return 0;
 	}
 }
 
 CONSTInst *foldInstruction(Instruction *inst) {
+	// TODO: introduce is_arithmetic() in Instruction
 	if (inst->to_BinaryInst()) {
 		return foldBinaryInst(inst->to_BinaryInst());
 	}
