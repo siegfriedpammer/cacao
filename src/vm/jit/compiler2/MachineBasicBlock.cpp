@@ -34,7 +34,10 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-MIIterator::_iterator MIIterator::_end;
+MIIterator::_iterator MIIterator::_end() {
+	static _iterator e;
+	return e;
+}
 
 std::size_t MachineBasicBlock::id_counter = 0;
 

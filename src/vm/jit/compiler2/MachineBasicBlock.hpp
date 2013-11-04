@@ -49,7 +49,7 @@ class MIIterator {
 	typedef MBBIterator block_iterator;
 	block_iterator block_it;
 	_iterator it;
-	static _iterator _end;
+	static _iterator _end();
 public:
 	typedef _iterator::reference reference;
 	typedef _iterator::pointer pointer;
@@ -59,7 +59,7 @@ public:
 
 	/// construct end element
 	MIIterator(const block_iterator &block_it)
-		: block_it(block_it), it(_end) {}
+		: block_it(block_it), it(_end()) {}
 	/// constructor
 	MIIterator(const block_iterator &block_it, const _iterator& it)
 		: block_it(block_it), it(it) {}
@@ -85,16 +85,16 @@ public:
 		return tmp;
 	}
 	bool operator==(const MIIterator& rhs) const {
-		if (it == _end && rhs.it == _end)
+		if (it == _end() && rhs.it == _end())
 			return true;
 		if (block_it == rhs.block_it)
 			return it == rhs.it;
 		return false;
 	}
 	bool operator<( const MIIterator& rhs) const {
-		if (it == _end)
+		if (it == _end())
 			return false;
-		if (rhs.it == _end)
+		if (rhs.it == _end())
 			return true;
 		if (block_it == rhs.block_it) {
 			return it < rhs.it;
@@ -290,7 +290,7 @@ inline MIIterator& MIIterator::operator++() {
 		// allowed to be empty. Therefor we can safely assume
 		// that (*block_it)->begin() != (*block_it)->end().
 		if (block_it == block_it.get_parent()->end()) {
-			it = _end;
+			it = _end();
 		}
 		else {
 			it = (*block_it)->begin();
@@ -299,7 +299,7 @@ inline MIIterator& MIIterator::operator++() {
 	return *this;
 }
 inline MIIterator& MIIterator::operator--() {
-	if (it == _end || it == (*block_it)->begin()) {
+	if (it == _end() || it == (*block_it)->begin()) {
 		// begin of basic block
 		// XXX I think this can be removed. Iterating beyond begin
 		// is undefined.
@@ -315,7 +315,7 @@ inline MIIterator& MIIterator::operator--() {
 
 inline bool MIIterator::is_end() const {
 	assert(*block_it);
-	assert((*block_it)->get_parent());
+	if(!(*block_it)->get_parent()) return true;
 	return *this == (*block_it)->get_parent()->mi_end();
 }
 
