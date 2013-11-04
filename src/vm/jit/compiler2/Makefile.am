@@ -75,6 +75,7 @@ libcompiler2_la_SOURCES = \
 	ObjectFileWriterPass.cpp \
 	ParserPass.cpp \
 	Pass.cpp \
+	PassDependencyGraphPrinter.cpp \
 	PassManager.cpp \
 	ResolveImmediatePass.cpp \
 	ScheduleClickPass.cpp \
