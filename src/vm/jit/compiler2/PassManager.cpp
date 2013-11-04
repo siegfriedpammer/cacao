@@ -29,6 +29,8 @@
 #include "toolbox/logging.hpp"
 #include "vm/vm.hpp"
 
+#include <algorithm>
+
 #define DEBUG_NAME "compiler2/PassManager"
 
 namespace cacao {
@@ -60,10 +62,99 @@ PassManager::~PassManager() {
 void PassManager::initializePasses() {
 }
 
+namespace {
+
+template <class InputIterator, class ValueType>
+inline bool contains(InputIterator begin, InputIterator end, const ValueType &val) {
+	return std::find(begin,end,val) != end;
+}
+
+template <class Container, class ValueType>
+inline bool contains(Container c, const ValueType &val) {
+	return c.find(val) != c.end();
+}
+
+
+class PassScheduler {
+private:
+	std::deque<PassInfo::IDTy> &unhandled;
+	std::set<PassInfo::IDTy> &ready;
+	std::list<PassInfo::IDTy> &stack;
+	PassManager::ScheduleListTy &new_schedule;
+	std::map<PassInfo::IDTy,std::set<PassInfo::IDTy> > &req_map;
+public:
+	/// constructor
+	PassScheduler(std::deque<PassInfo::IDTy> &unhandled, std::set<PassInfo::IDTy> &ready,
+		std::list<PassInfo::IDTy> &stack, PassManager::ScheduleListTy &new_schedule,
+		std::map<PassInfo::IDTy,std::set<PassInfo::IDTy> > &req_map)
+			: unhandled(unhandled), ready(ready), stack(stack), new_schedule(new_schedule),
+			req_map(req_map) {}
+	/// call operator
+	void operator()(PassInfo::IDTy id) {
+		if (contains(ready,id)) return;
+		stack.push_back(id);
+		std::set<PassInfo::IDTy> &dep = req_map[id];
+		for (std::set<PassInfo::IDTy>::const_iterator i = dep.begin(), e  = dep.end();
+				i != e ; ++i) {
+			if (ready.find(*i) == ready.end()) {
+				operator()(*i);
+			}
+		}
+		// dummy use
+		unhandled.front();
+		new_schedule.push_back(id);
+		ready.insert(id);
+		stack.pop_back();
+	}
+};
+
+} // end anonymous namespace
+
+void PassManager::schedulePasses() {
+	std::deque<PassInfo::IDTy> unhandled;
+	std::set<PassInfo::IDTy> ready;
+	std::list<PassInfo::IDTy> stack;
+	ScheduleListTy new_schedule;
+	std::map<PassInfo::IDTy,std::set<PassInfo::IDTy> > req_map;
+
+	for (PassInfoMapTy::const_iterator i = registered_passes().begin(), e = registered_passes().end();
+			i != e; ++i) {
+		PassInfo::IDTy id = i->first;
+		Pass *pass = get_initialized_Pass(id);
+		PassUsage PA;
+		PA = pass->get_PassUsage(PA);
+		req_map[id].insert(PA.requires_begin(),PA.requires_end());
+	}
+	std::copy(schedule.begin(), schedule.end(), std::back_inserter(unhandled));
+
+	PassScheduler scheduler(unhandled,ready,stack,new_schedule,req_map);
+	while (!unhandled.empty()) {
+		PassInfo::IDTy id = unhandled.front();
+		unhandled.pop_front();
+		// schedule
+		scheduler(id);
+		assert(stack.empty());
+	}
+
+	if (DEBUG_COND_N(2)) {
+		LOG2("old Schedule:" << nl);
+		for (ScheduleListTy::const_iterator i = schedule.begin(),
+				e = schedule.end(); i != e ; ++i) {
+			LOG2("    " << get_Pass_name(*i) << " id: " << *i << nl);
+		}
+		LOG2("new Schedule:" << nl);
+		for (ScheduleListTy::const_iterator i = new_schedule.begin(),
+				e = new_schedule.end(); i != e ; ++i) {
+			LOG2("    " << get_Pass_name(*i) << " id: " << *i << nl);
+		}
+	}
+	schedule = new_schedule;
+}
 void PassManager::runPasses(JITData &JD) {
 	LOG("runPasses" << nl);
 	print_PassDependencyGraph(*this);
 	initializePasses();
+	schedulePasses();
 	for(ScheduleListTy::iterator i = schedule.begin(), e = schedule.end(); i != e; ++i) {
 		PassInfo::IDTy id = *i;
 		result_ready[id] = false;

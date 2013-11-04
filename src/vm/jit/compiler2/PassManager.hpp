@@ -68,6 +68,9 @@ public:
 
 /**
  * Manage the execution of compiler passes
+ *
+ * @todo handle modified (timestamp?)
+ * @todo conditionally reevaluate
  */
 class PassManager {
 public:
@@ -114,6 +117,7 @@ private:
 		  << get_Pass_name(&_PassClass::ID) << " is not ready!");
 		return (_PassClass*)initialized_passes[&_PassClass::ID];
 	}
+	void schedulePasses();
 public:
 	PassManager() {
 		MYLOG("PassManager::PassManager()" << nl);
