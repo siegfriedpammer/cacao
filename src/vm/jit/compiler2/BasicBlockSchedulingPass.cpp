@@ -26,7 +26,6 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
-#include "vm/jit/compiler2/GraphHelper.hpp"
 #include "vm/jit/compiler2/LoopPass.hpp"
 #include "vm/jit/compiler2/DominatorPass.hpp"
 #include "toolbox/logging.hpp"
@@ -36,16 +35,31 @@
 
 #define DEBUG_NAME "compiler2/BasciBlockSchedulingPass"
 
+#define VERIFY_LOOP_PROPERTY 1
+#define VERIFY_DOM_PROPERTY 1
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+
+namespace {
+	struct DomComparator : std::binary_function<BeginInst*, BeginInst*, bool>{
+		DominatorTree *DT;
+		DomComparator(DominatorTree *DT) : DT(DT) {}
+		bool operator()(BeginInst *lhs, BeginInst *rhs) {
+			return DT->dominates(lhs,rhs);
+		}
+	};
+} // anonymous namespace
+
 bool BasicBlockSchedulingPass::run(JITData &JD) {
 	M = JD.get_Method();
+	DominatorTree *DT = get_Pass<DominatorPass>();
 
-	DFSTraversal<BeginInst> dfs(M->get_init_bb());
-	// XXX this is not sufficient in more complicated cases
-	insert(begin(),dfs.begin(),dfs.end());
+	std::multiset<BeginInst*,DomComparator> dom_set( (DomComparator(DT)) );
+	dom_set.insert(M->bb_begin(),M->bb_end());
+	insert(begin(),dom_set.begin(),dom_set.end());
 
 	#if 0
 	// random order
@@ -66,12 +80,14 @@ bool BasicBlockSchedulingPass::run(JITData &JD) {
 }
 
 namespace {
+#if VERIFY_LOOP_PROPERTY
 // push loops recursively in reverse order
 void push_loops_inbetween(std::list<Loop*> &active, Loop* inner, Loop* outer) {
 	if (inner == outer) return;
 	push_loops_inbetween(active,inner->get_parent(),outer);
 	active.push_back(inner);
 }
+#endif
 } // anonymous namespace
 
 
@@ -114,6 +130,7 @@ bool BasicBlockSchedulingPass::verify() const {
 		}
 	}
 	#endif
+	#if VERIFY_DOM_PROPERTY
 	// check dominator property
 	DominatorTree *DT = get_Pass<DominatorPass>();
 	std::set<BeginInst*> handled;
@@ -129,7 +146,9 @@ bool BasicBlockSchedulingPass::verify() const {
 		}
 		handled.insert(*i);
 	}
+	#endif
 	// check contiguous loop property
+	#if VERIFY_LOOP_PROPERTY
 	LoopTree *LT = get_Pass<LoopPass>();
 	std::set<Loop*> finished;
 	std::list<Loop*> active;
@@ -162,6 +181,7 @@ bool BasicBlockSchedulingPass::verify() const {
 		}
 		push_loops_inbetween(active,loop,lca);
 	}
+	#endif
 	return true;
 }
 
