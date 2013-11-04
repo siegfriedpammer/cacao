@@ -38,7 +38,7 @@ bool RegisterAllocatorPass::run(JITData &JD) {
 
 // pass usage
 PassUsage& RegisterAllocatorPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<LinearScanAllocatorPass>();
+	PU.add_requires<LinearScanAllocator2Pass>();
 	return PU;
 }
 
