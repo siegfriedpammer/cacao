@@ -38,9 +38,33 @@ namespace compiler2 {
 
 namespace {
 
+struct AddEdge : public std::unary_function<PassInfo::IDTy,void> {
+	typedef std::pair<argument_type,argument_type> EdgeType;
+	std::set<EdgeType> &edges;
+	std::set<EdgeType> &set;
+	argument_type from;
+	// constructor
+	AddEdge(std::set<EdgeType> &edges, std::set<EdgeType> &set, argument_type from)
+		: edges(edges), set(set), from(from) {}
+	// call operator
+	void operator()(const argument_type &to) {
+		EdgeType edge = std::make_pair(from,to);
+		edges.insert(edge);
+		set.insert(edge);
+	}
+};
+
+template <class InputIterator, class ValueType>
+inline bool contains(InputIterator begin, InputIterator end, const ValueType &val) {
+	return std::find(begin,end,val) != end;
+}
+
 class PassDependencyGraphPrinter : public PrintableGraph<PassManager,PassInfo::IDTy> {
 private:
 	std::map<PassInfo::IDTy,const char*> names;
+	std::set<EdgeType> req;
+	std::set<EdgeType> mod;
+	std::set<EdgeType> dstr;
 public:
 
     PassDependencyGraphPrinter(PassManager &PM) {
@@ -57,36 +81,24 @@ public:
 			PassUsage PU;
 			pass->get_PassUsage(PU);
 			delete pass;
-			for (PassUsage::PIIDSet::const_iterator i = PU.requires_begin(),
-					e = PU.requires_end(); i != e; ++i) {
-				LOG("  requires: " << names[*i] << " ID: " << *i << nl);
-				EdgeType edge = std::make_pair(PI,*i);
-				edges.insert(edge);
-			}
+			std::for_each(PU.requires_begin(), PU.requires_end(),AddEdge(edges,req,PI));
+			std::for_each(PU.modifies_begin(), PU.modifies_end(),AddEdge(edges,mod,PI));
+			std::for_each(PU.destroys_begin(), PU.destroys_end(),AddEdge(edges,dstr,PI));
 		}
-		#if 0
-		std::for_each(LT->loop_begin(),LT->loop_end(),insert_loop(this));
-		for(Method::BBListTy::const_iterator i = M.bb_begin(),
-		    e = M.bb_end(); i != e; ++i) {
-			BeginInst *BI = *i;
-			if (BI == NULL)
-				continue;
-			nodes.insert(BI);
-			Loop loop = LT->get_Loop(BI);
-			if (idom) {
-				EdgeType edge = std::make_pair(idom,BI);
-				edges.insert(edge);
-			}
-		}
-		#endif
 	}
 
-    OStream& getGraphName(OStream& OS) const {
+    virtual OStream& getGraphName(OStream& OS) const {
 		return OS << "PassDependencyGraph";
 	}
 
-    OStream& getNodeLabel(OStream& OS, const PassInfo::IDTy &node) const {
+    virtual OStream& getNodeLabel(OStream& OS, const PassInfo::IDTy &node) const {
 		return OS << names.find(node)->second;
+	}
+    virtual OStream& getEdgeLabel(OStream& OS, const EdgeType &edge) const {
+		if (contains(req.begin(),req.end(),edge)) OS << "r";
+		if (contains(mod.begin(),mod.end(),edge)) OS << "m";
+		if (contains(dstr.begin(),dstr.end(),edge)) OS << "d";
+		return OS;
 	}
 
 };
