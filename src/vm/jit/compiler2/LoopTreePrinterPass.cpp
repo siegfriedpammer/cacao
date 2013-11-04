@@ -34,7 +34,7 @@
 #include "vm/jit/compiler2/LoopPass.hpp"
 #include "vm/jit/compiler2/GraphHelper.hpp"
 
-#include "toolbox/GraphTraits.hpp"
+#include "toolbox/GraphPrinter.hpp"
 #include "vm/class.hpp"
 #include "vm/jit/jit.hpp"
 
@@ -46,7 +46,7 @@ namespace compiler2 {
 
 namespace {
 
-class LoopTreeGraph : public GraphTraits<Method,Loop> {
+class LoopTreeGraph : public PrintableGraph<Method*,Loop*> {
 private:
 	struct insert_loop : std::unary_function<void,Loop*> {
 		LoopTreeGraph *parent;
@@ -80,11 +80,11 @@ public:
 		#endif
 	}
 
-    OStream& getGraphName(OStream& OS) const {
+    virtual OStream& getGraphName(OStream& OS) const {
 		return OS << "LoopTreeGraph";
 	}
 
-    OStream& getNodeLabel(OStream& OS, const Loop &node) const {
+    virtual OStream& getNodeLabel(OStream& OS, Loop *const &node) const {
 		return OS << node;
 	}
 

@@ -33,7 +33,7 @@
 #include "vm/jit/compiler2/DominatorPass.hpp"
 #include "vm/jit/compiler2/GraphHelper.hpp"
 
-#include "toolbox/GraphTraits.hpp"
+#include "toolbox/GraphPrinter.hpp"
 #include "vm/class.hpp"
 #include "vm/jit/jit.hpp"
 
@@ -45,7 +45,7 @@ namespace compiler2 {
 
 namespace {
 
-class DomTreeGraph : public GraphTraits<Method,BeginInst> {
+class DomTreeGraph : public PrintableGraph<Method*,BeginInst*> {
 protected:
     const Method &M;
     bool verbose;
@@ -70,12 +70,12 @@ public:
 		}
 	}
 
-    OStream& getGraphName(OStream& OS) const {
+    virtual OStream& getGraphName(OStream& OS) const {
 		return OS << "DomTreeGraph";
 	}
 
-    OStream& getNodeLabel(OStream& OS, const BeginInst &node) const {
-		return OS << node;
+    virtual OStream& getNodeLabel(OStream& OS, BeginInst *const &node) const {
+		return OS << *node;
 	}
 
 };

@@ -33,7 +33,7 @@
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 
-#include "toolbox/GraphTraits.hpp"
+#include "toolbox/GraphPrinter.hpp"
 
 #include "vm/utf8.hpp"
 #include "vm/jit/jit.hpp"
@@ -96,7 +96,7 @@ StringBuf MachineOperandToString(MachineOperand* MO) {
 	return sstream.str();
 }
 
-class MachineInstructionGraph : public GraphTraits<Method,MachineInstruction> {
+class MachineInstructionGraph : public PrintableGraph<Method,MachineInstruction> {
 protected:
     const Method &M;
 	LoweringPass *LP;

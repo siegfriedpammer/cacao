@@ -34,7 +34,7 @@
 #include "vm/jit/compiler2/ScheduleLatePass.hpp"
 #include "vm/jit/compiler2/ScheduleClickPass.hpp"
 
-#include "toolbox/GraphTraits.hpp"
+#include "toolbox/GraphPrinter.hpp"
 
 #include "vm/utf8.hpp"
 #include "vm/jit/jit.hpp"
@@ -75,7 +75,7 @@ namespace compiler2 {
 
 namespace {
 
-class SSAGraph : public GraphTraits<Method,Instruction> {
+class SSAGraph : public PrintableGraph<Method*,Instruction*> {
 protected:
     const Method &M;
 	std::string name;
@@ -151,21 +151,21 @@ public:
 		}
 	}
 
-	unsigned long getNodeID(const Instruction &node) const {
-		return node.get_id();
+	virtual unsigned long getNodeID(Instruction *const &node) const {
+		return node->get_id();
 	}
 
-    OStream& getGraphName(OStream& OS) const {
+    virtual OStream& getGraphName(OStream& OS) const {
 		return OS << name;
 	}
 
-    OStream& getNodeLabel(OStream& OS, const Instruction &node) const {
+    virtual OStream& getNodeLabel(OStream& OS, Instruction *const &node) const {
 		#if 0
-		OS << "[" << node.get_id() << ": " << node.get_name() << " ("
-				<< get_type_name(node.get_type()) << ")]";
+		OS << "[" << node->get_id() << ": " << node->get_name() << " ("
+				<< get_type_name(node->get_type()) << ")]";
 		#endif
 		OS << node;
-		for(Instruction::OperandListTy::const_iterator ii = node.op_begin(), ee = node.op_end();
+		for(Instruction::OperandListTy::const_iterator ii = node->op_begin(), ee = node->op_end();
 				ii != ee; ++ii) {
 			OS << " ";
 			Value *v = (*ii);
