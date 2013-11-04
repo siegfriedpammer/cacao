@@ -28,7 +28,7 @@
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
-#include "vm/jit/compiler2/LinearScanAllocatorPass.hpp"
+#include "vm/jit/compiler2/RegisterAllocatorPass.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -260,7 +260,7 @@ void CodeGenPass::finish(JITData &JD) {
 // pass usage
 PassUsage& CodeGenPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<MachineInstructionSchedulingPass>();
-	PU.add_requires<LinearScanAllocatorPass>();
+	PU.add_requires<RegisterAllocatorPass>();
 	return PU;
 }
 // the address of this variable is used to identify the pass
