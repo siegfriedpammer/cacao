@@ -81,24 +81,29 @@ private:
 	std::set<PassInfo::IDTy> &ready;
 	std::list<PassInfo::IDTy> &stack;
 	PassManager::ScheduleListTy &new_schedule;
-	std::map<PassInfo::IDTy,std::set<PassInfo::IDTy> > &req_map;
+	std::map<PassInfo::IDTy,PassUsage> &pu_map;
 public:
 	/// constructor
 	PassScheduler(std::deque<PassInfo::IDTy> &unhandled, std::set<PassInfo::IDTy> &ready,
 		std::list<PassInfo::IDTy> &stack, PassManager::ScheduleListTy &new_schedule,
-		std::map<PassInfo::IDTy,std::set<PassInfo::IDTy> > &req_map)
+		std::map<PassInfo::IDTy,PassUsage> &pu_map)
 			: unhandled(unhandled), ready(ready), stack(stack), new_schedule(new_schedule),
-			req_map(req_map) {}
+			pu_map(pu_map) {}
 	/// call operator
 	void operator()(PassInfo::IDTy id) {
 		if (contains(ready,id)) return;
 		stack.push_back(id);
-		std::set<PassInfo::IDTy> &dep = req_map[id];
-		for (std::set<PassInfo::IDTy>::const_iterator i = dep.begin(), e  = dep.end();
+		PassUsage &PU = pu_map[id];
+		for (PassUsage::const_iterator i = PU.requires_begin(), e  = PU.requires_end();
 				i != e ; ++i) {
 			if (ready.find(*i) == ready.end()) {
 				operator()(*i);
 			}
+		}
+		// remove all destroyed passes from ready
+		for (PassUsage::const_iterator i = PU.destroys_begin(), e  = PU.destroys_end();
+				i != e ; ++i) {
+			ready.erase(*i);
 		}
 		// dummy use
 		unhandled.front();
@@ -115,19 +120,18 @@ void PassManager::schedulePasses() {
 	std::set<PassInfo::IDTy> ready;
 	std::list<PassInfo::IDTy> stack;
 	ScheduleListTy new_schedule;
-	std::map<PassInfo::IDTy,std::set<PassInfo::IDTy> > req_map;
+	std::map<PassInfo::IDTy,PassUsage> pu_map;
 
 	for (PassInfoMapTy::const_iterator i = registered_passes().begin(), e = registered_passes().end();
 			i != e; ++i) {
 		PassInfo::IDTy id = i->first;
 		Pass *pass = get_initialized_Pass(id);
-		PassUsage PA;
-		PA = pass->get_PassUsage(PA);
-		req_map[id].insert(PA.requires_begin(),PA.requires_end());
+		PassUsage &PA = pu_map[id];
+		pass->get_PassUsage(PA);
 	}
 	std::copy(schedule.begin(), schedule.end(), std::back_inserter(unhandled));
 
-	PassScheduler scheduler(unhandled,ready,stack,new_schedule,req_map);
+	PassScheduler scheduler(unhandled,ready,stack,new_schedule,pu_map);
 	while (!unhandled.empty()) {
 		PassInfo::IDTy id = unhandled.front();
 		unhandled.pop_front();
@@ -150,6 +154,7 @@ void PassManager::schedulePasses() {
 	}
 	schedule = new_schedule;
 }
+
 void PassManager::runPasses(JITData &JD) {
 	LOG("runPasses" << nl);
 	print_PassDependencyGraph(*this);
