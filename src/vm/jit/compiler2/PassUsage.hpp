@@ -74,11 +74,11 @@ public:
 	const_iterator destroys_begin() const { return destroys.begin(); }
 	const_iterator destroys_end()   const { return destroys.end(); }
 
-	const_iterator modifies_begin() const { return destroys.begin(); }
-	const_iterator modifies_end()   const { return destroys.end(); }
+	const_iterator modifies_begin() const { return modifies.begin(); }
+	const_iterator modifies_end()   const { return modifies.end(); }
 
-	const_iterator requires_begin() const { return destroys.begin(); }
-	const_iterator requires_end()   const { return destroys.end(); }
+	const_iterator requires_begin() const { return requires.begin(); }
+	const_iterator requires_end()   const { return requires.end(); }
 
 	friend class Pass;
 };

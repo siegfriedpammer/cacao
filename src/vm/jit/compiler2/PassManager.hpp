@@ -70,19 +70,21 @@ public:
  * Manage the execution of compiler passes
  */
 class PassManager {
-private:
+public:
 	typedef std::set<PassInfo::IDTy> PassListTy;
 	typedef std::vector<PassInfo::IDTy> ScheduleListTy;
 	typedef std::map<PassInfo::IDTy,Pass*> PassMapTy;
 	typedef std::map<PassInfo::IDTy,bool> ResultReadyMapTy;
+	typedef std::map<PassInfo::IDTy, PassInfo*> PassInfoMapTy;
+private:
 	/**
 	 * This stores the initialized passes.
-	 * Every Pass can only occure once.
+	 * Every Pass can only occur once.
 	 */
 	PassMapTy initialized_passes;
 	/**
 	 * This variable contains a schedule of the passes.
-	 * A pass may occure more than once.
+	 * A pass may occur more than once.
 	 */
 	ScheduleListTy schedule;
 	/**
@@ -94,8 +96,8 @@ private:
 	 */
 	ResultReadyMapTy result_ready;
 
-	static std::map<PassInfo::IDTy, PassInfo*> &registered_passes() {
-		static std::map<PassInfo::IDTy, PassInfo*> registered_passes;
+	static PassInfoMapTy &registered_passes() {
+		static PassInfoMapTy registered_passes;
 		return registered_passes;
 	}
 
@@ -152,6 +154,11 @@ public:
 		passes.insert(ID);
 		schedule.push_back(ID);
 	}
+
+	PassMapTy::const_iterator initialized_begin() const { return initialized_passes.begin(); }
+	PassMapTy::const_iterator initialized_end() const { return initialized_passes.end(); }
+	PassInfoMapTy::const_iterator registered_begin() const { return registered_passes().begin(); }
+	PassInfoMapTy::const_iterator registered_end() const { return registered_passes().end(); }
 
 	friend class Pass;
 

@@ -24,6 +24,7 @@
 
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
+#include "vm/jit/compiler2/PassDependencyGraphPrinter.hpp"
 #include "vm/jit/compiler2/Pass.hpp"
 #include "toolbox/logging.hpp"
 #include "vm/vm.hpp"
@@ -60,6 +61,8 @@ void PassManager::initializePasses() {
 }
 
 void PassManager::runPasses(JITData &JD) {
+	LOG("runPasses" << nl);
+	print_PassDependencyGraph(*this);
 	initializePasses();
 	for(ScheduleListTy::iterator i = schedule.begin(), e = schedule.end(); i != e; ++i) {
 		PassInfo::IDTy id = *i;
