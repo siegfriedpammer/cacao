@@ -77,7 +77,6 @@ libcompiler2_la_SOURCES = \
 	Pass.cpp \
 	PassDependencyGraphPrinter.cpp \
 	PassManager.cpp \
-	ResolveImmediatePass.cpp \
 	ScheduleClickPass.cpp \
 	ScheduleEarlyPass.cpp \
 	ScheduleLatePass.cpp \
