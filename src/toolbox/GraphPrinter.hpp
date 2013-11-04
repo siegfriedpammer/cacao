@@ -1,4 +1,4 @@
-/* toolbox/GraphTraits.hpp - Graph Traits
+/* toolbox/GraphPrinter.hpp - Graph Printer
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,8 +22,8 @@
 
 */
 
-#ifndef _GRAPH_TRAITS_HPP
-#define _GRAPH_TRAITS_HPP
+#ifndef _GRAPH_PRINTER_HPP
+#define _GRAPH_PRINTER_HPP
 
 #include "toolbox/OStream.hpp"
 
@@ -36,25 +36,23 @@
 
 namespace cacao {
 
-/* The following parts are inspired by the LLVM GraphTraits framework */
-
 template<typename GraphTy, typename NodeTy>
-class GraphTraits {
+class PrintableGraph {
 public:
 	typedef NodeTy NodeType;
-	typedef std::pair<NodeType*,NodeType*> EdgeType;
-	typedef typename std::set<NodeType*> NodeListType;
-	typedef typename std::set<NodeType*>::iterator iterator;
-	typedef typename std::set<NodeType*>::const_iterator const_iterator;
+	typedef std::pair<NodeType,NodeType> EdgeType;
+	typedef typename std::set<NodeType> NodeListType;
+	typedef typename std::set<NodeType>::iterator iterator;
+	typedef typename std::set<NodeType>::const_iterator const_iterator;
 	typedef typename std::set<EdgeType>::iterator edge_iterator;
 	typedef typename std::set<EdgeType>::const_iterator const_edge_iterator;
-	typedef typename std::map<unsigned long,std::set<NodeType*> >::iterator cluster_iterator;
-	typedef typename std::map<unsigned long,std::set<NodeType*> >::const_iterator const_cluster_iterator;
+	typedef typename std::map<unsigned long,std::set<NodeType> >::iterator cluster_iterator;
+	typedef typename std::map<unsigned long,std::set<NodeType> >::const_iterator const_cluster_iterator;
 	typedef typename std::map<unsigned long,std::string>::iterator cluster_name_iterator;
 	typedef typename std::map<unsigned long,std::string>::const_iterator const_cluster_name_iterator;
 
 protected:
-	std::set<NodeType*> nodes;
+	std::set<NodeType> nodes;
 	std::set<EdgeType> edges;
 	std::set<EdgeType> successors;
 	std::map<unsigned long,NodeListType> clusters;
@@ -133,36 +131,36 @@ public:
 		return cluster_name.find(k);
 	}
 
-	OStream& getGraphName(OStream &OS) const {
+	virtual OStream& getGraphName(OStream &OS) const {
 		return OS;
 	}
 
-	unsigned long getNodeID(const GraphTraits<GraphTy,NodeTy>::NodeType &node) const {
-		return (unsigned long)&node;
+	virtual unsigned long getNodeID(const NodeType &node) const {
+		return (unsigned long)node;
 	}
 
-	OStream& getNodeLabel(OStream &OS, const GraphTraits<GraphTy,NodeTy>::NodeType &node) const {
+	virtual OStream& getNodeLabel(OStream &OS, const NodeType &node) const {
 		return OS;
 	}
 
-	OStream& getNodeAttributes(OStream &OS, const GraphTraits<GraphTy,NodeTy>::NodeType &node) const {
+	virtual OStream& getNodeAttributes(OStream &OS, const NodeType &node) const {
 		return OS;
 	}
 
-	OStream& getEdgeLabel(OStream &OS, const GraphTraits<GraphTy,NodeTy>::EdgeType &e) const {
+	virtual OStream& getEdgeLabel(OStream &OS, const EdgeType &e) const {
 		return OS;
 	}
 
-	OStream& getEdgeAttributes(OStream &OS, const GraphTraits<GraphTy,NodeTy>::EdgeType &e) const {
+	virtual OStream& getEdgeAttributes(OStream &OS, const EdgeType &e) const {
 		return OS;
 	}
 
 };
 
-template <class GraphTraitsTy>
+template <class PrintableGraphTy>
 class GraphPrinter {
 public:
-	static void print(const char *filename, const GraphTraitsTy &G) {
+	static void print(const char *filename, const PrintableGraphTy &G) {
 		FILE* file = fopen(filename,"w");
 		OStream OS(file);
 		printHeader(OS,G);
@@ -173,45 +171,45 @@ public:
 		fclose(file);
 	}
 
-	static void printHeader(OStream &OS, const GraphTraitsTy &G) {
+	static void printHeader(OStream &OS, const PrintableGraphTy &G) {
 		OS<<"digraph g1 {\n";
 		OS<<"node [shape = box];\n";
 		OS<<"label = \"";
 		G.getGraphName(OS) <<"\";\n";
 	}
 
-	static void printNodes(OStream &OS, const GraphTraitsTy &G) {
-		for(typename GraphTraitsTy::const_iterator i = G.begin(), e = G.end(); i != e; ++i) {
-			typename GraphTraitsTy::NodeType &node(**i);
+	static void printNodes(OStream &OS, const PrintableGraphTy &G) {
+		for(typename PrintableGraphTy::const_iterator i = G.begin(), e = G.end(); i != e; ++i) {
+			typename PrintableGraphTy::NodeType node(*i);
 			OS<< "\"node_" << G.getNodeID(node) << "\"" << "[label=\"";
 			G.getNodeLabel(OS,node) << "\", ";
 			G.getNodeAttributes(OS,node) << "];\n";
 		}
 	}
 
-	static void printCluster(OStream &OS, const GraphTraitsTy &G) {
-		for(typename GraphTraitsTy::const_cluster_iterator i = G.cluster_begin(),
+	static void printCluster(OStream &OS, const PrintableGraphTy &G) {
+		for(typename PrintableGraphTy::const_cluster_iterator i = G.cluster_begin(),
 				e = G.cluster_end(); i != e; ++i) {
 			unsigned long cid = i->first;
-			const std::set<typename GraphTraitsTy::NodeType*> &set = i->second;
+			const std::set<typename PrintableGraphTy::NodeType> &set = i->second;
 			OS<<"subgraph cluster_" << cid << " {\n";
-			typename GraphTraitsTy::const_cluster_name_iterator name_it = G.cluster_name_find(cid);
+			typename PrintableGraphTy::const_cluster_name_iterator name_it = G.cluster_name_find(cid);
 			if (name_it != G.cluster_name_end()) {
 				OS<<"label = \""<< name_it->second <<"\";\n";
 			}
-			for (typename std::set<typename GraphTraitsTy::NodeType*>::const_iterator ii = set.begin(),
+			for (typename std::set<typename PrintableGraphTy::NodeType>::const_iterator ii = set.begin(),
 					ee = set.end(); ii != ee; ++ii) {
-				typename GraphTraitsTy::NodeType &node = (**ii);
+				typename PrintableGraphTy::NodeType node = (*ii);
 				OS<< "\"node_" << G.getNodeID(node) << "\";\n";
 			}
 			OS<<"}\n";
 		}
 	}
-	static void printEdges(OStream &OS, const GraphTraitsTy &G) {
-		for(typename GraphTraitsTy::const_edge_iterator i = G.edge_begin(),
+	static void printEdges(OStream &OS, const PrintableGraphTy &G) {
+		for(typename PrintableGraphTy::const_edge_iterator i = G.edge_begin(),
 		    e = G.edge_end(); i != e; ++i) {
-			typename GraphTraitsTy::NodeType &a(*i->first);
-			typename GraphTraitsTy::NodeType &b(*i->second);
+			typename PrintableGraphTy::NodeType a(i->first);
+			typename PrintableGraphTy::NodeType b(i->second);
 			OS<< "\"node_" << G.getNodeID(a) << "\" -> " << "\"node_" << G.getNodeID(b) << "\""
 			  << "[label=\"";
 			G.getEdgeLabel(OS,*i) << "\", ";
@@ -219,14 +217,14 @@ public:
 		}
 	}
 
-	static void printFooter(OStream &OS, const GraphTraitsTy &G) {
+	static void printFooter(OStream &OS, const PrintableGraphTy &G) {
 		OS<<"}\n";
 	}
 };
 
 } // end namespace cacao
 
-#endif  // _GRAPH_TRAITS_HPP
+#endif  // _GRAPH_PRINTER_HPP
 
 /*
  * These are local overrides for various environment variables in Emacs.
