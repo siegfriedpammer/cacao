@@ -28,8 +28,9 @@
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
-
 #include "vm/jit/compiler2/PassUsage.hpp"
+
+#include "vm/jit/compiler2/SSAConstructionPass.hpp"
 #include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
 #include "vm/jit/compiler2/ScheduleLatePass.hpp"
 #include "vm/jit/compiler2/ScheduleClickPass.hpp"
@@ -238,6 +239,7 @@ inline OStream& SSAGraph::getEdgeAttributes(OStream& OS, const SSAGraph::EdgeTyp
 // BEGIN SSAPrinterPass
 
 PassUsage& SSAPrinterPass::get_PassUsage(PassUsage &PU) const {
+	PU.add_requires<SSAConstructionPass>();
 	return PU;
 }
 // the address of this variable is used to identify the pass

@@ -53,8 +53,8 @@ public:
 	void schedule(BeginInst *BI);
 	static char ID;
 	ListSchedulingPass() : Pass() {}
-	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PU) const;
+	virtual bool run(JITData &JD);
+	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
 };
 
 } // end namespace compiler2

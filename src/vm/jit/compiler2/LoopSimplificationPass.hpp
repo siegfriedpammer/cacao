@@ -48,8 +48,8 @@ private:
 public:
 	static char ID;
 	LoopSimplificationPass() : Pass() {}
-	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PA) const;
+	virtual bool run(JITData &JD);
+	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
 };
 #endif
 } // end namespace compiler2

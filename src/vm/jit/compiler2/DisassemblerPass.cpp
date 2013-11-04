@@ -26,6 +26,7 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
+#include "vm/jit/compiler2/CodeGenPass.hpp"
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/disass.hpp"
@@ -51,6 +52,11 @@ bool DisassemblerPass::run(JITData &JD) {
 	disassemble(start, end);
 #endif
 	return true;
+}
+
+PassUsage& DisassemblerPass::get_PassUsage(PassUsage &PU) const {
+	PU.add_requires<CodeGenPass>();
+	return PU;
 }
 
 // the address of this variable is used to identify the pass

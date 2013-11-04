@@ -40,8 +40,8 @@ class SSAPrinterPass : public Pass {
 public:
 	static char ID;
 	SSAPrinterPass() : Pass() {}
-	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PA) const;
+	virtual bool run(JITData &JD);
+	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
 };
 
 /**
@@ -55,8 +55,8 @@ private:
 public:
 	static char ID;
 	GlobalSchedulePrinterPass() : Pass() {}
-	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PA) const;
+	virtual bool run(JITData &JD);
+	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
 };
 } // end namespace cacao
 } // end namespace jit

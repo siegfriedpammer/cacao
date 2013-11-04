@@ -27,6 +27,8 @@
 #include "vm/jit/compiler2/Type.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
+#include "vm/jit/compiler2/PassUsage.hpp"
+#include "vm/jit/compiler2/CFGConstructionPass.hpp"
 
 #include "vm/descriptor.hpp"
 
@@ -2276,6 +2278,10 @@ bool SSAConstructionPass::verify() const {
 	return true;
 }
 
+PassUsage& SSAConstructionPass::get_PassUsage(PassUsage &PU) const {
+	PU.add_requires<CFGConstructionPass>();
+	return PU;
+}
 // the address of this variable is used to identify the pass
 char SSAConstructionPass::ID = 0;
 

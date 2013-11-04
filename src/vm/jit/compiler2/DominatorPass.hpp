@@ -126,7 +126,7 @@ private:
 public:
 	static char ID;
 	DominatorPass() : Pass() {}
-	bool run(JITData &JD);
+	virtual bool run(JITData &JD);
 };
 
 } // end namespace compiler2

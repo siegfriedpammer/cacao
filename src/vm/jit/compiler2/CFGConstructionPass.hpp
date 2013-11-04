@@ -42,7 +42,8 @@ class CFGConstructionPass : public Pass {
 public:
 	static char ID;
 	CFGConstructionPass() : Pass() {}
-	bool run(JITData &JD);
+	virtual bool run(JITData &JD);
+	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
 };
 
 } // end namespace compiler2

@@ -70,6 +70,7 @@ public:
 	SSAConstructionPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual bool verify() const;
+	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
 };
 
 } // end namespace cacao

@@ -25,6 +25,8 @@
 #include "vm/jit/compiler2/VerifierPass.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
+#include "vm/jit/compiler2/PassUsage.hpp"
+#include "vm/jit/compiler2/StackAnalysisPass.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/verify/typecheck.hpp"
 
@@ -48,6 +50,10 @@ bool VerifierPass::run(JITData &JD) {
 	return true;
 }
 
+PassUsage& VerifierPass::get_PassUsage(PassUsage &PU) const {
+	PU.add_requires<StackAnalysisPass>();
+	return PU;
+}
 
 // the address of this variable is used to identify the pass
 char VerifierPass::ID = 0;

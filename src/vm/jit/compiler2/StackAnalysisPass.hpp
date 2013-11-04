@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_STACKANALYSISPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/ParserPass.hpp"
 
 namespace cacao {
 namespace jit {
@@ -40,7 +41,8 @@ class StackAnalysisPass : public Pass {
 public:
 	static char ID;
 	StackAnalysisPass() : Pass() {}
-	bool run(JITData &JD);
+	virtual bool run(JITData &JD);
+	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
 };
 
 } // end namespace compiler2
