@@ -125,41 +125,15 @@ MachineCode* compile(methodinfo* m)
 
 	LOG(bold << bold << "Compiler Start: " << reset_color << *m << nl);
 
-	PM.add_Pass<ParserPass>();
-	PM.add_Pass<StackAnalysisPass>();
-#ifdef ENABLE_VERIFIER
-	PM.add_Pass<VerifierPass>();
-#endif
-	PM.add_Pass<CFGConstructionPass>();
 	PM.add_Pass<SSAConstructionPass>();
 	PM.add_Pass<ExamplePass>();
-	PM.add_Pass<LoopPass>();
 	PM.add_Pass<LoopTreePrinterPass>();
-	PM.add_Pass<DominatorPass>();
 	PM.add_Pass<DomTreePrinterPass>();
 	PM.add_Pass<SSAPrinterPass>();
-	PM.add_Pass<ScheduleEarlyPass>();
-	PM.add_Pass<ScheduleLatePass>();
-	PM.add_Pass<ScheduleClickPass>();
 	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleEarlyPass> >();
 	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleLatePass> >();
 	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleClickPass> >();
-	//PM.add_Pass<LoopSimplificationPass>();
-	PM.add_Pass<ListSchedulingPass>();
-	PM.add_Pass<BasicBlockSchedulingPass>();
-	//PM.add_Pass<ResolveImmediatePass>();
-	PM.add_Pass<MachineInstructionSchedulingPass>();
 	PM.add_Pass<MachineInstructionPrinterPass>();
-	PM.add_Pass<MachineLoopPass>();
-
-	PM.add_Pass<LivetimeAnalysisPass>();
-	PM.add_Pass<LinearScanAllocatorPass>();
-	PM.add_Pass<MachineInstructionPrinterPass>();
-
-	PM.add_Pass<LivetimeAnalysisPass>();
-	PM.add_Pass<LinearScanAllocatorPass>();
-	PM.add_Pass<MachineInstructionPrinterPass>();
-
 	PM.add_Pass<CodeGenPass>();
 	if (opt_showdisassemble) {
 		PM.add_Pass<DisassemblerPass>();
