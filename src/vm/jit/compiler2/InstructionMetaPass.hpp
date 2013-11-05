@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/LoopPass.cpp - LoopPass
+/* src/vm/jit/compiler2/InstructionMetaPass.hpp - InstructionMetaPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,36 +22,35 @@
 
 */
 
-#include "vm/jit/compiler2/LoopPass.hpp"
-#include "vm/jit/compiler2/PassUsage.hpp"
-#include "vm/jit/compiler2/CFGMetaPass.hpp"
+#ifndef _JIT_COMPILER2_INSTRUCTIONMETAPASS
+#define _JIT_COMPILER2_INSTRUCTIONMETAPASS
+
+#include "vm/jit/compiler2/Pass.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-template<>
-PassUsage& LoopPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<CFGMetaPass>();
-	return PU;
-}
-
-template<>
-LoopPass::NodeType* LoopPass::get_init_node(JITData &JD) {
-	Method *M = JD.get_Method();
-	return M->get_init_bb();
-}
-
-// the address of this variable is used to identify the pass
-template<>
-char LoopPass::ID = 0;
-
-// register pass
-static PassRegistery<LoopPass> X("LoopPass");
+/**
+ * InstructionMetaPass
+ *
+ * This is a meta pass to communicate Instruction changes to other passes.
+ * If a pass depends on the Instructions then get_PassUsage() should contain PU.add_requires<InstructionMetaPass>().
+ * Analogously, if a pass changes the Instructions PU.add_modifies<InstructionMetaPass>() should be present.
+ */
+class InstructionMetaPass : public Pass {
+public:
+	static char ID;
+	InstructionMetaPass() : Pass() {}
+	virtual bool run(JITData &JD);
+	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+};
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
+
+#endif /* _JIT_COMPILER2_INSTRUCTIONMETAPASS */
 
 
 /*
@@ -67,4 +66,3 @@ static PassRegistery<LoopPass> X("LoopPass");
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */
-

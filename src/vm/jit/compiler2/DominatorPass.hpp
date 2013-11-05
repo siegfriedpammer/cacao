@@ -127,6 +127,7 @@ public:
 	static char ID;
 	DominatorPass() : Pass() {}
 	virtual bool run(JITData &JD);
+	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
 };
 
 } // end namespace compiler2

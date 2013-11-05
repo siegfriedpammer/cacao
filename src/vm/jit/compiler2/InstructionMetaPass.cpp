@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/LoopPass.cpp - LoopPass
+/* src/vm/jit/compiler2/InstructionMetaPass.cpp - InstructionMetaPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,7 +22,8 @@
 
 */
 
-#include "vm/jit/compiler2/LoopPass.hpp"
+#include "vm/jit/compiler2/InstructionMetaPass.hpp"
+#include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/CFGMetaPass.hpp"
 
@@ -30,24 +31,21 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-template<>
-PassUsage& LoopPass::get_PassUsage(PassUsage &PU) const {
+bool InstructionMetaPass::run(JITData &JD) {
+	return true;
+}
+
+// pass usage
+PassUsage& InstructionMetaPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<CFGMetaPass>();
 	return PU;
 }
 
-template<>
-LoopPass::NodeType* LoopPass::get_init_node(JITData &JD) {
-	Method *M = JD.get_Method();
-	return M->get_init_bb();
-}
-
 // the address of this variable is used to identify the pass
-template<>
-char LoopPass::ID = 0;
+char InstructionMetaPass::ID = 0;
 
 // register pass
-static PassRegistery<LoopPass> X("LoopPass");
+static PassRegistery<InstructionMetaPass> X("InstructionMetaPass");
 
 } // end namespace compiler2
 } // end namespace jit
@@ -67,4 +65,3 @@ static PassRegistery<LoopPass> X("LoopPass");
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */
-

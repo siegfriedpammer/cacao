@@ -39,6 +39,7 @@ libcompiler2_la_SOURCES = \
 	Backend.cpp \
 	BasicBlockSchedulingPass.cpp \
 	CFGConstructionPass.cpp \
+	CFGMetaPass.cpp \
 	CodeGenPass.cpp \
 	CodeMemory.cpp \
 	CodeSegment.cpp \
@@ -51,6 +52,7 @@ libcompiler2_la_SOURCES = \
 	ExamplePass.cpp \
 	GraphHelper.cpp \
 	Instruction.cpp \
+	InstructionMetaPass.cpp \
 	InstructionVisitor.cpp \
 	JITData.cpp \
 	LinearScanAllocatorPass.cpp \

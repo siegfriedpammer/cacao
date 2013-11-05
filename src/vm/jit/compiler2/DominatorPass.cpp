@@ -25,6 +25,8 @@
 #include "vm/jit/compiler2/DominatorPass.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
+#include "vm/jit/compiler2/PassUsage.hpp"
+#include "vm/jit/compiler2/CFGMetaPass.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -195,6 +197,11 @@ bool DominatorPass::run(JITData &JD) {
 	return true;
 }
 
+// pass usage
+PassUsage& DominatorPass::get_PassUsage(PassUsage &PU) const {
+	PU.add_requires<CFGMetaPass>();
+	return PU;
+}
 
 // the address of this variable is used to identify the pass
 char DominatorPass::ID = 0;
