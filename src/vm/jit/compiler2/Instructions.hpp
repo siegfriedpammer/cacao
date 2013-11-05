@@ -487,12 +487,20 @@ public:
 	/**
 	 * @param resolved This _should_ not change during compilation
 	 */
-	explicit PUTSTATICInst(Value *value, constant_FMIref *fmiref, bool resolved, Instruction *state_change)
+	explicit PUTSTATICInst(Value *value, constant_FMIref *fmiref, bool resolved,
+			BeginInst* begin, Instruction *state_change)
 			: Instruction(PUTSTATICInstID, value->get_type()), fmiref(fmiref), resolved(resolved) {
 		append_op(value);
+		append_dep(begin);
 		append_dep(state_change);
 	}
+	virtual BeginInst* get_BeginInst() const {
+		BeginInst *begin = (*dep_begin())->to_BeginInst();
+		assert(begin);
+		return begin;
+	}
 	virtual bool has_side_effects() const { return true; }
+	virtual bool is_floating() const { return false; }
 	virtual PUTSTATICInst* to_PUTSTATICInst() { return this; }
 	bool is_resolved() const { return resolved; }
 	constant_FMIref* get_fmiref() const { return fmiref; }
@@ -507,11 +515,19 @@ public:
 	/**
 	 * @param resolved This _should_ not change during compilation
 	 */
-	explicit GETSTATICInst(Type::TypeID type, constant_FMIref *fmiref, bool resolved, Instruction *state_change)
+	explicit GETSTATICInst(Type::TypeID type, constant_FMIref *fmiref, bool resolved,
+			BeginInst *begin, Instruction *state_change)
 			: Instruction(GETSTATICInstID, type), fmiref(fmiref), resolved(resolved) {
+		append_dep(begin);
 		append_dep(state_change);
 	}
+	virtual BeginInst* get_BeginInst() const {
+		BeginInst *begin = (*dep_begin())->to_BeginInst();
+		assert(begin);
+		return begin;
+	}
 	virtual bool has_side_effects() const { return true; }
+	virtual bool is_floating() const { return false; }
 	virtual GETSTATICInst* to_GETSTATICInst() { return this; }
 	bool is_resolved() const { return resolved; }
 	constant_FMIref* get_fmiref() const { return fmiref; }
@@ -661,13 +677,20 @@ private:
 	bool resolved;
 public:
 	explicit INVOKESTATICInst(Type::TypeID type, unsigned size,
-			constant_FMIref *fmiref, bool resolved, Instruction *state_change)
+			constant_FMIref *fmiref, bool resolved, BeginInst *begin, Instruction *state_change)
 			: MultiOpInst(INVOKESTATICInstID, type), MD(size),
 			fmiref(fmiref), resolved(resolved) {
 		assert(state_change && state_change->get_name());
+		append_dep(begin);
 		append_dep(state_change);
 	}
+	virtual BeginInst* get_BeginInst() const {
+		BeginInst *begin = (*dep_begin())->to_BeginInst();
+		assert(begin);
+		return begin;
+	}
 	virtual bool has_side_effects() const { return true; }
+	virtual bool is_floating() const { return false; }
 	void append_parameter(Value *V) {
 		std::size_t i = op_size();
 		assert(i < MD.size());

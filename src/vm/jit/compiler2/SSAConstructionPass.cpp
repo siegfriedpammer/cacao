@@ -1588,7 +1588,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
 					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
 					assert(state_change);
-					Instruction *putstatic = new PUTSTATICInst(s1,fmiref,INSTRUCTION_IS_RESOLVED(iptr),state_change);
+					Instruction *putstatic = new PUTSTATICInst(s1,fmiref,INSTRUCTION_IS_RESOLVED(iptr),
+						BB[bbindex],state_change);
 					write_variable(global_state,bbindex,putstatic);
 					M->add_Instruction(putstatic);
 				}
@@ -1600,7 +1601,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Type::TypeID type = convert_var_type(fmiref->parseddesc.fd->type);
 					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
 					assert(state_change);
-					Instruction *getstatic = new GETSTATICInst(type,fmiref,INSTRUCTION_IS_RESOLVED(iptr),state_change);
+					Instruction *getstatic = new GETSTATICInst(type,fmiref,INSTRUCTION_IS_RESOLVED(iptr),
+						BB[bbindex],state_change);
 					write_variable(iptr->dst.varindex,bbindex,getstatic);
 					write_variable(global_state,bbindex,getstatic);
 					M->add_Instruction(getstatic);
@@ -1873,7 +1875,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
 					assert(state_change);
 					INVOKESTATICInst *I = new INVOKESTATICInst(type,i,fmiref,
-						INSTRUCTION_IS_RESOLVED(iptr),state_change);
+						INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
 					LOG3("INVOKESTATICInst: " << I << " dep = " << state_change << nl);
 					while (i--) {
 						// TODO understand

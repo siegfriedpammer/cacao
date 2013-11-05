@@ -69,6 +69,14 @@ static long test_side_effect(long x, long y) {
     return t;
 }
 
+static long test_side_effect2(long x,long y) {
+    long l = test_getstatic();
+    if ( x < y) {
+        return 1;
+    }
+    return l;
+}
+
 static double mul(double a, double b) {
     return a * b;
 }
