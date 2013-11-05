@@ -25,6 +25,7 @@
 #include "gtest/gtest.h"
 
 #include "future/unordered_set.hpp"
+#include "future/unordered_map.hpp"
 
 
 class TestClass {
@@ -50,7 +51,7 @@ struct hash<TestClass> {
 	}
 };
 
-TEST(future, unordered_set_int) {
+TEST(set,Int) {
 	unordered_set<TestClass> uset;
 	uset.insert(1);
 	uset.insert(2);
@@ -67,7 +68,7 @@ TEST(future, unordered_set_int) {
 }
 
 
-TEST(future, unordered_set_class) {
+TEST(set,Class) {
 	unordered_set<TestClass> uset;
 	uset.insert(TestClass(1));
 	uset.insert(TestClass(2));
@@ -100,7 +101,7 @@ TEST(future, unordered_set_class) {
 	EXPECT_TRUE(uset3.find(TestClass(6)) == uset3.end());
 }
 
-TEST(future, unordered_set_swap) {
+TEST(set, Swap) {
 	unordered_set<TestClass> uset;
 	uset.insert(TestClass(1));
 	uset.insert(TestClass(2));
@@ -146,6 +147,29 @@ TEST(future, unordered_set_swap) {
 	EXPECT_TRUE(uset.find(TestClass(-2)) != uset.end());
 	EXPECT_TRUE(uset.find(TestClass(-3)) != uset.end());
 
+}
+
+
+TEST(map, Int) {
+	unordered_map<int,int> umap;
+	umap[0] = 0;
+	umap[-1] = -1;
+	umap[1] = 1;
+
+	EXPECT_EQ(0,umap[0]);
+	EXPECT_EQ(-1,umap[-1]);
+	EXPECT_EQ(1,umap[1]);
+}
+
+TEST(map, Class) {
+	unordered_map<TestClass,int> umap;
+	umap[TestClass(0)] = 0;
+	umap[TestClass(-1)] = -1;
+	umap[TestClass(1)] = 1;
+
+	EXPECT_EQ(0,umap[TestClass(0)]);
+	EXPECT_EQ(-1,umap[TestClass(-1)]);
+	EXPECT_EQ(1,umap[TestClass(1)]);
 }
 
 }

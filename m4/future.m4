@@ -39,6 +39,13 @@ AC_DEFUN([AC_CHECK_FUTURE],[
   AC_CHECK_HEADER([boost/unordered_set.hpp], [
     AC_DEFINE([HAVE_BOOST_UNORDERED_SET], 1, [boost::unordered_set is available])
   ])
+  dnl unordered map
+  AC_CHECK_HEADER([tr1/unordered_map], [
+    AC_DEFINE([HAVE_STD_TR1_UNORDERED_MAP], 1, [std::tr1::unordered_map is available])
+  ])
+  AC_CHECK_HEADER([boost/unordered_map.hpp], [
+    AC_DEFINE([HAVE_BOOST_UNORDERED_MAP], 1, [boost::unordered_map is available])
+  ])
   dnl all_of any_of none_of
   AC_MSG_CHECKING([whether standard all_of, any_of, none_of are available])
   AC_LINK_IFELSE([AC_LANG_PROGRAM([[

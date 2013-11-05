@@ -31,7 +31,9 @@ noinst_LTLIBRARIES = \
 
 libfuture_la_SOURCES = \
 	algorithm.hpp \
+	future_hash.hpp \
 	memory.hpp \
+	unordered_map.hpp \
 	unordered_set.hpp
 
 
