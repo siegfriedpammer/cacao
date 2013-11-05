@@ -1,4 +1,4 @@
-/* src/toolbox/future.hpp - Get future library features
+/* src/future/algorithm.hpp - future algorithm library features
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,32 +23,10 @@
 */
 
 
-#ifndef FUTURE_HPP_
-#define FUTURE_HPP_ 1
+#ifndef FUTURE_ALGORITHM_HPP_
+#define FUTURE_ALGORITHM_HPP_ 1
 
 #include "config.h"
-
-// get shared_ptr
-#if HAVE_STD_TR1_SHARED_PTR
-
-#include <tr1/memory>
-
-namespace cacao {
-using std::tr1::shared_ptr;
-} // end namespace cacao
-
-#elif HAVE_BOOST_SHARED_PTR
-
-#include <boost/shared_ptr.hpp>
-
-namespace cacao {
-using boost::shared_ptr;
-} // end namespace cacao
-
-#else
-#error "No definition for shared_ptr found"
-#endif
-
 
 // get all_of any_of none_of templates
 #if HAVE_STD_ALL_ANY_NONE_OF
@@ -100,7 +78,7 @@ bool none_of(InputIt first, InputIt last, UnaryPredicate p) {
 } // end namespace cacao
 #endif
 
-#endif /* FUTURE_HPP_ */
+#endif /* FUTURE_ALGORITHM_HPP_ */
 
 /*
  * These are local overrides for various environment variables in Emacs.

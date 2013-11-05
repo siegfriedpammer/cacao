@@ -29,7 +29,9 @@ LIBS =
 noinst_LTLIBRARIES = \
 	libfuture.la
 
-libfuture_la_SOURCES =
+libfuture_la_SOURCES = \
+	algorithm.hpp \
+	memory.hpp
 
 
 ## Local variables:
