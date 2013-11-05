@@ -80,6 +80,7 @@ nodist_EXTRA_libjvm_la_SOURCES = \
 
 libjvm_la_LIBADD = \
 	$(top_builddir)/src/fdlibm/libfdlibm.la \
+	$(top_builddir)/src/future/libfuture.la \
 	$(top_builddir)/src/mm/libmm.la \
 	$(top_builddir)/src/native/libnative.la \
 	$(top_builddir)/src/threads/libthreads.la \

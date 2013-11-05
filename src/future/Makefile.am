@@ -1,6 +1,6 @@
-## src/Makefile.am
+## src/future/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2007, 2008
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -21,31 +21,15 @@
 ## 02110-1301, USA.
 
 
-DIST_SUBDIRS = \
-	cacao \
-	classes \
-	fdlibm \
-	future \
-	mm \
-	native \
-	scripts \
-	threads \
-	toolbox \
-	vm
+AM_CPPFLAGS += -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
 
-# DON'T CHANGE THIS ORDER!!!
+LIBS =
 
-SUBDIRS = \
-	classes \
-	fdlibm \
-	future \
-	toolbox \
-	mm \
-	vm \
-	threads \
-	native \
-	cacao \
-	scripts
+
+noinst_LTLIBRARIES = \
+	libfuture.la
+
+libfuture_la_SOURCES =
 
 
 ## Local variables:
