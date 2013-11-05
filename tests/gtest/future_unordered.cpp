@@ -31,7 +31,7 @@
 class TestClass {
 public:
 	int x;
-	TestClass(int x) : x(x) {}
+	explicit TestClass(int x) : x(x) {}
 };
 
 inline bool operator==(const TestClass &lhs, const TestClass &rhs) {
@@ -52,7 +52,7 @@ struct hash<TestClass> {
 };
 
 TEST(set,Int) {
-	unordered_set<TestClass> uset;
+	unordered_set<int> uset;
 	uset.insert(1);
 	uset.insert(2);
 	uset.insert(3);
@@ -172,6 +172,29 @@ TEST(map, Class) {
 	EXPECT_EQ(1,umap[TestClass(1)]);
 }
 
+
+TEST(multiset,Int) {
+	unordered_multiset<int> uset;
+	uset.insert(1);
+	uset.insert(2);
+	uset.insert(3);
+	uset.insert(4);
+	uset.insert(5);
+	uset.insert(1);
+	uset.insert(2);
+	uset.insert(3);
+	uset.insert(4);
+	uset.insert(5);
+
+	EXPECT_EQ(10,uset.size());
+
+	EXPECT_TRUE(uset.find(1) != uset.end());
+	EXPECT_TRUE(uset.find(2) != uset.end());
+	EXPECT_TRUE(uset.find(3) != uset.end());
+	EXPECT_TRUE(uset.find(4) != uset.end());
+	EXPECT_TRUE(uset.find(5) != uset.end());
+	EXPECT_TRUE(uset.find(6) == uset.end());
+}
 }
 
 /*
