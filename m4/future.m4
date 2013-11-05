@@ -32,6 +32,13 @@ AC_DEFUN([AC_CHECK_FUTURE],[
   AC_CHECK_HEADER([boost/shared_ptr.hpp], [
     AC_DEFINE([HAVE_BOOST_SHARED_PTR], 1, [boost::shared_ptr is available])
   ])
+  dnl unordered set
+  AC_CHECK_HEADER([tr1/unordered_set], [
+    AC_DEFINE([HAVE_STD_TR1_UNORDERED_SET], 1, [std::tr1::unordered_set is available])
+  ])
+  AC_CHECK_HEADER([boost/unordered_set.hpp], [
+    AC_DEFINE([HAVE_BOOST_UNORDERED_SET], 1, [boost::unordered_set is available])
+  ])
   dnl all_of any_of none_of
   AC_MSG_CHECKING([whether standard all_of, any_of, none_of are available])
   AC_LINK_IFELSE([AC_LANG_PROGRAM([[

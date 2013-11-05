@@ -49,6 +49,7 @@ LDADD=libgtest_main.a \
 TESTS = sample \
 	future_algorithm \
 	future_memory \
+	future_unordered \
 	logging_test
 
 check_PROGRAMS = $(TESTS)

@@ -31,7 +31,8 @@ noinst_LTLIBRARIES = \
 
 libfuture_la_SOURCES = \
 	algorithm.hpp \
-	memory.hpp
+	memory.hpp \
+	unordered_set.hpp
 
 
 ## Local variables:
