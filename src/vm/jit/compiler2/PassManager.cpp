@@ -168,17 +168,14 @@ public:
 		stack.push_back(id);
 		PassUsage &PU = pu_map[id];
 		LOG3("prescheduled: " << get_Pass_name(id) << nl);
-		// XXX we check run_after before requires to ensure that required passes are up to date
-		// is this really sufficient?
-		// schedule run_after
 		bool fixpoint;
 		do {
 			fixpoint = true;
-			for (PassUsage::const_iterator i = PU.run_after_begin(), e  = PU.run_after_end();
+			// schedule schedule_after
+			for (PassUsage::const_iterator i = PU.schedule_after_begin(), e  = PU.schedule_after_end();
 					i != e ; ++i) {
-				LOG3(" run_after: " << get_Pass_name(*i) << nl);
-				// XXX probably we should check new_scheduled not ready
-				if (ready.find(*i) == ready.end()) {
+				LOG3(" schedule_after: " << get_Pass_name(*i) << nl);
+				if (std::find(new_schedule.rbegin(),new_schedule.rend(),*i) == new_schedule.rend()) {
 					operator()(*i);
 					fixpoint = false;
 				}
@@ -222,7 +219,20 @@ struct RunBefore : public std::unary_function<PassInfo::IDTy,void> {
 		: pu_map(pu_map), id(id) {}
 
 	void operator()(PassInfo::IDTy before) {
-		pu_map[before].add_run_after(id);
+		//pu_map[before].add_schedule_after(id);
+		pu_map[before].add_requires(id);
+	}
+};
+
+struct ScheduleBefore : public std::unary_function<PassInfo::IDTy,void> {
+	ID2PUTy &pu_map;
+	PassInfo::IDTy id;
+
+	ScheduleBefore(ID2PUTy &pu_map, PassInfo::IDTy id)
+		: pu_map(pu_map), id(id) {}
+
+	void operator()(PassInfo::IDTy before) {
+		pu_map[before].add_schedule_after(id);
 	}
 };
 
@@ -270,6 +280,8 @@ void PassManager::schedulePasses() {
 		pass->get_PassUsage(PA);
 		// add run before
 		std::for_each(PA.run_before_begin(),PA.run_before_end(),RunBefore(pu_map,id));
+		// add schedule before
+		std::for_each(PA.schedule_before_begin(),PA.schedule_before_end(),ScheduleBefore(pu_map,id));
 	}
 	// fill reverser required map
 	std::for_each(pu_map.begin(),pu_map.end(),ReverseRequire(reverse_require_map));

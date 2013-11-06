@@ -1054,7 +1054,7 @@ static PassRegistery<LinearScanAllocatorPass> X("LinearScanAllocatorPass");
 PassUsage& LinearScanAllocator2Pass::get_PassUsage(PassUsage &PU) const {
 	// requires
 	//PU.add_requires<LinearScanAllocatorPass>();
-	PU.add_run_after<LinearScanAllocatorPass>();
+	PU.add_schedule_after<LinearScanAllocatorPass>();
 	// add requirements from super class
 	return LinearScanAllocatorPass::get_PassUsage(PU);
 }

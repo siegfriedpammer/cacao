@@ -72,8 +72,9 @@ private:
 	std::set<EdgeType> req;
 	std::set<EdgeType> mod;
 	std::set<EdgeType> dstr;
-	std::set<EdgeType> run_after;
+	std::set<EdgeType> schedule_after;
 	std::set<EdgeType> run_before;
+	std::set<EdgeType> schedule_before;
 public:
 
     PassDependencyGraphPrinter(PassManager &PM) {
@@ -93,8 +94,9 @@ public:
 			std::for_each(PU.requires_begin(), PU.requires_end(),AddEdge(edges,req,PI));
 			std::for_each(PU.modifies_begin(), PU.modifies_end(),AddEdge(edges,mod,PI));
 			std::for_each(PU.destroys_begin(), PU.destroys_end(),AddEdge(edges,dstr,PI));
-			std::for_each(PU.run_after_begin(), PU.run_after_end(),AddEdge(edges,run_after,PI));
+			std::for_each(PU.schedule_after_begin(), PU.schedule_after_end(),AddEdge(edges,schedule_after,PI));
 			std::for_each(PU.run_before_begin(), PU.run_before_end(),AddEdge(edges,run_before,PI,true));
+			std::for_each(PU.schedule_before_begin(), PU.schedule_before_end(),AddEdge(edges,schedule_before,PI,true));
 		}
 	}
 
@@ -109,8 +111,9 @@ public:
 		if (contains(req.begin(),req.end(),edge)) OS << "r";
 		if (contains(mod.begin(),mod.end(),edge)) OS << "m";
 		if (contains(dstr.begin(),dstr.end(),edge)) OS << "d";
-		if (contains(run_after.begin(),run_after.end(),edge)) OS << "a";
+		if (contains(schedule_after.begin(),schedule_after.end(),edge)) OS << "a";
 		if (contains(run_before.begin(),run_before.end(),edge)) OS << "b";
+		if (contains(schedule_before.begin(),schedule_before.end(),edge)) OS << "s";
 		return OS;
 	}
 

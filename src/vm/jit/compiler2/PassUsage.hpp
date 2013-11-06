@@ -37,8 +37,21 @@ namespace compiler2 {
 class Pass;
 
 /**
- * PassUsage
- * This is a Container to track dependencies between passes
+ * Stores the interdependencies of a pass.
+ *
+ * add_modifies and add_destroys can be use to invalidate other passes.
+ *
+ * The others are used to control the placement of a pass.
+ *
+ * add_requires<PassName>() and add_schedule_after<>(PassName) assert that the pass
+ * PassName must be scheduled before the current pass. The first version also ensures
+ * that PassName is up to date. It also allows the retrieval of the info by using
+ * get_Pass<PassName>().
+ *
+ * add_run_before<PassName> and add_schedule_before<PassName>() ensure that the
+ * current pass is scheduled before PassName. The first version also enforces
+ * that the current pass is up to date. add_run_before(add_schedule_before) is the
+ * inverse operation of add_requires(add_schedule_after).
  */
 class PassUsage {
 public:
@@ -49,7 +62,8 @@ private:
 	PIIDSet destroys;
 	PIIDSet modifies;
 	PIIDSet run_before;
-	PIIDSet run_after;
+	PIIDSet schedule_after;
+	PIIDSet schedule_before;
 
 	bool is_required(char &ID) const {
 		return requires.find(&ID) != requires.end();
@@ -59,7 +73,7 @@ public:
 	PassUsage() {}
 
 	/**
-	 * PassName is required
+	 * PassName is required.
 	 */
 	template<class PassName>
 	void add_requires() {
@@ -70,7 +84,7 @@ public:
 	}
 
 	/**
-	 * PassName will be invalidated
+	 * PassName will be invalidated.
 	 */
 	template<class PassName>
 	void add_destroys() {
@@ -81,7 +95,7 @@ public:
 	}
 
 	/**
-	 * PassName will be modified
+	 * PassName will be modified. All passed depending on PassName are invalidated.
 	 */
 	template<class PassName>
 	void add_modifies() {
@@ -92,7 +106,9 @@ public:
 	}
 
 	/**
-	 * Run before PassName
+	 * Run before PassName.
+	 *
+	 * This enforces that the current pass is up to date before running PassName.
 	 */
 	template<class PassName>
 	void add_run_before() {
@@ -103,17 +119,33 @@ public:
 	}
 
 	/**
-	 * Run after PassName.
+	 * Schedule before PassName.
 	 *
-	 * Like add_requires but does not rerun PassName if not up to date. Also,
-	 * it is not allowed the use get_Pass<PassName>().
+	 * This ensures that the current pass has been executed at least once. It is
+	 * _not_ needed to be up to date.
 	 */
 	template<class PassName>
-	void add_run_after() {
-		run_after.insert(&PassName::ID);
+	void add_schedule_before() {
+		schedule_before.insert(&PassName::ID);
 	}
-	void add_run_after(PassInfo::IDTy id) {
-		run_after.insert(id);
+	void add_schedule_before(PassInfo::IDTy id) {
+		schedule_before.insert(id);
+	}
+
+	/**
+	 * Schedule after PassName.
+	 *
+	 * Like add_requires but does not rerun PassName if not up to date. Also,
+	 * it is not allowed the use get_Pass<PassName>(). This does _not_ force
+	 * a pass to be scheduled at all! It is only used to express schedule
+	 * dependencies.
+	 */
+	template<class PassName>
+	void add_schedule_after() {
+		schedule_after.insert(&PassName::ID);
+	}
+	void add_schedule_after(PassInfo::IDTy id) {
+		schedule_after.insert(id);
 	}
 
 	const_iterator destroys_begin() const { return destroys.begin(); }
@@ -128,8 +160,11 @@ public:
 	const_iterator run_before_begin() const { return run_before.begin(); }
 	const_iterator run_before_end()   const { return run_before.end(); }
 
-	const_iterator run_after_begin() const { return run_after.begin(); }
-	const_iterator run_after_end()   const { return run_after.end(); }
+	const_iterator schedule_after_begin() const { return schedule_after.begin(); }
+	const_iterator schedule_after_end()   const { return schedule_after.end(); }
+
+	const_iterator schedule_before_begin() const { return schedule_before.begin(); }
+	const_iterator schedule_before_end()   const { return schedule_before.end(); }
 
 	friend class Pass;
 };
