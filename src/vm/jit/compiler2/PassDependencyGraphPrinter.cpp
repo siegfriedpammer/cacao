@@ -43,12 +43,19 @@ struct AddEdge : public std::unary_function<PassInfo::IDTy,void> {
 	std::set<EdgeType> &edges;
 	std::set<EdgeType> &set;
 	argument_type from;
+	bool reverse;
 	// constructor
-	AddEdge(std::set<EdgeType> &edges, std::set<EdgeType> &set, argument_type from)
-		: edges(edges), set(set), from(from) {}
+	AddEdge(std::set<EdgeType> &edges, std::set<EdgeType> &set, argument_type from, bool reverse=false)
+		: edges(edges), set(set), from(from), reverse(reverse) {}
 	// call operator
 	void operator()(const argument_type &to) {
-		EdgeType edge = std::make_pair(from,to);
+		EdgeType edge;
+		if (reverse) {
+			edge = std::make_pair(to,from);
+		}
+		else {
+			edge = std::make_pair(from,to);
+		}
 		edges.insert(edge);
 		set.insert(edge);
 	}
@@ -65,6 +72,8 @@ private:
 	std::set<EdgeType> req;
 	std::set<EdgeType> mod;
 	std::set<EdgeType> dstr;
+	std::set<EdgeType> run_after;
+	std::set<EdgeType> run_before;
 public:
 
     PassDependencyGraphPrinter(PassManager &PM) {
@@ -84,6 +93,8 @@ public:
 			std::for_each(PU.requires_begin(), PU.requires_end(),AddEdge(edges,req,PI));
 			std::for_each(PU.modifies_begin(), PU.modifies_end(),AddEdge(edges,mod,PI));
 			std::for_each(PU.destroys_begin(), PU.destroys_end(),AddEdge(edges,dstr,PI));
+			std::for_each(PU.run_after_begin(), PU.run_after_end(),AddEdge(edges,run_after,PI));
+			std::for_each(PU.run_before_begin(), PU.run_before_end(),AddEdge(edges,run_before,PI,true));
 		}
 	}
 
@@ -98,6 +109,8 @@ public:
 		if (contains(req.begin(),req.end(),edge)) OS << "r";
 		if (contains(mod.begin(),mod.end(),edge)) OS << "m";
 		if (contains(dstr.begin(),dstr.end(),edge)) OS << "d";
+		if (contains(run_after.begin(),run_after.end(),edge)) OS << "a";
+		if (contains(run_before.begin(),run_before.end(),edge)) OS << "b";
 		return OS;
 	}
 
