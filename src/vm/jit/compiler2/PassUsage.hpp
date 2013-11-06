@@ -48,6 +48,8 @@ private:
 	PIIDSet requires;
 	PIIDSet destroys;
 	PIIDSet modifies;
+	PIIDSet run_before;
+	PIIDSet run_after;
 
 	bool is_required(char &ID) const {
 		return requires.find(&ID) != requires.end();
@@ -56,19 +58,62 @@ private:
 public:
 	PassUsage() {}
 
+	/**
+	 * PassName is required
+	 */
 	template<class PassName>
 	void add_requires() {
 		requires.insert(&PassName::ID);
 	}
+	void add_requires(PassInfo::IDTy id) {
+		requires.insert(id);
+	}
 
+	/**
+	 * PassName will be invalidated
+	 */
 	template<class PassName>
 	void add_destroys() {
 		destroys.insert(&PassName::ID);
 	}
+	void add_destroys(PassInfo::IDTy id) {
+		destroys.insert(id);
+	}
 
+	/**
+	 * PassName will be modified
+	 */
 	template<class PassName>
 	void add_modifies() {
 		modifies.insert(&PassName::ID);
+	}
+	void add_modifies(PassInfo::IDTy id) {
+		modifies.insert(id);
+	}
+
+	/**
+	 * Run before PassName
+	 */
+	template<class PassName>
+	void add_run_before() {
+		run_before.insert(&PassName::ID);
+	}
+	void add_run_before(PassInfo::IDTy id) {
+		run_before.insert(id);
+	}
+
+	/**
+	 * Run after PassName.
+	 *
+	 * Like add_requires but does not rerun PassName if not up to date. Also,
+	 * it is not allowed the use get_Pass<PassName>().
+	 */
+	template<class PassName>
+	void add_run_after() {
+		run_after.insert(&PassName::ID);
+	}
+	void add_run_after(PassInfo::IDTy id) {
+		run_after.insert(id);
 	}
 
 	const_iterator destroys_begin() const { return destroys.begin(); }
@@ -79,6 +124,12 @@ public:
 
 	const_iterator requires_begin() const { return requires.begin(); }
 	const_iterator requires_end()   const { return requires.end(); }
+
+	const_iterator run_before_begin() const { return run_before.begin(); }
+	const_iterator run_before_end()   const { return run_before.end(); }
+
+	const_iterator run_after_begin() const { return run_after.begin(); }
+	const_iterator run_after_end()   const { return run_after.end(); }
 
 	friend class Pass;
 };

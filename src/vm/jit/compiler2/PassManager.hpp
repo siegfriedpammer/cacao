@@ -106,11 +106,6 @@ private:
 
 	Pass* get_initialized_Pass(PassInfo::IDTy ID);
 
-	const char * get_Pass_name(PassInfo::IDTy ID) {
-		PassInfo *PI = registered_passes()[ID];
-		assert(PI && "Pass not registered");
-		return PI->get_name();
-	}
 	template<class _PassClass>
 	_PassClass* get_Pass_result() {
 		assert_msg(result_ready[&_PassClass::ID], "result for "
@@ -119,6 +114,11 @@ private:
 	}
 	void schedulePasses();
 public:
+	const char * get_Pass_name(PassInfo::IDTy ID) {
+		PassInfo *PI = registered_passes()[ID];
+		assert(PI && "Pass not registered");
+		return PI->get_name();
+	}
 	PassManager() {
 		MYLOG("PassManager::PassManager()" << nl);
 	}
