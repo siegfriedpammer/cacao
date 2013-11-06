@@ -27,6 +27,7 @@
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/Method.hpp"
+#include "vm/jit/compiler2/InstructionMetaPass.hpp"
 #include "toolbox/logging.hpp"
 
 // define name for debugging (see logging.hpp)
@@ -48,7 +49,7 @@ bool ExamplePass::run(JITData &JD) {
 
 // pass usage
 PassUsage& ExamplePass::get_PassUsage(PassUsage &PU) const {
-	//PU.add_requires<YyyPass>();
+	PU.add_requires<InstructionMetaPass>();
 	return PU;
 }
 

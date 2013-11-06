@@ -125,7 +125,6 @@ MachineCode* compile(methodinfo* m)
 
 	LOG(bold << bold << "Compiler Start: " << reset_color << *m << nl);
 
-	PM.add_Pass<SSAConstructionPass>();
 	PM.add_Pass<ExamplePass>();
 	PM.add_Pass<LoopTreePrinterPass>();
 	PM.add_Pass<DomTreePrinterPass>();
