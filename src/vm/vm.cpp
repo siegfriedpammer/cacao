@@ -2222,19 +2222,42 @@ static void vm_compile_all(void)
 *******************************************************************************/
 
 #if !defined(NDEBUG)
+#if defined(ENABLE_COMPILER2)
+#include "vm/jit/compiler2/Compiler.hpp"
+#endif
 static void vm_compile_method(char* mainname)
 {
 	methodinfo *m;
 
-	/* create, load and link the main class */
+	if (opt_jar == true) {
+		/* open jar file with java.util.jar.JarFile */
 
-	mainclass = load_class_bootstrap(Utf8String::from_utf8(mainname));
+		mainname = vm_get_mainclass_from_jar(mainname);
 
-	if (mainclass == NULL)
+		if (mainname == NULL)
+			vm_exit(1);
+	}
+
+	/* load the main class */
+
+	Utf8String mainutf = Utf8String::from_utf8(mainname);
+
+	classinfo* mainclass = load_class_bootstrap(mainutf);
+
+	/* error loading class */
+
+	java_handle_t* e = exceptions_get_and_clear_exception();
+
+	if ((e != NULL) || (mainclass == NULL)) {
+		exceptions_throw_noclassdeffounderror_cause(e);
 		exceptions_print_stacktrace();
+		vm_exit(1);
+	}
 
-	if (!link_class(mainclass))
+	if (!link_class(mainclass)) {
 		exceptions_print_stacktrace();
+		vm_exit(1);
+	}
 
 	if (opt_CompileSignature != NULL) {
 		m = class_resolveclassmethod(mainclass,
@@ -2255,7 +2278,14 @@ static void vm_compile_method(char* mainname)
 		os::abort("vm_compile_method: java.lang.NoSuchMethodException: %s.%s",
 				 opt_CompileMethod, opt_CompileSignature ? opt_CompileSignature : "");
 
-	jit_compile(m);
+#if defined(ENABLE_COMPILER2)
+	if (opt_DebugCompiler2) {
+		cacao::jit::compiler2::compile(m);
+	} else
+#endif
+	{
+		jit_compile(m);
+	}
 }
 #endif /* !defined(NDEBUG) */
 
