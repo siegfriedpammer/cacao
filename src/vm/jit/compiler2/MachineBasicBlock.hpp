@@ -28,7 +28,8 @@
 #include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
 #include "toolbox/ordered_list.hpp"
 
-#include "toolbox/future.hpp" // for all_of, none_of
+#include "future/algorithm.hpp" // for all_of, none_of
+
 namespace cacao {
 
 // forward declarations

@@ -26,7 +26,6 @@
 #define _JIT_COMPILER2_MACHINEINSTRUCTIONSCHEDULE
 
 #include "toolbox/ordered_list.hpp"
-#include "toolbox/future.hpp"
 
 #include <map>
 #include <list>

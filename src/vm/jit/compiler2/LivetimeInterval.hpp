@@ -28,6 +28,8 @@
 #include "vm/jit/compiler2/Type.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 
+#include "future/memory.hpp"            // for cacao::shared_ptr
+
 #include <map>
 #include <set>
 #include <list>

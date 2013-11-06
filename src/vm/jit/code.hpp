@@ -33,7 +33,7 @@
 #include "vm/jit/methodheader.hpp"      // for CodeInfoPointer
 #include "vm/types.hpp"                 // for u1, s4
 
-#include "toolbox/future.hpp"           // for cacao::shared_ptr
+#include "future/memory.hpp"            // for cacao::shared_ptr
 #include "vm/jit/Patcher.hpp"           // for cacao::Patcher
 
 class LinenumberTable;
