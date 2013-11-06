@@ -26,8 +26,7 @@
 #define _JIT_COMPILER2_PASSUSAGE
 
 #include "vm/jit/compiler2/PassManager.hpp"
-
-#include <set>
+#include "future/unordered_set.hpp"
 
 namespace cacao {
 namespace jit {
@@ -55,7 +54,7 @@ class Pass;
  */
 class PassUsage {
 public:
-	typedef std::set<PassInfo::IDTy> PIIDSet;
+	typedef unordered_set<PassInfo::IDTy> PIIDSet;
 	typedef PIIDSet::const_iterator const_iterator;
 private:
 	PIIDSet requires;

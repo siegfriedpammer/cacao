@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_LOOPBASE
 
 #include <cstddef> // for NULL
+#include "future/unordered_set.hpp"
 
 #include <set>
 #include <map>
@@ -43,7 +44,7 @@ template <class _T>
 class LoopBase {
 public:
 	typedef _T NodeType;
-	typedef std::set<LoopBase*> LoopSetTy;
+	typedef unordered_set<LoopBase*> LoopSetTy;
 	typedef typename LoopSetTy::iterator loop_iterator;
 private:
 	NodeType *header;

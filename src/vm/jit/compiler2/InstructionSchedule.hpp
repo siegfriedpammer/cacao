@@ -25,7 +25,7 @@
 #ifndef _JIT_COMPILER2_INSTRUCTIONSCHEDULE
 #define _JIT_COMPILER2_INSTRUCTIONSCHEDULE
 
-#include <map>
+#include "future/unordered_map.hpp"
 
 namespace cacao {
 namespace jit {
@@ -44,36 +44,37 @@ public:
 	typedef typename InstructionListTy::const_iterator const_inst_iterator;
 	typedef typename InstructionListTy::const_reverse_iterator const_reverse_inst_iterator;
 protected:
-	std::map<const BeginInst*, InstructionListTy> map;
+	typedef unordered_map<const BeginInst*, InstructionListTy> MapTy;
+	MapTy map;
 public:
 	InstructionSchedule() {}
 	_Inst* operator[](const BeginInst* BI) const {
 		return get(BI);
 	}
 	_Inst* get(const BeginInst* BI) const {
-		typename std::map<const BeginInst*, InstructionListTy>::const_iterator i = map.find(BI);
+		typename MapTy::const_iterator i = map.find(BI);
 		if (i == map.end()) {
 			return NULL;
 		}
 		return i->second;
 	}
 	const_inst_iterator inst_begin(const BeginInst* BI) const {
-		typename std::map<const BeginInst*, InstructionListTy>::const_iterator i = map.find(BI);
+		typename MapTy::const_iterator i = map.find(BI);
 		assert(i != map.end());
 		return i->second.begin();
 	}
 	const_inst_iterator inst_end(const BeginInst* BI) const {
-		typename std::map<const BeginInst*, InstructionListTy>::const_iterator i = map.find(BI);
+		typename MapTy::const_iterator i = map.find(BI);
 		assert(i != map.end());
 		return i->second.end();
 	}
 	const_reverse_inst_iterator inst_rbegin(const BeginInst* BI) const {
-		typename std::map<const BeginInst*, InstructionListTy>::const_iterator i = map.find(BI);
+		typename MapTy::const_iterator i = map.find(BI);
 		assert(i != map.end());
 		return i->second.rbegin();
 	}
 	const_reverse_inst_iterator inst_rend(const BeginInst* BI) const {
-		typename std::map<const BeginInst*, InstructionListTy>::const_iterator i = map.find(BI);
+		typename MapTy::const_iterator i = map.find(BI);
 		assert(i != map.end());
 		return i->second.rend();
 	}

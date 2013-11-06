@@ -128,15 +128,15 @@ inline bool contains(Container c, const ValueType &val) {
 	return c.find(val) != c.end();
 }
 
-typedef std::map<PassInfo::IDTy,PassUsage> ID2PUTy;
-typedef std::map<PassInfo::IDTy,std::set<PassInfo::IDTy> > ID2MapTy;
+typedef unordered_map<PassInfo::IDTy,PassUsage> ID2PUTy;
+typedef unordered_map<PassInfo::IDTy,unordered_set<PassInfo::IDTy> > ID2MapTy;
 
 struct Invalidate :
 public std::unary_function<PassInfo::IDTy,void> {
 	ID2MapTy &reverse_require_map;
-	std::set<PassInfo::IDTy> &ready;
+	unordered_set<PassInfo::IDTy> &ready;
 	// constructor
-	Invalidate(ID2MapTy &reverse_require_map, std::set<PassInfo::IDTy> &ready)
+	Invalidate(ID2MapTy &reverse_require_map, unordered_set<PassInfo::IDTy> &ready)
 		: reverse_require_map(reverse_require_map), ready(ready) {}
 	// function call operator
 	void operator()(PassInfo::IDTy id) {
@@ -150,14 +150,14 @@ public std::unary_function<PassInfo::IDTy,void> {
 class PassScheduler {
 private:
 	std::deque<PassInfo::IDTy> &unhandled;
-	std::set<PassInfo::IDTy> &ready;
+	unordered_set<PassInfo::IDTy> &ready;
 	std::list<PassInfo::IDTy> &stack;
 	PassManager::ScheduleListTy &new_schedule;
 	ID2PUTy &pu_map;
 	ID2MapTy &reverse_require_map;
 public:
 	/// constructor
-	PassScheduler(std::deque<PassInfo::IDTy> &unhandled, std::set<PassInfo::IDTy> &ready,
+	PassScheduler(std::deque<PassInfo::IDTy> &unhandled, unordered_set<PassInfo::IDTy> &ready,
 		std::list<PassInfo::IDTy> &stack, PassManager::ScheduleListTy &new_schedule,
 		ID2PUTy &pu_map, ID2MapTy &reverse_require_map)
 			: unhandled(unhandled), ready(ready), stack(stack), new_schedule(new_schedule),
@@ -266,7 +266,7 @@ void PassManager::schedulePasses() {
 	latest = this;
 
 	std::deque<PassInfo::IDTy> unhandled;
-	std::set<PassInfo::IDTy> ready;
+	unordered_set<PassInfo::IDTy> ready;
 	std::list<PassInfo::IDTy> stack;
 	ScheduleListTy new_schedule;
 	ID2PUTy pu_map;

@@ -27,8 +27,8 @@
 
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Method.hpp"
-#include <map>
-#include <set>
+#include "future/unordered_set.hpp"
+#include "future/unordered_map.hpp"
 
 namespace cacao {
 namespace jit {
@@ -41,10 +41,10 @@ namespace compiler2 {
  */
 class GlobalSchedule {
 public:
-	typedef std::set<Instruction*>::const_iterator const_inst_iterator;
+	typedef unordered_set<Instruction*>::const_iterator const_inst_iterator;
 protected:
-	std::map<const Instruction*, BeginInst*> map;
-	std::map<const BeginInst*, std::set<Instruction*> > bb_map;
+	unordered_map<const Instruction*, BeginInst*> map;
+	unordered_map<const BeginInst*, unordered_set<Instruction*> > bb_map;
 	void set_schedule(const Method* M) {
 		map.clear();
 		for (Method::InstructionListTy::const_iterator i = M->begin(),
@@ -68,19 +68,19 @@ public:
 		return get(I);
 	}
 	BeginInst* get(const Instruction* I) const {
-		std::map<const Instruction*, BeginInst*>::const_iterator i = map.find(I);
+		unordered_map<const Instruction*, BeginInst*>::const_iterator i = map.find(I);
 		if (i == map.end()) {
 			return NULL;
 		}
 		return i->second;
 	}
 	const_inst_iterator inst_begin(const BeginInst* BI) const {
-		std::map<const BeginInst*, std::set<Instruction*> >::const_iterator i = bb_map.find(BI);
+		unordered_map<const BeginInst*, unordered_set<Instruction*> >::const_iterator i = bb_map.find(BI);
 		assert(i != bb_map.end());
 		return i->second.begin();
 	}
 	const_inst_iterator inst_end(const BeginInst* BI) const {
-		std::map<const BeginInst*, std::set<Instruction*> >::const_iterator i = bb_map.find(BI);
+		unordered_map<const BeginInst*, unordered_set<Instruction*> >::const_iterator i = bb_map.find(BI);
 		assert(i != bb_map.end());
 		return i->second.end();
 	}
