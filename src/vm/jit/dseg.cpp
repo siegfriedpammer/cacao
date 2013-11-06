@@ -581,7 +581,7 @@ void dseg_add_target(codegendata *cd, basicblock *target)
 
 *******************************************************************************/
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__S390__) || defined(__XDSPCORE__) || defined(__M68K__) || defined(ENABLE_INTRP)
+#if defined(__I386__) || defined(__X86_64__) || defined(__S390__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
 void dseg_adddata(codegendata *cd)
 {
 	dataref *dr;
@@ -602,7 +602,7 @@ void dseg_adddata(codegendata *cd)
 
 *******************************************************************************/
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(__M68K__) || defined(ENABLE_INTRP)
+#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
 void dseg_resolve_datareferences(jitdata *jd)
 {
 	codeinfo    *code;

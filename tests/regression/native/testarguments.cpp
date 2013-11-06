@@ -1,6 +1,6 @@
 /* tests/regression/native/testarguments.c - tests argument passing
 
-   Copyright (C) 1996-2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -25,7 +25,9 @@
 
 #include "config.h"
 
+#ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
+#endif
 
 #include <cstdio>
 #include <cstdlib>

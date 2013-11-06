@@ -23,22 +23,23 @@
 */
 
 
+#include "vm/zip.hpp"
 #include "config.h"
 
-#include <assert.h>
-#include <errno.h>
+#include <cassert>
+#include <cerrno>
 #include <unistd.h>
 #include <zlib.h>
 
-#include "vm/types.hpp"
+#include "mm/memory.hpp"
 
-#include "vm/descriptor.hpp" /* needed to prevent circular dependency */
 #include "toolbox/hashtable.hpp"
 
 #include "mm/memory.hpp"
 
 #include "vm/os.hpp"
 #include "vm/suck.hpp"
+#include "vm/types.hpp"
 #include "vm/utf8.hpp"
 #include "vm/vm.hpp"
 #include "vm/zip.hpp"
@@ -146,43 +147,29 @@ struct cdsfh {
 #define EOCDR_ENTRIES                10
 #define EOCDR_OFFSET                 16
 
-typedef struct eocdr eocdr;
-
 struct eocdr {
 	u2 entries;
 	u4 offset;
 };
 
-/* zip_open ********************************************************************
 
-   XXX
+/***
+ * Load zip file into memory
+ */
+ZipFile *ZipFile::open(const char *path) {
+	int     fd;
+	u1      lfh_signature[SIGNATURE_LENGTH];
+	off_t   len;
+	u1     *p;
+	eocdr   eocdr;
+	cdsfh   cdsfh;
 
-*******************************************************************************/
+	// first of all, open the file
 
-hashtable *zip_open(char *path)
-{
-	hashtable               *ht;
-	hashtable_zipfile_entry *htzfe;
-	int                      fd;
-	u1                       lfh_signature[SIGNATURE_LENGTH];
-	off_t                    len;
-	u1                      *filep;
-	s4                       i;
-	u1                      *p;
-	eocdr                    eocdr;
-	cdsfh                    cdsfh;
-	const char              *filename;
-	const char              *classext;
-	Utf8String               u;
-	u4                       key;       /* hashkey computed from utf-text     */
-	u4                       slot;      /* slot in hashtable                  */
-
-	/* first of all, open the file */
-
-	if ((fd = open(path, O_RDONLY)) == -1)
+	if ((fd = ::open(path, O_RDONLY)) == -1)
 		return NULL;
 
-	/* check for signature in first local file header */
+	// check for signature in first local file header
 
 	if (read(fd, lfh_signature, SIGNATURE_LENGTH) != SIGNATURE_LENGTH)
 		return NULL;
@@ -190,47 +177,47 @@ hashtable *zip_open(char *path)
 	if (SUCK_LE_U4(lfh_signature) != LFH_SIGNATURE)
 		return NULL;
 
-	/* get the file length */
+	// get the file length
 
 	if ((len = lseek(fd, 0, SEEK_END)) == -1)
 		return NULL;
 
-	/* we better mmap the file */
+	// we better mmap the file
 
-	filep = (u1*) mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0);
+	u1 *filep = (u1*) mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0);
 
-	/* some older compilers, like DEC OSF cc, don't like comparisons
-       on void* types */
+	// some older compilers, like DEC OSF cc, don't like comparisons
+    // on void* type
 
 	if ((ptrint) filep == (ptrint) MAP_FAILED)
 		return NULL;
 
-	/* find end of central directory record */
+	// find end of central directory record
 
 	for (p = filep + len; p >= filep; p--)
 		if (SUCK_LE_U4(p) == EOCDR_SIGNATURE)
 			break;
 
-	/* get number of entries in central directory */
+	// get number of entries in central directory
 
 	eocdr.entries = SUCK_LE_U2(p + EOCDR_ENTRIES);
 	eocdr.offset  = SUCK_LE_U4(p + EOCDR_OFFSET);
 
-	/* create hashtable for filenames */
+	// create hashtable for filenames
 
-	ht = NEW(hashtable);
+	ZipFile *file = new ZipFile(HASHTABLE_CLASSES_SIZE);
 
-	hashtable_create(ht, HASHTABLE_CLASSES_SIZE);
+	// add all file entries into the hashtable
 
-	/* add all file entries into the hashtable */
+	p = filep + eocdr.offset;
 
-	for (i = 0, p = filep + eocdr.offset; i < eocdr.entries; i++) {
-		/* check file header signature */
+	for (s4 i = 0; i < eocdr.entries; i++) {
+		// check file header signature
 
 		if (SUCK_LE_U4(p) != CDSFH_SIGNATURE)
 			return NULL;
 
-		/* we found an entry */
+		// we found an entry
 
 		cdsfh.compressionmethod = SUCK_LE_U2(p + CDSFH_COMPRESSION_METHOD);
 		cdsfh.compressedsize    = SUCK_LE_U4(p + CDSFH_COMPRESSED_SIZE);
@@ -240,205 +227,111 @@ hashtable *zip_open(char *path)
 		cdsfh.filecommentlength = SUCK_LE_U2(p + CDSFH_FILE_COMMENT_LENGTH);
 		cdsfh.relativeoffset    = SUCK_LE_U4(p + CDSFH_RELATIVE_OFFSET);
 
-		/* create utf8 string of filename, strip .class from classes */
+		// create utf8 string of filename, strip .class from classes
 
-		filename = (const char *) (p + CDSFH_FILENAME);
-		classext = filename + cdsfh.filenamelength - strlen(".class");
+		const char *filename = (const char *) (p + CDSFH_FILENAME);
+		const char *classext = filename + cdsfh.filenamelength - strlen(".class");
 
-		/* skip directory entries */
+		// skip directory entries
 
 		if (filename[cdsfh.filenamelength - 1] != '/') {
+			Utf8String u;
+
 			if (strncmp(classext, ".class", strlen(".class")) == 0)
 				u = Utf8String::from_utf8(filename, cdsfh.filenamelength - strlen(".class"));
 			else
 				u = Utf8String::from_utf8(filename, cdsfh.filenamelength);
 
-			/* insert class into hashtable */
+			// create zip entry
 
-			htzfe = NEW(hashtable_zipfile_entry);
+			ZipFileEntry entry;
 
-			htzfe->filename          = u;
-			htzfe->compressionmethod = cdsfh.compressionmethod;
-			htzfe->compressedsize    = cdsfh.compressedsize;
-			htzfe->uncompressedsize  = cdsfh.uncompressedsize;
-			htzfe->data              = filep + cdsfh.relativeoffset;
+			entry.filename          = u;
+			entry.compressionmethod = cdsfh.compressionmethod;
+			entry.compressedsize    = cdsfh.compressedsize;
+			entry.uncompressedsize  = cdsfh.uncompressedsize;
+			entry.data              = filep + cdsfh.relativeoffset;
 
-			/* get hashtable slot */
+			// insert into hashtable
 
-			key  = u.hash();
-			slot = key & (ht->size - 1);
-
-			/* insert into external chain */
-
-			htzfe->hashlink = (hashtable_zipfile_entry*) ht->ptr[slot];
-
-			/* insert hashtable zipfile entry */
-
-			ht->ptr[slot] = htzfe;
-			ht->entries++;
+			file->table.insert(entry);
 		}
 
-		/* move to next central directory structure file header */
+		// move to next central directory structure file header
 
-		p = p +
-			CDSFH_HEADER_SIZE +
-			cdsfh.filenamelength +
-			cdsfh.extrafieldlength +
-			cdsfh.filecommentlength;
+		p = p
+		  + CDSFH_HEADER_SIZE
+		  + cdsfh.filenamelength
+		  + cdsfh.extrafieldlength
+		  + cdsfh.filecommentlength;
 	}
 
-	/* return pointer to hashtable */
+	// return pointer to hashtable
 
-	return ht;
+	return file;
 }
 
 
-/* zip_find ********************************************************************
+/***
+ * Load file from zip archive into memory
+ */
+void ZipFileEntry::get(uint8_t *dst) const {
+	lfh      lfh;
+	z_stream zs;
+	int      err;
 
-   Search for the given filename in the classpath entries of a zip file.
+	// read stuff from local file header
 
-   NOTE: The '.class' extension is stripped when reading a zip file, so if
-   you want to find a .class file, you must search for its name _without_
-   the '.class' extension. 
-   XXX I dont like that, it makes foo and foo.class ambiguous. -Edwin
+	lfh.filenamelength   = SUCK_LE_U2(data + LFH_FILE_NAME_LENGTH);
+	lfh.extrafieldlength = SUCK_LE_U2(data + LFH_EXTRA_FIELD_LENGTH);
 
-   IN:
-      lce..........the classpath entries for the zip file
-	  u............the filename to look for
+	u1 *indata = data
+ 	           + LFH_HEADER_SIZE
+ 	           + lfh.filenamelength
+ 	           + lfh.extrafieldlength;
 
-   RETURN VALUE:
-      hashtable_zipfile_entry * of the entry if found, or
-	  NULL if not found
+	// how is the file stored?
 
-*******************************************************************************/
-
-hashtable_zipfile_entry *zip_find(list_classpath_entry *lce, Utf8String u)
-{
-	hashtable               *ht;
-	u4                       key;       /* hashkey computed from utf-text     */
-	u4                       slot;      /* slot in hashtable                  */
-	hashtable_zipfile_entry *htzfe;     /* hashtable element                  */
-
-	/* get classes hashtable from the classpath entry */
-
-	ht = lce->htclasses;
-
-	/* get the hashtable slot of the name searched */
-
-	key   = u.hash();
-	slot  = key & (ht->size - 1);
-	htzfe = (hashtable_zipfile_entry*) ht->ptr[slot];
-
-	/* search external hash chain for utf-symbol */
-
-	while (htzfe) {
-		if (htzfe->filename == u)
-			return htzfe;
-
-		/* next element in external chain */
-
-		htzfe = htzfe->hashlink;
-	}
-
-	/* file not found in this archive */
-
-	return NULL;
-}
-
-
-/* zip_get ********************************************************************
-
-   XXX
-
-*******************************************************************************/
-
-classbuffer *zip_get(list_classpath_entry *lce, classinfo *c)
-{
-	hashtable_zipfile_entry *htzfe;
-	lfh                      lfh;
-	u1                      *indata;
-	u1                      *outdata;
-	z_stream                 zs;
-	int                      err;
-	classbuffer             *cb;
-
-	/* try to find the class in the current archive */
-
-	htzfe = zip_find(lce, c->name);
-
-	if (htzfe == NULL)
-		return NULL;
-
-	/* read stuff from local file header */
-
-	lfh.filenamelength   = SUCK_LE_U2(htzfe->data + LFH_FILE_NAME_LENGTH);
-	lfh.extrafieldlength = SUCK_LE_U2(htzfe->data + LFH_EXTRA_FIELD_LENGTH);
-
-	indata = htzfe->data +
-		LFH_HEADER_SIZE +
-		lfh.filenamelength +
-		lfh.extrafieldlength;
-
-	/* allocate buffer for uncompressed data */
-
-	outdata = MNEW(u1, htzfe->uncompressedsize);
-
-	/* how is the file stored? */
-
-	switch (htzfe->compressionmethod) {
+	switch (compressionmethod) {
 	case Z_DEFLATED:
-		/* fill z_stream structure */
+		// fill z_stream structure
 
 		zs.next_in   = indata;
-		zs.avail_in  = htzfe->compressedsize;
-		zs.next_out  = outdata;
-		zs.avail_out = htzfe->uncompressedsize;
+		zs.avail_in  = compressedsize;
+		zs.next_out  = dst;
+		zs.avail_out = uncompressedsize;
 
 		zs.zalloc = Z_NULL;
 		zs.zfree  = Z_NULL;
 		zs.opaque = Z_NULL;
 
-		/* initialize this inflate run */
+		// initialize this inflate run
 
 		if (inflateInit2(&zs, -MAX_WBITS) != Z_OK)
 			vm_abort("zip_get: inflateInit2 failed: %s", strerror(errno));
 
-		/* decompress the file into buffer */
+		// decompress the file into buffer
 
 		err = inflate(&zs, Z_SYNC_FLUSH);
 
 		if ((err != Z_STREAM_END) && (err != Z_OK))
 			vm_abort("zip_get: inflate failed: %s", strerror(errno));
 
-		/* finish this inflate run */
+		// finish this inflate run
 
 		if (inflateEnd(&zs) != Z_OK)
 			vm_abort("zip_get: inflateEnd failed: %s", strerror(errno));
 		break;
 
 	case 0:
-		/* uncompressed file, just copy the data */
-		MCOPY(outdata, indata, u1, htzfe->compressedsize);
+		// uncompressed file, just copy the data
+		MCOPY(dst, indata, u1, compressedsize);
 		break;
 
 	default:
-		vm_abort("zip_get: unknown compression method %d",
-				 htzfe->compressionmethod);
+		vm_abort("zip_get: unknown compression method %d", compressionmethod);
+		break;
 	}
-	
-	/* allocate classbuffer */
-
-	cb = NEW(classbuffer);
-
-	cb->clazz = c;
-	cb->size  = htzfe->uncompressedsize;
-	cb->data  = outdata;
-	cb->pos   = outdata;
-	cb->path  = lce->path;
-
-	/* return the filled classbuffer structure */
-
-	return cb;
 }
 
 /*

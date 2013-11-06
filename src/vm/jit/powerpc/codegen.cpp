@@ -43,7 +43,7 @@
 
 #include "threads/lock.hpp"
 
-#include "vm/jit/builtin.hpp"
+#include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/field.hpp"
 #include "vm/global.hpp"
@@ -54,6 +54,7 @@
 #include "vm/jit/abi.hpp"
 #include "vm/jit/abi-asm.hpp"
 #include "vm/jit/asmpart.hpp"
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/dseg.hpp"
 #include "vm/jit/emit-common.hpp"
@@ -165,19 +166,20 @@ void codegen_emit_prolog(jitdata* jd)
  				if (!IS_INMEMORY(var->flags))
  					emit_fmove(cd, s1, var->vv.regoff);
 				else
-					M_DST(s1, REG_SP, var->vv.regoff);
+					if (IS_2_WORD_TYPE(t))
+						M_DST(s1, REG_SP, var->vv.regoff);
+					else
+						M_FST(s1, REG_SP, var->vv.regoff);
  			}
 			else {
  				if (!IS_INMEMORY(var->flags))
-					M_DLD(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
+					if (IS_2_WORD_TYPE(t))
+						M_DLD(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
+					else
+						M_FLD(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
 				else {
-#if 1
-					M_DLD(REG_FTMP1, REG_SP, cd->stackframesize * 8 + s1);
-					M_DST(REG_FTMP1, REG_SP, var->vv.regoff);
-#else
 					/* Reuse Memory Position on Caller Stack */
 					var->vv.regoff = cd->stackframesize * 8 + s1;
-#endif
 				}
 			}
 		}
@@ -238,7 +240,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 	methodinfo*         lm;             // Local methodinfo for ICMD_INVOKE*.
 	unresolved_method*  um;
 	fieldinfo*          fi;
-	unresolved_field*   uf;
+	unresolved_field*   uf = NULL;      // prevent warning
 	int32_t             fieldtype;
 	int32_t             s1, s2, s3, d;
 	int32_t             disp;
@@ -1265,7 +1267,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				break;
 			case TYPE_LNG:
    				d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
-				if (GET_HIGH_REG(d) == s1) {
+				if (GET_HIGH_REG(d) == (unsigned)s1) {
 					M_ILD(GET_LOW_REG(d), s1, disp + 4);
 					M_ILD(GET_HIGH_REG(d), s1, disp);
 				}
@@ -2347,7 +2349,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 				break;
 
 			case TYPE_FLT:
-				M_DLD(REG_FTMP1, REG_SP, s1);
+				M_FLD(REG_FTMP1, REG_SP, s1);
 				M_FST(REG_FTMP1, REG_SP, s2);
 				break;
 

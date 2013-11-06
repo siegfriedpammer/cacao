@@ -134,7 +134,7 @@ struct codegendata {
 
 	jumpref        *jumpreferences; /* list of jumptable target addresses     */
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(__M68K__) || defined(ENABLE_INTRP) || defined(__S390__)
+#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP) || defined(__S390__)
 	dataref        *datareferences; /* list of data segment references        */
 #endif
 

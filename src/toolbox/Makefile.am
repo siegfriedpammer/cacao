@@ -21,7 +21,7 @@
 ## 02110-1301, USA.
 
 
-AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
+AM_CPPFLAGS += -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
 
 LIBS =
 
@@ -29,6 +29,7 @@ noinst_LTLIBRARIES = \
 	libtoolbox.la
 
 libtoolbox_la_SOURCES = \
+	assert.hpp \
 	avl.cpp \
 	avl.hpp \
 	bitvector.cpp \

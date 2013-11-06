@@ -60,6 +60,9 @@ u1 *disassinstr(u1 *code)
 		/* setting the struct members must be done after
 		   INIT_DISASSEMBLE_INFO */
 
+		info.arch = bfd_arch_powerpc;
+		disassemble_init_powerpc(&info);
+
 		info.read_memory_func = &disass_buffer_read_memory;
 
 		disass_initialized = true;
@@ -86,4 +89,5 @@ u1 *disassinstr(u1 *code)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

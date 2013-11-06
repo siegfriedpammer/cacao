@@ -126,10 +126,9 @@ void stacktrace_stackframeinfo_add(stackframeinfo_t* sfi, void* pv, void* sp, vo
 
 	if (!opt_intrp) {
 # endif
-# if defined(__I386__) || defined(__X86_64__) || defined(__S390__) || defined(__M68K__)
+# if defined(__I386__) || defined(__X86_64__) || defined(__S390__)
 		/* On i386 and x86_64 we always have to get the return address
 		   from the stack. */
-		/* m68k has return address on stack always */
 		/* On S390 we use REG_RA as REG_ITMP3, so we have always to get
 		   the RA from stack. */
 

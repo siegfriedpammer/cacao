@@ -44,7 +44,7 @@
 
 #include "threads/lock.hpp"
 
-#include "vm/jit/builtin.hpp"
+#include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/field.hpp"
 #include "vm/global.hpp"
@@ -55,6 +55,7 @@
 
 #include "vm/jit/abi.hpp"
 #include "vm/jit/asmpart.hpp"
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/code.hpp"
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/dseg.hpp"
@@ -137,6 +138,10 @@ void codegen_emit_prolog(jitdata* jd)
 			}
 		}
 		else {                                     /* floating args         */
+			// With SSE, the fst/dld instructions don't actually mean "store a
+			// float/double to memory", but rather "store the lower 32/64 bits
+			// of the register to memory". Therefore we get by with treating
+			// all floating point values the same.
  			if (!md->params[p].inmemory) {           /* register arguments    */
  				if (!IS_INMEMORY(var->flags))
 					emit_fmove(cd, s1, var->vv.regoff);

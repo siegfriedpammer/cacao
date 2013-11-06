@@ -28,17 +28,15 @@
 
 #include "config.h"
 
-#include <stdio.h>
+#include <stdint.h>                     // for uint8_t, int32_t
 
-#include "vm/types.hpp"
-#include "vm/global.hpp"
+#include "vm/global.hpp"                // for java_handle_t, etc
+#include "vm/types.hpp"                 // for s4, s8
+#include "vm/utf8.hpp"                  // for Utf8String
 
-#include "vm/utf8.hpp"
+struct classinfo;
+struct constant_nameandtype;
 
-/* forward typedefs ***********************************************************/
-
-typedef struct classbuffer          classbuffer;
-typedef struct constant_nameandtype constant_nameandtype;
 
 /* classloader *****************************************************************
 

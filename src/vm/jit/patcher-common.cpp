@@ -57,9 +57,36 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/patcher-common.hpp"
 
-#define DEBUG_NAME "Patcher"
-
 STAT_DECLARE_VAR(int,size_patchref,0)
+
+/* patcher_function_list *******************************************************
+
+   This is a list which maps patcher function pointers to the according
+   names of the patcher functions. It is only usefull for debugging
+   purposes.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+typedef struct patcher_function_list_t {
+	functionptr patcher;
+	const char* name;
+} patcher_function_list_t;
+
+static patcher_function_list_t patcher_function_list[] = {
+	{ PATCHER_initialize_class,              "initialize_class" },
+#ifdef ENABLE_VERIFIER
+	{ PATCHER_resolve_class,                 "resolve_class" },
+#endif /* ENABLE_VERIFIER */
+	{ PATCHER_resolve_native_function,       "resolve_native_function" },
+	{ PATCHER_invokestatic_special,          "invokestatic_special" },
+	{ PATCHER_invokevirtual,                 "invokevirtual" },
+	{ PATCHER_invokeinterface,               "invokeinterface" },
+	{ PATCHER_breakpoint,                    "breakpoint" },
+	{ NULL,                                  "-UNKNOWN PATCHER FUNCTION-" }
+};
+#endif
+
 
 /* patcher_list_create *********************************************************
 
@@ -69,7 +96,7 @@ STAT_DECLARE_VAR(int,size_patchref,0)
 
 void patcher_list_create(codeinfo *code)
 {
-	code->patchers = new PatcherListTy();
+	code->patchers = new LockedList<patchref_t>();
 }
 
 
@@ -104,7 +131,6 @@ void patcher_list_free(codeinfo *code)
 }
 
 
-namespace {
 /**
  * Find an entry inside the patcher list for the given codeinfo by
  * specifying the program counter of the patcher position.
@@ -117,20 +143,17 @@ namespace {
  * @return Pointer to patcher.
  */
 
-struct find_patcher : public std::binary_function<PatcherPtrTy, void*, bool> {
-	bool operator() (const PatcherPtrTy& pr,
-			const void* pc) const {
-		return (pr->get_mpc() == (uintptr_t) pc);
+struct foo : public std::binary_function<patchref_t, void*, bool> {
+	bool operator() (const patchref_t& pr, const void* pc) const
+	{
+		return (pr.mpc == (uintptr_t) pc);
 	}
 };
 
-} // end anonymous namespace
-
-static PatcherPtrTy* patcher_list_find(codeinfo* code, void* pc)
+static patchref_t* patcher_list_find(codeinfo* code, void* pc)
 {
 	// Search for a patcher with the given PC.
-	PatcherListTy::iterator it = std::find_if(code->patchers->begin(),
-		code->patchers->end(), std::bind2nd(find_patcher(), pc));
+	List<patchref_t>::iterator it = std::find_if(code->patchers->begin(), code->patchers->end(), std::bind2nd(foo(), pc));
 
 	if (it == code->patchers->end())
 		return NULL;
@@ -148,13 +171,36 @@ static PatcherPtrTy* patcher_list_find(codeinfo* code, void* pc)
 #if !defined(NDEBUG)
 void patcher_list_show(codeinfo *code)
 {
-	for (PatcherListTy::iterator i = code->patchers->begin(),
-			e = code->patchers->end(); i != e; ++i) {
-		PatcherPtrTy& pr = (*i);
+	for (List<patchref_t>::iterator it = code->patchers->begin(); it != code->patchers->end(); it++) {
+		patchref_t& pr = *it;
 
-		pr->print(cacao::out());
-		cacao::out() << cacao::nl;
+		// Lookup name in patcher function list.
+		patcher_function_list_t* l;
+		for (l = patcher_function_list; l->patcher != NULL; l++)
+			if (l->patcher == pr.patcher)
+				break;
 
+		// Display information about patcher.
+		printf("\tpatcher");
+		printf(" pc:0x%016"PRIxPTR,    pr.mpc);
+		printf(" datap:0x%016"PRIxPTR, pr.datap);
+		printf(" ref:0x%016"PRIxPTR,   (uintptr_t) pr.ref);
+#if PATCHER_CALL_SIZE == 4
+		printf(" mcode:%08"PRIx32, (uint32_t) pr.mcode);
+#elif PATCHER_CALL_SIZE == 2
+		printf(" mcode:%04"PRIx16, (uint16_t) pr.mcode);
+#else
+# error Unknown PATCHER_CALL_SIZE
+#endif
+		printf(" type:%s\n", l->name);
+
+		// Display machine code of patched position.
+#if 0 && defined(ENABLE_DISASSEMBLER)
+		printf("\t\tcurrent -> ");
+		disassinstr((uint8_t*) pr.mpc);
+		printf("\t\tapplied -> ");
+		disassinstr((uint8_t*) &(pr.mcode));
+#endif
 	}
 }
 #endif
@@ -199,15 +245,14 @@ patchref_t *patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s
 	pr.patcher     = patcher;
 	pr.ref         = ref;
 	pr.mcode       = 0;
+	pr.done        = false;
 
 	// Store patcher in the list (NOTE: structure is copied).
-	cacao::LegacyPatcher *legacy =  new cacao::LegacyPatcher(jd,pr);
-	PatcherPtrTy ptr(legacy);
-	code->patchers->push_back(ptr);
+	code->patchers->push_back(pr);
 
 	STATISTICS(size_patchref += sizeof(patchref_t));
 
-#if defined(ENABLE_JIT) && (defined(__I386__) || defined(__M68K__) || defined(__SPARC_64__) || defined(__X86_64__))
+#if defined(ENABLE_JIT) && (defined(__I386__) || defined(__SPARC_64__) || defined(__X86_64__))
 
 	/* XXX We can remove that when we don't use UD2 anymore on i386
 	   and x86_64. */
@@ -222,8 +267,7 @@ patchref_t *patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s
 	cd->lastmcodeptr = cd->mcodeptr + PATCHER_CALL_SIZE;
 #endif
 
-	//return code->patchers->back()->get();
-	return legacy->get();
+	return &code->patchers->back();
 }
 
 
@@ -232,16 +276,48 @@ patchref_t *patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s
  *
  * @param jd JIT data-structure
  */
-void patcher_resolve(codeinfo* code)
+void patcher_resolve(jitdata* jd)
 {
-	for (PatcherListTy::iterator i = code->patchers->begin(),
-			e = code->patchers->end(); i != e; ++i) {
-		PatcherPtrTy& pr = (*i);
+	// Get required compiler data.
+	codeinfo* code = jd->code;
 
-		pr->reposition((intptr_t) code->entrypoint);
-		LOG2("Patcher " << pr->get_name() << " reposition: " << pr->get_mpc() <<  cacao::nl);
+	for (List<patchref_t>::iterator it = code->patchers->begin(); it != code->patchers->end(); it++) {
+		patchref_t& pr = *it;
+
+		pr.mpc   += (intptr_t) code->entrypoint;
+		pr.datap  = (intptr_t) (pr.disp + code->entrypoint);
 	}
 }
+
+
+/**
+ * Check if the patcher is already patched.  This is done by comparing
+ * the machine instruction.
+ *
+ * @param pr Patcher structure.
+ *
+ * @return true if patched, false otherwise.
+ */
+bool patcher_is_patched(patchref_t* pr)
+{
+	// Validate the instruction at the patching position is the same
+	// instruction as the patcher structure contains.
+	uint32_t mcode = *((uint32_t*) pr->mpc);
+
+#if PATCHER_CALL_SIZE == 4
+	if (mcode != pr->mcode) {
+#elif PATCHER_CALL_SIZE == 2
+	if ((uint16_t) mcode != (uint16_t) pr->mcode) {
+#else
+#error Unknown PATCHER_CALL_SIZE
+#endif
+		// The code differs.
+		return false;
+	}
+
+	return true;
+}
+
 
 /**
  *
@@ -251,7 +327,7 @@ bool patcher_is_patched_at(void* pc)
 	codeinfo* code = code_find_codeinfo_for_pc(pc);
 
 	// Get the patcher for the given PC.
-	PatcherPtrTy* pr = patcher_list_find(code, pc);
+	patchref_t* pr = patcher_list_find(code, pc);
 
 	if (pr == NULL) {
 		// The given PC is not a patcher position.
@@ -259,7 +335,7 @@ bool patcher_is_patched_at(void* pc)
 	}
 
 	// Validate the instruction.
-	return (*pr)->check_is_patched();
+	return patcher_is_patched(pr);
 }
 
 
@@ -286,12 +362,19 @@ static int patcher_depth = 0;
 bool patcher_handler(u1 *pc)
 {
 	codeinfo      *code;
+	patchref_t    *pr;
 	bool           result;
 #if !defined(NDEBUG)
+	patcher_function_list_t *l;
 	int                      i;
 #endif
 
-	// search the codeinfo for the given PC
+	/* define the patcher function */
+
+	bool (*patcher_function)(patchref_t *);
+
+	/* search the codeinfo for the given PC */
+
 	code = code_find_codeinfo_for_pc(pc);
 	assert(code);
 
@@ -300,14 +383,12 @@ bool patcher_handler(u1 *pc)
 
 	/* search the patcher information for the given PC */
 
-	PatcherPtrTy *pr_p = patcher_list_find(code, pc);
+	pr = patcher_list_find(code, pc);
 
-	if (pr_p == NULL)
+	if (pr == NULL)
 		os::abort("patcher_handler: Unable to find patcher reference.");
 
-	PatcherPtrTy &pr = *pr_p;
-
-	if (pr->is_patched()) {
+	if (pr->done) {
 #if !defined(NDEBUG)
 		if (opt_DebugPatcher) {
 			log_println("patcher_handler: double-patching detected!");
@@ -319,17 +400,20 @@ bool patcher_handler(u1 *pc)
 
 #if !defined(NDEBUG)
 	if (opt_DebugPatcher) {
+		for (l = patcher_function_list; l->patcher != NULL; l++)
+			if (l->patcher == pr->patcher)
+				break;
 
-		TRACE_PATCHER_INDENT; printf("patching in "); method_print(code->m); printf(" at %p\n", (void *) pr->get_mpc());
-		TRACE_PATCHER_INDENT; printf("\tpatcher function = %s\n", pr->get_name());
+		TRACE_PATCHER_INDENT; printf("patching in "); method_print(code->m); printf(" at %p\n", (void *) pr->mpc);
+		TRACE_PATCHER_INDENT; printf("\tpatcher function = %s <%p>\n", l->name, (void *) (intptr_t) pr->patcher);
 
 		TRACE_PATCHER_INDENT;
 		printf("\tmachine code before = ");
 
 # if defined(ENABLE_DISASSEMBLER)
-		disassinstr((u1*) (void*) pr->get_mpc());
+		disassinstr((u1*) (void*) pr->mpc);
 # else
-		printf("%x at %p (disassembler disabled)\n", *((uint32_t*) pr->get_mpc()), (void*) pr->get_mpc());
+		printf("%x at %p (disassembler disabled)\n", *((uint32_t*) pr->mpc), (void*) pr->mpc);
 # endif
 
 		patcher_depth++;
@@ -337,9 +421,13 @@ bool patcher_handler(u1 *pc)
 	}
 #endif
 
+	/* cast the passed function to a patcher function */
+
+	patcher_function = (bool (*)(patchref_t *)) (ptrint) pr->patcher;
+
 	/* call the proper patcher function */
 
-	result = pr->patch();
+	result = (patcher_function)(pr);
 
 #if !defined(NDEBUG)
 	if (opt_DebugPatcher) {
@@ -350,9 +438,9 @@ bool patcher_handler(u1 *pc)
 		printf("\tmachine code after  = ");
 
 # if defined(ENABLE_DISASSEMBLER)
-		disassinstr((u1*) (void*) pr->get_mpc());
+		disassinstr((u1*) (void*) pr->mpc);
 # else
-		printf("%x at %p (disassembler disabled)\n", *((uint32_t*) pr->get_mpc()), (void*) pr->get_mpc());
+		printf("%x at %p (disassembler disabled)\n", *((uint32_t*) pr->mpc), (void*) pr->mpc);
 # endif
 
 		if (result == false) {
@@ -364,6 +452,10 @@ bool patcher_handler(u1 *pc)
 	// Check return value and mangle the pending exception.
 	if (result == false)
 		resolve_handle_pending_exception(true);
+
+	// XXX This is only preliminary to prevent double-patching.
+	else
+		pr->done = true;
 
 	code->patchers->unlock();
 

@@ -1,6 +1,6 @@
 /* src/vm/jit/argument.cpp - argument passing from and to JIT methods
 
-   Copyright (C) 2007-2013
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -354,14 +354,7 @@ static void argument_vmarray_store_adr(uint64_t *array, paramdesc *pd, java_hand
 	value = LLNI_UNWRAP(h);
 
 	if (!pd->inmemory) {
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-		/* When the architecture has address registers, place them
-		   after integer and float registers. */
-
-		index        = INT_ARG_CNT + FLT_ARG_CNT + pd->index;
-#else
 		index        = pd->index;
-#endif
 		array[index] = (uint64_t) (intptr_t) value;
 	}
 	else {
@@ -433,10 +426,13 @@ uint64_t *argument_vmarray_from_valist(methodinfo *m, java_handle_t *o, va_list 
 
 		case TYPE_FLT:
 #if defined(__ALPHA__) || defined(__POWERPC__) || defined(__POWERPC64__)
-			/* This is required to load the correct float value in
-			   assembler code. */
+			// The assembler code loads these directly and unconditionally into
+			// the argument registers.
 
-			value.d = (double) va_arg(ap, double);
+			if (!pd->inmemory)
+				value.d = (double) va_arg(ap, double);
+			else
+				value.f = (float) va_arg(ap, double);
 #else
 			value.f = (float) va_arg(ap, double);
 #endif
@@ -489,11 +485,7 @@ uint64_t *argument_vmarray_from_jvalue(methodinfo *m, java_handle_t *o,
 
 	/* allocate argument array */
 
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	array = (uint64_t*) DumpMemory::allocate(sizeof(uint64_t) * (INT_ARG_CNT + FLT_ARG_CNT + ADR_ARG_CNT + md->memuse));
-#else
 	array = (uint64_t*) DumpMemory::allocate(sizeof(uint64_t) * (INT_ARG_CNT + FLT_ARG_CNT + md->memuse));
-#endif
 
 	/* if method is non-static fill first block and skip `this' pointer */
 

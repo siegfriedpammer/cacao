@@ -1,6 +1,6 @@
 /* src/vm/zip.hpp - ZIP file handling for bootstrap classloader
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -26,15 +26,18 @@
 #ifndef ZIP_HPP_
 #define ZIP_HPP_ 1
 
-#include "config.h"
-#include "vm/types.hpp"
+#include "config.h"                     // for ENABLE_ZLIB
 
-#include "toolbox/hashtable.hpp"
+#ifdef ENABLE_ZLIB
 
-#include "vm/suck.hpp"
-#include "vm/utf8.hpp"
+#include <cstddef>                      // for size_t
+#include <stdint.h>                     // for uint8_t
 
-struct classinfo;
+#include "toolbox/hashtable.hpp"        // for InsertOnlyStringEntry, etc
+
+#include "vm/types.hpp"                 // for u2, u4, u1
+#include "vm/utf8.hpp"                  // for Utf8String
+
 
 /* Local file header ***********************************************************
 
@@ -61,8 +64,6 @@ struct classinfo;
 #define LFH_FILE_NAME_LENGTH         26
 #define LFH_EXTRA_FIELD_LENGTH       28
 
-typedef struct lfh lfh;
-
 struct lfh {
 	u2 compressionmethod;
 	u4 compressedsize;
@@ -73,24 +74,49 @@ struct lfh {
 
 /* hashtable_zipfile_entry ****************************************************/
 
-typedef struct hashtable_zipfile_entry hashtable_zipfile_entry;
+struct ZipFileEntry {
+	Utf8String filename;
+	u2         compressionmethod;
+	u4         compressedsize;
+	u4         uncompressedsize;
+	u1        *data;
 
-struct hashtable_zipfile_entry {
-	Utf8String               filename;
-	u2                       compressionmethod;
-	u4                       compressedsize;
-	u4                       uncompressedsize;
-	u1                      *data;
-	hashtable_zipfile_entry *hashlink;
+	/***
+	 * Load data from zipped file into memory
+	 * 
+	 * `dst' must have room for `uncompressedsize' bytes.
+	 */
+	void get(uint8_t *dst) const;
+
+	/// interface to HashTable
+	size_t hash() const { return filename.hash(); }
+
+	Utf8String key() const { return filename; }
+	void set_key(Utf8String u) { filename = u; }
 };
 
+class ZipFile {
+	typedef HashTable<InsertOnlyNamedEntry<ZipFileEntry> > Table;
+public:
+	typedef Table::Iterator Iterator;
+	typedef Table::EntryRef EntryRef;
 
-/* function prototypes ********************************************************/
+	/// Load zip archive
+	static ZipFile *open(const char *path);
 
-hashtable               *zip_open(char *path);
-hashtable_zipfile_entry *zip_find(list_classpath_entry *lce, Utf8String u);
-classbuffer             *zip_get(list_classpath_entry *lce, classinfo *c);
+	/// Find file in zip archive
+	EntryRef find(Utf8String filename) { return table.find(filename); }
 
+	/// Allows iteration over all entries in zip archive
+	Iterator begin() { return table.begin(); }
+	Iterator end()   { return table.end();   }
+private:
+	ZipFile(size_t capacity) : table(capacity) {}
+
+	Table table;
+};
+
+#endif // ENABLE_ZLIB
 
 #endif // ZIP_HPP_
 
@@ -106,4 +132,5 @@ classbuffer             *zip_get(list_classpath_entry *lce, classinfo *c);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

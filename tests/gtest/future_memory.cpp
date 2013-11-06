@@ -1,6 +1,6 @@
-/* src/vm/jit/m68k/md-trap.h - m68k hardware traps
+/* tests/gtest/future_memory.cpp - test future memory library features
 
-   Copyright (C) 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -22,37 +22,32 @@
 
 */
 
+#include "gtest/gtest.h"
+#include "future/memory.hpp"
 
-#ifndef _MD_TRAP_H
-#define _MD_TRAP_H
+namespace {
 
-#include "config.h"
-
-
-/**
- * Trap number defines.
- *
- * The trap #0 is reserved and will not be delivered to signal
- * handler, so we skip this one.
- */
-
-#define TRAP_INSTRUCTION_IS_LOAD    0
-
-enum {
-	/* Skip 0 because it's a reserved trap. */
-
-	TRAP_NullPointerException           = 1,
-	TRAP_ArithmeticException            = 2,
-	TRAP_ArrayIndexOutOfBoundsException = 3,
-	TRAP_ArrayStoreException            = 4,
-	TRAP_ClassCastException             = 5,
-	TRAP_CHECK_EXCEPTION                = 6,
-	TRAP_PATCHER                        = 7,
-	TRAP_COMPILER                       = 8,
-	TRAP_COUNTDOWN                      = 9
+struct TestClass {
+	static int counter;
+	int id;
+	TestClass() {  id = counter++; }
+	~TestClass() { --counter; }
 };
 
-#endif /* _MD_TRAP_H */
+int TestClass::counter = 0;
+
+} // end anonymous namespace
+
+
+TEST(future, shared_ptr1) {
+	EXPECT_EQ(0, TestClass::counter);
+	{
+		cacao::shared_ptr<TestClass> ptr(new TestClass);
+		EXPECT_EQ(0,ptr->id);
+		EXPECT_EQ(1, TestClass::counter);
+	}
+	EXPECT_EQ(0, TestClass::counter);
+}
 
 
 /*
@@ -61,7 +56,7 @@ enum {
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

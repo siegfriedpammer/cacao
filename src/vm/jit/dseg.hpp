@@ -74,7 +74,7 @@ s4 dseg_add_address(codegendata *cd, void *value);
 void dseg_add_unique_target(codegendata *cd, basicblock *target);
 void dseg_add_target(codegendata *cd, basicblock *target);
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(__M68K__) || defined(ENABLE_INTRP)
+#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
 void dseg_adddata(codegendata *cd);
 void dseg_resolve_datareferences(jitdata *jd);
 #endif

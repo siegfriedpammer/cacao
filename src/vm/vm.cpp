@@ -25,19 +25,13 @@
 
 #include "config.h"
 
+#include <cassert>
+#include <cerrno>
+#include <cstdlib>
+#include <exception>
 #include <stdint.h>
 
-#include <exception>
-
-#include <assert.h>
-#include <errno.h>
-#include <stdlib.h>
-
-#include "vm/types.hpp"
-
 #include "md-abi.hpp"
-
-#include "vm/jit/abi-asm.hpp"
 
 #include "mm/codememory.hpp"
 #include "mm/dumpmemory.hpp"
@@ -57,14 +51,10 @@
 #include "toolbox/logging.hpp"
 
 #include "vm/array.hpp"
-
-#if defined(ENABLE_ASSERTION)
 #include "vm/assertion.hpp"
-#endif
-
-#include "vm/jit/builtin.hpp"
 #include "vm/classcache.hpp"
 #include "vm/exceptions.hpp"
+#include "vm/descriptor.hpp"
 #include "vm/finalizer.hpp"
 #include "vm/global.hpp"
 #include "vm/globals.hpp"
@@ -75,32 +65,30 @@
 #include "vm/os.hpp"
 #include "vm/primitive.hpp"
 #include "vm/properties.hpp"
+#include "vm/rt-timing.hpp"
 #include "vm/signallocal.hpp"
 #include "vm/statistics.hpp"
 #include "vm/string.hpp"
 #include "vm/suck.hpp"
+#include "vm/types.hpp"
 #include "vm/vm.hpp"
 
+#include "vm/jit/abi-asm.hpp"
 #include "vm/jit/argument.hpp"
 #include "vm/jit/asmpart.hpp"
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/code.hpp"
-#include "vm/jit/stacktrace.hpp"
-
-#if defined(ENABLE_DISASSEMBLER)
-# include "vm/jit/disass.hpp"
-#endif
-
+#include "vm/jit/disass.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/methodtree.hpp"
+#include "vm/jit/stacktrace.hpp"
+#include "vm/jit/trap.hpp"
 
 #include "vm/jit/optimizing/profile.hpp"
 #include "vm/jit/optimizing/recompiler.hpp"
 
-#include "vm/jit/trap.hpp"
+using namespace cacao;
 
-#if defined(ENABLE_RT_TIMING)
-#include "vm/rt-timing.hpp"
-#endif
 
 STAT_DECLARE_GROUP(function_call_stat)
 STAT_REGISTER_GROUP_VAR(u8,count_calls_native_to_java,0,"calls native to java","native-to-java calls",function_call_stat)
@@ -542,7 +530,7 @@ static void version(bool opt_exit)
 	puts("java version \""JAVA_VERSION"\"");
 	puts("CACAO version "VERSION_FULL"\n");
 
-	puts("Copyright (C) 1996-2012");
+	puts("Copyright (C) 1996-2013");
 	puts("CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO");
 	puts("This is free software; see the source for copying conditions.  There is NO");
 	puts("warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.");
@@ -1477,6 +1465,7 @@ void VM::print_build_time_config(void)
 #endif
 	puts("  CFLAGS     : "VERSION_CFLAGS"");
 	puts("  CXXFLAGS   : "VERSION_CXXFLAGS"");
+	puts("  CPPFLAGS   : "VERSION_CPPFLAGS"");
 
 	puts("");
 
@@ -2233,42 +2222,19 @@ static void vm_compile_all(void)
 *******************************************************************************/
 
 #if !defined(NDEBUG)
-#if defined(ENABLE_COMPILER2)
-#include "vm/jit/compiler2/Compiler.hpp"
-#endif
 static void vm_compile_method(char* mainname)
 {
 	methodinfo *m;
 
-	if (opt_jar == true) {
-		/* open jar file with java.util.jar.JarFile */
+	/* create, load and link the main class */
 
-		mainname = vm_get_mainclass_from_jar(mainname);
+	mainclass = load_class_bootstrap(Utf8String::from_utf8(mainname));
 
-		if (mainname == NULL)
-			vm_exit(1);
-	}
-
-	/* load the main class */
-
-	Utf8String mainutf = Utf8String::from_utf8(mainname);
-
-	classinfo* mainclass = load_class_bootstrap(mainutf);
-
-	/* error loading class */
-
-	java_handle_t* e = exceptions_get_and_clear_exception();
-
-	if ((e != NULL) || (mainclass == NULL)) {
-		exceptions_throw_noclassdeffounderror_cause(e);
+	if (mainclass == NULL)
 		exceptions_print_stacktrace();
-		vm_exit(1);
-	}
 
-	if (!link_class(mainclass)) {
+	if (!link_class(mainclass))
 		exceptions_print_stacktrace();
-		vm_exit(1);
-	}
 
 	if (opt_CompileSignature != NULL) {
 		m = class_resolveclassmethod(mainclass,
@@ -2289,14 +2255,7 @@ static void vm_compile_method(char* mainname)
 		os::abort("vm_compile_method: java.lang.NoSuchMethodException: %s.%s",
 				 opt_CompileMethod, opt_CompileSignature ? opt_CompileSignature : "");
 
-#if defined(ENABLE_COMPILER2)
-	if (opt_DebugCompiler2) {
-		cacao::jit::compiler2::compile(m);
-	} else
-#endif
-	{
-		jit_compile(m);
-	}
+	jit_compile(m);
 }
 #endif /* !defined(NDEBUG) */
 

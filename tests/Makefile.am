@@ -28,11 +28,6 @@ JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
 SUBDIRS = \
 	regression
 
-if ENABLE_COMPILER2
-SUBDIRS += \
-	compiler2
-endif
-
 if HAVE_GTEST
 SUBDIRS += \
 	gtest

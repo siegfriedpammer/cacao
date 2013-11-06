@@ -24,17 +24,32 @@
 
 public class finalizer_exceptions {
     static class Tester {
+        static int hadWithException = 0;
+        static boolean hadWithoutException = false;
+        public static Object lock = new Object();
         Tester(int num) {
             this.num = num;
+        }
+        static void checkReady() {
+            synchronized (lock) {
+                if (hadWithException >= 3 && hadWithoutException)
+                    lock.notifyAll();
+            }
         }
         public void finalize() throws Exception {
             try {
                 throw new Exception("final");
             } catch (Exception e) {
-                if (num == 0)
+                if (num == 0) {
                     System.out.println("Success!");
-                else
+                    hadWithoutException = true;
+                    checkReady();
+                }
+                else {
+                    hadWithException++;
+                    checkReady();
                     throw e;
+                }
             }
         }
         private int num;
@@ -44,9 +59,17 @@ public class finalizer_exceptions {
         for (int i=0; i<10; i++)
             new Tester(i);
         System.gc();
+        System.gc();
         System.runFinalization();
+        long timestamp_start = System.currentTimeMillis();
         try {
-            Thread.sleep(50);
+            synchronized (Tester.lock) {
+                // Don't stop at the first throwing finalizer. We want the
+                // exception to escape and be dealt with at the JVM level.
+                while (System.currentTimeMillis() - 2000 < timestamp_start &&
+                       (Tester.hadWithException < 3 || !Tester.hadWithoutException))
+                    Tester.lock.wait(2000);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

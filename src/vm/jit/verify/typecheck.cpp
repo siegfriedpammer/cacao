@@ -1,4 +1,4 @@
-/* src/vm/jit/verify/typecheck.c - typechecking (part of bytecode verification)
+/* src/vm/jit/verify/typecheck.cpp - typechecking (part of bytecode verification)
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -154,7 +154,7 @@ bytecode verification" @cite Coglio2003.
 
 #include "vm/access.hpp"
 #include "vm/array.hpp"
-#include "vm/jit/builtin.hpp"
+#include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/field.hpp"
 #include "vm/global.hpp"
@@ -163,6 +163,7 @@ bytecode verification" @cite Coglio2003.
 #include "vm/primitive.hpp"
 #include "vm/resolve.hpp"
 
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/parse.hpp"
 #include "vm/jit/show.hpp"

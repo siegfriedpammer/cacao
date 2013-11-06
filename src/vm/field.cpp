@@ -52,6 +52,7 @@
 #include "vm/utf8.hpp"
 #include "vm/vm.hpp"
 
+using namespace cacao;
 
 /* field_load ******************************************************************
 
@@ -62,7 +63,7 @@
 
 #define field_load_NOVALUE  0xffffffff /* must be bigger than any u2 value! */
 
-bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
+bool field_load(classbuffer *cb, fieldinfo *f, DescriptorPool& descpool)
 {
 	classinfo *c;
 	u4 attrnum, i;
@@ -97,7 +98,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 	f->descriptor = u;
 	f->parseddesc = NULL;
 
-	if (!descriptor_pool_add(descpool, u, NULL))
+	if (!descpool.add_field(u))
 		return false;
 
 	/* descriptor_pool_add accepts method descriptors, so we have to

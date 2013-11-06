@@ -714,9 +714,17 @@ void exceptions_throw_classformaterror(classinfo *c, const char *message, ...)
 
 	/* throw exception */
 
-	exceptions_throw_utf_utf(utf8::java_lang_ClassFormatError, buf.utf8_str());
+	exceptions_throw_classformaterror(c, buf.utf8_str());
 }
 
+void exceptions_throw_classformaterror(classinfo *c, Utf8String message)
+{
+	/* throw exception */
+
+	printf("throw new ClassFormatError(\"%s\")\n", message.begin());
+
+	exceptions_throw_utf_utf(utf8::java_lang_ClassFormatError, message);
+}
 
 /* exceptions_throw_classnotfoundexception *************************************
 
@@ -1797,7 +1805,7 @@ void exceptions_print_stacktrace(void)
 
 static inline Utf8String get_classname_for_exception(classinfo *c) {
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-	return Utf8String::from_utf8_slash_to_dot(c->name);
+	return Utf8String::from_utf8_slash_to_dot(c->name.begin(), c->name.size());
 #else
 	return c->name;
 #endif

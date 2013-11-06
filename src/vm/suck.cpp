@@ -86,9 +86,6 @@ void SuckClasspath::add(char *classpath)
 	bool                  is_zip;
 	char                 *cwd;
 	s4                    cwdlen;
-#if defined(ENABLE_ZLIB)
-	hashtable            *ht;
-#endif
 
 	/* parse the classpath string */
 
@@ -140,15 +137,13 @@ void SuckClasspath::add(char *classpath)
 
 			if (is_zip) {
 #if defined(ENABLE_ZLIB)
-				ht = zip_open(filename);
-
-				if (ht != NULL) {
+				if (ZipFile *zip = ZipFile::open(filename)) {
 					lce = NEW(list_classpath_entry);
 
-					lce->type      = CLASSPATH_ARCHIVE;
-					lce->htclasses = ht;
-					lce->path      = filename;
-					lce->pathlen   = filenamelen;
+					lce->type    = CLASSPATH_ARCHIVE;
+					lce->zip     = zip;
+					lce->path    = filename;
+					lce->pathlen = filenamelen;
 
 					/* SUN compatible -verbose:class output */
 
@@ -497,21 +492,14 @@ void suck_skip_nbytes(classbuffer *cb, s4 len)
 
 classbuffer *suck_start(classinfo *c)
 {
-	list_classpath_entry *lce;
-	s4                    filenamelen;
-	FILE                 *classfile;
-	s4                    len;
-	struct stat           buffer;
-	classbuffer          *cb;
-
 	/* initialize return value */
 
-	cb = NULL;
+	classbuffer *cb = NULL;
 
 	/* get the classname as char string (do it here for the warning at
        the end of the function) */
 
-	filenamelen = c->name.size() + strlen(".class") + strlen("0");
+	size_t filenamelen = c->name.size() + strlen(".class") + strlen("0");
 
 	Buffer<> filename(filenamelen);
 	Buffer<> path;
@@ -525,23 +513,31 @@ classbuffer *suck_start(classinfo *c)
 	/* walk through all classpath entries */
 
 	for (SuckClasspath::iterator it = suckclasspath.begin(); it != suckclasspath.end() && cb == NULL; it++) {
-		lce = *it;
+		list_classpath_entry *lce = *it;
 
 #if defined(ENABLE_ZLIB)
 		if (lce->type == CLASSPATH_ARCHIVE) {
 
 			/* enter a monitor on zip/jar archives */
 
-			lce->mutex->lock();
+			MutexLocker lock(*lce->mutex);
 
 			/* try to get the file in current archive */
 
-			cb = zip_get(lce, c);
+			if (ZipFile::EntryRef zip = lce->zip->find(c->name)) {
+				// found class, fill in classbuffer
+				size_t   size = zip->uncompressedsize;
+				uint8_t *data = MNEW(uint8_t, size);
 
-			/* leave the monitor */
+				zip->get(data);
 
-			lce->mutex->unlock();
-
+				cb        = NEW(classbuffer);
+				cb->clazz = c;
+				cb->size  = size;
+				cb->data  = data;
+				cb->pos   = data;
+				cb->path  = lce->path;
+			}
 		} else {
 #endif /* defined(ENABLE_ZLIB) */
 			path.reset();
@@ -549,32 +545,28 @@ classbuffer *suck_start(classinfo *c)
 			path.write(lce->path)
 			    .write(filename);
 
-			classfile = os::fopen(path.c_str(), "r");
+			if (FILE *classfile = os::fopen(path.c_str(), "r")) {
+				struct stat stat_buffer;
 
-			if (classfile) {                                   /* file exists */
-				if (!os::stat(path.c_str(), &buffer)) {        /* read classfile data */
-					cb = NEW(classbuffer);
-					cb->clazz = c;
-					cb->size  = buffer.st_size;
-					cb->data  = MNEW(u1, cb->size);
-					cb->pos   = cb->data;
-					cb->path  = lce->path;
+				if (os::stat(path.c_str(), &stat_buffer) == -1)
+					continue;
 
-					/* read class data */
+				size_t   size = stat_buffer.st_size;
+				uint8_t *data = MNEW(u1, size);
 
-					len = os::fread((void *) cb->data, 1, cb->size,
-									   classfile);
+				// read class data
+				size_t bytes_read = os::fread(data, 1, size, classfile);
+				os::fclose(classfile);
 
-					if (len != buffer.st_size) {
-						suck_stop(cb);
-/*  						if (ferror(classfile)) { */
-/*  						} */
-					}
+				if (bytes_read != size)
+					suck_stop(cb);
 
-					/* close the class file */
-
-					os::fclose(classfile);
-				}
+				cb        = NEW(classbuffer);
+				cb->clazz = c;
+				cb->size  = size;
+				cb->data  = data;
+				cb->pos   = data;
+				cb->path  = lce->path;
 			}
 #if defined(ENABLE_ZLIB)
 		}

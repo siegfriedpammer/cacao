@@ -795,13 +795,6 @@ void show_allocation(s4 type, s4 flags, s4 regoff)
 		return;
 	}
 
-#ifdef HAS_ADDRESS_REGISTER_FILE
-	if (type == TYPE_ADR) {
-		printf("R%02d", regoff);
-		return;
-	}
-#endif
-
 	if (IS_FLT_DBL_TYPE(type)) {
 		printf("F%02d", regoff);
 		return;

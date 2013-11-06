@@ -1,6 +1,6 @@
 /* src/toolbox/hashtable.c - functions for internal hashtables
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -24,10 +24,8 @@
 
 
 #include "toolbox/hashtable.hpp"
-#include "config.h"
-#include "mm/memory.hpp"
-#include "threads/mutex.hpp"
-#include "vm/types.hpp"
+#include "threads/mutex.hpp"            // for Mutex
+#include "vm/types.hpp"                 // for u4
 
 
 /* hashtable_create ************************************************************
@@ -115,4 +113,5 @@ void hashtable_free(hashtable *hash)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

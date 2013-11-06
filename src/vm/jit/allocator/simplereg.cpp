@@ -79,11 +79,7 @@ static void simplereg_allocate_temporaries(jitdata *jd);
 
 /* total number of registers */
 
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-#define TOTAL_REG_CNT  (INT_REG_CNT + FLT_REG_CNT + ADR_REG_CNT)
-#else
 #define TOTAL_REG_CNT  (INT_REG_CNT + FLT_REG_CNT)
-#endif
 
 
 /* macros for handling register stacks ****************************************/
@@ -248,18 +244,9 @@ static void simplereg_allocate_temporaries(jitdata *jd);
 /* macro for getting a unique register index *********************************/
 
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-#define REG_INDEX_NON_ADR(regoff, type)                              \
-    (IS_FLT_DBL_TYPE(type) ? (INT_REG_CNT + (regoff)) : (GET_LOW_REG(regoff)))
+#define REG_INDEX(regoff, type) (IS_FLT_DBL_TYPE(type) ? (INT_REG_CNT + (regoff)) : (GET_LOW_REG(regoff)))
 #else
-#define REG_INDEX_NON_ADR(regoff, type)                              \
-    (IS_FLT_DBL_TYPE(type) ? (INT_REG_CNT + (regoff)) : (regoff))
-#endif
-
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-#define REG_INDEX(regoff, type)                                      \
-    (IS_ADR_TYPE(type) ? (regoff) : (ADR_REG_CNT + REG_INDEX_NON_ADR(regoff, type)))
-#else
-#define REG_INDEX(regoff, type)  REG_INDEX_NON_ADR(regoff, type)
+#define REG_INDEX(regoff, type) (IS_FLT_DBL_TYPE(type) ? (INT_REG_CNT + (regoff)) : (regoff))
 #endif
 
 
@@ -338,10 +325,6 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 			rd->argintreguse = m->parseddesc->argintreguse;
 		if (rd->argfltreguse < m->parseddesc->argfltreguse)
 			rd->argfltreguse = m->parseddesc->argfltreguse;
-#ifdef HAS_ADDRESS_REGISTER_FILE
-		if (rd->argadrreguse < m->parseddesc->argadrreguse)
-			rd->argadrreguse = m->parseddesc->argadrreguse;
-#endif
 	}
 
 	for (s = 0; s < jd->maxinterfaces; s++) {
@@ -372,158 +355,121 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 #endif
 
 			if (!saved) {
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-				if (IS_ADR_TYPE(t)) {
-					if (!code_is_leafmethod(code) && AVAIL_ARG_ADR) {
+				if (IS_FLT_DBL_TYPE(t)) {
+					if (fltalloc >= 0) {
+						/* Reuse memory slot(s)/register(s) for shared interface slots */
+						flags |= jd->interface_map[fltalloc].flags & ~SAVEDVAR;
+						regoff = jd->interface_map[fltalloc].regoff;
+					}
+					else if (AVAIL_ARG_FLT) {
 						flags |= ARGREG;
-						TAKE_ARG_ADR(regoff);
+						TAKE_ARG_FLT(regoff);
 					}
-					else if (AVAIL_TMP_ADR) {
-						TAKE_TMP_ADR(regoff);
+					else if (AVAIL_TMP_FLT) {
+						TAKE_TMP_FLT(regoff);
 					}
-					else if (AVAIL_SAV_ADR) {
+					else if (AVAIL_SAV_FLT) {
 						flags |= SAVREG;
-						TAKE_SAV_ADR(regoff);
+						TAKE_SAV_FLT(regoff);
 					}
 					else {
 						flags |= INMEMORY;
-						regoff = rd->memuse++ * SIZE_OF_STACKSLOT;
+						NEW_MEM_SLOT_FLT_DBL(regoff);
 					}
+					fltalloc = s * 5 + t;
 				}
-				else /* !IS_ADR_TYPE */
-#endif /* defined(HAS_ADDRESS_REGISTER_FILE) */
-				{
-					if (IS_FLT_DBL_TYPE(t)) {
-						if (fltalloc >= 0) {
+				else { /* !IS_FLT_DBL_TYPE(t) */
+#if (SIZEOF_VOID_P == 4) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+					/*
+					 * for i386 put all longs in memory
+					 */
+					if (IS_2_WORD_TYPE(t)) {
+						flags |= INMEMORY;
+						NEW_MEM_SLOT_INT_LNG(regoff);
+					}
+					else
+#endif
+						if (intalloc >= 0) {
 							/* Reuse memory slot(s)/register(s) for shared interface slots */
-							flags |= jd->interface_map[fltalloc].flags & ~SAVEDVAR;
-							regoff = jd->interface_map[fltalloc].regoff;
+							flags |= jd->interface_map[intalloc].flags & ~SAVEDVAR;
+							regoff = jd->interface_map[intalloc].regoff;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+							/* reuse lower half */
+							if (!(flags & INMEMORY) && IS_2_WORD_TYPE(intalloc % 5))
+								regoff = GET_LOW_REG(regoff);
+#endif
 						}
-						else if (AVAIL_ARG_FLT) {
-							flags |= ARGREG;
-							TAKE_ARG_FLT(regoff);
+						else {
+							if (AVAIL_ARG_INT) {
+								flags |= ARGREG;
+								TAKE_ARG_INT(regoff);
+							}
+							else if (AVAIL_TMP_INT) {
+								TAKE_TMP_INT(regoff);
+							}
+							else if (AVAIL_SAV_INT) {
+								flags |= SAVREG;
+								TAKE_SAV_INT(regoff);
+							}
+							else {
+								flags |= INMEMORY;
+								NEW_MEM_SLOT_INT_LNG(regoff);
+							}
 						}
-						else if (AVAIL_TMP_FLT) {
-							TAKE_TMP_FLT(regoff);
-						}
-						else if (AVAIL_SAV_FLT) {
-							flags |= SAVREG;
+
+					intalloc = s * 5 + t;
+				} /* if (IS_FLT_DBL_TYPE(t)) */
+			}
+			else { /* (saved) */
+				/* now the same like above, but without a chance to take a temporary register */
+				if (IS_FLT_DBL_TYPE(t)) {
+					if (fltalloc >= 0) {
+						flags |= jd->interface_map[fltalloc].flags & ~SAVEDVAR;
+						regoff = jd->interface_map[fltalloc].regoff;
+					}
+					else {
+						if (AVAIL_SAV_FLT) {
 							TAKE_SAV_FLT(regoff);
 						}
 						else {
 							flags |= INMEMORY;
 							NEW_MEM_SLOT_FLT_DBL(regoff);
 						}
-						fltalloc = s * 5 + t;
 					}
-					else { /* !IS_FLT_DBL_TYPE(t) */
+					fltalloc = s * 5 + t;
+				}
+				else { /* IS_INT_LNG */
 #if (SIZEOF_VOID_P == 4) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-						/*
-						 * for i386 put all longs in memory
-						 */
-						if (IS_2_WORD_TYPE(t)) {
-							flags |= INMEMORY;
-							NEW_MEM_SLOT_INT_LNG(regoff);
-						}
-						else
-#endif
-							if (intalloc >= 0) {
-								/* Reuse memory slot(s)/register(s) for shared interface slots */
-								flags |= jd->interface_map[intalloc].flags & ~SAVEDVAR;
-								regoff = jd->interface_map[intalloc].regoff;
-#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-								/* reuse lower half */
-								if (!(flags & INMEMORY)
-										&& IS_2_WORD_TYPE(intalloc % 5))
-									regoff = GET_LOW_REG(regoff);
-#endif
-							}
-							else {
-								if (AVAIL_ARG_INT) {
-									flags |= ARGREG;
-									TAKE_ARG_INT(regoff);
-								}
-								else if (AVAIL_TMP_INT) {
-									TAKE_TMP_INT(regoff);
-								}
-								else if (AVAIL_SAV_INT) {
-									flags |= SAVREG;
-									TAKE_SAV_INT(regoff);
-								}
-								else {
-									flags |= INMEMORY;
-									NEW_MEM_SLOT_INT_LNG(regoff);
-								}
-							}
-
-						intalloc = s * 5 + t;
-					} /* if (IS_FLT_DBL_TYPE(t)) */
-				}
-			}
-			else { /* (saved) */
-				/* now the same like above, but without a chance to take a temporary register */
-#ifdef HAS_ADDRESS_REGISTER_FILE
-				if (IS_ADR_TYPE(t)) {
-					if (AVAIL_SAV_ADR) {
-						TAKE_SAV_ADR(regoff);
-					}
-					else {
+					/*
+					 * for i386 put all longs in memory
+					 */
+					if (IS_2_WORD_TYPE(t)) {
 						flags |= INMEMORY;
-						regoff = rd->memuse++ * SIZE_OF_STACKSLOT;
+						NEW_MEM_SLOT_INT_LNG(regoff);
 					}
-				}
-				else
+					else
 #endif
-				{
-					if (IS_FLT_DBL_TYPE(t)) {
-						if (fltalloc >= 0) {
-							flags |= jd->interface_map[fltalloc].flags & ~SAVEDVAR;
-							regoff = jd->interface_map[fltalloc].regoff;
+					{
+						if (intalloc >= 0) {
+							flags |= jd->interface_map[intalloc].flags & ~SAVEDVAR;
+							regoff = jd->interface_map[intalloc].regoff;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+							/*  reuse lower half */
+							if (!(flags & INMEMORY) && IS_2_WORD_TYPE(intalloc % 5))
+								regoff = GET_LOW_REG(regoff);
+#endif
 						}
 						else {
-							if (AVAIL_SAV_FLT) {
-								TAKE_SAV_FLT(regoff);
+							if (AVAIL_SAV_INT) {
+								TAKE_SAV_INT(regoff);
 							}
 							else {
 								flags |= INMEMORY;
-								NEW_MEM_SLOT_FLT_DBL(regoff);
+								NEW_MEM_SLOT_INT_LNG(regoff);
 							}
 						}
-						fltalloc = s * 5 + t;
-					}
-					else { /* IS_INT_LNG */
-#if (SIZEOF_VOID_P == 4) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-						/*
-						 * for i386 put all longs in memory
-						 */
-						if (IS_2_WORD_TYPE(t)) {
-							flags |= INMEMORY;
-							NEW_MEM_SLOT_INT_LNG(regoff);
-						}
-						else
-#endif
-						{
-							if (intalloc >= 0) {
-								flags |= jd->interface_map[intalloc].flags & ~SAVEDVAR;
-								regoff = jd->interface_map[intalloc].regoff;
-#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-								/*  reuse lower half */
-								if (!(flags & INMEMORY)
-										&& IS_2_WORD_TYPE(intalloc % 5))
-									regoff = GET_LOW_REG(regoff);
-#endif
-							}
-							else {
-								if (AVAIL_SAV_INT) {
-									TAKE_SAV_INT(regoff);
-								}
-								else {
-									flags |= INMEMORY;
-									NEW_MEM_SLOT_INT_LNG(regoff);
-								}
-							}
-							intalloc = s*5 + t;
-						}
+
+						intalloc = s*5 + t;
 					} /* if (IS_FLT_DBL_TYPE(t) else */
 				} /* if (IS_ADR_TYPE(t)) else */
 			} /* if (saved) else */
@@ -556,9 +502,6 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 	int     intregsneeded = 0;
 	int     typeloop[] = { TYPE_LNG, TYPE_DBL, TYPE_INT, TYPE_FLT, TYPE_ADR };
 	int     fargcnt, iargcnt;
-#ifdef HAS_ADDRESS_REGISTER_FILE
-	int     aargcnt;
-#endif
 
 	/* get required compiler data */
 
@@ -570,9 +513,7 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 
 	iargcnt = rd->argintreguse;
 	fargcnt = rd->argfltreguse;
-#ifdef HAS_ADDRESS_REGISTER_FILE
-	aargcnt = rd->argadrreguse;
-#endif
+
 	for (p = 0, s = 0; s < jd->maxlocals; s++, p++) {
 		intalloc = -1; fltalloc = -1;
 		for (tt = 0; tt <= 4; tt++) {
@@ -586,150 +527,99 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 			intregsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
 #endif
-
-			/*
-			 *  The order of
-			 *
-			 *  #ifdef HAS_ADDRESS_REGISTER_FILE
-			 *  if (IS_ADR_TYPE) {
-			 *  ...
-			 *  } else
-			 *  #endif
-			 *  if (IS_FLT_DBL) {
-			 *  ...
-			 *  } else { / int & lng
-			 *  ...
-			 *  }
-			 *
-			 *  must not to be changed!
-			 */
-
-#ifdef HAS_ADDRESS_REGISTER_FILE
-			if (IS_ADR_TYPE(t)) {
-				if ((p < md->paramcount) && !md->params[p].inmemory) {
-					v->flags = 0;
-					v->vv.regoff = rd->argadrregs[md->params[p].regoff];
+			if (IS_FLT_DBL_TYPE(t)) {
+				if (fltalloc >= 0) {
+					v->flags = VAR(fltalloc)->flags;
+					v->vv.regoff = VAR(fltalloc)->vv.regoff;
 				}
-				else if (AVAIL_TMP_ADR) {
+#if !defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
+				/* We can only use float arguments as local variables,
+				 * if we do not pass them in integer registers. */
+				else if ((p < md->paramcount) && !md->params[p].inmemory) {
 					v->flags = 0;
-					TAKE_TMP_ADR(v->vv.regoff);
+					v->vv.regoff = md->params[p].regoff;
+				}
+#endif
+				else if (AVAIL_TMP_FLT) {
+					v->flags = 0;
+					TAKE_TMP_FLT(v->vv.regoff);
 				}
 				/* use unused argument registers as local registers */
-				else if ((p >= md->paramcount) &&
-						 (aargcnt < ADR_ARG_CNT))
-				{
+				else if ((p >= md->paramcount) && (fargcnt < FLT_ARG_CNT)) {
 					v->flags = 0;
-					POP_FRONT(rd->argadrregs, aargcnt, v->vv.regoff);
+					POP_FRONT(abi_registers_float_argument,
+							  fargcnt, v->vv.regoff);
 				}
-				else if (AVAIL_SAV_ADR) {
+				else if (AVAIL_SAV_FLT) {
 					v->flags = 0;
-					TAKE_SAV_ADR(v->vv.regoff);
+					TAKE_SAV_FLT(v->vv.regoff);
 				}
 				else {
-					v->flags |= INMEMORY;
-					v->vv.regoff = rd->memuse++ * SIZE_OF_STACKSLOT;
+					v->flags = INMEMORY;
+					NEW_MEM_SLOT_FLT_DBL(v->vv.regoff);
 				}
+				fltalloc = jd->local_map[s * 5 + t];
+
 			}
 			else {
+#if (SIZEOF_VOID_P == 4) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+				/*
+				 * for i386 put all longs in memory
+				 */
+				if (IS_2_WORD_TYPE(t)) {
+					v->flags = INMEMORY;
+					NEW_MEM_SLOT_INT_LNG(v->vv.regoff);
+				}
+				else
 #endif
-				if (IS_FLT_DBL_TYPE(t)) {
-					if (fltalloc >= 0) {
-						v->flags = VAR(fltalloc)->flags;
-						v->vv.regoff = VAR(fltalloc)->vv.regoff;
-					}
-#if !defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
-					/* We can only use float arguments as local variables,
-					 * if we do not pass them in integer registers. */
-					else if ((p < md->paramcount) && !md->params[p].inmemory) {
-						v->flags = 0;
-						v->vv.regoff = md->params[p].regoff;
-					}
+				{
+					if (intalloc >= 0) {
+						v->flags = VAR(intalloc)->flags;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+						if (!(v->flags & INMEMORY) && IS_2_WORD_TYPE(VAR(intalloc)->type))
+							v->vv.regoff = GET_LOW_REG(VAR(intalloc)->vv.regoff);
+						else
 #endif
-					else if (AVAIL_TMP_FLT) {
-						v->flags = 0;
-						TAKE_TMP_FLT(v->vv.regoff);
+							v->vv.regoff = VAR(intalloc)->vv.regoff;
 					}
-					/* use unused argument registers as local registers */
-					else if ((p >= md->paramcount) && (fargcnt < FLT_ARG_CNT)) {
+					else if ((p < md->paramcount) &&
+							 !md->params[p].inmemory)
+					{
 						v->flags = 0;
-						POP_FRONT(abi_registers_float_argument,
-								  fargcnt, v->vv.regoff);
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+						if (IS_2_WORD_TYPE(t))
+							v->vv.regoff =
+								PACK_REGS(GET_LOW_REG(md->params[p].regoff),
+										  GET_HIGH_REG(md->params[p].regoff));
+							else
+#endif
+								v->vv.regoff = md->params[p].regoff;
 					}
-					else if (AVAIL_SAV_FLT) {
+					else if (AVAIL_TMP_INT) {
 						v->flags = 0;
-						TAKE_SAV_FLT(v->vv.regoff);
+						TAKE_TMP_INT(v->vv.regoff);
+					}
+					/*
+					 * use unused argument registers as local registers
+					 */
+					else if ((p >= m->parseddesc->paramcount) &&
+							 (iargcnt + intregsneeded < INT_ARG_CNT))
+					{
+						v->flags = 0;
+						POP_FRONT_INT(abi_registers_integer_argument,
+									  iargcnt, v->vv.regoff);
+					}
+					else if (AVAIL_SAV_INT) {
+						v->flags = 0;
+						TAKE_SAV_INT(v->vv.regoff);
 					}
 					else {
 						v->flags = INMEMORY;
-						NEW_MEM_SLOT_FLT_DBL(v->vv.regoff);
-					}
-					fltalloc = jd->local_map[s * 5 + t];
-
-				}
-				else {
-#if (SIZEOF_VOID_P == 4) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-					/*
-					 * for i386 put all longs in memory
-					 */
-					if (IS_2_WORD_TYPE(t)) {
-						v->flags = INMEMORY;
 						NEW_MEM_SLOT_INT_LNG(v->vv.regoff);
 					}
-					else
-#endif
-					{
-						if (intalloc >= 0) {
-							v->flags = VAR(intalloc)->flags;
-#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-							if (!(v->flags & INMEMORY)
-								&& IS_2_WORD_TYPE(VAR(intalloc)->type))
-								v->vv.regoff = GET_LOW_REG(
-												VAR(intalloc)->vv.regoff);
-							else
-#endif
-								v->vv.regoff = VAR(intalloc)->vv.regoff;
-						}
-						else if ((p < md->paramcount) &&
-								 !md->params[p].inmemory)
-						{
-							v->flags = 0;
-#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-							if (IS_2_WORD_TYPE(t))
-								v->vv.regoff =
-									PACK_REGS(GET_LOW_REG(md->params[p].regoff),
-											  GET_HIGH_REG(md->params[p].regoff));
-								else
-#endif
-									v->vv.regoff = md->params[p].regoff;
-						}
-						else if (AVAIL_TMP_INT) {
-							v->flags = 0;
-							TAKE_TMP_INT(v->vv.regoff);
-						}
-						/*
-						 * use unused argument registers as local registers
-						 */
-						else if ((p >= m->parseddesc->paramcount) &&
-								 (iargcnt + intregsneeded < INT_ARG_CNT))
-						{
-							v->flags = 0;
-							POP_FRONT_INT(abi_registers_integer_argument,
-										  iargcnt, v->vv.regoff);
-						}
-						else if (AVAIL_SAV_INT) {
-							v->flags = 0;
-							TAKE_SAV_INT(v->vv.regoff);
-						}
-						else {
-							v->flags = INMEMORY;
-							NEW_MEM_SLOT_INT_LNG(v->vv.regoff);
-						}
-					}
-					intalloc = jd->local_map[s * 5 + t];
 				}
-#ifdef HAS_ADDRESS_REGISTER_FILE
+				intalloc = jd->local_map[s * 5 + t];
 			}
-#endif
 		} /* for (tt=0;...) */
 
 		/* If the current parameter is a 2-word type, the next local slot */
@@ -787,72 +677,54 @@ static void simplereg_allocate_locals(jitdata *jd)
 				intregsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
 #endif
 
-#ifdef HAS_ADDRESS_REGISTER_FILE
-				if (IS_ADR_TYPE(t)) {
-					if (AVAIL_SAV_ADR) {
-						v->flags = 0;
-						TAKE_SAV_ADR(v->vv.regoff);
-					}
-					else {
-						v->flags = INMEMORY;
-						v->vv.regoff = rd->memuse++ * SIZE_OF_STACKSLOT;
-					}
+			if (IS_FLT_DBL_TYPE(t)) {
+				if (fltalloc >= 0) {
+					v->flags = VAR(fltalloc)->flags;
+					v->vv.regoff = VAR(fltalloc)->vv.regoff;
+				}
+				else if (AVAIL_SAV_FLT) {
+					v->flags = 0;
+					TAKE_SAV_FLT(v->vv.regoff);
+				}
+				else {
+					v->flags = INMEMORY;
+					NEW_MEM_SLOT_FLT_DBL(v->vv.regoff);
+				}
+				fltalloc = jd->local_map[s * 5 + t];
+			}
+			else {
+#if (SIZEOF_VOID_P == 4) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+				/*
+				 * for i386 put all longs in memory
+				 */
+				if (IS_2_WORD_TYPE(t)) {
+					v->flags = INMEMORY;
+					NEW_MEM_SLOT_INT_LNG(v->vv.regoff);
 				}
 				else {
 #endif
-				if (IS_FLT_DBL_TYPE(t)) {
-					if (fltalloc >= 0) {
-						v->flags = VAR(fltalloc)->flags;
-						v->vv.regoff = VAR(fltalloc)->vv.regoff;
+					if (intalloc >= 0) {
+						v->flags = VAR(intalloc)->flags;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+						if (!(v->flags & INMEMORY) && IS_2_WORD_TYPE(VAR(intalloc)->type))
+							v->vv.regoff = GET_LOW_REG(VAR(intalloc)->vv.regoff);
+						else
+#endif
+							v->vv.regoff = VAR(intalloc)->vv.regoff;
 					}
-					else if (AVAIL_SAV_FLT) {
+					else if (AVAIL_SAV_INT) {
 						v->flags = 0;
-						TAKE_SAV_FLT(v->vv.regoff);
+						TAKE_SAV_INT(v->vv.regoff);
 					}
 					else {
-						v->flags = INMEMORY;
-						NEW_MEM_SLOT_FLT_DBL(v->vv.regoff);
-					}
-					fltalloc = jd->local_map[s * 5 + t];
-				}
-				else {
-#if (SIZEOF_VOID_P == 4) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-					/*
-					 * for i386 put all longs in memory
-					 */
-					if (IS_2_WORD_TYPE(t)) {
 						v->flags = INMEMORY;
 						NEW_MEM_SLOT_INT_LNG(v->vv.regoff);
 					}
-					else {
-#endif
-						if (intalloc >= 0) {
-							v->flags = VAR(intalloc)->flags;
-#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-							if (!(v->flags & INMEMORY)
-								&& IS_2_WORD_TYPE(VAR(intalloc)->type))
-								v->vv.regoff = GET_LOW_REG(
-											    VAR(intalloc)->vv.regoff);
-							else
-#endif
-								v->vv.regoff = VAR(intalloc)->vv.regoff;
-						}
-						else if (AVAIL_SAV_INT) {
-							v->flags = 0;
-							TAKE_SAV_INT(v->vv.regoff);
-						}
-						else {
-							v->flags = INMEMORY;
-							NEW_MEM_SLOT_INT_LNG(v->vv.regoff);
-						}
 #if (SIZEOF_VOID_P == 4) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-					}
-#endif
-					intalloc = jd->local_map[s * 5 + t];
-				}
-#ifdef HAS_ADDRESS_REGISTER_FILE
 				}
 #endif
+				intalloc = jd->local_map[s * 5 + t];
+			}
 		}
 	}
 }
@@ -868,16 +740,9 @@ static void simplereg_init(jitdata *jd, registerdata *rd)
 	rd->freesavinttop = 0;
 	rd->freetmpflttop = 0;
 	rd->freesavflttop = 0;
-#ifdef HAS_ADDRESS_REGISTER_FILE
-	rd->freetmpadrtop = 0;
-	rd->freesavadrtop = 0;
-#endif
 
 	rd->freearginttop = 0;
 	rd->freeargflttop = 0;
-#ifdef HAS_ADDRESS_REGISTER_FILE
-	rd->freeargadrtop = 0;
-#endif
 
 	rd->regisoutvar = DMNEW(int, TOTAL_REG_CNT);
 	rd->regcopycount = DMNEW(int, TOTAL_REG_CNT);
@@ -908,18 +773,6 @@ static void simplereg_init(jitdata *jd, registerdata *rd)
 		rd->fltusedinout[rd->tmpfltregs[i]] = 1;
 	for (i=rd->savfltreguse; i<FLT_SAV_CNT; ++i)
 		rd->fltusedinout[rd->savfltregs[i]] = 1;
-
-#ifdef HAS_ADDRESS_REGISTER_FILE
-	rd->adrusedinout = DMNEW(int, ADR_REG_CNT);
-	MZERO(rd->adrusedinout, int, ADR_REG_CNT);
-
-	for (i=0; i<rd->argadrreguse; ++i)
-		rd->adrusedinout[rd->argadrregs[i]] = 1;
-	for (i=rd->tmpadrreguse; i<ADR_TMP_CNT; ++i)
-		rd->adrusedinout[rd->tmpadrregs[i]] = 1;
-	for (i=rd->savadrreguse; i<ADR_SAV_CNT; ++i)
-		rd->adrusedinout[rd->savadrregs[i]] = 1;
-#endif
 }
 
 
@@ -954,21 +807,6 @@ static void simplereg_init_block(registerdata *rd)
 		if (rd->fltusedinout[rd->freesavfltregs[i]]) {
 			rd->freesavfltregs[i--] = rd->freesavfltregs[--rd->freesavflttop];
 		}
-
-#ifdef HAS_ADDRESS_REGISTER_FILE
-	for (i=0; i<rd->freeargadrtop; ++i)
-		if (rd->adrusedinout[rd->freeargadrregs[i]]) {
-			rd->freeargadrregs[i--] = rd->freeargadrregs[--rd->freeargadrtop];
-		}
-	for (i=0; i<rd->freetmpadrtop; ++i)
-		if (rd->adrusedinout[rd->freetmpadrregs[i]]) {
-			rd->freetmpadrregs[i--] = rd->freetmpadrregs[--rd->freetmpadrtop];
-		}
-	for (i=0; i<rd->freesavadrtop; ++i)
-		if (rd->adrusedinout[rd->freesavadrregs[i]]) {
-			rd->freesavadrregs[i--] = rd->freesavadrregs[--rd->freesavadrtop];
-		}
-#endif
 }
 
 
@@ -1000,115 +838,85 @@ static void simplereg_new_temp(jitdata *jd, s4 index)
 		if (tryagain == 1) {
 			if (!(v->flags & SAVEDVAR))
 				v->flags |= SAVREG;
-#ifdef HAS_ADDRESS_REGISTER_FILE
-			if (IS_ADR_TYPE(v->type)) {
-				if (AVAIL_FREE_SAV_ADR) {
-					TAKE_FREE_SAV_ADR(v->vv.regoff);
+
+			if (IS_FLT_DBL_TYPE(v->type)) {
+				if (AVAIL_FREE_SAV_FLT) {
+					TAKE_FREE_SAV_FLT(v->vv.regoff);
 					return;
 				}
-				else if (AVAIL_SAV_ADR) {
-					TAKE_SAV_ADR(v->vv.regoff);
+				else if (AVAIL_SAV_FLT) {
+					TAKE_SAV_FLT(v->vv.regoff);
 					return;
 				}
 			}
-			else
-#endif
-			{
-				if (IS_FLT_DBL_TYPE(v->type)) {
-					if (AVAIL_FREE_SAV_FLT) {
-						TAKE_FREE_SAV_FLT(v->vv.regoff);
-						return;
-					}
-					else if (AVAIL_SAV_FLT) {
-						TAKE_SAV_FLT(v->vv.regoff);
-						return;
-					}
-				}
-				else {
+			else {
 #if (SIZEOF_VOID_P == 4) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-					/*
-					 * for i386 put all longs in memory
-					 */
-					if (!IS_2_WORD_TYPE(v->type))
+				/*
+				 * for i386 put all longs in memory
+				 */
+				if (!IS_2_WORD_TYPE(v->type))
 #endif
-					{
-						if (AVAIL_FREE_SAV_INT) {
-							TAKE_FREE_SAV_INT(v->vv.regoff);
-							return;
-						}
-						else if (AVAIL_SAV_INT) {
-							TAKE_SAV_INT(v->vv.regoff);
-							return;
-						}
+				{
+					if (AVAIL_FREE_SAV_INT) {
+						TAKE_FREE_SAV_INT(v->vv.regoff);
+						return;
+					}
+					else if (AVAIL_SAV_INT) {
+						TAKE_SAV_INT(v->vv.regoff);
+						return;
 					}
 				}
 			}
 		}
 		else { /* tryagain == 2 */
-#ifdef HAS_ADDRESS_REGISTER_FILE
-			if (IS_ADR_TYPE(v->type)) {
-				if (AVAIL_FREE_TMP_ADR) {
-					TAKE_FREE_TMP_ADR(v->vv.regoff);
+			if (IS_FLT_DBL_TYPE(v->type)) {
+				if (AVAIL_FREE_ARG_FLT) {
+					v->flags |= ARGREG;
+					TAKE_FREE_ARG_FLT(v->vv.regoff);
 					return;
 				}
-				else if (AVAIL_TMP_ADR) {
-					TAKE_TMP_ADR(v->vv.regoff);
+				else if (AVAIL_ARG_FLT) {
+					v->flags |= ARGREG;
+					TAKE_ARG_FLT(v->vv.regoff);
+					return;
+				}
+				else if (AVAIL_FREE_TMP_FLT) {
+					TAKE_FREE_TMP_FLT(v->vv.regoff);
+					return;
+				}
+				else if (AVAIL_TMP_FLT) {
+					TAKE_TMP_FLT(v->vv.regoff);
 					return;
 				}
 			}
-			else
-#endif
-			{
-				if (IS_FLT_DBL_TYPE(v->type)) {
-					if (AVAIL_FREE_ARG_FLT) {
-						v->flags |= ARGREG;
-						TAKE_FREE_ARG_FLT(v->vv.regoff);
-						return;
-					}
-					else if (AVAIL_ARG_FLT) {
-						v->flags |= ARGREG;
-						TAKE_ARG_FLT(v->vv.regoff);
-						return;
-					}
-					else if (AVAIL_FREE_TMP_FLT) {
-						TAKE_FREE_TMP_FLT(v->vv.regoff);
-						return;
-					}
-					else if (AVAIL_TMP_FLT) {
-						TAKE_TMP_FLT(v->vv.regoff);
-						return;
-					}
-
-				}
-				else {
+			else {
 #if (SIZEOF_VOID_P == 4) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-					/*
-					 * for i386 put all longs in memory
-					 */
-					if (!IS_2_WORD_TYPE(v->type))
+				/*
+				 * for i386 put all longs in memory
+				 */
+				if (!IS_2_WORD_TYPE(v->type))
 #endif
-					{
-						if (AVAIL_FREE_ARG_INT) {
-							v->flags |= ARGREG;
-							TAKE_FREE_ARG_INT(v->vv.regoff);
-							return;
-						}
-						else if (AVAIL_ARG_INT) {
-							v->flags |= ARGREG;
-							TAKE_ARG_INT(v->vv.regoff);
-							return;
-						}
-						else if (AVAIL_FREE_TMP_INT) {
-							TAKE_FREE_TMP_INT(v->vv.regoff);
-							return;
-						}
-						else if (AVAIL_TMP_INT) {
-							TAKE_TMP_INT(v->vv.regoff);
-							return;
-						}
-					} /* if (!IS_2_WORD_TYPE(s->type)) */
-				} /* if (IS_FLT_DBL_TYPE(s->type)) */
-			} /* if (IS_ADR_TYPE(s->type)) */
+				{
+					if (AVAIL_FREE_ARG_INT) {
+						v->flags |= ARGREG;
+						TAKE_FREE_ARG_INT(v->vv.regoff);
+						return;
+					}
+					else if (AVAIL_ARG_INT) {
+						v->flags |= ARGREG;
+						TAKE_ARG_INT(v->vv.regoff);
+						return;
+					}
+					else if (AVAIL_FREE_TMP_INT) {
+						TAKE_FREE_TMP_INT(v->vv.regoff);
+						return;
+					}
+					else if (AVAIL_TMP_INT) {
+						TAKE_TMP_INT(v->vv.regoff);
+						return;
+					}
+				} /* if (!IS_2_WORD_TYPE(s->type)) */
+			} /* if (IS_FLT_DBL_TYPE(s->type)) */
 		} /* if (tryagain == 1) else */
 	} /* for(; tryagain; --tryagain) */
 
@@ -1177,14 +985,6 @@ static void simplereg_free(registerdata *rd, s4 flags, s4 regoff, s4 type)
 
 	/* freeing a register */
 
-#ifdef HAS_ADDRESS_REGISTER_FILE
-	if (IS_ADR_TYPE(type)) {
-		if (flags & (SAVEDVAR | SAVREG))
-			PUSH_FREE_SAV_ADR(regoff);
-		else
-			PUSH_FREE_TMP_ADR(regoff);
-	}
-#endif
 	else if (IS_FLT_DBL_TYPE(type)) {
 		if (flags & (SAVEDVAR | SAVREG))
 			PUSH_FREE_SAV_FLT(regoff);

@@ -28,7 +28,7 @@ SUBDIRS = \
 
 JAVA     = $(top_builddir)/src/cacao/cacao
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
-JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
+JAVACCMD = $(JAVAC) -source 1.5 -target 1.5 -bootclasspath $(BOOTCLASSPATH)
 
 HARNESS_SOURCE_FILES =            \
 	$(srcdir)/TestController.java \

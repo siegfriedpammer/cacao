@@ -28,7 +28,6 @@
 
 #include <stddef.h>                     // for NULL
 #include "config.h"                     // for ENABLE_JIT, etc
-#include "arch.hpp"                     // for HAS_ADDRESS_REGISTER_FILE
 #include "md-abi.hpp"                   // for FLT_REG_CNT, INT_SAV_CNT
 #include "vm/jit/jit.hpp"               // for basicblock::Type
 #include "vm/types.hpp"                 // for s4, u1, ptrint, u4, s8
@@ -173,9 +172,6 @@ struct sourceframe_t {
 	u1            *nativepc;
 	ptrint         nativesavint[INT_SAV_CNT]; /* XXX temporary */
 	double         nativesavflt[FLT_REG_CNT]; /* XXX temporary */
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	ptrint         nativesavadr[ADR_SAV_CNT]; /* XXX temporary */
-#endif
 };
 
 #define REPLACE_IS_NATIVE_FRAME(frame)  ((frame)->sfi != NULL)

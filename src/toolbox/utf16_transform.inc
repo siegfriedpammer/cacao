@@ -1,6 +1,6 @@
 /* src/toolbox/utf16_transform.inc - implementation of utf16 encoder
 
-   Copyright (C) 2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -22,42 +22,31 @@
 
 */
 
-/*******************************************************************************
-	this section defines a specialized UTF-16 decoder function
+#ifndef UTF16_TRANSFORM_INC
+#define UTF16_TRANSFORM_INC 1
 
-	The overloading is achieved via tag dispatch with the empty template type
-	utf16::Tag.
+namespace utf16 {
 
-*******************************************************************************/
+namespace impl {
+	struct CopyUtf16ToUtf8 : utf8::VisitorBase<void, utf8::IGNORE_ERRORS> {
+		typedef void ReturnType;
 
-#ifdef _VISIT_UTF16
-	#define _VISITOR_TYPE utf_utils::VISIT_BOTH
-#else
-	#define _VISITOR_TYPE utf_utils::VISIT_UTF8
-#endif
+		CopyUtf16ToUtf8(char *dst) : dst(dst) {}
 
-#if   defined(_IGNORE_ERRORS)
-	#define _ERROR_ACTION utf_utils::IGNORE_ERRORS
-#elif defined(_REPLACE_ON_ERROR)
-	#define _ERROR_ACTION utf_utils::REPLACE_ON_ERROR
-#elif defined(_ABORT_ON_ERROR)
-	#define _ERROR_ACTION utf_utils::ABORT_ON_ERROR
-#else
-	#error "No error handling strategy was specified"
-#endif
+		void utf8(uint8_t c) { *dst++ = c; }
 
-#define _TAG utf_utils::Tag<_VISITOR_TYPE, _ERROR_ACTION>
+		void finish() { *dst = '\0'; }
+	private:
+		char *dst;
+	};
+} // end namespace impl
 
-namespace utf16_impl {
-	template<typename T, typename Fn>
-	inline T transform(const uint16_t *cs, size_t sz, Fn fn, _TAG tag) {
+	template<typename Iterator, typename Fn>
+	inline typename Fn::ReturnType transform(Iterator it, Iterator end, Fn fn) {
+		for (; it != end; ++it) {
+			uint16_t c = *it;
 
-		for (const uint16_t *const end = cs + sz; cs != end; ++cs) {
-			uint16_t c = *cs;
-
-			#ifdef _VISIT_UTF16
-				fn.utf16(c);
-			#endif
+			fn.utf16(c);
 
 			if ((c != 0) && (c < 0x80)) {
 				// 1 character
@@ -83,25 +72,28 @@ namespace utf16_impl {
 
 		return fn.finish();
 	}
-}
 
-#undef _TAG
-#undef _VISITOR_TYPE
-#undef _ERROR_ACTION
 
-#ifdef _VISIT_UTF8
-	#undef _VISIT_UTF8
-#endif
-#ifdef _VISIT_UTF16
-	#undef _VISIT_UTF16
-#endif
-#ifdef _IGNORE_ERRORS
-	#undef _IGNORE_ERRORS
-#endif
-#ifdef _REPLACE_ON_ERROR
-	#undef _REPLACE_ON_ERROR
-#endif
-#ifdef _ABORT_ON_ERROR
-	#undef _ABORT_ON_ERROR
-#endif
+	template<typename Utf16Iterator>
+	inline void encode(Utf16Iterator begin, Utf16Iterator end, char *dst) {
+		::utf16::transform(begin, end, ::utf16::impl::CopyUtf16ToUtf8(dst));
+	}
 
+} // end namespace utf16
+
+
+#endif // UTF16_TRANSFORM_INC
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c++
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */

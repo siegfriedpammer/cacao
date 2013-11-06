@@ -21,7 +21,7 @@
 ## 02110-1301, USA.
 
 
-AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)
+AM_CPPFLAGS += -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)
 
 # set default search extension
 AM_DEFAULT_SOURCE_EXT = .cpp
@@ -47,14 +47,12 @@ LDADD=libgtest_main.a \
 
 # test cases
 TESTS = sample \
-	logging_test \
-	ordered_list_test
+	future_algorithm \
+	future_memory \
+	future_unordered \
+	logging_test
 
 check_PROGRAMS = $(TESTS)
-
-if ENABLE_COMPILER2
-SUBDIRS +=  compiler2
-endif
 
 ## Local variables:
 ## mode: Makefile

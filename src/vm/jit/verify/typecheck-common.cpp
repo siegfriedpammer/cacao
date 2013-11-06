@@ -1,4 +1,4 @@
-/* src/vm/jit/verify/typecheck-common.c - shared verifier code
+/* src/vm/jit/verify/typecheck-common.cpp - shared verifier code
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -493,7 +493,7 @@ bool typecheck_init_locals(verifier_state *state, bool newthis)
 
 	/* allocate parameter descriptors if necessary */
 
-	descriptor_params_from_paramtypes(state->m->parseddesc, state->m->flags);
+	state->m->parseddesc->params_from_paramtypes(state->m->flags);
 
 	/* pre-initialize variables as TYPE_VOID */
 

@@ -1,6 +1,6 @@
 ## tests/regression/bugzilla/Makefile.am
 ##
-## Copyright (C) 2008
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -27,20 +27,23 @@ JAVACCMD = $(JAVAC) -source 1.5 -target 1.5 -nowarn -bootclasspath $(BOOTCLASSPA
 JAVAENV  = LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs
 
 EXTRA_DIST = \
-	$(srcdir)/*.java $(srcdir)/*.j
+	$(srcdir)/*.java $(srcdir)/*.j $(srcdir)/boot-manifest.txt
 
 CLEANFILES = \
-	*.class
+	*.class boottest.jar
 
 check: build run
 
 build:
 	$(JAVAENV) $(JAVACMD) -cp $(JASMIN_JAR) jasmin.Main $(srcdir)/*.j
 	$(JAVAENV) $(JAVACCMD) -classpath $(JUNIT_JAR):$(builddir) -d . $(srcdir)/*.java
+	$(JAR) cmf $(srcdir)/boot-manifest.txt boottest.jar boottest/
 
 run:
 	$(JAVAENV) $(JAVACMD) -Dcacao.test.javacmd="$(JAVACMD)" -classpath $(JUNIT_JAR):. org.junit.runner.JUnitCore All
 
+clean-local:
+	rm -rf boottest
 
 ## Local variables:
 ## mode: Makefile

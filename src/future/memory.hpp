@@ -1,6 +1,7 @@
-/* src/vm/jit/m68k/md-stubs.hpp - m68k JIT stubs
+/* src/future/memory.hpp - future memory library features
 
-   Copyright (C) 2008 Theobroma Systems Ltd.
+   Copyright (C) 1996-2013
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,24 +23,34 @@
 */
 
 
-#ifndef _MD_STUBS_HPP
-#define _MD_STUBS_HPP
+#ifndef FUTURE_MEMORY_HPP_
+#define FUTURE_MEMORY_HPP_ 1
 
 #include "config.h"
 
+// get shared_ptr
+#if HAVE_STD_TR1_SHARED_PTR
 
-/**
- * Return the code size of a compiler on a m68k architecture.
- *
- * @return Code size in bytes.
- */
-int CompilerStub::get_code_size()
-{
-	return 2 + 2;
-}
+#include <tr1/memory>
 
-#endif // _MD_STUBS_HPP
+namespace cacao {
+using std::tr1::shared_ptr;
+} // end namespace cacao
 
+#elif HAVE_BOOST_SHARED_PTR
+
+#include <boost/shared_ptr.hpp>
+
+namespace cacao {
+using boost::shared_ptr;
+} // end namespace cacao
+
+#else
+#error "No implementation of shared_ptr available"
+#endif
+
+
+#endif /* FUTURE_MEMORY_HPP_ */
 
 /*
  * These are local overrides for various environment variables in Emacs.

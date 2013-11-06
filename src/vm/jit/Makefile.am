@@ -21,7 +21,7 @@
 ## 02110-1301, USA.
 
 
-AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)/src
+AM_CPPFLAGS += -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)/src
 
 LIBS =
 
@@ -38,7 +38,6 @@ DIST_SUBDIRS = \
 	alpha \
 	arm \
 	i386 \
-	m68k \
 	mips \
 	parisc \
 	powerpc \
@@ -77,14 +76,6 @@ SUBDIRS += \
 
 INLINE_LIB = \
 	inline/libinline.la
-endif
-
-if ENABLE_COMPILER2
-SUBDIRS += \
-       compiler2
-
-COMPILER2_LIB = \
-       compiler2/libcompiler2.la
 endif
 
 if ENABLE_LOOP
@@ -185,8 +176,6 @@ libjit_la_SOURCES = \
 	parse.hpp \
 	patcher-common.cpp \
 	patcher-common.hpp \
-	Patcher.cpp \
-	Patcher.hpp \
 	$(RECOMPILE_SOURCES) \
 	$(REG_SOURCES) \
 	$(REPLACE_SOURCES) \
@@ -217,12 +206,6 @@ libjit_la_LIBADD = \
 	$(VERIFIER_LIB) \
 	$(INTRP_LIB) \
 	$(ARCH_LIB)
-
-if ENABLE_COMPILER2
-libjit_la_LIBADD += \
-       $(COMPILER2_LIB)
-endif
-
 
 ## Local variables:
 ## mode: Makefile

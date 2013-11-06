@@ -1,6 +1,6 @@
-## src/vm/jit/m68k/linux/Makefile.am
+## src/future/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2008
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -21,20 +21,20 @@
 ## 02110-1301, USA.
 
 
-AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
+AM_CPPFLAGS += -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
 
 LIBS =
 
-noinst_HEADERS = \
-	md-asm.h
 
 noinst_LTLIBRARIES = \
-	libmd.la
+	libfuture.la
 
-libmd_la_SOURCES = \
-	md-abi.c \
-	md-abi.h \
-	md-os.c
+libfuture_la_SOURCES = \
+	algorithm.hpp \
+	future_hash.hpp \
+	memory.hpp \
+	unordered_map.hpp \
+	unordered_set.hpp
 
 
 ## Local variables:

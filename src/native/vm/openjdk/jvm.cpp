@@ -2508,7 +2508,9 @@ jstring JVM_GetSystemPackage(JNIEnv *env, jstring name)
 {
 	TRACEJVMCALLS(("JVM_GetSystemPackage(env=%p, name=%p)", env, name));
 
-	Utf8String u      = JavaString((java_handle_t*) name).to_utf8();
+	Utf8String u_ = JavaString((java_handle_t*) name).to_utf8();
+	// strip off trailing slash
+	Utf8String u = Utf8String::from_utf8_slash_to_dot(u_.begin(), u_.size() - 1);
 	Utf8String result = Package::find(u);
 
 	return (jstring) (result ? JavaString::from_utf8(result) : NULL);
@@ -2519,9 +2521,31 @@ jstring JVM_GetSystemPackage(JNIEnv *env, jstring name)
 
 jobjectArray JVM_GetSystemPackages(JNIEnv *env)
 {
-	log_println("JVM_GetSystemPackages: IMPLEMENT ME!");
+	TRACEJVMCALLS(("JVM_GetSystemPackages(env=%p)", env));
 
-	return NULL;
+	AnyClassLocker<Package> lock;
+	const std::set<Utf8String> &packages(Package::packages());
+	int num = packages.size();
+
+	ObjectArray result(num, class_java_lang_String);
+	std::set<Utf8String>::const_iterator it = packages.begin();
+	for (int i=0; it != packages.end(); ++it, i++) {
+		// Make up the format expected by OpenJDK -- slash-separated
+		// with extra trailing slash
+		std::vector<char> temp;
+		temp.reserve(it->size() + 1);
+		const char *end = it->end();
+		for (const char *c = it->begin(); c != end; ++c)
+			temp.push_back(*c == '.' ? '/' : *c);
+		temp.push_back('/');
+
+		JavaString package_name = JavaString::from_utf8(&temp[0], temp.size());
+		java_handle_t *hs = package_name;
+		if (!hs)
+			return NULL;
+		result.set_element(i, hs);
+	}
+	return result.get_handle();
 }
 
 

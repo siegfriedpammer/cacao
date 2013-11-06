@@ -1,9 +1,7 @@
 dnl m4/threads.m4
 dnl
-dnl Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-dnl C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-dnl E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-dnl J. Wenninger, Institut f. Computersprachen - TU Wien
+dnl Copyright (C) 1996-2013
+dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 dnl 
 dnl This file is part of CACAO.
 dnl 
@@ -57,11 +55,7 @@ case "${ENABLE_THREADS}" in
         AC_DEFINE([ENABLE_THREADS], 1, [enable threads])
         AC_CHECK_LIB(pthread, main)
 
-        OS_FLAGS="$OS_FLAGS -D_REENTRANT"
-
-        dnl We changed OS_FLAGS, set CFLAGS again.
-        dnl CFLAGS="$OPT_CFLAGS $ARCH_FLAGS $OS_FLAGS $CC_FLAGS"
-        dnl CXXFLAGS="$OPT_CXXFLAGS $ARCH_FLAGS $OS_FLAGS $CXX_FLAGS"
+        AM_CPPFLAGS="$AM_CPPFLAGS -D_REENTRANT"
 
         dnl tell boehm to support threads as well
         ac_configure_args="$ac_configure_args --enable-boehm-threads=posix"
@@ -80,7 +74,7 @@ if test "x$use__thread" != xno; then
 __thread int a = 42;
 EOF
   if AC_TRY_COMMAND([${CC-cc} $ARCH_CFLAGS $OPT_CFLAGS -c conftest.c >&AS_MESSAGE_LOG_FD]); then
-    ac_cv_gcc___thread=yes 
+    ac_cv_gcc___thread=yes
   else
     ac_cv_gcc___thread=no
   fi
