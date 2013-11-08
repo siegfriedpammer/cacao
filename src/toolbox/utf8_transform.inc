@@ -27,116 +27,6 @@
 
 namespace utf8 {
 namespace impl {
-	// every byte in a UTF-8 sequence falls into one
-	// of these categories
-	enum utf8_byte_category {
-		UTF8_ILLEGAL_BYTE             = 0,
-		UTF8_ASCII_BYTE               = 1,
-		UTF8_CONTINUATION_BYTE        = 2,
-		UTF8_START_OF_2_BYTE_SEQUENCE = 3,
-		UTF8_START_OF_3_BYTE_SEQUENCE = 4
-	};
-
-	// the decoder is modeled as a finite state machine
-	// with these states
-	enum utf8_machine_state {
-		// done decoding
-		UTF8_ERROR       = 0,
-		UTF8_ACCEPT      = 1, // also the starting state
-		// need more input
-		UTF8_READ_1_OF_2 = 2,
-		UTF8_READ_1_OF_3 = 3,
-		UTF8_READ_2_OF_3 = 4
-	};
-
-	static inline utf8_byte_category get_byte_category(uint8_t byte) {
-		static const uint8_t byte_to_category[256] = {
-#define   _2_TIMES( X ) X, X
-#define   _4_TIMES( X )  _2_TIMES( X ),  _2_TIMES( X )
-#define   _8_TIMES( X )  _4_TIMES( X ),  _4_TIMES( X )
-#define  _16_TIMES( X )  _8_TIMES( X ),  _8_TIMES( X )
-#define  _32_TIMES( X ) _16_TIMES( X ), _16_TIMES( X )
-#define  _64_TIMES( X ) _32_TIMES( X ), _32_TIMES( X )
-#define _127_TIMES( X ) _64_TIMES( X ), _32_TIMES( X ), _16_TIMES( X ), \
-	                     _8_TIMES( X ),  _4_TIMES( X ),  _2_TIMES( X ), X
-
-			// java's modified utf8 forbids 0
-			UTF8_ILLEGAL_BYTE,
-
-			// all ascii characters except 0 are valid
-			_127_TIMES( UTF8_ASCII_BYTE ),
-
-			// bytes from 0x80 to 0xBF are the 2nd or 3rd byte in a multi byte
-			// sequence
-			_64_TIMES( UTF8_CONTINUATION_BYTE ),
-
-			// bytes from 0xC0 to 0xDF begin a two byte sequence
-			_32_TIMES( UTF8_START_OF_2_BYTE_SEQUENCE ),
-
-			// bytes from 0xE0 to 0xEF begin a three byte sequence
-			_16_TIMES( UTF8_START_OF_3_BYTE_SEQUENCE ),
-
-			// byte from 0xF0 to 0xFF are forbidden
-			_16_TIMES( UTF8_ILLEGAL_BYTE )
-
-#undef   _2_TIMES
-#undef   _4_TIMES
-#undef   _8_TIMES
-#undef  _16_TIMES
-#undef  _32_TIMES
-#undef  _64_TIMES
-#undef _127_TIMES
-		};
-		return (utf8_byte_category) byte_to_category[byte];
-	}
-
-	static inline utf8_machine_state transition(utf8_machine_state state, utf8_byte_category category) {
-		static const uint8_t transition_table[5][5] = {
-			{
-				// current state: UTF8_ERROR
-				/* input: UTF8_ILLEGAL_BYTE             */ UTF8_ERROR,
-				/* input: UTF8_ASCII_BYTE               */ UTF8_ERROR,
-				/* input: UTF8_CONTINUATION_BYTE        */ UTF8_ERROR,
-				/* input: UTF8_START_OF_2_BYTE_SEQUENCE */ UTF8_ERROR,
-				/* input: UTF8_START_OF_3_BYTE_SEQUENCE */ UTF8_ERROR
-			},
-			{
-				// current state: UTF8_ACCEPT
-				/* input: UTF8_ILLEGAL_BYTE             */ UTF8_ERROR,
-				/* input: UTF8_ASCII_BYTE               */ UTF8_ACCEPT,
-				/* input: UTF8_CONTINUATION_BYTE        */ UTF8_ERROR,
-				/* input: UTF8_START_OF_2_BYTE_SEQUENCE */ UTF8_READ_1_OF_2,
-				/* input: UTF8_START_OF_3_BYTE_SEQUENCE */ UTF8_READ_1_OF_3
-			},
-			{
-				// current state: UTF8_READ_1_OF_2
-				/* input: UTF8_ILLEGAL_BYTE             */ UTF8_ERROR,
-				/* input: UTF8_ASCII_BYTE               */ UTF8_ERROR,
-				/* input: UTF8_CONTINUATION_BYTE        */ UTF8_ACCEPT,
-				/* input: UTF8_START_OF_2_BYTE_SEQUENCE */ UTF8_ERROR,
-				/* input: UTF8_START_OF_3_BYTE_SEQUENCE */ UTF8_ERROR
-			},
-				{
-				// current state: UTF8_READ_1_OF_3
-				/* input: UTF8_ILLEGAL_BYTE             */ UTF8_ERROR,
-				/* input: UTF8_ASCII_BYTE               */ UTF8_ERROR,
-				/* input: UTF8_CONTINUATION_BYTE        */ UTF8_READ_2_OF_3,
-				/* input: UTF8_START_OF_2_BYTE_SEQUENCE */ UTF8_ERROR,
-				/* input: UTF8_START_OF_3_BYTE_SEQUENCE */ UTF8_ERROR
-			},
-			{
-				// current state: UTF8_READ_1_OF_3
-				/* input: UTF8_ILLEGAL_BYTE             */ UTF8_ERROR,
-				/* input: UTF8_ASCII_BYTE               */ UTF8_ERROR,
-				/* input: UTF8_CONTINUATION_BYTE        */ UTF8_ACCEPT,
-				/* input: UTF8_START_OF_2_BYTE_SEQUENCE */ UTF8_ERROR,
-				/* input: UTF8_START_OF_3_BYTE_SEQUENCE */ UTF8_ERROR
-			},
-		};
-
-		return (utf8_machine_state) transition_table[state][category];
-	}
-
 	struct CopyUtf8ToUtf16 : utf8::VisitorBase<bool, ABORT_ON_ERROR> {
 		typedef bool ReturnType;
 
@@ -149,7 +39,6 @@ namespace impl {
 	private:
 		uint16_t *dst;
 	};
-
 } // end namespace impl
 } // end namespace utf8
 
@@ -157,57 +46,72 @@ template<typename Iterator, typename Fn>
 inline typename Fn::ReturnType utf8::transform(Iterator it, Iterator end, Fn fn) {
 	using namespace ::utf8::impl;
 
-	uint16_t           codepoint = 0;
-	utf8_machine_state state     = UTF8_ACCEPT;
+#define UTF8_HANDLE_ERROR {                                \
+	if (fn.error_action() == ABORT_ON_ERROR) {             \
+		return fn.abort();                                 \
+	} else if (fn.error_action() == REPLACE_ON_ERROR) {    \
+		fn.utf16(fn.replacement());                        \
+	}                                                      \
+	continue;                                              \
+}
 
-	for (; it != end; ++it) {
-		uint8_t byte = *it;
+	while (it != end) {
+		unsigned byte = *it++;
 
-		// apply callback to input byte
-		fn.utf8(byte);
+		if (byte && !(byte & 0x80)) {
+			// highest bit not set, at least one other bit set, ASCII character
 
-		// get the character category for input byte
-		utf8_byte_category category = get_byte_category(byte);
+			fn.utf8(byte);
+			fn.utf16(byte);
+		} else if ((byte & 0xe0) == 0xc0) {
+			// 2-byte: should be 110..... 10......
 
-		// get the new state the decoder is in after reading input byte
-		state = transition(state, category);
+			if (it == end) {
+				UTF8_HANDLE_ERROR
+			}
 
-		// mask out non-data bits of byte
-		byte = byte & (0xFF >> category);
+			unsigned byte2 = *it++;
 
-		// make room in codepoint for new data bits
-		if (category) codepoint <<= 8 - category;
+			if ((byte2 & 0xc0) == 0x80) {
+				// valid 2-byte UTF-8
+				fn.utf8(byte);
+				fn.utf8(byte2);
+				fn.utf16(((byte  & 0x1f) << 6) | (byte2 & 0x3f));
+			} else {
+				UTF8_HANDLE_ERROR
+			}
+		} else if ((byte & 0xf0) == 0xe0) {
+			// 3-byte: should be 1110.... 10...... 10......
 
-		// add new bits to codepoint
-		codepoint = codepoint | byte;
+			if (it + 2 > end) {
+				UTF8_HANDLE_ERROR
+			}
 
-		switch (state) {
-			case UTF8_ACCEPT:
-				// apply callback to decoded codepoint
-				fn.utf16(codepoint);
-				codepoint = 0;
-				break;
-			case UTF8_ERROR:
-				// if-cascade seems to constant fold better than a switch
+			unsigned byte2 = *it++;
 
-				if (fn.error_action() == ABORT_ON_ERROR) {
-					return fn.abort();
-				} else if (fn.error_action() == REPLACE_ON_ERROR) {
-					fn.utf16(fn.replacement());
-					state     = UTF8_ACCEPT;
-					codepoint = 0;
+			if ((byte2 & 0xc0) == 0x80) {
+				unsigned byte3 = *it++;
+
+				if ((byte3 & 0xc0) == 0x80) {
+					// valid 3-byte UTF-8
+					fn.utf8(byte);
+					fn.utf8(byte2);
+					fn.utf8(byte3);
+					fn.utf16(((byte & 0x0f) << 12) | ((byte2 & 0x3f) <<  6) | (byte3 & 0x3f));
 				} else {
-					// ignore error
-					state     = UTF8_ACCEPT;
-					codepoint = 0;
+					UTF8_HANDLE_ERROR
 				}
-				break;
-			default:
-				break;
+			} else {
+				UTF8_HANDLE_ERROR
+			}
+		} else {
+			UTF8_HANDLE_ERROR
 		}
 	}
 
 	return fn.finish();
+
+#undef UTF8_HANDLE_ERROR
 }
 
 

@@ -27,8 +27,6 @@
 
 #include "config.h"
 
-#include <cassert>
-
 #include "threads/mutex.hpp"
 
 #include "toolbox/assert.hpp"

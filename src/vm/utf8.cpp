@@ -30,12 +30,12 @@
 #include "toolbox/utf_utils.hpp"        // for transform, Tag, etc
 #include "vm/options.hpp"
 #include "vm/statistics.hpp"
+#include "toolbox/assert.hpp"
 
 using namespace cacao;
 
 STAT_REGISTER_VAR(int,count_utf_new,0,"utf new","Calls of utf_new")
 STAT_DECLARE_VAR(int,count_utf_len,0)
-
 
 //****************************************************************************//
 //*****          GLOBAL UTF8-STRING INTERN TABLE                         *****//
@@ -122,6 +122,7 @@ void Utf8String::initialize(void)
 #define UTF8(NAME, STR) utf8::NAME = Utf8String::from_utf8(STR);
 #include "vm/utf8.inc"
 }
+
 
 /* Utf8String::initialize ******************************************************
 
@@ -381,10 +382,10 @@ Utf8String Utf8String::substring(size_t from) const
 
 Utf8String Utf8String::substring(size_t from, size_t to) const
 {
-	assert(_data);
-	assert(from >  0);
-	assert(from <= to);
-	assert(to   <= size());
+	EXPENSIVE_ASSERT(_data);
+	EXPENSIVE_ASSERT(from >  0);
+	EXPENSIVE_ASSERT(from <= to);
+	EXPENSIVE_ASSERT(to   <= size());
 
 	return Utf8String::from_utf8(begin() + from, to - from);
 }

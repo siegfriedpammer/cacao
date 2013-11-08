@@ -49,6 +49,7 @@ namespace utf_utils {
 
 		bool operator==(const SlashToDot& it) const { return cs == it.cs; }
 		bool operator!=(const SlashToDot& it) const { return cs != it.cs; }
+		bool operator> (const SlashToDot& it) const { return cs >  it.cs; }
 
 		SlashToDot& operator++() {
 			cs++;
@@ -87,6 +88,7 @@ namespace utf_utils {
 
 		bool operator==(const DotToSlash& it) const { return cs == it.cs; }
 		bool operator!=(const DotToSlash& it) const { return cs != it.cs; }
+		bool operator> (const DotToSlash& it) const { return cs >  it.cs; }
 
 		DotToSlash& operator++() {
 			cs++;
@@ -128,15 +130,13 @@ namespace utf_utils {
 namespace utf8 {
 	// what the decoder should do when it encounters an error
 	enum ErrorAction {
-		IGNORE_ERRORS,    // invalid bytes in input are skipped.
-		                  // This is the only valid action for utf16::transform
+		IGNORE_ERRORS,    // Invalid input leads to undefined behaviour.
 
-		REPLACE_ON_ERROR, // Fn must have a method replacement() that returns a
-		                  // replacement character for invalid input
+		REPLACE_ON_ERROR, // Invalid codepoints are replaced by the
+		                  // result of calling Visitor::replacement().
 
-		ABORT_ON_ERROR    // Fn must have a method abort() that is called if
-		                  // an error occurs, transform will return the result
-		                  // of abort.
+		ABORT_ON_ERROR    // The decoding is aborted an the result of
+		                  // Visitor::abort() is returned.
 	};
 
 	/***
@@ -155,8 +155,8 @@ namespace utf8 {
 	 *
 	 *			ErrorAction error_action(); // called when an error is encountered
 	 *
-	 *			void utf8(uint8_t);     // called for every UTF-8 byte
-	 *			void utf16(uint16_t);   // called for every UTF-16 codepoint
+	 *			void utf8(uint8_t);     // called for every valid UTF-8 byte
+	 *			void utf16(uint16_t);   // called for every valid UTF-16 codepoint
 	 *
 	 *			ReturnType finish();    // called on success
 	 *			ReturnType abort();     // called on error
