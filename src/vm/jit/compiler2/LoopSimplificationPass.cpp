@@ -151,7 +151,7 @@ PassUsage& LoopSimplificationPass::get_PassUsage(PassUsage &PU) const {
 char LoopSimplificationPass::ID = 0;
 
 // register pass
-static PassRegistery<LoopSimplificationPass> X("LoopSimplificationPass");
+static PassRegistry<LoopSimplificationPass> X("LoopSimplificationPass");
 #endif
 } // end namespace compiler2
 } // end namespace jit

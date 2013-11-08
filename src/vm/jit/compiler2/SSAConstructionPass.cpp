@@ -2288,7 +2288,7 @@ PassUsage& SSAConstructionPass::get_PassUsage(PassUsage &PU) const {
 char SSAConstructionPass::ID = 0;
 
 // registrate Pass
-static PassRegistery<SSAConstructionPass> X("SSAConstructionPass");
+static PassRegistry<SSAConstructionPass> X("SSAConstructionPass");
 
 } // end namespace cacao
 } // end namespace jit

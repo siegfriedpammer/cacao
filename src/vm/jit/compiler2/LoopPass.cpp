@@ -47,7 +47,7 @@ template<>
 char LoopPass::ID = 0;
 
 // register pass
-static PassRegistery<LoopPass> X("LoopPass");
+static PassRegistry<LoopPass> X("LoopPass");
 
 } // end namespace compiler2
 } // end namespace jit

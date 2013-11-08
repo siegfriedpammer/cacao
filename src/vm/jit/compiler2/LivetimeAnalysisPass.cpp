@@ -390,7 +390,7 @@ PassUsage& LivetimeAnalysisPass::get_PassUsage(PassUsage &PU) const {
 char LivetimeAnalysisPass::ID = 0;
 
 // register pass
-static PassRegistery<LivetimeAnalysisPass> X("LivetimeAnalysisPass");
+static PassRegistry<LivetimeAnalysisPass> X("LivetimeAnalysisPass");
 
 } // end namespace compiler2
 } // end namespace jit

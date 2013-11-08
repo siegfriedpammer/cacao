@@ -1048,7 +1048,7 @@ PassUsage& LinearScanAllocatorPass::get_PassUsage(PassUsage &PU) const {
 char LinearScanAllocatorPass::ID = 0;
 
 // register pass
-static PassRegistery<LinearScanAllocatorPass> X("LinearScanAllocatorPass");
+static PassRegistry<LinearScanAllocatorPass> X("LinearScanAllocatorPass");
 
 // pass usage
 PassUsage& LinearScanAllocator2Pass::get_PassUsage(PassUsage &PU) const {
@@ -1063,7 +1063,7 @@ PassUsage& LinearScanAllocator2Pass::get_PassUsage(PassUsage &PU) const {
 char LinearScanAllocator2Pass::ID = 0;
 
 // register pass
-static PassRegistery<LinearScanAllocator2Pass> Y("LinearScanAllocator2Pass");
+static PassRegistry<LinearScanAllocator2Pass> Y("LinearScanAllocator2Pass");
 
 } // end namespace compiler2
 } // end namespace jit

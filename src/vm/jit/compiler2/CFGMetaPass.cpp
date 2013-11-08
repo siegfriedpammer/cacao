@@ -45,7 +45,7 @@ PassUsage& CFGMetaPass::get_PassUsage(PassUsage &PU) const {
 char CFGMetaPass::ID = 0;
 
 // register pass
-static PassRegistery<CFGMetaPass> X("CFGMetaPass");
+static PassRegistry<CFGMetaPass> X("CFGMetaPass");
 
 } // end namespace compiler2
 } // end namespace jit

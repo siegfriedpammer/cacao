@@ -267,7 +267,7 @@ PassUsage& CodeGenPass::get_PassUsage(PassUsage &PU) const {
 char CodeGenPass::ID = 0;
 
 // registrate Pass
-static PassRegistery<CodeGenPass> X("CodeGenPass");
+static PassRegistry<CodeGenPass> X("CodeGenPass");
 
 } // end namespace compiler2
 } // end namespace jit

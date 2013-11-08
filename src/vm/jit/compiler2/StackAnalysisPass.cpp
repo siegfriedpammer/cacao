@@ -53,7 +53,7 @@ PassUsage& StackAnalysisPass::get_PassUsage(PassUsage &PU) const {
 char StackAnalysisPass::ID = 0;
 
 // registrate Pass
-static PassRegistery<StackAnalysisPass> X("StackAnalysisPass");
+static PassRegistry<StackAnalysisPass> X("StackAnalysisPass");
 
 } // end namespace compiler2
 } // end namespace jit

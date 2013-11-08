@@ -48,7 +48,7 @@ template<>
 char MachineLoopPass::ID = 0;
 
 // register pass
-static PassRegistery<MachineLoopPass> X("MachineLoopPass");
+static PassRegistry<MachineLoopPass> X("MachineLoopPass");
 
 } // end namespace compiler2
 } // end namespace jit

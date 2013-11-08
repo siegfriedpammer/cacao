@@ -57,7 +57,7 @@ PassUsage& ExamplePass::get_PassUsage(PassUsage &PU) const {
 char ExamplePass::ID = 0;
 
 // register pass
-static PassRegistery<ExamplePass> X("ExamplePass");
+static PassRegistry<ExamplePass> X("ExamplePass");
 
 } // end namespace compiler2
 } // end namespace jit

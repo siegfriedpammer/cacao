@@ -45,7 +45,7 @@ PassUsage& InstructionMetaPass::get_PassUsage(PassUsage &PU) const {
 char InstructionMetaPass::ID = 0;
 
 // register pass
-static PassRegistery<InstructionMetaPass> X("InstructionMetaPass");
+static PassRegistry<InstructionMetaPass> X("InstructionMetaPass");
 
 } // end namespace compiler2
 } // end namespace jit

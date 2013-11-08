@@ -47,7 +47,7 @@ bool ParserPass::run(JITData &JD) {
 char ParserPass::ID = 0;
 
 // registrate Pass
-static PassRegistery<ParserPass> X("ParserPass");
+static PassRegistry<ParserPass> X("ParserPass");
 
 } // end namespace compiler2
 } // end namespace jit

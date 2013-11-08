@@ -246,7 +246,7 @@ PassUsage& SSAPrinterPass::get_PassUsage(PassUsage &PU) const {
 char SSAPrinterPass::ID = 0;
 
 // register pass
-static PassRegistery<SSAPrinterPass> X("SSAPrinterPass");
+static PassRegistry<SSAPrinterPass> X("SSAPrinterPass");
 
 // run pass
 bool SSAPrinterPass::run(JITData &JD) {
@@ -293,9 +293,9 @@ const char* GlobalSchedulePrinterPass<ScheduleClickPass>::name = "click";
 
 
 // register pass
-static PassRegistery<GlobalSchedulePrinterPass<ScheduleLatePass> > X_late("GlobalSchedulePrinterPass(late)");
-static PassRegistery<GlobalSchedulePrinterPass<ScheduleEarlyPass> > X_early("GlobalSchedulePrinterPass(early)");
-static PassRegistery<GlobalSchedulePrinterPass<ScheduleClickPass> > X_click("GlobalSchedulePrinterPass(click)");
+static PassRegistry<GlobalSchedulePrinterPass<ScheduleLatePass> > X_late("GlobalSchedulePrinterPass(late)");
+static PassRegistry<GlobalSchedulePrinterPass<ScheduleEarlyPass> > X_early("GlobalSchedulePrinterPass(early)");
+static PassRegistry<GlobalSchedulePrinterPass<ScheduleClickPass> > X_click("GlobalSchedulePrinterPass(click)");
 
 // END GlobalSchedulePrinterPass
 

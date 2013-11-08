@@ -56,7 +56,7 @@ PassUsage& CFGConstructionPass::get_PassUsage(PassUsage &PU) const {
 char CFGConstructionPass::ID = 0;
 
 // registrate Pass
-static PassRegistery<CFGConstructionPass> X("CFGConstructionPass");
+static PassRegistry<CFGConstructionPass> X("CFGConstructionPass");
 
 } // end namespace compiler2
 } // end namespace jit

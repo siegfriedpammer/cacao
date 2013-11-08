@@ -206,7 +206,7 @@ PassUsage& ListSchedulingPass::get_PassUsage(PassUsage &PU) const {
 char ListSchedulingPass::ID = 0;
 
 // registrate Pass
-static PassRegistery<ListSchedulingPass> X("ListSchedulingPass");
+static PassRegistry<ListSchedulingPass> X("ListSchedulingPass");
 
 } // end namespace compiler2
 } // end namespace jit

@@ -207,7 +207,7 @@ PassUsage& MachineInstructionSchedulingPass::get_PassUsage(PassUsage &PU) const 
 char MachineInstructionSchedulingPass::ID = 0;
 
 // register pass
-static PassRegistery<MachineInstructionSchedulingPass> X("MachineInstructionSchedulingPass");
+static PassRegistry<MachineInstructionSchedulingPass> X("MachineInstructionSchedulingPass");
 
 } // end namespace compiler2
 } // end namespace jit

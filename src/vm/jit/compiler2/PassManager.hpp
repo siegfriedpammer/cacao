@@ -172,8 +172,8 @@ template<class _PassClass>
 Pass *call_ctor() { return new _PassClass(); }
 
 template <class _PassClass>
-struct PassRegistery : public PassInfo {
-	PassRegistery(const char * name) : PassInfo(name, &_PassClass::ID, (PassInfo::ConstructorTy)call_ctor<_PassClass>) {
+struct PassRegistry : public PassInfo {
+	PassRegistry(const char * name) : PassInfo(name, &_PassClass::ID, (PassInfo::ConstructorTy)call_ctor<_PassClass>) {
 		PassManager::register_Pass(this);
 	}
 };

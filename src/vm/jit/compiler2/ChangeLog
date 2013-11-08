@@ -1,3 +1,6 @@
+XXXX-XX-XX Josef Eisl <zapster@zapster.cc>
+	* fixed class name typo: PassRegistery->PassRegistry
+
 2013-11-06 Josef Eisl <zapster@zapster.cc>
 	* new LIR: see MachineBasicBlock, MachineInstructionSchedule,
 	MachineInstructionSchedulingPass

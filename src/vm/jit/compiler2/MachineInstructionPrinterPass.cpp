@@ -59,7 +59,7 @@ PassUsage& MachineInstructionPrinterPass::get_PassUsage(PassUsage &PU) const {
 char MachineInstructionPrinterPass::ID = 0;
 
 // register pass
-static PassRegistery<MachineInstructionPrinterPass> X("MachineInstructionPrinterPass");
+static PassRegistry<MachineInstructionPrinterPass> X("MachineInstructionPrinterPass");
 
 // run pass
 bool MachineInstructionPrinterPass::run(JITData &JD) {

@@ -207,7 +207,7 @@ PassUsage& DominatorPass::get_PassUsage(PassUsage &PU) const {
 char DominatorPass::ID = 0;
 
 // register pass
-static PassRegistery<DominatorPass> X("DominatorPass");
+static PassRegistry<DominatorPass> X("DominatorPass");
 
 } // end namespace compiler2
 } // end namespace jit

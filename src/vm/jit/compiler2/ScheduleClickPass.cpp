@@ -67,7 +67,7 @@ PassUsage& ScheduleClickPass::get_PassUsage(PassUsage &PU) const {
 char ScheduleClickPass::ID = 0;
 
 // registrate Pass
-static PassRegistery<ScheduleClickPass> X("ScheduleClickPass");
+static PassRegistry<ScheduleClickPass> X("ScheduleClickPass");
 
 } // end namespace compiler2
 } // end namespace jit

@@ -167,7 +167,7 @@ PassUsage& ScheduleLatePass::get_PassUsage(PassUsage &PU) const {
 char ScheduleLatePass::ID = 0;
 
 // registrate Pass
-static PassRegistery<ScheduleLatePass> X("ScheduleLatePass");
+static PassRegistry<ScheduleLatePass> X("ScheduleLatePass");
 
 } // end namespace compiler2
 } // end namespace jit

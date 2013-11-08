@@ -196,7 +196,7 @@ PassUsage& BasicBlockSchedulingPass::get_PassUsage(PassUsage &PU) const {
 char BasicBlockSchedulingPass::ID = 0;
 
 // register pass
-static PassRegistery<BasicBlockSchedulingPass> X("BasicBlockSchedulingPass");
+static PassRegistry<BasicBlockSchedulingPass> X("BasicBlockSchedulingPass");
 
 } // end namespace compiler2
 } // end namespace jit

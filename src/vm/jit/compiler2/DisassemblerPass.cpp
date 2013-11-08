@@ -63,7 +63,7 @@ PassUsage& DisassemblerPass::get_PassUsage(PassUsage &PU) const {
 char DisassemblerPass::ID = 0;
 
 // register pass
-static PassRegistery<DisassemblerPass> X("DisassemblerPass");
+static PassRegistry<DisassemblerPass> X("DisassemblerPass");
 
 } // end namespace compiler2
 } // end namespace jit

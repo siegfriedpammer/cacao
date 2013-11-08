@@ -235,7 +235,7 @@ PassUsage& ObjectFileWriterPass::get_PassUsage(PassUsage &PU) const {
 char ObjectFileWriterPass::ID = 0;
 
 // register pass
-static PassRegistery<ObjectFileWriterPass> X("ObjectFileWriterPass");
+static PassRegistry<ObjectFileWriterPass> X("ObjectFileWriterPass");
 
 } // end namespace compiler2
 } // end namespace jit
