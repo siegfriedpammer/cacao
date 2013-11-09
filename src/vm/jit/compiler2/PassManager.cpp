@@ -124,9 +124,31 @@ inline bool contains(InputIterator begin, InputIterator end, const ValueType &va
 }
 
 template <class Container, class ValueType>
-inline bool contains(Container c, const ValueType &val) {
-	return c.find(val) != c.end();
+struct ContainsFn {
+	bool operator()(const Container &c, const ValueType &val) {
+		return contains(c.begin(),c.end(),val);
+	}
+};
+
+template <class ValueType>
+struct ContainsFn<std::set<ValueType>,ValueType> {
+	bool operator()(const std::set<ValueType> &c, const ValueType &val) {
+		return c.find(val) != c.end();
+	}
+};
+
+template <class ValueType>
+struct ContainsFn<unordered_set<ValueType>,ValueType> {
+	bool operator()(const unordered_set<ValueType> &c, const ValueType &val) {
+		return c.find(val) != c.end();
+	}
+};
+
+template <class Container, class ValueType>
+inline bool contains(const Container &c, const ValueType &val) {
+	return ContainsFn<Container,ValueType>()(c,val);
 }
+
 
 typedef unordered_map<PassInfo::IDTy,PassUsage> ID2PUTy;
 typedef unordered_map<PassInfo::IDTy,unordered_set<PassInfo::IDTy> > ID2MapTy;
@@ -165,6 +187,12 @@ public:
 	/// call operator
 	void operator()(PassInfo::IDTy id) {
 		if (contains(ready,id)) return;
+		#ifndef NDEBUG
+			if (contains(stack,id)) {
+				ABORT_MSG("PassManager: dependency cycle detected",
+					"Pass " << get_Pass_name(id) << " already stacked for scheduling!");
+			}
+		#endif
 		stack.push_back(id);
 		PassUsage &PU = pu_map[id];
 		LOG3("prescheduled: " << get_Pass_name(id) << nl);
