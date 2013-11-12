@@ -1137,7 +1137,9 @@ bool SSAConstructionPass::run(JITData &JD) {
 		current_def[global_state][bbindex] = BB[bbindex];
 
 		FOR_EACH_INSTRUCTION(bb,iptr) {
+			#if !defined(NDEBUG)
 			LOG("iptr: " << icmd_table[iptr->opc].name << nl);
+			#endif
 			switch (iptr->opc) {
 			case ICMD_NOP:
 				//M->add_Instruction(new NOPInst());
