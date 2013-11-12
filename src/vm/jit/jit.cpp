@@ -260,6 +260,7 @@ jitdata *jit_jitdata_new(methodinfo *m)
 	return jd;
 }
 
+STAT_REGISTER_VAR_EXTERN(std::size_t, compiler_last_codesize, 0, "last-code-size", "code size of the last compiled method")
 
 /* jit_compile *****************************************************************
 
@@ -420,6 +421,8 @@ u1 *jit_compile(methodinfo *m)
 	/* leave the monitor */
 
 	m->mutex->unlock();
+
+	STATISTICS(compiler_last_codesize = m->code->mcodelength);
 
 	/* return pointer to the methods entry point */
 

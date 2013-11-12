@@ -562,11 +562,20 @@ static void fullversion(void)
 /* forward declarations *******************************************************/
 
 static char *vm_get_mainclass_from_jar(char *mainstring);
+
 #if !defined(NDEBUG)
-static void  vm_compile_all(void);
+#define COMPILE_METHOD
+#else
+#define COMPILE_METHOD
+#endif
+
+#if defined(COMPILE_METHOD)
 static void  vm_compile_method(char* mainname);
 #endif
 
+#if !defined(NDEBUG)
+static void  vm_compile_all(void);
+#endif
 
 /**
  * Implementation for JNI_CreateJavaVM.  This function creates a VM
@@ -1628,7 +1637,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	if (mainname == NULL)
 		usage();
 
-#if !defined(NDEBUG)
+#if defined(COMPILE_METHOD)
 	if (opt_CompileMethod != NULL) {
 		vm_compile_method(mainname);
 		/* write logfiles */
@@ -2223,10 +2232,12 @@ static void vm_compile_all(void)
 
 RT_REGISTER_TIMER(compiler_method,"compiler-all","compiler overall")
 
-#if !defined(NDEBUG)
+#if defined(COMPILE_METHOD)
+
 #if defined(ENABLE_COMPILER2)
 #include "vm/jit/compiler2/Compiler.hpp"
 #endif
+
 static void vm_compile_method(char* mainname)
 {
 	methodinfo *m;

@@ -45,6 +45,8 @@
 
 #define DEBUG_NAME "compiler2/CodeGen"
 
+STAT_DECLARE_VAR(std::size_t, compiler_last_codesize, 0)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -168,6 +170,8 @@ void CodeGenPass::finish(JITData &JD) {
 			  << ": " << setz(16) << (u8)*ptr << dec << nl);
 		}
 	}
+
+	STATISTICS(compiler_last_codesize = code->mcodelength);
 
 #if 0
 	STATISTICS(count_code_len += mcodelen);
