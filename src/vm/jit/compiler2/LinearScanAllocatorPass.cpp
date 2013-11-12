@@ -49,7 +49,10 @@ namespace compiler2 {
 
 bool LinearScanAllocatorPass::StartComparator::operator()(const LivetimeInterval &lhs,
 		const LivetimeInterval &rhs) {
-	return rhs.front().start < lhs.front().start;
+	if (rhs.front().start < lhs.front().start) return true;
+	if (lhs.front().start < rhs.front().start) return false;
+	// rhs.front().start == lhs.front().start;
+	return lhs.back().end < rhs.back().end;
 }
 
 namespace {

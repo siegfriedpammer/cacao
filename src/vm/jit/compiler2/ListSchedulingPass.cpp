@@ -61,20 +61,27 @@ private:
 public:
 	MyComparator(const GlobalSchedule* sched) : sched(sched) {}
 	bool operator() (Instruction* lhs, Instruction* rhs) const {
-		// BeginInst always first!
-		if (lhs->to_BeginInst()) return false;
-		if (rhs->to_BeginInst()) return true;
-		// EndInst always last!
-		if (lhs->to_EndInst()) return true;
-		if (rhs->to_EndInst()) return false;
-		// PHIs right after BeginInst
-		if (lhs->to_PHIInst()) return false;
-		if (rhs->to_PHIInst()) return true;
-		// LOADInst first
-		if (lhs->to_LOADInst()) return false;
-		if (rhs->to_LOADInst()) return true;
+		if (lhs->get_opcode() != rhs->get_opcode()) {
+			// BeginInst always first!
+			if (lhs->to_BeginInst()) return false;
+			if (rhs->to_BeginInst()) return true;
+			// EndInst always last!
+			if (lhs->to_EndInst()) return true;
+			if (rhs->to_EndInst()) return false;
+			// PHIs right after BeginInst
+			if (lhs->to_PHIInst()) return false;
+			if (rhs->to_PHIInst()) return true;
+			// LOADInst first
+			if (lhs->to_LOADInst()) return false;
+			if (rhs->to_LOADInst()) return true;
+		}
 		// prioritize instruction with fewer users in the current bb
-		return users(lhs) > users(rhs);
+		unsigned lhs_user = users(lhs);
+		unsigned rhs_user = users(rhs);
+		if (lhs_user == rhs_user) {
+			return InstPtrLess()(rhs,lhs);
+		}
+		return lhs_user > rhs_user;
 	}
 };
 

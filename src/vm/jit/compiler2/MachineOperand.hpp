@@ -75,7 +75,7 @@ protected:
 	/**
 	 * TODO describe
 	 */
-	virtual IdentifyTy id_base()         const { return static_cast<const void*>(this); }
+	virtual IdentifyTy id_base()         const { return static_cast<IdentifyTy>(this); }
 	virtual IdentifyOffsetTy id_offset() const { return 0; }
 	virtual IdentifySizeTy id_size()     const { return 1; }
 public:

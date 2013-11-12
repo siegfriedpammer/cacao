@@ -216,6 +216,18 @@ public:
 	friend class Value;
 };
 
+/**
+ * Less comparator for Instruction pointers.
+ *
+ * Use for std::set, std::map.
+ */
+struct InstPtrLess :
+public std::binary_function<const Instruction*, const Instruction*, bool> {
+	bool operator()(const Instruction *lhs, const Instruction *rhs) const {
+		return lhs->get_id() < rhs->get_id();
+	}
+};
+
 inline OStream& operator<<(OStream &OS, const Instruction &I) {
 	return I.print(OS);
 }
