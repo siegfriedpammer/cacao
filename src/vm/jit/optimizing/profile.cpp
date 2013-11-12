@@ -72,8 +72,10 @@ bool profile_init(void)
 *******************************************************************************/
 
 static s4 runs = 0;
+#if !defined(NDEBUG)
 static s4 hits = 0;
 static s4 misses = 0;
+#endif /* !defined(NDEBUG) */
 
 static void profile_thread(void)
 {
