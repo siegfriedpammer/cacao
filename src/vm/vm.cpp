@@ -2221,6 +2221,8 @@ static void vm_compile_all(void)
 
 *******************************************************************************/
 
+RT_REGISTER_TIMER(compiler_method,"compiler-all","compiler overall")
+
 #if !defined(NDEBUG)
 #if defined(ENABLE_COMPILER2)
 #include "vm/jit/compiler2/Compiler.hpp"
@@ -2278,6 +2280,7 @@ static void vm_compile_method(char* mainname)
 		os::abort("vm_compile_method: java.lang.NoSuchMethodException: %s.%s",
 				 opt_CompileMethod, opt_CompileSignature ? opt_CompileSignature : "");
 
+	RT_TIMER_START(compiler_method);
 #if defined(ENABLE_COMPILER2)
 	if (opt_DebugCompiler2) {
 		cacao::jit::compiler2::compile(m);
@@ -2286,6 +2289,7 @@ static void vm_compile_method(char* mainname)
 	{
 		jit_compile(m);
 	}
+	RT_TIMER_STOP(compiler_method);
 }
 #endif /* !defined(NDEBUG) */
 
