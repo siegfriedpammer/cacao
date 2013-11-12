@@ -173,10 +173,12 @@ void ListSchedulingPass::schedule(BeginInst *BI) {
 		// for all dependant instruction
 		std::for_each(I->rdep_begin(), I->rdep_end(), FindLeader(scheduled,sched,ready,BI));
 	}
+	#if defined(ENABLE_LOGGING)
 	for(const_inst_iterator i = inst_begin(BI), e = inst_end(BI); i != e ; ++i) {
 		Instruction *I = *i;
 		LOG(I<<nl);
 	}
+	#endif
 }
 
 bool ListSchedulingPass::run(JITData &JD) {
@@ -187,6 +189,7 @@ bool ListSchedulingPass::run(JITData &JD) {
 		LOG("ListScheduling: " << BI << nl);
 		schedule(BI);
 	}
+	#if defined(ENABLE_LOGGING)
 	LOG("Schedule:" << nl);
 	for (Method::const_bb_iterator i = M->bb_begin(), e = M->bb_end() ; i != e ; ++i) {
 		BeginInst *BI = *i;
@@ -195,6 +198,7 @@ bool ListSchedulingPass::run(JITData &JD) {
 			LOG(I<<nl);
 		}
 	}
+	#endif
 	return true;
 }
 

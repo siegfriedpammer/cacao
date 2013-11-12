@@ -188,11 +188,15 @@ bool DominatorPass::run(JITData &JD) {
 	dom[M->get_init_bb()];
 
 	LOG("Dominators:" << nl);
-	for (int i = 1 ; i <= n; ++i) {
-		NodeTy *v = vertex[i];
-		NodeTy *w = dom[v];
-		LOG("index" << setw(3) << i << " dom(" << (long)v <<") =" << (long)w << nl);
+	#if defined(ENABLE_LOGGING)
+	if (DEBUG_COND_N(0)) {
+		for (int i = 1 ; i <= n; ++i) {
+			NodeTy *v = vertex[i];
+			NodeTy *w = dom[v];
+			LOG("index" << setw(3) << i << " dom(" << (long)v <<") =" << (long)w << nl);
+		}
 	}
+	#endif
 
 	return true;
 }

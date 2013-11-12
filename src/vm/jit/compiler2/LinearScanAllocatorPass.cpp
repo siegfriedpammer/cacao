@@ -376,6 +376,7 @@ inline void split_current(LivetimeInterval &current, Type::TypeID type, UseDef p
 	current.set_operand(stackslot);
 }
 
+#if defined(ENABLE_LOGGING)
 OStream& print_code(OStream &OS, MIIterator pos, MIIterator min, MIIterator max,
 		MIIterator::difference_type before, MIIterator::difference_type after) {
 	MIIterator i = pos;
@@ -394,7 +395,7 @@ OStream& print_code(OStream &OS, MIIterator pos, MIIterator min, MIIterator max,
 	}
 	return OS << "..." << nl;
 }
-
+#endif
 } // end anonymous namespace
 
 inline bool LinearScanAllocatorPass::allocate_blocked(LivetimeInterval &current) {
@@ -704,9 +705,11 @@ struct MachineOperandCmp : public std::binary_function<MachineOperand*,MachineOp
 };
 
 
+#if defined(ENABLE_LOGGING)
 inline OStream& operator<<(OStream &OS, const Move &move) {
 	return OS << "move from " << *move.from << " to " << *move.to;
 }
+#endif
 
 inline bool is_stack2stack_move(Move* move) {
 	return (move->from->is_ManagedStackSlot() || move->from->is_StackSlot() ) &&

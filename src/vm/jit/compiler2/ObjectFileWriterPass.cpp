@@ -36,6 +36,8 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/code.hpp"
 
+#if defined(ENABLE_DISASSEMBLER)
+
 #if !defined(WITH_BINUTILS_DISASSEMBLER)
 #error ObjectFileWriterPass requires binutils bfd library.
 #endif
@@ -43,10 +45,13 @@
 #include <bfd.h>
 #include <string>
 
+#endif // defined(ENABLE_DISASSEMBLER)
+
 #define DEBUG_NAME "compiler2/ObjectFileWriter"
 
 namespace {
 
+#if defined(ENABLE_DISASSEMBLER)
 template<typename T>
 inline void check_bfd_error(T* t) {
 	if (!t) {
@@ -60,6 +65,7 @@ inline void check_bfd_error(bfd_boolean b) {
 		ABORT_MSG("ObjectFileWriterPass Error", "Error: " << bfd_errmsg(bfd_get_error()));
 	}
 }
+#endif // defined(ENABLE_DISASSEMBLER)
 
 } // end anonymous namespace
 
@@ -70,6 +76,7 @@ namespace compiler2 {
 #define FAKE_DATASEC
 
 bool ObjectFileWriterPass::run(JITData &JD) {
+#if defined(ENABLE_DISASSEMBLER)
 	Method *M = JD.get_Method();
 	//CodeGenPass *CG = get_Pass<CodeGenPass>();
 	codeinfo*     code = JD.get_jitdata()->code;
@@ -222,6 +229,7 @@ bool ObjectFileWriterPass::run(JITData &JD) {
 	bfd_close(abfd);
 
 
+#endif // defined(ENABLE_DISASSEMBLER)
 	return true;
 }
 

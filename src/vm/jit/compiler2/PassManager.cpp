@@ -110,6 +110,7 @@ void PassManager::finalizePasses() {
 #define DEBUG_NAME "compiler2/PassManager/Scheduler"
 namespace {
 
+#if defined(ENABLE_LOGGING)
 // XXX for debugging only, to be removed
 PassManager* latest = NULL;
 // XXX for debugging only, to be removed
@@ -117,6 +118,7 @@ const char* get_Pass_name(PassInfo::IDTy id) {
 	if (!latest) return "PassManager not available";
 	return latest->get_Pass_name(id);
 }
+#endif // defined(ENABLE_LOGGING)
 
 template <class InputIterator, class ValueType>
 inline bool contains(InputIterator begin, InputIterator end, const ValueType &val) {
@@ -290,8 +292,10 @@ public std::unary_function<ID2PUTy::value_type,void> {
 } // end anonymous namespace
 
 void PassManager::schedulePasses() {
+#if defined(ENABLE_LOGGING)
 	// XXX for debugging only, to be removed
 	latest = this;
+#endif
 
 	std::deque<PassInfo::IDTy> unhandled;
 	unordered_set<PassInfo::IDTy> ready;

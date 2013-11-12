@@ -53,8 +53,7 @@ struct ScheduleLate : public std::unary_function<Instruction*,void> {
 	// function call operator
 	void operator()(Instruction* user) {
 		assert(user);
-		BeginInst* user_block = user->get_BeginInst();
-		assert(user_block);
+		assert(user->get_BeginInst());
 		PHIInst *phi = user->to_PHIInst();
 		if (phi) {
 			int index = phi->get_operand_index(I);

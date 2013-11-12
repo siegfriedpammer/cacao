@@ -132,11 +132,10 @@ UseDef next_intersection(const LivetimeInterval &a,
 	}
 	return end;
 }
-namespace {
+
 OStream& operator<<(OStream &OS, const LivetimeIntervalImpl &lti) {
 	return OS << "LivetimeIntervalImpl (" << lti.front().start << ") in " << *lti.get_operand();
 }
-} // end anonymous namespace
 
 MachineOperand* LivetimeIntervalImpl::get_operand(MIIterator pos) const {
 	LOG2("get_operand(this:" << *this << " pos:" << pos << ")" <<nl);
@@ -295,10 +294,12 @@ LivetimeInterval LivetimeIntervalImpl::split_inactive(UseDef pos, MachineOperand
 
 LivetimeInterval LivetimeIntervalImpl::split_phi_active(MIIterator pos, MachineOperand* MO) {
 	LOG2("split_phi_active " << *this << " at " << pos << nl);
+	#if !defined(NDEBUG)
 	MachineInstruction *MI = *pos;
 	assert(!has_next());
 	assert(get_State(pos) == LivetimeInterval::Active);
 	assert(MI->is_label());
+	#endif
 
 	MIIterator pos_end = pos;
 	UseDef use(UseDef::PseudoUse, pos);

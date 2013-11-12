@@ -952,9 +952,11 @@ bool SSAConstructionPass::run(JITData &JD) {
 	basicblock *bb;
 	jitdata *jd = JD.get_jitdata();
 
+	#if !defined(NDEBUG)
 	if (DEBUG_COND) {
 		show_method(jd, SHOW_CFG);
 	}
+	#endif
 
 	// **** BEGIN initializations
 
@@ -1072,6 +1074,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 
 	// **** END initializations
 
+	#if defined(ENABLE_LOGGING)
 	// print BeginInsts
 	for(std::vector<BeginInst*>::iterator i = BB.begin(), e = BB.end();
 			i != e; ++i) {
@@ -1083,6 +1086,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 		varinfo &v = jd->var[i];
 		LOG("var#" << i << " type: " << get_var_type(v.type) << nl);
 	}
+	#endif
 	LOG("# variables: " << jd->vartop << nl);
 	LOG("# javalocals: " << jd->localcount << nl);
 	// print arguments
@@ -1215,7 +1219,9 @@ bool SSAConstructionPass::run(JITData &JD) {
 						//type_from = Type::DoubleTypeID;
 						type_to = Type::FloatTypeID;
 						break;
-					default: assert(0);
+					default:
+						assert(0);
+						type_to = Type::VoidTypeID;
 					}
 					Instruction *result = new CASTInst(type_to, s1);
 					write_variable(iptr->dst.varindex,bbindex,result);
@@ -1253,6 +1259,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						type = Type::DoubleTypeID;
 						break;
 					default: assert(0);
+						type = Type::VoidTypeID;
 					}
 					Instruction *result = new ADDInst(type, s1, s2);
 					write_variable(iptr->dst.varindex,bbindex,result);
@@ -1281,6 +1288,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						type = Type::DoubleTypeID;
 						break;
 					default: assert(0);
+						type = Type::VoidTypeID;
 					}
 					Instruction *result = new SUBInst(type, s1, s2);
 					write_variable(iptr->dst.varindex,bbindex,result);
@@ -1309,6 +1317,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						type = Type::DoubleTypeID;
 						break;
 					default: assert(0);
+						type = Type::VoidTypeID;
 					}
 					Instruction *result = new MULInst(type, s1, s2);
 					write_variable(iptr->dst.varindex,bbindex,result);
@@ -1337,6 +1346,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						type = Type::DoubleTypeID;
 						break;
 					default: assert(0);
+						type = Type::VoidTypeID;
 					}
 					Instruction *result = new DIVInst(type, s1, s2);
 					write_variable(iptr->dst.varindex,bbindex,result);
@@ -1365,6 +1375,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						type = Type::DoubleTypeID;
 						break;
 					default: assert(0);
+						type = Type::VoidTypeID;
 					}
 					Instruction *result = new REMInst(type, s1, s2);
 					write_variable(iptr->dst.varindex,bbindex,result);
@@ -1409,6 +1420,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						result = new SUBInst(Type::IntTypeID, s1, konst);
 						break;
 					default: assert(0);
+						result = 0;
 					}
 					M->add_Instruction(konst);
 					write_variable(iptr->dst.varindex,bbindex,result);
@@ -1435,6 +1447,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						result = new DIVInst(Type::IntTypeID, s1, konst);
 						break;
 					default: assert(0);
+						result = NULL;
 					}
 					M->add_Instruction(konst);
 					write_variable(iptr->dst.varindex,bbindex,result);
@@ -1486,6 +1499,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						I = new CONSTInst(iptr->sx.val.d);
 						break;
 					default: assert(0);
+						I = NULL;
 					}
 					write_variable(iptr->dst.varindex,bbindex,I);
 					M->add_Instruction(I);
@@ -1533,6 +1547,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						result = new ANDInst(Type::LongTypeID, s1, konst);
 						break;
 					default: assert(0);
+						result = 0;
 					}
 					M->add_Instruction(konst);
 					write_variable(iptr->dst.varindex,bbindex,result);
@@ -1635,6 +1650,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						result = new ADDInst(Type::IntTypeID, s1, konst);
 						break;
 					default: assert(0);
+						result = 0;
 					}
 					M->add_Instruction(konst);
 					write_variable(iptr->dst.varindex,bbindex,result);
@@ -1862,6 +1878,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						//type = Type::TypeID;
 						//break;
 					default:
+						type = Type::VoidTypeID;
 						err() << BoldRed << "error: " << reset_color << " type " << BoldWhite
 							  << fmiref->parseddesc.md->returntype.type << reset_color
 							  << " not yet supported! (see vm/global.h)" << nl;
@@ -1934,6 +1951,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						break;
 					default:
 						ABORT_MSG("unreachable","unreachable");
+						cond = Conditional::NoCond;
 					}
 					Instruction *konst = new CONSTInst(iptr->sx.val.i);
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
@@ -1984,6 +2002,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						break;
 					default:
 						ABORT_MSG("unreachable","unreachable");
+						cond = Conditional::NoCond;
 					}
 					Instruction *konst = new CONSTInst(iptr->sx.val.l);
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
@@ -2037,6 +2056,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						break;
 					default:
 						ABORT_MSG("unreachable","unreachable");
+						cond = Conditional::NoCond;
 					}
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
 					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
@@ -2082,6 +2102,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						cond = Conditional::LE;
 						break;
 					default:
+						cond = Conditional::NoCond;
 						ABORT_MSG("unreachable","unreachable");
 					}
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
@@ -2238,8 +2259,13 @@ bool SSAConstructionPass::run(JITData &JD) {
 			continue;
 
 			_default:
+				#if !defined(NDEBUG)
 				ABORT_MSG(icmd_table[iptr->opc].name << " (" << iptr->opc << ")",
 					"Operation not yet supported!");
+				#else
+				ABORT_MSG("Opcode: (" << iptr->opc << ")",
+					"Operation not yet supported!");
+				#endif
 		}
 
 		if (!BB[bbindex]->get_EndInst()) {

@@ -124,7 +124,7 @@ MachineCode* compile(methodinfo* m)
 	PassManager PM;
 
 	LOG(bold << bold << "Compiler Start: " << reset_color << *m << nl);
-
+#if !defined(NDEBUG)
 	PM.add_Pass<ExamplePass>();
 	PM.add_Pass<LoopTreePrinterPass>();
 	PM.add_Pass<DomTreePrinterPass>();
@@ -133,11 +133,12 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleLatePass> >();
 	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleClickPass> >();
 	PM.add_Pass<MachineInstructionPrinterPass>();
+	PM.add_Pass<ObjectFileWriterPass>();
+#endif
 	PM.add_Pass<CodeGenPass>();
 	if (opt_showdisassemble) {
 		PM.add_Pass<DisassemblerPass>();
 	}
-	PM.add_Pass<ObjectFileWriterPass>();
 
 /*****************************************************************************/
 /** prolog start jit_compile **/

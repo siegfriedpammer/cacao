@@ -38,12 +38,14 @@ namespace jit {
 namespace compiler2 {
 
 bool ExamplePass::run(JITData &JD) {
+	#if defined(ENABLE_LOGGING)
 	Method *M = JD.get_Method();
 	// print all instructions (in an arbitrary sequence)
 	for (Method::const_iterator i = M->begin(), e = M->end(); i != e; ++i) {
 		Instruction *I = *i;
 		LOG(*I << nl);
 	}
+	#endif
 	return true;
 }
 
