@@ -1040,9 +1040,11 @@ bool LinearScanAllocatorPass::resolve() {
 
 	return true;
 }
+
+#define LSRA_VERIFY
 namespace {
 
-#if 0
+#if defined(LSRA_VERIFY)
 inline bool is_virtual(const MachineOperandDesc &op) {
 	return op.op->is_virtual();
 }
@@ -1050,11 +1052,11 @@ inline bool is_virtual(const MachineOperandDesc &op) {
 
 } // end anonymous namespace
 bool LinearScanAllocatorPass::verify() const {
-#if 0
+#if defined(LSRA_VERIFY)
 	for(MIIterator i = MIS->mi_begin(), e = MIS->mi_end(); i != e ; ++i) {
 		MachineInstruction *MI = *i;
 		// result virtual
-		if (MI->get_result().op->is_virtual() || any_of(MI->begin(), MI->end(), is_virtual)) {
+		if (is_virtual(MI->get_result()) || any_of(MI->begin(), MI->end(), is_virtual)) {
 			ERROR_MSG("Unallocated Operand!","Instruction " << *MI << " contains unallocated operands.");
 			return false;
 		}
