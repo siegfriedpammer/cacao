@@ -372,6 +372,8 @@ class RTEntry {
 protected:
 	const char* name;
 	const char* description;
+	/// dummy constructor
+	RTEntry() : name(NULL), description(NULL) {}
 public:
 	static timespec invalid_ts;   //< invalid time stamp
 	/**
@@ -483,16 +485,17 @@ private:
 	timespec startstamp;  //< start timestamp
 	long int duration;    //< time in usec
 public:
+	/// dummy constructor
+	RTTimer() : RTEntry() {}
 	/**
 	 * Create a new real-time timer.
 	 * @param[in] name name of the timer
 	 * @param[in] description description of the timer
 	 * @param[in] group parent group.
 	 */
-	RTTimer(const char* name, const char* description, RTGroup &parent) : RTEntry(name, description) {
+	RTTimer(const char* name, const char* description, RTGroup &parent) : RTEntry(name, description), duration(0) {
 		//reset();
 		_RT_LOG("RTTimer() name: " << name << nl);
-		duration = 0;
 		parent.add(this);
 	}
 
