@@ -179,6 +179,9 @@ void LoweringVisitor::visit(IFInst *I) {
 		case Conditional::GE:
 			cjmp = new CondJumpInst(Cond::GE, get(then.get()),get(els.get()));
 			break;
+		case Conditional::GT:
+			cjmp = new CondJumpInst(Cond::G, get(then.get()),get(els.get()));
+			break;
 		case Conditional::NE:
 			cjmp = new CondJumpInst(Cond::NE, get(then.get()),get(els.get()));
 			break;

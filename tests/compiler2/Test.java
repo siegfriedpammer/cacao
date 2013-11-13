@@ -139,14 +139,29 @@ static long fact2(long n) {
 static double pi() {
     return Math.PI;
 }
-static long fake_power(long v, long i) {
+static long fakePower(long v, long i) {
     long p =1;
     for (long j = 0; j < i; ++j) {
         p *= v;
     }
     return p;
 }
-static double pi_spigot(long num_digits) {
+
+static long sqrt(long x) {
+  long y = 0;
+  long z = x + 1;
+  while ((y+1) != z) {
+    long t = (y+z)/2;
+    if (t*t <= x) {
+      y = t;
+    } else {
+      z = t;
+    }
+  }
+  return y;
+}
+
+static double piSpigot(long num_digits) {
     double pi = 0;
     for (long i = 0; i < num_digits; ++i) {
         // fake power

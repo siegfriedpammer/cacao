@@ -1557,7 +1557,25 @@ bool SSAConstructionPass::run(JITData &JD) {
 				}
 				break;
 			case ICMD_LMULPOW2:
+				goto _default;
 			case ICMD_LDIVPOW2:
+				{
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+					Instruction *konst = new CONSTInst(iptr->sx.val.l);
+					Instruction *result;
+					switch (iptr->opc) {
+					case ICMD_LDIVPOW2:
+						// FIXME this is not right!
+						result = new SUBInst(Type::LongTypeID, s1, konst);
+						break;
+					default: assert(0);
+						result = 0;
+					}
+					M->add_Instruction(konst);
+					write_variable(iptr->dst.varindex,bbindex,result);
+					M->add_Instruction(result);
+				}
+				break;
 			case ICMD_LREMPOW2:
 			case ICMD_LORCONST:
 			case ICMD_LXORCONST:

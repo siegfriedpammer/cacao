@@ -39,7 +39,7 @@ CLEANFILES = \
 
 OUTPUT_JAVA_TESTS = \
 	Test.fact \
-	Test.fake_power \
+	Test.fakePower \
 	Test.OverflowInt \
 	Test.OverflowLong \
 	Test.OverflowLongIntLong \
