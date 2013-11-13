@@ -29,6 +29,8 @@
 #include "toolbox/logging.hpp"
 #include "vm/vm.hpp"
 
+#include "vm/rt-timing.hpp"
+
 #include <algorithm>
 
 #define DEBUG_NAME "compiler2/PassManager"
@@ -36,6 +38,16 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+
+#if ENABLE_RT_TIMING
+namespace {
+RT_REGISTER_GROUP(compiler2_rtgroup,"compiler2-pipeline","compiler2 pass pipeline")
+
+typedef unordered_map<PassInfo::IDTy,RTTimer> PassTimerMap;
+PassTimerMap pass_timers;
+
+} // end anonymous namespace
+#endif
 
 Pass* PassManager::get_initialized_Pass(PassInfo::IDTy ID) {
 	Pass *P = initialized_passes[ID];
@@ -47,6 +59,10 @@ Pass* PassManager::get_initialized_Pass(PassInfo::IDTy ID) {
 		P->set_PassManager(this);
 		initialized_passes[ID] = P;
 		result_ready[ID] = false;
+		#if ENABLE_RT_TIMING
+		RTTimer &timer = pass_timers[ID];
+		new (&timer) RTTimer(PI->get_name(),PI->get_name(),compiler2_rtgroup());
+		#endif
 	}
 	return P;
 }
@@ -70,6 +86,12 @@ void PassManager::runPasses(JITData &JD) {
 	for(ScheduleListTy::iterator i = schedule.begin(), e = schedule.end(); i != e; ++i) {
 		PassInfo::IDTy id = *i;
 		result_ready[id] = false;
+		#if ENABLE_RT_TIMING
+		PassTimerMap::iterator f = pass_timers.find(id);
+		assert(f != pass_timers.end());
+		RTTimer &timer = f->second;
+		timer.start();
+		#endif
 		Pass* P = get_initialized_Pass(id);
 		LOG("initialize: " << get_Pass_name(id) << nl);
 		P->initialize();
@@ -96,6 +118,9 @@ void PassManager::runPasses(JITData &JD) {
 		result_ready[id] = true;
 		LOG("finialize: " << get_Pass_name(id) << nl);
 		P->finalize();
+		#if ENABLE_RT_TIMING
+		timer.stop();
+		#endif
 	}
 	finalizePasses();
 }
