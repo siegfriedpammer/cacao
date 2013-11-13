@@ -155,8 +155,17 @@ public:
 	void operator()(MachineOperandDesc &op) {
 		if (op.op->needs_allocation()) {
 			LOG2("ProcessOutOperand: op=" << *(op.op) << " set form: " << **i << nl);
-			find_or_insert(lti_map,op.op).set_from(UseDef(UseDef::Def,i,&op), UseDef(UseDef::PseudoDef,e));
+			LivetimeInterval &lti = find_or_insert(lti_map,op.op);
+			lti.set_from(UseDef(UseDef::Def,i,&op), UseDef(UseDef::PseudoDef,e));
 			live.erase(op.op);
+			// set register hints
+			if ((*i)->is_move()) {
+				MachineOperand *op = (*i)->get(0).op;
+				if (op->needs_allocation()) {
+					LOG2("set hint " << op << " inst: " << *i << " lti: " << lti << nl);
+					lti.set_hint(op);
+				}
+			}
 		}
 	}
 };
@@ -177,7 +186,8 @@ public:
 		if (op.op->needs_allocation()) {
 			LOG2("ProcessInOperand: op=" << *(op.op) << " range form: "
 				<< BB->front() << " to " << **i << nl);
-			find_or_insert(lti_map,op.op).add_range(UseDef(UseDef::PseudoUse,BB->mi_first()),
+			LivetimeInterval &lti = find_or_insert(lti_map,op.op);
+			lti.add_range(UseDef(UseDef::PseudoUse,BB->mi_first()),
 				UseDef(UseDef::Use,i,&op));
 			live.insert(op.op);
 		}

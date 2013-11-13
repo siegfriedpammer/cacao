@@ -343,8 +343,12 @@ LivetimeInterval LivetimeIntervalImpl::split_phi_active(MIIterator pos, MachineO
 }
 
 OStream& operator<<(OStream &OS, const LivetimeInterval &lti) {
-	return OS << "LivetimeInterval (" << lti.front().start << ") in "
+	OS << "LivetimeInterval (" << lti.front().start << ") in "
 		<< *lti.get_operand() << " (init:"  << *lti.get_init_operand() << ")";
+	if (lti.get_hint()) {
+		OS << " (hint:" << lti.get_hint() << ")";
+	}
+	return OS;
 }
 OStream& operator<<(OStream &OS, const LivetimeInterval *lti) {
 	if (!lti) {

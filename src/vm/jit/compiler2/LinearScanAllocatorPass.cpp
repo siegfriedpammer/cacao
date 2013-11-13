@@ -190,16 +190,43 @@ inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current
 		SetIntersection(free_until_pos, current,pos,UseDef(UseDef::PseudoDef,MIS->mi_end())));
 
 	LOG2("free_until_pos:" << nl);
-	for (FreeUntilMap::iterator i = free_until_pos.begin(), e = free_until_pos.end(); i != e; ++i) {
-		LOG2("  " << (i->first) << ": " << i->second << nl);
+	if (DEBUG_COND_N(2)) {
+		for (FreeUntilMap::iterator i = free_until_pos.begin(), e = free_until_pos.end(); i != e; ++i) {
+			LOG2("  " << (i->first) << ": " << i->second << nl);
+		}
 	}
 
-	// XXX hints!
-	// get operand with highest free until pos
-	FreeUntilMap::value_type x = *std::max_element(free_until_pos.begin(), free_until_pos.end(), FreeUntilMaxCompare());
-	LOG2("reg: " << x.first << " pos: " << x.second << nl);
-	MachineOperand *reg = x.first;
-	UseDef free_until_pos_reg = x.second;
+	MachineOperand *reg = NULL;
+	UseDef free_until_pos_reg(UseDef::PseudoUse,MIS->mi_begin());
+	// check for hints
+	MachineOperand *hint = current.get_hint();
+	if (hint) {
+		if (hint->is_virtual()) {
+			// find the current store for hint
+			LivetimeInterval hint_lti = LA->get(hint);
+			hint = hint_lti.get_operand(pos.get_iterator());
+		}
+		LOG2("hint current pos " << hint << nl);
+		FreeUntilMap::const_iterator i = free_until_pos.find(hint);
+		if (i !=  free_until_pos.end()) {
+			free_until_pos_reg = i->second;
+			if ((free_until_pos_reg != UseDef(UseDef::PseudoUse,MIS->mi_begin())) &&
+					(current.back().end < free_until_pos_reg)) {
+				LOG2("hint available! " << hint << nl);
+				reg = hint;
+				STATISTICS(++num_hints_followed);
+			}
+		}
+	}
+	// if not follow hint!
+	if (!reg) {
+		// get operand with highest free until pos
+		FreeUntilMap::value_type x = *std::max_element(free_until_pos.begin(), free_until_pos.end(), FreeUntilMaxCompare());
+		reg = x.first;
+		free_until_pos_reg = x.second;
+	}
+
+	LOG2("reg: " << reg << " pos: " << free_until_pos_reg << nl);
 
 	if (free_until_pos_reg == UseDef(UseDef::PseudoUse,MIS->mi_begin())) {
 		// no register available without spilling
