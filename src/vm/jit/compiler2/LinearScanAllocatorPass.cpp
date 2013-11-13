@@ -32,6 +32,7 @@
 #include "vm/jit/compiler2/MachineInstructions.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
 #include "vm/statistics.hpp"
+#include "vm/options.hpp"
 
 #include <climits>
 
@@ -200,7 +201,7 @@ inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current
 	UseDef free_until_pos_reg(UseDef::PseudoUse,MIS->mi_begin());
 	// check for hints
 	MachineOperand *hint = current.get_hint();
-	if (hint) {
+	if (opt_Compiler2hints && hint) {
 		if (hint->is_virtual()) {
 			// find the current store for hint
 			LivetimeInterval hint_lti = LA->get(hint);

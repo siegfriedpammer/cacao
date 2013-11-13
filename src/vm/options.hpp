@@ -187,6 +187,7 @@ extern int      opt_DebugStackTrace;
 extern int      opt_DebugThreads;
 #ifdef ENABLE_COMPILER2
 extern bool     opt_DebugCompiler2;
+extern bool     opt_Compiler2hints;
 #endif
 #if defined(ENABLE_DISASSEMBLER)
 extern int      opt_DisassembleStubs;

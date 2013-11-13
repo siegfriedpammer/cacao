@@ -174,6 +174,7 @@ int      opt_DebugStackTrace              = 0;
 int      opt_DebugThreads                 = 0;
 #ifdef ENABLE_COMPILER2
 bool     opt_DebugCompiler2               = false;
+bool     opt_Compiler2hints               = true;
 #endif
 #if defined(ENABLE_DISASSEMBLER)
 int      opt_DisassembleStubs             = 0;
@@ -263,6 +264,7 @@ enum {
 #endif
 #ifdef ENABLE_COMPILER2
 	OPT_DebugCompiler2,
+	OPT_Compiler2hints,
 #endif
 	OPT_DebugLocalReferences,
 	OPT_DebugLocks,
@@ -332,6 +334,7 @@ option_t options_XX[] = {
 #endif
 #ifdef ENABLE_COMPILER2
 	{ "DebugCompiler2",               OPT_DebugCompiler2,               OPT_TYPE_BOOLEAN, "compiler with compiler2"},
+	{ "Compiler2hints",               OPT_Compiler2hints,               OPT_TYPE_BOOLEAN, "compiler2: enable register hints"},
 #endif
 	{ "DebugLocalReferences",         OPT_DebugLocalReferences,         OPT_TYPE_BOOLEAN, "print debug information for local reference tables" },
 	{ "DebugLocks",                   OPT_DebugLocks,                   OPT_TYPE_BOOLEAN, "print debug information for locks" },
@@ -744,6 +747,9 @@ void options_xx(JavaVMInitArgs *vm_args)
 #ifdef ENABLE_COMPILER2
 		case OPT_DebugCompiler2:
 			opt_DebugCompiler2 = enable;
+			break;
+		case OPT_Compiler2hints:
+			opt_Compiler2hints = enable;
 			break;
 #endif
 #if defined(ENABLE_DISASSEMBLER)
