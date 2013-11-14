@@ -139,7 +139,7 @@ static long fact2(long n) {
 static double pi() {
     return Math.PI;
 }
-static long fakePower(long v, long i) {
+static long power(long v, long i) {
     long p =1;
     for (long j = 0; j < i; ++j) {
         p *= v;
