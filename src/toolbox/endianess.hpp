@@ -209,7 +209,7 @@ static inline double cacao::read_double_be(const u1 *src) {
 
   MCOPY((u1 *) (&d), buffer, u1, 8);
 #else 
-  MCOPY((u1 *) (&f), src,    u1, 8);
+  MCOPY((u1 *) (&d), src,    u1, 8);
 #endif
 
 	return d;
