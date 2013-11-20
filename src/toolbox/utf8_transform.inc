@@ -49,10 +49,7 @@ inline typename Fn::ReturnType utf8::transform(Iterator it, Iterator end, Fn fn)
 #define UTF8_HANDLE_ERROR {                                \
 	if (fn.error_action() == ABORT_ON_ERROR) {             \
 		return fn.abort();                                 \
-	} else if (fn.error_action() == REPLACE_ON_ERROR) {    \
-		fn.utf16(fn.replacement());                        \
 	}                                                      \
-	continue;                                              \
 }
 
 	while (it != end) {

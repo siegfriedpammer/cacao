@@ -515,16 +515,14 @@ extern size_t utf8_hash(utf *u) { return Utf8String(u).hash(); }
 
 *******************************************************************************/
 
-struct DisplayPrintableAscii : utf8::VisitorBase<void, utf8::REPLACE_ON_ERROR> {
+struct DisplayPrintableAscii : utf8::VisitorBase<void, utf8::IGNORE_ERRORS> {
 	typedef void ReturnType;
 
 	DisplayPrintableAscii(FILE *dst) : _dst(dst) {}
 
-	void utf16(uint16_t c) {
+	void utf8(uint8_t c) {
 		fputc((c >= 32 && c <= 127) ? c : '?', _dst);
 	}
-
-	uint16_t replacement() const { return '?'; }
 
 	void finish() {fflush(_dst);}
 private:

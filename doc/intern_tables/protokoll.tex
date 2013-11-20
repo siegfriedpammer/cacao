@@ -91,7 +91,6 @@
 
 		ErrorAction error_action(); // called when an error is encountered
 		ReturnType  abort();        // called if ErrorAction is ABORT_ON_ERROR
-		uint16_t    replacement();  // called if ErrorAction is REPLACE_ON_ERROR
 	};
 		\end{lstlisting}
 	\vspace*{5pt}
@@ -99,9 +98,6 @@
 		\begin{lstlisting}
 	enum ErrorAction {
 		IGNORE_ERRORS,    // Invalid input leads to undefined behaviour.
-
-		REPLACE_ON_ERROR, // Invalid codepoints are replaced by the
-		                  // result of calling Visitor::replacement().
 
 		ABORT_ON_ERROR    // The decoding is aborted an the result of
 		                  // Visitor::abort() is returned.
@@ -117,8 +113,6 @@
 	It can then decide to,
 	\begin{enumerate}[label=\alph*)]
 		\item errors lead to undefined behaviour.
-		\item replace the erroneous character, \cpp{utf8()} is not called with the bad input, \cpp{utf16()} is called
-		          with the result of \cpp{replacement()}.
 		\item abort and return the result of \cpp{abort()}.
 	\end{enumerate}
 

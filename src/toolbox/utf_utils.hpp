@@ -132,9 +132,6 @@ namespace utf8 {
 	enum ErrorAction {
 		IGNORE_ERRORS,    // Invalid input leads to undefined behaviour.
 
-		REPLACE_ON_ERROR, // Invalid codepoints are replaced by the
-		                  // result of calling Visitor::replacement().
-
 		ABORT_ON_ERROR    // The decoding is aborted an the result of
 		                  // Visitor::abort() is returned.
 	};
@@ -161,9 +158,6 @@ namespace utf8 {
 	 *			ReturnType finish();    // called on success
 	 *			ReturnType abort();     // called on error
 	 *			                        // (iff ErrorAction is ABORT_ON_ERROR)
-	 *
-	 *			uint16_t replacement(); // call on error
-	 *			                        // (iff ErrorAction is REPLACE_ON_ERROR)
 	 *	};
 	 *
 	 * @Cpp11 Use decltype to get return type of Fn::finish without forcing
@@ -191,9 +185,6 @@ namespace utf8 {
 
 		ReturnType finish() const { return ReturnType(); }
 		ReturnType abort()  const { return ReturnType(); }
-
-		/// Default to returning the official unicode replacement character
-		uint16_t replacement() const { return 0xFFFD; }
 	};
 
 	/***
