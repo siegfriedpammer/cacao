@@ -55,54 +55,54 @@ inline typename Fn::ReturnType utf8::transform(Iterator it, Iterator end, Fn fn)
 	while (it != end) {
 		unsigned byte = *it++;
 
-		if (byte && !(byte & 0x80)) {
-			// highest bit not set, at least one other bit set, ASCII character
+		if (byte & 0x80) {
+			// highest bit set, non-ASCII character
 
-			fn.utf8(byte);
-			fn.utf16(byte);
-		} else if ((byte & 0xe0) == 0xc0) {
-			// 2-byte: should be 110..... 10......
+			if ((byte & 0xe0) == 0xc0) {
+				// 2-byte: should be 110..... 10......
 
-			if (it == end) {
-				UTF8_HANDLE_ERROR
-			}
+				if (it == end)
+					UTF8_HANDLE_ERROR
 
-			unsigned byte2 = *it++;
+				unsigned byte2 = *it++;
 
-			if ((byte2 & 0xc0) == 0x80) {
-				// valid 2-byte UTF-8
+				if ((byte2 & 0xc0) != 0x80)
+					UTF8_HANDLE_ERROR
+
 				fn.utf8(byte);
 				fn.utf8(byte2);
-				fn.utf16(((byte  & 0x1f) << 6) | (byte2 & 0x3f));
-			} else {
-				UTF8_HANDLE_ERROR
-			}
-		} else if ((byte & 0xf0) == 0xe0) {
-			// 3-byte: should be 1110.... 10...... 10......
+				fn.utf16(((byte & 0x1f) << 6) | (byte2 & 0x3f));
+			} else if ((byte & 0xf0) == 0xe0) {
+				// 3-byte: should be 1110.... 10...... 10......
 
-			if (it + 2 > end) {
-				UTF8_HANDLE_ERROR
-			}
+				if (it + 2 > end)
+					UTF8_HANDLE_ERROR
 
-			unsigned byte2 = *it++;
+				unsigned byte2 = *it++;
 
-			if ((byte2 & 0xc0) == 0x80) {
+				if ((byte2 & 0xc0) != 0x80)
+					UTF8_HANDLE_ERROR
+
 				unsigned byte3 = *it++;
 
-				if ((byte3 & 0xc0) == 0x80) {
-					// valid 3-byte UTF-8
-					fn.utf8(byte);
-					fn.utf8(byte2);
-					fn.utf8(byte3);
-					fn.utf16(((byte & 0x0f) << 12) | ((byte2 & 0x3f) <<  6) | (byte3 & 0x3f));
-				} else {
+				if ((byte3 & 0xc0) != 0x80)
 					UTF8_HANDLE_ERROR
-				}
+
+				fn.utf8(byte);
+				fn.utf8(byte2);
+				fn.utf8(byte3);
+				fn.utf16(((byte & 0x0f) << 12) | ((byte2 & 0x3f) <<  6) | (byte3 & 0x3f));
 			} else {
 				UTF8_HANDLE_ERROR
 			}
 		} else {
-			UTF8_HANDLE_ERROR
+			// Java forbids zero bytes in UTF8
+			if (byte == 0)
+				UTF8_HANDLE_ERROR
+
+			// ASCII character: highest bit not set, at least one other bit set
+			fn.utf8(byte);
+			fn.utf16(byte);
 		}
 	}
 
