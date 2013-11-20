@@ -28,6 +28,7 @@
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/DominatorPass.hpp"
+#include "vm/jit/compiler2/InstructionMetaPass.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -94,7 +95,8 @@ bool ScheduleEarlyPass::run(JITData &JD) {
 }
 
 PassUsage& ScheduleEarlyPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(DominatorPass::ID);
+	PU.add_requires<DominatorPass>();
+	PU.add_requires<InstructionMetaPass>();
 	return PU;
 }
 // the address of this variable is used to identify the pass

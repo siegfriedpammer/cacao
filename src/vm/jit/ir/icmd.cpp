@@ -1,6 +1,6 @@
 /* src/vm/jit/ir/icmd.cpp - Intermediate Commands
 
-   Copyright (C) 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -49,7 +49,7 @@
 #define IDIV_CALLS  ICMDTABLE_CALLS
 #endif
 
-#if (SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
+#if (SUPPORT_DIVISION && SUPPORT_LONG_DIV)
 #define LDIV_CALLS  0
 #else
 #define LDIV_CALLS  ICMDTABLE_CALLS

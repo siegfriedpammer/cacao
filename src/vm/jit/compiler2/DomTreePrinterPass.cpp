@@ -33,7 +33,9 @@
 #include "vm/jit/compiler2/DominatorPass.hpp"
 #include "vm/jit/compiler2/GraphHelper.hpp"
 
-#include "toolbox/GraphTraits.hpp"
+#include "toolbox/GraphPrinter.hpp"
+#include "vm/class.hpp"
+#include "vm/jit/jit.hpp"
 
 #include <sstream>
 
@@ -43,7 +45,7 @@ namespace compiler2 {
 
 namespace {
 
-class DomTreeGraph : public GraphTraits<Method,BeginInst> {
+class DomTreeGraph : public PrintableGraph<Method*,BeginInst*> {
 protected:
     const Method &M;
     bool verbose;
@@ -68,16 +70,12 @@ public:
 		}
 	}
 
-    StringBuf getGraphName() const {
-		return "DomTreeGraph";
+    virtual OStream& getGraphName(OStream& OS) const {
+		return OS << "DomTreeGraph";
 	}
 
-    StringBuf getNodeLabel(const BeginInst &node) const {
-		std::ostringstream sstream;
-		sstream << "[" << getNodeID(node) << "] "
-		        << node.get_name() << " "
-				<< dfs[(BeginInst*)&node];
-		return sstream.str();
+    virtual OStream& getNodeLabel(OStream& OS, BeginInst *const &node) const {
+		return OS << *node;
 	}
 
 };
@@ -85,7 +83,7 @@ public:
 } // end anonymous namespace
 
 PassUsage& DomTreePrinterPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(DominatorPass::ID);
+	PU.add_requires<DominatorPass>();
 	return PU;
 }
 // the address of this variable is used to identify the pass
@@ -94,12 +92,40 @@ char DomTreePrinterPass::ID = 0;
 // register pass
 static PassRegistery<DomTreePrinterPass> X("DomTreePrinterPass");
 
+namespace {
+std::string get_filename(methodinfo *m, jitdata *jd, std::string prefix = "cfg_", std::string suffix=".dot");
+std::string get_filename(methodinfo *m, jitdata *jd, std::string prefix, std::string suffix)
+{
+	std::string filename = prefix;
+	filename += Utf8String(m->clazz->name).begin();
+	filename += ".";
+	filename += Utf8String(m->name).begin();
+	filename += Utf8String(m->descriptor).begin();
+	filename += suffix;
+	/* replace unprintable chars */
+	for (size_t i = filename.find_first_of('/');
+		 i != std::string::npos;
+		 i = filename.find_first_of('/',i+1)) {
+		filename.replace(i,1,1,'.');
+	}
+	const char *unchar = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.";
+	for (size_t i = filename.find_first_not_of(unchar);
+		i != std::string::npos;
+		i = filename.find_first_not_of(unchar,i+1)) {
+		filename.replace(i,1,1,'_');
+	}
+
+	return filename;
+}
+} // end anonymous namespace
+
 // run pass
 bool DomTreePrinterPass::run(JITData &JD) {
 	// get dominator tree
 	DominatorTree *DT = get_Pass<DominatorPass>();
 	assert(DT);
-	GraphPrinter<DomTreeGraph>::print("domtree-test.dot", DomTreeGraph(*(JD.get_Method()),*DT));
+	std::string name = get_filename(JD.get_jitdata()->m,JD.get_jitdata(),"domtree_");
+	GraphPrinter<DomTreeGraph>::print(name.c_str(), DomTreeGraph(*(JD.get_Method()),*DT));
 	return true;
 }
 

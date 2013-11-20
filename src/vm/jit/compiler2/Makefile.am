@@ -39,6 +39,7 @@ libcompiler2_la_SOURCES = \
 	Backend.cpp \
 	BasicBlockSchedulingPass.cpp \
 	CFGConstructionPass.cpp \
+	CFGMetaPass.cpp \
 	CodeGenPass.cpp \
 	CodeMemory.cpp \
 	CodeSegment.cpp \
@@ -48,29 +49,37 @@ libcompiler2_la_SOURCES = \
 	DataSegment.cpp \
 	DominatorPass.cpp \
 	DomTreePrinterPass.cpp \
+	ExamplePass.cpp \
 	GraphHelper.cpp \
 	Instruction.cpp \
+	InstructionMetaPass.cpp \
+	InstructionVisitor.cpp \
 	JITData.cpp \
 	LinearScanAllocatorPass.cpp \
 	ListSchedulingPass.cpp \
 	LivetimeAnalysisPass.cpp \
+	LivetimeInterval.cpp \
+	Loop.cpp \
+	LoopTreePrinterPass.cpp \
 	LoopPass.cpp \
 	LoopSimplificationPass.cpp \
-	LoweredInstDAG.cpp \
-	LoweringPass.cpp \
+	MachineBasicBlock.cpp \
 	MachineInstruction.cpp \
 	MachineInstructions.cpp \
+	MachineInstructionSchedule.cpp \
 	MachineInstructionSchedulingPass.cpp \
 	MachineInstructionPrinterPass.cpp \
+	MachineLoop.cpp \
+	MachineLoopPass.cpp \
 	MachineOperand.cpp \
 	Method.cpp \
 	MethodDescriptor.cpp \
 	ObjectFileWriterPass.cpp \
 	ParserPass.cpp \
 	Pass.cpp \
+	PassDependencyGraphPrinter.cpp \
 	PassManager.cpp \
-	RegisterFile.cpp \
-	ResolveImmediatePass.cpp \
+	RegisterAllocatorPass.cpp \
 	ScheduleClickPass.cpp \
 	ScheduleEarlyPass.cpp \
 	ScheduleLatePass.cpp \
@@ -84,8 +93,6 @@ libcompiler2_la_SOURCES = \
 	VerifierPass.cpp \
 	DeadcodeEliminationPass.cpp \
 	ConstantPropagationPass.cpp
-
-libcompiler2_la_SOURCES += XxxPass.cpp
 
 libcompiler2_la_LIBADD = \
 	$(ARCH_DIR)/lib$(ARCH_DIR).la

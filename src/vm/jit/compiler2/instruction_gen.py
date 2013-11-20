@@ -60,7 +60,7 @@ cpp_header = """/* src/vm/jit/compiler2/{filename} - {file_desc}
 
 cpp_generation_disclaimer = """/*
 WARNING: THIS FILE IS AUTO-GENERATED! DO NOT ALTER!
-Instead have a look into the generator ({generator})
+Instead have a look at the generator ({generator})
 and the input file ({input_file}).
 */
 
@@ -178,6 +178,12 @@ if __name__ == '__main__':
 			cpp_header+cpp_generation_disclaimer,cpp_footer),
 		Template('InstructionNameSwitchGen.inc','Instruction name switch',
 			'case {name}ID: return "{name}";\n',
+			cpp_header+cpp_generation_disclaimer,cpp_footer),
+		Template('InstructionVisitorGen.inc','Instruction Visitor',
+			'virtual void visit({name}* I);\n',
+			cpp_header+cpp_generation_disclaimer,cpp_footer),
+		Template('InstructionVisitorImplGen.inc','Instruction Visitor',
+			'void InstructionVisitor::visit({name}* I) {{visit_default(I);}}\n',
 			cpp_header+cpp_generation_disclaimer,cpp_footer),
 	]
 	main(temps)

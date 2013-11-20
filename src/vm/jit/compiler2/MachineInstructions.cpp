@@ -35,7 +35,7 @@ namespace jit {
 namespace compiler2 {
 
 void MachineLabelInst::emit(CodeMemory* CM) const {
-	CM->get_CodeSegment().insert_tag(CSLabel(begin));
+	CM->get_CodeSegment().insert_tag(CSLabel(this->get_block()));
 }
 
 } // end namespace compiler2

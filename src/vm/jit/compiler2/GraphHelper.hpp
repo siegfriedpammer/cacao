@@ -259,7 +259,7 @@ int DFSTraversal<_NodeTy>::dfs(_NodeTy * v)
 	int my_n = ++n;
 	LOG("my_n for " << (long)v << " (" << my_n << ") " << nl);
 	index[v] = my_n;
-	assert(vertex.size() > my_n);
+	assert(vertex.size() > (unsigned)my_n);
 	vertex[my_n] = v;
 	// TODO this can be done better
 	NodeListTy succ_v;
@@ -288,6 +288,36 @@ DFSTraversal<BeginInst>::NodeListTy& DFSTraversal<BeginInst>::successor(BeginIns
 
 template <>
 int DFSTraversal<BeginInst>::num_nodes(BeginInst *v) const;
+
+
+// Tree
+namespace tree {
+
+template <class T>
+T get_parent(T a);
+
+template <class T>
+T get_root();
+
+template <class T>
+inline T find_least_common_ancestor(T a, T b) {
+	// collect a's ancestors
+	std::set<T> ancestors;
+
+	for (; !(a == get_root<T>()) ; a = get_parent(a)) {
+		if (a == b)
+			return a;
+		ancestors.insert(a);
+	}
+
+	typename std::set<T>::const_iterator e = ancestors.end();
+	for (; !(b == get_root<T>()) ; b = get_parent(b)) {
+		if (ancestors.find(b) != e)
+			return b;
+	}
+	return get_root<T>();
+}
+} // end namespace tree
 
 } // end namespace compiler2
 } // end namespace jit

@@ -36,7 +36,7 @@
 
 #include "vm/access.hpp"
 #include "vm/array.hpp"
-#include "vm/jit/builtin.hpp"
+#include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.hpp"
 #include "vm/globals.hpp"
@@ -44,6 +44,9 @@
 #include "vm/javaobjects.hpp"
 #include "vm/method.hpp"
 #include "vm/vm.hpp"
+
+#include "vm/jit/builtin.hpp"
+
 
 /**
  * Invoke a method on the given object with the given arguments.

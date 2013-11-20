@@ -580,8 +580,8 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 		if ((stage >= SHOW_CODE) && JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd) &&
 			(!deadcode)) 
 		{
-			codeinfo    *code = code = jd->code;
-			codegendata *cd = cd   = jd->cd;
+			codeinfo    *code = jd->code;
+			codegendata *cd = jd->cd;
 
 			printf("\n");
 			pc         = (void *) (code->mcode + cd->dseglen + bptr->mpc);
@@ -794,13 +794,6 @@ void show_allocation(s4 type, s4 flags, s4 regoff)
 		printf("M%02d", regoff);
 		return;
 	}
-
-#ifdef HAS_ADDRESS_REGISTER_FILE
-	if (type == TYPE_ADR) {
-		printf("R%02d", regoff);
-		return;
-	}
-#endif
 
 	if (IS_FLT_DBL_TYPE(type)) {
 		printf("F%02d", regoff);

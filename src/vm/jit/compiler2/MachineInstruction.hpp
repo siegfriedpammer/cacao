@@ -27,6 +27,7 @@
 
 #include "vm/jit/compiler2/MachineOperand.hpp"
 #include "vm/jit/compiler2/CodeSegment.hpp"
+#include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
 
 #include <vector>
 
@@ -40,7 +41,7 @@ namespace compiler2 {
 
 // forward declaration
 class MachineMoveInst;
-class LoweredInstDAG;
+class MachinePhiInst;
 class CodeMemory;
 class MachineInstruction;
 
@@ -53,18 +54,51 @@ class MachineInstruction;
 class MachineOperandDesc {
 private:
 	MachineInstruction *parent;
-	unsigned index;
+	std::size_t index;
 public:
 	MachineOperand *op;
-	explicit MachineOperandDesc(MachineInstruction* parent, unsigned index)
+	explicit MachineOperandDesc(MachineInstruction* parent, std::size_t index)
 		: parent(parent), index(index), op(NULL) {}
-	explicit MachineOperandDesc(MachineInstruction* parent, unsigned index,
+	explicit MachineOperandDesc(MachineInstruction* parent, std::size_t index,
 		MachineOperand *op) : parent(parent), index(index), op(op) {}
 	explicit MachineOperandDesc(MachineInstruction* parent, MachineOperand *op)
 		: parent(parent), index(0), op(op) {}
-	unsigned get_index() const { return index; }
+	std::size_t get_index() const { return index; }
 	MachineInstruction* get_MachineInstruction() const { return parent; }
 };
+
+/**
+ * Proxy to encode explicit and implicit successors.
+ *
+ * The target of an unconditional jump is an explicit successor (i.e. the
+ * target is specified explicitly). The else branch of a conditional jump
+ * (i.e. the following block) is an implicit successor.
+ *
+ * For implicit successors the source block is stored. Whenever the real
+ * successor is requested the block following the source block is returned.
+ * Therefore implicit successors might change if a block is inserted after the
+ * source block.
+ */
+#if 0
+class SuccessorProxy {
+public:
+	struct Explicit {};
+	struct Implicit {};
+private:
+	enum Type { ExplTy, ImplTy };
+	MachineBasicBlock *entry;
+	Type type;
+public:
+	/// Constructor. Construct explicit successor.
+	explicit SuccessorProxy(MachineBasicBlock* MBB, Explicit)
+		: entry(MBB), type(ExplTy) {}
+	/// Constructor. Construct implicit successor.
+	explicit SuccessorProxy(MachineBasicBlock* MBB, Implicit)
+		: entry(MBB), type(ImplTy) {}
+	/// convert to MachineBasicBlock
+	operator MachineBasicBlock*() const;
+};
+#endif
 
 /**
  * Superclass for all machine dependent instructions
@@ -74,48 +108,61 @@ public:
 	typedef std::vector<MachineOperandDesc> operand_list;
 	typedef operand_list::iterator operand_iterator;
 	typedef operand_list::const_iterator const_operand_iterator;
+	typedef std::list<MachineBasicBlock*> successor_list;
+	typedef successor_list::iterator successor_iterator;
+	typedef successor_list::const_iterator const_successor_iterator;
 private:
-	static unsigned id_counter;
-	LoweredInstDAG *parent;
+	static std::size_t id_counter;
 protected:
-	const unsigned id;
+	const std::size_t id;
 	operand_list operands;
+	successor_list successors;
 	MachineOperandDesc result;
 	const char *name;
+	const char *comment;
+	MachineBasicBlock *block;
 public:
 	#if 0
-	MachineInstruction(const char * name, MachineOperand* result, unsigned num_operands, MachineOperand* dflt)
+	MachineInstruction(const char * name, MachineOperand* result, std::size_t num_operands, MachineOperand* dflt)
 		: id(id_counter++), operands(num_operands,dflt), result(result), name(name) {
 	}
 	#endif
-	MachineInstruction(const char * name, MachineOperand* result, unsigned num_operands)
-		: parent(NULL), id(id_counter++), operands(), result(this, result), name(name) {
-		for (unsigned i = 0; i < num_operands ; ++i) {
+	MachineInstruction(const char * name, MachineOperand* result, std::size_t num_operands, const char* comment = NULL)
+		: id(id_counter++), operands(), result(this, result), name(name), comment(comment), block(NULL) {
+		for (std::size_t i = 0; i < num_operands ; ++i) {
 			//operands[i].index = i;
 			operands.push_back(MachineOperandDesc(this,i));
 		}
 	}
 
-	LoweredInstDAG* get_parent() const { return parent; }
+	void set_comment(const char* c) { comment = c; }
+	const char* get_comment() const { return comment; }
 
-	void set_parent(LoweredInstDAG* dag) { parent = dag; }
-
-	void set_operand(unsigned i,MachineOperand* op) {
+	void set_operand(std::size_t i,MachineOperand* op) {
 		assert(i < operands.size());
 		operands[i].op = op;
 	}
+	virtual void set_block(MachineBasicBlock* MBB) {
+		block = MBB;
+	}
+	MachineBasicBlock* get_block() const {
+		return block;
+	}
 
-	void add_before(MachineInstruction *MI);
-
-	unsigned size_op() const {
+	std::size_t op_size() const {
 		return operands.size();
 	}
-	MachineOperandDesc& operator[](unsigned i) {
+	MachineOperandDesc& operator[](std::size_t i) {
 		assert(i < operands.size());
 		assert(operands[i].get_index() == i);
 		return operands[i];
 	}
-	const MachineOperandDesc& get(unsigned i) const {
+	const MachineOperandDesc& get(std::size_t i) const {
+		assert(i < operands.size());
+		assert(operands[i].get_index() == i);
+		return operands[i];
+	}
+	MachineOperandDesc& get(std::size_t i) {
 		assert(i < operands.size());
 		assert(operands[i].get_index() == i);
 		return operands[i];
@@ -132,7 +179,31 @@ public:
 	const_operand_iterator end() const {
 		return operands.end();
 	}
-	unsigned get_id() const {
+	successor_iterator successor_begin() {
+		return successors.begin();
+	}
+	successor_iterator successor_end() {
+		return successors.end();
+	}
+	const_successor_iterator successor_begin() const {
+		return successors.begin();
+	}
+	MachineBasicBlock* successor_front() const {
+		return successors.front();
+	}
+	MachineBasicBlock* successor_back() const {
+		return successors.back();
+	}
+	const_successor_iterator successor_end() const {
+		return successors.end();
+	}
+	std::size_t successor_size() const {
+		return successors.size();
+	}
+	bool successor_empty() const {
+		return successors.empty();
+	}
+	std::size_t get_id() const {
 		return id;
 	}
 	const char* get_name() const {
@@ -147,7 +218,10 @@ public:
 	void set_result(MachineOperand *MO) {
 		result = MachineOperandDesc(0,MO);
 	}
-	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
+	virtual bool accepts_immediate(std::size_t i, Immediate *imm) const {
+		return false;
+	}
+	virtual bool is_label() const {
 		return false;
 	}
 	virtual bool is_phi() const {
@@ -156,18 +230,31 @@ public:
 	virtual bool is_move() const {
 		return false;
 	}
+	virtual bool is_jump() const {
+		return false;
+	}
+	virtual bool is_end() const {
+		return is_jump();
+	}
 	virtual MachineMoveInst* to_MachineMoveInst() {
 		return NULL;
 	}
-	virtual OStream& print(OStream &OS) const;
+	#if 0
+	virtual MachineLabelInst* to_MachineLabelInst() {
+		return NULL;
+	}
+	#endif
+	virtual MachinePhiInst* to_MachinePhiInst() {
+		return NULL;
+	}
+	/// print instruction
+	OStream& print(OStream &OS) const;
+	/// print successor label
+	virtual OStream& print_successor_label(OStream &OS,std::size_t index) const;
 
-	/**
-	 * emit machine code
-	 */
+	/// emit machine code
 	virtual void emit(CodeMemory* CM) const;
-	/**
-	 * emit machine code
-	 */
+	/// link machine code
 	virtual void link(CodeFragment &CF) const;
 
 	/// destructor

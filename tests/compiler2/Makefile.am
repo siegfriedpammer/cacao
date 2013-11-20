@@ -57,16 +57,19 @@ build:
 run: $(OUTPUT_JAVA_TESTS)
 
 %: %.thisoutput
-	diff $(srcdir)/$@.output $<
+	@echo compare $@...
+	@diff $(srcdir)/$@.output $<
 
 %.o: build
-	LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Compile.sh "$(JAVACMD)" $@ $(srcdir)
+	@echo compile $@...
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Compile.sh "$(JAVACMD)" $@ $(srcdir)
 
 %.run: %.o $(srcdir)/%.main.c
-	$(CC) -O0 $^ -o $@
+	@$(CC) -O0 $^ -o $@
 
 %.thisoutput: %.run
-	./$< > $@
+	@echo run $@...
+	@./$< > $@
 
 ## Local variables:
 ## mode: Makefile

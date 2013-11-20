@@ -1,0 +1,13 @@
+2013-11-06 Josef Eisl <zapster@zapster.cc>
+	* new LIR: see MachineBasicBlock, MachineInstructionSchedule,
+	MachineInstructionSchedulingPass
+	* added Visitors: see InstructionVisitor, LoweringVisitor
+	* LivetimeInterval: and LinearScan pass rewritten (LSRA can this is
+	not yet handle resolution correctly)
+	* PassManager: replaced add_Pass(ID) with add_Pass<PassClass>()
+	* new "Template Pass": XxxPass is superseded by ExamplePass
+	* added PassDependencyGraphPrinter: look for PassDependencyGraph.dot
+	in the run directory
+	* PassManager: does now schedule passes (see PassUsage for more info)
+	* unordered_{map,set}: switch to unordered_{map,set} (hashmap,
+	hashset) in some components

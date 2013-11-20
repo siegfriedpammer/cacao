@@ -24,6 +24,8 @@
 
 #include "vm/string.hpp"
 
+#include <cassert>
+
 #include "vm/array.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
@@ -44,334 +46,108 @@ STAT_DECLARE_VAR(int,size_string,0)
 //*****          GLOBAL JAVA/LANG/STRING INTERN TABLE                    *****//
 //****************************************************************************//
 
-struct JavaStringHash {
-	uint32_t operator()(JavaString str) const {
-		const u2 *cs = str.begin();
-		size_t    sz = str.size();
+struct InternedJavaString {
+	/// Interface to HashTable
 
-		return utf_hashkey((const char*) cs, sz);
+	InternedJavaString() : _hash(0), _str(0) {}
+
+	size_t hash() const { return _hash; }
+	size_t size() const { return _str.size(); }
+
+	bool is_empty()    const { return _str == (java_object_t*) 0; }
+	bool is_occupied() const { return _str != (java_object_t*) 0; }
+	bool is_deleted()  const { return false; }
+
+	template<typename T>
+	void set_occupied(const T& t) {
+		_hash = t.hash();
+		_str  = t.get_string();
 	}
 
-	/// The hashkey is computed from the utf-text by using up to 8
-	/// characters.  For utf-symbols longer than 15 characters 3 characters
-	/// are taken from the beginning and the end, 2 characters are taken
-	/// from the middle.
-	static u4 utf_hashkey(const char *text, u4 length) {
-#define nbs(val) ((u4) *(++text) << val) // get next byte, left shift by val
-#define fbs(val) ((u4) *(  text) << val) // get first byte, left shift by val
-
-		const char *start_pos = text;  // pointer to utf text
-		u4          a;
-
-	switch (length) {
-	case 0: // empty string */
-		return 0;
-
-	case 1:
-		return fbs(0);
-	case 2:
-		// fbs(0) ^ nbs(3);
-		a = fbs(0);
-		a ^= nbs(3);
-		return a;
-	case 3:
-		// fbs(0) ^ nbs(3) ^ nbs(5);
-		a = fbs(0);
-		a ^= nbs(3);
-		a ^= nbs(5);
-		return a;
-	case 4:
-		// fbs(0) ^ nbs(2) ^ nbs(4) ^ nbs(6);
-		a = fbs(0);
-		a ^= nbs(2);
-		a ^= nbs(4);
-		a ^= nbs(6);
-		return a;
-	case 5:
-		// fbs(0) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(6);
-		a = fbs(0);
-		a ^= nbs(2);
-		a ^= nbs(3);
-		a ^= nbs(4);
-		a ^= nbs(6);
-		return a;
-	case 6:
-		// fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(5) ^ nbs(6);
-		a = fbs(0);
-		a ^= nbs(1);
-		a ^= nbs(2);
-		a ^= nbs(3);
-		a ^= nbs(5);
-		a ^= nbs(6);
-		return a;
-	case 7:
-		// fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(5) ^ nbs(6);
-		a = fbs(0);
-		a ^= nbs(1);
-		a ^= nbs(2);
-		a ^= nbs(3);
-		a ^= nbs(4);
-		a ^= nbs(5);
-		a ^= nbs(6);
-		return a;
-	case 8:
-		// fbs(0) ^ nbs(1) ^ nbs(2) ^ nbs(3) ^ nbs(4) ^ nbs(5) ^ nbs(6) ^ nbs(7);
-		a = fbs(0);
-		a ^= nbs(1);
-		a ^= nbs(2);
-		a ^= nbs(3);
-		a ^= nbs(4);
-		a ^= nbs(5);
-		a ^= nbs(6);
-		a ^= nbs(7);
-		return a;
-
-	case 9:
-		a = fbs(0);
-		a ^= nbs(1);
-		a ^= nbs(2);
-		text++;
-		// a ^ nbs(4) ^ nbs(5) ^ nbs(6) ^ nbs(7) ^ nbs(8);
-		a ^= nbs(4);
-		a ^= nbs(5);
-		a ^= nbs(6);
-		a ^= nbs(7);
-		a ^= nbs(8);
-		return a;
-
-	case 10:
-		a = fbs(0);
-		text++;
-		a ^= nbs(2);
-		a ^= nbs(3);
-		a ^= nbs(4);
-		text++;
-		// a ^ nbs(6) ^ nbs(7) ^ nbs(8) ^ nbs(9);
-		a ^= nbs(6);
-		a ^= nbs(7);
-		a ^= nbs(8);
-		a ^= nbs(9);
-		return a;
-
-	case 11:
-		a = fbs(0);
-		text++;
-		a ^= nbs(2);
-		a ^= nbs(3);
-		a ^= nbs(4);
-		text++;
-		// a ^ nbs(6) ^ nbs(7) ^ nbs(8) ^ nbs(9) ^ nbs(10);
-		a ^= nbs(6);
-		a ^= nbs(7);
-		a ^= nbs(8);
-		a ^= nbs(9);
-		a ^= nbs(10);
-		return a;
-
-	case 12:
-		a = fbs(0);
-		text += 2;
-		a ^= nbs(2);
-		a ^= nbs(3);
-		text++;
-		a ^= nbs(5);
-		a ^= nbs(6);
-		a ^= nbs(7);
-		text++;
-		// a ^ nbs(9) ^ nbs(10);
-		a ^= nbs(9);
-		a ^= nbs(10);
-		return a;
-
-	case 13:
-		a = fbs(0);
-		a ^= nbs(1);
-		text++;
-		a ^= nbs(3);
-		a ^= nbs(4);
-		text += 2;
-		a ^= nbs(7);
-		a ^= nbs(8);
-		text += 2;
-		// a ^ nbs(9) ^ nbs(10);
-		a ^= nbs(9);
-		a ^= nbs(10);
-		return a;
-
-	case 14:
-		a = fbs(0);
-		text += 2;
-		a ^= nbs(3);
-		a ^= nbs(4);
-		text += 2;
-		a ^= nbs(7);
-		a ^= nbs(8);
-		text += 2;
-		// a ^ nbs(9) ^ nbs(10) ^ nbs(11);
-		a ^= nbs(9);
-		a ^= nbs(10);
-		a ^= nbs(11);
-		return a;
-
-	case 15:
-		a = fbs(0);
-		text += 2;
-		a ^= nbs(3);
-		a ^= nbs(4);
-		text += 2;
-		a ^= nbs(7);
-		a ^= nbs(8);
-		text += 2;
-		// a ^ nbs(9) ^ nbs(10) ^ nbs(11);
-		a ^= nbs(9);
-		a ^= nbs(10);
-		a ^= nbs(11);
-		return a;
-
-	default:
-       	// 3 characters from beginning
-		a = fbs(0);
-		text += 2;
-		a ^= nbs(3);
-		a ^= nbs(4);
-
-		// 2 characters from middle
-		text = start_pos + (length / 2);
-		a ^= fbs(5);
-		text += 2;
-		a ^= nbs(6);
-
-		// 3 characters from end
-		text = start_pos + length - 4;
-
-		a ^= fbs(7);
-		text++;
-
-		// a ^ nbs(10) ^ nbs(11);
-		a ^= nbs(10);
-		a ^= nbs(11);
-		return a;
-#undef fbs
-#undef nbs
-		}
+	template<typename T>
+	bool operator==(const T& t) const {
+		return hash() == t.hash()
+		    && size() == t.size()
+		    && std::equal(begin(), end(), t.begin());
 	}
+
+	const uint16_t *begin() const { return _str.begin(); }
+	const uint16_t *end()   const { return _str.end();   }
+
+	/// used by set_occupied
+
+	JavaString get_string() const { return _str; }
+private:
+	size_t     _hash;
+	JavaString _str;
 };
 
-struct JavaStringEq {
-	bool operator()(JavaString a, JavaString b) const {
-		size_t a_sz = a.size();
-		size_t b_sz = b.size();
 
-		if (a_sz != b_sz) return false;
-
-		const char *a_cs = (const char*) a.begin();
-		const char *b_cs = (const char*) b.begin();
-
-		return memcmp(a_cs, b_cs, a_sz * sizeof(u2)) == 0;
-	}
-};
-
-typedef InternTable<JavaString, JavaStringHash, JavaStringEq, 1>
-        JavaStringInternTable;
-
-static JavaStringInternTable* intern_table = NULL;
+static InternTable<InternedJavaString> intern_table;
 
 //****************************************************************************//
 //*****          JAVA STRING SUBSYSTEM INITIALIZATION                    *****//
 //****************************************************************************//
 
-/* JavaString::initialize ******************************************************
-
-	Initialize string subsystem
-
-*******************************************************************************/
-
+/***
+ * Initialize string subsystem
+ */
 void JavaString::initialize() {
-	assert(!JavaString::is_initialized());
-
 	TRACESUBSYSTEMINITIALIZATION("string_init");
 
-	intern_table = new JavaStringInternTable(4096);
+	assert(!is_initialized());
+
+	intern_table.initialize(4096);
 }
 
-/* JavaString::is_initialized **************************************************
-
-	Check is string subsystem is initialized
-
-*******************************************************************************/
-
+/***
+ * Check is string subsystem is initialized
+ */
 bool JavaString::is_initialized() {
-	return intern_table != NULL;
+	return intern_table.is_initialized();
 }
 
 //****************************************************************************//
 //*****          JAVA STRING CONSTRUCTORS                                *****//
 //****************************************************************************//
 
-/* makeJavaString **************************************************************
-
-	Allocate a new java/lang/String object, fill it with string content
-	and set it's fields.
-
-	If input chars is NULL a NullPointerException is raised.
-
-	PARAMETERS:
-		src ........ content of new string is copied from this pointer
-		src_size ... number of chars in src
-		dst_size ... numbers of chars in new string
-	TEMPLATE PARAMETERS:
-		Src ........... The char type used to initialize the String (u1 or u2)
-		Allocator ..... An allocation function, it allocats and initializes a new
-		                java/lang/String with a given size. The contents of the
-		                strings char[] can be undefined.
-		Initializer ... A function that copies the given chars into the strings
-		                private char[].
-
-*******************************************************************************/
-
-template<typename Src, typename Allocator, typename Initializer>
-static inline java_handle_t* makeJavaString(const Src *src, size_t src_size, size_t dst_size,
-                                            Allocator alloc, Initializer init) {
+/***
+ *	Allocate a new java/lang/String object, fill it with string content
+ *	and set its fields.
+ *
+ *	If input chars is NULL, a NullPointerException is raised.
+ *
+ *	@param src       iterator range that contain the text for the new string
+ *	@param end       end of input
+ *	@param dst_size  number of UTF-16 chars new string will contain.
+ *
+ *	@tparam Iterator A STL style iterator over utf8 chars.
+ */
+template<typename Iterator>
+static inline java_handle_t* makeJavaString(Iterator src, Iterator end, size_t dst_size) {
 	if (src == NULL) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
-	assert(src_size >= 0);
-	assert(dst_size >= 0);
-
 	// allocate new java/lang/String
-
-	JavaString str = alloc(dst_size);
-
-	if (str == NULL) return NULL;
-
-	// copy text
-
-	u2 *dst = (u2*) str.begin();
-
-	bool success = init(src, src_size, dst);
-
-	if (!success) return NULL;
-
-	return str;
-}
-
-//***** ALLOCATORS
-
-static inline JavaString allocate_with_GC(size_t size) {
 	java_handle_t *h = builtin_new(class_java_lang_String);
-
 	if (h == NULL) return NULL;
 
-	CharArray ca(size);
-
+	// allocate char[] for strings text
+	CharArray ca(dst_size);
 	if (ca.is_null()) return NULL;
 
 	java_lang_String::set_fields(h, ca.get_handle());
 
+	// copy text into char[]
+
+	if (!utf8::decode(src, end, ca.get_raw_data_ptr()))
+		return NULL;
+
 	return h;
 }
+
 
 static inline JavaString allocate_on_system_heap(size_t size) {
 	// allocate string
@@ -384,7 +160,6 @@ static inline JavaString allocate_on_system_heap(size_t size) {
 
 	// allocate array
 	java_chararray_t *a = (java_chararray_t*) MNEW(uint8_t, sizeof(java_chararray_t) + sizeof(u2) * size);
-	if (a == NULL) return NULL;
 
 	// set array VTABLE, lockword and length
 	a->header.objheader.vftbl = Primitive::get_arrayclass_by_type(ARRAYTYPE_CHAR)->vftbl;
@@ -398,44 +173,6 @@ static inline JavaString allocate_on_system_heap(size_t size) {
 	return h;
 }
 
-static inline void free_from_system_heap(JavaString str) {
-	MFREE(java_lang_String::get_value(str), uint8_t, sizeof(java_chararray_t) + sizeof(u2) * str.size());
-	MFREE(str,                              uint8_t, class_java_lang_String->instancesize);
-}
-
-// ***** COPY CONTENTS INTO STRING
-
-template<uint16_t (*Fn)(uint16_t)>
-class Utf8Decoder {
-	public:
-		typedef utf_utils::Tag<utf_utils::VISIT_UTF16, utf_utils::ABORT_ON_ERROR> Tag;
-
-		Utf8Decoder(u2 *dst) : _dst(dst) {}
-
-		void utf16(uint16_t c) { *_dst++ = Fn(c); }
-
-		bool finish() const { return true;  }
-		bool abort()  const { return false; }
-	private:
-		u2 *_dst;
-};
-
-template<uint16_t (*Fn)(uint16_t)>
-static inline bool init_from_utf8(const char *src, size_t src_size, u2 *dst) {
-	return utf8::transform<bool>(src, src_size, Utf8Decoder<Fn>(dst));
-}
-
-static inline bool init_from_utf16(const u2 *src, size_t src_size, u2 *dst) {
-	memcpy(dst, src, sizeof(u2) * src_size);
-	return true;
-}
-
-// ***** CHARACTER TRANSFORMERS
-
-namespace {
-	inline uint16_t identity(uint16_t c)     { return c; }
-	inline uint16_t slash_to_dot(uint16_t c) { return (c == '/') ? '.' : c; }
-}
 
 /* JavaString::from_utf8 *******************************************************
 
@@ -445,13 +182,11 @@ namespace {
 *******************************************************************************/
 
 JavaString JavaString::from_utf8(Utf8String u) {
-	return makeJavaString(u.begin(), u.size(), u.utf16_size(),
-	                      allocate_with_GC, init_from_utf8<identity>);
+	return makeJavaString(u.begin(), u.end(), u.utf16_size());
 }
 
 JavaString JavaString::from_utf8(const char *cs, size_t sz) {
-	return makeJavaString(cs, sz, utf8::num_codepoints(cs, sz),
-	                      allocate_with_GC, init_from_utf8<identity>);
+	return makeJavaString(cs, cs + sz, utf8::num_codepoints(cs, sz));
 }
 
 /* JavaString::from_utf8_slash_to_dot ******************************************
@@ -465,8 +200,21 @@ JavaString JavaString::from_utf8(const char *cs, size_t sz) {
 *******************************************************************************/
 
 JavaString JavaString::from_utf8_slash_to_dot(Utf8String u) {
-	return makeJavaString(u.begin(), u.size(), u.utf16_size(),
-	                      allocate_with_GC, init_from_utf8<slash_to_dot>);
+	return makeJavaString<utf8::SlashToDot>(u.begin(), u.end(), u.utf16_size());
+}
+
+/* JavaString::from_utf8_dot_to_slash ******************************************
+
+	Create a new java/lang/String filled with text decoded from an UTF-8 string.
+	Replaces '.' with '/'.
+
+	NOTE:
+		If the input is not valid UTF-8 the process aborts!
+
+*******************************************************************************/
+
+JavaString JavaString::from_utf8_dot_to_slash(Utf8String u) {
+	return makeJavaString<utf8::DotToSlash>(u.begin(), u.end(), u.utf16_size());
 }
 
 /* JavaString::literal *********************************************************
@@ -481,20 +229,35 @@ JavaString JavaString::from_utf8_slash_to_dot(Utf8String u) {
 
 *******************************************************************************/
 
-JavaString JavaString::literal(Utf8String u) {
-	JavaString str = makeJavaString(u.begin(), u.size(), u.utf16_size(),
-	                                allocate_on_system_heap, init_from_utf8<identity>);
+/// Used to lazily construct a java.lang.String literal
+struct LiteralBuilder {
+	LiteralBuilder(Utf8String u) : _hash(u.hash()), _string(u) {}
 
+	size_t hash() const { return _hash; }
+	size_t size() const { return _string.utf16_size(); }
 
-	JavaString intern_str = intern_table->intern(str);
+	Utf8String::utf16_iterator begin() const { return _string.utf16_begin(); }
+	Utf8String::utf16_iterator end()   const { return _string.utf16_end();   }
 
-	if (intern_str != str) {
-		// str was already present, free it.
-		free_from_system_heap(str);
+	JavaString get_string() const {
+		JavaString jstr = allocate_on_system_heap(size());
+		assert(jstr);
+
+		bool b = utf8::decode(_string.begin(), _string.end(), const_cast<uint16_t*>(jstr.begin()));
+		(void) b;
+		assert(b);
+
+		return jstr;
 	}
+private:
+	const size_t     _hash;
+	const Utf8String _string;
+};
 
-	return intern_str;
+JavaString JavaString::literal(Utf8String u) {
+	return intern_table.intern(LiteralBuilder(u)).get_string();
 }
+
 
 /* JavaString:from_utf16 *******************************************************
 
@@ -503,9 +266,8 @@ JavaString JavaString::literal(Utf8String u) {
 
 *******************************************************************************/
 
-JavaString JavaString::from_utf16(const u2 *cs, size_t sz) {
-	return makeJavaString(cs, sz, sz,
-                          allocate_with_GC, init_from_utf16);
+JavaString JavaString::from_utf16(const uint16_t *cs, size_t sz) {
+	return makeJavaString(cs, cs + sz, sz);
 }
 
 /* JavaString:from_utf16 *******************************************************
@@ -546,19 +308,33 @@ JavaString JavaString::from_array(java_handle_t *array, int32_t count, int32_t o
 
 *******************************************************************************/
 
+/// Used to lazily copy a java.lang.String into the intern table
 struct LazyStringCopy {
-	LazyStringCopy(JavaString src) : src(src) {}
+	LazyStringCopy(JavaString str)
+	 : _hash(utf8::compute_hash(str.begin(), str.size())),
+	   _string(str) {}
 
-	operator JavaString() const {
-		return makeJavaString(src.begin(), src.size(), src.size(),
-	                          allocate_on_system_heap, init_from_utf16);
+	size_t hash() const { return _hash; }
+	size_t size() const { return _string.size(); }
+
+	const uint16_t *begin() const { return _string.begin(); }
+	const uint16_t *end()   const { return _string.end(); }
+
+	JavaString get_string() const {
+		JavaString jstr = allocate_on_system_heap(size());
+		assert(jstr);
+
+		std::copy(begin(), end(), const_cast<uint16_t*>(jstr.begin()));
+
+		return jstr;
 	}
-
-	JavaString src;
+private:
+	const size_t     _hash;
+	const JavaString _string;
 };
 
 JavaString JavaString::intern() const {
-	return intern_table->intern(*this, LazyStringCopy(*this));
+	return intern_table.intern(LazyStringCopy(*this)).get_string();
 }
 
 //****************************************************************************//
@@ -571,7 +347,7 @@ JavaString JavaString::intern() const {
 
 *******************************************************************************/
 
-const u2* JavaString::begin() const {
+const uint16_t* JavaString::begin() const {
 	assert(str);
 
 	java_handle_chararray_t *array = java_lang_String::get_value(str);
@@ -586,13 +362,12 @@ const u2* JavaString::begin() const {
 
 	int32_t   offset = java_lang_String::get_offset(str);
 	uint16_t* ptr    = ca.get_raw_data_ptr();
-//	uint16_t* ptr    = ((java_chararray_t*)array)->data;
 
 	return ptr + offset;
 }
 
-const u2* JavaString::end() const {
-	const u2 *ptr = begin();
+const uint16_t* JavaString::end() const {
+	const uint16_t *ptr = begin();
 
 	return ptr ? ptr + size() : NULL;
 }
@@ -708,13 +483,16 @@ void JavaString::fprint_printable_ascii(FILE *stream) const
 	for (size_t i = 0; i < sz; i++) {
 		char c = cs[i];
 
-		c = (c >= 32 && c <= 127) ? c : '?';
+		c = (c >= 32 && (unsigned char)c <= 127) ? c : '?';
 
 		fputc(c, stream);
 	}
 }
 
 OStream& operator<<(OStream& os, JavaString js) {
+	if (!js)
+		return os << "<null string>";
+
 	const u2 *cs = js.begin();
 
 	if (cs == NULL) {

@@ -27,6 +27,8 @@
 #include "vm/jit/compiler2/Type.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
+#include "vm/jit/compiler2/PassUsage.hpp"
+#include "vm/jit/compiler2/CFGConstructionPass.hpp"
 
 #include "vm/descriptor.hpp"
 
@@ -990,19 +992,22 @@ bool SSAConstructionPass::run(JITData &JD) {
 	beginToIndex.clear();
 	BB.clear();
 	BB.resize(num_basicblocks, NULL);
-	for(int i = 0; i < num_basicblocks; ++i) {
+	for(std::size_t i = 0; i < num_basicblocks; ++i) {
 		BeginInst *bi  = new BeginInst();
 		BB[i] = bi;
 		beginToIndex.insert(std::make_pair(bi,i));
 	}
+	//
+	// pseudo variable index for global state
+	std::size_t global_state = jd->vartop;
 
 	// init incomplete_phi
 	incomplete_phi.clear();
-	incomplete_phi.resize(num_basicblocks,std::vector<PHIInst*>(jd->vartop,NULL));
+	incomplete_phi.resize(num_basicblocks,std::vector<PHIInst*>(global_state + 1,NULL));
 
 	// (Local,Global) Value Numbering Map, size #bb times #var, initialized to NULL
 	current_def.clear();
-	current_def.resize(jd->vartop,std::vector<Value*>(num_basicblocks,NULL));
+	current_def.resize(global_state+1,std::vector<Value*>(num_basicblocks,NULL));
 	// sealed blocks
 	sealed_blocks.clear();
 	sealed_blocks.resize(num_basicblocks,false);
@@ -1011,13 +1016,15 @@ bool SSAConstructionPass::run(JITData &JD) {
 	filled_blocks.resize(num_basicblocks,false);
 	// initialize
 	var_type_tbl.clear();
-	var_type_tbl.resize(jd->vartop,Type::VoidTypeID);
+	var_type_tbl.resize(global_state+1,Type::VoidTypeID);
 
 	// create variable type map
 	for(size_t i = 0, e = jd->vartop; i != e ; ++i) {
 		varinfo &v = jd->var[i];
 		var_type_tbl[i] = convert_var_type(v.type);
 	}
+	// set global state
+	var_type_tbl[global_state] = Type::GlobalStateTypeID;
 
 	// initialize arguments
 	methoddesc *md = jd->m->parseddesc;
@@ -1060,6 +1067,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 
 	// set start begin inst
 	M->set_init_bb(BB[init_basicblock]);
+
+	current_def[global_state][init_basicblock] = BB[init_basicblock];
 
 	// **** END initializations
 
@@ -1111,13 +1120,17 @@ bool SSAConstructionPass::run(JITData &JD) {
 			// we dont need it
 			continue;
 		}
-		s4 bbindex = bb->nr;
+		std::size_t bbindex = (std::size_t)bb->nr;
 		instruction *iptr;
 		LOG("basicblock: " << bbindex << nl);
 
 		// add begin block
 		assert(BB[bbindex]);
 		M->add_bb(BB[bbindex]);
+		// every merge node is a possible statechange
+		// XXX maybe we can handle this via phi nodes but we must ensure that
+		// they do not get deleted!
+		current_def[global_state][bbindex] = BB[bbindex];
 
 		FOR_EACH_INSTRUCTION(bb,iptr) {
 			LOG("iptr: " << icmd_table[iptr->opc].name << nl);
@@ -1151,55 +1164,55 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_D2F:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
-					Type::TypeID type_from;
+					//Type::TypeID type_from;
 					Type::TypeID type_to;
 					switch (iptr->opc) {
 					case ICMD_I2L:
-						type_from = Type::IntTypeID;
+						//type_from = Type::IntTypeID;
 						type_to = Type::LongTypeID;
 						break;
 					case ICMD_I2F:
-						type_from = Type::IntTypeID;
+						//type_from = Type::IntTypeID;
 						type_to = Type::FloatTypeID;
 						break;
 					case ICMD_I2D:
-						type_from = Type::IntTypeID;
+						//type_from = Type::IntTypeID;
 						type_to = Type::DoubleTypeID;
 						break;
 					case ICMD_L2I:
-						type_from = Type::LongTypeID;
+						//type_from = Type::LongTypeID;
 						type_to = Type::IntTypeID;
 						break;
 					case ICMD_L2F:
-						type_from = Type::LongTypeID;
+						//type_from = Type::LongTypeID;
 						type_to = Type::FloatTypeID;
 						break;
 					case ICMD_L2D:
-						type_from = Type::LongTypeID;
+						//type_from = Type::LongTypeID;
 						type_to = Type::DoubleTypeID;
 						break;
 					case ICMD_F2I:
-						type_from = Type::FloatTypeID;
+						//type_from = Type::FloatTypeID;
 						type_to = Type::IntTypeID;
 						break;
 					case ICMD_F2L:
-						type_from = Type::FloatTypeID;
+						//type_from = Type::FloatTypeID;
 						type_to = Type::LongTypeID;
 						break;
 					case ICMD_F2D:
-						type_from = Type::FloatTypeID;
+						//type_from = Type::FloatTypeID;
 						type_to = Type::DoubleTypeID;
 						break;
 					case ICMD_D2I:
-						type_from = Type::DoubleTypeID;
+						//type_from = Type::DoubleTypeID;
 						type_to = Type::IntTypeID;
 						break;
 					case ICMD_D2L:
-						type_from = Type::DoubleTypeID;
+						//type_from = Type::DoubleTypeID;
 						type_to = Type::LongTypeID;
 						break;
 					case ICMD_D2F:
-						type_from = Type::DoubleTypeID;
+						//type_from = Type::DoubleTypeID;
 						type_to = Type::FloatTypeID;
 						break;
 					default: assert(0);
@@ -1567,15 +1580,31 @@ bool SSAConstructionPass::run(JITData &JD) {
 
 			case ICMD_GETFIELD:        /* 1 -> 1 */
 			case ICMD_PUTFIELD:        /* 2 -> 0 */
-			case ICMD_PUTSTATIC:       /* 1 -> 0 */
 				goto _default;
+			case ICMD_PUTSTATIC:       /* 1 -> 0 */
+				{
+					constant_FMIref *fmiref;
+					INSTRUCTION_GET_FIELDREF(iptr, fmiref);
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
+					assert(state_change);
+					Instruction *putstatic = new PUTSTATICInst(s1,fmiref,INSTRUCTION_IS_RESOLVED(iptr),
+						BB[bbindex],state_change);
+					write_variable(global_state,bbindex,putstatic);
+					M->add_Instruction(putstatic);
+				}
+				break;
 			case ICMD_GETSTATIC:       /* 0 -> 1 */
 				{
 					constant_FMIref *fmiref;
 					INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 					Type::TypeID type = convert_var_type(fmiref->parseddesc.fd->type);
-					Instruction *getstatic = new GETSTATICInst(type,fmiref,INSTRUCTION_IS_RESOLVED(iptr));
+					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
+					assert(state_change);
+					Instruction *getstatic = new GETSTATICInst(type,fmiref,INSTRUCTION_IS_RESOLVED(iptr),
+						BB[bbindex],state_change);
 					write_variable(iptr->dst.varindex,bbindex,getstatic);
+					write_variable(global_state,bbindex,getstatic);
 					M->add_Instruction(getstatic);
 				}
 				break;
@@ -1803,9 +1832,9 @@ bool SSAConstructionPass::run(JITData &JD) {
 				goto _default;
 			case ICMD_INVOKESTATIC:
 				{
-					methoddesc *md;
+					//methoddesc *md;
 					constant_FMIref   *fmiref;
-					INSTRUCTION_GET_METHODDESC(iptr, md);
+					//INSTRUCTION_GET_METHODDESC(iptr, md);
 					INSTRUCTION_GET_METHODREF(iptr, fmiref);
 
 					// get return type
@@ -1843,8 +1872,11 @@ bool SSAConstructionPass::run(JITData &JD) {
 					int32_t i = iptr->s1.argcount;
 					// create instruction
 
+					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
+					assert(state_change);
 					INVOKESTATICInst *I = new INVOKESTATICInst(type,i,fmiref,
-						INSTRUCTION_IS_RESOLVED(iptr));
+						INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
+					LOG3("INVOKESTATICInst: " << I << " dep = " << state_change << nl);
 					while (i--) {
 						// TODO understand
 						//if ((iptr->s1.argcount - 1 - i) == md->paramcount)
@@ -1854,6 +1886,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					if (type != Type::VoidTypeID) {
 						write_variable(iptr->dst.varindex,bbindex,I);
 					}
+					write_variable(global_state,bbindex,I);
 					M->add_Instruction(I);
 				}
 				break;
@@ -1922,13 +1955,27 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		SHOW_TARGET(OS, iptr->dst);
 		//		break;
 
+			case ICMD_IF_LLT:
+			case ICMD_IF_LGT:
+			case ICMD_IF_LLE:
 			case ICMD_IF_LEQ:
-				goto _default;
 			case ICMD_IF_LNE:
 			case ICMD_IF_LGE:
 				{
 					Conditional::CondID cond;
 					switch (iptr->opc) {
+					case ICMD_IF_LLT:
+						cond = Conditional::LT;
+						break;
+					case ICMD_IF_LGT:
+						cond = Conditional::GT;
+						break;
+					case ICMD_IF_LLE:
+						cond = Conditional::LE;
+						break;
+					case ICMD_IF_LEQ:
+						cond = Conditional::EQ;
+						break;
 					case ICMD_IF_LNE:
 						cond = Conditional::NE;
 						break;
@@ -1953,15 +2000,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 					M->add_Instruction(result);
 				}
 				break;
-			case ICMD_IF_LLT:
-			case ICMD_IF_LGT:
-			case ICMD_IF_LLE:
-		//		SHOW_S1(OS, iptr);
-		//		SHOW_LNG_CONST(OS, iptr->sx.val.l);	
-		//		SHOW_TARGET(OS, iptr->dst);
-		//		break;
-		//
-				goto _default;
 			case ICMD_GOTO:
 				{
 					assert(BB[iptr->dst.block->nr]);
@@ -2016,17 +2054,27 @@ bool SSAConstructionPass::run(JITData &JD) {
 				}
 				break;
 
-
 			case ICMD_IF_LCMPEQ:
 			case ICMD_IF_LCMPNE:
 			case ICMD_IF_LCMPLT:
 			case ICMD_IF_LCMPGT:
-				goto _default;
 			case ICMD_IF_LCMPGE:
 			case ICMD_IF_LCMPLE:
 				{
 					Conditional::CondID cond;
 					switch (iptr->opc) {
+					case ICMD_IF_LCMPEQ:
+						cond = Conditional::EQ;
+						break;
+					case ICMD_IF_LCMPNE:
+						cond = Conditional::NE;
+						break;
+					case ICMD_IF_LCMPLT:
+						cond = Conditional::LT;
+						break;
+					case ICMD_IF_LCMPGT:
+						cond = Conditional::GT;
+						break;
 					case ICMD_IF_LCMPGE:
 						cond = Conditional::GE;
 						break;
@@ -2058,35 +2106,49 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		SHOW_S2(OS, iptr);
 		//		SHOW_TARGET(OS, iptr->dst);
 		//		break;
+				goto _default;
 
 			case ICMD_TABLESWITCH:
-		//		SHOW_S1(OS, iptr);
-		//		table = iptr->dst.table;
-		//
-		//		i = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
-		//
-		//		printf("high=%d low=%d count=%d\n", iptr->sx.s23.s3.tablehigh, iptr->sx.s23.s2.tablelow, i);
-		//		while (--i >= 0) {
-		//			printf("\t\t%d --> ", (int) (table - iptr->dst.table));
-		//			printf("L%03d\n", table->block->nr);
-		//			table++;
-		//		}
-		//
-		//		break;
-				goto _default;
+				{
+					s4 tablehigh = iptr->sx.s23.s3.tablehigh;
+					s4 tablelow  = iptr->sx.s23.s2.tablelow;
+
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+					TABLESWITCHInst *result = new TABLESWITCHInst(BB[bbindex], s1,
+						TABLESWITCHInst::LOW(tablelow),
+						TABLESWITCHInst::HIGH(tablehigh));
+
+					s4 count = tablehigh - tablelow + 1;
+					LOG("tableswitch  high=" << tablehigh << " low=" << tablelow << " count=" << count << nl);
+					branch_target_t *table = iptr->dst.table;
+					BeginInst* def = BB[table[0].block->nr];
+					LOG("idx: " << 0 << " BeginInst: " << BB[table[0].block->nr]
+						<< "(block.nr=" << table[0].block->nr << ")"<< nl);
+					++table;
+					for (s4 i = 0; i < count ; ++i) {
+						LOG("idx: " << i << " BeginInst: " << BB[table[i].block->nr]
+							<< "(block.nr=" << table[i].block->nr << ")"<< nl);
+						result->append_succ(BB[table[i].block->nr]);
+					}
+					result->append_succ(def);
+					M->add_Instruction(result);
+				}
+				break;
 
 			case ICMD_LOOKUPSWITCH:
 				{
+					s4 lookupcount = iptr->sx.s23.s2.lookupcount;
+
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
-					LOOKUPSWITCHInst *result = new LOOKUPSWITCHInst(BB[bbindex], s1);
+					LOOKUPSWITCHInst *result = new LOOKUPSWITCHInst(BB[bbindex], s1, lookupcount);
 
 					// add case targets
 					lookup_target_t *lookup = iptr->dst.lookup;
-					s4 i = iptr->sx.s23.s2.lookupcount;
-					while (--i >= 0) {
+					for (s4 i = 0; i < lookupcount; ++i) {
 						// lookup->value
 						result->append_succ(BB[lookup->target.block->nr]);
-						lookup++;
+						result->set_match(i, LOOKUPSWITCHInst::MATCH(lookup->value));
+						++lookup;
 					}
 					// add default target
 					BeginInst *defaultBlock = BB[iptr->sx.s23.s3.lookupdefault.block->nr];
@@ -2218,6 +2280,10 @@ bool SSAConstructionPass::verify() const {
 	return true;
 }
 
+PassUsage& SSAConstructionPass::get_PassUsage(PassUsage &PU) const {
+	PU.add_requires<CFGConstructionPass>();
+	return PU;
+}
 // the address of this variable is used to identify the pass
 char SSAConstructionPass::ID = 0;
 

@@ -26,8 +26,8 @@
 #define _JIT_COMPILER2_PASSMANAGER
 
 #include <vector>
-#include <map>
-#include <set>
+#include "future/unordered_set.hpp"
+#include "future/unordered_map.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -68,21 +68,26 @@ public:
 
 /**
  * Manage the execution of compiler passes
+ *
+ * @todo handle modified (timestamp?)
+ * @todo conditionally reevaluate
  */
 class PassManager {
-private:
-	typedef std::set<PassInfo::IDTy> PassListTy;
+public:
+	typedef unordered_set<PassInfo::IDTy> PassListTy;
 	typedef std::vector<PassInfo::IDTy> ScheduleListTy;
-	typedef std::map<PassInfo::IDTy,Pass*> PassMapTy;
-	typedef std::map<PassInfo::IDTy,bool> ResultReadyMapTy;
+	typedef unordered_map<PassInfo::IDTy,Pass*> PassMapTy;
+	typedef unordered_map<PassInfo::IDTy,bool> ResultReadyMapTy;
+	typedef unordered_map<PassInfo::IDTy, PassInfo*> PassInfoMapTy;
+private:
 	/**
 	 * This stores the initialized passes.
-	 * Every Pass can only occure once.
+	 * Every Pass can only occur once.
 	 */
 	PassMapTy initialized_passes;
 	/**
 	 * This variable contains a schedule of the passes.
-	 * A pass may occure more than once.
+	 * A pass may occur more than once.
 	 */
 	ScheduleListTy schedule;
 	/**
@@ -94,25 +99,26 @@ private:
 	 */
 	ResultReadyMapTy result_ready;
 
-	static std::map<PassInfo::IDTy, PassInfo*> &registered_passes() {
-		static std::map<PassInfo::IDTy, PassInfo*> registered_passes;
+	static PassInfoMapTy &registered_passes() {
+		static PassInfoMapTy registered_passes;
 		return registered_passes;
 	}
 
 	Pass* get_initialized_Pass(PassInfo::IDTy ID);
 
-	const char * get_Pass_name(PassInfo::IDTy ID) {
-		PassInfo *PI = registered_passes()[ID];
-		assert(PI && "Pass not registered");
-		return PI->get_name();
-	}
 	template<class _PassClass>
 	_PassClass* get_Pass_result() {
 		assert_msg(result_ready[&_PassClass::ID], "result for "
 		  << get_Pass_name(&_PassClass::ID) << " is not ready!");
 		return (_PassClass*)initialized_passes[&_PassClass::ID];
 	}
+	void schedulePasses();
 public:
+	const char * get_Pass_name(PassInfo::IDTy ID) {
+		PassInfo *PI = registered_passes()[ID];
+		assert(PI && "Pass not registered");
+		return PI->get_name();
+	}
 	PassManager() {
 		MYLOG("PassManager::PassManager()" << nl);
 	}
@@ -145,11 +151,18 @@ public:
 	/**
 	 * add a compiler pass
 	 */
-	void add_Pass(PassInfo::IDTy ID) {
+	template<class _PassClass>
+	void add_Pass() {
+		PassInfo::IDTy ID = &_PassClass::ID;
 		assert(registered_passes()[ID] && "Pass not registered");
 		passes.insert(ID);
 		schedule.push_back(ID);
 	}
+
+	PassMapTy::const_iterator initialized_begin() const { return initialized_passes.begin(); }
+	PassMapTy::const_iterator initialized_end() const { return initialized_passes.end(); }
+	PassInfoMapTy::const_iterator registered_begin() const { return registered_passes().begin(); }
+	PassInfoMapTy::const_iterator registered_end() const { return registered_passes().end(); }
 
 	friend class Pass;
 

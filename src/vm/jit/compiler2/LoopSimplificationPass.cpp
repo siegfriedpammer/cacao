@@ -35,7 +35,7 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
-
+#if 0
 ///////////////////////////////////////////////////////////////////////////////
 // LoopSimplificationPass
 ///////////////////////////////////////////////////////////////////////////////
@@ -143,8 +143,8 @@ bool LoopSimplificationPass::run(JITData &JD) {
 }
 
 PassUsage& LoopSimplificationPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(LoopPass::ID);
-	PU.add_modifies(LoopPass::ID);
+	PU.add_requires<LoopPass>();
+	PU.add_modifies<LoopPass>();
 	return PU;
 }
 // the address of this variable is used to identify the pass
@@ -152,7 +152,7 @@ char LoopSimplificationPass::ID = 0;
 
 // register pass
 static PassRegistery<LoopSimplificationPass> X("LoopSimplificationPass");
-
+#endif
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

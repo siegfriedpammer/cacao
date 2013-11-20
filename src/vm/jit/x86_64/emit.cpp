@@ -442,21 +442,6 @@ void emit_trap_compiler(codegendata *cd)
 	M_ALD_MEM(REG_METHODPTR, TRAP_COMPILER);
 }
 
-/* emit_trap_countdown *********************************************************
-
-   Emit a countdown trap.
-
-   counter....absolute address of the counter variable
-
-*******************************************************************************/
-
-void emit_trap_countdown(codegendata *cd, s4 *counter)
-{
-	M_MOV_IMM((s8) counter, REG_ITMP3);
-	M_IDEC_MEMBASE(REG_ITMP3, 0);
-	M_BNS(8);
-	M_ALD_MEM(REG_METHODPTR, TRAP_COUNTDOWN);
-}
 
 /* emit_patcher_alignment ******************************************************
 
@@ -532,8 +517,6 @@ void emit_fastpath_monitor_exit(jitdata* jd, instruction* iptr, int d)
  */
 void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
 {
-	int32_t p;
-
 	// Get required compiler data.
 	methodinfo*  m  = jd->m;
 	codegendata* cd = jd->cd;
@@ -542,10 +525,10 @@ void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
 		M_LSUB_IMM((INT_ARG_CNT + FLT_ARG_CNT) * 8, REG_SP);
 
-		for (p = 0; p < INT_ARG_CNT; p++)
+		for (int32_t p = 0; p < INT_ARG_CNT; p++)
 			M_LST(abi_registers_integer_argument[p], REG_SP, p * 8);
 
-		for (p = 0; p < FLT_ARG_CNT; p++)
+		for (int32_t p = 0; p < FLT_ARG_CNT; p++)
 			M_DST(abi_registers_float_argument[p], REG_SP, (INT_ARG_CNT + p) * 8);
 
 		syncslot_offset += (INT_ARG_CNT + FLT_ARG_CNT) * 8;
@@ -570,10 +553,10 @@ void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
 #ifndef NDEBUG
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
 
-		for (p = 0; p < INT_ARG_CNT; p++)
+		for (int32_t p = 0; p < INT_ARG_CNT; p++)
 			M_LLD(abi_registers_integer_argument[p], REG_SP, p * 8);
 
-		for (p = 0; p < FLT_ARG_CNT; p++)
+		for (int32_t p = 0; p < FLT_ARG_CNT; p++)
 			M_DLD(abi_registers_float_argument[p], REG_SP, (INT_ARG_CNT + p) * 8);
 
 		M_LADD_IMM((INT_ARG_CNT + FLT_ARG_CNT) * 8, REG_SP);
@@ -1838,12 +1821,6 @@ void emit_incq_membase(codegendata *cd, s8 basereg, s8 disp)
 	emit_membase(cd, (basereg),(disp),0);
 }
 
-void emit_decl_membase(codegendata *cd, s8 basereg, s8 disp)
-{
-	emit_rex(0,0,0,(basereg));
-	*(cd->mcodeptr++) = 0xff;
-	emit_membase(cd, (basereg),(disp),1);
-}
 
 
 void emit_cltd(codegendata *cd) {

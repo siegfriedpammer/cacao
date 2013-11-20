@@ -1,6 +1,6 @@
 /* src/toolbox/utf_utils.hpp - functions for handling utf8/utf16
 
-   Copyright (C) 2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -26,26 +26,106 @@
 #define UTF_UTILS_HPP_ 1
 
 #include <cassert>
+#include <stdint.h>
+#include <iterator>
 
-// TODO: get rid of the old utf type and rename utf_utils to utf
-
-// TODO: Maybe rename functions, this is not a transform in the STL sense.
-//       It's a fold, like std::accumulate.
+// TODO: Maybe rename transform functions, this is not a transform in the STL sense.
+//       It's a reduction, like std::accumulate.
 
 namespace utf_utils {
-	// what input the transformer functor needs
-	enum VisitorType {
-		VISIT_NONE,  // Fn is only notified if whole input is valid or not.
+	/***
+	 * A STL style read-only forward iterator.
+	 * Iterates over a char* but replaces '/' with '.'
+	 */
+	template<typename Char>
+	struct SlashToDot {
+		typedef std::forward_iterator_tag iterator_category;
+		typedef const Char*               pointer;
+		typedef const Char&               reference;
+		typedef Char                      value_type;
+		typedef const Char*               difference_type;
 
-		VISIT_UTF8,  // Fn must have a method utf8 that is called for every
-		             // input byte.
+		SlashToDot(const Char *cs) : cs(cs) {}
 
-		VISIT_UTF16, // Fn must have a method utf16 that is called for every
-		             // utf-16 codepoint decoded from the input.
+		bool operator==(const SlashToDot& it) const { return cs == it.cs; }
+		bool operator!=(const SlashToDot& it) const { return cs != it.cs; }
 
-		VISIT_BOTH   // combination of VISIT_UTF8 and VISIT_UTF16
+		SlashToDot& operator++() {
+			cs++;
+			return *this;
+		}
+		SlashToDot operator++(int) {
+			SlashToDot it(*this);
+			++(*this);
+			return it;
+		}
+
+		SlashToDot operator+(size_t sz) const { return SlashToDot(cs + sz); }
+
+		Char operator*() const {
+			char c = *cs;
+
+			return (c == '/') ? '.' : c;
+		}
+	private:
+		const Char *cs;
 	};
 
+	/***
+	 * A STL style read-only forward iterator.
+	 * Iterates over a char* but replaces '.' with '/'
+	 */
+	template<typename Char>
+	struct DotToSlash {
+		typedef std::forward_iterator_tag iterator_category;
+		typedef const Char*               pointer;
+		typedef const Char&               reference;
+		typedef Char                      value_type;
+		typedef const Char*               difference_type;
+
+		DotToSlash(const Char *cs) : cs(cs) {}
+
+		bool operator==(const DotToSlash& it) const { return cs == it.cs; }
+		bool operator!=(const DotToSlash& it) const { return cs != it.cs; }
+
+		DotToSlash& operator++() {
+			cs++;
+			return *this;
+		}
+		DotToSlash operator++(int) {
+			DotToSlash it(*this);
+			++(*this);
+			return it;
+		}
+
+		DotToSlash operator+(size_t sz) const { return DotToSlash(cs + sz); }
+
+		Char operator*() const {
+			char c = *cs;
+
+			return (c == '.') ? '/' : c;
+		}
+	private:
+		const Char *cs;
+	};
+
+	/***
+	 * Helper that wraps a pair of iterators
+	 */
+	template<typename Iterator>
+	struct Range {
+		template<typename T>
+		Range(T t)                    : _begin(t.begin()), _end(t.end()) {}
+		Range(Iterator b, Iterator e) : _begin(b),         _end(e)       {}
+
+		Iterator begin() { return _begin; }
+		Iterator end()   { return _end;   }
+	private:
+		Iterator _begin, _end;
+	};
+}
+
+namespace utf8 {
 	// what the decoder should do when it encounters an error
 	enum ErrorAction {
 		IGNORE_ERRORS,    // invalid bytes in input are skipped.
@@ -59,227 +139,187 @@ namespace utf_utils {
 		                  // of abort.
 	};
 
-	template<VisitorType VT, ErrorAction EA> struct Tag {};
-}
-
-namespace utf8 {
-/* utf8::transform *************************************************************
-
-	Iterates over an UTF-8 string and accumulates a result with functor.
-
-	What input is fed to the functor and how errors should be handled can be
-	controlled via tags.
-
-	The functor Fn must have at least one method finish() that is called
-	when transform completes successfully to compute the final result.
-	What other methods the functor must have is controlled by the tag.
-
-	utf8::transform is overloaded for the following tags
-		Tag<VISIT_NONE, ABORT_ON_ERROR>
-
-		Tag<VISIT_UTF8, IGNORE_ERRORS>
-		Tag<VISIT_UTF8, REPLACE_ON_ERROR>
-		Tag<VISIT_UTF8, ABORT_ON_ERROR>
-
-		Tag<VISIT_UTF16, IGNORE_ERRORS>
-		Tag<VISIT_UTF16, REPLACE_ON_ERROR>
-		Tag<VISIT_UTF16, ABORT_ON_ERROR>
-
-		Tag<VISIT_BOTH, IGNORE_ERRORS>
-		Tag<VISIT_BOTH, REPLACE_ON_ERROR>
-		Tag<VISIT_BOTH, ABORT_ON_ERROR>
-
-	If you don't explicitly specify a tag the Functor must have a public type
-	member called Tag that is used.
-
-*******************************************************************************/
+	/***
+	 *	utf8::transform
+	 *
+	 *	Iterates over an UTF-8 string and calls a visitor for every UTF-8 byte and
+	 *	UTF-16 codepoint encountered.
+	 *	How the visitor handles errors is controlled via the enum ErrorAction.
+	 *
+	 *	A visitor must conform to the following interface:
+	 *	 (The class VisitorBase stubs out all of these methods and can be used
+	 *	 as a convenient base class)
+	 *
+	 *		struct Visitor {
+	 *			typedef ... ReturnType;
+	 *
+	 *			ErrorAction error_action(); // called when an error is encountered
+	 *
+	 *			void utf8(uint8_t);     // called for every UTF-8 byte
+	 *			void utf16(uint16_t);   // called for every UTF-16 codepoint
+	 *
+	 *			ReturnType finish();    // called on success
+	 *			ReturnType abort();     // called on error
+	 *			                        // (iff ErrorAction is ABORT_ON_ERROR)
+	 *
+	 *			uint16_t replacement(); // call on error
+	 *			                        // (iff ErrorAction is REPLACE_ON_ERROR)
+	 *	};
+	 *
+	 * @Cpp11 Use decltype to get return type of Fn::finish without forcing
+	 *        Fn to explicitly contain a typedef.
+	 *        We could do this now with GCCs typeof, but that's non-standard.
+	 */
+	template<typename Iterator, typename Fn>
+	typename Fn::ReturnType transform(Iterator begin, Iterator end, Fn);
 
 	template<typename T, typename Fn>
-	inline T transform(const char*, size_t, Fn);
+	inline typename Fn::ReturnType transform(T t, Fn fn) {
+		return ::utf8::transform(t.begin(), t.end(), fn);
+	}
 
-	template<typename T, typename Fn, typename Tag>
-	inline T transform(const char*, size_t, Fn, Tag tag);
 
-/* decode_char *****************************************************************
+	/***
+	 * Handy base class for implementing visitors
+	 */
+	template<typename ReturnType, ErrorAction action>
+	struct VisitorBase {
+		ErrorAction error_action() const { return action; }
 
-	Decodes one utf-16 codepoints from input, automatically advances input
-	pointer to start of next codepoint.
+		void utf8(uint8_t)   const {}
+		void utf16(uint16_t) const {}
 
-	Input MUST be valid UTF-8.
+		ReturnType finish() const { return ReturnType(); }
+		ReturnType abort()  const { return ReturnType(); }
 
-*******************************************************************************/
+		/// Default to returning the official unicode replacement character
+		uint16_t replacement() const { return 0xFFFD; }
+	};
 
-	inline uint16_t decode_char(const char*&);
+	/***
+	 * Decodes one utf-16 codepoints from input, automatically advances input
+	 * pointer to start of next codepoint.
+	 *
+	 * Input MUST be valid UTF-8.
+	 */
+	uint16_t decode_char(const char*&);
 
-	// check if char is valid ascii
+	/***
+	 * check if char is valid ascii
+	 */
 	inline bool is_ascii(uint8_t c) { return c < 128; }
-}
+
+	/***
+	 * decode utf8 string into utf16 string, destination must have enough space.
+	 * returns false on error
+	 */
+	template<typename Utf8Iterator>
+	inline bool decode(Utf8Iterator begin, Utf8Iterator end, uint16_t *dst);
+
+	typedef utf_utils::SlashToDot<char> SlashToDot;
+	typedef utf_utils::DotToSlash<char> DotToSlash;
+
+	/***
+	 * Wrap iterators of container with SlashToDot
+	 */
+	template<typename T>
+	utf_utils::Range<SlashToDot> slash_to_dot(T t) { return utf_utils::Range<SlashToDot>(t); }
+
+	template<typename It>
+	utf_utils::Range<SlashToDot> slash_to_dot(It a, It b) { return utf_utils::Range<SlashToDot>(a, b); }
+
+	/***
+	 * Wrap iterators of container with DotToSlash
+	 */
+	template<typename T>
+	utf_utils::Range<DotToSlash> dot_to_slash(T t) { return utf_utils::Range<DotToSlash>(t); }
+
+	template<typename It>
+	utf_utils::Range<DotToSlash> dot_to_slash(It a, It b) { return utf_utils::Range<DotToSlash>(a, b); }
+
+} // end namespace utf8
 
 namespace utf16 {
-
-/* utf16::transform ************************************************************
-
-	Iterates over an UTF-16 string and accumulates a result with functor.
-
-	What input is fed to the functor and how errors should be handled can be
-	controlled via tags.
-
-	The functor Fn must have at least one method finish() that is called
-	when transform completes successfully to compute the final result.
-
-	utf16::transform is overloaded for the following tags
-		Tag<VISIT_UTF8, IGNORE_ERRORS>
-		Tag<VISIT_BOTH, IGNORE_ERRORS>
-
-		Tag<VISIT_UTF8, REPLACE_ON_ERROR>
-		Tag<VISIT_BOTH, REPLACE_ON_ERROR>
-
-		Tag<VISIT_UTF8, ABORT_ON_ERROR>
-		Tag<VISIT_BOTH, ABORT_ON_ERROR>
-
-	If you don't explicitly specify a tag the Functor must have a public type
-	member called Tag that is used.
-
-	utf16::transform never actually fails, the Tag type is the same as for
-	utf8::transform to allow for reuse of functors.
-
-*******************************************************************************/
+	/***
+	 *	utf16::transform
+	 *
+	 *	Iterates over an UTF-16 string and calls a visitor for every UTF-8 byte and
+	 *	UTF-16 codepoint encountered.
+	 *
+	 *	A visitor must conform to the following interface:
+	 *	 (The class VisitorBase stubs out all these methods and can be used
+	 *	 as a convenient base class)
+	 *
+	 *		struct Visitor {
+	 *			typedef ... ReturnType;
+	 *
+	 *			void utf8(uint8_t);     // called for every UTF-8 byte
+	 *			void utf16(uint16_t);   // called for every UTF-16 codepoint
+	 *
+	 *			ReturnType finish();    // called on success
+	 *	};
+	 *
+	 */
+	template<typename Iterator, typename Fn>
+	typename Fn::ReturnType transform(Iterator begin, Iterator end, Fn);
 
 	template<typename T, typename Fn>
-	inline T transform(const u2*, size_t, Fn);
+	inline typename Fn::ReturnType transform(T t, Fn fn) {
+		return ::utf16::transform(t.begin(), t.end(), fn);
+	}
 
-	template<typename T, typename Fn, typename Tag>
-	inline T transform(const u2*, size_t, Fn, Tag);
 
-	// check if char is valid ascii
+	/***
+	 * Handy base class for implementing visitors
+	 */
+	template<typename ReturnType>
+	struct VisitorBase {
+		void utf8(uint8_t)   const {}
+		void utf16(uint16_t) const {}
+
+		ReturnType finish() const { return ReturnType(); }
+	};
+
+	/***
+	 * check if char is valid ascii
+	 */
 	inline bool is_ascii(uint16_t c) { return c < 128; }
-}
+
+	/***
+	 * encode utf16 string into utf8 string, destination must have enough space.
+	 */
+	template<typename Utf16Iterator>
+	void encode(Utf16Iterator begin, Utf16Iterator end, char *dst);
+
+	typedef utf_utils::SlashToDot<uint16_t> SlashToDot;
+	typedef utf_utils::DotToSlash<uint16_t> DotToSlash;
+
+	/***
+	 * Wrap iterators of container with SlashToDot
+	 */
+	template<typename T>
+	utf_utils::Range<SlashToDot> slash_to_dot(T t) { return utf_utils::Range<SlashToDot>(t); }
+
+	template<typename It>
+	utf_utils::Range<SlashToDot> slash_to_dot(It a, It b) { return utf_utils::Range<SlashToDot>(a, b); }
+
+	/***
+	 * Wrap iterators of container with DotToSlash
+	 */
+	template<typename T>
+	utf_utils::Range<DotToSlash> dot_to_slash(T t) { return utf_utils::Range<DotToSlash>(t); }
+
+	template<typename It>
+	utf_utils::Range<DotToSlash> dot_to_slash(It a, It b) { return utf_utils::Range<DotToSlash>(a, b); }
+
+} // end namespace utf16
 
 /*******************************************************************************
 	IMPLEMENTATION
 *******************************************************************************/
 
-// specializations for utf8::transform functions
-#define _ABORT_ON_ERROR
 #include "toolbox/utf8_transform.inc"
-
-#define _VISIT_UTF8
-#define _IGNORE_ERRORS
-#include "toolbox/utf8_transform.inc"
-
-#define _VISIT_UTF8
-#define _REPLACE_ON_ERROR
-#include "toolbox/utf8_transform.inc"
-
-#define _VISIT_UTF8
-#define _ABORT_ON_ERROR
-#include "toolbox/utf8_transform.inc"
-
-#define _VISIT_UTF16
-#define _IGNORE_ERRORS
-#include "toolbox/utf8_transform.inc"
-
-#define _VISIT_UTF16
-#define _REPLACE_ON_ERROR
-#include "toolbox/utf8_transform.inc"
-
-#define _VISIT_UTF16
-#define _ABORT_ON_ERROR
-#include "toolbox/utf8_transform.inc"
-
-#define _VISIT_UTF8
-#define _VISIT_UTF16
-#define _IGNORE_ERRORS
-#include "toolbox/utf8_transform.inc"
-
-#define _VISIT_UTF8
-#define _VISIT_UTF16
-#define _REPLACE_ON_ERROR
-#include "toolbox/utf8_transform.inc"
-
-#define _VISIT_UTF8
-#define _VISIT_UTF16
-#define _ABORT_ON_ERROR
-#include "toolbox/utf8_transform.inc"
-
-// specializations for utf16::transform functions
-#define _IGNORE_ERRORS
 #include "toolbox/utf16_transform.inc"
-
-#define _REPLACE_ON_ERROR
-#include "toolbox/utf16_transform.inc"
-
-#define _ABORT_ON_ERROR
-#include "toolbox/utf16_transform.inc"
-
-#define _VISIT_UTF16
-#define _IGNORE_ERRORS
-#include "toolbox/utf16_transform.inc"
-
-#define _VISIT_UTF16
-#define _REPLACE_ON_ERROR
-#include "toolbox/utf16_transform.inc"
-
-#define _VISIT_UTF16
-#define _ABORT_ON_ERROR
-#include "toolbox/utf16_transform.inc"
-
-template<typename T, typename Fn>
-inline T utf8::transform(const char *cs, size_t sz, Fn fn) {
-	typedef typename Fn::Tag Tag;
-
-	return utf8_impl::transform<T, Fn>(cs, sz, fn, Tag());
-}
-
-template<typename T, typename Fn, typename Tag>
-inline T utf8::transform(const char *cs, size_t sz, Fn fn, Tag tag) {
-	return utf8_impl::transform<T, Fn>(cs, sz, fn, tag);
-}
-
-template<typename T, typename Fn>
-inline T utf16::transform(const u2 *cs, size_t sz, Fn fn) {
-	typedef typename Fn::Tag Tag;
-
-	return utf16_impl::transform<T, Fn>(cs, sz, fn, Tag());
-}
-
-template<typename T, typename Fn, typename Tag>
-inline T utf16::transform(const u2 *cs, size_t sz, Fn fn, Tag tag) {
-	return utf16_impl::transform<T, Fn>(cs, sz, fn, tag);
-}
-
-inline uint16_t utf8::decode_char(const char*& src) {
-    uint8_t  ch1, ch2, ch3;
-
-	ch1 = *src++;
-
-	switch (ch1 >> 4) {
-	default: // 1 byte
-		return (uint16_t) ch1;
-	case 0xC:
-	case 0xD: // 2 bytes
-		ch2 = *src++;
-
-		assert((ch2 & 0xC0) == 0x80);
-
-		ch1 = ch1 & 0x1F;
-		ch2 = ch1 & 0x3F;
-
-		return (ch1 << 6) + ch2;
-	case 0xE: // 3 bytes
-		ch2 = *src++;
-		ch3 = *src++;
-
-		assert((ch2 & 0xC0) == 0x80);
-		assert((ch3 & 0xC0) == 0x80);
-
-		ch1 = ch1 & 0x3F;
-		ch2 = ch1 & 0x3F;
-		ch3 = ch1 & 0x0F;
-
-		return (((ch1 << 6) + ch2) << 6) + ch3;
-    }
-}
 
 #endif // UTF_UTILS_HPP_
 

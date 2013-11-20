@@ -31,23 +31,23 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-// forward declarations
-class BeginInst;
-
 class MachineLabelInst : public MachineInstruction {
-private:
-	BeginInst *begin;
 public:
-	MachineLabelInst(BeginInst* BI) : MachineInstruction("MLabel", &NoOperand, 0), begin(BI) {}
+	MachineLabelInst() : MachineInstruction("MLabel", &NoOperand, 0) {}
 	virtual void emit(CodeMemory* CM) const;
+	virtual bool is_label() const {
+		return true;
+	}
 };
 
 class MachinePhiInst : public MachineInstruction {
+private:
+	PHIInst *phi;
 public:
-	MachinePhiInst(unsigned num_operands, Type::TypeID type)
+	MachinePhiInst(unsigned num_operands, Type::TypeID type, PHIInst* phi)
 			: MachineInstruction("MPhi", new VirtualRegister(type),
-			  num_operands) {
-		for(int i = 0; i < num_operands; ++i) {
+			  num_operands), phi(phi) {
+		for(unsigned i = 0; i < num_operands; ++i) {
 			operands[i].op = new UnassignedReg(type);
 		}
 	}
@@ -55,8 +55,15 @@ public:
 	virtual bool is_phi() const {
 		return true;
 	}
+	virtual MachinePhiInst* to_MachinePhiInst() {
+		return this;
+	}
 	// phis are never emitted
 	virtual void emit(CodeMemory* CM) const {};
+
+	PHIInst* get_PHIInst() const {
+		return phi;
+	}
 };
 #if 0
 class MachineConstInst : public MachineInstruction {

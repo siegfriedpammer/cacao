@@ -34,6 +34,7 @@
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Conditional.hpp"
 #include "vm/jit/compiler2/MethodDescriptor.hpp"
+#include "vm/jit/compiler2/InstructionVisitor.hpp"
 #include "vm/types.hpp"
 
 namespace cacao {
@@ -55,6 +56,13 @@ public:
 	}
 };
 
+/**
+ * Binary Instruction. Not a real instruction. For convenience only.
+ *
+ * @note Idea: create a ArithmeticInst superclass which features a method
+ * e.g. simplify() which returns the result of the operands if they are
+ * constants.
+ */
 class BinaryInst : public Instruction {
 public:
 	explicit BinaryInst(InstID id, Type::TypeID type, Value* S1, Value* S2) : Instruction(id, type) {
@@ -91,6 +99,7 @@ public:
 class BeginInst : public Instruction {
 public:
 	typedef std::vector<BeginInst*> PredecessorListTy;
+	typedef PredecessorListTy::const_iterator const_pred_iterator;
 private:
 	EndInst *end;
 	PredecessorListTy pred_list;
@@ -98,7 +107,7 @@ private:
 	void set_predecessor(int index, BeginInst *BI) {
 		pred_list[index] = BI;
 	}
-	inline void set_successor(int index, BeginInst *BI);
+	void set_successor(int index, BeginInst *BI);
 
 public:
 	explicit BeginInst() : Instruction(BeginInstID, Type::VoidTypeID) {
@@ -121,7 +130,7 @@ public:
 		return -1;
 	}
 	BeginInst* get_predecessor(int index) const {
-		if (index < 0 || index > pred_size()) {
+		if (index < 0 || (unsigned)index > pred_size()) {
 			return NULL;
 		}
 		PredecessorListTy::const_iterator i = pred_list.begin();
@@ -131,18 +140,19 @@ public:
 		assert(i != pred_list.end());
 		return *i;
 	}
-	inline int get_successor_index(const BeginInst* BI) const;
+	int get_successor_index(const BeginInst* BI) const;
 
 	EndInst *get_EndInst() const { return end; }
 	void set_EndInst(EndInst* e) { end = e; }
 	virtual bool is_floating() const { return false; }
 
-	PredecessorListTy::const_iterator pred_begin() const { return pred_list.begin(); }
-	PredecessorListTy::const_iterator pred_end()   const { return pred_list.end(); }
-	size_t pred_size() const { return pred_list.size(); }
+	const_pred_iterator pred_begin() const { return pred_list.begin(); }
+	const_pred_iterator pred_end()   const { return pred_list.end(); }
+	std::size_t pred_size() const { return pred_list.size(); }
 
 	friend class EndInst;
 	friend class Method;
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 /**
@@ -186,6 +196,8 @@ inline OStream& operator<<(OStream &OS, const BeginInstRef &BIR) {
 class EndInst : public Instruction {
 public:
 	typedef std::vector<BeginInstRef> SuccessorListTy;
+	typedef SuccessorListTy::const_iterator succ_const_iterator;
+	typedef SuccessorListTy::const_reverse_iterator succ_const_reverse_iterator;
 private:
 	SuccessorListTy succ_list;
 	void set_successor(int index, BeginInst *BI) {
@@ -243,14 +255,20 @@ public:
 	BeginInstRef &succ_back() { return succ_list.back(); }
 	size_t succ_size() const { return succ_list.size(); }
 
+	BeginInstRef& get_successor(size_t i) {
+		assert(i < succ_size());
+		return succ_list[i];
+	}
+
 	friend class BeginInst;
 	friend class Method;
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
-int BeginInst::get_successor_index(const BeginInst* BI) const {
+inline int BeginInst::get_successor_index(const BeginInst* BI) const {
 	return get_EndInst()->get_successor_index(BI);
 }
-void BeginInst::set_successor(int index, BeginInst *BI) {
+inline void BeginInst::set_successor(int index, BeginInst *BI) {
 	get_EndInst()->set_successor(index,BI);
 }
 
@@ -260,30 +278,35 @@ class NOPInst : public Instruction {
 public:
 	explicit NOPInst() : Instruction(NOPInstID, Type::VoidTypeID) {}
 	virtual NOPInst* to_NOPInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class POPInst : public Instruction {
 public:
 	explicit POPInst(Type::TypeID type) : Instruction(POPInstID, type) {}
 	virtual POPInst* to_POPInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class CHECKNULLInst : public Instruction {
 public:
 	explicit CHECKNULLInst(Type::TypeID type) : Instruction(CHECKNULLInstID, type) {}
 	virtual CHECKNULLInst* to_CHECKNULLInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class ARRAYLENGTHInst : public Instruction {
 public:
 	explicit ARRAYLENGTHInst(Type::TypeID type) : Instruction(ARRAYLENGTHInstID, type) {}
 	virtual ARRAYLENGTHInst* to_ARRAYLENGTHInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class NEGInst : public Instruction {
 public:
 	explicit NEGInst(Type::TypeID type) : Instruction(NEGInstID, type) {}
 	virtual NEGInst* to_NEGInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class CASTInst : public UnaryInst {
@@ -293,72 +316,84 @@ public:
 	}
 	virtual CASTInst* to_CASTInst() { return this; }
 	virtual bool is_homogeneous() const { return false; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class ADDInst : public BinaryInst {
 public:
 	explicit ADDInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(ADDInstID, type, S1, S2) {}
 	virtual ADDInst* to_ADDInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class SUBInst : public BinaryInst{
 public:
 	explicit SUBInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(SUBInstID, type, S1, S2) {}
 	virtual SUBInst* to_SUBInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class MULInst : public BinaryInst {
 public:
 	explicit MULInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(MULInstID, type, S1, S2) {}
 	virtual MULInst* to_MULInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class DIVInst : public BinaryInst {
 public:
 	explicit DIVInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(DIVInstID, type, S1, S2) {}
 	virtual DIVInst* to_DIVInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class REMInst : public BinaryInst {
 public:
 	explicit REMInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(REMInstID, type, S1, S2) {}
 	virtual REMInst* to_REMInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class SHLInst : public Instruction {
 public:
 	explicit SHLInst(Type::TypeID type) : Instruction(SHLInstID, type) {}
 	virtual SHLInst* to_SHLInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class USHRInst : public Instruction {
 public:
 	explicit USHRInst(Type::TypeID type) : Instruction(USHRInstID, type) {}
 	virtual USHRInst* to_USHRInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class ANDInst : public BinaryInst {
 public:
 	explicit ANDInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(ANDInstID, type, S1, S2) {}
 	virtual ANDInst* to_ANDInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class ORInst : public Instruction {
 public:
 	explicit ORInst(Type::TypeID type) : Instruction(ORInstID, type) {}
 	virtual ORInst* to_ORInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class XORInst : public Instruction {
 public:
 	explicit XORInst(Type::TypeID type) : Instruction(XORInstID, type) {}
 	virtual XORInst* to_XORInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class CMPInst : public Instruction {
 public:
 	explicit CMPInst(Type::TypeID type) : Instruction(CMPInstID, type) {}
 	virtual CMPInst* to_CMPInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class CONSTInst : public Instruction {
@@ -417,24 +452,60 @@ public:
 		assert(type == Type::DoubleTypeID);
 		return value.d;
 	}
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
+	virtual OStream& print(OStream& OS) const {
+		Instruction::print(OS);
+		switch(get_type()){
+		case Type::IntTypeID:    return OS << " = " << get_Int();
+		case Type::LongTypeID:   return OS << " = " << get_Long();
+		case Type::FloatTypeID:  return OS << " = " << get_Float();
+		case Type::DoubleTypeID: return OS << " = " << get_Double();
+		default: break;
+		}
+		return OS;
+	}
 };
 
 class GETFIELDInst : public Instruction {
 public:
 	explicit GETFIELDInst(Type::TypeID type) : Instruction(GETFIELDInstID, type) {}
 	virtual GETFIELDInst* to_GETFIELDInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class PUTFIELDInst : public Instruction {
 public:
 	explicit PUTFIELDInst(Type::TypeID type) : Instruction(PUTFIELDInstID, type) {}
 	virtual PUTFIELDInst* to_PUTFIELDInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class PUTSTATICInst : public Instruction {
+private:
+	constant_FMIref *fmiref;
+	bool resolved;
 public:
-	explicit PUTSTATICInst(Type::TypeID type) : Instruction(PUTSTATICInstID, type) {}
+	/**
+	 * @param resolved This _should_ not change during compilation
+	 */
+	explicit PUTSTATICInst(Value *value, constant_FMIref *fmiref, bool resolved,
+			BeginInst* begin, Instruction *state_change)
+			: Instruction(PUTSTATICInstID, value->get_type()), fmiref(fmiref), resolved(resolved) {
+		append_op(value);
+		append_dep(begin);
+		append_dep(state_change);
+	}
+	virtual BeginInst* get_BeginInst() const {
+		BeginInst *begin = (*dep_begin())->to_BeginInst();
+		assert(begin);
+		return begin;
+	}
+	virtual bool has_side_effects() const { return true; }
+	virtual bool is_floating() const { return false; }
 	virtual PUTSTATICInst* to_PUTSTATICInst() { return this; }
+	bool is_resolved() const { return resolved; }
+	constant_FMIref* get_fmiref() const { return fmiref; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class GETSTATICInst : public Instruction {
@@ -445,35 +516,51 @@ public:
 	/**
 	 * @param resolved This _should_ not change during compilation
 	 */
-	explicit GETSTATICInst(Type::TypeID type, constant_FMIref *fmiref, bool resolved)
-		: Instruction(GETSTATICInstID, type), fmiref(fmiref), resolved(resolved) {}
+	explicit GETSTATICInst(Type::TypeID type, constant_FMIref *fmiref, bool resolved,
+			BeginInst *begin, Instruction *state_change)
+			: Instruction(GETSTATICInstID, type), fmiref(fmiref), resolved(resolved) {
+		append_dep(begin);
+		append_dep(state_change);
+	}
+	virtual BeginInst* get_BeginInst() const {
+		BeginInst *begin = (*dep_begin())->to_BeginInst();
+		assert(begin);
+		return begin;
+	}
+	virtual bool has_side_effects() const { return true; }
+	virtual bool is_floating() const { return false; }
 	virtual GETSTATICInst* to_GETSTATICInst() { return this; }
 	bool is_resolved() const { return resolved; }
 	constant_FMIref* get_fmiref() const { return fmiref; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class INCInst : public Instruction {
 public:
 	explicit INCInst(Type::TypeID type) : Instruction(INCInstID, type) {}
 	virtual INCInst* to_INCInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class ASTOREInst : public Instruction {
 public:
 	explicit ASTOREInst(Type::TypeID type) : Instruction(ASTOREInstID, type) {}
 	virtual ASTOREInst* to_ASTOREInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class ALOADInst : public Instruction {
 public:
 	explicit ALOADInst(Type::TypeID type) : Instruction(ALOADInstID, type) {}
 	virtual ALOADInst* to_ALOADInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class RETInst : public Instruction {
 public:
 	explicit RETInst(Type::TypeID type) : Instruction(RETInstID, type) {}
 	virtual RETInst* to_RETInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class LOADInst : public LoadInst {
@@ -483,48 +570,56 @@ public:
 	explicit LOADInst(Type::TypeID type, unsigned index, BeginInst* begin ) : LoadInst(LOADInstID, type, begin), index(index) {}
 	virtual LOADInst* to_LOADInst() { return this; }
 	unsigned get_index() const { return index; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class STOREInst : public Instruction {
 public:
 	explicit STOREInst(Type::TypeID type) : Instruction(STOREInstID, type) {}
 	virtual STOREInst* to_STOREInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class NEWInst : public Instruction {
 public:
 	explicit NEWInst(Type::TypeID type) : Instruction(NEWInstID, type) {}
 	virtual NEWInst* to_NEWInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class NEWARRAYInst : public Instruction {
 public:
 	explicit NEWARRAYInst(Type::TypeID type) : Instruction(NEWARRAYInstID, type) {}
 	virtual NEWARRAYInst* to_NEWARRAYInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class ANEWARRAYInst : public Instruction {
 public:
 	explicit ANEWARRAYInst(Type::TypeID type) : Instruction(ANEWARRAYInstID, type) {}
 	virtual ANEWARRAYInst* to_ANEWARRAYInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class MULTIANEWARRAYInst : public Instruction {
 public:
 	explicit MULTIANEWARRAYInst(Type::TypeID type) : Instruction(MULTIANEWARRAYInstID, type) {}
 	virtual MULTIANEWARRAYInst* to_MULTIANEWARRAYInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class CHECKCASTInst : public Instruction {
 public:
 	explicit CHECKCASTInst(Type::TypeID type) : Instruction(CHECKCASTInstID, type) {}
 	virtual CHECKCASTInst* to_CHECKCASTInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class INSTANCEOFInst : public Instruction {
 public:
 	explicit INSTANCEOFInst(Type::TypeID type) : Instruction(INSTANCEOFInstID, type) {}
 	virtual INSTANCEOFInst* to_INSTANCEOFInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class GOTOInst : public EndInst {
@@ -545,30 +640,35 @@ public:
 		return succ_front();
 	}
 	friend class Method;
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class JSRInst : public Instruction {
 public:
 	explicit JSRInst(Type::TypeID type) : Instruction(JSRInstID, type) {}
 	virtual JSRInst* to_JSRInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class BUILTINInst : public Instruction {
 public:
 	explicit BUILTINInst(Type::TypeID type) : Instruction(BUILTINInstID, type) {}
 	virtual BUILTINInst* to_BUILTINInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class INVOKEVIRTUALInst : public Instruction {
 public:
 	explicit INVOKEVIRTUALInst(Type::TypeID type) : Instruction(INVOKEVIRTUALInstID, type) {}
 	virtual INVOKEVIRTUALInst* to_INVOKEVIRTUALInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class INVOKESPECIALInst : public Instruction {
 public:
 	explicit INVOKESPECIALInst(Type::TypeID type) : Instruction(INVOKESPECIALInstID, type) {}
 	virtual INVOKESPECIALInst* to_INVOKESPECIALInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class INVOKESTATICInst : public MultiOpInst {
@@ -578,9 +678,20 @@ private:
 	bool resolved;
 public:
 	explicit INVOKESTATICInst(Type::TypeID type, unsigned size,
-		constant_FMIref *fmiref, bool resolved)
-		: MultiOpInst(INVOKESTATICInstID, type), MD(size),
-		fmiref(fmiref), resolved(resolved) {}
+			constant_FMIref *fmiref, bool resolved, BeginInst *begin, Instruction *state_change)
+			: MultiOpInst(INVOKESTATICInstID, type), MD(size),
+			fmiref(fmiref), resolved(resolved) {
+		assert(state_change && state_change->get_name());
+		append_dep(begin);
+		append_dep(state_change);
+	}
+	virtual BeginInst* get_BeginInst() const {
+		BeginInst *begin = (*dep_begin())->to_BeginInst();
+		assert(begin);
+		return begin;
+	}
+	virtual bool has_side_effects() const { return true; }
+	virtual bool is_floating() const { return false; }
 	void append_parameter(Value *V) {
 		std::size_t i = op_size();
 		assert(i < MD.size());
@@ -594,12 +705,14 @@ public:
 	bool is_resolved() const { return resolved; }
 	constant_FMIref* get_fmiref() const { return fmiref; }
 	virtual INVOKESTATICInst* to_INVOKESTATICInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class INVOKEINTERFACEInst : public Instruction {
 public:
 	explicit INVOKEINTERFACEInst(Type::TypeID type) : Instruction(INVOKEINTERFACEInstID, type) {}
 	virtual INVOKEINTERFACEInst* to_INVOKEINTERFACEInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class IFInst : public EndInst, public CondInst {
@@ -617,27 +730,105 @@ public:
 	virtual IFInst* to_IFInst() { return this; }
 	BeginInstRef &get_then_target() { return succ_front(); }
 	BeginInstRef &get_else_target() { return succ_back(); }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class IF_CMPInst : public Instruction {
 public:
 	explicit IF_CMPInst(Type::TypeID type) : Instruction(IF_CMPInstID, type) {}
 	virtual IF_CMPInst* to_IF_CMPInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
-class TABLESWITCHInst : public Instruction {
+class TABLESWITCHInst : public EndInst {
+private:
+	s4 tablelow;
+	s4 tablehigh;
 public:
-	explicit TABLESWITCHInst(Type::TypeID type) : Instruction(TABLESWITCHInstID, type) {}
+	/// wrapper for type safety
+	struct LOW {
+		s4 low;
+		explicit LOW(s4 low) : low(low) {}
+	};
+	/// wrapper for type safety
+	struct HIGH {
+		s4 high;
+		explicit HIGH(s4 high) : high(high) {}
+	};
+	/// constructor
+	explicit TABLESWITCHInst(BeginInst *begin, Value* S1, LOW low, HIGH high)
+			: EndInst(TABLESWITCHInstID, begin), tablelow(low.low), tablehigh(high.high) {
+		assert(tablehigh >= tablelow);
+		append_op(S1);
+		type = Type::IntTypeID;
+	}
+
+	s4 get_low() const { return tablelow; }
+	s4 get_high() const { return tablehigh; }
 	virtual TABLESWITCHInst* to_TABLESWITCHInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
+
+	virtual bool verify() const {
+		if (tablehigh < tablelow ) {
+			ERROR_MSG("TABLESWITCH verification error","tablehigh ("<<tablehigh
+				<< ") is greater then tablelow ("<< tablelow << ")");
+			return false;
+		}
+		if (succ_size() != std::size_t(tablehigh - tablelow + 1 + 1)) {
+			ERROR_MSG("TABLESWITCH verification error","Number of successors (" << succ_size()
+				<< ") not equal to targets (" << tablehigh - tablelow +1 << ")");
+			return false;
+		}
+		return Instruction::verify();
+	}
 };
 
 class LOOKUPSWITCHInst : public EndInst {
 public:
-	explicit LOOKUPSWITCHInst(BeginInst *begin, Value* S1)
-			: EndInst(LOOKUPSWITCHInstID, begin) {
+	typedef std::vector<s4> MatchTy;
+	typedef MatchTy::iterator match_iterator;
+private:
+	s4 lookupcount;
+	MatchTy matches;
+public:
+	/// wrapper for type safety
+	struct MATCH {
+		s4 match;
+		explicit MATCH(s4 match) : match(match) {}
+	};
+	explicit LOOKUPSWITCHInst(BeginInst *begin, Value* S1, s4 lookupcount)
+			: EndInst(LOOKUPSWITCHInstID, begin), lookupcount(lookupcount), matches(lookupcount) {
 		append_op(S1);
+		type = Type::IntTypeID;
 	}
 	virtual LOOKUPSWITCHInst* to_LOOKUPSWITCHInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
+	void set_match(s4 index, MATCH match) {
+		assert(index >= 0 && index < lookupcount);
+		matches[index] = match.match;
+	}
+	s4 get_match(s4 index) {
+		return matches[index];
+	}
+	match_iterator match_begin() {
+		return matches.begin();
+	}
+	match_iterator match_end() {
+		return matches.end();
+	}
+	virtual bool verify() const {
+		if ( lookupcount < 0) {
+			ERROR_MSG("LOOKUPSWITCH verification error","Lookup count is negative ("
+				<< lookupcount << ")");
+			return false;
+		}
+		if (succ_size() != std::size_t(lookupcount + 1)) {
+			ERROR_MSG("LOOKUPSWITCH verification error","Number of successors (" << succ_size()
+				<< ") not equal to targets (" << lookupcount + 1 << ")");
+			return false;
+		}
+		return Instruction::verify();
+	}
 };
 
 class RETURNInst : public EndInst {
@@ -650,30 +841,35 @@ public:
 		type = S1->get_type();
 	}
 	virtual RETURNInst* to_RETURNInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class THROWInst : public Instruction {
 public:
 	explicit THROWInst(Type::TypeID type) : Instruction(THROWInstID, type) {}
 	virtual THROWInst* to_THROWInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class COPYInst : public Instruction {
 public:
 	explicit COPYInst(Type::TypeID type) : Instruction(COPYInstID, type) {}
 	virtual COPYInst* to_COPYInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class MOVEInst : public Instruction {
 public:
 	explicit MOVEInst(Type::TypeID type) : Instruction(MOVEInstID, type) {}
 	virtual MOVEInst* to_MOVEInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class GETEXCEPTIONInst : public Instruction {
 public:
 	explicit GETEXCEPTIONInst(Type::TypeID type) : Instruction(GETEXCEPTIONInstID, type) {}
 	virtual GETEXCEPTIONInst* to_GETEXCEPTIONInst() { return this; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class PHIInst : public MultiOpInst {
@@ -692,6 +888,7 @@ public:
 
 	// exporting to the public
 	using Instruction::append_op;
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class ContainerInst : public Instruction {
@@ -707,6 +904,7 @@ public:
 		return begin;
 	}
 	virtual bool is_floating() const { return false; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 } // end namespace compiler2

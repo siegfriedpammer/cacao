@@ -25,6 +25,7 @@ DIST_SUBDIRS = \
 	cacao \
 	classes \
 	fdlibm \
+	future \
 	mm \
 	native \
 	scripts \
@@ -37,6 +38,7 @@ DIST_SUBDIRS = \
 SUBDIRS = \
 	classes \
 	fdlibm \
+	future \
 	toolbox \
 	mm \
 	vm \

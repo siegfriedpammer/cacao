@@ -25,6 +25,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT(cacao, 1.6.2pre, cacao@cacaojvm.org)
 AC_CONFIG_SRCDIR(src/cacao/cacao.cpp)
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([.])
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
@@ -35,23 +36,39 @@ AC_CONFIG_HEADERS([config.h])
 
 AC_PREFIX_DEFAULT(/usr/local/cacao)
 
+dnl
+dnl === CAUTION ===
+dnl
+dnl CFLAGS, CXXFLAGS, CPPFLAGS, LDFLAGS are reserved for the user aka the
+dnl person building cacao. Never set one of these variables in configure.ac,
+dnl Makefile.am or in m4 macros. Choose their AM_* counterparts instead.
+dnl
+dnl For more information see [1], [2] and [3].
+dnl
+dnl [1]: http://www.gnu.org/software/autoconf/manual/html_node/Preset-Output-Variables.html
+dnl [2]: http://www.gnu.org/software/automake/manual/html_node/User-Variables.html
+dnl [3]: http://www.gnu.org/software/automake/manual/html_node/Flag-Variables-Ordering.html
+dnl
+
 
 dnl Host CPU type.
 case "$host_cpu" in
 alpha | alphaev56 | alphapca56 )
     ARCH_DIR="alpha"
-    ARCH_FLAGS="-mieee -D__ALPHA__"
+    AM_CFLAGS="$AM_CFLAGS -mieee"
+    AM_CXXFLAGS="$AM_CXXFLAGS -mieee"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__ALPHA__"
     JAVA_ARCH="alpha"
     ;;
 
 arm | armv4* | armv5* | armv6* | armv7* )
     ARCH_DIR="arm"
-    ARCH_FLAGS="-D__ARM__"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__ARM__"
     JAVA_ARCH="arm"
 
     case "$host" in
-	*-gnueabihf)
-		ARCH_FLAGS="$ARCH_FLAGS -D__ARMHF__"
+	*-hardfloat-*-gnueabi | *-gnueabihf)
+		AM_CPPFLAGS="$AM_CPPFLAGS -D__ARMHF__"
 		;;
 	esac
 
@@ -66,69 +83,73 @@ arm | armv4* | armv5* | armv6* | armv7* )
 
 hppa2.0 )
     ARCH_DIR="parisc"
-    ARCH_FLAGS="-D__PARISC__"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__PARISC__"
     JAVA_ARCH="hppa"
     ;;
 
 i386 | i486 | i586 | i686 )
     ARCH_DIR="i386"
-    ARCH_FLAGS="-m32 -D__I386__"
+    AM_CFLAGS="$AM_CFLAGS -m32"
+    AM_CXXFLAGS="$AM_CXXFLAGS -m32"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__I386__"
     JAVA_ARCH="i386"
-    ;;
-
-m68k )
-    ARCH_DIR="m68k"
-    ARCH_FLAGS="-D__M68K__"
-    JAVA_ARCH="m68k"
     ;;
 
 mips )
     ARCH_DIR="mips"
-    ARCH_FLAGS="-D__MIPS__"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__MIPS__"
     JAVA_ARCH="mips"
     ;;
 
 mipsel )
     ARCH_DIR="mips"
-    ARCH_FLAGS="-D__MIPS__"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__MIPS__"
     JAVA_ARCH="mipsel"
     ;;
 
 powerpc )
     ARCH_DIR="powerpc"
-    ARCH_FLAGS="-m32 -D__POWERPC__"
+    AM_CFLAGS="$AM_CFLAGS -m32"
+    AM_CXXFLAGS="$AM_CXXFLAGS -m32"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__POWERPC__"
     JAVA_ARCH="ppc"
     ;;
 
 powerpc64 )
     ARCH_DIR="powerpc64"
-    ARCH_FLAGS="-m64 -D__POWERPC64__"
+    AM_CFLAGS="$AM_CFLAGS -m64"
+    AM_CXXFLAGS="$AM_CXXFLAGS -m64"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__POWERPC64__"
     JAVA_ARCH="ppc64"
     ;;
 
 s390 )
     ARCH_DIR="s390"
-    ARCH_FLAGS="-D__S390__"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__S390__"
     JAVA_ARCH="s390"
     ;;
 
 sparc | sparc64 )
     ARCH_DIR="sparc64"
-    ARCH_FLAGS="-mcpu=v9 -m64 -D__SPARC_64__"
+    AM_CFLAGS="$AM_CFLAGS -mcpu=v9 -m64"
+    AM_CXXFLAGS="$AM_CXXFLAGS -mcpu=v9 -m64"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__SPARC_64__"
     dnl Is this correct for 64-bits?
     JAVA_ARCH="sparc"
     ;;
 
 x86_64 )
     ARCH_DIR="x86_64"
-    ARCH_FLAGS="-m64 -D__X86_64__"
+    AM_CFLAGS="$AM_CFLAGS -m64"
+    AM_CXXFLAGS="$AM_CXXFLAGS -m64"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__X86_64__"
     JAVA_ARCH="amd64"
     ;;
 
 xdspcore )
     ARCH_DIR="xdspcore"
     ENABLE_STATICVM="yes"
-    ARCH_FLAGS="-D__XDSPCORE__"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__XDSPCORE__"
     USE_SCHEDULER="1"
     ;;
 
@@ -142,52 +163,44 @@ dnl Host operating system type.
 case "$host_os" in
 *cygwin* )
     OS_DIR="cygwin"
-    OS_FLAGS="-D__WINDOWS__ -D__CYGWIN__ -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__WINDOWS__ -D__CYGWIN__ -D__STDC_FORMAT_MACROS"
     ;;
 
 *darwin* )
     OS_DIR="darwin"
-    OS_FLAGS="-D__DARWIN__ -D_XOPEN_SOURCE=600 -D_DARWIN_C_SOURCE -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__DARWIN__ -D_XOPEN_SOURCE=600 -D_DARWIN_C_SOURCE -D__STDC_FORMAT_MACROS"
     ;;
 
 dnl Must be BEFORE *freebsd*.
 *kfreebsd*-gnu)
     OS_DIR="freebsd"
-    OS_FLAGS="-D__FREEBSD__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__FREEBSD__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
     ;;
 
 *freebsd* )
     OS_DIR="freebsd"
-    OS_FLAGS="-D__FREEBSD__ -D_XOPEN_SOURCE_EXTENDED -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__FREEBSD__ -D_XOPEN_SOURCE_EXTENDED -D__STDC_FORMAT_MACROS"
     ;;
 
 *irix* )
     OS_DIR="irix"
-    OS_FLAGS="-D__IRIX__ -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="$ARCH_FLAGS $OS_FLAGS"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__IRIX__ -D__STDC_FORMAT_MACROS"
     ;;
 
 dnl Must be BEFORE *linux*.
 *uclinux | *elf )
     OS_DIR="uclinux"
-    OS_FLAGS="-D__LINUX__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__LINUX__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
     ;;
 
 *linux* | *Linux* )
     OS_DIR="linux"
-    OS_FLAGS="-D__LINUX__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__LINUX__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
     ;;
 
 *netbsd* )
     OS_DIR="netbsd"
-    OS_FLAGS="-D__NETBSD__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
-    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__NETBSD__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
     ;;
 
 *solaris* )
@@ -195,10 +208,10 @@ dnl Must be BEFORE *linux*.
     dnl On solaris the architecture defines 'sparc', 'sun', 'unix' are
     dnl not set when cpp is called with -std=c99, therefore we add them
     dnl here.
-    OS_FLAGS="-D__SOLARIS__ -D_POSIX_C_SOURCE=200112L -D__EXTENSIONS__ -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
-    CC_FLAGS="-D_XOPEN_SOURCE=600"
-    CXX_FLAGS="-D_XOPEN_SOURCE=500"
-    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__SOLARIS__ -D_POSIX_C_SOURCE=200112L -D__EXTENSIONS__ -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
+    dnl TODO check if still needed
+    AM_CFLAGS="$AM_CFLAGS -D_XOPEN_SOURCE=600"
+    AM_CXXFLAGS="$AM_CXXFLAGS -D_XOPEN_SOURCE=500"
     ;;
 
 * )
@@ -207,9 +220,12 @@ dnl Must be BEFORE *linux*.
 esac
 
 
-AC_MSG_CHECKING(whether to disable optimizations and build with -g -O0)
+dnl XXX: flag `-g` is not influenced by this arg!
+dnl (configure with CFLAGS, CXXFLAGS to disable `-g`)
+dnl AC_MSG_CHECKING(whether to disable optimizations and build with -g -O0)
+AC_MSG_CHECKING(whether to disable optimizations and build with -O0)
 AC_ARG_ENABLE([optimizations],
-              [AS_HELP_STRING(--disable-optimizations,build with -g -O0 [[default=no]])],
+              [AS_HELP_STRING(--disable-optimizations,build with -O0 [[default=no]])],
               [case "${enableval}" in
                    no) disable_optimizations=yes;;
                    *) disable_optimizations=no;;
@@ -217,35 +233,41 @@ AC_ARG_ENABLE([optimizations],
               [disable_optimizations=no])
 AC_MSG_RESULT(${disable_optimizations})
 
+dnl save initial CFLAGS/CXXFLAGS before AC_PROG_CC/AC_PROC_CXX
+init_cflags="$CFLAGS"
+init_cxxflags="$CXXFLAGS"
+
 dnl Set optimization and debugging for all architectures and systems.
-dnl NOTE: Setting the CFLAGS/CXXFLAGS only works before calling AC_PROG_CC/AC_PROG_CXX.
 if test x"$CFLAGS" = "x"; then
-    OPT_CFLAGS="-g"
-else
-    OPT_CFLAGS=$CFLAGS
+    AM_CFLAGS="$AM_CFLAGS -g"
 fi
 if test x"${disable_optimizations}" = "xyes"; then
-    OPT_CFLAGS="$OPT_CFLAGS -O0"
+    AM_CFLAGS="$AM_CFLAGS -O0"
 else
-    OPT_CFLAGS="$OPT_CFLAGS -O2"
+    AM_CFLAGS="$AM_CFLAGS -O2"
 fi
-OPT_CFLAGS="$OPT_CFLAGS -fno-strict-aliasing"
+AM_CFLAGS="$AM_CFLAGS -fno-strict-aliasing"
 
 if test x"$CXXFLAGS" = "x"; then
-    OPT_CXXFLAGS="-g"
-else
-    OPT_CXXFLAGS=$CXXFLAGS
+    AM_CXXFLAGS="$AM_CXXFLAGS -g"
 fi
 if test x"${disable_optimizations}" = "xyes"; then
-    OPT_CXXFLAGS="$OPT_CXXFLAGS -O0"
+    AM_CXXFLAGS="$AM_CXXFLAGS -O0"
 else
-    OPT_CXXFLAGS="$OPT_CXXFLAGS -O2"
+    AM_CXXFLAGS="$AM_CXXFLAGS -O2"
 fi
-OPT_CXXFLAGS="$OPT_CXXFLAGS -fno-strict-aliasing"
+AM_CXXFLAGS="$AM_CXXFLAGS -fno-strict-aliasing"
 
 dnl Check for compiler.
 AC_PROG_CC
 AC_PROG_CXX
+
+dnl Check if compiler is usable
+AC_CHECK_COMPILER
+
+dnl discard CFLAGS/CXXFLAGS set by AC_PROG_CC/AC_PROG_CXX
+CFLAGS="$init_cflags"
+CXXFLAGS="$init_cxxflags"
 
 dnl Check compiler vendor.
 AX_COMPILER_VENDOR
@@ -253,32 +275,27 @@ AX_COMPILER_VENDOR
 dnl Set compiler flags depending on the compiler vendor.
 case "$ax_cv_c_compiler_vendor" in
 gnu )
-    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long $CC_FLAGS"
-    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long $CXX_FLAGS"
+    AM_CFLAGS="-std=c99 -pedantic -Wall -Wno-long-long $AM_CFLAGS"
+    AM_CXXFLAGS="-std=c++98 -pedantic -Wall -Wno-long-long $AM_CXXFLAGS"
     ;;
 
 sgi )
-    CC_FLAGS="-c99 $CC_FLAGS"
-    CXX_FLAGS="$CXX_FLAGS"
+    AM_CFLAGS="-c99 $AM_CFLAGS"
     ;;
 
 sun )
-    CC_FLAGS="-xc99 $CC_FLAGS"
-    CXX_FLAGS="$CXX_FLAGS"
+    AM_CFLAGS="-xc99 $AM_CFLAGS"
     ;;
 
-* )    
+* )
     AC_MSG_ERROR([$ax_cv_c_compiler_vendor compilers are currently not supported.])
     ;;
 esac
 
 dnl Temporary set the CFLAGS for configure tests (e.g. inline keyword)
 dnl we set it properly at the end of this file.
-CFLAGS="$OPT_CFLAGS $ARCH_FLAGS $OS_FLAGS $CC_FLAGS"
-CXXFLAGS="$OPT_CXXFLAGS $ARCH_FLAGS $OS_FLAGS $CXX_FLAGS"
-
-dnl set interpreter flags
-AC_SUBST(INTRP_CFLAGS)
+dnl CFLAGS="$AM_CFLAGS"
+dnl CXXFLAGS="$AM_CXXFLAGS"
 
 dnl define and substitute some architecture specific variables
 AC_DEFINE_UNQUOTED([ARCH_DIR], "${ARCH_DIR}", [architecture directory])
@@ -479,8 +496,8 @@ AC_CHECK_ENABLE_GC
 AC_CHECK_ENABLE_DEBUG
 AC_CHECK_ENABLE_WERROR
 if test x"${enable_werror}" == "xyes"; then
-	OPT_CXXFLAGS="$OPT_CXXFLAGS -Werror"
-	OPT_CFLAGS="$OPT_CFLAGS -Werror"
+	AM_CXXFLAGS="$AM_CXXFLAGS -Werror"
+	AM_CFLAGS="$AM_CFLAGS -Werror"
 fi
 AC_CHECK_ENABLE_DUMP
 AC_CHECK_ENABLE_MEMCHECK
@@ -672,7 +689,6 @@ dnl check for some programs we need
 case "${WITH_JAVA_RUNTIME_LIBRARY}" in
     cldc1.1 | gnuclasspath)
         AC_PROG_JAVAC
-        AC_PROG_JAR
         ;;
     openjdk | openjdk7)
         ;;
@@ -681,6 +697,7 @@ case "${WITH_JAVA_RUNTIME_LIBRARY}" in
         ;;
 esac
 
+AC_PROG_JAR
 AC_CHECK_WITH_JASMIN_JAR
 AC_CHECK_WITH_JUNIT_JAR
 
@@ -690,6 +707,8 @@ if test x"${disable_test_dependency_checks}" = "xno"; then
 	AC_CHECK_JASMIN_WORKS
 	AC_CHECK_JUNIT_WORKS
 fi
+
+GTEST_LIB_CHECK
 
 AC_CHECK_HEADERS(
 	[regex.h], 
@@ -703,6 +722,10 @@ AC_CHECK_HEADERS(
 
 AC_CHECK_FUTURE
 
+AC_CHECK_HAVE_BUILTIN_STATIC_ASSERT
+
+AC_CHECK_ENABLE_EXPENSIVE_ASSERT
+
 AC_CHECK_ENABLE_GCC_PR40134
 
 AC_CHECK_ENABLE_PIC_ASM
@@ -712,12 +735,8 @@ AC_VERSION_DETAIL
 AC_VERSION_CONFIG
 
 dnl Finally pass flags to Makefiles.
-CFLAGS="$OPT_CFLAGS"
-CXXFLAGS="$OPT_CXXFLAGS"
-
-AM_CFLAGS="$CC_FLAGS $ARCH_FLAGS $OS_FLAGS"
-AM_CXXFLAGS="$CXX_FLAGS $ARCH_FLAGS $OS_FLAGS"
-AM_CPPFLAGS="$CPPFLAGS"
+dnl CFLAGS="$AM_CFLAGS"
+dnl CXXFLAGS="$AM_CXXFLAGS"
 
 AC_SUBST(AM_CFLAGS)
 AC_SUBST(AM_CXXFLAGS)
@@ -728,6 +747,7 @@ AC_CONFIG_FILES([Makefile]
 		[contrib/Makefile]
 		[contrib/setenvinstalled]
 		[contrib/setenvsource]
+		[contrib/warnings.ignore]
 		[doc/Makefile]
 		[doc/doxygen/Makefile]
 		[doc/doxygen/Doxyfile]
@@ -737,6 +757,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/cacao/Makefile]
 		[src/classes/Makefile]
 		[src/fdlibm/Makefile]
+		[src/future/Makefile]
 		[src/mm/Makefile]
 		[src/mm/cacao-gc/Makefile]
 		[src/native/Makefile]
@@ -769,8 +790,6 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/inline/Makefile]
 		[src/vm/jit/ir/Makefile]
 		[src/vm/jit/loop/Makefile]
-		[src/vm/jit/m68k/Makefile]
-		[src/vm/jit/m68k/linux/Makefile]
 		[src/vm/jit/mips/Makefile]
 		[src/vm/jit/mips/irix/Makefile]
 		[src/vm/jit/mips/linux/Makefile]
@@ -799,6 +818,8 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/x86_64/solaris/Makefile]
 		[tests/Makefile]
 		[tests/compiler2/Makefile]
+		[tests/gtest/Makefile]
+		[tests/gtest/compiler2/Makefile]
 		[tests/regression/Makefile]
 		[tests/regression/assertion/Makefile]
 		[tests/regression/base/Makefile]

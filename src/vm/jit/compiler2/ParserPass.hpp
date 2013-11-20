@@ -43,7 +43,7 @@ class ParserPass : public Pass {
 public:
 	static char ID;
 	ParserPass() : Pass() {}
-	bool run(JITData &JD);
+	virtual bool run(JITData &JD);
 };
 
 } // end namespace compiler2

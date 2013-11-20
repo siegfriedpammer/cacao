@@ -24,9 +24,12 @@
 
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
+#include "vm/jit/compiler2/PassDependencyGraphPrinter.hpp"
 #include "vm/jit/compiler2/Pass.hpp"
 #include "toolbox/logging.hpp"
 #include "vm/vm.hpp"
+
+#include <algorithm>
 
 #define DEBUG_NAME "compiler2/PassManager"
 
@@ -60,7 +63,10 @@ void PassManager::initializePasses() {
 }
 
 void PassManager::runPasses(JITData &JD) {
+	LOG("runPasses" << nl);
+	print_PassDependencyGraph(*this);
 	initializePasses();
+	schedulePasses();
 	for(ScheduleListTy::iterator i = schedule.begin(), e = schedule.end(); i != e; ++i) {
 		PassInfo::IDTy id = *i;
 		result_ready[id] = false;
@@ -97,6 +103,214 @@ void PassManager::runPasses(JITData &JD) {
 void PassManager::finalizePasses() {
 }
 
+
+// begin Pass scheduler
+
+#undef DEBUG_NAME
+#define DEBUG_NAME "compiler2/PassManager/Scheduler"
+namespace {
+
+// XXX for debugging only, to be removed
+PassManager* latest = NULL;
+// XXX for debugging only, to be removed
+const char* get_Pass_name(PassInfo::IDTy id) {
+	if (!latest) return "PassManager not available";
+	return latest->get_Pass_name(id);
+}
+
+template <class InputIterator, class ValueType>
+inline bool contains(InputIterator begin, InputIterator end, const ValueType &val) {
+	return std::find(begin,end,val) != end;
+}
+
+template <class Container, class ValueType>
+inline bool contains(Container c, const ValueType &val) {
+	return c.find(val) != c.end();
+}
+
+typedef unordered_map<PassInfo::IDTy,PassUsage> ID2PUTy;
+typedef unordered_map<PassInfo::IDTy,unordered_set<PassInfo::IDTy> > ID2MapTy;
+
+struct Invalidate :
+public std::unary_function<PassInfo::IDTy,void> {
+	ID2MapTy &reverse_require_map;
+	unordered_set<PassInfo::IDTy> &ready;
+	// constructor
+	Invalidate(ID2MapTy &reverse_require_map, unordered_set<PassInfo::IDTy> &ready)
+		: reverse_require_map(reverse_require_map), ready(ready) {}
+	// function call operator
+	void operator()(PassInfo::IDTy id) {
+		if (ready.erase(id)) {
+			LOG3("  invalidated: " << get_Pass_name(id) << nl);
+			std::for_each(reverse_require_map[id].begin(),reverse_require_map[id].end(),*this);
+		}
+	}
+};
+
+class PassScheduler {
+private:
+	std::deque<PassInfo::IDTy> &unhandled;
+	unordered_set<PassInfo::IDTy> &ready;
+	std::list<PassInfo::IDTy> &stack;
+	PassManager::ScheduleListTy &new_schedule;
+	ID2PUTy &pu_map;
+	ID2MapTy &reverse_require_map;
+public:
+	/// constructor
+	PassScheduler(std::deque<PassInfo::IDTy> &unhandled, unordered_set<PassInfo::IDTy> &ready,
+		std::list<PassInfo::IDTy> &stack, PassManager::ScheduleListTy &new_schedule,
+		ID2PUTy &pu_map, ID2MapTy &reverse_require_map)
+			: unhandled(unhandled), ready(ready), stack(stack), new_schedule(new_schedule),
+			pu_map(pu_map), reverse_require_map(reverse_require_map) {}
+	/// call operator
+	void operator()(PassInfo::IDTy id) {
+		if (contains(ready,id)) return;
+		stack.push_back(id);
+		PassUsage &PU = pu_map[id];
+		LOG3("prescheduled: " << get_Pass_name(id) << nl);
+		bool fixpoint;
+		do {
+			fixpoint = true;
+			// schedule schedule_after
+			for (PassUsage::const_iterator i = PU.schedule_after_begin(), e  = PU.schedule_after_end();
+					i != e ; ++i) {
+				LOG3(" schedule_after: " << get_Pass_name(*i) << nl);
+				if (std::find(new_schedule.rbegin(),new_schedule.rend(),*i) == new_schedule.rend()) {
+					operator()(*i);
+					fixpoint = false;
+				}
+			}
+			// schedule requires
+			for (PassUsage::const_iterator i = PU.requires_begin(), e  = PU.requires_end();
+					i != e ; ++i) {
+				LOG3(" requires: " << get_Pass_name(*i) << nl);
+				if (ready.find(*i) == ready.end()) {
+					operator()(*i);
+					fixpoint = false;
+				}
+			}
+		} while(!fixpoint);
+
+		LOG3("scheduled: " << get_Pass_name(id) << nl);
+		// remove all destroyed passes from ready
+		std::for_each(PU.destroys_begin(),PU.destroys_end(),Invalidate(reverse_require_map,ready));
+		// remove all passed depending on modified from ready
+		for (PassUsage::const_iterator i = PU.modifies_begin(), e  = PU.modifies_end();
+				i != e ; ++i) {
+			if (ready.find(*i) != ready.end()) {
+				LOG3(" modifies: " << get_Pass_name(*i) << nl);
+				std::for_each(reverse_require_map[*i].begin(),reverse_require_map[*i].end(),
+					Invalidate(reverse_require_map,ready));
+			}
+		}
+		// dummy use
+		unhandled.front();
+		new_schedule.push_back(id);
+		ready.insert(id);
+		stack.pop_back();
+	}
+};
+
+struct RunBefore : public std::unary_function<PassInfo::IDTy,void> {
+	ID2PUTy &pu_map;
+	PassInfo::IDTy id;
+
+	RunBefore(ID2PUTy &pu_map, PassInfo::IDTy id)
+		: pu_map(pu_map), id(id) {}
+
+	void operator()(PassInfo::IDTy before) {
+		//pu_map[before].add_schedule_after(id);
+		pu_map[before].add_requires(id);
+	}
+};
+
+struct ScheduleBefore : public std::unary_function<PassInfo::IDTy,void> {
+	ID2PUTy &pu_map;
+	PassInfo::IDTy id;
+
+	ScheduleBefore(ID2PUTy &pu_map, PassInfo::IDTy id)
+		: pu_map(pu_map), id(id) {}
+
+	void operator()(PassInfo::IDTy before) {
+		pu_map[before].add_schedule_after(id);
+	}
+};
+
+struct AddReverseRequire : public std::unary_function<PassInfo::IDTy,void> {
+	ID2MapTy &map;
+	PassInfo::IDTy id;
+
+	AddReverseRequire(ID2MapTy &map, PassInfo::IDTy id)
+		: map(map), id(id) {}
+
+	void operator()(PassInfo::IDTy required_by) {
+		map[required_by].insert(id);
+	}
+};
+
+struct ReverseRequire :
+public std::unary_function<ID2PUTy::value_type,void> {
+	ID2MapTy &map;
+	// constructor
+	ReverseRequire(ID2MapTy &map) : map(map) {}
+	// function call operator
+	void operator()(argument_type pair) {
+		std::for_each(pair.second.requires_begin(), pair.second.requires_end(),AddReverseRequire(map,pair.first));
+	}
+};
+
+} // end anonymous namespace
+
+void PassManager::schedulePasses() {
+	// XXX for debugging only, to be removed
+	latest = this;
+
+	std::deque<PassInfo::IDTy> unhandled;
+	unordered_set<PassInfo::IDTy> ready;
+	std::list<PassInfo::IDTy> stack;
+	ScheduleListTy new_schedule;
+	ID2PUTy pu_map;
+	ID2MapTy reverse_require_map;
+
+	for (PassInfoMapTy::const_iterator i = registered_passes().begin(), e = registered_passes().end();
+			i != e; ++i) {
+		PassInfo::IDTy id = i->first;
+		Pass *pass = get_initialized_Pass(id);
+		PassUsage &PA = pu_map[id];
+		pass->get_PassUsage(PA);
+		// add run before
+		std::for_each(PA.run_before_begin(),PA.run_before_end(),RunBefore(pu_map,id));
+		// add schedule before
+		std::for_each(PA.schedule_before_begin(),PA.schedule_before_end(),ScheduleBefore(pu_map,id));
+	}
+	// fill reverser required map
+	std::for_each(pu_map.begin(),pu_map.end(),ReverseRequire(reverse_require_map));
+	//
+	std::copy(schedule.begin(), schedule.end(), std::back_inserter(unhandled));
+
+	PassScheduler scheduler(unhandled,ready,stack,new_schedule,pu_map,reverse_require_map);
+	while (!unhandled.empty()) {
+		PassInfo::IDTy id = unhandled.front();
+		unhandled.pop_front();
+		// schedule
+		scheduler(id);
+		assert(stack.empty());
+	}
+
+	if (DEBUG_COND_N(2)) {
+		LOG2("old Schedule:" << nl);
+		for (ScheduleListTy::const_iterator i = schedule.begin(),
+				e = schedule.end(); i != e ; ++i) {
+			LOG2("    " << get_Pass_name(*i) << " id: " << *i << nl);
+		}
+		LOG2("new Schedule:" << nl);
+		for (ScheduleListTy::const_iterator i = new_schedule.begin(),
+				e = new_schedule.end(); i != e ; ++i) {
+			LOG2("    " << get_Pass_name(*i) << " id: " << *i << nl);
+		}
+	}
+	schedule = new_schedule;
+}
 } // end namespace cacao
 } // end namespace jit
 } // end namespace compiler2

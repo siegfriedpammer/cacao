@@ -23,11 +23,12 @@
 */
 
 
+#include "vm/linker.hpp"
 #include "config.h"
 
-#include <assert.h>
-
-#include "vm/types.hpp"
+#include <cassert>
+#include <vector>
+#include <utility>
 
 #include "mm/memory.hpp"
 
@@ -42,6 +43,7 @@
 #include "vm/array.hpp"
 #include "vm/class.hpp"
 #include "vm/classcache.hpp"
+#include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/field.hpp"
 #include "vm/globals.hpp"
@@ -51,16 +53,18 @@
 #include "vm/primitive.hpp"
 #include "vm/rt-timing.hpp"
 #include "vm/string.hpp"
+#include "vm/types.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/stubs.hpp"
 
-#include <vector>
-#include <utility>
+using namespace cacao;
+
 
 STAT_DECLARE_VAR(int,count_vftbl_len,0)
+
 
 /* debugging macros ***********************************************************/
 
@@ -451,12 +455,6 @@ static bool linker_overwrite_method(methodinfo *mg,
 									methodinfo *ms,
 									method_worklist **wl)
 {
-	classinfo *cg;
-	classinfo *cs;
-
-	cg = mg->clazz;
-	cs = ms->clazz;
-
 	/* overriding a final method is illegal */
 
 	if (mg->flags & ACC_FINAL) {
@@ -472,7 +470,7 @@ static bool linker_overwrite_method(methodinfo *mg,
 
 	if ((ms->name != utf8::init)
 			&& !classcache_add_constraints_for_params(
-				cs->classloader, cg->classloader, mg))
+				ms->clazz->classloader, mg->clazz->classloader, mg))
 	{
 		return false;
 	}
@@ -954,9 +952,9 @@ static classinfo *link_class_intern(classinfo *c)
 		fieldinfo *f = &(c->fields[i]);
 
 		if (!(f->flags & ACC_STATIC)) {
-			dsize = descriptor_typesize(f->parseddesc);
-			c->instancesize = MEMORY_ALIGN(c->instancesize, dsize);
-			f->offset = c->instancesize;
+			dsize            = f->parseddesc->typesize();
+			c->instancesize  = MEMORY_ALIGN(c->instancesize, dsize);
+			f->offset        = c->instancesize;
 			c->instancesize += dsize;
 		}
 	}

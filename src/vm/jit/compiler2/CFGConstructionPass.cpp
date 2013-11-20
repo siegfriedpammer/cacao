@@ -25,6 +25,9 @@
 #include "vm/jit/compiler2/CFGConstructionPass.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
+#include "vm/jit/compiler2/PassUsage.hpp"
+#include "vm/jit/compiler2/VerifierPass.hpp"
+#include "vm/jit/compiler2/StackAnalysisPass.hpp"
 #include "vm/jit/cfg.hpp"
 
 namespace cacao {
@@ -40,6 +43,14 @@ bool CFGConstructionPass::run(JITData &JD) {
 	return true;
 }
 
+PassUsage& CFGConstructionPass::get_PassUsage(PassUsage &PU) const {
+	#if ENABLE_VERIFIER
+	PU.add_requires<VerifierPass>();
+	#else
+	PU.add_requires<StackAnalysisPass>();
+	#endif
+	return PU;
+}
 
 // the address of this variable is used to identify the pass
 char CFGConstructionPass::ID = 0;

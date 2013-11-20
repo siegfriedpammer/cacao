@@ -55,22 +55,23 @@
 #endif
 #include "vm/jit/compiler2/CFGConstructionPass.hpp"
 #include "vm/jit/compiler2/SSAConstructionPass.hpp"
+#include "vm/jit/compiler2/ExamplePass.hpp"
 #include "vm/jit/compiler2/DominatorPass.hpp"
 #include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
 #include "vm/jit/compiler2/ScheduleLatePass.hpp"
 #include "vm/jit/compiler2/ScheduleClickPass.hpp"
 #include "vm/jit/compiler2/DomTreePrinterPass.hpp"
-#include "vm/jit/compiler2/LoweringPass.hpp"
 #include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
-#include "vm/jit/compiler2/ResolveImmediatePass.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/LivetimeAnalysisPass.hpp"
 #include "vm/jit/compiler2/LinearScanAllocatorPass.hpp"
 #include "vm/jit/compiler2/LoopPass.hpp"
+#include "vm/jit/compiler2/LoopTreePrinterPass.hpp"
 #include "vm/jit/compiler2/LoopSimplificationPass.hpp"
 #include "vm/jit/compiler2/SSAPrinterPass.hpp"
 #include "vm/jit/compiler2/MachineInstructionPrinterPass.hpp"
+#include "vm/jit/compiler2/MachineLoopPass.hpp"
 #include "vm/jit/compiler2/CodeGenPass.hpp"
 #include "vm/jit/compiler2/DisassemblerPass.hpp"
 #include "vm/jit/compiler2/ObjectFileWriterPass.hpp"
@@ -126,41 +127,19 @@ MachineCode* compile(methodinfo* m)
 
 	LOG(bold << bold << "Compiler Start: " << reset_color << *m << nl);
 
-	PM.add_Pass(&ParserPass::ID);
-	PM.add_Pass(&StackAnalysisPass::ID);
-#ifdef ENABLE_VERIFIER
-	PM.add_Pass(&VerifierPass::ID);
-#endif
-	PM.add_Pass(&CFGConstructionPass::ID);
-	PM.add_Pass(&SSAConstructionPass::ID);
-	PM.add_Pass(&LoopPass::ID);
-	PM.add_Pass(&DominatorPass::ID);
-	PM.add_Pass(&SSAPrinterPass::ID);
-	PM.add_Pass(&ConstantPropagationPass::ID);
-	PM.add_Pass(&DeadcodeEliminationPass::ID);
-	PM.add_Pass(&ScheduleEarlyPass::ID);
-	PM.add_Pass(&ScheduleLatePass::ID);
-	PM.add_Pass(&ScheduleClickPass::ID);
-	PM.add_Pass(&InstructionLinkSchedulePrinterPass<ScheduleEarlyPass>::ID);
-	PM.add_Pass(&InstructionLinkSchedulePrinterPass<ScheduleLatePass>::ID);
-	PM.add_Pass(&InstructionLinkSchedulePrinterPass<ScheduleClickPass>::ID);
-	//PM.add_Pass(&LoopSimplificationPass::ID);
-	PM.add_Pass(&DomTreePrinterPass::ID);
-	PM.add_Pass(&LoweringPass::ID);
-	PM.add_Pass(&ListSchedulingPass::ID);
-	PM.add_Pass(&BasicBlockSchedulingPass::ID);
-	//PM.add_Pass(&ResolveImmediatePass::ID);
-	PM.add_Pass(&MachineInstructionSchedulingPass::ID);
-	PM.add_Pass(&LivetimeAnalysisPass::ID);
-	PM.add_Pass(&LinearScanAllocatorPass::ID);
-	PM.add_Pass(&BasicBlockSchedulingPass::ID);
-	PM.add_Pass(&MachineInstructionSchedulingPass::ID);
-	PM.add_Pass(&MachineInstructionPrinterPass::ID);
-	PM.add_Pass(&CodeGenPass::ID);
+	PM.add_Pass<ExamplePass>();
+	PM.add_Pass<LoopTreePrinterPass>();
+	PM.add_Pass<DomTreePrinterPass>();
+	PM.add_Pass<SSAPrinterPass>();
+	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleEarlyPass> >();
+	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleLatePass> >();
+	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleClickPass> >();
+	PM.add_Pass<MachineInstructionPrinterPass>();
+	PM.add_Pass<CodeGenPass>();
 	if (opt_showdisassemble) {
-		PM.add_Pass(&DisassemblerPass::ID);
+		PM.add_Pass<DisassemblerPass>();
 	}
-	PM.add_Pass(&ObjectFileWriterPass::ID);
+	PM.add_Pass<ObjectFileWriterPass>();
 
 /*****************************************************************************/
 /** prolog start jit_compile **/
@@ -249,7 +228,7 @@ MachineCode* compile(methodinfo* m)
 /** prolog start jit_compile_intern **/
 /*****************************************************************************/
 
-	codegendata *cd;
+	//codegendata *cd;
 	codeinfo    *code;
 
 	//RT_TIMER_START(checks_timer);
@@ -260,7 +239,7 @@ MachineCode* compile(methodinfo* m)
 	JD.get_jitdata()->ls = NULL;
 #endif
 	code = JD.get_jitdata()->code;
-	cd   = JD.get_jitdata()->cd;
+	//cd   = JD.get_jitdata()->cd;
 
 #if defined(ENABLE_DEBUG_FILTER)
 	show_filters_apply(JD.get_jitdata()->m);

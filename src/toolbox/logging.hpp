@@ -93,11 +93,11 @@ Color log_color();
 #define LOG2(STMT) LOG_N(2, STMT)
 #define LOG3(STMT) LOG_N(3, STMT)
 
-#define WARING_MSG(EXPR_SHORT, EXPR_LONG)                                     \
+#define WARNING_MSG(EXPR_SHORT, EXPR_LONG)                                    \
 	do {                                                                      \
 		cacao::OStream stream = cacao::err();                                 \
 																			  \
-		{ stream << cacao::BoldWhite << __FILE__ << ":" << __LINE__ << ": "   \
+		{ stream << cacao::BoldWhite << __FILE__ << ":" << __LINE__ << ": ";} \
 		{ stream << cacao::BoldMagenta << "warning: " ; }                     \
 		{ stream << cacao::BoldWhite << EXPR_SHORT << cacao::reset_color ; }  \
 		{ stream << cacao::nl << EXPR_LONG << cacao::nl; }                    \
@@ -121,14 +121,18 @@ Color log_color();
 
 #endif
 
-
-#define ABORT_MSG(EXPR_SHORT, EXPR_LONG)                                      \
+#define ERROR_MSG(EXPR_SHORT, EXPR_LONG)                                      \
 	do {                                                                      \
 		cacao::OStream stream = cacao::err();                                 \
 		                                                                      \
 		{ stream << cacao::BoldRed << "error: " ; }                           \
 		{ stream << cacao::BoldWhite << EXPR_SHORT << cacao::reset_color ; }  \
 		{ stream << cacao::nl << EXPR_LONG << cacao::nl; }                    \
+	} while (0)
+
+#define ABORT_MSG(EXPR_SHORT, EXPR_LONG)                                      \
+	do {                                                                      \
+		ERROR_MSG(EXPR_SHORT, EXPR_LONG);                                     \
 		os::abort();                                                          \
 	} while (0)
 

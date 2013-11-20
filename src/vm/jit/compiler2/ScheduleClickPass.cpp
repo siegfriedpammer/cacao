@@ -38,6 +38,11 @@ namespace jit {
 namespace compiler2 {
 
 bool ScheduleClickPass::run(JITData &JD) {
+	// XXX Currently the logic is implemented in ScheduleLatePass
+	// this pass only copies the result. The reason is that
+	// final scheduling must be performed interleaved with schedule
+	// late. This might change if we run passes on instruction rather
+	// then on global scope. Therefor this is kept as a placeholder.
 	M = JD.get_Method();
 	late = get_Pass<ScheduleLatePass>();
 	for (Method::InstructionListTy::const_iterator i = M->begin(),
@@ -55,7 +60,7 @@ bool ScheduleClickPass::run(JITData &JD) {
 }
 
 PassUsage& ScheduleClickPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(ScheduleLatePass::ID);
+	PU.add_requires<ScheduleLatePass>();
 	return PU;
 }
 // the address of this variable is used to identify the pass

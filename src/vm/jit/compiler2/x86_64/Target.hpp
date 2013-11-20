@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_X86_64TARGET
 
 #include "vm/jit/compiler2/x86_64/X86_64.hpp"
+#include "vm/jit/compiler2/x86_64/X86_64Backend.hpp"
 
 namespace cacao {
 namespace jit {
@@ -35,12 +36,14 @@ namespace x86_64 {
 
 // forward declarations
 class NativeRegister;
+class LoweringVisitor;
 
 } // end namespace x86_64
 
 // typedefs
 typedef x86_64::X86_64 Target;
 typedef x86_64::NativeRegister NativeRegister;
+typedef x86_64::LoweringVisitor LoweringVisitor;
 
 } // end namespace compiler2
 } // end namespace jit

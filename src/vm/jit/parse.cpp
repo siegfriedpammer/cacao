@@ -1,4 +1,4 @@
-/* src/vm/jit/parse.c - parser for JavaVM to intermediate code translation
+/* src/vm/jit/parse.cpp - parser for JavaVM to intermediate code translation
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -622,7 +622,7 @@ bool parse(jitdata *jd)
 	constant_classref  *cr;
 	constant_classref  *compr;
 	classinfo          *c;
-	builtintable_entry *bte;
+	builtintable_entry *bte = NULL; // prevent maybe-uninitialized warning
 	constant_FMIref    *fmi;
 	methoddesc         *md;
 	unresolved_method  *um;
@@ -1448,7 +1448,7 @@ jsr_tail:
 
 			md = fmi->parseddesc.md;
 
-			descriptor_params_from_paramtypes(md, ACC_STATIC);
+			md->params_from_paramtypes(ACC_STATIC);
 
 			goto invoke_method;
 
@@ -1480,7 +1480,7 @@ invoke_nonstatic_method:
 
 			md = fmi->parseddesc.md;
 
-			descriptor_params_from_paramtypes(md, 0);
+			md->params_from_paramtypes(0);
 
 invoke_method:
 			code_unflag_leafmethod(code);
@@ -1645,7 +1645,7 @@ invoke_method:
 			break;
 
 		case BC_ldiv:
-#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
+#if !(SUPPORT_DIVISION && SUPPORT_LONG_DIV)
 			bte = builtintable_get_internal(BUILTIN_ldiv);
 			OP_BUILTIN_ARITHMETIC(opcode, bte);
 #else
@@ -1658,7 +1658,7 @@ invoke_method:
 			break;
 
 		case BC_lrem:
-#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
+#if !(SUPPORT_DIVISION && SUPPORT_LONG_DIV)
 			bte = builtintable_get_internal(BUILTIN_lrem);
 			OP_BUILTIN_ARITHMETIC(opcode, bte);
 #else
@@ -1741,6 +1741,8 @@ invoke_method:
 										 opcode, ircount);
 			return false;
 			break;
+#else
+		default: break;
 #endif /* defined(ENABLE_VERIFIER) */
 
         /* opcodes that don't require translation *****************************/

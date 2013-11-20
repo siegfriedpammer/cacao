@@ -25,6 +25,10 @@ public static void main(String arg[]) {
   System.out.println(test_test());
 }
 
+static void test_deadcode() {
+  int a = 1;
+}
+
 static long test_test() {
   long x =0 ;
   for (long i =0; i < 2000; ++i ) {
@@ -35,6 +39,42 @@ static long test_test() {
 
 static long test_getstatic() {
     return stat;
+}
+
+static long test_global_state(long x) {
+    long y = stat;
+    stat = x;
+    long s = test_getstatic();
+    return x * y * s;
+}
+
+static long mul(long a, long b) {
+    return a * b;
+}
+
+static long div(long a, long b) {
+    return a / b;
+}
+static long test_side_effect(long x, long y) {
+    long t = x;
+    long i = x;
+    do {
+      if ( x < y) {
+          return mul(x,y);
+      } else if (x > y) {
+          return div(x,y);
+      }
+      t *= --i;
+    } while (i > 1);
+    return t;
+}
+
+static long test_side_effect2(long x,long y) {
+    long l = test_getstatic();
+    if ( x < y) {
+        return 1;
+    }
+    return l;
 }
 
 static double mul(double a, double b) {
@@ -80,6 +120,22 @@ static long fact(long n) {
     return res;
 }
 
+static long fact2(long n) {
+  if ((n & 1) == 0) {
+    long res = 1;
+    while (1 < n) {
+        res *= n--;
+    }
+    return res;
+  } else {
+    long res = 1;
+    while (1 < n) {
+        res *= n--;
+    }
+    return res;
+  }
+}
+
 static double pi() {
     return Math.PI;
 }
@@ -109,6 +165,29 @@ static double pi_spigot(long num_digits) {
     return pi;
 }
 
+static int test_tableswitch(int key) {
+    switch (key) {
+    case 0: return 8;
+    case 1: return 6;
+    case 2: return 3;
+    case 3: return 2;
+    case 4: return 5;
+    case 5: return 1;
+    default: return -1;
+    }
+}
+
+static int test_lookupswitch(int key) {
+    switch (key) {
+    case 0: return 8;
+    case 72: return 6;
+    case 24: return 3;
+    case 26: return 2;
+    case 38: return 5;
+    case 59: return 1;
+    default: return -1;
+    }
+}
 static double pi_spigot_nodseg(long num_digits) {
     long l0 = 0;
     long l1 = 1;

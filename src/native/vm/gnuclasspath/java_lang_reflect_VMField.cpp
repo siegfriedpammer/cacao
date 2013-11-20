@@ -42,7 +42,7 @@
 #endif
 
 #include "vm/access.hpp"
-#include "vm/jit/builtin.hpp"
+#include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.hpp"
 #include "vm/initialize.hpp"
@@ -54,6 +54,7 @@
 #include "vm/utf8.hpp"
 #include "vm/vm.hpp"
 
+#include "vm/jit/builtin.hpp"
 
 /* _field_access_check *********************************************************
 

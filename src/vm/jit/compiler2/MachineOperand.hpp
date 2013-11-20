@@ -29,6 +29,7 @@
 #include "toolbox/OStream.hpp"
 #include "vm/types.hpp"
 
+#include <list>
 #include <vector>
 #include <cassert>
 
@@ -64,9 +65,19 @@ public:
 		AddressID,
 		VoidOperandID
 	};
+	typedef const void* IdentifyTy;
+	typedef std::size_t IdentifyOffsetTy;
+	typedef std::size_t IdentifySizeTy;
 private:
 	OperandID op_id;
 	Type::TypeID type;
+protected:
+	/**
+	 * TODO describe
+	 */
+	virtual IdentifyTy id_base()         const { return static_cast<const void*>(this); }
+	virtual IdentifyOffsetTy id_offset() const { return 0; }
+	virtual IdentifySizeTy id_size()     const { return 1; }
 public:
 
 	explicit MachineOperand(OperandID op_id, Type::TypeID type)
@@ -94,6 +105,31 @@ public:
 	bool is_Immediate()        const { return op_id == ImmediateID; }
 	bool is_Address()          const { return op_id == AddressID; }
 
+	/**
+	 */
+	bool aquivalence_less(const MachineOperand& MO) const {
+		if (id_base() != MO.id_base()) {
+			return id_base() < MO.id_base();
+		}
+		return id_offset()+id_size() <= MO.id_offset();
+	}
+	bool aquivalent(const MachineOperand& MO) const {
+		return !(aquivalence_less(MO) || MO.aquivalence_less(*this));
+	}
+
+	/**
+	 * True if operand is virtual and must be assigned
+	 * during register allocation
+	 */
+	virtual bool is_virtual() const { return false; }
+	/**
+	 * Return true if operand is processed during register allocation.
+	 * This implies is_virtual().
+	 *
+	 * @see is_virtual()
+	 */
+	virtual bool needs_allocation() const { return is_virtual(); }
+
 	virtual OStream& print(OStream &OS) const {
 		return OS << get_name() /* << " (" << get_type() << ")" */;
 	}
@@ -118,12 +154,12 @@ public:
 	virtual const char* get_name() const {
 		return "Register";
 	}
+	virtual bool needs_allocation() const { return true; }
 	virtual Register* to_Register()               { return this; }
 	virtual UnassignedReg* to_UnassignedReg()     { return 0; }
 	virtual VirtualRegister* to_VirtualRegister() { return 0; }
 	virtual MachineRegister* to_MachineRegister() { return 0; }
 	virtual ~Register() {}
-	virtual bool operator==(Register *other) const = 0;
 };
 
 
@@ -134,9 +170,6 @@ public:
 		return "UnassignedReg";
 	}
 	virtual UnassignedReg* to_UnassignedReg()     { return this; }
-	virtual bool operator==(Register *other) const {
-		return false;
-	}
 };
 
 class VirtualRegister : public Register {
@@ -154,14 +187,8 @@ public:
 	virtual OStream& print(OStream &OS) const {
 		return MachineOperand::print(OS) << get_id();
 	}
+	virtual bool is_virtual() const { return true; }
 	unsigned get_id() const { return vreg; }
-	virtual bool operator==(Register *other) const {
-		VirtualRegister *vreg = other->to_VirtualRegister();
-		if (!vreg) {
-			return false;
-		}
-		return get_id() == vreg->get_id();
-	}
 };
 
 class StackSlot : public MachineOperand {
@@ -198,6 +225,7 @@ public:
 	virtual const char* get_name() const {
 		return "ManagedStackSlot";
 	}
+	//virtual bool is_virtual() const { return true; }
 	unsigned get_id() const { return id; }
 	virtual OStream& print(OStream &OS) const {
 		return MachineOperand::print(OS) << get_id();
@@ -219,28 +247,22 @@ private:
 	val_operand_t value;
 public:
 	Immediate(CONSTInst *I);
-	#if 0
-	Immediate(s4 val, Type::TypeID type)
+	Immediate(s4 val, Type::IntType type)
 			: MachineOperand(ImmediateID, type) {
-		assert(type == Type::IntTypeID);
 		value.i = val;
 	}
-	Immediate(s8 val, Type::TypeID type)
+	Immediate(s8 val, Type::LongType type)
 			: MachineOperand(ImmediateID, type) {
-		assert(type == Type::LongTypeID);
 		value.l = val;
 	}
-	Immediate(float val, Type::TypeID type)
+	Immediate(float val, Type::FloatType type)
 			: MachineOperand(ImmediateID, type) {
-		assert(type == Type::FloatTypeID);
 		value.f = val;
 	}
-	Immediate(double val, Type::TypeID type)
+	Immediate(double val, Type::DoubleType type)
 			: MachineOperand(ImmediateID, type) {
-		assert(type == Type::DoubleTypeID);
 		value.d = val;
 	}
-	#endif
 	virtual Immediate* to_Immediate() { return this; }
 	virtual const char* get_name() const {
 		return "Immediate";
@@ -337,6 +359,14 @@ inline OStream& operator<<(OStream &OS, const MachineOperand *MO) {
 	}
 	return OS << *MO;
 }
+
+struct MachineOperandComp : std::binary_function<MachineOperand*,MachineOperand*,bool> {
+	bool operator()(MachineOperand* lhs, MachineOperand *rhs) const {
+		return lhs->aquivalence_less(*rhs);
+	}
+};
+
+typedef std::list<MachineOperand*> OperandFile;
 
 
 } // end namespace compiler2

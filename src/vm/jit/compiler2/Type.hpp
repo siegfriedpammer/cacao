@@ -69,204 +69,61 @@ public:
 		CharTypeID,
 		FloatTypeID,
 		DoubleTypeID,
+		GlobalStateTypeID,
 		VoidTypeID
 	};
 
-#if 0
-	const TypeID type;
-
-	explicit Type(TypeID type) : type(type) {}
-
-	inline bool isPrimitiveType()     const {
-		return type == PrimitiveTypeID || isNumericType()
-		    || isBooleanType() || isReturnAddressType();
-	}
-	inline bool isNumericType()       const {
-		return type == NumericTypeID || isIntegralType() || isFloatingPointType();
-	}
-	inline bool isIntegralType()      const {
-		return type == IntegralTypeID || isByteType() || isShortType()
-		    || isIntType() || isLongType() || isCharType();
-	}
-	inline bool isFloatingPointType() const {
-		return type == FloatingPointTypeID || isFloatType() || isDoubleType();
-	}
-	inline bool isReferenceType()     const { return type == ReferenceTypeID; }
-	inline bool isBooleanType()       const { return type == BooleanTypeID; }
-	inline bool isReturnAddressType() const { return type == ReturnAddressTypeID; }
-	inline bool isByteType()          const { return type == ByteTypeID; }
-	inline bool isShortType()         const { return type == ShortTypeID; }
-	inline bool isIntType()           const { return type == IntTypeID; }
-	inline bool isLongType()          const { return type == LongTypeID; }
-	inline bool isCharType()          const { return type == CharTypeID; }
-	inline bool isFloatType()         const { return type == FloatTypeID; }
-	inline bool isDoubleType()        const { return type == DoubleTypeID; }
-	inline bool isVoidType()          const { return type == VoidTypeID; }
-
-
-	virtual PrimitiveType*     toPrimitiveType()     { return NULL; }
-	virtual ReferenceType*     toReferenceType()     { return NULL; }
-	virtual NumericType*       toNumericType()       { return NULL; }
-	virtual BooleanType*       toBooleanType()       { return NULL; }
-	virtual ReturnAddressType* toReturnAddressType() { return NULL; }
-	virtual IntegralType*      toIntegralType()      { return NULL; }
-	virtual FloatingPointType* toFloatingPointType() { return NULL; }
-	virtual ByteType*          toByteType()          { return NULL; }
-	virtual ShortType*         toShortType()         { return NULL; }
-	virtual IntType*           toIntType()           { return NULL; }
-	virtual LongType*          toLongType()          { return NULL; }
-	virtual CharType*          toCharType()          { return NULL; }
-	virtual FloatType*         toFloatType()         { return NULL; }
-	virtual DoubleType*        toDoubleType()        { return NULL; }
-	virtual VoidType*          toVoidType()          { return NULL; }
-#endif
+	struct PrimitiveType {
+		operator Type::TypeID() { return PrimitiveTypeID; }
+	};
+	struct ReferenceType {
+		operator Type::TypeID() { return ReferenceTypeID; }
+	};
+	struct NumericType {
+		operator Type::TypeID() { return NumericTypeID; }
+	};
+	struct BooleanType {
+		operator Type::TypeID() { return BooleanTypeID; }
+	};
+	struct ReturnAddressType {
+		operator Type::TypeID() { return ReturnAddressTypeID; }
+	};
+	struct IntegralType {
+		operator Type::TypeID() { return IntegralTypeID; }
+	};
+	struct FloatingPointType {
+		operator Type::TypeID() { return FloatingPointTypeID; }
+	};
+	struct ByteType {
+		operator Type::TypeID() { return ByteTypeID; }
+	};
+	struct ShortType {
+		operator Type::TypeID() { return ShortTypeID; }
+	};
+	struct IntType {
+		operator Type::TypeID() { return IntTypeID; }
+	};
+	struct LongType {
+		operator Type::TypeID() { return LongTypeID; }
+	};
+	struct CharType {
+		operator Type::TypeID() { return CharTypeID; }
+	};
+	struct FloatType {
+		operator Type::TypeID() { return FloatTypeID; }
+	};
+	struct DoubleType {
+		operator Type::TypeID() { return DoubleTypeID; }
+	};
+	struct GlobalStateType {
+		operator Type::TypeID() { return GlobalStateTypeID; }
+	};
+	struct VoidType {
+		operator Type::TypeID() { return VoidTypeID; }
+	};
 };
 
 const char* get_type_name(const Type::TypeID &type);
-
-
-#if 0
-class PrimitiveType : public Type {
-protected:
-	explicit PrimitiveType(TypeID id) : Type(id) {}
-public:
-	explicit PrimitiveType() : Type(PrimitiveTypeID) {}
-	virtual PrimitiveType* toPrimitiveType() { return this; }
-};
-
-class ReferenceType : public Type {
-protected:
-	explicit ReferenceType(TypeID id) : Type(id) {}
-public:
-	explicit ReferenceType() : Type(ReferenceTypeID) {}
-	virtual ReferenceType* toReferenceType() { return this; }
-};
-
-
-class NumericType : public PrimitiveType {
-protected:
-	explicit NumericType(TypeID id) : PrimitiveType(id) {}
-public:
-	explicit NumericType() : PrimitiveType(NumericTypeID) {}
-	virtual NumericType* toNumericType() { return this; }
-};
-
-
-/**
- * The values of the boolean type encode the truth values true and false,
- * and the default value is false. 
- */
-class BooleanType : public PrimitiveType {
-public:
-	explicit BooleanType() : PrimitiveType(BooleanTypeID) {}
-	virtual BooleanType* toBooleanType() { return this; }
-};
-
-/**
- * The values of the returnAddress type are pointers to the opcodes of Java
- * Virtual Machine instructions. Of the primitive types, only the returnAddress
- * type is not directly associated with a Java programming language type. 
- */
-class ReturnAddressType : public PrimitiveType {
-public:
-	explicit ReturnAddressType() : PrimitiveType(ReturnAddressTypeID) {}
-	virtual ReturnAddressType* toReturnAddressType() { return this; }
-};
-
-
-class IntegralType : public NumericType {
-protected:
-	explicit IntegralType(TypeID id) : NumericType(id) {}
-public:
-	explicit IntegralType() : NumericType(IntegralTypeID) {}
-	virtual IntegralType* toIntegralType() { return this; }
-};
-class FloatingPointType : public NumericType {
-protected:
-	explicit FloatingPointType(TypeID id) : NumericType(id) {}
-public:
-	explicit FloatingPointType() : NumericType(FloatingPointTypeID) {}
-	virtual FloatingPointType* toFloatingPointType() { return this; }
-};
-
-/**
- * whose values are 8-bit signed two's-complement integers, and whose default value is zero
- */
-class ByteType : public IntegralType {
-public:
-	explicit ByteType() : IntegralType(ByteTypeID) {}
-	virtual ByteType* toByteType() { return this; }
-};
-
-/**
- * whose values are 16-bit signed two's-complement integers, and whose default value is zero
- */
-class ShortType : public IntegralType {
-public:
-	explicit ShortType() : IntegralType(ShortTypeID) {}
-	virtual ShortType* toShortType() { return this; }
-};
-
-/**
- * whose values are 32-bit signed two's-complement integers, and whose default value is zero
- */
-class IntType : public IntegralType {
-public:
-	explicit IntType() : IntegralType(IntTypeID) {}
-	virtual IntType* toIntType() { return this; }
-};
-
-/**
- * whose values are 64-bit signed two's-complement integers, and whose default value is zero
- */
-class LongType : public IntegralType {
-public:
-	explicit LongType() : IntegralType(LongTypeID) {}
-	virtual LongType* toLongType() { return this; }
-};
-
-/**
- * whose values are 16-bit unsigned integers representing Unicode code points
- * in the Basic Multilingual Plane, encoded with UTF-16, and whose default value
- * is the null code point ('\u0000') 
- */
-class CharType : public IntegralType {
-public:
-	explicit CharType() : IntegralType(CharTypeID) {}
-	virtual CharType* toCharType() { return this; }
-};
-
-
-/**
- * whose values are elements of the float value set or, where supported, the
- * float-extended-exponent value set, and whose default value is positive zero
- */
-class FloatType : public FloatingPointType {
-public:
-	explicit FloatType() : FloatingPointType(FloatTypeID) {}
-	virtual FloatType* toFloatType() { return this; }
-};
-
-/**
- * whose values are elements of the double value set or, where supported, the
- * double-extended-exponent value set, and whose default value is positive zero
- */
-class DoubleType : public FloatingPointType {
-public:
-	explicit DoubleType() : FloatingPointType(DoubleTypeID) {}
-	virtual DoubleType* toDoubleType() { return this; }
-};
-
-/**
- *
- */
-class VoidType : public Type {
-public:
-	explicit VoidType() : Type(VoidTypeID) {}
-	virtual VoidType* toVoidType() { return this; }
-};
-
-#endif
 
 // conversion functions
 const char * get_var_type(int type);

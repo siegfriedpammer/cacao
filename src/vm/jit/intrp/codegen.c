@@ -239,11 +239,11 @@ struct builtin_gen builtin_gen_table[] = {
     {LOCK_monitor_exit,               gen_MONITOREXIT,     },
 #endif
 
-#if !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_F2L)
+#if !(SUPPORT_FLOAT && SUPPORT_F2L)
     {BUILTIN_f2l,                     gen_F2L,             },
 #endif
 
-#if !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_D2L)
+#if !(SUPPORT_DOUBLE && SUPPORT_D2L)
     {BUILTIN_d2l,					  gen_D2L, 			   },
 #endif
 
@@ -260,7 +260,7 @@ struct builtin_gen builtin_gen_table[] = {
     {BUILTIN_irem,					  gen_IREM,			   },
 #endif
 
-#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
+#if !(SUPPORT_DIVISION && SUPPORT_LONG_DIV)
     {BUILTIN_ldiv,					  gen_LDIV,			   },
     {BUILTIN_lrem,					  gen_LREM,			   },
 #endif

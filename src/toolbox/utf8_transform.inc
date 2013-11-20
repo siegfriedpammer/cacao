@@ -1,6 +1,6 @@
 /* src/toolbox/utf8_transform.inc - implementation of utf8 decoder
 
-   Copyright (C) 2012
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -22,24 +22,16 @@
 
 */
 
-// this header is used to define specializations of the UTF8 decoder
-// for different use cases
+#ifndef UTF8_TRANSFORM_INC
+#define UTF8_TRANSFORM_INC 1
 
-#ifndef __UTF8_TRANSFORM_INC__
-#define __UTF8_TRANSFORM_INC__ 1
-
-/*******************************************************************************
-	this section defines the data common to all UTF-8 decoder functions
-*******************************************************************************/
-
-namespace utf8_impl {
-	// common data for all utf-8/16 transfomer functions
-
+namespace utf8 {
+namespace impl {
 	// every byte in a UTF-8 sequence falls into one
 	// of these categories
-	enum {
-		UTF8_ASCII_BYTE               = 0,
-		UTF8_ILLEGAL_BYTE             = 1,
+	enum utf8_byte_category {
+		UTF8_ILLEGAL_BYTE             = 0,
+		UTF8_ASCII_BYTE               = 1,
 		UTF8_CONTINUATION_BYTE        = 2,
 		UTF8_START_OF_2_BYTE_SEQUENCE = 3,
 		UTF8_START_OF_3_BYTE_SEQUENCE = 4
@@ -47,17 +39,17 @@ namespace utf8_impl {
 
 	// the decoder is modeled as a finite state machine
 	// with these states
-	enum {
+	enum utf8_machine_state {
 		// done decoding
-		UTF8_ACCEPT      = 0,
-		UTF8_ERROR       = 1,
+		UTF8_ERROR       = 0,
+		UTF8_ACCEPT      = 1, // also the starting state
 		// need more input
 		UTF8_READ_1_OF_2 = 2,
 		UTF8_READ_1_OF_3 = 3,
 		UTF8_READ_2_OF_3 = 4
 	};
 
-	static inline uint8_t get_byte_category(uint8_t byte) {
+	static inline utf8_byte_category get_byte_category(uint8_t byte) {
 		static const uint8_t byte_to_category[256] = {
 #define   _2_TIMES( X ) X, X
 #define   _4_TIMES( X )  _2_TIMES( X ),  _2_TIMES( X )
@@ -67,6 +59,7 @@ namespace utf8_impl {
 #define  _64_TIMES( X ) _32_TIMES( X ), _32_TIMES( X )
 #define _127_TIMES( X ) _64_TIMES( X ), _32_TIMES( X ), _16_TIMES( X ), \
 	                     _8_TIMES( X ),  _4_TIMES( X ),  _2_TIMES( X ), X
+
 			// java's modified utf8 forbids 0
 			UTF8_ILLEGAL_BYTE,
 
@@ -85,6 +78,7 @@ namespace utf8_impl {
 
 			// byte from 0xF0 to 0xFF are forbidden
 			_16_TIMES( UTF8_ILLEGAL_BYTE )
+
 #undef   _2_TIMES
 #undef   _4_TIMES
 #undef   _8_TIMES
@@ -93,165 +87,178 @@ namespace utf8_impl {
 #undef  _64_TIMES
 #undef _127_TIMES
 		};
-		return byte_to_category[byte];
+		return (utf8_byte_category) byte_to_category[byte];
 	}
 
-	static inline uint8_t transition(unsigned state, unsigned category) {
+	static inline utf8_machine_state transition(utf8_machine_state state, utf8_byte_category category) {
 		static const uint8_t transition_table[5][5] = {
 			{
-				// current state: UTF8_ACCEPT
-				/* input: UTF8_ASCII_BYTE               */ UTF8_ACCEPT,
-				/* input: UTF8_ILLEGAL_BYTE             */ UTF8_ERROR,
-				/* input: UTF8_CONTINUATION_BYTE        */ UTF8_ERROR,
-				/* input: UTF8_START_OF_2_BYTE_SEQUENCE */ UTF8_READ_1_OF_2,
-				/* input: UTF8_START_OF_3_BYTE_SEQUENCE */ UTF8_READ_1_OF_3
-			},
-			{
 				// current state: UTF8_ERROR
-				/* input: UTF8_ASCII_BYTE               */ UTF8_ERROR,
 				/* input: UTF8_ILLEGAL_BYTE             */ UTF8_ERROR,
+				/* input: UTF8_ASCII_BYTE               */ UTF8_ERROR,
 				/* input: UTF8_CONTINUATION_BYTE        */ UTF8_ERROR,
 				/* input: UTF8_START_OF_2_BYTE_SEQUENCE */ UTF8_ERROR,
 				/* input: UTF8_START_OF_3_BYTE_SEQUENCE */ UTF8_ERROR
 			},
 			{
-				// current state: UTF8_READ_1_OF_2
-				/* input: UTF8_ASCII_BYTE               */ UTF8_ERROR,
+				// current state: UTF8_ACCEPT
 				/* input: UTF8_ILLEGAL_BYTE             */ UTF8_ERROR,
+				/* input: UTF8_ASCII_BYTE               */ UTF8_ACCEPT,
+				/* input: UTF8_CONTINUATION_BYTE        */ UTF8_ERROR,
+				/* input: UTF8_START_OF_2_BYTE_SEQUENCE */ UTF8_READ_1_OF_2,
+				/* input: UTF8_START_OF_3_BYTE_SEQUENCE */ UTF8_READ_1_OF_3
+			},
+			{
+				// current state: UTF8_READ_1_OF_2
+				/* input: UTF8_ILLEGAL_BYTE             */ UTF8_ERROR,
+				/* input: UTF8_ASCII_BYTE               */ UTF8_ERROR,
 				/* input: UTF8_CONTINUATION_BYTE        */ UTF8_ACCEPT,
 				/* input: UTF8_START_OF_2_BYTE_SEQUENCE */ UTF8_ERROR,
 				/* input: UTF8_START_OF_3_BYTE_SEQUENCE */ UTF8_ERROR
 			},
 				{
 				// current state: UTF8_READ_1_OF_3
-				/* input: UTF8_ASCII_BYTE               */ UTF8_ERROR,
 				/* input: UTF8_ILLEGAL_BYTE             */ UTF8_ERROR,
+				/* input: UTF8_ASCII_BYTE               */ UTF8_ERROR,
 				/* input: UTF8_CONTINUATION_BYTE        */ UTF8_READ_2_OF_3,
 				/* input: UTF8_START_OF_2_BYTE_SEQUENCE */ UTF8_ERROR,
 				/* input: UTF8_START_OF_3_BYTE_SEQUENCE */ UTF8_ERROR
 			},
 			{
 				// current state: UTF8_READ_1_OF_3
-				/* input: UTF8_ASCII_BYTE               */ UTF8_ERROR,
 				/* input: UTF8_ILLEGAL_BYTE             */ UTF8_ERROR,
+				/* input: UTF8_ASCII_BYTE               */ UTF8_ERROR,
 				/* input: UTF8_CONTINUATION_BYTE        */ UTF8_ACCEPT,
 				/* input: UTF8_START_OF_2_BYTE_SEQUENCE */ UTF8_ERROR,
-					/* input: UTF8_START_OF_3_BYTE_SEQUENCE */ UTF8_ERROR
+				/* input: UTF8_START_OF_3_BYTE_SEQUENCE */ UTF8_ERROR
 			},
 		};
 
-		return transition_table[state][category];
+		return (utf8_machine_state) transition_table[state][category];
 	}
-}
 
-#endif /* __UTF8_TRANSFORM_INC__ */
+	struct CopyUtf8ToUtf16 : utf8::VisitorBase<bool, ABORT_ON_ERROR> {
+		typedef bool ReturnType;
 
-/*******************************************************************************
-	this section defines a specialized UTF-8 decoder function
+		CopyUtf8ToUtf16(uint16_t *dst) : dst(dst) {}
 
-	The overloading is achieved via tag dispatch with the empty template type
-	utf8::Tag.
+		inline void utf16(uint16_t c) { *dst++ = c; }
 
-*******************************************************************************/
+		inline bool finish() { return true;  }
+		inline bool abort()  { return false; }
+	private:
+		uint16_t *dst;
+	};
 
-#if defined(_VISIT_UTF8) && defined(_VISIT_UTF16)
-	#define _VISITOR_TYPE utf_utils::VISIT_BOTH
-#elif defined(_VISIT_UTF8)
-	#define _VISITOR_TYPE utf_utils::VISIT_UTF8
-#elif defined(_VISIT_UTF16)
-	#define _VISITOR_TYPE utf_utils::VISIT_UTF16
-#else
-	#define _VISITOR_TYPE utf_utils::VISIT_NONE
-#endif
+} // end namespace impl
+} // end namespace utf8
 
-#if   defined(_IGNORE_ERRORS)
-	#define _ERROR_ACTION utf_utils::IGNORE_ERRORS
-#elif defined(_REPLACE_ON_ERROR)
-	#define _ERROR_ACTION utf_utils::REPLACE_ON_ERROR
-#elif defined(_ABORT_ON_ERROR)
-	#define _ERROR_ACTION utf_utils::ABORT_ON_ERROR
-#else
-	#error "No error handling strategy was specified"
-#endif
+template<typename Iterator, typename Fn>
+inline typename Fn::ReturnType utf8::transform(Iterator it, Iterator end, Fn fn) {
+	using namespace ::utf8::impl;
 
-#define _TAG utf_utils::Tag<_VISITOR_TYPE, _ERROR_ACTION>
+	uint16_t           codepoint = 0;
+	utf8_machine_state state     = UTF8_ACCEPT;
 
-namespace utf8_impl {
-	template<typename T, typename Fn>
-	inline T transform(const char *cs, size_t sz, Fn fn, _TAG tag ) {
+	for (; it != end; ++it) {
+		uint8_t byte = *it;
 
-		uint16_t codepoint = 0;
-		unsigned state     = UTF8_ACCEPT;
+		// apply callback to input byte
+		fn.utf8(byte);
 
-		for (const char *const end = cs + sz; cs != end; ++cs) {
-			uint8_t byte = *cs;
+		// get the character category for input byte
+		utf8_byte_category category = get_byte_category(byte);
 
-			// apply callback to input byte
-			#ifdef _VISIT_UTF8
-				fn.utf8(byte);
-			#endif
+		// get the new state the decoder is in after reading input byte
+		state = transition(state, category);
 
-			// get the character category for input byte
-			unsigned category = get_byte_category(byte);
+		// mask out non-data bits of byte
+		byte = byte & (0xFF >> category);
 
-			// get the new state the decoder is in after reading input byte
-			state = transition(state, category);
+		// make room in codepoint for new data bits
+		if (category) codepoint <<= 8 - category;
 
-			// mask out non-data bits of byte
-			byte = byte & (0xFF >> category);
+		// add new bits to codepoint
+		codepoint = codepoint | byte;
 
-			// make room in codepoint for new data bits
-			if (category) codepoint <<= 8 - category;
+		switch (state) {
+			case UTF8_ACCEPT:
+				// apply callback to decoded codepoint
+				fn.utf16(codepoint);
+				codepoint = 0;
+				break;
+			case UTF8_ERROR:
+				// if-cascade seems to constant fold better than a switch
 
-			// add new bits to codepoint
-			codepoint = codepoint | byte;
-
-			switch (state) {
-				case UTF8_ACCEPT:
-					// apply callback to decoded codepoint
-					#ifdef _VISIT_UTF16
-						fn.utf16(codepoint);
-					#endif
+				if (fn.error_action() == ABORT_ON_ERROR) {
+					return fn.abort();
+				} else if (fn.error_action() == REPLACE_ON_ERROR) {
+					fn.utf16(fn.replacement());
+					state     = UTF8_ACCEPT;
 					codepoint = 0;
-					break;
-				case UTF8_ERROR:
-					#if  defined(_IGNORE_ERRORS)
-						state     = UTF8_ACCEPT;
-						codepoint = 0;
-						continue;
-					#elif defined(_REPLACE_ON_ERROR)
-						fn.utf16(fn.replacement());
-						state     = UTF8_ACCEPT;
-						codepoint = 0;
-						break;
-					#elif defined(_ABORT_ON_ERROR)
-						return fn.abort();
-					#endif
-			}
+				} else {
+					// ignore error
+					state     = UTF8_ACCEPT;
+					codepoint = 0;
+				}
+				break;
+			default:
+				break;
 		}
+	}
 
-		return fn.finish();
+	return fn.finish();
+}
+
+
+inline uint16_t utf8::decode_char(const char*& src) {
+	uint16_t ch1, ch2, ch3;
+
+	ch1 = src[0];
+
+	switch (((uint8_t) ch1) >> 4) {
+	default:  // 1 byte (ASCII)
+		src++;
+		return ch1;
+	case 0xC:
+	case 0xD: // 2 bytes
+		// mask out non-data bits
+		ch1  = ch1    & 0x1F;
+		ch2  = src[1] & 0x3F;
+		src += 2;
+
+		// stitch together data bits from individual bytes
+		return (ch1 << 6) | ch2;
+	case 0xE: // 3 bytes
+		// mask out non-data bits
+		ch1  = ch1    & 0x1F;
+		ch2  = src[1] & 0x3F;
+		ch3  = src[2] & 0x3F;
+		src += 3;
+
+		// stitch together data bits from individual bytes
+		return (ch1 << 12) | (ch2 << 6) | ch3;
 	}
 }
 
-#undef _TAG
-#undef _VISITOR_TYPE
-#undef _ERROR_ACTION
+template<typename Utf8Iterator>
+inline bool utf8::decode(Utf8Iterator begin, Utf8Iterator end, uint16_t *dst) {
+	return ::utf8::transform(begin, end, ::utf8::impl::CopyUtf8ToUtf16(dst));
+}
 
-#ifdef _VISIT_UTF8
-	#undef _VISIT_UTF8
-#endif
-#ifdef _VISIT_UTF16
-	#undef _VISIT_UTF16
-#endif
-#ifdef _IGNORE_ERRORS
-	#undef _IGNORE_ERRORS
-#endif
-#ifdef _REPLACE_ON_ERROR
-	#undef _REPLACE_ON_ERROR
-#endif
-#ifdef _ABORT_ON_ERROR
-	#undef _ABORT_ON_ERROR
-#endif
+#endif // UTF8_TRANSFORM_INC
 
 
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c++
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */

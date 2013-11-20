@@ -26,7 +26,8 @@
 #define _JIT_COMPILER2_SCHEDULELATEPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
-#include "vm/jit/compiler2/InstructionLinkSchedule.hpp"
+#include "vm/jit/compiler2/Loop.hpp"
+#include "vm/jit/compiler2/GlobalSchedule.hpp"
 
 namespace cacao {
 namespace jit {
@@ -36,25 +37,24 @@ namespace compiler2 {
 class Method;
 class Instruction;
 class DominatorTree;
-class LoopTree;
 
 /**
  * ScheduleLatePass
  *
  * Based on the algorithm in Click's Phd Thesis, Chapter 6 @cite ClickPHD.
  */
-class ScheduleLatePass : public Pass, public InstructionLinkSchedule {
+class ScheduleLatePass : public Pass, public GlobalSchedule {
 private:
 	DominatorTree *DT;
 	LoopTree *LT;
-	InstructionLinkSchedule *early;
+	GlobalSchedule *early;
 	Method *M;
-	void schedule_late(Instruction *I);
 public:
+	void schedule_late(Instruction *I);
 	static char ID;
 	ScheduleLatePass() : Pass() {}
-	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PU) const;
+	virtual bool run(JITData &JD);
+	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
 };
 
 } // end namespace compiler2

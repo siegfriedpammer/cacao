@@ -53,7 +53,7 @@ namespace jit {
 namespace compiler2 {
 
 // Forward declarations
-class BasicBlock;
+class InstructionVisitor;
 
 // include instruction declaration
 #include "vm/jit/compiler2/InstructionDeclGen.inc"
@@ -74,6 +74,11 @@ class Instruction : public Value {
 public:
 	typedef std::vector<Value*> OperandListTy;
 	typedef std::list<Instruction*> DepListTy;
+
+	typedef OperandListTy::iterator op_iterator;
+	typedef DepListTy::iterator dep_iterator;
+	typedef OperandListTy::const_iterator const_op_iterator;
+	typedef DepListTy::const_iterator const_dep_iterator;
 
 	enum InstID {
 
@@ -99,7 +104,6 @@ private:
 
 protected:
 	const InstID opcode;
-	BasicBlock *parent;				   ///< BasicBlock containing the instruction or NULL
 	Method* method;
 	const int id;
 	BeginInst* begin;
@@ -138,8 +142,8 @@ public:
 	void set_Method(Method* M) { method = M; }
 	Method* get_Method() const { return method; }
 
-	OperandListTy::const_iterator op_begin() const { return op_list.begin(); }
-	OperandListTy::const_iterator op_end()   const { return op_list.end(); }
+	const_op_iterator op_begin() const { return op_list.begin(); }
+	const_op_iterator op_end()   const { return op_list.end(); }
 	size_t op_size() const { return op_list.size(); }
 	Value* get_operand(size_t i) {
 		return op_list[i];
@@ -158,11 +162,12 @@ public:
 	/// check if the instruction has a homogeneous signature
 	virtual bool is_homogeneous() const { return true; }
 
-	DepListTy::const_iterator dep_begin() const { return dep_list.begin(); }
-	DepListTy::const_iterator dep_end()   const { return dep_list.end(); }
-	DepListTy::const_iterator rdep_begin() const { return reverse_dep_list.begin(); }
-	DepListTy::const_iterator rdep_end()   const { return reverse_dep_list.end(); }
+	const_dep_iterator dep_begin() const { return dep_list.begin(); }
+	const_dep_iterator dep_end()   const { return dep_list.end(); }
 	size_t dep_size() const { return dep_list.size(); }
+	const_dep_iterator rdep_begin() const { return reverse_dep_list.begin(); }
+	const_dep_iterator rdep_end()   const { return reverse_dep_list.end(); }
+	size_t rdep_size() const { return reverse_dep_list.size(); }
 
 	/**
 	 * Get the corresponding BeginInst.
@@ -181,10 +186,10 @@ public:
 		return false;
 	}
 
-	/**
-	 * True if the instruction has no fixed control dependencies
-	 */
+	/// True if the instruction has no fixed control dependencies
 	virtual bool is_floating() const { return true; }
+	/// True the instruction has side effects
+	virtual bool has_side_effects() const { return false; }
 
 	// casting functions
 	virtual Instruction*          to_Instruction()          { return this; }
@@ -201,6 +206,9 @@ public:
 		}
 		return "Unknown Instruction";
 	}
+
+	/// Visitor
+	virtual void accept(InstructionVisitor& v) = 0;
 
 	virtual OStream& print(OStream& OS) const;
 

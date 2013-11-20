@@ -27,6 +27,8 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
+#include "vm/jit/compiler2/MachineBasicBlock.hpp"
+#include "vm/jit/compiler2/RegisterAllocatorPass.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -56,24 +58,28 @@ bool CodeGenPass::run(JITData &JD) {
 	// the jump.
 	for (MachineInstructionSchedule::const_reverse_iterator i = MIS->rbegin(),
 			e = MIS->rend() ; i != e ; ++i ) {
-		MachineInstruction *MI = *i;
-		std::size_t start = CS.size();
-		LOG2("MInst: " << MI << " emitted instruction:" << nl);
-		MI->emit(CM);
-		if (DEBUG_COND_N(2)) {
-			std::size_t end = CS.size();
-			if ( start == end) {
-				LOG2("none" << nl);
-			} else {
-				std::vector<u1> tmp;
-				while(start != end--) {
-					tmp.push_back(CS.at(end));
+		MachineBasicBlock *MBB = *i;
+		for (MachineBasicBlock::const_reverse_iterator i = MBB->rbegin(),
+				e = MBB->rend(); i != e ; ++i) {
+			MachineInstruction *MI = *i;
+			std::size_t start = CS.size();
+			LOG2("MInst: " << MI << " emitted instruction:" << nl);
+			MI->emit(CM);
+			if (DEBUG_COND_N(2)) {
+				std::size_t end = CS.size();
+				if ( start == end) {
+					LOG2("none" << nl);
+				} else {
+					std::vector<u1> tmp;
+					while(start != end--) {
+						tmp.push_back(CS.at(end));
+					}
+	#if defined(ENABLE_DISASSEMBLER)
+					disassemble(&tmp.front(), &tmp.front() + tmp.size());
+	#else
+					// TODO print hex code
+	#endif
 				}
-#if defined(ENABLE_DISASSEMBLER)
-				disassemble(&tmp.front(), &tmp.front() + tmp.size());
-#else
-				// TODO print hex code
-#endif
 			}
 		}
 	}
@@ -216,7 +222,9 @@ void CodeGenPass::finish(JITData &JD) {
 
 	patcher_resolve(code);
 	LOG2("Patchers:" << nl);
+	#if !defined(NDEBUG)
 	DEBUG2(patcher_list_show(code));
+	#endif
 #if 0
 #if defined(ENABLE_REPLACEMENT)
 	/* replacement point resolving */
@@ -251,7 +259,8 @@ void CodeGenPass::finish(JITData &JD) {
 
 // pass usage
 PassUsage& CodeGenPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(MachineInstructionSchedulingPass::ID);
+	PU.add_requires<MachineInstructionSchedulingPass>();
+	PU.add_requires<RegisterAllocatorPass>();
 	return PU;
 }
 // the address of this variable is used to identify the pass

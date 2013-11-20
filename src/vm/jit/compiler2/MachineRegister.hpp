@@ -26,7 +26,7 @@
 #define _JIT_COMPILER2_MACHINEREGISTER
 
 #include "vm/jit/compiler2/MachineOperand.hpp"
-#include "vm/jit/compiler2/RegisterFile.hpp"
+#include "Target.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -36,9 +36,7 @@ namespace jit {
 namespace compiler2 {
 
 class MachineRegister : public Register {
-public:
-//	typedef u8 ID; ///< identify a machine register
-protected:
+private:
 	const char *name;
 public:
 	MachineRegister(const char *name, Type::TypeID type)
@@ -47,19 +45,8 @@ public:
 	virtual const char* get_name() const {
 		return name;
 	}
-//	virtual ID get_ID() const = 0;
 	virtual NativeRegister* to_NativeRegister() = 0;
-	virtual MachineResource get_MachineResource() const = 0;
-	virtual bool operator==(MachineRegister*) const = 0;
-	virtual bool operator==(Register* reg) const {
-		//out() << "MachineRegister::operator==" << this << " == " << reg << nl;
-		MachineRegister *mreg = reg->to_MachineRegister();
-		if (!mreg) {
-			return false;
-		}
-		return operator==(mreg);
-	}
-	~MachineRegister() {}
+	virtual ~MachineRegister() {}
 };
 
 } // end namespace compiler2

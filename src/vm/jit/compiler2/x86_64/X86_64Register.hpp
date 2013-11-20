@@ -27,7 +27,6 @@
 
 #include "vm/jit/compiler2/x86_64/X86_64.hpp"
 #include "vm/jit/compiler2/MachineRegister.hpp"
-#include "vm/jit/compiler2/RegisterFile.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -42,7 +41,26 @@ namespace x86_64 {
  * x86_64 Register
  */
 
-class X86_64Register;
+class X86_64Register {
+public:
+	const unsigned index;
+	const bool extented;
+	const char* name;
+	const MachineOperand::IdentifyOffsetTy offset;
+	const MachineOperand::IdentifySizeTy size;
+
+	X86_64Register(const char* name,unsigned index,bool extented,
+		MachineOperand::IdentifyOffsetTy offset,
+		MachineOperand::IdentifySizeTy size)
+			: index(index), extented(extented), name(name), offset(offset),
+			size(size) {}
+	unsigned get_index() const {
+		return index;
+	}
+	virtual MachineOperand::IdentifyTy id_base()         const = 0;
+	virtual MachineOperand::IdentifyOffsetTy id_offset() const { return offset; }
+	virtual MachineOperand::IdentifySizeTy id_size()     const { return size; }
+};
 
 /**
  * This represents a machine register usage.
@@ -62,58 +80,35 @@ public:
 	X86_64Register* get_X86_64Register() const {
 		return reg;
 	}
-	MachineResource get_MachineResource() const;
-	virtual bool operator==(MachineRegister* reg) const;
+	virtual IdentifyTy id_base()         const { return reg->id_base(); }
+	virtual IdentifyOffsetTy id_offset() const { return reg->id_offset(); }
+	virtual IdentifySizeTy id_size()     const { return reg->id_size(); }
 };
 
-OStream& operator<<(OStream &OS, const X86_64Register& reg);
-
-class X86_64Register : public NativeResource {
-public:
-	const unsigned index;
-	const bool extented;
-	const char* name;
-
-	X86_64Register(const char* name,unsigned index,bool extented)
-		: index(index), extented(extented), name(name) {}
-	unsigned get_index() const {
-		return index;
-	}
-	virtual bool operator==(const NativeResource &other) const {
-		//out() << "X86_64Register::operator== " << get_ID() << " == " << other.get_ID() << nl;
-		return this == &other;
-	}
-	virtual ID get_ID() const {
-		return (ID)this;
-	}
-	virtual MachineRegister* create_MachineRegister(Type::TypeID type) {
-		return new NativeRegister(type,this);
-	}
-};
 inline OStream& operator<<(OStream &OS, const X86_64Register& reg) {
-	return OS << reg.name << " ID: " << reg.get_ID();
-}
-inline MachineResource NativeRegister::get_MachineResource() const {
-	return MachineResource(reg);
-}
-inline bool NativeRegister::operator==(MachineRegister* reg) const {
-	//out() << "NativeRegister::operator== " << this << " == " << reg << nl;
-	NativeRegister *nreg = reg->to_NativeRegister();
-	if (!nreg) return false;
-
-	return *get_X86_64Register() == *nreg->get_X86_64Register();
+	return OS << reg.name;
 }
 
 class GPRegister : public X86_64Register {
+private:
+	static const uint8_t base;
 public:
-	GPRegister(const char* name,unsigned index,bool extented_gpr) :
-		X86_64Register(name,index,extented_gpr) {}
+	GPRegister(const char* name,unsigned index,bool extented_gpr,
+		MachineOperand::IdentifyOffsetTy offset,
+		MachineOperand::IdentifySizeTy size)
+		: X86_64Register(name,index,extented_gpr, offset, size) {}
+	virtual MachineOperand::IdentifyTy id_base()         const { return static_cast<const void*>(&base); }
 };
 
 class SSERegister : public X86_64Register {
+private:
+	static const uint8_t base;
 public:
-	SSERegister(const char* name,unsigned index,bool extented_gpr) :
-		X86_64Register(name,index,extented_gpr) {}
+	SSERegister(const char* name,unsigned index,bool extented_gpr,
+		MachineOperand::IdentifyOffsetTy offset,
+		MachineOperand::IdentifySizeTy size)
+		: X86_64Register(name,index,extented_gpr, offset, size) {}
+	virtual MachineOperand::IdentifyTy id_base()         const { return static_cast<const void*>(&base); }
 };
 
 extern GPRegister RAX;
@@ -155,7 +150,7 @@ extern SSERegister XMM15;
 
 const unsigned FloatArgumentRegisterSize = 8;
 extern SSERegister* FloatArgumentRegisters[];
-
+#if 0
 class RegisterFile : public compiler2::RegisterFile {
 public:
 	RegisterFile(Type::TypeID type) {
@@ -198,7 +193,7 @@ public:
 			"Type: " << type);
 	}
 };
-
+#endif
 } // end namespace x86_64
 } // end namespace compiler2
 } // end namespace jit

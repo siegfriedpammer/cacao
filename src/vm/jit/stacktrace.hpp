@@ -57,11 +57,7 @@ struct stackframeinfo_t {
 	 * The exact GC needs to be able to recover saved registers, so the
 	 * native-stub saves these registers here
 	 */
-# if defined(HAS_ADDRESS_REGISTER_FILE)
-	uintptr_t         adrregs[ADR_SAV_CNT];
-# else
 	uintptr_t         intregs[INT_SAV_CNT];
-# endif
 #endif
 };
 

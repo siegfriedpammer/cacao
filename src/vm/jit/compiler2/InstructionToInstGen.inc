@@ -24,7 +24,7 @@
 
 /*
 WARNING: THIS FILE IS AUTO-GENERATED! DO NOT ALTER!
-Instead have a look into the generator (./instruction_gen.py)
+Instead have a look at the generator (./instruction_gen.py)
 and the input file (./instruction_table.csv).
 */
 

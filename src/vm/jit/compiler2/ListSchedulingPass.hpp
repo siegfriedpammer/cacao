@@ -36,7 +36,7 @@ namespace compiler2 {
 
 class Method;
 class Instruction;
-class InstructionLinkSchedule;
+class GlobalSchedule;
 
 /**
  * ListSchedulingPass
@@ -44,7 +44,7 @@ class InstructionLinkSchedule;
  */
 class ListSchedulingPass : public Pass, public InstructionSchedule<Instruction> {
 private:
-	InstructionLinkSchedule *sched;
+	GlobalSchedule *sched;
 	Method *M;
 public:
 	/**
@@ -53,8 +53,8 @@ public:
 	void schedule(BeginInst *BI);
 	static char ID;
 	ListSchedulingPass() : Pass() {}
-	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PU) const;
+	virtual bool run(JITData &JD);
+	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
 };
 
 } // end namespace compiler2

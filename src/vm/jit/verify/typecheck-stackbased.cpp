@@ -30,17 +30,18 @@
 #include "vm/method.hpp"
 #include "vm/types.hpp"
 
-#include "vm/jit/builtin.hpp"
 #include "mm/memory.hpp"
 #include "mm/dumpmemory.hpp"
 
 #include "vm/array.hpp"
+#include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/field.hpp"
 #include "vm/global.hpp"
 #include "vm/globals.hpp"
 #include "vm/primitive.hpp"
 
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/parse.hpp"
 #include "vm/jit/show.hpp"
 #include "vm/jit/stack.hpp"
@@ -738,7 +739,7 @@ bool typecheck_stackbased(jitdata *jd)
 
 	/* allocate parameter descriptors if necessary */
 
-	descriptor_params_from_paramtypes(state.m->parseddesc, state.m->flags);
+	state.m->parseddesc->params_from_paramtypes(state.m->flags);
 
 	/* allocate the stack buffers */
 
@@ -1032,4 +1033,3 @@ static void typecheck_stackbased_show_state(verifier_state *state,
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */
-

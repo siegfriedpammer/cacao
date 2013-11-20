@@ -99,11 +99,11 @@
 #define fa11  f12
 #define fa12  f13
 
-#define ftmp1 f14
-#define ftmp2 f15
+#define ftmp1 f16
+#define ftmp2 f17
 
-#define fs0   f16
-#define fs1   f17
+#define fs0   f14
+#define fs1   f15
 #define fs2   f18
 #define fs3   f19
 #define fs4   f20

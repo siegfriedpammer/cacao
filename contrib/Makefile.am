@@ -28,7 +28,8 @@ EXTRA_DIST = \
 
 noinst_DATA = \
 	setenvinstalled.in \
-	setenvsource.in
+	setenvsource.in \
+	warnings.ignore.in
 
 ## Local variables:
 ## mode: Makefile

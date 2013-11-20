@@ -104,7 +104,7 @@ struct DstOp {
 class X86_64Instruction : public MachineInstruction {
 public:
 	X86_64Instruction(const char *name, MachineOperand* result,
-		unsigned num_operands) :
+		std::size_t num_operands) :
 			MachineInstruction(name, result, num_operands) {}
 };
 /**
@@ -170,7 +170,7 @@ private:
 	OperandSize op_size;
 public:
 	GPInstruction(const char * name, MachineOperand* result,
-		OperandSize op_size, unsigned num_operands) :
+		OperandSize op_size, std::size_t num_operands) :
 			X86_64Instruction(name, result, num_operands),
 			op_size(op_size) {}
 
@@ -248,7 +248,7 @@ public:
 	 */
 	virtual void emit(CodeMemory* CM) const;
 
-	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
+	virtual bool accepts_immediate(std::size_t i, Immediate *imm) const {
 		if (i != 1) return false;
 		switch (imm->get_type()) {
 		case Type::IntTypeID: return true;
@@ -353,26 +353,6 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
-class CondJumpInst : public X86_64Instruction {
-private:
-	Cond::COND cond;
-	BeginInstRef &target;
-public:
-	CondJumpInst(Cond::COND cond, BeginInstRef &target)
-			: X86_64Instruction("X86_64CondJumpInst", &NoOperand, 0),
-			  cond(cond), target(target) {
-	}
-	BeginInst* get_BeginInst() const {
-		return target.get();
-	}
-	virtual void emit(CodeMemory* CM) const;
-	virtual void link(CodeFragment &CF) const;
-	virtual OStream& print(OStream &OS) const {
-		return OS << "[" << setz(4) << get_id() << "] "
-			<< get_name() << "-> " << get_BeginInst();
-	}
-};
-
 class IMulInst : public GPInstruction {
 public:
 	IMulInst(const Src2Op &src2, const DstSrc1Op &dstsrc1,
@@ -386,15 +366,26 @@ public:
 
 class RetInst : public GPInstruction {
 public:
+	/// void return
 	RetInst(OperandSize op_size)
 			: GPInstruction("X86_64RetInst", &NoOperand, op_size, 0) {
 	}
+	/**
+	 * Non-void return. The source operand is only used to guide
+	 * the register allocator. The user must ensure that the value
+	 * really is in the correct register (e.g. by inserting a move)
+	 */
+	RetInst(OperandSize op_size, const SrcOp &src)
+			: GPInstruction("X86_64RetInst", &NoOperand, op_size, 1) {
+		operands[0].op = src.op;
+	}
+	virtual bool is_end() const { return true; }
 	virtual void emit(CodeMemory* CM) const;
 };
 
 class CallInst : public GPInstruction {
 public:
-	CallInst(const SrcOp &src, const DstOp &dst, unsigned argc)
+	CallInst(const SrcOp &src, const DstOp &dst, std::size_t argc)
 			: GPInstruction("X86_64CallInst", dst.op, OS_64, 1 + argc) {
 		operands[0].op = src.op;
 	}
@@ -407,7 +398,7 @@ public:
 	MovInst(const SrcOp &src, const DstOp &dst,
 		GPInstruction::OperandSize op_size)
 			: MoveInst("X86_64MovInst", src.op, dst.op, op_size) {}
-	virtual bool accepts_immediate(unsigned i, Immediate *imm) const {
+	virtual bool accepts_immediate(std::size_t i, Immediate *imm) const {
 		return true;
 	}
 	virtual void emit(CodeMemory* CM) const;
@@ -443,19 +434,55 @@ public:
 };
 
 class JumpInst : public MachineJumpInst {
-private:
-	BeginInstRef &target;
 public:
-	JumpInst(BeginInstRef &target) : MachineJumpInst("X86_64JumpInst"),
-		target(target) {}
+	JumpInst(MachineBasicBlock *target) : MachineJumpInst("X86_64JumpInst") {
+		successors.push_back(target);
+	}
+	virtual bool is_jump() const {
+		return true;
+	}
 	virtual void emit(CodeMemory* CM) const;
 	virtual void link(CodeFragment &CF) const;
-	virtual OStream& print(OStream &OS) const {
-		return OS << "[" << setz(4) << get_id() << "] "
-			<< get_name() << "-> " << get_BeginInst();
+};
+
+class CondJumpInst : public X86_64Instruction {
+private:
+	Cond::COND cond;
+	/// jump to the else target
+	JumpInst jump;
+public:
+	CondJumpInst(Cond::COND cond, MachineBasicBlock *then_target, MachineBasicBlock *else_target)
+			: X86_64Instruction("X86_64CondJumpInst", &NoOperand, 0),
+			  cond(cond), jump(else_target) {
+		successors.push_back(then_target);
+		successors.push_back(else_target);
 	}
-	BeginInst* get_BeginInst() const {
-		return target.get();
+	virtual bool is_jump() const {
+		return true;
+	}
+	virtual void emit(CodeMemory* CM) const;
+	virtual void link(CodeFragment &CF) const;
+	virtual OStream& print_successor_label(OStream &OS,std::size_t index) const;
+	MachineBasicBlock* get_then() const {
+		return successor_front();
+	}
+	MachineBasicBlock* get_else() const {
+		return successor_back();
+	}
+};
+
+class IndirectJumpInst : public X86_64Instruction {
+public:
+	IndirectJumpInst(const SrcOp &src)
+			: X86_64Instruction("X86_64IndirectJumpInst", &NoOperand, 1) {
+		operands[0].op = src.op;
+	}
+	virtual bool is_jump() const {
+		return true;
+	}
+	virtual void emit(CodeMemory* CM) const;
+	void add_target(MachineBasicBlock *MBB) {
+		successors.push_back(MBB);
 	}
 };
 // Double & Float operations

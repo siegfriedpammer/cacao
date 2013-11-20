@@ -27,8 +27,8 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
-
 #include "vm/jit/jit.hpp"
+#include "future/unordered_map.hpp"
 
 #include <vector>
 
@@ -49,9 +49,9 @@ class SSAConstructionPass : public Pass {
 private:
 	Method *M;
 	std::vector<BeginInst*> BB;
-	std::map<BeginInst*,size_t> beginToIndex;
+	unordered_map<BeginInst*,size_t> beginToIndex;
 	std::vector<std::vector<Value*> > current_def;
-	// TODO may be changed to std::vector<std::map<int,PHIInst*> > incomplete_phi;
+	// TODO may be changed to std::vector<unordered_map<int,PHIInst*> > incomplete_phi;
 	std::vector<std::vector<PHIInst*> > incomplete_phi;
 	std::vector<bool> sealed_blocks;
 	//
@@ -70,6 +70,7 @@ public:
 	SSAConstructionPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual bool verify() const;
+	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
 };
 
 } // end namespace cacao

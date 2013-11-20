@@ -21,7 +21,7 @@
 ## 02110-1301, USA.
 
 
-AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)/src
+AM_CPPFLAGS += -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)/src
 
 LIBS =
 
@@ -38,7 +38,6 @@ DIST_SUBDIRS = \
 	alpha \
 	arm \
 	i386 \
-	m68k \
 	mips \
 	parisc \
 	powerpc \

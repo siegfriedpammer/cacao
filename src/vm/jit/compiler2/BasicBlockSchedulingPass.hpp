@@ -32,21 +32,25 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+// forward declaration
+class Method;
 
 /**
  * BasicBlockSchedulingPass
  * TODO: more info
  */
 class BasicBlockSchedulingPass : public Pass, public BasicBlockSchedule {
+private:
+	Method *M;
 public:
 	static char ID;
 	BasicBlockSchedulingPass() : Pass() {}
-	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PA) const;
-	void initialize() {
-		bb_list.clear();
+	virtual bool run(JITData &JD);
+	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
+	virtual void initialize() {
+		clear();
 	}
-	bool verify() const;
+	virtual bool verify() const;
 };
 
 } // end namespace compiler2

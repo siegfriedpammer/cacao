@@ -80,8 +80,6 @@ void md_init(void)
  */
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	int disp = 0;
-	int cause;
 	ucontext_t* _uc = (struct ucontext *) _p;
 	mcontext_t* _mc = &_uc->uc_mcontext;
 	void *xpc;
@@ -90,8 +88,10 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 # if ((__GLIBC__ == 2) && (__GLIBC_MINOR__ < 5))
 	/* NOTE: We only need this for pre glibc-2.5. */
 
-	/* get the cause of this exception */
+	int disp = 0;
+	int cause;
 
+	/* get the cause of this exception */
 	cause = _mc->cause;
 
 	/* check the cause to find the faulting instruction */

@@ -23,8 +23,8 @@
 */
 
 #include "vm/jit/compiler2/MachineInstruction.hpp"
-#include "vm/jit/compiler2/LoweredInstDAG.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
+#include "vm/jit/compiler2/MachineBasicBlock.hpp"
 
 #include "toolbox/OStream.hpp"
 
@@ -34,39 +34,42 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-unsigned MachineInstruction::id_counter = 0;
+std::size_t MachineInstruction::id_counter = 0;
 
 OStream& MachineInstruction::print(OStream &OS) const {
-	OS << "[" << setw(4) << fillzero << get_id() << "] " << get_name();
+	// print id
+	OS << "[" << setw(4) << fillzero << get_id() << "] ";
+	// print name
+	OS << get_name();
+	// print operands
 	for (MachineInstruction::const_operand_iterator i = begin(),
 			e = end(); i != e ; ++i) {
-		OS << ' ' << (*i);
+		OS << " " << (*i);
 	}
+	// print result
 	MachineOperand *result = get_result().op;
 	if (!result->to_VoidOperand()) {
 		OS << " -> " << result;
 	}
-	#if 0
-	if (get_parent()) {
-		assert(get_parent()->get_Instruction());
-		EndInst* EI = get_parent()->get_Instruction()->to_EndInst();
-		if (EI) {
-			for (EndInst::SuccessorListTy::const_iterator i = EI->succ_begin(),
-					e = EI->succ_end(); i != e; ++i) {
-				OS << ' ' << *i;
-			}
+	// print successors
+	if (!successor_empty()) {
+		OS << " [";
+		std::size_t index = 0;
+		for (const_successor_iterator i = successor_begin(), e = successor_end();
+				i != e; ++i) {
+			print_successor_label(OS,index) << "=" << **i << " ";
+			++index;
 		}
+		OS << "]";
 	}
-	#endif
+	if (comment) {
+		OS << " # " << comment;
+	}
 	return OS;
 }
 
-void MachineInstruction::add_before(MachineInstruction *MI) {
-	assert(parent);
-	LOG2("add before " << this << " : " << MI << nl);
-	LOG2("minst.size: " << parent->mi_size() << nl);
-	//FIXME
-	parent->add_before(this,MI);
+OStream& MachineInstruction::print_successor_label(OStream &OS,std::size_t index) const {
+	return OS << index;
 }
 
 void MachineInstruction::emit(CodeMemory* CM) const {

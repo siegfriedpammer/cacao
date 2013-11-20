@@ -29,11 +29,8 @@
 #include "vm/jit/compiler2/LivetimeAnalysisPass.hpp"
 #include "vm/jit/compiler2/MachineRegister.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
-#include "vm/jit/compiler2/LoweringPass.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
-#include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
-#include "vm/jit/compiler2/ScheduleClickPass.hpp"
 #include "vm/statistics.hpp"
 
 #include <climits>
@@ -50,348 +47,516 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-template <typename Key, typename T>
-bool max_value_comparator(const std::pair<Key,T> &lhs, const std::pair<Key,T> &rhs) {
-	return lhs.second < rhs.second;
-}
-
-void LinearScanAllocatorPass::split(LivetimeInterval *lti, unsigned pos) {
-	// split interval
-	MachineRegister *reg = lti->get_Register()->to_MachineRegister();
-
-	lti->split(pos, jd->get_StackSlotManager());
-	LivetimeInterval *tmp_lti = lti->get_next();
-	if (tmp_lti) {
-		LOG2("altered lti: " << lti << nl);
-		if (!tmp_lti->is_in_Register()) {
-			// StackSlot
-			LivetimeInterval *stack_lti = tmp_lti;
-			unhandled.push(stack_lti);
-			// get slot
-			ManagedStackSlot *slot = stack_lti->get_ManagedStackSlot();
-			assert(slot);
-			// spill
-			MachineInstruction *move_to_stack = backend->create_Move(reg,slot);
-			MIS->add_before(unsigned(pos/2),move_to_stack);
-			LOG2("spill instruction: " << move_to_stack << " pos " << unsigned(pos/2) << nl);
-
-			LOG2("stack interval: " << stack_lti << nl);
-			LivetimeInterval *new_lti = stack_lti->get_next();
-			if (new_lti) {
-				// we a new lti
-				LOG2("new lti: " << new_lti << nl);
-				// load
-				MachineInstruction *move_from_stack =
-					backend->create_Move(slot,new_lti->get_Register());
-				LOG2("load instruction: " << move_from_stack << " pos " << unsigned(new_lti->get_start() / 2) << nl);
-				MIS->add_before(unsigned(new_lti->get_start()/2),move_from_stack);
-				new_lti->add_def(new_lti->get_start(),move_from_stack->get_result());
-				unhandled.push(new_lti);
-			}
-		} else {
-			LOG2("new lti (no stack): " << tmp_lti << nl);
-			unhandled.push(tmp_lti);
-		}
-		// TODO is this really enough? dont we need more loads?
-		// register new def (load)
-
-	}
+bool LinearScanAllocatorPass::StartComparator::operator()(const LivetimeInterval &lhs,
+		const LivetimeInterval &rhs) {
+	return rhs.front().start < lhs.front().start;
 }
 
 namespace {
-
-MachineResource get_MachineResource_from_MachineRegister(const MachineRegister* reg) {
-	return reg->get_MachineResource();
-}
-MachineRegister* get_MachineRegister_from_MachineResource(const MachineResource& res, Type::TypeID type) {
-	return res.create_MachineRegister(type);
-}
-
-} // end anonymous namespace
-
-inline bool LinearScanAllocatorPass::try_allocate_free_reg(LivetimeInterval *current) {
-	RegisterFile* reg_file = backend->get_RegisterFile(current->get_type());
-	assert(reg_file);
-	Type::TypeID type = current->get_type();
-
-	std::map<MachineResource,unsigned> free_until_pos;
-	LOG2(BoldMagenta << "try_allocate_free_reg (current=" << current << ")" << reset_color << nl);
-
-	// set all registers to free
-	for(RegisterFile::const_iterator i = reg_file->begin(), e = reg_file->end();
-			i != e ; ++i) {
-		MachineResource res = *i;
-		free_until_pos[res] = UINT_MAX;
-		//LOG3("res free_until_pos[" << res << "] = UINT_MAX " << UINT_MAX << nl);
+/**
+ * @Cpp11 use std::function
+ */
+struct FreeUntilCompare: public std::binary_function<MachineOperand*,MachineOperand*,bool> {
+	bool operator()(MachineOperand *lhs, MachineOperand *rhs) {
+		bool r = lhs->aquivalence_less(*rhs);
+		//LOG2("FreeUntilCompare: " << *lhs << " aquivalence_less " << *rhs << "=" << r << nl);
+		return r;
 	}
-	// set active registes to occupied
-	for (ActiveSetTy::const_iterator i = active.begin(), e = active.end();
-			i != e ; ++i) {
-		if (!(*i)->is_in_Register()) continue;
-		MachineRegister *reg = (*i)->get_Register()->to_MachineRegister();
-		// only consider valid regs
-		if (!reg_file->contains(reg)) continue;
-		// all active intervals must be assigned to machine registers
-		if (DEBUG_COND && !reg) {
-			ABORT_MSG("Interval " << current << " not in a machine reg " << (*i)->get_Register(), "Not yet supported!");
-		}
-		assert(reg);
-		// reg not free!
-		free_until_pos[get_MachineResource_from_MachineRegister(reg)] = 0;
-		LOG3("active " << *i << " free_until_pos[" << reg << "] = 0" << nl);
-	}
-	// all intervals in inactive intersection with current
-	for (InactiveSetTy::const_iterator i = inactive.begin(), e = inactive.end();
-			i != e ; ++i) {
-		LivetimeInterval *inact = *i;
-		assert(inact);
-		if (!inact->is_in_Register()) continue;
-		signed intersection = current->intersects(*inact);
-		if (intersection != -1) {
-			LOG2("interval " << current << " intersects with " << inact << " (inactive) at " << intersection << nl);
-			MachineRegister *reg = inact->get_Register()->to_MachineRegister();
-			assert(reg);
-			// only consider valid regs
-			if (!reg_file->contains(reg)) continue;
-			// reg not free!
-			free_until_pos[get_MachineResource_from_MachineRegister(reg)] = intersection;
-		}
+};
 
-	}
-	// selected register
-	MachineRegister *reg = NULL;
-	unsigned free_pos;
-	// new scope
-	{
-		// check register hint
-		Register *hint = current->get_hint();
-		LivetimeInterval *hint_lti;
-		if (hint && (hint_lti = LA->get(hint)) ) {
-			LOG2("Hint: " << hint_lti << nl);
-			reg = hint_lti->get_Register()->to_MachineRegister();
-			assert(reg);
-			// only consider valid regs
-			if (reg_file->contains(reg)) {
-				free_pos = free_until_pos[get_MachineResource_from_MachineRegister(reg)];
-				// free_pos = 0 indicates that either reg is occupied or is
-				// generally not available for assignment (not in regfile)
-				if (current->get_start() <= hint_lti->get_end() && free_pos != 0) {
-					LOG2(" Followed!" << nl);
-					STATISTICS(num_hints_followed++);
-				} else {
-					LOG2("Not followed!" << nl);
-					reg = NULL;
-				}
-			} else {
-				LOG2("Not followed! (invalid hint!)" << nl);
-				reg = NULL;
-			}
-		}
-	}
-	if (!reg) {
-		// get the register with the maximum free until number
-		std::map<MachineResource,unsigned>::const_iterator i = std::max_element(free_until_pos.begin(),
-			free_until_pos.end(), max_value_comparator<MachineResource, unsigned>);
-		assert(i != free_until_pos.end());
-		reg = get_MachineRegister_from_MachineResource(i->first,type);
-		free_pos = i->second;
-		assert(reg);
-	}
+typedef std::map<MachineOperand*,UseDef,FreeUntilCompare> FreeUntilMap;
 
-	LOG("Selected Register: " << reg << " (free until: " << free_pos << ")" << nl);
-	if ( free_pos == 0) {
-		// no register available without spilling
-		return false;
-	}
-	if ( current->get_end() <= free_pos ) {
-		// register available for the whole interval. jackpot!
-		current->set_Register(reg);
-		return true;
-	}
-	// register available for the first part of the interval
-	current->set_Register(reg);
-	// split current before free_pos
-	LOG2("split: " << current << " at " << free_pos << nl);
-	split(current, free_pos);
+/**
+ * @Cpp11 use std::function
+ */
+struct InitFreeUntilMap: public std::unary_function<MachineOperand*,void> {
+	FreeUntilMap &free_until_pos;
+	UseDef end;
+	/// Constructor
+	InitFreeUntilMap(FreeUntilMap &free_until_pos,
+		UseDef end) : free_until_pos(free_until_pos), end(end) {}
 
-	return true;
-}
-
-inline bool LinearScanAllocatorPass::allocate_blocked_reg(LivetimeInterval *current) {
-	RegisterFile* reg_file = backend->get_RegisterFile(current->get_type());
-	assert(reg_file);
-
-	std::map<MachineResource,unsigned> next_use_pos;
-	LOG2(BoldCyan << "allocate_blocked_reg (current=" << current << ")" << reset_color << nl);
-
-	// Remember best interval
-	LivetimeInterval *best_lti = NULL;
-	MachineRegister *best_reg = NULL;
-	signed best_next_use_pos = -1;
-
-	// set all registers to free
-	for(RegisterFile::const_iterator i = reg_file->begin(), e = reg_file->end();
-			i != e ; ++i) {
-		MachineResource res = *i;
-		next_use_pos[res] = UINT_MAX;
-	}
-	// for each interval in active
-	for (ActiveSetTy::const_iterator i = active.begin(), e = active.end();
-			i != e ; ++i) {
-		LivetimeInterval *lti = *i;
-		if (!lti->is_in_Register()) continue;
-		MachineRegister *reg = lti->get_Register()->to_MachineRegister();
-		assert(reg);
-		// only consider valid regs
-		if (!reg_file->contains(reg)) continue;
-		signed pos = lti->next_usedef_after(current->get_start());
-		next_use_pos[get_MachineResource_from_MachineRegister(reg)] = pos;
-		LOG3("active: " << lti << " pos: " << pos << nl);
-		if (pos > best_next_use_pos && !lti->is_fixed_interval()) {
-			best_next_use_pos = pos;
-			best_reg = reg;
-			best_lti = lti;
-		}
-	}
-	// for each interval in inactive intersecting with current
-	for (InactiveSetTy::const_iterator i = inactive.begin(), e = inactive.end();
-			i != e ; ++i) {
-		LivetimeInterval *inact = *i;
-		if (!inact->is_in_Register()) continue;
-		assert(inact);
-		signed intersection = current->intersects(*inact);
-		if (intersection != -1) {
-			LivetimeInterval *lti = *i;
-			MachineRegister *reg = lti->get_Register()->to_MachineRegister();
-			assert(reg);
-			// only consider valid regs
-			if (!reg_file->contains(reg)) continue;
-			signed pos = lti->next_usedef_after(current->get_start());
-			next_use_pos[get_MachineResource_from_MachineRegister(reg)] = pos;
-			LOG3("inactive: " << lti << " pos: " << pos << nl);
-			if (pos > best_next_use_pos && !lti->is_fixed_interval()) {
-				best_next_use_pos = pos;
-				best_reg = reg;
-				best_lti = lti;
-			}
-		}
-
-	}
-
-	// get the register with the highest next use position
-	#if 0
-	std::map<MachineResource,unsigned>::const_iterator i = std::max_element(next_use_pos.begin(),
-		next_use_pos.end(), max_value_comparator<MachineRegister*, unsigned>);
-	assert(i != next_use_pos.end());
-	MachineRegister *reg = i->first;
-	unsigned use_pos = i->second;
-	#endif
-	MachineRegister *reg = best_reg;
-	unsigned use_pos = best_next_use_pos;
-	LivetimeInterval *lti = best_lti;
-
-	assert(lti);
-
-	LOG("Selected Register: " << reg << " (free until: " << use_pos << ")" << nl);
-	signed current_usepos = current->next_usedef_after(current->get_start());
-	assert(current_usepos != -1);
-	LOG("current usepos: " << current_usepos << nl);
-	if (current_usepos > use_pos) {
-		// all other intervals are used before current
-		// so it is best to spill current itself
-		LOG2("all other intervals are used before current so it is best to spill current itself" << nl);
-		// TODO assign spillslot to current
-		// TODO spill current before its first use position that requires a register (??)
-		ABORT_MSG("not implemented","");
-	} else {
-		// spill intervals that currently block reg
-		LOG2("spill intervals that currently block reg" << nl);
-		current->set_Register(reg);
-		active.push_back(current);
-		// TODO split active interval for reg at position (position is start of current)
-		// stack slot
-		LOG2("split " << lti << " at " << current->get_start() << nl);
-
-		split(lti,current->get_start());
-
-		// TODO split an inactive interval for reg at the end of its lifetime hole
-		for (InactiveSetTy::const_iterator i = inactive.begin(), e = inactive.end();
-				i != e ; ++i) {
-			LivetimeInterval *inact = *i;
-			assert(inact);
-			if (inact->get_Register() == reg) {
-				assert(lti != inact);
-				LOG2("split " << inact << " at end of livetime hole" << nl);
-				split(inact,current->get_start());
-				//ABORT_MSG("split at end of livetime hole","not implemented");
-			}
-		}
-	}
-
-	// make sure that current does not intersect with the fixed interval for reg
-	LOG2("make sure that current does not intersect with the fixed interval for reg" << nl);
-	// TODO if current intersects with the fixed interval for reg then split current before this intersection
-	return true;
-}
-
-namespace {
-
-template <class _T, typename _V>
-struct push_lambda {
-	_T& obj;
-	push_lambda(_T &obj) : obj(obj) {}
-	void operator()(_V x) {
-		obj.push(x);
+	void operator()(MachineOperand *MO) {
+		free_until_pos.insert(std::make_pair(MO,end));
 	}
 };
 
 
-#if 0
-/// @Cpp11 use std::function instead
-struct _lti_same_operand
-		: public std::binary_function<LivetimeInterval*,LivetimeInterval*,bool> {
-	bool operator()(LivetimeInterval *lhs, LivetimeInterval *rhs) const {
-		return lhs->get_Register() == rhs->get_Register() ||
-			lhs->get_ManagedStackSlot() == rhs->get_ManagedStackSlot();
-	}
-} lti_same_operand;
-#endif
+/**
+ * @Cpp11 use std::function
+ */
+struct SetActive: public std::unary_function<LivetimeInterval&,void> {
+	FreeUntilMap &free_until_pos;
+	UseDef start;
+	/// Constructor
+	SetActive(FreeUntilMap &free_until_pos,
+		UseDef start) : free_until_pos(free_until_pos), start(start) {}
 
-} //end anonymous namespace
-
-void LinearScanAllocatorPass::split_blocking_ltis(LivetimeInterval* current) {
-	MachineRegister *reg = current->get_Register()->to_MachineRegister();
-	assert(reg);
-	// spill intervals that currently block reg
-	LOG2("spill intervals that currently block reg" << nl);
-	LOG2("current " << current << " " << (void*) current->get_Register() <<  nl);
-	// split active
-	for (ActiveSetTy::const_iterator i = active.begin(), e = active.end();
-			i != e ; ++i) {
-		LivetimeInterval *act = *i;
-		assert(act);
-		if (!act->is_in_Register()) continue;
-		LOG2("active " << act << " " << (void *) act->get_Register() << nl);
-		if (act->get_Register() && *act->get_Register()->to_MachineRegister() == reg) {
-			assert(current != act);
-			LOG2("split " << act << " at " << current->get_start() << nl);
-			split(act,current->get_start());
+	void operator()(LivetimeInterval& lti) {
+		MachineOperand *MO = lti.get_operand();
+		//LOG2("SetActive: " << lti << " operand: " << *MO << nl);
+		FreeUntilMap::iterator i = free_until_pos.find(MO);
+		if (i != free_until_pos.end()) {
+			//LOG2("set to zero" << nl);
+			LOG2("SetActive: " << lti << " operand: " << *MO << " to " << start << nl);
+			i->second = start;
 		}
 	}
+};
 
-	// split inactive
-	for (InactiveSetTy::const_iterator i = inactive.begin(), e = inactive.end();
-			i != e ; ++i) {
-		LivetimeInterval *inact = *i;
-		assert(inact);
-		if (!inact->is_in_Register()) continue;
-		LOG2("inactive " << inact << nl);
-		if (inact->get_Register() && *inact->get_Register()->to_MachineRegister() == reg) {
-			assert(current != inact);
-			LOG2("split " << inact << " at end of livetime hole" << nl);
-			split(inact,current->get_start());
+
+/**
+ * @Cpp11 use std::function
+ */
+struct SetIntersection: public std::unary_function<LivetimeInterval&,void> {
+	FreeUntilMap &free_until_pos;
+	LivetimeInterval &current;
+	UseDef pos;
+	UseDef end;
+	/// Constructor
+	SetIntersection(FreeUntilMap &free_until_pos,
+		LivetimeInterval &current, UseDef pos, UseDef end)
+		: free_until_pos(free_until_pos), current(current), pos(pos), end(end) {}
+
+	void operator()(LivetimeInterval& lti) {
+		MachineOperand *MO = lti.get_operand();
+		FreeUntilMap::iterator i = free_until_pos.find(MO);
+		if (i != free_until_pos.end()) {
+			UseDef inter = next_intersection(lti,current,pos,end);
+			if (inter != end) {
+				UseDef inter = next_intersection(lti,current,pos,end);
+				if (inter < i->second) {
+					i->second = inter;
+					LOG2("SetIntersection: " << lti << " operand: " << *MO << " to " << i->second << nl);
+				}
+			}
 		}
 	}
+};
+
+
+/**
+ * @Cpp11 use std::function
+ */
+struct FreeUntilMaxCompare
+		: public std::binary_function<const FreeUntilMap::value_type&, const FreeUntilMap::value_type&,bool> {
+	bool operator()(const FreeUntilMap::value_type &lhs, const FreeUntilMap::value_type &rhs) {
+		return lhs.second < rhs.second;
+	}
+};
+
+/**
+ * @Cpp11 use std::function
+ */
+struct SetUseDefOperand: public std::unary_function<const UseDef&,void> {
+	MachineOperand *op;
+	/// Constructor
+	SetUseDefOperand(MachineOperand* op) : op(op) {}
+	void operator()(const UseDef &usedef) {
+		LOG2("  set def operand " << usedef << " to " << op << nl);
+		usedef.get_operand()->op = op;
+	}
+};
+
+
+MIIterator insert_move_before(MachineInstruction* move, UseDef usedef) {
+	MIIterator free_until_pos_reg = usedef.get_iterator();
+	assert(!(*free_until_pos_reg)->is_label());
+	return insert_before(free_until_pos_reg, move);
+
+}
+
+} // end anonymous namespace
+
+inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current, UseDef pos) {
+	LOG2(Magenta << "try_allocate_free: " << current << reset_color << nl);
+	// set free until pos of all physical operands to maximum
+	FreeUntilMap free_until_pos;
+	OperandFile op_file;
+	backend->get_OperandFile(op_file,current.get_operand());
+	// set to end
+	std::for_each(op_file.begin(),op_file.end(),
+		InitFreeUntilMap(free_until_pos, UseDef(UseDef::PseudoDef,MIS->mi_end())));
+
+	// for each interval in active set free until pos to zero
+	std::for_each(active.begin(), active.end(),
+		SetActive(free_until_pos, UseDef(UseDef::PseudoUse,MIS->mi_begin())));
+
+	// for each interval in inactive set free until pos to next intersection
+	std::for_each(inactive.begin(), inactive.end(),
+		SetIntersection(free_until_pos, current,pos,UseDef(UseDef::PseudoDef,MIS->mi_end())));
+
+	LOG2("free_until_pos:" << nl);
+	for (FreeUntilMap::iterator i = free_until_pos.begin(), e = free_until_pos.end(); i != e; ++i) {
+		LOG2("  " << (i->first) << ": " << i->second << nl);
+	}
+
+	// XXX hints!
+	// get operand with highest free until pos
+	FreeUntilMap::value_type x = *std::max_element(free_until_pos.begin(), free_until_pos.end(), FreeUntilMaxCompare());
+	LOG2("reg: " << x.first << " pos: " << x.second << nl);
+	MachineOperand *reg = x.first;
+	UseDef free_until_pos_reg = x.second;
+
+	if (free_until_pos_reg == UseDef(UseDef::PseudoUse,MIS->mi_begin())) {
+		// no register available without spilling
+		return false;
+	}
+	if (current.back().end < free_until_pos_reg) {
+		// register available for the whole interval
+		current.set_operand(reg);
+		LOG2("assigned operand: " << *reg << nl);
+		return true;
+	}
+	// register available for the first part of the interval
+	MachineOperand *tmp = new VirtualRegister(reg->get_type());
+	MachineInstruction *move = backend->create_Move(reg,tmp);
+	MIIterator split_pos = insert_move_before(move,free_until_pos_reg);
+	assert_msg(pos.get_iterator() < split_pos, "pos: " << pos << " free_until_pos_reg "
+		<< free_until_pos_reg << " split: " << split_pos);
+	LivetimeInterval lti = current.split_active(split_pos);
+	unhandled.push(lti);
+	return true;
+}
+
+namespace {
+/**
+ * @Cpp11 use std::function
+ */
+struct SetNextUseActive: public std::unary_function<LivetimeInterval&,void> {
+	FreeUntilMap &next_use_pos;
+	UseDef pos;
+	UseDef end;
+	/// Constructor
+	SetNextUseActive(FreeUntilMap &next_use_pos,
+		UseDef pos, UseDef end) : next_use_pos(next_use_pos), pos(pos), end(end) {}
+
+	void operator()(LivetimeInterval& lti) {
+		MachineOperand *MO = lti.get_operand();
+		//LOG2("SetActive: " << lti << " operand: " << *MO << nl);
+		FreeUntilMap::iterator i = next_use_pos.find(MO);
+		if (i != next_use_pos.end()) {
+			//LOG2("set to zero" << nl);
+			i->second = lti.next_usedef_after(pos,end);
+			LOG2("SetNextUseActive: " << lti << " operand: " << *MO << " to " << i->second << nl);
+		}
+	}
+};
+
+/**
+ * @Cpp11 use std::function
+ */
+struct SetNextUseInactive: public std::unary_function<LivetimeInterval&,void> {
+	FreeUntilMap &free_until_pos;
+	LivetimeInterval &current;
+	UseDef pos;
+	UseDef end;
+	/// Constructor
+	SetNextUseInactive(FreeUntilMap &free_until_pos,
+		LivetimeInterval &current, UseDef pos, UseDef end)
+		: free_until_pos(free_until_pos), current(current), pos(pos), end(end) {}
+
+	void operator()(LivetimeInterval& lti) {
+		MachineOperand *MO = lti.get_operand();
+		FreeUntilMap::iterator i = free_until_pos.find(MO);
+		if (i != free_until_pos.end() && next_intersection(lti,current,pos,end) != end) {
+			i->second = lti.next_usedef_after(pos,end);
+			LOG2("SetNextUseInactive: " << lti << " operand: " << *MO << " to " << i->second << nl);
+		}
+	}
+};
+
+inline MachineOperand* get_stackslot(Backend *backend, Type::TypeID type) {
+	return backend->get_JITData()->get_StackSlotManager()->create_ManagedStackSlot(type);
+}
+
+void split_active_position(LivetimeInterval lti, UseDef current_pos, UseDef next_use_pos, Backend *backend,
+		LinearScanAllocatorPass::UnhandledSetTy &unhandled) {
+	MachineOperand *MO = lti.get_operand();
+
+	MachineOperand *stackslot = NULL;
+	if (current_pos.is_pseudo()) {
+		// We do not create moves for pseudo positions. This is handled during
+		// resolve.
+		if(lti.front().start == current_pos) {
+			// we are trying to spill a phi output operand interval
+			// just set the operand
+			stackslot = get_stackslot(backend,MO->get_type());
+			lti.set_operand(stackslot);
+		}
+		else {
+			// we are trying to spill a phi output operand interval
+			// split without a move
+			stackslot = get_stackslot(backend,MO->get_type());
+			lti = lti.split_phi_active(current_pos.get_iterator(),stackslot);
+			// XXX should we add the stack interval?
+			unhandled.push(lti);
+		}
+	}
+	else {
+		// move to stack
+		stackslot = get_stackslot(backend,MO->get_type());
+		MachineInstruction *move_to_stack = backend->create_Move(MO,stackslot);
+		MIIterator split_pos = insert_move_before(move_to_stack,current_pos);
+		lti = lti.split_active(split_pos);
+		// XXX should we add the stack interval?
+		unhandled.push(lti);
+	}
+	// move from stack
+	if (!next_use_pos.is_pseudo()) {
+		// if the next use position is no real use/def we can ignore it
+		// the moves, if required, will be inserted by the resolution phase
+		MachineOperand *vreg = new VirtualRegister(MO->get_type());
+		MachineInstruction *move_from_stack = backend->create_Move(stackslot, vreg);
+		MIIterator split_pos = insert_move_before(move_from_stack,next_use_pos);
+		lti = lti.split_active(split_pos);
+		unhandled.push(lti);
+	}
+}
+
+/**
+ * @Cpp11 use std::function
+ */
+struct SplitActive: public std::unary_function<LivetimeInterval&,void> {
+	MachineOperand *reg;
+	UseDef pos;
+	UseDef next_use_pos;
+	Backend *backend;
+	LinearScanAllocatorPass::UnhandledSetTy &unhandled;
+	/// Constructor
+	SplitActive(MachineOperand *reg , UseDef pos, UseDef next_use_pos, Backend *backend,
+		LinearScanAllocatorPass::UnhandledSetTy &unhandled)
+			: reg(reg), pos(pos), next_use_pos(next_use_pos), backend(backend), unhandled(unhandled) {}
+
+	void operator()(LivetimeInterval& lti) {
+		MachineOperand *MO = lti.get_operand();
+		if (reg->aquivalent(*MO)) {
+			split_active_position(lti,pos,next_use_pos,backend, unhandled);
+		}
+	}
+};
+
+/**
+ * @Cpp11 use std::function
+ */
+struct SplitInactive: public std::unary_function<LivetimeInterval&,void> {
+	MachineOperand *reg;
+	UseDef pos;
+	LinearScanAllocatorPass::UnhandledSetTy &unhandled;
+	/// Constructor
+	SplitInactive(MachineOperand *reg , UseDef pos,	LinearScanAllocatorPass::UnhandledSetTy &unhandled)
+			: reg(reg), pos(pos), unhandled(unhandled) {}
+
+	void operator()(LivetimeInterval& lti) {
+		MachineOperand *MO = lti.get_operand();
+		if (reg->aquivalent(*MO)) {
+			//ABORT_MSG("Spill current not yet implemented","not yet implemented");
+			LivetimeInterval new_lti = lti.split_inactive(pos, new VirtualRegister(reg->get_type()));
+			assert(lti.front().start < new_lti.front().start);
+			unhandled.push(new_lti);
+		}
+	}
+};
+
+inline void split_current(LivetimeInterval &current, Type::TypeID type, UseDef pos, UseDef end,
+		LinearScanAllocatorPass::UnhandledSetTy &unhandled, Backend *backend) {
+	LOG2("Spill current (" << current << ") at " << pos << nl);
+	// create move
+	MachineOperand *stackslot = get_stackslot(backend,type);
+	// only create new register if there is a user
+	if ( pos != end) {
+		MachineOperand *vreg = new VirtualRegister(type);
+		MachineInstruction *move_from_stack = backend->create_Move(stackslot,vreg);
+		// split
+		MIIterator split_pos = insert_move_before(move_from_stack,pos);
+		LivetimeInterval new_lti = current.split_active(split_pos);
+		unhandled.push(new_lti);
+	}
+	// set operand
+	current.set_operand(stackslot);
+}
+
+OStream& print_code(OStream &OS, MIIterator pos, MIIterator min, MIIterator max,
+		MIIterator::difference_type before, MIIterator::difference_type after) {
+	MIIterator i = pos;
+	MIIterator e = pos;
+	before = std::min(before,std::distance(min,pos));
+	after = std::min(after,std::distance(pos,max));
+	std::advance(i,-before);
+	std::advance(e,after+1);
+
+	OS << "..." << nl;
+	for ( ; i != e ; ++i) {
+		if (i == pos) {
+			OS << BoldYellow;
+		}
+		OS << i << reset_color << nl;
+	}
+	return OS << "..." << nl;
+}
+
+} // end anonymous namespace
+
+inline bool LinearScanAllocatorPass::allocate_blocked(LivetimeInterval &current) {
+	LOG2(Blue << "allocate_blocked: " << current << reset_color << nl);
+	// set free until pos of all physical operands to maximum
+	FreeUntilMap next_use_pos;
+	OperandFile op_file;
+	backend->get_OperandFile(op_file,current.get_operand());
+	// set to end
+	std::for_each(op_file.begin(),op_file.end(),
+		InitFreeUntilMap(next_use_pos, UseDef(UseDef::PseudoDef,MIS->mi_end())));
+
+	// for each interval it in active set next use to next use after start of current
+	std::for_each(active.begin(), active.end(),
+		SetNextUseActive(next_use_pos, current.front().start, UseDef(UseDef::PseudoDef,MIS->mi_end())));
+
+	// for each interval in inactive intersecting with current  set next pos to next use
+	std::for_each(inactive.begin(), inactive.end(),
+		SetNextUseInactive(next_use_pos, current, current.front().start, UseDef(UseDef::PseudoDef,MIS->mi_end())));
+
+	LOG2("next_use_pos:" << nl);
+	for (FreeUntilMap::iterator i = next_use_pos.begin(), e = next_use_pos.end(); i != e; ++i) {
+		LOG2("  " << (i->first) << ": " << i->second << nl);
+	}
+
+	// get register with highest nextUsePos
+	FreeUntilMap::value_type x = *std::max_element(next_use_pos.begin(), next_use_pos.end(), FreeUntilMaxCompare());
+	MachineOperand *reg = x.first;
+	UseDef next_use_pos_reg = x.second;
+	LOG2("reg: " << *reg << " pos: " << next_use_pos_reg << nl);
+
+	UseDef next_use_pos_current = current.next_usedef_after(current.front().start,
+		UseDef(UseDef::PseudoDef,MIS->mi_end()));
+	if (next_use_pos_reg < next_use_pos_current && !current.front().start.is_def()) {
+		// all other intervals are used before current
+		// so spill current
+		// if the start of the current interval is a definition, we need to assign a register
+		split_current(current,current.get_operand()->get_type(), next_use_pos_current,
+			UseDef(UseDef::PseudoDef,MIS->mi_end()), unhandled, backend);
+		//ERROR_MSG("Spill current not yet implemented","not yet implemented");
+		return true;
+	}
+	else {
+		LOG2("Spill intervals blocking: " << *reg << nl);
+		// spill intervals that currently block reg
+
+		// split for each interval it in active that blocks reg (there can be only one)
+		std::for_each(active.begin(), active.end(),
+			SplitActive(reg, current.front().start, next_use_pos_reg, backend, unhandled));
+
+		// spill each interval it in inactive for reg at the end of the livetime hole
+		std::for_each(inactive.begin(), inactive.end(),
+			SplitInactive(reg, current.front().start, unhandled));
+		current.set_operand(reg);
+		LOG2("assigned operand: " << *reg << nl);
+		return true;
+	}
+	return false;
+}
+
+void LinearScanAllocatorPass::initialize() {
+	while (!unhandled.empty()) {
+		unhandled.pop();
+	}
+	handled.clear();
+	inactive.clear();
+	active.clear();
+}
+
+bool LinearScanAllocatorPass::allocate_unhandled() {
+	while(!unhandled.empty()) {
+		LivetimeInterval current = unhandled.top();
+		unhandled.pop();
+		LOG(BoldCyan << "current: " << current << reset_color<< nl);
+		UseDef pos = current.front().start;
+		DEBUG3(print_code(dbg(), pos.get_iterator(),MIS->mi_begin(), MIS->mi_end(), 2,2));
+
+		// check for intervals in active that are handled or inactive
+		LOG2("check for intervals in active that are handled or inactive" << nl);
+		for (ActiveSetTy::iterator i = active.begin(), e = active.end();
+				i != e ; /* ++i */) {
+			LivetimeInterval act = *i;
+			switch (act.get_State(pos)) {
+			case LivetimeInterval::Handled:
+				LOG2("  LTI " << act << " moved from active to handled" << nl);
+				handled.push_back(act);
+				i = active.erase(i);
+				break;
+			case LivetimeInterval::Inactive:
+				LOG2("  LTI " << act << " moved from active to inactive" << nl);
+				inactive.push_back(act);
+				i = active.erase(i);
+				break;
+			default:
+				++i;
+			}
+		}
+		// check for intervals in inactive that are handled or active
+		LOG2("check for intervals in inactive that are handled or active" << nl);
+		for (InactiveSetTy::iterator i = inactive.begin(), e = inactive.end();
+				i != e ; /* ++i */) {
+			LivetimeInterval inact = *i;
+			switch (inact.get_State(pos)) {
+			case LivetimeInterval::Handled:
+				LOG2("  LTI " << inact << " moved from inactive to handled" << nl);
+				handled.push_back(inact);
+				i = inactive.erase(i);
+				break;
+			case LivetimeInterval::Active:
+				LOG2("  LTI " << inact << " moved from inactive to active" << nl);
+				active.push_back(inact);
+				i = inactive.erase(i);
+				break;
+			default:
+				++i;
+			}
+		}
+
+		LOG2("active: ");
+		DEBUG2(print_container(dbg(),active.begin(),active.end())<<nl);
+		LOG2("inactive: ");
+		DEBUG2(print_container(dbg(),inactive.begin(),inactive.end())<<nl);
+
+		if (current.get_operand()->is_virtual()) {
+			// Try to find a register
+			if (!try_allocate_free(current,pos)) {
+				if (!allocate_blocked(current)) {
+					ERROR_MSG("Register allocation failed",
+						"could not allocate register for " << current);
+					return false;
+				}
+			}
+		}
+		else {
+			// fixed interval
+			for (ActiveSetTy::iterator i = active.begin(), e = active.end(); i != e ; ++i ) {
+				LivetimeInterval act = *i;
+				if (current.get_operand()->aquivalent(*act.get_operand())) {
+					MachineInstruction *MI = *pos.get_iterator();
+					if (!(MI->is_move() && MI->get_result().op->aquivalent(*MI->get(0).op))) {
+						ERROR_MSG("Fixed Interval is blocked",
+							"spilling not yet implemented " << current);
+						return false;
+					}
+				}
+			}
+		}
+		// add current to active
+		active.push_back(current);
+		LOG2("LTI " << current << " moved from unhandled to handled" << nl);
+	}
+
+	// move everything to handled
+	for (ActiveSetTy::iterator i = active.begin(), e = active.end(); i != e ; /* ++i */) {
+		handled.push_back(*i);
+		i = active.erase(i);
+	}
+	for (InactiveSetTy::iterator i = inactive.begin(), e = inactive.end(); i != e ; /* ++i */) {
+		handled.push_back(*i);
+		i = inactive.erase(i);
+	}
+	return true;
 }
 
 bool LinearScanAllocatorPass::run(JITData &JD) {
@@ -403,446 +568,479 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 	for (LivetimeAnalysisPass::iterator i = LA->begin(), e = LA->end();
 			i != e ; ++i) {
 		LivetimeInterval &inter = i->second;
-		unhandled.push(&inter);
+		unhandled.push(inter);
 	}
-	while(!unhandled.empty()) {
-		LivetimeInterval *current = unhandled.top();
-		unhandled.pop();
-		unsigned pos = current->get_start();
-		LOG(BoldGreen << "pos:" << setw(4) << pos << " current: " << current << reset_color << nl);
+	// allocate
+	if (!allocate_unhandled()) return false;
+	// resolve
+	if (!resolve())	return false;
 
-		// check for intervals in active that are handled or inactive
-		LOG2("check for intervals in active that are handled or inactive" << nl);
-		for (ActiveSetTy::iterator i = active.begin(), e = active.end();
-				i != e ; /* ++i */) {
-			LivetimeInterval *act = *i;
-			//LOG2("active LTI " << act << nl);
-			if (act->is_handled(pos)) {
-				LOG2("LTI " << act << " moved from active to handled" << nl);
-				// add to handled
-				handled.push_back(act);
-				// remove from active
-				i = active.erase(i);
-			} else if(act->is_inactive(pos)) {
-				LOG2("LTI " << act << " moved from active to inactive" << nl);
-				// add to inactive
-				inactive.push_back(act);
-				// remove from active
-				i = active.erase(i);
-			} else {
-				// NOTE: erase returns the next element so we can not increment
-				// in the loop header!
-				++i;
-			}
-		}
-		// check for intervals in inactive that are handled or active
-		LOG2("check for intervals in inactive that are handled or active" << nl);
-		for (InactiveSetTy::iterator i = inactive.begin(), e = inactive.end();
-				i != e ; /* ++i */) {
-			LivetimeInterval *inact = *i;
-			//LOG2("active LTI " << act << nl);
-			if (inact->is_handled(pos)) {
-				LOG2("LTI " << inact << " moved from inactive to handled" << nl);
-				// add to handled
-				handled.push_back(inact);
-				// remove from inactive
-				i = inactive.erase(i);
-			} else if(inact->is_active(pos)) {
-				LOG2("LTI " << inact << " moved from inactive to active" << nl);
-				// add to active
-				active.push_back(inact);
-				// remove from inactive
-				i = inactive.erase(i);
-			} else {
-				// NOTE: erase returns the next element so we can not increment
-				// in the loop header!
-				++i;
-			}
-		}
-
-		if (!current->is_in_Register()) {
-			// stackslot
-			active.push_back(current);
-			LOG2("Stackslot: " << current << nl);
-			continue;
-		}
-		if (current->get_Register()->to_MachineRegister()) {
-			// preallocated
-			LOG2("Preallocated: " << current << nl);
-			split_blocking_ltis(current);
-			active.push_back(current);
-			continue;
-		}
-		// Try to find a register
-		if (try_allocate_free_reg(current)) {
-			// if allocation successful add current to active
-			active.push_back(current);
-		} else {
-			allocate_blocked_reg(current);
-		}
+	// set operands
+	for (HandledSetTy::const_iterator i = handled.begin(), e = handled.end(); i != e ; ++i) {
+		LivetimeInterval lti = *i;
+		LOG("Assigned Interval " << lti << " (init: " << *lti.get_init_operand() << ")" <<nl );
+		std::for_each(lti.use_begin(), lti.use_end(), SetUseDefOperand(lti.get_operand()));
+		std::for_each(lti.def_begin(), lti.def_end(), SetUseDefOperand(lti.get_operand()));
 	}
-
-	// move all active/inactive to handled
-	handled.insert(handled.end(),inactive.begin(),inactive.end());
-	handled.insert(handled.end(),active.begin(),active.end());
-
-	// set src/dst operands
-	for (HandledSetTy::const_iterator i = handled.begin(), e = handled.end();
-			i != e ; ++i) {
-		LivetimeInterval *lti = *i;
-		if (!lti->is_in_Register()) continue;
-		Register *reg = lti->get_Register();
-		assert(reg->to_MachineRegister());
-		for (LivetimeInterval::const_def_iterator i = lti->def_begin(),
-				e = lti->def_end(); i != e ; ++i) {
-			MachineOperandDesc *MOD = i->second;
-			MOD->op = lti->get_Register();
-		}
-		for (LivetimeInterval::const_use_iterator i = lti->use_begin(),
-				e = lti->use_end(); i != e ; ++i) {
-			MachineOperandDesc *MOD = i->second;
-			MOD->op = lti->get_Register();
-		}
-	}
-
-	// debug
-	for (LivetimeAnalysisPass::const_iterator i = LA->begin(), e = LA->end();
-			i != e ; ++i) {
-		const LivetimeInterval *lti = &i->second;
-		LOG("Assigned Interval " << lti << nl );
-		assert(!lti->is_in_Register() || lti->get_Register()->to_MachineRegister());
-		while ( (lti = lti->get_next()) ) {
-			LOG("Split Interval " << lti << nl );
-			assert(!lti->is_in_Register() || lti->get_Register()->to_MachineRegister());
-		}
-
-	}
-	DEBUG(LA->print(dbg()));
-
-
-	resolve();
-
 	return true;
 }
+
+typedef std::map<MachineBasicBlock*, std::list<LivetimeInterval> > BBtoLTI_Map;
 
 namespace {
-struct ClassRegPtrComp {
-	bool operator() (Register* lhs, Register* rhs) const {
-		if (lhs->operator==(rhs)) {
-			return false;
-		}
-		return lhs < rhs;
+/**
+ * @Cpp11 use std::function
+ */
+template <class BinaryOperation>
+class CfgEdgeFunctor : public std::unary_function<MachineBasicBlock*,void> {
+private:
+	BinaryOperation op;
+public:
+	/// Constructor
+	CfgEdgeFunctor(BinaryOperation op) : op(op) {}
+	void operator()(MachineBasicBlock *predecessor) {
+		std::for_each(predecessor->back()->successor_begin(),
+			predecessor->back()->successor_end(), std::bind1st(op,predecessor));
 	}
 };
-} // end anonymous namespace
-
-void LinearScanAllocatorPass::resolve() {
-	LoweringPass *LP = get_Pass<LoweringPass>();
-	ListSchedulingPass *IS = get_Pass<ListSchedulingPass>();
-	InstructionLinkSchedule *ILS = get_Pass<ScheduleClickPass>();
-
-	// resolution
-	Method *M = jd->get_Method();
-
-	// fill live in information
-	// TODO this can be done more efficient I guess
-	push_lambda<UnhandledSetTy,LivetimeInterval*> push_me(unhandled);
-	// FIXME this can be handled with <functional> or C++11
-	LOG("all handled" << nl);
-	DEBUG(print_container(dbg(),handled.begin(),handled.end()) << nl);
-	std::for_each(handled.begin(),handled.end(),push_me);
-	active.clear();
-	inactive.clear();
-	LOG2("size of unhandled: " << unhandled.size() << nl);
-
-	std::map<BeginInst*,std::set<LivetimeInterval*> > active_map_begin;
-	std::map<BeginInst*,std::set<LivetimeInterval*> > active_map_end;
-
-	for (Method::const_bb_iterator i = M->bb_begin(), e = M->bb_end();
-			i != e ; ++i) {
-		BeginInst *BI = *i;
-		unsigned bb_begin = MIS->get_range(BI).first * 2;
-		unsigned bb_end = MIS->get_range(BI).second * 2 - 1;
-		LOG2(BoldGreen << "BI " << BI << "(" << bb_begin <<"-" << bb_end<< "): " << reset_color << nl);
-		unsigned pos = bb_begin;
-		for(int i = 0; i < 2; ++i) {
-			// check for intervals in active that are handled or inactive
-			for (ActiveSetTy::iterator i = active.begin(), e = active.end();
-					i != e ; /* ++i */) {
-				LivetimeInterval *act = *i;
-				LOG3("active LTI " << act << nl);
-				if (act->is_handled(pos)) {
-					LOG3("act->hddld " << act << nl);
-					// add to handled
-					//handled.push_back(act);
-					// remove from active
-					i = active.erase(i);
-				} else if(act->is_inactive(pos)) {
-					LOG3("act->inact " << act << nl);
-					// add to inactive
-					inactive.push_back(act);
-					// remove from active
-					i = active.erase(i);
-				} else {
-					// NOTE: erase returns the next element so we can not increment
-					// in the loop header!
-					++i;
-				}
-			}
-			// check for intervals in inactive that are handled or active
-			for (InactiveSetTy::iterator i = inactive.begin(), e = inactive.end();
-					i != e ; /* ++i */) {
-				LivetimeInterval *inact = *i;
-				LOG3("inactive LTI " << inact << nl);
-				if (inact->is_handled(pos)) {
-					LOG3("inact->hndld " << inact << nl);
-					// add to handled
-					//handled.push_back(inact);
-					// remove from inactive
-					i = inactive.erase(i);
-				} else if(inact->is_active(pos)) {
-					LOG3("inact->act " << inact << nl);
-					// add to active
-					active.push_back(inact);
-					// remove from inactive
-					i = inactive.erase(i);
-				} else {
-					// NOTE: erase returns the next element so we can not increment
-					// in the loop header!
-					++i;
-				}
-			}
-			// check unhandled
-			while(!unhandled.empty()) {
-				LivetimeInterval *current = unhandled.top();
-				if (current->is_unhandled(pos)) {
-					break;
-				}
-				unhandled.pop();
-				if (current->is_handled(pos)) {
-					// handled
-					LOG3("unhndld->hndld " << current << nl);
-					continue;
-				}
-				if(current->is_inactive(pos)) {
-					// inactive
-					LOG3("unhndld->inactive " << current << nl);
-					inactive.push_back(current);
-				} else {
-					// active
-					LOG3("unhndld->active " << current << nl);
-					active.push_back(current);
-				}
-
-			}
-			// all in active are now live
-			if ( i == 0) {
-				LOG2("active at begin of " << BI << "(" << bb_begin <<"-" << bb_end << "): " << nl);
-				LOG2("");
-				DEBUG2(print_container(dbg(),active.begin(),active.end()) << nl);
-				active_map_begin[BI].insert(active.begin(),active.end());
-			} else {
-				LOG2("active at end of " << BI << "(" << bb_begin <<"-" << bb_end << "): " << nl);
-				LOG2("");
-				DEBUG2(print_container(dbg(),active.begin(),active.end()) << nl);
-				active_map_end[BI].insert(active.begin(),active.end());
-			}
-			pos = bb_end;
-		}
-	}
-
-	MoveMapTy move_map;
-	// for all basic blocks
-	for (Method::const_bb_iterator i = M->bb_begin(), e = M->bb_end();
-			i != e ; ++i) {
-
-		BeginInst *pred = *i;
-		EndInst *pred_end = pred->get_EndInst();
-		for (EndInst::SuccessorListTy::const_iterator i = pred_end->succ_begin(),
-				e = pred_end->succ_end(); i != e ; ++i) {
-			// for each edge pred -> succ
-			BeginInst *succ = i->get();
-			unsigned bb_start;
-			unsigned bb_end;
-			{
-				MachineInstructionSchedule::MachineInstructionRangeTy succ_range = MIS->get_range(succ);
-				bb_start = succ_range.first * 2;
-				bb_end = succ_range.second * 2;
-			}
-			LOG2(BoldGreen << "Edge: " << pred << " -> " << succ << reset_color << nl);
-			std::set<LivetimeInterval*> &ltis_succ = active_map_begin[succ];
-			std::set<LivetimeInterval*> &ltis_pred = active_map_end[pred];
-			for (std::set<LivetimeInterval*>::const_iterator i = ltis_succ.begin(),
-					e = ltis_succ.end(); i != e ; ++i) {
-				// for each live interval lti active at the start of succ
-				LivetimeInterval* lti_succ = *i;
-				for (std::set<LivetimeInterval*>::const_iterator i = ltis_pred.begin(),
-						e = ltis_pred.end(); i != e ; ++i) {
-					// for each live interval lti active at the end of pred
-					LivetimeInterval* lti_pred = *i;
-					if (lti_succ->is_split_of(*lti_pred)){
-						LOG2("interval " << lti_succ << " is a spilt of " << lti_pred << nl);
-						MachineOperand* op_pred = lti_pred->is_in_Register()
-							? (MachineOperand*) lti_pred->get_Register()
-							: (MachineOperand*) lti_pred->get_ManagedStackSlot();
-						MachineOperand* op_succ = lti_succ->is_in_Register()
-							? (MachineOperand*) lti_succ->get_Register()
-							: (MachineOperand*) lti_succ->get_ManagedStackSlot();
-						if (op_pred != op_succ) {
-							MachineInstruction* move = backend->create_Move(op_pred,op_succ);
-							move_map[std::make_pair(pred,succ)].push_back(move);
-						}
-
-					}
-				}
-				// resolve PHIs!
-				if (lti_succ->get_start() == bb_start) {
-					LOG(BoldCyan << "WE HAVE A WINNER! " << reset_color << lti_succ << nl);
-					// XXX should this even happen?
-					if (lti_succ->is_in_StackSlot()) continue;
-					assert(lti_succ->def_size() == 1);
-					MachineInstruction *MI = lti_succ->def_front().second->get_MachineInstruction();
-					LOG3("PHI: " << MI << nl);
-					assert( MI->is_phi());
-					LoweredInstDAG *use_dag = MI->get_parent();
-					PHIInst *phi = use_dag->get_Instruction()->to_PHIInst();
-					assert(phi);
-					signed index = succ->get_predecessor_index(pred);
-					assert(index != -1);
-					Instruction *I = phi->get_operand(index)->to_Instruction();
-					assert(I);
-					LoweredInstDAG *def_dag = LP->get_LoweredInstDAG(I);
-					assert(def_dag);
-					MachineOperand *pred_op = def_dag->get_result()->get_result().op;
-					//MachineOperand *succ_op = MI->get(index).op;
-					assert(pred_op == MI->get(index).op);
-					MachineOperand *result_op = MI->get_result().op;
-					LOG("result is in: " << pred_op << " and should be in " << result_op << nl);
-					assert(pred_op->is_Register());
-					assert(result_op->is_Register());
-					assert(pred_op->to_Register()->to_MachineRegister());
-					assert(result_op->to_Register()->to_MachineRegister());
-					//if (pred_op->to_Register()->to_MachineRegister() ==
-					//		result_op->to_Register()->to_MachineRegister()) {
-					if (result_op != pred_op) {
-						LOG("adding move " << pred_op << " to " << result_op << nl);
-						MachineInstruction* move = backend->create_Move(pred_op,result_op);
-						move_map[std::make_pair(pred,succ)].push_back(move);
-					}
-				}
-			}
-		}
-	}
-	for (MoveMapTy::const_iterator i = move_map.begin(), e = move_map.end();
-			i != e; ++i) {
-		const MoveListTy &mlist = i->second;
-		BeginInst *pred = i->first.first;
-		BeginInst *succ = i->first.second;
-
-		LOG("Edge " << pred << " -> " << succ << nl);
-		// get block for the move
-		BeginInst* BI = M->get_edge_block(pred,succ);
-		EndInst* EI = BI->get_EndInst();
-		ContainerInst *I = new ContainerInst(BI);
-		M->add_Instruction(I);
-		LoweredInstDAG *dag = new LoweredInstDAG(I);
-
-		// remember "destroyed" registers
-		std::set<Register*,ClassRegPtrComp> destroyed;
-		MachineInstruction *move = NULL;
-		LOG2("create moves" << nl);
-		for (MoveListTy::const_iterator i = mlist.begin(), e = mlist.end();
-				i != e ; ++i ) {
-			LOG2(nl);
-			move = *i;
-			MachineOperand *src = move->get(0).op;
-			MachineOperand *dst = move->get_result().op;
-			Register *reg = dst->to_Register();
-			if (reg) {
-				LOG2("destroyed: " << reg << " " << (void*) reg << nl);
-
-				destroyed.insert(reg);
-			}
-			LOG2("used:      " << src->to_Register() << " " << (void*) src->to_Register() << nl);
-			if (destroyed.find(src->to_Register()) != destroyed.end()) {
-				// the value has been overwritten -> stackslot
-				if (dst->is_ManagedStackSlot()) {
-					// dst is a stack slot
-					LOG("MOVE (to stackslot)" << move << nl);
-					dag->add_front(move);
-				} else {
-					assert(dst->is_Register());
-					ManagedStackSlot *slot = jd->get_StackSlotManager()->create_ManagedStackSlot(src->get_type());
-					MachineInstruction *spill = backend->create_Move(src,slot);
-					dag->add_front(spill);
-					move->set_operand(0,slot);
-					LOG2("spill needed: " << spill << nl);
-					LOG("MOVE2 " << move << nl);
-					dag->add(move);
-				}
-			} else {
-				LOG("MOVE " << move << nl);
-				dag->add(move);
-			}
-		}
-		// mark last move as result
-		assert(move);
-		dag->set_result(move);
-		LP->set_dag(BI,backend->lower(BI));
-		LP->set_dag(I,dag);
-		LP->set_dag(EI,backend->lower(EI));
-		// we have tho fix InstructionLinkSchedule
-		// TODO
-		ILS->add_Instruction(BI,BI);
-		ILS->add_Instruction(I,BI);
-		ILS->add_Instruction(EI,BI);
-		// we have fix InstructionScheduling
-		IS->schedule(BI);
-		// we have to fix BasicBlockScheduling
-		// -> rerun the pass
-	}
-	#if 0
-	ABORT_MSG("Values not in the same store (" << op_pred
-		<< " vs " << op_succ << ")" , "move not yet implemented");
-	#endif
-
-
-	// write back the spill/store instructions
-	MIS->insert_added_instruction();
+/// Wrap class template argument.
+template <class BinaryOperation>
+CfgEdgeFunctor<BinaryOperation>	CfgEdge(BinaryOperation op) {
+	return CfgEdgeFunctor<BinaryOperation>(op);
 }
 
-bool LinearScanAllocatorPass::verify() const {
-	for (MachineInstructionSchedule::const_iterator i = MIS->begin(),
-			e = MIS->end(); i != e; ++i) {
-		MachineInstruction *MI = *i;
-		MachineOperand *op = MI->get_result().op;
-		if (!op->is_StackSlot() &&
-				op->is_Register() && !op->to_Register()->to_MachineRegister() ) {
-			LOG("Not allocatd: " << MI << nl);
+class CalcBBtoLTIMap : public std::unary_function<MachineBasicBlock*,void> {
+private:
+	LivetimeAnalysisPass* LA;
+	BBtoLTI_Map &bb2lti_map;
+
+	struct inner : public std::unary_function<LivetimeAnalysisPass::LivetimeIntervalMapTy::value_type,void> {
+		MachineBasicBlock *MBB;
+		BBtoLTI_Map &bb2lti_map;
+		/// constructor
+		inner(MachineBasicBlock *MBB, BBtoLTI_Map &bb2lti_map) : MBB(MBB), bb2lti_map(bb2lti_map) {}
+		/// function call operator
+		void operator()(argument_type lti_pair) {
+			LivetimeInterval &lti = lti_pair.second;
+			if (lti.get_State(UseDef(UseDef::PseudoUse,MBB->mi_first())) == LivetimeInterval::Active) {
+				bb2lti_map[MBB].push_back(lti);
+			}
+			else {
+				// we need to add the _initial_ lti to find the correct location later on.
+				LivetimeInterval lti_next = lti;
+				while (lti_next.has_next()) {
+					lti_next = lti_next.get_next();
+					if (lti_next.get_State(UseDef(UseDef::PseudoUse,MBB->mi_first())) == LivetimeInterval::Active) {
+						bb2lti_map[MBB].push_back(lti);
+					}
+				}
+			}
+		}
+	};
+public:
+	/// constructor
+	CalcBBtoLTIMap(LivetimeAnalysisPass* LA, BBtoLTI_Map &bb2lti_map)
+		: LA(LA), bb2lti_map(bb2lti_map) {}
+	/// function call operator
+	void operator()(MachineBasicBlock *MBB) {
+		std::for_each(LA->begin(),LA->end(),inner(MBB,bb2lti_map));
+	}
+};
+
+#if 0
+bool operator<(const Move &lhs, const Move &rhs) {
+	if (lhs.from < rhs.from)
+		return true;
+	if (rhs.from < lhs.from)
+		return false;
+	return lhs.to < rhs.to;
+}
+#endif
+
+class ForEachLiveiterval : public std::unary_function<LivetimeInterval&,void> {
+private:
+	MachineBasicBlock *predecessor;
+	MachineBasicBlock *successor;
+	LivetimeAnalysisPass *LA;
+	MoveMapTy &move_map;
+public:
+	/// constructor
+	ForEachLiveiterval(MachineBasicBlock *predecessor, MachineBasicBlock *successor,
+		LivetimeAnalysisPass *LA, MoveMapTy &move_map) :
+		predecessor(predecessor), successor(successor), LA(LA), move_map(move_map) {}
+	/// function call operator
+	void operator()(LivetimeInterval& lti) const {
+		LOG2("live: " << lti << " op: " << *lti.get_init_operand() << nl);
+
+		MachineOperand *move_from;
+		if (lti.front().start.get_iterator() == successor->mi_first()) {
+			MachinePhiInst *phi = get_phi_from_operand(successor, lti.get_init_operand());
+			assert(phi);
+			LOG2("starts at successor begin: " << *phi << nl);
+			std::size_t index = successor->get_predecessor_index(predecessor);
+			MachineOperand *op = phi->get(index).op;
+			if (op->is_Immediate()) {
+				ABORT_MSG("PHI with immediate operand", "Can not yet handle phis with immediate operands");
+				move_from = NULL;
+			} else {
+				move_from = LA->get(op).get_operand(predecessor->mi_last());
+			}
+
+		}
+		else {
+			move_from = lti.get_operand(predecessor->mi_last());
+		}
+		MachineOperand *move_to = lti.get_operand();
+		if (!move_from->aquivalent(*move_to)) {
+			move_map.push_back(Move(move_from,move_to));
+		}
+	}
+};
+
+struct MachineOperandCmp : public std::binary_function<MachineOperand*,MachineOperand*,bool> {
+	bool operator()(MachineOperand *lhs, MachineOperand *rhs) const {
+		return lhs->aquivalence_less(*rhs);
+	}
+};
+
+
+inline OStream& operator<<(OStream &OS, const Move &move) {
+	return OS << "move from " << *move.from << " to " << *move.to;
+}
+
+inline bool is_stack2stack_move(Move* move) {
+	return (move->from->is_ManagedStackSlot() || move->from->is_StackSlot() ) &&
+		(move->to->is_ManagedStackSlot() || move->to->is_StackSlot());
+}
+
+bool compare_moves(Move *lhs, Move *rhs) {
+	if (!lhs->dep)
+		return true;
+	if (!rhs->dep)
+		return false;
+	return lhs < rhs;
+}
+
+class MoveScheduler {
+private:
+	std::list<MachineInstruction*> &scheduled;
+	MoveMapTy &move_map;
+	std::list<Move*> &queue;
+	Backend *backend;
+	std::list<Move*> &stack;
+	bool need_allocation;
+public:
+	/// constructor
+	MoveScheduler(std::list<MachineInstruction*> &scheduled, MoveMapTy &move_map,
+		std::list<Move*> &queue, Backend *backend, std::list<Move*> &stack)
+		: scheduled(scheduled), move_map(move_map), queue(queue), backend(backend), stack(stack),
+			need_allocation(false) {}
+	/// call operator
+	void operator()() {
+		Move* node = stack.back();
+		assert(!node->from->aquivalent(*node->to));
+		LOG2("schedule pre: " << *node << nl);
+		// already scheduled?
+		if (node->is_scheduled()) {
+			stack.pop_back();
+			return;
+		}
+		if (is_stack2stack_move(node)){
+			LOG2("Stack to stack move detected!" << nl);
+			MachineOperand *tmp = new VirtualRegister(node->to->get_type());
+			move_map.push_back(Move(tmp, node->to));
+			queue.push_back(&move_map.back());
+			node->to = tmp;
+			node->dep = NULL;
+			need_allocation = true;
+			//ABORT_MSG("Stack to stack move detected!","No re-allocation strategy yet!");
+		}
+		if (node->dep && !node->dep->is_scheduled()) {
+			std::list<Move*>::iterator i = std::find(stack.begin(),stack.end(),node->dep);
+			if (i != stack.end()) {
+				LOG2("cycle detected!" << nl);
+				MachineOperand *tmp = new VirtualRegister(node->to->get_type());
+				move_map.push_back(Move(tmp, node->to));
+				Move *tmp_move = &move_map.back();
+				tmp_move->dep = *i;
+				queue.push_back(tmp_move);
+				node->to = tmp;
+				node->dep = NULL;
+				need_allocation = true;
+				//ABORT_MSG("Cycle Detected!","No re-allocation strategy yet!");
+			} else {
+				stack.push_back(node->dep);
+				operator()();
+			}
+		}
+		LOG2("schedule post: " << *node << nl);
+		stack.pop_back();
+		scheduled.push_back(backend->create_Move(node->from,node->to));
+		node->scheduled = true;
+	}
+	bool need_register_allocation() const { return need_allocation; }
+};
+
+template <class OutputIterator>
+struct RefToPointerInserterImpl: public std::unary_function<Move&,void> {
+	OutputIterator i;
+	/// constructor
+	RefToPointerInserterImpl(OutputIterator i) : i(i) {}
+	/// call operator
+	void operator()(Move& move) {
+		*i = &move;
+	}
+};
+/// wrapper
+template <class OutputIterator>
+inline RefToPointerInserterImpl<OutputIterator> RefToPointerInserter(OutputIterator i) {
+	return RefToPointerInserterImpl<OutputIterator>(i);
+}
+
+inline LivetimeInterval& find_or_insert(
+		LivetimeAnalysisPass::LivetimeIntervalMapTy &lti_map, MachineOperand* op) {
+	LivetimeAnalysisPass::LivetimeIntervalMapTy::iterator i = lti_map.find(op);
+	if (i == lti_map.end()) {
+		LivetimeInterval lti(op);
+		i = lti_map.insert(std::make_pair(op,lti)).first;
+	}
+	return i->second;
+}
+/**
+ * @Cpp11 use std::function
+ */
+class ProcessOutOperands : public std::unary_function<MachineOperandDesc,void> {
+private:
+	LivetimeAnalysisPass::LivetimeIntervalMapTy &lti_map;
+	MIIterator i;
+	MIIterator e;
+public:
+	/// Constructor
+	ProcessOutOperands(LivetimeAnalysisPass::LivetimeIntervalMapTy &lti_map,
+			MIIterator i, MIIterator e)
+				: lti_map(lti_map), i(i), e(e) {}
+	void operator()(MachineOperandDesc &op) {
+		if (op.op->is_virtual()) {
+			find_or_insert(lti_map,op.op).set_from(UseDef(UseDef::Def,i,&op), UseDef(UseDef::PseudoDef,e));
+		}
+	}
+};
+/**
+ * @Cpp11 use std::function
+ */
+class ProcessInOperands : public std::unary_function<MachineOperandDesc,void> {
+private:
+	LivetimeAnalysisPass::LivetimeIntervalMapTy &lti_map;
+	MIIterator first;
+	MIIterator current;
+public:
+	/// Constructor
+	ProcessInOperands(LivetimeAnalysisPass::LivetimeIntervalMapTy &lti_map,
+		MIIterator first, MIIterator current) : lti_map(lti_map), first(first),
+		current(current) {}
+	void operator()(MachineOperandDesc &op) {
+		if (op.op->is_virtual()) {
+			find_or_insert(lti_map,op.op).add_range(UseDef(UseDef::PseudoUse,first),
+				UseDef(UseDef::Use,current,&op));
+		}
+	}
+};
+
+class ForEachCfgEdge : public std::binary_function<MachineBasicBlock*,MachineBasicBlock*,void> {
+private:
+	BBtoLTI_Map &bb2lti_map;
+	EdgeMoveMapTy &edge_move_map;
+	LivetimeAnalysisPass *LA;
+
+public:
+	/// constructor
+	ForEachCfgEdge(BBtoLTI_Map &bb2lti_map, EdgeMoveMapTy &edge_move_map, LivetimeAnalysisPass *LA)
+		: bb2lti_map(bb2lti_map), edge_move_map(edge_move_map), LA(LA) {}
+	/// function call operator
+	void operator()(MachineBasicBlock *predecessor, MachineBasicBlock *successor) const {
+		MoveMapTy &move_map = edge_move_map[Edge(predecessor,successor)];
+		LOG2("edge " << *predecessor << " -> " << *successor << nl);
+		BBtoLTI_Map::mapped_type &lti_live_set = bb2lti_map[successor];
+		// for each live interval live at successor
+		std::for_each(lti_live_set.begin(), lti_live_set.end(),
+			ForEachLiveiterval(predecessor,successor, LA, move_map));
+	}
+};
+
+} // end anonymous namespace
+
+//bool LinearScanAllocatorPass::order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *successor,
+//		MoveMapTy &move_map) {
+bool LinearScanAllocatorPass::order_and_insert_move(EdgeMoveMapTy::value_type &entry) {
+	MachineBasicBlock *predecessor = entry.first.predecessor;
+	MachineBasicBlock *successor = entry.first.successor;
+	MoveMapTy &move_map = entry.second;
+
+	LOG2("order_and_insert_move: " << *predecessor << " -> " << *successor << nl);
+
+	if (move_map.empty()) return true;
+	// calculate data dependency graph (DDG)
+	std::map<MachineOperand*,Move*,MachineOperandCmp> read_from;
+
+	// create graph nodes
+	for (MoveMapTy::iterator i = move_map.begin(), e = move_map.end(); i != e; ++i) {
+		LOG2("need move from " << i->from << " to " << i->to << nl);
+		read_from[i->from] = &*i;
+	}
+	// create graph edges
+	for (MoveMapTy::iterator i = move_map.begin(), e = move_map.end(); i != e; ++i) {
+		i->dep = read_from[i->to];
+	}
+	// nodes already scheduled
+	std::list<MachineInstruction*> scheduled;
+	std::list<Move*> stack;
+	std::list<Move*> queue;
+	std::for_each(move_map.begin(), move_map.end(), RefToPointerInserter(std::back_inserter(queue)));
+	assert(move_map.size() == queue.size());
+
+	MoveScheduler scheduler(scheduled, move_map, queue, backend, stack);
+
+	while (!queue.empty()) {
+		// sort and pop element
+		queue.sort(compare_moves);
+		stack.push_back(queue.front());
+		queue.pop_front();
+		// schedule
+		scheduler();
+		assert(stack.empty());
+	}
+
+	MIIterator last = get_edge_iterator(predecessor, successor,backend);
+	MIIterator first = last;
+	// insert first element
+	insert_before(last,scheduled.front());
+	--first;
+	for (std::list<MachineInstruction*>::const_iterator i = ++scheduled.begin(),
+			e  = scheduled.end(); i != e ; ++i) {
+		insert_before(last, *i);
+	}
+	if (scheduler.need_register_allocation()) {
+		LOG2("Register allocation for resolution needed!"<<nl);
+		ERROR_MSG("Resolution Failed", "Could not assign register");
+		#if 0
+		if (!reg_alloc_resolve_block(first,last)) {
+			ERROR_MSG("Resolution Failed", "Could not assign register");
 			return false;
 		}
-
+		#endif
 	}
 	return true;
 }
+
+
+bool LinearScanAllocatorPass::reg_alloc_resolve_block(MIIterator first, MIIterator last) {
+	assert(active.empty());
+	assert(inactive.empty());
+	assert(unhandled.empty());
+	std::size_t handled_size = handled.size();
+	/// calculate state sets
+	for (HandledSetTy::iterator i = handled.begin(), e = handled.end();
+			i != e ; /* ++i */ ) {
+		LivetimeInterval lti = *i;
+		switch (lti.get_State(first)) {
+		case LivetimeInterval::Active:
+			active.push_back(lti);
+			i = handled.erase(i);
+			break;
+		case LivetimeInterval::Inactive:
+			inactive.push_back(lti);
+			i = handled.erase(i);
+			break;
+		default:
+			++i;
+			break;
+		}
+	}
+	/// calculate intervals
+	LivetimeAnalysisPass::LivetimeIntervalMapTy lti_map;
+	MIIterator current = last;
+	while (first != current) {
+		--current;
+		// for each output operand of MI
+		ProcessOutOperands(lti_map, current, last)((*current)->get_result());
+		// for each input operand of MI
+		std::for_each((*current)->begin(),(*current)->end(),
+			ProcessInOperands(lti_map, current, last));
+	}
+	for(LivetimeAnalysisPass::LivetimeIntervalMapTy::iterator i = lti_map.begin(),
+			e = lti_map.end(); i != e; ++i) {
+		unhandled.push(i->second);
+	}
+	handled_size += unhandled.size();
+	allocate_unhandled();
+	assert_msg(handled.size() == handled_size, "handled.size(): " << handled.size() << " != handled_size: "
+		<< handled_size);
+	return true;
+}
+
+bool LinearScanAllocatorPass::resolve() {
+	LOG(BoldGreen << "resolve: " << nl);
+	// calculate basicblock to live interval map
+	BBtoLTI_Map bb2lti_map;
+	std::for_each(MIS->begin(), MIS->end(), CalcBBtoLTIMap(LA,bb2lti_map));
+
+	if (DEBUG_COND_N(2))
+	for (BBtoLTI_Map::const_iterator i = bb2lti_map.begin(), e = bb2lti_map.end(); i != e ; ++i) {
+		LOG2("live at: " << *i->first << nl);
+		for (BBtoLTI_Map::mapped_type::const_iterator ii = i->second.begin(), ee = i->second.end(); ii != ee ; ++ii) {
+			LOG2("  " << *ii << nl);
+		}
+	}
+
+	EdgeMoveMapTy edge_move_map;
+	// for each cfg edge from predecessor to successor (implemented in ForEachCfgEdge)
+	std::for_each(MIS->begin(), MIS->end(), CfgEdge(ForEachCfgEdge(bb2lti_map,edge_move_map,LA)));
+	// order and insert move
+	for (EdgeMoveMapTy::iterator i = edge_move_map.begin(), e = edge_move_map.end(); i != e ; ++i) {
+		if (!order_and_insert_move(*i)) {
+			return false;
+		}
+	}
+	// remove all phis
+	std::for_each(MIS->begin(), MIS->end(), std::mem_fun(&MachineBasicBlock::phi_clear));
+
+	return true;
+}
+namespace {
+
+#if 0
+inline bool is_virtual(const MachineOperandDesc &op) {
+	return op.op->is_virtual();
+}
+#endif
+
+} // end anonymous namespace
+bool LinearScanAllocatorPass::verify() const {
+#if 0
+	for(MIIterator i = MIS->mi_begin(), e = MIS->mi_end(); i != e ; ++i) {
+		MachineInstruction *MI = *i;
+		// result virtual
+		if (MI->get_result().op->is_virtual() || any_of(MI->begin(), MI->end(), is_virtual)) {
+			ERROR_MSG("Unallocated Operand!","Instruction " << *MI << " contains unallocated operands.");
+			return false;
+		}
+
+	}
+#endif
+	return true;
+}
+
 
 // pass usage
 PassUsage& LinearScanAllocatorPass::get_PassUsage(PassUsage &PU) const {
 	// requires
-	PU.add_requires(LivetimeAnalysisPass::ID);
-	PU.add_requires(MachineInstructionSchedulingPass::ID);
-	PU.add_requires(LoweringPass::ID);
-	PU.add_requires(ListSchedulingPass::ID);
-	PU.add_requires(ScheduleClickPass::ID);
+	PU.add_requires<LivetimeAnalysisPass>();
+	PU.add_requires<MachineInstructionSchedulingPass>();
 	// modified
-	PU.add_modifies(LoweringPass::ID);
-	PU.add_modifies(ListSchedulingPass::ID);
-	PU.add_modifies(ScheduleClickPass::ID);
+	PU.add_modifies<MachineInstructionSchedulingPass>();
 	// destroys
-	PU.add_destroys(BasicBlockSchedulingPass::ID);
-	PU.add_destroys(MachineInstructionSchedulingPass::ID);
 	// not yet updated correctly (might be only changed)
-	PU.add_destroys(LivetimeAnalysisPass::ID);
+	PU.add_destroys<LivetimeAnalysisPass>();
 	return PU;
 }
 
@@ -851,6 +1049,21 @@ char LinearScanAllocatorPass::ID = 0;
 
 // register pass
 static PassRegistery<LinearScanAllocatorPass> X("LinearScanAllocatorPass");
+
+// pass usage
+PassUsage& LinearScanAllocator2Pass::get_PassUsage(PassUsage &PU) const {
+	// requires
+	//PU.add_requires<LinearScanAllocatorPass>();
+	PU.add_schedule_after<LinearScanAllocatorPass>();
+	// add requirements from super class
+	return LinearScanAllocatorPass::get_PassUsage(PU);
+}
+
+// the address of this variable is used to identify the pass
+char LinearScanAllocator2Pass::ID = 0;
+
+// register pass
+static PassRegistery<LinearScanAllocator2Pass> Y("LinearScanAllocator2Pass");
 
 } // end namespace compiler2
 } // end namespace jit

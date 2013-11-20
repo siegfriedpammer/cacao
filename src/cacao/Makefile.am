@@ -1,6 +1,6 @@
 ## src/cacao/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2007, 2008
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -21,7 +21,7 @@
 ## 02110-1301, USA.
 
 
-AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
+AM_CPPFLAGS += -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
 
 if ENABLE_STATICVM
 cacao_LDFLAGS = \
@@ -80,6 +80,7 @@ nodist_EXTRA_libjvm_la_SOURCES = \
 
 libjvm_la_LIBADD = \
 	$(top_builddir)/src/fdlibm/libfdlibm.la \
+	$(top_builddir)/src/future/libfuture.la \
 	$(top_builddir)/src/mm/libmm.la \
 	$(top_builddir)/src/native/libnative.la \
 	$(top_builddir)/src/threads/libthreads.la \

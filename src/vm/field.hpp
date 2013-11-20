@@ -1,6 +1,6 @@
 /* src/vm/field.hpp - field functions header
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -26,21 +26,20 @@
 #ifndef _FIELD_HPP
 #define _FIELD_HPP
 
-/* forward typedefs ***********************************************************/
-
-typedef struct fieldinfo fieldinfo; 
-
-
 #include "config.h"
-#include "vm/types.hpp"
 
-#include "vm/descriptor.hpp"
-#include "vm/global.hpp"
-#include "vm/utf8.hpp"
+#include <stdint.h>                     // for int32_t
 
-struct classinfo;
+#include "vm/global.hpp"                // for imm_union, etc
+#include "vm/types.hpp"                 // for s4
+#include "vm/utf8.hpp"                  // for Utf8String
+
 struct classbuffer;
+struct classinfo;
 struct constant_FMIref;
+struct typedesc;
+
+namespace cacao { struct DescriptorPool; }
 
 /* fieldinfo ******************************************************************/
 
@@ -68,7 +67,7 @@ struct fieldinfo {	      /* field of a class                                 */
 
 /* function prototypes ********************************************************/
 
-bool       field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool);
+bool       field_load(classbuffer *cb, fieldinfo *f, cacao::DescriptorPool& descpool);
 classinfo *field_get_type(fieldinfo *f);
 void       field_free(fieldinfo *f);
 
@@ -96,4 +95,5 @@ void field_fieldref_println(constant_FMIref *fr);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

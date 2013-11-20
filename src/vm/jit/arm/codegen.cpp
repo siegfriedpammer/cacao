@@ -43,7 +43,7 @@
 
 #include "threads/lock.hpp"
 
-#include "vm/jit/builtin.hpp"
+#include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/field.hpp"
 #include "vm/global.hpp"
@@ -53,6 +53,7 @@
 
 #include "vm/jit/abi.hpp"
 #include "vm/jit/asmpart.hpp"
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/dseg.hpp"
 #include "vm/jit/emit-common.hpp"
@@ -286,7 +287,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 	unresolved_field*   uf;
 	int32_t             fieldtype;
 	int32_t             s1, s2, s3, d;
-	int32_t             disp;
+	int32_t             disp = 0;  // prevent uninitialized warning
 
 	// Get required compiler data.
 	codegendata*  cd   = jd->cd;

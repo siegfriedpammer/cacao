@@ -63,7 +63,7 @@
 #include "native/localref.hpp"
 #include "native/native.hpp"
 
-#include "vm/jit/builtin.hpp"
+#include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/field.hpp"
 #include "vm/options.hpp"
@@ -73,11 +73,9 @@
 #include "vm/jit/code.hpp"
 #include "vm/jit/codegen-common.hpp"
 
-#if defined(ENABLE_DISASSEMBLER)
-# include "vm/jit/disass.hpp"
-#endif
-
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/dseg.hpp"
+#include "vm/jit/disass.hpp"
 #include "vm/jit/exceptiontable.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
@@ -114,6 +112,9 @@ STAT_REGISTER_GROUP_VAR(int,count_code_len,0,"code len","code length",code_data_
 STAT_REGISTER_GROUP_VAR(int,count_data_len,0,"data len","data length",code_data_stat)
 
 struct methodinfo;
+
+using namespace cacao;
+
 
 /* codegen_init ****************************************************************
 
@@ -182,7 +183,7 @@ void codegen_setup(jitdata *jd)
 
 	cd->jumpreferences = NULL;
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(__M68K__) || defined(ENABLE_INTRP)
+#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
 	cd->datareferences = NULL;
 #endif
 
@@ -223,7 +224,7 @@ static void codegen_reset(jitdata *jd)
 
 	cd->jumpreferences  = NULL;
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(__M68K__) || defined(ENABLE_INTRP)
+#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
 	cd->datareferences  = NULL;
 #endif
 
@@ -353,7 +354,7 @@ void codegen_increase(codegendata *cd)
 
 	cd->mcodeptr = cd->mcodebase + (cd->mcodeptr - oldmcodebase);
 
-#if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__) || defined(__M68K__) || defined(ENABLE_INTRP) \
+#if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__) || defined(ENABLE_INTRP) \
  || defined(__SPARC_64__)
 	/* adjust the pointer to the last patcher position */
 
@@ -650,9 +651,6 @@ void codegen_finish(jitdata *jd)
 	code->synchronizedoffset = rd->memuse * 8;
 	code->savedintcount      = INT_SAV_CNT - rd->savintreguse;
 	code->savedfltcount      = FLT_SAV_CNT - rd->savfltreguse;
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	code->savedadrcount      = ADR_SAV_CNT - rd->savadrreguse;
-#endif
 
 	/* Create the exception table. */
 
@@ -689,7 +687,7 @@ void codegen_finish(jitdata *jd)
 
 	methodtree_insert(code->entrypoint, code->entrypoint + mcodelen);
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(__M68K__) || defined(ENABLE_INTRP)
+#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
 	/* resolve data segment references */
 
 	dseg_resolve_datareferences(jd);
@@ -738,17 +736,6 @@ struct FrameInfo {
 	uint64_t *get_arg_regs()  const { return (uint64_t *) sp; }
 	uint64_t *get_arg_stack() const { return (uint64_t *) get_javasp(); }
 	uint64_t *get_ret_regs()  const { return (uint64_t *) (sp + 2 * SIZEOF_VOID_P); }
-};
-#elif defined(__M68K__)
-struct FrameInfo {
-	u1 *sp;
-	int32_t framesize;
-	FrameInfo(u1 *sp, int32_t framesize) : sp(sp), framesize(framesize) {}
-	uint8_t  *get_datasp()    const { return sp + framesize; }
-	uint8_t  *get_javasp()    const { return sp + framesize + SIZEOF_VOID_P; }
-	uint64_t *get_arg_regs()  const { return (uint64_t *) sp; }
-	uint64_t *get_arg_stack() const { return (uint64_t *) get_javasp(); }
-	uint64_t *get_ret_regs()  const { return (uint64_t *) (sp + 2 * 8); }
 };
 #elif defined(__MIPS__)
 struct FrameInfo {
@@ -902,7 +889,7 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 
 	uint8_t  *datasp = FI.get_datasp();
 	//uint8_t  *javasp = FI.get_javasp();
-#if defined(ENABLE_HANDLES) || !defined(NDEBUG)
+#if defined(ENABLE_HANDLES) || ( !defined(NDEBUG) && !defined(__ARM__) )
 	uint64_t *arg_regs = FI.get_arg_regs();
 	uint64_t *arg_stack = FI.get_arg_stack();
 #endif
@@ -920,7 +907,7 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 #endif
 
 #if !defined(NDEBUG)
-# if defined(__ALPHA__) || defined(__I386__) || defined(__M68K__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
+# if defined(__ALPHA__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
 	/* print the call-trace if necesarry */
 	/* BEFORE: filling the local reference table */
 
@@ -985,7 +972,7 @@ java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 	FrameInfo FI(sp,framesize);
 
 	uint8_t  *datasp = FI.get_datasp();
-#if defined(ENABLE_HANDLES) || !defined(NDEBUG)
+#if defined(ENABLE_HANDLES) || ( !defined(NDEBUG) && !defined(__ARM__) )
 	uint64_t *ret_regs = FI.get_ret_regs();
 #endif
 
@@ -1020,7 +1007,7 @@ java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 #endif
 
 #if !defined(NDEBUG)
-# if defined(__ALPHA__) || defined(__I386__) || defined(__M68K__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
+# if defined(__ALPHA__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
 	/* print the call-trace if necesarry */
 	/* AFTER: unwrapping the return value */
 
@@ -1114,9 +1101,6 @@ bool codegen_emit(jitdata *jd)
 	int32_t savedregs_num = 0;
 	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
 	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse);
-#ifdef HAS_ADDRESS_REGISTER_FILE
-	savedregs_num += (ADR_SAV_CNT - rd->savadrreguse);
-#endif
 
 	// Calculate size of stackframe.
 	cd->stackframesize = rd->memuse + savedregs_num;
@@ -1169,15 +1153,13 @@ bool codegen_emit(jitdata *jd)
 	(void) dseg_add_unique_address(cd, code);   ///< CodeinfoPointer
 
 	// XXX, REMOVEME: We still need it for exception handling in assembler.
-	// XXX ARM, M68K: (void) dseg_add_unique_s4(cd, cd->stackframesize);
+	// XXX ARM: (void) dseg_add_unique_s4(cd, cd->stackframesize);
 #if defined(__I386__)
 	int align_off = (cd->stackframesize != 0) ? 4 : 0;
 	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8 + align_off); /* FrameSize       */
 #else
 	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
 #endif
-	// XXX M68K: We use the IntSave as a split field for the adr now
-	//           (void) dseg_add_unique_s4(cd, (ADR_SAV_CNT - rd->savadrreguse) << 16 | (INT_SAV_CNT - rd->savintreguse)); /* IntSave */
 	(void) dseg_add_unique_s4(cd, code_is_leafmethod(code) ? 1 : 0);
 	(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
 	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
@@ -1239,7 +1221,7 @@ bool codegen_emit(jitdata *jd)
 		// Handle replacement points.
 		REPLACEMENT_POINT_BLOCK_START(cd, bptr);
 
-#if defined(ENABLE_REPLACEMENT) && ( defined(__I386__) || defined(__X86_64__) )
+#if defined(ENABLE_REPLACEMENT) && defined(__I386__)
 		// Generate countdown trap code.
 		methodinfo* m = jd->m;
 		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
@@ -1284,7 +1266,6 @@ bool codegen_emit(jitdata *jd)
 						d = var->vv.regoff;
 					else
 						d = REG_ITMP1_XPTR;
-					// XXX M68K: Actually this is M_ADRMOVE(REG_ATMP1_XPTR, d);
 					// XXX Sparc64: Here we use REG_ITMP2_XPTR, fix this!
 					// XXX S390: Here we use REG_ITMP3_XPTR, fix this!
 					emit_imove(cd, REG_ITMP1_XPTR, d);
@@ -1298,7 +1279,6 @@ bool codegen_emit(jitdata *jd)
 				var = VAR(bptr->invars[indepth]);
 				if ((indepth == bptr->indepth-1) && (bptr->type == basicblock::TYPE_EXH)) {
 					d = codegen_reg_of_var(0, var, REG_ITMP1_XPTR);
-					// XXX M68K: Actually this is M_ADRMOVE(REG_ATMP1_XPTR, d);
 					// XXX Sparc64: Here we use REG_ITMP2_XPTR, fix this!
 					// XXX S390: Here we use REG_ITMP3_XPTR, fix this!
 					emit_imove(cd, REG_ITMP1_XPTR, d);
@@ -1327,7 +1307,7 @@ bool codegen_emit(jitdata *jd)
 			// XXX Check if this is true for all archs.
 			MCODECHECK(64);    // All
 			MCODECHECK(128);   // PPC64
-			MCODECHECK(1024);  // I386, X86_64, M68K, S390      /* 1kB should be enough */
+			MCODECHECK(1024);  // I386, X86_64, S390      /* 1kB should be enough */
 
 			// The big switch.
 			switch (iptr->opc) {
@@ -1682,14 +1662,19 @@ bool codegen_emit(jitdata *jd)
 #else
 			{
 				fieldinfo* fi;
-				patchref_t* pr;
+#if defined(USES_PATCHABLE_MEMORY_BARRIER)
+				patchref_t* pr = NULL;
+#endif
 
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 					unresolved_field* uf = iptr->sx.s23.s3.uf;
 					fieldtype = uf->fieldref->parseddesc.fd->type;
 					disp      = dseg_add_unique_address(cd, 0);
 
-					pr = patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
+#if defined(USES_PATCHABLE_MEMORY_BARRIER)
+					pr =
+#endif
+					patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
 
 					fi = NULL;		/* Silence compiler warning */
 				}
@@ -1703,8 +1688,6 @@ bool codegen_emit(jitdata *jd)
 						patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz, 0);
 						PROFILE_CYCLE_START;
 					}
-
-					pr = NULL;		/* Silence compiler warning */
 				}
 
 				// XXX X86_64: Here We had this:
@@ -1758,7 +1741,6 @@ bool codegen_emit(jitdata *jd)
 				PROFILE_CYCLE_STOP;
 
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-				// XXX M68K: Actually this is M_ADRMOVE(s1, REG_ATMP1_XPTR);
 				// XXX Sparc64: We use REG_ITMP2_XPTR here, fix me!
 				emit_imove(cd, s1, REG_ITMP1_XPTR);
 
@@ -1871,6 +1853,8 @@ bool codegen_emit(jitdata *jd)
 					case ICMD_IF_ACMPNE:
 						emit_bne(cd, iptr->dst.block, s1, s2);
 						break;
+					default:
+						break;
 				}
 #elif SUPPORT_BRANCH_CONDITIONAL_CONDITION_REGISTER
 				M_ACMP(s1, s2);
@@ -1883,6 +1867,8 @@ bool codegen_emit(jitdata *jd)
 						break;
 					case ICMD_IF_ACMPNE:
 						emit_beqz(cd, iptr->dst.block, REG_ITMP1);
+						break;
+					default:
 						break;
 				}
 #else
@@ -1921,7 +1907,7 @@ bool codegen_emit(jitdata *jd)
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 				s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 #if SUPPORT_BRANCH_CONDITIONAL_CONDITION_REGISTER
-# if defined(__I386__) || defined(__M68K__) || defined(__X86_64__)
+# if defined(__I386__) || defined(__X86_64__)
 				// XXX Fix this soon!!!
 				M_ICMP(s2, s1);
 # else
@@ -1958,7 +1944,6 @@ bool codegen_emit(jitdata *jd)
 
 				REPLACEMENT_POINT_RETURN(cd, iptr);
 				s1 = emit_load_s1(jd, iptr, REG_RESULT);
-				// XXX M68K: This should actually be M_ADR2INTMOVE(s1, REG_RESULT);
 				// XXX Sparc64: Here this should be REG_RESULT_CALLEE!
 				emit_imove(cd, s1, REG_RESULT);
 
@@ -2167,8 +2152,6 @@ gen_method:
 						switch (var->type) {
 						case TYPE_ADR:
 							s1 = emit_load(jd, iptr, var, REG_ITMP1);
-							// XXX M68K: This should actually be like this:
-							//     s1 = emit_load(jd, iptr, var, REG_ATMP1);
 							// XXX Sparc64: Here this actually was:
 							//     M_STX(s1, REG_SP, JITSTACK + d);
 							M_AST(s1, REG_SP, d);
@@ -2198,13 +2181,9 @@ gen_method:
 
 #if !defined(ENABLE_SOFTFLOAT)
 						case TYPE_FLT:
-#if SIZEOF_VOID_P == 4
 							s1 = emit_load(jd, iptr, var, REG_FTMP1);
 							M_FST(s1, REG_SP, d);
 							break;
-#else
-							/* fall-through */
-#endif
 
 						case TYPE_DBL:
 							s1 = emit_load(jd, iptr, var, REG_FTMP1);
@@ -2315,7 +2294,7 @@ gen_method:
 				i = iptr->sx.s23.s2.lookupcount;
 
 				// XXX Again we need to check this
-				MCODECHECK((i<<2)+8);   // Alpha, ARM, i386, MIPS, M68K, Sparc64
+				MCODECHECK((i<<2)+8);   // Alpha, ARM, i386, MIPS, Sparc64
 				MCODECHECK((i<<3)+8);   // PPC64
 				MCODECHECK(8 + ((7 + 6) * i) + 5);   // X86_64, S390
 
@@ -2366,7 +2345,7 @@ gen_method:
 		}
 #endif
 
-#if defined(__I386__) || defined(__M68K__) || defined(__MIPS__) || defined(__S390__) || defined(__SPARC_64__) || defined(__X86_64__)
+#if defined(__I386__) || defined(__MIPS__) || defined(__S390__) || defined(__SPARC_64__) || defined(__X86_64__)
 		// XXX Again!!!
 		/* XXX require a lower number? */
 		MCODECHECK(64);  // I386, MIPS, Sparc64

@@ -28,56 +28,59 @@
 
 */
 
-
+#include "vm/jit/builtin.hpp"
 #include "config.h"
 
 #include <cassert>
-#include <cerrno>
-#include <cstdlib>
-#include <cstring>
-#include <sys/time.h>
+#include <cerrno>                       // for errno
+#include <cstddef>                      // for size_t
+#include <cstdlib>                      // for qsort
+#include <cstring>                      // for strerror
+#include <stdint.h>                     // for uint32_t
+#include <sys/time.h>                   // for timeval, gettimeofday
 
-#include "vm/method.hpp"
-#include "vm/types.hpp"
-#include "vm/vm.hpp"
+//#include "arch.hpp"
+//#include "md-abi.hpp"
 
-#include "arch.hpp"
-#include "md-abi.hpp"
+#include "mm/dumpmemory.hpp"            // for DumpMemoryArea
+#include "mm/gc.hpp"                    // for heap_alloc
 
-#include "fdlibm/fdlibm.h"
+#include "threads/lockword.hpp"         // for Lockword
+//#include "threads/lock.hpp"
+//#include "threads/mutex.hpp"
+
+#include "toolbox/logging.hpp"          // for log_message_class
+
+#include "vm/array.hpp"                 // for ObjectArray, Array, etc
+#include "vm/class.hpp"                 // for classinfo, etc
+#include "vm/cycles-stats.hpp"
+#include "vm/descriptor.hpp"            // for descriptor_pool
+#include "vm/exceptions.hpp"
+#include "vm/global.hpp"                // for java_handle_t, etc
+#include "vm/globals.hpp"               // for class_java_lang_Cloneable, etc
+#include "vm/initialize.hpp"            // for initialize_class
+#include "vm/linker.hpp"                // for arraydescriptor, link_class
+#include "vm/method.hpp"                // for method_new_builtin, etc
+#include "vm/options.hpp"               // for initverbose, etc
+#include "vm/references.hpp"            // for constant_FMIref
+#include "vm/rt-timing.hpp"
+#include "vm/types.hpp"                 // for s4, s8, u1, u4
+#include "vm/vftbl.hpp"                 // for vftbl_t
+#include "vm/vm.hpp"                    // for vm_abort
+
+#include "vm/jit/emit-common.hpp"
+#include "vm/jit/stubs.hpp"             // for BuiltinStub
+#include "vm/jit/trace.hpp"             // for trace_exception_builtin
+
+#include "vm/jit/ir/icmd.hpp"           // for ::ICMD_INVOKESTATIC
+#include "vm/jit/ir/instruction.hpp"    // for instruction, etc
+
+#include "fdlibm/fdlibm.h"              // for finite, copysign, fmod
 #if defined(__CYGWIN__) && defined(Bias)
 # undef Bias
 #endif
 
-#include "mm/gc.hpp"
-#include "mm/memory.hpp"
-#include "mm/dumpmemory.hpp"
-
-#include "native/llni.hpp"
-
-#include "threads/lock.hpp"
-#include "threads/mutex.hpp"
-
-#include "toolbox/logging.hpp"
-#include "toolbox/util.hpp"
-
-#include "vm/array.hpp"
-#include "vm/class.hpp"
-#include "vm/cycles-stats.hpp"
-#include "vm/descriptor.hpp"
-#include "vm/exceptions.hpp"
-#include "vm/global.hpp"
-#include "vm/globals.hpp"
-#include "vm/initialize.hpp"
-#include "vm/linker.hpp"
-#include "vm/options.hpp"
-#include "vm/primitive.hpp"
-#include "vm/rt-timing.hpp"
-
-#include "vm/jit/builtin.hpp"
-#include "vm/jit/emit-common.hpp"
-#include "vm/jit/stubs.hpp"
-#include "vm/jit/trace.hpp"
+using namespace cacao;
 
 
 /* include builtin tables *****************************************************/
@@ -102,101 +105,92 @@ CYCLES_STATS_DECLARE(builtin_overhead    , 80,1)
 
 static bool builtintable_init(void)
 {
-	descriptor_pool    *descpool;
-	builtintable_entry *bte;
-	methodinfo         *m;
-
 	// Create new dump memory area.
 	DumpMemoryArea dma;
 
 	/* create a new descriptor pool */
 
-	descpool = descriptor_pool_new(class_java_lang_Object);
+	DescriptorPool descpool(class_java_lang_Object);
 
 	/* add some entries we need */
 
-	if (!descriptor_pool_add_class(descpool, utf8::java_lang_Object))
+	if (!descpool.add_class(utf8::java_lang_Object))
 		return false;
 
-	if (!descriptor_pool_add_class(descpool, utf8::java_lang_Class))
+	if (!descpool.add_class(utf8::java_lang_Class))
 		return false;
 
 	/* first add all descriptors to the pool */
 
-	for (bte = builtintable_internal; bte->fp != NULL; bte++) {
+	for (builtintable_entry *bte = builtintable_internal; bte->fp != NULL; bte++) {
 		bte->name       = Utf8String::from_utf8(bte->cname);
 		bte->descriptor = Utf8String::from_utf8(bte->cdescriptor);
 
-		if (!descriptor_pool_add(descpool, bte->descriptor, NULL))
+		if (descpool.add_method(bte->descriptor) == -1)
 			return false;
 	}
 
-	for (bte = builtintable_automatic; bte->fp != NULL; bte++) {
+	for (builtintable_entry *bte = builtintable_automatic; bte->fp != NULL; bte++) {
 		bte->descriptor = Utf8String::from_utf8(bte->cdescriptor);
 
-		if (!descriptor_pool_add(descpool, bte->descriptor, NULL))
+		if (descpool.add_method(bte->descriptor) == -1)
 			return false;
 	}
 
-	for (bte = builtintable_function; bte->fp != NULL; bte++) {
+	for (builtintable_entry *bte = builtintable_function; bte->fp != NULL; bte++) {
 		bte->classname  = Utf8String::from_utf8(bte->cclassname);
 		bte->name       = Utf8String::from_utf8(bte->cname);
 		bte->descriptor = Utf8String::from_utf8(bte->cdescriptor);
 
-		if (!descriptor_pool_add(descpool, bte->descriptor, NULL))
+		if (descpool.add_method(bte->descriptor) == -1)
 			return false;
 	}
 
 	/* create the class reference table */
 
-	(void) descriptor_pool_create_classrefs(descpool, NULL);
+	(void) descpool.create_classrefs(NULL);
 
 	/* allocate space for the parsed descriptors */
 
-	descriptor_pool_alloc_parsed_descriptors(descpool);
+	descpool.alloc_parsed_descriptors();
 
 	/* Now parse all descriptors.  NOTE: builtin-functions are treated
 	   like static methods (no `this' pointer). */
 
-	for (bte = builtintable_internal; bte->fp != NULL; bte++) {
+	for (builtintable_entry *bte = builtintable_internal; bte->fp != NULL; bte++) {
 		bte->md =
-			descriptor_pool_parse_method_descriptor(descpool,
-													bte->descriptor,
-													ACC_STATIC | ACC_METHOD_BUILTIN,
-													NULL);
+			descpool.parse_method_descriptor(bte->descriptor,
+											 ACC_STATIC | ACC_METHOD_BUILTIN,
+											 NULL);
 
 		/* generate a builtin stub if we need one */
 
 		if (bte->flags & BUILTINTABLE_FLAG_STUB) {
-			m = method_new_builtin(bte);
-			BuiltinStub::generate(m, bte);
+			BuiltinStub::generate(method_new_builtin(bte), bte);
 		}
 	}
 
-	for (bte = builtintable_automatic; bte->fp != NULL; bte++) {
+	for (builtintable_entry *bte = builtintable_automatic; bte->fp != NULL; bte++) {
 		bte->md =
-			descriptor_pool_parse_method_descriptor(descpool,
-													bte->descriptor,
-													ACC_STATIC | ACC_METHOD_BUILTIN,
-													NULL);
+			descpool.parse_method_descriptor(bte->descriptor,
+											 ACC_STATIC | ACC_METHOD_BUILTIN,
+											 NULL);
 
 		/* no stubs should be needed for this table */
 
 		assert(!bte->flags & BUILTINTABLE_FLAG_STUB);
 	}
 
-	for (bte = builtintable_function; bte->fp != NULL; bte++) {
+	for (builtintable_entry *bte = builtintable_function; bte->fp != NULL; bte++) {
 		bte->md =
-			descriptor_pool_parse_method_descriptor(descpool,
-													bte->descriptor,
-													ACC_STATIC | ACC_METHOD_BUILTIN,
-													NULL);
+			descpool.parse_method_descriptor(bte->descriptor,
+											 ACC_STATIC | ACC_METHOD_BUILTIN,
+											 NULL);
 
 		/* generate a builtin stub if we need one */
 
 		if (bte->flags & BUILTINTABLE_FLAG_STUB) {
-			m = method_new_builtin(bte);
-			BuiltinStub::generate(m, bte);
+			BuiltinStub::generate(method_new_builtin(bte), bte);
 		}
 	}
 
@@ -1264,7 +1258,7 @@ s4 builtin_irem(s4 a, s4 b)
 
 ******************************************************************************/
 
-#if !(SUPPORT_LONG && SUPPORT_LONG_ADD)
+#if !SUPPORT_LONG_ADD
 s8 builtin_ladd(s8 a, s8 b)
 {
 	s8 c;
@@ -1291,10 +1285,10 @@ s8 builtin_lneg(s8 a)
 
 	return c;
 }
-#endif /* !(SUPPORT_LONG && SUPPORT_LONG_ADD) */
+#endif
 
 
-#if !(SUPPORT_LONG && SUPPORT_LONG_MUL)
+#if !SUPPORT_LONG_MUL
 s8 builtin_lmul(s8 a, s8 b)
 {
 	s8 c;
@@ -1303,10 +1297,10 @@ s8 builtin_lmul(s8 a, s8 b)
 
 	return c;
 }
-#endif /* !(SUPPORT_LONG && SUPPORT_LONG_MUL) */
+#endif
 
 
-#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV) || defined (DISABLE_GC)
+#if !(SUPPORT_DIVISION && SUPPORT_LONG_DIV) || defined (DISABLE_GC)
 s8 builtin_ldiv(s8 a, s8 b)
 {
 	s8 c;
@@ -1324,10 +1318,10 @@ s8 builtin_lrem(s8 a, s8 b)
 
 	return c;
 }
-#endif /* !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV) */
+#endif
 
 
-#if !(SUPPORT_LONG && SUPPORT_LONG_SHIFT)
+#if !SUPPORT_LONG_SHIFT
 s8 builtin_lshl(s8 a, s4 b)
 {
 	s8 c;
@@ -1354,37 +1348,7 @@ s8 builtin_lushr(s8 a, s4 b)
 
 	return c;
 }
-#endif /* !(SUPPORT_LONG && SUPPORT_LONG_SHIFT) */
-
-
-#if !(SUPPORT_LONG && SUPPORT_LONG_LOGICAL)
-s8 builtin_land(s8 a, s8 b)
-{
-	s8 c;
-
-	c = a & b; 
-
-	return c;
-}
-
-s8 builtin_lor(s8 a, s8 b)
-{
-	s8 c;
-
-	c = a | b; 
-
-	return c;
-}
-
-s8 builtin_lxor(s8 a, s8 b) 
-{
-	s8 c;
-
-	c = a ^ b; 
-
-	return c;
-}
-#endif /* !(SUPPORT_LONG && SUPPORT_LONG_LOGICAL) */
+#endif
 
 
 s4 builtin_lcmp(s8 a, s8 b)
@@ -1810,22 +1774,22 @@ double builtin_i2d(s4 a)
 #endif /* !(SUPPORT_DOUBLE && SUPPORT_I2D) */
 
 
-#if !(SUPPORT_LONG && SUPPORT_FLOAT && SUPPORT_L2F)
+#if !(SUPPORT_FLOAT && SUPPORT_L2F)
 float builtin_l2f(s8 a)
 {
 	float f = (float) a;
 	return f;
 }
-#endif /* !(SUPPORT_LONG && SUPPORT_FLOAT && SUPPORT_L2F) */
+#endif
 
 
-#if !(SUPPORT_LONG && SUPPORT_DOUBLE && SUPPORT_L2D)
+#if !(SUPPORT_DOUBLE && SUPPORT_L2D)
 double builtin_l2d(s8 a)
 {
 	double d = (double) a;
 	return d;
 }
-#endif /* !(SUPPORT_LONG && SUPPORT_DOUBLE && SUPPORT_L2D) */
+#endif
 
 
 #if !(SUPPORT_FLOAT && SUPPORT_F2I) || defined(ENABLE_INTRP) || defined(DISABLE_GC)
@@ -1856,7 +1820,7 @@ s4 builtin_f2i(float a)
 #endif /* !(SUPPORT_FLOAT && SUPPORT_F2I) || defined(ENABLE_INTRP) || defined(DISABLE_GC) */
 
 
-#if !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_F2L) || defined(DISABLE_GC)
+#if !(SUPPORT_FLOAT && SUPPORT_F2L) || defined(DISABLE_GC)
 s8 builtin_f2l(float a)
 {
 	s8 l;
@@ -1881,7 +1845,7 @@ s8 builtin_f2l(float a)
 		return 9223372036854775807L;
 		return (-9223372036854775808L); */
 }
-#endif /* !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_F2L) */
+#endif
 
 
 #if !(SUPPORT_DOUBLE && SUPPORT_D2I) || defined(ENABLE_INTRP) || defined(DISABLE_GC)
@@ -1906,7 +1870,7 @@ s4 builtin_d2i(double a)
 #endif /* !(SUPPORT_DOUBLE && SUPPORT_D2I) || defined(ENABLE_INTRP) || defined(DISABLE_GC) */
 
 
-#if !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_D2L) || defined(DISABLE_GC)
+#if !(SUPPORT_DOUBLE && SUPPORT_D2L) || defined(DISABLE_GC)
 s8 builtin_d2l(double a)
 {
 	double d;
@@ -1925,7 +1889,7 @@ s8 builtin_d2l(double a)
 		return 9223372036854775807LL;
 	return (-9223372036854775807LL-1);
 }
-#endif /* !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_D2L) */
+#endif
 
 
 #if !(SUPPORT_FLOAT && SUPPORT_DOUBLE)

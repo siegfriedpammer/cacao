@@ -40,16 +40,29 @@ class MachineInstructionSchedule;
 class MachineInstruction;
 class Backend;
 
-namespace {
-struct StartComparator {
-	bool operator()(const LivetimeInterval *lhs, const LivetimeInterval* rhs) {
-		if(lhs->get_start() > rhs->get_start()) {
-			return true;
-		}
-		return false;
-	}
+struct Move {
+	MachineOperand *from;
+	MachineOperand *to;
+	Move* dep;
+	bool scheduled;
+	Move(MachineOperand *from, MachineOperand *to) : from(from), to(to), dep(NULL), scheduled(false) {}
+	bool is_scheduled() const { return scheduled; }
 };
-} // end anonymous namespace
+struct Edge {
+	MachineBasicBlock *predecessor;
+	MachineBasicBlock *successor;
+	Edge(MachineBasicBlock *predecessor, MachineBasicBlock *successor) :
+		predecessor(predecessor), successor(successor) {}
+};
+
+inline bool operator<(const Edge &lhs, const Edge &rhs) {
+	if (lhs.predecessor < rhs.predecessor) return true;
+	if (lhs.predecessor > rhs.predecessor) return false;
+	return lhs.successor < rhs.successor;
+}
+
+typedef std::list<Move> MoveMapTy;
+typedef std::map<Edge,MoveMapTy> EdgeMoveMapTy;
 
 /**
  * Linear Scan Allocator
@@ -64,13 +77,18 @@ struct StartComparator {
  * See also Wimmer's Masters Thesis @cite WimmerMScThesis.
  */
 class LinearScanAllocatorPass : public Pass {
-private:
+public:
+	struct StartComparator {
+		bool operator()(const LivetimeInterval &lhs, const LivetimeInterval &rhs);
+	};
+
 	typedef std::list<MachineInstruction*> MoveListTy;
-	typedef std::map<std::pair<BeginInst*,BeginInst*>,MoveListTy> MoveMapTy;
-	typedef std::priority_queue<LivetimeInterval*,std::deque<LivetimeInterval*>, StartComparator> UnhandledSetTy;
-	typedef std::list<LivetimeInterval*> InactiveSetTy;
-	typedef std::list<LivetimeInterval*> ActiveSetTy;
-	typedef std::list<LivetimeInterval*> HandledSetTy;
+	//typedef std::map<std::pair<BeginInst*,BeginInst*>,MoveListTy> MoveMapTy;
+	typedef std::priority_queue<LivetimeInterval,std::deque<LivetimeInterval>, StartComparator> UnhandledSetTy;
+	typedef std::list<LivetimeInterval> InactiveSetTy;
+	typedef std::list<LivetimeInterval> ActiveSetTy;
+	typedef std::list<LivetimeInterval> HandledSetTy;
+private:
 
 	UnhandledSetTy unhandled;
 	ActiveSetTy active;
@@ -82,17 +100,31 @@ private:
 	Backend *backend;
 	JITData *jd;
 
-	bool try_allocate_free_reg(LivetimeInterval* current);
-	bool allocate_blocked_reg(LivetimeInterval* current);
-	void split_blocking_ltis(LivetimeInterval* current);
-	void split(LivetimeInterval *lti, unsigned pos);
-	void resolve();
+	bool try_allocate_free(LivetimeInterval& current, UseDef pos);
+	bool allocate_blocked(LivetimeInterval& current);
+	bool allocate_unhandled();
+	bool resolve();
+	bool reg_alloc_resolve_block(MIIterator first, MIIterator last);
+	bool order_and_insert_move(EdgeMoveMapTy::value_type &entry);
+	//bool order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *successor,
+	//		MoveMapTy &move_map);
 public:
 	static char ID;
 	LinearScanAllocatorPass() : Pass() {}
+	virtual void initialize();
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
 	virtual bool verify() const;
+};
+
+
+/**
+ * Second LSRA Pass. For the time being perform LSRA a second time to allocate resolution vars.
+ */
+class LinearScanAllocator2Pass : public LinearScanAllocatorPass {
+public:
+	static char ID;
+	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
 };
 
 } // end namespace compiler2

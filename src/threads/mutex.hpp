@@ -1,6 +1,6 @@
 /* src/threads/mutex.hpp - machine independent mutual exclusion functions
 
-   Copyright (C) 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -38,14 +38,26 @@
  * Helper class used to implicitly acquire and release a mutex
  * within a method scope.
  */
-class MutexLocker {
+template<class T>
+class AnyObjLocker
+{
 private:
-	Mutex& _mutex;
+	T& _mutex;
 
 public:
-	MutexLocker(Mutex& mutex) : _mutex(mutex) { _mutex.lock(); }
-	~MutexLocker()                            { _mutex.unlock(); }
+	AnyObjLocker(T& mutex): _mutex(mutex) { _mutex.lock(); }
+	~AnyObjLocker()                       { _mutex.unlock(); }
 };
+
+template<class T>
+class AnyClassLocker
+{
+public:
+	AnyClassLocker() { T::lock(); }
+	~AnyClassLocker() { T::unlock(); }
+};
+
+typedef AnyObjLocker<Mutex> MutexLocker;
 
 #endif /* _MUTEX_HPP */
 

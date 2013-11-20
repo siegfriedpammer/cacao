@@ -40,23 +40,23 @@ class SSAPrinterPass : public Pass {
 public:
 	static char ID;
 	SSAPrinterPass() : Pass() {}
-	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PA) const;
+	virtual bool run(JITData &JD);
+	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
 };
 
 /**
- * InstructionLinkSchedulePrinterPass
+ * GlobalSchedulePrinterPass
  * TODO: more info
  */
 template <class _T>
-class InstructionLinkSchedulePrinterPass : public Pass {
+class GlobalSchedulePrinterPass : public Pass {
 private:
 	static const char* name;
 public:
 	static char ID;
-	InstructionLinkSchedulePrinterPass() : Pass() {}
-	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PA) const;
+	GlobalSchedulePrinterPass() : Pass() {}
+	virtual bool run(JITData &JD);
+	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
 };
 } // end namespace cacao
 } // end namespace jit

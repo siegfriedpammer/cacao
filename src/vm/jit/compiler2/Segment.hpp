@@ -148,7 +148,7 @@ public:
 	/**
 	 * get size
 	 *
-	 * @deprecated this should only be evalable in the closed variant
+	 * @deprecated this should only be available in the closed variant
 	 */
 	std::size_t size() const { return content.size(); }
 
@@ -159,7 +159,7 @@ public:
 	 * Get the start index of next Reference in line.
 	 *
 	 * Note that the index may or may not be already present. In the later
-	 * case the the index of the future Reference will be returned
+	 * case the index of the future Reference will be returned
 	 */
 	IdxTy get_following_index() const {
 		return getFollowingIndex(*this,RefCategory());
@@ -168,7 +168,7 @@ public:
 	/**
 	 * get start address
 	 *
-	 * @deprecated this should only be evalable in the closed variant
+	 * @deprecated this should only be available in the closed variant
 	 */
 	u1* get_start() {
 		return &content.front();
@@ -176,7 +176,7 @@ public:
 	/**
 	 * get end address
 	 *
-	 * @deprecated this should only be evalable in the closed variant
+	 * @deprecated this should only be available in the closed variant
 	 */
 	u1* get_end() {
 		return get_start() + size();
@@ -198,7 +198,7 @@ public:
 	/**
 	 * reverse content
 	 *
-	 * @deprecated this should only be evalable in the closed variant
+	 * @deprecated this should only be available in the closed variant
 	 */
 	void reverse() {
 		std::reverse(content.begin(), content.end());
@@ -275,7 +275,7 @@ public:
  * Segment reference
  *
  * Segment references used to write data into the Segment and for linking.
- * Segments are position independant.
+ * Segments are position independent.
  *
  * It can be used like an u1 array.
  */
@@ -337,7 +337,7 @@ public:
 	/**
 	 * Get the index of the first element after the reference.
 	 *
-	 * Return the index of the first element after the refenrence with respect
+	 * Return the index of the first element after the reference with respect
 	 * to RefCategory  (i.e. the element that would be written by
 	 * operator[size()], which is not allowed). Note that get_begin() might
 	 * be greater than get_end() depending on RefCategory.

@@ -25,6 +25,8 @@
 
 #include "vm/jit/compiler2/GraphHelper.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
+#include "vm/jit/compiler2/MachineBasicBlock.hpp"
+#include "vm/jit/compiler2/MachineInstruction.hpp"
 
 #include <cassert>
 
@@ -59,6 +61,19 @@ template <>
 int DFSTraversal<BeginInst>::num_nodes(BeginInst *v) const {
 	assert(v->get_Method());
 	return v->get_Method()->bb_size();
+}
+
+// specialization for MachineBasicBlock
+template <>
+DFSTraversal<MachineBasicBlock>::NodeListTy& DFSTraversal<MachineBasicBlock>::successor(MachineBasicBlock *v, NodeListTy& list) {
+	MachineInstruction *last = v->back();
+	std::copy(last->successor_begin(),last->successor_end(),std::inserter(list,list.begin()));
+	return list;
+}
+
+template <>
+int DFSTraversal<MachineBasicBlock>::num_nodes(MachineBasicBlock *v) const {
+	return v->get_parent()->size();
 }
 
 } // end namespace compiler2

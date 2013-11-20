@@ -28,13 +28,14 @@
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
-
 #include "vm/jit/compiler2/PassUsage.hpp"
+
+#include "vm/jit/compiler2/SSAConstructionPass.hpp"
 #include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
 #include "vm/jit/compiler2/ScheduleLatePass.hpp"
 #include "vm/jit/compiler2/ScheduleClickPass.hpp"
 
-#include "toolbox/GraphTraits.hpp"
+#include "toolbox/GraphPrinter.hpp"
 
 #include "vm/utf8.hpp"
 #include "vm/jit/jit.hpp"
@@ -75,11 +76,11 @@ namespace compiler2 {
 
 namespace {
 
-class SSAGraph : public GraphTraits<Method,Instruction> {
+class SSAGraph : public PrintableGraph<Method*,Instruction*> {
 protected:
     const Method &M;
-	StringBuf name;
-	InstructionLinkSchedule *sched;
+	std::string name;
+	GlobalSchedule *sched;
     bool verbose;
 	std::set<EdgeType> data_dep;
 	std::set<EdgeType> sched_dep;
@@ -88,7 +89,7 @@ protected:
 
 public:
 
-    SSAGraph(const Method &M, StringBuf name = "SSAGraph", InstructionLinkSchedule *sched = NULL, bool verbose = false)
+    SSAGraph(const Method &M, std::string name = "SSAGraph", GlobalSchedule *sched = NULL, bool verbose = false)
 			: M(M), name(name), sched(sched), verbose(verbose) {
 		for(Method::InstructionListTy::const_iterator i = M.begin(),
 		    e = M.end(); i != e; ++i) {
@@ -151,30 +152,32 @@ public:
 		}
 	}
 
-	unsigned long getNodeID(const Instruction &node) const {
-		return node.get_id();
+	virtual unsigned long getNodeID(Instruction *const &node) const {
+		return node->get_id();
 	}
 
-    StringBuf getGraphName() const {
-		return name;
+    virtual OStream& getGraphName(OStream& OS) const {
+		return OS << name;
 	}
 
-    StringBuf getNodeLabel(const Instruction &node) const {
-		std::ostringstream sstream;
-		sstream << "[" << node.get_id() << ": " << node.get_name() << " ("
-				<< get_type_name(node.get_type()) << ")]";
-		for(Instruction::OperandListTy::const_iterator ii = node.op_begin(), ee = node.op_end();
+    virtual OStream& getNodeLabel(OStream& OS, Instruction *const &node) const {
+		#if 0
+		OS << "[" << node->get_id() << ": " << node->get_name() << " ("
+				<< get_type_name(node->get_type()) << ")]";
+		#endif
+		OS << node;
+		for(Instruction::OperandListTy::const_iterator ii = node->op_begin(), ee = node->op_end();
 				ii != ee; ++ii) {
-			sstream << " ";
+			OS << " ";
 			Value *v = (*ii);
 			if (v) {
 				Instruction *II = (*ii)->to_Instruction();
-				sstream << "[" << II->get_id() << "]";
+				OS << "[" << II->get_id() << "]";
 			} else {
-				sstream << "NULL";
+				OS << "NULL";
 			}
 		}
-		return sstream.str();
+		return OS;
 	}
 
 #if 0
@@ -183,26 +186,60 @@ public:
     StringBuf getEdgeLabel(const SSAGraph::EdgeType &e) const ;
 
 #endif
-    StringBuf getEdgeAttributes(const SSAGraph::EdgeType &e) const {
-		StringBuf attr;
-		if (data_dep.find(e) != data_dep.end()) {
-			attr +="color=red,";
-		}
-		if (sched_dep.find(e) != sched_dep.end()) {
-			attr +="color=blue,";
-		}
-		if (begin2end_edges.find(e) != begin2end_edges.end()) {
-			attr +="style=dashed,";
-		}
-		return attr;
-	}
+    OStream& getEdgeAttributes(OStream& OS, const SSAGraph::EdgeType &e) const;
 };
+
+class EdgeAttributeVisitor : public InstructionVisitor {
+private:
+	OStream &OS;
+	BeginInst *target;
+public:
+	EdgeAttributeVisitor(OStream &OS, BeginInst *target)
+		: OS(OS), target(target) {}
+	virtual void visit_default(Instruction *I) {
+	}
+	// make InstructionVisitors visit visible
+	using InstructionVisitor::visit;
+
+	virtual void visit(TABLESWITCHInst* I);
+
+};
+
+void EdgeAttributeVisitor::visit(TABLESWITCHInst* I) {
+	int index = I->get_successor_index(target);
+	if (index == -1) return;
+	if (std::size_t(index) == I->succ_size() - 1) {
+		OS << "label=\"default\"";
+	}
+	else {
+		OS << "label=\"" << index << "\"";
+	}
+}
+
+inline OStream& SSAGraph::getEdgeAttributes(OStream& OS, const SSAGraph::EdgeType &e) const {
+	if (data_dep.find(e) != data_dep.end()) {
+		OS << "color=red,";
+	}
+	if (sched_dep.find(e) != sched_dep.end()) {
+		OS << "color=blue,";
+	}
+	if (begin2end_edges.find(e) != begin2end_edges.end()) {
+		OS << "style=dashed,";
+	}
+	BeginInst* begin = e.second->to_BeginInst();
+	if (begin) {
+		EdgeAttributeVisitor visitor(OS,begin);
+		e.first->accept(visitor);
+	}
+	return OS;
+}
 
 } // end anonymous namespace
 
 // BEGIN SSAPrinterPass
 
 PassUsage& SSAPrinterPass::get_PassUsage(PassUsage &PU) const {
+	PU.add_requires<SSAConstructionPass>();
 	return PU;
 }
 // the address of this variable is used to identify the pass
@@ -213,34 +250,34 @@ static PassRegistery<SSAPrinterPass> X("SSAPrinterPass");
 
 // run pass
 bool SSAPrinterPass::run(JITData &JD) {
-	StringBuf name = get_filename(JD.get_jitdata()->m,JD.get_jitdata(),"","");
-	StringBuf filename = "ssa_";
+	std::string name = get_filename(JD.get_jitdata()->m,JD.get_jitdata(),"","");
+	std::string filename = "ssa_";
 	filename+=name+".dot";
 	GraphPrinter<SSAGraph>::print(filename.c_str(), SSAGraph(*(JD.get_Method()), name));
 	return true;
 }
 // END SSAPrinterPass
 
-// BEGIN InstructionLinkSchedulePrinterPass
+// BEGIN GlobalSchedulePrinterPass
 
 template <class _T>
-PassUsage& InstructionLinkSchedulePrinterPass<_T>::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires(_T::ID);
+PassUsage& GlobalSchedulePrinterPass<_T>::get_PassUsage(PassUsage &PU) const {
+	PU.add_requires<_T>();
 	return PU;
 }
 // the address of this variable is used to identify the pass
 template <class _T>
-char InstructionLinkSchedulePrinterPass<_T>::ID = 0;
+char GlobalSchedulePrinterPass<_T>::ID = 0;
 
 // run pass
 template <class _T>
-bool InstructionLinkSchedulePrinterPass<_T>::run(JITData &JD) {
-	StringBuf name = get_filename(JD.get_jitdata()->m,JD.get_jitdata(),"","");
-	StringBuf filename = "bb_sched_";
+bool GlobalSchedulePrinterPass<_T>::run(JITData &JD) {
+	std::string name = get_filename(JD.get_jitdata()->m,JD.get_jitdata(),"","");
+	std::string filename = "bb_sched_";
 
-	InstructionLinkSchedule* sched = get_Pass<_T>();
+	GlobalSchedule* sched = get_Pass<_T>();
 
-	filename += InstructionLinkSchedulePrinterPass<_T>::name;
+	filename += GlobalSchedulePrinterPass<_T>::name;
 	filename += "_" + name + ".dot";
 	GraphPrinter<SSAGraph>::print(filename.c_str(), SSAGraph(*(JD.get_Method()), name, sched));
 	return true;
@@ -248,19 +285,19 @@ bool InstructionLinkSchedulePrinterPass<_T>::run(JITData &JD) {
 
 // set names
 template <>
-const char* InstructionLinkSchedulePrinterPass<ScheduleLatePass>::name = "late";
+const char* GlobalSchedulePrinterPass<ScheduleLatePass>::name = "late";
 template <>
-const char* InstructionLinkSchedulePrinterPass<ScheduleEarlyPass>::name = "early";
+const char* GlobalSchedulePrinterPass<ScheduleEarlyPass>::name = "early";
 template <>
-const char* InstructionLinkSchedulePrinterPass<ScheduleClickPass>::name = "click";
+const char* GlobalSchedulePrinterPass<ScheduleClickPass>::name = "click";
 
 
 // register pass
-static PassRegistery<InstructionLinkSchedulePrinterPass<ScheduleLatePass> > X_late("InstructionLinkSchedulePrinterPass(late)");
-static PassRegistery<InstructionLinkSchedulePrinterPass<ScheduleEarlyPass> > X_early("InstructionLinkSchedulePrinterPass(early)");
-static PassRegistery<InstructionLinkSchedulePrinterPass<ScheduleClickPass> > X_click("InstructionLinkSchedulePrinterPass(click)");
+static PassRegistery<GlobalSchedulePrinterPass<ScheduleLatePass> > X_late("GlobalSchedulePrinterPass(late)");
+static PassRegistery<GlobalSchedulePrinterPass<ScheduleEarlyPass> > X_early("GlobalSchedulePrinterPass(early)");
+static PassRegistery<GlobalSchedulePrinterPass<ScheduleClickPass> > X_click("GlobalSchedulePrinterPass(click)");
 
-// END InstructionLinkSchedulePrinterPass
+// END GlobalSchedulePrinterPass
 
 } // end namespace cacao
 } // end namespace jit

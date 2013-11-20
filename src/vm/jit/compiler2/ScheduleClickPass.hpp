@@ -26,7 +26,7 @@
 #define _JIT_COMPILER2_SCHEDULECLICKPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
-#include "vm/jit/compiler2/InstructionLinkSchedule.hpp"
+#include "vm/jit/compiler2/GlobalSchedule.hpp"
 
 namespace cacao {
 namespace jit {
@@ -41,15 +41,15 @@ class Instruction;
  *
  * Based on the algorithm in Click's Phd Thesis, Chapter 6 @cite ClickPHD.
  */
-class ScheduleClickPass : public Pass, public InstructionLinkSchedule {
+class ScheduleClickPass : public Pass, public GlobalSchedule {
 private:
-	InstructionLinkSchedule *late;
+	GlobalSchedule *late;
 	Method *M;
 public:
 	static char ID;
 	ScheduleClickPass() : Pass() {}
-	bool run(JITData &JD);
-	PassUsage& get_PassUsage(PassUsage &PU) const;
+	virtual bool run(JITData &JD);
+	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
 };
 
 } // end namespace compiler2

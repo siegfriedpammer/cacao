@@ -75,27 +75,6 @@ struct registerdata {
 	int *freetmpfltregs;            /* free scratch float registers           */
 	int *freesavfltregs;            /* free saved float registers             */
 
-#ifdef HAS_ADDRESS_REGISTER_FILE
-	int adrreg_ret;                 /* register to return address values      */
-
-	int *argadrregs;                /* argument address registers             */
-	int *tmpadrregs;                /* scratch address registers              */
-	int *savadrregs;                /* saved address registers                */
-	int *freeargadrregs;            /* free argument address registers        */
-	int *freetmpadrregs;            /* free scratch address registers         */
-	int *freesavadrregs;            /* free saved address registers           */
-
-	int *adrusedinout;              /* is this adr register uses as INOUT?    */
-
-	int argadrreguse;               /* used argument address register count   */
-	int tmpadrreguse;               /* used scratch address register count    */
-	int savadrreguse;               /* used saved address register count      */
-
-	int freetmpadrtop;              /* free scratch address register count    */
-	int freesavadrtop;              /* free saved address register count      */
-	int freeargadrtop;              /* free argument address register count   */
-#endif
-
 	int *freemem;                   /* free scratch memory                    */
 	int freememtop;                 /* free memory count                      */
 

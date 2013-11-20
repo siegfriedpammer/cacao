@@ -84,9 +84,8 @@ bool Instruction::verify() const {
 		for(OperandListTy::const_iterator i = op_list.begin(), e = op_list.end(); i != e; ++i) {
 			Value *V = *i;
 			if (V->get_type() != get_type()) {
-				LOG(BoldRed  << "Instruction verification error" <<  reset_color << nl
-					<< " this type " << *this
-					<< " is not operand type " << V << " type: " << V->get_type() << nl  );
+				ERROR_MSG("Instruction verification error","This type " << *this
+					<< " is not equal  to operand (" << V << ") type " << V->get_type() << nl  );
 				return false;
 			}
 		}

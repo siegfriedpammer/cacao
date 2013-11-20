@@ -112,17 +112,6 @@ void executionstate_pop_stackframe(executionstate_t *es)
 		es->fltregs[reg] = *((double*) basesp);
 	}
 
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	// Restore saved adr registers.
-	reg = ADR_REG_CNT;
-	for (i=0; i<es->code->savedadrcount; ++i) {
-		while (nregdescadr[--reg] != REG_SAV)
-			;
-		basesp -= 1 * SIZE_OF_STACKSLOT;
-		es->adrregs[reg] = *((uintptr_t*) basesp);
-	}
-#endif
-
 	// Adjust the stackpointer.
 	es->sp += framesize;
 #if STACKFRMAE_RA_BETWEEN_FRAMES
@@ -140,11 +129,6 @@ void executionstate_pop_stackframe(executionstate_t *es)
 	for (i=0; i<FLT_REG_CNT; ++i)
 		if (nregdescfloat[i] != REG_SAV)
 			*(u8*)&(es->fltregs[i]) = 0x33dead3333dead33ULL;
-# if defined(HAS_ADDRESS_REGISTER_FILE)
-	for (i=0; i<ADR_REG_CNT; ++i)
-		if (nregdescadr[i] != REG_SAV)
-			es->adrregs[i] = (ptrint) 0x33dead3333dead33ULL;
-# endif
 #endif /* !defined(NDEBUG) */
 }
 
@@ -209,14 +193,8 @@ void executionstate_sanity_check(void *context)
 {
     /* estimate a minimum for the context size */
 
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-#define MINIMUM_CONTEXT_SIZE  (SIZEOF_VOID_P    * ADR_REG_CNT \
-		                       + sizeof(double) * FLT_REG_CNT \
-							   + sizeof(int)    * INT_REG_CNT)
-#else
 #define MINIMUM_CONTEXT_SIZE  (SIZEOF_VOID_P    * INT_REG_CNT \
 		                       + sizeof(double) * FLT_REG_CNT)
-#endif
 
 	executionstate_t es1;
 	executionstate_t es2;
@@ -247,10 +225,6 @@ void executionstate_sanity_check(void *context)
 		es2.intregs[i] = es1.intregs[i];
 	for (i = 0; i < FLT_REG_CNT; ++i)
 		es2.fltregs[i] = es1.fltregs[i];
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	for (i = 0; i < ADR_REG_CNT; ++i)
-		es2.adrregs[i] = es1.adrregs[i];
-#endif
 
 	/* write it back - this should not change the context */
 	/* We cannot check that completely, unfortunately, as we don't know */
@@ -272,10 +246,6 @@ void executionstate_sanity_check(void *context)
 		assert(es3.intregs[i] == es1.intregs[i]);
 	for (i = 0; i < FLT_REG_CNT; ++i)
 		assert(memcmp(es3.fltregs+i, es1.fltregs+i, sizeof(double)) == 0);
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	for (i = 0; i < ADR_REG_CNT; ++i)
-		assert(es3.adrregs[i] == es1.adrregs[i]);
-#endif
 
 	/* i386 and x86_64 do not have an RA register */
 
@@ -348,18 +318,6 @@ void executionstate_println(executionstate_t *es)
 		if (i%4 == 3)
 			printf("\n");
 	}
-
-# if defined(HAS_ADDRESS_REGISTER_FILE)
-	for (i=0; i<ADR_REG_CNT; ++i) {
-		if (i%4 == 0)
-			printf("\t");
-		else
-			printf(" ");
-		printf("A%02d = %016llx",i,(unsigned long long)es->adrregs[i]);
-		if (i%4 == 3)
-			printf("\n");
-	}
-# endif
 #endif
 
 	sp = (uint64_t *) es->sp;

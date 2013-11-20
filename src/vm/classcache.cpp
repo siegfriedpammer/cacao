@@ -991,6 +991,7 @@ return_success:
    
 *******************************************************************************/
 
+#if defined(ENABLE_VERIFIER)
 static classcache_class_entry * classcache_find_loader(
 									classcache_name_entry * entry,
 									classloader_t * loader)
@@ -1019,6 +1020,7 @@ static classcache_class_entry * classcache_find_loader(
 	/* not found */
 	return NULL;
 }
+#endif
 
 /* classcache_free_class_entry *************************************************
  

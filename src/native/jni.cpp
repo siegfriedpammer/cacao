@@ -25,11 +25,9 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
+#include <cstring>
 #include <stdint.h>
-#include <string.h>
-
-#include "vm/types.hpp"
 
 #include "mm/gc.hpp"
 #include "mm/memory.hpp"
@@ -48,9 +46,9 @@
 #include "threads/thread.hpp"
 
 #include "toolbox/logging.hpp"
+#include "toolbox/hashtable.hpp"
 
 #include "vm/array.hpp"
-#include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.hpp"
 #include "vm/globals.hpp"
@@ -62,8 +60,10 @@
 #include "vm/resolve.hpp"
 #include "vm/statistics.hpp"
 #include "vm/string.hpp"
+#include "vm/types.hpp"
 #include "vm/vm.hpp"
 
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/stacktrace.hpp"
 
 

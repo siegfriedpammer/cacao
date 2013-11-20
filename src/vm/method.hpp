@@ -26,9 +26,10 @@
 #ifndef METHOD_HPP_
 #define METHOD_HPP_ 1
 
-#include <stdint.h>                     // for uint16_t, int32_t
 #include "config.h"                     // for ENABLE_JAVASE, etc
-#include "vftbl.hpp"                    // for vftbl_t
+
+#include <stdint.h>                     // for uint16_t, int32_t
+
 #include "vm/global.hpp"                // for java_handle_bytearray_t, etc
 #include "vm/references.hpp"            // for classref_or_classinfo
 #include "vm/types.hpp"                 // for s4, u2, u1
@@ -40,7 +41,6 @@ struct builtintable_entry;
 struct classbuffer;
 struct classinfo;
 struct codeinfo;
-struct descriptor_pool;
 struct lineinfo;
 struct localvarinfo;
 struct method_assumption;
@@ -49,6 +49,10 @@ struct methoddesc;
 struct methodinfo;
 struct raw_exception_entry;
 struct stack_map_t;
+struct vftbl_t;
+
+namespace cacao { struct DescriptorPool; }
+
 
 #if defined(ENABLE_REPLACEMENT)
 // Initial value for the hit countdown field of each method.
@@ -189,7 +193,7 @@ inline static bool method_is_builtin(methodinfo* m)
 
 void method_init(void);
 
-bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool);
+bool method_load(classbuffer *cb, methodinfo *m, cacao::DescriptorPool& descpool);
 void method_free(methodinfo *m);
 bool method_canoverwrite(methodinfo *m, methodinfo *old);
 
