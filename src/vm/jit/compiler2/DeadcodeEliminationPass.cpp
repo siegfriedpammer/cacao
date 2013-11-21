@@ -40,16 +40,10 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-// helper function which determines if an instruction with the
-// given opcode could possibly affect the output of the method.
-// this information is essential to decide if an instruction withou
-// any users is really dead and thus should be deleted, or if it
-// may have influence on the method outputs and thus is not dead
-// even if it has to users (e.g. the return instruction).
-// TODO: maybe we should move this to the Instruction class
-bool affectsMethodOutput(const Instruction::InstID opcode) {
-	return opcode == Instruction::RETURNInstID ||
-		   opcode == Instruction::INVOKESTATICInstID;
+// TODO: maybe we should make this a flag in the Instruction class
+bool is_control_flow_inst(Instruction *inst) {
+	return inst->get_opcode() == Instruction::BeginInstID
+			|| inst->to_EndInst();
 }
 
 bool DeadcodeEliminationPass::run(JITData &JD) {
@@ -86,12 +80,7 @@ bool DeadcodeEliminationPass::run(JITData &JD) {
 		// the first condition to be met for an instruction to be considered
 		// 'dead' is that all its users are 'dead'.
 		if (I->user_size() == deadUsers[I]) {
-			if (I->get_opcode() == Instruction::BeginInstID) {
-				// TODO: remove BeginInst only if its corresponding
-				// "end" instruction is dead
-			} else if (!affectsMethodOutput(I->get_opcode())) {
-				// TODO: consider here all instructions that could possibly
-				// influence the method output
+			if (!I->has_side_effects() && !is_control_flow_inst(I)) {
 				dead[I] = true;
 
 				// insert the dead instructions in the order they should be deleted
