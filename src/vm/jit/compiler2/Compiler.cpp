@@ -131,6 +131,8 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass<LoopTreePrinterPass>();
 	PM.add_Pass<DomTreePrinterPass>();
 	PM.add_Pass<SSAPrinterPass>();
+	PM.add_Pass<ConstantPropagationPass>();
+	PM.add_Pass<DeadcodeEliminationPass>();
 	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleEarlyPass> >();
 	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleLatePass> >();
 	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleClickPass> >();

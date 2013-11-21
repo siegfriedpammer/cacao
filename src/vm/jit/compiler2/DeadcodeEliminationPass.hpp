@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_DEADCODEELIMINATIONPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
+#include "future/unordered_map.hpp"
 
 namespace cacao {
 namespace jit {
@@ -40,8 +41,8 @@ class Instruction;
  */
 class DeadcodeEliminationPass : public Pass {
 private:
-	typedef std::map<Instruction*,bool> InstBoolMapTy;
-	typedef std::map<Instruction*,int> InstIntMapTy;
+	typedef unordered_map<Instruction*,bool> InstBoolMapTy;
+	typedef unordered_map<Instruction*,int> InstIntMapTy;
 public:
 	static char ID;
 	DeadcodeEliminationPass() : Pass() {}

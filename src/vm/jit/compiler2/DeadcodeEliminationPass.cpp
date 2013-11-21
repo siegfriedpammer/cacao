@@ -29,6 +29,10 @@
 #include "vm/jit/compiler2/Method.hpp"
 #include "toolbox/logging.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
+#include "vm/jit/compiler2/ListSchedulingPass.hpp"
+#include "vm/jit/compiler2/SSAPrinterPass.hpp"
+#include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
+#include "vm/jit/compiler2/ScheduleClickPass.hpp"
 
 #define DEBUG_NAME "compiler2/deadcodeeliminationpass"
 
@@ -135,9 +139,6 @@ bool DeadcodeEliminationPass::run(JITData &JD) {
 
 // pass usage
 PassUsage& DeadcodeEliminationPass::get_PassUsage(PassUsage &PU) const {
-	//PU.add_requires(YyyPass::ID);
-    //PU.add_modifies(YyyPass::ID);
-    //PU.add_destroys(YyyPass::ID);
 	return PU;
 }
 
