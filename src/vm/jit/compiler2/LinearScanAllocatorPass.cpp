@@ -49,6 +49,7 @@ STAT_REGISTER_GROUP_VAR_EXTERN(std::size_t,num_remaining_moves,0,"remaining move
 STAT_REGISTER_GROUP_VAR(std::size_t,num_split_moves,0,"spill moves","Number of split moves",lsra_stat)
 STAT_REGISTER_GROUP_VAR(std::size_t,num_spill_loads,0,"spill loads","Number of spill loads",lsra_stat)
 STAT_REGISTER_GROUP_VAR(std::size_t,num_spill_stores,0,"spill stores","Number of spill stores",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_resolution_moves,0,"resolution moves","Number move instructions for resolution",lsra_stat)
 
 namespace cacao {
 namespace jit {
@@ -970,6 +971,7 @@ bool LinearScanAllocatorPass::order_and_insert_move(EdgeMoveMapTy::value_type &e
 	for (std::list<MachineInstruction*>::const_iterator i = ++scheduled.begin(),
 			e  = scheduled.end(); i != e ; ++i) {
 		insert_before(last, *i);
+		STATISTICS(++num_resolution_moves);
 	}
 	if (scheduler.need_register_allocation()) {
 		LOG2("Register allocation for resolution needed!"<<nl);
