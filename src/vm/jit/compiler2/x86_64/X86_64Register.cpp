@@ -57,6 +57,9 @@ GPRegister R15("R15",0x7,true ,0xf*8,8);
 GPRegister* IntegerArgumentRegisters[] = {
 &RDI, &RSI, &RDX, &RCX, &R8, &R9
 };
+GPRegister* IntegerCallerSavedRegisters[] = {
+&RAX,&R11,&R10,&R9,&R8,&RCX,&RDX,&RSI,&RDI};
+std::size_t IntegerCallerSavedRegistersSize = 9;
 
 SSERegister XMM0 ("XMM0" ,0x0,false,0x0*16,16);
 SSERegister XMM1 ("XMM1" ,0x1,false,0x1*16,16);
@@ -93,10 +96,10 @@ BackendBase<X86_64>::get_OperandFile(OperandFile& OF,MachineOperand *MO) const {
 	case Type::LongTypeID:
 	case Type::ReferenceTypeID:
 		#if 1
-		for(unsigned i = 0; i < IntegerArgumentRegisterSize ; ++i) {
-			OF.push_back(new x86_64::NativeRegister(type,IntegerArgumentRegisters[i]));
+		for(unsigned i = 0; i < IntegerCallerSavedRegistersSize ; ++i) {
+			OF.push_back(new x86_64::NativeRegister(type,IntegerCallerSavedRegisters[i]));
 		}
-		assert(OF.size() == IntegerArgumentRegisterSize);
+		assert(OF.size() == IntegerCallerSavedRegistersSize);
 		#else
 		OF.push_back(new x86_64::NativeRegister(type,&RDI));
 		OF.push_back(new x86_64::NativeRegister(type,&RSI));
