@@ -1270,6 +1270,11 @@ void method_methodref_println(constant_FMIref *mr)
 }
 #endif /* !defined(NDEBUG) */
 
+#if !defined(NDEBUG)
+bool method_matches(methodinfo *m, const char* name) {
+	return m->name == Utf8String::from_utf8(name);
+}
+#endif /* !defined(NDEBUG) */
 
 namespace cacao {
 namespace {

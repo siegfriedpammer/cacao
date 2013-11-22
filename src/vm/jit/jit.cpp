@@ -84,6 +84,8 @@
 
 #if defined(ENABLE_COMPILER2)
 #include "vm/jit/compiler2/Compiler.hpp"
+#include "vm/jit/compiler2/JITData.hpp"
+#include "vm/jit/compiler2/ObjectFileWriterPass.hpp"
 #endif
 
 /* debug macros ***************************************************************/
@@ -396,6 +398,16 @@ u1 *jit_compile(methodinfo *m)
 	/* now call internal compile function */
 
 	r = jit_compile_intern(jd);
+#if defined(ENABLE_COMPILER2)
+	if (method_matches(m,opt_CompileMethod)) {
+		using namespace cacao::jit::compiler2;
+		JITData JD(jd);
+		ObjectFileWriterPass pass;
+		pass.initialize();
+		pass.run(JD);
+		pass.finalize();
+	}
+#endif
 
 	if (r == NULL) {
 		/* We had an exception! Finish stuff here if necessary. */
