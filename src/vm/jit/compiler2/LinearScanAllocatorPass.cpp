@@ -41,8 +41,14 @@
 #define DEBUG_NAME "compiler2/LinearScanAllocator"
 
 STAT_REGISTER_GROUP(lsra_stat,"LSRA","Linear Scan Register Allocator")
-STAT_REGISTER_GROUP_VAR(unsigned,num_hints_followed,0,"hints followed",
+STAT_REGISTER_GROUP_VAR(std::size_t,num_hints_followed,0,"hints followed",
 	"Number of Hints followed (i.e. no move)",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_hints_not_followed,0,"hints not followed",
+	"Number of Hints not followed (i.e. move needed)",lsra_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(std::size_t,num_remaining_moves,0,"remaining moves","Number of remaining moves",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_split_moves,0,"spill moves","Number of split moves",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_spill_loads,0,"spill loads","Number of spill loads",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_spill_stores,0,"spill stores","Number of spill stores",lsra_stat)
 
 namespace cacao {
 namespace jit {
@@ -217,6 +223,12 @@ inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current
 				reg = hint;
 				STATISTICS(++num_hints_followed);
 			}
+			else {
+				STATISTICS(++num_hints_not_followed);
+			}
+		}
+		else {
+			STATISTICS(++num_hints_not_followed);
 		}
 	}
 	// if not follow hint!
@@ -242,6 +254,7 @@ inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current
 	// register available for the first part of the interval
 	MachineOperand *tmp = new VirtualRegister(reg->get_type());
 	MachineInstruction *move = backend->create_Move(reg,tmp);
+	STATISTICS(++num_split_moves);
 	MIIterator split_pos = insert_move_before(move,free_until_pos_reg);
 	assert_msg(pos.get_iterator() < split_pos, "pos: " << pos << " free_until_pos_reg "
 		<< free_until_pos_reg << " split: " << split_pos);
@@ -329,6 +342,7 @@ void split_active_position(LivetimeInterval lti, UseDef current_pos, UseDef next
 		stackslot = get_stackslot(backend,MO->get_type());
 		MachineInstruction *move_to_stack = backend->create_Move(MO,stackslot);
 		MIIterator split_pos = insert_move_before(move_to_stack,current_pos);
+		STATISTICS(++num_spill_stores);
 		lti = lti.split_active(split_pos);
 		// XXX should we add the stack interval?
 		unhandled.push(lti);
@@ -340,6 +354,7 @@ void split_active_position(LivetimeInterval lti, UseDef current_pos, UseDef next
 		MachineOperand *vreg = new VirtualRegister(MO->get_type());
 		MachineInstruction *move_from_stack = backend->create_Move(stackslot, vreg);
 		MIIterator split_pos = insert_move_before(move_from_stack,next_use_pos);
+		STATISTICS(++num_spill_loads);
 		lti = lti.split_active(split_pos);
 		unhandled.push(lti);
 	}
@@ -400,6 +415,7 @@ inline void split_current(LivetimeInterval &current, Type::TypeID type, UseDef p
 		MachineInstruction *move_from_stack = backend->create_Move(stackslot,vreg);
 		// split
 		MIIterator split_pos = insert_move_before(move_from_stack,pos);
+		STATISTICS(++num_spill_loads);
 		LivetimeInterval new_lti = current.split_active(split_pos);
 		unhandled.push(new_lti);
 	}
