@@ -721,6 +721,7 @@ public:
 		LOG2("live: " << lti << " op: " << *lti.get_init_operand() << nl);
 
 		MachineOperand *move_from;
+		// if is phi
 		if (lti.front().start.get_iterator() == successor->mi_first()) {
 			MachinePhiInst *phi = get_phi_from_operand(successor, lti.get_init_operand());
 			assert(phi);
@@ -738,7 +739,8 @@ public:
 		else {
 			move_from = lti.get_operand(predecessor->mi_last());
 		}
-		MachineOperand *move_to = lti.get_operand();
+		MachineOperand *move_to = lti.get_operand(successor->mi_first());
+		LOG3(" from: " << move_from << " to " << move_to << nl);
 		if (!move_from->aquivalent(*move_to)) {
 			move_map.push_back(Move(move_from,move_to));
 		}
@@ -909,7 +911,7 @@ public:
 	/// function call operator
 	void operator()(MachineBasicBlock *predecessor, MachineBasicBlock *successor) const {
 		MoveMapTy &move_map = edge_move_map[Edge(predecessor,successor)];
-		LOG2("edge " << *predecessor << " -> " << *successor << nl);
+		LOG2(Cyan << "edge " << *predecessor << " -> " << *successor << nl);
 		BBtoLTI_Map::mapped_type &lti_live_set = bb2lti_map[successor];
 		// for each live interval live at successor
 		std::for_each(lti_live_set.begin(), lti_live_set.end(),
