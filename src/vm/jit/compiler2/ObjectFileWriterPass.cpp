@@ -91,6 +91,7 @@ bool ObjectFileWriterPass::run(JITData &JD) {
 	LOG("Object file name: " << filename.c_str() << nl);
 	LOG(".text symbol name: " << symbol_name.c_str() << nl);
 
+	#if 0
 	if (DEBUG_COND_N(3)) {
 		const char ** target_list = bfd_target_list();
 		while (*target_list) {
@@ -105,6 +106,7 @@ bool ObjectFileWriterPass::run(JITData &JD) {
 			++arch_list;
 		}
 	}
+	#endif
 	// open file
 	LOG2("open file" << nl);
 	bfd *abfd = bfd_openw(filename.c_str(),bfd_target);

@@ -138,7 +138,7 @@ OStream& operator<<(OStream &OS, const LivetimeIntervalImpl &lti) {
 }
 
 MachineOperand* LivetimeIntervalImpl::get_operand(MIIterator pos) const {
-	LOG2("get_operand(this:" << *this << " pos:" << pos << ")" <<nl);
+	//LOG2("get_operand(this:" << *this << " pos:" << pos << ")" <<nl);
 	if (back().end.get_iterator() < pos) {
 		assert(has_next());
 		LivetimeInterval lti_next = get_next();
