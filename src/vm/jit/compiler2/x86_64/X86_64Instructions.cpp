@@ -661,6 +661,8 @@ OStream& CondJumpInst::print_successor_label(OStream &OS,std::size_t index) cons
 }
 
 void CondJumpInst::emit(CodeMemory* CM) const {
+	// update jump target (might have changed)
+	jump.set_target(successor_back());
 	// emit else jump (if needed)
 	jump.emit(CM);
 	// emit then jump

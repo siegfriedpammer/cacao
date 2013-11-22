@@ -441,6 +441,9 @@ public:
 	virtual bool is_jump() const {
 		return true;
 	}
+	void set_target(MachineBasicBlock *target) {
+		successors.front() = target;
+	}
 	virtual void emit(CodeMemory* CM) const;
 	virtual void link(CodeFragment &CF) const;
 };
@@ -449,7 +452,8 @@ class CondJumpInst : public X86_64Instruction {
 private:
 	Cond::COND cond;
 	/// jump to the else target
-	JumpInst jump;
+	/// @todo change this!
+	mutable JumpInst jump;
 public:
 	CondJumpInst(Cond::COND cond, MachineBasicBlock *then_target, MachineBasicBlock *else_target)
 			: X86_64Instruction("X86_64CondJumpInst", &NoOperand, 0),
