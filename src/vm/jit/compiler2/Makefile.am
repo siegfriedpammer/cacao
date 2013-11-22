@@ -21,7 +21,7 @@
 ## 02110-1301, USA.
 
 
-AM_CPPFLAGS = -I$(top_srcdir)/src \
+AM_CPPFLAGS += -I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) \
 	-I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) \
 	-I$(top_srcdir)/src/vm/jit/compiler2/$(ARCH_DIR) \
@@ -30,6 +30,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/src \
 LIBS =
 
 SUBDIRS = \
+	alloc \
 	$(ARCH_DIR)
 
 noinst_LTLIBRARIES = \
@@ -93,6 +94,7 @@ libcompiler2_la_SOURCES = \
 	VerifierPass.cpp
 
 libcompiler2_la_LIBADD = \
+	alloc/liballoc.la \
 	$(ARCH_DIR)/lib$(ARCH_DIR).la
 
 ## Local variables:
