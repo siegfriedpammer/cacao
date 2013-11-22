@@ -1,8 +1,8 @@
 #include <stdio.h>
 
-double pi_spigot(long num_digits);
+double piSpigot(long num_digits);
 
-double pi_spigot_c(long num_digits) {
+double piSpigot_c(long num_digits) {
     double pi = 0;
     for (long i = 0; i < num_digits; ++i) {
         // fake power
@@ -22,6 +22,9 @@ double pi_spigot_c(long num_digits) {
 }
 
 int main() {
-    printf("%g\n", pi_spigot(1));
+    int i;
+    for(i=0; i < 15 ; ++i) {
+        printf("%.50g\n", piSpigot(i));
+    }
     return 0;
 }
