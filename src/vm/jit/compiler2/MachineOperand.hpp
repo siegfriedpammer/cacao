@@ -70,6 +70,8 @@ public:
 	typedef std::size_t IdentifyOffsetTy;
 	typedef std::size_t IdentifySizeTy;
 private:
+	static std::size_t id_counter;
+	std::size_t id;
 	OperandID op_id;
 	Type::TypeID type;
 protected:
@@ -80,9 +82,10 @@ protected:
 	virtual IdentifyOffsetTy id_offset() const { return 0; }
 	virtual IdentifySizeTy id_size()     const { return 1; }
 public:
+	std::size_t get_id() const { return id; }
 
 	explicit MachineOperand(OperandID op_id, Type::TypeID type)
-		: op_id(op_id), type(type) {}
+		: id(id_counter++), op_id(op_id), type(type) {}
 
 	OperandID get_OperandID() const { return op_id; }
 	Type::TypeID get_type() const { return type; }
@@ -361,7 +364,7 @@ inline OStream& operator<<(OStream &OS, const MachineOperand *MO) {
 	return OS << *MO;
 }
 
-struct MachineOperandComp : std::binary_function<MachineOperand*,MachineOperand*,bool> {
+struct MachineOperandComp : public std::binary_function<MachineOperand*,MachineOperand*,bool> {
 	bool operator()(MachineOperand* lhs, MachineOperand *rhs) const {
 		return lhs->aquivalence_less(*rhs);
 	}
@@ -372,7 +375,38 @@ typedef alloc::list<MachineOperand*>::type OperandFile;
 
 } // end namespace compiler2
 } // end namespace jit
+
+template<>
+struct hash<cacao::jit::compiler2::MachineOperand*> {
+	std::size_t operator()(cacao::jit::compiler2::MachineOperand *v) const {
+		return v->get_id();
+	}
+};
+
+
 } // end namespace cacao
+
+namespace std {
+
+template<>
+struct less<cacao::jit::compiler2::MachineOperand*> {
+	bool operator()(cacao::jit::compiler2::MachineOperand *lhs,
+			cacao::jit::compiler2::MachineOperand *rhs) const {
+		return lhs->get_id() < rhs->get_id();
+	}
+};
+
+#if 0
+template<>
+struct equal_to<cacao::jit::compiler2::MachineOperand*> {
+	bool operator()(cacao::jit::compiler2::MachineOperand *lhs,
+			cacao::jit::compiler2::MachineOperand *rhs) const {
+		return lhs->aquivalent(*rhs);
+	}
+};
+#endif
+
+} // end namespace standard
 
 #endif /* _JIT_COMPILER2_MACHINEOPERAND */
 
