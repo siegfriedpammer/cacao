@@ -25,10 +25,9 @@
 #ifndef _JIT_COMPILER2_MACHINEINSTRUCTIONSCHEDULE
 #define _JIT_COMPILER2_MACHINEINSTRUCTIONSCHEDULE
 
-#include "toolbox/ordered_list.hpp"
-
 #include "vm/jit/compiler2/alloc/map.hpp"
 #include "vm/jit/compiler2/alloc/list.hpp"
+#include "vm/jit/compiler2/alloc/ordered_list.hpp"
 #include "vm/jit/compiler2/alloc/vector.hpp"
 #include <cassert>
 
@@ -42,7 +41,7 @@ class MachineInstructionSchedule;
 class MIIterator;
 
 class MBBIterator {
-	typedef ordered_list<MachineBasicBlock*>::iterator iterator;
+	typedef alloc::ordered_list<MachineBasicBlock*>::type::iterator iterator;
 	MachineInstructionSchedule *parent;
 	iterator it;
 	/// empty constructor
@@ -97,7 +96,7 @@ public:
 };
 
 class const_MBBIterator {
-	typedef ordered_list<MachineBasicBlock*>::const_iterator const_iterator;
+	typedef alloc::ordered_list<MachineBasicBlock*>::type::const_iterator const_iterator;
 	const MachineInstructionSchedule *parent;
 	const_iterator it;
 	/// empty constructor
@@ -209,7 +208,7 @@ public:
 	/// returns an const MIIterator to the end
 	MIIterator mi_end();
 private:
-	ordered_list<MachineBasicBlock*> list;
+	alloc::ordered_list<MachineBasicBlock*>::type list;
 };
 
 inline bool MachineInstructionSchedule::empty() const {

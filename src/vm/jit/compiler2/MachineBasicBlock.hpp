@@ -26,7 +26,7 @@
 #define _JIT_COMPILER2_MACHINEBASICBLOCK
 
 #include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
-#include "toolbox/ordered_list.hpp"
+#include "vm/jit/compiler2/alloc/ordered_list.hpp"
 
 #include "future/algorithm.hpp" // for all_of, none_of
 
@@ -46,7 +46,7 @@ class MachinePhiInst;
 class Backend;
 
 class MIIterator {
-	typedef ordered_list<MachineInstruction*>::iterator _iterator;
+	typedef alloc::ordered_list<MachineInstruction*>::type::iterator _iterator;
 	typedef MBBIterator block_iterator;
 	block_iterator block_it;
 	_iterator it;
@@ -139,7 +139,7 @@ inline bool operator>=(const MIIterator &lhs, const MIIterator& rhs) {
  */
 class MachineBasicBlock {
 public:
-	typedef ordered_list<MachineInstruction*> Container;
+	typedef alloc::ordered_list<MachineInstruction*>::type Container;
 	typedef Container::iterator iterator;
 	typedef Container::const_iterator const_iterator;
 	typedef Container::reference reference;
