@@ -65,6 +65,10 @@ run: $(OUTPUT_JAVA_TESTS)
 	@echo compile $@...
 	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Compile.sh "$(JAVACMD)" $@ $(srcdir)
 
+%.o.baseline: build
+	@echo compile $@...
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Compile.sh "$(JAVACMD)" $(subst .baseline,,$@) $(srcdir) dummy
+
 %.run: %.o $(srcdir)/%.main.c
 	@$(CC) -O0 $^ -o $@
 
