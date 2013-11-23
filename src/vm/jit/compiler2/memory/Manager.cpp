@@ -31,13 +31,23 @@ namespace memory {
 
 STAT_REGISTER_GROUP(comp2_alloc_group,"Compiler2NewDeleteHandler","Custom new/delete handler for compiler2")
 STAT_REGISTER_GROUP_VAR_EXTERN(std::size_t,comp2_allocated,0,"total allocations","Number of byte allocated",comp2_alloc_group)
-//STAT_REGISTER_GROUP_VAR_EXTERN(std::size_t,comp2_deallocated,0,"total deallocations","Number of byte deallocated",comp2_alloc_group)
-//STAT_REGISTER_GROUP_VAR_EXTERN(std::size_t,comp2_max,0,"maximum memory","Maximum memory consumption",comp2_alloc_group)
+
+#if defined(_MEMORY_MANAGER_ENABLE_DETAILED_STATS)
+
+STAT_REGISTER_GROUP_VAR_EXTERN(std::size_t,comp2_deallocated,0,"total deallocations","Number of byte deallocated",comp2_alloc_group)
+STAT_REGISTER_GROUP_VAR_EXTERN(std::size_t,comp2_max,0,"maximum memory","Maximum memory consumption",comp2_alloc_group)
+
+unordered_map<void*,std::size_t>& mem_map() {
+	static unordered_map<void*,std::size_t> mm;
+	return mm;
+}
 
 std::size_t& current_heap_size() {
 	static std::size_t t = 0;
 	return t;
 }
+
+#endif
 
 } // end namespace memory
 } // end namespace compiler2
