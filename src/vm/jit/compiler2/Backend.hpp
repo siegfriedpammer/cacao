@@ -28,6 +28,7 @@
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
 #include "vm/jit/compiler2/InstructionVisitor.hpp"
+#include "vm/jit/compiler2/memory/Manager.hpp"
 
 namespace cacao {
 namespace jit {
@@ -39,7 +40,7 @@ class JITData;
 class RegisterFile;
 class MachineBasicBlock;
 
-class Backend {
+class Backend : public memory::ManagerMixin<Backend>  {
 private:
 	JITData *JD;
 protected:

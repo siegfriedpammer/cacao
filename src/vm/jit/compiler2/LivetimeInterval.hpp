@@ -30,6 +30,7 @@
 
 #include "future/memory.hpp"            // for cacao::shared_ptr
 
+#include "vm/jit/compiler2/memory/Manager.hpp"
 #include "vm/jit/compiler2/alloc/map.hpp"
 #include "vm/jit/compiler2/alloc/set.hpp"
 #include "vm/jit/compiler2/alloc/list.hpp"
@@ -52,7 +53,7 @@ class ManagedStackSlot;
 class BasicBlockSchedule;
 class MachineInstructionSchedule;
 
-class UseDef {
+class UseDef : public memory::ManagerMixin<UseDef>  {
 public:
 	enum Type {
 		Use,
@@ -98,7 +99,7 @@ struct LivetimeRange {
 };
 
 
-class LivetimeInterval {
+class LivetimeInterval : public memory::ManagerMixin<LivetimeInterval>  {
 public:
 	typedef alloc::list<LivetimeRange>::type IntervalListTy;
 	typedef IntervalListTy::const_iterator const_iterator;
@@ -191,7 +192,7 @@ private:
 	friend class LivetimeIntervalImpl;
 };
 
-class LivetimeIntervalImpl {
+class LivetimeIntervalImpl : public memory::ManagerMixin<LivetimeIntervalImpl>  {
 public:
 	typedef LivetimeInterval::IntervalListTy IntervalListTy;
 	typedef LivetimeInterval::const_iterator const_iterator;

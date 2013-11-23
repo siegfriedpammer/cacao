@@ -29,6 +29,7 @@
 #include "vm/jit/compiler2/CodeSegment.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
 
+#include "vm/jit/compiler2/memory/Manager.hpp"
 #include "vm/jit/compiler2/alloc/vector.hpp"
 
 namespace cacao {
@@ -51,7 +52,7 @@ class MachineInstruction;
  * Besides a pointer to the actual MachineOperand meta information like
  * operand index, etc. are stored.
  */
-class MachineOperandDesc {
+class MachineOperandDesc : public memory::ManagerMixin<MachineOperandDesc>  {
 private:
 	MachineInstruction *parent;
 	std::size_t index;
@@ -80,7 +81,7 @@ public:
  * source block.
  */
 #if 0
-class SuccessorProxy {
+class SuccessorProxy : public memory::ManagerMixin<SuccessorProxy>  {
 public:
 	struct Explicit {};
 	struct Implicit {};
@@ -103,7 +104,7 @@ public:
 /**
  * Superclass for all machine dependent instructions
  */
-class MachineInstruction {
+class MachineInstruction : public memory::ManagerMixin<MachineInstruction>  {
 public:
 	typedef alloc::vector<MachineOperandDesc>::type operand_list;
 	typedef operand_list::iterator operand_iterator;

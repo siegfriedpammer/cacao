@@ -29,6 +29,7 @@
 #include "toolbox/OStream.hpp"
 #include "vm/types.hpp"
 
+#include "vm/jit/compiler2/memory/Manager.hpp"
 #include "vm/jit/compiler2/alloc/list.hpp"
 #include "vm/jit/compiler2/alloc/vector.hpp"
 #include <cassert>
@@ -54,7 +55,7 @@ class CONSTInst;
 /**
  * Operands that can be directly used by the machine (register, memory, stackslot)
  */
-class MachineOperand {
+class MachineOperand : public memory::ManagerMixin<MachineOperand>  {
 public:
 	enum OperandID {
 		MachineOperandID,

@@ -26,11 +26,11 @@
 #define _JIT_COMPILER2_VALUE
 
 #include "vm/jit/compiler2/Type.hpp"
+#include "vm/jit/compiler2/alloc/list.hpp"
+#include "vm/jit/compiler2/memory/Manager.hpp"
 
 #include <cstddef>
-#include "vm/jit/compiler2/alloc/list.hpp"
 #include <algorithm>
-
 #include <cassert>
 
 namespace cacao {
@@ -42,7 +42,7 @@ namespace compiler2 {
 
 class Instruction;
 
-class Value {
+class Value : public memory::ManagerMixin<Value> {
 public:
 	typedef alloc::list<Instruction*>::type UserListTy;
 protected:

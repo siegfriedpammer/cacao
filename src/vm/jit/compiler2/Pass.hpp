@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_PASS
 
 #include "vm/jit/compiler2/PassManager.hpp"
+#include "vm/jit/compiler2/memory/Manager.hpp"
 #include <cstddef>
 
 namespace cacao {
@@ -43,7 +44,7 @@ class JITData;
  * All compiler passes should inheritate this class.
  * TODO: more info
  */
-class Pass {
+class Pass : public memory::ManagerMixin<Pass>  {
 private:
 	PassManager *pm;
 	bool allowed_to_use_result(char &id) const;

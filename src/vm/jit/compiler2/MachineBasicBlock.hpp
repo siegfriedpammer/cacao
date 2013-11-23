@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_MACHINEBASICBLOCK
 
 #include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
+#include "vm/jit/compiler2/memory/Manager.hpp"
 #include "vm/jit/compiler2/alloc/ordered_list.hpp"
 
 #include "future/algorithm.hpp" // for all_of, none_of
@@ -137,7 +138,7 @@ inline bool operator>=(const MIIterator &lhs, const MIIterator& rhs) {
  *
  * @ingroup low-level-ir
  */
-class MachineBasicBlock {
+class MachineBasicBlock : public memory::ManagerMixin<MachineBasicBlock>  {
 public:
 	typedef alloc::ordered_list<MachineInstruction*>::type Container;
 	typedef Container::iterator iterator;
