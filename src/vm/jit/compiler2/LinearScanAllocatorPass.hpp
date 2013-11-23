@@ -119,16 +119,6 @@ public:
 	virtual bool verify() const;
 };
 
-
-/**
- * Second LSRA Pass. For the time being perform LSRA a second time to allocate resolution vars.
- */
-class LinearScanAllocator2Pass : public LinearScanAllocatorPass {
-public:
-	static char ID;
-	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
-};
-
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

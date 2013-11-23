@@ -1175,21 +1175,6 @@ char LinearScanAllocatorPass::ID = 0;
 // register pass
 static PassRegistry<LinearScanAllocatorPass> X("LinearScanAllocatorPass");
 
-// pass usage
-PassUsage& LinearScanAllocator2Pass::get_PassUsage(PassUsage &PU) const {
-	// requires
-	//PU.add_requires<LinearScanAllocatorPass>();
-	PU.add_schedule_after<LinearScanAllocatorPass>();
-	// add requirements from super class
-	return LinearScanAllocatorPass::get_PassUsage(PU);
-}
-
-// the address of this variable is used to identify the pass
-char LinearScanAllocator2Pass::ID = 0;
-
-// register pass
-static PassRegistry<LinearScanAllocator2Pass> Y("LinearScanAllocator2Pass");
-
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
