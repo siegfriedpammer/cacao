@@ -63,6 +63,8 @@ inline bool operator<(const Edge &lhs, const Edge &rhs) {
 
 typedef alloc::list<Move>::type MoveMapTy;
 typedef alloc::map<Edge,MoveMapTy>::type EdgeMoveMapTy;
+typedef alloc::map<MachineBasicBlock*, alloc::list<LivetimeInterval>::type >::type BBtoLTI_Map;
+
 
 /**
  * Linear Scan Allocator
@@ -105,7 +107,7 @@ private:
 	bool allocate_unhandled();
 	bool resolve();
 	bool reg_alloc_resolve_block(MIIterator first, MIIterator last);
-	bool order_and_insert_move(EdgeMoveMapTy::value_type &entry);
+	bool order_and_insert_move(EdgeMoveMapTy::value_type &entry, BBtoLTI_Map &bb2lti_map);
 	//bool order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *successor,
 	//		MoveMapTy &move_map);
 public:

@@ -634,7 +634,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 	return true;
 }
 
-typedef alloc::map<MachineBasicBlock*, alloc::list<LivetimeInterval>::type >::type BBtoLTI_Map;
+typedef alloc::map<Type::TypeID, alloc::set<MachineOperand*,MachineOperandComp>::type >::type FreeRegsMap;
 
 namespace {
 /**
@@ -748,12 +748,87 @@ public:
 	}
 };
 
-struct MachineOperandCmp : public std::binary_function<MachineOperand*,MachineOperand*,bool> {
-	bool operator()(MachineOperand *lhs, MachineOperand *rhs) const {
-		return lhs->aquivalence_less(*rhs);
+#if defined(ENABLE_LOGGING)
+OStream& operator<<(OStream &OS, const FreeRegsMap &free_regs) {
+	for (FreeRegsMap::const_iterator i = free_regs.begin(), e = free_regs.end() ; i!=e ; ++i) {
+		Type::TypeID type = i->first;
+		const FreeRegsMap::mapped_type &regs = i->second;
+		OS << "type: " << type << " ";
+		print_ptr_container(OS,regs.begin(), regs.end()) << nl;
 	}
+	return OS;
+}
+#endif
+
+Type::TypeID types[] = {
+	Type::ByteTypeID,
+	Type::IntTypeID,
+	Type::LongTypeID,
+	Type::ReferenceTypeID,
+	Type::DoubleTypeID,
+	Type::VoidTypeID
 };
 
+inline void free_regs_remove_op(FreeRegsMap &free_regs, MachineOperand *op) {
+	for (Type::TypeID *p = types; *p != Type::VoidTypeID; ++p) {
+		Type::TypeID type = *p;
+		free_regs[type].erase(op);
+	}
+}
+
+inline MachineOperand* get_and_remove_free_regs(FreeRegsMap &free_regs, Type::TypeID type) {
+	FreeRegsMap::mapped_type &map = free_regs[type];
+	if(map.empty()) {
+		// no more registers
+		return NULL;
+	}
+	// arbitrary select the first free register
+	FreeRegsMap::mapped_type::iterator i = map.begin();
+	MachineOperand *op = *i;
+	map.erase(i);
+	free_regs_remove_op(free_regs,op);
+	return op;
+}
+
+
+/**
+ * @todo merge with movemap creation
+ */
+inline void calc_free_regs(FreeRegsMap &free_regs, BBtoLTI_Map &bb2lti_map, MachineBasicBlock* predecessor,
+		MachineBasicBlock *successor, Backend *backend, LivetimeAnalysisPass *LA) {
+	// get all potential registers
+	for (Type::TypeID *p = types; *p != Type::VoidTypeID; ++p) {
+		Type::TypeID type = *p;
+		OperandFile OF;
+		VirtualRegister vreg(type);
+		backend->get_OperandFile(OF,&vreg);
+		free_regs[type].insert(OF.begin(),OF.end());
+	}
+	// remove used operands
+	BBtoLTI_Map::mapped_type &ltis = bb2lti_map[successor];
+	LOG2(free_regs << nl);
+	for (BBtoLTI_Map::mapped_type::iterator i = ltis.begin(), e = ltis.end(); i != e; ++i) {
+		LivetimeInterval lti = *i;
+		MachineOperand *op_pred;
+		// if is phi
+		if (lti.front().start.get_iterator() == successor->mi_first()) {
+			MachinePhiInst *phi = get_phi_from_operand(successor, lti.get_init_operand());
+			assert(phi);
+			std::size_t index = successor->get_predecessor_index(predecessor);
+			MachineOperand *op = phi->get(index).op;
+			op_pred = LA->get(op).get_operand(predecessor->mi_last());
+		} else {
+			op_pred = lti.get_operand(predecessor->mi_last());
+		}
+		MachineOperand *op_succ = lti.get_operand(successor->mi_first());
+		assert(op_succ);
+		assert(op_pred);
+		// delete from _all_ types
+		LOG2("calc_free_regs: " << op_pred << " -> " << op_succ << nl);
+		free_regs_remove_op(free_regs,op_succ);
+		free_regs_remove_op(free_regs,op_pred);
+	}
+}
 
 #if defined(ENABLE_LOGGING)
 inline OStream& operator<<(OStream &OS, const Move &move) {
@@ -781,13 +856,14 @@ private:
 	alloc::list<Move*>::type &queue;
 	Backend *backend;
 	alloc::list<Move*>::type &stack;
-	bool need_allocation;
+	FreeRegsMap &free_regs;
 public:
 	/// constructor
 	MoveScheduler(alloc::list<MachineInstruction*>::type &scheduled, MoveMapTy &move_map,
-		alloc::list<Move*>::type &queue, Backend *backend, alloc::list<Move*>::type &stack)
+		alloc::list<Move*>::type &queue, Backend *backend, alloc::list<Move*>::type &stack,
+		FreeRegsMap &free_regs)
 		: scheduled(scheduled), move_map(move_map), queue(queue), backend(backend), stack(stack),
-			need_allocation(false) {}
+			free_regs(free_regs) {}
 	/// call operator
 	void operator()() {
 		Move* node = stack.back();
@@ -800,27 +876,26 @@ public:
 		}
 		if (is_stack2stack_move(node)){
 			LOG2("Stack to stack move detected!" << nl);
-			MachineOperand *tmp = new VirtualRegister(node->to->get_type());
+			MachineOperand *tmp = get_and_remove_free_regs(free_regs,node->to->get_type());
+			assert_msg(tmp, "No more free register!");
 			move_map.push_back(Move(tmp, node->to));
 			queue.push_back(&move_map.back());
 			node->to = tmp;
 			node->dep = NULL;
-			need_allocation = true;
-			//ABORT_MSG("Stack to stack move detected!","No re-allocation strategy yet!");
 		}
 		if (node->dep && !node->dep->is_scheduled()) {
 			alloc::list<Move*>::type::iterator i = std::find(stack.begin(),stack.end(),node->dep);
 			if (i != stack.end()) {
 				LOG2("cycle detected!" << nl);
-				MachineOperand *tmp = new VirtualRegister(node->to->get_type());
+				//MachineOperand *tmp = new VirtualRegister(node->to->get_type());
+				MachineOperand *tmp = get_and_remove_free_regs(free_regs,node->to->get_type());
+				assert_msg(tmp, "No more free register!");
 				move_map.push_back(Move(tmp, node->to));
 				Move *tmp_move = &move_map.back();
 				tmp_move->dep = *i;
 				queue.push_back(tmp_move);
 				node->to = tmp;
 				node->dep = NULL;
-				need_allocation = true;
-				//ABORT_MSG("Cycle Detected!","No re-allocation strategy yet!");
 			} else {
 				stack.push_back(node->dep);
 				operator()();
@@ -831,7 +906,6 @@ public:
 		scheduled.push_back(backend->create_Move(node->from,node->to));
 		node->scheduled = true;
 	}
-	bool need_register_allocation() const { return need_allocation; }
 };
 
 template <class OutputIterator>
@@ -922,18 +996,23 @@ public:
 
 } // end anonymous namespace
 
+
 //bool LinearScanAllocatorPass::order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *successor,
 //		MoveMapTy &move_map) {
-bool LinearScanAllocatorPass::order_and_insert_move(EdgeMoveMapTy::value_type &entry) {
+bool LinearScanAllocatorPass::order_and_insert_move(EdgeMoveMapTy::value_type &entry, BBtoLTI_Map &bb2lti_map) {
 	MachineBasicBlock *predecessor = entry.first.predecessor;
 	MachineBasicBlock *successor = entry.first.successor;
 	MoveMapTy &move_map = entry.second;
 
 	LOG2("order_and_insert_move: " << *predecessor << " -> " << *successor << nl);
+	// get free registers
+	FreeRegsMap free_regs;
+	calc_free_regs(free_regs,bb2lti_map,predecessor,successor,backend, LA);
+	LOG2(free_regs << nl);
 
 	if (move_map.empty()) return true;
 	// calculate data dependency graph (DDG)
-	alloc::map<MachineOperand*,Move*,MachineOperandCmp>::type read_from;
+	alloc::map<MachineOperand*,Move*,MachineOperandComp>::type read_from;
 
 	// create graph nodes
 	for (MoveMapTy::iterator i = move_map.begin(), e = move_map.end(); i != e; ++i) {
@@ -951,7 +1030,7 @@ bool LinearScanAllocatorPass::order_and_insert_move(EdgeMoveMapTy::value_type &e
 	std::for_each(move_map.begin(), move_map.end(), RefToPointerInserter(std::back_inserter(queue)));
 	assert(move_map.size() == queue.size());
 
-	MoveScheduler scheduler(scheduled, move_map, queue, backend, stack);
+	MoveScheduler scheduler(scheduled, move_map, queue, backend, stack, free_regs);
 
 	while (!queue.empty()) {
 		// sort and pop element
@@ -972,16 +1051,6 @@ bool LinearScanAllocatorPass::order_and_insert_move(EdgeMoveMapTy::value_type &e
 			e  = scheduled.end(); i != e ; ++i) {
 		insert_before(last, *i);
 		STATISTICS(++num_resolution_moves);
-	}
-	if (scheduler.need_register_allocation()) {
-		LOG2("Register allocation for resolution needed!"<<nl);
-		ERROR_MSG("Resolution Failed", "Could not assign register");
-		#if 0
-		if (!reg_alloc_resolve_block(first,last)) {
-			ERROR_MSG("Resolution Failed", "Could not assign register");
-			return false;
-		}
-		#endif
 	}
 	return true;
 }
@@ -1051,7 +1120,7 @@ bool LinearScanAllocatorPass::resolve() {
 	std::for_each(MIS->begin(), MIS->end(), CfgEdge(ForEachCfgEdge(bb2lti_map,edge_move_map,LA)));
 	// order and insert move
 	for (EdgeMoveMapTy::iterator i = edge_move_map.begin(), e = edge_move_map.end(); i != e ; ++i) {
-		if (!order_and_insert_move(*i)) {
+		if (!order_and_insert_move(*i,bb2lti_map)) {
 			return false;
 		}
 	}
