@@ -28,9 +28,9 @@
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 
-#include <set>
-#include <map>
-#include <vector>
+#include "vm/jit/compiler2/alloc/set.hpp"
+#include "vm/jit/compiler2/alloc/map.hpp"
+#include "vm/jit/compiler2/alloc/vector.hpp"
 
 namespace cacao {
 namespace jit {

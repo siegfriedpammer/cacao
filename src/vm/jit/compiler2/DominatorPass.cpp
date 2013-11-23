@@ -58,13 +58,13 @@ DominatorTree::NodeTy* DominatorTree::find_nearest_common_dom(NodeTy *a, NodeTy 
 	if (dominates(b,a))
 	  return b;
 	// collect a's dominators
-	std::set<NodeTy*> dom_a;
+	alloc::set<NodeTy*>::type dom_a;
 	while ( (a = get_idominator(a)) ) {
 		dom_a.insert(a);
 	}
 
 	// search nearest common dominator
-	for(std::set<NodeTy*>::const_iterator e = dom_a.end(); b != NULL ; b = get_idominator(b) ) {
+	for(alloc::set<NodeTy*>::type::const_iterator e = dom_a.end(); b != NULL ; b = get_idominator(b) ) {
 		if (dom_a.find(b) != e) {
 			return b;
 		}

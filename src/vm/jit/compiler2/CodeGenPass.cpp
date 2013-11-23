@@ -78,7 +78,7 @@ bool CodeGenPass::run(JITData &JD) {
 				if ( start == end) {
 					LOG2("none" << nl);
 				} else {
-					std::vector<u1> tmp;
+					alloc::vector<u1>::type tmp;
 					while(start != end--) {
 						tmp.push_back(CS.at(end));
 					}

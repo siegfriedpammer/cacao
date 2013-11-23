@@ -53,7 +53,7 @@ void LoopSimplificationPass::check_loop(Loop *loop) const {
 		 * variable loop). All edges from outside the loop and the backedge
 		 * of the current loop will be redirected to the new header block.
 		 */
-		std::set<BeginInst*> outer_edges;
+		alloc::set<BeginInst*>::type outer_edges;
 
 		for (BeginInst::PredecessorListTy::const_iterator i = header->pred_begin(),
 				e = header->pred_end(); i != e; ++i) {
@@ -72,7 +72,7 @@ void LoopSimplificationPass::check_loop(Loop *loop) const {
 		BeginInst* new_header = new BeginInst();
 		// create jump to the old header
 		EndInst* new_exit = new GOTOInst(new_header,header);
-		for (std::set<BeginInst*>::iterator i = outer_edges.begin(), e = outer_edges.end() ;
+		for (alloc::set<BeginInst*>::type::iterator i = outer_edges.begin(), e = outer_edges.end() ;
 				i != e ; ++i) {
 			EndInst *end = (*i)->get_EndInst();
 			assert(end && "Can not replace a successor of a BeginInst without an EndInst!");
@@ -127,7 +127,7 @@ bool LoopSimplificationPass::run(JITData &JD) {
 	#ifndef NDEBUG
 	LOG("Verify LoopSimplificationPass result" << nl);
 	// verify the result
-	std::list<Loop*> loops(LT->loop_begin(), LT->loop_end());
+	alloc::list<Loop*>::type loops(LT->loop_begin(), LT->loop_end());
 	while(!loops.empty()) {
 		Loop *loop = loops.front();
 		loops.pop_front();

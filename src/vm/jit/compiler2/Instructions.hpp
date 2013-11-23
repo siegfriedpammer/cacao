@@ -97,7 +97,7 @@ public:
  */
 class BeginInst : public Instruction {
 public:
-	typedef std::vector<BeginInst*> PredecessorListTy;
+	typedef alloc::vector<BeginInst*>::type PredecessorListTy;
 	typedef PredecessorListTy::const_iterator const_pred_iterator;
 private:
 	EndInst *end;
@@ -194,7 +194,7 @@ inline OStream& operator<<(OStream &OS, const BeginInstRef &BIR) {
  */
 class EndInst : public Instruction {
 public:
-	typedef std::vector<BeginInstRef> SuccessorListTy;
+	typedef alloc::vector<BeginInstRef>::type SuccessorListTy;
 	typedef SuccessorListTy::const_iterator succ_const_iterator;
 	typedef SuccessorListTy::const_reverse_iterator succ_const_reverse_iterator;
 private:
@@ -784,7 +784,7 @@ public:
 
 class LOOKUPSWITCHInst : public EndInst {
 public:
-	typedef std::vector<s4> MatchTy;
+	typedef alloc::vector<s4>::type MatchTy;
 	typedef MatchTy::iterator match_iterator;
 private:
 	s4 lookupcount;

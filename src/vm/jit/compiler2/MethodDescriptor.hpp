@@ -28,7 +28,7 @@
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/Type.hpp"
 
-#include <vector>
+#include "vm/jit/compiler2/alloc/vector.hpp"
 
 namespace cacao {
 namespace jit {
@@ -41,7 +41,7 @@ namespace compiler2 {
  */
 class MethodDescriptor {
 public:
-	typedef std::vector<Type::TypeID> ParameterTypeListTy;
+	typedef alloc::vector<Type::TypeID>::type ParameterTypeListTy;
 	typedef ParameterTypeListTy::iterator iterator;
 	typedef ParameterTypeListTy::const_iterator const_iterator;
 private:

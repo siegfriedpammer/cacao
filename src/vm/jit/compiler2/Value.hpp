@@ -28,7 +28,7 @@
 #include "vm/jit/compiler2/Type.hpp"
 
 #include <cstddef>
-#include <list>
+#include "vm/jit/compiler2/alloc/list.hpp"
 #include <algorithm>
 
 #include <cassert>
@@ -44,7 +44,7 @@ class Instruction;
 
 class Value {
 public:
-	typedef std::list<Instruction*> UserListTy;
+	typedef alloc::list<Instruction*>::type UserListTy;
 protected:
 	Type::TypeID type;
 	UserListTy user_list;

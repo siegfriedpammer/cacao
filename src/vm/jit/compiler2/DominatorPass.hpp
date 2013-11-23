@@ -28,9 +28,9 @@
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 
-#include <set>
-#include <map>
-#include <vector>
+#include "vm/jit/compiler2/alloc/set.hpp"
+#include "vm/jit/compiler2/alloc/map.hpp"
+#include "vm/jit/compiler2/alloc/vector.hpp"
 
 namespace cacao {
 namespace jit {
@@ -39,7 +39,7 @@ namespace compiler2 {
 class DominatorTree {
 public:
 	typedef BeginInst NodeTy;
-	typedef std::map<NodeTy*, NodeTy*> EdgeMapTy;
+	typedef alloc::map<NodeTy*, NodeTy*>::type EdgeMapTy;
 protected:
 	EdgeMapTy dom;
 public:
@@ -101,11 +101,11 @@ public:
 class DominatorPass : public Pass , public DominatorTree {
 private:
 	typedef BeginInst NodeTy;
-	typedef std::set<NodeTy *> NodeListTy;
-	typedef std::map<NodeTy *,NodeListTy> NodeListMapTy;
-	typedef std::vector<NodeTy *> NodeMapTy;
-	typedef std::map<NodeTy *,int> IndexMapTy;
-	typedef std::map<NodeTy *,NodeTy *> EdgeMapTy;
+	typedef alloc::set<NodeTy *>::type NodeListTy;
+	typedef alloc::map<NodeTy *,NodeListTy>::type NodeListMapTy;
+	typedef alloc::vector<NodeTy *>::type NodeMapTy;
+	typedef alloc::map<NodeTy *,int>::type IndexMapTy;
+	typedef alloc::map<NodeTy *,NodeTy *>::type EdgeMapTy;
 
 	EdgeMapTy parent;
 	NodeListMapTy pred;

@@ -39,8 +39,8 @@
 
 #include "toolbox/logging.hpp"
 
-#include <vector>
-#include <set>
+#include "vm/jit/compiler2/alloc/vector.hpp"
+#include "vm/jit/compiler2/alloc/set.hpp"
 #include <algorithm>
 
 #include <cstddef>
@@ -72,8 +72,8 @@ class InstructionVisitor;
  */
 class Instruction : public Value {
 public:
-	typedef std::vector<Value*> OperandListTy;
-	typedef std::list<Instruction*> DepListTy;
+	typedef alloc::vector<Value*>::type OperandListTy;
+	typedef alloc::list<Instruction*>::type DepListTy;
 
 	typedef OperandListTy::iterator op_iterator;
 	typedef DepListTy::iterator dep_iterator;

@@ -75,7 +75,7 @@ struct FreeUntilCompare: public std::binary_function<MachineOperand*,MachineOper
 	}
 };
 
-typedef std::map<MachineOperand*,UseDef,FreeUntilCompare> FreeUntilMap;
+typedef alloc::map<MachineOperand*,UseDef,FreeUntilCompare>::type FreeUntilMap;
 
 /**
  * @Cpp11 use std::function
@@ -634,7 +634,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 	return true;
 }
 
-typedef std::map<MachineBasicBlock*, std::list<LivetimeInterval> > BBtoLTI_Map;
+typedef alloc::map<MachineBasicBlock*, alloc::list<LivetimeInterval>::type >::type BBtoLTI_Map;
 
 namespace {
 /**
@@ -776,16 +776,16 @@ bool compare_moves(Move *lhs, Move *rhs) {
 
 class MoveScheduler {
 private:
-	std::list<MachineInstruction*> &scheduled;
+	alloc::list<MachineInstruction*>::type &scheduled;
 	MoveMapTy &move_map;
-	std::list<Move*> &queue;
+	alloc::list<Move*>::type &queue;
 	Backend *backend;
-	std::list<Move*> &stack;
+	alloc::list<Move*>::type &stack;
 	bool need_allocation;
 public:
 	/// constructor
-	MoveScheduler(std::list<MachineInstruction*> &scheduled, MoveMapTy &move_map,
-		std::list<Move*> &queue, Backend *backend, std::list<Move*> &stack)
+	MoveScheduler(alloc::list<MachineInstruction*>::type &scheduled, MoveMapTy &move_map,
+		alloc::list<Move*>::type &queue, Backend *backend, alloc::list<Move*>::type &stack)
 		: scheduled(scheduled), move_map(move_map), queue(queue), backend(backend), stack(stack),
 			need_allocation(false) {}
 	/// call operator
@@ -809,7 +809,7 @@ public:
 			//ABORT_MSG("Stack to stack move detected!","No re-allocation strategy yet!");
 		}
 		if (node->dep && !node->dep->is_scheduled()) {
-			std::list<Move*>::iterator i = std::find(stack.begin(),stack.end(),node->dep);
+			alloc::list<Move*>::type::iterator i = std::find(stack.begin(),stack.end(),node->dep);
 			if (i != stack.end()) {
 				LOG2("cycle detected!" << nl);
 				MachineOperand *tmp = new VirtualRegister(node->to->get_type());
@@ -933,7 +933,7 @@ bool LinearScanAllocatorPass::order_and_insert_move(EdgeMoveMapTy::value_type &e
 
 	if (move_map.empty()) return true;
 	// calculate data dependency graph (DDG)
-	std::map<MachineOperand*,Move*,MachineOperandCmp> read_from;
+	alloc::map<MachineOperand*,Move*,MachineOperandCmp>::type read_from;
 
 	// create graph nodes
 	for (MoveMapTy::iterator i = move_map.begin(), e = move_map.end(); i != e; ++i) {
@@ -945,9 +945,9 @@ bool LinearScanAllocatorPass::order_and_insert_move(EdgeMoveMapTy::value_type &e
 		i->dep = read_from[i->to];
 	}
 	// nodes already scheduled
-	std::list<MachineInstruction*> scheduled;
-	std::list<Move*> stack;
-	std::list<Move*> queue;
+	alloc::list<MachineInstruction*>::type scheduled;
+	alloc::list<Move*>::type stack;
+	alloc::list<Move*>::type queue;
 	std::for_each(move_map.begin(), move_map.end(), RefToPointerInserter(std::back_inserter(queue)));
 	assert(move_map.size() == queue.size());
 
@@ -968,7 +968,7 @@ bool LinearScanAllocatorPass::order_and_insert_move(EdgeMoveMapTy::value_type &e
 	// insert first element
 	insert_before(last,scheduled.front());
 	--first;
-	for (std::list<MachineInstruction*>::const_iterator i = ++scheduled.begin(),
+	for (alloc::list<MachineInstruction*>::type::const_iterator i = ++scheduled.begin(),
 			e  = scheduled.end(); i != e ; ++i) {
 		insert_before(last, *i);
 		STATISTICS(++num_resolution_moves);

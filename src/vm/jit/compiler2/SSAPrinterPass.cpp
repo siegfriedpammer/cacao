@@ -82,10 +82,10 @@ protected:
 	std::string name;
 	GlobalSchedule *sched;
     bool verbose;
-	std::set<EdgeType> data_dep;
-	std::set<EdgeType> sched_dep;
-	std::set<EdgeType> cfg_edges;
-	std::set<EdgeType> begin2end_edges;
+	alloc::set<EdgeType>::type data_dep;
+	alloc::set<EdgeType>::type sched_dep;
+	alloc::set<EdgeType>::type cfg_edges;
+	alloc::set<EdgeType>::type begin2end_edges;
 
 public:
 

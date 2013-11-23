@@ -28,6 +28,9 @@
 #include "vm/jit/compiler2/Pass.hpp"
 #include "toolbox/logging.hpp"
 #include "vm/vm.hpp"
+#include "vm/jit/compiler2/alloc/set.hpp"
+#include "vm/jit/compiler2/alloc/list.hpp"
+#include "vm/jit/compiler2/alloc/deque.hpp"
 
 #include "vm/rt-timing.hpp"
 
@@ -43,7 +46,7 @@ namespace compiler2 {
 namespace {
 RT_REGISTER_GROUP(compiler2_rtgroup,"compiler2-pipeline","compiler2 pass pipeline")
 
-typedef unordered_map<PassInfo::IDTy,RTTimer> PassTimerMap;
+typedef alloc::unordered_map<PassInfo::IDTy,RTTimer>::type PassTimerMap;
 PassTimerMap pass_timers;
 
 } // end anonymous namespace
@@ -158,15 +161,15 @@ struct ContainsFn {
 };
 
 template <class ValueType>
-struct ContainsFn<std::set<ValueType>,ValueType> {
-	bool operator()(const std::set<ValueType> &c, const ValueType &val) {
+struct ContainsFn<typename alloc::set<ValueType>::type,ValueType> {
+	bool operator()(const typename alloc::set<ValueType>::type &c, const ValueType &val) {
 		return c.find(val) != c.end();
 	}
 };
 
 template <class ValueType>
 struct ContainsFn<unordered_set<ValueType>,ValueType> {
-	bool operator()(const unordered_set<ValueType> &c, const ValueType &val) {
+	bool operator()(const typename alloc::unordered_set<ValueType>::type &c, const ValueType &val) {
 		return c.find(val) != c.end();
 	}
 };
@@ -177,15 +180,15 @@ inline bool contains(const Container &c, const ValueType &val) {
 }
 
 
-typedef unordered_map<PassInfo::IDTy,PassUsage> ID2PUTy;
-typedef unordered_map<PassInfo::IDTy,unordered_set<PassInfo::IDTy> > ID2MapTy;
+typedef alloc::unordered_map<PassInfo::IDTy,PassUsage>::type ID2PUTy;
+typedef alloc::unordered_map<PassInfo::IDTy,alloc::unordered_set<PassInfo::IDTy>::type >::type ID2MapTy;
 
 struct Invalidate :
 public std::unary_function<PassInfo::IDTy,void> {
 	ID2MapTy &reverse_require_map;
-	unordered_set<PassInfo::IDTy> &ready;
+	alloc::unordered_set<PassInfo::IDTy>::type &ready;
 	// constructor
-	Invalidate(ID2MapTy &reverse_require_map, unordered_set<PassInfo::IDTy> &ready)
+	Invalidate(ID2MapTy &reverse_require_map, alloc::unordered_set<PassInfo::IDTy>::type &ready)
 		: reverse_require_map(reverse_require_map), ready(ready) {}
 	// function call operator
 	void operator()(PassInfo::IDTy id) {
@@ -198,16 +201,16 @@ public std::unary_function<PassInfo::IDTy,void> {
 
 class PassScheduler {
 private:
-	std::deque<PassInfo::IDTy> &unhandled;
-	unordered_set<PassInfo::IDTy> &ready;
-	std::list<PassInfo::IDTy> &stack;
+	alloc::deque<PassInfo::IDTy>::type &unhandled;
+	alloc::unordered_set<PassInfo::IDTy>::type &ready;
+	alloc::list<PassInfo::IDTy>::type &stack;
 	PassManager::ScheduleListTy &new_schedule;
 	ID2PUTy &pu_map;
 	ID2MapTy &reverse_require_map;
 public:
 	/// constructor
-	PassScheduler(std::deque<PassInfo::IDTy> &unhandled, unordered_set<PassInfo::IDTy> &ready,
-		std::list<PassInfo::IDTy> &stack, PassManager::ScheduleListTy &new_schedule,
+	PassScheduler(alloc::deque<PassInfo::IDTy>::type &unhandled, alloc::unordered_set<PassInfo::IDTy>::type &ready,
+		alloc::list<PassInfo::IDTy>::type &stack, PassManager::ScheduleListTy &new_schedule,
 		ID2PUTy &pu_map, ID2MapTy &reverse_require_map)
 			: unhandled(unhandled), ready(ready), stack(stack), new_schedule(new_schedule),
 			pu_map(pu_map), reverse_require_map(reverse_require_map) {}
@@ -322,9 +325,9 @@ void PassManager::schedulePasses() {
 	latest = this;
 #endif
 
-	std::deque<PassInfo::IDTy> unhandled;
-	unordered_set<PassInfo::IDTy> ready;
-	std::list<PassInfo::IDTy> stack;
+	alloc::deque<PassInfo::IDTy>::type unhandled;
+	alloc::unordered_set<PassInfo::IDTy>::type ready;
+	alloc::list<PassInfo::IDTy>::type stack;
 	ScheduleListTy new_schedule;
 	ID2PUTy pu_map;
 	ID2MapTy reverse_require_map;

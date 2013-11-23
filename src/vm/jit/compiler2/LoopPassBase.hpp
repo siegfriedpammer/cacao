@@ -32,9 +32,9 @@
 
 #include "toolbox/UnionFind.hpp"
 
-#include <set>
-#include <map>
-#include <vector>
+#include "vm/jit/compiler2/alloc/set.hpp"
+#include "vm/jit/compiler2/alloc/map.hpp"
+#include "vm/jit/compiler2/alloc/vector.hpp"
 
 namespace cacao {
 namespace jit {
@@ -53,11 +53,11 @@ template <class _T>
 class LoopPassBase : public Pass , public LoopTreeBase<_T> {
 private:
 	typedef _T NodeType;
-	typedef std::set<const NodeType *> NodeListTy;
-	typedef std::map<const NodeType *,NodeListTy> NodeListMapTy;
-	typedef std::vector<const NodeType *> NodeMapTy;
-	typedef std::map<const NodeType *,int> IndexMapTy;
-	typedef std::map<const NodeType *,const NodeType *> EdgeMapTy;
+	typedef typename alloc::set<const NodeType *>::type NodeListTy;
+	typedef typename alloc::map<const NodeType *,NodeListTy>::type NodeListMapTy;
+	typedef typename alloc::vector<const NodeType *>::type NodeMapTy;
+	typedef typename alloc::map<const NodeType *,int>::type IndexMapTy;
+	typedef typename alloc::map<const NodeType *,const NodeType *>::type EdgeMapTy;
 
 	#if 0
 	EdgeMapTy parent;
@@ -110,18 +110,18 @@ inline bool LoopPassBase<_T>::run(JITData &JD) {
 	DFSTraversal<NodeType> dfs(get_init_node(JD));
 	int size = dfs.size();
 
-	std::vector<std::set<int> > backedges(size);
-	std::vector<std::set<int> > forwardedges(size);
-	std::vector<std::set<int> > crossedges(size);
-	std::vector<std::set<int> > treeedges(size);
-	std::vector<int> highpt(size,-1);
+	alloc::vector<alloc::set<int>::type >::type backedges(size);
+	alloc::vector<alloc::set<int>::type >::type forwardedges(size);
+	alloc::vector<alloc::set<int>::type >::type crossedges(size);
+	alloc::vector<alloc::set<int>::type >::type treeedges(size);
+	alloc::vector<int>::type highpt(size,-1);
 
 	int end = -1;
 
 	UnionFindImpl<int> unionfind(end);
 
 	// store the loop for each bb
-	std::vector<LoopBase<NodeType>*> index_to_loop(size);
+	typename alloc::vector<LoopBase<NodeType>*>::type index_to_loop(size);
 
 
 	// initialization
@@ -160,35 +160,35 @@ inline bool LoopPassBase<_T>::run(JITData &JD) {
 
 	#if 0
 	for (int w = 0; w < size ; ++w ) {
-		std::set<int> set = treeedges[w];
+		alloc::set<int>::type set = treeedges[w];
 		// print treeedge
-		for(std::set<int>::iterator i = set.begin(), e = set.end(); i != e ; ++i) {
+		for(alloc::set<int>::type::iterator i = set.begin(), e = set.end(); i != e ; ++i) {
 			int v = *i;
 			//LOG2("treeedge:    " << setw(3) << v << " -> " << setw(3) << w << nl);
 		}
 		// print backedge
 		set = backedges[w];
-		for(std::set<int>::iterator i = set.begin(), e = set.end(); i != e ; ++i) {
+		for(alloc::set<int>::type::iterator i = set.begin(), e = set.end(); i != e ; ++i) {
 			int v = *i;
 			//LOG2("backedge:    " << setw(3) << v << " -> " << setw(3) << w << nl);
 		}
 		// print forwardedge
 		set = forwardedges[w];
-		for(std::set<int>::iterator i = set.begin(), e = set.end(); i != e ; ++i) {
+		for(alloc::set<int>::type::iterator i = set.begin(), e = set.end(); i != e ; ++i) {
 			int v = *i;
 			//LOG2("forwardedge: " << setw(3) << v << " -> " << setw(3) << w << nl);
 		}
 		// print crossedge
 		set = crossedges[w];
-		for(std::set<int>::iterator i = set.begin(), e = set.end(); i != e ; ++i) {
+		for(alloc::set<int>::type::iterator i = set.begin(), e = set.end(); i != e ; ++i) {
 			int v = *i;
 			//LOG2("crossedge:   " << setw(3) << v << " -> " << setw(3) << w << nl);
 		}
 	}
 	#endif
 
-	std::set<int> P;
-	std::set<int> Q;
+	alloc::set<int>::type P;
+	alloc::set<int>::type Q;
 	for (typename DFSTraversal<NodeType>::reverse_iterator i = dfs.rbegin(), e = dfs.rend();
 			i != e ; --i) {
 		int w = i.get_index();
@@ -198,8 +198,8 @@ inline bool LoopPassBase<_T>::run(JITData &JD) {
 		Q.clear();
 
 		// get incoming backedges
-		std::set<int> &backedges_w = backedges[w];
-		for(std::set<int>::iterator i = backedges_w.begin(), e = backedges_w.end();
+		alloc::set<int>::type &backedges_w = backedges[w];
+		for(alloc::set<int>::type::iterator i = backedges_w.begin(), e = backedges_w.end();
 				i != e; ++i) {
 			int v = *i;
 			int v_r = unionfind.find(v);
@@ -232,7 +232,7 @@ inline bool LoopPassBase<_T>::run(JITData &JD) {
 				int x;
 				// simulate pop_front
 				{ // new scope
-					std::set<int>::iterator x_it = Q.begin();
+					alloc::set<int>::type::iterator x_it = Q.begin();
 					x = *x_it;
 					Q.erase(x_it);
 				}
@@ -247,17 +247,17 @@ inline bool LoopPassBase<_T>::run(JITData &JD) {
 					}
 				}
 
-				std::set<int> incoming;
+				alloc::set<int>::type incoming;
 				// collect incoming edges
 				{ // new scope
-					std::set<int> ref1 = forwardedges[x];
+					alloc::set<int>::type ref1 = forwardedges[x];
 					incoming.insert(ref1.begin(), ref1.end());
-					std::set<int> ref2 = treeedges[x];
+					alloc::set<int>::type ref2 = treeedges[x];
 					incoming.insert(ref2.begin(), ref2.end());
-					std::set<int> ref3 = crossedges[x];
+					alloc::set<int>::type ref3 = crossedges[x];
 					incoming.insert(ref3.begin(), ref3.end());
 				}
-				for(std::set<int>::iterator i = incoming.begin(), e = incoming.end();
+				for(alloc::set<int>::type::iterator i = incoming.begin(), e = incoming.end();
 						i != e; ++i) {
 					int y = *i;
 					//LOG2("y=" << y << nl);
@@ -293,7 +293,7 @@ inline bool LoopPassBase<_T>::run(JITData &JD) {
 		}
 
 		// now P = P(w) in the current graph
-		for(std::set<int>::iterator i = P.begin(), e = P.end();
+		for(alloc::set<int>::type::iterator i = P.begin(), e = P.end();
 				i != e; ++i) {
 			int x = *i;
 			unionfind.set_union(x,w);

@@ -52,7 +52,7 @@ void MachineInstructionSchedulingPass::initialize() {
 namespace {
 
 struct UpdatePhiOperand : public std::unary_function<MachinePhiInst*,void> {
-	typedef std::map<Instruction*,MachineOperand*> InstMapTy;
+	typedef alloc::map<Instruction*,MachineOperand*>::type InstMapTy;
 	InstMapTy inst_map;
 	/// constructor
 	UpdatePhiOperand(InstMapTy &inst_map) : inst_map(inst_map) {}
@@ -80,7 +80,7 @@ struct UpdatePhiOperand : public std::unary_function<MachinePhiInst*,void> {
 bool MachineInstructionSchedulingPass::run(JITData &JD) {
 	BasicBlockSchedule *BS = get_Pass<BasicBlockSchedulingPass>();
 	InstructionSchedule<Instruction> *IS = get_Pass<ListSchedulingPass>();
-	std::map<BeginInst*,MachineBasicBlock*> map;
+	alloc::map<BeginInst*,MachineBasicBlock*>::type map;
 
 	// create machine basic blocks
 	for (BasicBlockSchedule::const_bb_iterator i = BS->bb_begin(),
@@ -93,7 +93,7 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 	}
 
 	Backend *BE = JD.get_Backend();
-	std::map<Instruction*,MachineOperand*> inst_map;
+	alloc::map<Instruction*,MachineOperand*>::type inst_map;
 
 	// lower instructions
 	for (BasicBlockSchedule::const_bb_iterator i = BS->bb_begin(),
@@ -114,7 +114,7 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 		for (BeginInst::const_pred_iterator i = BI->pred_begin(),
 				e = BI->pred_end(); i != e; ++i) {
 			BeginInst *pred = (*i)->get_BeginInst();
-			std::map<BeginInst*,MachineBasicBlock*>::const_iterator it = map.find(pred);
+			alloc::map<BeginInst*,MachineBasicBlock*>::type::const_iterator it = map.find(pred);
 			assert(it != map.end());
 			MBB->insert_pred(it->second);
 		}

@@ -41,7 +41,7 @@ namespace x86_64 {
 class MachineMethodDescriptor {
 private:
 	const MethodDescriptor &MD;
-	std::vector<MachineOperand*> parameter;
+	alloc::vector<MachineOperand*>::type parameter;
 public:
 	MachineMethodDescriptor(const MethodDescriptor &MD) : MD(MD), parameter(MD.size()) {
 		unsigned int_argument_counter = 0;

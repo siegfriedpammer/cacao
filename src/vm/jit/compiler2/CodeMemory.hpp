@@ -29,8 +29,8 @@
 #include "vm/jit/compiler2/DataSegment.hpp"
 #include "vm/types.hpp"
 
-#include <map>
-#include <vector>
+#include "vm/jit/compiler2/alloc/map.hpp"
+#include "vm/jit/compiler2/alloc/vector.hpp"
 #include <cassert>
 
 namespace cacao {
@@ -47,7 +47,7 @@ class CodeMemory {
 public:
 	typedef std::pair<const MachineInstruction*,CodeFragment> ResolvePointTy;
 private:
-	typedef std::list<ResolvePointTy> LinkListTy;
+	typedef alloc::list<ResolvePointTy>::type LinkListTy;
 
 	LinkListTy linklist;            ///< instructions that require linking
 

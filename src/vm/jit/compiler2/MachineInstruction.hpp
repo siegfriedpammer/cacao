@@ -29,7 +29,7 @@
 #include "vm/jit/compiler2/CodeSegment.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
 
-#include <vector>
+#include "vm/jit/compiler2/alloc/vector.hpp"
 
 namespace cacao {
 
@@ -105,10 +105,10 @@ public:
  */
 class MachineInstruction {
 public:
-	typedef std::vector<MachineOperandDesc> operand_list;
+	typedef alloc::vector<MachineOperandDesc>::type operand_list;
 	typedef operand_list::iterator operand_iterator;
 	typedef operand_list::const_iterator const_operand_iterator;
-	typedef std::list<MachineBasicBlock*> successor_list;
+	typedef alloc::list<MachineBasicBlock*>::type successor_list;
 	typedef successor_list::iterator successor_iterator;
 	typedef successor_list::const_iterator const_successor_iterator;
 private:

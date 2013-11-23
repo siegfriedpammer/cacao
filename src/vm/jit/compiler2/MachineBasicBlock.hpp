@@ -150,10 +150,10 @@ public:
 	typedef Container::reverse_iterator reverse_iterator;
 	typedef Container::const_reverse_iterator const_reverse_iterator;
 
-	typedef std::list<MachinePhiInst*> PhiListTy;
+	typedef alloc::list<MachinePhiInst*>::type PhiListTy;
 	typedef PhiListTy::const_iterator const_phi_iterator;
 
-	typedef std::vector<MachineBasicBlock*> PredListTy;
+	typedef alloc::vector<MachineBasicBlock*>::type PredListTy;
 	typedef PredListTy::const_iterator const_pred_iterator;
 	typedef PredListTy::iterator pred_iterator;
 

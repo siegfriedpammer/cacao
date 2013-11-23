@@ -29,8 +29,8 @@
 #include "toolbox/OStream.hpp"
 #include "vm/types.hpp"
 
-#include <list>
-#include <vector>
+#include "vm/jit/compiler2/alloc/list.hpp"
+#include "vm/jit/compiler2/alloc/vector.hpp"
 #include <cassert>
 
 namespace cacao {
@@ -366,7 +366,7 @@ struct MachineOperandComp : std::binary_function<MachineOperand*,MachineOperand*
 	}
 };
 
-typedef std::list<MachineOperand*> OperandFile;
+typedef alloc::list<MachineOperand*>::type OperandFile;
 
 
 } // end namespace compiler2

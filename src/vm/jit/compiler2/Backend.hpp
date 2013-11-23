@@ -76,8 +76,8 @@ public:
 
 class LoweringVisitorBase : public InstructionVisitor {
 protected:
-	typedef std::map<BeginInst*,MachineBasicBlock*> MapTy;
-	typedef std::map<Instruction*,MachineOperand*> InstructionMapTy;
+	typedef alloc::map<BeginInst*,MachineBasicBlock*>::type MapTy;
+	typedef alloc::map<Instruction*,MachineOperand*>::type InstructionMapTy;
 private:
 	Backend *backend;
 	MachineBasicBlock* current;

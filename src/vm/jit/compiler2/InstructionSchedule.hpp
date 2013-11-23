@@ -25,7 +25,7 @@
 #ifndef _JIT_COMPILER2_INSTRUCTIONSCHEDULE
 #define _JIT_COMPILER2_INSTRUCTIONSCHEDULE
 
-#include "future/unordered_map.hpp"
+#include "vm/jit/compiler2/alloc/unordered_map.hpp"
 
 namespace cacao {
 namespace jit {
@@ -40,11 +40,11 @@ class BeginInst;
 template <class _Inst>
 class InstructionSchedule {
 public:
-	typedef typename std::vector<_Inst*> InstructionListTy;
+	typedef typename alloc::vector<_Inst*>::type InstructionListTy;
 	typedef typename InstructionListTy::const_iterator const_inst_iterator;
 	typedef typename InstructionListTy::const_reverse_iterator const_reverse_inst_iterator;
 protected:
-	typedef unordered_map<const BeginInst*, InstructionListTy> MapTy;
+	typedef typename alloc::unordered_map<const BeginInst*, InstructionListTy>::type MapTy;
 	MapTy map;
 public:
 	InstructionSchedule() {}

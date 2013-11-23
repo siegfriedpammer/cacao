@@ -865,7 +865,7 @@ Value* SSAConstructionPass::try_remove_trivial_phi(PHIInst *phi) {
 		}
 	}
 	STATISTICS(num_trivial_phis++);
-	std::list<Instruction*> users(phi->user_begin(),phi->user_end());
+	alloc::list<Instruction*>::type users(phi->user_begin(),phi->user_end());
 	users.remove(phi);
 	phi->replace_value(same);
 	// update table
@@ -880,7 +880,7 @@ Value* SSAConstructionPass::try_remove_trivial_phi(PHIInst *phi) {
 	// TODO delete phi
 	M->remove_Instruction(phi);
 
-	for(std::list<Instruction*>::iterator i = users.begin(), e = users.end();
+	for(alloc::list<Instruction*>::type::iterator i = users.begin(), e = users.end();
 			i != e; ++i) {
 		assert(*i);
 		PHIInst *p = (*i)->to_PHIInst();
@@ -894,7 +894,7 @@ Value* SSAConstructionPass::try_remove_trivial_phi(PHIInst *phi) {
 
 void SSAConstructionPass::seal_block(size_t bb) {
 	LOG("sealing basic block: " << bb << nl);
-	std::vector<PHIInst*> &inc_phi_bb = incomplete_phi[bb];
+	alloc::vector<PHIInst*>::type &inc_phi_bb = incomplete_phi[bb];
 	for (int i = 0, e = inc_phi_bb.size(); i != e ; ++i) {
 		PHIInst *phi = inc_phi_bb[i];
 		if (phi) {
@@ -927,9 +927,9 @@ bool SSAConstructionPass::try_seal_block(basicblock *bb) {
 }
 
 void SSAConstructionPass::print_current_def() const {
-	for(std::vector<std::vector<Value*> >::const_iterator i = current_def.begin(),
+	for(alloc::vector<alloc::vector<Value*>::type >::type::const_iterator i = current_def.begin(),
 			e = current_def.end(); i != e ; ++i) {
-		for(std::vector<Value*>::const_iterator ii = (*i).begin(),
+		for(alloc::vector<Value*>::type::const_iterator ii = (*i).begin(),
 				ee = (*i).end(); ii != ee ; ++ii) {
 			Value *v = *ii;
 			Instruction *I;
@@ -1005,11 +1005,11 @@ bool SSAConstructionPass::run(JITData &JD) {
 
 	// init incomplete_phi
 	incomplete_phi.clear();
-	incomplete_phi.resize(num_basicblocks,std::vector<PHIInst*>(global_state + 1,NULL));
+	incomplete_phi.resize(num_basicblocks,alloc::vector<PHIInst*>::type(global_state + 1,NULL));
 
 	// (Local,Global) Value Numbering Map, size #bb times #var, initialized to NULL
 	current_def.clear();
-	current_def.resize(global_state+1,std::vector<Value*>(num_basicblocks,NULL));
+	current_def.resize(global_state+1,alloc::vector<Value*>::type(num_basicblocks,NULL));
 	// sealed blocks
 	sealed_blocks.clear();
 	sealed_blocks.resize(num_basicblocks,false);
@@ -1076,7 +1076,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 
 	#if defined(ENABLE_LOGGING)
 	// print BeginInsts
-	for(std::vector<BeginInst*>::iterator i = BB.begin(), e = BB.end();
+	for(alloc::vector<BeginInst*>::type::iterator i = BB.begin(), e = BB.end();
 			i != e; ++i) {
 		Instruction *v = *i;
 		LOG("BB: " << (void*)v << nl);

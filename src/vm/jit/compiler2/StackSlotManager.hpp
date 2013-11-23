@@ -28,7 +28,7 @@
 #include "vm/jit/compiler2/Type.hpp"
 #include "vm/types.hpp"
 
-#include <map>
+#include "vm/jit/compiler2/alloc/map.hpp"
 
 namespace cacao {
 namespace jit {
@@ -46,7 +46,7 @@ class StackSlot;
  */
 class StackSlotManager {
 private:
-	typedef std::map<ManagedStackSlot*,StackSlot*> StackSlotListTy;
+	typedef alloc::map<ManagedStackSlot*,StackSlot*>::type StackSlotListTy;
 	StackSlotListTy slots;
 public:
 	StackSlotManager() {}

@@ -30,7 +30,7 @@
 
 #include "toolbox/logging.hpp"
 
-#include <vector>
+#include "vm/jit/compiler2/alloc/vector.hpp"
 
 namespace cacao {
 namespace jit {

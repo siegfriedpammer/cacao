@@ -25,9 +25,9 @@
 #ifndef _JIT_COMPILER2_PASSMANAGER
 #define _JIT_COMPILER2_PASSMANAGER
 
-#include <vector>
-#include "future/unordered_set.hpp"
-#include "future/unordered_map.hpp"
+#include "vm/jit/compiler2/alloc/vector.hpp"
+#include "vm/jit/compiler2/alloc/unordered_set.hpp"
+#include "vm/jit/compiler2/alloc/unordered_map.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -74,11 +74,11 @@ public:
  */
 class PassManager {
 public:
-	typedef unordered_set<PassInfo::IDTy> PassListTy;
-	typedef std::vector<PassInfo::IDTy> ScheduleListTy;
-	typedef unordered_map<PassInfo::IDTy,Pass*> PassMapTy;
-	typedef unordered_map<PassInfo::IDTy,bool> ResultReadyMapTy;
-	typedef unordered_map<PassInfo::IDTy, PassInfo*> PassInfoMapTy;
+	typedef alloc::unordered_set<PassInfo::IDTy>::type PassListTy;
+	typedef alloc::vector<PassInfo::IDTy>::type ScheduleListTy;
+	typedef alloc::unordered_map<PassInfo::IDTy,Pass*>::type PassMapTy;
+	typedef alloc::unordered_map<PassInfo::IDTy,bool>::type ResultReadyMapTy;
+	typedef alloc::unordered_map<PassInfo::IDTy, PassInfo*>::type PassInfoMapTy;
 private:
 	/**
 	 * This stores the initialized passes.

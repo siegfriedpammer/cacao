@@ -41,12 +41,12 @@ namespace compiler2 {
  */
 class LivetimeAnalysisPass : public Pass {
 public:
-	typedef std::map<MachineOperand*,LivetimeInterval,MachineOperandComp> LivetimeIntervalMapTy;
+	typedef alloc::map<MachineOperand*,LivetimeInterval,MachineOperandComp>::type LivetimeIntervalMapTy;
 	typedef LivetimeIntervalMapTy::const_iterator const_iterator;
 	typedef LivetimeIntervalMapTy::iterator iterator;
 
-	typedef std::set<MachineOperand*> LiveInSetTy;
-	typedef std::map<MachineBasicBlock*,LiveInSetTy> LiveInMapTy;
+	typedef alloc::set<MachineOperand*>::type LiveInSetTy;
+	typedef alloc::map<MachineBasicBlock*,LiveInSetTy>::type LiveInMapTy;
 private:
 
 

@@ -210,7 +210,7 @@ bool ObjectFileWriterPass::run(JITData &JD) {
 	LOG2("set code_section contents" << nl);
 	#ifdef FAKE_DATASEC
 	if (dseglen) {
-		std::vector<u1> buffer(codelen);
+		alloc::vector<u1>::type buffer(codelen);
 		buffer[0] = 0xe9; // jmp rel32
 		buffer[1] = ((dseglen + 3) >> 0) & 0xff;
 		buffer[2] = ((dseglen + 3) >> 8) & 0xff;

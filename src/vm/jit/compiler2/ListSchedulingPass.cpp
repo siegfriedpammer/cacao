@@ -30,11 +30,11 @@
 
 #include "toolbox/logging.hpp"
 
-#include <set>
-#include <map>
-#include <list>
-#include <queue>
-#include <deque>
+#include "vm/jit/compiler2/alloc/set.hpp"
+#include "vm/jit/compiler2/alloc/map.hpp"
+#include "vm/jit/compiler2/alloc/list.hpp"
+#include "vm/jit/compiler2/alloc/queue.hpp"
+#include "vm/jit/compiler2/alloc/deque.hpp"
 
 #define DEBUG_NAME "compiler2/ListScheduling"
 
@@ -85,15 +85,15 @@ public:
 	}
 };
 
-typedef std::priority_queue<Instruction*,std::deque<Instruction*>,MyComparator> PriorityQueueTy;
+typedef alloc::priority_queue<Instruction*,alloc::deque<Instruction*>::type,MyComparator>::type PriorityQueueTy;
 
 struct FindLeader2 : public std::unary_function<Value*,void> {
-	std::set<Instruction*> &scheduled;
+	alloc::set<Instruction*>::type &scheduled;
 	GlobalSchedule *sched;
 	Instruction *I;
 	bool &leader;
 	/// constructor
-	FindLeader2(std::set<Instruction*> &scheduled, GlobalSchedule *sched, Instruction *I, bool &leader)
+	FindLeader2(alloc::set<Instruction*>::type &scheduled, GlobalSchedule *sched, Instruction *I, bool &leader)
 		: scheduled(scheduled), sched(sched), I(I), leader(leader) {}
 	/// function call operator
 	void operator()(Value *value) {
@@ -106,12 +106,12 @@ struct FindLeader2 : public std::unary_function<Value*,void> {
 };
 
 struct FindLeader : public std::unary_function<Instruction*,void> {
-	std::set<Instruction*> &scheduled;
+	alloc::set<Instruction*>::type &scheduled;
 	GlobalSchedule *sched;
 	PriorityQueueTy &ready;
 	BeginInst *BI;
 	/// constructor
-	FindLeader(std::set<Instruction*> &scheduled, GlobalSchedule *sched, PriorityQueueTy &ready, BeginInst *BI)
+	FindLeader(alloc::set<Instruction*>::type &scheduled, GlobalSchedule *sched, PriorityQueueTy &ready, BeginInst *BI)
 		: scheduled(scheduled), sched(sched), ready(ready), BI(BI) {}
 
 	/// function call operator
@@ -139,7 +139,7 @@ void ListSchedulingPass::schedule(BeginInst *BI) {
 	// reference to the instruction list of the current basic block
 	InstructionListTy &inst_list = map[BI];
 	// set of already scheduled instructions
-	std::set<Instruction*> scheduled;
+	alloc::set<Instruction*>::type scheduled;
 	// queue of ready instructions
 	MyComparator comp = MyComparator(sched);
 	PriorityQueueTy ready(comp);

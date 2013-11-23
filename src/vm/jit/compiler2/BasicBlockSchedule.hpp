@@ -25,7 +25,7 @@
 #ifndef _JIT_COMPILER2_BASICBLOCKSCHEDULE
 #define _JIT_COMPILER2_BASICBLOCKSCHEDULE
 
-#include <vector>
+#include "vm/jit/compiler2/alloc/vector.hpp"
 
 namespace cacao {
 namespace jit {
@@ -39,7 +39,7 @@ class BeginInst;
  */
 class BasicBlockSchedule {
 public:
-	typedef std::vector<BeginInst*> BasicBlockListTy;
+	typedef alloc::vector<BeginInst*>::type BasicBlockListTy;
 	typedef BasicBlockListTy::iterator bb_iterator;
 	typedef BasicBlockListTy::const_iterator const_bb_iterator;
 	typedef BasicBlockListTy::const_reverse_iterator const_reverse_bb_iterator;

@@ -30,9 +30,9 @@
 
 #include "future/memory.hpp"            // for cacao::shared_ptr
 
-#include <map>
-#include <set>
-#include <list>
+#include "vm/jit/compiler2/alloc/map.hpp"
+#include "vm/jit/compiler2/alloc/set.hpp"
+#include "vm/jit/compiler2/alloc/list.hpp"
 
 #include <climits>
 
@@ -100,7 +100,7 @@ struct LivetimeRange {
 
 class LivetimeInterval {
 public:
-	typedef std::list<LivetimeRange> IntervalListTy;
+	typedef alloc::list<LivetimeRange>::type IntervalListTy;
 	typedef IntervalListTy::const_iterator const_iterator;
 	typedef IntervalListTy::iterator iterator;
 

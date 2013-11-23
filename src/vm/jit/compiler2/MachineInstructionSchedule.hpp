@@ -27,9 +27,9 @@
 
 #include "toolbox/ordered_list.hpp"
 
-#include <map>
-#include <list>
-#include <vector>
+#include "vm/jit/compiler2/alloc/map.hpp"
+#include "vm/jit/compiler2/alloc/list.hpp"
+#include "vm/jit/compiler2/alloc/vector.hpp"
 #include <cassert>
 
 namespace cacao {

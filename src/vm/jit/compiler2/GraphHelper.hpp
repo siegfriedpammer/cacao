@@ -26,9 +26,9 @@
 #define _JIT_COMPILER2_GRAPHHELPER
 
 
-#include <set>
-#include <map>
-#include <vector>
+#include "vm/jit/compiler2/alloc/set.hpp"
+#include "vm/jit/compiler2/alloc/map.hpp"
+#include "vm/jit/compiler2/alloc/vector.hpp"
 #include <iterator>
 
 #include "vm/jit/compiler2/Instructions.hpp"
@@ -50,14 +50,14 @@ namespace compiler2 {
 template <class _NodeTy>
 class DFSTraversal {
 private:
-	typedef typename std::vector<_NodeTy *> NodeMapTy;
-	typedef typename std::map<_NodeTy *,int> IndexMapTy;
-	typedef typename std::vector<int> ParentMapTy;
-	typedef typename std::vector<int> DecendantMapTy;
+	typedef typename alloc::vector<_NodeTy *>::type NodeMapTy;
+	typedef typename alloc::map<_NodeTy *,int>::type IndexMapTy;
+	typedef typename alloc::vector<int>::type ParentMapTy;
+	typedef typename alloc::vector<int>::type DecendantMapTy;
 
-	typedef typename std::set<_NodeTy *> NodeListTy;
-	typedef typename std::set<int> SuccessorListTy;
-	typedef typename std::vector<SuccessorListTy> SuccessorListMapTy;
+	typedef typename alloc::set<_NodeTy *>::type NodeListTy;
+	typedef typename alloc::set<int>::type SuccessorListTy;
+	typedef typename alloc::vector<SuccessorListTy>::type SuccessorListMapTy;
 
 	NodeMapTy vertex;
 	IndexMapTy index;
@@ -75,7 +75,7 @@ private:
 
 public:
 	class iterator;
-	typedef std::set<iterator> iterator_list;
+	typedef typename alloc::set<iterator>::type iterator_list;
 
 	explicit DFSTraversal(_NodeTy *entry) {
 		n = -1;
@@ -265,7 +265,7 @@ int DFSTraversal<_NodeTy>::dfs(_NodeTy * v)
 	NodeListTy succ_v;
 	succ_v = successor(v, succ_v);
 	LOG("number of succ for " << (long)v << " (" << my_n << ") " << " = " << succ_v.size() << nl);
-	for(typename std::set<_NodeTy *>::const_iterator i = succ_v.begin() , e = succ_v.end();
+	for(typename alloc::set<_NodeTy *>::type::const_iterator i = succ_v.begin() , e = succ_v.end();
 			i != e; ++i) {
 		_NodeTy *w = *i;
 		SuccessorListTy &succ_list = succ[my_n];
@@ -302,7 +302,7 @@ T get_root();
 template <class T>
 inline T find_least_common_ancestor(T a, T b) {
 	// collect a's ancestors
-	std::set<T> ancestors;
+	typename alloc::set<T>::type ancestors;
 
 	for (; !(a == get_root<T>()) ; a = get_parent(a)) {
 		if (a == b)
@@ -310,7 +310,7 @@ inline T find_least_common_ancestor(T a, T b) {
 		ancestors.insert(a);
 	}
 
-	typename std::set<T>::const_iterator e = ancestors.end();
+	typename alloc::set<T>::type::const_iterator e = ancestors.end();
 	for (; !(b == get_root<T>()) ; b = get_parent(b)) {
 		if (ancestors.find(b) != e)
 			return b;

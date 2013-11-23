@@ -30,8 +30,8 @@
 #include "vm/jit/compiler2/DominatorPass.hpp"
 #include "toolbox/logging.hpp"
 
-#include <list>
-#include <deque>
+#include "vm/jit/compiler2/alloc/list.hpp"
+#include "vm/jit/compiler2/alloc/deque.hpp"
 
 #define DEBUG_NAME "compiler2/BasciBlockSchedulingPass"
 
@@ -63,7 +63,7 @@ bool BasicBlockSchedulingPass::run(JITData &JD) {
 
 	#if 0
 	// random order
-	std::deque<BeginInst*> bbs(M->bb_begin(),M->bb_end());
+	alloc::deque<BeginInst*>::type bbs(M->bb_begin(),M->bb_end());
 	std::remove(bbs.begin(),bbs.end(),M->get_init_bb());
 	std::random_shuffle(bbs.begin(),bbs.end());
 	bbs.push_front(M->get_init_bb());
@@ -82,7 +82,7 @@ bool BasicBlockSchedulingPass::run(JITData &JD) {
 namespace {
 #if VERIFY_LOOP_PROPERTY
 // push loops recursively in reverse order
-void push_loops_inbetween(std::list<Loop*> &active, Loop* inner, Loop* outer) {
+void push_loops_inbetween(alloc::list<Loop*>::type &active, Loop* inner, Loop* outer) {
 	if (inner == outer) return;
 	push_loops_inbetween(active,inner->get_parent(),outer);
 	active.push_back(inner);
@@ -133,7 +133,7 @@ bool BasicBlockSchedulingPass::verify() const {
 	#if VERIFY_DOM_PROPERTY
 	// check dominator property
 	DominatorTree *DT = get_Pass<DominatorPass>();
-	std::set<BeginInst*> handled;
+	alloc::set<BeginInst*>::type handled;
 	for (BasicBlockSchedule::const_bb_iterator i = bb_begin(), e = bb_end();
 			i !=e ; ++i) {
 		BeginInst *idom = DT->get_idominator(*i);
@@ -150,8 +150,8 @@ bool BasicBlockSchedulingPass::verify() const {
 	// check contiguous loop property
 	#if VERIFY_LOOP_PROPERTY
 	LoopTree *LT = get_Pass<LoopPass>();
-	std::set<Loop*> finished;
-	std::list<Loop*> active;
+	alloc::set<Loop*>::type finished;
+	alloc::list<Loop*>::type active;
 	// sentinel
 	active.push_back(NULL);
 	for (BasicBlockSchedule::const_bb_iterator i = bb_begin(), e = bb_end();
