@@ -31,6 +31,7 @@ LIBS =
 
 SUBDIRS = \
 	alloc \
+	memory \
 	$(ARCH_DIR)
 
 noinst_LTLIBRARIES = \
@@ -95,6 +96,7 @@ libcompiler2_la_SOURCES = \
 
 libcompiler2_la_LIBADD = \
 	alloc/liballoc.la \
+	memory/libmemory.la \
 	$(ARCH_DIR)/lib$(ARCH_DIR).la
 
 ## Local variables:

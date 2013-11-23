@@ -1,8 +1,10 @@
 XXXX-XX-XX Josef Eisl <zapster@zapster.cc>
 	* fixed class name typo: PassRegistery->PassRegistry
-	* vm/jit/compiler/alloc/*: added custom allocator for standard library
+	* vm/jit/compiler2/alloc/*: added custom allocator for standard library
 	containers as well as wrappers for the containers. Use
 	alloc::list<T>::type instead of std::list.
+	* vm/jit/compiler2/memory/*: added a custom new/delete handler mixin
+	class.
 
 2013-11-06 Josef Eisl <zapster@zapster.cc>
 	* new LIR: see MachineBasicBlock, MachineInstructionSchedule,
