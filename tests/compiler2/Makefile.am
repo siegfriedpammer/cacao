@@ -45,6 +45,7 @@ OUTPUT_JAVA_TESTS = \
 	Test.OverflowLongIntLong \
 	Test.pi \
 	Test.piSpigot \
+	Test.Sqrt \
 	Test.testParameterLong \
 	Test.testParameterLong2 \
 	Test.testParameterLong3 \

@@ -147,7 +147,7 @@ static long power(long v, long i) {
     return p;
 }
 
-static long sqrt(long x) {
+static long Sqrt(long x) {
   long y = 0;
   long z = x + 1;
   while ((y+1) != z) {
