@@ -35,6 +35,7 @@
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/code.hpp"
+#include "vm/rt-timing.hpp"
 
 #if defined(ENABLE_DISASSEMBLER)
 
@@ -48,6 +49,11 @@
 #endif // defined(ENABLE_DISASSEMBLER)
 
 #define DEBUG_NAME "compiler2/ObjectFileWriter"
+
+#if !defined(ENABLE_RT_TIMING)
+#error no rt timing
+#endif
+RT_REGISTER_TIMER(obj_writter_timer,"objectwriter","object writer execution time")
 
 namespace {
 
@@ -74,9 +80,9 @@ namespace jit {
 namespace compiler2 {
 
 #define FAKE_DATASEC
-
 bool ObjectFileWriterPass::run(JITData &JD) {
 #if defined(ENABLE_DISASSEMBLER)
+	RT_TIMER_START(obj_writter_timer);
 	Method *M = JD.get_Method();
 	//CodeGenPass *CG = get_Pass<CodeGenPass>();
 	codeinfo*     code = JD.get_jitdata()->code;
@@ -230,7 +236,7 @@ bool ObjectFileWriterPass::run(JITData &JD) {
 	// close file
 	bfd_close(abfd);
 
-
+	RT_TIMER_STOP(obj_writter_timer);
 #endif // defined(ENABLE_DISASSEMBLER)
 	return true;
 }

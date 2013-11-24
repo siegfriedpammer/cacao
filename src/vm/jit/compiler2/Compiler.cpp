@@ -144,9 +144,9 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleLatePass> >();
 	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleClickPass> >();
 	PM.add_Pass<MachineInstructionPrinterPass>();
-	PM.add_Pass<ObjectFileWriterPass>();
 #endif
 	PM.add_Pass<CodeGenPass>();
+	PM.add_Pass<ObjectFileWriterPass>();
 	if (opt_showdisassemble) {
 		PM.add_Pass<DisassemblerPass>();
 	}
