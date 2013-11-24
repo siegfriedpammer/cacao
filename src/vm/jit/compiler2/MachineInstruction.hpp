@@ -174,6 +174,12 @@ public:
 	operand_iterator end() {
 		return operands.end();
 	}
+	MachineOperandDesc& front() {
+		return operands.front();
+	}
+	MachineOperandDesc& back() {
+		return operands.back();
+	}
 	const_operand_iterator begin() const {
 		return operands.begin();
 	}

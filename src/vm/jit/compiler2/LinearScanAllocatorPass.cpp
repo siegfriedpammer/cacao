@@ -1049,8 +1049,19 @@ bool LinearScanAllocatorPass::order_and_insert_move(EdgeMoveMapTy::value_type &e
 	--first;
 	for (alloc::list<MachineInstruction*>::type::const_iterator i = ++scheduled.begin(),
 			e  = scheduled.end(); i != e ; ++i) {
-		insert_before(last, *i);
-		STATISTICS(++num_resolution_moves);
+		MachineInstruction *MI = *i;
+		insert_before(last, MI);
+		#if defined(ENABLE_STATISTICS)
+		if (MI->front().op->is_ManagedStackSlot() && MI->back().op->is_Register()) {
+			STATISTICS(++num_spill_loads);
+		}
+		else if (MI->front().op->is_Register() && MI->back().op->is_ManagedStackSlot()) {
+			STATISTICS(++num_spill_stores);
+		}
+		else {
+			STATISTICS(++num_resolution_moves);
+		}
+		#endif
 	}
 	return true;
 }

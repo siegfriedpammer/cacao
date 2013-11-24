@@ -30,9 +30,9 @@ namespace compiler2 {
 namespace alloc {
 
 STAT_REGISTER_GROUP(comp2_alloc_group,"Compiler2Allocator","Standard Library Allocator for compiler2")
-STAT_REGISTER_GROUP_VAR_EXTERN(std::size_t,comp2_allocated,0,"total allocations","Number of byte allocated",comp2_alloc_group)
-STAT_REGISTER_GROUP_VAR_EXTERN(std::size_t,comp2_deallocated,0,"total deallocations","Number of byte deallocated",comp2_alloc_group)
-STAT_REGISTER_GROUP_VAR_EXTERN(std::size_t,comp2_max,0,"maximum memory","Maximum memory consumption",comp2_alloc_group)
+STAT_REGISTER_GROUP_VAR_EXTERN(std::size_t,comp2_allocated,0,"alloc total allocations","Number of byte allocated",comp2_alloc_group)
+STAT_REGISTER_GROUP_VAR_EXTERN(std::size_t,comp2_deallocated,0,"alloc total deallocations","Number of byte deallocated",comp2_alloc_group)
+STAT_REGISTER_GROUP_VAR_EXTERN(std::size_t,comp2_max,0,"alloc maximum memory","Maximum memory consumption",comp2_alloc_group)
 
 std::size_t& current_heap_size() {
 	static std::size_t t = 0;
