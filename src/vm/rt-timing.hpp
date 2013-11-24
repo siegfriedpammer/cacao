@@ -357,6 +357,7 @@ inline long rt_timing_diff_usec_inline(const timespec &a, const timespec &b)
 } // end namespace cacao
 
 #include <vector>
+#include <deque>
 
 namespace cacao {
 
@@ -374,6 +375,22 @@ protected:
 	const char* description;
 	/// dummy constructor
 	RTEntry() : name(NULL), description(NULL) {}
+
+	typedef std::deque<const RTEntry*> RtStack;
+
+	void print_csv_entry(OStream &O,RtStack &s,timespec ts) const {
+		for(RtStack::const_iterator i = s.begin(), e = s.end() ; i != e; ++i) {
+			O << (*i)->name << '.';
+		}
+		O << name << ',' << description << ',';
+		if (ts.tv_sec) {
+			O << ts.tv_sec << cacao::setz(6) << ts.tv_nsec/1000;
+		}
+		else {
+			O << ts.tv_nsec;
+		}
+		O << cacao::nl;
+	}
 public:
 	static timespec invalid_ts;   //< invalid time stamp
 	/**
@@ -395,6 +412,15 @@ public:
 	 *	Normally the time of the parent.
 	 */
 	virtual void print(OStream &O,timespec ref) const = 0;
+	void print_csv(OStream &O) const {
+		RtStack s;
+		print_csv_intern(O,s);
+	}
+	static void print_csv_header(OStream &O) {
+		O << "name,description,value" << nl;
+	}
+	virtual void print_csv_intern(OStream &O,RtStack &s) const = 0;
+
 	/**
 	 * Get the elapsed time of a RTEntry.
 	 */
@@ -473,6 +499,15 @@ public:
 		  << reset_color
 		  << nl<< nl;
 	}
+	virtual void print_csv_intern(OStream &O,RtStack &s) const {
+		s.push_back(this);
+		for(RTEntryList::const_iterator i = members.begin(), e = members.end(); i != e; ++i) {
+			RTEntry* re = *i;
+			re->print_csv_intern(O,s);
+		}
+		s.pop_back();
+		print_csv_entry(O,s,time());
+	}
 };
 
 /**
@@ -546,6 +581,9 @@ public:
 		O << setw(10) << ts.tv_nsec/1000 << " usec "
 		  << setw(4) << percent << "% "
 		  << setw(20) << name << ": " << description << nl;
+	}
+	virtual void print_csv_intern(OStream &O,RtStack &s) const {
+		print_csv_entry(O,s,time());
 	}
 };
 

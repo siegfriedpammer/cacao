@@ -1951,6 +1951,15 @@ static void write_logfiles() {
 		OS << "\nreal-time measurment:\n" << cacao::nl;
 		cacao::RTGroup::root().print(OS);
 	}
+	/* if (!opt_RtTimingLogfile) */ {
+		FILE *file = fopen("rt-timing.csv", "w");
+		if (file == NULL)
+			/* fallback to stdout */
+			file = stdout;
+		cacao::OStream OS(file);
+		cacao::RTGroup::print_csv_header(OS);
+		cacao::RTGroup::root().print_csv(OS);
+	}
 #endif
 
 #if defined(ENABLE_STATISTICS)
