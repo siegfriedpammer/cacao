@@ -218,7 +218,7 @@
 #define _RT_LOG(expr)
 #endif
 
-namespace {
+//namespace {
 #if 0
 /**
  * @note: http://www.gnu.org/software/libc/manual/html_node/Elapsed-Time.html
@@ -306,7 +306,7 @@ inline long int operator/(const timespec &a, const timespec &b) {
 inline bool operator==(const timespec &a, const timespec &b) {
 	return (a.tv_sec == b.tv_sec) && (a.tv_nsec == b.tv_nsec);
 }
-} // end anonymous namespace
+//} // end anonymous namespace
 
 namespace cacao {
 namespace {
