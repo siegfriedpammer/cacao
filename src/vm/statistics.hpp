@@ -880,6 +880,9 @@ public:
 #define STAT_DECLARE_GROUP(var) \
 	cacao::StatGroup& var##_group();
 
+#define STAT_DECLARE_SUM_GROUP(var) \
+	cacao::StatSumGroup& var##_group();
+
 #define STAT_REGISTER_GROUP(var,name,description)                              \
 	cacao::StatGroup& var##_group() {                                          \
 		static cacao::StatGroup var(name,description,cacao::StatGroup::root());\
