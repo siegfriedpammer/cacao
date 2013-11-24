@@ -454,6 +454,7 @@ Distribution of basic blocks per method(method bb dist.):
 
 #include <assert.h>
 #include <vector>
+#include <deque>
 
 #include "toolbox/OStream.hpp"
 
@@ -473,6 +474,15 @@ class StatEntry {
 protected:
 	const char* name;
 	const char* description;
+
+	typedef std::deque<const StatEntry*> StatStack;
+
+	void print_csv_entry(OStream &O,StatStack &s,unsigned long v) const {
+		for(StatStack::const_iterator i = s.begin(), e = s.end() ; i != e; ++i) {
+			O << (*i)->name << '.';
+		}
+		O << name << ',' << description << ',' << v << cacao::nl;
+	}
 public:
 	/**
 	 * Constructor.
@@ -483,6 +493,19 @@ public:
 	 * @param[in,out] O     output stream
 	 */
 	virtual void print(OStream &O) const = 0;
+	/**
+	 * Print the csv statistics information to an OStream.
+	 * name,description,value
+	 * @param[in,out] O     output stream
+	 */
+	void print_csv(OStream &O) const {
+		StatStack s;
+		print_csv_intern(O,s);
+	}
+	static void print_csv_header(OStream &O) {
+		O << "name,description,value" << nl;
+	}
+	virtual void print_csv_intern(OStream &O,StatStack &s) const = 0;
 
 	/**
 	 * Get the value of a stat entry.
@@ -515,7 +538,7 @@ public:
 	 * Get the root group
 	 */
 	static StatGroup& root() {
-		static StatGroup rg("root stat group","Statistics");
+		static StatGroup rg("root","Statistics");
 		return rg;
 	}
 
@@ -551,6 +574,15 @@ public:
 		//O << dedent;
 		O << nl;
 	}
+	virtual void print_csv_intern(OStream &O,StatStack &s) const {
+		s.push_back(this);
+		for(StatEntryList::const_iterator i = members->begin(), e= members->end(); i != e; ++i) {
+			StatEntry* re = *i;
+			re->print_csv_intern(O,s);
+		}
+		s.pop_back();
+	}
+
 };
 
 /**
@@ -584,6 +616,17 @@ public:
 		O << setw(30) << "sum"
 		  << setw(10) << sum
 		  << " : " << description << nl;
+	}
+	virtual void print_csv_intern(OStream &O,StatStack &s) const {
+		unsigned long sum = 0;
+		s.push_back(this);
+		for(StatEntryList::const_iterator i = members->begin(), e= members->end(); i != e; ++i) {
+			StatEntry* se = *i;
+			se->print_csv_intern(O,s);
+			sum += se->get_value();
+		}
+		s.pop_back();
+		print_csv_entry(O,s,sum);
 	}
 
 	virtual unsigned long get_value() const {
@@ -656,6 +699,9 @@ public:
 			O << "  cumulated ratio" << nl;
 		}
 		O << nl;
+	}
+	virtual void print_csv_intern(OStream &O,StatStack &s) const {
+		// not yet supported
 	}
 };
 
@@ -795,6 +841,9 @@ public:
 		O << setw(30) << name
 		  << setw(10) << var
 		  << " : " << description << nl;
+	}
+	virtual void print_csv_intern(OStream &O,StatStack &s) const {
+		print_csv_entry(O,s,get_value());
 	}
 	/// maximum
 	inline StatVar& max(const _T& i) {

@@ -1966,6 +1966,16 @@ static void write_logfiles() {
 		cacao::OStream OS(opt_StatisticsLogfile);
 		cacao::StatGroup::root().print(OS);
 	}
+	/*if (!opt_StatisticsLogfile)*/
+	{
+		FILE *file = fopen("statistics.csv", "w");
+		if (file == NULL)
+			/* fallback to stdout */
+			file = stdout;
+		cacao::OStream OS(file);
+		cacao::StatGroup::print_csv_header(OS);
+		cacao::StatGroup::root().print_csv(OS);
+	}
 #endif
 
 }
