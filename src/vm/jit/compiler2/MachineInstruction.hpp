@@ -32,6 +32,8 @@
 #include "vm/jit/compiler2/memory/Manager.hpp"
 #include "vm/jit/compiler2/alloc/vector.hpp"
 
+MM_MAKE_NAME(MachineInstruction)
+
 namespace cacao {
 
 // forward declaration

@@ -34,6 +34,8 @@
 #include "vm/jit/compiler2/alloc/vector.hpp"
 #include <cassert>
 
+MM_MAKE_NAME(MachineOperand)
+
 namespace cacao {
 
 // forward declarations

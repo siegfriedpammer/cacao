@@ -41,6 +41,15 @@ namespace jit {
 namespace compiler2 {
 
 class Instruction;
+class Value;
+
+namespace memory {
+template<>
+inline const char* get_class_name<Value>() {
+	return "Instruction";
+}
+} // end namespace memory
+
 
 class Value : public memory::ManagerMixin<Value> {
 public:

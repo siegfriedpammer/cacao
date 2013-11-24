@@ -42,27 +42,57 @@ namespace compiler2 {
 namespace memory {
 
 
-STAT_DECLARE_VAR(std::size_t,comp2_allocated,0)
-STAT_DECLARE_VAR(std::size_t,comp2_deallocated,0)
-STAT_DECLARE_VAR(std::size_t,comp2_max,0)
+STAT_DECLARE_SUM_GROUP(comp2_allocated)
+STAT_DECLARE_SUM_GROUP(comp2_deallocated)
+STAT_DECLARE_SUM_GROUP(comp2_max)
 
-unordered_map<void*,std::size_t>& mem_map();
+inline unordered_map<void*,std::size_t>& mem_map() {
+	static unordered_map<void*,std::size_t> mm;
+	return mm;
+}
 
-std::size_t& current_heap_size();
+template<typename T>
+inline std::size_t& current_heap_size() {
+	static std::size_t t = 0;
+	return t;
+}
 
+template<typename T>
+inline const char* get_class_name() {
+	return "other";
+}
+
+// default stat access function template
+template<typename T>
+inline StatVar<std::size_t,0>& get_comp2_allocated() {
+	STAT_REGISTER_GROUP_VAR(std::size_t,comp2_allocated,0,get_class_name<T>(),get_class_name<T>(),comp2_allocated)
+	return comp2_allocated;
+}
+
+template<typename T>
+inline StatVar<std::size_t,0>& get_comp2_deallocated() {
+	STAT_REGISTER_GROUP_VAR(std::size_t,comp2_deallocated,0,get_class_name<T>(),get_class_name<T>(),comp2_deallocated)
+	return comp2_deallocated;
+}
+
+template<typename T>
+inline StatVar<std::size_t,0>& get_comp2_max() {
+	STAT_REGISTER_GROUP_VAR(std::size_t,comp2_max,0,get_class_name<T>(),get_class_name<T>(),comp2_max)
+	return comp2_max;
+}
 
 template<typename T>
 inline void stat_new(std::size_t size, void* p) {
-	comp2_allocated+=size;
-	current_heap_size()+=size;
-	comp2_max.max(current_heap_size());
+	current_heap_size<T>()+=size;
+	get_comp2_allocated<T>()+=size;
+	get_comp2_max<T>().max(current_heap_size<T>());
 	mem_map()[p] = size;
 }
 template<typename T>
 inline void stat_delete(void* p) {
 	std::size_t size = mem_map()[p];
-	current_heap_size() -= size;
-	comp2_deallocated += size;
+	current_heap_size<T>() -= size;
+	get_comp2_deallocated<T>() += size;
 }
 
 
@@ -72,8 +102,25 @@ inline void stat_delete(void* p) {
 } // end namespace cacao
 
 #define MM_STAT(x) do { x; } while(0)
+
+#define MM_MAKE_NAME(x) \
+namespace cacao { \
+namespace jit { \
+namespace compiler2 { \
+class x; \
+namespace memory { \
+template<> \
+inline const char* get_class_name<x>() { \
+	return #x; \
+} \
+} \
+} \
+} \
+}
+
 #else
 #define MM_STAT(x) /* nothing */
+#define MM_MAKE_NAME(x) /* nothing */
 #endif /* ENABLE_MEMORY_MANAGER_STATISTICS */
 
 #endif /* _JIT_COMPILER2_MEMORY_MEMSTAT */

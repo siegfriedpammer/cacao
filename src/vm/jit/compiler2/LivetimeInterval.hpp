@@ -37,6 +37,10 @@
 
 #include <climits>
 
+MM_MAKE_NAME(UseDef)
+MM_MAKE_NAME(LivetimeInterval)
+MM_MAKE_NAME(LivetimeIntervalImpl)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {

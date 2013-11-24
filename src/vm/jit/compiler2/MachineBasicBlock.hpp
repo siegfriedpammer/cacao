@@ -31,6 +31,8 @@
 
 #include "future/algorithm.hpp" // for all_of, none_of
 
+MM_MAKE_NAME(MachineBasicBlock)
+
 namespace cacao {
 
 // forward declarations

@@ -29,6 +29,8 @@
 #include "vm/jit/compiler2/memory/Manager.hpp"
 #include <cstddef>
 
+MM_MAKE_NAME(Pass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -37,7 +39,6 @@ namespace compiler2 {
 class PassManager;
 class PassUsage;
 class JITData;
-
 
 /**
  * Pass superclass

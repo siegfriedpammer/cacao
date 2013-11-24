@@ -30,6 +30,8 @@
 #include "vm/jit/compiler2/InstructionVisitor.hpp"
 #include "vm/jit/compiler2/memory/Manager.hpp"
 
+MM_MAKE_NAME(Backend)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
