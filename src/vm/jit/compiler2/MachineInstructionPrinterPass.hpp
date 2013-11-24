@@ -28,6 +28,8 @@
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
 
+MM_MAKE_NAME(MachineInstructionPrinterPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -38,7 +40,7 @@ class LoweringPass;
  * MachineInstructionPrinterPass
  * TODO: more info
  */
-class MachineInstructionPrinterPass : public Pass {
+class MachineInstructionPrinterPass : public Pass, public memory::ManagerMixin<MachineInstructionPrinterPass> {
 public:
 	static char ID;
 	MachineInstructionPrinterPass() : Pass() {}

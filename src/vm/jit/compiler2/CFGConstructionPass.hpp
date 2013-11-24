@@ -29,6 +29,8 @@
 
 #include "vm/jit/cfg.hpp"
 
+MM_MAKE_NAME(CFGConstructionPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -38,7 +40,7 @@ namespace compiler2 {
  * CFGConstructionPass
  * TODO: more info
  */
-class CFGConstructionPass : public Pass {
+class CFGConstructionPass : public Pass, public memory::ManagerMixin<CFGConstructionPass> {
 public:
 	static char ID;
 	CFGConstructionPass() : Pass() {}

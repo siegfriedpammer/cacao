@@ -27,6 +27,8 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 
+MM_MAKE_NAME(SSAPrinterPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -36,7 +38,7 @@ namespace compiler2 {
  * SSAPrinterPass
  * TODO: more info
  */
-class SSAPrinterPass : public Pass {
+class SSAPrinterPass : public Pass, public memory::ManagerMixin<SSAPrinterPass> {
 public:
 	static char ID;
 	SSAPrinterPass() : Pass() {}
@@ -49,7 +51,7 @@ public:
  * TODO: more info
  */
 template <class _T>
-class GlobalSchedulePrinterPass : public Pass {
+class GlobalSchedulePrinterPass : public Pass, public memory::ManagerMixin<GlobalSchedulePrinterPass<_T> > {
 private:
 	static const char* name;
 public:
@@ -58,6 +60,26 @@ public:
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
 };
+
+class ScheduleEarlyPass;
+class ScheduleLatePass;
+class ScheduleClickPass;
+
+namespace memory {
+template<>
+inline const char* get_class_name<GlobalSchedulePrinterPass<ScheduleEarlyPass> >() {
+	return "GlobalSchedulePrinterPass(early)";
+}
+template<>
+inline const char* get_class_name<GlobalSchedulePrinterPass<ScheduleLatePass> >() {
+	return "GlobalSchedulePrinterPass(late)";
+}
+template<>
+inline const char* get_class_name<GlobalSchedulePrinterPass<ScheduleClickPass> >() {
+	return "GlobalSchedulePrinterPass(click)";
+}
+} // end namespace memory
+
 } // end namespace cacao
 } // end namespace jit
 } // end namespace compiler2

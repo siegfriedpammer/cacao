@@ -45,7 +45,7 @@ class JITData;
  * All compiler passes should inheritate this class.
  * TODO: more info
  */
-class Pass : public memory::ManagerMixin<Pass>  {
+class Pass { 
 private:
 	PassManager *pm;
 	bool allowed_to_use_result(char &id) const;

@@ -28,6 +28,8 @@
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/GlobalSchedule.hpp"
 
+MM_MAKE_NAME(ScheduleEarlyPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -42,7 +44,7 @@ class DominatorTree;
  *
  * Based on the algorithm in Click's Phd Thesis, Chapter 6 @cite ClickPHD.
  */
-class ScheduleEarlyPass : public Pass, public GlobalSchedule {
+class ScheduleEarlyPass : public Pass, public memory::ManagerMixin<ScheduleEarlyPass>, public GlobalSchedule {
 private:
 	DominatorTree *DT;
 	Method *M;

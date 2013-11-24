@@ -32,6 +32,8 @@
 #include "vm/jit/compiler2/alloc/map.hpp"
 #include "vm/jit/compiler2/alloc/vector.hpp"
 
+MM_MAKE_NAME(DominatorPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -98,7 +100,7 @@ public:
  * A Fast Algorithm for Finding Dominators in a Flowgraph, by Lengauer
  * and Tarjan, 1979 @cite Lengauer1979.
  */
-class DominatorPass : public Pass , public DominatorTree {
+class DominatorPass : public Pass, public memory::ManagerMixin<DominatorPass> , public DominatorTree {
 private:
 	typedef BeginInst NodeTy;
 	typedef alloc::set<NodeTy *>::type NodeListTy;

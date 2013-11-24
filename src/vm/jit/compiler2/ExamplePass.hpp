@@ -27,6 +27,8 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 
+MM_MAKE_NAME(ExamplePass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -37,7 +39,7 @@ namespace compiler2 {
  * This is an example for a compiler pass that simple prints all instructions
  * (in an unrelated order). It can be used as a pass template.
  */
-class ExamplePass : public Pass {
+class ExamplePass : public Pass, public memory::ManagerMixin<ExamplePass> {
 public:
 	static char ID;
 	ExamplePass() : Pass() {}

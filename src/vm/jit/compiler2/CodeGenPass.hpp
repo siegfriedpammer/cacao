@@ -28,6 +28,8 @@
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/CodeMemory.hpp"
 
+MM_MAKE_NAME(CodeGenPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -37,7 +39,7 @@ namespace compiler2 {
  * CodeGenPass
  * TODO: more info
  */
-class CodeGenPass : public Pass {
+class CodeGenPass : public Pass, public memory::ManagerMixin<CodeGenPass> {
 private:
 	/**
 	 * finish code generation

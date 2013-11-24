@@ -28,6 +28,8 @@
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedule.hpp"
 
+MM_MAKE_NAME(BasicBlockSchedulingPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -39,7 +41,7 @@ class Method;
  * BasicBlockSchedulingPass
  * TODO: more info
  */
-class BasicBlockSchedulingPass : public Pass, public BasicBlockSchedule {
+class BasicBlockSchedulingPass : public Pass, public memory::ManagerMixin<BasicBlockSchedulingPass>, public BasicBlockSchedule {
 private:
 	Method *M;
 public:

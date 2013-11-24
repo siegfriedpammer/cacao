@@ -32,6 +32,8 @@
 
 #include "vm/jit/compiler2/alloc/vector.hpp"
 
+MM_MAKE_NAME(SSAConstructionPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -45,7 +47,7 @@ namespace compiler2 {
  * The approach is based on "Simple and Efficient Construction of
  * Static Singe Assignment Form" by Braun et al. 2013 @cite SSAsimple2013.
  */
-class SSAConstructionPass : public Pass {
+class SSAConstructionPass : public Pass, public memory::ManagerMixin<SSAConstructionPass> {
 private:
 	Method *M;
 	alloc::vector<BeginInst*>::type BB;

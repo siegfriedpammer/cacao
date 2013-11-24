@@ -34,6 +34,13 @@ namespace compiler2 {
 
 typedef LoopPassBase<MachineBasicBlock> MachineLoopPass;
 
+namespace memory {
+template<>
+inline const char* get_class_name<MachineLoopPass>() {
+	return "MachineLoopPass";
+}
+} // end namespace memory
+
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

@@ -32,6 +32,8 @@
 #include "vm/jit/compiler2/alloc/queue.hpp"
 #include "vm/jit/compiler2/alloc/deque.hpp"
 
+MM_MAKE_NAME(LinearScanAllocatorPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -78,7 +80,7 @@ typedef alloc::map<MachineBasicBlock*, alloc::list<LivetimeInterval>::type >::ty
  * by Wimmer and Franz @cite Wimmer2010.
  * See also Wimmer's Masters Thesis @cite WimmerMScThesis.
  */
-class LinearScanAllocatorPass : public Pass {
+class LinearScanAllocatorPass : public Pass, public memory::ManagerMixin<LinearScanAllocatorPass> {
 public:
 	struct StartComparator {
 		bool operator()(const LivetimeInterval &lhs, const LivetimeInterval &rhs);

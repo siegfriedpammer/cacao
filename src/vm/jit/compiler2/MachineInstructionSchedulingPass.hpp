@@ -28,6 +28,8 @@
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
 
+MM_MAKE_NAME(MachineInstructionSchedulingPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -37,7 +39,7 @@ namespace compiler2 {
  * MachineInstructionSchedulingPass
  * TODO: more info
  */
-class MachineInstructionSchedulingPass : public Pass, public MachineInstructionSchedule {
+class MachineInstructionSchedulingPass : public Pass, public memory::ManagerMixin<MachineInstructionSchedulingPass>, public MachineInstructionSchedule {
 public:
 	static char ID;
 	MachineInstructionSchedulingPass() : Pass() {}

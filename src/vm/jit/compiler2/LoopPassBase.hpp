@@ -50,7 +50,7 @@ namespace compiler2 {
  * @cite ClickPHD.
  */
 template <class _T>
-class LoopPassBase : public Pass , public LoopTreeBase<_T> {
+class LoopPassBase : public Pass, public memory::ManagerMixin<LoopPassBase<_T> >, public LoopTreeBase<_T> {
 private:
 	typedef _T NodeType;
 	typedef typename alloc::set<const NodeType *>::type NodeListTy;

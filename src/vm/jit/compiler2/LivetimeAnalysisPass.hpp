@@ -29,6 +29,8 @@
 #include "vm/jit/compiler2/LivetimeInterval.hpp"
 #include "vm/jit/compiler2/MachineOperand.hpp"
 
+MM_MAKE_NAME(LivetimeAnalysisPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -39,7 +41,7 @@ namespace compiler2 {
  * Based on the approach from "Linear scan register allocation on SSA form"
  * by Wimmer and Franz @cite Wimmer2010.
  */
-class LivetimeAnalysisPass : public Pass {
+class LivetimeAnalysisPass : public Pass, public memory::ManagerMixin<LivetimeAnalysisPass> {
 public:
 	typedef alloc::map<MachineOperand*,LivetimeInterval,MachineOperandComp>::type LivetimeIntervalMapTy;
 	typedef LivetimeIntervalMapTy::const_iterator const_iterator;
