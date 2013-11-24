@@ -27,54 +27,12 @@
 
 
 #include <new>
-#include "vm/statistics.hpp"
-
-#if defined(ENABLE_STATISTICS)
-#define _MEMORY_MANAGER_ENABLE_DETAILED_STATS
-#endif
-
-#if defined(_MEMORY_MANAGER_ENABLE_DETAILED_STATS)
-#include "future/unordered_map.hpp"
-#endif
+#include "vm/jit/compiler2/memory/memstats.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 namespace memory {
-
-STAT_DECLARE_VAR(std::size_t,comp2_allocated,0)
-
-#if defined(_MEMORY_MANAGER_ENABLE_DETAILED_STATS)
-
-STAT_DECLARE_VAR(std::size_t,comp2_deallocated,0)
-STAT_DECLARE_VAR(std::size_t,comp2_max,0)
-
-unordered_map<void*,std::size_t>& mem_map();
-
-std::size_t& current_heap_size();
-
-
-#define _MY_STAT(x) do { x; } while(0)
-#else
-#define _MY_STAT(x) /* nothing */
-#endif
-
-
-#if defined(ENABLE_STATISTICS)
-inline void stat_new(std::size_t size, void* p) {
-	STATISTICS(comp2_allocated+=size);
-	_MY_STAT(current_heap_size()+=size);
-	_MY_STAT(comp2_max.max(current_heap_size()));
-	_MY_STAT(mem_map()[p] = size);
-}
-inline void stat_delete(void* p) {
-	#if defined(_MEMORY_MANAGER_ENABLE_DETAILED_STATS)
-	std::size_t size = mem_map()[p];
-	current_heap_size() -= size;
-	comp2_deallocated += size;
-	#endif
-}
-#endif
 
 /**
  * Custom new/delete handler mixin.
@@ -87,37 +45,37 @@ public:
 	/// normal new
 	static void* operator new(std::size_t size) throw(std::bad_alloc) {
 		void *p = ::operator new(size);
-		STATISTICS(stat_new(size,p));
+		MM_STAT(stat_new<T>(size,p));
 		return p;
 	}
 	/// normal delete
 	static void operator delete(void *pMemory) throw() {
 		::operator delete(pMemory);
-		STATISTICS(stat_delete(pMemory));
+		MM_STAT(stat_delete<T>(pMemory));
 	}
 
 	/// placement new
 	static void* operator new(std::size_t size, void *ptr) throw() {
 		void *p = ::operator new(size, ptr);
-		STATISTICS(stat_new(size,p));
+		MM_STAT(stat_new<T>(size,p));
 		return p;
 	}
 	/// placement delete
 	static void operator delete(void *pMemory, void *ptr) throw() {
 		::operator delete(pMemory, ptr);
-		STATISTICS(stat_delete(pMemory));
+		MM_STAT(stat_delete<T>(pMemory));
 	}
 
 	/// nothrow new
 	static void* operator new(std::size_t size, const std::nothrow_t& nt) throw() {
 		void *p = ::operator new(size, nt);
-		STATISTICS(stat_new(size,p));
+		MM_STAT(stat_new<T>(size,p));
 		return p;
 	}
 	/// nothrow delete
 	static void operator delete(void *pMemory, const std::nothrow_t&) throw() {
 		::operator delete(pMemory);
-		STATISTICS(stat_delete(pMemory));
+		MM_STAT(stat_delete<T>(pMemory));
 	}
 
 	///////////////////
@@ -127,42 +85,42 @@ public:
 	/// normal new[]
 	static void* operator new[](std::size_t size) throw(std::bad_alloc) {
 		void *p = ::operator new[](size);
-		STATISTICS(stat_new(size,p));
+		MM_STAT(stat_new<T>(size,p));
 		return p;
 	}
 	/// normal delete[]
 	static void operator delete[](void *pMemory) throw() {
 		::operator delete[](pMemory);
-		STATISTICS(stat_delete(pMemory));
+		MM_STAT(stat_delete<T>(pMemory));
 	}
 
 	/// placement new[]
 	static void* operator new[](std::size_t size, void *ptr) throw() {
 		void *p = ::operator new[](size, ptr);
-		STATISTICS(stat_new(size,p));
+		MM_STAT(stat_new<T>(size,p));
 		return p;
 	}
 	/// placement delete[]
 	static void operator delete[](void *pMemory, void *ptr) throw() {
 		::operator delete[](pMemory, ptr);
-		STATISTICS(stat_delete(pMemory));
+		MM_STAT(stat_delete<T>(pMemory));
 	}
 
 	/// nothrow new[]
 	static void* operator new[](std::size_t size, const std::nothrow_t& nt) throw() {
 		void *p = ::operator new[](size, nt);
-		STATISTICS(stat_new(size,p));
+		MM_STAT(stat_new<T>(size,p));
 		return p;
 	}
 	/// nothrow delete[]
 	static void operator delete[](void *pMemory, const std::nothrow_t&) throw() {
 		::operator delete[](pMemory);
-		STATISTICS(stat_delete(pMemory));
+		MM_STAT(stat_delete<T>(pMemory));
 	}
 
 };
 
-#undef _MY_STAT
+#undef MM_STAT
 
 } // end namespace memory
 } // end namespace compiler2
