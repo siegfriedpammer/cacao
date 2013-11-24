@@ -25,6 +25,29 @@ public static void main(String arg[]) {
   System.out.println(test_test());
 }
 
+static long test_array_load(long test[]) {
+  return test[0];
+}
+
+static void test_array_store(long test[]) {
+  test[0] = 42;
+}
+
+static long test_array(long test[]) {
+  for (int i = 0; i < 10; ++i) {
+    test[i] = i;
+  }
+  return test[3];
+}
+
+static long test_arraynew() {
+  long test[] = new long[10];
+  for (int i = 0; i < 10; ++i) {
+    test[i] = i;
+  }
+  return test[3];
+}
+
 static void test_deadcode() {
   int a = 1;
 }
