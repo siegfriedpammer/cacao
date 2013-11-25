@@ -31,11 +31,11 @@ namespace memory {
 
 #if defined(ENABLE_MEMORY_MANAGER_STATISTICS)
 
-STAT_REGISTER_GROUP(comp2_alloc_group,"Compiler2NewDeleteHandler","Custom new/delete handler for compiler2")
+STAT_REGISTER_GROUP(comp2_alloc_group,"c2memhandler","Custom new/delete handler for compiler2")
 
-STAT_REGISTER_SUM_SUBGROUP(comp2_allocated,"memory total allocations","Number of byte allocated",comp2_alloc_group)
-STAT_REGISTER_SUM_SUBGROUP(comp2_deallocated,"memory total deallocations","Number of byte deallocated",comp2_alloc_group)
-STAT_REGISTER_SUM_SUBGROUP(comp2_max,"memory maximum memory","Maximum memory consumption",comp2_alloc_group)
+STAT_REGISTER_SUM_SUBGROUP(comp2_allocated,"total allocations","Number of byte allocated",comp2_alloc_group)
+STAT_REGISTER_SUM_SUBGROUP(comp2_deallocated,"total deallocations","Number of byte deallocated",comp2_alloc_group)
+STAT_REGISTER_SUM_SUBGROUP(comp2_max,"maximum memory","Maximum memory consumption",comp2_alloc_group)
 
 
 #endif
