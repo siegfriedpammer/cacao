@@ -382,9 +382,9 @@ protected:
 		for(RtStack::const_iterator i = s.begin(), e = s.end() ; i != e; ++i) {
 			O << (*i)->name << '.';
 		}
-		O << name << ',' << description << ',';
+		O << name << ';' << description << ';';
 		if (ts.tv_sec) {
-			O << ts.tv_sec << cacao::setz(6) << ts.tv_nsec/1000;
+			O << ts.tv_sec << cacao::setz(9) << ts.tv_nsec;
 		}
 		else {
 			O << ts.tv_nsec;
@@ -417,7 +417,7 @@ public:
 		print_csv_intern(O,s);
 	}
 	static void print_csv_header(OStream &O) {
-		O << "name,description,value" << nl;
+		O << "name;description;value" << nl;
 	}
 	virtual void print_csv_intern(OStream &O,RtStack &s) const = 0;
 

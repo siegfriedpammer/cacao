@@ -481,7 +481,7 @@ protected:
 		for(StatStack::const_iterator i = s.begin(), e = s.end() ; i != e; ++i) {
 			O << (*i)->name << '.';
 		}
-		O << name << ',' << description << ',' << v << cacao::nl;
+		O << name << ';' << description << ';' << v << cacao::nl;
 	}
 public:
 	/**
@@ -503,7 +503,7 @@ public:
 		print_csv_intern(O,s);
 	}
 	static void print_csv_header(OStream &O) {
-		O << "name,description,value" << nl;
+		O << "name;description;value" << nl;
 	}
 	virtual void print_csv_intern(OStream &O,StatStack &s) const = 0;
 
