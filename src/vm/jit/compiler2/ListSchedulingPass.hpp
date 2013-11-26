@@ -29,6 +29,8 @@
 #include "vm/jit/compiler2/InstructionSchedule.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
 
+MM_MAKE_NAME(ListSchedulingPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -42,7 +44,7 @@ class GlobalSchedule;
  * ListSchedulingPass
  * TODO: more info
  */
-class ListSchedulingPass : public Pass, public InstructionSchedule<Instruction> {
+class ListSchedulingPass : public Pass, public memory::ManagerMixin<ListSchedulingPass>, public InstructionSchedule<Instruction> {
 private:
 	GlobalSchedule *sched;
 	Method *M;
