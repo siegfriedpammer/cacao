@@ -24,6 +24,8 @@ JAVA     = $(top_builddir)/src/cacao/cacao
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
 JAVACCMD = $(JAVAC) -source 1.5 -target 1.5 -nowarn -bootclasspath $(BOOTCLASSPATH)
 
+CXXFLAGS=-I$(top_builddir) -I$(top_srcdir)/src -g -O2
+
 SOURCE_FILES = \
 	$(srcdir)/Test.java
 
@@ -46,6 +48,7 @@ OUTPUT_JAVA_TESTS = \
 	Test.pi \
 	Test.piSpigot \
 	Test.Sqrt \
+	Test.test_array_len \
 	Test.testParameterLong \
 	Test.testParameterLong2 \
 	Test.testParameterLong3 \
@@ -70,8 +73,8 @@ run: $(OUTPUT_JAVA_TESTS)
 	@echo compile $@...
 	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Compile.sh "$(JAVACMD)" $(subst .baseline,,$@) $(srcdir) dummy
 
-%.run: %.o $(srcdir)/%.main.c
-	@$(CC) -O0 $^ -o $@
+%.run: %.o $(srcdir)/%.main.cpp
+	@$(CXX) $(CXXFLAGS) $^ -o $@
 
 %.thisoutput: %.run
 	@echo run $@...

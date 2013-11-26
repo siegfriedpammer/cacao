@@ -25,8 +25,12 @@ public static void main(String arg[]) {
   System.out.println(test_test());
 }
 
-static long test_array_load(long test[]) {
-  return test[0];
+static int test_array_len(long test[]) {
+  return test.length;
+}
+
+static long test_array_load(long test[], int index) {
+  return test[index];
 }
 
 static void test_array_store(long test[]) {

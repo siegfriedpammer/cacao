@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-long power(long,long);
+extern "C" long power(long,long);
 
 int main() {
     printf("%2s %2s %10s\n", "n", "x", "n^x");

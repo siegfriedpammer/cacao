@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-double pi();
+extern "C" double pi();
 
 int main() {
     printf("%g\n", pi());

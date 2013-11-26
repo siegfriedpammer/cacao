@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <inttypes.h>
 
-int32_t OverflowInt(int32_t);
+extern "C" int32_t OverflowInt(int32_t);
 
 
 int main() {

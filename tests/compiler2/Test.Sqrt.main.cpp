@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-long Sqrt(long);
+extern "C" long Sqrt(long);
 
 
 int main() {

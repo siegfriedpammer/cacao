@@ -1,8 +1,8 @@
 #include <stdio.h>
 
-double piSpigot(long num_digits);
+extern "C" double piSpigot(long num_digits);
 
-double piSpigot_c(long num_digits) {
+extern "C" double piSpigot_c(long num_digits) {
     double pi = 0;
     for (long i = 0; i < num_digits; ++i) {
         // fake power
