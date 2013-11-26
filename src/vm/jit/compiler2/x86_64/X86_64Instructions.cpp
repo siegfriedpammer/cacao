@@ -634,7 +634,9 @@ void MovModRMInst::emit(CodeMemory* CM) const {
 		}
 	case MR:
 		{
+			reg = cast_to<X86_64Register>(operands[Value].op);
 			opcode = 0x89;
+			break;
 		}
 	default:
 	  ABORT_MSG("x86_64::MovModRMInst","not implemented");
@@ -724,7 +726,10 @@ OStream& MovModRMInst::print_operands(OStream &OS) const {
 		OS << modrm;
 		break;
 	case MR:
-		OS << operands[0].op;
+		OS << operands[Value].op;
+		// no real operands - fake it!
+		OS << " -> ";
+		OS = print_result(OS);
 		break;
 	default:
 	  ABORT_MSG("x86_64::MovModRMInst","not implemented");

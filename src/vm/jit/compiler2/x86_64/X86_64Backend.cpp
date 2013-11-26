@@ -440,6 +440,54 @@ void LoweringVisitor::visit(ALOADInst *I) {
 	get_current()->push_back(move);
 	set_op(I,move->get_result().op);
 }
+
+void LoweringVisitor::visit(ASTOREInst *I) {
+	assert(I);
+	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
+	MachineOperand* src_index = get_op(I->get_operand(1)->to_Instruction());
+	MachineOperand* src_value = get_op(I->get_operand(2)->to_Instruction());
+	assert(src_ref->get_type() == Type::ReferenceTypeID);
+	assert(src_index->get_type() == Type::IntTypeID);
+
+	Type::TypeID type = I->get_array_type();
+
+	s4 offset;
+	switch (type) {
+	case Type::ByteTypeID:
+		offset = OFFSET(java_bytearray_t, data[0]);
+		break;
+	case Type::ShortTypeID:
+		offset = OFFSET(java_shortarray_t, data[0]);
+		break;
+	case Type::IntTypeID:
+		offset = OFFSET(java_intarray_t, data[0]);
+		break;
+	case Type::LongTypeID:
+		offset = OFFSET(java_longarray_t, data[0]);
+		break;
+	case Type::FloatTypeID:
+		offset = OFFSET(java_floatarray_t, data[0]);
+		break;
+	case Type::DoubleTypeID:
+		offset = OFFSET(java_doublearray_t, data[0]);
+		break;
+	default:
+		ABORT_MSG("x86_64 Lowering not supported",
+			"Inst: " << I << " type: " << type);
+		offset = 0;
+	}
+	// TODO array bounds check
+	// create modrm source operand
+	ModRMOperand modrm(type,IndexOp(src_index),BaseOp(src_ref),offset);
+
+	MachineInstruction *move = new MovModRMInst(
+		SrcOp(src_value),
+		get_OperandSize_from_Type(type),
+		DstModRM(modrm));
+	get_current()->push_back(move);
+	set_op(I,move->get_result().op);
+}
+
 void LoweringVisitor::visit(ARRAYLENGTHInst *I) {
 	assert(I);
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
@@ -459,8 +507,8 @@ void LoweringVisitor::visit(ARRAYLENGTHInst *I) {
 
 void LoweringVisitor::visit(RETURNInst *I) {
 	assert(I);
-	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
 	Type::TypeID type = I->get_type();
+	MachineOperand* src_op = (type == Type::VoidTypeID ? 0 : get_op(I->get_operand(0)->to_Instruction()));
 	switch (type) {
 	case Type::ByteTypeID:
 	case Type::IntTypeID:
@@ -488,6 +536,15 @@ void LoweringVisitor::visit(RETURNInst *I) {
 		LeaveInst *leave = new LeaveInst();
 		RetInst *ret = new RetInst(get_OperandSize_from_Type(type),SrcOp(ret_reg));
 		get_current()->push_back(reg);
+		get_current()->push_back(leave);
+		get_current()->push_back(ret);
+		set_op(I,ret->get_result().op);
+		return;
+	}
+	case Type::VoidTypeID:
+	{
+		LeaveInst *leave = new LeaveInst();
+		RetInst *ret = new RetInst();
 		get_current()->push_back(leave);
 		get_current()->push_back(ret);
 		set_op(I,ret->get_result().op);

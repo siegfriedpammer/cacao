@@ -395,9 +395,8 @@ public:
 class RetInst : public GPInstruction {
 public:
 	/// void return
-	RetInst(OperandSize op_size)
-			: GPInstruction("X86_64RetInst", &NoOperand, op_size, 0) {
-	}
+	RetInst() : GPInstruction("X86_64RetInst", &NoOperand, NO_SIZE, 0) {}
+	//RetInst(OperandSize op_size)
 	/**
 	 * Non-void return. The source operand is only used to guide
 	 * the register allocator. The user must ensure that the value
@@ -504,6 +503,13 @@ public:
 		operands[Base].op = src.op.base;
 		operands[Index].op = src.op.index;
 	}
+	MovModRMInst(const SrcOp &src, GPInstruction::OperandSize op_size, const DstModRM &dst)
+			: GPInstruction("X86_64MovModRMInst", &NoOperand, op_size, 3),
+				modrm(ModRMOperandDesc(dst.op.scale,operands[Index],operands[Base],dst.op.disp)), enc(MR) {
+		operands[Base].op = dst.op.base;
+		operands[Index].op = dst.op.index;
+		operands[Value].op = src.op;
+	}
 	virtual bool is_move() const { return true; }
 	virtual void emit(CodeMemory* CM) const;
 	virtual OStream& print_operands(OStream &OS) const;
@@ -511,7 +517,8 @@ public:
 private:
 	enum OpIndex {
 		Base = 0,
-		Index = 1
+		Index = 1,
+		Value = 2
 	};
 	enum OpEnc {
 	  MR,
