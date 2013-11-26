@@ -93,7 +93,35 @@ struct DstOp {
 	MachineOperand *op;
 	explicit DstOp(MachineOperand *op) : op(op) {}
 };
+/**
+ * Simple wrapper for a base operand of an
+ * x86_64 instruction.
+ */
+struct BaseOp {
+	MachineOperand *op;
+	explicit BaseOp(MachineOperand *op) : op(op) {}
+};
+/**
+ * Simple wrapper for a index operand of an
+ * x86_64 instruction.
+ */
+struct IndexOp {
+	MachineOperand *op;
+	explicit IndexOp(MachineOperand *op) : op(op) {}
+};
 
+class ModRMOperand;
+
+/// Simple wrapper for a ModRM destination operand
+struct DstModRM {
+	ModRMOperand &op;
+	explicit DstModRM(ModRMOperand &op) : op(op) {}
+};
+/// Simple wrapper for a ModRM source operand
+struct SrcModRM {
+	ModRMOperand &op;
+	explicit SrcModRM(ModRMOperand &op) : op(op) {}
+};
 /**
  * @}
  */
@@ -402,6 +430,72 @@ public:
 		return true;
 	}
 	virtual void emit(CodeMemory* CM) const;
+};
+
+/**
+ * ModRMOperand Descriptor. Like ModRMOperand but with MachineOperandDesc references.
+ */
+class ModRMOperand {
+public:
+	enum ScaleFactor {
+	  Scale1 = 0,
+	  Scale2 = 1,
+	  Scale4 = 2,
+	  Scale8 = 3
+	};
+	ScaleFactor scale;
+	MachineOperand *index;
+	MachineOperand *base;
+	int32_t disp;
+	/// constructor
+	ModRMOperand(const BaseOp& base, int32_t disp=0)
+			: scale(Scale1), index(&NoOperand), base(base.op), disp(disp) {}
+	/// constructor
+	ModRMOperand(ScaleFactor scale, const IndexOp &index, const BaseOp& base, int32_t disp=0)
+			: scale(scale), index(index.op), base(base.op), disp(disp) {}
+};
+class ModRMOperandDesc {
+public:
+	ModRMOperand::ScaleFactor scale;
+	MachineOperandDesc &index;
+	MachineOperandDesc &base;
+	int32_t disp;
+	/// constructor
+	ModRMOperandDesc(ModRMOperand::ScaleFactor scale, MachineOperandDesc &index, MachineOperandDesc &base, int32_t disp=0)
+			: scale(scale), index(index), base(base), disp(disp) {}
+};
+
+OStream& operator<<(OStream &OS,const ModRMOperandDesc &modrm);
+
+/**
+ * Load from pointer
+ *
+ * @todo merge with MovInst
+ */
+class MovModRMInst : public GPInstruction {
+public:
+	/// constructor. full arguments
+	MovModRMInst(const DstOp &dst, GPInstruction::OperandSize op_size, const SrcModRM &src)
+			: GPInstruction("X86_64MovModRMInst", dst.op, op_size, 2),
+				modrm(ModRMOperandDesc(src.op.scale,operands[Index],operands[Base],src.op.disp)), enc(RM) {
+		operands[Base].op = src.op.base;
+		operands[Index].op = src.op.index;
+	}
+	virtual bool is_move() const { return true; }
+	virtual void emit(CodeMemory* CM) const;
+	virtual OStream& print_operands(OStream &OS) const;
+	virtual OStream& print_result(OStream &OS) const;
+private:
+	enum OpIndex {
+		Base = 0,
+		Index = 1
+	};
+	enum OpEnc {
+	  MR,
+	  RM
+	};
+	ModRMOperandDesc modrm;
+	OpEnc enc;
 };
 
 /**

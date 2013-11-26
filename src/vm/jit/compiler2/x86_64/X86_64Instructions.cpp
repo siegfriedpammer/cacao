@@ -29,6 +29,8 @@
 #include "vm/jit/compiler2/CodeMemory.hpp"
 #include "vm/jit/Patcher.hpp"
 
+#include "vm/jit/compiler2/alloc/deque.hpp"
+
 #include "toolbox/logging.hpp"
 
 #define DEBUG_NAME "compiler2/x86_64"
@@ -564,6 +566,174 @@ void MovInst::emit(CodeMemory* CM) const {
 	ABORT_MSG("x86_64 TODO","non reg-to-reg moves not yet implemented (src:"
 		<< src << " dst:" << dst << ")");
 #endif
+}
+class CodeSegmentBuilder {
+private:
+	typedef alloc::deque<u1>::type Container;
+public:
+	typedef Container::iterator iterator;
+	typedef Container::const_iterator const_iterator;
+	typedef Container::value_type value_type;
+
+	void push_front(u1 d) { data.push_front(d); }
+	void push_back(u1 d) { data.push_back(d); }
+	CodeSegmentBuilder& operator+=(u1 d) {
+		push_back(d);
+		return *this;
+	}
+	u1& operator[](std::size_t i) {
+		if (i >= size()) {
+			data.resize(i+1,0);
+		}
+		return data[i];
+	}
+	u1 operator[](std::size_t i) const {
+		assert(i < size());
+		return data[i];
+	}
+	std::size_t size() const { return data.size(); }
+	const_iterator begin() const { return data.begin(); }
+	const_iterator end()   const { return data.end(); }
+	iterator begin() { return data.begin(); }
+	iterator end()   { return data.end(); }
+private:
+	Container data;
+};
+
+
+inline u1 get_rex(X86_64Register *reg, const ModRMOperandDesc &modrm, bool opsize64) {
+	REX rex;
+	if (opsize64)
+		rex + REX::W;
+	if (reg->extented)
+		rex + REX::R;
+	if (modrm.base.op != &NoOperand && cast_to<X86_64Register>(modrm.base.op)->extented)
+		rex + REX::B;
+
+	return rex;
+}
+
+void add_CodeSegmentBuilder(CodeMemory *CM, const CodeSegmentBuilder &CSB) {
+	CodeFragment CF = CM->get_CodeFragment(CSB.size());
+	for (std::size_t i = 0, e = CSB.size(); i < e; ++i) {
+		CF[i] = CSB[i];
+	}
+}
+
+void MovModRMInst::emit(CodeMemory* CM) const {
+	X86_64Register *reg;
+	u1 opcode;
+	// check operand encoding
+	switch (enc) {
+	case RM:
+		{
+			MachineOperand *op = get_result().op;
+			reg = (op?cast_to<X86_64Register>(op) : 0);
+			opcode = 0x8b;
+			break;
+		}
+	case MR:
+		{
+			opcode = 0x89;
+		}
+	default:
+	  ABORT_MSG("x86_64::MovModRMInst","not implemented");
+	  reg = 0;
+	}
+	assert(reg);
+	CodeSegmentBuilder code;
+	// set rex
+	code += get_rex(reg,modrm,get_op_size() == GPInstruction::OS_64);
+	// set opcode
+	code += opcode;
+	// set modrm byte
+	// mod
+	u1 modrm_mod;
+	if (modrm.disp == 0) {
+		// no disp
+		modrm_mod = 0;
+	}
+	else if (fits_into<s1>(modrm.disp)) {
+		// disp8
+		modrm_mod = 1;
+	} else {
+		// disp32
+		modrm_mod = 2;
+	}
+	// r/m
+	u1 modrm_rm;
+	bool need_sib;
+	// XXX for the time being always use SIB byte
+	modrm_rm = 4; // 0b100
+	need_sib = true;
+	code += get_modrm_u1(modrm_mod,reg->get_index(),modrm_rm);
+
+	if (need_sib) {
+		// set sib
+		u1 sib=0;
+		sib |= modrm.scale << 6;
+		if(modrm.index.op != &NoOperand) {
+			sib |= 0x7 & (cast_to<X86_64Register>(modrm.index.op)->get_index() << 3);
+		}
+		else {
+			sib |= 0x4 << 3; // 0b100 << 3
+		}
+		assert(modrm.base.op != &NoOperand);
+		sib |= 0x7 & (cast_to<X86_64Register>(modrm.base.op)->get_index() << 0 );
+		code += sib;
+	}
+	if (modrm_mod == 1) {
+		code += s1(modrm.disp);
+	}
+	if (modrm_mod == 2) {
+		code += (0xff && (modrm.disp << 24));
+		code += (0xff && (modrm.disp << 16));
+		code += (0xff && (modrm.disp <<  8));
+		code += (0xff && (modrm.disp <<  0));
+	}
+	add_CodeSegmentBuilder(CM,code);
+}
+
+OStream& operator<<(OStream &OS,const ModRMOperandDesc &modrm) {
+	if (modrm.disp)
+	  OS << modrm.disp;
+	OS << '(';
+	if (modrm.base.op != &NoOperand)
+	  OS << modrm.base.op;
+	OS << ',';
+	if (modrm.index.op != &NoOperand)
+	  OS << modrm.index.op;
+	OS << ',';
+	OS << 1 << modrm.scale;
+	OS << ')';
+	return OS;
+}
+
+OStream& MovModRMInst::print_operands(OStream &OS) const {
+	switch (enc) {
+	case RM:
+		OS << modrm;
+		break;
+	case MR:
+		OS << operands[0].op;
+		break;
+	default:
+	  ABORT_MSG("x86_64::MovModRMInst","not implemented");
+	}
+	return OS;
+}
+OStream& MovModRMInst::print_result(OStream &OS) const {
+	switch (enc) {
+	case RM:
+		OS << get_result().op;
+		break;
+	case MR:
+		OS << modrm;
+		break;
+	default:
+	  ABORT_MSG("x86_64::MovModRMInst","not implemented");
+	}
+	return OS;
 }
 
 void MovSXInst::emit(CodeMemory* CM) const {
