@@ -447,12 +447,35 @@ public:
 	MachineOperand *index;
 	MachineOperand *base;
 	int32_t disp;
-	/// constructor
-	ModRMOperand(const BaseOp& base, int32_t disp=0)
+	/// constructor. base and disp only
+	explicit ModRMOperand(const BaseOp& base, int32_t disp=0)
 			: scale(Scale1), index(&NoOperand), base(base.op), disp(disp) {}
-	/// constructor
+	/// constructor. Full
 	ModRMOperand(ScaleFactor scale, const IndexOp &index, const BaseOp& base, int32_t disp=0)
 			: scale(scale), index(index.op), base(base.op), disp(disp) {}
+	/// constructor. Full (with Type::TypeID for scale)
+	ModRMOperand(Type::TypeID type, const IndexOp &index, const BaseOp& base, int32_t disp=0)
+			: scale(get_scale(type)), index(index.op), base(base.op), disp(disp) {}
+
+	/// covert type to scale
+	static ScaleFactor get_scale(Type::TypeID type) {
+		switch (type) {
+		case Type::ByteTypeID:
+			return Scale1;
+		case Type::ShortTypeID:
+		case Type::IntTypeID:
+			return Scale2;
+		case Type::FloatTypeID:
+			return Scale4;
+		case Type::LongTypeID:
+		case Type::DoubleTypeID:
+			return Scale8;
+		default:
+			break;
+		}
+		ABORT_MSG("type not supported", "x86_64 ModRMOperand::get_scale() type: " << type);
+		return Scale1;
+	}
 };
 class ModRMOperandDesc {
 public:
