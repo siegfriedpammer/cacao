@@ -260,6 +260,10 @@ public:
 	OStream& print(OStream &OS) const;
 	/// print successor label
 	virtual OStream& print_successor_label(OStream &OS,std::size_t index) const;
+	/// print operands
+	virtual OStream& print_operands(OStream &OS) const;
+	/// print result
+	virtual OStream& print_result(OStream &OS) const;
 
 	/// emit machine code
 	virtual void emit(CodeMemory* CM) const;
