@@ -33,8 +33,8 @@ static long test_array_load(long test[], int index) {
   return test[index];
 }
 
-static void test_array_store(long test[]) {
-  test[0] = 42;
+static void test_array_store(long test[], int index, long value) {
+  test[index] = value;
 }
 
 static long test_array(long test[]) {

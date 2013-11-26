@@ -50,6 +50,7 @@ OUTPUT_JAVA_TESTS = \
 	Test.Sqrt \
 	Test.test_array_len \
 	Test.test_array_load \
+	Test.test_array_store \
 	Test.testParameterLong \
 	Test.testParameterLong2 \
 	Test.testParameterLong3 \
