@@ -1697,36 +1697,94 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_DASTORE:
 			case ICMD_FASTORE:
 			case ICMD_AASTORE:
-		//		SHOW_S1(OS, iptr);
-		//		SHOW_S2(OS, iptr);
-		//		SHOW_S3(OS, iptr);
-		//		break;
-
+				{
+					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
+					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
+					Value *s3 = read_variable(iptr->sx.s23.s3.varindex,bbindex);
+					Type::TypeID type;
+					switch (iptr->opc) {
+					case ICMD_BASTORE:
+						type = Type::ByteTypeID;
+						break;
+					case ICMD_CASTORE:
+						type = Type::CharTypeID;
+						break;
+					case ICMD_SASTORE:
+						type = Type::ShortTypeID;
+						break;
+					case ICMD_IASTORE:
+						type = Type::IntTypeID;
+						break;
+					case ICMD_LASTORE:
+						type = Type::LongTypeID;
+						break;
+					case ICMD_AASTORE:
+						type = Type::ReferenceTypeID;
+						break;
+					case ICMD_FASTORE:
+						type = Type::FloatTypeID;
+						break;
+					case ICMD_DASTORE:
+						type = Type::DoubleTypeID;
+						break;
+					default: assert(0);
+						type = Type::VoidTypeID;
+					}
+					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
+					assert(state_change);
+					Instruction *result = new ASTOREInst(type, s1, s2, s3, BB[bbindex], state_change);
+					write_variable(global_state,bbindex,result);
+					M->add_Instruction(result);
+				}
+				break;
 			case ICMD_IALOAD:
 			case ICMD_SALOAD:
 			case ICMD_BALOAD:
 			case ICMD_CALOAD:
-				goto _default;
 			case ICMD_LALOAD:
+			case ICMD_DALOAD:
+			case ICMD_FALOAD:
+			case ICMD_AALOAD:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
 					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
 					Type::TypeID type;
 					switch (iptr->opc) {
+					case ICMD_BALOAD:
+						type = Type::ByteTypeID;
+						break;
+					case ICMD_CALOAD:
+						type = Type::CharTypeID;
+						break;
+					case ICMD_SALOAD:
+						type = Type::ShortTypeID;
+						break;
+					case ICMD_IALOAD:
+						type = Type::IntTypeID;
+						break;
 					case ICMD_LALOAD:
 						type = Type::LongTypeID;
+						break;
+					case ICMD_AALOAD:
+						type = Type::ReferenceTypeID;
+						break;
+					case ICMD_FALOAD:
+						type = Type::FloatTypeID;
+						break;
+					case ICMD_DALOAD:
+						type = Type::DoubleTypeID;
 						break;
 					default: assert(0);
 						type = Type::VoidTypeID;
 					}
-					Instruction *result = new ALOADInst(type, s1, s2);
+					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
+					assert(state_change);
+					Instruction *result = new ALOADInst(type, s1, s2, BB[bbindex], state_change);
 					write_variable(iptr->dst.varindex,bbindex,result);
+					write_variable(global_state,bbindex,result);
 					M->add_Instruction(result);
 				}
 				break;
-			case ICMD_DALOAD:
-			case ICMD_FALOAD:
-			case ICMD_AALOAD:
 		//		SHOW_S1(OS, iptr);
 		//		SHOW_S2(OS, iptr);
 		//		SHOW_DST(OS, iptr);

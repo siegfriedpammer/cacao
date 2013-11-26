@@ -523,7 +523,7 @@ public:
 		append_dep(state_change);
 	}
 	virtual BeginInst* get_BeginInst() const {
-		BeginInst *begin = (*dep_begin())->to_BeginInst();
+		BeginInst *begin = dep_front()->to_BeginInst();
 		assert(begin);
 		return begin;
 	}
@@ -543,22 +543,57 @@ public:
 };
 
 class ASTOREInst : public Instruction {
+private:
+	bool bound_check;
 public:
-	explicit ASTOREInst(Type::TypeID type) : Instruction(ASTOREInstID, type) {}
+	explicit ASTOREInst(Type::TypeID type, Value* ref, Value* index, Value* value,
+			BeginInst *begin, Instruction *state_change)
+			: Instruction(ASTOREInstID, Type::VoidTypeID) {
+		assert(ref->get_type() == Type::ReferenceTypeID);
+		assert(index->get_type() == Type::IntTypeID);
+		append_op(ref);
+		append_op(index);
+		append_op(value);
+		append_dep(begin);
+		append_dep(state_change);
+	}
 	virtual ASTOREInst* to_ASTOREInst() { return this; }
+	virtual bool is_homogeneous() const { return false; }
+	virtual bool has_side_effects() const { return true; }
+	virtual BeginInst* get_BeginInst() const {
+		BeginInst *begin = dep_front()->to_BeginInst();
+		assert(begin);
+		return begin;
+	}
+	virtual bool is_floating() const { return false; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
+	bool requires_bound_check() const {
+		return bound_check;
+	}
+	Type::TypeID get_array_type() const {
+		return this->op_back()->get_type();
+	}
 };
 
 class ALOADInst : public BinaryInst {
 private:
 	bool bound_check;
 public:
-	explicit ALOADInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(ALOADInstID, type, S1, S2), bound_check(true) {
-		assert(S1->get_type() == Type::ReferenceTypeID);
-		assert(S2->get_type() == Type::IntTypeID);
+	explicit ALOADInst(Type::TypeID type, Value* ref, Value* index,
+			BeginInst *begin, Instruction *state_change)
+			: BinaryInst(ALOADInstID, type, ref, index), bound_check(true) {
+		assert(ref->get_type() == Type::ReferenceTypeID);
+		assert(index->get_type() == Type::IntTypeID);
+		append_dep(begin);
+		append_dep(state_change);
 	}
 	virtual ALOADInst* to_ALOADInst() { return this; }
 	virtual bool is_homogeneous() const { return false; }
+	virtual BeginInst* get_BeginInst() const {
+		assert(dep_size() > 0);
+		return dep_front()->to_BeginInst();
+	}
+	virtual bool is_floating() const { return false; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 	bool requires_bound_check() const {
 		return bound_check;

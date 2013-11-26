@@ -144,6 +144,8 @@ public:
 
 	const_op_iterator op_begin() const { return op_list.begin(); }
 	const_op_iterator op_end()   const { return op_list.end(); }
+	Value* op_front() const { return op_list.front(); }
+	Value* op_back() const { return op_list.back(); }
 	size_t op_size() const { return op_list.size(); }
 	Value* get_operand(size_t i) {
 		return op_list[i];
@@ -161,6 +163,8 @@ public:
 
 	const_dep_iterator dep_begin() const { return dep_list.begin(); }
 	const_dep_iterator dep_end()   const { return dep_list.end(); }
+	Instruction* dep_front() const { return dep_list.front(); }
+	Instruction* dep_back() const { return dep_list.back(); }
 	size_t dep_size() const { return dep_list.size(); }
 	const_dep_iterator rdep_begin() const { return reverse_dep_list.begin(); }
 	const_dep_iterator rdep_end()   const { return reverse_dep_list.end(); }
