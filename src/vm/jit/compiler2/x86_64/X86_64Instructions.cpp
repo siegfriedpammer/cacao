@@ -643,7 +643,9 @@ void MovModRMInst::emit(CodeMemory* CM) const {
 	assert(reg);
 	CodeSegmentBuilder code;
 	// set rex
-	code += get_rex(reg,modrm,get_op_size() == GPInstruction::OS_64);
+	u1 rex = get_rex(reg,modrm,get_op_size() == GPInstruction::OS_64);
+	if (rex != 0x40)
+		code += rex;
 	// set opcode
 	code += opcode;
 	// set modrm byte
@@ -660,36 +662,43 @@ void MovModRMInst::emit(CodeMemory* CM) const {
 		// disp32
 		modrm_mod = 2;
 	}
+	X86_64Register *index_reg = (modrm.index.op != &NoOperand ? cast_to<X86_64Register>(modrm.index.op) : 0);
+	X86_64Register *base_reg  = (modrm.base.op  != &NoOperand ? cast_to<X86_64Register>(modrm.base.op ) : 0);
 	// r/m
 	u1 modrm_rm;
 	bool need_sib;
 	// XXX for the time being always use SIB byte
-	modrm_rm = 4; // 0b100
-	need_sib = true;
+	if (!index_reg && base_reg && base_reg->get_index() != 0x4) { // 0b100
+		modrm_rm = base_reg->get_index();
+		need_sib = false;
+	} else {
+		modrm_rm = 4; // 0b100
+		need_sib = true;
+	}
 	code += get_modrm_u1(modrm_mod,reg->get_index(),modrm_rm);
 
 	if (need_sib) {
 		// set sib
 		u1 sib=0;
 		sib |= modrm.scale << 6;
-		if(modrm.index.op != &NoOperand) {
-			sib |= 0x7 & (cast_to<X86_64Register>(modrm.index.op)->get_index() << 3);
+		if(index_reg) {
+			sib |= (0x7 & index_reg->get_index()) << 3;
 		}
 		else {
 			sib |= 0x4 << 3; // 0b100 << 3
 		}
-		assert(modrm.base.op != &NoOperand);
-		sib |= 0x7 & (cast_to<X86_64Register>(modrm.base.op)->get_index() << 0 );
+		assert(base_reg);
+		sib |= (0x7 & base_reg->get_index()) << 0 ;
 		code += sib;
 	}
 	if (modrm_mod == 1) {
 		code += s1(modrm.disp);
 	}
 	if (modrm_mod == 2) {
-		code += (0xff && (modrm.disp << 24));
-		code += (0xff && (modrm.disp << 16));
-		code += (0xff && (modrm.disp <<  8));
-		code += (0xff && (modrm.disp <<  0));
+		code += (0xff && (modrm.disp >> 24));
+		code += (0xff && (modrm.disp >> 16));
+		code += (0xff && (modrm.disp >>  8));
+		code += (0xff && (modrm.disp >>  0));
 	}
 	add_CodeSegmentBuilder(CM,code);
 }
