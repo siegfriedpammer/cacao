@@ -1706,7 +1706,24 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_SALOAD:
 			case ICMD_BALOAD:
 			case ICMD_CALOAD:
+				goto _default;
 			case ICMD_LALOAD:
+				{
+					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
+					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
+					Type::TypeID type;
+					switch (iptr->opc) {
+					case ICMD_LALOAD:
+						type = Type::LongTypeID;
+						break;
+					default: assert(0);
+						type = Type::VoidTypeID;
+					}
+					Instruction *result = new ALOADInst(type, s1, s2);
+					write_variable(iptr->dst.varindex,bbindex,result);
+					M->add_Instruction(result);
+				}
+				break;
 			case ICMD_DALOAD:
 			case ICMD_FALOAD:
 			case ICMD_AALOAD:

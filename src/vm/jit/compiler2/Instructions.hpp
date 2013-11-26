@@ -549,11 +549,20 @@ public:
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
-class ALOADInst : public Instruction {
+class ALOADInst : public BinaryInst {
+private:
+	bool bound_check;
 public:
-	explicit ALOADInst(Type::TypeID type) : Instruction(ALOADInstID, type) {}
+	explicit ALOADInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(ALOADInstID, type, S1, S2), bound_check(true) {
+		assert(S1->get_type() == Type::ReferenceTypeID);
+		assert(S2->get_type() == Type::IntTypeID);
+	}
 	virtual ALOADInst* to_ALOADInst() { return this; }
+	virtual bool is_homogeneous() const { return false; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
+	bool requires_bound_check() const {
+		return bound_check;
+	}
 };
 
 class RETInst : public Instruction {
