@@ -394,6 +394,23 @@ void LoweringVisitor::visit(REMInst *I) {
 			"Inst: " << I << " type: " << type);
 }
 
+void LoweringVisitor::visit(ARRAYLENGTHInst *I) {
+	assert(I);
+	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
+	assert(I->get_type() == Type::IntTypeID);
+	assert(src_op->get_type() == Type::ReferenceTypeID);
+	MachineOperand *vreg = new VirtualRegister(Type::IntTypeID);
+	// create modrm source operand
+	ModRMOperand modrm(BaseOp(src_op),OFFSET(java_array_t,size));
+
+	MachineInstruction *move = new MovModRMInst(
+		DstOp(vreg),
+		get_OperandSize_from_Type(Type::IntTypeID),
+		SrcModRM(modrm));
+	get_current()->push_back(move);
+	set_op(I,move->get_result().op);
+}
+
 void LoweringVisitor::visit(RETURNInst *I) {
 	assert(I);
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
