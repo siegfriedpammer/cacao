@@ -294,10 +294,11 @@ public:
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
-class ARRAYLENGTHInst : public Instruction {
+class ARRAYLENGTHInst : public UnaryInst {
 public:
-	explicit ARRAYLENGTHInst(Type::TypeID type) : Instruction(ARRAYLENGTHInstID, type) {}
+	explicit ARRAYLENGTHInst(Value *S1) : UnaryInst(ARRAYLENGTHInstID, Type::IntTypeID, S1) {}
 	virtual ARRAYLENGTHInst* to_ARRAYLENGTHInst() { return this; }
+	virtual bool is_homogeneous() const { return false; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 

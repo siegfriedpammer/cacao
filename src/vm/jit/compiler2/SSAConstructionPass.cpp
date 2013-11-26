@@ -1150,12 +1150,19 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		break;
 
 		//		/* unary */
-			case ICMD_ARRAYLENGTH:
 			case ICMD_INEG:
 			case ICMD_LNEG:
 			case ICMD_FNEG:
 			case ICMD_DNEG:
 				goto _default;
+			case ICMD_ARRAYLENGTH:
+				{
+					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
+					Instruction *result = new ARRAYLENGTHInst(s1);
+					write_variable(iptr->dst.varindex,bbindex,result);
+					M->add_Instruction(result);
+					break;
+				}
 			case ICMD_I2L:
 			case ICMD_I2F:
 			case ICMD_I2D:
@@ -1720,6 +1727,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_LLOAD:
 			case ICMD_FLOAD:
 			case ICMD_DLOAD:
+			case ICMD_ALOAD:
 				{
 					#if 0
 					Instruction *I;
@@ -1769,22 +1777,16 @@ bool SSAConstructionPass::run(JITData &JD) {
 					write_variable(iptr->dst.varindex,bbindex,def);
 				}
 				break;
-			case ICMD_ALOAD:
-		//		SHOW_S1_LOCAL(OS, iptr);
-		//		SHOW_DST(OS, iptr);
-		//		break;
-
-				goto _default;
 			case ICMD_ISTORE:
 			case ICMD_LSTORE:
 			case ICMD_FSTORE:
 			case ICMD_DSTORE:
+			case ICMD_ASTORE:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
 					write_variable(iptr->dst.varindex,bbindex,s1);
 				}
 				break;
-			case ICMD_ASTORE:
 		//		SHOW_S1(OS, iptr);
 		//		SHOW_DST_LOCAL(OS, iptr);
 		//		if (stage >= SHOW_STACK && iptr->sx.s23.s3.javaindex != UNUSED)
