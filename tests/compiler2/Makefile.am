@@ -24,7 +24,7 @@ JAVA     = $(top_builddir)/src/cacao/cacao
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
 JAVACCMD = $(JAVAC) -source 1.5 -target 1.5 -nowarn -bootclasspath $(BOOTCLASSPATH)
 
-CXXFLAGS=-I$(top_builddir) -I$(top_srcdir)/src -g -O2
+CXXFLAGS=-I$(top_builddir) -I$(top_srcdir)/src -I$(srcdir) -g -O2
 
 SOURCE_FILES = \
 	$(srcdir)/Test.java
