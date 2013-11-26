@@ -24,7 +24,7 @@ JAVA     = $(top_builddir)/src/cacao/cacao
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
 JAVACCMD = $(JAVAC) -source 1.5 -target 1.5 -nowarn -bootclasspath $(BOOTCLASSPATH)
 
-CXXFLAGS=-I$(top_builddir) -I$(top_srcdir)/src -I$(srcdir) -g -O2
+CXXFLAGS=-I$(top_builddir) -I$(top_srcdir)/src -I$(srcdir) -g -O0
 
 SOURCE_FILES = \
 	$(srcdir)/Test.java
@@ -49,6 +49,7 @@ OUTPUT_JAVA_TESTS = \
 	Test.piSpigot \
 	Test.Sqrt \
 	Test.test_array_len \
+	Test.test_array_load \
 	Test.testParameterLong \
 	Test.testParameterLong2 \
 	Test.testParameterLong3 \

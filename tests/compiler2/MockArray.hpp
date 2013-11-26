@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <cassert>
 #include <inttypes.h>
 
 #include "vm/global.hpp"
@@ -28,6 +29,11 @@ public:
     void* raw() {
         return data;
     }
+	T& operator[](std::size_t index) {
+		assert(index < size());
+        T *a = (T*)(data+sizeof(java_array_t));
+		return a[index];
+	}
     operator void*(){
         return data;
     }
