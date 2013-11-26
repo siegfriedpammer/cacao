@@ -128,6 +128,7 @@ void LoweringVisitor::visit(LOADInst *I) {
 	case Type::ShortTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
+	case Type::ReferenceTypeID:
 		move = new MovInst(
 			SrcOp(MMD[I->get_index()]),
 			DstOp(dst),

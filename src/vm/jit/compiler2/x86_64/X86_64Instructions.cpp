@@ -115,6 +115,7 @@ GPInstruction::OperandSize get_OperandSize_from_Type(const Type::TypeID type) {
 	case Type::ByteTypeID:   return GPInstruction::OS_8;
 	case Type::IntTypeID:    return GPInstruction::OS_32;
 	case Type::LongTypeID:   return GPInstruction::OS_64;
+	case Type::ReferenceTypeID: return GPInstruction::OS_64;
 	case Type::FloatTypeID:  return GPInstruction::OS_32;
 	case Type::DoubleTypeID: return GPInstruction::OS_64;
 	default: break;

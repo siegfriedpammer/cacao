@@ -52,6 +52,7 @@ public:
 			switch (type) {
 			case Type::IntTypeID:
 			case Type::LongTypeID:
+			case Type::ReferenceTypeID:
 				if (int_argument_counter < IntegerArgumentRegisterSize) {
 					parameter[i]= new NativeRegister(type,
 						IntegerArgumentRegisters[int_argument_counter]);
