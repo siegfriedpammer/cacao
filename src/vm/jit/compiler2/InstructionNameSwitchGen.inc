@@ -35,6 +35,7 @@ case NOPInstID: return "NOPInst";
 case POPInstID: return "POPInst";
 case CHECKNULLInstID: return "CHECKNULLInst";
 case ARRAYLENGTHInstID: return "ARRAYLENGTHInst";
+case ARRAYBOUNDSCHECKInstID: return "ARRAYBOUNDSCHECKInst";
 case NEGInstID: return "NEGInst";
 case CASTInstID: return "CASTInst";
 case ADDInstID: return "ADDInst";

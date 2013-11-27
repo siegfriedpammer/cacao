@@ -118,12 +118,6 @@ protected:
 
 	void replace_op(Value* v_old, Value* v_new);
 
-	void append_dep(Instruction* I) {
-		assert(I);
-		dep_list.push_back(I);
-		I->reverse_dep_list.push_back(this);
-	}
-
 	/**
 	 * @todo use Value::print_operands
 	 */
@@ -156,6 +150,12 @@ public:
 				return i;
 		}
 		return -1;
+	}
+
+	void append_dep(Instruction* I) {
+		assert(I);
+		dep_list.push_back(I);
+		I->reverse_dep_list.push_back(this);
 	}
 
 	/// check if the instruction is in a correct state

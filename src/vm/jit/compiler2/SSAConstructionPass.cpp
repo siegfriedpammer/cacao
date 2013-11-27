@@ -1735,6 +1735,9 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Instruction *result = new ASTOREInst(type, s1, s2, s3, BB[bbindex], state_change);
 					write_variable(global_state,bbindex,result);
 					M->add_Instruction(result);
+					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(type, s1, s2);
+					result->append_dep(boundscheck);
+					M->add_Instruction(boundscheck);
 				}
 				break;
 			case ICMD_IALOAD:
@@ -1783,6 +1786,9 @@ bool SSAConstructionPass::run(JITData &JD) {
 					write_variable(iptr->dst.varindex,bbindex,result);
 					write_variable(global_state,bbindex,result);
 					M->add_Instruction(result);
+					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(type, s1, s2);
+					result->append_dep(boundscheck);
+					M->add_Instruction(boundscheck);
 				}
 				break;
 		//		SHOW_S1(OS, iptr);

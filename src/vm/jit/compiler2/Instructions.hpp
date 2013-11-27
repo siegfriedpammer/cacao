@@ -543,8 +543,6 @@ public:
 };
 
 class ASTOREInst : public Instruction {
-private:
-	bool bound_check;
 public:
 	explicit ASTOREInst(Type::TypeID type, Value* ref, Value* index, Value* value,
 			BeginInst *begin, Instruction *state_change)
@@ -567,21 +565,16 @@ public:
 	}
 	virtual bool is_floating() const { return false; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
-	bool requires_bound_check() const {
-		return bound_check;
-	}
 	Type::TypeID get_array_type() const {
 		return this->op_back()->get_type();
 	}
 };
 
 class ALOADInst : public BinaryInst {
-private:
-	bool bound_check;
 public:
 	explicit ALOADInst(Type::TypeID type, Value* ref, Value* index,
 			BeginInst *begin, Instruction *state_change)
-			: BinaryInst(ALOADInstID, type, ref, index), bound_check(true) {
+			: BinaryInst(ALOADInstID, type, ref, index) {
 		assert(ref->get_type() == Type::ReferenceTypeID);
 		assert(index->get_type() == Type::IntTypeID);
 		append_dep(begin);
@@ -595,9 +588,18 @@ public:
 	}
 	virtual bool is_floating() const { return false; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
-	bool requires_bound_check() const {
-		return bound_check;
+};
+
+class ARRAYBOUNDSCHECKInst : public BinaryInst {
+public:
+	explicit ARRAYBOUNDSCHECKInst(Type::TypeID type, Value* ref, Value* index)
+			: BinaryInst(ARRAYBOUNDSCHECKInstID, Type::VoidTypeID, ref, index) {
+		assert(ref->get_type() == Type::ReferenceTypeID);
+		assert(index->get_type() == Type::IntTypeID);
 	}
+	virtual ARRAYBOUNDSCHECKInst* to_ARRAYBOUNDSCHECKInst() { return this; }
+	virtual bool is_homogeneous() const { return false; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
 class RETInst : public Instruction {
