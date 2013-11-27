@@ -25,6 +25,26 @@ public static void main(String arg[]) {
   System.out.println(test_test());
 }
 
+static int test_array_2dim_load(int test[][], int i, int j) {
+	return test[i][j];
+}
+static void test_array_2dim_store(int test[][]) {
+	for (int i = 0; i < test.length; ++i) {
+		for (int j = 0; j < test[i].length; ++j) {
+			test[i][j] = i * j;
+		}
+	}
+}
+
+static void test_array_3dim(int test[][][]) {
+	for (int i = 0; i < test.length; ++i) {
+		for (int j = 0; j < test[i].length; ++j) {
+			for (int k = 0; k < test[i][k].length; ++k) {
+				test[i][j][k] = i * j * k;
+			}
+		}
+	}
+}
 static int test_array_len(long test[]) {
   return test.length;
 }

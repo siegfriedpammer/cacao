@@ -51,6 +51,8 @@ OUTPUT_JAVA_TESTS = \
 	Test.test_array_len \
 	Test.test_array_load \
 	Test.test_array_store \
+	Test.test_array_2dim_load \
+	Test.test_array_2dim_store \
 	Test.testParameterLong \
 	Test.testParameterLong2 \
 	Test.testParameterLong3 \
