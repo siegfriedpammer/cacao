@@ -38,6 +38,8 @@
 #include "vm/class.hpp"
 #include "vm/field.hpp"
 
+#include "md-trap.hpp"
+
 #include "toolbox/OStream.hpp"
 #include "toolbox/logging.hpp"
 
@@ -402,7 +404,7 @@ void LoweringVisitor::visit(ALOADInst *I) {
 	assert(src_index->get_type() == Type::IntTypeID);
 
 	Type::TypeID type = I->get_type();
-	MachineOperand *vreg = new VirtualRegister(Type::IntTypeID);
+	MachineOperand *vreg = new VirtualRegister(type);
 
 	s4 offset;
 	switch (type) {
@@ -503,6 +505,32 @@ void LoweringVisitor::visit(ARRAYLENGTHInst *I) {
 		SrcModRM(modrm));
 	get_current()->push_back(move);
 	set_op(I,move->get_result().op);
+}
+
+void LoweringVisitor::visit(ARRAYBOUNDSCHECKInst *I) {
+	assert(I);
+	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
+	MachineOperand* src_index = get_op(I->get_operand(1)->to_Instruction());
+	assert(src_ref->get_type() == Type::ReferenceTypeID);
+	assert(src_index->get_type() == Type::IntTypeID);
+
+	// load array length
+	MachineOperand *len = new VirtualRegister(Type::IntTypeID);
+	ModRMOperand modrm(BaseOp(src_ref),OFFSET(java_array_t,size));
+	MachineInstruction *move = new MovModRMInst(
+		DstOp(len),
+		get_OperandSize_from_Type(Type::IntTypeID),
+		SrcModRM(modrm));
+	get_current()->push_back(move);
+	// compare with index
+	CmpInst *cmp = new CmpInst(
+		Src2Op(len),
+		Src1Op(src_index),
+		get_OperandSize_from_Type(Type::IntTypeID));
+	get_current()->push_back(cmp);
+	// throw exception
+	MachineInstruction *trap = new CondTrapInst(Cond::B,TRAP_ArrayIndexOutOfBoundsException);
+	get_current()->push_back(trap);
 }
 
 void LoweringVisitor::visit(RETURNInst *I) {

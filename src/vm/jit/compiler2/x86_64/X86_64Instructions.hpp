@@ -599,6 +599,16 @@ public:
 	}
 };
 
+class CondTrapInst : public X86_64Instruction {
+private:
+	Cond::COND cond;
+	s4 trap;
+public:
+	CondTrapInst(Cond::COND cond, s4 trap)
+			: X86_64Instruction("X86_64CondTrapInst", &NoOperand, 0), cond(cond), trap(trap) {}
+	virtual void emit(CodeMemory* CM) const;
+};
+
 class IndirectJumpInst : public X86_64Instruction {
 public:
 	IndirectJumpInst(const SrcOp &src)

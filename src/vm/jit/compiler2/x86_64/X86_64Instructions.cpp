@@ -697,10 +697,10 @@ void MovModRMInst::emit(CodeMemory* CM) const {
 		code += s1(modrm.disp);
 	}
 	if (modrm_mod == 2) {
-		code += (0xff && (modrm.disp >> 24));
-		code += (0xff && (modrm.disp >> 16));
-		code += (0xff && (modrm.disp >>  8));
 		code += (0xff && (modrm.disp >>  0));
+		code += (0xff && (modrm.disp >>  8));
+		code += (0xff && (modrm.disp >> 16));
+		code += (0xff && (modrm.disp >> 24));
 	}
 	add_CodeSegmentBuilder(CM,code);
 }
@@ -843,6 +843,25 @@ OStream& CondJumpInst::print_successor_label(OStream &OS,std::size_t index) cons
 	default: assert(0); break;
 	}
 	return OS << index;
+}
+
+void CondTrapInst::emit(CodeMemory* CM) const {
+	CodeFragment code = CM->get_CodeFragment(8);
+	// XXX make more readable
+	// move
+	code[0] = 0x48;
+	code[1] = 0x8b;
+	code[2] = 0x34;
+	code[3] = 0x25;
+	// trap
+	code[4] = u1( 0xff & (trap >> (8 * 0)));
+	code[5] = u1( 0xff & (trap >> (8 * 1)));
+	code[6] = u1( 0xff & (trap >> (8 * 2)));
+	code[7] = u1( 0xff & (trap >> (8 * 3)));
+	// skip jump
+	s4 offset = 8;
+	InstructionEncoding::imm_op<u2>(CM, 0x0f80 + cond.code, offset);
+
 }
 
 void CondJumpInst::emit(CodeMemory* CM) const {
