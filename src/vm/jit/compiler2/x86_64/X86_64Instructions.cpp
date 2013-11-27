@@ -235,6 +235,46 @@ GPInstruction::OperandSize get_operand_size_from_Type(Type::TypeID type) {
 	return GPInstruction::NO_SIZE;
 }
 
+class CodeSegmentBuilder {
+private:
+	typedef alloc::deque<u1>::type Container;
+public:
+	typedef Container::iterator iterator;
+	typedef Container::const_iterator const_iterator;
+	typedef Container::value_type value_type;
+
+	void push_front(u1 d) { data.push_front(d); }
+	void push_back(u1 d) { data.push_back(d); }
+	CodeSegmentBuilder& operator+=(u1 d) {
+		push_back(d);
+		return *this;
+	}
+	u1& operator[](std::size_t i) {
+		if (i >= size()) {
+			data.resize(i+1,0);
+		}
+		return data[i];
+	}
+	u1 operator[](std::size_t i) const {
+		assert(i < size());
+		return data[i];
+	}
+	std::size_t size() const { return data.size(); }
+	const_iterator begin() const { return data.begin(); }
+	const_iterator end()   const { return data.end(); }
+	iterator begin() { return data.begin(); }
+	iterator end()   { return data.end(); }
+private:
+	Container data;
+};
+
+void add_CodeSegmentBuilder(CodeMemory *CM, const CodeSegmentBuilder &CSB) {
+	CodeFragment CF = CM->get_CodeFragment(CSB.size());
+	for (std::size_t i = 0, e = CSB.size(); i < e; ++i) {
+		CF[i] = CSB[i];
+	}
+}
+
 void ALUInstruction::emit(CodeMemory* CM) const {
 	MachineOperand *src1 = get(0).op;
 	MachineOperand *src2 = get(1).op;
@@ -256,9 +296,18 @@ void ALUInstruction::emit(CodeMemory* CM) const {
 		X86_64Register *reg1 = cast_to<X86_64Register>(src1);
 		X86_64Register *reg2 = cast_to<X86_64Register>(src2);
 
-		CodeFragment code = CM->get_CodeFragment(2);
-		code[0] = (alu_id * 0x8) + 3;
-		code[1] = get_modrm_reg2reg(reg1,reg2);
+		u1 rex  = get_rex(reg1,reg2,false);
+		if (rex == 0x40) { // no rex
+			CodeFragment code = CM->get_CodeFragment(2);
+			code[0] = (alu_id * 0x8) + 3;
+			code[1] = get_modrm_reg2reg(reg1,reg2);
+		}
+		else {
+			CodeFragment code = CM->get_CodeFragment(3);
+			code[0] = rex;
+			code[1] = (alu_id * 0x8) + 3;
+			code[2] = get_modrm_reg2reg(reg1,reg2);
+		}
 		return;
 	}
 	case GPInstruction::Reg64Imm8:
@@ -452,11 +501,21 @@ void MovInst::emit(CodeMemory* CM) const {
 		X86_64Register *reg_src = cast_to<X86_64Register>(src);
 		if (reg_dst == reg_src) return;
 
-		CodeFragment code = CM->get_CodeFragment(2);
-		code[0] = 0x8b;
-		code[1] = get_modrm_reg2reg(reg_dst,reg_src);
+		u1 rex  = get_rex(reg_dst,reg_src,false);
+		if (rex == 0x40) { // no rex
+			CodeFragment code = CM->get_CodeFragment(2);
+			code[0] = 0x8b;
+			code[1] = get_modrm_reg2reg(reg_dst,reg_src);
+		}
+		else {
+			CodeFragment code = CM->get_CodeFragment(3);
+			code[0] = rex;
+			code[1] = 0x8b;
+			code[2] = get_modrm_reg2reg(reg_dst,reg_src);
+		}
 		return;
 	}
+	case GPInstruction::RegMem32:
 	case GPInstruction::RegMem64:
 	{
 		StackSlot *slot = cast_to<StackSlot>(src);
@@ -464,6 +523,7 @@ void MovInst::emit(CodeMemory* CM) const {
 		emit_stack_move(CM,slot,cast_to<X86_64Register>(reg_dst),true);
 		return;
 	}
+	case GPInstruction::MemReg32:
 	case GPInstruction::MemReg64:
 	{
 		X86_64Register *reg_src = cast_to<X86_64Register>(src);
@@ -488,12 +548,16 @@ void MovInst::emit(CodeMemory* CM) const {
 		s4 imm = cast_to<Immediate>(src)->get_value<s4>();
 		X86_64Register *reg_dst = cast_to<X86_64Register>(dst);
 
-		CodeFragment code = CM->get_CodeFragment(5);
-		code[0] = 0xb8 + reg_dst->get_index();
-		code[1] = (u1) 0xff & (imm >> 0x00);
-		code[2] = (u1) 0xff & (imm >> 0x08);
-		code[3] = (u1) 0xff & (imm >> 0x10);
-		code[4] = (u1) 0xff & (imm >> 0x18);
+		CodeSegmentBuilder code;
+		if (reg_dst->extented) {
+			code += (REX() + REX::B);
+		}
+		code += 0xb8 + reg_dst->get_index();
+		code += (u1) 0xff & (imm >> 0x00);
+		code += (u1) 0xff & (imm >> 0x08);
+		code += (u1) 0xff & (imm >> 0x10);
+		code += (u1) 0xff & (imm >> 0x18);
+		add_CodeSegmentBuilder(CM,code);
 		return;
 	}
 	#if 0
@@ -567,38 +631,6 @@ void MovInst::emit(CodeMemory* CM) const {
 		<< src << " dst:" << dst << ")");
 #endif
 }
-class CodeSegmentBuilder {
-private:
-	typedef alloc::deque<u1>::type Container;
-public:
-	typedef Container::iterator iterator;
-	typedef Container::const_iterator const_iterator;
-	typedef Container::value_type value_type;
-
-	void push_front(u1 d) { data.push_front(d); }
-	void push_back(u1 d) { data.push_back(d); }
-	CodeSegmentBuilder& operator+=(u1 d) {
-		push_back(d);
-		return *this;
-	}
-	u1& operator[](std::size_t i) {
-		if (i >= size()) {
-			data.resize(i+1,0);
-		}
-		return data[i];
-	}
-	u1 operator[](std::size_t i) const {
-		assert(i < size());
-		return data[i];
-	}
-	std::size_t size() const { return data.size(); }
-	const_iterator begin() const { return data.begin(); }
-	const_iterator end()   const { return data.end(); }
-	iterator begin() { return data.begin(); }
-	iterator end()   { return data.end(); }
-private:
-	Container data;
-};
 
 
 inline u1 get_rex(X86_64Register *reg, const ModRMOperandDesc &modrm, bool opsize64) {
@@ -611,13 +643,6 @@ inline u1 get_rex(X86_64Register *reg, const ModRMOperandDesc &modrm, bool opsiz
 		rex + REX::B;
 
 	return rex;
-}
-
-void add_CodeSegmentBuilder(CodeMemory *CM, const CodeSegmentBuilder &CSB) {
-	CodeFragment CF = CM->get_CodeFragment(CSB.size());
-	for (std::size_t i = 0, e = CSB.size(); i < e; ++i) {
-		CF[i] = CSB[i];
-	}
 }
 
 void MovModRMInst::emit(CodeMemory* CM) const {
@@ -848,11 +873,13 @@ OStream& CondJumpInst::print_successor_label(OStream &OS,std::size_t index) cons
 void CondTrapInst::emit(CodeMemory* CM) const {
 	CodeFragment code = CM->get_CodeFragment(8);
 	// XXX make more readable
+	X86_64Register *src_reg = cast_to<X86_64Register>(operands[0].op);
 	// move
-	code[0] = 0x48;
-	code[1] = 0x8b;
-	code[2] = 0x34;
-	code[3] = 0x25;
+	code[0] = 0x48; // rex
+	code[1] = 0x8b; // move
+	code[2] = (0x7 & src_reg->get_index()) << 3 | 0x4;
+	                // ModRM: mod=0x00, reg=src_reg, rm=0b100 (SIB)
+	code[3] = 0x25; // SIB scale=0b00, index=0b100, base=0b101 (illegal -> trap)
 	// trap
 	code[4] = u1( 0xff & (trap >> (8 * 0)));
 	code[5] = u1( 0xff & (trap >> (8 * 1)));

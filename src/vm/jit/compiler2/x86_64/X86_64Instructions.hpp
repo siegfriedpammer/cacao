@@ -462,8 +462,8 @@ public:
 		case Type::ByteTypeID:
 			return Scale1;
 		case Type::ShortTypeID:
-		case Type::IntTypeID:
 			return Scale2;
+		case Type::IntTypeID:
 		case Type::FloatTypeID:
 			return Scale4;
 		case Type::LongTypeID:
@@ -605,8 +605,10 @@ private:
 	Cond::COND cond;
 	s4 trap;
 public:
-	CondTrapInst(Cond::COND cond, s4 trap)
-			: X86_64Instruction("X86_64CondTrapInst", &NoOperand, 0), cond(cond), trap(trap) {}
+	CondTrapInst(Cond::COND cond, s4 trap, const SrcOp &index)
+			: X86_64Instruction("X86_64CondTrapInst", &NoOperand, 1), cond(cond), trap(trap) {
+		operands[0].op = index.op;
+	}
 	virtual void emit(CodeMemory* CM) const;
 };
 

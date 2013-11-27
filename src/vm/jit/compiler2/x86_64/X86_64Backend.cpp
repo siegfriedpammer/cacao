@@ -440,7 +440,7 @@ void LoweringVisitor::visit(ALOADInst *I) {
 
 	MachineInstruction *move = new MovModRMInst(
 		DstOp(vreg),
-		get_OperandSize_from_Type(Type::IntTypeID),
+		get_OperandSize_from_Type(type),
 		SrcModRM(modrm));
 	get_current()->push_back(move);
 	set_op(I,move->get_result().op);
@@ -532,7 +532,7 @@ void LoweringVisitor::visit(ARRAYBOUNDSCHECKInst *I) {
 		get_OperandSize_from_Type(Type::IntTypeID));
 	get_current()->push_back(cmp);
 	// throw exception
-	MachineInstruction *trap = new CondTrapInst(Cond::B,TRAP_ArrayIndexOutOfBoundsException);
+	MachineInstruction *trap = new CondTrapInst(Cond::B,TRAP_ArrayIndexOutOfBoundsException, SrcOp(src_index));
 	get_current()->push_back(trap);
 }
 
