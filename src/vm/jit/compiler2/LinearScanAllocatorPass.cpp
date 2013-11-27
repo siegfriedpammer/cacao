@@ -888,8 +888,14 @@ public:
 			if (i != stack.end()) {
 				LOG2("cycle detected!" << nl);
 				//MachineOperand *tmp = new VirtualRegister(node->to->get_type());
+				// try to get a register
 				MachineOperand *tmp = get_and_remove_free_regs(free_regs,node->to->get_type());
-				assert_msg(tmp, "No more free register!");
+				if (!tmp) {
+					// No more free register -> use stack slot
+					assert(!node->from->is_StackSlot());
+					assert(!node->to->is_StackSlot());
+					tmp = get_stackslot(backend,node->to->get_type());
+				}
 				move_map.push_back(Move(tmp, node->to));
 				Move *tmp_move = &move_map.back();
 				tmp_move->dep = *i;
