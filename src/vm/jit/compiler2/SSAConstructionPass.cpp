@@ -2144,18 +2144,33 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		SHOW_TARGET(OS, iptr->dst);
 		//		break;
 
+				goto _default;
 			case ICMD_IF_ICMPEQ:
 			case ICMD_IF_ICMPNE:
 			case ICMD_IF_ICMPLT:
 			case ICMD_IF_ICMPGE:
 			case ICMD_IF_ICMPGT:
-				goto _default;
 			case ICMD_IF_ICMPLE:
 				{
 					Conditional::CondID cond;
 					switch (iptr->opc) {
 					case ICMD_IF_ICMPLE:
 						cond = Conditional::LE;
+						break;
+					case ICMD_IF_ICMPEQ:
+						cond = Conditional::EQ;
+						break;
+					case ICMD_IF_ICMPNE:
+						cond = Conditional::NE;
+						break;
+					case ICMD_IF_ICMPLT:
+						cond = Conditional::LT;
+						break;
+					case ICMD_IF_ICMPGE:
+						cond = Conditional::GE;
+						break;
+					case ICMD_IF_ICMPGT:
+						cond = Conditional::GT;
 						break;
 					default:
 						ABORT_MSG("unreachable","unreachable");

@@ -426,6 +426,9 @@ void LoweringVisitor::visit(ALOADInst *I) {
 	case Type::DoubleTypeID:
 		offset = OFFSET(java_doublearray_t, data[0]);
 		break;
+	case Type::ReferenceTypeID:
+		offset = OFFSET(java_objectarray_t, data[0]);
+		break;
 	default:
 		ABORT_MSG("x86_64 Lowering not supported",
 			"Inst: " << I << " type: " << type);

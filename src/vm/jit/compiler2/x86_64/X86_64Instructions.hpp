@@ -468,6 +468,7 @@ public:
 			return Scale4;
 		case Type::LongTypeID:
 		case Type::DoubleTypeID:
+		case Type::ReferenceTypeID:
 			return Scale8;
 		default:
 			break;
