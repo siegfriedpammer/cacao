@@ -40,8 +40,6 @@ namespace jit {
 namespace compiler2 {
 namespace x86_64 {
 
-namespace {
-
 template <class A,class B>
 inline A* cast_to(B*);
 
@@ -110,7 +108,6 @@ inline Immediate* cast_to<Immediate>(MachineOperand *op) {
 	return imm;
 }
 
-} // end anonymous namespace
 
 GPInstruction::OperandSize get_OperandSize_from_Type(const Type::TypeID type) {
 	switch (type) {
@@ -126,16 +123,6 @@ GPInstruction::OperandSize get_OperandSize_from_Type(const Type::TypeID type) {
 	return GPInstruction::NO_SIZE;
 }
 
-#if 0
-void ALUInstruction::emit_impl_RI(CodeMemory* CM,
-		X86_64Register* src1, Immediate* imm) const {
-	if (fits_into<s1>(imm->get_value())) {
-		// switch register width
-		// 64
-	}
-	assert(0);
-}
-#endif
 
 GPInstruction::OpEncoding get_OpEncoding(MachineOperand *src1,
 		MachineOperand *src2, GPInstruction::OperandSize op_size) {
@@ -439,50 +426,13 @@ void CallInst::emit(CodeMemory* CM) const {
 	code[0] = 0xff;
 	code[1] = get_modrm_1reg(2, reg_src);
 }
-namespace {
-/**
- * stack from/to reg
- * @param stack2reg true if we move from stack to register
- */
-inline void emit_stack_move(CodeMemory* CM, StackSlot *slot,
-		X86_64Register *reg, bool stack2reg) {
-	s4 index = slot->get_index() * 8;
-	u1 opcode = stack2reg ? 0x8b : 0x89;
-	if (fits_into<s1>(index)) {
-		InstructionEncoding::reg2rbp_disp8<u1>(CM, opcode, reg,
-			(s1)index);
-	} else {
-		InstructionEncoding::reg2rbp_disp32<u1>(CM, opcode, reg,
-			(s4)index);
-	}
-}
-#if 0
-/**
- * reg to reg
- */
-inline void emit_reg2reg(CodeMemory* CM, X86_64Register *dst,
-		X86_64Register *src) {
-	InstructionEncoding::reg2reg<u1>(CM, 0x89, src, dst);
-}
-
-/**
- * imm to reg
- */
-inline void emit_imm2reg_move(CodeMemory* CM, Immediate *imm,
-		X86_64Register *dst) {
-
-	u1 opcode = 0xb8 + dst->get_index();
-	InstructionEncoding::reg2imm<u1>(CM, opcode, dst, imm->get_value<s8>());
-}
-#endif
-
-} // end anonymous namespace
 
 void MovInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
 	MachineOperand *dst = result.op;
 
-	switch (get_OpEncoding(dst,src,get_op_size())) {
+	GPInstruction::OpEncoding openc = get_OpEncoding(dst,src,get_op_size());
+	switch (openc) {
 	case GPInstruction::RegReg64:
 	{
 		X86_64Register *reg_dst = cast_to<X86_64Register>(dst);
@@ -515,20 +465,59 @@ void MovInst::emit(CodeMemory* CM) const {
 		}
 		return;
 	}
+	case GPInstruction::MemReg32:
+	case GPInstruction::MemReg64:
 	case GPInstruction::RegMem32:
 	case GPInstruction::RegMem64:
 	{
-		StackSlot *slot = cast_to<StackSlot>(src);
-		X86_64Register *reg_dst = cast_to<X86_64Register>(dst);
-		emit_stack_move(CM,slot,cast_to<X86_64Register>(reg_dst),true);
-		return;
-	}
-	case GPInstruction::MemReg32:
-	case GPInstruction::MemReg64:
-	{
-		X86_64Register *reg_src = cast_to<X86_64Register>(src);
-		StackSlot *slot = cast_to<StackSlot>(dst);
-		emit_stack_move(CM,slot,cast_to<X86_64Register>(reg_src),false);
+		u1 opcode;
+		REX rex;
+		StackSlot *slot;
+		X86_64Register *reg;
+		// set operands and opcode
+		switch(openc) {
+		case GPInstruction::MemReg32:
+		case GPInstruction::MemReg64:
+			opcode = 0x89;
+			reg = cast_to<X86_64Register>(src);
+			slot = cast_to<StackSlot>(dst);
+			break;
+		case GPInstruction::RegMem32:
+		case GPInstruction::RegMem64:
+			opcode = 0x8b;
+			slot = cast_to<StackSlot>(src);
+			reg = cast_to<X86_64Register>(dst);
+			break;
+		default: assert(0);
+			break;
+		}
+		// set rex
+		if ( openc ==  GPInstruction::MemReg64 || openc == GPInstruction::RegMem64) {
+			rex + REX::W;
+		}
+		if (reg->extented) {
+			rex + REX::R;
+		}
+		CodeSegmentBuilder code;
+		// rex
+		if (rex != 0x40) {
+			code += rex;
+		}
+		// opcode
+		code += opcode;
+		// modmr + imm
+		s4 index = slot->get_index() * 8;
+		if (fits_into<s1>(index)) {
+			code += get_modrm(0x1,reg,&RBP);
+			code += (u1) 0xff & (index >> 0x00);
+		} else {
+			code += get_modrm(0x2,reg,&RBP);
+			code += (u1) 0xff & (index >> 0x00);
+			code += (u1) 0xff & (index >> 0x08);
+			code += (u1) 0xff & (index >> 0x10);
+			code += (u1) 0xff & (index >> 0x18);
+		}
+		add_CodeSegmentBuilder(CM,code);
 		return;
 	}
 	case GPInstruction::Reg64Imm8:
@@ -641,6 +630,8 @@ inline u1 get_rex(X86_64Register *reg, const ModRMOperandDesc &modrm, bool opsiz
 		rex + REX::R;
 	if (modrm.base.op != &NoOperand && cast_to<X86_64Register>(modrm.base.op)->extented)
 		rex + REX::B;
+	if (modrm.index.op != &NoOperand && cast_to<X86_64Register>(modrm.index.op)->extented)
+		rex + REX::X;
 
 	return rex;
 }
