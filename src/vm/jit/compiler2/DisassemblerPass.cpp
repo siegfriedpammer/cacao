@@ -45,11 +45,25 @@ bool DisassemblerPass::run(JITData &JD) {
 #if defined(ENABLE_DISASSEMBLER)
 	codeinfo *cd = JD.get_jitdata()->code;
 	u1 *start = cd->entrypoint;
+#if 0
 	u1 *end = cd->mcode + cd->mcodelength;
 
 	LOG2("DisassemblerPass: start: " << start << " end " << end << nl);
 
 	disassemble(start, end);
+#else
+	CodeGenPass *CG = get_Pass<CodeGenPass>();
+	for (CodeGenPass::BasicBlockMap::const_iterator i = CG->begin(), e = CG->end(); i != e ; ++i) {
+		u1 *end = start + i->second;
+		dbg() << BoldWhite << *i->first << " " << reset_color;
+		print_ptr_container(dbg(),i->first->pred_begin(),i->first->pred_end()) << nl;
+		//dbg() << hex << start << " - " << end << dec << " size: " << i->second<< nl;
+		for (; start < end; )
+			start = disassinstr(start);
+		start = end;
+	}
+#endif
+
 #endif
 	return true;
 }

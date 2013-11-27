@@ -59,9 +59,12 @@ bool CodeGenPass::run(JITData &JD) {
 
 	// NOTE reverse so we see jump targets (which are not backedges) before
 	// the jump.
+	MachineBasicBlock *MBB;
+	std::size_t bb_start = 0;
 	for (MachineInstructionSchedule::const_reverse_iterator i = MIS->rbegin(),
 			e = MIS->rend() ; i != e ; ++i ) {
-		MachineBasicBlock *MBB = *i;
+		MBB = *i;
+		bb_start = CS.size();
 		for (MachineBasicBlock::const_reverse_iterator i = MBB->rbegin(),
 				e = MBB->rend(); i != e ; ++i) {
 			MachineInstruction *MI = *i;
@@ -90,14 +93,25 @@ bool CodeGenPass::run(JITData &JD) {
 				}
 			}
 		}
+		std::size_t bb_end = CS.size();
+		bbmap[MBB] = bb_end - bb_start;
 	}
 	// create stack frame
 	JD.get_Backend()->create_frame(CM,JD.get_StackSlotManager());
+	// fix last block (frame start, alignment)
+	bbmap[MBB] = CS.size() - bb_start;
 	// link code memory
 	CM->link();
 	// finish
 	finish(JD);
 	return true;
+}
+
+std::size_t CodeGenPass::get_block_size(MachineBasicBlock *MBB) const {
+	BasicBlockMap::const_iterator i = bbmap.find(MBB);
+	if (i == bbmap.end())
+		return 0;
+	return i->second;
 }
 
 void CodeGenPass::finish(JITData &JD) {

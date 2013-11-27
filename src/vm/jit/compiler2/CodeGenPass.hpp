@@ -27,6 +27,7 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/CodeMemory.hpp"
+#include "vm/jit/compiler2/MachineBasicBlock.hpp"
 
 MM_MAKE_NAME(CodeGenPass)
 
@@ -34,12 +35,19 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+struct MBBCompare {
+	bool operator()(MachineBasicBlock *lhs, MachineBasicBlock *rhs) const {
+		return lhs->self_iterator() < rhs->self_iterator();
+	}
+};
 
 /**
  * CodeGenPass
  * TODO: more info
  */
 class CodeGenPass : public Pass, public memory::ManagerMixin<CodeGenPass> {
+public:
+	typedef alloc::map<MachineBasicBlock*,std::size_t,MBBCompare>::type BasicBlockMap;
 private:
 	/**
 	 * finish code generation
@@ -49,11 +57,15 @@ private:
 	 * to their final layout, unresolved jumps are resolved, ...
 	 */
 	void finish(JITData &JD);
+	BasicBlockMap bbmap;
 public:
 	static char ID;
 	CodeGenPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	std::size_t get_block_size(MachineBasicBlock *MBB) const;
+	BasicBlockMap::const_iterator begin() const { return bbmap.begin(); }
+	BasicBlockMap::const_iterator end() const { return bbmap.end(); }
 };
 
 } // end namespace compiler2
