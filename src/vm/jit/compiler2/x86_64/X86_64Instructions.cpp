@@ -470,10 +470,10 @@ void MovInst::emit(CodeMemory* CM) const {
 	case GPInstruction::RegMem32:
 	case GPInstruction::RegMem64:
 	{
-		u1 opcode;
+		u1 opcode = 0;
 		REX rex;
-		StackSlot *slot;
-		X86_64Register *reg;
+		StackSlot *slot = 0;
+		X86_64Register *reg = 0;
 		// set operands and opcode
 		switch(openc) {
 		case GPInstruction::MemReg32:

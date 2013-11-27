@@ -70,6 +70,7 @@ MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *src,
 	case Type::ByteTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
+	case Type::ReferenceTypeID:
 		return new MovInst(
 			SrcOp(src),
 			DstOp(dst),
