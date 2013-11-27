@@ -318,9 +318,7 @@ inline MIIterator& MIIterator::operator--() {
 }
 
 inline bool MIIterator::is_end() const {
-	assert(*block_it);
-	if(!(*block_it)->get_parent()) return true;
-	return *this == (*block_it)->get_parent()->mi_end();
+	return it == _end();
 }
 
 OStream& operator<<(OStream&, const MIIterator&);

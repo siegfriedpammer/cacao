@@ -74,7 +74,7 @@ OStream& MachineInstruction::print_result(OStream &OS) const {
 OStream& MachineInstruction::print_operands(OStream &OS) const {
 	for (MachineInstruction::const_operand_iterator i = begin(),
 			e = end(); i != e ; ++i) {
-		OS << (*i);
+		OS << (*i) << " ";
 	}
 	return OS;
 }
