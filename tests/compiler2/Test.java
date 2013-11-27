@@ -25,6 +25,34 @@ public static void main(String arg[]) {
   System.out.println(test_test());
 }
 
+/**
+ * Matrix multiplication.
+ *
+ * @param A n*m matrix (input)
+ * @param B m*p matrix (input)
+ * @param C n*p matrix (output, preallocated)
+ */
+static void matrixMult(int A[][], int B[][], int AB[][]) {
+  // sanity checks
+  int n = A.length;
+  int m = B.length;
+  if (n == 0 || m == 0) return;
+  if (A[0].length != m) return;
+  int p = B[0].length;
+  if (AB.length != n) return;
+  if (AB[0].length != p) return;
+
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < p; ++j) {
+      int sum=0;
+      for (int k = 0; k < m; ++k) {
+        sum += A[i][k] * B[k][j];
+      }
+      AB[i][j] = sum;
+    }
+  }
+}
+
 static int test_array_2dim_load(int test[][], int i, int j) {
 	return test[i][j];
 }
