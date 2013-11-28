@@ -441,4 +441,84 @@ static void collatz(int n) {
   }
 }
 
+
+   /** Row and column dimensions, and pivot sign.
+   */
+
+   /**
+    * @param LU serial internal array storage. (n*m)
+    * @param pivsign serial pivot sign.
+    * @param piv serial pivot vector. (m)
+    * @param LUcolj (m);
+    *
+    * @author http://math.nist.gov/javanumerics/jama/
+    */
+   public void LUDecomposition(double[][] LU, int[] piv, double[] LUcolj) {
+
+   // Use a "left-looking", dot-product, Crout/Doolittle algorithm.
+
+      int n = LU.length;
+      if (! (n > 0) ) return;
+      int m = LU[0].length;
+      if (! (m > 0) ) return;
+      if (piv.length != m || LUcolj.length != m) return;
+
+      for (int i = 0; i < m; i++) {
+         piv[i] = i;
+      }
+
+      int pivsign = 1;
+      double[] LUrowi;
+
+      // Outer loop.
+
+      for (int j = 0; j < n; j++) {
+
+         // Make a copy of the j-th column to localize references.
+
+         for (int i = 0; i < m; i++) {
+            LUcolj[i] = LU[i][j];
+         }
+
+         // Apply previous transformations.
+
+         for (int i = 0; i < m; i++) {
+            LUrowi = LU[i];
+
+            // Most of the time is spent in the following dot product.
+
+            int kmax = (i < j ? i : j);
+            double s = 0.0;
+            for (int k = 0; k < kmax; k++) {
+               s += LUrowi[k]*LUcolj[k];
+            }
+
+            LUrowi[j] = LUcolj[i] -= s;
+         }
+
+         // Find pivot and exchange if necessary.
+
+         int p = j;
+         for (int i = j+1; i < m; i++) {
+            if ((LUcolj[i]>=0?LUcolj[i]:-LUcolj[i]) > (LUcolj[p]>=0?LUcolj[p]:-LUcolj[p])) {
+               p = i;
+            }
+         }
+         if (p != j) {
+            for (int k = 0; k < n; k++) {
+               double t = LU[p][k]; LU[p][k] = LU[j][k]; LU[j][k] = t;
+            }
+            int k = piv[p]; piv[p] = piv[j]; piv[j] = k;
+            pivsign = -pivsign;
+         }
+
+         // Compute multipliers.
+         if (j < m & LU[j][j] != 0.0) {
+            for (int i = j+1; i < m; i++) {
+               LU[i][j] /= LU[j][j];
+            }
+         }
+      }
+   }
+
 }
