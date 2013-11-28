@@ -612,6 +612,19 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
+class CMovInst : public GPInstruction {
+private:
+	Cond::COND cond;
+public:
+	CMovInst(Cond::COND cond, const DstSrc1Op &dstsrc1, const Src2Op &src2, GPInstruction::OperandSize op_size)
+			: GPInstruction("X86_64CMovInst", dstsrc1.op, op_size, 2), cond(cond) {
+		operands[0].op = dstsrc1.op;
+		operands[1].op = src2.op;
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+
 class IndirectJumpInst : public X86_64Instruction {
 public:
 	IndirectJumpInst(const SrcOp &src)

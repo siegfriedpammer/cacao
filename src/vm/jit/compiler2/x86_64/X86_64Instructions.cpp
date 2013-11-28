@@ -882,6 +882,20 @@ void CondTrapInst::emit(CodeMemory* CM) const {
 
 }
 
+void CMovInst::emit(CodeMemory* CM) const {
+	X86_64Register *src = cast_to<X86_64Register>(operands[1].op);
+	X86_64Register *dst = cast_to<X86_64Register>(get_result().op);
+
+	CodeSegmentBuilder code;
+	u1 rex = get_rex(dst,src,get_op_size() == GPInstruction::OS_64);
+	if (rex != 0x40)
+	  code += rex;
+	code += 0x0f;
+	code += 0x40 | cond.code;
+	code += get_modrm_reg2reg(dst,src);
+	add_CodeSegmentBuilder(CM,code);
+}
+
 void CondJumpInst::emit(CodeMemory* CM) const {
 	// update jump target (might have changed)
 	jump.set_target(successor_back());
@@ -1047,7 +1061,7 @@ void UCOMISInst::emit(CodeMemory* CM) const {
 	}
 	code += 0x0f;
 	code += 0x2e;
-	code += get_modrm_reg2reg(src2,src1);
+	code += get_modrm_reg2reg(src1,src2);
 	add_CodeSegmentBuilder(CM,code);
 }
 
