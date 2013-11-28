@@ -49,7 +49,13 @@ STAT_REGISTER_GROUP_VAR_EXTERN(std::size_t,num_remaining_moves,0,"remaining move
 STAT_REGISTER_GROUP_VAR(std::size_t,num_split_moves,0,"spill moves","Number of split moves",lsra_stat)
 STAT_REGISTER_GROUP_VAR(std::size_t,num_spill_loads,0,"spill loads","Number of spill loads",lsra_stat)
 STAT_REGISTER_GROUP_VAR(std::size_t,num_spill_stores,0,"spill stores","Number of spill stores",lsra_stat)
-STAT_REGISTER_GROUP_VAR(std::size_t,num_resolution_moves,0,"resolution moves","Number move instructions for resolution",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_resolution_moves,0,"resolution moves","Number of move instructions for resolution",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_allocate_free,0,"allocate free","Number of free register allocated",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_allocate_blocked,0,"allocate blocked","Number of blocked register allocated (spill)",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_fixed_intervals,0,"fixed intervals","Number of fixed (preallocated) intervals",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_spill_blocked_fixed,0,"spilled blocked","Number blocked fixed intervals spilled",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_resolution_regs,0,"resolution regs","Number registers allocated for resolution (cycles/stack-to-stack moves)",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_resolution_stacks,0,"resolution stacks","Number stackslots allocated for resolution (no free registers)",lsra_stat)
 
 namespace cacao {
 namespace jit {
@@ -399,6 +405,7 @@ struct SplitInactive: public std::unary_function<LivetimeInterval&,void> {
 		if (reg->aquivalent(*MO)) {
 			//ABORT_MSG("Spill current not yet implemented","not yet implemented");
 			LivetimeInterval new_lti = lti.split_inactive(pos, new VirtualRegister(reg->get_type()));
+			STATISTICS(++num_split_moves);
 			assert(lti.front().start < new_lti.front().start);
 			unhandled.push(new_lti);
 		}
@@ -575,15 +582,23 @@ bool LinearScanAllocatorPass::allocate_unhandled() {
 						"could not allocate register for " << current);
 					return false;
 				}
+				else {
+					STATISTICS(++num_allocate_blocked);
+				}
+			}
+			else {
+				STATISTICS(++num_allocate_free);
 			}
 		}
 		else {
+			STATISTICS(++num_fixed_intervals);
 			// fixed interval
 			for (ActiveSetTy::iterator i = active.begin(), e = active.end(); i != e ; ++i ) {
 				LivetimeInterval act = *i;
 				if (current.get_operand()->aquivalent(*act.get_operand())) {
 					MachineInstruction *MI = *pos.get_iterator();
 					if (!(MI->is_move() && MI->get_result().op->aquivalent(*MI->get(0).op))) {
+						STATISTICS(++num_spill_blocked_fixed);
 						ERROR_MSG("Fixed Interval is blocked",
 							"spilling not yet implemented " << current);
 						return false;
@@ -782,6 +797,7 @@ inline MachineOperand* get_and_remove_free_regs(FreeRegsMap &free_regs, Type::Ty
 		// no more registers
 		return NULL;
 	}
+	STATISTICS(++num_resolution_regs);
 	// arbitrary select the first free register
 	FreeRegsMap::mapped_type::iterator i = map.begin();
 	MachineOperand *op = *i;
@@ -887,7 +903,6 @@ public:
 			alloc::list<Move*>::type::iterator i = std::find(stack.begin(),stack.end(),node->dep);
 			if (i != stack.end()) {
 				LOG2("cycle detected!" << nl);
-				//MachineOperand *tmp = new VirtualRegister(node->to->get_type());
 				// try to get a register
 				MachineOperand *tmp = get_and_remove_free_regs(free_regs,node->to->get_type());
 				if (!tmp) {
@@ -895,6 +910,7 @@ public:
 					assert(!node->from->is_StackSlot());
 					assert(!node->to->is_StackSlot());
 					tmp = get_stackslot(backend,node->to->get_type());
+					STATISTICS(++num_resolution_stacks);
 				}
 				move_map.push_back(Move(tmp, node->to));
 				Move *tmp_move = &move_map.back();
