@@ -106,6 +106,7 @@ BackendBase<X86_64>::get_OperandFile(OperandFile& OF,MachineOperand *MO) const {
 		OF.push_back(new x86_64::NativeRegister(type,&RDX));
 		#endif
 		return OF;
+	case Type::FloatTypeID:
 	case Type::DoubleTypeID:
 		#if 1
 		for(unsigned i = 0; i < FloatArgumentRegisterSize ; ++i) {

@@ -137,6 +137,11 @@ void LoweringVisitor::visit(LOADInst *I) {
 			DstOp(dst),
 			get_OperandSize_from_Type(type));
 			break;
+	case Type::FloatTypeID:
+		move = new MovSSInst(
+			SrcOp(MMD[I->get_index()]),
+			DstOp(dst));
+			break;
 	case Type::DoubleTypeID:
 		move = new MovSDInst(
 			SrcOp(MMD[I->get_index()]),
@@ -148,6 +153,97 @@ void LoweringVisitor::visit(LOADInst *I) {
 	}
 	get_current()->push_back(move);
 	set_op(I,move->get_result().op);
+}
+
+void LoweringVisitor::visit(CMPInst *I) {
+	assert(I);
+	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
+	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
+	Type::TypeID type = I->get_operand(0)->get_type();
+	assert(type == I->get_operand(1)->get_type());
+	switch (type) {
+	case Type::FloatTypeID:
+	case Type::DoubleTypeID:
+	{
+
+		MachineBasicBlock *MBB = get_current();
+		GPInstruction::OperandSize op_size = get_OperandSize_from_Type(type);
+		MachineOperand *dst = new VirtualRegister(Type::IntTypeID);
+		MachineOperand *less = new VirtualRegister(Type::IntTypeID);
+		MachineOperand *greater = new VirtualRegister(Type::IntTypeID);
+		// unordered 0
+		MBB->push_back(new MovInst(
+			SrcOp(new Immediate(0,Type::IntType())),
+			DstOp(dst),
+			op_size
+		));
+		// less then (1)
+		MBB->push_back(new MovInst(
+			SrcOp(new Immediate(1,Type::IntType())),
+			DstOp(less),
+			op_size
+		));
+		// greater then (-1)
+		MBB->push_back(new MovInst(
+			SrcOp(new Immediate(-1,Type::IntType())),
+			DstOp(greater),
+			op_size
+		));
+		// compare
+		switch (type) {
+		case Type::FloatTypeID:
+			MBB->push_back(new UCOMISSInst(Src2Op(src_op1), Src1Op(src_op2)));
+			break;
+		case Type::DoubleTypeID:
+			MBB->push_back(new UCOMISDInst(Src2Op(src_op1), Src1Op(src_op2)));
+			break;
+		default: assert(0);
+			break;
+		}
+		// cmov less
+		MBB->push_back(new CMovInst(
+			Cond::B,
+			DstSrc1Op(dst),
+			Src2Op(less),
+			op_size
+		));
+		// cmov greater
+		MBB->push_back(new CMovInst(
+			Cond::A,
+			DstSrc1Op(dst),
+			Src2Op(greater),
+			op_size
+		));
+		switch (I->get_FloatHandling()) {
+		case CMPInst::L:
+			// treat unordered as GT
+			MBB->push_back(new CMovInst(
+				Cond::P,
+				DstSrc1Op(dst),
+				Src2Op(greater),
+				op_size
+			));
+			break;
+
+		case CMPInst::G:
+			// treat unordered as LT
+			MBB->push_back(new CMovInst(
+				Cond::P,
+				DstSrc1Op(dst),
+				Src2Op(less),
+				op_size
+			));
+			break;
+		default: assert(0);
+			break;
+		}
+		set_op(I,dst);
+		return;
+	}
+	default: break;
+	}
+	ABORT_MSG("x86_64: Lowering not supported",
+		"Inst: " << I << " type: " << type);
 }
 
 void LoweringVisitor::visit(IFInst *I) {

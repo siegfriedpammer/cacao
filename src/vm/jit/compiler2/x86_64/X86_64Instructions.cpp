@@ -1233,9 +1233,10 @@ void MovImmSDInst::link(CodeFragment &CF) const {
 void MovSSInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
 	MachineOperand *dst = result.op;
+	if (src->aquivalent(*dst)) return;
 
 	switch (get_OpEncoding(dst,src,get_op_size())) {
-	case GPInstruction::RegReg64:
+	case GPInstruction::RegReg32:
 	{
 		X86_64Register *src_reg = cast_to<X86_64Register>(src);
 		X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
