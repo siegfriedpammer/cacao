@@ -50,6 +50,7 @@ namespace compiler2 {
 class SSAConstructionPass : public Pass, public memory::ManagerMixin<SSAConstructionPass> {
 private:
 	Method *M;
+	jitdata *jd;
 	alloc::vector<BeginInst*>::type BB;
 	alloc::unordered_map<BeginInst*,size_t>::type beginToIndex;
 	alloc::vector<alloc::vector<Value*>::type >::type current_def;

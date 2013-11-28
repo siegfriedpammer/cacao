@@ -801,10 +801,31 @@ Value* SSAConstructionPass::read_variable(size_t varindex, size_t bb) {
 Value* SSAConstructionPass::read_variable_recursive(size_t varindex, size_t bb) {
 	Value *val; // current definition
 	if(BB[bb]->pred_size() == 0) {
-		LOG(BoldRed << "error: " << reset_color << "no predecessor " << BoldWhite
-			  << "basicblock" << bb << reset_color << nl);
-		assert(0);
-		return NULL;
+		// variable not defined oO
+		// create constant for now but seriously, this should not happen!
+		varinfo *v = VAR(varindex);
+		Type::TypeID type = convert_var_type(v->type);
+		Instruction *konst;
+		switch (type) {
+		case Type::IntTypeID:
+			konst = new CONSTInst(0,Type::IntType());
+			break;
+		case Type::LongTypeID:
+			konst = new CONSTInst(0,Type::LongType());
+			break;
+		case Type::FloatTypeID:
+			konst = new CONSTInst(0,Type::FloatType());
+			break;
+		case Type::DoubleTypeID:
+			konst = new CONSTInst(0,Type::DoubleType());
+			break;
+		default: assert(0);
+			konst = NULL;
+		}
+		ERROR_MSG("no predecessor ","basic block " << bb << " var index " << varindex
+			<< " constant: " << konst );
+		M->add_Instruction(konst);
+		return konst;
 	}
 	if (!sealed_blocks[bb]) {
 		PHIInst *phi = new PHIInst(var_type_tbl[varindex], BB[bb]);
@@ -950,7 +971,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 	M = JD.get_Method();
 
 	basicblock *bb;
-	jitdata *jd = JD.get_jitdata();
+	jd = JD.get_jitdata();
 
 	#if !defined(NDEBUG)
 	if (DEBUG_COND) {
