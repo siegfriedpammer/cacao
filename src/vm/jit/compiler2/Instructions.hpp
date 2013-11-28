@@ -302,9 +302,9 @@ public:
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
-class NEGInst : public Instruction {
+class NEGInst : public UnaryInst {
 public:
-	explicit NEGInst(Type::TypeID type) : Instruction(NEGInstID, type) {}
+	explicit NEGInst(Type::TypeID type,Value *S1) : UnaryInst(NEGInstID, type, S1) {}
 	virtual NEGInst* to_NEGInst() { return this; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
@@ -375,25 +375,34 @@ public:
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
-class ORInst : public Instruction {
+class ORInst : public BinaryInst {
 public:
-	explicit ORInst(Type::TypeID type) : Instruction(ORInstID, type) {}
+	explicit ORInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(ORInstID, type, S1, S2) {}
 	virtual ORInst* to_ORInst() { return this; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
-class XORInst : public Instruction {
+class XORInst : public BinaryInst {
 public:
-	explicit XORInst(Type::TypeID type) : Instruction(XORInstID, type) {}
+	explicit XORInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(XORInstID, type, S1, S2) {}
 	virtual XORInst* to_XORInst() { return this; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
-class CMPInst : public Instruction {
+class CMPInst : public BinaryInst {
 public:
-	explicit CMPInst(Type::TypeID type) : Instruction(CMPInstID, type) {}
+	enum FloatHandling {
+		G,
+		L,
+		DontCare
+	};
+	explicit CMPInst(Value* S1, Value* S2, FloatHandling f) : BinaryInst(CMPInstID, Type::IntTypeID, S1, S2), f(f) {}
 	virtual CMPInst* to_CMPInst() { return this; }
+	virtual bool is_homogeneous() const { return false; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
+	FloatHandling get_FloatHandling() const { return f; }
+private:
+	FloatHandling f;
 };
 
 class CONSTInst : public Instruction {
@@ -409,16 +418,16 @@ private:
 	} val_operand_t;
 	val_operand_t value;
 public:
-	explicit CONSTInst(int32_t i) : Instruction(CONSTInstID, Type::IntTypeID) {
+	explicit CONSTInst(int32_t i,Type::IntType) : Instruction(CONSTInstID, Type::IntTypeID) {
 		value.i = i;
 	}
-	explicit CONSTInst(int64_t l) : Instruction(CONSTInstID, Type::LongTypeID) {
+	explicit CONSTInst(int64_t l,Type::LongType) : Instruction(CONSTInstID, Type::LongTypeID) {
 		value.l = l;
 	}
-	explicit CONSTInst(float f) : Instruction(CONSTInstID, Type::FloatTypeID) {
+	explicit CONSTInst(float f,Type::FloatType) : Instruction(CONSTInstID, Type::FloatTypeID) {
 		value.f = f;
 	}
-	explicit CONSTInst(double d) : Instruction(CONSTInstID, Type::DoubleTypeID) {
+	explicit CONSTInst(double d,Type::DoubleType) : Instruction(CONSTInstID, Type::DoubleTypeID) {
 		value.d = d;
 	}
 	virtual CONSTInst* to_CONSTInst() { return this; }

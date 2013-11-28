@@ -1149,12 +1149,36 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		SHOW_S1(OS, iptr);
 		//		break;
 
+				goto _default;
 		//		/* unary */
 			case ICMD_INEG:
 			case ICMD_LNEG:
 			case ICMD_FNEG:
 			case ICMD_DNEG:
-				goto _default;
+				{
+					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
+					Type::TypeID type;
+					switch (iptr->opc) {
+					case ICMD_INEG:
+						type = Type::IntTypeID;
+						break;
+					case ICMD_LNEG:
+						type = Type::LongTypeID;
+						break;
+					case ICMD_FNEG:
+						type = Type::FloatTypeID;
+						break;
+					case ICMD_DNEG:
+						type = Type::DoubleTypeID;
+						break;
+					default: assert(0);
+						type = Type::VoidTypeID;
+					}
+					Instruction *result = new NEGInst(type,s1);
+					write_variable(iptr->dst.varindex,bbindex,result);
+					M->add_Instruction(result);
+					break;
+				}
 			case ICMD_ARRAYLENGTH:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
@@ -1397,29 +1421,91 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_LSHR:
 			case ICMD_IUSHR:
 			case ICMD_LUSHR:
-			case ICMD_IAND:
-			case ICMD_LAND:
+				goto _default;
 			case ICMD_IOR:
 			case ICMD_LOR:
 			case ICMD_IXOR:
 			case ICMD_LXOR:
+			case ICMD_IAND:
+			case ICMD_LAND:
+				{
+					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
+					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
+					Type::TypeID type;
+					Instruction *result;
+					// type
+					switch (iptr->opc) {
+					case ICMD_IAND:
+					case ICMD_IOR:
+					case ICMD_IXOR:
+						type = Type::IntTypeID;
+						break;
+					case ICMD_LAND:
+					case ICMD_LOR:
+					case ICMD_LXOR:
+						type = Type::LongTypeID;
+						break;
+					default: assert(0);
+						type = Type::VoidTypeID;
+					}
+					// operation
+					switch (iptr->opc) {
+					case ICMD_IAND:
+					case ICMD_LAND:
+						result = new ANDInst(type, s1, s2);
+						break;
+					case ICMD_IOR:
+					case ICMD_LOR:
+						result = new ORInst(type, s1, s2);
+						break;
+					case ICMD_IXOR:
+					case ICMD_LXOR:
+						result = new XORInst(type, s1, s2);
+						break;
+					default: assert(0);
+						result = NULL;
+					}
+					write_variable(iptr->dst.varindex,bbindex,result);
+					M->add_Instruction(result);
+				}
+				break;
 			case ICMD_LCMP:
 			case ICMD_FCMPL:
 			case ICMD_FCMPG:
 			case ICMD_DCMPL:
 			case ICMD_DCMPG:
+				{
+					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
+					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
+					CMPInst::FloatHandling handling;
+					switch (iptr->opc) {
+					case ICMD_FCMPL:
+					case ICMD_DCMPL:
+						handling = CMPInst::L;
+						break;
+					case ICMD_FCMPG:
+					case ICMD_DCMPG:
+						handling = CMPInst::G;
+						break;
+					default: assert(0);
+						handling = CMPInst::DontCare;
+					}
+					Instruction *result = new CMPInst(s1, s2, handling);
+					write_variable(iptr->dst.varindex,bbindex,result);
+					M->add_Instruction(result);
+				}
+				break;
 		//		SHOW_S1(OS, ipt);
 		//		SHOW_S2(OS, iptr);
 		//		SHOW_DST(OS, iptr);
 		//		break;
 
 				/* binary/const INT */
-				goto _default;
 			case ICMD_IADDCONST:
 			case ICMD_ISUBCONST:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
-					Instruction *konst = new CONSTInst(iptr->sx.val.i);
+					Instruction *konst = new CONSTInst(iptr->sx.val.i,Type::IntType());
 					Instruction *result;
 					switch (iptr->opc) {
 					case ICMD_IADDCONST:
@@ -1446,7 +1532,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_IANDCONST:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
-					Instruction *konst = new CONSTInst(iptr->sx.val.i);
+					Instruction *konst = new CONSTInst(iptr->sx.val.i,Type::IntType());
 					Instruction *result;
 					switch (iptr->opc) {
 					case ICMD_IANDCONST:
@@ -1496,16 +1582,16 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Instruction *I;
 					switch (iptr->opc) {
 					case ICMD_ICONST:
-						I = new CONSTInst(iptr->sx.val.i);
+						I = new CONSTInst(iptr->sx.val.i,Type::IntType());
 						break;
 					case ICMD_LCONST:
-						I = new CONSTInst(iptr->sx.val.l);
+						I = new CONSTInst(iptr->sx.val.l,Type::LongType());
 						break;
 					case ICMD_FCONST:
-						I = new CONSTInst(iptr->sx.val.f);
+						I = new CONSTInst(iptr->sx.val.f,Type::FloatType());
 						break;
 					case ICMD_DCONST:
-						I = new CONSTInst(iptr->sx.val.d);
+						I = new CONSTInst(iptr->sx.val.d,Type::DoubleType());
 						break;
 					default: assert(0);
 						I = NULL;
@@ -1518,7 +1604,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 				/* binary/const LNG */
 			case ICMD_LADDCONST:
 				{
-					Instruction *konst = new CONSTInst(iptr->sx.val.l);
+					Instruction *konst = new CONSTInst(iptr->sx.val.l,Type::LongType());
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
 					Instruction *result = new ADDInst(Type::LongTypeID, s1, konst);
 					M->add_Instruction(konst);
@@ -1528,7 +1614,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 				break;
 			case ICMD_LSUBCONST:
 				{
-					Instruction *konst = new CONSTInst(iptr->sx.val.l);
+					Instruction *konst = new CONSTInst(iptr->sx.val.l,Type::LongType());
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
 					Instruction *result = new SUBInst(Type::LongTypeID, s1, konst);
 					M->add_Instruction(konst);
@@ -1538,7 +1624,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 				break;
 			case ICMD_LMULCONST:
 			{
-				Instruction *konst = new CONSTInst(iptr->sx.val.l);
+				Instruction *konst = new CONSTInst(iptr->sx.val.l,Type::LongType());
 				Value *s1 = read_variable(iptr->s1.varindex,bbindex);
 				Instruction *result = new MULInst(Type::LongTypeID, s1, konst);
 				M->add_Instruction(konst);
@@ -1549,7 +1635,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_LANDCONST:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
-					Instruction *konst = new CONSTInst(iptr->sx.val.l);
+					Instruction *konst = new CONSTInst(iptr->sx.val.l,Type::LongType());
 					Instruction *result;
 					switch (iptr->opc) {
 					case ICMD_LANDCONST:
@@ -1568,7 +1654,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_LDIVPOW2:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
-					Instruction *konst = new CONSTInst(iptr->sx.val.l);
+					Instruction *konst = new CONSTInst(iptr->sx.val.l,Type::LongType());
 					Instruction *result;
 					switch (iptr->opc) {
 					case ICMD_LDIVPOW2:
@@ -1670,7 +1756,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_IINC:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
-					Instruction *konst = new CONSTInst((int)1);
+					Instruction *konst = new CONSTInst((int)1,Type::IntType());
 					Instruction *result;
 					switch (iptr->opc) {
 					case ICMD_IINC:
@@ -2030,9 +2116,9 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		}
 		//		break;
 
+				goto _default;
 			case ICMD_IFLT:
 			case ICMD_IFGT:
-				goto _default;
 			case ICMD_IFGE:
 			case ICMD_IFEQ:
 			case ICMD_IFNE:
@@ -2040,6 +2126,12 @@ bool SSAConstructionPass::run(JITData &JD) {
 				{
 					Conditional::CondID cond;
 					switch (iptr->opc) {
+					case ICMD_IFLT:
+						cond = Conditional::LT;
+						break;
+					case ICMD_IFGT:
+						cond = Conditional::GT;
+						break;
 					case ICMD_IFEQ:
 						cond = Conditional::EQ;
 						break;
@@ -2056,7 +2148,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						ABORT_MSG("unreachable","unreachable");
 						cond = Conditional::NoCond;
 					}
-					Instruction *konst = new CONSTInst(iptr->sx.val.i);
+					Instruction *konst = new CONSTInst(iptr->sx.val.i,Type::IntType());
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
 					assert(s1);
 					assert(BB[iptr->dst.block->nr]);
@@ -2107,7 +2199,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						ABORT_MSG("unreachable","unreachable");
 						cond = Conditional::NoCond;
 					}
-					Instruction *konst = new CONSTInst(iptr->sx.val.l);
+					Instruction *konst = new CONSTInst(iptr->sx.val.l,Type::LongType());
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
 					assert(s1);
 					assert(BB[iptr->dst.block->nr]);
