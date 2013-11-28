@@ -62,6 +62,7 @@ public:
 	virtual void visit(ASTOREInst *I);
 	virtual void visit(ARRAYBOUNDSCHECKInst *I);
 	virtual void visit(CMPInst *I);
+	virtual void visit(NEGInst *I);
 };
 
 } // end namespace x86_64

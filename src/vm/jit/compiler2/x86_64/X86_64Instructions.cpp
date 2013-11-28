@@ -419,6 +419,24 @@ void RetInst::emit(CodeMemory* CM) const {
 	code[0] = 0xc3;
 }
 
+void NegInst::emit(CodeMemory* CM) const {
+	X86_64Register *reg = cast_to<X86_64Register>(operands[0].op);
+	CodeSegmentBuilder code;
+
+	u1 rex = get_rex(reg,NULL,get_op_size() == OS_64);
+	// rex
+	if (rex != 0x40) {
+		code += rex;
+	}
+	// opcode
+	if (get_op_size() == OS_8)
+		code += 0xf6;
+	else
+		code += 0xf7;
+	code += get_modrm_u1(0x3,0x3,reg->get_index());
+	add_CodeSegmentBuilder(CM,code);
+}
+
 void CallInst::emit(CodeMemory* CM) const {
 	CodeFragment code = CM->get_CodeFragment(2);
 	X86_64Register *reg_src = cast_to<X86_64Register>(operands[0].op);
@@ -1065,6 +1083,20 @@ void UCOMISInst::emit(CodeMemory* CM) const {
 	add_CodeSegmentBuilder(CM,code);
 }
 
+void XORPInst::emit(CodeMemory* CM) const {
+	X86_64Register *dstsrc1 = cast_to<X86_64Register>(operands[0].op);
+	X86_64Register *src2 = cast_to<X86_64Register>(operands[1].op);
+
+	CodeSegmentBuilder code;
+	if (get_op_size() == GPInstruction::OS_64) {
+		code += 0x66;
+	}
+	code += 0x0f;
+	code += 0x57;
+	code += get_modrm_reg2reg(dstsrc1,src2);
+	add_CodeSegmentBuilder(CM,code);
+}
+
 void SSEAluInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[1].op;
 	MachineOperand *dst = result.op;
@@ -1192,41 +1224,100 @@ void MovSDInst::emit(CodeMemory* CM) const {
 		<< get_op_size() * 8 << "bit");
 }
 
-void MovImmSDInst::emit(CodeMemory* CM) const {
+void MovImmSInst::emit(CodeMemory* CM) const {
 	Immediate *imm = cast_to<Immediate>(operands[0].op);
 	X86_64Register *dst = cast_to<X86_64Register>(result.op);
-	CodeFragment code = CM->get_CodeFragment(8);
-	code[0] = 0xf3;
-	code[1] = 0x0f;
-	code[2] = 0x7e;
-	// RIP-Relateive addressing mod=00b, rm=101b, + disp32
-	code[3] = get_modrm_u1(0x0,dst->get_index(),0x5);
-	#if 1
-	code[4] = 0xaa;
-	code[5] = 0xaa;
-	code[6] = 0xaa;
-	code[7] = 0xaa;
-	#endif
-	DataFragment DF = CM->get_DataSegment().get_Ref(sizeof(double));
-	InstructionEncoding::imm<double>(DF,imm->get_Double());
-	data_index = CM->get_DataSegment().insert_tag(DSDouble(imm->get_Double()),DF);
+
+	CodeFragment code = CM->get_CodeFragment(dst->extented ? 9 : 8);
+	if (dst->extented) {
+		code[0] = get_rex(dst,NULL,get_op_size() == OS_64);
+		code[1] = (get_op_size() == OS_64 ? 0xf2 : 0xf3);
+		code[2] = 0x0f;
+		code[3] = 0x10;
+		// RIP-Relateive addressing mod=00b, rm=101b, + disp32
+		code[4] = get_modrm_u1(0x0,dst->get_index(),0x5);
+		#if 1
+		code[5] = 0xaa;
+		code[6] = 0xaa;
+		code[7] = 0xaa;
+		code[8] = 0xaa;
+		#endif
+	} else {
+		code[0] = (get_op_size() == OS_64 ? 0xf2 : 0xf3);
+		code[1] = 0x0f;
+		code[2] = 0x10;
+		// RIP-Relateive addressing mod=00b, rm=101b, + disp32
+		code[3] = get_modrm_u1(0x0,dst->get_index(),0x5);
+		#if 1
+		code[4] = 0xaa;
+		code[5] = 0xaa;
+		code[6] = 0xaa;
+		code[7] = 0xaa;
+		#endif
+	}
+	switch (get_op_size()) {
+	case OS_64:
+		switch (imm->get_type()) {
+		case Type::DoubleTypeID:
+			{
+				DataFragment DF = CM->get_DataSegment().get_Ref(sizeof(double));
+				InstructionEncoding::imm<double>(DF,imm->get_Double());
+				data_index = CM->get_DataSegment().insert_tag(DSDouble(imm->get_Double()),DF);
+				break;
+			}
+		case Type::LongTypeID:
+			{
+				DataFragment DF = CM->get_DataSegment().get_Ref(sizeof(int64_t));
+				InstructionEncoding::imm<int64_t>(DF,imm->get_Long());
+				data_index = CM->get_DataSegment().insert_tag(DSLong(imm->get_Long()),DF);
+				break;
+			}
+		default: assert(0);
+			break;
+		}
+		break;
+	case OS_32:
+		switch (imm->get_type()) {
+		case Type::FloatTypeID:
+			{
+				DataFragment DF = CM->get_DataSegment().get_Ref(sizeof(float));
+				InstructionEncoding::imm<float>(DF,imm->get_Float());
+				data_index = CM->get_DataSegment().insert_tag(DSFloat(imm->get_Float()),DF);
+				break;
+			}
+		case Type::IntTypeID:
+			{
+				DataFragment DF = CM->get_DataSegment().get_Ref(sizeof(int32_t));
+				InstructionEncoding::imm<int32_t>(DF,imm->get_Int());
+				data_index = CM->get_DataSegment().insert_tag(DSInt(imm->get_Int()),DF);
+				break;
+			}
+		default: assert(0);
+			break;
+		}
+		break;
+	default: assert(0);
+		break;
+	}
 	CM->require_linking(this,code);
 }
 
-void MovImmSDInst::link(CodeFragment &CF) const {
+void MovImmSInst::link(CodeFragment &CF) const {
 	CodeMemory &CM = CF.get_Segment().get_CodeMemory();
 	s4 offset = CM.get_offset(data_index,CF);
 	LOG2(this << " offset: " << offset << " data index: " << data_index.idx << " CF end index "
 			<< CF.get_end().idx << nl);
 	LOG2("dseg->size " << CM.get_DataSegment().size()
 		<< " cseg->size " << CM.get_CodeSegment().size() << nl );
-	assert(offset != 0);
 
 	assert(offset != 0);
-	CF[4] = u1(0xff & (offset >>  0));
-	CF[5] = u1(0xff & (offset >>  8));
-	CF[6] = u1(0xff & (offset >> 16));
-	CF[7] = u1(0xff & (offset >> 24));
+	int i = 4;
+	if (cast_to<X86_64Register>(result.op)->extented)
+		i = 5;
+	CF[i++] = u1(0xff & (offset >>  0));
+	CF[i++] = u1(0xff & (offset >>  8));
+	CF[i++] = u1(0xff & (offset >> 16));
+	CF[i  ] = u1(0xff & (offset >> 24));
 }
 
 

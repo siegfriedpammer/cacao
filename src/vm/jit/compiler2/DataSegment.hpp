@@ -36,10 +36,16 @@ namespace compiler2 {
 
 enum DataSegmentType {
 	DoubleID,
+	LongID,
+	FloatID,
+	IntID,
 	FMIRefID
 };
 
 typedef ConstTag<DataSegmentType,double,DoubleID> DSDouble;
+typedef ConstTag<DataSegmentType,int64_t,LongID> DSLong;
+typedef ConstTag<DataSegmentType,float,FloatID> DSFloat;
+typedef ConstTag<DataSegmentType,int32_t,IntID> DSInt;
 typedef PointerTag<DataSegmentType,constant_FMIref,FMIRefID> DSFMIRef;
 
 typedef Segment<DataSegmentType,NormalRefCategory> DataSegment;

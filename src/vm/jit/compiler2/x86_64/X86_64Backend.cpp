@@ -303,6 +303,48 @@ void LoweringVisitor::visit(IFInst *I) {
 		"Inst: " << I << " type: " << type);
 }
 
+void LoweringVisitor::visit(NEGInst *I) {
+	assert(I);
+	MachineOperand* src = get_op(I->get_operand(0)->to_Instruction());
+	Type::TypeID type = I->get_type();
+	MachineBasicBlock *MBB = get_current();
+	//GPInstruction::OperandSize op_size = get_OperandSize_from_Type(type);
+
+	VirtualRegister *dst = new VirtualRegister(type);
+
+	switch (type) {
+	case Type::FloatTypeID:
+		MBB->push_back(new MovImmSSInst(
+			SrcOp(new Immediate(0x80000000,Type::IntType())),
+			DstOp(dst)
+		));
+		MBB->push_back(new XORPSInst(
+			Src2Op(src),
+			DstSrc1Op(dst)
+		));
+		break;
+	case Type::DoubleTypeID:
+		MBB->push_back(new MovImmSDInst(
+			SrcOp(new Immediate(0x8000000000000000L,Type::LongType())),
+			DstOp(dst)
+		));
+		MBB->push_back(new XORPDInst(
+			Src2Op(src),
+			DstSrc1Op(dst)
+		));
+		break;
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+		MBB->push_back(get_Backend()->create_Move(src,dst));
+		MBB->push_back(new NegInst(DstSrcOp(dst),get_operand_size_from_Type(type)));
+		break;
+	default:
+		ABORT_MSG("x86_64: Lowering not supported",
+			"Inst: " << I << " type: " << type);
+	}
+	set_op(I,dst);
+}
+
 void LoweringVisitor::visit(ADDInst *I) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
@@ -647,6 +689,20 @@ void LoweringVisitor::visit(RETURNInst *I) {
 			SrcOp(src_op),
 			DstOp(ret_reg),
 			get_OperandSize_from_Type(type));
+		LeaveInst *leave = new LeaveInst();
+		RetInst *ret = new RetInst(get_OperandSize_from_Type(type),SrcOp(ret_reg));
+		get_current()->push_back(reg);
+		get_current()->push_back(leave);
+		get_current()->push_back(ret);
+		set_op(I,ret->get_result().op);
+		return;
+	}
+	case Type::FloatTypeID:
+	{
+		MachineOperand *ret_reg = new NativeRegister(type,&XMM0);
+		MachineInstruction *reg = new MovSSInst(
+			SrcOp(src_op),
+			DstOp(ret_reg));
 		LeaveInst *leave = new LeaveInst();
 		RetInst *ret = new RetInst(get_OperandSize_from_Type(type),SrcOp(ret_reg));
 		get_current()->push_back(reg);

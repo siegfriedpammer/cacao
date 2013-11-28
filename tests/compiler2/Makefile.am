@@ -55,6 +55,10 @@ OUTPUT_JAVA_TESTS = \
 	Test.test_array_2dim_store \
 	Test.test_float_cmp \
 	Test.test_double_cmp \
+	Test.ineg \
+	Test.lneg \
+	Test.fneg \
+	Test.dneg \
 	Test.matrixMult \
 	Test.testParameterLong \
 	Test.testParameterLong2 \
