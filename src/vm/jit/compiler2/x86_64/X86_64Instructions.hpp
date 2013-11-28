@@ -641,6 +641,31 @@ public:
 };
 
 /// SSE Alu Instruction
+class UCOMISInst : public GPInstruction {
+protected:
+	UCOMISInst(const char* name, const Src2Op &src2, const Src1Op &src1,
+			GPInstruction::OperandSize op_size)
+			: GPInstruction(name, &NoOperand, op_size, 2) {
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
+	}
+public:
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class UCOMISSInst : public UCOMISInst{
+public:
+	UCOMISSInst(const Src2Op &src2, const Src1Op &src1)
+		: UCOMISInst("X86_64UCOMISSInst",src2,src1,GPInstruction::OS_32) {}
+};
+class UCOMISDInst : public UCOMISInst{
+public:
+	UCOMISDInst(const Src2Op &src2, const Src1Op &src1)
+		: UCOMISInst("X86_64UCOMISDInst",src2,src1,GPInstruction::OS_64) {}
+};
+
+
+/// SSE Alu Instruction
 class SSEAluInst : public GPInstruction {
 private:
 	u1 opcode;

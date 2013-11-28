@@ -1037,6 +1037,20 @@ void IndirectJumpInst::emit(CodeMemory* CM) const {
 	return;
 }
 
+void UCOMISInst::emit(CodeMemory* CM) const {
+	X86_64Register *src1 = cast_to<X86_64Register>(operands[0].op);
+	X86_64Register *src2 = cast_to<X86_64Register>(operands[1].op);
+
+	CodeSegmentBuilder code;
+	if (get_op_size() == GPInstruction::OS_64) {
+		code += 0x66;
+	}
+	code += 0x0f;
+	code += 0x2e;
+	code += get_modrm_reg2reg(src2,src1);
+	add_CodeSegmentBuilder(CM,code);
+}
+
 void SSEAluInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[1].op;
 	MachineOperand *dst = result.op;
