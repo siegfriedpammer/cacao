@@ -53,6 +53,8 @@ OUTPUT_JAVA_TESTS = \
 	Test.test_array_store \
 	Test.test_array_2dim_load \
 	Test.test_array_2dim_store \
+	Test.test_float_cmp \
+	Test.test_double_cmp \
 	Test.matrixMult \
 	Test.testParameterLong \
 	Test.testParameterLong2 \

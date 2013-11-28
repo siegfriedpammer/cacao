@@ -441,6 +441,18 @@ static void collatz(int n) {
   }
 }
 
+static int test_double_cmp(double a, double b) {
+    if (a < b)
+        return -1;
+    return 1;
+}
+
+static int test_float_cmp(float a, float b) {
+    if (a < b)
+        return -1;
+    return 1;
+}
+
 
    /** Row and column dimensions, and pivot sign.
    */
@@ -453,7 +465,7 @@ static void collatz(int n) {
     *
     * @author http://math.nist.gov/javanumerics/jama/
     */
-   public void LUDecomposition(double[][] LU, int[] piv, double[] LUcolj) {
+   static public void LUDecomposition(double[][] LU, int[] piv, double[] LUcolj) {
 
    // Use a "left-looking", dot-product, Crout/Doolittle algorithm.
 
