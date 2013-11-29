@@ -893,13 +893,37 @@ public:
 		if (is_stack2stack_move(node)){
 			LOG2("Stack to stack move detected!" << nl);
 			MachineOperand *tmp = get_and_remove_free_regs(free_regs,node->to->get_type());
-			assert_msg(tmp, "No more free register!");
+			if (!tmp) {
+				// No more free register!
+				Type::TypeID type = node->from->get_type();
+				// get stack slot
+				MachineOperand *tmp_stack = backend->get_JITData()->
+					get_StackSlotManager()->create_ManagedStackSlot(type);
+				// get reg
+				OperandFile OF;
+				backend->get_OperandFile(OF,tmp_stack);
+				MachineOperand *tmp_reg = OF.front();
+				// backup register
+				scheduled.push_back(backend->create_Move(tmp_reg,tmp_stack));
+				// stack to stack move
+				scheduled.push_back(backend->create_Move(node->from,tmp_reg));
+				scheduled.push_back(backend->create_Move(tmp_reg,node->to));
+				// restore register
+				scheduled.push_back(backend->create_Move(tmp_stack,tmp_reg));
+				//
+				LOG2("schedule post: " << *node << nl);
+				stack.pop_back();
+				node->scheduled = true;
+				return;
+			}
+
 			move_map.push_back(Move(tmp, node->to));
 			queue.push_back(&move_map.back());
 			node->to = tmp;
+			// no really needed, is it?
 			node->dep = NULL;
 		}
-		if (node->dep && !node->dep->is_scheduled()) {
+		else if (node->dep && !node->dep->is_scheduled()) {
 			alloc::list<Move*>::type::iterator i = std::find(stack.begin(),stack.end(),node->dep);
 			if (i != stack.end()) {
 				LOG2("cycle detected!" << nl);

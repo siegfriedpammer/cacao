@@ -111,6 +111,8 @@ public:
 	bool is_Immediate()        const { return op_id == ImmediateID; }
 	bool is_Address()          const { return op_id == AddressID; }
 
+	bool is_stackslot() const { return is_StackSlot() || is_ManagedStackSlot(); }
+
 	/**
 	 */
 	bool aquivalence_less(const MachineOperand& MO) const {
