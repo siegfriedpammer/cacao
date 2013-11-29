@@ -1,10 +1,15 @@
 import java.lang.Math.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 
 class Test {
 
 static long c = 0;
 static long stat = 42;
-
+/*
 public static void main(String arg[]) {
   System.out.println(fib(15));
   System.out.println(OverflowLong(15));
@@ -21,10 +26,11 @@ public static void main(String arg[]) {
   for (int i =0; i < 2000; ++i ) {
     System.out.println(pi());
   }
-  */
+*/
+/*
   System.out.println(test_test());
 }
-
+*/
 /**
  * Matrix multiplication.
  *
@@ -547,12 +553,16 @@ static int test_float_cmp(float a, float b) {
 
 
 /**
- * @param left left matrix [3][rows][columns]
- * @param right right matrix [3][rows][columns]
+ * @param left_r red left matrix [rows][columns]
+ * @param right_r red right matrix [rows][columns]
+ * @param left_g green left matrix [rows][columns]
+ * @param right_g green right matrix [rows][columns]
+ * @param left_b blue left matrix [rows][columns]
+ * @param right_b blue right matrix [rows][columns]
  * @param data_term row * col * num_labels
  * @param num_labels
  */
-
+/*
 void createDisparity(int[][][] left, int[][][] right, int data_term[], int num_labels)
 {
   int[][] left_r=left[0];
@@ -562,10 +572,14 @@ void createDisparity(int[][][] left, int[][][] right, int data_term[], int num_l
   int[][] right_r=right[0];
   int[][] right_g=right[1];
   int[][] right_b=right[2];
-
+*/
+void createDisparity(
+  int[][] left_r, int[][] left_g, int[][] left_b,
+  int[][] right_r, int[][] right_g, int[][] right_b,
+  int data_term[], int num_labels)
+{
   int row_cnt=left_r.length;
   int col_cnt=left_r[0].length;
-
 
   // first set up the array for data costs
   for(int y=0; y < row_cnt; y++) {
@@ -604,5 +618,66 @@ void createDisparity(int[][][] left, int[][][] right, int data_term[], int num_l
     }
   }
 }
+
+  static int  BoyerMoore(int pattern[], int text[], int matches[], int rightMostIndexes[]) {
+    int m = text.length;
+    int n = pattern.length;
+    int res_index = 0;
+
+    for (int i = 0; i < rightMostIndexes.length; i ++) {
+      rightMostIndexes[i] = -1;
+    }
+    for (int i = pattern.length - 1; i >= 0; i--) {
+      int c = pattern[i];
+      if (rightMostIndexes[c] == -1)
+        rightMostIndexes[c] = i;
+    }
+
+    int alignedAt = 0;
+    while (alignedAt + (n - 1) < m) {
+      for (int indexInPattern = n - 1; indexInPattern >= 0; indexInPattern--) {
+        int indexInText = alignedAt + indexInPattern;
+        int x = text[indexInText];
+        int y = pattern[indexInPattern];
+        if (indexInText >= m)
+          break;
+        if (x != y) {
+          int r = rightMostIndexes[x];
+          if (r == -1) {
+            alignedAt = indexInText + 1;
+          }
+          else {
+            int shift = indexInText - (alignedAt + r);
+            alignedAt += shift > 0 ? shift : alignedAt + 1;
+          }
+          break;
+        }
+        else if (indexInPattern == 0) {
+          matches[res_index++]= alignedAt;
+          alignedAt++;
+        }
+      }
+    }
+    return res_index;
+  }
+
+  public static void main(String[] args) {
+    char[] pattern_c = (new String("ana")).toCharArray();
+    char[] text_c = (new String("bananas")).toCharArray();
+
+
+    int[] pattern = new int[pattern_c.length];
+    int[] text = new int[text_c.length];
+    for(int i=0;i<pattern.length;i++) pattern[i] = pattern_c[i];
+    for(int i=0;i<text.length;i++) text[i] = text_c[i];
+
+    int matches[] = new int[text.length];
+    int rightMostIndexes[] = new int[256];
+
+    int num_matches = BoyerMoore(pattern, text,matches, rightMostIndexes);
+
+    for (int i = 0; i < num_matches; i ++)
+      System.out.println("Match at: " + matches[i]);
+  }
 
 }

@@ -19,6 +19,10 @@ template <>
 struct array<int32_t> {
 	typedef java_intarray_t type;
 };
+template <>
+struct array<double> {
+	typedef java_doublearray_t type;
+};
 
 
 template<typename T>
