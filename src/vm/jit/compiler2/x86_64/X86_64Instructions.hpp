@@ -516,15 +516,17 @@ OStream& operator<<(OStream &OS,const ModRMOperandDesc &modrm);
 class MovModRMInst : public GPInstruction {
 public:
 	/// constructor. full arguments
-	MovModRMInst(const DstOp &dst, GPInstruction::OperandSize op_size, const SrcModRM &src)
+	MovModRMInst(const DstOp &dst, GPInstruction::OperandSize op_size, const SrcModRM &src, bool floatingpoint)
 			: GPInstruction("X86_64MovModRMInst", dst.op, op_size, 2),
-				modrm(ModRMOperandDesc(src.op.scale,operands[Index],operands[Base],src.op.disp)), enc(RM) {
+				modrm(ModRMOperandDesc(src.op.scale,operands[Index],operands[Base],src.op.disp)),
+				enc(RM), floatingpoint(floatingpoint) {
 		operands[Base].op = src.op.base;
 		operands[Index].op = src.op.index;
 	}
-	MovModRMInst(const SrcOp &src, GPInstruction::OperandSize op_size, const DstModRM &dst)
+	MovModRMInst(const SrcOp &src, GPInstruction::OperandSize op_size, const DstModRM &dst, bool floatingpoint)
 			: GPInstruction("X86_64MovModRMInst", &NoOperand, op_size, 3),
-				modrm(ModRMOperandDesc(dst.op.scale,operands[Index],operands[Base],dst.op.disp)), enc(MR) {
+				modrm(ModRMOperandDesc(dst.op.scale,operands[Index],operands[Base],dst.op.disp)),
+				enc(MR), floatingpoint(floatingpoint) {
 		operands[Base].op = dst.op.base;
 		operands[Index].op = dst.op.index;
 		operands[Value].op = src.op;
@@ -545,6 +547,7 @@ private:
 	};
 	ModRMOperandDesc modrm;
 	OpEnc enc;
+	bool floatingpoint;
 };
 
 /**

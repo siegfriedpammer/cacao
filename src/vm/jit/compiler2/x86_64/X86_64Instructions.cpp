@@ -657,6 +657,9 @@ inline u1 get_rex(X86_64Register *reg, const ModRMOperandDesc &modrm, bool opsiz
 void MovModRMInst::emit(CodeMemory* CM) const {
 	X86_64Register *reg;
 	u1 opcode;
+	u1 floatopcode[3];
+	floatopcode[0] = (get_op_size() == OS_64 ? 0xf2 : 0xf3);
+	floatopcode[1] = 0x0f;
 	// check operand encoding
 	switch (enc) {
 	case RM:
@@ -664,12 +667,14 @@ void MovModRMInst::emit(CodeMemory* CM) const {
 			MachineOperand *op = get_result().op;
 			reg = (op?cast_to<X86_64Register>(op) : 0);
 			opcode = 0x8b;
+			floatopcode[2] = 0x10;
 			break;
 		}
 	case MR:
 		{
 			reg = cast_to<X86_64Register>(operands[Value].op);
 			opcode = 0x89;
+			floatopcode[2] = 0x11;
 			break;
 		}
 	default:
@@ -678,12 +683,18 @@ void MovModRMInst::emit(CodeMemory* CM) const {
 	}
 	assert(reg);
 	CodeSegmentBuilder code;
-	// set rex
-	u1 rex = get_rex(reg,modrm,get_op_size() == GPInstruction::OS_64);
-	if (rex != 0x40)
-		code += rex;
-	// set opcode
-	code += opcode;
+	if (!floatingpoint) {
+		// set rex
+		u1 rex = get_rex(reg,modrm,get_op_size() == GPInstruction::OS_64);
+		if (rex != 0x40)
+			code += rex;
+		// set opcode
+		code += opcode;
+	} else {
+		code += floatopcode[0];
+		code += floatopcode[1];
+		code += floatopcode[2];
+	}
 	// set modrm byte
 	// mod
 	u1 modrm_mod;

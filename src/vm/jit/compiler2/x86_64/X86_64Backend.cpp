@@ -545,6 +545,7 @@ void LoweringVisitor::visit(ALOADInst *I) {
 
 	Type::TypeID type = I->get_type();
 	MachineOperand *vreg = new VirtualRegister(type);
+	bool floatingpoint = false;
 
 	s4 offset;
 	switch (type) {
@@ -562,9 +563,11 @@ void LoweringVisitor::visit(ALOADInst *I) {
 		break;
 	case Type::FloatTypeID:
 		offset = OFFSET(java_floatarray_t, data[0]);
+		floatingpoint = true;
 		break;
 	case Type::DoubleTypeID:
 		offset = OFFSET(java_doublearray_t, data[0]);
+		floatingpoint = true;
 		break;
 	case Type::ReferenceTypeID:
 		offset = OFFSET(java_objectarray_t, data[0]);
@@ -581,7 +584,8 @@ void LoweringVisitor::visit(ALOADInst *I) {
 	MachineInstruction *move = new MovModRMInst(
 		DstOp(vreg),
 		get_OperandSize_from_Type(type),
-		SrcModRM(modrm));
+		SrcModRM(modrm),
+		floatingpoint);
 	get_current()->push_back(move);
 	set_op(I,move->get_result().op);
 }
@@ -597,6 +601,7 @@ void LoweringVisitor::visit(ASTOREInst *I) {
 	Type::TypeID type = I->get_array_type();
 
 	s4 offset;
+	bool floatingpoint = false;
 	switch (type) {
 	case Type::ByteTypeID:
 		offset = OFFSET(java_bytearray_t, data[0]);
@@ -612,9 +617,11 @@ void LoweringVisitor::visit(ASTOREInst *I) {
 		break;
 	case Type::FloatTypeID:
 		offset = OFFSET(java_floatarray_t, data[0]);
+		floatingpoint = true;
 		break;
 	case Type::DoubleTypeID:
 		offset = OFFSET(java_doublearray_t, data[0]);
+		floatingpoint = true;
 		break;
 	default:
 		ABORT_MSG("x86_64 Lowering not supported",
@@ -628,7 +635,8 @@ void LoweringVisitor::visit(ASTOREInst *I) {
 	MachineInstruction *move = new MovModRMInst(
 		SrcOp(src_value),
 		get_OperandSize_from_Type(type),
-		DstModRM(modrm));
+		DstModRM(modrm),
+		floatingpoint);
 	get_current()->push_back(move);
 	set_op(I,move->get_result().op);
 }
@@ -645,7 +653,8 @@ void LoweringVisitor::visit(ARRAYLENGTHInst *I) {
 	MachineInstruction *move = new MovModRMInst(
 		DstOp(vreg),
 		get_OperandSize_from_Type(Type::IntTypeID),
-		SrcModRM(modrm));
+		SrcModRM(modrm),
+		false);
 	get_current()->push_back(move);
 	set_op(I,move->get_result().op);
 }
@@ -663,7 +672,8 @@ void LoweringVisitor::visit(ARRAYBOUNDSCHECKInst *I) {
 	MachineInstruction *move = new MovModRMInst(
 		DstOp(len),
 		get_OperandSize_from_Type(Type::IntTypeID),
-		SrcModRM(modrm));
+		SrcModRM(modrm),
+		false);
 	get_current()->push_back(move);
 	// compare with index
 	CmpInst *cmp = new CmpInst(

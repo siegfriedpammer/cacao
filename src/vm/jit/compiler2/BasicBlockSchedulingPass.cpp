@@ -33,7 +33,7 @@
 #include "vm/jit/compiler2/alloc/list.hpp"
 #include "vm/jit/compiler2/alloc/deque.hpp"
 
-#define DEBUG_NAME "compiler2/BasciBlockSchedulingPass"
+#define DEBUG_NAME "compiler2/BasicBlockSchedulingPass"
 
 #define VERIFY_LOOP_PROPERTY 1
 #define VERIFY_DOM_PROPERTY 1
