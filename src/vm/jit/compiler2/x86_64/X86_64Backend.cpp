@@ -66,6 +66,7 @@ MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *src,
 		MachineOperand* dst) const {
 	Type::TypeID type = dst->get_type();
 	assert(type == src->get_type());
+	assert(!(src->is_stackslot() && dst->is_stackslot()));
 	switch (type) {
 	case Type::ByteTypeID:
 	case Type::IntTypeID:
