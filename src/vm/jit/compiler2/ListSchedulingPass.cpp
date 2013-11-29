@@ -66,8 +66,8 @@ public:
 			if (lhs->to_BeginInst()) return false;
 			if (rhs->to_BeginInst()) return true;
 			// EndInst always last!
-			if (lhs->to_EndInst()) return true;
 			if (rhs->to_EndInst()) return false;
+			if (lhs->to_EndInst()) return true;
 			// PHIs right after BeginInst
 			if (lhs->to_PHIInst()) return false;
 			if (rhs->to_PHIInst()) return true;
@@ -99,7 +99,7 @@ struct FindLeader2 : public std::unary_function<Value*,void> {
 	void operator()(Value *value) {
 		Instruction *op = value->to_Instruction();
 		assert(op);
-		if (op && sched->get(I) == sched->get(op) && scheduled.find(op) == scheduled.end() ) {
+		if (op != I && sched->get(I) == sched->get(op) && scheduled.find(op) == scheduled.end() ) {
 			leader = false;
 		}
 	}
@@ -145,13 +145,14 @@ void ListSchedulingPass::schedule(BeginInst *BI) {
 	PriorityQueueTy ready(comp);
 	// Begin is always the first instruction
 	ready.push(BI);
+	LOG3(Cyan<<"BI: " << BI << reset_color << nl);
 	for(GlobalSchedule::const_inst_iterator i = sched->inst_begin(BI),
 			e = sched->inst_end(BI); i != e; ++i) {
 		Instruction *I = *i;
 		// BI is already in the queue
 		if (I->to_BeginInst() == BI)
 			continue;
-		//LOG("Instruction: " << I << nl);
+		LOG3("Instruction: " << I << nl);
 		//fill_ready(sched, ready, I);
 		bool leader = true;
 
@@ -174,6 +175,7 @@ void ListSchedulingPass::schedule(BeginInst *BI) {
 			continue;
 		}
 		inst_list.push_back(I);
+		LOG("insert: " << I << nl);
 		scheduled.insert(I);
 		// for all users
 		std::for_each(I->user_begin(), I->user_end(), FindLeader(scheduled,sched,ready,BI));
@@ -186,6 +188,7 @@ void ListSchedulingPass::schedule(BeginInst *BI) {
 		LOG(I<<nl);
 	}
 	#endif
+	assert( std::distance(inst_begin(BI),inst_end(BI)) == std::distance(sched->inst_begin(BI),sched->inst_end(BI)) );
 }
 
 bool ListSchedulingPass::run(JITData &JD) {
@@ -209,6 +212,23 @@ bool ListSchedulingPass::run(JITData &JD) {
 	return true;
 }
 
+bool ListSchedulingPass::verify() const {
+	for (Method::const_iterator i = M->begin(), e = M->end(); i!=e; ++i) {
+		Instruction *I = *i;
+		bool found = false;
+		for (Method::const_bb_iterator i = M->bb_begin(), e = M->bb_end(); i!=e; ++i) {
+			BeginInst *BI = *i;
+			if (std::find(inst_begin(BI),inst_end(BI),I) != inst_end(BI)) {
+				found = true;
+			}
+		}
+		if (!found) {
+			ERROR_MSG("Instruction not Scheduled!","Instruction: " << I);
+			return false;
+		}
+	}
+	return true;
+}
 PassUsage& ListSchedulingPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<ScheduleClickPass>();
 	return PU;

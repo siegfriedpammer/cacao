@@ -52,6 +52,7 @@ public:
 	ScheduleClickPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	virtual bool verify() const;
 };
 
 } // end namespace compiler2
