@@ -498,6 +498,39 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putDouble__JD(JNIEnv *env, jobject _
 
 
 /*
+ * Class:     sun_misc_Unsafe
+ * Method:    getAddress
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_sun_misc_Unsafe_getAddress (JNIEnv *env, jobject _this, jlong address)
+{
+	uintptr_t *p;
+	uintptr_t  value;
+
+	p = (uintptr_t *) (intptr_t) address;
+
+	value = *p;
+
+	return value;
+}
+
+
+/*
+ * Class:     sun_misc_Unsafe
+ * Method:    putAddress
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putAddress (JNIEnv *env, jobject _this, jlong address, jlong value)
+{
+	uintptr_t *p;
+
+	p = (uintptr_t *) (intptr_t) address;
+
+	*p = value;
+}
+
+
+/*
  * Class:     sun/misc/Unsafe
  * Method:    objectFieldOffset
  * Signature: (Ljava/lang/reflect/Field;)J
@@ -1309,6 +1342,8 @@ static JNINativeMethod methods[] = {
 	{ (char*) "putFloat",               (char*) "(JF)V",                                                      (void*) (uintptr_t) &Java_sun_misc_Unsafe_putFloat__JF                     },
 	{ (char*) "getDouble",              (char*) "(J)D",                                                       (void*) (uintptr_t) &Java_sun_misc_Unsafe_getDouble__J                     },
 	{ (char*) "putDouble",              (char*) "(JD)V",                                                      (void*) (uintptr_t) &Java_sun_misc_Unsafe_putDouble__JD                    },
+	{ (char*) "getAddress",             (char*) "(J)J",                                                       (void*) (uintptr_t) &Java_sun_misc_Unsafe_getAddress                       },
+	{ (char*) "putAddress",             (char*) "(Ljava/lang/Object;JJ)V",                                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_putAddress                       },
 	{ (char*) "objectFieldOffset",      (char*) "(Ljava/lang/reflect/Field;)J",                               (void*) (uintptr_t) &Java_sun_misc_Unsafe_objectFieldOffset                },
 	{ (char*) "allocateMemory",         (char*) "(J)J",                                                       (void*) (uintptr_t) &Java_sun_misc_Unsafe_allocateMemory                   },
 	// next two methods: OpenJDK 7
