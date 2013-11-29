@@ -23,6 +23,10 @@ template <>
 struct array<double> {
 	typedef java_doublearray_t type;
 };
+template <>
+struct array<float> {
+	typedef java_floatarray_t type;
+};
 
 
 template<typename T>

@@ -87,8 +87,16 @@ static long test_array_load(long test[], int index) {
   return test[index];
 }
 
+static float test_float_array_load(float test[], int index) {
+  return test[index];
+}
+
 static void test_array_store(long test[], int index, long value) {
   test[index] = value;
+}
+static void test_double_array_store(double test[]) {
+  for(int i = 0; i < test.length; ++i)
+    test[i] = (long)i;;
 }
 
 static long test_array(long test[]) {
@@ -510,6 +518,7 @@ static int test_float_cmp(float a, float b) {
             LUcolj[i] = LU[i][j];
          }
 
+         /*
          // Apply previous transformations.
 
          for (int i = 0; i < m; i++) {
@@ -548,6 +557,7 @@ static int test_float_cmp(float a, float b) {
                LU[i][j] /= LU[j][j];
             }
          }
+         */
       }
    }
 
