@@ -1584,16 +1584,64 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		break;
 
 				/* ?ASTORECONST (trinary/const INT) */
-			case ICMD_IASTORECONST:
+
 			case ICMD_BASTORECONST:
 			case ICMD_CASTORECONST:
 			case ICMD_SASTORECONST:
+			case ICMD_AASTORECONST:
+				goto _default;
+			case ICMD_IASTORECONST:
+			case ICMD_LASTORECONST:
+				{
+					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
+					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
+					Instruction *konst;
+					Type::TypeID type;
+					switch (iptr->opc) {
+					case ICMD_IASTORECONST:
+						type = Type::IntTypeID;
+						konst = new CONSTInst(iptr->sx.s23.s3.constval,Type::IntType());
+						break;
+					#if 0
+					case ICMD_BASTORECONST:
+						type = Type::ByteTypeID;
+						konst = new CONSTInst(iptr->sx.s23.s3.constval,Type::ByteType());
+						break;
+					case ICMD_CASTORECONST:
+						type = Type::CharTypeID;
+						konst = new CONSTInst(iptr->sx.s23.s3.constval,Type::CharType());
+						break;
+					case ICMD_SASTORECONST:
+						type = Type::ShortTypeID;
+						konst = new CONSTInst(iptr->sx.s23.s3.constval,Type::ShortType());
+						break;
+					case ICMD_AASTORECONST:
+						type = Type::ReferenceTypeID;
+						konst = new CONSTInst(iptr->sx.s23.s3.constval,Type::ReferenceType());
+						break;
+					#endif
+					case ICMD_LASTORECONST:
+						type = Type::LongTypeID;
+						konst = new CONSTInst(iptr->sx.s23.s3.constval,Type::LongType());
+						break;
+					default: assert(0);
+						type = Type::VoidTypeID;
+					}
+					M->add_Instruction(konst);
+					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
+					assert(state_change);
+					Instruction *result = new ASTOREInst(type, s1, s2, konst, BB[bbindex], state_change);
+					write_variable(global_state,bbindex,result);
+					M->add_Instruction(result);
+					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(type, s1, s2);
+					result->append_dep(boundscheck);
+					M->add_Instruction(boundscheck);
+				}
+				break;
 		//		SHOW_S1(OS, iptr);
 		//		SHOW_S2(OS, iptr);
 		//		SHOW_INT_CONST(OS, iptr->sx.s23.s3.constval);
 		//		break;
-
-				goto _default;
 
 			case ICMD_ICONST:
 			case ICMD_LCONST:
@@ -1699,7 +1747,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		break;
 
 				/* trinary/const LNG (<= pointer size) */
-			case ICMD_LASTORECONST:
 		//		SHOW_S1(OS, iptr);
 		//		SHOW_S2(OS, iptr);
 		//		SHOW_ADR_CONST(OS, iptr->sx.s23.s3.constval);
@@ -1721,7 +1768,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		SHOW_DST(OS, iptr);
 		//		break;
 
-			case ICMD_AASTORECONST:
 		//		SHOW_S1(OS, iptr);
 		//		SHOW_S2(OS, iptr);
 		//		printf("%p ", (void*) iptr->sx.s23.s3.constval);
