@@ -545,4 +545,64 @@ static int test_float_cmp(float a, float b) {
       }
    }
 
+
+/**
+ * @param left left matrix [3][rows][columns]
+ * @param right right matrix [3][rows][columns]
+ * @param data_term row * col * num_labels
+ * @param num_labels
+ */
+
+void createDisparity(int[][][] left, int[][][] right, int data_term[], int num_labels)
+{
+  int[][] left_r=left[0];
+  int[][] left_g=left[1];
+  int[][] left_b=left[2];
+
+  int[][] right_r=right[0];
+  int[][] right_g=right[1];
+  int[][] right_b=right[2];
+
+  int row_cnt=left_r.length;
+  int col_cnt=left_r[0].length;
+
+
+  // first set up the array for data costs
+  for(int y=0; y < row_cnt; y++) {
+    for(int x=0; x < col_cnt; x++) {
+      for (int l = 0; l < num_labels; l++ ) {
+        data_term[(y*col_cnt+x)*num_labels+l] = Integer.MAX_VALUE;
+      }
+    }
+  }
+
+
+  for(int y=0; y < row_cnt; y++) {
+    for(int x=0; x < col_cnt; x++) {
+      //search x2 only on left side of x
+      int x2start = x - num_labels;
+      if (x2start<0) {
+        x2start=0;
+      }
+
+      for(int x2 = x2start; x2 <= x; x2++) {
+        int posy = y;
+        int leftposx = x;
+        int rightposx = x2;
+        //don't use at-function, so i can debug an it is fast
+        int abs;
+        int sum = 0;
+        abs  = left_r[posy][leftposx] - right_r[posy][rightposx];
+        sum += (abs < 0 ? -abs : abs);
+        abs  = left_g[posy][leftposx] - right_g[posy][rightposx];
+        sum += (abs < 0 ? -abs : abs);
+        abs  = left_b[posy][leftposx] - right_b[posy][rightposx];
+        sum += (abs < 0 ? -abs : abs);
+
+        data_term[(y*col_cnt+x)*(num_labels)+(x-x2)] = sum;
+      }
+    }
+  }
+}
+
 }
