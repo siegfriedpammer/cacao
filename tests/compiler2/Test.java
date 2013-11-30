@@ -38,7 +38,7 @@ public static void main(String arg[]) {
  * @param B m*p matrix (input)
  * @param C n*p matrix (output, preallocated)
  */
-static void matrixMult(int A[][], int B[][], int AB[][]) {
+static void matMult(int A[][], int B[][], int AB[][]) {
   // sanity checks
   int n = A.length;
   int m = B.length;

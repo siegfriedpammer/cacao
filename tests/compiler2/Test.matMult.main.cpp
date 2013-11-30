@@ -3,7 +3,7 @@
 
 #include "MockArray.hpp"
 
-extern "C" void matrixMult(void*,void*,void*);
+extern "C" void matMult(void*,void*,void*);
 
 
 int main() {
@@ -42,7 +42,7 @@ int main() {
 		printf("\n");
 	}
 	printf("\n");
-	matrixMult(A,B,C);
+	matMult(A,B,C);
 	printf("result:\n");
 	for (int32_t i = 0; i < n; ++i) {
 		for (int32_t j = 0; j < p; ++j) {
