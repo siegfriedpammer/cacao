@@ -1545,8 +1545,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 				break;
 			case ICMD_IMULCONST:
 			case ICMD_IMULPOW2:
-			case ICMD_IREMPOW2:
 				goto _default;
+			case ICMD_IREMPOW2:
 			case ICMD_IDIVPOW2:
 				// FIXME we should lower this to a shift
 				// XXX it the constant the divisor or the shift amount?
@@ -1561,6 +1561,9 @@ bool SSAConstructionPass::run(JITData &JD) {
 						break;
 					case ICMD_IDIVPOW2:
 						result = new DIVInst(Type::IntTypeID, s1, konst);
+						break;
+					case ICMD_IREMPOW2:
+						result = new REMInst(Type::IntTypeID, s1, konst);
 						break;
 					default: assert(0);
 						result = NULL;
@@ -1626,6 +1629,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						break;
 					default: assert(0);
 						type = Type::VoidTypeID;
+						konst = NULL;
 					}
 					M->add_Instruction(konst);
 					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
