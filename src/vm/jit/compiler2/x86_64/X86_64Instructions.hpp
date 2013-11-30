@@ -531,7 +531,7 @@ public:
 		operands[Index].op = dst.op.index;
 		operands[Value].op = src.op;
 	}
-	virtual bool is_move() const { return true; }
+	//virtual bool is_move() const { return true; }
 	virtual void emit(CodeMemory* CM) const;
 	virtual OStream& print_operands(OStream &OS) const;
 	virtual OStream& print_result(OStream &OS) const;
