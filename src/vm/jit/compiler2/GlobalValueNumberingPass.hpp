@@ -26,12 +26,14 @@
 #define _JIT_COMPILER2_GLOBALVALUENUMBERINGPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
-#include "vm/jit/compiler2/Instruction.hpp"
-#include "future/unordered_map.hpp"
+#include "future/unordered_set.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+
+// forward declaration
+class Instruction;
 
 /**
  * GlobalValueNumberingPass
@@ -41,6 +43,7 @@ namespace compiler2 {
 class GlobalValueNumberingPass : public Pass {
 private:
 	typedef unordered_set<Instruction*> PartitionTy;
+	typedef unordered_set<PartitionTy*> PartitionListTy;
 public:
 	static char ID;
 	GlobalValueNumberingPass() : Pass() {}
