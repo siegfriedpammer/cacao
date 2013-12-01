@@ -92,7 +92,8 @@ libcompiler2_la_SOURCES = \
 	Value.cpp \
 	VerifierPass.cpp \
 	DeadcodeEliminationPass.cpp \
-	ConstantPropagationPass.cpp
+	ConstantPropagationPass.cpp \
+	GlobalValueNumberingPass.cpp
 
 libcompiler2_la_LIBADD = \
 	$(ARCH_DIR)/lib$(ARCH_DIR).la

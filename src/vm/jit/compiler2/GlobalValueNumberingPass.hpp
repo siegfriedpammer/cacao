@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_GLOBALVALUENUMBERINGPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/Instruction.hpp"
 #include "future/unordered_map.hpp"
 
 namespace cacao {

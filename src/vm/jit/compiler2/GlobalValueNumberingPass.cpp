@@ -38,8 +38,6 @@ namespace jit {
 namespace compiler2 {
 
 bool GlobalValueNumberingPass::run(JITData &JD) {
-	Method *M = JD.get_Method();
-
 	return true;
 }
 
