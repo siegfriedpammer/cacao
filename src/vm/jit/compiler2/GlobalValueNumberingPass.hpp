@@ -26,14 +26,14 @@
 #define _JIT_COMPILER2_GLOBALVALUENUMBERINGPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/Method.hpp"
+#include "vm/jit/compiler2/Instruction.hpp"
 #include "future/unordered_set.hpp"
+#include "future/unordered_map.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
-
-// forward declaration
-class Instruction;
 
 /**
  * GlobalValueNumberingPass
@@ -43,7 +43,24 @@ class Instruction;
 class GlobalValueNumberingPass : public Pass {
 private:
 	typedef unordered_set<Instruction*> PartitionTy;
-	typedef unordered_set<PartitionTy*> PartitionListTy;
+	typedef std::list<PartitionTy*> PartitionListTy;
+	typedef unordered_map<PartitionTy*,bool> PartitionBoolMapTy;
+	typedef unordered_map<Instruction::InstID,PartitionTy*,hash<int> > OpcodePartitionMapTy;
+	typedef unordered_map<int,PartitionTy*> IntPartitionMapTy;
+	typedef unordered_map<long,PartitionTy*> LongPartitionMapTy;
+	
+	static void init_partitions(Method::const_iterator begin,
+		Method::const_iterator end, PartitionListTy &partitions);
+	
+	template<typename InputIterator>
+	static void add_partitions_from_map(PartitionListTy &partitionList, InputIterator begin, InputIterator end) {
+		for (InputIterator i = begin,
+				e = end; i != e; i++) {
+			PartitionTy *partition = (*i).second;
+			partitionList.push_back(partition);
+		}
+	}
+
 public:
 	static char ID;
 	GlobalValueNumberingPass() : Pass() {}
