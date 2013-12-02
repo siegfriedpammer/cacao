@@ -155,7 +155,8 @@ bool ConstantPropagationPass::run(JITData &JD) {
 		workList.pop_front();
 		inWorkList[I] = false;
 
-		if (constantOperands[I] == I->op_size()) {
+		if ((I->op_size() > 0 && constantOperands[I] == I->op_size())
+				|| I->get_opcode() == Instruction::CONSTInstID) {
 			for (Value::UserListTy::const_iterator i = I->user_begin(),
 					e = I->user_end(); i != e; i++) {
 				Instruction *user = *i;
