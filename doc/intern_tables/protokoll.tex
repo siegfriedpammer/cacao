@@ -249,7 +249,7 @@
 
 	If you want to overwrite an already existing entry use the \cpp{update} function.
 		\begin{lstlisting}
-			template<typename T> Entry& insert(const T& t);
+			template<typename T> Entry& update(const T& t);
 		\end{lstlisting}
 	Where \cpp{T} must be a valid parameter for \cpp{insert()}. 
 
@@ -287,7 +287,7 @@
 	For searching entries it uses the same probing strategy as the hash table in CPython\cite{pydict}.
 	This strategy initially jumps around the table in large strides but after around six hash collisions, twelve with a 64bit CPU,
 	it devolves into a linear search.
-	This initial jumps minimize collisions for nearly equal hashes and the linear search guarantees that all slots of the table 
+	These initial jumps minimize collisions for nearly equal hashes, and the linear search guarantees that all slots of the table 
 	are searched.
 
 	The size of the internal array is always a power of two so expensive modulo operations can be replaced with a bitwise \emph{and}.
@@ -304,13 +304,13 @@
 	The table used for intering UTF-8 and Java strings was changed to use the new \cpp{HashTable} template.
 	Furthermore a technique from OpenJDKs ConcurrentHashMap\cite{ConcurrentHashMap} is used to allow multiple threads
 	to access the table at the same time.
-	To make this possible each intern table is actually split into sub tables, each protected by its own lock.
+	To make this possible, each intern table is actually split into sub tables, each protected by its own lock.
 	So the number of threads that can concurrently intern is equal to the number of sub tables.
 	When using $N$ sub tables the right table for an entry with hash $h$ is just $h\%N$, we make sure that $N$ is always a 
 	power of two, so we are able to lower the modulo to a bitwise \emph{and}.
 	Currently $N$ is set to four.
 	Experiments with the DaCapo benchmark suite\cite{DaCapo} have shown that even with this simple strategy entries are distributed 
-	very equally accross the sub tables.
+	very equally across the sub tables.
 
 \subsection{Lazy string interning}
 	String constants in a Java class files are stored as UTF-8 encoded strings, but at runtime they are expected to be converted to a 
@@ -367,7 +367,7 @@
 	The basic building block of the API is the \cpp{OStream} class, 
 	this class is designed for debugging, thus usability trumps performance.
 	It mostly mimics the \cpp{iostream}s library, but requires no global constructors, 
-	internally everything is forwarded to stdio
+	internally everything is forwarded to stdio.
 
 	Output is written to a stream via the operator \cpp{<<}, you can provide custom formatting 
 	for your own types by overloading this operator.
@@ -413,7 +413,7 @@
 
 			os2 << mlp.color;
 			os2 << "I am called " << setw(20) << right << me.name;
-			os2 << "and i am " << hex << me.age << " years old";
+			os2 << " and i am " << hex << me.age << " years old";
 
 			// Forgot to unset hex flag for os2, no problem, hex flag is not shared
 			// Forgot to unset color flag, big problem, colors are shared!
@@ -422,7 +422,7 @@
 		}
 		\end{lstlisting}
 
-	To facilitate logging our library also provides a number of macros based on Josef Eisls \cpp{DEBUG} macros.
+	To facilitate logging our library also provides a number of macros based on Josef Eisl's \cpp{DEBUG} macros.
 	To start using the framework you must define a name for your current subsystem,
 	every logged line will be prefixed with that name.
 		\begin{lstlisting}
@@ -478,7 +478,7 @@
 			                                     // copy of the Buffer
 
 			Utf8String u = buf.utf8_str(); // obtains an interned copy 
-			                               // of the buffers contents
+			                               // of the buffer's contents
 		\end{lstlisting}
 
 \subsection{JVM type descriptor parsing}
@@ -570,7 +570,7 @@
 \subsection{Removal of old code}
 	In the course of my project I also removed some broken or obsolete subsystems of Cacao.
 	Namely, support for JIT passes written in python, the VMLOG logging framework and 
-	support for architectures with a separate address register file, i.e. the motorola m68k
+	support for architectures with a separate address register file, i.e. the motorola m68k.
 
 \clearpage
 
@@ -591,7 +591,7 @@
 		\item[validate] checks if the given strings is valid UTF-8.
 		\item[count]    counts the number of UTF-16 codepoints in a UTF-8 string.
 		\item[decode]   decodes a UTF-8 string to a UTF-16 string.
-		                The only decoder test were the cleanup lead to a minor performance improvement.
+		                The only decoder test where the cleanup lead to a minor performance improvement.
 	\end{itemize}
 
 	\includegraphics{utf8-decoder.png}
@@ -615,7 +615,6 @@
 
 \section{Java string interning}
 	In this benchmark \java{java.lang.String} objects were created from already validated \cpp{Utf8String}s.
-
 	This test was again run with a different number of threads and concurrency factors.
 
 	\includegraphics{jstr-intern-time.png}
@@ -631,7 +630,7 @@
 		The CONSTANT\_Utf8\_info Structure, §4.4.7 in the \emph{The Java® Virtual Machine Specification}.
 		\url{http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.4.7} (Oct 2013)
 	\bibitem{utf8decoder}
-		Björn Höhrmann,
+		Björn Höhrmann,%broken charset? -- at least for me, the Umlauts disappear
 		Flexible and Economical UTF-8 Decoder.
 		\url{http://bjoern.hoehrmann.de/utf-8/decoder/dfa/} (Oct 2013)
 	\bibitem{pydict}
