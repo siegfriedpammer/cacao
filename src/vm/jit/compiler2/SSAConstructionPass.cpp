@@ -43,7 +43,10 @@
 #define DEBUG_NAME "compiler2/SSAConstruction"
 
 STAT_DECLARE_GROUP(compiler2_stat)
-STAT_REGISTER_GROUP_VAR(int,num_trivial_phis,0,"# trivial phis","number of trivial phis",compiler2_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_trivial_phis,0,"# trivial phis","number of trivial phis",compiler2_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_icmd_inst,0,"icmd instructions",
+	"ICMD instructions processed (by the compiler2)",compiler2_stat)
+
 
 namespace cacao {
 
@@ -1158,6 +1161,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 		current_def[global_state][bbindex] = BB[bbindex];
 
 		FOR_EACH_INSTRUCTION(bb,iptr) {
+			STATISTICS(++num_icmd_inst);
 			#if !defined(NDEBUG)
 			LOG("iptr: " << icmd_table[iptr->opc].name << nl);
 			#endif
