@@ -59,6 +59,96 @@ static void matMult(int A[][], int B[][], int AB[][]) {
   }
 }
 
+
+static void norm(double A[][]) {
+  // sanity checks
+  int n = A.length;
+  if (n == 0) return;
+  int m = A[0].length;
+  if (m == 0) return;
+
+  double sum = 0;
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < m; ++j) {
+      sum += A[i][j];
+    }
+  }
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < m; ++j) {
+      A[i][j] /= sum;
+    }
+  }
+
+}
+
+static void matAdd(int A[][], int B[][], int AB[][]) {
+  // sanity checks
+  int n = A.length;
+  int m = B.length;
+  if (n == 0 || m == 0) return;
+  if (A[0].length != m) return;
+  int p = B[0].length;
+  if (AB.length != n) return;
+  if (AB[0].length != p) return;
+
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < p; ++j) {
+      AB[i][j] = A[i][j] + B[i][j];
+    }
+  }
+}
+
+/**
+ * @param list a [n]
+ * @param result result [n!][n]
+ */
+static void permut(int a[], int p[], int result[][]) {
+    // Print initial string, as only the alterations will be printed later
+    int n = a.length;
+    int i = 1;
+    int c = 0;
+    while (i < n) {
+        if (p[i] < i) {
+            int j = ((i & 1) == 0) ? 0 : p[i];
+            int tmp = a[i];
+            a[i] = a[j];
+            a[j] = tmp;
+            // result
+            for(int k = 0; k < n; k++) {
+              result[c][k] = a[k];
+            }
+            c++;
+
+            p[i]++;
+            i = 1;
+        }
+        else {
+            p[i] = 0;
+            i++;
+        }
+    }
+}
+
+public static void main(String[] args) {
+  int n = 4;
+  int list[] = new int[n];
+  int[] p = new int[n];  // Index control array initially all zeros
+  int result[][] = new int[(int)fact(n)][n];
+
+
+  for (int i = 0; i < list.length; i ++)
+    list[i] = i;
+
+  permut(list,p,result);
+
+  for (int i = 0; i < result.length; i ++) {
+    for (int j = 0; j < result[i].length; j ++) {
+      System.out.print(result[i][j]+" ");
+    }
+    System.out.println();
+  }
+}
+
 static int test_array_2dim_load(int test[][], int i, int j) {
 	return test[i][j];
 }
@@ -670,7 +760,7 @@ void createDisparity(
     }
     return res_index;
   }
-
+/*
   public static void main(String[] args) {
     char[] pattern_c = (new String("ana")).toCharArray();
     char[] text_c = (new String("bananas")).toCharArray();
@@ -689,5 +779,5 @@ void createDisparity(
     for (int i = 0; i < num_matches; i ++)
       System.out.println("Match at: " + matches[i]);
   }
-
+*/
 }
