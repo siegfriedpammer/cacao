@@ -47,42 +47,51 @@ private:
 	typedef std::pair<PartitionTy*,int> WorkListPairTy;
 	typedef std::list<WorkListPairTy*> WorkListTy;
 	typedef unordered_map<PartitionTy*,std::vector<bool>* > InWorkListTy;
-	typedef unordered_map<Instruction*,PartitionTy> Inst2PartitionMapTy;
+	typedef unordered_map<Instruction*,PartitionTy*> Inst2PartitionMapTy;
 
+	/// these types are needed for the creation of the inital partitions
 	typedef unordered_map<Instruction::InstID,PartitionTy*,hash<int> > OpcodePartitionMapTy;
 	typedef unordered_map<int,PartitionTy*> IntPartitionMapTy;
 	typedef unordered_map<long,PartitionTy*> LongPartitionMapTy;
 
+	typedef std::list<Instruction*> TouchedInstListTy;
+	typedef unordered_map<PartitionTy*,TouchedInstListTy*> Partition2TouchedInstListMapTy;
+
 	int max_arity;
 	PartitionVectorTy partitions;
 	Inst2PartitionMapTy inst2PartitionMap;
+	Partition2TouchedInstListMapTy partition2TouchedInstListMap;
 	
 	InWorkListTy inWorkList;
 	WorkListTy workList;
-//	PartitionBoolMapTy isTouched;
 
+	PartitionTy *create_partition();
 	void init_partitions(Method::const_iterator begin,
 		Method::const_iterator end);
 	void init_worklist_and_touchedpartitions();
+	void add_to_partition(PartitionTy *partition, Instruction *inst);
 
+	void add_to_worklist(PartitionTy *partition, int operandIndex);
 	std::vector<bool> *get_worklist_flags(PartitionTy *partition);
 	void set_in_worklist(PartitionTy *partition, int index, bool flag);
 	bool is_in_worklist(PartitionTy *partition, int index);
 	WorkListPairTy *selectAndDeleteFromWorkList();
-	
-	template<typename InputIterator>
-	static void add_partitions_from_map(PartitionVectorTy &partitions,
-			InputIterator begin, InputIterator end) {
-		for (InputIterator i = begin,
-				e = end; i != e; i++) {
-			PartitionTy *partition = (*i).second;
-			partitions.push_back(partition);
-		}
-	}
 
+	TouchedInstListTy *get_touched_instructions(PartitionTy *partition);
+	PartitionTy *get_partition(Instruction *inst);
+
+	void split(PartitionTy *partition, TouchedInstListTy *instructions);
+
+	void print_partition(PartitionTy *partition);
+	void print_partitions();
+	void print_instructions(TouchedInstListTy *instructions);
+	
 	static int arity(PartitionTy *partition);
 	static int compute_max_arity(Method::const_iterator begin,
 								Method::const_iterator end);
+
+	void consolidate_partitions();
+	void consolidate_partition(PartitionTy *partition);
 public:
 	static char ID;
 	GlobalValueNumberingPass() : Pass() {}
