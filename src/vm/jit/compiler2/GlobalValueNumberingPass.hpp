@@ -43,24 +43,46 @@ namespace compiler2 {
 class GlobalValueNumberingPass : public Pass {
 private:
 	typedef unordered_set<Instruction*> PartitionTy;
-	typedef std::list<PartitionTy*> PartitionListTy;
-	typedef unordered_map<PartitionTy*,bool> PartitionBoolMapTy;
+	typedef std::vector<PartitionTy*> PartitionVectorTy;
+	typedef std::pair<PartitionTy*,int> WorkListPairTy;
+	typedef std::list<WorkListPairTy*> WorkListTy;
+	typedef unordered_map<PartitionTy*,std::vector<bool>* > InWorkListTy;
+	typedef unordered_map<Instruction*,PartitionTy> Inst2PartitionMapTy;
+
 	typedef unordered_map<Instruction::InstID,PartitionTy*,hash<int> > OpcodePartitionMapTy;
 	typedef unordered_map<int,PartitionTy*> IntPartitionMapTy;
 	typedef unordered_map<long,PartitionTy*> LongPartitionMapTy;
+
+	int max_arity;
+	PartitionVectorTy partitions;
+	Inst2PartitionMapTy inst2PartitionMap;
 	
-	static void init_partitions(Method::const_iterator begin,
-		Method::const_iterator end, PartitionListTy &partitions);
+	InWorkListTy inWorkList;
+	WorkListTy workList;
+//	PartitionBoolMapTy isTouched;
+
+	void init_partitions(Method::const_iterator begin,
+		Method::const_iterator end);
+	void init_worklist_and_touchedpartitions();
+
+	std::vector<bool> *get_worklist_flags(PartitionTy *partition);
+	void set_in_worklist(PartitionTy *partition, int index, bool flag);
+	bool is_in_worklist(PartitionTy *partition, int index);
+	WorkListPairTy *selectAndDeleteFromWorkList();
 	
 	template<typename InputIterator>
-	static void add_partitions_from_map(PartitionListTy &partitionList, InputIterator begin, InputIterator end) {
+	static void add_partitions_from_map(PartitionVectorTy &partitions,
+			InputIterator begin, InputIterator end) {
 		for (InputIterator i = begin,
 				e = end; i != e; i++) {
 			PartitionTy *partition = (*i).second;
-			partitionList.push_back(partition);
+			partitions.push_back(partition);
 		}
 	}
 
+	static int arity(PartitionTy *partition);
+	static int compute_max_arity(Method::const_iterator begin,
+								Method::const_iterator end);
 public:
 	static char ID;
 	GlobalValueNumberingPass() : Pass() {}

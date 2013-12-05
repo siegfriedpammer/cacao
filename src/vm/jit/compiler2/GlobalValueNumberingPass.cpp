@@ -40,8 +40,7 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-void GlobalValueNumberingPass::init_partitions(Method::const_iterator begin, Method::const_iterator end,
-	PartitionListTy &partitions) {
+void GlobalValueNumberingPass::init_partitions(Method::const_iterator begin, Method::const_iterator end) {
 
 	// for each opcode which should be used for value numbering we will
 	// create an initial partition, holding all the nodes belonging to
@@ -93,36 +92,102 @@ void GlobalValueNumberingPass::init_partitions(Method::const_iterator begin, Met
 		}
 	}
 
-	// after having created the inital partitions for each opcode, we have
-	// to add them to the passed partition list
 	add_partitions_from_map(partitions, opcodeToPartition.begin(), opcodeToPartition.end());
 	add_partitions_from_map(partitions, longToPartition.begin(), longToPartition.end());
+}
+
+int GlobalValueNumberingPass::arity(PartitionTy *partition) {
+	PartitionTy::const_iterator i = partition->begin();
+	Instruction *I = *i;
+	return I->op_size();
+}
+
+int GlobalValueNumberingPass::compute_max_arity(Method::const_iterator begin,
+		Method::const_iterator end) {
+	int max = 0;
+	for (Method::const_iterator i = begin, e = end; i != e; i++) {
+		Instruction *I = *i;
+		if (I->op_size() > max) {
+			max = I->op_size();
+		}
+	}
+	return max;
+}
+
+void GlobalValueNumberingPass::init_worklist_and_touchedpartitions() {	
+	for (PartitionVectorTy::const_iterator i = partitions.begin(),
+			e = partitions.end(); i != e; i++) {
+		PartitionTy *partition = *i;
+
+		for (int operandIndex = 0; operandIndex < max_arity; operandIndex++) {
+			// create new work list pair
+			WorkListPairTy *pair = new WorkListPairTy();
+			pair->first = partition;
+			pair->second = operandIndex;
+			workList.push_back(pair);
+
+			// mark work list pair
+			set_in_worklist(partition, operandIndex, true);
+		}
+	}
+}
+
+std::vector<bool> *GlobalValueNumberingPass::get_worklist_flags(PartitionTy *partition) {
+	std::vector<bool> *flags = inWorkList[partition];
+	if (!flags) {
+		flags = new std::vector<bool>(max_arity);
+		inWorkList[partition] = flags;
+	}
+	return flags;
+}
+
+void GlobalValueNumberingPass::set_in_worklist(PartitionTy *partition, int index, bool flag) {
+	std::vector<bool> *flags = get_worklist_flags(partition);
+	(*flags)[index] = flag;
+}
+
+bool GlobalValueNumberingPass::is_in_worklist(PartitionTy *partition, int index) {
+	std::vector<bool> *flags = get_worklist_flags(partition);
+	return (*flags)[index];
+}
+
+GlobalValueNumberingPass::WorkListPairTy *GlobalValueNumberingPass::selectAndDeleteFromWorkList() {
+	WorkListPairTy *pair = workList.front();
+	workList.pop_front();
+	set_in_worklist(pair->first, pair->second, false);
+	return pair;
 }
 
 bool GlobalValueNumberingPass::run(JITData &JD) {
 	Method *M = JD.get_Method();
 
-	// start with partitions for operator types
-	PartitionListTy partitions;
-	init_partitions(M->begin(), M->end(), partitions);
-	
-	PartitionBoolMapTy inWorkList;
-	std::list<PartitionTy*> workList;
-
-	// init work list
-	for (PartitionListTy::const_iterator i = partitions.begin(),
-			e = partitions.end(); i != e; i++) {
-		PartitionTy *partition = *i;
-		workList.push_back(partition);
-		inWorkList[partition] = true;
-	}
+	max_arity = compute_max_arity(M->begin(), M->end());
+	init_partitions(M->begin(), M->end());
+	init_worklist_and_touchedpartitions();
 
 	while (!workList.empty()) {
-		PartitionTy *partition = workList.front();
-		workList.pop_front();
-		inWorkList[partition] = false;
-		
-		LOG("partition" << nl);
+		WorkListPairTy *workListPair = selectAndDeleteFromWorkList();
+		PartitionTy *partition = workListPair->first;
+		int operatorIndex = workListPair->second;
+		delete workListPair;
+
+//		// get the partition for the given partition id
+//		PartitionTy *partition = partitions[partitionID];
+//
+//		std::list<PartitionIDTy> touched;
+//		for (PartitionTy::const_iterator i = partition.begin(),
+//				e = partition.end(); i != e; i++) {
+//			Instruction *I = *i;
+//			// TODO: insepct users of I
+//		}
+//
+//		for (std::list<PartitionIDTy>::const_iterator i = touched.begin(),
+//				e = touched.end(); i != e; i++) {
+//			// TODO: split partitions
+//		}
+
+		// just some log output
+		LOG("partition for operator " << operatorIndex << nl);
 		for (PartitionTy::const_iterator i = partition->begin(),
 				e = partition->end(); i != e; i++) {
 			Instruction *I = *i;
