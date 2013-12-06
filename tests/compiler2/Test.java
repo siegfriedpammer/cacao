@@ -149,6 +149,11 @@ public static void main(String[] args) {
   }
 }
 
+static long test_gvn_constant() {
+    long a = 1 + c;
+    return 1 + a;
+}
+
 static int test_array_2dim_load(int test[][], int i, int j) {
 	return test[i][j];
 }

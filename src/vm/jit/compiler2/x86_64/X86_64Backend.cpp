@@ -874,6 +874,13 @@ void LoweringVisitor::visit(INVOKESTATICInst *I) {
 	}
 	#endif
 }
+namespace {
+
+inline bool is_floatingpoint(Type::TypeID type) {
+	return type == Type::DoubleTypeID || type == Type::FloatTypeID;
+}
+
+} // end anonymous namespace
 
 void LoweringVisitor::visit(GETSTATICInst *I) {
 	assert(I);
@@ -911,7 +918,15 @@ void LoweringVisitor::visit(GETSTATICInst *I) {
 	}
 	VirtualRegister *addr = new VirtualRegister(Type::ReferenceTypeID);
 	MovDSEGInst *dmov = new MovDSEGInst(DstOp(addr),idx);
-	MachineInstruction* mov = get_Backend()->create_Move(addr,new VirtualRegister(I->get_type()));
+	MachineOperand *vreg = new VirtualRegister(I->get_type());
+	ModRMOperand modrm( (BaseOp(addr)) );
+
+	MachineInstruction *mov = new MovModRMInst(
+		DstOp(vreg),
+		get_OperandSize_from_Type(I->get_type()),
+		SrcModRM(modrm),
+		is_floatingpoint(I->get_type()));
+
 	get_current()->push_back(dmov);
 	get_current()->push_back(mov);
 	set_op(I,mov->get_result().op);
