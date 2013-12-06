@@ -54,7 +54,7 @@ private:
 	typedef unordered_map<int,PartitionTy*> IntPartitionMapTy;
 	typedef unordered_map<long,PartitionTy*> LongPartitionMapTy;
 
-	typedef std::list<Instruction*> TouchedInstListTy;
+	typedef unordered_set<Instruction*> TouchedInstListTy;
 	typedef unordered_map<PartitionTy*,TouchedInstListTy*> Partition2TouchedInstListMapTy;
 
 	int max_arity;

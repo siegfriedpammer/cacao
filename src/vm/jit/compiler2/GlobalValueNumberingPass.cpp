@@ -205,6 +205,8 @@ GlobalValueNumberingPass::get_partition(Instruction *inst) {
 void GlobalValueNumberingPass::split(PartitionTy *partition, TouchedInstListTy *instructions) {
 	PartitionTy *new_partition = create_partition();
 
+	assert(partition->size() > instructions->size());
+
 	// remove the given instructions from the given partition and move them 
 	// to the new one
 	for (TouchedInstListTy::const_iterator i = instructions->begin(),
@@ -262,7 +264,7 @@ bool GlobalValueNumberingPass::run(JITData &JD) {
 					if (userPartition) {
 						touched.push_back(userPartition);
 						TouchedInstListTy *touchedInstructions = get_touched_instructions(userPartition);
-						touchedInstructions->push_back(user); // TODO: check possible duplicates
+						touchedInstructions->insert(user); // TODO: check possible duplicates
 					}
 				}
 			}
@@ -277,10 +279,10 @@ bool GlobalValueNumberingPass::run(JITData &JD) {
 
 			if (touchedInstructions->size() > 0
 					&& touchedPartition->size() != touchedInstructions->size()) {
-//				LOG("split partition (" << touchedPartition->size() << ", " << touchedInstructions->size() << ")" << nl);
-//				print_partition(touchedPartition);
-//				LOG("remove" << nl);
-//				print_instructions(touchedInstructions);
+				LOG("split partition (" << touchedPartition->size() << ", " << touchedInstructions->size() << ")" << nl);
+				print_partition(touchedPartition);
+				LOG("remove" << nl);
+				print_instructions(touchedInstructions);
 				split(touchedPartition, touchedInstructions);
 			}
 			touchedInstructions->clear();
