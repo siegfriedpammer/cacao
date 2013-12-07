@@ -50,7 +50,8 @@ TESTS = sample \
 	future_algorithm \
 	future_memory \
 	future_unordered \
-	logging_test
+	logging_test \
+	buffer_test
 
 check_PROGRAMS = $(TESTS)
 
