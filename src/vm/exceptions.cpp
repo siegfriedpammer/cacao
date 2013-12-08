@@ -1513,7 +1513,7 @@ extern "C" void *exceptions_handle_exception(java_object_t *xptro, void *xpc, vo
 
 			/* resolve or load/link the exception class */
 
-			if (IS_CLASSREF(cr)) {
+			if (cr.is_classref()) {
 				/* The exception class reference is unresolved. */
 				/* We have to do _eager_ resolving here. While the
 				   class of the exception object is guaranteed to be

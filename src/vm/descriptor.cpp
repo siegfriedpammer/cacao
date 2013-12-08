@@ -25,27 +25,29 @@
 #include "vm/descriptor.hpp"
 #include "config.h"                     // for ENABLE_JIT
 
-#include <cassert>
-#include <new>                          // for operator new
+#include <cassert>                      // for assert
+#include <cstdarg>                      // for va_end, va_list, va_start
 
-#include "mm/dumpmemory.hpp"            // for DumpMemory
+#include "mm/memory.hpp"                // for MNEW, MMOVE
 
 #include "threads/mutex.hpp"            // for Mutex
 
-#include "toolbox/buffer.hpp"
-#include "toolbox/logging.hpp"
+#include "toolbox/OStream.hpp"          // for OStream
+#include "toolbox/buffer.hpp"           // for Buffer
+#include "toolbox/logging.hpp"          // for LOG
 
-#include "vm/class.hpp"                 // for classinfo
 #include "vm/exceptions.hpp"
 #include "vm/global.hpp"                // for Type::TYPE_ADR, etc
 #include "vm/options.hpp"
-#include "vm/primitive.hpp"
-#include "vm/references.hpp"            // for parseddesc_t, etc
+#include "vm/primitive.hpp"             // for PrimitiveType, etc
+#include "vm/references.hpp"            // for constant_classref
 #include "vm/types.hpp"                 // for u4, u1, s4, s2, u2
-#include "vm/utf8.hpp"                  // for Utf8String, etc
+#include "vm/utf8.hpp"                  // for Utf8String, operator<<, etc
 #include "vm/vm.hpp"                    // for vm_abort
 
 #include "vm/jit/abi.hpp"               // for md_param_alloc, etc
+
+struct classinfo;
 
 using namespace cacao;
 
@@ -635,7 +637,7 @@ constant_classref *DescriptorPool::create_classrefs(s4 *count)
 	// fill the constant_classref structs
 
 	for (ClassrefHash::Iterator it = classrefhash.begin(), end = classrefhash.end(); it != end; ++it) {
-		CLASSREF_INIT(classrefs[it->value()], referer, it->key());
+		classrefs[it->value()].init(referer, it->key());
 	}
 
 	if (count)

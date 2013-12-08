@@ -1619,7 +1619,7 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 			return false;
 
 		/* XXX This should be done better. */
-		tc = resolve_classref_or_classinfo_eager(CLASSREF_OR_CLASSINFO(cr), false);
+		tc = resolve_classref_or_classinfo_eager(to_classref_or_classinfo(cr), false);
 
 		if (tc == NULL) {
 			resolve_handle_pending_exception(true);
@@ -1656,7 +1656,7 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 			return false;
 
 		/* XXX This should be done better. */
-		tc = resolve_classref_or_classinfo_eager(CLASSREF_OR_CLASSINFO(cr), false);
+		tc = resolve_classref_or_classinfo_eager(to_classref_or_classinfo(cr), false);
 
 		if (tc == NULL) {
 			resolve_handle_pending_exception(true);
@@ -2067,8 +2067,8 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 
 	classrefs = MNEW(constant_classref, 2);
 
-	CLASSREF_INIT(classrefs[0], c, c->name);
-	CLASSREF_INIT(classrefs[1], c, utf8::java_lang_Object);
+	classrefs[0].init(c, c->name);
+	classrefs[1].init(c, utf8::java_lang_Object);
 
 	/* create descriptor for clone method */
 	/* we need one paramslot which is reserved for the 'this' parameter */

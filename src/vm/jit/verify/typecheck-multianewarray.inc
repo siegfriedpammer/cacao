@@ -79,7 +79,7 @@
 #endif /* !defined(TYPECHECK_TYPEINFERER) */
 
 		/* set the array type of the result */
-		if (!typeinfo_init_class(&(dv->typeinfo),CLASSREF_OR_CLASSINFO(cr)))
+		if (!typeinfo_init_class(&(dv->typeinfo),to_classref_or_classinfo(cr)))
 			return false;
 	}
 

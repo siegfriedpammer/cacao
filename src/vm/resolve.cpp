@@ -313,7 +313,7 @@ bool resolve_classref(methodinfo *refmethod,
 					  bool link,
 					  classinfo **result)
 {
-	return resolve_classref_or_classinfo(refmethod,CLASSREF_OR_CLASSINFO(ref),mode,checkaccess,link,result);
+	return resolve_classref_or_classinfo(refmethod,to_classref_or_classinfo(ref),mode,checkaccess,link,result);
 }
 
 /* resolve_classref_or_classinfo ***********************************************
@@ -345,7 +345,7 @@ bool resolve_classref(methodinfo *refmethod,
        true.............everything ok 
                         (*result may still be NULL for resolveLazy)
        false............an exception has been thrown
-   
+
 *******************************************************************************/
 
 bool resolve_classref_or_classinfo(methodinfo *refmethod,
@@ -357,20 +357,20 @@ bool resolve_classref_or_classinfo(methodinfo *refmethod,
 {
 	classinfo         *c;
 	classinfo         *referer;
-	
+
 	assert(cls.any);
 	assert(mode == resolveEager || mode == resolveLazy);
 	assert(result);
 
 #ifdef RESOLVE_VERBOSE
 	printf("resolve_classref_or_classinfo(");
-	utf_fprint_printable_ascii(stdout,(IS_CLASSREF(cls)) ? cls.ref->name : cls.cls->name);
+	utf_fprint_printable_ascii(stdout, CLASSREF_OR_CLASSINFO_NAME(cls));
 	printf(",%i,%i,%i)\n",mode,(int)checkaccess,(int)link);
 #endif
 
 	*result = NULL;
 
-	if (IS_CLASSREF(cls)) {
+	if (cls.is_classref()) {
 		/* we must resolve this reference */
 
 		/* determine which class to use as the referer */
@@ -488,7 +488,7 @@ bool resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, class
 	if (d->type == TYPE_ADR) {
 		/* a reference type */
 		assert(d->classref);
-		if (!resolve_classref_or_classinfo(NULL,CLASSREF_OR_CLASSINFO(d->classref),
+		if (!resolve_classref_or_classinfo(NULL,to_classref_or_classinfo(d->classref),
 										   resolveEager,checkaccess,link,&cls))
 			return false; /* exception */
 	}
@@ -599,7 +599,7 @@ check_again:
 		return resolveFailed; /* failed, exception is already set */
 
 	if (r == typecheck_MAYBE) {
-		assert(IS_CLASSREF(supertype));
+		assert(supertype.is_classref());
 		if (mode == resolveEager) {
 			if (!resolve_classref_or_classinfo(refmethod,supertype,
 											   resolveEager,false,true,
@@ -734,7 +734,7 @@ static resolve_result_t resolve_lazy_subtype_checks(methodinfo *refmethod,
 				/* a merge of array types */
 				/* the merged list contains the possible _element_ types, */
 				/* so we have to create array types with these elements.  */
-				if (IS_CLASSREF(c)) {
+				if (c.is_classref()) {
 					c.ref = class_get_classref_multiarray_of(subtinfo->dimension,c.ref);
 				}
 				else {
@@ -829,7 +829,7 @@ static resolve_result_t resolve_and_check_subtype_set(methodinfo *refmethod,
 #if defined(RESOLVE_VERBOSE)
 	printf("resolve_and_check_subtype_set:\n");
 	unresolved_subtype_set_debug_dump(ref, stdout);
-	if (IS_CLASSREF(typeref))
+	if (typeref.is_classref())
 		class_classref_println(typeref.ref);
 	else
 		class_println(typeref.cls);
@@ -932,7 +932,7 @@ bool resolve_class(unresolved_class *ref,
 	
 	checkresult = resolve_and_check_subtype_set(ref->referermethod,
 									   &(ref->subtypeconstraints),
-									   CLASSREF_OR_CLASSINFO(cls),
+									   to_classref_or_classinfo(cls),
 									   mode,
 									   resolveLinkageError);
 	if (checkresult != resolveSucceeded)
@@ -1188,7 +1188,7 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 
 		result = resolve_lazy_subtype_checks(refmethod,
 				insttip,
-				CLASSREF_OR_CLASSINFO(container),
+				to_classref_or_classinfo(container),
 				resolveLinkageError);
 		if (result != resolveSucceeded)
 			return result;
@@ -1199,7 +1199,7 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 		{
 			result = resolve_lazy_subtype_checks(refmethod,
 					instanceti,
-					CLASSREF_OR_CLASSINFO(referer),
+					to_classref_or_classinfo(referer),
 					resolveIllegalAccessError);
 			if (result != resolveSucceeded)
 				return result;
@@ -1215,7 +1215,7 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 		/* check subtype constraints */
 		result = resolve_lazy_subtype_checks(refmethod,
 				valueti,
-				CLASSREF_OR_CLASSINFO(fieldtyperef),
+				to_classref_or_classinfo(fieldtyperef),
 				resolveLinkageError);
 
 		if (result != resolveSucceeded)
@@ -1255,7 +1255,7 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
        resolveSucceeded.....the reference has been resolved
        resolveDeferred......the resolving could not be performed lazily
 	   resolveFailed........resolving failed, an exception has been thrown.
-   
+
 *******************************************************************************/
 
 resolve_result_t resolve_field_lazy(methodinfo *refmethod,
@@ -1274,7 +1274,7 @@ resolve_result_t resolve_field_lazy(methodinfo *refmethod,
 
 	/* check if the field itself is already resolved */
 
-	if (IS_FMIREF_RESOLVED(fieldref))
+	if (fieldref->is_resolved())
 		return resolveSucceeded;
 
 	/* first we must resolve the class containg the field */
@@ -1363,7 +1363,7 @@ bool resolve_field(unresolved_field *ref,
 	assert(referer);
 
 	/* check if the field itself is already resolved */
-	if (IS_FMIREF_RESOLVED(ref->fieldref)) {
+	if (ref->fieldref->is_resolved()) {
 		fi = ref->fieldref->p.field;
 		container = fi->clazz;
 		goto resolved_the_field;
@@ -1439,7 +1439,7 @@ resolved_the_field:
 		if (!(ref->flags & RESOLVE_STATIC)) {
 			checkresult = resolve_and_check_subtype_set(ref->referermethod,
 					&(ref->instancetypes),
-					CLASSREF_OR_CLASSINFO(container),
+					to_classref_or_classinfo(container),
 					mode, resolveLinkageError);
 			if (checkresult != resolveSucceeded)
 				return (bool) checkresult;
@@ -1454,7 +1454,7 @@ resolved_the_field:
 				/* check subtype constraints */
 				checkresult = resolve_and_check_subtype_set(ref->referermethod,
 						&(ref->valueconstraints),
-						CLASSREF_OR_CLASSINFO(fieldtyperef),
+						to_classref_or_classinfo(fieldtyperef),
 						mode, resolveLinkageError);
 				if (checkresult != resolveSucceeded)
 					return (bool) checkresult;
@@ -1465,7 +1465,7 @@ resolved_the_field:
 		if (((fi->flags & ACC_PROTECTED) != 0) && !SAME_PACKAGE(declarer,referer)) {
 			checkresult = resolve_and_check_subtype_set(ref->referermethod,
 					&(ref->instancetypes),
-					CLASSREF_OR_CLASSINFO(referer),
+					to_classref_or_classinfo(referer),
 					mode,
 					resolveIllegalAccessError);
 			if (checkresult != resolveSucceeded)
@@ -1690,7 +1690,7 @@ resolve_result_t resolve_method_instance_type_checks(methodinfo *refmethod,
 	{   /* XXX clean up */
 		instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(*instanceti);
 		classref_or_classinfo initclass = (ins) ? ins[-1].sx.val.c
-									 : CLASSREF_OR_CLASSINFO(refmethod->clazz);
+									 : to_classref_or_classinfo(refmethod->clazz);
 		tip = &tinfo;
 		if (!typeinfo_init_class(tip, initclass))
 			return resolveFailed;
@@ -1701,7 +1701,7 @@ resolve_result_t resolve_method_instance_type_checks(methodinfo *refmethod,
 
 	result = resolve_lazy_subtype_checks(refmethod,
 										 tip,
-										 CLASSREF_OR_CLASSINFO(mi->clazz),
+										 to_classref_or_classinfo(mi->clazz),
 										 resolveLinkageError);
 	if (result != resolveSucceeded)
 		return result;
@@ -1714,7 +1714,7 @@ resolve_result_t resolve_method_instance_type_checks(methodinfo *refmethod,
 	{
 		result = resolve_lazy_subtype_checks(refmethod,
 				tip,
-				CLASSREF_OR_CLASSINFO(refmethod->clazz),
+				to_classref_or_classinfo(refmethod->clazz),
 				resolveIllegalAccessError);
 		if (result != resolveSucceeded)
 			return result;
@@ -1779,7 +1779,7 @@ resolve_result_t resolve_method_param_type_checks(jitdata *jd,
 		if (type == TYPE_ADR) {
 			result = resolve_lazy_subtype_checks(refmethod,
 					&(param->typeinfo),
-					CLASSREF_OR_CLASSINFO(paramtypes[i+instancecount].classref),
+					to_classref_or_classinfo(paramtypes[i+instancecount].classref),
 					resolveLinkageError);
 			if (result != resolveSucceeded)
 				return result;
@@ -1842,7 +1842,7 @@ resolve_result_t resolve_method_param_type_checks_stackbased(
 		if (type == TYPE_ADR) {
 			result = resolve_lazy_subtype_checks(refmethod,
 					&(param->typeinfo),
-					CLASSREF_OR_CLASSINFO(paramtypes[i].classref),
+					to_classref_or_classinfo(paramtypes[i].classref),
 					resolveLinkageError);
 			if (result != resolveSucceeded)
 				return result;
@@ -1969,7 +1969,7 @@ resolve_result_t resolve_method_lazy(methodinfo *refmethod,
 
 	/* check if the method itself is already resolved */
 
-	if (IS_FMIREF_RESOLVED(methodref))
+	if (methodref->is_resolved())
 		return resolveSucceeded;
 
 	/* first we must resolve the class containg the method */
@@ -2076,7 +2076,7 @@ bool resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **re
 
 	/* check if the method itself is already resolved */
 
-	if (IS_FMIREF_RESOLVED(ref->methodref)) {
+	if (ref->methodref->is_resolved()) {
 		mi = ref->methodref->p.method;
 		container = mi->clazz;
 		goto resolved_the_method;
@@ -2171,7 +2171,7 @@ resolved_the_method:
 		if (!(ref->flags & RESOLVE_STATIC)) {
 			checkresult = resolve_and_check_subtype_set(ref->referermethod,
 					&(ref->instancetypes),
-					CLASSREF_OR_CLASSINFO(container),
+					to_classref_or_classinfo(container),
 					mode,
 					resolveLinkageError);
 			if (checkresult != resolveSucceeded)
@@ -2192,7 +2192,7 @@ resolved_the_method:
 				if (ref->paramconstraints) {
 					checkresult = resolve_and_check_subtype_set(ref->referermethod,
 							ref->paramconstraints + i,
-							CLASSREF_OR_CLASSINFO(paramtypes[i+instancecount].classref),
+							to_classref_or_classinfo(paramtypes[i+instancecount].classref),
 							mode,
 							resolveLinkageError);
 					if (checkresult != resolveSucceeded)
@@ -2207,7 +2207,7 @@ resolved_the_method:
 		{
 			checkresult = resolve_and_check_subtype_set(ref->referermethod,
 					&(ref->instancetypes),
-					CLASSREF_OR_CLASSINFO(referer),
+					to_classref_or_classinfo(referer),
 					mode,
 					resolveIllegalAccessError);
 			if (checkresult != resolveSucceeded)
@@ -2302,7 +2302,7 @@ static bool unresolved_subtype_set_from_typeinfo(classinfo *referer,
 				/* a merge of array types */
 				/* the merged list contains the possible _element_ types, */
 				/* so we have to create array types with these elements.  */
-				if (IS_CLASSREF(c)) {
+				if (c.is_classref()) {
 					c.ref = class_get_classref_multiarray_of(tinfo->dimension,c.ref);
 				}
 				else {
@@ -2314,9 +2314,7 @@ static bool unresolved_subtype_set_from_typeinfo(classinfo *referer,
 		stset->subtyperefs[count].any = NULL; /* terminate */
 	}
 	else {
-		if ((IS_CLASSREF(tinfo->typeclass)
-					? tinfo->typeclass.ref->name
-					: tinfo->typeclass.cls->name) == declaredclassname)
+		if (CLASSREF_OR_CLASSINFO_NAME(tinfo->typeclass) == declaredclassname)
 		{
 			/* the class names are the same */
 		    /* equality is guaranteed by the loading constraints */
@@ -2667,7 +2665,7 @@ bool resolve_constrain_unresolved_method_instance(unresolved_method *ref,
 	assert(methodref);
 
 	/* XXX clean this up */
-	instanceref = IS_FMIREF_RESOLVED(methodref)
+	instanceref = methodref->is_resolved()
 		? class_get_self_classref(methodref->p.method->clazz)
 		: methodref->p.classref;
 
@@ -2683,7 +2681,7 @@ bool resolve_constrain_unresolved_method_instance(unresolved_method *ref,
 	{   /* XXX clean up */
 		instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(*instanceti);
 		classref_or_classinfo initclass = (ins) ? ins[-1].sx.val.c
-									 : CLASSREF_OR_CLASSINFO(refmethod->clazz);
+									 : to_classref_or_classinfo(refmethod->clazz);
 		tip = &tinfo;
 		if (!typeinfo_init_class(tip, initclass))
 			return false;
@@ -2945,9 +2943,9 @@ void unresolved_method_free(unresolved_method *ref)
 #if !defined(NDEBUG)
 
 /* unresolved_subtype_set_debug_dump *******************************************
- 
+
    Print debug info for unresolved_subtype_set to stream
-  
+
    IN:
        stset............the unresolved_subtype_set
 	   file.............the stream
@@ -2964,7 +2962,7 @@ void unresolved_subtype_set_debug_dump(unresolved_subtype_set *stset,FILE *file)
 	else {
 		p = stset->subtyperefs;
 		for (;p->any; ++p) {
-			if (IS_CLASSREF(*p)) {
+			if (p->is_classref()) {
 				fprintf(file,"        ref: ");
 				utf_fprint_printable_ascii(file,p->ref->name);
 			}
@@ -2978,9 +2976,9 @@ void unresolved_subtype_set_debug_dump(unresolved_subtype_set *stset,FILE *file)
 }
 
 /* unresolved_class_debug_dump *************************************************
- 
+
    Print debug info for unresolved_class to stream
-  
+
    IN:
        ref..............the unresolved_class
 	   file.............the stream

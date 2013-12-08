@@ -526,7 +526,7 @@ void field_fieldref_print(constant_FMIref *fr)
 		return;
 	}
 
-	if (IS_FMIREF_RESOLVED(fr)) {
+	if (fr->is_resolved()) {
 		printf("<field> ");
 		field_print(fr->p.field);
 	}

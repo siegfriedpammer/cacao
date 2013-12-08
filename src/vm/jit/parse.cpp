@@ -1508,7 +1508,7 @@ invoke_method:
 					/* if this call is monomorphic, turn it into an
 					   INVOKESPECIAL */
 
-					assert(IS_FMIREF_RESOLVED(iptr->sx.s23.s3.fmiref));
+					assert(iptr->sx.s23.s3.fmiref->is_resolved());
 
 					if ((iptr->opc == ICMD_INVOKEVIRTUAL)
 						&& (mi->flags & (ACC_FINAL | ACC_PRIVATE)))

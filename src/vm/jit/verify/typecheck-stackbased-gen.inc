@@ -1794,7 +1794,7 @@
 #            	line 463 "src/vm/jit/verify/icmds.cpp"
   GENERATED  	TYPECHECK_COUNT(stat_ins_athrow);
   GENERATED  	r = typeinfo_is_assignable_to_class(&OP1->typeinfo,
-  GENERATED  			CLASSREF_OR_CLASSINFO(class_java_lang_Throwable));
+  GENERATED  			to_classref_or_classinfo(class_java_lang_Throwable));
   GENERATED  	if (r == typecheck_FALSE)
   GENERATED  		VERIFY_ERROR("illegal instruction: ATHROW on non-Throwable");
   GENERATED  	if (r == typecheck_FAIL)

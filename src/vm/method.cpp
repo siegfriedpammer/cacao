@@ -1239,7 +1239,7 @@ void method_methodref_print(constant_FMIref *mr)
 		return;
 	}
 
-	if (IS_FMIREF_RESOLVED(mr)) {
+	if (mr->is_resolved()) {
 		printf("<method> ");
 		method_print(mr->p.method);
 	}

@@ -942,7 +942,7 @@ constant_classref *class_lookup_classref(classinfo *cls, Utf8String name)
 
    NOTE:
        The given name is not checked for validity!
-   
+
 *******************************************************************************/
 
 constant_classref *class_get_classref(classinfo *cls, Utf8String name)
@@ -958,7 +958,7 @@ constant_classref *class_get_classref(classinfo *cls, Utf8String name)
 		return ref;
 
 	xref = NEW(extra_classref);
-	CLASSREF_INIT(xref->classref,cls,name);
+	xref->classref.init(cls, name);
 
 	xref->next = cls->extclassrefs;
 	cls->extclassrefs = xref;
@@ -1648,7 +1648,7 @@ java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOn
 			/* Check if outer-class is a classref or a real class and
                get the class name from the structure. */
 
-			outername = IS_CLASSREF(outer) ? outer.ref->name : outer.cls->name;
+			outername = CLASSREF_OR_CLASSINFO_NAME(outer);
 
 			/* Outer class is this class. */
 
@@ -1678,7 +1678,7 @@ java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOn
 		/* Check if outer_class is a classref or a real class and get
 		   the class name from the structure. */
 
-		outername = IS_CLASSREF(outer) ? outer.ref->name : outer.cls->name;
+		outername = CLASSREF_OR_CLASSINFO_NAME(outer);
 
 		/* Outer class is this class. */
 
@@ -1915,7 +1915,7 @@ classinfo *class_get_declaringclass(classinfo *c)
 
 	/* Resolve the class if necessary. */
 
-	if (IS_CLASSREF(cr)) {
+	if (cr.is_classref()) {
 /* 		dc = resolve_classref_eager(cr.ref); */
 		dc = resolve_classref_or_classinfo_eager(cr, true);
 
@@ -1953,7 +1953,7 @@ classinfo *class_get_enclosingclass(classinfo *c)
 
 	/* Resolve the class if necessary. */
 
-	if (IS_CLASSREF(cr)) {
+	if (cr.is_classref()) {
 /* 		ec = resolve_classref_eager(cr.ref); */
 		ec = resolve_classref_or_classinfo_eager(cr, true);
 
@@ -2174,7 +2174,7 @@ int32_t class_get_modifiers(classinfo *c, bool ignoreInnerClassesAttrib)
 			/* Check if inner is a classref or a real class and get
                the name of the structure */
 
-			innername = IS_CLASSREF(inner) ? inner.ref->name : inner.cls->name;
+			innername = CLASSREF_OR_CLASSINFO_NAME(inner);
 
 			/* innerclass is this class */
 
@@ -2342,7 +2342,7 @@ void class_classref_or_classinfo_print(classref_or_classinfo c)
 		printf("(classref_or_classinfo) NULL");
 		return;
 	}
-	if (IS_CLASSREF(c))
+	if (c.is_classref())
 		class_classref_print(c.ref);
 	else
 		class_print(c.cls);

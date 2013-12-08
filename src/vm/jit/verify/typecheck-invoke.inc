@@ -73,7 +73,7 @@
 #if !defined(TYPECHECK_TYPEINFERER)
 	/* get method info (if resolved) and classname */
 
-	if (IS_FMIREF_RESOLVED(mref)) {
+	if (mref->is_resolved()) {
 		mi = mref->p.method;
 		mclassname = mi->clazz->name;
 	}
@@ -240,7 +240,7 @@
 		}
 		else {
 			/* { we are initializing an instance created with NEW } */
-			if ((IS_CLASSREF(initclass) ? initclass.ref->name : initclass.cls->name) != mclassname) {
+			if (CLASSREF_OR_CLASSINFO_NAME(initclass) != mclassname) {
 				TYPECHECK_VERIFYERROR_bool("wrong <init> called for uninitialized reference");
 			}
 		}
@@ -254,7 +254,7 @@
 
 	if (result == resolveSucceeded) {
 
-		assert(IS_FMIREF_RESOLVED(mref));
+		assert(mref->is_resolved());
 
 		mi = mref->p.method;
 

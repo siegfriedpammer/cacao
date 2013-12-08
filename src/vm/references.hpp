@@ -27,17 +27,9 @@
 
 #include "config.h"
 
-#include "vm/types.hpp"
 #include "vm/global.hpp"
-
+#include "vm/types.hpp"
 #include "vm/utf8.hpp"
-
-//#include "vm/class.hpp"
-//#include "vm/descriptor.hpp"
-//#include "vm/field.hpp"
-//#include "vm/method.hpp"
-
-/* forward typedefs ***********************************************************/
 
 struct classinfo;
 struct constant_classref;
@@ -49,29 +41,46 @@ struct fieldinfo;
 
 /* constant_classref **********************************************************/
 
+/// a value that never occurrs in classinfo.header.vftbl
+#define CLASSREF_PSEUDO_VFTBL (reinterpret_cast<void *>(1))
+
 struct constant_classref {
 	void       *pseudo_vftbl;     /* for distinguishing it from classinfo     */
 	classinfo  *referer;          /* class containing the reference           */
 	Utf8String  name;             /* name of the class refered to             */
+
+	void init(classinfo *referer, Utf8String name) {
+		this->pseudo_vftbl = CLASSREF_PSEUDO_VFTBL;
+		this->referer      = referer;
+		this->name         = name;
+	}
 };
 
 
 /* classref_or_classinfo ******************************************************/
 
-typedef union classref_or_classinfo {
+/**
+ * @Cpp11 Replace static constructors with regular constructors.
+ *        With C++98 this breaks other unions that use classref_or_classinfo.
+ */
+union classref_or_classinfo {
 	constant_classref *ref;       /* a symbolic class reference               */
 	classinfo         *cls;       /* an already loaded class                  */
 	void              *any;       /* used for general access (x != NULL,...)  */
-} classref_or_classinfo;
+
+	bool is_classref()  const { return ref->pseudo_vftbl == CLASSREF_PSEUDO_VFTBL; }
+	bool is_classinfo() const { return !is_classref(); }
+};
 
 
 /* parseddesc_t ***************************************************************/
 
-typedef union parseddesc {
+union parseddesc_t {
 	typedesc   *fd;               /* parsed field descriptor                  */
 	methoddesc *md;               /* parsed method descriptor                 */
 	void       *any;              /* used for simple test against NULL        */
-} parseddesc_t;
+};
+
 
 /*----------------------------------------------------------------------------*/
 /* References                                                                 */
@@ -104,54 +113,49 @@ struct constant_FMIref{      /* Fieldref, Methodref and InterfaceMethodref    */
 	Utf8String   name;       /* field/method/interfacemethod name             */
 	Utf8String   descriptor; /* field/method/intfmeth. type descriptor string */
 	parseddesc_t parseddesc; /* parsed descriptor                             */
+
+	bool is_resolved() const { return p.classref->pseudo_vftbl != CLASSREF_PSEUDO_VFTBL; }
 };
+
+
+/* inline functions ***********************************************************/
+
+/**
+ * Functions for casting a classref/classinfo to a classref_or_classinfo
+ * @Cpp11 Replace with constructors in classref_or_classinfo.
+ *        With C++98 this breaks other unions that use classref_or_classinfo.
+ * @{
+ */ 
+static inline classref_or_classinfo to_classref_or_classinfo(classinfo *c) {
+	classref_or_classinfo out;
+	out.cls = c;
+	return out;
+}
+static inline classref_or_classinfo to_classref_or_classinfo(constant_classref *c) {
+	classref_or_classinfo out;
+	out.ref = c;
+	return out;
+}
+/**
+ * @}
+ */
 
 
 /* macros *********************************************************************/
 
-/* a value that never occurrs in classinfo.header.vftbl                       */
-#define CLASSREF_PSEUDO_VFTBL ((void *) 1)
-
-/* macro for testing if a classref_or_classinfo is a classref                 */
-/* `reforinfo` is only evaluated once                                         */
-#define IS_CLASSREF(reforinfo)  \
-	((reforinfo).ref->pseudo_vftbl == CLASSREF_PSEUDO_VFTBL)
-
-/* macro for testing if a constant_FMIref has been resolved                   */
-/* `fmiref` is only evaluated once                                            */
-#define IS_FMIREF_RESOLVED(fmiref)  \
-	((fmiref)->p.classref->pseudo_vftbl != CLASSREF_PSEUDO_VFTBL)
-
-/* the same as IS_CLASSREF, but also check against NULL */
-#define IS_XCLASSREF(reforinfo)  \
-	((reforinfo).any && IS_CLASSREF(reforinfo))
-
-/* macro for casting a classref/classinfo * to a classref_or_classinfo        */
-#define CLASSREF_OR_CLASSINFO(value) \
-	(*((classref_or_classinfo *)(&(value))))
-
 /* macro for accessing the name of a classref/classinfo                       */
 #define CLASSREF_OR_CLASSINFO_NAME(value) \
-	(IS_CLASSREF(value) ? (value).ref->name : (value).cls->name)
+	((value).is_classref() ? (value).ref->name : (value).cls->name)
 
 /* macro for accessing the class name of a method reference                   */
 #define METHODREF_CLASSNAME(fmiref) \
-	(IS_FMIREF_RESOLVED(fmiref) ? (fmiref)->p.method->clazz->name \
-	 							: (fmiref)->p.classref->name)
+	((fmiref)->is_resolved() ? (fmiref)->p.method->clazz->name \
+								: (fmiref)->p.classref->name)
 
 /* macro for accessing the class name of a method reference                   */
 #define FIELDREF_CLASSNAME(fmiref) \
-	(IS_FMIREF_RESOLVED(fmiref) ? (fmiref)->p.field->clazz->name \
-	 							: (fmiref)->p.classref->name)
-
-/* initialize a constant_classref with referer `ref` and name `classname`     */
-
-#define CLASSREF_INIT(c,ref,classname) \
-    do { \
-        (c).pseudo_vftbl = CLASSREF_PSEUDO_VFTBL; \
-        (c).referer = (ref); \
-        (c).name = (classname); \
-    } while (0)
+	((fmiref)->is_resolved() ? (fmiref)->p.field->clazz->name \
+								: (fmiref)->p.classref->name)
 
 #endif // REFERENCES_HPP_
 
