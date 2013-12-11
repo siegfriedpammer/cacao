@@ -1427,20 +1427,17 @@ jobjectArray JVM_ConstantPoolGetMemberRefInfoAt(JNIEnv *env, jobject unused, job
 
 jint JVM_ConstantPoolGetIntAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
-	constant_integer *ref; /* reference to the int value in constant pool at index 'index' */
-	classinfo *cls;        /* classinfo of the class for which 'this' is the constant pool */
-
 	TRACEJVMCALLS(("JVM_ConstantPoolGetIntAt: jcpool=%p, index=%d", jcpool, index));
 
-	cls = LLNI_classinfo_unwrap(jcpool);
-	ref = (constant_integer*)class_getconstant(cls, index, CONSTANT_Integer);
+	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
+	int32_t   *ref = (int32_t*) class_getconstant(cls, index, CONSTANT_Integer);
 
 	if (ref == NULL) {
 		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 
-	return ref->value;
+	return *ref;
 }
 
 
@@ -1448,20 +1445,17 @@ jint JVM_ConstantPoolGetIntAt(JNIEnv *env, jobject unused, jobject jcpool, jint 
 
 jlong JVM_ConstantPoolGetLongAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
-	constant_long *ref; /* reference to the long value in constant pool at index 'index' */
-	classinfo *cls;     /* classinfo of the class for which 'this' is the constant pool */
-
 	TRACEJVMCALLS(("JVM_ConstantPoolGetLongAt: jcpool=%p, index=%d", jcpool, index));
 
-	cls = LLNI_classinfo_unwrap(jcpool);
-	ref = (constant_long*)class_getconstant(cls, index, CONSTANT_Long);
+	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
+	int64_t   *ref = (int64_t*) class_getconstant(cls, index, CONSTANT_Long);
 
 	if (ref == NULL) {
 		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 
-	return ref->value;
+	return *ref;
 }
 
 
@@ -1469,20 +1463,17 @@ jlong JVM_ConstantPoolGetLongAt(JNIEnv *env, jobject unused, jobject jcpool, jin
 
 jfloat JVM_ConstantPoolGetFloatAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
-	constant_float *ref; /* reference to the float value in constant pool at index 'index' */
-	classinfo *cls;      /* classinfo of the class for which 'this' is the constant pool */
-
 	TRACEJVMCALLS(("JVM_ConstantPoolGetFloatAt: jcpool=%p, index=%d", jcpool, index));
 
-	cls = LLNI_classinfo_unwrap(jcpool);
-	ref = (constant_float*)class_getconstant(cls, index, CONSTANT_Float);
+	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
+	float     *ref = (float*) class_getconstant(cls, index, CONSTANT_Float);
 
 	if (ref == NULL) {
 		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 
-	return ref->value;
+	return *ref;
 }
 
 
@@ -1490,20 +1481,17 @@ jfloat JVM_ConstantPoolGetFloatAt(JNIEnv *env, jobject unused, jobject jcpool, j
 
 jdouble JVM_ConstantPoolGetDoubleAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
-	constant_double *ref; /* reference to the double value in constant pool at index 'index' */
-	classinfo *cls;       /* classinfo of the class for which 'this' is the constant pool */
-
 	TRACEJVMCALLS(("JVM_ConstantPoolGetDoubleAt: jcpool=%p, index=%d", jcpool, index));
 
-	cls = LLNI_classinfo_unwrap(jcpool);
-	ref = (constant_double*)class_getconstant(cls, index, CONSTANT_Double);
+	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
+	double    *ref = (double*) class_getconstant(cls, index, CONSTANT_Double);
 
 	if (ref == NULL) {
 		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 
-	return ref->value;
+	return *ref;
 }
 
 

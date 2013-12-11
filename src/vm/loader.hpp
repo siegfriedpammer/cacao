@@ -67,39 +67,21 @@ typedef java_object_t               classloader_t;
     CONSTANT_Methodref           constant_FMIref                    yes
     CONSTANT_InterfaceMethodref  constant_FMIref                    yes
     CONSTANT_String              unicode                             no
-    CONSTANT_Integer             constant_integer                   yes
-    CONSTANT_Float               constant_float                     yes
-    CONSTANT_Long                constant_long                      yes
-    CONSTANT_Double              constant_double                    yes
+    CONSTANT_Integer             int32_t                            yes
+    CONSTANT_Float               float                              yes
+    CONSTANT_Long                int64_t                            yes
+    CONSTANT_Double              double                             yes
     CONSTANT_NameAndType         constant_nameandtype               yes
     CONSTANT_Utf8                unicode                             no
     CONSTANT_UNUSED              -
 
 *******************************************************************************/
 
-struct constant_integer {              /* Integer                             */
-	s4 value;
-};
-
-	
-struct constant_float {                /* Float                               */
-	float value;
-};
-
-
-struct constant_long {                 /* Long                                */
-	s8 value;
-};
-	
-
-struct constant_double {               /* Double                              */
-	double value;
-};
-
-
 struct  constant_nameandtype {         /* NameAndType (Field or Method)       */
-	Utf8String name;                   /* field/method name                   */
-	Utf8String descriptor;             /* field/method type descriptor string */
+	constant_nameandtype(Utf8String name, Utf8String desc) : name(name), descriptor(desc) {}
+
+	const Utf8String name;               /* field/method name                   */
+	const Utf8String descriptor;         /* field/method type descriptor string */
 };
 
 

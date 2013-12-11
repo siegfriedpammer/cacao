@@ -820,22 +820,22 @@ fetch_opcode:
 
 			switch (m->clazz->cptags[i]) {
 			case CONSTANT_Integer:
-				OP_LOADCONST_I(((constant_integer *) (m->clazz->cpinfos[i]))->value);
+				OP_LOADCONST_I(*reinterpret_cast<int32_t*>(m->clazz->cpinfos[i]));
 				break;
 			case CONSTANT_Long:
-				OP_LOADCONST_L(((constant_long *) (m->clazz->cpinfos[i]))->value);
+				OP_LOADCONST_L(*reinterpret_cast<int64_t*>(m->clazz->cpinfos[i]));
 				break;
 			case CONSTANT_Float:
-				OP_LOADCONST_F(((constant_float *) (m->clazz->cpinfos[i]))->value);
+				OP_LOADCONST_F(*reinterpret_cast<float*>(m->clazz->cpinfos[i]));
 				break;
 			case CONSTANT_Double:
-				OP_LOADCONST_D(((constant_double *) (m->clazz->cpinfos[i]))->value);
+				OP_LOADCONST_D(*reinterpret_cast<double*>(m->clazz->cpinfos[i]));
 				break;
 			case CONSTANT_String:
 				OP_LOADCONST_STRING(JavaString::literal((utf *) (m->clazz->cpinfos[i])));
 				break;
-			case CONSTANT_Class:
-				cr = (constant_classref *) (m->clazz->cpinfos[i]);
+			case CONSTANT_Class: {
+				constant_classref *cr = (constant_classref *) (m->clazz->cpinfos[i]);
 
 				if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
 					return false;
@@ -845,6 +845,7 @@ fetch_opcode:
 				OP_LOADCONST_CLASSINFO_OR_CLASSREF_CHECK(c, cr);
 
 				break;
+            }
 
 #if defined(ENABLE_VERIFIER)
 			default:

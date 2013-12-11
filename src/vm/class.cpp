@@ -26,6 +26,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <inttypes.h>               // for PRId64
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -609,16 +610,16 @@ static void class_freecpool(classinfo *c)
 					FREE(info, constant_FMIref);
 					break;
 				case CONSTANT_Integer:
-					FREE(info, constant_integer);
+					FREE(info, int32_t);
 					break;
 				case CONSTANT_Float:
-					FREE(info, constant_float);
+					FREE(info, float);
 					break;
 				case CONSTANT_Long:
-					FREE(info, constant_long);
+					FREE(info, int64_t);
 					break;
 				case CONSTANT_Double:
-					FREE(info, constant_double);
+					FREE(info, double);
 					break;
 				case CONSTANT_NameAndType:
 					FREE(info, constant_nameandtype);
@@ -650,7 +651,7 @@ void* class_getconstant(classinfo *c, u4 pos, u4 ctype)
 	/* (pos == 0 is caught by type comparison) */
 
 	if (((int) pos >= c->cpcount) || (c->cptags[pos] != ctype)) {
-		exceptions_throw_classformaterror(c, "Illegal constant pool index");
+		exceptions_throw_classformaterror(c, "Illegal constant pool index %u or type %u", pos, ctype);
 		return NULL;
 	}
 
@@ -947,20 +948,14 @@ constant_classref *class_lookup_classref(classinfo *cls, Utf8String name)
 
 constant_classref *class_get_classref(classinfo *cls, Utf8String name)
 {
-	constant_classref *ref;
-	extra_classref *xref;
-
 	assert(cls);
 	assert(name);
 
-	ref = class_lookup_classref(cls,name);
-	if (ref)
+	if (constant_classref *ref = class_lookup_classref(cls,name))
 		return ref;
 
-	xref = NEW(extra_classref);
-	xref->classref.init(cls, name);
+	extra_classref *xref = new (MemAlloc) extra_classref(cls->extclassrefs, cls, name);
 
-	xref->next = cls->extclassrefs;
 	cls->extclassrefs = xref;
 
 	return &(xref->classref);
@@ -2374,15 +2369,12 @@ void class_classref_or_classinfo_println(classref_or_classinfo c)
 #if !defined(NDEBUG)
 void class_showconstantpool (classinfo *c) 
 {
-	int i;
-	void* e;
-
 	printf ("---- dump of constant pool ----\n");
 
-	for (i=0; i<c->cpcount; i++) {
+	for (int i=0; i<c->cpcount; i++) {
 		printf ("#%d:  ", i);
 		
-		e = c -> cpinfos [i];
+		void *e = c -> cpinfos [i];
 		if (e) {
 			
 			switch (c -> cptags [i]) {
@@ -2407,16 +2399,16 @@ void class_showconstantpool (classinfo *c)
 				utf_display_printable_ascii ((utf*) e);
 				break;
 			case CONSTANT_Integer:
-				printf ("Integer -> %d", (int) ( ((constant_integer*)e) -> value) );
+				printf ("Integer -> %d", *reinterpret_cast<int32_t*>(e));
 				break;
 			case CONSTANT_Float:
-				printf ("Float -> %f", ((constant_float*)e) -> value);
+				printf ("Float -> %f", *reinterpret_cast<float*>(e));
 				break;
 			case CONSTANT_Double:
-				printf ("Double -> %f", ((constant_double*)e) -> value);
+				printf ("Double -> %f", *reinterpret_cast<double*>(e));
 				break;
 			case CONSTANT_Long:
-				printf ("Long -> %ld", (long int) ((constant_long*)e) -> value);
+				printf ("Long -> %" PRId64, *reinterpret_cast<int64_t*>(e));
 				break;
 			case CONSTANT_NameAndType:
 				{

@@ -637,7 +637,7 @@ constant_classref *DescriptorPool::create_classrefs(s4 *count)
 	// fill the constant_classref structs
 
 	for (ClassrefHash::Iterator it = classrefhash.begin(), end = classrefhash.end(); it != end; ++it) {
-		classrefs[it->value()].init(referer, it->key());
+		new (classrefs + it->value()) constant_classref(referer, it->key());
 	}
 
 	if (count)

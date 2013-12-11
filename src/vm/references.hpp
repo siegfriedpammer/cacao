@@ -32,12 +32,10 @@
 #include "vm/utf8.hpp"
 
 struct classinfo;
-struct constant_classref;
-struct constant_FMIref;
 struct typedesc;
+struct fieldinfo;
 struct methoddesc;
 struct methodinfo;
-struct fieldinfo;
 
 /* constant_classref **********************************************************/
 
@@ -45,15 +43,12 @@ struct fieldinfo;
 #define CLASSREF_PSEUDO_VFTBL (reinterpret_cast<void *>(1))
 
 struct constant_classref {
-	void       *pseudo_vftbl;     /* for distinguishing it from classinfo     */
-	classinfo  *referer;          /* class containing the reference           */
-	Utf8String  name;             /* name of the class refered to             */
+	void* const      pseudo_vftbl;     /* for distinguishing it from classinfo     */
+	classinfo* const referer;          /* class containing the reference           */
+	const Utf8String name;             /* name of the class refered to             */
 
-	void init(classinfo *referer, Utf8String name) {
-		this->pseudo_vftbl = CLASSREF_PSEUDO_VFTBL;
-		this->referer      = referer;
-		this->name         = name;
-	}
+	constant_classref(classinfo *referer, Utf8String name)
+	 : pseudo_vftbl(CLASSREF_PSEUDO_VFTBL), referer(referer), name(name) {}
 };
 
 
@@ -78,41 +73,36 @@ union classref_or_classinfo {
 union parseddesc_t {
 	typedesc   *fd;               /* parsed field descriptor                  */
 	methoddesc *md;               /* parsed method descriptor                 */
-	void       *any;              /* used for simple test against NULL        */
+
+	// test against NULL;
+	operator bool() const { return fd; }
 };
-
-
-/*----------------------------------------------------------------------------*/
-/* References                                                                 */
-/*                                                                            */
-/* This header files defines the following types used for references to       */
-/* classes/methods/fields and descriptors:                                    */
-/*                                                                            */
-/*     classinfo *                a loaded class                              */
-/*     constant_classref          a symbolic reference                        */
-/*     classref_or_classinfo      a loaded class or a symbolic reference      */
-/*                                                                            */
-/*     constant_FMIref            a symb. ref. to a field/method/intf.method  */
-/*                                                                            */
-/*     typedesc *                 describes a field type                      */
-/*     methoddesc *               descrives a method type                     */
-/*     parseddesc                 describes a field type or a method type     */
-/*----------------------------------------------------------------------------*/
 
 /* structs ********************************************************************/
 
-/* constant_FMIref ************************************************************/
+/**
+ * Fieldref, Methodref and InterfaceMethodref
+ */
+struct constant_FMIref {
+	constant_FMIref(constant_classref *ref, 
+	                Utf8String         name, 
+	                Utf8String         descriptor,
+	                parseddesc_t       parseddesc)
+	 : name(name), descriptor(descriptor), parseddesc(parseddesc) {
+		p.classref = ref;
+	}
 
-struct constant_FMIref{      /* Fieldref, Methodref and InterfaceMethodref    */
 	union {
-		s4                 index;     /* used only within the loader          */
+		// set when FMIref is unresolved
 		constant_classref *classref;  /* class having this field/meth./intfm. */
+
+		// set when FMIref is resolved
 		fieldinfo         *field;     /* resolved field                       */
 		methodinfo        *method;    /* resolved method                      */
 	} p;
-	Utf8String   name;       /* field/method/interfacemethod name             */
-	Utf8String   descriptor; /* field/method/intfmeth. type descriptor string */
-	parseddesc_t parseddesc; /* parsed descriptor                             */
+	const Utf8String   name;       /* field/method/interfacemethod name             */
+	const Utf8String   descriptor; /* field/method/intfmeth. type descriptor string */
+	const parseddesc_t parseddesc; /* parsed descriptor                             */
 
 	bool is_resolved() const { return p.classref->pseudo_vftbl != CLASSREF_PSEUDO_VFTBL; }
 };

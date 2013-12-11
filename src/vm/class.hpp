@@ -175,6 +175,9 @@ struct innerclassinfo {
 *******************************************************************************/
 
 struct extra_classref {
+	extra_classref(extra_classref *next, classinfo *referer, Utf8String name)
+	 : next(next), classref(referer, name) {}
+
 	extra_classref    *next;
 	constant_classref  classref;
 };

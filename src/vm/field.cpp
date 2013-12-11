@@ -251,42 +251,42 @@ bool field_load(ClassBuffer& cb, fieldinfo *f, DescriptorPool& descpool)
 
 			switch (f->type) {
 			case TYPE_INT: {
-				constant_integer *ci; 
+				int32_t *ci; 
 
-				if (!(ci = (constant_integer*) class_getconstant(c, pindex, CONSTANT_Integer)))
+				if (!(ci = (int32_t*) class_getconstant(c, pindex, CONSTANT_Integer)))
 					return false;
 
-				f->value->i = ci->value;
+				f->value->i = *ci;
 			}
 			break;
 
 			case TYPE_LNG: {
-				constant_long *cl; 
+				int64_t *cl; 
 
-				if (!(cl = (constant_long*) class_getconstant(c, pindex, CONSTANT_Long)))
+				if (!(cl = (int64_t*) class_getconstant(c, pindex, CONSTANT_Long)))
 					return false;
 
-				f->value->l = cl->value;
+				f->value->l = *cl;
 			}
 			break;
 
 			case TYPE_FLT: {
-				constant_float *cf;
+				float *cf;
 
-				if (!(cf = (constant_float*) class_getconstant(c, pindex, CONSTANT_Float)))
+				if (!(cf = (float*) class_getconstant(c, pindex, CONSTANT_Float)))
 					return false;
 
-				f->value->f = cf->value;
+				f->value->f = *cf;
 			}
 			break;
 
 			case TYPE_DBL: {
-				constant_double *cd;
+				double *cd;
 
-				if (!(cd = (constant_double*) class_getconstant(c, pindex, CONSTANT_Double)))
+				if (!(cd = (double*) class_getconstant(c, pindex, CONSTANT_Double)))
 					return false;
 
-				f->value->d = cd->value;
+				f->value->d = *cd;
 			}
 			break;
 
