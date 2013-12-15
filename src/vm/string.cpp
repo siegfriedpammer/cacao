@@ -322,7 +322,7 @@ struct LazyStringCopy {
 
 	JavaString get_string() const {
 		JavaString jstr = allocate_on_system_heap(size());
-		assert(jstr);
+		EXPENSIVE_ASSERT(jstr);
 
 		std::copy(begin(), end(), const_cast<uint16_t*>(jstr.begin()));
 

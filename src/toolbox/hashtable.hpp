@@ -217,7 +217,7 @@ struct HashTable {
 		if ((count + deleted) >= threshold)
 			grow_table(capacity + 1);
 
-		assert(has_empty_entries());
+		EXPENSIVE_ASSERT(has_empty_entries());
 
 		size_t  hash       = t.hash();
 		size_t  index      = hash;

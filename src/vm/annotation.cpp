@@ -49,6 +49,7 @@
 # error annotation support has to be enabled when compling this file!
 #endif
 
+namespace cacao {
 
 /* annotation_bytearrays_resize ***********************************************
 
@@ -187,23 +188,21 @@ static java_handle_t *annotation_bytearrays_insert(
 
 *******************************************************************************/
 
-static bool annotation_load_attribute_body(classbuffer *cb,
-	java_handle_bytearray_t **attribute, const char *errormsg_prefix)
-{
-	uint32_t                 size = 0;    /* size of the attribute     */
-
-	assert(cb != NULL);
+static bool annotation_load_attribute_body(ClassBuffer& cb,
+                                           java_handle_bytearray_t **attribute,
+                                           const char *errormsg_prefix) {
+	assert(cb);
 	assert(attribute != NULL);
 
-	if (!suck_check_classbuffer_size(cb, 4)) {
+	if (!cb.check_size(4)) {
 		log_println("%s: size missing", errormsg_prefix);
 		return false;
 	}
 
 	/* load attribute_length */
-	size = suck_u4(cb);
+	uint32_t size = cb.read_u4();
 	
-	if (!suck_check_classbuffer_size(cb, size)) {
+	if (!cb.check_size(size)) {
 		log_println("%s: invalid size", errormsg_prefix);
 		return false;
 	}
@@ -222,7 +221,7 @@ static bool annotation_load_attribute_body(classbuffer *cb,
 		LLNI_CRITICAL_START;
 
 		uint8_t* ptr = (uint8_t*) ba.get_raw_data_ptr();
-		suck_nbytes(ptr, cb, size);
+		cb.read_nbytes(ptr, size);
 
 		LLNI_CRITICAL_END;
 
@@ -255,27 +254,22 @@ static bool annotation_load_attribute_body(classbuffer *cb,
 
 *******************************************************************************/
 
-bool annotation_load_method_attribute_annotationdefault(
-		classbuffer *cb, methodinfo *m)
-{
-	int                      slot               = 0;
-	                         /* the slot of the method                        */
-	java_handle_bytearray_t *annotationdefault  = NULL;
-	                         /* unparsed annotation defalut value             */
-	java_handle_t           *annotationdefaults = NULL;
-	                         /* array of unparsed annotation default values   */
+bool annotation_load_method_attribute_annotationdefault(ClassBuffer& cb, methodinfo *m) {
+	int                      slot               = 0;    // the slot of the method
+	java_handle_bytearray_t *annotationdefault  = NULL; // unparsed annotation defalut value
+	java_handle_t           *annotationdefaults = NULL; // array of unparsed annotation default values
 
-	assert(cb != NULL);
+	assert(cb);
 	assert(m != NULL);
 
-	LLNI_classinfo_field_get(
-		m->clazz, method_annotationdefaults, annotationdefaults);
+	LLNI_classinfo_field_get(m->clazz, 
+	                         method_annotationdefaults,
+	                         annotationdefaults);
 
-	if (!annotation_load_attribute_body(
-			cb, &annotationdefault,
-			"invalid annotation default method attribute")) {
+	if (!annotation_load_attribute_body(cb,
+	                                    &annotationdefault,
+	                                   "invalid annotation default method attribute"))
 		return false;
-	}
 
 	if (annotationdefault != NULL) {
 		slot = m - m->clazz->methods;
@@ -319,27 +313,23 @@ bool annotation_load_method_attribute_annotationdefault(
 
 *******************************************************************************/
 
-bool annotation_load_method_attribute_runtimevisibleparameterannotations(
-		classbuffer *cb, methodinfo *m)
-{
-	int                      slot                 = 0;
-	                         /* the slot of the method                  */
-	java_handle_bytearray_t *annotations          = NULL;
-	                         /* unparsed parameter annotations          */
-	java_handle_t           *parameterannotations = NULL;
-	                         /* array of unparsed parameter annotations */
+bool annotation_load_method_attribute_runtimevisibleparameterannotations(ClassBuffer& cb,
+                                                                         methodinfo *m) {
+	int                      slot                 = 0;     // the slot of the method
+	java_handle_bytearray_t *annotations          = NULL;  // unparsed parameter annotations
+	java_handle_t           *parameterannotations = NULL;  // array of unparsed parameter annotations
 
-	assert(cb != NULL);
+	assert(cb);
 	assert(m != NULL);
 
-	LLNI_classinfo_field_get(
-		m->clazz, method_parameterannotations, parameterannotations);
+	LLNI_classinfo_field_get(m->clazz,
+	                         method_parameterannotations,
+	                         parameterannotations);
 
-	if (!annotation_load_attribute_body(
-			cb, &annotations,
-			"invalid runtime visible parameter annotations method attribute")) {
+	if (!annotation_load_attribute_body(cb,
+	                                    &annotations,
+	                                   "invalid runtime visible parameter annotations method attribute"))
 		return false;
-	}
 
 	if (annotations != NULL) {
 		slot = m - m->clazz->methods;
@@ -401,9 +391,8 @@ bool annotation_load_method_attribute_runtimevisibleparameterannotations(
 
 *******************************************************************************/
 
-bool annotation_load_method_attribute_runtimeinvisibleparameterannotations(
-		classbuffer *cb, methodinfo *m)
-{
+bool annotation_load_method_attribute_runtimeinvisibleparameterannotations(ClassBuffer& cb,
+                                                                           methodinfo *m) {
 	return loader_skip_attribute_body(cb);
 }
 
@@ -420,9 +409,7 @@ bool annotation_load_method_attribute_runtimeinvisibleparameterannotations(
 
 *******************************************************************************/
 
-bool annotation_load_class_attribute_runtimevisibleannotations(
-	classbuffer *cb)
-{
+bool annotation_load_class_attribute_runtimevisibleannotations(ClassBuffer& cb) {
 	java_handle_bytearray_t *annotations = NULL; /* unparsed annotations */
 	
 	if (!annotation_load_attribute_body(
@@ -431,7 +418,7 @@ bool annotation_load_class_attribute_runtimevisibleannotations(
 		return false;
 	}
 
-	LLNI_classinfo_field_set(cb->clazz, annotations, (java_handle_t*)annotations);
+	LLNI_classinfo_field_set(cb.get_class(), annotations, (java_handle_t*)annotations);
 
 	return true;
 }
@@ -449,9 +436,7 @@ bool annotation_load_class_attribute_runtimevisibleannotations(
 
 *******************************************************************************/
 
-bool annotation_load_class_attribute_runtimeinvisibleannotations(
-	classbuffer *cb)
-{
+bool annotation_load_class_attribute_runtimeinvisibleannotations(ClassBuffer& cb) {
 	return loader_skip_attribute_body(cb);
 }
 
@@ -470,17 +455,13 @@ bool annotation_load_class_attribute_runtimeinvisibleannotations(
 
 *******************************************************************************/
 
-bool annotation_load_method_attribute_runtimevisibleannotations(
-	classbuffer *cb, methodinfo *m)
-{
-	int                      slot               = 0;
-	                         /* slot of the method */
-	java_handle_bytearray_t *annotations        = NULL;
-	                         /* unparsed annotations */
-	java_handle_t           *method_annotations = NULL;
-	                         /* array of unparsed method annotations */
+bool annotation_load_method_attribute_runtimevisibleannotations(ClassBuffer& cb,
+                                                                methodinfo *m) {
+	int                      slot               = 0;    // slot of the method
+	java_handle_bytearray_t *annotations        = NULL; // unparsed annotations
+	java_handle_t           *method_annotations = NULL; // array of unparsed method annotations */
 
-	assert(cb != NULL);
+	assert(cb);
 	assert(m != NULL);
 
 	LLNI_classinfo_field_get(
@@ -523,9 +504,8 @@ bool annotation_load_method_attribute_runtimevisibleannotations(
 
 *******************************************************************************/
 
-bool annotation_load_method_attribute_runtimeinvisibleannotations(
-	classbuffer *cb, methodinfo *m)
-{
+bool annotation_load_method_attribute_runtimeinvisibleannotations(ClassBuffer& cb,
+                                                                  methodinfo *m) {
 	return loader_skip_attribute_body(cb);
 }
 
@@ -544,17 +524,13 @@ bool annotation_load_method_attribute_runtimeinvisibleannotations(
 
 *******************************************************************************/
 
-bool annotation_load_field_attribute_runtimevisibleannotations(
-	classbuffer *cb, fieldinfo *f)
-{
-	int                      slot              = 0;
-	                         /* slot of the field                   */
-	java_handle_bytearray_t *annotations       = NULL;
-	                         /* unparsed annotations                */
-	java_handle_t           *field_annotations = NULL;
-	                         /* array of unparsed field annotations */
+bool annotation_load_field_attribute_runtimevisibleannotations(ClassBuffer& cb,
+                                                               fieldinfo *f) {
+	int                      slot              = 0;   // slot of the field
+	java_handle_bytearray_t *annotations       = NULL; // unparsed annotations
+	java_handle_t           *field_annotations = NULL; // array of unparsed field annotations
 
-	assert(cb != NULL);
+	assert(cb);
 	assert(f != NULL);
 
 	LLNI_classinfo_field_get(
@@ -597,12 +573,12 @@ bool annotation_load_field_attribute_runtimevisibleannotations(
 
 *******************************************************************************/
 
-bool annotation_load_field_attribute_runtimeinvisibleannotations(
-	classbuffer *cb, fieldinfo *f)
-{
+bool annotation_load_field_attribute_runtimeinvisibleannotations(ClassBuffer& cb,
+                                                                 fieldinfo *f) {
 	return loader_skip_attribute_body(cb);
 }
 
+} // end namespace cacao;
 
 /*
  * These are local overrides for various environment variables in Emacs.

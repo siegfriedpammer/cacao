@@ -32,32 +32,29 @@ struct methodinfo;
 
 /* function prototypes ********************************************************/
 
-bool annotation_load_class_attribute_runtimevisibleannotations(
-	classbuffer *cb);
+namespace cacao {
 
-bool annotation_load_class_attribute_runtimeinvisibleannotations(
-	classbuffer *cb);
+struct ClassBuffer;
 
-bool annotation_load_method_attribute_runtimevisibleannotations(
-	classbuffer *cb, methodinfo *m);
+bool annotation_load_class_attribute_runtimevisibleannotations(ClassBuffer &cb);
 
-bool annotation_load_method_attribute_runtimeinvisibleannotations(
-	classbuffer *cb, methodinfo *m);
+bool annotation_load_class_attribute_runtimeinvisibleannotations(ClassBuffer &cb);
 
-bool annotation_load_field_attribute_runtimevisibleannotations(
-	classbuffer *cb, fieldinfo *f);
+bool annotation_load_method_attribute_runtimevisibleannotations(ClassBuffer &cb, methodinfo *m);
 
-bool annotation_load_field_attribute_runtimeinvisibleannotations(
-	classbuffer *cb, fieldinfo *f);
+bool annotation_load_method_attribute_runtimeinvisibleannotations(ClassBuffer &cb, methodinfo *m);
 
-bool annotation_load_method_attribute_annotationdefault(
-	classbuffer *cb, methodinfo *m);
+bool annotation_load_field_attribute_runtimevisibleannotations(ClassBuffer &cb, fieldinfo *f);
 
-bool annotation_load_method_attribute_runtimevisibleparameterannotations(
-	classbuffer *cb, methodinfo *m);
+bool annotation_load_field_attribute_runtimeinvisibleannotations(ClassBuffer &cb, fieldinfo *f);
 
-bool annotation_load_method_attribute_runtimeinvisibleparameterannotations(
-	classbuffer *cb, methodinfo *m);
+bool annotation_load_method_attribute_annotationdefault(ClassBuffer &cb, methodinfo *m);
+
+bool annotation_load_method_attribute_runtimevisibleparameterannotations(ClassBuffer &cb, methodinfo *m);
+
+bool annotation_load_method_attribute_runtimeinvisibleparameterannotations(ClassBuffer &cb, methodinfo *m);
+
+} // end namespace cacao;
 
 #endif /* _ANNOTATION_HPP */
 

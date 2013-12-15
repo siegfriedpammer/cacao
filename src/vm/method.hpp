@@ -51,7 +51,10 @@ struct raw_exception_entry;
 struct stack_map_t;
 struct vftbl_t;
 
-namespace cacao { struct DescriptorPool; }
+namespace cacao {
+	struct ClassBuffer;
+	struct DescriptorPool;
+}
 
 
 #if defined(ENABLE_REPLACEMENT)
@@ -193,7 +196,7 @@ inline static bool method_is_builtin(methodinfo* m)
 
 void method_init(void);
 
-bool method_load(classbuffer *cb, methodinfo *m, cacao::DescriptorPool& descpool);
+bool method_load(cacao::ClassBuffer& cb, methodinfo *m, cacao::DescriptorPool& descpool);
 void method_free(methodinfo *m);
 bool method_canoverwrite(methodinfo *m, methodinfo *old);
 

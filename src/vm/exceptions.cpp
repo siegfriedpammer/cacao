@@ -710,18 +710,19 @@ void exceptions_throw_classformaterror(classinfo *c, const char *message, ...)
 	if (c != NULL)
 		buf.write(')');
 
-	buf.write('\0');
+	Utf8String u = buf.utf8_str();
+	assert(u);
 
 	/* throw exception */
 
-	exceptions_throw_classformaterror(c, buf.utf8_str());
+	exceptions_throw_classformaterror(c, u);
 }
 
 void exceptions_throw_classformaterror(classinfo *c, Utf8String message)
 {
 	/* throw exception */
 
-	printf("throw new ClassFormatError(\"%s\")\n", message.begin());
+	assert(message);
 
 	exceptions_throw_utf_utf(utf8::java_lang_ClassFormatError, message);
 }
