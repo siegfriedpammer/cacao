@@ -1948,17 +1948,14 @@ static void write_logfiles() {
 	{
 		assert(opt_RtTimingLogfile);
 		cacao::OStream OS(opt_RtTimingLogfile);
-		OS << "\nreal-time measurment:\n" << cacao::nl;
-		cacao::RTGroup::root().print(OS);
-	}
-	/* if (!opt_RtTimingLogfile) */ {
-		FILE *file = fopen("rt-timing.csv", "w");
-		if (file == NULL)
-			/* fallback to stdout */
-			file = stdout;
-		cacao::OStream OS(file);
-		cacao::RTGroup::print_csv_header(OS);
-		cacao::RTGroup::root().print_csv(OS);
+		if (!opt_RtTimingCSV) {
+			OS << "\nreal-time measurment:\n" << cacao::nl;
+			cacao::RTGroup::root().print(OS);
+		}
+		else {
+			cacao::RTGroup::print_csv_header(OS);
+			cacao::RTGroup::root().print_csv(OS);
+		}
 	}
 #endif
 
@@ -1973,17 +1970,13 @@ static void write_logfiles() {
 	{
 		assert(opt_StatisticsLogfile);
 		cacao::OStream OS(opt_StatisticsLogfile);
-		cacao::StatGroup::root().print(OS);
-	}
-	/*if (!opt_StatisticsLogfile)*/
-	{
-		FILE *file = fopen("statistics.csv", "w");
-		if (file == NULL)
-			/* fallback to stdout */
-			file = stdout;
-		cacao::OStream OS(file);
-		cacao::StatGroup::print_csv_header(OS);
-		cacao::StatGroup::root().print_csv(OS);
+		if (!opt_StatisticsCSV) {
+			cacao::StatGroup::root().print(OS);
+		}
+		else {
+			cacao::StatGroup::print_csv_header(OS);
+			cacao::StatGroup::root().print_csv(OS);
+		}
 	}
 #endif
 
