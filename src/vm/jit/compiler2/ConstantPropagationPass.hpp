@@ -27,6 +27,9 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 #include "future/unordered_map.hpp"
+#include "vm/jit/compiler2/Instructions.hpp"
+
+#include <list>
 
 namespace cacao {
 namespace jit {
@@ -43,6 +46,30 @@ class ConstantPropagationPass : public Pass {
 private:
 	typedef unordered_map<Instruction*,bool> InstBoolMapTy;
 	typedef unordered_map<Instruction*,int> InstIntMapTy;
+	typedef std::list<Instruction*> WorkListTy;
+
+	/**
+	 * this work list is used by the algorithm to store the instructions which
+	 * have to be reconsidered. at the beginning it therefore contains all
+	 * instructions.
+	 */
+	WorkListTy workList;
+	
+	/**
+	 * will be used to look up whether an instruction is currently contained in the
+	 * worklist to avoid inserting an instruction which is already in the list.
+	 */
+	InstBoolMapTy inWorkList;
+	
+	/**
+	 * used to track for each instruction the number of its operands which are
+	 * already known to be constant
+	 */
+	InstIntMapTy constantOperands;
+
+	void replace_by_constant(Instruction *isnt, CONSTInst *c, Method *M);
+	void propagate(Instruction *inst);
+
 public:
 	static char ID;
 	ConstantPropagationPass() : Pass() {}

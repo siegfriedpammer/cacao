@@ -31,6 +31,7 @@
 #include "vm/jit/compiler2/GlobalValueNumberingPass.hpp"
 #include "vm/jit/compiler2/ScheduleClickPass.hpp"
 #include "vm/jit/compiler2/InstructionMetaPass.hpp"
+#include "vm/jit/compiler2/SSAPrinterPass.hpp"
 
 #define DEBUG_NAME "compiler2/constantpropagationpass"
 
@@ -132,54 +133,94 @@ CONSTInst *foldInstruction(Instruction *inst) {
 	return 0;
 }
 
+void ConstantPropagationPass::propagate(Instruction *inst) {
+	for (Value::UserListTy::const_iterator i = inst->user_begin(),
+			e = inst->user_end(); i != e; i++) {
+		Instruction *user = *i;
+		constantOperands[user]++;
+		if (!inWorkList[user]) {
+			workList.push_back(user);
+			inWorkList[user] = true;
+		}
+	}
+}
+
+void ConstantPropagationPass::replace_by_constant(Instruction *inst,
+		CONSTInst *c, Method *M) {
+	assert(inst);
+	assert(c);
+
+	LOG("replace " << inst << " by " << c << nl);
+	inst->replace_value(c);
+	propagate(c);
+}
+
+bool has_only_constant_operands(Instruction *inst) {
+	assert(inst->op_size() > 0);
+	CONSTInst *firstOp = inst->get_operand(0)->to_Instruction()->to_CONSTInst();
+	for (Instruction::const_op_iterator i = inst->op_begin(),
+			e = inst->op_end(); i != e; i++) {
+		CONSTInst *op = (*i)->to_Instruction()->to_CONSTInst();
+		bool equal;
+
+		switch (inst->get_type()) {
+			case Type::IntTypeID:
+				equal = firstOp->get_Int() == op->get_Int();
+				break;
+			case Type::LongTypeID:
+				equal = firstOp->get_Long() == op->get_Long();
+				break;
+			case Type::FloatTypeID:
+				equal = firstOp->get_Float() == op->get_Float();
+				break;
+			case Type::DoubleTypeID:
+				equal = firstOp->get_Double() == op->get_Double();
+				break;
+			default:
+				assert(0);
+				return false;
+		}
+
+		if (!equal)
+			return false;
+	}
+	return true;
+}
+
 bool ConstantPropagationPass::run(JITData &JD) {
 	Method *M = JD.get_Method();
 
-	// this work list is used by the algorithm to store the instructions which
-	// have to be reconsidered. at the beginning it therefore contains all
-	// instructions.
-	Method::InstructionListTy workList(M->begin(), M->end());
+	workList.clear();
+	workList.insert(workList.begin(), M->begin(), M->end());	
 
-	// will be used to look up whether an instruction is currently contained in the
-	// worklist to avoid inserting an instruction which is already in the list.
-	InstBoolMapTy inWorkList;
+	inWorkList.clear();
 	for (Method::const_iterator i = workList.begin(), e = workList.end();
 			i != e; i++) {
 		inWorkList[*i] = true;
 	}
-	
-	// used to track for each instruction the number of its operands which are
-	// already known to be constant
-	InstIntMapTy constantOperands;
+
+	constantOperands.clear();
 
 	while (!workList.empty()) {
 		Instruction *I = workList.front();
 		workList.pop_front();
 		inWorkList[I] = false;
 
-		if ((I->op_size() > 0 && constantOperands[I] == I->op_size())
-				|| I->get_opcode() == Instruction::CONSTInstID) {
-			for (Value::UserListTy::const_iterator i = I->user_begin(),
-					e = I->user_end(); i != e; i++) {
-				Instruction *user = *i;
-				constantOperands[user]++;
-				if (!inWorkList[user]) {
-					workList.push_back(user);
-					inWorkList[user] = true;
-				}
-			}
-
-			if (I->get_opcode() != Instruction::CONSTInstID) {
+		if (constantOperands[I] == I->op_size()) {
+			if (I->get_opcode() == Instruction::CONSTInstID) {
+				propagate(I);
+			} else if (I->is_arithmetic()) {
 				CONSTInst *foldedInst = foldInstruction(I);
-	
 				if (foldedInst) {
-					LOG("replace " << I
-						<< " by " << foldedInst
-						<< " (with value " << foldedInst->get_Int() << ")"
-						<< nl);
-					I->replace_value(foldedInst);
 					M->add_Instruction(foldedInst);
+					replace_by_constant(I, foldedInst, M);
 				}
+			} else if (I->get_opcode() == Instruction::PHIInstID
+						&& has_only_constant_operands(I)) {
+				assert(I->op_size() > 0);
+				CONSTInst *firstOp = I->get_operand(0)->to_Instruction()
+					->to_CONSTInst();
+				replace_by_constant(I, firstOp, M);
 			}
 		}
 	}
