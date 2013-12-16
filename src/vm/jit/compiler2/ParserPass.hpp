@@ -30,6 +30,8 @@
 
 #include "vm/jit/parse.hpp"
 
+MM_MAKE_NAME(ParserPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -39,7 +41,7 @@ namespace compiler2 {
  * ParserPass
  * TODO: more info
  */
-class ParserPass : public Pass {
+class ParserPass : public Pass, public memory::ManagerMixin<ParserPass> {
 public:
 	static char ID;
 	ParserPass() : Pass() {}

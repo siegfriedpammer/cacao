@@ -35,6 +35,7 @@ virtual void visit(NOPInst* I);
 virtual void visit(POPInst* I);
 virtual void visit(CHECKNULLInst* I);
 virtual void visit(ARRAYLENGTHInst* I);
+virtual void visit(ARRAYBOUNDSCHECKInst* I);
 virtual void visit(NEGInst* I);
 virtual void visit(CASTInst* I);
 virtual void visit(ADDInst* I);

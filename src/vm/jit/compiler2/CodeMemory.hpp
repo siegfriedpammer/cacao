@@ -29,9 +29,12 @@
 #include "vm/jit/compiler2/DataSegment.hpp"
 #include "vm/types.hpp"
 
-#include <map>
-#include <vector>
+#include "vm/jit/compiler2/memory/Manager.hpp"
+#include "vm/jit/compiler2/alloc/map.hpp"
+#include "vm/jit/compiler2/alloc/vector.hpp"
 #include <cassert>
+
+MM_MAKE_NAME(CodeMemory)
 
 namespace cacao {
 namespace jit {
@@ -43,11 +46,11 @@ class MachineInstruction;
 /**
  * CodeMemory
  */
-class CodeMemory {
+class CodeMemory : public memory::ManagerMixin<CodeMemory>  {
 public:
 	typedef std::pair<const MachineInstruction*,CodeFragment> ResolvePointTy;
 private:
-	typedef std::list<ResolvePointTy> LinkListTy;
+	typedef alloc::list<ResolvePointTy>::type LinkListTy;
 
 	LinkListTy linklist;            ///< instructions that require linking
 

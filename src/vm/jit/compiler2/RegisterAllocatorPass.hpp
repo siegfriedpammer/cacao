@@ -27,6 +27,8 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 
+MM_MAKE_NAME(RegisterAllocatorPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -34,7 +36,7 @@ namespace compiler2 {
 /**
  * RegisterAllocatorPass
  */
-class RegisterAllocatorPass : public Pass {
+class RegisterAllocatorPass : public Pass, public memory::ManagerMixin<RegisterAllocatorPass> {
 public:
 	static char ID;
 	RegisterAllocatorPass() : Pass() {}

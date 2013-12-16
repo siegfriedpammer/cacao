@@ -29,6 +29,8 @@
 
 #include "vm/jit/verify/typecheck.hpp"
 
+MM_MAKE_NAME(VerifierPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -38,7 +40,7 @@ namespace compiler2 {
  * VerifierPass
  * TODO: more info
  */
-class VerifierPass : public Pass {
+class VerifierPass : public Pass, public memory::ManagerMixin<VerifierPass> {
 public:
 	static char ID;
 	VerifierPass() : Pass() {}

@@ -53,8 +53,7 @@ struct ScheduleLate : public std::unary_function<Instruction*,void> {
 	// function call operator
 	void operator()(Instruction* user) {
 		assert(user);
-		BeginInst* user_block = user->get_BeginInst();
-		assert(user_block);
+		assert(user->get_BeginInst());
 		PHIInst *phi = user->to_PHIInst();
 		if (phi) {
 			int index = phi->get_operand_index(I);
@@ -114,23 +113,23 @@ void ScheduleLatePass::schedule_late(Instruction *I) {
 	 */
 	BeginInst* latest = block;
 	BeginInst* best = latest;
-	//if (I->get_opcode() != Instruction::CONSTInstID) {
-	BeginInst* earliest = DT->get_idominator(early->get(I));
-	LOG1("Sched.Late: " << latest << nl);
-	LOG1("Sched.Early: " << early->get(I) << nl);
+	if (I->get_opcode() != Instruction::CONSTInstID) {
+		BeginInst* earliest = DT->get_idominator(early->get(I));
+		LOG1("Sched.Late: " << latest << nl);
+		LOG1("Sched.Early: " << early->get(I) << nl);
 
-	while (latest != earliest) {
-		Loop* loop_latest = LT->get_Loop(latest);
-		Loop* loop_best = LT->get_Loop(best);
-		// if the best is in an inner loop
-		LOG2( "Loop best: " << best << " " << LT->loop_nest(loop_best)
-		  << " Loop latest: " << latest << " " << LT->loop_nest(loop_latest) << nl);
-		if ( LT->is_inner_loop(loop_best, loop_latest) ) {
-			best = latest;
+		while (latest != earliest) {
+			Loop* loop_latest = LT->get_Loop(latest);
+			Loop* loop_best = LT->get_Loop(best);
+			// if the best is in an inner loop
+			LOG2( "Loop best: " << best << " " << LT->loop_nest(loop_best)
+			  << " Loop latest: " << latest << " " << LT->loop_nest(loop_latest) << nl);
+			if ( LT->is_inner_loop(loop_best, loop_latest) ) {
+				best = latest;
+			}
+			latest = DT->get_idominator(latest);
 		}
-		latest = DT->get_idominator(latest);
 	}
-	//}
 	LOG("scheduled to " << best << nl);
 	// set the basic block
 	I->set_BeginInst(best);
@@ -167,7 +166,7 @@ PassUsage& ScheduleLatePass::get_PassUsage(PassUsage &PU) const {
 char ScheduleLatePass::ID = 0;
 
 // registrate Pass
-static PassRegistery<ScheduleLatePass> X("ScheduleLatePass");
+static PassRegistry<ScheduleLatePass> X("ScheduleLatePass");
 
 } // end namespace compiler2
 } // end namespace jit

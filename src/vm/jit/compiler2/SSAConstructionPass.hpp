@@ -28,9 +28,11 @@
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/jit.hpp"
-#include "future/unordered_map.hpp"
+#include "vm/jit/compiler2/alloc/unordered_map.hpp"
 
-#include <vector>
+#include "vm/jit/compiler2/alloc/vector.hpp"
+
+MM_MAKE_NAME(SSAConstructionPass)
 
 namespace cacao {
 namespace jit {
@@ -45,18 +47,19 @@ namespace compiler2 {
  * The approach is based on "Simple and Efficient Construction of
  * Static Singe Assignment Form" by Braun et al. 2013 @cite SSAsimple2013.
  */
-class SSAConstructionPass : public Pass {
+class SSAConstructionPass : public Pass, public memory::ManagerMixin<SSAConstructionPass> {
 private:
 	Method *M;
-	std::vector<BeginInst*> BB;
-	unordered_map<BeginInst*,size_t> beginToIndex;
-	std::vector<std::vector<Value*> > current_def;
+	jitdata *jd;
+	alloc::vector<BeginInst*>::type BB;
+	alloc::unordered_map<BeginInst*,size_t>::type beginToIndex;
+	alloc::vector<alloc::vector<Value*>::type >::type current_def;
 	// TODO may be changed to std::vector<unordered_map<int,PHIInst*> > incomplete_phi;
-	std::vector<std::vector<PHIInst*> > incomplete_phi;
-	std::vector<bool> sealed_blocks;
+	alloc::vector<alloc::vector<PHIInst*>::type >::type incomplete_phi;
+	alloc::vector<bool>::type sealed_blocks;
 	//
-	std::vector<bool> filled_blocks;
-	std::vector<Type::TypeID> var_type_tbl;
+	alloc::vector<bool>::type filled_blocks;
+	alloc::vector<Type::TypeID>::type var_type_tbl;
 	void write_variable(size_t varindex, size_t bb, Value *V);
 	Value* read_variable(size_t varindex, size_t bb);
 	Value* read_variable_recursive(size_t varindex, size_t bb);

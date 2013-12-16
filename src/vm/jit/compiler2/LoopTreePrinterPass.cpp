@@ -100,7 +100,7 @@ PassUsage& LoopTreePrinterPass::get_PassUsage(PassUsage &PU) const {
 char LoopTreePrinterPass::ID = 0;
 
 // register pass
-static PassRegistery<LoopTreePrinterPass> X("LoopTreePrinterPass");
+static PassRegistry<LoopTreePrinterPass> X("LoopTreePrinterPass");
 
 namespace {
 std::string get_filename(methodinfo *m, jitdata *jd, std::string prefix = "cfg_", std::string suffix=".dot");

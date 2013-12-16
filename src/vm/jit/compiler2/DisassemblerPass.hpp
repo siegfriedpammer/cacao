@@ -27,6 +27,7 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 
+MM_MAKE_NAME(DisassemblerPass)
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -36,7 +37,7 @@ namespace compiler2 {
  * DisassemblerPass
  * TODO: more info
  */
-class DisassemblerPass : public Pass {
+class DisassemblerPass : public Pass, public memory::ManagerMixin<DisassemblerPass> {
 public:
 	static char ID;
 	DisassemblerPass() : Pass() {}

@@ -90,7 +90,7 @@ PassUsage& DomTreePrinterPass::get_PassUsage(PassUsage &PU) const {
 char DomTreePrinterPass::ID = 0;
 
 // register pass
-static PassRegistery<DomTreePrinterPass> X("DomTreePrinterPass");
+static PassRegistry<DomTreePrinterPass> X("DomTreePrinterPass");
 
 namespace {
 std::string get_filename(methodinfo *m, jitdata *jd, std::string prefix = "cfg_", std::string suffix=".dot");

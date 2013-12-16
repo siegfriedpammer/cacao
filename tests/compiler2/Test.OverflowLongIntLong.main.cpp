@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <inttypes.h>
 
-int64_t OverflowLongIntLong(int64_t);
+extern "C" int64_t OverflowLongIntLong(int64_t);
 
 
 int main() {

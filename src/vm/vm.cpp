@@ -562,11 +562,20 @@ static void fullversion(void)
 /* forward declarations *******************************************************/
 
 static char *vm_get_mainclass_from_jar(char *mainstring);
+
 #if !defined(NDEBUG)
-static void  vm_compile_all(void);
+#define COMPILE_METHOD
+#else
+#define COMPILE_METHOD
+#endif
+
+#if defined(COMPILE_METHOD)
 static void  vm_compile_method(char* mainname);
 #endif
 
+#if !defined(NDEBUG)
+static void  vm_compile_all(void);
+#endif
 
 /**
  * Implementation for JNI_CreateJavaVM.  This function creates a VM
@@ -1628,7 +1637,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	if (mainname == NULL)
 		usage();
 
-#if !defined(NDEBUG)
+#if defined(COMPILE_METHOD)
 	if (opt_CompileMethod != NULL) {
 		vm_compile_method(mainname);
 		/* write logfiles */
@@ -1939,8 +1948,14 @@ static void write_logfiles() {
 	{
 		assert(opt_RtTimingLogfile);
 		cacao::OStream OS(opt_RtTimingLogfile);
-		OS << "\nreal-time measurment:\n" << cacao::nl;
-		cacao::RTGroup::root().print(OS);
+		if (!opt_RtTimingCSV) {
+			OS << "\nreal-time measurment:\n" << cacao::nl;
+			cacao::RTGroup::root().print(OS);
+		}
+		else {
+			cacao::RTGroup::print_csv_header(OS);
+			cacao::RTGroup::root().print_csv(OS);
+		}
 	}
 #endif
 
@@ -1955,7 +1970,13 @@ static void write_logfiles() {
 	{
 		assert(opt_StatisticsLogfile);
 		cacao::OStream OS(opt_StatisticsLogfile);
-		cacao::StatGroup::root().print(OS);
+		if (!opt_StatisticsCSV) {
+			cacao::StatGroup::root().print(OS);
+		}
+		else {
+			cacao::StatGroup::print_csv_header(OS);
+			cacao::StatGroup::root().print_csv(OS);
+		}
 	}
 #endif
 
@@ -2221,10 +2242,14 @@ static void vm_compile_all(void)
 
 *******************************************************************************/
 
-#if !defined(NDEBUG)
+RT_REGISTER_TIMER(compiler_method,"compiler-all","compiler overall")
+
+#if defined(COMPILE_METHOD)
+
 #if defined(ENABLE_COMPILER2)
 #include "vm/jit/compiler2/Compiler.hpp"
 #endif
+
 static void vm_compile_method(char* mainname)
 {
 	methodinfo *m;
@@ -2278,6 +2303,7 @@ static void vm_compile_method(char* mainname)
 		os::abort("vm_compile_method: java.lang.NoSuchMethodException: %s.%s",
 				 opt_CompileMethod, opt_CompileSignature ? opt_CompileSignature : "");
 
+	RT_TIMER_START(compiler_method);
 #if defined(ENABLE_COMPILER2)
 	if (opt_DebugCompiler2) {
 		cacao::jit::compiler2::compile(m);
@@ -2286,6 +2312,7 @@ static void vm_compile_method(char* mainname)
 	{
 		jit_compile(m);
 	}
+	RT_TIMER_STOP(compiler_method);
 }
 #endif /* !defined(NDEBUG) */
 

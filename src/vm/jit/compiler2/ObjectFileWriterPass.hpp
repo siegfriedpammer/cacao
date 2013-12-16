@@ -27,6 +27,8 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 
+MM_MAKE_NAME(ObjectFileWriterPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -36,7 +38,7 @@ namespace compiler2 {
  * ObjectFileWriterPass
  * TODO: more info
  */
-class ObjectFileWriterPass : public Pass {
+class ObjectFileWriterPass : public Pass, public memory::ManagerMixin<ObjectFileWriterPass> {
 public:
 	static char ID;
 	ObjectFileWriterPass() : Pass() {}

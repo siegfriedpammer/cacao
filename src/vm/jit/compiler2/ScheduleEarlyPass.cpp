@@ -103,7 +103,7 @@ PassUsage& ScheduleEarlyPass::get_PassUsage(PassUsage &PU) const {
 char ScheduleEarlyPass::ID = 0;
 
 // registrate Pass
-static PassRegistery<ScheduleEarlyPass> X("ScheduleEarlyPass");
+static PassRegistry<ScheduleEarlyPass> X("ScheduleEarlyPass");
 
 } // end namespace compiler2
 } // end namespace jit

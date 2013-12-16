@@ -27,8 +27,8 @@
 
 #include "vm/types.hpp"
 #include <cassert>
-#include <vector>
-#include <map>
+#include "vm/jit/compiler2/alloc/vector.hpp"
+#include "vm/jit/compiler2/alloc/map.hpp"
 #include <algorithm>
 
 #include "toolbox/OStream.hpp"
@@ -111,9 +111,9 @@ public:
 	};
 	typedef SegRef<Tag,RefCategory> Ref;
 private:
-	typedef typename std::map<SegmentTag<Tag>*,IdxTy,classcomp<Tag> > EntriesTy;
+	typedef typename alloc::map<SegmentTag<Tag>*,IdxTy,classcomp<Tag> >::type EntriesTy;
 	CodeMemory *CM;
-	std::vector<u1> content;             ///< content of the segment
+	alloc::vector<u1>::type content;             ///< content of the segment
 	EntriesTy entries;                   ///< tagged entries
 
 	/// invalid index

@@ -29,9 +29,12 @@
 #include "toolbox/OStream.hpp"
 #include "vm/types.hpp"
 
-#include <list>
-#include <vector>
+#include "vm/jit/compiler2/memory/Manager.hpp"
+#include "vm/jit/compiler2/alloc/list.hpp"
+#include "vm/jit/compiler2/alloc/vector.hpp"
 #include <cassert>
+
+MM_MAKE_NAME(MachineOperand)
 
 namespace cacao {
 
@@ -54,7 +57,7 @@ class CONSTInst;
 /**
  * Operands that can be directly used by the machine (register, memory, stackslot)
  */
-class MachineOperand {
+class MachineOperand : public memory::ManagerMixin<MachineOperand>  {
 public:
 	enum OperandID {
 		MachineOperandID,
@@ -69,19 +72,22 @@ public:
 	typedef std::size_t IdentifyOffsetTy;
 	typedef std::size_t IdentifySizeTy;
 private:
+	static std::size_t id_counter;
+	std::size_t id;
 	OperandID op_id;
 	Type::TypeID type;
 protected:
 	/**
 	 * TODO describe
 	 */
-	virtual IdentifyTy id_base()         const { return static_cast<const void*>(this); }
+	virtual IdentifyTy id_base()         const { return static_cast<IdentifyTy>(this); }
 	virtual IdentifyOffsetTy id_offset() const { return 0; }
 	virtual IdentifySizeTy id_size()     const { return 1; }
 public:
+	std::size_t get_id() const { return id; }
 
 	explicit MachineOperand(OperandID op_id, Type::TypeID type)
-		: op_id(op_id), type(type) {}
+		: id(id_counter++), op_id(op_id), type(type) {}
 
 	OperandID get_OperandID() const { return op_id; }
 	Type::TypeID get_type() const { return type; }
@@ -104,6 +110,8 @@ public:
 	bool is_ManagedStackSlot() const { return op_id == ManagedStackSlotID; }
 	bool is_Immediate()        const { return op_id == ImmediateID; }
 	bool is_Address()          const { return op_id == AddressID; }
+
+	bool is_stackslot() const { return is_StackSlot() || is_ManagedStackSlot(); }
 
 	/**
 	 */
@@ -360,18 +368,49 @@ inline OStream& operator<<(OStream &OS, const MachineOperand *MO) {
 	return OS << *MO;
 }
 
-struct MachineOperandComp : std::binary_function<MachineOperand*,MachineOperand*,bool> {
+struct MachineOperandComp : public std::binary_function<MachineOperand*,MachineOperand*,bool> {
 	bool operator()(MachineOperand* lhs, MachineOperand *rhs) const {
 		return lhs->aquivalence_less(*rhs);
 	}
 };
 
-typedef std::list<MachineOperand*> OperandFile;
+typedef alloc::list<MachineOperand*>::type OperandFile;
 
 
 } // end namespace compiler2
 } // end namespace jit
+
+template<>
+struct hash<cacao::jit::compiler2::MachineOperand*> {
+	std::size_t operator()(cacao::jit::compiler2::MachineOperand *v) const {
+		return v->get_id();
+	}
+};
+
+
 } // end namespace cacao
+
+namespace std {
+
+template<>
+struct less<cacao::jit::compiler2::MachineOperand*> {
+	bool operator()(cacao::jit::compiler2::MachineOperand *lhs,
+			cacao::jit::compiler2::MachineOperand *rhs) const {
+		return lhs->get_id() < rhs->get_id();
+	}
+};
+
+#if 0
+template<>
+struct equal_to<cacao::jit::compiler2::MachineOperand*> {
+	bool operator()(cacao::jit::compiler2::MachineOperand *lhs,
+			cacao::jit::compiler2::MachineOperand *rhs) const {
+		return lhs->aquivalent(*rhs);
+	}
+};
+#endif
+
+} // end namespace standard
 
 #endif /* _JIT_COMPILER2_MACHINEOPERAND */
 

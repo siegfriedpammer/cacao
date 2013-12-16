@@ -48,6 +48,7 @@
 #include "vm/jit/compiler2/Compiler.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 
+#include "vm/jit/compiler2/InstructionMetaPass.hpp"
 #include "vm/jit/compiler2/ParserPass.hpp"
 #include "vm/jit/compiler2/StackAnalysisPass.hpp"
 # if defined(ENABLE_VERIFIER)
@@ -127,7 +128,17 @@ MachineCode* compile(methodinfo* m)
 	PassManager PM;
 
 	LOG(bold << bold << "Compiler Start: " << reset_color << *m << nl);
-
+	#if 0
+	PM.add_Pass<InstructionMetaPass>();
+	PM.add_Pass<LoopPass>();
+	PM.add_Pass<ScheduleEarlyPass>();
+	PM.add_Pass<ScheduleLatePass>();
+	PM.add_Pass<ScheduleClickPass>();
+	PM.add_Pass<BasicBlockSchedulingPass>();
+	PM.add_Pass<MachineInstructionPrinterPass>();
+	PM.add_Pass<LivetimeAnalysisPass>();
+	#endif
+#if !defined(NDEBUG)
 	PM.add_Pass<ExamplePass>();
 	PM.add_Pass<LoopTreePrinterPass>();
 	PM.add_Pass<DomTreePrinterPass>();
@@ -139,11 +150,12 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleLatePass> >();
 	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleClickPass> >();
 	PM.add_Pass<MachineInstructionPrinterPass>();
+#endif
 	PM.add_Pass<CodeGenPass>();
+	PM.add_Pass<ObjectFileWriterPass>();
 	if (opt_showdisassemble) {
 		PM.add_Pass<DisassemblerPass>();
 	}
-	PM.add_Pass<ObjectFileWriterPass>();
 
 /*****************************************************************************/
 /** prolog start jit_compile **/

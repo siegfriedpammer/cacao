@@ -29,7 +29,10 @@
 #include "vm/jit/compiler2/CodeSegment.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
 
-#include <vector>
+#include "vm/jit/compiler2/memory/Manager.hpp"
+#include "vm/jit/compiler2/alloc/vector.hpp"
+
+MM_MAKE_NAME(MachineInstruction)
 
 namespace cacao {
 
@@ -51,7 +54,7 @@ class MachineInstruction;
  * Besides a pointer to the actual MachineOperand meta information like
  * operand index, etc. are stored.
  */
-class MachineOperandDesc {
+class MachineOperandDesc : public memory::ManagerMixin<MachineOperandDesc>  {
 private:
 	MachineInstruction *parent;
 	std::size_t index;
@@ -80,7 +83,7 @@ public:
  * source block.
  */
 #if 0
-class SuccessorProxy {
+class SuccessorProxy : public memory::ManagerMixin<SuccessorProxy>  {
 public:
 	struct Explicit {};
 	struct Implicit {};
@@ -103,12 +106,12 @@ public:
 /**
  * Superclass for all machine dependent instructions
  */
-class MachineInstruction {
+class MachineInstruction : public memory::ManagerMixin<MachineInstruction>  {
 public:
-	typedef std::vector<MachineOperandDesc> operand_list;
+	typedef alloc::vector<MachineOperandDesc>::type operand_list;
 	typedef operand_list::iterator operand_iterator;
 	typedef operand_list::const_iterator const_operand_iterator;
-	typedef std::list<MachineBasicBlock*> successor_list;
+	typedef alloc::list<MachineBasicBlock*>::type successor_list;
 	typedef successor_list::iterator successor_iterator;
 	typedef successor_list::const_iterator const_successor_iterator;
 private:
@@ -172,6 +175,12 @@ public:
 	}
 	operand_iterator end() {
 		return operands.end();
+	}
+	MachineOperandDesc& front() {
+		return operands.front();
+	}
+	MachineOperandDesc& back() {
+		return operands.back();
 	}
 	const_operand_iterator begin() const {
 		return operands.begin();
@@ -251,6 +260,10 @@ public:
 	OStream& print(OStream &OS) const;
 	/// print successor label
 	virtual OStream& print_successor_label(OStream &OS,std::size_t index) const;
+	/// print operands
+	virtual OStream& print_operands(OStream &OS) const;
+	/// print result
+	virtual OStream& print_result(OStream &OS) const;
 
 	/// emit machine code
 	virtual void emit(CodeMemory* CM) const;

@@ -58,13 +58,13 @@ DominatorTree::NodeTy* DominatorTree::find_nearest_common_dom(NodeTy *a, NodeTy 
 	if (dominates(b,a))
 	  return b;
 	// collect a's dominators
-	std::set<NodeTy*> dom_a;
+	alloc::set<NodeTy*>::type dom_a;
 	while ( (a = get_idominator(a)) ) {
 		dom_a.insert(a);
 	}
 
 	// search nearest common dominator
-	for(std::set<NodeTy*>::const_iterator e = dom_a.end(); b != NULL ; b = get_idominator(b) ) {
+	for(alloc::set<NodeTy*>::type::const_iterator e = dom_a.end(); b != NULL ; b = get_idominator(b) ) {
 		if (dom_a.find(b) != e) {
 			return b;
 		}
@@ -188,11 +188,15 @@ bool DominatorPass::run(JITData &JD) {
 	dom[M->get_init_bb()];
 
 	LOG("Dominators:" << nl);
-	for (int i = 1 ; i <= n; ++i) {
-		NodeTy *v = vertex[i];
-		NodeTy *w = dom[v];
-		LOG("index" << setw(3) << i << " dom(" << (long)v <<") =" << (long)w << nl);
+	#if defined(ENABLE_LOGGING)
+	if (DEBUG_COND_N(0)) {
+		for (int i = 1 ; i <= n; ++i) {
+			NodeTy *v = vertex[i];
+			NodeTy *w = dom[v];
+			LOG("index" << setw(3) << i << " dom(" << (long)v <<") =" << (long)w << nl);
+		}
 	}
+	#endif
 
 	return true;
 }
@@ -207,7 +211,7 @@ PassUsage& DominatorPass::get_PassUsage(PassUsage &PU) const {
 char DominatorPass::ID = 0;
 
 // register pass
-static PassRegistery<DominatorPass> X("DominatorPass");
+static PassRegistry<DominatorPass> X("DominatorPass");
 
 } // end namespace compiler2
 } // end namespace jit

@@ -28,6 +28,8 @@
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/ParserPass.hpp"
 
+MM_MAKE_NAME(StackAnalysisPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -37,7 +39,7 @@ namespace compiler2 {
  * StackAnalysisPass
  * TODO: more info
  */
-class StackAnalysisPass : public Pass {
+class StackAnalysisPass : public Pass, public memory::ManagerMixin<StackAnalysisPass> {
 public:
 	static char ID;
 	StackAnalysisPass() : Pass() {}

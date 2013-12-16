@@ -26,7 +26,10 @@
 #define _JIT_COMPILER2_PASS
 
 #include "vm/jit/compiler2/PassManager.hpp"
+#include "vm/jit/compiler2/memory/Manager.hpp"
 #include <cstddef>
+
+MM_MAKE_NAME(Pass)
 
 namespace cacao {
 namespace jit {
@@ -37,13 +40,12 @@ class PassManager;
 class PassUsage;
 class JITData;
 
-
 /**
  * Pass superclass
  * All compiler passes should inheritate this class.
  * TODO: more info
  */
-class Pass {
+class Pass { 
 private:
 	PassManager *pm;
 	bool allowed_to_use_result(char &id) const;

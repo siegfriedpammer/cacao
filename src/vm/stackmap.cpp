@@ -38,6 +38,9 @@ STAT_DECLARE_VAR(int,size_stack_map,0)
 
 struct classinfo;
 
+using namespace cacao;
+
+
 /* stackmap_get_verification_type_info *****************************************
 
    union verification_type_info {
@@ -92,14 +95,14 @@ struct classinfo;
 
 *******************************************************************************/
 
-static bool stackmap_get_verification_type_info(classbuffer *cb, verification_type_info_t *verification_type_info)
+static bool stackmap_get_verification_type_info(ClassBuffer& cb, verification_type_info_t *verification_type_info)
 {
 	/* get verification type */
 
-	if (!suck_check_classbuffer_size(cb, 1))
+	if (!cb.check_size(1))
 		return false;
 
-	verification_type_info->tag = suck_u1(cb);
+	verification_type_info->tag = cb.read_u1();
 
 	/* process the tag */
 
@@ -116,19 +119,19 @@ static bool stackmap_get_verification_type_info(classbuffer *cb, verification_ty
 	case ITEM_Object:
 		/* get constant pool index */
 
-		if (!suck_check_classbuffer_size(cb, 2))
+		if (!cb.check_size(2))
 			return false;
 
-		verification_type_info->Object_variable_info.cpool_index = suck_u2(cb);
+		verification_type_info->Object_variable_info.cpool_index = cb.read_u2();
 		break;
 
 	case ITEM_Uninitialized:
 		/* get offset */
 
-		if (!suck_check_classbuffer_size(cb, 2))
+		if (!cb.check_size(2))
 			return false;
 
-		verification_type_info->Uninitialized_variable_info.offset = suck_u2(cb);
+		verification_type_info->Uninitialized_variable_info.offset = cb.read_u2();
 		break;
 	}
 
@@ -145,7 +148,7 @@ static bool stackmap_get_verification_type_info(classbuffer *cb, verification_ty
 
 *******************************************************************************/
 
-static bool stackmap_get_same_locals_1_stack_item_frame(classbuffer *cb, stack_map_frame_t *stack_map_frame)
+static bool stackmap_get_same_locals_1_stack_item_frame(ClassBuffer& cb, stack_map_frame_t *stack_map_frame)
 {
 	same_locals_1_stack_item_frame_t *same_locals_1_stack_item_frame;
 
@@ -171,7 +174,7 @@ static bool stackmap_get_same_locals_1_stack_item_frame(classbuffer *cb, stack_m
 
 *******************************************************************************/
 
-static bool stackmap_get_same_locals_1_stack_item_frame_extended(classbuffer *cb, stack_map_frame_t *stack_map_frame)
+static bool stackmap_get_same_locals_1_stack_item_frame_extended(ClassBuffer& cb, stack_map_frame_t *stack_map_frame)
 {
 	same_locals_1_stack_item_frame_extended_t *same_locals_1_stack_item_frame_extended;
 
@@ -182,12 +185,12 @@ static bool stackmap_get_same_locals_1_stack_item_frame_extended(classbuffer *cb
 
 	/* check buffer size */
 
-	if (!suck_check_classbuffer_size(cb, 2))
+	if (!cb.check_size(2))
 		return false;
 
 	/* get offset delta */
 
-	same_locals_1_stack_item_frame_extended->offset_delta = suck_u2(cb);
+	same_locals_1_stack_item_frame_extended->offset_delta = cb.read_u2();
 
 	/* process stack */
 
@@ -207,8 +210,7 @@ static bool stackmap_get_same_locals_1_stack_item_frame_extended(classbuffer *cb
 
 *******************************************************************************/
 
-static bool stackmap_get_chop_frame(classbuffer *cb,
-									stack_map_frame_t *stack_map_frame)
+static bool stackmap_get_chop_frame(ClassBuffer& cb, stack_map_frame_t *stack_map_frame)
 {
 	chop_frame_t *chop_frame;
 
@@ -218,12 +220,12 @@ static bool stackmap_get_chop_frame(classbuffer *cb,
 
 	/* check buffer size */
 
-	if (!suck_check_classbuffer_size(cb, 2))
+	if (!cb.check_size(2))
 		return false;
 
 	/* get offset delta */
 
-	chop_frame->offset_delta = suck_u2(cb);
+	chop_frame->offset_delta = cb.read_u2();
 
 	return true;
 }
@@ -238,7 +240,7 @@ static bool stackmap_get_chop_frame(classbuffer *cb,
 
 *******************************************************************************/
 
-static bool stackmap_get_same_frame_extended(classbuffer *cb,
+static bool stackmap_get_same_frame_extended(ClassBuffer& cb,
 											 stack_map_frame_t *stack_map_frame)
 {
 	same_frame_extended_t *same_frame_extended;
@@ -249,12 +251,12 @@ static bool stackmap_get_same_frame_extended(classbuffer *cb,
 
 	/* check buffer size */
 
-	if (!suck_check_classbuffer_size(cb, 2))
+	if (!cb.check_size(2))
 		return false;
 
 	/* get offset delta */
 
-	same_frame_extended->offset_delta = suck_u2(cb);
+	same_frame_extended->offset_delta = cb.read_u2();
 
 	return true;
 }
@@ -270,7 +272,7 @@ static bool stackmap_get_same_frame_extended(classbuffer *cb,
 
 *******************************************************************************/
 
-static bool stackmap_get_append_frame(classbuffer *cb,
+static bool stackmap_get_append_frame(ClassBuffer& cb,
 									  stack_map_frame_t *stack_map_frame)
 {
 	append_frame_t *append_frame;
@@ -283,12 +285,12 @@ static bool stackmap_get_append_frame(classbuffer *cb,
 
 	/* check buffer size */
 
-	if (!suck_check_classbuffer_size(cb, 2))
+	if (!cb.check_size(2))
 		return false;
 
 	/* get offset delta */
 
-	append_frame->offset_delta = suck_u2(cb);
+	append_frame->offset_delta = cb.read_u2();
 
 	/* allocate locals array */
 
@@ -319,7 +321,7 @@ static bool stackmap_get_append_frame(classbuffer *cb,
 
 *******************************************************************************/
 
-static bool stackmap_get_full_frame(classbuffer *cb,
+static bool stackmap_get_full_frame(ClassBuffer& cb,
 									stack_map_frame_t *stack_map_frame)
 {
 	full_frame_t *full_frame;
@@ -331,16 +333,16 @@ static bool stackmap_get_full_frame(classbuffer *cb,
 
 	/* check buffer size */
 
-	if (!suck_check_classbuffer_size(cb, 2 + 2))
+	if (!cb.check_size(2 + 2))
 		return false;
 
 	/*  get offset delta */
 
-	stack_map_frame->full_frame.offset_delta = suck_u2(cb);
+	stack_map_frame->full_frame.offset_delta = cb.read_u2();
 
 	/* get number of locals */
 
-	full_frame->number_of_locals = suck_u2(cb);
+	full_frame->number_of_locals = cb.read_u2();
 
 	/* allocate locals array */
 
@@ -355,10 +357,10 @@ static bool stackmap_get_full_frame(classbuffer *cb,
 
 	/* get number of stack items */
 
-	if (!suck_check_classbuffer_size(cb, 2))
+	if (!cb.check_size(2))
 		return false;
 
-	full_frame->number_of_stack_items = suck_u2(cb);
+	full_frame->number_of_stack_items = cb.read_u2();
 
 	/* allocate stack array */
 
@@ -400,7 +402,7 @@ static bool stackmap_get_full_frame(classbuffer *cb,
 
 *******************************************************************************/
 
-bool stackmap_load_attribute_stackmaptable(classbuffer *cb, methodinfo *m)
+bool stackmap_load_attribute_stackmaptable(ClassBuffer& cb, methodinfo *m)
 {
 	classinfo       *c;
 	stack_map_t     *stack_map;
@@ -409,7 +411,7 @@ bool stackmap_load_attribute_stackmaptable(classbuffer *cb, methodinfo *m)
 
 	/* get classinfo */
 
-	c = cb->clazz;
+	c = cb.get_class();
 
 	/* allocate stack map structure */
 
@@ -419,19 +421,19 @@ bool stackmap_load_attribute_stackmaptable(classbuffer *cb, methodinfo *m)
 
 	/* check buffer size */
 
-	if (!suck_check_classbuffer_size(cb, 4 + 2))
+	if (!cb.check_size(4 + 2))
 		return false;
 
 	/* attribute_length */
 
-	stack_map->attribute_length = suck_u4(cb);
+	stack_map->attribute_length = cb.read_u4();
 
-	if (!suck_check_classbuffer_size(cb, stack_map->attribute_length))
+	if (!cb.check_size(stack_map->attribute_length))
 		return false;
 
 	/* get number of entries */
 
-	stack_map->number_of_entries = suck_u2(cb);
+	stack_map->number_of_entries = cb.read_u2();
 
 	/* process all entries */
 
@@ -440,7 +442,7 @@ bool stackmap_load_attribute_stackmaptable(classbuffer *cb, methodinfo *m)
 	for (i = 0; i < stack_map->number_of_entries; i++) {
 		/* get the frame type */
 
-		frame_type = suck_u1(cb);
+		frame_type = cb.read_u1();
 
 		stack_map->entries[i].frame_type = frame_type;
 

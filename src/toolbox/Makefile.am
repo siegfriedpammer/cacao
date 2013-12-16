@@ -35,6 +35,7 @@ libtoolbox_la_SOURCES = \
 	bitvector.cpp \
 	bitvector.hpp \
 	buffer.hpp \
+	endianess.hpp \
 	hashtable.cpp \
 	hashtable.hpp \
 	intern_table.hpp \

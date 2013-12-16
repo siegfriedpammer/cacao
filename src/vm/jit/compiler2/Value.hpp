@@ -26,11 +26,11 @@
 #define _JIT_COMPILER2_VALUE
 
 #include "vm/jit/compiler2/Type.hpp"
+#include "vm/jit/compiler2/alloc/list.hpp"
+#include "vm/jit/compiler2/memory/Manager.hpp"
 
 #include <cstddef>
-#include <list>
 #include <algorithm>
-
 #include <cassert>
 
 namespace cacao {
@@ -41,10 +41,19 @@ namespace jit {
 namespace compiler2 {
 
 class Instruction;
+class Value;
 
-class Value {
+namespace memory {
+template<>
+inline const char* get_class_name<Value>() {
+	return "Instruction";
+}
+} // end namespace memory
+
+
+class Value : public memory::ManagerMixin<Value> {
 public:
-	typedef std::list<Instruction*> UserListTy;
+	typedef alloc::list<Instruction*>::type UserListTy;
 protected:
 	Type::TypeID type;
 	UserListTy user_list;

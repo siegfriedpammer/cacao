@@ -59,10 +59,11 @@ PassUsage& MachineInstructionPrinterPass::get_PassUsage(PassUsage &PU) const {
 char MachineInstructionPrinterPass::ID = 0;
 
 // register pass
-static PassRegistery<MachineInstructionPrinterPass> X("MachineInstructionPrinterPass");
+static PassRegistry<MachineInstructionPrinterPass> X("MachineInstructionPrinterPass");
 
 // run pass
 bool MachineInstructionPrinterPass::run(JITData &JD) {
+	#if defined(ENABLE_LOGGING)
 	MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
 	assert(MIS);
 	for (MachineInstructionSchedule::iterator i = MIS->begin(), e = MIS->end();
@@ -85,6 +86,7 @@ bool MachineInstructionPrinterPass::run(JITData &JD) {
 			LOG(*MI << nl);
 		}
 	}
+	#endif
 	return true;
 }
 

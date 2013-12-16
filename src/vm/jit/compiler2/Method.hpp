@@ -27,8 +27,8 @@
 
 #include <cstddef>
 
-#include <vector>
-#include <list>
+#include "vm/jit/compiler2/alloc/vector.hpp"
+#include "vm/jit/compiler2/alloc/list.hpp"
 
 // forware declaration
 struct methodinfo;
@@ -57,8 +57,8 @@ edge<_NodeType> make_edge (_NodeType x, _NodeType y) {
 
 class Method {
 public:
-	typedef std::list<Instruction*> InstructionListTy;
-	typedef std::list<BeginInst*> BBListTy;
+	typedef alloc::list<Instruction*>::type InstructionListTy;
+	typedef alloc::list<BeginInst*>::type BBListTy;
 	typedef InstructionListTy::iterator iterator;
 	typedef InstructionListTy::const_iterator const_iterator;
 	typedef BBListTy::iterator bb_iterator;

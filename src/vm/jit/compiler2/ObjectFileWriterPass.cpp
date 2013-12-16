@@ -35,6 +35,9 @@
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/code.hpp"
+#include "vm/rt-timing.hpp"
+
+#if defined(ENABLE_DISASSEMBLER)
 
 #if !defined(WITH_BINUTILS_DISASSEMBLER)
 #error ObjectFileWriterPass requires binutils bfd library.
@@ -43,10 +46,18 @@
 #include <bfd.h>
 #include <string>
 
+#endif // defined(ENABLE_DISASSEMBLER)
+
 #define DEBUG_NAME "compiler2/ObjectFileWriter"
+
+#if !defined(ENABLE_RT_TIMING)
+#error no rt timing
+#endif
+RT_REGISTER_TIMER(obj_writter_timer,"objectwriter","object writer execution time")
 
 namespace {
 
+#if defined(ENABLE_DISASSEMBLER)
 template<typename T>
 inline void check_bfd_error(T* t) {
 	if (!t) {
@@ -60,6 +71,7 @@ inline void check_bfd_error(bfd_boolean b) {
 		ABORT_MSG("ObjectFileWriterPass Error", "Error: " << bfd_errmsg(bfd_get_error()));
 	}
 }
+#endif // defined(ENABLE_DISASSEMBLER)
 
 } // end anonymous namespace
 
@@ -68,8 +80,9 @@ namespace jit {
 namespace compiler2 {
 
 #define FAKE_DATASEC
-
 bool ObjectFileWriterPass::run(JITData &JD) {
+#if defined(ENABLE_DISASSEMBLER)
+	RT_TIMER_START(obj_writter_timer);
 	Method *M = JD.get_Method();
 	//CodeGenPass *CG = get_Pass<CodeGenPass>();
 	codeinfo*     code = JD.get_jitdata()->code;
@@ -84,6 +97,7 @@ bool ObjectFileWriterPass::run(JITData &JD) {
 	LOG("Object file name: " << filename.c_str() << nl);
 	LOG(".text symbol name: " << symbol_name.c_str() << nl);
 
+	#if 0
 	if (DEBUG_COND_N(3)) {
 		const char ** target_list = bfd_target_list();
 		while (*target_list) {
@@ -98,6 +112,7 @@ bool ObjectFileWriterPass::run(JITData &JD) {
 			++arch_list;
 		}
 	}
+	#endif
 	// open file
 	LOG2("open file" << nl);
 	bfd *abfd = bfd_openw(filename.c_str(),bfd_target);
@@ -201,7 +216,7 @@ bool ObjectFileWriterPass::run(JITData &JD) {
 	LOG2("set code_section contents" << nl);
 	#ifdef FAKE_DATASEC
 	if (dseglen) {
-		std::vector<u1> buffer(codelen);
+		alloc::vector<u1>::type buffer(codelen);
 		buffer[0] = 0xe9; // jmp rel32
 		buffer[1] = ((dseglen + 3) >> 0) & 0xff;
 		buffer[2] = ((dseglen + 3) >> 8) & 0xff;
@@ -221,7 +236,8 @@ bool ObjectFileWriterPass::run(JITData &JD) {
 	// close file
 	bfd_close(abfd);
 
-
+	RT_TIMER_STOP(obj_writter_timer);
+#endif // defined(ENABLE_DISASSEMBLER)
 	return true;
 }
 
@@ -235,7 +251,7 @@ PassUsage& ObjectFileWriterPass::get_PassUsage(PassUsage &PU) const {
 char ObjectFileWriterPass::ID = 0;
 
 // register pass
-static PassRegistery<ObjectFileWriterPass> X("ObjectFileWriterPass");
+static PassRegistry<ObjectFileWriterPass> X("ObjectFileWriterPass");
 
 } // end namespace compiler2
 } // end namespace jit

@@ -187,6 +187,7 @@ extern int      opt_DebugStackTrace;
 extern int      opt_DebugThreads;
 #ifdef ENABLE_COMPILER2
 extern bool     opt_DebugCompiler2;
+extern bool     opt_Compiler2hints;
 #endif
 #if defined(ENABLE_DISASSEMBLER)
 extern int      opt_DisassembleStubs;
@@ -236,9 +237,11 @@ extern int      opt_TraceJVMTICalls;
 extern int      opt_TraceLinkClass;
 #if defined(ENABLE_RT_TIMING)
 extern FILE    *opt_RtTimingLogfile;
+extern bool     opt_RtTimingCSV;
 #endif
 #if defined(ENABLE_STATISTICS)
 extern FILE    *opt_StatisticsLogfile;
+extern bool     opt_StatisticsCSV;
 #endif
 #if defined(ENABLE_REPLACEMENT)
 extern int      opt_TraceReplacement;

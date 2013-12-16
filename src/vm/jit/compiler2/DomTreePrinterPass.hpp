@@ -27,6 +27,8 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 
+MM_MAKE_NAME(DomTreePrinterPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -36,7 +38,7 @@ namespace compiler2 {
  * DomTreePrinterPass
  * TODO: more info
  */
-class DomTreePrinterPass : public Pass {
+class DomTreePrinterPass : public Pass, public memory::ManagerMixin<DomTreePrinterPass> {
 public:
 	static char ID;
 	DomTreePrinterPass() : Pass() {}

@@ -27,6 +27,8 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 
+MM_MAKE_NAME(InstructionMetaPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -38,7 +40,7 @@ namespace compiler2 {
  * If a pass depends on the Instructions then get_PassUsage() should contain PU.add_requires<InstructionMetaPass>().
  * Analogously, if a pass changes the Instructions PU.add_modifies<InstructionMetaPass>() should be present.
  */
-class InstructionMetaPass : public Pass {
+class InstructionMetaPass : public Pass, public memory::ManagerMixin<InstructionMetaPass> {
 public:
 	static char ID;
 	InstructionMetaPass() : Pass() {}

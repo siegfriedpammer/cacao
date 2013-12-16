@@ -39,8 +39,8 @@
 
 #include "toolbox/logging.hpp"
 
-#include <vector>
-#include <set>
+#include "vm/jit/compiler2/alloc/vector.hpp"
+#include "vm/jit/compiler2/alloc/set.hpp"
 #include <algorithm>
 
 #include <cstddef>
@@ -72,8 +72,8 @@ class InstructionVisitor;
  */
 class Instruction : public Value {
 public:
-	typedef std::vector<Value*> OperandListTy;
-	typedef std::list<Instruction*> DepListTy;
+	typedef alloc::vector<Value*>::type OperandListTy;
+	typedef alloc::list<Instruction*>::type DepListTy;
 
 	typedef OperandListTy::iterator op_iterator;
 	typedef DepListTy::iterator dep_iterator;
@@ -118,12 +118,6 @@ protected:
 
 	void replace_op(Value* v_old, Value* v_new);
 
-	void append_dep(Instruction* I) {
-		assert(I);
-		dep_list.push_back(I);
-		I->reverse_dep_list.push_back(this);
-	}
-
 	/**
 	 * @todo use Value::print_operands
 	 */
@@ -144,6 +138,8 @@ public:
 
 	const_op_iterator op_begin() const { return op_list.begin(); }
 	const_op_iterator op_end()   const { return op_list.end(); }
+	Value* op_front() const { return op_list.front(); }
+	Value* op_back() const { return op_list.back(); }
 	size_t op_size() const { return op_list.size(); }
 	Value* get_operand(size_t i) {
 		return op_list[i];
@@ -156,14 +152,19 @@ public:
 		return -1;
 	}
 
+	void append_dep(Instruction* I) {
+		assert(I);
+		dep_list.push_back(I);
+		I->reverse_dep_list.push_back(this);
+	}
+
 	/// check if the instruction is in a correct state
 	virtual bool verify() const;
 
-	/// check if the instruction has a homogeneous signature
-	virtual bool is_homogeneous() const { return true; }
-
 	const_dep_iterator dep_begin() const { return dep_list.begin(); }
 	const_dep_iterator dep_end()   const { return dep_list.end(); }
+	Instruction* dep_front() const { return dep_list.front(); }
+	Instruction* dep_back() const { return dep_list.back(); }
 	size_t dep_size() const { return dep_list.size(); }
 	const_dep_iterator rdep_begin() const { return reverse_dep_list.begin(); }
 	const_dep_iterator rdep_end()   const { return reverse_dep_list.end(); }
@@ -186,10 +187,17 @@ public:
 		return false;
 	}
 
+	/// True if the instruction has a homogeneous signature.
+	/// (i.e. all operands and the result have the same type)
+	virtual bool is_homogeneous() const { return true; }
 	/// True if the instruction has no fixed control dependencies
 	virtual bool is_floating() const { return true; }
 	/// True the instruction has side effects
 	virtual bool has_side_effects() const { return false; }
+	/// True if the instruction is an arithmetic instruction
+	virtual bool is_arithmetic() const { return false; }
+	/// True if the operands of the instruction are commutable
+	virtual bool is_commutable() const { return false; }
 
 	// casting functions
 	virtual Instruction*          to_Instruction()          { return this; }
@@ -214,6 +222,18 @@ public:
 
 	// needed to access replace_op in replace_value
 	friend class Value;
+};
+
+/**
+ * Less comparator for Instruction pointers.
+ *
+ * Use for std::set, std::map.
+ */
+struct InstPtrLess :
+public std::binary_function<const Instruction*, const Instruction*, bool> {
+	bool operator()(const Instruction *lhs, const Instruction *rhs) const {
+		return lhs->get_id() < rhs->get_id();
+	}
 };
 
 inline OStream& operator<<(OStream &OS, const Instruction &I) {

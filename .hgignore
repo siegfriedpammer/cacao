@@ -28,6 +28,7 @@ compile
 config.guess
 config.sub
 depcomp
+INSTALL
 install-sh
 ltmain.sh
 missing
@@ -52,6 +53,7 @@ src/mm/boehm-gc/libatomic_ops
 src/mm/boehm-gc/cord/.dirstamp
 src/native/include/*.h
 src/scripts/java
+test-driver
 tests/*.class
 tests/regression/*.class
 tests/regression/assertion/*.class

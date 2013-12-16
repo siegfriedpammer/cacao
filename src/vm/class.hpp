@@ -38,11 +38,10 @@
 #include "vm/utf8.hpp"                  // for Utf8String
 #include "vm/vftbl.hpp"                 // for vftbl_t
 
-#if defined(ENABLE_JAVASE)
-# include "vm/annotation.hpp"
-#endif
-
-namespace cacao { class OStream; }
+namespace cacao {
+	struct ClassBuffer;
+	class OStream;
+}
 
 struct classinfo;
 struct extra_classref;
@@ -187,7 +186,7 @@ void       class_postset_header_vftbl(void);
 classinfo *class_define(Utf8String name, classloader_t *cl, int32_t length, uint8_t *data, java_handle_t *pd);
 void       class_set_packagename(classinfo *c);
 
-bool       class_load_attributes(classbuffer *cb);
+bool       class_load_attributes(cacao::ClassBuffer& cb);
 
 bool       class_initializing_thread_is_self(classinfo *c);
 

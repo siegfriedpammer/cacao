@@ -26,11 +26,11 @@
 #define _JIT_COMPILER2_LOOPBASE
 
 #include <cstddef> // for NULL
-#include "future/unordered_set.hpp"
+#include "vm/jit/compiler2/alloc/unordered_set.hpp"
 
-#include <set>
-#include <map>
-#include <vector>
+#include "vm/jit/compiler2/alloc/set.hpp"
+#include "vm/jit/compiler2/alloc/map.hpp"
+#include "vm/jit/compiler2/alloc/vector.hpp"
 
 namespace cacao {
 
@@ -44,7 +44,7 @@ template <class _T>
 class LoopBase {
 public:
 	typedef _T NodeType;
-	typedef unordered_set<LoopBase*> LoopSetTy;
+	typedef typename alloc::unordered_set<LoopBase*>::type LoopSetTy;
 	typedef typename LoopSetTy::iterator loop_iterator;
 private:
 	NodeType *header;
@@ -92,15 +92,15 @@ public:
 	typedef typename LoopSetTy::const_iterator const_loop_iterator;
 	typedef std::pair<const_loop_iterator, const_loop_iterator> ConstLoopIteratorPair;
 
-	typedef typename std::vector<LoopType*> LoopListTy;
+	typedef typename alloc::vector<LoopType*>::type LoopListTy;
 	typedef typename LoopListTy::iterator iterator;
 	typedef typename LoopListTy::reverse_iterator reverse_iterator;
 protected:
 	bool reducible;
 	LoopListTy loops;
 	LoopSetTy top_loops;
-	std::map<NodeType*,LoopType*> loop_map;
-	std::map<NodeType*,LoopSetTy> loop_header_map;
+	typename alloc::map<NodeType*,LoopType*>::type loop_map;
+	typename alloc::map<NodeType*,LoopSetTy>::type loop_header_map;
 
 	void set_loop(NodeType* node, LoopType* loop) {
 		loop_map[node] = loop;
@@ -146,21 +146,21 @@ public:
 	 * Get the inner most loop which contains BI or NULL if not contained in any loop
 	 */
 	LoopType* get_Loop(NodeType *BI) const {
-		typename std::map<NodeType*,LoopType*>::const_iterator it = loop_map.find(BI);
+		typename alloc::map<NodeType*,LoopType*>::type::const_iterator it = loop_map.find(BI);
 		if (it == loop_map.end()) {
 			return NULL;
 		}
 		return it->second;
 	}
 	bool is_loop_header(NodeType *BI) const {
-		typename std::map<NodeType*,LoopSetTy>::const_iterator it = loop_header_map.find(BI);
+		typename alloc::map<NodeType*,LoopSetTy>::type::const_iterator it = loop_header_map.find(BI);
 		if (it == loop_header_map.end()) {
 			return false;
 		}
 		return true;
 	}
 	ConstLoopIteratorPair get_Loops_from_header(NodeType *BI) const {
-		typename std::map<NodeType*,LoopSetTy>::const_iterator it = loop_header_map.find(BI);
+		typename alloc::map<NodeType*,LoopSetTy>::type::const_iterator it = loop_header_map.find(BI);
 		if (it == loop_header_map.end()) {
 			// TODO there must be a better approach...
 			static LoopSetTy empty;

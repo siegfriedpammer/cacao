@@ -6,6 +6,13 @@ set -u
 JAVA=$1
 TEST=${2//.o/}
 SRCDIR=$3
+OPT_CACAO=""
+
+if [[ $# == 4 ]] ; then
+	OPT_CACAO+="-XX:-DebugCompiler2"
+else
+	OPT_CACAO+="-XX:+DebugCompiler2"
+fi
 
 CLASS=''
 METHOD=''
@@ -18,4 +25,5 @@ for token in $(echo $TEST | tr '.' ' ') ; do
 	METHOD=$token
 done
 
-$JAVA -Xbootclasspath/a:. -XX:+DebugCompiler2 -XX:CompileMethod=$METHOD $CLASS
+#echo $JAVA -Xbootclasspath/a:. $OPT_CACAO -XX:CompileMethod=$METHOD $CLASS
+$JAVA -Xbootclasspath/a:. $OPT_CACAO -XX:CompileMethod=$METHOD $CLASS

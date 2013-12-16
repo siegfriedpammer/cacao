@@ -24,6 +24,8 @@ JAVA     = $(top_builddir)/src/cacao/cacao
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
 JAVACCMD = $(JAVAC) -source 1.5 -target 1.5 -nowarn -bootclasspath $(BOOTCLASSPATH)
 
+CXXFLAGS=-I$(top_builddir) -I$(top_srcdir)/src -I$(srcdir) -g -O0
+
 SOURCE_FILES = \
 	$(srcdir)/Test.java
 
@@ -39,11 +41,27 @@ CLEANFILES = \
 
 OUTPUT_JAVA_TESTS = \
 	Test.fact \
-	Test.fake_power \
+	Test.power \
 	Test.OverflowInt \
 	Test.OverflowLong \
 	Test.OverflowLongIntLong \
 	Test.pi \
+	Test.piSpigot \
+	Test.Sqrt \
+	Test.test_array_len \
+	Test.test_array_load \
+	Test.test_array_store \
+	Test.test_array_2dim_load \
+	Test.test_array_2dim_store \
+	Test.test_float_array_load \
+	Test.test_double_array_store \
+	Test.test_float_cmp \
+	Test.test_double_cmp \
+	Test.ineg \
+	Test.lneg \
+	Test.fneg \
+	Test.dneg \
+	Test.matMult \
 	Test.testParameterLong \
 	Test.testParameterLong2 \
 	Test.testParameterLong3 \
@@ -64,8 +82,15 @@ run: $(OUTPUT_JAVA_TESTS)
 	@echo compile $@...
 	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Compile.sh "$(JAVACMD)" $@ $(srcdir)
 
-%.run: %.o $(srcdir)/%.main.c
-	@$(CC) -O0 $^ -o $@
+%.o.baseline: build
+	@echo compile baseline $@...
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Compile.sh "$(JAVACMD)" $(subst .baseline,,$@) $(srcdir) dummy
+	mv $(subst .baseline,,$@) $@
+
+%.run: %.o $(srcdir)/%.main.cpp
+	@$(CXX) $(CXXFLAGS) $^ -o $@
+%.baseline.run: %.o.baseline $(srcdir)/%.main.cpp
+	@$(CXX) $(CXXFLAGS) $^ -o $@
 
 %.thisoutput: %.run
 	@echo run $@...

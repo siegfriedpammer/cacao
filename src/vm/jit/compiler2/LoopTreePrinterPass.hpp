@@ -27,6 +27,8 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 
+MM_MAKE_NAME(LoopTreePrinterPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -36,7 +38,7 @@ namespace compiler2 {
  * LoopTreePrinterPass
  * TODO: more info
  */
-class LoopTreePrinterPass : public Pass {
+class LoopTreePrinterPass : public Pass, public memory::ManagerMixin<LoopTreePrinterPass> {
 public:
 	static char ID;
 	LoopTreePrinterPass() : Pass() {}

@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-long fact(long);
+extern "C" long fact(long);
 
 
 int main() {

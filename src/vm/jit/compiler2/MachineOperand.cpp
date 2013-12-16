@@ -31,6 +31,8 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+std::size_t MachineOperand::id_counter = 0;
+
 VoidOperand NoOperand;
 
 unsigned VirtualRegister::vreg_counter = 0;

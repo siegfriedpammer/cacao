@@ -41,7 +41,7 @@ namespace x86_64 {
 class MachineMethodDescriptor {
 private:
 	const MethodDescriptor &MD;
-	std::vector<MachineOperand*> parameter;
+	alloc::vector<MachineOperand*>::type parameter;
 public:
 	MachineMethodDescriptor(const MethodDescriptor &MD) : MD(MD), parameter(MD.size()) {
 		unsigned int_argument_counter = 0;
@@ -52,6 +52,7 @@ public:
 			switch (type) {
 			case Type::IntTypeID:
 			case Type::LongTypeID:
+			case Type::ReferenceTypeID:
 				if (int_argument_counter < IntegerArgumentRegisterSize) {
 					parameter[i]= new NativeRegister(type,
 						IntegerArgumentRegisters[int_argument_counter]);

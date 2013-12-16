@@ -27,6 +27,8 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 
+MM_MAKE_NAME(CFGMetaPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -38,7 +40,7 @@ namespace compiler2 {
  * If a pass depends on the CFG then get_PassUsage() should contain PU.add_requires<CFGMetaPass>().
  * Analogously, if a pass changes the CFG PU.add_modifies<CFGMetaPass>() should be present.
  */
-class CFGMetaPass : public Pass {
+class CFGMetaPass : public Pass, public memory::ManagerMixin<CFGMetaPass> {
 public:
 	static char ID;
 	CFGMetaPass() : Pass() {}

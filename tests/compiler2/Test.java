@@ -1,10 +1,15 @@
 import java.lang.Math.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 
 class Test {
 
 static long c = 0;
 static long stat = 42;
-
+/*
 public static void main(String arg[]) {
   System.out.println(fib(15));
   System.out.println(OverflowLong(15));
@@ -21,8 +26,187 @@ public static void main(String arg[]) {
   for (int i =0; i < 2000; ++i ) {
     System.out.println(pi());
   }
-  */
+*/
+/*
   System.out.println(test_test());
+}
+*/
+/**
+ * Matrix multiplication.
+ *
+ * @param A n*m matrix (input)
+ * @param B m*p matrix (input)
+ * @param C n*p matrix (output, preallocated)
+ */
+static void matMult(int A[][], int B[][], int AB[][]) {
+  // sanity checks
+  int n = A.length;
+  int m = B.length;
+  if (n == 0 || m == 0) return;
+  if (A[0].length != m) return;
+  int p = B[0].length;
+  if (AB.length != n) return;
+  if (AB[0].length != p) return;
+
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < p; ++j) {
+      int sum=0;
+      for (int k = 0; k < m; ++k) {
+        sum += A[i][k] * B[k][j];
+      }
+      AB[i][j] = sum;
+    }
+  }
+}
+
+
+static void norm(double A[][]) {
+  // sanity checks
+  int n = A.length;
+  if (n == 0) return;
+  int m = A[0].length;
+  if (m == 0) return;
+
+  double sum = 0;
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < m; ++j) {
+      sum += A[i][j];
+    }
+  }
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < m; ++j) {
+      A[i][j] /= sum;
+    }
+  }
+
+}
+
+static void matAdd(int A[][], int B[][], int AB[][]) {
+  // sanity checks
+  int n = A.length;
+  int m = B.length;
+  if (n == 0 || m == 0) return;
+  if (A[0].length != m) return;
+  int p = B[0].length;
+  if (AB.length != n) return;
+  if (AB[0].length != p) return;
+
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < p; ++j) {
+      AB[i][j] = A[i][j] + B[i][j];
+    }
+  }
+}
+
+/**
+ * @param list a [n]
+ * @param result result [n!][n]
+ */
+static void permut(int a[], int p[], int result[][]) {
+    // Print initial string, as only the alterations will be printed later
+    int n = a.length;
+    int i = 1;
+    int c = 0;
+    while (i < n) {
+        if (p[i] < i) {
+            int j = ((i & 1) == 0) ? 0 : p[i];
+            int tmp = a[i];
+            a[i] = a[j];
+            a[j] = tmp;
+            // result
+            for(int k = 0; k < n; k++) {
+              result[c][k] = a[k];
+            }
+            c++;
+
+            p[i]++;
+            i = 1;
+        }
+        else {
+            p[i] = 0;
+            i++;
+        }
+    }
+}
+
+public static void main(String[] args) {
+  int n = 4;
+  int list[] = new int[n];
+  int[] p = new int[n];  // Index control array initially all zeros
+  int result[][] = new int[(int)fact(n)][n];
+
+
+  for (int i = 0; i < list.length; i ++)
+    list[i] = i;
+
+  permut(list,p,result);
+
+  for (int i = 0; i < result.length; i ++) {
+    for (int j = 0; j < result[i].length; j ++) {
+      System.out.print(result[i][j]+" ");
+    }
+    System.out.println();
+  }
+}
+
+static long test_gvn_constant() {
+    long a = 1 + c;
+    return 1 + a;
+}
+
+static int test_array_2dim_load(int test[][], int i, int j) {
+	return test[i][j];
+}
+static void test_array_2dim_store(int test[][]) {
+	for (int i = 0; i < test.length; ++i) {
+		for (int j = 0; j < test[i].length; ++j) {
+			test[i][j] = i * j;
+		}
+	}
+}
+
+static void test_array_3dim(int test[][][]) {
+	for (int i = 0; i < test.length; ++i) {
+		for (int j = 0; j < test[i].length; ++j) {
+			for (int k = 0; k < test[i][k].length; ++k) {
+				test[i][j][k] = i * j * k;
+			}
+		}
+	}
+}
+static int test_array_len(long test[]) {
+  return test.length;
+}
+
+static long test_array_load(long test[], int index) {
+  return test[index];
+}
+
+static float test_float_array_load(float test[], int index) {
+  return test[index];
+}
+
+static void test_array_store(long test[], int index, long value) {
+  test[index] = value;
+}
+static void test_double_array_store(double test[]) {
+  for(int i = 0; i < test.length; ++i)
+    test[i] = (long)i;;
+}
+
+static long test_array(long test[]) {
+  for (int i = 0; i < 10; ++i) {
+    test[i] = i;
+  }
+  return test[3];
+}
+
+static long test_arraynew() {
+  long test[] = new long[10];
+  for (int i = 0; i < 10; ++i) {
+    test[i] = i;
+  }
+  return test[3];
 }
 
 static void test_deadcode() {
@@ -139,14 +323,29 @@ static long fact2(long n) {
 static double pi() {
     return Math.PI;
 }
-static long fake_power(long v, long i) {
+static long power(long v, long i) {
     long p =1;
     for (long j = 0; j < i; ++j) {
         p *= v;
     }
     return p;
 }
-static double pi_spigot(long num_digits) {
+
+static long Sqrt(long x) {
+  long y = 0;
+  long z = x + 1;
+  while ((y+1) != z) {
+    long t = (y+z)/2;
+    if (t*t <= x) {
+      y = t;
+    } else {
+      z = t;
+    }
+  }
+  return y;
+}
+
+static double piSpigot(long num_digits) {
     double pi = 0;
     for (long i = 0; i < num_digits; ++i) {
         // fake power
@@ -350,5 +549,240 @@ static void collatz(int n) {
     }
   }
 }
+static double dneg(double x) {
+  return -x;
+}
+static float fneg(float x) {
+  return -x;
+}
+static long lneg(long x) {
+  return -x;
+}
+static int ineg(int x) {
+  return -x;
+}
 
+static int test_double_cmp(double a, double b) {
+    if (a < b)
+        return -1;
+    return 1;
+}
+
+static int test_float_cmp(float a, float b) {
+    if (a < b)
+        return -1;
+    return 1;
+}
+
+
+   /** Row and column dimensions, and pivot sign.
+   */
+
+   /**
+    * @param LU serial internal array storage. (n*m)
+    * @param pivsign serial pivot sign.
+    * @param piv serial pivot vector. (m)
+    * @param LUcolj (m);
+    *
+    * @author http://math.nist.gov/javanumerics/jama/
+    */
+   static public void LUDecomposition(double[][] LU, int[] piv, double[] LUcolj) {
+
+   // Use a "left-looking", dot-product, Crout/Doolittle algorithm.
+
+      int n = LU.length;
+      if (! (n > 0) ) return;
+      int m = LU[0].length;
+      if (! (m > 0) ) return;
+      if (piv.length != m || LUcolj.length != m) return;
+
+      for (int i = 0; i < m; i++) {
+         piv[i] = i;
+      }
+
+      int pivsign = 1;
+      double[] LUrowi;
+
+      // Outer loop.
+
+      for (int j = 0; j < n; j++) {
+
+         // Make a copy of the j-th column to localize references.
+
+         for (int i = 0; i < m; i++) {
+            LUcolj[i] = LU[i][j];
+         }
+
+         /*
+         // Apply previous transformations.
+
+         for (int i = 0; i < m; i++) {
+            LUrowi = LU[i];
+
+            // Most of the time is spent in the following dot product.
+
+            int kmax = (i < j ? i : j);
+            double s = 0.0;
+            for (int k = 0; k < kmax; k++) {
+               s += LUrowi[k]*LUcolj[k];
+            }
+
+            LUrowi[j] = LUcolj[i] -= s;
+         }
+
+         // Find pivot and exchange if necessary.
+
+         int p = j;
+         for (int i = j+1; i < m; i++) {
+            if ((LUcolj[i]>=0?LUcolj[i]:-LUcolj[i]) > (LUcolj[p]>=0?LUcolj[p]:-LUcolj[p])) {
+               p = i;
+            }
+         }
+         if (p != j) {
+            for (int k = 0; k < n; k++) {
+               double t = LU[p][k]; LU[p][k] = LU[j][k]; LU[j][k] = t;
+            }
+            int k = piv[p]; piv[p] = piv[j]; piv[j] = k;
+            pivsign = -pivsign;
+         }
+
+         // Compute multipliers.
+         if (j < m & LU[j][j] != 0.0) {
+            for (int i = j+1; i < m; i++) {
+               LU[i][j] /= LU[j][j];
+            }
+         }
+         */
+      }
+   }
+
+
+/**
+ * @param left_r red left matrix [rows][columns]
+ * @param right_r red right matrix [rows][columns]
+ * @param left_g green left matrix [rows][columns]
+ * @param right_g green right matrix [rows][columns]
+ * @param left_b blue left matrix [rows][columns]
+ * @param right_b blue right matrix [rows][columns]
+ * @param data_term row * col * num_labels
+ * @param num_labels
+ */
+/*
+void createDisparity(int[][][] left, int[][][] right, int data_term[], int num_labels)
+{
+  int[][] left_r=left[0];
+  int[][] left_g=left[1];
+  int[][] left_b=left[2];
+
+  int[][] right_r=right[0];
+  int[][] right_g=right[1];
+  int[][] right_b=right[2];
+*/
+void createDisparity(
+  int[][] left_r, int[][] left_g, int[][] left_b,
+  int[][] right_r, int[][] right_g, int[][] right_b,
+  int data_term[], int num_labels)
+{
+  int row_cnt=left_r.length;
+  int col_cnt=left_r[0].length;
+
+  // first set up the array for data costs
+  for(int y=0; y < row_cnt; y++) {
+    for(int x=0; x < col_cnt; x++) {
+      for (int l = 0; l < num_labels; l++ ) {
+        data_term[(y*col_cnt+x)*num_labels+l] = Integer.MAX_VALUE;
+      }
+    }
+  }
+
+
+  for(int y=0; y < row_cnt; y++) {
+    for(int x=0; x < col_cnt; x++) {
+      //search x2 only on left side of x
+      int x2start = x - num_labels;
+      if (x2start<0) {
+        x2start=0;
+      }
+
+      for(int x2 = x2start; x2 <= x; x2++) {
+        int posy = y;
+        int leftposx = x;
+        int rightposx = x2;
+        //don't use at-function, so i can debug an it is fast
+        int abs;
+        int sum = 0;
+        abs  = left_r[posy][leftposx] - right_r[posy][rightposx];
+        sum += (abs < 0 ? -abs : abs);
+        abs  = left_g[posy][leftposx] - right_g[posy][rightposx];
+        sum += (abs < 0 ? -abs : abs);
+        abs  = left_b[posy][leftposx] - right_b[posy][rightposx];
+        sum += (abs < 0 ? -abs : abs);
+
+        data_term[(y*col_cnt+x)*(num_labels)+(x-x2)] = sum;
+      }
+    }
+  }
+}
+
+  static int  BoyerMoore(int pattern[], int text[], int matches[], int rightMostIndexes[]) {
+    int m = text.length;
+    int n = pattern.length;
+    int res_index = 0;
+
+    for (int i = 0; i < rightMostIndexes.length; i ++) {
+      rightMostIndexes[i] = -1;
+    }
+    for (int i = pattern.length - 1; i >= 0; i--) {
+      int c = pattern[i];
+      if (rightMostIndexes[c] == -1)
+        rightMostIndexes[c] = i;
+    }
+
+    int alignedAt = 0;
+    while (alignedAt + (n - 1) < m) {
+      for (int indexInPattern = n - 1; indexInPattern >= 0; indexInPattern--) {
+        int indexInText = alignedAt + indexInPattern;
+        int x = text[indexInText];
+        int y = pattern[indexInPattern];
+        if (indexInText >= m)
+          break;
+        if (x != y) {
+          int r = rightMostIndexes[x];
+          if (r == -1) {
+            alignedAt = indexInText + 1;
+          }
+          else {
+            int shift = indexInText - (alignedAt + r);
+            alignedAt += shift > 0 ? shift : alignedAt + 1;
+          }
+          break;
+        }
+        else if (indexInPattern == 0) {
+          matches[res_index++]= alignedAt;
+          alignedAt++;
+        }
+      }
+    }
+    return res_index;
+  }
+/*
+  public static void main(String[] args) {
+    char[] pattern_c = (new String("ana")).toCharArray();
+    char[] text_c = (new String("bananas")).toCharArray();
+
+
+    int[] pattern = new int[pattern_c.length];
+    int[] text = new int[text_c.length];
+    for(int i=0;i<pattern.length;i++) pattern[i] = pattern_c[i];
+    for(int i=0;i<text.length;i++) text[i] = text_c[i];
+
+    int matches[] = new int[text.length];
+    int rightMostIndexes[] = new int[256];
+
+    int num_matches = BoyerMoore(pattern, text,matches, rightMostIndexes);
+
+    for (int i = 0; i < num_matches; i ++)
+      System.out.println("Match at: " + matches[i]);
+  }
+*/
 }

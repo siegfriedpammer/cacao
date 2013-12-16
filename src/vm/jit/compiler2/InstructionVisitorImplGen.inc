@@ -35,6 +35,7 @@ void InstructionVisitor::visit(NOPInst* I) {visit_default(I);}
 void InstructionVisitor::visit(POPInst* I) {visit_default(I);}
 void InstructionVisitor::visit(CHECKNULLInst* I) {visit_default(I);}
 void InstructionVisitor::visit(ARRAYLENGTHInst* I) {visit_default(I);}
+void InstructionVisitor::visit(ARRAYBOUNDSCHECKInst* I) {visit_default(I);}
 void InstructionVisitor::visit(NEGInst* I) {visit_default(I);}
 void InstructionVisitor::visit(CASTInst* I) {visit_default(I);}
 void InstructionVisitor::visit(ADDInst* I) {visit_default(I);}

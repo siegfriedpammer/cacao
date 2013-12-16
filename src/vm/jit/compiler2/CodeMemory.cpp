@@ -29,7 +29,7 @@
 #include "toolbox/logging.hpp"
 #include "Target.hpp"
 
-#include <map>
+#include "vm/jit/compiler2/alloc/map.hpp"
 #include <functional>
 
 #define DEBUG_NAME "compiler2/CodeMemory"

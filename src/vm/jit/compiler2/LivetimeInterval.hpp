@@ -30,11 +30,16 @@
 
 #include "future/memory.hpp"            // for cacao::shared_ptr
 
-#include <map>
-#include <set>
-#include <list>
+#include "vm/jit/compiler2/memory/Manager.hpp"
+#include "vm/jit/compiler2/alloc/map.hpp"
+#include "vm/jit/compiler2/alloc/set.hpp"
+#include "vm/jit/compiler2/alloc/list.hpp"
 
 #include <climits>
+
+MM_MAKE_NAME(UseDef)
+MM_MAKE_NAME(LivetimeInterval)
+MM_MAKE_NAME(LivetimeIntervalImpl)
 
 namespace cacao {
 namespace jit {
@@ -52,7 +57,7 @@ class ManagedStackSlot;
 class BasicBlockSchedule;
 class MachineInstructionSchedule;
 
-class UseDef {
+class UseDef : public memory::ManagerMixin<UseDef>  {
 public:
 	enum Type {
 		Use,
@@ -98,9 +103,9 @@ struct LivetimeRange {
 };
 
 
-class LivetimeInterval {
+class LivetimeInterval : public memory::ManagerMixin<LivetimeInterval>  {
 public:
-	typedef std::list<LivetimeRange> IntervalListTy;
+	typedef alloc::list<LivetimeRange>::type IntervalListTy;
 	typedef IntervalListTy::const_iterator const_iterator;
 	typedef IntervalListTy::iterator iterator;
 
@@ -140,6 +145,10 @@ public:
 	MachineOperand* get_operand(MIIterator pos) const;
 	/// Set the current store of the interval
 	void set_operand(MachineOperand* op);
+	/// Get the hint for the interval
+	MachineOperand* get_hint() const;
+	/// Set the hit for the interval
+	void set_hint(MachineOperand* op);
 	/**
 	 * Get the initial operand. This is needed to identify phi instructions
 	 * as they do not have an MIIterator associated with them.
@@ -187,7 +196,7 @@ private:
 	friend class LivetimeIntervalImpl;
 };
 
-class LivetimeIntervalImpl {
+class LivetimeIntervalImpl : public memory::ManagerMixin<LivetimeIntervalImpl>  {
 public:
 	typedef LivetimeInterval::IntervalListTy IntervalListTy;
 	typedef LivetimeInterval::const_iterator const_iterator;
@@ -214,6 +223,7 @@ private:
 	DefListTy defs;
 	MachineOperand* operand;         ///< store for the interval
 	MachineOperand* init_operand;    ///< initial operand for the interval
+	MachineOperand* hint;            ///< hint for the interval
 	LivetimeInterval *next;
 
 	void insert_usedef(const UseDef &usedef) {
@@ -225,7 +235,7 @@ private:
 	static void move_use_def(LivetimeIntervalImpl *from, LivetimeIntervalImpl *to, UseDef pos);
 public:
 	/// construtor
-	LivetimeIntervalImpl(MachineOperand* op): operand(op), init_operand(op), next(NULL) {}
+	LivetimeIntervalImpl(MachineOperand* op): operand(op), init_operand(op), hint(NULL), next(NULL) {}
 	/**
 	 * A range the range [first, last] to the interval
 	 */
@@ -238,6 +248,8 @@ public:
 	MachineOperand* get_operand() const { return operand; }
 	void set_operand(MachineOperand* op) { operand = op; }
 	MachineOperand* get_init_operand() const { return init_operand; }
+	MachineOperand* get_hint() const { return hint; }
+	void set_hint(MachineOperand* op) { hint = op; }
 	LivetimeInterval get_next() const { assert(has_next()); return *next; }
 	bool has_next() const { return bool(next); }
 	LivetimeInterval split_active(MIIterator pos);
@@ -319,6 +331,12 @@ inline MachineOperand* LivetimeInterval::get_init_operand() const {
 }
 inline void LivetimeInterval::set_operand(MachineOperand* op) {
 	pimpl->set_operand(op);
+}
+inline MachineOperand* LivetimeInterval::get_hint() const {
+	return pimpl->get_hint();
+}
+inline void LivetimeInterval::set_hint(MachineOperand* op) {
+	pimpl->set_hint(op);
 }
 inline UseDef LivetimeInterval::next_usedef_after(UseDef pos, UseDef end) const {
 	return pimpl->next_usedef_after(pos,end);

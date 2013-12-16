@@ -128,11 +128,13 @@ MachineBasicBlock* get_edge_block(MachineBasicBlock *from, MachineBasicBlock *to
 
 MIIterator get_edge_iterator(MachineBasicBlock *from, MachineBasicBlock *to,
 		Backend *backend) {
+	#if !defined(NDEBUG)
 	MachineInstruction *jump = from->back();
 	// sanity checks
 	assert(std::find(jump->successor_begin(),jump->successor_end(), to)
 		!= jump->successor_end());
 	assert(std::find(to->pred_begin(), to->pred_end(),from) != to->pred_end());
+	#endif
 
 	return get_edge_block(from,to,backend)->mi_last();
 }

@@ -32,6 +32,7 @@
 #include "vm/jit/compiler2/MachineInstructions.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
 #include "vm/statistics.hpp"
+#include "vm/options.hpp"
 
 #include <climits>
 
@@ -40,8 +41,21 @@
 #define DEBUG_NAME "compiler2/LinearScanAllocator"
 
 STAT_REGISTER_GROUP(lsra_stat,"LSRA","Linear Scan Register Allocator")
-STAT_REGISTER_GROUP_VAR(unsigned,num_hints_followed,0,"hints followed",
+STAT_REGISTER_GROUP_VAR(std::size_t,num_hints_followed,0,"hints followed",
 	"Number of Hints followed (i.e. no move)",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_hints_not_followed,0,"hints not followed",
+	"Number of Hints not followed (i.e. move needed)",lsra_stat)
+STAT_REGISTER_GROUP_VAR_EXTERN(std::size_t,num_remaining_moves,0,"remaining moves","Number of remaining moves",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_split_moves,0,"spill moves","Number of split moves",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_spill_loads,0,"spill loads","Number of spill loads",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_spill_stores,0,"spill stores","Number of spill stores",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_resolution_moves,0,"resolution moves","Number of move instructions for resolution",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_allocate_free,0,"allocate free","Number of free register allocated",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_allocate_blocked,0,"allocate blocked","Number of blocked register allocated (spill)",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_fixed_intervals,0,"fixed intervals","Number of fixed (preallocated) intervals",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_spill_blocked_fixed,0,"spilled blocked","Number blocked fixed intervals spilled",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_resolution_regs,0,"resolution regs","Number registers allocated for resolution (cycles/stack-to-stack moves)",lsra_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_resolution_stacks,0,"resolution stacks","Number stackslots allocated for resolution (no free registers)",lsra_stat)
 
 namespace cacao {
 namespace jit {
@@ -49,7 +63,10 @@ namespace compiler2 {
 
 bool LinearScanAllocatorPass::StartComparator::operator()(const LivetimeInterval &lhs,
 		const LivetimeInterval &rhs) {
-	return rhs.front().start < lhs.front().start;
+	if (rhs.front().start < lhs.front().start) return true;
+	if (lhs.front().start < rhs.front().start) return false;
+	// rhs.front().start == lhs.front().start;
+	return lhs.back().end < rhs.back().end;
 }
 
 namespace {
@@ -64,7 +81,7 @@ struct FreeUntilCompare: public std::binary_function<MachineOperand*,MachineOper
 	}
 };
 
-typedef std::map<MachineOperand*,UseDef,FreeUntilCompare> FreeUntilMap;
+typedef alloc::map<MachineOperand*,UseDef,FreeUntilCompare>::type FreeUntilMap;
 
 /**
  * @Cpp11 use std::function
@@ -187,16 +204,49 @@ inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current
 		SetIntersection(free_until_pos, current,pos,UseDef(UseDef::PseudoDef,MIS->mi_end())));
 
 	LOG2("free_until_pos:" << nl);
-	for (FreeUntilMap::iterator i = free_until_pos.begin(), e = free_until_pos.end(); i != e; ++i) {
-		LOG2("  " << (i->first) << ": " << i->second << nl);
+	if (DEBUG_COND_N(2)) {
+		for (FreeUntilMap::iterator i = free_until_pos.begin(), e = free_until_pos.end(); i != e; ++i) {
+			LOG2("  " << (i->first) << ": " << i->second << nl);
+		}
 	}
 
-	// XXX hints!
-	// get operand with highest free until pos
-	FreeUntilMap::value_type x = *std::max_element(free_until_pos.begin(), free_until_pos.end(), FreeUntilMaxCompare());
-	LOG2("reg: " << x.first << " pos: " << x.second << nl);
-	MachineOperand *reg = x.first;
-	UseDef free_until_pos_reg = x.second;
+	MachineOperand *reg = NULL;
+	UseDef free_until_pos_reg(UseDef::PseudoUse,MIS->mi_begin());
+	// check for hints
+	MachineOperand *hint = current.get_hint();
+	if (opt_Compiler2hints && hint) {
+		if (hint->is_virtual()) {
+			// find the current store for hint
+			LivetimeInterval hint_lti = LA->get(hint);
+			hint = hint_lti.get_operand(pos.get_iterator());
+		}
+		LOG2("hint current pos " << hint << nl);
+		FreeUntilMap::const_iterator i = free_until_pos.find(hint);
+		if (i !=  free_until_pos.end()) {
+			free_until_pos_reg = i->second;
+			if ((free_until_pos_reg != UseDef(UseDef::PseudoUse,MIS->mi_begin())) &&
+					(current.back().end < free_until_pos_reg)) {
+				LOG2("hint available! " << hint << nl);
+				reg = hint;
+				STATISTICS(++num_hints_followed);
+			}
+			else {
+				STATISTICS(++num_hints_not_followed);
+			}
+		}
+		else {
+			STATISTICS(++num_hints_not_followed);
+		}
+	}
+	// if not follow hint!
+	if (!reg) {
+		// get operand with highest free until pos
+		FreeUntilMap::value_type x = *std::max_element(free_until_pos.begin(), free_until_pos.end(), FreeUntilMaxCompare());
+		reg = x.first;
+		free_until_pos_reg = x.second;
+	}
+
+	LOG2("reg: " << reg << " pos: " << free_until_pos_reg << nl);
 
 	if (free_until_pos_reg == UseDef(UseDef::PseudoUse,MIS->mi_begin())) {
 		// no register available without spilling
@@ -211,6 +261,7 @@ inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current
 	// register available for the first part of the interval
 	MachineOperand *tmp = new VirtualRegister(reg->get_type());
 	MachineInstruction *move = backend->create_Move(reg,tmp);
+	STATISTICS(++num_split_moves);
 	MIIterator split_pos = insert_move_before(move,free_until_pos_reg);
 	assert_msg(pos.get_iterator() < split_pos, "pos: " << pos << " free_until_pos_reg "
 		<< free_until_pos_reg << " split: " << split_pos);
@@ -298,6 +349,7 @@ void split_active_position(LivetimeInterval lti, UseDef current_pos, UseDef next
 		stackslot = get_stackslot(backend,MO->get_type());
 		MachineInstruction *move_to_stack = backend->create_Move(MO,stackslot);
 		MIIterator split_pos = insert_move_before(move_to_stack,current_pos);
+		STATISTICS(++num_spill_stores);
 		lti = lti.split_active(split_pos);
 		// XXX should we add the stack interval?
 		unhandled.push(lti);
@@ -309,6 +361,7 @@ void split_active_position(LivetimeInterval lti, UseDef current_pos, UseDef next
 		MachineOperand *vreg = new VirtualRegister(MO->get_type());
 		MachineInstruction *move_from_stack = backend->create_Move(stackslot, vreg);
 		MIIterator split_pos = insert_move_before(move_from_stack,next_use_pos);
+		STATISTICS(++num_spill_loads);
 		lti = lti.split_active(split_pos);
 		unhandled.push(lti);
 	}
@@ -352,6 +405,7 @@ struct SplitInactive: public std::unary_function<LivetimeInterval&,void> {
 		if (reg->aquivalent(*MO)) {
 			//ABORT_MSG("Spill current not yet implemented","not yet implemented");
 			LivetimeInterval new_lti = lti.split_inactive(pos, new VirtualRegister(reg->get_type()));
+			STATISTICS(++num_split_moves);
 			assert(lti.front().start < new_lti.front().start);
 			unhandled.push(new_lti);
 		}
@@ -369,6 +423,7 @@ inline void split_current(LivetimeInterval &current, Type::TypeID type, UseDef p
 		MachineInstruction *move_from_stack = backend->create_Move(stackslot,vreg);
 		// split
 		MIIterator split_pos = insert_move_before(move_from_stack,pos);
+		STATISTICS(++num_spill_loads);
 		LivetimeInterval new_lti = current.split_active(split_pos);
 		unhandled.push(new_lti);
 	}
@@ -376,6 +431,7 @@ inline void split_current(LivetimeInterval &current, Type::TypeID type, UseDef p
 	current.set_operand(stackslot);
 }
 
+#if defined(ENABLE_LOGGING)
 OStream& print_code(OStream &OS, MIIterator pos, MIIterator min, MIIterator max,
 		MIIterator::difference_type before, MIIterator::difference_type after) {
 	MIIterator i = pos;
@@ -394,7 +450,7 @@ OStream& print_code(OStream &OS, MIIterator pos, MIIterator min, MIIterator max,
 	}
 	return OS << "..." << nl;
 }
-
+#endif
 } // end anonymous namespace
 
 inline bool LinearScanAllocatorPass::allocate_blocked(LivetimeInterval &current) {
@@ -526,15 +582,23 @@ bool LinearScanAllocatorPass::allocate_unhandled() {
 						"could not allocate register for " << current);
 					return false;
 				}
+				else {
+					STATISTICS(++num_allocate_blocked);
+				}
+			}
+			else {
+				STATISTICS(++num_allocate_free);
 			}
 		}
 		else {
+			STATISTICS(++num_fixed_intervals);
 			// fixed interval
 			for (ActiveSetTy::iterator i = active.begin(), e = active.end(); i != e ; ++i ) {
 				LivetimeInterval act = *i;
 				if (current.get_operand()->aquivalent(*act.get_operand())) {
 					MachineInstruction *MI = *pos.get_iterator();
 					if (!(MI->is_move() && MI->get_result().op->aquivalent(*MI->get(0).op))) {
+						STATISTICS(++num_spill_blocked_fixed);
 						ERROR_MSG("Fixed Interval is blocked",
 							"spilling not yet implemented " << current);
 						return false;
@@ -585,7 +649,7 @@ bool LinearScanAllocatorPass::run(JITData &JD) {
 	return true;
 }
 
-typedef std::map<MachineBasicBlock*, std::list<LivetimeInterval> > BBtoLTI_Map;
+typedef alloc::map<Type::TypeID, alloc::set<MachineOperand*,MachineOperandComp>::type >::type FreeRegsMap;
 
 namespace {
 /**
@@ -673,6 +737,7 @@ public:
 		LOG2("live: " << lti << " op: " << *lti.get_init_operand() << nl);
 
 		MachineOperand *move_from;
+		// if is phi
 		if (lti.front().start.get_iterator() == successor->mi_first()) {
 			MachinePhiInst *phi = get_phi_from_operand(successor, lti.get_init_operand());
 			assert(phi);
@@ -690,23 +755,102 @@ public:
 		else {
 			move_from = lti.get_operand(predecessor->mi_last());
 		}
-		MachineOperand *move_to = lti.get_operand();
+		MachineOperand *move_to = lti.get_operand(successor->mi_first());
+		LOG3(" from: " << move_from << " to " << move_to << nl);
 		if (!move_from->aquivalent(*move_to)) {
 			move_map.push_back(Move(move_from,move_to));
 		}
 	}
 };
 
-struct MachineOperandCmp : public std::binary_function<MachineOperand*,MachineOperand*,bool> {
-	bool operator()(MachineOperand *lhs, MachineOperand *rhs) const {
-		return lhs->aquivalence_less(*rhs);
+#if defined(ENABLE_LOGGING)
+OStream& operator<<(OStream &OS, const FreeRegsMap &free_regs) {
+	for (FreeRegsMap::const_iterator i = free_regs.begin(), e = free_regs.end() ; i!=e ; ++i) {
+		Type::TypeID type = i->first;
+		const FreeRegsMap::mapped_type &regs = i->second;
+		OS << "type: " << type << " ";
+		print_ptr_container(OS,regs.begin(), regs.end()) << nl;
 	}
+	return OS;
+}
+#endif
+
+Type::TypeID types[] = {
+	Type::ByteTypeID,
+	Type::IntTypeID,
+	Type::LongTypeID,
+	Type::ReferenceTypeID,
+	Type::DoubleTypeID,
+	Type::VoidTypeID
 };
 
+inline void free_regs_remove_op(FreeRegsMap &free_regs, MachineOperand *op) {
+	for (Type::TypeID *p = types; *p != Type::VoidTypeID; ++p) {
+		Type::TypeID type = *p;
+		free_regs[type].erase(op);
+	}
+}
 
+inline MachineOperand* get_and_remove_free_regs(FreeRegsMap &free_regs, Type::TypeID type) {
+	FreeRegsMap::mapped_type &map = free_regs[type];
+	if(map.empty()) {
+		// no more registers
+		return NULL;
+	}
+	STATISTICS(++num_resolution_regs);
+	// arbitrary select the first free register
+	FreeRegsMap::mapped_type::iterator i = map.begin();
+	MachineOperand *op = *i;
+	map.erase(i);
+	free_regs_remove_op(free_regs,op);
+	return op;
+}
+
+
+/**
+ * @todo merge with movemap creation
+ */
+inline void calc_free_regs(FreeRegsMap &free_regs, BBtoLTI_Map &bb2lti_map, MachineBasicBlock* predecessor,
+		MachineBasicBlock *successor, Backend *backend, LivetimeAnalysisPass *LA) {
+	// get all potential registers
+	for (Type::TypeID *p = types; *p != Type::VoidTypeID; ++p) {
+		Type::TypeID type = *p;
+		OperandFile OF;
+		VirtualRegister vreg(type);
+		backend->get_OperandFile(OF,&vreg);
+		free_regs[type].insert(OF.begin(),OF.end());
+	}
+	// remove used operands
+	BBtoLTI_Map::mapped_type &ltis = bb2lti_map[successor];
+	LOG2(free_regs << nl);
+	for (BBtoLTI_Map::mapped_type::iterator i = ltis.begin(), e = ltis.end(); i != e; ++i) {
+		LivetimeInterval lti = *i;
+		MachineOperand *op_pred;
+		// if is phi
+		if (lti.front().start.get_iterator() == successor->mi_first()) {
+			MachinePhiInst *phi = get_phi_from_operand(successor, lti.get_init_operand());
+			assert(phi);
+			std::size_t index = successor->get_predecessor_index(predecessor);
+			MachineOperand *op = phi->get(index).op;
+			op_pred = LA->get(op).get_operand(predecessor->mi_last());
+		} else {
+			op_pred = lti.get_operand(predecessor->mi_last());
+		}
+		MachineOperand *op_succ = lti.get_operand(successor->mi_first());
+		assert(op_succ);
+		assert(op_pred);
+		// delete from _all_ types
+		LOG2("calc_free_regs: " << op_pred << " -> " << op_succ << nl);
+		free_regs_remove_op(free_regs,op_succ);
+		free_regs_remove_op(free_regs,op_pred);
+	}
+}
+
+#if defined(ENABLE_LOGGING)
 inline OStream& operator<<(OStream &OS, const Move &move) {
 	return OS << "move from " << *move.from << " to " << *move.to;
 }
+#endif
 
 inline bool is_stack2stack_move(Move* move) {
 	return (move->from->is_ManagedStackSlot() || move->from->is_StackSlot() ) &&
@@ -723,18 +867,19 @@ bool compare_moves(Move *lhs, Move *rhs) {
 
 class MoveScheduler {
 private:
-	std::list<MachineInstruction*> &scheduled;
+	alloc::list<MachineInstruction*>::type &scheduled;
 	MoveMapTy &move_map;
-	std::list<Move*> &queue;
+	alloc::list<Move*>::type &queue;
 	Backend *backend;
-	std::list<Move*> &stack;
-	bool need_allocation;
+	alloc::list<Move*>::type &stack;
+	FreeRegsMap &free_regs;
 public:
 	/// constructor
-	MoveScheduler(std::list<MachineInstruction*> &scheduled, MoveMapTy &move_map,
-		std::list<Move*> &queue, Backend *backend, std::list<Move*> &stack)
+	MoveScheduler(alloc::list<MachineInstruction*>::type &scheduled, MoveMapTy &move_map,
+		alloc::list<Move*>::type &queue, Backend *backend, alloc::list<Move*>::type &stack,
+		FreeRegsMap &free_regs)
 		: scheduled(scheduled), move_map(move_map), queue(queue), backend(backend), stack(stack),
-			need_allocation(false) {}
+			free_regs(free_regs) {}
 	/// call operator
 	void operator()() {
 		Move* node = stack.back();
@@ -747,27 +892,56 @@ public:
 		}
 		if (is_stack2stack_move(node)){
 			LOG2("Stack to stack move detected!" << nl);
-			MachineOperand *tmp = new VirtualRegister(node->to->get_type());
+			MachineOperand *tmp = get_and_remove_free_regs(free_regs,node->to->get_type());
+			if (!tmp) {
+				// No more free register!
+				Type::TypeID type = node->from->get_type();
+				// get stack slot
+				MachineOperand *tmp_stack = backend->get_JITData()->
+					get_StackSlotManager()->create_ManagedStackSlot(type);
+				// get reg
+				OperandFile OF;
+				backend->get_OperandFile(OF,tmp_stack);
+				MachineOperand *tmp_reg = OF.front();
+				// backup register
+				scheduled.push_back(backend->create_Move(tmp_reg,tmp_stack));
+				// stack to stack move
+				scheduled.push_back(backend->create_Move(node->from,tmp_reg));
+				scheduled.push_back(backend->create_Move(tmp_reg,node->to));
+				// restore register
+				scheduled.push_back(backend->create_Move(tmp_stack,tmp_reg));
+				//
+				LOG2("schedule post: " << *node << nl);
+				stack.pop_back();
+				node->scheduled = true;
+				return;
+			}
+
 			move_map.push_back(Move(tmp, node->to));
 			queue.push_back(&move_map.back());
 			node->to = tmp;
+			// no really needed, is it?
 			node->dep = NULL;
-			need_allocation = true;
-			//ABORT_MSG("Stack to stack move detected!","No re-allocation strategy yet!");
 		}
-		if (node->dep && !node->dep->is_scheduled()) {
-			std::list<Move*>::iterator i = std::find(stack.begin(),stack.end(),node->dep);
+		else if (node->dep && !node->dep->is_scheduled()) {
+			alloc::list<Move*>::type::iterator i = std::find(stack.begin(),stack.end(),node->dep);
 			if (i != stack.end()) {
 				LOG2("cycle detected!" << nl);
-				MachineOperand *tmp = new VirtualRegister(node->to->get_type());
+				// try to get a register
+				MachineOperand *tmp = get_and_remove_free_regs(free_regs,node->to->get_type());
+				if (!tmp) {
+					// No more free register -> use stack slot
+					assert(!node->from->is_StackSlot());
+					assert(!node->to->is_StackSlot());
+					tmp = get_stackslot(backend,node->to->get_type());
+					STATISTICS(++num_resolution_stacks);
+				}
 				move_map.push_back(Move(tmp, node->to));
 				Move *tmp_move = &move_map.back();
 				tmp_move->dep = *i;
 				queue.push_back(tmp_move);
 				node->to = tmp;
 				node->dep = NULL;
-				need_allocation = true;
-				//ABORT_MSG("Cycle Detected!","No re-allocation strategy yet!");
 			} else {
 				stack.push_back(node->dep);
 				operator()();
@@ -778,7 +952,6 @@ public:
 		scheduled.push_back(backend->create_Move(node->from,node->to));
 		node->scheduled = true;
 	}
-	bool need_register_allocation() const { return need_allocation; }
 };
 
 template <class OutputIterator>
@@ -859,7 +1032,7 @@ public:
 	/// function call operator
 	void operator()(MachineBasicBlock *predecessor, MachineBasicBlock *successor) const {
 		MoveMapTy &move_map = edge_move_map[Edge(predecessor,successor)];
-		LOG2("edge " << *predecessor << " -> " << *successor << nl);
+		LOG2(Cyan << "edge " << *predecessor << " -> " << *successor << nl);
 		BBtoLTI_Map::mapped_type &lti_live_set = bb2lti_map[successor];
 		// for each live interval live at successor
 		std::for_each(lti_live_set.begin(), lti_live_set.end(),
@@ -869,18 +1042,23 @@ public:
 
 } // end anonymous namespace
 
+
 //bool LinearScanAllocatorPass::order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *successor,
 //		MoveMapTy &move_map) {
-bool LinearScanAllocatorPass::order_and_insert_move(EdgeMoveMapTy::value_type &entry) {
+bool LinearScanAllocatorPass::order_and_insert_move(EdgeMoveMapTy::value_type &entry, BBtoLTI_Map &bb2lti_map) {
 	MachineBasicBlock *predecessor = entry.first.predecessor;
 	MachineBasicBlock *successor = entry.first.successor;
 	MoveMapTy &move_map = entry.second;
 
 	LOG2("order_and_insert_move: " << *predecessor << " -> " << *successor << nl);
+	// get free registers
+	FreeRegsMap free_regs;
+	calc_free_regs(free_regs,bb2lti_map,predecessor,successor,backend, LA);
+	LOG2(free_regs << nl);
 
 	if (move_map.empty()) return true;
 	// calculate data dependency graph (DDG)
-	std::map<MachineOperand*,Move*,MachineOperandCmp> read_from;
+	alloc::map<MachineOperand*,Move*,MachineOperandComp>::type read_from;
 
 	// create graph nodes
 	for (MoveMapTy::iterator i = move_map.begin(), e = move_map.end(); i != e; ++i) {
@@ -892,13 +1070,13 @@ bool LinearScanAllocatorPass::order_and_insert_move(EdgeMoveMapTy::value_type &e
 		i->dep = read_from[i->to];
 	}
 	// nodes already scheduled
-	std::list<MachineInstruction*> scheduled;
-	std::list<Move*> stack;
-	std::list<Move*> queue;
+	alloc::list<MachineInstruction*>::type scheduled;
+	alloc::list<Move*>::type stack;
+	alloc::list<Move*>::type queue;
 	std::for_each(move_map.begin(), move_map.end(), RefToPointerInserter(std::back_inserter(queue)));
 	assert(move_map.size() == queue.size());
 
-	MoveScheduler scheduler(scheduled, move_map, queue, backend, stack);
+	MoveScheduler scheduler(scheduled, move_map, queue, backend, stack, free_regs);
 
 	while (!queue.empty()) {
 		// sort and pop element
@@ -915,17 +1093,19 @@ bool LinearScanAllocatorPass::order_and_insert_move(EdgeMoveMapTy::value_type &e
 	// insert first element
 	insert_before(last,scheduled.front());
 	--first;
-	for (std::list<MachineInstruction*>::const_iterator i = ++scheduled.begin(),
+	for (alloc::list<MachineInstruction*>::type::const_iterator i = ++scheduled.begin(),
 			e  = scheduled.end(); i != e ; ++i) {
-		insert_before(last, *i);
-	}
-	if (scheduler.need_register_allocation()) {
-		LOG2("Register allocation for resolution needed!"<<nl);
-		ERROR_MSG("Resolution Failed", "Could not assign register");
-		#if 0
-		if (!reg_alloc_resolve_block(first,last)) {
-			ERROR_MSG("Resolution Failed", "Could not assign register");
-			return false;
+		MachineInstruction *MI = *i;
+		insert_before(last, MI);
+		#if defined(ENABLE_STATISTICS)
+		if (MI->front().op->is_ManagedStackSlot() && MI->back().op->is_Register()) {
+			STATISTICS(++num_spill_loads);
+		}
+		else if (MI->front().op->is_Register() && MI->back().op->is_ManagedStackSlot()) {
+			STATISTICS(++num_spill_stores);
+		}
+		else {
+			STATISTICS(++num_resolution_moves);
 		}
 		#endif
 	}
@@ -997,7 +1177,7 @@ bool LinearScanAllocatorPass::resolve() {
 	std::for_each(MIS->begin(), MIS->end(), CfgEdge(ForEachCfgEdge(bb2lti_map,edge_move_map,LA)));
 	// order and insert move
 	for (EdgeMoveMapTy::iterator i = edge_move_map.begin(), e = edge_move_map.end(); i != e ; ++i) {
-		if (!order_and_insert_move(*i)) {
+		if (!order_and_insert_move(*i,bb2lti_map)) {
 			return false;
 		}
 	}
@@ -1006,9 +1186,11 @@ bool LinearScanAllocatorPass::resolve() {
 
 	return true;
 }
+
+#define LSRA_VERIFY
 namespace {
 
-#if 0
+#if defined(LSRA_VERIFY)
 inline bool is_virtual(const MachineOperandDesc &op) {
 	return op.op->is_virtual();
 }
@@ -1016,11 +1198,11 @@ inline bool is_virtual(const MachineOperandDesc &op) {
 
 } // end anonymous namespace
 bool LinearScanAllocatorPass::verify() const {
-#if 0
+#if defined(LSRA_VERIFY)
 	for(MIIterator i = MIS->mi_begin(), e = MIS->mi_end(); i != e ; ++i) {
 		MachineInstruction *MI = *i;
 		// result virtual
-		if (MI->get_result().op->is_virtual() || any_of(MI->begin(), MI->end(), is_virtual)) {
+		if (is_virtual(MI->get_result()) || any_of(MI->begin(), MI->end(), is_virtual)) {
 			ERROR_MSG("Unallocated Operand!","Instruction " << *MI << " contains unallocated operands.");
 			return false;
 		}
@@ -1048,22 +1230,7 @@ PassUsage& LinearScanAllocatorPass::get_PassUsage(PassUsage &PU) const {
 char LinearScanAllocatorPass::ID = 0;
 
 // register pass
-static PassRegistery<LinearScanAllocatorPass> X("LinearScanAllocatorPass");
-
-// pass usage
-PassUsage& LinearScanAllocator2Pass::get_PassUsage(PassUsage &PU) const {
-	// requires
-	//PU.add_requires<LinearScanAllocatorPass>();
-	PU.add_schedule_after<LinearScanAllocatorPass>();
-	// add requirements from super class
-	return LinearScanAllocatorPass::get_PassUsage(PU);
-}
-
-// the address of this variable is used to identify the pass
-char LinearScanAllocator2Pass::ID = 0;
-
-// register pass
-static PassRegistery<LinearScanAllocator2Pass> Y("LinearScanAllocator2Pass");
+static PassRegistry<LinearScanAllocatorPass> X("LinearScanAllocatorPass");
 
 } // end namespace compiler2
 } // end namespace jit

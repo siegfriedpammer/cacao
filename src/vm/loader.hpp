@@ -37,6 +37,8 @@
 struct classinfo;
 struct constant_nameandtype;
 
+namespace cacao { struct ClassBuffer; }
+
 
 /* classloader *****************************************************************
 
@@ -100,16 +102,6 @@ struct  constant_nameandtype {         /* NameAndType (Field or Method)       */
 	Utf8String descriptor;             /* field/method type descriptor string */
 };
 
-/* classbuffer ****************************************************************/
-
-struct classbuffer {
-	classinfo *clazz;                   /* pointer to classinfo structure     */
-	uint8_t   *data;                    /* pointer to byte code               */
-	int32_t    size;                    /* size of the byte code              */
-	uint8_t   *pos;                     /* current read position              */
-	char      *path;                    /* path to file (for debugging)       */
-};
-
 
 /* hashtable_classloader_entry *************************************************
 
@@ -137,10 +129,10 @@ classloader_t *loader_hashtable_classloader_find(java_handle_t *cl);
 
 void loader_load_all_classes(void);
 
-bool loader_skip_attribute_body(classbuffer *cb);
+bool loader_skip_attribute_body(cacao::ClassBuffer& cb);
 
 #if defined(ENABLE_JAVASE)
-bool loader_load_attribute_signature(classbuffer *cb, Utf8String& signature);
+bool loader_load_attribute_signature(cacao::ClassBuffer& cb, Utf8String& signature);
 #endif
 
 /* free resources */
@@ -152,7 +144,7 @@ classinfo *load_class_from_classloader(Utf8String name, classloader_t *cl);
 classinfo *load_class_bootstrap(Utf8String name);
 
 /* (don't use the following directly) */
-classinfo *load_class_from_classbuffer(classbuffer *cb);
+classinfo *load_class_from_classbuffer(cacao::ClassBuffer& cb);
 classinfo *load_newly_created_array(classinfo *c, classloader_t *loader);
 
 #endif // LOADER_HPP_

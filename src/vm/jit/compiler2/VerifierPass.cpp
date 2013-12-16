@@ -59,7 +59,7 @@ PassUsage& VerifierPass::get_PassUsage(PassUsage &PU) const {
 char VerifierPass::ID = 0;
 
 // registrate Pass
-static PassRegistery<VerifierPass> X("VerifierPass");
+static PassRegistry<VerifierPass> X("VerifierPass");
 
 } // end namespace compiler2
 } // end namespace jit

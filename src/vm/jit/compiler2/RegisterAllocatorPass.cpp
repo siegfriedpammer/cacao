@@ -38,7 +38,7 @@ bool RegisterAllocatorPass::run(JITData &JD) {
 
 // pass usage
 PassUsage& RegisterAllocatorPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<LinearScanAllocator2Pass>();
+	PU.add_requires<LinearScanAllocatorPass>();
 	return PU;
 }
 
@@ -46,7 +46,7 @@ PassUsage& RegisterAllocatorPass::get_PassUsage(PassUsage &PU) const {
 char RegisterAllocatorPass::ID = 0;
 
 // register pass
-static PassRegistery<RegisterAllocatorPass> X("RegisterAllocatorPass");
+static PassRegistry<RegisterAllocatorPass> X("RegisterAllocatorPass");
 
 } // end namespace compiler2
 } // end namespace jit

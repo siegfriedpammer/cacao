@@ -29,6 +29,7 @@
 #include "native/native.hpp"
 #include "mm/dumpmemory.hpp"            // for DumpMemory
 #include "threads/lock.hpp"
+#include "toolbox/endianess.hpp"
 #include "toolbox/logging.hpp"
 #include "vm/breakpoint.hpp"            // for BreakpointTable
 #include "vm/class.hpp"                 // for class_getconstant, etc
@@ -58,6 +59,9 @@
 
 struct parsedata_t;
 struct utf;
+
+using namespace cacao;
+
 
 /* macros for verifier checks during parsing **********************************/
 
@@ -315,7 +319,7 @@ struct parsedata_t {
 	u1          *basicblockstart;       /* start of bytecode basic-blocks     */
 
 	s4          *bytecodemap;           /* bytecode to IR mapping             */
-	
+
 	instruction *instructions;          /* instruction array                  */
 	s4           instructionslength;    /* length of the instruction array    */
 
@@ -370,7 +374,7 @@ static void parse_setup(jitdata *jd, parsedata_t *pd)
 
 /* parse_realloc_instructions **************************************************
 
-   Reallocate the instructions array so there is room for at least N 
+   Reallocate the instructions array so there is room for at least N
    additional instructions.
 
    RETURN VALUE:
@@ -440,7 +444,7 @@ static bool parse_mark_exception_boundaries(jitdata *jd, parsedata_t *pd)
 	methodinfo          *m;
 
 	m = jd->m;
-	
+
 	len = m->rawexceptiontablelength;
 
 	if (len == 0)
@@ -455,7 +459,7 @@ static bool parse_mark_exception_boundaries(jitdata *jd, parsedata_t *pd)
    		bcindex = rex->startpc;
 		CHECK_BYTECODE_INDEX(bcindex);
 		MARK_BASICBLOCK(pd, bcindex);
-		
+
 		bcindex = rex->endpc; /* see JVM Spec 4.7.3 */
 		CHECK_BYTECODE_INDEX_EXCLUSIVE(bcindex);
 
@@ -467,7 +471,7 @@ static bool parse_mark_exception_boundaries(jitdata *jd, parsedata_t *pd)
 			return false;
 		}
 #endif
-		
+
 		/* End of handled region becomes a basic block boundary (if it
 		   is the bytecode end, we'll use the special end block that
 		   is created anyway). */
@@ -660,11 +664,11 @@ bool parse(jitdata *jd)
 	}
 
  	/* initialize the parse data structures */
-  
+
  	parse_setup(jd, &pd);
-  
+
  	/* initialize local variables */
-  
+
  	iptr     = pd.instructions;
  	ircount  = 0;
 	bbcount  = 0;
@@ -718,9 +722,9 @@ next_linenumber:
 		}
 
 fetch_opcode:
-		/* fetch next opcode  */	
+		/* fetch next opcode  */
 
-		opcode = (ByteCode) SUCK_BE_U1(m->jcode + bcindex);
+		opcode = (ByteCode) read_u1_be(m->jcode + bcindex);
 
 		/* If the previous instruction was a block-end instruction,
 		   mark the current bytecode instruction as basic-block
@@ -789,20 +793,20 @@ fetch_opcode:
 		/* pushing constants onto the stack ***********************************/
 
 		case BC_bipush:
-			OP_LOADCONST_I(SUCK_BE_S1(m->jcode + bcindex + 1));
+			OP_LOADCONST_I(read_s1_be(m->jcode + bcindex + 1));
 			break;
 
 		case BC_sipush:
-			OP_LOADCONST_I(SUCK_BE_S2(m->jcode + bcindex + 1));
+			OP_LOADCONST_I(read_s2_be(m->jcode + bcindex + 1));
 			break;
 
 		case BC_ldc1:
-			i = SUCK_BE_U1(m->jcode + bcindex + 1);
+			i = read_u1_be(m->jcode + bcindex + 1);
 			goto pushconstantitem;
 
 		case BC_ldc2:
 		case BC_ldc2w:
-			i = SUCK_BE_U2(m->jcode + bcindex + 1);
+			i = read_u2_be(m->jcode + bcindex + 1);
 
 		pushconstantitem:
 
@@ -948,10 +952,10 @@ fetch_opcode:
 		case BC_fload:
 		case BC_aload:
 			if (iswide == false) {
-				i = SUCK_BE_U1(m->jcode + bcindex + 1);
+				i = read_u1_be(m->jcode + bcindex + 1);
 			}
 			else {
-				i = SUCK_BE_U2(m->jcode + bcindex + 1);
+				i = read_u2_be(m->jcode + bcindex + 1);
 				nextbc = bcindex + 3;
 				iswide = false;
 			}
@@ -961,10 +965,10 @@ fetch_opcode:
 		case BC_lload:
 		case BC_dload:
 			if (iswide == false) {
-				i = SUCK_BE_U1(m->jcode + bcindex + 1);
+				i = read_u1_be(m->jcode + bcindex + 1);
 			}
 			else {
-				i = SUCK_BE_U2(m->jcode + bcindex + 1);
+				i = read_u2_be(m->jcode + bcindex + 1);
 				nextbc = bcindex + 3;
 				iswide = false;
 			}
@@ -1010,10 +1014,10 @@ fetch_opcode:
 		case BC_fstore:
 		case BC_astore:
 			if (iswide == false) {
-				i = SUCK_BE_U1(m->jcode + bcindex + 1);
+				i = read_u1_be(m->jcode + bcindex + 1);
 			}
 			else {
-				i = SUCK_BE_U2(m->jcode + bcindex + 1);
+				i = read_u2_be(m->jcode + bcindex + 1);
 				nextbc = bcindex + 3;
 				iswide = false;
 			}
@@ -1023,10 +1027,10 @@ fetch_opcode:
 		case BC_lstore:
 		case BC_dstore:
 			if (iswide == false) {
-				i = SUCK_BE_U1(m->jcode + bcindex + 1);
+				i = read_u1_be(m->jcode + bcindex + 1);
 			}
 			else {
-				i = SUCK_BE_U2(m->jcode + bcindex + 1);
+				i = read_u2_be(m->jcode + bcindex + 1);
 				nextbc = bcindex + 3;
 				iswide = false;
 			}
@@ -1073,12 +1077,12 @@ fetch_opcode:
 				int v;
 
 				if (iswide == false) {
-					i = SUCK_BE_U1(m->jcode + bcindex + 1);
-					v = SUCK_BE_S1(m->jcode + bcindex + 2);
+					i = read_u1_be(m->jcode + bcindex + 1);
+					v = read_s1_be(m->jcode + bcindex + 2);
 				}
 				else {
-					i = SUCK_BE_U2(m->jcode + bcindex + 1);
-					v = SUCK_BE_S2(m->jcode + bcindex + 3);
+					i = read_u2_be(m->jcode + bcindex + 1);
+					v = read_s2_be(m->jcode + bcindex + 3);
 					nextbc = bcindex + 5;
 					iswide = false;
 				}
@@ -1098,7 +1102,7 @@ fetch_opcode:
 		/* managing arrays ****************************************************/
 
 		case BC_newarray:
-			switch (SUCK_BE_S1(m->jcode + bcindex + 1)) {
+			switch (read_s1_be(m->jcode + bcindex + 1)) {
 			case 4:
 				bte = builtintable_get_internal(BUILTIN_newarray_boolean);
 				break;
@@ -1133,7 +1137,7 @@ fetch_opcode:
 			break;
 
 		case BC_anewarray:
-			i = SUCK_BE_U2(m->jcode + bcindex + 1);
+			i = read_u2_be(m->jcode + bcindex + 1);
 			compr = (constant_classref *) class_getconstant(m->clazz, i, CONSTANT_Class);
 			if (compr == NULL)
 				return false;
@@ -1152,18 +1156,18 @@ fetch_opcode:
 			break;
 
 		case BC_multianewarray:
-			i = SUCK_BE_U2(m->jcode + bcindex + 1);
- 			j = SUCK_BE_U1(m->jcode + bcindex + 3);
-  
+			i = read_u2_be(m->jcode + bcindex + 1);
+ 			j = read_u1_be(m->jcode + bcindex + 3);
+
  			cr = (constant_classref *) class_getconstant(m->clazz, i, CONSTANT_Class);
  			if (cr == NULL)
  				return false;
-  
+
  			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
  				return false;
-  
+
  			/* if unresolved, c == NULL */
-  
+
  			iptr->s1.argcount = j;
  			OP_S3_CLASSINFO_OR_CLASSREF(opcode, c, cr, INS_FLAG_CHECK);
 			code_unflag_leafmethod(code);
@@ -1188,7 +1192,7 @@ fetch_opcode:
 		case BC_if_acmpeq:
 		case BC_if_acmpne:
 		case BC_goto:
-			i = bcindex + SUCK_BE_S2(m->jcode + bcindex + 1);
+			i = bcindex + read_s2_be(m->jcode + bcindex + 1);
 			CHECK_BYTECODE_INDEX(i);
 			MARK_BASICBLOCK(&pd, i);
 			blockend = true;
@@ -1196,7 +1200,7 @@ fetch_opcode:
 			break;
 
 		case BC_goto_w:
-			i = bcindex + SUCK_BE_S4(m->jcode + bcindex + 1);
+			i = bcindex + read_s4_be(m->jcode + bcindex + 1);
 			CHECK_BYTECODE_INDEX(i);
 			MARK_BASICBLOCK(&pd, i);
 			blockend = true;
@@ -1204,7 +1208,7 @@ fetch_opcode:
 			break;
 
 		case BC_jsr:
-			i = bcindex + SUCK_BE_S2(m->jcode + bcindex + 1);
+			i = bcindex + read_s2_be(m->jcode + bcindex + 1);
 jsr_tail:
 			CHECK_BYTECODE_INDEX(i);
 			MARK_BASICBLOCK(&pd, i);
@@ -1215,15 +1219,15 @@ jsr_tail:
 			break;
 
 		case BC_jsr_w:
-			i = bcindex + SUCK_BE_S4(m->jcode + bcindex + 1);
+			i = bcindex + read_s4_be(m->jcode + bcindex + 1);
 			goto jsr_tail;
 
 		case BC_ret:
 			if (iswide == false) {
-				i = SUCK_BE_U1(m->jcode + bcindex + 1);
+				i = read_u1_be(m->jcode + bcindex + 1);
 			}
 			else {
-				i = SUCK_BE_U2(m->jcode + bcindex + 1);
+				i = read_u2_be(m->jcode + bcindex + 1);
 				nextbc = bcindex + 3;
 				iswide = false;
 			}
@@ -1268,7 +1272,7 @@ jsr_tail:
 
 				/* default target */
 
-				j = bcindex + SUCK_BE_S4(m->jcode + nextbc);
+				j = bcindex + read_s4_be(m->jcode + nextbc);
 				iptr->sx.s23.s3.lookupdefault.insindex = j;
 				nextbc += 4;
 				CHECK_BYTECODE_INDEX(j);
@@ -1276,7 +1280,7 @@ jsr_tail:
 
 				/* number of pairs */
 
-				num = SUCK_BE_U4(m->jcode + nextbc);
+				num = read_u4_be(m->jcode + nextbc);
 				iptr->sx.s23.s2.lookupcount = num;
 				nextbc += 4;
 
@@ -1292,7 +1296,7 @@ jsr_tail:
 				for (i = 0; i < num; i++) {
 					/* value */
 
-					j = SUCK_BE_S4(m->jcode + nextbc);
+					j = read_s4_be(m->jcode + nextbc);
 					lookup->value = j;
 
 					nextbc += 4;
@@ -1308,7 +1312,7 @@ jsr_tail:
 #endif
 					/* target */
 
-					j = bcindex + SUCK_BE_S4(m->jcode + nextbc);
+					j = bcindex + read_s4_be(m->jcode + nextbc);
 					lookup->target.insindex = j;
 					lookup++;
 					nextbc += 4;
@@ -1335,20 +1339,20 @@ jsr_tail:
 
 				/* default target */
 
-				deftarget = bcindex + SUCK_BE_S4(m->jcode + nextbc);
+				deftarget = bcindex + read_s4_be(m->jcode + nextbc);
 				nextbc += 4;
 				CHECK_BYTECODE_INDEX(deftarget);
 				MARK_BASICBLOCK(&pd, deftarget);
 
 				/* lower bound */
 
-				j = SUCK_BE_S4(m->jcode + nextbc);
+				j = read_s4_be(m->jcode + nextbc);
 				iptr->sx.s23.s2.tablelow = j;
 				nextbc += 4;
 
 				/* upper bound */
 
-				num = SUCK_BE_S4(m->jcode + nextbc);
+				num = read_s4_be(m->jcode + nextbc);
 				iptr->sx.s23.s3.tablehigh = num;
 				nextbc += 4;
 
@@ -1375,7 +1379,7 @@ jsr_tail:
 				CHECK_END_OF_BYTECODE(nextbc + 4 * num);
 
 				for (i = 0; i < num; i++) {
-					j = bcindex + SUCK_BE_S4(m->jcode + nextbc);
+					j = bcindex + read_s4_be(m->jcode + nextbc);
 					(table++)->insindex = j;
 					nextbc += 4;
 					CHECK_BYTECODE_INDEX(j);
@@ -1398,7 +1402,7 @@ jsr_tail:
 		case BC_putstatic:
 		case BC_getfield:
 		case BC_putfield:
-			i = SUCK_BE_U2(m->jcode + bcindex + 1);
+			i = read_u2_be(m->jcode + bcindex + 1);
 			fmi = (constant_FMIref*) class_getconstant(m->clazz, i, CONSTANT_Fieldref);
 
 			if (fmi == NULL)
@@ -1440,7 +1444,7 @@ jsr_tail:
 		case BC_invokestatic:
 			OP_PREPARE_ZEROFLAGS(opcode);
 
-			i = SUCK_BE_U2(m->jcode + bcindex + 1);
+			i = read_u2_be(m->jcode + bcindex + 1);
 			fmi = (constant_FMIref*) class_getconstant(m->clazz, i, CONSTANT_Methodref);
 
 			if (fmi == NULL)
@@ -1455,7 +1459,7 @@ jsr_tail:
 		case BC_invokespecial:
 			OP_PREPARE_FLAGS(opcode, INS_FLAG_CHECK);
 
-			i = SUCK_BE_U2(m->jcode + bcindex + 1);
+			i = read_u2_be(m->jcode + bcindex + 1);
 			fmi = (constant_FMIref*) class_getconstant(m->clazz, i, CONSTANT_Methodref);
 
 			goto invoke_nonstatic_method;
@@ -1463,7 +1467,7 @@ jsr_tail:
 		case BC_invokeinterface:
 			OP_PREPARE_ZEROFLAGS(opcode);
 
-			i = SUCK_BE_U2(m->jcode + bcindex + 1);
+			i = read_u2_be(m->jcode + bcindex + 1);
 			fmi = (constant_FMIref*) class_getconstant(m->clazz, i, CONSTANT_InterfaceMethodref);
 
 			goto invoke_nonstatic_method;
@@ -1471,7 +1475,7 @@ jsr_tail:
 		case BC_invokevirtual:
 			OP_PREPARE_ZEROFLAGS(opcode);
 
-			i = SUCK_BE_U2(m->jcode + bcindex + 1);
+			i = read_u2_be(m->jcode + bcindex + 1);
 			fmi = (constant_FMIref*) class_getconstant(m->clazz, i, CONSTANT_Methodref);
 
 invoke_nonstatic_method:
@@ -1492,7 +1496,7 @@ invoke_method:
 #if defined(ENABLE_VERIFIER)
 			if (!JITDATA_HAS_FLAG_VERIFY(jd)) {
 #endif
-				result = resolve_method_lazy(m, fmi, 
+				result = resolve_method_lazy(m, fmi,
 											 (opcode == BC_invokespecial));
 
 				if (result == resolveFailed)
@@ -1532,7 +1536,7 @@ invoke_method:
 		/* instructions taking class arguments ********************************/
 
 		case BC_new:
-			i = SUCK_BE_U2(m->jcode + bcindex + 1);
+			i = read_u2_be(m->jcode + bcindex + 1);
 			cr = (constant_classref*) class_getconstant(m->clazz, i, CONSTANT_Class);
 
 			if (cr == NULL)
@@ -1549,7 +1553,7 @@ invoke_method:
 			break;
 
 		case BC_checkcast:
-			i = SUCK_BE_U2(m->jcode + bcindex + 1);
+			i = read_u2_be(m->jcode + bcindex + 1);
 			cr = (constant_classref*) class_getconstant(m->clazz, i, CONSTANT_Class);
 
 			if (cr == NULL)
@@ -1571,7 +1575,7 @@ invoke_method:
 			break;
 
 		case BC_instanceof:
-			i = SUCK_BE_U2(m->jcode + bcindex + 1);
+			i = read_u2_be(m->jcode + bcindex + 1);
 			cr = (constant_classref*) class_getconstant(m->clazz, i, CONSTANT_Class);
 
 			if (cr == NULL)
@@ -2075,7 +2079,7 @@ invoke_method:
 
 		/* calculate the (maximum) number of variables needed */
 
-		jd->varcount = 
+		jd->varcount =
 			  nlocals                                      /* local variables */
 			+ bbcount * m->maxstack                                 /* invars */
 			+ s_count;         /* variables created within blocks (non-invar) */

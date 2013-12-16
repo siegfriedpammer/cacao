@@ -29,6 +29,8 @@
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "toolbox/logging.hpp"
 #include <algorithm>
+#include "vm/jit/compiler2/alloc/set.hpp"
+#include "vm/jit/compiler2/alloc/map.hpp"
 
 #define DEBUG_NAME "compiler2/PassDependencyGraphPrinter"
 
@@ -41,11 +43,11 @@ namespace {
 struct AddEdge : public std::unary_function<PassInfo::IDTy,void> {
 	typedef std::pair<argument_type,argument_type> EdgeType;
 	std::set<EdgeType> &edges;
-	std::set<EdgeType> &set;
+	alloc::set<EdgeType>::type &set;
 	argument_type from;
 	bool reverse;
 	// constructor
-	AddEdge(std::set<EdgeType> &edges, std::set<EdgeType> &set, argument_type from, bool reverse=false)
+	AddEdge(std::set<EdgeType> &edges, alloc::set<EdgeType>::type &set, argument_type from, bool reverse=false)
 		: edges(edges), set(set), from(from), reverse(reverse) {}
 	// call operator
 	void operator()(const argument_type &to) {
@@ -68,13 +70,13 @@ inline bool contains(InputIterator begin, InputIterator end, const ValueType &va
 
 class PassDependencyGraphPrinter : public PrintableGraph<PassManager,PassInfo::IDTy> {
 private:
-	std::map<PassInfo::IDTy,const char*> names;
-	std::set<EdgeType> req;
-	std::set<EdgeType> mod;
-	std::set<EdgeType> dstr;
-	std::set<EdgeType> schedule_after;
-	std::set<EdgeType> run_before;
-	std::set<EdgeType> schedule_before;
+	alloc::map<PassInfo::IDTy,const char*>::type names;
+	alloc::set<EdgeType>::type req;
+	alloc::set<EdgeType>::type mod;
+	alloc::set<EdgeType>::type dstr;
+	alloc::set<EdgeType>::type schedule_after;
+	alloc::set<EdgeType>::type run_before;
+	alloc::set<EdgeType>::type schedule_before;
 public:
 
     PassDependencyGraphPrinter(PassManager &PM) {

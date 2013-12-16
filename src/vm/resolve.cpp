@@ -2445,10 +2445,9 @@ unresolved_field * resolve_create_unresolved_field(classinfo *referer,
 			ref->flags |= RESOLVE_STATIC;
 			break;
 
-#if !defined(NDEBUG)
 		default:
 			assert(false);
-#endif
+			break;
 	}
 
 	fieldref = iptr->sx.s23.s3.fmiref;

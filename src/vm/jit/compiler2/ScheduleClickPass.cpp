@@ -59,6 +59,16 @@ bool ScheduleClickPass::run(JITData &JD) {
 	return true;
 }
 
+bool ScheduleClickPass::verify() const {
+	for (Method::const_iterator i = M->begin(), e = M->end(); i!=e; ++i) {
+		Instruction *I = *i;
+		if (!get(I)) {
+			ERROR_MSG("Instruction not Scheduled!","Instruction: " << I);
+			return false;
+		}
+	}
+	return true;
+}
 PassUsage& ScheduleClickPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<ScheduleLatePass>();
 	return PU;
@@ -67,7 +77,7 @@ PassUsage& ScheduleClickPass::get_PassUsage(PassUsage &PU) const {
 char ScheduleClickPass::ID = 0;
 
 // registrate Pass
-static PassRegistery<ScheduleClickPass> X("ScheduleClickPass");
+static PassRegistry<ScheduleClickPass> X("ScheduleClickPass");
 
 } // end namespace compiler2
 } // end namespace jit

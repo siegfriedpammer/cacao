@@ -30,10 +30,12 @@
 #include "vm/jit/compiler2/DominatorPass.hpp"
 #include "toolbox/logging.hpp"
 
-#include <list>
-#include <deque>
+#include "vm/jit/compiler2/alloc/map.hpp"
+#include "vm/jit/compiler2/alloc/set.hpp"
+#include "vm/jit/compiler2/alloc/list.hpp"
+#include "vm/jit/compiler2/alloc/deque.hpp"
 
-#define DEBUG_NAME "compiler2/BasciBlockSchedulingPass"
+#define DEBUG_NAME "compiler2/BasicBlockSchedulingPass"
 
 #define VERIFY_LOOP_PROPERTY 1
 #define VERIFY_DOM_PROPERTY 1
@@ -53,17 +55,99 @@ namespace {
 	};
 } // anonymous namespace
 
+
+class LoopScheduler {
+private:
+	// XXX use unordered map and hash
+	typedef alloc::list<BeginInst*>::type BeginListTy;
+	typedef alloc::unordered_set<BeginInst*>::type BeginSetTy;
+	typedef alloc::unordered_set<Loop*>::type LoopSetTy;
+	typedef alloc::map<BeginInst*,BeginSetTy>::type DomSuccMapTy;
+	typedef alloc::map<Loop*,BeginSetTy>::type LoopMapTy;
+	typedef alloc::set<BeginInst*>::type BeginSchedMapTy;
+
+	LoopMapTy loopmap;
+	DomSuccMapTy dommap;
+	BeginListTy bb_sched;
+	DominatorTree *DT;
+	LoopTree *LT;
+
+	bool is_scheduled(BeginInst* BI) const {
+		return std::find(bb_sched.begin(),bb_sched.end(), BI) != bb_sched.end();
+	}
+
+	void schedule_loop(Loop* loop) {
+		LOG3(Magenta << "schedule_loop: " << loop << reset_color << nl);
+		BeginSetTy unsched(loopmap[loop]);
+		LoopSetTy subloops;
+		if (loop) {
+			subloops.insert(loop->loop_begin(),loop->loop_end());
+		}
+		else {
+			subloops.insert(LT->loop_begin(),LT->loop_end());
+		}
+		while ( !unsched.empty() || !subloops.empty()) {
+			// try schedule loop bbs
+			bool changed = true;
+			while (changed) {
+				changed = false;
+				for(BeginSetTy::iterator i = unsched.begin(), e = unsched.end() ; i != e; ++i) {
+					BeginInst *BI = *i;
+					BeginInst *idom = DT->get_idominator(BI);
+					if ( !idom || is_scheduled(idom)) {
+						// idom scheduled
+						bb_sched.push_back(BI);
+						unsched.erase(i);
+						LOG3(Green <<"  scheduled: " << BI << reset_color<<nl);
+						changed=true;
+						break;
+					} else {
+						LOG3(Red <<"  not scheduled: " << BI << reset_color << " idom: " << idom <<nl);
+					}
+				}
+			}
+			assert(unsched.empty() || !subloops.empty());
+			for(LoopSetTy::iterator i = subloops.begin() , e = subloops.end(); i != e; ++i) {
+				Loop *subloop = *i;
+				if (is_scheduled(DT->get_idominator(subloop->get_header()))){
+					LOG3("schedule subloop of " << loop << nl);
+					schedule_loop(*i);
+					subloops.erase(i);
+					break;
+				}
+			}
+		}
+		LOG3("finished: " << loop << nl);
+	}
+public:
+	/// constructor
+	LoopScheduler(Method *M, DominatorTree *DT, LoopTree *LT) : DT(DT), LT(LT) {
+		// fill maps
+		for(Method::const_bb_iterator i = M->bb_begin(), e = M->bb_end() ; i != e; ++i) {
+			BeginInst *BI = *i;
+			dommap[DT->get_idominator(BI)].insert(BI);
+			loopmap[LT->get_Loop(BI)].insert(BI);
+		}
+		// start scheduling
+		schedule_loop(NULL);
+	}
+	BeginListTy::const_iterator begin() const { return bb_sched.begin(); }
+	BeginListTy::const_iterator end()   const { return bb_sched.end(); }
+};
+
 bool BasicBlockSchedulingPass::run(JITData &JD) {
 	M = JD.get_Method();
 	DominatorTree *DT = get_Pass<DominatorPass>();
+	LoopTree *LT = get_Pass<LoopPass>();
 
-	std::multiset<BeginInst*,DomComparator> dom_set( (DomComparator(DT)) );
-	dom_set.insert(M->bb_begin(),M->bb_end());
-	insert(begin(),dom_set.begin(),dom_set.end());
+	// schedule loops
+	LoopScheduler loop_scheduler(M,DT,LT);
+
+	insert(begin(),loop_scheduler.begin(),loop_scheduler.end());
 
 	#if 0
 	// random order
-	std::deque<BeginInst*> bbs(M->bb_begin(),M->bb_end());
+	alloc::deque<BeginInst*>::type bbs(M->bb_begin(),M->bb_end());
 	std::remove(bbs.begin(),bbs.end(),M->get_init_bb());
 	std::random_shuffle(bbs.begin(),bbs.end());
 	bbs.push_front(M->get_init_bb());
@@ -82,7 +166,7 @@ bool BasicBlockSchedulingPass::run(JITData &JD) {
 namespace {
 #if VERIFY_LOOP_PROPERTY
 // push loops recursively in reverse order
-void push_loops_inbetween(std::list<Loop*> &active, Loop* inner, Loop* outer) {
+void push_loops_inbetween(alloc::list<Loop*>::type &active, Loop* inner, Loop* outer) {
 	if (inner == outer) return;
 	push_loops_inbetween(active,inner->get_parent(),outer);
 	active.push_back(inner);
@@ -133,7 +217,7 @@ bool BasicBlockSchedulingPass::verify() const {
 	#if VERIFY_DOM_PROPERTY
 	// check dominator property
 	DominatorTree *DT = get_Pass<DominatorPass>();
-	std::set<BeginInst*> handled;
+	alloc::set<BeginInst*>::type handled;
 	for (BasicBlockSchedule::const_bb_iterator i = bb_begin(), e = bb_end();
 			i !=e ; ++i) {
 		BeginInst *idom = DT->get_idominator(*i);
@@ -150,8 +234,8 @@ bool BasicBlockSchedulingPass::verify() const {
 	// check contiguous loop property
 	#if VERIFY_LOOP_PROPERTY
 	LoopTree *LT = get_Pass<LoopPass>();
-	std::set<Loop*> finished;
-	std::list<Loop*> active;
+	alloc::set<Loop*>::type finished;
+	alloc::list<Loop*>::type active;
 	// sentinel
 	active.push_back(NULL);
 	for (BasicBlockSchedule::const_bb_iterator i = bb_begin(), e = bb_end();
@@ -196,7 +280,7 @@ PassUsage& BasicBlockSchedulingPass::get_PassUsage(PassUsage &PU) const {
 char BasicBlockSchedulingPass::ID = 0;
 
 // register pass
-static PassRegistery<BasicBlockSchedulingPass> X("BasicBlockSchedulingPass");
+static PassRegistry<BasicBlockSchedulingPass> X("BasicBlockSchedulingPass");
 
 } // end namespace compiler2
 } // end namespace jit

@@ -45,6 +45,9 @@
 
 #define DEBUG_NAME "compiler2/CodeGen"
 
+STAT_DECLARE_VAR(std::size_t, compiler_last_codesize, 0)
+STAT_DECLARE_VAR(std::size_t, num_remaining_moves,0)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -56,21 +59,29 @@ bool CodeGenPass::run(JITData &JD) {
 
 	// NOTE reverse so we see jump targets (which are not backedges) before
 	// the jump.
+	MachineBasicBlock *MBB;
+	std::size_t bb_start = 0;
 	for (MachineInstructionSchedule::const_reverse_iterator i = MIS->rbegin(),
 			e = MIS->rend() ; i != e ; ++i ) {
-		MachineBasicBlock *MBB = *i;
+		MBB = *i;
+		bb_start = CS.size();
 		for (MachineBasicBlock::const_reverse_iterator i = MBB->rbegin(),
 				e = MBB->rend(); i != e ; ++i) {
 			MachineInstruction *MI = *i;
 			std::size_t start = CS.size();
 			LOG2("MInst: " << MI << " emitted instruction:" << nl);
 			MI->emit(CM);
+			std::size_t end = CS.size();
+			#if defined(ENABLE_STATISTICS)
+			if (MI->is_move() && start != end) {
+				STATISTICS(++num_remaining_moves);
+			}
+			#endif
 			if (DEBUG_COND_N(2)) {
-				std::size_t end = CS.size();
 				if ( start == end) {
 					LOG2("none" << nl);
 				} else {
-					std::vector<u1> tmp;
+					alloc::vector<u1>::type tmp;
 					while(start != end--) {
 						tmp.push_back(CS.at(end));
 					}
@@ -82,14 +93,25 @@ bool CodeGenPass::run(JITData &JD) {
 				}
 			}
 		}
+		std::size_t bb_end = CS.size();
+		bbmap[MBB] = bb_end - bb_start;
 	}
 	// create stack frame
 	JD.get_Backend()->create_frame(CM,JD.get_StackSlotManager());
+	// fix last block (frame start, alignment)
+	bbmap[MBB] = CS.size() - bb_start;
 	// link code memory
 	CM->link();
 	// finish
 	finish(JD);
 	return true;
+}
+
+std::size_t CodeGenPass::get_block_size(MachineBasicBlock *MBB) const {
+	BasicBlockMap::const_iterator i = bbmap.find(MBB);
+	if (i == bbmap.end())
+		return 0;
+	return i->second;
 }
 
 void CodeGenPass::finish(JITData &JD) {
@@ -168,6 +190,8 @@ void CodeGenPass::finish(JITData &JD) {
 			  << ": " << setz(16) << (u8)*ptr << dec << nl);
 		}
 	}
+
+	STATISTICS(compiler_last_codesize = code->mcodelength);
 
 #if 0
 	STATISTICS(count_code_len += mcodelen);
@@ -267,7 +291,7 @@ PassUsage& CodeGenPass::get_PassUsage(PassUsage &PU) const {
 char CodeGenPass::ID = 0;
 
 // registrate Pass
-static PassRegistery<CodeGenPass> X("CodeGenPass");
+static PassRegistry<CodeGenPass> X("CodeGenPass");
 
 } // end namespace compiler2
 } // end namespace jit

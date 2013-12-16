@@ -98,7 +98,7 @@ public:
  */
 class BeginInst : public Instruction {
 public:
-	typedef std::vector<BeginInst*> PredecessorListTy;
+	typedef alloc::vector<BeginInst*>::type PredecessorListTy;
 	typedef PredecessorListTy::const_iterator const_pred_iterator;
 private:
 	EndInst *end;
@@ -195,7 +195,7 @@ inline OStream& operator<<(OStream &OS, const BeginInstRef &BIR) {
  */
 class EndInst : public Instruction {
 public:
-	typedef std::vector<BeginInstRef> SuccessorListTy;
+	typedef alloc::vector<BeginInstRef>::type SuccessorListTy;
 	typedef SuccessorListTy::const_iterator succ_const_iterator;
 	typedef SuccessorListTy::const_reverse_iterator succ_const_reverse_iterator;
 private:
@@ -295,16 +295,17 @@ public:
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
-class ARRAYLENGTHInst : public Instruction {
+class ARRAYLENGTHInst : public UnaryInst {
 public:
-	explicit ARRAYLENGTHInst(Type::TypeID type) : Instruction(ARRAYLENGTHInstID, type) {}
+	explicit ARRAYLENGTHInst(Value *S1) : UnaryInst(ARRAYLENGTHInstID, Type::IntTypeID, S1) {}
 	virtual ARRAYLENGTHInst* to_ARRAYLENGTHInst() { return this; }
+	virtual bool is_homogeneous() const { return false; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
-class NEGInst : public Instruction {
+class NEGInst : public UnaryInst {
 public:
-	explicit NEGInst(Type::TypeID type) : Instruction(NEGInstID, type) {}
+	explicit NEGInst(Type::TypeID type,Value *S1) : UnaryInst(NEGInstID, type, S1) {}
 	virtual NEGInst* to_NEGInst() { return this; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
@@ -375,25 +376,34 @@ public:
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
-class ORInst : public Instruction {
+class ORInst : public BinaryInst {
 public:
-	explicit ORInst(Type::TypeID type) : Instruction(ORInstID, type) {}
+	explicit ORInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(ORInstID, type, S1, S2) {}
 	virtual ORInst* to_ORInst() { return this; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
-class XORInst : public Instruction {
+class XORInst : public BinaryInst {
 public:
-	explicit XORInst(Type::TypeID type) : Instruction(XORInstID, type) {}
+	explicit XORInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(XORInstID, type, S1, S2) {}
 	virtual XORInst* to_XORInst() { return this; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
-class CMPInst : public Instruction {
+class CMPInst : public BinaryInst {
 public:
-	explicit CMPInst(Type::TypeID type) : Instruction(CMPInstID, type) {}
+	enum FloatHandling {
+		G,
+		L,
+		DontCare
+	};
+	explicit CMPInst(Value* S1, Value* S2, FloatHandling f) : BinaryInst(CMPInstID, Type::IntTypeID, S1, S2), f(f) {}
 	virtual CMPInst* to_CMPInst() { return this; }
+	virtual bool is_homogeneous() const { return false; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
+	FloatHandling get_FloatHandling() const { return f; }
+private:
+	FloatHandling f;
 };
 
 class CONSTInst : public Instruction {
@@ -409,16 +419,16 @@ private:
 	} val_operand_t;
 	val_operand_t value;
 public:
-	explicit CONSTInst(int32_t i) : Instruction(CONSTInstID, Type::IntTypeID) {
+	explicit CONSTInst(int32_t i,Type::IntType) : Instruction(CONSTInstID, Type::IntTypeID) {
 		value.i = i;
 	}
-	explicit CONSTInst(int64_t l) : Instruction(CONSTInstID, Type::LongTypeID) {
+	explicit CONSTInst(int64_t l,Type::LongType) : Instruction(CONSTInstID, Type::LongTypeID) {
 		value.l = l;
 	}
-	explicit CONSTInst(float f) : Instruction(CONSTInstID, Type::FloatTypeID) {
+	explicit CONSTInst(float f,Type::FloatType) : Instruction(CONSTInstID, Type::FloatTypeID) {
 		value.f = f;
 	}
-	explicit CONSTInst(double d) : Instruction(CONSTInstID, Type::DoubleTypeID) {
+	explicit CONSTInst(double d,Type::DoubleType) : Instruction(CONSTInstID, Type::DoubleTypeID) {
 		value.d = d;
 	}
 	virtual CONSTInst* to_CONSTInst() { return this; }
@@ -523,7 +533,7 @@ public:
 		append_dep(state_change);
 	}
 	virtual BeginInst* get_BeginInst() const {
-		BeginInst *begin = (*dep_begin())->to_BeginInst();
+		BeginInst *begin = dep_front()->to_BeginInst();
 		assert(begin);
 		return begin;
 	}
@@ -544,15 +554,61 @@ public:
 
 class ASTOREInst : public Instruction {
 public:
-	explicit ASTOREInst(Type::TypeID type) : Instruction(ASTOREInstID, type) {}
+	explicit ASTOREInst(Type::TypeID type, Value* ref, Value* index, Value* value,
+			BeginInst *begin, Instruction *state_change)
+			: Instruction(ASTOREInstID, Type::VoidTypeID) {
+		assert(ref->get_type() == Type::ReferenceTypeID);
+		assert(index->get_type() == Type::IntTypeID);
+		append_op(ref);
+		append_op(index);
+		append_op(value);
+		append_dep(begin);
+		append_dep(state_change);
+	}
 	virtual ASTOREInst* to_ASTOREInst() { return this; }
+	virtual bool is_homogeneous() const { return false; }
+	virtual bool has_side_effects() const { return true; }
+	virtual BeginInst* get_BeginInst() const {
+		BeginInst *begin = dep_front()->to_BeginInst();
+		assert(begin);
+		return begin;
+	}
+	virtual bool is_floating() const { return false; }
+	virtual void accept(InstructionVisitor& v) { v.visit(this); }
+	Type::TypeID get_array_type() const {
+		return this->op_back()->get_type();
+	}
+};
+
+class ALOADInst : public BinaryInst {
+public:
+	explicit ALOADInst(Type::TypeID type, Value* ref, Value* index,
+			BeginInst *begin, Instruction *state_change)
+			: BinaryInst(ALOADInstID, type, ref, index) {
+		assert(ref->get_type() == Type::ReferenceTypeID);
+		assert(index->get_type() == Type::IntTypeID);
+		append_dep(begin);
+		append_dep(state_change);
+	}
+	virtual ALOADInst* to_ALOADInst() { return this; }
+	virtual bool is_homogeneous() const { return false; }
+	virtual BeginInst* get_BeginInst() const {
+		assert(dep_size() > 0);
+		return dep_front()->to_BeginInst();
+	}
+	virtual bool is_floating() const { return false; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
-class ALOADInst : public Instruction {
+class ARRAYBOUNDSCHECKInst : public BinaryInst {
 public:
-	explicit ALOADInst(Type::TypeID type) : Instruction(ALOADInstID, type) {}
-	virtual ALOADInst* to_ALOADInst() { return this; }
+	explicit ARRAYBOUNDSCHECKInst(Type::TypeID type, Value* ref, Value* index)
+			: BinaryInst(ARRAYBOUNDSCHECKInstID, Type::VoidTypeID, ref, index) {
+		assert(ref->get_type() == Type::ReferenceTypeID);
+		assert(index->get_type() == Type::IntTypeID);
+	}
+	virtual ARRAYBOUNDSCHECKInst* to_ARRAYBOUNDSCHECKInst() { return this; }
+	virtual bool is_homogeneous() const { return false; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
@@ -785,7 +841,7 @@ public:
 
 class LOOKUPSWITCHInst : public EndInst {
 public:
-	typedef std::vector<s4> MatchTy;
+	typedef alloc::vector<s4>::type MatchTy;
 	typedef MatchTy::iterator match_iterator;
 private:
 	s4 lookupcount;

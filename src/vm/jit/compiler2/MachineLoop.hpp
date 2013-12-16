@@ -22,8 +22,8 @@
 
 */
 
-#ifndef _JIT_COMPILER2_LOOP
-#define _JIT_COMPILER2_LOOP
+#ifndef _JIT_COMPILER2_MACHINELOOP
+#define _JIT_COMPILER2_MACHINELOOP
 
 #include "vm/jit/compiler2/LoopBase.hpp"
 
@@ -44,7 +44,7 @@ OStream& operator<<(OStream &OS, const MachineLoop *L);
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_LOOP */
+#endif /* _JIT_COMPILER2_MACHINELOOP */
 
 
 /*

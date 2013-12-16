@@ -28,9 +28,11 @@
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/LivetimeAnalysisPass.hpp"
 
-#include <list>
-#include <queue>
-#include <deque>
+#include "vm/jit/compiler2/alloc/list.hpp"
+#include "vm/jit/compiler2/alloc/queue.hpp"
+#include "vm/jit/compiler2/alloc/deque.hpp"
+
+MM_MAKE_NAME(LinearScanAllocatorPass)
 
 namespace cacao {
 namespace jit {
@@ -61,8 +63,10 @@ inline bool operator<(const Edge &lhs, const Edge &rhs) {
 	return lhs.successor < rhs.successor;
 }
 
-typedef std::list<Move> MoveMapTy;
-typedef std::map<Edge,MoveMapTy> EdgeMoveMapTy;
+typedef alloc::list<Move>::type MoveMapTy;
+typedef alloc::map<Edge,MoveMapTy>::type EdgeMoveMapTy;
+typedef alloc::map<MachineBasicBlock*, alloc::list<LivetimeInterval>::type >::type BBtoLTI_Map;
+
 
 /**
  * Linear Scan Allocator
@@ -76,18 +80,18 @@ typedef std::map<Edge,MoveMapTy> EdgeMoveMapTy;
  * by Wimmer and Franz @cite Wimmer2010.
  * See also Wimmer's Masters Thesis @cite WimmerMScThesis.
  */
-class LinearScanAllocatorPass : public Pass {
+class LinearScanAllocatorPass : public Pass, public memory::ManagerMixin<LinearScanAllocatorPass> {
 public:
 	struct StartComparator {
 		bool operator()(const LivetimeInterval &lhs, const LivetimeInterval &rhs);
 	};
 
-	typedef std::list<MachineInstruction*> MoveListTy;
-	//typedef std::map<std::pair<BeginInst*,BeginInst*>,MoveListTy> MoveMapTy;
-	typedef std::priority_queue<LivetimeInterval,std::deque<LivetimeInterval>, StartComparator> UnhandledSetTy;
-	typedef std::list<LivetimeInterval> InactiveSetTy;
-	typedef std::list<LivetimeInterval> ActiveSetTy;
-	typedef std::list<LivetimeInterval> HandledSetTy;
+	typedef alloc::list<MachineInstruction*>::type MoveListTy;
+	//typedef alloc::map<std::pair<BeginInst*,BeginInst*>,MoveListTy>::type MoveMapTy;
+	typedef alloc::priority_queue<LivetimeInterval,alloc::deque<LivetimeInterval>::type, StartComparator>::type UnhandledSetTy;
+	typedef alloc::list<LivetimeInterval>::type InactiveSetTy;
+	typedef alloc::list<LivetimeInterval>::type ActiveSetTy;
+	typedef alloc::list<LivetimeInterval>::type HandledSetTy;
 private:
 
 	UnhandledSetTy unhandled;
@@ -105,7 +109,7 @@ private:
 	bool allocate_unhandled();
 	bool resolve();
 	bool reg_alloc_resolve_block(MIIterator first, MIIterator last);
-	bool order_and_insert_move(EdgeMoveMapTy::value_type &entry);
+	bool order_and_insert_move(EdgeMoveMapTy::value_type &entry, BBtoLTI_Map &bb2lti_map);
 	//bool order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *successor,
 	//		MoveMapTy &move_map);
 public:
@@ -115,16 +119,6 @@ public:
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
 	virtual bool verify() const;
-};
-
-
-/**
- * Second LSRA Pass. For the time being perform LSRA a second time to allocate resolution vars.
- */
-class LinearScanAllocator2Pass : public LinearScanAllocatorPass {
-public:
-	static char ID;
-	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
 };
 
 } // end namespace compiler2

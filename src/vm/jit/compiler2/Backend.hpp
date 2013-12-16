@@ -28,6 +28,9 @@
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
 #include "vm/jit/compiler2/InstructionVisitor.hpp"
+#include "vm/jit/compiler2/memory/Manager.hpp"
+
+MM_MAKE_NAME(Backend)
 
 namespace cacao {
 namespace jit {
@@ -39,7 +42,7 @@ class JITData;
 class RegisterFile;
 class MachineBasicBlock;
 
-class Backend {
+class Backend : public memory::ManagerMixin<Backend>  {
 private:
 	JITData *JD;
 protected:
@@ -76,8 +79,8 @@ public:
 
 class LoweringVisitorBase : public InstructionVisitor {
 protected:
-	typedef std::map<BeginInst*,MachineBasicBlock*> MapTy;
-	typedef std::map<Instruction*,MachineOperand*> InstructionMapTy;
+	typedef alloc::map<BeginInst*,MachineBasicBlock*>::type MapTy;
+	typedef alloc::map<Instruction*,MachineOperand*>::type InstructionMapTy;
 private:
 	Backend *backend;
 	MachineBasicBlock* current;

@@ -132,16 +132,25 @@ UseDef next_intersection(const LivetimeInterval &a,
 	}
 	return end;
 }
-namespace {
+
 OStream& operator<<(OStream &OS, const LivetimeIntervalImpl &lti) {
 	return OS << "LivetimeIntervalImpl (" << lti.front().start << ") in " << *lti.get_operand();
 }
-} // end anonymous namespace
 
 MachineOperand* LivetimeIntervalImpl::get_operand(MIIterator pos) const {
-	LOG2("get_operand(this:" << *this << " pos:" << pos << ")" <<nl);
+	//LOG2("get_operand(this:" << *this << " pos:" << pos << ")" <<nl);
 	if (back().end.get_iterator() < pos) {
-		assert(has_next());
+		if (!has_next()) {
+			MIIterator pre = pos;
+			--pre;
+			LOG("pre  " << *pre << nl);
+			++pre;
+			++pre;
+			LOG("post " << *pre << nl);
+			// XXX
+			return get_operand();
+		}
+		assert_msg(has_next(),"end: " << back().end.get_iterator() << " pos " << pos);
 		LivetimeInterval lti_next = get_next();
 		assert(lti_next.pimpl);
 		return lti_next.get_operand(pos);
@@ -295,10 +304,12 @@ LivetimeInterval LivetimeIntervalImpl::split_inactive(UseDef pos, MachineOperand
 
 LivetimeInterval LivetimeIntervalImpl::split_phi_active(MIIterator pos, MachineOperand* MO) {
 	LOG2("split_phi_active " << *this << " at " << pos << nl);
+	#if !defined(NDEBUG)
 	MachineInstruction *MI = *pos;
 	assert(!has_next());
 	assert(get_State(pos) == LivetimeInterval::Active);
 	assert(MI->is_label());
+	#endif
 
 	MIIterator pos_end = pos;
 	UseDef use(UseDef::PseudoUse, pos);
@@ -342,8 +353,12 @@ LivetimeInterval LivetimeIntervalImpl::split_phi_active(MIIterator pos, MachineO
 }
 
 OStream& operator<<(OStream &OS, const LivetimeInterval &lti) {
-	return OS << "LivetimeInterval (" << lti.front().start << ") in "
+	OS << "LivetimeInterval (" << lti.front().start << ") in "
 		<< *lti.get_operand() << " (init:"  << *lti.get_init_operand() << ")";
+	if (lti.get_hint()) {
+		OS << " (hint:" << lti.get_hint() << ")";
+	}
+	return OS;
 }
 OStream& operator<<(OStream &OS, const LivetimeInterval *lti) {
 	if (!lti) {

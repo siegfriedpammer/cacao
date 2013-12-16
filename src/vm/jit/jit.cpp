@@ -84,6 +84,8 @@
 
 #if defined(ENABLE_COMPILER2)
 #include "vm/jit/compiler2/Compiler.hpp"
+#include "vm/jit/compiler2/JITData.hpp"
+#include "vm/jit/compiler2/ObjectFileWriterPass.hpp"
 #endif
 
 /* debug macros ***************************************************************/
@@ -260,6 +262,7 @@ jitdata *jit_jitdata_new(methodinfo *m)
 	return jd;
 }
 
+STAT_REGISTER_VAR_EXTERN(std::size_t, compiler_last_codesize, 0, "last-code-size", "code size of the last compiled method")
 
 /* jit_compile *****************************************************************
 
@@ -395,6 +398,16 @@ u1 *jit_compile(methodinfo *m)
 	/* now call internal compile function */
 
 	r = jit_compile_intern(jd);
+#if defined(ENABLE_COMPILER2)
+	if (method_matches(m,opt_CompileMethod)) {
+		using namespace cacao::jit::compiler2;
+		JITData JD(jd);
+		ObjectFileWriterPass pass;
+		pass.initialize();
+		pass.run(JD);
+		pass.finalize();
+	}
+#endif
 
 	if (r == NULL) {
 		/* We had an exception! Finish stuff here if necessary. */
@@ -420,6 +433,8 @@ u1 *jit_compile(methodinfo *m)
 	/* leave the monitor */
 
 	m->mutex->unlock();
+
+	STATISTICS(compiler_last_codesize = m->code->mcodelength);
 
 	/* return pointer to the methods entry point */
 

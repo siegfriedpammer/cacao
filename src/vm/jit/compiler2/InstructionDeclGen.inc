@@ -35,6 +35,7 @@ class NOPInst;
 class POPInst;
 class CHECKNULLInst;
 class ARRAYLENGTHInst;
+class ARRAYBOUNDSCHECKInst;
 class NEGInst;
 class CASTInst;
 class ADDInst;

@@ -28,6 +28,8 @@
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/GlobalSchedule.hpp"
 
+MM_MAKE_NAME(ScheduleClickPass)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -41,7 +43,7 @@ class Instruction;
  *
  * Based on the algorithm in Click's Phd Thesis, Chapter 6 @cite ClickPHD.
  */
-class ScheduleClickPass : public Pass, public GlobalSchedule {
+class ScheduleClickPass : public Pass, public memory::ManagerMixin<ScheduleClickPass>, public GlobalSchedule {
 private:
 	GlobalSchedule *late;
 	Method *M;
@@ -50,6 +52,7 @@ public:
 	ScheduleClickPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	virtual bool verify() const;
 };
 
 } // end namespace compiler2

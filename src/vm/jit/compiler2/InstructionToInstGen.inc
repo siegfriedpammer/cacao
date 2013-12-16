@@ -35,6 +35,7 @@ virtual NOPInst* to_NOPInst() { return NULL; }
 virtual POPInst* to_POPInst() { return NULL; }
 virtual CHECKNULLInst* to_CHECKNULLInst() { return NULL; }
 virtual ARRAYLENGTHInst* to_ARRAYLENGTHInst() { return NULL; }
+virtual ARRAYBOUNDSCHECKInst* to_ARRAYBOUNDSCHECKInst() { return NULL; }
 virtual NEGInst* to_NEGInst() { return NULL; }
 virtual CASTInst* to_CASTInst() { return NULL; }
 virtual ADDInst* to_ADDInst() { return NULL; }

@@ -84,6 +84,14 @@ struct DstSrc1Op {
 	MachineOperand *op;
 	explicit DstSrc1Op(MachineOperand *op) : op(op) {}
 };
+/**
+ * Simple wrapper for first operand of an
+ * x86_64 instruction which is also used for the result.
+ */
+struct DstSrcOp {
+	MachineOperand *op;
+	explicit DstSrcOp(MachineOperand *op) : op(op) {}
+};
 
 /**
  * Simple wrapper for destination of an
@@ -93,7 +101,35 @@ struct DstOp {
 	MachineOperand *op;
 	explicit DstOp(MachineOperand *op) : op(op) {}
 };
+/**
+ * Simple wrapper for a base operand of an
+ * x86_64 instruction.
+ */
+struct BaseOp {
+	MachineOperand *op;
+	explicit BaseOp(MachineOperand *op) : op(op) {}
+};
+/**
+ * Simple wrapper for a index operand of an
+ * x86_64 instruction.
+ */
+struct IndexOp {
+	MachineOperand *op;
+	explicit IndexOp(MachineOperand *op) : op(op) {}
+};
 
+class ModRMOperand;
+
+/// Simple wrapper for a ModRM destination operand
+struct DstModRM {
+	ModRMOperand &op;
+	explicit DstModRM(ModRMOperand &op) : op(op) {}
+};
+/// Simple wrapper for a ModRM source operand
+struct SrcModRM {
+	ModRMOperand &op;
+	explicit SrcModRM(ModRMOperand &op) : op(op) {}
+};
 /**
  * @}
  */
@@ -367,9 +403,8 @@ public:
 class RetInst : public GPInstruction {
 public:
 	/// void return
-	RetInst(OperandSize op_size)
-			: GPInstruction("X86_64RetInst", &NoOperand, op_size, 0) {
-	}
+	RetInst() : GPInstruction("X86_64RetInst", &NoOperand, NO_SIZE, 0) {}
+	//RetInst(OperandSize op_size)
 	/**
 	 * Non-void return. The source operand is only used to guide
 	 * the register allocator. The user must ensure that the value
@@ -380,6 +415,16 @@ public:
 		operands[0].op = src.op;
 	}
 	virtual bool is_end() const { return true; }
+	virtual void emit(CodeMemory* CM) const;
+};
+
+
+class NegInst : public GPInstruction {
+public:
+	NegInst(const DstSrcOp &dstsrc, OperandSize op_size)
+			: GPInstruction("X86_64NegInst", dstsrc.op, op_size, 1) {
+		operands[0].op = dstsrc.op;
+	}
 	virtual void emit(CodeMemory* CM) const;
 };
 
@@ -402,6 +447,107 @@ public:
 		return true;
 	}
 	virtual void emit(CodeMemory* CM) const;
+};
+
+/**
+ * ModRMOperand Descriptor. Like ModRMOperand but with MachineOperandDesc references.
+ */
+class ModRMOperand {
+public:
+	enum ScaleFactor {
+	  Scale1 = 0,
+	  Scale2 = 1,
+	  Scale4 = 2,
+	  Scale8 = 3
+	};
+	ScaleFactor scale;
+	MachineOperand *index;
+	MachineOperand *base;
+	int32_t disp;
+	/// constructor. base and disp only
+	explicit ModRMOperand(const BaseOp& base, int32_t disp=0)
+			: scale(Scale1), index(&NoOperand), base(base.op), disp(disp) {}
+	/// constructor. Full
+	ModRMOperand(ScaleFactor scale, const IndexOp &index, const BaseOp& base, int32_t disp=0)
+			: scale(scale), index(index.op), base(base.op), disp(disp) {}
+	/// constructor. Full (with Type::TypeID for scale)
+	ModRMOperand(Type::TypeID type, const IndexOp &index, const BaseOp& base, int32_t disp=0)
+			: scale(get_scale(type)), index(index.op), base(base.op), disp(disp) {}
+
+	/// covert type to scale
+	static ScaleFactor get_scale(Type::TypeID type) {
+		switch (type) {
+		case Type::ByteTypeID:
+			return Scale1;
+		case Type::ShortTypeID:
+			return Scale2;
+		case Type::IntTypeID:
+		case Type::FloatTypeID:
+			return Scale4;
+		case Type::LongTypeID:
+		case Type::DoubleTypeID:
+		case Type::ReferenceTypeID:
+			return Scale8;
+		default:
+			break;
+		}
+		ABORT_MSG("type not supported", "x86_64 ModRMOperand::get_scale() type: " << type);
+		return Scale1;
+	}
+};
+class ModRMOperandDesc {
+public:
+	ModRMOperand::ScaleFactor scale;
+	MachineOperandDesc &index;
+	MachineOperandDesc &base;
+	int32_t disp;
+	/// constructor
+	ModRMOperandDesc(ModRMOperand::ScaleFactor scale, MachineOperandDesc &index, MachineOperandDesc &base, int32_t disp=0)
+			: scale(scale), index(index), base(base), disp(disp) {}
+};
+
+OStream& operator<<(OStream &OS,const ModRMOperandDesc &modrm);
+
+/**
+ * Load from pointer
+ *
+ * @todo merge with MovInst
+ */
+class MovModRMInst : public GPInstruction {
+public:
+	/// constructor. full arguments
+	MovModRMInst(const DstOp &dst, GPInstruction::OperandSize op_size, const SrcModRM &src, bool floatingpoint)
+			: GPInstruction("X86_64MovModRMInst", dst.op, op_size, 2),
+				modrm(ModRMOperandDesc(src.op.scale,operands[Index],operands[Base],src.op.disp)),
+				enc(RM), floatingpoint(floatingpoint) {
+		operands[Base].op = src.op.base;
+		operands[Index].op = src.op.index;
+	}
+	MovModRMInst(const SrcOp &src, GPInstruction::OperandSize op_size, const DstModRM &dst, bool floatingpoint)
+			: GPInstruction("X86_64MovModRMInst", &NoOperand, op_size, 3),
+				modrm(ModRMOperandDesc(dst.op.scale,operands[Index],operands[Base],dst.op.disp)),
+				enc(MR), floatingpoint(floatingpoint) {
+		operands[Base].op = dst.op.base;
+		operands[Index].op = dst.op.index;
+		operands[Value].op = src.op;
+	}
+	//virtual bool is_move() const { return true; }
+	virtual void emit(CodeMemory* CM) const;
+	virtual OStream& print_operands(OStream &OS) const;
+	virtual OStream& print_result(OStream &OS) const;
+private:
+	enum OpIndex {
+		Base = 0,
+		Index = 1,
+		Value = 2
+	};
+	enum OpEnc {
+	  MR,
+	  RM
+	};
+	ModRMOperandDesc modrm;
+	OpEnc enc;
+	bool floatingpoint;
 };
 
 /**
@@ -441,6 +587,9 @@ public:
 	virtual bool is_jump() const {
 		return true;
 	}
+	void set_target(MachineBasicBlock *target) {
+		successors.front() = target;
+	}
 	virtual void emit(CodeMemory* CM) const;
 	virtual void link(CodeFragment &CF) const;
 };
@@ -449,7 +598,8 @@ class CondJumpInst : public X86_64Instruction {
 private:
 	Cond::COND cond;
 	/// jump to the else target
-	JumpInst jump;
+	/// @todo change this!
+	mutable JumpInst jump;
 public:
 	CondJumpInst(Cond::COND cond, MachineBasicBlock *then_target, MachineBasicBlock *else_target)
 			: X86_64Instruction("X86_64CondJumpInst", &NoOperand, 0),
@@ -470,6 +620,31 @@ public:
 		return successor_back();
 	}
 };
+
+class CondTrapInst : public X86_64Instruction {
+private:
+	Cond::COND cond;
+	s4 trap;
+public:
+	CondTrapInst(Cond::COND cond, s4 trap, const SrcOp &index)
+			: X86_64Instruction("X86_64CondTrapInst", &NoOperand, 1), cond(cond), trap(trap) {
+		operands[0].op = index.op;
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class CMovInst : public GPInstruction {
+private:
+	Cond::COND cond;
+public:
+	CMovInst(Cond::COND cond, const DstSrc1Op &dstsrc1, const Src2Op &src2, GPInstruction::OperandSize op_size)
+			: GPInstruction("X86_64CMovInst", dstsrc1.op, op_size, 2), cond(cond) {
+		operands[0].op = dstsrc1.op;
+		operands[1].op = src2.op;
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
 
 class IndirectJumpInst : public X86_64Instruction {
 public:
@@ -498,6 +673,55 @@ public:
 				from(from) {}
 	virtual void emit(CodeMemory* CM) const;
 };
+
+// compare
+class UCOMISInst : public GPInstruction {
+protected:
+	UCOMISInst(const char* name, const Src2Op &src2, const Src1Op &src1,
+			GPInstruction::OperandSize op_size)
+			: GPInstruction(name, &NoOperand, op_size, 2) {
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
+	}
+public:
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class UCOMISSInst : public UCOMISInst{
+public:
+	UCOMISSInst(const Src2Op &src2, const Src1Op &src1)
+		: UCOMISInst("X86_64UCOMISSInst",src2,src1,GPInstruction::OS_32) {}
+};
+class UCOMISDInst : public UCOMISInst{
+public:
+	UCOMISDInst(const Src2Op &src2, const Src1Op &src1)
+		: UCOMISInst("X86_64UCOMISDInst",src2,src1,GPInstruction::OS_64) {}
+};
+
+// XORP
+class XORPInst : public GPInstruction {
+protected:
+	XORPInst(const char* name, const Src2Op &src2, const DstSrc1Op &dstsrc1,
+			GPInstruction::OperandSize op_size)
+			: GPInstruction(name, dstsrc1.op, op_size, 2) {
+		operands[0].op = dstsrc1.op;
+		operands[1].op = src2.op;
+	}
+public:
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class XORPSInst : public XORPInst{
+public:
+	XORPSInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
+		: XORPInst("X86_64XORPSInst",src2,dstsrc1,GPInstruction::OS_32) {}
+};
+class XORPDInst : public XORPInst{
+public:
+	XORPDInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
+		: XORPInst("X86_64XORPDInst",src2,dstsrc1,GPInstruction::OS_64) {}
+};
+
 
 /// SSE Alu Instruction
 class SSEAluInst : public GPInstruction {
@@ -597,16 +821,29 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
-class MovImmSDInst : public MoveInst {
+
+class MovImmSInst : public MoveInst {
 private:
 	// mutable because changed in emit (which is const)
 	mutable DataSegment::IdxTy data_index;
-public:
-	MovImmSDInst(const SrcOp &src, const DstOp &dst)
-			: MoveInst("X86_64MovImmSDInst", src.op, dst.op, OS_64),
+protected:
+	MovImmSInst(const char *name, const SrcOp &src, const DstOp &dst, GPInstruction::OperandSize op_size)
+			: MoveInst(name, src.op, dst.op, op_size),
 				data_index(0) {}
+public:
 	virtual void emit(CodeMemory* CM) const;
 	virtual void link(CodeFragment &CF) const;
+};
+
+class MovImmSDInst : public MovImmSInst {
+public:
+	MovImmSDInst(const SrcOp &src, const DstOp &dst)
+			: MovImmSInst("X86_64MovImmSDInst", src, dst, OS_64) {}
+};
+class MovImmSSInst : public MovImmSInst {
+public:
+	MovImmSSInst(const SrcOp &src, const DstOp &dst)
+			: MovImmSInst("X86_64MovImmSSInst", src, dst, OS_32) {}
 };
 
 class MovSSInst : public MoveInst {
