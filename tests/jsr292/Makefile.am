@@ -1,4 +1,4 @@
-## tests/Makefile.am
+## tests/jsr292/Makefile.am
 ##
 ## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,31 +21,37 @@
 ## 02110-1301, USA.
 
 
-JAVA     = LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(top_builddir)/src/cacao/cacao
+SUBDIRS = 
+
+JAVA     = $(top_builddir)/src/cacao/cacao
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
-JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
+JAVACCMD = $(JAVAC) -source 1.7 -target 1.7 -nowarn -bootclasspath $(BOOTCLASSPATH)
 
-SUBDIRS = \
-	regression
+SOURCE_FILES = \
+	LoadInvokeHandle
 
-if HAVE_GTEST
-SUBDIRS += \
-	gtest
-endif
-
-if WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
-SUBDIRS += \
-	jsr292
-endif
+JAVA_FILES  = $(foreach file, $(SOURCE_FILES), $(srcdir)/$(file).java)
+CLASS_FILES = $(foreach file, $(SOURCE_FILES), $(file).class)
 
 EXTRA_DIST = \
-	$(srcdir)/*.java
+	$(SOURCE_PATHS)
 
 CLEANFILES = \
-	*.class
+	*.class \
+	*.thisoutput
+
+check: build run
 
 build:
-	$(JAVACCMD) -d . $(srcdir)/*.java
+	$(JAVACCMD) -classpath $(JUNIT_JAR):. $(srcdir)/*.java
+	$(JAVACMD)  indify.Indify --overwrite *.class
+
+run:
+	$(JAVACMD) -classpath $(JUNIT_JAR):. org.junit.runner.JUnitCore $(notdir $(basename $<))
+
+%.class: %.java
+	$(JAVACCMD) -classpath $(JUNIT_JAR):. *.java
+	$(JAVACMD)  indify.Indify --overwrite *.class
 
 
 ## Local variables:
