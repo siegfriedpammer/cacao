@@ -107,16 +107,16 @@ CONSTInst *foldBinaryInst(BinaryInst *inst) {
 	switch (inst->get_type()) {
 		case Type::IntTypeID:
 			return new CONSTInst(operate(inst->get_opcode(), op1->get_Int(),
-				op2->get_Int()));
+				op2->get_Int()), Type::IntType());
 		case Type::LongTypeID:
 			return new CONSTInst(operate(inst->get_opcode(), op1->get_Long(),
-				op2->get_Long()));
+				op2->get_Long()), Type::LongType());
 		case Type::FloatTypeID:
 			return new CONSTInst(operate(inst->get_opcode(), op1->get_Float(),
-				op2->get_Float()));
+				op2->get_Float()), Type::FloatType());
 		case Type::DoubleTypeID:
 			return new CONSTInst(operate(inst->get_opcode(), op1->get_Double(),
-				op2->get_Double()));
+				op2->get_Double()), Type::DoubleType());
 		default:
 			assert(0);
 			return 0;
@@ -197,7 +197,7 @@ PassUsage& ConstantPropagationPass::get_PassUsage(PassUsage &PU) const {
 char ConstantPropagationPass::ID = 0;
 
 // register pass
-static PassRegistery<ConstantPropagationPass> X("ConstantPropagationPass");
+static PassRegistry<ConstantPropagationPass> X("ConstantPropagationPass");
 
 } // end namespace compiler2
 } // end namespace jit

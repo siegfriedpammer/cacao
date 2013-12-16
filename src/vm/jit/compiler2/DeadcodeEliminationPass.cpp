@@ -135,7 +135,7 @@ PassUsage& DeadcodeEliminationPass::get_PassUsage(PassUsage &PU) const {
 char DeadcodeEliminationPass::ID = 0;
 
 // register pass
-static PassRegistery<DeadcodeEliminationPass> X("DeadcodeEliminationPass");
+static PassRegistry<DeadcodeEliminationPass> X("DeadcodeEliminationPass");
 
 } // end namespace compiler2
 } // end namespace jit

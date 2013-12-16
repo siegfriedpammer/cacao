@@ -353,7 +353,7 @@ PassUsage& GlobalValueNumberingPass::get_PassUsage(PassUsage &PU) const {
 char GlobalValueNumberingPass::ID = 0;
 
 // register pass
-static PassRegistery<GlobalValueNumberingPass> X("GlobalValueNumberingPass");
+static PassRegistry<GlobalValueNumberingPass> X("GlobalValueNumberingPass");
 
 } // end namespace compiler2
 } // end namespace jit
