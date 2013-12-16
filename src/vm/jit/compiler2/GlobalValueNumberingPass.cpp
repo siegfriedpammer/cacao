@@ -345,7 +345,7 @@ void GlobalValueNumberingPass::print_partitions() {
 // pass usage
 PassUsage& GlobalValueNumberingPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<InstructionMetaPass>();
-	PU.add_run_before<DeadcodeEliminationPass>();
+	PU.add_schedule_before<DeadcodeEliminationPass>();
 	return PU;
 }
 

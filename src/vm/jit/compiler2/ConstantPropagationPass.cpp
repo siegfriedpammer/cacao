@@ -30,6 +30,7 @@
 #include "vm/jit/compiler2/DeadcodeEliminationPass.hpp"
 #include "vm/jit/compiler2/GlobalValueNumberingPass.hpp"
 #include "vm/jit/compiler2/ScheduleClickPass.hpp"
+#include "vm/jit/compiler2/InstructionMetaPass.hpp"
 
 #define DEBUG_NAME "compiler2/constantpropagationpass"
 
@@ -188,8 +189,9 @@ bool ConstantPropagationPass::run(JITData &JD) {
 
 // pass usage
 PassUsage& ConstantPropagationPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_run_before<DeadcodeEliminationPass>();
-	PU.add_run_before<GlobalValueNumberingPass>();
+	PU.add_requires<InstructionMetaPass>();
+	PU.add_schedule_before<DeadcodeEliminationPass>();
+	PU.add_schedule_before<GlobalValueNumberingPass>();
 	return PU;
 }
 
