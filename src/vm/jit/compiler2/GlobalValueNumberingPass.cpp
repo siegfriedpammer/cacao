@@ -137,7 +137,8 @@ int GlobalValueNumberingPass::compute_max_arity(Method::const_iterator begin,
 	return max;
 }
 
-void GlobalValueNumberingPass::init_worklist_and_touchedpartitions() {	
+void GlobalValueNumberingPass::init_worklist_and_touchedpartitions() {
+	// TODO: clear all the containers
 	for (PartitionVectorTy::const_iterator i = partitions.begin(),
 			e = partitions.end(); i != e; i++) {
 		PartitionTy *partition = *i;

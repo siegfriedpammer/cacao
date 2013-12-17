@@ -39,15 +39,15 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-/// Operation function object class
+/// BinaryOperation function object class
 template <typename T, Instruction::InstID ID>
-struct Operation : public std::binary_function<T,T,T> {
+struct BinaryOperation : public std::binary_function<T,T,T> {
 	T operator()(const T &lhs, const T &rhs) const ;
 };
 
 /// Template specialization for ADDInstID
 template <typename T>
-struct Operation<T, Instruction::ADDInstID> :
+struct BinaryOperation<T, Instruction::ADDInstID> :
 		public std::binary_function<T,T,T> {
 	T operator()(const T &lhs, const T &rhs) const {
 		return lhs + rhs;
@@ -56,7 +56,7 @@ struct Operation<T, Instruction::ADDInstID> :
 
 /// Template specialization for SUBInstID
 template <typename T>
-struct Operation<T, Instruction::SUBInstID> :
+struct BinaryOperation<T, Instruction::SUBInstID> :
 		public std::binary_function<T,T,T> {
 	T operator()(const T &lhs, const T &rhs) const {
 		return lhs - rhs;
@@ -65,7 +65,7 @@ struct Operation<T, Instruction::SUBInstID> :
 
 /// Template specialization for MULInstID
 template <typename T>
-struct Operation<T, Instruction::MULInstID> :
+struct BinaryOperation<T, Instruction::MULInstID> :
 		public std::binary_function<T,T,T> {
 	T operator()(const T &lhs, const T &rhs) const {
 		return lhs * rhs;
@@ -74,25 +74,34 @@ struct Operation<T, Instruction::MULInstID> :
 
 /// Template specialization for DIVInstID
 template <typename T>
-struct Operation<T, Instruction::DIVInstID> :
+struct BinaryOperation<T, Instruction::DIVInstID> :
 		public std::binary_function<T,T,T> {
 	T operator()(const T &lhs, const T &rhs) const {
 		return lhs / rhs;
 	}
 };
 
-/// function wrapper for Operation
+/// Template specialization for ANDInstID
 template <typename T>
-inline T operate(Instruction::InstID ID, const T &lhs, const T &rhs) {
+struct BinaryOperation<T, Instruction::ANDInstID> :
+		public std::binary_function<T,T,T> {
+	T operator()(const T &lhs, const T &rhs) const {
+		return lhs & rhs;
+	}
+};
+
+/// function wrapper for BinaryOperation
+template <typename T>
+inline T binaryOperate(Instruction::InstID ID, const T &lhs, const T &rhs) {
 	switch (ID) {
 		case Instruction::ADDInstID:
-			return Operation<T,Instruction::ADDInstID>()(lhs, rhs);
+			return BinaryOperation<T,Instruction::ADDInstID>()(lhs, rhs);
 		case Instruction::SUBInstID:
-			return Operation<T,Instruction::SUBInstID>()(lhs, rhs);
+			return BinaryOperation<T,Instruction::SUBInstID>()(lhs, rhs);
 		case Instruction::MULInstID:
-			return Operation<T,Instruction::MULInstID>()(lhs, rhs);
+			return BinaryOperation<T,Instruction::MULInstID>()(lhs, rhs);
 		case Instruction::DIVInstID:
-			return Operation<T,Instruction::DIVInstID>()(lhs, rhs);
+			return BinaryOperation<T,Instruction::DIVInstID>()(lhs, rhs);
 		default:
 			assert(0 && "not implemented");
 			break;
@@ -108,17 +117,70 @@ CONSTInst *foldBinaryInst(BinaryInst *inst) {
 
 	switch (inst->get_type()) {
 		case Type::IntTypeID:
-			return new CONSTInst(operate(inst->get_opcode(), op1->get_Int(),
-				op2->get_Int()), Type::IntType());
+			return new CONSTInst(binaryOperate(inst->get_opcode(),
+				op1->get_Int(), op2->get_Int()), Type::IntType());
 		case Type::LongTypeID:
-			return new CONSTInst(operate(inst->get_opcode(), op1->get_Long(),
-				op2->get_Long()), Type::LongType());
+			return new CONSTInst(binaryOperate(inst->get_opcode(),
+				op1->get_Long(), op2->get_Long()), Type::LongType());
 		case Type::FloatTypeID:
-			return new CONSTInst(operate(inst->get_opcode(), op1->get_Float(),
-				op2->get_Float()), Type::FloatType());
+			return new CONSTInst(binaryOperate(inst->get_opcode(),
+				op1->get_Float(), op2->get_Float()), Type::FloatType());
 		case Type::DoubleTypeID:
-			return new CONSTInst(operate(inst->get_opcode(), op1->get_Double(),
-				op2->get_Double()), Type::DoubleType());
+			return new CONSTInst(binaryOperate(inst->get_opcode(),
+				op1->get_Double(), op2->get_Double()), Type::DoubleType());
+		default:
+			assert(0);
+			return 0;
+	}
+}
+
+/// UnaryOperation function object class
+template <typename T, Instruction::InstID ID>
+struct UnaryOperation :public std::unary_function<T,T> {
+	T operator()(const T &op) const;
+};
+
+/// Template specialization for NEGInstID
+template <typename T>
+struct UnaryOperation<T, Instruction::NEGInstID> :
+		public std::unary_function<T,T> {
+	T operator()(const T &op) const {
+		return -op;
+	}
+};
+
+/// function wrapper for UnaryOperation
+template <typename T>
+inline T unaryOperate(Instruction::InstID ID, const T &op) {
+	switch (ID) {
+		case Instruction::NEGInstID:
+			return UnaryOperation<T,Instruction::NEGInstID>()(op);
+		default:
+			assert(0 && "not implemented");
+			break;
+	}
+	// unreachable - dummy result
+	return op;
+}
+
+
+CONSTInst *foldUnaryInst(UnaryInst *inst) {
+	CONSTInst *op = inst->get_operand(0)->to_Instruction()->to_CONSTInst();
+	assert(op);
+	
+	switch (inst->get_type()) {
+		case Type::IntTypeID:
+			return new CONSTInst(unaryOperate(inst->get_opcode(),
+				op->get_Int()), Type::IntType());
+		case Type::LongTypeID:
+			return new CONSTInst(unaryOperate(inst->get_opcode(),
+				op->get_Long()), Type::LongType());
+		case Type::FloatTypeID:
+			return new CONSTInst(unaryOperate(inst->get_opcode(),
+				op->get_Float()), Type::FloatType());
+		case Type::DoubleTypeID:
+			return new CONSTInst(unaryOperate(inst->get_opcode(),
+				op->get_Double()), Type::DoubleType());
 		default:
 			assert(0);
 			return 0;
@@ -126,10 +188,13 @@ CONSTInst *foldBinaryInst(BinaryInst *inst) {
 }
 
 CONSTInst *foldInstruction(Instruction *inst) {
-	// TODO: introduce is_arithmetic() in Instruction
-	if (inst->to_BinaryInst()) {
+	// TODO: distinguish arithmetical and bitwise operations
+	if (inst->to_UnaryInst()) {
+		return foldUnaryInst(inst->to_UnaryInst());
+	} else if (inst->to_BinaryInst()) {
 		return foldBinaryInst(inst->to_BinaryInst());
 	}
+
 	return 0;
 }
 
