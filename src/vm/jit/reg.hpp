@@ -1,6 +1,6 @@
 /* src/vm/jit/reg.hpp - register allocator header
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -54,6 +54,9 @@ struct varinfo {
 	} vv;
 #if defined(ENABLE_VERIFIER)
 	typeinfo_t typeinfo;       /* type info for reference types              */
+
+	bool is_returnaddress() const { return type == TYPE_RET && typeinfo.is_primitive(); }
+	bool is_reference()     const { return type == TYPE_ADR && typeinfo.is_reference(); }
 #endif
 };
 

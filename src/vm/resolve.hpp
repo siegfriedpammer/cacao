@@ -1,6 +1,6 @@
 /* src/vm/resolve.hpp - resolving classes/interfaces/fields/methods
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -28,7 +28,6 @@
 
 #include <stdio.h>                      // for FILE, NULL
 #include "config.h"                     // for ENABLE_VERIFIER
-#include "vm/jit/verify/typeinfo.hpp"   // for typeinfo_t, etc
 #include "vm/references.hpp"            // for classref_or_classinfo
 #include "vm/types.hpp"                 // for s4
 #include "vm/utf8.hpp"                  // for Utf8String
@@ -43,7 +42,8 @@ struct unresolved_class;
 struct unresolved_field;
 struct unresolved_method;
 struct unresolved_subtype_set;
-
+struct typedescriptor_t;
+struct typeinfo_t;
 
 /* constants ******************************************************************/
 

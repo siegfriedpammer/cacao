@@ -29,7 +29,7 @@
 #include "config.h"                     // for ENABLE_VERIFIER
 #include <stdint.h>
 #include "vm/global.hpp"                // for Type
- 
+
 struct instruction;
 struct jitdata;
 
