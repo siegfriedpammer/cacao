@@ -54,6 +54,7 @@ public:
 	explicit UnaryInst(InstID id, Type::TypeID type, Value* S1) : Instruction(id, type) {
 		append_op(S1);
 	}
+	virtual UnaryInst* to_UnaryInst() { return this; }
 };
 
 /**
@@ -307,6 +308,7 @@ class NEGInst : public UnaryInst {
 public:
 	explicit NEGInst(Type::TypeID type,Value *S1) : UnaryInst(NEGInstID, type, S1) {}
 	virtual NEGInst* to_NEGInst() { return this; }
+	virtual bool is_arithmetic() const { return true; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
@@ -324,6 +326,7 @@ class ADDInst : public BinaryInst {
 public:
 	explicit ADDInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(ADDInstID, type, S1, S2) {}
 	virtual ADDInst* to_ADDInst() { return this; }
+	virtual bool is_arithmetic() const { return true; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
@@ -331,6 +334,7 @@ class SUBInst : public BinaryInst{
 public:
 	explicit SUBInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(SUBInstID, type, S1, S2) {}
 	virtual SUBInst* to_SUBInst() { return this; }
+	virtual bool is_arithmetic() const { return true; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
@@ -338,6 +342,7 @@ class MULInst : public BinaryInst {
 public:
 	explicit MULInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(MULInstID, type, S1, S2) {}
 	virtual MULInst* to_MULInst() { return this; }
+	virtual bool is_arithmetic() const { return true; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
@@ -345,6 +350,7 @@ class DIVInst : public BinaryInst {
 public:
 	explicit DIVInst(Type::TypeID type, Value* S1, Value* S2) : BinaryInst(DIVInstID, type, S1, S2) {}
 	virtual DIVInst* to_DIVInst() { return this; }
+	virtual bool is_arithmetic() const { return true; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
 };
 
