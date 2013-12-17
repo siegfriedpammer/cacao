@@ -651,7 +651,7 @@ void* class_getconstant(classinfo *c, u4 pos, u4 ctype)
 	/* (pos == 0 is caught by type comparison) */
 
 	if (((int) pos >= c->cpcount) || (c->cptags[pos] != ctype)) {
-		exceptions_throw_classformaterror(c, "Illegal constant pool index %u or type %u", pos, ctype);
+		exceptions_throw_classformaterror(c, "Illegal constant pool index %u or type %u (should be %u)", pos, ctype, c->cptags[pos]);
 		return NULL;
 	}
 

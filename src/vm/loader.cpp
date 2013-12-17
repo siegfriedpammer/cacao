@@ -28,9 +28,9 @@
 #include "config.h"
 
 #include <cassert>
-#include <cstdlib>
 #include <cstddef>                      // for size_t
 #include <cstdio>                       // for printf, fprintf
+#include <cstdlib>
 #include <cstring>                      // for memset, strstr, strlen, etc
 #include <list>                         // for _List_iterator, etc
 
@@ -548,11 +548,34 @@ struct ForwardFieldMethInt {
 	uint16_t nameandtype_index;
 };
 
+/// CONSTANT_MethodHandle
+struct ForwardMethodHandle {
+	uint16_t this_index;
+	uint8_t  reference_kind;
+	uint16_t reference_index;
+};
+
+/// CONSTANT_MethodType
+struct ForwardMethodType {
+	uint16_t this_index;
+	uint16_t descriptor_index;
+};
+
+/// CONSTANT_InvokeDynamic
+struct ForwardInvokeDynamic {
+	uint16_t this_index;
+	uint16_t bootstrap_method_attr_index;
+	uint16_t name_and_type_index;
+};
+
 struct ForwardReferences {
 	DumpList<ForwardClass>         classes;
 	DumpList<ForwardString>        strings;
 	DumpList<ForwardNameAndType>   nameandtypes;
 	DumpList<ForwardFieldMethInt>  fieldmethints;
+	DumpList<ForwardMethodHandle>  methodhandles;
+	DumpList<ForwardMethodType>    methodtypes;
+	DumpList<ForwardInvokeDynamic> invokedynamics;
 };
 
 
@@ -594,10 +617,10 @@ static bool load_constantpool(ClassBuffer& cb, ForwardReferences& fwd, Descripto
 
 		switch (tag) {
 		case CONSTANT_Class: {
+			// reference to CONSTANT_Utf8 with class name
 			if (!cb.check_size(2))
 				return false;
 
-			// reference to CONSTANT_NameAndType
 			uint16_t name_index = cb.read_u2();
 
 			ForwardClass f = { idx, name_index };
@@ -742,6 +765,50 @@ static bool load_constantpool(ClassBuffer& cb, ForwardReferences& fwd, Descripto
 			break;
 		}
 
+		case CONSTANT_MethodHandle: {
+			if (!cb.check_size(1 + 2))
+				return false;
+
+			uint8_t  reference_kind  = cb.read_u1();
+			uint16_t reference_index = cb.read_u2();
+
+			ForwardMethodHandle f = { idx, reference_kind, reference_index };
+
+			fwd.methodhandles.push_back(f);
+
+			idx++;
+			break;
+		}
+
+		case CONSTANT_MethodType: {
+			if (!cb.check_size(2))
+				return false;
+
+			uint16_t descriptor_index = cb.read_u2();
+
+			ForwardMethodType f = { idx, descriptor_index };
+
+			fwd.methodtypes.push_front(f);
+
+			idx++;
+			break;
+		}
+
+		case CONSTANT_InvokeDynamic: {
+			if (!cb.check_size(2 + 2))
+				return false;
+
+			uint16_t bootstrap_method_attr_index = cb.read_u2();
+			uint16_t name_and_type_index         = cb.read_u2();
+
+			ForwardInvokeDynamic f = { idx, bootstrap_method_attr_index, name_and_type_index };
+
+			fwd.invokedynamics.push_front(f);
+
+			idx++;
+			break;
+		}
+
 		default:
 			exceptions_throw_classformaterror(c, "Illegal constant pool type '%u'", tag);
 			return false;
@@ -789,7 +856,7 @@ static bool load_constantpool(ClassBuffer& cb, ForwardReferences& fwd, Descripto
 
 	for (DumpList<ForwardNameAndType>::iterator it  = fwd.nameandtypes.begin(),
 		                                        end = fwd.nameandtypes.end(); it != end; ++it) {
-		/* resolve simple name and descriptor */
+		// resolve simple name and descriptor
 		Utf8String name = (utf*) class_getconstant(c, it->name_index, CONSTANT_Utf8);
 		if (!name)
 			return false;
@@ -847,6 +914,16 @@ static bool load_constantpool(ClassBuffer& cb, ForwardReferences& fwd, Descripto
 
 		// the FMIref is created later
 	}
+
+	for (DumpList<ForwardMethodType>::iterator it  = fwd.methodtypes.begin(),
+		                                       end = fwd.methodtypes.end(); it != end; ++it) {
+		Utf8String descriptor = (utf*) class_getconstant(c, it->descriptor_index, CONSTANT_Utf8);
+
+		if (descpool.add_method(descriptor) == -1)
+			return false;
+	}
+
+	// MethodHandles & InvokeDynamic are processed later
 
 	/* everything was ok */
 
@@ -1553,13 +1630,38 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 
 	RT_TIMER_STOPSTART(descs_timer,setrefs_timer);
 
-	/* put the classrefs in the constant pool */
+	// put the classrefs in the constant pool
 
 	for (DumpList<ForwardClass>::iterator it  = fwd.classes.begin(),
 	                                      end = fwd.classes.end(); it != end; ++it) {
 		Utf8String name = (utf*) class_getconstant(c, it->this_index, CONSTANT_Class);
 
 		c->cpinfos[it->this_index] = descpool.lookup_classref(name);
+	}
+
+	// get parsed descriptors for MethodTypes & InvokeDynamic call sites
+
+	for (DumpList<ForwardMethodType>::iterator it  = fwd.methodtypes.begin(),
+		                                       end = fwd.methodtypes.end(); it != end; ++it) {
+		Utf8String  descriptor = (utf*) class_getconstant(c, it->descriptor_index, CONSTANT_Utf8);
+		methoddesc *parseddesc = descpool.parse_method_descriptor(descriptor, ACC_STATIC, NULL);
+
+		c->cptags[it->this_index]  = CONSTANT_MethodType;
+		c->cpinfos[it->this_index] = new (ConstantPool) constant_MethodType(descriptor, parseddesc);
+	}
+
+	for (DumpList<ForwardInvokeDynamic>::iterator it  = fwd.invokedynamics.begin(),
+		                                          end = fwd.invokedynamics.end(); it != end; ++it) {
+		constant_nameandtype *nat = (constant_nameandtype*) class_getconstant(c, it->name_and_type_index, CONSTANT_NameAndType);
+
+		Utf8String name = nat->name;
+		Utf8String desc = nat->descriptor;
+
+		methoddesc *md = descpool.parse_method_descriptor(desc, ACC_STATIC, NULL);
+		md->params_from_paramtypes(ACC_STATIC);
+
+		c->cptags[it->this_index]  = CONSTANT_InvokeDynamic;
+		c->cpinfos[it->this_index] = new (ConstantPool) constant_InvokeDynamic(it->bootstrap_method_attr_index, name, desc, md);
 	}
 
 	/* Resolve the super class. */
@@ -1707,7 +1809,72 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 			assert(false);
 		}
 
+		c->cptags[it->this_index]  = it->tag;
 		c->cpinfos[it->this_index] = new (ConstantPool) constant_FMIref(classref, name, descriptor, parseddesc);
+	}
+
+	for (DumpList<ForwardMethodHandle>::iterator it  = fwd.methodhandles.begin(),
+		                                         end = fwd.methodhandles.end(); it != end; ++it) {
+		MethodHandleKind kind = (MethodHandleKind) it->reference_kind;
+
+		constant_FMIref *fmi;
+
+		switch (kind) {
+		case REF_getField:
+		case REF_getStatic:
+		case REF_putField:
+		case REF_putStatic:
+			fmi  = (constant_FMIref*) class_getconstant(c, it->reference_index, CONSTANT_Fieldref);
+
+			if (!fmi)
+				return false;
+			break;
+
+		case REF_invokeVirtual:
+		case REF_invokeStatic:
+		case REF_invokeSpecial:
+			fmi  = (constant_FMIref*) class_getconstant(c, it->reference_index, CONSTANT_Methodref);
+
+			if (!fmi)
+				return false;
+
+			if (fmi->name == utf8::init || fmi->name == utf8::clinit) {
+				exceptions_throw_classformaterror(c, "Illegal method handle");
+				return false;
+			}
+			break;
+			
+		case REF_newInvokeSpecial:
+			fmi  = (constant_FMIref*) class_getconstant(c, it->reference_index, CONSTANT_Methodref);
+
+			if (!fmi)
+				return false;
+
+			if (fmi->name != utf8::init) {
+				exceptions_throw_classformaterror(c, "Illegal method handle");
+				return false;
+			}
+			break;
+				
+		case REF_invokeInterface:
+			fmi  = (constant_FMIref*) class_getconstant(c, it->reference_index, CONSTANT_InterfaceMethodref);
+
+			if (!fmi)
+				return false;
+
+			if (fmi->name == utf8::init || fmi->name == utf8::clinit) {
+				exceptions_throw_classformaterror(c, "Illegal method handle");
+				return false;
+			}
+			break;
+
+		default:
+			exceptions_throw_classformaterror(c, "Illegal reference kind in method handle");
+			return false;
+		}
+
+		c->cptags[it->this_index]  = CONSTANT_MethodHandle;
+		c->cpinfos[it->this_index] = new (ConstantPool) constant_MethodHandle(kind, fmi);
 	}
 
 	RT_TIMER_STOPSTART(parsecpool_timer,verify_timer);

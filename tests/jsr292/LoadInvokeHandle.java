@@ -17,7 +17,7 @@ import java.util.Arrays;
 public class LoadInvokeHandle {
 	@Test
 	public void test() throws Throwable {
-		Integer i = (Integer) INDY_tester().invokeExact((Integer) 5, (Integer) 6);
+//		Integer i = (Integer) INDY_tester().invokeExact((Integer) 5, (Integer) 6);
 	}
 
 	private static void untransformed(String self) {

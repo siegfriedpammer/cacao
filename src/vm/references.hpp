@@ -107,6 +107,63 @@ struct constant_FMIref {
 	bool is_resolved() const { return p.classref->pseudo_vftbl != CLASSREF_PSEUDO_VFTBL; }
 };
 
+/// The kinds of methodhandles that can appear in a class file
+enum MethodHandleKind {
+	REF_getField          = 1,
+	REF_getStatic         = 2,
+	REF_putField          = 3,
+	REF_putStatic         = 4,
+	REF_invokeVirtual     = 5,
+	REF_invokeStatic      = 6,
+	REF_invokeSpecial     = 7,
+	REF_newInvokeSpecial  = 8,
+	REF_invokeInterface   = 9
+};
+
+/***
+ * A MethodHandle constant stored in the constant pool
+ */
+struct constant_MethodHandle {
+	constant_MethodHandle(MethodHandleKind kind, constant_FMIref *fmi)
+	 : kind(kind), fmi(fmi), handle(NULL) {}
+
+	const MethodHandleKind kind;
+	constant_FMIref *const fmi;
+
+	/// resolved java.lang.invoke.MethodHandle object
+	java_object_t          *handle;
+};
+
+/**
+ * A MethodType constant stored in the constant pool
+ */
+struct constant_MethodType {
+	constant_MethodType(Utf8String desc, methoddesc *parseddesc)
+	 : descriptor(desc), parseddesc(parseddesc), type(NULL) {}
+
+	const Utf8String        descriptor;
+	const methoddesc *const parseddesc;
+
+	/// resolved java.lang.invoke.MethodType object
+	java_object_t *type;       
+};
+
+/**
+ * An invokedynamic call site.
+ */
+struct constant_InvokeDynamic {
+	constant_InvokeDynamic(uint16_t bsm, Utf8String name, Utf8String desc, methoddesc *parseddesc)
+	 : bootstrap_method_index(bsm), name(name), descriptor(desc), parseddesc(parseddesc), handle(NULL) {}
+
+	const uint16_t          bootstrap_method_index;
+	const Utf8String        name;
+	const Utf8String        descriptor;
+	const methoddesc *const parseddesc;
+
+	/// resolved java.lang.invoke.MethodHandle object for this CallSite
+	java_object_t *handle;
+};
+
 
 /* inline functions ***********************************************************/
 
