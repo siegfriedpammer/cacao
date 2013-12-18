@@ -157,6 +157,12 @@ public:
 		dep_list.push_back(I);
 		I->reverse_dep_list.push_back(this);
 	}
+	
+	void remove_dep(Instruction* I) {
+		assert(I);
+		dep_list.remove(I);
+		I->reverse_dep_list.remove(this);
+	}
 
 	/// check if the instruction is in a correct state
 	virtual bool verify() const;
