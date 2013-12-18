@@ -81,7 +81,8 @@ bool DeadcodeEliminationPass::run(JITData &JD) {
 		// the first condition to be met for an instruction to be considered
 		// 'dead' is that all its users are 'dead'.
 		if (I->user_size() == deadUsers[I]) {
-			if (!I->has_side_effects() && !is_control_flow_inst(I)) {
+			if (!I->has_side_effects() && !is_control_flow_inst(I)
+					&& I->get_opcode() != Instruction::ARRAYBOUNDSCHECKInstID) {
 				dead[I] = true;
 
 				// insert the dead instructions in the order they should be deleted
