@@ -51,8 +51,10 @@ private:
 
 	/// these types are needed for the creation of the inital partitions
 	typedef unordered_map<Instruction::InstID,PartitionTy*,hash<int> > OpcodePartitionMapTy;
-	typedef unordered_map<int,PartitionTy*> IntPartitionMapTy;
-	typedef unordered_map<long,PartitionTy*> LongPartitionMapTy;
+	typedef unordered_map<int32_t,PartitionTy*> IntPartitionMapTy;
+	typedef unordered_map<int64_t,PartitionTy*> LongPartitionMapTy;
+	typedef unordered_map<float,PartitionTy*> FloatPartitionMapTy;
+	typedef unordered_map<double,PartitionTy*> DoublePartitionMapTy;
 
 	typedef unordered_set<Instruction*> TouchedInstListTy;
 	typedef unordered_map<PartitionTy*,TouchedInstListTy*> Partition2TouchedInstListMapTy;
@@ -92,6 +94,16 @@ private:
 
 	void consolidate_partitions();
 	void consolidate_partition(PartitionTy *partition);
+	
+	template <typename T1, typename T2>
+	PartitionTy *get_or_create_partition(T1 &map, T2 key) {
+		PartitionTy *partition = map[key];
+		if (!partition) {
+			partition = create_partition();
+			map[key] = partition;
+		}
+		return partition;
+	}
 public:
 	static char ID;
 	GlobalValueNumberingPass() : Pass() {}

@@ -42,12 +42,17 @@ namespace compiler2 {
 
 void GlobalValueNumberingPass::init_partitions(Method::const_iterator begin, Method::const_iterator end) {
 
-	// for each opcode which should be used for value numbering we will
-	// create an initial partition, holding all the nodes belonging to
-	// one specific opcode
+	// for each opcode a separate initial partition will be created,
+	// holding all the nodes belonging to one specific opcode
 	OpcodePartitionMapTy opcodeToPartition;
+
+	// for each constant a initial partition will be created,
+	// holding all the nodes of the same constant type and with
+	// equal values.
 	LongPartitionMapTy longToPartition;
 	IntPartitionMapTy intToPartition;
+	FloatPartitionMapTy floatToPartition;
+	DoublePartitionMapTy doubleToPartition;
 
 	for (Method::const_iterator i = begin, e = end; i != e; ++i) {
 		Instruction *I = *i;
@@ -56,27 +61,21 @@ void GlobalValueNumberingPass::init_partitions(Method::const_iterator begin, Met
 			CONSTInst *constInst = I->to_CONSTInst();
 			switch (constInst->get_type()) {
 				case Type::IntTypeID:
-					// TODO: refactor (duplicate code)
-					partition = intToPartition[constInst->get_Int()];
-					if (!partition) {
-						partition = create_partition();
-						intToPartition[constInst->get_Int()] = partition;
-					}
-
+					partition = get_or_create_partition(intToPartition,
+						constInst->get_Int());
 					break;
 				case Type::LongTypeID:
-					// TODO: refactor (duplicate code)
-					partition = longToPartition[constInst->get_Long()];
-					if (!partition) {
-						partition = create_partition();
-						longToPartition[constInst->get_Long()] = partition;
-					}
+					partition = get_or_create_partition(longToPartition,
+						constInst->get_Long());
 					break;
 				case Type::FloatTypeID:
-					// TODO
+					partition = get_or_create_partition(floatToPartition,
+						constInst->get_Float());
 					break;
 				case Type::DoubleTypeID:
-					// TODO
+					partition = get_or_create_partition(doubleToPartition,
+						constInst->get_Double());
+
 					break;
 				default:
 					assert(0 && "illegal type");
@@ -88,12 +87,8 @@ void GlobalValueNumberingPass::init_partitions(Method::const_iterator begin, Met
 		} else if (I->get_opcode() != Instruction::BeginInstID
 				&& !I->to_EndInst()) {
 
-			// TODO: refactor (duplicate code)
-			partition = opcodeToPartition[I->get_opcode()];
-			if (!partition) {
-				partition = create_partition();
-				opcodeToPartition[I->get_opcode()] = partition;
-			}
+			partition = get_or_create_partition(opcodeToPartition,
+				I->get_opcode());
 		}
 
 		if (partition) {
