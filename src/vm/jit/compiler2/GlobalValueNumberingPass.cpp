@@ -42,23 +42,31 @@ namespace compiler2 {
 
 void GlobalValueNumberingPass::init_partitions(Method::const_iterator begin, Method::const_iterator end) {
 
-	// for each opcode a separate initial partition will be created,
-	// holding all the nodes belonging to one specific opcode
 	OpcodePartitionMapTy opcodeToPartition;
-
-	// for each constant a initial partition will be created,
-	// holding all the nodes of the same constant type and with
-	// equal values.
 	LongPartitionMapTy longToPartition;
 	IntPartitionMapTy intToPartition;
 	FloatPartitionMapTy floatToPartition;
 	DoublePartitionMapTy doubleToPartition;
+	BBPartitionMapTy bbToPartition;
 
 	for (Method::const_iterator i = begin, e = end; i != e; ++i) {
 		Instruction *I = *i;
 		PartitionTy *partition = (PartitionTy*) 0;
-		if (I->get_opcode() == Instruction::CONSTInstID) {
+
+		if (I->has_side_effects()
+				|| I->get_opcode() == Instruction::LOADInstID
+				|| I->get_opcode() == Instruction::ALOADInstID) {
+			// instructions which change the global state or depend on it
+			// will be in a separate partition each, because they are congruent
+			// only with themselves
+
+			partition = create_partition();
+		} else if (I->get_opcode() == Instruction::CONSTInstID) {
 			CONSTInst *constInst = I->to_CONSTInst();
+			// for each constant an initial partition will be created,
+			// holding all the nodes of the same constant type that have
+			// equal values.
+
 			switch (constInst->get_type()) {
 				case Type::IntTypeID:
 					partition = get_or_create_partition(intToPartition,
@@ -80,12 +88,21 @@ void GlobalValueNumberingPass::init_partitions(Method::const_iterator begin, Met
 				default:
 					assert(0 && "illegal type");
 			}
-		} else if (I->get_opcode() == Instruction::GETSTATICInstID
-					|| I->get_opcode() == Instruction::PHIInstID) {
-			partition = create_partition();
-			partitions.push_back(partition);
+		} else if (I->get_opcode() == Instruction::PHIInstID) {
+			// all PHIInsts which belong to the same basic block
+			// will be pooled into a common initial partition
+			// TODO: generally this should hold for other instructions
+			// that are floating
+
+			PHIInst *phiInst = I->to_PHIInst();
+			assert(phiInst);
+			BeginInst *bb = phiInst->get_BeginInst();
+			partition = get_or_create_partition(bbToPartition, bb);
 		} else if (I->get_opcode() != Instruction::BeginInstID
 				&& !I->to_EndInst()) {
+			// all other instructions which are no control flow
+			// instructions will be pooled into a common partition
+			// per opcode
 
 			partition = get_or_create_partition(opcodeToPartition,
 				I->get_opcode());
@@ -238,10 +255,6 @@ bool GlobalValueNumberingPass::run(JITData &JD) {
 		int operandIndex = workListPair->second;
 		delete workListPair;
 
-//	  	LOG("=============================================================" << nl);
-//		LOG("pulled partition from worklist for index " << operandIndex << ":" << nl);
-//		print_partition(partition);
-
 		std::list<PartitionTy*> touched;
 
 		for (PartitionTy::const_iterator i = partition->begin(),
@@ -285,7 +298,7 @@ bool GlobalValueNumberingPass::run(JITData &JD) {
 		}
 	}
 
-	LOG("AFTER PARTITIONING" << nl);
+	LOG(nl << "AFTER PARTITIONING" << nl);
 	print_partitions();
 	consolidate_partitions();
 
@@ -304,12 +317,26 @@ void GlobalValueNumberingPass::consolidate_partitions() {
 
 void GlobalValueNumberingPass::consolidate_partition(PartitionTy *partition) {
 	PartitionTy::iterator i = partition->begin();
-	Instruction *instruction = *i;
+	Instruction *inst = *i;
 	i++;
 
 	for (PartitionTy::iterator e = partition->end(); i != e; i++) {
 		Instruction *replacable = *i;
-		replacable->replace_value(instruction);
+		replacable->replace_value(inst);
+
+		if (inst->get_opcode() == Instruction::ARRAYBOUNDSCHECKInstID) {
+			// TODO: consider scheduling dependencies of other instruction types
+			// as well (but at the time of implementation the only instruction
+			// type with scheduling dependencies are array bounds check nodes)
+
+			Instruction::const_dep_iterator i;
+			Instruction::const_dep_iterator e = replacable->rdep_end();
+			while ((i = replacable->rdep_begin()) != e) {
+				Instruction *dependent = *i;
+				dependent->append_dep(inst);
+				dependent->remove_dep(replacable);
+			}
+		}
 	}
 }
 
@@ -332,7 +359,7 @@ void GlobalValueNumberingPass::print_partitions() {
 	for (PartitionVectorTy::const_iterator i = partitions.begin(),
 			e = partitions.end(); i != e; i++) {
 		LOG("=============================================================" << nl);
-		LOG("PARTITION" << nl);
+		LOG("Partition:" << nl);
 		PartitionTy *partition = *i;
 		print_partition(partition);
 	}

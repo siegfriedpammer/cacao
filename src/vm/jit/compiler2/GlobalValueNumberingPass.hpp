@@ -55,6 +55,7 @@ private:
 	typedef unordered_map<int64_t,PartitionTy*> LongPartitionMapTy;
 	typedef unordered_map<float,PartitionTy*> FloatPartitionMapTy;
 	typedef unordered_map<double,PartitionTy*> DoublePartitionMapTy;
+	typedef unordered_map<BeginInst*,PartitionTy*> BBPartitionMapTy;
 
 	typedef unordered_set<Instruction*> TouchedInstListTy;
 	typedef unordered_map<PartitionTy*,TouchedInstListTy*> Partition2TouchedInstListMapTy;
