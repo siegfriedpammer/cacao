@@ -144,7 +144,7 @@ enum typecheck_result {
  *        cast to instruction* and points to the NEW instruction
  *        responsible for creating this type.
  *
- *        Use TYPEINFO_NEWOBJECT_INSTRUCTION to access the pointer in
+ *        Use typeinfo::newobject_instruction to access the pointer in
  *        elementclass.
  *        Don't access other fields of the struct.
  *
@@ -170,7 +170,7 @@ enum typecheck_result {
  *            elementtype....element type (ARRAYTYPE_...)
  *            merged.........mergedlist of the element type
  *
- *        Use TYPEINFO_IS_ARRAY to check for this case.
+ *        Use typeinfo:is_array to check for this case.
  *
  *        The elementclass may be one of the following:
  *        1) pseudo_class_Arraystub
@@ -234,10 +234,10 @@ void typeinfo_init_classinfo(typeinfo_t *info,classinfo *c);
 
 struct typeinfo_t {
 	classref_or_classinfo  typeclass;
-	classref_or_classinfo  elementclass; /* valid if dimension>0 */ /* various uses! */
+	classref_or_classinfo  elementclass; // valid if dimension>0 (various uses!)
 	typeinfo_mergedlist_t *merged;
 	u1                     dimension;
-	u1                     elementtype;  /* valid if dimension>0           */
+	ArrayType              elementtype;  // valid if dimension>0
 
 	bool is_primitive() const { return typeclass.any == NULL; }
 	bool is_reference() const { return typeclass.any != NULL; }
@@ -292,7 +292,7 @@ struct typeinfo_t {
 		elementclass.any = NULL;
 		merged           = NULL;
 		dimension        = 0;
-		elementtype      = 0;
+		elementtype      = ARRAYTYPE_INT;
 	}
 
 	void init_returnaddress(void *adr) {
@@ -300,7 +300,7 @@ struct typeinfo_t {
 		elementclass.any = adr;
 		merged           = NULL;
 		dimension        = 0;
-		elementtype      = 0;
+		elementtype      = ARRAYTYPE_INT;
 	}
 
 	void init_non_array_classinfo(classinfo *cls) {
@@ -308,7 +308,7 @@ struct typeinfo_t {
 		elementclass.any = NULL;
 		merged           = NULL;
 		dimension        = 0;
-		elementtype      = 0;
+		elementtype      = ARRAYTYPE_INT;
 	}
 
 	/// Initialize object type java.lang.Class
@@ -317,7 +317,7 @@ struct typeinfo_t {
 		elementclass     = cls;
 		merged           = NULL;
 		dimension        = 0;
-		elementtype      = 0;
+		elementtype      = ARRAYTYPE_INT;
 	}
 
 	/// Initialize object type
@@ -341,7 +341,7 @@ struct typeinfo_t {
 		elementclass.any = instr;
 		merged           = NULL;
 		dimension        = 0;
-		elementtype      = 0;
+		elementtype      = ARRAYTYPE_INT;
 	}
 
 	void init_primitive_array(ArrayType arraytype) {
@@ -409,82 +409,6 @@ struct typedescriptor_t {
 #define MGET_TYPEVECTOR(array,index,size) \
     ((varinfo*) (((u1*)(array)) + TYPEVECTOR_SIZE(size) * (index)))
 
-/* macros for type queries **************************************************/
-
-#define TYPEINFO_IS_PRIMITIVE(info) ((info).is_primitive())
-
-#define TYPEINFO_IS_REFERENCE(info) ((info).is_reference())
-
-#define TYPEINFO_IS_NULLTYPE(info)  ((info).is_nulltype())
-
-#define TYPEINFO_IS_NEWOBJECT(info) ((info).is_newobject())
-
-/* only use this if TYPEINFO_IS_PRIMITIVE returned true! */
-#define TYPEINFO_RETURNADDRESS(info) ((info).returnaddress())
-
-/* only use this if TYPEINFO_IS_NEWOBJECT returned true! */
-#define TYPEINFO_NEWOBJECT_INSTRUCTION(info) ((info).newobject_instruction())
-
-/* only use this if TYPEINFO_IS_JAVA_LANG_CLASS returned true! */
-#define TYPEINFO_JAVA_LANG_CLASS_CLASSREF(info) ((info).elementclass.ref)
-
-/* macros for array type queries ********************************************/
-
-#define TYPEINFO_IS_ARRAY(info) ((info).is_array())
-
-#define TYPEINFO_IS_SIMPLE_ARRAY(info) ((info).is_simple_array())
-
-#define TYPEINFO_IS_PRIMITIVE_ARRAY(info,arraytype) ((info).is_primitive_array(arraytype))
-
-#define TYPEINFO_IS_ARRAY_OF_REFS(info) ((info).is_array_of_refs())
-
-#define TYPE_IS_RETURNADDRESS(type,info)                        \
-            ( ((type)==TYPE_RET)                                \
-              && TYPEINFO_IS_PRIMITIVE(info) )
-
-#define TYPE_IS_REFERENCE(type,info)                            \
-            ( ((type)==TYPE_ADR)                                \
-              && !TYPEINFO_IS_PRIMITIVE(info) )
-
-#define TYPEDESC_IS_RETURNADDRESS(td) ((td).is_returnaddress())
-
-#define TYPEDESC_IS_REFERENCE(td) ((td).is_reference())
-
-/* queries allowing the null type ********************************************/
-
-#define TYPEINFO_MAYBE_ARRAY(info) ((info).maybe_array())
-
-#define TYPEINFO_MAYBE_PRIMITIVE_ARRAY(info,at) ((info).maybe_primitive_array(at))
-
-#define TYPEINFO_MAYBE_ARRAY_OF_REFS(info) ((info).maybe_array_of_refs())
-
-/* macros for initializing typeinfo structures ******************************/
-
-#define TYPEINFO_INIT_PRIMITIVE(info) ((info).init_primitive())
-
-#define TYPEINFO_INIT_RETURNADDRESS(info,adr) ((info).init_returnaddress(adr))
-
-#define TYPEINFO_INIT_NON_ARRAY_CLASSINFO(info,cinfo) ((info).init_non_array_classinfo(cinfo))
-
-#define TYPEINFO_INIT_JAVA_LANG_CLASS(info,c) ((info).init_java_lang_class(c))
-
-#define TYPEINFO_INIT_NULLTYPE(info) ((info).init_nulltype())
-
-#define TYPEINFO_INIT_NEWOBJECT(info,instr) ((info).init_newobject(instr))
-
-#define TYPEINFO_INIT_PRIMITIVE_ARRAY(info,arraytype) ((info).init_primitive_array(arraytype))
-
-
-/* macros for copying types (destinition is not checked or freed) ***********/
-
-/* TYPEINFO_COPY makes a shallow copy, the merged pointer is simply copied. */
-#define TYPEINFO_COPY(src,dst)                                  \
-    do {(dst) = (src);} while(0)
-
-/* TYPEINFO_CLONE makes a deep copy, the merged list (if any) is duplicated
- * into a newly allocated array.
- */
-#define TYPEINFO_CLONE(src,dst) typeinfo_t::clone(src, dst)
 
 /****************************************************************************/
 /* FUNCTIONS                                                                */

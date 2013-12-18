@@ -799,7 +799,7 @@ void typeinfo_t::init_class(classinfo *c) {
 	else {
 		elementclass.any = NULL;
 		dimension        = 0;
-		elementtype      = 0;
+		elementtype      = ARRAYTYPE_INT;
 	}
 	merged = NULL;
 }
@@ -1674,7 +1674,6 @@ typecheck_result typeinfo_t::merge(methodinfo *m, const typeinfo_t *src) {
 	classref_or_classinfo common;
 	classref_or_classinfo elementclass;
 	int dimension;
-	int elementtype;
 	bool changed;
 	typecheck_result r;
 
@@ -1800,8 +1799,8 @@ return_simple:
             /* Different element types are merged, so the resulting array
              * type has one accessible dimension less. */
             if (--dimension == 0) {
-                common.cls = pseudo_class_Arraystub;
-                elementtype = 0;
+                common.cls       = pseudo_class_Arraystub;
+                elementtype      = ARRAYTYPE_INT;
                 elementclass.any = NULL;
             }
             else {
@@ -1811,7 +1810,7 @@ return_simple:
 					return typecheck_FAIL;
 				}
 
-                elementtype = ARRAYTYPE_OBJECT;
+                elementtype      = ARRAYTYPE_OBJECT;
                 elementclass.cls = pseudo_class_Arraystub;
             }
         }
@@ -1863,7 +1862,7 @@ return_simple:
 		changed |= r;
 
         dimension        = 0;
-        elementtype      = 0;
+        elementtype      = ARRAYTYPE_INT;
         elementclass.any = NULL;
     }
 

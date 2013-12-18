@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/icmds.c - ICMD-specific type checking code
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -90,18 +90,18 @@ case ICMD_ALOAD: /* {ALL} */
 
 #if !defined(TYPECHECK_TYPEINFERER)
 	/* loading a returnAddress is not allowed */
-	if (!TYPEDESC_IS_REFERENCE(*OP1)) {
+	if (!OP1->is_reference()) {
 		VERIFY_ERROR("illegal instruction: ALOAD loading non-reference");
 	}
 #endif
-	TYPEINFO_COPY(OP1->typeinfo,DST->typeinfo);
+	DST->typeinfo = OP1->typeinfo;
 	break;
 
 	/****************************************/
 	/* STORING ADDRESS TO VARIABLE          */
 
 case ICMD_ASTORE: /* {ALL} */
-	TYPEINFO_COPY(OP1->typeinfo, DST->typeinfo);
+	DST->typeinfo = OP1->typeinfo;
 	break;
 
 	/****************************************/
@@ -109,7 +109,7 @@ case ICMD_ASTORE: /* {ALL} */
 
 case ICMD_AALOAD: /* {ALL} */
 #if !defined(TYPECHECK_TYPEINFERER)
-	if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(OP1->typeinfo))
+	if (!OP1->typeinfo.maybe_array_of_refs())
 		VERIFY_ERROR("illegal instruction: AALOAD on non-reference array");
 #endif
 
@@ -181,7 +181,7 @@ case ICMD_PUTFIELDCONST:  /* {VARIABLESBASED} */
 			constvalue.typeinfo.init_class(cc);
 		}
 		else {
-			TYPEINFO_INIT_NULLTYPE(constvalue.typeinfo);
+			constvalue.typeinfo.init_nulltype();
 		}
 	}
 	if (!handle_fieldaccess(state, VAROP(iptr->s1), &constvalue))
@@ -202,7 +202,7 @@ case ICMD_PUTSTATICCONST: /* {VARIABLESBASED} */
 			constvalue.typeinfo.init_class(cc);
 		}
 		else {
-			TYPEINFO_INIT_NULLTYPE(constvalue.typeinfo);
+			constvalue.typeinfo.init_nulltype();
 		}
 	}
 	if (!handle_fieldaccess(state, NULL, &constvalue))
@@ -226,80 +226,79 @@ case ICMD_GETSTATIC:      /* {VARIABLESBASED,TYPEINFERER} */
 	/* PRIMITIVE ARRAY ACCESS               */
 
 case ICMD_ARRAYLENGTH:
-	if (!TYPEINFO_MAYBE_ARRAY(OP1->typeinfo)
-			&& OP1->typeinfo.typeclass.cls != pseudo_class_Arraystub)
+	if (!OP1->typeinfo.maybe_array() && OP1->typeinfo.typeclass.cls != pseudo_class_Arraystub)
 		VERIFY_ERROR("illegal instruction: ARRAYLENGTH on non-array");
 	break;
 
 case ICMD_BALOAD:
-	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_BOOLEAN)
-			&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_BYTE))
+	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_BOOLEAN)
+			&& !OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_BYTE))
 		VERIFY_ERROR("Array type mismatch");
 	break;
 
 case ICMD_CALOAD:
-	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_CHAR))
+	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_CHAR))
 		VERIFY_ERROR("Array type mismatch");
 	break;
 
 case ICMD_DALOAD:
-	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_DOUBLE))
+	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_DOUBLE))
 		VERIFY_ERROR("Array type mismatch");
 	break;
 
 case ICMD_FALOAD:
-	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_FLOAT))
+	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_FLOAT))
 		VERIFY_ERROR("Array type mismatch");
 	break;
 
 case ICMD_IALOAD:
-	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_INT))
+	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_INT))
 		VERIFY_ERROR("Array type mismatch");
 	break;
 
 case ICMD_SALOAD:
-	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_SHORT))
+	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_SHORT))
 		VERIFY_ERROR("Array type mismatch");
 	break;
 
 case ICMD_LALOAD:
-	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_LONG))
+	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_LONG))
 		VERIFY_ERROR("Array type mismatch");
 	break;
 
 case ICMD_BASTORE:
-	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_BOOLEAN)
-			&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_BYTE))
+	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_BOOLEAN)
+			&& !OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_BYTE))
 		VERIFY_ERROR("Array type mismatch");
 	break;
 
 case ICMD_CASTORE:
-	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_CHAR))
+	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_CHAR))
 		VERIFY_ERROR("Array type mismatch");
 	break;
 
 case ICMD_DASTORE:
-	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_DOUBLE))
+	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_DOUBLE))
 		VERIFY_ERROR("Array type mismatch");
 	break;
 
 case ICMD_FASTORE:
-	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_FLOAT))
+	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_FLOAT))
 		VERIFY_ERROR("Array type mismatch");
 	break;
 
 case ICMD_IASTORE:
-	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_INT))
+	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_INT))
 		VERIFY_ERROR("Array type mismatch");
 	break;
 
 case ICMD_SASTORE:
-	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_SHORT))
+	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_SHORT))
 		VERIFY_ERROR("Array type mismatch");
 	break;
 
 case ICMD_LASTORE:
-	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_LONG))
+	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_LONG))
 		VERIFY_ERROR("Array type mismatch");
 	break;
 
@@ -308,33 +307,33 @@ case ICMD_AASTORE:
 	/* destination is an array of references. Assignability to    */
 	/* the actual array must be checked at runtime, each time the */
 	/* instruction is performed. (See builtin_canstore.)          */
-	if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(OP1->typeinfo))
+	if (!OP1->typeinfo.maybe_array_of_refs())
 		VERIFY_ERROR("illegal instruction: AASTORE to non-reference array");
 	break;
 
 case ICMD_IASTORECONST:
-	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_INT))
+	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_INT))
 		VERIFY_ERROR("Array type mismatch");
 	break;
 
 case ICMD_LASTORECONST:
-	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_LONG))
+	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_LONG))
 		VERIFY_ERROR("Array type mismatch");
 	break;
 
 case ICMD_BASTORECONST:
-	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_BOOLEAN)
-			&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_BYTE))
+	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_BOOLEAN)
+			&& !OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_BYTE))
 		VERIFY_ERROR("Array type mismatch");
 	break;
 
 case ICMD_CASTORECONST:
-	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_CHAR))
+	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_CHAR))
 		VERIFY_ERROR("Array type mismatch");
 	break;
 
 case ICMD_SASTORECONST:
-	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_SHORT))
+	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_SHORT))
 		VERIFY_ERROR("Array type mismatch");
 	break;
 
@@ -344,11 +343,11 @@ case ICMD_SASTORECONST:
 case ICMD_ACONST: /* {ALL} */
 	if (IPTR->flags.bits & INS_FLAG_CLASS) {
 		/* a java.lang.Class reference */
-		TYPEINFO_INIT_JAVA_LANG_CLASS(DST->typeinfo,IPTR->sx.val.c);
+		DST->typeinfo.init_java_lang_class(IPTR->sx.val.c);
 	}
 	else {
 		if (IPTR->sx.val.anyptr == NULL)
-			TYPEINFO_INIT_NULLTYPE(DST->typeinfo);
+			DST->typeinfo.init_nulltype();
 		else {
 			/* string constant (or constant for builtin function) */
 			DST->typeinfo.init_class(class_java_lang_String);
@@ -362,7 +361,7 @@ case ICMD_ACONST: /* {ALL} */
 case ICMD_CHECKCAST: /* {ALL} */
 #if !defined(TYPECHECK_TYPEINFERER)
 	/* returnAddress is not allowed */
-	if (!TYPEINFO_IS_REFERENCE(OP1->typeinfo))
+	if (!OP1->typeinfo.is_reference())
 		VERIFY_ERROR("Illegal instruction: CHECKCAST on non-reference");
 #endif
 
@@ -373,7 +372,7 @@ case ICMD_CHECKCAST: /* {ALL} */
 
 case ICMD_INSTANCEOF:
 	/* returnAddress is not allowed */
-	if (!TYPEINFO_IS_REFERENCE(OP1->typeinfo))
+	if (!OP1->typeinfo.is_reference())
 		VERIFY_ERROR("Illegal instruction: INSTANCEOF on non-reference");
 
 	/* XXX should propagate type information to the following if-branches */
@@ -481,7 +480,7 @@ case ICMD_ATHROW:
 
 case ICMD_ARETURN:
 	TYPECHECK_COUNT(stat_ins_areturn);
-	if (!TYPEINFO_IS_REFERENCE(OP1->typeinfo))
+	if (!OP1->typeinfo.is_reference())
 		VERIFY_ERROR("illegal instruction: ARETURN on non-reference");
 
 	if (STATE->returntype.type != TYPE_ADR
@@ -547,7 +546,7 @@ return_tail:
 	/* SUBROUTINE INSTRUCTIONS              */
 
 case ICMD_JSR: /* {VARIABLESBASED,TYPEINFERER} */
-	TYPEINFO_INIT_RETURNADDRESS(DST->typeinfo, BPTR->next);
+	DST->typeinfo.init_returnaddress(BPTR->next);
 	REACH(IPTR->sx.s23.s3.jsrtarget);
 	break;
 
@@ -555,7 +554,7 @@ case ICMD_JSR: /* {STACKBASED} */
 	/* {RESULTNOW} */
 	tbptr = IPTR->sx.s23.s3.jsrtarget.block;
 
-	TYPEINFO_INIT_RETURNADDRESS(stack[0].typeinfo, tbptr);
+	stack[0].typeinfo.init_returnaddress(tbptr);
 	REACH_BLOCK(tbptr);
 
 	stack = typecheck_stackbased_jsr(STATE, stack, stackfloor);
@@ -575,7 +574,7 @@ case ICMD_RET: /* {VARIABLESBASED,TYPEINFERER} */
 case ICMD_RET: /* {STACKBASED} */
 	/* {RESULTNOW} */
 	CHECK_LOCAL_TYPE(IPTR->s1.varindex, TYPE_RET);
-	if (!TYPEINFO_IS_PRIMITIVE(STATE->locals[IPTR->s1.varindex].typeinfo))
+	if (!STATE->locals[IPTR->s1.varindex].typeinfo.is_primitive())
 		VERIFY_ERROR("illegal instruction: RET using non-returnAddress variable");
 
 	if (!typecheck_stackbased_ret(STATE, stack, stackfloor))

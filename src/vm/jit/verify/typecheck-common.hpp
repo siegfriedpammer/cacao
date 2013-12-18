@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/typecheck-common.h - internal header for the type checker
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -193,8 +193,8 @@ void typecheck_print_statistics(FILE *file);
 /****************************************************************************/
 
 #define COPYTYPE(source,dest)                                        \
-    {if (VAROP(source)->type == TYPE_ADR)                            \
-            TYPEINFO_COPY(VAROP(source)->typeinfo,VAROP(dest)->typeinfo);}
+    {if (VAROP(source)->type == TYPE_ADR) {                          \
+            VAROP(dest)->typeinfo = VAROP(source)->typeinfo;}}
 
 
 /****************************************************************************/

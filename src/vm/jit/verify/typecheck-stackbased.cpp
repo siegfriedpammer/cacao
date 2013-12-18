@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/typecheck-stackbased.c - stack-based verifier
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -174,11 +174,9 @@ static typecheck_result typecheck_stackbased_merge_locals(methodinfo *m,
 			changed = true;
 		}
 		else if (a->type == TYPE_ADR) {
-			if (TYPEINFO_IS_PRIMITIVE(a->typeinfo)) {
+			if (a->typeinfo.is_primitive()) {
 				/* 'a' is a returnAddress */
-				if (!TYPEINFO_IS_PRIMITIVE(b->typeinfo)
-					|| (TYPEINFO_RETURNADDRESS(a->typeinfo)
-						!= TYPEINFO_RETURNADDRESS(b->typeinfo)))
+				if (!b->typeinfo.is_primitive() || (a->typeinfo.returnaddress() != b->typeinfo.returnaddress()))
 				{
 					a->type = TYPE_VOID;
 					changed = true;
@@ -186,7 +184,7 @@ static typecheck_result typecheck_stackbased_merge_locals(methodinfo *m,
 			}
 			else {
 				/* 'a' is a reference */
-				if (TYPEINFO_IS_PRIMITIVE(b->typeinfo)) {
+				if (b->typeinfo.is_primitive()) {
 					a->type = TYPE_VOID;
 					changed = true;
 				}
@@ -237,10 +235,10 @@ static typecheck_result typecheck_stackbased_merge(verifier_state *state,
 			return typecheck_FAIL;
 		}
 		if (dp->type == TYPE_ADR) {
-			if (TYPEINFO_IS_PRIMITIVE(dp->typeinfo)) {
+			if (dp->typeinfo.is_primitive()) {
 				/* dp has returnAddress type */
-				if (TYPEINFO_IS_PRIMITIVE(sp->typeinfo)) {
-					if (TYPEINFO_RETURNADDRESS(dp->typeinfo) != TYPEINFO_RETURNADDRESS(sp->typeinfo)) {
+				if (sp->typeinfo.is_primitive()) {
+					if (dp->typeinfo.returnaddress() != sp->typeinfo.returnaddress()) {
 						exceptions_throw_verifyerror(state->m, "Mismatched stack types");
 						return typecheck_FAIL;
 					}
@@ -252,7 +250,7 @@ static typecheck_result typecheck_stackbased_merge(verifier_state *state,
 			}
 			else {
 				/* dp has reference type */
-				if (TYPEINFO_IS_PRIMITIVE(sp->typeinfo)) {
+				if (sp->typeinfo.is_primitive()) {
 					exceptions_throw_verifyerror(state->m,"Merging reference with returnAddress");
 					return typecheck_FAIL;
 				}
@@ -641,7 +639,7 @@ static bool typecheck_stackbased_ret(verifier_state *state,
 
 	/* get the subroutine we are RETurning from */
 
-	tbptr = (basicblock*) TYPEINFO_RETURNADDRESS(state->locals[state->iptr->s1.varindex].typeinfo);
+	tbptr = (basicblock*) state->locals[state->iptr->s1.varindex].typeinfo.returnaddress();
 	if (tbptr == NULL) {
 		exceptions_throw_verifyerror(state->m, "Illegal RET");
 		return false;
@@ -677,10 +675,10 @@ static bool typecheck_stackbased_ret(verifier_state *state,
 
 	for (i=0; i<state->numlocals; ++i) {
 		typedescriptor_t *lc = &(jsr->retlocals[i]);
-		if (TYPE_IS_RETURNADDRESS(lc->type, lc->typeinfo))
-			if (TYPEINFO_RETURNADDRESS(lc->typeinfo) == tbptr) {
+		if (lc->is_returnaddress())
+			if (lc->typeinfo.returnaddress() == tbptr) {
 				OLD_LOG1("invalidating returnAddress in local %d", i);
-				TYPEINFO_INIT_RETURNADDRESS(lc->typeinfo, NULL);
+				lc->typeinfo.init_returnaddress(NULL);
 			}
 	}
 
@@ -790,7 +788,7 @@ bool typecheck_stackbased(jitdata *jd)
 		dst = state.startlocals;
 		dst->type = TYPE_ADR;
 		if (state.initmethod)
-			TYPEINFO_INIT_NEWOBJECT(dst->typeinfo, NULL);
+			dst->typeinfo.init_newobject(NULL);
 		else
 			dst->typeinfo.init_class(state.m->clazz);
 

@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/typecheck-builtins.inc - type checking for ICMD_BUILTIN
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -41,48 +41,48 @@
 #else
 		if (state->iptr[-1].opc != ICMD_ACONST)
 			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_new without class");
-		TYPEINFO_INIT_NEWOBJECT(dv->typeinfo,state->iptr);
+		dv->typeinfo.init_newobject(state->iptr);
 #endif
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_boolean)) {
 		TYPECHECK_INT(OP1);
 		dv->type = TYPE_ADR;
-		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_BOOLEAN);
+		dv->typeinfo.init_primitive_array(ARRAYTYPE_BOOLEAN);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_char)) {
 		TYPECHECK_INT(OP1);
 		dv->type = TYPE_ADR;
-		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_CHAR);
+		dv->typeinfo.init_primitive_array(ARRAYTYPE_CHAR);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_float)) {
 		TYPECHECK_INT(OP1);
 		dv->type = TYPE_ADR;
-		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_FLOAT);
+		dv->typeinfo.init_primitive_array(ARRAYTYPE_FLOAT);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_double)) {
 		TYPECHECK_INT(OP1);
 		dv->type = TYPE_ADR;
-		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_DOUBLE);
+		dv->typeinfo.init_primitive_array(ARRAYTYPE_DOUBLE);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_byte)) {
 		TYPECHECK_INT(OP1);
 		dv->type = TYPE_ADR;
-		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_BYTE);
+		dv->typeinfo.init_primitive_array(ARRAYTYPE_BYTE);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_short)) {
 		TYPECHECK_INT(OP1);
 		dv->type = TYPE_ADR;
-		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_SHORT);
+		dv->typeinfo.init_primitive_array(ARRAYTYPE_SHORT);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_int)) {
 		TYPECHECK_INT(OP1);
 		dv->type = TYPE_ADR;
-		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_INT);
+		dv->typeinfo.init_primitive_array(ARRAYTYPE_INT);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_long)) {
 		TYPECHECK_INT(OP1);
 		dv->type = TYPE_ADR;
-		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_LONG);
+		dv->typeinfo.init_primitive_array(ARRAYTYPE_LONG);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray))
 	{
