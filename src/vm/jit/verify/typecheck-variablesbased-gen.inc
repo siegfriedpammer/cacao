@@ -26,7 +26,7 @@
   GENERATED  			TYPEINFO_INIT_NULLTYPE(DST->typeinfo);
   GENERATED  		else {
   GENERATED  			/* string constant (or constant for builtin function) */
-  GENERATED  			typeinfo_init_classinfo(&(DST->typeinfo),class_java_lang_String);
+  GENERATED  			DST->typeinfo.init_class(class_java_lang_String);
   GENERATED  		}
   GENERATED  	}
   GENERATED  
@@ -367,7 +367,7 @@
   GENERATED  
 #            endif
   GENERATED  
-  GENERATED  	if (!typeinfo_init_component(&OP1->typeinfo,&DST->typeinfo))
+  GENERATED  	if (!DST->typeinfo.init_component(OP1->typeinfo))
   GENERATED  		EXCEPTION;
   GENERATED  
 #            	line 374 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -944,7 +944,7 @@
   GENERATED  		VERIFY_ERROR("illegal instruction: ARETURN on non-reference");
   GENERATED  
   GENERATED  	if (STATE->returntype.type != TYPE_ADR
-  GENERATED  			|| (r = typeinfo_is_assignable(&OP1->typeinfo,&(STATE->returntype.typeinfo)))
+  GENERATED  			|| (r = OP1->typeinfo.is_assignable_to(&(STATE->returntype.typeinfo)))
   GENERATED  			== typecheck_FALSE)
   GENERATED  		VERIFY_ERROR("Return type mismatch");
   GENERATED  	if (r == typecheck_FAIL)
@@ -1141,8 +1141,7 @@
   GENERATED  
 #            	line 463 "src/vm/jit/verify/icmds.cpp"
   GENERATED  	TYPECHECK_COUNT(stat_ins_athrow);
-  GENERATED  	r = typeinfo_is_assignable_to_class(&OP1->typeinfo,
-  GENERATED  			to_classref_or_classinfo(class_java_lang_Throwable));
+  GENERATED  	r = OP1->typeinfo.is_assignable_to_class(to_classref_or_classinfo(class_java_lang_Throwable));
   GENERATED  	if (r == typecheck_FALSE)
   GENERATED  		VERIFY_ERROR("illegal instruction: ATHROW on non-Throwable");
   GENERATED  	if (r == typecheck_FAIL)
@@ -1186,7 +1185,7 @@
 #            endif
   GENERATED  
   GENERATED      /* XXX only if narrower */
-  GENERATED  	if (!typeinfo_init_class(&(DST->typeinfo),IPTR->sx.s23.s3.c))
+  GENERATED  	if (!DST->typeinfo.init_class(IPTR->sx.s23.s3.c))
   GENERATED  		EXCEPTION;
   GENERATED  
 #            	line 1193 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -1370,7 +1369,7 @@
   GENERATED  				? class_java_lang_Class : class_java_lang_String;
   GENERATED  			assert(cc);
   GENERATED  			assert(cc->state & CLASS_LINKED);
-  GENERATED  			typeinfo_init_classinfo(&(constvalue.typeinfo), cc);
+  GENERATED  			constvalue.typeinfo.init_class(cc);
   GENERATED  		}
   GENERATED  		else {
   GENERATED  			TYPEINFO_INIT_NULLTYPE(constvalue.typeinfo);
@@ -1402,7 +1401,7 @@
   GENERATED  				? class_java_lang_Class : class_java_lang_String;
   GENERATED  			assert(cc);
   GENERATED  			assert(cc->state & CLASS_LINKED);
-  GENERATED  			typeinfo_init_classinfo(&(constvalue.typeinfo), cc);
+  GENERATED  			constvalue.typeinfo.init_class(cc);
   GENERATED  		}
   GENERATED  		else {
   GENERATED  			TYPEINFO_INIT_NULLTYPE(constvalue.typeinfo);

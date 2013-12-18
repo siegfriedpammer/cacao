@@ -113,7 +113,7 @@ case ICMD_AALOAD: /* {ALL} */
 		VERIFY_ERROR("illegal instruction: AALOAD on non-reference array");
 #endif
 
-	if (!typeinfo_init_component(&OP1->typeinfo,&DST->typeinfo))
+	if (!DST->typeinfo.init_component(&OP1->typeinfo))
 		EXCEPTION;
 	break;
 
@@ -178,7 +178,7 @@ case ICMD_PUTFIELDCONST:  /* {VARIABLESBASED} */
 				? class_java_lang_Class : class_java_lang_String;
 			assert(cc);
 			assert(cc->state & CLASS_LINKED);
-			typeinfo_init_classinfo(&(constvalue.typeinfo), cc);
+			constvalue.typeinfo.init_class(cc);
 		}
 		else {
 			TYPEINFO_INIT_NULLTYPE(constvalue.typeinfo);
@@ -199,7 +199,7 @@ case ICMD_PUTSTATICCONST: /* {VARIABLESBASED} */
 				? class_java_lang_Class : class_java_lang_String;
 			assert(cc);
 			assert(cc->state & CLASS_LINKED);
-			typeinfo_init_classinfo(&(constvalue.typeinfo), cc);
+			constvalue.typeinfo.init_class(cc);
 		}
 		else {
 			TYPEINFO_INIT_NULLTYPE(constvalue.typeinfo);
@@ -351,7 +351,7 @@ case ICMD_ACONST: /* {ALL} */
 			TYPEINFO_INIT_NULLTYPE(DST->typeinfo);
 		else {
 			/* string constant (or constant for builtin function) */
-			typeinfo_init_classinfo(&(DST->typeinfo),class_java_lang_String);
+			DST->typeinfo.init_class(class_java_lang_String);
 		}
 	}
 	break;
@@ -367,7 +367,7 @@ case ICMD_CHECKCAST: /* {ALL} */
 #endif
 
     /* XXX only if narrower */
-	if (!typeinfo_init_class(&(DST->typeinfo),IPTR->sx.s23.s3.c))
+	if (!DST->typeinfo.init_class(IPTR->sx.s23.s3.c))
 		EXCEPTION;
 	break;
 
@@ -461,8 +461,7 @@ case ICMD_LOOKUPSWITCH:    /* {ALL} */
 
 case ICMD_ATHROW:
 	TYPECHECK_COUNT(stat_ins_athrow);
-	r = typeinfo_is_assignable_to_class(&OP1->typeinfo,
-			to_classref_or_classinfo(class_java_lang_Throwable));
+	r = OP1->typeinfo.is_assignable_to_class(to_classref_or_classinfo(class_java_lang_Throwable));
 	if (r == typecheck_FALSE)
 		VERIFY_ERROR("illegal instruction: ATHROW on non-Throwable");
 	if (r == typecheck_FAIL)
@@ -486,7 +485,7 @@ case ICMD_ARETURN:
 		VERIFY_ERROR("illegal instruction: ARETURN on non-reference");
 
 	if (STATE->returntype.type != TYPE_ADR
-			|| (r = typeinfo_is_assignable(&OP1->typeinfo,&(STATE->returntype.typeinfo)))
+			|| (r = OP1->typeinfo.is_assignable_to(&(STATE->returntype.typeinfo)))
 			== typecheck_FALSE)
 		VERIFY_ERROR("Return type mismatch");
 	if (r == typecheck_FAIL)

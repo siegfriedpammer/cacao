@@ -26,7 +26,7 @@
   GENERATED  			TYPEINFO_INIT_NULLTYPE(DST->typeinfo);
   GENERATED  		else {
   GENERATED  			/* string constant (or constant for builtin function) */
-  GENERATED  			typeinfo_init_classinfo(&(DST->typeinfo),class_java_lang_String);
+  GENERATED  			DST->typeinfo.init_class(class_java_lang_String);
   GENERATED  		}
   GENERATED  	}
   GENERATED  
@@ -303,7 +303,7 @@
   GENERATED  
 #            endif
   GENERATED  
-  GENERATED  	if (!typeinfo_init_component(&OP1->typeinfo,&DST->typeinfo))
+  GENERATED  	if (!DST->typeinfo.init_component(OP1->typeinfo))
   GENERATED  		EXCEPTION;
   GENERATED  
 #            	line 310 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
@@ -673,7 +673,7 @@
 #            endif
   GENERATED  
   GENERATED      /* XXX only if narrower */
-  GENERATED  	if (!typeinfo_init_class(&(DST->typeinfo),IPTR->sx.s23.s3.c))
+  GENERATED  	if (!DST->typeinfo.init_class(IPTR->sx.s23.s3.c))
   GENERATED  		EXCEPTION;
   GENERATED  
 #            	line 680 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"

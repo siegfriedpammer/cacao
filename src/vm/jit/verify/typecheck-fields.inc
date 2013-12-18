@@ -127,7 +127,7 @@
 #endif
 		DST->type = fieldref->parseddesc.fd->type;
 		if (DST->type == TYPE_ADR) {
-			if (!typeinfo_init_from_typedesc(fieldref->parseddesc.fd,NULL,&(DST->typeinfo)))
+			if (!DST->typeinfo.init_from_typedesc(fieldref->parseddesc.fd, NULL))
 				EXCEPTION;
 		}
 #undef DST

@@ -339,7 +339,7 @@ typecheck_result typecheck_merge_types(verifier_state *state,
 					exceptions_throw_verifyerror(state->m,"Merging reference with returnAddress");
 					return typecheck_FAIL;
 				}
-				r = typeinfo_merge(state->m,&(dv->typeinfo),&(sv->typeinfo));
+				r = dv->typeinfo.merge(state->m, &(sv->typeinfo));
 				if (r == typecheck_FAIL)
 					return r;
 				changed |= r;
@@ -516,7 +516,7 @@ bool typecheck_init_locals(verifier_state *state, bool newthis)
 			if (state->initmethod && newthis)
 				TYPEINFO_INIT_NEWOBJECT(v->typeinfo, NULL);
 			else
-				typeinfo_init_classinfo(&(v->typeinfo), state->m->clazz);
+				v->typeinfo.init_class(state->m->clazz);
 		}
 
 		skip = 1;

@@ -757,7 +757,7 @@ bool typecheck(jitdata *jd)
 		});
 
     /* allocate the buffer of active exception handlers */
-	
+
     state.handlers = (exception_entry**) DumpMemory::allocate(sizeof(exception_entry*) * (state.jd->exceptiontablelength + 1));
 
 	/* save local variables */
@@ -771,13 +771,12 @@ bool typecheck(jitdata *jd)
 		return false;
 
     /* initialize invars of exception handlers */
-	
+
 	state.exinvars = state.numlocals;
 	VAR(state.exinvars)->type = TYPE_ADR;
-	typeinfo_init_classinfo(&(VAR(state.exinvars)->typeinfo),
-							class_java_lang_Throwable); /* changed later */
+	VAR(state.exinvars)->typeinfo.init_class(class_java_lang_Throwable); /* changed later */
 
-    OLD_LOG("Exception handler stacks set.\n");
+	OLD_LOG("Exception handler stacks set.\n");
 
 	// loop while there are still blocks to be checked
 	do {

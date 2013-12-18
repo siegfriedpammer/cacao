@@ -592,9 +592,9 @@ static resolve_result_t resolve_subtype_check(methodinfo *refmethod,
 
 	/* perform the subtype check */
 
-	typeinfo_init_classinfo(&subti,subclass);
+	subti.init_class(subclass);
 check_again:
-	r = typeinfo_is_assignable_to_class(&subti,supertype);
+	r = subti.is_assignable_to_class(supertype);
 	if (r == typecheck_FAIL)
 		return resolveFailed; /* failed, exception is already set */
 
@@ -1179,7 +1179,7 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 			initclass = referer; /* XXX classrefs */
 			assert(initclass->state & CLASS_LINKED);
 
-			typeinfo_init_classinfo(&tinfo, initclass);
+			tinfo.init_class(initclass);
 			insttip = &tinfo;
 		}
 		else {
@@ -1692,7 +1692,7 @@ resolve_result_t resolve_method_instance_type_checks(methodinfo *refmethod,
 		classref_or_classinfo initclass = (ins) ? ins[-1].sx.val.c
 									 : to_classref_or_classinfo(refmethod->clazz);
 		tip = &tinfo;
-		if (!typeinfo_init_class(tip, initclass))
+		if (!tip->init_class(initclass))
 			return resolveFailed;
 	}
 	else {
@@ -2543,7 +2543,7 @@ bool resolve_constrain_unresolved_field(unresolved_field *ref,
 			instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(*instanceti);
 
 			if (ins != NULL) {
-				exceptions_throw_verifyerror(refmethod, 
+				exceptions_throw_verifyerror(refmethod,
 						"accessing field of uninitialized object");
 				return false;
 			}
@@ -2552,14 +2552,14 @@ bool resolve_constrain_unresolved_field(unresolved_field *ref,
 			assert(initclass->state & CLASS_LOADED);
 			assert(initclass->state & CLASS_LINKED);
 
-			typeinfo_init_classinfo(&tinfo, initclass);
+			tinfo.init_class(initclass);
 			insttip = &tinfo;
 		}
 		else {
 			insttip = instanceti;
 		}
 		if (!unresolved_subtype_set_from_typeinfo(referer, refmethod,
-					&(ref->instancetypes), insttip, 
+					&(ref->instancetypes), insttip,
 					FIELDREF_CLASSNAME(fieldref)))
 			return false;
 	}
@@ -2683,7 +2683,7 @@ bool resolve_constrain_unresolved_method_instance(unresolved_method *ref,
 		classref_or_classinfo initclass = (ins) ? ins[-1].sx.val.c
 									 : to_classref_or_classinfo(refmethod->clazz);
 		tip = &tinfo;
-		if (!typeinfo_init_class(tip, initclass))
+		if (!tip->init_class(initclass))
 			return false;
 	}
 	else {

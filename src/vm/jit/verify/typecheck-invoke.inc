@@ -185,7 +185,7 @@
 				}
 #endif /* defined(TYPECHECK_VARIABLESBASED) */
 
-				if (!typeinfo_init_class(&(av->typeinfo),initclass))
+				if (!av->typeinfo.init_class(initclass))
 					return false;
 			}
 		}
@@ -202,7 +202,7 @@
 				&& TYPEINFO_IS_NEWOBJECT(state->locals[i].typeinfo)
 				&& TYPEINFO_NEWOBJECT_INSTRUCTION(state->locals[i].typeinfo) == ins)
 			{
-				if (!typeinfo_init_class(&(state->locals[i].typeinfo), initclass))
+				if (!state->locals[i].typeinfo.init_class(initclass))
 					return false;
 			}
 		}
@@ -347,7 +347,7 @@
 	rtype = md->returntype.type;
 	if (rtype != TYPE_VOID) {
 		dv->type = rtype;
-		if (!typeinfo_init_from_typedesc(&(md->returntype), NULL, &(dv->typeinfo)))
+		if (!dv->typeinfo.init_from_typedesc(&md->returntype, NULL))
 			return false;
 	}
 }

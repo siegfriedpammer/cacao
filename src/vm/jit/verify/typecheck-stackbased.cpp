@@ -193,7 +193,7 @@ static typecheck_result typecheck_stackbased_merge_locals(methodinfo *m,
 				else {
 					/* two reference types are merged. There cannot be */
 					/* a merge error. In the worst case we get j.l.O.  */
-					r = typeinfo_merge(m,&(a->typeinfo),&(b->typeinfo));
+					r = a->typeinfo.merge(m, &(b->typeinfo));
 					if (r == typecheck_FAIL)
 						return r;
 					changed |= r;
@@ -256,7 +256,7 @@ static typecheck_result typecheck_stackbased_merge(verifier_state *state,
 					exceptions_throw_verifyerror(state->m,"Merging reference with returnAddress");
 					return typecheck_FAIL;
 				}
-				r = typeinfo_merge(state->m,&(dp->typeinfo),&(sp->typeinfo));
+				r = dp->typeinfo.merge(state->m, &(sp->typeinfo));
 				if (r == typecheck_FAIL)
 					return r;
 				changed |= r;
@@ -499,7 +499,7 @@ static bool typecheck_stackbased_multianewarray(verifier_state *state,
 			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY dimension to high");
 
 		/* set the array type of the result */
-		typeinfo_init_classinfo(&(dst->typeinfo), arrayclass);
+		dst->typeinfo.init_class(arrayclass);
 	}
 	else {
 		const char *p;
@@ -519,7 +519,7 @@ static bool typecheck_stackbased_multianewarray(verifier_state *state,
 			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY dimension to high");
 
 		/* set the array type of the result */
-		if (!typeinfo_init_class(&(dst->typeinfo),to_classref_or_classinfo(cr)))
+		if (!dst->typeinfo.init_class(cr))
 			return false;
 	}
 
@@ -767,8 +767,7 @@ bool typecheck_stackbased(jitdata *jd)
     /* initialize instack of exception handlers */
 
 	exstack.type = TYPE_ADR;
-	typeinfo_init_classinfo(&(exstack.typeinfo),
-							class_java_lang_Throwable); /* changed later */
+	exstack.typeinfo.init_class(class_java_lang_Throwable); /* changed later */
 
     OLD_LOG("Exception handler stacks set.\n");
 
@@ -793,7 +792,7 @@ bool typecheck_stackbased(jitdata *jd)
 		if (state.initmethod)
 			TYPEINFO_INIT_NEWOBJECT(dst->typeinfo, NULL);
 		else
-			typeinfo_init_classinfo(&(dst->typeinfo), state.m->clazz);
+			dst->typeinfo.init_class(state.m->clazz);
 
 		skip = 1;
     }

@@ -425,11 +425,10 @@ bool typecheck_infer_types(jitdata *jd)
 		return false;
 
     /* initialize invars of exception handlers */
-	
+
 	state.exinvars = state.numlocals;
 	VAR(state.exinvars)->type = TYPE_ADR;
-	typeinfo_init_classinfo(&(VAR(state.exinvars)->typeinfo),
-							class_java_lang_Throwable); /* changed later */
+	VAR(state.exinvars)->typeinfo.init_class(class_java_lang_Throwable); /* changed later */
 
     OLD_LOG("Exception handler stacks set.\n");
 

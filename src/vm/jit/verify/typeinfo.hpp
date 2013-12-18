@@ -1,4 +1,4 @@
-/* src/vm/jit/verify/typeinfo.h - type system used by the type checker
+/* src/vm/jit/verify/typeinfo.hpp - type system used by the type checker
 
    Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -245,13 +245,13 @@ struct typeinfo_t {
 	bool is_nulltype()  const { return typeclass.cls == pseudo_class_Null;     }
 	bool is_newobject() const { return typeclass.cls == pseudo_class_New;      }
 
-	void *returnaddress() {
+	void *returnaddress() const {
 		EXPENSIVE_ASSERT(is_primitive());
 
 		return elementclass.any;
 	}
 
-	instruction *newobject_instruction() {
+	instruction *newobject_instruction() const {
 		EXPENSIVE_ASSERT(is_newobject());
 
 		return (instruction*) elementclass.any;
@@ -281,6 +281,10 @@ struct typeinfo_t {
 		return is_array_of_refs() || is_nulltype();
 	}
 
+	// Check if `this' type is assignable to a given destination type.
+	typecheck_result is_assignable_to(typeinfo_t *dest) const;
+	typecheck_result is_assignable_to_class(classref_or_classinfo dest) const;
+
 	// initializing typeinfo structures
 
 	void init_primitive() {
@@ -307,13 +311,26 @@ struct typeinfo_t {
 		elementtype      = 0;
 	}
 
-	void init_java_lang_class(classref_or_classinfo& cls) {
+	/// Initialize object type java.lang.Class
+	void init_java_lang_class(classref_or_classinfo cls) {
 		typeclass.cls    = class_java_lang_Class;
 		elementclass     = cls;
 		merged           = NULL;
 		dimension        = 0;
 		elementtype      = 0;
 	}
+
+	/// Initialize object type
+	void init_class(classinfo *c);
+	bool init_class(classref_or_classinfo c);
+
+	bool init_class(constant_classref *c) {
+		return init_class(to_classref_or_classinfo(c));
+	}
+
+	bool init_component(const typeinfo_t& srcarray);
+
+	bool init_from_typedesc(const typedesc *desc, u1 *type);
 
 	void init_nulltype() {
 		init_non_array_classinfo(pseudo_class_Null);
@@ -328,7 +345,7 @@ struct typeinfo_t {
 	}
 
 	void init_primitive_array(ArrayType arraytype) {
-		typeinfo_init_classinfo(this, primitivetype_table[arraytype].arrayclass);
+		init_class(primitivetype_table[arraytype].arrayclass);
 	}
 
 	// copying types (destinition is not checked or freed)
@@ -337,14 +354,18 @@ struct typeinfo_t {
 	 * makes a deep copy, the merged list (if any) is duplicated
 	 * into a newly allocated array.
 	 */
-	static void clone(typeinfo_t& src, typeinfo_t& dst) {
+	static void clone(const typeinfo_t& src, typeinfo_t& dst) {
 		dst = src;
 
 		if (dst.merged)
 			clone_merged(src, dst);
 	}
+
+	/// functions for merging types
+
+	typecheck_result merge(methodinfo *m, const typeinfo_t* t);
 private:
-	static void clone_merged(typeinfo_t& src, typeinfo_t& dst);
+	static void clone_merged(const typeinfo_t& src, typeinfo_t& dst);
 };
 
 
@@ -482,14 +503,9 @@ void typevector_store_retaddr(varinfo *set,int index,typeinfo_t *info);
 bool typevector_init_object(varinfo *set,void *ins,classref_or_classinfo initclass,int size);
 
 /* vector functions */
-varinfo *typevector_copy(varinfo *src,int size);
-void typevector_copy_inplace(varinfo *src,varinfo *dst,int size);
+varinfo         *typevector_copy(varinfo *src,int size);
+void             typevector_copy_inplace(varinfo *src,varinfo *dst,int size);
 typecheck_result typevector_merge(methodinfo *m,varinfo *dst,varinfo *y,int size);
-
-/* inquiry functions (read-only) ********************************************/
-
-typecheck_result typeinfo_is_assignable(typeinfo_t *value,typeinfo_t *dest);
-typecheck_result typeinfo_is_assignable_to_class(typeinfo_t *value,classref_or_classinfo dest);
 
 /* initialization functions *************************************************/
 
@@ -501,13 +517,6 @@ typecheck_result typeinfo_is_assignable_to_class(typeinfo_t *value,classref_or_c
  *     >= 0.............ok,
  *     -1...............an exception has been thrown.
  */
-void typeinfo_init_classinfo(typeinfo_t *info,classinfo *c);
-bool typeinfo_init_class(typeinfo_t *info,classref_or_classinfo c);
-bool typeinfo_init_component(typeinfo_t *srcarray,typeinfo_t *dst);
-
-bool typeinfo_init_from_typedesc(typedesc *desc,u1 *type,typeinfo_t *info);
-bool typedescriptor_init_from_typedesc(typedescriptor_t *td, typedesc *desc);
-bool typeinfo_init_varinfo_from_typedesc(varinfo *var, typedesc *desc);
 int  typedescriptors_init_from_methoddesc(typedescriptor_t *td,
 										  methoddesc *desc,
 										  int buflen,bool twoword,int startindex,
@@ -518,14 +527,6 @@ bool typeinfo_init_varinfos_from_methoddesc(varinfo *vars,
 										  s4 *map,
 										  typedescriptor_t *returntype);
 
-/* freeing memory ***********************************************************/
-
-void typeinfo_free(typeinfo_t *info);
-
-/* functions for merging types **********************************************/
-
-typecheck_result typeinfo_merge(methodinfo *m,typeinfo_t *dest,typeinfo_t* y);
-
 /* debugging helpers ********************************************************/
 
 #ifdef TYPEINFO_DEBUG
@@ -533,12 +534,12 @@ typecheck_result typeinfo_merge(methodinfo *m,typeinfo_t *dest,typeinfo_t* y);
 #include <stdio.h>
 
 void typeinfo_test();
-void typeinfo_print_class(FILE *file,classref_or_classinfo c);
-void typeinfo_print(FILE *file,typeinfo_t *info,int indent);
-void typeinfo_print_short(FILE *file,typeinfo_t *info);
-void typeinfo_print_type(FILE *file,int type,typeinfo_t *info);
-void typedescriptor_print(FILE *file,typedescriptor_t *td);
-void typevector_print(FILE *file,varinfo *vec,int size);
+void typeinfo_print_class(FILE *file, classref_or_classinfo c);
+void typeinfo_print(FILE *file, const typeinfo_t *info, int indent);
+void typeinfo_print_short(FILE *file, const typeinfo_t *info);
+void typeinfo_print_type(FILE *file, int type, const typeinfo_t *info);
+void typedescriptor_print(FILE *file, typedescriptor_t *td);
+void typevector_print(FILE *file, varinfo *vec, int size);
 
 #endif /* TYPEINFO_DEBUG */
 

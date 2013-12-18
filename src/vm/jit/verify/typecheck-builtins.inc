@@ -37,7 +37,7 @@
 		dv->type = TYPE_ADR;
 #if defined(TYPECHECK_TYPEINFERER)
 		assert(state->iptr[-1].opc == ICMD_ACONST);
-		typeinfo_init_class(&(dv->typeinfo), state->iptr[-1].sx.val.c);
+		dv->typeinfo.init_class(state->iptr[-1].sx.val.c);
 #else
 		if (state->iptr[-1].opc != ICMD_ACONST)
 			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_new without class");
@@ -91,7 +91,7 @@
 			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_newarray without class");
 		/* XXX check that it is an array class(ref) */
 		dv->type = TYPE_ADR;
-		typeinfo_init_class(&(dv->typeinfo),state->iptr[-1].sx.val.c);
+		dv->typeinfo.init_class(state->iptr[-1].sx.val.c);
 	}
 	else if (ISBUILTIN(BUILTIN_arrayinstanceof))
 	{
@@ -153,7 +153,7 @@
 		rtype = md->returntype.type;
 		if (rtype != TYPE_VOID) {
 			dv->type = rtype;
-			if (!typeinfo_init_from_typedesc(&(md->returntype),NULL,&(dv->typeinfo)))
+			if (!dv->typeinfo.init_from_typedesc(&md->returntype, NULL))
 				return false;
 		}
 	}
