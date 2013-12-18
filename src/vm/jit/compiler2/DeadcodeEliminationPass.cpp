@@ -80,25 +80,23 @@ bool DeadcodeEliminationPass::run(JITData &JD) {
 
 		// the first condition to be met for an instruction to be considered
 		// 'dead' is that all its users are 'dead'.
-		if (I->user_size() == deadUsers[I]) {
-			if (!I->has_side_effects() && !is_control_flow_inst(I)
-					&& I->get_opcode() != Instruction::ARRAYBOUNDSCHECKInstID) {
-				dead[I] = true;
+		if (I->user_size() == deadUsers[I] && !I->has_side_effects()
+				&& !is_control_flow_inst(I) && I->rdep_size() == 0) {
+			dead[I] = true;
 
-				// insert the dead instructions in the order they should be deleted
-				deadInstructions.push_back(I);
+			// insert the dead instructions in the order they should be deleted
+			deadInstructions.push_back(I);
 
-				for (Instruction::OperandListTy::const_iterator
-						i = I->op_begin(), e = I->op_end(); i != e; i++) {
-					Instruction *Op = (*i)->to_Instruction();
-					
-					if (Op) {
-						deadUsers[Op]++;
+			for (Instruction::OperandListTy::const_iterator
+					i = I->op_begin(), e = I->op_end(); i != e; i++) {
+				Instruction *Op = (*i)->to_Instruction();
+				
+				if (Op) {
+					deadUsers[Op]++;
 
-						if (!inWorkList[Op]) {
-							workList.push_back(Op);
-							inWorkList[Op] = true;
-						}
+					if (!inWorkList[Op]) {
+						workList.push_back(Op);
+						inWorkList[Op] = true;
 					}
 				}
 			}
