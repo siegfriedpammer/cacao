@@ -38,6 +38,8 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+class InVarPhis;
+
 /**
  * SSAConstructionPass
  *
@@ -56,12 +58,14 @@ private:
 	alloc::vector<alloc::vector<Value*>::type >::type current_def;
 	// TODO may be changed to std::vector<unordered_map<int,PHIInst*> > incomplete_phi;
 	alloc::vector<alloc::vector<PHIInst*>::type >::type incomplete_phi;
+	// TODO this should be merged with incomplete_phi
+	alloc::vector<alloc::list<InVarPhis*>::type >::type incomplete_in_phi;
+
 	alloc::vector<bool>::type sealed_blocks;
 	//
 	alloc::vector<bool>::type filled_blocks;
 	alloc::vector<Type::TypeID>::type var_type_tbl;
 	void write_variable(size_t varindex, size_t bb, Value *V);
-	Value* read_variable(size_t varindex, size_t bb);
 	Value* read_variable_recursive(size_t varindex, size_t bb);
 	Value* add_phi_operands(size_t varindex, PHIInst *phi);
 	Value* try_remove_trivial_phi(PHIInst *phi);
@@ -69,6 +73,7 @@ private:
 	bool try_seal_block(basicblock *bb);
 	void print_current_def() const;
 public:
+	Value* read_variable(size_t varindex, size_t bb);
 	static char ID;
 	SSAConstructionPass() : Pass() {}
 	virtual bool run(JITData &JD);
