@@ -48,6 +48,7 @@
 #include "vm/jit/compiler2/Compiler.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 
+#include "vm/jit/compiler2/ICMDPrinterPass.hpp"
 #include "vm/jit/compiler2/InstructionMetaPass.hpp"
 #include "vm/jit/compiler2/ParserPass.hpp"
 #include "vm/jit/compiler2/StackAnalysisPass.hpp"
@@ -135,6 +136,9 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass<MachineInstructionPrinterPass>();
 	PM.add_Pass<LivetimeAnalysisPass>();
 	#endif
+	if (opt_showintermediate) {
+		PM.add_Pass<ICMDPrinterPass>();
+	}
 #if !defined(NDEBUG)
 	PM.add_Pass<ExamplePass>();
 	PM.add_Pass<LoopTreePrinterPass>();
