@@ -20,6 +20,10 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 
+LATEX = TEXINPUTS=.:$(abs_srcdir):$$TEXINPUTS latex -interaction=batchmode -halt-on-error
+PDFLATEX = TEXINPUTS=.:$(abs_srcdir):$$TEXINPUTS pdflatex -interaction=batchmode -halt-on-error
+BIBTEX = BIBINPUTS=.:$(abs_srcdir) bibtex
+
 dist_noinst_DATA = \
 	BakkalaureatSeminararbeitKB2010.tex \
 	bibfile.bib
@@ -27,6 +31,21 @@ dist_noinst_DATA = \
 CLEANFILES = \
 	*.aux *.bbl *.blg *.dvi *.lof *.log *.lot *.toc
 
+pdf: BakkalaureatSeminararbeitKB2010.pdf
+
+dvi: BakkalaureatSeminararbeitKB2010.dvi
+
+BakkalaureatSeminararbeitKB2010.pdf: $(dist_noinst_DATA)
+	$(PDFLATEX) BakkalaureatSeminararbeitKB2010.tex
+	$(BIBTEX) BakkalaureatSeminararbeitKB2010.aux
+	$(PDFLATEX) BakkalaureatSeminararbeitKB2010.tex
+	$(PDFLATEX) BakkalaureatSeminararbeitKB2010.tex
+
+BakkalaureatSeminararbeitKB2010.dvi: $(dist_noinst_DATA)
+	$(LATEX) BakkalaureatSeminararbeitKB2010.tex
+	$(BIBTEX) BakkalaureatSeminararbeitKB2010.aux
+	$(LATEX) BakkalaureatSeminararbeitKB2010.tex
+	$(LATEX) BakkalaureatSeminararbeitKB2010.tex
 
 ## Local variables:
 ## mode: Makefile
