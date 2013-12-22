@@ -1,31 +1,18 @@
 \documentclass[11pt,a4paper]{article}
 
-\usepackage{gwa}
 \usepackage{graphicx}
 \usepackage{url}
 %\usepackage{ngerman}
 \usepackage[latin1]{inputenc}
 \usepackage{textcomp}
-\usepackage{multicol}
 
 \begin{document}
 
 \title{Optimization of Array Bounds Checking in the Context of Cacao Java Virtual Machine}
 
-\author{
-  \authN{Bräutigam Klaus}\\
-  \matNr{0825965}\\
-  \authI{Institute of Computer Languages}\\
-  \authU{Technical University of Vienna}\\
-  \email{e0825965@student.tuwien.ac.at}\\\\
-  \authN{Bachelor Thesis BSc. in Informatics - Software and Information
-  Engineering 033 534 }\\
-  \authN{supervised by Univ.Prof. Dr. Andreas Krall}
-}
+\author{Bräutigam Klaus, 0825965}
 
 \maketitle
-
-\begin{multicols}{2}
 
 %% Abstract -------------------------------------------------------------------
 
@@ -1010,8 +997,6 @@ should be possible to quickly understand the raw idea described.
 		\cite{HandbookForJavaCacaoVirtualMachine:1996} in chapter 5.7 Loop Optimization.
 		This could give some useful introducing information before studying the real behavior.
 
-\end{multicols}
-
 		The most important data structures to understand the ABC optimization algorithm:
 		
 		\begin{description}
@@ -1154,8 +1139,6 @@ should be possible to quickly understand the raw idea described.
 		arguments are passed. The proof for this assumption will be done using assembler code output
 		from the machine application.
 		
-\begin{multicols}{2}
- 
 		\subsubsection{Possible Improvements for the ABC Optimizer}
 		The algorithm is due to its constraints of the virtual machine architecture a very conservative approach
 		and has no really complicated mechanisms like speculation/probability calculations or exhaustive
@@ -1201,8 +1184,6 @@ So we are definitly far away from the perfect solution but the algorithm proved 
 
 \bibliographystyle{alpha}
 \bibliography{bibfile}
-
-\end{multicols}
 
 \end{document}
 

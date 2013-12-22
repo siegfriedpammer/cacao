@@ -1,6 +1,6 @@
-## doc/Makefile.am
+## doc/abc_optimization/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2008
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -20,52 +20,13 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 
-
-SUBDIRS = \
-	abc_optimization \
-	doxygen \
-	handbook \
-	intern_tables
-
 dist_noinst_DATA = \
-	assertions.tex \
-	annotations.tex \
-	jsr.bib
-
-EXTRA_DIST = \
-	bibliography.bib \
-	design_onstack_replacement.txt \
-	inlining_stacktrace.txt \
-	native_threads.txt \
-	stack.txt \
-	stack_frames.txt
+	BakkalaureatSeminararbeitKB2010.tex \
+	bibfile.bib
 
 CLEANFILES = \
-	annotations.aux \
-	annotations.bbl \
-	annotations.blg \
-	annotations.dvi \
-	annotations.lof \
-	annotations.log \
-	annotations.lot \
-	annotations.toc \
-	annotations.idx \
-	annotations.out \
-	annotations.tex~ \
-	assertions.aux \
-	assertions.dvi \
-	assertions.log \
-	assertions.toc
+	*.aux *.bbl *.blg *.dvi *.lof *.log *.lot *.toc
 
-annotations:
-	latex annotations
-	bibtex annotations
-	latex annotations
-	latex annotations
-
-assertions:
-	latex assertions
-	latex assertions
 
 ## Local variables:
 ## mode: Makefile

@@ -3,7 +3,12 @@ New in release 1.6.2 (not yet released)
   * New statistics framework.
   * Loop optimization (disabled by default).
   * Boehm GC upgraded to 7.2d.
-  * Fixed PR185 (noisy finalizer exceptions).
+  * Eliminated almost all compiler warnings.
+  * Some removal of deprecated code.
+  * Removed m68k architecture.
+  * Fixed Java assertion handling.
+  * Fixed float stack argument passing on some architectures.
+  * Fixed PR50, PR180, PR185, PR186, PR187.
 
 New in release 1.6.1 (June 28, 2013)
 
@@ -26,7 +31,6 @@ New in release 1.6.0 (September 4, 2012)
     (currently broken).
   * park/unpark support.
   * Simplified signal handling -- reduced code duplication.
-  * Stack unwinding mostly rewritten in C -- reduced assembler code.
   * Added support for OpenSolaris.
   * Experimental python mode for easier inspection of internal compiler
     structures.
