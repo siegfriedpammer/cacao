@@ -1010,12 +1010,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 	basicblock *bb;
 	jd = JD.get_jitdata();
 
-	#if !defined(NDEBUG)
-	if (DEBUG_COND) {
-		show_method(jd, SHOW_CFG);
-	}
-	#endif
-
 	// **** BEGIN initializations
 
 	/**
