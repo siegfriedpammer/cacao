@@ -20,6 +20,9 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 
+LATEX = TEXINPUTS=.:$(abs_srcdir):$$TEXINPUTS latex -interaction=batchmode -halt-on-error
+PDFLATEX = TEXINPUTS=.:$(abs_srcdir):$$TEXINPUTS pdflatex -interaction=batchmode -halt-on-error
+
 dist_noinst_DATA = \
 	protokoll.tex \
 	jstr-intern-collisions.png \
@@ -31,6 +34,20 @@ dist_noinst_DATA = \
 
 CLEANFILES = \
 	*.aux *.bbl *.blg *.dvi *.lof *.log *.lot *.toc
+
+pdf: protokoll.pdf
+
+dvi: protokoll.dvi
+
+protokoll.pdf: $(dist_noinst_DATA)
+	$(PDFLATEX) protokoll.tex
+	$(PDFLATEX) protokoll.tex
+	$(PDFLATEX) protokoll.tex
+
+protokoll.dvi: $(dist_noinst_DATA)
+	$(LATEX) protokoll.tex
+	$(LATEX) protokoll.tex
+	$(LATEX) protokoll.tex
 
 
 ## Local variables:
