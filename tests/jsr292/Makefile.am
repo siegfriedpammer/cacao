@@ -43,14 +43,14 @@ CLEANFILES = \
 check: build run
 
 build:
-	$(JAVACCMD) -classpath $(JUNIT_JAR):. $(srcdir)/*.java
+	$(JAVACCMD) -classpath $(JUNIT_JAR):. -d . $(srcdir)/*.java
 	$(JAVACMD)  indify.Indify --overwrite *.class
 
 run:
 	$(JAVACMD) -classpath $(JUNIT_JAR):. org.junit.runner.JUnitCore $(notdir $(basename $<))
 
 %.class: %.java
-	$(JAVACCMD) -classpath $(JUNIT_JAR):. *.java
+	$(JAVACCMD) -classpath $(JUNIT_JAR):. -d . *.java
 	$(JAVACMD)  indify.Indify --overwrite *.class
 
 
