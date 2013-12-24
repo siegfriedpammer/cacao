@@ -998,20 +998,16 @@ void exceptions_throw_unsatisfiedlinkerror(Utf8String name)
    Generates and throws a java.lang.UnsupportedClassVersionError for
    the classloader.
 
-   IN:
-      c............class in which the method was not found
-	  message......UTF-8 format string
-
 *******************************************************************************/
 
-void exceptions_throw_unsupportedclassversionerror(classinfo *c, u4 ma, u4 mi)
+void exceptions_throw_unsupportedclassversionerror(classinfo *c)
 {
 	/* generate message */
 
 	Buffer<> buf;
 
 	buf.write_slash_to_dot(c->name)
-	   .writef(" (Unsupported major.minor version %d.%d)", ma, mi);
+	   .writef(" (Unsupported major.minor version %d.%d)", c->version.majr(), c->version.minr());
 
 	/* throw exception */
 

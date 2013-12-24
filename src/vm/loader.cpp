@@ -124,6 +124,9 @@ inline void *operator new(std::size_t size, ConstantPoolPlacement) {
 	return mem_alloc(size);
 }
 
+const ClassFileVersion ClassFileVersion::CACAO_VERSION(MAJOR_VERSION, MINOR_VERSION);
+const ClassFileVersion ClassFileVersion::JDK_7(51, 0);
+
 
 /* loader_preinit **************************************************************
 
@@ -766,6 +769,9 @@ static bool load_constantpool(ClassBuffer& cb, ForwardReferences& fwd, Descripto
 		}
 
 		case CONSTANT_MethodHandle: {
+			if (cb.version() < ClassFileVersion::JDK_7)
+				goto unsupported_tag;
+
 			if (!cb.check_size(1 + 2))
 				return false;
 
@@ -781,6 +787,9 @@ static bool load_constantpool(ClassBuffer& cb, ForwardReferences& fwd, Descripto
 		}
 
 		case CONSTANT_MethodType: {
+			if (cb.version() < ClassFileVersion::JDK_7)
+				goto unsupported_tag;
+
 			if (!cb.check_size(2))
 				return false;
 
@@ -795,6 +804,9 @@ static bool load_constantpool(ClassBuffer& cb, ForwardReferences& fwd, Descripto
 		}
 
 		case CONSTANT_InvokeDynamic: {
+			if (cb.version() < ClassFileVersion::JDK_7)
+				goto unsupported_tag;
+
 			if (!cb.check_size(2 + 2))
 				return false;
 
@@ -809,12 +821,15 @@ static bool load_constantpool(ClassBuffer& cb, ForwardReferences& fwd, Descripto
 			break;
 		}
 
+		unsupported_tag:
+			exceptions_throw_classformaterror(c, "Class file version does not support constant tag %u in class file %s", tag, c->name.begin());
+			return false;
+
 		default:
 			exceptions_throw_classformaterror(c, "Illegal constant pool type '%u'", tag);
 			return false;
 		}  /* end switch */
 	} /* end while */
-
 
 	/* resolve entries in temporary structures */
 
@@ -1417,11 +1432,13 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 
 	u4 mi = cb.read_u2();
 	u4 ma = cb.read_u2();
+	c->version = ClassFileVersion(ma, mi);
 
-	if (!(ma < MAJOR_VERSION || (ma == MAJOR_VERSION && mi <= MINOR_VERSION))) {
-		exceptions_throw_unsupportedclassversionerror(c, ma, mi);
+	if (ClassFileVersion::CACAO_VERSION < c->version) {
+		exceptions_throw_unsupportedclassversionerror(c);
 		return false;
 	}
+
 
 	RT_TIMER_STOPSTART(checks_timer,ndpool_timer);
 
@@ -1690,8 +1707,7 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 		/* Don't allow extending final classes */
 
 		if (tc->flags & ACC_FINAL) {
-			exceptions_throw_verifyerror(NULL,
-										 "Cannot inherit from final class");
+			exceptions_throw_verifyerror(NULL, "Cannot inherit from final class");
 			return false;
 		}
 

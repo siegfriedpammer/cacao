@@ -93,12 +93,62 @@ struct  constant_nameandtype {         /* NameAndType (Field or Method)       */
 
 *******************************************************************************/
 
-typedef struct hashtable_classloader_entry hashtable_classloader_entry;
-
 struct hashtable_classloader_entry {
 	java_object_t               *object;
 	hashtable_classloader_entry *hashlink;
 };
+
+
+namespace cacao {
+	/**
+	 * A version of the Java class file format.
+	 *
+	 * @Cpp11 Make all methods, ctors, statics a constexpr
+	 */
+	struct ClassFileVersion {
+		/**
+		 * The class file format version supported by CACAO
+		 */
+		static const ClassFileVersion CACAO_VERSION;
+
+		/**
+		 * The class file format version used by JDK 7
+		 */
+		static const ClassFileVersion JDK_7;
+
+
+		ClassFileVersion(uint16_t major, uint16_t minor = 0) : _majr(major), _minr(minor) {}
+
+		bool operator ==(ClassFileVersion v) const {
+			return _majr == v._majr && _minr == v._minr;
+		}
+
+		/// A strict weak ordering as required by STL
+		bool operator <(ClassFileVersion v) const {
+			if (_majr < v._majr)
+				return true;
+			if (v._majr > _majr)
+				return false;
+
+			// major versions are equal
+
+			if (_minr < v._minr)
+				return true;
+			return false;
+		}
+
+		bool operator <=(ClassFileVersion v) const {
+			return (*this == v) || (*this < v);
+		}
+
+		// we can't call these major/minor because GCC defines macros of that name
+		uint16_t majr() const { return _majr; }
+		uint16_t minr() const { return _minr; }
+	private:
+		uint16_t _majr, _minr;
+	};
+}
+
 
 /* function prototypes ********************************************************/
 

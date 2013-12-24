@@ -341,6 +341,7 @@ ClassBuffer::ClassBuffer(classinfo *clazz, uint8_t *data, size_t sz, const char 
 	init(clazz, data, sz, path);
 }
 
+ClassFileVersion ClassBuffer::version() const { return clazz->version; }
 
 /***
  *	Loads class file corresponding to given classinfo into new ClassBuffer.
