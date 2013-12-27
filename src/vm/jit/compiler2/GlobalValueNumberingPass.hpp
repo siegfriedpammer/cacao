@@ -93,8 +93,8 @@ private:
 	static int compute_max_arity(Method::const_iterator begin,
 								Method::const_iterator end);
 
-	void consolidate_blocks();
-	void consolidate_block(BlockTy *block);
+	void eliminate_redundancies();
+	void eliminate_redundancies_in_block(BlockTy *block);
 	
 	template <typename T1, typename T2>
 	BlockTy *get_or_create_block(T1 &map, T2 key) {

@@ -300,22 +300,22 @@ bool GlobalValueNumberingPass::run(JITData &JD) {
 
 	LOG(nl << "AFTER PARTITIONING" << nl);
 	print_blocks();
-	consolidate_blocks();
+	eliminate_redundancies();
 
 	return true;
 }
 
-void GlobalValueNumberingPass::consolidate_blocks() {
+void GlobalValueNumberingPass::eliminate_redundancies() {
 	for (PartitionTy::const_iterator i = partition.begin(),
 			e = partition.end(); i != e; i++) {
 		BlockTy *block = *i;
 		if (block->size() > 1) {
-			consolidate_block(block);
+			eliminate_redundancies_in_block(block);
 		}
 	}
 }
 
-void GlobalValueNumberingPass::consolidate_block(BlockTy *block) {
+void GlobalValueNumberingPass::eliminate_redundancies_in_block(BlockTy *block) {
 	BlockTy::iterator i = block->begin();
 	Instruction *inst = *i;
 	i++;
