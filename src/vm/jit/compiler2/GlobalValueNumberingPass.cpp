@@ -328,6 +328,34 @@ void GlobalValueNumberingPass::print_blocks() {
 	}
 }
 
+template <typename T, typename Iterator>
+void delete_in_range(T *lst, Iterator begin, Iterator end) {
+	while (!lst->empty()) {
+		delete lst->back();
+		lst->pop_back();
+	}
+}
+
+template <typename T1, typename T2, typename Iterator>
+void delete_in_range(unordered_map<T1,T2> *map, Iterator begin, Iterator end) {
+	Iterator i = begin;
+	while (i != end) {
+		delete i->second;
+		map->erase(i++);
+	}
+}
+
+void GlobalValueNumberingPass::clean_up_operand_inverse() {
+	OperandInverseMapTy::const_iterator i = operandInverseMap.begin();
+	OperandInverseMapTy::const_iterator e = operandInverseMap.end();
+	while (i != e) {
+		OperandIndex2UsersTy *opUsers = i->second;
+		delete_in_range(opUsers, opUsers->begin(), opUsers->end());
+		delete opUsers;
+		operandInverseMap.erase(i++);
+	}
+}
+
 bool GlobalValueNumberingPass::run(JITData &JD) {
 	Method *M = JD.get_Method();
 	
@@ -365,23 +393,6 @@ bool GlobalValueNumberingPass::run(JITData &JD) {
 					touchedInstructions->insert(user);
 				}
 			}
-
-//			for (Value::UserListTy::const_iterator ui = I->user_begin(),
-//					ue = I->user_end(); ui != ue; ui++) {
-//				Instruction *user = *ui;
-//				if (user->op_size() > operandIndex
-//						&& user->get_operand(operandIndex) == I) {
-//					BlockTy *userBlock = get_block(user);
-//
-//					// the user's block can be 0 if it is and
-//					// end inst
-//					if (userBlock) {
-//						touched.push_back(userBlock);
-//						TouchedInstListTy *touchedInstructions = get_touched_instructions(userBlock);
-//						touchedInstructions->insert(user); // TODO: check possible duplicates
-//					}
-//				}
-//			}
 		}
 
 		// we have to look at every block that contains instructions
@@ -407,11 +418,11 @@ bool GlobalValueNumberingPass::run(JITData &JD) {
 	print_blocks();
 	eliminate_redundancies();
 
-	// TODO: delete contents of these containers
-	partition.clear();
-	inst2BlockMap.clear();
-	block2TouchedInstListMap.clear();
-	inWorkList.clear();
+	delete_in_range(&partition, partition.begin(), partition.end());
+	delete_in_range(&block2TouchedInstListMap, block2TouchedInstListMap.begin(),
+		block2TouchedInstListMap.end());
+	delete_in_range(&inWorkList, inWorkList.begin(), inWorkList.end());
+	clean_up_operand_inverse();
 
 	return true;
 }

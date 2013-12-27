@@ -112,6 +112,8 @@ private:
 		}
 		return block;
 	}
+
+	void clean_up_operand_inverse();
 public:
 	static char ID;
 	GlobalValueNumberingPass() : Pass() {}
