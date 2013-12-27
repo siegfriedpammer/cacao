@@ -42,68 +42,68 @@ namespace compiler2 {
  */
 class GlobalValueNumberingPass : public Pass {
 private:
-	typedef unordered_set<Instruction*> PartitionTy;
-	typedef std::vector<PartitionTy*> PartitionVectorTy;
-	typedef std::pair<PartitionTy*,int> WorkListPairTy;
+	typedef unordered_set<Instruction*> BlockTy;
+	typedef std::vector<BlockTy*> PartitionTy;
+	typedef std::pair<BlockTy*,int> WorkListPairTy;
 	typedef std::list<WorkListPairTy*> WorkListTy;
-	typedef unordered_map<PartitionTy*,std::vector<bool>* > InWorkListTy;
-	typedef unordered_map<Instruction*,PartitionTy*> Inst2PartitionMapTy;
+	typedef unordered_map<BlockTy*,std::vector<bool>* > InWorkListTy;
+	typedef unordered_map<Instruction*,BlockTy*> Inst2BlockMapTy;
 
-	/// these types are needed for the creation of the inital partitions
-	typedef unordered_map<Instruction::InstID,PartitionTy*,hash<int> > OpcodePartitionMapTy;
-	typedef unordered_map<int32_t,PartitionTy*> IntPartitionMapTy;
-	typedef unordered_map<int64_t,PartitionTy*> LongPartitionMapTy;
-	typedef unordered_map<float,PartitionTy*> FloatPartitionMapTy;
-	typedef unordered_map<double,PartitionTy*> DoublePartitionMapTy;
-	typedef unordered_map<BeginInst*,PartitionTy*> BBPartitionMapTy;
+	/// these types are needed for the creation of the inital blocks
+	typedef unordered_map<Instruction::InstID,BlockTy*,hash<int> > OpcodeBlockMapTy;
+	typedef unordered_map<int32_t,BlockTy*> IntBlockMapTy;
+	typedef unordered_map<int64_t,BlockTy*> LongBlockMapTy;
+	typedef unordered_map<float,BlockTy*> FloatBlockMapTy;
+	typedef unordered_map<double,BlockTy*> DoubleBlockMapTy;
+	typedef unordered_map<BeginInst*,BlockTy*> BBBlockMapTy;
 
 	typedef unordered_set<Instruction*> TouchedInstListTy;
-	typedef unordered_map<PartitionTy*,TouchedInstListTy*> Partition2TouchedInstListMapTy;
+	typedef unordered_map<BlockTy*,TouchedInstListTy*> Block2TouchedInstListMapTy;
 
 	int max_arity;
-	PartitionVectorTy partitions;
-	Inst2PartitionMapTy inst2PartitionMap;
-	Partition2TouchedInstListMapTy partition2TouchedInstListMap;
+	PartitionTy partition;
+	Inst2BlockMapTy inst2BlockMap;
+	Block2TouchedInstListMapTy block2TouchedInstListMap;
 	
 	InWorkListTy inWorkList;
 	WorkListTy workList;
 
-	PartitionTy *create_partition();
-	void init_partitions(Method::const_iterator begin,
+	BlockTy *create_block();
+	void init_partition(Method::const_iterator begin,
 		Method::const_iterator end);
-	void init_worklist_and_touchedpartitions();
-	void add_to_partition(PartitionTy *partition, Instruction *inst);
+	void init_worklist_and_touchedblocks();
+	void add_to_block(BlockTy *block, Instruction *inst);
 
-	void add_to_worklist(PartitionTy *partition, int operandIndex);
-	std::vector<bool> *get_worklist_flags(PartitionTy *partition);
-	void set_in_worklist(PartitionTy *partition, int index, bool flag);
-	bool is_in_worklist(PartitionTy *partition, int index);
+	void add_to_worklist(BlockTy *block, int operandIndex);
+	std::vector<bool> *get_worklist_flags(BlockTy *block);
+	void set_in_worklist(BlockTy *block, int index, bool flag);
+	bool is_in_worklist(BlockTy *block, int index);
 	WorkListPairTy *selectAndDeleteFromWorkList();
 
-	TouchedInstListTy *get_touched_instructions(PartitionTy *partition);
-	PartitionTy *get_partition(Instruction *inst);
+	TouchedInstListTy *get_touched_instructions(BlockTy *block);
+	BlockTy *get_block(Instruction *inst);
 
-	void split(PartitionTy *partition, TouchedInstListTy *instructions);
+	void split(BlockTy *block, TouchedInstListTy *instructions);
 
-	void print_partition(PartitionTy *partition);
-	void print_partitions();
+	void print_block(BlockTy *block);
+	void print_blocks();
 	void print_instructions(TouchedInstListTy *instructions);
 	
-	static int arity(PartitionTy *partition);
+	static int arity(BlockTy *block);
 	static int compute_max_arity(Method::const_iterator begin,
 								Method::const_iterator end);
 
-	void consolidate_partitions();
-	void consolidate_partition(PartitionTy *partition);
+	void consolidate_blocks();
+	void consolidate_block(BlockTy *block);
 	
 	template <typename T1, typename T2>
-	PartitionTy *get_or_create_partition(T1 &map, T2 key) {
-		PartitionTy *partition = map[key];
-		if (!partition) {
-			partition = create_partition();
-			map[key] = partition;
+	BlockTy *get_or_create_block(T1 &map, T2 key) {
+		BlockTy *block = map[key];
+		if (!block) {
+			block = create_block();
+			map[key] = block;
 		}
-		return partition;
+		return block;
 	}
 public:
 	static char ID;

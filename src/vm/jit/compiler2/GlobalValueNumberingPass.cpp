@@ -40,48 +40,48 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-void GlobalValueNumberingPass::init_partitions(Method::const_iterator begin, Method::const_iterator end) {
+void GlobalValueNumberingPass::init_partition(Method::const_iterator begin, Method::const_iterator end) {
 
-	OpcodePartitionMapTy opcodeToPartition;
-	LongPartitionMapTy longToPartition;
-	IntPartitionMapTy intToPartition;
-	FloatPartitionMapTy floatToPartition;
-	DoublePartitionMapTy doubleToPartition;
-	BBPartitionMapTy bbToPartition;
+	OpcodeBlockMapTy opcodeToBlock;
+	LongBlockMapTy longToBlock;
+	IntBlockMapTy intToBlock;
+	FloatBlockMapTy floatToBlock;
+	DoubleBlockMapTy doubleToBlock;
+	BBBlockMapTy bbToBlock;
 
 	for (Method::const_iterator i = begin, e = end; i != e; ++i) {
 		Instruction *I = *i;
-		PartitionTy *partition = (PartitionTy*) 0;
+		BlockTy *block = (BlockTy*) 0;
 
 		if (I->has_side_effects()
 				|| I->get_opcode() == Instruction::LOADInstID
 				|| I->get_opcode() == Instruction::ALOADInstID) {
 			// instructions which change the global state or depend on it
-			// will be in a separate partition each, because they are congruent
+			// will be in a separate block each, because they are congruent
 			// only with themselves
 
-			partition = create_partition();
+			block = create_block();
 		} else if (I->get_opcode() == Instruction::CONSTInstID) {
 			CONSTInst *constInst = I->to_CONSTInst();
-			// for each constant an initial partition will be created,
+			// for each constant an initial block will be created,
 			// holding all the nodes of the same constant type that have
 			// equal values.
 
 			switch (constInst->get_type()) {
 				case Type::IntTypeID:
-					partition = get_or_create_partition(intToPartition,
+					block = get_or_create_block(intToBlock,
 						constInst->get_Int());
 					break;
 				case Type::LongTypeID:
-					partition = get_or_create_partition(longToPartition,
+					block = get_or_create_block(longToBlock,
 						constInst->get_Long());
 					break;
 				case Type::FloatTypeID:
-					partition = get_or_create_partition(floatToPartition,
+					block = get_or_create_block(floatToBlock,
 						constInst->get_Float());
 					break;
 				case Type::DoubleTypeID:
-					partition = get_or_create_partition(doubleToPartition,
+					block = get_or_create_block(doubleToBlock,
 						constInst->get_Double());
 
 					break;
@@ -90,49 +90,49 @@ void GlobalValueNumberingPass::init_partitions(Method::const_iterator begin, Met
 			}
 		} else if (I->get_opcode() == Instruction::PHIInstID) {
 			// all PHIInsts which belong to the same basic block
-			// will be pooled into a common initial partition
+			// will be pooled into a common initial block
 			// TODO: generally this should hold for other instructions
 			// that are floating
 
 			PHIInst *phiInst = I->to_PHIInst();
 			assert(phiInst);
 			BeginInst *bb = phiInst->get_BeginInst();
-			partition = get_or_create_partition(bbToPartition, bb);
+			block = get_or_create_block(bbToBlock, bb);
 		} else if (I->get_opcode() != Instruction::BeginInstID
 				&& !I->to_EndInst()) {
 			// all other instructions which are no control flow
-			// instructions will be pooled into a common partition
+			// instructions will be pooled into a common block
 			// per opcode
 
-			partition = get_or_create_partition(opcodeToPartition,
+			block = get_or_create_block(opcodeToBlock,
 				I->get_opcode());
 		}
 
-		if (partition) {
-			add_to_partition(partition, I);
+		if (block) {
+			add_to_block(block, I);
 		}
 	}
 }
 
 /**
- * creates and returns a new partition and does some setup work needed
+ * creates and returns a new block and does some setup work needed
  * for the further execution of the partitioning algorithm
  */
-GlobalValueNumberingPass::PartitionTy *
-GlobalValueNumberingPass::create_partition() {
-	PartitionTy *partition = new PartitionTy();
-	partitions.push_back(partition);
-	partition2TouchedInstListMap[partition] = new TouchedInstListTy();
-	return partition;
+GlobalValueNumberingPass::BlockTy *
+GlobalValueNumberingPass::create_block() {
+	BlockTy *block = new BlockTy();
+	partition.push_back(block);
+	block2TouchedInstListMap[block] = new TouchedInstListTy();
+	return block;
 }
 
-void GlobalValueNumberingPass::add_to_partition(PartitionTy *partition, Instruction *inst) {
-	partition->insert(inst);
-	inst2PartitionMap[inst] = partition;
+void GlobalValueNumberingPass::add_to_block(BlockTy *block, Instruction *inst) {
+	block->insert(inst);
+	inst2BlockMap[inst] = block;
 }
 
-int GlobalValueNumberingPass::arity(PartitionTy *partition) {
-	PartitionTy::const_iterator i = partition->begin();
+int GlobalValueNumberingPass::arity(BlockTy *block) {
+	BlockTy::const_iterator i = block->begin();
 	Instruction *I = *i;
 	return I->op_size();
 }
@@ -149,53 +149,53 @@ int GlobalValueNumberingPass::compute_max_arity(Method::const_iterator begin,
 	return max;
 }
 
-void GlobalValueNumberingPass::init_worklist_and_touchedpartitions() {
+void GlobalValueNumberingPass::init_worklist_and_touchedblocks() {
 	// TODO: clear all the containers
-	for (PartitionVectorTy::const_iterator i = partitions.begin(),
-			e = partitions.end(); i != e; i++) {
-		PartitionTy *partition = *i;
+	for (PartitionTy::const_iterator i = partition.begin(),
+			e = partition.end(); i != e; i++) {
+		BlockTy *block = *i;
 
 		for (int operandIndex = 0; operandIndex < max_arity; operandIndex++) {
 			// create new work list pair
 			WorkListPairTy *pair = new WorkListPairTy();
-			pair->first = partition;
+			pair->first = block;
 			pair->second = operandIndex;
 			workList.push_back(pair);
 
 			// mark work list pair
-			set_in_worklist(partition, operandIndex, true);
+			set_in_worklist(block, operandIndex, true);
 		}
 	}
 }
 
-std::vector<bool> *GlobalValueNumberingPass::get_worklist_flags(PartitionTy *partition) {
-	std::vector<bool> *flags = inWorkList[partition];
+std::vector<bool> *GlobalValueNumberingPass::get_worklist_flags(BlockTy *block) {
+	std::vector<bool> *flags = inWorkList[block];
 	if (!flags) {
 		flags = new std::vector<bool>(max_arity);
-		inWorkList[partition] = flags;
+		inWorkList[block] = flags;
 	}
 	return flags;
 }
 
-void GlobalValueNumberingPass::set_in_worklist(PartitionTy *partition, int index, bool flag) {
-	std::vector<bool> *flags = get_worklist_flags(partition);
+void GlobalValueNumberingPass::set_in_worklist(BlockTy *block, int index, bool flag) {
+	std::vector<bool> *flags = get_worklist_flags(block);
 	(*flags)[index] = flag;
 }
 
-bool GlobalValueNumberingPass::is_in_worklist(PartitionTy *partition, int index) {
-	std::vector<bool> *flags = get_worklist_flags(partition);
+bool GlobalValueNumberingPass::is_in_worklist(BlockTy *block, int index) {
+	std::vector<bool> *flags = get_worklist_flags(block);
 	return (*flags)[index];
 }
 
-void GlobalValueNumberingPass::add_to_worklist(PartitionTy *partition, int index) {
+void GlobalValueNumberingPass::add_to_worklist(BlockTy *block, int index) {
 	// create new work list pair
 	WorkListPairTy *pair = new WorkListPairTy();
-	pair->first = partition;
+	pair->first = block;
 	pair->second = index;
 	workList.push_back(pair);
 
 	// mark work list pair
-	set_in_worklist(partition, index, true);
+	set_in_worklist(block, index, true);
 }
 
 GlobalValueNumberingPass::WorkListPairTy *GlobalValueNumberingPass::selectAndDeleteFromWorkList() {
@@ -206,35 +206,35 @@ GlobalValueNumberingPass::WorkListPairTy *GlobalValueNumberingPass::selectAndDel
 }
 
 GlobalValueNumberingPass::TouchedInstListTy *
-GlobalValueNumberingPass::get_touched_instructions(PartitionTy *partition) {
-	return partition2TouchedInstListMap[partition];
+GlobalValueNumberingPass::get_touched_instructions(BlockTy *block) {
+	return block2TouchedInstListMap[block];
 }
 
-GlobalValueNumberingPass::PartitionTy *
-GlobalValueNumberingPass::get_partition(Instruction *inst) {
-	return inst2PartitionMap[inst];
+GlobalValueNumberingPass::BlockTy *
+GlobalValueNumberingPass::get_block(Instruction *inst) {
+	return inst2BlockMap[inst];
 }
 
-void GlobalValueNumberingPass::split(PartitionTy *partition, TouchedInstListTy *instructions) {
-	PartitionTy *new_partition = create_partition();
+void GlobalValueNumberingPass::split(BlockTy *block, TouchedInstListTy *instructions) {
+	BlockTy *new_block = create_block();
 
-	assert(partition->size() > instructions->size());
+	assert(block->size() > instructions->size());
 
-	// remove the given instructions from the given partition and move them 
+	// remove the given instructions from the given block and move them 
 	// to the new one
 	for (TouchedInstListTy::const_iterator i = instructions->begin(),
 			e = instructions->end(); i != e; i++) {
 		Instruction *I = *i;
-		partition->erase(I);
-		add_to_partition(new_partition, I);
+		block->erase(I);
+		add_to_block(new_block, I);
 	}
 
 	for (int operandIndex = 0; operandIndex < max_arity; operandIndex++) {
-		if (!is_in_worklist(partition, operandIndex)
-				&& partition->size() <= new_partition->size()) {
-			add_to_worklist(partition, operandIndex);
+		if (!is_in_worklist(block, operandIndex)
+				&& block->size() <= new_block->size()) {
+			add_to_worklist(block, operandIndex);
 		} else {
-			add_to_worklist(new_partition, operandIndex);
+			add_to_worklist(new_block, operandIndex);
 		}
 	}
 }
@@ -243,22 +243,22 @@ bool GlobalValueNumberingPass::run(JITData &JD) {
 	Method *M = JD.get_Method();
 	
 	max_arity = compute_max_arity(M->begin(), M->end());
-	init_partitions(M->begin(), M->end());
-	init_worklist_and_touchedpartitions();
+	init_partition(M->begin(), M->end());
+	init_worklist_and_touchedblocks();
 
 	LOG("BEFORE PARTITIONING" << nl);
-	print_partitions();
+	print_blocks();
 
 	while (!workList.empty()) {
 		WorkListPairTy *workListPair = selectAndDeleteFromWorkList();
-		PartitionTy *partition = workListPair->first;
+		BlockTy *block = workListPair->first;
 		int operandIndex = workListPair->second;
 		delete workListPair;
 
-		std::list<PartitionTy*> touched;
+		std::list<BlockTy*> touched;
 
-		for (PartitionTy::const_iterator i = partition->begin(),
-				e = partition->end(); i != e; i++) {
+		for (BlockTy::const_iterator i = block->begin(),
+				e = block->end(); i != e; i++) {
 			Instruction *I = *i;
 
 			for (Value::UserListTy::const_iterator ui = I->user_begin(),
@@ -266,61 +266,61 @@ bool GlobalValueNumberingPass::run(JITData &JD) {
 				Instruction *user = *ui;
 				if (user->op_size() > operandIndex
 						&& user->get_operand(operandIndex) == I) {
-					PartitionTy *userPartition = get_partition(user);
+					BlockTy *userBlock = get_block(user);
 
-					// the user's partition can be 0 if it is and
+					// the user's block can be 0 if it is and
 					// end inst
-					if (userPartition) {
-						touched.push_back(userPartition);
-						TouchedInstListTy *touchedInstructions = get_touched_instructions(userPartition);
+					if (userBlock) {
+						touched.push_back(userBlock);
+						TouchedInstListTy *touchedInstructions = get_touched_instructions(userBlock);
 						touchedInstructions->insert(user); // TODO: check possible duplicates
 					}
 				}
 			}
 		}
 
-		// we have to look at every partition that contains instructions
-		// whose operand at index operandIndex is in the current partition
-		for (std::list<PartitionTy*>::const_iterator i = touched.begin(),
+		// we have to look at every block that contains instructions
+		// whose operand at index operandIndex is in the current block
+		for (std::list<BlockTy*>::const_iterator i = touched.begin(),
 				e = touched.end(); i != e; i++) {
-			PartitionTy *touchedPartition = *i;
-			TouchedInstListTy *touchedInstructions = get_touched_instructions(touchedPartition);
+			BlockTy *touchedBlock = *i;
+			TouchedInstListTy *touchedInstructions = get_touched_instructions(touchedBlock);
 
 			if (touchedInstructions->size() > 0
-					&& touchedPartition->size() != touchedInstructions->size()) {
-				LOG("split partition (" << touchedPartition->size() << ", " << touchedInstructions->size() << ")" << nl);
-				print_partition(touchedPartition);
+					&& touchedBlock->size() != touchedInstructions->size()) {
+				LOG("split block (" << touchedBlock->size() << ", " << touchedInstructions->size() << ")" << nl);
+				print_block(touchedBlock);
 				LOG("remove" << nl);
 				print_instructions(touchedInstructions);
-				split(touchedPartition, touchedInstructions);
+				split(touchedBlock, touchedInstructions);
 			}
 			touchedInstructions->clear();
 		}
 	}
 
 	LOG(nl << "AFTER PARTITIONING" << nl);
-	print_partitions();
-	consolidate_partitions();
+	print_blocks();
+	consolidate_blocks();
 
 	return true;
 }
 
-void GlobalValueNumberingPass::consolidate_partitions() {
-	for (PartitionVectorTy::const_iterator i = partitions.begin(),
-			e = partitions.end(); i != e; i++) {
-		PartitionTy *partition = *i;
-		if (partition->size() > 1) {
-			consolidate_partition(partition);
+void GlobalValueNumberingPass::consolidate_blocks() {
+	for (PartitionTy::const_iterator i = partition.begin(),
+			e = partition.end(); i != e; i++) {
+		BlockTy *block = *i;
+		if (block->size() > 1) {
+			consolidate_block(block);
 		}
 	}
 }
 
-void GlobalValueNumberingPass::consolidate_partition(PartitionTy *partition) {
-	PartitionTy::iterator i = partition->begin();
+void GlobalValueNumberingPass::consolidate_block(BlockTy *block) {
+	BlockTy::iterator i = block->begin();
 	Instruction *inst = *i;
 	i++;
 
-	for (PartitionTy::iterator e = partition->end(); i != e; i++) {
+	for (BlockTy::iterator e = block->end(); i != e; i++) {
 		Instruction *replacable = *i;
 		replacable->replace_value(inst);
 
@@ -347,21 +347,21 @@ void GlobalValueNumberingPass::print_instructions(TouchedInstListTy *instruction
 	}
 }
 
-void GlobalValueNumberingPass::print_partition(PartitionTy *partition) {
-	for (PartitionTy::const_iterator i = partition->begin(),
-			e = partition->end(); i != e; i++) {
+void GlobalValueNumberingPass::print_block(BlockTy *block) {
+	for (BlockTy::const_iterator i = block->begin(),
+			e = block->end(); i != e; i++) {
 		Instruction *I = *i;
 		LOG(I << nl);
 	}
 }
 
-void GlobalValueNumberingPass::print_partitions() {
-	for (PartitionVectorTy::const_iterator i = partitions.begin(),
-			e = partitions.end(); i != e; i++) {
+void GlobalValueNumberingPass::print_blocks() {
+	for (PartitionTy::const_iterator i = partition.begin(),
+			e = partition.end(); i != e; i++) {
 		LOG("=============================================================" << nl);
-		LOG("Partition:" << nl);
-		PartitionTy *partition = *i;
-		print_partition(partition);
+		LOG("Block:" << nl);
+		BlockTy *block = *i;
+		print_block(block);
 	}
 }
 
