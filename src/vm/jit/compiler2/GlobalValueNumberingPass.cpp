@@ -168,6 +168,35 @@ void GlobalValueNumberingPass::init_worklist_and_touchedblocks() {
 	}
 }
 
+GlobalValueNumberingPass::InstructionListTy *
+GlobalValueNumberingPass::get_users(Instruction *inst, int op_index) {
+	OperandIndex2UsersTy *inverseVector = operandInverseMap[inst];
+	if (!inverseVector) {
+		inverseVector = new OperandIndex2UsersTy();
+		operandInverseMap[inst] = inverseVector;
+		for (int i = 0; i < max_arity; i++) {
+			InstructionListTy *users = new InstructionListTy();
+			inverseVector->push_back(users);
+		}
+	}
+	return (*inverseVector)[op_index];
+}
+
+void GlobalValueNumberingPass::init_operand_inverse(Method::const_iterator begin, Method::const_iterator end) {
+	for (Method::const_iterator i = begin, e = end; i != e; ++i) {
+		Instruction *I = *i;
+		int op_index = 0;
+		for (Instruction::const_op_iterator oi = I->op_begin(),
+			oe = I->op_end(); oi != oe; oi++) {
+			Instruction *Op = (*oi)->to_Instruction();
+			assert(Op);
+			InstructionListTy *users = get_users(Op, op_index);
+			users->push_back(I);
+			op_index++;
+		}
+	}
+}
+
 std::vector<bool> *GlobalValueNumberingPass::get_worklist_flags(BlockTy *block) {
 	std::vector<bool> *flags = inWorkList[block];
 	if (!flags) {
@@ -239,72 +268,6 @@ void GlobalValueNumberingPass::split(BlockTy *block, TouchedInstListTy *instruct
 	}
 }
 
-bool GlobalValueNumberingPass::run(JITData &JD) {
-	Method *M = JD.get_Method();
-	
-	max_arity = compute_max_arity(M->begin(), M->end());
-	init_partition(M->begin(), M->end());
-	init_worklist_and_touchedblocks();
-
-	LOG("BEFORE PARTITIONING" << nl);
-	print_blocks();
-
-	while (!workList.empty()) {
-		WorkListPairTy *workListPair = selectAndDeleteFromWorkList();
-		BlockTy *block = workListPair->first;
-		int operandIndex = workListPair->second;
-		delete workListPair;
-
-		std::list<BlockTy*> touched;
-
-		for (BlockTy::const_iterator i = block->begin(),
-				e = block->end(); i != e; i++) {
-			Instruction *I = *i;
-
-			for (Value::UserListTy::const_iterator ui = I->user_begin(),
-					ue = I->user_end(); ui != ue; ui++) {
-				Instruction *user = *ui;
-				if (user->op_size() > operandIndex
-						&& user->get_operand(operandIndex) == I) {
-					BlockTy *userBlock = get_block(user);
-
-					// the user's block can be 0 if it is and
-					// end inst
-					if (userBlock) {
-						touched.push_back(userBlock);
-						TouchedInstListTy *touchedInstructions = get_touched_instructions(userBlock);
-						touchedInstructions->insert(user); // TODO: check possible duplicates
-					}
-				}
-			}
-		}
-
-		// we have to look at every block that contains instructions
-		// whose operand at index operandIndex is in the current block
-		for (std::list<BlockTy*>::const_iterator i = touched.begin(),
-				e = touched.end(); i != e; i++) {
-			BlockTy *touchedBlock = *i;
-			TouchedInstListTy *touchedInstructions = get_touched_instructions(touchedBlock);
-
-			if (touchedInstructions->size() > 0
-					&& touchedBlock->size() != touchedInstructions->size()) {
-				LOG("split block (" << touchedBlock->size() << ", " << touchedInstructions->size() << ")" << nl);
-				print_block(touchedBlock);
-				LOG("remove" << nl);
-				print_instructions(touchedInstructions);
-				split(touchedBlock, touchedInstructions);
-			}
-			touchedInstructions->clear();
-		}
-	}
-
-	LOG(nl << "AFTER PARTITIONING" << nl);
-	print_blocks();
-	eliminate_redundancies();
-
-	return true;
-}
-
 void GlobalValueNumberingPass::eliminate_redundancies() {
 	for (PartitionTy::const_iterator i = partition.begin(),
 			e = partition.end(); i != e; i++) {
@@ -363,6 +326,94 @@ void GlobalValueNumberingPass::print_blocks() {
 		BlockTy *block = *i;
 		print_block(block);
 	}
+}
+
+bool GlobalValueNumberingPass::run(JITData &JD) {
+	Method *M = JD.get_Method();
+	
+	max_arity = compute_max_arity(M->begin(), M->end());
+	init_partition(M->begin(), M->end());
+	init_worklist_and_touchedblocks();
+	init_operand_inverse(M->begin(), M->end());
+
+	LOG("BEFORE PARTITIONING" << nl);
+	print_blocks();
+
+	while (!workList.empty()) {
+		WorkListPairTy *workListPair = selectAndDeleteFromWorkList();
+		BlockTy *block = workListPair->first;
+		int operandIndex = workListPair->second;
+		delete workListPair;
+
+		std::list<BlockTy*> touched;
+
+		for (BlockTy::const_iterator i = block->begin(),
+				e = block->end(); i != e; i++) {
+			Instruction *I = *i;
+			InstructionListTy *usersForIndex = get_users(I, operandIndex);
+
+			for (InstructionListTy::const_iterator ui = usersForIndex->begin(),
+					ue = usersForIndex->end(); ui != ue; ui++) {
+				Instruction *user = *ui;
+				BlockTy *userBlock = get_block(user);
+
+				// the user's block can be 0 if it is an end inst
+				if (userBlock) {
+					touched.push_back(userBlock);
+					TouchedInstListTy *touchedInstructions =
+						get_touched_instructions(userBlock);
+					touchedInstructions->insert(user);
+				}
+			}
+
+//			for (Value::UserListTy::const_iterator ui = I->user_begin(),
+//					ue = I->user_end(); ui != ue; ui++) {
+//				Instruction *user = *ui;
+//				if (user->op_size() > operandIndex
+//						&& user->get_operand(operandIndex) == I) {
+//					BlockTy *userBlock = get_block(user);
+//
+//					// the user's block can be 0 if it is and
+//					// end inst
+//					if (userBlock) {
+//						touched.push_back(userBlock);
+//						TouchedInstListTy *touchedInstructions = get_touched_instructions(userBlock);
+//						touchedInstructions->insert(user); // TODO: check possible duplicates
+//					}
+//				}
+//			}
+		}
+
+		// we have to look at every block that contains instructions
+		// whose operand at index operandIndex is in the current block
+		for (std::list<BlockTy*>::const_iterator i = touched.begin(),
+				e = touched.end(); i != e; i++) {
+			BlockTy *touchedBlock = *i;
+			TouchedInstListTy *touchedInstructions = get_touched_instructions(touchedBlock);
+
+			if (touchedInstructions->size() > 0
+					&& touchedBlock->size() != touchedInstructions->size()) {
+				LOG("split block (" << touchedBlock->size() << ", " << touchedInstructions->size() << ")" << nl);
+				print_block(touchedBlock);
+				LOG("remove" << nl);
+				print_instructions(touchedInstructions);
+				split(touchedBlock, touchedInstructions);
+			}
+			touchedInstructions->clear();
+		}
+	}
+
+	LOG(nl << "AFTER PARTITIONING" << nl);
+	print_blocks();
+	eliminate_redundancies();
+
+	// TODO: delete contents of these containers
+	partition.clear();
+	inst2BlockMap.clear();
+	block2TouchedInstListMap.clear();
+	inWorkList.clear();
+
+	return true;
 }
 
 // pass usage

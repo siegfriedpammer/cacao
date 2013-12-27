@@ -43,11 +43,14 @@ namespace compiler2 {
 class GlobalValueNumberingPass : public Pass {
 private:
 	typedef unordered_set<Instruction*> BlockTy;
-	typedef std::vector<BlockTy*> PartitionTy;
+	typedef std::list<BlockTy*> PartitionTy;
 	typedef std::pair<BlockTy*,int> WorkListPairTy;
 	typedef std::list<WorkListPairTy*> WorkListTy;
 	typedef unordered_map<BlockTy*,std::vector<bool>* > InWorkListTy;
 	typedef unordered_map<Instruction*,BlockTy*> Inst2BlockMapTy;
+	typedef std::list<Instruction*> InstructionListTy;
+	typedef std::vector<InstructionListTy*> OperandIndex2UsersTy;
+	typedef unordered_map<Instruction*,OperandIndex2UsersTy*> OperandInverseMapTy;
 
 	/// these types are needed for the creation of the inital blocks
 	typedef unordered_map<Instruction::InstID,BlockTy*,hash<int> > OpcodeBlockMapTy;
@@ -64,14 +67,18 @@ private:
 	PartitionTy partition;
 	Inst2BlockMapTy inst2BlockMap;
 	Block2TouchedInstListMapTy block2TouchedInstListMap;
-	
 	InWorkListTy inWorkList;
 	WorkListTy workList;
+	OperandInverseMapTy operandInverseMap;
 
 	BlockTy *create_block();
 	void init_partition(Method::const_iterator begin,
 		Method::const_iterator end);
 	void init_worklist_and_touchedblocks();
+	void init_operand_inverse(Method::const_iterator begin,
+		Method::const_iterator end);
+
+	InstructionListTy *get_users(Instruction *inst, int op_index);
 	void add_to_block(BlockTy *block, Instruction *inst);
 
 	void add_to_worklist(BlockTy *block, int operandIndex);
