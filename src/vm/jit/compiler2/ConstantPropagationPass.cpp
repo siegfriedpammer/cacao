@@ -167,6 +167,7 @@ inline T unaryOperate(Instruction::InstID ID, const T &op) {
 CONSTInst *foldUnaryInst(UnaryInst *inst) {
 	CONSTInst *op = inst->get_operand(0)->to_Instruction()->to_CONSTInst();
 	assert(op);
+	assert(inst->get_type() == op->get_type());
 	
 	switch (inst->get_type()) {
 		case Type::IntTypeID:
@@ -187,9 +188,47 @@ CONSTInst *foldUnaryInst(UnaryInst *inst) {
 	}
 }
 
+template <typename T>
+CONSTInst *castOperate(CASTInst *inst, const T &op) {
+	switch (inst->get_type()) {
+		case Type::IntTypeID:
+			return new CONSTInst((int32_t) op, Type::IntType());
+		case Type::LongTypeID:
+			return new CONSTInst((int64_t) op, Type::LongType());
+		case Type::FloatTypeID:
+			return new CONSTInst((float) op, Type::FloatType());
+		case Type::DoubleTypeID:
+			return new CONSTInst((double) op, Type::DoubleType());
+		default:
+			assert(0);
+			return 0;
+	}
+}
+
+CONSTInst *foldCASTInst(CASTInst *inst) {
+	CONSTInst *op = inst->get_operand(0)->to_Instruction()->to_CONSTInst();
+	assert(op);
+	
+	switch (op->get_type()) {
+		case Type::IntTypeID:
+			return castOperate(inst, op->get_Int());
+		case Type::LongTypeID:
+			return castOperate(inst, op->get_Long());
+		case Type::FloatTypeID:
+			return castOperate(inst, op->get_Float());
+		case Type::DoubleTypeID:
+			return castOperate(inst, op->get_Double());
+		default:
+			assert(0);
+			return 0;
+	}
+}
+
 CONSTInst *foldInstruction(Instruction *inst) {
 	// TODO: distinguish arithmetical and bitwise operations
-	if (inst->to_UnaryInst()) {
+	if (inst->get_opcode() == Instruction::CASTInstID) {
+		return foldCASTInst(inst->to_CASTInst());
+	} else if (inst->to_UnaryInst()) {
 		return foldUnaryInst(inst->to_UnaryInst());
 	} else if (inst->to_BinaryInst()) {
 		return foldBinaryInst(inst->to_BinaryInst());
@@ -252,6 +291,11 @@ bool has_only_constant_operands(Instruction *inst) {
 	return true;
 }
 
+bool can_be_statically_evaluated(Instruction *inst) {
+	return inst->is_arithmetic()
+			|| inst->get_opcode() == Instruction::CASTInstID;
+}
+
 bool ConstantPropagationPass::run(JITData &JD) {
 	Method *M = JD.get_Method();
 
@@ -274,7 +318,7 @@ bool ConstantPropagationPass::run(JITData &JD) {
 		if (constantOperands[I] == I->op_size()) {
 			if (I->get_opcode() == Instruction::CONSTInstID) {
 				propagate(I);
-			} else if (I->is_arithmetic()) {
+			} else if (can_be_statically_evaluated(I)) {
 				CONSTInst *foldedInst = foldInstruction(I);
 				if (foldedInst) {
 					M->add_Instruction(foldedInst);
