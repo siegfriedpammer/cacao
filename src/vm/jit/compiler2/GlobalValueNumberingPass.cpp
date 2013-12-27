@@ -328,8 +328,8 @@ void GlobalValueNumberingPass::print_blocks() {
 	}
 }
 
-template <typename T, typename Iterator>
-void delete_in_range(T *lst, Iterator begin, Iterator end) {
+template <typename T>
+void delete_all(T *lst) {
 	while (!lst->empty()) {
 		delete lst->back();
 		lst->pop_back();
@@ -345,12 +345,17 @@ void delete_in_range(unordered_map<T1,T2> *map, Iterator begin, Iterator end) {
 	}
 }
 
+template <typename T1, typename T2>
+void delete_all(unordered_map<T1,T2> *map) {
+	delete_in_range(map, map->begin(), map->end());
+}
+
 void GlobalValueNumberingPass::clean_up_operand_inverse() {
 	OperandInverseMapTy::const_iterator i = operandInverseMap.begin();
 	OperandInverseMapTy::const_iterator e = operandInverseMap.end();
 	while (i != e) {
 		OperandIndex2UsersTy *opUsers = i->second;
-		delete_in_range(opUsers, opUsers->begin(), opUsers->end());
+		delete_all(opUsers);
 		delete opUsers;
 		operandInverseMap.erase(i++);
 	}
@@ -418,7 +423,7 @@ bool GlobalValueNumberingPass::run(JITData &JD) {
 	print_blocks();
 	eliminate_redundancies();
 
-	delete_in_range(&partition, partition.begin(), partition.end());
+	delete_all(&partition);
 	delete_in_range(&block2TouchedInstListMap, block2TouchedInstListMap.begin(),
 		block2TouchedInstListMap.end());
 	delete_in_range(&inWorkList, inWorkList.begin(), inWorkList.end());
