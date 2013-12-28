@@ -47,7 +47,6 @@ extern const s4    abi_registers_integer_argument[];
 extern const s4    abi_registers_integer_saved[];
 extern const s4    abi_registers_integer_temporary[];
 
-extern const char *abi_registers_float_name[];
 extern const s4    abi_registers_float_argument[];
 extern const s4    abi_registers_float_saved[];
 extern const s4    abi_registers_float_temporary[];
