@@ -207,6 +207,9 @@ public:
 	OStream& operator<<(const NoUnderline&);
 
 	void set_file(FILE *file) { this->file = file; }
+
+	/// force color (0 = disabled, 1 = yes, 0 = no)
+	static void set_force_color(int);
 private:
 	void on_newline();
 
@@ -225,7 +228,13 @@ private:
 	bool newline;
 
 	/// supports ansi escape codes
-	bool use_color;
+	bool _use_color;
+
+	/// supports ansi escape codes
+	bool use_color() const;
+
+	/// force color (0 = disabled, 1 = yes, 0 = no)
+	static int force_color;
 
 	enum IntegerFormat {
 		IntFmt_decimal,
