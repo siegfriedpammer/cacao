@@ -31,9 +31,9 @@ dist_noinst_DATA = \
 CLEANFILES = \
 	*.aux *.bbl *.blg *.dvi *.lof *.log *.lot *.toc
 
-pdf: BakkalaureatSeminararbeitKB2010.pdf
+#pdf: BakkalaureatSeminararbeitKB2010.pdf
 
-dvi: BakkalaureatSeminararbeitKB2010.dvi
+#dvi: BakkalaureatSeminararbeitKB2010.dvi
 
 BakkalaureatSeminararbeitKB2010.pdf: $(dist_noinst_DATA)
 	$(PDFLATEX) BakkalaureatSeminararbeitKB2010.tex

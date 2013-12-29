@@ -35,9 +35,9 @@ dist_noinst_DATA = \
 CLEANFILES = \
 	*.aux *.bbl *.blg *.dvi *.lof *.log *.lot *.toc
 
-pdf: protokoll.pdf
+#pdf: protokoll.pdf
 
-dvi: protokoll.dvi
+#dvi: protokoll.dvi
 
 protokoll.pdf: $(dist_noinst_DATA)
 	$(PDFLATEX) protokoll.tex
