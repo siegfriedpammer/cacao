@@ -947,7 +947,7 @@ void CondJumpInst::emit(CodeMemory* CM) const {
 	s4 offset = CM->get_offset(idx);
 	if (offset == 0) {
 		// XXX fix me! remove empty blocks?
-		ERROR_MSG("x86_64 ERROR","CondJump offset 0 oO!");
+		ABORT_MSG("x86_64 ERROR","CondJump offset 0 oO!");
 		//return;
 	}
 	LOG2("found offset of " << *MBB << ": " << offset << nl);
