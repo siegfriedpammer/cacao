@@ -53,6 +53,7 @@ libcompiler2_la_SOURCES = \
 	DomTreePrinterPass.cpp \
 	ExamplePass.cpp \
 	GraphHelper.cpp \
+	ICMDPrinterPass.cpp \
 	Instruction.cpp \
 	InstructionMetaPass.cpp \
 	InstructionVisitor.cpp \

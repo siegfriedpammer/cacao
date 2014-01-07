@@ -774,6 +774,33 @@ cacao::OStream& print_instruction_OS(cacao::OStream &OS, const jitdata *jd, cons
 namespace jit {
 namespace compiler2 {
 
+class InVarPhis {
+private:
+	PHIInst *phi;
+	jitdata *jd;
+	std::size_t bb_num;
+	std::size_t in_var_index;
+	SSAConstructionPass *parent;
+public:
+	// constructs
+	InVarPhis(PHIInst *phi, jitdata *jd, std::size_t bb_num, std::size_t in_var_index,
+		SSAConstructionPass *parent)
+		: phi(phi), jd(jd), bb_num(bb_num), in_var_index(in_var_index), parent(parent) {}
+
+	//  fill phi operands
+	void fill_operands() {
+		basicblock *bb = &jd->basicblocks[bb_num];
+		for(std::size_t i = 0; i < bb->predecessorcount; ++i) {
+			basicblock *pred = bb->predecessors[i];
+			assert(pred->outdepth == bb->indepth);
+			s4 pred_nr = pred->nr;
+			s4 var = pred->outvars[in_var_index];
+			// append operand
+			phi->append_op(parent->read_variable(var,pred_nr));
+		}
+	}
+};
+
 void SSAConstructionPass::write_variable(size_t varindex, size_t bb, Value* v) {
 	LOG2("write variable(" << varindex << "," << bb << ") = " << v << nl);
 	current_def[varindex][bb] = v;
@@ -806,6 +833,7 @@ Value* SSAConstructionPass::read_variable_recursive(size_t varindex, size_t bb) 
 	if(BB[bb]->pred_size() == 0) {
 		// variable not defined oO
 		// create constant for now but seriously, this should not happen!
+		#if 0
 		varinfo *v = VAR(varindex);
 		Type::TypeID type = convert_var_type(v->type);
 		Instruction *konst;
@@ -829,6 +857,9 @@ Value* SSAConstructionPass::read_variable_recursive(size_t varindex, size_t bb) 
 			<< " constant: " << konst );
 		M->add_Instruction(konst);
 		return konst;
+		#endif
+		ABORT_MSG("no predecessor ","basic block " << bb << " var index " << varindex);
+		return NULL;
 	}
 	if (!sealed_blocks[bb]) {
 		PHIInst *phi = new PHIInst(var_type_tbl[varindex], BB[bb]);
@@ -925,6 +956,9 @@ void SSAConstructionPass::seal_block(size_t bb) {
 			add_phi_operands(i,phi);
 		}
 	}
+	alloc::list<InVarPhis*>::type &in_var_bb = incomplete_in_phi[bb];
+	std::for_each(in_var_bb.begin(),in_var_bb.end(),
+		std::mem_fun(&InVarPhis::fill_operands));
 	sealed_blocks[bb] = true;
 }
 
@@ -976,12 +1010,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 	basicblock *bb;
 	jd = JD.get_jitdata();
 
-	#if !defined(NDEBUG)
-	if (DEBUG_COND) {
-		show_method(jd, SHOW_CFG);
-	}
-	#endif
-
 	// **** BEGIN initializations
 
 	/**
@@ -1030,6 +1058,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 	// init incomplete_phi
 	incomplete_phi.clear();
 	incomplete_phi.resize(num_basicblocks,alloc::vector<PHIInst*>::type(global_state + 1,NULL));
+	incomplete_in_phi.clear();
+	incomplete_in_phi.resize(num_basicblocks);
 
 	// (Local,Global) Value Numbering Map, size #bb times #var, initialized to NULL
 	current_def.clear();
@@ -1151,6 +1181,21 @@ bool SSAConstructionPass::run(JITData &JD) {
 		std::size_t bbindex = (std::size_t)bb->nr;
 		instruction *iptr;
 		LOG("basicblock: " << bbindex << nl);
+
+		// handle invars
+		for(std::size_t i = 0; i < bb->indepth; ++i) {
+			std::size_t varindex = bb->invars[i];
+			PHIInst *phi = new PHIInst(var_type_tbl[varindex], BB[bbindex]);
+			write_variable(varindex, bbindex, phi);
+			if (!sealed_blocks[bbindex]) {
+				incomplete_in_phi[bbindex].push_back(new InVarPhis(phi, jd, bbindex, i, this));
+			}
+			else {
+				InVarPhis invar(phi, jd, bbindex, i, this);
+				invar.fill_operands();
+			}
+			M->add_Instruction(phi);
+		}
 
 		// add begin block
 		assert(BB[bbindex]);

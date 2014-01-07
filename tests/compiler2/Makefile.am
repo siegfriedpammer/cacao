@@ -41,6 +41,7 @@ CLEANFILES = \
 
 OUTPUT_JAVA_TESTS = \
 	Test.fact \
+	Test.Min \
 	Test.power \
 	Test.OverflowInt \
 	Test.OverflowLong \

@@ -186,6 +186,10 @@ static void permut(int a[], int p[], int result[][]) {
     }
 }
 
+static long Min(long a, long b) {
+    return (a < b) ? a : b;
+}
+
 public static void main(String[] args) {
   int n = 4;
   int list[] = new int[n];

@@ -264,6 +264,7 @@ enum {
 	OPT_DebugVerbose,
 	OPT_DebugPrintThread,
 #endif
+	OPT_ColorOutput,
 #ifdef ENABLE_COMPILER2
 	OPT_DebugCompiler2,
 	OPT_Compiler2hints,
@@ -347,6 +348,7 @@ option_t options_XX[] = {
 	{ "DebugStackFrameInfo",          OPT_DebugStackFrameInfo,          OPT_TYPE_BOOLEAN, "TODO" },
 	{ "DebugStackTrace",              OPT_DebugStackTrace,              OPT_TYPE_BOOLEAN, "debug stacktrace creation" },
 	{ "DebugThreads",                 OPT_DebugThreads,                 OPT_TYPE_BOOLEAN, "print debug information for threads" },
+	{ "ColorOutput",                  OPT_ColorOutput,                  OPT_TYPE_VALUE,   "enable color output (yes, no, auto) [default=auto]" },
 #if defined(ENABLE_DISASSEMBLER)
 	{ "DisassembleStubs",             OPT_DisassembleStubs,             OPT_TYPE_BOOLEAN, "disassemble builtin and native stubs when generated" },
 #endif
@@ -748,6 +750,17 @@ void options_xx(JavaVMInitArgs *vm_args)
 
 		case OPT_DebugThreads:
 			opt_DebugThreads = enable;
+			break;
+
+		case OPT_ColorOutput:
+			if (value != NULL) {
+				if (strcmp("auto",value) == 0)
+					cacao::OStream::set_force_color(0);
+				if (strcmp("no",value) == 0)
+					cacao::OStream::set_force_color(-1);
+				if (strcmp("yes",value) == 0)
+					cacao::OStream::set_force_color(1);
+			}
 			break;
 
 #ifdef ENABLE_COMPILER2
