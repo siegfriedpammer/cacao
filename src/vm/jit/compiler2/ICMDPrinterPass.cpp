@@ -37,7 +37,9 @@ namespace jit {
 namespace compiler2 {
 
 bool ICMDPrinterPass::run(JITData &JD) {
+	#if !defined(NDEBUG)
 	show_method(JD.get_jitdata(), SHOW_CFG);
+	#endif
 	return true;
 }
 
