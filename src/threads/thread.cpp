@@ -123,6 +123,9 @@ void threads_preinit(void)
 # endif
 #endif
 
+	/* Create the single threadlist instance. */
+	ThreadList::create_object();
+
 	/* Initialize the threads implementation (sets the thinlock on the
 	   main thread). */
 

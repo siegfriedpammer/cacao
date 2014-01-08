@@ -1,6 +1,6 @@
-/* src/threads/threadlist.hpp - different thread-lists
+/* src/threads/threadlist.hpp - thread list maintenance
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -37,55 +37,79 @@
 
 class ThreadList {
 private:
-	static Mutex               _mutex;              // a mutex for all thread lists
+	static ThreadList   *the_threadlist;
 
-	static List<threadobject*> _active_thread_list; // list of active threads
-	static List<threadobject*> _free_thread_list;   // list of free threads
+	Mutex               _mutex;              // a mutex for all thread lists
+
+	List<threadobject*> _active_thread_list; // list of active threads
+	List<threadobject*> _free_thread_list;   // list of free threads
 
 	// Thread counters visible to Java.
-	static int32_t             _number_of_started_java_threads;
-	static int32_t             _number_of_active_java_threads;
-	static int32_t             _peak_of_active_java_threads;
+	int32_t             _number_of_started_java_threads;
+	int32_t             _number_of_active_java_threads;
+	int32_t             _peak_of_active_java_threads;
 
 	// Thread counters for internal usage.
-	static int32_t             _number_of_non_daemon_threads;
+	int32_t             _number_of_non_daemon_threads;
 
-	static int32_t             _last_index;
+	int32_t             _last_index;
 
-	static void                 remove_from_active_thread_list(threadobject* t);
+	void                 remove_from_active_thread_list(threadobject* t);
 public:
-	static Mutex&         mutex() { return _mutex; }
+	ThreadList();
 
-	static void           wait_cond(Condition *cond) { cond->wait(_mutex); }
+	/// Supposed to be called exactly once, early during initialization.
+	static void    create_object();
+	/// Provides access to singleton.
+	static ThreadList *get() { assert(the_threadlist); return the_threadlist; }
 
-	static void           add_to_active_thread_list(threadobject* t);
+	Mutex&         mutex() { return _mutex; }
+
+	void           wait_cond(Condition *cond) { cond->wait(_mutex); }
+
+	void           add_to_active_thread_list(threadobject* t);
 
 	// Thread management methods.
-	static threadobject*  get_main_thread();
-	static void           get_free_thread(threadobject **t, int32_t *index);
-	static threadobject*  get_thread_by_index(int32_t index);
-	static threadobject*  get_thread_from_java_object(java_handle_t* h);
-	static void           release_thread(threadobject* t, bool needs_deactivate);
-	static void           deactivate_thread(threadobject *t);
+	threadobject*  get_main_thread();
+	void           get_free_thread(threadobject **t, int32_t *index);
+	threadobject*  get_thread_by_index(int32_t index);
+	threadobject*  get_thread_from_java_object(java_handle_t* h);
+	void           release_thread(threadobject* t, bool needs_deactivate);
+	void           deactivate_thread(threadobject *t);
 
 	// Thread listing methods.
-	static void           get_active_threads(List<threadobject*> &list);
-	static void           get_active_java_threads(List<threadobject*> &list);
+	void           get_active_threads(List<threadobject*> &list);
+	void           get_active_java_threads(List<threadobject*> &list);
 
 	// Thread counting methods visible to Java.
-	static int32_t        get_number_of_started_java_threads();
-	static int32_t        get_number_of_active_java_threads();
-	static int32_t        get_number_of_daemon_java_threads();
-	static int32_t        get_peak_of_active_java_threads();
-	static void           reset_peak_of_active_java_threads();
+	int32_t        get_number_of_started_java_threads();
+	int32_t        get_number_of_active_java_threads();
+	int32_t        get_number_of_daemon_java_threads();
+	int32_t        get_peak_of_active_java_threads();
+	void           reset_peak_of_active_java_threads();
 
 	// Thread counting methods for internal use.
-	static int32_t        get_number_of_active_threads();
-	static int32_t        get_number_of_non_daemon_threads();
+	int32_t        get_number_of_active_threads();
+	int32_t        get_number_of_non_daemon_threads();
 
 	// Debugging methods.
-	static void           dump_threads();
+	void           dump_threads();
 };
+
+inline ThreadList::ThreadList():
+	_number_of_started_java_threads(0),
+	_number_of_active_java_threads(0),
+	_peak_of_active_java_threads(0),
+	_number_of_non_daemon_threads(0),
+	_last_index(0)
+{
+}
+
+inline void ThreadList::create_object()
+{
+	assert(!the_threadlist);
+	the_threadlist = new ThreadList;
+}
 
 inline void ThreadList::add_to_active_thread_list(threadobject* t)
 {
