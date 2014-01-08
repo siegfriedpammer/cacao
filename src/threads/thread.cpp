@@ -137,7 +137,7 @@ void threads_preinit(void)
 
 	/* Add the thread to the thread list. */
 
-	ThreadList::add_to_active_thread_list(mainthread);
+	ThreadList::get()->add_to_active_thread_list(mainthread);
 
 	/* The main thread should always have index 1. */
 
@@ -228,7 +228,7 @@ static void thread_create_initial_thread(void)
 	/* Get the main-thread (NOTE: The main thread is always the first
 	   thread in the list). */
 
-	t = ThreadList::get_main_thread();
+	t = ThreadList::get()->get_main_thread();
 
 	/* The thread name. */
 
@@ -271,7 +271,7 @@ static threadobject *thread_new(int32_t flags)
 	/* Allocate a thread data structure. */
 
 	/* First, try to get one from the free-list. */
-	ThreadList::get_free_thread(&t, &index);
+	ThreadList::get()->get_free_thread(&t, &index);
 
 	if (t != NULL) {
 		/* Equivalent of MZERO on the else path */
@@ -378,7 +378,7 @@ void thread_free(threadobject *t)
 
 	t->object = 0;
 
-	ThreadList::deactivate_thread(t);
+	ThreadList::get()->deactivate_thread(t);
 }
 
 
@@ -396,7 +396,7 @@ void thread_free(threadobject *t)
 static void thread_cleanup_finalizer(java_handle_t *h, void *data)
 {
 	threadobject *t = reinterpret_cast<threadobject*>(data);
-	ThreadList::release_thread(t, false);
+	ThreadList::get()->release_thread(t, false);
 }
 
 bool threads_thread_start_internal(Utf8String name, functionptr f)
@@ -409,12 +409,12 @@ bool threads_thread_start_internal(Utf8String name, functionptr f)
 
 	/* Add the thread to the thread list. */
 
-	ThreadList::add_to_active_thread_list(t);
+	ThreadList::get()->add_to_active_thread_list(t);
 
 	/* Create the Java thread object. */
 
 	if (!thread_create_object(t, JavaString::from_utf8(name), threadgroup_system)) {
-		ThreadList::release_thread(t, true);
+		ThreadList::get()->release_thread(t, true);
 		return false;
 	}
 
@@ -464,7 +464,7 @@ void threads_thread_start(java_handle_t *object)
 
 	/* Add the thread to the thread list. */
 
-	ThreadList::add_to_active_thread_list(t);
+	ThreadList::get()->add_to_active_thread_list(t);
 
 	Atomic::write_memory_barrier();
 
@@ -524,7 +524,7 @@ bool thread_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	/* Add the thread to the thread list. */
 
-	ThreadList::add_to_active_thread_list(t);
+	ThreadList::get()->add_to_active_thread_list(t);
 
 	DEBUGTHREADS("attaching", t);
 
@@ -559,7 +559,7 @@ bool thread_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	/* Create the Java thread object. */
 
 	if (!thread_create_object(t, name, group)) {
-		ThreadList::release_thread(t, true);
+		ThreadList::get()->release_thread(t, true);
 		return false;
 	}
 

@@ -1,6 +1,6 @@
  /* src/native/vm/openjdk/management.cpp - HotSpot management interface functions
 
-   Copyright (C) 2009-2013
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008, 2009 Theobroma Systems Ltd.
 
@@ -261,16 +261,16 @@ jlong jmm_GetLongAttribute(JNIEnv* env, jobject obj, jmmLongAttribute att)
 		result = 0;
 		break;
 	case JMM_THREAD_TOTAL_COUNT:
-		result = ThreadList::get_number_of_started_java_threads();
+		result = ThreadList::get()->get_number_of_started_java_threads();
 		break;
 	case JMM_THREAD_LIVE_COUNT:
-		result = ThreadList::get_number_of_active_java_threads();
+		result = ThreadList::get()->get_number_of_active_java_threads();
 		break;
 	case JMM_THREAD_PEAK_COUNT:
-		result = ThreadList::get_peak_of_active_java_threads();
+		result = ThreadList::get()->get_peak_of_active_java_threads();
 		break;
 	case JMM_THREAD_DAEMON_COUNT:
-		result = ThreadList::get_number_of_daemon_java_threads();
+		result = ThreadList::get()->get_number_of_daemon_java_threads();
 		break;
 	case JMM_JVM_INIT_DONE_TIME_MS:
 		result = VM::get_current()->get_inittime();
@@ -321,7 +321,7 @@ jboolean jmm_ResetStatistic(JNIEnv* env, jvalue obj, jmmStatisticType type)
 
 	switch (type) {
 	case JMM_STAT_PEAK_THREAD_COUNT:
-		ThreadList::reset_peak_of_active_java_threads();
+		ThreadList::get()->reset_peak_of_active_java_threads();
 		break;
 	default:
 		log_println("jmm_ResetStatistic: Unknown statistic type %d", type);
