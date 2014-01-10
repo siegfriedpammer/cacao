@@ -1,6 +1,6 @@
 /* src/native/vm/cldc1.1/java_lang_Thread.cpp
 
-   Copyright (C) 2006-2013
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -123,7 +123,7 @@ JNIEXPORT jboolean JNICALL Java_java_lang_Thread_isAlive(JNIEnv *env, jobject _t
  */
 JNIEXPORT s4 JNICALL Java_java_lang_Thread_activeCount(JNIEnv *env, jclass clazz)
 {
-	return ThreadList::get_number_of_non_daemon_threads();
+	return ThreadList::get()->get_number_of_non_daemon_threads();
 }
 
 

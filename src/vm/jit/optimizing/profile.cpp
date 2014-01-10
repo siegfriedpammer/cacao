@@ -97,7 +97,7 @@ static void profile_thread(void)
 
 #if 0
 		// Lock the thread lists.
-		ThreadList::lock();
+		ThreadList::get()->lock();
 
 		/* iterate over all started threads */
 
@@ -159,7 +159,7 @@ static void profile_thread(void)
 		}
 
 		// Unlock the thread lists.
-		ThreadList::unlock();
+		ThreadList::get()->unlock();
 #endif
 	}
 }
@@ -317,4 +317,5 @@ void profile_printstats(void)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

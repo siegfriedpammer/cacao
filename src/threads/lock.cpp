@@ -663,7 +663,7 @@ static void sable_flc_waiting(uintptr_t lw_cache, threadobject *t, java_handle_t
 
 	Lockword lockword(lw_cache);
 	index = lockword.get_thin_lock_thread_index();
-	t_other = ThreadList::get_thread_by_index(index);
+	t_other = ThreadList::get()->get_thread_by_index(index);
 
 	// The lockword could have changed during our way here.  If the
 	// thread index is zero, the lock got unlocked and we simply

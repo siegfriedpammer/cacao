@@ -3363,7 +3363,7 @@ jobjectArray JVM_GetAllThreads(JNIEnv *env, jclass dummy)
 {
 	// Get a list of all active threads.
 	List<threadobject*> active_threads;
-	ThreadList::get_active_java_threads(active_threads);
+	ThreadList::get()->get_active_java_threads(active_threads);
 
 	// Allocate array to hold the java.lang.Thread objects.
 	int32_t length = active_threads.size();
