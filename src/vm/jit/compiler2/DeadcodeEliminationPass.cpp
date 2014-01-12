@@ -32,10 +32,18 @@
 #include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/SSAPrinterPass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
-#include "vm/jit/compiler2/ScheduleClickPass.hpp"
+#include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
 #include "vm/jit/compiler2/InstructionMetaPass.hpp"
 
 #define DEBUG_NAME "compiler2/deadcodeeliminationpass"
+
+STAT_DECLARE_GROUP(compiler2_stat)
+STAT_REGISTER_SUBGROUP(compiler2_deadcodeeliminationpass_stat,
+	"deadcodeeliminationpass","deadcodeeliminationpass",compiler2_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_dead_nodes,0,"# dead nodes",
+	"number of removed dead nodes",compiler2_deadcodeeliminationpass_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_remaining_nodes,0,"# remaining nodes",
+	"number of nodes not removed",compiler2_deadcodeeliminationpass_stat)
 
 namespace cacao {
 namespace jit {
@@ -102,7 +110,7 @@ bool DeadcodeEliminationPass::run(JITData &JD) {
 			}
 		}
 	}
-
+	
 	// collect the living instructions (i.e., the instructions which are not dead)
 	for (Method::const_iterator i = M->begin(), e = M->end(); i != e; i++) {
 		Instruction *I = *i;
@@ -113,6 +121,9 @@ bool DeadcodeEliminationPass::run(JITData &JD) {
 			LOG("Live: " << I << nl);
 		}
 	}
+
+	STATISTICS(num_dead_nodes = deadInstructions.size());
+	STATISTICS(num_remaining_nodes = liveInstructions.size());
 
 	M->replace_instruction_list(liveInstructions.begin(), liveInstructions.end());
 
@@ -129,6 +140,7 @@ bool DeadcodeEliminationPass::run(JITData &JD) {
 // pass usage
 PassUsage& DeadcodeEliminationPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<InstructionMetaPass>();
+	PU.add_schedule_before<ScheduleEarlyPass>();
 	return PU;
 }
 
