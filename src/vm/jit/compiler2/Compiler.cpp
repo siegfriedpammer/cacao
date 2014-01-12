@@ -132,6 +132,9 @@ MachineCode* compile(methodinfo* m)
 	#if 0
 	PM.add_Pass<InstructionMetaPass>();
 	PM.add_Pass<LoopPass>();
+	PM.add_Pass<ConstantPropagationPass>();
+	PM.add_Pass<DeadcodeEliminationPass>();
+	PM.add_Pass<GlobalValueNumberingPass>();
 	PM.add_Pass<ScheduleEarlyPass>();
 	PM.add_Pass<ScheduleLatePass>();
 	PM.add_Pass<ScheduleClickPass>();
@@ -147,9 +150,6 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass<LoopTreePrinterPass>();
 	PM.add_Pass<DomTreePrinterPass>();
 	PM.add_Pass<SSAPrinterPass>();
-	PM.add_Pass<ConstantPropagationPass>();
-	PM.add_Pass<DeadcodeEliminationPass>();
-	PM.add_Pass<GlobalValueNumberingPass>();
 	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleEarlyPass> >();
 	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleLatePass> >();
 	PM.add_Pass<GlobalSchedulePrinterPass<ScheduleClickPass> >();
