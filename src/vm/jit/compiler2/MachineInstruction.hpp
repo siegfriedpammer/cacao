@@ -176,6 +176,13 @@ public:
 	operand_iterator end() {
 		return operands.end();
 	}
+	operand_iterator find(MachineOperand *op) {
+		for (operand_iterator i = begin(), e =end(); i != e; ++i) {
+			if (op->aquivalent(*i->op))
+				return i;
+		}
+		return end();
+	}
 	MachineOperandDesc& front() {
 		return operands.front();
 	}

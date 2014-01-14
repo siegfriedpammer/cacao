@@ -291,6 +291,17 @@ struct SetNextUseActive: public std::unary_function<LivetimeInterval&,void> {
 			//LOG2("set to zero" << nl);
 			i->second = lti.next_usedef_after(pos,end);
 			LOG2("SetNextUseActive: " << lti << " operand: " << *MO << " to " << i->second << nl);
+			// work around self use issue
+			MachineInstruction *MI = *pos.get_iterator();
+			MachineOperand *origMO = lti.get_init_operand();
+			LOG2("MI: " << MI << " orig: " << origMO << nl);
+
+			if (MI->find(origMO) != MI->end()) {
+				// the operand is used in the interval start instruction
+				// therefore we can not use the operand -> set to current pos
+				i->second = pos;
+			}
+
 		}
 	}
 };
