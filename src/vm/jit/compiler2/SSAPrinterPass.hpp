@@ -46,6 +46,19 @@ public:
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
 };
 
+
+/**
+ * BasicBlockPrinterPass
+ * TODO: more info
+ */
+class BasicBlockPrinterPass : public Pass, public memory::ManagerMixin<BasicBlockPrinterPass> {
+public:
+	static char ID;
+	BasicBlockPrinterPass() : Pass() {}
+	virtual bool run(JITData &JD);
+	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
+};
+
 /**
  * GlobalSchedulePrinterPass
  * TODO: more info
