@@ -89,40 +89,47 @@ protected:
 
 public:
 
-    SSAGraph(const Method &M, std::string name = "SSAGraph", GlobalSchedule *sched = NULL, bool verbose = false)
+	SSAGraph(const Method &M, std::string name, GlobalSchedule *sched = NULL, bool verbose = true)
 			: M(M), name(name), sched(sched), verbose(verbose) {
+		init();
+	}
+	SSAGraph(const Method &M, std::string name, bool verbose)
+			: M(M), name(name), sched(NULL), verbose(verbose) {
+		init();
+	}
+	void init() {
 		for(Method::InstructionListTy::const_iterator i = M.begin(),
 		    e = M.end(); i != e; ++i) {
 			Instruction *I = *i;
 			if (I == NULL)
 				continue;
-			#if 0
-			// only print end begin for now
-			if (!(I->to_BeginInst() || I->to_EndInst()) )
+			// if no verbose only print end begin
+			if (!verbose && (!(I->to_BeginInst() || I->to_EndInst())) )
 				continue;
-			#endif
 			nodes.insert(I);
-			// add operator link
-			for(Instruction::OperandListTy::const_iterator ii = I->op_begin(), ee = I->op_end();
-				ii != ee; ++ii) {
-				Value *v = (*ii);
-				if (v) {
-					Instruction *II = (*ii)->to_Instruction();
-					if (II) {
-						EdgeType edge = std::make_pair(II,I);
-						data_dep.insert(edge);
-						edges.insert(edge);
+			if(verbose) {
+				// add operator link
+				for(Instruction::OperandListTy::const_iterator ii = I->op_begin(), ee = I->op_end();
+					ii != ee; ++ii) {
+					Value *v = (*ii);
+					if (v) {
+						Instruction *II = (*ii)->to_Instruction();
+						if (II) {
+							EdgeType edge = std::make_pair(II,I);
+							data_dep.insert(edge);
+							edges.insert(edge);
+						}
 					}
 				}
-			}
-			// add dependency link
-			for(Instruction::DepListTy::const_iterator ii = I->dep_begin(), ee = I->dep_end();
-				ii != ee; ++ii) {
-				Instruction *II = (*ii);
-				if (II) {
-					EdgeType edge = std::make_pair(II,I);
-					sched_dep.insert(edge);
-					edges.insert(edge);
+				// add dependency link
+				for(Instruction::DepListTy::const_iterator ii = I->dep_begin(), ee = I->dep_end();
+					ii != ee; ++ii) {
+					Instruction *II = (*ii);
+					if (II) {
+						EdgeType edge = std::make_pair(II,I);
+						sched_dep.insert(edge);
+						edges.insert(edge);
+					}
 				}
 			}
 			// add successor link
@@ -257,6 +264,28 @@ bool SSAPrinterPass::run(JITData &JD) {
 	return true;
 }
 // END SSAPrinterPass
+
+// BEGIN BasicBlockPrinterPass
+
+PassUsage& BasicBlockPrinterPass::get_PassUsage(PassUsage &PU) const {
+	PU.add_requires<SSAConstructionPass>();
+	return PU;
+}
+// the address of this variable is used to identify the pass
+char BasicBlockPrinterPass::ID = 0;
+
+// register pass
+static PassRegistry<BasicBlockPrinterPass> Z("BasicBlockPrinterPass");
+
+// run pass
+bool BasicBlockPrinterPass::run(JITData &JD) {
+	std::string name = get_filename(JD.get_jitdata()->m,JD.get_jitdata(),"","");
+	std::string filename = "basicblocks_";
+	filename+=name+".dot";
+	GraphPrinter<SSAGraph>::print(filename.c_str(), SSAGraph(*(JD.get_Method()), name, false));
+	return true;
+}
+// END BasicBlockPrinterPass
 
 // BEGIN GlobalSchedulePrinterPass
 
