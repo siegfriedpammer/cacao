@@ -32,29 +32,29 @@ public static void main(String arg[]) {
 }
 */
 
-static long constArith() {
-	long a = 1;
-	long b = 2;
-	long c = 3;
-	long d = 4;
+static int constArith() {
+	int a = 1;
+	int b = 2;
+	int c = 3;
+	int d = 4;
 
-	long add = a + b + c + d;
-	long sub = a - b - c - d;
-	long mul = a * b * c * d;
-	long neg = -a;
+	int add = a + b + c + d;
+	int sub = a - b - c - d;
+	int mul = a * b * c * d;
+	int neg = -a;
 
 	return add + sub + mul + neg;
 }
 
-static long constPhi(long a) {
-	long b;
-	long z;
+static int constPhi(int a) {
+	int b;
+	int z;
 
 	if (a > 0) {
-		long c;
-		if (a > 3000) {
-			long d;
-			if (a > 6000) {
+		int c;
+		if (a > 1) {
+			int d;
+			if (a > 2) {
 				z = 0;
 				d = 0;
 			} else {
@@ -68,10 +68,10 @@ static long constPhi(long a) {
 		}
 		b = c + 1;
 	} else {
-		long c;
-		if (a < -3000) {
-			long d;
-			if (a < -6000) {
+		int c;
+		if (a < -1) {
+			int d;
+			if (a < -2) {
 				z = 3;
 				d = 0;
 			} else {
@@ -89,45 +89,69 @@ static long constPhi(long a) {
 	return b + z;
 }
 
-static long gvnArith(long a) {
-	long add1 = a + 1;
-	long add2 = a + 1;
-	long add3 = a + 2;
-	long add4 = a + 2;
-	long add5 = add1 + 3;
-	long add6 = add2 + 3;
-	long add7 = add3 + 4;
-	long add8 = add4 + 4;
+static int congrArith(int a) {
+	int add1 = a + 1;
+	int add2 = a + 1;
+	int add3 = a + 2;
+	int add4 = a + 2;
+	int add5 = add1 + 3;
+	int add6 = add2 + 3;
+	int add7 = add3 + 4;
+	int add8 = add4 + 4;
 
-	long sub1 = a - 1;
-	long sub2 = a - 1;
-	long sub3 = a - 2;
-	long sub4 = a - 2;
-	long sub5 = sub1 - 3;
-	long sub6 = sub2 - 3;
-	long sub7 = sub3 - 4;
-	long sub8 = sub4 - 4;
-
-	long mul1 = a * 1;
-	long mul2 = a * 1;
-	long mul3 = a * 2;
-	long mul4 = a * 2;
-	long mul5 = mul1 * 3;
-	long mul6 = mul2 * 3;
-	long mul7 = mul3 * 4;
-	long mul8 = mul4 * 4;
+	int sub1 = a - 1;
+	int sub2 = a - 1;
+	int sub3 = a - 2;
+	int sub4 = a - 2;
+	int sub5 = sub1 - 3;
+	int sub6 = sub2 - 3;
+	int sub7 = sub3 - 4;
+	int sub8 = sub4 - 4;
 
 	return add5 + add6 + add7 + add8
-		+ sub5 + sub6 + sub7 + sub8
-		+ mul5 + mul6 + mul7 + mul8;
+		+ sub5 + sub6 + sub7 + sub8;
 }
 
-static long gvnPhi() {
-	return 0;
+static int congrPhi(int a) {
+	int b;
+	int c;
+
+	if (a > 0) {
+		int d;
+		
+		if (a > 1) {
+			d = a + 1;
+		} else {
+			d = a + 2;
+		}
+
+		b = d + 3;
+		c = d + 4;
+	} else {
+		int d;
+		
+		if (a > 1) {
+			d = a + 1;
+		} else {
+			d = a + 2;
+		}
+
+		b = d + 3;
+		c = d + 4;
+	}
+
+	return b + c;
 }
 
-static long gvnArraybc() {
-	return 0;
+static void congrArraybc(int A[], int B[]) {
+	int temp1 = A[0];
+	int temp2 = A[1];
+
+	A[0] = B[0];
+	A[1] = B[1];
+
+	B[0] = temp1;
+	B[1] = temp2;
 }
 
 /**
