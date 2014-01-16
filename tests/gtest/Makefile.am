@@ -51,7 +51,8 @@ TESTS = sample \
 	future_memory \
 	future_unordered \
 	logging_test \
-	buffer_test
+	buffer_test \
+	classfileversion_test
 
 check_PROGRAMS = $(TESTS)
 

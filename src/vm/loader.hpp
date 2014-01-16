@@ -127,7 +127,7 @@ namespace cacao {
 		bool operator <(ClassFileVersion v) const {
 			if (_majr < v._majr)
 				return true;
-			if (v._majr > _majr)
+			if (v._majr < _majr)
 				return false;
 
 			// major versions are equal
