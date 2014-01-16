@@ -168,6 +168,17 @@ public:
 		}
 		return std::make_pair(it->second.begin(),it->second.end());
 	}
+	bool is_backedge(NodeType *src, NodeType *header) const {
+		for (ConstLoopIteratorPair it = get_Loops_from_header(header);
+				it.first != it.second; ++it.first) {
+			LoopType *loop = *it.first;
+			if(loop->get_exit() == src) {
+				return true;
+			}
+		}
+
+		return false;
+	}
 	/**
 	 * Test if a loop is a strictly inner loop of another loop.
 	 *

@@ -43,6 +43,7 @@ OUTPUT_JAVA_TESTS = \
 	Test.fact \
 	Test.Min \
 	Test.power \
+	Test.permut \
 	Test.OverflowInt \
 	Test.OverflowLong \
 	Test.OverflowLongIntLong \
