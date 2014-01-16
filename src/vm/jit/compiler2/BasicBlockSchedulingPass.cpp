@@ -38,7 +38,7 @@
 #define DEBUG_NAME "compiler2/BasicBlockSchedulingPass"
 
 #define VERIFY_LOOP_PROPERTY 1
-#define VERIFY_DOM_PROPERTY 1
+#define VERIFY_PRED_PROPERTY 1
 
 namespace cacao {
 namespace jit {
@@ -214,17 +214,21 @@ bool BasicBlockSchedulingPass::verify() const {
 		}
 	}
 	#endif
-	#if VERIFY_DOM_PROPERTY
-	// check dominator property
-	DominatorTree *DT = get_Pass<DominatorPass>();
+	#if VERIFY_PRED_PROPERTY || VERIFY_LOOP_PROPERTY
+	LoopTree *LT = get_Pass<LoopPass>();
+	#endif
+	#if VERIFY_PRED_PROPERTY
+	// check predecessor property
 	alloc::set<BeginInst*>::type handled;
 	for (BasicBlockSchedule::const_bb_iterator i = bb_begin(), e = bb_end();
 			i !=e ; ++i) {
-		BeginInst *idom = DT->get_idominator(*i);
-		if (idom) {
-			if (handled.find(idom) == handled.end()) {
-				ERROR_MSG("Dominator property violated!","immediate dominator (" << *idom
-					<< ") of " << **i << "not already scheduled" );
+		BeginInst *BI = *i;
+		for (BeginInst::const_pred_iterator i =  BI->pred_begin(), e = BI->pred_end();
+				i != e; ++i) {
+			BeginInst *pred = *i;
+			if (handled.find(pred) == handled.end() && !LT->is_backedge(pred,BI)) {
+				ERROR_MSG("Predecessor property violated!","predecessor (" << *pred
+					<< ") of " << *BI << "not already scheduled" );
 				return false;
 			}
 		}
@@ -233,7 +237,6 @@ bool BasicBlockSchedulingPass::verify() const {
 	#endif
 	// check contiguous loop property
 	#if VERIFY_LOOP_PROPERTY
-	LoopTree *LT = get_Pass<LoopPass>();
 	alloc::set<Loop*>::type finished;
 	alloc::list<Loop*>::type active;
 	// sentinel
@@ -245,9 +248,9 @@ bool BasicBlockSchedulingPass::verify() const {
 		Loop *top = active.back();
 
 		if ( loop && finished.find(loop) != finished.end()) {
-				ERROR_MSG("Loop property violated!","Loop " << *loop
-					<< " already finished but " << *BI << " occurred" );
-				return false;
+			ERROR_MSG("Loop property violated!","Loop " << *loop
+				<< " already finished but " << *BI << " occurred" );
+			return false;
 		}
 
 		if (loop == top) {
