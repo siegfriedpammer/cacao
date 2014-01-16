@@ -27,7 +27,6 @@
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/LoopPass.hpp"
-#include "vm/jit/compiler2/DominatorPass.hpp"
 #include "toolbox/logging.hpp"
 
 #include "vm/jit/compiler2/alloc/map.hpp"
@@ -45,17 +44,6 @@ namespace jit {
 namespace compiler2 {
 
 
-namespace {
-	struct DomComparator : std::binary_function<BeginInst*, BeginInst*, bool>{
-		DominatorTree *DT;
-		DomComparator(DominatorTree *DT) : DT(DT) {}
-		bool operator()(BeginInst *lhs, BeginInst *rhs) {
-			return DT->dominates(lhs,rhs);
-		}
-	};
-} // anonymous namespace
-
-
 class LoopScheduler {
 private:
 	// XXX use unordered map and hash
@@ -67,13 +55,22 @@ private:
 	typedef alloc::set<BeginInst*>::type BeginSchedMapTy;
 
 	LoopMapTy loopmap;
-	DomSuccMapTy dommap;
 	BeginListTy bb_sched;
-	DominatorTree *DT;
 	LoopTree *LT;
 
 	bool is_scheduled(BeginInst* BI) const {
 		return std::find(bb_sched.begin(),bb_sched.end(), BI) != bb_sched.end();
+	}
+
+	bool is_ready(BeginInst* BI) const {
+		for (BeginInst::const_pred_iterator i =  BI->pred_begin(), e = BI->pred_end();
+				i != e; ++i) {
+			BeginInst *pred = *i;
+			if (!is_scheduled(pred) && !LT->is_backedge(pred,BI)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	void schedule_loop(Loop* loop) {
@@ -93,8 +90,7 @@ private:
 				changed = false;
 				for(BeginSetTy::iterator i = unsched.begin(), e = unsched.end() ; i != e; ++i) {
 					BeginInst *BI = *i;
-					BeginInst *idom = DT->get_idominator(BI);
-					if ( !idom || is_scheduled(idom)) {
+					if ( is_ready(BI) ) {
 						// idom scheduled
 						bb_sched.push_back(BI);
 						unsched.erase(i);
@@ -102,14 +98,14 @@ private:
 						changed=true;
 						break;
 					} else {
-						LOG3(Red <<"  not scheduled: " << BI << reset_color << " idom: " << idom <<nl);
+						LOG3(Red <<"  not scheduled: " << BI << reset_color <<nl);
 					}
 				}
 			}
 			assert(unsched.empty() || !subloops.empty());
 			for(LoopSetTy::iterator i = subloops.begin() , e = subloops.end(); i != e; ++i) {
 				Loop *subloop = *i;
-				if (is_scheduled(DT->get_idominator(subloop->get_header()))){
+				if (is_ready(subloop->get_header()) ) {
 					LOG3("schedule subloop of " << loop << nl);
 					schedule_loop(*i);
 					subloops.erase(i);
@@ -121,11 +117,10 @@ private:
 	}
 public:
 	/// constructor
-	LoopScheduler(Method *M, DominatorTree *DT, LoopTree *LT) : DT(DT), LT(LT) {
+	LoopScheduler(Method *M, LoopTree *LT) : LT(LT) {
 		// fill maps
 		for(Method::const_bb_iterator i = M->bb_begin(), e = M->bb_end() ; i != e; ++i) {
 			BeginInst *BI = *i;
-			dommap[DT->get_idominator(BI)].insert(BI);
 			loopmap[LT->get_Loop(BI)].insert(BI);
 		}
 		// start scheduling
@@ -137,11 +132,10 @@ public:
 
 bool BasicBlockSchedulingPass::run(JITData &JD) {
 	M = JD.get_Method();
-	DominatorTree *DT = get_Pass<DominatorPass>();
 	LoopTree *LT = get_Pass<LoopPass>();
 
 	// schedule loops
-	LoopScheduler loop_scheduler(M,DT,LT);
+	LoopScheduler loop_scheduler(M,LT);
 
 	insert(begin(),loop_scheduler.begin(),loop_scheduler.end());
 
@@ -274,7 +268,6 @@ bool BasicBlockSchedulingPass::verify() const {
 
 // pass usage
 PassUsage& BasicBlockSchedulingPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<DominatorPass>();
 	PU.add_requires<LoopPass>();
 	return PU;
 }
