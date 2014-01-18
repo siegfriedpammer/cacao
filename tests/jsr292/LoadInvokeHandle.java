@@ -17,7 +17,12 @@ import java.util.Arrays;
 public class LoadInvokeHandle {
 	@Test
 	public void test() throws Throwable {
-//		Integer i = (Integer) INDY_tester().invokeExact((Integer) 5, (Integer) 6);
+	}
+
+	// perform a invokedynamic call so there is a CONSTANT_InvokeDynamic entry in the constant pool
+	// not actually called by test() on purpose.
+	public Integer callIndy() throws Throwable {
+		return (Integer) INDY_tester().invokeExact((Integer) 5, (Integer) 6);
 	}
 
 	private static void untransformed(String self) {
