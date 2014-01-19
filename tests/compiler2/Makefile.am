@@ -40,6 +40,7 @@ CLEANFILES = \
 	*.thisoutput
 
 OUTPUT_JAVA_TESTS = \
+	Test.BoyerMoore \
 	Test.fact \
 	Test.Min \
 	Test.power \
