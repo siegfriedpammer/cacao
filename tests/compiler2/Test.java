@@ -138,18 +138,24 @@ static void norm(double A[][]) {
 
 }
 
+/**
+ * Matrix addition.
+ *
+ * @param A n*m matrix (input)
+ * @param B n*m matrix (input)
+ * @param AB n*m matrix (output, preallocated)
+ */
 static void matAdd(int A[][], int B[][], int AB[][]) {
   // sanity checks
   int n = A.length;
-  int m = B.length;
-  if (n == 0 || m == 0) return;
-  if (A[0].length != m) return;
-  int p = B[0].length;
-  if (AB.length != n) return;
-  if (AB[0].length != p) return;
+  if (n == 0) return;
+  int m = A[0].length;
+  if (m == 0) return;
+  if (B.length != n || B[0].length != m) return;
+  if (AB.length != n || AB[0].length != m) return;
 
   for (int i = 0; i < n; ++i) {
-    for (int j = 0; j < p; ++j) {
+    for (int j = 0; j < m; ++j) {
       AB[i][j] = A[i][j] + B[i][j];
     }
   }

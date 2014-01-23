@@ -64,6 +64,7 @@ OUTPUT_JAVA_TESTS = \
 	Test.lneg \
 	Test.fneg \
 	Test.dneg \
+	Test.matAdd \
 	Test.matMult \
 	Test.testParameterLong \
 	Test.testParameterLong2 \
