@@ -1876,7 +1876,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_IINC:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
-					Instruction *konst = new CONSTInst((int)1,Type::IntType());
+					Instruction *konst = new CONSTInst(iptr->sx.val.i,Type::IntType());
 					Instruction *result;
 					switch (iptr->opc) {
 					case ICMD_IINC:
