@@ -446,19 +446,19 @@ public:
 		return 0;
 	}
 	int32_t get_Int() const {
-		assert(type == Type::IntTypeID);
+		assert(get_type() == Type::IntTypeID);
 		return value.i;
 	}
 	int64_t get_Long() const {
-		assert(type == Type::LongTypeID);
+		assert(get_type() == Type::LongTypeID);
 		return value.l;
 	}
 	float get_Float() const {
-		assert(type == Type::FloatTypeID);
+		assert(get_type() == Type::FloatTypeID);
 		return value.f;
 	}
 	double get_Double() const {
-		assert(type == Type::DoubleTypeID);
+		assert(get_type() == Type::DoubleTypeID);
 		return value.d;
 	}
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
@@ -780,7 +780,7 @@ public:
 		append_succ(trueBlock);
 		append_succ(falseBlock);
 		assert(S1->get_type() == S2->get_type());
-		type = S1->get_type();
+		set_type(S1->get_type());
 	}
 	virtual IFInst* to_IFInst() { return this; }
 	BeginInstRef &get_then_target() { return succ_front(); }
@@ -815,7 +815,7 @@ public:
 			: EndInst(TABLESWITCHInstID, begin), tablelow(low.low), tablehigh(high.high) {
 		assert(tablehigh >= tablelow);
 		append_op(S1);
-		type = Type::IntTypeID;
+		set_type(Type::IntTypeID);
 	}
 
 	s4 get_low() const { return tablelow; }
@@ -854,7 +854,7 @@ public:
 	explicit LOOKUPSWITCHInst(BeginInst *begin, Value* S1, s4 lookupcount)
 			: EndInst(LOOKUPSWITCHInstID, begin), lookupcount(lookupcount), matches(lookupcount) {
 		append_op(S1);
-		type = Type::IntTypeID;
+		set_type(Type::IntTypeID);
 	}
 	virtual LOOKUPSWITCHInst* to_LOOKUPSWITCHInst() { return this; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
@@ -893,7 +893,7 @@ public:
 	/// value return
 	explicit RETURNInst(BeginInst *begin, Value* S1) : EndInst(RETURNInstID, begin) {
 		append_op(S1);
-		type = S1->get_type();
+		set_type(S1->get_type());
 	}
 	virtual RETURNInst* to_RETURNInst() { return this; }
 	virtual void accept(InstructionVisitor& v) { v.visit(this); }
