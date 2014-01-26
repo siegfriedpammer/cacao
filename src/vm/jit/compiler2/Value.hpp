@@ -26,7 +26,7 @@
 #define _JIT_COMPILER2_VALUE
 
 #include "vm/jit/compiler2/Type.hpp"
-#include "vm/jit/compiler2/alloc/list.hpp"
+#include "vm/jit/compiler2/alloc/unordered_set.hpp"
 #include "vm/jit/compiler2/memory/Manager.hpp"
 
 #include <cstddef>
@@ -53,15 +53,23 @@ inline const char* get_class_name<Value>() {
 
 class Value : public memory::ManagerMixin<Value> {
 public:
-	typedef alloc::list<Instruction*>::type UserListTy;
-protected:
+	typedef alloc::unordered_set<Instruction*>::type UserListTy;
+private:
 	Type::TypeID type;
 	UserListTy user_list;
+protected:
 	void append_user(Instruction* I) {
 		assert(I);
-		user_list.push_back(I);
+		user_list.insert(I);
 	}
 	OStream& print_users(OStream &OS) const;
+
+	void user_remove(Instruction *I) {
+		user_list.erase(I);
+	}
+	void set_type(Type::TypeID t) {
+		type = t;
+	}
 public:
 	Value(Type::TypeID type) : type(type) {}
 	Type::TypeID get_type() const { return type; } ///< get the value type of the instruction
@@ -70,6 +78,13 @@ public:
 
 	UserListTy::const_iterator user_begin() const { return user_list.begin(); }
 	UserListTy::const_iterator user_end()   const { return user_list.end(); }
+	/**
+	 * Get the number of (unique) users.
+	 *
+	 * @note This is not the number of usages but the number of different
+	 * Instructions which use this Value, i.e. if an Instruction uses this Value
+	 * multiple times it is only counted once!
+	 */
 	size_t user_size() const { return user_list.size(); }
 
 	/**

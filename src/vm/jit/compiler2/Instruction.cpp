@@ -54,7 +54,7 @@ Instruction::~Instruction() {
 		//assert(v != (Value*)this);
 		// might be a NULL operand
 		//if (v) {
-			v->user_list.remove(this);
+			v->user_remove(this);
 		//}
 	}
 	for( DepListTy::iterator i = dep_list.begin(), e = dep_list.end(); i != e ; ++i) {
@@ -68,7 +68,7 @@ void Instruction::replace_op(Value* v_old, Value* v_new) {
 	DEBUG(print_operands(dbg()));
 	std::replace(op_list.begin(),op_list.end(),v_old,v_new);
 	DEBUG(print_operands(dbg()));
-	v_old->user_list.remove(this);
+	v_old->user_remove(this);
 	if (v_new)
 		v_new->append_user(this);
 }
