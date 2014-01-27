@@ -91,6 +91,7 @@ bool DeadcodeEliminationPass::run(JITData &JD) {
 		if (I->user_size() == deadUsers[I] && !I->has_side_effects()
 				&& !is_control_flow_inst(I) && I->rdep_size() == 0) {
 			dead[I] = true;
+			InstBoolMapTy visited;
 
 			// insert the dead instructions in the order they should be deleted
 			deadInstructions.push_back(I);
@@ -99,7 +100,8 @@ bool DeadcodeEliminationPass::run(JITData &JD) {
 					i = I->op_begin(), e = I->op_end(); i != e; i++) {
 				Instruction *Op = (*i)->to_Instruction();
 				
-				if (Op) {
+				if (Op && !visited[Op]) {
+					visited[Op] = true;
 					deadUsers[Op]++;
 
 					if (!inWorkList[Op]) {
@@ -141,6 +143,7 @@ bool DeadcodeEliminationPass::run(JITData &JD) {
 PassUsage& DeadcodeEliminationPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<InstructionMetaPass>();
 	PU.add_schedule_before<ScheduleEarlyPass>();
+	PU.add_schedule_before<SSAPrinterPass>();
 	return PU;
 }
 
