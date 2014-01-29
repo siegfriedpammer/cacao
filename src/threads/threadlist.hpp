@@ -1,6 +1,6 @@
 /* src/threads/threadlist.hpp - thread list maintenance
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -49,9 +49,7 @@ private:
 	int32_t             _number_of_active_java_threads;
 	int32_t             _peak_of_active_java_threads;
 
-	// Thread counters for internal usage.
-	int32_t             _number_of_non_daemon_threads;
-
+	// Thread counter for internal usage.
 	int32_t             _last_index;
 
 	void                 remove_from_active_thread_list(threadobject* t);
@@ -100,7 +98,6 @@ inline ThreadList::ThreadList():
 	_number_of_started_java_threads(0),
 	_number_of_active_java_threads(0),
 	_peak_of_active_java_threads(0),
-	_number_of_non_daemon_threads(0),
 	_last_index(0)
 {
 }

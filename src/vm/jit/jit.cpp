@@ -1,6 +1,6 @@
 /* src/vm/jit/jit.cpp - Just-In-Time compiler
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -531,7 +531,6 @@ RT_REGISTER_GROUP_TIMER(typechecker_timer,   "compiler","typecheck",            
 RT_REGISTER_GROUP_TIMER(loop_timer,          "compiler","loop",                         compiler_group)
 RT_REGISTER_GROUP_TIMER(ifconversion_timer,  "compiler","if conversion",                compiler_group)
 RT_REGISTER_GROUP_TIMER(ra_timer,            "compiler","register allocation",          compiler_group)
-RT_REGISTER_GROUP_TIMER(rp_timer,            "compiler","replacement point generation", compiler_group)
 RT_REGISTER_GROUP_TIMER(codegen_timer,       "compiler","codegen",                      compiler_group)
 
 /* jit_compile_intern **********************************************************
