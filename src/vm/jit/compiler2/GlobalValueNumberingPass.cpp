@@ -36,6 +36,39 @@
 // define name for debugging (see logging.hpp)
 #define DEBUG_NAME "compiler2/GlobalValueNumberingPass"
 
+STAT_DECLARE_GROUP(compiler2_stat)
+STAT_REGISTER_SUBGROUP(compiler2_globalvaluenumberingpass_stat,
+	"globalvaluenumberingpass","globalvaluenumberingpass",compiler2_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_total_const,0,"# CONSTInsts",
+	"total number of CONSTInst nodes",compiler2_globalvaluenumberingpass_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_total_arith,0,"# arithmetical nodes",
+	"total number of arithmetical nodes",compiler2_globalvaluenumberingpass_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_total_phi,0,"# PHIInsts",
+	"total number of PHIInst nodes",compiler2_globalvaluenumberingpass_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_total_arraybc,0,"# ARRAYBOUNDSCHECKInsts",
+	"total number of ARRAYBOUNDSCHECKInst nodes",compiler2_globalvaluenumberingpass_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_redundant_const,0,"# redundant CONSTInsts",
+	"number of redundant CONSTInst nodes",compiler2_globalvaluenumberingpass_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_redundant_arith,0,"# redundant arithmetical nodes",
+	"number of redundant arithmetical nodes",compiler2_globalvaluenumberingpass_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_redundant_phi,0,"# redundant PHIInsts",
+	"number of redundant PHIInst nodes",compiler2_globalvaluenumberingpass_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_redundant_arraybc,0,"# redundant ARRAYBOUNDSCHECKInsts",
+	"number of redundant ARRAYBOUNDSCHECKInst nodes",compiler2_globalvaluenumberingpass_stat)
+
+#define STAT_NODE_COUNT_HELPER(INST, CNT, INFIX)								\
+	if ((INST)->get_opcode() == Instruction::CONSTInstID) {						\
+		STATISTICS(num_##INFIX##_const += (CNT));								\
+	} else if ((INST)->is_arithmetic()) {										\
+		STATISTICS(num_##INFIX##_arith += (CNT));								\
+	} else if ((INST)->get_opcode() == Instruction::PHIInstID) {				\
+		STATISTICS(num_##INFIX##_phi += (CNT));									\
+	} else if ((INST)->get_opcode() == Instruction::ARRAYBOUNDSCHECKInstID) {	\
+		STATISTICS(num_##INFIX##_arraybc += (CNT));								\
+	}
+#define STAT_TOTAL_NODES(INST) STAT_NODE_COUNT_HELPER(INST, 1, total)
+#define STAT_REDUNDANT_NODES(INST, CNT) STAT_NODE_COUNT_HELPER(INST, CNT, redundant)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -52,6 +85,8 @@ void GlobalValueNumberingPass::init_partition(Method::const_iterator begin, Meth
 	for (Method::const_iterator i = begin, e = end; i != e; ++i) {
 		Instruction *I = *i;
 		BlockTy *block = (BlockTy*) 0;
+
+		STAT_TOTAL_NODES(I)
 
 		if (I->has_side_effects()
 				|| I->get_opcode() == Instruction::LOADInstID
@@ -282,6 +317,10 @@ void GlobalValueNumberingPass::eliminate_redundancies_in_block(BlockTy *block) {
 	BlockTy::iterator i = block->begin();
 	Instruction *inst = *i;
 	i++;
+
+	// the first node in the block will be used to replace all the others in
+	// the block, the rest of them (i.e. block->size() - 1) is redundant
+	STAT_REDUNDANT_NODES(inst, block->size() - 1);
 
 	for (BlockTy::iterator e = block->end(); i != e; i++) {
 		Instruction *replacable = *i;

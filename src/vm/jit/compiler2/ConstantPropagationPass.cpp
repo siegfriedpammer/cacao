@@ -35,6 +35,12 @@
 
 #define DEBUG_NAME "compiler2/constantpropagationpass"
 
+STAT_DECLARE_GROUP(compiler2_stat)
+STAT_REGISTER_SUBGROUP(compiler2_constantpropagationpass_stat,
+	"constantpropagationpass","constantpropagationpass",compiler2_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_constant_expr,0,"# constant expressions",
+	"number of nodes which could be folded",compiler2_constantpropagationpass_stat)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -253,6 +259,8 @@ void ConstantPropagationPass::replace_by_constant(Instruction *inst,
 		CONSTInst *c, Method *M) {
 	assert(inst);
 	assert(c);
+	
+	STATISTICS(num_constant_expr++);
 
 	LOG("replace " << inst << " by " << c << nl);
 	inst->replace_value(c);
