@@ -33,7 +33,7 @@
 #include "vm/jit/compiler2/InstructionMetaPass.hpp"
 #include "vm/jit/compiler2/SSAPrinterPass.hpp"
 
-#define DEBUG_NAME "compiler2/constantpropagationpass"
+#define DEBUG_NAME "compiler2/ConstantPropagationPass"
 
 STAT_DECLARE_GROUP(compiler2_stat)
 STAT_REGISTER_SUBGROUP(compiler2_constantpropagationpass_stat,

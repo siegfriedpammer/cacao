@@ -35,7 +35,7 @@
 #include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
 #include "vm/jit/compiler2/InstructionMetaPass.hpp"
 
-#define DEBUG_NAME "compiler2/deadcodeeliminationpass"
+#define DEBUG_NAME "compiler2/DeadcodeEliminationPass"
 
 STAT_DECLARE_GROUP(compiler2_stat)
 STAT_REGISTER_SUBGROUP(compiler2_deadcodeeliminationpass_stat,
