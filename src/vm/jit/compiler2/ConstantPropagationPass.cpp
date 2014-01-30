@@ -38,8 +38,11 @@
 STAT_DECLARE_GROUP(compiler2_stat)
 STAT_REGISTER_SUBGROUP(compiler2_constantpropagationpass_stat,
 	"constantpropagationpass","constantpropagationpass",compiler2_stat)
-STAT_REGISTER_GROUP_VAR(std::size_t,num_constant_expr,0,"# constant expressions",
+STAT_REGISTER_GROUP_VAR(std::size_t,num_constant_expr,0,"# evaluated expressions",
 	"number of nodes which could be folded",compiler2_constantpropagationpass_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,num_constant_phis,0,"# evaluated phi functions",
+	"number of PHIInsts which could be replaced",compiler2_constantpropagationpass_stat)
+
 
 namespace cacao {
 namespace jit {
@@ -260,8 +263,6 @@ void ConstantPropagationPass::replace_by_constant(Instruction *inst,
 	assert(inst);
 	assert(c);
 	
-	STATISTICS(num_constant_expr++);
-
 	LOG("replace " << inst << " by " << c << nl);
 	inst->replace_value(c);
 	propagate(c);
@@ -329,12 +330,14 @@ bool ConstantPropagationPass::run(JITData &JD) {
 			} else if (can_be_statically_evaluated(I)) {
 				CONSTInst *foldedInst = foldInstruction(I);
 				if (foldedInst) {
+					STATISTICS(num_constant_expr++);
 					M->add_Instruction(foldedInst);
 					replace_by_constant(I, foldedInst, M);
 				}
 			} else if (I->get_opcode() == Instruction::PHIInstID
 						&& has_only_constant_operands(I)) {
 				assert(I->op_size() > 0);
+				STATISTICS(num_constant_phis++);
 				CONSTInst *firstOp = I->get_operand(0)->to_Instruction()
 					->to_CONSTInst();
 				replace_by_constant(I, firstOp, M);
