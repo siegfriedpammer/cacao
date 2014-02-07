@@ -37,7 +37,10 @@ class Instruction;
 
 /**
  * DeadcodeEliminationPass
- * TODO: more info
+ * 
+ * This optimization pass removes dead (a.k.a unused) code from the program,
+ * based on an algorithm in @cite ReisingerBScThesis. It uses a 'weak'
+ * definition of 'dead' which does not take control-flow into account.
  */
 class DeadcodeEliminationPass : public Pass {
 private:

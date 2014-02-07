@@ -86,8 +86,8 @@ bool DeadcodeEliminationPass::run(JITData &JD) {
 		workList.pop_front();
 		inWorkList[I] = false;
 
-		// the first condition to be met for an instruction to be considered
-		// 'dead' is that all its users are 'dead'.
+		// here we inspect whether the node that has just been picked from
+		// the work list is dead
 		if (I->user_size() == deadUsers[I] && !I->has_side_effects()
 				&& !is_control_flow_inst(I) && I->rdep_size() == 0) {
 			dead[I] = true;
