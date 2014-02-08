@@ -1996,23 +1996,22 @@ GetImplementedInterfaces (jvmtiEnv * env, jclass klass,
     CHECK_PHASE_END;
 
 	if ((interfaces_ptr == NULL) || (interface_count_ptr == NULL))
-		return JVMTI_ERROR_NULL_POINTER;	
+		return JVMTI_ERROR_NULL_POINTER;
 
 	if (!builtin_instanceof((java_objectheader*)klass,class_java_lang_Class))
 		return JVMTI_ERROR_INVALID_CLASS;
 
-		
+
     *interface_count_ptr = (jint)((classinfo*)klass)->interfacescount;
-    *interfaces_ptr = 
-		heap_allocate(sizeof(jclass*) * (*interface_count_ptr),true,NULL);
+    *interfaces_ptr      = heap_allocate(sizeof(jclass*) * (*interface_count_ptr),true,NULL);
 
 	interfaces = ((classinfo*)klass)->interfaces;
 	for (i=0; i<*interface_count_ptr; i++) {
-		if (IS_CLASSREF(interfaces[i]))
+		if (interfaces[i].is_classref())
 			tmp = load_class_bootstrap(interfaces[i].ref->name);
 		else
 			tmp = interfaces[i].cls;
-		
+
 		*interfaces_ptr[i]=tmp;
 	}
 

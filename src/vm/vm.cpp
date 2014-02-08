@@ -115,7 +115,7 @@ u1 *intrp_main_stack = NULL;
 
 #define HEAP_MAXSIZE      128 * 1024 * 1024 /* default 128MB                  */
 #define HEAP_STARTSIZE      2 * 1024 * 1024 /* default 2MB                    */
-#define STACK_SIZE               128 * 1024 /* default 64kB                   */
+#define STACK_SIZE               512 * 1024 /* default 512kB                  */
 
 
 /* define command line options ************************************************/

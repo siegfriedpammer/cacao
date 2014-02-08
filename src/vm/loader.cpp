@@ -28,9 +28,9 @@
 #include "config.h"
 
 #include <cassert>
-#include <cstdlib>
 #include <cstddef>                      // for size_t
 #include <cstdio>                       // for printf, fprintf
+#include <cstdlib>
 #include <cstring>                      // for memset, strstr, strlen, etc
 #include <list>                         // for _List_iterator, etc
 
@@ -114,6 +114,18 @@ STAT_REGISTER_GROUP_VAR_EXTERN(int,size_lock_waiter,0,"size_lock_waiter","lock w
 /* global variables ***********************************************************/
 
 static hashtable *hashtable_classloader;
+
+
+enum ConstantPoolPlacement { ConstantPool };
+
+inline void *operator new(std::size_t size, ConstantPoolPlacement) {
+	STATISTICS(count_const_pool_len += size);
+
+	return mem_alloc(size);
+}
+
+const ClassFileVersion ClassFileVersion::CACAO_VERSION(MAJOR_VERSION, MINOR_VERSION);
+const ClassFileVersion ClassFileVersion::JDK_7(51, 0);
 
 
 /* loader_preinit **************************************************************
@@ -512,47 +524,65 @@ bool loader_skip_attribute_body(ClassBuffer& cb)
 // processed during the first pass. After the complete constantpool has
 // been traversed the references can be resolved (only in specific order).
 
-/* CONSTANT_Class entries */
-struct forward_class {
-	u2 thisindex;
-	u2 name_index;
+/// CONSTANT_Class entries
+struct ForwardClass {
+	uint16_t this_index;
+	uint16_t name_index;
 };
 
-/* CONSTANT_String */
-struct forward_string {
-	u2 thisindex;
-	u2 string_index;
+/// CONSTANT_String
+struct ForwardString {
+	uint16_t this_index;
+	uint16_t utf8_index;
 };
 
-/* CONSTANT_NameAndType */
-struct forward_nameandtype {
-	u2 thisindex;
-	u2 name_index;
-	u2 sig_index;
+/// CONSTANT_NameAndType
+struct ForwardNameAndType {
+	uint16_t this_index;
+	uint16_t name_index;
+	uint16_t type_index;
 };
 
-/* CONSTANT_Fieldref, CONSTANT_Methodref or CONSTANT_InterfaceMethodref */
-struct forward_fieldmethint {
-	u2 thisindex;
-	u1 tag;
-	u2 class_index;
-	u2 nameandtype_index;
+/// CONSTANT_Fieldref, CONSTANT_Methodref or CONSTANT_InterfaceMethodref
+struct ForwardFieldMethInt {
+	uint16_t this_index;
+	uint8_t  tag;
+	uint16_t class_index;
+	uint16_t nameandtype_index;
+};
+
+/// CONSTANT_MethodHandle
+struct ForwardMethodHandle {
+	uint16_t this_index;
+	uint8_t  reference_kind;
+	uint16_t reference_index;
+};
+
+/// CONSTANT_MethodType
+struct ForwardMethodType {
+	uint16_t this_index;
+	uint16_t descriptor_index;
+};
+
+/// CONSTANT_InvokeDynamic
+struct ForwardInvokeDynamic {
+	uint16_t this_index;
+	uint16_t bootstrap_method_attr_index;
+	uint16_t name_and_type_index;
+};
+
+struct ForwardReferences {
+	DumpList<ForwardClass>         classes;
+	DumpList<ForwardString>        strings;
+	DumpList<ForwardNameAndType>   nameandtypes;
+	DumpList<ForwardFieldMethInt>  fieldmethints;
+	DumpList<ForwardMethodHandle>  methodhandles;
+	DumpList<ForwardMethodType>    methodtypes;
+	DumpList<ForwardInvokeDynamic> invokedynamics;
 };
 
 
-
-
-static bool load_constantpool(ClassBuffer& cb, DescriptorPool& descpool) {
-	DumpList<forward_class>        forward_classes;
-	DumpList<forward_string>       forward_strings;
-	DumpList<forward_nameandtype>  forward_nameandtypes;
-	DumpList<forward_fieldmethint> forward_fieldmethints;
-
-	forward_class nfc;
-	forward_string nfs;
-	forward_nameandtype nfn;
-	forward_fieldmethint nff;
-
+static bool load_constantpool(ClassBuffer& cb, ForwardReferences& fwd, DescriptorPool& descpool) {
 	classinfo *c = cb.get_class();
 
 	// number of entries in the constant_pool table plus one
@@ -582,126 +612,112 @@ static bool load_constantpool(ClassBuffer& cb, DescriptorPool& descpool) {
 	u2 idx = 1;
 
 	while (idx < cpcount) {
-		u4 t;
-
-		/* get constant type */
+		// get constant type
 		if (!cb.check_size(1))
 			return false;
 
-		t = cb.read_u1();
+		ConstantPoolTag tag = (ConstantPoolTag) cb.read_u1();
 
-		switch (t) {
-		case CONSTANT_Class:
-			nfc.thisindex = idx;
-
-			/* reference to CONSTANT_NameAndType */
+		switch (tag) {
+		case CONSTANT_Class: {
+			// reference to CONSTANT_Utf8 with class name
 			if (!cb.check_size(2))
 				return false;
 
-			nfc.name_index = cb.read_u2();
+			uint16_t name_index = cb.read_u2();
 
-			forward_classes.push_front(nfc);
+			ForwardClass f = { idx, name_index };
+
+			fwd.classes.push_back(f);
 
 			idx++;
 			break;
+		}
 
-		case CONSTANT_String:
-			nfs.thisindex = idx;
-
-			/* reference to CONSTANT_Utf8_info with string characters */
+		case CONSTANT_String: {
+			// reference to CONSTANT_Utf8_info with string characters
 			if (!cb.check_size(2))
 				return false;
 
-			nfs.string_index = cb.read_u2();
+			uint16_t utf8_index = cb.read_u2();
 
-			forward_strings.push_front(nfs);
+			ForwardString f = { idx, utf8_index };
+
+			fwd.strings.push_back(f);
 
 			idx++;
 			break;
+		}
 
-		case CONSTANT_NameAndType:
-			nfn.thisindex = idx;
-
+		case CONSTANT_NameAndType: {
 			if (!cb.check_size(2 + 2))
 				return false;
 
-			/* reference to CONSTANT_Utf8_info containing simple name */
-			nfn.name_index = cb.read_u2();
+			// reference to CONSTANT_Utf8_info containing simple name
+			uint16_t name_index = cb.read_u2();
 
-			/* reference to CONSTANT_Utf8_info containing field or method
-			   descriptor */
-			nfn.sig_index = cb.read_u2();
+			// reference to CONSTANT_Utf8_info containing field or method descriptor
+			uint16_t type_index = cb.read_u2();
 
-			forward_nameandtypes.push_front(nfn);
+			ForwardNameAndType f = { idx, name_index, type_index };
+
+			fwd.nameandtypes.push_back(f);
 
 			idx++;
 			break;
+		}
 
 		case CONSTANT_Fieldref:
 		case CONSTANT_Methodref:
-		case CONSTANT_InterfaceMethodref:
-			nff.thisindex = idx;
-			/* constant type */
-			nff.tag = t;
-
+		case CONSTANT_InterfaceMethodref: {
 			if (!cb.check_size(2 + 2))
 				return false;
 
-			/* class or interface type that contains the declaration of the
-			   field or method */
-			nff.class_index = cb.read_u2();
+			// class or interface type that contains the declaration of the field or method
+			uint16_t class_index = cb.read_u2();
 
-			/* name and descriptor of the field or method */
-			nff.nameandtype_index = cb.read_u2();
+			// name and descriptor of the field or method
+			uint16_t nameandtype_index = cb.read_u2();
 
-			forward_fieldmethints.push_front(nff);
+			ForwardFieldMethInt f = { idx, tag, class_index, nameandtype_index };
+
+			fwd.fieldmethints.push_back(f);
+
+			cptags[idx] = tag;
 
 			idx++;
 			break;
+		}
 
 		case CONSTANT_Integer: {
-			constant_integer *ci = NEW(constant_integer);
-
-			STATISTICS(count_const_pool_len += sizeof(constant_integer));
-
 			if (!cb.check_size(4))
 				return false;
 
-			ci->value    = cb.read_s4();
 			cptags[idx]  = CONSTANT_Integer;
-			cpinfos[idx] = ci;
+			cpinfos[idx] = new (ConstantPool) int32_t(cb.read_s4());
 
 			idx++;
 			break;
 		}
 
 		case CONSTANT_Float: {
-			constant_float *cf = NEW(constant_float);
-
-			STATISTICS(count_const_pool_len += sizeof(constant_float));
-
 			if (!cb.check_size(4))
 				return false;
 
-			cf->value    = cb.read_float();
 			cptags[idx]  = CONSTANT_Float;
-			cpinfos[idx] = cf;
+			cpinfos[idx] = new (ConstantPool) float(cb.read_float());
 
 			idx++;
 			break;
 		}
 
 		case CONSTANT_Long: {
-			constant_long *cl = NEW(constant_long);
-
-			STATISTICS(count_const_pool_len += sizeof(constant_long));
-
 			if (!cb.check_size(8))
 				return false;
 
-			cl->value = cb.read_s8();
-			cptags[idx] = CONSTANT_Long;
-			cpinfos[idx] = cl;
+			cptags[idx]  = CONSTANT_Long;
+			cpinfos[idx] = new (ConstantPool) int64_t(cb.read_s8());
+
 			idx += 2;
 			if (idx > cpcount) {
 				exceptions_throw_classformaterror(c, "Invalid constant pool entry");
@@ -711,16 +727,12 @@ static bool load_constantpool(ClassBuffer& cb, DescriptorPool& descpool) {
 		}
 
 		case CONSTANT_Double: {
-			constant_double *cd = NEW(constant_double);
-
-			STATISTICS(count_const_pool_len += sizeof(constant_double));
-
 			if (!cb.check_size(8))
 				return false;
 
-			cd->value    = cb.read_double();
 			cptags[idx]  = CONSTANT_Double;
-			cpinfos[idx] = cd;
+			cpinfos[idx] = new (ConstantPool) double(cb.read_double());
+
 			idx += 2;
 			if (idx > cpcount) {
 				exceptions_throw_classformaterror(c, "Invalid constant pool entry");
@@ -730,144 +742,175 @@ static bool load_constantpool(ClassBuffer& cb, DescriptorPool& descpool) {
 		}
 
 		case CONSTANT_Utf8: {
-			u4 length;
-
-			/* number of bytes in the bytes array (not string-length) */
 			if (!cb.check_size(2))
 				return false;
 
-			length = cb.read_u2();
-			cptags[idx] = CONSTANT_Utf8;
+			// number of bytes in the bytes array (not string-length)
+			uint16_t length = cb.read_u2();
 
-			/* validate the string */
+			// validate the string
 			if (!cb.check_size(length))
 				return false;
 
 			Utf8String u = Utf8String::from_utf8((char *) cb.get_data(), length);
 #ifdef ENABLE_VERIFIER
-
-			if (opt_verify && u == NULL)
-			{
+			if (opt_verify && u == NULL) {
 				exceptions_throw_classformaterror(c, "Invalid UTF-8 string");
 				return false;
 			}
-#endif /* ENABLE_VERIFIER */
-			/* insert utf-string into the utf-symboltable */
+#endif
+			cptags[idx]  = CONSTANT_Utf8;
 			cpinfos[idx] = u.c_ptr();
 
-			/* skip bytes of the string (buffer size check above) */
+			// skip bytes of the string (buffer size check above)
 			cb.skip_nbytes(length);
 			idx++;
 			break;
 		}
 
+		case CONSTANT_MethodHandle: {
+			if (cb.version() < ClassFileVersion::JDK_7)
+				goto unsupported_tag;
+
+			if (!cb.check_size(1 + 2))
+				return false;
+
+			uint8_t  reference_kind  = cb.read_u1();
+			uint16_t reference_index = cb.read_u2();
+
+			ForwardMethodHandle f = { idx, reference_kind, reference_index };
+
+			fwd.methodhandles.push_back(f);
+
+			idx++;
+			break;
+		}
+
+		case CONSTANT_MethodType: {
+			if (cb.version() < ClassFileVersion::JDK_7)
+				goto unsupported_tag;
+
+			if (!cb.check_size(2))
+				return false;
+
+			uint16_t descriptor_index = cb.read_u2();
+
+			ForwardMethodType f = { idx, descriptor_index };
+
+			fwd.methodtypes.push_front(f);
+
+			idx++;
+			break;
+		}
+
+		case CONSTANT_InvokeDynamic: {
+			if (cb.version() < ClassFileVersion::JDK_7)
+				goto unsupported_tag;
+
+			if (!cb.check_size(2 + 2))
+				return false;
+
+			uint16_t bootstrap_method_attr_index = cb.read_u2();
+			uint16_t name_and_type_index         = cb.read_u2();
+
+			ForwardInvokeDynamic f = { idx, bootstrap_method_attr_index, name_and_type_index };
+
+			fwd.invokedynamics.push_front(f);
+
+			idx++;
+			break;
+		}
+
+		unsupported_tag:
+			exceptions_throw_classformaterror(c, "Class file version does not support constant tag %u in class file %s", tag, c->name.begin());
+			return false;
+
 		default:
-			exceptions_throw_classformaterror(c, "Illegal constant pool type '%u'", t);
+			exceptions_throw_classformaterror(c, "Illegal constant pool type '%u'", tag);
 			return false;
 		}  /* end switch */
 	} /* end while */
 
-
 	/* resolve entries in temporary structures */
 
-	for (DumpList<forward_class>::iterator it = forward_classes.begin();
-			it != forward_classes.end(); ++it) {
-
+	for (DumpList<ForwardClass>::iterator it  = fwd.classes.begin(),
+	                                        end = fwd.classes.end(); it != end; ++it) {
 		Utf8String name = (utf*) class_getconstant(c, it->name_index, CONSTANT_Utf8);
+
 		if (!name)
 			return false;
 
 #ifdef ENABLE_VERIFIER
-		if (opt_verify && !Utf8String(name).is_valid_name()) {
+		if (opt_verify && !name.is_valid_name()) {
 			exceptions_throw_classformaterror(c, "Class reference with invalid name");
 			return false;
 		}
-#endif /* ENABLE_VERIFIER */
+#endif
 
-		/* add all class references to the descriptor_pool */
+		// add all class references to the descriptor_pool
 
 		if (!descpool.add_class(name))
 			return false;
 
-		cptags[it->thisindex] = CONSTANT_Class;
-
-		/* the classref is created later */
-		cpinfos[it->thisindex] = name;
+		// the classref is created later
+		cptags[it->this_index]  = CONSTANT_Class;
+		cpinfos[it->this_index] = name;
 	}
 
-	for (DumpList<forward_string>::iterator it = forward_strings.begin();
-			it != forward_strings.end(); ++it) {
-
-		Utf8String text = (utf*) class_getconstant(c, it->string_index, CONSTANT_Utf8);
+	for (DumpList<ForwardString>::iterator it  = fwd.strings.begin(),
+		                                   end = fwd.strings.end(); it != end; ++it) {
+		Utf8String text = (utf*) class_getconstant(c, it->utf8_index, CONSTANT_Utf8);
 
 		if (!text)
 			return false;
 
-		/* resolve utf-string */
-		cptags[it->thisindex] = CONSTANT_String;
-		cpinfos[it->thisindex] = text;
+		// resolve utf-string
+		cptags[it->this_index]  = CONSTANT_String;
+		cpinfos[it->this_index] = text;
 	}
 
-	for (DumpList<forward_nameandtype>::iterator it = forward_nameandtypes.begin();
-			it != forward_nameandtypes.end(); ++it) {
-
-		constant_nameandtype *cn = NEW(constant_nameandtype);
-
-		STATISTICS(count_const_pool_len += sizeof(constant_nameandtype));
-
-		/* resolve simple name and descriptor */
-		cn->name = (utf*) class_getconstant(c,
-											it->name_index,
-											CONSTANT_Utf8);
-		if (!cn->name)
+	for (DumpList<ForwardNameAndType>::iterator it  = fwd.nameandtypes.begin(),
+		                                        end = fwd.nameandtypes.end(); it != end; ++it) {
+		// resolve simple name and descriptor
+		Utf8String name = (utf*) class_getconstant(c, it->name_index, CONSTANT_Utf8);
+		if (!name)
 			return false;
 
-		cn->descriptor = (utf*) class_getconstant(c,
-												  it->sig_index,
-												  CONSTANT_Utf8);
-		if (!cn->descriptor)
+		Utf8String descriptor = (utf*) class_getconstant(c, it->type_index, CONSTANT_Utf8);
+		if (!descriptor)
 			return false;
 
 #ifdef ENABLE_VERIFIER
 		if (opt_verify) {
-			/* check name */
-			if (!Utf8String(cn->name).is_valid_name()) {
-				exceptions_throw_classformaterror(c,
-				                                  "Illegal Field name \"%s\"",
-				                                  cn->name.begin());
-
+			// check name
+			if (!name.is_valid_name()) {
+				exceptions_throw_classformaterror(c, "Illegal field or method name \"%s\"", name.begin());
 				return false;
 			}
 
-			/* disallow referencing <clinit> among others */
-			if (cn->name[0] == '<' && cn->name != utf8::init) {
+			// disallow referencing <clinit> among others
+			if (name[0] == '<' && name != utf8::init) {
 				exceptions_throw_classformaterror(c, "Illegal reference to special method");
 				return false;
 			}
 		}
-#endif /* ENABLE_VERIFIER */
+#endif // ENABLE_VERIFIER
 
-		cptags[it->thisindex] = CONSTANT_NameAndType;
-		cpinfos[it->thisindex] = cn;
+		cptags[it->this_index]  = CONSTANT_NameAndType;
+		cpinfos[it->this_index] = new (ConstantPool) constant_nameandtype(name, descriptor);
 	}
 
-	for (DumpList<forward_fieldmethint>::iterator it = forward_fieldmethints.begin();
-			it != forward_fieldmethints.end(); ++it) {
+	for (DumpList<ForwardFieldMethInt>::iterator it  = fwd.fieldmethints.begin(),
+	                                             end = fwd.fieldmethints.end(); it != end; ++it) {
+		// resolve simple name and descriptor
 
-		constant_nameandtype *nat;
-		constant_FMIref *fmi = NEW(constant_FMIref);
-
-		STATISTICS(count_const_pool_len += sizeof(constant_FMIref));
-		/* resolve simple name and descriptor */
-
-		nat = (constant_nameandtype*) class_getconstant(c,
-														it->nameandtype_index,
-														CONSTANT_NameAndType);
-
+		constant_nameandtype *nat = (constant_nameandtype*) class_getconstant(c,
+														                      it->nameandtype_index,
+														                      CONSTANT_NameAndType);
 		if (!nat)
 			return false;
 
-		/* add all descriptors in {Field,Method}ref to the descriptor_pool */
+		// add all descriptors in {Field,Method}ref to the descriptor_pool
 
 		switch (it->tag) {
 		case CONSTANT_Fieldref:
@@ -884,15 +927,18 @@ static bool load_constantpool(ClassBuffer& cb, DescriptorPool& descpool) {
 			break;
 		}
 
-		/* the classref is created later */
-
-		fmi->p.index    = it->class_index;
-		fmi->name       = nat->name;
-		fmi->descriptor = nat->descriptor;
-
-		cptags[it->thisindex]  = it->tag;
-		cpinfos[it->thisindex] = fmi;
+		// the FMIref is created later
 	}
+
+	for (DumpList<ForwardMethodType>::iterator it  = fwd.methodtypes.begin(),
+		                                       end = fwd.methodtypes.end(); it != end; ++it) {
+		Utf8String descriptor = (utf*) class_getconstant(c, it->descriptor_index, CONSTANT_Utf8);
+
+		if (descpool.add_method(descriptor) == -1)
+			return false;
+	}
+
+	// MethodHandles & InvokeDynamic are processed later
 
 	/* everything was ok */
 
@@ -1363,12 +1409,6 @@ classinfo *load_class_bootstrap(Utf8String name)
 
 static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 {
-	classinfo          *tc;
-	Utf8String          name;
-	Utf8String          supername;
-	Utf8String         *interfacesnames;
-	int16_t             index;
-
 	// Create new dump memory area.
 	DumpMemoryArea dma;
 
@@ -1392,11 +1432,13 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 
 	u4 mi = cb.read_u2();
 	u4 ma = cb.read_u2();
+	c->version = ClassFileVersion(ma, mi);
 
-	if (!(ma < MAJOR_VERSION || (ma == MAJOR_VERSION && mi <= MINOR_VERSION))) {
-		exceptions_throw_unsupportedclassversionerror(c, ma, mi);
+	if (ClassFileVersion::CACAO_VERSION < c->version) {
+		exceptions_throw_unsupportedclassversionerror(c);
 		return false;
 	}
+
 
 	RT_TIMER_STOPSTART(checks_timer,ndpool_timer);
 
@@ -1408,7 +1450,9 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 
 	/* load the constant pool */
 
-	if (!load_constantpool(cb, descpool))
+	ForwardReferences fwd;
+
+	if (!load_constantpool(cb, fwd, descpool))
 		return false;
 
 	RT_TIMER_STOPSTART(cpool_timer,setup_timer);
@@ -1457,9 +1501,9 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 
 	/* This class. */
 
-	index = cb.read_u2();
+	uint16_t index = cb.read_u2();
 
-	name = (utf *) class_getconstant(c, index, CONSTANT_Class);
+	Utf8String name = (utf *) class_getconstant(c, index, CONSTANT_Class);
 
 	if (name == NULL)
 		return false;
@@ -1479,6 +1523,8 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 	c->super = NULL;
 
 	index = cb.read_u2();
+
+	Utf8String supername;
 
 	if (index == 0) {
 		supername = NULL;
@@ -1532,10 +1578,10 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 
 	/* Get the names of the super interfaces. */
 
-	interfacesnames = (Utf8String*) DumpMemory::allocate(sizeof(Utf8String) * c->interfacescount);
+	Utf8String *interfacesnames = (Utf8String*) DumpMemory::allocate(sizeof(Utf8String) * c->interfacescount);
 
 	for (int32_t i = 0; i < c->interfacescount; i++) {
-		index = cb.read_u2();
+		uint16_t index = cb.read_u2();
 
 		Utf8String u = (utf *) class_getconstant(c, index, CONSTANT_Class);
 
@@ -1601,13 +1647,38 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 
 	RT_TIMER_STOPSTART(descs_timer,setrefs_timer);
 
-	/* put the classrefs in the constant pool */
+	// put the classrefs in the constant pool
 
-	for (int32_t i = 0; i < c->cpcount; i++) {
-		if (c->cptags[i] == CONSTANT_Class) {
-			Utf8String name = (utf *) c->cpinfos[i];
-			c->cpinfos[i] = descpool.lookup_classref(name);
-		}
+	for (DumpList<ForwardClass>::iterator it  = fwd.classes.begin(),
+	                                      end = fwd.classes.end(); it != end; ++it) {
+		Utf8String name = (utf*) class_getconstant(c, it->this_index, CONSTANT_Class);
+
+		c->cpinfos[it->this_index] = descpool.lookup_classref(name);
+	}
+
+	// get parsed descriptors for MethodTypes & InvokeDynamic call sites
+
+	for (DumpList<ForwardMethodType>::iterator it  = fwd.methodtypes.begin(),
+		                                       end = fwd.methodtypes.end(); it != end; ++it) {
+		Utf8String  descriptor = (utf*) class_getconstant(c, it->descriptor_index, CONSTANT_Utf8);
+		methoddesc *parseddesc = descpool.parse_method_descriptor(descriptor, ACC_STATIC, NULL);
+
+		c->cptags[it->this_index]  = CONSTANT_MethodType;
+		c->cpinfos[it->this_index] = new (ConstantPool) constant_MethodType(descriptor, parseddesc);
+	}
+
+	for (DumpList<ForwardInvokeDynamic>::iterator it  = fwd.invokedynamics.begin(),
+		                                          end = fwd.invokedynamics.end(); it != end; ++it) {
+		constant_nameandtype *nat = (constant_nameandtype*) class_getconstant(c, it->name_and_type_index, CONSTANT_NameAndType);
+
+		Utf8String name = nat->name;
+		Utf8String desc = nat->descriptor;
+
+		methoddesc *md = descpool.parse_method_descriptor(desc, ACC_STATIC, NULL);
+		md->params_from_paramtypes(ACC_STATIC);
+
+		c->cptags[it->this_index]  = CONSTANT_InvokeDynamic;
+		c->cpinfos[it->this_index] = new (ConstantPool) constant_InvokeDynamic(it->bootstrap_method_attr_index, name, desc, md);
 	}
 
 	/* Resolve the super class. */
@@ -1619,7 +1690,7 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 			return false;
 
 		/* XXX This should be done better. */
-		tc = resolve_classref_or_classinfo_eager(CLASSREF_OR_CLASSINFO(cr), false);
+		classinfo *tc = resolve_classref_or_classinfo_eager(to_classref_or_classinfo(cr), false);
 
 		if (tc == NULL) {
 			resolve_handle_pending_exception(true);
@@ -1636,8 +1707,7 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 		/* Don't allow extending final classes */
 
 		if (tc->flags & ACC_FINAL) {
-			exceptions_throw_verifyerror(NULL,
-										 "Cannot inherit from final class");
+			exceptions_throw_verifyerror(NULL, "Cannot inherit from final class");
 			return false;
 		}
 
@@ -1656,7 +1726,7 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 			return false;
 
 		/* XXX This should be done better. */
-		tc = resolve_classref_or_classinfo_eager(CLASSREF_OR_CLASSINFO(cr), false);
+		classinfo *tc = resolve_classref_or_classinfo_eager(to_classref_or_classinfo(cr), false);
 
 		if (tc == NULL) {
 			resolve_handle_pending_exception(true);
@@ -1671,8 +1741,7 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 		}
 
 		if (!(tc->flags & ACC_INTERFACE)) {
-			exceptions_throw_incompatibleclasschangeerror(tc,
-														  "Implementing class");
+			exceptions_throw_incompatibleclasschangeerror(tc, "Implementing class");
 			return false;
 		}
 
@@ -1724,40 +1793,104 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 
 	/* parse the loaded descriptors */
 
-	for (int32_t i = 0; i < c->cpcount; i++) {
-		constant_FMIref *fmi;
-		s4               index;
+	for (DumpList<ForwardFieldMethInt>::iterator it  = fwd.fieldmethints.begin(),
+	                                             end = fwd.fieldmethints.end(); it != end; ++it) {
+		constant_nameandtype *nat = (constant_nameandtype*) class_getconstant(c, it->nameandtype_index, CONSTANT_NameAndType);
 
-		switch (c->cptags[i]) {
-		case CONSTANT_Fieldref:
-			fmi = (constant_FMIref *) c->cpinfos[i];
-			fmi->parseddesc.fd = descpool.parse_field_descriptor(fmi->descriptor);
-			if (!fmi->parseddesc.fd)
-				return false;
+		Utf8String name       = nat->name;
+		Utf8String descriptor = nat->descriptor;
 
-			index = fmi->p.index;
-			fmi->p.classref =
-				(constant_classref *) class_getconstant(c, index,
-														CONSTANT_Class);
-			if (!fmi->p.classref)
-				return false;
-			break;
-		case CONSTANT_Methodref:
-		case CONSTANT_InterfaceMethodref:
-			fmi = (constant_FMIref *) c->cpinfos[i];
-			index = fmi->p.index;
-			fmi->p.classref =
-				(constant_classref *) class_getconstant(c, index,
-														CONSTANT_Class);
-			if (!fmi->p.classref)
-				return false;
-			fmi->parseddesc.md = descpool.parse_method_descriptor(fmi->descriptor,
-			                                                      ACC_UNDEF,
-			                                                      fmi->p.classref);
-			if (!fmi->parseddesc.md)
+		constant_classref *classref = (constant_classref *) class_getconstant(c, it->class_index, CONSTANT_Class);
+		if (!classref)
+			return false;
+
+		parseddesc_t parseddesc;
+
+		switch (it->tag) {
+		case CONSTANT_Fieldref: {
+			parseddesc.fd = descpool.parse_field_descriptor(descriptor);
+			if (!parseddesc)
 				return false;
 			break;
 		}
+
+		case CONSTANT_Methodref:
+		case CONSTANT_InterfaceMethodref: {
+			parseddesc.md = descpool.parse_method_descriptor(descriptor, ACC_UNDEF, classref);
+			if (!parseddesc)
+				return false;
+			break;
+		}
+		default:
+			assert(false);
+		}
+
+		c->cptags[it->this_index]  = it->tag;
+		c->cpinfos[it->this_index] = new (ConstantPool) constant_FMIref(classref, name, descriptor, parseddesc);
+	}
+
+	for (DumpList<ForwardMethodHandle>::iterator it  = fwd.methodhandles.begin(),
+		                                         end = fwd.methodhandles.end(); it != end; ++it) {
+		MethodHandleKind kind = (MethodHandleKind) it->reference_kind;
+
+		constant_FMIref *fmi;
+
+		switch (kind) {
+		case REF_getField:
+		case REF_getStatic:
+		case REF_putField:
+		case REF_putStatic:
+			fmi  = (constant_FMIref*) class_getconstant(c, it->reference_index, CONSTANT_Fieldref);
+
+			if (!fmi)
+				return false;
+			break;
+
+		case REF_invokeVirtual:
+		case REF_invokeStatic:
+		case REF_invokeSpecial:
+			fmi  = (constant_FMIref*) class_getconstant(c, it->reference_index, CONSTANT_Methodref);
+
+			if (!fmi)
+				return false;
+
+			if (fmi->name == utf8::init || fmi->name == utf8::clinit) {
+				exceptions_throw_classformaterror(c, "Illegal method handle");
+				return false;
+			}
+			break;
+			
+		case REF_newInvokeSpecial:
+			fmi  = (constant_FMIref*) class_getconstant(c, it->reference_index, CONSTANT_Methodref);
+
+			if (!fmi)
+				return false;
+
+			if (fmi->name != utf8::init) {
+				exceptions_throw_classformaterror(c, "Illegal method handle");
+				return false;
+			}
+			break;
+				
+		case REF_invokeInterface:
+			fmi  = (constant_FMIref*) class_getconstant(c, it->reference_index, CONSTANT_InterfaceMethodref);
+
+			if (!fmi)
+				return false;
+
+			if (fmi->name == utf8::init || fmi->name == utf8::clinit) {
+				exceptions_throw_classformaterror(c, "Illegal method handle");
+				return false;
+			}
+			break;
+
+		default:
+			exceptions_throw_classformaterror(c, "Illegal reference kind in method handle");
+			return false;
+		}
+
+		c->cptags[it->this_index]  = CONSTANT_MethodHandle;
+		c->cpinfos[it->this_index] = new (ConstantPool) constant_MethodHandle(kind, fmi);
 	}
 
 	RT_TIMER_STOPSTART(parsecpool_timer,verify_timer);
@@ -2067,8 +2200,8 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 
 	classrefs = MNEW(constant_classref, 2);
 
-	CLASSREF_INIT(classrefs[0], c, c->name);
-	CLASSREF_INIT(classrefs[1], c, utf8::java_lang_Object);
+	new (classrefs + 0) constant_classref(c, c->name);
+	new (classrefs + 1) constant_classref(c, utf8::java_lang_Object);
 
 	/* create descriptor for clone method */
 	/* we need one paramslot which is reserved for the 'this' parameter */

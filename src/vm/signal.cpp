@@ -293,7 +293,7 @@ void signal_thread_handler(int sig)
 
 	case SIGQUIT:
 		/* print a thread dump */
-		ThreadList::dump_threads();
+		ThreadList::get()->dump_threads();
 
 #if 0 && defined(ENABLE_STATISTICS)
 		if (opt_stat)
@@ -377,4 +377,5 @@ void signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

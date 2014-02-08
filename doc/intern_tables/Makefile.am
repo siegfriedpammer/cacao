@@ -1,4 +1,4 @@
-## tests/gtest/Makefile.am
+## doc/intern_tables/Makefile.am
 ##
 ## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -20,41 +20,35 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 
+LATEX = TEXINPUTS=.:$(abs_srcdir):$$TEXINPUTS latex -interaction=batchmode -halt-on-error
+PDFLATEX = TEXINPUTS=.:$(abs_srcdir):$$TEXINPUTS pdflatex -interaction=batchmode -halt-on-error
 
-AM_CPPFLAGS += -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)
+dist_noinst_DATA = \
+	protokoll.tex \
+	jstr-intern-collisions.png \
+	jstr-intern-time.png \
+	protokoll.tex \
+	utf8-decoder.png \
+	utf8-intern-collisions.png \
+	utf8-intern-time.png
 
-# set default search extension
-AM_DEFAULT_SOURCE_EXT = .cpp
+CLEANFILES = \
+	*.aux *.bbl *.blg *.dvi *.lof *.log *.lot *.toc
 
-# ignore gtest warnings
-GTEST_CXXFLAGS += -Wno-variadic-macros -Wno-sign-compare
+#pdf: protokoll.pdf
 
-# set gtest flags
-AM_CPPFLAGS += $(GTEST_CPPFLAGS)
-AM_CXXFLAGS += $(GTEST_CXXFLAGS)
-AM_LDFLAGS   = $(GTEST_LDFLAGS)
-LIBS        += $(GTEST_LIBS)
+#dvi: protokoll.dvi
 
-# build current directory before subdirectories (libgtest_main.a)
-SUBDIRS = .
+protokoll.pdf: $(dist_noinst_DATA)
+	$(PDFLATEX) protokoll.tex
+	$(PDFLATEX) protokoll.tex
+	$(PDFLATEX) protokoll.tex
 
-# define gtest_main library
-check_LIBRARIES = libgtest_main.a
+protokoll.dvi: $(dist_noinst_DATA)
+	$(LATEX) protokoll.tex
+	$(LATEX) protokoll.tex
+	$(LATEX) protokoll.tex
 
-# add gtest_main
-LDADD=libgtest_main.a \
-	$(top_builddir)/src/cacao/libjvm.la
-
-# test cases
-TESTS = sample \
-	future_algorithm \
-	future_memory \
-	future_unordered \
-	logging_test \
-	buffer_test \
-	classfileversion_test
-
-check_PROGRAMS = $(TESTS)
 
 ## Local variables:
 ## mode: Makefile

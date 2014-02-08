@@ -20,7 +20,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 
-dnl check for compiler timing
+dnl check for logging
 
 AC_DEFUN([AC_CHECK_ENABLE_LOGGING],[
 AC_MSG_CHECKING(whether logging should be enabled)

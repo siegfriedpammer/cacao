@@ -22,8 +22,10 @@
 
 
 SUBDIRS = \
+	abc_optimization \
 	doxygen \
-	handbook
+	handbook \
+	intern_tables
 
 dist_noinst_DATA = \
 	assertions.tex \

@@ -41,9 +41,9 @@ AC_ARG_WITH([java-runtime-library],
                 openjdk7)
                     WITH_JAVA_RUNTIME_LIBRARY=openjdk7
                     AC_DEFINE([WITH_JAVA_RUNTIME_LIBRARY_OPENJDK], 1, [use OpenJDK's Java SE classes])
-										AC_DEFINE([WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7], 1, [use OpenJDK's version 7])
+                    AC_DEFINE([WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7], 1, [use OpenJDK's version 7])
                     AC_SUBST(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-										AC_SUBST(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7)
+                    AC_SUBST(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7)
                     ;;
                 openjdk)
                     WITH_JAVA_RUNTIME_LIBRARY=openjdk

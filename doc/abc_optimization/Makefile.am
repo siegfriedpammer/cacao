@@ -1,4 +1,4 @@
-## tests/gtest/Makefile.am
+## doc/abc_optimization/Makefile.am
 ##
 ## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -20,41 +20,32 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 
+LATEX = TEXINPUTS=.:$(abs_srcdir):$$TEXINPUTS latex -interaction=batchmode -halt-on-error
+PDFLATEX = TEXINPUTS=.:$(abs_srcdir):$$TEXINPUTS pdflatex -interaction=batchmode -halt-on-error
+BIBTEX = BIBINPUTS=.:$(abs_srcdir) bibtex
 
-AM_CPPFLAGS += -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)
+dist_noinst_DATA = \
+	BakkalaureatSeminararbeitKB2010.tex \
+	bibfile.bib
 
-# set default search extension
-AM_DEFAULT_SOURCE_EXT = .cpp
+CLEANFILES = \
+	*.aux *.bbl *.blg *.dvi *.lof *.log *.lot *.toc
 
-# ignore gtest warnings
-GTEST_CXXFLAGS += -Wno-variadic-macros -Wno-sign-compare
+#pdf: BakkalaureatSeminararbeitKB2010.pdf
 
-# set gtest flags
-AM_CPPFLAGS += $(GTEST_CPPFLAGS)
-AM_CXXFLAGS += $(GTEST_CXXFLAGS)
-AM_LDFLAGS   = $(GTEST_LDFLAGS)
-LIBS        += $(GTEST_LIBS)
+#dvi: BakkalaureatSeminararbeitKB2010.dvi
 
-# build current directory before subdirectories (libgtest_main.a)
-SUBDIRS = .
+BakkalaureatSeminararbeitKB2010.pdf: $(dist_noinst_DATA)
+	$(PDFLATEX) BakkalaureatSeminararbeitKB2010.tex
+	$(BIBTEX) BakkalaureatSeminararbeitKB2010.aux
+	$(PDFLATEX) BakkalaureatSeminararbeitKB2010.tex
+	$(PDFLATEX) BakkalaureatSeminararbeitKB2010.tex
 
-# define gtest_main library
-check_LIBRARIES = libgtest_main.a
-
-# add gtest_main
-LDADD=libgtest_main.a \
-	$(top_builddir)/src/cacao/libjvm.la
-
-# test cases
-TESTS = sample \
-	future_algorithm \
-	future_memory \
-	future_unordered \
-	logging_test \
-	buffer_test \
-	classfileversion_test
-
-check_PROGRAMS = $(TESTS)
+BakkalaureatSeminararbeitKB2010.dvi: $(dist_noinst_DATA)
+	$(LATEX) BakkalaureatSeminararbeitKB2010.tex
+	$(BIBTEX) BakkalaureatSeminararbeitKB2010.aux
+	$(LATEX) BakkalaureatSeminararbeitKB2010.tex
+	$(LATEX) BakkalaureatSeminararbeitKB2010.tex
 
 ## Local variables:
 ## mode: Makefile

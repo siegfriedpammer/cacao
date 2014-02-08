@@ -1,4 +1,4 @@
-## tests/gtest/Makefile.am
+## tests/jsr292/Makefile.am
 ##
 ## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,40 +21,38 @@
 ## 02110-1301, USA.
 
 
-AM_CPPFLAGS += -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)
+SUBDIRS = 
 
-# set default search extension
-AM_DEFAULT_SOURCE_EXT = .cpp
+JAVA     = $(top_builddir)/src/cacao/cacao
+JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
+JAVACCMD = $(JAVAC) -source 1.7 -target 1.7 -nowarn -bootclasspath $(BOOTCLASSPATH)
 
-# ignore gtest warnings
-GTEST_CXXFLAGS += -Wno-variadic-macros -Wno-sign-compare
+SOURCE_FILES = \
+	LoadInvokeHandle
 
-# set gtest flags
-AM_CPPFLAGS += $(GTEST_CPPFLAGS)
-AM_CXXFLAGS += $(GTEST_CXXFLAGS)
-AM_LDFLAGS   = $(GTEST_LDFLAGS)
-LIBS        += $(GTEST_LIBS)
+JAVA_FILES  = $(foreach file, $(SOURCE_FILES), $(srcdir)/$(file).java)
+CLASS_FILES = $(foreach file, $(SOURCE_FILES), $(file).class)
 
-# build current directory before subdirectories (libgtest_main.a)
-SUBDIRS = .
+EXTRA_DIST = \
+	$(SOURCE_PATHS)
 
-# define gtest_main library
-check_LIBRARIES = libgtest_main.a
+CLEANFILES = \
+	*.class \
+	*.thisoutput
 
-# add gtest_main
-LDADD=libgtest_main.a \
-	$(top_builddir)/src/cacao/libjvm.la
+check: build run
 
-# test cases
-TESTS = sample \
-	future_algorithm \
-	future_memory \
-	future_unordered \
-	logging_test \
-	buffer_test \
-	classfileversion_test
+build:
+	$(JAVACCMD) -classpath $(JUNIT_JAR):. -d . $(srcdir)/*.java
+	$(JAVACMD)  indify.Indify --overwrite *.class
 
-check_PROGRAMS = $(TESTS)
+run:
+	$(JAVACMD) -classpath $(JUNIT_JAR):. org.junit.runner.JUnitCore $(notdir $(basename $<))
+
+%.class: %.java
+	$(JAVACCMD) -classpath $(JUNIT_JAR):. -d . *.java
+	$(JAVACMD)  indify.Indify --overwrite *.class
+
 
 ## Local variables:
 ## mode: Makefile

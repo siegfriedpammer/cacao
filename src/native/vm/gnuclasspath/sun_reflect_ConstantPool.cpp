@@ -264,17 +264,16 @@ JNIEXPORT jobjectArray JNICALL Java_sun_reflect_ConstantPool_getMemberRefInfoAt0
  */
 JNIEXPORT jint JNICALL Java_sun_reflect_ConstantPool_getIntAt0(JNIEnv *env, jobject _this, jobject jcpool, jint index)
 {
-	constant_integer *ref;
 	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 
-	ref = (constant_integer*) class_getconstant(cls, index, CONSTANT_Integer);
+	int32_t *ref = (int32_t*) class_getconstant(cls, index, CONSTANT_Integer);
 
 	if (ref == NULL) {
 		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 
-	return ref->value;
+	return *ref;
 }
 
 
@@ -285,18 +284,16 @@ JNIEXPORT jint JNICALL Java_sun_reflect_ConstantPool_getIntAt0(JNIEnv *env, jobj
  */
 JNIEXPORT jlong JNICALL Java_sun_reflect_ConstantPool_getLongAt0(JNIEnv *env, jobject _this, jobject jcpool, jint index)
 {
-	constant_long *ref;
 	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 
-	ref = (constant_long*)class_getconstant(
-		cls, index, CONSTANT_Long);
+	int64_t *ref = (int64_t*) class_getconstant(cls, index, CONSTANT_Long);
 
 	if (ref == NULL) {
 		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 
-	return ref->value;
+	return *ref;
 }
 
 
@@ -307,18 +304,16 @@ JNIEXPORT jlong JNICALL Java_sun_reflect_ConstantPool_getLongAt0(JNIEnv *env, jo
  */
 JNIEXPORT float JNICALL Java_sun_reflect_ConstantPool_getFloatAt0(JNIEnv *env, jobject _this, jobject jcpool, jint index)
 {
-	constant_float *ref;
 	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 
-	ref = (constant_float*)class_getconstant(
-		cls, index, CONSTANT_Float);
+	float *ref = (float*) class_getconstant( cls, index, CONSTANT_Float);
 
 	if (ref == NULL) {
 		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 
-	return ref->value;
+	return *ref;
 }
 
 
@@ -329,18 +324,16 @@ JNIEXPORT float JNICALL Java_sun_reflect_ConstantPool_getFloatAt0(JNIEnv *env, j
  */
 JNIEXPORT double JNICALL Java_sun_reflect_ConstantPool_getDoubleAt0(JNIEnv *env, jobject _this, jobject jcpool, jint index)
 {
-	constant_double *ref;
 	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 
-	ref = (constant_double*)class_getconstant(
-		cls, index, CONSTANT_Double);
+	double *ref = (double*) class_getconstant(cls, index, CONSTANT_Double);
 
 	if (ref == NULL) {
 		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 
-	return ref->value;
+	return *ref;
 }
 
 

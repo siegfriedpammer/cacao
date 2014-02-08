@@ -804,7 +804,7 @@ static void bc_escape_analysis_parse_invoke(bc_escape_analysis_t *be, jcode_t *j
 			dprintf(
 				be->depth,
 				"Failed to resolve callee %s/%s.\n",
-				(IS_FMIREF_RESOLVED(fmi) ? "ERR" : fmi->p.classref->name.begin()),
+				(fmi->is_resolved() ? "ERR" : fmi->p.classref->name.begin()),
 				fmi->name.begin()
 			);
 		}

@@ -1,6 +1,6 @@
 /* src/vm/jit/builtin.cpp - functions for unsupported operations
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -1367,6 +1367,7 @@ s4 builtin_lcmp(s8 a, s8 b)
 
 /* used to convert FLT_xxx defines into float values */
 
+#if !SUPPORT_FLOAT
 static inline float intBitsToFloat(s4 i)
 {
 	imm_union imb;
@@ -1374,10 +1375,12 @@ static inline float intBitsToFloat(s4 i)
 	imb.i = i;
 	return imb.f;
 }
+#endif
 
 
 /* used to convert DBL_xxx defines into double values */
 
+#if !SUPPORT_DOUBLE
 static inline float longBitsToDouble(s8 l)
 {
 	imm_union imb;
@@ -1385,6 +1388,7 @@ static inline float longBitsToDouble(s8 l)
 	imb.l = l;
 	return imb.d;
 }
+#endif
 
 
 #if !SUPPORT_FLOAT

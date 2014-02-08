@@ -70,7 +70,7 @@ void exceptions_throw_outofmemoryerror(void);
 void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...);
 void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type);
 void exceptions_throw_unsatisfiedlinkerror(Utf8String name);
-void exceptions_throw_unsupportedclassversionerror(classinfo *c, u4 ma, u4 mi);
+void exceptions_throw_unsupportedclassversionerror(classinfo *c);
 
 java_handle_t *exceptions_new_arithmeticexception(void);
 

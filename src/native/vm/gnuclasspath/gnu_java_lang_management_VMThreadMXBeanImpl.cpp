@@ -94,7 +94,7 @@ JNIEXPORT jlong JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getCurr
  */
 JNIEXPORT jint JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getPeakThreadCount(JNIEnv *env, jclass clazz)
 {
-	return ThreadList::get_peak_of_active_java_threads();
+	return ThreadList::get()->get_peak_of_active_java_threads();
 }
 
 
@@ -144,7 +144,7 @@ JNIEXPORT jlong JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThre
  */
 JNIEXPORT jlong JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getTotalStartedThreadCount(JNIEnv *env, jclass clazz)
 {
-	return ThreadList::get_number_of_started_java_threads();
+	return ThreadList::get()->get_number_of_started_java_threads();
 }
 
 
@@ -155,7 +155,7 @@ JNIEXPORT jlong JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getTota
  */
 JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_resetPeakThreadCount(JNIEnv *env, jclass clazz)
 {
-	return ThreadList::reset_peak_of_active_java_threads();
+	return ThreadList::get()->reset_peak_of_active_java_threads();
 }
 
 } // extern "C"

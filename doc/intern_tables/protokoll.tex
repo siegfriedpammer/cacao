@@ -577,7 +577,7 @@
 \section{Performance evaluation}
 	All tests were done on a Intel 64bit i7 CPU.
 
-	As test data I used the 629140 (42875 distinct) strings interned by the Dacapo-9.12\cite{dacapo} Eclipse benchmark.
+	As test data I used the 629140 (42875 distinct) strings interned by the Dacapo-9.12\cite{DaCapo} Eclipse benchmark.
 	Timings were obtained by averaging the CPU time for 100 runs, discarding the ten fastest and slowest results.	
 
 	Each test starts an instance of the Cacao JVM via JNI and then obtains a pointer to the function to test via \cpp{dlsym}.
@@ -659,9 +659,6 @@
 	\bibitem{static_assert}
 		Boost static\_assert
 		\url{http://www.boost.org/doc/libs/1_54_0/doc/html/boost_staticassert.html} (Oct 2013)
-	\bibitem{dacapo}
-		Dacapo benchmark suite
-		\url{http://www.dacapobench.org} (Oct 2013)
 \end{thebibliography}
 
 \end{document}

@@ -1,6 +1,6 @@
 /* src/vm/jit/stack.cpp - stack analysis
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -125,10 +125,12 @@ STAT_REGISTER_DIST(unsigned int,unsigned int,count_store_depth,0,9,1,0,"store st
 STAT_REGISTER_DIST(unsigned int,unsigned int,count_store_length,0,19,1,0,"store creator chains","Distribution of store creator chains")
 STAT_REGISTER_DIST(unsigned int,unsigned int,count_analyse_iterations,1,4,1,0,"analysis iter.","Distribution of analysis iterations")
 
+#if defined(ENABLE_STATISTICS)
 static const unsigned int count_method_bb_distribution_range[] = {5,10,15,20,30,40,50,75};
-STAT_REGISTER_DIST_RANGE(unsigned int,unsigned int,count_method_bb_distribution,count_method_bb_distribution_range,8,0,"method bb dist.","Distribution of basic blocks per method")
-
 static const unsigned int count_block_size_distribution_range[] = {0,1,2,3,4,5,6,7,8,9,12,14,16,18,20,25,30};
+#endif
+
+STAT_REGISTER_DIST_RANGE(unsigned int,unsigned int,count_method_bb_distribution,count_method_bb_distribution_range,8,0,"method bb dist.","Distribution of basic blocks per method")
 STAT_REGISTER_DIST_RANGE(unsigned int,unsigned int,count_block_size_distribution,count_block_size_distribution_range,17,0,"bb size dist.","Distribution of basic block sizes")
 /* stackdata_t *****************************************************************
 

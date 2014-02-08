@@ -493,7 +493,7 @@ mergedlist_implements_interface(typeinfo_mergedlist_t *merged,
     int i;
     classref_or_classinfo *mlist;
 	typecheck_result r;
-    
+
 	TYPEINFO_ASSERT(interf);
 	TYPEINFO_ASSERT((interf->flags & ACC_INTERFACE) != 0);
 
@@ -507,7 +507,7 @@ mergedlist_implements_interface(typeinfo_mergedlist_t *merged,
     mlist = merged->list;
     i = merged->count;
     while (i--) {
-		if (IS_CLASSREF(*mlist)) {
+		if (mlist->is_classref()) {
 			return typecheck_MAYBE;
 		}
         r = classinfo_implements_interface((mlist++)->cls,interf);
@@ -518,10 +518,10 @@ mergedlist_implements_interface(typeinfo_mergedlist_t *merged,
 }
 
 /* merged_implements_interface *************************************************
- 
+
    Check if a possible merged type implements a given resolved interface
    interface.
-   
+
    IN:
        typeclass........(common) class of the (merged) type
 	   merged...........the list of merged class types
@@ -606,7 +606,7 @@ merged_is_subclass(classinfo *typeclass,typeinfo_mergedlist_t *merged,
     /* check if the common typeclass is a subclass of CLS. */
 	if (class_issubclass(typeclass,cls))
 		return typecheck_TRUE;
-	
+
     /* check the mergedlist */
 	if (!merged)
 		return typecheck_FALSE;
@@ -618,7 +618,7 @@ merged_is_subclass(classinfo *typeclass,typeinfo_mergedlist_t *merged,
     mlist = merged->list;
     i = merged->count;
     while (i--) {
-		if (IS_CLASSREF(*mlist)) {
+		if (mlist->is_classref()) {
 			return typecheck_MAYBE;
 		}
 		if (!(mlist->cls->state & CLASS_LINKED))
@@ -632,9 +632,9 @@ merged_is_subclass(classinfo *typeclass,typeinfo_mergedlist_t *merged,
 }
 
 /* typeinfo_is_assignable_to_class *********************************************
- 
+
    Check if a type is assignable to a given class type.
-   
+
    IN:
        value............the type of the value
 	   dest.............the type of the destination
@@ -675,7 +675,7 @@ typeinfo_is_assignable_to_class(typeinfo_t *value,classref_or_classinfo dest)
     if (TYPEINFO_IS_NEWOBJECT(*value))
         return typecheck_FALSE;
 
-	if (IS_CLASSREF(c)) {
+	if (c.is_classref()) {
 		/* The value type is an unresolved class reference. */
 		classname = c.ref->name;
 	}
@@ -683,7 +683,7 @@ typeinfo_is_assignable_to_class(typeinfo_t *value,classref_or_classinfo dest)
 		classname = c.cls->name;
 	}
 
-	if (IS_CLASSREF(dest)) {
+	if (dest.is_classref()) {
 		/* the destination type is an unresolved class reference */
 		/* In this case we cannot tell a lot about assignability. */
 
@@ -698,9 +698,9 @@ typeinfo_is_assignable_to_class(typeinfo_t *value,classref_or_classinfo dest)
 
 	/* { we know that dest is a loaded class } */
 
-	if (IS_CLASSREF(c)) {
+	if (c.is_classref()) {
 		/* the value type is an unresolved class reference */
-		
+
 		/* the common case of value and dest type having the same classname */
 		if (dest.cls->name == classname)
 			return typecheck_TRUE;
@@ -713,11 +713,11 @@ typeinfo_is_assignable_to_class(typeinfo_t *value,classref_or_classinfo dest)
 	/* { we know that both c and dest are loaded classes } */
 	/* (c may still have a merged list containing unresolved classrefs!) */
 
-	TYPEINFO_ASSERT(!IS_CLASSREF(c));
-	TYPEINFO_ASSERT(!IS_CLASSREF(dest));
+	TYPEINFO_ASSERT(c.is_classinfo());
+	TYPEINFO_ASSERT(dest.is_classinfo());
 
 	cls = c.cls;
-	
+
 	TYPEINFO_ASSERT(cls->state & CLASS_LOADED);
 	TYPEINFO_ASSERT(dest.cls->state & CLASS_LOADED);
 
@@ -788,7 +788,7 @@ typeinfo_is_assignable_to_class(typeinfo_t *value,classref_or_classinfo dest)
                                                    value->merged,
                                                    elementclass);
             }
-            
+
             /* We are assigning to a class type. */
             return merged_is_subclass(value->elementclass.cls,value->merged,elementclass);
         }
@@ -805,22 +805,24 @@ typeinfo_is_assignable_to_class(typeinfo_t *value,classref_or_classinfo dest)
 	if (cls == class_java_lang_Object && value->merged) {
 		classref_or_classinfo *mlist = value->merged->list;
 		int i = value->merged->count;
-		while (i--)
-			if (IS_CLASSREF(*mlist++))
+		while (i--) {
+			if (mlist->is_classref())
 				return typecheck_MAYBE;
+			mlist++;
+		}
 	}
-        
+
     /* We are assigning to a class type */
     if (cls->flags & ACC_INTERFACE)
         cls = class_java_lang_Object;
-    
+
     return merged_is_subclass(cls,value->merged,dest.cls);
 }
 
 /* typeinfo_is_assignable ******************************************************
- 
+
    Check if a type is assignable to a given type.
-   
+
    IN:
        value............the type of the value
 	   dest.............the type of the destination, must not be a merged type
@@ -988,7 +990,7 @@ typeinfo_init_from_typedesc(typedesc *desc,u1 *type,typeinfo_t *info)
 	if (info) {
 		if (desc->type == TYPE_ADR) {
 			TYPEINFO_ASSERT(desc->classref);
-			if (!typeinfo_init_class(info,CLASSREF_OR_CLASSINFO(desc->classref)))
+			if (!typeinfo_init_class(info,to_classref_or_classinfo(desc->classref)))
 				return false;
 		}
 		else {
@@ -1104,7 +1106,7 @@ typedescriptor_init_from_typedesc(typedescriptor_t *td,
 
 	td->type = desc->type;
 	if (td->type == TYPE_ADR) {
-		if (!typeinfo_init_class(&(td->typeinfo),CLASSREF_OR_CLASSINFO(desc->classref)))
+		if (!typeinfo_init_class(&(td->typeinfo),to_classref_or_classinfo(desc->classref)))
 			return false;
 	}
 	else {
@@ -1139,7 +1141,7 @@ typeinfo_init_varinfo_from_typedesc(varinfo *var,
 
 	var->type = desc->type;
 	if (var->type == TYPE_ADR) {
-		if (!typeinfo_init_class(&(var->typeinfo),CLASSREF_OR_CLASSINFO(desc->classref)))
+		if (!typeinfo_init_class(&(var->typeinfo),to_classref_or_classinfo(desc->classref)))
 			return false;
 	}
 	else {
@@ -1329,7 +1331,7 @@ typeinfo_init_component(typeinfo_t *srcarray,typeinfo_t *dst)
         TYPEINFO_INIT_NULLTYPE(*dst);
         return true;
     }
-    
+
     if (!TYPEINFO_IS_ARRAY(*srcarray)) {
 		/* XXX should we make that a verify error? */
 		exceptions_throw_internalerror("Trying to access component of non-array");
@@ -1340,12 +1342,12 @@ typeinfo_init_component(typeinfo_t *srcarray,typeinfo_t *dst)
 
 	merged = srcarray->merged;
 
-	if (IS_CLASSREF(srcarray->typeclass)) {
+	if (srcarray->typeclass.is_classref()) {
 		constant_classref *comp;
 		comp = class_get_classref_component_of(srcarray->typeclass.ref);
 
 		if (comp) {
-			if (!typeinfo_init_class(dst,CLASSREF_OR_CLASSINFO(comp)))
+			if (!typeinfo_init_class(dst,to_classref_or_classinfo(comp)))
 				return false;
 		}
 		else {
@@ -1354,7 +1356,7 @@ typeinfo_init_component(typeinfo_t *srcarray,typeinfo_t *dst)
 	}
 	else {
 		vftbl_t *comp;
-		
+
 		if (!(srcarray->typeclass.cls->state & CLASS_LINKED)) {
 			if (!link_class(srcarray->typeclass.cls)) {
 				return false;
@@ -1670,13 +1672,10 @@ typeinfo_merge_nonarrays(typeinfo_t *dest,
                          typeinfo_mergedlist_t *mergedx,
                          typeinfo_mergedlist_t *mergedy)
 {
-	classref_or_classinfo t;
     classinfo *tcls,*common;
     typeinfo_mergedlist_t *tmerged;
     bool changed;
 	typecheck_result r;
-	Utf8String xname;
-	Utf8String yname;
 
 	TYPEINFO_ASSERT(dest && result && x.any && y.any);
 	TYPEINFO_ASSERT(x.cls != pseudo_class_Null);
@@ -1703,17 +1702,17 @@ typeinfo_merge_nonarrays(typeinfo_t *dest,
         return (typecheck_result) changed;
     }
 
-	xname = (IS_CLASSREF(x)) ? x.ref->name : x.cls->name;
-	yname = (IS_CLASSREF(y)) ? y.ref->name : y.cls->name;
+	Utf8String xname = CLASSREF_OR_CLASSINFO_NAME(x);
+	Utf8String yname = CLASSREF_OR_CLASSINFO_NAME(y);
 
 	/* Common case 2: xname == yname, at least one unresolved */
-    if ((IS_CLASSREF(x) || IS_CLASSREF(y)) && (xname == yname))
+	if ((xname == yname) && (x.is_classref() || y.is_classref()))
 	{
 		/* use the loaded one if any */
-		if (!IS_CLASSREF(y))
+		if (y.is_classinfo())
 			x = y;
 		goto return_simple_x;
-    }
+	}
 
 	/*--------------------------------------------------*/
 	/* non-trivial cases                                */
@@ -1723,8 +1722,8 @@ typeinfo_merge_nonarrays(typeinfo_t *dest,
 	{
 		typeinfo_t dbgx,dbgy;
 		fprintf(stderr,"merge_nonarrays:\n");
-		fprintf(stderr,"    ");if(IS_CLASSREF(x))fprintf(stderr,"<ref>");utf_fprint_printable_ascii(stderr,xname);fprintf(stderr,"\n");
-		fprintf(stderr,"    ");if(IS_CLASSREF(y))fprintf(stderr,"<ref>");utf_fprint_printable_ascii(stderr,yname);fprintf(stderr,"\n");
+		fprintf(stderr,"    ");if(x.is_classref())fprintf(stderr,"<ref>");utf_fprint_printable_ascii(stderr,xname);fprintf(stderr,"\n");
+		fprintf(stderr,"    ");if(y.is_classref())fprintf(stderr,"<ref>");utf_fprint_printable_ascii(stderr,yname);fprintf(stderr,"\n");
 		fflush(stderr);
 		typeinfo_init_class(&dbgx,x);
 		dbgx.merged = mergedx;
@@ -1736,28 +1735,28 @@ typeinfo_merge_nonarrays(typeinfo_t *dest,
 	}
 #endif
 
-	TYPEINFO_ASSERT(IS_CLASSREF(x) || (x.cls->state & CLASS_LOADED));
-	TYPEINFO_ASSERT(IS_CLASSREF(y) || (y.cls->state & CLASS_LOADED));
+	TYPEINFO_ASSERT(x.is_classref() || (x.cls->state & CLASS_LOADED));
+	TYPEINFO_ASSERT(y.is_classref() || (y.cls->state & CLASS_LOADED));
 
-    /* If y is unresolved or an interface, swap x and y. */
-    if (IS_CLASSREF(y) || (!IS_CLASSREF(x) && y.cls->flags & ACC_INTERFACE))
+	/* If y is unresolved or an interface, swap x and y. */
+	if (y.is_classref() || (x.is_classinfo() && y.cls->flags & ACC_INTERFACE))
 	{
-        t = x; x = y; y = t;
-        tmerged = mergedx; mergedx = mergedy; mergedy = tmerged;
-    }
-	
+		classref_or_classinfo tmp = x; x = y; y = tmp;
+		tmerged = mergedx; mergedx = mergedy; mergedy = tmerged;
+	}
+
     /* {We know: If only one of x,y is unresolved it is x,} */
     /* {         If both x,y are resolved and only one of x,y is an interface it is x.} */
 
-	if (IS_CLASSREF(x)) {
+	if (x.is_classref()) {
 		/* {We know: x and y have different class names} */
-		
+
         /* Check if we are merging an unresolved type with java.lang.Object */
         if (y.cls == class_java_lang_Object && !mergedy) {
             x = y;
             goto return_simple_x;
         }
-            
+
 		common = class_java_lang_Object;
 		goto merge_with_simple_x;
 	}
@@ -1765,14 +1764,14 @@ typeinfo_merge_nonarrays(typeinfo_t *dest,
 	/* {We know: both x and y are resolved} */
     /* {We know: If only one of x,y is an interface it is x.} */
 
-	TYPEINFO_ASSERT(!IS_CLASSREF(x) && !IS_CLASSREF(y));
+	TYPEINFO_ASSERT(x.is_classinfo() && y.is_classinfo());
 	TYPEINFO_ASSERT(x.cls->state & CLASS_LOADED);
 	TYPEINFO_ASSERT(y.cls->state & CLASS_LOADED);
 
     /* Handle merging of interfaces: */
     if (x.cls->flags & ACC_INTERFACE) {
         /* {x.cls is an interface and mergedx == NULL.} */
-        
+
         if (y.cls->flags & ACC_INTERFACE) {
             /* We are merging two interfaces. */
             /* {mergedy == NULL} */
@@ -1841,10 +1840,11 @@ typeinfo_merge_nonarrays(typeinfo_t *dest,
 	TYPEINFO_ASSERT(y.cls->state & CLASS_LINKED);
 
     /* If *x is deeper in the inheritance hierarchy swap x and y. */
-    if (x.cls->index > y.cls->index) {
-        t = x; x = y; y = t;
-        tmerged = mergedx; mergedx = mergedy; mergedy = tmerged;
-    }
+	if (x.cls->index > y.cls->index)
+	{
+		classref_or_classinfo tmp = x; x = y; y = tmp;
+		tmerged = mergedx; mergedx = mergedy; mergedy = tmerged;
+	}
 
     /* {We know: y is at least as deep in the hierarchy as x.} */
 
@@ -1971,7 +1971,7 @@ return_simple:
         dest->merged = NULL;
         return (typecheck_result) changed;
     }
-    
+
     /* Handle null types: */
     if (TYPEINFO_IS_NULLTYPE(*y)) {
         return typecheck_FALSE;
@@ -1983,8 +1983,8 @@ return_simple:
     }
 
 	/* Common case: two types with the same name, at least one unresolved */
-	if (IS_CLASSREF(dest->typeclass)) {
-		if (IS_CLASSREF(y->typeclass)) {
+	if (dest->typeclass.is_classref()) {
+		if (y->typeclass.is_classref()) {
 			if (dest->typeclass.ref->name == y->typeclass.ref->name)
 				goto return_simple;
 		}
@@ -1995,8 +1995,7 @@ return_simple:
 		}
 	}
 	else {
-		if (IS_CLASSREF(y->typeclass) 
-		    && (dest->typeclass.cls->name == y->typeclass.ref->name))
+		if (y->typeclass.is_classref() && (dest->typeclass.cls->name == y->typeclass.ref->name))
 		{
 			goto return_simple;
 		}
@@ -2077,7 +2076,7 @@ return_simple:
 				changed |= r;
 
                 /* DEBUG */ /* log_text("finding resulting array class: "); */
-				if (IS_CLASSREF(elementclass))
+				if (elementclass.is_classref())
 					common.ref = class_get_classref_multiarray_of(dimension,elementclass.ref);
 				else {
 					common.cls = class_multiarray_of(dimension,elementclass.cls,true);
@@ -2096,7 +2095,7 @@ return_simple:
     else {
         /* {We know that at least one of x or y is no array, so the
          *  result cannot be an array.} */
-        
+
 		r = typeinfo_merge_nonarrays(dest,
 				&common,
 				x->typeclass,y->typeclass,
@@ -2370,7 +2369,7 @@ typeinfo_print_class(FILE *file,classref_or_classinfo c)
 		fprintf(file,"<null>");
 	}
 	else {
-		if (IS_CLASSREF(c)) {
+		if (c.is_classref()) {
 			fprintf(file,"<ref>");
 			utf_fprint_printable_ascii(file,c.ref->name);
 		}
@@ -2389,7 +2388,7 @@ typeinfo_print(FILE *file,typeinfo_t *info,int indent)
 	basicblock *bptr;
 
     if (indent > TYPEINFO_MAXINDENT) indent = TYPEINFO_MAXINDENT;
-    
+
     for (i=0; i<indent; ++i)
         ind[i] = ' ';
     ind[i] = (char) 0;

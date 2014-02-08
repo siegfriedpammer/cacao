@@ -1,6 +1,6 @@
 ## tests/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2008
+## Copyright (C) 1996-2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -31,6 +31,11 @@ SUBDIRS = \
 if HAVE_GTEST
 SUBDIRS += \
 	gtest
+endif
+
+if WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
+SUBDIRS += \
+	jsr292
 endif
 
 EXTRA_DIST = \
