@@ -38,7 +38,10 @@ namespace compiler2 {
 /**
  * GlobalValueNumberingPass
  *
- * TODO: comment
+ * This pass finds and removes redundant computations based on the high-level
+ * intermediate representation of the compiler2, i.e., it removes redundant
+ * nodes. It therefore uses the global value numbering algorithm in
+ * @cite ReisingerBScThesis.
  */
 class GlobalValueNumberingPass : public Pass {
 private:
