@@ -319,6 +319,7 @@ bool ConstantPropagationPass::run(JITData &JD) {
 
 	constantOperands.clear();
 
+	// The actual optimization steps are done within this loop.
 	while (!workList.empty()) {
 		Instruction *I = workList.front();
 		workList.pop_front();

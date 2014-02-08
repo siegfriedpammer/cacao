@@ -40,7 +40,14 @@ class Instruction;
 
 /**
  * ConstantPropagationPass
- * TODO: more info
+ *
+ * This optimization pass is a combined version of constant folding (a.k.a
+ * constant expression evaluation) and constant propagation, based on the
+ * algorithm in @cite ReisingerBScThesis. Analysis and program transformations
+ * in the course of this optimization are targeted at the high-level
+ * intermediate representation of the compiler2. It evalutes operations at
+ * compile-time, whose operands are all constants and propagates the results
+ * of these evaluations as far as possible through the program.
  */
 class ConstantPropagationPass : public Pass {
 private:
@@ -49,7 +56,7 @@ private:
 	typedef std::list<Instruction*> WorkListTy;
 
 	/**
-	 * this work list is used by the algorithm to store the instructions which
+	 * This work list is used by the algorithm to store the instructions which
 	 * have to be reconsidered. at the beginning it therefore contains all
 	 * instructions.
 	 */
@@ -57,7 +64,7 @@ private:
 	
 	/**
 	 * will be used to look up whether an instruction is currently contained in the
-	 * worklist to avoid inserting an instruction which is already in the list.
+	 * worklist to avoid inserting an instruction which is already in the list
 	 */
 	InstBoolMapTy inWorkList;
 	
