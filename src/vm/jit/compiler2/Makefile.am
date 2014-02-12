@@ -94,7 +94,7 @@ libcompiler2_la_SOURCES = \
 	Type.cpp \
 	Value.cpp \
 	VerifierPass.cpp \
-	DeadcodeEliminationPass.cpp \
+	DeadCodeEliminationPass.cpp \
 	ConstantPropagationPass.cpp \
 	GlobalValueNumberingPass.cpp
 

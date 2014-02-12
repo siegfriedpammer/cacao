@@ -30,7 +30,7 @@
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/InstructionMetaPass.hpp"
-#include "vm/jit/compiler2/DeadcodeEliminationPass.hpp"
+#include "vm/jit/compiler2/DeadCodeEliminationPass.hpp"
 #include "toolbox/logging.hpp"
 
 // define name for debugging (see logging.hpp)
@@ -474,7 +474,7 @@ bool GlobalValueNumberingPass::run(JITData &JD) {
 // pass usage
 PassUsage& GlobalValueNumberingPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<InstructionMetaPass>();
-	PU.add_schedule_before<DeadcodeEliminationPass>();
+	PU.add_schedule_before<DeadCodeEliminationPass>();
 	return PU;
 }
 

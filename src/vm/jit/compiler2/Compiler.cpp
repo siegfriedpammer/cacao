@@ -77,7 +77,7 @@
 #include "vm/jit/compiler2/CodeGenPass.hpp"
 #include "vm/jit/compiler2/DisassemblerPass.hpp"
 #include "vm/jit/compiler2/ObjectFileWriterPass.hpp"
-#include "vm/jit/compiler2/DeadcodeEliminationPass.hpp"
+#include "vm/jit/compiler2/DeadCodeEliminationPass.hpp"
 #include "vm/jit/compiler2/ConstantPropagationPass.hpp"
 #include "vm/jit/compiler2/GlobalValueNumberingPass.hpp"
 
@@ -133,7 +133,7 @@ MachineCode* compile(methodinfo* m)
 	PM.add_Pass<InstructionMetaPass>();
 	PM.add_Pass<LoopPass>();
 	PM.add_Pass<ConstantPropagationPass>();
-	PM.add_Pass<DeadcodeEliminationPass>();
+	PM.add_Pass<DeadCodeEliminationPass>();
 	PM.add_Pass<GlobalValueNumberingPass>();
 	PM.add_Pass<ScheduleEarlyPass>();
 	PM.add_Pass<ScheduleLatePass>();

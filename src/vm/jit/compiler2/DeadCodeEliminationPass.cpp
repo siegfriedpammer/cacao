@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/DeadcodeEliminationPass.cpp - DeadcodeEliminationPass
+/* src/vm/jit/compiler2/DeadCodeEliminationPass.cpp - DeadCodeEliminationPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,7 +22,7 @@
 
 */
 
-#include "vm/jit/compiler2/DeadcodeEliminationPass.hpp"
+#include "vm/jit/compiler2/DeadCodeEliminationPass.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
@@ -35,7 +35,7 @@
 #include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
 #include "vm/jit/compiler2/InstructionMetaPass.hpp"
 
-#define DEBUG_NAME "compiler2/DeadcodeEliminationPass"
+#define DEBUG_NAME "compiler2/DeadCodeEliminationPass"
 
 STAT_DECLARE_GROUP(compiler2_stat)
 STAT_REGISTER_SUBGROUP(compiler2_deadcodeeliminationpass_stat,
@@ -55,7 +55,7 @@ bool is_control_flow_inst(Instruction *inst) {
 			|| inst->to_EndInst();
 }
 
-bool DeadcodeEliminationPass::run(JITData &JD) {
+bool DeadCodeEliminationPass::run(JITData &JD) {
 	Method *M = JD.get_Method();
 
 	// this work list is used by the algorithm to store the instructions which
@@ -140,7 +140,7 @@ bool DeadcodeEliminationPass::run(JITData &JD) {
 }
 
 // pass usage
-PassUsage& DeadcodeEliminationPass::get_PassUsage(PassUsage &PU) const {
+PassUsage& DeadCodeEliminationPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<InstructionMetaPass>();
 	PU.add_schedule_before<ScheduleEarlyPass>();
 	PU.add_schedule_before<SSAPrinterPass>();
@@ -148,10 +148,10 @@ PassUsage& DeadcodeEliminationPass::get_PassUsage(PassUsage &PU) const {
 }
 
 // the address of this variable is used to identify the pass
-char DeadcodeEliminationPass::ID = 0;
+char DeadCodeEliminationPass::ID = 0;
 
 // register pass
-static PassRegistry<DeadcodeEliminationPass> X("DeadcodeEliminationPass");
+static PassRegistry<DeadCodeEliminationPass> X("DeadCodeEliminationPass");
 
 } // end namespace compiler2
 } // end namespace jit

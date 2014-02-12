@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/DeadcodeEliminationPass.hpp - DeadcodeEliminationPass
+/* src/vm/jit/compiler2/DeadCodeEliminationPass.hpp - DeadCodeEliminationPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -36,19 +36,19 @@ namespace compiler2 {
 class Instruction;
 
 /**
- * DeadcodeEliminationPass
+ * DeadCodeEliminationPass
  * 
  * This optimization pass removes dead (a.k.a unused) code from the program,
  * based on an algorithm in @cite ReisingerBScThesis. It uses a 'weak'
  * definition of 'dead' which does not take control-flow into account.
  */
-class DeadcodeEliminationPass : public Pass {
+class DeadCodeEliminationPass : public Pass {
 private:
 	typedef unordered_map<Instruction*,bool> InstBoolMapTy;
 	typedef unordered_map<Instruction*,int> InstIntMapTy;
 public:
 	static char ID;
-	DeadcodeEliminationPass() : Pass() {}
+	DeadCodeEliminationPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
 };
