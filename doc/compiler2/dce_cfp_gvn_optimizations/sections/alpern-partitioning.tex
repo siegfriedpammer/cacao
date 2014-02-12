@@ -1,0 +1,129 @@
+\section{Alpern et al.'s Partitioning Algorithm}
+\label{sec:alpern-partitioning}
+
+In section \ref{sec:global-value-numbering:application-to-the-ir} we presented an algorithm for the partition refinement process of global value numbering. Alpern et al.\ \cite{alpern:1988:detecting-equality-of-variables} presented an according algorithm, which is also inspired by Hopcroft's algorithm for minimizing the number of states of a finite automaton. In fact, they do not use the original version of this algorithm, instead they base their work on a reformulation given by Aho et al.\ \cite{aho:1974:the-design-and-analysis-of-computer-algorithms}.
+
+In their explanations Alpern et al.\ use an intermediate representation referred to as \emph{value graph}, which is very similar to that one used by CACAO's new compiler framework. Basically, expressions or operations are represented by nodes, the dependencies of the corresponding values are modeled by edges. Each node is labeled with a function symbol, describing the kind of operation it represents. Two nodes in this graph are said to be \emph{congruent} if the following prerequisites hold:
+\begin{itemize}
+\item The nodes have identical function labels.
+\item The corresponding destinations of the edges leaving the nodes are congruent.
+\end{itemize}
+Furthermore, the term congruence is defined as the maximal fixed point which satisfies these conditions.
+
+\begin{algorithm}[H]
+\caption{Alpern et al.'s partitioning algorithm}
+\label{alg:alpern-partitioning}
+\begin{algorithmic}[1]
+\State $\mathit{WAITING} \leftarrow \lbrace 1, 2, \ldots , p\rbrace$
+\State $q \leftarrow p$
+\While{$\mathit{WAITING} \neq \emptyset$}
+	\State select and delete an integer $i$ from $\mathit{WAITING}$
+	\For{$m$ from $1$ to $k$}\label{alg:alpern-partitioning:operand-index-loop}
+		\State $\mathit{INVERSE} \leftarrow \emptyset$
+		\For{$x$ in $B[i]$}
+			\State $\mathit{INVERSE} \leftarrow \mathit{INVERSE}\cup F^{-1}[m, x]$
+		\EndFor
+		\For{each $j$ such that $B[j]\cap \mathit{INVERSE} \neq \emptyset$ and $B[j] \not\subseteq \mathit{INVERSE}$}\label{alg:alpern-partitioning:inverse-loop}
+			\State $q \leftarrow q + 1$
+			\State create a new block $B[q]$
+			\State $B[q] \leftarrow B[j] \cap \mathit{INVERSE}$
+			\State $B[j] \leftarrow B[j] - B[q]$
+			\If{$j$ is in $\mathit{WAITING}$}\label{alg:alpern-partitioning:if-in-waiting}
+				\State add $q$ to $\mathit{WAITING}$
+			\Else
+				\If{$|B[j]| \leq |B[q]|$}
+					\State add $j$ to $\mathit{WAITING}$
+				\Else
+					\State add $q$ to $\mathit{WAITING}$
+				\EndIf
+			\EndIf
+		\EndFor
+	\EndFor
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+Based on these considerations it is now possible to create an initial partitioning of the nodes into blocks. According to the process described in section \ref{sec:global-value-numbering:application-to-the-ir}, at the beginning of this optimization all nodes with identical function labels are assumed to be congruent and therefore, they are put in the same block. For the subsequent refinement of these blocks, the corresponding process, as formulated by Alpern et al., is presented in algorithm \ref{alg:alpern-partitioning}. It takes as input the initial partitioning of nodes into blocks and a set of functions $f_i$ where $f_i(x)$ denotes the node that serves as $i$th operand for $x$. The partitioning of the nodes is represented by a vector denoted by $B$, which contains blocks of nodes. Instead of blocks, the work list $\mathit{WAITING}$ holds indices, which are used to refer to the corresponding elements in $B$. Furthermore the algorithm uses a mapping $F^{-1}$ so that $F^{-1}[m,x]$ denotes the set of nodes that use $x$ as their $m$th operand, namely, $F^{-1}[m,x]$ represents the inverse image of node $x$ under $f_m$.
+
+Problems arise with this algorithm when an integer $i$ is picked from the work list, so that at some iteration of the loop starting at line \ref{alg:alpern-partitioning:operand-index-loop}, it holds that the condition $B[j]\cap \mathit{INVERSE} \neq \emptyset$ and $B[j] \not\subseteq \mathit{INVERSE}$ at line \ref{alg:alpern-partitioning:inverse-loop} is true for $j = i$. According situations can cause that at termination of the algorithm, non-congruent nodes are in the same block.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+[
+hidden/.style={
+	draw=black,
+	node distance=5cm and 5cm,
+	minimum width=100pt
+},
+value/.style={
+	circle,
+	draw=black!50,
+	thick,
+	minimum size=25pt,
+	inner sep=0pt,
+	node distance=0.5cm and 0.5cm,
+	align=center}
+]
+  
+  \node[value, label=left:$n_1$] (add1) at (-5,0) {$+$};
+  \node[value] (const1) [above left=of add1] {$5$};
+  \node[value, label=left:$n_2$] (mul1) [above right=of add1] {$*$};
+  \node[value, label=left:$n_3$] (mul2) [above left=of mul1] {$*$};
+  \node[value] (const2) [above right=of mul1] {$5$};
+  \node[value] (const3) [above left=of mul2] {$5$};
+  \node[value] (const4) [above right=of mul2] {$5$};
+  
+  \node[value, label=left:$n_4$] (add2) {$+$};
+  \node[value] (const5) [above left=of add2] {$5$};
+  \node[value, label=left:$n_5$] (div1) [above right=of add2] {$/$};
+  \node[value, label=left:$n_6$] (div2) [above left=of div1] {$/$};
+  \node[value] (const6) [above right=of div1] {$5$};
+  \node[value] (const7) [above left=of div2] {$5$};
+  \node[value] (const8) [above right=of div2] {$5$};
+  % edges
+  \draw [->] (add1) to (const1);
+  \draw [->] (add1) to (mul1);
+  \draw [->] (mul1) to (mul2);
+  \draw [->] (mul1) to (const2);
+  \draw [->] (mul2) to (const3);
+  \draw [->] (mul2) to (const4);
+  
+  \draw [->] (add2) to (const5);
+  \draw [->] (add2) to (div1);
+  \draw [->] (div1) to (div2);
+  \draw [->] (div1) to (const6);
+  \draw [->] (div2) to (const7);
+  \draw [->] (div2) to (const8);
+\end{tikzpicture}
+\caption{}
+\label{fig:alpern-partitioning-counterexample}
+\end{figure}
+
+Figure \ref{fig:alpern-partitioning-counterexample} shows a value graph which in turn comprises two sub-graphs representing two independent expressions (this example is illustrated based on the notation used by Alpern et al.\ \cite{alpern:1988:detecting-equality-of-variables}, where data dependencies are modeled by arrows pointing in use-def direction). Obviously nodes $n_1$ and $n_4$ are not congruent because the operands $n_2$ and $n_5$ have distinct function labels. Accordingly, both nodes should be placed in different blocks at the end of the algorithm. We will show in the following, that there exists a possible execution sequence, so that $n_1$ and $n_4$ will reside in the same block. Assume that after the initial partitioning, the blocks are defined as follows:
+
+\vspace{-10pt}
+\begin{align*}
+B[1] &= \lbrace n_2,n_3\rbrace\\
+B[2] &= \lbrace n_5,n_6\rbrace\\
+B[3] &= \lbrace n_1,n_4\rbrace\\
+B[4] &= \text{nodes with constant value } 5
+\end{align*}
+
+At the beginning of the algorithm, $\textit{WAITING}$ is initialized to $\lbrace 1, 2, 3, 4\rbrace$. Without loss of generality, assume that at the first iteration of the while loop, the integer $1$ is picked from $\textit{WAITING}$. The algorithm continues at the loop in line \ref{alg:alpern-partitioning:operand-index-loop} for $m = 1$ and computes the union of the inverse images for all nodes in $B[1]$ under $f_1$, leading to $\textit{INVERSE} = \lbrace n_2\rbrace$. Obviously, at line \ref{alg:alpern-partitioning:inverse-loop}, the condition in the loop header is true only for $j = 1$. Accordingly, a new block $B[5] = \lbrace n_2\rbrace$ will be created and the node $n_2$ is removed from $B[1]$. Since $1$ is not in the $\textit{WAITING}$ set anymore and $|B[1]| \leq |B[5]|$, $1$ will be added to $\textit{WAITING}$ again (see lines \ref{alg:alpern-partitioning:if-in-waiting} et seqq.). At the next iteration of the outmost for-loop (for $m = 2$), the set $B[1]$ will only contain the node $n_3$, thus, there will not happen any changes to the blocks.
+
+For the next iteration of the while loop, we assume, without loss of generality, that the integer $2$ is selected from the work list. The following execution of the loop body will proceed similar to the previous iteration described above. Accordingly, there will be created a new block $B[6] = \lbrace n_5\rbrace$ and $B[2]$ will be changed to only contain $n_6$. Furthermore, $2$ will be added to $\textit{WAITING}$, which will then contain $1$, $2$, $3$ and $4$.
+
+In subsequent iterations, the algorithm will select and delete all the remaining indices in $\textit{WAITING}$ but no further changes to the blocks will be applied. Thus, at termination, $B$ will contain the following blocks:
+
+\vspace{-10pt}
+\begin{align*}
+B[1] &= \lbrace n_3\rbrace \\
+B[2] &= \lbrace n_6\rbrace \\
+B[3] &= \lbrace n_1,n_4\rbrace \\
+B[4] &= \text{nodes with constant value } 5 \\
+B[5] &= \lbrace n_2\rbrace \\
+B[6] &= \lbrace n_5\rbrace
+\end{align*}
+
+As claimed above, the nodes $n_1$ and $n_4$ are contained in one common block. Thus, the algorithm yields an incorrect partitioning.

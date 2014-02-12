@@ -1,0 +1,160 @@
+\section{Global Value Numbering}
+\label{sec:global-value-numbering}
+
+The equivalence of programs or the equivalence of expressions that are part of programs is undecidable in general \cite{alpern:1988:detecting-equality-of-variables}. Despite this impossibility to formulate an algorithm that finds all the equivalences in a program, there exist optimization techniques that identify certain sub classes of these equivalencies. One of these techniques is \emph{global value numbering}, which finds and removes redundant computations.
+
+This optimization discovers redundancies by assigning \emph{value numbers} to expressions based on their specific operation and the value numbers of their operands. Subsequently, all those occurrences of expressions that have been assigned the same value number, can then be replaced by a single one, thus eliminating redundant computations. As the name already suggests, this whole process is not restricted to the bounds of basic blocks, namely, it is applied in a global manner. There are several ways to realize this optimization which can generally be categorized into two approaches. The pessimistic approach, on the one hand, initially assumes that all expressions are different by assigning distinct value numbers to them. It then continues by trying to find expressions that can be proven to be equivalent and allots equal value numbers to them. On the other hand, the optimistic approach initially assumes that all expressions --- or specific subsets thereof --- are the same and will then refine this assumption. The algorithm which we formulated for integration into the compiler follows the optimistic approach, therefore we will not go into further detail on the pessimistic one.
+\newpage
+Basically, global value numbering detects equal variables or expressions based on their \emph{congruence}, which is a weaker property than equality. More specifically, if two expressions are congruent, this also implies that they are equal but the reverse does not hold in general (an explanation of this relation between these properties will be given when we describe how to apply these concepts to nodes within our intermediate representation). Basically, two operations are said to be \emph{congruent} if they use equal function symbols on congruent operands. With a few exceptions, which will be explained later on, this denotes the main characterization of this notion. 
+
+Optimistic global value numbering initially proceeds by creating sets of expressions which are supposed to be possibly congruent. For example, all arithmetical operations that use the same function symbol will be combined in a set. These sets can be referred to as \emph{blocks} which are all part of the current \emph{partition}. As long as it can be shown that some block contains expressions which are not congruent, the according blocks will be split up and the partition will be refined until each of its blocks contains only congruent expressions. When this refinement terminates, the result will be a final partition of blocks of expressions that are known to compute equal values at run-time. Based on this classification, it is then possible to remove redundant computations. The whole process of this approach is outlined in figure \ref{fig:gvn-schema}, dividing this optimization into three steps, which have just been described.
+
+\begin{center}
+\begin{minipage}{0.65\textwidth}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+[step-node/.style={
+	rectangle,
+	rounded corners,
+	draw=black!50,
+	very thick,
+	inner sep=7pt,
+	minimum width=160pt,
+	node distance=0.5cm and 0.5cm,
+	align=center},
+step-label/.style={
+	rectangle,
+	rounded corners,
+	draw=white,
+	inner sep=0pt,
+	outer sep=0pt,
+	minimum width=1pt,
+	align=center}]
+	
+  \node[step-node] (initial) {Initial partitioning};
+  \node[step-label] (initial-label) [left=of initial] {\textit{Step 1}};
+  \node[step-node] (partitioning) [below=of initial] {Partition refinement};
+  \node[step-label] (partitioning-label) [left=of partitioning] {\textit{Step 2}};
+  \node[step-node] (consolidate) [below=of partitioning] {Elimination of redundancies\\ as result of the final partition};
+  \node[step-label] (consolidate-label) [left=of consolidate] {\textit{Step 3}};
+  % edges
+  \draw [->] (initial) to (partitioning);
+  \draw [->] (partitioning) to (consolidate);
+  \draw [->,rounded corners]
+  					($ (partitioning.south) + (5mm,0) $)
+  					-- ++(0,-2.5mm)
+  					-| ($ (partitioning.east) + (2.5mm,0) $)
+  					|- ($ (partitioning.north) + (5mm,2.5mm) $)
+  					-- ($ (partitioning.north) + (5mm,0) $);
+\end{tikzpicture}
+\caption{A schematic overview of the optimistic global value numbering approach. Figure adopted from \cite{kongstad:2004:gnu-gvn}.}
+\label{fig:gvn-schema}
+\end{figure}
+\end{minipage}
+\end{center}
+
+\subsection{Application to the Intermediate Representation}
+\label{sec:global-value-numbering:application-to-the-ir}
+
+The algorithm that we have formulated for the application within the compiler follows the optimistic global value numbering approach and is based on the principles described above. Instead of expressions, the blocks will now contain nodes. Accordingly, at the end of the partition refinement, all nodes in a block can be replaced by a single congruent one. But before going into detail on the algorithm, the notion of congruence has to be defined in terms of our intermediate representation. We have already given a very abstract characterization of this property which based the congruence of two operations on the equality of their function symbols and the congruence of their operands. But so far, this ignores that some operations need special care, like $\phi$-functions or operations without any operands, etc. For example, in the case of $\phi$-functions whose according operands have been proven to be all congruent, it is not possible to consolidate them in general. An additional aspect has to be taken into account, namely, to be congruent they also have to reside in the same basic block. Based on the considerations of Click \cite{click:1995:combininganalyses} and Alpern et al. \cite{alpern:1988:detecting-equality-of-variables} we define congruence as done in the following.
+
+\begin{definition}
+\label{def:congruent}
+Two nodes are \emph{congruent} if and only if they are identical or one of the following statements holds:
+\begin{itemize}
+\item Both nodes are \irinline{CONSTInst}s and represent the same constant value.
+\item Both nodes are \irinline{PHIInst}s which are assigned to the same \irinline{BEGINInst} and for each $i$ it holds that the operands at index $i$ of the nodes' operand lists are \emph{congruent}.
+\item Both nodes are of the same type and for each $i$ it holds that the operands at index $i$ of the nodes' operand lists are \emph{congruent} but neither node is of type \irinline{CONSTInst}, \irinline{PHIInst}, \irinline{BEGINInst} or \irinline{ENDInst} nor does it have an effect on or depends on the global state.
+\end{itemize}
+\end{definition}
+
+As formulated in definition \ref{def:congruent}, congruence not only depends on the type of the operation but also on the order of the operands. This means that two operations like \lstinline!x + y! and \lstinline!y + x! would not be considered congruent, even though they would produce equal outputs. Therefore, this example illustrates that equality not necessarily implies congruence as already mentioned before.
+
+According to previous descriptions, the creation of the initial partition, in terms of our intermediate representation, consists in combining possibly congruent nodes into blocks. The generation of these sets is based on several assumptions which are reflected in the following basic rules:
+
+\begin{itemize}
+\item All \irinline{CONSTInst}s  which represent the same constant value are combined into a common block.
+\item All \irinline{PHIInst}s which are assigned to the same \irinline{BEGINInst} are combined into a common block.
+\item Each node which has an effect on or depends on the global state will go into a separate block.
+\item All other nodes which are neither \irinline{BEGINInst}s nor \irinline{ENDInst}s will be merged into blocks depending on their node type, i.e., all nodes of the same type will share a block.
+\end{itemize}
+
+The subsequent refinement of this partition is comparable to the partitioning when minimizing a finite automaton, where states are initially partitioned into final and non-final states. Based on the state transitions in the automaton, the initial partition will be improved until it contains only sets of equal states. Hopcroft \cite{hopcroft:1971:an-n-log-n-algorithm} gave an algorithm which solves this problem in $\mathcal{O}(k\cdot n\cdot \mathit{log}(n))$ where $n$ is the number of states and $k$ is the number of symbols in the input alphabet of the according automaton.
+Reformulations of the original algorithm that have been presented by Berstel et al. \cite{berstel:2010:minimization-of-automata} and Click \cite{click:1995:combininganalyses} form the basis of our approach listed in algorithm \ref{alg:gvn-ir}.
+It corresponds to the second step in figure \ref{fig:gvn-schema} (the third and last step in this schema has already been explained earlier in this section and the according considerations stay the same when applied to the nodes of the intermediate representation).
+
+\begin{algorithm}[h]
+\caption{Global Value Numbering -- Partition Refinement}
+\label{alg:gvn-ir}
+\begin{algorithmic}[1]
+\State $\mathcal{P} \leftarrow$ initial partition
+\State $\mathcal{W} \leftarrow \emptyset$
+\For{each $P \in \mathcal{P}$}\label{alg:gvn-ir:init-worklist-loop}
+  \For{$i = 1,\ldots ,O$}
+    \State $\mathcal{W} \leftarrow \mathcal{W}~\cup (P, i)$
+  \EndFor
+\EndFor
+\While{$\mathcal{W}$ is not empty}
+  \State remove some tuple $(W,i)$ from $\mathcal{W}$
+  \State $\mathit{split\_ candidates} \leftarrow \emptyset$
+  \For{each node $x \in W$}
+    \For{each node $y \in x.\mathit{def\_ use}_i$}\label{alg:gvn-ir:touched-nodes-loop}
+      \State $\mathit{split\_ candidates} \leftarrow \mathit{split\_ candidates}~ \cup ~ \lbrace y.\mathit{block}\rbrace$ % TODO: duplicates
+      \State $y.\mathit{block}.\mathit{touched} \leftarrow y.\mathit{block}.\mathit{touched}~ \cup ~ \lbrace y\rbrace$
+    \EndFor
+  \EndFor
+  \For{each partition $X$ in $\mathit{split\_ candidates}$}
+    \If{$|X| \neq |X.\mathit{touched}|$}\label{alg:gvn-ir:if-test-split-touched}
+      \State \Call{Split}{$X$}
+    \EndIf
+    \State $X.\mathit{touched} \leftarrow \emptyset$
+  \EndFor
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[h]
+\caption{Pseudo code for block splitting}
+\label{alg:gvn-ir-split}
+\begin{algorithmic}[1]
+\Procedure{Split}{$P$}
+  \State remove all nodes in $P.\mathit{touched}$ from $P$\label{alg:gvn-ir:remove-touched-nodes-from-block}
+  \State move $P.\mathit{touched}$ to a new block $P'$\label{alg:gvn-ir:move-touched-nodes-to-new-block}
+  \State $\mathcal{P} \leftarrow \mathcal{P}~\cup ~\lbrace P'\rbrace$\label{alg:gvn-ir:add-new-block-to-partition}
+  \For{$j = 1,\ldots ,O$}\label{alg:gvn-ir:split-loop}
+    \If{$(P,j) \not\in \mathcal{W}$ and $|P| \leq |P'|$}
+      \State $\mathcal{W} \leftarrow \mathcal{W} \cup \lbrace (P,j)\rbrace$
+    \Else
+      \State $\mathcal{W} \leftarrow \mathcal{W} \cup \lbrace (P',j)\rbrace$
+    \EndIf
+  \EndFor
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+The algorithm uses a work list, which contains pairs of the form $(W,i)$ where $W$ stands for a block of nodes and $i$ designates an operand index. The initialization of this list is done in the loop starting at line \ref{alg:gvn-ir:init-worklist-loop} (in the next line and the rest of the algorithm, $O$ stands for the maximum size of any node's operand list). For each block which is part of the initial partition and each operand index in the given range, there will be placed such a pair on the work list. Each time one of these tuples $(W,i)$ is removed from the list, the algorithm will mark each block, which contains at least one node, whose operand at index $i$ is part of $W$. On that account, all these blocks are gathered in the set $\mathit{split\_ candidates}$ (the notion $x.\mathit{def\_ use}_i$ on line \ref{alg:gvn-ir:touched-nodes-loop} designates the set of nodes which use $x$ as their $i$th operand). Accordingly, for each of these ``split candidates'' we have to remember all of its nodes, whose $i$th operand is in $W$, by collecting them in a block's $\mathit{touched}$-set. They will be needed later in line \ref{alg:gvn-ir:if-test-split-touched} to decide whether this block has to be split up into two separate ones. According to the definition of congruence, splitting has to occur if it does not hold for all of the nodes in a block, that their $i$th operands are in the same block, namely, if some of these operands are in $W$ and others are not. The work that has to be done when this separation occurs is listed in algorithm \ref{alg:gvn-ir-split}. Here, all of a blocks ``touched'' nodes are moved to a new block. Note that after this operation it is true that each of the nodes that reside in the original block are incongruent to all of those that moved to the new one. Splitting blocks up into two separate ones, might cause that other blocks have to be split up. Therefore, according tuples for the separated blocks will have to be added to the work list.
+
+Alpern et al.\ \cite{alpern:1988:detecting-equality-of-variables} gave a similar algorithm, based on a reformulation of Hopcroft's original partition refinement \cite{aho:1974:the-design-and-analysis-of-computer-algorithms}. In appendix \ref{sec:alpern-partitioning} we show that it yields an incorrect partitioning.
+
+\subsubsection*{On the Correctness of the Algorithm}
+
+To show that the given global value numbering algorithm is correct, we adapted the original proof given by Hopcroft \cite{hopcroft:1971:an-n-log-n-algorithm}, which can be done easily, as shown in the following. Basically, the following claim has to hold:
+
+\begin{claim}
+On termination of the algorithm two nodes are congruent if and only if they are in the same block.
+\end{claim}
+
+\begin{proof}
+First we will show that for all nodes $x$ and $y$ ($x \neq y$), it holds that $x$ is not congruent to $y$ if $x \in B$ and $y \in C$ ($B, C \in \mathcal{P}$), supplied that $B \neq C$.
+%First we will show that for two nodes are not congruent, if they are contained in distinct block at the end of the algorithm.
+This can be done by induction on the number of times lines \ref{alg:gvn-ir:remove-touched-nodes-from-block} to \ref{alg:gvn-ir:add-new-block-to-partition} in algorithm \ref{alg:gvn-ir-split} are executed, where a specific block will be split up into two separate ones. If the statement holds before the $n$th time of execution, it will also be satisfied afterwards because splitting occurs only when operand nodes at a given index have previously been shown to be not congruent. Obviously the statement is true after the initial partitioning and hence before the first splitting occurs. From this it follows that two nodes are on the same block at the end of the algorithm if they are congruent.
+
+To prove the second part of the claim, we show, that two nodes that are not congruent, cannot be in the same block at termination of the algorithm. Therefore we have to introduce a function $\delta : G \times \lbrace 1,\ldots , O\rbrace ^n \rightarrow G$, where $G$ is the set of nodes in the program, $O$ is the maximum size of any node's operand list and $n \in \mathbb{N}$ (in fact our definition of $\delta$ is based on the transition function used in automata theory, which for a certain state-word pair gives the according successor state). For any node $x \in G$ and any $n$-tuple $(o_1,\ldots , o_n) \in \lbrace 1,\ldots , O\rbrace ^n$, $\delta (x, (o_1,\ldots , o_n))$ denotes the node that is reached by following the use-def edges at the operand indices given by $(o_1,\ldots , o_n)$, starting at $x$. If $n = 1$ so that $(o_1,\ldots , o_n)$ collapses to a one dimensional tuple $(o_1)$, we will abbreviate $\delta (x, (o_1))$ by $\delta (x, o)$.
+
+Assume two states $x$ and $y$ which are contained in the same block $B \in \mathcal{P}$ but are not congruent. Without loss of generality, assume $\delta (x, o) \in C$ and $\delta(y, o) \in D$ ($C, D \in \mathcal{P}$). Now there are two possibilities to be taken into account:
+\begin{itemize}
+\item[$C \neq D$:] When the algorithm came to the point, that $\delta (x,o)$ and $\delta (y,o)$ first appeared in two distinct blocks $C$ and $D$,  at least one of the tuples $(C,o)$ and $(D,o)$ was placed on $\mathcal{W}$ (if both $C$ and $D$ had been part of the initial partitioning both tuples would have been added to the work list; otherwise just one of them would have been placed on $\mathcal{W}$, namely, the smaller one). When either $(C,o)$ or $(D,o)$ is removed from the work list, then the algorithm will split the block that contains $x$ and $y$ so that $x$ and $y$ will be placed in two distinct sub blocks. Obviously this is inconsistent with the initial assumption that both nodes are in the same block.
+\item[$C = D$:] This case can be reduced to the $C \neq D$ case, as shown in the following. Based on the assumption, that $x$ and $y$ are not congruent, it is obvious that there has to exist an $n$-tuple $(p_1,\ldots ,p_n)$ for some $n$ so that $\delta (x,(p_1,\ldots ,p_n))$ and $\delta (y,(p_1,\ldots ,p_n))$ are in distinct blocks. From this it follows that there has to be such an $n$-tuple $(p_1,\ldots ,p_n)$ for a smallest $n$. Now let $o$ be the last element of the according $n$-tuple, namely, let $o = p_n$. It follows that $\delta (x,(p_1,\ldots ,p_{n-1}))$ and $\delta (y,(p_1,\ldots ,p_{n-1}))$ are not congruent and $\delta (\delta (x,(p_1,\ldots ,p_{n-1})), o)$ and $\delta (\delta (y,(p_1,\ldots ,p_{n-1})), o)$ are in distinct blocks. Now we can replace $x$ by $\delta (x,(p_1,\ldots ,p_{n-1}))$ and $y$ by $\delta (y,(p_1,\ldots ,p_{n-1}))$.
+\end{itemize}
+\end{proof}

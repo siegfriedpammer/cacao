@@ -1,0 +1,25 @@
+\section{Introduction}
+\label{sec:introduction}
+
+\subsection{The CACAO VM}
+\label{sec:the-cacao-vm}
+
+The CACAO VM is a virtual machine for executing Java bytecode. Instead of interpreting this bytecode, just-in-time compilation is used to execute Java programs natively. Consequently, the first time a part of a program, or a method respectively, has to be executed by the virtual machine, the so called \emph{baseline} compiler will directly translate it to native machine code, which is invoked subsequently. Short compilation time is required at this level, therefore exhaustive optimization tasks cannot be taken into account. As a consequence, for those program parts which are executed very often, the machine code produced at this level will not provide adequate efficiency in general. The run-time behavior of the program will be profiled in the following, to identify those methods which are executed more frequently. The according program parts will then be recompiled by comprising in-depth optimization tasks to produce efficient native code eligible for frequent execution. This approach is referred to as \emph{adaptive optimization}. At present, these recompilation tasks are also achieved by the baseline compiler, but differently, at this level the compiler applies additional optimization techniques to meet the according efficiency requirements.
+
+\subsection{Motivation}
+\label{sec:motivation}
+
+Due to reasons of maintenance and the need of a higher flexibility concerning the integration of new optimization techniques, the baseline compiler will be replaced as optimizing compiler. Therefore a new compiler will be incorporated into the CACAO VM, which performs the according tasks in the course of adaptive optimization. Currently this compiler is subject to implementation and is not yet fully operational, also in-depth optimizations have to be integrated.
+
+\subsection{Aim of the Work}
+\label{sec:aim}
+
+The subject of this thesis is to examine machine independent optimizations and how to apply them to the SSA-based intermediate representation used within the new compiler framework. These examinations form the basis for their implementation and integration into the compiler.
+Due to the fact that the compilation tasks are performed during run-time of the virtual machine, efficient algorithms are required so that fast execution of the optimizations is possible.
+
+\subsection{Structure of the Thesis}
+\label{sec:paper-structure}
+
+Section \ref{sec:intermediate-representation} gives a basic introduction to the intermediate representation used in the new compiler framework. In sections \ref{sec:dead-code}, \ref{sec:constantprop} and \ref{sec:global-value-numbering} we describe the optimization techniques we examined for the use within the compiler. For each of the optimizations there will be given a description of its goals and general characteristics. The last part of each of these sections is formed by exhaustive explanations of how the optimizations can be applied to the intermediate representation, enclosed by algorithms formally describing how these techniques can be realized. The effects of incorporating them into the compiler are discussed in section \ref{sec:evaluation}, where the results of the empirical evaluation are presented.
+In section \ref{sec:related} we give an overview of alternative approaches and describe how they are different from the presented techniques.
+The last part of the thesis is formed by section \ref{sec:conclusions} which outlines the central findings of our work.
