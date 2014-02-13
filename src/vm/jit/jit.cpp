@@ -434,7 +434,10 @@ u1 *jit_compile(methodinfo *m)
 
 	m->mutex->unlock();
 
-	STATISTICS(compiler_last_codesize = m->code->mcodelength);
+#if defined(ENABLE_STATISTICS)
+	if (m && m->code)
+		compiler_last_codesize = m->code->mcodelength;
+#endif
 
 	/* return pointer to the methods entry point */
 
