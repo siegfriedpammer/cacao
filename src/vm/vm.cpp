@@ -1,6 +1,6 @@
 /* src/vm/vm.cpp - VM startup and shutdown functions
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -1869,6 +1869,10 @@ void vm_shutdown(s4 status)
 		mutex_unlock(&dbgcomlock);
 		jvmti_cacaodbgserver_quit();
 	}
+#endif
+
+#if defined(ENABLE_THREADS)
+	finalizer_join_thread();
 #endif
 
 	exit(status);

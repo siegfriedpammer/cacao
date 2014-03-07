@@ -1,6 +1,6 @@
 /* src/vm/finalizer.cpp - finalizer linked list and thread
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -50,9 +50,82 @@
 
 /* global variables ***********************************************************/
 
-static Mutex     *finalizer_thread_mutex;
-static Condition *finalizer_thread_cond;
+/***
+ * Simple synchronization helper for coordinating sets of finalizer runs and
+ * requests from concurrent threads. It assumes that there is only a single
+ * finalizer thread.
+ */
+class FinalizerThreadCoordinator {
+	Mutex mutex;
+	Condition cond; // finalizer thread blocks on this cv
+	Condition *shutdown; // thread requesting shutdown blocks on this one
+	bool running;   // thread requested to run finalizers
+	bool pending;   // thread should continue running finalizers
+	bool disabled;  // thread has been requested to stop
 
+public:
+	FinalizerThreadCoordinator(): shutdown(0), running(false), pending(false), disabled(false) { }
+
+	// Called by finalizer thread
+	bool accept();
+	void done();
+	void shutdown_ack();
+
+	// Called by requestor threads
+	void request();
+	void join();
+};
+static FinalizerThreadCoordinator *finalizer_thread_coord;
+
+void FinalizerThreadCoordinator::request()
+{
+	MutexLocker lock(mutex);
+	if (running)
+		pending = true;
+	else {
+		running = true;
+		cond.signal();
+	}
+}
+
+bool FinalizerThreadCoordinator::accept()
+{
+	MutexLocker lock(mutex);
+	while (!running)
+		cond.wait(&mutex);
+	return !shutdown;
+}
+
+void FinalizerThreadCoordinator::done()
+{
+	MutexLocker lock(mutex);
+	running = pending;
+	pending = false;
+}
+
+void FinalizerThreadCoordinator::shutdown_ack()
+{
+	MutexLocker lock(mutex);
+	shutdown->signal();
+	shutdown = 0;
+}
+
+void FinalizerThreadCoordinator::join()
+{
+	Condition cond_shutdown;
+	MutexLocker lock(mutex);
+	if (disabled)
+		// deliberately hang forever
+		for (;;)
+			cond_shutdown.wait(&mutex);
+	running = true;
+	pending = true;
+	disabled = true;
+	shutdown = &cond_shutdown;
+	cond.signal();
+	while (shutdown)
+		cond_shutdown.wait(&mutex);
+}
 
 /* finalizer_init **************************************************************
 
@@ -60,12 +133,11 @@ static Condition *finalizer_thread_cond;
 
 *******************************************************************************/
 
-bool finalizer_init(void)
+bool finalizer_init()
 {
 	TRACESUBSYSTEMINITIALIZATION("finalizer_init");
 
-	finalizer_thread_mutex = new Mutex();
-	finalizer_thread_cond  = new Condition();
+	finalizer_thread_coord = new FinalizerThreadCoordinator;
 
 	/* everything's ok */
 
@@ -81,21 +153,15 @@ bool finalizer_init(void)
 
 *******************************************************************************/
 
-static void finalizer_thread(void)
+static void finalizer_thread()
 {
 	while (true) {
 		/* get the lock on the finalizer mutex, so we can call wait */
 
-		finalizer_thread_mutex->lock();
-
-		/* wait forever on that condition till we are signaled */
-	
-		finalizer_thread_cond->wait(finalizer_thread_mutex);
-
-		/* leave the lock */
-
-		finalizer_thread_mutex->unlock();
-
+		if (!finalizer_thread_coord->accept()) {
+			finalizer_thread_coord->shutdown_ack();
+			break;
+		}
 		LOG("[finalizer thread    : status=awake]" << cacao::nl);
 
 		/* and call the finalizers */
@@ -103,6 +169,7 @@ static void finalizer_thread(void)
 		gc_invoke_finalizers();
 
 		LOG("[finalizer thread    : status=sleeping]" << cacao::nl);
+		finalizer_thread_coord->done();
 	}
 }
 
@@ -113,7 +180,7 @@ static void finalizer_thread(void)
 
 *******************************************************************************/
 
-bool finalizer_start_thread(void)
+bool finalizer_start_thread()
 {
 	Utf8String name = Utf8String::from_utf8("Finalizer");
 
@@ -125,6 +192,10 @@ bool finalizer_start_thread(void)
 	return true;
 }
 
+void finalizer_join_thread()
+{
+	finalizer_thread_coord->join();
+}
 
 /* finalizer_notify ************************************************************
 
@@ -133,22 +204,15 @@ bool finalizer_start_thread(void)
 
 *******************************************************************************/
 
-void finalizer_notify(void)
+void finalizer_notify()
 {
 	LOG("[finalizer notified]" << cacao::nl);
 
 #if defined(ENABLE_THREADS)
 	/* get the lock on the finalizer lock object, so we can call wait */
 
-	finalizer_thread_mutex->lock();
+	finalizer_thread_coord->request();
 
-	/* signal the finalizer thread */
-
-	finalizer_thread_cond->signal();
-
-	/* leave the lock */
-
-	finalizer_thread_mutex->unlock();
 #else
 	/* if we don't have threads, just run the finalizers */
 
