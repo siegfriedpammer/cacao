@@ -1,6 +1,6 @@
 /* src/vm/linker.hpp - class linker header
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -27,30 +27,12 @@
 #define LINKER_HPP_ 1
 
 #include "config.h"
-#include "vm/types.hpp"
+#include "arch.hpp"        // for USES_NEW_SUBTYPE
 #include "vm/utf8.hpp"
-#include "vm/vftbl.hpp"
 
+struct java_object_t;
 struct classinfo;
 class Mutex;
-
-/* arraydescriptor *************************************************************
-
-   For every array class an arraydescriptor is allocated which
-   describes the array class. The arraydescriptor is referenced from
-   the vftbl of the array class.
-
-*******************************************************************************/
-
-struct arraydescriptor {
-	vftbl_t *componentvftbl; /* vftbl of the component type, NULL for primit. */
-	vftbl_t *elementvftbl;   /* vftbl of the element type, NULL for primitive */
-	s2       arraytype;      /* ARRAYTYPE_* constant                          */
-	s2       dimension;      /* dimension of the array (always >= 1)          */
-	s4       dataoffset;     /* offset of the array data from object pointer  */
-	s4       componentsize;  /* size of a component in bytes                  */
-	s2       elementtype;    /* ARRAYTYPE_* constant                          */
-};
 
 
 /* global variables ***********************************************************/

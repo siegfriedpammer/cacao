@@ -1,6 +1,6 @@
 /* src/vm/global.hpp - global definitions
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -98,13 +98,6 @@ typedef union {
 #ifndef MAX
 # define MAX(a,b)  (((a) > (b)) ? (a) : (b))
 #endif
-
-
-/* forward typedefs ***********************************************************/
-
-typedef struct java_object_t java_object_t;
-typedef struct java_objectarray_t java_objectarray_t;
-
 
 #define MAX_ALIGN 8             /* most generic alignment for JavaVM values   */
 

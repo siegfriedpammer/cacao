@@ -1,6 +1,6 @@
 /* src/vm/class.cpp - class related functions
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -22,6 +22,7 @@
 
 */
 
+#include "vm/class.hpp"
 
 #include "config.h"
 
@@ -31,8 +32,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "vm/types.hpp"
-
 #include "arch.hpp"
 
 #include "mm/memory.hpp"
@@ -40,27 +39,37 @@
 #include "native/llni.hpp"
 
 #include "threads/lock.hpp"
+#include "threads/lockword.hpp"         // for Lockword
 #include "threads/mutex.hpp"
+#include "threads/thread.hpp"           // for thread_get_current, etc
 
+#include "toolbox/OStream.hpp"          // for OStream
+#include "toolbox/hashtable.hpp"        // for hashtable
 #include "toolbox/logging.hpp"
 
 #include "vm/annotation.hpp"
 #include "vm/array.hpp"
-#include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
 #include "vm/classcache.hpp"
 #include "vm/exceptions.hpp"
+#include "vm/field.hpp"                 // for fieldinfo, etc
 #include "vm/global.hpp"
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
+#include "vm/method.hpp"                // for methodinfo, etc
 #include "vm/options.hpp"
+#include "vm/primitive.hpp"             // for Primitive
 #include "vm/resolve.hpp"
 #include "vm/statistics.hpp"
+#include "vm/string.hpp"                // for JavaString
 #include "vm/suck.hpp"
-#include "vm/utf8.hpp"
 #include "vm/string.hpp"
+#include "vm/types.hpp"
+#include "vm/utf8.hpp"
+
+#include "vm/jit/builtin.hpp"
 
 STAT_DECLARE_GROUP(info_struct_stat)
 STAT_DECLARE_VAR(int,size_classinfo,0)
