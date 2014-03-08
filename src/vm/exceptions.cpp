@@ -1,6 +1,6 @@
 /* src/vm/exceptions.cpp - exception related functions
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -739,7 +739,11 @@ void exceptions_throw_classformaterror(classinfo *c, Utf8String message)
 
 void exceptions_throw_classnotfoundexception(Utf8String name)
 {	
-	exceptions_throw_class_utf(class_java_lang_ClassNotFoundException, name);
+	// We can't use the cached class_java_lang_ClassNotFoundException because
+	// when there are bootstrap classpath problems it has not been set yet,
+	// which leads to confusing error messages.
+
+	exceptions_throw_utf_utf(utf8::java_lang_ClassNotFoundException, name);
 }
 
 
