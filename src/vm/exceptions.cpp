@@ -338,27 +338,6 @@ static java_handle_t *exceptions_new_utf_utf(Utf8String classname, Utf8String me
 }
 
 
-/* exceptions_throw_class_Utf8String *************************************************
-
-   Creates an exception object with the given class, initalizes and
-   throws it with the given utf message.
-
-   IN:
-      c ......... exception class
-	  message ... the message as an Utf8String 
-
-*******************************************************************************/
-
-static void exceptions_throw_class_utf(classinfo *c, Utf8String message)
-{
-	java_handle_t *o;
-
-	o = exceptions_new_class_utf(c, message);
-
-	exceptions_set_exception(o);
-}
-
-
 /* exceptions_throw_Utf8String *******************************************************
 
    Creates an exception object with the given name, initalizes and
