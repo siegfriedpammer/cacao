@@ -1,6 +1,6 @@
 /* src/vm/finalizer.hpp - finalizer linked list and thread header
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -36,9 +36,10 @@ struct Finalizer {
 
 /* function prototypes ********************************************************/
 
-bool finalizer_init(void);
-bool finalizer_start_thread(void);
-void finalizer_notify(void);
+bool finalizer_init();
+bool finalizer_start_thread();
+void finalizer_join_thread();
+void finalizer_notify();
 void finalizer_run(void *o, void *p);
 
 #endif /* _FINALIZER_H */
@@ -55,4 +56,5 @@ void finalizer_run(void *o, void *p);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
