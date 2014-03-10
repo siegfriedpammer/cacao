@@ -1,6 +1,6 @@
 /* src/vm/reorder.c - basic block reordering
 
-   Copyright (C) 2006-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
@@ -34,12 +34,14 @@
 
 #include <assert.h>
 
+#include "mm/dumpmemory.hpp"
+
 #include "vm/types.hpp"
 
-#include "mm/dumpmemory.hpp"
 #include "vm/jit/code.hpp"
 #include "vm/jit/jit.hpp"
 
+#include "vm/jit/ir/instruction.hpp"
 
 /* reorder_place_next_unplaced_block *******************************************
 

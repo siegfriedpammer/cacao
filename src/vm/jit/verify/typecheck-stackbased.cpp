@@ -45,6 +45,7 @@
 #include "vm/jit/parse.hpp"
 #include "vm/jit/show.hpp"
 #include "vm/jit/stack.hpp"
+#include "vm/jit/ir/instruction.hpp"
 #include "vm/jit/verify/typecheck-common.hpp"
 
 

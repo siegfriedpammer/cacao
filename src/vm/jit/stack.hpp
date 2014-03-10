@@ -1,6 +1,6 @@
 /* src/vm/jit/stack.hpp - stack analysis header
 
-   Copyright (C) 1996-2005, 2006, 2008
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -27,12 +27,10 @@
 #define STACK_HPP_ 1
 
 #include "config.h"                     // for ENABLE_VERIFIER
+#include <stdint.h>
 #include "vm/global.hpp"                // for Type
-#include "vm/jit/ir/icmd.hpp"           // for ::ICMD_ACONST
-#include "vm/jit/ir/instruction.hpp"    // for instruction, etc
-#include "vm/jit/reg.hpp"               // for varinfo
-#include "vm/types.hpp"                 // for s4
  
+struct instruction;
 struct jitdata;
 
 /* stack element structure ****************************************************/
@@ -52,6 +50,7 @@ enum VariableFlag {
 static inline bool IS_SAVEDVAR(s4 flags) { return flags & SAVEDVAR; }
 static inline bool IS_INMEMORY(s4 flags) { return flags & INMEMORY; }
 
+
 enum VariableKind {
 	UNDEFVAR = 0,   // stack slot will become temp during regalloc
 	TEMPVAR  = 1,   // stack slot is temp register
@@ -65,66 +64,11 @@ struct stackelement_t {
 	stackelement_t *prev;       /* pointer to next element towards bottom     */
 	instruction    *creator;    /* instruction that created this element      */
 	Type            type;       /* slot type of stack element                 */
-	s4              flags;      /* flags (SAVED, INMEMORY)                    */
+	int32_t         flags;      /* flags (SAVED, INMEMORY)                    */
 	VariableKind    varkind;    /* kind of variable or register               */
-	s4              varnum;     /* number of variable                         */
+	int32_t         varnum;     /* number of variable                         */
 };
 
-
-/* macros used internally by analyse_stack ************************************/
-
-/*--------------------------------------------------*/
-/* BASIC TYPE CHECKING                              */
-/*--------------------------------------------------*/
-
-/* XXX would be nice if we did not have to pass the expected type */
-
-#if defined(ENABLE_VERIFIER)
-#define CHECK_BASIC_TYPE(expected,actual)                            \
-    do {                                                             \
-        if ((actual) != (expected)) {                                \
-            expectedtype = (expected);                               \
-            goto throw_stack_type_error;                             \
-        }                                                            \
-    } while (0)
-#else /* !ENABLE_VERIFIER */
-#define CHECK_BASIC_TYPE(expected,actual)
-#endif /* ENABLE_VERIFIER */
-
-/*--------------------------------------------------*/
-/* STACK UNDERFLOW/OVERFLOW CHECKS                  */
-/*--------------------------------------------------*/
-
-/* underflow checks */
-
-#if defined(ENABLE_VERIFIER)
-#define REQUIRE(num)                                                 \
-    do {                                                             \
-        if (stackdepth < (num))                                      \
-            goto throw_stack_underflow;                              \
-    } while (0)
-#else /* !ENABLE_VERIFIER */
-#define REQUIRE(num)
-#endif /* ENABLE_VERIFIER */
-
-
-/* overflow check */
-/* We allow ACONST instructions inserted as arguments to builtin
- * functions to exceed the maximum stack depth.  Maybe we should check
- * against maximum stack depth only at block boundaries?
- */
-
-/* XXX we should find a way to remove the opc/op1 check */
-#if defined(ENABLE_VERIFIER)
-#define CHECKOVERFLOW                                                \
-    do {                                                             \
-        if (stackdepth > m->maxstack)                                \
-            if ((iptr->opc != ICMD_ACONST) || INSTRUCTION_MUST_CHECK(iptr))\
-                goto throw_stack_overflow;                           \
-    } while(0)
-#else /* !ENABLE_VERIFIER */
-#define CHECKOVERFLOW
-#endif /* ENABLE_VERIFIER */
 
 /* function prototypes ********************************************************/
 
@@ -132,7 +76,7 @@ bool stack_init(void);
 
 bool stack_analyse(jitdata *jd);
 
-void stack_javalocals_store(instruction *iptr, s4 *javalocals);
+void stack_javalocals_store(instruction *iptr, int32_t *javalocals);
 
 #endif // STACK_HPP_
 

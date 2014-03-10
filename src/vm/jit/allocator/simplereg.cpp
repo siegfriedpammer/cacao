@@ -1,6 +1,6 @@
 /* src/vm/jit/allocator/simplereg.cpp - register allocator
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -50,7 +50,10 @@
 #include "vm/jit/reg.hpp"
 #include "vm/jit/show.hpp"
 
+#include "vm/jit/ir/instruction.hpp"
+
 #define DEBUG_NAME "simplereg"
+
 
 STAT_DECLARE_VAR(int,count_locals_spilled,0)
 STAT_DECLARE_VAR(int,count_locals_register,0)

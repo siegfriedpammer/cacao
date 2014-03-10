@@ -29,6 +29,7 @@
 #include <stddef.h>                     // for NULL
 #include "arch.hpp"                     // for JIT_COMPILER_VIA_SIGNAL
 #include "config.h"                     // for ENABLE_SSA, ENABLE_INLINING, etc
+#include "vm/jit/ir/icmd.hpp"
 #include "vm/jit/optimizing/lsra.hpp"   // for lsradata
 #include "vm/jit/reg.hpp"               // for varinfo
 #include "vm/jit/stack.hpp"             // for PREALLOC

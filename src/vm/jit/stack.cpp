@@ -23,20 +23,33 @@
 */
 
 #include "vm/jit/stack.hpp"
+
+#include "config.h"                     // for ENABLE_VERIFIER, etc
+
 #include <stdint.h>                     // for int32_t
 #include <cassert>                      // for assert
 #include <climits>
 #include <cstdio>                       // for NULL
 #include <cstring>
-#include "config.h"                     // for ENABLE_VERIFIER, etc
+
 #include "arch.hpp"
 #include "md-abi.hpp"
+
 #include "native/native.hpp"
+
 #include "mm/dumpmemory.hpp"
+
 #include "toolbox/logging.hpp"
+
 #include "vm/descriptor.hpp"            // for methoddesc, typedesc, etc
 #include "vm/exceptions.hpp"
 #include "vm/global.hpp"                // for Type::TYPE_INT, etc
+#include "vm/options.hpp"               // for opt_verify
+#include "vm/references.hpp"            // for classref_or_classinfo, etc
+#include "vm/resolve.hpp"               // for unresolved_field
+#include "vm/statistics.hpp"            // for StatVar, StatDist, etc
+#include "vm/types.hpp"                 // for s4, ptrint
+
 #include "vm/jit/abi.hpp"               // for md_return_alloc
 #include "vm/jit/builtin.hpp"           // for builtintable_get_internal, etc
 #include "vm/jit/cfg.hpp"
@@ -47,17 +60,13 @@
 #include "vm/jit/reg.hpp"               // for varinfo, etc
 #include "vm/jit/show.hpp"
 #include "vm/jit/verify/typeinfo.hpp"   // for typeinfo_t
-#include "vm/options.hpp"               // for opt_verify
-#include "vm/references.hpp"            // for classref_or_classinfo, etc
-#include "vm/resolve.hpp"               // for unresolved_field
-#include "vm/statistics.hpp"            // for StatVar, StatDist, etc
-#include "vm/types.hpp"                 // for s4, ptrint
+
+#include "vm/jit/ir/icmd.hpp"           // for ::ICMD_ACONST
+#include "vm/jit/ir/instruction.hpp"    // for instruction, etc
 
 #if defined(ENABLE_DISASSEMBLER)
 # include "vm/jit/disass.hpp"
 #endif
-
-struct stackdata_t;
 
 #if 0
 #if defined(ENABLE_SSA)
@@ -68,7 +77,10 @@ struct stackdata_t;
 #endif
 #endif
 
-/*#define STACK_VERBOSE*/
+using namespace cacao;
+
+
+//#define STACK_VERBOSE
 
 
 /* For returnAddresses we use a field of the typeinfo to store from which  */
@@ -132,23 +144,23 @@ static const unsigned int count_block_size_distribution_range[] = {0,1,2,3,4,5,6
 
 STAT_REGISTER_DIST_RANGE(unsigned int,unsigned int,count_method_bb_distribution,count_method_bb_distribution_range,8,0,"method bb dist.","Distribution of basic blocks per method")
 STAT_REGISTER_DIST_RANGE(unsigned int,unsigned int,count_block_size_distribution,count_block_size_distribution_range,17,0,"bb size dist.","Distribution of basic block sizes")
+
+
 /* stackdata_t *****************************************************************
 
    This struct holds internal data during stack analysis.
 
 *******************************************************************************/
 
-typedef struct stackdata_t stackdata_t;
-
 struct stackdata_t {
-    basicblock *bptr;             /* the current basic block being analysed   */
-    stackelement_t *new_elem;     /* next free stackelement                   */
-    s4 vartop;                    /* next free variable index                 */
-    s4 localcount;                /* number of locals (at the start of var)   */
-    s4 varcount;                  /* maximum number of variables expected     */
+	basicblock *bptr;             /* the current basic block being analysed   */
+	stackelement_t *new_elem;     /* next free stackelement                   */
+	s4 vartop;                    /* next free variable index                 */
+	s4 localcount;                /* number of locals (at the start of var)   */
+	s4 varcount;                  /* maximum number of variables expected     */
 	s4 varsallocated;             /* total number of variables allocated      */
 	s4 maxlocals;                 /* max. number of Java locals               */
-    varinfo *var;                 /* variable array (same as jd->var)         */
+	varinfo *var;                 /* variable array (same as jd->var)         */
 	s4 *javalocals;               /* map from Java locals to jd->var indices  */
 	methodinfo *m;                /* the method being analysed                */
 	jitdata *jd;                  /* current jitdata                          */
@@ -156,8 +168,64 @@ struct stackdata_t {
 	bool repeat;                  /* if true, iterate the analysis again      */
 	exception_entry **handlers;   /* exception handlers for the current block */
 	exception_entry *extableend;  /* points to the last exception entry       */
-	stackelement_t exstack;         /* instack for exception handlers           */
+	stackelement_t exstack;       /* instack for exception handlers           */
 };
+
+
+/* macros used internally by analyse_stack ************************************/
+
+/*--------------------------------------------------*/
+/* BASIC TYPE CHECKING                              */
+/*--------------------------------------------------*/
+
+/* XXX would be nice if we did not have to pass the expected type */
+
+#if defined(ENABLE_VERIFIER)
+#	define CHECK_BASIC_TYPE(expected,actual)                           \
+		do {                                                             \
+			if ((actual) != (expected)) {                                  \
+				expectedtype = (expected);                                   \
+				goto throw_stack_type_error;                                 \
+			}                                                              \
+    } while (0)
+#else
+# define CHECK_BASIC_TYPE(expected,actual)
+#endif
+
+/*--------------------------------------------------*/
+/* STACK UNDERFLOW/OVERFLOW CHECKS                  */
+/*--------------------------------------------------*/
+
+/* underflow checks */
+
+#if defined(ENABLE_VERIFIER)
+# define REQUIRE(num)                                                \
+	do {                                                             \
+		if (stackdepth < (num))                                      \
+		goto throw_stack_underflow;                                  \
+	} while (0)
+#else
+#define REQUIRE(num)
+#endif
+
+
+/* overflow check */
+/* We allow ACONST instructions inserted as arguments to builtin
+ * functions to exceed the maximum stack depth.  Maybe we should check
+ * against maximum stack depth only at block boundaries?
+ */
+
+/* XXX we should find a way to remove the opc/op1 check */
+#if defined(ENABLE_VERIFIER)
+#	define CHECKOVERFLOW                                             \
+		do {                                                         \
+			if (stackdepth > m->maxstack)                            \
+				if ((iptr->opc != ICMD_ACONST) || INSTRUCTION_MUST_CHECK(iptr)) \
+					goto throw_stack_overflow;                       \
+		} while(0)
+#else
+#	define CHECKOVERFLOW
+#endif
 
 
 /* macros for allocating/releasing variable indices *****************/

@@ -22,9 +22,8 @@
 
 */
 
+#include "vm/jit/verify/typecheck-typeinferer.hpp"
 #include "config.h"
-#include "vm/types.hpp"
-#include "vm/global.hpp"
 
 #include <assert.h>
 #include <string.h>
@@ -40,10 +39,12 @@
 #include "vm/array.hpp"
 #include "vm/descriptor.hpp"            // for typedesc, methoddesc, etc
 #include "vm/exceptions.hpp"
+#include "vm/global.hpp"
 #include "vm/globals.hpp"
 #include "vm/options.hpp"
 #include "vm/primitive.hpp"
 #include "vm/resolve.hpp"
+#include "vm/types.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/builtin.hpp"
@@ -51,7 +52,7 @@
 #include "vm/jit/show.hpp"
 #include "vm/jit/parse.hpp"
 
-#include "vm/jit/verify/typecheck-typeinferer.hpp"
+#include "vm/jit/ir/instruction.hpp"
 
 #define TYPECHECK_NO_STATISTICS
 #include "vm/jit/verify/typecheck-common.hpp"

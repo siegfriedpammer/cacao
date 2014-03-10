@@ -43,6 +43,8 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/verify/typeinfo.hpp"
 
+#include "vm/jit/ir/instruction.hpp"
+
 
 /* check if a linked class is an array class. Only use for linked classes! */
 #define CLASSINFO_IS_ARRAY(clsinfo)  ((clsinfo)->vftbl->arraydesc != NULL)
