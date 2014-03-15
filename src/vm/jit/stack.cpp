@@ -153,6 +153,8 @@ STAT_REGISTER_DIST_RANGE(unsigned int,unsigned int,count_block_size_distribution
 *******************************************************************************/
 
 struct stackdata_t {
+	bool analyse(jitdata*);
+
 	basicblock *bptr;             /* the current basic block being analysed   */
 	stackelement_t *new_elem;     /* next free stackelement                   */
 	s4 vartop;                    /* next free variable index                 */
@@ -169,6 +171,23 @@ struct stackdata_t {
 	exception_entry **handlers;   /* exception handlers for the current block */
 	exception_entry *extableend;  /* points to the last exception entry       */
 	stackelement_t exstack;       /* instack for exception handlers           */
+private:
+	bool throw_stack_underflow() {
+		exceptions_throw_verifyerror(m, "Unable to pop operand off an empty stack");
+		return false;
+	}
+	bool throw_stack_overflow() {
+		exceptions_throw_verifyerror(m, "Stack size too large");
+		return false;
+	}
+	bool throw_stack_type_error(Type expectedtype) {
+		exceptions_throw_verifyerror_for_stack(m, expectedtype);
+		return false;
+	}
+	bool throw_stack_category_error() {
+		exceptions_throw_verifyerror(m, "Attempt to split long or double on the stack");
+		return false;
+	}
 };
 
 
@@ -181,15 +200,14 @@ struct stackdata_t {
 /* XXX would be nice if we did not have to pass the expected type */
 
 #if defined(ENABLE_VERIFIER)
-#	define CHECK_BASIC_TYPE(expected,actual)                           \
+#	define CHECK_BASIC_TYPE(expected,actual)                             \
 		do {                                                             \
-			if ((actual) != (expected)) {                                  \
-				expectedtype = (expected);                                   \
-				goto throw_stack_type_error;                                 \
-			}                                                              \
-    } while (0)
+			if ((actual) != (expected)) {                                \
+				return throw_stack_type_error((Type) (expected));        \
+			}                                                            \
+		} while (0)
 #else
-# define CHECK_BASIC_TYPE(expected,actual)
+#	define CHECK_BASIC_TYPE(expected,actual)
 #endif
 
 /*--------------------------------------------------*/
@@ -199,11 +217,11 @@ struct stackdata_t {
 /* underflow checks */
 
 #if defined(ENABLE_VERIFIER)
-# define REQUIRE(num)                                                \
-	do {                                                             \
-		if (stackdepth < (num))                                      \
-		goto throw_stack_underflow;                                  \
-	} while (0)
+#	define REQUIRE(num)                                                  \
+		do {                                                             \
+			if (stackdepth < (num))                                      \
+				return throw_stack_underflow();                          \
+		} while (0)
 #else
 #define REQUIRE(num)
 #endif
@@ -221,7 +239,7 @@ struct stackdata_t {
 		do {                                                         \
 			if (stackdepth > m->maxstack)                            \
 				if ((iptr->opc != ICMD_ACONST) || INSTRUCTION_MUST_CHECK(iptr)) \
-					goto throw_stack_overflow;                       \
+					return throw_stack_overflow();                   \
 		} while(0)
 #else
 #	define CHECKOVERFLOW
@@ -2081,27 +2099,20 @@ static void stack_change_to_tempvar(stackdata_t *sd, stackelement_t * sp,
 
 static void stack_init_javalocals(stackdata_t *sd)
 {
-	s4         *jl;
-	s4          type,i,j;
-	methoddesc *md;
-	jitdata    *jd;
+	jitdata *jd = sd->jd;
+	s4      *jl = DMNEW(s4, sd->maxlocals);
 
-	jd = sd->jd;
-
-	jl = DMNEW(s4, sd->maxlocals);
 	jd->basicblocks[0].javalocals = jl;
 
-	for (i=0; i<sd->maxlocals; ++i)
+	for (int i=0; i<sd->maxlocals; ++i)
 		jl[i] = jitdata::UNUSED;
 
-	md = jd->m->parseddesc;
-	j = 0;
-	for (i=0; i<md->paramcount; ++i) {
-		type = md->paramtypes[i].type;
+	methoddesc *md = jd->m->parseddesc;
+	for (int i = 0, j = 0; i<md->paramcount; ++i) {
+		Type type = md->paramtypes[i].type;
 		jl[j] = jd->local_map[5*j + type];
-		j++;
-		if (IS_2_WORD_TYPE(type))
-			j++;
+
+		j += IS_2_WORD_TYPE(type) ? 2 : 1;
 	}
 }
 
@@ -2130,17 +2141,24 @@ static void stack_init_javalocals(stackdata_t *sd)
 
 *******************************************************************************/
 
-bool stack_analyse(jitdata *jd)
+bool stack_analyse(jitdata *jd) {
+	stackdata_t sd;
+
+	return sd.analyse(jd);
+}
+
+bool stackdata_t::analyse(jitdata *jd)
 {
+	stackdata_t& sd = *this;
+
 	methodinfo   *m;              /* method being analyzed                    */
 	codeinfo     *code;
 	registerdata *rd;
-	stackdata_t   sd;
 	int           stackdepth;
 	stackelement_t *curstack;       /* current stack top                        */
 	stackelement_t *copy;
 	ICMD          opcode;         /* opcode of current instruction            */
-	int           i, varindex;
+	int           varindex;
 	int           javaindex;
 	Type          type;           /* operand type                             */
 	int           len;            /* # of instructions after the current one  */
@@ -2149,7 +2167,6 @@ bool stack_analyse(jitdata *jd)
 	instruction  *iptr;           /* the current instruction                  */
 	basicblock   *tbptr;
 	basicblock   *original;
-	exception_entry *ex;
 
 	stackelement_t **last_store_boundary;
 	stackelement_t *coalescing_boundary;
@@ -2158,12 +2175,8 @@ bool stack_analyse(jitdata *jd)
 
 	branch_target_t *table;
 	lookup_target_t *lookup;
-#if defined(ENABLE_VERIFIER)
-	int           expectedtype;   /* used by CHECK_BASIC_TYPE                 */
-#endif
 	builtintable_entry *bte;
 	methoddesc         *md;
-	constant_FMIref    *fmiref;
 #if defined(ENABLE_STATISTICS)
 	int           iteration_count;  /* number of iterations of analysis       */
 #endif
@@ -2225,7 +2238,7 @@ bool stack_analyse(jitdata *jd)
 
 	jd->maxinterfaces = m->maxstack;
 	jd->interface_map = DMNEW(interface_info, m->maxstack * 5);
-	for (i = 0; i < m->maxstack * 5; i++)
+	for (int i = 0; i < m->maxstack * 5; i++)
 		jd->interface_map[i].flags = jitdata::UNUSED;
 
 	last_store_boundary = DMNEW(stackelement_t *, m->maxlocals);
@@ -2263,7 +2276,6 @@ bool stack_analyse(jitdata *jd)
 		/* iterate over basic blocks *****************************************/
 
 		for (; sd.bptr; sd.bptr = sd.bptr->next) {
-
 			if (sd.bptr->state == basicblock::DELETED) {
 				/* This block has been deleted - do nothing. */
 
@@ -2330,8 +2342,7 @@ bool stack_analyse(jitdata *jd)
 				original = (sd.bptr->original) ? sd.bptr->original : sd.bptr;
 
 				len = 0;
-				ex = jd->exceptiontable;
-				for (; ex != NULL; ex = ex->down) {
+				for (exception_entry *ex = jd->exceptiontable; ex != NULL; ex = ex->down) {
 					if ((ex->start <= original) && (ex->end > original)) {
 						sd.handlers[len++] = ex;
 					}
@@ -2375,7 +2386,7 @@ bool stack_analyse(jitdata *jd)
 				/* reset variables for dependency checking */
 
 				coalescing_boundary = sd.new_elem;
-				for( i = 0; i < m->maxlocals; i++)
+				for(int i = 0; i < m->maxlocals; i++)
 					last_store_boundary[i] = sd.new_elem;
 
  				/* remember the start of this block's variables */
@@ -2792,8 +2803,11 @@ icmd_NOP:
 								/* copy the constant to s2 */
 								/* XXX constval -> fieldconstval? */
 								iptr->sx.s23.s2.constval = iptr->sx.val.i;
+								// fallthrough!
 
-putconst_tail:
+							putconst_tail: {
+								constant_FMIref *fmiref;
+
 								/* set the field reference (s3) */
 								if (iptr[1].flags.bits & INS_FLAG_UNRESOLVED) {
 									iptr->sx.s23.s3.uf = iptr[1].sx.s23.s3.uf;
@@ -2806,23 +2820,23 @@ putconst_tail:
 								}
 
 #if defined(ENABLE_VERIFIER)
-								expectedtype = fmiref->parseddesc.fd->type;
+								Type expectedtype = fmiref->parseddesc.fd->type;
 								switch (iptr[0].opc) {
 									case ICMD_ICONST:
 										if (expectedtype != TYPE_INT)
-											goto throw_stack_type_error;
+											return throw_stack_type_error(expectedtype);
 										break;
 									case ICMD_LCONST:
 										if (expectedtype != TYPE_LNG)
-											goto throw_stack_type_error;
+											return throw_stack_type_error(expectedtype);
 										break;
 									case ICMD_ACONST:
 										if (expectedtype != TYPE_ADR)
-											goto throw_stack_type_error;
+											return throw_stack_type_error(expectedtype);
 										break;
 									default:
 										assert(false);
-                                        break;
+										break;
 								}
 #endif /* defined(ENABLE_VERIFIER) */
 
@@ -2835,13 +2849,14 @@ putconst_tail:
 										iptr->opc = ICMD_PUTFIELDCONST;
 										OP1_0(TYPE_ADR);
 										break;
-                                    default:
-                                        break;
+									default:
+										break;
 								}
 
 								iptr[1].opc = ICMD_NOP;
 								STATISTICS(count_pcmd_op++);
 								break;
+							}
 #endif /* SUPPORT_CONST_STORE */
 
 							default:
@@ -3307,7 +3322,7 @@ normal_ACONST:
 
 						/* pop 0 push 0 iinc */
 
-					case ICMD_IINC:
+					case ICMD_IINC: {
 						STATISTICS(count_store_depth[stackdepth]++);
 						javaindex = iptr->s1.varindex;
 						last_store_boundary[javaindex] = sd.new_elem;
@@ -3316,20 +3331,18 @@ normal_ACONST:
 							jd->local_map[javaindex * 5 + TYPE_INT];
 
 						copy = curstack;
-						i = stackdepth - 1;
-						while (copy) {
+						for (int i = stackdepth - 1; copy; i--, copy = copy->prev) {
 							if ((copy->varkind == LOCALVAR) &&
 								(jd->reverselocalmap[copy->varnum] == javaindex))
 							{
 								assert(IS_LOCALVAR(copy));
 								SET_TEMPVAR(copy);
 							}
-							i--;
-							copy = copy->prev;
 						}
 
 						iptr->dst.varindex = iptr->s1.varindex;
 						break;
+					}
 
 						/* pop 1 push 0 store */
 
@@ -3367,8 +3380,10 @@ normal_ACONST:
 
 						/* invalidate 2-word types if second half was overwritten */
 
-						if (javaindex > 0 && (i = sd.javalocals[javaindex-1]) >= 0) {
-							if (IS_2_WORD_TYPE(sd.var[i].type)) {
+						if (javaindex > 0) {
+							int i = sd.javalocals[javaindex-1];
+
+							if (i >= 0 && IS_2_WORD_TYPE(sd.var[i].type)) {
 								sd.javalocals[javaindex-1] = jitdata::UNUSED;
 								iptr->flags.bits |= INS_FLAG_KILL_PREV;
 							}
@@ -3381,16 +3396,13 @@ normal_ACONST:
 						/* check for conflicts as described in Figure 5.2 */
 
 						copy = curstack->prev;
-						i = stackdepth - 2;
-						while (copy) {
+						for (int i = stackdepth - 2; copy; i--, copy = copy->prev) {
 							if ((copy->varkind == LOCALVAR) &&
 								(jd->reverselocalmap[copy->varnum] == javaindex))
 							{
 								assert(IS_LOCALVAR(copy));
 								SET_TEMPVAR(copy);
-							}
-							i--;
-							copy = copy->prev;
+							}							
 						}
 
 						/* if the variable is already coalesced, don't bother */
@@ -3519,7 +3531,7 @@ store_tail:
 						if (opt_verify) {
 							REQUIRE(1);
 							if (IS_2_WORD_TYPE(curstack->type))
-								goto throw_stack_category_error;
+								return throw_stack_category_error();
 						}
 #endif
 						OP1_0_ANY;
@@ -3551,12 +3563,14 @@ store_tail:
 						superblockend = true;
 						break;
 
-					case ICMD_PUTSTATIC:
+					case ICMD_PUTSTATIC: {
 						coalescing_boundary = sd.new_elem;
 						STATISTICS(count_pcmd_mem++);
+						constant_FMIref *fmiref;
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						OP1_0(fmiref->parseddesc.fd->type);
 						break;
+					}
 
 						/* pop 1 push 0 branch */
 
@@ -3594,7 +3608,7 @@ store_tail:
 
 						/* pop 1 push 0 table branch */
 
-					case ICMD_TABLESWITCH:
+					case ICMD_TABLESWITCH: {
 						STATISTICS(count_pcmd_table++);
 						OP1_BRANCH(TYPE_INT);
 
@@ -3602,8 +3616,8 @@ store_tail:
 						BRANCH_TARGET(*table, tbptr);
 						table++;
 
-						i = iptr->sx.s23.s3.tablehigh
-						  - iptr->sx.s23.s2.tablelow + 1;
+						int i = iptr->sx.s23.s3.tablehigh
+						      - iptr->sx.s23.s2.tablelow + 1;
 
 						while (--i >= 0) {
 							BRANCH_TARGET(*table, tbptr);
@@ -3611,10 +3625,11 @@ store_tail:
 						}
 						superblockend = true;
 						break;
+					}
 
 						/* pop 1 push 0 table branch */
 
-					case ICMD_LOOKUPSWITCH:
+					case ICMD_LOOKUPSWITCH: {
 						STATISTICS(count_pcmd_table++);
 						OP1_BRANCH(TYPE_INT);
 
@@ -3622,7 +3637,7 @@ store_tail:
 
 						lookup = iptr->dst.lookup;
 
-						i = iptr->sx.s23.s2.lookupcount;
+						int i = iptr->sx.s23.s2.lookupcount;
 
 						while (--i >= 0) {
 							BRANCH_TARGET(lookup->target, tbptr);
@@ -3630,6 +3645,7 @@ store_tail:
 						}
 						superblockend = true;
 						break;
+					}
 
 					case ICMD_MONITORENTER:
 					case ICMD_MONITOREXIT:
@@ -3660,13 +3676,15 @@ store_tail:
 
 						/* pop 2 push 0 */
 
-					case ICMD_PUTFIELD:
+					case ICMD_PUTFIELD: {
 						coalescing_boundary = sd.new_elem;
 						STATISTICS(count_check_null++);
 						STATISTICS(count_pcmd_mem++);
+						constant_FMIref *fmiref;
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						OP2_0(TYPE_ADR, fmiref->parseddesc.fd->type);
 						break;
+					}
 
 					case ICMD_POP2:
 						REQUIRE(1);
@@ -3676,7 +3694,7 @@ store_tail:
 							if (opt_verify) {
 								REQUIRE(2);
 								if (IS_2_WORD_TYPE(curstack->prev->type))
-									goto throw_stack_category_error;
+									return throw_stack_category_error();
 							}
 #endif
 							OP2_0_ANY_ANY; /* pop two slots */
@@ -3694,7 +3712,7 @@ store_tail:
 						if (opt_verify) {
 							REQUIRE(1);
 							if (IS_2_WORD_TYPE(curstack->type))
-								goto throw_stack_category_error;
+								return throw_stack_category_error();
 						}
 #endif
 						STATISTICS(count_dup_instruction++);
@@ -3719,7 +3737,7 @@ icmd_DUP:
 #ifdef ENABLE_VERIFIER
 							if (opt_verify) {
 								if (IS_2_WORD_TYPE(curstack->prev->type))
-									goto throw_stack_category_error;
+									return throw_stack_category_error();
 							}
 #endif
 							src1 = curstack->prev;
@@ -3740,7 +3758,7 @@ icmd_DUP:
 							REQUIRE(2);
 							if (IS_2_WORD_TYPE(curstack->type) ||
 								IS_2_WORD_TYPE(curstack->prev->type))
-									goto throw_stack_category_error;
+									return throw_stack_category_error();
 						}
 #endif
 
@@ -3772,7 +3790,7 @@ icmd_DUP_X1:
 #ifdef ENABLE_VERIFIER
 							if (opt_verify) {
 								if (IS_2_WORD_TYPE(curstack->prev->type))
-									goto throw_stack_category_error;
+									return throw_stack_category_error();
 							}
 #endif
 							iptr->opc = ICMD_DUP_X1;
@@ -3785,7 +3803,7 @@ icmd_DUP_X1:
 								REQUIRE(3);
 								if (IS_2_WORD_TYPE(curstack->prev->type)
 									|| IS_2_WORD_TYPE(curstack->prev->prev->type))
-										goto throw_stack_category_error;
+										return throw_stack_category_error();
 							}
 #endif
 
@@ -3827,7 +3845,7 @@ icmd_DUP2_X1:
 #ifdef ENABLE_VERIFIER
 							if (opt_verify) {
 								if (IS_2_WORD_TYPE(curstack->type))
-									goto throw_stack_category_error;
+									return throw_stack_category_error();
 							}
 #endif
 							iptr->opc = ICMD_DUP_X1;
@@ -3840,7 +3858,7 @@ icmd_DUP2_X1:
 								REQUIRE(3);
 								if (IS_2_WORD_TYPE(curstack->type)
 									|| IS_2_WORD_TYPE(curstack->prev->prev->type))
-											goto throw_stack_category_error;
+											return throw_stack_category_error();
 							}
 #endif
 icmd_DUP_X2:
@@ -3885,7 +3903,7 @@ icmd_DUP_X2:
 								if (opt_verify) {
 									REQUIRE(3);
 									if (IS_2_WORD_TYPE(curstack->prev->prev->type))
-											goto throw_stack_category_error;
+										return throw_stack_category_error();
 								}
 #endif
 								iptr->opc = ICMD_DUP_X2;
@@ -3901,7 +3919,7 @@ icmd_DUP_X2:
 #ifdef ENABLE_VERIFIER
 							if (opt_verify) {
 								if (IS_2_WORD_TYPE(curstack->prev->type))
-									goto throw_stack_category_error;
+									return throw_stack_category_error();
 							}
 #endif
 							iptr->opc = ICMD_DUP2_X1;
@@ -3914,7 +3932,7 @@ icmd_DUP_X2:
 								REQUIRE(4);
 								if (IS_2_WORD_TYPE(curstack->prev->type)
 									|| IS_2_WORD_TYPE(curstack->prev->prev->prev->type))
-									goto throw_stack_category_error;
+									return throw_stack_category_error();
 							}
 #endif
 
@@ -3959,7 +3977,7 @@ icmd_DUP_X2:
 							REQUIRE(2);
 							if (IS_2_WORD_TYPE(curstack->type)
 								|| IS_2_WORD_TYPE(curstack->prev->type))
-								goto throw_stack_category_error;
+								return throw_stack_category_error();
 						}
 #endif
 
@@ -4246,22 +4264,26 @@ normal_LCMP:
 						OP1_1(TYPE_INT, TYPE_ADR);
 						break;
 
-					case ICMD_GETFIELD:
+					case ICMD_GETFIELD: {
 						coalescing_boundary = sd.new_elem;
 						STATISTICS(count_check_null++);
 						STATISTICS(count_pcmd_mem++);
+						constant_FMIref *fmiref;
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						OP1_1(TYPE_ADR, fmiref->parseddesc.fd->type);
 						break;
+					}
 
 						/* pop 0 push 1 */
 
-					case ICMD_GETSTATIC:
+					case ICMD_GETSTATIC: {
  						coalescing_boundary = sd.new_elem;
 						STATISTICS(count_pcmd_mem++);
+						constant_FMIref *fmiref;
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						OP0_1(fmiref->parseddesc.fd->type);
 						break;
+					}
 
 					case ICMD_NEW:
  						coalescing_boundary = sd.new_elem;
@@ -4298,10 +4320,11 @@ normal_LCMP:
 					/* pop many push any */
 
 					case ICMD_BUILTIN:
-icmd_BUILTIN:
-						bte = iptr->sx.s23.s3.bte;
+					icmd_BUILTIN: {
+						builtintable_entry *bte = iptr->sx.s23.s3.bte;
 						md = bte->md;
 						goto _callhandling;
+					}
 
 					case ICMD_INVOKESTATIC:
 					case ICMD_INVOKESPECIAL:
@@ -4320,11 +4343,11 @@ icmd_BUILTIN:
 /*                          if (lm->flags & ACC_STATIC) */
 /*                              {COUNT(count_check_null);} */
 
-					_callhandling:
+					_callhandling: {
 
 						coalescing_boundary = sd.new_elem;
 
-						i = md->paramcount;
+						const int paramcount = md->paramcount;
 
 						if (md->memuse > rd->memuse)
 							rd->memuse = md->memuse;
@@ -4333,13 +4356,13 @@ icmd_BUILTIN:
 						if (md->argfltreguse > rd->argfltreguse)
 							rd->argfltreguse = md->argfltreguse;
 
-						REQUIRE(i);
+						REQUIRE(paramcount);
 
 						iptr->s1.argcount = stackdepth;
 						iptr->sx.s23.s2.args = DMNEW(s4, stackdepth);
 
 						copy = curstack;
-						for (i-- ; i >= 0; i--) {
+						for (int i = paramcount - 1; i >= 0; i--) {
 							iptr->sx.s23.s2.args[i] = copy->varnum;
 
 							/* do not change STACKVARs or LOCALVARS to ARGVAR*/
@@ -4397,18 +4420,16 @@ icmd_BUILTIN:
 						/* deal with live-through stack slots "under" the */
 						/* arguments */
 
-						i = md->paramcount;
-
-						while (copy) {
-							iptr->sx.s23.s2.args[i++] = copy->varnum;
+						for (int i = paramcount; copy; i++) {
+							iptr->sx.s23.s2.args[i]     = copy->varnum;
 							sd.var[copy->varnum].flags |= SAVEDVAR;
-							copy->flags |= SAVEDVAR | PASSTHROUGH;
-							copy = copy->prev;
+							copy->flags                |= SAVEDVAR | PASSTHROUGH;
+							copy                        = copy->prev;
 						}
 
 						/* pop the arguments */
 
-						i = md->paramcount;
+						int i = paramcount;
 
 						stackdepth -= i;
 						while (--i >= 0) {
@@ -4423,13 +4444,14 @@ icmd_BUILTIN:
 							stackdepth++;
 						}
 						break;
+					}
 
-					case ICMD_MULTIANEWARRAY:
+					case ICMD_MULTIANEWARRAY: {
 						coalescing_boundary = sd.new_elem;
 						if (rd->argintreguse < MIN(3, INT_ARG_CNT))
 							rd->argintreguse = MIN(3, INT_ARG_CNT);
 
-						i = iptr->s1.argcount;
+						int i = iptr->s1.argcount;
 
 						REQUIRE(i);
 
@@ -4500,6 +4522,7 @@ icmd_BUILTIN:
 						DST(TYPE_ADR, new_index);
 						stackdepth++;
 						break;
+					}
 
 					default:
 						exceptions_throw_internalerror("Unknown ICMD %d during stack analysis",
@@ -4522,7 +4545,7 @@ icmd_BUILTIN:
 				sd.bptr->outdepth = stackdepth;
 				sd.bptr->outvars = DMNEW(s4, stackdepth);
 
-				i = stackdepth - 1;
+				int i = stackdepth - 1;
 				for (copy = curstack; copy; i--, copy = copy->prev) {
 					varinfo *v;
 
@@ -4555,7 +4578,7 @@ icmd_BUILTIN:
 
 				/* check if interface slots at basic block begin must be saved */
 
-				for (i=0; i<sd.bptr->indepth; ++i) {
+				for (int i=0; i<sd.bptr->indepth; ++i) {
 					varinfo *v = sd.var + sd.bptr->invars[i];
 
 					type = v->type;
@@ -4604,22 +4627,21 @@ icmd_BUILTIN:
     /*      variables from the local variable array, so they are not        */
     /*      allocated by simplereg. (For LSRA this is not needed).          */
 
-	for (i=0; i<sd.localcount; ++i) {
+	for (int i=0; i<sd.localcount; ++i) {
 		if (sd.var[i].type == TYPE_RET || sd.var[i].type == TYPE_VOID)
 			sd.var[i].type = TYPE_ADR;
 	}
 
 	/* mark temporaries of TYPE_RET as PREALLOC to avoid allocation */
 
-	for (i=sd.localcount; i<sd.vartop; ++i) {
+	for (int i=sd.localcount; i<sd.vartop; ++i) {
 		if (sd.var[i].type == TYPE_RET)
 			sd.var[i].flags |= PREALLOC;
 	}
 
 	/* XXX hack to fix up the ranges of the cloned single-block handlers */
 
-	ex = jd->exceptiontable;
-	for (; ex != NULL; ex = ex->down) {
+	for (exception_entry *ex = jd->exceptiontable; ex != NULL; ex = ex->down) {
 		if (ex->start == ex->end) {
 			assert(ex->end->next);
 			ex->end = ex->end->next;
@@ -4654,28 +4676,6 @@ icmd_BUILTIN:
 	/* everything's ok *******************************************************/
 
 	return true;
-
-	/* goto labels for throwing verifier exceptions **************************/
-
-#if defined(ENABLE_VERIFIER)
-
-throw_stack_underflow:
-	exceptions_throw_verifyerror(m, "Unable to pop operand off an empty stack");
-	return false;
-
-throw_stack_overflow:
-	exceptions_throw_verifyerror(m, "Stack size too large");
-	return false;
-
-throw_stack_type_error:
-	exceptions_throw_verifyerror_for_stack(m, expectedtype);
-	return false;
-
-throw_stack_category_error:
-	exceptions_throw_verifyerror(m, "Attempt to split long or double on the stack");
-	return false;
-
-#endif
 }
 
 
@@ -4691,11 +4691,8 @@ throw_stack_category_error:
 
 void stack_javalocals_store(instruction *iptr, s4 *javalocals)
 {
-	s4 varindex;     /* index into the jd->var array */
-	s4 javaindex;    /* java local index             */
-
-	varindex = iptr->dst.varindex;
-	javaindex = iptr->sx.s23.s3.javaindex;
+	s4 varindex  = iptr->dst.varindex;         // index into the jd->var array
+	s4 javaindex = iptr->sx.s23.s3.javaindex;  // java local index
 
 	if (javaindex != jitdata::UNUSED) {
 		assert(javaindex >= 0);
