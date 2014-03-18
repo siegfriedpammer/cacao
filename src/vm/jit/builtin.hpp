@@ -1,6 +1,6 @@
 /* src/vm/jit/builtin.hpp - prototypes of builtin functions
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -30,7 +30,6 @@
 
 #include <sys/types.h>                  // for int32_t
 #include "arch.hpp"                     // for USES_NEW_SUBTYPE
-#include "fdlibm/fdlibm.h"              // for fmod, isnan
 #include "threads/lock.hpp"             // for lock_monitor_enter, etc
 #include "vm/global.hpp"                // for functionptr, java_handle_t, etc
 #include "vm/jit/ir/icmd.hpp"           // for ICMD
@@ -54,14 +53,6 @@ struct vftbl_t;
 #define DBL_NAN     0x7ff8000000000000LL
 #define DBL_POSINF  0x7ff0000000000000LL
 #define DBL_NEGINF  0xfff0000000000000LL
-
-
-/* float versions are not defined in GNU classpath's fdlibm */
-
-#define copysignf    copysign
-#define finitef      finite
-#define fmodf        fmod
-#define isnanf       isnan
 
 
 /* builtin functions table ****************************************************/

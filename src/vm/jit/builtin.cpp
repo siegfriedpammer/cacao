@@ -82,6 +82,13 @@
 
 using namespace cacao;
 
+/* float versions are not defined in GNU classpath's fdlibm */
+
+#define copysignf    copysign
+#define finitef      finite
+#define fmodf        fmod
+#define isnanf       isnan
+
 
 /* include builtin tables *****************************************************/
 

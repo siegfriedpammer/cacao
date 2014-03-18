@@ -272,11 +272,15 @@ CXXFLAGS="$init_cxxflags"
 dnl Check compiler vendor.
 AX_COMPILER_VENDOR
 
+dnl Check which C/C++ language revision to use
+AC_CHECK_WITH_C_VERSION
+AC_CHECK_WITH_CXX_VERSION
+
 dnl Set compiler flags depending on the compiler vendor.
 case "$ax_cv_c_compiler_vendor" in
 gnu )
-    AM_CFLAGS="-std=c99 -pedantic -Wall -Wno-long-long $AM_CFLAGS"
-    AM_CXXFLAGS="-std=c++98 -pedantic -Wall -Wno-long-long $AM_CXXFLAGS"
+    AM_CFLAGS="-std=${C_LANGUAGE_VERSION} -pedantic -Wall -Wno-long-long $AM_CFLAGS"
+    AM_CXXFLAGS="-std=${CXX_LANGUAGE_VERSION} -pedantic -Wall -Wno-long-long $AM_CXXFLAGS"
     ;;
 
 sgi )

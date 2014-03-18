@@ -527,8 +527,8 @@ static void XXusage(void)
 
 static void version(bool opt_exit)
 {
-	puts("java version \""JAVA_VERSION"\"");
-	puts("CACAO version "VERSION_FULL"\n");
+	puts("java version \"" JAVA_VERSION "\"");
+	puts("CACAO version " VERSION_FULL "\n");
 
 	puts("Copyright (C) 1996-2013");
 	puts("CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO");
@@ -551,7 +551,7 @@ static void version(bool opt_exit)
 
 static void fullversion(void)
 {
-	puts("java full version \"cacao-"JAVA_VERSION"\"");
+	puts("java full version \"cacao-" JAVA_VERSION "\"");
 
 	/* exit normally */
 
@@ -1453,19 +1453,19 @@ VM::VM(JavaVMInitArgs* vm_args)
  */
 void VM::print_build_time_config(void)
 {
-	puts("CACAO "VERSION_FULL" configure/build options:");
+	puts("CACAO " VERSION_FULL " configure/build options:");
 	puts("");
-	puts("  ./configure: "VERSION_CONFIGURE_ARGS"");
+	puts("  ./configure: " VERSION_CONFIGURE_ARGS "");
 #if defined(__VERSION__)
-	puts("  CC         : "VERSION_CC" ("__VERSION__")");
-	puts("  CXX        : "VERSION_CXX" ("__VERSION__")");
+	puts("  CC         : " VERSION_CC  " (" __VERSION__ ")");
+	puts("  CXX        : " VERSION_CXX " (" __VERSION__ ")");
 #else
-	puts("  CC         : "VERSION_CC"");
-	puts("  CXX        : "VERSION_CXX"");
+	puts("  CC         : " VERSION_CC  "");
+	puts("  CXX        : " VERSION_CXX "");
 #endif
-	puts("  CFLAGS     : "VERSION_CFLAGS"");
-	puts("  CXXFLAGS   : "VERSION_CXXFLAGS"");
-	puts("  CPPFLAGS   : "VERSION_CPPFLAGS"");
+	puts("  CFLAGS     : " VERSION_CFLAGS   "");
+	puts("  CXXFLAGS   : " VERSION_CXXFLAGS "");
+	puts("  CPPFLAGS   : " VERSION_CPPFLAGS "");
 
 	puts("");
 
@@ -1479,11 +1479,11 @@ void VM::print_build_time_config(void)
 	// same as the runtime paths.
 #else
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	puts("  gnu.classpath.boot.library.path: "JAVA_RUNTIME_LIBRARY_LIBDIR);
-	puts("  java.boot.class.path           : "CACAO_VM_ZIP":"JAVA_RUNTIME_LIBRARY_CLASSES"");
+	puts("  gnu.classpath.boot.library.path: " JAVA_RUNTIME_LIBRARY_LIBDIR);
+	puts("  java.boot.class.path           : " CACAO_VM_ZIP ":" JAVA_RUNTIME_LIBRARY_CLASSES);
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-	puts("  sun.boot.library.path          : "JAVA_RUNTIME_LIBRARY_LIBDIR);
-	puts("  java.boot.class.path           : "JAVA_RUNTIME_LIBRARY_CLASSES);
+	puts("  sun.boot.library.path          : " JAVA_RUNTIME_LIBRARY_LIBDIR);
+	puts("  java.boot.class.path           : " JAVA_RUNTIME_LIBRARY_CLASSES);
 # endif
 #endif
 
