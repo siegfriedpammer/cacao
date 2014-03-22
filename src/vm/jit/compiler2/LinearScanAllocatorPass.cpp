@@ -257,21 +257,30 @@ inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current
 		// no register available without spilling
 		return false;
 	}
+	current.set_operand(reg);
+	LOG2("assigned operand: " << *reg << nl);
 	if (current.back().end < free_until_pos_reg) {
 		// register available for the whole interval
-		current.set_operand(reg);
-		LOG2("assigned operand: " << *reg << nl);
 		return true;
 	}
 	// register available for the first part of the interval
 	MachineOperand *tmp = new VirtualRegister(reg->get_type());
-	MachineInstruction *move = backend->create_Move(reg,tmp);
-	STATISTICS(++num_split_moves);
-	MIIterator split_pos = insert_move_before(move,free_until_pos_reg);
-	assert_msg(pos.get_iterator() < split_pos, "pos: " << pos << " free_until_pos_reg "
-		<< free_until_pos_reg << " split: " << split_pos);
-	LivetimeInterval lti = current.split_active(split_pos);
-	unhandled.push(lti);
+	if(!(*free_until_pos_reg.get_iterator())->is_label()) {
+		// insert move
+		MachineInstruction *move = backend->create_Move(reg,tmp);
+		STATISTICS(++num_split_moves);
+		MIIterator split_pos = insert_move_before(move,free_until_pos_reg);
+		assert_msg(pos.get_iterator() < split_pos, "pos: " << pos << " free_until_pos_reg "
+			<< free_until_pos_reg << " split: " << split_pos);
+		LOG2("splitting interval " << current << " at " << split_pos << " inserted move: " << move << nl);
+		LivetimeInterval lti = current.split_active(split_pos);
+		unhandled.push(lti);
+	} else {
+		// no move required
+		LOG2("splitting interval " << current << " at " << free_until_pos_reg << " no move required, op" << tmp << nl);
+		LivetimeInterval lti = current.split_phi_active(free_until_pos_reg.get_iterator(), tmp);
+		unhandled.push(lti);
+	}
 	return true;
 }
 
