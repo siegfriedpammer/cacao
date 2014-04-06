@@ -38,6 +38,7 @@
 
 #include "toolbox/Debug.hpp"
 #include "toolbox/logging.hpp"
+#include "toolbox/Option.hpp"
 
 
 /* command line option ********************************************************/
@@ -534,6 +535,8 @@ static void options_xxusage(void)
 		printf("\n");
 	}
 
+	cacao::OptionParser::print_usage(cacao::option::xx_root());
+
 	/* exit with error code */
 
 	exit(1);
@@ -944,7 +947,10 @@ void options_xx(JavaVMInitArgs *vm_args)
 #endif
 
 		default:
-			fprintf(stderr, "Unknown -XX option: %s\n", name);
+
+			if(!cacao::OptionParser::parse_option(cacao::option::xx_root(),name,value)) {
+				fprintf(stderr, "Unknown -XX option: %s\n", name);
+			}
 			break;
 		}
 	}
