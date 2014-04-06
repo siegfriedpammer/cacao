@@ -42,7 +42,7 @@ OptionPrefix& xx_root(){
 
 } // end namespace option
 
-OptionPrefix::OptionPrefix(const char* name) : name(name) {
+OptionPrefix::OptionPrefix(const char* name) : name(name), s(std::strlen(name)) {
 	err() << "OptionPrefix: " << name << nl;
 }
 void OptionPrefix::insert(OptionEntry* oe) {
@@ -54,38 +54,49 @@ void OptionParser::print_usage(OptionPrefix& root, FILE *fp) {
 	static const char* blank29 = "                             "; // 29 spaces
 	static const char* blank25 = blank29 + 4;                     // 25 spaces
 	OStream OS(fp);
-	const char* root_name = root.get_name();
-	std::size_t root_name_len = std::strlen(root_name);
+
 	std::set<OptionEntry*> sorted(root.begin(),root.end());
+
 	for(std::set<OptionEntry*>::iterator i = sorted.begin(), e = sorted.end();
 			i != e; ++i) {
 		OptionEntry& oe = **i;
-		const char* name = oe.get_name();
-		const char* description = oe.get_desc();
-		std::size_t name_len = std::strlen(name) + root_name_len;
-
-		OS << "    " << root.get_name() << name;
+		std::size_t name_len = oe.size() + root.size();
+		OS << "    " << root.get_name() << oe.get_name();
 		if (name_len < (25-1)) {
 			OS << (blank25 + name_len);
 		} else {
 			OS << nl << blank29;
 		}
 		// TODO description line break
-		OS << description << nl;
+		OS << oe.get_desc() << nl;
 	}
 
 }
 
-bool OptionParser::parse_option(OptionPrefix& root, const char* name, const char* value) {
+namespace {
+
+bool option_matcher(const char* a, std::size_t a_len,
+		const char* b, std::size_t b_len) {
+	return (a_len == b_len) && std::strncmp(a, b, a_len) == 0;
+}
+
+} // end anonymous namespace
+
+bool OptionParser::parse_option(OptionPrefix& root, const char* name, size_t name_len,
+		const char* value, size_t value_len) {
 	assert(std::strncmp(root.get_name(), name, std::strlen(root.get_name())) == 0);
 		//"root name: " << root.get_name() << " name: " << name );
-	name += std::strlen(root.get_name());
+	name += root.size();
+	name_len -= root.size();
+	err() << "name: " << name << nl;
+	err() << "name_len: " << name_len << nl;
+	err() << "value: " << value << nl;
+	err() << "value_len: " << value_len << nl;
 	for(OptionPrefix::iterator i = root.begin(), e = root.end();
 			i != e; ++i) {
 		OptionEntry& oe = **i;
 		err() << "OptionEntry: " << oe.get_name() << nl;
-		err() << "name: " << name << nl;
-		if (std::strncmp(oe.get_name(), name, std::strlen(oe.get_name())) == 0) {
+		if (option_matcher(oe.get_name(), oe.size(), name, name_len)) {
 			if (oe.parse(value))
 				return true;
 			return false;

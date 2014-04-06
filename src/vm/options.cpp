@@ -946,12 +946,26 @@ void options_xx(JavaVMInitArgs *vm_args)
 			break;
 #endif
 
-		default:
+		default: {
 
-			if(!cacao::OptionParser::parse_option(cacao::option::xx_root(),name,value)) {
-				fprintf(stderr, "Unknown -XX option: %s\n", name);
+				size_t name_len = strlen(name);
+				size_t value_len = 0;
+				if (value) {
+					size_t tmp_name_len = (value - name) / sizeof(char);
+					value_len = name_len - tmp_name_len;
+					name_len = tmp_name_len - 1;
+					assert(name[name_len] == '=');
+				}
+				else {
+					assert(name[name_len] == '\0');
+				}
+
+				if(!cacao::OptionParser::parse_option(cacao::option::xx_root(),
+						name, name_len, value, value_len)) {
+					fprintf(stderr, "Unknown -XX option: %s\n", name);
+				}
+				break;
 			}
-			break;
 		}
 	}
 }

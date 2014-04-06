@@ -67,6 +67,9 @@ public:
 	const char* get_name() const {
 		return name;
 	}
+	std::size_t size() const {
+		return s;
+	}
 	iterator begin() { return children.begin(); }
 	iterator end() { return children.end(); }
 	void insert(OptionEntry* oe);
@@ -77,19 +80,22 @@ public:
 	#endif
 private:
 	const char* name;
+	std::size_t s;
 	ChildSetTy children;
 };
 
 class OptionParser {
 public:
 	static void print_usage(OptionPrefix& root, FILE* fp = stdout);
-	static bool parse_option(OptionPrefix& root, const char* name, const char* value);
+	static bool parse_option(OptionPrefix& root, const char* name, size_t name_len,
+		const char* value, size_t value_len);
 };
 
 class OptionEntry {
 public:
 	virtual const char* get_name() const = 0;
 	virtual const char* get_desc() const = 0;
+	virtual std::size_t size() const = 0;
 	virtual bool parse(const char* value) = 0;
 };
 
@@ -98,13 +104,16 @@ template<class T>
 class OptionBase : public OptionEntry {
 public:
 	OptionBase(const char* name, const char* desc, T value, OptionPrefix &parent)
-			: name(name), desc(desc), value(value) {
+			: name(name), name_size(std::strlen(name)), desc(desc), value(value) {
 		parent.insert(this);
 	}
 	T get() { return value; }
-	operator T() { return get(); };
+	operator T() { return get(); }
 	virtual const char* get_name() const {
 		return name;
+	}
+	virtual std::size_t size() const {
+		return name_size;
 	}
 	virtual const char* get_desc() const {
 		return desc;
@@ -115,6 +124,7 @@ protected:
 	}
 private:
 	const char* name;
+	std::size_t name_size;
 	const char* desc;
 	T value;
 };
