@@ -93,10 +93,24 @@ public:
 
 class OptionEntry {
 public:
-	virtual const char* get_name() const = 0;
-	virtual const char* get_desc() const = 0;
-	virtual std::size_t size() const = 0;
+	OptionEntry(const char* name, const char* desc, OptionPrefix &parent)
+			: name(name), name_size(std::strlen(name)), desc(desc) {
+		parent.insert(this);
+	}
+	const char* get_name() const {
+		return name;
+	}
+	std::size_t size() const {
+		return name_size;
+	}
+	const char* get_desc() const {
+		return desc;
+	}
 	virtual bool parse(const char* value) = 0;
+private:
+	const char* name;
+	std::size_t name_size;
+	const char* desc;
 };
 
 
@@ -104,28 +118,14 @@ template<class T>
 class OptionBase : public OptionEntry {
 public:
 	OptionBase(const char* name, const char* desc, T value, OptionPrefix &parent)
-			: name(name), name_size(std::strlen(name)), desc(desc), value(value) {
-		parent.insert(this);
-	}
+		: OptionEntry(name, desc, parent), value(value) {}
 	T get() { return value; }
 	operator T() { return get(); }
-	virtual const char* get_name() const {
-		return name;
-	}
-	virtual std::size_t size() const {
-		return name_size;
-	}
-	virtual const char* get_desc() const {
-		return desc;
-	}
 protected:
 	void set_value(T v) {
 		value = v;
 	}
 private:
-	const char* name;
-	std::size_t name_size;
-	const char* desc;
 	T value;
 };
 
