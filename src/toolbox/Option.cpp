@@ -43,8 +43,10 @@ OptionPrefix& xx_root(){
 } // end namespace option
 
 OptionPrefix::OptionPrefix(const char* name) : name(name) {
+	err() << "OptionPrefix: " << name << nl;
 }
 void OptionPrefix::insert(OptionEntry* oe) {
+	err() << "OptionPrefix::insert: " << oe->get_name() << nl;
 	children.insert(oe);
 }
 
@@ -75,10 +77,14 @@ void OptionParser::print_usage(OptionPrefix& root, FILE *fp) {
 }
 
 bool OptionParser::parse_option(OptionPrefix& root, const char* name, const char* value) {
+	assert(std::strncmp(root.get_name(), name, std::strlen(root.get_name())) == 0);
+		//"root name: " << root.get_name() << " name: " << name );
 	name += std::strlen(root.get_name());
 	for(OptionPrefix::iterator i = root.begin(), e = root.end();
 			i != e; ++i) {
 		OptionEntry& oe = **i;
+		err() << "OptionEntry: " << oe.get_name() << nl;
+		err() << "name: " << name << nl;
 		if (std::strncmp(oe.get_name(), name, std::strlen(oe.get_name())) == 0) {
 			if (oe.parse(value))
 				return true;
@@ -90,7 +96,9 @@ bool OptionParser::parse_option(OptionPrefix& root, const char* name, const char
 
 template<>
 bool Option<const char*>::parse(const char* value) {
+	err() << "set_value " << get_name() << " := " << value << nl;
 	set_value(value);
+	err() << "DEBUG: " << DEBUG_COND_WITH_NAME("properties") << nl;
 	return true;
 }
 
