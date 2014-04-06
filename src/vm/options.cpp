@@ -252,7 +252,6 @@ enum {
 	OPT_CompileMethod,
 	OPT_CompileSignature,
 #ifdef ENABLE_LOGGING
-	OPT_DebugName,
 	OPT_DebugPrefix,
 	OPT_DebugVerbose,
 	OPT_DebugPrintThread,
@@ -317,7 +316,6 @@ option_t options_XX[] = {
 	{ "CompileMethod",                OPT_CompileMethod,                OPT_TYPE_VALUE,   "compile only a specific method" },
 	{ "CompileSignature",             OPT_CompileSignature,             OPT_TYPE_VALUE,   "specify signature for a specific method" },
 #ifdef ENABLE_LOGGING
-	{ "DebugName",                    OPT_DebugName,                    OPT_TYPE_VALUE,   "Name of the subsystem to debug"},
 	{ "DebugPrefix",                  OPT_DebugPrefix,                  OPT_TYPE_BOOLEAN, "print debug prefix"},
 	{ "DebugVerbose",                 OPT_DebugVerbose,                 OPT_TYPE_VALUE,   "verbosity level for debugging (default=0)"},
 	{ "DebugPrintThread",             OPT_DebugPrintThread,             OPT_TYPE_BOOLEAN, "print thread id"},
@@ -684,10 +682,6 @@ void options_xx(JavaVMInitArgs *vm_args)
 			break;
 
 #ifdef ENABLE_LOGGING
-		case OPT_DebugName:
-			debug_set_current_system(value);
-			break;
-
 		case OPT_DebugPrefix:
 			cacao::Debug::prefix_enabled = enable;
 			break;

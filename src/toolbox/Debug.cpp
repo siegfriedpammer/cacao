@@ -27,32 +27,23 @@
 // TODO conditional Makefile.am
 #ifdef ENABLE_LOGGING
 
-using namespace cacao;
+cacao::Option<const char*> cacao::Debug::debugname("DebugName","Name of the subsystem to debug", NULL, cacao::option::xx_root());
 
-static const char *current_system_name      = NULL;
-static size_t      current_system_name_size = 0;
+using namespace cacao;
 
 bool cacao::Debug::prefix_enabled = false;
 bool cacao::Debug::thread_enabled = false;
 unsigned int cacao::Debug::verbose = 0;
 
-void cacao::Debug::set_current_system(const char *system) {
-	current_system_name      = system;
-	current_system_name_size = std::strlen(system);
-}
-
 bool cacao::Debug::is_debugging_enabled(const char *name, size_t sz) {
+	const char* current_system_name = debugname.get();
+	if (!current_system_name) {
+		return false;
+	}
+	size_t current_system_name_size = std::strlen(current_system_name);
 	return (current_system_name != NULL)    &&
 	       (current_system_name_size <= sz) &&
 	       (std::strncmp(name, current_system_name, current_system_name_size) == 0);
-}
-
-void debug_set_current_system(const char *cs) {
-	cacao::Debug::set_current_system(cs);
-}
-
-int  debug_is_debugging_enabled(const char *cs) {
-	return cacao::Debug::is_debugging_enabled(cs);
 }
 
 #endif
