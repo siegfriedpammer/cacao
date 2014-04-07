@@ -106,7 +106,7 @@ public:
 	const char* get_desc() const {
 		return desc;
 	}
-	virtual bool parse(const char* value) = 0;
+	virtual bool parse(const char* value, std::size_t value_len) = 0;
 private:
 	const char* name;
 	std::size_t name_size;
@@ -134,7 +134,7 @@ class Option : public OptionBase<T> {
 public:
 	Option(const char* name, const char* desc, T value, OptionPrefix &parent)
 		: OptionBase<T>(name,desc,value,parent) {}
-	virtual bool parse(const char* value);
+	virtual bool parse(const char* value, std::size_t value_len);
 };
 
 

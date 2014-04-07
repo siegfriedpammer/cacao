@@ -24,6 +24,7 @@
 
 #include "toolbox/Option.hpp"
 #include "toolbox/Debug.hpp"
+#include "toolbox/logging.hpp"
 #include "toolbox/OStream.hpp"
 
 namespace cacao {
@@ -92,12 +93,21 @@ bool OptionParser::parse_option(OptionPrefix& root, const char* name, size_t nam
 	err() << "name_len: " << name_len << nl;
 	err() << "value: " << value << nl;
 	err() << "value_len: " << value_len << nl;
+	assert(name_len > 0);
+	if (name[0] == '-' || name[0] == '+') {
+		assert(value_len == 0);
+		assert(value == 0);
+		value = name;
+		value_len = 1;
+		++name;
+		--name_len;
+	}
 	for(OptionPrefix::iterator i = root.begin(), e = root.end();
 			i != e; ++i) {
 		OptionEntry& oe = **i;
 		err() << "OptionEntry: " << oe.get_name() << nl;
 		if (option_matcher(oe.get_name(), oe.size(), name, name_len)) {
-			if (oe.parse(value))
+			if (oe.parse(value,value_len))
 				return true;
 			return false;
 		}
@@ -106,11 +116,29 @@ bool OptionParser::parse_option(OptionPrefix& root, const char* name, size_t nam
 }
 
 template<>
-bool Option<const char*>::parse(const char* value) {
+bool Option<const char*>::parse(const char* value, std::size_t value_len) {
 	err() << "set_value " << get_name() << " := " << value << nl;
 	set_value(value);
 	err() << "DEBUG: " << DEBUG_COND_WITH_NAME("properties") << nl;
 	return true;
+}
+
+template<>
+bool Option<bool>::parse(const char* value, std::size_t value_len) {
+	assert(value_len == 1);
+	char first = value[0];
+	if (first == '-') {
+		err() << "set_value " << get_name() << " := false" << nl;
+		set_value(false);
+		return true;
+	}
+	if (first == '+') {
+		err() << "set_value " << get_name() << " := true" << nl;
+		set_value(true);
+		return true;
+	}
+	ABORT_MSG("ERROR", "boolean option not valid: " << value);
+	return false;
 }
 
 } // end namespace cacao
