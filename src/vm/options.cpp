@@ -251,10 +251,6 @@ enum {
 	OPT_CompileAll,
 	OPT_CompileMethod,
 	OPT_CompileSignature,
-#ifdef ENABLE_LOGGING
-	OPT_DebugVerbose,
-	OPT_DebugPrintThread,
-#endif
 	OPT_DebugLocalReferences,
 	OPT_DebugLocks,
 	OPT_DebugPackage,
@@ -314,10 +310,6 @@ option_t options_XX[] = {
 	{ "CompileAll",                   OPT_CompileAll,                   OPT_TYPE_BOOLEAN, "compile all methods, no execution" },
 	{ "CompileMethod",                OPT_CompileMethod,                OPT_TYPE_VALUE,   "compile only a specific method" },
 	{ "CompileSignature",             OPT_CompileSignature,             OPT_TYPE_VALUE,   "specify signature for a specific method" },
-#ifdef ENABLE_LOGGING
-	{ "DebugVerbose",                 OPT_DebugVerbose,                 OPT_TYPE_VALUE,   "verbosity level for debugging (default=0)"},
-	{ "DebugPrintThread",             OPT_DebugPrintThread,             OPT_TYPE_BOOLEAN, "print thread id"},
-#endif
 	{ "DebugLocalReferences",         OPT_DebugLocalReferences,         OPT_TYPE_BOOLEAN, "print debug information for local reference tables" },
 	{ "DebugLocks",                   OPT_DebugLocks,                   OPT_TYPE_BOOLEAN, "print debug information for locks" },
 	{ "DebugPackage",                 OPT_DebugPackage,                 OPT_TYPE_BOOLEAN, "debug Java boot-packages" },
@@ -679,18 +671,6 @@ void options_xx(JavaVMInitArgs *vm_args)
 			opt_CompileSignature = value;
 			break;
 
-#ifdef ENABLE_LOGGING
-		case OPT_DebugVerbose:
-			{
-				int verb = os::atoi(value);
-				cacao::Debug::verbose = (verb >= 0 ? verb : 0);
-			}
-			break;
-
-		case OPT_DebugPrintThread:
-			cacao::Debug::thread_enabled = enable;
-			break;
-#endif
 		case OPT_DebugLocalReferences:
 			opt_DebugLocalReferences = enable;
 			break;

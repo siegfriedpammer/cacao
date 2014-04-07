@@ -48,14 +48,14 @@ struct Debug {
 	 * Can be set using the -XX:+DebugVerbose command line flag
 	 * @default 0
 	 */
-	static unsigned int verbose;
+	static Option<unsigned int> verbose;
 
 	/** True if we should print a the thread id
 	 *
 	 * Can be set using the -XX:+DebugPrintThread command line flag
 	 * @default false
 	 */
-	static bool thread_enabled;
+	static Option<bool> thread_enabled;
 
 	/** The name of system you are interested in debugging
 	 *

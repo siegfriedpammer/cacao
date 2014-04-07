@@ -31,10 +31,11 @@ cacao::Option<const char*> cacao::Debug::debugname("DebugName","Name of the subs
 
 cacao::Option<bool> cacao::Debug::prefix_enabled("DebugPrefix","print debug prefix",false,cacao::option::xx_root());
 
-using namespace cacao;
+cacao::Option<unsigned int> cacao::Debug::verbose("DebugVerbose", "verbosity level for debugging (default=0)", 0 , cacao::option::xx_root());
 
-bool cacao::Debug::thread_enabled = false;
-unsigned int cacao::Debug::verbose = 0;
+cacao::Option<bool> cacao::Debug::thread_enabled("DebugPrintThread","print thread id",false,cacao::option::xx_root());
+
+using namespace cacao;
 
 bool cacao::Debug::is_debugging_enabled(const char *name, size_t sz) {
 	const char* current_system_name = debugname.get();
