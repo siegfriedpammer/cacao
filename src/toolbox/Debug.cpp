@@ -27,26 +27,27 @@
 // TODO conditional Makefile.am
 #ifdef ENABLE_LOGGING
 
-cacao::Option<const char*> cacao::Debug::debugname("DebugName","Name of the subsystem to debug", NULL, cacao::option::xx_root());
+namespace cacao {
 
-cacao::Option<bool> cacao::Debug::prefix_enabled("DebugPrefix","print debug prefix",false,cacao::option::xx_root());
+Option<const char*> Debug::debugname("DebugName","Name of the subsystem to debug", NULL, option::xx_root());
 
-cacao::Option<unsigned int> cacao::Debug::verbose("DebugVerbose", "verbosity level for debugging (default=0)", 0 , cacao::option::xx_root());
+Option<bool> Debug::prefix_enabled("DebugPrefix","print debug prefix",false,option::xx_root());
 
-cacao::Option<bool> cacao::Debug::thread_enabled("DebugPrintThread","print thread id",false,cacao::option::xx_root());
+Option<unsigned int> Debug::verbose("DebugVerbose", "verbosity level for debugging (default=0)", 0 , option::xx_root());
 
-using namespace cacao;
+Option<bool> Debug::thread_enabled("DebugPrintThread","print thread id",false,option::xx_root());
 
-bool cacao::Debug::is_debugging_enabled(const char *name, size_t sz) {
+bool Debug::is_debugging_enabled(const char *name, size_t sz) {
 	const char* current_system_name = debugname.get();
 	if (!current_system_name) {
 		return false;
 	}
 	size_t current_system_name_size = std::strlen(current_system_name);
-	return (current_system_name != NULL)    &&
-	       (current_system_name_size <= sz) &&
+	return (current_system_name_size <= sz) &&
 	       (std::strncmp(name, current_system_name, current_system_name_size) == 0);
 }
+
+} // end namespace cacao
 
 #endif
 
