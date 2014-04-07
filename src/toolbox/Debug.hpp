@@ -40,7 +40,7 @@ struct Debug {
 	 * Can be set using the -XX:+DebugPrefix command line flag
 	 * @default false
 	 */
-	static bool prefix_enabled;
+	static Option<bool> prefix_enabled;
 
 	/** Verbosity level
 	 *

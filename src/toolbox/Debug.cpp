@@ -29,9 +29,10 @@
 
 cacao::Option<const char*> cacao::Debug::debugname("DebugName","Name of the subsystem to debug", NULL, cacao::option::xx_root());
 
+cacao::Option<bool> cacao::Debug::prefix_enabled("DebugPrefix","print debug prefix",false,cacao::option::xx_root());
+
 using namespace cacao;
 
-bool cacao::Debug::prefix_enabled = false;
 bool cacao::Debug::thread_enabled = false;
 unsigned int cacao::Debug::verbose = 0;
 
