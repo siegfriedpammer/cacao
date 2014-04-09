@@ -137,7 +137,7 @@ struct classinfo {                /* class structure                          */
 	/* All the annotation attributes are NULL (and not a zero length array)   */
 	/* if there is nothing.                                                   */
 	java_object_t *annotations;   /* annotations of this class                */
-	
+
 	java_object_t *method_annotations; /* array of annotations of the methods */
 	java_object_t *method_parameterannotations; /* array of parameter         */
 	                              /* annotations of the methods               */
@@ -195,8 +195,8 @@ bool       class_load_attributes(cacao::ClassBuffer& cb);
 bool       class_initializing_thread_is_self(classinfo *c);
 
 /* retrieve constantpool element */
-void* class_getconstant(classinfo *c, u4 pos, u4 ctype);
-void* innerclass_getconstant(classinfo *c, u4 pos, u4 ctype);
+void* class_getconstant(classinfo *c, u4 pos, ConstantPoolTag ctype);
+void* innerclass_getconstant(classinfo *c, u4 pos, ConstantPoolTag ctype);
 
 /* frees all resources used by the class */
 void class_free(classinfo *);
@@ -431,7 +431,7 @@ static inline classinfo *class_get_superclass(classinfo *c)
 }
 
 static inline bool class_is_or_almost_initialized(classinfo *c) {
-   return ((c)->state & CLASS_INITIALIZED) 
+   return ((c)->state & CLASS_INITIALIZED)
 	   || ((c)->state & CLASS_INITIALIZING && class_initializing_thread_is_self((c)));
 }
 

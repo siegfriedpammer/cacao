@@ -242,7 +242,7 @@ classinfo *class_define(Utf8String name, classloader_t *cl, int32_t length, uint
 			exceptions_throw_linkageerror("duplicate class definition: ", c);
 			return NULL;
 		}
-	} 
+	}
 
 	/* create a new classinfo struct */
 
@@ -471,7 +471,7 @@ bool class_load_attributes(ClassBuffer& cb)
 				exceptions_throw_classformaterror(c, "Multiple InnerClasses attributes");
 				return false;
 			}
-				
+
 			if (!cb.check_size(4 + 2))
 				return false;
 
@@ -491,7 +491,7 @@ bool class_load_attributes(ClassBuffer& cb)
 				/* The innerclass structure contains a class with an encoded
 				   name, its defining scope, its simple name and a bitmask of
 				   the access flags. */
-   								
+
 				innerclassinfo *info = c->innerclass + j;
 
 				inner.ref         = (constant_classref*) innerclass_getconstant(c, cb.read_u2(), CONSTANT_Class);
@@ -593,17 +593,20 @@ bool class_load_attributes(ClassBuffer& cb)
 
 static void class_freecpool(classinfo *c)
 {
-	int idx;
-	u4 tag;
-	void* info;
-	
 	if (c->cptags && c->cpinfos) {
-		for (idx = 0; idx < c->cpcount; idx++) {
-			tag = c->cptags[idx];
-			info = c->cpinfos[idx];
-		
+		for (uint32_t idx = 0; idx < c->cpcount; idx++) {
+			ConstantPoolTag  tag  = (ConstantPoolTag) c->cptags[idx];
+			void            *info = c->cpinfos[idx];
+
 			if (info != NULL) {
 				switch (tag) {
+				case CONSTANT_Class:
+				case CONSTANT_ClassName:
+				case CONSTANT_String:
+				case CONSTANT_Utf8:
+					// these live forever
+					break;
+
 				case CONSTANT_Fieldref:
 				case CONSTANT_Methodref:
 				case CONSTANT_InterfaceMethodref:
@@ -623,6 +626,20 @@ static void class_freecpool(classinfo *c)
 					break;
 				case CONSTANT_NameAndType:
 					FREE(info, constant_nameandtype);
+					break;
+
+				case CONSTANT_MethodType:
+					delete ((constant_MethodType*) info);
+					break;
+				case CONSTANT_MethodHandle:
+					delete ((constant_MethodHandle*) info);
+					break;
+				case CONSTANT_InvokeDynamic:
+					delete ((constant_InvokeDynamic*) info);
+					break;
+
+				case CONSTANT_UNUSED:
+					assert(info == 0);
 					break;
 				}
 			}
@@ -645,13 +662,22 @@ static void class_freecpool(classinfo *c)
 
 *******************************************************************************/
 
-void* class_getconstant(classinfo *c, u4 pos, u4 ctype)
+void* class_getconstant(classinfo *c, u4 pos, ConstantPoolTag ctype)
 {
-	/* check index and type of constantpool entry */
-	/* (pos == 0 is caught by type comparison) */
+	// check index and type of constantpool entry
+	// (pos == 0 is caught by type comparison)
 
-	if (((int) pos >= c->cpcount) || (c->cptags[pos] != ctype)) {
-		exceptions_throw_classformaterror(c, "Illegal constant pool index %u or type %u (should be %u)", pos, ctype, c->cptags[pos]);
+	if ((pos >= c->cpcount) || (c->cptags[pos] != ctype)) {
+		// this is the slow path,
+		// we can afford to repeat the separate checks for a better error message
+
+		if ((pos == 0) || (pos >= c->cpcount)) {
+			exceptions_throw_classformaterror(c, "Illegal constant pool index: %u", pos);
+		} else if (c->cptags[pos] != ctype) {
+			exceptions_throw_classformaterror(c, "Illegal constant pool type %u (expected %u)", ctype, c->cptags[pos]);
+		}
+
+		assert(exceptions_get_exception());
 		return NULL;
 	}
 
@@ -662,19 +688,19 @@ void* class_getconstant(classinfo *c, u4 pos, u4 ctype)
 /* innerclass_getconstant ******************************************************
 
    Like class_getconstant, but if cptags is ZERO, null is returned.
-	
+
 *******************************************************************************/
 
-void* innerclass_getconstant(classinfo *c, u4 pos, u4 ctype)
+void* innerclass_getconstant(classinfo *c, u4 pos, ConstantPoolTag ctype)
 {
 	/* invalid position in constantpool */
 
-	if ((int) pos >= c->cpcount) {
-		exceptions_throw_classformaterror(c, "Illegal constant pool index");
+	if (pos >= c->cpcount) {
+		exceptions_throw_classformaterror(c, "Illegal constant pool index: %u", pos);
 		return NULL;
 	}
 
-	/* constantpool entry of type 0 */	
+	/* constantpool entry of type 0 */
 
 	if (c->cptags[pos] == 0)
 		return NULL;
@@ -682,10 +708,10 @@ void* innerclass_getconstant(classinfo *c, u4 pos, u4 ctype)
 	/* check type of constantpool entry */
 
 	if (c->cptags[pos] != ctype) {
-		exceptions_throw_classformaterror(c, "Illegal constant pool index");
+		exceptions_throw_classformaterror(c, "Illegal constant pool type %u (expected %u)", ctype, c->cptags[pos]);
 		return NULL;
 	}
-		
+
 	return c->cpinfos[pos];
 }
 
@@ -698,41 +724,37 @@ void* innerclass_getconstant(classinfo *c, u4 pos, u4 ctype)
 
 void class_free(classinfo *c)
 {
-	s4 i;
-	vftbl_t *v;
-
 	class_freecpool(c);
 
 	if (c->interfaces != NULL)
 		MFREE(c->interfaces, classinfo*, c->interfacescount);
 
 	if (c->fields) {
-		for (i = 0; i < c->fieldscount; i++)
+		for (int32_t i = 0; i < c->fieldscount; i++)
 			field_free(&(c->fields[i]));
 		MFREE(c->fields, fieldinfo, c->fieldscount);
 	}
-	
+
 	if (c->methods) {
-		for (i = 0; i < c->methodscount; i++)
+		for (int32_t i = 0; i < c->methodscount; i++)
 			method_free(&(c->methods[i]));
 		MFREE(c->methods, methodinfo, c->methodscount);
 	}
 
-	if ((v = c->vftbl) != NULL) {
+	if (vftbl_t *v = c->vftbl) {
 		if (v->arraydesc)
 			mem_free(v->arraydesc,sizeof(arraydescriptor));
-		
-		for (i = 0; i < v->interfacetablelength; i++) {
+
+		for (int32_t i = 0; i < v->interfacetablelength; i++) {
 			MFREE(v->interfacetable[-i], methodptr, v->interfacevftbllength[i]);
 		}
 		MFREE(v->interfacevftbllength, s4, v->interfacetablelength);
 
-		i = sizeof(vftbl_t) + sizeof(methodptr) * (v->vftbllength - 1) +
-		    sizeof(methodptr*) * (v->interfacetablelength -
-		                         (v->interfacetablelength > 0));
-		v = (vftbl_t*) (((methodptr*) v) -
-						(v->interfacetablelength - 1) * (v->interfacetablelength > 1));
-		mem_free(v, i);
+		int32_t i = sizeof(vftbl_t)
+		          + sizeof(methodptr)  * (v->vftbllength - 1)
+		          + sizeof(methodptr*) * (v->interfacetablelength - (v->interfacetablelength > 0));
+		methodptr *m = ((methodptr*) v) - (v->interfacetablelength - 1) * (v->interfacetablelength > 1);
+		mem_free(m, i);
 	}
 
 	if (c->innerclass)
@@ -740,7 +762,7 @@ void class_free(classinfo *c)
 
 	/*	if (c->classvftbl)
 		mem_free(c->header.vftbl, sizeof(vftbl) + sizeof(methodptr)*(c->vftbl->vftbllength-1)); */
-	
+
 /*  	GCFREE(c); */
 }
 
@@ -750,7 +772,7 @@ void class_free(classinfo *c)
    Returns the array class with the given name for the given
    classloader, or NULL if an exception occurred.
 
-   Note: This function does eager loading. 
+   Note: This function does eager loading.
 
 *******************************************************************************/
 
@@ -758,7 +780,7 @@ static classinfo *get_array_class(Utf8String name,classloader_t *initloader,
 											      classloader_t *defloader,bool link)
 {
 	classinfo *c;
-	
+
 	/* lookup this class in the classcache */
 	c = classcache_lookup(initloader,name);
 	if (!c)
@@ -807,7 +829,7 @@ classinfo *class_array_of(classinfo *component, bool link)
 
     /* Assemble the array class name */
     namelen = component_name.size();
-    
+
     if (component_name[0] == '[') {
         /* the component is itself an array */
         namebuf = MNEW(char, namelen + 1);
@@ -857,7 +879,7 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
 
     /* Assemble the array class name */
     namelen = element_name.size();
-    
+
     if (element_name[0] == '[') {
         /* the element is itself an array */
         namebuf = MNEW(char, namelen + dim);
@@ -897,9 +919,9 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
 	   name.............the name of the class refered to
 
     RETURN VALUE:
-	   a pointer to a constant_classref, or 
+	   a pointer to a constant_classref, or
 	   NULL if the reference was not found
-   
+
 *******************************************************************************/
 
 constant_classref *class_lookup_classref(classinfo *cls, Utf8String name)
@@ -911,7 +933,7 @@ constant_classref *class_lookup_classref(classinfo *cls, Utf8String name)
 	assert(cls);
 	assert(name);
 	assert(!cls->classrefcount || cls->classrefs);
-	
+
 	/* first search the main classref table */
 	count = cls->classrefcount;
 	ref = cls->classrefs;
@@ -1012,7 +1034,7 @@ constant_classref *class_get_classref_multiarray_of(s4 dim, constant_classref *r
 
     /* Assemble the array class name */
     namelen = refname.size();
-    
+
     if (refname[0] == '[') {
         /* the element is itself an array */
         namebuf = MNEW(char, namelen + dim);
@@ -1079,7 +1101,7 @@ constant_classref *class_get_classref_component_of(constant_classref *ref)
 
 
 /* class_findmethod ************************************************************
-	
+
    Searches a 'classinfo' structure for a method having the given name
    and descriptor. If descriptor is NULL, it is ignored.
 
@@ -1087,11 +1109,8 @@ constant_classref *class_get_classref_component_of(constant_classref *ref)
 
 methodinfo *class_findmethod(classinfo *c, Utf8String name, Utf8String desc)
 {
-	methodinfo *m;
-	s4          i;
-
-	for (i = 0; i < c->methodscount; i++) {
-		m = &(c->methods[i]);
+	for (int32_t i = 0; i < c->methodscount; i++) {
+		methodinfo *m = &(c->methods[i]);
 
 		if ((m->name == name) && ((desc == NULL) || (m->descriptor == desc)))
 			return m;
@@ -1102,7 +1121,7 @@ methodinfo *class_findmethod(classinfo *c, Utf8String name, Utf8String desc)
 
 
 /* class_resolvemethod *********************************************************
-	
+
    Searches a class and it's super classes for a method.
 
    Superinterfaces are *not* searched.
@@ -1111,15 +1130,13 @@ methodinfo *class_findmethod(classinfo *c, Utf8String name, Utf8String desc)
 
 methodinfo *class_resolvemethod(classinfo *c, Utf8String name, Utf8String desc)
 {
-	methodinfo *m;
-
 	while (c) {
-		m = class_findmethod(c, name, desc);
+		methodinfo *m = class_findmethod(c, name, desc);
 
 		if (m)
 			return m;
 
-		/* JVM Specification bug: 
+		/* JVM Specification bug:
 
 		   It is important NOT to resolve special <init> and <clinit>
 		   methods to super classes or interfaces; yet, this is not
@@ -1145,20 +1162,17 @@ methodinfo *class_resolvemethod(classinfo *c, Utf8String name, Utf8String desc)
 static methodinfo *class_resolveinterfacemethod_intern(classinfo *c,
 													   Utf8String name, Utf8String desc)
 {
-	methodinfo *m;
-	s4          i;
-
 	/* try to find the method in the class */
 
-	m = class_findmethod(c, name, desc);
+	methodinfo *m = class_findmethod(c, name, desc);
 
 	if (m != NULL)
 		return m;
 
 	/* No method found?  Try the super interfaces. */
 
-	for (i = 0; i < c->interfacescount; i++) {
-		m = class_resolveinterfacemethod_intern(c->interfaces[i], name, desc);
+	for (int32_t i = 0; i < c->interfacescount; i++) {
+		methodinfo *m = class_resolveinterfacemethod_intern(c->interfaces[i], name, desc);
 
 		if (m != NULL)
 			return m;
@@ -1171,7 +1185,7 @@ static methodinfo *class_resolveinterfacemethod_intern(classinfo *c,
 
 
 /* class_resolveclassmethod ****************************************************
-	
+
    Resolves a reference from REFERER to a method with NAME and DESC in
    class C.
 
@@ -1183,35 +1197,24 @@ static methodinfo *class_resolveinterfacemethod_intern(classinfo *c,
 methodinfo *class_resolveclassmethod(classinfo *c, Utf8String name, Utf8String desc,
 									 classinfo *referer, bool throwexception)
 {
-	classinfo  *cls;
-	methodinfo *m;
-	s4          i;
-
-/*  	if (c->flags & ACC_INTERFACE) { */
-/*  		if (throwexception) */
-/*  			*exceptionptr = */
-/*  				new_exception(string_java_lang_IncompatibleClassChangeError); */
-/*  		return NULL; */
-/*  	} */
-
 	/* try class c and its superclasses */
 
-	cls = c;
+	classinfo  *cls = c;
 
-	m = class_resolvemethod(cls, name, desc);
+	methodinfo *m = class_resolvemethod(cls, name, desc);
 
 	if (m != NULL)
 		goto found;
 
 	/* Try the super interfaces. */
 
-	for (i = 0; i < c->interfacescount; i++) {
-		m = class_resolveinterfacemethod_intern(c->interfaces[i], name, desc);
+	for (int32_t i = 0; i < c->interfacescount; i++) {
+		methodinfo *m = class_resolveinterfacemethod_intern(c->interfaces[i], name, desc);
 
 		if (m != NULL)
 			goto found;
 	}
-	
+
 	if (throwexception)
 		exceptions_throw_nosuchmethoderror(c, name, desc);
 
@@ -1273,7 +1276,7 @@ methodinfo *class_resolveinterfacemethod(classinfo *c, Utf8String name, Utf8Stri
 
 
 /* class_findfield *************************************************************
-	
+
    Searches for field with specified name and type in a classinfo
    structure. If no such field is found NULL is returned.
 
@@ -1281,9 +1284,7 @@ methodinfo *class_resolveinterfacemethod(classinfo *c, Utf8String name, Utf8Stri
 
 fieldinfo *class_findfield(classinfo *c, Utf8String name, Utf8String desc)
 {
-	s4 i;
-
-	for (i = 0; i < c->fieldscount; i++)
+	for (int32_t i = 0; i < c->fieldscount; i++)
 		if ((c->fields[i].name == name) && (c->fields[i].descriptor == desc))
 			return &(c->fields[i]);
 
@@ -1295,12 +1296,12 @@ fieldinfo *class_findfield(classinfo *c, Utf8String name, Utf8String desc)
 
 
 /* class_findfield_approx ******************************************************
-	
+
    Searches in 'classinfo'-structure for a field with the specified
    name.
 
 *******************************************************************************/
- 
+
 fieldinfo *class_findfield_by_name(classinfo* c, Utf8String name)
 {
 	for (int32_t i = 0; i < c->fieldscount; i++) {
@@ -1327,12 +1328,9 @@ fieldinfo *class_findfield_by_name(classinfo* c, Utf8String name)
 
 static fieldinfo *class_resolvefield_int(classinfo *c, Utf8String name, Utf8String desc)
 {
-	fieldinfo *fi;
-	s4         i;
-
 	/* search for field in class c */
 
-	for (i = 0; i < c->fieldscount; i++) { 
+	for (int32_t i = 0; i < c->fieldscount; i++) {
 		if ((c->fields[i].name == name) && (c->fields[i].descriptor == desc)) {
 			return &(c->fields[i]);
 		}
@@ -1340,8 +1338,8 @@ static fieldinfo *class_resolvefield_int(classinfo *c, Utf8String name, Utf8Stri
 
 	/* Try super interfaces recursively. */
 
-	for (i = 0; i < c->interfacescount; i++) {
-		fi = class_resolvefield_int(c->interfaces[i], name, desc);
+	for (int32_t i = 0; i < c->interfacescount; i++) {
+		fieldinfo *fi = class_resolvefield_int(c->interfaces[i], name, desc);
 
 		if (fi != NULL)
 			return fi;
@@ -1359,7 +1357,7 @@ static fieldinfo *class_resolvefield_int(classinfo *c, Utf8String name, Utf8Stri
 
 
 /********************* Function: class_resolvefield ***************************
-	
+
 	Resolves a reference from REFERER to a field with NAME and DESC in class C.
 
     If the field cannot be resolved, an exception is thrown and the
@@ -1369,9 +1367,7 @@ static fieldinfo *class_resolvefield_int(classinfo *c, Utf8String name, Utf8Stri
 
 fieldinfo *class_resolvefield(classinfo *c, Utf8String name, Utf8String desc, classinfo *referer)
 {
-	fieldinfo *fi;
-
-	fi = class_resolvefield_int(c, name, desc);
+	fieldinfo *fi = class_resolvefield_int(c, name, desc);
 
 	if (!fi) {
 		exceptions_throw_nosuchfielderror(c, name);
@@ -1387,14 +1383,12 @@ fieldinfo *class_resolvefield(classinfo *c, Utf8String name, Utf8String desc, cl
 /* class_issubclass ************************************************************
 
    Checks if sub is a descendant of super.
-	
+
 *******************************************************************************/
 
 bool class_issubclass(classinfo *sub, classinfo *super)
 {
-	classinfo *c;
-
-	c = sub;
+	classinfo *c = sub;
 
 	for (;;) {
 		/* We reached java/lang/Object and did not find the requested
@@ -1473,7 +1467,7 @@ bool class_isanysubclass(classinfo *sub, classinfo *super)
    RETURN VALUE:
       true .... target = desc is possible
       false ... otherwise
-			
+
 *******************************************************************************/
 
 bool class_is_arraycompatible(arraydescriptor *desc, arraydescriptor *target)
@@ -1486,7 +1480,7 @@ bool class_is_arraycompatible(arraydescriptor *desc, arraydescriptor *target)
 
 	if (desc->arraytype != ARRAYTYPE_OBJECT)
 		return true;
-	
+
 	/* {both arrays are arrays of references} */
 
 	if (desc->dimension == target->dimension) {
@@ -1500,8 +1494,7 @@ bool class_is_arraycompatible(arraydescriptor *desc, arraydescriptor *target)
 			(target->elementvftbl->baseval == 1))
 			return true;
 
-		return class_isanysubclass(desc->elementvftbl->clazz,
-								   target->elementvftbl->clazz);
+		return class_isanysubclass(desc->elementvftbl->clazz, target->elementvftbl->clazz);
 	}
 
 	if (desc->dimension < target->dimension)
@@ -1509,8 +1502,7 @@ bool class_is_arraycompatible(arraydescriptor *desc, arraydescriptor *target)
 
 	/* {desc has higher dimension than target} */
 
-	return class_isanysubclass(pseudo_class_Arraystub,
-							   target->elementvftbl->clazz);
+	return class_isanysubclass(pseudo_class_Arraystub, target->elementvftbl->clazz);
 }
 
 
@@ -1588,7 +1580,7 @@ classinfo *class_get_componenttype(classinfo *c)
 {
 	classinfo       *component;
 	arraydescriptor *ad;
-	
+
 	/* XXX maybe we could find a way to do this without linking. */
 	/* This way should be safe and easy, however.                */
 
@@ -1597,15 +1589,15 @@ classinfo *class_get_componenttype(classinfo *c)
 			return NULL;
 
 	ad = c->vftbl->arraydesc;
-	
+
 	if (ad == NULL)
 		return NULL;
-	
+
 	if (ad->arraytype == ARRAYTYPE_OBJECT)
 		component = ad->componentvftbl->clazz;
 	else
 		component = Primitive::get_class_by_type(ad->arraytype);
-		
+
 	return component;
 }
 
@@ -1618,24 +1610,16 @@ classinfo *class_get_componenttype(classinfo *c)
 
 java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOnly)
 {
-	classref_or_classinfo  inner;
-	classref_or_classinfo  outer;
-	Utf8String             outername;
-	int                    declaredclasscount;  /* number of declared classes */
-	int                    pos;                     /* current declared class */
-	int                    i;
-	classinfo             *ic;
-
-	declaredclasscount = 0;
+	int declaredclasscount = 0; // number of declared classes
 
 	if (!class_is_primitive(c) && !class_is_array(c)) {
 		/* Determine number of declared classes. */
 
-		for (i = 0; i < c->innerclasscount; i++) {
+		for (uint16_t i = 0; i < c->innerclasscount; i++) {
 			/* Get outer-class.  If the inner-class is not a member
 			   class, the outer-class is NULL. */
 
-			outer = c->innerclass[i].outer_class;
+			classref_or_classinfo outer = c->innerclass[i].outer_class;
 
 			if (outer.any == NULL)
 				continue;
@@ -1643,7 +1627,7 @@ java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOn
 			/* Check if outer-class is a classref or a real class and
                get the class name from the structure. */
 
-			outername = CLASSREF_OR_CLASSINFO_NAME(outer);
+			Utf8String outername = CLASSREF_OR_CLASSINFO_NAME(outer);
 
 			/* Outer class is this class. */
 
@@ -1660,9 +1644,9 @@ java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOn
 	if (declaredclasses.is_null())
 		return NULL;
 
-	for (i = 0, pos = 0; i < c->innerclasscount; i++) {
-		inner = c->innerclass[i].inner_class;
-		outer = c->innerclass[i].outer_class;
+	for (uint16_t i = 0, pos = 0; i < c->innerclasscount; i++) {
+		classref_or_classinfo inner = c->innerclass[i].inner_class;
+		classref_or_classinfo outer = c->innerclass[i].outer_class;
 
 		/* Get outer-class.  If the inner-class is not a member class,
 		   the outer-class is NULL. */
@@ -1673,14 +1657,14 @@ java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOn
 		/* Check if outer_class is a classref or a real class and get
 		   the class name from the structure. */
 
-		outername = CLASSREF_OR_CLASSINFO_NAME(outer);
+		Utf8String outername = CLASSREF_OR_CLASSINFO_NAME(outer);
 
 		/* Outer class is this class. */
 
 		if ((outername == c->name) &&
 			((publicOnly == 0) || (c->innerclass[i].flags & ACC_PUBLIC))) {
 
-			ic = resolve_classref_or_classinfo_eager(inner, false);
+			classinfo *ic = resolve_classref_or_classinfo_eager(inner, false);
 
 			if (ic == NULL)
 				return NULL;
@@ -1708,20 +1692,14 @@ java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOn
 #if defined(ENABLE_JAVASE)
 java_handle_objectarray_t *class_get_declaredconstructors(classinfo *c, bool publicOnly)
 {
-	methodinfo* m;
-	int         count;
-	int         index;
-	int         i;
-
 	/* Determine number of constructors. */
 
-	count = 0;
+	int count = 0;
 
-	for (i = 0; i < c->methodscount; i++) {
-		m = &(c->methods[i]);
+	for (int32_t i = 0; i < c->methodscount; i++) {
+		methodinfo* m = &(c->methods[i]);
 
-		if (((m->flags & ACC_PUBLIC) || (publicOnly == 0)) &&
-			(m->name == utf8::init))
+		if (((m->flags & ACC_PUBLIC) || (publicOnly == 0)) && (m->name == utf8::init))
 			count++;
 	}
 
@@ -1734,8 +1712,8 @@ java_handle_objectarray_t *class_get_declaredconstructors(classinfo *c, bool pub
 
 	/* Get the constructors and store them in the array. */
 
-	for (i = 0, index = 0; i < c->methodscount; i++) {
-		m = &(c->methods[i]);
+	for (int32_t i = 0, index = 0; i < c->methodscount; i++) {
+		methodinfo* m = &(c->methods[i]);
 
 		if (((m->flags & ACC_PUBLIC) || (publicOnly == 0)) &&
 			(m->name == utf8::init)) {
@@ -1771,16 +1749,11 @@ java_handle_objectarray_t *class_get_declaredconstructors(classinfo *c, bool pub
 #if defined(ENABLE_JAVASE)
 java_handle_objectarray_t *class_get_declaredfields(classinfo *c, bool publicOnly)
 {
-	fieldinfo* f;
-	int        count;
-	int        index;
-	int        i;
-
 	/* Determine number of fields. */
 
-	count = 0;
+	int count = 0;
 
-	for (i = 0; i < c->fieldscount; i++)
+	for (int32_t i = 0; i < c->fieldscount; i++)
 		if ((c->fields[i].flags & ACC_PUBLIC) || (publicOnly == 0))
 			count++;
 
@@ -1793,8 +1766,8 @@ java_handle_objectarray_t *class_get_declaredfields(classinfo *c, bool publicOnl
 
 	/* Get the fields and store them in the array. */
 
-	for (i = 0, index = 0; i < c->fieldscount; i++) {
-		f = &(c->fields[i]);
+	for (int32_t i = 0, index = 0; i < c->fieldscount; i++) {
+		fieldinfo* f = &(c->fields[i]);
 
 		if ((f->flags & ACC_PUBLIC) || (publicOnly == 0)) {
 			// Create a java.lang.reflect.Field object.
@@ -1829,11 +1802,6 @@ java_handle_objectarray_t *class_get_declaredfields(classinfo *c, bool publicOnl
 #if defined(ENABLE_JAVASE)
 java_handle_objectarray_t *class_get_declaredmethods(classinfo *c, bool publicOnly)
 {
-	methodinfo* m;     /* the current method to be represented */
-	int         count;
-	int         index;
-	int         i;
-
 	/* JOWENN: array classes do not declare methods according to mauve
 	   test.  It should be considered, if we should return to my old
 	   clone method overriding instead of declaring it as a member
@@ -1846,10 +1814,10 @@ java_handle_objectarray_t *class_get_declaredmethods(classinfo *c, bool publicOn
 
 	/* Determine number of methods. */
 
-	count = 0;
+	int count = 0;
 
-	for (i = 0; i < c->methodscount; i++) {
-		m = &(c->methods[i]);
+	for (int32_t i = 0; i < c->methodscount; i++) {
+		methodinfo* m = &(c->methods[i]);
 
 		if (((m->flags & ACC_PUBLIC) || (publicOnly == false)) &&
 			((m->name != utf8::init) && (m->name != utf8::clinit)) &&
@@ -1866,10 +1834,10 @@ java_handle_objectarray_t *class_get_declaredmethods(classinfo *c, bool publicOn
 
 	/* Get the methods and store them in the array. */
 
-	for (i = 0, index = 0; i < c->methodscount; i++) {
-		m = &(c->methods[i]);
+	for (int32_t i = 0, index = 0; i < c->methodscount; i++) {
+		methodinfo* m = &(c->methods[i]);
 
-		if (((m->flags & ACC_PUBLIC) || (publicOnly == false)) && 
+		if (((m->flags & ACC_PUBLIC) || (publicOnly == false)) &&
 			((m->name != utf8::init) && (m->name != utf8::clinit)) &&
 			!(m->flags & ACC_MIRANDA)) {
 			// Create java.lang.reflect.Method object.
@@ -1978,9 +1946,7 @@ classinfo *class_get_enclosingclass(classinfo *c)
 #if defined(ENABLE_JAVASE)
 java_handle_t* class_get_enclosingconstructor(classinfo *c)
 {
-	methodinfo*    m;
-
-	m = class_get_enclosingmethod_raw(c);
+	methodinfo* m = class_get_enclosingmethod_raw(c);
 
 	if (m == NULL)
 		return NULL;
@@ -2083,9 +2049,6 @@ java_handle_t* class_get_enclosingmethod(classinfo *c)
 
 java_handle_objectarray_t* class_get_interfaces(classinfo *c)
 {
-	classinfo* ic;
-	int        i;
-
 	if (!(c->state & CLASS_LINKED))
 		if (!link_class(c))
 			return NULL;
@@ -2095,8 +2058,8 @@ java_handle_objectarray_t* class_get_interfaces(classinfo *c)
 	if (interfaces.is_null())
 		return NULL;
 
-	for (i = 0; i < c->interfacescount; i++) {
-		ic = c->interfaces[i];
+	for (int32_t i = 0; i < c->interfacescount; i++) {
+		classinfo* ic = c->interfaces[i];
 
 		interfaces.set_element(i, ic);
 	}
@@ -2147,29 +2110,23 @@ java_handle_bytearray_t *class_get_annotations(classinfo *c)
 
 int32_t class_get_modifiers(classinfo *c, bool ignoreInnerClassesAttrib)
 {
-	classref_or_classinfo  inner;
-	classref_or_classinfo  outer;
-	Utf8String             innername;
-	int                    i;
-	int32_t                flags;
-
 	/* default to flags of passed class */
 
-	flags = c->flags;
+	int32_t flags = c->flags;
 
 	/* if requested we check if passed class is inner class */
 
 	if (!ignoreInnerClassesAttrib && (c->innerclasscount != 0)) {
 		/* search for passed class as inner class */
 
-		for (i = 0; i < c->innerclasscount; i++) {
-			inner = c->innerclass[i].inner_class;
-			outer = c->innerclass[i].outer_class;
+		for (int i = 0; i < c->innerclasscount; i++) {
+			classref_or_classinfo inner = c->innerclass[i].inner_class;
+			classref_or_classinfo outer = c->innerclass[i].outer_class;
 
 			/* Check if inner is a classref or a real class and get
                the name of the structure */
 
-			innername = CLASSREF_OR_CLASSINFO_NAME(inner);
+			Utf8String innername = CLASSREF_OR_CLASSINFO_NAME(inner);
 
 			/* innerclass is this class */
 
@@ -2367,17 +2324,15 @@ void class_classref_or_classinfo_println(classref_or_classinfo c)
 *******************************************************************************/
 
 #if !defined(NDEBUG)
-void class_showconstantpool (classinfo *c) 
+void class_showconstantpool (classinfo *c)
 {
 	printf ("---- dump of constant pool ----\n");
 
-	for (int i=0; i<c->cpcount; i++) {
-		printf ("#%d:  ", i);
-		
-		void *e = c -> cpinfos [i];
-		if (e) {
-			
-			switch (c -> cptags [i]) {
+	for (uint32_t i=0; i<c->cpcount; i++) {
+		printf ("#%u:  ", i);
+
+		if (void *e = c->cpinfos[i]) {
+			switch ((ConstantPoolTag) c->cptags[i]) {
 			case CONSTANT_Class:
 				printf ("Classreference -> ");
 				utf_display_printable_ascii ( ((constant_classref*)e) -> name );
@@ -2423,7 +2378,31 @@ void class_showconstantpool (classinfo *c)
 				printf ("Utf8 -> ");
 				utf_display_printable_ascii ((utf*) e);
 				break;
-			default: 
+			case CONSTANT_MethodType: {
+				constant_MethodType *type = (constant_MethodType*) e;
+
+				printf ("MethodType -> ");
+				utf_display_printable_ascii(type->descriptor);
+				break;
+			}
+			case CONSTANT_MethodHandle: {
+				constant_MethodHandle *handle = (constant_MethodHandle*) e;
+
+				printf ("MethodHandle -> ");
+				utf_display_printable_ascii(handle->fmi->name);
+				utf_display_printable_ascii(handle->fmi->descriptor);
+				break;
+			}
+			case CONSTANT_InvokeDynamic: {
+				constant_InvokeDynamic* indy = (constant_InvokeDynamic*) e;
+
+				printf ("InvokeDynamic -> ");
+				utf_display_printable_ascii(indy->name);
+				utf_display_printable_ascii(indy->descriptor);
+				printf(" [%u]", indy->bootstrap_method_index);
+				break;
+			}
+			default:
 				log_text("Invalid type of ConstantPool-Entry");
 				assert(0);
 			}
@@ -2444,8 +2423,6 @@ void class_showconstantpool (classinfo *c)
 #if !defined(NDEBUG)
 void class_showmethods (classinfo *c)
 {
-	s4 i;
-	
 	printf("--------- Fields and Methods ----------------\n");
 	printf("Flags: ");
 	class_printflags(c);
@@ -2462,20 +2439,20 @@ void class_showmethods (classinfo *c)
 	}
 
 	printf("Index: %d\n", c->index);
-	
-	printf("Interfaces:\n");	
-	for (i = 0; i < c->interfacescount; i++) {
+
+	printf("Interfaces:\n");
+	for (int32_t i = 0; i < c->interfacescount; i++) {
 		printf("   ");
 		utf_display_printable_ascii(c->interfaces[i]->name);
 		printf (" (%d)\n", c->interfaces[i]->index);
 	}
 
 	printf("Fields:\n");
-	for (i = 0; i < c->fieldscount; i++)
+	for (int32_t i = 0; i < c->fieldscount; i++)
 		field_println(&(c->fields[i]));
 
 	printf("Methods:\n");
-	for (i = 0; i < c->methodscount; i++) {
+	for (int32_t i = 0; i < c->methodscount; i++) {
 		methodinfo *m = &(c->methods[i]);
 
 		if (!(m->flags & ACC_STATIC))
@@ -2485,7 +2462,7 @@ void class_showmethods (classinfo *c)
 	}
 
 	printf ("Virtual function table:\n");
-	for (i = 0; i < c->vftbl->vftbllength; i++)
+	for (int32_t i = 0; i < c->vftbl->vftbllength; i++)
 		printf ("entry: %d,  %ld\n", i, (long int) (c->vftbl->table[i]));
 }
 #endif /* !defined(NDEBUG) */

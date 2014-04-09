@@ -23,7 +23,7 @@
 */
 
 
-#ifndef GLOBAL_HPP_ 
+#ifndef GLOBAL_HPP_
 #define GLOBAL_HPP_ 1
 
 #include "config.h"
@@ -102,7 +102,7 @@ typedef union {
 
 /* forward typedefs ***********************************************************/
 
-typedef struct java_object_t java_object_t; 
+typedef struct java_object_t java_object_t;
 typedef struct java_objectarray_t java_objectarray_t;
 
 
@@ -164,9 +164,10 @@ enum Type {
 /**
  * Types for entries of a classes constant pool
  *
- * @Cpp11 Use an enum class to set storage type to uint8_t...	by
+ * @Cpp11 Use an enum class and set storage type to uint8_t
  */
 enum ConstantPoolTag {
+	/// official tags from JVM spec
 	CONSTANT_Class              =  7,
 	CONSTANT_Fieldref           =  9,
 	CONSTANT_Methodref          = 10,
@@ -182,6 +183,8 @@ enum ConstantPoolTag {
 	CONSTANT_MethodType 	    = 16,
 	CONSTANT_InvokeDynamic 	    = 18,
 
+	/// internally used tags
+	CONSTANT_ClassName          = 19, // used in loader before classrefs are created
 	CONSTANT_UNUSED             =  0
 };
 

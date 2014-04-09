@@ -390,7 +390,7 @@ bool method_load(ClassBuffer& cb, methodinfo *m, DescriptorPool& descpool)
 				else {
 					/* the classref is created later */
 					if (!(m->rawexceptiontable[j].catchtype.any =
-						  (utf *) class_getconstant(c, idx, CONSTANT_Class)))
+						  (utf *) class_getconstant(c, idx, CONSTANT_ClassName)))
 						return false;
 				}
 			}
@@ -526,7 +526,7 @@ bool method_load(ClassBuffer& cb, methodinfo *m, DescriptorPool& descpool)
 			for (j = 0; j < m->thrownexceptionscount; j++) {
 				/* the classref is created later */
 				if (!((m->thrownexceptions)[j].any =
-					  (utf*) class_getconstant(c, cb.read_u2(), CONSTANT_Class)))
+					  (utf*) class_getconstant(c, cb.read_u2(), CONSTANT_ClassName)))
 					return false;
 			}
 		}

@@ -84,8 +84,8 @@ union parseddesc_t {
  * Fieldref, Methodref and InterfaceMethodref
  */
 struct constant_FMIref {
-	constant_FMIref(constant_classref *ref, 
-	                Utf8String         name, 
+	constant_FMIref(constant_classref *ref,
+	                Utf8String         name,
 	                Utf8String         descriptor,
 	                parseddesc_t       parseddesc)
 	 : name(name), descriptor(descriptor), parseddesc(parseddesc) {
@@ -145,7 +145,7 @@ struct constant_MethodType {
 	const methoddesc *const parseddesc;
 
 	/// resolved java.lang.invoke.MethodType object
-	java_object_t *type;       
+	java_object_t *type;
 };
 
 /**
@@ -172,7 +172,7 @@ struct constant_InvokeDynamic {
  * @Cpp11 Replace with constructors in classref_or_classinfo.
  *        With C++98 this breaks other unions that use classref_or_classinfo.
  * @{
- */ 
+ */
 static inline classref_or_classinfo to_classref_or_classinfo(classinfo *c) {
 	classref_or_classinfo out;
 	out.cls = c;
