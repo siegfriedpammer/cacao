@@ -44,10 +44,8 @@ OptionPrefix& xx_root(){
 } // end namespace option
 
 OptionPrefix::OptionPrefix(const char* name) : name(name), s(std::strlen(name)) {
-	err() << "OptionPrefix: " << name << nl;
 }
 void OptionPrefix::insert(OptionEntry* oe) {
-	err() << "OptionPrefix::insert: " << oe->get_name() << nl;
 	children.insert(oe);
 }
 
@@ -97,13 +95,8 @@ bool option_matcher(const char* a, std::size_t a_len,
 bool OptionParser::parse_option(OptionPrefix& root, const char* name, size_t name_len,
 		const char* value, size_t value_len) {
 	assert(std::strncmp(root.get_name(), name, std::strlen(root.get_name())) == 0);
-		//"root name: " << root.get_name() << " name: " << name );
 	name += root.size();
 	name_len -= root.size();
-	err() << "name: " << name << nl;
-	err() << "name_len: " << name_len << nl;
-	err() << "value: " << value << nl;
-	err() << "value_len: " << value_len << nl;
 	assert(name_len > 0);
 	if (name[0] == '-' || name[0] == '+') {
 		assert(value_len == 0);
@@ -116,7 +109,6 @@ bool OptionParser::parse_option(OptionPrefix& root, const char* name, size_t nam
 	for(OptionPrefix::iterator i = root.begin(), e = root.end();
 			i != e; ++i) {
 		OptionEntry& oe = **i;
-		err() << "OptionEntry: " << oe.get_name() << nl;
 		if (option_matcher(oe.get_name(), oe.size(), name, name_len)) {
 			if (oe.parse(value,value_len))
 				return true;
@@ -128,9 +120,7 @@ bool OptionParser::parse_option(OptionPrefix& root, const char* name, size_t nam
 
 template<>
 bool Option<const char*>::parse(const char* value, std::size_t value_len) {
-	err() << "set_value " << get_name() << " := " << value << nl;
 	set_value(value);
-	err() << "DEBUG: " << DEBUG_COND_WITH_NAME("properties") << nl;
 	return true;
 }
 
@@ -139,12 +129,10 @@ bool Option<bool>::parse(const char* value, std::size_t value_len) {
 	assert(value_len == 1);
 	char first = value[0];
 	if (first == '-') {
-		err() << "set_value " << get_name() << " := false" << nl;
 		set_value(false);
 		return true;
 	}
 	if (first == '+') {
-		err() << "set_value " << get_name() << " := true" << nl;
 		set_value(true);
 		return true;
 	}
@@ -156,7 +144,6 @@ template<>
 bool Option<unsigned int>::parse(const char* value, std::size_t value_len) {
 	int verb = os::atoi(value);
 	set_value(verb >= 0 ? verb : 0);
-	err() << "set_value " << get_name() << " := " << get() << nl;
 	return true;
 }
 
