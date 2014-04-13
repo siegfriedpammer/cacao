@@ -75,8 +75,8 @@ void OptionParser::print_usage(OptionPrefix& root, FILE *fp) {
 }
 
 std::size_t option_print(OptionEntry& option, OStream& OS) {
-	OS << option.get_name();
-	return option.size();
+	OS << option.get_name() << "=<value>";
+	return option.size() + 8;
 }
 
 std::size_t option_print(OptionBase<bool>& option, OStream& OS) {
