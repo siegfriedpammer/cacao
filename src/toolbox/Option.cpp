@@ -66,8 +66,17 @@ void OptionParser::print_usage(OptionPrefix& root, FILE *fp) {
 		} else {
 			OS << nl << blank29;
 		}
-		// TODO description line break
-		OS << oe.get_desc() << nl;
+
+		const char* c = oe.get_desc();
+		for (std::size_t i = 29; *c != 0; c++, i++) {
+			/* If we are at the end of the line, break it. */
+			if (i == 80) {
+				OS << nl << blank29;
+				i = 29;
+			}
+			OS << *c;
+		}
+		OS << nl;
 	}
 
 }
