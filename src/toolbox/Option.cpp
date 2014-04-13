@@ -61,8 +61,8 @@ void OptionParser::print_usage(OptionPrefix& root, FILE *fp) {
 	for(std::set<OptionEntry*>::iterator i = sorted.begin(), e = sorted.end();
 			i != e; ++i) {
 		OptionEntry& oe = **i;
-		std::size_t name_len = oe.size() + root.size();
-		OS << "    " << root.get_name() << oe.get_name();
+		OS << "    " << root.get_name();
+		std::size_t name_len = root.size() + oe.print(OS);
 		if (name_len < (25-1)) {
 			OS << (blank25 + name_len);
 		} else {
@@ -73,6 +73,17 @@ void OptionParser::print_usage(OptionPrefix& root, FILE *fp) {
 	}
 
 }
+
+std::size_t option_print(OptionEntry& option, OStream& OS) {
+	OS << option.get_name();
+	return option.size();
+}
+
+std::size_t option_print(OptionBase<bool>& option, OStream& OS) {
+	OS << '+' << option.get_name();
+	return option.size() + 1;
+}
+
 
 namespace {
 

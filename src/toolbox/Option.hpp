@@ -55,6 +55,7 @@
  */
 namespace cacao {
 
+class OStream;
 class OptionEntry;
 
 class OptionPrefix {
@@ -106,6 +107,7 @@ public:
 	const char* get_desc() const {
 		return desc;
 	}
+	virtual std::size_t print(OStream& OS) = 0;
 	virtual bool parse(const char* value, std::size_t value_len) = 0;
 private:
 	const char* name;
@@ -121,6 +123,8 @@ public:
 		: OptionEntry(name, desc, parent), value(value) {}
 	T get() { return value; }
 	operator T() { return get(); }
+
+	virtual std::size_t print(OStream& OS);
 protected:
 	void set_value(T v) {
 		value = v;
@@ -128,6 +132,15 @@ protected:
 private:
 	T value;
 };
+
+std::size_t option_print(OptionBase<bool>& option, OStream& OS);
+
+std::size_t option_print(OptionEntry& option, OStream& OS);
+
+template<class T>
+inline std::size_t OptionBase<T>::print(OStream& OS) {
+	return option_print(*this,OS);
+}
 
 template<class T>
 class Option : public OptionBase<T> {
