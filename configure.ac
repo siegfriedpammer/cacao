@@ -1,6 +1,6 @@
 dnl configure.ac
 dnl
-dnl Copyright (C) 1996-2013
+dnl Copyright (C) 1996-2014
 dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 dnl 
 dnl This file is part of CACAO.
@@ -749,9 +749,11 @@ AC_CONFIG_FILES([Makefile]
 		[contrib/setenvsource]
 		[contrib/warnings.ignore]
 		[doc/Makefile]
+		[doc/abc_optimization/Makefile]
 		[doc/doxygen/Makefile]
 		[doc/doxygen/Doxyfile]
 		[doc/handbook/Makefile]
+		[doc/intern_tables/Makefile]
 		[man/Makefile]
 		[src/Makefile]
 		[src/cacao/Makefile]
@@ -822,6 +824,7 @@ AC_CONFIG_FILES([Makefile]
 		[tests/compiler2/Makefile]
 		[tests/gtest/Makefile]
 		[tests/gtest/compiler2/Makefile]
+		[tests/jsr292/Makefile]
 		[tests/regression/Makefile]
 		[tests/regression/assertion/Makefile]
 		[tests/regression/base/Makefile]

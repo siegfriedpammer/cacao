@@ -1,4 +1,4 @@
-/* src/vm/jit/abi.hpp - common ABI defines
+/* tests/gtest/buffer_test.cpp - test the string Buffer class
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,47 +22,19 @@
 
 */
 
+#include "gtest/gtest.h"
 
-#ifndef ABI_HPP_
-#define ABI_HPP_ 1
+#include "toolbox/buffer.hpp"
 
-#include "config.h"
-#include "vm/types.hpp"
+using namespace cacao;
 
-#include "arch.hpp"
+TEST(Buffer, writef) {
+	Buffer<> buf(1); // buf must be resized by writef
 
-#include "vm/jit/abi-asm.hpp"
-#include "vm/jit/jit.hpp"
-#include "vm/jit/stack.hpp"
+	buf.writef("string %s", "babelfish (loooong)");
 
-
-/* ABI externs ****************************************************************/
-
-extern s4 nregdescint[];
-extern char *regs[];
-extern s4 nregdescfloat[];
-
-extern const char *abi_registers_integer_name[];
-extern const s4    abi_registers_integer_argument[];
-extern const s4    abi_registers_integer_saved[];
-extern const s4    abi_registers_integer_temporary[];
-
-extern const s4    abi_registers_float_argument[];
-extern const s4    abi_registers_float_saved[];
-extern const s4    abi_registers_float_temporary[];
-
-
-/* function prototypes ********************************************************/
-
-/* machine dependent descriptor function */
-void md_param_alloc(methoddesc *md);
-void md_param_alloc_native(methoddesc *md);
-
-/* machine dependent return value handling function */
-void md_return_alloc(jitdata *jd, stackelement_t *stackslot);
-
-#endif // ABI_HPP_
-
+	ASSERT_STREQ("string babelfish (loooong)", buf.c_str());
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.

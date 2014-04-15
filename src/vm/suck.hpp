@@ -31,6 +31,7 @@
 
 #include "toolbox/endianess.hpp"
 #include "vm/exceptions.hpp"
+#include "vm/loader.hpp"
 #include "vm/types.hpp"
 
 struct classinfo;
@@ -113,9 +114,11 @@ namespace cacao {
 		/// Free memory held by this classbuffer
 		void free();
 
-		inline classinfo     *get_class() { return clazz; }
-		inline const uint8_t *get_data()  { return pos;   }
-		inline const char    *get_path()  { return path;  }
+		classinfo     *get_class() const { return clazz; }
+		const uint8_t *get_data()  const { return pos;   }
+		const char    *get_path()  const { return path;  }
+
+		ClassFileVersion version() const;
 	private:
 		ClassBuffer(const ClassBuffer&);
 		ClassBuffer& operator=(const ClassBuffer&);

@@ -1,6 +1,6 @@
-/* src/threads/threadlist.cpp - thread list
+/* src/threads/threadlist.cpp - thread list maintenance
 
-   Copyright (C) 2008, 2009
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -38,21 +38,7 @@
 
 #include "vm/jit/stacktrace.hpp"
 
-
-/* class variables */
-
-Mutex               ThreadList::_mutex;                // a mutex for all thread lists
-
-List<threadobject*> ThreadList::_active_thread_list;   // list of active threads
-List<threadobject*> ThreadList::_free_thread_list;     // list of free threads
-
-int32_t             ThreadList::_number_of_started_java_threads;
-int32_t             ThreadList::_number_of_active_java_threads;
-int32_t             ThreadList::_peak_of_active_java_threads;
-int32_t             ThreadList::_number_of_non_daemon_threads;
-
-int32_t             ThreadList::_last_index = 0;
-
+ThreadList *ThreadList::the_threadlist = 0;
 
 /**
  * Dumps info for all threads running in the VM.  This function is

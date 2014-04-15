@@ -89,6 +89,7 @@ struct classinfo {                /* class structure                          */
 
 	s4          flags;            /* ACC flags                                */
 	Utf8String  name;             /* class name                               */
+	cacao::ClassFileVersion version;
 
 	s4          cpcount;          /* number of entries in constant pool       */
 	u1         *cptags;           /* constant pool tags                       */
@@ -175,6 +176,9 @@ struct innerclassinfo {
 *******************************************************************************/
 
 struct extra_classref {
+	extra_classref(extra_classref *next, classinfo *referer, Utf8String name)
+	 : next(next), classref(referer, name) {}
+
 	extra_classref    *next;
 	constant_classref  classref;
 };

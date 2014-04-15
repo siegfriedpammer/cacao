@@ -92,7 +92,7 @@ void ThreadRuntime::set_javathread_state(threadobject *t, int state)
 threadobject *ThreadRuntime::get_thread_from_object(java_handle_t *h)
 {
 	/* XXX This is just a quick hack. */
-	return ThreadList::get_thread_from_java_object(h);
+	return ThreadList::get()->get_thread_from_java_object(h);
 }
 
 void ThreadRuntime::thread_create_initial_threadgroups(java_handle_t **threadgroup_system, java_handle_t **threadgroup_main)

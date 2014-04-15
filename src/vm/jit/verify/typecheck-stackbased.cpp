@@ -518,7 +518,7 @@ static bool typecheck_stackbased_multianewarray(verifier_state *state,
 			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY dimension to high");
 
 		/* set the array type of the result */
-		if (!typeinfo_init_class(&(dst->typeinfo),CLASSREF_OR_CLASSINFO(cr)))
+		if (!typeinfo_init_class(&(dst->typeinfo),to_classref_or_classinfo(cr)))
 			return false;
 	}
 

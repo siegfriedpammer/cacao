@@ -437,19 +437,24 @@ Buffer<Allocator>& Buffer<Allocator>::writef(const char *fmt, ...)
 template<typename Allocator>
 Buffer<Allocator>& Buffer<Allocator>::writevf(const char *fmt, va_list ap)
 {
+	va_list ap2;
+	__va_copy(ap2, ap); // unfortunately va_copy is only exposed for C99/C++11 or later
+
 	size_t size    = _end - _pos;
 	size_t written = vsnprintf((char*) _pos, size, fmt, ap);
 
 	if (written > size) {
-		// buffer was too small
-		ensure_capacity(written);
+		// buffer was too small (+1 for zero byte)
+		ensure_capacity(written + 1);
 
 		size    = _end - _pos;
-		written = vsnprintf((char*) _pos, size, fmt, ap);
+		written = vsnprintf((char*) _pos, size, fmt, ap2);
 		assert(written <= size);
 	}
 
-	_pos   += written;
+	_pos += written;
+
+	va_end(ap2);
 
 	return *this;
 }

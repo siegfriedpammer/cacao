@@ -462,7 +462,7 @@ case ICMD_LOOKUPSWITCH:    /* {ALL} */
 case ICMD_ATHROW:
 	TYPECHECK_COUNT(stat_ins_athrow);
 	r = typeinfo_is_assignable_to_class(&OP1->typeinfo,
-			CLASSREF_OR_CLASSINFO(class_java_lang_Throwable));
+			to_classref_or_classinfo(class_java_lang_Throwable));
 	if (r == typecheck_FALSE)
 		VERIFY_ERROR("illegal instruction: ATHROW on non-Throwable");
 	if (r == typecheck_FAIL)

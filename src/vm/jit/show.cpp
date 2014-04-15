@@ -211,7 +211,7 @@ void show_method(jitdata *jd, int stage)
 			printf("L%03d", ex->handler->nr);
 			printf("  (catchtype: ");
 			if (ex->catchtype.any)
-				if (IS_CLASSREF(ex->catchtype))
+				if (ex->catchtype.is_classref())
 					class_classref_print(ex->catchtype.ref);
 				else
 					class_print(ex->catchtype.cls);
@@ -220,7 +220,7 @@ void show_method(jitdata *jd, int stage)
 			printf(")\n");
 		}
 	}
-	
+
 	if (irstage >= SHOW_PARSE && rd && jd->localcount > 0) {
 		printf("Local Table:\n");
 		for (i = 0; i < jd->localcount; i++) {
@@ -724,7 +724,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 
 #define SHOW_CLASSREF_OR_CLASSINFO(c)                                \
         if (stage >= SHOW_PARSE) {                                   \
-            if (IS_CLASSREF(c))                                      \
+            if (c.is_classref())                                     \
                 class_classref_print(c.ref);                         \
             else                                                     \
                 class_print(c.cls);                                  \

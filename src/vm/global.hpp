@@ -180,6 +180,9 @@ enum ConstantPoolTag {
 	CONSTANT_Double             =  6,
 	CONSTANT_NameAndType        = 12,
 	CONSTANT_Utf8               =  1,
+	CONSTANT_MethodHandle 	    = 15,
+	CONSTANT_MethodType 	    = 16,
+	CONSTANT_InvokeDynamic 	    = 18,
 
 	CONSTANT_UNUSED             =  0
 };

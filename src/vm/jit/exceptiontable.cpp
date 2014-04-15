@@ -1,6 +1,6 @@
 /* src/vm/jit/exceptiontable.c - method exception table
 
-   Copyright (C) 2007
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -177,7 +177,7 @@ void exceptiontable_print(codeinfo *code)
 				  i, ete->startpc, ete->endpc, ete->handlerpc, ete->catchtype.any);
 
 		if (ete->catchtype.any != NULL)
-			if (IS_CLASSREF(ete->catchtype))
+			if (ete->catchtype.is_classref())
 				class_classref_print(ete->catchtype.ref);
 			else
 				class_print(ete->catchtype.cls);

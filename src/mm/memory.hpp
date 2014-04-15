@@ -196,6 +196,13 @@ public:
 	}
 };
 
+/// Allow operator new to allocate with mem_alloc
+enum MemAllocPlacement { MemAlloc };
+
+inline void *operator new(size_t size, MemAllocPlacement) {
+	return mem_alloc(size);
+}
+
 #endif // MEMORY_HPP_
 
 

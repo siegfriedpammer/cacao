@@ -1,6 +1,6 @@
-/* src/vm/jit/abi.hpp - common ABI defines
+/* tests/gtest/classfileversion_test.cpp - test the string ClassFileVersion class
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -22,47 +22,25 @@
 
 */
 
+#include "gtest/gtest.h"
 
-#ifndef ABI_HPP_
-#define ABI_HPP_ 1
+#include "vm/loader.hpp"
 
-#include "config.h"
-#include "vm/types.hpp"
+using namespace cacao;
 
-#include "arch.hpp"
+TEST(ClassFileVersion, lt) {
+	ClassFileVersion jdk1(45, 3);
+	ClassFileVersion jdk6(50, 0);
+	ClassFileVersion jdk7(51, 0);
 
-#include "vm/jit/abi-asm.hpp"
-#include "vm/jit/jit.hpp"
-#include "vm/jit/stack.hpp"
+	ASSERT_LT(jdk1, jdk6);
+	ASSERT_LT(jdk1, jdk7);
+	ASSERT_LT(jdk6, jdk7);
 
-
-/* ABI externs ****************************************************************/
-
-extern s4 nregdescint[];
-extern char *regs[];
-extern s4 nregdescfloat[];
-
-extern const char *abi_registers_integer_name[];
-extern const s4    abi_registers_integer_argument[];
-extern const s4    abi_registers_integer_saved[];
-extern const s4    abi_registers_integer_temporary[];
-
-extern const s4    abi_registers_float_argument[];
-extern const s4    abi_registers_float_saved[];
-extern const s4    abi_registers_float_temporary[];
-
-
-/* function prototypes ********************************************************/
-
-/* machine dependent descriptor function */
-void md_param_alloc(methoddesc *md);
-void md_param_alloc_native(methoddesc *md);
-
-/* machine dependent return value handling function */
-void md_return_alloc(jitdata *jd, stackelement_t *stackslot);
-
-#endif // ABI_HPP_
-
+	ASSERT_FALSE(jdk6 < jdk1);
+	ASSERT_FALSE(jdk7 < jdk1);
+	ASSERT_FALSE(jdk7 < jdk6);
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.
