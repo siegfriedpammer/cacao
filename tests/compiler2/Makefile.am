@@ -69,7 +69,12 @@ OUTPUT_JAVA_TESTS = \
 	Test.testParameterLong \
 	Test.testParameterLong2 \
 	Test.testParameterLong3 \
-	Test.testParameterDouble
+	Test.testParameterDouble \
+	Test.idiv \
+	Test.ldiv \
+	Test.imod \
+	Test.lmod
+	
 
 check: build run
 

@@ -629,6 +629,26 @@ static int ineg(int x) {
   return -x;
 }
 
+static int idiv(int x, int y) {
+	return x / y;
+}
+
+static long ldiv (long x, long y) {
+	return x / y;
+}
+
+static int imod(int x, int y) {
+	return x % y;
+}
+
+static long lmod(long x, long y) {
+	return x / y;
+}
+
+static double dmod(double x, double y) {
+	return x % y;
+}
+
 static int test_double_cmp(double a, double b) {
     if (a < b)
         return -1;

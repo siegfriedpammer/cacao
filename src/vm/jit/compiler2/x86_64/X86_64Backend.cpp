@@ -472,68 +472,85 @@ void LoweringVisitor::visit(MULInst *I) {
 
 void LoweringVisitor::visit(DIVInst *I) {
 	assert(I);
-	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
+	MachineOperand* result;
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
 	Type::TypeID type = I->get_type();
+	GPInstruction::OperandSize opsize = get_OperandSize_from_Type(type);
 
-	VirtualRegister *dst = new VirtualRegister(type);
-	MachineInstruction *mov = get_Backend()->create_Move(src_op1, dst);
 	MachineInstruction *alu = NULL;
+	MachineOperand *dividendLower;
+	MachineOperand *nativeUpper;
+	MachineInstruction *convertToQuadword;
 
 	switch (type) {
-	#if 0
+
 	case Type::ByteTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
+
+		dividendLower = get_op(I->get_operand(0)->to_Instruction());
+		nativeUpper = new NativeRegister(type, &RDX);
+		convertToQuadword = new CDQInst(Src1Op(nativeUpper), Src2Op(dividendLower), opsize);
+		result = new NativeRegister(type, &RAX);
+		get_current()->push_back(get_Backend()->create_Move(dividendLower, result));
+		get_current()->push_back(convertToQuadword);
+		alu = new IDivInst(Src2Op(src_op2), DstSrcOp(result), DstOp(nativeUpper), opsize);
 		break;
-	#endif
 	case Type::DoubleTypeID:
+		result = get_op(I->get_operand(0)->to_Instruction());
 		alu = new DivSDInst(
 			Src2Op(src_op2),
-			DstSrc1Op(dst));
+			DstSrc1Op(result));
 		break;
 	default:
 		ABORT_MSG("x86_64: Lowering not supported",
 			"Inst: " << I << " type: " << type);
 	}
-	get_current()->push_back(mov);
+
 	get_current()->push_back(alu);
 	set_op(I,alu->get_result().op);
 }
 
 void LoweringVisitor::visit(REMInst *I) {
 	assert(I);
-	//MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
-	//MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
-	Type::TypeID type = I->get_type();
 
-	#if 0
-	VirtualRegister *dst = new VirtualRegister(type);
-	MachineInstruction *mov = get_Backend()->create_Move(src_op1, dst);
-	MachineInstruction *alu;
+	MachineOperand* nativeLower;
+	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
+	Type::TypeID type = I->get_type();
+	GPInstruction::OperandSize opsize = get_OperandSize_from_Type(type);
+	MachineOperand *dividendLower = get_op(I->get_operand(0)->to_Instruction());;
+
+	MachineInstruction *alu = NULL;
+	MachineOperand *nativeUpper;
+	MachineInstruction *convertToQuadword;
+
+	VirtualRegister *temp;
 
 	switch (type) {
-	#if 0
 	case Type::ByteTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
+		nativeUpper = new NativeRegister(type, &RDX);
+		convertToQuadword = new CDQInst(Src1Op(nativeUpper), Src2Op(dividendLower), opsize);
+		nativeLower = new NativeRegister(type, &RAX);
+		get_current()->push_back(get_Backend()->create_Move(dividendLower, nativeLower));
+		get_current()->push_back(convertToQuadword);
+		alu = new IDivInst(Src2Op(src_op2), DstSrcOp(nativeUpper), DstOp(nativeLower), opsize);
 		break;
-	#endif
 	case Type::DoubleTypeID:
-		alu = new DivSDInst(
-			Src2Op(src_op2),
-			DstSrc1Op(dst));
+		temp = new VirtualRegister(type);
+		get_current()->push_back(get_Backend()->create_Move(dividendLower, temp));
+		get_current()->push_back(new DivSDInst(Src2Op(src_op2), DstSrc1Op(temp)));
+		get_current()->push_back(new MulSDInst(Src2Op(src_op2), DstSrc1Op(temp)));
+		alu = new SubSDInst(Src2Op(dividendLower), DstSrc1Op(temp));
 		break;
 	default:
 		ABORT_MSG("x86_64: Lowering not supported",
 			"Inst: " << I << " type: " << type);
 	}
-	get_current()->push_back(mov);
+
 	get_current()->push_back(alu);
 	set_op(I,alu->get_result().op);
-	#endif
-		ABORT_MSG("x86_64: Lowering not supported",
-			"Inst: " << I << " type: " << type);
 }
 
 void LoweringVisitor::visit(ALOADInst *I) {

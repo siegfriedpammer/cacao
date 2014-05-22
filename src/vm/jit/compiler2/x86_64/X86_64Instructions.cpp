@@ -974,6 +974,18 @@ void IMulInst::emit(CodeMemory* CM) const {
 	InstructionEncoding::reg2reg<u2>(CM, 0x0faf, dst_reg, src_reg);
 }
 
+void IDivInst::emit(CodeMemory *CM) const {
+	CodeFragment code = CM->get_CodeFragment(2);
+	X86_64Register *divisor = cast_to<X86_64Register>(operands[1].op);
+	code[0] = 0xf7;
+	code[1] = get_modrm_1reg(7, divisor);
+}
+
+void CDQInst::emit(CodeMemory *CM) const {
+	CodeFragment code = CM->get_CodeFragment(1);
+	code[0] = 0x99;
+}
+
 #if 0
 /**
  * @todo create custom wrapper classes for the opcodes

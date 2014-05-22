@@ -400,6 +400,33 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
+class IDivInst: public GPInstruction {
+public:
+	/**
+	 * The destination operands are only used to guide
+	 * the register allocator. The user must ensure that the values
+	 * are moved to the desired destination registers afterwards (e.g. by inserting a move)
+	 */
+	IDivInst(const Src2Op &src2, const DstSrcOp &dstsrc1, const DstOp &dst2, OperandSize op_size) :
+			GPInstruction("X86_64IDivInst", dstsrc1.op, op_size, 3) {
+		operands[0].op = dstsrc1.op;
+		operands[1].op = src2.op;
+		operands[2].op = dst2.op;
+
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class CDQInst : public GPInstruction {
+public:
+	CDQInst(const Src1Op &src1, const Src2Op &src2, OperandSize op_size) : GPInstruction("X86_64CDQInst", &NoOperand, NO_SIZE, 2) {
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
+	}
+
+	virtual void emit(CodeMemory* CM) const;
+};
+
 class RetInst : public GPInstruction {
 public:
 	/// void return
