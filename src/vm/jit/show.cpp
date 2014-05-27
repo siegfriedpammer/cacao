@@ -1,6 +1,6 @@
 /* src/vm/jit/show.cpp - showing the intermediate representation
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -25,6 +25,7 @@
 #include "vm/jit/show.hpp"
 #include <assert.h>                     // for assert
 #include <stdint.h>                     // for int32_t
+#include <inttypes.h>                   // for printf formatting macros
 #include <stdio.h>                      // for printf, putchar, fflush
 #include "codegen-common.hpp"           // for codegendata
 #include "config.h"                     // for ENABLE_DEBUG_FILTER, etc
@@ -645,30 +646,22 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
             printf("iconst ");                                       \
         }
 
-#if SIZEOF_VOID_P == 4
 #define SHOW_LNG_CONST(val)                                          \
         if (stage >= SHOW_PARSE)                                     \
-            printf("%lld (0x%016llx) ", (val), (val));               \
+            printf("%" PRId64 " (0x%016" PRIx64 ") ", (val), (val)); \
         else                                                         \
             printf("lconst ");
-#else
-#define SHOW_LNG_CONST(val)                                          \
-        if (stage >= SHOW_PARSE)                                     \
-            printf("%ld (0x%016lx) ", (val), (val));                 \
-        else                                                         \
-            printf("lconst ");
-#endif
 
 #if SIZEOF_VOID_P == 4
 #define SHOW_ADR_CONST(val)                                          \
         if (stage >= SHOW_PARSE)                                     \
-            printf("0x%08x ", (ptrint) (val));                       \
+            printf("0x%08" PRIxPTR " ", (ptrint) (val));             \
         else                                                         \
             printf("aconst ");
 #else
 #define SHOW_ADR_CONST(val)                                          \
         if (stage >= SHOW_PARSE)                                     \
-            printf("0x%016lx ", (ptrint) (val));                     \
+            printf("0x%016" PRIxPTR " ", (ptrint) (val));            \
         else                                                         \
             printf("aconst ");
 #endif
@@ -683,25 +676,14 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
             printf("fconst ");                                       \
         }
 
-#if SIZEOF_VOID_P == 4
 #define SHOW_DBL_CONST(val)                                          \
         if (stage >= SHOW_PARSE) {                                   \
             imm_union v;                                             \
             v.d = (val);                                             \
-            printf("%g (0x%016llx) ", (val), v.l);                   \
+            printf("%g (0x%016" PRIx64 ") ", (val), v.l);            \
         }                                                            \
         else                                                         \
             printf("dconst ");
-#else
-#define SHOW_DBL_CONST(val)                                          \
-        if (stage >= SHOW_PARSE) {                                   \
-            imm_union v;                                             \
-            v.d = (val);                                             \
-            printf("%g (0x%016lx) ", (val), v.l);                    \
-        }                                                            \
-        else                                                         \
-            printf("dconst ");
-#endif
 
 #define SHOW_INDEX(index)                                            \
         if (stage >= SHOW_PARSE) {                                   \

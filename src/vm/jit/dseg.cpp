@@ -1,6 +1,6 @@
-/* src/vm/jit/dseg.c - data segment handling stuff
+/* src/vm/jit/dseg.cpp - data segment handling stuff
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -25,6 +25,7 @@
 #include "vm/jit/dseg.hpp"
 #include <assert.h>                     // for assert
 #include <stdio.h>                      // for printf
+#include <inttypes.h>                   // for printf formatting macros
 #include "config.h"                     // for SIZEOF_VOID_P
 #include "mm/dumpmemory.hpp"            // for DNEW
 #include "vm/jit/code.hpp"              // for codeinfo
@@ -650,9 +651,9 @@ void dseg_display(jitdata *jd)
 
 	for (de = cd->dseg; de != NULL; de = de->next) {
 #if SIZEOF_VOID_P == 8
-		printf("0x%016lx:", (ptrint) (code->entrypoint + de->disp));
+		printf("0x%016" PRIxPTR ":", (ptrint) (code->entrypoint + de->disp));
 #else
-		printf("0x%08x:", (ptrint) (code->entrypoint + de->disp));
+		printf("0x%08" PRIxPTR ":", (ptrint) (code->entrypoint + de->disp));
 #endif
 
 		printf("    %6x (%6d): ", de->disp, de->disp);
@@ -693,9 +694,9 @@ void dseg_display(jitdata *jd)
 		case TYPE_ADR:
 			val.a = *((void **) (code->entrypoint + de->disp));
 #if SIZEOF_VOID_P == 8
-			printf("(ADR) %016lx", (ptrint) val.a);
+			printf("(ADR) %016" PRIxPTR, (ptrint) val.a);
 #else
-			printf("(ADR) %08x", (ptrint) val.a);
+			printf("(ADR) %08" PRIxPTR, (ptrint) val.a);
 #endif
 			break;
 		}
@@ -705,9 +706,9 @@ void dseg_display(jitdata *jd)
 
 	printf("  --- begin of data segment: ");
 #if SIZEOF_VOID_P == 8
-	printf("0x%016lx\n", (ptrint) code->entrypoint);
+	printf("0x%016" PRIxPTR "\n", (ptrint) code->entrypoint);
 #else
-	printf("0x%08x\n", (ptrint) code->entrypoint);
+	printf("0x%08" PRIxPTR "\n", (ptrint) code->entrypoint);
 #endif
 
 	if (opt_debugcolor)
