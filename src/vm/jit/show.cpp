@@ -652,19 +652,11 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
         else                                                         \
             printf("lconst ");
 
-#if SIZEOF_VOID_P == 4
 #define SHOW_ADR_CONST(val)                                          \
         if (stage >= SHOW_PARSE)                                     \
-            printf("0x%08" PRIxPTR " ", (ptrint) (val));             \
+            printf("0x%" PRINTF_INTPTR_NUM_HEXDIGITS PRIxPTR " ", (ptrint) (val));             \
         else                                                         \
             printf("aconst ");
-#else
-#define SHOW_ADR_CONST(val)                                          \
-        if (stage >= SHOW_PARSE)                                     \
-            printf("0x%016" PRIxPTR " ", (ptrint) (val));            \
-        else                                                         \
-            printf("aconst ");
-#endif
 
 #define SHOW_FLT_CONST(val)                                          \
         if (stage >= SHOW_PARSE) {                                   \

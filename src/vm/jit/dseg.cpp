@@ -650,11 +650,7 @@ void dseg_display(jitdata *jd)
 	/* process all data segment entries */
 
 	for (de = cd->dseg; de != NULL; de = de->next) {
-#if SIZEOF_VOID_P == 8
-		printf("0x%016" PRIxPTR ":", (ptrint) (code->entrypoint + de->disp));
-#else
-		printf("0x%08" PRIxPTR ":", (ptrint) (code->entrypoint + de->disp));
-#endif
+		printf("0x%0" PRINTF_INTPTR_NUM_HEXDIGITS PRIxPTR ":", (ptrint) (code->entrypoint + de->disp));
 
 		printf("    %6x (%6d): ", de->disp, de->disp);
 
@@ -670,11 +666,8 @@ void dseg_display(jitdata *jd)
 
 		case TYPE_LNG:
 			val.l = *((s8 *) (code->entrypoint + de->disp));
-#if SIZEOF_VOID_P == 8
-			printf("(LNG) %ld (0x%016lx)", val.l, val.l);
-#else
-			printf("(LNG) %lld (0x%016llx)", val.l, val.l);
-#endif
+			printf("(LNG) %" PRId64 " (0x%0" PRINTF_INTPTR_NUM_HEXDIGITS PRIx64 ")",
+				   val.l, val.l);
 			break;
 
 		case TYPE_FLT:
@@ -684,20 +677,12 @@ void dseg_display(jitdata *jd)
 
 		case TYPE_DBL:
 			val.d = *((double *) (code->entrypoint + de->disp));
-#if SIZEOF_VOID_P == 8
-			printf("(DBL) %g (0x%016lx)", val.d, val.l);
-#else
-			printf("(DBL) %g (0x%016llx)", val.d, val.l);
-#endif
+			printf("(DBL) %g (0x%016" PRIx64 ")", val.d, val.l);
 			break;
 
 		case TYPE_ADR:
 			val.a = *((void **) (code->entrypoint + de->disp));
-#if SIZEOF_VOID_P == 8
-			printf("(ADR) %016" PRIxPTR, (ptrint) val.a);
-#else
-			printf("(ADR) %08" PRIxPTR, (ptrint) val.a);
-#endif
+			printf("(ADR) %0" PRINTF_INTPTR_NUM_HEXDIGITS PRIxPTR, (ptrint) val.a);
 			break;
 		}
 
@@ -705,11 +690,7 @@ void dseg_display(jitdata *jd)
 	}
 
 	printf("  --- begin of data segment: ");
-#if SIZEOF_VOID_P == 8
-	printf("0x%016" PRIxPTR "\n", (ptrint) code->entrypoint);
-#else
-	printf("0x%08" PRIxPTR "\n", (ptrint) code->entrypoint);
-#endif
+	printf("0x%0" PRINTF_INTPTR_NUM_HEXDIGITS PRIxPTR "\n", (ptrint) code->entrypoint);
 
 	if (opt_debugcolor)
 		printf("\033[m");
