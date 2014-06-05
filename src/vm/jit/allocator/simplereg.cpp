@@ -24,7 +24,6 @@
 */
 
 
-#include "vm/jit/allocator/simplereg.hpp"
 #include "config.h"
 
 #include <cassert>
@@ -44,6 +43,7 @@
 #include "vm/options.hpp"
 #include "vm/resolve.hpp"
 
+#include "vm/jit/allocator/simplereg.hpp"
 #include "vm/jit/abi.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/jit/code.hpp"
