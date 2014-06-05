@@ -253,7 +253,7 @@ void show_method(jitdata *jd, int stage)
 		for (i = 0; i < 5; i++) {
 			printf("    %5s ",show_jit_type_names[i]);
 			for (j = 0; j < jd->maxlocals; j++) {
-				if (jd->local_map[j*5+i] == UNUSED)
+				if (jd->local_map[j*5+i] == jitdata::UNUSED)
 					printf("  -- ");
 				else
 					printf("%4i ",jd->local_map[j*5+i]);
@@ -269,7 +269,7 @@ void show_method(jitdata *jd, int stage)
 		
 		/* look if there exist any INOUTS */
 		for (i = 0; (i < (5 * jd->maxinterfaces)) && !exist; i++, mapptr++)
-			exist = (mapptr->flags != UNUSED);
+			exist = (mapptr->flags != jitdata::UNUSED);
 
 		if (exist) {
 			printf("Interface Table: (In/Outvars)\n");
@@ -284,7 +284,7 @@ void show_method(jitdata *jd, int stage)
 				for (j = 0; j < jd->maxinterfaces; j++) {
 					s4 flags  = jd->interface_map[j*5+i].flags;
 					s4 regoff = jd->interface_map[j*5+i].regoff;
-					if (flags == UNUSED)
+					if (flags == jitdata::UNUSED)
 						printf("  --      ");
 					else {
 						int ch;
@@ -888,7 +888,7 @@ static void show_variable_array_intern(jitdata *jd, s4 *vars, int n, int stage,
 		if (i)
 			putchar(' ');
 		if (vars[i] < 0) {
-			if (vars[i] == UNUSED)
+			if (vars[i] == jitdata::UNUSED)
 				putchar('-');
 			else if (javalocals) {
 				nr = RETADDR_FROM_JAVALOCAL(vars[i]);
@@ -1190,7 +1190,7 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 	case ICMD_ASTORE:
 		SHOW_S1(iptr);
 		SHOW_DST_LOCAL(iptr);
-		if (stage >= SHOW_STACK && iptr->sx.s23.s3.javaindex != UNUSED)
+		if (stage >= SHOW_STACK && iptr->sx.s23.s3.javaindex != jitdata::UNUSED)
 			printf(" (javaindex %d)", iptr->sx.s23.s3.javaindex);
 		if (iptr->flags.bits & INS_FLAG_RETADDR) {
 			printf(" (retaddr L%03d)", RETADDR_FROM_JAVALOCAL(iptr->sx.s23.s2.retaddrnr));

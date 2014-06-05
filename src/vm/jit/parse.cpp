@@ -2102,7 +2102,7 @@ fetch_opcode:
 			if (*mapptr)
 				*mapptr = nlocals++;
 			else
-				*mapptr = UNUSED;
+				*mapptr = jitdata::UNUSED;
 		}
 
 		jd->localcount = nlocals;
@@ -2143,7 +2143,7 @@ fetch_opcode:
 		for (s4 i = 0; i < m->maxlocals; i++)
 			for (s4 t=0; t<5; t++) {
 				varindex = local_map[5*i + t];
-				if (varindex != UNUSED) {
+				if (varindex != jitdata::UNUSED) {
 					VAR(varindex)->type = (Type) t;
 					reversemap[varindex] = i;
 				}

@@ -412,8 +412,8 @@ struct basicblock {
 /*                      javalocals[javaindex] == JAVALOCAL_FROM_RETADDR(nr)   */
 /*                      RETADDR_FROM_JAVALOCAL(javalocals[javaindex]) == nr   */
 
-#define JAVALOCAL_FROM_RETADDR(nr)  (UNUSED - (1 + (nr)))
-#define RETADDR_FROM_JAVALOCAL(jl)  (UNUSED - (1 + (jl)))
+#define JAVALOCAL_FROM_RETADDR(nr)  (jitdata::UNUSED - (1 + (nr)))
+#define RETADDR_FROM_JAVALOCAL(jl)  (jitdata::UNUSED - (1 + (jl)))
 
 
 /* Macro for initializing newly allocated basic block's. It does not

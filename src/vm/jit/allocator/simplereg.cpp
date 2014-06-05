@@ -335,7 +335,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 		saved = 0;
 
 		for (tt = 0; tt <=4; tt++) {
-			if ((t = jd->interface_map[s * 5 + tt].flags) != UNUSED) {
+			if ((t = jd->interface_map[s * 5 + tt].flags) != jitdata::UNUSED) {
 				saved |= t & SAVEDVAR;
 			}
 		}
@@ -344,7 +344,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 
 		for (tt = 0; tt <= 4; tt++) {
 			t = typeloop[tt];
-			if (jd->interface_map[s * 5 + t].flags == UNUSED)
+			if (jd->interface_map[s * 5 + t].flags == jitdata::UNUSED)
 				continue;
 
 			flags = saved;
@@ -519,7 +519,7 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 		for (tt = 0; tt <= 4; tt++) {
 			t = typeloop[tt];
 			varindex = jd->local_map[s * 5 + t];
-			if (varindex == UNUSED)
+			if (varindex == jitdata::UNUSED)
 				continue;
 
 			v = VAR(varindex);
@@ -668,7 +668,7 @@ static void simplereg_allocate_locals(jitdata *jd)
 			t = typeloop[tt];
 
 			varindex = jd->local_map[s * 5 + t];
-			if (varindex == UNUSED)
+			if (varindex == jitdata::UNUSED)
 				continue;
 
 			v = VAR(varindex);

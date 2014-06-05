@@ -1,4 +1,4 @@
-/* src/vm/optimizing/ssa2.c
+/* src/vm/optimizing/ssa2.cpp
 
    Copyright (C) 2008-2013
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
@@ -465,7 +465,7 @@ static void ssa_export(ssa_info *ssa) {
 		for (j = 0; j < 5; ++j) {
 			varindex = jd->localcount + i;
 			if (jd->var[varindex].type != j) {
-				varindex = UNUSED;
+				varindex = jitdata::UNUSED;
 			}
 			jd->local_map[((jd->maxlocals + i) * 5) + j] = varindex;
 		}

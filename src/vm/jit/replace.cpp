@@ -206,7 +206,7 @@ static void replace_create_replacement_point(jitdata *jd,
 	if (javalocals) {
 		for (i = 0; i < rp->method->maxlocals; ++i) {
 			index = javalocals[i];
-			if (index == UNUSED)
+			if (index == jitdata::UNUSED)
 				continue;
 
 			ra->index = i;
@@ -289,7 +289,7 @@ static insinfo_inline * replace_create_inline_start_replacement_point(
 			calleeinfo->stackvars, calleeinfo->stackvarscount,
 			calleeinfo->paramcount);
 
-	if (calleeinfo->synclocal != UNUSED) {
+	if (calleeinfo->synclocal != jitdata::UNUSED) {
 		ra = (*pra)++;
 		ra->index  = RPLALLOC_SYNC;
 		ra->regoff = jd->var[calleeinfo->synclocal].vv.regoff;
@@ -327,7 +327,7 @@ static insinfo_inline * replace_create_inline_start_replacement_point(
 #define CLEAR_javalocals(array, method)                              \
     do {                                                             \
         for (i=0; i<(method)->maxlocals; ++i)                        \
-            (array)[i] = UNUSED;                                     \
+            (array)[i] = jitdata::UNUSED;                                     \
     } while (0)
 
 #define COPY_OR_CLEAR_javalocals(dest, array, method)                \
@@ -341,7 +341,7 @@ static insinfo_inline * replace_create_inline_start_replacement_point(
 #define COUNT_javalocals(array, method, counter)                     \
     do {                                                             \
         for (i=0; i<(method)->maxlocals; ++i)                        \
-            if ((array)[i] != UNUSED)                                \
+            if ((array)[i] != jitdata::UNUSED)                                \
 				(counter)++;                                         \
     } while (0)
 
@@ -481,7 +481,7 @@ bool replace_create_replacement_points(jitdata *jd)
 					count++;
 					COUNT_javalocals(javalocals, m, alloccount);
 					alloccount += iinfo->stackvarscount;
-					if (iinfo->synclocal != UNUSED)
+					if (iinfo->synclocal != jitdata::UNUSED)
 						alloccount++;
 
 					m = iinfo->method;

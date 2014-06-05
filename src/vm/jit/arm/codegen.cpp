@@ -132,7 +132,7 @@ void codegen_emit_prolog(jitdata* jd)
 
 		len += (IS_2_WORD_TYPE(t)) ? 2 : 1;          /* 2 word type arguments */
 
-		if (varindex == UNUSED)
+		if (varindex == jitdata::UNUSED)
 			continue;
 
 		var = VAR(varindex);

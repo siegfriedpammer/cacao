@@ -1,4 +1,4 @@
-/* src/vm/jit/optimizing/ssa.c - static single-assignment form
+/* src/vm/jit/optimizing/ssa.cpp - static single-assignment form
 
    Copyright (C) 2005-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -324,7 +324,7 @@ void ssa_init(jitdata *jd) {
 
 	for(p = 0; p < jd->varcount; p++) {
 		ls->num_defs[p] = 0;
-		ls->new_varindex[p] = UNUSED;
+		ls->new_varindex[p] = jitdata::UNUSED;
 	}
 
 	/* init Var Definition bitvectors */
@@ -349,7 +349,7 @@ void ssa_init(jitdata *jd) {
  		l++;
  		if (IS_2_WORD_TYPE(t))    /* increment local counter a second time  */
  			l++;                  /* for 2 word types */
-		if (i == UNUSED)
+		if (i == jitdata::UNUSED)
 			continue;
 		ssa_set_local_def(ls, -1, i);
 	}
@@ -360,7 +360,7 @@ void ssa_init(jitdata *jd) {
 
 	interface_map = DMNEW(s4, jd->stackcount * 5);
 	for(i = 0; i < jd->stackcount * 5; i++)
-		interface_map[i] = UNUSED;
+		interface_map[i] = jitdata::UNUSED;
 
 	bptr = jd->basicblocks;
 
@@ -388,7 +388,7 @@ void ssa_init(jitdata *jd) {
 				/* Look for definitions (iptr->dst). INVOKE and BUILTIN have */
 				/* an optional dst - so they to be checked first */
 
-				v = UNUSED;
+				v = jitdata::UNUSED;
 				if (icmd_table[iptr->opc].dataflow == DF_INVOKE) {
 						INSTRUCTION_GET_METHODDESC(iptr,md);
 						if (md->returntype.type != TYPE_VOID)
@@ -404,7 +404,7 @@ void ssa_init(jitdata *jd) {
  					v = iptr->dst.varindex;
 				}
 
-				if (v != UNUSED) {
+				if (v != jitdata::UNUSED) {
 					if (( v < jd->localcount) || ( VAR(v)->flags & INOUT )) {
 
 				  /* !IS_TEMPVAR && !IS_PREALLOC == (IS_LOCALVAR || IS_INOUT) */
@@ -470,7 +470,7 @@ ls->var_def
 
 void ssa_set_local_def(lsradata *ls, int b_index, int varindex) {
 
-	if (ls->new_varindex[varindex] == UNUSED) {
+	if (ls->new_varindex[varindex] == jitdata::UNUSED) {
 		ls->new_varindex[varindex] = ls->ssavarcount++;
 	}
 
@@ -500,7 +500,7 @@ ls->var_def
 ******************************************************************************/
 
 void ssa_set_iovar(lsradata *ls, s4 iovar, int map_index, s4 *interface_map) {
-		if (interface_map[map_index] == UNUSED)
+		if (interface_map[map_index] == jitdata::UNUSED)
 			interface_map[map_index] = ls->ssavarcount++;
 
 		ls->new_varindex[iovar] = interface_map[map_index];
@@ -670,7 +670,7 @@ void dead_code_elimination(jitdata *jd, graphdata *gd) {
 		/* put all lifetimes into Worklist W */
 
 		for(a = 0; a < ls->lifetimecount; a++) {
-			if (ls->lifetime[a].type != UNUSED) {
+			if (ls->lifetime[a].type != jitdata::UNUSED) {
 				wl_add(W, a);
 			}
 		}
@@ -685,7 +685,7 @@ void dead_code_elimination(jitdata *jd, graphdata *gd) {
 		a = wl_get(W);
 
 		lt = &(ls->lifetime[a]);
-		if ((lt->def == NULL) || (lt->type == UNUSED))
+		if ((lt->def == NULL) || (lt->type == jitdata::UNUSED))
 
 			/* lifetime was already removed -> no defs anymore */
 
@@ -737,7 +737,7 @@ void dead_code_elimination(jitdata *jd, graphdata *gd) {
 						ls->phi[lt->def->b_index][-lt->def->iindex-1][i];
 					if ((source != ls->varcount_with_indices) &&
 						(source != lt->v_index) &&
-						(source != UNUSED)) {
+						(source != jitdata::UNUSED)) {
 
 						/* phi Argument was not already removed (already in
 						   because of "selfdefinition") */
@@ -859,8 +859,8 @@ void dead_code_elimination(jitdata *jd, graphdata *gd) {
 			if (compileverbose)
 				printf("dce: var %3i removed\n", lt->v_index);
 #endif
-			VAR(lt->v_index)->type = (Type) UNUSED;
-			lt->type = (Type) UNUSED;
+			VAR(lt->v_index)->type = (Type) jitdata::UNUSED;
+			lt->type = (Type) jitdata::UNUSED;
 			lt->def = NULL;
 /* 			jd->var */
 		} /* if (lt->use == NULL) */
@@ -894,7 +894,7 @@ void copy_propagation(jitdata *jd, graphdata *gd) {
 	if (ls->lifetimecount > 0) {
 		/* put all lifetimes on Worklist */
 		for(a = 0; a < ls->lifetimecount; a++) {
-			if (ls->lifetime[a].type != UNUSED) {
+			if (ls->lifetime[a].type != jitdata::UNUSED) {
 				wl_add(W, a);
 			}
 		}
@@ -905,7 +905,7 @@ void copy_propagation(jitdata *jd, graphdata *gd) {
 		a = wl_get(W);
 
 		lt = ls->lifetime + a;
-		if (lt->type == UNUSED)
+		if (lt->type == jitdata::UNUSED)
 			continue;
 		_SSA_ASSERT(lt->def != NULL);
 #if 0
@@ -924,7 +924,7 @@ void copy_propagation(jitdata *jd, graphdata *gd) {
 				 i++) {
 					source = ls->phi[lt->def->b_index][-lt->def->iindex-1][i];
 					if ((source != ls->varcount_with_indices) &&
-						(source != UNUSED)) {
+						(source != jitdata::UNUSED)) {
 						if (only_source == ls->varcount_with_indices) {
 
 							/* first valid source argument of phi function */
@@ -972,8 +972,8 @@ void copy_propagation(jitdata *jd, graphdata *gd) {
 
 				/* invalidate lt */
 
-				lt->type = (Type) UNUSED;
-				VAR(lt->v_index)->type = (Type) UNUSED;
+				lt->type = (Type) jitdata::UNUSED;
+				VAR(lt->v_index)->type = (Type) jitdata::UNUSED;
 
 				/* add s_lt again to Worklist W */
 
@@ -1051,8 +1051,8 @@ void copy_propagation(jitdata *jd, graphdata *gd) {
 
 				/* invalidate lt */
 
-				lt->type = (Type) UNUSED;
-				VAR(lt->v_index)->type = (Type) UNUSED;
+				lt->type = (Type) jitdata::UNUSED;
+				VAR(lt->v_index)->type = (Type) jitdata::UNUSED;
 
 				/* add s_lt again to Worklist W */
 				wl_add(W, s_lt->v_index);
@@ -1139,7 +1139,7 @@ void ssa_replace_use_sites(jitdata *jd, graphdata *gd, struct lifetime *lt,
 
 		/* check for use (s1, s2, s3 or special (argp) ) */
 
-			i = UNUSED;
+			i = jitdata::UNUSED;
 			switch (icmd_table[iptr->opc].dataflow) {
 			case DF_3_TO_0:
 			case DF_3_TO_1: /* icmd has s1, s2 and s3 */
@@ -1209,7 +1209,7 @@ void ssa_replace_use_sites(jitdata *jd, graphdata *gd, struct lifetime *lt,
 				i = iptr->s1.argcount;
 				break;
 			}
-			if (i != UNUSED) {
+			if (i != jitdata::UNUSED) {
 				argp = iptr->sx.s23.s2.args;
 				while (--i >= 0) {
 					if (*argp == lt->v_index) {
@@ -1247,7 +1247,7 @@ void ssa_print_lt(lsradata *ls) {
 void _ssa_print_lt(struct lifetime *lt) {
 	struct site *use;
 
-	if (lt->type != UNUSED) {
+	if (lt->type != jitdata::UNUSED) {
 		printf("VI %3i Type %3i Def: ",lt->v_index, lt->type);
 		if (lt->def != NULL)
 			printf("%3i,%3i Use: ",lt->def->b_index, lt->def->iindex);
@@ -1316,4 +1316,5 @@ Optimization
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

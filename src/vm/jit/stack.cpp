@@ -747,8 +747,8 @@ static void stack_merge_locals(stackdata_t *sd, basicblock *b)
 	/* incoming control-flow edges, it becomes undefined.           */
 
 	for (i=0; i<sd->maxlocals; ++i) {
-		if (b->javalocals[i] != UNUSED && b->javalocals[i] != sd->javalocals[i]) {
-			b->javalocals[i] = UNUSED;
+		if (b->javalocals[i] != jitdata::UNUSED && b->javalocals[i] != sd->javalocals[i]) {
+			b->javalocals[i] = jitdata::UNUSED;
 			if (b->state >= basicblock::FINISHED)
 				b->state = basicblock::TYPECHECK_REACHED;
 			if (b->nr <= sd->bptr->nr)
@@ -1615,9 +1615,9 @@ bool stack_reanalyse_block(stackdata_t *sd)
 				else
 					sd->javalocals[i] = varindex;
 				if (iptr->flags.bits & INS_FLAG_KILL_PREV)
-					sd->javalocals[i-1] = UNUSED;
+					sd->javalocals[i-1] = jitdata::UNUSED;
 				if (iptr->flags.bits & INS_FLAG_KILL_NEXT)
-					sd->javalocals[i+1] = UNUSED;
+					sd->javalocals[i+1] = jitdata::UNUSED;
 				break;
 
 				/* pop 1 push 0 */
@@ -2024,7 +2024,7 @@ static void stack_init_javalocals(stackdata_t *sd)
 	jd->basicblocks[0].javalocals = jl;
 
 	for (i=0; i<sd->maxlocals; ++i)
-		jl[i] = UNUSED;
+		jl[i] = jitdata::UNUSED;
 
 	md = jd->m->parseddesc;
 	j = 0;
@@ -2158,7 +2158,7 @@ bool stack_analyse(jitdata *jd)
 	jd->maxinterfaces = m->maxstack;
 	jd->interface_map = DMNEW(interface_info, m->maxstack * 5);
 	for (i = 0; i < m->maxstack * 5; i++)
-		jd->interface_map[i].flags = UNUSED;
+		jd->interface_map[i].flags = jitdata::UNUSED;
 
 	last_store_boundary = DMNEW(stackelement_t *, m->maxlocals);
 
@@ -3293,7 +3293,7 @@ normal_ACONST:
 						/* invalidate the following javalocal for 2-word types */
 
 						if (IS_2_WORD_TYPE(type)) {
-							sd.javalocals[javaindex+1] = UNUSED;
+							sd.javalocals[javaindex+1] = jitdata::UNUSED;
 							iptr->flags.bits |= INS_FLAG_KILL_NEXT;
 						}
 
@@ -3301,7 +3301,7 @@ normal_ACONST:
 
 						if (javaindex > 0 && (i = sd.javalocals[javaindex-1]) >= 0) {
 							if (IS_2_WORD_TYPE(sd.var[i].type)) {
-								sd.javalocals[javaindex-1] = UNUSED;
+								sd.javalocals[javaindex-1] = jitdata::UNUSED;
 								iptr->flags.bits |= INS_FLAG_KILL_PREV;
 							}
 						}
@@ -4472,7 +4472,7 @@ icmd_BUILTIN:
 					/* do not allocate variables for returnAddresses */
 
 					if (type != TYPE_RET) {
-						if (jd->interface_map[i*5 + type].flags == UNUSED) {
+						if (jd->interface_map[i*5 + type].flags == jitdata::UNUSED) {
 							/* no interface var until now for this depth and */
 							/* type */
 							jd->interface_map[i*5 + type].flags = v->flags;
@@ -4493,7 +4493,7 @@ icmd_BUILTIN:
 					type = v->type;
 
 					if (type != TYPE_RET) {
-						if (jd->interface_map[i*5 + type].flags == UNUSED) {
+						if (jd->interface_map[i*5 + type].flags == jitdata::UNUSED) {
 							/* no interface var until now for this depth and */
 							/* type */
 							jd->interface_map[i*5 + type].flags = v->flags;
@@ -4629,7 +4629,7 @@ void stack_javalocals_store(instruction *iptr, s4 *javalocals)
 	varindex = iptr->dst.varindex;
 	javaindex = iptr->sx.s23.s3.javaindex;
 
-	if (javaindex != UNUSED) {
+	if (javaindex != jitdata::UNUSED) {
 		assert(javaindex >= 0);
 		if (iptr->flags.bits & INS_FLAG_RETADDR)
 			javalocals[javaindex] = iptr->sx.s23.s2.retaddrnr;
@@ -4637,10 +4637,10 @@ void stack_javalocals_store(instruction *iptr, s4 *javalocals)
 			javalocals[javaindex] = varindex;
 
 		if (iptr->flags.bits & INS_FLAG_KILL_PREV)
-			javalocals[javaindex-1] = UNUSED;
+			javalocals[javaindex-1] = jitdata::UNUSED;
 
 		if (iptr->flags.bits & INS_FLAG_KILL_NEXT)
-			javalocals[javaindex+1] = UNUSED;
+			javalocals[javaindex+1] = jitdata::UNUSED;
 	}
 }
 
