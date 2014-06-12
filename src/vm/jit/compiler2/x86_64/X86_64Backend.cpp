@@ -87,7 +87,19 @@ MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *src,
 				SrcOp(src),
 				DstOp(dst));
 		}
-	default: break;
+		break;
+	case Type::FloatTypeID:
+		switch (src->get_OperandID()) {
+		case MachineOperand::ImmediateID:
+			return new MovImmSSInst(
+				SrcOp(src),
+				DstOp(dst));
+		default:
+			return new MovSSInst(
+				SrcOp(src),
+				DstOp(dst));
+		}
+		break;
 	}
 	ABORT_MSG("x86_64: Move not supported",
 		"Inst: " << src << " -> " << dst << " type: " << type);
@@ -369,6 +381,11 @@ void LoweringVisitor::visit(ADDInst *I) {
 			Src2Op(src_op2),
 			DstSrc1Op(dst));
 		break;
+	case Type::FloatTypeID:
+		alu = new AddSSInst(
+				Src2Op(src_op2),
+				DstSrc1Op(dst));
+		break;
 	default:
 		ABORT_MSG("x86_64: Lowering not supported",
 			"Inst: " << I << " type: " << type);
@@ -428,6 +445,11 @@ void LoweringVisitor::visit(SUBInst *I) {
 			Src2Op(src_op2),
 			DstSrc1Op(dst));
 		break;
+	case Type::FloatTypeID:
+		alu = new SubSSInst(
+				Src2Op(src_op2),
+				DstSrc1Op(dst));
+		break;
 	default:
 		ABORT_MSG("x86_64: Lowering not supported",
 			"Inst: " << I << " type: " << type);
@@ -461,6 +483,11 @@ void LoweringVisitor::visit(MULInst *I) {
 			Src2Op(src_op2),
 			DstSrc1Op(dst));
 		break;
+	case Type::FloatTypeID:
+		alu = new MulSSInst(
+				Src2Op(src_op2),
+				DstSrc1Op(dst));
+		break;
 	default:
 		ABORT_MSG("x86_64: Lowering not supported",
 			"Inst: " << I << " type: " << type);
@@ -490,17 +517,23 @@ void LoweringVisitor::visit(DIVInst *I) {
 
 		dividendLower = get_op(I->get_operand(0)->to_Instruction());
 		nativeUpper = new NativeRegister(type, &RDX);
-		convertToQuadword = new CDQInst(Src1Op(nativeUpper), Src2Op(dividendLower), opsize);
 		result = new NativeRegister(type, &RAX);
+		convertToQuadword = new CDQInst(DstSrc1Op(nativeUpper), DstSrc2Op(result), opsize);
 		get_current()->push_back(get_Backend()->create_Move(dividendLower, result));
 		get_current()->push_back(convertToQuadword);
-		alu = new IDivInst(Src2Op(src_op2), DstSrcOp(result), DstOp(nativeUpper), opsize);
+		alu = new IDivInst(Src2Op(src_op2), DstSrc1Op(result), DstSrc2Op(nativeUpper), opsize);
 		break;
 	case Type::DoubleTypeID:
 		result = get_op(I->get_operand(0)->to_Instruction());
 		alu = new DivSDInst(
 			Src2Op(src_op2),
 			DstSrc1Op(result));
+		break;
+	case Type::FloatTypeID:
+		result = get_op(I->get_operand(0)->to_Instruction());
+		alu = new DivSSInst(
+				Src2Op(src_op2),
+				DstSrc1Op(result));
 		break;
 	default:
 		ABORT_MSG("x86_64: Lowering not supported",
@@ -531,25 +564,32 @@ void LoweringVisitor::visit(REMInst *I) {
 	case Type::IntTypeID:
 	case Type::LongTypeID:
 		nativeUpper = new NativeRegister(type, &RDX);
-		convertToQuadword = new CDQInst(Src1Op(nativeUpper), Src2Op(dividendLower), opsize);
 		nativeLower = new NativeRegister(type, &RAX);
+		convertToQuadword = new CDQInst(DstSrc1Op(nativeLower), DstSrc2Op(nativeUpper), opsize);
 		get_current()->push_back(get_Backend()->create_Move(dividendLower, nativeLower));
 		get_current()->push_back(convertToQuadword);
-		alu = new IDivInst(Src2Op(src_op2), DstSrcOp(nativeUpper), DstOp(nativeLower), opsize);
+		alu = new IDivInst(Src2Op(src_op2), DstSrc1Op(nativeUpper), DstSrc2Op(nativeLower), opsize);
+		get_current()->push_back(alu);
 		break;
 	case Type::DoubleTypeID:
+		/*
 		temp = new VirtualRegister(type);
 		get_current()->push_back(get_Backend()->create_Move(dividendLower, temp));
 		get_current()->push_back(new DivSDInst(Src2Op(src_op2), DstSrc1Op(temp)));
 		get_current()->push_back(new MulSDInst(Src2Op(src_op2), DstSrc1Op(temp)));
 		alu = new SubSDInst(Src2Op(dividendLower), DstSrc1Op(temp));
+		get_current()->push_back(alu);
+		break;
+		*/
+		alu = new FPRemInst(Src1Op(src_op2), DstSrc1Op(dividendLower), opsize);
+		get_current()->push_back(alu);
 		break;
 	default:
 		ABORT_MSG("x86_64: Lowering not supported",
 			"Inst: " << I << " type: " << type);
 	}
 
-	get_current()->push_back(alu);
+
 	set_op(I,alu->get_result().op);
 }
 

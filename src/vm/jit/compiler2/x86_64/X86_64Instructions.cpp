@@ -1248,6 +1248,20 @@ void MovSDInst::emit(CodeMemory* CM) const {
 		<< get_op_size() * 8 << "bit");
 }
 
+void FPRemInst::emit(CodeMemory* CM) const {
+	MachineOperand *src = operands[1].op;
+	MachineOperand *dst = result.op;
+
+	X86_64Register *src_reg = cast_to<X86_64Register>(src);
+	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
+
+	CodeFragment code = CM->get_CodeFragment(3);
+	code[0] = 0xd9;
+	code[1] = 0xf8;
+	code[2] = get_modrm_1reg(7, dst_reg);
+	//code[2] = get_modrm_reg2reg(dst_reg,src_reg);
+}
+
 void MovImmSInst::emit(CodeMemory* CM) const {
 	Immediate *imm = cast_to<Immediate>(operands[0].op);
 	X86_64Register *dst = cast_to<X86_64Register>(result.op);

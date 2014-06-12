@@ -306,6 +306,23 @@ static long mul(long a, long b) {
 static long div(long a, long b) {
     return a / b;
 }
+
+static float fadd(float a, float b) {
+	return a + b;
+}
+
+static float fsub(float a, float b) {
+	return a - b;
+}
+
+static float fmul(float a, float b) {
+	return a * b;
+}
+
+static float fdiv(float a, float b) {
+	return a / b;
+}
+
 static long test_side_effect(long x, long y) {
     long t = x;
     long i = x;

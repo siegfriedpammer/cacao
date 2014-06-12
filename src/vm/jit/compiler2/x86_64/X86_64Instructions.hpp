@@ -84,6 +84,14 @@ struct DstSrc1Op {
 	MachineOperand *op;
 	explicit DstSrc1Op(MachineOperand *op) : op(op) {}
 };
+
+struct DstSrc2Op {
+	MachineOperand *op;
+	explicit DstSrc2Op(MachineOperand *op) :
+			op(op) {
+	}
+};
+
 /**
  * Simple wrapper for first operand of an
  * x86_64 instruction which is also used for the result.
@@ -407,7 +415,7 @@ public:
 	 * the register allocator. The user must ensure that the values
 	 * are moved to the desired destination registers afterwards (e.g. by inserting a move)
 	 */
-	IDivInst(const Src2Op &src2, const DstSrcOp &dstsrc1, const DstOp &dst2, OperandSize op_size) :
+	IDivInst(const Src2Op &src2, const DstSrc1Op &dstsrc1, const DstSrc2Op &dst2, OperandSize op_size) :
 			GPInstruction("X86_64IDivInst", dstsrc1.op, op_size, 3) {
 		operands[0].op = dstsrc1.op;
 		operands[1].op = src2.op;
@@ -419,7 +427,7 @@ public:
 
 class CDQInst : public GPInstruction {
 public:
-	CDQInst(const Src1Op &src1, const Src2Op &src2, OperandSize op_size) : GPInstruction("X86_64CDQInst", &NoOperand, NO_SIZE, 2) {
+	CDQInst(const DstSrc1Op &src1, const DstSrc2Op &src2, OperandSize op_size) : GPInstruction("X86_64CDQInst", &NoOperand, NO_SIZE, 2) {
 		operands[0].op = src1.op;
 		operands[1].op = src2.op;
 	}
@@ -805,6 +813,19 @@ public:
 	DivSDInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
 		: SSEAluSDInst("X86_64DivSDInst", src2, dstsrc1, 0x5e) {}
 };
+
+class FPRemInst: public GPInstruction {
+public:
+
+	FPRemInst(const Src1Op &src2, const DstSrc1Op &dstsrc1, OperandSize op_size) :
+			GPInstruction("X86_64IDivInst", dstsrc1.op, op_size, 2) {
+		operands[0].op = dstsrc1.op;
+		operands[1].op = src2.op;
+	}
+
+	virtual void emit(CodeMemory* CM) const;
+};
+
 // SQRTSD Compute Square Root of Scalar Double-Precision Floating-Point Value 0x51
 // MINSD Return Minimum Scalar Double-Precision Floating-Point Value 0x5d
 // MAXSD Return Maximum Scalar Double-Precision Floating-Point Value 0x5f

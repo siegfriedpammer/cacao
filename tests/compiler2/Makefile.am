@@ -71,9 +71,11 @@ OUTPUT_JAVA_TESTS = \
 	Test.testParameterLong3 \
 	Test.testParameterDouble \
 	Test.idiv \
-	Test.ldiv \
 	Test.imod \
-	Test.lmod
+	Test.fadd \
+	Test.fsub \
+	Test.fmul \
+	Test.fdiv
 	
 
 check: build run
