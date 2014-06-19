@@ -109,6 +109,8 @@ public:
 	}
 	virtual std::size_t print(OStream& OS) = 0;
 	virtual bool parse(const char* value, std::size_t value_len) = 0;
+
+	virtual ~OptionEntry() {} // make compiler happy
 private:
 	const char* name;
 	std::size_t name_size;
