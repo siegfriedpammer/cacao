@@ -30,6 +30,7 @@
 #include <cstdlib>
 #include <exception>
 #include <stdint.h>
+#include <inttypes.h>
 
 #include "md-abi.hpp"
 
@@ -1995,11 +1996,7 @@ void vm_abort_disassemble(void *pc, int count, const char *text, ...)
 
 	/* Print the PC. */
 
-#if SIZEOF_VOID_P == 8
-	log_println("PC=0x%016lx", pc);
-#else
-	log_println("PC=0x%08x", pc);
-#endif
+	log_println("PC=0x%0" PRINTF_INTPTR_NUM_HEXDIGITS PRIxPTR, (intptr_t) pc);
 
 #if defined(ENABLE_DISASSEMBLER)
 	log_println("machine instructions at PC:");

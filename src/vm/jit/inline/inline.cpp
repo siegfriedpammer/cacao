@@ -615,7 +615,7 @@ static s4 *create_variable_map(inline_node *callee)
 	for (i=0; i<callee->m->maxlocals; ++i) {
 		for (t=0; t<5; ++t) {
 			varindex = callee->jd->local_map[5*i + t];
-			if (varindex == UNUSED)
+			if (varindex == jitdata::UNUSED)
 				continue;
 
 			v = &(callee->jd->var[varindex]);
@@ -624,7 +624,7 @@ static s4 *create_variable_map(inline_node *callee)
 
 			avail = callee->ctx->resultjd->local_map[5*(callee->localsoffset + i) + t];
 
-			if (avail == UNUSED) {
+			if (avail == jitdata::UNUSED) {
 				avail = inline_new_variable_clone(callee->ctx->resultjd, callee->jd, varindex);
 				callee->ctx->resultjd->local_map[5*(callee->localsoffset + i) + t] = avail;
 			}
@@ -643,7 +643,7 @@ static s4 *create_variable_map(inline_node *callee)
 
 		avail = callee->ctx->resultjd->local_map[5*n_javaindex + TYPE_ADR];
 
-		if (avail == UNUSED) {
+		if (avail == jitdata::UNUSED) {
 			avail = inline_new_variable(callee->ctx->resultjd, TYPE_ADR, 0);
 			callee->ctx->resultjd->local_map[5*n_javaindex + TYPE_ADR] = avail;
 		}
@@ -651,7 +651,7 @@ static s4 *create_variable_map(inline_node *callee)
 		callee->synclocal = avail;
 	}
 	else {
-		callee->synclocal = UNUSED;
+		callee->synclocal = jitdata::UNUSED;
 	}
 
 	return varmap;
@@ -868,12 +868,12 @@ static s4 *translate_javalocals(inline_node *iln, s4 *javalocals)
 
 	for (i=0; i<iln->jd->maxlocals; ++i) {
 		j = javalocals[i];
-		if (j > UNUSED)
+		if (j > jitdata::UNUSED)
 			j = inline_translate_variable(iln->ctx->resultjd, iln->jd, iln->varmap, j);
 		jl[i] = j;
 
 #if 0
-		if (j < UNUSED) {
+		if (j < jitdata::UNUSED) {
 			/* an encoded returnAddress value - must be relocated */
 			inline_add_blocknr_reference(iln, &(jl[i]));
 		}
@@ -1086,7 +1086,7 @@ static void inline_generate_sync_builtin(inline_node *iln,
 		syncvar = instancevar;
 	}
 
-	assert(syncvar != UNUSED);
+	assert(syncvar != jitdata::UNUSED);
 
 	/* MONITORENTER / MONITOREXIT */
 
@@ -1167,7 +1167,7 @@ static s4 emit_inlining_prolog(inline_node *iln,
 		/* translate the argument variable */
 
 		varindex = varmap[o_iptr->sx.s23.s2.args[i]];
-		assert(varindex != UNUSED);
+		assert(varindex != jitdata::UNUSED);
 
 		/* remove preallocation from the argument variable */
 
@@ -1187,24 +1187,24 @@ static s4 emit_inlining_prolog(inline_node *iln,
 
 		/* store argument into local variable of inlined callee */
 
-		if (callee->jd->local_map[5*(localindex - callee->localsoffset) + type] != UNUSED)
+		if (callee->jd->local_map[5*(localindex - callee->localsoffset) + type] != jitdata::UNUSED)
 		{
 			/* this value is used in the callee */
 
-			if (i == 0 && callee->synclocal != UNUSED) {
+			if (i == 0 && callee->synclocal != jitdata::UNUSED) {
 				/* we also need it for synchronization, so copy it */
 				assert(type == TYPE_ADR);
 				n_ins = inline_instruction(iln, ICMD_COPY, o_iptr);
 			}
 			else {
 				n_ins = inline_instruction(iln, ICMD(ICMD_ISTORE + type), o_iptr);
-				n_ins->sx.s23.s3.javaindex = UNUSED;
+				n_ins->sx.s23.s3.javaindex = jitdata::UNUSED;
 			}
 			n_ins->s1.varindex = varindex;
 			n_ins->dst.varindex = iln->ctx->resultjd->local_map[5*localindex + type];
-			assert(n_ins->dst.varindex != UNUSED);
+			assert(n_ins->dst.varindex != jitdata::UNUSED);
 		}
-		else if (i == 0 && callee->synclocal != UNUSED) {
+		else if (i == 0 && callee->synclocal != jitdata::UNUSED) {
 			/* the value is not used inside the callee, but we need it for */
 			/* synchronization                                             */
 			/* XXX In this case it actually makes no sense to create a     */
@@ -1225,17 +1225,17 @@ static s4 emit_inlining_prolog(inline_node *iln,
 
 	/* COPY for synchronized instance methods */
 
-	if (callee->synclocal != UNUSED) {
+	if (callee->synclocal != jitdata::UNUSED) {
 		n_ins = inline_instruction(iln, ICMD_COPY, o_iptr);
 		n_ins->s1.varindex = varmap[o_iptr->sx.s23.s2.args[0]];
 		n_ins->dst.varindex = callee->synclocal;
 
-		assert(n_ins->s1.varindex != UNUSED);
+		assert(n_ins->s1.varindex != jitdata::UNUSED);
 	}
 
 	if (callee->synchronize) {
 		inline_generate_sync_builtin(iln, callee, o_iptr,
-									 (callee->isstatic) ? UNUSED : varmap[o_iptr->sx.s23.s2.args[0]],
+									 (callee->isstatic) ? jitdata::UNUSED : varmap[o_iptr->sx.s23.s2.args[0]],
 									 LOCK_monitor_enter);
 	}
 
@@ -1547,7 +1547,7 @@ static void inline_rewrite_method(inline_node *iln)
 		/* iterate over the ICMDs of this block */
 
 		retcount = 0;
-		retidx = UNUSED;
+		retidx = jitdata::UNUSED;
 
 		while (--len >= 0) {
 
@@ -1657,10 +1657,10 @@ static void inline_rewrite_method(inline_node *iln)
 							n_iptr->opc                 = ICMD(ICMD_ISTORE + (o_iptr->opc - ICMD_IRETURN));
 							n_iptr->s1.varindex         = retidx;
 							n_iptr->dst.varindex        = iln->n_resultlocal;
-							n_iptr->sx.s23.s3.javaindex = UNUSED; /* XXX set real javaindex? */
+							n_iptr->sx.s23.s3.javaindex = jitdata::UNUSED; /* XXX set real javaindex? */
 
 							retcount = 0;
-							retidx = UNUSED;
+							retidx = jitdata::UNUSED;
 
 							n_iptr = (iln->inlined_iinstr_cursor++);
 							assert((n_iptr - iln->inlined_iinstr) < iln->cumul_instructioncount);
@@ -1726,7 +1726,7 @@ default_clone:
 		else {
 			n_bptr->icount = icount;
 			assert(iln->parent);
-			if (retidx != UNUSED)
+			if (retidx != jitdata::UNUSED)
 				iln->parent->varmap[iln->callerins->dst.varindex] = retidx;
 		}
 	}
@@ -1879,7 +1879,7 @@ static void inline_interface_variables(inline_node *iln)
 
 	resultjd->interface_map = (interface_info*) DumpMemory::allocate(sizeof(interface_info) * 5 * iln->ctx->maxinoutdepth);
 	for (i=0; i<5*iln->ctx->maxinoutdepth; ++i)
-		resultjd->interface_map[i].flags = UNUSED;
+		resultjd->interface_map[i].flags = jitdata::UNUSED;
 
 	for (bptr = resultjd->basicblocks; bptr != NULL; bptr = bptr->next) {
 		assert(bptr->indepth  <= iln->ctx->maxinoutdepth);
@@ -1895,7 +1895,7 @@ static void inline_interface_variables(inline_node *iln)
 			v->flags &= ~INMEMORY;
 			assert(bptr->invars[i] >= resultjd->localcount);
 
-			if (resultjd->interface_map[5*i + v->type].flags == UNUSED) {
+			if (resultjd->interface_map[5*i + v->type].flags == jitdata::UNUSED) {
 				resultjd->interface_map[5*i + v->type].flags = v->flags;
 			}
 			else {
@@ -1913,7 +1913,7 @@ static void inline_interface_variables(inline_node *iln)
 			v->flags &= ~INMEMORY;
 			assert(bptr->outvars[i] >= resultjd->localcount);
 
-			if (resultjd->interface_map[5*i + v->type].flags == UNUSED) {
+			if (resultjd->interface_map[5*i + v->type].flags == jitdata::UNUSED) {
 				resultjd->interface_map[5*i + v->type].flags = v->flags;
 			}
 			else {
@@ -1965,7 +1965,7 @@ static void inline_write_exception_handlers(inline_node *master, inline_node *il
 		else {
 			n_ins->opc = ICMD_ALOAD;
 			n_ins->s1.varindex = iln->synclocal;
-			assert(n_ins->s1.varindex != UNUSED);
+			assert(n_ins->s1.varindex != jitdata::UNUSED);
 		}
 		/* XXX could be PREALLOCed for  builtin call */
 		syncvar = inline_new_variable(master->ctx->resultjd, TYPE_ADR, 0);
@@ -2047,7 +2047,7 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 
 	n_jd->local_map = (s4*) DumpMemory::allocate(sizeof(s4) *  5 * iln->cumul_maxlocals);
 	for (i=0; i<5*iln->cumul_maxlocals; ++i)
-		n_jd->local_map[i] = UNUSED;
+		n_jd->local_map[i] = jitdata::UNUSED;
 
 	/* create / coalesce local variables */
 

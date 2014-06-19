@@ -1,4 +1,4 @@
-/* src/vm/jit/optimizing/escape.c
+/* src/vm/jit/optimizing/escape.cpp
 
    Copyright (C) 2008-2013
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
@@ -1151,7 +1151,7 @@ static void escape_analysis_process_arguments(escape_analysis_t *e) {
 		t = md->paramtypes[p].type;
 		varindex = e->jd->local_map[l * 5 + t];
 		if (t == TYPE_ADR) {
-			if (varindex != UNUSED) {
+			if (varindex != jitdata::UNUSED) {
 				escape_analysis_ensure_state(e, varindex, ESCAPE_NONE);
 				escape_analysis_set_contains_argument(e, varindex);
 				escape_analysis_set_contains_only_arguments(e, varindex);
@@ -1187,7 +1187,7 @@ static void escape_analysis_export_arguments(escape_analysis_t *e) {
 		t = md->paramtypes[p].type;
 		varindex = e->jd->local_map[l * 5 + t];
 		if (t == TYPE_ADR) {
-			if (varindex == UNUSED) {
+			if (varindex == jitdata::UNUSED) {
 				*paramescape = (u1)ESCAPE_NONE;
 			} else {
 				es = escape_analysis_get_state(e, varindex);
@@ -1348,3 +1348,17 @@ bool escape_is_monomorphic(methodinfo *caller, methodinfo *callee) {
 	return false;
 }
 
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c++
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */

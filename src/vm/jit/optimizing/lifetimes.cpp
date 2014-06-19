@@ -1,4 +1,4 @@
-/* src/vm/jit/optimizing/lifetimes.c - lifetime anaylsis
+/* src/vm/jit/optimizing/lifetimes.cpp - lifetime anaylsis
 
    Copyright (C) 2005-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -153,7 +153,7 @@ void lt_scanlifetimes(jitdata *jd, graphdata *gd, dominatordata *dd) {
  		l++;
  		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
  			l++;
-		if (i == UNUSED)
+		if (i == jitdata::UNUSED)
 			continue;
 		i = ls->var_0[i];
 /* 		_LT_ASSERT( i < jd->cd->maxlocals); */
@@ -744,7 +744,7 @@ void _lt_scanlifetimes(jitdata *jd, graphdata *gd, basicblock *bptr,
 
 				for (j = 1; j <= graph_get_num_predecessor(gd, b_index); j++) {
 					if (ls->phi[b_index][i][j] != ls->varcount_with_indices)
-						if (ls->phi[b_index][i][j] != UNUSED)
+						if (ls->phi[b_index][i][j] != jitdata::UNUSED)
 							lt_usage(jd, ls->phi[b_index][i][j], b_index,
 									 -i-1, LT_USE);
 				}
@@ -758,8 +758,8 @@ void _lt_scanlifetimes(jitdata *jd, graphdata *gd, basicblock *bptr,
 			iindex = -1;
 
 		for (;iindex >= 0; iindex--, iptr--)  {
-			i = UNUSED;
-			v = UNUSED;
+			i = jitdata::UNUSED;
+			v = jitdata::UNUSED;
 
 			if (icmd_table[iptr->opc].dataflow >= DF_DST_BASE)
 				v = iptr->dst.varindex;
@@ -790,7 +790,7 @@ void _lt_scanlifetimes(jitdata *jd, graphdata *gd, basicblock *bptr,
 				INSTRUCTION_GET_METHODDESC(iptr,md);
 				i = md->paramcount;
 				if (md->returntype.type == TYPE_VOID)
-					v = UNUSED;
+					v = jitdata::UNUSED;
 				break;
 
 			case DF_BUILTIN:
@@ -798,7 +798,7 @@ void _lt_scanlifetimes(jitdata *jd, graphdata *gd, basicblock *bptr,
 				md = bte->md;
 				i = md->paramcount;
 				if (md->returntype.type == TYPE_VOID)
-					v = UNUSED;
+					v = jitdata::UNUSED;
 				break;
 
 			case DF_N_TO_1:
@@ -807,7 +807,7 @@ void _lt_scanlifetimes(jitdata *jd, graphdata *gd, basicblock *bptr,
 
 			}
 
-			if (i != UNUSED) {
+			if (i != jitdata::UNUSED) {
 				argp = iptr->sx.s23.s2.args;
 				while (--i >= 0) {
 					lt_usage(jd, *argp, b_index, iindex, LT_USE);
@@ -815,7 +815,7 @@ void _lt_scanlifetimes(jitdata *jd, graphdata *gd, basicblock *bptr,
 				}
 			}
 
-			if (v != UNUSED) {
+			if (v != jitdata::UNUSED) {
 				lt_usage(jd, v, b_index, iindex, LT_DEF);
 			}
 		} /* for (;iindex >= 0; iindex--, iptr--) */
@@ -972,4 +972,5 @@ void lt_get_nesting(lsradata *ls, graphdata *gd, dominatordata *dd) {
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

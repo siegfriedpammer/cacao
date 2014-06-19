@@ -1,4 +1,4 @@
-/* src/vm/jit/optimizing/graph.c - CFG
+/* src/vm/jit/optimizing/graph.cpp - CFG
 
    Copyright (C) 2005-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -886,7 +886,7 @@ void graph_phi_moves(jitdata *jd, basicblock *bptr, basicblock *dst_goto) {
 			printf("graph_phi_moves: BB %3i Move %3i <- %3i\n", bptr->nr,
 				   lt_d, lt_s);
 #endif
-		if (lt_s == UNUSED) {
+		if (lt_s == jitdata::UNUSED) {
 #if defined(SSA_DEBUG_VERBOSE)
 			if (compileverbose)
 				printf(" ... not processed \n");
@@ -949,4 +949,5 @@ void graph_print(lsradata *ls, graphdata *gd) {
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

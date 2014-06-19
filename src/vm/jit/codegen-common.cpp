@@ -2218,7 +2218,7 @@ gen_method:
 				// Store return value.
 #if defined(ENABLE_SSA)
 				if ((ls == NULL) /* || (!IS_TEMPVAR_INDEX(iptr->dst.varindex)) */ ||
-					(ls->lifetime[iptr->dst.varindex].type != UNUSED))
+					(ls->lifetime[iptr->dst.varindex].type != jitdata::UNUSED))
 					/* a "living" stackslot */
 #endif
 				switch (md->returntype.type) {
@@ -2410,7 +2410,7 @@ void codegen_emit_phi_moves(jitdata *jd, basicblock *bptr)
 		if (compileverbose)
 			printf("BB %3i Move %3i <- %3i ", bptr->nr, lt_d, lt_s);
 #endif
-		if (lt_s == UNUSED) {
+		if (lt_s == jitdata::UNUSED) {
 #if defined(SSA_DEBUG_VERBOSE)
 		if (compileverbose)
 			printf(" ... not processed \n");

@@ -1,4 +1,4 @@
-/* src/vm/jit/optimizing/ssa.c - static single-assignment form
+/* src/vm/jit/optimizing/ssa.cpp - static single-assignment form
 
    Copyright (C) 2005-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -223,7 +223,7 @@ void ssa_generate_phi_moves(jitdata *jd, graphdata *gd) {
 
 					/* TODO: first delete use sites of arguments of phi */
 					/* function */
-					VAR(ls->lifetime[ls->phi[i][a][0]].v_index)->type = UNUSED;
+					VAR(ls->lifetime[ls->phi[i][a][0]].v_index)->type = jitdata::UNUSED;
 					ls->lifetime[ls->phi[i][a][0]].def = NULL;
 					ls->phi[i][a] = NULL;
 				}
@@ -306,4 +306,5 @@ void ssa_print_phi(lsradata *ls, graphdata *gd) {
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

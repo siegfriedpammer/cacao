@@ -1,6 +1,6 @@
 /* src/vm/jit/parse.cpp - parser for JavaVM to intermediate code translation
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -71,16 +71,16 @@ using namespace cacao;
 /* used in stack.c to index the locals array.                                 */
 
 #define INDEX_ONEWORD(num) \
-    do { \
-        if (((num) < 0) || ((num) >= m->maxlocals)) \
-            goto throw_illegal_local_variable_number; \
-    } while (0)
+	do { \
+		if (((num) < 0) || ((num) >= m->maxlocals)) \
+		goto throw_illegal_local_variable_number; \
+	} while (0)
 
 #define INDEX_TWOWORD(num) \
-    do { \
-        if (((num) < 0) || (((num) + 1) >= m->maxlocals)) \
-            goto throw_illegal_local_variable_number; \
-    } while (0)
+	do { \
+		if (((num) < 0) || (((num) + 1) >= m->maxlocals)) \
+			goto throw_illegal_local_variable_number; \
+	} while (0)
 
 /* CHECK_BYTECODE_INDEX(i) checks whether i is a valid bytecode index.        */
 /* The end of the bytecode (i == m->jcodelength) is considered valid.         */
@@ -273,28 +273,28 @@ using namespace cacao;
         PINC;                                                        \
     } while (0)
 
-#define OP_BUILTIN_CHECK_EXCEPTION(bte)                              \
+#define OP_BUILTIN_CHECK_EXCEPTION(BTE)                              \
     code_unflag_leafmethod(code);                                    \
     OP_PREPARE_FLAGS(ICMD_BUILTIN, INS_FLAG_CHECK);                  \
-    iptr->sx.s23.s3.bte      = (bte);                                \
+    iptr->sx.s23.s3.bte      = (BTE);                                \
     PINC
 
-#define OP_BUILTIN_NO_EXCEPTION(bte)                                 \
+#define OP_BUILTIN_NO_EXCEPTION(BTE)                                 \
     code_unflag_leafmethod(code);                                    \
     OP_PREPARE_ZEROFLAGS(ICMD_BUILTIN);                              \
-    iptr->sx.s23.s3.bte      = (bte);                                \
+    iptr->sx.s23.s3.bte      = (BTE);                                \
     PINC
 
-#define OP_BUILTIN_ARITHMETIC(opcode, bte)                           \
+#define OP_BUILTIN_ARITHMETIC(opcode, BTE)                           \
     code_unflag_leafmethod(code);                                    \
     OP_PREPARE_FLAGS(opcode, INS_FLAG_CHECK);                        \
-    iptr->sx.s23.s3.bte      = (bte);                                \
+    iptr->sx.s23.s3.bte      = (BTE);                                \
     PINC
 
 /* CAUTION: You must set iptr->flags yourself when using this!                */
-#define OP_FMIREF_PREPARE(o, fmiref)                                 \
+#define OP_FMIREF_PREPARE(o, FMIREF)                                 \
     OP_PREPARE(o);                                                   \
-    iptr->sx.s23.s3.fmiref   = (fmiref);
+    iptr->sx.s23.s3.fmiref   = (FMIREF);
 
 
 #define INSTRUCTIONS_INCREMENT  5  /* number of additional instructions to    */
@@ -438,7 +438,6 @@ static basicblock *parse_bytecodeindex_to_basicblock(jitdata *jd,
 static bool parse_mark_exception_boundaries(jitdata *jd, parsedata_t *pd)
 {
 	s4                   bcindex;
-	s4                   i;
 	s4                   len;
 	raw_exception_entry *rex;
 	methodinfo          *m;
@@ -452,7 +451,7 @@ static bool parse_mark_exception_boundaries(jitdata *jd, parsedata_t *pd)
 
 	rex = m->rawexceptiontable;
 
-	for (i = 0; i < len; ++i, ++rex) {
+	for (s4 i = 0; i < len; ++i, ++rex) {
 
 		/* the start of the handled region becomes a basic block start */
 
@@ -520,7 +519,6 @@ static bool parse_resolve_exception_table(jitdata *jd, parsedata_t *pd)
 	methodinfo          *m;
 	raw_exception_entry *rex;
 	exception_entry     *ex;
-	s4                   i;
 	s4                   len;
 	classinfo           *exclass;
 
@@ -543,7 +541,7 @@ static bool parse_resolve_exception_table(jitdata *jd, parsedata_t *pd)
 	ex = jd->exceptiontable;
 	rex = m->rawexceptiontable;
 
-	for (i = 0; i < len; ++i, ++rex, ++ex) {
+	for (s4 i = 0; i < len; ++i, ++rex, ++ex) {
 		/* resolve instruction indices to basic blocks */
 
 		ex->start   = parse_bytecodeindex_to_basicblock(jd, pd, rex->startpc);
@@ -612,7 +610,6 @@ bool parse(jitdata *jd)
 
 	s4           bcindex;               /* bytecode instruction index         */
 	s4           nextbc;                /* start of next bytecode instruction */
-	ByteCode     opcode;                /* bytecode instruction opcode        */
 
 	s4           irindex;               /* IR instruction index               */
 	s4           ircount;               /* IR instruction count               */
@@ -623,20 +620,12 @@ bool parse(jitdata *jd)
 	bool blockend;                /* true if basic block end has been reached */
 	bool iswide;                  /* true if last instruction was a wide      */
 
-	constant_classref  *cr;
-	constant_classref  *compr;
-	classinfo          *c;
-	builtintable_entry *bte = NULL; // prevent maybe-uninitialized warning
 	constant_FMIref    *fmi;
 	methoddesc         *md;
-	unresolved_method  *um;
-	unresolved_field   *uf;
 
-	resolve_result_t    result;
-	u2                  lineindex = 0;
-	u2                  currentline = 0;
+	u2                  lineindex    = 0;
+	u2                  currentline  = 0;
 	u2                  linepcchange = 0;
-	u4                  flags;
 	basicblock         *bptr;
 
  	int                *local_map; /* local pointer to renaming map           */
@@ -644,7 +633,6 @@ bool parse(jitdata *jd)
 	branch_target_t *table;
 	lookup_target_t *lookup;
 	s4               i;
-	s4               j;
 
 	/* get required compiler data */
 
@@ -655,7 +643,7 @@ bool parse(jitdata *jd)
 
 	local_map = (int*) DumpMemory::allocate(sizeof(int) * m->maxlocals * 5);
 
-	for (i = 0; i < m->maxlocals; i++) {
+	for (s4 i = 0; i < m->maxlocals; i++) {
 		local_map[i * 5 + 0] = 0;
 		local_map[i * 5 + 1] = 0;
 		local_map[i * 5 + 2] = 0;
@@ -724,7 +712,7 @@ next_linenumber:
 fetch_opcode:
 		/* fetch next opcode  */
 
-		opcode = (ByteCode) read_u1_be(m->jcode + bcindex);
+		ByteCode opcode = (ByteCode) read_u1_be(m->jcode + bcindex);
 
 		/* If the previous instruction was a block-end instruction,
 		   mark the current bytecode instruction as basic-block
@@ -807,6 +795,7 @@ fetch_opcode:
 		case BC_ldc2:
 		case BC_ldc2w:
 			i = read_u2_be(m->jcode + bcindex + 1);
+			// fallthrough!
 
 		pushconstantitem:
 
@@ -837,6 +826,7 @@ fetch_opcode:
 			case CONSTANT_Class: {
 				constant_classref *cr = (constant_classref *) (m->clazz->cpinfos[i]);
 
+				classinfo *c;
 				if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
 					return false;
 
@@ -845,12 +835,11 @@ fetch_opcode:
 				OP_LOADCONST_CLASSINFO_OR_CLASSREF_CHECK(c, cr);
 
 				break;
-            }
+			}
 
 #if defined(ENABLE_VERIFIER)
 			default:
-				exceptions_throw_verifyerror(m,
-						"Invalid constant type to push");
+				exceptions_throw_verifyerror(m, "Invalid constant type to push: %u", m->clazz->cptags[i]);
 				return false;
 #endif
 			}
@@ -951,30 +940,37 @@ fetch_opcode:
 
 		case BC_iload:
 		case BC_fload:
-		case BC_aload:
+		case BC_aload: {
+			int i; // must be signed because of OP_LOAD_ONEWORD
+
+
 			if (iswide == false) {
 				i = read_u1_be(m->jcode + bcindex + 1);
 			}
 			else {
-				i = read_u2_be(m->jcode + bcindex + 1);
+				i      = read_u2_be(m->jcode + bcindex + 1);
 				nextbc = bcindex + 3;
 				iswide = false;
 			}
 			OP_LOAD_ONEWORD(opcode, i, opcode - BC_iload);
 			break;
+		}
 
 		case BC_lload:
-		case BC_dload:
+		case BC_dload: {
+			int i; // must be signed because of OP_LOAD_ONEWORD
+
 			if (iswide == false) {
 				i = read_u1_be(m->jcode + bcindex + 1);
 			}
 			else {
-				i = read_u2_be(m->jcode + bcindex + 1);
+				i      = read_u2_be(m->jcode + bcindex + 1);
 				nextbc = bcindex + 3;
 				iswide = false;
 			}
 			OP_LOAD_TWOWORD(opcode, i, opcode - BC_iload);
 			break;
+		}
 
 		case BC_iload_0:
 		case BC_iload_1:
@@ -1013,7 +1009,10 @@ fetch_opcode:
 
 		case BC_istore:
 		case BC_fstore:
-		case BC_astore:
+		case BC_astore: {
+			int i; // must be signed because of OP_LOAD_ONEWORD
+
+
 			if (iswide == false) {
 				i = read_u1_be(m->jcode + bcindex + 1);
 			}
@@ -1024,6 +1023,7 @@ fetch_opcode:
 			}
 			OP_STORE_ONEWORD(opcode, i, opcode - BC_istore);
 			break;
+		}
 
 		case BC_lstore:
 		case BC_dstore:
@@ -1073,25 +1073,24 @@ fetch_opcode:
 			OP_STORE_ONEWORD(ICMD_ASTORE, opcode - BC_astore_0, TYPE_ADR);
 			break;
 
-		case BC_iinc:
-			{
-				int v;
+		case BC_iinc: {
+			int i; // must be signed because of INDEX_ONEWORD
+			int v;
 
-				if (iswide == false) {
-					i = read_u1_be(m->jcode + bcindex + 1);
-					v = read_s1_be(m->jcode + bcindex + 2);
-				}
-				else {
-					i = read_u2_be(m->jcode + bcindex + 1);
-					v = read_s2_be(m->jcode + bcindex + 3);
-					nextbc = bcindex + 5;
-					iswide = false;
-				}
-				INDEX_ONEWORD(i);
-				LOCALTYPE_USED(i, TYPE_INT);
-				OP_LOCALINDEX_I(opcode, i, v);
+			if (iswide == false) {
+				i = read_u1_be(m->jcode + bcindex + 1);
+				v = read_s1_be(m->jcode + bcindex + 2);
+			} else {
+				i = read_u2_be(m->jcode + bcindex + 1);
+				v = read_s2_be(m->jcode + bcindex + 3);
+				nextbc = bcindex + 5;
+				iswide = false;
 			}
+			INDEX_ONEWORD(i);
+			LOCALTYPE_USED(i, TYPE_INT);
+			OP_LOCALINDEX_I(opcode, i, v);
 			break;
+		}
 
 		/* wider index for loading, storing and incrementing ******************/
 
@@ -1102,7 +1101,8 @@ fetch_opcode:
 
 		/* managing arrays ****************************************************/
 
-		case BC_newarray:
+		case BC_newarray: {
+			builtintable_entry *bte;
 			switch (read_s1_be(m->jcode + bcindex + 1)) {
 			case 4:
 				bte = builtintable_get_internal(BUILTIN_newarray_boolean);
@@ -1136,43 +1136,51 @@ fetch_opcode:
 			}
 			OP_BUILTIN_CHECK_EXCEPTION(bte);
 			break;
+		}
 
-		case BC_anewarray:
-			i = read_u2_be(m->jcode + bcindex + 1);
-			compr = (constant_classref *) class_getconstant(m->clazz, i, CONSTANT_Class);
+		case BC_anewarray: {
+			u2                 i     = read_u2_be(m->jcode + bcindex + 1);
+			constant_classref *compr = (constant_classref *) class_getconstant(m->clazz, i, CONSTANT_Class);
+
 			if (compr == NULL)
 				return false;
 
-			if (!(cr = class_get_classref_multiarray_of(1, compr)))
+			constant_classref *cr = class_get_classref_multiarray_of(1, compr);
+
+			if (cr == NULL)
 				return false;
 
+			classinfo *c;
 			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
 				return false;
 
 			INSTRUCTIONS_CHECK(2);
 			OP_LOADCONST_CLASSINFO_OR_CLASSREF_NOCHECK(c, cr);
-			bte = builtintable_get_internal(BUILTIN_newarray);
+			builtintable_entry *bte = builtintable_get_internal(BUILTIN_newarray);
 			OP_BUILTIN_CHECK_EXCEPTION(bte);
 			s_count++;
 			break;
+		}
 
-		case BC_multianewarray:
-			i = read_u2_be(m->jcode + bcindex + 1);
- 			j = read_u1_be(m->jcode + bcindex + 3);
+		case BC_multianewarray: {
+			u2 i = read_u2_be(m->jcode + bcindex + 1);
+			u1 j = read_u1_be(m->jcode + bcindex + 3);
 
- 			cr = (constant_classref *) class_getconstant(m->clazz, i, CONSTANT_Class);
- 			if (cr == NULL)
- 				return false;
+			constant_classref *cr = (constant_classref *) class_getconstant(m->clazz, i, CONSTANT_Class);
+			if (cr == NULL)
+				return false;
 
- 			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
- 				return false;
+			classinfo *c;
+			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
+				return false;
 
- 			/* if unresolved, c == NULL */
+			/* if unresolved, c == NULL */
 
- 			iptr->s1.argcount = j;
- 			OP_S3_CLASSINFO_OR_CLASSREF(opcode, c, cr, INS_FLAG_CHECK);
+			iptr->s1.argcount = j;
+			OP_S3_CLASSINFO_OR_CLASSREF(opcode, c, cr, INS_FLAG_CHECK);
 			code_unflag_leafmethod(code);
 			break;
+		}
 
 		/* control flow instructions ******************************************/
 
@@ -1192,25 +1200,26 @@ fetch_opcode:
 		case BC_if_icmpge:
 		case BC_if_acmpeq:
 		case BC_if_acmpne:
-		case BC_goto:
-			i = bcindex + read_s2_be(m->jcode + bcindex + 1);
+		case BC_goto: {
+			s4 i = bcindex + read_s2_be(m->jcode + bcindex + 1);
 			CHECK_BYTECODE_INDEX(i);
 			MARK_BASICBLOCK(&pd, i);
 			blockend = true;
 			OP_INSINDEX(opcode, i);
 			break;
+		}
 
-		case BC_goto_w:
-			i = bcindex + read_s4_be(m->jcode + bcindex + 1);
+		case BC_goto_w: {
+			s8 i = ((s8) bcindex) + read_s4_be(m->jcode + bcindex + 1);
 			CHECK_BYTECODE_INDEX(i);
 			MARK_BASICBLOCK(&pd, i);
 			blockend = true;
 			OP_INSINDEX(ICMD_GOTO, i);
 			break;
+		}
 
-		case BC_jsr:
-			i = bcindex + read_s2_be(m->jcode + bcindex + 1);
-jsr_tail:
+		case BC_jsr: {
+			s4 i = bcindex + read_s2_be(m->jcode + bcindex + 1);
 			CHECK_BYTECODE_INDEX(i);
 			MARK_BASICBLOCK(&pd, i);
 			blockend = true;
@@ -1218,17 +1227,26 @@ jsr_tail:
 			iptr->sx.s23.s3.jsrtarget.insindex = i;
 			PINC;
 			break;
+		}
 
-		case BC_jsr_w:
-			i = bcindex + read_s4_be(m->jcode + bcindex + 1);
-			goto jsr_tail;
+		case BC_jsr_w: {
+			s8 i = ((s8) bcindex) + read_s4_be(m->jcode + bcindex + 1);
+			CHECK_BYTECODE_INDEX(i);
+			MARK_BASICBLOCK(&pd, i);
+			blockend = true;
+			OP_PREPARE_ZEROFLAGS(ICMD_JSR);
+			iptr->sx.s23.s3.jsrtarget.insindex = i;
+			PINC;
+			break;
+		}
 
-		case BC_ret:
+		case BC_ret: {
+			int i; // must be signed because of OP_LOAD_ONEWORD
+
 			if (iswide == false) {
 				i = read_u1_be(m->jcode + bcindex + 1);
-			}
-			else {
-				i = read_u2_be(m->jcode + bcindex + 1);
+			} else {
+				i      = read_u2_be(m->jcode + bcindex + 1);
 				nextbc = bcindex + 3;
 				iswide = false;
 			}
@@ -1236,6 +1254,7 @@ jsr_tail:
 
 			OP_LOAD_ONEWORD(opcode, i, TYPE_ADR);
 			break;
+		}
 
 		case BC_ireturn:
 		case BC_lreturn:
@@ -1257,139 +1276,130 @@ jsr_tail:
 
 		/* table jumps ********************************************************/
 
-		case BC_lookupswitch:
-			{
-				s4 num, j;
-				lookup_target_t *lookup;
+		case BC_lookupswitch: {
 #if defined(ENABLE_VERIFIER)
-				s4 prevvalue = 0;
+			s4 prevvalue = 0;
 #endif
-				blockend = true;
-				nextbc = MEMORY_ALIGN((bcindex + 1), 4);
+			blockend = true;
+			nextbc = MEMORY_ALIGN((bcindex + 1), 4);
 
-				CHECK_END_OF_BYTECODE(nextbc + 8);
+			CHECK_END_OF_BYTECODE(nextbc + 8);
 
-				OP_PREPARE_ZEROFLAGS(opcode);
+			OP_PREPARE_ZEROFLAGS(opcode);
 
-				/* default target */
+			/* default target */
 
-				j = bcindex + read_s4_be(m->jcode + nextbc);
-				iptr->sx.s23.s3.lookupdefault.insindex = j;
+			s8 j = ((s8) bcindex) + read_s4_be(m->jcode + nextbc);
+			CHECK_BYTECODE_INDEX(j);
+			MARK_BASICBLOCK(&pd, j);
+			iptr->sx.s23.s3.lookupdefault.insindex = j;
+			nextbc += 4;
+
+			/* number of pairs */
+
+			s8 num = read_u4_be(m->jcode + nextbc);
+			iptr->sx.s23.s2.lookupcount = num;
+			nextbc += 4;
+
+			/* allocate the intermediate code table */
+
+			lookup_target_t *lookup = (lookup_target_t*) DumpMemory::allocate(sizeof(lookup_target_t) * num);
+			iptr->dst.lookup = lookup;
+
+			/* iterate over the lookup table */
+
+			CHECK_END_OF_BYTECODE(nextbc + 8 * num);
+
+			for (u4 i = 0; i < num; i++) {
+				/* value */
+
+				s4 value = read_s4_be(m->jcode + nextbc);
+				lookup->value = value;
+
 				nextbc += 4;
-				CHECK_BYTECODE_INDEX(j);
-				MARK_BASICBLOCK(&pd, j);
-
-				/* number of pairs */
-
-				num = read_u4_be(m->jcode + nextbc);
-				iptr->sx.s23.s2.lookupcount = num;
-				nextbc += 4;
-
-				/* allocate the intermediate code table */
-
-				lookup = (lookup_target_t*) DumpMemory::allocate(sizeof(lookup_target_t) * num);
-				iptr->dst.lookup = lookup;
-
-				/* iterate over the lookup table */
-
-				CHECK_END_OF_BYTECODE(nextbc + 8 * num);
-
-				for (i = 0; i < num; i++) {
-					/* value */
-
-					j = read_s4_be(m->jcode + nextbc);
-					lookup->value = j;
-
-					nextbc += 4;
 
 #if defined(ENABLE_VERIFIER)
-					/* check if the lookup table is sorted correctly */
+				/* check if the lookup table is sorted correctly */
 
-					if (i && (j <= prevvalue)) {
-						exceptions_throw_verifyerror(m, "Unsorted lookup switch");
-						return false;
-					}
-					prevvalue = j;
-#endif
-					/* target */
-
-					j = bcindex + read_s4_be(m->jcode + nextbc);
-					lookup->target.insindex = j;
-					lookup++;
-					nextbc += 4;
-					CHECK_BYTECODE_INDEX(j);
-					MARK_BASICBLOCK(&pd, j);
-				}
-
-				PINC;
-				break;
-			}
-
-		case BC_tableswitch:
-			{
-				s4 num, j;
-				s4 deftarget;
-				branch_target_t *table;
-
-				blockend = true;
-				nextbc = MEMORY_ALIGN((bcindex + 1), 4);
-
-				CHECK_END_OF_BYTECODE(nextbc + 12);
-
-				OP_PREPARE_ZEROFLAGS(opcode);
-
-				/* default target */
-
-				deftarget = bcindex + read_s4_be(m->jcode + nextbc);
-				nextbc += 4;
-				CHECK_BYTECODE_INDEX(deftarget);
-				MARK_BASICBLOCK(&pd, deftarget);
-
-				/* lower bound */
-
-				j = read_s4_be(m->jcode + nextbc);
-				iptr->sx.s23.s2.tablelow = j;
-				nextbc += 4;
-
-				/* upper bound */
-
-				num = read_s4_be(m->jcode + nextbc);
-				iptr->sx.s23.s3.tablehigh = num;
-				nextbc += 4;
-
-				/* calculate the number of table entries */
-
-				num = num - j + 1;
-
-#if defined(ENABLE_VERIFIER)
-				if (num < 1) {
-					exceptions_throw_verifyerror(m,
-							"invalid TABLESWITCH: upper bound < lower bound");
+				if (i && (value <= prevvalue)) {
+					exceptions_throw_verifyerror(m, "Unsorted lookup switch");
 					return false;
 				}
+				prevvalue = value;
 #endif
-				/* create the intermediate code table */
-				/* the first entry is the default target */
+				/* target */
 
-				table = (branch_target_t*) DumpMemory::allocate(sizeof(branch_target_t) * (1 + num));
-				iptr->dst.table = table;
-				(table++)->insindex = deftarget;
-
-				/* iterate over the target table */
-
-				CHECK_END_OF_BYTECODE(nextbc + 4 * num);
-
-				for (i = 0; i < num; i++) {
-					j = bcindex + read_s4_be(m->jcode + nextbc);
-					(table++)->insindex = j;
-					nextbc += 4;
-					CHECK_BYTECODE_INDEX(j);
-					MARK_BASICBLOCK(&pd, j);
-				}
-
-				PINC;
-				break;
+				s8 target = ((s8) bcindex) + read_s4_be(m->jcode + nextbc);
+				CHECK_BYTECODE_INDEX(target);
+				MARK_BASICBLOCK(&pd, target);
+				lookup->target.insindex = target;
+				lookup++;
+				nextbc += 4;
 			}
+
+			PINC;
+			break;
+		}
+
+		case BC_tableswitch: {
+			blockend = true;
+			nextbc = MEMORY_ALIGN((bcindex + 1), 4);
+
+			CHECK_END_OF_BYTECODE(nextbc + 12);
+
+			OP_PREPARE_ZEROFLAGS(opcode);
+
+			/* default target */
+
+			s8 deftarget = ((s8) bcindex) + read_s4_be(m->jcode + nextbc);
+			CHECK_BYTECODE_INDEX(deftarget);
+			MARK_BASICBLOCK(&pd, deftarget);
+			nextbc += 4;
+
+			/* lower bound */
+
+			s4 lo = read_s4_be(m->jcode + nextbc);
+			iptr->sx.s23.s2.tablelow = lo;
+			nextbc += 4;
+
+			/* upper bound */
+
+			s4 hi = read_s4_be(m->jcode + nextbc);
+			iptr->sx.s23.s3.tablehigh = hi;
+			nextbc += 4;
+
+			/* calculate the number of table entries */
+
+			s8 num = ((s8) hi) - ((s8) lo) + 1;
+
+#if defined(ENABLE_VERIFIER)
+			if (num < 1) {
+				exceptions_throw_verifyerror(m, "invalid TABLESWITCH: upper bound < lower bound");
+				return false;
+			}
+#endif
+			/* create the intermediate code table */
+			/* the first entry is the default target */
+
+			branch_target_t *table = (branch_target_t*) DumpMemory::allocate(sizeof(branch_target_t) * (1 + num));
+			iptr->dst.table = table;
+			(table++)->insindex = deftarget;
+
+			/* iterate over the target table */
+
+			CHECK_END_OF_BYTECODE(nextbc + 4 * num);
+
+			for (s4 i = 0; i < num; i++) {
+				s8 j = ((s8) bcindex) + read_s4_be(m->jcode + nextbc);
+				CHECK_BYTECODE_INDEX(j);
+				MARK_BASICBLOCK(&pd, j);
+				(table++)->insindex = j;
+				nextbc += 4;
+			}
+
+			PINC;
+			break;
+		}
 
 
 		/* load and store of object fields ************************************/
@@ -1402,9 +1412,9 @@ jsr_tail:
 		case BC_getstatic:
 		case BC_putstatic:
 		case BC_getfield:
-		case BC_putfield:
-			i = read_u2_be(m->jcode + bcindex + 1);
-			fmi = (constant_FMIref*) class_getconstant(m->clazz, i, CONSTANT_Fieldref);
+		case BC_putfield: {
+			u2               i   = read_u2_be(m->jcode + bcindex + 1);
+			constant_FMIref *fmi = (constant_FMIref*) class_getconstant(m->clazz, i, CONSTANT_Fieldref);
 
 			if (fmi == NULL)
 				return false;
@@ -1417,13 +1427,13 @@ jsr_tail:
 #if defined(ENABLE_VERIFIER)
 			if (!JITDATA_HAS_FLAG_VERIFY(jd)) {
 #endif
-				result = resolve_field_lazy(m, fmi);
+				resolve_result_t result = resolve_field_lazy(m, fmi);
 
 				if (result == resolveFailed)
 					return false;
 
 				if (result != resolveSucceeded) {
-					uf = resolve_create_unresolved_field(m->clazz, m, iptr);
+					unresolved_field *uf = resolve_create_unresolved_field(m->clazz, m, iptr);
 
 					if (uf == NULL)
 						return false;
@@ -1431,22 +1441,23 @@ jsr_tail:
 					/* store the unresolved_field pointer */
 
 					iptr->sx.s23.s3.uf = uf;
-					iptr->flags.bits |= INS_FLAG_UNRESOLVED;
+					iptr->flags.bits  |= INS_FLAG_UNRESOLVED;
 				}
 #if defined(ENABLE_VERIFIER)
 			}
 #endif
 			PINC;
 			break;
+		}
 
 
 		/* method invocation **************************************************/
 
-		case BC_invokestatic:
+		case BC_invokestatic: {
 			OP_PREPARE_ZEROFLAGS(opcode);
 
-			i = read_u2_be(m->jcode + bcindex + 1);
-			fmi = (constant_FMIref*) class_getconstant(m->clazz, i, CONSTANT_Methodref);
+			u2 i = read_u2_be(m->jcode + bcindex + 1);
+			fmi  = (constant_FMIref*) class_getconstant(m->clazz, i, CONSTANT_Methodref);
 
 			if (fmi == NULL)
 				return false;
@@ -1456,30 +1467,35 @@ jsr_tail:
 			md->params_from_paramtypes(ACC_STATIC);
 
 			goto invoke_method;
+		}
 
-		case BC_invokespecial:
+		case BC_invokespecial: {
 			OP_PREPARE_FLAGS(opcode, INS_FLAG_CHECK);
 
-			i = read_u2_be(m->jcode + bcindex + 1);
-			fmi = (constant_FMIref*) class_getconstant(m->clazz, i, CONSTANT_Methodref);
+			u2 i = read_u2_be(m->jcode + bcindex + 1);
+			fmi  = (constant_FMIref*) class_getconstant(m->clazz, i, CONSTANT_Methodref);
 
 			goto invoke_nonstatic_method;
+		}
 
-		case BC_invokeinterface:
+		case BC_invokeinterface: {
 			OP_PREPARE_ZEROFLAGS(opcode);
 
-			i = read_u2_be(m->jcode + bcindex + 1);
-			fmi = (constant_FMIref*) class_getconstant(m->clazz, i, CONSTANT_InterfaceMethodref);
+			u2 i = read_u2_be(m->jcode + bcindex + 1);
+			fmi  = (constant_FMIref*) class_getconstant(m->clazz, i, CONSTANT_InterfaceMethodref);
 
 			goto invoke_nonstatic_method;
+		}
 
-		case BC_invokevirtual:
+		case BC_invokevirtual: {
 			OP_PREPARE_ZEROFLAGS(opcode);
 
-			i = read_u2_be(m->jcode + bcindex + 1);
-			fmi = (constant_FMIref*) class_getconstant(m->clazz, i, CONSTANT_Methodref);
+			u2 i = read_u2_be(m->jcode + bcindex + 1);
+			fmi  = (constant_FMIref*) class_getconstant(m->clazz, i, CONSTANT_Methodref);
+			// fallthrough!
+		}
 
-invoke_nonstatic_method:
+		invoke_nonstatic_method:
 			if (fmi == NULL)
 				return false;
 
@@ -1487,7 +1503,7 @@ invoke_nonstatic_method:
 
 			md->params_from_paramtypes(0);
 
-invoke_method:
+		invoke_method: {
 			code_unflag_leafmethod(code);
 
 			iptr->sx.s23.s3.fmiref = fmi;
@@ -1497,8 +1513,7 @@ invoke_method:
 #if defined(ENABLE_VERIFIER)
 			if (!JITDATA_HAS_FLAG_VERIFY(jd)) {
 #endif
-				result = resolve_method_lazy(m, fmi,
-											 (opcode == BC_invokespecial));
+				resolve_result_t result = resolve_method_lazy(m, fmi, opcode == BC_invokespecial);
 
 				if (result == resolveFailed)
 					return false;
@@ -1511,17 +1526,17 @@ invoke_method:
 
 					assert(iptr->sx.s23.s3.fmiref->is_resolved());
 
-					if ((iptr->opc == ICMD_INVOKEVIRTUAL)
-						&& (mi->flags & (ACC_FINAL | ACC_PRIVATE)))
-					{
+					if ((opcode == BC_invokevirtual) && (mi->flags & (ACC_FINAL | ACC_PRIVATE))) {
 						iptr->opc         = ICMD_INVOKESPECIAL;
 						iptr->flags.bits |= INS_FLAG_CHECK;
 					}
 				}
 				else {
-					um = resolve_create_unresolved_method(m->clazz, m, fmi,
-							(opcode == BC_invokestatic),
-							(opcode == BC_invokespecial));
+					unresolved_method *um = resolve_create_unresolved_method(m->clazz,
+				                                                             m,
+				                                                             fmi,
+				                                                             opcode == BC_invokestatic,
+				                                                             opcode == BC_invokespecial);
 
 					/* store the unresolved_method pointer */
 
@@ -1533,35 +1548,41 @@ invoke_method:
 #endif
 			PINC;
 			break;
+		}
 
 		/* instructions taking class arguments ********************************/
 
-		case BC_new:
-			i = read_u2_be(m->jcode + bcindex + 1);
-			cr = (constant_classref*) class_getconstant(m->clazz, i, CONSTANT_Class);
+		case BC_new: {
+			u2                 i  = read_u2_be(m->jcode + bcindex + 1);
+			constant_classref *cr = (constant_classref*) class_getconstant(m->clazz, i, CONSTANT_Class);
 
 			if (cr == NULL)
 				return false;
 
+			classinfo *c;
 			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
 				return false;
 
 			INSTRUCTIONS_CHECK(2);
 			OP_LOADCONST_CLASSINFO_OR_CLASSREF_NOCHECK(c, cr);
-			bte = builtintable_get_internal(BUILTIN_new);
+			builtintable_entry *bte = builtintable_get_internal(BUILTIN_new);
 			OP_BUILTIN_CHECK_EXCEPTION(bte);
 			s_count++;
 			break;
+		}
 
-		case BC_checkcast:
-			i = read_u2_be(m->jcode + bcindex + 1);
-			cr = (constant_classref*) class_getconstant(m->clazz, i, CONSTANT_Class);
+		case BC_checkcast: {
+			u2                 i  = read_u2_be(m->jcode + bcindex + 1);
+			constant_classref *cr = (constant_classref*) class_getconstant(m->clazz, i, CONSTANT_Class);
 
 			if (cr == NULL)
 				return false;
 
+			classinfo *c;
 			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
 				return false;
+
+			u4 flags;
 
 			if (cr->name[0] == '[') {
 				/* array type cast-check */
@@ -1574,14 +1595,16 @@ invoke_method:
 			}
 			OP_S3_CLASSINFO_OR_CLASSREF(opcode, c, cr, flags);
 			break;
+		}
 
-		case BC_instanceof:
-			i = read_u2_be(m->jcode + bcindex + 1);
-			cr = (constant_classref*) class_getconstant(m->clazz, i, CONSTANT_Class);
+		case BC_instanceof: {
+			u2                 i  = read_u2_be(m->jcode + bcindex + 1);
+			constant_classref *cr = (constant_classref*) class_getconstant(m->clazz, i, CONSTANT_Class);
 
 			if (cr == NULL)
 				return false;
 
+			classinfo *c;
 			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
 				return false;
 
@@ -1589,7 +1612,7 @@ invoke_method:
 				/* array type cast-check */
 				INSTRUCTIONS_CHECK(2);
 				OP_LOADCONST_CLASSINFO_OR_CLASSREF_NOCHECK(c, cr);
-				bte = builtintable_get_internal(BUILTIN_arrayinstanceof);
+				builtintable_entry *bte = builtintable_get_internal(BUILTIN_arrayinstanceof);
 				OP_BUILTIN_NO_EXCEPTION(bte);
 				s_count++;
 			}
@@ -1598,12 +1621,13 @@ invoke_method:
 				OP_S3_CLASSINFO_OR_CLASSREF(opcode, c, cr, 0 /* flags*/);
 			}
 			break;
+		}
 
 		/* synchronization instructions ***************************************/
 
 		case BC_monitorenter:
 			if (checksync) {
-				bte = builtintable_get_internal(LOCK_monitor_enter);
+				builtintable_entry *bte = builtintable_get_internal(LOCK_monitor_enter);
 				OP_BUILTIN_CHECK_EXCEPTION(bte);
 			} else {
 				OP_CHECK_EXCEPTION(ICMD_CHECKNULL);
@@ -1613,7 +1637,7 @@ invoke_method:
 
 		case BC_monitorexit:
 			if (checksync) {
-				bte = builtintable_get_internal(LOCK_monitor_exit);
+				builtintable_entry *bte = builtintable_get_internal(LOCK_monitor_exit);
 				OP_BUILTIN_CHECK_EXCEPTION(bte);
 			} else {
 				OP_CHECK_EXCEPTION(ICMD_CHECKNULL);
@@ -1623,9 +1647,9 @@ invoke_method:
 
 		/* arithmetic instructions that may become builtin functions **********/
 
-		case BC_idiv:
+		case BC_idiv: {
 #if !SUPPORT_DIVISION
-			bte = builtintable_get_internal(BUILTIN_idiv);
+			builtintable_entry *bte = builtintable_get_internal(BUILTIN_idiv);
 			OP_BUILTIN_ARITHMETIC(opcode, bte);
 #else
 # if SUPPORT_HARDWARE_DIVIDE_BY_ZERO
@@ -1635,10 +1659,11 @@ invoke_method:
 # endif
 #endif
 			break;
+		}
 
-		case BC_irem:
+		case BC_irem: {
 #if !SUPPORT_DIVISION
-			bte = builtintable_get_internal(BUILTIN_irem);
+			builtintable_entry *bte = builtintable_get_internal(BUILTIN_irem);
 			OP_BUILTIN_ARITHMETIC(opcode, bte);
 #else
 # if SUPPORT_HARDWARE_DIVIDE_BY_ZERO
@@ -1648,10 +1673,11 @@ invoke_method:
 # endif
 #endif
 			break;
+		}
 
-		case BC_ldiv:
+		case BC_ldiv: {
 #if !(SUPPORT_DIVISION && SUPPORT_LONG_DIV)
-			bte = builtintable_get_internal(BUILTIN_ldiv);
+			builtintable_entry *bte = builtintable_get_internal(BUILTIN_ldiv);
 			OP_BUILTIN_ARITHMETIC(opcode, bte);
 #else
 # if SUPPORT_HARDWARE_DIVIDE_BY_ZERO
@@ -1661,10 +1687,11 @@ invoke_method:
 # endif
 #endif
 			break;
+		}
 
-		case BC_lrem:
+		case BC_lrem: {
 #if !(SUPPORT_DIVISION && SUPPORT_LONG_DIV)
-			bte = builtintable_get_internal(BUILTIN_lrem);
+			builtintable_entry *bte = builtintable_get_internal(BUILTIN_lrem);
 			OP_BUILTIN_ARITHMETIC(opcode, bte);
 #else
 # if SUPPORT_HARDWARE_DIVIDE_BY_ZERO
@@ -1674,60 +1701,67 @@ invoke_method:
 # endif
 #endif
 			break;
+		}
 
-		case BC_frem:
+		case BC_frem: {
 #if defined(__I386__)
 			OP(opcode);
 #else
-			bte = builtintable_get_internal(BUILTIN_frem);
+			builtintable_entry *bte = builtintable_get_internal(BUILTIN_frem);
 			OP_BUILTIN_NO_EXCEPTION(bte);
 #endif
 			break;
+		}
 
-		case BC_drem:
+		case BC_drem: {
 #if defined(__I386__)
 			OP(opcode);
 #else
-			bte = builtintable_get_internal(BUILTIN_drem);
+			builtintable_entry *bte = builtintable_get_internal(BUILTIN_drem);
 			OP_BUILTIN_NO_EXCEPTION(bte);
 #endif
 			break;
+		}
 
-		case BC_f2i:
+		case BC_f2i: {
 #if defined(__ALPHA__)
-			bte = builtintable_get_internal(BUILTIN_f2i);
+			builtintable_entry *bte = builtintable_get_internal(BUILTIN_f2i);
 			OP_BUILTIN_NO_EXCEPTION(bte);
 #else
 			OP(opcode);
 #endif
 			break;
+		}
 
-		case BC_f2l:
+		case BC_f2l: {
 #if defined(__ALPHA__)
-			bte = builtintable_get_internal(BUILTIN_f2l);
+			builtintable_entry *bte = builtintable_get_internal(BUILTIN_f2l);
 			OP_BUILTIN_NO_EXCEPTION(bte);
 #else
 			OP(opcode);
 #endif
 			break;
+		}
 
-		case BC_d2i:
+		case BC_d2i: {
 #if defined(__ALPHA__)
-			bte = builtintable_get_internal(BUILTIN_d2i);
+			builtintable_entry *bte = builtintable_get_internal(BUILTIN_d2i);
 			OP_BUILTIN_NO_EXCEPTION(bte);
 #else
 			OP(opcode);
 #endif
 			break;
+		}
 
-		case BC_d2l:
+		case BC_d2l: {
 #if defined(__ALPHA__)
-			bte = builtintable_get_internal(BUILTIN_d2l);
+			builtintable_entry *bte = builtintable_get_internal(BUILTIN_d2l);
 			OP_BUILTIN_NO_EXCEPTION(bte);
 #else
 			OP(opcode);
 #endif
 			break;
+		}
 
 
 		/* invalid opcodes ****************************************************/
@@ -1821,10 +1855,6 @@ invoke_method:
             /* Straight-forward translation to HIR. */
             OP(opcode);
             break;
-
-//        default:
-
-
 		} /* end switch */
 
 		/* verifier checks ****************************************************/
@@ -1832,8 +1862,7 @@ invoke_method:
 #if defined(ENABLE_VERIFIER)
 		/* If WIDE was used correctly, iswide should have been reset by now. */
 		if (iswide) {
-			exceptions_throw_verifyerror(m,
-					"Illegal instruction: WIDE before incompatible opcode");
+			exceptions_throw_verifyerror(m, "Illegal instruction: WIDE before incompatible opcode");
 			return false;
 		}
 #endif /* defined(ENABLE_VERIFIER) */
@@ -1926,7 +1955,7 @@ invoke_method:
 
 	bbcount = 0;
 
-	for (i = 0; i < ircount; i++, iptr++) {
+	for (s4 i = 0; i < ircount; i++, iptr++) {
 		if (INSTRUCTION_STARTS_BASICBLOCK(iptr)) {
 			/* store the basic-block number in the IR instruction
 			   map */
@@ -1953,7 +1982,7 @@ invoke_method:
 
 	bbcount = 0;
 
-	for (i = 0; i < ircount; i++, iptr++) {
+	for (s4 i = 0; i < ircount; i++, iptr++) {
 		/* check for basic block */
 
 		if (INSTRUCTION_STARTS_BASICBLOCK(iptr)) {
@@ -2001,34 +2030,36 @@ invoke_method:
 			BYTECODEINDEX_TO_BASICBLOCK(iptr->sx.s23.s3.jsrtarget);
 			break;
 
-		case ICMD_TABLESWITCH:
+		case ICMD_TABLESWITCH: {
 			table = iptr->dst.table;
 
 			BYTECODEINDEX_TO_BASICBLOCK(*table);
 			table++;
 
-			j = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
+			s4 j = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
 
 			while (--j >= 0) {
 				BYTECODEINDEX_TO_BASICBLOCK(*table);
 				table++;
 			}
 			break;
+		}
 
-		case ICMD_LOOKUPSWITCH:
+		case ICMD_LOOKUPSWITCH: {
 			BYTECODEINDEX_TO_BASICBLOCK(iptr->sx.s23.s3.lookupdefault);
 
 			lookup = iptr->dst.lookup;
 
-			j = iptr->sx.s23.s2.lookupcount;
+			s4 j = iptr->sx.s23.s2.lookupcount;
 
 			while (--j >= 0) {
 				BYTECODEINDEX_TO_BASICBLOCK(lookup->target);
 				lookup++;
 			}
 			break;
-        default:
-            break;
+		}
+		default:
+			break;
 		}
 	}
 
@@ -2056,8 +2087,6 @@ invoke_method:
 
 	{
 		s4 nlocals = 0;
-		s4 i;
-		s4 t;
 		s4 varindex;
 		s4 *mapptr;
 		s4 *reversemap;
@@ -2069,11 +2098,11 @@ invoke_method:
 		/* (local_map[javaindex*5+type] = cacaoindex)                        */
 		/* Unused (javaindex,type) pairs are marked with UNUSED.             */
 
-		for (i = 0; i < (m->maxlocals * 5); i++, mapptr++) {
+		for (s4 i = 0; i < (m->maxlocals * 5); i++, mapptr++) {
 			if (*mapptr)
 				*mapptr = nlocals++;
 			else
-				*mapptr = UNUSED;
+				*mapptr = jitdata::UNUSED;
 		}
 
 		jd->localcount = nlocals;
@@ -2111,10 +2140,10 @@ invoke_method:
 
 		reversemap = (s4*) DumpMemory::allocate(sizeof(s4) * nlocals);
 
-		for (i = 0; i < m->maxlocals; i++)
-			for (t=0; t<5; t++) {
+		for (s4 i = 0; i < m->maxlocals; i++)
+			for (s4 t=0; t<5; t++) {
 				varindex = local_map[5*i + t];
-				if (varindex != UNUSED) {
+				if (varindex != jitdata::UNUSED) {
 					VAR(varindex)->type = (Type) t;
 					reversemap[varindex] = i;
 				}
