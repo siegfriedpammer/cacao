@@ -1248,18 +1248,68 @@ void MovSDInst::emit(CodeMemory* CM) const {
 		<< get_op_size() * 8 << "bit");
 }
 
-void FPRemInst::emit(CodeMemory* CM) const {
-	MachineOperand *src = operands[1].op;
+// TODO: refactor
+void MovSSInst::emit(CodeMemory* CM) const {
+	MachineOperand *src = operands[0].op;
 	MachineOperand *dst = result.op;
+	if (src->aquivalent(*dst)) return;
 
-	X86_64Register *src_reg = cast_to<X86_64Register>(src);
-	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
+	switch (get_OpEncoding(dst,src,get_op_size())) {
+	case GPInstruction::RegReg32:
+	{
+		X86_64Register *src_reg = cast_to<X86_64Register>(src);
+		X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
 
-	CodeFragment code = CM->get_CodeFragment(3);
+		CodeFragment code = CM->get_CodeFragment(4);
+		code[0] = 0xf3;
+		code[1] = 0x0f;
+		code[2] = 0x10;
+		code[3] = get_modrm_reg2reg(dst_reg,src_reg);
+		return;
+	}
+	case GPInstruction::RegMem32:
+	{
+		StackSlot *src_slot = cast_to<StackSlot>(src);
+		X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
+
+		s4 index = src_slot->get_index() * 8;
+
+		CodeFragment code = CM->get_CodeFragment(8);
+		code[0] = 0xf3;
+		code[1] = 0x0f;
+		code[2] = 0x10;
+		code[3] = get_modrm(0x2, dst_reg, &RBP);
+		InstructionEncoding::imm(code + 4, index);
+		return;
+	}
+	case GPInstruction::MemReg32:
+	{
+		StackSlot *dst_slot = cast_to<StackSlot>(dst);
+		X86_64Register *src_reg = cast_to<X86_64Register>(src);
+
+		s4 index = dst_slot->get_index() * 8;
+
+		CodeFragment code = CM->get_CodeFragment(8);
+		code[0] = 0xf3;
+		code[1] = 0x0f;
+		code[2] = 0x11;
+		code[3] = get_modrm(0x2, src_reg, &RBP);
+		InstructionEncoding::imm(code + 4, index);
+		return;
+	}
+	default: break;
+	}
+	ABORT_MSG(this << ": Operand(s) not supported",
+		"dst: " << dst << " src: " << src << " op_size: "
+		<< get_op_size() * 8 << "bit");
+
+}
+
+void FPRemInst::emit(CodeMemory* CM) const {
+
+	CodeFragment code = CM->get_CodeFragment(2);
 	code[0] = 0xd9;
 	code[1] = 0xf8;
-	code[2] = get_modrm_1reg(7, dst_reg);
-	//code[2] = get_modrm_reg2reg(dst_reg,src_reg);
 }
 
 void MovImmSInst::emit(CodeMemory* CM) const {
@@ -1359,41 +1409,28 @@ void MovImmSInst::link(CodeFragment &CF) const {
 }
 
 
-void MovSSInst::emit(CodeMemory* CM) const {
-	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
-	if (src->aquivalent(*dst)) return;
 
-	switch (get_OpEncoding(dst,src,get_op_size())) {
-	case GPInstruction::RegReg32:
-	{
-		X86_64Register *src_reg = cast_to<X86_64Register>(src);
-		X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
 
-		CodeFragment code = CM->get_CodeFragment(4);
-		code[0] = 0xf3;
-		code[1] = 0x0f;
-		code[2] = 0x10;
-		code[3] = get_modrm_reg2reg(dst_reg,src_reg);
-		return;
-	}
-	default: break;
-	}
-	ABORT_MSG(this << ": Operand(s) not supported",
-		"dst: " << dst << " src: " << src << " op_size: "
-		<< get_op_size() * 8 << "bit");
-}
-
+// TODO: refactor
 void CVTSI2SDInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
 	MachineOperand *dst = result.op;
 
+	X86_64Register *src_reg = cast_to<X86_64Register>(src);
+	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
+
 	switch (from) {
+	case GPInstruction::OS_32:
+	{
+		CodeFragment code = CM->get_CodeFragment(4);
+		code[0] = 0xf2;
+		code[1] = 0x0f;
+		code[2] = 0x2a;
+		code[3] = get_modrm_reg2reg(dst_reg,src_reg);
+		return;
+	}
 	case GPInstruction::OS_64:
 	{
-		X86_64Register *src_reg = cast_to<X86_64Register>(src);
-		X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
-
 		CodeFragment code = CM->get_CodeFragment(5);
 		code[0] = 0xf2;
 		code[1] = get_rex(dst_reg,src_reg);
@@ -1408,6 +1445,135 @@ void CVTSI2SDInst::emit(CodeMemory* CM) const {
 		"dst: " << dst << " src: " << src << " op_size: "
 		<< get_op_size() * 8 << "bit");
 }
+
+// TODO: refactor
+void CVTSI2SSInst::emit(CodeMemory* CM) const {
+	MachineOperand *src = operands[0].op;
+	MachineOperand *dst = result.op;
+
+	X86_64Register *src_reg = cast_to<X86_64Register>(src);
+	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
+
+	switch (from) {
+	case GPInstruction::OS_32:
+	{
+		CodeFragment code = CM->get_CodeFragment(4);
+		code[0] = 0xf3;
+		code[1] = 0x0f;
+		code[2] = 0x2a;
+		code[3] = get_modrm_reg2reg(dst_reg,src_reg);
+		return;
+	}
+	case GPInstruction::OS_64:
+	{
+		CodeFragment code = CM->get_CodeFragment(5);
+		code[0] = 0xf3;
+		code[1] = get_rex(dst_reg,src_reg);
+		code[2] = 0x0f;
+		code[3] = 0x2a;
+		code[4] = get_modrm_reg2reg(dst_reg,src_reg);
+		return;
+	}
+	default: break;
+	}
+	ABORT_MSG(this << ": Operand(s) not supported",
+		"dst: " << dst << " src: " << src << " op_size: "
+		<< get_op_size() * 8 << "bit");
+}
+
+
+// TODO: refactor
+void FLDInst::emit(CodeMemory *CM) const {
+	StackSlot *slot;
+
+	slot = cast_to<StackSlot>(result.op);
+	CodeSegmentBuilder code;
+	REX rex;
+	OperandSize op_size = get_op_size();
+
+	switch (op_size) {
+
+	case GPInstruction::OS_32:
+		code += 0xd9;
+		break;
+	case GPInstruction::OS_64:
+		rex + REX::W;
+		code += rex;
+		code += 0xdd;
+		break;
+	}
+
+
+	// modmr + imm
+	s4 index = slot->get_index() * 8;
+	if (fits_into<s1>(index)) {
+		code += get_modrm_u1(0x1,0,RBP.get_index());
+		code += (u1) 0xff & (index >> 0x00);
+	} else {
+		code += get_modrm_u1(0x2,0,RBP.get_index());
+		code += (u1) 0xff & (index >> 0x00);
+		code += (u1) 0xff & (index >> 0x08);
+		code += (u1) 0xff & (index >> 0x10);
+		code += (u1) 0xff & (index >> 0x18);
+	}
+	add_CodeSegmentBuilder(CM,code);
+
+
+}
+
+// TODO: refactor
+void FSTPInst::emit(CodeMemory *CM) const {
+	StackSlot *slot;
+
+	slot = cast_to<StackSlot>(result.op);
+	CodeSegmentBuilder code;
+	REX rex;
+	OperandSize op_size = get_op_size();
+
+	switch (op_size) {
+
+	case GPInstruction::OS_32:
+		code += 0xd9;
+		break;
+	case GPInstruction::OS_64:
+		rex + REX::W;
+		code += rex;
+		code += 0xdd;
+		break;
+	}
+
+
+	// modmr + imm
+	s4 index = slot->get_index() * 8;
+	if (fits_into<s1>(index)) {
+		code += get_modrm_u1(0x1,3,RBP.get_index());
+		code += (u1) 0xff & (index >> 0x00);
+	} else {
+		code += get_modrm_u1(0x2,3,RBP.get_index());
+		code += (u1) 0xff & (index >> 0x00);
+		code += (u1) 0xff & (index >> 0x08);
+		code += (u1) 0xff & (index >> 0x10);
+		code += (u1) 0xff & (index >> 0x18);
+	}
+	add_CodeSegmentBuilder(CM,code);
+
+
+}
+
+void FFREEInst::emit(CodeMemory* CM) const {
+
+	CodeFragment code = CM->get_CodeFragment(2);
+	code[0] = 0xdd;
+	code[1] = 0xc0 + fpureg->index;
+}
+
+void FINCSTPInst::emit(CodeMemory* CM) const {
+
+	CodeFragment code = CM->get_CodeFragment(2);
+	code[0] = 0xd9;
+	code[1] = 0xf7;
+}
+
 } // end namespace x86_64
 } // end namespace compiler2
 } // end namespace jit

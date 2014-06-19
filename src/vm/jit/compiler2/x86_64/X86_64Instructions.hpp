@@ -60,6 +60,29 @@ struct SrcOp {
 	MachineOperand *op;
 	explicit SrcOp(MachineOperand *op) : op(op) {}
 };
+
+struct SrcMemOp {
+	MachineOperand *op;
+	explicit SrcMemOp(StackSlot *op) : op(op) {
+
+	}
+	explicit SrcMemOp(ManagedStackSlot *op) : op(op) {
+
+	}
+};
+
+
+struct DstMemOp {
+	MachineOperand *op;
+	explicit DstMemOp(StackSlot *op) : op(op) {
+
+	}
+	explicit DstMemOp(ManagedStackSlot *op) : op(op) {
+
+	}
+};
+
+
 /**
  * Simple wrapper for first operand of an
  * x86_64 instruction.
@@ -709,6 +732,56 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
+/**
+ * Convert Dword Integer to Scalar Single-Precision FP Value
+ */
+class CVTSI2SSInst: public MoveInst {
+	GPInstruction::OperandSize from;
+public:
+	CVTSI2SSInst(const SrcOp &src, const DstOp &dst,
+			GPInstruction::OperandSize from, GPInstruction::OperandSize to) :
+			MoveInst("X86_64CVTSI2SSInst", src.op, dst.op, to), from(from) {
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class FLDInst: public GPInstruction {
+
+public:
+	FLDInst(const SrcMemOp &src, GPInstruction::OperandSize op_size) :
+			GPInstruction("X86_64FLDInst", src.op, op_size, 1) {
+		operands[0].op = src.op;
+
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class FSTPInst: public GPInstruction {
+
+public:
+	FSTPInst(const DstMemOp &dst, GPInstruction::OperandSize op_size) :
+			GPInstruction("X86_64FSTPInst", dst.op, op_size, 1) {
+		operands[0].op = dst.op;
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class FFREEInst: public X86_64Instruction {
+private:
+	FPUStackRegister *fpureg;
+public:
+	FFREEInst(FPUStackRegister *fpureg) :
+		X86_64Instruction("X86_64FFREEInst", &NoOperand, 0), fpureg(fpureg) {}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class FINCSTPInst: public X86_64Instruction {
+public:
+	FINCSTPInst() :
+		X86_64Instruction("X86_64FINCSTPInst", &NoOperand, 0) {}
+	virtual void emit(CodeMemory* CM) const;
+};
+
 // compare
 class UCOMISInst : public GPInstruction {
 protected:
@@ -817,10 +890,8 @@ public:
 class FPRemInst: public GPInstruction {
 public:
 
-	FPRemInst(const Src1Op &src2, const DstSrc1Op &dstsrc1, OperandSize op_size) :
-			GPInstruction("X86_64IDivInst", dstsrc1.op, op_size, 2) {
-		operands[0].op = dstsrc1.op;
-		operands[1].op = src2.op;
+	FPRemInst(OperandSize op_size) :
+			GPInstruction("X86_64FPRemInst", &NoOperand, op_size, 0) {
 	}
 
 	virtual void emit(CodeMemory* CM) const;

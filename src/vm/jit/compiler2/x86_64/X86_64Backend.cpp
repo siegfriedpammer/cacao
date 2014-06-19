@@ -553,11 +553,14 @@ void LoweringVisitor::visit(REMInst *I) {
 	GPInstruction::OperandSize opsize = get_OperandSize_from_Type(type);
 	MachineOperand *dividendLower = get_op(I->get_operand(0)->to_Instruction());;
 
-	MachineInstruction *alu = NULL;
+	MachineInstruction *resultInst = NULL;
 	MachineOperand *nativeUpper;
 	MachineInstruction *convertToQuadword;
 
-	VirtualRegister *temp;
+	StackSlotManager *ssm;
+	ManagedStackSlot *src;
+	ManagedStackSlot *dst;
+	ManagedStackSlot *result;
 
 	switch (type) {
 	case Type::ByteTypeID:
@@ -568,29 +571,33 @@ void LoweringVisitor::visit(REMInst *I) {
 		convertToQuadword = new CDQInst(DstSrc1Op(nativeLower), DstSrc2Op(nativeUpper), opsize);
 		get_current()->push_back(get_Backend()->create_Move(dividendLower, nativeLower));
 		get_current()->push_back(convertToQuadword);
-		alu = new IDivInst(Src2Op(src_op2), DstSrc1Op(nativeUpper), DstSrc2Op(nativeLower), opsize);
-		get_current()->push_back(alu);
+		resultInst = new IDivInst(Src2Op(src_op2), DstSrc1Op(nativeUpper), DstSrc2Op(nativeLower), opsize);
+		get_current()->push_back(resultInst);
 		break;
+	case Type::FloatTypeID:
 	case Type::DoubleTypeID:
-		/*
-		temp = new VirtualRegister(type);
-		get_current()->push_back(get_Backend()->create_Move(dividendLower, temp));
-		get_current()->push_back(new DivSDInst(Src2Op(src_op2), DstSrc1Op(temp)));
-		get_current()->push_back(new MulSDInst(Src2Op(src_op2), DstSrc1Op(temp)));
-		alu = new SubSDInst(Src2Op(dividendLower), DstSrc1Op(temp));
-		get_current()->push_back(alu);
-		break;
-		*/
-		alu = new FPRemInst(Src1Op(src_op2), DstSrc1Op(dividendLower), opsize);
-		get_current()->push_back(alu);
+		ssm = get_Backend()->get_JITData()->get_StackSlotManager();
+		src = ssm->create_ManagedStackSlot(type);
+		dst = ssm->create_ManagedStackSlot(type);
+		result = ssm->create_ManagedStackSlot(type);
+
+		get_current()->push_back(get_Backend()->create_Move(dividendLower, src));
+		get_current()->push_back(get_Backend()->create_Move(src_op2, dst));
+
+		get_current()->push_back(new FLDInst(SrcMemOp(dst), opsize));
+		get_current()->push_back(new FLDInst(SrcMemOp(src), opsize));
+		get_current()->push_back(new FPRemInst(opsize));
+		resultInst = new FSTPInst(DstMemOp(result), opsize);
+		get_current()->push_back(resultInst);
+		get_current()->push_back(new FFREEInst(&ST0));
+		get_current()->push_back(new FINCSTPInst());
 		break;
 	default:
 		ABORT_MSG("x86_64: Lowering not supported",
 			"Inst: " << I << " type: " << type);
 	}
 
-
-	set_op(I,alu->get_result().op);
+	set_op(I,resultInst->get_result().op);
 }
 
 void LoweringVisitor::visit(ALOADInst *I) {
@@ -827,6 +834,26 @@ void LoweringVisitor::visit(CASTInst *I) {
 			set_op(I,mov->get_result().op);
 			return;
 		}
+		case Type::DoubleTypeID:
+		{
+			MachineInstruction *mov = new CVTSI2SDInst(
+				SrcOp(src_op),
+				DstOp(new VirtualRegister(to)),
+				GPInstruction::OS_32, GPInstruction::OS_64);
+			get_current()->push_back(mov);
+			set_op(I,mov->get_result().op);
+			return;
+		}
+		case Type::FloatTypeID:
+		{
+			MachineInstruction *mov = new CVTSI2SSInst(
+				SrcOp(src_op),
+				DstOp(new VirtualRegister(to)),
+				GPInstruction::OS_32, GPInstruction::OS_64);
+			get_current()->push_back(mov);
+			set_op(I,mov->get_result().op);
+			return;
+		}
 		default: break;
 		}
 		break;
@@ -842,6 +869,9 @@ void LoweringVisitor::visit(CASTInst *I) {
 			set_op(I,mov->get_result().op);
 			return;
 		}
+
+		// TODO: implement proper downcast
+
 		default: break;
 		}
 		break;

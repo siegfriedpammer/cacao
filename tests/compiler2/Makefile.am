@@ -75,7 +75,8 @@ OUTPUT_JAVA_TESTS = \
 	Test.fadd \
 	Test.fsub \
 	Test.fmul \
-	Test.fdiv
+	Test.fdiv \
+	Test.dmod
 	
 
 check: build run
