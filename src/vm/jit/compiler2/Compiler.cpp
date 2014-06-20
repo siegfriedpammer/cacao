@@ -114,8 +114,9 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-
 #define DEBUG_NAME "compiler2"
+
+Option<bool> enabled("DebugCompiler2","compiler with compiler2",false,option::xx_root());
 
 MachineCode* compile(methodinfo* m)
 {

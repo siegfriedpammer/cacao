@@ -2306,7 +2306,7 @@ static void vm_compile_method(char* mainname)
 
 	RT_TIMER_START(compiler_method);
 #if defined(ENABLE_COMPILER2)
-	if (opt_DebugCompiler2) {
+	if (cacao::jit::compiler2::enabled) {
 		cacao::jit::compiler2::compile(m);
 	} else
 #endif
