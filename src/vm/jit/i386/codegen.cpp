@@ -118,17 +118,17 @@ void codegen_emit_prolog(jitdata* jd)
 		varindex = jd->local_map[l * 5 + t];
 #if defined(ENABLE_SSA)
 		if ( ls != NULL ) {
-			if (varindex != UNUSED)
+			if (varindex != jitdata::UNUSED)
 				varindex = ls->var_0[varindex];
-			if ((varindex != UNUSED) && (ls->lifetime[varindex].type == UNUSED))
-				varindex = UNUSED;
+			if ((varindex != jitdata::UNUSED) && (ls->lifetime[varindex].type == jitdata::UNUSED))
+				varindex = jitdata::UNUSED;
 		}
 #endif
  		l++;
  		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
  			l++;
 
-		if (varindex == UNUSED)
+		if (varindex == jitdata::UNUSED)
 			continue;
 
 		var = VAR(varindex);

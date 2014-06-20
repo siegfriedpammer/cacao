@@ -1,6 +1,6 @@
 /* src/vm/properties.cpp - handling commandline properties
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -117,13 +117,13 @@ Properties::Properties()
 
 	len =
 		strlen(p) +
-		strlen("/jre/lib/"JAVA_ARCH"/server/libjvm.so") +
+		strlen("/jre/lib/" JAVA_ARCH "/server/libjvm.so") +
 		strlen("0");
 
 	char* java_home = MNEW(char, len);
 
 	strcpy(java_home, p);
-	strcat(java_home, "/jre/lib/"JAVA_ARCH"/server/libjvm.so");
+	strcat(java_home, "/jre/lib/" JAVA_ARCH "/server/libjvm.so");
 
 	// Check if that libjvm.so exists.
 	if (os::access(java_home, F_OK) == 0) {
@@ -138,12 +138,12 @@ Properties::Properties()
 
 	/* Set the path to Java core native libraries. */
 
-	len = strlen(java_home) + strlen("/lib/"JAVA_ARCH) + strlen("0");
+	len = strlen(java_home) + strlen("/lib/" JAVA_ARCH) + strlen("0");
 
 	char* boot_library_path = MNEW(char, len);
 
 	strcpy(boot_library_path, java_home);
-	strcat(boot_library_path, "/lib/"JAVA_ARCH);
+	strcat(boot_library_path, "/lib/" JAVA_ARCH);
 
 # else
 #  error unknown classpath configuration

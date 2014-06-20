@@ -1,6 +1,6 @@
 /* src/vm/os.hpp - system (OS) functions
 
-   Copyright (C) 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008 Theobroma Systems Ltd.
 
@@ -428,11 +428,7 @@ inline int os::getloadavg(double loadavg[], int nelem)
 
 inline int os::getpagesize(void)
 {
-#if defined(HAVE_GETPAGESIZE)
-	return ::getpagesize();
-#else
-# error getpagesize not available
-#endif
+	return ::sysconf(_SC_PAGESIZE);
 }
 
 inline pid_t os::getpid(void)

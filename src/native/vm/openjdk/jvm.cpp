@@ -30,6 +30,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <inttypes.h>
 #include <string.h>
 #include <unistd.h>
 #include <dlfcn.h>
@@ -262,7 +263,7 @@ jobject JVM_InitProperties(JNIEnv *env, jobject properties)
 	   user properties to prevent people from setting the value with a
 	   -D option, as requested. */
 
-	jio_snprintf(buf, sizeof(buf), PRINTF_FORMAT_INT64_T, opt_MaxDirectMemorySize);
+	jio_snprintf(buf, sizeof(buf), "%" PRId64, opt_MaxDirectMemorySize);
 	VM::get_current()->get_properties().put("sun.nio.MaxDirectMemorySize", buf);
 
 	// Fill the java.util.Properties object.

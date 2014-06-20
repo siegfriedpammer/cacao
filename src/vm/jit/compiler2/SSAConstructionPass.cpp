@@ -535,7 +535,7 @@ cacao::OStream& print_instruction_OS(cacao::OStream &OS, const jitdata *jd, cons
 	case ICMD_ASTORE:
 		SHOW_S1(OS, iptr);
 		SHOW_DST_LOCAL(OS, iptr);
-		if (stage >= SHOW_STACK && iptr->sx.s23.s3.javaindex != UNUSED)
+		if (stage >= SHOW_STACK && iptr->sx.s23.s3.javaindex != jitdata::UNUSED)
 			printf(" (javaindex %d)", iptr->sx.s23.s3.javaindex);
 		if (iptr->flags.bits & INS_FLAG_RETADDR) {
 			printf(" (retaddr L%03d)", RETADDR_FROM_JAVALOCAL(iptr->sx.s23.s2.retaddrnr));
@@ -1096,7 +1096,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 		int varindex = jd->local_map[slot * 5 + type];
 		LOG("parameter: i = " << i << " slot = " << slot << " type " << get_var_type(type) << nl);
 
-		if (varindex != UNUSED) {
+		if (varindex != jitdata::UNUSED) {
 			// only load if variable is used
 			Instruction *I = new LOADInst(convert_var_type(type), i, BB[init_basicblock]);
 			write_variable(varindex,init_basicblock,I);
@@ -1162,7 +1162,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 		LOG("localindex: " << i << nl);
 		for (int j = 0; j < 5; ++j) {
 			s4 entry = jd->local_map[i*5+j];
-			if (entry == UNUSED)
+			if (entry == jitdata::UNUSED)
 				LOG("  type " <<get_var_type(j) << " UNUSED" << nl);
 			else
 				LOG("  type " <<get_var_type(j) << " " << entry << nl);

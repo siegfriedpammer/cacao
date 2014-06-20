@@ -1,6 +1,6 @@
 /* src/native/vm/gnuclasspath/gnu_classpath_VMSystemProperties.cpp
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -106,7 +106,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_postInit(JNIEnv *en
 	   .write(java_home)
 	   .write("/lib");
 
-	Properties::put(p, "gnu.classpath.home.url", buf.c_str_copy());
+	Properties::put(p, "gnu.classpath.home.url", buf.c_str());
 #endif
 }
 
@@ -147,4 +147,5 @@ void _Jv_gnu_classpath_VMSystemProperties_init(void)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

@@ -1,6 +1,6 @@
 /* src/vm/vm.cpp - VM startup and shutdown functions
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -30,6 +30,7 @@
 #include <cstdlib>
 #include <exception>
 #include <stdint.h>
+#include <inttypes.h>
 
 #include "md-abi.hpp"
 
@@ -527,10 +528,10 @@ static void XXusage(void)
 
 static void version(bool opt_exit)
 {
-	puts("java version \""JAVA_VERSION"\"");
-	puts("CACAO version "VERSION_FULL"\n");
+	puts("java version \"" JAVA_VERSION "\"");
+	puts("CACAO version " VERSION_FULL "\n");
 
-	puts("Copyright (C) 1996-2013");
+	puts("Copyright (C) 1996-2014");
 	puts("CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO");
 	puts("This is free software; see the source for copying conditions.  There is NO");
 	puts("warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.");
@@ -551,7 +552,7 @@ static void version(bool opt_exit)
 
 static void fullversion(void)
 {
-	puts("java full version \"cacao-"JAVA_VERSION"\"");
+	puts("java full version \"cacao-" JAVA_VERSION "\"");
 
 	/* exit normally */
 
@@ -1462,19 +1463,19 @@ VM::VM(JavaVMInitArgs* vm_args)
  */
 void VM::print_build_time_config(void)
 {
-	puts("CACAO "VERSION_FULL" configure/build options:");
+	puts("CACAO " VERSION_FULL " configure/build options:");
 	puts("");
-	puts("  ./configure: "VERSION_CONFIGURE_ARGS"");
+	puts("  ./configure: " VERSION_CONFIGURE_ARGS "");
 #if defined(__VERSION__)
-	puts("  CC         : "VERSION_CC" ("__VERSION__")");
-	puts("  CXX        : "VERSION_CXX" ("__VERSION__")");
+	puts("  CC         : " VERSION_CC  " (" __VERSION__ ")");
+	puts("  CXX        : " VERSION_CXX " (" __VERSION__ ")");
 #else
-	puts("  CC         : "VERSION_CC"");
-	puts("  CXX        : "VERSION_CXX"");
+	puts("  CC         : " VERSION_CC  "");
+	puts("  CXX        : " VERSION_CXX "");
 #endif
-	puts("  CFLAGS     : "VERSION_CFLAGS"");
-	puts("  CXXFLAGS   : "VERSION_CXXFLAGS"");
-	puts("  CPPFLAGS   : "VERSION_CPPFLAGS"");
+	puts("  CFLAGS     : " VERSION_CFLAGS   "");
+	puts("  CXXFLAGS   : " VERSION_CXXFLAGS "");
+	puts("  CPPFLAGS   : " VERSION_CPPFLAGS "");
 
 	puts("");
 
@@ -1488,11 +1489,11 @@ void VM::print_build_time_config(void)
 	// same as the runtime paths.
 #else
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	puts("  gnu.classpath.boot.library.path: "JAVA_RUNTIME_LIBRARY_LIBDIR);
-	puts("  java.boot.class.path           : "CACAO_VM_ZIP":"JAVA_RUNTIME_LIBRARY_CLASSES"");
+	puts("  gnu.classpath.boot.library.path: " JAVA_RUNTIME_LIBRARY_LIBDIR);
+	puts("  java.boot.class.path           : " CACAO_VM_ZIP ":" JAVA_RUNTIME_LIBRARY_CLASSES);
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-	puts("  sun.boot.library.path          : "JAVA_RUNTIME_LIBRARY_LIBDIR);
-	puts("  java.boot.class.path           : "JAVA_RUNTIME_LIBRARY_CLASSES);
+	puts("  sun.boot.library.path          : " JAVA_RUNTIME_LIBRARY_LIBDIR);
+	puts("  java.boot.class.path           : " JAVA_RUNTIME_LIBRARY_CLASSES);
 # endif
 #endif
 
@@ -1880,6 +1881,10 @@ void vm_shutdown(s4 status)
 	}
 #endif
 
+#if defined(ENABLE_THREADS)
+	finalizer_join_thread();
+#endif
+
 	exit(status);
 }
 
@@ -2012,11 +2017,7 @@ void vm_abort_disassemble(void *pc, int count, const char *text, ...)
 
 	/* Print the PC. */
 
-#if SIZEOF_VOID_P == 8
-	log_println("PC=0x%016lx", pc);
-#else
-	log_println("PC=0x%08x", pc);
-#endif
+	log_println("PC=0x%0" PRINTF_INTPTR_NUM_HEXDIGITS PRIxPTR, (intptr_t) pc);
 
 #if defined(ENABLE_DISASSEMBLER)
 	log_println("machine instructions at PC:");

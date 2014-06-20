@@ -1,4 +1,4 @@
-/* src/vm/jit/verify/typeinfo.c - type system used by the type checker
+/* src/vm/jit/verify/typeinfo.cpp - type system used by the type checker
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -1210,7 +1210,7 @@ typeinfo_init_varinfos_from_methoddesc(varinfo *vars,
 		if (IS_2_WORD_TYPE(type))
 			slot++;
 
-		if (varindex == UNUSED)
+		if (varindex == jitdata::UNUSED)
 			continue;
 
 		if (varindex >= buflen) {

@@ -22,7 +22,6 @@
 
 */
 
-#include "vm/jit/jit.hpp"
 #include <cassert>                         // for assert
 #include <stdint.h>                        // for uintptr_t
 #include "config.h"                        // for ENABLE_JIT, etc
@@ -36,13 +35,13 @@
 #include "vm/globals.hpp"
 #include "vm/hook.hpp"                     // for jit_generated
 #include "vm/initialize.hpp"               // for initialize_class
+#include "vm/jit/jit.hpp"
 #include "vm/jit/allocator/simplereg.hpp"  // for regalloc, etc
 #include "vm/jit/cfg.hpp"                  // for cfg_build
 #include "vm/jit/code.hpp"                 // for codeinfo, etc
 #include "vm/jit/codegen-common.hpp"       // for codegen_setup, etc
 #include "vm/jit/disass.hpp"
 #include "vm/jit/dseg.hpp"                 // for dseg_display
-#include "vm/jit/jit.hpp"
 #include "vm/jit/ir/bytecode.hpp"
 #include "vm/jit/ir/icmd.hpp"              // for ::ICMD_IFNONNULL, etc
 #include "vm/jit/optimizing/ifconv.hpp"    // for ifconv_static

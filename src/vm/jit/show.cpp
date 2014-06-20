@@ -1,6 +1,6 @@
 /* src/vm/jit/show.cpp - showing the intermediate representation
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -25,6 +25,7 @@
 #include "vm/jit/show.hpp"
 #include <assert.h>                     // for assert
 #include <stdint.h>                     // for int32_t
+#include <inttypes.h>                   // for printf formatting macros
 #include <stdio.h>                      // for printf, putchar, fflush
 #include "codegen-common.hpp"           // for codegendata
 #include "config.h"                     // for ENABLE_DEBUG_FILTER, etc
@@ -252,7 +253,7 @@ void show_method(jitdata *jd, int stage)
 		for (i = 0; i < 5; i++) {
 			printf("    %5s ",show_jit_type_names[i]);
 			for (j = 0; j < jd->maxlocals; j++) {
-				if (jd->local_map[j*5+i] == UNUSED)
+				if (jd->local_map[j*5+i] == jitdata::UNUSED)
 					printf("  -- ");
 				else
 					printf("%4i ",jd->local_map[j*5+i]);
@@ -268,7 +269,7 @@ void show_method(jitdata *jd, int stage)
 		
 		/* look if there exist any INOUTS */
 		for (i = 0; (i < (5 * jd->maxinterfaces)) && !exist; i++, mapptr++)
-			exist = (mapptr->flags != UNUSED);
+			exist = (mapptr->flags != jitdata::UNUSED);
 
 		if (exist) {
 			printf("Interface Table: (In/Outvars)\n");
@@ -283,7 +284,7 @@ void show_method(jitdata *jd, int stage)
 				for (j = 0; j < jd->maxinterfaces; j++) {
 					s4 flags  = jd->interface_map[j*5+i].flags;
 					s4 regoff = jd->interface_map[j*5+i].regoff;
-					if (flags == UNUSED)
+					if (flags == jitdata::UNUSED)
 						printf("  --      ");
 					else {
 						int ch;
@@ -645,33 +646,17 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
             printf("iconst ");                                       \
         }
 
-#if SIZEOF_VOID_P == 4
 #define SHOW_LNG_CONST(val)                                          \
         if (stage >= SHOW_PARSE)                                     \
-            printf("%lld (0x%016llx) ", (val), (val));               \
+            printf("%" PRId64 " (0x%016" PRIx64 ") ", (val), (val)); \
         else                                                         \
             printf("lconst ");
-#else
-#define SHOW_LNG_CONST(val)                                          \
-        if (stage >= SHOW_PARSE)                                     \
-            printf("%ld (0x%016lx) ", (val), (val));                 \
-        else                                                         \
-            printf("lconst ");
-#endif
 
-#if SIZEOF_VOID_P == 4
 #define SHOW_ADR_CONST(val)                                          \
         if (stage >= SHOW_PARSE)                                     \
-            printf("0x%08x ", (ptrint) (val));                       \
+            printf("0x%" PRINTF_INTPTR_NUM_HEXDIGITS PRIxPTR " ", (ptrint) (val));             \
         else                                                         \
             printf("aconst ");
-#else
-#define SHOW_ADR_CONST(val)                                          \
-        if (stage >= SHOW_PARSE)                                     \
-            printf("0x%016lx ", (ptrint) (val));                     \
-        else                                                         \
-            printf("aconst ");
-#endif
 
 #define SHOW_FLT_CONST(val)                                          \
         if (stage >= SHOW_PARSE) {                                   \
@@ -683,25 +668,14 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
             printf("fconst ");                                       \
         }
 
-#if SIZEOF_VOID_P == 4
 #define SHOW_DBL_CONST(val)                                          \
         if (stage >= SHOW_PARSE) {                                   \
             imm_union v;                                             \
             v.d = (val);                                             \
-            printf("%g (0x%016llx) ", (val), v.l);                   \
+            printf("%g (0x%016" PRIx64 ") ", (val), v.l);            \
         }                                                            \
         else                                                         \
             printf("dconst ");
-#else
-#define SHOW_DBL_CONST(val)                                          \
-        if (stage >= SHOW_PARSE) {                                   \
-            imm_union v;                                             \
-            v.d = (val);                                             \
-            printf("%g (0x%016lx) ", (val), v.l);                    \
-        }                                                            \
-        else                                                         \
-            printf("dconst ");
-#endif
 
 #define SHOW_INDEX(index)                                            \
         if (stage >= SHOW_PARSE) {                                   \
@@ -914,7 +888,7 @@ static void show_variable_array_intern(jitdata *jd, s4 *vars, int n, int stage,
 		if (i)
 			putchar(' ');
 		if (vars[i] < 0) {
-			if (vars[i] == UNUSED)
+			if (vars[i] == jitdata::UNUSED)
 				putchar('-');
 			else if (javalocals) {
 				nr = RETADDR_FROM_JAVALOCAL(vars[i]);
@@ -1216,7 +1190,7 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 	case ICMD_ASTORE:
 		SHOW_S1(iptr);
 		SHOW_DST_LOCAL(iptr);
-		if (stage >= SHOW_STACK && iptr->sx.s23.s3.javaindex != UNUSED)
+		if (stage >= SHOW_STACK && iptr->sx.s23.s3.javaindex != jitdata::UNUSED)
 			printf(" (javaindex %d)", iptr->sx.s23.s3.javaindex);
 		if (iptr->flags.bits & INS_FLAG_RETADDR) {
 			printf(" (retaddr L%03d)", RETADDR_FROM_JAVALOCAL(iptr->sx.s23.s2.retaddrnr));

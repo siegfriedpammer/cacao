@@ -508,7 +508,7 @@ bool typecheck_init_locals(verifier_state *state, bool newthis)
 
     if (!(state->m->flags & ACC_STATIC)) {
 		varindex = jd->local_map[5*0 + TYPE_ADR];
-		if (varindex != UNUSED) {
+		if (varindex != jitdata::UNUSED) {
 			if (state->validlocals < 1)
 				TYPECHECK_VERIFYERROR_bool("Not enough local variables for method arguments");
 			v = locals + varindex;

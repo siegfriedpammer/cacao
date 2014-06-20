@@ -30,8 +30,8 @@ JAVACCMD = $(JAVAC) -source 1.7 -target 1.7 -nowarn -bootclasspath $(BOOTCLASSPA
 SOURCE_FILES = \
 	LoadInvokeHandle
 
-JAVA_FILES  = $(foreach file, $(SOURCE_FILES), $(srcdir)/$(file).java)
-CLASS_FILES = $(foreach file, $(SOURCE_FILES), $(file).class)
+JAVA_FILES  = $(SOURCE_FILES:=.java)
+CLASS_FILES = $(SOURCE_FILES:=.class)
 
 EXTRA_DIST = \
 	$(SOURCE_PATHS)
@@ -47,9 +47,9 @@ build:
 	$(JAVACMD)  indify.Indify --overwrite *.class
 
 run:
-	$(JAVACMD) -classpath $(JUNIT_JAR):. org.junit.runner.JUnitCore $(notdir $(basename $<))
+	$(JAVACMD) -classpath $(JUNIT_JAR):. org.junit.runner.JUnitCore $(SOURCE_FILES)
 
-%.class: %.java
+.class: .java
 	$(JAVACCMD) -classpath $(JUNIT_JAR):. -d . *.java
 	$(JAVACMD)  indify.Indify --overwrite *.class
 
