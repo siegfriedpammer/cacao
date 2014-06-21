@@ -26,6 +26,9 @@
 #include "config.h"
 
 #include "vm/vm.hpp"
+#include "vm/string.hpp"
+#include "toolbox/OStream.hpp"
+#include "toolbox/Debug.hpp"
 
 #include "native/jni.hpp"
 #include "native/llni.hpp"
@@ -37,11 +40,31 @@ extern "C" {
 
 /*
  * Class:     org/cacaojvm/compiler2/test/CacaoTest
- * Method:    getModifiersInternal
- * Signature: ()I
+ * Method:    compileMethod
+ * Signature: (Ljava/lang/Class;Ljava/lang/String;)Z
  */
-JNIEXPORT jint JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_getModifiersInternal(JNIEnv *env, jobject _this) {
-	return -1;
+JNIEXPORT jboolean JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod(JNIEnv *env, jclass clazz, jclass compile_class, jstring name) {
+	classinfo *ci;
+
+	ci = LLNI_classinfo_unwrap(compile_class);
+
+	if (!ci) {
+		exceptions_throw_nullpointerexception();
+		return false;
+	}
+
+	if (name == NULL) {
+		exceptions_throw_nullpointerexception();
+		return false;
+	}
+
+	/* create utf string in which '.' is replaced by '/' */
+
+	Utf8String u = JavaString((java_handle_t*) name).to_utf8_dot_to_slash();
+
+	cacao::out() << "class: " << ci->name << " method: " << u << cacao::nl;
+
+	return true;
 }
 
 } // extern "C"
@@ -50,7 +73,7 @@ JNIEXPORT jint JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_getModifiersIn
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ (char*) "getModifiersInternal", (char*) "()I",(void*) (uintptr_t) &Java_org_cacaojvm_compiler2_test_CacaoTest_getModifiersInternal },
+	{ (char*) "compileMethod", (char*) "(Ljava/lang/Class;Ljava/lang/String;)Z",(void*) (uintptr_t) &Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod },
 };
 
 
