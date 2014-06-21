@@ -27,13 +27,36 @@
 
 #include "vm/vm.hpp"
 #include "vm/string.hpp"
+
+#include "vm/jit/argument.hpp"
+#include "vm/jit/jit.hpp"
+
 #include "toolbox/OStream.hpp"
 #include "toolbox/Debug.hpp"
+
+#include "threads/thread.hpp"
 
 #include "native/jni.hpp"
 #include "native/llni.hpp"
 #include "native/native.hpp"
 
+#include "vm/jit/compiler2/Compiler.hpp"
+
+int32_t call_method(methodinfo *m, jobjectArray args) {
+	/* leave the nativeworld */
+
+	THREAD_NATIVEWORLD_EXIT;
+
+	uint64_t *array = argument_vmarray_from_objectarray(m, NULL, args);
+
+	int32_t result = vm_call_int_array(m, array);
+
+	/* enter the nativeworld again */
+
+	THREAD_NATIVEWORLD_ENTER;
+
+	return result;
+}
 
 // Native functions are exported as C functions.
 extern "C" {
@@ -41,9 +64,9 @@ extern "C" {
 /*
  * Class:     org/cacaojvm/compiler2/test/CacaoTest
  * Method:    compileMethod
- * Signature: (Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;I)Z
+ * Signature: (Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)Z
  */
-JNIEXPORT jboolean JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod(JNIEnv *env, jclass clazz, jclass compile_class, jstring name, jstring desc, jint value) {
+JNIEXPORT jboolean JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod(JNIEnv *env, jclass clazz, jclass compile_class, jstring name, jstring desc, jobjectArray args) {
 	classinfo *ci;
 
 	ci = LLNI_classinfo_unwrap(compile_class);
@@ -83,9 +106,44 @@ JNIEXPORT jboolean JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_compileMet
 		return false;
 	}
 
-	int32_t result = vm_call_method_int(m, NULL, value);
+	/* compile methods which are not yet compiled */
 
-	cacao::out() << "result " << result << cacao::nl;
+
+	// baseline compiler
+	{
+		// back up and reset code
+		codeinfo *code = m->code;
+		m->code = NULL;
+
+		if (!jit_compile(m))
+			return false;
+
+		int32_t result = call_method(m, args);
+
+		// restore code
+		// TODO free code!
+		m->code = code;
+
+		cacao::out() << "result " << result << cacao::nl;
+	}
+
+	// compiler2 compiler
+	{
+		// back up and reset code
+		codeinfo *code = m->code;
+		m->code = NULL;
+
+		if (!cacao::jit::compiler2::compile(m))
+			return false;
+
+		int32_t result = call_method(m, args);
+
+		// restore code
+		// TODO free code!
+		m->code = code;
+
+		cacao::out() << "result " << result << cacao::nl;
+	}
 
 	/* exception occurred? */
 
@@ -99,11 +157,10 @@ JNIEXPORT jboolean JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_compileMet
 
 } // extern "C"
 
-
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ (char*) "compileMethod", (char*) "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;I)Z",(void*) (uintptr_t) &Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod },
+	{ (char*) "compileMethod", (char*) "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)Z",(void*) (uintptr_t) &Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod },
 };
 
 
