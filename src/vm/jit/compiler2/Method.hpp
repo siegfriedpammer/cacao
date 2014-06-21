@@ -97,6 +97,18 @@ public:
 	void remove_Instruction(Instruction* I);
 
 	/**
+	 * Replaces the instructions of the method, with the instructions in the
+	 * given range [first, last).
+	 *
+	 * Instructions added via this method will be deleted by ~Method.
+	 * use remove_Instruction() to delete them manually.
+	 */
+	template <class InputIterator>
+	void replace_instruction_list(InputIterator first, InputIterator last) {
+		inst_list.assign(first, last);	
+	}
+
+	/**
 	 * Add a BeginInst.
 	 *
 	 * The Instruction will be added using add_Instruction().

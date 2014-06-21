@@ -31,6 +31,129 @@ public static void main(String arg[]) {
   System.out.println(test_test());
 }
 */
+
+static int constArith() {
+	int a = 1;
+	int b = 2;
+	int c = 3;
+	int d = 4;
+
+	int add = a + b + c + d;
+	int sub = a - b - c - d;
+	int mul = a * b * c * d;
+	int neg = -a;
+
+	return add + sub + mul + neg;
+}
+
+static int constPhi(int a) {
+	int b;
+	int z;
+
+	if (a > 0) {
+		int c;
+		if (a > 1) {
+			int d;
+			if (a > 2) {
+				z = 0;
+				d = 0;
+			} else {
+				z = 1;
+				d = 0;
+			}
+			c = d + 1;
+		} else {
+			z = 2;
+			c = 1;
+		}
+		b = c + 1;
+	} else {
+		int c;
+		if (a < -1) {
+			int d;
+			if (a < -2) {
+				z = 3;
+				d = 0;
+			} else {
+				z = 4;
+				d = 0;
+			}
+			c = d + 1;
+		} else {
+			z = 5;
+			c = 1;
+		}
+		b = c + 1;
+	}
+
+	return b + z;
+}
+
+static int congrArith(int a) {
+	int add1 = a + 1;
+	int add2 = a + 1;
+	int add3 = a + 2;
+	int add4 = a + 2;
+	int add5 = add1 + 3;
+	int add6 = add2 + 3;
+	int add7 = add3 + 4;
+	int add8 = add4 + 4;
+
+	int sub1 = a - 1;
+	int sub2 = a - 1;
+	int sub3 = a - 2;
+	int sub4 = a - 2;
+	int sub5 = sub1 - 3;
+	int sub6 = sub2 - 3;
+	int sub7 = sub3 - 4;
+	int sub8 = sub4 - 4;
+
+	return add5 + add6 + add7 + add8
+		+ sub5 + sub6 + sub7 + sub8;
+}
+
+static int congrPhi(int a) {
+	int b;
+	int c;
+
+	if (a > 0) {
+		int d;
+		
+		if (a > 1) {
+			d = a + 1;
+		} else {
+			d = a + 2;
+		}
+
+		b = d + 3;
+		c = d + 4;
+	} else {
+		int d;
+		
+		if (a > 1) {
+			d = a + 1;
+		} else {
+			d = a + 2;
+		}
+
+		b = d + 3;
+		c = d + 4;
+	}
+
+	return b + c;
+}
+
+static void congrArraybc(int A[], int B[]) {
+	int temp1 = A[0];
+	int temp2 = A[1];
+
+	A[0] = B[0];
+	A[1] = B[1];
+
+	B[0] = temp1;
+	B[1] = temp2;
+}
+
 /**
  * Matrix multiplication.
  *

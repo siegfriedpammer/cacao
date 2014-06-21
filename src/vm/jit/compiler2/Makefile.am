@@ -93,7 +93,10 @@ libcompiler2_la_SOURCES = \
 	StackSlotManager.cpp \
 	Type.cpp \
 	Value.cpp \
-	VerifierPass.cpp
+	VerifierPass.cpp \
+	DeadCodeEliminationPass.cpp \
+	ConstantPropagationPass.cpp \
+	GlobalValueNumberingPass.cpp
 
 libcompiler2_la_LIBADD = \
 	alloc/liballoc.la \

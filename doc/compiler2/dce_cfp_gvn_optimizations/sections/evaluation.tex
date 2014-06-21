@@ -1,0 +1,386 @@
+\section{Evaluation}
+\label{sec:evaluation}
+
+For evaluating the implementation of the described techniques, we tested the compiler with activated optimizations as well as with deactivated optimizations (in the following we will refer to the new compiler as \emph{compiler2}). Additionally, we did a comparison to the baseline compiler. 
+
+\subsection{Methodology}
+
+\subsubsection*{Test Environment}
+\label{sec:evaluation:test-environment}
+
+The system used for performing the tests comprised a 2.4 GHz \emph{Intel\textsuperscript{\textregistered}~Core\textsuperscript{\texttrademark}~i5} dual-core processor and 4 GB RAM, running a Linux platform in 64 bit mode with a \emph{3.11.0-15} kernel.
+
+\subsubsection*{Configuration of the CACAO VM}
+\label{sec:evaluation:configuration}
+
+For building the VM, an LLVM Clang compiler (version \emph{3.2-7ubuntu1}) was used with optimizations enabled. CACAO was configured with the following options: \verb|--disable-debug|, \verb|--enable-compiler2|, \verb|--enable-statistics|, \verb|--enable-rt-timing|, \verb|--enable-logging| and \verb|--enable-optimizations|. 
+
+\subsubsection*{Benchmarks}
+\label{sec:evaluation:benchmarks}
+
+At the time of the evaluation the new compiler did not support advanced benchmark suites like \emph{SPECjvm} or \emph{DaCapo}. Therefore, it was necessary to use a set of micro-benchmarks, targeted at testing only certain parts of the compiler. First of all, the benchmarking-programs which have already been employed by Eisl \cite{eisl:2013} were used. To systematically test the implemented optimization techniques, additional benchmarks have been applied.
+The effects of constant folding and constant propagation have been evaluated based on the following programs:
+
+\begin{description}
+\item[constArith] contains constant arithmetical expressions aimed at being evaluated by constant folding.
+\item[constPhi] has a nested structure of control-flow, so that translation to SSA form leads to $\phi$-functions which should be replaced in the course of constant propagation.
+\end{description}
+
+The benchmarks for testing global value numbering contain different kinds of redundancies which have to be removed when applying this optimization. They are listed in the following:
+
+\begin{description}
+\item[congrArith] involves congruent arithmetical operations.
+\item[congrPhi] is organized in such a way that, when translated to SSA form, the program contains congruent $\phi$-functions, having to be replaced in the course of optimization.
+\item[congrArraybc] repeatedly accesses arrays at certain positions, involving redundant array bounds-checks which also should be removed by global value numbering.
+\end{description}
+
+We did not formulate benchmarking-programs to explicitly test the effects of dead code elimination due to several facts. First of all, at the time of the evaluation the new compiler did not support the compilation of dead code. Secondly, constant folding, constant propagation and global value numbering produce dead code in any way, so dead code elimination is tested implicitly each time the other techniques could realize optimizations.
+
+\subsubsection*{Key Figures}
+\label{sec:evaluation:key-figures}
+The comparison of the benchmarks is centered on the size of the code produced by the compilers, the time needed for compilation and the execution time of the compiled benchmark code. The effects of constant folding and constant propagation have been measured by counting the number of nodes representing constant expressions which could be evaluated during compile-time as well as the number of \irinline{PHIInst}s that could be replaced by constants. For the optimizations achieved by global value numbering, the number of detected redundant nodes, which will be removed from the program, is representative. Therefore, these redundancies have been recorded in terms of four categories of nodes: \irinline{CONSTInst}s, nodes of an arithmetical type, \irinline{PHIInst}s and nodes which represent array bounds-checks (i.e., \irinline{ARRAYBOUNDSCHECKInst}s). Additionally, the number of nodes which are removed from the program in the course of dead code elimination have been counted as well as the nodes remaining in the program.
+
+\subsection{Results}
+\label{sec:evaluation:results}
+
+The code size of the compiled benchmarking-programs is illustrated in figure \ref{fig:code-size}. As expected, the application of the optimizations clearly yields less code for \emph{constArith}, \emph{constPhi}, \emph{congrArith}, \emph{congrPhi} and \emph{congrArraybc} than compilation without applying these techniques. Fortunately, the same is true for the original benchmarks used by Eisl which generally have been expected to offer considerably less potential for optimization. In many cases the output size of the baseline compiler is even greater than that one of the new compiler with inactive optimizations. Only for one benchmark (namely \emph{conv}) the baseline compiler yields less code than the optimized version of the new compiler. The exact recordings of the code size are listed in table \ref{tab:evaluation:code-size}. According to tables \ref{tab:evaluation:constant-fold-prop} and \ref{tab:evaluation:gvn}, in almost all cases, the decrease in code size can be attributed to global value numbering. Only \emph{constArith} and \emph{constPhi} could be optimized by constant folding or constant propagation respectively.
+
+Table \ref{tab:evaluation:dead-code-elimination} shows the number of dead nodes which have been deleted in the course of dead code elimination as well as the number of nodes remaining in the program. Due to the fact that none of the benchmarking-programs originally contains any dead code, the according numbers solely depend on the modifications of the intermediate representation graph that have been applied by constant folding, constant propagation or global value numbering. Nevertheless, these numbers have been appended for sake of completeness.
+
+As illustrated in figure \ref{fig:execution-time}, the decline in the size of produced code yields faster execution in general. Nevertheless, the execution time of \emph{matMult} is noticeable since --- despite its size --- the native code produced by the baseline compiler is clearly more efficient than that of the new compiler, even with the use of the implemented optimization techniques.
+
+Figure \ref{fig:compilation-time} depicts the time needed to compile the benchmarks. In some cases the optimizations reduce the compilation efforts of the new compiler which causes faster compilation. Anyway, on average, the implemented optimizations lead to a slight increase in the running time of the new compiler.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+    \begin{axis}[
+        width  = \textwidth,
+        height = \chartheight,
+        major x tick style = transparent,
+        ybar=\barpadding,
+        bar width=\barwidth,
+        enlarge x limits=\enlargexlimits,
+        ymajorgrids = true,
+        tick style={semithick,color=black}, 
+        symbolic x coords={fact,power,piSpigot,matMult,conv,matTrans,matAdd,permut,constArith,constPhi,congrArith,congrPhi,congrArraybc},
+        xtick = data,
+        scaled y ticks = false,
+        ymin=0,
+        legend cell align=left,
+        legend pos=north west,
+        legend style={font=\footnotesize},
+		    tick label style = {font=\small},
+		    x tick label style={rotate=45,font=\footnotesize},
+    ]
+    
+%compiler2																										
+\addplot[style={bblue,fill=bblue,mark=none}]																										
+coordinates {(fact,	60	) (piSpigot,	374	) (power,	58	) (matMult,	569	) (matAdd,	472	) (matTrans,	915	) (conv,	1003	) (permut,	520	) (constArith,	74	) (constPhi,	205	) (congrArith,	164	) (congrPhi,	173	) (congrArraybc,	244	)};
+																										
+%optimized compiler2																										
+\addplot[style={rred,fill=rred,mark=none}]																										
+coordinates {(fact,	52	) (piSpigot,	300	) (power,	55	) (matMult,	528	) (matAdd,	449	) (matTrans,	836	) (conv,	949	) (permut,	357	) (constArith,	12	) (constPhi,	132	) (congrArith,	76	) (congrPhi,	128	) (congrArraybc,	133	)};
+																										
+%baseline compiler																										
+\addplot[style={ggreen,fill=ggreen,mark=none}]																										
+coordinates {(fact,	80	) (piSpigot,	344	) (power,	72	) (matMult,	608	) (matAdd,	520	) (matTrans,	896	) (conv,	928	) (permut,	520	) (constArith,	136	) (constPhi,	200	) (congrArith,	264	) (congrPhi,	168	) (congrArraybc,	264	)};
+
+
+        \legend{compiler2,optimized compiler2,baseline compiler}
+    \end{axis}
+\end{tikzpicture}
+\caption{Code size (bytes)}
+\label{fig:code-size}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+    \begin{axis}[
+        width  = \textwidth,
+        height = \chartheight,
+        major x tick style = transparent,
+        ybar=\barpadding,
+        bar width=\barwidth,
+        enlarge x limits=\enlargexlimits,
+        ymajorgrids = true,
+        tick style={semithick,color=black}, 
+        symbolic x coords={fact,power,piSpigot,matMult,conv,matTrans,matAdd,permut,constArith,constPhi,congrArith,congrPhi,congrArraybc},
+        xtick = data,
+        scaled y ticks = false,
+        ymin=0,
+        legend cell align=left,
+        legend pos=north west,
+        legend style={font=\footnotesize},
+		    tick label style = {font=\small},
+		    x tick label style={rotate=45,font=\footnotesize},
+	      y tick label style={/pgf/number format/fixed},
+		    scaled y ticks=base 10:-4
+    ]
+    
+%compiler2																										
+\addplot[style={bblue,fill=bblue,mark=none}]																										
+coordinates {(fact,	3045	) (piSpigot,	6490	) (power,	3487	) (matMult,	10003	) (matAdd,	3758	) (matTrans,	9288	) (conv,	12536	) (permut,	9851	) (constArith,	2189	) (constPhi,	2407	) (congrArith,	2413	) (congrPhi,	1814	) (congrArraybc,	3465	)};
+																										
+%optimized compiler2																										
+\addplot[style={rred,fill=rred,mark=none}]																										
+coordinates {(fact,	2512	) (piSpigot,	4376	) (power,	2841	) (matMult,	9481	) (matAdd,	3936	) (matTrans,	9080	) (conv,	9971	) (permut,	6491	) (constArith,	1779	) (constPhi,	2079	) (congrArith,	2061	) (congrPhi,	1451	) (congrArraybc,	2430	)};
+																										
+%baseline compiler																										
+\addplot[style={ggreen,fill=ggreen,mark=none}]																										
+coordinates {(fact,	3632	) (piSpigot,	5431	) (power,	4608	) (matMult,	5424	) (matAdd,	4950	) (matTrans,	9517	) (conv,	10979	) (permut,	8242	) (constArith,	3146	) (constPhi,	3074	) (congrArith,	2539	) (congrPhi,	1602	) (congrArraybc,	4034	)};
+
+
+        \legend{compiler2,optimized compiler2,baseline compiler}
+    \end{axis}
+\end{tikzpicture}
+\caption{Execution time ($\mu$sec)}
+\label{fig:execution-time}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+    \begin{axis}[
+        width  = \textwidth,
+        height = \chartheight,
+        major x tick style = transparent,
+        ybar=\barpadding,
+        bar width=\barwidth,
+        enlarge x limits=\enlargexlimits,
+        ymajorgrids = true,
+        tick style={semithick,color=black}, 
+        symbolic x coords={fact,power,piSpigot,matMult,conv,matTrans,matAdd,permut,constArith,constPhi,congrArith,congrPhi,congrArraybc},
+        xtick = data,
+        scaled y ticks = false,
+        ymin=0,
+        legend cell align=left,
+        legend pos=north west,
+        legend style={font=\footnotesize},
+		    tick label style = {font=\small},
+		    x tick label style={rotate=45,font=\footnotesize},
+		    scaled y ticks=base 10:-4
+    ]
+    
+%compiler2																										
+\addplot[style={bblue,fill=bblue,mark=none}]																										
+coordinates {(fact,	1141	) (piSpigot,	3221	) (power,	1275	) (matMult,	4150	) (matAdd,	3493	) (matTrans,	5876	) (conv,	7253	) (permut,	3139	) (constArith,	1165	) (constPhi,	2668	) (congrArith,	1683	) (congrPhi,	2133	) (congrArraybc,	1425	)};
+																										
+%optimized compiler2																										
+\addplot[style={rred,fill=rred,mark=none}]																										
+coordinates {(fact,	1632	) (piSpigot,	2560	) (power,	1569	) (matMult,	4226	) (matAdd,	3377	) (matTrans,	6324	) (conv,	6755	) (permut,	3044	) (constArith,	1225	) (constPhi,	2451	) (congrArith,	1531	) (congrPhi,	2150	) (congrArraybc,	1371	)};
+																										
+%baseline compiler																										
+\addplot[style={ggreen,fill=ggreen,mark=none}]																										
+coordinates {(fact,	66	) (piSpigot,	82	) (power,	67	) (matMult,	164	) (matAdd,	135	) (matTrans,	182	) (conv,	154	) (permut,	117	) (constArith,	67	) (constPhi,	83	) (congrArith,	65	) (congrPhi,	81	) (congrArraybc,	64	)};
+
+
+    \legend{compiler2,optimized compiler2,baseline compiler}
+  \end{axis}
+\end{tikzpicture}
+\caption{Compilation time ($\mu$sec)}
+\label{fig:compilation-time}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{r r r r r r}
+\toprule
+~ & \multicolumn{3}{c}{Code size (\textit{bytes})} & \multicolumn{2}{c}{Ratio (\textit{\%})} \\
+Benchmark & \textit{c2} & \textit{c2o} & \textit{bl} & \textit{c2o/c2} & \textit{c2o/bl} \\
+\midrule
+fact	 & 	60	 & 	52	 & 	80	 & 	86.7	 & 	65.0	 \\
+piSpigot	 & 	374	 & 	300	 & 	344	 & 	80.2	 & 	87.2	 \\
+power	 & 	58	 & 	55	 & 	72	 & 	94.5	 & 	76.1	 \\
+matMult	 & 	569	 & 	528	 & 	608	 & 	92.8	 & 	86.9	 \\
+matAdd	 & 	472	 & 	449	 & 	520	 & 	95.1	 & 	86.4	 \\
+matTrans	 & 	915	 & 	836	 & 	896	 & 	91.4	 & 	93.3	 \\
+conv	 & 	1003	 & 	949	 & 	928	 & 	94.7	 & 	102.3	 \\
+permut	 & 	520	 & 	357	 & 	520	 & 	68.6	 & 	68.7	 \\
+constArith	 & 	74	 & 	12	 & 	136	 & 	16.2	 & 	8.8	 \\
+constPhi	 & 	205	 & 	132	 & 	200	 & 	64.3	 & 	65.9	 \\
+congrArith	 & 	164	 & 	76	 & 	264	 & 	46.2	 & 	28.7	 \\
+congrPhi	 & 	173	 & 	128	 & 	168	 & 	74.2	 & 	76.5	 \\
+congrArraybc	 & 	244	 & 	133	 & 	264	 &	54.5	 & 	50.4	 \\
+\bottomrule
+\end{tabular}
+\caption{Comparison of the size of compiled benchmark code produced by compiler2 (\textit{c2}), compiler2 with activated optimizations (\textit{c2o}) and baseline compiler (\textit{bl})}
+\label{tab:evaluation:code-size}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{r R{1.1cm} R{1.1cm} R{1.1cm} r r}
+\toprule
+~ & \multicolumn{3}{c}{Execution time (\textit{$\mu$sec})} & \multicolumn{2}{c}{Ratio (\textit{\%})} \\
+Benchmark & \textit{c2} & \textit{c2o} & \textit{bl} & \textit{c2o/c2} & \textit{c2o/bl} \\
+\midrule
+fact	 & 	3045	 & 	2512	 & 	3632	 & 	82.5	 & 	69.2	 \\
+piSpigot	 & 	6490	 & 	4376	 & 	5431	 & 	67.4	 & 	80.6	 \\
+power	 & 	3487	 & 	2841	 & 	4608	 & 	81.5	 & 	61.7	 \\
+matMult	 & 	10003	 & 	9481	 & 	5424	 & 	94.8	 & 	174.8	 \\
+matAdd	 & 	3758	 & 	3936	 & 	4950	 & 	104.7	 & 	79.5	 \\
+matTrans	 & 	9288	 & 	9080	 & 	9517	 & 	97.8	 & 	95.4	 \\
+conv	 & 	12536	 & 	9971	 & 	10979	 & 	79.5	 & 	90.8	 \\
+permut	 & 	9851	 & 	6491	 & 	8242	 & 	65.9	 & 	78.8	 \\
+constArith	 & 	2189	 & 	1779	 & 	3146	 & 	81.2	 & 	56.5	 \\
+constPhi	 & 	2407	 & 	2079	 & 	3074	 & 	86.4	 & 	67.6	 \\
+congrArith	 & 	2413	 & 	2061	 & 	2539	 & 	85.4	 & 	81.2	 \\
+congrPhi	 & 	1814	 & 	1451	 & 	1602	 & 	80.0	 & 	90.6	 \\
+congrArraybc	 & 	3465	 & 	2430	 & 	4034	 &	70.1	 & 	60.2	 \\
+\bottomrule
+\end{tabular}
+\caption{Comparison of the execution time of compiled benchmark code produced by compiler2 (\textit{c2}), compiler2 with activated optimizations (\textit{c2o}) and baseline compiler (\textit{bl})}
+\label{tab:evaluation:execution-time}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{r R{1.1cm} R{1.1cm} R{1.1cm} r r}
+\toprule
+~ & \multicolumn{3}{c}{Compilation time (\textit{$\mu$sec})} & \multicolumn{2}{c}{Ratio (\textit{\%})} \\
+Benchmark & \textit{c2} & \textit{c2o} & \textit{bl} & \textit{c2o/c2} & \textit{c2o/bl} \\
+\midrule
+fact	 & 	1141	 & 	1632	 & 	66	 & 	143.1	 & 	2488.5	 \\
+piSpigot	 & 	3221	 & 	2560	 & 	82	 & 	79.5	 & 	3129.6	 \\
+power	 & 	1275	 & 	1569	 & 	67	 & 	123.0	 & 	2327.1	 \\
+matMult	 & 	4150	 & 	4226	 & 	164	 & 	101.8	 & 	2582.6	 \\
+matAdd	 & 	3493	 & 	3377	 & 	135	 & 	96.7	 & 	2496.3	 \\
+matTrans	 & 	5876	 & 	6324	 & 	182	 & 	107.6	 & 	3467.0	 \\
+conv	 & 	7253	 & 	6755	 & 	154	 & 	93.1	 & 	4398.7	 \\
+permut	 & 	3139	 & 	3044	 & 	117	 & 	97.0	 & 	2593.8	 \\
+constArith	 & 	1165	 & 	1225	 & 	67	 & 	105.1	 & 	1836.1	 \\
+constPhi	 & 	2668	 & 	2451	 & 	83	 & 	91.9	 & 	2955.2	 \\
+congrArith	 & 	1683	 & 	1531	 & 	65	 & 	91.0	 & 	2355.1	 \\
+congrPhi	 & 	2133	 & 	2150	 & 	81	 & 	100.8	 & 	2648.3	 \\
+congrArraybc	 & 	1425	 & 	1371	 & 	64	 & 	96.2	 & 	2132.3	 \\
+\bottomrule
+\end{tabular}
+\caption{Comparison of the compilation time of compiler2 (\textit{c2}), compiler2 with activated optimizations (\textit{c2o}) and baseline compiler (\textit{bl})}
+\label{tab:evaluation:compilation-time}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{r R{1.1cm} R{1.1cm} R{1.1cm} r r r}
+\toprule
+~ & \multicolumn{3}{c}{Compilation time (\textit{$\mu$sec})} & \multicolumn{3}{c}{Ratio (\textit{\%})} \\
+Benchmark & \textit{de} & \textit{cfp} & \textit{gvn} & \textit{de/c2o} & \textit{cfp/c2o} & \textit{gvn/c2o} \\
+\midrule
+fact	 & 	18	 & 	11	 & 	44	 & 	1.1	 & 	0.7	 & 	2.7	 \\
+piSpigot	 & 	55	 & 	25	 & 	147	 & 	2.2	 & 	1.0	 & 	5.7	 \\
+power	 & 	16	 & 	10	 & 	45	 & 	1.0	 & 	0.6	 & 	2.9	 \\
+matMult	 & 	55	 & 	30	 & 	167	 & 	1.3	 & 	0.7	 & 	3.9	 \\
+matAdd	 & 	50	 & 	25	 & 	130	 & 	1.5	 & 	0.7	 & 	3.9	 \\
+matTrans	 & 	114	 & 	53	 & 	289	 & 	1.8	 & 	0.8	 & 	4.6	 \\
+conv	 & 	110	 & 	55	 & 	282	 & 	1.6	 & 	0.8	 & 	4.2	 \\
+permut	 & 	60	 & 	25	 & 	144	 & 	2.0	 & 	0.8	 & 	4.7	 \\
+constArith	 & 	40	 & 	24	 & 	107	 & 	3.3	 & 	2.0	 & 	8.7	 \\
+constPhi	 & 	70	 & 	38	 & 	108	 & 	2.9	 & 	1.6	 & 	4.4	 \\
+congrArith	 & 	40	 & 	18	 & 	114	 & 	2.6	 & 	1.1	 & 	7.4	 \\
+congrPhi	 & 	52	 & 	23	 & 	104	 & 	2.4	 & 	1.1	 & 	4.8	 \\
+congrArraybc	 & 	27	 & 	16	 & 	92	 & 	2.0	 & 	1.2	 & 	6.7	 \\
+\bottomrule
+\end{tabular}
+\caption{Comparison of the time spent during dead code elimination (\textit{de}), constant folding/propagation (\textit{cfp}) and global value numbering (\textit{gvn}) (absolute numbers and ratio to total compilation time)}
+\label{tab:evaluation:compilation-time-per-pass}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{r r r}
+\toprule
+~ & \multicolumn{2}{c}{Replaced nodes} \\
+Benchmark & arithmetic & \irinline{PHIInst} \\
+\midrule
+fact	 & 	0	 & 	0	 \\
+piSpigot	 & 	0	 & 	0	 \\
+power	 & 	0	 & 	0	 \\
+matMult	 & 	0	 & 	0	 \\
+matAdd	 & 	0	 & 	0	 \\
+matTrans	 & 	0	 & 	0	 \\
+conv	 & 	0	 & 	0	 \\
+permut	 & 	0	 & 	0	 \\
+constArith	 & 	13	 & 	0	 \\
+constPhi	 & 	4	 & 	5	 \\
+congrArith	 & 	0	 & 	0	 \\
+congrPhi	 & 	0	 & 	0	 \\
+congrArraybc	 & 	0	 & 	0	 \\
+\bottomrule
+\end{tabular}
+\caption{Nodes that could be replaced by \irinline{CONSTInst}s in the course of constant folding and constant propagation}
+\label{tab:evaluation:constant-fold-prop}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{r r r r r}
+\toprule
+~ & \multicolumn{2}{c}{\irinline{CONSTInst}} & \multicolumn{2}{c}{arithmetic} \\
+Benchmark & total & redundant & total & redundant \\
+\midrule
+fact	 & 	3	 & 	2	 & 	2	 & 	0	 \\
+piSpigot	 & 	20	 & 	9	 & 	21	 & 	3	 \\
+power	 & 	3	 & 	1	 & 	2	 & 	0	 \\
+matMult	 & 	12	 & 	10	 & 	5	 & 	0	 \\
+matAdd	 & 	9	 & 	7	 & 	3	 & 	0	 \\
+matTrans	 & 	17	 & 	15	 & 	10	 & 	0	 \\
+conv	 & 	19	 & 	17	 & 	11	 & 	0	 \\
+permut	 & 	12	 & 	10	 & 	4	 & 	0	 \\
+constArith	 & 	17	 & 	5	 & 	13	 & 	0	 \\
+constPhi	 & 	25	 & 	17	 & 	5	 & 	2	 \\
+congrArith	 & 	16	 & 	12	 & 	23	 & 	8	 \\
+congrPhi	 & 	15	 & 	10	 & 	13	 & 	6	 \\
+congrArraybc	 & 	8	 & 	6	 & 	0	 & 	0	 \\
+\bottomrule
+\end{tabular}
+\\[6pt]
+\begin{tabular}{r r r r r}
+\toprule
+~ & \multicolumn{2}{c}{\irinline{PHIInst}} & \multicolumn{2}{c}{array bounds-ch.} \\
+Benchmark & total & redundant & total & redundant \\
+\midrule
+fact	 & 	2	 & 	0	 & 	0	 & 	0	 \\
+piSpigot	 & 	4	 & 	0	 & 	0	 & 	0	 \\
+power	 & 	2	 & 	0	 & 	0	 & 	0	 \\
+matMult	 & 	4	 & 	0	 & 	9	 & 	0	 \\
+matAdd	 & 	2	 & 	0	 & 	9	 & 	0	 \\
+matTrans	 & 	7	 & 	0	 & 	16	 & 	3	 \\
+conv	 & 	8	 & 	0	 & 	16	 & 	1	 \\
+permut	 & 	4	 & 	0	 & 	12	 & 	6	 \\
+constArith	 & 	0	 & 	0	 & 	0	 & 	0	 \\
+constPhi	 & 	10	 & 	0	 & 	0	 & 	0	 \\
+congrArith	 & 	0	 & 	0	 & 	0	 & 	0	 \\
+congrPhi	 & 	6	 & 	2	 & 	0	 & 	0	 \\
+congrArraybc	 & 	0	 & 	0	 & 	8	 & 	4	 \\
+\bottomrule
+\end{tabular}
+\caption{Nodes detected as redundant by global value numbering}
+\label{tab:evaluation:gvn}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{r r r}
+\toprule
+Benchmark & deleted & remaining \\
+\midrule
+fact	 & 	2	 & 	14	 \\
+piSpigot	 & 	12	 & 	53	 \\
+power	 & 	1	 & 	16	 \\
+matMult	 & 	10	 & 	76	 \\
+matAdd	 & 	7	 & 	68	 \\
+matTrans	 & 	18	 & 	107	 \\
+conv	 & 	18	 & 	117	 \\
+permut	 & 	16	 & 	57	 \\
+constArith	 & 	29	 & 	3	 \\
+constPhi	 & 	26	 & 	47	 \\
+congrArith	 & 	20	 & 	22	 \\
+congrPhi	 & 	18	 & 	37	 \\
+congrArraybc	 & 	10	 & 	18	 \\
+\bottomrule
+\end{tabular}
+\caption{Dead nodes deleted during dead code elimination and remaining nodes in the program}
+\label{tab:evaluation:dead-code-elimination}
+\end{table}
