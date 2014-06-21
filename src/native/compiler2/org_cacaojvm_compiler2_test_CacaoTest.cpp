@@ -68,11 +68,7 @@ JNIEXPORT jboolean JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_compileMet
 
 	/* find the method of the class */
 
-	methodinfo *m = class_resolveclassmethod(ci,
-								 u,
-								 d,
-								 NULL,
-								 false);
+	methodinfo *m = class_resolveclassmethod(ci, u, d, NULL, false);
 
 	if (exceptions_get_exception()) {
 		exceptions_print_stacktrace();
@@ -84,6 +80,17 @@ JNIEXPORT jboolean JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_compileMet
 	if ((m == NULL) || !(m->flags & ACC_STATIC)) {
 		exceptions_clear_exception();
 		exceptions_throw_nosuchmethoderror(ci, u, d);
+		exceptions_print_stacktrace();
+		return false;
+	}
+
+	int32_t result = vm_call_method_int(m, NULL, value);
+
+	cacao::out() << "result " << result << cacao::nl;
+
+	/* exception occurred? */
+
+	if (exceptions_get_exception()) {
 		exceptions_print_stacktrace();
 		return false;
 	}
