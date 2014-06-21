@@ -184,6 +184,18 @@ double  vm_call_method_double_jvalue(methodinfo *m, java_handle_t *o, const jval
 
 java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o, java_handle_objectarray_t *params);
 
+/* vm_call_array ***************************************************************
+
+   Calls a Java method with a variable number of arguments, passed via
+   an argument array.
+
+   ATTENTION: This function has to be used outside the nativeworld.
+
+*******************************************************************************/
+int32_t vm_call_int_array(methodinfo *m, uint64_t *array);
+int64_t vm_call_long_array(methodinfo *m, uint64_t *array);
+float   vm_call_float_array(methodinfo *m, uint64_t *array);
+double  vm_call_double_array(methodinfo *m, uint64_t *array);
 
 // Legacy C interface.
 void vm_abort(const char* text, ...);

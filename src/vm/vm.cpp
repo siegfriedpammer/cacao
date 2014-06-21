@@ -2328,7 +2328,7 @@ static void vm_compile_method(char* mainname)
 *******************************************************************************/
 
 #define VM_CALL_ARRAY(name, type)                                 \
-static type vm_call##name##_array(methodinfo *m, uint64_t *array) \
+type vm_call##name##_array(methodinfo *m, uint64_t *array) \
 {                                                                 \
 	methoddesc *md;                                               \
 	void       *pv;                                               \
@@ -2346,7 +2346,7 @@ static type vm_call##name##_array(methodinfo *m, uint64_t *array) \
 	return value;                                                 \
 }
 
-static java_handle_t *vm_call_array(methodinfo *m, uint64_t *array)
+java_handle_t *vm_call_array(methodinfo *m, uint64_t *array)
 {
 	methoddesc    *md;
 	void          *pv;
