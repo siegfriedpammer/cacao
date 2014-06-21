@@ -41,9 +41,9 @@ extern "C" {
 /*
  * Class:     org/cacaojvm/compiler2/test/CacaoTest
  * Method:    compileMethod
- * Signature: (Ljava/lang/Class;Ljava/lang/String;)Z
+ * Signature: (Ljava/lang/Class;Ljava/lang/String;I)Z
  */
-JNIEXPORT jboolean JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod(JNIEnv *env, jclass clazz, jclass compile_class, jstring name) {
+JNIEXPORT jboolean JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod(JNIEnv *env, jclass clazz, jclass compile_class, jstring name, jint value) {
 	classinfo *ci;
 
 	ci = LLNI_classinfo_unwrap(compile_class);
@@ -97,7 +97,7 @@ JNIEXPORT jboolean JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_compileMet
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ (char*) "compileMethod", (char*) "(Ljava/lang/Class;Ljava/lang/String;)Z",(void*) (uintptr_t) &Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod },
+	{ (char*) "compileMethod", (char*) "(Ljava/lang/Class;Ljava/lang/String;I)Z",(void*) (uintptr_t) &Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod },
 };
 
 
