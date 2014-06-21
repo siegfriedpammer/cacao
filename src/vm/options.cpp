@@ -173,9 +173,6 @@ int      opt_DebugProperties              = 0;
 int      opt_DebugStackFrameInfo          = 0;
 int      opt_DebugStackTrace              = 0;
 int      opt_DebugThreads                 = 0;
-#ifdef ENABLE_COMPILER2
-bool     opt_Compiler2hints               = true;
-#endif
 #if defined(ENABLE_DISASSEMBLER)
 int      opt_DisassembleStubs             = 0;
 #endif
@@ -259,9 +256,6 @@ enum {
 	OPT_CompileMethod,
 	OPT_CompileSignature,
 	OPT_ColorOutput,
-#ifdef ENABLE_COMPILER2
-	OPT_Compiler2hints,
-#endif
 	OPT_DebugLocalReferences,
 	OPT_DebugLocks,
 	OPT_DebugPackage,
@@ -324,9 +318,6 @@ option_t options_XX[] = {
 	{ "CompileAll",                   OPT_CompileAll,                   OPT_TYPE_BOOLEAN, "compile all methods, no execution" },
 	{ "CompileMethod",                OPT_CompileMethod,                OPT_TYPE_VALUE,   "compile only a specific method" },
 	{ "CompileSignature",             OPT_CompileSignature,             OPT_TYPE_VALUE,   "specify signature for a specific method" },
-#ifdef ENABLE_COMPILER2
-	{ "Compiler2hints",               OPT_Compiler2hints,               OPT_TYPE_BOOLEAN, "compiler2: enable register hints"},
-#endif
 	{ "DebugLocalReferences",         OPT_DebugLocalReferences,         OPT_TYPE_BOOLEAN, "print debug information for local reference tables" },
 	{ "DebugLocks",                   OPT_DebugLocks,                   OPT_TYPE_BOOLEAN, "print debug information for locks" },
 	{ "DebugPackage",                 OPT_DebugPackage,                 OPT_TYPE_BOOLEAN, "debug Java boot-packages" },
@@ -731,11 +722,6 @@ void options_xx(JavaVMInitArgs *vm_args)
 			}
 			break;
 
-#ifdef ENABLE_COMPILER2
-		case OPT_Compiler2hints:
-			opt_Compiler2hints = enable;
-			break;
-#endif
 #if defined(ENABLE_DISASSEMBLER)
 		case OPT_DisassembleStubs:
 			opt_DisassembleStubs = enable;

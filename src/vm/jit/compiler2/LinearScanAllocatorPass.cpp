@@ -61,6 +61,10 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+namespace option {
+	Option<bool> hints("Compiler2hints","compiler2: enable register hints",true,::cacao::option::xx_root());
+}
+
 bool LinearScanAllocatorPass::StartComparator::operator()(const LivetimeInterval &lhs,
 		const LivetimeInterval &rhs) {
 	if (rhs.front().start < lhs.front().start) return true;
@@ -215,7 +219,7 @@ inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current
 	UseDef free_until_pos_reg(UseDef::PseudoUse,MIS->mi_begin());
 	// check for hints
 	MachineOperand *hint = current.get_hint();
-	if (opt_Compiler2hints && hint) {
+	if (option::hints && hint) {
 		if (hint->is_virtual()) {
 			// find the current store for hint
 			LivetimeInterval hint_lti = LA->get(hint);
