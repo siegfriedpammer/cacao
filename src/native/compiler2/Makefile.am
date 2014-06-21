@@ -1,4 +1,4 @@
-## src/native/Makefile.am
+## src/native/compiler2/Makefile.am
 ##
 ## Copyright (C) 1996-2014
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,40 +25,11 @@ AM_CPPFLAGS += -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(to
 
 LIBS =
 
-SUBDIRS = \
-	vm
+noinst_LTLIBRARIES = \
+	libcompiler2.la
 
-if ENABLE_JVMTI
-SUBDIRS += jvmti
-JVMTI_LIB = jvmti/libjvmti.la
-endif
-
-if ENABLE_COMPILER2
-SUBDIRS += compiler2
-JVMTI_LIB = compiler2/libcompiler2.la
-endif
-
-noinst_LTLIBRARIES = libnative.la
-
-if ENABLE_JNI
-JNI_SOURCES = \
-	jni.cpp \
-	jni.hpp \
-	localref.cpp \
-	localref.hpp
-endif
-
-libnative_la_SOURCES = \
-	$(JNI_SOURCES) \
-	llni.cpp \
-	llni.hpp \
-	native.cpp \
-	native.hpp
-
-libnative_la_LIBADD = \
-	vm/libnativevm.la \
-	$(JVMTI_LIB)
-
+libcompiler2_la_SOURCES = \
+	org_cacaojvm_compiler2_test_CacaoTest.cpp
 
 ## Local variables:
 ## mode: Makefile

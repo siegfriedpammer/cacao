@@ -94,6 +94,10 @@ void _Jv_java_lang_Throwable_init();
 # error unknown Java configuration
 #endif
 
+#if defined(ENABLE_COMPILER2)
+void _Jv_org_cacaojvm_compiler2_test_CacaoTest_init(void);
+#endif
+
 #endif // _NATIVEVM_HPP
 
 
