@@ -41,9 +41,9 @@ extern "C" {
 /*
  * Class:     org/cacaojvm/compiler2/test/CacaoTest
  * Method:    compileMethod
- * Signature: (Ljava/lang/Class;Ljava/lang/String;I)Z
+ * Signature: (Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;I)Z
  */
-JNIEXPORT jboolean JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod(JNIEnv *env, jclass clazz, jclass compile_class, jstring name, jint value) {
+JNIEXPORT jboolean JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod(JNIEnv *env, jclass clazz, jclass compile_class, jstring name, jstring desc, jint value) {
 	classinfo *ci;
 
 	ci = LLNI_classinfo_unwrap(compile_class);
@@ -61,8 +61,7 @@ JNIEXPORT jboolean JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_compileMet
 	/* create utf string in which '.' is replaced by '/' */
 
 	Utf8String u = JavaString((java_handle_t*) name).to_utf8_dot_to_slash();
-	// currently we only support static int METHOD(int)
-	Utf8String d = Utf8String::from_utf8("(I)I");
+	Utf8String d = JavaString((java_handle_t*) desc).to_utf8_dot_to_slash();
 
 	cacao::out() << "class: " << ci->name << " method: " << u << cacao::nl;
 
@@ -104,7 +103,7 @@ JNIEXPORT jboolean JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_compileMet
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ (char*) "compileMethod", (char*) "(Ljava/lang/Class;Ljava/lang/String;I)Z",(void*) (uintptr_t) &Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod },
+	{ (char*) "compileMethod", (char*) "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;I)Z",(void*) (uintptr_t) &Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod },
 };
 
 

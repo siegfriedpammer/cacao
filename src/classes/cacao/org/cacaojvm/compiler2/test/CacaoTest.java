@@ -26,5 +26,5 @@
 package org.cacaojvm.compiler2.test;
 
 public final class CacaoTest {
-  public static native boolean compileMethod(Class compileClass, String compileMethodName, int value);
+  public static native boolean compileMethod(Class compileClass, String methodName, String methodDesc, int value);
 }
