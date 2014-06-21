@@ -61,8 +61,32 @@ JNIEXPORT jboolean JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_compileMet
 	/* create utf string in which '.' is replaced by '/' */
 
 	Utf8String u = JavaString((java_handle_t*) name).to_utf8_dot_to_slash();
+	// currently we only support static int METHOD(int)
+	Utf8String d = Utf8String::from_utf8("(I)I");
 
 	cacao::out() << "class: " << ci->name << " method: " << u << cacao::nl;
+
+	/* find the method of the class */
+
+	methodinfo *m = class_resolveclassmethod(ci,
+								 u,
+								 d,
+								 NULL,
+								 false);
+
+	if (exceptions_get_exception()) {
+		exceptions_print_stacktrace();
+		return false;
+	}
+
+	/* there is no main method or it isn't static */
+
+	if ((m == NULL) || !(m->flags & ACC_STATIC)) {
+		exceptions_clear_exception();
+		exceptions_throw_nosuchmethoderror(ci, u, d);
+		exceptions_print_stacktrace();
+		return false;
+	}
 
 	return true;
 }
