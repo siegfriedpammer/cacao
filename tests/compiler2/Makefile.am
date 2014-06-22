@@ -44,16 +44,13 @@ CLEANFILES = \
 
 OUTPUT_JAVA_TESTS = \
 	Test.BoyerMoore \
-	Test.fact \
 	Test.Min \
-	Test.power \
 	Test.permut \
 	Test.OverflowInt \
 	Test.OverflowLong \
 	Test.OverflowLongIntLong \
 	Test.pi \
 	Test.piSpigot \
-	Test.Sqrt \
 	Test.test_array_len \
 	Test.test_array_load \
 	Test.test_array_store \
