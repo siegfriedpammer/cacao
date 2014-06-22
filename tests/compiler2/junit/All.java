@@ -36,6 +36,7 @@ Min.class,
 Pi.class,
 PiSpigot.class,
 Overflow.class,
+ParameterLong.class,
 SampleTest.class
 })
 

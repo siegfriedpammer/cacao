@@ -60,9 +60,6 @@ OUTPUT_JAVA_TESTS = \
 	Test.dneg \
 	Test.matAdd \
 	Test.matMult \
-	Test.testParameterLong \
-	Test.testParameterLong2 \
-	Test.testParameterLong3 \
 	Test.testParameterDouble
 
 check: build run
