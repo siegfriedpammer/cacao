@@ -31,6 +31,7 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({
 Fact.class,
 Sqrt.class,
+Power.class,
 SampleTest.class
 })
 
