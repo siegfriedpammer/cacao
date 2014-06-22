@@ -29,8 +29,9 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 
 @Suite.SuiteClasses({
-SampleTest.class,
-Fact.class
+Fact.class,
+Sqrt.class,
+SampleTest.class
 })
 
 public class All {
