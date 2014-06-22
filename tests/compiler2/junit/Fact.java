@@ -1,4 +1,4 @@
-/* tests/compiler2/junit/Compiler2TestBase.java - CACAO compiler2 unit test base
+/* tests/compiler2/junit/Fact.java - Fact
 
    Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,21 +22,28 @@
 
 */
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
+import org.junit.Ignore;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
-import org.cacaojvm.compiler2.test.Compiler2Test;
+public class Fact extends Compiler2TestBase {
 
-public class Compiler2TestBase extends Compiler2Test {
+	static long fact(long n) {
 
-    protected void testResultEqual(Class compileClass, String methodName, String methodDesc, Object... args) {
-        Object resultBaseline = compileBaseline(compileClass, methodName, methodDesc, args);
-        Object resultCompiler2 = compileCompiler2(compileClass, methodName, methodDesc, args);
-		System.out.format("expected %s, actual %s\n", resultBaseline, resultCompiler2);
-        assertEquals(resultCompiler2, resultBaseline);
-    }
-
-    protected void testResultEqual(String methodName, String methodDesc, Object... args) {
-		testResultEqual(getClass(), methodName, methodDesc, args);
+		long res = 1;
+		while (1 < n) {
+			res *= n--;
+		}
+		return res;
 	}
 
+    @Test
+    public void thisAlwaysPasses() {
+		for (long i = 0; i < 10; i++) {
+			testResultEqual("fact", "(J)J", i);
+		}
+    }
+
 }
+
