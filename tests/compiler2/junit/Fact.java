@@ -21,14 +21,42 @@
    02110-1301, USA.
 
 */
+import java.util.Arrays;
+import java.util.Collection;
 
 import org.junit.Test;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class Fact extends Compiler2TestBase {
 
+	private long value;
+
+	public Fact(long value) {
+		this.value = value;
+	}
+
+	@Parameters
+	public static Collection<Long[]> data() {
+		Long[][] list =new Long[10][1];
+		for (int i = 0; i < 10; i++) {
+			list[i][0] = (long)i;
+		}
+		return Arrays.asList(list);
+	}
+
+    @Test
+    public void test0() {
+		testResultEqual("fact", "(J)J", value);
+    }
+
+	/**
+	 * This is the method under test.
+	 */
 	static long fact(long n) {
 
 		long res = 1;
@@ -37,13 +65,5 @@ public class Fact extends Compiler2TestBase {
 		}
 		return res;
 	}
-
-    @Test
-    public void thisAlwaysPasses() {
-		for (long i = 0; i < 10; i++) {
-			testResultEqual("fact", "(J)J", i);
-		}
-    }
-
 }
 
