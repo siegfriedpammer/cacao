@@ -1,6 +1,6 @@
-## tests/regression/Makefile.am
+## tests/compiler2/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2007, 2008
+## Copyright (C) 1996-2014
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -25,6 +25,9 @@ JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
 JAVACCMD = $(JAVAC) -source 1.5 -target 1.5 -nowarn -bootclasspath $(BOOTCLASSPATH)
 
 CXXFLAGS=-I$(top_builddir) -I$(top_srcdir)/src -I$(srcdir) -g -O0
+
+SUBDIRS = \
+	junit
 
 SOURCE_FILES = \
 	$(srcdir)/Test.java

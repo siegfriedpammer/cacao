@@ -1,4 +1,4 @@
-/* classes/cacao/org/cacaojvm/compiler2/test/Compiler2Test - cacao compiler2 test driver
+/* tests/compiler2/junit/SampleTest.java - SampleTest
 
    Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,18 +22,21 @@
 
 */
 
+import org.junit.Test;
+import org.junit.Ignore;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
-package org.cacaojvm.compiler2.test;
+public class SampleTest extends Compiler2TestBase {
 
-public class Compiler2Test {
-    private static native int compileMethod(boolean baseline, Class compileClass, String methodName, String methodDesc, Object[] args);
-
-    protected static int compileBaseline(Class compileClass, String methodName, String methodDesc, Object... args) {
-        return compileMethod(true, compileClass, methodName, methodDesc, args);
+    static int test(int i) {
+        return -i;
     }
 
-    protected static int compileCompiler2(Class compileClass, String methodName, String methodDesc, Object... args) {
-        return compileMethod(false, compileClass, methodName, methodDesc, args);
+    @Test
+    public void thisAlwaysPasses() {
+        testResultEqual(SampleTest.class, "test", "(I)I", 42);
     }
 
 }
+

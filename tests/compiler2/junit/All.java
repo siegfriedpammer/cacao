@@ -1,4 +1,4 @@
-/* classes/cacao/org/cacaojvm/compiler2/test/Compiler2Test - cacao compiler2 test driver
+/* tests/compiler2/junit/All.java - runs all CACAO compiler2 unit tests
 
    Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,17 +23,14 @@
 */
 
 
-package org.cacaojvm.compiler2.test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 
-public class Compiler2Test {
-    private static native int compileMethod(boolean baseline, Class compileClass, String methodName, String methodDesc, Object[] args);
+@RunWith(Suite.class)
 
-    protected static int compileBaseline(Class compileClass, String methodName, String methodDesc, Object... args) {
-        return compileMethod(true, compileClass, methodName, methodDesc, args);
-    }
+@Suite.SuiteClasses({
+SampleTest.class
+})
 
-    protected static int compileCompiler2(Class compileClass, String methodName, String methodDesc, Object... args) {
-        return compileMethod(false, compileClass, methodName, methodDesc, args);
-    }
-
+public class All {
 }

@@ -1,4 +1,4 @@
-/* classes/cacao/org/cacaojvm/compiler2/test/Compiler2Test - cacao compiler2 test driver
+/* tests/compiler2/junit/Compiler2TestBase.java - CACAO compiler2 unit test base
 
    Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,18 +22,16 @@
 
 */
 
+import static org.junit.Assert.assertEquals;
 
-package org.cacaojvm.compiler2.test;
+import org.cacaojvm.compiler2.test.Compiler2Test;
 
-public class Compiler2Test {
-    private static native int compileMethod(boolean baseline, Class compileClass, String methodName, String methodDesc, Object[] args);
+public class Compiler2TestBase extends Compiler2Test {
 
-    protected static int compileBaseline(Class compileClass, String methodName, String methodDesc, Object... args) {
-        return compileMethod(true, compileClass, methodName, methodDesc, args);
-    }
-
-    protected static int compileCompiler2(Class compileClass, String methodName, String methodDesc, Object... args) {
-        return compileMethod(false, compileClass, methodName, methodDesc, args);
+    protected void testResultEqual(Class compileClass, String methodName, String methodDesc, Object... args) {
+        int resultBaseline = compileBaseline(compileClass, methodName, methodDesc, args);
+        int resultCompiler2 = compileCompiler2(compileClass, methodName, methodDesc, args);
+        assertEquals(resultCompiler2, resultBaseline);
     }
 
 }
