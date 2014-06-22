@@ -44,7 +44,6 @@ CLEANFILES = \
 
 OUTPUT_JAVA_TESTS = \
 	Test.BoyerMoore \
-	Test.Min \
 	Test.permut \
 	Test.OverflowInt \
 	Test.OverflowLong \

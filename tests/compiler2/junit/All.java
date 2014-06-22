@@ -32,6 +32,7 @@ import org.junit.runners.Suite;
 Fact.class,
 Sqrt.class,
 Power.class,
+Min.class,
 SampleTest.class
 })
 
