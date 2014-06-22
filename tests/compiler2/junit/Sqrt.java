@@ -21,7 +21,8 @@
    02110-1301, USA.
 
 */
-import java.util.Arrays;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Collection;
 
 import org.junit.Test;
@@ -42,11 +43,17 @@ public class Sqrt extends Compiler2TestBase {
 
 	@Parameters
 	public static Collection<Long[]> data() {
-		Long[][] list =new Long[1000][1];
-		for (int i = 0; i < 1000; i++) {
-			list[i][0] = (long)i;
-		}
-		return Arrays.asList(list);
+		List<Long[]> list = new ArrayList<Long[]>();
+		list.add(new Long[]{   0L});
+		list.add(new Long[]{   4L});
+		list.add(new Long[]{  15L});
+		list.add(new Long[]{ 123L});
+		list.add(new Long[]{ 284L});
+		list.add(new Long[]{ 513L});
+		list.add(new Long[]{ 777L});
+		list.add(new Long[]{ 845L});
+		list.add(new Long[]{1000L});
+		return list;
 	}
 
     @Test
@@ -71,13 +78,5 @@ public class Sqrt extends Compiler2TestBase {
 		return y;
 	}
 
-	static long fact(long n) {
-
-		long res = 1;
-		while (1 < n) {
-			res *= n--;
-		}
-		return res;
-	}
 }
 
