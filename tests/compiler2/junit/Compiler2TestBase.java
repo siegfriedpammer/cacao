@@ -29,8 +29,9 @@ import org.cacaojvm.compiler2.test.Compiler2Test;
 public class Compiler2TestBase extends Compiler2Test {
 
     protected void testResultEqual(Class compileClass, String methodName, String methodDesc, Object... args) {
-        int resultBaseline = compileBaseline(compileClass, methodName, methodDesc, args);
-        int resultCompiler2 = compileCompiler2(compileClass, methodName, methodDesc, args);
+        Object resultBaseline = compileBaseline(compileClass, methodName, methodDesc, args);
+        Object resultCompiler2 = compileCompiler2(compileClass, methodName, methodDesc, args);
+		System.out.format("expected %s, actual %s\n", resultBaseline, resultCompiler2);
         assertEquals(resultCompiler2, resultBaseline);
     }
 

@@ -39,28 +39,15 @@
 
 #include "vm/jit/compiler2/Compiler.hpp"
 
-int32_t call_method(methodinfo *m, jobjectArray args) {
-	// leave the nativeworld
-	THREAD_NATIVEWORLD_EXIT;
-
-	uint64_t *array = argument_vmarray_from_objectarray(m, NULL, args);
-	int32_t result = vm_call_int_array(m, array);
-
-	// enter the nativeworld again
-	THREAD_NATIVEWORLD_ENTER;
-
-	return result;
-}
-
 // Native functions are exported as C functions.
 extern "C" {
 
 /*
  * Class:     org/cacaojvm/compiler2/test/Compiler2Test
  * Method:    compileMethod
- * Signature: (ZLjava/lang/Class;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)I
+ * Signature: (ZLjava/lang/Class;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/Object;
  */
-JNIEXPORT jint JNICALL Java_org_cacaojvm_compiler2_test_Compiler2Test_compileMethod(JNIEnv *env, jclass clazz, jboolean baseline, jclass compile_class, jstring name, jstring desc, jobjectArray args) {
+JNIEXPORT jobject JNICALL Java_org_cacaojvm_compiler2_test_Compiler2Test_compileMethod(JNIEnv *env, jclass clazz, jboolean baseline, jclass compile_class, jstring name, jstring desc, jobjectArray args) {
 	classinfo *ci;
 
 	ci = LLNI_classinfo_unwrap(compile_class);
@@ -98,22 +85,21 @@ JNIEXPORT jint JNICALL Java_org_cacaojvm_compiler2_test_Compiler2Test_compileMet
 	// back up and reset code
 	codeinfo *code = m->code;
 	m->code = NULL;
-	int32_t result;
 
 	if (baseline) {
 		// baseline compiler
 		if (!jit_compile(m)) {
 			os::abort();
 		}
-		result = call_method(m, args);
 	}
 	else {
 		// compiler2 compiler
 		if (!cacao::jit::compiler2::compile(m)) {
 			os::abort();
 		}
-		result = call_method(m, args);
 	}
+
+	java_handle_t *result = vm_call_method_objectarray(m, NULL, args);
 
 	// restore code
 	// TODO free code!
@@ -125,7 +111,7 @@ JNIEXPORT jint JNICALL Java_org_cacaojvm_compiler2_test_Compiler2Test_compileMet
 		os::abort();
 	}
 
-	return result;
+	return (jobject) result;
 }
 
 } // extern "C"
@@ -133,7 +119,7 @@ JNIEXPORT jint JNICALL Java_org_cacaojvm_compiler2_test_Compiler2Test_compileMet
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ (char*) "compileMethod", (char*) "(ZLjava/lang/Class;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)I",(void*) (uintptr_t) &Java_org_cacaojvm_compiler2_test_Compiler2Test_compileMethod },
+	{ (char*) "compileMethod", (char*) "(ZLjava/lang/Class;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/Object;",(void*) (uintptr_t) &Java_org_cacaojvm_compiler2_test_Compiler2Test_compileMethod },
 };
 
 

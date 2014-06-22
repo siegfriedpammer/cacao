@@ -26,13 +26,13 @@
 package org.cacaojvm.compiler2.test;
 
 public class Compiler2Test {
-    private static native int compileMethod(boolean baseline, Class compileClass, String methodName, String methodDesc, Object[] args);
+    private static native Object compileMethod(boolean baseline, Class compileClass, String methodName, String methodDesc, Object[] args);
 
-    protected static int compileBaseline(Class compileClass, String methodName, String methodDesc, Object... args) {
+    protected static Object compileBaseline(Class compileClass, String methodName, String methodDesc, Object... args) {
         return compileMethod(true, compileClass, methodName, methodDesc, args);
     }
 
-    protected static int compileCompiler2(Class compileClass, String methodName, String methodDesc, Object... args) {
+    protected static Object compileCompiler2(Class compileClass, String methodName, String methodDesc, Object... args) {
         return compileMethod(false, compileClass, methodName, methodDesc, args);
     }
 
