@@ -1,4 +1,4 @@
-/* org.cacaojvm.compiler2.test.CacaoTest - cacao compiler2 test driver
+/* org.cacaojvm.compiler2.test.Compiler2Test - cacao compiler2 test driver
  *
  * Copyright (C) 2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,7 +25,7 @@
 
 package org.cacaojvm.compiler2.test;
 
-public final class CacaoTest {
+public final class Compiler2Test {
   private static native int compileMethod(boolean baseline, Class compileClass, String methodName, String methodDesc, Object[] args);
 
   public static int compileBaseline(Class compileClass, String methodName, String methodDesc, Object... args) {

@@ -96,7 +96,7 @@ void nativevm_preinit(void)
 #endif
 
 #if defined(ENABLE_COMPILER2)
-	_Jv_org_cacaojvm_compiler2_test_CacaoTest_init();
+	_Jv_org_cacaojvm_compiler2_test_Compiler2Test_init();
 #endif
 
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)

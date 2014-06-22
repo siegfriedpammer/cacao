@@ -75,7 +75,7 @@ VM_JAVA_FILES += \
 endif
 
 VM_JAVA_FILES_COMPILER2 = \
-	$(top_srcdir)/src/classes/cacao/org/cacaojvm/compiler2/test/CacaoTest.java
+	$(top_srcdir)/src/classes/cacao/org/cacaojvm/compiler2/test/Compiler2Test.java
 
 if ENABLE_COMPILER2
 VM_JAVA_FILES += \

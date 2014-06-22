@@ -1,4 +1,4 @@
-/* src/native/compiler2/org_cacaojvm_compiler2_test_CacaoTest.cpp
+/* src/native/compiler2/org_cacaojvm_compiler2_test_Compiler2Test.cpp
 
    Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -56,11 +56,11 @@ int32_t call_method(methodinfo *m, jobjectArray args) {
 extern "C" {
 
 /*
- * Class:     org/cacaojvm/compiler2/test/CacaoTest
+ * Class:     org/cacaojvm/compiler2/test/Compiler2Test
  * Method:    compileMethod
  * Signature: (ZLjava/lang/Class;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)I
  */
-JNIEXPORT jint JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod(JNIEnv *env, jclass clazz, jboolean baseline, jclass compile_class, jstring name, jstring desc, jobjectArray args) {
+JNIEXPORT jint JNICALL Java_org_cacaojvm_compiler2_test_Compiler2Test_compileMethod(JNIEnv *env, jclass clazz, jboolean baseline, jclass compile_class, jstring name, jstring desc, jobjectArray args) {
 	classinfo *ci;
 
 	ci = LLNI_classinfo_unwrap(compile_class);
@@ -133,18 +133,18 @@ JNIEXPORT jint JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod(
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ (char*) "compileMethod", (char*) "(ZLjava/lang/Class;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)I",(void*) (uintptr_t) &Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod },
+	{ (char*) "compileMethod", (char*) "(ZLjava/lang/Class;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)I",(void*) (uintptr_t) &Java_org_cacaojvm_compiler2_test_Compiler2Test_compileMethod },
 };
 
 
-/* _Jv_org_cacaojvm_compiler2_test_CacaoTest_init *****************************************
+/* _Jv_org_cacaojvm_compiler2_test_Compiler2Test_init *****************************************
 
    Register native functions.
 
 *******************************************************************************/
 
-void _Jv_org_cacaojvm_compiler2_test_CacaoTest_init(void) {
-	Utf8String u = Utf8String::from_utf8("org/cacaojvm/compiler2/test/CacaoTest");
+void _Jv_org_cacaojvm_compiler2_test_Compiler2Test_init(void) {
+	Utf8String u = Utf8String::from_utf8("org/cacaojvm/compiler2/test/Compiler2Test");
 
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);

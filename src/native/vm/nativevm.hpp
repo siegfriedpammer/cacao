@@ -95,7 +95,7 @@ void _Jv_java_lang_Throwable_init();
 #endif
 
 #if defined(ENABLE_COMPILER2)
-void _Jv_org_cacaojvm_compiler2_test_CacaoTest_init(void);
+void _Jv_org_cacaojvm_compiler2_test_Compiler2Test_init(void);
 #endif
 
 #endif // _NATIVEVM_HPP

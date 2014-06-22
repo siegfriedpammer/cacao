@@ -29,7 +29,7 @@ noinst_LTLIBRARIES = \
 	libcompiler2.la
 
 libcompiler2_la_SOURCES = \
-	org_cacaojvm_compiler2_test_CacaoTest.cpp
+	org_cacaojvm_compiler2_test_Compiler2Test.cpp
 
 ## Local variables:
 ## mode: Makefile
