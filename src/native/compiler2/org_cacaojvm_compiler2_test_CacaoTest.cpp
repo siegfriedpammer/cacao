@@ -31,9 +31,6 @@
 #include "vm/jit/argument.hpp"
 #include "vm/jit/jit.hpp"
 
-#include "toolbox/OStream.hpp"
-#include "toolbox/Debug.hpp"
-
 #include "threads/thread.hpp"
 
 #include "native/jni.hpp"
@@ -43,16 +40,13 @@
 #include "vm/jit/compiler2/Compiler.hpp"
 
 int32_t call_method(methodinfo *m, jobjectArray args) {
-	/* leave the nativeworld */
-
+	// leave the nativeworld
 	THREAD_NATIVEWORLD_EXIT;
 
 	uint64_t *array = argument_vmarray_from_objectarray(m, NULL, args);
-
 	int32_t result = vm_call_int_array(m, array);
 
-	/* enter the nativeworld again */
-
+	// enter the nativeworld again
 	THREAD_NATIVEWORLD_ENTER;
 
 	return result;
@@ -64,95 +58,74 @@ extern "C" {
 /*
  * Class:     org/cacaojvm/compiler2/test/CacaoTest
  * Method:    compileMethod
- * Signature: (Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)Z
+ * Signature: (ZLjava/lang/Class;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)I
  */
-JNIEXPORT jboolean JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod(JNIEnv *env, jclass clazz, jclass compile_class, jstring name, jstring desc, jobjectArray args) {
+JNIEXPORT jint JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod(JNIEnv *env, jclass clazz, jboolean baseline, jclass compile_class, jstring name, jstring desc, jobjectArray args) {
 	classinfo *ci;
 
 	ci = LLNI_classinfo_unwrap(compile_class);
 
 	if (!ci) {
 		exceptions_throw_nullpointerexception();
-		return false;
+		os::abort();
 	}
 
 	if (name == NULL) {
 		exceptions_throw_nullpointerexception();
-		return false;
+		os::abort();
 	}
 
-	/* create utf string in which '.' is replaced by '/' */
-
+	// create utf string in which '.' is replaced by '/'
 	Utf8String u = JavaString((java_handle_t*) name).to_utf8_dot_to_slash();
 	Utf8String d = JavaString((java_handle_t*) desc).to_utf8_dot_to_slash();
 
-	cacao::out() << "class: " << ci->name << " method: " << u << cacao::nl;
-
-	/* find the method of the class */
-
+	// find the method of the class
 	methodinfo *m = class_resolveclassmethod(ci, u, d, NULL, false);
 
 	if (exceptions_get_exception()) {
 		exceptions_print_stacktrace();
-		return false;
+		os::abort();
 	}
 
-	/* there is no main method or it isn't static */
-
+	// there is no main method or it isn't static
 	if ((m == NULL) || !(m->flags & ACC_STATIC)) {
 		exceptions_clear_exception();
 		exceptions_throw_nosuchmethoderror(ci, u, d);
 		exceptions_print_stacktrace();
-		return false;
+		os::abort();
 	}
 
-	/* compile methods which are not yet compiled */
+	// back up and reset code
+	codeinfo *code = m->code;
+	m->code = NULL;
+	int32_t result;
 
-
-	// baseline compiler
-	{
-		// back up and reset code
-		codeinfo *code = m->code;
-		m->code = NULL;
-
-		if (!jit_compile(m))
-			return false;
-
-		int32_t result = call_method(m, args);
-
-		// restore code
-		// TODO free code!
-		m->code = code;
-
-		cacao::out() << "result " << result << cacao::nl;
+	if (baseline) {
+		// baseline compiler
+		if (!jit_compile(m)) {
+			os::abort();
+		}
+		result = call_method(m, args);
+	}
+	else {
+		// compiler2 compiler
+		if (!cacao::jit::compiler2::compile(m)) {
+			os::abort();
+		}
+		result = call_method(m, args);
 	}
 
-	// compiler2 compiler
-	{
-		// back up and reset code
-		codeinfo *code = m->code;
-		m->code = NULL;
+	// restore code
+	// TODO free code!
+	m->code = code;
 
-		if (!cacao::jit::compiler2::compile(m))
-			return false;
-
-		int32_t result = call_method(m, args);
-
-		// restore code
-		// TODO free code!
-		m->code = code;
-
-		cacao::out() << "result " << result << cacao::nl;
-	}
-
-	/* exception occurred? */
-
+	// exception occurred?
 	if (exceptions_get_exception()) {
 		exceptions_print_stacktrace();
-		return false;
+		os::abort();
 	}
 
-	return true;
+	return result;
 }
 
 } // extern "C"
@@ -160,7 +133,7 @@ JNIEXPORT jboolean JNICALL Java_org_cacaojvm_compiler2_test_CacaoTest_compileMet
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ (char*) "compileMethod", (char*) "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)Z",(void*) (uintptr_t) &Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod },
+	{ (char*) "compileMethod", (char*) "(ZLjava/lang/Class;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)I",(void*) (uintptr_t) &Java_org_cacaojvm_compiler2_test_CacaoTest_compileMethod },
 };
 
 
