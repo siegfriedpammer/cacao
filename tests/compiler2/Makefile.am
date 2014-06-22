@@ -48,7 +48,6 @@ OUTPUT_JAVA_TESTS = \
 	Test.OverflowInt \
 	Test.OverflowLong \
 	Test.OverflowLongIntLong \
-	Test.piSpigot \
 	Test.test_array_len \
 	Test.test_array_load \
 	Test.test_array_store \

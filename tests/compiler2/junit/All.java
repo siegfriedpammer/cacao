@@ -34,6 +34,7 @@ Sqrt.class,
 Power.class,
 Min.class,
 Pi.class,
+PiSpigot.class,
 SampleTest.class
 })
 
