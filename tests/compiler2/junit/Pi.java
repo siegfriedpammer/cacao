@@ -1,4 +1,4 @@
-/* tests/compiler2/junit/All.java - runs all CACAO compiler2 unit tests
+/* tests/compiler2/junit/Pi.java - Pi
 
    Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,21 +21,24 @@
    02110-1301, USA.
 
 */
+import java.lang.Math.*;
 
+import org.junit.Test;
+import org.junit.Ignore;
+import org.junit.runners.JUnit4;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+public class Pi extends Compiler2TestBase {
 
-@RunWith(Suite.class)
+    @Test
+    public void test0() {
+		testResultEqual("pi", "()D");
+    }
 
-@Suite.SuiteClasses({
-Fact.class,
-Sqrt.class,
-Power.class,
-Min.class,
-Pi.class,
-SampleTest.class
-})
-
-public class All {
+	/**
+	 * This is the method under test.
+	 */
+	static double pi() {
+		return Math.PI;
+	}
 }
+
