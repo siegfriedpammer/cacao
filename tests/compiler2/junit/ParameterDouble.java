@@ -1,4 +1,4 @@
-/* tests/compiler2/junit/All.java - runs all CACAO compiler2 unit tests
+/* tests/compiler2/junit/ParameterDouble.java - ParameterDouble
 
    Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,25 +21,24 @@
    02110-1301, USA.
 
 */
+import java.lang.Math.*;
 
+import org.junit.Test;
+import org.junit.Ignore;
+import org.junit.runners.JUnit4;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+public class ParameterDouble extends Compiler2TestBase {
 
-@RunWith(Suite.class)
+    @Test
+    public void test0() {
+		testResultEqual("parameterDouble", "(DDDDDDDDD)D",.1,.2,.3,.4,.5,.6,.7,.8,.9);
+    }
 
-@Suite.SuiteClasses({
-Fact.class,
-Sqrt.class,
-Power.class,
-Min.class,
-Pi.class,
-PiSpigot.class,
-Overflow.class,
-ParameterLong.class,
-ParameterDouble.class,
-SampleTest.class
-})
-
-public class All {
+	/**
+	 * This is the method under test.
+	 */
+	static double parameterDouble(double a, double b, double c, double d, double e, double f, double g, double h, double i) {
+		return a+b+c+d+e+f+g+h+i;
+	}
 }
+

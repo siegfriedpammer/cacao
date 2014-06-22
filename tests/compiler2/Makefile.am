@@ -59,8 +59,7 @@ OUTPUT_JAVA_TESTS = \
 	Test.fneg \
 	Test.dneg \
 	Test.matAdd \
-	Test.matMult \
-	Test.testParameterDouble
+	Test.matMult
 
 check: build run
 
