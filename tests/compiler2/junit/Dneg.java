@@ -1,4 +1,4 @@
-/* tests/compiler2/junit/All.java - runs all CACAO compiler2 unit tests
+/* tests/compiler2/junit/Dneg.java - Dneg
 
    Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,29 +21,49 @@
    02110-1301, USA.
 
 */
+import java.lang.Math.*;
 
+import org.junit.Test;
+import org.junit.Ignore;
+import org.junit.runners.JUnit4;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+public class Dneg extends Compiler2TestBase {
 
-@RunWith(Suite.class)
+    @Test
+    public void test0() {
+		testResultEqual("dneg", "(D)D", 0.0);
+    }
 
-@Suite.SuiteClasses({
-Fact.class,
-Sqrt.class,
-Power.class,
-Min.class,
-Pi.class,
-PiSpigot.class,
-Overflow.class,
-ParameterLong.class,
-ParameterDouble.class,
-Ineg.class,
-Lneg.class,
-Fneg.class,
-Dneg.class,
-SampleTest.class
-})
+    @Test
+    public void test1() {
+		testResultEqual("dneg", "(D)D", 42.0);
+    }
 
-public class All {
+    @Test
+    public void test2() {
+		testResultEqual("dneg", "(D)D", -42.0);
+    }
+
+    @Test
+    public void test3() {
+		testResultEqual("dneg", "(D)D", Double.MIN_VALUE);
+    }
+
+    @Test
+    public void test4() {
+		testResultEqual("dneg", "(D)D", Double.MAX_VALUE);
+    }
+
+    @Test
+    public void test5() {
+		testResultEqual("dneg", "(D)D", 0.0/0.0);
+    }
+
+	/**
+	 * This is the method under test.
+	 */
+	static double dneg(double x) {
+		return -x;
+	}
 }
+

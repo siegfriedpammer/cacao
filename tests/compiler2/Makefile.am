@@ -54,7 +54,6 @@ OUTPUT_JAVA_TESTS = \
 	Test.test_double_array_store \
 	Test.test_float_cmp \
 	Test.test_double_cmp \
-	Test.dneg \
 	Test.matAdd \
 	Test.matMult
 
