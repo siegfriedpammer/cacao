@@ -42,6 +42,7 @@ Ineg.class,
 Lneg.class,
 Fneg.class,
 Dneg.class,
+Fcmp.class,
 SampleTest.class
 })
 

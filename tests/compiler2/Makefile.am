@@ -52,7 +52,6 @@ OUTPUT_JAVA_TESTS = \
 	Test.test_array_2dim_store \
 	Test.test_float_array_load \
 	Test.test_double_array_store \
-	Test.test_float_cmp \
 	Test.test_double_cmp \
 	Test.matAdd \
 	Test.matMult
