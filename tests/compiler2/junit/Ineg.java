@@ -1,4 +1,4 @@
-/* tests/compiler2/junit/All.java - runs all CACAO compiler2 unit tests
+/* tests/compiler2/junit/Ineg.java - Ineg
 
    Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,26 +21,34 @@
    02110-1301, USA.
 
 */
+import java.lang.Math.*;
 
+import org.junit.Test;
+import org.junit.Ignore;
+import org.junit.runners.JUnit4;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+public class Ineg extends Compiler2TestBase {
 
-@RunWith(Suite.class)
+    @Test
+    public void test0() {
+		testResultEqual("ineg", "(I)I", 0);
+    }
 
-@Suite.SuiteClasses({
-Fact.class,
-Sqrt.class,
-Power.class,
-Min.class,
-Pi.class,
-PiSpigot.class,
-Overflow.class,
-ParameterLong.class,
-ParameterDouble.class,
-Ineg.class,
-SampleTest.class
-})
+    @Test
+    public void test1() {
+		testResultEqual("ineg", "(I)I", 42);
+    }
 
-public class All {
+    @Test
+    public void test2() {
+		testResultEqual("ineg", "(I)I", -42);
+    }
+
+	/**
+	 * This is the method under test.
+	 */
+	static int ineg(int x) {
+		return -x;
+	}
 }
+
