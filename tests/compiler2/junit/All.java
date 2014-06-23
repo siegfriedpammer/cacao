@@ -43,6 +43,7 @@ Lneg.class,
 Fneg.class,
 Dneg.class,
 Fcmp.class,
+Dcmp.class,
 SampleTest.class
 })
 
