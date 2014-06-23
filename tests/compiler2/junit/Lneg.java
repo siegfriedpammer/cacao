@@ -1,4 +1,4 @@
-/* tests/compiler2/junit/All.java - runs all CACAO compiler2 unit tests
+/* tests/compiler2/junit/Lneg.java - Lneg
 
    Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,27 +21,34 @@
    02110-1301, USA.
 
 */
+import java.lang.Math.*;
 
+import org.junit.Test;
+import org.junit.Ignore;
+import org.junit.runners.JUnit4;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+public class Lneg extends Compiler2TestBase {
 
-@RunWith(Suite.class)
+    @Test
+    public void test0() {
+		testResultEqual("lneg", "(J)J", 0L);
+    }
 
-@Suite.SuiteClasses({
-Fact.class,
-Sqrt.class,
-Power.class,
-Min.class,
-Pi.class,
-PiSpigot.class,
-Overflow.class,
-ParameterLong.class,
-ParameterDouble.class,
-Ineg.class,
-Lneg.class,
-SampleTest.class
-})
+    @Test
+    public void test1() {
+		testResultEqual("lneg", "(J)J", 42L);
+    }
 
-public class All {
+    @Test
+    public void test2() {
+		testResultEqual("lneg", "(J)J", -42L);
+    }
+
+	/**
+	 * This is the method under test.
+	 */
+	static long lneg(long x) {
+		return -x;
+	}
 }
+
