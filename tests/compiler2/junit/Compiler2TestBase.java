@@ -39,4 +39,11 @@ public class Compiler2TestBase extends Compiler2Test {
 		testResultEqual(getClass(), methodName, methodDesc, args);
 	}
 
+    protected Object runBaseline(String methodName, String methodDesc, Object... args) {
+		return compileBaseline(getClass(), methodName, methodDesc, args);
+	}
+
+    protected Object runCompiler2(String methodName, String methodDesc, Object... args) {
+		return compileCompiler2(getClass(), methodName, methodDesc, args);
+	}
 }

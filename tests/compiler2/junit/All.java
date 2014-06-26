@@ -44,6 +44,7 @@ Fneg.class,
 Dneg.class,
 Fcmp.class,
 Dcmp.class,
+BoyerMoore.class,
 SampleTest.class
 })
 
