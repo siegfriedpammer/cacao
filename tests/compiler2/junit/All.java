@@ -45,6 +45,7 @@ Dneg.class,
 Fcmp.class,
 Dcmp.class,
 BoyerMoore.class,
+ArrayLength.class,
 SampleTest.class
 })
 
