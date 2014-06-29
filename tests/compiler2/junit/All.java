@@ -54,6 +54,7 @@ DoubleArrayStore.class,
 MatAdd.class,
 MatMult.class,
 Array2dimLoad.class,
+Array2dimStore.class,
 SampleTest.class
 })
 

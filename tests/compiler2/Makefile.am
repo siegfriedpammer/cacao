@@ -42,8 +42,7 @@ CLEANFILES = \
 	*.run \
 	*.thisoutput
 
-OUTPUT_JAVA_TESTS = \
-	Test.test_array_2dim_store
+OUTPUT_JAVA_TESTS = 
 
 check: build run
 
