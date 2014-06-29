@@ -49,6 +49,7 @@ ArrayLength.class,
 Permut.class,
 ArrayLoad.class,
 ArrayStore.class,
+ArrayLoadFloat.class,
 SampleTest.class
 })
 
