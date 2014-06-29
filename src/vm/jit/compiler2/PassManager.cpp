@@ -27,6 +27,7 @@
 #include "vm/jit/compiler2/PassDependencyGraphPrinter.hpp"
 #include "vm/jit/compiler2/Pass.hpp"
 #include "toolbox/logging.hpp"
+#include "toolbox/Option.hpp"
 #include "vm/vm.hpp"
 #include "vm/jit/compiler2/alloc/set.hpp"
 #include "vm/jit/compiler2/alloc/list.hpp"
@@ -48,6 +49,11 @@ RT_REGISTER_GROUP(compiler2_rtgroup,"compiler2-pipeline","compiler2 pass pipelin
 
 typedef alloc::unordered_map<PassInfo::IDTy,RTTimer>::type PassTimerMap;
 PassTimerMap pass_timers;
+
+namespace option {
+	Option<bool> print_pass_dependencies("PrintPassDependencies","compiler2: print pass dependencies",false,::cacao::option::xx_root());
+}
+
 
 } // end anonymous namespace
 #endif
@@ -83,7 +89,9 @@ void PassManager::initializePasses() {
 
 void PassManager::runPasses(JITData &JD) {
 	LOG("runPasses" << nl);
-	print_PassDependencyGraph(*this);
+	if (option::print_pass_dependencies) {
+		print_PassDependencyGraph(*this);
+	}
 	initializePasses();
 	schedulePasses();
 	for(ScheduleListTy::iterator i = schedule.begin(), e = schedule.end(); i != e; ++i) {

@@ -58,6 +58,8 @@ PassUsage& MachineInstructionPrinterPass::get_PassUsage(PassUsage &PU) const {
 // the address of this variable is used to identify the pass
 char MachineInstructionPrinterPass::ID = 0;
 
+Option<bool> MachineInstructionPrinterPass::enabled("MachineInstructionPrinterPass","compiler2: enable MachineInstructionPrinterPass",false,::cacao::option::xx_root());
+
 // register pass
 static PassRegistry<MachineInstructionPrinterPass> X("MachineInstructionPrinterPass");
 

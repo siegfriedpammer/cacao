@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_LOOPTREEPRINTERPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
+#include "toolbox/Option.hpp"
 
 MM_MAKE_NAME(LoopTreePrinterPass)
 
@@ -41,6 +42,7 @@ namespace compiler2 {
 class LoopTreePrinterPass : public Pass, public memory::ManagerMixin<LoopTreePrinterPass> {
 public:
 	static char ID;
+	static Option<bool> enabled;
 	LoopTreePrinterPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;

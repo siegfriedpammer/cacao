@@ -27,6 +27,7 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
+#include "toolbox/Option.hpp"
 
 MM_MAKE_NAME(MachineInstructionPrinterPass)
 
@@ -43,6 +44,7 @@ class LoweringPass;
 class MachineInstructionPrinterPass : public Pass, public memory::ManagerMixin<MachineInstructionPrinterPass> {
 public:
 	static char ID;
+	static Option<bool> enabled;
 	MachineInstructionPrinterPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;

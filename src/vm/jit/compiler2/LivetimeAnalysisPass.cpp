@@ -31,6 +31,7 @@
 #include "vm/jit/compiler2/MachineOperand.hpp"
 
 #include "toolbox/logging.hpp"
+#include "toolbox/Option.hpp"
 
 #define DEBUG_NAME "compiler2/LivetimeAnalysis"
 
@@ -241,6 +242,10 @@ public:
 	}
 };
 
+namespace option {
+	Option<bool> print_intervals("PrintLivetimeIntervals","compiler2: print livetime intervals",false,::cacao::option::xx_root());
+}
+
 } // end anonymous namespace
 
 bool LivetimeAnalysisPass::run(JITData &JD) {
@@ -293,8 +298,10 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 		DEBUG1(print_container(dbg(),live.begin(), live.end()) << nl);
 	}
 
-	OStream fout(fopen("LiveIntervalTable.csv","w"));
-	print(fout);
+	if (option::print_intervals) {
+		OStream fout(fopen("LiveIntervalTable.csv","w"));
+		print(fout);
+	}
 	return true;
 }
 

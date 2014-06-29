@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_OBJECTFILEWRITERPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
+#include "toolbox/Option.hpp"
 
 MM_MAKE_NAME(ObjectFileWriterPass)
 
@@ -41,6 +42,7 @@ namespace compiler2 {
 class ObjectFileWriterPass : public Pass, public memory::ManagerMixin<ObjectFileWriterPass> {
 public:
 	static char ID;
+	static Option<bool> enabled;
 	ObjectFileWriterPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;

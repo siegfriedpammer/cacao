@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_DOMTREEPRINTERPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
+#include "toolbox/Option.hpp"
 
 MM_MAKE_NAME(DomTreePrinterPass)
 
@@ -41,6 +42,7 @@ namespace compiler2 {
 class DomTreePrinterPass : public Pass, public memory::ManagerMixin<DomTreePrinterPass> {
 public:
 	static char ID;
+	static Option<bool> enabled;
 	DomTreePrinterPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;

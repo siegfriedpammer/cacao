@@ -250,6 +250,8 @@ PassUsage& ObjectFileWriterPass::get_PassUsage(PassUsage &PU) const {
 // the address of this variable is used to identify the pass
 char ObjectFileWriterPass::ID = 0;
 
+Option<bool> ObjectFileWriterPass::enabled("ObjectFileWriterPass","compiler2: enable ObjectFileWriterPass",false,::cacao::option::xx_root());
+
 // register pass
 static PassRegistry<ObjectFileWriterPass> X("ObjectFileWriterPass");
 
