@@ -20,58 +20,8 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 
-JAVA     = $(top_builddir)/src/cacao/cacao
-JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
-JAVACCMD = $(JAVAC) -source 1.5 -target 1.5 -nowarn -bootclasspath $(BOOTCLASSPATH)
-
-CXXFLAGS=-I$(top_builddir) -I$(top_srcdir)/src -I$(srcdir) -g -O0
-
 SUBDIRS = \
 	junit
-
-SOURCE_FILES = \
-	$(srcdir)/Test.java
-
-EXTRA_DIST = \
-	$(SOURCE_FILES) \
-	Compile.sh
-
-CLEANFILES = \
-	*.class \
-	*.o \
-	*.run \
-	*.thisoutput
-
-OUTPUT_JAVA_TESTS = 
-
-check: build run
-
-build:
-	$(JAVACCMD) -d . $(SOURCE_FILES)
-
-run: $(OUTPUT_JAVA_TESTS)
-
-%: %.thisoutput
-	@echo compare $@...
-	@diff $(srcdir)/$@.output $<
-
-%.o: build
-	@echo compile $@...
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Compile.sh "$(JAVACMD)" $@ $(srcdir)
-
-%.o.baseline: build
-	@echo compile baseline $@...
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Compile.sh "$(JAVACMD)" $(subst .baseline,,$@) $(srcdir) dummy
-	mv $(subst .baseline,,$@) $@
-
-%.run: %.o $(srcdir)/%.main.cpp
-	@$(CXX) $(CXXFLAGS) $^ -o $@
-%.baseline.run: %.o.baseline $(srcdir)/%.main.cpp
-	@$(CXX) $(CXXFLAGS) $^ -o $@
-
-%.thisoutput: %.run
-	@echo run $@...
-	@./$< > $@
 
 ## Local variables:
 ## mode: Makefile
