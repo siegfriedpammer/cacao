@@ -47,6 +47,8 @@ Dcmp.class,
 BoyerMoore.class,
 ArrayLength.class,
 Permut.class,
+ArrayLoad.class,
+ArrayStore.class,
 SampleTest.class
 })
 
