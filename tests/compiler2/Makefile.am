@@ -43,7 +43,6 @@ CLEANFILES = \
 	*.thisoutput
 
 OUTPUT_JAVA_TESTS = \
-	Test.permut \
 	Test.test_array_load \
 	Test.test_array_store \
 	Test.test_array_2dim_load \

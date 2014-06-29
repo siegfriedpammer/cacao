@@ -46,6 +46,7 @@ Fcmp.class,
 Dcmp.class,
 BoyerMoore.class,
 ArrayLength.class,
+Permut.class,
 SampleTest.class
 })
 
