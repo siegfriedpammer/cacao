@@ -50,6 +50,7 @@ Permut.class,
 ArrayLoad.class,
 ArrayStore.class,
 ArrayLoadFloat.class,
+DoubleArrayStore.class,
 SampleTest.class
 })
 
