@@ -44,8 +44,7 @@ CLEANFILES = \
 
 OUTPUT_JAVA_TESTS = \
 	Test.test_array_2dim_load \
-	Test.test_array_2dim_store \
-	Test.matMult
+	Test.test_array_2dim_store
 
 check: build run
 

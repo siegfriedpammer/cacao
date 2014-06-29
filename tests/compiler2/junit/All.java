@@ -52,6 +52,7 @@ ArrayStore.class,
 ArrayLoadFloat.class,
 DoubleArrayStore.class,
 MatAdd.class,
+MatMult.class,
 SampleTest.class
 })
 
