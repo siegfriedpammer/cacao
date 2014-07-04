@@ -1,50 +1,43 @@
-/* tests/compiler2/junit/Permut.java - Permut
+/** tests/compiler2/junit/Permut.java - Permut
+ *
+ * Copyright (C) 1996-2014
+ * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+ *
+ * This file is part of CACAO.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301, USA.
+ *
+ */
 
-   Copyright (C) 1996-2014
-   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
-
-   This file is part of CACAO.
-
-   This program is free software; you can redistribute it and/or
-   modify it under the terms of the GNU General Public License as
-   published by the Free Software Foundation; either version 2, or (at
-   your option) any later version.
-
-   This program is distributed in the hope that it will be useful, but
-   WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.
-
-*/
-
-import static org.junit.Assert.*;
-
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Collection;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import org.junit.Test;
-import org.junit.Ignore;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 public class Permut extends Compiler2TestBase {
-
 
 	private static int fact(int n) {
 		if (n <= 1) {
 			return 1;
 		}
-		return n * fact(n-1);
+		return n * fact(n - 1);
 	}
 
-    @Test
-    public void test0() {
+	@Test
+	public void test0() {
 		int n = 5;
 		int fn = fact(n);
 
@@ -60,27 +53,33 @@ public class Permut extends Compiler2TestBase {
 		int[] aBaseline = a.clone();
 		int[] pBaseline = p.clone();
 		int[][] resultBaseline = result.clone();
-		runBaseline("permut", "([I[I[[I)V", aBaseline, pBaseline, resultBaseline);
+		runBaseline("permut", "([I[I[[I)V", aBaseline, pBaseline,
+				resultBaseline);
 
 		int[] aCompiler2 = a.clone();
 		int[] pCompiler2 = p.clone();
 		int[][] resultCompiler2 = result.clone();
-		runCompiler2("permut", "([I[I[[I)V", aCompiler2, pCompiler2, resultCompiler2);
+		runCompiler2("permut", "([I[I[[I)V", aCompiler2, pCompiler2,
+				resultCompiler2);
 
-		assertArrayEquals(aBaseline,aCompiler2);
-		assertArrayEquals(pBaseline,pCompiler2);
-		assertArrayEquals(resultBaseline,resultCompiler2);
+		assertArrayEquals(aBaseline, aCompiler2);
+		assertArrayEquals(pBaseline, pCompiler2);
+		assertArrayEquals(resultBaseline, resultCompiler2);
 
-		assertNotEquals(aBaseline,aCompiler2);
-		assertNotEquals(pBaseline,pCompiler2);
-		assertNotEquals(resultBaseline,resultCompiler2);
-    }
+		assertNotEquals(aBaseline, aCompiler2);
+		assertNotEquals(pBaseline, pCompiler2);
+		assertNotEquals(resultBaseline, resultCompiler2);
+	}
 
 	/**
 	 * This is the method under test.
-	 * @param list a [n]
-	 * @param list p [n]
-	 * @param result result [n!][n]
+	 * 
+	 * @param list
+	 *            a [n]
+	 * @param list
+	 *            p [n]
+	 * @param result
+	 *            result [n!][n]
 	 */
 	static void permut(int a[], int p[], int result[][]) {
 		int n = a.length;
@@ -93,32 +92,17 @@ public class Permut extends Compiler2TestBase {
 				a[i] = a[j];
 				a[j] = tmp;
 				// result
-				for(int k = 0; k < n; k++) {
-				  result[c][k] = a[k];
+				for (int k = 0; k < n; k++) {
+					result[c][k] = a[k];
 				}
 				c++;
 
 				p[i]++;
 				i = 1;
-			}
-			else {
+			} else {
 				p[i] = 0;
 				i++;
 			}
 		}
 	}
 }
-
-/*
- * These are local overrides for various environment variables in Emacs.
- * Please do not remove this and leave it at the end of the file, where
- * Emacs will automagically detect them.
- * ---------------------------------------------------------------------
- * Local variables:
- * mode: java
- * indent-tabs-mode: t
- * c-basic-offset: 4
- * tab-width: 4
- * End:
- * vim:noexpandtab:sw=4:ts=4:
- */
