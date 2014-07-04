@@ -21,12 +21,11 @@
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
 
 import static org.junit.Assert.assertEquals;
 
-import org.cacaojvm.compiler2.test.Compiler2Test;
-
-public class Compiler2TestBase extends Compiler2Test {
+class Compiler2TestBase extends Compiler2Test {
 
 	protected void testResultEqual(Class<?> compileClass, String methodName,
 			String methodDesc, Object... args) {

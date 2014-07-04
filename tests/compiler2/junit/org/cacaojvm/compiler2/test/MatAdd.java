@@ -21,6 +21,7 @@
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertNotEquals;

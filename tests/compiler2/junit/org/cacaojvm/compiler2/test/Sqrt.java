@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/Fact.java - Fact
+/** tests/compiler2/junit/Sqrt.java - Sqrt
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,9 +21,11 @@
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,37 +33,49 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class Fact extends Compiler2TestBase {
+public class Sqrt extends Compiler2TestBase {
 
 	private long value;
 
-	public Fact(long value) {
+	public Sqrt(long value) {
 		this.value = value;
 	}
 
 	@Parameters
 	public static Collection<Long[]> data() {
-		Long[][] list = new Long[10][1];
-		for (int i = 0; i < 10; i++) {
-			list[i][0] = (long) i;
-		}
-		return Arrays.asList(list);
+		List<Long[]> list = new ArrayList<Long[]>();
+		list.add(new Long[] { 0L });
+		list.add(new Long[] { 4L });
+		list.add(new Long[] { 15L });
+		list.add(new Long[] { 123L });
+		list.add(new Long[] { 284L });
+		list.add(new Long[] { 513L });
+		list.add(new Long[] { 777L });
+		list.add(new Long[] { 845L });
+		list.add(new Long[] { 1000L });
+		return list;
 	}
 
 	@Test
 	public void test0() {
-		testResultEqual("fact", "(J)J", value);
+		testResultEqual("sqrt", "(J)J", value);
 	}
 
 	/**
 	 * This is the method under test.
 	 */
-	static long fact(long n) {
-
-		long res = 1;
-		while (1 < n) {
-			res *= n--;
+	static long sqrt(long x) {
+		long y = 0;
+		long z = x + 1;
+		while ((y + 1) != z) {
+			long t = (y + z) / 2;
+			if (t * t <= x) {
+				y = t;
+			} else {
+				z = t;
+			}
 		}
-		return res;
+		return y;
 	}
+
 }

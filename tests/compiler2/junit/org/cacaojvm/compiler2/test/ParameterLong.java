@@ -21,6 +21,7 @@
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
 
 import java.util.ArrayList;
 import java.util.Collection;

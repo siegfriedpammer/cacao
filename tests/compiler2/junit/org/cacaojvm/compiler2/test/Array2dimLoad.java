@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/Fcmp.java - Fcmp
+/** tests/compiler2/junit/Array2dimLoad.java - Array2dimLoad
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,57 +21,28 @@
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
 
 import org.junit.Test;
 
-public class Fcmp extends Compiler2TestBase {
+public class Array2dimLoad extends Compiler2TestBase {
 
 	@Test
 	public void test0() {
-		testResultEqual("fcmp", "(FF)I", -1.0F, 1.0F);
+		int[][] a = new int[10][10];
+		for (int i = 0; i < 10; i++) {
+			for (int j = 0; j < 10; j++) {
+				a[i][j] = i * j;
+			}
+		}
+		for (int i = 1; i < 10; i += 2) {
+			for (int j = 2; j < 10; j += 3) {
+				testResultEqual("testArray2dimLoad", "([[III)I", a, i, j);
+			}
+		}
 	}
 
-	@Test
-	public void test1() {
-		testResultEqual("fcmp", "(FF)I", 1.0F, -1.0F);
-	}
-
-	@Test
-	public void test2() {
-		testResultEqual("fcmp", "(FF)I", 0.0F, 0.0F);
-	}
-
-	@Test
-	public void test3() {
-		testResultEqual("fcmp", "(FF)I", Float.MIN_VALUE, Float.MAX_VALUE);
-	}
-
-	@Test
-	public void test4() {
-		testResultEqual("fcmp", "(FF)I", Float.MAX_VALUE, Float.MIN_VALUE);
-	}
-
-	@Test
-	public void test5() {
-		testResultEqual("fcmp", "(FF)I", 0.0F / 0.0F, 0.0F);
-	}
-
-	@Test
-	public void test6() {
-		testResultEqual("fcmp", "(FF)I", 0.0F, 0.0F / 0.0F);
-	}
-
-	@Test
-	public void test7() {
-		testResultEqual("fcmp", "(FF)I", 0.0F / 0.0F, 0.0F / 0.0F);
-	}
-
-	/**
-	 * This is the method under test.
-	 */
-	static int fcmp(float a, float b) {
-		if (a < b)
-			return -1;
-		return 1;
+	static int testArray2dimLoad(int test[][], int i, int j) {
+		return test[i][j];
 	}
 }

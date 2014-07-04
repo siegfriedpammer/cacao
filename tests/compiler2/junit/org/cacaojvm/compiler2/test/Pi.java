@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/ArrayStore.java - ArrayStore
+/** tests/compiler2/junit/Pi.java - Pi
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,31 +21,21 @@
  * 02110-1301, USA.
  *
  */
-
-import static org.junit.Assert.assertArrayEquals;
+package org.cacaojvm.compiler2.test;
 
 import org.junit.Test;
 
-public class ArrayStore extends Compiler2TestBase {
+public class Pi extends Compiler2TestBase {
 
 	@Test
 	public void test0() {
-		final int n = 10;
-		long[] arrayBaseline = new long[n];
-		long[] arrayCompiler2 = new long[n];
-
-		for (int i = 0; i < n; i++) {
-			runBaseline("testArrayStore", "([JIJ)V", arrayBaseline, i, i);
-			runCompiler2("testArrayStore", "([JIJ)V", arrayCompiler2, i, i);
-		}
-
-		assertArrayEquals(arrayBaseline, arrayCompiler2);
+		testResultEqual("pi", "()D");
 	}
 
 	/**
 	 * This is the method under test.
 	 */
-	static void testArrayStore(long test[], int index, long value) {
-		test[index] = value;
+	static double pi() {
+		return Math.PI;
 	}
 }

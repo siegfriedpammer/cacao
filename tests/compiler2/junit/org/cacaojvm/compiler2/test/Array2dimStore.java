@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/Ineg.java - Ineg
+/** tests/compiler2/junit/Array2dimStore.java - Array2dimStore
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,30 +21,34 @@
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import org.junit.Test;
 
-public class Ineg extends Compiler2TestBase {
+public class Array2dimStore extends Compiler2TestBase {
 
 	@Test
 	public void test0() {
-		testResultEqual("ineg", "(I)I", 0);
+		int[][] a = new int[10][10];
+
+		int[][] aBaseline = a.clone();
+		runBaseline("testArray2dimStore", "([[I)V", new Object[] { aBaseline });
+
+		int[][] aCompiler2 = a.clone();
+		runCompiler2("testArray2dimStore", "([[I)V",
+				new Object[] { aCompiler2 });
+
+		assertArrayEquals(aBaseline, aCompiler2);
+		assertNotEquals(aBaseline, aCompiler2);
 	}
 
-	@Test
-	public void test1() {
-		testResultEqual("ineg", "(I)I", 42);
-	}
-
-	@Test
-	public void test2() {
-		testResultEqual("ineg", "(I)I", -42);
-	}
-
-	/**
-	 * This is the method under test.
-	 */
-	static int ineg(int x) {
-		return -x;
+	static void testArray2dimStore(int test[][]) {
+		/*
+		 * for (int i = 0; i < test.length; i++) { for (int j = 0; j <
+		 * test[i].length; j++) { test[i][j] = i * j; } }
+		 */
 	}
 }

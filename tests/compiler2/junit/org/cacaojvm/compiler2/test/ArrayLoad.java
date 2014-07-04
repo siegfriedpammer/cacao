@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/ParameterDouble.java - ParameterDouble
+/** tests/compiler2/junit/ArrayLoad.java - ArrayLoad
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,22 +21,28 @@
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
 
 import org.junit.Test;
 
-public class ParameterDouble extends Compiler2TestBase {
+public class ArrayLoad extends Compiler2TestBase {
 
 	@Test
 	public void test0() {
-		testResultEqual("parameterDouble", "(DDDDDDDDD)D", .1, .2, .3, .4, .5,
-				.6, .7, .8, .9);
+		final int n = 10;
+		long[] array = new long[n];
+		for (int i = 0; i < array.length; i++) {
+			array[i] = i;
+		}
+		for (int i = 0; i < array.length; i++) {
+			testResultEqual("testArrayLoad", "([JI)J", array, i);
+		}
 	}
 
 	/**
 	 * This is the method under test.
 	 */
-	static double parameterDouble(double a, double b, double c, double d,
-			double e, double f, double g, double h, double i) {
-		return a + b + c + d + e + f + g + h + i;
+	static long testArrayLoad(long test[], int index) {
+		return test[index];
 	}
 }

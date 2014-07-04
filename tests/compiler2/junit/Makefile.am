@@ -28,18 +28,18 @@ JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
 JAVACCMD = $(JAVAC) -source 1.6 -target 1.6 -nowarn -bootclasspath $(BOOTCLASSPATH)
 
 EXTRA_DIST = \
-	$(srcdir)/*.java
+	$(srcdir)/org/cacaojvm/compiler2/test/*.java
 
-CLEANFILES = \
-	*.class
+clean-local:
+	-rm -rf org
 
 check: build run
 
 build:
-	$(JAVACCMD) -classpath $(JUNIT_JAR) -d . $(srcdir)/*.java
+	$(JAVACCMD) -Xbootclasspath/a:$(JUNIT_JAR) -d . $(srcdir)/org/cacaojvm/compiler2/test/*.java
 
 run:
-	$(JAVACMD) -classpath $(JUNIT_JAR):. org.junit.runner.JUnitCore All
+	$(JAVACMD) -Xbootclasspath/a:$(JUNIT_JAR):. org.junit.runner.JUnitCore org.cacaojvm.compiler2.test.All
 
 ## Local variables:
 ## mode: Makefile

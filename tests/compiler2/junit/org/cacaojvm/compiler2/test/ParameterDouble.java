@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/Fneg.java - Fneg
+/** tests/compiler2/junit/ParameterDouble.java - ParameterDouble
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,45 +21,23 @@
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
 
 import org.junit.Test;
 
-public class Fneg extends Compiler2TestBase {
+public class ParameterDouble extends Compiler2TestBase {
 
 	@Test
 	public void test0() {
-		testResultEqual("fneg", "(F)F", 0.0F);
-	}
-
-	@Test
-	public void test1() {
-		testResultEqual("fneg", "(F)F", 42.0F);
-	}
-
-	@Test
-	public void test2() {
-		testResultEqual("fneg", "(F)F", -42.0F);
-	}
-
-	@Test
-	public void test3() {
-		testResultEqual("fneg", "(F)F", Float.MIN_VALUE);
-	}
-
-	@Test
-	public void test4() {
-		testResultEqual("fneg", "(F)F", Float.MAX_VALUE);
-	}
-
-	@Test
-	public void test5() {
-		testResultEqual("fneg", "(F)F", 0.0F / 0.0F);
+		testResultEqual("parameterDouble", "(DDDDDDDDD)D", .1, .2, .3, .4, .5,
+				.6, .7, .8, .9);
 	}
 
 	/**
 	 * This is the method under test.
 	 */
-	static float fneg(float x) {
-		return -x;
+	static double parameterDouble(double a, double b, double c, double d,
+			double e, double f, double g, double h, double i) {
+		return a + b + c + d + e + f + g + h + i;
 	}
 }

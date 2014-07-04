@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/Dcmp.java - Dcmp
+/** tests/compiler2/junit/Ineg.java - Ineg
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,57 +21,31 @@
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
 
 import org.junit.Test;
 
-public class Dcmp extends Compiler2TestBase {
+public class Ineg extends Compiler2TestBase {
 
 	@Test
 	public void test0() {
-		testResultEqual("dcmp", "(DD)I", -1.0F, 1.0F);
+		testResultEqual("ineg", "(I)I", 0);
 	}
 
 	@Test
 	public void test1() {
-		testResultEqual("dcmp", "(DD)I", 1.0F, -1.0F);
+		testResultEqual("ineg", "(I)I", 42);
 	}
 
 	@Test
 	public void test2() {
-		testResultEqual("dcmp", "(DD)I", 0.0F, 0.0F);
-	}
-
-	@Test
-	public void test3() {
-		testResultEqual("dcmp", "(DD)I", Double.MIN_VALUE, Double.MAX_VALUE);
-	}
-
-	@Test
-	public void test4() {
-		testResultEqual("dcmp", "(DD)I", Double.MAX_VALUE, Double.MIN_VALUE);
-	}
-
-	@Test
-	public void test5() {
-		testResultEqual("dcmp", "(DD)I", 0.0F / 0.0F, 0.0F);
-	}
-
-	@Test
-	public void test6() {
-		testResultEqual("dcmp", "(DD)I", 0.0F, 0.0F / 0.0F);
-	}
-
-	@Test
-	public void test7() {
-		testResultEqual("dcmp", "(DD)I", 0.0F / 0.0F, 0.0F / 0.0F);
+		testResultEqual("ineg", "(I)I", -42);
 	}
 
 	/**
 	 * This is the method under test.
 	 */
-	static int dcmp(double a, double b) {
-		if (a < b)
-			return -1;
-		return 1;
+	static int ineg(int x) {
+		return -x;
 	}
 }

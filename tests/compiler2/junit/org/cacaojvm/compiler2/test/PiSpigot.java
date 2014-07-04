@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/Sqrt.java - Sqrt
+/** tests/compiler2/junit/PiSpigot.java - PiSpigot
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,6 +21,7 @@
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,49 +33,49 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class Sqrt extends Compiler2TestBase {
+public class PiSpigot extends Compiler2TestBase {
 
-	private long value;
+	private long x;
 
-	public Sqrt(long value) {
-		this.value = value;
+	public PiSpigot(long x) {
+		this.x = x;
 	}
 
 	@Parameters
 	public static Collection<Long[]> data() {
 		List<Long[]> list = new ArrayList<Long[]>();
-		list.add(new Long[] { 0L });
-		list.add(new Long[] { 4L });
-		list.add(new Long[] { 15L });
-		list.add(new Long[] { 123L });
-		list.add(new Long[] { 284L });
-		list.add(new Long[] { 513L });
-		list.add(new Long[] { 777L });
-		list.add(new Long[] { 845L });
-		list.add(new Long[] { 1000L });
+		for (long i = 0; i < 15; i++) {
+			list.add(new Long[] { i });
+		}
 		return list;
 	}
 
 	@Test
 	public void test0() {
-		testResultEqual("sqrt", "(J)J", value);
+		testResultEqual("piSpigot", "(J)D", x);
 	}
 
 	/**
 	 * This is the method under test.
 	 */
-	static long sqrt(long x) {
-		long y = 0;
-		long z = x + 1;
-		while ((y + 1) != z) {
-			long t = (y + z) / 2;
-			if (t * t <= x) {
-				y = t;
-			} else {
-				z = t;
+	static double piSpigot(long num_digits) {
+		double pi = 0;
+		for (long i = 0; i < num_digits; ++i) {
+			// fake power
+			long p = 1;
+			for (long j = 0; j < i; ++j) {
+				p *= 16;
 			}
+			long d1 = 8 * i + 1;
+			long d2 = 8 * i + 4;
+			long d3 = 8 * i + 5;
+			long d4 = 8 * i + 6;
+
+			pi += 1
+					/ (double) p
+					* (4 / (double) d1 - 2 / (double) d2 - 1 / (double) d3 - 1 / (double) d4);
 		}
-		return y;
+		return pi;
 	}
 
 }

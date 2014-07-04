@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/Array2dimLoad.java - Array2dimLoad
+/** tests/compiler2/junit/SampleTest.java - SampleTest
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,27 +21,19 @@
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
 
 import org.junit.Test;
 
-public class Array2dimLoad extends Compiler2TestBase {
+public class SampleTest extends Compiler2TestBase {
+
+	static int test(int i) {
+		return -i;
+	}
 
 	@Test
-	public void test0() {
-		int[][] a = new int[10][10];
-		for (int i = 0; i < 10; i++) {
-			for (int j = 0; j < 10; j++) {
-				a[i][j] = i * j;
-			}
-		}
-		for (int i = 1; i < 10; i += 2) {
-			for (int j = 2; j < 10; j += 3) {
-				testResultEqual("testArray2dimLoad", "([[III)I", a, i, j);
-			}
-		}
+	public void thisAlwaysPasses() {
+		testResultEqual(SampleTest.class, "test", "(I)I", 42);
 	}
 
-	static int testArray2dimLoad(int test[][], int i, int j) {
-		return test[i][j];
-	}
 }

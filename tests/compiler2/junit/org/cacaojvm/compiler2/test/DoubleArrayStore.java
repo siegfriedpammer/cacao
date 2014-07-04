@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/ArrayLength.java - ArrayLength
+/** tests/compiler2/junit/DoubleArrayStore.java - DoubleArrayStore
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,46 +21,40 @@
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
 
-import org.junit.Ignore;
+import static org.junit.Assert.assertEquals;
+
 import org.junit.Test;
 
-public class ArrayLength extends Compiler2TestBase {
+public class DoubleArrayStore extends Compiler2TestBase {
+
+	private static final double DELTA = 1e-15;
 
 	@Test
 	public void test0() {
-		long[] array = new long[0];
-		testResultEqual("testArrayLength", "([J)I", array);
-	}
+		final int n = 10;
+		double[] arrayBaseline = new double[n];
+		double[] arrayCompiler2 = new double[n];
 
-	@Test
-	public void test1() {
-		long[] array = new long[1];
-		testResultEqual("testArrayLength", "([J)I", array);
-	}
+		for (int i = 0; i < n; i++) {
+			runBaseline("testDoubleArrayStore", "([D)V", arrayBaseline);
+			runCompiler2("testDoubleArrayStore", "([D)V", arrayCompiler2);
+		}
 
-	@Test
-	public void test2() {
-		long[] array = new long[10];
-		testResultEqual("testArrayLength", "([J)I", array);
-	}
+		assertEquals(arrayBaseline.length, arrayCompiler2.length);
 
-	@Test
-	public void test3() {
-		long[] array = new long[42];
-		testResultEqual("testArrayLength", "([J)I", array);
-	}
-
-	@Test
-	@Ignore
-	public void test4() {
-		testResultEqual("testArrayLength", "([J)I", new Object[] { null });
+		for (int i = 0; i < n; i++) {
+			assertEquals(arrayBaseline[i], arrayCompiler2[i], DELTA);
+		}
 	}
 
 	/**
 	 * This is the method under test.
 	 */
-	static int testArrayLength(long test[]) {
-		return test.length;
+	static void testDoubleArrayStore(double test[]) {
+		for (int i = 0; i < test.length; i++) {
+			test[i] = (long) i;
+		}
 	}
 }

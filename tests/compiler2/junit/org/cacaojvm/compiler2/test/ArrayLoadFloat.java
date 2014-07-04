@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/All.java - runs all CACAO compiler2 unit tests
+/** tests/compiler2/junit/ArrayLoadFloat.java - ArrayLoadFloat
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,41 +21,28 @@
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import org.junit.Test;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-	// @formatter:off
-	Fact.class,
-	Sqrt.class,
-	Power.class,
-	Min.class,
-	Pi.class,
-	PiSpigot.class,
-	Overflow.class,
-	ParameterLong.class,
-	ParameterDouble.class,
-	Ineg.class,
-	Lneg.class,
-	Fneg.class,
-	Dneg.class,
-	Fcmp.class,
-	Dcmp.class,
-	BoyerMoore.class,
-	ArrayLength.class,
-	Permut.class,
-	ArrayLoad.class,
-	ArrayStore.class,
-	ArrayLoadFloat.class,
-	DoubleArrayStore.class,
-	MatAdd.class,
-	MatMult.class,
-	Array2dimLoad.class,
-	Array2dimStore.class,
-	SampleTest.class
-	// @formatter:on
-})
-public class All {
+public class ArrayLoadFloat extends Compiler2TestBase {
+
+	@Test
+	public void test0() {
+		final int n = 10;
+		float[] array = new float[n];
+		for (int i = 0; i < array.length; i++) {
+			array[i] = (float) Math.PI / i;
+		}
+		for (int i = 0; i < array.length; i++) {
+			testResultEqual("testArrayLoadFloat", "([FI)F", array, i);
+		}
+	}
+
+	/**
+	 * This is the method under test.
+	 */
+	static float testArrayLoadFloat(float test[], int index) {
+		return test[index];
+	}
 }

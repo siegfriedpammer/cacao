@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/ArrayLoadFloat.java - ArrayLoadFloat
+/** tests/compiler2/junit/Lneg.java - Lneg
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,27 +21,31 @@
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
 
 import org.junit.Test;
 
-public class ArrayLoadFloat extends Compiler2TestBase {
+public class Lneg extends Compiler2TestBase {
 
 	@Test
 	public void test0() {
-		final int n = 10;
-		float[] array = new float[n];
-		for (int i = 0; i < array.length; i++) {
-			array[i] = (float) Math.PI / i;
-		}
-		for (int i = 0; i < array.length; i++) {
-			testResultEqual("testArrayLoadFloat", "([FI)F", array, i);
-		}
+		testResultEqual("lneg", "(J)J", 0L);
+	}
+
+	@Test
+	public void test1() {
+		testResultEqual("lneg", "(J)J", 42L);
+	}
+
+	@Test
+	public void test2() {
+		testResultEqual("lneg", "(J)J", -42L);
 	}
 
 	/**
 	 * This is the method under test.
 	 */
-	static float testArrayLoadFloat(float test[], int index) {
-		return test[index];
+	static long lneg(long x) {
+		return -x;
 	}
 }

@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/SampleTest.java - SampleTest
+/** tests/compiler2/junit/Dneg.java - Dneg
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,18 +21,46 @@
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
 
 import org.junit.Test;
 
-public class SampleTest extends Compiler2TestBase {
+public class Dneg extends Compiler2TestBase {
 
-	static int test(int i) {
-		return -i;
+	@Test
+	public void test0() {
+		testResultEqual("dneg", "(D)D", 0.0);
 	}
 
 	@Test
-	public void thisAlwaysPasses() {
-		testResultEqual(SampleTest.class, "test", "(I)I", 42);
+	public void test1() {
+		testResultEqual("dneg", "(D)D", 42.0);
 	}
 
+	@Test
+	public void test2() {
+		testResultEqual("dneg", "(D)D", -42.0);
+	}
+
+	@Test
+	public void test3() {
+		testResultEqual("dneg", "(D)D", Double.MIN_VALUE);
+	}
+
+	@Test
+	public void test4() {
+		testResultEqual("dneg", "(D)D", Double.MAX_VALUE);
+	}
+
+	@Test
+	public void test5() {
+		testResultEqual("dneg", "(D)D", 0.0 / 0.0);
+	}
+
+	/**
+	 * This is the method under test.
+	 */
+	static double dneg(double x) {
+		return -x;
+	}
 }

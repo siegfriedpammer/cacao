@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/Pi.java - Pi
+/** tests/compiler2/junit/Power.java - Power
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,20 +21,50 @@
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-public class Pi extends Compiler2TestBase {
+@RunWith(Parameterized.class)
+public class Power extends Compiler2TestBase {
+
+	private long x;
+	private long y;
+
+	public Power(long x, long y) {
+		this.x = x;
+		this.y = y;
+	}
+
+	@Parameters
+	public static Collection<Long[]> data() {
+		List<Long[]> list = new ArrayList<Long[]>();
+		list.add(new Long[] { 2L, 3L });
+		list.add(new Long[] { 3L, 2L });
+		list.add(new Long[] { -6L, 5L });
+		return list;
+	}
 
 	@Test
 	public void test0() {
-		testResultEqual("pi", "()D");
+		testResultEqual("power", "(JJ)J", x, y);
 	}
 
 	/**
 	 * This is the method under test.
 	 */
-	static double pi() {
-		return Math.PI;
+	static long power(long v, long i) {
+		long p = 1;
+		for (long j = 0; j < i; ++j) {
+			p *= v;
+		}
+		return p;
 	}
 }

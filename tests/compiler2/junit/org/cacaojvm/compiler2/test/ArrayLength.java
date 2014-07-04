@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/Dneg.java - Dneg
+/** tests/compiler2/junit/ArrayLength.java - ArrayLength
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,45 +21,47 @@
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
-public class Dneg extends Compiler2TestBase {
+public class ArrayLength extends Compiler2TestBase {
 
 	@Test
 	public void test0() {
-		testResultEqual("dneg", "(D)D", 0.0);
+		long[] array = new long[0];
+		testResultEqual("testArrayLength", "([J)I", array);
 	}
 
 	@Test
 	public void test1() {
-		testResultEqual("dneg", "(D)D", 42.0);
+		long[] array = new long[1];
+		testResultEqual("testArrayLength", "([J)I", array);
 	}
 
 	@Test
 	public void test2() {
-		testResultEqual("dneg", "(D)D", -42.0);
+		long[] array = new long[10];
+		testResultEqual("testArrayLength", "([J)I", array);
 	}
 
 	@Test
 	public void test3() {
-		testResultEqual("dneg", "(D)D", Double.MIN_VALUE);
+		long[] array = new long[42];
+		testResultEqual("testArrayLength", "([J)I", array);
 	}
 
 	@Test
+	@Ignore
 	public void test4() {
-		testResultEqual("dneg", "(D)D", Double.MAX_VALUE);
-	}
-
-	@Test
-	public void test5() {
-		testResultEqual("dneg", "(D)D", 0.0 / 0.0);
+		testResultEqual("testArrayLength", "([J)I", new Object[] { null });
 	}
 
 	/**
 	 * This is the method under test.
 	 */
-	static double dneg(double x) {
-		return -x;
+	static int testArrayLength(long test[]) {
+		return test.length;
 	}
 }

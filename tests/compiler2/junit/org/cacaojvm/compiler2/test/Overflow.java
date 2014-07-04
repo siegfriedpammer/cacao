@@ -21,6 +21,8 @@
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
+
 import org.junit.Test;
 
 public class Overflow extends Compiler2TestBase {

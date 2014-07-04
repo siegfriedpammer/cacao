@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/Min.java - Min
+/** tests/compiler2/junit/Fact.java - Fact
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,6 +21,7 @@
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -31,43 +32,37 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class Min extends Compiler2TestBase {
+public class Fact extends Compiler2TestBase {
 
-	private long x;
-	private long y;
+	private long value;
 
-	public Min(long x, long y) {
-		this.x = x;
-		this.y = y;
+	public Fact(long value) {
+		this.value = value;
 	}
 
 	@Parameters
 	public static Collection<Long[]> data() {
-		// @formatter:off
-		Long[][] list = new Long[][] {
-				{  1L,  2L},
-				{  2L,  1L},
-				{  3L,  2L},
-				{-42L,  5L},
-				{-21L,-11L},
-				{  0L,-11L},
-				{ 21L,  0L},
-			};
-        // @formatter:off
+		Long[][] list = new Long[10][1];
+		for (int i = 0; i < 10; i++) {
+			list[i][0] = (long) i;
+		}
 		return Arrays.asList(list);
 	}
 
-    @Test
-    public void test0() {
-		testResultEqual("min", "(JJ)J", x, y);
-    }
+	@Test
+	public void test0() {
+		testResultEqual("fact", "(J)J", value);
+	}
 
 	/**
 	 * This is the method under test.
 	 */
-	static long min(long a, long b) {
-		return (a < b) ? a : b;
+	static long fact(long n) {
+
+		long res = 1;
+		while (1 < n) {
+			res *= n--;
+		}
+		return res;
 	}
-
 }
-

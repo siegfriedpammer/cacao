@@ -24,7 +24,7 @@
 
 package org.cacaojvm.compiler2.test;
 
-public class Compiler2Test {
+class Compiler2Test {
 	private static native Object compileMethod(boolean baseline,
 			Class<?> compileClass, String methodName, String methodDesc,
 			Object[] args);

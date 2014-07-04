@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/DoubleArrayStore.java - DoubleArrayStore
+/** tests/compiler2/junit/Fneg.java - Fneg
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,39 +21,46 @@
  * 02110-1301, USA.
  *
  */
-
-import static org.junit.Assert.assertEquals;
+package org.cacaojvm.compiler2.test;
 
 import org.junit.Test;
 
-public class DoubleArrayStore extends Compiler2TestBase {
-
-	private static final double DELTA = 1e-15;
+public class Fneg extends Compiler2TestBase {
 
 	@Test
 	public void test0() {
-		final int n = 10;
-		double[] arrayBaseline = new double[n];
-		double[] arrayCompiler2 = new double[n];
+		testResultEqual("fneg", "(F)F", 0.0F);
+	}
 
-		for (int i = 0; i < n; i++) {
-			runBaseline("testDoubleArrayStore", "([D)V", arrayBaseline);
-			runCompiler2("testDoubleArrayStore", "([D)V", arrayCompiler2);
-		}
+	@Test
+	public void test1() {
+		testResultEqual("fneg", "(F)F", 42.0F);
+	}
 
-		assertEquals(arrayBaseline.length, arrayCompiler2.length);
+	@Test
+	public void test2() {
+		testResultEqual("fneg", "(F)F", -42.0F);
+	}
 
-		for (int i = 0; i < n; i++) {
-			assertEquals(arrayBaseline[i], arrayCompiler2[i], DELTA);
-		}
+	@Test
+	public void test3() {
+		testResultEqual("fneg", "(F)F", Float.MIN_VALUE);
+	}
+
+	@Test
+	public void test4() {
+		testResultEqual("fneg", "(F)F", Float.MAX_VALUE);
+	}
+
+	@Test
+	public void test5() {
+		testResultEqual("fneg", "(F)F", 0.0F / 0.0F);
 	}
 
 	/**
 	 * This is the method under test.
 	 */
-	static void testDoubleArrayStore(double test[]) {
-		for (int i = 0; i < test.length; i++) {
-			test[i] = (long) i;
-		}
+	static float fneg(float x) {
+		return -x;
 	}
 }
