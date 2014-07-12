@@ -24,8 +24,6 @@
 package org.cacaojvm.compiler2.test;
 
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertNotEquals;
-
 import org.junit.Test;
 
 public class Array2dimStore extends Compiler2TestBase {

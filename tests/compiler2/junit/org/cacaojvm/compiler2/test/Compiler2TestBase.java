@@ -24,6 +24,8 @@
 package org.cacaojvm.compiler2.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 class Compiler2TestBase extends Compiler2Test {
 
@@ -49,5 +51,18 @@ class Compiler2TestBase extends Compiler2Test {
 	protected Object runCompiler2(String methodName, String methodDesc,
 			Object... args) {
 		return compileCompiler2(getClass(), methodName, methodDesc, args);
+	}
+
+	/**
+	 * Not available in JUnit <4.11
+	 */
+	static public void assertNotEquals(Object first, Object second) {
+		if (first == null) {
+			if (second == null) {
+				fail("Both objects are null");
+			}
+			return;
+		}
+		assertTrue("Both objects are equal: " + first, !first.equals(second));
 	}
 }
