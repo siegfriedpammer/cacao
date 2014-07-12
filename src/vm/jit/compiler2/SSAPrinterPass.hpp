@@ -83,6 +83,7 @@ class ScheduleEarlyPass;
 class ScheduleLatePass;
 class ScheduleClickPass;
 
+#if defined(ENABLE_MEMORY_MANAGER_STATISTICS)
 namespace memory {
 template<>
 inline const char* get_class_name<GlobalSchedulePrinterPass<ScheduleEarlyPass> >() {
@@ -97,6 +98,7 @@ inline const char* get_class_name<GlobalSchedulePrinterPass<ScheduleClickPass> >
 	return "GlobalSchedulePrinterPass(click)";
 }
 } // end namespace memory
+#endif /* ENABLE_MEMORY_MANAGER_STATISTICS */
 
 } // end namespace cacao
 } // end namespace jit

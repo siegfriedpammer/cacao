@@ -50,10 +50,9 @@
 
 #define DEBUG_NAME "compiler2/ObjectFileWriter"
 
-#if !defined(ENABLE_RT_TIMING)
-#error no rt timing
-#endif
+#if defined(ENABLE_DISASSEMBLER)
 RT_REGISTER_TIMER(obj_writter_timer,"objectwriter","object writer execution time")
+#endif
 
 namespace {
 

@@ -50,13 +50,14 @@ RT_REGISTER_GROUP(compiler2_rtgroup,"compiler2-pipeline","compiler2 pass pipelin
 typedef alloc::unordered_map<PassInfo::IDTy,RTTimer>::type PassTimerMap;
 PassTimerMap pass_timers;
 
+} // end anonymous namespace
+#endif
+
+namespace {
 namespace option {
 	Option<bool> print_pass_dependencies("PrintPassDependencies","compiler2: print pass dependencies",false,::cacao::option::xx_root());
 }
-
-
 } // end anonymous namespace
-#endif
 
 Pass* PassManager::get_initialized_Pass(PassInfo::IDTy ID) {
 	Pass *P = initialized_passes[ID];

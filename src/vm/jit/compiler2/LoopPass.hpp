@@ -34,19 +34,13 @@ namespace compiler2 {
 
 typedef LoopPassBase<BeginInst> LoopPass;
 
-namespace memory {
-template<>
-inline const char* get_class_name<LoopPass>() {
-	return "LoopPass";
-}
-} // end namespace memory
+MM_CLASS_NAME(LoopPass)
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
 
 #endif /* _JIT_COMPILER2_LOOPPASS */
-
 
 /*
  * These are local overrides for various environment variables in Emacs.

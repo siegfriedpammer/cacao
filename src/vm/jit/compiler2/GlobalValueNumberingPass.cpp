@@ -343,21 +343,26 @@ void GlobalValueNumberingPass::eliminate_redundancies_in_block(BlockTy *block) {
 }
 
 void GlobalValueNumberingPass::print_instructions(TouchedInstListTy *instructions) {
+	#if ENABLE_LOGGING
 	for (TouchedInstListTy::const_iterator i = instructions->begin(),
 		e = instructions->end(); i != e; i++) {
 		LOG(*i << nl);
 	}
+	#endif
 }
 
 void GlobalValueNumberingPass::print_block(BlockTy *block) {
+	#if ENABLE_LOGGING
 	for (BlockTy::const_iterator i = block->begin(),
 			e = block->end(); i != e; i++) {
 		Instruction *I = *i;
 		LOG(I << nl);
 	}
+	#endif
 }
 
 void GlobalValueNumberingPass::print_blocks() {
+	#if ENABLE_LOGGING
 	for (PartitionTy::const_iterator i = partition.begin(),
 			e = partition.end(); i != e; i++) {
 		LOG("=============================================================" << nl);
@@ -365,6 +370,7 @@ void GlobalValueNumberingPass::print_blocks() {
 		BlockTy *block = *i;
 		print_block(block);
 	}
+	#endif
 }
 
 template <typename T>
