@@ -46,9 +46,10 @@ public class Array2dimStore extends Compiler2TestBase {
 	}
 
 	static void testArray2dimStore(int test[][]) {
-		/*
-		 * for (int i = 0; i < test.length; i++) { for (int j = 0; j <
-		 * test[i].length; j++) { test[i][j] = i * j; } }
-		 */
+		for (int i = 0; i < test.length; i++) {
+			for (int j = 0; j < test[i].length; j++) {
+				test[i][j] = i * j;
+			}
+		}
 	}
 }
