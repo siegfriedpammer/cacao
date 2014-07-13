@@ -118,7 +118,7 @@ void BackendBase<X86_64>::create_frame(CodeMemory* CM, StackSlotManager *SSM) co
 	emit_nop(CF,CF.size());
 }
 
-void LoweringVisitor::visit(LOADInst *I) {
+void X86_64LoweringVisitor::visit(LOADInst *I) {
 	assert(I);
 	//MachineInstruction *minst = loadParameter(I->get_index(), I->get_type());
 	const MethodDescriptor &MD = I->get_Method()->get_MethodDescriptor();
@@ -156,7 +156,7 @@ void LoweringVisitor::visit(LOADInst *I) {
 	set_op(I,move->get_result().op);
 }
 
-void LoweringVisitor::visit(CMPInst *I) {
+void X86_64LoweringVisitor::visit(CMPInst *I) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
@@ -247,7 +247,7 @@ void LoweringVisitor::visit(CMPInst *I) {
 		"Inst: " << I << " type: " << type);
 }
 
-void LoweringVisitor::visit(IFInst *I) {
+void X86_64LoweringVisitor::visit(IFInst *I) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
@@ -304,7 +304,7 @@ void LoweringVisitor::visit(IFInst *I) {
 		"Inst: " << I << " type: " << type);
 }
 
-void LoweringVisitor::visit(NEGInst *I) {
+void X86_64LoweringVisitor::visit(NEGInst *I) {
 	assert(I);
 	MachineOperand* src = get_op(I->get_operand(0)->to_Instruction());
 	Type::TypeID type = I->get_type();
@@ -346,7 +346,7 @@ void LoweringVisitor::visit(NEGInst *I) {
 	set_op(I,dst);
 }
 
-void LoweringVisitor::visit(ADDInst *I) {
+void X86_64LoweringVisitor::visit(ADDInst *I) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
@@ -378,7 +378,7 @@ void LoweringVisitor::visit(ADDInst *I) {
 	set_op(I,alu->get_result().op);
 }
 
-void LoweringVisitor::visit(ANDInst *I) {
+void X86_64LoweringVisitor::visit(ANDInst *I) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
@@ -405,7 +405,7 @@ void LoweringVisitor::visit(ANDInst *I) {
 	set_op(I,alu->get_result().op);
 }
 
-void LoweringVisitor::visit(SUBInst *I) {
+void X86_64LoweringVisitor::visit(SUBInst *I) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
@@ -437,7 +437,7 @@ void LoweringVisitor::visit(SUBInst *I) {
 	set_op(I,alu->get_result().op);
 }
 
-void LoweringVisitor::visit(MULInst *I) {
+void X86_64LoweringVisitor::visit(MULInst *I) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
@@ -470,7 +470,7 @@ void LoweringVisitor::visit(MULInst *I) {
 	set_op(I,alu->get_result().op);
 }
 
-void LoweringVisitor::visit(DIVInst *I) {
+void X86_64LoweringVisitor::visit(DIVInst *I) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
@@ -501,7 +501,7 @@ void LoweringVisitor::visit(DIVInst *I) {
 	set_op(I,alu->get_result().op);
 }
 
-void LoweringVisitor::visit(REMInst *I) {
+void X86_64LoweringVisitor::visit(REMInst *I) {
 	assert(I);
 	//MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	//MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
@@ -536,7 +536,7 @@ void LoweringVisitor::visit(REMInst *I) {
 			"Inst: " << I << " type: " << type);
 }
 
-void LoweringVisitor::visit(ALOADInst *I) {
+void X86_64LoweringVisitor::visit(ALOADInst *I) {
 	assert(I);
 	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_index = get_op(I->get_operand(1)->to_Instruction());
@@ -590,7 +590,7 @@ void LoweringVisitor::visit(ALOADInst *I) {
 	set_op(I,move->get_result().op);
 }
 
-void LoweringVisitor::visit(ASTOREInst *I) {
+void X86_64LoweringVisitor::visit(ASTOREInst *I) {
 	assert(I);
 	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_index = get_op(I->get_operand(1)->to_Instruction());
@@ -641,7 +641,7 @@ void LoweringVisitor::visit(ASTOREInst *I) {
 	set_op(I,move->get_result().op);
 }
 
-void LoweringVisitor::visit(ARRAYLENGTHInst *I) {
+void X86_64LoweringVisitor::visit(ARRAYLENGTHInst *I) {
 	assert(I);
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
 	assert(I->get_type() == Type::IntTypeID);
@@ -659,7 +659,7 @@ void LoweringVisitor::visit(ARRAYLENGTHInst *I) {
 	set_op(I,move->get_result().op);
 }
 
-void LoweringVisitor::visit(ARRAYBOUNDSCHECKInst *I) {
+void X86_64LoweringVisitor::visit(ARRAYBOUNDSCHECKInst *I) {
 	assert(I);
 	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_index = get_op(I->get_operand(1)->to_Instruction());
@@ -686,7 +686,7 @@ void LoweringVisitor::visit(ARRAYBOUNDSCHECKInst *I) {
 	get_current()->push_back(trap);
 }
 
-void LoweringVisitor::visit(RETURNInst *I) {
+void X86_64LoweringVisitor::visit(RETURNInst *I) {
 	assert(I);
 	Type::TypeID type = I->get_type();
 	MachineOperand* src_op = (type == Type::VoidTypeID ? 0 : get_op(I->get_operand(0)->to_Instruction()));
@@ -751,7 +751,7 @@ void LoweringVisitor::visit(RETURNInst *I) {
 		"Inst: " << I << " type: " << type);
 }
 
-void LoweringVisitor::visit(CASTInst *I) {
+void X86_64LoweringVisitor::visit(CASTInst *I) {
 	assert(I);
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
 	Type::TypeID from = I->get_operand(0)->to_Instruction()->get_type();
@@ -793,7 +793,7 @@ void LoweringVisitor::visit(CASTInst *I) {
 ABORT_MSG("x86_64 Cast not supported!", "From " << from << " to " << to );
 }
 
-void LoweringVisitor::visit(INVOKESTATICInst *I) {
+void X86_64LoweringVisitor::visit(INVOKESTATICInst *I) {
 	assert(I);
 	Type::TypeID type = I->get_type();
 	MethodDescriptor &MD = I->get_MethodDescriptor();
@@ -882,7 +882,7 @@ inline bool is_floatingpoint(Type::TypeID type) {
 
 } // end anonymous namespace
 
-void LoweringVisitor::visit(GETSTATICInst *I) {
+void X86_64LoweringVisitor::visit(GETSTATICInst *I) {
 	assert(I);
 	DataSegment &DS = get_Backend()->get_JITData()->get_CodeMemory()->get_DataSegment();
 	DataSegment::IdxTy idx = DS.get_index(DSFMIRef(I->get_fmiref()));
@@ -932,7 +932,7 @@ void LoweringVisitor::visit(GETSTATICInst *I) {
 	set_op(I,mov->get_result().op);
 }
 
-void LoweringVisitor::visit(LOOKUPSWITCHInst *I) {
+void X86_64LoweringVisitor::visit(LOOKUPSWITCHInst *I) {
 	assert_msg(0 , "Fix CondJump");
 	assert(I);
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
@@ -959,7 +959,7 @@ void LoweringVisitor::visit(LOOKUPSWITCHInst *I) {
 	set_op(I,jmp->get_result().op);
 }
 
-void LoweringVisitor::visit(TABLESWITCHInst *I) {
+void X86_64LoweringVisitor::visit(TABLESWITCHInst *I) {
 	assert_msg(0 , "Fix CondJump");
 	assert(I);
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
