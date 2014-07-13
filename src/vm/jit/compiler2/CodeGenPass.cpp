@@ -59,7 +59,7 @@ bool CodeGenPass::run(JITData &JD) {
 
 	// NOTE reverse so we see jump targets (which are not backedges) before
 	// the jump.
-	MachineBasicBlock *MBB;
+	MachineBasicBlock *MBB = NULL;
 	std::size_t bb_start = 0;
 	for (MachineInstructionSchedule::const_reverse_iterator i = MIS->rbegin(),
 			e = MIS->rend() ; i != e ; ++i ) {
@@ -96,6 +96,7 @@ bool CodeGenPass::run(JITData &JD) {
 		std::size_t bb_end = CS.size();
 		bbmap[MBB] = bb_end - bb_start;
 	}
+	assert(MBB != NULL);
 	// create stack frame
 	JD.get_Backend()->create_frame(CM,JD.get_StackSlotManager());
 	// fix last block (frame start, alignment)

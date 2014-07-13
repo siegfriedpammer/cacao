@@ -174,7 +174,7 @@ int GlobalValueNumberingPass::arity(BlockTy *block) {
 
 int GlobalValueNumberingPass::compute_max_arity(Method::const_iterator begin,
 		Method::const_iterator end) {
-	int max = 0;
+	std::size_t max = 0;
 	for (Method::const_iterator i = begin, e = end; i != e; i++) {
 		Instruction *I = *i;
 		if (I->op_size() > max) {

@@ -790,7 +790,7 @@ public:
 	//  fill phi operands
 	void fill_operands() {
 		basicblock *bb = &jd->basicblocks[bb_num];
-		for(std::size_t i = 0; i < bb->predecessorcount; ++i) {
+		for(s4 i = 0; i < bb->predecessorcount; ++i) {
 			basicblock *pred = bb->predecessors[i];
 			assert(pred->outdepth == bb->indepth);
 			s4 pred_nr = pred->nr;
@@ -1183,7 +1183,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 		LOG("basicblock: " << bbindex << nl);
 
 		// handle invars
-		for(std::size_t i = 0; i < bb->indepth; ++i) {
+		for(s4 i = 0; i < bb->indepth; ++i) {
 			std::size_t varindex = bb->invars[i];
 			PHIInst *phi = new PHIInst(var_type_tbl[varindex], BB[bbindex]);
 			write_variable(varindex, bbindex, phi);

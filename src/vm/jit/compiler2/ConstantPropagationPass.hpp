@@ -52,7 +52,7 @@ class Instruction;
 class ConstantPropagationPass : public Pass {
 private:
 	typedef unordered_map<Instruction*,bool> InstBoolMapTy;
-	typedef unordered_map<Instruction*,int> InstIntMapTy;
+	typedef unordered_map<Instruction*,std::size_t> InstIntMapTy;
 	typedef std::list<Instruction*> WorkListTy;
 
 	/**

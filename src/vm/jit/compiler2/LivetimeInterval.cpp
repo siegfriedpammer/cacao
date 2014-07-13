@@ -213,12 +213,14 @@ inline void LivetimeIntervalImpl::move_use_def(LivetimeIntervalImpl *from, Livet
 
 LivetimeInterval LivetimeIntervalImpl::split_active(MIIterator pos) {
 	LOG2("split_active " << *this << " at " << pos << nl);
+	#if defined(ENABLE_LOGGING)
 	if (DEBUG_COND_N(3)) {
 		MIIterator tmp = pos;
 		LOG3("pre  " << --tmp << nl);
 		LOG3(">>   " << ++tmp << nl);
 		LOG3("post " << ++tmp << nl);
 	}
+	#endif
 	MachineInstruction *MI = *pos;
 	assert(!has_next());
 	assert(get_State(pos) == LivetimeInterval::Active);
