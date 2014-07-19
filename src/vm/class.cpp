@@ -680,7 +680,7 @@ void* class_getconstant(classinfo *c, u4 pos, ConstantPoolTag ctype)
 		// this is the slow path,
 		// we can afford to repeat the separate checks for a better error message
 
-		if ((pos == 0) || (pos >= c->cpcount)) {
+		if ((pos == 0) || (((int32_t)pos) >= c->cpcount)) {
 			exceptions_throw_classformaterror(c, "Illegal constant pool index: %u", pos);
 		} else if (c->cptags[pos] != ctype) {
 			exceptions_throw_classformaterror(c, "Illegal constant pool type %u (expected %u)", ctype, c->cptags[pos]);
