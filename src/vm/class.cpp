@@ -603,7 +603,7 @@ bool class_load_attributes(ClassBuffer& cb)
 static void class_freecpool(classinfo *c)
 {
 	if (c->cptags && c->cpinfos) {
-		for (uint32_t idx = 0; idx < c->cpcount; idx++) {
+		for (int32_t idx = 0; idx < c->cpcount; idx++) {
 			ConstantPoolTag  tag  = (ConstantPoolTag) c->cptags[idx];
 			void            *info = c->cpinfos[idx];
 
@@ -676,7 +676,7 @@ void* class_getconstant(classinfo *c, u4 pos, ConstantPoolTag ctype)
 	// check index and type of constantpool entry
 	// (pos == 0 is caught by type comparison)
 
-	if ((pos >= c->cpcount) || (c->cptags[pos] != ctype)) {
+	if ((((int32_t)pos) >= c->cpcount) || (c->cptags[pos] != ctype)) {
 		// this is the slow path,
 		// we can afford to repeat the separate checks for a better error message
 
@@ -704,7 +704,7 @@ void* innerclass_getconstant(classinfo *c, u4 pos, ConstantPoolTag ctype)
 {
 	/* invalid position in constantpool */
 
-	if (pos >= c->cpcount) {
+	if (((int32_t)pos) >= c->cpcount) {
 		exceptions_throw_classformaterror(c, "Illegal constant pool index: %u", pos);
 		return NULL;
 	}
@@ -2337,7 +2337,7 @@ void class_showconstantpool (classinfo *c)
 {
 	printf ("---- dump of constant pool ----\n");
 
-	for (uint32_t i=0; i<c->cpcount; i++) {
+	for (int32_t i=0; i<c->cpcount; i++) {
 		printf ("#%u:  ", i);
 
 		if (void *e = c->cpinfos[i]) {
