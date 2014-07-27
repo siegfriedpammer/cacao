@@ -35,6 +35,7 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/show.hpp"
 #include "vm/jit/ir/icmd.hpp"
+#include "vm/jit/ir/instruction.hpp"
 
 #include "vm/statistics.hpp"
 

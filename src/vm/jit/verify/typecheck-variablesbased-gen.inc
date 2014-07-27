@@ -19,14 +19,14 @@
 #            	line 345 "src/vm/jit/verify/icmds.cpp"
   GENERATED  	if (IPTR->flags.bits & INS_FLAG_CLASS) {
   GENERATED  		/* a java.lang.Class reference */
-  GENERATED  		TYPEINFO_INIT_JAVA_LANG_CLASS(DST->typeinfo,IPTR->sx.val.c);
+  GENERATED  		DST->typeinfo.init_java_lang_class(IPTR->sx.val.c);
   GENERATED  	}
   GENERATED  	else {
   GENERATED  		if (IPTR->sx.val.anyptr == NULL)
-  GENERATED  			TYPEINFO_INIT_NULLTYPE(DST->typeinfo);
+  GENERATED  			DST->typeinfo.init_nulltype();
   GENERATED  		else {
   GENERATED  			/* string constant (or constant for builtin function) */
-  GENERATED  			typeinfo_init_classinfo(&(DST->typeinfo),class_java_lang_String);
+  GENERATED  			DST->typeinfo.init_class(class_java_lang_String);
   GENERATED  		}
   GENERATED  	}
   GENERATED  
@@ -236,12 +236,12 @@
   GENERATED  
 #            if !defined(TYPECHECK_TYPEINFERER)
   GENERATED  	/* loading a returnAddress is not allowed */
-  GENERATED  	if (!TYPEDESC_IS_REFERENCE(*OP1)) {
+  GENERATED  	if (!OP1->is_reference()) {
   GENERATED  		VERIFY_ERROR("illegal instruction: ALOAD loading non-reference");
   GENERATED  	}
   GENERATED  
 #            endif
-  GENERATED  	TYPEINFO_COPY(OP1->typeinfo,DST->typeinfo);
+  GENERATED  	DST->typeinfo = OP1->typeinfo;
   GENERATED  
 #            	line 247 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
@@ -264,7 +264,7 @@
   GENERATED  
   GENERATED  
 #            	line 256 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_INT))
+  GENERATED  	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_INT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
 #            	line 271 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -288,7 +288,7 @@
   GENERATED  
   GENERATED  
 #            	line 266 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_LONG))
+  GENERATED  	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_LONG))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
 #            	line 295 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -312,7 +312,7 @@
   GENERATED  
   GENERATED  
 #            	line 251 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_FLOAT))
+  GENERATED  	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_FLOAT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
 #            	line 319 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -336,7 +336,7 @@
   GENERATED  
   GENERATED  
 #            	line 246 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_DOUBLE))
+  GENERATED  	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_DOUBLE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
 #            	line 343 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -362,12 +362,12 @@
 #            	line 111 "src/vm/jit/verify/icmds.cpp"
   GENERATED  
 #            if !defined(TYPECHECK_TYPEINFERER)
-  GENERATED  	if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(OP1->typeinfo))
+  GENERATED  	if (!OP1->typeinfo.maybe_array_of_refs())
   GENERATED  		VERIFY_ERROR("illegal instruction: AALOAD on non-reference array");
   GENERATED  
 #            endif
   GENERATED  
-  GENERATED  	if (!typeinfo_init_component(&OP1->typeinfo,&DST->typeinfo))
+  GENERATED  	if (!DST->typeinfo.init_component(OP1->typeinfo))
   GENERATED  		EXCEPTION;
   GENERATED  
 #            	line 374 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -391,8 +391,8 @@
   GENERATED  
   GENERATED  
 #            	line 235 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_BOOLEAN)
-  GENERATED  			&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_BYTE))
+  GENERATED  	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_BOOLEAN)
+  GENERATED  			&& !OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_BYTE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
 #            	line 399 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -416,7 +416,7 @@
   GENERATED  
   GENERATED  
 #            	line 241 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_CHAR))
+  GENERATED  	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_CHAR))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
 #            	line 423 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -440,7 +440,7 @@
   GENERATED  
   GENERATED  
 #            	line 261 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_SHORT))
+  GENERATED  	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_SHORT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
 #            	line 447 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -488,7 +488,7 @@
   GENERATED  
   GENERATED  
 #            	line 104 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	TYPEINFO_COPY(OP1->typeinfo, DST->typeinfo);
+  GENERATED  	DST->typeinfo = OP1->typeinfo;
   GENERATED  
 #            	line 494 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
@@ -556,7 +556,7 @@
   GENERATED  
   GENERATED  
 #            	line 292 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_INT))
+  GENERATED  	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_INT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
 #            	line 563 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -575,7 +575,7 @@
   GENERATED  
   GENERATED  
 #            	line 302 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_LONG))
+  GENERATED  	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_LONG))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
 #            	line 582 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -594,7 +594,7 @@
   GENERATED  
   GENERATED  
 #            	line 287 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_FLOAT))
+  GENERATED  	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_FLOAT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
 #            	line 601 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -613,7 +613,7 @@
   GENERATED  
   GENERATED  
 #            	line 282 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_DOUBLE))
+  GENERATED  	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_DOUBLE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
 #            	line 620 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -636,7 +636,7 @@
   GENERATED  	/* destination is an array of references. Assignability to    */
   GENERATED  	/* the actual array must be checked at runtime, each time the */
   GENERATED  	/* instruction is performed. (See builtin_canstore.)          */
-  GENERATED  	if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(OP1->typeinfo))
+  GENERATED  	if (!OP1->typeinfo.maybe_array_of_refs())
   GENERATED  		VERIFY_ERROR("illegal instruction: AASTORE to non-reference array");
   GENERATED  
 #            	line 643 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -655,8 +655,8 @@
   GENERATED  
   GENERATED  
 #            	line 271 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_BOOLEAN)
-  GENERATED  			&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_BYTE))
+  GENERATED  	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_BOOLEAN)
+  GENERATED  			&& !OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_BYTE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
 #            	line 663 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -675,7 +675,7 @@
   GENERATED  
   GENERATED  
 #            	line 277 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_CHAR))
+  GENERATED  	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_CHAR))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
 #            	line 682 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -694,7 +694,7 @@
   GENERATED  
   GENERATED  
 #            	line 297 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_SHORT))
+  GENERATED  	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_SHORT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
 #            	line 701 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -762,7 +762,7 @@
   GENERATED  
   GENERATED  
 #            	line 551 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	TYPEINFO_INIT_RETURNADDRESS(DST->typeinfo, BPTR->next);
+  GENERATED  	DST->typeinfo.init_returnaddress(BPTR->next);
   GENERATED  	REACH(IPTR->sx.s23.s3.jsrtarget);
   GENERATED  
 #            	line 769 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -940,11 +940,11 @@
   GENERATED  
 #            	line 484 "src/vm/jit/verify/icmds.cpp"
   GENERATED  	TYPECHECK_COUNT(stat_ins_areturn);
-  GENERATED  	if (!TYPEINFO_IS_REFERENCE(OP1->typeinfo))
+  GENERATED  	if (!OP1->typeinfo.is_reference())
   GENERATED  		VERIFY_ERROR("illegal instruction: ARETURN on non-reference");
   GENERATED  
   GENERATED  	if (STATE->returntype.type != TYPE_ADR
-  GENERATED  			|| (r = typeinfo_is_assignable(&OP1->typeinfo,&(STATE->returntype.typeinfo)))
+  GENERATED  			|| (r = OP1->typeinfo.is_assignable_to(&(STATE->returntype.typeinfo)))
   GENERATED  			== typecheck_FALSE)
   GENERATED  		VERIFY_ERROR("Return type mismatch");
   GENERATED  	if (r == typecheck_FAIL)
@@ -1116,8 +1116,7 @@
   GENERATED  
   GENERATED  
 #            	line 229 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	if (!TYPEINFO_MAYBE_ARRAY(OP1->typeinfo)
-  GENERATED  			&& OP1->typeinfo.typeclass.cls != pseudo_class_Arraystub)
+  GENERATED  	if (!OP1->typeinfo.maybe_array() && OP1->typeinfo.typeclass.cls != pseudo_class_Arraystub)
   GENERATED  		VERIFY_ERROR("illegal instruction: ARRAYLENGTH on non-array");
   GENERATED  
 #            	line 1124 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -1141,8 +1140,7 @@
   GENERATED  
 #            	line 463 "src/vm/jit/verify/icmds.cpp"
   GENERATED  	TYPECHECK_COUNT(stat_ins_athrow);
-  GENERATED  	r = typeinfo_is_assignable_to_class(&OP1->typeinfo,
-  GENERATED  			to_classref_or_classinfo(class_java_lang_Throwable));
+  GENERATED  	r = OP1->typeinfo.is_assignable_to_class(to_classref_or_classinfo(class_java_lang_Throwable));
   GENERATED  	if (r == typecheck_FALSE)
   GENERATED  		VERIFY_ERROR("illegal instruction: ATHROW on non-Throwable");
   GENERATED  	if (r == typecheck_FAIL)
@@ -1180,13 +1178,13 @@
   GENERATED  
 #            if !defined(TYPECHECK_TYPEINFERER)
   GENERATED  	/* returnAddress is not allowed */
-  GENERATED  	if (!TYPEINFO_IS_REFERENCE(OP1->typeinfo))
+  GENERATED  	if (!OP1->typeinfo.is_reference())
   GENERATED  		VERIFY_ERROR("Illegal instruction: CHECKCAST on non-reference");
   GENERATED  
 #            endif
   GENERATED  
   GENERATED      /* XXX only if narrower */
-  GENERATED  	if (!typeinfo_init_class(&(DST->typeinfo),IPTR->sx.s23.s3.c))
+  GENERATED  	if (!DST->typeinfo.init_class(IPTR->sx.s23.s3.c))
   GENERATED  		EXCEPTION;
   GENERATED  
 #            	line 1193 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -1211,7 +1209,7 @@
   GENERATED  
 #            	line 375 "src/vm/jit/verify/icmds.cpp"
   GENERATED  	/* returnAddress is not allowed */
-  GENERATED  	if (!TYPEINFO_IS_REFERENCE(OP1->typeinfo))
+  GENERATED  	if (!OP1->typeinfo.is_reference())
   GENERATED  		VERIFY_ERROR("Illegal instruction: INSTANCEOF on non-reference");
   GENERATED  
   GENERATED  	/* XXX should propagate type information to the following if-branches */
@@ -1259,7 +1257,7 @@
   GENERATED  
   GENERATED  
 #            	line 316 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_INT))
+  GENERATED  	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_INT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
 #            	line 1266 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -1278,7 +1276,7 @@
   GENERATED  
   GENERATED  
 #            	line 321 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_LONG))
+  GENERATED  	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_LONG))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
 #            	line 1285 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -1305,8 +1303,8 @@
   GENERATED  
   GENERATED  
 #            	line 326 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_BOOLEAN)
-  GENERATED  			&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_BYTE))
+  GENERATED  	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_BOOLEAN)
+  GENERATED  			&& !OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_BYTE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
 #            	line 1313 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -1325,7 +1323,7 @@
   GENERATED  
   GENERATED  
 #            	line 332 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_CHAR))
+  GENERATED  	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_CHAR))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
 #            	line 1332 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -1344,7 +1342,7 @@
   GENERATED  
   GENERATED  
 #            	line 337 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_SHORT))
+  GENERATED  	if (!OP1->typeinfo.maybe_primitive_array(ARRAYTYPE_SHORT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
 #            	line 1351 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
@@ -1370,10 +1368,10 @@
   GENERATED  				? class_java_lang_Class : class_java_lang_String;
   GENERATED  			assert(cc);
   GENERATED  			assert(cc->state & CLASS_LINKED);
-  GENERATED  			typeinfo_init_classinfo(&(constvalue.typeinfo), cc);
+  GENERATED  			constvalue.typeinfo.init_class(cc);
   GENERATED  		}
   GENERATED  		else {
-  GENERATED  			TYPEINFO_INIT_NULLTYPE(constvalue.typeinfo);
+  GENERATED  			constvalue.typeinfo.init_nulltype();
   GENERATED  		}
   GENERATED  	}
   GENERATED  	if (!handle_fieldaccess(state, NULL, &constvalue))
@@ -1402,10 +1400,10 @@
   GENERATED  				? class_java_lang_Class : class_java_lang_String;
   GENERATED  			assert(cc);
   GENERATED  			assert(cc->state & CLASS_LINKED);
-  GENERATED  			typeinfo_init_classinfo(&(constvalue.typeinfo), cc);
+  GENERATED  			constvalue.typeinfo.init_class(cc);
   GENERATED  		}
   GENERATED  		else {
-  GENERATED  			TYPEINFO_INIT_NULLTYPE(constvalue.typeinfo);
+  GENERATED  			constvalue.typeinfo.init_nulltype();
   GENERATED  		}
   GENERATED  	}
   GENERATED  	if (!handle_fieldaccess(state, VAROP(iptr->s1), &constvalue))

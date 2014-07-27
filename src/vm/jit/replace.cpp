@@ -65,6 +65,8 @@
 #include "vm/jit/stack.hpp"
 #include "vm/jit/stacktrace.hpp"
 
+#include "vm/jit/ir/instruction.hpp"
+
 
 #define REPLACE_PATCH_DYNAMIC_CALL
 /*#define REPLACE_PATCH_ALL*/

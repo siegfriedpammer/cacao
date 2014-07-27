@@ -59,6 +59,8 @@
 #include "vm/jit/inline/inline.hpp"
 #include "vm/jit/loop/loop.hpp"
 
+#include "vm/jit/ir/instruction.hpp"
+
 #include "vm/jit/verify/typecheck.hpp"
 
 

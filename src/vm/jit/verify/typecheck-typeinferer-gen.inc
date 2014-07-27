@@ -19,14 +19,14 @@
 #            	line 345 "src/vm/jit/verify/icmds.cpp"
   GENERATED  	if (IPTR->flags.bits & INS_FLAG_CLASS) {
   GENERATED  		/* a java.lang.Class reference */
-  GENERATED  		TYPEINFO_INIT_JAVA_LANG_CLASS(DST->typeinfo,IPTR->sx.val.c);
+  GENERATED  		DST->typeinfo.init_java_lang_class(IPTR->sx.val.c);
   GENERATED  	}
   GENERATED  	else {
   GENERATED  		if (IPTR->sx.val.anyptr == NULL)
-  GENERATED  			TYPEINFO_INIT_NULLTYPE(DST->typeinfo);
+  GENERATED  			DST->typeinfo.init_nulltype();
   GENERATED  		else {
   GENERATED  			/* string constant (or constant for builtin function) */
-  GENERATED  			typeinfo_init_classinfo(&(DST->typeinfo),class_java_lang_String);
+  GENERATED  			DST->typeinfo.init_class(class_java_lang_String);
   GENERATED  		}
   GENERATED  	}
   GENERATED  
@@ -231,12 +231,12 @@
   GENERATED  
 #            if !defined(TYPECHECK_TYPEINFERER)
   GENERATED  	/* loading a returnAddress is not allowed */
-  GENERATED  	if (!TYPEDESC_IS_REFERENCE(*OP1)) {
+  GENERATED  	if (!OP1->is_reference()) {
   GENERATED  		VERIFY_ERROR("illegal instruction: ALOAD loading non-reference");
   GENERATED  	}
   GENERATED  
 #            endif
-  GENERATED  	TYPEINFO_COPY(OP1->typeinfo,DST->typeinfo);
+  GENERATED  	DST->typeinfo = OP1->typeinfo;
   GENERATED  
 #            	line 242 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
@@ -298,12 +298,12 @@
 #            	line 111 "src/vm/jit/verify/icmds.cpp"
   GENERATED  
 #            if !defined(TYPECHECK_TYPEINFERER)
-  GENERATED  	if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(OP1->typeinfo))
+  GENERATED  	if (!OP1->typeinfo.maybe_array_of_refs())
   GENERATED  		VERIFY_ERROR("illegal instruction: AALOAD on non-reference array");
   GENERATED  
 #            endif
   GENERATED  
-  GENERATED  	if (!typeinfo_init_component(&OP1->typeinfo,&DST->typeinfo))
+  GENERATED  	if (!DST->typeinfo.init_component(OP1->typeinfo))
   GENERATED  		EXCEPTION;
   GENERATED  
 #            	line 310 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
@@ -351,7 +351,7 @@
   GENERATED  
   GENERATED  
 #            	line 104 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	TYPEINFO_COPY(OP1->typeinfo, DST->typeinfo);
+  GENERATED  	DST->typeinfo = OP1->typeinfo;
   GENERATED  
 #            	line 357 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
@@ -476,7 +476,7 @@
   GENERATED  
   GENERATED  
 #            	line 551 "src/vm/jit/verify/icmds.cpp"
-  GENERATED  	TYPEINFO_INIT_RETURNADDRESS(DST->typeinfo, BPTR->next);
+  GENERATED  	DST->typeinfo.init_returnaddress(BPTR->next);
   GENERATED  	REACH(IPTR->sx.s23.s3.jsrtarget);
   GENERATED  
 #            	line 483 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
@@ -667,13 +667,13 @@
   GENERATED  
 #            if !defined(TYPECHECK_TYPEINFERER)
   GENERATED  	/* returnAddress is not allowed */
-  GENERATED  	if (!TYPEINFO_IS_REFERENCE(OP1->typeinfo))
+  GENERATED  	if (!OP1->typeinfo.is_reference())
   GENERATED  		VERIFY_ERROR("Illegal instruction: CHECKCAST on non-reference");
   GENERATED  
 #            endif
   GENERATED  
   GENERATED      /* XXX only if narrower */
-  GENERATED  	if (!typeinfo_init_class(&(DST->typeinfo),IPTR->sx.s23.s3.c))
+  GENERATED  	if (!DST->typeinfo.init_class(IPTR->sx.s23.s3.c))
   GENERATED  		EXCEPTION;
   GENERATED  
 #            	line 680 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"

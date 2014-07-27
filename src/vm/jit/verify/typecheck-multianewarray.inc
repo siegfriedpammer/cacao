@@ -57,7 +57,7 @@
 			VERIFY_ERROR("MULTIANEWARRAY dimension to high");
 
 		/* set the array type of the result */
-		typeinfo_init_classinfo(&(dv->typeinfo), arrayclass);
+		dv->typeinfo.init_class(arrayclass);
 	}
 	else {
 		const char *p;
@@ -79,7 +79,7 @@
 #endif /* !defined(TYPECHECK_TYPEINFERER) */
 
 		/* set the array type of the result */
-		if (!typeinfo_init_class(&(dv->typeinfo),to_classref_or_classinfo(cr)))
+		if (!dv->typeinfo.init_class(cr))
 			return false;
 	}
 

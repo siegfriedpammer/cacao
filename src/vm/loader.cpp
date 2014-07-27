@@ -834,7 +834,7 @@ static bool load_constantpool(ClassBuffer& cb, ForwardReferences& fwd, Descripto
 	/* resolve entries in temporary structures */
 
 	for (DumpList<ForwardClass>::iterator it  = fwd.classes.begin(),
-	                                        end = fwd.classes.end(); it != end; ++it) {
+	                                      end = fwd.classes.end(); it != end; ++it) {
 		Utf8String name = (utf*) class_getconstant(c, it->name_index, CONSTANT_Utf8);
 
 		if (!name)
@@ -853,7 +853,7 @@ static bool load_constantpool(ClassBuffer& cb, ForwardReferences& fwd, Descripto
 			return false;
 
 		// the classref is created later
-		cptags[it->this_index]  = CONSTANT_Class;
+		cptags[it->this_index]  = CONSTANT_ClassName;
 		cpinfos[it->this_index] = name;
 	}
 
@@ -1503,7 +1503,7 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 
 	uint16_t index = cb.read_u2();
 
-	Utf8String name = (utf *) class_getconstant(c, index, CONSTANT_Class);
+	Utf8String name = (utf *) class_getconstant(c, index, CONSTANT_ClassName);
 
 	if (name == NULL)
 		return false;
@@ -1537,7 +1537,7 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 		}
 	}
 	else {
-		supername = (utf *) class_getconstant(c, index, CONSTANT_Class);
+		supername = (utf *) class_getconstant(c, index, CONSTANT_ClassName);
 
 		if (supername == NULL)
 			return false;
@@ -1583,7 +1583,7 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 	for (int32_t i = 0; i < c->interfacescount; i++) {
 		uint16_t index = cb.read_u2();
 
-		Utf8String u = (utf *) class_getconstant(c, index, CONSTANT_Class);
+		Utf8String u = (utf *) class_getconstant(c, index, CONSTANT_ClassName);
 
 		if (u == NULL)
 			return false;
@@ -1651,8 +1651,9 @@ static bool load_class_from_classbuffer_intern(ClassBuffer& cb)
 
 	for (DumpList<ForwardClass>::iterator it  = fwd.classes.begin(),
 	                                      end = fwd.classes.end(); it != end; ++it) {
-		Utf8String name = (utf*) class_getconstant(c, it->this_index, CONSTANT_Class);
+		Utf8String name = (utf*) class_getconstant(c, it->this_index, CONSTANT_ClassName);
 
+		c->cptags[it->this_index]  = CONSTANT_Class;
 		c->cpinfos[it->this_index] = descpool.lookup_classref(name);
 	}
 

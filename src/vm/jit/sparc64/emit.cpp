@@ -1,6 +1,6 @@
 /* src/vm/jit/sparc64/emit.cpp - SPARC code emitter functions
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -52,7 +52,10 @@
 #include "vm/jit/trace.hpp"
 #include "vm/jit/trap.hpp"
 
+#include "vm/jit/ir/instruction.hpp"
+
 #include "vm/jit/sparc64/solaris/macro_rename.hpp"
+
 
 /* how to leaf optimization in the emitted stubs?? */
 #define REG_PV REG_PV_CALLEE
