@@ -55,7 +55,8 @@ template <class T,class Allocator = std::allocator<T> >
 class ordered_list {
 private:
 	struct Entry;
-	typedef typename std::list<Entry,Allocator>::iterator intern_iterator;
+	typedef std::list<Entry,typename Allocator::template rebind<Entry>::other> intern_list;
+	typedef typename intern_list::iterator intern_iterator;
 
 	/// tagged list entry
 	struct Entry {
@@ -68,10 +69,10 @@ private:
 	};
 	/// Inserter
 	struct Inserter {
-		std::list<Entry,Allocator> &list;
+		intern_list &list;
 		intern_iterator pos;
 		std::size_t index;
-		Inserter(std::list<Entry,Allocator> &list, intern_iterator pos)
+		Inserter(intern_list &list, intern_iterator pos)
 			: list(list), pos(pos), index(pos->index) {}
 		void operator()(T& value) {
 			list.insert(pos, Entry(value,index++));
@@ -98,7 +99,6 @@ private:
 		}
 	};
 	/// internal storage
-	typedef std::list<Entry,Allocator> intern_list;
 	intern_list list;
 
 public:
@@ -108,10 +108,8 @@ public:
 	typedef typename allocator_type::const_reference const_reference;
 	typedef typename allocator_type::pointer pointer;
 	typedef typename allocator_type::const_pointer const_pointer;
-	typedef _ordered_iterator<T, Allocator,
-		typename std::list<Entry,Allocator> > iterator;
-	typedef _ordered_const_iterator<T, Allocator,
-		typename std::list<Entry,Allocator> > const_iterator;
+	typedef _ordered_iterator<T, Allocator, intern_list > iterator;
+	typedef _ordered_const_iterator<T, Allocator, intern_list > const_iterator;
 	typedef std::reverse_iterator<iterator> reverse_iterator;
 	typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
 
@@ -335,7 +333,7 @@ template <class InputIt>
 inline void ordered_list<T, Allocator>::insert(
 		typename ordered_list<T, Allocator>::iterator pos,
 		InputIt first, InputIt last) {
-	typename std::list<Entry,Allocator>::iterator it = pos.it;
+	typename intern_list::iterator it = pos.it;
 	std::for_each(first,last,Inserter(list,pos.it));
 	std::for_each(it,list.end(),IncreasingEntry((--it)->index+1));
 }
@@ -344,7 +342,7 @@ template <class T, class Allocator>
 inline typename ordered_list<T, Allocator>::iterator
 ordered_list<T, Allocator>::erase(
 		typename ordered_list<T, Allocator>::iterator pos) {
-	typename std::list<Entry,Allocator>::iterator it = list.erase(pos.it);
+	typename intern_list::iterator it = list.erase(pos.it);
 	std::for_each(it,list.end(),DecrementEntry());
 	return it;
 }
@@ -355,7 +353,7 @@ ordered_list<T, Allocator>::erase(
 		typename ordered_list<T, Allocator>::iterator first,
 		typename ordered_list<T, Allocator>::iterator last) {
 	std::size_t index = first.it->index;
-	typename std::list<Entry,Allocator>::iterator it = list.erase(first.it,last.it);
+	typename intern_list::iterator it = list.erase(first.it,last.it);
 	std::for_each(it,list.end(),IncreasingEntry(index));
 	return it;
 }
