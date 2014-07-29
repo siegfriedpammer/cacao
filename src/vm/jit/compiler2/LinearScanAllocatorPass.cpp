@@ -78,7 +78,7 @@ namespace {
  * @Cpp11 use std::function
  */
 struct FreeUntilCompare: public std::binary_function<MachineOperand*,MachineOperand*,bool> {
-	bool operator()(MachineOperand *lhs, MachineOperand *rhs) {
+	bool operator()(MachineOperand *lhs, MachineOperand *rhs) const {
 		bool r = lhs->aquivalence_less(*rhs);
 		//LOG2("FreeUntilCompare: " << *lhs << " aquivalence_less " << *rhs << "=" << r << nl);
 		return r;
@@ -162,7 +162,7 @@ struct SetIntersection: public std::unary_function<LivetimeInterval&,void> {
  */
 struct FreeUntilMaxCompare
 		: public std::binary_function<const FreeUntilMap::value_type&, const FreeUntilMap::value_type&,bool> {
-	bool operator()(const FreeUntilMap::value_type &lhs, const FreeUntilMap::value_type &rhs) {
+	bool operator()(const FreeUntilMap::value_type &lhs, const FreeUntilMap::value_type &rhs) const {
 		return lhs.second < rhs.second;
 	}
 };
