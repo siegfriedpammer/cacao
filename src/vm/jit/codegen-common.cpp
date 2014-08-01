@@ -816,6 +816,8 @@ struct FrameInfo {
 #else
 // dummy
 struct FrameInfo {
+	u1 *sp;
+	int32_t framesize;
 	FrameInfo(u1 *sp, int32_t framesize) : sp(sp), framesize(framesize) {
 		/* XXX is was unable to do this port for SPARC64, sorry. (-michi) */
 		/* XXX maybe we need to pass the RA as argument there */
