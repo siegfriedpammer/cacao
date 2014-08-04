@@ -39,105 +39,111 @@
 /* register descripton array **************************************************/
 
 s4 nregdescint[] = {
-	/*   v0,      t0,      t1,      t2,      t3,      t4,      t5,      t6,   */
+	/*   a0,      a1,      a2,      a3,      a4,      a5,      a6,      a7,   */
+	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, 
+
+	/*   r0,      t0,      t1,      t2,      t3,      t4,      t5,      t6,   */
 	REG_RET, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, 
 
-	/*   t7,      s0,      s1,      s2,      s3,      s4,      s5,      s6,   */
-	REG_TMP, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, 
+	/*  ip0,     ip1,   platf,      s0,      s1,      s2,      s3,      s4,   */
+	REG_RES, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
 
-	/*   a0,      a1,      a2,      a3,      a4,      a5,      t8,      t9,   */
-	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP,
-
-	/*  t10,   itmp1,      ra,      pv,      at,   itmp3,      sp,    zero,   */
-	REG_TMP, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
+	/*   s5,      s6,      s7,      s8,      s9,      fp,      lr, sp/zero,   */
+	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_RES, REG_RES, REG_RES,
 
 	REG_END
 };
 
 const char *abi_registers_integer_name[] = {
-	"v0",  "t0",  "t1",  "t2",  "t3",  "t4",  "t5",  "t6",
-	"t7",  "s0",  "s1",  "s2",  "s3",  "s4",  "s5",  "s6",
-	"a0",  "a1",  "a2",  "a3",  "a4",  "a5",  "t8",  "t9",
-	"t10", "t11", "ra",  "pv",  "at",  "gp",  "sp",  "zero"
+	"a0",  "a1",  "a2",    "a3", "a4", "a5", "a6", "a7",
+	"r0",  "t0",  "t1",    "t2", "t3", "t4", "t5", "t6",
+	"ip0", "ip1", "platf", "s0", "s1", "s2", "s3", "s4",
+	"s5",  "s6",  "s7",    "s8", "s9", "fp", "lr", "sp"
 };
 
 const s4 abi_registers_integer_argument[] = {
-	16, /* a0  */
-	17, /* a1  */
-	18, /* a2  */
-	19, /* a3  */
-	20, /* a4  */
-	21, /* a5  */
+	0, /* a0  */
+	1, /* a1  */
+	2, /* a2  */
+	3, /* a3  */
+	4, /* a4  */
+	5, /* a5  */
+	6, /* a6  */
+	7, /* a7  */
 };
 
 const s4 abi_registers_integer_saved[] = {
-	9,  /* s0  */
-	10, /* s1  */
-	11, /* s2  */
-	12, /* s3  */
-	13, /* s4  */
-	14, /* s5  */
-	15, /* s6  */
+	19, /* s0  */
+	20, /* s1  */
+	21, /* s2  */
+	22, /* s3  */
+	23, /* s4  */
+	24, /* s5  */
+	25, /* s6  */
+	26, /* s7  */
+	27, /* s8  */
+	28, /* s9  */
 };
 
 const s4 abi_registers_integer_temporary[] = {
-	1,  /* t0  */
-	2,  /* t1  */
-	3,  /* t2  */
-	4,  /* t3  */
-	5,  /* t4  */
-	6,  /* t5  */
-	7,  /* t6  */
-	8,  /* t7  */
-	22, /* t8  */
-	23, /* t9  */
-	24, /* t10 */
+	9,  /* t0  */
+	10, /* t1  */
+	11, /* t2  */
+	12, /* t3  */
+	13, /* t4  */
+	14, /* t5  */
+	15, /* t6  */
 };
 
 
 s4 nregdescfloat[] = {
-	REG_RET, REG_TMP, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
-	REG_SAV, REG_SAV, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, 
-	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP,
-	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_RES, REG_RES, REG_RES, REG_RES,
+	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
+	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, 
+	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
 	REG_END
 };
 
 
 const s4 abi_registers_float_argument[] = {
-	16, /* fa0  */
-	17, /* fa1  */
-	18, /* fa2  */
-	19, /* fa3  */
-	20, /* fa4  */
-	21, /* fa5  */
+	0, /* fa0  */
+	1, /* fa1  */
+	2, /* fa2  */
+	3, /* fa3  */
+	4, /* fa4  */
+	5, /* fa5  */
+	6, /* fa6  */
+	7, /* fa7  */
 };
 
 const s4 abi_registers_float_saved[] = {
-	2,  /* fs0  */
-	3,  /* fs1  */
-	4,  /* fs2  */
-	5,  /* fs3  */
-	6,  /* fs4  */
-	7,  /* fs5  */
-	8,  /* fs6  */
-	9,  /* fs7  */
+	8,  /* fs0  */
+	9,  /* fs1  */
+	10, /* fs2  */
+	11, /* fs3  */
+	12, /* fs4  */
+	13, /* fs5  */
+	14, /* fs6  */
+	15, /* fs7  */
 };
 
 const s4 abi_registers_float_temporary[] = {
-	1,  /* ft0  */
-	10, /* ft1  */
-	11, /* ft2  */
-	12, /* ft3  */
-	13, /* ft4  */
-	14, /* ft5  */
-	15, /* ft6  */
-	22, /* ft7  */
-	23, /* ft8  */
-	24, /* ft9  */
-	25, /* ft10 */
-	26, /* ft11 */
-	27, /* ft12 */
+	16, /* ft0  */
+	17, /* ft1  */
+	18, /* ft2  */
+	19, /* ft3  */
+	20, /* ft4  */
+	21, /* ft5  */
+	22, /* ft6  */
+	23, /* ft7  */
+	24, /* ft8  */
+	25, /* ft9  */
+	26, /* ft10 */
+	27, /* ft11 */
+	28, /* ft12 */
+	29, /* ft13 */
+	30, /* ft14 */
+	31, /* ft15 */
 };
 
 

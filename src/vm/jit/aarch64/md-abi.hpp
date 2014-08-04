@@ -32,54 +32,55 @@
   
 #define REG_RESULT      0    /* to deliver method results                     */
 
-#define REG_A0          16   /* define some argument registers                */
-#define REG_A1          17
-#define REG_A2          18
-#define REG_A3          19
+#define REG_A0          0    /* define some argument registers                */
+#define REG_A1          1
+#define REG_A2          2
+#define REG_A3          3
 
-#define REG_LR          29   /* link register                                 */
-#define REG_RA          29   /* return address = link register (bw compat)    */
-#define REG_PV          17   /* procedure vector, must be provided by caller  */
-#define REG_METHODPTR   28   /* pointer to the place from where the procedure */
+#define REG_LR          30   /* link register                                 */
+#define REG_RA          30   /* return address = link register (bw compat)    */
+#define REG_PV          18   /* procedure vector, must be provided by caller  */
+#define REG_METHODPTR   16   /* pointer to the place from where the procedure */
                              /* vector has been fetched                       */
-#define REG_ITMP1       25   /* temporary register                            */
-#define REG_ITMP2       28   /* temporary register and method pointer         */
-#define REG_ITMP3       29   /* temporary register                            */
 
-#define REG_ITMP1_XPTR  25   /* exception pointer = temporary register 1      */
-#define REG_ITMP2_XPC   28   /* exception pc = temporary register 2           */
+#define REG_ITMP1       9    /* temporary register                            */
+#define REG_ITMP2       10   /* temporary register                            */
+#define REG_ITMP3       11   /* temporary register                            */
 
-#define REG_SP          30   /* stack pointer                                 */
-#define REG_ZERO        30   /* always zero                                   */
+#define REG_ITMP1_XPTR  9    /* exception pointer = temporary register 1      */
+#define REG_ITMP2_XPC   10   /* exception pc = temporary register 2           */
+
+#define REG_SP          31   /* stack pointer                                 */
+#define REG_ZERO        31   /* always zero                                   */
 
 
 /* floating point registers */
 
 #define REG_FRESULT     0    /* to deliver floating point method results      */
 
-#define REG_FA0         16   /* define some argument registers                */
-#define REG_FA1         17
-#define REG_FA2         18
+#define REG_FA0         0    /* define some argument registers                */
+#define REG_FA1         1
+#define REG_FA2         2
 
-#define REG_FTMP1       28   /* temporary floating point register             */
-#define REG_FTMP2       29   /* temporary floating point register             */
-#define REG_FTMP3       30   /* temporary floating point register             */
+#define REG_FTMP1       16   /* temporary floating point register             */
+#define REG_FTMP2       17   /* temporary floating point register             */
+#define REG_FTMP3       18   /* temporary floating point register             */
 
 #define REG_IFTMP       28   /* temporary integer and floating point register */
 
 
-#define INT_REG_CNT     31   /* number of integer registers                   */
-#define INT_SAV_CNT      7   /* number of int callee saved registers          */
-#define INT_ARG_CNT      6   /* number of int argument registers              */
-#define INT_TMP_CNT     11   /* number of int temp registers                  */
-#define INT_RES_CNT      7   /* number of reserved integer registers          */
+#define INT_REG_CNT     32   /* number of integer registers                   */
+#define INT_SAV_CNT     10   /* number of int callee saved registers          */
+#define INT_ARG_CNT      8   /* number of int argument registers              */
+#define INT_TMP_CNT      7   /* number of int temp registers                  */
+#define INT_RES_CNT      6   /* number of reserved integer registers          */
                              /* the one "missing" register is the return reg  */
 
 #define FLT_REG_CNT     32   /* number of float registers                     */
 #define FLT_SAV_CNT      8   /* number of flt callee saved registers          */
-#define FLT_ARG_CNT      6   /* number of flt argument registers              */
-#define FLT_TMP_CNT     13   /* number of flt temp registers                  */
-#define FLT_RES_CNT      4   /* number of reserved float registers            */
+#define FLT_ARG_CNT      8   /* number of flt argument registers              */
+#define FLT_TMP_CNT     16   /* number of flt temp registers                  */
+#define FLT_RES_CNT      0   /* number of reserved float registers            */
                              /* the one "missing" register is the return reg  */
 
 #endif // MD_ABI_HPP_

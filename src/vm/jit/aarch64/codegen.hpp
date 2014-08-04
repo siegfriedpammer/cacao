@@ -267,10 +267,36 @@
 #define M_IMUL(a,b,c)           M_OP3 (0x13,0x00, a,b,c,0)      /* 32 mul     */
 #define M_LMUL(a,b,c)           M_OP3 (0x13,0x20, a,b,c,0)      /* 64 mul     */
 
+/* ============== aarch64 ================ */
+#define M_LSUB_IMM(Rd,Rn,imm) \
+    do { \
+        *((u4 *) cd->mcodeptr) = ((0x344 << 22) | ((imm) << 10) | (Rd) | ((Rn) << 5)); \
+        cd->mcodeptr += 4; \
+    } while (0) \
+
+#define M_LADD_IMM(Rd,Rn,imm) \
+    do { \
+        *((u4 *) cd->mcodeptr) = ((0x244 << 22) | ((imm) << 10) | (Rd) | ((Rn) << 5)); \
+        cd->mcodeptr += 4; \
+    } while (0) \
+
+#define M_RET0() \
+    do { \
+        *((u4 *) cd->mcodeptr) = (0xd65f03c0); \
+        cd->mcodeptr += 4; \
+    } while (0) \
+
+#define M_NOP \
+    do { \
+        *((u4 *) cd->mcodeptr) = (0xd503201f); \
+        cd->mcodeptr += 4; \
+    } while (0) \
+/* ============== aarch64 ================ */
+
 #define M_IADD_IMM(a,b,c)       M_OP3 (0x10,0x0,  a,b,c,1)      /* 32 add     */
-#define M_LADD_IMM(a,b,c)       M_OP3 (0x10,0x20, a,b,c,1)      /* 64 add     */
+//#define M_LADD_IMM(a,b,c)       M_OP3 (0x10,0x20, a,b,c,1)      /* 64 add     */
 #define M_ISUB_IMM(a,b,c)       M_OP3 (0x10,0x09, a,b,c,1)      /* 32 sub     */
-#define M_LSUB_IMM(a,b,c)       M_OP3 (0x10,0x29, a,b,c,1)      /* 64 sub     */
+// #define M_LSUB_IMM(a,b,c)       M_OP3 (0x10,0x29, a,b,c,1)      /* 64 sub     */
 #define M_IMUL_IMM(a,b,c)       M_OP3 (0x13,0x00, a,b,c,1)      /* 32 mul     */
 #define M_LMUL_IMM(a,b,c)       M_OP3 (0x13,0x20, a,b,c,1)      /* 64 mul     */
 
@@ -301,7 +327,7 @@
 
 #define M_MOV(a,c)              M_OR (a,a,c)                    /* c = a      */
 #define M_CLR(c)                M_OR (31,31,c)                  /* c = 0      */
-#define M_NOP                   M_OR (31,31,31)                 /* ;          */
+// #define M_NOP                   M_OR (31,31,31)                 /* ;          */
 
 #define M_SLL(a,b,c)            M_OP3 (0x12,0x39, a,b,c,0)      /* c = a << b */
 #define M_SRA(a,b,c)            M_OP3 (0x12,0x3c, a,b,c,0)      /* c = a >> b */

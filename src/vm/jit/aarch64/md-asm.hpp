@@ -53,16 +53,16 @@
 
 #define platf   x18 /* platform register (for platf-specific ABI) */
 
-#define v0      x19 /* variable registers, all following registers are callee saved reg */
-#define v1      x20
-#define v2      x21
-#define v3      x22
-#define v4      x23
-#define v5      x24
-#define v6      x25
-#define v7      x26
-#define v8      x27
-#define v9      x28
+#define s0      x19 /* variable registers, all following registers are callee saved reg */
+#define s1      x20
+#define s2      x21
+#define s3      x22
+#define s4      x23
+#define s5      x24
+#define s6      x25
+#define s7      x26
+#define s8      x27
+#define s9      x28
 
 #define fp      x29 /* frame pointer */
 #define lr      x30 /* link register */

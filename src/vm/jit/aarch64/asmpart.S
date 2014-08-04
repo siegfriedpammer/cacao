@@ -86,14 +86,14 @@ asm_vm_call_method_double:
 	sub		sp, sp, 48                    /* make room for saved registers  */
 	str		lr, [sp]                      /* save link register             */
 
-	str		v0, [sp, 8]                   /* save variable registers        */
-	str		v1, [sp, 16]
+	str		s0, [sp, 8]                   /* save registers                 */
+	str		s1, [sp, 16]
 
 	str     a0, [sp, 24]                  /* save method PV                 */
 
 	mov		t0, a1                        /* address of the argument array  */
 	mov     t1, a2                        /* stack argument count           */
-    mov     v0, sp                        /* save stack pointer             */
+    mov     s0, sp                        /* save stack pointer             */
 
 	ldr     a0, [t0], 8                   /* prepare argument registers     */
     ldr     a1, [t0], 8
@@ -138,8 +138,8 @@ asm_calljava_copyloop:                /* reorder stack arguments!         */
 //	bgt   asm_calljava_copyloop
 
 asm_calljava_copyfinish:
-	ldr		v1, [v0, 24]
-	blr		v1 
+	ldr		s1, [s0, 24]
+	blr		s1 
 	
 //	mov   mptr, v1                    /* set method pointer               */
 //

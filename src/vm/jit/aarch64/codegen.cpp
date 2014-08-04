@@ -85,9 +85,14 @@ void codegen_emit_prolog(jitdata* jd)
 	registerdata* rd   = jd->rd;
 
 	/* create stack frame (if necessary) */
-
-	if (cd->stackframesize)
-		M_LDA(REG_SP, REG_SP, -(cd->stackframesize * 8));
+	/* NOTE: SP on aarch64 has to be quad word aligned */
+	if (cd->stackframesize) {
+		int offset = cd->stackframesize * 8;
+		offset += (offset % 16);
+		M_LSUB_IMM(REG_SP, REG_SP, offset);
+		// M_LDA(REG_SP, REG_SP, -(cd->stackframesize * 8));
+	}
+	return;
 
 	/* save return address and used callee saved registers */
 
@@ -178,24 +183,29 @@ void codegen_emit_epilog(jitdata* jd)
 	/* restore return address */
 
 	if (!code_is_leafmethod(code)) {
-		p--; M_LLD(REG_RA, REG_SP, p * 8);
+		p--; //M_LLD(REG_RA, REG_SP, p * 8);
 	}
 
 	/* restore saved registers */
 
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
-		p--; M_LLD(rd->savintregs[i], REG_SP, p * 8);
+		p--; //M_LLD(rd->savintregs[i], REG_SP, p * 8);
 	}
 	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
-		p--; M_DLD(rd->savfltregs[i], REG_SP, p * 8);
+		p--; //M_DLD(rd->savfltregs[i], REG_SP, p * 8);
 	}
 
 	/* deallocate stack */
 
-	if (cd->stackframesize)
-		M_LDA(REG_SP, REG_SP, cd->stackframesize * 8);
+	if (cd->stackframesize) {
+		int offset = cd->stackframesize * 8;
+		offset += (offset % 16);
+		M_LADD_IMM(REG_SP, REG_SP, offset);
+		// M_LDA(REG_SP, REG_SP, cd->stackframesize * 8);
+	}
 
-	M_RET(REG_ZERO, REG_RA);
+	M_RET0();
+	//M_RET(REG_ZERO, REG_RA);
 }
 
 
@@ -204,6 +214,7 @@ void codegen_emit_epilog(jitdata* jd)
  */
 void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 {
+	return;
 	varinfo*            var;
 	builtintable_entry* bte;
 	methodinfo*         lm;             // Local methodinfo for ICMD_INVOKE*.
