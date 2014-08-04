@@ -22,7 +22,6 @@
 
 
 DIST_SUBDIRS = \
-	freebsd \
 	linux
 
 SUBDIRS = $(OS_DIR)

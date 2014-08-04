@@ -43,11 +43,7 @@ extern "C" void          ieee_set_fp_control(unsigned long fp_control);
 #include "vm/jit/jit.hpp"
 #include "vm/jit/trap.hpp"
 
-
-/* global variables ***********************************************************/
-
-bool has_ext_instr_set = false;             /* has instruction set extensions */
-
+bool has_ext_instr_set = false;
 
 /* md_init *********************************************************************
 
@@ -57,41 +53,7 @@ bool has_ext_instr_set = false;             /* has instruction set extensions */
 
 void md_init(void)
 {
-#if defined(__LINUX__)
-	unsigned long int fpcw;
-#endif
-
-	/* check for extended instruction set */
-
-	//has_ext_instr_set = !asm_md_init();
-
-#if defined(__LINUX__)
-	/* Linux on Digital Alpha needs an initialisation of the ieee
-	   floating point control for IEEE compliant arithmetic (option
-	   -mieee of GCC). Under Digital Unix this is done
-	   automatically. */
-
-	/* initialize floating point control */
-
-	//fpcw = ieee_get_fp_control();
-
-//	fpcw = fpcw
-//		& ~IEEE_TRAP_ENABLE_INV
-//		& ~IEEE_TRAP_ENABLE_DZE
-		/* We dont want underflow. */
-/* 		& ~IEEE_TRAP_ENABLE_UNF */
-//		& ~IEEE_TRAP_ENABLE_OVF;
-
-/* 	fpcw = fpcw */
-/* 		| IEEE_TRAP_ENABLE_INV */
-/* 		| IEEE_TRAP_ENABLE_DZE */
-/* 		| IEEE_TRAP_ENABLE_OVF */
-/* 		| IEEE_TRAP_ENABLE_UNF */
-/* 		| IEEE_TRAP_ENABLE_INE */
-/* 		| IEEE_TRAP_ENABLE_DNO; */
-
-	//ieee_set_fp_control(fpcw);
-#endif
+	/* do nothing on aarch64 */
 }
 
 
@@ -123,6 +85,7 @@ void md_init(void)
 
 void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 {
+	printf("md_jit_method_patch_address called\n");
 	uint32_t *pc;
 	uint32_t  mcode;
 	int       opcode;
@@ -218,19 +181,7 @@ bool md_trap_decode(trapinfo_t* trp, int sig, void* xpc, executionstate_t* es)
 	case TRAP_SIGSEGV:
 	{
 		// Retrieve base address of instruction.
-		int32_t   s1   = M_MEM_GET_Rb(mcode);
-		uintptr_t addr = es->intregs[s1];
-
-		// Check for special-load.
-		if (s1 == REG_ZERO) {
-			int32_t d    = M_MEM_GET_Ra(mcode);
-			int32_t disp = M_MEM_GET_Memory_disp(mcode);
-
-			// We use the exception type as load displacement.
-			trp->type  = disp;
-			trp->value = es->intregs[d];
-			return true;
-		}
+		uintptr_t addr = es->intregs[(mcode >> 4) & 0x0f];
 
 		// Check for implicit NullPointerException.
 		if (addr == 0) {
@@ -257,6 +208,7 @@ bool md_trap_decode(trapinfo_t* trp, int sig, void* xpc, executionstate_t* es)
 #if defined(ENABLE_REPLACEMENT)
 void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
 {
+	printf("md_patch_replacement_point called\n");
 	u4 mcode;
 
 	if (revert) {

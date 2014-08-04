@@ -23,8 +23,8 @@
 */
 
 
-#ifndef VM_JIT_ALPHA_MD_HPP_
-#define VM_JIT_ALPHA_MD_HPP_ 1
+#ifndef VM_JIT_AARCH64_MD_HPP_
+#define VM_JIT_AARCH64_MD_HPP_ 1
 
 #include "config.h"
 
@@ -54,6 +54,7 @@ extern bool has_ext_instr_set;
  */
 inline static int32_t md_stacktrace_get_framesize(codeinfo* code)
 {
+    printf("md_stacktrace_get_framesize called\n");
 	// Check for the asm_vm_call_method special case.
 	if (code == NULL)
 		return 0;
@@ -72,6 +73,7 @@ inline static int32_t md_stacktrace_get_framesize(codeinfo* code)
 
 inline static void *md_stacktrace_get_returnaddress(void *sp, int32_t stackframesize)
 {
+    printf("md_stacktrace_get_Returnaddress called\n");
 	void *ra;
 
 	/* On Alpha the return address is located on the top of the
@@ -95,6 +97,8 @@ inline static void *md_stacktrace_get_returnaddress(void *sp, int32_t stackframe
 
 inline static void *md_codegen_get_pv_from_pc(void *ra)
 {
+    printf("md_codegen_get_pv_from_pc called.\n");
+    vm_abort("Unable to find method: %p (instr=)", ra);
 	uint32_t *pc;
 	uint32_t  mcode;
 	int       opcode;
@@ -153,7 +157,7 @@ inline static void *md_codegen_get_pv_from_pc(void *ra)
 
 inline static void md_cacheflush(void *addr, int nbytes)
 {
-	asm_cacheflush(addr, nbytes);
+    asm_cacheflush(addr, nbytes);
 }
 
 
@@ -180,7 +184,7 @@ inline static void md_dcacheflush(void *addr, int nbytes)
 	/* do nothing */
 }
 
-#endif // VM_JIT_ALPHA_MD_HPP_
+#endif // VM_JIT_AARCH64_MD_HPP_
 
 
 /*

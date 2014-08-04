@@ -52,10 +52,12 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	ucontext_t* _uc = (ucontext_t *) _p;
 	mcontext_t* _mc = &_uc->uc_mcontext;
 
-//	void* xpc = (void*) _mc->sc_pc;
-//
-//	// Handle the trap.
-//	trap_handle(TRAP_SIGSEGV, xpc, _p);
+	void* xpc = (void*) _mc->pc;
+
+    printf("Fault address: %x\n", _mc->fault_address);
+
+	// Handle the trap.
+	trap_handle(TRAP_SIGSEGV, xpc, _p);
 }
 
 
@@ -64,16 +66,14 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
  */
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 {
+    printf("md_signal_handler_sigill\n");
 	ucontext_t* _uc = (ucontext_t*) _p;
 	mcontext_t* _mc = &_uc->uc_mcontext;
 
-//	void* xpc = (void*) _mc->sc_pc;
-//
-//	// The PC points to the instruction after the illegal instruction.
-//	xpc = (void*) (((uintptr_t) xpc) - 4);
-//
-//	// Handle the trap.
-//	trap_handle(TRAP_SIGILL, xpc, _p);
+	void* xpc = (void*) _mc->pc;
+
+	// Handle the trap.
+	trap_handle(TRAP_SIGILL, xpc, _p);
 }
 
 
@@ -85,6 +85,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 
 void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 {
+    printf("md_signal_handler_sigusr2\n");
 	threadobject *tobj;
 	ucontext_t   *_uc;
 	mcontext_t   *_mc;
@@ -95,9 +96,9 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
 
-//	pc = (u1 *) _mc->sc_pc;
-//
-//	tobj->pc = pc;
+	pc = (u1 *) _mc->pc;
+
+	tobj->pc = pc;
 }
 
 
@@ -109,6 +110,7 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 
 void md_executionstate_read(executionstate_t *es, void *context)
 {
+    printf("md_executionstate_read \n");
 	ucontext_t *_uc;
 	mcontext_t *_mc;
 	int         i;
@@ -116,22 +118,28 @@ void md_executionstate_read(executionstate_t *es, void *context)
 	_uc = (ucontext_t *) context;
 	_mc = &_uc->uc_mcontext;
 
-//	/* read special registers */
-//	es->pc = (u1 *) _mc->sc_pc;
-//	es->sp = (u1 *) _mc->sc_regs[REG_SP];
-//	es->pv = (u1 *) _mc->sc_regs[REG_PV];
-//	es->ra = (u1 *) _mc->sc_regs[REG_RA];
-//
-//	/* read integer registers */
-//	for (i = 0; i < INT_REG_CNT; i++)
-//		es->intregs[i] = _mc->sc_regs[i];
-//
-//	/* read float registers */
-//	/* Do not use the assignment operator '=', as the type of
-//	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
-//
-//	assert(sizeof(_mc->sc_fpregs) == sizeof(es->fltregs));
-//	os::memcpy(&es->fltregs, &_mc->sc_fpregs, sizeof(_mc->sc_fpregs));
+	/* read special registers */
+	es->pc = (u1 *) _mc->pc;
+	es->sp = (u1 *) _mc->regs[REG_SP];
+	es->pv = (u1 *) _mc->regs[REG_PV];
+	es->ra = (u1 *) _mc->regs[REG_LR];
+
+	/* read integer registers */
+	for (i = 0; i < INT_REG_CNT; i++)
+		es->intregs[i] = _mc->regs[i];
+
+	/* read float registers */
+	/* Do not use the assignment operator '=', as the type of
+	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
+
+    /* float registers are in an extension section of the sigcontext (mcontext_t) */
+    struct fpsimd_context *_fc = (struct fpsimd_context *) &(_mc->__reserved);
+
+    /* check if we found the correct extension */
+    if (_fc->head.magic == FPSIMD_MAGIC) {
+        assert(sizeof(_fc->vregs) == sizeof(es->fltregs));
+        os::memcpy(&es->fltregs, &_fc->vregs, sizeof(_fc->vregs));
+    }
 }
 
 
@@ -143,6 +151,7 @@ void md_executionstate_read(executionstate_t *es, void *context)
 
 void md_executionstate_write(executionstate_t *es, void *context)
 {
+    printf("md_executionstate_write\n");
 	ucontext_t *_uc;
 	mcontext_t *_mc;
 	int         i;

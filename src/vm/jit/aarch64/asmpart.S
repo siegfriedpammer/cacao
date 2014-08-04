@@ -36,11 +36,6 @@
 	.text
 	.align 2
 
-#if defined(__ARMHF__)
-	.fpu vfp
-#endif
-
-
 /* export functions ***********************************************************/
 
 	.globl asm_vm_call_method
@@ -88,7 +83,32 @@ asm_vm_call_method_int:
 asm_vm_call_method_long:
 asm_vm_call_method_float:
 asm_vm_call_method_double:
-//	SAVE_SCRATCH_REGISTERS            /* save our personal scratch regs   */
+	sub		sp, sp, 48                    /* make room for saved registers  */
+	str		lr, [sp]                      /* save link register             */
+
+	str		v0, [sp, 8]                   /* save variable registers        */
+	str		v1, [sp, 16]
+
+	str     a0, [sp, 24]                  /* save method PV                 */
+
+	mov		t0, a1                        /* address of the argument array  */
+	mov     t1, a2                        /* stack argument count           */
+    mov     v0, sp                        /* save stack pointer             */
+
+	ldr     a0, [t0], 8                   /* prepare argument registers     */
+    ldr     a1, [t0], 8
+    ldr     a2, [t0], 8
+    ldr     a3, [t0], 8
+    ldr     a4, [t0], 8
+    ldr     a5, [t0], 8
+    ldr     a6, [t0], 8
+
+    cmp     t1, #0                       /* do we have stack arguments?    */
+    ble		asm_calljava_copyfinish      /* no -> do not care :-)          */
+
+	add     sp, sp, 48                    /* restore SP */
+	ret
+
 //	stmfd sp!, {v1}                   /* V1 is used to remember SP        */
 //	str   a0, [sp, #-4]!              /* store methods entrypoint         */
 //
@@ -101,10 +121,6 @@ asm_vm_call_method_double:
 //	ldr   a1, [itmp1], #8
 //	ldr   a2, [itmp1], #8
 //	ldr   a3, [itmp1], #8
-
-#if defined(__ARMHF__)
-	vldm itmp1!, {d0,d1,d2,d3,d4,d5}
-#endif
 
 //	cmp   itmp3, #0                   /* do we have stack arguments?      */
 //	ble   asm_calljava_copyfinish     /* no -> do not care :-)            */
@@ -122,6 +138,9 @@ asm_calljava_copyloop:                /* reorder stack arguments!         */
 //	bgt   asm_calljava_copyloop
 
 asm_calljava_copyfinish:
+	ldr		v1, [v0, 24]
+	blr		v1 
+	
 //	mov   mptr, v1                    /* set method pointer               */
 //
 //	/* REMEMBER: do the method call just like in java! */
@@ -129,6 +148,9 @@ asm_calljava_copyfinish:
 //	mov   lr, pc
 // 	mov   pc, ip
 fake:
+	mov		sp, t0
+	add		sp, sp, #8
+	ret
 //	sub   ip, pc, #(fake - asm_vm_call_method)+8
 //
 //	mov   sp, v1                      /* restore SP                       */
@@ -145,6 +167,7 @@ asm_vm_call_method_exception_handler:
 //	add   sp, sp, #4                  /* free fake address                */
 //	ldmfd sp!, {v1}
 //	RESTORE_SCRATCH_REGS_AND_RETURN   /* return to caller, restore regs   */
+	ret
 
 asm_vm_call_method_end:
 
@@ -259,37 +282,9 @@ asm_abstractmethoderror:
 *                                                                              *
 *******************************************************************************/
 
-//L___ARM_NR_cacheflush:
-//	.align 2
-//	.word __ARM_NR_cacheflush
-
 asm_cacheflush:
-//	add   a1, a0, a1
-//	mov   a2, #0
-
-#if defined(__ARM_EABI__)
-	/* According to EABI, the syscall number should be passed via R7,
-	   see "http://wiki.debian.org/ArmEabiPort" for additional details. */
-
-//	stmfd sp!, {r7}
-//	ldr   r7, L___ARM_NR_cacheflush
-//	swi   0x0
-//	ldmfd sp!, {r7}
-#else
-# if 0
-	/* TWISTI: required on iyonix, maybe a linux-2.4 bug */
-//	mov   a0, #0x0
-//	mov   a1, #0xff000000
-# endif
-
-//	swi   __ARM_NR_cacheflush
-#endif
-
-#if defined(ARM_NO_THUMB_IW)
-//	mov   pc, lr
-#else
-//	bx    lr
-#endif
+	isb
+	dsb sy
 
 
 /* disable exec-stacks ********************************************************/

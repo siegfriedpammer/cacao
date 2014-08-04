@@ -33,7 +33,7 @@
 
 /* define architecture features ***********************************************/
 
-#define SUPPORT_DIVISION                 0
+#define SUPPORT_DIVISION                 1
 
 #define SUPPORT_I2F                      1
 #define SUPPORT_I2D                      1
@@ -51,13 +51,13 @@
 #define SUPPORT_LONG_MUL                 1
 #define SUPPORT_LONG_DIV                 0
 
-#define SUPPORT_LONG_DIV_POW2            1
-#define SUPPORT_LONG_REM_POW2            1
+#define SUPPORT_LONG_DIV_POW2            0
+#define SUPPORT_LONG_REM_POW2            0
 
 #define SUPPORT_CONST_LOGICAL            1  /* AND, OR, XOR with immediates   */
-#define SUPPORT_CONST_MUL                1  /* mutiply with immediate         */
+#define SUPPORT_CONST_MUL                0  /* mutiply with immediate         */
 
-#define SUPPORT_CONST_STORE              1  /* do we support const stores     */
+#define SUPPORT_CONST_STORE              0  /* do we support const stores     */
 #define SUPPORT_CONST_STORE_ZERO_ONLY    1  /* on some risc machines we can   */
                                             /* only store REG_ZERO            */
 
@@ -89,6 +89,7 @@
 #define SUPPORT_BRANCH_CONDITIONAL_CONDITION_REGISTER       0
 #define SUPPORT_BRANCH_CONDITIONAL_ONE_INTEGER_REGISTER     1
 #define SUPPORT_BRANCH_CONDITIONAL_TWO_INTEGER_REGISTERS    0
+#define SUPPORT_BRANCH_CONDITIONAL_UNSIGNED_CONDITIONS      0
 
 
 /* exceptions *****************************************************************/

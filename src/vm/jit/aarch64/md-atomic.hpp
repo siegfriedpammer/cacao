@@ -32,12 +32,6 @@
 
 #include "threads/atomic.hpp"
 
-/* Apparently, this is the best way to define a memory barrier on Linux.
- * See for example: http://icedtea.classpath.org/hg/icedtea6/file/7c7835fceadc/ports/hotspot/src/os_cpu/linux_zero/vm/orderAccess_linux_zero.inline.hpp#l29
- */
-typedef void (__kernel_dmb_t)(void);
-#define __kernel_dmb (*(__kernel_dmb_t *)0xffff0fa0)
-
 namespace Atomic_md {
 
 /**
@@ -76,7 +70,7 @@ inline uint64_t compare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t
 inline void memory_barrier(void)
 {
 	//__kernel_dmb();
-	__asm__ __volatile__ ("" : : : "memory");
+	__asm__ __volatile__ ("dsb LD" : : : "memory");
 }
 
 
@@ -86,7 +80,7 @@ inline void memory_barrier(void)
 inline void write_memory_barrier(void)
 {
 	//__kernel_dmb();
-	__asm__ __volatile__ ("" : : : "memory");
+	__asm__ __volatile__ ("dsb ST" : : : "memory");
 }
 
 
@@ -95,7 +89,7 @@ inline void write_memory_barrier(void)
  */
 inline void instruction_barrier(void)
 {
-	__asm__ __volatile__ ("" : : : "memory");
+	__asm__ __volatile__ ("isb" : : : "memory");
 }
 
 }

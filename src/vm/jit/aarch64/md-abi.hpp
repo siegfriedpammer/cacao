@@ -37,8 +37,9 @@
 #define REG_A2          18
 #define REG_A3          19
 
-#define REG_RA          26   /* return address                                */
-#define REG_PV          27   /* procedure vector, must be provided by caller  */
+#define REG_LR          29   /* link register                                 */
+#define REG_RA          29   /* return address = link register (bw compat)    */
+#define REG_PV          17   /* procedure vector, must be provided by caller  */
 #define REG_METHODPTR   28   /* pointer to the place from where the procedure */
                              /* vector has been fetched                       */
 #define REG_ITMP1       25   /* temporary register                            */
@@ -49,7 +50,7 @@
 #define REG_ITMP2_XPC   28   /* exception pc = temporary register 2           */
 
 #define REG_SP          30   /* stack pointer                                 */
-#define REG_ZERO        31   /* always zero                                   */
+#define REG_ZERO        30   /* always zero                                   */
 
 
 /* floating point registers */
@@ -67,7 +68,7 @@
 #define REG_IFTMP       28   /* temporary integer and floating point register */
 
 
-#define INT_REG_CNT     32   /* number of integer registers                   */
+#define INT_REG_CNT     31   /* number of integer registers                   */
 #define INT_SAV_CNT      7   /* number of int callee saved registers          */
 #define INT_ARG_CNT      6   /* number of int argument registers              */
 #define INT_TMP_CNT     11   /* number of int temp registers                  */
