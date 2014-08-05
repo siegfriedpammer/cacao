@@ -1,4 +1,4 @@
-/* src/vm/jit/alpha/md-trap.hpp - Alpha hardware traps
+/* src/vm/jit/aarch64/md-trap.hpp - Aarch64 hardware traps
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO

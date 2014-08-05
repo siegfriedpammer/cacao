@@ -58,7 +58,12 @@ struct executionstate_t {
 	uint8_t   *ra;                          /* return address / link register */
 
 	uintptr_t  intregs[INT_REG_CNT];                       /* register values */
+
+#if defined(__AARCH64__)
+	long double fltregs[FLT_REG_CNT]; /* on aarch64 FP registers are 128 bit */
+#else
 	double     fltregs[FLT_REG_CNT];                       /* register values */
+#endif
 
 	codeinfo  *code;                      /* codeinfo corresponding to the pv */
 };

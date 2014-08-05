@@ -1,4 +1,4 @@
-/* src/vm/jit/alpha/md-abi.hpp - defines for Alpha ABI
+/* src/vm/jit/aarch64/md-abi.hpp - defines for aarch64 ABI
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -39,7 +39,7 @@
 
 #define REG_LR          30   /* link register                                 */
 #define REG_RA          30   /* return address = link register (bw compat)    */
-#define REG_PV          18   /* procedure vector, must be provided by caller  */
+#define REG_PV          17   /* procedure vector, must be provided by caller  */
 #define REG_METHODPTR   16   /* pointer to the place from where the procedure */
                              /* vector has been fetched                       */
 

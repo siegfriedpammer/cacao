@@ -1,4 +1,4 @@
-/* src/vm/jit/alpha/md-asm.hpp - assembler defines for Alpha ABI
+/* src/vm/jit/aarch64/md-asm.hpp - assembler defines for Aarch64 ABI
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -48,10 +48,16 @@
 #define t5      x14
 #define t6      x15
 
+#define xptr    x9  /* exception pointer = itmp1 */
+#define xpc     x10 /* exception pc = itmp2 */
+
 #define ip0     x16 /* intra-procedure-call temporary registers */
 #define ip1     x17
 
 #define platf   x18 /* platform register (for platf-specific ABI) */
+
+#define pv      x17 /* using ip1 for procedure vector */
+#define mptr    x16 /* using ip0 for method pointer */
 
 #define s0      x19 /* variable registers, all following registers are callee saved reg */
 #define s1      x20
@@ -70,15 +76,16 @@
 
 #define zero    xzr /* zero register */
 
-/* save and restore macros ****************************************************/
-
-#define SAVE_TEMPORARY_REGISTERS \
-    mov     t0, sp; \
-    stp     v0, v1, [t0], 16; \
-    stp     v2, v3, [t0], 16
+#define fa0     d0  /*argument and result register for SMID & FP */
+#define fa1     d1
+#define fa2     d2
+#define fa3     d3
+#define fa4     d4
+#define fa5     d5
+#define fa6     d6
+#define fa7     d7
 
 #endif // MD_ASM_HPP_
-
 
 /*
  * These are local overrides for various environment variables in Emacs.

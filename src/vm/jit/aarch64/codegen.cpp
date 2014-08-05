@@ -214,7 +214,6 @@ void codegen_emit_epilog(jitdata* jd)
  */
 void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 {
-	return;
 	varinfo*            var;
 	builtintable_entry* bte;
 	methodinfo*         lm;             // Local methodinfo for ICMD_INVOKE*.

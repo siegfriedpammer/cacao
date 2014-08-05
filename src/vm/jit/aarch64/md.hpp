@@ -39,6 +39,7 @@
 #include "vm/jit/asmpart.hpp"
 #include "vm/jit/code.hpp"
 #include "vm/jit/codegen-common.hpp"
+#include "vm/jit/disass.hpp"
 
 
 /* global variables ***********************************************************/
@@ -97,8 +98,6 @@ inline static void *md_stacktrace_get_returnaddress(void *sp, int32_t stackframe
 
 inline static void *md_codegen_get_pv_from_pc(void *ra)
 {
-    printf("md_codegen_get_pv_from_pc called.\n");
-    vm_abort("Unable to find method: %p (instr=)", ra);
 	uint32_t *pc;
 	uint32_t  mcode;
 	int       opcode;
@@ -108,8 +107,10 @@ inline static void *md_codegen_get_pv_from_pc(void *ra)
 	pc = (uint32_t *) ra;
 
 	/* Get first instruction word after jump. */
-
 	mcode = pc[0];
+    
+    printf("md_codegen_get_pv_from_pc for: %d\n", mcode);
+    disassinstr((u1*)&mcode);
 
 	/* Get opcode and displacement. */
 

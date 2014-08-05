@@ -78,6 +78,8 @@ static patcher_function_list_t patcher_function_list[] = {
 #ifdef ENABLE_VERIFIER
 	{ PATCHER_resolve_class,                 "resolve_class" },
 #endif /* ENABLE_VERIFIER */
+	{ PATCHER_resolve_classref_to_classinfo, "resolve_classref_to_classinfo"},
+	{ PATCHER_resolve_classref_to_vftbl,     "resolve_classref_to_vftbl"},
 	{ PATCHER_resolve_native_function,       "resolve_native_function" },
 	{ PATCHER_invokestatic_special,          "invokestatic_special" },
 	{ PATCHER_invokevirtual,                 "invokevirtual" },

@@ -169,9 +169,7 @@ bool md_trap_decode(trapinfo_t* trp, int sig, void* xpc, executionstate_t* es)
 
 	switch (sig) {
 	case TRAP_SIGILL:
-		// Check for valid trap instruction.
-		// TODO Check the whole instruction.
-		if (M_OP3_GET_Opcode(mcode) == 0x4) {
+		if (mcode == 0xdeadbeef) {
 			trp->type  = TRAP_PATCHER;
 			trp->value = 0;
 			return true;
@@ -181,7 +179,7 @@ bool md_trap_decode(trapinfo_t* trp, int sig, void* xpc, executionstate_t* es)
 	case TRAP_SIGSEGV:
 	{
 		// Retrieve base address of instruction.
-		uintptr_t addr = es->intregs[(mcode >> 4) & 0x0f];
+		uintptr_t addr = es->intregs[(mcode >> 5) & 0x1f];
 
 		// Check for implicit NullPointerException.
 		if (addr == 0) {

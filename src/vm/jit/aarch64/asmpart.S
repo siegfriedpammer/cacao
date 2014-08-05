@@ -70,26 +70,25 @@
 
 *******************************************************************************/
 
-	.align  2
+	.align  3
 
-	.word   0                           /* FltSave                            */
-	.word   0                           /* IntSave                            */
-	.word   0                           /* IsLeaf                             */
-	.word   0                           /* FrameSize                          */
-	.word   0                           /* CodeinfoPointer                    */
+	.long   0                           /* fltsave                            */
+	.long   1                           /* intsave                            */
+	.long   0                           /* isleaf                             */
+	.long   0                           /* frame size                         */
+	.quad   0                           /* codeinfo pointer                   */
 
 asm_vm_call_method:
 asm_vm_call_method_int:
 asm_vm_call_method_long:
 asm_vm_call_method_float:
 asm_vm_call_method_double:
-	sub		sp, sp, 48                    /* make room for saved registers  */
+	sub		sp, sp, 32                    /* make room for saved registers  */
 	str		lr, [sp]                      /* save link register             */
 
 	str		s0, [sp, 8]                   /* save registers                 */
-	str		s1, [sp, 16]
 
-	str     a0, [sp, 24]                  /* save method PV                 */
+	str     a0, [sp, 16]                  /* save method PV                 */
 
 	mov		t0, a1                        /* address of the argument array  */
 	mov     t1, a2                        /* stack argument count           */
@@ -103,73 +102,50 @@ asm_vm_call_method_double:
     ldr     a5, [t0], 8
     ldr     a6, [t0], 8
 
-    cmp     t1, #0                       /* do we have stack arguments?    */
-    ble		asm_calljava_copyfinish      /* no -> do not care :-)          */
+	ldr		fa0, [t0], 8
+	ldr		fa1, [t0], 8
+	ldr		fa2, [t0], 8
+	ldr		fa3, [t0], 8
+	ldr		fa4, [t0], 8
+	ldr		fa5, [t0], 8
+	ldr		fa6, [t0], 8
 
-	add     sp, sp, 48                    /* restore SP */
-	ret
+    cbz		t1, L_asm_vm_call_method_stack_copy_done    /* check for stack arguments */
 
-//	stmfd sp!, {v1}                   /* V1 is used to remember SP        */
-//	str   a0, [sp, #-4]!              /* store methods entrypoint         */
-//
-//	mov   v1, sp                      /* remember SP                      */
-//
-//	mov   itmp1, a1                   /* address of data structure        */
-//	mov   itmp3, a2                   /* stack argument count             */
-//
-//	ldr   a0, [itmp1], #8             /* load argument registers          */
-//	ldr   a1, [itmp1], #8
-//	ldr   a2, [itmp1], #8
-//	ldr   a3, [itmp1], #8
+	sub		sp, sp, t1, LSL 3             /* calculate new SP for call      */
+	mov		t2, sp                        /* tmp 'SP' for loop              */
 
-//	cmp   itmp3, #0                   /* do we have stack arguments?      */
-//	ble   asm_calljava_copyfinish     /* no -> do not care :-)            */
-//
-//	mov   itmp2, #0
-//	sub   sp, sp, itmp3, lsl #3       /* create stackframe for arguments  */
-asm_calljava_copyloop:                /* reorder stack arguments!         */
-//	ldr   ip, [itmp1], #4             /* load argument                    */
-//	str   ip, [sp, itmp2]             /* store argument on stack          */
-//	add   itmp2, itmp2, #4            /* next stackslot                   */
-//	ldr   ip, [itmp1], #4             /* load argument                    */
-//	str   ip, [sp, itmp2]             /* store argument on stack          */
-//	add   itmp2, itmp2, #4            /* next stackslot                   */
-//	subs  itmp3, itmp3, #1            /* next argument                    */
-//	bgt   asm_calljava_copyloop
+L_asm_vm_call_method_stack_copy_loop:
+	ldr		t3, [t0], 8                   /* load argument into t3, inc addr in t0 by 8 after */
+	str		t3, [t2], 8                   /* store arg in the new stack, inc addr of tmp 'sp' after */
 
-asm_calljava_copyfinish:
-	ldr		s1, [s0, 24]
-	blr		s1 
+	sub		t1, t1, 1                     /* decrement stack argument count by one */
+	cbnz	t1, L_asm_vm_call_method_stack_copy_loop
+
+L_asm_vm_call_method_stack_copy_done:
+	ldr		mptr, [s0, 16]               /* get address of PV                      */
+	mov     pv, mptr                     /* load PV                                */
+	blr		pv 
 	
-//	mov   mptr, v1                    /* set method pointer               */
-//
-//	/* REMEMBER: do the method call just like in java! */
-//	ldr   ip, [mptr]                  /* fake virtual function call       */
-//	mov   lr, pc
-// 	mov   pc, ip
-fake:
-	mov		sp, t0
-	add		sp, sp, #8
+L_asm_vm_call_method_recompute_pv:
+	sub		pv, lr, (asm_vm_call_method - L_asm_vm_call_method_recompute_pv)
+
+L_asm_vm_call_method_recompute_return:
+	mov		sp, s0                      /* restore stack pointer            */
+	
+	ldr		lr, [sp]				    /* restore load register            */
+	ldr		s0, [sp, 8]
+	
+	add		sp, sp, 32 
 	ret
-//	sub   ip, pc, #(fake - asm_vm_call_method)+8
-//
-//	mov   sp, v1                      /* restore SP                       */
-//	add   sp, sp, #4                  /* free fake address                */
-//	ldmfd sp!, {v1}
-//	RESTORE_SCRATCH_REGS_AND_RETURN   /* return to caller, restore regs   */
 
 asm_vm_call_method_exception_handler:
-//	mov   a0, xptr                    /* exception pointer is arg1        */
-//	bl    builtin_throw_exception     /* throw the exception              */
-//	mov   res1, #0                    /* return NULL                      */
-//	mov   res2, #0                    /* return NULL                      */
-//	mov   sp, v1                      /* restore SP                       */
-//	add   sp, sp, #4                  /* free fake address                */
-//	ldmfd sp!, {v1}
-//	RESTORE_SCRATCH_REGS_AND_RETURN   /* return to caller, restore regs   */
-	ret
+	mov		sp, s0                    /* restore stack pointer            */
+	mov		a0, xptr                  /* exception pointer is only arg    */
+	bl		builtin_throw_exception   /* throw the exception              */
 
 asm_vm_call_method_end:
+	b		L_asm_vm_call_method_recompute_return
 
 
 /********************* function asm_handle_exception ***************************
@@ -183,8 +159,10 @@ asm_vm_call_method_end:
 *   void asm_handle_exception (exceptionptr, exceptionpc);                     *
 *                                                                              *
 *******************************************************************************/
+	
 
 asm_handle_nat_exception:
+L_asm_handle_nat_exception:
 	/*TODO:maybe make a macro out of it!!!*/
 //	SAVE_ARGUMENT_REGISTERS  
 //	mov   a0, lr
@@ -192,6 +170,7 @@ asm_handle_nat_exception:
 //	mov   ip, res1
 //	RESTORE_ARGUMENT_REGISTERS  
 	/* fall through */
+
 
 asm_handle_exception:
 //	stmfd sp!, {r0 - r3}               /* save possible used registers    */
@@ -259,6 +238,21 @@ asm_handle_exception_not_catched:
 *******************************************************************************/
 
 asm_abstractmethoderror:
+	sub		sp, sp, 16					/* create stackframe                  */
+	str		lr,	[sp]                    /* save return address                */
+
+	add		a0, sp, 16                  /* original SP is argument for java   */
+	mov		a1, lr						/* pass exception address             */
+	bl		exceptions_asm_new_abstractmethoderror
+
+	ldr		lr, [sp]					/* resture return address             */
+	add		sp, sp, 16                  /* remove stackframe                  */
+
+	mov		xptr, a0					/* get exception pointer              */
+	sub		xpc, lr, 4                  /* exception address is lr - 4        */
+	b		L_asm_handle_nat_exception
+
+
 //	stmfd sp!, {lr}                     /* save return address                */
 //	add   a0, sp, #(1*4)                /* pass java sp                       */
 //	mov   a1, lr                        /* pass exception address             */
@@ -285,7 +279,6 @@ asm_abstractmethoderror:
 asm_cacheflush:
 	isb
 	dsb sy
-
 
 /* disable exec-stacks ********************************************************/
 

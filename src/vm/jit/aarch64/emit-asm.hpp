@@ -1,8 +1,8 @@
-/* src/vm/jit/aarch64/md-stubs.hpp - Aarch64 JIT stubs
+/* src/vm/jit/aarch64/emit-asm.hpp - emit asm instructions for Aarch64
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
-   Copyright (C) 2008 Theobroma Systems Ltd.
+   Copyright (C) 2009 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -23,25 +23,32 @@
 
 */
 
-
-#ifndef MD_STUBS_HPP_
-#define MD_STUBS_HPP_ 1
+#ifndef VM_JIT_AARCH64_EMIT_ASM_HPP_
+#define VM_JIT_AARCH64_EMIT_ASM_HPP_
 
 #include "config.h"
 
+#include "vm/types.hpp"
+#include "vm/jit/codegen-common.hpp"
 
-/**
- * Return the code size of a compiler on the aarch64 architecture.
- *
- * @return Code size in bytes.
- */
-int CompilerStub::get_code_size()
+#define LSL(x,a) ((x) << a)
+
+inline static void emit_ldstr_reg_us(codegendata *cd, u1 size, u1 v, u1 opc, u2 imm12, u1 Rt, u1 Rn)
 {
-	return 1 * 4;
+	// TODO: handle this scaling thingy
+	*((u4 *) cd->mcodeptr) = LSL(size, 30) | LSL(v, 26) | LSL(opc, 22) 
+						   | LSL(imm12/8, 10) | LSL(Rn, 5) | Rt | 0x39000000;
+	cd->mcodeptr += 4;
 }
 
-#endif // MD_STUBS_HPP_
+inline static void emit_ldstr_reg_usc(codegendata *cd, u1 size, u2 imm9, u1 Rt, u1 Rn)
+{
+	*((u4 *) cd->mcodeptr) = LSL(size, 30)   
+						   | LSL(imm9 & 0x1ff, 12) | LSL(Rn, 5) | Rt | 0x38400000;
+	cd->mcodeptr += 4;
+}
 
+#endif // VM_JIT_AARCH64_EMIT_ASM_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.

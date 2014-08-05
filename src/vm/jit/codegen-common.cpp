@@ -704,7 +704,18 @@ namespace {
  *
  * @note should be moved to a backend code unit.
  */
-#if defined(__ALPHA__)
+#if defined(__AARCH64__)
+struct FrameInfo {
+	u1 *sp;
+	int32_t framesize;
+	FrameInfo(u1 *sp, int32_t framesize) : sp(sp), framesize(framesize) {}
+	uint8_t  *get_datasp()    const { return  sp + framesize - SIZEOF_VOID_P; }
+	uint8_t  *get_javasp()    const { return  sp + framesize; }
+	uint64_t *get_arg_regs()  const { return (uint64_t *) sp; }
+	uint64_t *get_arg_stack() const { return (uint64_t *) get_javasp(); }
+	uint64_t *get_ret_regs()  const { return (uint64_t *) sp; }
+};
+#elif defined(__ALPHA__)
 struct FrameInfo {
 	u1 *sp;
 	int32_t framesize;

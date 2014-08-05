@@ -54,8 +54,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	void* xpc = (void*) _mc->pc;
 
-    printf("Fault address: %x\n", _mc->fault_address);
-
 	// Handle the trap.
 	trap_handle(TRAP_SIGSEGV, xpc, _p);
 }
@@ -66,7 +64,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
  */
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 {
-    printf("md_signal_handler_sigill\n");
 	ucontext_t* _uc = (ucontext_t*) _p;
 	mcontext_t* _mc = &_uc->uc_mcontext;
 
@@ -110,7 +107,6 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 
 void md_executionstate_read(executionstate_t *es, void *context)
 {
-    printf("md_executionstate_read \n");
 	ucontext_t *_uc;
 	mcontext_t *_mc;
 	int         i;
@@ -151,7 +147,6 @@ void md_executionstate_read(executionstate_t *es, void *context)
 
 void md_executionstate_write(executionstate_t *es, void *context)
 {
-    printf("md_executionstate_write\n");
 	ucontext_t *_uc;
 	mcontext_t *_mc;
 	int         i;
@@ -159,22 +154,28 @@ void md_executionstate_write(executionstate_t *es, void *context)
 	_uc = (ucontext_t *) context;
 	_mc = &_uc->uc_mcontext;
 
-//	/* write integer registers */
-//	for (i = 0; i < INT_REG_CNT; i++)
-//		_mc->sc_regs[i] = es->intregs[i];
-//
-//	/* write float registers */
-//	/* Do not use the assignment operator '=', as the type of
-//	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
-//
-//	assert(sizeof(_mc->sc_fpregs) == sizeof(es->fltregs));
-//	os::memcpy(&_mc->sc_fpregs, &es->fltregs, sizeof(_mc->sc_fpregs));
-//
-//	/* write special registers */
-//	_mc->sc_pc           = (ptrint) es->pc;
-//	_mc->sc_regs[REG_SP] = (ptrint) es->sp;
-//	_mc->sc_regs[REG_PV] = (ptrint) es->pv;
-//	_mc->sc_regs[REG_RA] = (ptrint) es->ra;
+	/* write integer registers */
+	for (i = 0; i < INT_REG_CNT; i++)
+		_mc->regs[i] = es->intregs[i];
+
+	/* write float registers */
+	/* Do not use the assignment operator '=', as the type of
+	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
+
+    /* float registers are in an extension section of the sigcontext (mcontext_t) */
+    struct fpsimd_context *_fc = (struct fpsimd_context *) &(_mc->__reserved);
+
+    /* check if we found the correct extension */
+    if (_fc->head.magic == FPSIMD_MAGIC) {
+        assert(sizeof(_fc->vregs) == sizeof(es->fltregs));
+    	os::memcpy(&_fc->vregs, &es->fltregs, sizeof(_fc->vregs));
+    }
+
+	/* write special registers */
+	_mc->pc           = (ptrint) es->pc;
+	_mc->regs[REG_SP] = (ptrint) es->sp;
+	_mc->regs[REG_PV] = (ptrint) es->pv;
+	_mc->regs[REG_LR] = (ptrint) es->ra;
 }
 
 

@@ -1,4 +1,4 @@
-/* src/vm/jit/alpha/codegen.hpp - code generation macros and definitions for Alpha
+/* src/vm/jit/aarch64/codegen.hpp - code generation macros and definitions for Aarch64
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -28,6 +28,7 @@
 #define CODEGEN_HPP_ 1
 
 #include "config.h"
+#include "emit-asm.hpp"
 #include "vm/types.hpp"
 
 #include "vm/jit/jit.hpp"
@@ -43,8 +44,6 @@
         codegen_add_arrayindexoutofboundsexception_ref(cd, s2); \
     }
 
-
-/* MCODECHECK(icnt) */
 
 #define MCODECHECK(icnt) \
     do { \
@@ -62,6 +61,7 @@
 #define ICONST(d,c)        emit_iconst(cd, (d), (c))
 #define LCONST(d,c)        emit_lconst(cd, (d), (c))
 
+#define SHIFT(x,s)         ((x) << s)
 
 /* branch defines *************************************************************/
 
@@ -83,6 +83,56 @@
 
 /* macros to create code ******************************************************/
 
+/* AARCH64 ===================================================================*/
+
+/* Load/store register (unscaled immediate) instruction class *****************/
+
+#define M_LDSTR_REG_UC(size,v,opc,imm9,Rn,Rt) \
+    do { \
+        *((uint32_t *) cd->mcodeptr) = \
+        cd->mcodeptr += 4; \
+    } while (0)
+
+/* Load/store register (unsigned immediate) instruction class *****************/
+
+#define M_LDSTR_REG_US(size,v,opc,imm12,Rn,Rt) \
+    do { \
+        if ((imm12 % 8) > 0) \
+            os::abort("Immediate not 8 aligned."); \
+        *((uint32_t *) cd->mcodeptr) = (SHIFT(size,30) | SHIFT(v,26) | SHIFT(opc,22) | SHIFT(imm12 / 8,10) | SHIFT(Rn,5) | (Rt) | 0x39000000);\
+        cd->mcodeptr += 4; \
+    } while (0)
+
+//#define M_LST(Rt,Rn,offset) emit_ldstr_reg_us(cd, 0x3, 0, 0, offset, Rt, Rn)
+//#define M_IST(Rt,Rn,offset) M_LST(Rt, Rn, offset)
+
+//#define M_DST(Rt,Rn,offset) emit_ldstr_reg_us(cd, 0x3, 1, 0, offset, Rt, Rn)
+//#define M_FST(Rt,Rn,offset) M_DST(Rt, Rn, offset)
+
+//#define M_LLD(Rt,Rn,offset) emit_ldstr_reg_us(cd, 0x3, 0, 1, offset, Rn, Rt)
+//#define M_LLD(Rt,Rn,offset) emit_ldstr_reg_usc(cd, 0x3, offset, Rt, Rn)
+//#define M_ILD(Rt,Rn,offset) M_LLD(Rt, Rn, offset)
+//#define M_ALD(Rt,Rn,offset) M_LLD(Rt, Rn, offset)
+
+/* TODO: remove this, only for backward compat */
+/*#define M_LDA(Rt,Rn,offset) \
+    do { \
+        if (offset >= 0) \
+            M_LADD_IMM(Rt, Rn, offset); \
+        else \
+            M_LSUB_IMM(Rt, Rn, offset * (-1)); \
+    } while (0)
+#define M_LDAH(Rt,Rn,offset) M_LDA(Rt,Rn,offset)
+#define M_LDA_INTERN(Rt,Rn,offset) M_LDA(Rt,Rn,offset) */
+
+#define M_MOV(Rm,Rd) \
+    do { \
+        *((uint32_t *) cd->mcodeptr) = (SHIFT(Rm,16) | (Rd) | SHIFT(0x1f,5) | 0xAA000000);\
+        cd->mcodeptr += 4; \
+    } while (0)
+
+/* ===========================================================================*/
+
 /* M_MEM - memory instruction format *******************************************
 
     Opcode ........ opcode
@@ -92,11 +142,12 @@
 
 *******************************************************************************/
 
-#define M_MEM(Opcode,Ra,Rb,Memory_disp) \
+/*#define M_MEM(Opcode,Ra,Rb,Memory_disp) \
     do { \
         *((uint32_t *) cd->mcodeptr) = ((((Opcode)) << 26) | ((Ra) << 21) | ((Rb) << 16) | ((Memory_disp) & 0xffff)); \
         cd->mcodeptr += 4; \
-    } while (0)
+    } while (0)*/
+#define M_MEM(a,b,c,d) M_NOP
 
 #define M_MEM_GET_Opcode(x)             (          (((x) >> 26) & 0x3f  ))
 #define M_MEM_GET_Ra(x)                 (          (((x) >> 21) & 0x1f  ))
@@ -112,11 +163,12 @@
 
 *******************************************************************************/
 
-#define M_BRA(Opcode,Ra,Branch_disp) \
+/*#define M_BRA(Opcode,Ra,Branch_disp) \
     do { \
         *((uint32_t *) cd->mcodeptr) = ((((Opcode)) << 26) | ((Ra) << 21) | ((Branch_disp) & 0x1fffff)); \
         cd->mcodeptr += 4; \
-    } while (0)
+    } while (0)*/
+#define M_BRA(a,b,c) M_NOP
 
 
 #define REG   0
@@ -133,11 +185,12 @@
                  (CONST means: use b as constant 8-bit-integer)
 */      
 
-#define M_OP3(op,fu,a,b,c,const) \
+/*#define M_OP3(op,fu,a,b,c,const) \
     do { \
         *((u4 *) cd->mcodeptr) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << (16 - 3 * (const))) | ((const) << 12) | ((fu) << 5) | ((c))); \
         cd->mcodeptr += 4; \
-    } while (0)
+    } while (0)*/
+#define M_OP3(op,fu,a,b,c,const) M_NOP
 
 #define M_OP3_GET_Opcode(x)             (          (((x) >> 26) & 0x3f  ))
 
@@ -149,11 +202,12 @@
      c ..... destination register
 */ 
 
-#define M_FOP3(op,fu,a,b,c) \
+/*#define M_FOP3(op,fu,a,b,c) \
     do { \
         *((u4 *) cd->mcodeptr) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << 16) | ((fu) << 5) | (c)); \
         cd->mcodeptr += 4; \
-    } while (0)
+    } while (0)*/
+#define M_FOP3(op,fu,a,b,c) M_NOP
 
 
 /* macros for all used commands (see an Alpha-manual for description) *********/
@@ -228,7 +282,7 @@
             M_LDAH(REG_ITMP3,b,hi); \
             M_IST_INTERN(a,REG_ITMP3,lo); \
         } \
-    } while (0)
+    } while (0) 
 
 #define M_LST(a,b,disp) \
     do { \
@@ -240,7 +294,7 @@
             M_LDAH(REG_ITMP3,b,hi); \
             M_LST_INTERN(a,REG_ITMP3,lo); \
         } \
-    } while (0)
+    } while (0) 
 
 #define M_AST(a,b,disp)         M_LST(a,b,disp)                 /* addr store */
 
@@ -268,15 +322,15 @@
 #define M_LMUL(a,b,c)           M_OP3 (0x13,0x20, a,b,c,0)      /* 64 mul     */
 
 /* ============== aarch64 ================ */
-#define M_LSUB_IMM(Rd,Rn,imm) \
+#define M_LSUB_IMM(Rd,Rn,imm12) \
     do { \
-        *((u4 *) cd->mcodeptr) = ((0x344 << 22) | ((imm) << 10) | (Rd) | ((Rn) << 5)); \
+        *((u4 *) cd->mcodeptr) = ((0x344 << 22) | ((imm12) << 10) | (Rd) | ((Rn) << 5)); \
         cd->mcodeptr += 4; \
     } while (0) \
 
-#define M_LADD_IMM(Rd,Rn,imm) \
+#define M_LADD_IMM(Rd,Rn,imm12) \
     do { \
-        *((u4 *) cd->mcodeptr) = ((0x244 << 22) | ((imm) << 10) | (Rd) | ((Rn) << 5)); \
+        *((u4 *) cd->mcodeptr) = ((0x244 << 22) | ((imm12) << 10) | (Rd) | ((Rn) << 5)); \
         cd->mcodeptr += 4; \
     } while (0) \
 
@@ -325,7 +379,7 @@
 #define M_OR_IMM( a,b,c)        M_OP3 (0x11,0x20, a,b,c,1)      /* c = a |  b */
 #define M_XOR_IMM(a,b,c)        M_OP3 (0x11,0x40, a,b,c,1)      /* c = a ^  b */
 
-#define M_MOV(a,c)              M_OR (a,a,c)                    /* c = a      */
+// #define M_MOV(a,c)              M_OR (a,a,c)                    /* c = a      */
 #define M_CLR(c)                M_OR (31,31,c)                  /* c = 0      */
 // #define M_NOP                   M_OR (31,31,31)                 /* ;          */
 
@@ -541,7 +595,12 @@
 
 // 0x04 seems to be the first undefined instruction which does not
 // call PALcode.
-#define M_UNDEFINED             M_OP3(0x04, 0, 0, 0, 0, 0)
+//#define M_UNDEFINED             M_OP3(0x04, 0, 0, 0, 0, 0)
+#define M_UNDEFINED \
+    do { \
+        *((u4 *) cd->mcodeptr) = 0xdeadbeef; \
+        cd->mcodeptr += 4; \
+    } while (0)
 
 /* macros for unused commands (see an Alpha-manual for description) ***********/
 
