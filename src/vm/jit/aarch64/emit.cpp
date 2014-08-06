@@ -466,7 +466,7 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 
 void emit_trap_compiler(codegendata *cd)
 {
-	M_ALD_INTERN(REG_METHODPTR, REG_ZERO, TRAP_COMPILER);
+	emit_trap(cd, REG_METHODPTR, TRAP_COMPILER);
 }
 
 
@@ -478,15 +478,11 @@ void emit_trap_compiler(codegendata *cd)
 
 uint32_t emit_trap(codegendata *cd)
 {
-	uint32_t mcode;
-
 	/* Get machine code which is patched back in later. The
 	   trap is 1 instruction word long. */
+	uint32_t mcode = *((uint32_t*) cd->mcodeptr);
 
-	mcode = *((uint32_t*) cd->mcodeptr);
-
-	// Generate a SIGILL.
-	M_UNDEFINED;
+	emit_trap(cd, 0, TRAP_PATCHER);
 
 	return mcode;
 }
@@ -797,6 +793,8 @@ void emit_verbosecall_exit(jitdata *jd)
 	case TYPE_DBL:
 		M_DST(REG_FRESULT, REG_SP, 1 * 8);
 		break;
+	case TYPE_VOID:
+		break;
 	default:
 		assert(false);
 		break;
@@ -823,6 +821,8 @@ void emit_verbosecall_exit(jitdata *jd)
 	case TYPE_FLT:
 	case TYPE_DBL:
 		M_DLD(REG_FRESULT, REG_SP, 1 * 8);
+		break;
+	case TYPE_VOID:
 		break;
 	default:
 		assert(false);

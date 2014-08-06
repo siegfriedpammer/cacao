@@ -235,11 +235,7 @@ void md_param_alloc_native(methoddesc *md)
 
 /* md_return_alloc *************************************************************
 
-   Precolor the Java Stackelement containing the Return Value. Since
-   alpha has a dedicated return register (not an reused arg or
-   reserved reg), this is striaghtforward possible, as long, as this
-   stackelement does not have to survive a method invokation
-   (SAVEDVAR)
+   Precolor the Java Stackelement containing the Return Value, if possible. 
 
    --- in
    jd:                      jitdata of the current method
@@ -256,26 +252,40 @@ void md_param_alloc_native(methoddesc *md)
 
 void md_return_alloc(jitdata *jd, stackelement_t *stackslot)
 {
-	methodinfo *m;
-	methoddesc *md;
+	methodinfo   *m;
+	codeinfo     *code;
+	registerdata *rd;
+	methoddesc   *md;
 
 	/* get required compiler data */
-
-	m = jd->m;
+	m    = jd->m;
+	code = jd->code;
+	rd   = jd->rd;
 
 	md = m->parseddesc;
 
+	/* In Leafmethods Local Vars holding parameters are precolored to
+	   their argument register -> so leafmethods with paramcount > 0
+	   could already use R0 == a00! */
+
+	if (!code_is_leafmethod(code) || (md->paramcount == 0)) {
 	/* Only precolor the stackslot, if it is not a SAVEDVAR <-> has
 	   not to survive method invokations. */
 
-	if (!(stackslot->flags & SAVEDVAR)) {
+		if (!(stackslot->flags & SAVEDVAR)) {
 
-		VAR(stackslot->varnum)->flags = PREALLOC;
+			VAR(stackslot->varnum)->flags = PREALLOC;
 
-		if (IS_INT_LNG_TYPE(md->returntype.type))
-			VAR(stackslot->varnum)->vv.regoff = REG_RESULT;
-		else
-			VAR(stackslot->varnum)->vv.regoff = REG_FRESULT;
+			if (IS_INT_LNG_TYPE(md->returntype.type)) {
+				if (rd->argintreguse < 1)
+					rd->argintreguse = 1;
+				VAR(stackslot->varnum)->vv.regoff = REG_RESULT;
+			} else {
+				if (rd->argfltreguse < 1)
+					rd->argfltreguse = 1;
+				VAR(stackslot->varnum)->vv.regoff = REG_FRESULT;
+			}
+		}
 	}
 }
 

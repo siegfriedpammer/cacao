@@ -92,7 +92,6 @@ void codegen_emit_prolog(jitdata* jd)
 		M_LSUB_IMM(REG_SP, REG_SP, offset);
 		// M_LDA(REG_SP, REG_SP, -(cd->stackframesize * 8));
 	}
-	return;
 
 	/* save return address and used callee saved registers */
 
@@ -183,16 +182,16 @@ void codegen_emit_epilog(jitdata* jd)
 	/* restore return address */
 
 	if (!code_is_leafmethod(code)) {
-		p--; //M_LLD(REG_RA, REG_SP, p * 8);
+		p--; M_LLD(REG_RA, REG_SP, p * 8);
 	}
 
 	/* restore saved registers */
 
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
-		p--; //M_LLD(rd->savintregs[i], REG_SP, p * 8);
+		p--; M_LLD(rd->savintregs[i], REG_SP, p * 8);
 	}
 	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
-		p--; //M_DLD(rd->savfltregs[i], REG_SP, p * 8);
+		p--; M_DLD(rd->savfltregs[i], REG_SP, p * 8);
 	}
 
 	/* deallocate stack */
@@ -204,8 +203,7 @@ void codegen_emit_epilog(jitdata* jd)
 		// M_LDA(REG_SP, REG_SP, cd->stackframesize * 8);
 	}
 
-	M_RET0();
-	//M_RET(REG_ZERO, REG_RA);
+	M_RET(REG_ZERO, REG_RA);
 }
 
 
@@ -2494,9 +2492,11 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
 
 	/* generate stub code */
+	u4 stackoffset = (cd->stackframesize * 8);
+	stackoffset += stackoffset % 16;
 
-	M_LDA(REG_SP, REG_SP, -(cd->stackframesize * 8));
-	M_AST(REG_RA, REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
+	M_LDA(REG_SP, REG_SP, -stackoffset);
+	M_AST(REG_RA, REG_SP, stackoffset - SIZEOF_VOID_P);
 
 #if defined(ENABLE_GC_CACAO)
 	/* Save callee saved integer registers in stackframeinfo (GC may
@@ -2703,6 +2703,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 #if defined(ENABLE_GC_CACAO)
 	/* Restore callee saved integer registers from stackframeinfo (GC
 	   might have modified them during a collection). */
+	os::abort("NOT IMPLEMENTED YET!");
   	 
 	disp = cd->stackframesize * 8 - SIZEOF_VOID_P - sizeof(stackframeinfo_t) +
 		OFFSET(stackframeinfo_t, intregs);
@@ -2711,8 +2712,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		M_ALD(abi_registers_integer_saved[i], REG_SP, disp + i * 8);
 #endif
 
-	M_ALD(REG_RA, REG_SP, (cd->stackframesize - 1) * 8); /* get RA            */
-	M_LDA(REG_SP, REG_SP, cd->stackframesize * 8);
+	M_ALD(REG_RA, REG_SP, stackoffset - 8); /* get RA            */
+	M_LDA(REG_SP, REG_SP, stackoffset);
 
 	/* check for exception */
 

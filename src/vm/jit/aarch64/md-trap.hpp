@@ -32,34 +32,26 @@
 /**
  * Trap number defines.
  *
- * On this architecture (alpha) the trap numbers are used as load
- * displacements and thus must not be 4- or 8-byte aligned.
- *
- * NOTE: In trap_init() we have a check whether the offset of
- * java_arrayheader.data[0] is greater than the largest displacement
- * defined below.  Otherwise normal array loads/stores could trigger
- * an exception.
+ * On this architecture (Aarch64) we use illegal instructions as trap
+ * instructions.  Since the illegal instruction with the value 1 is
+ * used by the kernel to generate a SIGTRAP, we skip this one.
  */
 
-#define TRAP_INSTRUCTION_IS_LOAD    1
+#define TRAP_INSTRUCTION_IS_LOAD    0
 
 enum {
 	TRAP_NullPointerException           = 0,
-	TRAP_ArithmeticException            = 1,
-	TRAP_ArrayIndexOutOfBoundsException = 2,
-	TRAP_ArrayStoreException            = 3,
 
-	/* Don't use 4 (could be a normal load offset). */
+	/* Skip 1 because it's the SIGTRAP illegal instruction. */
 
+	TRAP_ArithmeticException            = 2,
+	TRAP_ArrayIndexOutOfBoundsException = 3,
+	TRAP_ArrayStoreException            = 4,
 	TRAP_ClassCastException             = 5,
 	TRAP_CHECK_EXCEPTION                = 6,
 	TRAP_PATCHER                        = 7,
-
-	/* Don't use 8 (could be a normal load offset). */
-
-	TRAP_COMPILER                       = 9,
-	TRAP_COUNTDOWN                      = 10,
-	TRAP_END
+	TRAP_COMPILER                       = 8,
+	TRAP_COUNTDOWN                      = 9
 };
 
 

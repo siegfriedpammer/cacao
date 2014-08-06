@@ -85,24 +85,6 @@
 
 /* AARCH64 ===================================================================*/
 
-/* Load/store register (unscaled immediate) instruction class *****************/
-
-#define M_LDSTR_REG_UC(size,v,opc,imm9,Rn,Rt) \
-    do { \
-        *((uint32_t *) cd->mcodeptr) = \
-        cd->mcodeptr += 4; \
-    } while (0)
-
-/* Load/store register (unsigned immediate) instruction class *****************/
-
-#define M_LDSTR_REG_US(size,v,opc,imm12,Rn,Rt) \
-    do { \
-        if ((imm12 % 8) > 0) \
-            os::abort("Immediate not 8 aligned."); \
-        *((uint32_t *) cd->mcodeptr) = (SHIFT(size,30) | SHIFT(v,26) | SHIFT(opc,22) | SHIFT(imm12 / 8,10) | SHIFT(Rn,5) | (Rt) | 0x39000000);\
-        cd->mcodeptr += 4; \
-    } while (0)
-
 //#define M_LST(Rt,Rn,offset) emit_ldstr_reg_us(cd, 0x3, 0, 0, offset, Rt, Rn)
 //#define M_IST(Rt,Rn,offset) M_LST(Rt, Rn, offset)
 
@@ -114,22 +96,21 @@
 //#define M_ILD(Rt,Rn,offset) M_LLD(Rt, Rn, offset)
 //#define M_ALD(Rt,Rn,offset) M_LLD(Rt, Rn, offset)
 
-/* TODO: remove this, only for backward compat */
-/*#define M_LDA(Rt,Rn,offset) \
-    do { \
-        if (offset >= 0) \
-            M_LADD_IMM(Rt, Rn, offset); \
-        else \
-            M_LSUB_IMM(Rt, Rn, offset * (-1)); \
-    } while (0)
-#define M_LDAH(Rt,Rn,offset) M_LDA(Rt,Rn,offset)
-#define M_LDA_INTERN(Rt,Rn,offset) M_LDA(Rt,Rn,offset) */
+#define M_LLD_INTERN(a,b,disp)      emit_ldr_imm(cd, a, b, disp)
+#define M_LST_INTERN(a,b,disp)      emit_str_imm(cd, a, b, disp)
 
-#define M_MOV(Rm,Rd) \
-    do { \
-        *((uint32_t *) cd->mcodeptr) = (SHIFT(Rm,16) | (Rd) | SHIFT(0x1f,5) | 0xAA000000);\
-        cd->mcodeptr += 4; \
-    } while (0)
+#define M_LDA(a,b,disp)             emit_lda(cd, a, b, disp)
+
+#define M_RET(a,b)                  emit_ret(cd)
+#define M_JSR(a,b)                  emit_blr(cd, b)
+#define M_JMP(a,b)                  emit_br_aa(cd, b)
+
+#define M_LADD_IMM(a,b,imm)         emit_add_imm(cd, a, b, imm)
+#define M_LSUB_IMM(a,b,imm)         emit_sub_imm(cd, a, b, imm)
+
+#define M_MOV(a,b)                  emit_mov(cd, b, a)
+
+#define M_BNEZ(a,disp)              emit_cbnz(cd, a, disp + 1)
 
 /* ===========================================================================*/
 
@@ -214,7 +195,7 @@
 
 #define M_LDA_INTERN(a,b,disp)  M_MEM(0x08,a,b,disp)            /* low const  */
 
-#define M_LDA(a,b,disp) \
+/*#define M_LDA(a,b,disp) \
     do { \
         s4 lo = (short) (disp); \
         s4 hi = (short) (((disp) - lo) >> 16); \
@@ -224,7 +205,7 @@
             M_LDAH(a,b,hi); \
             M_LDA_INTERN(a,a,lo); \
         } \
-    } while (0)
+    } while (0) */
 
 #define M_LDAH(a,b,disp)        M_MEM (0x09,a,b,disp)           /* high const */
 
@@ -232,7 +213,7 @@
 #define M_SLDU(a,b,disp)        M_MEM (0x0c,a,b,disp)           /* 16 load    */
 
 #define M_ILD_INTERN(a,b,disp)  M_MEM(0x28,a,b,disp)            /* 32 load    */
-#define M_LLD_INTERN(a,b,disp)  M_MEM(0x29,a,b,disp)            /* 64 load    */
+//#define M_LLD_INTERN(a,b,disp)  M_MEM(0x29,a,b,disp)            /* 64 load    */
 
 #define M_ILD(a,b,disp) \
     do { \
@@ -266,7 +247,7 @@
 #define M_SST(a,b,disp)         M_MEM(0x0d,a,b,disp)            /* 16 store   */
 
 #define M_IST_INTERN(a,b,disp)  M_MEM(0x2c,a,b,disp)            /* 32 store   */
-#define M_LST_INTERN(a,b,disp)  M_MEM(0x2d,a,b,disp)            /* 64 store   */
+// #define M_LST_INTERN(a,b,disp)  M_MEM(0x2d,a,b,disp)            /* 64 store   */
 
 /* Stores with displacement overflow should only happen with PUTFIELD or on   */
 /* the stack. The PUTFIELD instruction does not use REG_ITMP3 and a           */
@@ -306,13 +287,13 @@
 #define M_BEQZ(a,disp)          M_BRA (0x39,a,disp)             /* br a == 0  */
 #define M_BLTZ(a,disp)          M_BRA (0x3a,a,disp)             /* br a <  0  */
 #define M_BLEZ(a,disp)          M_BRA (0x3b,a,disp)             /* br a <= 0  */
-#define M_BNEZ(a,disp)          M_BRA (0x3d,a,disp)             /* br a != 0  */
+//#define M_BNEZ(a,disp)          M_BRA (0x3d,a,disp)             /* br a != 0  */
 #define M_BGEZ(a,disp)          M_BRA (0x3e,a,disp)             /* br a >= 0  */
 #define M_BGTZ(a,disp)          M_BRA (0x3f,a,disp)             /* br a >  0  */
 
-#define M_JMP(a,b)              M_MEM (0x1a,a,b,0x0000)         /* jump       */
-#define M_JSR(a,b)              M_MEM (0x1a,a,b,0x4000)         /* call sbr   */
-#define M_RET(a,b)              M_MEM (0x1a,a,b,0x8000)         /* return     */
+// #define M_JMP(a,b)              M_MEM (0x1a,a,b,0x0000)         /* jump       */
+// #define M_JSR(a,b)              M_MEM (0x1a,a,b,0x4000)         /* call sbr   */
+// #define M_RET(a,b)              M_MEM (0x1a,a,b,0x8000)         /* return     */
 
 #define M_IADD(a,b,c)           M_OP3 (0x10,0x0,  a,b,c,0)      /* 32 add     */
 #define M_LADD(a,b,c)           M_OP3 (0x10,0x20, a,b,c,0)      /* 64 add     */
@@ -322,24 +303,6 @@
 #define M_LMUL(a,b,c)           M_OP3 (0x13,0x20, a,b,c,0)      /* 64 mul     */
 
 /* ============== aarch64 ================ */
-#define M_LSUB_IMM(Rd,Rn,imm12) \
-    do { \
-        *((u4 *) cd->mcodeptr) = ((0x344 << 22) | ((imm12) << 10) | (Rd) | ((Rn) << 5)); \
-        cd->mcodeptr += 4; \
-    } while (0) \
-
-#define M_LADD_IMM(Rd,Rn,imm12) \
-    do { \
-        *((u4 *) cd->mcodeptr) = ((0x244 << 22) | ((imm12) << 10) | (Rd) | ((Rn) << 5)); \
-        cd->mcodeptr += 4; \
-    } while (0) \
-
-#define M_RET0() \
-    do { \
-        *((u4 *) cd->mcodeptr) = (0xd65f03c0); \
-        cd->mcodeptr += 4; \
-    } while (0) \
-
 #define M_NOP \
     do { \
         *((u4 *) cd->mcodeptr) = (0xd503201f); \
@@ -596,11 +559,6 @@
 // 0x04 seems to be the first undefined instruction which does not
 // call PALcode.
 //#define M_UNDEFINED             M_OP3(0x04, 0, 0, 0, 0, 0)
-#define M_UNDEFINED \
-    do { \
-        *((u4 *) cd->mcodeptr) = 0xdeadbeef; \
-        cd->mcodeptr += 4; \
-    } while (0)
 
 /* macros for unused commands (see an Alpha-manual for description) ***********/
 

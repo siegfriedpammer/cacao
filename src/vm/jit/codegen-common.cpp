@@ -877,6 +877,9 @@ struct FrameInfo {
 
 java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 {
+	assert(sp);
+	assert(pv);
+
 	stackframeinfo_t *sfi;
 	localref_table   *lrt;
 	codeinfo         *code;
@@ -920,7 +923,7 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 #endif
 
 #if !defined(NDEBUG)
-# if defined(__ALPHA__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
+# if defined(__AARCH64__) || defined(__ALPHA__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
 	/* print the call-trace if necesarry */
 	/* BEFORE: filling the local reference table */
 
@@ -961,6 +964,9 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 
 java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 {
+	assert(sp);
+	assert(pv);
+
 	stackframeinfo_t *sfi;
 	java_handle_t    *e;
 	java_object_t    *o;
@@ -1020,7 +1026,7 @@ java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 #endif
 
 #if !defined(NDEBUG)
-# if defined(__ALPHA__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
+# if defined(__AARCH64__) || defined(__ALPHA__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
 	/* print the call-trace if necesarry */
 	/* AFTER: unwrapping the return value */
 

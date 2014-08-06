@@ -1,4 +1,4 @@
-/* src/vm/jit/alpha/md.hpp - machine dependent Alpha functions
+/* src/vm/jit/aarch64/md.hpp - machine dependent Aarch64 functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -55,13 +55,14 @@ extern bool has_ext_instr_set;
  */
 inline static int32_t md_stacktrace_get_framesize(codeinfo* code)
 {
-    printf("md_stacktrace_get_framesize called\n");
 	// Check for the asm_vm_call_method special case.
 	if (code == NULL)
 		return 0;
 
-	// On Alpha we use 8-byte stackslots.
-	return code->stackframesize * 8;
+	// On Aarch64 we use 8-byte stackslots with a 16-byte aligned stack
+    u4 stacksize = code->stackframesize * 8;
+    stacksize += stacksize % 16;
+	return stacksize;
 }
 
 
@@ -74,10 +75,9 @@ inline static int32_t md_stacktrace_get_framesize(codeinfo* code)
 
 inline static void *md_stacktrace_get_returnaddress(void *sp, int32_t stackframesize)
 {
-    printf("md_stacktrace_get_Returnaddress called\n");
 	void *ra;
 
-	/* On Alpha the return address is located on the top of the
+	/* On Aarch64 the return address is located on the top of the
 	   stackframe. */
 
 	ra = *((void **) (((uintptr_t) sp) + stackframesize - SIZEOF_VOID_P));
@@ -109,9 +109,15 @@ inline static void *md_codegen_get_pv_from_pc(void *ra)
 	/* Get first instruction word after jump. */
 	mcode = pc[0];
     
-    printf("md_codegen_get_pv_from_pc for: %d\n", mcode);
-    disassinstr((u1*)&mcode);
-
+    /* Check for SUB with immediate */
+    u1 high = (mcode >> 24) & 0xff;
+    if (high == 0xD1) {
+        int32_t offset = (mcode >> 10) & 0xfff;
+        pv = ((uint8_t *) pc) - offset;
+        return pv;
+    } else {
+		vm_abort_disassemble(pc, 2, "md_codegen_get_pv_from_pc: unknown instruction %x", mcode);
+    }
 	/* Get opcode and displacement. */
 
 	opcode = M_MEM_GET_Opcode(mcode);

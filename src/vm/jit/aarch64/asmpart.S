@@ -70,7 +70,7 @@
 
 *******************************************************************************/
 
-	.align  3
+	.align  2
 
 	.long   0                           /* fltsave                            */
 	.long   1                           /* intsave                            */
@@ -128,7 +128,7 @@ L_asm_vm_call_method_stack_copy_done:
 	blr		pv 
 	
 L_asm_vm_call_method_recompute_pv:
-	sub		pv, lr, (asm_vm_call_method - L_asm_vm_call_method_recompute_pv)
+	sub		pv, lr, (L_asm_vm_call_method_recompute_pv - asm_vm_call_method) + 8
 
 L_asm_vm_call_method_recompute_return:
 	mov		sp, s0                      /* restore stack pointer            */
@@ -163,6 +163,15 @@ asm_vm_call_method_end:
 
 asm_handle_nat_exception:
 L_asm_handle_nat_exception:
+	sub		sp, sp, 16
+	str		a0, [sp]
+
+	mov		a0, lr
+	bl		md_asm_codegen_get_pv_from_pc
+	mov		pv, a0
+
+	ldr		a0, [sp]
+	add		sp, sp, 16
 	/*TODO:maybe make a macro out of it!!!*/
 //	SAVE_ARGUMENT_REGISTERS  
 //	mov   a0, lr

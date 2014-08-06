@@ -1,4 +1,4 @@
-/* src/vm/jit/alpha/linux/md-os.cpp - machine dependent Alpha Linux functions
+/* src/vm/jit/aarch64/linux/md-os.cpp - machine dependent Aarch64 Linux functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -82,7 +82,6 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 
 void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 {
-    printf("md_signal_handler_sigusr2\n");
 	threadobject *tobj;
 	ucontext_t   *_uc;
 	mcontext_t   *_mc;

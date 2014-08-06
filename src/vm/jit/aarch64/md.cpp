@@ -1,4 +1,4 @@
-/* src/vm/jit/alpha/md.cpp - machine dependent Alpha functions
+/* src/vm/jit/aarch64/md.cpp - machine dependent Aarch64 functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -29,17 +29,11 @@
 #include <stdint.h>
 #include <ucontext.h>
 
-#if defined(__LINUX__)
-//# include <asm/fpu.h>
-
-extern "C" unsigned long ieee_get_fp_control();
-extern "C" void          ieee_set_fp_control(unsigned long fp_control);
-#endif
-
 #include "vm/jit/aarch64/codegen.hpp"
 #include "vm/jit/aarch64/md.hpp"
 
 #include "vm/jit/asmpart.hpp"
+#include "vm/jit/disass.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/trap.hpp"
 
@@ -85,7 +79,7 @@ void md_init(void)
 
 void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 {
-	printf("md_jit_method_patch_address called\n");
+	log_println("md_jit_method_patch_address called");
 	uint32_t *pc;
 	uint32_t  mcode;
 	int       opcode;
@@ -169,17 +163,21 @@ bool md_trap_decode(trapinfo_t* trp, int sig, void* xpc, executionstate_t* es)
 
 	switch (sig) {
 	case TRAP_SIGILL:
-		if (mcode == 0xdeadbeef) {
-			trp->type  = TRAP_PATCHER;
-			trp->value = 0;
+		// Check for the mark
+		if ((mcode & 0xE7000000)) {
+			trp->type = (mcode >> 8) & 0xff;
+			u1 reg = mcode & 0xff;
+			trp->value = es->intregs[reg];
 			return true;
 		}
+
 		return false;
 
 	case TRAP_SIGSEGV:
 	{
 		// Retrieve base address of instruction.
-		uintptr_t addr = es->intregs[(mcode >> 5) & 0x1f];
+		u2 reg = (mcode >> 5) & 0x1f;
+		uintptr_t addr = es->intregs[reg];
 
 		// Check for implicit NullPointerException.
 		if (addr == 0) {
@@ -206,26 +204,7 @@ bool md_trap_decode(trapinfo_t* trp, int sig, void* xpc, executionstate_t* es)
 #if defined(ENABLE_REPLACEMENT)
 void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
 {
-	printf("md_patch_replacement_point called\n");
-	u4 mcode;
-
-	if (revert) {
-		/* restore the patched-over instruction */
-		*(u4*)(pc) = *(u4*)(savedmcode);
-	}
-	else {
-		/* save the current machine code */
-		*(u4*)(savedmcode) = *(u4*)(pc);
-
-		/* build the machine code for the patch */
-		mcode = (0xa41f0000 | (TRAP_PATCHER));
-
-		/* write the new machine code */
-		*(u4*)(pc) = mcode;
-	}
-	
-	/* flush instruction cache */
-    md_icacheflush(pc,4);
+	os::abort("md_patch_replacement_point: NOT IMPLEMENTED!");
 }
 #endif /* defined(ENABLE_REPLACEMENT) */
 
