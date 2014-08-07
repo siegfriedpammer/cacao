@@ -114,6 +114,7 @@ inline static void *md_codegen_get_pv_from_pc(void *ra)
     if (high == 0xD1) {
         int32_t offset = (mcode >> 10) & 0xfff;
         pv = ((uint8_t *) pc) - offset;
+        log_println("md_codegen_get_pv_from_pc calculated %p", pv);
         return pv;
     } else {
 		vm_abort_disassemble(pc, 2, "md_codegen_get_pv_from_pc: unknown instruction %x", mcode);
@@ -188,7 +189,7 @@ inline static void md_icacheflush(void *addr, int nbytes)
 
 inline static void md_dcacheflush(void *addr, int nbytes)
 {
-	/* do nothing */
+	asm_cacheflush(addr, nbytes);
 }
 
 #endif // VM_JIT_AARCH64_MD_HPP_

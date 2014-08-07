@@ -89,8 +89,8 @@ void codegen_emit_prolog(jitdata* jd)
 	if (cd->stackframesize) {
 		int offset = cd->stackframesize * 8;
 		offset += (offset % 16);
-		M_LSUB_IMM(REG_SP, REG_SP, offset);
-		// M_LDA(REG_SP, REG_SP, -(cd->stackframesize * 8));
+		// M_LSUB_IMM(REG_SP, REG_SP, offset);
+		M_LDA(REG_SP, REG_SP, -offset);
 	}
 
 	/* save return address and used callee saved registers */
@@ -199,8 +199,8 @@ void codegen_emit_epilog(jitdata* jd)
 	if (cd->stackframesize) {
 		int offset = cd->stackframesize * 8;
 		offset += (offset % 16);
-		M_LADD_IMM(REG_SP, REG_SP, offset);
-		// M_LDA(REG_SP, REG_SP, cd->stackframesize * 8);
+		// M_LADD_IMM(REG_SP, REG_SP, offset);
+		M_LDA(REG_SP, REG_SP, offset);
 	}
 
 	M_RET(REG_ZERO, REG_RA);
@@ -1751,8 +1751,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if ((iptr->sx.val.i > 0) && (iptr->sx.val.i <= 255))
-				M_CMPLT_IMM(s1, iptr->sx.val.i, REG_ITMP1);
+				M_CMP_IMM(s1, iptr->sx.val.i);
 			else {
+				os::abort("Aarch64: ICMD_IFGE cmp with registers not implemented yet.");
 				ICONST(REG_ITMP2, iptr->sx.val.i);
 				M_CMPLT(s1, REG_ITMP2, REG_ITMP1);
 			}

@@ -220,8 +220,9 @@ void emit_iconst(codegendata *cd, s4 d, s4 value)
 	s4 disp;
 
 	if ((value >= -32768) && (value <= 32767))
-		M_LDA_INTERN(d, REG_ZERO, value);
+		M_MOV_IMM(d, value);
 	else {
+		os::abort("emit_iconst for large values not implemented yet!");
 		disp = dseg_add_s4(cd, value);
 		M_ILD(d, REG_PV, disp);
 	}
@@ -239,7 +240,7 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 	s4 disp;
 
 	if ((value >= -32768) && (value <= 32767))
-		M_LDA_INTERN(d, REG_ZERO, value);
+		M_MOV_IMM(d, value);
 	else {
 		disp = dseg_add_s8(cd, value);
 		M_LLD(d, REG_PV, disp);
@@ -320,24 +321,25 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 			vm_abort("emit_branch: emit conditional long-branch code");
 		}
 		else {
+			branchdisp += 1; // TODO: why am i off by one on aarch64 compared to alpha?
 			switch (condition) {
 			case BRANCH_EQ:
-				M_BEQZ(reg, branchdisp);
+				M_BR_EQ(branchdisp);
 				break;
 			case BRANCH_NE:
-				M_BNEZ(reg, branchdisp);
+				M_BR_NE(branchdisp);
 				break;
 			case BRANCH_LT:
-				M_BLTZ(reg, branchdisp);
+				M_BR_LT(branchdisp);
 				break;
 			case BRANCH_GE:
-				M_BGEZ(reg, branchdisp);
+				M_BR_GE(branchdisp);
 				break;
 			case BRANCH_GT:
-				M_BGTZ(reg, branchdisp);
+				M_BR_GT(branchdisp);
 				break;
 			case BRANCH_LE:
-				M_BLEZ(reg, branchdisp);
+				M_BR_LE(branchdisp);
 				break;
 			default:
 				vm_abort("emit_branch: unknown condition %d", condition);
@@ -356,6 +358,7 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 
 void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 {
+	os::abort("emit_arithmetic_check not implemeneted!");
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_BNEZ(reg, 1);
 		/* Destination register must not be REG_ZERO, because then no
@@ -373,6 +376,7 @@ void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 
 void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
 {
+	os::abort("emit_arrayindexoutofbounds_check not implemented!");
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ILD(REG_ITMP3, s1, OFFSET(java_array_t, size));
 		M_CMPULT(s2, REG_ITMP3, REG_ITMP3);
@@ -390,6 +394,7 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 
 void emit_arraystore_check(codegendata *cd, instruction *iptr)
 {
+	os::abort("emit_arraystore_check not implemented!");
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_BNEZ(REG_RESULT, 1);
 		/* Destination register must not be REG_ZERO, because then no
@@ -407,6 +412,7 @@ void emit_arraystore_check(codegendata *cd, instruction *iptr)
 
 void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 reg, s4 s1)
 {
+	os::abort("emit_classcast_check not implemented!");
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		switch (condition) {
 		case BRANCH_EQ:
@@ -436,7 +442,8 @@ void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 		M_BNEZ(reg, 1);
 		/* Destination register must not be REG_ZERO, because then no
 		   SIGSEGV is thrown. */
-		M_ALD_INTERN(reg, REG_ZERO, TRAP_NullPointerException);
+		// M_ALD_INTERN(reg, REG_ZERO, TRAP_NullPointerException);
+		emit_trap(cd, reg, TRAP_NullPointerException);
 	}
 }
 
@@ -453,7 +460,8 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 		M_BNEZ(REG_RESULT, 1);
 		/* Destination register must not be REG_ZERO, because then no
 		   SIGSEGV is thrown. */
-		M_ALD_INTERN(REG_RESULT, REG_ZERO, TRAP_CHECK_EXCEPTION);
+		// M_ALD_INTERN(REG_RESULT, REG_ZERO, TRAP_CHECK_EXCEPTION);
+		emit_trap(cd, REG_RESULT, TRAP_CHECK_EXCEPTION);
 	}
 }
 

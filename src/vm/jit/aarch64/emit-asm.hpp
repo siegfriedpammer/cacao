@@ -48,6 +48,22 @@ inline void emit_cmp_branch_imm(codegendata *cd, u1 sf, u1 op, s4 imm, u1 Rt)
 #define emit_cbnz(cd, Xt, imm)	emit_cmp_branch_imm(cd, 1, 1, imm, Xt)
 
 
+/* Conditional branch (immediate) ********************************************/
+
+inline void emit_cond_branch_imm(codegendata *cd, s4 imm19, u1 cond)
+{
+	*((u4 *) cd->mcodeptr) = LSL(imm19, 5) | cond | 0x54000000;
+	cd->mcodeptr += 4;
+}
+
+#define emit_br_eq(cd, imm)		emit_cond_branch_imm(cd, imm, 0)
+#define emit_br_ne(cd, imm)		emit_cond_branch_imm(cd, imm, 1)
+#define emit_br_ge(cd, imm)		emit_cond_branch_imm(cd, imm, 10)
+#define emit_br_lt(cd, imm)		emit_cond_branch_imm(cd, imm, 11)
+#define emit_br_gt(cd, imm)		emit_cond_branch_imm(cd, imm, 12)
+#define emit_br_le(cd, imm)		emit_cond_branch_imm(cd, imm, 13)
+
+
 /* Unconditional branch (register) *******************************************/
 
 inline void emit_unc_branch_reg(codegendata *cd, u1 opc, u1 op2, u1 op3, u1 Rn, u1 op4)
@@ -75,6 +91,8 @@ inline void emit_ldstr_reg_usc(codegendata *cd, u1 size, u1 v, u1 opc, s2 imm9, 
 #define emit_ldur(cd, Xt, Xn, imm9)		emit_ldstr_reg_usc(cd, 3, 0, 1, imm9, Xt, Xn)
 #define emit_stur(cd, Xt, Xn, imm9)     emit_ldstr_reg_usc(cd, 3, 0, 0, imm9, Xt, Xn)
 
+#define emit_ldur32(cd, Xt, Xn, imm9) 	emit_ldstr_reg_usc(cd, 2, 0, 1, imm9, Xt, Xn)
+#define emit_stur32(cd, Xt, Xn, imm9)   emit_ldstr_reg_usc(cd, 2, 0, 0, imm9, Xt, Xn)
 
 /* Load/Store Register (unsigned immediate) **********************************/
 
@@ -85,11 +103,14 @@ inline void emit_ldstr_reg_us(codegendata *cd, u1 size, u1 v, u1 opc, u2 imm12, 
 	cd->mcodeptr += 4;
 }
 
-#define emit_str_uo(cd, Xt, Xn, imm12)	emit_ldstr_reg_us(cd, 3, 0, 0, imm12, Xt, Xn)
-#define emit_ldr_uo(cd, Xt, Xn, imm12)	emit_ldstr_reg_us(cd, 3, 0, 1, imm12, Xt, Xn)
+#define emit_str_uo(cd, Xt, Xn, imm12)		emit_ldstr_reg_us(cd, 3, 0, 0, imm12, Xt, Xn)
+#define emit_ldr_uo(cd, Xt, Xn, imm12)		emit_ldstr_reg_us(cd, 3, 0, 1, imm12, Xt, Xn)
 
+#define emit_str_uo32(cd, Xt, Xn, imm12)	emit_ldstr_reg_us(cd, 2, 0, 0, imm12, Xt, Xn)
+#define emit_ldr_uo32(cd, Xt, Xn, imm12)	emit_ldstr_reg_us(cd, 2, 0, 1, imm12, Xt, Xn)
 
 /* Handle ambigous Load/Store instructions ***********************************/
+/* TODO: Generalize this */
 
 inline void emit_ldr_imm(codegendata *cd, u1 Xt, u1 Xn, s2 imm)
 {
@@ -116,6 +137,34 @@ inline void emit_str_imm(codegendata *cd, u1 Xt, u1 Xn, s2 imm)
 		assert(imm >= 0);
 		assert(imm % 8 == 0);
 		emit_str_uo(cd, Xt, Xn, imm);
+	}
+}
+
+inline void emit_ldr_imm32(codegendata *cd, u1 Xt, u1 Xn, s2 imm)
+{
+	/* handle ambigous case first */
+	if (imm >= 0 && imm <= 255 && (imm % 8 == 0)) 
+		emit_ldr_uo32(cd, Xt, Xn, imm);
+	else if (imm >= -256 && imm <= 255)
+		emit_ldur32(cd, Xt, Xn, imm);
+	else {
+		assert(imm >= 0);
+		assert(imm % 8 == 0);
+		emit_ldr_uo32(cd, Xt, Xn, imm);
+	}
+}
+
+inline void emit_str_imm32(codegendata *cd, u1 Xt, u1 Xn, s2 imm)
+{
+	/* handle ambigous case first */
+	if (imm >= 0 && imm <= 255 && (imm % 8 == 0)) 
+		emit_str_uo32(cd, Xt, Xn, imm);
+	else if (imm >= -256 && imm <= 255)
+		emit_stur32(cd, Xt, Xn, imm);
+	else {
+		assert(imm >= 0);
+		assert(imm % 8 == 0);
+		emit_str_uo32(cd, Xt, Xn, imm);
 	}
 }
 
@@ -147,6 +196,21 @@ inline void emit_addsub_imm(codegendata *cd, u1 op, u1 Xd, u1 Xn, u4 imm)
 #define emit_add_imm(cd, Xd, Xn, imm)	emit_addsub_imm(cd, 0, Xd, Xn, imm)
 #define emit_sub_imm(cd, Xd, Xn, imm)	emit_addsub_imm(cd, 1, Xd, Xn, imm)
 #define emit_mov_sp(cd, Xd, Xn)			emit_add_imm(cd, Xd, Xn, 0)
+
+#define emit_subs_imm(cd, Xd, Xn, imm)	emit_addsub_imm(cd, 1, 1, 1, 0, imm, Xn, Xd)
+#define emit_cmp_imm(cd, Xn, imm)		emit_subs_imm(cd, 31, Xn, imm)
+
+
+/* Move wide (immediate) *****************************************************/
+
+inline void emit_mov_wide_imm(codegendata *cd, u1 sf, u1 opc, u1 hw, u2 imm16, u1 Rd)
+{
+	*((u4 *) cd->mcodeptr) = LSL(sf, 31) | LSL(opc, 29) | LSL(hw, 21) 
+						     | LSL(imm16, 5) | Rd | 0x12800000; 
+	cd->mcodeptr += 4;
+}
+
+#define emit_mov_imm(cd, Xd, imm)	emit_mov_wide_imm(cd, 1, 2, 0, imm, Xd)
 
 
 /* Alpha like LDA ************************************************************/
@@ -188,7 +252,7 @@ inline void emit_mov(codegendata *cd, u1 Xd, u1 Xm)
 /**
  * - First byte is the register.
  * - Second byte is the type of the trap.
- * - Bit 27 and 28 have to be 0 to be in the allocated encoding space so we
+ * - Bit 27 and 28 have to be 0 to be in the unallocated encoding space so we
  *   use E7 as our mark byte.
  */
 inline void emit_trap(codegendata *cd, u1 Xd, int type)

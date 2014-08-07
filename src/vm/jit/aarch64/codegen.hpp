@@ -85,32 +85,33 @@
 
 /* AARCH64 ===================================================================*/
 
-//#define M_LST(Rt,Rn,offset) emit_ldstr_reg_us(cd, 0x3, 0, 0, offset, Rt, Rn)
-//#define M_IST(Rt,Rn,offset) M_LST(Rt, Rn, offset)
-
-//#define M_DST(Rt,Rn,offset) emit_ldstr_reg_us(cd, 0x3, 1, 0, offset, Rt, Rn)
-//#define M_FST(Rt,Rn,offset) M_DST(Rt, Rn, offset)
-
-//#define M_LLD(Rt,Rn,offset) emit_ldstr_reg_us(cd, 0x3, 0, 1, offset, Rn, Rt)
-//#define M_LLD(Rt,Rn,offset) emit_ldstr_reg_usc(cd, 0x3, offset, Rt, Rn)
-//#define M_ILD(Rt,Rn,offset) M_LLD(Rt, Rn, offset)
-//#define M_ALD(Rt,Rn,offset) M_LLD(Rt, Rn, offset)
-
 #define M_LLD_INTERN(a,b,disp)      emit_ldr_imm(cd, a, b, disp)
 #define M_LST_INTERN(a,b,disp)      emit_str_imm(cd, a, b, disp)
 
-#define M_LDA(a,b,disp)             emit_lda(cd, a, b, disp)
+#define M_ILD_INTERN(a,b,disp)      emit_ldr_imm32(cd, a, b, disp)
+#define M_IST_INTERN(a,b,disp)      emit_str_imm32(cd, a, b, disp)
+
+#define M_LDA_INTERN(a,b,disp)      emit_lda(cd, a, b, disp)
 
 #define M_RET(a,b)                  emit_ret(cd)
 #define M_JSR(a,b)                  emit_blr(cd, b)
 #define M_JMP(a,b)                  emit_br_aa(cd, b)
 
-#define M_LADD_IMM(a,b,imm)         emit_add_imm(cd, a, b, imm)
-#define M_LSUB_IMM(a,b,imm)         emit_sub_imm(cd, a, b, imm)
+// #define M_LADD_IMM(a,b,imm)         emit_add_imm(cd, a, b, imm)
+// #define M_LSUB_IMM(a,b,imm)         emit_sub_imm(cd, a, b, imm)
 
 #define M_MOV(a,b)                  emit_mov(cd, b, a)
+#define M_MOV_IMM(a, imm)           emit_mov_imm(cd, a, imm)
 
 #define M_BNEZ(a,disp)              emit_cbnz(cd, a, disp + 1)
+
+#define M_CMP_IMM(a, imm)           emit_cmp_imm(cd, a, imm)
+#define M_BR_EQ(imm)                emit_br_eq(cd, imm)
+#define M_BR_NE(imm)                emit_br_ne(cd, imm)
+#define M_BR_LT(imm)                emit_br_lt(cd, imm)
+#define M_BR_LE(imm)                emit_br_le(cd, imm)
+#define M_BR_GT(imm)                emit_br_gt(cd, imm)
+#define M_BR_GE(imm)                emit_br_ge(cd, imm)
 
 /* ===========================================================================*/
 
@@ -193,9 +194,9 @@
 
 /* macros for all used commands (see an Alpha-manual for description) *********/
 
-#define M_LDA_INTERN(a,b,disp)  M_MEM(0x08,a,b,disp)            /* low const  */
+//#define M_LDA_INTERN(a,b,disp)  M_MEM(0x08,a,b,disp)            /* low const  */
 
-/*#define M_LDA(a,b,disp) \
+#define M_LDA(a,b,disp) \
     do { \
         s4 lo = (short) (disp); \
         s4 hi = (short) (((disp) - lo) >> 16); \
@@ -205,14 +206,15 @@
             M_LDAH(a,b,hi); \
             M_LDA_INTERN(a,a,lo); \
         } \
-    } while (0) */
+    } while (0) 
 
-#define M_LDAH(a,b,disp)        M_MEM (0x09,a,b,disp)           /* high const */
+// #define M_LDAH(a,b,disp)        M_MEM (0x09,a,b,disp)           /* high const */
+#define M_LDAH(a,b,disp)        os::abort("LDA with hight not supported on aarch64!");
 
 #define M_BLDU(a,b,disp)        M_MEM (0x0a,a,b,disp)           /*  8 load    */
 #define M_SLDU(a,b,disp)        M_MEM (0x0c,a,b,disp)           /* 16 load    */
 
-#define M_ILD_INTERN(a,b,disp)  M_MEM(0x28,a,b,disp)            /* 32 load    */
+//#define M_ILD_INTERN(a,b,disp)  M_MEM(0x28,a,b,disp)            /* 32 load    */
 //#define M_LLD_INTERN(a,b,disp)  M_MEM(0x29,a,b,disp)            /* 64 load    */
 
 #define M_ILD(a,b,disp) \
@@ -246,7 +248,7 @@
 #define M_BST(a,b,disp)         M_MEM(0x0e,a,b,disp)            /*  8 store   */
 #define M_SST(a,b,disp)         M_MEM(0x0d,a,b,disp)            /* 16 store   */
 
-#define M_IST_INTERN(a,b,disp)  M_MEM(0x2c,a,b,disp)            /* 32 store   */
+// #define M_IST_INTERN(a,b,disp)  M_MEM(0x2c,a,b,disp)            /* 32 store   */
 // #define M_LST_INTERN(a,b,disp)  M_MEM(0x2d,a,b,disp)            /* 64 store   */
 
 /* Stores with displacement overflow should only happen with PUTFIELD or on   */
@@ -311,9 +313,9 @@
 /* ============== aarch64 ================ */
 
 #define M_IADD_IMM(a,b,c)       M_OP3 (0x10,0x0,  a,b,c,1)      /* 32 add     */
-//#define M_LADD_IMM(a,b,c)       M_OP3 (0x10,0x20, a,b,c,1)      /* 64 add     */
+#define M_LADD_IMM(a,b,c)       M_OP3 (0x10,0x20, a,b,c,1)      /* 64 add     */
 #define M_ISUB_IMM(a,b,c)       M_OP3 (0x10,0x09, a,b,c,1)      /* 32 sub     */
-// #define M_LSUB_IMM(a,b,c)       M_OP3 (0x10,0x29, a,b,c,1)      /* 64 sub     */
+#define M_LSUB_IMM(a,b,c)       M_OP3 (0x10,0x29, a,b,c,1)      /* 64 sub     */
 #define M_IMUL_IMM(a,b,c)       M_OP3 (0x13,0x00, a,b,c,1)      /* 32 mul     */
 #define M_LMUL_IMM(a,b,c)       M_OP3 (0x13,0x20, a,b,c,1)      /* 64 mul     */
 

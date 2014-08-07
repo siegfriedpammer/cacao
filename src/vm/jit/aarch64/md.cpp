@@ -79,21 +79,72 @@ void md_init(void)
 
 void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 {
-	log_println("md_jit_method_patch_address called");
 	uint32_t *pc;
 	uint32_t  mcode;
 	int       opcode;
 	int       base;
 	int32_t   disp;
 	void     *pa;                       /* patch address                      */
+	u2		  msb10;                    /* most significant 10 bits           */
 
 	/* Go back to the load instruction (2 instructions). */
-
 	pc = ((uint32_t *) ra) - 2;
 
 	/* Get first instruction word. */
-
 	mcode = pc[0];
+
+	/* Get base register */
+	base = (mcode >> 5) & 0x1f;
+
+	/* Check for LDR or LDUR       */
+	msb10 = (mcode >> 22) & 0x3ff;
+	switch(msb10) {
+	case 0x3e1: /* unscaled immediate (LDUR) */
+		disp = (mcode >> 12) & 0xff;
+		if ((mcode >> 12) & 0x100) /* negative offset */
+			disp |= 0xffffff00; 
+		break;
+
+	case 0x3e5: /* unsigned immediate (LDR) */
+		disp = (mcode >> 10) & 0xfff;
+		disp *= 8; /* imm is encoded as imm/8 */
+		break;
+
+	default:
+		vm_abort_disassemble(pc, 2, "md_jit_method_patch_address: unknown instruction %x", mcode);
+		return NULL;
+	}
+
+	log_println("md_jitmethod_patch_address displacement: %d", disp);
+	disassinstr((u1*)pc);
+	// vm_abort_disassemble(pc, 2, "md_jit_method_patch_address: unknown instruction %x", mcode);
+	switch(base) {
+	case REG_PV:
+		/* Calculate the data segment address. */
+
+		pa = ((uint8_t *) pv) + disp;
+		break;
+
+	case REG_METHODPTR:
+		/* Return NULL if no mptr was specified (used for
+		   replacement). */
+
+		if (mptr == NULL)
+			return NULL;
+
+		/* Calculate the address in the vftbl. */
+
+		pa = ((uint8_t *) mptr) + disp;
+		break;
+
+	default:
+		vm_abort_disassemble(pc, 2, "md_jit_method_patch_address: unknown instruction %x", mcode);
+		return NULL;
+	}
+	log_println("md_jit_method_patch_address calculated %p", pa);
+
+	return pa;
+
 
 	/* Get opcode, base register and displacement. */
 

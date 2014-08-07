@@ -32,6 +32,8 @@
 
 #include "threads/atomic.hpp"
 
+#include "vm/os.hpp"
+
 namespace Atomic_md {
 
 /**
@@ -69,8 +71,8 @@ inline uint64_t compare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t
  */
 inline void memory_barrier(void)
 {
-	//__kernel_dmb();
-	__asm__ __volatile__ ("dsb LD" : : : "memory");
+	//__asm__ __volatile__ ("dsb LD" : : : "memory");
+	__asm__ __volatile__ ("dmb SY" : : : "memory");
 }
 
 
@@ -79,8 +81,8 @@ inline void memory_barrier(void)
  */
 inline void write_memory_barrier(void)
 {
-	//__kernel_dmb();
-	__asm__ __volatile__ ("dsb ST" : : : "memory");
+	// __asm__ __volatile__ ("dsb ST" : : : "memory");
+	__asm__ __volatile__ ("dmb SY" : : : "memory");
 }
 
 
