@@ -36,6 +36,12 @@
 #define LSL(x,a) ((x) << a)
 #define LSR(x,a) ((x) >> a)
 
+/* Some instructions allow shifts of operands, these are for encoding them */
+#define CODE_LSL	0
+#define CODE_LSR	1
+#define CODE_ASR	2
+
+
 /* Compare & branch (immediate) **********************************************/
 
 inline void emit_cmp_branch_imm(codegendata *cd, u1 sf, u1 op, s4 imm, u1 Rt)
@@ -64,6 +70,19 @@ inline void emit_cond_branch_imm(codegendata *cd, s4 imm19, u1 cond)
 #define emit_br_le(cd, imm)		emit_cond_branch_imm(cd, imm, 13)
 
 
+/* Unconditional branch (immediate) ******************************************/
+
+inline void emit_unc_branch_imm(codegendata *cd, u1 op, s4 imm26)
+{
+	// TODO sanity check imm26
+	*((u4 *) cd->mcodeptr) = LSL(op, 31) | imm26 | 0x14000000;
+	cd->mcodeptr += 4;
+}
+
+#define emit_br_imm(cd, imm)	emit_unc_branch_imm(cd, 0, imm)
+#define emit_blr_imm(cd, imm)	emit_unc_branch_imm(cd, 1, imm)
+	
+
 /* Unconditional branch (register) *******************************************/
 
 inline void emit_unc_branch_reg(codegendata *cd, u1 opc, u1 op2, u1 op3, u1 Rn, u1 op4)
@@ -73,10 +92,10 @@ inline void emit_unc_branch_reg(codegendata *cd, u1 opc, u1 op2, u1 op3, u1 Rn, 
 	cd->mcodeptr += 4;
 }
 
-#define emit_ret(cd)		emit_unc_branch_reg(cd, 2, 31, 0, 30, 0)
-#define emit_blr(cd, Xn)	emit_unc_branch_reg(cd, 1, 31, 0, Xn, 0)
+#define emit_ret(cd)			emit_unc_branch_reg(cd, 2, 31, 0, 30, 0)
+#define emit_blr_reg(cd, Xn)	emit_unc_branch_reg(cd, 1, 31, 0, Xn, 0)
 
-#define emit_br_aa(cd, Xn)	emit_unc_branch_reg(cd, 0, 31, 0, Xn, 0)
+#define emit_br_reg(cd, Xn)		emit_unc_branch_reg(cd, 0, 31, 0, Xn, 0)
 
 
 /* Load/Store Register (unscaled immediate) ***********************************/
@@ -201,6 +220,27 @@ inline void emit_addsub_imm(codegendata *cd, u1 op, u1 Xd, u1 Xn, u4 imm)
 #define emit_cmp_imm(cd, Xn, imm)		emit_subs_imm(cd, 31, Xn, imm)
 
 
+/* Add/subtract (shifted register) *******************************************/
+
+inline void emit_addsub_reg(codegendata *cd, u1 sf, u1 op, u1 S, u1 shift, u1 Rm, u1 imm6, u1 Rn, u1 Rd)
+{
+	assert(imm6 >= 0 && imm6 <= 0x3f);
+	*((u4 *) cd->mcodeptr) = LSL(sf, 31) | LSL(op, 30) | LSL(S, 29) 
+						     | LSL(shift, 22) | LSL(Rm, 16) | LSL(imm6, 10) 
+							 | LSL(Rn, 5) | Rd | 0xB000000;
+	cd->mcodeptr += 4;
+}
+
+#define emit_add_reg(cd, Xd, Xn, Xm)	emit_addsub_reg(cd, 1, 0, 0, 0, Xm, 0, Xn, Xd)
+#define emit_sub_reg(cd, Xd, Xn, Xm)	emit_addsub_reg(cd, 1, 1, 0, 0, Xm, 0, Xn, Xd)
+
+#define emit_subs_reg(cd, Xd, Xn, Xm)	emit_addsub_reg(cd, 1, 1, 1, 0, Xm, 0, Xn, Xd)
+#define emit_cmp_reg(cd, Xn, Xm)		emit_subs_reg(cd, 31, Xn, Xm)
+
+#define emit_add_reg_shift(cd, Xd, Xn, Xm, s, a)	emit_addsub_reg(cd, 1, 0, 0, s, Xm, a, Xn, Xd)
+#define emit_sub_reg_shift(cd, Xd, Xn, Xm, s, a)	emit_addsub_reg(cd, 1, 1, 0, s, Xm, a, Xn, Xd)
+
+
 /* Move wide (immediate) *****************************************************/
 
 inline void emit_mov_wide_imm(codegendata *cd, u1 sf, u1 opc, u1 hw, u2 imm16, u1 Rd)
@@ -237,6 +277,9 @@ inline void emit_logical_sreg(codegendata *cd, u1 sf, u1 opc, u1 shift, u1 N, u1
 
 #define emit_orr_sreg(cd, Xd, Xn, Xm)	emit_logical_sreg(cd, 1, 1, 0, 0, Xm, 0, Xn, Xd)
 #define emit_mov_reg(cd, Xd, Xm)		emit_orr_sreg(cd, Xd, 31, Xm)
+
+#define emit_ands_sreg(cd, Xd, Xn, Xm)	emit_logical_sreg(cd, 1, 3, 0, 0, Xm, 0, Xn, Xd)
+#define emit_tst_sreg(cd, Xn, Xm)		emit_ands_sreg(cd, 31, Xn, Xm)
 
 inline void emit_mov(codegendata *cd, u1 Xd, u1 Xm)
 {

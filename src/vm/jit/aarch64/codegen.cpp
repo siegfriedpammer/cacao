@@ -1688,6 +1688,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			break;
 
 		case ICMD_IFEQ:         /* ..., value ==> ...                         */
+			os::abort("ICMD_IFEQ not supported on Aarch64!");
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if ((iptr->sx.val.i > 0) && (iptr->sx.val.i <= 255))
@@ -1696,10 +1697,11 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				ICONST(REG_ITMP2, iptr->sx.val.i);
 				M_CMPEQ(s1, REG_ITMP2, REG_ITMP1);
 			}
-			emit_bnez(cd, iptr->dst.block, REG_ITMP1);
+			// emit_bnez(cd, iptr->dst.block, REG_ITMP1);
 			break;
 
 		case ICMD_IFLT:         /* ..., value ==> ...                         */
+			os::abort("ICMD_IFLT not supported on Aarch64!");
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if ((iptr->sx.val.i > 0) && (iptr->sx.val.i <= 255))
@@ -1708,10 +1710,11 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				ICONST(REG_ITMP2, iptr->sx.val.i);
 				M_CMPLT(s1, REG_ITMP2, REG_ITMP1);
 			}
-			emit_bnez(cd, iptr->dst.block, REG_ITMP1);
+			// emit_bnez(cd, iptr->dst.block, REG_ITMP1);
 			break;
 
 		case ICMD_IFLE:         /* ..., value ==> ...                         */
+			os::abort("ICMD_IFLE not supported on Aarch64!");
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if ((iptr->sx.val.i > 0) && (iptr->sx.val.i <= 255))
@@ -1720,22 +1723,25 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				ICONST(REG_ITMP2, iptr->sx.val.i);
 				M_CMPLE(s1, REG_ITMP2, REG_ITMP1);
 			}
-			emit_bnez(cd, iptr->dst.block, REG_ITMP1);
+			// emit_bnez(cd, iptr->dst.block, REG_ITMP1);
 			break;
 
 		case ICMD_IFNE:         /* ..., value ==> ...                         */
+			os::abort("ICMD_IFNE not supported on Aarch64!");
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if ((iptr->sx.val.i > 0) && (iptr->sx.val.i <= 255))
 				M_CMPEQ_IMM(s1, iptr->sx.val.i, REG_ITMP1);
 			else {
+				os::abort("ICMD_IFNE not implemented for larger immediates");
 				ICONST(REG_ITMP2, iptr->sx.val.i);
 				M_CMPEQ(s1, REG_ITMP2, REG_ITMP1);
 			}
-			emit_beqz(cd, iptr->dst.block, REG_ITMP1);
+			// emit_beqz(cd, iptr->dst.block, REG_ITMP1);
 			break;
 
 		case ICMD_IFGT:         /* ..., value ==> ...                         */
+			os::abort("ICMD_IFGT not supported on Aarch64!");
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if ((iptr->sx.val.i > 0) && (iptr->sx.val.i <= 255))
@@ -1744,10 +1750,11 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				ICONST(REG_ITMP2, iptr->sx.val.i);
 				M_CMPLE(s1, REG_ITMP2, REG_ITMP1);
 			}
-			emit_beqz(cd, iptr->dst.block, REG_ITMP1);
+			// emit_beqz(cd, iptr->dst.block, REG_ITMP1);
 			break;
 
 		case ICMD_IFGE:         /* ..., value ==> ...                         */
+			os::abort("ICMD_IFGE not supported on Aarch64!");
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if ((iptr->sx.val.i > 0) && (iptr->sx.val.i <= 255))
@@ -1757,161 +1764,174 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				ICONST(REG_ITMP2, iptr->sx.val.i);
 				M_CMPLT(s1, REG_ITMP2, REG_ITMP1);
 			}
-			emit_beqz(cd, iptr->dst.block, REG_ITMP1);
+			// emit_beqz(cd, iptr->dst.block, REG_ITMP1);
 			break;
 
 		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
+			os::abort("ICMD_IF_LEQ not supported on Aarch64!");
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (iptr->sx.val.l == 0)
-				emit_beqz(cd, iptr->dst.block, s1);
-			else {
+			if (iptr->sx.val.l == 0) {
+				// emit_beqz(cd, iptr->dst.block, s1);
+			} else {
 				if ((iptr->sx.val.l > 0) && (iptr->sx.val.l <= 255))
 					M_CMPEQ_IMM(s1, iptr->sx.val.l, REG_ITMP1);
 				else {
 					LCONST(REG_ITMP2, iptr->sx.val.l);
 					M_CMPEQ(s1, REG_ITMP2, REG_ITMP1);
 				}
-				emit_bnez(cd, iptr->dst.block, REG_ITMP1);
+				// emit_bnez(cd, iptr->dst.block, REG_ITMP1);
 			}
 			break;
 
 		case ICMD_IF_LLT:       /* ..., value ==> ...                         */
+			os::abort("ICMD_IF_LLT not supported on Aarch64!");
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (iptr->sx.val.l == 0)
-				emit_bltz(cd, iptr->dst.block, s1);
-			else {
+			if (iptr->sx.val.l == 0) {
+				// emit_bltz(cd, iptr->dst.block, s1);
+			} else {
 				if ((iptr->sx.val.l > 0) && (iptr->sx.val.l <= 255))
 					M_CMPLT_IMM(s1, iptr->sx.val.l, REG_ITMP1);
 				else {
 					LCONST(REG_ITMP2, iptr->sx.val.l);
 					M_CMPLT(s1, REG_ITMP2, REG_ITMP1);
 				}
-				emit_bnez(cd, iptr->dst.block, REG_ITMP1);
+				// emit_bnez(cd, iptr->dst.block, REG_ITMP1);
 			}
 			break;
 
 		case ICMD_IF_LLE:       /* ..., value ==> ...                         */
+			os::abort("ICMD_IF_LLE not supported on Aarch64!");
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (iptr->sx.val.l == 0)
-				emit_blez(cd, iptr->dst.block, s1);
-			else {
+			if (iptr->sx.val.l == 0) {
+				// emit_blez(cd, iptr->dst.block, s1);
+			} else {
 				if ((iptr->sx.val.l > 0) && (iptr->sx.val.l <= 255))
 					M_CMPLE_IMM(s1, iptr->sx.val.l, REG_ITMP1);
 				else {
 					LCONST(REG_ITMP2, iptr->sx.val.l);
 					M_CMPLE(s1, REG_ITMP2, REG_ITMP1);
 				}
-				emit_bnez(cd, iptr->dst.block, REG_ITMP1);
+				// emit_bnez(cd, iptr->dst.block, REG_ITMP1);
 			}
 			break;
 
 		case ICMD_IF_LNE:       /* ..., value ==> ...                         */
+			os::abort("ICMD_IF_LNE not supported on Aarch64!");
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (iptr->sx.val.l == 0)
-				emit_bnez(cd, iptr->dst.block, s1);
-			else {
+			if (iptr->sx.val.l == 0) {
+				// emit_bnez(cd, iptr->dst.block, s1);
+			} else {
 				if ((iptr->sx.val.l > 0) && (iptr->sx.val.l <= 255))
 					M_CMPEQ_IMM(s1, iptr->sx.val.l, REG_ITMP1);
 				else {
 					LCONST(REG_ITMP2, iptr->sx.val.l);
 					M_CMPEQ(s1, REG_ITMP2, REG_ITMP1);
 				}
-				emit_beqz(cd, iptr->dst.block, REG_ITMP1);
+				// emit_beqz(cd, iptr->dst.block, REG_ITMP1);
 			}
 			break;
 
 		case ICMD_IF_LGT:       /* ..., value ==> ...                         */
+			os::abort("ICMD_IF_LGT not supported on Aarch64!");
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (iptr->sx.val.l == 0)
-				emit_bgtz(cd, iptr->dst.block, s1);
-			else {
+			if (iptr->sx.val.l == 0) {
+				// emit_bgtz(cd, iptr->dst.block, s1);
+			} else {
 				if ((iptr->sx.val.l > 0) && (iptr->sx.val.l <= 255))
 					M_CMPLE_IMM(s1, iptr->sx.val.l, REG_ITMP1);
 				else {
 					LCONST(REG_ITMP2, iptr->sx.val.l);
 					M_CMPLE(s1, REG_ITMP2, REG_ITMP1);
 				}
-				emit_beqz(cd, iptr->dst.block, REG_ITMP1);
+				// emit_beqz(cd, iptr->dst.block, REG_ITMP1);
 			}
 			break;
 
 		case ICMD_IF_LGE:       /* ..., value ==> ...                         */
+			os::abort("ICMD_IF_LGE not supported on Aarch64!");
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (iptr->sx.val.l == 0)
-				emit_bgez(cd, iptr->dst.block, s1);
-			else {
+			if (iptr->sx.val.l == 0) {
+				// emit_bgez(cd, iptr->dst.block, s1);
+			} else {
 				if ((iptr->sx.val.l > 0) && (iptr->sx.val.l <= 255))
 					M_CMPLT_IMM(s1, iptr->sx.val.l, REG_ITMP1);
 				else {
 					LCONST(REG_ITMP2, iptr->sx.val.l);
 					M_CMPLT(s1, REG_ITMP2, REG_ITMP1);
 				}
-				emit_beqz(cd, iptr->dst.block, REG_ITMP1);
+				// emit_beqz(cd, iptr->dst.block, REG_ITMP1);
 			}
 			break;
 
 		case ICMD_IF_ICMPEQ:    /* ..., value, value ==> ...                  */
 		case ICMD_IF_LCMPEQ:    /* op1 = target JavaVM pc                     */
+			os::abort("ICMD_IF_*CMPEQ not supported on Aarch64!");
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_CMPEQ(s1, s2, REG_ITMP1);
-			emit_bnez(cd, iptr->dst.block, REG_ITMP1);
+			// emit_bnez(cd, iptr->dst.block, REG_ITMP1);
 			break;
 
 		case ICMD_IF_ICMPNE:    /* ..., value, value ==> ...                  */
 		case ICMD_IF_LCMPNE:    /* op1 = target JavaVM pc                     */
+			os::abort("ICMD_IF_*CMPNE not supported on Aarch64!");
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_CMPEQ(s1, s2, REG_ITMP1);
-			emit_beqz(cd, iptr->dst.block, REG_ITMP1);
+			// emit_beqz(cd, iptr->dst.block, REG_ITMP1);
 			break;
 
 		case ICMD_IF_ICMPLT:    /* ..., value, value ==> ...                  */
 		case ICMD_IF_LCMPLT:    /* op1 = target JavaVM pc                     */
+			os::abort("ICMD_IF_*CMPLT not supported on Aarch64!");
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_CMPLT(s1, s2, REG_ITMP1);
-			emit_bnez(cd, iptr->dst.block, REG_ITMP1);
+			// emit_bnez(cd, iptr->dst.block, REG_ITMP1);
 			break;
 
 		case ICMD_IF_ICMPGT:    /* ..., value, value ==> ...                  */
 		case ICMD_IF_LCMPGT:    /* op1 = target JavaVM pc                     */
+			os::abort("ICMD_IF_*CMPGT not supported on Aarch64!");
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_CMPLE(s1, s2, REG_ITMP1);
-			emit_beqz(cd, iptr->dst.block, REG_ITMP1);
+			// emit_beqz(cd, iptr->dst.block, REG_ITMP1);
 			break;
 
 		case ICMD_IF_ICMPLE:    /* ..., value, value ==> ...                  */
 		case ICMD_IF_LCMPLE:    /* op1 = target JavaVM pc                     */
+			os::abort("ICMD_IF_*CMPLE not supported on Aarch64!");
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_CMPLE(s1, s2, REG_ITMP1);
-			emit_bnez(cd, iptr->dst.block, REG_ITMP1);
+			// emit_bnez(cd, iptr->dst.block, REG_ITMP1);
 			break;
 
 		case ICMD_IF_ICMPGE:    /* ..., value, value ==> ...                  */
 		case ICMD_IF_LCMPGE:    /* op1 = target JavaVM pc                     */
+			os::abort("ICMD_IF_*CMPGE not supported on Aarch64!");
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_CMPLT(s1, s2, REG_ITMP1);
-			emit_beqz(cd, iptr->dst.block, REG_ITMP1);
+			// emit_beqz(cd, iptr->dst.block, REG_ITMP1);
 			break;
 
 		case ICMD_TABLESWITCH:  /* ..., index ==> ...                         */
 			{
+				os::abort("ICMD_TABLESWITCH not supported on Aarch64.");
 			s4 i, l;
 			branch_target_t *table;
 
@@ -1941,7 +1961,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				M_LDA(REG_ITMP2, REG_ZERO, i - 1);
 				M_CMPULE(REG_ITMP1, REG_ITMP2, REG_ITMP2);
 			}
-			emit_beqz(cd, table[0].block, REG_ITMP2);
+			// emit_beqz(cd, table[0].block, REG_ITMP2);
 
 			/* build jump table top down and use address of lowest entry */
 
@@ -2048,6 +2068,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			break;
 
 		case ICMD_CHECKCAST:  /* ..., objectref ==> ..., objectref            */
+			os::abort("ICMD_CHECKCAST currently not supported on Aarch64.");
 
 			if (!(iptr->flags.bits & INS_FLAG_ARRAY)) {
 				/* object type cast-check */
@@ -2069,7 +2090,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				/* if class is not resolved, check which code to call */
 
 				if (super == NULL) {
-					emit_label_beqz(cd, BRANCH_LABEL_1, s1);
+					// emit_label_beqz(cd, BRANCH_LABEL_1, s1);
 
 					disp = dseg_add_unique_s4(cd, 0);         /* super->flags */
 
@@ -2081,7 +2102,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 					disp = dseg_add_s4(cd, ACC_INTERFACE);
 					M_ILD(REG_ITMP3, REG_PV, disp);
 					M_AND(REG_ITMP2, REG_ITMP3, REG_ITMP2);
-					emit_label_beqz(cd, BRANCH_LABEL_2, REG_ITMP2);
+					// emit_label_beqz(cd, BRANCH_LABEL_2, REG_ITMP2);
 				}
 
 				/* interface checkcast code */
@@ -2094,7 +2115,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 //											  0);
 					}
 					else
-						emit_label_beqz(cd, BRANCH_LABEL_3, s1);
+						;// emit_label_beqz(cd, BRANCH_LABEL_3, s1);
+						
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 					M_ILD(REG_ITMP3, REG_ITMP2,
@@ -2129,7 +2151,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 					else {
 						disp = dseg_add_address(cd, super->vftbl);
 
-						emit_label_beqz(cd, BRANCH_LABEL_5, s1);
+						// emit_label_beqz(cd, BRANCH_LABEL_5, s1);
 					}
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
@@ -2140,25 +2162,25 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 						M_LADD(REG_ITMP1, REG_ITMP2, REG_ITMP1);
 						M_ALD(REG_ITMP1, REG_ITMP1, 0);
 						M_CMPEQ(REG_ITMP1, REG_ITMP3, REG_ITMP1);
-						emit_label_bnez(cd, BRANCH_LABEL_6, REG_ITMP1);  /* good */
+						// emit_label_bnez(cd, BRANCH_LABEL_6, REG_ITMP1);  /* good */
 
 						if (super == NULL) {
 							M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
 							M_CMPEQ_IMM(REG_ITMP1, OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]), REG_ITMP1);
-							emit_label_beqz(cd, BRANCH_LABEL_10, REG_ITMP1);  /* throw */
+							// emit_label_beqz(cd, BRANCH_LABEL_10, REG_ITMP1);  /* throw */
 						}
 
 						M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_depth));
 						M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, subtype_depth));
 						M_CMPLE(REG_ITMP1, REG_ITMP3, REG_ITMP3);
-						emit_label_beqz(cd, BRANCH_LABEL_9, REG_ITMP3);  /* throw */
+						// emit_label_beqz(cd, BRANCH_LABEL_9, REG_ITMP3);  /* throw */
 						/* reload */
 						M_ALD(REG_ITMP3, REG_PV, disp);
 						M_ALD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, subtype_overflow));
 						M_S8ADDQ(REG_ITMP1, REG_ITMP2, REG_ITMP2);
 						M_ALD(REG_ITMP1, REG_ITMP2, -DISPLAY_SIZE*8);
 						M_CMPEQ(REG_ITMP1, REG_ITMP3, REG_ITMP1);
-						emit_label_bnez(cd, BRANCH_LABEL_7, REG_ITMP1);  /* good */
+						// emit_label_bnez(cd, BRANCH_LABEL_7, REG_ITMP1);  /* good */
 
 						emit_label(cd, BRANCH_LABEL_9);
 						if (super == NULL)
@@ -2227,6 +2249,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 		case ICMD_INSTANCEOF: /* ..., objectref ==> ..., intresult            */
 
 			{
+				os::abort("ICMD_INSTANCEOF currently not supported on Aarch64.");
 			classinfo *super;
 			vftbl_t   *supervftbl;
 			s4         superindex;
@@ -2254,7 +2277,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 			if (super == NULL) {
 				M_CLR(d);
-				emit_label_beqz(cd, BRANCH_LABEL_1, s1);
+				// emit_label_beqz(cd, BRANCH_LABEL_1, s1);
 
 				disp = dseg_add_unique_s4(cd, 0);             /* super->flags */
 
@@ -2266,7 +2289,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				disp = dseg_add_s4(cd, ACC_INTERFACE);
 				M_ILD(REG_ITMP2, REG_PV, disp);
 				M_AND(REG_ITMP3, REG_ITMP2, REG_ITMP3);
-				emit_label_beqz(cd, BRANCH_LABEL_2, REG_ITMP3);
+				// emit_label_beqz(cd, BRANCH_LABEL_2, REG_ITMP3);
 			}
 
 			/* interface instanceof code */
@@ -2284,7 +2307,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				}
 				else {
 					M_CLR(d);
-					emit_label_beqz(cd, BRANCH_LABEL_3, s1);
+					// emit_label_beqz(cd, BRANCH_LABEL_3, s1);
 				}
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
@@ -2318,7 +2341,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 					disp = dseg_add_address(cd, supervftbl);
 
 					M_CLR(d);
-					emit_label_beqz(cd, BRANCH_LABEL_5, s1);
+					// emit_label_beqz(cd, BRANCH_LABEL_5, s1);
 				}
 
 				M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
@@ -2329,7 +2352,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 					M_LADD(REG_ITMP1, REG_ITMP2, REG_ITMP1);
 					M_ALD(REG_ITMP1, REG_ITMP1, 0);
 					M_CMPEQ(REG_ITMP1, REG_ITMP3, REG_ITMP1);
-					emit_label_beqz(cd, BRANCH_LABEL_8, REG_ITMP1);
+					// emit_label_beqz(cd, BRANCH_LABEL_8, REG_ITMP1);
 					ICONST(d, 1);
 					emit_label_br(cd, BRANCH_LABEL_6);  /* true */
 					emit_label(cd, BRANCH_LABEL_8);
@@ -2337,14 +2360,14 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 					if (super == NULL) {
 						M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
 						M_CMPEQ_IMM(REG_ITMP1, OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]), REG_ITMP1);
-						emit_label_beqz(cd, BRANCH_LABEL_10, REG_ITMP1);  /* false */
+						// emit_label_beqz(cd, BRANCH_LABEL_10, REG_ITMP1);  /* false */
 					}
 
 					M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_depth));
 
 					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, subtype_depth));
 					M_CMPLE(REG_ITMP1, REG_ITMP3, REG_ITMP3);
-					emit_label_beqz(cd, BRANCH_LABEL_9, REG_ITMP3);  /* false */
+					// emit_label_beqz(cd, BRANCH_LABEL_9, REG_ITMP3);  /* false */
 					/* reload */
 					M_ALD(REG_ITMP3, REG_PV, disp);
 					M_ALD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, subtype_overflow));

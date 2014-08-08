@@ -37,6 +37,7 @@
 /* additional functions and macros to generate code ***************************/
 
 #define gen_bound_check \
+    os::abort("gen_bound_check not yet implemented!"); \
     if (checkbounds) { \
         M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
         M_CMPULT(s2, REG_ITMP3, REG_ITMP3);\
@@ -88,22 +89,35 @@
 #define M_LLD_INTERN(a,b,disp)      emit_ldr_imm(cd, a, b, disp)
 #define M_LST_INTERN(a,b,disp)      emit_str_imm(cd, a, b, disp)
 
-#define M_ILD_INTERN(a,b,disp)      emit_ldr_imm32(cd, a, b, disp)
-#define M_IST_INTERN(a,b,disp)      emit_str_imm32(cd, a, b, disp)
+#define M_ILD_INTERN(a,b,disp)      emit_ldr_imm(cd, a, b, disp) // TODO: should i really only use 64 bits?
+#define M_IST_INTERN(a,b,disp)      emit_str_imm(cd, a, b, disp)
 
 #define M_LDA_INTERN(a,b,disp)      emit_lda(cd, a, b, disp)
 
 #define M_RET(a,b)                  emit_ret(cd)
-#define M_JSR(a,b)                  emit_blr(cd, b)
-#define M_JMP(a,b)                  emit_br_aa(cd, b)
+#define M_JSR(a,b)                  emit_blr_reg(cd, b)
+#define M_JMP(a,b)                  emit_br_reg(cd, b)
 
-// #define M_LADD_IMM(a,b,imm)         emit_add_imm(cd, a, b, imm)
-// #define M_LSUB_IMM(a,b,imm)         emit_sub_imm(cd, a, b, imm)
+#define M_BR(imm)                   emit_br_imm(cd, imm + 1) // TODO: again we are off by one
+
+#define M_LADD_IMM(Xn,imm,Xd)       emit_add_imm(cd, Xd, Xn, imm)
+#define M_LSUB_IMM(Xn,imm,Xd)       emit_sub_imm(cd, Xd, Xn, imm) /* Xd = Xn - imm */
+
+#define M_IADD_IMM(Xn,imm,Xd)       M_LADD_IMM(Xn,imm,Xd)
+#define M_ISUB_IMM(Xn,imm,Xd)       M_LSUB_IMM(Xn,imm,Xd) // TODO: test with 32 bit version instead of 64
+
+#define M_LADD(Xn,Xm,Xd)            emit_add_reg(cd, Xd, Xn, Xm)
+#define M_LSUB(Xn,Xm,Xd)            emit_sub_reg(cd, Xd, Xn, Xm)  /* Xd = Xn - Xm */
+
+#define M_IADD(Xn,Xm,Xd)            M_LADD(Xn, Xm, Xd) // TODO: test with 32 bit version instead of 64
+#define M_ISUB(Xn,Xm,Xd)            M_LSUB(Xn, Xm, Xd)
+
+#define M_S8ADDQ(Xm,Xn,Xd)          emit_add_reg_shift(cd, Xd, Xn, Xm, CODE_LSL, 3); /* Xd = Xn + shift(Xm, 3) */
 
 #define M_MOV(a,b)                  emit_mov(cd, b, a)
 #define M_MOV_IMM(a, imm)           emit_mov_imm(cd, a, imm)
 
-#define M_BNEZ(a,disp)              emit_cbnz(cd, a, disp + 1)
+#define M_BNEZ(a,disp)              emit_cbnz(cd, a, disp + 1) // TODO: off by 1 compared to alpha
 
 #define M_CMP_IMM(a, imm)           emit_cmp_imm(cd, a, imm)
 #define M_BR_EQ(imm)                emit_br_eq(cd, imm)
@@ -112,6 +126,10 @@
 #define M_BR_LE(imm)                emit_br_le(cd, imm)
 #define M_BR_GT(imm)                emit_br_gt(cd, imm)
 #define M_BR_GE(imm)                emit_br_ge(cd, imm)
+
+#define M_TEST(a)       emit_tst_sreg(cd, a, a) 
+#define M_ACMP(a,b)     emit_cmp_reg(cd, b, a) 
+#define M_ICMP(a,b)     emit_cmp_reg(cd, b, a) 
 
 /* ===========================================================================*/
 
@@ -129,7 +147,7 @@
         *((uint32_t *) cd->mcodeptr) = ((((Opcode)) << 26) | ((Ra) << 21) | ((Rb) << 16) | ((Memory_disp) & 0xffff)); \
         cd->mcodeptr += 4; \
     } while (0)*/
-#define M_MEM(a,b,c,d) M_NOP
+#define M_MEM(a,b,c,d) os::abort("M_MEM called with (%d, %d, %d, %d)", a, b, c, d) 
 
 #define M_MEM_GET_Opcode(x)             (          (((x) >> 26) & 0x3f  ))
 #define M_MEM_GET_Ra(x)                 (          (((x) >> 21) & 0x1f  ))
@@ -150,7 +168,7 @@
         *((uint32_t *) cd->mcodeptr) = ((((Opcode)) << 26) | ((Ra) << 21) | ((Branch_disp) & 0x1fffff)); \
         cd->mcodeptr += 4; \
     } while (0)*/
-#define M_BRA(a,b,c) M_NOP
+#define M_BRA(a,b,c) os::abort("M_BRA called with (%d, %d, %d)", a, b, c) 
 
 
 #define REG   0
@@ -172,7 +190,7 @@
         *((u4 *) cd->mcodeptr) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << (16 - 3 * (const))) | ((const) << 12) | ((fu) << 5) | ((c))); \
         cd->mcodeptr += 4; \
     } while (0)*/
-#define M_OP3(op,fu,a,b,c,const) M_NOP
+#define M_OP3(op,fu,a,b,c,const) os::abort("M_OP3 called with (%d, %d, %d, %d, %d, %d)", op, fu, a, b, c, const) 
 
 #define M_OP3_GET_Opcode(x)             (          (((x) >> 26) & 0x3f  ))
 
@@ -189,7 +207,7 @@
         *((u4 *) cd->mcodeptr) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << 16) | ((fu) << 5) | (c)); \
         cd->mcodeptr += 4; \
     } while (0)*/
-#define M_FOP3(op,fu,a,b,c) M_NOP
+#define M_FOP3(op,fu,a,b,c) os::abort("M_FOP3 called with (%d, %d, %d, %d, %d)", op, fu, a, b, c) 
 
 
 /* macros for all used commands (see an Alpha-manual for description) *********/
@@ -284,7 +302,7 @@
 #define M_BSEXT(b,c)            M_OP3 (0x1c,0x0,REG_ZERO,b,c,0) /*  8 signext */
 #define M_SSEXT(b,c)            M_OP3 (0x1c,0x1,REG_ZERO,b,c,0) /* 16 signext */
 
-#define M_BR(disp)              M_BRA (0x30,REG_ZERO,disp)      /* branch     */
+// #define M_BR(disp)              M_BRA (0x31,REG_ZERO,disp)      /* branch     */
 #define M_BSR(ra,disp)          M_BRA (0x34,ra,disp)            /* branch sbr */
 #define M_BEQZ(a,disp)          M_BRA (0x39,a,disp)             /* br a == 0  */
 #define M_BLTZ(a,disp)          M_BRA (0x3a,a,disp)             /* br a <  0  */
@@ -297,10 +315,10 @@
 // #define M_JSR(a,b)              M_MEM (0x1a,a,b,0x4000)         /* call sbr   */
 // #define M_RET(a,b)              M_MEM (0x1a,a,b,0x8000)         /* return     */
 
-#define M_IADD(a,b,c)           M_OP3 (0x10,0x0,  a,b,c,0)      /* 32 add     */
-#define M_LADD(a,b,c)           M_OP3 (0x10,0x20, a,b,c,0)      /* 64 add     */
-#define M_ISUB(a,b,c)           M_OP3 (0x10,0x09, a,b,c,0)      /* 32 sub     */
-#define M_LSUB(a,b,c)           M_OP3 (0x10,0x29, a,b,c,0)      /* 64 sub     */
+// #define M_IADD(a,b,c)           M_OP3 (0x10,0x0,  a,b,c,0)      /* 32 add     */
+// #define M_LADD(a,b,c)           M_OP3 (0x10,0x20, a,b,c,0)      /* 64 add     */
+// #define M_ISUB(a,b,c)           M_OP3 (0x10,0x09, a,b,c,0)      /* 32 sub     */
+// #define M_LSUB(a,b,c)           M_OP3 (0x10,0x29, a,b,c,0)      /* 64 sub     */
 #define M_IMUL(a,b,c)           M_OP3 (0x13,0x00, a,b,c,0)      /* 32 mul     */
 #define M_LMUL(a,b,c)           M_OP3 (0x13,0x20, a,b,c,0)      /* 64 mul     */
 
@@ -312,10 +330,10 @@
     } while (0) \
 /* ============== aarch64 ================ */
 
-#define M_IADD_IMM(a,b,c)       M_OP3 (0x10,0x0,  a,b,c,1)      /* 32 add     */
-#define M_LADD_IMM(a,b,c)       M_OP3 (0x10,0x20, a,b,c,1)      /* 64 add     */
-#define M_ISUB_IMM(a,b,c)       M_OP3 (0x10,0x09, a,b,c,1)      /* 32 sub     */
-#define M_LSUB_IMM(a,b,c)       M_OP3 (0x10,0x29, a,b,c,1)      /* 64 sub     */
+// #define M_IADD_IMM(a,b,c)       M_OP3 (0x10,0x0,  a,b,c,1)      /* 32 add     */
+// #define M_LADD_IMM(a,b,c)       M_OP3 (0x10,0x20, a,b,c,1)      /* 64 add     */
+// #define M_ISUB_IMM(a,b,c)       M_OP3 (0x10,0x09, a,b,c,1)      /* 32 sub     */
+// #define M_LSUB_IMM(a,b,c)       M_OP3 (0x10,0x29, a,b,c,1)      /* 64 sub     */
 #define M_IMUL_IMM(a,b,c)       M_OP3 (0x13,0x00, a,b,c,1)      /* 32 mul     */
 #define M_LMUL_IMM(a,b,c)       M_OP3 (0x13,0x20, a,b,c,1)      /* 64 mul     */
 
@@ -469,7 +487,7 @@
 #define M_S4SUBL(a,b,c)         M_OP3 (0x10,0x0b, a,b,c,0)     /* c = a*4 - b */
 #define M_S4SUBQ(a,b,c)         M_OP3 (0x10,0x2b, a,b,c,0)     /* c = a*4 - b */
 #define M_S8ADDL(a,b,c)         M_OP3 (0x10,0x12, a,b,c,0)     /* c = a*8 + b */
-#define M_S8ADDQ(a,b,c)         M_OP3 (0x10,0x32, a,b,c,0)     /* c = a*8 + b */
+// #define M_S8ADDQ(a,b,c)         M_OP3 (0x10,0x32, a,b,c,0)     /* c = a*8 + b */
 #define M_S8SUBL(a,b,c)         M_OP3 (0x10,0x1b, a,b,c,0)     /* c = a*8 - b */
 #define M_S8SUBQ(a,b,c)         M_OP3 (0x10,0x3b, a,b,c,0)     /* c = a*8 - b */
 #define M_SAADDQ(a,b,c)         M_S8ADDQ(a,b,c)                /* c = a*8 + b */
