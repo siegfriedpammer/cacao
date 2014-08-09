@@ -158,7 +158,7 @@ L_asm_vm_call_method_return:
 		
 asm_vm_call_method_exception_handler:
 	mov     xptr,a0                     /* pass exception pointer             */
-	call    builtin_throw_exception@PLT
+	call    PIC_SYMBOL(builtin_throw_exception)
 	jmp     L_asm_vm_call_method_return
 
 asm_vm_call_method_end:
@@ -198,14 +198,14 @@ L_asm_handle_exception_stack_loop:
 	mov     t0,4*8(sp)                  /* save maybe-leaf flag               */
 
 	mov     xpc,a0                      /* exception pc                       */
-	call    methodtree_find@PLT
+	call    PIC_SYMBOL(methodtree_find)
 	mov     v0,2*8(sp)                  /* save data segment pointer          */
         
 	mov     0*8(sp),a0                  /* pass exception pointer             */
 	mov     1*8(sp),a1                  /* pass exception pc                  */
 	mov     v0,a2                       /* pass data segment pointer          */
 	mov     3*8(sp),a3                  /* pass Java stack pointer            */
-	call    exceptions_handle_exception@PLT
+	call    PIC_SYMBOL(exceptions_handle_exception)
 
 	test    v0,v0
 	jz      L_asm_handle_exception_not_catched
@@ -319,7 +319,7 @@ asm_abstractmethoderror:
 	add     $2*8,a0
 	mov     1*8(sp),a1                  /* pass exception address             */
 	sub     $3,a1
-	call	exceptions_asm_new_abstractmethoderror@PLT
+	call	PIC_SYMBOL(exceptions_asm_new_abstractmethoderror)
 	                                    /* exception pointer is return value  */
 	pop     xpc                         /* dummy pop                          */
 	pop     xpc                         /* get exception address              */
@@ -339,7 +339,7 @@ asm_builtin_f2i:
 	SAVE_ARGUMENT_REGISTERS(0)
 	
 	movq    ftmp1,fa0
-	call    builtin_f2i@PLT
+	call    PIC_SYMBOL(builtin_f2i)
 	
 	RESTORE_ARGUMENT_REGISTERS(0)
 	
@@ -353,7 +353,7 @@ asm_builtin_f2l:
 	SAVE_ARGUMENT_REGISTERS(0)
 	
 	movq    ftmp1,fa0
-	call    builtin_f2l@PLT
+	call    PIC_SYMBOL(builtin_f2l)
 	
 	RESTORE_ARGUMENT_REGISTERS(0)
 	
@@ -367,7 +367,7 @@ asm_builtin_d2i:
 	SAVE_ARGUMENT_REGISTERS(0)
 	
 	movq    ftmp1,fa0
-	call    builtin_d2i@PLT
+	call    PIC_SYMBOL(builtin_d2i)
 	
 	RESTORE_ARGUMENT_REGISTERS(0)
 	
@@ -381,7 +381,7 @@ asm_builtin_d2l:
 	SAVE_ARGUMENT_REGISTERS(0)
 	
 	movq    ftmp1,fa0
-	call    builtin_d2l@PLT
+	call    PIC_SYMBOL(builtin_d2l)
 	
 	RESTORE_ARGUMENT_REGISTERS(0)
 	

@@ -141,6 +141,8 @@
 	movq    (3+(off))*8(sp),ft2  ; \
 	movq    (4+(off))*8(sp),ft3  ;
 
+#define PIC_SYMBOL(f) f##@PLT
+
 #endif // MD_ASM_HPP_
 
 

@@ -1,6 +1,6 @@
-/* src/vm/jit/i386/darwin/md-os.cpp - machine dependent i386 Darwin functions
+/* src/vm/jit/x86_64/darwin/md-os.cpp - machine dependent x86_64 Darwin functions
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -32,8 +32,8 @@
 
 #include "vm/types.hpp"
 
-#include "vm/jit/i386/codegen.hpp"
-#include "vm/jit/i386/md.hpp"
+#include "vm/jit/x86_64/codegen.hpp"
+#include "vm/jit/x86_64/md.hpp"
 
 #include "threads/thread.hpp"
 
@@ -43,21 +43,6 @@
 #include "vm/jit/executionstate.hpp"
 #include "vm/jit/trap.hpp"
 
-#include "vm/jit/i386/codegen.hpp"
-
-#if !__DARWIN_UNIX03
-#define __eax eax
-#define __ebx ebx
-#define __ecx ecx
-#define __edx edx
-#define __esi esi
-#define __edi edi
-#define __ebp ebp
-#define __esp esp
-#define __eip eip
-#define __ss ss
-#endif
-
 /**
  * Signal handler for hardware exceptions.
  */
@@ -65,9 +50,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t*          _uc = (ucontext_t *) _p;
 	mcontext_t           _mc = _uc->uc_mcontext;
-	i386_thread_state_t* _ss = &_mc->__ss;
+	x86_thread_state64_t* _ss = &_mc->__ss;
 
-	void* xpc = (void*) _ss->__eip;
+	void* xpc = (void*) _ss->__rip;
 
 	// Handle the trap.
 	trap_handle(TRAP_SIGSEGV, xpc, _p);
@@ -82,9 +67,9 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t*          _uc = (ucontext_t *) _p;
 	mcontext_t           _mc = _uc->uc_mcontext;
-	i386_thread_state_t* _ss = &_mc->__ss;
+	x86_thread_state64_t* _ss = &_mc->__ss;
 
-	void* xpc = (void*) _ss->__eip;
+	void* xpc = (void*) _ss->__rip;
 
 	// Handle the trap.
 	trap_handle(TRAP_SIGFPE, xpc, _p);
@@ -102,7 +87,7 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 	threadobject        *t;
 	ucontext_t          *_uc;
 	mcontext_t           _mc;
-	i386_thread_state_t *_ss;
+	x86_thread_state64_t *_ss;
 	u1                  *pc;
 
 	t = THREADOBJECT;
@@ -111,7 +96,7 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 	_mc = _uc->uc_mcontext;
 	_ss = &_mc->__ss;
 
-	pc = (u1 *) _ss->__eip;
+	pc = (u1 *) _ss->__rip;
 
 	t->pc = pc;
 }
@@ -124,9 +109,9 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t*          _uc = (ucontext_t *) _p;
 	mcontext_t           _mc = _uc->uc_mcontext;
-	i386_thread_state_t* _ss = &_mc->__ss;
+	x86_thread_state64_t* _ss = &_mc->__ss;
 
-	void* xpc = (void*) _ss->__eip;
+	void* xpc = (void*) _ss->__rip;
 
 	// Handle the trap.
 	trap_handle(TRAP_SIGILL, xpc, _p);
@@ -142,7 +127,7 @@ void md_executionstate_read(executionstate_t *es, void *context)
 {
 	ucontext_t          *_uc;
 	mcontext_t           _mc; 
-	i386_thread_state_t *_ss;
+	x86_thread_state64_t *_ss;
 	int                  i;
 
 	_uc = (ucontext_t *) context;
@@ -150,19 +135,22 @@ void md_executionstate_read(executionstate_t *es, void *context)
 	_ss = &_mc->__ss;
 
 	/* read special registers */
-	es->pc = (u1 *) _ss->__eip;
-	es->sp = (u1 *) _ss->__esp;
+	es->pc = (u1 *) _ss->__rip;
+	es->sp = (u1 *) _ss->__rsp;
 	es->pv = NULL;                   /* pv must be looked up via AVL tree */
 
 	/* read integer registers */
 	for (i = 0; i < INT_REG_CNT; i++)
-		es->intregs[i] = (i == 0) ? _ss->__eax :
-			((i == 1) ? _ss->__ecx :
-			((i == 2) ? _ss->__edx :
-			((i == 3) ? _ss->__ebx :
-			((i == 4) ? _ss->__esp :
-			((i == 5) ? _ss->__ebp :
-			((i == 6) ? _ss->__esi : _ss->__edi))))));
+		if (i<8)
+			es->intregs[i] = (i == 0) ? _ss->__rax :
+				((i == 1) ? _ss->__rcx :
+				((i == 2) ? _ss->__rdx :
+				((i == 3) ? _ss->__rbx :
+				((i == 4) ? _ss->__rsp :
+				((i == 5) ? _ss->__rbp :
+				((i == 6) ? _ss->__rsi : _ss->__rdi))))));
+		else
+			es->intregs[i] = (&_ss->__r8)[i-8];
 
 	/* read float registers */
 	for (i = 0; i < FLT_REG_CNT; i++)
@@ -180,7 +168,7 @@ void md_executionstate_write(executionstate_t *es, void *context)
 {
 	ucontext_t*          _uc;
 	mcontext_t           _mc;
-	i386_thread_state_t* _ss;
+	x86_thread_state64_t* _ss;
 	int                  i;
 
 	_uc = (ucontext_t *) context;
@@ -189,17 +177,20 @@ void md_executionstate_write(executionstate_t *es, void *context)
 
 	/* write integer registers */
 	for (i = 0; i < INT_REG_CNT; i++)
-		*((i == 0) ? &_ss->__eax :
-		 ((i == 1) ? &_ss->__ecx :
-		 ((i == 2) ? &_ss->__edx :
-		 ((i == 3) ? &_ss->__ebx :
-		 ((i == 4) ? &_ss->__esp :
-		 ((i == 5) ? &_ss->__ebp :
-		 ((i == 6) ? &_ss->__esi : &_ss->__edi))))))) = es->intregs[i];
+		if (i<8)
+			*((i == 0) ? &_ss->__rax :
+			((i == 1) ? &_ss->__rcx :
+			((i == 2) ? &_ss->__rdx :
+			((i == 3) ? &_ss->__rbx :
+			((i == 4) ? &_ss->__rsp :
+			((i == 5) ? &_ss->__rbp :
+			((i == 6) ? &_ss->__rsi : &_ss->__rdi))))))) = es->intregs[i];
+		else
+			(&_ss->__r8)[i-8] = es->intregs[i];
 
 	/* write special registers */
-	_ss->__eip = (ptrint) es->pc;
-	_ss->__esp = (ptrint) es->sp;
+	_ss->__rip = (ptrint) es->pc;
+	_ss->__rsp = (ptrint) es->sp;
 }
 
 
