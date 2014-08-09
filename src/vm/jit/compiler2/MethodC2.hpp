@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/Method.hpp - Method
+/* src/vm/jit/compiler2/MethodC2.hpp - Method
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -105,7 +105,7 @@ public:
 	 */
 	template <class InputIterator>
 	void replace_instruction_list(InputIterator first, InputIterator last) {
-		inst_list.assign(first, last);	
+		inst_list.assign(first, last);
 	}
 
 	/**

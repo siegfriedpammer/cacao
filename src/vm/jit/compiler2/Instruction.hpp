@@ -32,7 +32,7 @@
 #define _JIT_COMPILER2_INSTRUCTION
 
 #include "vm/jit/compiler2/Value.hpp"
-#include "vm/jit/compiler2/Method.hpp"
+#include "vm/jit/compiler2/MethodC2.hpp"
 
 // for Instruction::reset
 #include "vm/jit/compiler2/Compiler.hpp"

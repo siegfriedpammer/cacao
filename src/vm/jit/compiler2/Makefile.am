@@ -75,7 +75,7 @@ libcompiler2_la_SOURCES = \
 	MachineLoop.cpp \
 	MachineLoopPass.cpp \
 	MachineOperand.cpp \
-	Method.cpp \
+	MethodC2.cpp \
 	MethodDescriptor.cpp \
 	ObjectFileWriterPass.cpp \
 	ParserPass.cpp \

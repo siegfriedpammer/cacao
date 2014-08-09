@@ -32,7 +32,7 @@
 #include "vm/jit/compiler2/MethodDescriptor.hpp"
 #include "vm/jit/compiler2/CodeMemory.hpp"
 #include "vm/jit/compiler2/StackSlotManager.hpp"
-#include "vm/jit/Patcher.hpp"
+#include "vm/jit/PatcherNew.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/code.hpp"
 #include "vm/class.hpp"
