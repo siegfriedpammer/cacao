@@ -1,4 +1,4 @@
-/* src/vm/jit/Patcher.hpp - Patcher class
+/* src/vm/jit/PatcherNew.hpp - Patcher class
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,8 +22,8 @@
 
 */
 
-#ifndef _PATCHER_HPP
-#define _PATCHER_HPP
+#ifndef _PATCHERNEW_HPP
+#define _PATCHERNEW_HPP
 
 #include "vm/jit/patcher-common.hpp"
 
@@ -208,7 +208,7 @@ public:
 
 } // end namespace cacao
 
-#endif // _PATCHER_HPP
+#endif // _PATCHERNEW_HPP
 
 
 /*

@@ -23,7 +23,7 @@
 */
 
 
-#include "vm/jit/Patcher.hpp"
+#include "vm/jit/PatcherNew.hpp"
 #include "toolbox/logging.hpp"
 
 #include "vm/initialize.hpp"

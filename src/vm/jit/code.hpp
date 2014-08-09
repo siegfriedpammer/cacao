@@ -34,7 +34,7 @@
 #include "vm/types.hpp"                 // for u1, s4
 
 #include "future/memory.hpp"            // for cacao::shared_ptr
-#include "vm/jit/Patcher.hpp"           // for cacao::Patcher
+#include "vm/jit/PatcherNew.hpp"         // for cacao::Patcher
 
 class LinenumberTable;
 struct exceptiontable_t;
