@@ -100,8 +100,6 @@ inline static void *md_codegen_get_pv_from_pc(void *ra)
 {
 	uint32_t *pc;
 	uint32_t  mcode;
-	int       opcode;
-	int32_t   disp;
 	void     *pv;
 
 	pc = (uint32_t *) ra;
@@ -114,43 +112,9 @@ inline static void *md_codegen_get_pv_from_pc(void *ra)
     if (high == 0xD1) {
         int32_t offset = (mcode >> 10) & 0xfff;
         pv = ((uint8_t *) pc) - offset;
-        log_println("md_codegen_get_pv_from_pc calculated %p", pv);
-        return pv;
     } else {
 		vm_abort_disassemble(pc, 2, "md_codegen_get_pv_from_pc: unknown instruction %x", mcode);
     }
-	/* Get opcode and displacement. */
-
-	opcode = M_MEM_GET_Opcode(mcode);
-	disp   = M_MEM_GET_Memory_disp(mcode);
-
-	/* Check for short or long load (2 instructions). */
-
-	switch (opcode) {
-	case 0x08: /* LDA: TODO use define */
-		assert((mcode >> 16) == 0x237a);
-
-		pv = ((uint8_t *) pc) + disp;
-		break;
-
-	case 0x09: /* LDAH: TODO use define */
-		pv = ((uint8_t *) pc) + (disp << 16);
-
-		/* Get displacement of second instruction (LDA). */
-
-		mcode = pc[1];
-
-		assert((mcode >> 16) == 0x237b);
-
-		disp = M_MEM_GET_Memory_disp(mcode);
-
-		pv = ((uint8_t *) pv) + disp;
-		break;
-
-	default:
-		vm_abort_disassemble(pc, 2, "md_codegen_get_pv_from_pc: unknown instruction %x", mcode);
-		return NULL;
-	}
 
 	return pv;
 }

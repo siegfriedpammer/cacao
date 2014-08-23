@@ -92,6 +92,12 @@
 #define M_ILD_INTERN(a,b,disp)      emit_ldr_imm(cd, a, b, disp) // TODO: should i really only use 64 bits?
 #define M_IST_INTERN(a,b,disp)      emit_str_imm(cd, a, b, disp)
 
+#define M_FLD_INTERN(a,b,disp)      emit_fp_ldr_imm(cd, a, b, disp) // TODO: test wit 32 bit version
+#define M_FST_INTERN(a,b,disp)      emit_fp_str_imm(cd, a, b, disp) // TODO: test wit 32 bit version
+
+#define M_DLD_INTERN(a,b,disp)      emit_fp_ldr_imm(cd, a, b, disp) 
+#define M_DST_INTERN(a,b,disp)      emit_fp_str_imm(cd, a, b, disp)
+
 #define M_LDA_INTERN(a,b,disp)      emit_lda(cd, a, b, disp)
 
 #define M_RET(a,b)                  emit_ret(cd)
@@ -112,24 +118,48 @@
 #define M_IADD(Xn,Xm,Xd)            M_LADD(Xn, Xm, Xd) // TODO: test with 32 bit version instead of 64
 #define M_ISUB(Xn,Xm,Xd)            M_LSUB(Xn, Xm, Xd)
 
+#define M_LMUL(Xn,Xm,Xd)            emit_mul(cd, Xd, Xn, Xm)    /* Xd = Xn * Xm */
+#define M_IMUL(Xn,Xm,Xd)            M_LMUL(Xn, Xm, Xd) // TODO: test with 32 bit version
+
 #define M_S8ADDQ(Xm,Xn,Xd)          emit_add_reg_shift(cd, Xd, Xn, Xm, CODE_LSL, 3); /* Xd = Xn + shift(Xm, 3) */
 
 #define M_MOV(a,b)                  emit_mov(cd, b, a)
 #define M_MOV_IMM(a, imm)           emit_mov_imm(cd, a, imm)
 
+#define M_CSET(Xd,cond)             emit_cset(cd, Xd, cond)  /* Xd = if cond then 1 else 0 */
+#define M_CSETM(Xd,cond)            emit_csetm(cd, Xd, cond) /* Xd = if cond then -1 else 0 */
+
 #define M_BNEZ(a,disp)              emit_cbnz(cd, a, disp + 1) // TODO: off by 1 compared to alpha
 
 #define M_CMP_IMM(a, imm)           emit_cmp_imm(cd, a, imm)
+#define M_CMN_IMM(a, imm)           emit_cmn_imm(cd, a, imm)
+
 #define M_BR_EQ(imm)                emit_br_eq(cd, imm)
 #define M_BR_NE(imm)                emit_br_ne(cd, imm)
 #define M_BR_LT(imm)                emit_br_lt(cd, imm)
 #define M_BR_LE(imm)                emit_br_le(cd, imm)
 #define M_BR_GT(imm)                emit_br_gt(cd, imm)
 #define M_BR_GE(imm)                emit_br_ge(cd, imm)
+#define M_BR_VS(imm)                emit_br_vs(cd, imm)
+#define M_BR_VC(imm)                emit_br_vc(cd, imm)
 
-#define M_TEST(a)       emit_tst_sreg(cd, a, a) 
-#define M_ACMP(a,b)     emit_cmp_reg(cd, b, a) 
-#define M_ICMP(a,b)     emit_cmp_reg(cd, b, a) 
+#define M_TEST(a)                   emit_tst_sreg(cd, a, a) 
+#define M_TST(a,b)                  emit_tst_sreg(cd, a, b)
+#define M_ACMP(a,b)                 emit_cmp_reg(cd, a, b) 
+#define M_ICMP(a,b)                 emit_cmp_reg(cd, a, b) 
+
+#define M_FMOV(b,c)                 emit_fp_mov(cd, 1, b, c) // TODO: again, try with 32 bit version
+#define M_DMOV(b,c)                 emit_fp_mov(cd, 1, b, c)
+
+#define M_FCMP(a,b)                 emit_fp_cmp(cd, 1, a, b, 0)
+
+#define M_FMUL(Dn,Dm,Dd)            emit_fmul(cd, Dd, Dn, Dm)  /* Dd = Dn * Dm */
+#define M_FMULS(Dn,Dm,Dd)           M_FMUL(Dn,Dm,Dd)           /* TODO: implement single precision */
+
+#define M_CVTLD(b,c)                emit_scvtf(cd, c, b)       /* c = b */
+#define M_CVTLF(b,c)                M_CVTLD(b, c) 
+#define M_CVTDL(b,c)                emit_fcvtzs(cd, c, b)      /* c = b */
+
 
 /* ===========================================================================*/
 
@@ -147,7 +177,7 @@
         *((uint32_t *) cd->mcodeptr) = ((((Opcode)) << 26) | ((Ra) << 21) | ((Rb) << 16) | ((Memory_disp) & 0xffff)); \
         cd->mcodeptr += 4; \
     } while (0)*/
-#define M_MEM(a,b,c,d) os::abort("M_MEM called with (%d, %d, %d, %d)", a, b, c, d) 
+#define M_MEM(a,b,c,d) os::abort("M_MEM called with (%x, %x, %x, %x)", a, b, c, d) 
 
 #define M_MEM_GET_Opcode(x)             (          (((x) >> 26) & 0x3f  ))
 #define M_MEM_GET_Ra(x)                 (          (((x) >> 21) & 0x1f  ))
@@ -190,7 +220,7 @@
         *((u4 *) cd->mcodeptr) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << (16 - 3 * (const))) | ((const) << 12) | ((fu) << 5) | ((c))); \
         cd->mcodeptr += 4; \
     } while (0)*/
-#define M_OP3(op,fu,a,b,c,const) os::abort("M_OP3 called with (%d, %d, %d, %d, %d, %d)", op, fu, a, b, c, const) 
+#define M_OP3(op,fu,a,b,c,const) os::abort("M_OP3 called with (%x, %x, %x, %x, %x, %x)", op, fu, a, b, c, const) 
 
 #define M_OP3_GET_Opcode(x)             (          (((x) >> 26) & 0x3f  ))
 
@@ -207,7 +237,7 @@
         *((u4 *) cd->mcodeptr) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << 16) | ((fu) << 5) | (c)); \
         cd->mcodeptr += 4; \
     } while (0)*/
-#define M_FOP3(op,fu,a,b,c) os::abort("M_FOP3 called with (%d, %d, %d, %d, %d)", op, fu, a, b, c) 
+#define M_FOP3(op,fu,a,b,c) os::abort("M_FOP3 called with (%x, %x, %x, %x, %x)", op, fu, a, b, c) 
 
 
 /* macros for all used commands (see an Alpha-manual for description) *********/
@@ -237,25 +267,39 @@
 
 #define M_ILD(a,b,disp) \
     do { \
-        s4 lo = (short) (disp); \
-        s4 hi = (short) (((disp) - lo) >> 16); \
-        if (hi == 0) { \
-            M_ILD_INTERN(a,b,lo); \
+        s4 dispNew = disp; \
+        if (dispNew < -256) { \
+            printf("New path in M_ILD\n"); \
+            M_LSUB_IMM(REG_ZERO, -dispNew, a); \
+            emit_ldr_reg(cd, a, b, a); \
         } else { \
-            M_LDAH(a,b,hi); \
-            M_ILD_INTERN(a,a,lo); \
+            s4 lo = (short) (disp); \
+            s4 hi = (short) (((disp) - lo) >> 16); \
+            if (hi == 0) { \
+                M_ILD_INTERN(a,b,lo); \
+            } else { \
+                M_LDAH(a,b,hi); \
+                M_ILD_INTERN(a,a,lo); \
+            } \
         } \
     } while (0)
 
 #define M_LLD(a,b,disp) \
     do { \
-        s4 lo = (short) (disp); \
-        s4 hi = (short) (((disp) - lo) >> 16); \
-        if (hi == 0) { \
-            M_LLD_INTERN(a,b,lo); \
+        s4 dispNew = disp; \
+        if (dispNew < -256) { \
+            printf("New path in M_LLD\n"); \
+            M_LSUB_IMM(REG_ZERO, -dispNew, a); \
+            emit_ldr_reg(cd, a, b, a); \
         } else { \
-            M_LDAH(a,b,hi); \
-            M_LLD_INTERN(a,a,lo); \
+            s4 lo = (short) (disp); \
+            s4 hi = (short) (((disp) - lo) >> 16); \
+            if (hi == 0) { \
+                M_LLD_INTERN(a,b,lo); \
+            } else { \
+                M_LDAH(a,b,hi); \
+                M_LLD_INTERN(a,a,lo); \
+            } \
         } \
     } while (0)
 
@@ -319,8 +363,8 @@
 // #define M_LADD(a,b,c)           M_OP3 (0x10,0x20, a,b,c,0)      /* 64 add     */
 // #define M_ISUB(a,b,c)           M_OP3 (0x10,0x09, a,b,c,0)      /* 32 sub     */
 // #define M_LSUB(a,b,c)           M_OP3 (0x10,0x29, a,b,c,0)      /* 64 sub     */
-#define M_IMUL(a,b,c)           M_OP3 (0x13,0x00, a,b,c,0)      /* 32 mul     */
-#define M_LMUL(a,b,c)           M_OP3 (0x13,0x20, a,b,c,0)      /* 64 mul     */
+// #define M_IMUL(a,b,c)           M_OP3 (0x13,0x00, a,b,c,0)      /* 32 mul     */
+// #define M_LMUL(a,b,c)           M_OP3 (0x13,0x20, a,b,c,0)      /* 64 mul     */
 
 /* ============== aarch64 ================ */
 #define M_NOP \
@@ -374,8 +418,8 @@
 #define M_SRA_IMM(a,b,c)        M_OP3 (0x12,0x3c, a,b,c,1)      /* c = a >> b */
 #define M_SRL_IMM(a,b,c)        M_OP3 (0x12,0x34, a,b,c,1)      /* c = a >>>b */
 
-#define M_FLD_INTERN(a,b,disp)  M_MEM(0x22,a,b,disp)            /* load flt   */
-#define M_DLD_INTERN(a,b,disp)  M_MEM(0x23,a,b,disp)            /* load dbl   */
+// #define M_FLD_INTERN(a,b,disp)  M_MEM(0x22,a,b,disp)            /* load flt   */
+// #define M_DLD_INTERN(a,b,disp)  M_MEM(0x23,a,b,disp)            /* load dbl   */
 
 #define M_FLD(a,b,disp) \
     do { \
@@ -401,8 +445,8 @@
         } \
     } while (0)
 
-#define M_FST_INTERN(a,b,disp)  M_MEM(0x26,a,b,disp)            /* store flt  */
-#define M_DST_INTERN(a,b,disp)  M_MEM(0x27,a,b,disp)            /* store dbl  */
+// #define M_FST_INTERN(a,b,disp)  M_MEM(0x26,a,b,disp)            /* store flt  */
+// #define M_DST_INTERN(a,b,disp)  M_MEM(0x27,a,b,disp)            /* store dbl  */
 
 /* Stores with displacement overflow should only happen with PUTFIELD or on   */
 /* the stack. The PUTFIELD instruction does not use REG_ITMP3 and a           */
@@ -437,7 +481,7 @@
 #define M_DADD(a,b,c)           M_FOP3 (0x16, 0x0a0, a,b,c)     /* dbl add    */
 #define M_FSUB(a,b,c)           M_FOP3 (0x16, 0x081, a,b,c)     /* flt sub    */
 #define M_DSUB(a,b,c)           M_FOP3 (0x16, 0x0a1, a,b,c)     /* dbl sub    */
-#define M_FMUL(a,b,c)           M_FOP3 (0x16, 0x082, a,b,c)     /* flt mul    */
+// #define M_FMUL(a,b,c)           M_FOP3 (0x16, 0x082, a,b,c)     /* flt mul    */
 #define M_DMUL(a,b,c)           M_FOP3 (0x16, 0x0a2, a,b,c)     /* dbl mul    */
 #define M_FDIV(a,b,c)           M_FOP3 (0x16, 0x083, a,b,c)     /* flt div    */
 #define M_DDIV(a,b,c)           M_FOP3 (0x16, 0x0a3, a,b,c)     /* dbl div    */
@@ -446,15 +490,15 @@
 #define M_DADDS(a,b,c)          M_FOP3 (0x16, 0x5a0, a,b,c)     /* dbl add    */
 #define M_FSUBS(a,b,c)          M_FOP3 (0x16, 0x581, a,b,c)     /* flt sub    */
 #define M_DSUBS(a,b,c)          M_FOP3 (0x16, 0x5a1, a,b,c)     /* dbl sub    */
-#define M_FMULS(a,b,c)          M_FOP3 (0x16, 0x582, a,b,c)     /* flt mul    */
+// #define M_FMULS(a,b,c)          M_FOP3 (0x16, 0x582, a,b,c)     /* flt mul    */
 #define M_DMULS(a,b,c)          M_FOP3 (0x16, 0x5a2, a,b,c)     /* dbl mul    */
 #define M_FDIVS(a,b,c)          M_FOP3 (0x16, 0x583, a,b,c)     /* flt div    */
 #define M_DDIVS(a,b,c)          M_FOP3 (0x16, 0x5a3, a,b,c)     /* dbl div    */
 
 #define M_CVTDF(b,c)            M_FOP3 (0x16, 0x0ac, 31,b,c)    /* dbl2flt    */
-#define M_CVTLF(b,c)            M_FOP3 (0x16, 0x0bc, 31,b,c)    /* long2flt   */
-#define M_CVTLD(b,c)            M_FOP3 (0x16, 0x0be, 31,b,c)    /* long2dbl   */
-#define M_CVTDL(b,c)            M_FOP3 (0x16, 0x1af, 31,b,c)    /* dbl2long   */
+// #define M_CVTLF(b,c)            M_FOP3 (0x16, 0x0bc, 31,b,c)    /* long2flt   */
+// #define M_CVTLD(b,c)            M_FOP3 (0x16, 0x0be, 31,b,c)    /* long2dbl   */
+// #define M_CVTDL(b,c)            M_FOP3 (0x16, 0x1af, 31,b,c)    /* dbl2long   */
 #define M_CVTDL_C(b,c)          M_FOP3 (0x16, 0x12f, 31,b,c)    /* dbl2long   */
 #define M_CVTLI(b,c)            M_FOP3 (0x17, 0x130, 31,b,c)    /* long2int   */
 
@@ -467,11 +511,11 @@
 #define M_FCMPEQ(a,b,c)         M_FOP3 (0x16, 0x0a5, a,b,c)     /* c = a==b   */
 #define M_FCMPLT(a,b,c)         M_FOP3 (0x16, 0x0a6, a,b,c)     /* c = a<b    */
 
-#define M_FCMPEQS(a,b,c)        M_FOP3 (0x16, 0x5a5, a,b,c)     /* c = a==b   */
+// #define M_FCMPEQS(a,b,c)        M_FOP3 (0x16, 0x5a5, a,b,c)     /* c = a==b   */
 #define M_FCMPLTS(a,b,c)        M_FOP3 (0x16, 0x5a6, a,b,c)     /* c = a<b    */
 
-#define M_FMOV(fa,fb)           M_FOP3 (0x17, 0x020, fa,fa,fb)  /* b = a      */
-#define M_DMOV(fa,fb)           M_FMOV (fa,fb)
+// #define M_FMOV(fa,fb)           M_FOP3 (0x17, 0x020, fa,fa,fb)  /* b = a      */
+// #define M_DMOV(fa,fb)           M_FMOV (fa,fb)
 #define M_FMOVN(fa,fb)          M_FOP3 (0x17, 0x021, fa,fa,fb)  /* b = -a     */
 
 #define M_FNOP                  M_FMOV (31,31)
@@ -480,7 +524,8 @@
 
 /* macros for special commands (see an Alpha-manual for description) **********/
 
-#define M_TRAPB                 M_MEM (0x18,0,0,0x0000)        /* trap barrier*/
+// #define M_TRAPB                 M_MEM (0x18,0,0,0x0000)        /* trap barrier*/
+#define M_TRAPB                 M_NOP /* TODO: check where and how M_TRAPB is used */
 
 #define M_S4ADDL(a,b,c)         M_OP3 (0x10,0x02, a,b,c,0)     /* c = a*4 + b */
 #define M_S4ADDQ(a,b,c)         M_OP3 (0x10,0x22, a,b,c,0)     /* c = a*4 + b */

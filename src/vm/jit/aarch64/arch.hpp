@@ -33,17 +33,17 @@
 
 /* define architecture features ***********************************************/
 
-#define SUPPORT_DIVISION                 1
+#define SUPPORT_DIVISION                 0 /* TODO: is supported, but not yet implemented */
 
 #define SUPPORT_I2F                      1
 #define SUPPORT_I2D                      1
 #define SUPPORT_L2F                      1
 #define SUPPORT_L2D                      1
 
-#define SUPPORT_F2I                      0
-#define SUPPORT_F2L                      0
-#define SUPPORT_D2I                      0
-#define SUPPORT_D2L                      0
+#define SUPPORT_F2I                      1
+#define SUPPORT_F2L                      1
+#define SUPPORT_D2I                      1
+#define SUPPORT_D2L                      1
 
 #define SUPPORT_LONG_ADD                 1
 #define SUPPORT_LONG_CMP                 1

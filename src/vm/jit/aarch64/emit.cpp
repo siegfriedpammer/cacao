@@ -274,10 +274,14 @@ void emit_icmpeq_imm(codegendata* cd, int reg, int32_t value, int d)
  * Emits code comparing a single register
  */
 void emit_icmp_imm(codegendata* cd, int reg, int32_t value) {
+	int32_t disp;
+
 	if (value >= 0 && value <= 4095) {
 		M_CMP_IMM(reg, value);
+	} else if ((-value) >= 0 && (-value) <= 4095) {
+		M_CMN_IMM(reg, -value);
 	} else {
-		os::abort("emit_icmp_imm not implemented.");
+		os::abort("Compare with immediate for bigger values not implemented!");
 	}
 }
 
@@ -369,12 +373,10 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 
 void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 {
-	os::abort("emit_arithmetic_check not implemeneted!");
+	// TODO: check if this implementation works correctly
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_BNEZ(reg, 1);
-		/* Destination register must not be REG_ZERO, because then no
-		   SIGSEGV is thrown. */
-		M_ALD_INTERN(reg, REG_ZERO, TRAP_ArithmeticException);
+		emit_trap(cd, reg, TRAP_ArithmeticException);
 	}
 }
 
@@ -390,11 +392,8 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 	// TODO: check if this implementation works correclty 
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ILD(REG_ITMP3, s1, OFFSET(java_array_t, size));
-		// M_CMPULT(s2, REG_ITMP3, REG_ITMP3);
 		M_ICMP(s2, REG_ITMP3);
-		// M_BNEZ(REG_ITMP3, 1)
-		M_BR_GE(2);
-		// M_ALD_INTERN(s2, REG_ZERO, TRAP_ArrayIndexOutOfBoundsException);
+		M_BR_LT(2);
 		emit_trap(cd, s2, TRAP_ArrayIndexOutOfBoundsException);
 	}
 }
@@ -411,9 +410,6 @@ void emit_arraystore_check(codegendata *cd, instruction *iptr)
 	// TODO: check if this implementation works correclty
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_BNEZ(REG_RESULT, 1);
-		/* Destination register must not be REG_ZERO, because then no
-		   SIGSEGV is thrown. */
-		// M_ALD_INTERN(REG_RESULT, REG_ZERO, TRAP_ArrayStoreException);
 		emit_trap(cd, REG_RESULT, TRAP_ArrayStoreException);
 	}
 }
@@ -427,20 +423,20 @@ void emit_arraystore_check(codegendata *cd, instruction *iptr)
 
 void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 reg, s4 s1)
 {
-	os::abort("emit_classcast_check not implemented!");
+	// TODO: check that this implementation works correctly
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		switch (condition) {
 		case BRANCH_EQ:
-			M_BNEZ(reg, 1);
+			M_BR_NE(2);
 			break;
 		case BRANCH_LE:
-			M_BGTZ(reg, 1);
+			M_BR_GT(2);
 			break;
 		default:
 			vm_abort("emit_classcast_check: unknown condition %d", condition);
 			break;
 		}
-		M_ALD_INTERN(s1, REG_ZERO, TRAP_ClassCastException);
+		emit_trap(cd, s1, TRAP_ClassCastException);
 	}
 }
 
@@ -455,9 +451,6 @@ void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_BNEZ(reg, 1);
-		/* Destination register must not be REG_ZERO, because then no
-		   SIGSEGV is thrown. */
-		// M_ALD_INTERN(reg, REG_ZERO, TRAP_NullPointerException);
 		emit_trap(cd, reg, TRAP_NullPointerException);
 	}
 }
@@ -473,9 +466,6 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_BNEZ(REG_RESULT, 1);
-		/* Destination register must not be REG_ZERO, because then no
-		   SIGSEGV is thrown. */
-		// M_ALD_INTERN(REG_RESULT, REG_ZERO, TRAP_CHECK_EXCEPTION);
 		emit_trap(cd, REG_RESULT, TRAP_CHECK_EXCEPTION);
 	}
 }

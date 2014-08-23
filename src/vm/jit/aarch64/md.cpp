@@ -115,9 +115,6 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 		return NULL;
 	}
 
-	log_println("md_jitmethod_patch_address displacement: %d", disp);
-	disassinstr((u1*)pc);
-	// vm_abort_disassemble(pc, 2, "md_jit_method_patch_address: unknown instruction %x", mcode);
 	switch(base) {
 	case REG_PV:
 		/* Calculate the data segment address. */
@@ -138,59 +135,7 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 		break;
 
 	default:
-		vm_abort_disassemble(pc, 2, "md_jit_method_patch_address: unknown instruction %x", mcode);
-		return NULL;
-	}
-	log_println("md_jit_method_patch_address calculated %p", pa);
-
-	return pa;
-
-
-	/* Get opcode, base register and displacement. */
-
-	opcode = M_MEM_GET_Opcode(mcode);
-	base   = M_MEM_GET_Rb(mcode);
-	disp   = M_MEM_GET_Memory_disp(mcode);
-
-	/* Check for short or long load (2 instructions). */
-
-	switch (opcode) {
-	case 0x29: /* LDQ: TODO use define */
-		switch (base) {
-		case REG_PV:
-			/* Calculate the data segment address. */
-
-			pa = ((uint8_t *) pv) + disp;
-			break;
-
-		case REG_METHODPTR:
-			/* Return NULL if no mptr was specified (used for
-			   replacement). */
-
-			if (mptr == NULL)
-				return NULL;
-
-			/* Calculate the address in the vftbl. */
-
-			pa = ((uint8_t *) mptr) + disp;
-			break;
-
-		default:
-			vm_abort_disassemble(pc, 2, "md_jit_method_patch_address: unknown instruction %x", mcode);
-			return NULL;
-		}
-		break;
-
-	case 0x09: /* LDAH: TODO use define */
-		/* XXX write a regression for this */
-
-		vm_abort("md_jit_method_patch_address: IMPLEMENT ME!");
-
-		pa = NULL;
-		break;
-
-	default:
-		vm_abort_disassemble(pc, 2, "md_jit_method_patch_address: unknown instruction %x", mcode);
+		vm_abort_disassemble(pc, 2, "md_jit_method_patch_address: unsupported base register %x", mcode);
 		return NULL;
 	}
 
