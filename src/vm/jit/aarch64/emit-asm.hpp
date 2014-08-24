@@ -27,6 +27,7 @@
 #define VM_JIT_AARCH64_EMIT_ASM_HPP_
 
 #include <cassert>
+#include <cstdio>
 
 #include "config.h"
 
@@ -79,7 +80,7 @@ inline void emit_cmp_branch_imm(codegendata *cd, u1 sf, u1 op, s4 imm, u1 Rt)
 
 inline void emit_cond_branch_imm(codegendata *cd, s4 imm19, u1 cond)
 {
-	*((u4 *) cd->mcodeptr) = LSL(imm19, 5) | cond | 0x54000000;
+	*((u4 *) cd->mcodeptr) = LSL((imm19 & 0x7ffff), 5) | cond | 0x54000000;
 	cd->mcodeptr += 4;
 }
 
@@ -98,7 +99,7 @@ inline void emit_cond_branch_imm(codegendata *cd, s4 imm19, u1 cond)
 inline void emit_unc_branch_imm(codegendata *cd, u1 op, s4 imm26)
 {
 	// TODO sanity check imm26
-	*((u4 *) cd->mcodeptr) = LSL(op, 31) | imm26 | 0x14000000;
+	*((u4 *) cd->mcodeptr) = LSL(op, 31) | (imm26 & 0x3ffffff) | 0x14000000;
 	cd->mcodeptr += 4;
 }
 
@@ -129,6 +130,9 @@ inline void emit_ldstr_reg_usc(codegendata *cd, u1 size, u1 v, u1 opc, s2 imm9, 
 							 | LSL(imm9 & 0x1ff, 12) | LSL(Rn, 5) | Rt | 0x38400000;
 	cd->mcodeptr += 4;
 }
+
+#define emit_sturh(cd, Xt, Xn, imm9)	emit_ldstr_reg_usc(cd, 1, 0, 0, imm9, Xt, Xn)
+#define emit_ldurh(cd, Xt, Xn, imm9)	emit_ldstr_reg_usc(cd, 1, 0, 1, imm9, Xt, Xn)
 
 #define emit_ldur(cd, Xt, Xn, imm9)		emit_ldstr_reg_usc(cd, 3, 0, 1, imm9, Xt, Xn)
 #define emit_stur(cd, Xt, Xn, imm9)     emit_ldstr_reg_usc(cd, 3, 0, 0, imm9, Xt, Xn)
@@ -162,6 +166,9 @@ inline void emit_ldstr_reg_us(codegendata *cd, u1 size, u1 v, u1 opc, u2 imm12, 
 	cd->mcodeptr += 4;
 }
 
+#define emit_strh_uo(cd, Xt, Xn, imm12)		emit_ldstr_reg_us(cd, 1, 0, 0, imm12, Xt, Xn)
+#define emit_ldrh_uo(cd, Xt, Xn, imm12)		emit_ldstr_reg_us(cd, 1, 0, 1, imm12, Xt, Xn)
+
 #define emit_str_uo(cd, Xt, Xn, imm12)		emit_ldstr_reg_us(cd, 3, 0, 0, imm12, Xt, Xn)
 #define emit_ldr_uo(cd, Xt, Xn, imm12)		emit_ldstr_reg_us(cd, 3, 0, 1, imm12, Xt, Xn)
 
@@ -173,6 +180,34 @@ inline void emit_ldstr_reg_us(codegendata *cd, u1 size, u1 v, u1 opc, u2 imm12, 
 
 /* Handle ambigous Load/Store instructions ***********************************/
 /* TODO: Generalize this */
+
+inline void emit_ldrh_imm(codegendata *cd, u1 Xt, u1 Xn, s2 imm)
+{
+	/* handle ambigous case first */
+	if (imm >= 0 && imm <= 255 && (imm % 8 == 0)) 
+		emit_ldrh_uo(cd, Xt, Xn, imm);
+	else if (imm >= -256 && imm <= 255)
+		emit_ldurh(cd, Xt, Xn, imm);
+	else {
+		assert(imm >= 0);
+		assert(imm % 8 == 0);
+		emit_ldrh_uo(cd, Xt, Xn, imm);
+	}
+}
+
+inline void emit_strh_imm(codegendata *cd, u1 Xt, u1 Xn, s2 imm)
+{
+	/* handle ambigous case first */
+	if (imm >= 0 && imm <= 255 && (imm % 8 == 0)) 
+		emit_strh_uo(cd, Xt, Xn, imm);
+	else if (imm >= -256 && imm <= 255)
+		emit_sturh(cd, Xt, Xn, imm);
+	else {
+		assert(imm >= 0);
+		assert(imm % 8 == 0);
+		emit_strh_uo(cd, Xt, Xn, imm);
+	}
+}
 
 inline void emit_ldr_imm(codegendata *cd, u1 Xt, u1 Xn, s2 imm)
 {
@@ -285,12 +320,11 @@ inline void emit_addsub_imm(codegendata *cd, u1 op, u1 Xd, u1 Xn, u4 imm)
 
 #define emit_add_imm(cd, Xd, Xn, imm)	emit_addsub_imm(cd, 0, Xd, Xn, imm)
 #define emit_sub_imm(cd, Xd, Xn, imm)	emit_addsub_imm(cd, 1, Xd, Xn, imm)
-#define emit_mov_sp(cd, Xd, Xn)			emit_add_imm(cd, Xd, Xn, 0)
-
 #define emit_subs_imm(cd, Xd, Xn, imm)	emit_addsub_imm(cd, 1, 1, 1, 0, imm, Xn, Xd)
-#define emit_cmp_imm(cd, Xn, imm)		emit_subs_imm(cd, 31, Xn, imm)
-
 #define emit_adds_imm(cd, Xd, Xn, imm)	emit_addsub_imm(cd, 1, 0, 1, 0, imm, Xn, Xd)
+
+#define emit_mov_sp(cd, Xd, Xn)			emit_add_imm(cd, Xd, Xn, 0)
+#define emit_cmp_imm(cd, Xn, imm)		emit_subs_imm(cd, 31, Xn, imm)
 #define emit_cmn_imm(cd, Xn, imm)		emit_adds_imm(cd, 31, Xn, imm)
 
 
@@ -325,6 +359,7 @@ inline void emit_mov_wide_imm(codegendata *cd, u1 sf, u1 opc, u1 hw, u2 imm16, u
 }
 
 #define emit_mov_imm(cd, Xd, imm)	emit_mov_wide_imm(cd, 1, 2, 0, imm, Xd)
+#define emit_movn_imm(cd, Xd, imm)	emit_mov_wide_imm(cd, 1, 0, 0, imm, Xd)
 
 
 /* Alpha like LDA ************************************************************/
@@ -386,6 +421,9 @@ inline void emit_logical_sreg(codegendata *cd, u1 sf, u1 opc, u1 shift, u1 N, u1
 
 #define emit_ands_sreg(cd, Xd, Xn, Xm)	emit_logical_sreg(cd, 1, 3, 0, 0, Xm, 0, Xn, Xd)
 #define emit_tst_sreg(cd, Xn, Xm)		emit_ands_sreg(cd, 31, Xn, Xm)
+
+#define emit_eor_sreg(cd, Xd, Xn, Xm)	emit_logical_sreg(cd, 1, 2, 0, 0, Xm, 0, Xn, Xd)
+#define emit_clr(cd, Xd)				emit_eor_sreg(cd, Xd, Xd, Xd)
 
 inline void emit_mov(codegendata *cd, u1 Xd, u1 Xm)
 {

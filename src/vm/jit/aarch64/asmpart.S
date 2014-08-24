@@ -128,7 +128,7 @@ L_asm_vm_call_method_stack_copy_done:
 	blr		pv 
 	
 L_asm_vm_call_method_recompute_pv:
-	//sub		pv, lr, (L_asm_vm_call_method_recompute_pv - asm_vm_call_method)
+	sub		pv, lr, (L_asm_vm_call_method_recompute_pv - asm_vm_call_method) + 8
 
 L_asm_vm_call_method_recompute_return:
 	mov		sp, s0                      /* restore stack pointer            */

@@ -225,7 +225,6 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 	// Get required compiler data.
 	codegendata* cd = jd->cd;
 
-	log_println("Emitting: %d", iptr->opc);
 	switch (iptr->opc) {
 
 		/* constant operations ************************************************/
@@ -1153,18 +1152,10 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-			if (has_ext_instr_set) {
-				M_LADD(s2, s1, REG_ITMP1);
-				M_LADD(s2, REG_ITMP1, REG_ITMP1);
-				M_SLDU(d, REG_ITMP1, OFFSET(java_chararray_t, data[0]));
-			}
-			else {
-				M_LADD (s2, s1, REG_ITMP1);
-				M_LADD (s2, REG_ITMP1, REG_ITMP1);
-				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_chararray_t, data[0]));
-				M_LDA  (REG_ITMP1, REG_ITMP1, OFFSET(java_chararray_t, data[0]));
-				M_EXTWL(REG_ITMP2, REG_ITMP1, d);
-			}
+
+			M_LADD_SHIFT(REG_ITMP1, s1, s2, CODE_LSL, 1); /* REG_ITMP1 = s1 + (2 * s2) */
+			M_LDRH(d, REG_ITMP1, OFFSET(java_chararray_t, data[0]));
+
 			emit_store_dst(jd, iptr, d);
 			break;			
 
@@ -2010,8 +2001,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			}
 			else {
 				lm = iptr->sx.s23.s3.fmiref->p.method;
-				s1 = OFFSET(vftbl_t, table[0]) +
-					sizeof(methodptr) * lm->vftblindex;
+				s1 = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * lm->vftblindex;
 			}
 
 			/* implicit null-pointer check */
@@ -2127,12 +2117,10 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 					if (super == NULL) {
 						emit_label(cd, BRANCH_LABEL_2);
 
-						constant_classref *cr = iptr->sx.s23.s3.c.ref;
-						disp = dseg_add_unique_address(cd, cr);
+						disp = dseg_add_unique_address(cd, NULL);
 
-						patcher_add_patch_ref(jd,
-											  PATCHER_resolve_classref_to_vftbl,
-											  cr, disp);
+						patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_vftbl,
+											  iptr->sx.s23.s3.c.ref, disp);
 					}
 					else {
 						M_TEST(s1);
@@ -2150,19 +2138,21 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 						M_ALD(REG_ITMP1, REG_ITMP1, 0);
 
 						M_ICMP(REG_ITMP1, REG_ITMP3);
+						emit_load_s1(jd, iptr, REG_ITMP1); /* reload s1, might have been destroyed */
 						emit_label_beq(cd, BRANCH_LABEL_6);  /* good */
 
 						if (super == NULL) {
-							// M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
-
+							M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
 							M_CMP_IMM(REG_ITMP1, OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]));
-							emit_label_beq(cd, BRANCH_LABEL_10);  /* throw */
+							emit_load_s1(jd, iptr, REG_ITMP1); /* reload s1, might have been destroyed */
+							emit_classcast_check(cd, iptr, BRANCH_NE, 0, s1);
 						}
 
 						M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_depth));
 						M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, subtype_depth));
 						M_ICMP(REG_ITMP1, REG_ITMP3);
-						emit_label_ble(cd, BRANCH_LABEL_9);  /* throw */
+						emit_load_s1(jd, iptr, REG_ITMP1); /* reload s1, might have been destroyed */
+						emit_classcast_check(cd, iptr, BRANCH_LT, 0, s1);
 
 						/* reload */
 						M_ALD(REG_ITMP3, REG_PV, disp);
@@ -2171,27 +2161,27 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 						M_ALD(REG_ITMP1, REG_ITMP2, -DISPLAY_SIZE*8);
 
 						M_ICMP(REG_ITMP1, REG_ITMP3);
-						emit_label_bne(cd, BRANCH_LABEL_7);  /* good */
+						emit_classcast_check(cd, iptr, BRANCH_NE, 0, s1);
 
-						emit_label(cd, BRANCH_LABEL_9);
-						if (super == NULL)
-							emit_label(cd, BRANCH_LABEL_10);
-
-						/* reload s1, might have been destroyed */
-						emit_load_s1(jd, iptr, REG_ITMP1);
-						// M_ALD_INTERN(s1, REG_ZERO, TRAP_ClassCastException);
-						emit_trap(cd, s1, TRAP_ClassCastException);
-
-						emit_label(cd, BRANCH_LABEL_7);
 						emit_label(cd, BRANCH_LABEL_6);
+/*						if (super == NULL)
+							emit_label(cd, BRANCH_LABEL_10);
+*/
 						/* reload s1, might have been destroyed */
-						emit_load_s1(jd, iptr, REG_ITMP1);
+//						emit_load_s1(jd, iptr, REG_ITMP1);
+						// M_ALD_INTERN(s1, REG_ZERO, TRAP_ClassCastException);
+//						emit_trap(cd, s1, TRAP_ClassCastException);
+
+//						emit_label(cd, BRANCH_LABEL_7);
+//						emit_label(cd, BRANCH_LABEL_6);
+						/* reload s1, might have been destroyed */
+//						emit_load_s1(jd, iptr, REG_ITMP1);
 					}
 					else {
 						M_ALD(REG_ITMP2, REG_ITMP2, super->vftbl->subtype_offset);
 
 						M_ICMP(REG_ITMP2, REG_ITMP3);
-						emit_classcast_check(cd, iptr, BRANCH_EQ, REG_ITMP2, s1);
+						emit_classcast_check(cd, iptr, BRANCH_NE, 0, s1);
 					}
 
 					if (super != NULL)
@@ -2243,7 +2233,6 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 		case ICMD_INSTANCEOF: /* ..., objectref ==> ..., intresult            */
 
 			{
-				os::abort("ICMD_INSTANCEOF currently not supported on Aarch64.");
 			classinfo *super;
 			vftbl_t   *supervftbl;
 			s4         superindex;
@@ -2271,7 +2260,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 			if (super == NULL) {
 				M_CLR(d);
-				// emit_label_beqz(cd, BRANCH_LABEL_1, s1);
+				M_TEST(s1);
+				emit_label_beq(cd, BRANCH_LABEL_1);
 
 				disp = dseg_add_unique_s4(cd, 0);             /* super->flags */
 
@@ -2282,8 +2272,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 				disp = dseg_add_s4(cd, ACC_INTERFACE);
 				M_ILD(REG_ITMP2, REG_PV, disp);
-				M_AND(REG_ITMP3, REG_ITMP2, REG_ITMP3);
-				// emit_label_beqz(cd, BRANCH_LABEL_2, REG_ITMP3);
+				M_TST(REG_ITMP2, REG_ITMP3);
+				emit_label_beq(cd, BRANCH_LABEL_2);
 			}
 
 			/* interface instanceof code */
@@ -2301,17 +2291,21 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				}
 				else {
 					M_CLR(d);
-					// emit_label_beqz(cd, BRANCH_LABEL_3, s1);
+					M_TEST(s1);
+					emit_label_beq(cd, BRANCH_LABEL_3);
 				}
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_ILD(REG_ITMP3, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
-				M_LDA(REG_ITMP3, REG_ITMP3, -superindex);
-				M_BLEZ(REG_ITMP3, 2);
+				M_CMP_IMM(REG_ITMP3, superindex);
+				M_BR_LE(3);
 				M_ALD(REG_ITMP1, REG_ITMP1,
 					  (s4) (OFFSET(vftbl_t, interfacetable[0]) -
 							superindex * sizeof(methodptr*)));
-				M_CMPULT(REG_ZERO, REG_ITMP1, d);      /* REG_ITMP1 != 0  */
+				// M_CMPULT(REG_ZERO, REG_ITMP1, d);      /* REG_ITMP1 != 0  */
+				M_TEST(REG_ITMP1);
+				M_CSET(d, COND_NE);
+
 
 				if (super == NULL)
 					emit_label_br(cd, BRANCH_LABEL_4);
@@ -2332,10 +2326,11 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 										  disp);
 				}
 				else {
-					disp = dseg_add_address(cd, supervftbl);
-
 					M_CLR(d);
-					// emit_label_beqz(cd, BRANCH_LABEL_5, s1);
+					M_TEST(s1);
+					emit_label_beq(cd, BRANCH_LABEL_5);
+
+					disp = dseg_add_address(cd, supervftbl);
 				}
 
 				M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
@@ -2345,45 +2340,48 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 					M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
 					M_LADD(REG_ITMP1, REG_ITMP2, REG_ITMP1);
 					M_ALD(REG_ITMP1, REG_ITMP1, 0);
-					M_CMPEQ(REG_ITMP1, REG_ITMP3, REG_ITMP1);
-					// emit_label_beqz(cd, BRANCH_LABEL_8, REG_ITMP1);
-					ICONST(d, 1);
-					emit_label_br(cd, BRANCH_LABEL_6);  /* true */
-					emit_label(cd, BRANCH_LABEL_8);
+					M_ICMP(REG_ITMP1, REG_ITMP3);
+					emit_label_beq(cd, BRANCH_LABEL_6); /* true */
+
+					// ICONST(d, 1);
+					// emit_label_br(cd, BRANCH_LABEL_6);  /* true */
+					// emit_label(cd, BRANCH_LABEL_8);
 
 					if (super == NULL) {
 						M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
-						M_CMPEQ_IMM(REG_ITMP1, OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]), REG_ITMP1);
-						// emit_label_beqz(cd, BRANCH_LABEL_10, REG_ITMP1);  /* false */
+						M_CMP_IMM(REG_ITMP1, OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]));
+						emit_label_bne(cd, BRANCH_LABEL_7); /* false */
 					}
 
 					M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_depth));
-
 					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, subtype_depth));
-					M_CMPLE(REG_ITMP1, REG_ITMP3, REG_ITMP3);
-					// emit_label_beqz(cd, BRANCH_LABEL_9, REG_ITMP3);  /* false */
+					M_ICMP(REG_ITMP1, REG_ITMP3);
+					emit_label_blt(cd, BRANCH_LABEL_8); /* false */
+
 					/* reload */
 					M_ALD(REG_ITMP3, REG_PV, disp);
 					M_ALD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, subtype_overflow));
 					M_S8ADDQ(REG_ITMP1, REG_ITMP2, REG_ITMP2);
 					M_ALD(REG_ITMP1, REG_ITMP2, -DISPLAY_SIZE*8);
-					M_CMPEQ(REG_ITMP1, REG_ITMP3, d);
+					// M_CMPEQ(REG_ITMP1, REG_ITMP3, d);
+					M_ICMP(REG_ITMP1, REG_ITMP3);
+
+					emit_label(cd, BRANCH_LABEL_6);
+					if (super == NULL)
+						emit_label(cd, BRANCH_LABEL_7);
+					emit_label(cd, BRANCH_LABEL_8);
 
 					if (d == REG_ITMP2)
-						emit_label_br(cd, BRANCH_LABEL_7);
-					emit_label(cd, BRANCH_LABEL_9);
-					if (super == NULL)
-						emit_label(cd, BRANCH_LABEL_10);
-					if (d == REG_ITMP2) {
 						M_CLR(d);
+					M_CSET(d, COND_EQ);
 
-						emit_label(cd, BRANCH_LABEL_7);
-					}
-					emit_label(cd, BRANCH_LABEL_6);
 				}
 				else {
 					M_ALD(REG_ITMP2, REG_ITMP2, super->vftbl->subtype_offset);
-					M_CMPEQ(REG_ITMP2, REG_ITMP3, d);
+					M_ICMP(REG_ITMP2, REG_ITMP3);
+					if (d == REG_ITMP2)
+						M_CLR(d);
+					M_CSET(d, COND_EQ);
 				}
 
 				if (super != NULL)
@@ -2502,16 +2500,16 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		nmd->memuse;
 
 	/* create method header */
+	u4 stackoffset = (cd->stackframesize * 8);
+	stackoffset += stackoffset % 16;
 
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, stackoffset);			   /* FrameSize       */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
 	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
 
 	/* generate stub code */
-	u4 stackoffset = (cd->stackframesize * 8);
-	stackoffset += stackoffset % 16;
 
 	M_LDA(REG_SP, REG_SP, -stackoffset);
 	M_AST(REG_RA, REG_SP, stackoffset - SIZEOF_VOID_P);

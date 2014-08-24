@@ -100,7 +100,7 @@ inline static void *md_codegen_get_pv_from_pc(void *ra)
 {
 	uint32_t *pc;
 	uint32_t  mcode;
-	void     *pv;
+	void     *pv = NULL;
 
 	pc = (uint32_t *) ra;
 

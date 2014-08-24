@@ -274,8 +274,6 @@ void emit_icmpeq_imm(codegendata* cd, int reg, int32_t value, int d)
  * Emits code comparing a single register
  */
 void emit_icmp_imm(codegendata* cd, int reg, int32_t value) {
-	int32_t disp;
-
 	if (value >= 0 && value <= 4095) {
 		M_CMP_IMM(reg, value);
 	} else if ((-value) >= 0 && (-value) <= 4095) {
@@ -431,6 +429,15 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 			break;
 		case BRANCH_LE:
 			M_BR_GT(2);
+			break;
+		case BRANCH_NE:
+			M_BR_EQ(2);
+			break;
+		case BRANCH_GT:
+			M_BR_LE(2);
+			break;
+		case BRANCH_LT:
+			M_BR_GE(2);
 			break;
 		default:
 			vm_abort("emit_classcast_check: unknown condition %d", condition);
@@ -775,7 +782,6 @@ void emit_verbosecall_exit(jitdata *jd)
 {
 	methodinfo   *m;
 	codegendata  *cd;
-	registerdata *rd;
 	methoddesc   *md;
 	s4            disp;
 
@@ -783,7 +789,6 @@ void emit_verbosecall_exit(jitdata *jd)
 
 	m  = jd->m;
 	cd = jd->cd;
-	rd = jd->rd;
 
 	md = m->parseddesc;
 

@@ -305,9 +305,9 @@ bool patcher_invokestatic_special(patchref_t *pr)
    Machine code:
 
    <patched call position>
-   a7900000    ldq     at,0(a0)
-   a77c0100    ldq     pv,256(at)
-   6b5b4000    jsr     (pv)
+   a7900000    ldr     x16, [x0]
+   a77c0100    ldr     x17, [x16, #patched]
+   6b5b4000    blr     x17
 
 *******************************************************************************/
 
@@ -328,9 +328,21 @@ bool patcher_invokevirtual(patchref_t *pr)
 		return false;
 
 	/* patch vftbl index */
-
-	*((s4 *) (ra + 4)) |= (s4) ((OFFSET(vftbl_t, table[0]) +
-								 sizeof(methodptr) * m->vftblindex) & 0x0000ffff);
+	s4 disp = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * m->vftblindex;
+	assert(disp % 8 == 0);
+	disp /= 8;
+	u4 mcode = *((s4 *) (ra + 4));
+	u2 msb10 = (mcode >> 22) & 0x3ff;
+	switch(msb10) {
+		case 0x3e1:
+			os::abort("LDUR not implemented for patching yet.");
+			break;
+		case 0x3e5:
+			*((s4 *) (ra + 4)) |= ((disp & 0xfff) << 10);
+			break;
+		default:
+			os::abort("Unkown Load instruction to patch\n");
+	}
 
 	md_icacheflush(NULL, 0);
 

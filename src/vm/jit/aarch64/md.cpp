@@ -81,17 +81,16 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 {
 	uint32_t *pc;
 	uint32_t  mcode;
-	int       opcode;
 	int       base;
 	int32_t   disp;
 	void     *pa;                       /* patch address                      */
 	u2		  msb10;                    /* most significant 10 bits           */
 
 	/* Go back to the load instruction (2 instructions). */
-	pc = ((uint32_t *) ra) - 2;
+	pc = ((uint32_t *) ra) - 3;
 
 	/* Get first instruction word. */
-	mcode = pc[0];
+	mcode = pc[1];
 
 	/* Get base register */
 	base = (mcode >> 5) & 0x1f;
@@ -115,6 +114,17 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 		return NULL;
 	}
 
+	/* if negative offset is too big, we had to use a SUB beforehand */
+	if (disp == 0 && msb10 == 0x3e5) {
+		uint32_t subcode = pc[0];
+		u1 high = (subcode >> 24) & 0xff;
+		if (high == 0xD1) { /* Check for SUB */
+			// TODO: check that the target register is the same, as the one used by the LDR
+			int32_t offset = (subcode >> 10) & 0xfff;
+			disp = -offset;
+		}
+	}
+
 	switch(base) {
 	case REG_PV:
 		/* Calculate the data segment address. */
@@ -130,7 +140,6 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 			return NULL;
 
 		/* Calculate the address in the vftbl. */
-
 		pa = ((uint8_t *) mptr) + disp;
 		break;
 

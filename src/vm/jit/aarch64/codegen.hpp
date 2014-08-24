@@ -100,6 +100,8 @@
 
 #define M_LDA_INTERN(a,b,disp)      emit_lda(cd, a, b, disp)
 
+#define M_LDRH(Wt, Xn, imm)         emit_ldrh_imm(cd, Wt, Xn, imm)
+
 #define M_RET(a,b)                  emit_ret(cd)
 #define M_JSR(a,b)                  emit_blr_reg(cd, b)
 #define M_JMP(a,b)                  emit_br_reg(cd, b)
@@ -122,9 +124,12 @@
 #define M_IMUL(Xn,Xm,Xd)            M_LMUL(Xn, Xm, Xd) // TODO: test with 32 bit version
 
 #define M_S8ADDQ(Xm,Xn,Xd)          emit_add_reg_shift(cd, Xd, Xn, Xm, CODE_LSL, 3); /* Xd = Xn + shift(Xm, 3) */
+#define M_LADD_SHIFT(Xd,Xn,Xm,s,a)  emit_add_reg_shift(cd, Xd, Xn, Xm, s, a); /* Xd = Xn + lsl(Xm, a) */
 
 #define M_MOV(a,b)                  emit_mov(cd, b, a)
 #define M_MOV_IMM(a, imm)           emit_mov_imm(cd, a, imm)
+
+#define M_CLR(Xd)                    emit_clr(cd, Xd)
 
 #define M_CSET(Xd,cond)             emit_cset(cd, Xd, cond)  /* Xd = if cond then 1 else 0 */
 #define M_CSETM(Xd,cond)            emit_csetm(cd, Xd, cond) /* Xd = if cond then -1 else 0 */
@@ -198,7 +203,7 @@
         *((uint32_t *) cd->mcodeptr) = ((((Opcode)) << 26) | ((Ra) << 21) | ((Branch_disp) & 0x1fffff)); \
         cd->mcodeptr += 4; \
     } while (0)*/
-#define M_BRA(a,b,c) os::abort("M_BRA called with (%d, %d, %d)", a, b, c) 
+#define M_BRA(a,b,c) os::abort("M_BRA called with (%x, %x, %x)", a, b, c) 
 
 
 #define REG   0
@@ -267,11 +272,11 @@
 
 #define M_ILD(a,b,disp) \
     do { \
-        s4 dispNew = disp; \
-        if (dispNew < -256) { \
-            printf("New path in M_ILD\n"); \
-            M_LSUB_IMM(REG_ZERO, -dispNew, a); \
-            emit_ldr_reg(cd, a, b, a); \
+        s4 tmp = disp; \
+        if (tmp < -256) { \
+            u4 t2 = -tmp; \
+            M_LSUB_IMM(b, t2, a); \
+            M_ILD_INTERN(a, a, 0); \
         } else { \
             s4 lo = (short) (disp); \
             s4 hi = (short) (((disp) - lo) >> 16); \
@@ -286,11 +291,11 @@
 
 #define M_LLD(a,b,disp) \
     do { \
-        s4 dispNew = disp; \
-        if (dispNew < -256) { \
-            printf("New path in M_LLD\n"); \
-            M_LSUB_IMM(REG_ZERO, -dispNew, a); \
-            emit_ldr_reg(cd, a, b, a); \
+        s4 tmp = disp; \
+        if (tmp < -256) { \
+            u4 t2 = -tmp; \
+            M_LSUB_IMM(b, t2, a); \
+            M_LLD_INTERN(a, a, 0); \
         } else { \
             s4 lo = (short) (disp); \
             s4 hi = (short) (((disp) - lo) >> 16); \
@@ -302,6 +307,8 @@
             } \
         } \
     } while (0)
+
+#define M_LLD_U(a,b,disp)           M_LLD(a,b,disp) /* TODO: only temp, see if it works on aarch64 */
 
 #define M_ALD_INTERN(a,b,disp)  M_LLD_INTERN(a,b,disp)
 #define M_ALD(a,b,disp)         M_LLD(a,b,disp)                 /* addr load  */
@@ -407,7 +414,7 @@
 #define M_XOR_IMM(a,b,c)        M_OP3 (0x11,0x40, a,b,c,1)      /* c = a ^  b */
 
 // #define M_MOV(a,c)              M_OR (a,a,c)                    /* c = a      */
-#define M_CLR(c)                M_OR (31,31,c)                  /* c = 0      */
+// #define M_CLR(c)                M_OR (31,31,c)                  /* c = 0      */
 // #define M_NOP                   M_OR (31,31,31)                 /* ;          */
 
 #define M_SLL(a,b,c)            M_OP3 (0x12,0x39, a,b,c,0)      /* c = a << b */
@@ -546,7 +553,7 @@
 #define M_S8SUBL_IMM(a,b,c)     M_OP3 (0x10,0x1b, a,b,c,1)     /* c = a*8 - b */
 #define M_S8SUBQ_IMM(a,b,c)     M_OP3 (0x10,0x3b, a,b,c,1)     /* c = a*8 - b */
 
-#define M_LLD_U(a,b,disp)       M_MEM (0x0b,a,b,disp)          /* unalign ld  */
+// #define M_LLD_U(a,b,disp)       M_MEM (0x0b,a,b,disp)          /* unalign ld  */
 #define M_LST_U(a,b,disp)       M_MEM (0x0f,a,b,disp)          /* unalign st  */
 
 #define M_ZAP(a,b,c)            M_OP3 (0x12,0x30, a,b,c,0)
