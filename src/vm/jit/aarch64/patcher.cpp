@@ -30,6 +30,7 @@
 #include "vm/types.hpp"
 
 #include "vm/jit/aarch64/md.hpp"
+#include "vm/jit/aarch64/emit-asm.hpp"
 
 #include "mm/memory.hpp"
 
@@ -44,6 +45,7 @@
 #include "vm/resolve.hpp"
 
 #include "vm/jit/asmpart.hpp"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/methodheader.hpp"
 
@@ -254,7 +256,10 @@ bool patcher_get_putfield(patchref_t *pr)
 
 	/* patch the field's offset into the instruction */
 
-	pr->mcode |= (s2) (fi->offset & 0x0000ffff);
+	// pr->mcode |= (s2) (fi->offset & 0x0000ffff);
+	// TODO: handle difference between stur and str
+	u2 offset = fi->offset / 8;
+	pr->mcode |= (u4) ((offset & 0xfff) << 10);
 
 	// Patch back the original code.
 	patcher_patch_code(pr);
@@ -310,6 +315,17 @@ bool patcher_invokestatic_special(patchref_t *pr)
    6b5b4000    blr     x17
 
 *******************************************************************************/
+static void patch_helper_ldr(u1 *codeptr, s4 offset)
+{
+	codegendata codegen;
+	codegendata *cd = &codegen; // just a 'dummy' codegendata so we can reuse emit methods
+	cd->mcodeptr = codeptr;
+	u4 code = *((s4 *) cd->mcodeptr);
+	u1 targetreg = code & 0x1f;
+	u1 basereg = (code >> 5) & 0x1f;
+	emit_ldr_imm(cd, targetreg, basereg, offset);
+}
+
 
 bool patcher_invokevirtual(patchref_t *pr)
 {
@@ -329,20 +345,7 @@ bool patcher_invokevirtual(patchref_t *pr)
 
 	/* patch vftbl index */
 	s4 disp = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * m->vftblindex;
-	assert(disp % 8 == 0);
-	disp /= 8;
-	u4 mcode = *((s4 *) (ra + 4));
-	u2 msb10 = (mcode >> 22) & 0x3ff;
-	switch(msb10) {
-		case 0x3e1:
-			os::abort("LDUR not implemented for patching yet.");
-			break;
-		case 0x3e5:
-			*((s4 *) (ra + 4)) |= ((disp & 0xfff) << 10);
-			break;
-		default:
-			os::abort("Unkown Load instruction to patch\n");
-	}
+	patch_helper_ldr((ra + 4), disp);
 
 	md_icacheflush(NULL, 0);
 
@@ -365,6 +368,7 @@ bool patcher_invokevirtual(patchref_t *pr)
 
 *******************************************************************************/
 
+
 bool patcher_invokeinterface(patchref_t *pr)
 {
 	u1                *ra;
@@ -381,15 +385,13 @@ bool patcher_invokeinterface(patchref_t *pr)
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	/* patch interfacetable index */
 
-	*((s4 *) (ra + 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) -
-								 sizeof(methodptr*) * m->clazz->index) & 0x0000ffff);
+	s4 offset = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr*) * m->clazz->index;
+	patch_helper_ldr((ra + 4), offset);
 
 	/* patch method offset */
-
-	*((s4 *) (ra + 4 + 4)) |=
-		(s4) ((sizeof(methodptr) * (m - m->clazz->methods)) & 0x0000ffff);
+	offset = (s4) (sizeof(methodptr) * (m - m->clazz->methods));
+	patch_helper_ldr((ra + 8), offset);
 
 	md_icacheflush(NULL, 0);
 
@@ -430,11 +432,15 @@ bool patcher_checkcast_interface(patchref_t *pr)
 		return false;
 
 	/* patch super class index */
+	s4 offset = (s4) (-(c->index));
+	patch_helper_ldr((ra + 2 * 4), offset);
 
-	*((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x0000ffff);
+	// *((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x0000ffff);
 
-	*((s4 *) (ra + 5 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) -
-									 c->index * sizeof(methodptr*)) & 0x0000ffff);
+	offset = OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*);
+	patch_helper_ldr((ra + 5 * 4), offset);
+	// *((s4 *) (ra + 5 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) -
+    //									 c->index * sizeof(methodptr*)) & 0x0000ffff);
 
 	md_icacheflush(NULL, 0);
 
@@ -476,10 +482,14 @@ bool patcher_instanceof_interface(patchref_t *pr)
 
 	/* patch super class index */
 
-	*((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x0000ffff);
+	s4 offset = (s4) (-(c->index));
+	patch_helper_ldr((ra + 2 * 4), offset);
+	// *((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x0000ffff);
 
-	*((s4 *) (ra + 4 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) -
-									 c->index * sizeof(methodptr*)) & 0x0000ffff);
+	offset = OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*);
+	patch_helper_ldr((ra + 4 * 4), offset);
+	// *((s4 *) (ra + 4 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) -
+    //									 c->index * sizeof(methodptr*)) & 0x0000ffff);
 
 	md_icacheflush(NULL, 0);
 

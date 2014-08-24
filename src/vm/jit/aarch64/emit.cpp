@@ -1,4 +1,4 @@
-/* src/vm/jit/alpha/emit.cpp - Alpha code emitter functions
+/* src/vm/jit/aarch64/emit.cpp - Aarch64 code emitter functions
 
    Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
