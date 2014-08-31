@@ -2086,13 +2086,12 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 						emit_label_beq(cd, BRANCH_LABEL_3);
 					}
 
-					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
-
 					if (super == NULL) {
 						patcher_add_patch_ref(jd, PATCHER_checkcast_interface,
 											  iptr->sx.s23.s3.c.ref, 0);
 					}
 
+					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 					M_ILD(REG_ITMP3, REG_ITMP2,
 						  OFFSET(vftbl_t, interfacetablelength));
 					// M_LDA(REG_ITMP3, REG_ITMP3, -superindex);
@@ -2123,10 +2122,10 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 											  iptr->sx.s23.s3.c.ref, disp);
 					}
 					else {
+						disp = dseg_add_address(cd, super->vftbl);
+
 						M_TEST(s1);
 						emit_label_beq(cd, BRANCH_LABEL_5);
-
-						disp = dseg_add_address(cd, super->vftbl);
 					}
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
@@ -2145,14 +2144,16 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 							M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
 							M_CMP_IMM(REG_ITMP1, OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]));
 							emit_load_s1(jd, iptr, REG_ITMP1); /* reload s1, might have been destroyed */
-							emit_classcast_check(cd, iptr, BRANCH_NE, 0, s1);
+							// emit_label_bne(cd, BRANCH_LABEL_10); /* throw */
+							emit_classcast_check(cd, iptr, BRANCH_NE, 0, s1); /* throw */
 						}
 
-						M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_depth));
-						M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, subtype_depth));
+						M_ILD(REG_ITMP1, REG_ITMP2, OFFSET(vftbl_t, subtype_depth));
+						M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, subtype_depth));
 						M_ICMP(REG_ITMP1, REG_ITMP3);
 						emit_load_s1(jd, iptr, REG_ITMP1); /* reload s1, might have been destroyed */
 						emit_classcast_check(cd, iptr, BRANCH_LT, 0, s1);
+						// emit_label_ble(cd, BRANCH_LABEL_9); /* throw */
 
 						/* reload */
 						M_ALD(REG_ITMP3, REG_PV, disp);
@@ -2162,26 +2163,27 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 						M_ICMP(REG_ITMP1, REG_ITMP3);
 						emit_classcast_check(cd, iptr, BRANCH_NE, 0, s1);
+						// emit_label_bne(cd, BRANCH_LABEL_7); /* good */
 
 						emit_label(cd, BRANCH_LABEL_6);
-/*						if (super == NULL)
-							emit_label(cd, BRANCH_LABEL_10);
-*/
-						/* reload s1, might have been destroyed */
-//						emit_load_s1(jd, iptr, REG_ITMP1);
-						// M_ALD_INTERN(s1, REG_ZERO, TRAP_ClassCastException);
-//						emit_trap(cd, s1, TRAP_ClassCastException);
+						//if (super == NULL)
+						//	emit_label(cd, BRANCH_LABEL_10);
 
-//						emit_label(cd, BRANCH_LABEL_7);
-//						emit_label(cd, BRANCH_LABEL_6);
 						/* reload s1, might have been destroyed */
-//						emit_load_s1(jd, iptr, REG_ITMP1);
+						//emit_load_s1(jd, iptr, REG_ITMP1);
+						// M_ALD_INTERN(s1, REG_ZERO, TRAP_ClassCastException);
+						//emit_trap(cd, s1, TRAP_ClassCastException);
+
+						//emit_label(cd, BRANCH_LABEL_7);
+						//emit_label(cd, BRANCH_LABEL_6);
+						/* reload s1, might have been destroyed */
+						//emit_load_s1(jd, iptr, REG_ITMP1);
 					}
 					else {
 						M_ALD(REG_ITMP2, REG_ITMP2, super->vftbl->subtype_offset);
 
 						M_ICMP(REG_ITMP2, REG_ITMP3);
-						emit_classcast_check(cd, iptr, BRANCH_NE, 0, s1);
+						emit_classcast_check(cd, iptr, BRANCH_NE, REG_ITMP3, s1);
 					}
 
 					if (super != NULL)
@@ -2193,7 +2195,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 					emit_label(cd, BRANCH_LABEL_4);
 				}
 
-				d = codegen_reg_of_dst(jd, iptr, s1);
+				d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 			}
 			else {
 				/* array type cast-check */
@@ -2256,22 +2258,22 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				s1 = REG_ITMP1;
 			}
 
+			M_CLR(d);
+
 			/* if class is not resolved, check which code to call */
 
 			if (super == NULL) {
-				M_CLR(d);
 				M_TEST(s1);
 				emit_label_beq(cd, BRANCH_LABEL_1);
 
-				disp = dseg_add_unique_s4(cd, 0);             /* super->flags */
 
 				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_flags,
-									  iptr->sx.s23.s3.c.ref, disp);
-
-				M_ILD(REG_ITMP3, REG_PV, disp);
+									  iptr->sx.s23.s3.c.ref, 0);
 
 				disp = dseg_add_s4(cd, ACC_INTERFACE);
-				M_ILD(REG_ITMP2, REG_PV, disp);
+				M_ILD(REG_ITMP3, REG_PV, disp);
+
+				M_MOV_IMM(REG_ITMP2, 0); /* super->flags */
 				M_TST(REG_ITMP2, REG_ITMP3);
 				emit_label_beq(cd, BRANCH_LABEL_2);
 			}
@@ -2279,26 +2281,37 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			/* interface instanceof code */
 
 			if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
-				if (super == NULL) {
+				// if (super == NULL) {
 					/* If d == REG_ITMP2, then it's destroyed in check
 					   code above. */
-					if (d == REG_ITMP2)
-						M_CLR(d);
+				//	if (d == REG_ITMP2)
+				//		M_CLR(d);
 
 //					patcher_add_patch_ref(jd,
 //										  PATCHER_instanceof_interface,
 //										  iptr->sx.s23.s3.c.ref, 0);
-				}
-				else {
-					M_CLR(d);
+				//}
+			//	else {
+			//		M_CLR(d);
+			//		M_TEST(s1);
+			//		emit_label_beq(cd, BRANCH_LABEL_3);
+			//	}
+				
+				if (super != NULL) {
 					M_TEST(s1);
 					emit_label_beq(cd, BRANCH_LABEL_3);
 				}
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
+
+				if (super == NULL) {
+					patcher_add_patch_ref(jd, PATCHER_instanceof_interface,
+										  iptr->sx.s23.s3.c.ref, 0);
+				}
+
 				M_ILD(REG_ITMP3, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
 				M_CMP_IMM(REG_ITMP3, superindex);
-				M_BR_LE(3);
+				M_BR_LE(4);
 				M_ALD(REG_ITMP1, REG_ITMP1,
 					  (s4) (OFFSET(vftbl_t, interfacetable[0]) -
 							superindex * sizeof(methodptr*)));

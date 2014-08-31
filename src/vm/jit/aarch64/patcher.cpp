@@ -50,6 +50,33 @@
 #include "vm/jit/methodheader.hpp"
 
 
+/**
+ * Helper function to patch in the correct LOAD instruction
+ * as we have ambiguity.
+ */
+static void patch_helper_ldr(u1 *codeptr, s4 offset)
+{
+	codegendata codegen;
+	codegendata *cd = &codegen; // just a 'dummy' codegendata so we can reuse emit methods
+	cd->mcodeptr = codeptr;
+	u4 code = *((s4 *) cd->mcodeptr);
+	u1 targetreg = code & 0x1f;
+	u1 basereg = (code >> 5) & 0x1f;
+	emit_ldr_imm(cd, targetreg, basereg, offset);
+}
+
+static void patch_helper_str(u1 *codeptr, s4 offset)
+{
+	codegendata codegen;
+	codegendata *cd = &codegen; // just a 'dummy' codegendata so we can reuse emit methods
+	cd->mcodeptr = codeptr;
+	u4 code = *((s4 *) cd->mcodeptr);
+	u1 targetreg = code & 0x1f;
+	u1 basereg = (code >> 5) & 0x1f;
+	emit_str_imm(cd, targetreg, basereg, offset);
+}
+
+
 /* patcher_patch_code **********************************************************
 
    Just patches back the original machine code.
@@ -256,10 +283,10 @@ bool patcher_get_putfield(patchref_t *pr)
 
 	/* patch the field's offset into the instruction */
 
-	// pr->mcode |= (s2) (fi->offset & 0x0000ffff);
 	// TODO: handle difference between stur and str
-	u2 offset = fi->offset / 8;
-	pr->mcode |= (u4) ((offset & 0xfff) << 10);
+	// u2 offset = fi->offset / 8;
+	// pr->mcode |= (u4) ((offset & 0xfff) << 10);
+	patch_helper_str((u1 *) &pr->mcode, fi->offset);
 
 	// Patch back the original code.
 	patcher_patch_code(pr);
@@ -315,16 +342,6 @@ bool patcher_invokestatic_special(patchref_t *pr)
    6b5b4000    blr     x17
 
 *******************************************************************************/
-static void patch_helper_ldr(u1 *codeptr, s4 offset)
-{
-	codegendata codegen;
-	codegendata *cd = &codegen; // just a 'dummy' codegendata so we can reuse emit methods
-	cd->mcodeptr = codeptr;
-	u4 code = *((s4 *) cd->mcodeptr);
-	u1 targetreg = code & 0x1f;
-	u1 basereg = (code >> 5) & 0x1f;
-	emit_ldr_imm(cd, targetreg, basereg, offset);
-}
 
 
 bool patcher_invokevirtual(patchref_t *pr)
@@ -433,12 +450,12 @@ bool patcher_checkcast_interface(patchref_t *pr)
 
 	/* patch super class index */
 	s4 offset = (s4) (-(c->index));
-	patch_helper_ldr((ra + 2 * 4), offset);
+	patch_helper_ldr((ra + 4), offset);
 
 	// *((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x0000ffff);
 
 	offset = OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*);
-	patch_helper_ldr((ra + 5 * 4), offset);
+	patch_helper_ldr((ra + 4 * 4), offset);
 	// *((s4 *) (ra + 5 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) -
     //									 c->index * sizeof(methodptr*)) & 0x0000ffff);
 
