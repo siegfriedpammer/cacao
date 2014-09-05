@@ -32,6 +32,7 @@
 #include "vm/types.hpp"
 
 #include "vm/jit/jit.hpp"
+#include "vm/jit/dseg.hpp"
 
 
 /* additional functions and macros to generate code ***************************/
@@ -85,6 +86,147 @@
 /* macros to create code ******************************************************/
 
 /* AARCH64 ===================================================================*/
+
+class AsmEmitter {
+	
+	public:
+		explicit AsmEmitter(codegendata *cd) : cd(cd) {}
+
+        void mov(u1 xt, u1 xn) { emit_mov(cd, xt, xn); }
+        void mov_imm(u1 xt, u2 imm) {  emit_mov_imm(cd, xt, imm); }
+        void movn_imm(u1 xt, u2 imm) { emit_movn_imm(cd, xt, imm); }
+
+        void icmp_imm(u1 wd, u2 imm) { emit_cmp_imm32(cd, wd, imm); }
+        void icmn_imm(u1 wd, u2 imm) { emit_cmn_imm32(cd, wd, imm); }
+
+        void icmp(u1 wn, u1 wm) { emit_cmp_reg32(cd, wn, wm); }
+        void lcmp(u1 xn, u1 xm) { emit_cmp_reg(cd, xn, xm); }
+        void acmp(u1 xn, u1 xm) { emit_cmp_reg(cd, xn, xm); }
+
+        void nop() { emit_nop(cd); }
+
+        /* Load / store ********************************************************/
+        void ild(u1 xt, u1 xn, s2 imm) { emit_ldr_imm32(cd, xt, xn, imm); }
+        void lld(u1 xt, u1 xn, s2 imm) { emit_ldr_imm(cd, xt, xn, imm); }
+		void ald(u1 xt, u1 xn, s2 imm) { emit_ldr_imm(cd, xt, xn, imm); }
+
+        void fld(u1 xt, u1 xn, s2 imm) { emit_fp_ldr_imm32(cd, xt, xn, imm); }
+        void dld(u1 xt, u1 xn, s2 imm) { emit_fp_ldr_imm(cd, xt, xn, imm); }
+
+        void ldrh(u1 wt, u1 xn, s2 imm) { emit_ldrh_imm(cd, wt, xn, imm); }
+
+        void ist(u1 xt, u1 xn, s2 imm) { emit_str_imm32(cd, xt, xn, imm); }
+        void lst(u1 xt, u1 xn, s2 imm) { emit_str_imm(cd, xt, xn, imm); }
+        void ast(u1 xt, u1 xn, s2 imm) { emit_str_imm(cd, xt, xn, imm); }
+
+        void fst(u1 xt, u1 xn, s2 imm) { emit_fp_str_imm32(cd, xt, xn, imm); }
+        void dst(u1 xt, u1 xn, s2 imm) { emit_fp_str_imm(cd, xt, xn, imm); }
+
+        void strh(u1 wt, u1 xn, s2 imm) { emit_strh_imm(cd, wt, xn, imm); }
+
+        // TODO: Implement these 2 using mov instructions
+        void iconst(u1 xt, s4 value) {
+            // if ((value >= -32768) && (value <= 32767))
+            //    mov_imm(xt, value);
+            // else {
+                s4 disp = dseg_add_s4(cd, value);
+                ild(xt, REG_PV, disp);
+            // }
+        }
+
+        void lconst(u1 xt, s8 value) {
+            // if ((value >= -32768) && (value <= 32767))
+            //    mov_imm(xt, value);
+            // else {
+                s4 disp = dseg_add_s8(cd, value);
+                lld(xt, REG_PV, disp);
+            // }
+        }
+
+        void lda(u1 xd, u1 xn, s4 imm) { emit_lda(xd, xn, imm); }
+
+        /* Branch *************************************************************/
+        void blr(u1 xn) { emit_blr_reg(cd, xn); }
+        void br(u1 xn) { emit_br_reg(cd, xn); }
+
+        /* Integer arithemtic *************************************************/
+        void iadd_imm(u1 xd, u1 xn, u4 imm) { emit_add_imm32(cd, xd, xn, imm); }
+        void ladd_imm(u1 xd, u1 xn, u4 imm) { emit_add_imm(cd, xd, xn, imm); }
+
+        void iadd(u1 xd, u1 xn, u1 xm) { emit_add_reg32(cd, xd, xn, xm); }
+        void ladd(u1 xd, u1 xn, u1 xm) { emit_add_reg(cd, xd, xn, xm); }
+
+        /** Xd = Xn + shift(Xm, amount); */
+        void ladd_shift(u1 xd, u1 xn, u1 xm, u1 shift, u1 amount) {
+            emit_add_reg_shift(cd, xd, xn, xm, shift, amount);
+        }
+
+        void isub_imm(u1 xd, u1 xn, u4 imm) { emit_sub_imm32(cd, xd, xn, imm); }
+        void lsub_imm(u1 xd, u1 xn, u4 imm) { emit_sub_imm(cd, xd, xn, imm); }
+
+        void isub(u1 xd, u1 xn, u1 xm) { emit_sub_reg32(cd, xd, xn, xm); }
+        void lsub(u1 xd, u1 xn, u1 xm) { emit_sub_reg(cd, xd, xn, xm); }
+
+        /* wd = wn / wm */
+        void idiv(u1 wd, u1 wn, u1 wm) { emit_sdiv32(cd, wd, wn, wm); }
+        void ldiv(u1 xd, u1 xn, u1 xm) { emit_sdiv(cd, xd, xn, xm); }
+
+        void imul(u1 wd, u1 wn, u1 wm) { emit_mul32(cd, wd, wn, wm); }
+        void lmul(u1 xd, u1 xn, u1 xm) { emit_mul(cd, xd, xn, xm); }
+
+        /* wd = wa - wn * wm */
+        void imsub(u1 wd, u1 wn, u1 wm, u1 wa) { emit_msub32(cd, wd, wn, wm, wa); }
+        void lmsub(u1 xd, u1 xn, u1 xm, u1 xa) { emit_msub(cd, xd, xn, xm, xa); }
+
+        /* wd = lsl(wn, shift) */
+        void ilsl_imm(u1 wd, u1 wn, u1 shift) { emit_lsl_imm32(cd, wd, wn, shift); }
+        void llsl_imm(u1 xd, u1 xn, u1 shift) { emit_lsl_imm(cd, xd, xn, shift); }
+
+        void uxth(u1 wd, u1 wn) { emit_uxth(cd, wd, wn); }
+
+        void test(u1 xn, u1 xm) { emit_tst_sreg(cd, xn, xm); }
+        void test(u1 xn) { emit_tst_sreg(cd, xn, xn); }
+
+        /* xt = if cond then xn else xm */
+        void csel(u1 xt, u1 xn, u1 xm, u1 cond) { emit_csel(cd, xt, xn, xm, cond); }         
+        void cset(u1 xt, u1 cond) { emit_cset(cd, xt, cond); } /* Xd = if cond then 1 else 0 */
+        void csetm(u1 xt, u1 cond) { emit_csetm(cd, xt, cond); } /* Xd = if cond then -1 else 0 */
+
+        /* Floating point *****************************************************/
+
+        void fmov(u1 sd, u1 sn) { emit_fp_mov(cd, 0, sn, sd); }
+        void dmov(u1 dd, u1 dn) { emit_fp_mov(cd, 1, dn, dd); }
+
+        void fcmp(u1 sn, u1 sm) { emit_fp_cmp(cd, 0, sm, sn, 0); }
+        void fcmp(u1 sn) { emit_fp_cmp(cd, 0, 0, sn, 1); } /* fcmp Sn, #0.0 */
+        void dcmp(u1 xn, u1 xm) { emit_fp_cmp(cd, 1, xm, xn, 0); }
+
+        void fmul(u1 st, u1 sn, u1 sm) { emit_fmul(cd, 0, st, sn, sm); }
+        void dmul(u1 dt, u1 dn, u1 dm) { emit_fmul(cd, 1, dt, dn, dm); }
+
+        void i2f(u1 st, u1 wn) { emit_scvtf(cd, 0, 0, wn, st); }
+        void l2f(u1 st, u1 xn) { emit_scvtf(cd, 1, 0, xn, st); }
+        void i2d(u1 dt, u1 wn) { emit_scvtf(cd, 0, 1, wn, dt); }
+        void l2d(u1 dt, u1 xn) { emit_scvtf(cd, 1, 1, xn, dt); }
+
+        void f2i(u1 wd, u1 sn) { emit_fcvtzs(cd, 0, 0, sn, wd); }
+        void f2l(u1 xd, u1 sn) { emit_fcvtzs(cd, 1, 0, sn, xd); }
+        void d2i(u1 wd, u1 dn) { emit_fcvtzs(cd, 0, 1, dn, wd); }
+        void d2l(u1 xd, u1 dn) { emit_fcvtzs(cd, 1, 1, dn, xd); }
+
+        void dmb() { emit_dmb(cd, 0xf); }
+        void dsb() { emit_dsb(cd, 0xf); }
+
+	private:
+		codegendata *cd;
+
+        void emit_lda(u1 xd, u1 xn, s4 imm) {
+            if (imm >= 0)
+                emit_add_imm(cd, xd, xn, imm);
+            else
+                emit_sub_imm(cd, xd, xn, -imm);
+        }
+};
 
 #define M_LLD_INTERN(a,b,disp)      emit_ldr_imm(cd, a, b, disp)
 #define M_LST_INTERN(a,b,disp)      emit_str_imm(cd, a, b, disp)
@@ -151,19 +293,19 @@
 #define M_TEST(a)                   emit_tst_sreg(cd, a, a) 
 #define M_TST(a,b)                  emit_tst_sreg(cd, a, b)
 #define M_ACMP(a,b)                 emit_cmp_reg(cd, a, b) 
-#define M_ICMP(a,b)                 emit_cmp_reg(cd, a, b) 
+#define M_ICMP(a,b)                 emit_cmp_reg32(cd, a, b) 
 
 #define M_FMOV(b,c)                 emit_fp_mov(cd, 1, b, c) // TODO: again, try with 32 bit version
 #define M_DMOV(b,c)                 emit_fp_mov(cd, 1, b, c)
 
 #define M_FCMP(a,b)                 emit_fp_cmp(cd, 1, a, b, 0)
 
-#define M_FMUL(Dn,Dm,Dd)            emit_fmul(cd, Dd, Dn, Dm)  /* Dd = Dn * Dm */
+#define M_FMUL(Dn,Dm,Dd)            emit_fmul(cd, 1, Dd, Dn, Dm)  /* Dd = Dn * Dm */
 #define M_FMULS(Dn,Dm,Dd)           M_FMUL(Dn,Dm,Dd)           /* TODO: implement single precision */
 
-#define M_CVTLD(b,c)                emit_scvtf(cd, c, b)       /* c = b */
+#define M_CVTLD(b,c)                emit_scvtf(cd, 1, 0, c, b)       /* c = b */
 #define M_CVTLF(b,c)                M_CVTLD(b, c) 
-#define M_CVTDL(b,c)                emit_fcvtzs(cd, c, b)      /* c = b */
+#define M_CVTDL(b,c)                emit_fcvtzs(cd, 1, 1, c, b)      /* c = b */
 
 
 /* ===========================================================================*/

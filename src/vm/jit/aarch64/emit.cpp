@@ -65,13 +65,9 @@
 
 s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 {
-	codegendata  *cd;
+	AsmEmitter	  asme(jd->cd);
 	s4            disp;
 	s4            reg;
-
-	/* get required compiler data */
-
-	cd = jd->cd;
 
 	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
@@ -80,15 +76,19 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 
 		switch (src->type) {
 		case TYPE_INT:
+			asme.ild(tempreg, REG_SP, disp);
+			break;
 		case TYPE_LNG:
+			asme.lld(tempreg, REG_SP, disp);
+			break;
 		case TYPE_ADR:
-			M_LLD(tempreg, REG_SP, disp);
+			asme.ald(tempreg, REG_SP, disp);
 			break;
 		case TYPE_FLT:
-			M_FLD(tempreg, REG_SP, disp);
+			asme.fld(tempreg, REG_SP, disp);
 			break;
 		case TYPE_DBL:
-			M_DLD(tempreg, REG_SP, disp);
+			asme.dld(tempreg, REG_SP, disp);
 			break;
 		default:
 			vm_abort("emit_load: unknown type %d", src->type);
@@ -112,12 +112,8 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 
 void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 {
-	codegendata  *cd;
+	AsmEmitter	  asme(jd->cd);
 	s4            disp;
-
-	/* get required compiler data */
-
-	cd = jd->cd;
 
 	if (IS_INMEMORY(dst->flags)) {
 		COUNT_SPILLS;
@@ -126,15 +122,19 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 
 		switch (dst->type) {
 		case TYPE_INT:
+			asme.ist(d, REG_SP, disp);
+			break;
 		case TYPE_LNG:
+			asme.lst(d, REG_SP, disp);
+			break;
 		case TYPE_ADR:
-			M_LST(d, REG_SP, disp);
+			asme.ast(d, REG_SP, disp);
 			break;
 		case TYPE_FLT:
-			M_FST(d, REG_SP, disp);
+			asme.fst(d, REG_SP, disp);
 			break;
 		case TYPE_DBL:
-			M_DST(d, REG_SP, disp);
+			asme.dst(d, REG_SP, disp);
 			break;
 		default:
 			vm_abort("emit_store: unknown type %d", dst->type);
@@ -217,15 +217,8 @@ void emit_copy(jitdata *jd, instruction *iptr)
 
 void emit_iconst(codegendata *cd, s4 d, s4 value)
 {
-	s4 disp;
-
-	if ((value >= -32768) && (value <= 32767))
-		M_MOV_IMM(d, value);
-	else {
-		os::abort("emit_iconst for large values not implemented yet!");
-		disp = dseg_add_s4(cd, value);
-		M_ILD(d, REG_PV, disp);
-	}
+	AsmEmitter asme(cd);
+	asme.iconst(d, value);
 }
 
 
@@ -237,14 +230,8 @@ void emit_iconst(codegendata *cd, s4 d, s4 value)
 
 void emit_lconst(codegendata *cd, s4 d, s8 value)
 {
-	s4 disp;
-
-	if ((value >= -32768) && (value <= 32767))
-		M_MOV_IMM(d, value);
-	else {
-		disp = dseg_add_s8(cd, value);
-		M_LLD(d, REG_PV, disp);
-	}
+	AsmEmitter asme(cd);
+	asme.lconst(d, value);
 }
 
 
@@ -274,10 +261,12 @@ void emit_icmpeq_imm(codegendata* cd, int reg, int32_t value, int d)
  * Emits code comparing a single register
  */
 void emit_icmp_imm(codegendata* cd, int reg, int32_t value) {
+	AsmEmitter asme(cd);
+
 	if (value >= 0 && value <= 4095) {
-		M_CMP_IMM(reg, value);
+		asme.icmp_imm(reg, value);
 	} else if ((-value) >= 0 && (-value) <= 4095) {
-		M_CMN_IMM(reg, -value);
+		asme.icmn_imm(reg, -value);
 	} else {
 		os::abort("Compare with immediate for bigger values not implemented!");
 	}
@@ -390,7 +379,7 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 	// TODO: check if this implementation works correclty 
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ILD(REG_ITMP3, s1, OFFSET(java_array_t, size));
-		M_ICMP(s2, REG_ITMP3);
+		M_ACMP(s2, REG_ITMP3);
 		M_BR_LT(2);
 		emit_trap(cd, s2, TRAP_ArrayIndexOutOfBoundsException);
 	}
@@ -553,7 +542,8 @@ void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
 	}
 	else {
 		M_BNEZ(REG_A0, 1);
-		M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_NullPointerException);
+		emit_trap(cd, REG_ZERO, TRAP_NullPointerException);
+		// M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_NullPointerException);
 	}
 
 	M_AST(REG_A0, REG_SP, syncslot_offset);
@@ -587,19 +577,17 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 	methodinfo*  m  = jd->m;
 	codegendata* cd = jd->cd;
 
-	M_ALD(REG_A0, REG_SP, syncslot_offset);
-
 	methoddesc* md = m->parseddesc;
 
 	switch (md->returntype.type) {
 	case TYPE_INT:
 	case TYPE_LNG:
 	case TYPE_ADR:
-		M_LST(REG_RESULT, REG_SP, syncslot_offset);
+		M_LST(REG_RESULT, REG_SP, syncslot_offset + 8);
 		break;
 	case TYPE_FLT:
 	case TYPE_DBL:
-		M_DST(REG_FRESULT, REG_SP, syncslot_offset);
+		M_DST(REG_FRESULT, REG_SP, syncslot_offset + 8);
 		break;
 	case TYPE_VOID:
 		break;
@@ -608,6 +596,7 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 		break;
 	}
 
+	M_ALD(REG_A0, REG_SP, syncslot_offset);
 	disp = dseg_add_functionptr(cd, LOCK_monitor_exit);
 	M_ALD(REG_PV, REG_PV, disp);
 	M_JSR(REG_RA, REG_PV);
@@ -617,11 +606,11 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 	case TYPE_INT:
 	case TYPE_LNG:
 	case TYPE_ADR:
-		M_LLD(REG_RESULT, REG_SP, syncslot_offset);
+		M_LLD(REG_RESULT, REG_SP, syncslot_offset + 8);
 		break;
 	case TYPE_FLT:
 	case TYPE_DBL:
-		M_DLD(REG_FRESULT, REG_SP, syncslot_offset);
+		M_DLD(REG_FRESULT, REG_SP, syncslot_offset + 8);
 		break;
 	case TYPE_VOID:
 		break;

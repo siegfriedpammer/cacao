@@ -92,6 +92,9 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 	/* Get first instruction word. */
 	mcode = pc[1];
 
+	if (mcode == 0xd503201f)
+		mcode = pc[0];
+
 	/* Get base register */
 	base = (mcode >> 5) & 0x1f;
 

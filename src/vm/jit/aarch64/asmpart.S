@@ -28,7 +28,9 @@
 #include <sys/syscall.h>
 
 #include "vm/jit/aarch64/md-asm.hpp"
+#include "vm/jit/aarch64/md-abi.hpp"
 
+#include "vm/jit/abi-asm.hpp"
 #include "vm/jit/methodheader.hpp"
 
 
@@ -128,8 +130,8 @@ L_asm_vm_call_method_stack_copy_done:
 	blr		pv 
 	
 L_asm_vm_call_method_recompute_pv:
-	sub		pv, lr, (L_asm_vm_call_method_recompute_pv - asm_vm_call_method) + 8
-
+	sub		pv, lr, (L_asm_vm_call_method_recompute_pv - asm_vm_call_method)
+ 
 L_asm_vm_call_method_recompute_return:
 	mov		sp, s0                      /* restore stack pointer            */
 	
@@ -160,85 +162,204 @@ asm_vm_call_method_end:
 *                                                                              *
 *******************************************************************************/
 	
-
+/*
 asm_handle_nat_exception:
 L_asm_handle_nat_exception:
-	sub		sp, sp, 16
-	str		a0, [sp]
+L_asm_handle_exception_stack_loop:
+	sub		sp, sp, 48 
+	str		xptr, [sp]
+	str		xpc, [sp, 8]
+	str		lr, [sp, 24]
+	str		zero, [sp, 32]
 
 	mov		a0, lr
 	bl		md_asm_codegen_get_pv_from_pc
-	mov		pv, a0
+	str		a0, [sp, 16]
 
 	ldr		a0, [sp]
-	add		sp, sp, 16
-	/*TODO:maybe make a macro out of it!!!*/
-//	SAVE_ARGUMENT_REGISTERS  
-//	mov   a0, lr
-//	bl    md_asm_codegen_get_pv_from_pc
-//	mov   ip, res1
-//	RESTORE_ARGUMENT_REGISTERS  
-	/* fall through */
+	ldr		a1, [sp, 8]	
+	mov		a2, pv
+	add		a3, sp, 48
+ 
+	bl		L_asm_handle_exception_continue
 
 
 asm_handle_exception:
-//	stmfd sp!, {r0 - r3}               /* save possible used registers    */
-//	mov   itmp3, #1                    /* set maybe-leaf flag             */
-//	mov   a3, #(4*4)                   /* prepare a3 for handle_exception */
+L_asm_handle_exception:
+	sub		sp, sp, (ARG_CNT+TMP_CNT)*8
+
+	SAVE_ARGUMENT_REGISTERS
+	SAVE_TEMPORARY_REGISTERS(ARG_CNT)
+
+	sub		sp, sp, 40
+	str		xptr, [sp]
+	str		pv, [sp, 16]
+	str		lr, [sp, 24]
+	mov		itmp3, 1
+	str		itmp3, [sp, 32]
+
+	mov		a0, xptr
+	mov		a1, xpc
+	mov		a2, pv
+	sub		a3, sp, 40 + (ARG_CNT + TMP_CNT) * 8
+
+L_asm_handle_exception_continue:
+	bl		exceptions_handle_exception
+
+	cbz		a0, L_asm_handle_exception_not_catched
+
+	mov		xpc, a0
+	ldr		xptr, [sp]
+	ldr		pv, [sp, 16]
+	ldr		lr, [sp, 24]
+	ldr		itmp3, [sp, 32]
+	add		sp, sp, 40
+
+	cbz		itmp3, L_asm_handle_exception_no_leaf
+
+	RESTORE_ARGUMENT_REGISTERS
+	RESTORE_TEMPORARY_REGISTERS(ARG_CNT)
+
+	add		sp, sp, (ARG_CNT + TMP_CNT) * 8
+
+L_asm_handle_exception_no_leaf:
+	blr		xpc
+
+L_asm_handle_exception_not_catched:
+	ldr		xptr, [sp]
+	ldr		pv, [sp, 16]
+	ldr		lr, [sp, 24]
+	ldr		itmp3, [sp, 32]
+	add		sp, sp, 40
+
+	cbz		itmp3, L_asm_handle_exception_no_leaf_stack
+
+	add		sp, sp, (ARG_CNT + TMP_CNT) * 8
+	mov		itmp3, 0
+
+L_asm_handle_exception_no_leaf_stack:
+	ldr		t3i, [pv, FrameSize]
+	add		t3, sp, t3
+
+	ldr		t4i, [pv, IsLeaf]
+	cbnz	t4i, L_asm_handle_exception_no_ra_restore
+
+	ldr		lr, [t3, -8]
+	sub		t3, t3, 8
+
+L_asm_handle_exception_no_ra_restore:
+	mov		xpc, lr
+	ldr		t4i, [pv, IntSave]
+	ldr		t5, ex_int1
+ex_int1:
+	add		t5, t5, (ex_int2 - ex_int1)
+	sub		t5, t5, t4, LSL 2
+	blr		t5
+
+	ldr		s0, [t3, -10 * 8]
+	ldr		s1, [t3, -9 * 8]
+	ldr		s2,	[t3, -8 * 8]
+	ldr		s3,	[t3, -7 * 8]
+	ldr		s4,	[t3, -6 * 8]
+	ldr		s5,	[t3, -5 * 8]
+	ldr		s6,	[t3, -4 * 8]
+	ldr		s7,	[t3, -3 * 8]
+	ldr		s8,	[t3, -2 * 8]
+	ldr		s9,	[t3, -1 * 8]
+
+ex_int2:
+	add		t3, t3, t4, LSL 3
+
+	ldr		t4i, [pv, FltSave]
+	ldr		t5, ex_flt1
+ex_flt1:
+	add		t5, t5, (ex_flt2 - ex_flt1)
+	sub		t5, t5, t4, LSL 2
+	blr		t5
+
+	ldr		fs0, [t3, -8 * 8]
+	ldr		fs1, [t3, -7 * 8]
+	ldr		fs2, [t3, -6 * 8]
+	ldr		fs3, [t3, -5 * 8]
+	ldr		fs4, [t3, -4 * 8]
+	ldr		fs5, [t3, -3 * 8]
+	ldr		fs6, [t3, -2 * 8]
+	ldr		fs7, [t3, -1 * 8]
+
+ex_flt2:
+	ldr		t3i, [pv, FrameSize]
+	add		sp, sp, t3
+	bl		L_asm_handle_exception_stack_loop
+*/
+
+asm_handle_nat_exception:
+L_asm_handle_nat_exception:
+	sub		sp, sp, ARG_CNT * 8
+	SAVE_ARGUMENT_REGISTERS
+	mov		a0, lr
+	bl		md_asm_codegen_get_pv_from_pc
+	mov		pv, a0
+	RESTORE_ARGUMENT_REGISTERS
+	add		sp, sp, ARG_CNT * 8
+
+asm_handle_exception:
+	sub		sp, sp, 32
+	str		a0, [sp]
+	str		a1, [sp, 8]
+	str		a2, [sp, 16]
+	str		a3, [sp, 24]
+	mov		itmp3, #1
+	mov		a3, #16
 
 asm_handle_exception_loop:
-//	stmfd sp!, {ip,lr}                 /* call exception helper here!     */
-//	mov   a0, xptr                     /* pass exception pointer          */
-//	mov   a1, xpc                      /* pass exception pointer          */
-//	mov   a2, ip                       /* pass data segment pointer       */
-//	add   a3, sp, a3                   /* calculate Java sp into a3...    */
-//	add   a3, a3, #(2*4)
-//	bl    exceptions_handle_exception
-//	ldmfd sp!, {ip,lr}
-//
-//	tst   a0, a0
-//	beq   asm_handle_exception_not_catched
-//
-//	mov   xpc, a0                      /* move handlerpc into xpc         */
-//	tst   itmp3,itmp3                  /* if this is a lead method ...    */
-//	ldmnefd sp!, {r0 - r3}             /* restore argument registers      */
-//
-//	mov   pc, xpc                      /* jump to handler                 */
+	sub		sp, sp, 16
+	str		pv, [sp]
+	str		lr, [sp, 8]
+
+	mov		a0, xptr
+	mov		a1, xpc
+	mov		a2, pv
+	add		a3, sp, a3
+	add		a3, a3, 8
+	bl		exceptions_handle_exception
+	ldr		pv, [sp]
+	ldr		lr, [sp, 8]
+	add		sp, sp, 16
+
+	cbz		a0, asm_handle_exception_not_catched
+
+	mov		xpc, a0
+
+	cbz		itmp3, L_asm_handle_exception_no_leaf
+	ldr		a0, [sp]
+	ldr		a1, [sp, 8]
+	ldr		a2, [sp, 16]
+	ldr		a3, [sp, 24]
+	add		sp, sp, 32
+
+L_asm_handle_exception_no_leaf:
+	br		xpc
 
 asm_handle_exception_not_catched:
-//	tst   itmp3,itmp3                  /* if this is a lead method ...    */
-//	addne sp, sp, #(4*4)               /* remove maybe-leaf stackframe    */
-//	movne itmp3, #0                    /* remove maybe-leaf flag          */
-//
-//	ldr   a2, [ip, #FrameSize]         /* t2 = frame size                 */
-//	add   a0, sp, a2                   /* t0 = pointer to save area       */
-//	ldr   a1, [ip, #IsLeaf]            /* t1 = is leaf procedure          */
-//	tst   a1, a1                       /* if is leaf ...                  */
-//	ldreq lr, [a0, #-4]!               /* ... restore RA                  */
-//	mov   xpc, lr                      /* the new xpc is RA               */
-//
-//	ldr   a1, [ip, #IntSave]           /* t1 = saved int register count   */
-//	rsb   a1, a1, #5                   /* t1 = count of unsaved registers */
-//	sub   a1, a1, #1
-//	add   pc, pc, a1, lsl #2           /* do not load unsaved registers   */
-//	ldr   v1, [a0, #-20]               /* ... but restore the other ones  */
-//	ldr   v2, [a0, #-16]
-//	ldr   v3, [a0, #-12]
-//	ldr   v4, [a0, #- 8]
-//	ldr   v5, [a0, #- 4]
-//
-//	add   sp, sp, a2                   /* unwind stack (using t2)         */
-//	mov   a3, #0                       /* prepare a3 for handle_exception */
-//
-//	/*TODO:maybe make a macro out of it!!!*/
-//	SAVE_ARGUMENT_REGISTERS  
-//	mov   a0, lr
-//	bl    md_asm_codegen_get_pv_from_pc
-//	mov   ip, res1
-//	RESTORE_ARGUMENT_REGISTERS  
-//
-//	b     asm_handle_exception_loop
+	cbz		itmp3, asm_handle_exception_not_catched_2
+	add		sp, sp, 16
+	mov		itmp3, #0
 
+asm_handle_exception_not_catched_2:
+	ldr		a2, [pv, #FrameSize]
+	add		a0, sp, a2
+	ldr		a1, [pv, #IsLeaf]
+	cbnz	a1, asm_2
+	ldr		lr, [a0, #-4]!
+asm_2:
+	mov		xpc, lr
+
+	ldr		a1, [pv, #IntSave]
+	neg		a1, a1
+	add		a1, a1, #5
+	sub		a1, a1, #1
+
+	
 
 /* asm_abstractmethoderror *****************************************************
 
@@ -259,7 +380,7 @@ asm_abstractmethoderror:
 
 	mov		xptr, a0					/* get exception pointer              */
 	sub		xpc, lr, 4                  /* exception address is lr - 4        */
-	b		L_asm_handle_nat_exception
+	bl		L_asm_handle_nat_exception
 
 
 //	stmfd sp!, {lr}                     /* save return address                */

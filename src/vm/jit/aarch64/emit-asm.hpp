@@ -122,6 +122,19 @@ inline void emit_unc_branch_reg(codegendata *cd, u1 opc, u1 op2, u1 op3, u1 Rn, 
 #define emit_br_reg(cd, Xn)		emit_unc_branch_reg(cd, 0, 31, 0, Xn, 0)
 
 
+/* Move wide (immediate) *****************************************************/
+
+inline void emit_mov_wide_imm(codegendata *cd, u1 sf, u1 opc, u1 hw, u2 imm16, u1 Rd)
+{
+	*((u4 *) cd->mcodeptr) = LSL(sf, 31) | LSL(opc, 29) | LSL(hw, 21) 
+						     | LSL(imm16, 5) | Rd | 0x12800000; 
+	cd->mcodeptr += 4;
+}
+
+#define emit_mov_imm(cd, Xd, imm)	emit_mov_wide_imm(cd, 1, 2, 0, imm, Xd)
+#define emit_movn_imm(cd, Xd, imm)	emit_mov_wide_imm(cd, 1, 0, 0, imm, Xd)
+
+
 /* Load/Store Register (unscaled immediate) ***********************************/
 
 inline void emit_ldstr_reg_usc(codegendata *cd, u1 size, u1 v, u1 opc, s2 imm9, u1 Rt, u1 Rn)
@@ -130,18 +143,6 @@ inline void emit_ldstr_reg_usc(codegendata *cd, u1 size, u1 v, u1 opc, s2 imm9, 
 							 | LSL(imm9 & 0x1ff, 12) | LSL(Rn, 5) | Rt | 0x38400000;
 	cd->mcodeptr += 4;
 }
-
-#define emit_sturh(cd, Xt, Xn, imm9)	emit_ldstr_reg_usc(cd, 1, 0, 0, imm9, Xt, Xn)
-#define emit_ldurh(cd, Xt, Xn, imm9)	emit_ldstr_reg_usc(cd, 1, 0, 1, imm9, Xt, Xn)
-
-#define emit_ldur(cd, Xt, Xn, imm9)		emit_ldstr_reg_usc(cd, 3, 0, 1, imm9, Xt, Xn)
-#define emit_stur(cd, Xt, Xn, imm9)     emit_ldstr_reg_usc(cd, 3, 0, 0, imm9, Xt, Xn)
-
-#define emit_fp_ldur(cd, Xt, Xn, imm9)	emit_ldstr_reg_usc(cd, 3, 1, 1, imm9, Xt, Xn)
-#define emit_fp_stur(cd, Xt, Xn, imm9)  emit_ldstr_reg_usc(cd, 3, 1, 0, imm9, Xt, Xn)
-
-#define emit_ldur32(cd, Xt, Xn, imm9) 	emit_ldstr_reg_usc(cd, 2, 0, 1, imm9, Xt, Xn)
-#define emit_stur32(cd, Xt, Xn, imm9)   emit_ldstr_reg_usc(cd, 2, 0, 0, imm9, Xt, Xn)
 
 
 /* Load/Store Register (register offset) *************************************/
@@ -161,137 +162,53 @@ inline void emit_ldstr_reg_reg(codegendata *cd, u1 size, u1 v, u1 opc, u1 Rm, u1
 
 inline void emit_ldstr_reg_us(codegendata *cd, u1 size, u1 v, u1 opc, u2 imm12, u1 Rt, u1 Rn)
 {
+	u2 imm = LSR(imm12, size); /* 64bit: imm = imm12/8, 32bit: imm = imm12/4 */
+
 	*((u4 *) cd->mcodeptr) = LSL(size, 30) | LSL(v, 26) | LSL(opc, 22) 
-							 | LSL(imm12/8, 10) | LSL(Rn, 5) | Rt | 0x39000000;
+							 | LSL(imm, 10) | LSL(Rn, 5) | Rt | 0x39000000;
 	cd->mcodeptr += 4;
 }
 
-#define emit_strh_uo(cd, Xt, Xn, imm12)		emit_ldstr_reg_us(cd, 1, 0, 0, imm12, Xt, Xn)
-#define emit_ldrh_uo(cd, Xt, Xn, imm12)		emit_ldstr_reg_us(cd, 1, 0, 1, imm12, Xt, Xn)
-
-#define emit_str_uo(cd, Xt, Xn, imm12)		emit_ldstr_reg_us(cd, 3, 0, 0, imm12, Xt, Xn)
-#define emit_ldr_uo(cd, Xt, Xn, imm12)		emit_ldstr_reg_us(cd, 3, 0, 1, imm12, Xt, Xn)
-
-#define emit_fp_str_uo(cd, Xt, Xn, imm12)	emit_ldstr_reg_us(cd, 3, 1, 0, imm12, Xt, Xn)
-#define emit_fp_ldr_uo(cd, Xt, Xn, imm12)	emit_ldstr_reg_us(cd, 3, 1, 1, imm12, Xt, Xn)
-
-#define emit_str_uo32(cd, Xt, Xn, imm12)	emit_ldstr_reg_us(cd, 2, 0, 0, imm12, Xt, Xn)
-#define emit_ldr_uo32(cd, Xt, Xn, imm12)	emit_ldstr_reg_us(cd, 2, 0, 1, imm12, Xt, Xn)
 
 /* Handle ambigous Load/Store instructions ***********************************/
-/* TODO: Generalize this */
 
-inline void emit_ldrh_imm(codegendata *cd, u1 Xt, u1 Xn, s2 imm)
+/* See Armv8 reference manual for the ambigous case rules */
+inline void emit_ldstr_ambigous(codegendata *cd, u1 size, u1 v, u1 opc, s2 imm, u1 Rt, u1 Rn)
 {
+	u1 sz = LSL(1, size); /* 64bit: 8, 32bit: 4 */
+
 	/* handle ambigous case first */
-	if (imm >= 0 && imm <= 255 && (imm % 8 == 0)) 
-		emit_ldrh_uo(cd, Xt, Xn, imm);
+	if (imm >= 0 && imm <= 255 && (imm % sz == 0))
+		emit_ldstr_reg_us(cd, size, v, opc, imm, Rt, Rn);
 	else if (imm >= -256 && imm <= 255)
-		emit_ldurh(cd, Xt, Xn, imm);
+		emit_ldstr_reg_usc(cd, size, v, opc, imm, Rt, Rn);
+	else if (imm < 0 && (-imm) < 0xffff) { /* this is for larger negative offsets */
+		// Should only be the case for INVOKESTATIC, which does not use REG_ITMP3
+		emit_movn_imm(cd, REG_ITMP3, (-imm) - 1);
+		emit_ldstr_reg_reg(cd, size, v, opc, REG_ITMP3, 3, 0, Rn, Rt);
+	}
 	else {
 		assert(imm >= 0);
-		assert(imm % 8 == 0);
-		emit_ldrh_uo(cd, Xt, Xn, imm);
+		assert(imm % sz == 0);
+		assert(imm / sz <= 0xfff);
+		emit_ldstr_reg_us(cd, size, v, opc, imm, Rt, Rn);
 	}
 }
 
-inline void emit_strh_imm(codegendata *cd, u1 Xt, u1 Xn, s2 imm)
-{
-	/* handle ambigous case first */
-	if (imm >= 0 && imm <= 255 && (imm % 8 == 0)) 
-		emit_strh_uo(cd, Xt, Xn, imm);
-	else if (imm >= -256 && imm <= 255)
-		emit_sturh(cd, Xt, Xn, imm);
-	else {
-		assert(imm >= 0);
-		assert(imm % 8 == 0);
-		emit_strh_uo(cd, Xt, Xn, imm);
-	}
-}
+#define emit_ldrh_imm(cd, Xt, Xn, imm)		emit_ldstr_ambigous(cd, 1, 0, 1, imm, Xt, Xn)
+#define emit_strh_imm(cd, Xt, Xn, imm)		emit_ldstr_ambigous(cd, 1, 0, 0, imm, Xt, Xn)
 
-inline void emit_ldr_imm(codegendata *cd, u1 Xt, u1 Xn, s2 imm)
-{
-	/* handle ambigous case first */
-	if (imm >= 0 && imm <= 255 && (imm % 8 == 0)) 
-		emit_ldr_uo(cd, Xt, Xn, imm);
-	else if (imm >= -256 && imm <= 255)
-		emit_ldur(cd, Xt, Xn, imm);
-	else {
-		assert(imm >= 0);
-		assert(imm % 8 == 0);
-		emit_ldr_uo(cd, Xt, Xn, imm);
-	}
-}
+#define emit_ldr_imm(cd, Xt, Xn, imm)		emit_ldstr_ambigous(cd, 3, 0, 1, imm, Xt, Xn)
+#define emit_str_imm(cd, Xt, Xn, imm)		emit_ldstr_ambigous(cd, 3, 0, 0, imm, Xt, Xn)
 
-inline void emit_str_imm(codegendata *cd, u1 Xt, u1 Xn, s2 imm)
-{
-	/* handle ambigous case first */
-	if (imm >= 0 && imm <= 255 && (imm % 8 == 0)) 
-		emit_str_uo(cd, Xt, Xn, imm);
-	else if (imm >= -256 && imm <= 255)
-		emit_stur(cd, Xt, Xn, imm);
-	else {
-		assert(imm >= 0);
-		assert(imm % 8 == 0);
-		emit_str_uo(cd, Xt, Xn, imm);
-	}
-}
+#define emit_fp_ldr_imm(cd, Xt, Xn, imm)	emit_ldstr_ambigous(cd, 3, 1, 1, imm, Xt, Xn)
+#define emit_fp_str_imm(cd, Xt, Xn, imm)	emit_ldstr_ambigous(cd, 3, 1, 0, imm, Xt, Xn)
 
-inline void emit_fp_ldr_imm(codegendata *cd, u1 Xt, u1 Xn, s2 imm)
-{
-	/* handle ambigous case first */
-	if (imm >= 0 && imm <= 255 && (imm % 8 == 0)) 
-		emit_fp_ldr_uo(cd, Xt, Xn, imm);
-	else if (imm >= -256 && imm <= 255)
-		emit_fp_ldur(cd, Xt, Xn, imm);
-	else {
-		assert(imm >= 0);
-		assert(imm % 8 == 0);
-		emit_ldr_uo(cd, Xt, Xn, imm);
-	}
-}
+#define emit_ldr_imm32(cd, Xt, Xn, imm)		emit_ldstr_ambigous(cd, 2, 0, 1, imm, Xt, Xn)
+#define emit_str_imm32(cd, Xt, Xn, imm)		emit_ldstr_ambigous(cd, 2, 0, 0, imm, Xt, Xn)
 
-inline void emit_fp_str_imm(codegendata *cd, u1 Xt, u1 Xn, s2 imm)
-{
-	/* handle ambigous case first */
-	if (imm >= 0 && imm <= 255 && (imm % 8 == 0)) 
-		emit_fp_str_uo(cd, Xt, Xn, imm);
-	else if (imm >= -256 && imm <= 255)
-		emit_fp_stur(cd, Xt, Xn, imm);
-	else {
-		assert(imm >= 0);
-		assert(imm % 8 == 0);
-		emit_str_uo(cd, Xt, Xn, imm);
-	}
-}
-
-inline void emit_ldr_imm32(codegendata *cd, u1 Xt, u1 Xn, s2 imm)
-{
-	/* handle ambigous case first */
-	if (imm >= 0 && imm <= 255 && (imm % 8 == 0)) 
-		emit_ldr_uo32(cd, Xt, Xn, imm);
-	else if (imm >= -256 && imm <= 255)
-		emit_ldur32(cd, Xt, Xn, imm);
-	else {
-		assert(imm >= 0);
-		assert(imm % 8 == 0);
-		emit_ldr_uo32(cd, Xt, Xn, imm);
-	}
-}
-
-inline void emit_str_imm32(codegendata *cd, u1 Xt, u1 Xn, s2 imm)
-{
-	/* handle ambigous case first */
-	if (imm >= 0 && imm <= 255 && (imm % 8 == 0)) 
-		emit_str_uo32(cd, Xt, Xn, imm);
-	else if (imm >= -256 && imm <= 255)
-		emit_stur32(cd, Xt, Xn, imm);
-	else {
-		assert(imm >= 0);
-		assert(imm % 8 == 0);
-		emit_str_uo32(cd, Xt, Xn, imm);
-	}
-}
+#define emit_fp_ldr_imm32(cd, Xt, Xn, imm)	emit_ldstr_ambigous(cd, 2, 1, 1, imm, Xt, Xn)
+#define emit_fp_str_imm32(cd, Xt, Xn, imm)	emit_ldstr_ambigous(cd, 2, 1, 0, imm, Xt, Xn)
 
 
 /* Add/subtract (immediate) **************************************************/
@@ -305,27 +222,59 @@ inline void emit_addsub_imm(codegendata *cd, u1 sf, u1 op, u1 S, u1 shift, u2 im
 	cd->mcodeptr += 4;
 }
 
-inline void emit_addsub_imm(codegendata *cd, u1 op, u1 Xd, u1 Xn, u4 imm)
+inline void emit_addsub_imm(codegendata *cd, u1 sf, u1 op, u1 Xd, u1 Xn, u4 imm)
 {
 	assert(imm >= 0 && imm <= 0xffffff);
 	u2 lo = imm & 0xfff;
 	u2 hi = (imm & 0xfff000) >> 12;
 	if (hi == 0)
-		emit_addsub_imm(cd, 1, op, 0, 0, lo, Xn, Xd);
+		emit_addsub_imm(cd, sf, op, 0, 0, lo, Xn, Xd);
 	else {
-		emit_addsub_imm(cd, 1, op, 0, 1, hi, Xn, Xd);
-		emit_addsub_imm(cd, 1, op, 0, 0, lo, Xd, Xd);
+		emit_addsub_imm(cd, sf, op, 0, 1, hi, Xn, Xd);
+		emit_addsub_imm(cd, sf, op, 0, 0, lo, Xd, Xd);
 	}
 }
 
-#define emit_add_imm(cd, Xd, Xn, imm)	emit_addsub_imm(cd, 0, Xd, Xn, imm)
-#define emit_sub_imm(cd, Xd, Xn, imm)	emit_addsub_imm(cd, 1, Xd, Xn, imm)
-#define emit_subs_imm(cd, Xd, Xn, imm)	emit_addsub_imm(cd, 1, 1, 1, 0, imm, Xn, Xd)
-#define emit_adds_imm(cd, Xd, Xn, imm)	emit_addsub_imm(cd, 1, 0, 1, 0, imm, Xn, Xd)
+#define emit_add_imm(cd, Xd, Xn, imm)	emit_addsub_imm(cd, 1, 0, Xd, Xn, imm)
+#define emit_add_imm32(cd, Xd, Xn, imm)	emit_addsub_imm(cd, 0, 0, Xd, Xn, imm)
+
+#define emit_sub_imm(cd, Xd, Xn, imm)	emit_addsub_imm(cd, 1, 1, Xd, Xn, imm)
+#define emit_sub_imm32(cd, Xd, Xn, imm)	emit_addsub_imm(cd, 0, 1, Xd, Xn, imm)
+
+#define emit_subs_imm(cd, Xd, Xn, imm)		emit_addsub_imm(cd, 1, 1, 1, 0, imm, Xn, Xd)
+#define emit_subs_imm32(cd, Xd, Xn, imm)	emit_addsub_imm(cd, 0, 1, 1, 0, imm, Xn, Xd)
+
+#define emit_adds_imm(cd, Xd, Xn, imm)		emit_addsub_imm(cd, 1, 0, 1, 0, imm, Xn, Xd)
+#define emit_adds_imm32(cd, Xd, Xn, imm)	emit_addsub_imm(cd, 0, 0, 1, 0, imm, Xn, Xd)
 
 #define emit_mov_sp(cd, Xd, Xn)			emit_add_imm(cd, Xd, Xn, 0)
+
 #define emit_cmp_imm(cd, Xn, imm)		emit_subs_imm(cd, 31, Xn, imm)
+#define emit_cmp_imm32(cd, Xn, imm)		emit_subs_imm32(cd, 31, Xn, imm)
+
 #define emit_cmn_imm(cd, Xn, imm)		emit_adds_imm(cd, 31, Xn, imm)
+#define emit_cmn_imm32(cd, Wn, imm)		emit_adds_imm32(cd, 31, Wn, imm)
+
+
+/* Bitfield ******************************************************************/
+
+inline void emit_bitfield(codegendata *cd, u1 sf, u1 opc, u1 N, u1 immr, u1 imms, u1 Rn, u1 Rd)
+{
+	assert(immr >= 0 && immr <= 0x3f);
+	assert(imms >= 0 && imms <= 0x3f);
+	*((u4 *) cd->mcodeptr) = LSL(sf, 31) | LSL(opc, 29) | LSL(N, 22) 
+						     | LSL(immr, 16) | LSL(imms, 10) | LSL(Rn, 5) 
+							 | Rd | 0x13000000;
+	cd->mcodeptr += 4;
+}
+
+#define emit_ubfm(cd, Xd, Xn, immr, imms)	emit_bitfield(cd, 1, 2, 1, immr, imms, Xn, Xd)
+#define emit_ubfm32(cd, Wd, Wn, immr, imms)	emit_bitfield(cd, 0, 2, 0, immr, imms, Wn, Wd)
+
+#define emit_lsl_imm(cd, Xd, Xn, shift)		emit_ubfm(cd, Xd, Xn, ((u1)(-(shift))) % 64, 63 - (shift))
+#define emit_lsl_imm32(cd, Wd, Wn, shift)	emit_ubfm32(cd, Wd, Wn, ((u1)(-(shift))) % 32, 31 - (shift))
+
+#define emit_uxth(cd, Wd, Wn)				emit_ubfm32(cd, Wd, Wn, 0, 15)
 
 
 /* Add/subtract (shifted register) *******************************************/
@@ -343,23 +292,16 @@ inline void emit_addsub_reg(codegendata *cd, u1 sf, u1 op, u1 S, u1 shift, u1 Rm
 #define emit_sub_reg(cd, Xd, Xn, Xm)	emit_addsub_reg(cd, 1, 1, 0, 0, Xm, 0, Xn, Xd)
 
 #define emit_subs_reg(cd, Xd, Xn, Xm)	emit_addsub_reg(cd, 1, 1, 1, 0, Xm, 0, Xn, Xd)
+#define emit_subs_reg32(cd, Xd, Xn, Xm)	emit_addsub_reg(cd, 0, 1, 1, 0, Xm, 0, Xn, Xd)
+
 #define emit_cmp_reg(cd, Xn, Xm)		emit_subs_reg(cd, 31, Xn, Xm)
+#define emit_cmp_reg32(cd, Xn, Xm)		emit_subs_reg32(cd, 31, Xn, Xm)
 
 #define emit_add_reg_shift(cd, Xd, Xn, Xm, s, a)	emit_addsub_reg(cd, 1, 0, 0, s, Xm, a, Xn, Xd)
 #define emit_sub_reg_shift(cd, Xd, Xn, Xm, s, a)	emit_addsub_reg(cd, 1, 1, 0, s, Xm, a, Xn, Xd)
 
-
-/* Move wide (immediate) *****************************************************/
-
-inline void emit_mov_wide_imm(codegendata *cd, u1 sf, u1 opc, u1 hw, u2 imm16, u1 Rd)
-{
-	*((u4 *) cd->mcodeptr) = LSL(sf, 31) | LSL(opc, 29) | LSL(hw, 21) 
-						     | LSL(imm16, 5) | Rd | 0x12800000; 
-	cd->mcodeptr += 4;
-}
-
-#define emit_mov_imm(cd, Xd, imm)	emit_mov_wide_imm(cd, 1, 2, 0, imm, Xd)
-#define emit_movn_imm(cd, Xd, imm)	emit_mov_wide_imm(cd, 1, 0, 0, imm, Xd)
+#define emit_add_reg32(cd, Xd, Xn, Xm)	emit_addsub_reg(cd, 0, 0, 0, 0, Xm, 0, Xn, Xd)
+#define emit_sub_reg32(cd, Xd, Xn, Xm)	emit_addsub_reg(cd, 0, 1, 0, 0, Xm, 0, Xn, Xd)
 
 
 /* Alpha like LDA ************************************************************/
@@ -383,11 +325,25 @@ inline void emit_cond_select(codegendata *cd, u1 sf, u1 op, u1 S, u1 Rm, u1 cond
 	cd->mcodeptr += 4;
 }
 
+#define emit_csel(cd, Xd, Xn, Xm, cond)		emit_cond_select(cd, 1, 0, 0, Xm, cond, 0, Xn, Xd)
 #define emit_csinc(cd, Xd, Xn, Xm, cond)	emit_cond_select(cd, 1, 0, 0, Xm, cond, 1, Xn, Xd)
 #define emit_cset(cd, Xd, cond)				emit_csinc(cd, Xd, 31, 31, INVERT(cond))
 
 #define emit_csinv(cd, Xd, Xn, Xm, cond)	emit_cond_select(cd, 1, 1, 0, Xm, cond, 0, Xn, Xd)
 #define emit_csetm(cd, Xd, cond)			emit_csinv(cd, Xd, 31, 31, INVERT(cond))
+
+/* Data-processing (2 source) ************************************************/
+
+inline void emit_dp2(codegendata *cd, u1 sf, u1 S, u1 Rm, u1 opc, u1 Rn, u1 Rd)
+{
+	*((u4 *) cd->mcodeptr) = LSL(sf, 31) | LSL(S, 29) | LSL(Rm, 16)
+							 | LSL(opc, 10) | LSL(Rn, 5) | Rd
+							 | 0x1AC00000;
+	cd->mcodeptr += 4;
+}
+
+#define emit_sdiv(cd, Xd, Xn, Xm)		emit_dp2(cd, 1, 0, Xm, 3, Xn, Xd)
+#define emit_sdiv32(cd, Wd, Wn, Wm)		emit_dp2(cd, 0, 0, Wm, 3, Wn, Wd)
 
 
 /* Data-processing (3 source) ************************************************/
@@ -401,8 +357,13 @@ inline void emit_dp3(codegendata *cd, u1 sf, u1 op31, u1 Rm, u1 o0, u1 Ra, u1 Rn
 }
 
 #define emit_madd(cd, Xd, Xn, Xm, Xa)		emit_dp3(cd, 1, 0, Xm, 0, Xa, Xn, Xd)
+#define emit_madd32(cd, Xd, Xn, Xm, Xa)		emit_dp3(cd, 0, 0, Xm, 0, Xa, Xn, Xd)
+
+#define emit_msub(cd, Xd, Xn, Xm, Xa)		emit_dp3(cd, 1, 0, Xm, 1, Xa, Xn, Xd)
+#define emit_msub32(cd, Xd, Xn, Xm, Xa)		emit_dp3(cd, 0, 0, Xm, 1, Xa, Xn, Xd)
 
 #define emit_mul(cd, Xd, Xn, Xm)			emit_madd(cd, Xd, Xn, Xm, 31)
+#define emit_mul32(cd, Xd, Xn, Xm)			emit_madd32(cd, Xd, Xn, Xm, 31)
 
 
 /* Logical (shifted register) ************************************************/
@@ -463,7 +424,7 @@ inline void emit_fp_dp2(codegendata *cd, u1 M, u1 S, u1 type, u1 Rm, u1 opc, u1 
 	cd->mcodeptr += 4; 
 }
 
-#define emit_fmul(cd, Dd, Dn, Dm)		emit_fp_dp2(cd, 0, 0, 1, Dm, 0, Dn, Dd)
+#define emit_fmul(cd, type, Rd, Rn, Rm)		emit_fp_dp2(cd, 0, 0, type, Rm, 0, Rn, Rd)
 
 
 /* Conversion between floating-point and integer *****************************/
@@ -476,8 +437,8 @@ inline void emit_conversion_fp(codegendata *cd, u1 sf, u1 S, u1 type, u1 rmode, 
 	cd->mcodeptr += 4;
 }
 
-#define emit_scvtf(cd, Dd, Xn)		emit_conversion_fp(cd, 1, 0, 1, 0, 2, Xn, Dd)
-#define emit_fcvtzs(cd, Xd, Dn)		emit_conversion_fp(cd, 1, 0, 1, 3, 0, Dn, Xd)
+#define emit_scvtf(cd, sf, type, Rn, Rd)	emit_conversion_fp(cd, sf, 0, type, 0, 2, Rn, Rd)
+#define emit_fcvtzs(cd, sf, type, Rn, Rd)	emit_conversion_fp(cd, sf, 0, type, 3, 0, Rn, Rd)
 
 
 /* Traps *********************************************************************/
@@ -492,6 +453,27 @@ inline void emit_trap(codegendata *cd, u1 Xd, int type)
 {
 	*((u4 *) cd->mcodeptr) = Xd | LSL(type & 0xff, 8) | 0xE7000000;
 	cd->mcodeptr += 4;
+}
+
+
+/* Barriers ******************************************************************/
+
+inline void emit_sync(codegendata *cd, u1 option, u1 opc) 
+{
+	*((u4 *) cd->mcodeptr) = LSL(option & 0xf, 8) | LSL(opc & 0x3, 5) | 0xD503309F;
+	cd->mcodeptr += 4;
+}
+
+#define emit_dmb(cd, option)	emit_sync(cd, option, 1);
+#define emit_dsb(cd, option)	emit_sync(cd, option, 0);
+
+
+/* Misc **********************************************************************/
+
+inline void emit_nop(codegendata *cd)
+{
+    *((u4 *) cd->mcodeptr) = (0xd503201f);
+    cd->mcodeptr += 4; 
 }
 
 #endif // VM_JIT_AARCH64_EMIT_ASM_HPP_
