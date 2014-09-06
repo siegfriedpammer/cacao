@@ -92,11 +92,14 @@ class AsmEmitter {
 	public:
 		explicit AsmEmitter(codegendata *cd) : cd(cd) {}
 
+        void imov(u1 wd, u1 wn) { emit_mov_reg32(cd, wd, wn); }
+
         void mov(u1 xt, u1 xn) { emit_mov(cd, xt, xn); }
         void mov_imm(u1 xt, u2 imm) {  emit_mov_imm(cd, xt, imm); }
         void movn_imm(u1 xt, u2 imm) { emit_movn_imm(cd, xt, imm); }
 
         void icmp_imm(u1 wd, u2 imm) { emit_cmp_imm32(cd, wd, imm); }
+        void lcmp_imm(u1 xd, u2 imm) { emit_cmp_imm(cd, xd, imm); }
         void icmn_imm(u1 wd, u2 imm) { emit_cmn_imm32(cd, wd, imm); }
 
         void icmp(u1 wn, u1 wm) { emit_cmp_reg32(cd, wn, wm); }
@@ -123,6 +126,7 @@ class AsmEmitter {
         void dst(u1 xt, u1 xn, s2 imm) { emit_fp_str_imm(cd, xt, xn, imm); }
 
         void strh(u1 wt, u1 xn, s2 imm) { emit_strh_imm(cd, wt, xn, imm); }
+        void strb(u1 wt, u1 xn, s2 imm) { emit_strb_imm(cd, wt, xn, imm); }
 
         // TODO: Implement these 2 using mov instructions
         void iconst(u1 xt, s4 value) {
@@ -144,6 +148,8 @@ class AsmEmitter {
         }
 
         void lda(u1 xd, u1 xn, s4 imm) { emit_lda(xd, xn, imm); }
+
+        void adr(u1 xd, s4 imm) { emit_adr(cd, xd, imm); }
 
         /* Branch *************************************************************/
         void blr(u1 xn) { emit_blr_reg(cd, xn); }
@@ -182,10 +188,27 @@ class AsmEmitter {
         void ilsl_imm(u1 wd, u1 wn, u1 shift) { emit_lsl_imm32(cd, wd, wn, shift); }
         void llsl_imm(u1 xd, u1 xn, u1 shift) { emit_lsl_imm(cd, xd, xn, shift); }
 
+        void ilsr_imm(u1 wd, u1 wn, u1 shift) { emit_lsr_imm32(cd, wd, wn, shift); }
+        void llsr_imm(u1 xd, u1 xn, u1 shift) { emit_lsr_imm(cd, xd, xn, shift); }
+
+        void iasr(u1 wd, u1 wn, u1 wm) { emit_asr32(cd, wd, wn, wm); }
+        void lasr(u1 xd, u1 xn, u1 xm) { emit_asr(cd, xd, xn, xm); }
+
         void uxth(u1 wd, u1 wn) { emit_uxth(cd, wd, wn); }
+        void sxtb(u1 wd, u1 wn) { emit_sxtb(cd, wd, wn); }
 
         void test(u1 xn, u1 xm) { emit_tst_sreg(cd, xn, xm); }
         void test(u1 xn) { emit_tst_sreg(cd, xn, xn); }
+
+        // TODO: implement these correctly
+        // void iand_imm(u1 wd, u1 wn, u2 imm) { emit_and_imm32(cd, wd, wn, imm); }
+        // void land_imm(u1 xd, u1 xn, u2 imm) { emit_and_imm(cd, xd, xn, imm); }
+
+        void iand(u1 wd, u1 wn, u1 wm) { emit_and_sreg32(cd, wd, wn, wm); }
+        void land(u1 xd, u1 xn, u1 xm) { emit_and_sreg(cd, xd, xn, xm); }
+
+        void ixor(u1 wd, u1 wn, u1 wm) { emit_eor_sreg32(cd, wd, wn, wm); }
+        void lxor(u1 xd, u1 xn, u1 xm) { emit_eor_sreg(cd, xd, xn, xm); }
 
         /* xt = if cond then xn else xm */
         void csel(u1 xt, u1 xn, u1 xm, u1 cond) { emit_csel(cd, xt, xn, xm, cond); }         

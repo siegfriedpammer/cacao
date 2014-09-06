@@ -32,6 +32,7 @@
 #include "config.h"
 
 #include "vm/types.hpp"
+#include "vm/os.hpp"
 #include "vm/jit/codegen-common.hpp"
 
 #define LSL(x,a) ((x) << a)
@@ -198,6 +199,9 @@ inline void emit_ldstr_ambigous(codegendata *cd, u1 size, u1 v, u1 opc, s2 imm, 
 #define emit_ldrh_imm(cd, Xt, Xn, imm)		emit_ldstr_ambigous(cd, 1, 0, 1, imm, Xt, Xn)
 #define emit_strh_imm(cd, Xt, Xn, imm)		emit_ldstr_ambigous(cd, 1, 0, 0, imm, Xt, Xn)
 
+#define emit_ldrb_imm(cd, Xt, Xn, imm)		emit_ldstr_ambigous(cd, 0, 0, 1, imm, Xt, Xn)
+#define emit_strb_imm(cd, Xt, Xn, imm)		emit_ldstr_ambigous(cd, 0, 0, 0, imm, Xt, Xn)
+
 #define emit_ldr_imm(cd, Xt, Xn, imm)		emit_ldstr_ambigous(cd, 3, 0, 1, imm, Xt, Xn)
 #define emit_str_imm(cd, Xt, Xn, imm)		emit_ldstr_ambigous(cd, 3, 0, 0, imm, Xt, Xn)
 
@@ -274,8 +278,46 @@ inline void emit_bitfield(codegendata *cd, u1 sf, u1 opc, u1 N, u1 immr, u1 imms
 #define emit_lsl_imm(cd, Xd, Xn, shift)		emit_ubfm(cd, Xd, Xn, ((u1)(-(shift))) % 64, 63 - (shift))
 #define emit_lsl_imm32(cd, Wd, Wn, shift)	emit_ubfm32(cd, Wd, Wn, ((u1)(-(shift))) % 32, 31 - (shift))
 
+#define emit_lsr_imm(cd, Xd, Xn, shift)		emit_ubfm(cd, Xd, Xn, shift, 63)
+#define emit_lsr_imm32(cd, Wd, Wn, shift)	emit_ubfm32(cd, Wd, Wn, shift, 31)
+
 #define emit_uxth(cd, Wd, Wn)				emit_ubfm32(cd, Wd, Wn, 0, 15)
 
+#define emit_sbfm(cd, Xd, Xn, immr, imms)	emit_bitfield(cd, 1, 0, 1, immr, imms, Xn, Xd)
+#define emit_sbfm32(cd, Wd, Wn, immr, imms)	emit_bitfield(cd, 0, 0, 0, immr, imms, Wn, Wd)
+
+#define emit_sxtb(cd, Wd, Wn)				emit_sbfm32(cd, Wd, Wn, 0, 7)
+
+
+/* Logical (immediate) *******************************************************/
+
+inline void emit_logical_imm(codegendata *cd, u1 sf, u1 opc, u2 imm, u1 Rn, u1 Rd)
+{
+	// TODO: fix this, keep in mind the imm encoding is complicated
+	os::abort("emit_logical_imm not supported atm.");
+	assert(imm >= 0 && imm <= 0xfff);
+	u1 immr = imm & 0x3f;
+	u1 imms = (imm >> 6) & 0x3f;
+
+	*((u4 *) cd->mcodeptr) = LSL(sf, 31) | LSL(opc, 29) | LSL(immr, 16) 
+						     | LSL(imms, 10) | LSL(Rn, 5) | Rd | 0x12000000;
+	cd->mcodeptr += 4;
+}
+
+#define emit_and_imm(cd, Xd, Xn, imm)		emit_logical_imm(cd, 1, 0, imm, Xn, Xd)
+#define emit_and_imm32(cd, Wd, Wn, imm)		emit_logical_imm(cd, 0, 0, imm, Wn, Wd)
+
+
+/* PC relative addressing ****************************************************/
+
+inline void emit_pcrel(codegendata *cd, u1 op, u1 immlo, u4 immhi, u1 Rd)
+{
+	*((u4 *) cd->mcodeptr) = LSL(op, 31) | LSL(immlo, 29) | LSL(immhi, 5) 
+							 | Rd | 0x10000000;
+	cd->mcodeptr += 4;
+}
+
+#define emit_adr(cd, Xd, immhi)	emit_pcrel(cd, 0, 0, immhi, Xd)
 
 /* Add/subtract (shifted register) *******************************************/
 
@@ -345,6 +387,8 @@ inline void emit_dp2(codegendata *cd, u1 sf, u1 S, u1 Rm, u1 opc, u1 Rn, u1 Rd)
 #define emit_sdiv(cd, Xd, Xn, Xm)		emit_dp2(cd, 1, 0, Xm, 3, Xn, Xd)
 #define emit_sdiv32(cd, Wd, Wn, Wm)		emit_dp2(cd, 0, 0, Wm, 3, Wn, Wd)
 
+#define emit_asr(cd, Xd, Xn, Xm)        emit_dp2(cd, 1, 0, Xm, 10, Xn, Xd)
+#define emit_asr32(cd, Wd, Wn, Wm)		emit_dp2(cd, 0, 0, Wm, 10, Wn, Wd)
 
 /* Data-processing (3 source) ************************************************/
 
@@ -378,22 +422,28 @@ inline void emit_logical_sreg(codegendata *cd, u1 sf, u1 opc, u1 shift, u1 N, u1
 }
 
 #define emit_orr_sreg(cd, Xd, Xn, Xm)	emit_logical_sreg(cd, 1, 1, 0, 0, Xm, 0, Xn, Xd)
-#define emit_mov_reg(cd, Xd, Xm)		emit_orr_sreg(cd, Xd, 31, Xm)
+#define emit_orr_sreg32(cd, Wd, Wn, Wm)	emit_logical_sreg(cd, 0, 1, 0, 0, Wm, 0, Wn, Wd)
 
 #define emit_ands_sreg(cd, Xd, Xn, Xm)	emit_logical_sreg(cd, 1, 3, 0, 0, Xm, 0, Xn, Xd)
-#define emit_tst_sreg(cd, Xn, Xm)		emit_ands_sreg(cd, 31, Xn, Xm)
+
+#define emit_and_sreg(cd, Xd, Xn, Xm)	emit_logical_sreg(cd, 1, 0, 0, 0, Xm, 0, Xn, Xd)
+#define emit_and_sreg32(cd, Wd, Wn, Wm)	emit_logical_sreg(cd, 0, 0, 0, 0, Wm, 0, Wn, Wd)
 
 #define emit_eor_sreg(cd, Xd, Xn, Xm)	emit_logical_sreg(cd, 1, 2, 0, 0, Xm, 0, Xn, Xd)
+#define emit_eor_sreg32(cd, Wd, Wn, Wm)	emit_logical_sreg(cd, 0, 2, 0, 0, Wm, 0, Wn, Wd)
+
+#define emit_mov_reg(cd, Xd, Xm)		emit_orr_sreg(cd, Xd, 31, Xm)
+#define emit_mov_reg32(cd, Wd, Wm)		emit_orr_sreg32(cd, Wd, 31, Wm)
+
+#define emit_tst_sreg(cd, Xn, Xm)		emit_ands_sreg(cd, 31, Xn, Xm)
 #define emit_clr(cd, Xd)				emit_eor_sreg(cd, Xd, Xd, Xd)
 
-inline void emit_mov(codegendata *cd, u1 Xd, u1 Xm)
-{
+inline void emit_mov(codegendata *cd, u1 Xd, u1 Xm) {
 	if (Xd == 31 || Xm == 31)
 		emit_mov_sp(cd, Xd, Xm);
 	else
 		emit_mov_reg(cd, Xd, Xm);
 }
-
 
 /* Floating-point move (register) ********************************************/
 

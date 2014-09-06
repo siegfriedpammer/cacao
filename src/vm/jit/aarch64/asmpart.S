@@ -33,6 +33,8 @@
 #include "vm/jit/abi-asm.hpp"
 #include "vm/jit/methodheader.hpp"
 
+#define SAVE_CNT (ARG_CNT + TMP_CNT + 1) // keep stack 16 byte - aligned
+
 
 	.file "asmpart.S"
 	.text
@@ -162,7 +164,7 @@ asm_vm_call_method_end:
 *                                                                              *
 *******************************************************************************/
 	
-/*
+
 asm_handle_nat_exception:
 L_asm_handle_nat_exception:
 L_asm_handle_exception_stack_loop:
@@ -172,26 +174,27 @@ L_asm_handle_exception_stack_loop:
 	str		lr, [sp, 24]
 	str		zero, [sp, 32]
 
-	mov		a0, lr
+	mov		a0, lr 
 	bl		md_asm_codegen_get_pv_from_pc
 	str		a0, [sp, 16]
+	mov		pv, a0
 
 	ldr		a0, [sp]
 	ldr		a1, [sp, 8]	
-	mov		a2, pv
+	mov		a2, pv 
 	add		a3, sp, 48
  
-	bl		L_asm_handle_exception_continue
+	b		L_asm_handle_exception_continue
 
 
 asm_handle_exception:
 L_asm_handle_exception:
-	sub		sp, sp, (ARG_CNT+TMP_CNT)*8
+	sub		sp, sp, (SAVE_CNT) * 8
 
 	SAVE_ARGUMENT_REGISTERS
 	SAVE_TEMPORARY_REGISTERS(ARG_CNT)
 
-	sub		sp, sp, 40
+	sub		sp, sp, 48
 	str		xptr, [sp]
 	str		pv, [sp, 16]
 	str		lr, [sp, 24]
@@ -201,7 +204,7 @@ L_asm_handle_exception:
 	mov		a0, xptr
 	mov		a1, xpc
 	mov		a2, pv
-	sub		a3, sp, 40 + (ARG_CNT + TMP_CNT) * 8
+	add		a3, sp, (SAVE_CNT + 6) * 8
 
 L_asm_handle_exception_continue:
 	bl		exceptions_handle_exception
@@ -213,14 +216,14 @@ L_asm_handle_exception_continue:
 	ldr		pv, [sp, 16]
 	ldr		lr, [sp, 24]
 	ldr		itmp3, [sp, 32]
-	add		sp, sp, 40
+	add		sp, sp, 48
 
 	cbz		itmp3, L_asm_handle_exception_no_leaf
 
 	RESTORE_ARGUMENT_REGISTERS
 	RESTORE_TEMPORARY_REGISTERS(ARG_CNT)
 
-	add		sp, sp, (ARG_CNT + TMP_CNT) * 8
+	add		sp, sp, (SAVE_CNT) * 8
 
 L_asm_handle_exception_no_leaf:
 	blr		xpc
@@ -230,11 +233,11 @@ L_asm_handle_exception_not_catched:
 	ldr		pv, [sp, 16]
 	ldr		lr, [sp, 24]
 	ldr		itmp3, [sp, 32]
-	add		sp, sp, 40
+	add		sp, sp, 48
 
 	cbz		itmp3, L_asm_handle_exception_no_leaf_stack
 
-	add		sp, sp, (ARG_CNT + TMP_CNT) * 8
+	add		sp, sp, (SAVE_CNT) * 8
 	mov		itmp3, 0
 
 L_asm_handle_exception_no_leaf_stack:
@@ -250,11 +253,11 @@ L_asm_handle_exception_no_leaf_stack:
 L_asm_handle_exception_no_ra_restore:
 	mov		xpc, lr
 	ldr		t4i, [pv, IntSave]
-	ldr		t5, ex_int1
-ex_int1:
-	add		t5, t5, (ex_int2 - ex_int1)
+
+	adr		t5, L_asm_handle_exception_save_int_end
+	
 	sub		t5, t5, t4, LSL 2
-	blr		t5
+	br		t5
 
 	ldr		s0, [t3, -10 * 8]
 	ldr		s1, [t3, -9 * 8]
@@ -267,15 +270,14 @@ ex_int1:
 	ldr		s8,	[t3, -2 * 8]
 	ldr		s9,	[t3, -1 * 8]
 
-ex_int2:
-	add		t3, t3, t4, LSL 3
+L_asm_handle_exception_save_int_end:
+	sub		t3, t3, t4, LSL 3
 
 	ldr		t4i, [pv, FltSave]
-	ldr		t5, ex_flt1
-ex_flt1:
-	add		t5, t5, (ex_flt2 - ex_flt1)
+	adr		t5, L_asm_handle_exception_save_float_end
+
 	sub		t5, t5, t4, LSL 2
-	blr		t5
+	br		t5
 
 	ldr		fs0, [t3, -8 * 8]
 	ldr		fs1, [t3, -7 * 8]
@@ -286,80 +288,11 @@ ex_flt1:
 	ldr		fs6, [t3, -2 * 8]
 	ldr		fs7, [t3, -1 * 8]
 
-ex_flt2:
+L_asm_handle_exception_save_float_end:
 	ldr		t3i, [pv, FrameSize]
 	add		sp, sp, t3
-	bl		L_asm_handle_exception_stack_loop
-*/
+	b		L_asm_handle_exception_stack_loop
 
-asm_handle_nat_exception:
-L_asm_handle_nat_exception:
-	sub		sp, sp, ARG_CNT * 8
-	SAVE_ARGUMENT_REGISTERS
-	mov		a0, lr
-	bl		md_asm_codegen_get_pv_from_pc
-	mov		pv, a0
-	RESTORE_ARGUMENT_REGISTERS
-	add		sp, sp, ARG_CNT * 8
-
-asm_handle_exception:
-	sub		sp, sp, 32
-	str		a0, [sp]
-	str		a1, [sp, 8]
-	str		a2, [sp, 16]
-	str		a3, [sp, 24]
-	mov		itmp3, #1
-	mov		a3, #16
-
-asm_handle_exception_loop:
-	sub		sp, sp, 16
-	str		pv, [sp]
-	str		lr, [sp, 8]
-
-	mov		a0, xptr
-	mov		a1, xpc
-	mov		a2, pv
-	add		a3, sp, a3
-	add		a3, a3, 8
-	bl		exceptions_handle_exception
-	ldr		pv, [sp]
-	ldr		lr, [sp, 8]
-	add		sp, sp, 16
-
-	cbz		a0, asm_handle_exception_not_catched
-
-	mov		xpc, a0
-
-	cbz		itmp3, L_asm_handle_exception_no_leaf
-	ldr		a0, [sp]
-	ldr		a1, [sp, 8]
-	ldr		a2, [sp, 16]
-	ldr		a3, [sp, 24]
-	add		sp, sp, 32
-
-L_asm_handle_exception_no_leaf:
-	br		xpc
-
-asm_handle_exception_not_catched:
-	cbz		itmp3, asm_handle_exception_not_catched_2
-	add		sp, sp, 16
-	mov		itmp3, #0
-
-asm_handle_exception_not_catched_2:
-	ldr		a2, [pv, #FrameSize]
-	add		a0, sp, a2
-	ldr		a1, [pv, #IsLeaf]
-	cbnz	a1, asm_2
-	ldr		lr, [a0, #-4]!
-asm_2:
-	mov		xpc, lr
-
-	ldr		a1, [pv, #IntSave]
-	neg		a1, a1
-	add		a1, a1, #5
-	sub		a1, a1, #1
-
-	
 
 /* asm_abstractmethoderror *****************************************************
 
@@ -409,6 +342,7 @@ asm_abstractmethoderror:
 asm_cacheflush:
 	isb
 	dsb sy
+	ret
 
 /* disable exec-stacks ********************************************************/
 

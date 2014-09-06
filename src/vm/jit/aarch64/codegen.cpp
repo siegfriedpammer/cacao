@@ -279,6 +279,22 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			emit_store_dst(jd, iptr, d);
 			break;
 
+		case ICMD_L2I:        /* ..., value  ==> ..., value                   */
+
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			asme.imov(d, s1);
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_INT2BYTE:   /* ..., value  ==> ..., value                   */
+
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			asme.sxtb(d, s1);
+			emit_store_dst(jd, iptr, d);
+			break;
+
 		case ICMD_INT2CHAR:   /* ..., value  ==> ..., value                   */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
@@ -383,6 +399,88 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 			asme.idiv(d, s1, s2);
 			asme.imsub(d, d, s2, s1);
+
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_IDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
+
+			s1 = emit_load_s1(jd, iptr, REG_A0);
+			s2 = emit_load_s2(jd, iptr, REG_A1);
+			d = codegen_reg_of_dst(jd, iptr, REG_RESULT);
+			emit_arithmetic_check(cd, iptr, s2);
+
+			asme.idiv(d, s1, s2);
+
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_ISHLCONST:  /* ..., value  ==> ..., value << constant       */
+		                      /* sx.val.i = constant                             */
+
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			
+			asme.ilsl_imm(d, s1, iptr->sx.val.i & 0x1f); // shift amout is between 0 and 31 incl
+			asme.imov(d, d);
+
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_ISHR:       /* ..., val1, val2  ==> ..., val1 >> val2       */
+
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+
+			asme.mov_imm(REG_ITMP3, 0x1f);
+			asme.iand(REG_ITMP3, s2, REG_ITMP3);
+			asme.iasr(d, s1, REG_ITMP3);
+
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_IUSHRCONST: /* ..., value  ==> ..., value >>> constant      */
+		                      /* sx.val.i = constant                             */
+
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+
+			asme.ilsr_imm(d, s1, iptr->sx.val.i & 0x1f);
+
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_IAND:       /* ..., val1, val2  ==> ..., val1 & val2        */
+
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+
+			asme.iand(d, s1, s2);
+
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_IANDCONST:  /* ..., value  ==> ..., value & constant        */
+		                      /* sx.val.i = constant                             */
+
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+
+			asme.iconst(REG_ITMP2, iptr->sx.val.i);
+			asme.iand(d, s1, REG_ITMP2);
+
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_IXOR:       /* ..., val1, val2  ==> ..., val1 ^ val2        */
+
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+
+			asme.ixor(d, s1, s2);
 
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -530,6 +628,20 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			emit_store_dst(jd, iptr, d);
 			break;			
 
+		case ICMD_IALOAD:     /* ..., arrayref, index  ==> ..., value         */
+
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			/* implicit null-pointer check */
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
+
+			asme.ladd_shift(REG_ITMP1, s1, s2, CODE_LSL, 2);
+			asme.ild(d, REG_ITMP1, OFFSET(java_intarray_t, data[0]));
+
+			emit_store_dst(jd, iptr, d);
+			break;
+
 		case ICMD_AALOAD:     /* ..., arrayref, index  ==> ..., value         */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
@@ -541,6 +653,45 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			asme.ladd_shift(REG_ITMP1, s1, s2, CODE_LSL, 3); // REG_ITMP1 = s1 + lsl(s2, 3)
 			asme.ald(d, REG_ITMP1, OFFSET(java_objectarray_t, data[0]));
 			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_BASTORE:    /* ..., arrayref, index, value  ==> ...         */
+
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			/* implicit null-pointer check */
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
+			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
+
+			asme.ladd(REG_ITMP1, s1, s2);
+			asme.strb(s3, REG_ITMP1, OFFSET(java_bytearray_t, data[0]));
+
+			break;
+
+		case ICMD_CASTORE:    /* ..., arrayref, index, value  ==> ...         */
+
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			/* implicit null-pointer check */
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
+			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
+
+			asme.ladd_shift(REG_ITMP1, s1, s2, CODE_LSL, 1); // REG_ITMP1 = s1 + (2 * s2)
+			asme.strh(s3, REG_ITMP1, OFFSET(java_chararray_t, data[0]));
+
+			break;
+
+		case ICMD_IASTORE:    /* ..., arrayref, index, value  ==> ...         */
+
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			/* implicit null-pointer check */
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
+			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
+
+			asme.ladd_shift(REG_ITMP1, s1, s2, CODE_LSL, 2);
+			asme.ist(s3, REG_ITMP1, OFFSET(java_intarray_t, data[0]));
+
 			break;
 
 		case ICMD_AASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -661,9 +812,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 		case ICMD_ATHROW:       /* ..., objectref ==> ... (, objectref)       */
 
 			disp = dseg_add_functionptr(cd, asm_handle_exception);
-			asme.ald(REG_ITMP2, REG_PV, disp);
-			// M_JMP(REG_ITMP2_XPC, REG_ITMP2); // TODO: Research what first reg does and if we need it
-			asme.br(REG_ITMP2);
+			asme.ald(REG_ITMP3, REG_PV, disp);
+			asme.adr(REG_ITMP2, 1); // next instruction is the exception throwing pc
+			asme.blr(REG_ITMP3);
 			M_NOP;              /* nop ensures that XPC is less than the end */
 			                    /* of basic block                            */
 			break;
@@ -752,7 +903,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 		case ICMD_CHECKCAST:  /* ..., objectref ==> ..., objectref            */
 
-			/* object type cast-check */
+			// object type cast-check 
 			if (!(iptr->flags.bits & INS_FLAG_ARRAY)) {
 
 				classinfo *super;
@@ -769,13 +920,13 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
-				/* if class is not resolved, check which code to call */
+				// if class is not resolved, check which code to call 
 
 				if (super == NULL) {
 					asme.test(s1);
 					emit_label_beq(cd, BRANCH_LABEL_1);
 
-					disp = dseg_add_unique_s4(cd, 0);         /* super->flags */
+					disp = dseg_add_unique_s4(cd, 0);         // super->flags 
 
 					patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_flags,
 										  iptr->sx.s23.s3.c.ref, disp);
@@ -788,7 +939,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 					emit_label_beq(cd, BRANCH_LABEL_2);
 				}
 
-				/* interface checkcast code */
+				// interface checkcast code 
 
 				if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
 					if (super != NULL) {
@@ -820,7 +971,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 						emit_label(cd, BRANCH_LABEL_3);
 				}
 
-				/* class checkcast code */
+				// class checkcast code 
 
 				if ((super == NULL) || !(super->flags & ACC_INTERFACE)) {
 					if (super == NULL) {
@@ -848,46 +999,43 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 						asme.ald(REG_ITMP1, REG_ITMP1, 0);
 
 						asme.lcmp(REG_ITMP1, REG_ITMP3);
-						emit_label_beq(cd, BRANCH_LABEL_6);  /* good */
+						emit_label_beq(cd, BRANCH_LABEL_6);  // good 
 
 						if (super == NULL) {
-							M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
-							M_CMP_IMM(REG_ITMP1, OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]));
-							emit_load_s1(jd, iptr, REG_ITMP1); /* reload s1, might have been destroyed */
-							// emit_label_bne(cd, BRANCH_LABEL_10); /* throw */
-							emit_classcast_check(cd, iptr, BRANCH_NE, 0, s1); /* throw */
+							asme.ild(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
+							asme.lcmp_imm(REG_ITMP1, OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]));
+							emit_label_bne(cd, BRANCH_LABEL_10); // throw 
 						}
 
-						M_ILD(REG_ITMP1, REG_ITMP2, OFFSET(vftbl_t, subtype_depth));
-						M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, subtype_depth));
-						M_ICMP(REG_ITMP1, REG_ITMP3);
-						emit_load_s1(jd, iptr, REG_ITMP1); /* reload s1, might have been destroyed */
-						emit_classcast_check(cd, iptr, BRANCH_LT, 0, s1);
-						// emit_label_ble(cd, BRANCH_LABEL_9); /* throw */
+						asme.ild(REG_ITMP1, REG_ITMP2, OFFSET(vftbl_t, subtype_depth));
+						asme.ild(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, subtype_depth));
+						asme.icmp(REG_ITMP1, REG_ITMP3);
+						emit_label_bgt(cd, BRANCH_LABEL_9); // throw 
 
-						/* reload */
-						M_ALD(REG_ITMP3, REG_PV, disp);
-						M_ALD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, subtype_overflow));
+						// reload 
+						asme.ald(REG_ITMP3, REG_PV, disp);
+						asme.ald(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, subtype_overflow));
 						M_S8ADDQ(REG_ITMP1, REG_ITMP2, REG_ITMP2);
-						M_ALD(REG_ITMP1, REG_ITMP2, -DISPLAY_SIZE*8);
+						// asme.ladd_shift(REG_ITMP2, REG_ITMP1, REG_ITMP2, CODE_LSL, 3);
+						asme.ald(REG_ITMP1, REG_ITMP2, -DISPLAY_SIZE*8);
 
-						M_ICMP(REG_ITMP1, REG_ITMP3);
-						emit_classcast_check(cd, iptr, BRANCH_NE, 0, s1);
-						// emit_label_bne(cd, BRANCH_LABEL_7); /* good */
+						asme.icmp(REG_ITMP1, REG_ITMP3);
+						// emit_classcast_check(cd, iptr, BRANCH_NE, 0, s1);
+						emit_label_beq(cd, BRANCH_LABEL_7); // good 
 
-						emit_label(cd, BRANCH_LABEL_6);
-						//if (super == NULL)
-						//	emit_label(cd, BRANCH_LABEL_10);
+						emit_label(cd, BRANCH_LABEL_9);
+						if (super == NULL)
+							emit_label(cd, BRANCH_LABEL_10);
 
-						/* reload s1, might have been destroyed */
-						//emit_load_s1(jd, iptr, REG_ITMP1);
-						// M_ALD_INTERN(s1, REG_ZERO, TRAP_ClassCastException);
-						//emit_trap(cd, s1, TRAP_ClassCastException);
+						// reload s1, might have been destroyed 
+						// emit_load_s1(jd, iptr, REG_ITMP1);
+						// TODO: as soon as this is implemented correctly, enable classcast trap
+						// emit_trap(cd, s1, TRAP_ClassCastException);
 
-						//emit_label(cd, BRANCH_LABEL_7);
-						//emit_label(cd, BRANCH_LABEL_6);
-						/* reload s1, might have been destroyed */
-						//emit_load_s1(jd, iptr, REG_ITMP1);
+						// emit_label(cd, BRANCH_LABEL_7);
+						// emit_label(cd, BRANCH_LABEL_6);
+						// reload s1, might have been destroyed 
+						// emit_load_s1(jd, iptr, REG_ITMP1);
 					}
 					else {
 						asme.ald(REG_ITMP2, REG_ITMP2, super->vftbl->subtype_offset);
@@ -3146,6 +3294,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	m    = jd->m;
 	code = jd->code;
 	cd   = jd->cd;
+	AsmEmitter asme(cd);
 
 	/* initialize variables */
 
@@ -3173,8 +3322,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	/* generate stub code */
 
-	M_LDA(REG_SP, REG_SP, -stackoffset);
-	M_AST(REG_RA, REG_SP, stackoffset - SIZEOF_VOID_P);
+	asme.lda(REG_SP, REG_SP, -stackoffset);
+	asme.ast(REG_RA, REG_SP, stackoffset - SIZEOF_VOID_P);
 
 #if defined(ENABLE_GC_CACAO)
 	/* Save callee saved integer registers in stackframeinfo (GC may
@@ -3400,11 +3549,11 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	/* handle exception */
 
-	M_ASUB_IMM(REG_RA, 4, REG_ITMP2_XPC); /* get exception address            */
+	asme.lsub_imm(REG_ITMP2_XPC, REG_RA, 4); /* get exception address            */
 
 	disp = dseg_add_functionptr(cd, asm_handle_nat_exception);
-	M_ALD(REG_ITMP3, REG_PV, disp);     /* load asm exception handler address */
-	M_JMP(REG_ZERO, REG_ITMP3);         /* jump to asm exception handler      */
+	asme.ald(REG_ITMP3, REG_PV, disp);     /* load asm exception handler address */
+	asme.br(REG_ITMP3);                    /* jump to asm exception handler */
 }
 
 
