@@ -455,7 +455,7 @@ void MovInst::emit(CodeMemory* CM) const {
 	{
 		X86_64Register *reg_dst = cast_to<X86_64Register>(dst);
 		X86_64Register *reg_src = cast_to<X86_64Register>(src);
-		if (reg_dst == reg_src) return;
+		if (reg_dst == reg_src && !forceSameRegisters) return;
 
 		CodeFragment code = CM->get_CodeFragment(3);
 		code[0] = get_rex(reg_dst,reg_src);
@@ -467,7 +467,7 @@ void MovInst::emit(CodeMemory* CM) const {
 	{
 		X86_64Register *reg_dst = cast_to<X86_64Register>(dst);
 		X86_64Register *reg_src = cast_to<X86_64Register>(src);
-		if (reg_dst == reg_src) return;
+		if (reg_dst == reg_src && !forceSameRegisters) return;
 
 		u1 rex  = get_rex(reg_dst,reg_src,false);
 		if (rex == 0x40) { // no rex

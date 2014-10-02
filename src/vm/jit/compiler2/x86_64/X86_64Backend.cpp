@@ -505,23 +505,24 @@ void LoweringVisitor::visit(DIVInst *I) {
 	GPInstruction::OperandSize opsize = get_OperandSize_from_Type(type);
 
 	MachineInstruction *alu = NULL;
-	MachineOperand *dividendLower;
-	MachineOperand *nativeUpper;
+	MachineOperand *dividend;
+	MachineOperand *dividendUpper;
 	MachineInstruction *convertToQuadword;
 
 	switch (type) {
-
-	case Type::ByteTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
 
-		dividendLower = get_op(I->get_operand(0)->to_Instruction());
-		nativeUpper = new NativeRegister(type, &RDX);
+		// 1. move the dividend to RAX
+		// 2. extend the dividend to RDX:RAX
+		// 3. perform the division
+		dividend = get_op(I->get_operand(0)->to_Instruction());
+		dividendUpper = new NativeRegister(type, &RDX);
 		result = new NativeRegister(type, &RAX);
-		convertToQuadword = new CDQInst(DstSrc1Op(nativeUpper), DstSrc2Op(result), opsize);
-		get_current()->push_back(get_Backend()->create_Move(dividendLower, result));
+		convertToQuadword = new CDQInst(DstSrc1Op(dividendUpper), DstSrc2Op(result), opsize);
+		get_current()->push_back(get_Backend()->create_Move(dividend, result));
 		get_current()->push_back(convertToQuadword);
-		alu = new IDivInst(Src2Op(src_op2), DstSrc1Op(result), DstSrc2Op(nativeUpper), opsize);
+		alu = new IDivInst(Src2Op(src_op2), DstSrc1Op(result), DstSrc2Op(dividendUpper), opsize);
 		break;
 	case Type::DoubleTypeID:
 		result = get_op(I->get_operand(0)->to_Instruction());
@@ -547,31 +548,34 @@ void LoweringVisitor::visit(DIVInst *I) {
 void LoweringVisitor::visit(REMInst *I) {
 	assert(I);
 
-	MachineOperand* nativeLower;
+	MachineOperand* dividendLower;
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
 	Type::TypeID type = I->get_type();
 	GPInstruction::OperandSize opsize = get_OperandSize_from_Type(type);
-	MachineOperand *dividendLower = get_op(I->get_operand(0)->to_Instruction());;
+	MachineOperand *dividend = get_op(I->get_operand(0)->to_Instruction());;
 
 	MachineInstruction *resultInst = NULL;
-	MachineOperand *nativeUpper;
+	MachineOperand *resultOperand;
 	MachineInstruction *convertToQuadword;
 
 	StackSlotManager *ssm;
 	ManagedStackSlot *src;
 	ManagedStackSlot *dst;
-	ManagedStackSlot *result;
+	ManagedStackSlot *resultSlot;
 
 	switch (type) {
-	case Type::ByteTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
-		nativeUpper = new NativeRegister(type, &RDX);
-		nativeLower = new NativeRegister(type, &RAX);
-		convertToQuadword = new CDQInst(DstSrc1Op(nativeLower), DstSrc2Op(nativeUpper), opsize);
-		get_current()->push_back(get_Backend()->create_Move(dividendLower, nativeLower));
+
+		// 1. move the dividend to RAX
+		// 2. extend the dividend to RDX:RAX
+		// 3. perform the division
+		resultOperand = new NativeRegister(type, &RDX);
+		dividendLower = new NativeRegister(type, &RAX);
+		convertToQuadword = new CDQInst(DstSrc1Op(dividendLower), DstSrc2Op(resultOperand), opsize);
+		get_current()->push_back(get_Backend()->create_Move(dividend, dividendLower));
 		get_current()->push_back(convertToQuadword);
-		resultInst = new IDivInst(Src2Op(src_op2), DstSrc1Op(nativeUpper), DstSrc2Op(nativeLower), opsize);
+		resultInst = new IDivInst(Src2Op(src_op2), DstSrc1Op(resultOperand), DstSrc2Op(dividendLower), opsize);
 		get_current()->push_back(resultInst);
 		break;
 	case Type::FloatTypeID:
@@ -579,16 +583,20 @@ void LoweringVisitor::visit(REMInst *I) {
 		ssm = get_Backend()->get_JITData()->get_StackSlotManager();
 		src = ssm->create_ManagedStackSlot(type);
 		dst = ssm->create_ManagedStackSlot(type);
-		result = ssm->create_ManagedStackSlot(type);
+		resultSlot = ssm->create_ManagedStackSlot(type);
 
-		get_current()->push_back(get_Backend()->create_Move(dividendLower, src));
+		// operands of the FP stack can only be loaded from memory
+		get_current()->push_back(get_Backend()->create_Move(dividend, src));
 		get_current()->push_back(get_Backend()->create_Move(src_op2, dst));
 
+		// initialize the FP stack
 		get_current()->push_back(new FLDInst(SrcMemOp(dst), opsize));
 		get_current()->push_back(new FLDInst(SrcMemOp(src), opsize));
 		get_current()->push_back(new FPRemInst(opsize));
-		resultInst = new FSTPInst(DstMemOp(result), opsize);
+		resultInst = new FSTPInst(DstMemOp(resultSlot), opsize);
 		get_current()->push_back(resultInst);
+
+		// clean the FP stack
 		get_current()->push_back(new FFREEInst(&ST0));
 		get_current()->push_back(new FINCSTPInst());
 		break;
@@ -859,6 +867,14 @@ void LoweringVisitor::visit(CASTInst *I) {
 		break;
 	case Type::LongTypeID:
 		switch (to) {
+		case Type::IntTypeID:
+		{
+			// force a 32bit move to cut the upper byte
+			MachineInstruction *mov = new MovInst(SrcOp(src_op), DstOp(src_op), true, GPInstruction::OS_32);
+			get_current()->push_back(mov);
+			set_op(I, mov->get_result().op);
+			return;
+		}
 		case Type::DoubleTypeID:
 		{
 			MachineInstruction *mov = new CVTSI2SDInst(

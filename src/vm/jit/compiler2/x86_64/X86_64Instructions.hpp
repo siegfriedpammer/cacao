@@ -495,12 +495,22 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
-
+// TODO: refactor
 class MovInst : public MoveInst {
+private:
+	bool forceSameRegisters;
 public:
 	MovInst(const SrcOp &src, const DstOp &dst,
 		GPInstruction::OperandSize op_size)
-			: MoveInst("X86_64MovInst", src.op, dst.op, op_size) {}
+			: MoveInst("X86_64MovInst", src.op, dst.op, op_size) {
+		forceSameRegisters = false;
+	}
+
+	MovInst(const SrcOp &src, const DstOp &dst, bool forceSameRegisters,
+			GPInstruction::OperandSize op_size) :
+			MoveInst("X86_64MovInst", src.op, dst.op, op_size), forceSameRegisters(forceSameRegisters) {
+	}
+
 	virtual bool accepts_immediate(std::size_t i, Immediate *imm) const {
 		return true;
 	}
