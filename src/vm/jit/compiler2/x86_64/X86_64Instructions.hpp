@@ -495,20 +495,13 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
-// TODO: refactor
 class MovInst : public MoveInst {
 private:
 	bool forceSameRegisters;
 public:
 	MovInst(const SrcOp &src, const DstOp &dst,
-		GPInstruction::OperandSize op_size)
-			: MoveInst("X86_64MovInst", src.op, dst.op, op_size) {
-		forceSameRegisters = false;
-	}
-
-	MovInst(const SrcOp &src, const DstOp &dst, bool forceSameRegisters,
-			GPInstruction::OperandSize op_size) :
-			MoveInst("X86_64MovInst", src.op, dst.op, op_size), forceSameRegisters(forceSameRegisters) {
+		GPInstruction::OperandSize op_size, bool forceSameRegisters = false)
+			: MoveInst("X86_64MovInst", src.op, dst.op, op_size), forceSameRegisters(forceSameRegisters)  {
 	}
 
 	virtual bool accepts_immediate(std::size_t i, Immediate *imm) const {
@@ -898,10 +891,12 @@ public:
 };
 
 class FPRemInst: public GPInstruction {
+private:
+	bool fpStrict;
 public:
 
-	FPRemInst(OperandSize op_size) :
-			GPInstruction("X86_64FPRemInst", &NoOperand, op_size, 0) {
+	FPRemInst(OperandSize op_size, bool fpStrict = false) :
+			GPInstruction("X86_64FPRemInst", &NoOperand, op_size, 0), fpStrict(fpStrict) {
 	}
 
 	virtual void emit(CodeMemory* CM) const;

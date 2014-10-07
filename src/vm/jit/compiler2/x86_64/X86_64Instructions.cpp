@@ -1309,7 +1309,7 @@ void FPRemInst::emit(CodeMemory* CM) const {
 
 	CodeFragment code = CM->get_CodeFragment(2);
 	code[0] = 0xd9;
-	code[1] = 0xf8;
+	code[1] = fpStrict ? 0xf5 : 0xf8;
 }
 
 void MovImmSInst::emit(CodeMemory* CM) const {

@@ -592,7 +592,15 @@ void LoweringVisitor::visit(REMInst *I) {
 		// initialize the FP stack
 		get_current()->push_back(new FLDInst(SrcMemOp(dst), opsize));
 		get_current()->push_back(new FLDInst(SrcMemOp(src), opsize));
-		get_current()->push_back(new FPRemInst(opsize));
+
+		if (get_Backend()->get_JITData()->get_jitdata()->flags & ACC_STRICT)
+		{
+			get_current()->push_back(new FPRemInst(opsize, true));
+		}
+		else
+		{
+			get_current()->push_back(new FPRemInst(opsize));
+		}
 		resultInst = new FSTPInst(DstMemOp(resultSlot), opsize);
 		get_current()->push_back(resultInst);
 
@@ -832,6 +840,12 @@ void LoweringVisitor::visit(CASTInst *I) {
 	switch (from) {
 	case Type::IntTypeID:
 		switch (to) {
+		// TODO: implement
+
+		case Type::ByteTypeID:
+		case Type::CharTypeID:
+		case Type::ShortTypeID:
+
 		case Type::LongTypeID:
 		{
 			MachineInstruction *mov = new MovSXInst(
@@ -842,14 +856,19 @@ void LoweringVisitor::visit(CASTInst *I) {
 			set_op(I,mov->get_result().op);
 			return;
 		}
-		case Type::DoubleTypeID:
+ 		case Type::DoubleTypeID:
 		{
-			MachineInstruction *mov = new CVTSI2SDInst(
+			MachineOperand *tmpReg = new VirtualRegister(Type::DoubleTypeID);
+			MachineInstruction *conversion = new CVTSI2SDInst(
 				SrcOp(src_op),
-				DstOp(new VirtualRegister(to)),
+				DstOp(tmpReg),
 				GPInstruction::OS_32, GPInstruction::OS_64);
-			get_current()->push_back(mov);
-			set_op(I,mov->get_result().op);
+
+			// TODO: force samereg?
+			MachineInstruction *move = new MovSDInst(SrcOp(tmpReg), DstOp(new VirtualRegister(Type::DoubleTypeID)));
+			get_current()->push_back(conversion);
+			get_current()->push_back(move);
+			set_op(I,move->get_result().op);
 			return;
 		}
 		case Type::FloatTypeID:
@@ -862,7 +881,6 @@ void LoweringVisitor::visit(CASTInst *I) {
 			set_op(I,mov->get_result().op);
 			return;
 		}
-		default: break;
 		}
 		break;
 	case Type::LongTypeID:
@@ -870,7 +888,7 @@ void LoweringVisitor::visit(CASTInst *I) {
 		case Type::IntTypeID:
 		{
 			// force a 32bit move to cut the upper byte
-			MachineInstruction *mov = new MovInst(SrcOp(src_op), DstOp(src_op), true, GPInstruction::OS_32);
+			MachineInstruction *mov = new MovInst(SrcOp(src_op), DstOp(src_op), GPInstruction::OS_32);
 			get_current()->push_back(mov);
 			set_op(I, mov->get_result().op);
 			return;
@@ -885,15 +903,38 @@ void LoweringVisitor::visit(CASTInst *I) {
 			set_op(I,mov->get_result().op);
 			return;
 		}
-
-		// TODO: implement proper downcast
-
-		default: break;
+		default:
+			break;
 		}
+	break;
+	case Type::DoubleTypeID:
+		switch (to) {
+		case Type::IntTypeID:
+			// CVTTSD2SI mit 32 Bit Operand
 		break;
-	default: break;
-}
-ABORT_MSG("x86_64 Cast not supported!", "From " << from << " to " << to );
+		case Type::LongTypeID:
+			// CVTTSD2SI mit 64 Bit Operand
+		break;
+		case Type::FloatingPointTypeID:
+			// cvtsd2ss
+		break;
+		}
+	break;
+	case Type::FloatingPointTypeID:
+		switch(to) {
+		case Type::IntTypeID:
+			break;
+		case Type::LongTypeID:
+			break;
+		case Type::DoubleTypeID:
+			break;
+		}
+	break;
+	default:
+		break;
+	}
+
+	ABORT_MSG("x86_64 Cast not supported!", "From " << from << " to " << to );
 }
 
 void LoweringVisitor::visit(INVOKESTATICInst *I) {
