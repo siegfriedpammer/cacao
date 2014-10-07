@@ -858,17 +858,15 @@ void LoweringVisitor::visit(CASTInst *I) {
 		}
  		case Type::DoubleTypeID:
 		{
-			MachineOperand *tmpReg = new VirtualRegister(Type::DoubleTypeID);
+			MachineOperand *result = new VirtualRegister(Type::DoubleTypeID);
+			MachineInstruction *clearResult = new MovImmSDInst(SrcOp(new Immediate(0, Type::DoubleType())), DstOp(result));
 			MachineInstruction *conversion = new CVTSI2SDInst(
 				SrcOp(src_op),
-				DstOp(tmpReg),
+				DstOp(result),
 				GPInstruction::OS_32, GPInstruction::OS_64);
-
-			// TODO: force samereg?
-			MachineInstruction *move = new MovSDInst(SrcOp(tmpReg), DstOp(new VirtualRegister(Type::DoubleTypeID)));
+			get_current()->push_back(clearResult);
 			get_current()->push_back(conversion);
-			get_current()->push_back(move);
-			set_op(I,move->get_result().op);
+			set_op(I,conversion->get_result().op);
 			return;
 		}
 		case Type::FloatTypeID:
