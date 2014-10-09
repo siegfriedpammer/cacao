@@ -593,14 +593,7 @@ void LoweringVisitor::visit(REMInst *I) {
 		get_current()->push_back(new FLDInst(SrcMemOp(dst), opsize));
 		get_current()->push_back(new FLDInst(SrcMemOp(src), opsize));
 
-		if (get_Backend()->get_JITData()->get_jitdata()->flags & ACC_STRICT)
-		{
-			get_current()->push_back(new FPRemInst(opsize, true));
-		}
-		else
-		{
-			get_current()->push_back(new FPRemInst(opsize));
-		}
+		get_current()->push_back(new FPRemInst(opsize));
 		resultInst = new FSTPInst(DstMemOp(resultSlot), opsize);
 		get_current()->push_back(resultInst);
 
@@ -840,12 +833,21 @@ void LoweringVisitor::visit(CASTInst *I) {
 	switch (from) {
 	case Type::IntTypeID:
 		switch (to) {
-		// TODO: implement
-
-		case Type::ByteTypeID:
 		case Type::CharTypeID:
+		case Type::ByteTypeID:
+		{
+			MachineInstruction *mov = new MovInst(SrcOp(src_op), DstOp(src_op), GPInstruction::OS_8);
+			get_current()->push_back(mov);
+			set_op(I, mov->get_result().op);
+			return;
+		}
 		case Type::ShortTypeID:
-
+		{
+			MachineInstruction *mov = new MovInst(SrcOp(src_op), DstOp(src_op), GPInstruction::OS_16);
+			get_current()->push_back(mov);
+			set_op(I, mov->get_result().op);
+			return;
+		}
 		case Type::LongTypeID:
 		{
 			MachineInstruction *mov = new MovSXInst(
@@ -901,31 +903,85 @@ void LoweringVisitor::visit(CASTInst *I) {
 			set_op(I,mov->get_result().op);
 			return;
 		}
-		default:
-			break;
+		case Type::FloatTypeID:
+		{
+
+		}
 		}
 	break;
+	// D2I, D2L, F2I and F2L may not be supported by the BC
+	// see arch.hpp in x86_64 of the BC
+
 	case Type::DoubleTypeID:
 		switch (to) {
+
+		// TODO needs checks according to http://docs.oracle.com/javase/specs/jls/se7/html/jls-5.html#jls-5.1.3
 		case Type::IntTypeID:
-			// CVTTSD2SI mit 32 Bit Operand
-		break;
+		{
+			MachineInstruction *mov = new CVTTSD2SIInst(
+				SrcOp(src_op),
+				DstOp(new VirtualRegister(to)),
+				GPInstruction::OS_32, GPInstruction::OS_32);
+			get_current()->push_back(mov);
+			set_op(I,mov->get_result().op);
+			return;
+		}
 		case Type::LongTypeID:
-			// CVTTSD2SI mit 64 Bit Operand
-		break;
-		case Type::FloatingPointTypeID:
-			// cvtsd2ss
-		break;
+		{
+			MachineInstruction *mov = new CVTTSD2SIInst(
+				SrcOp(src_op),
+				DstOp(new VirtualRegister(to)),
+				GPInstruction::OS_32, GPInstruction::OS_64);
+			get_current()->push_back(mov);
+			set_op(I,mov->get_result().op);
+			return;
+		}
+		case Type::FloatTypeID:
+		{
+			MachineInstruction *mov = new CVTSD2SSInst(
+				SrcOp(src_op),
+				DstOp(new VirtualRegister(to)),
+				GPInstruction::OS_64, GPInstruction::OS_32);
+			get_current()->push_back(mov);
+			set_op(I,mov->get_result().op);
+			return;
+		}
 		}
 	break;
-	case Type::FloatingPointTypeID:
+	case Type::FloatTypeID:
 		switch(to) {
+
+		// TODO needs checks according to http://docs.oracle.com/javase/specs/jls/se7/html/jls-5.html#jls-5.1.3
 		case Type::IntTypeID:
-			break;
+		{
+			MachineInstruction *mov = new CVTTSS2SIInst(
+				SrcOp(src_op),
+				DstOp(new VirtualRegister(to)),
+				GPInstruction::OS_32, GPInstruction::OS_32);
+			get_current()->push_back(mov);
+			set_op(I,mov->get_result().op);
+			return;
+		}
 		case Type::LongTypeID:
-			break;
+		{
+			MachineInstruction *mov = new CVTTSS2SIInst(
+				SrcOp(src_op),
+				DstOp(new VirtualRegister(to)),
+				GPInstruction::OS_32, GPInstruction::OS_64);
+			get_current()->push_back(mov);
+			set_op(I,mov->get_result().op);
+			return;
+		}
 		case Type::DoubleTypeID:
-			break;
+		{
+			MachineInstruction *mov = new CVTSS2SDInst(
+				SrcOp(src_op),
+				DstOp(new VirtualRegister(to)),
+				GPInstruction::OS_32, GPInstruction::OS_64);
+			get_current()->push_back(mov);
+			set_op(I,mov->get_result().op);
+			return;
+		}
 		}
 	break;
 	default:

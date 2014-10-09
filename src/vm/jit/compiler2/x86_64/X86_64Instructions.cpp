@@ -1309,7 +1309,7 @@ void FPRemInst::emit(CodeMemory* CM) const {
 
 	CodeFragment code = CM->get_CodeFragment(2);
 	code[0] = 0xd9;
-	code[1] = fpStrict ? 0xf5 : 0xf8;
+	code[1] = 0xf8;
 }
 
 void MovImmSInst::emit(CodeMemory* CM) const {
@@ -1481,6 +1481,106 @@ void CVTSI2SSInst::emit(CodeMemory* CM) const {
 		<< get_op_size() * 8 << "bit");
 }
 
+
+void CVTTSS2SIInst::emit(CodeMemory* CM) const {
+	MachineOperand *src = operands[0].op;
+	MachineOperand *dst = result.op;
+
+	X86_64Register *src_reg = cast_to<X86_64Register>(src);
+	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
+
+	switch (to) {
+	case GPInstruction::OS_32:
+	{
+		CodeFragment code = CM->get_CodeFragment(4);
+		code[0] = 0xf3;
+		code[1] = 0x0f;
+		code[2] = 0x2c;
+		code[3] = get_modrm_reg2reg(dst_reg,src_reg);
+		return;
+	}
+	case GPInstruction::OS_64:
+	{
+		CodeFragment code = CM->get_CodeFragment(5);
+		code[0] = 0xf3;
+		code[1] = get_rex(dst_reg,src_reg);
+		code[2] = 0x0f;
+		code[3] = 0x2c;
+		code[4] = get_modrm_reg2reg(dst_reg,src_reg);
+		return;
+	}
+	default: break;
+	}
+	ABORT_MSG(this << ": Operand(s) not supported",
+		"dst: " << dst << " src: " << src << " op_size: "
+		<< get_op_size() * 8 << "bit");
+
+}
+
+void CVTTSD2SIInst::emit(CodeMemory* CM) const {
+	MachineOperand *src = operands[0].op;
+	MachineOperand *dst = result.op;
+
+	X86_64Register *src_reg = cast_to<X86_64Register>(src);
+	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
+
+	switch (to) {
+	case GPInstruction::OS_32:
+	{
+		CodeFragment code = CM->get_CodeFragment(4);
+		code[0] = 0xf2;
+		code[1] = 0x0f;
+		code[2] = 0x2c;
+		code[3] = get_modrm_reg2reg(dst_reg,src_reg);
+		return;
+	}
+	case GPInstruction::OS_64:
+	{
+		CodeFragment code = CM->get_CodeFragment(5);
+		code[0] = 0xf2;
+		code[1] = get_rex(dst_reg,src_reg);
+		code[2] = 0x0f;
+		code[3] = 0x2c;
+		code[4] = get_modrm_reg2reg(dst_reg,src_reg);
+		return;
+	}
+	default: break;
+	}
+	ABORT_MSG(this << ": Operand(s) not supported",
+		"dst: " << dst << " src: " << src << " op_size: "
+		<< get_op_size() * 8 << "bit");
+
+}
+
+void CVTSS2SDInst::emit(CodeMemory* CM) const {
+	MachineOperand *src = operands[0].op;
+	MachineOperand *dst = result.op;
+
+	X86_64Register *src_reg = cast_to<X86_64Register>(src);
+	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
+
+	CodeFragment code = CM->get_CodeFragment(4);
+	code[0] = 0xf3;
+	code[1] = 0x0f;
+	code[2] = 0x5a;
+	code[3] = get_modrm_reg2reg(dst_reg,src_reg);
+
+}
+
+void CVTSD2SSInst::emit(CodeMemory* CM) const {
+	MachineOperand *src = operands[0].op;
+	MachineOperand *dst = result.op;
+
+	X86_64Register *src_reg = cast_to<X86_64Register>(src);
+	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
+
+	CodeFragment code = CM->get_CodeFragment(4);
+	code[0] = 0xf2;
+	code[1] = 0x0f;
+	code[2] = 0x5a;
+	code[3] = get_modrm_reg2reg(dst_reg,src_reg);
+
+}
 
 // TODO: refactor
 void FLDInst::emit(CodeMemory *CM) const {

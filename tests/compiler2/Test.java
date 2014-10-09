@@ -323,6 +323,47 @@ static float fdiv(float a, float b) {
 	return a / b;
 }
 
+static float frem(float a, float b) {
+	return a % b;
+}
+
+static int f2i(float a) {
+	return (int)a;
+}
+
+static long f2l(float a) {
+	return (long)a;
+}
+
+static double f2d(float a) {
+	return (double)a;
+}
+
+static int d2i(double a) {
+	return (int)a;
+}
+
+static long d2l(double a) {
+	return (long)a;
+}
+
+static float d2f(double a) {
+	return (float)a;
+}
+
+static short i2s(int a) {
+	return (short)a;
+}
+
+static char i2c(int a) {
+	return (char)a;
+}
+
+static byte i2b(int a) {
+	return (byte)a;
+}
+
+
 static long test_side_effect(long x, long y) {
     long t = x;
     long i = x;

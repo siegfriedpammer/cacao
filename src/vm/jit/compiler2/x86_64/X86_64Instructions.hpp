@@ -748,6 +748,53 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
+/**
+ * Convert with truncation Scalar Single-FP Value to DW Integer
+ */
+class CVTTSS2SIInst: public MoveInst {
+	GPInstruction::OperandSize to;
+
+public:
+	CVTTSS2SIInst(const SrcOp &src, const DstOp &dst,
+			GPInstruction::OperandSize from, GPInstruction::OperandSize to) :
+			MoveInst("X86_64CVTTSS2SIInst", src.op, dst.op, to), to(to) {
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class CVTTSD2SIInst: public MoveInst {
+	GPInstruction::OperandSize to;
+
+public:
+	CVTTSD2SIInst(const SrcOp &src, const DstOp &dst,
+			GPInstruction::OperandSize from, GPInstruction::OperandSize to) :
+			MoveInst("X86_64CVTTSD2SIInst", src.op, dst.op, to), to(to) {
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+
+class CVTSS2SDInst: public MoveInst {
+	GPInstruction::OperandSize from;
+
+public:
+	CVTSS2SDInst(const SrcOp &src, const DstOp &dst,
+			GPInstruction::OperandSize from, GPInstruction::OperandSize to) :
+			MoveInst("X86_64CVTSS2SDInst", src.op, dst.op, to), from(from) {
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class CVTSD2SSInst: public MoveInst {
+
+public:
+	CVTSD2SSInst(const SrcOp &src, const DstOp &dst,
+			GPInstruction::OperandSize from, GPInstruction::OperandSize to) :
+			MoveInst("X86_64CVTSD2SSInst", src.op, dst.op, to){
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
 class FLDInst: public GPInstruction {
 
 public:
@@ -892,11 +939,10 @@ public:
 
 class FPRemInst: public GPInstruction {
 private:
-	bool fpStrict;
 public:
 
-	FPRemInst(OperandSize op_size, bool fpStrict = false) :
-			GPInstruction("X86_64FPRemInst", &NoOperand, op_size, 0), fpStrict(fpStrict) {
+	FPRemInst(OperandSize op_size) :
+			GPInstruction("X86_64FPRemInst", &NoOperand, op_size, 0) {
 	}
 
 	virtual void emit(CodeMemory* CM) const;
