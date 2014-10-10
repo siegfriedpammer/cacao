@@ -16,7 +16,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 345 "src/vm/jit/verify/icmds.cpp"
+#            	line 344 "src/vm/jit/verify/icmds.cpp"
   GENERATED  	if (IPTR->flags.bits & INS_FLAG_CLASS) {
   GENERATED  		/* a java.lang.Class reference */
   GENERATED  		DST->typeinfo.init_java_lang_class(IPTR->sx.val.c);
@@ -396,7 +396,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 404 "src/vm/jit/verify/icmds.cpp"
+#            	line 403 "src/vm/jit/verify/icmds.cpp"
   GENERATED  	/* {RESULTNOW} */
   GENERATED  	TYPECHECK_COUNT(stat_ins_branch);
   GENERATED  
@@ -456,7 +456,7 @@
   GENERATED  	superblockend = true;
   GENERATED  
   GENERATED  
-#            	line 386 "src/vm/jit/verify/icmds.cpp"
+#            	line 385 "src/vm/jit/verify/icmds.cpp"
   GENERATED  	/* {RESULTNOW} */
   GENERATED  	TYPECHECK_COUNT(stat_ins_branch);
   GENERATED  
@@ -475,7 +475,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 551 "src/vm/jit/verify/icmds.cpp"
+#            	line 549 "src/vm/jit/verify/icmds.cpp"
   GENERATED  	DST->typeinfo.init_returnaddress(BPTR->next);
   GENERATED  	REACH(IPTR->sx.s23.s3.jsrtarget);
   GENERATED  
@@ -493,7 +493,7 @@
   GENERATED  	superblockend = true;
   GENERATED  
   GENERATED  
-#            	line 568 "src/vm/jit/verify/icmds.cpp"
+#            	line 566 "src/vm/jit/verify/icmds.cpp"
   GENERATED  
 #            if !defined(TYPECHECK_TYPEINFERER)
   GENERATED  	/* check returnAddress variable */
@@ -515,7 +515,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 427 "src/vm/jit/verify/icmds.cpp"
+#            	line 426 "src/vm/jit/verify/icmds.cpp"
   GENERATED  	/* {RESULTNOW} */
   GENERATED  	TYPECHECK_COUNT(stat_ins_switch);
   GENERATED  
@@ -545,7 +545,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 443 "src/vm/jit/verify/icmds.cpp"
+#            	line 442 "src/vm/jit/verify/icmds.cpp"
   GENERATED  	/* {RESULTNOW} */
   GENERATED  	TYPECHECK_COUNT(stat_ins_switch);
   GENERATED  
@@ -640,7 +640,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 590 "src/vm/jit/verify/icmds.cpp"
+#            	line 588 "src/vm/jit/verify/icmds.cpp"
   GENERATED  	TYPECHECK_COUNT(stat_ins_invoke);
   GENERATED  	if (!handle_invocation(state))
   GENERATED  		EXCEPTION;
@@ -663,7 +663,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 363 "src/vm/jit/verify/icmds.cpp"
+#            	line 362 "src/vm/jit/verify/icmds.cpp"
   GENERATED  
 #            if !defined(TYPECHECK_TYPEINFERER)
   GENERATED  	/* returnAddress is not allowed */
@@ -696,7 +696,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 633 "src/vm/jit/verify/icmds.cpp"
+#            	line 631 "src/vm/jit/verify/icmds.cpp"
   GENERATED  	if (!handle_multianewarray(STATE))
   GENERATED  		EXCEPTION;
   GENERATED  
@@ -718,7 +718,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 648 "src/vm/jit/verify/icmds.cpp"
+#            	line 646 "src/vm/jit/verify/icmds.cpp"
   GENERATED  	TYPECHECK_COUNT(stat_ins_builtin);
   GENERATED  	if (!handle_builtin(state))
   GENERATED  		EXCEPTION;
