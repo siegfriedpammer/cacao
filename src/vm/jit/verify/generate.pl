@@ -793,6 +793,9 @@ sub write_verify_stackbased_code
 		code "\n";
 	}
 
+        code "\tdefault:\n";
+        code "\t\tbreak;\n";
+
 	write_trailer($file);
 }
 

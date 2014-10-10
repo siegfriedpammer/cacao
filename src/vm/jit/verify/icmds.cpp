@@ -113,7 +113,7 @@ case ICMD_AALOAD: /* {ALL} */
 		VERIFY_ERROR("illegal instruction: AALOAD on non-reference array");
 #endif
 
-	if (!DST->typeinfo.init_component(&OP1->typeinfo))
+	if (!DST->typeinfo.init_component(OP1->typeinfo))
 		EXCEPTION;
 	break;
 
