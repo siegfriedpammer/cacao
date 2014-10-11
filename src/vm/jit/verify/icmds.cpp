@@ -1,4 +1,4 @@
-/* src/vm/jit/verify/icmds.c - ICMD-specific type checking code
+/* src/vm/jit/verify/icmds.cpp - ICMD-specific type checking code
 
    Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO

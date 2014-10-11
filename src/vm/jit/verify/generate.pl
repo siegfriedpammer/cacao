@@ -1,10 +1,8 @@
 #!/usr/bin/perl
 # src/vm/jit/verify/generate.pl - verifier generator
 #
-# Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-# C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-# E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-# J. Wenninger, Institut f. Computersprachen - TU Wien
+# Copyright (C) 1996-2014
+# CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 #
 # This file is part of CACAO.
 #
@@ -87,9 +85,12 @@ if (!defined($opt_icmdtable)
 #################### constants
 
 my $VERIFY_C = 'src/vm/jit/verify/icmds.cpp';
-my $TYPECHECK_STACKBASED_INC = 'src/vm/jit/verify/typecheck-stackbased-gen.inc';
-my $TYPECHECK_VARIABLESBASED_INC = 'src/vm/jit/verify/typecheck-variablesbased-gen.inc';
-my $TYPECHECK_TYPEINFERER_INC = 'src/vm/jit/verify/typecheck-typeinferer-gen.inc';
+my $TYPECHECK_STACKBASED_NAME = 'typecheck-stackbased-gen.inc';
+my $TYPECHECK_VARIABLESBASED_NAME = 'typecheck-variablesbased-gen.inc';
+my $TYPECHECK_TYPEINFERER_NAME = 'typecheck-typeinferer-gen.inc';
+my $TYPECHECK_STACKBASED_INC = "src/vm/jit/verify/$TYPECHECK_STACKBASED_NAME.in";
+my $TYPECHECK_VARIABLESBASED_INC = "src/vm/jit/verify/$TYPECHECK_VARIABLESBASED_NAME.in";
+my $TYPECHECK_TYPEINFERER_INC = "src/vm/jit/verify/$TYPECHECK_TYPEINFERER_NAME.in";
 
 my $TRACE = 1;
 
@@ -192,7 +193,7 @@ sub parse_verify_code
 				$icmd = $icmds{$n};
 				$icmd->{VERIFYCODE} = $code;
 				$icmd->{VERIFYCODELINE} = $. + 1;
-				$icmd->{VERIFYCODEFILE} = $filename;
+				$icmd->{VERIFYCODEFILE} = "\@top_srcdir\@/$filename";
 				$icmd->{VERIFYCODEPROPS} = $codeprops;
 			}
 		}
@@ -607,7 +608,7 @@ sub write_verify_stackbased_code
 
 	$codefile = $file;
 	$codeline = 1;
-	my $codefilename = $TYPECHECK_STACKBASED_INC;
+	my $codefilename = $TYPECHECK_STACKBASED_NAME;
 
 	print $file "#define GENERATED\n";
 	$codeline++;
@@ -1087,7 +1088,7 @@ elsif ($opt_variables) {
 	my $outfile = IO::File->new(">$TYPECHECK_VARIABLESBASED_INC")
 			or die "$0: could not create: $TYPECHECK_VARIABLESBASED_INC";
 	write_verify_variablesbased_code($outfile, 'VARIABLESBASED',
-									 $TYPECHECK_VARIABLESBASED_INC);
+									 $TYPECHECK_VARIABLESBASED_NAME);
 	close $outfile;
 }
 elsif ($opt_typeinferer) {
@@ -1097,7 +1098,7 @@ elsif ($opt_typeinferer) {
 	my $outfile = IO::File->new(">$TYPECHECK_TYPEINFERER_INC")
 			or die "$0: could not create: $TYPECHECK_TYPEINFERER_INC";
 	write_verify_variablesbased_code($outfile, 'TYPEINFERER',
-									 $TYPECHECK_TYPEINFERER_INC);
+									 $TYPECHECK_TYPEINFERER_NAME);
 	close $outfile;
 }
 elsif ($opt_table) {
