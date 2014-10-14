@@ -111,7 +111,10 @@ inline Immediate* cast_to<Immediate>(MachineOperand *op) {
 
 GPInstruction::OperandSize get_OperandSize_from_Type(const Type::TypeID type) {
 	switch (type) {
-	case Type::ByteTypeID:   return GPInstruction::OS_8;
+	case Type::ByteTypeID:
+	case Type::CharTypeID:
+		return GPInstruction::OS_8;
+	case Type::ShortTypeID:	return GPInstruction::OS_16;
 	case Type::IntTypeID:    return GPInstruction::OS_32;
 	case Type::LongTypeID:   return GPInstruction::OS_64;
 	case Type::ReferenceTypeID: return GPInstruction::OS_64;
@@ -463,6 +466,8 @@ void MovInst::emit(CodeMemory* CM) const {
 		code[2] = get_modrm_reg2reg(reg_dst,reg_src);
 		return;
 	}
+	case GPInstruction::RegReg8:
+	case GPInstruction::RegReg16:
 	case GPInstruction::RegReg32:
 	{
 		X86_64Register *reg_dst = cast_to<X86_64Register>(dst);
@@ -802,8 +807,36 @@ void MovSXInst::emit(CodeMemory* CM) const {
 	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
 
 	switch (from) {
-	case GPInstruction::OS_8: break;
-	case GPInstruction::OS_16: break;
+	case GPInstruction::OS_8:
+		switch (to) {
+		case GPInstruction::OS_32:
+		{
+			CodeFragment code = CM->get_CodeFragment(4);
+
+			code[0] = get_rex(dst_reg, src_reg);
+			code[1] = 0x0f;
+			code[2] = 0xbe;
+			code[3] = get_modrm_reg2reg(dst_reg, src_reg);
+			return;
+		}
+		default: break;
+		}
+		break;
+	case GPInstruction::OS_16:
+		switch (to) {
+		case GPInstruction::OS_32:
+		{
+			CodeFragment code = CM->get_CodeFragment(4);
+
+			code[0] = get_rex(dst_reg, src_reg);
+			code[1] = 0x0f;
+			code[2] = 0xbf;
+			code[3] = get_modrm_reg2reg(dst_reg, src_reg);
+			return;
+		}
+		default: break;
+		}
+		break;
 	case GPInstruction::OS_32:
 		switch (to) {
 		case GPInstruction::OS_64:

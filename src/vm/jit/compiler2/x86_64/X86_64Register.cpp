@@ -102,7 +102,9 @@ BackendBase<X86_64>::get_OperandFile(OperandFile& OF,MachineOperand *MO) const {
 	Type::TypeID type = MO->get_type();
 
 	switch (type) {
+	case Type::CharTypeID:
 	case Type::ByteTypeID:
+	case Type::ShortTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
 	case Type::ReferenceTypeID:

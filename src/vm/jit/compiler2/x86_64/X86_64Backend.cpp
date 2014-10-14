@@ -68,7 +68,9 @@ MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *src,
 	assert(type == src->get_type());
 	assert(!(src->is_stackslot() && dst->is_stackslot()));
 	switch (type) {
+	case Type::CharTypeID:
 	case Type::ByteTypeID:
+	case Type::ShortTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
 	case Type::ReferenceTypeID:
@@ -764,7 +766,9 @@ void LoweringVisitor::visit(RETURNInst *I) {
 	Type::TypeID type = I->get_type();
 	MachineOperand* src_op = (type == Type::VoidTypeID ? 0 : get_op(I->get_operand(0)->to_Instruction()));
 	switch (type) {
+	case Type::CharTypeID:
 	case Type::ByteTypeID:
+	case Type::ShortTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
 	{
@@ -836,14 +840,16 @@ void LoweringVisitor::visit(CASTInst *I) {
 		case Type::CharTypeID:
 		case Type::ByteTypeID:
 		{
-			MachineInstruction *mov = new MovInst(SrcOp(src_op), DstOp(src_op), GPInstruction::OS_8);
+			MachineInstruction *mov = new MovSXInst(SrcOp(src_op), DstOp(new VirtualRegister(to)),
+					GPInstruction::OS_8, GPInstruction::OS_32);
 			get_current()->push_back(mov);
 			set_op(I, mov->get_result().op);
 			return;
 		}
 		case Type::ShortTypeID:
 		{
-			MachineInstruction *mov = new MovInst(SrcOp(src_op), DstOp(src_op), GPInstruction::OS_16);
+			MachineInstruction *mov = new MovSXInst(SrcOp(src_op), DstOp(new VirtualRegister(to)),
+					GPInstruction::OS_16, GPInstruction::OS_32);
 			get_current()->push_back(mov);
 			set_op(I, mov->get_result().op);
 			return;
@@ -888,7 +894,7 @@ void LoweringVisitor::visit(CASTInst *I) {
 		case Type::IntTypeID:
 		{
 			// force a 32bit move to cut the upper byte
-			MachineInstruction *mov = new MovInst(SrcOp(src_op), DstOp(src_op), GPInstruction::OS_32);
+			MachineInstruction *mov = new MovInst(SrcOp(src_op), DstOp(new VirtualRegister(to)), GPInstruction::OS_32);
 			get_current()->push_back(mov);
 			set_op(I, mov->get_result().op);
 			return;
