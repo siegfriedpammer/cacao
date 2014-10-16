@@ -27,6 +27,12 @@ JAVA     = $(top_builddir)/src/cacao/cacao
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
 JAVACCMD = $(JAVAC) -source 1.5 -target 1.5 -bootclasspath $(BOOTCLASSPATH)
 
+ifeq "$(OS)" "Darwin"
+	LIBEXT = .dylib
+else
+	LIBEXT = .so
+endif
+
 SOURCE_FILES =         \
 	checkjni.java      \
 	testarguments.java
@@ -57,7 +63,7 @@ check: $(TESTNAMES)
 
 $(TESTNAMES) $(NOTESTNAMES):
 	@$(JAVACCMD) -d . $(srcdir)/$@.java
-	@$(CXX) -shared $(AM_CPPFLAGS) $(CPPFLAGS) $(CFLAGS) $(srcdir)/$@.cpp -o lib$@.dylib -fPIC
+	@$(CXX) -shared $(AM_CPPFLAGS) $(CPPFLAGS) $(CFLAGS) $(srcdir)/$@.cpp -o lib$@$LIBEXT -fPIC
 	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs:. $(SHELL) $(srcdir)/../Test.sh "$(JAVACMD)" $@ $(srcdir)
 
 
