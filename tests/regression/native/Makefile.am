@@ -25,7 +25,7 @@ AM_CPPFLAGS += -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(
 
 JAVA     = $(top_builddir)/src/cacao/cacao
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
-JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
+JAVACCMD = $(JAVAC) -source 1.5 -target 1.5 -bootclasspath $(BOOTCLASSPATH)
 
 SOURCE_FILES =         \
 	checkjni.java      \
@@ -57,7 +57,7 @@ check: $(TESTNAMES)
 
 $(TESTNAMES) $(NOTESTNAMES):
 	@$(JAVACCMD) -d . $(srcdir)/$@.java
-	@$(CXX) -shared $(AM_CPPFLAGS) $(CPPFLAGS) $(CFLAGS) $(srcdir)/$@.cpp -o lib$@.so -fPIC
+	@$(CXX) -shared $(AM_CPPFLAGS) $(CPPFLAGS) $(CFLAGS) $(srcdir)/$@.cpp -o lib$@.dylib -fPIC
 	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs:. $(SHELL) $(srcdir)/../Test.sh "$(JAVACMD)" $@ $(srcdir)
 
 

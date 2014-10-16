@@ -41,6 +41,6 @@ CLEANFILES = \
 check: $(CLASS_FILES)
 
 $(CLASS_FILES): $(SOURCE_FILES)
-	$(JAVAC) -d . $(SOURCE_FILES)
+	$(JAVAC) -source 1.5 -target 1.5 -d . $(SOURCE_FILES)
 
 
