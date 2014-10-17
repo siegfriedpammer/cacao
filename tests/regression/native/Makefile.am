@@ -27,7 +27,7 @@ JAVA     = $(top_builddir)/src/cacao/cacao
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
 JAVACCMD = $(JAVAC) -source 1.5 -target 1.5 -bootclasspath $(BOOTCLASSPATH)
 
-ifeq "$(OS)" "Darwin"
+if OS_DARWIN
 	LIBEXT = .dylib
 else
 	LIBEXT = .so

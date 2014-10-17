@@ -160,6 +160,7 @@ esac
 
 
 dnl Host operating system type.
+AM_CONDITIONAL([OS_DARWIN], [test "darwin" -eq "$host_os"])
 case "$host_os" in
 *cygwin* )
     OS_DIR="cygwin"
