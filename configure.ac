@@ -158,9 +158,8 @@ xdspcore )
     ;;
 esac
 
-
 dnl Host operating system type.
-AM_CONDITIONAL([OS_DARWIN], [test "darwin" -eq "$host_os"])
+AM_CONDITIONAL([OS_DARWIN], [false])
 case "$host_os" in
 *cygwin* )
     OS_DIR="cygwin"
@@ -170,6 +169,7 @@ case "$host_os" in
 *darwin* )
     OS_DIR="darwin"
     AM_CPPFLAGS="$AM_CPPFLAGS -D__DARWIN__ -D_XOPEN_SOURCE=600 -D_DARWIN_C_SOURCE -D__STDC_FORMAT_MACROS"
+    AM_CONDITIONAL([OS_DARWIN], [true])
     ;;
 
 dnl Must be BEFORE *freebsd*.
