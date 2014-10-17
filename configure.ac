@@ -159,7 +159,7 @@ xdspcore )
 esac
 
 dnl Host operating system type.
-AM_CONDITIONAL([OS_DARWIN], [false])
+OS_DYNLIB=.so
 case "$host_os" in
 *cygwin* )
     OS_DIR="cygwin"
@@ -169,7 +169,7 @@ case "$host_os" in
 *darwin* )
     OS_DIR="darwin"
     AM_CPPFLAGS="$AM_CPPFLAGS -D__DARWIN__ -D_XOPEN_SOURCE=600 -D_DARWIN_C_SOURCE -D__STDC_FORMAT_MACROS"
-    AM_CONDITIONAL([OS_DARWIN], [true])
+    OS_DYNLIB=.dynlib
     ;;
 
 dnl Must be BEFORE *freebsd*.
@@ -308,6 +308,7 @@ AC_DEFINE_UNQUOTED([JAVA_ARCH], "${JAVA_ARCH}", [Java architecture name])
 AC_SUBST(ARCH_DIR)
 AC_SUBST(JAVA_ARCH)
 AC_SUBST(OS_DIR)
+AC_SUBST(OS_DYNLIB)
 AC_SUBST(USE_SCHEDULER)
 
 dnl Checks for programs.
