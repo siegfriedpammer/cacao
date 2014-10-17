@@ -29,7 +29,7 @@
 #include "vm/jit/compiler2/MethodC2.hpp"
 #include "toolbox/logging.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
-#include "vm/jit/compiler2/ListSchedulingPass.hpp"
+//#include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/SSAPrinterPass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
 #include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
