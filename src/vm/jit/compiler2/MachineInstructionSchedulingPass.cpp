@@ -27,7 +27,6 @@
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
 
-//#include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 
