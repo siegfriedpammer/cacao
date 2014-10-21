@@ -60,7 +60,7 @@ public class I2c extends Compiler2TestBase {
 	/**
 	 * This is the method under test.
 	 */
-	static byte i2c(int x) {
-		return (byte)x;
+	static char i2c(int x) {
+		return (char)x;
 	}
 }

@@ -29,37 +29,37 @@ public class D2f extends Compiler2TestBase {
 	
 	@Test
 	public void test0() {
-		testResultEqual("d2f", "(J)J", 10);
+		testResultEqual("d2f", "(D)F", 10.0);
 	}
 
 	@Test
 	public void test1() {
-		testResultEqual("d2f", "(J)J", -10);
+		testResultEqual("d2f", "(D)F", -10.0);
 	}
 
 	@Test
 	public void test2() {
-		testResultEqual("d2f", "(J)J", 10.12345);
+		testResultEqual("d2f", "(D)F", 10.12345);
 	}
 	
 	@Test
-	public void test0() {
-		testResultEqual("d2f", "(J)J", -10.12345);
+	public void test3() {
+		testResultEqual("d2f", "(D)F", -10.12345);
 	}
 
 	@Test
-	public void test1() {
-		testResultEqual("d2f", "(J)J", 4.9E-324);
+	public void test4() {
+		testResultEqual("d2f", "(D)F", 4.9E-324);
 	}
 
 	@Test
-	public void test2() {
-		testResultEqual("d2f", "(J)J", 1.7976931348623157E308);
+	public void test5() {
+		testResultEqual("d2f", "(D)F", 1.7976931348623157E308);
 	}	
 
 	@Test
-	public void test2() {
-		testResultEqual("d2f", "(J)J", -1.7976931348623157E308);
+	public void test6() {
+		testResultEqual("d2f", "(D)F", -1.7976931348623157E308);
 	}	
 	
 	/**

@@ -30,7 +30,7 @@ public class D2l extends Compiler2TestBase {
 	/**
 	 * This is the method under test.
 	 */
-	static int d2l(double x) {
+	static long d2l(double x) {
 		return (long)x;
 	}
 }

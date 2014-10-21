@@ -29,11 +29,16 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
 	// @formatter:off
+
+	
 	Fact.class,
 	Sqrt.class,
 	Power.class,
 	Min.class,
 	Pi.class,
+	
+	
+	// Does not work for some reason
 	PiSpigot.class,
 	Overflow.class,
 	ParameterLong.class,
@@ -55,7 +60,32 @@ import org.junit.runners.Suite;
 	MatMult.class,
 	Array2dimLoad.class,
 	Array2dimStore.class,
-	SampleTest.class
+	SampleTest.class,
+	D2f.class,
+	
+	// BC does not seem to support this, at least not
+	// when called from the test framework
+	Drem.class,
+	
+	F2d.class,
+	Fadd.class,
+	Fdiv.class,
+	Fmul.class,
+	
+	// BC does not seem to support this, at least not
+	// when called from the test framework
+	// Frem.class,
+	
+	Fsub.class,
+	I2b.class,
+	
+	// Does not work for some reason
+	// I2c.class,
+	I2f.class,
+	I2s.class,
+	Idiv.class,
+	Irem.class
+	
 	// @formatter:on
 })
 public class All {

@@ -29,22 +29,22 @@ public class F2d extends Compiler2TestBase {
 
 	@Test
 	public void test0() {
-		testResultEqual("f2d", "(F)D", 10);
+		testResultEqual("f2d", "(F)D", 10.0f);
 	}
 
 	@Test
 	public void test1() {
-		testResultEqual("f2d", "(F)D", -10);
+		testResultEqual("f2d", "(F)D", -10.0f);
 	}
 
 	@Test
 	public void test2() {
-		testResultEqual("f2d", "(F)D", 10.12345);
+		testResultEqual("f2d", "(F)D", 10.12345f);
 	}
 
 	@Test
 	public void test3() {
-		testResultEqual("f2d", "(F)D", -10.12345);
+		testResultEqual("f2d", "(F)D", -10.12345f);
 	}
 
 	/**

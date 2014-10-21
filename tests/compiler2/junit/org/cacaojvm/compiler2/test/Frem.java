@@ -29,28 +29,28 @@ public class Frem extends Compiler2TestBase {
 
 	@Test
 	public void test0() {
-		testResultEqual("frem", "(FF)F", 0, 1.0);
+		testResultEqual("frem", "(FF)F", 0.0f, 1.0f);
 	}
 
 	@Test
 	public void test1() {
-		testResultEqual("frem", "(FF)F", 2.0, 1.0);
+		testResultEqual("frem", "(FF)F", 2.0f, 1.0f);
 	}
 
 	@Test
 	public void test2() {
-		testResultEqual("frem", "(FF)F", 2.3, 1.0);
+		testResultEqual("frem", "(FF)F", 2.3f, 1.0f);
 	}
 
 	@Test
 	public void test3() {
-		testResultEqual("frem", "(FF)F", -3.0, 1.0);
+		testResultEqual("frem", "(FF)F", -3.0f, 1.0f);
 	}
 
 
 	@Test
 	public void test4() {
-		testResultEqual("frem", "(FF)F", -3.2, 1.0);
+		testResultEqual("frem", "(FF)F", -3.2f, 1.0f);
 	}
 	
 	/**

@@ -29,22 +29,22 @@ public class Fmul extends Compiler2TestBase {
 
 	@Test
 	public void test0() {
-		testResultEqual("fmul", "(FF)F", 2.0, 2.3);
+		testResultEqual("fmul", "(FF)F", 2.0f, 2.3f);
 	}
 
 	@Test
 	public void test1() {
-		testResultEqual("fmul", "(FF)F", -3.2, 5.8);
+		testResultEqual("fmul", "(FF)F", -3.2f, 5.8f);
 	}
 
 	@Test
 	public void test2() {
-		testResultEqual("fmul", "(FF)F", -3.2, -5.8);
+		testResultEqual("fmul", "(FF)F", -3.2f, -5.8f);
 	}
 
 	@Test
 	public void test3() {
-		testResultEqual("fmul", "(FF)F", 1.99234, 1.24234);
+		testResultEqual("fmul", "(FF)F", 1.99234f, 1.24234f);
 	}
 
 	/**
