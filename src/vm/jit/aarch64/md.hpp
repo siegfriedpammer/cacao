@@ -98,19 +98,24 @@ inline static void *md_stacktrace_get_returnaddress(void *sp, int32_t stackframe
 
 inline static void *md_codegen_get_pv_from_pc(void *ra)
 {
-	uint32_t *pc;
-	uint32_t  mcode;
+	uint32_t *pc = (uint32_t *) ra;
 	void     *pv = NULL;
 
-	pc = (uint32_t *) ra;
-
 	/* Get first instruction word after jump. */
-	mcode = pc[0];
+	uint32_t mcode = pc[0];
     
-    /* Check for SUB with immediate */
+    /* Check for SUB with immediate, as immediate is only 12 bit wide, we
+     * might have 2 consecutive subs where the first is shifted */
     u1 high = (mcode >> 24) & 0xff;
     if (high == 0xD1) {
-        int32_t offset = (mcode >> 10) & 0xfff;
+        u1 shift = (mcode >> 22) & 0x3;
+        s4 offset = (mcode >> 10) & 0xfff;
+        if (shift) {
+            // as this instruction is shifted, shift the offset by 12 bits 
+            // and add the offset of the next sub instruction
+            offset = (offset << 12);
+            offset += (pc[1] >> 10) & 0xfff;
+        }
         pv = ((uint8_t *) pc) - offset;
     } else {
 		vm_abort_disassemble(pc, 2, "md_codegen_get_pv_from_pc: unknown instruction %x", mcode);

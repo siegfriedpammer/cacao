@@ -93,6 +93,7 @@ inline void emit_cond_branch_imm(codegendata *cd, s4 imm19, u1 cond)
 #define emit_br_le(cd, imm)		emit_cond_branch_imm(cd, imm, COND_LE)
 #define emit_br_vs(cd, imm)		emit_cond_branch_imm(cd, imm, COND_VS)
 #define emit_br_vc(cd, imm)		emit_cond_branch_imm(cd, imm, COND_VC)
+#define emit_br_hi(cd, imm)		emit_cond_branch_imm(cd, imm, COND_HI)
 
 
 /* Unconditional branch (immediate) ******************************************/
@@ -127,6 +128,7 @@ inline void emit_unc_branch_reg(codegendata *cd, u1 opc, u1 op2, u1 op3, u1 Rn, 
 
 inline void emit_mov_wide_imm(codegendata *cd, u1 sf, u1 opc, u1 hw, u2 imm16, u1 Rd)
 {
+	assert(imm16 >= 0 && imm16 <= 65535);
 	*((u4 *) cd->mcodeptr) = LSL(sf, 31) | LSL(opc, 29) | LSL(hw, 21) 
 						     | LSL(imm16, 5) | Rd | 0x12800000; 
 	cd->mcodeptr += 4;
@@ -201,6 +203,9 @@ inline void emit_ldstr_ambigous(codegendata *cd, u1 size, u1 v, u1 opc, s2 imm, 
 
 #define emit_ldrb_imm(cd, Xt, Xn, imm)		emit_ldstr_ambigous(cd, 0, 0, 1, imm, Xt, Xn)
 #define emit_strb_imm(cd, Xt, Xn, imm)		emit_ldstr_ambigous(cd, 0, 0, 0, imm, Xt, Xn)
+
+#define emit_ldrsb_imm32(cd, Xt, Xn, imm)   emit_ldstr_ambigous(cd, 0, 0, 3, imm, Xt, Xn)
+#define emit_ldrsh_imm32(cd, Xt, Xn, imm)	emit_ldstr_ambigous(cd, 1, 0, 3, imm, Xt, Xn)
 
 #define emit_ldr_imm(cd, Xt, Xn, imm)		emit_ldstr_ambigous(cd, 3, 0, 1, imm, Xt, Xn)
 #define emit_str_imm(cd, Xt, Xn, imm)		emit_ldstr_ambigous(cd, 3, 0, 0, imm, Xt, Xn)
@@ -281,12 +286,19 @@ inline void emit_bitfield(codegendata *cd, u1 sf, u1 opc, u1 N, u1 immr, u1 imms
 #define emit_lsr_imm(cd, Xd, Xn, shift)		emit_ubfm(cd, Xd, Xn, shift, 63)
 #define emit_lsr_imm32(cd, Wd, Wn, shift)	emit_ubfm32(cd, Wd, Wn, shift, 31)
 
+#define emit_uxtb(cd, Wd, Wn)				emit_ubfm32(cd, Wd, Wn, 0, 7)
 #define emit_uxth(cd, Wd, Wn)				emit_ubfm32(cd, Wd, Wn, 0, 15)
 
 #define emit_sbfm(cd, Xd, Xn, immr, imms)	emit_bitfield(cd, 1, 0, 1, immr, imms, Xn, Xd)
 #define emit_sbfm32(cd, Wd, Wn, immr, imms)	emit_bitfield(cd, 0, 0, 0, immr, imms, Wn, Wd)
 
 #define emit_sxtb(cd, Wd, Wn)				emit_sbfm32(cd, Wd, Wn, 0, 7)
+#define emit_sxth(cd, Wd, Wn)				emit_sbfm32(cd, Wd, Wn, 0, 15)
+
+#define emit_asr_imm(cd, Xd, Xn, shift)		emit_sbfm(cd, Xd, Xn, shift, 63)
+#define emit_asr_imm32(cd, Wd, Wn, shift)	emit_sbfm32(cd, Wd, Wn, shift, 31)
+
+#define emit_sxtw(cd, Xd, Wn)				emit_sbfm(cd, Xd, Wn, 0, 31)
 
 
 /* Logical (immediate) *******************************************************/
@@ -390,6 +402,12 @@ inline void emit_dp2(codegendata *cd, u1 sf, u1 S, u1 Rm, u1 opc, u1 Rn, u1 Rd)
 #define emit_asr(cd, Xd, Xn, Xm)        emit_dp2(cd, 1, 0, Xm, 10, Xn, Xd)
 #define emit_asr32(cd, Wd, Wn, Wm)		emit_dp2(cd, 0, 0, Wm, 10, Wn, Wd)
 
+#define emit_lsl(cd, Xd, Xn, Xm)		emit_dp2(cd, 1, 0, Xm, 8, Xn, Xd)
+#define emit_lsl32(cd, Wd, Wn, Wm)		emit_dp2(cd, 0, 0, Wm, 8, Wn, Wd)
+
+#define emit_lsr(cd, Xd, Xn, Xm)		emit_dp2(cd, 1, 0, Xm, 9, Xn, Xd)
+#define emit_lsr32(cd, Wd, Wn, Wm)		emit_dp2(cd, 0, 0, Wm, 9, Wn, Wd)
+
 /* Data-processing (3 source) ************************************************/
 
 inline void emit_dp3(codegendata *cd, u1 sf, u1 op31, u1 Rm, u1 o0, u1 Ra, u1 Rn, u1 Rd) 
@@ -425,6 +443,7 @@ inline void emit_logical_sreg(codegendata *cd, u1 sf, u1 opc, u1 shift, u1 N, u1
 #define emit_orr_sreg32(cd, Wd, Wn, Wm)	emit_logical_sreg(cd, 0, 1, 0, 0, Wm, 0, Wn, Wd)
 
 #define emit_ands_sreg(cd, Xd, Xn, Xm)	emit_logical_sreg(cd, 1, 3, 0, 0, Xm, 0, Xn, Xd)
+#define emit_ands_sreg32(cd, Wd, Wn, Wm) emit_logical_sreg(cd, 0, 3, 0, 0, Wm, 0, Wn, Wd)
 
 #define emit_and_sreg(cd, Xd, Xn, Xm)	emit_logical_sreg(cd, 1, 0, 0, 0, Xm, 0, Xn, Xd)
 #define emit_and_sreg32(cd, Wd, Wn, Wm)	emit_logical_sreg(cd, 0, 0, 0, 0, Wm, 0, Wn, Wd)
@@ -436,6 +455,8 @@ inline void emit_logical_sreg(codegendata *cd, u1 sf, u1 opc, u1 shift, u1 N, u1
 #define emit_mov_reg32(cd, Wd, Wm)		emit_orr_sreg32(cd, Wd, 31, Wm)
 
 #define emit_tst_sreg(cd, Xn, Xm)		emit_ands_sreg(cd, 31, Xn, Xm)
+#define emit_tst_sreg32(cd, Wn, Wm)		emit_ands_sreg32(cd, 31, Wn, Wm)
+
 #define emit_clr(cd, Xd)				emit_eor_sreg(cd, Xd, Xd, Xd)
 
 inline void emit_mov(codegendata *cd, u1 Xd, u1 Xm) {
@@ -443,14 +464,6 @@ inline void emit_mov(codegendata *cd, u1 Xd, u1 Xm) {
 		emit_mov_sp(cd, Xd, Xm);
 	else
 		emit_mov_reg(cd, Xd, Xm);
-}
-
-/* Floating-point move (register) ********************************************/
-
-inline void emit_fp_mov(codegendata *cd, u1 type, u1 Rn, u1 Rd)
-{
-	*((u4 *) cd->mcodeptr) = LSL(type, 22) | LSL(Rn, 5) | Rd | 0x1E204000;
-	cd->mcodeptr += 4;
 }
 
 
@@ -464,6 +477,22 @@ inline void emit_fp_cmp(codegendata *cd, u1 type, u1 Rm, u1 Rn, u1 opc)
 }
 
 
+/* Floating-point data-processing (1 source) *********************************/
+
+inline void emit_fp_dp1(codegendata *cd, u1 M, u1 S, u1 type, u1 opc, u1 Rn, u1 Rd)
+{
+	*((u4 *) cd->mcodeptr) = LSL(M, 31) | LSL(S, 29) | LSL(type, 22) 
+							 | LSL(opc, 15) | LSL(Rn, 5) 
+							 | Rd | 0x1E204000;
+	cd->mcodeptr += 4; 
+}
+
+#define emit_fmovs(cd, Sd, Sn)			emit_fp_dp1(cd, 0, 0, 0, 0, Sn, Sd)
+#define emit_fmovd(cd, Dd, Dn)			emit_fp_dp1(cd, 0, 0, 1, 0, Dn, Dd)
+
+#define emit_fnegs(cd, Sd, Sn)			emit_fp_dp1(cd, 0, 0, 0, 2, Sn, Sd)
+#define emit_fnegd(cd, Dd, Dn)			emit_fp_dp1(cd, 0, 0, 1, 2, Dn, Dd)
+
 /* Floating-point data-processing (2 source) *********************************/
 
 inline void emit_fp_dp2(codegendata *cd, u1 M, u1 S, u1 type, u1 Rm, u1 opc, u1 Rn, u1 Rd)
@@ -474,7 +503,27 @@ inline void emit_fp_dp2(codegendata *cd, u1 M, u1 S, u1 type, u1 Rm, u1 opc, u1 
 	cd->mcodeptr += 4; 
 }
 
-#define emit_fmul(cd, type, Rd, Rn, Rm)		emit_fp_dp2(cd, 0, 0, type, Rm, 0, Rn, Rd)
+#define emit_fmuls(cd, Sd, Sn, Sm)		emit_fp_dp2(cd, 0, 0, 0, Sm, 0, Sn, Sd)
+#define emit_fmuld(cd, Dd, Dn, Dm)      emit_fp_dp2(cd, 0, 0, 1, Dm, 0, Dn, Dd)
+
+#define emit_fdivs(cd, Sd, Sn, Sm)		emit_fp_dp2(cd, 0, 0, 0, Sm, 1, Sn, Sd)
+#define emit_fdivd(cd, Dd, Dn, Dm)      emit_fp_dp2(cd, 0, 0, 1, Dm, 1, Dn, Dd)
+
+#define emit_fadds(cd, Sd, Sn, Sm)		emit_fp_dp2(cd, 0, 0, 0, Sm, 2, Sn, Sd)
+#define emit_faddd(cd, Dd, Dn, Dm)      emit_fp_dp2(cd, 0, 0, 1, Dm, 2, Dn, Dd)
+
+#define emit_fsubs(cd, Sd, Sn, Sm)		emit_fp_dp2(cd, 0, 0, 0, Sm, 3, Sn, Sd)
+#define emit_fsubd(cd, Dd, Dn, Dm)      emit_fp_dp2(cd, 0, 0, 1, Dm, 3, Dn, Dd)
+
+
+/* Convert floating-point precision ******************************************/
+
+inline void emit_fcvt(codegendata *cd, u1 type, u1 opc, u1 Rn, u1 Rd)
+{
+	*((u4 *) cd->mcodeptr) = LSL(type, 22) | LSL(opc, 15) | LSL(Rn, 5) 
+							 | Rd | 0x1E224000;
+	cd->mcodeptr += 4; 
+}
 
 
 /* Conversion between floating-point and integer *****************************/

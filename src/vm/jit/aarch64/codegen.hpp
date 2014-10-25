@@ -101,6 +101,7 @@ class AsmEmitter {
         void icmp_imm(u1 wd, u2 imm) { emit_cmp_imm32(cd, wd, imm); }
         void lcmp_imm(u1 xd, u2 imm) { emit_cmp_imm(cd, xd, imm); }
         void icmn_imm(u1 wd, u2 imm) { emit_cmn_imm32(cd, wd, imm); }
+        void lcmn_imm(u1 xd, u2 imm) { emit_cmn_imm(cd, xd, imm); }
 
         void icmp(u1 wn, u1 wm) { emit_cmp_reg32(cd, wn, wm); }
         void lcmp(u1 xn, u1 xm) { emit_cmp_reg(cd, xn, xm); }
@@ -117,6 +118,10 @@ class AsmEmitter {
         void dld(u1 xt, u1 xn, s2 imm) { emit_fp_ldr_imm(cd, xt, xn, imm); }
 
         void ldrh(u1 wt, u1 xn, s2 imm) { emit_ldrh_imm(cd, wt, xn, imm); }
+        void ldrb(u1 wt, u1 xn, s2 imm) { emit_ldrb_imm(cd, wt, xn, imm); }
+
+        void ldrsb32(u1 wt, u1 xn, s2 imm) { emit_ldrsb_imm32(cd, wt, xn, imm); }
+        void ldrsh32(u1 wt, u1 xn, s2 imm) { emit_ldrsh_imm32(cd, wt, xn, imm); }
 
         void ist(u1 xt, u1 xn, s2 imm) { emit_str_imm32(cd, xt, xn, imm); }
         void lst(u1 xt, u1 xn, s2 imm) { emit_str_imm(cd, xt, xn, imm); }
@@ -128,23 +133,25 @@ class AsmEmitter {
         void strh(u1 wt, u1 xn, s2 imm) { emit_strh_imm(cd, wt, xn, imm); }
         void strb(u1 wt, u1 xn, s2 imm) { emit_strb_imm(cd, wt, xn, imm); }
 
-        // TODO: Implement these 2 using mov instructions
+        // TODO: Implement these 2 using ONLY (i.e. multiple) mov instructions
         void iconst(u1 xt, s4 value) {
-            // if ((value >= -32768) && (value <= 32767))
-            //    mov_imm(xt, value);
-            // else {
+            if ((value >= 0) && (value <= 32767))
+                mov_imm(xt, value);
+            else if ((-value >= 0) && (-value <= 32767))
+                movn_imm(xt, -value - 1);
+            else {
                 s4 disp = dseg_add_s4(cd, value);
                 ild(xt, REG_PV, disp);
-            // }
+            }
         }
 
         void lconst(u1 xt, s8 value) {
-            // if ((value >= -32768) && (value <= 32767))
-            //    mov_imm(xt, value);
-            // else {
+            if ((value >= 0) && (value <= 32767))
+                mov_imm(xt, value);
+            else {
                 s4 disp = dseg_add_s8(cd, value);
                 lld(xt, REG_PV, disp);
-            // }
+            }
         }
 
         void lda(u1 xd, u1 xn, s4 imm) { emit_lda(xd, xn, imm); }
@@ -154,6 +161,8 @@ class AsmEmitter {
         /* Branch *************************************************************/
         void blr(u1 xn) { emit_blr_reg(cd, xn); }
         void br(u1 xn) { emit_br_reg(cd, xn); }
+
+        void bhi(s4 imm) { emit_br_hi(cd, imm); }
 
         /* Integer arithemtic *************************************************/
         void iadd_imm(u1 xd, u1 xn, u4 imm) { emit_add_imm32(cd, xd, xn, imm); }
@@ -191,14 +200,27 @@ class AsmEmitter {
         void ilsr_imm(u1 wd, u1 wn, u1 shift) { emit_lsr_imm32(cd, wd, wn, shift); }
         void llsr_imm(u1 xd, u1 xn, u1 shift) { emit_lsr_imm(cd, xd, xn, shift); }
 
+        void iasr_imm(u1 wd, u1 wn, u1 shift) { emit_asr_imm32(cd, wd, wn, shift); }
+        void lasr_imm(u1 xd, u1 xn, u1 shift) { emit_asr_imm(cd, xd, xn, shift); }
+
         void iasr(u1 wd, u1 wn, u1 wm) { emit_asr32(cd, wd, wn, wm); }
         void lasr(u1 xd, u1 xn, u1 xm) { emit_asr(cd, xd, xn, xm); }
 
+        void ilsr(u1 wd, u1 wn, u1 wm) { emit_lsr32(cd, wd, wn, wm); }
+        void llsr(u1 xd, u1 xn, u1 xm) { emit_lsr(cd, xd, xn, xm); }
+
+        void ilsl(u1 wd, u1 wn, u1 wm) { emit_lsl32(cd, wd, wn, wm); }
+        void llsl(u1 xd, u1 xn, u1 xm) { emit_lsl(cd, xd, xn, xm); }
+
+        void uxtb(u1 wd, u1 wn) { emit_uxtb(cd, wd, wn); }
         void uxth(u1 wd, u1 wn) { emit_uxth(cd, wd, wn); }
         void sxtb(u1 wd, u1 wn) { emit_sxtb(cd, wd, wn); }
+        void sxth(u1 wd, u1 wn) { emit_sxth(cd, wd, wn); }
+        void sxtw(u1 xd, u1 wn) { emit_sxtw(cd, xd, wn); }
+        void ubfx(u1 wd, u1 xn) { emit_ubfm32(cd, wd, xn, 0, 31); }
 
-        void test(u1 xn, u1 xm) { emit_tst_sreg(cd, xn, xm); }
-        void test(u1 xn) { emit_tst_sreg(cd, xn, xn); }
+        void ltst(u1 xn, u1 xm) { emit_tst_sreg(cd, xn, xm); }
+        void itst(u1 wn, u1 wm) { emit_tst_sreg32(cd, wn, wm); }
 
         // TODO: implement these correctly
         // void iand_imm(u1 wd, u1 wn, u2 imm) { emit_and_imm32(cd, wd, wn, imm); }
@@ -207,8 +229,13 @@ class AsmEmitter {
         void iand(u1 wd, u1 wn, u1 wm) { emit_and_sreg32(cd, wd, wn, wm); }
         void land(u1 xd, u1 xn, u1 xm) { emit_and_sreg(cd, xd, xn, xm); }
 
+        void ior(u1 wd, u1 wn, u1 wm) { emit_orr_sreg32(cd, wd, wn, wm); }
+        void lor(u1 xd, u1 xn, u1 xm) { emit_orr_sreg(cd, xd, xn, xm); }
+
         void ixor(u1 wd, u1 wn, u1 wm) { emit_eor_sreg32(cd, wd, wn, wm); }
         void lxor(u1 xd, u1 xn, u1 xm) { emit_eor_sreg(cd, xd, xn, xm); }
+
+        void clr(u1 xd) { lxor(xd, xd, xd); }
 
         /* xt = if cond then xn else xm */
         void csel(u1 xt, u1 xn, u1 xm, u1 cond) { emit_csel(cd, xt, xn, xm, cond); }         
@@ -217,15 +244,27 @@ class AsmEmitter {
 
         /* Floating point *****************************************************/
 
-        void fmov(u1 sd, u1 sn) { emit_fp_mov(cd, 0, sn, sd); }
-        void dmov(u1 dd, u1 dn) { emit_fp_mov(cd, 1, dn, dd); }
+        void fmov(u1 sd, u1 sn) { emit_fmovs(cd, sd, sn); }
+        void dmov(u1 dd, u1 dn) { emit_fmovd(cd, dd, dn); }
+
+        void fneg(u1 sd, u1 sn) { emit_fnegs(cd, sd, sn); }
+        void dneg(u1 dd, u1 dn) { emit_fnegd(cd, dd, dn); }
 
         void fcmp(u1 sn, u1 sm) { emit_fp_cmp(cd, 0, sm, sn, 0); }
         void fcmp(u1 sn) { emit_fp_cmp(cd, 0, 0, sn, 1); } /* fcmp Sn, #0.0 */
         void dcmp(u1 xn, u1 xm) { emit_fp_cmp(cd, 1, xm, xn, 0); }
 
-        void fmul(u1 st, u1 sn, u1 sm) { emit_fmul(cd, 0, st, sn, sm); }
-        void dmul(u1 dt, u1 dn, u1 dm) { emit_fmul(cd, 1, dt, dn, dm); }
+        void fmul(u1 st, u1 sn, u1 sm) { emit_fmuls(cd, st, sn, sm); }
+        void dmul(u1 dt, u1 dn, u1 dm) { emit_fmuld(cd, dt, dn, dm); }
+
+        void fdiv(u1 st, u1 sn, u1 sm) { emit_fdivs(cd, st, sn, sm); }
+        void ddiv(u1 dt, u1 dn, u1 dm) { emit_fdivd(cd, dt, dn, dm); }
+
+        void fadd(u1 st, u1 sn, u1 sm) { emit_fadds(cd, st, sn, sm); }
+        void dadd(u1 dt, u1 dn, u1 dm) { emit_faddd(cd, dt, dn, dm); }
+
+        void fsub(u1 st, u1 sn, u1 sm) { emit_fsubs(cd, st, sn, sm); }
+        void dsub(u1 dt, u1 dn, u1 dm) { emit_fsubd(cd, dt, dn, dm); }
 
         void i2f(u1 st, u1 wn) { emit_scvtf(cd, 0, 0, wn, st); }
         void l2f(u1 st, u1 xn) { emit_scvtf(cd, 1, 0, xn, st); }
@@ -236,6 +275,9 @@ class AsmEmitter {
         void f2l(u1 xd, u1 sn) { emit_fcvtzs(cd, 1, 0, sn, xd); }
         void d2i(u1 wd, u1 dn) { emit_fcvtzs(cd, 0, 1, dn, wd); }
         void d2l(u1 xd, u1 dn) { emit_fcvtzs(cd, 1, 1, dn, xd); }
+
+        void f2d(u1 dd, u1 sn) { emit_fcvt(cd, 0, 1, sn, dd); }
+        void d2f(u1 sd, u1 dn) { emit_fcvt(cd, 1, 0, dn, sd); }
 
         void dmb() { emit_dmb(cd, 0xf); }
         void dsb() { emit_dsb(cd, 0xf); }
@@ -312,18 +354,19 @@ class AsmEmitter {
 #define M_BR_GE(imm)                emit_br_ge(cd, imm)
 #define M_BR_VS(imm)                emit_br_vs(cd, imm)
 #define M_BR_VC(imm)                emit_br_vc(cd, imm)
+#define M_BR_HI(imm)                emit_br_hi(cd, imm)
 
 #define M_TEST(a)                   emit_tst_sreg(cd, a, a) 
 #define M_TST(a,b)                  emit_tst_sreg(cd, a, b)
 #define M_ACMP(a,b)                 emit_cmp_reg(cd, a, b) 
 #define M_ICMP(a,b)                 emit_cmp_reg32(cd, a, b) 
 
-#define M_FMOV(b,c)                 emit_fp_mov(cd, 1, b, c) // TODO: again, try with 32 bit version
-#define M_DMOV(b,c)                 emit_fp_mov(cd, 1, b, c)
+#define M_FMOV(b,c)                 emit_fmovs(cd, c, b) // TODO: again, try with 32 bit version
+#define M_DMOV(b,c)                 emit_fmovd(cd, c, b)
 
 #define M_FCMP(a,b)                 emit_fp_cmp(cd, 1, a, b, 0)
 
-#define M_FMUL(Dn,Dm,Dd)            emit_fmul(cd, 1, Dd, Dn, Dm)  /* Dd = Dn * Dm */
+#define M_FMUL(Dn,Dm,Dd)            emit_fmuld(cd, Dd, Dn, Dm)  /* Dd = Dn * Dm */
 #define M_FMULS(Dn,Dm,Dd)           M_FMUL(Dn,Dm,Dd)           /* TODO: implement single precision */
 
 #define M_CVTLD(b,c)                emit_scvtf(cd, 1, 0, c, b)       /* c = b */

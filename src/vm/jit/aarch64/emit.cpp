@@ -268,9 +268,11 @@ void emit_icmp_imm(codegendata* cd, int reg, int32_t value) {
 	} else if ((-value) >= 0 && (-value) <= 4095) {
 		asme.icmn_imm(reg, -value);
 	} else {
-		os::abort("Compare with immediate for bigger values not implemented!");
+		asme.iconst(REG_ITMP2, value);
+		asme.icmp(reg, REG_ITMP2);
 	}
 }
+
 
 /* emit_branch *****************************************************************
 
@@ -343,6 +345,9 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 			case BRANCH_LE:
 				M_BR_LE(branchdisp);
 				break;
+			case BRANCH_UGT:
+				M_BR_HI(branchdisp);
+				break;
 			default:
 				vm_abort("emit_branch: unknown condition %d", condition);
 				break;
@@ -379,7 +384,7 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 	// TODO: check if this implementation works correclty 
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ILD(REG_ITMP3, s1, OFFSET(java_array_t, size));
-		M_ACMP(s2, REG_ITMP3);
+		M_ICMP(s2, REG_ITMP3);
 		M_BR_LT(2);
 		emit_trap(cd, s2, TRAP_ArrayIndexOutOfBoundsException);
 	}
@@ -504,7 +509,8 @@ void emit_recompute_pv(codegendata *cd)
 {
 	int32_t disp = (int32_t) (cd->mcodeptr - cd->mcodebase);
 
-	M_LDA(REG_PV, REG_RA, -disp);
+	AsmEmitter asme(cd);
+	asme.lda(REG_PV, REG_RA, -disp);
 }
 
 

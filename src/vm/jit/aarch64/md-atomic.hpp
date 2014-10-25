@@ -47,7 +47,23 @@ namespace Atomic_md {
  */
 inline uint32_t compare_and_swap(volatile uint32_t *p, uint32_t oldval, uint32_t newval)
 {
-	return __sync_val_compare_and_swap(p, oldval, newval);
+	uint32_t temp;
+	uint32_t result;
+
+	__asm__ __volatile__ (
+			"1:						\n"
+			"	ldxr	%0, %5		\n"
+			"	cmp		%0, %3		\n"
+			"	b.ne	2f			\n"
+			"	mov		%2, %4		\n"
+			"	stxr	w9, %2, %1	\n"
+			"	cbnz	w9, 1b		\n"
+			"2:						\n"
+			: "=&r" (result), "=m" (*p), "=&r" (temp)
+			: "r" (oldval), "r" (newval), "m" (*p)
+			: "w9");
+
+	return result;
 }
 
 
@@ -62,7 +78,23 @@ inline uint32_t compare_and_swap(volatile uint32_t *p, uint32_t oldval, uint32_t
  */
 inline uint64_t compare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
 {
-	return Atomic::generic_compare_and_swap(p, oldval, newval);
+	uint64_t temp;
+	uint64_t result;
+
+	__asm__ __volatile__ (
+			"1:						\n"
+			"	ldxr	%0, %5		\n"
+			"	cmp		%0, %3		\n"
+			"	b.ne	2f			\n"
+			"	mov		%2, %4		\n"
+			"	stxr	w9, %2, %1	\n"
+			"	cbnz	w9, 1b		\n"
+			"2:						\n"
+			: "=&r" (result), "=m" (*p), "=&r" (temp)
+			: "r" (oldval), "r" (newval), "m" (*p)
+			: "w9");
+
+	return result;
 }
 
 

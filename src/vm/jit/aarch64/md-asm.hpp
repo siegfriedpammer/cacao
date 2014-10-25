@@ -49,7 +49,7 @@
 #define t6      x15
 
 #define xptr    x9  /* exception pointer = itmp1 */
-#define xpc     x10 /* exception pc = itmp2 */
+#define xpc     x18 /* exception pc = itmp2 */
 
 #define itmp1   x9
 #define itmp2   x10

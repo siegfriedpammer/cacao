@@ -70,10 +70,13 @@ void md_init(void)
 
    INVOKEINTERFACE:
 
-   a7900000    ldq     at,0(a0)
-   a79cff98    ldq     at,-104(at)
-   a77c0018    ldq     pv,24(at)
-   6b5b4000    jsr     (pv)
+   <patched call position>
+   mov      x9, <interfacetable index>
+   mov      x10, <method offset>
+   ldr		x16, [x0, _]
+   ldr      x16, [x16, x9]
+   ldr      x17, [x16, x10]
+   blr      x17
 
 *******************************************************************************/
 
@@ -85,6 +88,8 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 	int32_t   disp;
 	void     *pa;                       /* patch address                      */
 	u2		  msb10;                    /* most significant 10 bits           */
+	u2		  msb11;                    /* most significant 11 bits           */
+	bool      invokeinterface = false;  
 
 	/* Go back to the load instruction (2 instructions). */
 	pc = ((uint32_t *) ra) - 3;
@@ -97,36 +102,56 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 
 	/* Get base register */
 	base = (mcode >> 5) & 0x1f;
+	
 
 	/* Check for LDR or LDUR       */
 	msb10 = (mcode >> 22) & 0x3ff;
-	switch(msb10) {
-	case 0x3e1: /* unscaled immediate (LDUR) */
+	msb11 = (mcode >> 21) & 0x7ff;
+
+	if (msb10 == 0x3e5) { /* unsigned offset (LDR) */
+		disp = (mcode >> 10) & 0xfff;
+		disp *= 8; /* imm is encoded as imm/8 */
+	} else if (msb11 == 0x7c2) { /* unscaled immediate (LDUR) */
 		disp = (mcode >> 12) & 0xff;
 		if ((mcode >> 12) & 0x100) /* negative offset */
 			disp |= 0xffffff00; 
-		break;
+	} else if (msb11 == 0x7c3) { /* LDR from register --> previous instruction was a MOV */
+		/* if the instruction beforehand is a ldr as well, we have a invokeinterface */
+		if (((pc[0] >> 21) & 0x7ff) == 0x7c3)
+			invokeinterface = true;
 
-	case 0x3e5: /* unsigned immediate (LDR) */
-		disp = (mcode >> 10) & 0xfff;
-		disp *= 8; /* imm is encoded as imm/8 */
-		break;
-
-	default:
+		/* do nothing, offset is encoded in the previous MOVN instruction */
+		disp = 0;
+	} else {
 		vm_abort_disassemble(pc, 2, "md_jit_method_patch_address: unknown instruction %x", mcode);
 		return NULL;
 	}
 
-	/* if negative offset is too big, we had to use a SUB beforehand */
-	if (disp == 0 && msb10 == 0x3e5) {
+	/* if negative offset is too big, we had to use a SUB or MOV beforehand */
+	if (disp == 0 && (msb11 == 0x7c2 || msb11 == 0x7c3)) {
 		uint32_t subcode = pc[0];
 		u1 high = (subcode >> 24) & 0xff;
-		if (high == 0xD1) { /* Check for SUB */
+		if (high == 0xD1 && msb11 == 0x7c2) { /* Check for SUB */
 			// TODO: check that the target register is the same, as the one used by the LDR
 			int32_t offset = (subcode >> 10) & 0xfff;
 			disp = -offset;
+		} else if (high == 0x92 && msb11 == 0x7c3) { /* Check for MOVN */
+			int32_t offset = (subcode >> 5) & 0xffff;
+			disp = -offset - 1;
+		} else if (invokeinterface) { 
+			uint32_t *movncode = ((uint32_t *) ra) - 4;
+			mcode = movncode[0];
+			high = (mcode >> 24) & 0xff;
+			if (high == 0x92) { /* check for MOVN */
+				int32_t offset = (mcode >> 5) & 0xffff;
+				disp = -offset - 1;
+			} else if (high == 0xd2) { /* check foir MOVZ */
+				int32_t offset = (mcode >> 5) & 0xffff;
+				disp = offset;
+			}
 		}
-	}
+	} 
+
 
 	switch(base) {
 	case REG_PV:

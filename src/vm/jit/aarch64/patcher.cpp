@@ -54,27 +54,49 @@
  * Helper function to patch in the correct LOAD instruction
  * as we have ambiguity.
  */
-static void patch_helper_ldr(u1 *codeptr, s4 offset)
+static void patch_helper_ldr(u1 *codeptr, s4 offset, bool isint)
 {
+	assert(offset >= -255);
+
 	codegendata codegen;
 	codegendata *cd = &codegen; // just a 'dummy' codegendata so we can reuse emit methods
 	cd->mcodeptr = codeptr;
 	u4 code = *((s4 *) cd->mcodeptr);
 	u1 targetreg = code & 0x1f;
 	u1 basereg = (code >> 5) & 0x1f;
-	emit_ldr_imm(cd, targetreg, basereg, offset);
+	if (isint)
+		emit_ldr_imm32(cd, targetreg, basereg, offset);
+	else
+		emit_ldr_imm(cd, targetreg, basereg, offset);
 }
 
-static void patch_helper_str(u1 *codeptr, s4 offset)
+
+static void patch_helper_cmp_imm(u1 *codeptr, s4 offset)
 {
 	codegendata codegen;
 	codegendata *cd = &codegen; // just a 'dummy' codegendata so we can reuse emit methods
 	cd->mcodeptr = codeptr;
 	u4 code = *((s4 *) cd->mcodeptr);
-	u1 targetreg = code & 0x1f;
-	u1 basereg = (code >> 5) & 0x1f;
-	emit_str_imm(cd, targetreg, basereg, offset);
+	u1 reg = (code >> 5) & 0x1f;
+	if (offset >= 0)
+		emit_cmn_imm32(cd, reg, offset);
+	else
+		emit_cmp_imm32(cd, reg, -offset);
 }
+
+static void patch_helper_mov_imm(u1 *codeptr, s4 offset)
+{
+	codegendata codegen;
+	codegendata *cd = &codegen; // just a 'dummy' codegendata so we can reuse emit methods
+	cd->mcodeptr = codeptr;
+	u4 code = *((s4 *) cd->mcodeptr);
+	u1 reg = code & 0x1f;
+	if (offset >= 0)
+		emit_mov_imm(cd, reg, offset);
+	else 
+		emit_movn_imm(cd, reg, -offset-1);
+}
+
 
 
 /* patcher_patch_code **********************************************************
@@ -281,12 +303,57 @@ bool patcher_get_putfield(patchref_t *pr)
 	if (!(fi = resolve_field_eager(uf)))
 		return false;
 
-	/* patch the field's offset into the instruction */
+	/* We need some stuff for code generation */
+	codegendata codegen;
+	codegen.mcodeptr = (u1 *) &pr->mcode;
+	AsmEmitter asme(&codegen);
+	u4 code = *((s4 *) codegen.mcodeptr);
+	u1 targetreg = code & 0x1f;
+	u1 basereg = (code >> 5) & 0x1f;
 
-	// TODO: handle difference between stur and str
-	// u2 offset = fi->offset / 8;
-	// pr->mcode |= (u4) ((offset & 0xfff) << 10);
-	patch_helper_str((u1 *) &pr->mcode, fi->offset);
+	/* patch the field's offset into the instruction */
+	u1 isload = (pr->mcode >> 22) & 0x3;
+	if (isload) {
+		switch (fi->type) {
+			case TYPE_ADR:
+				asme.ald(targetreg, basereg, fi->offset);
+				break;
+			case TYPE_LNG:
+				asme.lld(targetreg, basereg, fi->offset);
+				break;
+			case TYPE_INT:
+				asme.ild(targetreg, basereg, fi->offset);
+				break;
+			case TYPE_FLT:
+				asme.fld(targetreg, basereg, fi->offset);
+				break;
+			case TYPE_DBL:
+				asme.dld(targetreg, basereg, fi->offset);
+				break;
+			default:
+				os::abort("Unsupported type in patcher_get_putfield");
+		}
+	} else {
+		switch (fi->type) {
+			case TYPE_ADR:
+				asme.ast(targetreg, basereg, fi->offset);
+				break;
+			case TYPE_LNG:
+				asme.lst(targetreg, basereg, fi->offset);
+				break;
+			case TYPE_INT:
+				asme.ist(targetreg, basereg, fi->offset);
+				break;
+			case TYPE_FLT:
+				asme.fst(targetreg, basereg, fi->offset);
+				break;
+			case TYPE_DBL:
+				asme.dst(targetreg, basereg, fi->offset);
+				break;
+			default:
+				os::abort("Unsupported type in patcher_get_putfield");
+		}
+	}
 
 	// Patch back the original code.
 	patcher_patch_code(pr);
@@ -362,7 +429,7 @@ bool patcher_invokevirtual(patchref_t *pr)
 
 	/* patch vftbl index */
 	s4 disp = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * m->vftblindex;
-	patch_helper_ldr((ra + 4), disp);
+	patch_helper_ldr((ra + 4), disp, false);
 
 	md_icacheflush(NULL, 0);
 
@@ -378,10 +445,11 @@ bool patcher_invokevirtual(patchref_t *pr)
    Machine code:
 
    <patched call position>
-   a7900000    ldq     at,0(a0)
-   a79cffa0    ldq     at,-96(at)
-   a77c0018    ldq     pv,24(at)
-   6b5b4000    jsr     (pv)
+   mov      x9, <interfacetable index>
+   mov      x10, <method offset>
+   ldr		x16, [x0, _]
+   ldr      x16, [x16, x9]
+   ldr      x17, [x16, x10]
 
 *******************************************************************************/
 
@@ -402,13 +470,14 @@ bool patcher_invokeinterface(patchref_t *pr)
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
+	/* patch interfacetable index */
 
 	s4 offset = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr*) * m->clazz->index;
-	patch_helper_ldr((ra + 4), offset);
+	patch_helper_mov_imm((ra + 4) , offset);
 
 	/* patch method offset */
 	offset = (s4) (sizeof(methodptr) * (m - m->clazz->methods));
-	patch_helper_ldr((ra + 8), offset);
+	patch_helper_mov_imm((ra + 8), offset);
 
 	md_icacheflush(NULL, 0);
 
@@ -424,11 +493,12 @@ bool patcher_invokeinterface(patchref_t *pr)
    Machine code:
 
    <patched call position>
-   a78e0000    ldq     at,0(s5)
-   a3bc001c    ldl     gp,28(at)
-   23bdfffd    lda     gp,-3(gp)
-   efa0002e    ble     gp,0x00000200002bf6b0
-   a7bcffe8    ldq     gp,-24(at)
+   ldr		w11, [x10, _]
+   cmp      w11, <super index to patch>
+   b.?
+   <illegal instruction for classcast ex>
+   mov      x11, <second offset to patch>
+   ldr      x11, [x10, x11]
 
 *******************************************************************************/
 
@@ -450,14 +520,10 @@ bool patcher_checkcast_interface(patchref_t *pr)
 
 	/* patch super class index */
 	s4 offset = (s4) (-(c->index));
-	patch_helper_ldr((ra + 4), offset);
+	patch_helper_cmp_imm((ra + 1 * 4), offset);
 
-	// *((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x0000ffff);
-
-	offset = OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*);
-	patch_helper_ldr((ra + 4 * 4), offset);
-	// *((s4 *) (ra + 5 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) -
-    //									 c->index * sizeof(methodptr*)) & 0x0000ffff);
+	offset = (s4) (OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*));
+	patch_helper_mov_imm((ra + 4 * 4), offset);
 
 	md_icacheflush(NULL, 0);
 
@@ -473,11 +539,11 @@ bool patcher_checkcast_interface(patchref_t *pr)
    Machine code:
 
    <patched call position>
-   a78e0000    ldq     at,0(s5)
-   a3bc001c    ldl     gp,28(at)
-   23bdfffd    lda     gp,-3(gp)
-   efa0002e    ble     gp,0x00000200002bf6b0
-   a7bcffe8    ldq     gp,-24(at)
+   ldr		w11, [w9, OFFSET(vftbl_t, interfacetablelength)]
+   cmp      w11, <superindex to patch>
+   b.le     <somewhere below>
+   mov      x11, <second offset to patch>
+   ldr      x9, [x9, x11]
 
 *******************************************************************************/
 
@@ -500,13 +566,10 @@ bool patcher_instanceof_interface(patchref_t *pr)
 	/* patch super class index */
 
 	s4 offset = (s4) (-(c->index));
-	patch_helper_ldr((ra + 2 * 4), offset);
-	// *((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x0000ffff);
+	patch_helper_cmp_imm((ra + 2 * 4), offset);
 
-	offset = OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*);
-	patch_helper_ldr((ra + 4 * 4), offset);
-	// *((s4 *) (ra + 4 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) -
-    //									 c->index * sizeof(methodptr*)) & 0x0000ffff);
+	offset = (OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*));
+	patch_helper_mov_imm((ra + 4 * 4), offset);
 
 	md_icacheflush(NULL, 0);
 

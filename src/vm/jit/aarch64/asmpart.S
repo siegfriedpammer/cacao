@@ -226,7 +226,7 @@ L_asm_handle_exception_continue:
 	add		sp, sp, (SAVE_CNT) * 8
 
 L_asm_handle_exception_no_leaf:
-	blr		xpc
+	br		xpc
 
 L_asm_handle_exception_not_catched:
 	ldr		xptr, [sp]
@@ -313,22 +313,7 @@ asm_abstractmethoderror:
 
 	mov		xptr, a0					/* get exception pointer              */
 	sub		xpc, lr, 4                  /* exception address is lr - 4        */
-	bl		L_asm_handle_nat_exception
-
-
-//	stmfd sp!, {lr}                     /* save return address                */
-//	add   a0, sp, #(1*4)                /* pass java sp                       */
-//	mov   a1, lr                        /* pass exception address             */
-#if defined(ARM_NO_THUMB_IW)
-//	bl    exceptions_asm_new_abstractmethoderror
-#else
-//	blx   exceptions_asm_new_abstractmethoderror
-#endif
-//	ldmfd sp!, {lr}                     /* restore return address             */
-//
-//	mov   xptr, res1                    /* get exception pointer              */
-//	sub   xpc, lr, #4                   /* exception address is ra - 4        */
-//	b     asm_handle_nat_exception
+	b		L_asm_handle_nat_exception
 
 		
 /********************* function asm_cacheflush *********************************
@@ -342,6 +327,7 @@ asm_abstractmethoderror:
 asm_cacheflush:
 	isb
 	dsb sy
+	dmb sy
 	ret
 
 /* disable exec-stacks ********************************************************/
