@@ -1,5 +1,4 @@
-package org.cacaojvm.compiler2.test;
-/** tests/compiler2/junit/All.java - runs all CACAO compiler2 unit tests
+/** tests/compiler2/junit/LookupSwitch.java - LookupSwitch
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,42 +21,41 @@ package org.cacaojvm.compiler2.test;
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import org.junit.Test;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-	// @formatter:off
-	Fact.class,
-	Sqrt.class,
-	Power.class,
-	Min.class,
-	Pi.class,
-	PiSpigot.class,
-	Overflow.class,
-	ParameterLong.class,
-	ParameterDouble.class,
-	Ineg.class,
-	Lneg.class,
-	Fneg.class,
-	Dneg.class,
-	Fcmp.class,
-	Dcmp.class,
-	BoyerMoore.class,
-	ArrayLength.class,
-	Permut.class,
-	ArrayLoad.class,
-	ArrayStore.class,
-	ArrayLoadFloat.class,
-	DoubleArrayStore.class,
-	MatAdd.class,
-	MatMult.class,
-	Array2dimLoad.class,
-	Array2dimStore.class,
-	LookupSwitch.class,
-	SampleTest.class
-	// @formatter:on
-})
-public class All {
+public class LookupSwitch extends Compiler2TestBase {
+
+	@Test
+	public void test0() {
+		testResultEqual("loopupswitch", "(I)I", 0);
+	}
+
+	@Test
+	public void test1() {
+		testResultEqual("loopupswitch", "(I)I", 42);
+	}
+
+	@Test
+	public void test2() {
+		testResultEqual("loopupswitch", "(I)I", -42);
+	}
+
+	@Test
+	public void test3() {
+		testResultEqual("loopupswitch", "(I)I", -1);
+	}
+
+	/**
+	 * This is the method under test.
+	 */
+	static int loopupswitch(int x) {
+		switch (x) {
+		case -1: return 17;
+		case  0: return 31;
+		case 42: return 19;
+		}
+		return -1;
+	}
 }
