@@ -916,7 +916,13 @@ void X86_64LoweringVisitor::visit(CASTInst *I) {
 		}
 		case Type::FloatTypeID:
 		{
-
+			MachineInstruction *mov = new CVTSI2SSInst(
+				SrcOp(src_op),
+				DstOp(new VirtualRegister(to)),
+				GPInstruction::OS_64, GPInstruction::OS_32);
+			get_current()->push_back(mov);
+			set_op(I,mov->get_result().op);
+			return;
 		}
 		}
 	break;
