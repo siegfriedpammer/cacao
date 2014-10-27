@@ -775,12 +775,11 @@ public:
 
 
 class CVTSS2SDInst: public MoveInst {
-	GPInstruction::OperandSize from;
 
 public:
 	CVTSS2SDInst(const SrcOp &src, const DstOp &dst,
-			GPInstruction::OperandSize from, GPInstruction::OperandSize to) :
-			MoveInst("X86_64CVTSS2SDInst", src.op, dst.op, to), from(from) {
+			GPInstruction::OperandSize to) :
+			MoveInst("X86_64CVTSS2SDInst", src.op, dst.op, to){
 	}
 	virtual void emit(CodeMemory* CM) const;
 };

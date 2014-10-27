@@ -74,11 +74,14 @@ MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *src,
 	case Type::IntTypeID:
 	case Type::LongTypeID:
 	case Type::ReferenceTypeID:
+	{
 		return new MovInst(
 			SrcOp(src),
 			DstOp(dst),
 			get_OperandSize_from_Type(type));
+	}
 	case Type::DoubleTypeID:
+	{
 		switch (src->get_OperandID()) {
 		case MachineOperand::ImmediateID:
 			return new MovImmSDInst(
@@ -90,7 +93,9 @@ MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *src,
 				DstOp(dst));
 		}
 		break;
+	}
 	case Type::FloatTypeID:
+	{
 		switch (src->get_OperandID()) {
 		case MachineOperand::ImmediateID:
 			return new MovImmSSInst(
@@ -101,6 +106,9 @@ MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *src,
 				SrcOp(src),
 				DstOp(dst));
 		}
+		break;
+	}
+	default:
 		break;
 	}
 	ABORT_MSG("x86_64: Move not supported",
@@ -898,6 +906,8 @@ void X86_64LoweringVisitor::visit(CASTInst *I) {
 			set_op(I,mov->get_result().op);
 			return;
 		}
+		default:
+			break;
 		}
 		break;
 	}
@@ -932,6 +942,8 @@ void X86_64LoweringVisitor::visit(CASTInst *I) {
 			set_op(I,mov->get_result().op);
 			return;
 		}
+		default:
+			break;
 		}
 
 		break;
@@ -961,6 +973,8 @@ void X86_64LoweringVisitor::visit(CASTInst *I) {
 			set_op(I,mov->get_result().op);
 			return;
 		}
+		default:
+			break;
 		}
 		break;
 	}
@@ -983,11 +997,13 @@ void X86_64LoweringVisitor::visit(CASTInst *I) {
 			MachineInstruction *mov = new CVTSS2SDInst(
 				SrcOp(src_op),
 				DstOp(new VirtualRegister(to)),
-				GPInstruction::OS_32, GPInstruction::OS_64);
+				GPInstruction::OS_64);
 			get_current()->push_back(mov);
 			set_op(I,mov->get_result().op);
 			return;
 		}
+		default:
+			break;
 		}
 	break;
 	}

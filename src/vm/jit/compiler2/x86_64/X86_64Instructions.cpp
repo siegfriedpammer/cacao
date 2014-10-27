@@ -1627,13 +1627,22 @@ void FLDInst::emit(CodeMemory *CM) const {
 	switch (op_size) {
 
 	case GPInstruction::OS_32:
+	{
 		code += 0xd9;
 		break;
+	}
 	case GPInstruction::OS_64:
+	{
 		rex + REX::W;
 		code += rex;
 		code += 0xdd;
 		break;
+	}
+	default:
+	{
+		ABORT_MSG(this << ": Operand size for FLD not supported",
+			"size: " << get_op_size() * 8 << "bit");
+	}
 	}
 
 
@@ -1651,7 +1660,6 @@ void FLDInst::emit(CodeMemory *CM) const {
 	}
 	add_CodeSegmentBuilder(CM,code);
 
-
 }
 
 // TODO: refactor
@@ -1666,13 +1674,22 @@ void FSTPInst::emit(CodeMemory *CM) const {
 	switch (op_size) {
 
 	case GPInstruction::OS_32:
+	{
 		code += 0xd9;
 		break;
+	}
 	case GPInstruction::OS_64:
+	{
 		rex + REX::W;
 		code += rex;
 		code += 0xdd;
 		break;
+	}
+	default:
+	{
+		ABORT_MSG(this << ": Operand size for FSTP not supported",
+			"size: " << get_op_size() * 8 << "bit");
+	}
 	}
 
 
