@@ -703,6 +703,8 @@ void X86_64LoweringVisitor::visit(ASTOREInst *I) {
 		offset = OFFSET(java_doublearray_t, data[0]);
 		floatingpoint = true;
 		break;
+	case Type::ReferenceTypeID:
+		// TODO: implement me
 	default:
 		ABORT_MSG("x86_64 Lowering not supported",
 			"Inst: " << I << " type: " << type);
@@ -827,6 +829,9 @@ void X86_64LoweringVisitor::visit(RETURNInst *I) {
 		set_op(I,ret->get_result().op);
 		return;
 	}
+
+	case Type::ReferenceTypeID:
+		// TODO: implement
 	default: break;
 	}
 	ABORT_MSG("x86_64 Lowering not supported",
@@ -841,6 +846,7 @@ void X86_64LoweringVisitor::visit(CASTInst *I) {
 
 	switch (from) {
 	case Type::IntTypeID:
+	{
 		switch (to) {
 		case Type::CharTypeID:
 		case Type::ByteTypeID:
@@ -887,14 +893,16 @@ void X86_64LoweringVisitor::visit(CASTInst *I) {
 			MachineInstruction *mov = new CVTSI2SSInst(
 				SrcOp(src_op),
 				DstOp(new VirtualRegister(to)),
-				GPInstruction::OS_32, GPInstruction::OS_64);
+				GPInstruction::OS_32, GPInstruction::OS_32);
 			get_current()->push_back(mov);
 			set_op(I,mov->get_result().op);
 			return;
 		}
 		}
 		break;
+	}
 	case Type::LongTypeID:
+	{
 		switch (to) {
 		case Type::IntTypeID:
 		{
@@ -925,33 +933,23 @@ void X86_64LoweringVisitor::visit(CASTInst *I) {
 			return;
 		}
 		}
-	break;
-	// D2I, D2L, F2I and F2L may not be supported by the BC
-	// see arch.hpp in x86_64 of the BC
+
+		break;
+	}
 
 	case Type::DoubleTypeID:
+	{
 		switch (to) {
 
-		// TODO needs checks according to http://docs.oracle.com/javase/specs/jls/se7/html/jls-5.html#jls-5.1.3
 		case Type::IntTypeID:
 		{
-			MachineInstruction *mov = new CVTTSD2SIInst(
-				SrcOp(src_op),
-				DstOp(new VirtualRegister(to)),
-				GPInstruction::OS_32, GPInstruction::OS_32);
-			get_current()->push_back(mov);
-			set_op(I,mov->get_result().op);
-			return;
+			// TODO: currently this is replaced by the stackanalysis pass with ICMD_BUILTIN and therefore implemented
+			// in a builtin function
 		}
 		case Type::LongTypeID:
 		{
-			MachineInstruction *mov = new CVTTSD2SIInst(
-				SrcOp(src_op),
-				DstOp(new VirtualRegister(to)),
-				GPInstruction::OS_32, GPInstruction::OS_64);
-			get_current()->push_back(mov);
-			set_op(I,mov->get_result().op);
-			return;
+			// TODO: currently this is replaced by the stackanalysis pass with ICMD_BUILTIN and therefore implemented
+			// in a builtin function
 		}
 		case Type::FloatTypeID:
 		{
@@ -964,30 +962,21 @@ void X86_64LoweringVisitor::visit(CASTInst *I) {
 			return;
 		}
 		}
-	break;
+		break;
+	}
 	case Type::FloatTypeID:
+	{
 		switch(to) {
 
-		// TODO needs checks according to http://docs.oracle.com/javase/specs/jls/se7/html/jls-5.html#jls-5.1.3
 		case Type::IntTypeID:
 		{
-			MachineInstruction *mov = new CVTTSS2SIInst(
-				SrcOp(src_op),
-				DstOp(new VirtualRegister(to)),
-				GPInstruction::OS_32, GPInstruction::OS_32);
-			get_current()->push_back(mov);
-			set_op(I,mov->get_result().op);
-			return;
+			// TODO: currently this is replaced by the stackanalysis pass with ICMD_BUILTIN and therefore implemented
+			// in a builtin function
 		}
 		case Type::LongTypeID:
 		{
-			MachineInstruction *mov = new CVTTSS2SIInst(
-				SrcOp(src_op),
-				DstOp(new VirtualRegister(to)),
-				GPInstruction::OS_32, GPInstruction::OS_64);
-			get_current()->push_back(mov);
-			set_op(I,mov->get_result().op);
-			return;
+			// TODO: currently this is replaced by the stackanalysis pass with ICMD_BUILTIN and therefore implemented
+			// in a builtin function
 		}
 		case Type::DoubleTypeID:
 		{
@@ -1001,6 +990,7 @@ void X86_64LoweringVisitor::visit(CASTInst *I) {
 		}
 		}
 	break;
+	}
 	default:
 		break;
 	}
