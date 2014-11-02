@@ -933,7 +933,6 @@ void X86_64LoweringVisitor::visit(GETSTATICInst *I) {
 }
 
 void X86_64LoweringVisitor::visit(LOOKUPSWITCHInst *I) {
-	assert_msg(0 , "Fix CondJump");
 	assert(I);
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
 	Type::TypeID type = I->get_type();
@@ -941,13 +940,29 @@ void X86_64LoweringVisitor::visit(LOOKUPSWITCHInst *I) {
 	LOOKUPSWITCHInst::succ_const_iterator s = I->succ_begin();
 	for(LOOKUPSWITCHInst::match_iterator i = I->match_begin(),
 			e = I->match_end(); i != e; ++i) {
+		// move immediate to register
+		// TODO implement cmp with immediate
+		VirtualRegister *reg = new VirtualRegister(Type::IntType());
+		Immediate *imm = new Immediate(*i,Type::IntType());
+		MachineInstruction *move = get_Backend()->create_Move(imm,reg);
+		get_current()->push_back(move);
+		// create compare
 		CmpInst *cmp = new CmpInst(
-			Src2Op(new Immediate(*i,Type::IntType())),
+			Src2Op(reg),
 			Src1Op(src_op),
 			get_OperandSize_from_Type(type));
-		MachineInstruction *cjmp = new CondJumpInst(Cond::E, get(s->get()),get((++s)->get()));
 		get_current()->push_back(cmp);
+		// create new block
+		MachineBasicBlock *then_block = get(s->get());
+		MachineBasicBlock *else_block = new_block();
+		assert(else_block);
+		else_block->insert_pred(get_current());
+		else_block->push_front(new MachineLabelInst());
+		// create cond jump
+		MachineInstruction *cjmp = new CondJumpInst(Cond::E, then_block, else_block);
 		get_current()->push_back(cjmp);
+		// set current
+		set_current(else_block);
 		++s;
 	}
 
