@@ -940,15 +940,9 @@ void X86_64LoweringVisitor::visit(LOOKUPSWITCHInst *I) {
 	LOOKUPSWITCHInst::succ_const_iterator s = I->succ_begin();
 	for(LOOKUPSWITCHInst::match_iterator i = I->match_begin(),
 			e = I->match_end(); i != e; ++i) {
-		// move immediate to register
-		// TODO implement cmp with immediate
-		VirtualRegister *reg = new VirtualRegister(Type::IntType());
-		Immediate *imm = new Immediate(*i,Type::IntType());
-		MachineInstruction *move = get_Backend()->create_Move(imm,reg);
-		get_current()->push_back(move);
 		// create compare
 		CmpInst *cmp = new CmpInst(
-			Src2Op(reg),
+			Src2Op(new Immediate(*i,Type::IntType())),
 			Src1Op(src_op),
 			get_OperandSize_from_Type(type));
 		get_current()->push_back(cmp);
