@@ -37,8 +37,8 @@ namespace x86_64 {
 class X86_64LoweringVisitor : public LoweringVisitorBase {
 public:
 	X86_64LoweringVisitor(Backend *backend, MachineBasicBlock* current,
-		MapTy &map, InstructionMapTy &inst_map)
-			: LoweringVisitorBase(backend, current, map, inst_map) {}
+		MapTy &map, InstructionMapTy &inst_map, MachineInstructionSchedule *schedule)
+			: LoweringVisitorBase(backend, current, map, inst_map, schedule) {}
 
 	// make LoweringVisitorBases visit visible
 	using LoweringVisitorBase::visit;
