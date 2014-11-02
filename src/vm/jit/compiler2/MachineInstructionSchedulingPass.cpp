@@ -197,7 +197,7 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 		BeginInst *BI = *i;
 		MachineBasicBlock *MBB = map[BI];
 
-		LoweringVisitor LV(BE,MBB,map,inst_map);
+		LoweringVisitor LV(BE,MBB,map,inst_map,this);
 
 		for (InstructionSchedule<Instruction>::const_inst_iterator i = IS->inst_begin(BI),
 				e = IS->inst_end(BI); i != e; ++i) {
