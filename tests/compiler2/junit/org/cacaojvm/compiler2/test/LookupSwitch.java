@@ -47,6 +47,16 @@ public class LookupSwitch extends Compiler2TestBase {
 		testResultEqual("loopupswitch", "(I)I", -1);
 	}
 
+	@Test
+	public void test4() {
+		testResultEqual("loopupswitch", "(I)I", Short.MAX_VALUE);
+	}
+
+	@Test
+	public void test5() {
+		testResultEqual("loopupswitch", "(I)I", Integer.MAX_VALUE);
+	}
+
 	/**
 	 * This is the method under test.
 	 */
@@ -55,6 +65,8 @@ public class LookupSwitch extends Compiler2TestBase {
 		case -1: return 17;
 		case  0: return 31;
 		case 42: return 19;
+		case Short.MAX_VALUE: return 51;
+		case Integer.MAX_VALUE: return 47;
 		}
 		return -1;
 	}
