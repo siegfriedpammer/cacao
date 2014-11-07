@@ -204,11 +204,20 @@ public:
 		std::reverse(content.begin(), content.end());
 	}
 
-	/// get a reference to the segment
+	/// get a new reference to the segment
 	Ref get_Ref(std::size_t t) {
 		std::size_t start = content.size();
 		content.resize(start + t);
 		return Ref(this,IdxTy(start),t);
+	}
+
+	/**
+	 * get a reference to the segment
+	 *
+	 * @todo replace with getter for tag
+	 */
+	Ref get_Ref(IdxTy idx, std::size_t t) {
+		return Ref(this,idx,t);
 	}
 
 	/// insert tag
