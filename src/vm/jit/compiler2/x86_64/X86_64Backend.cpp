@@ -879,16 +879,26 @@ namespace {
 inline bool is_floatingpoint(Type::TypeID type) {
 	return type == Type::DoubleTypeID || type == Type::FloatTypeID;
 }
+template <class I,class Seg>
+static void write_data(Seg seg, I data) {
+	assert(seg.size() == sizeof(I));
 
+	for (int i = 0, e = sizeof(I) ; i < e ; ++i) {
+		seg[i] = (u1) 0xff & *(reinterpret_cast<u1*>(&data) + i);
+	}
+
+}
 } // end anonymous namespace
 
 void X86_64LoweringVisitor::visit(GETSTATICInst *I) {
 	assert(I);
 	DataSegment &DS = get_Backend()->get_JITData()->get_CodeMemory()->get_DataSegment();
-	DataSegment::IdxTy idx = DS.get_index(DSFMIRef(I->get_fmiref()));
+	constant_FMIref* fmiref = I->get_fmiref();
+	DataSegment::IdxTy idx = DS.get_index(DSFMIRef(fmiref));
+	size_t size = sizeof(void*);
 	if (DataSegment::is_invalid(idx)) {
-		DataFragment data = DS.get_Ref(sizeof(void*));
-		idx = DS.insert_tag(DSFMIRef(I->get_fmiref()),data);
+		DataFragment datafrag = DS.get_Ref(size);
+		idx = DS.insert_tag(DSFMIRef(fmiref), datafrag);
 	}
 
 	if (I->is_resolved()) {
@@ -903,7 +913,9 @@ void X86_64LoweringVisitor::visit(GETSTATICInst *I) {
 			get_current()->push_back(pi);
 			//PROFILE_CYCLE_START;
 		}
-
+		DataFragment datafrag = DS.get_Ref(idx, size);
+		// write data
+		write_data<void*>(datafrag, fmiref->p.field->value);
 	} else {
 		assert(0 && "Not yet implemented");
 		#if 0
