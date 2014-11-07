@@ -40,4 +40,17 @@ public class GetStatic extends Compiler2TestBase {
 		testResultEqual("getInt", "()I");
 	}
 
+        static long longField;
+
+	/** This is the method under test. */
+	static long getLong() {
+		return longField;
+	}
+
+	@Test
+	public void testLong() {
+                longField = 0xDEADBEEF12345678L;
+		testResultEqual("getLong", "()J");
+	}
+
 }
