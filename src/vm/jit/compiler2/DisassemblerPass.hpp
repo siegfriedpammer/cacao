@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_DISASSEMBLERPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
+#include "toolbox/Option.hpp"
 
 MM_MAKE_NAME(DisassemblerPass)
 namespace cacao {
@@ -40,6 +41,7 @@ namespace compiler2 {
 class DisassemblerPass : public Pass, public memory::ManagerMixin<DisassemblerPass> {
 public:
 	static char ID;
+	static Option<bool> enabled;
 	DisassemblerPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;

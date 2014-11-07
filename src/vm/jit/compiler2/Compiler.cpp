@@ -157,7 +157,7 @@ MachineCode* compile(methodinfo* m)
 	if (ObjectFileWriterPass::enabled) {
 		PM.add_Pass<ObjectFileWriterPass>();
 	}
-	if (opt_showdisassemble) {
+	if (opt_showdisassemble || DisassemblerPass::enabled) {
 		PM.add_Pass<DisassemblerPass>();
 	}
 
