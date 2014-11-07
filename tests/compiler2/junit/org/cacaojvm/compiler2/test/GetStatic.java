@@ -27,6 +27,19 @@ import org.junit.Test;
 
 public class GetStatic extends Compiler2TestBase {
 
+        static byte byteField;
+
+	/** This is the method under test. */
+	static byte getByte() {
+		return byteField;
+	}
+
+	@Test
+	public void testByte() {
+                byteField = 111;
+		testResultEqual("getByte", "()B");
+	}
+
         static short shortField;
 
 	/** This is the method under test. */
