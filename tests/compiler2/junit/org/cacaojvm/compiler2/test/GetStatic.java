@@ -27,6 +27,19 @@ import org.junit.Test;
 
 public class GetStatic extends Compiler2TestBase {
 
+        static short shortField;
+
+	/** This is the method under test. */
+	static short getShort() {
+		return shortField;
+	}
+
+	@Test
+	public void testShort() {
+                shortField = 11111;
+		testResultEqual("getShort", "()S");
+	}
+
         static int intField;
 
 	/** This is the method under test. */
