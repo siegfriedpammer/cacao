@@ -523,6 +523,7 @@ public:
 	virtual OStream& print(OStream &OS) const {
 		return OS << "ConstTag Type: " << t << " ptr: " << c;
 	}
+	virtual ~ConstTag() {}
 private:
 	ConstTy c;
 };
@@ -538,6 +539,7 @@ public:
 	virtual OStream& print(OStream &OS) const {
 		return OS << "PointerTag Type: " << t << " ptr: " << ptr;
 	}
+	virtual ~PointerTag() {}
 private:
 	Ptr *ptr;
 };
