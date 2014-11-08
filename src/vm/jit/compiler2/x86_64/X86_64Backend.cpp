@@ -87,6 +87,7 @@ MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *src,
 				SrcOp(src),
 				DstOp(dst));
 		}
+		break;
 	default: break;
 	}
 	ABORT_MSG("x86_64: Move not supported",

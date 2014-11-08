@@ -181,6 +181,7 @@ GPInstruction::OpEncoding get_OpEncoding(MachineOperand *src1,
 		}
 		default: break;
 		}
+		break;
 	}
 	case MachineOperand::ManagedStackSlotID:
 	{
@@ -198,6 +199,7 @@ GPInstruction::OpEncoding get_OpEncoding(MachineOperand *src1,
 		}
 		default: break;
 		}
+		break;
 	}
 	default: break;
 	}
