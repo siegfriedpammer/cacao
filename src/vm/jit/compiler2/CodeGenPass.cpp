@@ -300,11 +300,11 @@ void CodeGenPass::finish(JITData &JD) {
 	md_cacheflush(code->mcode, code->mcodelength);
 
 	if (print_data) {
-		dbg() << nl << "Data Segment:" << hex;
+		dbg() << nl << "Data Segment: " << *JD.get_Method() << hex;
 		print_hex(dbg(), code->mcode, code->entrypoint);
 	}
 	if (print_code) {
-		dbg() << nl << "Code Segment:" << hex;
+		dbg() << nl << "Code Segment: " << *JD.get_Method() << hex;
 		print_hex(dbg(), code->entrypoint, code->mcode + code->mcodelength);
 	}
 
