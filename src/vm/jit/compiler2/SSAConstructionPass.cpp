@@ -1007,6 +1007,7 @@ void SSAConstructionPass::print_current_def() const {
 
 bool SSAConstructionPass::run(JITData &JD) {
 	M = JD.get_Method();
+	LOG("SSAConstructionPass: " << *M << nl);
 
 	basicblock *bb;
 	jd = JD.get_jitdata();
