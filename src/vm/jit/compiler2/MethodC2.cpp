@@ -136,6 +136,10 @@ BeginInst* Method::get_edge_block(BeginInst* pred, BeginInst* succ) {
 	return BI;
 }
 
+OStream& operator<<(OStream &OS, const Method &M) {
+	return OS << M.get_class_name_utf8() << '#' << M.get_name_utf8() << M.get_desc_utf8();
+}
+
 } // end namespace cacao
 } // end namespace jit
 } // end namespace compiler2
