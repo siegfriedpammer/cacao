@@ -38,6 +38,7 @@ import org.junit.runners.Suite;
 	Pi.class,
 	
 	
+	
 	// Does not work for some reason
 	PiSpigot.class,
 	Overflow.class,
@@ -61,28 +62,24 @@ import org.junit.runners.Suite;
 	Array2dimLoad.class,
 	Array2dimStore.class,
 	SampleTest.class,
-	D2f.class,
 	
-	// BC does not seem to support this, at least not
-	// when called from the test framework
-	Drem.class,
+	D2f.class,
+	Dadd.class,
+	Dsub.class,
+	Dmul.class,
+	Ddiv.class,
 	
 	F2d.class,
 	Fadd.class,
-	Fdiv.class,
-	Fmul.class,
-	
-	// BC does not seem to support this, at least not
-	// when called from the test framework
-	// Frem.class,
-	
 	Fsub.class,
-	I2b.class,
+	Fmul.class,
+	Fdiv.class,
 	
-	// Does not work for some reason
-	// I2c.class,
-	I2f.class,
+	I2b.class,
+	I2c.class,
 	I2s.class,
+	I2f.class,
+	I2d.class,
 	Idiv.class,
 	Irem.class
 	
