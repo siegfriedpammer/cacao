@@ -65,7 +65,7 @@ template<
 	class Key,
 	class Hash = cacao::hash<Key>,
 	class KeyEqual = std::equal_to<Key>,
-	class Allocator = std::allocator<Key>
+	class Allocator = std::allocator<std::pair<const Key, T> >
 > using unordered_map = public _future::unordered_map<Key,Hash,KeyEqual,Allocator>;
 #endif
 
@@ -74,7 +74,7 @@ template<
 	class T,
 	class Hash = cacao::hash<Key>,
 	class KeyEqual = std::equal_to<Key>,
-	class Allocator = std::allocator<Key>
+	class Allocator = std::allocator<std::pair<const Key, T> >
 >
 class unordered_map : public _future::unordered_map<Key,T,Hash,KeyEqual,Allocator> {
 	typedef _future::unordered_map<Key,T,Hash,KeyEqual,Allocator> _Base;
@@ -128,7 +128,7 @@ template<
 	class T,
 	class Hash = cacao::hash<Key>,
 	class KeyEqual = std::equal_to<Key>,
-	class Allocator = std::allocator<Key>
+	class Allocator = std::allocator<std::pair<const Key, T> >
 >
 class unordered_multimap : public _future::unordered_multimap<Key,T,Hash,KeyEqual,Allocator> {
 	typedef _future::unordered_multimap<Key,T,Hash,KeyEqual,Allocator> _Base;

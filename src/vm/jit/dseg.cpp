@@ -1,6 +1,6 @@
-/* src/vm/jit/dseg.c - data segment handling stuff
+/* src/vm/jit/dseg.cpp - data segment handling stuff
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -25,6 +25,7 @@
 #include "vm/jit/dseg.hpp"
 #include <assert.h>                     // for assert
 #include <stdio.h>                      // for printf
+#include <inttypes.h>                   // for printf formatting macros
 #include "config.h"                     // for SIZEOF_VOID_P
 #include "mm/dumpmemory.hpp"            // for DNEW
 #include "vm/jit/code.hpp"              // for codeinfo
@@ -649,11 +650,7 @@ void dseg_display(jitdata *jd)
 	/* process all data segment entries */
 
 	for (de = cd->dseg; de != NULL; de = de->next) {
-#if SIZEOF_VOID_P == 8
-		printf("0x%016lx:", (ptrint) (code->entrypoint + de->disp));
-#else
-		printf("0x%08x:", (ptrint) (code->entrypoint + de->disp));
-#endif
+		printf("0x%0" PRINTF_INTPTR_NUM_HEXDIGITS PRIxPTR ":", (ptrint) (code->entrypoint + de->disp));
 
 		printf("    %6x (%6d): ", de->disp, de->disp);
 
@@ -669,11 +666,8 @@ void dseg_display(jitdata *jd)
 
 		case TYPE_LNG:
 			val.l = *((s8 *) (code->entrypoint + de->disp));
-#if SIZEOF_VOID_P == 8
-			printf("(LNG) %ld (0x%016lx)", val.l, val.l);
-#else
-			printf("(LNG) %lld (0x%016llx)", val.l, val.l);
-#endif
+			printf("(LNG) %" PRId64 " (0x%0" PRINTF_INTPTR_NUM_HEXDIGITS PRIx64 ")",
+				   val.l, val.l);
 			break;
 
 		case TYPE_FLT:
@@ -683,20 +677,12 @@ void dseg_display(jitdata *jd)
 
 		case TYPE_DBL:
 			val.d = *((double *) (code->entrypoint + de->disp));
-#if SIZEOF_VOID_P == 8
-			printf("(DBL) %g (0x%016lx)", val.d, val.l);
-#else
-			printf("(DBL) %g (0x%016llx)", val.d, val.l);
-#endif
+			printf("(DBL) %g (0x%016" PRIx64 ")", val.d, val.l);
 			break;
 
 		case TYPE_ADR:
 			val.a = *((void **) (code->entrypoint + de->disp));
-#if SIZEOF_VOID_P == 8
-			printf("(ADR) %016lx", (ptrint) val.a);
-#else
-			printf("(ADR) %08x", (ptrint) val.a);
-#endif
+			printf("(ADR) %0" PRINTF_INTPTR_NUM_HEXDIGITS PRIxPTR, (ptrint) val.a);
 			break;
 		}
 
@@ -704,11 +690,7 @@ void dseg_display(jitdata *jd)
 	}
 
 	printf("  --- begin of data segment: ");
-#if SIZEOF_VOID_P == 8
-	printf("0x%016lx\n", (ptrint) code->entrypoint);
-#else
-	printf("0x%08x\n", (ptrint) code->entrypoint);
-#endif
+	printf("0x%0" PRINTF_INTPTR_NUM_HEXDIGITS PRIxPTR "\n", (ptrint) code->entrypoint);
 
 	if (opt_debugcolor)
 		printf("\033[m");

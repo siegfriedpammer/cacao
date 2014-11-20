@@ -31,6 +31,7 @@
 #define _JIT_COMPILER2_COMPILER
 
 #include "vm/method.hpp"
+#include "toolbox/Option.hpp"
 
 namespace cacao {
 namespace jit {
@@ -106,6 +107,9 @@ namespace compiler2 {
  * ## Low level intermediate representation ##
  *
  */
+
+
+extern Option<bool> enabled;
 
 typedef u1 MachineCode;
 

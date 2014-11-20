@@ -22,9 +22,8 @@
 
 */
 
+#include "vm/jit/verify/typecheck-typeinferer.hpp"
 #include "config.h"
-#include "vm/types.hpp"
-#include "vm/global.hpp"
 
 #include <assert.h>
 #include <string.h>
@@ -40,10 +39,12 @@
 #include "vm/array.hpp"
 #include "vm/descriptor.hpp"            // for typedesc, methoddesc, etc
 #include "vm/exceptions.hpp"
+#include "vm/global.hpp"
 #include "vm/globals.hpp"
 #include "vm/options.hpp"
 #include "vm/primitive.hpp"
 #include "vm/resolve.hpp"
+#include "vm/types.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/builtin.hpp"
@@ -51,7 +52,7 @@
 #include "vm/jit/show.hpp"
 #include "vm/jit/parse.hpp"
 
-#include "vm/jit/verify/typecheck-typeinferer.hpp"
+#include "vm/jit/ir/instruction.hpp"
 
 #define TYPECHECK_NO_STATISTICS
 #include "vm/jit/verify/typecheck-common.hpp"
@@ -424,11 +425,10 @@ bool typecheck_infer_types(jitdata *jd)
 		return false;
 
     /* initialize invars of exception handlers */
-	
+
 	state.exinvars = state.numlocals;
 	VAR(state.exinvars)->type = TYPE_ADR;
-	typeinfo_init_classinfo(&(VAR(state.exinvars)->typeinfo),
-							class_java_lang_Throwable); /* changed later */
+	VAR(state.exinvars)->typeinfo.init_class(class_java_lang_Throwable); /* changed later */
 
     OLD_LOG("Exception handler stacks set.\n");
 

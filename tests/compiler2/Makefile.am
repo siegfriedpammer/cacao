@@ -1,6 +1,6 @@
-## tests/regression/Makefile.am
+## tests/compiler2/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2007, 2008
+## Copyright (C) 1996-2014
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -20,93 +20,8 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 
-JAVA     = $(top_builddir)/src/cacao/cacao
-JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
-JAVACCMD = $(JAVAC) -source 1.5 -target 1.5 -nowarn -bootclasspath $(BOOTCLASSPATH)
-
-CXXFLAGS=-I$(top_builddir) -I$(top_srcdir)/src -I$(srcdir) -g -O0
-
-SOURCE_FILES = \
-	$(srcdir)/Test.java
-
-EXTRA_DIST = \
-	$(SOURCE_FILES) \
-	Compile.sh
-
-CLEANFILES = \
-	*.class \
-	*.o \
-	*.run \
-	*.thisoutput
-
-OUTPUT_JAVA_TESTS = \
-	Test.BoyerMoore \
-	Test.fact \
-	Test.Min \
-	Test.power \
-	Test.permut \
-	Test.OverflowInt \
-	Test.OverflowLong \
-	Test.OverflowLongIntLong \
-	Test.pi \
-	Test.piSpigot \
-	Test.Sqrt \
-	Test.test_array_len \
-	Test.test_array_load \
-	Test.test_array_store \
-	Test.test_array_2dim_load \
-	Test.test_array_2dim_store \
-	Test.test_float_array_load \
-	Test.test_double_array_store \
-	Test.test_float_cmp \
-	Test.test_double_cmp \
-	Test.ineg \
-	Test.lneg \
-	Test.fneg \
-	Test.dneg \
-	Test.matAdd \
-	Test.matMult \
-	Test.testParameterLong \
-	Test.testParameterLong2 \
-	Test.testParameterLong3 \
-	Test.testParameterDouble \
-	Test.idiv \
-	Test.imod \
-	Test.fadd \
-	Test.fsub \
-	Test.fmul \
-	Test.fdiv \
-	Test.dmod
-	
-
-check: build run
-
-build:
-	$(JAVACCMD) -d . $(SOURCE_FILES)
-
-run: $(OUTPUT_JAVA_TESTS)
-
-%: %.thisoutput
-	@echo compare $@...
-	@diff $(srcdir)/$@.output $<
-
-%.o: build
-	@echo compile $@...
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Compile.sh "$(JAVACMD)" $@ $(srcdir)
-
-%.o.baseline: build
-	@echo compile baseline $@...
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Compile.sh "$(JAVACMD)" $(subst .baseline,,$@) $(srcdir) dummy
-	mv $(subst .baseline,,$@) $@
-
-%.run: %.o $(srcdir)/%.main.cpp
-	@$(CXX) $(CXXFLAGS) $^ -o $@
-%.baseline.run: %.o.baseline $(srcdir)/%.main.cpp
-	@$(CXX) $(CXXFLAGS) $^ -o $@
-
-%.thisoutput: %.run
-	@echo run $@...
-	@./$< > $@
+SUBDIRS = \
+	junit
 
 ## Local variables:
 ## mode: Makefile

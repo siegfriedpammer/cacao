@@ -1,6 +1,6 @@
 /* src/vm/exceptions.cpp - exception related functions
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -335,27 +335,6 @@ static java_handle_t *exceptions_new_utf_utf(Utf8String classname, Utf8String me
 	o = exceptions_new_class_utf(c, message);
 
 	return o;
-}
-
-
-/* exceptions_throw_class_Utf8String *************************************************
-
-   Creates an exception object with the given class, initalizes and
-   throws it with the given utf message.
-
-   IN:
-      c ......... exception class
-	  message ... the message as an Utf8String 
-
-*******************************************************************************/
-
-static void exceptions_throw_class_utf(classinfo *c, Utf8String message)
-{
-	java_handle_t *o;
-
-	o = exceptions_new_class_utf(c, message);
-
-	exceptions_set_exception(o);
 }
 
 
@@ -739,7 +718,11 @@ void exceptions_throw_classformaterror(classinfo *c, Utf8String message)
 
 void exceptions_throw_classnotfoundexception(Utf8String name)
 {	
-	exceptions_throw_class_utf(class_java_lang_ClassNotFoundException, name);
+	// We can't use the cached class_java_lang_ClassNotFoundException because
+	// when there are bootstrap classpath problems it has not been set yet,
+	// which leads to confusing error messages.
+
+	exceptions_throw_utf_utf(utf8::java_lang_ClassNotFoundException, name);
 }
 
 

@@ -1,6 +1,6 @@
 /* src/vm/global.hpp - global definitions
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,7 +23,7 @@
 */
 
 
-#ifndef GLOBAL_HPP_ 
+#ifndef GLOBAL_HPP_
 #define GLOBAL_HPP_ 1
 
 #include "config.h"
@@ -77,11 +77,9 @@ typedef union {
 /* Define printf formats which change size between 32- and 64-bit. */
 
 #if SIZEOF_VOID_P == 8
-# define PRINTF_FORMAT_INTPTR_T   "0x%016lx"
-# define PRINTF_FORMAT_INT64_T    "%ld"
+# define PRINTF_INTPTR_NUM_HEXDIGITS   "16"
 #else
-# define PRINTF_FORMAT_INTPTR_T   "0x%08lx"
-# define PRINTF_FORMAT_INT64_T    "%lld"
+# define PRINTF_INTPTR_NUM_HEXDIGITS   "8"
 #endif
 
 
@@ -100,13 +98,6 @@ typedef union {
 #ifndef MAX
 # define MAX(a,b)  (((a) > (b)) ? (a) : (b))
 #endif
-
-
-/* forward typedefs ***********************************************************/
-
-typedef struct java_object_t java_object_t; 
-typedef struct java_objectarray_t java_objectarray_t;
-
 
 #define MAX_ALIGN 8             /* most generic alignment for JavaVM values   */
 
@@ -166,9 +157,10 @@ enum Type {
 /**
  * Types for entries of a classes constant pool
  *
- * @Cpp11 Use an enum class to set storage type to uint8_t...	by
+ * @Cpp11 Use an enum class and set storage type to uint8_t
  */
 enum ConstantPoolTag {
+	/// official tags from JVM spec
 	CONSTANT_Class              =  7,
 	CONSTANT_Fieldref           =  9,
 	CONSTANT_Methodref          = 10,
@@ -184,6 +176,8 @@ enum ConstantPoolTag {
 	CONSTANT_MethodType 	    = 16,
 	CONSTANT_InvokeDynamic 	    = 18,
 
+	/// internally used tags
+	CONSTANT_ClassName          = 19, // used in loader before classrefs are created
 	CONSTANT_UNUSED             =  0
 };
 

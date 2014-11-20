@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_SSAPRINTERPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
+#include "toolbox/Option.hpp"
 
 MM_MAKE_NAME(SSAPrinterPass)
 
@@ -41,6 +42,7 @@ namespace compiler2 {
 class SSAPrinterPass : public Pass, public memory::ManagerMixin<SSAPrinterPass> {
 public:
 	static char ID;
+	static Option<bool> enabled;
 	SSAPrinterPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
@@ -54,6 +56,7 @@ public:
 class BasicBlockPrinterPass : public Pass, public memory::ManagerMixin<BasicBlockPrinterPass> {
 public:
 	static char ID;
+	static Option<bool> enabled;
 	BasicBlockPrinterPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
@@ -74,10 +77,13 @@ public:
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
 };
 
+extern Option<bool> schedule_printer_enabled;
+
 class ScheduleEarlyPass;
 class ScheduleLatePass;
 class ScheduleClickPass;
 
+#if defined(ENABLE_MEMORY_MANAGER_STATISTICS)
 namespace memory {
 template<>
 inline const char* get_class_name<GlobalSchedulePrinterPass<ScheduleEarlyPass> >() {
@@ -92,6 +98,7 @@ inline const char* get_class_name<GlobalSchedulePrinterPass<ScheduleClickPass> >
 	return "GlobalSchedulePrinterPass(click)";
 }
 } // end namespace memory
+#endif /* ENABLE_MEMORY_MANAGER_STATISTICS */
 
 } // end namespace cacao
 } // end namespace jit

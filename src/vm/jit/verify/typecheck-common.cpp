@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/typecheck-common.cpp - shared verifier code
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -281,7 +281,7 @@ bool typecheck_copy_types(verifier_state *state, s4 *srcvars, s4 *dstvars, s4 n)
 
 		dv->type = sv->type;
 		if (dv->type == TYPE_ADR) {
-			TYPEINFO_CLONE(sv->typeinfo,dv->typeinfo);
+			dv->typeinfo = sv->typeinfo;
 		}
 	}
 	return true;
@@ -326,20 +326,20 @@ typecheck_result typecheck_merge_types(verifier_state *state,
 			return typecheck_FAIL;
 		}
 		if (dv->type == TYPE_ADR) {
-			if (TYPEINFO_IS_PRIMITIVE(dv->typeinfo)) {
+			if (dv->typeinfo.is_primitive()) {
 				/* dv has returnAddress type */
-				if (!TYPEINFO_IS_PRIMITIVE(sv->typeinfo)) {
+				if (!sv->typeinfo.is_primitive()) {
 					exceptions_throw_verifyerror(state->m,"Merging returnAddress with reference");
 					return typecheck_FAIL;
 				}
 			}
 			else {
 				/* dv has reference type */
-				if (TYPEINFO_IS_PRIMITIVE(sv->typeinfo)) {
+				if (sv->typeinfo.is_primitive()) {
 					exceptions_throw_verifyerror(state->m,"Merging reference with returnAddress");
 					return typecheck_FAIL;
 				}
-				r = typeinfo_merge(state->m,&(dv->typeinfo),&(sv->typeinfo));
+				r = dv->typeinfo.merge(state->m, &(sv->typeinfo));
 				if (r == typecheck_FAIL)
 					return r;
 				changed |= r;
@@ -508,15 +508,15 @@ bool typecheck_init_locals(verifier_state *state, bool newthis)
 
     if (!(state->m->flags & ACC_STATIC)) {
 		varindex = jd->local_map[5*0 + TYPE_ADR];
-		if (varindex != UNUSED) {
+		if (varindex != jitdata::UNUSED) {
 			if (state->validlocals < 1)
 				TYPECHECK_VERIFYERROR_bool("Not enough local variables for method arguments");
 			v = locals + varindex;
 			v->type = TYPE_ADR;
 			if (state->initmethod && newthis)
-				TYPEINFO_INIT_NEWOBJECT(v->typeinfo, NULL);
+				v->typeinfo.init_newobject(NULL);
 			else
-				typeinfo_init_classinfo(&(v->typeinfo), state->m->clazz);
+				v->typeinfo.init_class(state->m->clazz);
 		}
 
 		skip = 1;

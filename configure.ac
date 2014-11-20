@@ -272,11 +272,15 @@ CXXFLAGS="$init_cxxflags"
 dnl Check compiler vendor.
 AX_COMPILER_VENDOR
 
+dnl Check which C/C++ language revision to use
+AC_CHECK_WITH_C_VERSION
+AC_CHECK_WITH_CXX_VERSION
+
 dnl Set compiler flags depending on the compiler vendor.
 case "$ax_cv_c_compiler_vendor" in
 gnu )
-    AM_CFLAGS="-std=c99 -pedantic -Wall -Wno-long-long $AM_CFLAGS"
-    AM_CXXFLAGS="-std=c++98 -pedantic -Wall -Wno-long-long $AM_CXXFLAGS"
+    AM_CFLAGS="-std=${C_LANGUAGE_VERSION} -pedantic -Wall -Wno-long-long $AM_CFLAGS"
+    AM_CXXFLAGS="-std=${CXX_LANGUAGE_VERSION} -pedantic -Wall -Wno-long-long $AM_CXXFLAGS"
     ;;
 
 sgi )
@@ -311,7 +315,7 @@ AC_PROG_LD
 AC_PROG_LD_GNU
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
-AM_PROG_MKDIR_P
+AC_PROG_MKDIR_P
 
 AM_CONDITIONAL([WITH_GNU_LD], [test x"$with_gnu_ld" = "xyes"])
 
@@ -403,7 +407,6 @@ AC_CHECK_FUNCS([getenv])
 AC_CHECK_FUNCS([gethostbyname])
 AC_CHECK_FUNCS([gethostname])
 AC_CHECK_FUNCS([getloadavg])
-AC_CHECK_FUNCS([getpagesize])
 AC_CHECK_FUNCS([getpid])
 AC_CHECK_FUNCS([getrusage])
 AC_CHECK_FUNCS([getsockname])
@@ -763,6 +766,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/mm/Makefile]
 		[src/mm/cacao-gc/Makefile]
 		[src/native/Makefile]
+		[src/native/compiler2/Makefile]
 		[src/native/jvmti/Makefile]
 		[src/native/vm/Makefile]
 		[src/native/vm/cldc1.1/Makefile]
@@ -815,6 +819,9 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/sparc64/linux/Makefile]
 		[src/vm/jit/sparc64/solaris/Makefile]
 		[src/vm/jit/verify/Makefile]
+		[src/vm/jit/verify/typecheck-stackbased-gen.inc]
+		[src/vm/jit/verify/typecheck-variablesbased-gen.inc]
+		[src/vm/jit/verify/typecheck-typeinferer-gen.inc]
 		[src/vm/jit/x86_64/Makefile]
 		[src/vm/jit/x86_64/darwin/Makefile]
 		[src/vm/jit/x86_64/freebsd/Makefile]
@@ -822,6 +829,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/x86_64/solaris/Makefile]
 		[tests/Makefile]
 		[tests/compiler2/Makefile]
+		[tests/compiler2/junit/Makefile]
 		[tests/gtest/Makefile]
 		[tests/gtest/compiler2/Makefile]
 		[tests/jsr292/Makefile]

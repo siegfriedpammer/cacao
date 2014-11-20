@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/typecheck-invoke.inc - type checking for invocations
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -125,12 +125,12 @@
 			if (i==0 && callinginit)
 			{
 				/* first argument to <init> method */
-				if (!TYPEINFO_IS_NEWOBJECT(av->typeinfo))
+				if (!av->typeinfo.is_newobject())
 					TYPECHECK_VERIFYERROR_bool("Calling <init> on initialized object");
 
 				/* get the address of the NEW instruction */
 				OLD_LOGSTR("\t\t"); OLD_LOGINFO(&(av->typeinfo));
-				ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(av->typeinfo);
+				ins = av->typeinfo.newobject_instruction();
 				if (ins)
 					initclass = ins[-1].sx.val.c;
 				else
@@ -165,8 +165,8 @@
 		for (av=stackfloor; av <= stack; ++av) {
 #endif
 			if (av->type == TYPE_ADR
-					&& TYPEINFO_IS_NEWOBJECT(av->typeinfo)
-					&& TYPEINFO_NEWOBJECT_INSTRUCTION(av->typeinfo) == ins)
+					&& av->typeinfo.is_newobject()
+					&& av->typeinfo.newobject_instruction() == ins)
 			{
 				OLD_LOG("\treplacing uninitialized type");
 
@@ -185,7 +185,7 @@
 				}
 #endif /* defined(TYPECHECK_VARIABLESBASED) */
 
-				if (!typeinfo_init_class(&(av->typeinfo),initclass))
+				if (!av->typeinfo.init_class(initclass))
 					return false;
 			}
 		}
@@ -199,10 +199,10 @@
 		/* XXX should reuse typevector code */
 		for (i=0; i<state->numlocals; ++i) {
 			if (state->locals[i].type == TYPE_ADR
-				&& TYPEINFO_IS_NEWOBJECT(state->locals[i].typeinfo)
-				&& TYPEINFO_NEWOBJECT_INSTRUCTION(state->locals[i].typeinfo) == ins)
+				&& state->locals[i].typeinfo.is_newobject()
+				&& state->locals[i].typeinfo.newobject_instruction() == ins)
 			{
-				if (!typeinfo_init_class(&(state->locals[i].typeinfo), initclass))
+				if (!state->locals[i].typeinfo.init_class(initclass))
 					return false;
 			}
 		}
@@ -347,7 +347,7 @@
 	rtype = md->returntype.type;
 	if (rtype != TYPE_VOID) {
 		dv->type = rtype;
-		if (!typeinfo_init_from_typedesc(&(md->returntype), NULL, &(dv->typeinfo)))
+		if (!dv->typeinfo.init_from_typedesc(&md->returntype, NULL))
 			return false;
 	}
 }

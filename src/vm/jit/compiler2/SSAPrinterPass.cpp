@@ -24,7 +24,7 @@
 
 #include "vm/jit/compiler2/SSAPrinterPass.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
-#include "vm/jit/compiler2/Method.hpp"
+#include "vm/jit/compiler2/MethodC2.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
@@ -252,6 +252,8 @@ PassUsage& SSAPrinterPass::get_PassUsage(PassUsage &PU) const {
 // the address of this variable is used to identify the pass
 char SSAPrinterPass::ID = 0;
 
+Option<bool> SSAPrinterPass::enabled("SSAPrinterPass","compiler2: enable SSAPrinterPass",false,::cacao::option::xx_root());
+
 // register pass
 static PassRegistry<SSAPrinterPass> X("SSAPrinterPass");
 
@@ -273,6 +275,8 @@ PassUsage& BasicBlockPrinterPass::get_PassUsage(PassUsage &PU) const {
 }
 // the address of this variable is used to identify the pass
 char BasicBlockPrinterPass::ID = 0;
+
+Option<bool> BasicBlockPrinterPass::enabled("BasicBlockPrinterPass","compiler2: enable BasicBlockPrinterPass",false,::cacao::option::xx_root());
 
 // register pass
 static PassRegistry<BasicBlockPrinterPass> Z("BasicBlockPrinterPass");
@@ -298,6 +302,7 @@ PassUsage& GlobalSchedulePrinterPass<_T>::get_PassUsage(PassUsage &PU) const {
 template <class _T>
 char GlobalSchedulePrinterPass<_T>::ID = 0;
 
+Option<bool> schedule_printer_enabled("GlobalSchedulePrinterPass","compiler2: enable GlobalSchedulePrinterPass",false,::cacao::option::xx_root());
 // run pass
 template <class _T>
 bool GlobalSchedulePrinterPass<_T>::run(JITData &JD) {

@@ -32,7 +32,7 @@
 #define _JIT_COMPILER2_INSTRUCTION
 
 #include "vm/jit/compiler2/Value.hpp"
-#include "vm/jit/compiler2/Method.hpp"
+#include "vm/jit/compiler2/MethodC2.hpp"
 
 // for Instruction::reset
 #include "vm/jit/compiler2/Compiler.hpp"
@@ -156,6 +156,12 @@ public:
 		assert(I);
 		dep_list.push_back(I);
 		I->reverse_dep_list.push_back(this);
+	}
+	
+	void remove_dep(Instruction* I) {
+		assert(I);
+		dep_list.remove(I);
+		I->reverse_dep_list.remove(this);
 	}
 
 	/// check if the instruction is in a correct state

@@ -24,7 +24,7 @@
 
 #include "vm/jit/compiler2/DomTreePrinterPass.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
-#include "vm/jit/compiler2/Method.hpp"
+#include "vm/jit/compiler2/MethodC2.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
@@ -88,6 +88,8 @@ PassUsage& DomTreePrinterPass::get_PassUsage(PassUsage &PU) const {
 }
 // the address of this variable is used to identify the pass
 char DomTreePrinterPass::ID = 0;
+
+Option<bool> DomTreePrinterPass::enabled("DomTreePrinterPass","compiler2: enable DomTreePrinterPass",false,::cacao::option::xx_root());
 
 // register pass
 static PassRegistry<DomTreePrinterPass> X("DomTreePrinterPass");

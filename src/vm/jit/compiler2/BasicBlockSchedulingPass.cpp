@@ -226,7 +226,7 @@ bool BasicBlockSchedulingPass::verify() const {
 				return false;
 			}
 		}
-		handled.insert(*i);
+		handled.insert(BI);
 	}
 	#endif
 	// check contiguous loop property

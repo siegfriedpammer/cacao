@@ -1,6 +1,6 @@
 /* src/vm/utf8.hpp - utf8 string functions
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -33,15 +33,10 @@
 #include <cstring>                      // for strlen
 #include <stdint.h>                     // for uint32_t, uint8_t
 
+#include <iterator>
+
 namespace cacao { class OStream; }
 struct utf;
-
-/// forward declare input_iterator_tag here so we don't have to include <iterator>
-/// We try to keep the includes in utf8.hpp to a minimum since it is included in
-/// pretty much every file in cacao
-namespace std {
-	struct input_iterator_tag;
-}
 
 /* Utf8String ******************************************************************
 

@@ -1,6 +1,6 @@
 /* src/vm/utf8.cpp - utf8 string functions
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,7 +23,7 @@
 */
 
 #include "vm/utf8.hpp"
-#include <iterator>
+#include <algorithm>                    // for std::equal
 #include "mm/memory.hpp"                // for mem_alloc, mem_free
 #include "toolbox/logging.hpp"          // for OStream
 #include "toolbox/intern_table.hpp"     // for InternTable

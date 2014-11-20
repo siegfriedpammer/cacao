@@ -29,6 +29,7 @@
 #include <stddef.h>                     // for NULL
 #include "arch.hpp"                     // for JIT_COMPILER_VIA_SIGNAL
 #include "config.h"                     // for ENABLE_SSA, ENABLE_INLINING, etc
+#include "vm/jit/ir/icmd.hpp"
 #include "vm/jit/optimizing/lsra.hpp"   // for lsradata
 #include "vm/jit/reg.hpp"               // for varinfo
 #include "vm/jit/stack.hpp"             // for PREALLOC
@@ -119,6 +120,9 @@ struct interface_info {
 
 /* jitdata ********************************************************************/
 
+// Defined by OpenJDK 7
+#undef UNUSED
+
 struct jitdata {
 	methodinfo      *m;               /* methodinfo of the method compiled    */
 	codeinfo        *code;
@@ -168,12 +172,14 @@ struct jitdata {
 	s4               returncount;          /* number of return instructions   */
 	bool             branchtoentry;        /* true if first block is a target */
 	bool             branchtoend;          /* true if end dummy is a target   */
+
+	enum {
+		UNUSED = -1
+	};
 };
 
 #define FOR_EACH_BASICBLOCK(jd, it) \
 	for ((it) = (jd)->basicblocks; (it) != NULL; (it) = (it)->next)
-
-#define UNUSED                     -1
 
 #define JITDATA_FLAG_PARSE               0x00000001
 #define JITDATA_FLAG_VERIFY              0x00000002
@@ -407,8 +413,8 @@ struct basicblock {
 /*                      javalocals[javaindex] == JAVALOCAL_FROM_RETADDR(nr)   */
 /*                      RETADDR_FROM_JAVALOCAL(javalocals[javaindex]) == nr   */
 
-#define JAVALOCAL_FROM_RETADDR(nr)  (UNUSED - (1 + (nr)))
-#define RETADDR_FROM_JAVALOCAL(jl)  (UNUSED - (1 + (jl)))
+#define JAVALOCAL_FROM_RETADDR(nr)  (jitdata::UNUSED - (1 + (nr)))
+#define RETADDR_FROM_JAVALOCAL(jl)  (jitdata::UNUSED - (1 + (jl)))
 
 
 /* Macro for initializing newly allocated basic block's. It does not

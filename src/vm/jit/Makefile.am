@@ -184,8 +184,8 @@ libjit_la_SOURCES = \
 	parse.hpp \
 	patcher-common.cpp \
 	patcher-common.hpp \
-	Patcher.cpp \
-	Patcher.hpp \
+	PatcherNew.cpp \
+	PatcherNew.hpp \
 	$(RECOMPILE_SOURCES) \
 	$(REG_SOURCES) \
 	$(REPLACE_SOURCES) \

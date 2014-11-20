@@ -1,6 +1,6 @@
 /* src/vm/jit/alpha/emit.cpp - Alpha code emitter functions
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -53,6 +53,8 @@
 #include "vm/jit/replace.hpp"
 #include "vm/jit/trace.hpp"
 #include "vm/jit/trap.hpp"
+
+#include "vm/jit/ir/instruction.hpp"
 
 
 /* emit_load *******************************************************************

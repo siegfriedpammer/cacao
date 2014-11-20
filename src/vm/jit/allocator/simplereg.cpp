@@ -1,6 +1,6 @@
 /* src/vm/jit/allocator/simplereg.cpp - register allocator
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -24,7 +24,6 @@
 */
 
 
-#include "vm/jit/allocator/simplereg.hpp"
 #include "config.h"
 
 #include <cassert>
@@ -44,13 +43,17 @@
 #include "vm/options.hpp"
 #include "vm/resolve.hpp"
 
+#include "vm/jit/allocator/simplereg.hpp"
 #include "vm/jit/abi.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/jit/code.hpp"
 #include "vm/jit/reg.hpp"
 #include "vm/jit/show.hpp"
 
+#include "vm/jit/ir/instruction.hpp"
+
 #define DEBUG_NAME "simplereg"
+
 
 STAT_DECLARE_VAR(int,count_locals_spilled,0)
 STAT_DECLARE_VAR(int,count_locals_register,0)
@@ -335,7 +338,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 		saved = 0;
 
 		for (tt = 0; tt <=4; tt++) {
-			if ((t = jd->interface_map[s * 5 + tt].flags) != UNUSED) {
+			if ((t = jd->interface_map[s * 5 + tt].flags) != jitdata::UNUSED) {
 				saved |= t & SAVEDVAR;
 			}
 		}
@@ -344,7 +347,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 
 		for (tt = 0; tt <= 4; tt++) {
 			t = typeloop[tt];
-			if (jd->interface_map[s * 5 + t].flags == UNUSED)
+			if (jd->interface_map[s * 5 + t].flags == jitdata::UNUSED)
 				continue;
 
 			flags = saved;
@@ -519,7 +522,7 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 		for (tt = 0; tt <= 4; tt++) {
 			t = typeloop[tt];
 			varindex = jd->local_map[s * 5 + t];
-			if (varindex == UNUSED)
+			if (varindex == jitdata::UNUSED)
 				continue;
 
 			v = VAR(varindex);
@@ -668,7 +671,7 @@ static void simplereg_allocate_locals(jitdata *jd)
 			t = typeloop[tt];
 
 			varindex = jd->local_map[s * 5 + t];
-			if (varindex == UNUSED)
+			if (varindex == jitdata::UNUSED)
 				continue;
 
 			v = VAR(varindex);

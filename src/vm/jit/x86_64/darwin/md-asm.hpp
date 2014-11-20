@@ -141,6 +141,38 @@
 	movq    (3+(off))*8(sp),ft2  ; \
 	movq    (4+(off))*8(sp),ft3  ;
 
+/* defines for darwin's assembler *************************************/
+
+#define asm_md_init                           _asm_md_init
+
+#define asm_vm_call_method                    _asm_vm_call_method
+#define asm_vm_call_method_int                _asm_vm_call_method_int
+#define asm_vm_call_method_long               _asm_vm_call_method_long
+#define asm_vm_call_method_float              _asm_vm_call_method_float
+#define asm_vm_call_method_double             _asm_vm_call_method_double
+#define asm_vm_call_method_end                _asm_vm_call_method_end
+
+#define asm_vm_call_method_exception_handler  _asm_vm_call_method_exception_handler
+
+#define asm_call_jit_compiler                 _asm_call_jit_compiler
+
+#define asm_handle_nat_exception              _asm_handle_nat_exception
+#define asm_handle_exception                  _asm_handle_exception
+
+#define asm_abstractmethoderror               _asm_abstractmethoderror
+
+#define asm_patcher_wrapper                   _asm_patcher_wrapper
+
+#define asm_builtin_f2i                       _asm_builtin_f2i
+#define asm_builtin_f2l                       _asm_builtin_f2l
+#define asm_builtin_d2i                       _asm_builtin_d2i
+#define asm_builtin_d2l                       _asm_builtin_d2l
+
+
+/* external defines ***********************************************************/
+
+#define PIC_SYMBOL(f) _##f
+
 #endif // MD_ASM_HPP_
 
 

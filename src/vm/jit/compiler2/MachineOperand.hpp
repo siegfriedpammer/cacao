@@ -28,6 +28,7 @@
 #include "vm/jit/compiler2/Type.hpp"
 #include "toolbox/OStream.hpp"
 #include "vm/types.hpp"
+#include "future/unordered_set.hpp" // for cacao::hash()
 
 #include "vm/jit/compiler2/memory/Manager.hpp"
 #include "vm/jit/compiler2/alloc/list.hpp"

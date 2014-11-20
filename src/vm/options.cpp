@@ -38,6 +38,7 @@
 
 #include "toolbox/Debug.hpp"
 #include "toolbox/logging.hpp"
+#include "toolbox/Option.hpp"
 
 
 /* command line option ********************************************************/
@@ -172,10 +173,6 @@ int      opt_DebugProperties              = 0;
 int      opt_DebugStackFrameInfo          = 0;
 int      opt_DebugStackTrace              = 0;
 int      opt_DebugThreads                 = 0;
-#ifdef ENABLE_COMPILER2
-bool     opt_DebugCompiler2               = false;
-bool     opt_Compiler2hints               = true;
-#endif
 #if defined(ENABLE_DISASSEMBLER)
 int      opt_DisassembleStubs             = 0;
 #endif
@@ -258,17 +255,7 @@ enum {
 	OPT_CompileAll,
 	OPT_CompileMethod,
 	OPT_CompileSignature,
-#ifdef ENABLE_LOGGING
-	OPT_DebugName,
-	OPT_DebugPrefix,
-	OPT_DebugVerbose,
-	OPT_DebugPrintThread,
-#endif
 	OPT_ColorOutput,
-#ifdef ENABLE_COMPILER2
-	OPT_DebugCompiler2,
-	OPT_Compiler2hints,
-#endif
 	OPT_DebugLocalReferences,
 	OPT_DebugLocks,
 	OPT_DebugPackage,
@@ -331,16 +318,6 @@ option_t options_XX[] = {
 	{ "CompileAll",                   OPT_CompileAll,                   OPT_TYPE_BOOLEAN, "compile all methods, no execution" },
 	{ "CompileMethod",                OPT_CompileMethod,                OPT_TYPE_VALUE,   "compile only a specific method" },
 	{ "CompileSignature",             OPT_CompileSignature,             OPT_TYPE_VALUE,   "specify signature for a specific method" },
-#ifdef ENABLE_LOGGING
-	{ "DebugName",                    OPT_DebugName,                    OPT_TYPE_VALUE,   "Name of the subsystem to debug"},
-	{ "DebugPrefix",                  OPT_DebugPrefix,                  OPT_TYPE_BOOLEAN, "print debug prefix"},
-	{ "DebugVerbose",                 OPT_DebugVerbose,                 OPT_TYPE_VALUE,   "verbosity level for debugging (default=0)"},
-	{ "DebugPrintThread",             OPT_DebugPrintThread,             OPT_TYPE_BOOLEAN, "print thread id"},
-#endif
-#ifdef ENABLE_COMPILER2
-	{ "DebugCompiler2",               OPT_DebugCompiler2,               OPT_TYPE_BOOLEAN, "compiler with compiler2"},
-	{ "Compiler2hints",               OPT_Compiler2hints,               OPT_TYPE_BOOLEAN, "compiler2: enable register hints"},
-#endif
 	{ "DebugLocalReferences",         OPT_DebugLocalReferences,         OPT_TYPE_BOOLEAN, "print debug information for local reference tables" },
 	{ "DebugLocks",                   OPT_DebugLocks,                   OPT_TYPE_BOOLEAN, "print debug information for locks" },
 	{ "DebugPackage",                 OPT_DebugPackage,                 OPT_TYPE_BOOLEAN, "debug Java boot-packages" },
@@ -558,6 +535,8 @@ static void options_xxusage(void)
 		printf("\n");
 	}
 
+	cacao::OptionParser::print_usage(cacao::option::xx_root());
+
 	/* exit with error code */
 
 	exit(1);
@@ -704,26 +683,6 @@ void options_xx(JavaVMInitArgs *vm_args)
 			opt_CompileSignature = value;
 			break;
 
-#ifdef ENABLE_LOGGING
-		case OPT_DebugName:
-			debug_set_current_system(value);
-			break;
-
-		case OPT_DebugPrefix:
-			cacao::Debug::prefix_enabled = enable;
-			break;
-
-		case OPT_DebugVerbose:
-			{
-				int verb = os::atoi(value);
-				cacao::Debug::verbose = (verb >= 0 ? verb : 0);
-			}
-			break;
-
-		case OPT_DebugPrintThread:
-			cacao::Debug::thread_enabled = enable;
-			break;
-#endif
 		case OPT_DebugLocalReferences:
 			opt_DebugLocalReferences = enable;
 			break;
@@ -763,14 +722,6 @@ void options_xx(JavaVMInitArgs *vm_args)
 			}
 			break;
 
-#ifdef ENABLE_COMPILER2
-		case OPT_DebugCompiler2:
-			opt_DebugCompiler2 = enable;
-			break;
-		case OPT_Compiler2hints:
-			opt_Compiler2hints = enable;
-			break;
-#endif
 #if defined(ENABLE_DISASSEMBLER)
 		case OPT_DisassembleStubs:
 			opt_DisassembleStubs = enable;
@@ -998,9 +949,26 @@ void options_xx(JavaVMInitArgs *vm_args)
 			break;
 #endif
 
-		default:
-			fprintf(stderr, "Unknown -XX option: %s\n", name);
-			break;
+		default: {
+
+				size_t name_len = strlen(name);
+				size_t value_len = 0;
+				if (value) {
+					size_t tmp_name_len = (value - name) / sizeof(char);
+					value_len = name_len - tmp_name_len;
+					name_len = tmp_name_len - 1;
+					assert(name[name_len] == '=');
+				}
+				else {
+					assert(name[name_len] == '\0');
+				}
+
+				if(!cacao::OptionParser::parse_option(cacao::option::xx_root(),
+						name, name_len, value, value_len)) {
+					fprintf(stderr, "Unknown -XX option: %s\n", name);
+				}
+				break;
+			}
 		}
 	}
 }

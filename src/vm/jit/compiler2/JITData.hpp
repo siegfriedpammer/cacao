@@ -25,7 +25,7 @@
 #ifndef _JIT_COMPILER2_JITDATA
 #define _JIT_COMPILER2_JITDATA
 
-#include "vm/jit/compiler2/Method.hpp"
+#include "vm/jit/compiler2/MethodC2.hpp"
 #include "vm/jit/compiler2/Backend.hpp"
 #include "vm/jit/compiler2/StackSlotManager.hpp"
 #include "vm/jit/compiler2/CodeMemory.hpp"

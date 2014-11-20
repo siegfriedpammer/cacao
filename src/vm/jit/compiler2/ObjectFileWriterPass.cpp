@@ -50,10 +50,9 @@
 
 #define DEBUG_NAME "compiler2/ObjectFileWriter"
 
-#if !defined(ENABLE_RT_TIMING)
-#error no rt timing
-#endif
+#if defined(ENABLE_DISASSEMBLER)
 RT_REGISTER_TIMER(obj_writter_timer,"objectwriter","object writer execution time")
+#endif
 
 namespace {
 
@@ -249,6 +248,8 @@ PassUsage& ObjectFileWriterPass::get_PassUsage(PassUsage &PU) const {
 
 // the address of this variable is used to identify the pass
 char ObjectFileWriterPass::ID = 0;
+
+Option<bool> ObjectFileWriterPass::enabled("ObjectFileWriterPass","compiler2: enable ObjectFileWriterPass",false,::cacao::option::xx_root());
 
 // register pass
 static PassRegistry<ObjectFileWriterPass> X("ObjectFileWriterPass");

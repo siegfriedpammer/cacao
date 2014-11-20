@@ -362,7 +362,7 @@ inline MachineBasicBlock::iterator MachineBasicBlock::insert_after(iterator pos,
 template<class InputIt>
 inline void MachineBasicBlock::insert_before(iterator pos,
 		InputIt first, InputIt last) {
-	assert(none_of(first,last,check_is_phi));
+	assert(cacao::none_of(first,last,check_is_phi));
 	list.insert(pos,first,last);
 	std::for_each(first,last,
 		std::bind1st(std::mem_fun(&MachineBasicBlock::update), this));
@@ -370,7 +370,7 @@ inline void MachineBasicBlock::insert_before(iterator pos,
 template<class InputIt>
 inline void MachineBasicBlock::insert_after(iterator pos,
 		InputIt first, InputIt last) {
-	assert(none_of(first,last,check_is_phi));
+	assert(cacao::none_of(first,last,check_is_phi));
 	list.insert(++pos,first,last);
 	std::for_each(first,last,
 		std::bind1st(std::mem_fun(&MachineBasicBlock::update), this));

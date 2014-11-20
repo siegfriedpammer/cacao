@@ -74,6 +74,16 @@ VM_JAVA_FILES += \
 	$(VM_JAVA_FILES_GNU_CLASSPATH_ANNOTATIONS)
 endif
 
+VM_JAVA_FILES_COMPILER2 = \
+	$(top_srcdir)/src/classes/cacao/org/cacaojvm/compiler2/test/Compiler2Test.java
+
+if ENABLE_COMPILER2
+VM_JAVA_FILES += \
+	$(VM_JAVA_FILES_COMPILER2)
+EXTRA_DIST += \
+	$(VM_JAVA_FILES_COMPILER2)
+endif
+
 if ENABLE_ZLIB
 pkgdata_DATA = vm.zip
 else

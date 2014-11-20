@@ -163,7 +163,7 @@ bool signal_init(void)
 		/* Reset CrashReporter's task signal handler */
 		kr = task_set_exception_ports(mach_task_self(),
 									  EXC_MASK_BAD_ACCESS
-#  if defined(__I386__)
+#  if defined(__I386__) || defined(__X86_64__)
 									  | EXC_MASK_BAD_INSTRUCTION
 #endif
 									  , MACH_PORT_NULL,

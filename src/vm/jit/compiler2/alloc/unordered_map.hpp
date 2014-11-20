@@ -39,7 +39,7 @@ template<
 	class Hash = cacao::hash<Key>,
 	class KeyEqual = std::equal_to<Key>
 > struct unordered_map {
-	typedef cacao::unordered_map<Key, T, Hash, KeyEqual, Allocator<std::pair<Key, T> > > type;
+	typedef cacao::unordered_map<Key, T, Hash, KeyEqual, Allocator<std::pair<const Key, T> > > type;
 };
 
 template<
@@ -48,7 +48,7 @@ template<
 	class Hash = cacao::hash<Key>,
 	class KeyEqual = std::equal_to<Key>
 > struct unordered_multimap {
-	typedef cacao::unordered_multimap<Key, T, Hash, KeyEqual, Allocator<std::pair<Key, T> > > type;
+	typedef cacao::unordered_multimap<Key, T, Hash, KeyEqual, Allocator<std::pair<const Key, T> > > type;
 };
 
 } // end namespace alloc

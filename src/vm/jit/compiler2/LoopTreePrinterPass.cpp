@@ -24,7 +24,7 @@
 
 #include "vm/jit/compiler2/LoopTreePrinterPass.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
-#include "vm/jit/compiler2/Method.hpp"
+#include "vm/jit/compiler2/MethodC2.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
@@ -98,6 +98,8 @@ PassUsage& LoopTreePrinterPass::get_PassUsage(PassUsage &PU) const {
 }
 // the address of this variable is used to identify the pass
 char LoopTreePrinterPass::ID = 0;
+
+Option<bool> LoopTreePrinterPass::enabled("LoopTreePrinterPass","compiler2: enable LoopTreePrinterPass",false,::cacao::option::xx_root());
 
 // register pass
 static PassRegistry<LoopTreePrinterPass> X("LoopTreePrinterPass");

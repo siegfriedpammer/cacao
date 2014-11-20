@@ -1,6 +1,6 @@
 /* src/vm/jit/i386/emit.cpp - i386 code emitter functions
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -55,6 +55,9 @@
 #include "vm/jit/replace.hpp"
 #include "vm/jit/trace.hpp"
 #include "vm/jit/trap.hpp"
+
+#include "vm/jit/ir/instruction.hpp"
+
 
 STAT_DECLARE_VAR(int,count_mov_reg_reg,0)
 STAT_DECLARE_VAR(int,count_mov_mem_reg,0)

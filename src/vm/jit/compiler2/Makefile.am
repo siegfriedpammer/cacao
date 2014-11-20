@@ -75,7 +75,7 @@ libcompiler2_la_SOURCES = \
 	MachineLoop.cpp \
 	MachineLoopPass.cpp \
 	MachineOperand.cpp \
-	Method.cpp \
+	MethodC2.cpp \
 	MethodDescriptor.cpp \
 	ObjectFileWriterPass.cpp \
 	ParserPass.cpp \
@@ -93,7 +93,10 @@ libcompiler2_la_SOURCES = \
 	StackSlotManager.cpp \
 	Type.cpp \
 	Value.cpp \
-	VerifierPass.cpp
+	VerifierPass.cpp \
+	DeadCodeEliminationPass.cpp \
+	ConstantPropagationPass.cpp \
+	GlobalValueNumberingPass.cpp
 
 libcompiler2_la_LIBADD = \
 	alloc/liballoc.la \

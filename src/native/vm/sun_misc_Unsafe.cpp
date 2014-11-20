@@ -1,6 +1,6 @@
 /* src/native/vm/sun_misc_Unsafe.cpp - sun/misc/Unsafe
 
-   Copyright (C) 2006-2013
+   Copyright (C) 2006-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -831,7 +831,7 @@ JNIEXPORT jint JNICALL Java_sun_misc_Unsafe_pageSize(JNIEnv *env, jobject _this)
 {
 	int sz;
 
-	sz = getpagesize();
+	sz = os::getpagesize();
 
 	return sz;
 }

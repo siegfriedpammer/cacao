@@ -1,6 +1,6 @@
 /* src/vm/resolve.cpp - resolving classes/interfaces/fields/methods
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -592,9 +592,9 @@ static resolve_result_t resolve_subtype_check(methodinfo *refmethod,
 
 	/* perform the subtype check */
 
-	typeinfo_init_classinfo(&subti,subclass);
+	subti.init_class(subclass);
 check_again:
-	r = typeinfo_is_assignable_to_class(&subti,supertype);
+	r = subti.is_assignable_to_class(supertype);
 	if (r == typecheck_FAIL)
 		return resolveFailed; /* failed, exception is already set */
 
@@ -695,7 +695,7 @@ static resolve_result_t resolve_lazy_subtype_checks(methodinfo *refmethod,
 
 	/* returnAddresses are illegal here */
 
-	if (TYPEINFO_IS_PRIMITIVE(*subtinfo)) {
+	if (subtinfo->is_primitive()) {
 		exceptions_throw_verifyerror(refmethod,
 				"Invalid use of returnAddress");
 		return resolveFailed;
@@ -703,7 +703,7 @@ static resolve_result_t resolve_lazy_subtype_checks(methodinfo *refmethod,
 
 	/* uninitialized objects are illegal here */
 
-	if (TYPEINFO_IS_NEWOBJECT(*subtinfo)) {
+	if (subtinfo->is_primitive()) {
 		exceptions_throw_verifyerror(refmethod,
 				"Invalid use of uninitialized object");
 		return resolveFailed;
@@ -711,7 +711,7 @@ static resolve_result_t resolve_lazy_subtype_checks(methodinfo *refmethod,
 
 	/* the nulltype is always assignable */
 
-	if (TYPEINFO_IS_NULLTYPE(*subtinfo))
+	if (subtinfo->is_nulltype())
 		return resolveSucceeded;
 
 	/* every type is assignable to (BOOTSTRAP)java.lang.Object */
@@ -1152,23 +1152,23 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 
 		/* The instanceslot must contain a reference to a non-array type */
 
-		if (!TYPEINFO_IS_REFERENCE(*instanceti)) {
+		if (!instanceti->is_reference()) {
 			exceptions_throw_verifyerror(refmethod, "illegal instruction: field access on non-reference");
 			return resolveFailed;
 		}
-		if (TYPEINFO_IS_ARRAY(*instanceti)) {
+		if (instanceti->is_array()) {
 			exceptions_throw_verifyerror(refmethod, "illegal instruction: field access on array");
 			return resolveFailed;
 		}
 
-		if (isput && TYPEINFO_IS_NEWOBJECT(*instanceti))
+		if (isput && instanceti->is_newobject())
 		{
 			/* The instruction writes a field in an uninitialized object. */
 			/* This is only allowed when a field of an uninitialized 'this' object is */
 			/* written inside an initialization method                                */
 
 			classinfo *initclass;
-			instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(*instanceti);
+			instruction *ins = instanceti->newobject_instruction();
 
 			if (ins != NULL) {
 				exceptions_throw_verifyerror(refmethod, "accessing field of uninitialized object");
@@ -1179,7 +1179,7 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 			initclass = referer; /* XXX classrefs */
 			assert(initclass->state & CLASS_LINKED);
 
-			typeinfo_init_classinfo(&tinfo, initclass);
+			tinfo.init_class(initclass);
 			insttip = &tinfo;
 		}
 		else {
@@ -1686,13 +1686,12 @@ resolve_result_t resolve_method_instance_type_checks(methodinfo *refmethod,
 	typeinfo_t        *tip;
 	resolve_result_t result;
 
-	if (invokespecial && TYPEINFO_IS_NEWOBJECT(*instanceti))
+	if (invokespecial && instanceti->is_newobject())
 	{   /* XXX clean up */
-		instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(*instanceti);
-		classref_or_classinfo initclass = (ins) ? ins[-1].sx.val.c
-									 : to_classref_or_classinfo(refmethod->clazz);
+		instruction *ins = instanceti->newobject_instruction();
+		classref_or_classinfo initclass = (ins) ? ins[-1].sx.val.c : to_classref_or_classinfo(refmethod->clazz);
 		tip = &tinfo;
-		if (!typeinfo_init_class(tip, initclass))
+		if (!tip->init_class(initclass))
 			return resolveFailed;
 	}
 	else {
@@ -2270,20 +2269,20 @@ static bool unresolved_subtype_set_from_typeinfo(classinfo *referer,
 	printf("\n");
 #endif
 
-	if (TYPEINFO_IS_PRIMITIVE(*tinfo)) {
+	if (tinfo->is_primitive()) {
 		exceptions_throw_verifyerror(refmethod,
 				"Invalid use of returnAddress");
 		return false;
 	}
 
-	if (TYPEINFO_IS_NEWOBJECT(*tinfo)) {
+	if (tinfo->is_newobject()) {
 		exceptions_throw_verifyerror(refmethod,
 				"Invalid use of uninitialized object");
 		return false;
 	}
 
 	/* the nulltype is always assignable */
-	if (TYPEINFO_IS_NULLTYPE(*tinfo))
+	if (tinfo->is_nulltype())
 		goto empty_set;
 
 	/* every type is assignable to (BOOTSTRAP)java.lang.Object */
@@ -2520,29 +2519,26 @@ bool resolve_constrain_unresolved_field(unresolved_field *ref,
 		typeinfo_t *insttip;
 
 		/* The instanceslot must contain a reference to a non-array type */
-		if (!TYPEINFO_IS_REFERENCE(*instanceti)) {
-			exceptions_throw_verifyerror(refmethod, 
-					"illegal instruction: field access on non-reference");
+		if (!instanceti->is_reference()) {
+			exceptions_throw_verifyerror(refmethod, "illegal instruction: field access on non-reference");
 			return false;
 		}
-		if (TYPEINFO_IS_ARRAY(*instanceti)) {
-			exceptions_throw_verifyerror(refmethod, 
-					"illegal instruction: field access on array");
+		if (instanceti->is_array()) {
+			exceptions_throw_verifyerror(refmethod, "illegal instruction: field access on array");
 			return false;
 		}
 
-		if (((ref->flags & RESOLVE_PUTFIELD) != 0) &&
-				TYPEINFO_IS_NEWOBJECT(*instanceti))
+		if (((ref->flags & RESOLVE_PUTFIELD) != 0) && instanceti->is_newobject())
 		{
 			/* The instruction writes a field in an uninitialized object. */
 			/* This is only allowed when a field of an uninitialized 'this' object is */
 			/* written inside an initialization method                                */
 
 			classinfo *initclass;
-			instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(*instanceti);
+			instruction *ins = instanceti->newobject_instruction();
 
 			if (ins != NULL) {
-				exceptions_throw_verifyerror(refmethod, 
+				exceptions_throw_verifyerror(refmethod,
 						"accessing field of uninitialized object");
 				return false;
 			}
@@ -2551,14 +2547,14 @@ bool resolve_constrain_unresolved_field(unresolved_field *ref,
 			assert(initclass->state & CLASS_LOADED);
 			assert(initclass->state & CLASS_LINKED);
 
-			typeinfo_init_classinfo(&tinfo, initclass);
+			tinfo.init_class(initclass);
 			insttip = &tinfo;
 		}
 		else {
 			insttip = instanceti;
 		}
 		if (!unresolved_subtype_set_from_typeinfo(referer, refmethod,
-					&(ref->instancetypes), insttip, 
+					&(ref->instancetypes), insttip,
 					FIELDREF_CLASSNAME(fieldref)))
 			return false;
 	}
@@ -2676,13 +2672,12 @@ bool resolve_constrain_unresolved_method_instance(unresolved_method *ref,
 
 	/* record subtype constraints for the instance type, if any */
 
-	if (invokespecial && TYPEINFO_IS_NEWOBJECT(*instanceti))
+	if (invokespecial && instanceti->is_newobject())
 	{   /* XXX clean up */
-		instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(*instanceti);
-		classref_or_classinfo initclass = (ins) ? ins[-1].sx.val.c
-									 : to_classref_or_classinfo(refmethod->clazz);
+		instruction *ins = instanceti->newobject_instruction();
+		classref_or_classinfo initclass = (ins) ? ins[-1].sx.val.c : to_classref_or_classinfo(refmethod->clazz);
 		tip = &tinfo;
-		if (!typeinfo_init_class(tip, initclass))
+		if (!tip->init_class(initclass))
 			return false;
 	}
 	else {

@@ -28,11 +28,11 @@ LIBS =
 noinst_HEADERS = \
 	md-asm.hpp
 
-# noinst_LTLIBRARIES = \
-# 	libmd.la
+noinst_LTLIBRARIES = \
+	libmd.la
 
-# libmd_la_SOURCES = \
-# 	md-os.cpp
+libmd_la_SOURCES = \
+	md-os.cpp
 
 
 ## Local variables:

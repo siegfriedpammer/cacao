@@ -1,6 +1,6 @@
 /* src/vm/array.hpp - Java array functions
 
-   Copyright (C) 2007-2013
+   Copyright (C) 1996-2014
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008 Theobroma Systems Ltd.
 
@@ -27,22 +27,20 @@
 #ifndef ARRAY_HPP_
 #define ARRAY_HPP_ 1
 
-#include <assert.h>                     // for assert
-#include <stdint.h>                     // for int32_t, int8_t, int16_t, etc
-#include <stdio.h>                      // for NULL, printf
 #include "config.h"
-#include "linker.hpp"                   // for arraydescriptor
+#include <cassert>                      // for assert
+#include <cstdio>                       // for NULL, printf
+#include <stdint.h>                     // for int32_t, int8_t, int16_t, etc
 #include "mm/gc.hpp"                    // for GCCriticalSection, etc
-#include "native/llni.hpp"              // for LLNI_vftbl_direct
 #include "threads/lockword.hpp"         // for Lockword
-#include "types.hpp"                    // for u4
-#include "vftbl.hpp"                    // for vftbl_t
-#include "vm/class.hpp"                 // for classinfo, class_is_array
+#include "vm/class.hpp"                 // for classinfo
 #include "vm/exceptions.hpp"
 #include "vm/global.hpp"                // for java_handle_t, java_array_t, etc
 #include "vm/jit/builtin.hpp"           // for builtin_canstore
 #include "vm/os.hpp"                    // for os
 #include "vm/primitive.hpp"             // for primitivetypeinfo, etc
+#include "vm/types.hpp"                 // for s4, s2
+#include "vm/vftbl.hpp"                 // for vftbl_t
 
 /* array types ****************************************************************/
 
@@ -60,6 +58,25 @@ enum ArrayType {
 	ARRAYTYPE_SHORT   = PRIMITIVETYPE_SHORT,
 	ARRAYTYPE_BOOLEAN = PRIMITIVETYPE_BOOLEAN,
 	ARRAYTYPE_OBJECT  = PRIMITIVETYPE_VOID     // don't use as index!
+};
+
+
+/* arraydescriptor *************************************************************
+
+   For every array class an arraydescriptor is allocated which
+   describes the array class. The arraydescriptor is referenced from
+   the vftbl of the array class.
+
+*******************************************************************************/
+
+struct arraydescriptor {
+	vftbl_t   *componentvftbl; /* vftbl of the component type, NULL for primit. */
+	vftbl_t   *elementvftbl;   /* vftbl of the element type, NULL for primitive */
+	ArrayType  arraytype;      /* ARRAYTYPE_* constant                          */
+	ArrayType  elementtype;    /* ARRAYTYPE_* constant                          */
+	s4         dataoffset;     /* offset of the array data from object pointer  */
+	s4         componentsize;  /* size of a component in bytes                  */
+	s2         dimension;      /* dimension of the array (always >= 1)          */
 };
 
 

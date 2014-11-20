@@ -28,6 +28,7 @@
 #include "config.h"
 #include <cstring>
 #include <cassert>
+#include "toolbox/Option.hpp"
 
 #ifdef ENABLE_LOGGING
 
@@ -39,7 +40,7 @@ struct Debug {
 	 * Can be set using the -XX:+DebugPrefix command line flag
 	 * @default false
 	 */
-	static bool prefix_enabled;
+	static Option<bool> prefix_enabled;
 
 	/** Verbosity level
 	 *
@@ -47,20 +48,20 @@ struct Debug {
 	 * Can be set using the -XX:+DebugVerbose command line flag
 	 * @default 0
 	 */
-	static unsigned int verbose;
+	static Option<unsigned int> verbose;
 
 	/** True if we should print a the thread id
 	 *
 	 * Can be set using the -XX:+DebugPrintThread command line flag
 	 * @default false
 	 */
-	static bool thread_enabled;
+	static Option<bool> thread_enabled;
 
-	/** Set the name of system you are interested in debugging
+	/** The name of system you are interested in debugging
 	 *
 	 * can be conviently be set via the command line flag -XX:DebugName
 	 */
-	static void set_current_system(const char *system);
+	static Option<const char*> debugname;
 
 	/**
 	 * Debugging of a sub system is enabled if it's name is a valid prefix
@@ -98,9 +99,6 @@ struct Debug {
 	} while (0)
 
 } // end namespace cacao
-
-void debug_set_current_system(const char *);
-int  debug_is_debugging_enabled(const char *);
 
 #else
 

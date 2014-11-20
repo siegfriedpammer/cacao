@@ -1,0 +1,63 @@
+\section{Dead Code Elimination}
+\label{sec:dead-code}
+
+The term \emph{dead code elimination} has originally been used to refer to two separate optimization techniques, namely \emph{unused code elimination} and \emph{unreachable code elimination} \cite{wegman:1991:constantpropagation}. Despite its title, this section is targeted only at the first of these two techniques. The examinations and algorithms for unused code elimination, which we are describing here, are mainly based on considerations in \cite{appel:2004:moderncompilerimpl}, where the notion of dead code elimination is used as a synonym for this technique. Thus we will also prefer the according term to refer to this optimization.
+
+The goal of this technique can be described intuitively by the idea to remove all those code sections from the program, whose results are never used. Assuming that the program, which is subject to dead code elimination, satisfies the property of static single assignment form, a characterization of \emph{dead} variables can be given:
+\begin{definition}\label{def:dead-variable}
+A variable is \emph{dead} if and only if its list of uses is empty and its assignment statement has no side effects.
+\end{definition}
+
+It is further assumed that each statement in the program or in the according intermediate representation is an ordinary assignment, an assignment using a $\phi$-function, a fetch, store or branch \cite{appel:2004:moderncompilerimpl}. Based on these considerations and on definition \ref{def:dead-variable} the idea of this optimization can be characterized by the following short algorithm:
+
+\begin{algorithm}
+\caption{Basic idea of dead code elimination}
+\label{alg:dead-basic}
+\begin{algorithmic}[1]
+\While{there is a \emph{dead} variable $v$}
+  \State{remove $v$'s defining statement from the program}
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+At each iteration, the algorithm removes one statement which defines a dead variable. Furthermore, the affected statement has to be removed from the use lists of those variables which are referenced within such a defining assignment. This in turn can cause these variables to become dead, which will be handled in subsequent iterations.
+
+\subsection{Application to the Intermediate Representation}
+\label{sec:dead-code:application-to-the-ir}
+
+As mentioned earlier, the intermediate representation of the new compiler satisfies the property of static single assignment form. Nevertheless, it does not contain statements or variables in the traditional sense, instead it uses nodes to express data-flow and control-flow within the program. Therefore, it is not possible to directly apply the definition of dead variables to optimize this graph-based structure. But based on previous considerations, definition \ref{def:dead-node} gives a characterization of dead nodes (it explicitly excludes control-flow nodes, as they do not represent data computations and thus do not supply values for consumption by other nodes).
+
+\begin{definition}\label{def:dead-node}
+A node, which does not mark control-flow, is \emph{dead} if and only if its list of uses is empty, it has no side effects and there are no other dependencies on that node.
+\end{definition}
+
+\begin{algorithm}
+\caption{Basic idea of dead code elimination on the intermediate representation}
+\label{alg:dead-ir-basic}
+\begin{algorithmic}[1]
+\While{there is a \emph{dead} node $n$}
+  \State{remove node $n$ from the graph}
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+Based on the notion of dead nodes, it is now possible to translate the idea of dead code elimination accordingly as shown in algorithm \ref{alg:dead-ir-basic}. This pseudo code leaves many details open and is not meant as a reference for implementation. Therefore, algorithm \ref{alg:dead-ir} gives a more formal formulation for dead code elimination which is based on \cite{appel:2004:moderncompilerimpl}. It iteratively removes dead nodes from the graph. On that account it uses a work list $\mathcal{W}$, which before every iteration of the while-loop contains all those nodes that have to be reconsidered by the algorithm. Despite this container is called ``work list'', it is not important whether the underlying data structure is organized as a list or as another container type. The only aspects to consider are, that the removal in line \ref{alg:dead-ir:W-remove} is done in constant time and that the insertion at line \ref{alg:dead-ir:W-add} (represented by the union operation) avoids to add duplicates, assuming a constant time membership check on the container (in fact it would also be possible to handle duplicates when removing nodes from the work list). At every iteration of the while-loop a node that has to be reconsidered is removed from the work list, to examine if it is dead and thus should be deleted from the program. Every time a node is identified to be dead, it will also be deleted from the list of uses of all the operand nodes, referenced by the dead node. Thus, in turn each of these nodes has to be reconsidered because its own list of uses can have become empty now and hence is added to the work list.
+
+\begin{algorithm}[H]
+\caption{Dead code elimination}
+\label{alg:dead-ir}
+\begin{algorithmic}[1]
+\State $\mathcal{W} \gets$ all nodes in the intermediate representation graph\label{alg:dead-ir:W-init}
+\While{$\mathcal{W}$ is not empty}
+	\State remove some node $n$ from $\mathcal{W}$\label{alg:dead-ir:W-remove}
+	\If{$n$ is \emph{dead}}
+		\For{each node $x_i$ used by $n$}
+			\State delete $n$ from the list of uses of $x_i$\label{alg:dead-ir:op-remove}
+			\State $\mathcal{W} \gets \mathcal{W} \cup \lbrace x_i\rbrace$\label{alg:dead-ir:W-add}
+		\EndFor
+	\EndIf
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+The general running time of this algorithm is linear in the size of the intermediate representation graph. Each time a node is removed from the work list and discovered dead, each of its operands will be visited (the number of operands of any node is equivalent to the number of use-def edges starting at that node). In case the node is not dead, the amount of work which is done is constant. An aspect that could lead to an increase of the asymptotic run-time complexity of this algorithm is the deletion of nodes from the use lists of their operands in line \ref{alg:dead-ir:op-remove}. Therefore, a data structure that allows constant time removal should be used for the realization of the use lists.

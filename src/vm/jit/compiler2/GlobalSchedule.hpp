@@ -26,7 +26,7 @@
 #define _JIT_COMPILER2_GLOBALSCHEDULE
 
 #include "vm/jit/compiler2/Instruction.hpp"
-#include "vm/jit/compiler2/Method.hpp"
+#include "vm/jit/compiler2/MethodC2.hpp"
 #include "vm/jit/compiler2/alloc/unordered_set.hpp"
 #include "vm/jit/compiler2/alloc/unordered_map.hpp"
 

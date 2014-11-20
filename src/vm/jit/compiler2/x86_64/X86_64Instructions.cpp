@@ -27,7 +27,7 @@
 #include "vm/jit/compiler2/MachineInstructions.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/CodeMemory.hpp"
-#include "vm/jit/Patcher.hpp"
+#include "vm/jit/PatcherNew.hpp"
 
 #include "vm/jit/compiler2/alloc/deque.hpp"
 

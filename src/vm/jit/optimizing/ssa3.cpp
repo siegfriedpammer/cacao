@@ -1,4 +1,4 @@
-/* src/vm/jit/optimizing/ssa3.c
+/* src/vm/jit/optimizing/ssa3.cpp
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
@@ -1716,7 +1716,7 @@ static void ssa_enter_export_variables(ssa_info *ssa) {
 	for (i = jd->localcount; i < ssa->locals->count; ++i) {
 		for (j = 0; j < 5; ++j) {
 			if (jd->var[i].type != j) {
-				*it = UNUSED;
+				*it = jitdata::UNUSED;
 			} else {
 				*it = i;
 			}
@@ -1729,7 +1729,7 @@ static void ssa_enter_export_variables(ssa_info *ssa) {
 	for (i = ssa->locals->count; i < ssa->locals->count + ssa->stack->count; ++i) {
 		for (j = 0; j < 5; ++j) {
 			if (jd->var[i].type != j) {
-				*it = UNUSED;
+				*it = jitdata::UNUSED;
 			} else {
 				*it = i;
 			}

@@ -42,6 +42,8 @@ libtoolbox_la_SOURCES = \
 	list.hpp \
 	logging.cpp \
 	logging.hpp \
+	Option.hpp \
+	Option.cpp \
 	set.hpp \
 	set.cpp \
 	utf_utils.hpp \

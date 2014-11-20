@@ -72,5 +72,22 @@ AC_DEFUN([AC_CHECK_FUTURE],[
   ])
   ])
   ])
+  AC_MSG_CHECKING(if TR1 should be disabled)
+  AC_ARG_ENABLE([future-tr1],
+                [AS_HELP_STRING(--disable-future-tr1,do not use TR1 for future library support [[default=use tr1 if available]])],
+                [case "${enableval}" in
+                    no)
+                        DISABLE_FUTURE_TR1=yes
+                        AC_DEFINE([HAVE_STD_TR1_SHARED_PTR], 0, [std::tr1::shared_ptr is disabled])
+                        AC_DEFINE([HAVE_STD_TR1_UNORDERED_SET], 0, [std::tr1::unordered_set is disabled])
+                        AC_DEFINE([HAVE_STD_TR1_UNORDERED_MAP], 0, [std::tr1::unordered_map is disabled])
+                        AC_DEFINE([HAVE_STD_ALL_ANY_NONE_OF], 0, [std::all_of/any_of/none_of is disabled])
+                        ;;
+                    *)
+                        DISABLE_FUTURE_TR1=no
+                        ;;
+                 esac],
+                [DISABLE_FUTURE_TR1=no])
+  AC_MSG_RESULT(${DISABLE_FUTURE_TR1})
   AC_LANG_POP([C++])
 ])

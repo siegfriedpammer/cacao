@@ -34,9 +34,9 @@ namespace compiler2 {
 namespace x86_64 {
 
 
-class LoweringVisitor : public LoweringVisitorBase {
+class X86_64LoweringVisitor : public LoweringVisitorBase {
 public:
-	LoweringVisitor(Backend *backend, MachineBasicBlock* current,
+	X86_64LoweringVisitor(Backend *backend, MachineBasicBlock* current,
 		MapTy &map, InstructionMapTy &inst_map)
 			: LoweringVisitorBase(backend, current, map, inst_map) {}
 

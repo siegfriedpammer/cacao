@@ -560,11 +560,9 @@ void statistics_print_gc_memory_usage(void)
 		if (count == 1)
 			fprintf(opt_ProfileMemoryUsageGNUPlot, "plot \"profile.dat\" using 1:2 with lines title \"max. Java heap size\", \"profile.dat\" using 1:3 with lines title \"Java heap size\", \"profile.dat\" using 1:4 with lines title \"used\", \"profile.dat\" using 1:5 with lines title \"free\"\n");
 
-#if SIZEOF_VOID_P == 8
-		fprintf(opt_ProfileMemoryUsageGNUPlot, "%ld %ld %ld %ld %ld\n", count, max, size, used, free);
-#else
-		fprintf(opt_ProfileMemoryUsageGNUPlot, "%lld %lld %lld %lld %lld\n", count, max, size, used, free);
-#endif
+		fprintf(opt_ProfileMemoryUsageGNUPlot,
+				"%" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 "\n",
+				count, max, size, used, free);
 
 		fflush(opt_ProfileMemoryUsageGNUPlot);
 	}

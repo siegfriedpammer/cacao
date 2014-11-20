@@ -1,4 +1,4 @@
-/* src/vm/jit/optimizing/ssa.c - static single-assignment form
+/* src/vm/jit/optimizing/ssa.cpp - static single-assignment form
 
    Copyright (C) 2005-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -97,7 +97,7 @@ void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd)
 		l++;
 		if (IS_2_WORD_TYPE(t))
 			l++;
-		if (i == UNUSED)
+		if (i == jitdata::UNUSED)
 			continue;
 
 		/* !!!!! locals are now numbered as the parameters !!!!       */
@@ -139,7 +139,7 @@ void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd)
 	      remove_phi = true;
 	      for(p = 1; p <= graph_get_num_predecessor(gd, t); p++) {
 		if (ls->phi[t][i][0] == ls->phi[t][i][p])
-		  ls->phi[t][i][p] = UNUSED;
+		  ls->phi[t][i][p] = jitdata::UNUSED;
 		else
 		  remove_phi = false;
 	      }
@@ -176,10 +176,10 @@ void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd)
 
 	new_vars = DMNEW(varinfo, ls->vartop);
 	for(i = 0; i < ls->vartop ; i++)
-		new_vars[i].type = (Type) UNUSED;
+		new_vars[i].type = (Type) jitdata::UNUSED;
 	for(i = 0; i < jd->varcount; i++) {
 			p = ls->new_varindex[i];
-			if (p != UNUSED) {
+			if (p != jitdata::UNUSED) {
 				if (p < ls->ssavarcount)
 					p = ls->var_0[p];
 				new_vars[p].type  = VAR(i)->type;
@@ -213,7 +213,7 @@ void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd)
 			printf("%3i(%3i,%3x) ",i,VAR(i)->type, VAR(i)->flags);
 			ssa_show_variable(jd, i, VAR(i),0);
 			j = ls->new_varindex[i];
-			if ((j != UNUSED) && (j < ls->ssavarcount))
+			if ((j != jitdata::UNUSED) && (j < ls->ssavarcount))
 				printf(" -> %3i ... %3i", ls->var_0[j], ls->var_0[j + 1] - 1);
 			else
 				printf(" -> %3i", j);
@@ -352,7 +352,7 @@ void ssa_rename_init(jitdata *jd, graphdata *gd)
 	ls->lt_mem = DMNEW(int, ls->lifetimecount);
 	ls->lt_mem_count = 0;
 	for (i=0; i < ls->lifetimecount; i++) {
-		ls->lifetime[i].type = UNUSED;
+		ls->lifetime[i].type = jitdata::UNUSED;
 		ls->lifetime[i].savedvar = 0;
 		ls->lifetime[i].flags = 0;
 		ls->lifetime[i].usagecount = 0;
@@ -405,8 +405,8 @@ int ssa_rename_def(jitdata *jd, int *def_count, int a) {
 	ls = jd->ls;
 
 	a1 = ls->new_varindex[a];
-	_SSA_CHECK_BOUNDS(a1, UNUSED, ls->varcount);
-	if ((a1 != UNUSED) && (a1 < ls->ssavarcount)) {
+	_SSA_CHECK_BOUNDS(a1, jitdata::UNUSED, ls->varcount);
+	if ((a1 != jitdata::UNUSED) && (a1 < ls->ssavarcount)) {
 		/* local or inoutvar -> normal ssa renaming */
 		_SSA_ASSERT((a < jd->localcount) || (VAR(a)->flags & INOUT));
 		/* !IS_TEMPVAR && !IS_PREALLOC == (IS_LOCALVAR || IS_INOUT) */
@@ -417,7 +417,7 @@ int ssa_rename_def(jitdata *jd, int *def_count, int a) {
 	}
 	else {
 		/* TEMP or PREALLOC var */
-		if (a1 == UNUSED) {
+		if (a1 == jitdata::UNUSED) {
 			ls->new_varindex[a] = ls->vartop;
 			ret = ls->vartop;
 			ls->vartop++;
@@ -442,8 +442,8 @@ int ssa_rename_use(lsradata *ls, int n, int a) {
 	int ret;
 
 	a1 = ls->new_varindex[a];
-	_SSA_CHECK_BOUNDS(a1, UNUSED, ls->varcount);
-	if ((a1 != UNUSED) && (a1 < ls->ssavarcount)) {
+	_SSA_CHECK_BOUNDS(a1, jitdata::UNUSED, ls->varcount);
+	if ((a1 != jitdata::UNUSED) && (a1 < ls->ssavarcount)) {
 		/* local or inoutvar -> normal ssa renaming */
 		/* i <- top(stack[a]) */
 
@@ -455,7 +455,7 @@ int ssa_rename_use(lsradata *ls, int n, int a) {
 	}
 	else {
 		/* TEMP or PREALLOC var */
-		if (a1 == UNUSED) {
+		if (a1 == jitdata::UNUSED) {
 			ls->new_varindex[a] = ls->vartop;
 			ret = ls->vartop;
 			ls->vartop++;
@@ -555,7 +555,7 @@ void ssa_rename_(jitdata *jd, graphdata *gd, dominatordata *dd, int n) {
 
 	for (; in_d >= 0; in_d--) {
 		/* Possible Use of ls->new_varindex[jd->var[in_d]] */
-		_SSA_ASSERT(ls->new_varindex[in[in_d]] != UNUSED);
+		_SSA_ASSERT(ls->new_varindex[in[in_d]] != jitdata::UNUSED);
 
 		a = ls->new_varindex[in[in_d]];
 		_SSA_CHECK_BOUNDS(a, 0, ls->ssavarcount);
@@ -638,7 +638,7 @@ void ssa_rename_(jitdata *jd, graphdata *gd, dominatordata *dd, int n) {
 		/* Look for definitions (iptr->dst). INVOKE and BUILTIN have */
 		/* an optional dst - so they to be checked first */
 
-		v = UNUSED;
+		v = jitdata::UNUSED;
 		if (icmd_table[iptr->opc].dataflow == DF_INVOKE) {
 			INSTRUCTION_GET_METHODDESC(iptr,md);
 			if (md->returntype.type != TYPE_VOID)
@@ -654,7 +654,7 @@ void ssa_rename_(jitdata *jd, graphdata *gd, dominatordata *dd, int n) {
 			v = iptr->dst.varindex;
 		}
 
-		if (v != UNUSED) {
+		if (v != jitdata::UNUSED) {
 			j = ssa_rename_def(jd, def_count, iptr->dst.varindex);
 #ifdef SSA_DEBUG_VERBOSE
 			ssa_rename_print( iptr, "dst", iptr->dst.varindex, j);
@@ -676,7 +676,7 @@ void ssa_rename_(jitdata *jd, graphdata *gd, dominatordata *dd, int n) {
 
 	for (;out_d >= 0; out_d--) {
 		/* Possible Use of ls->new_varindex[jd->var[out_d]] */
-		_SSA_ASSERT(ls->new_varindex[out[out_d]] != UNUSED);
+		_SSA_ASSERT(ls->new_varindex[out[out_d]] != jitdata::UNUSED);
 
 		a = ls->new_varindex[out[out_d]];
 		_SSA_CHECK_BOUNDS(a, 0, ls->ssavarcount);
@@ -721,10 +721,10 @@ void ssa_rename_(jitdata *jd, graphdata *gd, dominatordata *dd, int n) {
 #ifdef SSA_DEBUG_VERBOSE
 					if (compileverbose) {
 						printf("Succ %3i Arg %3i \n", Y, j);
-						ssa_rename_print( NULL, "phi-use", ls->phi[Y][a][j+1], UNUSED);
+						ssa_rename_print( NULL, "phi-use", ls->phi[Y][a][j+1], jitdata::UNUSED);
 					}
 #endif
-					ls->phi[Y][a][j+1] = UNUSED;
+					ls->phi[Y][a][j+1] = jitdata::UNUSED;
 				}
 				else {
 					_SSA_CHECK_BOUNDS(ls->stack_top[a]-1, 0, ls->num_defs[a]+1);
@@ -779,4 +779,5 @@ void ssa_rename_(jitdata *jd, graphdata *gd, dominatordata *dd, int n) {
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

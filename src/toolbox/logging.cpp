@@ -1,4 +1,4 @@
-/* src/toolbox/logging.c - contains logging functions
+/* src/toolbox/logging.cpp - contains logging functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO

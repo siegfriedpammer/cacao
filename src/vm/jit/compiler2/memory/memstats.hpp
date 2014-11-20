@@ -103,23 +103,27 @@ inline void stat_delete(void* p) {
 
 #define MM_STAT(x) do { x; } while(0)
 
-#define MM_MAKE_NAME(x) \
-namespace cacao { \
-namespace jit { \
-namespace compiler2 { \
-class x; \
+#define MM_CLASS_NAME(x) \
 namespace memory { \
 template<> \
 inline const char* get_class_name<x>() { \
 	return #x; \
 } \
-} \
+}
+
+#define MM_MAKE_NAME(x) \
+namespace cacao { \
+namespace jit { \
+namespace compiler2 { \
+class x; \
+MM_CLASS_NAME(x) \
 } \
 } \
 }
 
 #else
 #define MM_STAT(x) /* nothing */
+#define MM_CLASS_NAME(x) /* nothing */
 #define MM_MAKE_NAME(x) /* nothing */
 #endif /* ENABLE_MEMORY_MANAGER_STATISTICS */
 

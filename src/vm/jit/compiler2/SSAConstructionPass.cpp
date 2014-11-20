@@ -35,6 +35,7 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/show.hpp"
 #include "vm/jit/ir/icmd.hpp"
+#include "vm/jit/ir/instruction.hpp"
 
 #include "vm/statistics.hpp"
 
@@ -535,7 +536,7 @@ cacao::OStream& print_instruction_OS(cacao::OStream &OS, const jitdata *jd, cons
 	case ICMD_ASTORE:
 		SHOW_S1(OS, iptr);
 		SHOW_DST_LOCAL(OS, iptr);
-		if (stage >= SHOW_STACK && iptr->sx.s23.s3.javaindex != UNUSED)
+		if (stage >= SHOW_STACK && iptr->sx.s23.s3.javaindex != jitdata::UNUSED)
 			printf(" (javaindex %d)", iptr->sx.s23.s3.javaindex);
 		if (iptr->flags.bits & INS_FLAG_RETADDR) {
 			printf(" (retaddr L%03d)", RETADDR_FROM_JAVALOCAL(iptr->sx.s23.s2.retaddrnr));
@@ -790,7 +791,7 @@ public:
 	//  fill phi operands
 	void fill_operands() {
 		basicblock *bb = &jd->basicblocks[bb_num];
-		for(std::size_t i = 0; i < bb->predecessorcount; ++i) {
+		for(s4 i = 0; i < bb->predecessorcount; ++i) {
 			basicblock *pred = bb->predecessors[i];
 			assert(pred->outdepth == bb->indepth);
 			s4 pred_nr = pred->nr;
@@ -1096,7 +1097,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 		int varindex = jd->local_map[slot * 5 + type];
 		LOG("parameter: i = " << i << " slot = " << slot << " type " << get_var_type(type) << nl);
 
-		if (varindex != UNUSED) {
+		if (varindex != jitdata::UNUSED) {
 			// only load if variable is used
 			Instruction *I = new LOADInst(convert_var_type(type), i, BB[init_basicblock]);
 			write_variable(varindex,init_basicblock,I);
@@ -1162,7 +1163,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 		LOG("localindex: " << i << nl);
 		for (int j = 0; j < 5; ++j) {
 			s4 entry = jd->local_map[i*5+j];
-			if (entry == UNUSED)
+			if (entry == jitdata::UNUSED)
 				LOG("  type " <<get_var_type(j) << " UNUSED" << nl);
 			else
 				LOG("  type " <<get_var_type(j) << " " << entry << nl);
@@ -1183,7 +1184,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 		LOG("basicblock: " << bbindex << nl);
 
 		// handle invars
-		for(std::size_t i = 0; i < bb->indepth; ++i) {
+		for(s4 i = 0; i < bb->indepth; ++i) {
 			std::size_t varindex = bb->invars[i];
 			PHIInst *phi = new PHIInst(var_type_tbl[varindex], BB[bbindex]);
 			write_variable(varindex, bbindex, phi);

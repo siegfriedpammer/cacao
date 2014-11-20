@@ -61,6 +61,10 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+namespace option {
+	Option<bool> hints("Compiler2hints","compiler2: enable register hints",true,::cacao::option::xx_root());
+}
+
 bool LinearScanAllocatorPass::StartComparator::operator()(const LivetimeInterval &lhs,
 		const LivetimeInterval &rhs) {
 	if (rhs.front().start < lhs.front().start) return true;
@@ -74,7 +78,7 @@ namespace {
  * @Cpp11 use std::function
  */
 struct FreeUntilCompare: public std::binary_function<MachineOperand*,MachineOperand*,bool> {
-	bool operator()(MachineOperand *lhs, MachineOperand *rhs) {
+	bool operator()(MachineOperand *lhs, MachineOperand *rhs) const {
 		bool r = lhs->aquivalence_less(*rhs);
 		//LOG2("FreeUntilCompare: " << *lhs << " aquivalence_less " << *rhs << "=" << r << nl);
 		return r;
@@ -158,7 +162,7 @@ struct SetIntersection: public std::unary_function<LivetimeInterval&,void> {
  */
 struct FreeUntilMaxCompare
 		: public std::binary_function<const FreeUntilMap::value_type&, const FreeUntilMap::value_type&,bool> {
-	bool operator()(const FreeUntilMap::value_type &lhs, const FreeUntilMap::value_type &rhs) {
+	bool operator()(const FreeUntilMap::value_type &lhs, const FreeUntilMap::value_type &rhs) const {
 		return lhs.second < rhs.second;
 	}
 };
@@ -215,7 +219,7 @@ inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current
 	UseDef free_until_pos_reg(UseDef::PseudoUse,MIS->mi_begin());
 	// check for hints
 	MachineOperand *hint = current.get_hint();
-	if (opt_Compiler2hints && hint) {
+	if (option::hints && hint) {
 		if (hint->is_virtual()) {
 			// find the current store for hint
 			LivetimeInterval hint_lti = LA->get(hint);
@@ -253,21 +257,30 @@ inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current
 		// no register available without spilling
 		return false;
 	}
+	current.set_operand(reg);
+	LOG2("assigned operand: " << *reg << nl);
 	if (current.back().end < free_until_pos_reg) {
 		// register available for the whole interval
-		current.set_operand(reg);
-		LOG2("assigned operand: " << *reg << nl);
 		return true;
 	}
 	// register available for the first part of the interval
 	MachineOperand *tmp = new VirtualRegister(reg->get_type());
-	MachineInstruction *move = backend->create_Move(reg,tmp);
-	STATISTICS(++num_split_moves);
-	MIIterator split_pos = insert_move_before(move,free_until_pos_reg);
-	assert_msg(pos.get_iterator() < split_pos, "pos: " << pos << " free_until_pos_reg "
-		<< free_until_pos_reg << " split: " << split_pos);
-	LivetimeInterval lti = current.split_active(split_pos);
-	unhandled.push(lti);
+	if(!(*free_until_pos_reg.get_iterator())->is_label()) {
+		// insert move
+		MachineInstruction *move = backend->create_Move(reg,tmp);
+		STATISTICS(++num_split_moves);
+		MIIterator split_pos = insert_move_before(move,free_until_pos_reg);
+		assert_msg(pos.get_iterator() < split_pos, "pos: " << pos << " free_until_pos_reg "
+			<< free_until_pos_reg << " split: " << split_pos);
+		LOG2("splitting interval " << current << " at " << split_pos << " inserted move: " << move << nl);
+		LivetimeInterval lti = current.split_active(split_pos);
+		unhandled.push(lti);
+	} else {
+		// no move required
+		LOG2("splitting interval " << current << " at " << free_until_pos_reg << " no move required, op" << tmp << nl);
+		LivetimeInterval lti = current.split_phi_active(free_until_pos_reg.get_iterator(), tmp);
+		unhandled.push(lti);
+	}
 	return true;
 }
 
@@ -1214,7 +1227,7 @@ bool LinearScanAllocatorPass::verify() const {
 	for(MIIterator i = MIS->mi_begin(), e = MIS->mi_end(); i != e ; ++i) {
 		MachineInstruction *MI = *i;
 		// result virtual
-		if (is_virtual(MI->get_result()) || any_of(MI->begin(), MI->end(), is_virtual)) {
+		if (is_virtual(MI->get_result()) || cacao::any_of(MI->begin(), MI->end(), is_virtual)) {
 			ERROR_MSG("Unallocated Operand!","Instruction " << *MI << " contains unallocated operands.");
 			return false;
 		}

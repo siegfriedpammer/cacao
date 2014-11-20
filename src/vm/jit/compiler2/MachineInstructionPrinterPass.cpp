@@ -24,7 +24,7 @@
 
 #include "vm/jit/compiler2/MachineInstructionPrinterPass.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
-#include "vm/jit/compiler2/Method.hpp"
+#include "vm/jit/compiler2/MethodC2.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
@@ -57,6 +57,8 @@ PassUsage& MachineInstructionPrinterPass::get_PassUsage(PassUsage &PU) const {
 }
 // the address of this variable is used to identify the pass
 char MachineInstructionPrinterPass::ID = 0;
+
+Option<bool> MachineInstructionPrinterPass::enabled("MachineInstructionPrinterPass","compiler2: enable MachineInstructionPrinterPass",false,::cacao::option::xx_root());
 
 // register pass
 static PassRegistry<MachineInstructionPrinterPass> X("MachineInstructionPrinterPass");

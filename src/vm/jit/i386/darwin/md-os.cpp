@@ -1,4 +1,4 @@
-/* src/vm/jit/i386/darwin/md-os.c - machine dependent i386 Darwin functions
+/* src/vm/jit/i386/darwin/md-os.cpp - machine dependent i386 Darwin functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -214,4 +214,5 @@ void md_executionstate_write(executionstate_t *es, void *context)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
