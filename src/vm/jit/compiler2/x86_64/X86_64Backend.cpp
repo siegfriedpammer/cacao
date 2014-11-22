@@ -501,43 +501,48 @@ void X86_64LoweringVisitor::visit(MULInst *I) {
 
 void X86_64LoweringVisitor::visit(DIVInst *I) {
 	assert(I);
-	MachineOperand* result;
+	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
 	Type::TypeID type = I->get_type();
 	GPInstruction::OperandSize opsize = get_OperandSize_from_Type(type);
 
 	MachineInstruction *alu = NULL;
-	MachineOperand *dividend;
-	MachineOperand *dividendUpper;
-	MachineInstruction *convertToQuadword;
 
 	switch (type) {
 	case Type::IntTypeID:
 	case Type::LongTypeID:
-
+	{
 		// 1. move the dividend to RAX
 		// 2. extend the dividend to RDX:RAX
 		// 3. perform the division
-		dividend = get_op(I->get_operand(0)->to_Instruction());
-		dividendUpper = new NativeRegister(type, &RDX);
-		result = new NativeRegister(type, &RAX);
-		convertToQuadword = new CDQInst(DstSrc1Op(dividendUpper), DstSrc2Op(result), opsize);
-		get_current()->push_back(get_Backend()->create_Move(dividend, result));
+		MachineOperand *dividendUpper = new NativeRegister(type, &RDX);
+		MachineOperand *result = new NativeRegister(type, &RAX);
+		MachineInstruction *convertToQuadword = new CDQInst(DstSrc1Op(dividendUpper), DstSrc2Op(result), opsize);
+		get_current()->push_back(get_Backend()->create_Move(src_op1, result));
 		get_current()->push_back(convertToQuadword);
 		alu = new IDivInst(Src2Op(src_op2), DstSrc1Op(result), DstSrc2Op(dividendUpper), opsize);
 		break;
+	}
 	case Type::DoubleTypeID:
-		result = get_op(I->get_operand(0)->to_Instruction());
+	{
+		VirtualRegister *dst = new VirtualRegister(type);
+		MachineInstruction *mov = get_Backend()->create_Move(src_op1, dst);
+		get_current()->push_back(mov);
 		alu = new DivSDInst(
 			Src2Op(src_op2),
-			DstSrc1Op(result));
+			DstSrc1Op(dst));
 		break;
+	}
 	case Type::FloatTypeID:
-		result = get_op(I->get_operand(0)->to_Instruction());
+	{
+		VirtualRegister *dst = new VirtualRegister(type);
+		MachineInstruction *mov = get_Backend()->create_Move(src_op1, dst);
+		get_current()->push_back(mov);
 		alu = new DivSSInst(
 				Src2Op(src_op2),
-				DstSrc1Op(result));
+				DstSrc1Op(dst));
 		break;
+	}
 	default:
 		ABORT_MSG("x86_64: Lowering not supported",
 			"Inst: " << I << " type: " << type);
