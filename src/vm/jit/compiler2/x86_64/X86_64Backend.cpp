@@ -856,7 +856,6 @@ void X86_64LoweringVisitor::visit(CASTInst *I) {
 	case Type::IntTypeID:
 	{
 		switch (to) {
-		case Type::CharTypeID:
 		case Type::ByteTypeID:
 		{
 			MachineInstruction *mov = new MovSXInst(SrcOp(src_op), DstOp(new VirtualRegister(to)),
@@ -865,6 +864,7 @@ void X86_64LoweringVisitor::visit(CASTInst *I) {
 			set_op(I, mov->get_result().op);
 			return;
 		}
+		case Type::CharTypeID:
 		case Type::ShortTypeID:
 		{
 			MachineInstruction *mov = new MovSXInst(SrcOp(src_op), DstOp(new VirtualRegister(to)),
