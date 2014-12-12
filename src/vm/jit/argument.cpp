@@ -102,7 +102,7 @@ imm_union argument_jitarray_load(methoddesc *md, int32_t index,
 			break;
 		default:
 			ret.l = 0;
-			assert(0 && "unreachable");
+			os::shouldnotreach();
 			break;
 	}
 
@@ -138,7 +138,7 @@ void argument_jitarray_store(methoddesc *md, int32_t index,
 			}
 			break;
 		default:
-			os::abort("argument_jitarray_store: type not implemented");
+			os::unimplemented("argument_jitarray_store: type not implemented");
 			break;
 	}
 }
@@ -174,7 +174,7 @@ imm_union argument_jitreturn_load(methoddesc *md, uint64_t *return_regs)
 			break;
 		default:
 			ret.l = 0;
-			assert(0 && "unreachable");
+			os::shouldnotreach();
 			break;
 	}
 
@@ -199,7 +199,7 @@ void argument_jitreturn_store(methoddesc *md, uint64_t *return_regs, imm_union r
 #endif
 			break;
 		default:
-			os::abort("argument_jitreturn_store: type not implemented");
+			os::unimplemented("argument_jitreturn_store: type not implemented");
 			break;
 	}
 }
