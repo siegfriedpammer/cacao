@@ -28,7 +28,6 @@
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
-#include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
@@ -66,26 +65,28 @@ static PassRegistry<MachineInstructionPrinterPass> X("MachineInstructionPrinterP
 // run pass
 bool MachineInstructionPrinterPass::run(JITData &JD) {
 	#if defined(ENABLE_LOGGING)
-	MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
-	assert(MIS);
-	for (MachineInstructionSchedule::iterator i = MIS->begin(), e = MIS->end();
-			i != e; ++i) {
-		MachineBasicBlock *MBB = *i;
-		LOG(*MBB << " ");
-		DEBUG(print_ptr_container(dbg(),MBB->pred_begin(),MBB->pred_end()) << nl);
-		// print label
-		LOG(*MBB->front() << nl);
-		// print phi
-		for (MachineBasicBlock::const_phi_iterator i = MBB->phi_begin(),
-				e = MBB->phi_end(); i != e; ++i) {
-			MachinePhiInst *phi = *i;
-			LOG(*phi << nl);
-		}
-		// print remaining instructions
-		for (MachineBasicBlock::iterator i = ++MBB->begin(),  e = MBB->end();
-				i != e ; ++i) {
-			MachineInstruction *MI = *i;
-			LOG(*MI << nl);
+	if (enabled) {
+		MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
+		assert(MIS);
+		for (MachineInstructionSchedule::iterator i = MIS->begin(), e = MIS->end();
+				i != e; ++i) {
+			MachineBasicBlock *MBB = *i;
+			dbg() << *MBB << " ";
+			print_ptr_container(dbg(),MBB->pred_begin(),MBB->pred_end()) << nl;
+			// print label
+			dbg() << *MBB->front() << nl;
+			// print phi
+			for (MachineBasicBlock::const_phi_iterator i = MBB->phi_begin(),
+					e = MBB->phi_end(); i != e; ++i) {
+				MachinePhiInst *phi = *i;
+				dbg() << *phi << nl;
+			}
+			// print remaining instructions
+			for (MachineBasicBlock::iterator i = ++MBB->begin(),  e = MBB->end();
+					i != e ; ++i) {
+				MachineInstruction *MI = *i;
+				dbg() << *MI << nl;
+			}
 		}
 	}
 	#endif

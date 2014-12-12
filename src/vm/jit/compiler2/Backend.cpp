@@ -67,6 +67,10 @@ void LoweringVisitorBase::visit(CONSTInst* I) {
 	set_op(I,move->get_result().op);
 }
 
+MachineBasicBlock* LoweringVisitorBase::new_block() const {
+	return *schedule->insert_after(get_current()->self_iterator(),MBBBuilder());
+}
+
 
 } // end namespace compiler2
 } // end namespace jit

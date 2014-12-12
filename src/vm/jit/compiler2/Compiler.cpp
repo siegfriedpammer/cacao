@@ -63,7 +63,6 @@
 #include "vm/jit/compiler2/ScheduleLatePass.hpp"
 #include "vm/jit/compiler2/ScheduleClickPass.hpp"
 #include "vm/jit/compiler2/DomTreePrinterPass.hpp"
-#include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/LivetimeAnalysisPass.hpp"

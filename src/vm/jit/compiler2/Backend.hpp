@@ -86,6 +86,7 @@ private:
 	MachineBasicBlock* current;
 	MapTy &map;
 	InstructionMapTy &inst_map;
+	MachineInstructionSchedule *schedule;
 protected:
 	Backend* get_Backend() const {
 		return backend;
@@ -109,14 +110,17 @@ protected:
 	}
 public:
 	LoweringVisitorBase(Backend *backend,MachineBasicBlock* current,
-		MapTy &map, InstructionMapTy &inst_map)
-			: backend(backend), current(current), map(map), inst_map(inst_map) {}
+		MapTy &map, InstructionMapTy &inst_map, MachineInstructionSchedule *schedule)
+			: backend(backend), current(current), map(map), inst_map(inst_map),
+			schedule(schedule) {}
 
 	virtual void visit_default(Instruction *I) {
 		ABORT_MSG("LoweringVisitor","Instruction " << BoldWhite
 		  << *I << reset_color << " not yet handled by the Backend");
 	}
 	MachineBasicBlock* get_current() const { return current; }
+	void set_current(MachineBasicBlock* MBB) { current = MBB; }
+	MachineBasicBlock* new_block() const;
 	// make InstructionVisitors visit visible
 	using InstructionVisitor::visit;
 

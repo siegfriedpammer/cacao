@@ -300,6 +300,28 @@ void ALUInstruction::emit(CodeMemory* CM) const {
 		}
 		return;
 	}
+	case GPInstruction::Reg32Imm8:
+	{
+		X86_64Register *reg1 = cast_to<X86_64Register>(src1);
+		Immediate *imm = cast_to<Immediate>(src2);
+		CodeFragment code = CM->get_CodeFragment(4);
+		code[0] = get_rex(reg1);
+		code[1] = 0x83;
+		code[2] = get_modrm_1reg(alu_id, reg1);
+		code[3] = imm->get_value<s1>();
+		return;
+	}
+	case GPInstruction::Reg32Imm32:
+	{
+		X86_64Register *reg1 = cast_to<X86_64Register>(src1);
+		Immediate *imm = cast_to<Immediate>(src2);
+		CodeFragment code = CM->get_CodeFragment(7);
+		code[0] = get_rex(reg1);
+		code[1] = 0x81;
+		code[2] = get_modrm_1reg(alu_id, reg1);
+		InstructionEncoding::imm<s4>(code+3, imm->get_value<s4>());
+		return;
+	}
 	case GPInstruction::Reg64Imm8:
 	{
 		X86_64Register *reg1 = cast_to<X86_64Register>(src1);

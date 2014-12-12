@@ -29,17 +29,11 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
 	// @formatter:off
-
-	
 	Fact.class,
 	Sqrt.class,
 	Power.class,
 	Min.class,
 	Pi.class,
-	
-	
-	
-	// Does not work for some reason
 	PiSpigot.class,
 	Overflow.class,
 	ParameterLong.class,
@@ -61,7 +55,7 @@ import org.junit.runners.Suite;
 	MatMult.class,
 	Array2dimLoad.class,
 	Array2dimStore.class,
-	SampleTest.class,
+	LookupSwitch.class,
 	
 	D2f.class,
 	Dadd.class,
@@ -81,8 +75,8 @@ import org.junit.runners.Suite;
 	I2f.class,
 	I2d.class,
 	Idiv.class,
-	Irem.class
-	
+	Irem.class,
+	SampleTest.class
 	// @formatter:on
 })
 public class All {
