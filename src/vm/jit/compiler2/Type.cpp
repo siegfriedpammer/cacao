@@ -24,9 +24,7 @@
 
 #include "vm/jit/compiler2/Type.hpp"
 #include "toolbox/OStream.hpp"
-
-#include "toolbox/OStream.hpp"
-
+#include "vm/os.hpp"
 #include <cassert>
 
 namespace cacao {
@@ -86,7 +84,7 @@ OStream& operator<<(OStream &OS, const Type::TypeID &type) {
 		case Type::GlobalStateTypeID: return OS << "GlobalStateTypeID";
 		case Type::VoidTypeID: return OS << "VoidTypeID";
 	}
-	assert(0 && "unreachable");
+	os::shouldnotreach();
 	return OS;
 }
 const char* get_type_name(const Type::TypeID &type) {
