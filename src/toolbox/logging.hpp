@@ -136,6 +136,18 @@ Color log_color();
 		os::abort();                                                          \
 	} while (0)
 
+#define SHOULDNOTREACH_MSG(EXPR_LONG)                                          \
+	do {                                                                       \
+		ERROR_MSG("should not reach", EXPR_LONG);                              \
+		os::abort();                                                           \
+	} while (0)
+
+#define UNIMPLEMENTED_MSG(EXPR_LONG)                                           \
+	do {                                                                       \
+		ERROR_MSG("not implemented yet", EXPR_LONG);                           \
+		os::abort();                                                           \
+	} while (0)
+
 } // end namespace cacao
 
 /* function prototypes ********************************************************/
