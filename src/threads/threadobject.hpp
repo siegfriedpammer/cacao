@@ -243,34 +243,7 @@ inline static void threads_set_current_stackframeinfo(struct stackframeinfo_t* s
 	THREADOBJECT->_stackframeinfo = sfi;
 }
 
-
-/* functions ******************************************************************/
-
-void threads_start_thread(threadobject *thread, functionptr function);
-
-void threads_set_thread_priority(pthread_t tid, int priority);
-
-bool threads_suspend_thread(threadobject *thread, SuspendReason reason);
-bool threads_resume_thread(threadobject *thread, SuspendReason reason);
-void threads_suspend_ack();
-
-void threads_join_all_threads(void);
-
-void threads_sleep(int64_t millis, int32_t nanos);
-
-void threads_wait_with_timeout_relative(threadobject *t, s8 millis, s4 nanos);
-
-void threads_thread_interrupt(threadobject *thread);
-
-void threads_park(bool absolute, int64_t nanos);
-void threads_unpark(threadobject *thread);
-
-#if defined(ENABLE_TLH)
-void threads_tlh_add_frame();
-void threads_tlh_remove_frame();
 #endif
-
-#endif // THREAD_POSIX_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.
