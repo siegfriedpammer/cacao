@@ -1270,11 +1270,23 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_D2I:
 			case ICMD_D2L:
 			case ICMD_D2F:
+			case ICMD_INT2BYTE:
+			case ICMD_INT2CHAR:
+			case ICMD_INT2SHORT:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
 					//Type::TypeID type_from;
 					Type::TypeID type_to;
 					switch (iptr->opc) {
+					case ICMD_INT2SHORT:
+						type_to = Type::ShortTypeID;
+						break;
+					case ICMD_INT2CHAR:
+						type_to = Type::CharTypeID;
+						break;
+					case ICMD_INT2BYTE:
+						type_to = Type::ByteTypeID;
+						break;
 					case ICMD_I2L:
 						//type_from = Type::IntTypeID;
 						type_to = Type::LongTypeID;
@@ -1332,15 +1344,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					M->add_Instruction(result);
 					break;
 				}
-			case ICMD_INT2BYTE:
-			case ICMD_INT2CHAR:
-			case ICMD_INT2SHORT:
-		//		SHOW_S1(OS, iptr);
-		//		SHOW_DST(OS, iptr);
-		//		break;
 
-				/* binary */
-				goto _default;
 			case ICMD_IADD:
 			case ICMD_LADD:
 			case ICMD_FADD:

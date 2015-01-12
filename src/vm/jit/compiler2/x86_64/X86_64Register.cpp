@@ -34,6 +34,15 @@ NativeRegister::NativeRegister(Type::TypeID type,
 	reg(reg) {
 }
 
+FPUStackRegister ST0 (0);
+FPUStackRegister ST1 (1);
+FPUStackRegister ST2 (2);
+FPUStackRegister ST3 (3);
+FPUStackRegister ST4 (4);
+FPUStackRegister ST5 (5);
+FPUStackRegister ST6 (6);
+FPUStackRegister ST7 (7);
+
 const uint8_t GPRegister::base = 0;
 const uint8_t SSERegister::base = 0;
 
@@ -82,6 +91,8 @@ SSERegister* FloatArgumentRegisters[] = {
 &XMM0, &XMM1, &XMM2, &XMM3, &XMM4, &XMM5, &XMM6, &XMM7
 };
 
+
+
 } // end namespace x86_64
 using namespace x86_64;
 
@@ -91,7 +102,9 @@ BackendBase<X86_64>::get_OperandFile(OperandFile& OF,MachineOperand *MO) const {
 	Type::TypeID type = MO->get_type();
 
 	switch (type) {
+	case Type::CharTypeID:
 	case Type::ByteTypeID:
+	case Type::ShortTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
 	case Type::ReferenceTypeID:

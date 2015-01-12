@@ -62,6 +62,13 @@ public:
 	virtual MachineOperand::IdentifySizeTy id_size()     const { return size; }
 };
 
+class FPUStackRegister {
+public:
+	const unsigned index;
+
+	FPUStackRegister(unsigned index) : index(index) {}
+};
+
 /**
  * This represents a machine register usage.
  *
@@ -147,6 +154,17 @@ extern SSERegister XMM12;
 extern SSERegister XMM13;
 extern SSERegister XMM14;
 extern SSERegister XMM15;
+
+
+extern FPUStackRegister ST0;
+extern FPUStackRegister ST1;
+extern FPUStackRegister ST2;
+extern FPUStackRegister ST3;
+extern FPUStackRegister ST4;
+extern FPUStackRegister ST5;
+extern FPUStackRegister ST6;
+extern FPUStackRegister ST7;
+
 
 const unsigned FloatArgumentRegisterSize = 8;
 extern SSERegister* FloatArgumentRegisters[];

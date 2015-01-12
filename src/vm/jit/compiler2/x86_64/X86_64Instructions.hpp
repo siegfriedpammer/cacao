@@ -60,6 +60,29 @@ struct SrcOp {
 	MachineOperand *op;
 	explicit SrcOp(MachineOperand *op) : op(op) {}
 };
+
+struct SrcMemOp {
+	MachineOperand *op;
+	explicit SrcMemOp(StackSlot *op) : op(op) {
+
+	}
+	explicit SrcMemOp(ManagedStackSlot *op) : op(op) {
+
+	}
+};
+
+
+struct DstMemOp {
+	MachineOperand *op;
+	explicit DstMemOp(StackSlot *op) : op(op) {
+
+	}
+	explicit DstMemOp(ManagedStackSlot *op) : op(op) {
+
+	}
+};
+
+
 /**
  * Simple wrapper for first operand of an
  * x86_64 instruction.
@@ -84,6 +107,14 @@ struct DstSrc1Op {
 	MachineOperand *op;
 	explicit DstSrc1Op(MachineOperand *op) : op(op) {}
 };
+
+struct DstSrc2Op {
+	MachineOperand *op;
+	explicit DstSrc2Op(MachineOperand *op) :
+			op(op) {
+	}
+};
+
 /**
  * Simple wrapper for first operand of an
  * x86_64 instruction which is also used for the result.
@@ -400,6 +431,33 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
+class IDivInst: public GPInstruction {
+public:
+	/**
+	 * The destination operands are only used to guide
+	 * the register allocator. The user must ensure that the values
+	 * are moved to the desired destination registers afterwards (e.g. by inserting a move)
+	 */
+	IDivInst(const Src2Op &src2, const DstSrc1Op &dstsrc1, const DstSrc2Op &dst2, OperandSize op_size) :
+			GPInstruction("X86_64IDivInst", dstsrc1.op, op_size, 3) {
+		operands[0].op = dstsrc1.op;
+		operands[1].op = src2.op;
+		operands[2].op = dst2.op;
+
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class CDQInst : public GPInstruction {
+public:
+	CDQInst(const DstSrc1Op &src1, const DstSrc2Op &src2, OperandSize op_size) : GPInstruction("X86_64CDQInst", &NoOperand, NO_SIZE, 2) {
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
+	}
+
+	virtual void emit(CodeMemory* CM) const;
+};
+
 class RetInst : public GPInstruction {
 public:
 	/// void return
@@ -437,12 +495,15 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
-
 class MovInst : public MoveInst {
+private:
+	bool forceSameRegisters;
 public:
 	MovInst(const SrcOp &src, const DstOp &dst,
-		GPInstruction::OperandSize op_size)
-			: MoveInst("X86_64MovInst", src.op, dst.op, op_size) {}
+		GPInstruction::OperandSize op_size, bool forceSameRegisters = false)
+			: MoveInst("X86_64MovInst", src.op, dst.op, op_size), forceSameRegisters(forceSameRegisters)  {
+	}
+
 	virtual bool accepts_immediate(std::size_t i, Immediate *imm) const {
 		return true;
 	}
@@ -674,6 +735,102 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
+/**
+ * Convert Dword Integer to Scalar Single-Precision FP Value
+ */
+class CVTSI2SSInst: public MoveInst {
+	GPInstruction::OperandSize from;
+public:
+	CVTSI2SSInst(const SrcOp &src, const DstOp &dst,
+			GPInstruction::OperandSize from, GPInstruction::OperandSize to) :
+			MoveInst("X86_64CVTSI2SSInst", src.op, dst.op, to), from(from) {
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+/**
+ * Convert with truncation Scalar Single-FP Value to DW Integer
+ */
+class CVTTSS2SIInst: public MoveInst {
+	GPInstruction::OperandSize to;
+
+public:
+	CVTTSS2SIInst(const SrcOp &src, const DstOp &dst,
+			GPInstruction::OperandSize from, GPInstruction::OperandSize to) :
+			MoveInst("X86_64CVTTSS2SIInst", src.op, dst.op, to), to(to) {
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class CVTTSD2SIInst: public MoveInst {
+	GPInstruction::OperandSize to;
+
+public:
+	CVTTSD2SIInst(const SrcOp &src, const DstOp &dst,
+			GPInstruction::OperandSize from, GPInstruction::OperandSize to) :
+			MoveInst("X86_64CVTTSD2SIInst", src.op, dst.op, to), to(to) {
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+
+class CVTSS2SDInst: public MoveInst {
+
+public:
+	CVTSS2SDInst(const SrcOp &src, const DstOp &dst,
+			GPInstruction::OperandSize to) :
+			MoveInst("X86_64CVTSS2SDInst", src.op, dst.op, to){
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class CVTSD2SSInst: public MoveInst {
+
+public:
+	CVTSD2SSInst(const SrcOp &src, const DstOp &dst,
+			GPInstruction::OperandSize from, GPInstruction::OperandSize to) :
+			MoveInst("X86_64CVTSD2SSInst", src.op, dst.op, to){
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class FLDInst: public GPInstruction {
+
+public:
+	FLDInst(const SrcMemOp &src, GPInstruction::OperandSize op_size) :
+			GPInstruction("X86_64FLDInst", src.op, op_size, 1) {
+		operands[0].op = src.op;
+
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class FSTPInst: public GPInstruction {
+
+public:
+	FSTPInst(const DstMemOp &dst, GPInstruction::OperandSize op_size) :
+			GPInstruction("X86_64FSTPInst", dst.op, op_size, 1) {
+		operands[0].op = dst.op;
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class FFREEInst: public X86_64Instruction {
+private:
+	FPUStackRegister *fpureg;
+public:
+	FFREEInst(FPUStackRegister *fpureg) :
+		X86_64Instruction("X86_64FFREEInst", &NoOperand, 0), fpureg(fpureg) {}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+class FINCSTPInst: public X86_64Instruction {
+public:
+	FINCSTPInst() :
+		X86_64Instruction("X86_64FINCSTPInst", &NoOperand, 0) {}
+	virtual void emit(CodeMemory* CM) const;
+};
+
 // compare
 class UCOMISInst : public GPInstruction {
 protected:
@@ -778,6 +935,18 @@ public:
 	DivSDInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
 		: SSEAluSDInst("X86_64DivSDInst", src2, dstsrc1, 0x5e) {}
 };
+
+class FPRemInst: public GPInstruction {
+private:
+public:
+
+	FPRemInst(OperandSize op_size) :
+			GPInstruction("X86_64FPRemInst", &NoOperand, op_size, 0) {
+	}
+
+	virtual void emit(CodeMemory* CM) const;
+};
+
 // SQRTSD Compute Square Root of Scalar Double-Precision Floating-Point Value 0x51
 // MINSD Return Minimum Scalar Double-Precision Floating-Point Value 0x5d
 // MAXSD Return Maximum Scalar Double-Precision Floating-Point Value 0x5f

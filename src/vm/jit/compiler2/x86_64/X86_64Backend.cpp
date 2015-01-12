@@ -69,15 +69,20 @@ MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *src,
 	assert(type == src->get_type());
 	assert(!(src->is_stackslot() && dst->is_stackslot()));
 	switch (type) {
+	case Type::CharTypeID:
 	case Type::ByteTypeID:
+	case Type::ShortTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
 	case Type::ReferenceTypeID:
+	{
 		return new MovInst(
 			SrcOp(src),
 			DstOp(dst),
 			get_OperandSize_from_Type(type));
+	}
 	case Type::DoubleTypeID:
+	{
 		switch (src->get_OperandID()) {
 		case MachineOperand::ImmediateID:
 			return new MovImmSDInst(
@@ -88,7 +93,24 @@ MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *src,
 				SrcOp(src),
 				DstOp(dst));
 		}
-	default: break;
+		break;
+	}
+	case Type::FloatTypeID:
+	{
+		switch (src->get_OperandID()) {
+		case MachineOperand::ImmediateID:
+			return new MovImmSSInst(
+				SrcOp(src),
+				DstOp(dst));
+		default:
+			return new MovSSInst(
+				SrcOp(src),
+				DstOp(dst));
+		}
+		break;
+	}
+	default:
+		break;
 	}
 	ABORT_MSG("x86_64: Move not supported",
 		"Inst: " << src << " -> " << dst << " type: " << type);
@@ -372,6 +394,11 @@ void X86_64LoweringVisitor::visit(ADDInst *I, bool copyOperands) {
 			Src2Op(src_op2),
 			DstSrc1Op(dst));
 		break;
+	case Type::FloatTypeID:
+		alu = new AddSSInst(
+				Src2Op(src_op2),
+				DstSrc1Op(dst));
+		break;
 	default:
 		ABORT_MSG("x86_64: Lowering not supported",
 			"Inst: " << I << " type: " << type);
@@ -433,6 +460,11 @@ void X86_64LoweringVisitor::visit(SUBInst *I, bool copyOperands) {
 			Src2Op(src_op2),
 			DstSrc1Op(dst));
 		break;
+	case Type::FloatTypeID:
+		alu = new SubSSInst(
+				Src2Op(src_op2),
+				DstSrc1Op(dst));
+		break;
 	default:
 		ABORT_MSG("x86_64: Lowering not supported",
 			"Inst: " << I << " type: " << type);
@@ -466,6 +498,11 @@ void X86_64LoweringVisitor::visit(MULInst *I, bool copyOperands) {
 			Src2Op(src_op2),
 			DstSrc1Op(dst));
 		break;
+	case Type::FloatTypeID:
+		alu = new MulSSInst(
+				Src2Op(src_op2),
+				DstSrc1Op(dst));
+		break;
 	default:
 		ABORT_MSG("x86_64: Lowering not supported",
 			"Inst: " << I << " type: " << type);
@@ -479,65 +516,116 @@ void X86_64LoweringVisitor::visit(DIVInst *I, bool copyOperands) {
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
 	Type::TypeID type = I->get_type();
+	GPInstruction::OperandSize opsize = get_OperandSize_from_Type(type);
 
-	VirtualRegister *dst = new VirtualRegister(type);
-	MachineInstruction *mov = get_Backend()->create_Move(src_op1, dst);
 	MachineInstruction *alu = NULL;
 
 	switch (type) {
-	#if 0
-	case Type::ByteTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
+	{
+		// 1. move the dividend to RAX
+		// 2. extend the dividend to RDX:RAX
+		// 3. perform the division
+		MachineOperand *dividendUpper = new NativeRegister(type, &RDX);
+		MachineOperand *result = new NativeRegister(type, &RAX);
+		MachineInstruction *convertToQuadword = new CDQInst(DstSrc1Op(dividendUpper), DstSrc2Op(result), opsize);
+		get_current()->push_back(get_Backend()->create_Move(src_op1, result));
+		get_current()->push_back(convertToQuadword);
+		alu = new IDivInst(Src2Op(src_op2), DstSrc1Op(result), DstSrc2Op(dividendUpper), opsize);
 		break;
-	#endif
+	}
 	case Type::DoubleTypeID:
+	{
+		VirtualRegister *dst = new VirtualRegister(type);
+		MachineInstruction *mov = get_Backend()->create_Move(src_op1, dst);
+		get_current()->push_back(mov);
 		alu = new DivSDInst(
 			Src2Op(src_op2),
 			DstSrc1Op(dst));
 		break;
+	}
+	case Type::FloatTypeID:
+	{
+		VirtualRegister *dst = new VirtualRegister(type);
+		MachineInstruction *mov = get_Backend()->create_Move(src_op1, dst);
+		get_current()->push_back(mov);
+		alu = new DivSSInst(
+				Src2Op(src_op2),
+				DstSrc1Op(dst));
+		break;
+	}
 	default:
 		ABORT_MSG("x86_64: Lowering not supported",
 			"Inst: " << I << " type: " << type);
 	}
-	get_current()->push_back(mov);
+
 	get_current()->push_back(alu);
 	set_op(I,alu->get_result().op);
 }
 
 void X86_64LoweringVisitor::visit(REMInst *I, bool copyOperands) {
 	assert(I);
-	//MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
-	//MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
-	Type::TypeID type = I->get_type();
 
-	#if 0
-	VirtualRegister *dst = new VirtualRegister(type);
-	MachineInstruction *mov = get_Backend()->create_Move(src_op1, dst);
-	MachineInstruction *alu;
+	MachineOperand* dividendLower;
+	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
+	Type::TypeID type = I->get_type();
+	GPInstruction::OperandSize opsize = get_OperandSize_from_Type(type);
+	MachineOperand *dividend = get_op(I->get_operand(0)->to_Instruction());;
+
+	MachineInstruction *resultInst = NULL;
+	MachineOperand *resultOperand;
+	MachineInstruction *convertToQuadword;
+
+	StackSlotManager *ssm;
+	ManagedStackSlot *src;
+	ManagedStackSlot *dst;
+	ManagedStackSlot *resultSlot;
 
 	switch (type) {
-	#if 0
-	case Type::ByteTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
+
+		// 1. move the dividend to RAX
+		// 2. extend the dividend to RDX:RAX
+		// 3. perform the division
+		resultOperand = new NativeRegister(type, &RDX);
+		dividendLower = new NativeRegister(type, &RAX);
+		convertToQuadword = new CDQInst(DstSrc1Op(dividendLower), DstSrc2Op(resultOperand), opsize);
+		get_current()->push_back(get_Backend()->create_Move(dividend, dividendLower));
+		get_current()->push_back(convertToQuadword);
+		resultInst = new IDivInst(Src2Op(src_op2), DstSrc1Op(resultOperand), DstSrc2Op(dividendLower), opsize);
+		get_current()->push_back(resultInst);
 		break;
-	#endif
+	case Type::FloatTypeID:
 	case Type::DoubleTypeID:
-		alu = new DivSDInst(
-			Src2Op(src_op2),
-			DstSrc1Op(dst));
+		ssm = get_Backend()->get_JITData()->get_StackSlotManager();
+		src = ssm->create_ManagedStackSlot(type);
+		dst = ssm->create_ManagedStackSlot(type);
+		resultSlot = ssm->create_ManagedStackSlot(type);
+
+		// operands of the FP stack can only be loaded from memory
+		get_current()->push_back(get_Backend()->create_Move(dividend, src));
+		get_current()->push_back(get_Backend()->create_Move(src_op2, dst));
+
+		// initialize the FP stack
+		get_current()->push_back(new FLDInst(SrcMemOp(dst), opsize));
+		get_current()->push_back(new FLDInst(SrcMemOp(src), opsize));
+
+		get_current()->push_back(new FPRemInst(opsize));
+		resultInst = new FSTPInst(DstMemOp(resultSlot), opsize);
+		get_current()->push_back(resultInst);
+
+		// clean the FP stack
+		get_current()->push_back(new FFREEInst(&ST0));
+		get_current()->push_back(new FINCSTPInst());
 		break;
 	default:
 		ABORT_MSG("x86_64: Lowering not supported",
 			"Inst: " << I << " type: " << type);
 	}
-	get_current()->push_back(mov);
-	get_current()->push_back(alu);
-	set_op(I,alu->get_result().op);
-	#endif
-		ABORT_MSG("x86_64: Lowering not supported",
-			"Inst: " << I << " type: " << type);
+
+	set_op(I,resultInst->get_result().op);
 }
 
 void X86_64LoweringVisitor::visit(ALOADInst *I, bool copyOperands) {
@@ -627,6 +715,8 @@ void X86_64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 		offset = OFFSET(java_doublearray_t, data[0]);
 		floatingpoint = true;
 		break;
+	case Type::ReferenceTypeID:
+		// TODO: implement me
 	default:
 		ABORT_MSG("x86_64 Lowering not supported",
 			"Inst: " << I << " type: " << type);
@@ -695,7 +785,9 @@ void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 	Type::TypeID type = I->get_type();
 	MachineOperand* src_op = (type == Type::VoidTypeID ? 0 : get_op(I->get_operand(0)->to_Instruction()));
 	switch (type) {
+	case Type::CharTypeID:
 	case Type::ByteTypeID:
+	case Type::ShortTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
 	{
@@ -749,6 +841,9 @@ void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 		set_op(I,ret->get_result().op);
 		return;
 	}
+
+	case Type::ReferenceTypeID:
+		// TODO: implement
 	default: break;
 	}
 	ABORT_MSG("x86_64 Lowering not supported",
@@ -763,7 +858,25 @@ void X86_64LoweringVisitor::visit(CASTInst *I, bool copyOperands) {
 
 	switch (from) {
 	case Type::IntTypeID:
+	{
 		switch (to) {
+		case Type::ByteTypeID:
+		{
+			MachineInstruction *mov = new MovSXInst(SrcOp(src_op), DstOp(new VirtualRegister(to)),
+					GPInstruction::OS_8, GPInstruction::OS_32);
+			get_current()->push_back(mov);
+			set_op(I, mov->get_result().op);
+			return;
+		}
+		case Type::CharTypeID:
+		case Type::ShortTypeID:
+		{
+			MachineInstruction *mov = new MovSXInst(SrcOp(src_op), DstOp(new VirtualRegister(to)),
+					GPInstruction::OS_16, GPInstruction::OS_32);
+			get_current()->push_back(mov);
+			set_op(I, mov->get_result().op);
+			return;
+		}
 		case Type::LongTypeID:
 		{
 			MachineInstruction *mov = new MovSXInst(
@@ -774,11 +887,45 @@ void X86_64LoweringVisitor::visit(CASTInst *I, bool copyOperands) {
 			set_op(I,mov->get_result().op);
 			return;
 		}
-		default: break;
+ 		case Type::DoubleTypeID:
+		{
+			MachineOperand *result = new VirtualRegister(Type::DoubleTypeID);
+			MachineInstruction *clearResult = new MovImmSDInst(SrcOp(new Immediate(0, Type::DoubleType())), DstOp(result));
+			MachineInstruction *conversion = new CVTSI2SDInst(
+				SrcOp(src_op),
+				DstOp(result),
+				GPInstruction::OS_32, GPInstruction::OS_64);
+			get_current()->push_back(clearResult);
+			get_current()->push_back(conversion);
+			set_op(I,conversion->get_result().op);
+			return;
+		}
+		case Type::FloatTypeID:
+		{
+			MachineInstruction *mov = new CVTSI2SSInst(
+				SrcOp(src_op),
+				DstOp(new VirtualRegister(to)),
+				GPInstruction::OS_32, GPInstruction::OS_32);
+			get_current()->push_back(mov);
+			set_op(I,mov->get_result().op);
+			return;
+		}
+		default:
+			break;
 		}
 		break;
+	}
 	case Type::LongTypeID:
+	{
 		switch (to) {
+		case Type::IntTypeID:
+		{
+			// force a 32bit move to cut the upper byte
+			MachineInstruction *mov = new MovInst(SrcOp(src_op), DstOp(new VirtualRegister(to)), GPInstruction::OS_32);
+			get_current()->push_back(mov);
+			set_op(I, mov->get_result().op);
+			return;
+		}
 		case Type::DoubleTypeID:
 		{
 			MachineInstruction *mov = new CVTSI2SDInst(
@@ -789,12 +936,86 @@ void X86_64LoweringVisitor::visit(CASTInst *I, bool copyOperands) {
 			set_op(I,mov->get_result().op);
 			return;
 		}
-		default: break;
+		case Type::FloatTypeID:
+		{
+			MachineInstruction *mov = new CVTSI2SSInst(
+				SrcOp(src_op),
+				DstOp(new VirtualRegister(to)),
+				GPInstruction::OS_64, GPInstruction::OS_32);
+			get_current()->push_back(mov);
+			set_op(I,mov->get_result().op);
+			return;
+		}
+		default:
+			break;
+		}
+
+		break;
+	}
+
+	case Type::DoubleTypeID:
+	{
+		switch (to) {
+
+		case Type::IntTypeID:
+		{
+			// TODO: currently this is replaced by the stackanalysis pass with ICMD_BUILTIN and therefore implemented
+			// in a builtin function
+		}
+		case Type::LongTypeID:
+		{
+			// TODO: currently this is replaced by the stackanalysis pass with ICMD_BUILTIN and therefore implemented
+			// in a builtin function
+		}
+		case Type::FloatTypeID:
+		{
+			MachineInstruction *mov = new CVTSD2SSInst(
+				SrcOp(src_op),
+				DstOp(new VirtualRegister(to)),
+				GPInstruction::OS_64, GPInstruction::OS_32);
+			get_current()->push_back(mov);
+			set_op(I,mov->get_result().op);
+			return;
+		}
+		default:
+			break;
 		}
 		break;
-	default: break;
-}
-ABORT_MSG("x86_64 Cast not supported!", "From " << from << " to " << to );
+	}
+	case Type::FloatTypeID:
+	{
+		switch(to) {
+
+		case Type::IntTypeID:
+		{
+			// TODO: currently this is replaced by the stackanalysis pass with ICMD_BUILTIN and therefore implemented
+			// in a builtin function
+		}
+		case Type::LongTypeID:
+		{
+			// TODO: currently this is replaced by the stackanalysis pass with ICMD_BUILTIN and therefore implemented
+			// in a builtin function
+		}
+		case Type::DoubleTypeID:
+		{
+			MachineInstruction *mov = new CVTSS2SDInst(
+				SrcOp(src_op),
+				DstOp(new VirtualRegister(to)),
+				GPInstruction::OS_64);
+			get_current()->push_back(mov);
+			set_op(I,mov->get_result().op);
+			return;
+		}
+		default:
+			break;
+		}
+	break;
+	}
+	default:
+		break;
+	}
+
+	ABORT_MSG("x86_64 Cast not supported!", "From " << from << " to " << to );
 }
 
 void X86_64LoweringVisitor::visit(INVOKESTATICInst *I, bool copyOperands) {

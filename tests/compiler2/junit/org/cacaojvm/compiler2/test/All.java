@@ -56,6 +56,26 @@ import org.junit.runners.Suite;
 	Array2dimLoad.class,
 	Array2dimStore.class,
 	LookupSwitch.class,
+	
+	D2f.class,
+	Dadd.class,
+	Dsub.class,
+	Dmul.class,
+	Ddiv.class,
+	
+	F2d.class,
+	Fadd.class,
+	Fsub.class,
+	Fmul.class,
+	Fdiv.class,
+	
+	I2b.class,
+	I2c.class,
+	I2s.class,
+	I2f.class,
+	I2d.class,
+	Idiv.class,
+	Irem.class,
 	SampleTest.class
 	// @formatter:on
 })
