@@ -65,6 +65,7 @@ libcompiler2_la_SOURCES = \
 	LoopTreePrinterPass.cpp \
 	LoopPass.cpp \
 	LoopSimplificationPass.cpp \
+	Matcher.cpp \
 	MachineBasicBlock.cpp \
 	MachineInstruction.cpp \
 	MachineInstructions.cpp \

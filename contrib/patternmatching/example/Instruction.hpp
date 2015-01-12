@@ -31,49 +31,28 @@
 #ifndef _JIT_COMPILER2_INSTRUCTION
 #define _JIT_COMPILER2_INSTRUCTION
 
-#include "vm/jit/compiler2/Value.hpp"
-#include "vm/jit/compiler2/MethodC2.hpp"
-
-// for Instruction::reset
-#include "vm/jit/compiler2/Compiler.hpp"
-
-#include "toolbox/logging.hpp"
-
-#include "vm/jit/compiler2/alloc/vector.hpp"
-#include "vm/jit/compiler2/alloc/set.hpp"
 #include <algorithm>
 
 #include <cstddef>
 
+#include <unordered_set>
+#include <vector>
+#include <list>
+
+#include "Type.hpp"
+
 namespace cacao {
-
-class OStream;
-
 namespace jit {
 namespace compiler2 {
 
-// Forward declarations
-class InstructionVisitor;
-
-// include instruction declaration
-#include "vm/jit/compiler2/InstructionDeclGen.inc"
-
-/**
- * Instruction super class.
- * This is the base class for all instruction. The functions 'toXInstruction()'
- * can be used to cast Instructions. If casting is not possible these functions
- * return NULL. Therefor it can be used to check for a specific Instruction, e.g.:
- * <code>
- *  if (CmdInstruction* ti = i.toCmdInstruction()
- *  { // 'i' is a CmpInstruction
- *    ...
- *  }
- * </code>
- */
-class Instruction : public Value {
+class Instruction {
 public:
-	typedef alloc::vector<Value*>::type OperandListTy;
-	typedef alloc::list<Instruction*>::type DepListTy;
+
+	typedef std::unordered_set<Instruction*> UserListTy;
+
+
+	typedef std::vector<Instruction*> OperandListTy;
+	typedef std::list<Instruction*> DepListTy;
 
 	typedef OperandListTy::iterator op_iterator;
 	typedef DepListTy::iterator dep_iterator;
@@ -82,69 +61,69 @@ public:
 
 	enum InstID {
 
-// include instruction ids
-#include "vm/jit/compiler2/InstructionIDGen.inc"
+#include "InstructionIDGen.inc"
 
 		NoInstID
 	};
 private:
+	Type::TypeID type;
+
+	UserListTy user_list;
+
+
 	OperandListTy op_list;
 	DepListTy dep_list;
 	DepListTy reverse_dep_list;
-	// this is probably a waste of space
-	static int id_counter;
 
-	/**
-	 * Reset static infos (run by Compiler)
-	 */
-	static void reset() {
-		id_counter = 0;
-	}
-	friend MachineCode* compile(methodinfo*);
 
 protected:
 	const InstID opcode;
-	Method* method;
+	//Method* method;
 	const int id;
-	BeginInst* begin;
+	Instruction* begin;
 
-	explicit Instruction() : Value(Type::VoidTypeID), opcode(NoInstID), id(-1), begin(NULL) {
-	}
-
-	void append_op(Value* v) {
+public:
+	static int id_counter;
+	void append_op(Instruction* v) {
 		op_list.push_back(v);
 		v->append_user(this);
 	}
 
-	void replace_op(Value* v_old, Value* v_new);
-
-	/**
-	 * @todo use Value::print_operands
-	 */
-	OStream& print_operands(OStream &OS);
-
-public:
-	explicit Instruction(InstID opcode, Type::TypeID type, BeginInst* begin = NULL)
-			: Value(type), opcode(opcode), id(id_counter++), begin(begin) {
+	void append_user(Instruction* I) {
+		assert(I);
+		user_list.insert(I);
 	}
 
-	virtual ~Instruction();
+	size_t user_size() const { return user_list.size(); }
+
+	void replace_op(Instruction* v_old, Instruction* v_new);
+
+	void set_type(Type::TypeID t) {
+		type = t;
+	}
+	Type::TypeID get_type() const { return type; }
+
+public:
+	explicit Instruction(InstID opcode, Type::TypeID type, Instruction* begin = NULL)
+			: /*Value(type), */opcode(opcode), id(id_counter++), begin(begin) {}
+
+	//virtual ~Instruction();
 
 	int get_id() const { return id; } ///< return a unique identifier for this instruction
 	InstID get_opcode() const { return opcode; } ///< return the opcode of the instruction
 
-	void set_Method(Method* M) { method = M; }
-	Method* get_Method() const { return method; }
+	//void set_Method(Method* M) { method = M; }
+	//Method* get_Method() const { return method; }
 
 	const_op_iterator op_begin() const { return op_list.begin(); }
 	const_op_iterator op_end()   const { return op_list.end(); }
-	Value* op_front() const { return op_list.front(); }
-	Value* op_back() const { return op_list.back(); }
+	Instruction* op_front() const { return op_list.front(); }
+	Instruction* op_back() const { return op_list.back(); }
 	size_t op_size() const { return op_list.size(); }
-	Value* get_operand(size_t i) {
+	Instruction* get_operand(size_t i) {
 		return op_list[i];
 	}
-	int get_operand_index(Value *op) const {
+	int get_operand_index(Instruction *op) const {
 		for (int i = 0, e = op_list.size(); i < e; ++i) {
 			if (op == op_list[i])
 				return i;
@@ -164,8 +143,12 @@ public:
 		I->reverse_dep_list.remove(this);
 	}
 
+
+	UserListTy::const_iterator user_begin() const { return user_list.begin(); }
+	UserListTy::const_iterator user_end()   const { return user_list.end(); }
+
 	/// check if the instruction is in a correct state
-	virtual bool verify() const;
+	//virtual bool verify() const;
 
 	const_dep_iterator dep_begin() const { return dep_list.begin(); }
 	const_dep_iterator dep_end()   const { return dep_list.end(); }
@@ -183,8 +166,8 @@ public:
 	 * @return The directly dominating BeginInst. NULL if there is none (eg. several
 	 *         cadidates or dead code).
 	 */
-	virtual BeginInst *get_BeginInst() const { return begin; }
-	virtual bool set_BeginInst(BeginInst *b) {
+	virtual Instruction *get_BeginInst() const { return begin; }
+	virtual bool set_BeginInst(Instruction *b) {
 		if (is_floating()) {
 			begin = b;
 			return true;
@@ -192,7 +175,6 @@ public:
 		assert(0 && "Trying to set BeginInst of a non floating instruction");
 		return false;
 	}
-
 	/// True if the instruction has a homogeneous signature.
 	/// (i.e. all operands and the result have the same type)
 	virtual bool is_homogeneous() const { return true; }
@@ -209,43 +191,38 @@ public:
 	virtual Instruction*          to_Instruction()          { return this; }
 
 // include to_XXXInst()'s
-#include "vm/jit/compiler2/InstructionToInstGen.inc"
+//#include "vm/jit/compiler2/InstructionToInstGen.inc"
 
-	const char* get_name() const {
-		switch (opcode) {
-// include switch cases
-#include "vm/jit/compiler2/InstructionNameSwitchGen.inc"
+// 	const char* get_name() const {
+// 		switch (opcode) {
+// // include switch cases
+// #include "vm/jit/compiler2/InstructionNameSwitchGen.inc"
 
-			case NoInstID:               return "NoInst";
-		}
-		return "Unknown Instruction";
-	}
+// 			case NoInstID:               return "NoInst";
+// 		}
+// 		return "Unknown Instruction";
+// 	}
 
 	/// Visitor
-	virtual void accept(InstructionVisitor& v, bool copyOperands) = 0;
-
-	virtual OStream& print(OStream& OS) const;
+	//virtual void accept(InstructionVisitor& v) = 0;
 
 	// needed to access replace_op in replace_value
-	friend class Value;
+	//friend class Value;
 };
+
+int Instruction::id_counter = 0;
 
 /**
  * Less comparator for Instruction pointers.
  *
  * Use for std::set, std::map.
  */
-struct InstPtrLess :
+/*struct InstPtrLess :
 public std::binary_function<const Instruction*, const Instruction*, bool> {
 	bool operator()(const Instruction *lhs, const Instruction *rhs) const {
 		return lhs->get_id() < rhs->get_id();
 	}
-};
-
-inline OStream& operator<<(OStream &OS, const Instruction &I) {
-	return I.print(OS);
-}
-OStream& operator<<(OStream &OS, const Instruction *I);
+};*/
 
 } // end namespace compiler2
 } // end namespace jit

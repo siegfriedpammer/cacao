@@ -1,0 +1,14 @@
+Due to incompatible licenses, the pattern matching generator is located in another repository.
+
+Please have a look at following repository:
+https://bitbucket.org/kuetsch/cacao-patternmatching
+
+To use the generator, please proceed as follows:
+
+* clone the repository to the same directory as the CACAO compiler2 repository
+* you should now have cacao-patternmatching and cacao-compiler2 folders located in the same directory. Please make sure, the CACAO folder is named cacao-compiler2! The makefile of cacao-patternmatching assumes this location. Otherwise, the variables have to be changed
+* call 'make' in cacao-patternmatching will build the generator. Afterwards it will call the python script and generate the matcher sources. Both actions are performed in compiler2 (sub)directories in cacao-compiler2 repository.
+* After the sources are generated (and most likely code is adapted), build the CACAO VM as usual.
+
+Example:
+As the generator is already extended to call functions/macros in CACAO VM, the example is currently not compiling. 

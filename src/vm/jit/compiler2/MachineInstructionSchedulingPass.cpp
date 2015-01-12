@@ -30,6 +30,8 @@
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 
+#include "vm/jit/compiler2/Matcher.hpp"
+
 #include "vm/jit/compiler2/alloc/queue.hpp"
 #include "vm/jit/compiler2/alloc/deque.hpp"
 
@@ -172,9 +174,13 @@ struct FindLeader : public std::unary_function<Instruction*,void> {
 
 bool MachineInstructionSchedulingPass::run(JITData &JD) {
 	BasicBlockSchedule *BS = get_Pass<BasicBlockSchedulingPass>();
+	GlobalSchedule* GS = get_Pass<ScheduleClickPass>();
 
-	IS = shared_ptr<ListSchedulingPass>(new ListSchedulingPass(get_Pass<ScheduleClickPass>()));
+#if !PATTERN_MATCHING
+	IS = shared_ptr<ListSchedulingPass>(new ListSchedulingPass(GS));
 	IS->run(JD);
+#endif
+
 
 	alloc::map<BeginInst*,MachineBasicBlock*>::type map;
 
@@ -194,18 +200,24 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 	// lower instructions
 	for (BasicBlockSchedule::const_bb_iterator i = BS->bb_begin(),
 			e = BS->bb_end(); i != e ; ++i) {
+		
 		BeginInst *BI = *i;
 		MachineBasicBlock *MBB = map[BI];
-
 		LoweringVisitor LV(BE,MBB,map,inst_map,this);
 
+#if !PATTERN_MATCHING
+		LOG2("lowering for BB using list sched " << BI << nl);
 		for (InstructionSchedule<Instruction>::const_inst_iterator i = IS->inst_begin(BI),
 				e = IS->inst_end(BI); i != e; ++i) {
 			Instruction *I = *i;
 			LOG2("lower: " << *I << nl);
-			I->accept(LV);
+			I->accept(LV, true);
 		}
-
+#else
+		LOG2("Lowering with Pattern Matching " << BI << nl);
+		Matcher M(GS, BI, &LV);
+		M.run();
+#endif
 		// fix predecessors
 		for (BeginInst::const_pred_iterator i = BI->pred_begin(),
 				e = BI->pred_end(); i != e; ++i) {
@@ -245,9 +257,10 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 // verify
 bool MachineInstructionSchedulingPass::verify() const {
 
-
+#if !PATTERN_MATCHING
 	// call List Scheduling verify first
 	IS->verify();
+#endif
 
 	for (MachineInstructionSchedule::const_iterator i = begin(), e = end();
 			i != e; ++i) {

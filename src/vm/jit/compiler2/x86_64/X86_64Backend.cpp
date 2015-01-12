@@ -32,6 +32,7 @@
 #include "vm/jit/compiler2/MethodDescriptor.hpp"
 #include "vm/jit/compiler2/CodeMemory.hpp"
 #include "vm/jit/compiler2/StackSlotManager.hpp"
+#include "vm/jit/compiler2/MatcherDefs.hpp"
 #include "vm/jit/PatcherNew.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/code.hpp"
@@ -118,7 +119,7 @@ void BackendBase<X86_64>::create_frame(CodeMemory* CM, StackSlotManager *SSM) co
 	emit_nop(CF,CF.size());
 }
 
-void X86_64LoweringVisitor::visit(LOADInst *I) {
+void X86_64LoweringVisitor::visit(LOADInst *I, bool copyOperands) {
 	assert(I);
 	//MachineInstruction *minst = loadParameter(I->get_index(), I->get_type());
 	const MethodDescriptor &MD = I->get_Method()->get_MethodDescriptor();
@@ -156,7 +157,7 @@ void X86_64LoweringVisitor::visit(LOADInst *I) {
 	set_op(I,move->get_result().op);
 }
 
-void X86_64LoweringVisitor::visit(CMPInst *I) {
+void X86_64LoweringVisitor::visit(CMPInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
@@ -247,7 +248,7 @@ void X86_64LoweringVisitor::visit(CMPInst *I) {
 		"Inst: " << I << " type: " << type);
 }
 
-void X86_64LoweringVisitor::visit(IFInst *I) {
+void X86_64LoweringVisitor::visit(IFInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
@@ -304,7 +305,7 @@ void X86_64LoweringVisitor::visit(IFInst *I) {
 		"Inst: " << I << " type: " << type);
 }
 
-void X86_64LoweringVisitor::visit(NEGInst *I) {
+void X86_64LoweringVisitor::visit(NEGInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src = get_op(I->get_operand(0)->to_Instruction());
 	Type::TypeID type = I->get_type();
@@ -346,13 +347,15 @@ void X86_64LoweringVisitor::visit(NEGInst *I) {
 	set_op(I,dst);
 }
 
-void X86_64LoweringVisitor::visit(ADDInst *I) {
+void X86_64LoweringVisitor::visit(ADDInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
 	Type::TypeID type = I->get_type();
-	VirtualRegister *dst = new VirtualRegister(type);
-	MachineInstruction *mov = get_Backend()->create_Move(src_op1,dst);
+	VirtualRegister *dst = NULL;
+
+	setupSrcDst(src_op1, src_op2, dst, type, copyOperands, I->is_commutable());
+
 	MachineInstruction *alu = NULL;
 
 	switch (type) {
@@ -373,18 +376,19 @@ void X86_64LoweringVisitor::visit(ADDInst *I) {
 		ABORT_MSG("x86_64: Lowering not supported",
 			"Inst: " << I << " type: " << type);
 	}
-	get_current()->push_back(mov);
 	get_current()->push_back(alu);
 	set_op(I,alu->get_result().op);
 }
 
-void X86_64LoweringVisitor::visit(ANDInst *I) {
+void X86_64LoweringVisitor::visit(ANDInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
 	Type::TypeID type = I->get_type();
-	VirtualRegister *dst = new VirtualRegister(type);
-	MachineInstruction *mov = get_Backend()->create_Move(src_op1, dst);
+	VirtualRegister *dst = NULL;
+
+	setupSrcDst(src_op1, src_op2, dst, type, copyOperands, I->is_commutable());
+
 	MachineInstruction *alu = NULL;
 
 	switch (type) {
@@ -400,18 +404,19 @@ void X86_64LoweringVisitor::visit(ANDInst *I) {
 		ABORT_MSG("x86_64: Lowering not supported",
 			"Inst: " << I << " type: " << type);
 	}
-	get_current()->push_back(mov);
 	get_current()->push_back(alu);
 	set_op(I,alu->get_result().op);
 }
 
-void X86_64LoweringVisitor::visit(SUBInst *I) {
+void X86_64LoweringVisitor::visit(SUBInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
 	Type::TypeID type = I->get_type();
-	VirtualRegister *dst = new VirtualRegister(type);
-	MachineInstruction *mov = get_Backend()->create_Move(src_op1, dst);
+	VirtualRegister *dst = NULL;
+
+	setupSrcDst(src_op1, src_op2, dst, type, copyOperands, I->is_commutable());
+
 	MachineInstruction *alu = NULL;
 
 	switch (type) {
@@ -432,19 +437,19 @@ void X86_64LoweringVisitor::visit(SUBInst *I) {
 		ABORT_MSG("x86_64: Lowering not supported",
 			"Inst: " << I << " type: " << type);
 	}
-	get_current()->push_back(mov);
 	get_current()->push_back(alu);
 	set_op(I,alu->get_result().op);
 }
 
-void X86_64LoweringVisitor::visit(MULInst *I) {
+void X86_64LoweringVisitor::visit(MULInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
 	Type::TypeID type = I->get_type();
+	VirtualRegister *dst = NULL;
 
-	VirtualRegister *dst = new VirtualRegister(type);
-	MachineInstruction *mov = get_Backend()->create_Move(src_op1, dst);
+	setupSrcDst(src_op1, src_op2, dst, type, copyOperands, I->is_commutable());
+
 	MachineInstruction *alu = NULL;
 
 	switch (type) {
@@ -465,12 +470,11 @@ void X86_64LoweringVisitor::visit(MULInst *I) {
 		ABORT_MSG("x86_64: Lowering not supported",
 			"Inst: " << I << " type: " << type);
 	}
-	get_current()->push_back(mov);
 	get_current()->push_back(alu);
 	set_op(I,alu->get_result().op);
 }
 
-void X86_64LoweringVisitor::visit(DIVInst *I) {
+void X86_64LoweringVisitor::visit(DIVInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
@@ -501,7 +505,7 @@ void X86_64LoweringVisitor::visit(DIVInst *I) {
 	set_op(I,alu->get_result().op);
 }
 
-void X86_64LoweringVisitor::visit(REMInst *I) {
+void X86_64LoweringVisitor::visit(REMInst *I, bool copyOperands) {
 	assert(I);
 	//MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	//MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
@@ -536,7 +540,7 @@ void X86_64LoweringVisitor::visit(REMInst *I) {
 			"Inst: " << I << " type: " << type);
 }
 
-void X86_64LoweringVisitor::visit(ALOADInst *I) {
+void X86_64LoweringVisitor::visit(ALOADInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_index = get_op(I->get_operand(1)->to_Instruction());
@@ -590,7 +594,7 @@ void X86_64LoweringVisitor::visit(ALOADInst *I) {
 	set_op(I,move->get_result().op);
 }
 
-void X86_64LoweringVisitor::visit(ASTOREInst *I) {
+void X86_64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_index = get_op(I->get_operand(1)->to_Instruction());
@@ -641,7 +645,7 @@ void X86_64LoweringVisitor::visit(ASTOREInst *I) {
 	set_op(I,move->get_result().op);
 }
 
-void X86_64LoweringVisitor::visit(ARRAYLENGTHInst *I) {
+void X86_64LoweringVisitor::visit(ARRAYLENGTHInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
 	assert(I->get_type() == Type::IntTypeID);
@@ -659,7 +663,7 @@ void X86_64LoweringVisitor::visit(ARRAYLENGTHInst *I) {
 	set_op(I,move->get_result().op);
 }
 
-void X86_64LoweringVisitor::visit(ARRAYBOUNDSCHECKInst *I) {
+void X86_64LoweringVisitor::visit(ARRAYBOUNDSCHECKInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_index = get_op(I->get_operand(1)->to_Instruction());
@@ -686,7 +690,7 @@ void X86_64LoweringVisitor::visit(ARRAYBOUNDSCHECKInst *I) {
 	get_current()->push_back(trap);
 }
 
-void X86_64LoweringVisitor::visit(RETURNInst *I) {
+void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 	assert(I);
 	Type::TypeID type = I->get_type();
 	MachineOperand* src_op = (type == Type::VoidTypeID ? 0 : get_op(I->get_operand(0)->to_Instruction()));
@@ -751,7 +755,7 @@ void X86_64LoweringVisitor::visit(RETURNInst *I) {
 		"Inst: " << I << " type: " << type);
 }
 
-void X86_64LoweringVisitor::visit(CASTInst *I) {
+void X86_64LoweringVisitor::visit(CASTInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
 	Type::TypeID from = I->get_operand(0)->to_Instruction()->get_type();
@@ -793,7 +797,7 @@ void X86_64LoweringVisitor::visit(CASTInst *I) {
 ABORT_MSG("x86_64 Cast not supported!", "From " << from << " to " << to );
 }
 
-void X86_64LoweringVisitor::visit(INVOKESTATICInst *I) {
+void X86_64LoweringVisitor::visit(INVOKESTATICInst *I, bool copyOperands) {
 	assert(I);
 	Type::TypeID type = I->get_type();
 	MethodDescriptor &MD = I->get_MethodDescriptor();
@@ -882,7 +886,7 @@ inline bool is_floatingpoint(Type::TypeID type) {
 
 } // end anonymous namespace
 
-void X86_64LoweringVisitor::visit(GETSTATICInst *I) {
+void X86_64LoweringVisitor::visit(GETSTATICInst *I, bool copyOperands) {
 	assert(I);
 	DataSegment &DS = get_Backend()->get_JITData()->get_CodeMemory()->get_DataSegment();
 	DataSegment::IdxTy idx = DS.get_index(DSFMIRef(I->get_fmiref()));
@@ -932,7 +936,7 @@ void X86_64LoweringVisitor::visit(GETSTATICInst *I) {
 	set_op(I,mov->get_result().op);
 }
 
-void X86_64LoweringVisitor::visit(LOOKUPSWITCHInst *I) {
+void X86_64LoweringVisitor::visit(LOOKUPSWITCHInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
 	Type::TypeID type = I->get_type();
@@ -968,7 +972,7 @@ void X86_64LoweringVisitor::visit(LOOKUPSWITCHInst *I) {
 	set_op(I,jmp->get_result().op);
 }
 
-void X86_64LoweringVisitor::visit(TABLESWITCHInst *I) {
+void X86_64LoweringVisitor::visit(TABLESWITCHInst *I, bool copyOperands) {
 	assert_msg(0 , "Fix CondJump");
 	assert(I);
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
@@ -1019,6 +1023,78 @@ void X86_64LoweringVisitor::visit(TABLESWITCHInst *I) {
 	// load table entry
 	set_op(I,cjmp->get_result().op);
 }
+
+void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
+
+	switch(ruleId){
+		case AddImmImm:
+		{
+			assert(I);
+			Type::TypeID type = I->get_type();
+			CONSTInst* const_left = I->get_operand(0)->to_Instruction()->to_CONSTInst();
+			CONSTInst* const_right = I->get_operand(1)->to_Instruction()->to_CONSTInst();
+
+			Immediate *imm;
+			switch (type) {
+				case Type::IntTypeID: 
+				{
+					s4 val = const_left->get_Int() + const_right->get_Int();
+					imm = new Immediate(val, Type::IntType());
+					break;
+				}
+				case Type::LongTypeID: 
+				{
+					s8 val = const_left->get_Long() + const_right->get_Long();
+					imm = new Immediate(val, Type::LongType());
+					break;
+				}
+				case Type::FloatTypeID: 
+				{
+					float val = const_left->get_Float() + const_right->get_Float();
+					imm = new Immediate(val, Type::FloatType());
+					break;
+				}
+				case Type::DoubleTypeID: 
+				{
+					double val = const_left->get_Double() + const_right->get_Double();
+					imm = new Immediate(val, Type::DoubleType());
+					break;
+				}
+				default:
+					assert(0);
+					break;
+			}
+			
+			VirtualRegister *reg = new VirtualRegister(I->get_type());
+			MachineInstruction *move = get_Backend()->create_Move(imm,reg);
+			get_current()->push_back(move);
+			set_op(I,move->get_result().op);
+			break;
+		}
+		default:
+			ABORT_MSG("Rule not supported", "Rule " << ruleId << " is not supported by method lowerComplex!");
+
+	}
+}
+
+void X86_64LoweringVisitor::setupSrcDst(MachineOperand*& src_op1, MachineOperand*& src_op2, VirtualRegister*& dst, 
+	Type::TypeID type, bool copyOperands, bool isCommutable) {
+
+	if (!copyOperands){
+		if (src_op1->is_Register()){
+			dst = src_op1->to_Register()->to_VirtualRegister();
+			return;
+		} else if (src_op2->is_Register() && isCommutable){
+			dst = src_op2->to_Register()->to_VirtualRegister();
+			src_op2 = src_op1;
+			return;
+		} 
+	}
+	dst = new VirtualRegister(type);
+	MachineInstruction *mov = get_Backend()->create_Move(src_op1,dst);
+	get_current()->push_back(mov);
+}
+
 
 #if 0
 template<>

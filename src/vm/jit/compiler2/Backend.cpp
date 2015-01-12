@@ -36,21 +36,21 @@ Backend* Backend::factory(JITData *JD) {
 	return new BackendBase<Target>(JD);
 }
 
-void LoweringVisitorBase::visit(BeginInst* I) {
+void LoweringVisitorBase::visit(BeginInst* I, bool copyOperands) {
 	assert(I);
 	MachineInstruction *label = new MachineLabelInst();
 	get_current()->push_back(label);
 	//set_op(I,label->get_result().op);
 }
 
-void LoweringVisitorBase::visit(GOTOInst* I) {
+void LoweringVisitorBase::visit(GOTOInst* I, bool copyOperands) {
 	assert(I);
 	MachineInstruction *jump = backend->create_Jump(get(I->get_target().get()));
 	get_current()->push_back(jump);
 	set_op(I,jump->get_result().op);
 }
 
-void LoweringVisitorBase::visit(PHIInst* I) {
+void LoweringVisitorBase::visit(PHIInst* I, bool copyOperands) {
 	assert(I);
 	MachinePhiInst *phi = new MachinePhiInst(I->op_size(),I->get_type(),I);
 	//get_current()->push_back(phi);
@@ -58,7 +58,7 @@ void LoweringVisitorBase::visit(PHIInst* I) {
 	set_op(I,phi->get_result().op);
 }
 
-void LoweringVisitorBase::visit(CONSTInst* I) {
+void LoweringVisitorBase::visit(CONSTInst* I, bool copyOperands) {
 	assert(I);
 	VirtualRegister *reg = new VirtualRegister(I->get_type());
 	Immediate *imm = new Immediate(I);

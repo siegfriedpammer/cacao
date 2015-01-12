@@ -43,26 +43,33 @@ public:
 	// make LoweringVisitorBases visit visible
 	using LoweringVisitorBase::visit;
 
-	virtual void visit(LOADInst *I);
-	virtual void visit(IFInst *I);
-	virtual void visit(ADDInst *I);
-	virtual void visit(ANDInst *I);
-	virtual void visit(SUBInst *I);
-	virtual void visit(MULInst *I);
-	virtual void visit(DIVInst *I);
-	virtual void visit(REMInst *I);
-	virtual void visit(RETURNInst *I);
-	virtual void visit(CASTInst *I);
-	virtual void visit(INVOKESTATICInst *I);
-	virtual void visit(GETSTATICInst *I);
-	virtual void visit(LOOKUPSWITCHInst *I);
-	virtual void visit(TABLESWITCHInst *I);
-	virtual void visit(ARRAYLENGTHInst *I);
-	virtual void visit(ALOADInst *I);
-	virtual void visit(ASTOREInst *I);
-	virtual void visit(ARRAYBOUNDSCHECKInst *I);
-	virtual void visit(CMPInst *I);
-	virtual void visit(NEGInst *I);
+	virtual void visit(LOADInst *I, bool copyOperands);
+	virtual void visit(IFInst *I, bool copyOperands);
+	virtual void visit(ADDInst *I, bool copyOperands);
+	virtual void visit(ANDInst *I, bool copyOperands);
+	virtual void visit(SUBInst *I, bool copyOperands);
+	virtual void visit(MULInst *I, bool copyOperands);
+	virtual void visit(DIVInst *I, bool copyOperands);
+	virtual void visit(REMInst *I, bool copyOperands);
+	virtual void visit(RETURNInst *I, bool copyOperands);
+	virtual void visit(CASTInst *I, bool copyOperands);
+	virtual void visit(INVOKESTATICInst *I, bool copyOperands);
+	virtual void visit(GETSTATICInst *I, bool copyOperands);
+	virtual void visit(LOOKUPSWITCHInst *I, bool copyOperands);
+	virtual void visit(TABLESWITCHInst *I, bool copyOperands);
+	virtual void visit(ARRAYLENGTHInst *I, bool copyOperands);
+	virtual void visit(ALOADInst *I, bool copyOperands);
+	virtual void visit(ASTOREInst *I, bool copyOperands);
+	virtual void visit(ARRAYBOUNDSCHECKInst *I, bool copyOperands);
+	virtual void visit(CMPInst *I, bool copyOperands);
+	virtual void visit(NEGInst *I, bool copyOperands);
+
+	virtual void lowerComplex(Instruction* I, int ruleId);
+
+private:
+	void setupSrcDst(MachineOperand*& src_op1, MachineOperand*& src_op2, VirtualRegister*& dst, 
+		Type::TypeID type, bool copyOperands, bool isCommutable);
+
 };
 
 } // end namespace x86_64

@@ -236,7 +236,7 @@ inline OStream& SSAGraph::getEdgeAttributes(OStream& OS, const SSAGraph::EdgeTyp
 	BeginInst* begin = e.second->to_BeginInst();
 	if (begin) {
 		EdgeAttributeVisitor visitor(OS,begin);
-		e.first->accept(visitor);
+		e.first->accept(visitor, true);
 	}
 	return OS;
 }

@@ -1,0 +1,86 @@
+%{
+/* src/vm/jit/compiler2/GrammarBase.brg - Generated Basic Grammar
+
+   Copyright (C) 2013
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301, USA.
+
+*/
+
+/*
+WARNING: THIS FILE IS AUTO-GENERATED! DO NOT ALTER!
+Instead have a look at the generator (src/vm/jit/compiler2/instruction_gen.py and contrib/patternmatching/)
+and the input file (instruction_table.csv).
+*/
+
+%}
+%start stm
+%term NOPInstID = 3
+%term POPInstID = 4
+%term CHECKNULLInstID = 5
+%term ARRAYLENGTHInstID = 6
+%term ARRAYBOUNDSCHECKInstID = 7
+%term NEGInstID = 8
+%term CASTInstID = 9
+%term ADDInstID = 10
+%term SUBInstID = 11
+%term MULInstID = 12
+%term DIVInstID = 13
+%term REMInstID = 14
+%term SHLInstID = 15
+%term USHRInstID = 16
+%term ANDInstID = 17
+%term ORInstID = 18
+%term XORInstID = 19
+%term CMPInstID = 20
+%term CONSTInstID = 21
+%term ALOADInstID = 28
+%term LOADInstID = 30
+%term IFInstID = 45
+%term TABLESWITCHInstID = 47
+%term LOOKUPSWITCHInstID = 48
+%term RETURNInstID = 49
+%term NoInstID = 58
+%%
+stm: NOPInstID "NOPInstID" 1 
+stm: POPInstID "POPInstID" 1 
+stm: CHECKNULLInstID "CHECKNULLInstID" 1 
+stm: ARRAYLENGTHInstID(stm) "ARRAYLENGTHInstID" 1 
+stm: ARRAYBOUNDSCHECKInstID(stm,stm) "ARRAYBOUNDSCHECKInstID" 1 
+stm: NEGInstID(stm) "NEGInstID" 1 
+stm: CASTInstID(stm) "CASTInstID" 1 
+stm: ADDInstID(stm,stm) "ADDInstID" 1 
+stm: SUBInstID(stm,stm) "SUBInstID" 1 
+stm: MULInstID(stm,stm) "MULInstID" 1 
+stm: DIVInstID(stm,stm) "DIVInstID" 1 
+stm: REMInstID(stm,stm) "REMInstID" 1 
+stm: SHLInstID "SHLInstID" 1 
+stm: USHRInstID "USHRInstID" 1 
+stm: ANDInstID(stm,stm) "ANDInstID" 1 
+stm: ORInstID(stm,stm) "ORInstID" 1 
+stm: XORInstID(stm,stm) "XORInstID" 1 
+stm: CMPInstID(stm,stm) "CMPInstID" 1 
+stm: CONSTInstID "CONSTInstID" 1 
+stm: ALOADInstID(stm,stm) "ALOADInstID" 1 
+stm: LOADInstID "LOADInstID" 1 
+stm: IFInstID(stm,stm) "IFInstID" 1 
+stm: TABLESWITCHInstID(stm) "TABLESWITCHInstID" 1 
+stm: LOOKUPSWITCHInstID(stm) "LOOKUPSWITCHInstID" 1 
+stm: RETURNInstID(stm) "RETURNInstID" 1 
+stm: NoInstID "NoInstID" 1 

@@ -124,7 +124,7 @@ def main(temps):
 	default_file = './instruction_table.csv'
 	comment_pattern = re.compile(r'^[^#]*')
 	#entry_pattern = re.compile(r'(?P<name>\w+),(?P<desc>"\w+")')
-	entry_pattern = re.compile(r'(?P<name>\w+)')
+	entry_pattern = re.compile(r'(?P<name>\w+)(,(?P<ops>\d+))?')
 
 	# command line arguments
 	parser = argparse.ArgumentParser(description='Generate instruction table includes.')
@@ -138,13 +138,14 @@ def main(temps):
 
 	keys = {
 	  'generator' : sys.argv[0],
-	  'input_file': args.table.name,
+	  'input_file': args.table.name
 	}
 
 	# print headers
 	for t in temps:
 		t.print_header(keys)
 	# iterate entries
+	enumid = 0
 	line_nr = 0
 	for line in args.table:
 		line_nr += 1
@@ -159,10 +160,16 @@ def main(temps):
 			continue
 
 		entry = entry.groupdict()
+
+		if not entry['ops']:
+			entry['ops'] = '0'
+
+		entry['enumid'] = enumid
+
 		# print line
 		for t in temps:
 			t.print_line(dict(keys.items() + entry.items()))
-
+		enumid += 1
 	# print footer
 	for t in temps:
 		t.print_footer(keys)
@@ -273,22 +280,8 @@ def burg():
 
 if __name__ == '__main__':
 	temps = [
-		Template('InstructionDeclGen.inc','Instruction Declarations','class {name};\n',
-			cpp_header+cpp_generation_disclaimer,cpp_footer),
-		Template('InstructionIDGen.inc','Instruction IDs','{name}ID,\n',
-			cpp_header+cpp_generation_disclaimer,cpp_footer),
-		Template('InstructionToInstGen.inc','Instruction conversion methods',
-			'virtual {name}* to_{name}() {{ return NULL; }}\n',
-			cpp_header+cpp_generation_disclaimer,cpp_footer),
-		Template('InstructionNameSwitchGen.inc','Instruction name switch',
-			'case {name}ID: return "{name}";\n',
-			cpp_header+cpp_generation_disclaimer,cpp_footer),
-		Template('InstructionVisitorGen.inc','Instruction Visitor',
-			'virtual void visit({name}* I, bool copyOperands);\n',
-			cpp_header+cpp_generation_disclaimer,cpp_footer),
-		Template('InstructionVisitorImplGen.inc','Instruction Visitor',
-			'void InstructionVisitor::visit({name}* I, bool copyOperands) {{visit_default(I);}}\n',
-			cpp_header+cpp_generation_disclaimer,cpp_footer),
+		Template('InstructionIDGen.inc','Instruction IDs','{name}ID = {enumid}, \n', '', ''),
+		Template('InstructionTermGen.inc','Instruction IDs','{name}ID={enumid} ', '%term '),
 	]
 	main(temps)
 	burg()

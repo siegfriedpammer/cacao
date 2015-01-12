@@ -1,0 +1,2 @@
+stm: ADDInstID(CONSTInstID, CONSTInstID) "AddImmImm" 1
+%%

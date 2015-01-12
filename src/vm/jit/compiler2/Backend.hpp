@@ -124,10 +124,17 @@ public:
 	// make InstructionVisitors visit visible
 	using InstructionVisitor::visit;
 
-	virtual void visit(BeginInst* I);
-	virtual void visit(GOTOInst* I);
-	virtual void visit(PHIInst* I);
-	virtual void visit(CONSTInst* I);
+	virtual void visit(BeginInst* I, bool copyOperands);
+	virtual void visit(GOTOInst* I, bool copyOperands);
+	virtual void visit(PHIInst* I, bool copyOperands);
+	virtual void visit(CONSTInst* I, bool copyOperands);
+
+	/* RuleId enum cannot be used in interface, as including MatcherDefs.hpp 
+	 * requires Grammar.inc. Backend.hpp is included in several other files 
+	 * that are compiled without CXXFLAGS containing arch folder.
+	 * Interface uses int, implicit conversion is done within method implementation.
+	 */
+	virtual void lowerComplex(Instruction* I, int ruleId) = 0;
 };
 
 
