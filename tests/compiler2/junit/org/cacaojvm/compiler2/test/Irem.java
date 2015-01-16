@@ -23,6 +23,7 @@
 */
 package org.cacaojvm.compiler2.test;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class Irem extends Compiler2TestBase {
@@ -67,14 +68,11 @@ public class Irem extends Compiler2TestBase {
 		testResultEqual("irem", "(II)I", 0, 5);
 	}
 
-	/**
-	 * This test will not succeed unless exceptions are handled
-	 */
-	/*
+	@Ignore("This test will not succeed unless exceptions are handled")
 	@Test
 	public void test8() {
 		testResultEqual("irem", "(II)I", 5, 0);
-	}*/
+	}
 
 	/**
 	 * This is the method under test.
