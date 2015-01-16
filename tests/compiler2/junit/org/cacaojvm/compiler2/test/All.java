@@ -1,4 +1,3 @@
-package org.cacaojvm.compiler2.test;
 /** tests/compiler2/junit/All.java - runs all CACAO compiler2 unit tests
  *
  * Copyright (C) 1996-2014
@@ -22,6 +21,7 @@ package org.cacaojvm.compiler2.test;
  * 02110-1301, USA.
  *
  */
+package org.cacaojvm.compiler2.test;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
