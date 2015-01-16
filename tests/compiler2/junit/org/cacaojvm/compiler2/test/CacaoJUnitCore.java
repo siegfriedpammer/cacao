@@ -30,7 +30,6 @@ import junit.runner.Version;
 
 import org.junit.internal.JUnitSystem;
 import org.junit.internal.RealSystem;
-import org.junit.internal.TextListener;
 import org.junit.runner.Description;
 import org.junit.runner.JUnitCore;
 import org.junit.runner.Result;
@@ -74,7 +73,7 @@ public class CacaoJUnitCore {
 				missingClasses.add(failure);
 			}
 		}
-		RunListener listener = new TextListener(system);
+		RunListener listener = new CacaoRunListenerWrapper(new VerboseTextListener(system));
 		junitCore.addListener(listener);
 		Result result = junitCore.run(classes.toArray(new Class[0]));
 		for (Failure each : missingClasses) {
