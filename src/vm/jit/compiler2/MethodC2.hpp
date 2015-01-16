@@ -35,6 +35,10 @@ struct methodinfo;
 class Utf8String;
 
 namespace cacao {
+class OStream;
+}
+
+namespace cacao {
 namespace jit {
 namespace compiler2 {
 
