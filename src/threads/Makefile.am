@@ -66,7 +66,6 @@ libthreads_la_SOURCES = \
 	lock.hpp \
 	lockword.cpp \
 	lockword.hpp \
-	removeme.cpp \
 	mutex.hpp \
 	threadlist.cpp \
 	threadlist.hpp \

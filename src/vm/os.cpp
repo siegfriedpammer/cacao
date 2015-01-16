@@ -66,6 +66,57 @@ void os::abort(const char* text, ...)
 	os::abort();
 }
 
+/**
+ * Prints a should not reach message and aborts the VM.
+ *
+ * @param text Error message to print.
+ */
+void os::shouldnotreach(const char* text, ...)
+{
+	va_list ap;
+
+	// Print the log message.
+	log_start();
+
+	log_print("should not reach: ");
+	va_start(ap, text);
+	log_vprint(text, ap);
+	va_end(ap);
+
+	log_finish();
+
+	// Print a backtrace.
+	os::print_backtrace();
+
+	// Now abort the VM.
+	os::abort();
+}
+
+/**
+ * Prints an unimplemented message and aborts the VM.
+ *
+ * @param text Error message to print.
+ */
+void os::unimplemented(const char* text, ...)
+{
+	va_list ap;
+
+	// Print the log message.
+	log_start();
+
+	log_print("not implemented yet: ");
+	va_start(ap, text);
+	log_vprint(text, ap);
+	va_end(ap);
+
+	log_finish();
+
+	// Print a backtrace.
+	os::print_backtrace();
+
+	// Now abort the VM.
+	os::abort();
+}
 
 /**
  * Common code for both os::abort_errnum and os::abort_errno.
