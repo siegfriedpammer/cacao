@@ -53,6 +53,7 @@ import org.junit.runners.Suite;
 	DoubleArrayStore.class,
 	MatAdd.class,
 	MatMult.class,
+	GetStatic.class,
 	Array2dimLoad.class,
 	Array2dimStore.class,
 	LookupSwitch.class,

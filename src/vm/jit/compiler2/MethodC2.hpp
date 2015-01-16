@@ -170,6 +170,7 @@ public:
 
 };
 
+OStream& operator<<(OStream &OS, const Method &M);
 
 } // end namespace cacao
 } // end namespace jit

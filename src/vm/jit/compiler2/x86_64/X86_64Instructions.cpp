@@ -184,6 +184,7 @@ GPInstruction::OpEncoding get_OpEncoding(MachineOperand *src1,
 		}
 		default: break;
 		}
+		break;
 	}
 	case MachineOperand::ManagedStackSlotID:
 	{
@@ -201,6 +202,7 @@ GPInstruction::OpEncoding get_OpEncoding(MachineOperand *src1,
 		}
 		default: break;
 		}
+		break;
 	}
 	default: break;
 	}
@@ -437,6 +439,12 @@ void EnterInst::emit(CodeMemory* CM) const {
 void LeaveInst::emit(CodeMemory* CM) const {
 	CodeFragment code = CM->get_CodeFragment(1);
 	code[0] = 0xc9;
+}
+
+void BreakInst::emit(CodeMemory* CM) const {
+	CodeFragment code = CM->get_CodeFragment(1);
+	// INT3 - drop to debugger
+	code[0] = 0xcc;
 }
 
 void RetInst::emit(CodeMemory* CM) const {
