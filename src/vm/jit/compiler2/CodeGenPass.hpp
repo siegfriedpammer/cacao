@@ -49,8 +49,10 @@ struct MBBCompare {
 class CodeGenPass : public Pass, public memory::ManagerMixin<CodeGenPass> {
 public:
 	typedef alloc::map<MachineBasicBlock*,std::size_t,MBBCompare>::type BasicBlockMap;
+#ifdef ENABLE_LOGGING
 	static Option<bool> print_code;
 	static Option<bool> print_data;
+#endif
 private:
 	/**
 	 * finish code generation

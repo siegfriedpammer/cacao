@@ -52,8 +52,10 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+#ifdef ENABLE_LOGGING
 Option<bool> CodeGenPass::print_code("PrintCodeSegment","compiler2: print code segment",false,::cacao::option::xx_root());
 Option<bool> CodeGenPass::print_data("PrintDataSegment","compiler2: print data segment",false,::cacao::option::xx_root());
+#endif
 
 bool CodeGenPass::run(JITData &JD) {
 	MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
@@ -120,6 +122,7 @@ std::size_t CodeGenPass::get_block_size(MachineBasicBlock *MBB) const {
 
 namespace {
 
+#ifdef ENABLE_LOGGING
 void print_hex(OStream &OS, u1 *start, u1 *end, uint32_t num_bytes_per_line = 8) {
 	OS << hex;
 	for(u1 *ptr = start, *e = end; ptr < e; ++ptr) {
@@ -130,6 +133,7 @@ void print_hex(OStream &OS, u1 *start, u1 *end, uint32_t num_bytes_per_line = 8)
 	}
 	OS << dec << nl;
 }
+#endif
 
 } // end anonymous namespace
 
@@ -299,6 +303,7 @@ void CodeGenPass::finish(JITData &JD) {
 
 	md_cacheflush(code->mcode, code->mcodelength);
 
+#ifdef ENABLE_LOGGING
 	if (print_data) {
 		dbg() << nl << "Data Segment: " << *JD.get_Method() << hex;
 		print_hex(dbg(), code->mcode, code->entrypoint);
@@ -307,6 +312,7 @@ void CodeGenPass::finish(JITData &JD) {
 		dbg() << nl << "Code Segment: " << *JD.get_Method() << hex;
 		print_hex(dbg(), code->entrypoint, code->mcode + code->mcodelength);
 	}
+#endif
 
 }
 
