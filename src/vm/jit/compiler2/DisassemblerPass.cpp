@@ -41,6 +41,8 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+Option<bool> DisassemblerPass::enabled("DisassemblerPass","compiler2: enable DisassemblerPass",false,::cacao::option::xx_root());
+
 bool DisassemblerPass::run(JITData &JD) {
 #if defined(ENABLE_DISASSEMBLER)
 	codeinfo *cd = JD.get_jitdata()->code;

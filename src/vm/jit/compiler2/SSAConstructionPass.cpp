@@ -1007,6 +1007,7 @@ void SSAConstructionPass::print_current_def() const {
 
 bool SSAConstructionPass::run(JITData &JD) {
 	M = JD.get_Method();
+	LOG("SSAConstructionPass: " << *M << nl);
 
 	basicblock *bb;
 	jd = JD.get_jitdata();
@@ -2270,7 +2271,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						cond = Conditional::GE;
 						break;
 					default:
-						ABORT_MSG("unreachable","unreachable");
+						os::shouldnotreach();
 						cond = Conditional::NoCond;
 					}
 					Instruction *konst = new CONSTInst(iptr->sx.val.i,Type::IntType());
@@ -2321,7 +2322,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						cond = Conditional::GE;
 						break;
 					default:
-						ABORT_MSG("unreachable","unreachable");
+						os::shouldnotreach();
 						cond = Conditional::NoCond;
 					}
 					Instruction *konst = new CONSTInst(iptr->sx.val.l,Type::LongType());
@@ -2390,7 +2391,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						cond = Conditional::GT;
 						break;
 					default:
-						ABORT_MSG("unreachable","unreachable");
+						os::shouldnotreach();
 						cond = Conditional::NoCond;
 					}
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
@@ -2438,7 +2439,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						break;
 					default:
 						cond = Conditional::NoCond;
-						ABORT_MSG("unreachable","unreachable");
+						os::shouldnotreach();
 					}
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
 					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);

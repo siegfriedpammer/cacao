@@ -28,6 +28,7 @@
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/CodeMemory.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
+#include "toolbox/Option.hpp"
 
 MM_MAKE_NAME(CodeGenPass)
 
@@ -48,6 +49,10 @@ struct MBBCompare {
 class CodeGenPass : public Pass, public memory::ManagerMixin<CodeGenPass> {
 public:
 	typedef alloc::map<MachineBasicBlock*,std::size_t,MBBCompare>::type BasicBlockMap;
+#ifdef ENABLE_LOGGING
+	static Option<bool> print_code;
+	static Option<bool> print_data;
+#endif
 private:
 	/**
 	 * finish code generation

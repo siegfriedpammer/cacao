@@ -39,7 +39,7 @@ build:
 	$(JAVACCMD) -Xbootclasspath/a:$(JUNIT_JAR) -d . $(srcdir)/org/cacaojvm/compiler2/test/*.java
 
 run:
-	$(JAVACMD) -Xbootclasspath/a:$(JUNIT_JAR):. org.junit.runner.JUnitCore org.cacaojvm.compiler2.test.All
+	$(JAVACMD) -Xbootclasspath/a:$(JUNIT_JAR):. org.cacaojvm.compiler2.test.CacaoJUnitCore org.cacaojvm.compiler2.test.All
 
 ## Local variables:
 ## mode: Makefile

@@ -420,6 +420,13 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
+class BreakInst : public X86_64Instruction {
+public:
+	BreakInst()
+			: X86_64Instruction("X86_64BreakInst", &NoOperand, 0) {}
+	virtual void emit(CodeMemory* CM) const;
+};
+
 class IMulInst : public GPInstruction {
 public:
 	IMulInst(const Src2Op &src2, const DstSrc1Op &dstsrc1,

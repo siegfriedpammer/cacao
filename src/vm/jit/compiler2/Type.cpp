@@ -24,8 +24,8 @@
 
 #include "vm/jit/compiler2/Type.hpp"
 #include "toolbox/OStream.hpp"
-
-#include "toolbox/OStream.hpp"
+#include "toolbox/logging.hpp"
+#include "vm/os.hpp"
 
 #include <cassert>
 
@@ -60,9 +60,8 @@ Type::TypeID convert_var_type(int type)
 	case TYPE_RET:
 	default: /* do nothing */ ;
 	}
-	err() << BoldRed << "error: " << reset_color << "type " << BoldWhite
-		  << get_var_type(type) << reset_color << " (0x0" << hex << type << dec << ") "
-		  << " not yet supported!" << nl;
+	ABORT_MSG("Type not supported", "type: " << get_var_type(type) << " (0x" << setz(2) << hex << type << dec << ") "
+		  << " not yet supported!");
 	//assert( 0 && "Unsupported type");
 	return Type::VoidTypeID;
 }
@@ -86,7 +85,7 @@ OStream& operator<<(OStream &OS, const Type::TypeID &type) {
 		case Type::GlobalStateTypeID: return OS << "GlobalStateTypeID";
 		case Type::VoidTypeID: return OS << "VoidTypeID";
 	}
-	assert(0 && "unreachable");
+	os::shouldnotreach();
 	return OS;
 }
 const char* get_type_name(const Type::TypeID &type) {

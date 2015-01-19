@@ -35,6 +35,10 @@ struct methodinfo;
 class Utf8String;
 
 namespace cacao {
+class OStream;
+}
+
+namespace cacao {
 namespace jit {
 namespace compiler2 {
 
@@ -170,6 +174,7 @@ public:
 
 };
 
+OStream& operator<<(OStream &OS, const Method &M);
 
 } // end namespace cacao
 } // end namespace jit
