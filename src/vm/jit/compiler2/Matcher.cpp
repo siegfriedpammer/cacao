@@ -317,15 +317,8 @@ void Matcher::lowerRule(Instruction* inst, RuleId id){
 			inst->accept(*LV, STATE_LABEL(inst)->isLeaf);
 		}
 	} else {
-		switch (id){
-			case AddImmImm:
-				LOG("Lowering " << inst << " with rule " << burm_templates[id] << nl);
-				LV->lowerComplex(inst, id);
-				break;
-			default:
-				LOG("!!! Lowering for Rule " << burm_templates[id] << " not implemented" << nl);
-				break;
-		}
+		LOG("Lowering " << inst << " with rule " << burm_templates[id] << nl);
+		LV->lowerComplex(inst, id);
 	}
 }
 

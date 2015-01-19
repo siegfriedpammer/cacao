@@ -102,7 +102,7 @@ inline u1 get_rex(X86_64Register *reg, X86_64Register *rm = NULL,
 		rex |= (1 << rex_w);
 	}
 
-	if (reg->extented) {
+	if (reg && reg->extented) {
 		rex |= (1 << rex_r);
 	}
 	if (rm && rm->extented) {

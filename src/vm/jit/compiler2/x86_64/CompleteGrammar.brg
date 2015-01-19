@@ -85,4 +85,6 @@ stm: LOOKUPSWITCHInstID(stm) "LOOKUPSWITCHInstID" 1
 stm: RETURNInstID(stm) "RETURNInstID" 1 
 stm: NoInstID "NoInstID" 1 
 stm: ADDInstID(CONSTInstID, CONSTInstID) "AddImmImm" 1
+stm: ADDInstID(stm, CONSTInstID) "AddRegImm" ((a->get_type() == Type::IntTypeID && a->get_operand(1)->get_type() == Type::IntTypeID) ? 1 : 1000)
 %%
+// stm: ADDInstID(CONSTInstID, stm) "AddImmReg" ((a->get_type() == Type::IntTypeID && a->get_operand(0)->get_type() == Type::IntTypeID) ? 1 : 1000)
