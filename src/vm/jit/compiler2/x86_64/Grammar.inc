@@ -86,7 +86,8 @@ enum RuleId {
 /* 25 */	RETURNInstID,	/* stm: RETURNInstID(stm) */
 /* 26 */	NoInstID,	/* stm: NoInstID */
 /* 27 */	AddImmImm,	/* stm: ADDInstID(CONSTInstID,CONSTInstID) */
-/* 28 */	AddRegImm,	/* stm: ADDInstID(stm,CONSTInstID) */
+/* 28 */	AddImmReg,	/* stm: ADDInstID(CONSTInstID,stm) */
+/* 29 */	AddRegImm,	/* stm: ADDInstID(stm,CONSTInstID) */
 /* 0 */DUMMYREMOVE
 };
 #endif
@@ -149,6 +150,7 @@ static short *burm_nts[] = {
 	burm_nts_0,	/* 26 */
 	burm_nts_0,	/* 27 */
 	burm_nts_1,	/* 28 */
+	burm_nts_1,	/* 29 */
 };
 
 static const char *burm_templates[] = {
@@ -180,7 +182,8 @@ static const char *burm_templates[] = {
 /* 25 */	"RETURNInstID",	/* stm: RETURNInstID(stm) */
 /* 26 */	"NoInstID",	/* stm: NoInstID */
 /* 27 */	"AddImmImm",	/* stm: ADDInstID(CONSTInstID,CONSTInstID) */
-/* 28 */	"AddRegImm",	/* stm: ADDInstID(stm,CONSTInstID) */
+/* 28 */	"AddImmReg",	/* stm: ADDInstID(CONSTInstID,stm) */
+/* 29 */	"AddRegImm",	/* stm: ADDInstID(stm,CONSTInstID) */
 };
 
 static char burm_isinstruction[] = {
@@ -212,7 +215,8 @@ static char burm_isinstruction[] = {
 /* 25 */	1,	/* RETURNInstID */
 /* 26 */	1,	/* NoInstID */
 /* 27 */	0,	/* AddImmImm */
-/* 28 */	0,	/* AddRegImm */
+/* 28 */	0,	/* AddImmReg */
+/* 29 */	0,	/* AddRegImm */
 };
 
 static const char *burm_string[] = {
@@ -244,7 +248,8 @@ static const char *burm_string[] = {
 /* 25 */	"stm: RETURNInstID(stm)",
 /* 26 */	"stm: NoInstID",
 /* 27 */	"stm: ADDInstID(CONSTInstID,CONSTInstID)",
-/* 28 */	"stm: ADDInstID(stm,CONSTInstID)",
+/* 28 */	"stm: ADDInstID(CONSTInstID,stm)",
+/* 29 */	"stm: ADDInstID(stm,CONSTInstID)",
 };
 
 static short burm_decode_stm[] = {
@@ -277,6 +282,7 @@ static short burm_decode_stm[] = {
 	26,
 	27,
 	28,
+	29,
 };
 
 
@@ -398,13 +404,22 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 				p->rule.burm_stm = 27;
 			}
 		}
-		if (	/* stm: ADDInstID(stm,CONSTInstID) */
-			OP_LABEL(RIGHT_CHILD(a)) == 21 /* CONSTInstID */
+		if (	/* stm: ADDInstID(CONSTInstID,stm) */
+			OP_LABEL(LEFT_CHILD(a)) == 21 /* CONSTInstID */
 		) {
-			c = (STATE_LABEL(LEFT_CHILD(a)))->cost[burm_stm_NT] + (((a->get_type() == Type::IntTypeID && a->get_operand(1)->get_type() == Type::IntTypeID) ? 1 : 1000));
+			c = (STATE_LABEL(RIGHT_CHILD(a)))->cost[burm_stm_NT] + ((((a->get_type() == Type::ByteTypeID || a->get_type() == Type::IntTypeID || a->get_type() == Type::LongTypeID) && fits_into<s4>(a->get_operand(0)->to_Instruction()->to_CONSTInst()->get_value())) ? 1 : 1000));
 			if (c + 0 < p->cost[burm_stm_NT]) {
 				p->cost[burm_stm_NT] = c + 0;
 				p->rule.burm_stm = 28;
+			}
+		}
+		if (	/* stm: ADDInstID(stm,CONSTInstID) */
+			OP_LABEL(RIGHT_CHILD(a)) == 21 /* CONSTInstID */
+		) {
+			c = (STATE_LABEL(LEFT_CHILD(a)))->cost[burm_stm_NT] + ((((a->get_type() == Type::ByteTypeID || a->get_type() == Type::IntTypeID || a->get_type() == Type::LongTypeID) && fits_into<s4>(a->get_operand(1)->to_Instruction()->to_CONSTInst()->get_value())) ? 1 : 1000));
+			if (c + 0 < p->cost[burm_stm_NT]) {
+				p->cost[burm_stm_NT] = c + 0;
+				p->rule.burm_stm = 29;
 			}
 		}
 		break;
@@ -604,7 +619,7 @@ void Matcher::burm_kids(NODEPTR_TYPE p, int eruleno, NODEPTR_TYPE kids[]) {
 	case 2: /* stm: POPInstID */
 	case 1: /* stm: NOPInstID */
 		break;
-	case 28: /* stm: ADDInstID(stm,CONSTInstID) */
+	case 29: /* stm: ADDInstID(stm,CONSTInstID) */
 	case 25: /* stm: RETURNInstID(stm) */
 	case 24: /* stm: LOOKUPSWITCHInstID(stm) */
 	case 23: /* stm: TABLESWITCHInstID(stm) */
@@ -628,12 +643,14 @@ void Matcher::burm_kids(NODEPTR_TYPE p, int eruleno, NODEPTR_TYPE kids[]) {
 		kids[0] = LEFT_CHILD(p);
 		kids[1] = RIGHT_CHILD(p);
 		break;
+	case 28: /* stm: ADDInstID(CONSTInstID,stm) */
+		kids[0] = RIGHT_CHILD(p);
+		break;
 	default:
 		ABORT_MSG("burm_kids", "Bad rule number " << eruleno << nl);
 	}
 }
 
-// stm: ADDInstID(CONSTInstID, stm) "AddImmReg" ((a->get_type() == Type::IntTypeID && a->get_operand(0)->get_type() == Type::IntTypeID) ? 1 : 1000)
 
 #endif
 

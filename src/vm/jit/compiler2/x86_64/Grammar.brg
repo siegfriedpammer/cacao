@@ -1,4 +1,4 @@
 stm: ADDInstID(CONSTInstID, CONSTInstID) "AddImmImm" 1
-stm: ADDInstID(stm, CONSTInstID) "AddRegImm" ((a->get_type() == Type::IntTypeID && a->get_operand(1)->get_type() == Type::IntTypeID) ? 1 : 1000)
+stm: ADDInstID(CONSTInstID, stm) "AddImmReg" (((a->get_type() == Type::ByteTypeID || a->get_type() == Type::IntTypeID || a->get_type() == Type::LongTypeID) && fits_into<s4>(a->get_operand(0)->to_Instruction()->to_CONSTInst()->get_value())) ? 1 : 1000)
+stm: ADDInstID(stm, CONSTInstID) "AddRegImm" (((a->get_type() == Type::ByteTypeID || a->get_type() == Type::IntTypeID || a->get_type() == Type::LongTypeID) && fits_into<s4>(a->get_operand(1)->to_Instruction()->to_CONSTInst()->get_value())) ? 1 : 1000)
 %%
-// stm: ADDInstID(CONSTInstID, stm) "AddImmReg" ((a->get_type() == Type::IntTypeID && a->get_operand(0)->get_type() == Type::IntTypeID) ? 1 : 1000)
