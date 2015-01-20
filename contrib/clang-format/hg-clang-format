@@ -31,4 +31,4 @@ HG=${HG:=hg}
 CLANG_FORMAT_DIFF=${CLANG_FORMAT_DIFF:=clang-format-diff.py}
 REV=${1:-.}
 
-$HG diff -U0 -r $REV | $CLANG_FORMAT_DIFF -i -p1
+$HG diff -U0 -r $REV | $CLANG_FORMAT_DIFF -v -i -p1
