@@ -655,6 +655,27 @@ jclass JVM_FindClassFromBootLoader(JNIEnv* env, const char* name)
 }
 
 
+/* JVM_FindClassFromCaller */
+
+jclass JVM_FindClassFromCaller(JNIEnv* env, const char* name, jboolean init, jobject loader, jclass caller)
+{
+	TRACEJVMCALLS(("JVM_FindClassFromCaller(name=%s, init=%d, loader=%p, caller=%p)", name, init, loader, caller));
+
+	Utf8String     u  = Utf8String::from_utf8(name);
+	classloader_t *cl = loader_hashtable_classloader_add((java_handle_t *) loader);
+	classinfo     *c  = load_class_from_classloader(u, cl);
+
+	if (c == NULL)
+		return NULL;
+
+	if (init)
+		if (!(c->state & CLASS_INITIALIZED))
+			if (!initialize_class(c))
+				return NULL;
+
+	return (jclass) LLNI_classinfo_wrap(c);
+}
+
 /* JVM_FindClassFromClassLoader */
 
 jclass JVM_FindClassFromClassLoader(JNIEnv* env, const char* name, jboolean init, jobject loader, jboolean throwError)
@@ -680,6 +701,7 @@ jclass JVM_FindClassFromClassLoader(JNIEnv* env, const char* name, jboolean init
 
 	return (jclass) LLNI_classinfo_wrap(c);
 }
+
 
 
 /* JVM_FindClassFromClass */
