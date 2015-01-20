@@ -22,9 +22,12 @@
 # 02110-1301, USA.
 
 ###
-# Usage: clang-format-check [file1 file2 ...]
+# Usage: clang-format-check [-i] [<file> ...]
 #
-# If not arguments are given clang-format is applied to all cpp and hpp
+# Options:
+#          -i           Inplace. Apply edits to files.
+#
+# If not <file>s are given, clang-format is applied to all cpp and hpp
 # files. Otherwise only the specified files are checked.
 ###
 
@@ -32,11 +35,20 @@ set -u
 
 CLANG_FORMAT=${CLANG_FORMAT:=clang-format}
 
+PATCH=""
+if [[ $# > 0 ]] ; then
+  if [[ x"$1" == x"-i" ]] ; then
+    PATCH=" | patch -p0"
+    shift
+  fi
+fi
+
+
 if [[ $# == 0 ]] ; then
-  find -name "*.hpp" -exec bash -c "$CLANG_FORMAT {} | diff -u {} -" \;
-  find -name "*.cpp" -exec bash -c "$CLANG_FORMAT {} | diff -u {} -" \;
+  find -name "*.hpp" -exec bash -c "$CLANG_FORMAT {} | diff -u {} - $PATCH" \;
+  find -name "*.cpp" -exec bash -c "$CLANG_FORMAT {} | diff -u {} - $PATCH" \;
 else
   for f in $@ ; do
-    $CLANG_FORMAT $f | diff -u $f -
+    bash -c "$CLANG_FORMAT $f | diff -u $f - $PATCH"
   done
 fi
