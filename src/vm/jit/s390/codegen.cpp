@@ -1,4 +1,4 @@
-/* src/vm/jit/s390/codegen.c - machine code generator for s390
+/* src/vm/jit/s390/codegen.cpp - machine code generator for s390
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -29,10 +29,10 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "vm/jit/s390/arch.h"
-#include "vm/jit/s390/codegen.h"
-#include "vm/jit/s390/emit.h"
-#include "vm/jit/s390/md-abi.h"
+#include "vm/jit/s390/arch.hpp"
+#include "vm/jit/s390/codegen.hpp"
+#include "vm/jit/s390/emit.hpp"
+#include "vm/jit/s390/md-abi.hpp"
 
 #include "native/localref.hpp"
 #include "native/native.hpp"
@@ -43,6 +43,7 @@
 
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
+#include "vm/field.hpp"
 #include "vm/global.hpp"
 #include "vm/loader.hpp"
 #include "vm/options.hpp"
@@ -2852,7 +2853,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 		/* put env into first argument register */
 
-		disp = dseg_add_address(cd, VM_get_jnienv());
+		disp = dseg_add_address(cd, VM::get_current()->get_jnienv());
 		M_ALD_DSEG(REG_A0, disp);
 	}
 

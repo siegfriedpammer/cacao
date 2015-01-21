@@ -1,6 +1,6 @@
-/* src/vm/jit/s390/md-abi.h - defines for s390 Linux ABI
+/* src/vm/jit/s390/md-abi.hpp - defines for s390 Linux ABI
 
-   Copyright (C) 1996-2010
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -139,4 +139,5 @@
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

@@ -1,4 +1,4 @@
-/* src/vm/jit/s390/md.h - machine dependent s390 Linux functions
+/* src/vm/jit/s390/md.hpp - machine dependent s390 Linux functions
 
    Copyright (C) 2006-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -28,12 +28,18 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <cassert>
 #include <stdint.h>
 
-#include "vm/jit/codegen-common.hpp"
-#include "vm/jit/methodtree.hpp"
+#include "vm/jit/s390/codegen.hpp"
 
+#include "vm/global.hpp"
+#include "vm/vm.hpp"
+
+#include "vm/jit/asmpart.hpp"
+#include "vm/jit/code.hpp"
+#include "vm/jit/jit.hpp"
+#include "vm/jit/methodtree.hpp"
 
 /**
  * Returns the size (in bytes) of the current stackframe, specified by
@@ -134,7 +140,7 @@ inline static void md_dcacheflush(void *addr, int nbytes)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

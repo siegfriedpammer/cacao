@@ -1,4 +1,4 @@
-/* src/vm/jit/s390/arch.h - architecture defines for S390
+/* src/vm/jit/s390/arch.hpp - architecture defines for S390
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO

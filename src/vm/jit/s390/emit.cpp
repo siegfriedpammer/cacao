@@ -1,4 +1,4 @@
-/* src/vm/jit/s390/emit.c - s390 code emitter functions
+/* src/vm/jit/s390/emit.cpp - s390 code emitter functions
 
    Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -27,9 +27,9 @@
 #include <assert.h>
 #include <stdint.h>
 
-#include "vm/jit/s390/codegen.h"
-#include "vm/jit/s390/emit.h"
-#include "vm/jit/s390/md-abi.h"
+#include "vm/jit/s390/codegen.hpp"
+#include "vm/jit/s390/emit.hpp"
+#include "vm/jit/s390/md-abi.hpp"
 
 #include "mm/memory.hpp"
 
@@ -38,12 +38,16 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/global.hpp"
 #include "vm/types.hpp"
+
+#include "vm/descriptor.hpp"
 #include "vm/options.hpp"
 
 #include "vm/jit/abi.hpp"
 #include "vm/jit/abi-asm.hpp"
 #include "vm/jit/asmpart.hpp"
+#include "vm/jit/code.hpp"
 #include "vm/jit/codegen-common.hpp"
+#include "vm/jit/dseg.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/patcher-common.hpp"
@@ -1021,9 +1025,10 @@ void emit_trap_compiler(codegendata *cd)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

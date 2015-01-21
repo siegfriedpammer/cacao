@@ -55,7 +55,7 @@
 #include "vm/jit/trap.hpp"
 
 #if defined(__S390__)
-#include "vm/jit/s390/codegen.h"
+#include "vm/jit/s390/codegen.hpp"
 #else
 #define N_PV_OFFSET 0
 #endif
