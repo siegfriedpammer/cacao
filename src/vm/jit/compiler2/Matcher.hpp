@@ -72,7 +72,7 @@ public:
 
 private: 
 	GlobalSchedule *sched;
-	BeginInst* basicBlock = NULL;
+	BeginInst* basicBlock;
 	LoweringVisitor *LV;
 	DependencyMapTy roots;
 	DependencyMapTy revdeps;

@@ -169,9 +169,11 @@ bool DominatorPass::run(JITData &JD) {
 		// step 3
 		NodeListTy &bucket_p_w = bucket[parent[w]];
 		for (NodeListTy::const_iterator it = bucket_p_w.begin(), et = bucket_p_w.end();
-				it != et; ++it) {
-			NodeTy *v = *it;
-			bucket_p_w.erase(v);
+				it != et; ) {
+			NodeListTy::const_iterator ittmp = it;
+			it++;
+			NodeTy *v = *ittmp;
+			bucket_p_w.erase(ittmp);
 			NodeTy *u = Eval(v);
 			dom[v] = semi[u] < semi[v] ? u : parent[w] ;
 		}
