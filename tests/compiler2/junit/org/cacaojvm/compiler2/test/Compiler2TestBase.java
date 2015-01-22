@@ -29,6 +29,8 @@ import static org.junit.Assert.fail;
 
 class Compiler2TestBase extends Compiler2Test {
 
+	// without timing
+
 	protected void testResultEqual(Class<?> compileClass, String methodName,
 			String methodDesc, Object... args) {
 		Object resultBaseline = runBaseline(compileClass, methodName,
@@ -45,16 +47,13 @@ class Compiler2TestBase extends Compiler2Test {
 
 	protected Object runBaseline(String methodName, String methodDesc,
 			Object... args) {
-		compileBaseline(getClass(), methodName, methodDesc);
-		return executeMethod(getClass(), methodName, methodDesc, args);
+		return runBaseline(getClass(), methodName, methodDesc, args);
 	}
 
 	protected Object runCompiler2(String methodName, String methodDesc,
 			Object... args) {
-		compileCompiler2(getClass(), methodName, methodDesc);
-		return executeMethod(getClass(), methodName, methodDesc, args);
+		return runCompiler2(getClass(), methodName, methodDesc, args);
 	}
-
 
 	protected Object runBaseline(Class<?> compileClass, String methodName, 
 			String methodDesc, Object... args) {
@@ -66,6 +65,75 @@ class Compiler2TestBase extends Compiler2Test {
 			String methodDesc, Object... args) {
 		compileCompiler2(compileClass, methodName, methodDesc);
 		return executeMethod(compileClass, methodName, methodDesc, args);
+	}
+
+	// with timing
+
+	protected void testResultEqualWithTiming(Class<?> compileClass, 
+			String methodName, String methodDesc, TimingResults tr,
+			Object... args) {
+		Object resultBaseline = runBaselineWithTiming(compileClass, 
+				methodName,	methodDesc, tr.baseline, args);
+		Object resultCompiler2 = runCompiler2WithTiming(compileClass, 
+				methodName,	methodDesc, tr.compiler2, args);
+		assertEquals(resultCompiler2, resultBaseline);
+	}
+
+	protected void testResultEqualWithTiming(String methodName, String methodDesc,
+			TimingResults tr, Object... args) {
+		testResultEqualWithTiming(getClass(), methodName, methodDesc, tr, args);
+	}
+
+	private Object runMethodWithTiming(Class<?> compileClass, String methodName,
+			String methodDesc, Timing elapsed, Object... args){
+		Long start = System.nanoTime();
+		Object o = executeMethod(compileClass, methodName, methodDesc, args);
+		elapsed.nanoseconds = System.nanoTime() - start;
+		return o;
+	}
+
+	protected Object runBaselineWithTiming(String methodName, String methodDesc,
+			Timing elapsed, Object... args) {
+		compileBaseline(getClass(), methodName, methodDesc);
+		return runMethodWithTiming(getClass(), methodName, methodDesc, elapsed, args);
+	}
+
+	protected Object runCompiler2WithTiming(String methodName, String methodDesc,
+			Timing elapsed, Object... args) {
+		compileCompiler2(getClass(), methodName, methodDesc);
+		Object o = runMethodWithTiming(getClass(), methodName, methodDesc, elapsed, args);
+		return o;
+	}
+
+	protected Object runBaselineWithTiming(Class<?> compileClass, String methodName, String methodDesc,
+			Timing elapsed, Object... args) {
+		compileBaseline(compileClass, methodName, methodDesc);
+		return runMethodWithTiming(compileClass, methodName, methodDesc, elapsed, args);
+	}
+
+	protected Object runCompiler2WithTiming(Class<?> compileClass, String methodName, String methodDesc,
+			Timing elapsed, Object... args) {
+		compileCompiler2(compileClass, methodName, methodDesc);
+		return runMethodWithTiming(compileClass, methodName, methodDesc, elapsed, args);
+	}
+
+	// we need a mutable value for output parameter
+	class Timing {
+		protected long nanoseconds;
+		public String toString() { return nanoseconds + " ns"; }
+	}
+
+	class TimingResults {
+		protected Timing baseline = new Timing(), compiler2 = new Timing();
+		public String toString(){
+			return "Baseline: " + baseline + ", Compiler2: " + compiler2 + "  ";
+		}
+		public void report(){
+			// todo implement different output methods
+			if ("true".equals(System.getProperty("TIMING"))) {
+				System.out.print(this);
+			}
+		}
 	}
 
 	/**
