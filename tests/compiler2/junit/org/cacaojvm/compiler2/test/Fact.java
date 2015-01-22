@@ -52,7 +52,7 @@ public class Fact extends Compiler2TestBase {
 	@Test
 	public void test0() {
 		TimingResults tr = new TimingResults();
-		testResultEqualWithTiming("fact", "(J)J", tr, value);
+		testResultEqual("fact", "(J)J", tr, value);
 		tr.report();
 	}
 

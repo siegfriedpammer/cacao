@@ -69,52 +69,49 @@ class Compiler2TestBase extends Compiler2Test {
 
 	// with timing
 
-	protected void testResultEqualWithTiming(Class<?> compileClass, 
+	protected void testResultEqual(Class<?> compileClass, 
 			String methodName, String methodDesc, TimingResults tr,
 			Object... args) {
-		Object resultBaseline = runBaselineWithTiming(compileClass, 
+		Object resultBaseline = runBaseline(compileClass, 
 				methodName,	methodDesc, tr.baseline, args);
-		Object resultCompiler2 = runCompiler2WithTiming(compileClass, 
+		Object resultCompiler2 = runCompiler2(compileClass, 
 				methodName,	methodDesc, tr.compiler2, args);
 		assertEquals(resultCompiler2, resultBaseline);
 	}
 
-	protected void testResultEqualWithTiming(String methodName, String methodDesc,
+	protected void testResultEqual(String methodName, String methodDesc,
 			TimingResults tr, Object... args) {
-		testResultEqualWithTiming(getClass(), methodName, methodDesc, tr, args);
+		testResultEqual(getClass(), methodName, methodDesc, tr, args);
 	}
 
-	private Object runMethodWithTiming(Class<?> compileClass, String methodName,
+	protected Object runBaseline(String methodName, String methodDesc,
+			Timing elapsed, Object... args) {
+		return runBaseline(getClass(), methodName, methodDesc, elapsed, args);
+	}
+
+	protected Object runCompiler2(String methodName, String methodDesc,
+			Timing elapsed, Object... args) {
+		return runCompiler2(getClass(), methodName, methodDesc, elapsed, args);
+	}
+
+	protected Object runBaseline(Class<?> compileClass, String methodName, String methodDesc,
+			Timing elapsed, Object... args) {
+		compileBaseline(compileClass, methodName, methodDesc);
+		return runMethod(compileClass, methodName, methodDesc, elapsed, args);
+	}
+
+	protected Object runCompiler2(Class<?> compileClass, String methodName, String methodDesc,
+			Timing elapsed, Object... args) {
+		compileCompiler2(compileClass, methodName, methodDesc);
+		return runMethod(compileClass, methodName, methodDesc, elapsed, args);
+	}
+
+	private Object runMethod(Class<?> compileClass, String methodName,
 			String methodDesc, Timing elapsed, Object... args){
 		Long start = System.nanoTime();
 		Object o = executeMethod(compileClass, methodName, methodDesc, args);
 		elapsed.nanoseconds = System.nanoTime() - start;
 		return o;
-	}
-
-	protected Object runBaselineWithTiming(String methodName, String methodDesc,
-			Timing elapsed, Object... args) {
-		compileBaseline(getClass(), methodName, methodDesc);
-		return runMethodWithTiming(getClass(), methodName, methodDesc, elapsed, args);
-	}
-
-	protected Object runCompiler2WithTiming(String methodName, String methodDesc,
-			Timing elapsed, Object... args) {
-		compileCompiler2(getClass(), methodName, methodDesc);
-		Object o = runMethodWithTiming(getClass(), methodName, methodDesc, elapsed, args);
-		return o;
-	}
-
-	protected Object runBaselineWithTiming(Class<?> compileClass, String methodName, String methodDesc,
-			Timing elapsed, Object... args) {
-		compileBaseline(compileClass, methodName, methodDesc);
-		return runMethodWithTiming(compileClass, methodName, methodDesc, elapsed, args);
-	}
-
-	protected Object runCompiler2WithTiming(Class<?> compileClass, String methodName, String methodDesc,
-			Timing elapsed, Object... args) {
-		compileCompiler2(compileClass, methodName, methodDesc);
-		return runMethodWithTiming(compileClass, methodName, methodDesc, elapsed, args);
 	}
 
 	// we need a mutable value for output parameter
