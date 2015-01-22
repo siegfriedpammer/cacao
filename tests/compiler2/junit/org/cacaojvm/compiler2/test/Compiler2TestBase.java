@@ -31,9 +31,9 @@ class Compiler2TestBase extends Compiler2Test {
 
 	protected void testResultEqual(Class<?> compileClass, String methodName,
 			String methodDesc, Object... args) {
-		Object resultBaseline = compileBaseline(compileClass, methodName,
+		Object resultBaseline = runBaseline(compileClass, methodName,
 				methodDesc, args);
-		Object resultCompiler2 = compileCompiler2(compileClass, methodName,
+		Object resultCompiler2 = runCompiler2(compileClass, methodName,
 				methodDesc, args);
 		assertEquals(resultCompiler2, resultBaseline);
 	}
@@ -45,12 +45,27 @@ class Compiler2TestBase extends Compiler2Test {
 
 	protected Object runBaseline(String methodName, String methodDesc,
 			Object... args) {
-		return compileBaseline(getClass(), methodName, methodDesc, args);
+		compileBaseline(getClass(), methodName, methodDesc);
+		return executeMethod(getClass(), methodName, methodDesc, args);
 	}
 
 	protected Object runCompiler2(String methodName, String methodDesc,
 			Object... args) {
-		return compileCompiler2(getClass(), methodName, methodDesc, args);
+		compileCompiler2(getClass(), methodName, methodDesc);
+		return executeMethod(getClass(), methodName, methodDesc, args);
+	}
+
+
+	protected Object runBaseline(Class<?> compileClass, String methodName, 
+			String methodDesc, Object... args) {
+		compileBaseline(compileClass, methodName, methodDesc);
+		return executeMethod(getClass(), methodName, methodDesc, args);
+	}
+
+	protected Object runCompiler2(Class<?> compileClass, String methodName, 
+			String methodDesc, Object... args) {
+		compileCompiler2(compileClass, methodName, methodDesc);
+		return executeMethod(getClass(), methodName, methodDesc, args);
 	}
 
 	/**
