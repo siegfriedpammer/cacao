@@ -59,13 +59,13 @@ class Compiler2TestBase extends Compiler2Test {
 	protected Object runBaseline(Class<?> compileClass, String methodName, 
 			String methodDesc, Object... args) {
 		compileBaseline(compileClass, methodName, methodDesc);
-		return executeMethod(getClass(), methodName, methodDesc, args);
+		return executeMethod(compileClass, methodName, methodDesc, args);
 	}
 
 	protected Object runCompiler2(Class<?> compileClass, String methodName, 
 			String methodDesc, Object... args) {
 		compileCompiler2(compileClass, methodName, methodDesc);
-		return executeMethod(getClass(), methodName, methodDesc, args);
+		return executeMethod(compileClass, methodName, methodDesc, args);
 	}
 
 	/**
