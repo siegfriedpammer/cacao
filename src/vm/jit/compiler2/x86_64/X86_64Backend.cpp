@@ -1304,23 +1304,15 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 			set_op(I,move->get_result().op);
 			break;
 		}
-		case AddImmReg:
+		// all immediates should be second operand, see ssa construction pass
 		case AddRegImm:
 		{	// todo: copyOperands?!?
 			// todo: extend pattern to not rely on data type, instead check if const fits into imm encoding
 			assert(I);
 			Type::TypeID type = I->get_type();
 
-			Immediate* const_op;
-			MachineOperand* src_op;
-
-			if (I->get_operand(0)->to_Instruction()->to_CONSTInst()){
-				const_op = new Immediate(I->get_operand(0)->to_Instruction()->to_CONSTInst());
-				src_op = get_op(I->get_operand(1)->to_Instruction());
-			} else {
-				const_op = new Immediate(I->get_operand(1)->to_Instruction()->to_CONSTInst());
-				src_op = get_op(I->get_operand(0)->to_Instruction());
-			}
+			MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
+			Immediate* const_op = new Immediate(I->get_operand(1)->to_Instruction()->to_CONSTInst());
 
 			VirtualRegister *dst = new VirtualRegister(type);
 			MachineInstruction *mov = get_Backend()->create_Move(src_op,dst);
@@ -1346,6 +1338,70 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 
 			break;
 
+		}
+		case SubRegImm:
+		{
+			assert(I);
+			Type::TypeID type = I->get_type();
+
+			MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
+			Immediate* const_op = new Immediate(I->get_operand(1)->to_Instruction()->to_CONSTInst());
+
+			VirtualRegister *dst = new VirtualRegister(type);
+			MachineInstruction *mov = get_Backend()->create_Move(src_op,dst);
+			MachineInstruction *alu = NULL;
+
+			switch (type) {
+				case Type::ByteTypeID:
+				case Type::IntTypeID:
+				case Type::LongTypeID:
+					alu = new SubInst(
+						Src2Op(const_op),
+						DstSrc1Op(dst),
+						get_OperandSize_from_Type(type));
+					break;
+				default:
+					ABORT_MSG("x86_64: SubRegImm Lowering not supported",
+						"Inst: " << I << " type: " << type);
+			}
+			get_current()->push_back(mov);
+			get_current()->push_back(alu);
+			set_op(I,alu->get_result().op);
+			break;
+		}
+		case MulRegImm:
+		{
+			// todo: copyOperands?!?
+			// todo: 3operand version!
+			assert(I);
+			Type::TypeID type = I->get_type();
+
+			MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
+			Immediate* const_op = new Immediate(I->get_operand(1)->to_Instruction()->to_CONSTInst());
+
+			VirtualRegister *dst = new VirtualRegister(type);
+			MachineInstruction *mov = get_Backend()->create_Move(src_op,dst);
+			
+			MachineInstruction *alu = NULL;
+
+			switch (type) {
+				case Type::ByteTypeID:
+				case Type::IntTypeID:
+				case Type::LongTypeID:
+					alu = new IMulInst(
+						Src2Op(const_op),
+						DstSrc1Op(dst),
+						get_OperandSize_from_Type(type));
+					break;
+				default:
+					ABORT_MSG("x86_64: MulImm Lowering not supported",
+						"Inst: " << I << " type: " << type);
+			}
+			get_current()->push_back(mov);
+			get_current()->push_back(alu);
+			set_op(I,alu->get_result().op);
+
+			break;
 		}
 		default:
 			ABORT_MSG("Rule not supported", "Rule " << ruleId << " is not supported by method lowerComplex!");

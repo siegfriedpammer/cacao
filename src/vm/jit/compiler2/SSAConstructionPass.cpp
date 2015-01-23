@@ -1599,6 +1599,16 @@ bool SSAConstructionPass::run(JITData &JD) {
 				}
 				break;
 			case ICMD_IMULCONST:
+				{
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+					Instruction *konst = new CONSTInst(iptr->sx.val.i,Type::IntType());
+					Instruction *result;
+					result = new MULInst(Type::IntTypeID, s1, konst);
+					M->add_Instruction(konst);
+					write_variable(iptr->dst.varindex,bbindex,result);
+					M->add_Instruction(result);
+				}
+				break;
 			case ICMD_IMULPOW2:
 				goto _default;
 			case ICMD_IREMPOW2:
