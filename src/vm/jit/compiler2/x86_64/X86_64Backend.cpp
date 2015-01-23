@@ -1380,7 +1380,6 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 			Immediate* const_op = new Immediate(I->get_operand(1)->to_Instruction()->to_CONSTInst());
 
 			VirtualRegister *dst = new VirtualRegister(type);
-			MachineInstruction *mov = get_Backend()->create_Move(src_op,dst);
 			
 			MachineInstruction *alu = NULL;
 
@@ -1388,16 +1387,16 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 				case Type::ByteTypeID:
 				case Type::IntTypeID:
 				case Type::LongTypeID:
-					alu = new IMulInst(
+					alu = new IMulImmInst(
+						Src1Op(src_op),
 						Src2Op(const_op),
-						DstSrc1Op(dst),
+						DstOp(dst),
 						get_OperandSize_from_Type(type));
 					break;
 				default:
 					ABORT_MSG("x86_64: MulImm Lowering not supported",
 						"Inst: " << I << " type: " << type);
 			}
-			get_current()->push_back(mov);
 			get_current()->push_back(alu);
 			set_op(I,alu->get_result().op);
 

@@ -438,6 +438,18 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
+class IMulImmInst : public GPInstruction {
+public:
+	IMulImmInst(const Src1Op &src1, const Src2Op &src2, const DstOp &dst,
+		OperandSize op_size)
+			: GPInstruction("X86_64IMulImmInst", dst.op, op_size, 3) {
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
+		operands[2].op = dst.op;
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
 class IDivInst: public GPInstruction {
 public:
 	/**

@@ -1031,20 +1031,22 @@ void CondJumpInst::link(CodeFragment &CF) const {
 }
 
 void IMulInst::emit(CodeMemory* CM) const {
+	X86_64Register *src_reg = cast_to<X86_64Register>(operands[1].op);
 	X86_64Register *dst_reg = cast_to<X86_64Register>(result.op);
-	if (operands[1].op->get_OperandID() == MachineOperand::ImmediateID){
-		// immediate. todo assert? (grammar ensures fits_into s4)
-		Immediate *imm = cast_to<Immediate>(operands[1].op);
-		s4 immval = imm->get_value<s4>();
-		if (fits_into<s1>(immval)){
-			InstructionEncoding::reg2imm<u1,s1>(CM, 0x6b, dst_reg, immval);
-		} else {
-			InstructionEncoding::reg2imm<u1,s4>(CM, 0x69, dst_reg, immval);
-		}
-	} else {
-		X86_64Register *src_reg = cast_to<X86_64Register>(operands[1].op);
-		InstructionEncoding::reg2reg<u2>(CM, 0x0faf, dst_reg, src_reg);
 
+	InstructionEncoding::reg2reg<u2>(CM, 0x0faf, dst_reg, src_reg);
+}
+
+void IMulImmInst::emit(CodeMemory* CM) const {
+	X86_64Register *dst_reg = cast_to<X86_64Register>(result.op);
+	X86_64Register *src_reg = cast_to<X86_64Register>(operands[0].op);
+	Immediate *imm = cast_to<Immediate>(operands[1].op);
+
+	s4 immval = imm->get_value<s4>();
+	if (fits_into<s1>(immval)){
+		InstructionEncoding::reg2imm_modrm<u1,s1>(CM, 0x6b, dst_reg->get_index(), src_reg, immval);
+	} else {
+		InstructionEncoding::reg2imm_modrm<u1,s4>(CM, 0x69, dst_reg->get_index(), src_reg, immval);
 	}
 
 }
