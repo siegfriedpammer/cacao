@@ -218,6 +218,11 @@
 #define _RT_LOG(expr)
 #endif
 
+#ifdef __DARWIN__
+#include <mach/mach.h>
+#include <mach/mach_time.h>
+#endif
+
 namespace {
 #if 0
 /**
@@ -332,12 +337,14 @@ inline OStream& operator<<(OStream &ostr, timespec ts) {
 	return ostr;
 }
 
+#ifndef __DARWIN__
 inline void rt_timing_gettime_inline(timespec &ts) {
 	if (clock_gettime(CLOCK_THREAD_CPUTIME_ID,&ts) != 0) {
 		fprintf(stderr,"could not get time by clock_gettime: %s\n",strerror(errno));
 		abort();
 	}
 }
+#endif
 
 inline long rt_timing_diff_usec_inline(const timespec &a, const timespec &b)
 {
@@ -480,7 +487,11 @@ public:
  */
 class RTTimer : public RTEntry {
 private:
+#ifdef __DARWIN__
+	uint64_t startstamp;
+#else
 	timespec startstamp;  //< start timestamp
+#endif
 	long int duration;    //< time in usec
 public:
 	/**
@@ -508,7 +519,11 @@ public:
 	 * @see stop()
 	 */
 	inline void start() {
+#ifdef __DARWIN__
+		startstamp = mach_absolute_time();
+#else
 		rt_timing_gettime_inline(startstamp);
+#endif
 	}
 
 	/**
@@ -517,9 +532,22 @@ public:
 	 * @see start()
 	 */
 	inline void stop() {
+#ifdef __DARWIN__
+		static mach_timebase_info_data_t sTimebaseInfo;
+		uint64_t elapsed, nano;
+
+		if ( sTimebaseInfo.denom == 0 ) {
+        	(void) mach_timebase_info(&sTimebaseInfo);
+    	}
+
+		elapsed = mach_absolute_time() - startstamp;
+		nano = elapsed * sTimebaseInfo.numer / sTimebaseInfo.denom;
+		duration += (nano / 1000);
+#else
 		timespec stopstamp;
 		rt_timing_gettime_inline(stopstamp);
 		duration += rt_timing_diff_usec_inline(startstamp,stopstamp);
+#endif
 	}
 
 	virtual timespec time() const {
