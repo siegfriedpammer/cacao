@@ -1,6 +1,6 @@
-/* src/threads/removeme.cpp
+/* src/vm/jit/x86_64/md-emit.hpp - machine dependent emit function prototypes
 
-   Copyright (C) 2008
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -22,28 +22,27 @@
 
 */
 
-// XXX Remove me as soon as all using files have been converted to C++!
 
-#include "config.h"
+#ifndef _MD_EMIT_H
+#define _MD_EMIT_H
 
-#include "threads/condition.hpp"
-#include "threads/mutex.hpp"
+#include "vm/types.hpp"
 
-extern "C" {
 
-Mutex* Mutex_new() { return new Mutex(); }
-void Mutex_delete(Mutex* mutex) { delete mutex; }
-void Mutex_lock(Mutex* mutex) { mutex->lock(); }
-void Mutex_unlock(Mutex* mutex) { mutex->unlock(); }
+/* macros to create code ******************************************************/
 
-Condition* Condition_new() { return new Condition(); }
-void Condition_delete(Condition* cond) { delete cond; }
-void Condition_broadcast(Condition* cond) { cond->broadcast(); }
-void Condition_signal(Condition* cond) { cond->signal(); }
-void Condition_timedwait(Condition* cond, Mutex* mutex, const struct timespec* abstime) { cond->timedwait(mutex, abstime); }
-void Condition_wait(Condition* cond, Mutex* mutex) { cond->wait(mutex); }
+s4 emit_load_s1_but(jitdata *jd, instruction *iptr, s4 tempreg, s4 notreg);
+s4 emit_load_s2_but(jitdata *jd, instruction *iptr, s4 tempreg, s4 notreg);
 
-}
+/* If the destination operand is in a register, different than
+ * dtmpreg, a register copy is emitted.
+ */
+void emit_copy_dst(jitdata *jd, instruction *iptr, s4 dtmpreg);
+
+/* Emits code to recalculate the PV (procedure vector) after a subroutine call. */
+void emit_restore_pv(codegendata *cd);
+
+#endif /* _MD_EMIT_H */
 
 
 /*
@@ -52,7 +51,7 @@ void Condition_wait(Condition* cond, Mutex* mutex) { cond->wait(mutex); }
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c++
+ * mode: c
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

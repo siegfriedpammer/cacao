@@ -182,6 +182,10 @@ public:
 	static void* mmap_anonymous(void *addr, size_t len, int prot, int flags);
 	static void  print_backtrace();
 	static int   processors_online();
+	static void  shouldnotreach(const char* text, ...);
+	static void  shouldnotreach();
+	static void  unimplemented(const char* text, ...);
+	static void  unimplemented();
 
 	// Template helper
 	template<class _F1, class _F2>
@@ -683,8 +687,17 @@ inline static ssize_t system_write(int fd, const void *buf, size_t count)
 #endif
 }
 
-#endif // OS_HPP_
+inline void os::shouldnotreach(void)
+{
+    os::abort("should not reach!");
+}
 
+inline void os::unimplemented(void)
+{
+    os::abort("not implemented yet!");
+}
+
+#endif // OS_HPP_
 
 /*
  * These are local overrides for various environment variables in Emacs.
