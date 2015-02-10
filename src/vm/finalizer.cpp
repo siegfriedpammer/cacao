@@ -127,6 +127,21 @@ void FinalizerThreadCoordinator::join()
 		cond_shutdown.wait(&mutex);
 }
 
+#if defined(ENABLE_GC_BOEHM)
+
+struct FinalizerData {
+	Finalizer::FinalizerFunc f;
+	void *data;
+	FinalizerData(Finalizer::FinalizerFunc f, void *data): f(f), data(data) { }
+};
+
+Mutex *final_mutex;
+// final_map contains registered custom finalizers for a given Java
+// object. Must be accessed with held final_mutex.
+std::multimap<java_handle_t *, FinalizerData> *final_map;
+
+#endif
+
 /* finalizer_init **************************************************************
 
    Initializes the finalizer global lock and the linked list.
@@ -138,6 +153,11 @@ bool finalizer_init()
 	TRACESUBSYSTEMINITIALIZATION("finalizer_init");
 
 	finalizer_thread_coord = new FinalizerThreadCoordinator;
+
+#if defined(ENABLE_GC_BOEHM)
+	final_map = new std::multimap<java_handle_t *, FinalizerData>;
+	final_mutex = new Mutex;
+#endif
 
 	/* everything's ok */
 
@@ -243,9 +263,9 @@ void finalizer_run(void *o, void *p)
 	LLNI_class_get(h, c);
 
 	LOG("[finalizer running   :"
-	    << " o=" << o
-	    << " p=" << p
-	    << " class=" << c
+		<< " o=" << o
+		<< " p=" << p
+		<< " class=" << c
 		<< "]" << cacao::nl);
 
 	/* call the finalizer function */
@@ -268,30 +288,19 @@ void finalizer_run(void *o, void *p)
 
 #if defined(ENABLE_GC_BOEHM)
 
-struct FinalizerData {
-	Finalizer::FinalizerFunc f;
-	void *data;
-	FinalizerData(Finalizer::FinalizerFunc f, void *data): f(f), data(data) { }
-};
-
-Mutex final_mutex;
-// final_map contains registered custom finalizers for a given Java
-// object. Must be accessed with held final_mutex.
-std::multimap<java_handle_t *, FinalizerData> final_map;
-
 static void custom_finalizer_handler(void *object, void *data)
 {
 	typedef std::multimap<java_handle_t *, FinalizerData>::iterator MI;
 	java_handle_t *hdl = (java_handle_t *) object;
-	MutexLocker l(final_mutex);
-	MI it_first = final_map.lower_bound(hdl), it = it_first;
+	MutexLocker l(*final_mutex);
+	MI it_first = final_map->lower_bound(hdl), it = it_first;
 	assert(it->first == hdl);
 	for (; it->first == hdl; ++it) {
-		final_mutex.unlock();
+		final_mutex->unlock();
 		it->second.f(hdl, it->second.data);
-		final_mutex.lock();
+		final_mutex->lock();
 	}
-	final_map.erase(it_first, it);
+	final_map->erase(it_first, it);
 }
 
 /* attach_custom_finalizer *****************************************************
@@ -305,7 +314,7 @@ static void custom_finalizer_handler(void *object, void *data)
 
 void *Finalizer::attach_custom_finalizer(java_handle_t *h, Finalizer::FinalizerFunc f, void *data)
 {
-	MutexLocker l(final_mutex);
+	MutexLocker l(*final_mutex);
 
 	GC_finalization_proc ofinal = 0;
 	void *odata = 0;
@@ -320,11 +329,11 @@ void *Finalizer::attach_custom_finalizer(java_handle_t *h, Finalizer::FinalizerF
 		GC_REGISTER_FINALIZER_NO_ORDER(LLNI_DIRECT(h), ofinal, odata, 0, 0);
 
 	typedef std::multimap<java_handle_t *, FinalizerData>::iterator MI;
-	std::pair<MI, MI> r = final_map.equal_range(h);
+	std::pair<MI, MI> r = final_map->equal_range(h);
 	for (MI it = r.first; it != r.second; ++it)
 		if (it->second.f == f)
 			return it->second.data;
-	final_map.insert(r.first, std::make_pair(h, FinalizerData(f, data)));
+	final_map->insert(r.first, std::make_pair(h, FinalizerData(f, data)));
 	return data;
 }
 
@@ -338,9 +347,9 @@ void *Finalizer::attach_custom_finalizer(java_handle_t *h, Finalizer::FinalizerF
 
 void Finalizer::reinstall_custom_finalizer(java_handle_t *h)
 {
-	MutexLocker l(final_mutex);
-	std::multimap<java_handle_t *, FinalizerData>::iterator it = final_map.find(h);
-	if (it == final_map.end())
+	MutexLocker l(*final_mutex);
+	std::multimap<java_handle_t *, FinalizerData>::iterator it = final_map->find(h);
+	if (it == final_map->end())
 		return;
 
 	GC_REGISTER_FINALIZER_UNREACHABLE(LLNI_DIRECT(h), custom_finalizer_handler, 0, 0, 0);

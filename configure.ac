@@ -169,7 +169,7 @@ case "$host_os" in
 *darwin* )
     OS_DIR="darwin"
     AM_CPPFLAGS="$AM_CPPFLAGS -D__DARWIN__ -D_XOPEN_SOURCE=600 -D_DARWIN_C_SOURCE -D__STDC_FORMAT_MACROS"
-    OS_DYNLIB=.dynlib
+    OS_DYNLIB=.dylib
     ;;
 
 dnl Must be BEFORE *freebsd*.
