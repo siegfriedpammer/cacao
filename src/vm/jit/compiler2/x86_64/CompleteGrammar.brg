@@ -86,10 +86,60 @@ stm: RETURNInstID(stm) "RETURNInstID" 1
 stm: NoInstID "NoInstID" 1 
 stm: ADDInstID(CONSTInstID, CONSTInstID) "AddImmImm" 1
 
-stm: ADDInstID(stm, CONSTInstID) "AddRegImm" (((a->get_type() == Type::ByteTypeID || a->get_type() == Type::IntTypeID || a->get_type() == Type::LongTypeID) && fits_into<s4>(a->get_operand(1)->to_Instruction()->to_CONSTInst()->get_value())) ? 1 : 1000)
+stm: ADDInstID(stm, CONSTInstID) "AddRegImm" encodeDiscreteCost(a, a->get_operand(1))
+stm: SUBInstID(stm, CONSTInstID) "SubRegImm" encodeDiscreteCost(a, a->get_operand(1))
+stm: MULInstID(stm, CONSTInstID) "MulRegImm" encodeDiscreteCost(a, a->get_operand(1))
 
-stm: SUBInstID(stm, CONSTInstID) "SubRegImm" (((a->get_type() == Type::ByteTypeID || a->get_type() == Type::IntTypeID || a->get_type() == Type::LongTypeID) && fits_into<s4>(a->get_operand(1)->to_Instruction()->to_CONSTInst()->get_value())) ? 1 : 1000)
-
-stm: MULInstID(stm, CONSTInstID) "MulRegImm" (((a->get_type() == Type::ByteTypeID || a->get_type() == Type::IntTypeID || a->get_type() == Type::LongTypeID) && fits_into<s4>(a->get_operand(1)->to_Instruction()->to_CONSTInst()->get_value())) ? 1 : 1000)
+stm: ADDInstID(ADDInstID(stm, stm), CONSTInstID) "BaseIndexDisplacement" calcBaseIndexDisplacementCost(a)
+stm: ADDInstID(stm, MULInstID(stm, CONSTInstID)) "BaseIndexMultiplier" calcBaseIndexMultiplierCost(a)
+stm: ADDInstID(ADDInstID(stm, MULInstID(stm, CONSTInstID)), CONSTInstID) "BaseIndexMultiplierDisplacement" calcBaseIndexMultiplierDisplacementCost(a)
 
 %%
+
+namespace {
+
+	bool isMultiplier(CONSTInst* c){
+		s8 val = c->get_value();
+		if ((val == 2) || (val == 4) || (val == 8)) return true;
+		return false;
+	}
+
+	bool isConstEncodable(CONSTInst* c){
+		return fits_into<s4>(c->get_value());
+	}
+
+	bool isDiscreteValue(Instruction* a){
+		return (a->get_type() == Type::ByteTypeID	|| 
+				a->get_type() == Type::IntTypeID	|| 
+				a->get_type() == Type::LongTypeID);
+	}
+
+	int encodeDiscreteCost(Instruction* a, Value* c){
+		if (!isDiscreteValue(a))
+			return 0x7fff;
+		if (!isConstEncodable(c->to_Instruction()->to_CONSTInst()))
+			return 0x7fff;
+		return 1;
+	}
+
+	int calcBaseIndexDisplacementCost(Instruction* a){
+		if (isConstEncodable(a->get_operand(1)->to_Instruction()->to_CONSTInst()))
+			return 1;
+		return 0x7fff;
+	}
+
+	int calcBaseIndexMultiplierCost(Instruction* a){
+		if (isMultiplier(a->get_operand(1)->to_Instruction()->get_operand(1)->to_Instruction()->to_CONSTInst()))
+			return 1;
+		return 0x7fff;
+	}
+
+	int calcBaseIndexMultiplierDisplacementCost(Instruction* a){
+		if ((isConstEncodable(a->get_operand(1)->to_Instruction()->to_CONSTInst())) &&
+			(isMultiplier(a->get_operand(1)->to_Instruction()->get_operand(1)->to_Instruction()->to_CONSTInst())))
+			return 1;
+		return 0x7fff;
+	}
+
+}
+

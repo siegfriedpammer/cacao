@@ -1402,6 +1402,25 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 
 			break;
 		}
+		// LEA
+		case BaseIndexDisplacement:
+		{
+			assert(I);
+			Type::TypeID type = I->get_type();
+
+			Instruction* nested_add = I->get_operand(0)->to_Instruction();
+			MachineOperand* base = get_op(nested_add->get_operand(0)->to_Instruction());
+			MachineOperand* index = get_op(nested_add->get_operand(1)->to_Instruction());
+
+			CONSTInst* displacement = I->get_operand(1)->to_Instruction()->to_CONSTInst();
+			VirtualRegister *dst = new VirtualRegister(type);
+			ModRMOperand modrm(type, IndexOp(index), BaseOp(base), displacement->get_value());
+
+			MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(type), SrcModRM(modrm));
+			get_current()->push_back(lea);
+			set_op(I,lea->get_result().op);
+			break;
+		}
 		default:
 			ABORT_MSG("Rule not supported", "Rule " << ruleId << " is not supported by method lowerComplex!");
 

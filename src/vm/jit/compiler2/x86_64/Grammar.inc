@@ -89,6 +89,9 @@ enum RuleId {
 /* 28 */	AddRegImm,	/* stm: ADDInstID(stm,CONSTInstID) */
 /* 29 */	SubRegImm,	/* stm: SUBInstID(stm,CONSTInstID) */
 /* 30 */	MulRegImm,	/* stm: MULInstID(stm,CONSTInstID) */
+/* 31 */	BaseIndexDisplacement,	/* stm: ADDInstID(ADDInstID(stm,stm),CONSTInstID) */
+/* 32 */	BaseIndexMultiplier,	/* stm: ADDInstID(stm,MULInstID(stm,CONSTInstID)) */
+/* 33 */	BaseIndexMultiplierDisplacement,	/* stm: ADDInstID(ADDInstID(stm,MULInstID(stm,CONSTInstID)),CONSTInstID) */
 /* 0 */DUMMYREMOVE
 };
 #endif
@@ -105,7 +108,7 @@ struct burm_state {
 
 	short cost[2];
 	struct {
-		unsigned int burm_stm:5;
+		unsigned int burm_stm:6;
 	} rule;
 	bool isLeaf;
 	NODEPTR_TYPE root;
@@ -153,6 +156,9 @@ static short *burm_nts[] = {
 	burm_nts_1,	/* 28 */
 	burm_nts_1,	/* 29 */
 	burm_nts_1,	/* 30 */
+	burm_nts_2,	/* 31 */
+	burm_nts_2,	/* 32 */
+	burm_nts_2,	/* 33 */
 };
 
 static const char *burm_templates[] = {
@@ -187,6 +193,9 @@ static const char *burm_templates[] = {
 /* 28 */	"AddRegImm",	/* stm: ADDInstID(stm,CONSTInstID) */
 /* 29 */	"SubRegImm",	/* stm: SUBInstID(stm,CONSTInstID) */
 /* 30 */	"MulRegImm",	/* stm: MULInstID(stm,CONSTInstID) */
+/* 31 */	"BaseIndexDisplacement",	/* stm: ADDInstID(ADDInstID(stm,stm),CONSTInstID) */
+/* 32 */	"BaseIndexMultiplier",	/* stm: ADDInstID(stm,MULInstID(stm,CONSTInstID)) */
+/* 33 */	"BaseIndexMultiplierDisplacement",	/* stm: ADDInstID(ADDInstID(stm,MULInstID(stm,CONSTInstID)),CONSTInstID) */
 };
 
 static char burm_isinstruction[] = {
@@ -221,6 +230,9 @@ static char burm_isinstruction[] = {
 /* 28 */	0,	/* AddRegImm */
 /* 29 */	0,	/* SubRegImm */
 /* 30 */	0,	/* MulRegImm */
+/* 31 */	0,	/* BaseIndexDisplacement */
+/* 32 */	0,	/* BaseIndexMultiplier */
+/* 33 */	0,	/* BaseIndexMultiplierDisplacement */
 };
 
 static const char *burm_string[] = {
@@ -255,6 +267,9 @@ static const char *burm_string[] = {
 /* 28 */	"stm: ADDInstID(stm,CONSTInstID)",
 /* 29 */	"stm: SUBInstID(stm,CONSTInstID)",
 /* 30 */	"stm: MULInstID(stm,CONSTInstID)",
+/* 31 */	"stm: ADDInstID(ADDInstID(stm,stm),CONSTInstID)",
+/* 32 */	"stm: ADDInstID(stm,MULInstID(stm,CONSTInstID))",
+/* 33 */	"stm: ADDInstID(ADDInstID(stm,MULInstID(stm,CONSTInstID)),CONSTInstID)",
 };
 
 static short burm_decode_stm[] = {
@@ -289,6 +304,9 @@ static short burm_decode_stm[] = {
 	28,
 	29,
 	30,
+	31,
+	32,
+	33,
 };
 
 
@@ -305,6 +323,54 @@ void burm_kids(NODEPTR_TYPE p, int eruleno, NODEPTR_TYPE kids[]);
 
 #ifdef GENMETHODS
 #undef GENMETHODS
+
+
+namespace {
+
+	bool isMultiplier(CONSTInst* c){
+		s8 val = c->get_value();
+		if ((val == 2) || (val == 4) || (val == 8)) return true;
+		return false;
+	}
+
+	bool isConstEncodable(CONSTInst* c){
+		return fits_into<s4>(c->get_value());
+	}
+
+	bool isDiscreteValue(Instruction* a){
+		return (a->get_type() == Type::ByteTypeID	|| 
+				a->get_type() == Type::IntTypeID	|| 
+				a->get_type() == Type::LongTypeID);
+	}
+
+	int encodeDiscreteCost(Instruction* a, Value* c){
+		if (!isDiscreteValue(a))
+			return 0x7fff;
+		if (!isConstEncodable(c->to_Instruction()->to_CONSTInst()))
+			return 0x7fff;
+		return 1;
+	}
+
+	int calcBaseIndexDisplacementCost(Instruction* a){
+		if (isConstEncodable(a->get_operand(1)->to_Instruction()->to_CONSTInst()))
+			return 1;
+		return 0x7fff;
+	}
+
+	int calcBaseIndexMultiplierCost(Instruction* a){
+		if (isMultiplier(a->get_operand(1)->to_Instruction()->get_operand(1)->to_Instruction()->to_CONSTInst()))
+			return 1;
+		return 0x7fff;
+	}
+
+	int calcBaseIndexMultiplierDisplacementCost(Instruction* a){
+		if ((isConstEncodable(a->get_operand(1)->to_Instruction()->to_CONSTInst())) &&
+			(isMultiplier(a->get_operand(1)->to_Instruction()->get_operand(1)->to_Instruction()->to_CONSTInst())))
+			return 1;
+		return 0x7fff;
+	}
+
+}
 
 int Matcher::burm_rule(shared_ptr<STATE_TYPE> state, int goalnt) {
 	if (goalnt < 1 || goalnt > 1)
@@ -413,10 +479,42 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 		if (	/* stm: ADDInstID(stm,CONSTInstID) */
 			OP_LABEL(RIGHT_CHILD(a)) == 21 /* CONSTInstID */
 		) {
-			c = (STATE_LABEL(LEFT_CHILD(a)))->cost[burm_stm_NT] + ((((a->get_type() == Type::ByteTypeID || a->get_type() == Type::IntTypeID || a->get_type() == Type::LongTypeID) && fits_into<s4>(a->get_operand(1)->to_Instruction()->to_CONSTInst()->get_value())) ? 1 : 1000));
+			c = (STATE_LABEL(LEFT_CHILD(a)))->cost[burm_stm_NT] + (encodeDiscreteCost(a, a->get_operand(1)));
 			if (c + 0 < p->cost[burm_stm_NT]) {
 				p->cost[burm_stm_NT] = c + 0;
 				p->rule.burm_stm = 28;
+			}
+		}
+		if (	/* stm: ADDInstID(ADDInstID(stm,stm),CONSTInstID) */
+			OP_LABEL(LEFT_CHILD(a)) == 10 && /* ADDInstID */
+			OP_LABEL(RIGHT_CHILD(a)) == 21 /* CONSTInstID */
+		) {
+			c = (STATE_LABEL(LEFT_CHILD(LEFT_CHILD(a))))->cost[burm_stm_NT] + (STATE_LABEL(RIGHT_CHILD(LEFT_CHILD(a))))->cost[burm_stm_NT] + (calcBaseIndexDisplacementCost(a));
+			if (c + 0 < p->cost[burm_stm_NT]) {
+				p->cost[burm_stm_NT] = c + 0;
+				p->rule.burm_stm = 31;
+			}
+		}
+		if (	/* stm: ADDInstID(stm,MULInstID(stm,CONSTInstID)) */
+			OP_LABEL(RIGHT_CHILD(a)) == 12 && /* MULInstID */
+			OP_LABEL(RIGHT_CHILD(RIGHT_CHILD(a))) == 21 /* CONSTInstID */
+		) {
+			c = (STATE_LABEL(LEFT_CHILD(a)))->cost[burm_stm_NT] + (STATE_LABEL(LEFT_CHILD(RIGHT_CHILD(a))))->cost[burm_stm_NT] + (calcBaseIndexMultiplierCost(a));
+			if (c + 0 < p->cost[burm_stm_NT]) {
+				p->cost[burm_stm_NT] = c + 0;
+				p->rule.burm_stm = 32;
+			}
+		}
+		if (	/* stm: ADDInstID(ADDInstID(stm,MULInstID(stm,CONSTInstID)),CONSTInstID) */
+			OP_LABEL(LEFT_CHILD(a)) == 10 && /* ADDInstID */
+			OP_LABEL(RIGHT_CHILD(LEFT_CHILD(a))) == 12 && /* MULInstID */
+			OP_LABEL(RIGHT_CHILD(RIGHT_CHILD(LEFT_CHILD(a)))) == 21 && /* CONSTInstID */
+			OP_LABEL(RIGHT_CHILD(a)) == 21 /* CONSTInstID */
+		) {
+			c = (STATE_LABEL(LEFT_CHILD(LEFT_CHILD(a))))->cost[burm_stm_NT] + (STATE_LABEL(LEFT_CHILD(RIGHT_CHILD(LEFT_CHILD(a)))))->cost[burm_stm_NT] + (calcBaseIndexMultiplierDisplacementCost(a));
+			if (c + 0 < p->cost[burm_stm_NT]) {
+				p->cost[burm_stm_NT] = c + 0;
+				p->rule.burm_stm = 33;
 			}
 		}
 		break;
@@ -433,7 +531,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 		if (	/* stm: SUBInstID(stm,CONSTInstID) */
 			OP_LABEL(RIGHT_CHILD(a)) == 21 /* CONSTInstID */
 		) {
-			c = (STATE_LABEL(LEFT_CHILD(a)))->cost[burm_stm_NT] + ((((a->get_type() == Type::ByteTypeID || a->get_type() == Type::IntTypeID || a->get_type() == Type::LongTypeID) && fits_into<s4>(a->get_operand(1)->to_Instruction()->to_CONSTInst()->get_value())) ? 1 : 1000));
+			c = (STATE_LABEL(LEFT_CHILD(a)))->cost[burm_stm_NT] + (encodeDiscreteCost(a, a->get_operand(1)));
 			if (c + 0 < p->cost[burm_stm_NT]) {
 				p->cost[burm_stm_NT] = c + 0;
 				p->rule.burm_stm = 29;
@@ -453,7 +551,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 		if (	/* stm: MULInstID(stm,CONSTInstID) */
 			OP_LABEL(RIGHT_CHILD(a)) == 21 /* CONSTInstID */
 		) {
-			c = (STATE_LABEL(LEFT_CHILD(a)))->cost[burm_stm_NT] + ((((a->get_type() == Type::ByteTypeID || a->get_type() == Type::IntTypeID || a->get_type() == Type::LongTypeID) && fits_into<s4>(a->get_operand(1)->to_Instruction()->to_CONSTInst()->get_value())) ? 1 : 1000));
+			c = (STATE_LABEL(LEFT_CHILD(a)))->cost[burm_stm_NT] + (encodeDiscreteCost(a, a->get_operand(1)));
 			if (c + 0 < p->cost[burm_stm_NT]) {
 				p->cost[burm_stm_NT] = c + 0;
 				p->rule.burm_stm = 30;
@@ -659,6 +757,18 @@ void Matcher::burm_kids(NODEPTR_TYPE p, int eruleno, NODEPTR_TYPE kids[]) {
 	case 5: /* stm: ARRAYBOUNDSCHECKInstID(stm,stm) */
 		kids[0] = LEFT_CHILD(p);
 		kids[1] = RIGHT_CHILD(p);
+		break;
+	case 31: /* stm: ADDInstID(ADDInstID(stm,stm),CONSTInstID) */
+		kids[0] = LEFT_CHILD(LEFT_CHILD(p));
+		kids[1] = RIGHT_CHILD(LEFT_CHILD(p));
+		break;
+	case 32: /* stm: ADDInstID(stm,MULInstID(stm,CONSTInstID)) */
+		kids[0] = LEFT_CHILD(p);
+		kids[1] = LEFT_CHILD(RIGHT_CHILD(p));
+		break;
+	case 33: /* stm: ADDInstID(ADDInstID(stm,MULInstID(stm,CONSTInstID)),CONSTInstID) */
+		kids[0] = LEFT_CHILD(LEFT_CHILD(p));
+		kids[1] = LEFT_CHILD(RIGHT_CHILD(LEFT_CHILD(p)));
 		break;
 	default:
 		ABORT_MSG("burm_kids", "Bad rule number " << eruleno << nl);
