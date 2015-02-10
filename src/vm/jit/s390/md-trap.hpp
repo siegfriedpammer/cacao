@@ -1,6 +1,6 @@
-/* src/vm/jit/s390/md-trap.h - s390 hardware traps
+/* src/vm/jit/s390/md-trap.hpp - s390 hardware traps
 
-   Copyright (C) 2008, 2010
+   Copyright (C) 1996-2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.

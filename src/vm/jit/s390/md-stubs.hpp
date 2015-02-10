@@ -27,7 +27,7 @@
 
 #include "config.h"
 
-#include "vm/jit/s390/codegen.h"
+#include "vm/jit/s390/codegen.hpp"
 
 
 /**
