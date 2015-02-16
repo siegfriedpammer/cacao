@@ -574,6 +574,24 @@ public:
 		ABORT_MSG("type not supported", "x86_64 ModRMOperand::get_scale() type: " << type);
 		return Scale1;
 	}
+
+	/// covert type to scale
+	static ScaleFactor get_scale(int32_t value) {
+		switch (value) {
+		case 1:
+			return Scale1;
+		case 2:
+			return Scale2;
+		case 4:
+			return Scale4;
+		case 8:
+			return Scale8;
+		default:
+			break;
+		}
+		ABORT_MSG("constant value not supported", "x86_64 ModRMOperand::get_scale() value: " << value);
+		return Scale1;
+	}
 };
 class ModRMOperandDesc {
 public:

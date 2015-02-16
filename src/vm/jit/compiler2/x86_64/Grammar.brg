@@ -6,7 +6,9 @@ stm: MULInstID(stm, CONSTInstID) "MulRegImm" encodeDiscreteCost(a, a->get_operan
 
 stm: ADDInstID(ADDInstID(stm, stm), CONSTInstID) "BaseIndexDisplacement" calcBaseIndexDisplacementCost(a)
 stm: ADDInstID(stm, MULInstID(stm, CONSTInstID)) "BaseIndexMultiplier" calcBaseIndexMultiplierCost(a)
+stm: ADDInstID(MULInstID(stm, CONSTInstID), stm) "BaseIndexMultiplier2" calcBaseIndexMultiplier2Cost(a)
 stm: ADDInstID(ADDInstID(stm, MULInstID(stm, CONSTInstID)), CONSTInstID) "BaseIndexMultiplierDisplacement" calcBaseIndexMultiplierDisplacementCost(a)
+stm: ADDInstID(stm, ADDInstID(MULInstID(stm, CONSTInstID), CONSTInstID)) "BaseIndexMultiplierDisplacement2" calcBaseIndexMultiplierDisplacement2Cost(a)
 
 %%
 
@@ -36,21 +38,82 @@ namespace {
 		return 1;
 	}
 
+	/*
+	LEA Encodings
+		* CONSTInst is always assumed to be second parameter due to how SSA Graph is created
+		  If it is also used as first parameter, handle all other permutations as well
+		* Permutations in nesting MULInst/stm within the add have to be handled, 
+		  hence the rules and methods with "...2"
+	*/
+
 	int calcBaseIndexDisplacementCost(Instruction* a){
+		/*
+		ADDInstID
+			ADDInstID
+				stm, 
+				stm
+			CONSTInstID
+		*/
 		if (isConstEncodable(a->get_operand(1)->to_Instruction()->to_CONSTInst()))
 			return 1;
 		return 0x7fff;
 	}
 
 	int calcBaseIndexMultiplierCost(Instruction* a){
+		/*
+		ADDInstID
+			stm, 
+			MULInstID
+				stm, 
+				CONSTInstID
+		*/
 		if (isMultiplier(a->get_operand(1)->to_Instruction()->get_operand(1)->to_Instruction()->to_CONSTInst()))
 			return 1;
 		return 0x7fff;
 	}
 
+	int calcBaseIndexMultiplier2Cost(Instruction* a){
+		/*
+		ADDInstID
+			MULInstID
+				stm, 
+				CONSTInstID
+			stm
+		*/
+		if (isMultiplier(a->get_operand(0)->to_Instruction()->get_operand(1)->to_Instruction()->to_CONSTInst()))
+			return 1;
+		return 0x7fff;
+	}
+
 	int calcBaseIndexMultiplierDisplacementCost(Instruction* a){
+		/*
+		ADDInstID
+			ADDInstID
+				stm, 
+				MULInstID
+					stm, 
+					CONSTInstID
+			CONSTInstID
+		*/
+
 		if ((isConstEncodable(a->get_operand(1)->to_Instruction()->to_CONSTInst())) &&
-			(isMultiplier(a->get_operand(1)->to_Instruction()->get_operand(1)->to_Instruction()->to_CONSTInst())))
+			(isMultiplier(a->get_operand(0)->to_Instruction()->get_operand(1)->to_Instruction()->get_operand(1)->to_Instruction()->to_CONSTInst())))
+			return 1;
+		return 0x7fff;
+	}
+
+	int calcBaseIndexMultiplierDisplacement2Cost(Instruction* a){
+		/*
+		ADDInstID
+			stm, 
+			ADDInstID
+				MULInstID
+					stm, 
+					CONSTInstID
+				CONSTInstID
+		*/
+		if ((isConstEncodable(a->get_operand(1)->to_Instruction()->get_operand(1)->to_Instruction()->to_CONSTInst())) &&
+			(isMultiplier(a->get_operand(1)->to_Instruction()->get_operand(0)->to_Instruction()->get_operand(1)->to_Instruction()->to_CONSTInst())))
 			return 1;
 		return 0x7fff;
 	}

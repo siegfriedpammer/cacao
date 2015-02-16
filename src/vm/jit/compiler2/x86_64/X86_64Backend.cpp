@@ -1404,7 +1404,14 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 		}
 		// LEA
 		case BaseIndexDisplacement:
-		{
+		{	
+			/*
+			ADDInstID
+				ADDInstID
+					stm, 		// base
+					stm  		// index
+				CONSTInstID		// disp
+			*/	
 			assert(I);
 			Type::TypeID type = I->get_type();
 
@@ -1414,7 +1421,120 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 
 			CONSTInst* displacement = I->get_operand(1)->to_Instruction()->to_CONSTInst();
 			VirtualRegister *dst = new VirtualRegister(type);
-			ModRMOperand modrm(type, IndexOp(index), BaseOp(base), displacement->get_value());
+			ModRMOperand modrm(ModRMOperand::Scale1, IndexOp(index), BaseOp(base), displacement->get_value());
+
+			MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(type), SrcModRM(modrm));
+			get_current()->push_back(lea);
+			set_op(I,lea->get_result().op);
+			break;
+		}
+		case BaseIndexMultiplier:
+		{	
+			/*
+			ADDInstID
+				stm, 				// base
+				MULInstID
+					stm, 			// index
+					CONSTInstID		// multiplier
+			*/
+			assert(I);
+			Type::TypeID type = I->get_type();
+
+			MachineOperand* base = get_op(I->get_operand(0)->to_Instruction());
+
+			Instruction* nested_mul = I->get_operand(1)->to_Instruction();
+			MachineOperand* index = get_op(nested_mul->get_operand(0)->to_Instruction());
+			CONSTInst* multiplier = nested_mul->get_operand(1)->to_Instruction()->to_CONSTInst();
+
+			VirtualRegister *dst = new VirtualRegister(type);
+			ModRMOperand modrm(ModRMOperand::get_scale(multiplier->get_Int()), IndexOp(index), BaseOp(base));
+
+			MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(type), SrcModRM(modrm));
+			get_current()->push_back(lea);
+			set_op(I,lea->get_result().op);
+			break;
+		}
+		case BaseIndexMultiplier2:
+		{	
+			/*
+			ADDInstID
+				MULInstID
+					stm, 			// index
+					CONSTInstID		// multiplier
+				stm 				// base
+			*/
+			assert(I);
+			Type::TypeID type = I->get_type();
+
+			MachineOperand* base = get_op(I->get_operand(1)->to_Instruction());
+
+			Instruction* nested_mul = I->get_operand(0)->to_Instruction();
+			MachineOperand* index = get_op(nested_mul->get_operand(0)->to_Instruction());
+			CONSTInst* multiplier = nested_mul->get_operand(1)->to_Instruction()->to_CONSTInst();
+
+			VirtualRegister *dst = new VirtualRegister(type);
+			ModRMOperand modrm(ModRMOperand::get_scale(multiplier->get_Int()), IndexOp(index), BaseOp(base));
+
+			MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(type), SrcModRM(modrm));
+			get_current()->push_back(lea);
+			set_op(I,lea->get_result().op);
+			break;
+		}
+		case BaseIndexMultiplierDisplacement:
+		{	
+			/*
+			ADDInstID
+				ADDInstID
+					stm, 				// base
+					MULInstID
+						stm, 			// index
+						CONSTInstID 	// multiplier
+				CONSTInstID 			// displacement
+			*/
+			assert(I);
+			Type::TypeID type = I->get_type();
+
+			Instruction* bim_root = I->get_operand(0)->to_Instruction();
+			MachineOperand* base = get_op(bim_root->get_operand(0)->to_Instruction());
+
+			Instruction* nested_mul = bim_root->get_operand(1)->to_Instruction();
+			MachineOperand* index = get_op(nested_mul->get_operand(0)->to_Instruction());
+			CONSTInst* multiplier = nested_mul->get_operand(1)->to_Instruction()->to_CONSTInst();
+
+			CONSTInst* displacement = I->get_operand(1)->to_Instruction()->to_CONSTInst();
+
+			VirtualRegister *dst = new VirtualRegister(type);
+			ModRMOperand modrm(ModRMOperand::get_scale(multiplier->get_Int()), IndexOp(index), BaseOp(base), displacement->get_value());
+
+			MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(type), SrcModRM(modrm));
+			get_current()->push_back(lea);
+			set_op(I,lea->get_result().op);
+			break;
+		}
+		case BaseIndexMultiplierDisplacement2:
+		{	
+			/*
+			ADDInstID
+				stm, 					// base
+				ADDInstID
+					MULInstID
+						stm, 			// index
+						CONSTInstID		// multiplier
+					CONSTInstID 		// displacement
+			*/
+			assert(I);
+			Type::TypeID type = I->get_type();
+
+			MachineOperand* base = get_op(I->get_operand(0)->to_Instruction());
+
+			Instruction* mul_add = I->get_operand(1)->to_Instruction();
+			MachineOperand* index = get_op(mul_add->get_operand(0)->to_Instruction()->get_operand(0)->to_Instruction());
+			CONSTInst* multiplier = mul_add->get_operand(0)->to_Instruction()->get_operand(1)->to_Instruction()->to_CONSTInst();
+
+			CONSTInst* displacement = mul_add->get_operand(1)->to_Instruction()->to_CONSTInst();
+
+			VirtualRegister *dst = new VirtualRegister(type);
+			ModRMOperand modrm(ModRMOperand::get_scale(multiplier->get_Int()), IndexOp(index), BaseOp(base), displacement->get_value());
 
 			MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(type), SrcModRM(modrm));
 			get_current()->push_back(lea);
