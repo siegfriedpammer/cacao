@@ -91,6 +91,7 @@ stm: SUBInstID(stm, CONSTInstID) "SubRegImm" encodeDiscreteCost(a, a->get_operan
 stm: MULInstID(stm, CONSTInstID) "MulRegImm" encodeDiscreteCost(a, a->get_operand(1))
 
 stm: ADDInstID(ADDInstID(stm, stm), CONSTInstID) "BaseIndexDisplacement" calcBaseIndexDisplacementCost(a)
+stm: ADDInstID(stm, ADDInstID(stm, CONSTInstID)) "BaseIndexDisplacement2" calcBaseIndexDisplacement2Cost(a)
 stm: ADDInstID(stm, MULInstID(stm, CONSTInstID)) "BaseIndexMultiplier" calcBaseIndexMultiplierCost(a)
 stm: ADDInstID(MULInstID(stm, CONSTInstID), stm) "BaseIndexMultiplier2" calcBaseIndexMultiplier2Cost(a)
 stm: ADDInstID(ADDInstID(stm, MULInstID(stm, CONSTInstID)), CONSTInstID) "BaseIndexMultiplierDisplacement" calcBaseIndexMultiplierDisplacementCost(a)
@@ -124,6 +125,14 @@ namespace {
 		return 1;
 	}
 
+	/*
+	LEA Encodings
+		* CONSTInst is always assumed to be second parameter due to how SSA Graph is created
+		  If it is also used as first parameter, handle all other permutations as well
+		* Permutations in nesting MULInst/stm within the add have to be handled, 
+		  hence the rules and methods with "...2"
+	*/
+
 	int calcBaseIndexDisplacementCost(Instruction* a){
 		/*
 		ADDInstID
@@ -133,6 +142,19 @@ namespace {
 			CONSTInstID
 		*/
 		if (isConstEncodable(a->get_operand(1)->to_Instruction()->to_CONSTInst()))
+			return 1;
+		return 0x7fff;
+	}
+
+	int calcBaseIndexDisplacement2Cost(Instruction* a){
+		/*
+		ADDInstID
+				stm 
+				ADDInstID
+					stm
+					CONSTInstID
+		*/
+		if (isConstEncodable(a->get_operand(1)->to_Instruction()->get_operand(1)->to_Instruction()->to_CONSTInst()))
 			return 1;
 		return 0x7fff;
 	}
