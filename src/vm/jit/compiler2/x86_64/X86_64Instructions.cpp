@@ -1121,9 +1121,9 @@ void IMulImmInst::emit(CodeMemory* CM) const {
 
 	s4 immval = imm->get_value<s4>();
 	if (fits_into<s1>(immval)){
-		InstructionEncoding::reg2imm_modrm<u1,s1>(CM, 0x6b, dst_reg->get_index(), src_reg, immval);
+		InstructionEncoding::reg2imm_modrm<u1,s1>(CM, 0x6b, dst_reg, src_reg, immval);
 	} else {
-		InstructionEncoding::reg2imm_modrm<u1,s4>(CM, 0x69, dst_reg->get_index(), src_reg, immval);
+		InstructionEncoding::reg2imm_modrm<u1,s4>(CM, 0x69, dst_reg, src_reg, immval);
 	}
 
 }

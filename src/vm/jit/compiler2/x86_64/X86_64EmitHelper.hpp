@@ -194,15 +194,15 @@ struct InstructionEncoding {
 	}
 	template <class O,class I>
 	static void reg2imm_modrm(CodeMemory *CM, O opcode,
-			u1 reg, X86_64Register *rm, I imm) {
+			X86_64Register* reg, X86_64Register *rm, I imm) {
 		CodeFragment code = CM->get_CodeFragment(2 + sizeof(O) + sizeof(I));
 
-		code[0] = get_rex(rm);
+		code[0] = get_rex(reg, rm);
 
 		for (int i = 0, e = sizeof(O) ; i < e ; ++i) {
 			code[i + 1] = (u1) 0xff & (opcode >> (8 * (e - i - 1)));
 		}
-		code[1 + sizeof(O)] = get_modrm_1reg(reg,rm);
+		code[1 + sizeof(O)] = get_modrm_1reg(reg->get_index(),rm);
 		for (int i = 0, e = sizeof(I) ; i < e ; ++i) {
 			code[i + sizeof(O) + 2] = (u1) 0xff & (imm >> (8 * i));
 		}
