@@ -218,7 +218,12 @@
 #define _RT_LOG(expr)
 #endif
 
-//namespace {
+#ifdef __DARWIN__
+#include <mach/mach.h>
+#include <mach/mach_time.h>
+#endif
+
+namespace {
 #if 0
 /**
  * @note: http://www.gnu.org/software/libc/manual/html_node/Elapsed-Time.html
@@ -306,7 +311,7 @@ inline long int operator/(const timespec &a, const timespec &b) {
 inline bool operator==(const timespec &a, const timespec &b) {
 	return (a.tv_sec == b.tv_sec) && (a.tv_nsec == b.tv_nsec);
 }
-//} // end anonymous namespace
+} // end anonymous namespace
 
 namespace cacao {
 namespace {
@@ -332,12 +337,14 @@ inline OStream& operator<<(OStream &ostr, timespec ts) {
 	return ostr;
 }
 
+#ifndef __DARWIN__
 inline void rt_timing_gettime_inline(timespec &ts) {
 	if (clock_gettime(CLOCK_THREAD_CPUTIME_ID,&ts) != 0) {
 		fprintf(stderr,"could not get time by clock_gettime: %s\n",strerror(errno));
 		abort();
 	}
 }
+#endif
 
 inline long rt_timing_diff_usec_inline(const timespec &a, const timespec &b)
 {
@@ -357,7 +364,6 @@ inline long rt_timing_diff_usec_inline(const timespec &a, const timespec &b)
 } // end namespace cacao
 
 #include <vector>
-#include <deque>
 
 namespace cacao {
 
@@ -373,24 +379,6 @@ class RTEntry {
 protected:
 	const char* name;
 	const char* description;
-	/// dummy constructor
-	RTEntry() : name(NULL), description(NULL) {}
-
-	typedef std::deque<const RTEntry*> RtStack;
-
-	void print_csv_entry(OStream &O,RtStack &s,timespec ts) const {
-		for(RtStack::const_iterator i = s.begin(), e = s.end() ; i != e; ++i) {
-			O << (*i)->name << '.';
-		}
-		O << name << ';' << description << ';';
-		if (ts.tv_sec) {
-			O << ts.tv_sec << cacao::setz(9) << ts.tv_nsec;
-		}
-		else {
-			O << ts.tv_nsec;
-		}
-		O << cacao::nl;
-	}
 public:
 	static timespec invalid_ts;   //< invalid time stamp
 	/**
@@ -412,15 +400,6 @@ public:
 	 *	Normally the time of the parent.
 	 */
 	virtual void print(OStream &O,timespec ref) const = 0;
-	void print_csv(OStream &O) const {
-		RtStack s;
-		print_csv_intern(O,s);
-	}
-	static void print_csv_header(OStream &O) {
-		O << "name;description;value" << nl;
-	}
-	virtual void print_csv_intern(OStream &O,RtStack &s) const = 0;
-
 	/**
 	 * Get the elapsed time of a RTEntry.
 	 */
@@ -499,15 +478,6 @@ public:
 		  << reset_color
 		  << nl<< nl;
 	}
-	virtual void print_csv_intern(OStream &O,RtStack &s) const {
-		s.push_back(this);
-		for(RTEntryList::const_iterator i = members.begin(), e = members.end(); i != e; ++i) {
-			RTEntry* re = *i;
-			re->print_csv_intern(O,s);
-		}
-		s.pop_back();
-		print_csv_entry(O,s,time());
-	}
 };
 
 /**
@@ -517,20 +487,23 @@ public:
  */
 class RTTimer : public RTEntry {
 private:
+#ifdef __DARWIN__
+	uint64_t startstamp;
+#else
 	timespec startstamp;  //< start timestamp
+#endif
 	long int duration;    //< time in usec
 public:
-	/// dummy constructor
-	RTTimer() : RTEntry() {}
 	/**
 	 * Create a new real-time timer.
 	 * @param[in] name name of the timer
 	 * @param[in] description description of the timer
 	 * @param[in] group parent group.
 	 */
-	RTTimer(const char* name, const char* description, RTGroup &parent) : RTEntry(name, description), duration(0) {
+	RTTimer(const char* name, const char* description, RTGroup &parent) : RTEntry(name, description) {
 		//reset();
 		_RT_LOG("RTTimer() name: " << name << nl);
+		duration = 0;
 		parent.add(this);
 	}
 
@@ -546,7 +519,11 @@ public:
 	 * @see stop()
 	 */
 	inline void start() {
+#ifdef __DARWIN__
+		startstamp = mach_absolute_time();
+#else
 		rt_timing_gettime_inline(startstamp);
+#endif
 	}
 
 	/**
@@ -555,9 +532,22 @@ public:
 	 * @see start()
 	 */
 	inline void stop() {
+#ifdef __DARWIN__
+		static mach_timebase_info_data_t sTimebaseInfo;
+		uint64_t elapsed, nano;
+
+		if ( sTimebaseInfo.denom == 0 ) {
+        	(void) mach_timebase_info(&sTimebaseInfo);
+    	}
+
+		elapsed = mach_absolute_time() - startstamp;
+		nano = elapsed * sTimebaseInfo.numer / sTimebaseInfo.denom;
+		duration += (nano / 1000);
+#else
 		timespec stopstamp;
 		rt_timing_gettime_inline(stopstamp);
 		duration += rt_timing_diff_usec_inline(startstamp,stopstamp);
+#endif
 	}
 
 	virtual timespec time() const {
@@ -581,9 +571,6 @@ public:
 		O << setw(10) << ts.tv_nsec/1000 << " usec "
 		  << setw(4) << percent << "% "
 		  << setw(20) << name << ": " << description << nl;
-	}
-	virtual void print_csv_intern(OStream &O,RtStack &s) const {
-		print_csv_entry(O,s,time());
 	}
 };
 
