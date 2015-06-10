@@ -67,8 +67,10 @@ CACAO_LIBS = \
 	libjvm.la
 endif
 
+if !OS_DARWIN
 if ENABLE_RT_TIMING
 cacao_LDFLAGS += -lrt
+endif
 endif
 
 libjvm_la_SOURCES =
