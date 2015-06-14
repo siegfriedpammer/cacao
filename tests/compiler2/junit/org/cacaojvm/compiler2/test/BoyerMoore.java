@@ -30,7 +30,7 @@ import org.junit.Test;
 public class BoyerMoore extends Compiler2TestBase {
 
 	@Test
-	public void test0() {
+	public void test_boyerMoore() {
 		String strPattern = "ana";
 		String strText = "bananas";
 
@@ -48,12 +48,14 @@ public class BoyerMoore extends Compiler2TestBase {
 			text[i++] = (int) c;
 		}
 
+		TimingResults tr = new TimingResults();
+
 		int[] patternBaseline = pattern.clone();
 		int[] textBaseline = text.clone();
 		int[] matchesBaseline = matches.clone();
 		int[] rightMostIndexesBaseline = rightMostIndexes.clone();
 		Object resultBaseline = runBaseline("boyerMoore", "([I[I[I[I)I",
-				patternBaseline, textBaseline, matchesBaseline,
+				tr.baseline, patternBaseline, textBaseline, matchesBaseline,
 				rightMostIndexesBaseline);
 
 		int[] patternCompiler2 = pattern.clone();
@@ -61,7 +63,7 @@ public class BoyerMoore extends Compiler2TestBase {
 		int[] matchesCompiler2 = matches.clone();
 		int[] rightMostIndexesCompiler2 = rightMostIndexes.clone();
 		Object resultCompiler2 = runCompiler2("boyerMoore", "([I[I[I[I)I",
-				patternCompiler2, textCompiler2, matchesCompiler2,
+				tr.compiler2, patternCompiler2, textCompiler2, matchesCompiler2,
 				rightMostIndexesCompiler2);
 
 		assertEquals(resultBaseline, resultCompiler2);
@@ -75,6 +77,8 @@ public class BoyerMoore extends Compiler2TestBase {
 		assertNotEquals(textBaseline, textCompiler2);
 		assertNotEquals(matchesBaseline, matchesCompiler2);
 		assertNotEquals(rightMostIndexesBaseline, rightMostIndexesCompiler2);
+
+		tr.report();
 	}
 
 	/**

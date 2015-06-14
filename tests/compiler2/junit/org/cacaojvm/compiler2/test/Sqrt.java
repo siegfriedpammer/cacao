@@ -57,8 +57,10 @@ public class Sqrt extends Compiler2TestBase {
 	}
 
 	@Test
-	public void test0() {
-		testResultEqual("sqrt", "(J)J", value);
+	public void test_sqrt() {
+		TimingResults tr = new TimingResults();
+		testResultEqual("sqrt", "(J)J", tr, value);
+		tr.report();
 	}
 
 	/**

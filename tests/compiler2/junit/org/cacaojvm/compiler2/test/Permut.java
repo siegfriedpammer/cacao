@@ -36,7 +36,7 @@ public class Permut extends Compiler2TestBase {
 	}
 
 	@Test
-	public void test0() {
+	public void test_permut() {
 		int n = 5;
 		int fn = fact(n);
 
@@ -49,16 +49,18 @@ public class Permut extends Compiler2TestBase {
 			p[i] = 0;
 		}
 
+		TimingResults tr = new TimingResults();
+
 		int[] aBaseline = a.clone();
 		int[] pBaseline = p.clone();
 		int[][] resultBaseline = result.clone();
-		runBaseline("permut", "([I[I[[I)V", aBaseline, pBaseline,
+		runBaseline("permut", "([I[I[[I)V", tr.baseline, aBaseline, pBaseline,
 				resultBaseline);
 
 		int[] aCompiler2 = a.clone();
 		int[] pCompiler2 = p.clone();
 		int[][] resultCompiler2 = result.clone();
-		runCompiler2("permut", "([I[I[[I)V", aCompiler2, pCompiler2,
+		runCompiler2("permut", "([I[I[[I)V", tr.compiler2, aCompiler2, pCompiler2,
 				resultCompiler2);
 
 		assertArrayEquals(aBaseline, aCompiler2);
@@ -68,6 +70,8 @@ public class Permut extends Compiler2TestBase {
 		assertNotEquals(aBaseline, aCompiler2);
 		assertNotEquals(pBaseline, pCompiler2);
 		assertNotEquals(resultBaseline, resultCompiler2);
+
+		tr.report();
 	}
 
 	/**

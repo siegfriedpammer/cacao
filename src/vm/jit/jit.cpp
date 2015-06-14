@@ -363,7 +363,7 @@ u1 *jit_compile(methodinfo *m)
 	if (opt_verbosecall)
 		jd->flags |= JITDATA_FLAG_VERBOSECALL;
 
-#if defined(ENABLE_REPLACEMENT) && defined(ENABLE_INLINING)
+#if defined(ENABLE_REPLACEMENT) && defined(ENABLE_INLINING) && defined(ENABLE_INLINING_DEBUG) && !defined(NDEBUG)
 	if (opt_Inline && (jd->m->hitcountdown > 0) && (jd->code->optlevel == 0)) {
 		if (!opt_InlineMethod) {
 			jd->flags |= JITDATA_FLAG_COUNTDOWN;

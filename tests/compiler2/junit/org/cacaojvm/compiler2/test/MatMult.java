@@ -29,7 +29,7 @@ import org.junit.Test;
 public class MatMult extends Compiler2TestBase {
 
 	@Test
-	public void test0() {
+	public void test_matMult() {
 
 		// @formatter:off
 		int[][] a = new int[][] {
@@ -46,16 +46,20 @@ public class MatMult extends Compiler2TestBase {
 
 		int[][] c = new int[a.length][b[0].length];
 
+		TimingResults tr = new TimingResults();
+
 		int[][] aBaseline = a.clone();
 		int[][] bBaseline = b.clone();
 		int[][] cBaseline = c.clone();
-		runBaseline("matMult", "([[I[[I[[I)V", aBaseline, bBaseline, cBaseline);
+		runBaseline("matMult", "([[I[[I[[I)V", tr.baseline, aBaseline, bBaseline, cBaseline);
 
 		int[][] aCompiler2 = a.clone();
 		int[][] bCompiler2 = b.clone();
 		int[][] cCompiler2 = c.clone();
-		runCompiler2("matMult", "([[I[[I[[I)V", aCompiler2, bCompiler2,
+		runCompiler2("matMult", "([[I[[I[[I)V", tr.compiler2, aCompiler2, bCompiler2,
 				cCompiler2);
+
+		tr.report();
 
 		assertArrayEquals(aBaseline, aCompiler2);
 		assertArrayEquals(bBaseline, bCompiler2);

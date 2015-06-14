@@ -70,14 +70,17 @@ import org.junit.runners.Suite;
 	Fmul.class,
 	Fdiv.class,
 	
-	I2b.class,
-	I2c.class,
-	I2s.class,
-	I2f.class,
-	I2d.class,
-	Idiv.class,
-	Irem.class,
-	SampleTest.class
+	// I2b.class,
+	// I2c.class,
+	// I2s.class,
+	// I2f.class,
+	// I2d.class,
+	// Idiv.class,
+	// Irem.class,
+
+	MatcherBenchmarks.class
+
+	// SampleTest.class
 	// @formatter:on
 })
 public class All {

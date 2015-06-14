@@ -50,8 +50,10 @@ public class Fact extends Compiler2TestBase {
 	}
 
 	@Test
-	public void test0() {
-		testResultEqual("fact", "(J)J", value);
+	public void test_fact() {
+		TimingResults tr = new TimingResults();
+		testResultEqual("fact", "(J)J", tr, value);
+		tr.report();
 	}
 
 	/**

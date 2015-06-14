@@ -660,7 +660,7 @@ private:
 	ModRMOperandDesc modrm;
 public:
 	LEAInst( const DstOp &dst, OperandSize op_size, const SrcModRM src )
-			: GPInstruction("X86_64MovModRMInst", dst.op, op_size, 2),
+			: GPInstruction("X86_64LEAInst", dst.op, op_size, 2),
 				modrm(ModRMOperandDesc(src.op.scale,operands[Index],operands[Base],src.op.disp)) {
 		operands[Base].op = src.op.base;
 		operands[Index].op = src.op.index;
