@@ -30,6 +30,7 @@ public class MatAdd extends Compiler2TestBase {
 
 	@Test
 	public void test0() {
+		TimingResults tr = new TimingResults();
 		int[][] a = new int[][] { { 1, 2 }, { 3, 4 }, { 5, 6 }, { 7, 8 } };
 		int[][] b = new int[][] { { 3, 6 }, { 6, 9 }, { 4, 8 }, { 8, 12 } };
 
@@ -38,13 +39,15 @@ public class MatAdd extends Compiler2TestBase {
 		int[][] aBaseline = a.clone();
 		int[][] bBaseline = b.clone();
 		int[][] cBaseline = c.clone();
-		runBaseline("matAdd", "([[I[[I[[I)V", aBaseline, bBaseline, cBaseline);
+		runBaseline("matAdd", "([[I[[I[[I)V", tr.baseline, aBaseline, bBaseline, cBaseline);
 
 		int[][] aCompiler2 = a.clone();
 		int[][] bCompiler2 = b.clone();
 		int[][] cCompiler2 = c.clone();
-		runCompiler2("matAdd", "([[I[[I[[I)V", aCompiler2, bCompiler2,
+		runCompiler2("matAdd", "([[I[[I[[I)V", tr.compiler2, aCompiler2, bCompiler2,
 				cCompiler2);
+
+		tr.report();
 
 		assertArrayEquals(aBaseline, aCompiler2);
 		assertArrayEquals(bBaseline, bCompiler2);

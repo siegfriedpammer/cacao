@@ -25,18 +25,20 @@
 package org.cacaojvm.compiler2.test;
 
 class Compiler2Test {
-	private static native Object compileMethod(boolean baseline,
-			Class<?> compileClass, String methodName, String methodDesc,
-			Object[] args);
+	private static native void compileMethod(boolean baseline,
+			Class<?> compileClass, String methodName, String methodDesc);
+	
+	protected static native Object executeMethod(Class<?> compileClass, 
+			String methodName, String methodDesc, Object[] args);
 
-	protected static Object compileBaseline(Class<?> compileClass,
-			String methodName, String methodDesc, Object... args) {
-		return compileMethod(true, compileClass, methodName, methodDesc, args);
+	protected static void compileBaseline(Class<?> compileClass,
+			String methodName, String methodDesc) {
+		compileMethod(true, compileClass, methodName, methodDesc);
 	}
 
-	protected static Object compileCompiler2(Class<?> compileClass,
-			String methodName, String methodDesc, Object... args) {
-		return compileMethod(false, compileClass, methodName, methodDesc, args);
+	protected static void compileCompiler2(Class<?> compileClass,
+			String methodName, String methodDesc) {
+		compileMethod(false, compileClass, methodName, methodDesc);
 	}
 
 }
