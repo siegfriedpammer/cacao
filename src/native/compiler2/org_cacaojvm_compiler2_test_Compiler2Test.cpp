@@ -45,9 +45,9 @@ extern "C" {
 /*
  * Class:     org/cacaojvm/compiler2/test/Compiler2Test
  * Method:    compileMethod
- * Signature: (ZLjava/lang/Class;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/Object;
+ * Signature: (ZLjava/lang/Class;Ljava/lang/String;Ljava/lang/String;)V
  */
-JNIEXPORT jobject JNICALL Java_org_cacaojvm_compiler2_test_Compiler2Test_compileMethod(JNIEnv *env, jclass clazz, jboolean baseline, jclass compile_class, jstring name, jstring desc, jobjectArray args) {
+JNIEXPORT void JNICALL Java_org_cacaojvm_compiler2_test_Compiler2Test_compileMethod(JNIEnv *env, jclass clazz, jboolean baseline, jclass compile_class, jstring name, jstring desc) {
 	classinfo *ci;
 
 	ci = LLNI_classinfo_unwrap(compile_class);
@@ -82,8 +82,6 @@ JNIEXPORT jobject JNICALL Java_org_cacaojvm_compiler2_test_Compiler2Test_compile
 		os::abort();
 	}
 
-	// back up and reset code
-	codeinfo *code = m->code;
 	m->code = NULL;
 
 	if (baseline) {
@@ -99,11 +97,54 @@ JNIEXPORT jobject JNICALL Java_org_cacaojvm_compiler2_test_Compiler2Test_compile
 		}
 	}
 
+	return;
+}
+
+/*
+ * Class:     org/cacaojvm/compiler2/test/Compiler2Test
+ * Method:    executeMethod
+ * Signature: (ZLjava/lang/Class;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/Object;
+ */
+JNIEXPORT jobject JNICALL Java_org_cacaojvm_compiler2_test_Compiler2Test_executeMethod(JNIEnv *env, jclass clazz, jclass compile_class, jstring name, jstring desc, jobjectArray args) {
+	classinfo *ci;
+
+	ci = LLNI_classinfo_unwrap(compile_class);
+
+	if (!ci) {
+		exceptions_throw_nullpointerexception();
+		os::abort();
+	}
+
+	if (name == NULL) {
+		exceptions_throw_nullpointerexception();
+		os::abort();
+	}
+
+	// create utf string in which '.' is replaced by '/'
+	Utf8String u = JavaString((java_handle_t*) name).to_utf8_dot_to_slash();
+	Utf8String d = JavaString((java_handle_t*) desc).to_utf8_dot_to_slash();
+
+	// find the method of the class
+	methodinfo *m = class_resolveclassmethod(ci, u, d, NULL, false);
+
+	if (exceptions_get_exception()) {
+		exceptions_print_stacktrace();
+		os::abort();
+	}
+
+	// there is no main method or it isn't static
+	if ((m == NULL) || !(m->flags & ACC_STATIC)) {
+		exceptions_clear_exception();
+		exceptions_throw_nosuchmethoderror(ci, u, d);
+		exceptions_print_stacktrace();
+		os::abort();
+	}
+
 	java_handle_t *result = vm_call_method_objectarray(m, NULL, args);
 
 	// restore code
 	// TODO free code!
-	m->code = code;
+	m->code = NULL;
 
 	// exception occurred?
 	if (exceptions_get_exception()) {
@@ -119,7 +160,8 @@ JNIEXPORT jobject JNICALL Java_org_cacaojvm_compiler2_test_Compiler2Test_compile
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ (char*) "compileMethod", (char*) "(ZLjava/lang/Class;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/Object;",(void*) (uintptr_t) &Java_org_cacaojvm_compiler2_test_Compiler2Test_compileMethod },
+	{ (char*) "compileMethod", (char*) "(ZLjava/lang/Class;Ljava/lang/String;Ljava/lang/String;)V",(void*) (uintptr_t) &Java_org_cacaojvm_compiler2_test_Compiler2Test_compileMethod },
+	{ (char*) "executeMethod", (char*) "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/Object;",(void*) (uintptr_t) &Java_org_cacaojvm_compiler2_test_Compiler2Test_executeMethod },
 };
 
 
