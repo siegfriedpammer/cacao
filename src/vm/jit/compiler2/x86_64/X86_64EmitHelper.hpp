@@ -27,6 +27,7 @@
 
 #include "vm/jit/compiler2/x86_64/X86_64Register.hpp"
 #include "vm/jit/compiler2/CodeMemory.hpp"
+#include "vm/jit/compiler2/alloc/deque.hpp"
 #include "vm/types.hpp"
 
 namespace cacao {
@@ -111,6 +112,100 @@ inline u1 get_rex(X86_64Register *reg, X86_64Register *rm = NULL,
 	return rex;
 }
 
+inline u1 get_rex(const X86_64Register *reg1, X86_64Register *reg2 = NULL, 
+			GPInstruction::OperandSize op_size = GPInstruction::OS_32, 
+			X86_64Register *reg3 = NULL) {
+        const unsigned rex_w = 3;
+        const unsigned rex_r = 2;
+        const unsigned rex_x = 1;
+        const unsigned rex_b = 0;
+
+        u1 rex = 0x40;
+
+        // 64-bit operand size
+        if (op_size == GPInstruction::OS_64) {
+                rex |= (1 << rex_w);
+        }
+        if (reg1 && reg1->extented) {
+                rex |= (1 << rex_r);
+        }
+        if (reg2 && reg2->extented) {
+                rex |= (1 << rex_b);
+        }
+        if (reg3 && reg3->extented) {
+                rex |= (1 << rex_x);
+        }
+        return rex;
+
+}
+
+inline bool use_sib(X86_64Register *base, X86_64Register *index) {
+        return index || base == &RSP || base == &R12;
+}
+
+inline u1 get_modrm(u1 reg, u1 base, s4 disp, bool use_sib = false) {
+        u1 modrm_mod = 6;
+        u1 modrm_reg = 3;
+        u1 modrm_rm = 0;
+
+        u1 mod = 0;
+        u1 rm = 0;
+        u1 modrm = 0;
+
+	if (disp == 0) {
+		// no disp
+		mod = 0x00; //0b00
+	}
+        else if (fits_into<s1>(disp)) {
+                // disp8
+                mod = 0x01; // 0b01
+        } else if (fits_into<s4>(disp)) {
+                // disp32
+                mod = 0x02; // 0b10
+        }
+        else {
+		ABORT_MSG("Illegal displacement", "Displacement: "<<disp);
+        }
+
+        if (use_sib) {
+                rm = 0x04; // 0b100
+        }
+        else {
+                rm = base;
+        }
+
+        modrm = mod << modrm_mod;
+        modrm |= reg << modrm_reg;
+        modrm |= rm << modrm_rm;
+
+        return modrm;
+}
+
+inline u1 get_modrm (X86_64Register *reg, X86_64Register *base, s4 disp, bool use_sib = false) {
+	return get_modrm((reg != NULL) ? reg->get_index() : 0, (base != NULL) ? base->get_index() : 0, disp, use_sib);
+}
+
+inline u1 get_sib(X86_64Register *base, X86_64Register *index = NULL, u1 scale = 1) {
+        u1 sib_scale = 6;
+        u1 sib_index = 3;
+        u1 sib_base = 0;
+
+        u1 sib = 0;
+
+        sib = scale << sib_scale;
+        if (index) {
+                sib |= index->get_index() << sib_index;
+        }
+        else {
+                sib |= RSP.get_index() << sib_index;
+        }
+
+        sib |= base->get_index() << sib_base;
+
+        return sib;
+}
+
+
 inline u1 get_modrm_u1(u1 mod, u1 reg, u1 rm) {
 	const unsigned modrm_mod = 6;
 	const unsigned modrm_reg = 3;
@@ -130,6 +225,76 @@ inline u1 get_modrm_reg2reg(X86_64Register *reg, X86_64Register *rm) {
 }
 inline u1 get_modrm_1reg(u1 reg, X86_64Register *rm) {
 	return get_modrm_u1(0x3,reg,rm->get_index());
+}
+
+class CodeSegmentBuilder {
+private:
+        typedef alloc::deque<u1>::type Container;
+public:
+        typedef Container::iterator iterator;
+        typedef Container::const_iterator const_iterator;
+        typedef Container::value_type value_type;
+
+        void push_front(u1 d) { data.push_front(d); }
+        void push_back(u1 d) { data.push_back(d); }
+        CodeSegmentBuilder& operator+=(u1 d) {
+                push_back(d);
+                return *this;
+        }
+        u1& operator[](std::size_t i) {
+                if (i >= size()) {
+                        data.resize(i+1,0);
+                }
+                return data[i];
+        }
+        u1 operator[](std::size_t i) const {
+                assert(i < size());
+                return data[i];
+        }
+        std::size_t size() const { return data.size(); }
+        const_iterator begin() const { return data.begin(); }
+        const_iterator end()   const { return data.end(); }
+        iterator begin() { return data.begin(); }
+        iterator end()   { return data.end(); }
+private:
+        Container data;
+};
+
+void add_CodeSegmentBuilder(CodeMemory *CM, const CodeSegmentBuilder &CSB) {
+        CodeFragment CF = CM->get_CodeFragment(CSB.size());
+        for (std::size_t i = 0, e = CSB.size(); i < e; ++i) {
+                CF[i] = CSB[i];
+        }
+}
+
+template <>
+inline StackSlot* cast_to<StackSlot>(MachineOperand *op) {
+        switch (op->get_OperandID()) {
+        case MachineOperand::ManagedStackSlotID:
+                {
+                        ManagedStackSlot *mslot = op->to_ManagedStackSlot();
+                        assert(mslot);
+                        StackSlot *slot = mslot->to_StackSlot();
+                        assert(slot);
+                        return slot;
+                }
+        case MachineOperand::StackSlotID:
+                {
+                        StackSlot *slot = op->to_StackSlot();
+                        assert(slot);
+                        return slot;
+                }
+        default: break;
+        }
+        assert(0 && "Not a stackslot");
+        return NULL;
+}
+
+template <>
+inline Immediate* cast_to<Immediate>(MachineOperand *op) {
+        Immediate* imm = op->to_Immediate();
+        assert(imm);
+        return imm;
 }
 
 struct InstructionEncoding {
@@ -241,6 +406,307 @@ struct InstructionEncoding {
 		}
 
 	}
+
+	static void emit (CodeMemory* CM, u1 primary_opcode, GPInstruction::OperandSize op_size, MachineOperand *src, MachineOperand *dst, u1 secondary_opcode = 0, u1 op_reg = 0, u1 prefix = 0, bool prefix_0f = false, bool encode_dst = true) {
+		CodeSegmentBuilder code;
+		
+		if (dst->is_Register()) {
+			X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
+			if (src->is_Register()) {
+				X86_64Register *src_reg = cast_to<X86_64Register>(src);
+				u1 rex = get_rex(dst_reg,src_reg,op_size == GPInstruction::OS_64);
+				if (rex != 0x40)
+					code += rex;
+				if (prefix)
+					code += prefix;
+				if (prefix_0f)
+					code += 0x0F;
+				code += primary_opcode;
+				if (secondary_opcode != 0x00) {
+					code += secondary_opcode;
+				}
+				code += get_modrm_reg2reg (dst_reg,src_reg);
+			}
+			else if (src->is_Immediate()) {
+				Immediate *src_imm = cast_to<Immediate>(src);
+				u1 rex = get_rex(NULL,dst_reg,op_size == GPInstruction::OS_64);
+				if (rex != 0x40)
+					code += rex;
+				if (prefix)
+					code += prefix;
+				if (prefix_0f)
+					code += 0x0F;
+				if (!encode_dst)
+					primary_opcode += dst_reg->get_index();
+				code += primary_opcode;
+				if (secondary_opcode != 0x00) {
+					code += secondary_opcode;
+				}
+				if (encode_dst) {
+					code += get_modrm_1reg(op_reg,dst_reg);
+				}
+				switch(op_size) {
+					case GPInstruction::OS_8:
+					{
+						s1 immval = src_imm->get_value<s1>();
+						code += (u1) 0xff & (immval >> 0x00);
+						break;
+					}
+					case GPInstruction::OS_16:
+					{
+						s2 immval = src_imm->get_value<s2>();
+						code += (u1) 0xff & (immval >> 0x00);
+						code += (u1) 0xff & (immval >> 0x08);
+						break;
+					}
+					case GPInstruction::OS_32:
+					{
+						s4 immval = src_imm->get_value<s4>();
+						code += (u1) 0xff & (immval >> 0x00);
+						code += (u1) 0xff & (immval >> 0x08);
+						code += (u1) 0xff & (immval >> 0x10);
+						code += (u1) 0xff & (immval >> 0x18);
+						break;
+					}
+					case GPInstruction::OS_64:
+					{
+						s8 immval = src_imm->get_value<s8>();
+						code += (u1) 0xff & (immval >> 0x00);
+						code += (u1) 0xff & (immval >> 0x08);
+						code += (u1) 0xff & (immval >> 0x10);
+						code += (u1) 0xff & (immval >> 0x18);
+						code += (u1) 0xff & (immval >> 0x20);
+						code += (u1) 0xff & (immval >> 0x28);
+						code += (u1) 0xff & (immval >> 0x30);
+						code += (u1) 0xff & (immval >> 0x38);
+						break;
+					}
+					case GPInstruction::NO_SIZE:
+						ABORT_MSG("Invalid Immediate Size",
+							"dst: " << dst_reg << " src: " << src_imm << " op_code: " << primary_opcode);
+						break;
+				}
+				/*
+				if (fits_into<s1>(src_imm->get_value<s4>())) {
+					code += src_imm->get_value<s1>();
+				}
+				else if (fits_into<s4>(src_imm->get_value<s4>())) {
+					InstructionEncoding::imm<s4>(code.end(), src_imm->get_value<s4>());
+				}*/
+			}
+			else if (src->is_stackslot()) {
+				StackSlot *src_slot = cast_to<StackSlot>(src);
+				s4 index = src_slot->get_index() * 8;
+				u1 rex = get_rex(dst_reg,NULL,op_size == GPInstruction::OS_64);
+				if (rex != 0x40)
+					code += rex;
+				if (prefix)
+					code += prefix;
+				if (prefix_0f)
+					code += 0x0F;
+				code += primary_opcode;
+				if (secondary_opcode != 0x00) {
+					code += secondary_opcode;
+				}
+				if (fits_into<s1>(index)) {
+					// Shouldn't mod be 0x0 for RIP relative addressing? needs test
+					code += get_modrm(0x1,dst_reg,&RBP);
+					code += index;
+				} else {
+					code += get_modrm(0x2,dst_reg,&RBP);
+					InstructionEncoding::imm<s4>(code.end(), index);
+				}
+			}
+			else if (src->is_Address()) {
+				X86_64ModRMOperand *src_mod = cast_to<X86_64ModRMOperand>(src);
+				X86_64Register *base = src_mod->getBase();
+				X86_64Register *index = src_mod->getIndex();
+				s4 disp = src_mod->getDisp();
+				u1 scale = src_mod->getScale();
+				u1 rex = get_rex(dst_reg, base, op_size, index);
+				if (rex != 0x40)
+					code += rex;
+				if (prefix)
+					code += prefix;
+				if (prefix_0f)
+					code += 0x0F;
+				code += primary_opcode;
+				if (secondary_opcode != 0x00) {
+					code += secondary_opcode;
+				}
+				bool sib = use_sib(base, index);
+				code += get_modrm(dst_reg,base,disp,sib);
+				if (sib) {
+					code += get_sib(base,index,scale);
+				}
+				if (disp != 0) {
+					if (fits_into<s1>(disp)) {
+						code += (s1)disp;
+					}
+					else {
+						code += (u1) 0xff & (disp >> 0x00);
+						code += (u1) 0xff & (disp >> 0x08);
+						code += (u1) 0xff & (disp >> 0x10);
+						code += (u1) 0xff & (disp >> 0x18);
+					}
+				}
+			}
+			else {
+				ABORT_MSG("Operand(s) not supported",
+						"dst_reg: " << dst_reg << " src: " << src << " op_code: " << primary_opcode);
+			}
+		}
+		else if (dst->is_stackslot()) {
+			StackSlot *dst_slot = cast_to<StackSlot>(dst);
+			s4 index = dst_slot->get_index() * 8;
+			if (src->is_Register()) {
+				X86_64Register *src_reg = cast_to<X86_64Register>(src);
+				u1 rex = get_rex(src_reg,NULL,op_size == GPInstruction::OS_64);
+				if (rex != 0x40)
+					code += rex;
+				if (prefix)
+					code += prefix;
+				if (prefix_0f)
+					code += 0x0F;
+				code += primary_opcode;
+				if (secondary_opcode != 0x00) {
+					code += secondary_opcode;
+				}
+				if (fits_into<s1>(index)) {
+					// Shouldn't mod be 0x0 for RIP relative addressing? needs test
+					code += get_modrm(0x1,src_reg,&RBP);
+					code += index;
+				} else {
+					code += get_modrm(0x2,src_reg,&RBP);
+					InstructionEncoding::imm<s4>(code.end(), index);
+				}
+			}
+			else {
+				ABORT_MSG("Operand(s) not supported",
+						"dst: " << dst_slot << " src: " << src << " op_code: " << primary_opcode);
+			}
+		}
+		else if (dst->is_Address()) {
+			X86_64ModRMOperand *dst_mod = cast_to<X86_64ModRMOperand>(dst);
+			X86_64Register *base = dst_mod->getBase();
+			X86_64Register *index = dst_mod->getIndex();
+			s4 disp = dst_mod->getDisp();
+			u1 scale = dst_mod->getScale();
+			if (src->is_Register()) {
+				X86_64Register *src_reg = cast_to<X86_64Register>(src);
+				u1 rex = get_rex(src_reg, base, op_size, index);
+				if (rex != 0x40)
+					code += rex;
+				if (prefix)
+					code += prefix;
+				if (prefix_0f)
+					code += 0x0F;
+				code += primary_opcode;
+				if (secondary_opcode != 0x00) {
+					code += secondary_opcode;
+				}
+				bool sib = use_sib(base, index);
+				code += get_modrm(src_reg,base,disp,sib);
+				if (sib) {
+					code += get_sib(base,index,scale);
+				}
+				if (disp != 0) {
+					if (fits_into<s1>(disp)) {
+						code += (s1)disp;
+					}
+					else {
+						code += (u1) 0xff & (disp >> 0x00);
+						code += (u1) 0xff & (disp >> 0x08);
+						code += (u1) 0xff & (disp >> 0x10);
+						code += (u1) 0xff & (disp >> 0x18);
+					}
+				}
+			}
+			else if (src->is_Immediate()) {
+				Immediate *src_imm = cast_to<Immediate>(src);
+				u1 rex = get_rex(NULL, base, op_size, index);
+				if (rex != 0x40)
+					code += rex;
+				if (prefix)
+					code += prefix;
+				if (prefix_0f)
+					code += 0x0F;
+				code += primary_opcode;
+				if (secondary_opcode != 0x00) {
+					code += secondary_opcode;
+				}
+				bool sib = use_sib(base, index);
+				code += get_modrm(op_reg,base->get_index(),disp,sib);
+				if (sib) {
+					code += get_sib(base,index,scale);
+				}
+				if (disp != 0) {
+					if (fits_into<s1>(disp)) {
+						code += (s1)disp;
+					}
+					else {
+						code += (u1) 0xff & (disp >> 0x00);
+						code += (u1) 0xff & (disp >> 0x08);
+						code += (u1) 0xff & (disp >> 0x10);
+						code += (u1) 0xff & (disp >> 0x18);
+					}
+				}
+				switch(op_size) {
+					case GPInstruction::OS_8:
+					{
+						s1 immval = src_imm->get_value<s1>();
+						code += (u1) 0xff & (immval >> 0x00);
+						break;
+					}
+					case GPInstruction::OS_16:
+					{
+						s2 immval = src_imm->get_value<s2>();
+						code += (u1) 0xff & (immval >> 0x00);
+						code += (u1) 0xff & (immval >> 0x08);
+						break;
+					}
+					case GPInstruction::OS_32:
+					{
+						s4 immval = src_imm->get_value<s4>();
+						code += (u1) 0xff & (immval >> 0x00);
+						code += (u1) 0xff & (immval >> 0x08);
+						code += (u1) 0xff & (immval >> 0x10);
+						code += (u1) 0xff & (immval >> 0x18);
+						break;
+					}
+					case GPInstruction::OS_64:
+					{
+						s8 immval = src_imm->get_value<s8>();
+						code += (u1) 0xff & (immval >> 0x00);
+						code += (u1) 0xff & (immval >> 0x08);
+						code += (u1) 0xff & (immval >> 0x10);
+						code += (u1) 0xff & (immval >> 0x18);
+						code += (u1) 0xff & (immval >> 0x20);
+						code += (u1) 0xff & (immval >> 0x28);
+						code += (u1) 0xff & (immval >> 0x30);
+						code += (u1) 0xff & (immval >> 0x38);
+						break;
+					}
+					case GPInstruction::NO_SIZE:
+						ABORT_MSG("Invalid Immediate Size",
+							"dst: " << dst_mod << " src: " << src_imm << " op_code: " << primary_opcode);
+						break;
+				}
+			}
+			else {
+				ABORT_MSG("Operand(s) not supported",
+						"dst: " << dst_mod << " src: " << src << " op_code: " << primary_opcode);
+			}
+		}
+		else {
+			ABORT_MSG("Operand(s) not supported!",
+					"dst: " << dst << " src: " << src << " op_code: " << primary_opcode);
+		}
+			
+
+		add_CodeSegmentBuilder(CM,code);
+	}
+
 };
 #if 0
 template <>

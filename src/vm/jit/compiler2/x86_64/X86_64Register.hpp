@@ -118,6 +118,43 @@ public:
 	virtual MachineOperand::IdentifyTy id_base()         const { return static_cast<const void*>(&base); }
 };
 
+template <>
+inline Register* cast_to<Register>(MachineOperand *op) {
+        Register *reg = op->to_Register();
+        assert(reg);
+        return reg;
+}
+
+template <>
+inline X86_64Register* cast_to<X86_64Register>(Register *reg) {
+        MachineRegister *mreg = reg->to_MachineRegister();
+        assert(mreg);
+        NativeRegister *nreg = mreg->to_NativeRegister();
+        assert(nreg);
+        X86_64Register *xreg = nreg->get_X86_64Register();
+        assert(xreg);
+        return xreg;
+}
+
+template <>
+inline X86_64Register* cast_to<X86_64Register>(MachineOperand *op) {
+        Register *reg = op->to_Register();
+        assert(reg);
+        MachineRegister *mreg = reg->to_MachineRegister();
+        assert(mreg);
+        NativeRegister *nreg = mreg->to_NativeRegister();
+        assert(nreg);
+        X86_64Register *xreg = nreg->get_X86_64Register();
+        assert(xreg);
+        return xreg;
+}
+
+template <>
+inline X86_64Register* cast_to<X86_64Register>(X86_64Register *reg) {
+        assert(reg);
+        return reg;
+}
+
 extern GPRegister RAX;
 extern GPRegister RCX;
 extern GPRegister RDX;

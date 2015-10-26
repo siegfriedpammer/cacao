@@ -55,6 +55,19 @@ class Immediate;
 class Address;
 class CONSTInst;
 
+class MachineOperandDesc;
+class MachineOperand;
+
+class EmbeddedMachineOperand : public memory::ManagerMixin<EmbeddedMachineOperand> {
+public:
+	MachineOperand *dummy;
+	MachineOperandDesc *real;
+
+	explicit EmbeddedMachineOperand (MachineOperand *op) : dummy(op), real(NULL) {}
+	
+	//virtual OStream& print(OStream &OS) const; 
+};
+
 /**
  * Operands that can be directly used by the machine (register, memory, stackslot)
  */
@@ -72,6 +85,9 @@ public:
 	typedef const void* IdentifyTy;
 	typedef std::size_t IdentifyOffsetTy;
 	typedef std::size_t IdentifySizeTy;
+	typedef alloc::vector<EmbeddedMachineOperand>::type embedded_operand_list;
+	typedef embedded_operand_list::iterator operand_iterator;
+	typedef embedded_operand_list::const_iterator const_operand_iterator;
 private:
 	static std::size_t id_counter;
 	std::size_t id;
@@ -81,6 +97,7 @@ protected:
 	/**
 	 * TODO describe
 	 */
+	embedded_operand_list embedded_operands;
 	virtual IdentifyTy id_base()         const { return static_cast<IdentifyTy>(this); }
 	virtual IdentifyOffsetTy id_offset() const { return 0; }
 	virtual IdentifySizeTy id_size()     const { return 1; }
@@ -88,7 +105,7 @@ public:
 	std::size_t get_id() const { return id; }
 
 	explicit MachineOperand(OperandID op_id, Type::TypeID type)
-		: id(id_counter++), op_id(op_id), type(type) {}
+		: id(id_counter++), op_id(op_id), type(type), embedded_operands() {}
 
 	OperandID get_OperandID() const { return op_id; }
 	Type::TypeID get_type() const { return type; }
@@ -102,7 +119,7 @@ public:
 	virtual StackSlot*        to_StackSlot()        { return 0; }
 	virtual ManagedStackSlot* to_ManagedStackSlot() { return 0; }
 	virtual Immediate*        to_Immediate()        { return 0; }
-	virtual Address*          to_Addresss()         { return 0; }
+	virtual Address*          to_Address()          { return 0; }
 
 	bool is_MachineOperand()   const { return op_id == MachineOperandID; }
 	bool is_VoidOperand()      const { return op_id == VoidOperandID; }
@@ -138,6 +155,50 @@ public:
 	 * @see is_virtual()
 	 */
 	virtual bool needs_allocation() const { return is_virtual(); }
+	bool has_embedded_operands()  { return op_size() != 0; }
+	std::size_t op_size() const {
+                return embedded_operands.size();
+        }
+	EmbeddedMachineOperand &operator[](std::size_t i) {
+                assert(i < embedded_operands.size());
+                assert(embedded_operands[i].get_index() == i);
+                return embedded_operands[i];
+        }
+	const EmbeddedMachineOperand &get(std::size_t i) const {
+                assert(i < embedded_operands.size());
+                assert(embedded_operands[i].get_index() == i);
+                return embedded_operands[i];
+        }
+	EmbeddedMachineOperand &get(std::size_t i) {
+                assert(i < embedded_operands.size());
+                assert(embedded_operands[i].get_index() == i);
+                return embedded_operands[i];
+        }
+	operand_iterator begin() {
+                return embedded_operands.begin();
+        }
+        operand_iterator end() {
+                return embedded_operands.end();
+        }
+        operand_iterator find(MachineOperand *op) {
+                for (operand_iterator i = begin(), e =end(); i != e; ++i) {
+                        if (op->aquivalent(*i->dummy))
+                                return i;
+                }
+                return end();
+        }
+        EmbeddedMachineOperand &front() {
+                return embedded_operands.front();
+        }
+        EmbeddedMachineOperand &back() {
+                return embedded_operands.back();
+        }
+        const_operand_iterator begin() const {
+                return embedded_operands.begin();
+        }
+        const_operand_iterator end() const {
+                return embedded_operands.end();
+        }
 
 	virtual OStream& print(OStream &OS) const {
 		return OS << get_name() /* << " (" << get_type() << ")" */;
@@ -156,6 +217,7 @@ public:
 class UnassignedReg;
 class VirtualRegister;
 class MachineRegister;
+class MachineAddress;
 
 class Register : public MachineOperand {
 public:
@@ -304,6 +366,7 @@ public:
 	 */
 	Address() : MachineOperand(AddressID, Type::ReturnAddressTypeID) {}
 	virtual Address* to_Address() { return this; }
+	virtual MachineAddress* to_MachineAddress() = 0;
 	virtual const char* get_name() const {
 		return "Address";
 	}

@@ -31,6 +31,7 @@
 
 #include "vm/jit/compiler2/memory/Manager.hpp"
 #include "vm/jit/compiler2/alloc/vector.hpp"
+#include "vm/jit/compiler2/alloc/unordered_map.hpp"
 
 MM_MAKE_NAME(MachineInstruction)
 
@@ -111,14 +112,28 @@ public:
 	typedef alloc::vector<MachineOperandDesc>::type operand_list;
 	typedef operand_list::iterator operand_iterator;
 	typedef operand_list::const_iterator const_operand_iterator;
+	typedef alloc::vector<MachineOperandDesc>::type dummy_operand_list;
+	typedef dummy_operand_list::iterator dummy_operand_iterator;
+	typedef dummy_operand_list::const_iterator const_dummy_operand_iterator;
+	typedef alloc::unordered_map<EmbeddedMachineOperand *,int>::type RefMapTy;
 	typedef alloc::list<MachineBasicBlock*>::type successor_list;
 	typedef successor_list::iterator successor_iterator;
 	typedef successor_list::const_iterator const_successor_iterator;
 private:
 	static std::size_t id_counter;
+	void set_dummy_operand(EmbeddedMachineOperand *op) {
+		std::size_t pos;
+		pos = dummy_operands.size();
+		dummy_operands.push_back(MachineOperandDesc(this,pos));	
+		dummy_operands[pos].op = op->dummy;
+
+		ref_map.insert(std::make_pair(op,pos));
+	}
 protected:
 	const std::size_t id;
 	operand_list operands;
+	dummy_operand_list dummy_operands;
+	RefMapTy ref_map;
 	successor_list successors;
 	MachineOperandDesc result;
 	const char *name;
@@ -131,10 +146,14 @@ public:
 	}
 	#endif
 	MachineInstruction(const char * name, MachineOperand* result, std::size_t num_operands, const char* comment = NULL)
-		: id(id_counter++), operands(), result(this, result), name(name), comment(comment), block(NULL) {
+		: id(id_counter++), operands(), dummy_operands(), ref_map(), result(this, result), name(name), comment(comment), block(NULL) {
 		for (std::size_t i = 0; i < num_operands ; ++i) {
-			//operands[i].index = i;
 			operands.push_back(MachineOperandDesc(this,i));
+		}
+		if (result->has_embedded_operands()) {
+			for (MachineOperand::operand_iterator it = result->begin(), e = result->end(); it != e ; ++it) {
+				set_dummy_operand(&(*it));
+			}
 		}
 	}
 
@@ -144,6 +163,18 @@ public:
 	void set_operand(std::size_t i,MachineOperand* op) {
 		assert(i < operands.size());
 		operands[i].op = op;
+		if (op->has_embedded_operands()) {
+			for (MachineOperand::operand_iterator it = op->begin(), e = op->end(); it != e ; ++it) {
+				set_dummy_operand(&(*it));
+			}
+		}
+	}
+
+	void finalize_operands() {
+		for (RefMapTy::iterator it = ref_map.begin(), e = ref_map.end(); it != e; ++it) {
+			it->first->real = &dummy_operands[it->second];
+		}
+		ref_map.clear();
 	}
 	virtual void set_block(MachineBasicBlock* MBB) {
 		block = MBB;
@@ -194,6 +225,44 @@ public:
 	}
 	const_operand_iterator end() const {
 		return operands.end();
+	}
+	std::size_t dummy_op_size() const {
+		return dummy_operands.size();
+	}
+	const MachineOperandDesc& get_dummy(std::size_t i) const {
+		assert(i < dummy_operands.size());
+		assert(dummy_operands[i].get_index() == i);
+		return dummy_operands[i];
+	}
+	MachineOperandDesc& get_dummy(std::size_t i) {
+		assert(i < dummy_operands.size());
+		assert(dummy_operands[i].get_index() == i);
+		return dummy_operands[i];
+	}
+	dummy_operand_iterator dummy_begin() {
+		return dummy_operands.begin();
+	}
+	dummy_operand_iterator dummy_end() {
+		return dummy_operands.end();
+	}
+	dummy_operand_iterator find_dummy(MachineOperand *op) {
+		for (dummy_operand_iterator i = dummy_begin(), e =dummy_end(); i != e; ++i) {
+			if (op->aquivalent(*i->op))
+				return i;
+		}
+		return dummy_end();
+	}
+	MachineOperandDesc& dummy_front() {
+		return dummy_operands.front();
+	}
+	MachineOperandDesc& dummy_back() {
+		return dummy_operands.back();
+	}
+	const_dummy_operand_iterator dummy_begin() const {
+		return dummy_operands.begin();
+	}
+	const_dummy_operand_iterator dummy_end() const {
+		return dummy_operands.end();
 	}
 	successor_iterator successor_begin() {
 		return successors.begin();

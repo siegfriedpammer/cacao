@@ -1699,11 +1699,14 @@ bool SSAConstructionPass::run(JITData &JD) {
 					M->add_Instruction(konst);
 					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
 					assert(state_change);
-					Instruction *result = new ASTOREInst(type, s1, s2, konst, BB[bbindex], state_change);
+					
+					Instruction *ref = new AREFInst(type, s1, s2);
+					M->add_Instruction(ref);
+					Instruction *result = new ASTOREInst(type, ref, konst, BB[bbindex], state_change);
 					write_variable(global_state,bbindex,result);
 					M->add_Instruction(result);
 					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(type, s1, s2);
-					result->append_dep(boundscheck);
+					ref->append_dep(boundscheck);
 					M->add_Instruction(boundscheck);
 				}
 				break;
@@ -1954,11 +1957,13 @@ bool SSAConstructionPass::run(JITData &JD) {
 					}
 					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
 					assert(state_change);
-					Instruction *result = new ASTOREInst(type, s1, s2, s3, BB[bbindex], state_change);
+					Instruction *ref = new AREFInst(s3->get_type(), s1, s2);
+					M->add_Instruction(ref);
+					Instruction *result = new ASTOREInst(type, ref, s3, BB[bbindex], state_change);
 					write_variable(global_state,bbindex,result);
 					M->add_Instruction(result);
 					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(type, s1, s2);
-					result->append_dep(boundscheck);
+					ref->append_dep(boundscheck);
 					M->add_Instruction(boundscheck);
 				}
 				break;
@@ -2004,12 +2009,14 @@ bool SSAConstructionPass::run(JITData &JD) {
 					}
 					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
 					assert(state_change);
-					Instruction *result = new ALOADInst(type, s1, s2, BB[bbindex], state_change);
+					Instruction *ref = new AREFInst(type, s1, s2);
+					M->add_Instruction(ref);
+					Instruction *result = new ALOADInst(type, ref, BB[bbindex], state_change);
 					write_variable(iptr->dst.varindex,bbindex,result);
 					write_variable(global_state,bbindex,result);
 					M->add_Instruction(result);
 					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(type, s1, s2);
-					result->append_dep(boundscheck);
+					ref->append_dep(boundscheck);
 					M->add_Instruction(boundscheck);
 				}
 				break;

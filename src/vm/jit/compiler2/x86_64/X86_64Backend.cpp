@@ -25,6 +25,7 @@
 #include "vm/jit/compiler2/x86_64/X86_64Backend.hpp"
 #include "vm/jit/compiler2/x86_64/X86_64Instructions.hpp"
 #include "vm/jit/compiler2/x86_64/X86_64Register.hpp"
+#include "vm/jit/compiler2/x86_64/X86_64ModRMOperand.hpp"
 #include "vm/jit/compiler2/x86_64/X86_64MachineMethodDescriptor.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
@@ -628,16 +629,20 @@ void X86_64LoweringVisitor::visit(REMInst *I, bool copyOperands) {
 	set_op(I,resultInst->get_result().op);
 }
 
-void X86_64LoweringVisitor::visit(ALOADInst *I, bool copyOperands) {
+void X86_64LoweringVisitor::visit(AREFInst *I, bool copyOperands) {
 	assert(I);
+	/* Do nothing for now
+	   sould be LEAInst if called stand alone (what should never happen anyways.
+	   because of spilling bug in lsra (have to investigate) just skip it 
+	   and just use as op in ASTOREInst/ALOADInst
 	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_index = get_op(I->get_operand(1)->to_Instruction());
 	assert(src_ref->get_type() == Type::ReferenceTypeID);
 	assert(src_index->get_type() == Type::IntTypeID);
 
 	Type::TypeID type = I->get_type();
-	MachineOperand *vreg = new VirtualRegister(type);
-	bool floatingpoint = false;
+
+	VirtualRegister *dst = new VirtualRegister(Type::ReferenceTypeID);
 
 	s4 offset;
 	switch (type) {
@@ -655,11 +660,9 @@ void X86_64LoweringVisitor::visit(ALOADInst *I, bool copyOperands) {
 		break;
 	case Type::FloatTypeID:
 		offset = OFFSET(java_floatarray_t, data[0]);
-		floatingpoint = true;
 		break;
 	case Type::DoubleTypeID:
 		offset = OFFSET(java_doublearray_t, data[0]);
-		floatingpoint = true;
 		break;
 	case Type::ReferenceTypeID:
 		offset = OFFSET(java_objectarray_t, data[0]);
@@ -669,26 +672,186 @@ void X86_64LoweringVisitor::visit(ALOADInst *I, bool copyOperands) {
 			"Inst: " << I << " type: " << type);
 		offset = 0;
 	}
-	// TODO array bounds check
-	// create modrm source operand
-	ModRMOperand modrm(type,IndexOp(src_index),BaseOp(src_ref),offset);
 
-	MachineInstruction *move = new MovModRMInst(
-		DstOp(vreg),
-		get_OperandSize_from_Type(type),
-		SrcModRM(modrm),
-		floatingpoint);
+	// create modrm source operand
+	MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(src_ref),IndexOp(src_index),type,offset);
+	MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(Type::ReferenceTypeID), SrcOp(modrm));
+	get_current()->push_back(lea);
+	set_op(I,lea->get_result().op);
+	*/
+}
+
+void X86_64LoweringVisitor::visit(ALOADInst *I, bool copyOperands) {
+	assert(I);
+	/* just for now while not emitting AREF */
+	Instruction *src_ref = I->get_operand(0)->to_Instruction();
+	MachineOperand* src_base = get_op(src_ref->get_operand(0)->to_Instruction());
+	MachineOperand* src_index = get_op(src_ref->get_operand(1)->to_Instruction());
+	assert(src_base->get_type() == Type::ReferenceTypeID);
+	assert(src_index->get_type() == Type::IntTypeID);
+	
+	Type::TypeID type = I->get_type();
+
+	VirtualRegister *dst = new VirtualRegister(type);
+
+	s4 offset;
+	switch (type) {
+	case Type::ByteTypeID:
+		offset = OFFSET(java_bytearray_t, data[0]);
+		break;
+	case Type::ShortTypeID:
+		offset = OFFSET(java_shortarray_t, data[0]);
+		break;
+	case Type::IntTypeID:
+		offset = OFFSET(java_intarray_t, data[0]);
+		break;
+	case Type::LongTypeID:
+		offset = OFFSET(java_longarray_t, data[0]);
+		break;
+	case Type::FloatTypeID:
+		offset = OFFSET(java_floatarray_t, data[0]);
+		break;
+	case Type::DoubleTypeID:
+		offset = OFFSET(java_doublearray_t, data[0]);
+		break;
+	case Type::ReferenceTypeID:
+		offset = OFFSET(java_objectarray_t, data[0]);
+		break;
+	default:
+		ABORT_MSG("x86_64 Lowering not supported",
+			"Inst: " << I << " type: " << type);
+		offset = 0;
+	}
+
+	// create modrm source operand
+	MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(src_base),IndexOp(src_index),type,offset);
+
+	MachineInstruction *move;
+
+	switch (type) {
+	case Type::CharTypeID:
+	case Type::ByteTypeID:
+	case Type::ShortTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+	case Type::ReferenceTypeID:
+		move = new MovInst(SrcOp(modrm),DstOp(dst),get_OperandSize_from_Type(type));
+		break;
+	case Type::FloatTypeID:
+		move = new MovSSInst(SrcOp(modrm),DstOp(dst));
+		break;
+	case Type::DoubleTypeID:
+		move = new MovSDInst(SrcOp(modrm),DstOp(dst));
+	default:
+		ABORT_MSG("x86_64 Lowering not supported",
+			"Inst: " << I << " type: " << type);
+	}
+
+	/* version with emitted lea
+	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
+	assert(src_ref->get_type() == Type::ReferenceTypeID);
+	Type::TypeID type = I->get_type();
+	MachineOperand *vreg = new VirtualRegister(type);
+	MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(src_ref));
+	MachineInstruction *move;
+
+	switch (type) {
+	case Type::CharTypeID:
+	case Type::ByteTypeID:
+	case Type::ShortTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+	case Type::ReferenceTypeID:
+		move = new MovInst(SrcOp(modrm),DstOp(vreg),get_OperandSize_from_Type(type));
+		break;
+	case Type::FloatTypeID:
+		move = new MovSSInst(SrcOp(modrm),DstOp(vreg));
+		break;
+	case Type::DoubleTypeID:
+		move = new MovSDInst(SrcOp(modrm),DstOp(vreg));
+		break;
+	default:
+		ABORT_MSG("x86_64 Lowering not supported",
+			"Inst: " << I << " type: " << type);
+	}
+
+	*/
+
 	get_current()->push_back(move);
 	set_op(I,move->get_result().op);
 }
 
 void X86_64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 	assert(I);
-	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
-	MachineOperand* src_index = get_op(I->get_operand(1)->to_Instruction());
-	MachineOperand* src_value = get_op(I->get_operand(2)->to_Instruction());
-	assert(src_ref->get_type() == Type::ReferenceTypeID);
+	/* just for now while not emitting AREF */
+	Instruction *src_ref = I->get_operand(0)->to_Instruction();
+	MachineOperand* src_base = get_op(src_ref->get_operand(0)->to_Instruction());
+	MachineOperand* src_index = get_op(src_ref->get_operand(1)->to_Instruction());
+	MachineOperand* src_value = get_op(I->get_operand(1)->to_Instruction());
+	assert(src_base->get_type() == Type::ReferenceTypeID);
 	assert(src_index->get_type() == Type::IntTypeID);
+
+	Type::TypeID type = I->get_array_type();
+
+	s4 offset;
+	switch (type) {
+	case Type::ByteTypeID:
+		offset = OFFSET(java_bytearray_t, data[0]);
+		break;
+	case Type::ShortTypeID:
+		offset = OFFSET(java_shortarray_t, data[0]);
+		break;
+	case Type::IntTypeID:
+		offset = OFFSET(java_intarray_t, data[0]);
+		break;
+	case Type::LongTypeID:
+		offset = OFFSET(java_longarray_t, data[0]);
+		break;
+	case Type::FloatTypeID:
+		offset = OFFSET(java_floatarray_t, data[0]);
+		break;
+	case Type::DoubleTypeID:
+		offset = OFFSET(java_doublearray_t, data[0]);
+		break;
+	case Type::ReferenceTypeID:
+		// TODO: implement me
+	default:
+		ABORT_MSG("x86_64 Lowering not supported",
+			"Inst: " << I << " type: " << type);
+		offset = 0;
+	}
+
+	// create modrm source operand
+	MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(src_base),IndexOp(src_index),type,offset);
+
+	MachineInstruction *move;
+
+	switch (type) {
+	case Type::CharTypeID:
+	case Type::ByteTypeID:
+	case Type::ShortTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+	case Type::ReferenceTypeID:
+		move = new MovInst(SrcOp(src_value),DstOp(modrm),get_OperandSize_from_Type(type));
+		break;
+	case Type::FloatTypeID:
+		move = new MovSSInst(SrcOp(src_value),DstOp(modrm));
+		break;
+	case Type::DoubleTypeID:
+		move = new MovSDInst(SrcOp(src_value),DstOp(modrm));
+		break;
+	default:
+		ABORT_MSG("x86_64 Lowering not supported",
+			"Inst: " << I << " type: " << type);
+	}
+
+	/* version with emitted lea
+	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
+	assert(src_ref->get_type() == Type::ReferenceTypeID);
+	Type::TypeID type = I->get_type();
+	MachineOperand *vreg = new VirtualRegister(type);
+	MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(src_ref));
 
 	Type::TypeID type = I->get_array_type();
 
@@ -722,15 +885,15 @@ void X86_64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 			"Inst: " << I << " type: " << type);
 		offset = 0;
 	}
-	// TODO array bounds check
-	// create modrm source operand
-	ModRMOperand modrm(type,IndexOp(src_index),BaseOp(src_ref),offset);
+
+	ModRMOperand modrm(BaseOp(src_ref),0);
 
 	MachineInstruction *move = new MovModRMInst(
 		SrcOp(src_value),
 		get_OperandSize_from_Type(type),
 		DstModRM(modrm),
 		floatingpoint);
+	*/
 	get_current()->push_back(move);
 	set_op(I,move->get_result().op);
 }
@@ -1421,9 +1584,10 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 
 			CONSTInst* displacement = I->get_operand(1)->to_Instruction()->to_CONSTInst();
 			VirtualRegister *dst = new VirtualRegister(type);
-			ModRMOperand modrm(ModRMOperand::Scale1, IndexOp(index), BaseOp(base), displacement->get_value());
 
-			MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(type), SrcModRM(modrm));
+			MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(base),IndexOp(index),displacement->get_value());
+			MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(type), SrcOp(modrm));
+
 			get_current()->push_back(lea);
 			set_op(I,lea->get_result().op);
 			break;
@@ -1446,9 +1610,10 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 
 			CONSTInst* displacement = nested_add->get_operand(1)->to_Instruction()->to_CONSTInst();
 			VirtualRegister *dst = new VirtualRegister(type);
-			ModRMOperand modrm(ModRMOperand::Scale1, IndexOp(index), BaseOp(base), displacement->get_value());
 
-			MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(type), SrcModRM(modrm));
+			MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(base),IndexOp(index),displacement->get_value());
+			MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(type), SrcOp(modrm));
+
 			get_current()->push_back(lea);
 			set_op(I,lea->get_result().op);
 			break;
@@ -1472,9 +1637,12 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 			CONSTInst* multiplier = nested_mul->get_operand(1)->to_Instruction()->to_CONSTInst();
 
 			VirtualRegister *dst = new VirtualRegister(type);
-			ModRMOperand modrm(ModRMOperand::get_scale(multiplier->get_Int()), IndexOp(index), BaseOp(base));
+			MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(base)
+								      ,IndexOp(index)
+								      ,X86_64ModRMOperand::get_scale(multiplier->get_Int())
+								      );
+			MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(type), SrcOp(modrm));
 
-			MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(type), SrcModRM(modrm));
 			get_current()->push_back(lea);
 			set_op(I,lea->get_result().op);
 			break;
@@ -1498,9 +1666,12 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 			CONSTInst* multiplier = nested_mul->get_operand(1)->to_Instruction()->to_CONSTInst();
 
 			VirtualRegister *dst = new VirtualRegister(type);
-			ModRMOperand modrm(ModRMOperand::get_scale(multiplier->get_Int()), IndexOp(index), BaseOp(base));
+			MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(base)
+								      ,IndexOp(index)
+								      ,X86_64ModRMOperand::get_scale(multiplier->get_Int())
+								      );
+			MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(type), SrcOp(modrm));
 
-			MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(type), SrcModRM(modrm));
 			get_current()->push_back(lea);
 			set_op(I,lea->get_result().op);
 			break;
@@ -1529,9 +1700,13 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 			CONSTInst* displacement = I->get_operand(1)->to_Instruction()->to_CONSTInst();
 
 			VirtualRegister *dst = new VirtualRegister(type);
-			ModRMOperand modrm(ModRMOperand::get_scale(multiplier->get_Int()), IndexOp(index), BaseOp(base), displacement->get_value());
+			MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(base)
+								      ,IndexOp(index)
+								      ,X86_64ModRMOperand::get_scale(multiplier->get_Int())
+								      ,displacement->get_value()
+								      );
+			MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(type), SrcOp(modrm));
 
-			MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(type), SrcModRM(modrm));
 			get_current()->push_back(lea);
 			set_op(I,lea->get_result().op);
 			break;
@@ -1559,11 +1734,134 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 			CONSTInst* displacement = mul_add->get_operand(1)->to_Instruction()->to_CONSTInst();
 
 			VirtualRegister *dst = new VirtualRegister(type);
-			ModRMOperand modrm(ModRMOperand::get_scale(multiplier->get_Int()), IndexOp(index), BaseOp(base), displacement->get_value());
+			MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(base)
+								      ,IndexOp(index)
+								      ,X86_64ModRMOperand::get_scale(multiplier->get_Int())
+								      ,displacement->get_value()
+								      );
+			MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(type), SrcOp(modrm));
 
-			MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(type), SrcModRM(modrm));
 			get_current()->push_back(lea);
 			set_op(I,lea->get_result().op);
+			break;
+		}
+		case ALoad:
+		{
+			/*
+			ALOADInstID
+				AREFInstID
+					stm,
+					stm
+			*/
+
+			assert(I);
+			Instruction *ref = I->get_operand(0)->to_Instruction();
+			assert(ref);
+			MachineOperand* src_ref = get_op(ref->get_operand(0)->to_Instruction());
+			MachineOperand* src_index = get_op(ref->get_operand(1)->to_Instruction());
+			assert(src_ref->get_type() == Type::ReferenceTypeID);
+			assert(src_index->get_type() == Type::IntTypeID);
+
+			Type::TypeID type = ref->get_type();
+
+			VirtualRegister *dst = new VirtualRegister(type);
+
+			s4 offset;
+			bool floatingpoint = false;
+			switch (type) {
+			case Type::ByteTypeID:
+				offset = OFFSET(java_bytearray_t, data[0]);
+				break;
+			case Type::ShortTypeID:
+				offset = OFFSET(java_shortarray_t, data[0]);
+				break;
+			case Type::IntTypeID:
+				offset = OFFSET(java_intarray_t, data[0]);
+				break;
+			case Type::LongTypeID:
+				offset = OFFSET(java_longarray_t, data[0]);
+				break;
+			case Type::FloatTypeID:
+				offset = OFFSET(java_floatarray_t, data[0]);
+				floatingpoint = true;
+				break;
+			case Type::DoubleTypeID:
+				offset = OFFSET(java_doublearray_t, data[0]);
+				floatingpoint = true;
+				break;
+			case Type::ReferenceTypeID:
+				offset = OFFSET(java_objectarray_t, data[0]);
+				break;
+			default:
+				ABORT_MSG("x86_64 Lowering not supported",
+					"Inst: " << I << " type: " << type);
+				offset = 0;
+			}
+
+			// create modrm source operand
+			ModRMOperand modrm(type,IndexOp(src_index),BaseOp(src_ref),offset);
+			MachineInstruction* move = new MovModRMInst(DstOp(dst), get_OperandSize_from_Type(type), SrcModRM(modrm),floatingpoint);
+			get_current()->push_back(move);
+			set_op(I,move->get_result().op);
+			break;
+		}
+		case AStore:
+		{
+			/*
+			ASTOREInstID
+				AREFInstID,
+					stm,
+					stm
+				stm
+			*/
+
+			assert(I);
+			Instruction *ref = I->get_operand(0)->to_Instruction();
+			assert(ref);
+			MachineOperand* dst_ref = get_op(ref->get_operand(0)->to_Instruction());
+			MachineOperand* dst_index = get_op(ref->get_operand(1)->to_Instruction());
+			assert(dst_ref->get_type() == Type::ReferenceTypeID);
+			assert(dst_index->get_type() == Type::IntTypeID);
+			MachineOperand *src = get_op(I->get_operand(1)->to_Instruction());
+
+			Type::TypeID type = ref->get_type();
+
+			s4 offset;
+			bool floatingpoint = false;
+			switch (type) {
+			case Type::ByteTypeID:
+				offset = OFFSET(java_bytearray_t, data[0]);
+				break;
+			case Type::ShortTypeID:
+				offset = OFFSET(java_shortarray_t, data[0]);
+				break;
+			case Type::IntTypeID:
+				offset = OFFSET(java_intarray_t, data[0]);
+				break;
+			case Type::LongTypeID:
+				offset = OFFSET(java_longarray_t, data[0]);
+				break;
+			case Type::FloatTypeID:
+				offset = OFFSET(java_floatarray_t, data[0]);
+				floatingpoint = true;
+				break;
+			case Type::DoubleTypeID:
+				offset = OFFSET(java_doublearray_t, data[0]);
+				floatingpoint = true;
+				break;
+			case Type::ReferenceTypeID:
+				// TODO: implement me
+			default:
+				ABORT_MSG("x86_64 Lowering not supported",
+					"Inst: " << I << " type: " << type);
+				offset = 0;
+			}
+
+			// create modrm source operand
+			ModRMOperand modrm(type,IndexOp(dst_index),BaseOp(dst_ref),offset);
+			MachineInstruction* move = new MovModRMInst(SrcOp(src), get_OperandSize_from_Type(type), DstModRM(modrm),floatingpoint);
+			get_current()->push_back(move);
+			set_op(I,move->get_result().op);
 			break;
 		}
 		default:

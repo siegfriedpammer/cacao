@@ -283,6 +283,9 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 
 			// for each input operand of MI
 			std::for_each((*i)->begin(),(*i)->end(), ProcessInOperands(lti_map, BB, BB->convert(i), live));
+
+			// for each dummy operand of MI
+			std::for_each((*i)->dummy_begin(),(*i)->dummy_end(), ProcessInOperands(lti_map, BB, BB->convert(i), live));
 		}
 
 		// for each phi of BB

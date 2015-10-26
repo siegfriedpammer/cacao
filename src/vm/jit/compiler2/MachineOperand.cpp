@@ -82,6 +82,7 @@ Immediate::Immediate(CONSTInst *I)
 template<>
 s8 Immediate::get_value() const {
 	switch (get_type()) {
+	case Type::ShortTypeID: return (s8)value.i;
 	case Type::IntTypeID: return (s8)value.i;
 	case Type::LongTypeID: return (s8)value.l;
 	default: break;
@@ -94,10 +95,32 @@ s8 Immediate::get_value() const {
 template<>
 s4 Immediate::get_value() const {
 	switch (get_type()) {
+	case Type::ShortTypeID: return (s4)value.i;
 	case Type::IntTypeID: return (s4)value.i;
 	case Type::LongTypeID:
 		if (fits_into<s4>(value.l)) {
 			return (s4)value.l;
+		}
+		break;
+	default: break;
+	}
+	ABORT_MSG("TypeNotSupported: Immediate::get_value<s8>",
+		"type " << get_type());
+	return 0;
+}
+
+template<>
+s2 Immediate::get_value() const {
+	switch (get_type()) {
+	case Type::ShortTypeID: return (s2)value.i;
+	case Type::IntTypeID:
+		if (fits_into<s2>(value.i)) {
+			return (s2)value.i;
+		}
+		break;
+	case Type::LongTypeID:
+		if (fits_into<s2>(value.l)) {
+			return (s2)value.l;
 		}
 		break;
 	default: break;

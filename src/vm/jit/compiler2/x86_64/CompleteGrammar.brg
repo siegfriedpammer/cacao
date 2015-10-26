@@ -50,13 +50,15 @@ and the input file (instruction_table.csv).
 %term XORInstID = 19
 %term CMPInstID = 20
 %term CONSTInstID = 21
-%term ALOADInstID = 28
-%term LOADInstID = 30
-%term IFInstID = 45
-%term TABLESWITCHInstID = 47
-%term LOOKUPSWITCHInstID = 48
-%term RETURNInstID = 49
-%term NoInstID = 58
+%term AREFInstID = 27
+%term ASTOREInstID = 28
+%term ALOADInstID = 29
+%term LOADInstID = 31
+%term IFInstID = 46
+%term TABLESWITCHInstID = 48
+%term LOOKUPSWITCHInstID = 49
+%term RETURNInstID = 50
+%term NoInstID = 59
 %%
 stm: NOPInstID "NOPInstID" 1 
 stm: POPInstID "POPInstID" 1 
@@ -77,7 +79,9 @@ stm: ORInstID(stm,stm) "ORInstID" 1
 stm: XORInstID(stm,stm) "XORInstID" 1 
 stm: CMPInstID(stm,stm) "CMPInstID" 1 
 stm: CONSTInstID "CONSTInstID" 1 
-stm: ALOADInstID(stm,stm) "ALOADInstID" 1 
+stm: AREFInstID(stm,stm) "AREFInstID" 1 
+stm: ASTOREInstID(stm,stm) "ASTOREInstID" 1 
+stm: ALOADInstID(stm) "ALOADInstID" 1 
 stm: LOADInstID "LOADInstID" 1 
 stm: IFInstID(stm,stm) "IFInstID" 1 
 stm: TABLESWITCHInstID(stm) "TABLESWITCHInstID" 1 
@@ -96,10 +100,25 @@ stm: ADDInstID(stm, MULInstID(stm, CONSTInstID)) "BaseIndexMultiplier" calcBaseI
 stm: ADDInstID(MULInstID(stm, CONSTInstID), stm) "BaseIndexMultiplier2" calcBaseIndexMultiplier2Cost(a)
 stm: ADDInstID(ADDInstID(stm, MULInstID(stm, CONSTInstID)), CONSTInstID) "BaseIndexMultiplierDisplacement" calcBaseIndexMultiplierDisplacementCost(a)
 stm: ADDInstID(stm, ADDInstID(MULInstID(stm, CONSTInstID), CONSTInstID)) "BaseIndexMultiplierDisplacement2" calcBaseIndexMultiplierDisplacement2Cost(a)
+stm: AREFInstID(stm,stm) "ARef" 1
+stm: ALOADInstID(AREFInstID(stm,stm)) "ALoad" 1
+stm: ASTOREInstID(AREFInstID(stm,stm),stm) "AStore" 1
 
 %%
 
 namespace {
+
+	/*
+
+
+	TODO
+
+	displacement with SUBInst!!!
+	indexmultiplierdisplacement
+
+
+
+	*/
 
 	bool isMultiplier(CONSTInst* c){
 		s8 val = c->get_value();

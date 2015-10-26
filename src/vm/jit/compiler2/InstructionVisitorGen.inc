@@ -55,6 +55,7 @@ virtual void visit(PUTFIELDInst* I, bool copyOperands);
 virtual void visit(PUTSTATICInst* I, bool copyOperands);
 virtual void visit(GETSTATICInst* I, bool copyOperands);
 virtual void visit(INCInst* I, bool copyOperands);
+virtual void visit(AREFInst* I, bool copyOperands);
 virtual void visit(ASTOREInst* I, bool copyOperands);
 virtual void visit(ALOADInst* I, bool copyOperands);
 virtual void visit(RETInst* I, bool copyOperands);

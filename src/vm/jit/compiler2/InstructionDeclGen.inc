@@ -55,6 +55,7 @@ class PUTFIELDInst;
 class PUTSTATICInst;
 class GETSTATICInst;
 class INCInst;
+class AREFInst;
 class ASTOREInst;
 class ALOADInst;
 class RETInst;

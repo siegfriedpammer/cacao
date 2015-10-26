@@ -10,6 +10,9 @@ stm: ADDInstID(stm, MULInstID(stm, CONSTInstID)) "BaseIndexMultiplier" calcBaseI
 stm: ADDInstID(MULInstID(stm, CONSTInstID), stm) "BaseIndexMultiplier2" calcBaseIndexMultiplier2Cost(a)
 stm: ADDInstID(ADDInstID(stm, MULInstID(stm, CONSTInstID)), CONSTInstID) "BaseIndexMultiplierDisplacement" calcBaseIndexMultiplierDisplacementCost(a)
 stm: ADDInstID(stm, ADDInstID(MULInstID(stm, CONSTInstID), CONSTInstID)) "BaseIndexMultiplierDisplacement2" calcBaseIndexMultiplierDisplacement2Cost(a)
+stm: AREFInstID(stm,stm) "ARef" 1
+stm: ALOADInstID(AREFInstID(stm,stm)) "ALoad" 1
+stm: ASTOREInstID(AREFInstID(stm,stm),stm) "AStore" 1
 
 %%
 

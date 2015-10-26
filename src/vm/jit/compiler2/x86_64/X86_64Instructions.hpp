@@ -28,6 +28,7 @@
 #include "vm/jit/compiler2/x86_64/X86_64.hpp"
 #include "vm/jit/compiler2/x86_64/X86_64Cond.hpp"
 #include "vm/jit/compiler2/x86_64/X86_64Register.hpp"
+#include "vm/jit/compiler2/x86_64/X86_64ModRMOperand.hpp"
 #include "vm/jit/compiler2/MachineInstruction.hpp"
 #include "vm/jit/compiler2/DataSegment.hpp"
 #include "vm/types.hpp"
@@ -132,24 +133,81 @@ struct DstOp {
 	MachineOperand *op;
 	explicit DstOp(MachineOperand *op) : op(op) {}
 };
-/**
- * Simple wrapper for a base operand of an
- * x86_64 instruction.
- */
-struct BaseOp {
-	MachineOperand *op;
-	explicit BaseOp(MachineOperand *op) : op(op) {}
+
+class ModRMOperand {
+public:
+	enum ScaleFactor {
+	  Scale1 = 0,
+	  Scale2 = 1,
+	  Scale4 = 2,
+	  Scale8 = 3
+	};
+	ScaleFactor scale;
+	MachineOperand *index;
+	MachineOperand *base;
+	int32_t disp;
+	/// constructor. base and disp only
+	explicit ModRMOperand(const BaseOp& base, int32_t disp=0)
+			: scale(Scale1), index(&NoOperand), base(base.op), disp(disp) {}
+	/// constructor. Full
+	ModRMOperand(ScaleFactor scale, const IndexOp &index, const BaseOp& base, int32_t disp=0)
+			: scale(scale), index(index.op), base(base.op), disp(disp) {}
+	/// constructor. Full (with Type::TypeID for scale)
+	ModRMOperand(Type::TypeID type, const IndexOp &index, const BaseOp& base, int32_t disp=0)
+			: scale(get_scale(type)), index(index.op), base(base.op), disp(disp) {}
+
+	/// covert type to scale
+	static ScaleFactor get_scale(Type::TypeID type) {
+		switch (type) {
+		case Type::ByteTypeID:
+			return Scale1;
+		case Type::ShortTypeID:
+			return Scale2;
+		case Type::IntTypeID:
+		case Type::FloatTypeID:
+			return Scale4;
+		case Type::LongTypeID:
+		case Type::DoubleTypeID:
+		case Type::ReferenceTypeID:
+			return Scale8;
+		default:
+			break;
+		}
+		ABORT_MSG("type not supported", "x86_64 ModRMOperand::get_scale() type: " << type);
+		return Scale1;
+	}
+
+	/// covert type to scale
+	static ScaleFactor get_scale(int32_t value) {
+		switch (value) {
+		case 1:
+			return Scale1;
+		case 2:
+			return Scale2;
+		case 4:
+			return Scale4;
+		case 8:
+			return Scale8;
+		default:
+			break;
+		}
+		ABORT_MSG("constant value not supported", "x86_64 ModRMOperand::get_scale() value: " << value);
+		return Scale1;
+	}
 };
-/**
- * Simple wrapper for a index operand of an
- * x86_64 instruction.
- */
-struct IndexOp {
-	MachineOperand *op;
-	explicit IndexOp(MachineOperand *op) : op(op) {}
+class ModRMOperandDesc {
+public:
+	ModRMOperand::ScaleFactor scale;
+	MachineOperandDesc &index;
+	MachineOperandDesc &base;
+	int32_t disp;
+	/// constructor
+	ModRMOperandDesc(ModRMOperand::ScaleFactor scale, MachineOperandDesc &index, MachineOperandDesc &base, int32_t disp=0)
+			: scale(scale), index(index), base(base), disp(disp) {}
 };
 
-class ModRMOperand;
+OStream& operator<<(OStream &OS,const ModRMOperandDesc &modrm);
+
 
 /// Simple wrapper for a ModRM destination operand
 struct DstModRM {
@@ -257,7 +315,8 @@ public:
 			MachineOperand *dst,
 			OperandSize op_size)
 			: GPInstruction(name, dst, op_size, 1) {
-		operands[0].op = src;
+		set_operand(0,src);
+		finalize_operands();
 	}
 	virtual bool is_move() const { return true; }
 };
@@ -530,83 +589,6 @@ public:
 };
 
 /**
- * ModRMOperand Descriptor. Like ModRMOperand but with MachineOperandDesc references.
- */
-class ModRMOperand {
-public:
-	enum ScaleFactor {
-	  Scale1 = 0,
-	  Scale2 = 1,
-	  Scale4 = 2,
-	  Scale8 = 3
-	};
-	ScaleFactor scale;
-	MachineOperand *index;
-	MachineOperand *base;
-	int32_t disp;
-	/// constructor. base and disp only
-	explicit ModRMOperand(const BaseOp& base, int32_t disp=0)
-			: scale(Scale1), index(&NoOperand), base(base.op), disp(disp) {}
-	/// constructor. Full
-	ModRMOperand(ScaleFactor scale, const IndexOp &index, const BaseOp& base, int32_t disp=0)
-			: scale(scale), index(index.op), base(base.op), disp(disp) {}
-	/// constructor. Full (with Type::TypeID for scale)
-	ModRMOperand(Type::TypeID type, const IndexOp &index, const BaseOp& base, int32_t disp=0)
-			: scale(get_scale(type)), index(index.op), base(base.op), disp(disp) {}
-
-	/// covert type to scale
-	static ScaleFactor get_scale(Type::TypeID type) {
-		switch (type) {
-		case Type::ByteTypeID:
-			return Scale1;
-		case Type::ShortTypeID:
-			return Scale2;
-		case Type::IntTypeID:
-		case Type::FloatTypeID:
-			return Scale4;
-		case Type::LongTypeID:
-		case Type::DoubleTypeID:
-		case Type::ReferenceTypeID:
-			return Scale8;
-		default:
-			break;
-		}
-		ABORT_MSG("type not supported", "x86_64 ModRMOperand::get_scale() type: " << type);
-		return Scale1;
-	}
-
-	/// covert type to scale
-	static ScaleFactor get_scale(int32_t value) {
-		switch (value) {
-		case 1:
-			return Scale1;
-		case 2:
-			return Scale2;
-		case 4:
-			return Scale4;
-		case 8:
-			return Scale8;
-		default:
-			break;
-		}
-		ABORT_MSG("constant value not supported", "x86_64 ModRMOperand::get_scale() value: " << value);
-		return Scale1;
-	}
-};
-class ModRMOperandDesc {
-public:
-	ModRMOperand::ScaleFactor scale;
-	MachineOperandDesc &index;
-	MachineOperandDesc &base;
-	int32_t disp;
-	/// constructor
-	ModRMOperandDesc(ModRMOperand::ScaleFactor scale, MachineOperandDesc &index, MachineOperandDesc &base, int32_t disp=0)
-			: scale(scale), index(index), base(base), disp(disp) {}
-};
-
-OStream& operator<<(OStream &OS,const ModRMOperandDesc &modrm);
-
-/**
  * Load from pointer
  *
  * @todo merge with MovInst
@@ -652,18 +634,12 @@ private:
 
 class LEAInst : public GPInstruction {
 private:
-	enum OpIndex {
-		Base = 0,
-		Index = 1,
-		Value = 2
-	};
-	ModRMOperandDesc modrm;
 public:
-	LEAInst( const DstOp &dst, OperandSize op_size, const SrcModRM src )
-			: GPInstruction("X86_64LEAInst", dst.op, op_size, 2),
-				modrm(ModRMOperandDesc(src.op.scale,operands[Index],operands[Base],src.op.disp)) {
-		operands[Base].op = src.op.base;
-		operands[Index].op = src.op.index;
+	LEAInst( const DstOp &dst, OperandSize op_size, const SrcOp src )
+			: GPInstruction("X86_64LEAInst", dst.op, op_size, 1) {
+		set_operand(0,src.op);
+		finalize_operands();
+
 	}
 	virtual void emit(CodeMemory* CM) const;
 };

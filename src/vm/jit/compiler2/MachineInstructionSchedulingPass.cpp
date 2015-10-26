@@ -29,6 +29,7 @@
 
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
+#include "vm/jit/compiler2/ConstantPropagationPass.hpp"
 
 #include "vm/jit/compiler2/Matcher.hpp"
 
@@ -314,6 +315,7 @@ bool MachineInstructionSchedulingPass::verify() const {
 PassUsage& MachineInstructionSchedulingPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<BasicBlockSchedulingPass>();
 	PU.add_requires<ScheduleClickPass>();
+	PU.add_requires<ConstantPropagationPass>();
 	return PU;
 }
 
@@ -339,6 +341,7 @@ void MachineInstructionSchedulingPass::ListSchedulingPass::schedule(BeginInst *B
 	for(GlobalSchedule::const_inst_iterator i = sched->inst_begin(BI),
 			e = sched->inst_end(BI); i != e; ++i) {
 		Instruction *I = *i;
+		LOG3("Inst: "<< I << nl);
 		// BI is already in the queue
 		if (I->to_BeginInst() == BI)
 			continue;

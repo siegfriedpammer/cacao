@@ -40,74 +40,11 @@ namespace jit {
 namespace compiler2 {
 namespace x86_64 {
 
-template <class A,class B>
-inline A* cast_to(B*);
-
 template <class A,A>
 inline A* cast_to(A* a) {
 	assert(a);
 	return a;
 }
-
-template <>
-inline X86_64Register* cast_to<X86_64Register>(MachineOperand *op) {
-	Register *reg = op->to_Register();
-	assert(reg);
-	MachineRegister *mreg = reg->to_MachineRegister();
-	assert(mreg);
-	NativeRegister *nreg = mreg->to_NativeRegister();
-	assert(nreg);
-	X86_64Register *xreg = nreg->get_X86_64Register();
-	assert(xreg);
-	return xreg;
-}
-
-template <>
-inline X86_64Register* cast_to<X86_64Register>(X86_64Register *reg) {
-	assert(reg);
-	return reg;
-}
-
-template <>
-inline StackSlot* cast_to<StackSlot>(MachineOperand *op) {
-	switch (op->get_OperandID()) {
-	case MachineOperand::ManagedStackSlotID:
-		{
-			ManagedStackSlot *mslot = op->to_ManagedStackSlot();
-			assert(mslot);
-			StackSlot *slot = mslot->to_StackSlot();
-			assert(slot);
-			return slot;
-		}
-	case MachineOperand::StackSlotID:
-		{
-			StackSlot *slot = op->to_StackSlot();
-			assert(slot);
-			return slot;
-		}
-	default: break;
-	}
-	assert(0 && "Not a stackslot");
-	return NULL;
-}
-#if 0
-template <>
-inline X86_64Register* cast_to<X86_64Register>(MachineRegister *mreg) {
-	assert(mreg);
-	NativeRegister *nreg = mreg->to_NativeRegister();
-	assert(nreg);
-	X86_64Register *xreg = nreg->get_X86_64Register();
-	assert(xreg);
-	return xreg;
-}
-#endif
-template <>
-inline Immediate* cast_to<Immediate>(MachineOperand *op) {
-	Immediate* imm = op->to_Immediate();
-	assert(imm);
-	return imm;
-}
-
 
 GPInstruction::OperandSize get_OperandSize_from_Type(const Type::TypeID type) {
 	switch (type) {
@@ -173,6 +110,7 @@ GPInstruction::OpEncoding get_OpEncoding(MachineOperand *src1,
 		}
 		case MachineOperand::StackSlotID:
 		case MachineOperand::ManagedStackSlotID:
+		case MachineOperand::AddressID:
 		{
 			switch (op_size) {
 			case GPInstruction::OS_8 : return GPInstruction::RegMem8;
@@ -187,6 +125,7 @@ GPInstruction::OpEncoding get_OpEncoding(MachineOperand *src1,
 		break;
 	}
 	case MachineOperand::ManagedStackSlotID:
+	case MachineOperand::AddressID:
 	{
 		// switch second operand
 		switch (src2->get_OperandID()) {
@@ -227,53 +166,15 @@ GPInstruction::OperandSize get_operand_size_from_Type(Type::TypeID type) {
 	return GPInstruction::NO_SIZE;
 }
 
-class CodeSegmentBuilder {
-private:
-	typedef alloc::deque<u1>::type Container;
-public:
-	typedef Container::iterator iterator;
-	typedef Container::const_iterator const_iterator;
-	typedef Container::value_type value_type;
-
-	void push_front(u1 d) { data.push_front(d); }
-	void push_back(u1 d) { data.push_back(d); }
-	CodeSegmentBuilder& operator+=(u1 d) {
-		push_back(d);
-		return *this;
-	}
-	u1& operator[](std::size_t i) {
-		if (i >= size()) {
-			data.resize(i+1,0);
-		}
-		return data[i];
-	}
-	u1 operator[](std::size_t i) const {
-		assert(i < size());
-		return data[i];
-	}
-	std::size_t size() const { return data.size(); }
-	const_iterator begin() const { return data.begin(); }
-	const_iterator end()   const { return data.end(); }
-	iterator begin() { return data.begin(); }
-	iterator end()   { return data.end(); }
-private:
-	Container data;
-};
-
-void add_CodeSegmentBuilder(CodeMemory *CM, const CodeSegmentBuilder &CSB) {
-	CodeFragment CF = CM->get_CodeFragment(CSB.size());
-	for (std::size_t i = 0, e = CSB.size(); i < e; ++i) {
-		CF[i] = CSB[i];
-	}
-}
-
 void ALUInstruction::emit(CodeMemory* CM) const {
 	MachineOperand *src1 = get(0).op;
 	MachineOperand *src2 = get(1).op;
 
+	LOG2("emit "<<this<<nl);
 	switch (get_OpEncoding(src1,src2,get_op_size())) {
 	case GPInstruction::RegReg64:
 	{
+		LOG2("op encoding: RegReg64"<<nl);
 		X86_64Register *reg1 = cast_to<X86_64Register>(src1);
 		X86_64Register *reg2 = cast_to<X86_64Register>(src2);
 
@@ -285,29 +186,37 @@ void ALUInstruction::emit(CodeMemory* CM) const {
 	}
 	case GPInstruction::RegReg32:
 	{
+		LOG2("op encoding: RegReg32"<<nl);
 		X86_64Register *reg1 = cast_to<X86_64Register>(src1);
 		X86_64Register *reg2 = cast_to<X86_64Register>(src2);
 
 		u1 rex  = get_rex(reg1,reg2,false);
+		LOG2("rex: "<<rex<<nl);
 		if (rex == 0x40) { // no rex
 			CodeFragment code = CM->get_CodeFragment(2);
 			code[0] = (alu_id * 0x8) + 3;
 			code[1] = get_modrm_reg2reg(reg1,reg2);
+			LOG2("code[0]: "<<code[0]<<nl);
+			LOG2("code[1]: "<<code[1]<<nl);
 		}
 		else {
 			CodeFragment code = CM->get_CodeFragment(3);
 			code[0] = rex;
 			code[1] = (alu_id * 0x8) + 3;
 			code[2] = get_modrm_reg2reg(reg1,reg2);
+			LOG2("code[0]: "<<code[0]<<nl);
+			LOG2("code[1]: "<<code[1]<<nl);
+			LOG2("code[2]: "<<code[2]<<nl);
 		}
 		return;
 	}
 	case GPInstruction::Reg32Imm8:
 	{
+		LOG2("op encoding: Reg32Imm8"<<nl);
 		X86_64Register *reg1 = cast_to<X86_64Register>(src1);
 		Immediate *imm = cast_to<Immediate>(src2);
 		CodeFragment code = CM->get_CodeFragment(4);
-		code[0] = get_rex(NULL, reg1);
+		code[0] = get_rex(NULL, reg1, get_op_size() == OS_64);
 		code[1] = 0x83;
 		code[2] = get_modrm_1reg(alu_id, reg1);
 		code[3] = imm->get_value<s1>();
@@ -315,10 +224,11 @@ void ALUInstruction::emit(CodeMemory* CM) const {
 	}
 	case GPInstruction::Reg32Imm32:
 	{
+		LOG2("op encoding: Reg32Imm32"<<nl);
 		X86_64Register *reg1 = cast_to<X86_64Register>(src1);
 		Immediate *imm = cast_to<Immediate>(src2);
 		CodeFragment code = CM->get_CodeFragment(7);
-		code[0] = get_rex(NULL, reg1);
+		code[0] = get_rex(NULL, reg1, get_op_size() == OS_64);
 		code[1] = 0x81;
 		code[2] = get_modrm_1reg(alu_id, reg1);
 		InstructionEncoding::imm<s4>(code+3, imm->get_value<s4>());
@@ -326,10 +236,11 @@ void ALUInstruction::emit(CodeMemory* CM) const {
 	}
 	case GPInstruction::Reg64Imm8:
 	{
+		LOG2("op encoding: Reg64Imm8"<<nl);
 		X86_64Register *reg1 = cast_to<X86_64Register>(src1);
 		Immediate *imm = cast_to<Immediate>(src2);
 		CodeFragment code = CM->get_CodeFragment(4);
-		code[0] = get_rex(NULL, reg1);
+		code[0] = get_rex(NULL, reg1, get_op_size() == OS_64);
 		code[1] = 0x83;
 		code[2] = get_modrm_1reg(alu_id, reg1);
 		code[3] = imm->get_value<s1>();
@@ -483,99 +394,40 @@ void MovInst::emit(CodeMemory* CM) const {
 	MachineOperand *dst = result.op;
 
 	GPInstruction::OpEncoding openc = get_OpEncoding(dst,src,get_op_size());
+	u1 opcode;
+	bool encode_dst = true;
 	switch (openc) {
+	case GPInstruction::RegReg8:
+	case GPInstruction::RegReg16:
+	case GPInstruction::RegReg32:
 	case GPInstruction::RegReg64:
 	{
 		X86_64Register *reg_dst = cast_to<X86_64Register>(dst);
 		X86_64Register *reg_src = cast_to<X86_64Register>(src);
 		if (reg_dst == reg_src && !forceSameRegisters) return;
-
-		CodeFragment code = CM->get_CodeFragment(3);
-		code[0] = get_rex(reg_dst,reg_src);
-		code[1] = 0x8b;
-		code[2] = get_modrm_reg2reg(reg_dst,reg_src);
-		return;
-	}
-	case GPInstruction::RegReg8:
-	case GPInstruction::RegReg16:
-	case GPInstruction::RegReg32:
-	{
-		X86_64Register *reg_dst = cast_to<X86_64Register>(dst);
-		X86_64Register *reg_src = cast_to<X86_64Register>(src);
-		if (reg_dst == reg_src && !forceSameRegisters) return;
-
-		u1 rex  = get_rex(reg_dst,reg_src,false);
-		if (rex == 0x40) { // no rex
-			CodeFragment code = CM->get_CodeFragment(2);
-			code[0] = 0x8b;
-			code[1] = get_modrm_reg2reg(reg_dst,reg_src);
-		}
-		else {
-			CodeFragment code = CM->get_CodeFragment(3);
-			code[0] = rex;
-			code[1] = 0x8b;
-			code[2] = get_modrm_reg2reg(reg_dst,reg_src);
-		}
-		return;
+		opcode = 0x8b;
+		break;
 	}
 	case GPInstruction::MemReg32:
 	case GPInstruction::MemReg64:
+		opcode = 0x89;
+		break;
 	case GPInstruction::RegMem32:
 	case GPInstruction::RegMem64:
-	{
-		u1 opcode = 0;
-		REX rex;
-		StackSlot *slot = 0;
-		X86_64Register *reg = 0;
-		// set operands and opcode
-		switch(openc) {
-		case GPInstruction::MemReg32:
-		case GPInstruction::MemReg64:
-			opcode = 0x89;
-			reg = cast_to<X86_64Register>(src);
-			slot = cast_to<StackSlot>(dst);
-			break;
-		case GPInstruction::RegMem32:
-		case GPInstruction::RegMem64:
-			opcode = 0x8b;
-			slot = cast_to<StackSlot>(src);
-			reg = cast_to<X86_64Register>(dst);
-			break;
-		default: assert(0);
-			break;
-		}
-		// set rex
-		if ( openc ==  GPInstruction::MemReg64 || openc == GPInstruction::RegMem64) {
-			rex + REX::W;
-		}
-		if (reg->extented) {
-			rex + REX::R;
-		}
-		CodeSegmentBuilder code;
-		// rex
-		if (rex != 0x40) {
-			code += rex;
-		}
-		// opcode
-		code += opcode;
-		// modmr + imm
-		s4 index = slot->get_index() * 8;
-		if (fits_into<s1>(index)) {
-			code += get_modrm(0x1,reg,&RBP);
-			code += (u1) 0xff & (index >> 0x00);
-		} else {
-			code += get_modrm(0x2,reg,&RBP);
-			code += (u1) 0xff & (index >> 0x00);
-			code += (u1) 0xff & (index >> 0x08);
-			code += (u1) 0xff & (index >> 0x10);
-			code += (u1) 0xff & (index >> 0x18);
-		}
-		add_CodeSegmentBuilder(CM,code);
-		return;
-	}
+		opcode = 0x8b;
+		break;
+	case GPInstruction::Reg8Imm8:
+		opcode = 0xb0;
+		encode_dst = false;
+		break;
+	case GPInstruction::Reg32Imm8:
+	case GPInstruction::Reg32Imm32:
 	case GPInstruction::Reg64Imm8:
 	case GPInstruction::Reg64Imm64:
-	{
+		opcode = 0xb8;
+		encode_dst = false;
+		break;
+	/*
 		Immediate *imm = cast_to<Immediate>(src);
 		X86_64Register *reg_dst = cast_to<X86_64Register>(dst);
 		CodeFragment code = CM->get_CodeFragment(10);
@@ -602,78 +454,16 @@ void MovInst::emit(CodeMemory* CM) const {
 		add_CodeSegmentBuilder(CM,code);
 		return;
 	}
-	#if 0
-	case GPInstruction::Reg64Imm8:
-	{
-		X86_64Register *reg_dst = cast_to<X86_64Register>(dst);
-		Immediate *imm = cast_to<Immediate>(src);
-		CodeFragment code = CM->get_CodeFragment(4);
-		code[0] = get_rex(reg_dst);
-		code[1] = 0x83;
-		code[2] = get_modrm_1reg(alu_id, reg_dst);
-		code[3] = (s1)imm->get_value();
-		return;
-	}
-	#endif
-	//case GPInstruction::Reg64Imm64: break;
-	default: break;
+	*/
+	default: 
+		ABORT_MSG(this << ": Operand(s) not supported",
+			"dst: " << dst << " src: " << src << " op_size: "
+			<< get_op_size() * 8 << "bit");
+		break;
 	}
 
-	ABORT_MSG(this << ": Operand(s) not supported",
-		"dst: " << dst << " src: " << src << " op_size: "
-		<< get_op_size() * 8 << "bit");
-
-
-
-
-
-
-#if 0
-
-
-
-	if( dst_reg) {
-		MachineRegister *dst_mreg = dst_reg->to_MachineRegister();
-		assert(dst_mreg);
-		if (src_reg) {
-			MachineRegister *src_mreg = src_reg->to_MachineRegister();
-			assert(src_mreg);
-
-			// reg to reg move
-			emit_reg2reg(CM,cast_to<X86_64Register>(dst_mreg),
-				cast_to<X86_64Register>(src_mreg));
-			return;
-		}
-		StackSlot *slot = src->to_StackSlot();
-		if (slot) {
-			// stack to reg move
-			emit_stack_move(CM,slot,cast_to<X86_64Register>(dst_mreg),true);
-			return;
-		}
-		Immediate *imm = src->to_Immediate();
-		if (imm) {
-			// im to reg move
-			emit_imm2reg_move(CM,imm,cast_to<X86_64Register>(dst_mreg));
-			return;
-		}
-	} else {
-		// dst is not a reg
-		if (src_reg) {
-			MachineRegister *src_mreg = src_reg->to_MachineRegister();
-			assert(src_mreg);
-			StackSlot *slot = dst->to_StackSlot();
-			if (slot) {
-				// reg to stack move
-				emit_stack_move(CM,slot,cast_to<X86_64Register>(src_mreg),false);
-				return;
-			}
-		}
-	}
-	ABORT_MSG("x86_64 TODO","non reg-to-reg moves not yet implemented (src:"
-		<< src << " dst:" << dst << ")");
-#endif
+	InstructionEncoding::emit(CM,opcode,get_op_size(),src,dst,0,0,0,false,encode_dst);
 }
-
 
 inline u1 get_rex(X86_64Register *reg, const ModRMOperandDesc &modrm, bool opsize64) {
 	REX rex;
@@ -717,6 +507,15 @@ void MovModRMInst::emit(CodeMemory* CM) const {
 	  reg = 0;
 	}
 	assert(reg);
+
+	/* New Version 
+	if (floatingpoint) {
+		InstructionEncoding::emit(CM,floatopcode[2],get_op_size(),get(0).op,result.op,0,0,floatopcode[0],true);
+	}
+	else {
+		InstructionEncoding::emit(CM,opcode,get_op_size(),get(0).op,result.op);
+	}
+	*/
 	CodeSegmentBuilder code;
 	if (!floatingpoint) {
 		// set rex
@@ -786,79 +585,35 @@ void MovModRMInst::emit(CodeMemory* CM) const {
 }
 
 void LEAInst::emit(CodeMemory* CM) const {
+	u1 opcode = 0x8D;
+	InstructionEncoding::emit(CM,opcode,get_op_size(),get(0).op,get_result().op);
 
-	X86_64Register *reg;
-	u1 opcode;
-
+	/*
 	MachineOperand *op = get_result().op;
-	reg = (op?cast_to<X86_64Register>(op) : 0);
-
-	// reg = cast_to<X86_64Register>(operands[Value].op);
-	opcode = 0x8D;
-
+	X86_64Register *reg = (op?cast_to<X86_64Register>(op) : 0);
 	assert(reg);
+	X86_64ModRMOperand *src = cast_to<X86_64ModRMOperand>(get(0).op);
 	CodeSegmentBuilder code;
-	// set rex
-	u1 rex = get_rex(reg,modrm,get_op_size() == GPInstruction::OS_64);
+	src->prepareEmit();
+	u1 rex = src->getRex(*reg,get_op_size() == GPInstruction::OS_64);
 	if (rex != 0x40)
 		code += rex;
-	// set opcode
 	code += opcode;
-	// set modrm byte
-	// mod
-	u1 modrm_mod;
-	if (modrm.disp == 0) {
-		// no disp
-		modrm_mod = 0;
+	code += src->getModRM(*reg);
+	if (src->useSIB()) {
+		code += src->getSIB(*reg);
 	}
-	else if (fits_into<s1>(modrm.disp)) {
-		// disp8
-		modrm_mod = 1;
-	} else {
-		// disp32
-		modrm_mod = 2;
+	if (src->useDisp8()) {
+		code += src->getDisp8();
 	}
-	X86_64Register *index_reg = (modrm.index.op != &NoOperand ? cast_to<X86_64Register>(modrm.index.op) : 0);
-	X86_64Register *base_reg  = (modrm.base.op  != &NoOperand ? cast_to<X86_64Register>(modrm.base.op ) : 0);
-	// r/m
-	u1 modrm_rm;
-	bool need_sib;
-	// XXX for the time being always use SIB byte
-	if (!index_reg && base_reg && base_reg->get_index() != 0x4) { // 0b100
-		modrm_rm = base_reg->get_index();
-		need_sib = false;
-	} else {
-		modrm_rm = 4; // 0b100
-		need_sib = true;
-	}
-	code += get_modrm_u1(modrm_mod,reg->get_index(),modrm_rm);
-
-	if (need_sib) {
-		// set sib
-		u1 sib=0;
-		sib |= modrm.scale << 6;
-		if(index_reg) {
-			sib |= (0x7 & index_reg->get_index()) << 3;
-		}
-		else {
-			sib |= 0x4 << 3; // 0b100 << 3
-		}
-		assert(base_reg);
-		sib |= (0x7 & base_reg->get_index()) << 0 ;
-		code += sib;
-	}
-	if (modrm_mod == 1) {
-		code += s1(modrm.disp);
-	}
-	if (modrm_mod == 2) {
-		code += (0xff && (modrm.disp >>  0));
-		code += (0xff && (modrm.disp >>  8));
-		code += (0xff && (modrm.disp >> 16));
-		code += (0xff && (modrm.disp >> 24));
+	else if (src->useDisp32()) {
+		code += src->getDisp32_1();
+		code += src->getDisp32_2();
+		code += src->getDisp32_3();
+		code += src->getDisp32_4();
 	}
 	add_CodeSegmentBuilder(CM,code);
-
-
+	*/
 }
 
 
@@ -1314,7 +1069,30 @@ void SSEAluInst::emit(CodeMemory* CM) const {
 void MovSDInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
 	MachineOperand *dst = result.op;
+	if (src->aquivalent(*dst)) return;
 
+	u1 opcode = 0x06; //invalid
+	switch (get_OpEncoding(dst,src,get_op_size())) {
+	case GPInstruction::RegReg64:
+	case GPInstruction::RegMem64:
+	{
+		opcode = 0x10;
+		break;
+	}
+	case GPInstruction::MemReg64:
+	{
+		opcode = 0x11;
+		break;
+	}
+	default: 
+		ABORT_MSG(this << ": Operand(s) not supported",
+			"dst: " << dst << " src: " << src << " op_size: "
+			<< get_op_size() * 8 << "bit");
+		break;
+	}
+
+	InstructionEncoding::emit (CM, opcode, get_op_size(), src, dst, 0, 0, 0xf2, true); 
+	/*
 	switch (get_OpEncoding(dst,src,get_op_size())) {
 	case GPInstruction::RegReg64:
 	{
@@ -1400,14 +1178,36 @@ void MovSDInst::emit(CodeMemory* CM) const {
 	ABORT_MSG(this << ": Operand(s) not supported",
 		"dst: " << dst << " src: " << src << " op_size: "
 		<< get_op_size() * 8 << "bit");
+	*/
 }
 
-// TODO: refactor
 void MovSSInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
 	MachineOperand *dst = result.op;
 	if (src->aquivalent(*dst)) return;
 
+	u1 opcode = 0x06; //invalid
+	switch (get_OpEncoding(dst,src,get_op_size())) {
+	case GPInstruction::RegReg32:
+	case GPInstruction::RegMem32:
+	{
+		opcode = 0x10;
+		break;
+	}
+	case GPInstruction::MemReg32:
+	{
+		opcode = 0x11;
+		break;
+	}
+	default: 
+		ABORT_MSG(this << ": Operand(s) not supported",
+			"dst: " << dst << " src: " << src << " op_size: "
+			<< get_op_size() * 8 << "bit");
+		break;
+	}
+
+	InstructionEncoding::emit (CM, opcode, get_op_size(), src, dst, 0, 0, 0xf3, true); 
+	/*
 	switch (get_OpEncoding(dst,src,get_op_size())) {
 	case GPInstruction::RegReg32:
 	{
@@ -1456,6 +1256,7 @@ void MovSSInst::emit(CodeMemory* CM) const {
 	ABORT_MSG(this << ": Operand(s) not supported",
 		"dst: " << dst << " src: " << src << " op_size: "
 		<< get_op_size() * 8 << "bit");
+	*/
 
 }
 

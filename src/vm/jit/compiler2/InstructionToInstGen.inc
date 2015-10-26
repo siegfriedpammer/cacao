@@ -55,6 +55,7 @@ virtual PUTFIELDInst* to_PUTFIELDInst() { return NULL; }
 virtual PUTSTATICInst* to_PUTSTATICInst() { return NULL; }
 virtual GETSTATICInst* to_GETSTATICInst() { return NULL; }
 virtual INCInst* to_INCInst() { return NULL; }
+virtual AREFInst* to_AREFInst() { return NULL; }
 virtual ASTOREInst* to_ASTOREInst() { return NULL; }
 virtual ALOADInst* to_ALOADInst() { return NULL; }
 virtual RETInst* to_RETInst() { return NULL; }

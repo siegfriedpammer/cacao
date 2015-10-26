@@ -55,6 +55,7 @@ void InstructionVisitor::visit(PUTFIELDInst* I, bool copyOperands) {visit_defaul
 void InstructionVisitor::visit(PUTSTATICInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(GETSTATICInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(INCInst* I, bool copyOperands) {visit_default(I);}
+void InstructionVisitor::visit(AREFInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(ASTOREInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(ALOADInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(RETInst* I, bool copyOperands) {visit_default(I);}

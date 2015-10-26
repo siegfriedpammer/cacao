@@ -563,15 +563,26 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class ASTOREInst : public Instruction {
+class AREFInst : public Instruction {
 public:
-	explicit ASTOREInst(Type::TypeID type, Value* ref, Value* index, Value* value,
-			BeginInst *begin, Instruction *state_change)
-			: Instruction(ASTOREInstID, Type::VoidTypeID) {
+	explicit AREFInst(Type::TypeID type, Value* ref, Value* index)
+			: Instruction(AREFInstID, type) {
 		assert(ref->get_type() == Type::ReferenceTypeID);
 		assert(index->get_type() == Type::IntTypeID);
 		append_op(ref);
 		append_op(index);
+	}
+	virtual AREFInst* to_AREFInst() { return this; }
+	virtual bool is_homogeneous() const { return false; }
+	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+};
+
+class ASTOREInst : public Instruction {
+public:
+	explicit ASTOREInst(Type::TypeID type, Value* ref, Value* value,
+			BeginInst *begin, Instruction *state_change)
+			: Instruction(ASTOREInstID, Type::VoidTypeID) {
+		append_op(ref);
 		append_op(value);
 		append_dep(begin);
 		append_dep(state_change);
@@ -591,13 +602,12 @@ public:
 	}
 };
 
-class ALOADInst : public BinaryInst {
+class ALOADInst : public Instruction {
 public:
-	explicit ALOADInst(Type::TypeID type, Value* ref, Value* index,
+	explicit ALOADInst(Type::TypeID type, Value* ref, 
 			BeginInst *begin, Instruction *state_change)
-			: BinaryInst(ALOADInstID, type, ref, index) {
-		assert(ref->get_type() == Type::ReferenceTypeID);
-		assert(index->get_type() == Type::IntTypeID);
+			: Instruction(ALOADInstID, type) {
+		append_op(ref);
 		append_dep(begin);
 		append_dep(state_change);
 	}

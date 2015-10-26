@@ -36,6 +36,7 @@ namespace x86_64 {
 
 // forward declarations
 class NativeRegister;
+class NativeAddress;
 class X86_64LoweringVisitor;
 
 } // end namespace x86_64
@@ -43,6 +44,7 @@ class X86_64LoweringVisitor;
 // typedefs
 typedef x86_64::X86_64 Target;
 typedef x86_64::NativeRegister NativeRegister;
+typedef x86_64::NativeAddress NativeAddress;
 typedef x86_64::X86_64LoweringVisitor LoweringVisitor;
 
 } // end namespace compiler2

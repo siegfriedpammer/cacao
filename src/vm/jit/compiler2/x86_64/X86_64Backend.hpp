@@ -58,6 +58,7 @@ public:
 	virtual void visit(LOOKUPSWITCHInst *I, bool copyOperands);
 	virtual void visit(TABLESWITCHInst *I, bool copyOperands);
 	virtual void visit(ARRAYLENGTHInst *I, bool copyOperands);
+	virtual void visit(AREFInst *I, bool copyOperands);
 	virtual void visit(ALOADInst *I, bool copyOperands);
 	virtual void visit(ASTOREInst *I, bool copyOperands);
 	virtual void visit(ARRAYBOUNDSCHECKInst *I, bool copyOperands);

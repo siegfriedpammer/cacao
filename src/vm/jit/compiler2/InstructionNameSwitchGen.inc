@@ -55,6 +55,7 @@ case PUTFIELDInstID: return "PUTFIELDInst";
 case PUTSTATICInstID: return "PUTSTATICInst";
 case GETSTATICInstID: return "GETSTATICInst";
 case INCInstID: return "INCInst";
+case AREFInstID: return "AREFInst";
 case ASTOREInstID: return "ASTOREInst";
 case ALOADInstID: return "ALOADInst";
 case RETInstID: return "RETInst";

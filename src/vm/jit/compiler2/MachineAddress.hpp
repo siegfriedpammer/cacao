@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/X86_64.hpp - X86_64
+/* src/vm/jit/compiler2/MachineRegister.hpp - MachineRegister
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,34 +22,36 @@
 
 */
 
-#ifndef _JIT_COMPILER2_X86_64
-#define _JIT_COMPILER2_X86_64
+#ifndef _JIT_COMPILER2_MACHINEADDRESS
+#define _JIT_COMPILER2_MACHINEADDRESS
 
-#include <cstddef>
+#include "vm/jit/compiler2/MachineOperand.hpp"
+#include "Target.hpp"
+
+#include "toolbox/logging.hpp"
+
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
-namespace x86_64 {
 
-template <class A,class B>
-inline A* cast_to(B*);
-
-/**
- * X86_64
- */
-class X86_64 {
+class MachineAddress : public Address {
 public:
-	static const std::size_t alignment = 2;
+	MachineAddress()
+		: Address() {}
+	virtual MachineAddress* to_MachineAddress() { return this; }
+	virtual NativeAddress* to_NativeAddress() = 0;
+	virtual const char *get_name() const {
+		return "MachineAddress";
+	}
+	virtual ~MachineAddress() {}
 };
 
-
-} // end namespace x86_64
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_X86_64 */
+#endif /* _JIT_COMPILER2_MACHINEADDRESS */
 
 
 /*
