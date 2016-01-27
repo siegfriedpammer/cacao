@@ -281,7 +281,7 @@ bool typecheck_copy_types(verifier_state *state, s4 *srcvars, s4 *dstvars, s4 n)
 
 		dv->type = sv->type;
 		if (dv->type == TYPE_ADR) {
-			dv->typeinfo = sv->typeinfo;
+			typeinfo_t::clone(sv->typeinfo, dv->typeinfo);
 		}
 	}
 	return true;

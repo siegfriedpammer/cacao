@@ -703,7 +703,7 @@ static resolve_result_t resolve_lazy_subtype_checks(methodinfo *refmethod,
 
 	/* uninitialized objects are illegal here */
 
-	if (subtinfo->is_primitive()) {
+	if (subtinfo->is_newobject()) {
 		exceptions_throw_verifyerror(refmethod,
 				"Invalid use of uninitialized object");
 		return resolveFailed;
