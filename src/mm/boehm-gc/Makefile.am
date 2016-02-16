@@ -25,7 +25,7 @@
 # else
 # SUBDIRS =
 # endif
-SUBDIRS =
+SUBDIRS = libatomic_ops
 
 ACLOCAL_AMFLAGS = -I m4
 AM_CPPFLAGS = \
@@ -35,6 +35,7 @@ AM_CPPFLAGS = \
 # Initialize variables so that we can declare files locally.
 EXTRA_DIST =
 lib_LTLIBRARIES =
+noinst_LTLIBRARIES =
 include_HEADERS =
 pkginclude_HEADERS =
 dist_noinst_HEADERS =
@@ -48,7 +49,7 @@ pkgconfig_DATA = bdw-gc.pc
 # C Library
 # ---------
 
-lib_LTLIBRARIES += libgc.la
+noinst_LTLIBRARIES += libgc.la
 if SINGLE_GC_OBJ
 libgc_la_SOURCES = extra/gc.c
 else
