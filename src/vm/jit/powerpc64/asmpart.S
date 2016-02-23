@@ -164,7 +164,7 @@ L_register_copy:
 L_stack_copy:
 	addi	t1,t1,20*8		/* before first possible stack slot arg */
 	mr	t3,t2			/* argument counter */
-	sldi	t2,t2,8			/* calculate size of stack */
+	sldi	t2,t2,3			/* calculate size of stack */
 	sub	sp,sp,t2		/* increase the stack */
 	mr	t2,sp			/* t2 points to bottom of stack now */
 
