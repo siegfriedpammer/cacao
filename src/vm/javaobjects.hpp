@@ -1871,8 +1871,8 @@ public:
 
 inline void java_lang_Class::set_classLoader(java_handle_t* value)
 {
-	assert(offset_classLoader);
-	set(_handle, offset_classLoader, value);
+	if (offset_classLoader)
+		set(_handle, offset_classLoader, value);
 }
 
 /**

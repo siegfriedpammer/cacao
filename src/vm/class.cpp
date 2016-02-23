@@ -1316,7 +1316,7 @@ fieldinfo *class_findfield(classinfo *c, Utf8String name, Utf8String desc)
 
 *******************************************************************************/
 
-fieldinfo *class_findfield_by_name(classinfo* c, Utf8String name)
+fieldinfo *class_findfield_by_name(classinfo* c, Utf8String name, bool throwexception)
 {
 	for (int32_t i = 0; i < c->fieldscount; i++) {
 		fieldinfo* f = &(c->fields[i]);
@@ -1326,7 +1326,8 @@ fieldinfo *class_findfield_by_name(classinfo* c, Utf8String name)
 	}
 
 	// Field not found.
-	exceptions_throw_nosuchfielderror(c, name);
+	if (throwexception)
+		exceptions_throw_nosuchfielderror(c, name);
 	return NULL;
 }
 
