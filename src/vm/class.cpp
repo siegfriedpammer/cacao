@@ -314,6 +314,11 @@ classinfo *class_define(Utf8String name, classloader_t *cl, int32_t length, uint
 
 	c = classcache_store(cl, c, true);
 
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7)
+	java_lang_Class jlc(LLNI_classinfo_wrap(c));
+	jlc.set_classLoader(cl);
+#endif
+
 	return c;
 }
 

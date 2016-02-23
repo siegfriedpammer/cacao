@@ -270,11 +270,21 @@ static DynOffsetEntry dyn_entries_java_lang_Thread[] = {
 	{ 0, 0 }
 };
 
+off_t java_lang_Class::offset_classLoader;
+
+static DynOffsetEntry dyn_entries_java_lang_Class[] = {
+	{ &java_lang_Class::set_classLoader_offset, "classLoader" },
+	{ 0, 0 }
+};
+
 #endif
 
 void jobjects_register_dyn_offsets()
 {
 	register_dyn_entry_table(class_java_lang_Thread, dyn_entries_java_lang_Thread);
+#ifdef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
+	register_dyn_entry_table(class_java_lang_Class, dyn_entries_java_lang_Class);
+#endif
 }
 
 #endif // ENABLE_JAVASE
