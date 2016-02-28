@@ -86,6 +86,7 @@
 #include "vm/jit/replace.hpp"
 #include "vm/jit/show.hpp"
 #include "vm/jit/stacktrace.hpp"
+#include "vm/jit/stubs.hpp"
 #include "vm/jit/trace.hpp"
 
 #include "vm/jit/optimizing/profile.hpp"
@@ -124,6 +125,7 @@ using namespace cacao;
 
 void codegen_init(void)
 {
+	AbstractMethodErrorStub::generate();
 }
 
 

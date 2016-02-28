@@ -85,11 +85,6 @@ void asm_handle_exception(void);
 void asm_handle_nat_exception(void);
 #endif
 
-/* stub for throwing AbstractMethodError's */
-#if defined(ENABLE_JIT)
-void asm_abstractmethoderror(void);
-#endif
-
 #if defined(ENABLE_INTRP)
 void intrp_asm_abstractmethoderror(void);
 #endif

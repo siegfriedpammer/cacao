@@ -54,6 +54,12 @@ public:
 };
 
 
+class AbstractMethodErrorStub {
+public:
+	static void *stubcode;
+	static void generate();
+};
+
 /**
  * Class for native stub generation.
  */
