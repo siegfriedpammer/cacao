@@ -607,7 +607,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, jobject _
 
 		/* get field only by name, it can be one of B, S */
 
-		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf8::value)))
+		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf8::value, true)))
 			break;
 				   
 		switch (sf->parseddesc->primitivetype) {
@@ -631,7 +631,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, jobject _
 
 		/* get field only by name, it can be one of B, S, C, I */
 
-		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf8::value)))
+		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf8::value, true)))
 			break;
 
 		switch (sf->parseddesc->primitivetype) {
@@ -661,7 +661,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, jobject _
 
 		/* get field only by name, it can be one of B, S, C, I, J */
 
-		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf8::value)))
+		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf8::value, true)))
 			break;
 
 		switch (sf->parseddesc->primitivetype) {
@@ -694,7 +694,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, jobject _
 
 		/* get field only by name, it can be one of B, S, C, I, J, F */
 
-		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf8::value)))
+		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf8::value, true)))
 			break;
 
 		switch (sf->parseddesc->primitivetype) {
@@ -730,7 +730,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, jobject _
 
 		/* get field only by name, it can be one of B, S, C, I, J, F, D */
 
-		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf8::value)))
+		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf8::value, true)))
 			break;
 
 		switch (sf->parseddesc->primitivetype) {

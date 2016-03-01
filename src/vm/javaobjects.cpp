@@ -195,6 +195,7 @@ java_handle_t* java_lang_reflect_Method::invoke(java_handle_t* o, java_handle_ob
 struct DynOffsetEntry {
 	void (*setter)(int32_t);
 	const char *name;
+	bool throwexception;
 };
 
 typedef std::map<classinfo *, DynOffsetEntry *> RegisteredDynMap;
@@ -208,10 +209,12 @@ static void register_dyn_entry_table(classinfo *c, DynOffsetEntry *entries)
 static bool runAllSetters(classinfo *c, DynOffsetEntry entries[])
 {
 	do {
-		fieldinfo *fi = class_findfield_by_name(c, Utf8String::from_utf8(entries->name));
-		if (!fi)
-			return false;
-		entries->setter(fi->offset);
+		fieldinfo *fi = class_findfield_by_name(c, Utf8String::from_utf8(entries->name), false);
+		if (fi)
+			entries->setter(fi->offset);
+		else
+			if (entries->throwexception)
+				return false;
 	} while ((++entries)->setter);
 	return true;
 }
@@ -238,12 +241,12 @@ off_t java_lang_Thread::offset_priority;
 off_t java_lang_Thread::offset_exceptionHandler;
 
 static DynOffsetEntry dyn_entries_java_lang_Thread[] = {
-	{ &java_lang_Thread::set_vmThread_offset,         "vmThread" },
-	{ &java_lang_Thread::set_group_offset,            "group" },
-	{ &java_lang_Thread::set_name_offset,             "name" },
-	{ &java_lang_Thread::set_daemon_offset,           "daemon" },
-	{ &java_lang_Thread::set_priority_offset,         "priority" },
-	{ &java_lang_Thread::set_exceptionHandler_offset, "exceptionHandler" },
+	{ &java_lang_Thread::set_vmThread_offset,         "vmThread", true },
+	{ &java_lang_Thread::set_group_offset,            "group", true },
+	{ &java_lang_Thread::set_name_offset,             "name", true },
+	{ &java_lang_Thread::set_daemon_offset,           "daemon", true },
+	{ &java_lang_Thread::set_priority_offset,         "priority", true },
+	{ &java_lang_Thread::set_exceptionHandler_offset, "exceptionHandler", true },
 	{ 0, 0 }
 };
 
@@ -259,14 +262,21 @@ off_t java_lang_Thread::offset_me;
 #endif
 
 static DynOffsetEntry dyn_entries_java_lang_Thread[] = {
-	{ &java_lang_Thread::set_priority_offset,                 "priority" },
-	{ &java_lang_Thread::set_daemon_offset,                   "daemon" },
-	{ &java_lang_Thread::set_group_offset,                    "group" },
-	{ &java_lang_Thread::set_uncaughtExceptionHandler_offset, "uncaughtExceptionHandler" },
-	{ &java_lang_Thread::set_threadStatus_offset,             "threadStatus" },
+	{ &java_lang_Thread::set_priority_offset,                 "priority", true },
+	{ &java_lang_Thread::set_daemon_offset,                   "daemon", true },
+	{ &java_lang_Thread::set_group_offset,                    "group", true },
+	{ &java_lang_Thread::set_uncaughtExceptionHandler_offset, "uncaughtExceptionHandler", true },
+	{ &java_lang_Thread::set_threadStatus_offset,             "threadStatus", true },
 #ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
-	{ &java_lang_Thread::set_me_offset,                       "me" },
+	{ &java_lang_Thread::set_me_offset,                       "me", true },
 #endif
+	{ 0, 0 }
+};
+
+off_t java_lang_Class::offset_classLoader;
+
+static DynOffsetEntry dyn_entries_java_lang_Class[] = {
+	{ &java_lang_Class::set_classLoader_offset, "classLoader", false },
 	{ 0, 0 }
 };
 
@@ -275,6 +285,9 @@ static DynOffsetEntry dyn_entries_java_lang_Thread[] = {
 void jobjects_register_dyn_offsets()
 {
 	register_dyn_entry_table(class_java_lang_Thread, dyn_entries_java_lang_Thread);
+#ifdef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
+	register_dyn_entry_table(class_java_lang_Class, dyn_entries_java_lang_Class);
+#endif
 }
 
 #endif // ENABLE_JAVASE

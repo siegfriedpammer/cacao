@@ -1847,6 +1847,35 @@ inline java_lang_AssertionStatusDirectives::java_lang_AssertionStatusDirectives(
 
 
 /**
+ * OpenJDK java/lang/Class
+ *
+ * Object layout:
+ *
+ * 0. object header
+ * ? java.lang.ClassLoader classLoader
+ */
+class java_lang_Class : public java_lang_Object, private FieldAccess {
+private:
+	// Static offsets of the object's instance fields.
+	static off_t offset_classLoader;
+
+public:
+	java_lang_Class(java_handle_t* h) : java_lang_Object(h) {}
+
+	// Setters.
+	void set_classLoader(java_handle_t* value);
+
+	// Offset initializers
+	static void set_classLoader_offset(int32_t off) { offset_classLoader = off; }
+};
+
+inline void java_lang_Class::set_classLoader(java_handle_t* value)
+{
+	if (offset_classLoader)
+		set(_handle, offset_classLoader, value);
+}
+
+/**
  * OpenJDK java/lang/ClassLoader
  *
  * Object layout:
