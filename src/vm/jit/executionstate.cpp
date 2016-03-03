@@ -124,10 +124,10 @@ void executionstate_pop_stackframe(executionstate_t *es)
 	// In debugging mode clobber non-saved registers.
 #if !defined(NDEBUG)
 	for (i=0; i<INT_REG_CNT; ++i)
-		if (nregdescint[i] != REG_SAV)
+		if (nregdescint[i] != REG_SAV && nregdescint[i] != REG_RES)
 			es->intregs[i] = (ptrint) 0x33dead3333dead33ULL;
 	for (i=0; i<FLT_REG_CNT; ++i)
-		if (nregdescfloat[i] != REG_SAV)
+		if (nregdescfloat[i] != REG_SAV && nregdescfloat[i] != REG_RES)
 			*(u8*)&(es->fltregs[i]) = 0x33dead3333dead33ULL;
 #endif /* !defined(NDEBUG) */
 }
