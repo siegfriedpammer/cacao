@@ -1127,7 +1127,7 @@ bool codegen_emit(jitdata *jd)
 	// Keep stack of non-leaf functions 16-byte aligned for calls into
 	// native code.
 	if (!code_is_leafmethod(code) || JITDATA_HAS_FLAG_VERBOSECALL(jd))
-#if STACKFRMAE_RA_BETWEEN_FRAMES
+#if STACKFRAME_RA_BETWEEN_FRAMES
 		ALIGN_ODD(cd->stackframesize);
 #else
 		ALIGN_EVEN(cd->stackframesize);

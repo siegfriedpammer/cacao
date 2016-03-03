@@ -114,7 +114,7 @@ void executionstate_pop_stackframe(executionstate_t *es)
 
 	// Adjust the stackpointer.
 	es->sp += framesize;
-#if STACKFRMAE_RA_BETWEEN_FRAMES
+#if STACKFRAME_RA_BETWEEN_FRAMES
 	es->sp += SIZEOF_VOID_P; /* skip return address */
 #endif
 
