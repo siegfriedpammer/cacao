@@ -26,7 +26,7 @@
 #include "config.h"
 
 #include "vm/jit/alpha/md-abi.hpp"
-#include "vm/jit/alpha/md-asm.hpp"
+#include "md-asm.hpp"
 
 #include "vm/jit/abi-asm.hpp"
 #include "vm/jit/methodheader.hpp"
@@ -46,11 +46,6 @@
 	.globl asm_vm_call_method_double
 	.globl asm_vm_call_method_exception_handler
 	.globl asm_vm_call_method_end
-
-	.globl asm_handle_exception
-	.globl asm_handle_nat_exception
-
-	.globl asm_abstractmethoderror
 
 	.globl asm_md_init
 	.globl asm_cacheflush
@@ -154,185 +149,6 @@ asm_vm_call_method_end:
 	br      L_asm_vm_call_method_recompute_return
 
 	.end    asm_vm_call_method
-
-
-/* asm_handle_exception ********************************************************
-
-   This function handles an exception. It does not use the usual calling
-   conventions. The exception pointer is passed in REG_ITMP1 and the
-   pc from the exception raising position is passed in REG_ITMP2. It searches
-   the local exception table for a handler. If no one is found, it unwinds
-   stacks and continues searching the callers.
-
-   ATTENTION: itmp3 == gp!
-
-*******************************************************************************/
-
-	.ent    asm_handle_nat_exception
-
-asm_handle_nat_exception:
-L_asm_handle_nat_exception:       /* required for PIC code                    */
-L_asm_handle_exception_stack_loop:
-	lda     sp,-6*8(sp)                 /* keep stack 16-byte aligned         */
-	stq     xptr,0*8(sp)                /* save xptr                          */
-	stq     xpc,1*8(sp)                 /* save xpc                           */
-	stq     ra,3*8(sp)                  /* save RA                            */
-	stq     zero,4*8(sp)                /* save maybe-leaf flag (cleared)     */
-
-	mov     ra,a0                       /* pass RA                            */
-
-	br      ra,L_asm_handle_exception_load_gp
-L_asm_handle_exception_load_gp:
-	ldgp    gp,0(ra)                    /* load gp                            */
-
-	jsr     ra,md_asm_codegen_get_pv_from_pc /* get PV from RA                */
-	stq     v0,2*8(sp)                  /* save PV                            */
-
-	ldq     a0,0*8(sp)                  /* pass xptr                          */
-	ldq     a1,1*8(sp)                  /* pass xpc                           */
-	mov     v0,a2                       /* pass PV                            */
-	addq    sp,6*8,a3                   /* pass Java SP                       */
-
-	br      L_asm_handle_exception_continue
-
-	.aent    asm_handle_exception
-
-asm_handle_exception:
-L_asm_handle_exception:                 /* required for PIC code              */
-	lda     sp,-(ARG_CNT+TMP_CNT)*8(sp) /* create maybe-leaf stackframe       */
-
-	SAVE_ARGUMENT_REGISTERS(0)          /* we save arg and temp registers in  */
-	SAVE_TEMPORARY_REGISTERS(ARG_CNT)   /* case this is a leaf method         */
-
-	lda     sp,-6*8(sp)                 /* keep stack 16-byte aligned         */
-	stq     xptr,0*8(sp)                /* save xptr                          */
-	stq     pv,2*8(sp)                  /* save PV                            */
-	stq     ra,3*8(sp)                  /* save RA                            */
-	lda     t0,1(zero)                  /* set maybe-leaf flag                */
-	stq     t0,4*8(sp)                  /* save maybe-leaf flag               */
-
-	br      ra,L_asm_handle_exception_load_gp_2
-L_asm_handle_exception_load_gp_2:
-	ldgp    gp,0(ra)                    /* load gp                            */
-
-	mov     xptr,a0                     /* pass xptr                          */
-	mov     xpc,a1                      /* pass xpc                           */
-	mov     pv,a2                       /* pass PV                            */
-	lda     a3,(ARG_CNT+TMP_CNT+6)*8(sp)/* pass Java SP                       */
-
-L_asm_handle_exception_continue:
-	jsr     ra,exceptions_handle_exception
-
-	beq     v0,L_asm_handle_exception_not_catched
-
-	mov     v0,xpc                      /* move handlerpc into xpc            */
-	ldq     xptr,0*8(sp)                /* restore xptr                       */
-	ldq     pv,2*8(sp)                  /* restore PV                         */
-	ldq     ra,3*8(sp)                  /* restore RA                         */
-	ldq     t0,4*8(sp)                  /* get maybe-leaf flag                */
-	lda     sp,6*8(sp)                  /* free stack frame                   */
-
-	beq     t0,L_asm_handle_exception_no_leaf
-
-	RESTORE_ARGUMENT_REGISTERS(0)       /* if this is a leaf method, we have  */
-	RESTORE_TEMPORARY_REGISTERS(ARG_CNT)/* to restore arg and temp registers  */
-	
-	lda     sp,(ARG_CNT+TMP_CNT)*8(sp)  /* remove maybe-leaf stackframe       */
-
-L_asm_handle_exception_no_leaf:
-	jmp     zero,(xpc)                  /* jump to the handler                */
-
-L_asm_handle_exception_not_catched:
-	ldq     xptr,0*8(sp)                /* restore xptr                       */
-	ldq     pv,2*8(sp)                  /* restore PV                         */
-	ldq     ra,3*8(sp)                  /* restore RA                         */
-	ldq     t0,4*8(sp)                  /* get maybe-leaf flag                */
-	lda     sp,6*8(sp)
-
-	beq     t0,L_asm_handle_exception_no_leaf_stack
-
-	lda     sp,(ARG_CNT+TMP_CNT)*8(sp)  /* remove maybe-leaf stackframe       */
-	mov     zero,t0                     /* clear the maybe-leaf flag          */
-
-L_asm_handle_exception_no_leaf_stack:
-	ldl     t1,FrameSize(pv)            /* get frame size                     */
-	addq    t1,sp,t1                    /* pointer to save area               */
-
-	ldl     t2,IsLeaf(pv)               /* is leaf procedure                  */
-	bne     t2,L_asm_handle_exception_no_ra_restore
-
-	ldq     ra,-1*8(t1)                 /* restore ra                         */
-	subq    t1,8,t1                     /* t1--                               */
-
-L_asm_handle_exception_no_ra_restore:
-	mov     ra,xpc                      /* the new xpc is ra                  */
-	ldl     t2,IntSave(pv)              /* t2 = saved int register count      */
-	br      t3,ex_int1                  /* t3 = current pc                    */
-ex_int1:
-	lda     t3,(ex_int2 - ex_int1)(t3)
-	negl    t2,t2                       /* negate register count              */
-	s4addq  t2,t3,t3                    /* t2 = IntSave - register count * 4  */
-	jmp     zero,(t3)                   /* jump to save position              */
-
-	ldq     s0,-7*8(t1)
-	ldq     s1,-6*8(t1)
-	ldq     s2,-5*8(t1)
-	ldq     s3,-4*8(t1)
-	ldq     s4,-3*8(t1)
-	ldq     s5,-2*8(t1)
-	ldq     s6,-1*8(t1)
-
-ex_int2:
-	s8addq  t2,t1,t1                    /* t1 = t1 - 8 * register count       */
-
-	ldl     t2,FltSave(pv)              /* t2 = saved flt register count      */
-	br      t3,ex_flt1                  /* t3 = current pc                    */
-ex_flt1:
-	lda     t3,(ex_flt2 - ex_flt1)(t3)
-	negl    t2,t2                       /* negate register count              */
-	s4addq  t2,t3,t3                    /* t2 = FltSave - 4 * register count  */
-	jmp     zero,(t3)                   /* jump to save position              */
-
-	ldt     fs0,-8*8(t1)
-	ldt     fs1,-7*8(t1)
-	ldt     fs2,-6*8(t1)
-	ldt     fs3,-5*8(t1)
-	ldt     fs4,-4*8(t1)
-	ldt     fs5,-3*8(t1)
-	ldt     fs6,-2*8(t1)
-	ldt     fs7,-1*8(t1)
-
-ex_flt2:
-	ldl     t1,FrameSize(pv)            /* get frame size                     */
-	addq    sp,t1,sp                    /* unwind stack                       */
-	br      L_asm_handle_exception_stack_loop
-
-	.end    asm_handle_nat_exception
-
-
-/* asm_abstractmethoderror *****************************************************
-
-   Creates and throws an AbstractMethodError.
-
-*******************************************************************************/
-
-	.ent    asm_abstractmethoderror
-
-asm_abstractmethoderror:
-	ldgp    gp,0(t12)                   /* load gp                            */
-	subq    sp,2*8,sp                   /* create stackframe                  */
-	stq     ra,0*8(sp)                  /* save return address                */
-	addq    sp,2*8,a0                   /* pass java sp                       */
-	mov     ra,a1                       /* pass exception address             */
-	jsr     ra,exceptions_asm_new_abstractmethoderror
-	ldq     ra,0*8(sp)                  /* restore return address             */
-	addq    sp,2*8,sp                   /* remove stackframe                  */
-
-	mov     v0,xptr                     /* get exception pointer              */
-	subq    ra,4,xpc                    /* exception address is ra - 4        */
-	br      L_asm_handle_nat_exception
-
-	.end    asm_abstractmethoderror
 
 
 /* asm_md_init *****************************************************************
