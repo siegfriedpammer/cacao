@@ -63,6 +63,11 @@
 	.globl asm_cacheflush
 	.type  asm_cacheflush, %function
 
+	.globl asm_flush_icache_range
+	.type  asm_flush_icache_range, %function
+	.globl asm_flush_dcache_range
+	.type  asm_flush_dcache_range, %function
+
 
 /* asm_vm_call_method **********************************************************
 
@@ -318,17 +323,72 @@ asm_abstractmethoderror:
 		
 /********************* function asm_cacheflush *********************************
 *                                                                              *
-*   TODO: document me                                                          *
+*   Cache flushing on aarch64 wihtout EL1 access is somewhat more involved     *
+*   Parts of the code were heavily inspired by the linux kernel                *
 *                                                                              *
-*   void asm_cacheflush(void *p, s4 size);                                     *
+*   void asm_flush_icache_range(void *start, void *end);                       *
+*   void asm_flush_dcache_range(void *start, void *end);                       *
 *                                                                              *
 *******************************************************************************/
 
-asm_cacheflush:
+	.align 2
+
+/*
+ * dcache_line_size - the CTR_EL0 register contains the minimum D-cache line size
+ */
+	.macro dcache_line_size, reg, tmp
+	mrs 	\tmp, ctr_el0             /* read CTR                             */
+	ubfm 	\tmp, \tmp, #16, #19      /* cache line size encoding             */ 
+	mov 	\reg, #4                  /* bytes per word                       */
+	lsl     \reg, \reg, \tmp          /* actual cache line size               */
+	.endm
+
+/*
+ * icache_line_size - the CTR_EL0 register contains the minimum I-cache line size
+ */
+	.macro icache_line_size, reg, tmp
+	mrs 	\tmp, ctr_el0             /* read CTR                             */
+	and 	\tmp, \tmp, #0xf         /* cache line size encoding             */
+	mov 	\reg, #4                  /* bytes per word                       */
+	lsl     \reg, \reg, \tmp          /* actual cache line size               */
+	.endm
+
+asm_flush_icache_range:
+	dcache_line_size a2, a3
+	sub 	a3, a2, #1
+	bic 	a4, a0, a3
+flush_icache_1:
+	dc 		cvau, a4
+	add 	a4, a4, a2
+	cmp 	a4, a1
+	b.lo 	flush_icache_1
+	dsb 	ish
+
+	icache_line_size a2, a3
+	sub 	a3, a2, #1
+	bic 	a4, a0, a3
+flush_icache_2:
+	ic 		ivau, a4
+	add 	a4, a4, a2
+	cmp 	a4, a1
+	b.lo 	flush_icache_2
+	dsb 	ish
 	isb
-	dsb sy
-	dmb sy
+	mov 	a0, #0
 	ret
+
+asm_flush_dcache_range:
+	dcache_line_size a2, a3
+	sub 	a3, a2, #1
+	bic 	a4, a0, a3
+flush_dcache_1:
+	dc 		civac, a4
+	add 	a4, a4, a2
+	cmp 	a4, a1
+	b.lo 	flush_dcache_1
+	dsb 	sy
+	ret
+
 
 /* disable exec-stacks ********************************************************/
 

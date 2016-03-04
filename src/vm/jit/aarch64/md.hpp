@@ -132,9 +132,13 @@ inline static void *md_codegen_get_pv_from_pc(void *ra)
 
 *******************************************************************************/
 
+extern void asm_flush_icache_range(void *start, void *end) __asm__("asm_flush_icache_range");
+extern void asm_flush_dcache_range(void *start, void *end) __asm__("asm_flush_dcache_range");
+
 inline static void md_cacheflush(void *addr, int nbytes)
 {
-    asm_cacheflush(addr, nbytes);
+    asm_flush_icache_range(addr, ((char*)addr + nbytes));
+    asm_flush_dcache_range(addr, ((char*)addr + nbytes));
 }
 
 
@@ -146,7 +150,7 @@ inline static void md_cacheflush(void *addr, int nbytes)
 
 inline static void md_icacheflush(void *addr, int nbytes)
 {
-	asm_cacheflush(addr, nbytes);
+    asm_flush_icache_range(addr, ((char*)addr + nbytes));
 }
 
 
@@ -158,7 +162,7 @@ inline static void md_icacheflush(void *addr, int nbytes)
 
 inline static void md_dcacheflush(void *addr, int nbytes)
 {
-	asm_cacheflush(addr, nbytes);
+    asm_flush_dcache_range(addr, ((char*)addr + nbytes));
 }
 
 #endif // VM_JIT_AARCH64_MD_HPP_

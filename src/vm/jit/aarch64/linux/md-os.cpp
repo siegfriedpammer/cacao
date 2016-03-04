@@ -68,7 +68,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	mcontext_t* _mc = &_uc->uc_mcontext;
 
 	void* xpc = (void*) _mc->pc;
-
+	
 	// Handle the trap.
 	trap_handle(TRAP_SIGILL, xpc, _p);
 }

@@ -197,7 +197,7 @@ bool md_trap_decode(trapinfo_t* trp, int sig, void* xpc, executionstate_t* es)
 	switch (sig) {
 	case TRAP_SIGILL:
 		// Check for the mark
-		if ((mcode & 0xE7000000)) {
+		if ((mcode & 0xFF000000) == 0xE7000000) {
 			trp->type = (mcode >> 8) & 0xff;
 			u1 reg = mcode & 0xff;
 			trp->value = es->intregs[reg];
@@ -223,6 +223,7 @@ bool md_trap_decode(trapinfo_t* trp, int sig, void* xpc, executionstate_t* es)
 	}
 
 	default:
+		vm_abort_disassemble(xpc, 1, "md_trap_decode: Unexpected signal: %d", sig);
 		return false;
 	}
 }
