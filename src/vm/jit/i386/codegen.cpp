@@ -2201,11 +2201,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 		case ICMD_ATHROW:       /* ..., objectref ==> ... (, objectref)       */
 
-			M_CALL_IMM(0);                            /* passing exception pc */
-			M_POP(REG_ITMP2_XPC);
-
-			M_MOV_IMM(asm_handle_exception, REG_ITMP3);
-			M_JMP(REG_ITMP3);
+			M_ALD_MEM(REG_METHODPTR, TRAP_THROW);
 			break;
 
 		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
@@ -3157,11 +3153,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	/* handle exception */
 
 	M_MOV(REG_ITMP2, REG_ITMP1_XPTR);
-	M_ALD(REG_ITMP2_XPC, REG_SP, 0);
-	M_ASUB_IMM(2, REG_ITMP2_XPC);
-
-	M_MOV_IMM(asm_handle_nat_exception, REG_ITMP3);
-	M_JMP(REG_ITMP3);
+	M_ALD_MEM(REG_METHODPTR, TRAP_NAT_EXCEPTION);
 }
 
 
