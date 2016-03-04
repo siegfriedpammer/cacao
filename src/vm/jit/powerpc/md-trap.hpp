@@ -48,17 +48,14 @@ enum {
 	TRAP_ArithmeticException            = 1,
 	TRAP_ArrayIndexOutOfBoundsException = 2,
 	TRAP_ArrayStoreException            = 3,
-
-	/* Don't use 4 (could be a normal load offset). */
-
-	TRAP_ClassCastException             = 5,
-	TRAP_CHECK_EXCEPTION                = 6,
-	TRAP_PATCHER                        = 7,
-
-	/* Don't use 8 (could be a normal load offset). */
-
-	TRAP_COMPILER                       = 9,
-	TRAP_COUNTDOWN                      = 10,
+	TRAP_ClassCastException             = 4,
+	TRAP_CHECK_EXCEPTION                = 5,
+	TRAP_PATCHER                        = 6,
+	TRAP_COMPILER                       = 7,
+	TRAP_COUNTDOWN                      = 8,
+	TRAP_AbstractMethodError            = 9,
+	TRAP_THROW                          = 10,
+	TRAP_NAT_EXCEPTION                  = 11,
 	TRAP_END
 };
 
