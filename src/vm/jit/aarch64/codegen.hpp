@@ -355,6 +355,8 @@ class AsmEmitter {
 #define M_BR_VS(imm)                emit_br_vs(cd, imm)
 #define M_BR_VC(imm)                emit_br_vc(cd, imm)
 #define M_BR_HI(imm)                emit_br_hi(cd, imm)
+#define M_BR_CS(imm)                emit_br_cs(cd, imm)
+#define M_BR_CC(imm)                emit_br_cc(cd, imm)
 
 #define M_TEST(a)                   emit_tst_sreg(cd, a, a) 
 #define M_TST(a,b)                  emit_tst_sreg(cd, a, b)

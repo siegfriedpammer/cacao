@@ -94,6 +94,8 @@ inline void emit_cond_branch_imm(codegendata *cd, s4 imm19, u1 cond)
 #define emit_br_vs(cd, imm)		emit_cond_branch_imm(cd, imm, COND_VS)
 #define emit_br_vc(cd, imm)		emit_cond_branch_imm(cd, imm, COND_VC)
 #define emit_br_hi(cd, imm)		emit_cond_branch_imm(cd, imm, COND_HI)
+#define emit_br_cs(cd, imm)		emit_cond_branch_imm(cd, imm, COND_CS)
+#define emit_br_cc(cd, imm)		emit_cond_branch_imm(cd, imm, COND_CC)
 
 
 /* Unconditional branch (immediate) ******************************************/

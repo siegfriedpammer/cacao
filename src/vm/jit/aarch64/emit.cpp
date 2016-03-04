@@ -381,11 +381,10 @@ void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 
 void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
 {
-	// TODO: check if this implementation works correclty 
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ILD(REG_ITMP3, s1, OFFSET(java_array_t, size));
 		M_ICMP(s2, REG_ITMP3);
-		M_BR_LT(2);
+		M_BR_CC(2);
 		emit_trap(cd, s2, TRAP_ArrayIndexOutOfBoundsException);
 	}
 }
