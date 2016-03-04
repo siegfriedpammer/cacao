@@ -1588,7 +1588,6 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				// if class is not resolved, check which code to call 
 
 				if (super == NULL) {
-					asme.clr(d);
 					asme.lcmp_imm(s1, 0);
 					emit_label_beq(cd, BRANCH_LABEL_1);
 
