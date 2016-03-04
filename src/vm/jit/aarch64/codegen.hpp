@@ -112,7 +112,7 @@ class AsmEmitter {
         /* Load / store ********************************************************/
         void ild(u1 xt, u1 xn, s2 imm) { emit_ldr_imm32(cd, xt, xn, imm); }
         void lld(u1 xt, u1 xn, s2 imm) { emit_ldr_imm(cd, xt, xn, imm); }
-		void ald(u1 xt, u1 xn, s2 imm) { emit_ldr_imm(cd, xt, xn, imm); }
+        void ald(u1 xt, u1 xn, s2 imm) { emit_ldr_imm(cd, xt, xn, imm); }
 
         void fld(u1 xt, u1 xn, s2 imm) { emit_fp_ldr_imm32(cd, xt, xn, imm); }
         void dld(u1 xt, u1 xn, s2 imm) { emit_fp_ldr_imm(cd, xt, xn, imm); }

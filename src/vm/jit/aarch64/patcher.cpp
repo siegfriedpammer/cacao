@@ -541,7 +541,7 @@ bool patcher_checkcast_interface(patchref_t *pr)
 	patch_helper_mov_imm((ra + 4 * 4), offset);
 
 	// Synchronize instruction cache
-	md_icacheflush(ra + 4, 4 * 4);
+	md_icacheflush(ra + 4, 3 * 4);
 
 	// Patch back the original code.
 	patcher_patch_code(pr);
@@ -588,7 +588,7 @@ bool patcher_instanceof_interface(patchref_t *pr)
 	patch_helper_mov_imm((ra + 4 * 4), offset);
 
 	// Synchronize instruction cache
-	md_icacheflush(ra + 2 * 4, 12);
+	md_icacheflush(ra + 2 * 4, 8);
 
 	// Patch back the original code.
 	patcher_patch_code(pr);

@@ -1532,7 +1532,11 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			if (l == 0) {
 				asme.imov(REG_ITMP1, s1); // TODO: check that this works
 			} else if (l <= 32768) {
-				asme.lda(REG_ITMP1, s1, -l);
+				if (l < 0) {
+					asme.iadd_imm(REG_ITMP1, s1, -l);
+				} else {
+					asme.isub_imm(REG_ITMP1, s1, l);
+				}
 			} else {
 				asme.iconst(REG_ITMP2, l);
 				asme.isub(REG_ITMP1, s1, REG_ITMP2);
@@ -1555,7 +1559,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			}
 
 			/* length of dataseg after last dseg_add_target is used by load */
-
+			asme.sxtw(REG_ITMP1, REG_ITMP1);
 			asme.ladd_shift(REG_ITMP2, REG_PV, REG_ITMP1, CODE_LSL, 3);
 			asme.ald(REG_ITMP2, REG_ITMP2, -(cd->dseglen));
 			asme.br(REG_ITMP2);
