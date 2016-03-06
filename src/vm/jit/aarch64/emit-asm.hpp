@@ -136,8 +136,12 @@ inline void emit_mov_wide_imm(codegendata *cd, u1 sf, u1 opc, u1 hw, u2 imm16, u
 	cd->mcodeptr += 4;
 }
 
-#define emit_mov_imm(cd, Xd, imm)	emit_mov_wide_imm(cd, 1, 2, 0, imm, Xd)
-#define emit_movn_imm(cd, Xd, imm)	emit_mov_wide_imm(cd, 1, 0, 0, imm, Xd)
+#define emit_mov_imm(cd, Xd, imm)			emit_mov_wide_imm(cd, 1, 2, 0, imm, Xd)
+#define emit_mov_imm32(cd, Xd, imm)			emit_mov_wide_imm(cd, 0, 2, 0, imm, Xd)
+#define emit_movn_imm(cd, Xd, imm)			emit_mov_wide_imm(cd, 1, 0, 0, imm, Xd)
+#define emit_movn_imm32(cd, Xd, imm)		emit_mov_wide_imm(cd, 0, 0, 0, imm, Xd)
+#define emit_movk_imm(cd, Xd, imm, hw) 		emit_mov_wide_imm(cd, 1, 3, hw, imm, Xd)
+#define emit_movk_imm32(cd, Xd, imm, hw) 	emit_mov_wide_imm(cd, 0, 3, hw, imm, Xd)
 
 
 /* Load/Store Register (unscaled immediate) ***********************************/
@@ -382,11 +386,14 @@ inline void emit_cond_select(codegendata *cd, u1 sf, u1 op, u1 S, u1 Rm, u1 cond
 }
 
 #define emit_csel(cd, Xd, Xn, Xm, cond)		emit_cond_select(cd, 1, 0, 0, Xm, cond, 0, Xn, Xd)
+#define emit_csel32(cd, Xd, Xn, Xm, cond)	emit_cond_select(cd, 0, 0, 0, Xm, cond, 0, Xn, Xd)
 #define emit_csinc(cd, Xd, Xn, Xm, cond)	emit_cond_select(cd, 1, 0, 0, Xm, cond, 1, Xn, Xd)
 #define emit_cset(cd, Xd, cond)				emit_csinc(cd, Xd, 31, 31, INVERT(cond))
 
 #define emit_csinv(cd, Xd, Xn, Xm, cond)	emit_cond_select(cd, 1, 1, 0, Xm, cond, 0, Xn, Xd)
 #define emit_csetm(cd, Xd, cond)			emit_csinv(cd, Xd, 31, 31, INVERT(cond))
+
+#define emit_csneg32(cd, Wd, Wn, Wm, cond) 	emit_cond_select(cd, 0, 1, 0, Wm, cond, 1, Wn, Wd)
 
 /* Data-processing (2 source) ************************************************/
 

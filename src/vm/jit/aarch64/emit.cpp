@@ -195,8 +195,10 @@ void emit_copy(jitdata *jd, instruction *iptr)
 				M_MOV(s1, d);
 				break;
 			case TYPE_FLT:
-			case TYPE_DBL:
 				M_FMOV(s1, d);
+				break;
+			case TYPE_DBL:
+				M_DMOV(s1, d);
 				break;
 			default:
 				vm_abort("emit_copy: unknown type %d", src->type);

@@ -93,10 +93,7 @@ class AsmEmitter {
 		explicit AsmEmitter(codegendata *cd) : cd(cd) {}
 
         void imov(u1 wd, u1 wn) { emit_mov_reg32(cd, wd, wn); }
-
         void mov(u1 xt, u1 xn) { emit_mov(cd, xt, xn); }
-        void mov_imm(u1 xt, u2 imm) {  emit_mov_imm(cd, xt, imm); }
-        void movn_imm(u1 xt, u2 imm) { emit_movn_imm(cd, xt, imm); }
 
         void icmp_imm(u1 wd, u2 imm) { emit_cmp_imm32(cd, wd, imm); }
         void lcmp_imm(u1 xd, u2 imm) { emit_cmp_imm(cd, xd, imm); }
@@ -133,24 +130,45 @@ class AsmEmitter {
         void strh(u1 wt, u1 xn, s2 imm) { emit_strh_imm(cd, wt, xn, imm); }
         void strb(u1 wt, u1 xn, s2 imm) { emit_strb_imm(cd, wt, xn, imm); }
 
-        // TODO: Implement these 2 using ONLY (i.e. multiple) mov instructions
         void iconst(u1 xt, s4 value) {
-            if ((value >= 0) && (value <= 32767))
-                mov_imm(xt, value);
-            else if ((-value >= 0) && (-value <= 32767))
-                movn_imm(xt, -value - 1);
-            else {
-                s4 disp = dseg_add_s4(cd, value);
-                ild(xt, REG_PV, disp);
+            // For small negative immediates, use MOVN
+            if (value < 0 && -value-1 < 0xffff) {
+                emit_movn_imm32(cd, xt, -value - 1);
+                return;
+            }
+
+            emit_mov_imm32(cd, xt, value & 0xffff);
+
+            u4 v = (u4) value;
+            if (v > 0xffff) {
+                u2 imm = (value >> 16) & 0xffff;
+                emit_movk_imm32(cd, xt, imm, 1);
             }
         }
 
         void lconst(u1 xt, s8 value) {
-            if ((value >= 0) && (value <= 32767))
-                mov_imm(xt, value);
-            else {
-                s4 disp = dseg_add_s8(cd, value);
-                lld(xt, REG_PV, disp);
+            // For small negative immediates, use MOVN
+            if (value < 0 && -value-1 < 0xffff) {
+                emit_movn_imm(cd, xt, -value - 1);
+                return;
+            }
+
+            emit_mov_imm(cd, xt, value & 0xffff);
+
+            u8 v = (u8) value;
+            if (v > 0xffff) {
+                u2 imm = (value >> 16) & 0xffff;
+                emit_movk_imm(cd, xt, imm, 1);
+            }
+
+            if (v > 0xffffffff) {
+                u2 imm = (value >> 32) & 0xffff;
+                emit_movk_imm(cd, xt, imm, 2);
+            }
+
+            if (v > 0xffffffffffff) {
+                u2 imm = (value >> 48) & 0xffff;
+                emit_movk_imm(cd, xt, imm, 3);
             }
         }
 
@@ -238,9 +256,14 @@ class AsmEmitter {
         void clr(u1 xd) { lxor(xd, xd, xd); }
 
         /* xt = if cond then xn else xm */
-        void csel(u1 xt, u1 xn, u1 xm, u1 cond) { emit_csel(cd, xt, xn, xm, cond); }         
+        void csel(u1 xt, u1 xn, u1 xm, u1 cond) { emit_csel(cd, xt, xn, xm, cond); }
+        void icsel(u1 wt, u1 wn, u1 wm, u1 cond) { emit_csel32(cd, wt, wn, wm, cond); }
+
         void cset(u1 xt, u1 cond) { emit_cset(cd, xt, cond); } /* Xd = if cond then 1 else 0 */
         void csetm(u1 xt, u1 cond) { emit_csetm(cd, xt, cond); } /* Xd = if cond then -1 else 0 */
+
+        /* xt = if cond then xn else -xm */
+        void icsneg(u1 wd, u1 wn, u1 wm, u1 cond) { emit_csneg32(cd, wd, wn, wm, cond); }
 
         /* Floating point *****************************************************/
 
@@ -875,4 +898,5 @@ class AsmEmitter {
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

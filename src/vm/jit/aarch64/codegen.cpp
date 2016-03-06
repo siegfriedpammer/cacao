@@ -144,7 +144,10 @@ void codegen_emit_prolog(jitdata* jd)
 		else {                                       /* floating args         */
  			if (!md->params[p].inmemory) {           /* register arguments    */
  				if (!IS_INMEMORY(var->flags))
- 					emit_fmove(cd, s1, var->vv.regoff);
+					if (IS_2_WORD_TYPE(t))
+ 						emit_dmove(cd, s1, var->vv.regoff);
+					else
+ 						emit_fmove(cd, s1, var->vv.regoff);
  				else
 					if (IS_2_WORD_TYPE(t))
 						M_DST(s1, REG_SP, var->vv.regoff);
@@ -361,9 +364,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			
-			if ((iptr->sx.val.i >= 0) && (iptr->sx.val.i <= 4095)) {
+			if ((iptr->sx.val.i >= 0) && (iptr->sx.val.i <= 0xffffff)) {
 				asme.iadd_imm(d, s1, iptr->sx.val.i);
-			} else if ((-iptr->sx.val.i >= 0) && (-iptr->sx.val.i <= 4095)) {
+			} else if ((-iptr->sx.val.i >= 0) && (-iptr->sx.val.i <= 0xffffff)) {
 				asme.isub_imm(d, s1, -iptr->sx.val.i);
 			} else {
 				asme.iconst(REG_ITMP2, iptr->sx.val.i);
@@ -380,10 +383,10 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			if ((iptr->sx.val.l >= 0) && (iptr->sx.val.l <= 4095)) {
+			if ((iptr->sx.val.l >= 0) && (iptr->sx.val.l <= 0xffffff)) {
 				asme.ladd_imm(d, s1, iptr->sx.val.l);
-			} else if ((-iptr->sx.val.l >= 0) && (-iptr->sx.val.l <= 4095)) {
-				asme.lsub_imm(d, s1, iptr->sx.val.l);
+			} else if ((-iptr->sx.val.l >= 0) && (-iptr->sx.val.l <= 0xffffff)) {
+				asme.lsub_imm(d, s1, -iptr->sx.val.l);
 			} else {
 				asme.lconst(REG_ITMP2, iptr->sx.val.l);
 				asme.ladd(d, s1, REG_ITMP2);
@@ -415,8 +418,10 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			
-			if ((iptr->sx.val.i >= 0) && (iptr->sx.val.i <= 255)) {
+			if ((iptr->sx.val.i >= 0) && (iptr->sx.val.i <= 0xffffff)) {
 				asme.isub_imm(d, s1, iptr->sx.val.i);
+			} else if ((-iptr->sx.val.i >= 0) && (-iptr->sx.val.i <= 0xffffff)) {
+				asme.iadd_imm(d, s1, -iptr->sx.val.i);
 			} else {
 				asme.iconst(REG_ITMP2, iptr->sx.val.i);
 				asme.isub(d, s1, REG_ITMP2);
@@ -431,10 +436,12 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			
-			if ((iptr->sx.val.l >= 0) && (iptr->sx.val.l <= 255)) {
-				asme.lsub_imm(d, s1, iptr->sx.val.i);
+			if ((iptr->sx.val.l >= 0) && (iptr->sx.val.l <= 0xffffff)) {
+				asme.lsub_imm(d, s1, iptr->sx.val.l);
+			} else if ((-iptr->sx.val.l >= 0) && (-iptr->sx.val.l <= 0xffffff)) {
+				asme.ladd_imm(d, s1, -iptr->sx.val.l);
 			} else {
-				asme.lconst(REG_ITMP2, iptr->sx.val.i);
+				asme.lconst(REG_ITMP2, iptr->sx.val.l);
 				asme.lsub(d, s1, REG_ITMP2);
 			}
 
@@ -481,9 +488,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 		case ICMD_IREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
-			s1 = emit_load_s1(jd, iptr, REG_A0);
-			s2 = emit_load_s2(jd, iptr, REG_A1);
-			d = codegen_reg_of_dst(jd, iptr, REG_RESULT);
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			emit_arithmetic_check(cd, iptr, s2);
 
 			asme.idiv(d, s1, s2);
@@ -494,9 +501,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 		case ICMD_LREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
-			s1 = emit_load_s1(jd, iptr, REG_A0);
-			s2 = emit_load_s2(jd, iptr, REG_A1);
-			d = codegen_reg_of_dst(jd, iptr, REG_RESULT);
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			emit_arithmetic_check(cd, iptr, s2);
 
 			asme.ldiv(d, s1, s2);
@@ -507,9 +514,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 		case ICMD_IDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 
-			s1 = emit_load_s1(jd, iptr, REG_A0);
-			s2 = emit_load_s2(jd, iptr, REG_A1);
-			d = codegen_reg_of_dst(jd, iptr, REG_RESULT);
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			emit_arithmetic_check(cd, iptr, s2);
 
 			asme.idiv(d, s1, s2);
@@ -519,9 +526,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 		case ICMD_LDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 
-			s1 = emit_load_s1(jd, iptr, REG_A0);
-			s2 = emit_load_s2(jd, iptr, REG_A1);
-			d = codegen_reg_of_dst(jd, iptr, REG_RESULT);
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			emit_arithmetic_check(cd, iptr, s2);
 
 			asme.ldiv(d, s1, s2);
@@ -541,15 +548,20 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			emit_store_dst(jd, iptr, d);
 			break;
 
-			// TODO: implement this using shift operators
-		case ICMD_IREMPOW2:   /* ..., value  ==> ..., value / (2 ^ constant)  */
-		                      /* sx.val.i = constant                          */
+		case ICMD_IREMPOW2:   /* ..., value  ==> ..., value % constant */
+		                      /* sx.val.i = constant [ (2 ^ x) - 1 ]   */
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 
-			asme.iconst(REG_ITMP3, pow(2, iptr->sx.val.i));
-			asme.idiv(d, s1, REG_ITMP3);
-			asme.imsub(d, d, REG_ITMP3, s1);
+			// Use absolute value
+			asme.icmp_imm(s1, 0);
+			asme.icsneg(d, s1, s1, COND_PL);
+
+			asme.iconst(REG_ITMP3, iptr->sx.val.i);
+			asme.iand(d, d, REG_ITMP3);
+			
+			// Negate the result again if the value was negative
+			asme.icsneg(d, d, d, COND_PL);
 
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -560,7 +572,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 
-			asme.mov_imm(REG_ITMP3, 0x1f);
+			asme.iconst(REG_ITMP3, 0x1f);
 			asme.iand(REG_ITMP3, s2, REG_ITMP3);
 			asme.ilsl(d, s1, REG_ITMP3);
 			asme.ubfx(d, d); // cut back to int
@@ -574,7 +586,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 
-			asme.mov_imm(REG_ITMP3, 0x3f);
+			asme.lconst(REG_ITMP3, 0x3f);
 			asme.land(REG_ITMP3, s2, REG_ITMP3);
 			asme.llsl(d, s1, REG_ITMP3);
 
@@ -610,7 +622,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 
-			asme.mov_imm(REG_ITMP3, 0x1f);
+			asme.iconst(REG_ITMP3, 0x1f);
 			asme.iand(REG_ITMP3, s2, REG_ITMP3);
 			asme.iasr(d, s1, REG_ITMP3);
 
@@ -623,7 +635,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 
-			asme.mov_imm(REG_ITMP3, 0x3f);
+			asme.lconst(REG_ITMP3, 0x3f);
 			asme.land(REG_ITMP3, s2, REG_ITMP3);
 			asme.lasr(d, s1, REG_ITMP3);
 
@@ -658,7 +670,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 
-			asme.mov_imm(REG_ITMP3, 0x1f);
+			asme.iconst(REG_ITMP3, 0x1f);
 			asme.iand(REG_ITMP3, s2, REG_ITMP3);
 			asme.ilsr(d, s1, REG_ITMP3);
 
@@ -671,7 +683,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 
-			asme.mov_imm(REG_ITMP3, 0x3f);
+			asme.lconst(REG_ITMP3, 0x3f);
 			asme.land(REG_ITMP3, s2, REG_ITMP3);
 			asme.llsr(d, s1, REG_ITMP3);
 
@@ -969,7 +981,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 
 			// If the fp value is NaN (unordered) set the result to 0
-			asme.mov_imm(d, 0);
+			asme.iconst(d, 0);
 
 			// Use the correct comparison instruction
 			if (iptr->opc == ICMD_F2I || iptr->opc == ICMD_F2L)
@@ -1018,16 +1030,16 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			else
 				asme.dcmp(s1, s2);
 
-			asme.mov_imm(d, 0);
-			asme.mov_imm(REG_ITMP1, 1);
-			asme.movn_imm(REG_ITMP2, 0); // REG_ITMP2 = -1
+			asme.iconst(d, 0);
+			asme.iconst(REG_ITMP1, 1);
+			asme.iconst(REG_ITMP2, -1);
 
 			/* set to -1 if less than or unordered (NaN) */
 			/* set to 1 if greater than */
-			asme.csel(REG_ITMP1, REG_ITMP1, REG_ITMP2, COND_GT);
+			asme.icsel(REG_ITMP1, REG_ITMP1, REG_ITMP2, COND_GT);
 
 			/* set to 0 if equal or result of previous csel */
-			asme.csel(d, d, REG_ITMP1, COND_EQ);
+			asme.icsel(d, d, REG_ITMP1, COND_EQ);
 
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1043,16 +1055,16 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			else
 				asme.dcmp(s1, s2);
 
-			asme.mov_imm(d, 0);
-			asme.mov(REG_ITMP1, 1);
-			asme.mov(REG_ITMP2, -1);
+			asme.iconst(d, 0);
+			asme.iconst(REG_ITMP1, 1);
+			asme.iconst(REG_ITMP2, -1);
 
 			/* set to 1 if greater than or unordered (NaN) */
 			/* set to -1 if less than */
-			asme.csel(REG_ITMP1, REG_ITMP1, REG_ITMP2, COND_HI);
+			asme.icsel(REG_ITMP1, REG_ITMP1, REG_ITMP2, COND_HI);
 
 			/* set to 0 if equal or result of previous csel */
-			asme.csel(d, d, REG_ITMP1, COND_EQ);
+			asme.icsel(d, d, REG_ITMP1, COND_EQ);
 
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1501,15 +1513,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			asme.ald(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));
 
 			/* on aarch64 we only have negative offsets in the range of -255 to 255 so we need a mov */
-			if (s1 >= 0)
-				asme.mov_imm(REG_ITMP2, s1);
-			else
-				asme.movn_imm(REG_ITMP2, -s1-1);
-
-			if (s2 >= 0)
-				asme.mov_imm(REG_ITMP3, s2);
-			else
-				asme.movn_imm(REG_ITMP3, -s2-1);
+			asme.lconst(REG_ITMP2, s1);
+			asme.lconst(REG_ITMP3, s2);
 
 			emit_ldr_reg(cd, REG_METHODPTR, REG_METHODPTR, REG_ITMP2); // TODO: move to emitter
 			emit_ldr_reg(cd, REG_PV, REG_METHODPTR, REG_ITMP3); // TODO: move to emitter
@@ -1631,10 +1636,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 					s4 offset = (s4) (OFFSET(vftbl_t, interfacetable[0]) -
 							superindex * sizeof(methodptr*));
-					if (offset >= 0)
-						asme.mov_imm(REG_ITMP3, offset);
-					else
-						asme.movn_imm(REG_ITMP3, -offset-1);
+
+					asme.lconst(REG_ITMP3, offset);
 					emit_ldr_reg(cd, REG_ITMP3, REG_ITMP2, REG_ITMP3); // TODO: mov this to emitter
 					asme.lcmp_imm(REG_ITMP3, 0);
 					emit_classcast_check(cd, iptr, BRANCH_EQ, REG_ITMP3, s1);
@@ -1799,7 +1802,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 									  iptr->sx.s23.s3.c.ref, disp);
 
 				asme.ild(REG_ITMP3, REG_PV, disp);
-				asme.mov_imm(REG_ITMP2, ACC_INTERFACE);
+				asme.iconst(REG_ITMP2, ACC_INTERFACE);
 
 				asme.itst(REG_ITMP3, REG_ITMP2);
 				emit_label_beq(cd, BRANCH_LABEL_2);
@@ -1833,10 +1836,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				
 				s4 offset = (s4) (OFFSET(vftbl_t, interfacetable[0]) -
 							superindex * sizeof(methodptr*));
-				if (offset >= 0)
-					asme.mov_imm(REG_ITMP3, offset);
-				else
-					asme.movn_imm(REG_ITMP3, -offset-1);
+				asme.lconst(REG_ITMP3, offset);
 				emit_ldr_reg(cd, REG_ITMP1, REG_ITMP1, REG_ITMP3);
 
 				asme.lcmp_imm(REG_ITMP1, 0);
