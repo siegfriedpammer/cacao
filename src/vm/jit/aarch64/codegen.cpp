@@ -2161,7 +2161,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 				s2 = nmd->params[j].regoff;
 
 				if (!nmd->params[j].inmemory)
-					emit_fmove(cd, s1, s2);
+					if (IS_2_WORD_TYPE(t))
+						emit_dmove(cd, s1, s2);
+					else
+						emit_fmove(cd, s1, s2);
 				else {
 					if (IS_2_WORD_TYPE(t))
 						M_DST(s1, REG_SP, s2);

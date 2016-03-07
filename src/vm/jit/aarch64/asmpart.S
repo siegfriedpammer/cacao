@@ -110,6 +110,7 @@ asm_vm_call_method_double:
     ldr     a4, [t0], 8
     ldr     a5, [t0], 8
     ldr     a6, [t0], 8
+    ldr     a7, [t0], 8
 
 	ldr		fa0, [t0], 8
 	ldr		fa1, [t0], 8
@@ -118,6 +119,7 @@ asm_vm_call_method_double:
 	ldr		fa4, [t0], 8
 	ldr		fa5, [t0], 8
 	ldr		fa6, [t0], 8
+	ldr		fa7, [t0], 8
 
     cbz		t1, L_asm_vm_call_method_stack_copy_done    /* check for stack arguments */
 

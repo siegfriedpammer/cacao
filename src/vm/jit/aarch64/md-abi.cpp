@@ -158,12 +158,13 @@ void md_param_alloc(methoddesc *md)
 {
 	paramdesc *pd;
 	s4         i;
-	s4         reguse;
+	s4         reguse, freguse;
 	s4         stacksize;
 
 	/* set default values */
 
 	reguse    = 0;
+	freguse   = 0;
 	stacksize = 0;
 
 	/* get params field of methoddesc */
@@ -175,7 +176,7 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_INT:
 		case TYPE_ADR:
 		case TYPE_LNG:
-			if (i < INT_ARG_CNT) {
+			if (reguse < INT_ARG_CNT) {
 				pd->inmemory = false;
 				pd->index    = reguse;
 				pd->regoff   = abi_registers_integer_argument[reguse];
@@ -192,12 +193,12 @@ void md_param_alloc(methoddesc *md)
 
 		case TYPE_FLT:
 		case TYPE_DBL:
-			if (i < FLT_ARG_CNT) {
+			if (freguse < FLT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->index    = reguse;
-				pd->regoff   = abi_registers_float_argument[reguse];
-				reguse++;
-				md->argfltreguse = reguse;
+				pd->index    = freguse;
+				pd->regoff   = abi_registers_float_argument[freguse];
+				freguse++;
+				md->argfltreguse = freguse;
 			}
 			else {
 				pd->inmemory = true;
