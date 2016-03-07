@@ -124,6 +124,10 @@ asm_vm_call_method_double:
     cbz		t1, L_asm_vm_call_method_stack_copy_done    /* check for stack arguments */
 
 	sub		sp, sp, t1, LSL 3             /* calculate new SP for call      */
+	tbz 	t1, 0, L_asm_vm_call_method_stack_even      /* stack is 16 byte aligned */
+	sub 	sp, sp, 8
+
+L_asm_vm_call_method_stack_even:
 	mov		t2, sp                        /* tmp 'SP' for loop              */
 
 L_asm_vm_call_method_stack_copy_loop:
