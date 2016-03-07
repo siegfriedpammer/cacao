@@ -1430,7 +1430,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 			disp = dseg_add_functionptr(cd, asm_handle_exception);
 			asme.ald(REG_ITMP3, REG_PV, disp);
-			asme.adr(REG_ITMP2, 1); // next instruction is the exception throwing pc
+			asme.adr(REG_ITMP2_XPC, 1); // next instruction is the exception throwing pc
 			asme.blr(REG_ITMP3);
 			M_NOP;              /* nop ensures that XPC is less than the end */
 			                    /* of basic block                            */
