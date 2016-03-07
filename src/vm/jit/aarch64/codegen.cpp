@@ -98,13 +98,13 @@ void codegen_emit_prolog(jitdata* jd)
 
 	p = cd->stackframesize;
 	if (!code_is_leafmethod(code)) {
-		p--; M_AST(REG_RA, REG_SP, p * 8);
+		p--; asme.lst(REG_RA, REG_SP, p * 8);
 	}
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
-		p--; M_LST(rd->savintregs[i], REG_SP, p * 8);
+		p--; asme.lst(rd->savintregs[i], REG_SP, p * 8);
 	}
 	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
-		p--; M_DST(rd->savfltregs[i], REG_SP, p * 8);
+		p--; asme.dst(rd->savfltregs[i], REG_SP, p * 8);
 	}
 
 	/* take arguments out of register or stack frame */
@@ -187,16 +187,16 @@ void codegen_emit_epilog(jitdata* jd)
 	/* restore return address */
 
 	if (!code_is_leafmethod(code)) {
-		p--; M_LLD(REG_RA, REG_SP, p * 8);
+		p--; asme.lld(REG_RA, REG_SP, p * 8);
 	}
 
 	/* restore saved registers */
 
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
-		p--; M_LLD(rd->savintregs[i], REG_SP, p * 8);
+		p--; asme.lld(rd->savintregs[i], REG_SP, p * 8);
 	}
 	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
-		p--; M_DLD(rd->savfltregs[i], REG_SP, p * 8);
+		p--; asme.dld(rd->savfltregs[i], REG_SP, p * 8);
 	}
 
 	/* deallocate stack */
