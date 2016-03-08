@@ -130,13 +130,13 @@ void codegen_emit_prolog(jitdata* jd)
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
  			if (!md->params[p].inmemory) {           /* register arguments    */
  				if (!IS_INMEMORY(var->flags))
- 					M_INTMOVE(s1, var->vv.regoff);
+					asme.mov(var->vv.regoff, s1);
 				else
- 					M_LST(s1, REG_SP, var->vv.regoff);
+ 					asme.lst(s1, REG_SP, var->vv.regoff);
 			}
 			else {                                   /* stack arguments       */
  				if (!IS_INMEMORY(var->flags))
- 					M_LLD(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
+ 					asme.lld(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
 				else
 					var->vv.regoff = cd->stackframesize * 8 + s1;
 			}
@@ -145,21 +145,21 @@ void codegen_emit_prolog(jitdata* jd)
  			if (!md->params[p].inmemory) {           /* register arguments    */
  				if (!IS_INMEMORY(var->flags))
 					if (IS_2_WORD_TYPE(t))
- 						emit_dmove(cd, s1, var->vv.regoff);
+						asme.dmov(var->vv.regoff, s1);
 					else
- 						emit_fmove(cd, s1, var->vv.regoff);
+						asme.fmov(var->vv.regoff, s1);
  				else
 					if (IS_2_WORD_TYPE(t))
-						M_DST(s1, REG_SP, var->vv.regoff);
+						asme.dst(s1, REG_SP, var->vv.regoff);
 					else
-						M_FST(s1, REG_SP, var->vv.regoff);
+						asme.fst(s1, REG_SP, var->vv.regoff);
 			}
 			else {                                   /* stack arguments       */
  				if (!(var->flags & INMEMORY))
 					if (IS_2_WORD_TYPE(t))
-						M_DLD(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
+						asme.dld(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
 					else
-						M_FLD(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
+						asme.fld(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
 				else
 					var->vv.regoff = cd->stackframesize * 8 + s1;
 			}
@@ -207,7 +207,7 @@ void codegen_emit_epilog(jitdata* jd)
 		asme.lda(REG_SP, REG_SP, offset);
 	}
 
-	M_RET(REG_ZERO, REG_RA);
+	asme.ret();
 }
 
 
@@ -255,7 +255,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			}
 			else {
 				if (iptr->sx.val.anyptr == NULL) {
-					M_MOV_IMM(d, 0); // TODO: put this into emitter
+					asme.lconst(d, 0);
 				}
 				else {
 					disp = dseg_add_address(cd, iptr->sx.val.anyptr);
@@ -990,7 +990,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				asme.dcmp(s1, s1);
 		
 			// Jump over the conversion if unordered 
-			M_BR_VS(2);	 // TODO: move to emitter
+			asme.b_vs(2);
 
 			// Rounding towards zero (see Java spec)
 			switch (iptr->opc) {
@@ -1832,7 +1832,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 					asme.icmn_imm(REG_ITMP3, superindex);
 				else
 					asme.icmp_imm(REG_ITMP3, -superindex);
-				M_BR_LE(5); // TODO: move into emitter
+				asme.b_le(5);
 				
 				s4 offset = (s4) (OFFSET(vftbl_t, interfacetable[0]) -
 							superindex * sizeof(methodptr*));
@@ -2055,7 +2055,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	/* generate stub code */
 
 	asme.lda(REG_SP, REG_SP, -stackoffset);
-	asme.ast(REG_RA, REG_SP, stackoffset - SIZEOF_VOID_P);
+	asme.lst(REG_RA, REG_SP, stackoffset - SIZEOF_VOID_P);
 
 #if defined(ENABLE_GC_CACAO)
 	/* Save callee saved integer registers in stackframeinfo (GC may
@@ -2065,7 +2065,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		OFFSET(stackframeinfo_t, intregs);
 
 	for (i = 0; i < INT_SAV_CNT; i++)
-		M_AST(abi_registers_integer_saved[i], REG_SP, disp + i * 8);
+		asme.lst(abi_registers_integer_saved[i], REG_SP, disp + i * 8);
 #endif
 
 	/* save integer and float argument registers */
@@ -2078,13 +2078,13 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 			case TYPE_INT:
 			case TYPE_LNG:
 			case TYPE_ADR:
-				M_LST(s1, REG_SP, i * 8);
+				asme.lst(s1, REG_SP, i * 8);
 				break;
 			case TYPE_FLT:
-				M_FST(s1, REG_SP, i * 8);
+				asme.fst(s1, REG_SP, i * 8);
 				break;
 			case TYPE_DBL:
-				M_DST(s1, REG_SP, i * 8);
+				asme.dst(s1, REG_SP, i * 8);
 				break;
 			default:
 				assert(false);
@@ -2095,18 +2095,18 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	/* prepare data structures for native function call */
 
-	M_MOV(REG_SP, REG_A0);
-	M_MOV(REG_PV, REG_A1);
+	asme.mov(REG_A0, REG_SP);
+	asme.mov(REG_A1, REG_PV);
 	disp = dseg_add_functionptr(cd, codegen_start_native_call);
-	M_ALD(REG_PV, REG_PV, disp);
-	M_JSR(REG_RA, REG_PV);
+	asme.lld(REG_PV, REG_PV, disp);
+	asme.blr(REG_PV);
 	disp = (s4) (cd->mcodeptr - cd->mcodebase);
 	asme.lda(REG_PV, REG_RA, -disp);
 
 	/* remember class argument */
 
 	if (m->flags & ACC_STATIC)
-		M_MOV(REG_RESULT, REG_ITMP3);
+		asme.mov(REG_ITMP3, REG_RESULT);
 
 	/* restore integer and float argument registers */
 
@@ -2118,13 +2118,13 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 			case TYPE_INT:
 			case TYPE_LNG:
 			case TYPE_ADR:
-				M_LLD(s1, REG_SP, i * 8);
+				asme.lld(s1, REG_SP, i * 8);
 				break;
 			case TYPE_FLT:
-				M_FLD(s1, REG_SP, i * 8);
+				asme.fld(s1, REG_SP, i * 8);
 				break;
 			case TYPE_DBL:
-				M_DLD(s1, REG_SP, i * 8);
+				asme.dld(s1, REG_SP, i * 8);
 				break;
 			default:
 				assert(false);
@@ -2144,15 +2144,15 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 				s2 = nmd->params[j].regoff;
 
 				if (!nmd->params[j].inmemory)
-					M_INTMOVE(s1, s2);
+					asme.mov(s2, s1);
 				else
-					M_LST(s1, REG_SP, s2);
+					asme.lst(s1, REG_SP, s2);
 			}
 			else {
 				s1 = md->params[i].regoff + cd->stackframesize * 8;
 				s2 = nmd->params[j].regoff;
-				M_LLD(REG_ITMP1, REG_SP, s1);
-				M_LST(REG_ITMP1, REG_SP, s2);
+				asme.lld(REG_ITMP1, REG_SP, s1);
+				asme.lst(REG_ITMP1, REG_SP, s2);
 			}
 		}
 		else {
@@ -2162,26 +2162,26 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 				if (!nmd->params[j].inmemory)
 					if (IS_2_WORD_TYPE(t))
-						emit_dmove(cd, s1, s2);
+						asme.dmov(s2, s1);
 					else
-						emit_fmove(cd, s1, s2);
+						asme.fmov(s2, s1);
 				else {
 					if (IS_2_WORD_TYPE(t))
-						M_DST(s1, REG_SP, s2);
+						asme.dst(s1, REG_SP, s2);
 					else
-						M_FST(s1, REG_SP, s2);
+						asme.fst(s1, REG_SP, s2);
 				}
 			}
 			else {
 				s1 = md->params[i].regoff + cd->stackframesize * 8;
 				s2 = nmd->params[j].regoff;
 				if (IS_2_WORD_TYPE(t)) {
-					M_DLD(REG_FTMP1, REG_SP, s1);
-					M_DST(REG_FTMP1, REG_SP, s2);
+					asme.dld(REG_FTMP1, REG_SP, s1);
+					asme.dst(REG_FTMP1, REG_SP, s2);
 				}
 				else {
-					M_FLD(REG_FTMP1, REG_SP, s1);
-					M_FST(REG_FTMP1, REG_SP, s2);
+					asme.fld(REG_FTMP1, REG_SP, s1);
+					asme.fst(REG_FTMP1, REG_SP, s2);
 				}
 			}
 		}
@@ -2193,19 +2193,19 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		/* put class into second argument register */
 
 		if (m->flags & ACC_STATIC)
-			M_MOV(REG_ITMP3, REG_A1);
+			asme.mov(REG_A1, REG_ITMP3);
 
 		/* put env into first argument register */
 
 		disp = dseg_add_address(cd, VM::get_current()->get_jnienv());
-		M_ALD(REG_A0, REG_PV, disp);
+		asme.lld(REG_A0, REG_PV, disp);
 	}
 
 	/* Call the native function. */
 
 	disp = dseg_add_functionptr(cd, f);
-	M_ALD(REG_PV, REG_PV, disp);
-	M_JSR(REG_RA, REG_PV);              /* call native method                 */
+	asme.lld(REG_PV, REG_PV, disp);
+	asme.blr(REG_PV);                    /* call native method                 */
 	disp = (s4) (cd->mcodeptr - cd->mcodebase);
 	asme.lda(REG_PV, REG_RA, -disp);       /* recompute pv from ra               */
 
@@ -2215,13 +2215,13 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	case TYPE_INT:
 	case TYPE_LNG:
 	case TYPE_ADR:
-		M_LST(REG_RESULT, REG_SP, 0 * 8);
+		asme.lst(REG_RESULT, REG_SP, 0 * 8);
 		break;
 	case TYPE_FLT:
-		M_FST(REG_FRESULT, REG_SP, 0 * 8);
+		asme.fst(REG_FRESULT, REG_SP, 0 * 8);
 		break;
 	case TYPE_DBL:
-		M_DST(REG_FRESULT, REG_SP, 0 * 8);
+		asme.dst(REG_FRESULT, REG_SP, 0 * 8);
 		break;
 	case TYPE_VOID:
 		break;
@@ -2232,14 +2232,14 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	/* remove native stackframe info */
 
-	M_MOV(REG_SP, REG_A0);
-	M_MOV(REG_PV, REG_A1);
+	asme.mov(REG_A0, REG_SP);
+	asme.mov(REG_A1, REG_PV);
 	disp = dseg_add_functionptr(cd, codegen_finish_native_call);
-	M_ALD(REG_PV, REG_PV, disp);
-	M_JSR(REG_RA, REG_PV);
+	asme.lld(REG_PV, REG_PV, disp);
+	asme.blr(REG_PV);
 	disp = (s4) (cd->mcodeptr - cd->mcodebase);
 	asme.lda(REG_PV, REG_RA, -disp);
-	M_MOV(REG_RESULT, REG_ITMP1_XPTR);
+	asme.mov(REG_ITMP1_XPTR, REG_RESULT);
 
 	/* restore return value */
 
@@ -2247,13 +2247,13 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	case TYPE_INT:
 	case TYPE_LNG:
 	case TYPE_ADR:
-		M_LLD(REG_RESULT, REG_SP, 0 * 8);
+		asme.lld(REG_RESULT, REG_SP, 0 * 8);
 		break;
 	case TYPE_FLT:
-		M_FLD(REG_FRESULT, REG_SP, 0 * 8);
+		asme.fld(REG_FRESULT, REG_SP, 0 * 8);
 		break;
 	case TYPE_DBL:
-		M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+		asme.dld(REG_FRESULT, REG_SP, 0 * 8);
 		break;
 	case TYPE_VOID:
 		break;
@@ -2271,16 +2271,17 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		OFFSET(stackframeinfo_t, intregs);
 
 	for (i = 0; i < INT_SAV_CNT; i++)
-		M_ALD(abi_registers_integer_saved[i], REG_SP, disp + i * 8);
+		asme.lld(abi_registers_integer_saved[i], REG_SP, disp + i * 8);
 #endif
 
-	M_ALD(REG_RA, REG_SP, stackoffset - 8); /* get RA            */
+	asme.lld(REG_RA, REG_SP, stackoffset - 8); /* get RA            */
 	asme.lda(REG_SP, REG_SP, stackoffset);
 
 	/* check for exception */
 
-	M_BNEZ(REG_ITMP1_XPTR, 1);          /* if no exception then return        */
-	M_RET(REG_ZERO, REG_RA);            /* return to caller                   */
+
+	asme.cbnz(REG_ITMP1_XPTR, 2);       /* if no exception then return        */
+	asme.ret();                         /* return to caller                   */
 
 	/* handle exception */
 

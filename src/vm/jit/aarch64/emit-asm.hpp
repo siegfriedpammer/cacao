@@ -87,15 +87,18 @@ inline void emit_cond_branch_imm(codegendata *cd, s4 imm19, u1 cond)
 
 #define emit_br_eq(cd, imm)		emit_cond_branch_imm(cd, imm, COND_EQ)
 #define emit_br_ne(cd, imm)		emit_cond_branch_imm(cd, imm, COND_NE)
+#define emit_br_cs(cd, imm)		emit_cond_branch_imm(cd, imm, COND_CS)
+#define emit_br_cc(cd, imm)		emit_cond_branch_imm(cd, imm, COND_CC)
+#define emit_br_mi(cd, imm)		emit_cond_branch_imm(cd, imm, COND_MI)
+#define emit_br_pl(cd, imm)		emit_cond_branch_imm(cd, imm, COND_PL)
+#define emit_br_vs(cd, imm)		emit_cond_branch_imm(cd, imm, COND_VS)
+#define emit_br_vc(cd, imm)		emit_cond_branch_imm(cd, imm, COND_VC)
+#define emit_br_hi(cd, imm)		emit_cond_branch_imm(cd, imm, COND_HI)
+#define emit_br_ls(cd, imm)		emit_cond_branch_imm(cd, imm, COND_LS)
 #define emit_br_ge(cd, imm)		emit_cond_branch_imm(cd, imm, COND_GE)
 #define emit_br_lt(cd, imm)		emit_cond_branch_imm(cd, imm, COND_LT)
 #define emit_br_gt(cd, imm)		emit_cond_branch_imm(cd, imm, COND_GT)
 #define emit_br_le(cd, imm)		emit_cond_branch_imm(cd, imm, COND_LE)
-#define emit_br_vs(cd, imm)		emit_cond_branch_imm(cd, imm, COND_VS)
-#define emit_br_vc(cd, imm)		emit_cond_branch_imm(cd, imm, COND_VC)
-#define emit_br_hi(cd, imm)		emit_cond_branch_imm(cd, imm, COND_HI)
-#define emit_br_cs(cd, imm)		emit_cond_branch_imm(cd, imm, COND_CS)
-#define emit_br_cc(cd, imm)		emit_cond_branch_imm(cd, imm, COND_CC)
 
 
 /* Unconditional branch (immediate) ******************************************/

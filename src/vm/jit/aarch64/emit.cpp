@@ -238,28 +238,6 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 
 
 /**
- * Emits code comparing one integer register to an immediate value.
- 
-void emit_icmpeq_imm(codegendata* cd, int reg, int32_t value, int d)
-{
-	int32_t disp;
-
-	if ((value >= 0) && (value <= 255)) {
-		M_CMPEQ_IMM(reg, value, d);
-	} else {
-		assert(reg != REG_ITMP2);
-		if ((value >= -32768) && (value <= 32767)) {
-			M_LDA(REG_ITMP2, REG_ZERO, value);
-		} else {
-			disp = dseg_add_s4(cd, value);
-			M_ILD(REG_ITMP2, REG_PV, disp);
-		}
-		M_CMPEQ(reg, REG_ITMP2, d);
-	}
-}*/
-
-
-/**
  * Emits code comparing a single register
  */
 void emit_icmp_imm(codegendata* cd, int reg, int32_t value) {
@@ -286,11 +264,12 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 {
 	s4 checkdisp;
 	s4 branchdisp;
+	AsmEmitter asme(cd);
 
 	/* calculate the different displacements */
 
-	checkdisp  = (disp - 4);
-	branchdisp = (disp - 4) >> 2;
+	checkdisp  = disp;
+	branchdisp = disp >> 2;
 
 	/* check which branch to generate */
 
@@ -309,7 +288,7 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 			vm_abort("emit_branch: emit unconditional long-branch code");
 		}
 		else {
-			M_BR(branchdisp);
+			asme.b(branchdisp);
 		}
 	}
 	else {
@@ -327,28 +306,27 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 			vm_abort("emit_branch: emit conditional long-branch code");
 		}
 		else {
-			branchdisp += 1; // TODO: why am i off by one on aarch64 compared to alpha?
 			switch (condition) {
 			case BRANCH_EQ:
-				M_BR_EQ(branchdisp);
+				asme.b_eq(branchdisp);
 				break;
 			case BRANCH_NE:
-				M_BR_NE(branchdisp);
+				asme.b_ne(branchdisp);
 				break;
 			case BRANCH_LT:
-				M_BR_LT(branchdisp);
+				asme.b_lt(branchdisp);
 				break;
 			case BRANCH_GE:
-				M_BR_GE(branchdisp);
+				asme.b_ge(branchdisp);
 				break;
 			case BRANCH_GT:
-				M_BR_GT(branchdisp);
+				asme.b_gt(branchdisp);
 				break;
 			case BRANCH_LE:
-				M_BR_LE(branchdisp);
+				asme.b_le(branchdisp);
 				break;
 			case BRANCH_UGT:
-				M_BR_HI(branchdisp);
+				asme.b_hi(branchdisp);
 				break;
 			default:
 				vm_abort("emit_branch: unknown condition %d", condition);
@@ -367,9 +345,9 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 
 void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 {
-	// TODO: check if this implementation works correctly
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
-		M_BNEZ(reg, 1);
+		AsmEmitter asme(cd);
+		asme.cbnz(reg, 2);
 		emit_trap(cd, reg, TRAP_ArithmeticException);
 	}
 }
@@ -384,9 +362,10 @@ void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
-		M_ILD(REG_ITMP3, s1, OFFSET(java_array_t, size));
-		M_ICMP(s2, REG_ITMP3);
-		M_BR_CC(2);
+		AsmEmitter asme(cd);
+		asme.ild(REG_ITMP3, s1, OFFSET(java_array_t, size));
+		asme.icmp(s2, REG_ITMP3);
+		asme.b_cc(2);
 		emit_trap(cd, s2, TRAP_ArrayIndexOutOfBoundsException);
 	}
 }
@@ -400,9 +379,9 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 
 void emit_arraystore_check(codegendata *cd, instruction *iptr)
 {
-	// TODO: check if this implementation works correclty
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
-		M_BNEZ(REG_RESULT, 1);
+		AsmEmitter asme(cd);
+		asme.cbnz(REG_RESULT, 2);
 		emit_trap(cd, REG_RESULT, TRAP_ArrayStoreException);
 	}
 }
@@ -416,23 +395,23 @@ void emit_arraystore_check(codegendata *cd, instruction *iptr)
 
 void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 reg, s4 s1)
 {
-	// TODO: check that this implementation works correctly
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
+		AsmEmitter asme(cd);
 		switch (condition) {
 		case BRANCH_EQ:
-			M_BR_NE(2);
+			asme.b_ne(2);
 			break;
 		case BRANCH_LE:
-			M_BR_GT(2);
+			asme.b_gt(2);
 			break;
 		case BRANCH_NE:
-			M_BR_EQ(2);
+			asme.b_eq(2);
 			break;
 		case BRANCH_GT:
-			M_BR_LE(2);
+			asme.b_le(2);
 			break;
 		case BRANCH_LT:
-			M_BR_GE(2);
+			asme.b_ge(2);
 			break;
 		default:
 			vm_abort("emit_classcast_check: unknown condition %d", condition);
@@ -452,7 +431,8 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
-		M_BNEZ(reg, 1);
+		AsmEmitter asme(cd);
+		asme.cbnz(reg, 2);
 		emit_trap(cd, reg, TRAP_NullPointerException);
 	}
 }
@@ -467,7 +447,8 @@ void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 void emit_exception_check(codegendata *cd, instruction *iptr)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
-		M_BNEZ(REG_RESULT, 1);
+		AsmEmitter asme(cd);
+		asme.cbnz(REG_RESULT, 2);
 		emit_trap(cd, REG_RESULT, TRAP_CHECK_EXCEPTION);
 	}
 }
@@ -526,16 +507,17 @@ void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
 	// Get required compiler data.
 	methodinfo*  m  = jd->m;
 	codegendata* cd = jd->cd;
+	AsmEmitter asme(cd);
 
 #if !defined(NDEBUG)
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
-		M_LDA(REG_SP, REG_SP, -(INT_ARG_CNT + FLT_ARG_CNT) * 8);
+		asme.lda(REG_SP, REG_SP, -(INT_ARG_CNT + FLT_ARG_CNT) * 8);
 
 		for (p = 0; p < INT_ARG_CNT; p++)
-			M_LST(abi_registers_integer_argument[p], REG_SP, p * 8);
+			asme.lst(abi_registers_integer_argument[p], REG_SP, p * 8);
 
 		for (p = 0; p < FLT_ARG_CNT; p++)
-			M_DST(abi_registers_float_argument[p], REG_SP, (INT_ARG_CNT + p) * 8);
+			asme.dst(abi_registers_float_argument[p], REG_SP, (INT_ARG_CNT + p) * 8);
 
 		syncslot_offset += (INT_ARG_CNT + FLT_ARG_CNT) * 8;
 	}
@@ -545,29 +527,28 @@ void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
 
 	if (m->flags & ACC_STATIC) {
 		disp = dseg_add_address(cd, &m->clazz->object.header);
-		M_ALD(REG_A0, REG_PV, disp);
+		asme.lld(REG_A0, REG_PV, disp);
 	}
 	else {
-		M_BNEZ(REG_A0, 1);
+		asme.cbnz(REG_A0, 2);
 		emit_trap(cd, REG_ZERO, TRAP_NullPointerException);
-		// M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_NullPointerException);
 	}
 
-	M_AST(REG_A0, REG_SP, syncslot_offset);
+	asme.lst(REG_A0, REG_SP, syncslot_offset);
 	disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
-	M_ALD(REG_PV, REG_PV, disp);
-	M_JSR(REG_RA, REG_PV);
+	asme.lld(REG_PV, REG_PV, disp);
+	asme.blr(REG_PV);
 	emit_recompute_pv(cd);
 
 #if !defined(NDEBUG)
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
 		for (p = 0; p < INT_ARG_CNT; p++)
-			M_LLD(abi_registers_integer_argument[p], REG_SP, p * 8);
+			asme.lld(abi_registers_integer_argument[p], REG_SP, p * 8);
 
 		for (p = 0; p < FLT_ARG_CNT; p++)
-			M_DLD(abi_registers_float_argument[p], REG_SP, (INT_ARG_CNT + p) * 8);
+			asme.dld(abi_registers_float_argument[p], REG_SP, (INT_ARG_CNT + p) * 8);
 
-		M_LDA(REG_SP, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT) * 8);
+		asme.lda(REG_SP, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT) * 8);
 	}
 #endif
 }
@@ -583,6 +564,7 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 	// Get required compiler data.
 	methodinfo*  m  = jd->m;
 	codegendata* cd = jd->cd;
+	AsmEmitter asme(cd);
 
 	methoddesc* md = m->parseddesc;
 
@@ -590,11 +572,11 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 	case TYPE_INT:
 	case TYPE_LNG:
 	case TYPE_ADR:
-		M_LST(REG_RESULT, REG_SP, syncslot_offset + 8);
+		asme.lst(REG_RESULT, REG_SP, syncslot_offset + 8);
 		break;
 	case TYPE_FLT:
 	case TYPE_DBL:
-		M_DST(REG_FRESULT, REG_SP, syncslot_offset + 8);
+		asme.dst(REG_FRESULT, REG_SP, syncslot_offset + 8);
 		break;
 	case TYPE_VOID:
 		break;
@@ -603,21 +585,21 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 		break;
 	}
 
-	M_ALD(REG_A0, REG_SP, syncslot_offset);
+	asme.lld(REG_A0, REG_SP, syncslot_offset);
 	disp = dseg_add_functionptr(cd, LOCK_monitor_exit);
-	M_ALD(REG_PV, REG_PV, disp);
-	M_JSR(REG_RA, REG_PV);
+	asme.lld(REG_PV, REG_PV, disp);
+	asme.blr(REG_PV);
 	emit_recompute_pv(cd);
 
 	switch (md->returntype.type) {
 	case TYPE_INT:
 	case TYPE_LNG:
 	case TYPE_ADR:
-		M_LLD(REG_RESULT, REG_SP, syncslot_offset + 8);
+		asme.lld(REG_RESULT, REG_SP, syncslot_offset + 8);
 		break;
 	case TYPE_FLT:
 	case TYPE_DBL:
-		M_DLD(REG_FRESULT, REG_SP, syncslot_offset + 8);
+		asme.dld(REG_FRESULT, REG_SP, syncslot_offset + 8);
 		break;
 	case TYPE_VOID:
 		break;
@@ -654,15 +636,16 @@ void emit_verbosecall_enter(jitdata *jd)
 	rd   = jd->rd;
 
 	md = m->parseddesc;
+	AsmEmitter asme(cd);
 
 	/* mark trace code */
 
-	M_NOP;
+	asme.nop();
 
 	stackframesize = ARG_CNT + TMP_CNT + md->paramcount + 1;
 
-	M_LDA(REG_SP, REG_SP, -(stackframesize * 8));
-	M_AST(REG_RA, REG_SP, 0 * 8);
+	asme.lda(REG_SP, REG_SP, -(stackframesize * 8));
+	asme.ast(REG_RA, REG_SP, 0 * 8);
 
 	/* save all argument and temporary registers for leaf methods */
 
@@ -670,16 +653,16 @@ void emit_verbosecall_enter(jitdata *jd)
 		j = 1 + md->paramcount;
 
 		for (i = 0; i < INT_ARG_CNT; i++, j++)
-			M_LST(abi_registers_integer_argument[i], REG_SP, j * 8);
+			asme.lst(abi_registers_integer_argument[i], REG_SP, j * 8);
 
 		for (i = 0; i < FLT_ARG_CNT; i++, j++)
-			M_DST(abi_registers_float_argument[i], REG_SP, j * 8);
+			asme.dst(abi_registers_float_argument[i], REG_SP, j * 8);
 
 		for (i = 0; i < INT_TMP_CNT; i++, j++)
-			M_LST(rd->tmpintregs[i], REG_SP, j * 8);
+			asme.lst(rd->tmpintregs[i], REG_SP, j * 8);
 
 		for (i = 0; i < FLT_TMP_CNT; i++, j++)
-			M_DST(rd->tmpfltregs[i], REG_SP, j * 8);
+			asme.dst(rd->tmpfltregs[i], REG_SP, j * 8);
 	}
 
 	/* save argument registers */
@@ -692,11 +675,11 @@ void emit_verbosecall_enter(jitdata *jd)
 			case TYPE_ADR:
 			case TYPE_INT:
 			case TYPE_LNG:
-				M_LST(s, REG_SP, (1 + i) * 8);
+				asme.lst(s, REG_SP, (1 + i) * 8);
 				break;
 			case TYPE_FLT:
 			case TYPE_DBL:
-				M_DST(s, REG_SP, (1 + i) * 8);
+				asme.dst(s, REG_SP, (1 + i) * 8);
 				break;
 			default:
 				assert(false);
@@ -706,16 +689,16 @@ void emit_verbosecall_enter(jitdata *jd)
 	}
 
 	disp = dseg_add_address(cd, m);
-	M_ALD(REG_A0, REG_PV, disp);
-	M_AADD_IMM(REG_SP, 1 * 8, REG_A1);
-	M_LDA(REG_A2, REG_SP, stackframesize * 8 + cd->stackframesize * 8);
+	asme.lld(REG_A0, REG_PV, disp);
+	asme.ladd_imm(REG_A1, REG_SP, 1 * 8);
+	asme.lda(REG_A2, REG_SP, stackframesize * 8 + cd->stackframesize * 8);
 
 	disp = dseg_add_functionptr(cd, trace_java_call_enter);
-	M_ALD(REG_PV, REG_PV, disp);
-	M_JSR(REG_RA, REG_PV);
+	asme.lld(REG_PV, REG_PV, disp);
+	asme.blr(REG_PV);
 	disp = (s4) (cd->mcodeptr - cd->mcodebase);
-	M_LDA(REG_PV, REG_RA, -disp);
-	M_ALD(REG_RA, REG_SP, 0 * 8);
+	asme.lda(REG_PV, REG_RA, -disp);
+	asme.lld(REG_RA, REG_SP, 0 * 8);
 
 	/* restore argument registers */
 
@@ -727,11 +710,11 @@ void emit_verbosecall_enter(jitdata *jd)
 			case TYPE_ADR:
 			case TYPE_INT:
 			case TYPE_LNG:
-				M_LLD(s, REG_SP, (1 + i) * 8);
+				asme.lld(s, REG_SP, (1 + i) * 8);
 				break;
 			case TYPE_FLT:
 			case TYPE_DBL:
-				M_DLD(s, REG_SP, (1 + i) * 8);
+				asme.dld(s, REG_SP, (1 + i) * 8);
 				break;
 			default:
 				assert(false);
@@ -746,23 +729,23 @@ void emit_verbosecall_enter(jitdata *jd)
 		j = 1 + md->paramcount;
 
 		for (i = 0; i < INT_ARG_CNT; i++, j++)
-			M_LLD(abi_registers_integer_argument[i], REG_SP, j * 8);
+			asme.lld(abi_registers_integer_argument[i], REG_SP, j * 8);
 
 		for (i = 0; i < FLT_ARG_CNT; i++, j++)
-			M_DLD(abi_registers_float_argument[i], REG_SP, j * 8);
+			asme.dld(abi_registers_float_argument[i], REG_SP, j * 8);
 
 		for (i = 0; i < INT_TMP_CNT; i++, j++)
-			M_LLD(rd->tmpintregs[i], REG_SP, j * 8);
+			asme.lld(rd->tmpintregs[i], REG_SP, j * 8);
 
 		for (i = 0; i < FLT_TMP_CNT; i++, j++)
-			M_DLD(rd->tmpfltregs[i], REG_SP, j * 8);
+			asme.dld(rd->tmpfltregs[i], REG_SP, j * 8);
 	}
 
-	M_LDA(REG_SP, REG_SP, stackframesize * 8);
+	asme.lda(REG_SP, REG_SP, stackframesize * 8);
 
 	/* mark trace code */
 
-	M_NOP;
+	asme.nop();
 }
 #endif /* !defined(NDEBUG) */
 
@@ -787,13 +770,14 @@ void emit_verbosecall_exit(jitdata *jd)
 	cd = jd->cd;
 
 	md = m->parseddesc;
+	AsmEmitter asme(cd);
 
 	/* mark trace code */
 
-	M_NOP;
+	asme.nop();
 
-	M_ASUB_IMM(REG_SP, 2 * 8, REG_SP);
-	M_AST(REG_RA, REG_SP, 0 * 8);
+	asme.lsub_imm(REG_SP, REG_SP, 2 * 8);
+	asme.lst(REG_RA, REG_SP, 0 * 8);
 
 	/* save return value */
 
@@ -801,11 +785,11 @@ void emit_verbosecall_exit(jitdata *jd)
 	case TYPE_ADR:
 	case TYPE_INT:
 	case TYPE_LNG:
-		M_LST(REG_RESULT, REG_SP, 1 * 8);
+		asme.lst(REG_RESULT, REG_SP, 1 * 8);
 		break;
 	case TYPE_FLT:
 	case TYPE_DBL:
-		M_DST(REG_FRESULT, REG_SP, 1 * 8);
+		asme.dst(REG_FRESULT, REG_SP, 1 * 8);
 		break;
 	case TYPE_VOID:
 		break;
@@ -815,14 +799,14 @@ void emit_verbosecall_exit(jitdata *jd)
 	}
 
 	disp = dseg_add_address(cd, m);
-	M_ALD(REG_A0, REG_PV, disp);
-	M_AADD_IMM(REG_SP, 1 * 8, REG_A1);
+	asme.lld(REG_A0, REG_PV, disp);
+	asme.ladd_imm(REG_A1, REG_SP, 1 * 8);
 
 	disp = dseg_add_functionptr(cd, trace_java_call_exit);
-	M_ALD(REG_PV, REG_PV, disp);
-	M_JSR(REG_RA, REG_PV);
+	asme.lld(REG_PV, REG_PV, disp);
+	asme.blr(REG_PV);
 	disp = (cd->mcodeptr - cd->mcodebase);
-	M_LDA(REG_PV, REG_RA, -disp);
+	asme.lda(REG_PV, REG_RA, -disp);
 
 	/* restore return value */
 
@@ -830,11 +814,11 @@ void emit_verbosecall_exit(jitdata *jd)
 	case TYPE_ADR:
 	case TYPE_INT:
 	case TYPE_LNG:
-		M_LLD(REG_RESULT, REG_SP, 1 * 8);
+		asme.lld(REG_RESULT, REG_SP, 1 * 8);
 		break;
 	case TYPE_FLT:
 	case TYPE_DBL:
-		M_DLD(REG_FRESULT, REG_SP, 1 * 8);
+		asme.dld(REG_FRESULT, REG_SP, 1 * 8);
 		break;
 	case TYPE_VOID:
 		break;
@@ -843,12 +827,12 @@ void emit_verbosecall_exit(jitdata *jd)
 		break;
 	}
 
-	M_ALD(REG_RA, REG_SP, 0 * 8);
-	M_AADD_IMM(REG_SP, 2 * 8, REG_SP);
+	asme.lld(REG_RA, REG_SP, 0 * 8);
+	asme.ladd_imm(REG_SP, REG_SP, 2 * 8);
 
 	/* mark trace code */
 
-	M_NOP;
+	asme.nop();
 }
 #endif /* !defined(NDEBUG) */
 
