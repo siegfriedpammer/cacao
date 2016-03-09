@@ -252,56 +252,56 @@ L_asm_handle_exception_not_catched:
 	mov		itmp3, 0
 
 L_asm_handle_exception_no_leaf_stack:
-	ldr		t3i, [pv, FrameSize]
-	add		t3, sp, t3
+	ldr		t0i, [pv, FrameSize]
+	add		t0, sp, t0
 
-	ldr		t4i, [pv, IsLeaf]
-	cbnz	t4i, L_asm_handle_exception_no_ra_restore
+	ldr		t1i, [pv, IsLeaf]
+	cbnz	t1i, L_asm_handle_exception_no_ra_restore
 
-	ldr		lr, [t3, -8]
-	sub		t3, t3, 8
+	ldr		lr, [t0, -8]
+	sub		t0, t0, 8
 
 L_asm_handle_exception_no_ra_restore:
 	mov		xpc, lr
-	ldr		t4i, [pv, IntSave]
+	ldr		t1i, [pv, IntSave]
 
-	adr		t5, L_asm_handle_exception_save_int_end
+	adr		t2, L_asm_handle_exception_save_int_end
 	
-	sub		t5, t5, t4, LSL 2
-	br		t5
+	sub		t2, t2, t1, LSL 2
+	br		t2
 
-	ldr		s0, [t3, -10 * 8]
-	ldr		s1, [t3, -9 * 8]
-	ldr		s2,	[t3, -8 * 8]
-	ldr		s3,	[t3, -7 * 8]
-	ldr		s4,	[t3, -6 * 8]
-	ldr		s5,	[t3, -5 * 8]
-	ldr		s6,	[t3, -4 * 8]
-	ldr		s7,	[t3, -3 * 8]
-	ldr		s8,	[t3, -2 * 8]
-	ldr		s9,	[t3, -1 * 8]
+	ldr		s0, [t0, -10 * 8]
+	ldr		s1, [t0, -9 * 8]
+	ldr		s2,	[t0, -8 * 8]
+	ldr		s3,	[t0, -7 * 8]
+	ldr		s4,	[t0, -6 * 8]
+	ldr		s5,	[t0, -5 * 8]
+	ldr		s6,	[t0, -4 * 8]
+	ldr		s7,	[t0, -3 * 8]
+	ldr		s8,	[t0, -2 * 8]
+	ldr		s9,	[t0, -1 * 8]
 
 L_asm_handle_exception_save_int_end:
-	sub		t3, t3, t4, LSL 3
+	sub		t0, t0, t1, LSL 3
 
-	ldr		t4i, [pv, FltSave]
-	adr		t5, L_asm_handle_exception_save_float_end
+	ldr		t1i, [pv, FltSave]
+	adr		t2, L_asm_handle_exception_save_float_end
 
-	sub		t5, t5, t4, LSL 2
-	br		t5
+	sub		t2, t2, t1, LSL 2
+	br		t2
 
-	ldr		fs0, [t3, -8 * 8]
-	ldr		fs1, [t3, -7 * 8]
-	ldr		fs2, [t3, -6 * 8]
-	ldr		fs3, [t3, -5 * 8]
-	ldr		fs4, [t3, -4 * 8]
-	ldr		fs5, [t3, -3 * 8]
-	ldr		fs6, [t3, -2 * 8]
-	ldr		fs7, [t3, -1 * 8]
+	ldr		fs0, [t0, -8 * 8]
+	ldr		fs1, [t0, -7 * 8]
+	ldr		fs2, [t0, -6 * 8]
+	ldr		fs3, [t0, -5 * 8]
+	ldr		fs4, [t0, -4 * 8]
+	ldr		fs5, [t0, -3 * 8]
+	ldr		fs6, [t0, -2 * 8]
+	ldr		fs7, [t0, -1 * 8]
 
 L_asm_handle_exception_save_float_end:
-	ldr		t3i, [pv, FrameSize]
-	add		sp, sp, t3
+	ldr		t0i, [pv, FrameSize]
+	add		sp, sp, t0
 	b		L_asm_handle_exception_stack_loop
 
 

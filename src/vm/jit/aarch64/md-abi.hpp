@@ -39,8 +39,8 @@
 
 #define REG_LR          30   /* link register                                 */
 #define REG_RA          30   /* return address = link register (bw compat)    */
-#define REG_PV          17   /* procedure vector, must be provided by caller  */
-#define REG_METHODPTR   16   /* pointer to the place from where the procedure */
+#define REG_PV          18   /* procedure vector, must be provided by caller  */
+#define REG_METHODPTR   10   /* pointer to the place from where the procedure */
                              /* vector has been fetched                       */
 
 #define REG_ITMP1       9    /* temporary register                            */
@@ -48,7 +48,7 @@
 #define REG_ITMP3       11   /* temporary register                            */
 
 #define REG_ITMP1_XPTR  9    /* exception pointer = temporary register 1      */
-#define REG_ITMP2_XPC   18   /* exception pc = temporary register 2           */
+#define REG_ITMP2_XPC   10   /* exception pc = temporary register 2           */
 
 #define REG_SP          31   /* stack pointer                                 */
 #define REG_ZERO        31   /* always zero                                   */
@@ -72,15 +72,15 @@
 #define INT_REG_CNT     32   /* number of integer registers                   */
 #define INT_SAV_CNT     10   /* number of int callee saved registers          */
 #define INT_ARG_CNT      8   /* number of int argument registers              */
-#define INT_TMP_CNT      7   /* number of int temp registers                  */
-#define INT_RES_CNT      6   /* number of reserved integer registers          */
+#define INT_TMP_CNT      6   /* number of int temp registers                  */
+#define INT_RES_CNT      7   /* number of reserved integer registers          */
                              /* the one "missing" register is the return reg  */
 
 #define FLT_REG_CNT     32   /* number of float registers                     */
 #define FLT_SAV_CNT      8   /* number of flt callee saved registers          */
 #define FLT_ARG_CNT      8   /* number of flt argument registers              */
-#define FLT_TMP_CNT     16   /* number of flt temp registers                  */
-#define FLT_RES_CNT      0   /* number of reserved float registers            */
+#define FLT_TMP_CNT     13   /* number of flt temp registers                  */
+#define FLT_RES_CNT      3   /* number of reserved float registers            */
                              /* the one "missing" register is the return reg  */
 
 #endif // MD_ABI_HPP_

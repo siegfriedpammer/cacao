@@ -1513,10 +1513,10 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			asme.ald(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));
 
 			/* on aarch64 we only have negative offsets in the range of -255 to 255 so we need a mov */
-			asme.lconst(REG_ITMP2, s1);
+			asme.lconst(REG_ITMP1, s1);
 			asme.lconst(REG_ITMP3, s2);
 
-			emit_ldr_reg(cd, REG_METHODPTR, REG_METHODPTR, REG_ITMP2); // TODO: move to emitter
+			emit_ldr_reg(cd, REG_METHODPTR, REG_METHODPTR, REG_ITMP1); // TODO: move to emitter
 			emit_ldr_reg(cd, REG_PV, REG_METHODPTR, REG_ITMP3); // TODO: move to emitter
 
 			/* generate the actual call */

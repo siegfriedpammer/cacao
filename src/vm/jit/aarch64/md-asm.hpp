@@ -40,31 +40,30 @@
 
 #define ires    x8  /* indirect result location (structs) */
 
-#define t0      x9  /* temporary registers */
-#define t1      x10
-#define t2      x11
-#define t3      x12
-#define t4      x13
-#define t5      x14
-#define t6      x15
+#define t0      x12 /* temporary registers */
+#define t1      x13
+#define t2      x14
+#define t3      x15
+#define t4      x16
+#define t5      x17
 
 #define xptr    x9  /* exception pointer = itmp1 */
-#define xpc     x18 /* exception pc = itmp2 */
+#define xpc     x10 /* exception pc = itmp2 */
 
 #define itmp1   x9
 #define itmp2   x10
 #define itmp3   x11
 
-#define t3i     w12
-#define t4i     w13
+#define t0i     w12
+#define t1i     w13
 
 #define ip0     x16 /* intra-procedure-call temporary registers */
 #define ip1     x17
 
 #define platf   x18 /* platform register (for platf-specific ABI) */
 
-#define pv      x17 /* using ip1 for procedure vector */
-#define mptr    x16 /* using ip0 for method pointer */
+#define pv      x18 /* using platf for procedure vector */
+#define mptr    x10 /* using itmp2 for method pointer */
 
 #define s0      x19 /* variable registers, all following registers are callee saved reg */
 #define s1      x20
@@ -101,22 +100,19 @@
 #define fs6     d14
 #define fs7     d15
 
-#define ft0     d16
-#define ft1     d17
-#define ft2     d18
-#define ft3     d19
-#define ft4     d20
-#define ft5     d21
-#define ft6     d22
-#define ft7     d23
-#define ft8     d24
-#define ft9     d25
-#define ft10    d26
-#define ft11    d27
-#define ft12    d28
-#define ft13    d29
-#define ft14    d30
-#define ft15    d31
+#define ft0     d19
+#define ft1     d20
+#define ft2     d21
+#define ft3     d22
+#define ft4     d23
+#define ft5     d24
+#define ft6     d25
+#define ft7     d26
+#define ft8     d27
+#define ft9     d28
+#define ft10    d29
+#define ft11    d30
+#define ft12    d31
 
 /* save and restore macros ***************************************************/
 
@@ -165,50 +161,42 @@
     str     t3, [sp, (3 + (off)) * 8]   ; \
     str     t4, [sp, (4 + (off)) * 8]   ; \
     str     t5, [sp, (5 + (off)) * 8]   ; \
-    str     t6, [sp, (6 + (off)) * 8]   ; \
     \
-    str     ft0, [sp, (7 + (off)) * 8]  ; \
-    str     ft1, [sp, (8 + (off)) * 8]  ; \
-    str     ft2, [sp, (9 + (off)) * 8]  ; \
-    str     ft3, [sp, (10 + (off)) * 8]  ; \
-    str     ft4, [sp, (11 + (off)) * 8]  ; \
-    str     ft5, [sp, (12 + (off)) * 8]  ; \
-    str     ft6, [sp, (13 + (off)) * 8]  ; \
-    str     ft7, [sp, (14 + (off)) * 8]  ; \
-    str     ft8, [sp, (15 + (off)) * 8]  ; \
-    str     ft9, [sp, (16 + (off)) * 8]  ; \
-    str     ft10, [sp, (17 + (off)) * 8]  ; \
-    str     ft11, [sp, (18 + (off)) * 8]  ; \
-    str     ft12, [sp, (19 + (off)) * 8]  ; \
-    str     ft13, [sp, (20 + (off)) * 8]  ; \
-    str     ft14, [sp, (21 + (off)) * 8]  ; \
-    str     ft15, [sp, (22 + (off)) * 8]  ; 
+    str     ft0, [sp, (6 + (off)) * 8]  ; \
+    str     ft1, [sp, (7 + (off)) * 8]  ; \
+    str     ft2, [sp, (8 + (off)) * 8]  ; \
+    str     ft3, [sp, (9 + (off)) * 8]  ; \
+    str     ft4, [sp, (10 + (off)) * 8]  ; \
+    str     ft5, [sp, (11 + (off)) * 8]  ; \
+    str     ft6, [sp, (12 + (off)) * 8]  ; \
+    str     ft7, [sp, (13 + (off)) * 8]  ; \
+    str     ft8, [sp, (14 + (off)) * 8]  ; \
+    str     ft9, [sp, (15 + (off)) * 8]  ; \
+    str     ft10, [sp, (16 + (off)) * 8]  ; \
+    str     ft11, [sp, (17 + (off)) * 8]  ; \
+    str     ft12, [sp, (18 + (off)) * 8]  ; \
 
 #define RESTORE_TEMPORARY_REGISTERS(off) \
     ldr     t0, [sp, (0 + (off)) * 8]   ; \
     ldr     t1, [sp, (1 + (off)) * 8]   ; \
     ldr     t2, [sp, (2 + (off)) * 8]   ; \
     ldr     t3, [sp, (3 + (off)) * 8]   ; \
-    ldr     t4, [sp, (4 + (off)) * 8]   ; \
-    ldr     t5, [sp, (5 + (off)) * 8]   ; \
-    ldr     t6, [sp, (6 + (off)) * 8]   ; \
+    ldr     t3, [sp, (4 + (off)) * 8]   ; \
+    ldr     t3, [sp, (5 + (off)) * 8]   ; \
     \
-    ldr     ft0, [sp, (7 + (off)) * 8]  ; \
-    ldr     ft1, [sp, (8 + (off)) * 8]  ; \
-    ldr     ft2, [sp, (9 + (off)) * 8]  ; \
-    ldr     ft3, [sp, (10 + (off)) * 8]  ; \
-    ldr     ft4, [sp, (11 + (off)) * 8]  ; \
-    ldr     ft5, [sp, (12 + (off)) * 8]  ; \
-    ldr     ft6, [sp, (13 + (off)) * 8]  ; \
-    ldr     ft7, [sp, (14 + (off)) * 8]  ; \
-    ldr     ft8, [sp, (15 + (off)) * 8]  ; \
-    ldr     ft9, [sp, (16 + (off)) * 8]  ; \
-    ldr     ft10, [sp, (17 + (off)) * 8]  ; \
-    ldr     ft11, [sp, (18 + (off)) * 8]  ; \
-    ldr     ft12, [sp, (19 + (off)) * 8]  ; \
-    ldr     ft13, [sp, (20 + (off)) * 8]  ; \
-    ldr     ft14, [sp, (21 + (off)) * 8]  ; \
-    ldr     ft15, [sp, (22 + (off)) * 8]  ; 
+    ldr     ft0, [sp, (6 + (off)) * 8]  ; \
+    ldr     ft1, [sp, (7 + (off)) * 8]  ; \
+    ldr     ft2, [sp, (8 + (off)) * 8]  ; \
+    ldr     ft3, [sp, (9 + (off)) * 8]  ; \
+    ldr     ft4, [sp, (10 + (off)) * 8]  ; \
+    ldr     ft5, [sp, (11 + (off)) * 8]  ; \
+    ldr     ft6, [sp, (12 + (off)) * 8]  ; \
+    ldr     ft7, [sp, (13 + (off)) * 8]  ; \
+    ldr     ft8, [sp, (14 + (off)) * 8]  ; \
+    ldr     ft9, [sp, (15 + (off)) * 8]  ; \
+    ldr     ft10, [sp, (16 + (off)) * 8]  ; \
+    ldr     ft11, [sp, (17 + (off)) * 8]  ; \
+    ldr     ft12, [sp, (18 + (off)) * 8]  ; \
 
 #endif // MD_ASM_HPP_
 

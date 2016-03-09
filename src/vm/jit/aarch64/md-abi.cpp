@@ -42,11 +42,11 @@ s4 nregdescint[] = {
 	/*   a0,      a1,      a2,      a3,      a4,      a5,      a6,      a7,   */
 	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, 
 
-	/*   r0,      t0,      t1,      t2,      t3,      t4,      t5,      t6,   */
-	REG_RET, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, 
+	/*   r0,   itmp1,   itmp2,   itmp3,      t0,      t1,      t2,      t3,   */
+	REG_RET, REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, 
 
-	/*  ip0,     ip1,   platf,      s0,      s1,      s2,      s3,      s4,   */
-	REG_RES, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
+	/*   t4,      t5,      pv,      s0,      s1,      s2,      s3,      s4,   */
+	REG_TMP, REG_TMP, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
 
 	/*   s5,      s6,      s7,      s8,      s9,      fp,      lr, sp/zero,   */
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_RES, REG_RES, REG_RES,
@@ -55,10 +55,10 @@ s4 nregdescint[] = {
 };
 
 const char *abi_registers_integer_name[] = {
-	"a0",  "a1",  "a2",    "a3", "a4", "a5", "a6", "a7",
-	"r0",  "t0",  "t1",    "t2", "t3", "t4", "t5", "t6",
-	"ip0", "ip1", "platf", "s0", "s1", "s2", "s3", "s4",
-	"s5",  "s6",  "s7",    "s8", "s9", "fp", "lr", "sp"
+	"a0", "a1",  "a2",  "a3",  "a4", "a5", "a6", "a7",
+	"r0", "it1", "it2", "it3", "t0", "t1", "t2", "t3",
+	"t4", "t5",  "pv",  "s0",  "s1", "s2", "s3", "s4",
+	"s5", "s6",  "s7",  "s8",  "s9", "fp", "lr", "sp"
 };
 
 const s4 abi_registers_integer_argument[] = {
@@ -86,20 +86,19 @@ const s4 abi_registers_integer_saved[] = {
 };
 
 const s4 abi_registers_integer_temporary[] = {
-	9,  /* t0  */
-	10, /* t1  */
-	11, /* t2  */
-	12, /* t3  */
-	13, /* t4  */
-	14, /* t5  */
-	15, /* t6  */
+	12, /* t0  */
+	13, /* t1  */
+	14, /* t2  */
+	15, /* t3  */
+	16, /* t4  */
+	17, /* t5  */
 };
 
 
 s4 nregdescfloat[] = {
 	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, 
-	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+	REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
 	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
 	REG_END
 };
@@ -128,22 +127,19 @@ const s4 abi_registers_float_saved[] = {
 };
 
 const s4 abi_registers_float_temporary[] = {
-	16, /* ft0  */
-	17, /* ft1  */
-	18, /* ft2  */
-	19, /* ft3  */
-	20, /* ft4  */
-	21, /* ft5  */
-	22, /* ft6  */
-	23, /* ft7  */
-	24, /* ft8  */
-	25, /* ft9  */
-	26, /* ft10 */
-	27, /* ft11 */
-	28, /* ft12 */
-	29, /* ft13 */
-	30, /* ft14 */
-	31, /* ft15 */
+	19, /* ft0  */
+	20, /* ft1  */
+	21, /* ft2  */
+	22, /* ft3  */
+	23, /* ft4  */
+	24, /* ft5  */
+	25, /* ft6  */
+	26, /* ft7  */
+	27, /* ft8  */
+	28, /* ft9  */
+	29, /* ft10 */
+	30, /* ft11 */
+	31, /* ft12 */
 };
 
 
