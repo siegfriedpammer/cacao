@@ -2149,7 +2149,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 					asme.lst(s1, REG_SP, s2);
 			}
 			else {
-				s1 = md->params[i].regoff + cd->stackframesize * 8;
+				s1 = md->params[i].regoff + stackoffset;
 				s2 = nmd->params[j].regoff;
 				asme.lld(REG_ITMP1, REG_SP, s1);
 				asme.lst(REG_ITMP1, REG_SP, s2);
@@ -2173,7 +2173,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 				}
 			}
 			else {
-				s1 = md->params[i].regoff + cd->stackframesize * 8;
+				s1 = md->params[i].regoff + stackoffset;
 				s2 = nmd->params[j].regoff;
 				if (IS_2_WORD_TYPE(t)) {
 					asme.dld(REG_FTMP1, REG_SP, s1);
