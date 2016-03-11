@@ -493,8 +493,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			emit_arithmetic_check(cd, iptr, s2);
 
-			asme.idiv(d, s1, s2);
-			asme.imsub(d, d, s2, s1);
+			asme.idiv(REG_ITMP3, s1, s2);
+			asme.imsub(d, REG_ITMP3, s2, s1);
 
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -506,8 +506,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			emit_arithmetic_check(cd, iptr, s2);
 
-			asme.ldiv(d, s1, s2);
-			asme.lmsub(d, d, s2, s1);
+			asme.ldiv(REG_ITMP3, s1, s2);
+			asme.lmsub(d, REG_ITMP3, s2, s1);
 
 			emit_store_dst(jd, iptr, d);
 			break;
