@@ -1629,9 +1629,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 						  OFFSET(vftbl_t, interfacetablelength));
 
 					if (superindex >= 0)
-						asme.icmn_imm(REG_ITMP3, superindex);
+						asme.icmp_imm(REG_ITMP3, superindex);
 					else
-						asme.icmp_imm(REG_ITMP3, -superindex);
+						asme.icmn_imm(REG_ITMP3, -superindex);
 					emit_classcast_check(cd, iptr, BRANCH_LE, REG_ITMP3, s1);
 
 					s4 offset = (s4) (OFFSET(vftbl_t, interfacetable[0]) -
@@ -1829,9 +1829,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				asme.ald(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				asme.ild(REG_ITMP3, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
 				if (superindex >= 0)
-					asme.icmn_imm(REG_ITMP3, superindex);
+					asme.icmp_imm(REG_ITMP3, superindex);
 				else
-					asme.icmp_imm(REG_ITMP3, -superindex);
+					asme.icmn_imm(REG_ITMP3, -superindex);
 				asme.b_le(5);
 				
 				s4 offset = (s4) (OFFSET(vftbl_t, interfacetable[0]) -
