@@ -643,6 +643,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	asme.nop();
 
 	stackframesize = ARG_CNT + TMP_CNT + md->paramcount + 1;
+	stackframesize += stackframesize % 2;
 
 	asme.lda(REG_SP, REG_SP, -(stackframesize * 8));
 	asme.ast(REG_RA, REG_SP, 0 * 8);

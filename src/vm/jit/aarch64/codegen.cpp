@@ -1679,7 +1679,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 						if (super == NULL) {
 							asme.ild(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
-							asme.lcmp_imm(REG_ITMP1, OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]));
+							asme.icmp_imm(REG_ITMP1, OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]));
 							emit_label_bne(cd, BRANCH_LABEL_10); // throw 
 						}
 
