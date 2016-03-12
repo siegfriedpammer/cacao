@@ -1398,9 +1398,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
-			if (iptr->sx.val.l >= 0 && iptr->sx.val.l <= 4096) {
+			if (iptr->sx.val.l >= 0 && iptr->sx.val.l <= 0xfff) {
 				asme.lcmp_imm(s1, iptr->sx.val.l);
-			} else if ((-iptr->sx.val.l) >= 0 && (-iptr->sx.val.l) <= 4096) {
+			} else if ((-iptr->sx.val.l) >= 0 && (-iptr->sx.val.l) <= 0xfff) {
 				asme.lcmn_imm(s1, -iptr->sx.val.l);
 			} else {
 				asme.lconst(REG_ITMP2, iptr->sx.val.l);
