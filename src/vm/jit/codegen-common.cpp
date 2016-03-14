@@ -2471,14 +2471,6 @@ void codegen_emit_phi_moves(jitdata *jd, basicblock *bptr)
 #endif /* defined(ENABLE_SSA) */
 
 
-/* REMOVEME When we have exception handling in C. */
-
-void *md_asm_codegen_get_pv_from_pc(void *ra)
-{
-	return md_codegen_get_pv_from_pc(ra);
-}
-
-
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

@@ -95,8 +95,6 @@ void asm_patcher_wrapper(void);
 /* cache flush function */
 void asm_cacheflush(void* addr, int nbytes);
 
-void *md_asm_codegen_get_pv_from_pc(void *ra);
-
 #if defined(ENABLE_ESCAPE_CHECK)
 void asm_escape_check(java_object_t *obj);
 #endif
