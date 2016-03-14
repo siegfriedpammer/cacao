@@ -64,10 +64,12 @@ static void patch_helper_ldr(u1 *codeptr, s4 offset, bool isint)
 	u4 code = *((s4 *) cd->mcodeptr);
 	u1 targetreg = code & 0x1f;
 	u1 basereg = (code >> 5) & 0x1f;
+	u8 oldptr = (u8) cd->mcodeptr;
 	if (isint)
 		emit_ldr_imm32(cd, targetreg, basereg, offset);
 	else
 		emit_ldr_imm(cd, targetreg, basereg, offset);
+	assert(((u8) cd->mcodeptr) - oldptr == 4);
 }
 
 
@@ -78,10 +80,12 @@ static void patch_helper_cmp_imm(u1 *codeptr, s4 offset)
 	cd->mcodeptr = codeptr;
 	u4 code = *((s4 *) cd->mcodeptr);
 	u1 reg = (code >> 5) & 0x1f;
+	u8 oldptr = (u8) cd->mcodeptr;
 	if (offset >= 0)
 		emit_cmn_imm32(cd, reg, offset);
 	else
 		emit_cmp_imm32(cd, reg, -offset);
+	assert(((u8) cd->mcodeptr) - oldptr == 4);
 }
 
 static void patch_helper_mov_imm(u1 *codeptr, s4 offset)
@@ -91,10 +95,12 @@ static void patch_helper_mov_imm(u1 *codeptr, s4 offset)
 	cd->mcodeptr = codeptr;
 	u4 code = *((s4 *) cd->mcodeptr);
 	u1 reg = code & 0x1f;
+	u8 oldptr = (u8) cd->mcodeptr;
 	if (offset >= 0)
 		emit_mov_imm(cd, reg, offset);
 	else 
 		emit_movn_imm(cd, reg, -offset-1);
+	assert(((u8) cd->mcodeptr) - oldptr == 4);
 }
 
 

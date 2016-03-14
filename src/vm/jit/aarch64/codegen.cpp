@@ -1340,6 +1340,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				asme.dld(d, s1, disp);
 				break;
 			}
+			asme.nop();
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1385,6 +1386,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				asme.dst(s2, s1, disp);
 				break;
 			}
+			asme.nop();
 			break;
 
 		/* branch operations **************************************************/
@@ -1513,6 +1515,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			asme.ald(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));
 
 			/* on aarch64 we only have negative offsets in the range of -255 to 255 so we need a mov */
+			assert(abs(s1) <= 0xffff);
+			assert(abs(s2) <= 0xffff);
 			asme.lconst(REG_ITMP1, s1);
 			asme.lconst(REG_ITMP3, s2);
 
@@ -1536,7 +1540,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if (l == 0) {
 				asme.imov(REG_ITMP1, s1); // TODO: check that this works
-			} else if (l <= 32768) {
+			} else if (abs(l) <= 32768) {
 				if (l < 0) {
 					asme.iadd_imm(REG_ITMP1, s1, -l);
 				} else {
@@ -1628,6 +1632,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 					asme.ild(REG_ITMP3, REG_ITMP2,
 						  OFFSET(vftbl_t, interfacetablelength));
 
+					assert(abs(superindex) <= 0xfff);
 					if (superindex >= 0)
 						asme.icmp_imm(REG_ITMP3, superindex);
 					else
@@ -1637,6 +1642,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 					s4 offset = (s4) (OFFSET(vftbl_t, interfacetable[0]) -
 							superindex * sizeof(methodptr*));
 
+					assert(abs(offset) <= 0xffff);
 					asme.lconst(REG_ITMP3, offset);
 					emit_ldr_reg(cd, REG_ITMP3, REG_ITMP2, REG_ITMP3); // TODO: mov this to emitter
 					asme.lcmp_imm(REG_ITMP3, 0);
@@ -1828,6 +1834,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				
 				asme.ald(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				asme.ild(REG_ITMP3, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
+				assert(abs(superindex) <= 0xfff);
 				if (superindex >= 0)
 					asme.icmp_imm(REG_ITMP3, superindex);
 				else
@@ -1836,6 +1843,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				
 				s4 offset = (s4) (OFFSET(vftbl_t, interfacetable[0]) -
 							superindex * sizeof(methodptr*));
+				assert(abs(offset) <= 0xffff);
 				asme.lconst(REG_ITMP3, offset);
 				emit_ldr_reg(cd, REG_ITMP1, REG_ITMP1, REG_ITMP3);
 

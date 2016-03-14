@@ -318,6 +318,8 @@ class AsmEmitter {
 
         void dmb() { emit_dmb(cd, 0xf); }
         void dsb() { emit_dsb(cd, 0xf); }
+        void dmb(u1 option) { emit_dmb(cd, option); }
+        void dsb(u1 option) { emit_dsb(cd, option); }
 
 	private:
 		codegendata *cd;
