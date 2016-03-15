@@ -78,7 +78,11 @@ void executionstate_pop_stackframe(executionstate_t *es)
 # if STACKFRAME_LEAFMETHODS_RA_REGISTER
 	if (!code_is_leafmethod(es->code)) {
 # endif
+# if STACKFRAME_PACKED_SAVED_REGISTERS
+		basesp -= 1 * SIZEOF_VOID_P;
+# else
 		basesp -= 1 * SIZE_OF_STACKSLOT;
+# endif
 		es->ra = *((uint8_t**) basesp);
 # if STACKFRAME_LEAFMETHODS_RA_REGISTER
 	}
@@ -98,7 +102,11 @@ void executionstate_pop_stackframe(executionstate_t *es)
 	for (i=0; i<es->code->savedintcount; ++i) {
 		while (nregdescint[--reg] != REG_SAV)
 			;
+#if STACKFRAME_PACKED_SAVED_REGISTERS
+		basesp -= 1 * SIZEOF_VOID_P;
+#else
 		basesp -= 1 * SIZE_OF_STACKSLOT;
+#endif
 		es->intregs[reg] = *((uintptr_t*) basesp);
 	}
 

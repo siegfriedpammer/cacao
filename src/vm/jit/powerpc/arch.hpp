@@ -111,6 +111,7 @@
 #define STACKFRAME_RA_LINKAGE_AREA                1
 #define STACKFRAME_LEAFMETHODS_RA_REGISTER        1
 #define STACKFRAME_SYNC_NEEDS_TWO_SLOTS           1
+#define STACKFRAME_PACKED_SAVED_REGISTERS         0
 
 
 /* replacement ****************************************************************/
