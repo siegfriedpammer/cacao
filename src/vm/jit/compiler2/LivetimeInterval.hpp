@@ -158,8 +158,9 @@ public:
 	/**
 	 * Split interval at active pos.
 	 * @param pos Must be a move/copy instruction with one input and one output
+	 * @param current move UseDef's after current. If NULL, move UseDef's after pos
 	 */
-	LivetimeInterval split_active(MIIterator pos);
+	LivetimeInterval split_active(MIIterator pos, UseDef *current = NULL);
 	/**
 	 * Split interval at inactive pos.
 	 */
@@ -252,7 +253,7 @@ public:
 	void set_hint(MachineOperand* op) { hint = op; }
 	LivetimeInterval get_next() const { assert(has_next()); return *next; }
 	bool has_next() const { return bool(next); }
-	LivetimeInterval split_active(MIIterator pos);
+	LivetimeInterval split_active(MIIterator pos, UseDef *current = NULL);
 	LivetimeInterval split_inactive(UseDef pos, MachineOperand* MO);
 	LivetimeInterval split_phi_active(MIIterator pos, MachineOperand* MO);
 
@@ -341,8 +342,8 @@ inline void LivetimeInterval::set_hint(MachineOperand* op) {
 inline UseDef LivetimeInterval::next_usedef_after(UseDef pos, UseDef end) const {
 	return pimpl->next_usedef_after(pos,end);
 }
-inline LivetimeInterval LivetimeInterval::split_active(MIIterator pos) {
-	return pimpl->split_active(pos);
+inline LivetimeInterval LivetimeInterval::split_active(MIIterator pos, UseDef *current) {
+	return pimpl->split_active(pos, current);
 }
 inline LivetimeInterval LivetimeInterval::split_inactive(UseDef pos, MachineOperand* MO) {
 	return pimpl->split_inactive(pos, MO);

@@ -13,6 +13,7 @@ stm: ADDInstID(stm, ADDInstID(MULInstID(stm, CONSTInstID), CONSTInstID)) "BaseIn
 stm: AREFInstID(stm,stm) "ARef" 1
 stm: ALOADInstID(AREFInstID(stm,stm)) "ALoad" 1
 stm: ASTOREInstID(AREFInstID(stm,stm),stm) "AStore" 1
+stm: ASTOREInstID(AREFInstID(stm,stm),CONSTInstID) "AStoreImm" 1
 
 %%
 

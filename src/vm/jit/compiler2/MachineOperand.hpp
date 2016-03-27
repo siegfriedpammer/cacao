@@ -64,8 +64,6 @@ public:
 	MachineOperandDesc *real;
 
 	explicit EmbeddedMachineOperand (MachineOperand *op) : dummy(op), real(NULL) {}
-	
-	//virtual OStream& print(OStream &OS) const; 
 };
 
 /**

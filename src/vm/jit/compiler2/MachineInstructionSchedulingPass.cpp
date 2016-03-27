@@ -341,7 +341,6 @@ void MachineInstructionSchedulingPass::ListSchedulingPass::schedule(BeginInst *B
 	for(GlobalSchedule::const_inst_iterator i = sched->inst_begin(BI),
 			e = sched->inst_end(BI); i != e; ++i) {
 		Instruction *I = *i;
-		LOG3("Inst: "<< I << nl);
 		// BI is already in the queue
 		if (I->to_BeginInst() == BI)
 			continue;

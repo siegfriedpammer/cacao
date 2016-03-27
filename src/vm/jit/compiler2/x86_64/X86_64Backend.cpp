@@ -630,11 +630,9 @@ void X86_64LoweringVisitor::visit(REMInst *I, bool copyOperands) {
 }
 
 void X86_64LoweringVisitor::visit(AREFInst *I, bool copyOperands) {
+	// Only emit Instructions if Pattern Matching is used. If not ASTOREInst/ALOADInst will handle everything
+#ifdef PATTERN_MATCHING
 	assert(I);
-	/* Do nothing for now
-	   sould be LEAInst if called stand alone (what should never happen anyways.
-	   because of spilling bug in lsra (have to investigate) just skip it 
-	   and just use as op in ASTOREInst/ALOADInst
 	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_index = get_op(I->get_operand(1)->to_Instruction());
 	assert(src_ref->get_type() == Type::ReferenceTypeID);
@@ -678,82 +676,60 @@ void X86_64LoweringVisitor::visit(AREFInst *I, bool copyOperands) {
 	MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(Type::ReferenceTypeID), SrcOp(modrm));
 	get_current()->push_back(lea);
 	set_op(I,lea->get_result().op);
-	*/
+#endif
 }
 
 void X86_64LoweringVisitor::visit(ALOADInst *I, bool copyOperands) {
 	assert(I);
-	/* just for now while not emitting AREF */
-	Instruction *src_ref = I->get_operand(0)->to_Instruction();
-	MachineOperand* src_base = get_op(src_ref->get_operand(0)->to_Instruction());
-	MachineOperand* src_index = get_op(src_ref->get_operand(1)->to_Instruction());
-	assert(src_base->get_type() == Type::ReferenceTypeID);
-	assert(src_index->get_type() == Type::IntTypeID);
-	
 	Type::TypeID type = I->get_type();
+	Instruction* ref_inst = I->get_operand(0)->to_Instruction();
+	MachineOperand *vreg = new VirtualRegister(type);
+	MachineOperand *modrm = NULL;
 
-	VirtualRegister *dst = new VirtualRegister(type);
+	// if Pattern Matching is used, src op is Register with Effective Address , otherwise src op is AREFInst 
+#ifdef PATTERN_MATCHING
+	MachineOperand* src_ref = get_op(ref_inst);
+	assert(src_ref->get_type() == Type::ReferenceTypeID);
+
+	modrm = new X86_64ModRMOperand(BaseOp(src_ref));
+#else
+	MachineOperand* src_base = get_op(ref_inst->get_operand(0)->to_Instruction());
+	assert(src_base->get_type() == Type::ReferenceTypeID);
+	MachineOperand* src_index = get_op(ref_inst->get_operand(1)->to_Instruction());
+	assert(src_index->get_type() == Type::IntTypeID);
 
 	s4 offset;
-	switch (type) {
-	case Type::ByteTypeID:
-		offset = OFFSET(java_bytearray_t, data[0]);
-		break;
-	case Type::ShortTypeID:
-		offset = OFFSET(java_shortarray_t, data[0]);
-		break;
-	case Type::IntTypeID:
-		offset = OFFSET(java_intarray_t, data[0]);
-		break;
-	case Type::LongTypeID:
-		offset = OFFSET(java_longarray_t, data[0]);
-		break;
-	case Type::FloatTypeID:
-		offset = OFFSET(java_floatarray_t, data[0]);
-		break;
-	case Type::DoubleTypeID:
-		offset = OFFSET(java_doublearray_t, data[0]);
-		break;
-	case Type::ReferenceTypeID:
-		offset = OFFSET(java_objectarray_t, data[0]);
-		break;
-	default:
-		ABORT_MSG("x86_64 Lowering not supported",
-			"Inst: " << I << " type: " << type);
-		offset = 0;
-	}
+        switch (type) {
+        case Type::ByteTypeID:
+                offset = OFFSET(java_bytearray_t, data[0]);
+                break;
+        case Type::ShortTypeID:
+                offset = OFFSET(java_shortarray_t, data[0]);
+                break;
+        case Type::IntTypeID:
+                offset = OFFSET(java_intarray_t, data[0]);
+                break;
+        case Type::LongTypeID:
+                offset = OFFSET(java_longarray_t, data[0]);
+                break;
+        case Type::FloatTypeID:
+                offset = OFFSET(java_floatarray_t, data[0]);
+                break;
+        case Type::DoubleTypeID:
+                offset = OFFSET(java_doublearray_t, data[0]);
+                break;
+        case Type::ReferenceTypeID:
+                offset = OFFSET(java_objectarray_t, data[0]);
+                break;
+        default:
+                ABORT_MSG("x86_64 Lowering not supported",
+                        "Inst: " << I << " type: " << type);
+                offset = 0;
+        }
 
-	// create modrm source operand
-	MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(src_base),IndexOp(src_index),type,offset);
-
-	MachineInstruction *move;
-
-	switch (type) {
-	case Type::CharTypeID:
-	case Type::ByteTypeID:
-	case Type::ShortTypeID:
-	case Type::IntTypeID:
-	case Type::LongTypeID:
-	case Type::ReferenceTypeID:
-		move = new MovInst(SrcOp(modrm),DstOp(dst),get_OperandSize_from_Type(type));
-		break;
-	case Type::FloatTypeID:
-		move = new MovSSInst(SrcOp(modrm),DstOp(dst));
-		break;
-	case Type::DoubleTypeID:
-		move = new MovSDInst(SrcOp(modrm),DstOp(dst));
-	default:
-		ABORT_MSG("x86_64 Lowering not supported",
-			"Inst: " << I << " type: " << type);
-	}
-
-	/* version with emitted lea
-	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
-	assert(src_ref->get_type() == Type::ReferenceTypeID);
-	Type::TypeID type = I->get_type();
-	MachineOperand *vreg = new VirtualRegister(type);
-	MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(src_ref));
-	MachineInstruction *move;
+	modrm = new X86_64ModRMOperand(BaseOp(src_base),IndexOp(src_index),type,offset);
+#endif
+	MachineInstruction *move = NULL;
 
 	switch (type) {
 	case Type::CharTypeID:
@@ -775,57 +751,61 @@ void X86_64LoweringVisitor::visit(ALOADInst *I, bool copyOperands) {
 			"Inst: " << I << " type: " << type);
 	}
 
-	*/
-
 	get_current()->push_back(move);
 	set_op(I,move->get_result().op);
 }
 
 void X86_64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 	assert(I);
-	/* just for now while not emitting AREF */
-	Instruction *src_ref = I->get_operand(0)->to_Instruction();
-	MachineOperand* src_base = get_op(src_ref->get_operand(0)->to_Instruction());
-	MachineOperand* src_index = get_op(src_ref->get_operand(1)->to_Instruction());
+	Instruction* ref_inst = I->get_operand(0)->to_Instruction();
 	MachineOperand* src_value = get_op(I->get_operand(1)->to_Instruction());
+	Type::TypeID type = src_value->get_type();
+	MachineOperand *modrm = NULL;
+	MachineInstruction *move = NULL;
+
+	// if Pattern Matching is used, src op is Register with Effective Address , otherwise src op is AREFInst 
+#ifdef PATTERN_MATCHING
+	MachineOperand* src_ref = get_op(ref_inst);
+	assert(src_ref->get_type() == Type::ReferenceTypeID);
+
+	modrm = new X86_64ModRMOperand(BaseOp(src_ref));
+#else
+	MachineOperand* src_base = get_op(ref_inst->get_operand(0)->to_Instruction());
 	assert(src_base->get_type() == Type::ReferenceTypeID);
+	MachineOperand* src_index = get_op(ref_inst->get_operand(1)->to_Instruction());
 	assert(src_index->get_type() == Type::IntTypeID);
 
-	Type::TypeID type = I->get_array_type();
-
 	s4 offset;
-	switch (type) {
-	case Type::ByteTypeID:
-		offset = OFFSET(java_bytearray_t, data[0]);
-		break;
-	case Type::ShortTypeID:
-		offset = OFFSET(java_shortarray_t, data[0]);
-		break;
-	case Type::IntTypeID:
-		offset = OFFSET(java_intarray_t, data[0]);
-		break;
-	case Type::LongTypeID:
-		offset = OFFSET(java_longarray_t, data[0]);
-		break;
-	case Type::FloatTypeID:
-		offset = OFFSET(java_floatarray_t, data[0]);
-		break;
-	case Type::DoubleTypeID:
-		offset = OFFSET(java_doublearray_t, data[0]);
-		break;
-	case Type::ReferenceTypeID:
-		// TODO: implement me
-	default:
-		ABORT_MSG("x86_64 Lowering not supported",
-			"Inst: " << I << " type: " << type);
-		offset = 0;
-	}
+        switch (type) {
+        case Type::ByteTypeID:
+                offset = OFFSET(java_bytearray_t, data[0]);
+                break;
+        case Type::ShortTypeID:
+                offset = OFFSET(java_shortarray_t, data[0]);
+                break;
+        case Type::IntTypeID:
+                offset = OFFSET(java_intarray_t, data[0]);
+                break;
+        case Type::LongTypeID:
+                offset = OFFSET(java_longarray_t, data[0]);
+                break;
+        case Type::FloatTypeID:
+                offset = OFFSET(java_floatarray_t, data[0]);
+                break;
+        case Type::DoubleTypeID:
+                offset = OFFSET(java_doublearray_t, data[0]);
+                break;
+        case Type::ReferenceTypeID:
+                offset = OFFSET(java_objectarray_t, data[0]);
+                break;
+        default:
+                ABORT_MSG("x86_64 Lowering not supported",
+                        "Inst: " << I << " type: " << type);
+                offset = 0;
+        }
 
-	// create modrm source operand
-	MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(src_base),IndexOp(src_index),type,offset);
-
-	MachineInstruction *move;
-
+	modrm = new X86_64ModRMOperand(BaseOp(src_base),IndexOp(src_index),type,offset);
+#endif
 	switch (type) {
 	case Type::CharTypeID:
 	case Type::ByteTypeID:
@@ -845,55 +825,6 @@ void X86_64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 		ABORT_MSG("x86_64 Lowering not supported",
 			"Inst: " << I << " type: " << type);
 	}
-
-	/* version with emitted lea
-	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
-	assert(src_ref->get_type() == Type::ReferenceTypeID);
-	Type::TypeID type = I->get_type();
-	MachineOperand *vreg = new VirtualRegister(type);
-	MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(src_ref));
-
-	Type::TypeID type = I->get_array_type();
-
-	s4 offset;
-	bool floatingpoint = false;
-	switch (type) {
-	case Type::ByteTypeID:
-		offset = OFFSET(java_bytearray_t, data[0]);
-		break;
-	case Type::ShortTypeID:
-		offset = OFFSET(java_shortarray_t, data[0]);
-		break;
-	case Type::IntTypeID:
-		offset = OFFSET(java_intarray_t, data[0]);
-		break;
-	case Type::LongTypeID:
-		offset = OFFSET(java_longarray_t, data[0]);
-		break;
-	case Type::FloatTypeID:
-		offset = OFFSET(java_floatarray_t, data[0]);
-		floatingpoint = true;
-		break;
-	case Type::DoubleTypeID:
-		offset = OFFSET(java_doublearray_t, data[0]);
-		floatingpoint = true;
-		break;
-	case Type::ReferenceTypeID:
-		// TODO: implement me
-	default:
-		ABORT_MSG("x86_64 Lowering not supported",
-			"Inst: " << I << " type: " << type);
-		offset = 0;
-	}
-
-	ModRMOperand modrm(BaseOp(src_ref),0);
-
-	MachineInstruction *move = new MovModRMInst(
-		SrcOp(src_value),
-		get_OperandSize_from_Type(type),
-		DstModRM(modrm),
-		floatingpoint);
-	*/
 	get_current()->push_back(move);
 	set_op(I,move->get_result().op);
 }
@@ -905,13 +836,11 @@ void X86_64LoweringVisitor::visit(ARRAYLENGTHInst *I, bool copyOperands) {
 	assert(src_op->get_type() == Type::ReferenceTypeID);
 	MachineOperand *vreg = new VirtualRegister(Type::IntTypeID);
 	// create modrm source operand
-	ModRMOperand modrm(BaseOp(src_op),OFFSET(java_array_t,size));
-
-	MachineInstruction *move = new MovModRMInst(
-		DstOp(vreg),
-		get_OperandSize_from_Type(Type::IntTypeID),
-		SrcModRM(modrm),
-		false);
+	MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(src_op),OFFSET(java_array_t,size));
+	MachineInstruction *move = new MovInst(SrcOp(modrm)
+					      ,DstOp(vreg)
+					      ,get_OperandSize_from_Type(Type::IntTypeID)
+					      );
 	get_current()->push_back(move);
 	set_op(I,move->get_result().op);
 }
@@ -925,12 +854,11 @@ void X86_64LoweringVisitor::visit(ARRAYBOUNDSCHECKInst *I, bool copyOperands) {
 
 	// load array length
 	MachineOperand *len = new VirtualRegister(Type::IntTypeID);
-	ModRMOperand modrm(BaseOp(src_ref),OFFSET(java_array_t,size));
-	MachineInstruction *move = new MovModRMInst(
-		DstOp(len),
-		get_OperandSize_from_Type(Type::IntTypeID),
-		SrcModRM(modrm),
-		false);
+	MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(src_ref),OFFSET(java_array_t,size));
+	MachineInstruction *move = new MovInst(SrcOp(modrm)
+					      ,DstOp(len)
+					      ,get_OperandSize_from_Type(Type::IntTypeID)
+					      );
 	get_current()->push_back(move);
 	// compare with index
 	CmpInst *cmp = new CmpInst(
@@ -1264,9 +1192,6 @@ void X86_64LoweringVisitor::visit(INVOKESTATICInst *I, bool copyOperands) {
 }
 namespace {
 
-inline bool is_floatingpoint(Type::TypeID type) {
-	return type == Type::DoubleTypeID || type == Type::FloatTypeID;
-}
 template <class I,class Seg>
 static void write_data(Seg seg, I data) {
 	assert(seg.size() == sizeof(I));
@@ -1319,14 +1244,27 @@ void X86_64LoweringVisitor::visit(GETSTATICInst *I, bool copyOperands) {
 	VirtualRegister *addr = new VirtualRegister(Type::ReferenceTypeID);
 	MovDSEGInst *dmov = new MovDSEGInst(DstOp(addr),idx);
 	MachineOperand *vreg = new VirtualRegister(I->get_type());
-	ModRMOperand modrm( (BaseOp(addr)) );
-
-	MachineInstruction *mov = new MovModRMInst(
-		DstOp(vreg),
-		get_OperandSize_from_Type(I->get_type()),
-		SrcModRM(modrm),
-		is_floatingpoint(I->get_type()));
-
+	MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(addr));
+	MachineInstruction *mov;
+	switch (I->get_type()) {
+	case Type::CharTypeID:
+	case Type::ByteTypeID:
+	case Type::ShortTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+	case Type::ReferenceTypeID:
+		mov = new MovInst(SrcOp(modrm),DstOp(vreg),get_OperandSize_from_Type(I->get_type()));
+		break;
+	case Type::FloatTypeID:
+		mov = new MovSSInst(SrcOp(modrm),DstOp(vreg));
+		break;
+	case Type::DoubleTypeID:
+		mov = new MovSDInst(SrcOp(modrm),DstOp(vreg));
+		break;
+	default:
+		ABORT_MSG("x86_64 Lowering not supported",
+			"Inst: " << I << " type: " << I->get_type());
+	}
 	get_current()->push_back(dmov);
 	get_current()->push_back(mov);
 	set_op(I,mov->get_result().op);
@@ -1574,7 +1512,7 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 					stm, 		// base
 					stm  		// index
 				CONSTInstID		// disp
-			*/	
+			*/
 			assert(I);
 			Type::TypeID type = I->get_type();
 
@@ -1767,7 +1705,6 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 			VirtualRegister *dst = new VirtualRegister(type);
 
 			s4 offset;
-			bool floatingpoint = false;
 			switch (type) {
 			case Type::ByteTypeID:
 				offset = OFFSET(java_bytearray_t, data[0]);
@@ -1783,11 +1720,9 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 				break;
 			case Type::FloatTypeID:
 				offset = OFFSET(java_floatarray_t, data[0]);
-				floatingpoint = true;
 				break;
 			case Type::DoubleTypeID:
 				offset = OFFSET(java_doublearray_t, data[0]);
-				floatingpoint = true;
 				break;
 			case Type::ReferenceTypeID:
 				offset = OFFSET(java_objectarray_t, data[0]);
@@ -1799,8 +1734,27 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 			}
 
 			// create modrm source operand
-			ModRMOperand modrm(type,IndexOp(src_index),BaseOp(src_ref),offset);
-			MachineInstruction* move = new MovModRMInst(DstOp(dst), get_OperandSize_from_Type(type), SrcModRM(modrm),floatingpoint);
+			MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(src_ref),IndexOp(src_index),type,offset);
+			MachineInstruction *move = NULL;
+			switch (type) {
+			case Type::CharTypeID:
+			case Type::ByteTypeID:
+			case Type::ShortTypeID:
+			case Type::IntTypeID:
+			case Type::LongTypeID:
+			case Type::ReferenceTypeID:
+				move = new MovInst(SrcOp(modrm),DstOp(dst),get_OperandSize_from_Type(type));
+				break;
+			case Type::FloatTypeID:
+				move = new MovSSInst(SrcOp(modrm),DstOp(dst));
+				break;
+			case Type::DoubleTypeID:
+				move = new MovSDInst(SrcOp(modrm),DstOp(dst));
+				break;
+			default:
+				ABORT_MSG("x86_64 Lowering not supported",
+					"Inst: " << I << " type: " << type);
+			}
 			get_current()->push_back(move);
 			set_op(I,move->get_result().op);
 			break;
@@ -1827,7 +1781,6 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 			Type::TypeID type = ref->get_type();
 
 			s4 offset;
-			bool floatingpoint = false;
 			switch (type) {
 			case Type::ByteTypeID:
 				offset = OFFSET(java_bytearray_t, data[0]);
@@ -1843,11 +1796,9 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 				break;
 			case Type::FloatTypeID:
 				offset = OFFSET(java_floatarray_t, data[0]);
-				floatingpoint = true;
 				break;
 			case Type::DoubleTypeID:
 				offset = OFFSET(java_doublearray_t, data[0]);
-				floatingpoint = true;
 				break;
 			case Type::ReferenceTypeID:
 				// TODO: implement me
@@ -1858,8 +1809,102 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 			}
 
 			// create modrm source operand
-			ModRMOperand modrm(type,IndexOp(dst_index),BaseOp(dst_ref),offset);
-			MachineInstruction* move = new MovModRMInst(SrcOp(src), get_OperandSize_from_Type(type), DstModRM(modrm),floatingpoint);
+			MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(dst_ref),IndexOp(dst_index),type,offset);
+			MachineInstruction *move = NULL;
+			switch (type) {
+			case Type::CharTypeID:
+			case Type::ByteTypeID:
+			case Type::ShortTypeID:
+			case Type::IntTypeID:
+			case Type::LongTypeID:
+			case Type::ReferenceTypeID:
+				move = new MovInst(SrcOp(src),DstOp(modrm),get_OperandSize_from_Type(type));
+				break;
+			case Type::FloatTypeID:
+				move = new MovSSInst(SrcOp(src),DstOp(modrm));
+				break;
+			case Type::DoubleTypeID:
+				move = new MovSDInst(SrcOp(src),DstOp(modrm));
+				break;
+			default:
+				ABORT_MSG("x86_64 Lowering not supported",
+					"Inst: " << I << " type: " << type);
+			}
+			get_current()->push_back(move);
+			set_op(I,move->get_result().op);
+			break;
+		}
+		case AStoreImm:
+		{
+			/*
+			ASTOREInstID
+				AREFInstID,
+					stm,
+					stm
+				CONSTInstID	
+			*/	
+
+			assert(I);
+			Instruction *ref = I->get_operand(0)->to_Instruction();
+			assert(ref);
+			MachineOperand* dst_ref = get_op(ref->get_operand(0)->to_Instruction());
+			MachineOperand* dst_index = get_op(ref->get_operand(1)->to_Instruction());
+			assert(dst_ref->get_type() == Type::ReferenceTypeID);
+			assert(dst_index->get_type() == Type::IntTypeID);
+			Immediate* imm = new Immediate(I->get_operand(1)->to_Instruction()->to_CONSTInst());
+
+			Type::TypeID type = ref->get_type();
+
+			s4 offset;
+			switch (type) {
+			case Type::ByteTypeID:
+				offset = OFFSET(java_bytearray_t, data[0]);
+				break;
+			case Type::ShortTypeID:
+				offset = OFFSET(java_shortarray_t, data[0]);
+				break;
+			case Type::IntTypeID:
+				offset = OFFSET(java_intarray_t, data[0]);
+				break;
+			case Type::LongTypeID:
+				offset = OFFSET(java_longarray_t, data[0]);
+				break;
+			case Type::FloatTypeID:
+				offset = OFFSET(java_floatarray_t, data[0]);
+				break;
+			case Type::DoubleTypeID:
+				offset = OFFSET(java_doublearray_t, data[0]);
+				break;
+			case Type::ReferenceTypeID:
+				// TODO: implement me
+			default:
+				ABORT_MSG("x86_64 Lowering not supported",
+					"Inst: " << I << " type: " << type);
+				offset = 0;
+			}
+
+			// create modrm source operand
+			MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(dst_ref),IndexOp(dst_index),type,offset);
+			MachineInstruction *move = NULL;
+			switch (type) {
+			case Type::CharTypeID:
+			case Type::ByteTypeID:
+			case Type::ShortTypeID:
+			case Type::IntTypeID:
+			case Type::LongTypeID:
+			case Type::ReferenceTypeID:
+				move = new MovInst(SrcOp(imm),DstOp(modrm),get_OperandSize_from_Type(type));
+				break;
+			case Type::FloatTypeID:
+				move = new MovSSInst(SrcOp(imm),DstOp(modrm));
+				break;
+			case Type::DoubleTypeID:
+				move = new MovSDInst(SrcOp(imm),DstOp(modrm));
+				break;
+			default:
+				ABORT_MSG("x86_64 Lowering not supported",
+					"Inst: " << I << " type: " << type);
+			}
 			get_current()->push_back(move);
 			set_op(I,move->get_result().op);
 			break;

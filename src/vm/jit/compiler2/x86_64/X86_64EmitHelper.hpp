@@ -29,6 +29,9 @@
 #include "vm/jit/compiler2/CodeMemory.hpp"
 #include "vm/jit/compiler2/alloc/deque.hpp"
 #include "vm/types.hpp"
+#include "toolbox/logging.hpp"
+
+#define DEBUG_NAME "compiler2/x86_64 Emit"
 
 namespace cacao {
 namespace jit {
@@ -407,7 +410,7 @@ struct InstructionEncoding {
 
 	}
 
-	static void emit (CodeMemory* CM, u1 primary_opcode, GPInstruction::OperandSize op_size, MachineOperand *src, MachineOperand *dst, u1 secondary_opcode = 0, u1 op_reg = 0, u1 prefix = 0, bool prefix_0f = false, bool encode_dst = true) {
+	static void emit (CodeMemory* CM, u1 primary_opcode, GPInstruction::OperandSize op_size, MachineOperand *src, MachineOperand *dst, u1 secondary_opcode = 0, u1 op_reg = 0, u1 prefix = 0, bool prefix_0f = false, bool encode_dst = true, bool imm_sign_extended = false) {
 		CodeSegmentBuilder code;
 		
 		if (dst->is_Register()) {
@@ -445,31 +448,67 @@ struct InstructionEncoding {
 				if (encode_dst) {
 					code += get_modrm_1reg(op_reg,dst_reg);
 				}
-				switch(op_size) {
-					case GPInstruction::OS_8:
-					{
+				if (!imm_sign_extended) {
+					switch(op_size) {
+						case GPInstruction::OS_8:
+						{
+							s1 immval = src_imm->get_value<s1>();
+							code += (u1) 0xff & (immval >> 0x00);
+							break;
+						}
+						case GPInstruction::OS_16:
+						{
+							s2 immval = src_imm->get_value<s2>();
+							code += (u1) 0xff & (immval >> 0x00);
+							code += (u1) 0xff & (immval >> 0x08);
+							break;
+						}
+						case GPInstruction::OS_32:
+						{
+							s4 immval = src_imm->get_value<s4>();
+							code += (u1) 0xff & (immval >> 0x00);
+							code += (u1) 0xff & (immval >> 0x08);
+							code += (u1) 0xff & (immval >> 0x10);
+							code += (u1) 0xff & (immval >> 0x18);
+							break;
+						}
+						case GPInstruction::OS_64:
+						{
+							s8 immval = src_imm->get_value<s8>();
+							code += (u1) 0xff & (immval >> 0x00);
+							code += (u1) 0xff & (immval >> 0x08);
+							code += (u1) 0xff & (immval >> 0x10);
+							code += (u1) 0xff & (immval >> 0x18);
+							code += (u1) 0xff & (immval >> 0x20);
+							code += (u1) 0xff & (immval >> 0x28);
+							code += (u1) 0xff & (immval >> 0x30);
+							code += (u1) 0xff & (immval >> 0x38);
+							break;
+						}
+						case GPInstruction::NO_SIZE:
+							ABORT_MSG("Invalid Immediate Size",
+								"dst: " << dst_reg << " src: " << src_imm << " op_code: " << primary_opcode);
+							break;
+					}
+				}
+				else {
+					if (fits_into<s1>(src_imm->get_value<s8>())) {	
 						s1 immval = src_imm->get_value<s1>();
 						code += (u1) 0xff & (immval >> 0x00);
-						break;
-					}
-					case GPInstruction::OS_16:
-					{
+					}	
+					else if (fits_into<s2>(src_imm->get_value<s8>())) {
 						s2 immval = src_imm->get_value<s2>();
 						code += (u1) 0xff & (immval >> 0x00);
 						code += (u1) 0xff & (immval >> 0x08);
-						break;
 					}
-					case GPInstruction::OS_32:
-					{
+					else if (fits_into<s4>(src_imm->get_value<s8>())) {
 						s4 immval = src_imm->get_value<s4>();
 						code += (u1) 0xff & (immval >> 0x00);
 						code += (u1) 0xff & (immval >> 0x08);
 						code += (u1) 0xff & (immval >> 0x10);
 						code += (u1) 0xff & (immval >> 0x18);
-						break;
 					}
-					case GPInstruction::OS_64:
-					{
+					else {
 						s8 immval = src_imm->get_value<s8>();
 						code += (u1) 0xff & (immval >> 0x00);
 						code += (u1) 0xff & (immval >> 0x08);
@@ -479,20 +518,8 @@ struct InstructionEncoding {
 						code += (u1) 0xff & (immval >> 0x28);
 						code += (u1) 0xff & (immval >> 0x30);
 						code += (u1) 0xff & (immval >> 0x38);
-						break;
 					}
-					case GPInstruction::NO_SIZE:
-						ABORT_MSG("Invalid Immediate Size",
-							"dst: " << dst_reg << " src: " << src_imm << " op_code: " << primary_opcode);
-						break;
 				}
-				/*
-				if (fits_into<s1>(src_imm->get_value<s4>())) {
-					code += src_imm->get_value<s1>();
-				}
-				else if (fits_into<s4>(src_imm->get_value<s4>())) {
-					InstructionEncoding::imm<s4>(code.end(), src_imm->get_value<s4>());
-				}*/
 			}
 			else if (src->is_stackslot()) {
 				StackSlot *src_slot = cast_to<StackSlot>(src);
@@ -676,6 +703,10 @@ struct InstructionEncoding {
 					}
 					case GPInstruction::OS_64:
 					{
+						if (disp != 0) {
+							ABORT_MSG("Invalid Immediate Size (imm64 with disp not allowed)",
+								"dst: " << dst_mod << " src: " << src_imm << " op_code: " << primary_opcode);
+						}
 						s8 immval = src_imm->get_value<s8>();
 						code += (u1) 0xff & (immval >> 0x00);
 						code += (u1) 0xff & (immval >> 0x08);

@@ -273,7 +273,7 @@ inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current
 		assert_msg(pos.get_iterator() < split_pos, "pos: " << pos << " free_until_pos_reg "
 			<< free_until_pos_reg << " split: " << split_pos);
 		LOG2("splitting interval " << current << " at " << split_pos << " inserted move: " << move << nl);
-		LivetimeInterval lti = current.split_active(split_pos);
+		LivetimeInterval lti = current.split_active(split_pos,&pos);
 		unhandled.push(lti);
 	} else {
 		// no move required
@@ -375,7 +375,7 @@ void split_active_position(LivetimeInterval lti, UseDef current_pos, UseDef next
 		MachineInstruction *move_to_stack = backend->create_Move(MO,stackslot);
 		MIIterator split_pos = insert_move_before(move_to_stack,current_pos);
 		STATISTICS(++num_spill_stores);
-		lti = lti.split_active(split_pos);
+		lti = lti.split_active(split_pos,&current_pos);
 		// XXX should we add the stack interval?
 		unhandled.push(lti);
 	}
@@ -623,10 +623,18 @@ bool LinearScanAllocatorPass::allocate_unhandled() {
 				if (current.get_operand()->aquivalent(*act.get_operand())) {
 					MachineInstruction *MI = *pos.get_iterator();
 					if (!(MI->is_move() && MI->get_result().op->aquivalent(*MI->get(0).op))) {
-						STATISTICS(++num_spill_blocked_fixed);
-						ERROR_MSG("Fixed Interval is blocked",
-							"spilling not yet implemented " << current);
-						return false;
+						LOG2("Spill intervals blocking fixed: " << current.get_operand() << nl);
+						// spill intervals that currently block reg
+						UseDef next_use_pos = act.next_usedef_after(
+							current.front().start,UseDef(UseDef::PseudoDef,MIS->mi_end()));
+						SplitActive split (current.get_operand(), current.front().start, 
+									next_use_pos, backend, unhandled);
+						SplitActive::argument_type split_act = act;
+						split(split_act);
+						// spill each interval in inactive for reg at the end of the livetime hole
+						std::for_each(inactive.begin(), inactive.end(),
+							SplitInactive(current.get_operand(), current.front().start, 
+								unhandled));
 					}
 				}
 			}

@@ -265,10 +265,10 @@ public:
 		Reg32Imm32,
 		Reg64Imm64,
 		// Immediate to Memory
-		Mem8Imm8,
-		Mem16Imm16,
-		Mem32Imm32,
-		Mem64Imm64,
+		MemImm8,
+		MemImm16,
+		MemImm32,
+		MemImm64,
 		// Immediate 8 to Register
 		Reg16Imm8,
 		Reg32Imm8,

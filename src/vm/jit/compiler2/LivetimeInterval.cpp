@@ -210,8 +210,7 @@ inline void LivetimeIntervalImpl::move_use_def(LivetimeIntervalImpl *from, Livet
 	}
 }
 
-
-LivetimeInterval LivetimeIntervalImpl::split_active(MIIterator pos) {
+LivetimeInterval LivetimeIntervalImpl::split_active(MIIterator pos, UseDef *current) {
 	LOG2("split_active " << *this << " at " << pos << nl);
 	#if defined(ENABLE_LOGGING)
 	if (DEBUG_COND_N(3)) {
@@ -239,12 +238,12 @@ LivetimeInterval LivetimeIntervalImpl::split_active(MIIterator pos) {
 	lti.set_operand(def.get_operand()->op);
 
 	// copy uses defs
-	move_use_def(this, lti.pimpl.get(), def);
+	move_use_def(this, lti.pimpl.get(), (current == NULL) ? def : *current);
 
 	LOG2("copy ranges" << nl);
 	// copy ranges
 	iterator i = intervals.begin(), e = intervals.end();
-	for (; i != e && i->end < def; ++i) {
+	for (; i != e && i->end < ((current == NULL) ? def : *current); ++i) {
 		LOG2("  keep " << *i << nl);
 	}
 	assert(i != e);

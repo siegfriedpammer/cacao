@@ -48,8 +48,9 @@ class StackSlotManager {
 private:
 	typedef alloc::map<ManagedStackSlot*,StackSlot*>::type StackSlotListTy;
 	StackSlotListTy slots;
+	s4 counter;
 public:
-	StackSlotManager() {}
+	StackSlotManager() : counter(1) {}
 	~StackSlotManager();
 
 	/**

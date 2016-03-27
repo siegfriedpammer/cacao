@@ -100,6 +100,7 @@ enum RuleId {
 /* 39 */	ARef,	/* stm: AREFInstID(stm,stm) */
 /* 40 */	ALoad,	/* stm: ALOADInstID(AREFInstID(stm,stm)) */
 /* 41 */	AStore,	/* stm: ASTOREInstID(AREFInstID(stm,stm),stm) */
+/* 42 */	AStoreImm,	/* stm: ASTOREInstID(AREFInstID(stm,stm),CONSTInstID) */
 /* 0 */DUMMYREMOVE
 };
 #endif
@@ -176,6 +177,7 @@ static short *burm_nts[] = {
 	burm_nts_2,	/* 39 */
 	burm_nts_2,	/* 40 */
 	burm_nts_3,	/* 41 */
+	burm_nts_2,	/* 42 */
 };
 
 static const char *burm_templates[] = {
@@ -221,6 +223,7 @@ static const char *burm_templates[] = {
 /* 39 */	"ARef",	/* stm: AREFInstID(stm,stm) */
 /* 40 */	"ALoad",	/* stm: ALOADInstID(AREFInstID(stm,stm)) */
 /* 41 */	"AStore",	/* stm: ASTOREInstID(AREFInstID(stm,stm),stm) */
+/* 42 */	"AStoreImm",	/* stm: ASTOREInstID(AREFInstID(stm,stm),CONSTInstID) */
 };
 
 static char burm_isinstruction[] = {
@@ -266,6 +269,7 @@ static char burm_isinstruction[] = {
 /* 39 */	0,	/* ARef */
 /* 40 */	0,	/* ALoad */
 /* 41 */	0,	/* AStore */
+/* 42 */	0,	/* AStoreImm */
 };
 
 static const char *burm_string[] = {
@@ -311,6 +315,7 @@ static const char *burm_string[] = {
 /* 39 */	"stm: AREFInstID(stm,stm)",
 /* 40 */	"stm: ALOADInstID(AREFInstID(stm,stm))",
 /* 41 */	"stm: ASTOREInstID(AREFInstID(stm,stm),stm)",
+/* 42 */	"stm: ASTOREInstID(AREFInstID(stm,stm),CONSTInstID)",
 };
 
 static short burm_decode_stm[] = {
@@ -356,6 +361,7 @@ static short burm_decode_stm[] = {
 	39,
 	40,
 	41,
+	42,
 };
 
 
@@ -519,6 +525,7 @@ int Matcher::burm_rule(shared_ptr<STATE_TYPE> state, int goalnt) {
 		return 0;
 	}
 }
+
 
 void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 	int c;
@@ -847,6 +854,16 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 				p->rule.burm_stm = 41;
 			}
 		}
+		if (	/* stm: ASTOREInstID(AREFInstID(stm,stm),CONSTInstID) */
+			OP_LABEL(LEFT_CHILD(a)) == 27 && /* AREFInstID */
+			OP_LABEL(RIGHT_CHILD(a)) == 21 /* CONSTInstID */
+		) {
+			c = (STATE_LABEL(LEFT_CHILD(LEFT_CHILD(a))))->cost[burm_stm_NT] + (STATE_LABEL(RIGHT_CHILD(LEFT_CHILD(a))))->cost[burm_stm_NT] + 1;
+			if (c + 0 < p->cost[burm_stm_NT]) {
+				p->cost[burm_stm_NT] = c + 0;
+				p->rule.burm_stm = 42;
+			}
+		}
 		break;
 	case 29: /* ALOADInstID */
 		burm_label(LEFT_CHILD(a), root);
@@ -972,6 +989,7 @@ void Matcher::burm_kids(NODEPTR_TYPE p, int eruleno, NODEPTR_TYPE kids[]) {
 		kids[0] = LEFT_CHILD(p);
 		kids[1] = RIGHT_CHILD(p);
 		break;
+	case 42: /* stm: ASTOREInstID(AREFInstID(stm,stm),CONSTInstID) */
 	case 40: /* stm: ALOADInstID(AREFInstID(stm,stm)) */
 	case 33: /* stm: ADDInstID(ADDInstID(stm,stm),CONSTInstID) */
 		kids[0] = LEFT_CHILD(LEFT_CHILD(p));
