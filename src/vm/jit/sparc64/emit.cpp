@@ -727,7 +727,7 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 		break;
 	default:
 		assert(false);
-		break;	
+		break;
 	}
 }
 
