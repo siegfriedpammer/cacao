@@ -791,6 +791,8 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 	case TYPE_DBL:
 		M_DLD(REG_FRESULT, REG_SP, syncslot_offset);
 		break;
+	case TYPE_VOID:
+		break;
 	default:
 		break;
 	}
@@ -1020,7 +1022,7 @@ void emit_verbosecall_exit(jitdata *jd)
 		break;
 	default:
 		assert(false);
-		break;	
+		break;
 	}
 
 	/* keep stack 16-byte aligned */

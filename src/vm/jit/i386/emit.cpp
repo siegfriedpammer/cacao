@@ -880,6 +880,8 @@ void emit_verbosecall_exit(jitdata *jd)
 	case TYPE_DBL:
 		M_DSTNP(REG_NULL, REG_SP, 2 * 4);
 		break;
+	case TYPE_VOID:
+		break;
 	default:
 		assert(false);
 		break;
@@ -900,6 +902,8 @@ void emit_verbosecall_exit(jitdata *jd)
 		break;
 	case TYPE_LNG:
 		M_LLD(REG_RESULT_PACKED, REG_SP, 2 * 4);
+		break;
+	case TYPE_VOID:
 		break;
 	default:
 		assert(false);
