@@ -2007,20 +2007,6 @@ public:
 	static inline java_handle_chararray_t *get_value(java_handle_t *str) {
 		return get<java_handle_chararray_t*>(str, offset_value);
 	}
-	static inline int32_t get_count(java_handle_t *str) {
-#ifdef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
-		return CharArray(get_value(str)).get_length();
-#else
-		return get<int32_t>(str, offset_count);
-#endif
-	}
-	static inline int32_t get_offset(java_handle_t *str) {
-#ifdef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
-		return 0;
-#else
-		return get<int32_t>(str, offset_offset);
-#endif
-	}
 };
 
 inline java_lang_String::java_lang_String(java_handle_t* h, java_handle_chararray_t* value, int32_t count, int32_t offset) : java_lang_Object(h)
@@ -2086,7 +2072,8 @@ namespace jdk7_str_ops {
 
 inline jsize get_string_count(const java_lang_String &s)
 {
-	return CharArray(s.get_value()).get_length();
+	java_handle_chararray_t *value = s.get_value();
+	return value ? CharArray(value).get_length() : 0;
 }
 
 inline jsize get_string_offset(const java_lang_String &s)

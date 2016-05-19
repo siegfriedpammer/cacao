@@ -360,7 +360,7 @@ const uint16_t* JavaString::begin() const {
 
 	CharArray ca(array);
 
-	int32_t   offset = java_lang_String::get_offset(str);
+	int32_t   offset = runtime_str_ops::get_string_offset(str);
 	uint16_t* ptr    = ca.get_raw_data_ptr();
 
 	return ptr + offset;
@@ -382,7 +382,7 @@ const uint16_t* JavaString::end() const {
 size_t JavaString::size() const {
 	assert(str);
 
-	return java_lang_String::get_count(str);
+	return runtime_str_ops::get_string_count(str);
 }
 
 /* JavaString::utf8_size *******************************************************
