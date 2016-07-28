@@ -1482,7 +1482,7 @@ void md_push_stackframe(executionstate_t *es, codeinfo *calleecode, u1 *ra)
 
 	/* write the return address */
 
-#if STACKFRMAE_RA_BETWEEN_FRAMES
+#if STACKFRAME_RA_BETWEEN_FRAMES
 	es->sp -= SIZEOF_VOID_P;
 	*((void **)es->sp) = (void *) ra;
 	if (calleecode->stackframesize)
@@ -2168,7 +2168,7 @@ static void replace_pop_native_frame(executionstate_t *es,
 	/* restore sp, pv, pc and codeinfo of the parent method */
 
 	es->sp   = (uint8_t*) (((uintptr_t) sfi->sp) + md_stacktrace_get_framesize(code));
-#if STACKFRMAE_RA_BETWEEN_FRAMES
+#if STACKFRAME_RA_BETWEEN_FRAMES
 	es->sp  += SIZEOF_VOID_P; /* skip return address */
 #endif
 	es->pv   = (uint8_t*) md_codegen_get_pv_from_pc(sfi->ra);
@@ -2217,7 +2217,7 @@ static void replace_push_native_frame(executionstate_t *es, sourcestate_t *ss)
 	/* skip sp for the native stub */
 
 	es->sp -= md_stacktrace_get_framesize(frame->sfi->code);
-#if STACKFRMAE_RA_BETWEEN_FRAMES
+#if STACKFRAME_RA_BETWEEN_FRAMES
 	es->sp -= SIZEOF_VOID_P; /* skip return address */
 #endif
 

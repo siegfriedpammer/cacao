@@ -1672,11 +1672,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 		case ICMD_ATHROW:       /* ..., objectref ==> ... (, objectref)       */
 
-			disp = dseg_add_functionptr(cd, asm_handle_exception);
-			M_ALD(REG_ITMP2, REG_PV, disp);
-			M_JMP(REG_ITMP2_XPC, REG_ITMP2);
-			M_NOP;              /* nop ensures that XPC is less than the end */
-			                    /* of basic block                            */
+			M_ALD_INTERN(REG_ITMP2, REG_ZERO, TRAP_THROW);
 			break;
 
 		case ICMD_IFEQ:         /* ..., value ==> ...                         */
@@ -2713,9 +2709,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	M_ASUB_IMM(REG_RA, 4, REG_ITMP2_XPC); /* get exception address            */
 
-	disp = dseg_add_functionptr(cd, asm_handle_nat_exception);
-	M_ALD(REG_ITMP3, REG_PV, disp);     /* load asm exception handler address */
-	M_JMP(REG_ZERO, REG_ITMP3);         /* jump to asm exception handler      */
+	M_ALD_INTERN(REG_ITMP2, REG_ZERO, TRAP_NAT_EXCEPTION);
 }
 
 

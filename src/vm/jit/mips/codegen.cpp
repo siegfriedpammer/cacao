@@ -31,6 +31,7 @@
 #include "vm/types.hpp"
 
 #include "md-abi.hpp"
+#include "md-trap.hpp"
 
 #include "vm/jit/mips/arch.hpp"
 #include "vm/jit/mips/codegen.hpp"
@@ -2069,14 +2070,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 		case ICMD_ATHROW:       /* ..., objectref ==> ... (, objectref)       */
 
-			// Some processor implementations seem to have a problem when using
-			// the JALR instruction with (reg_dest == reg_src), so avoid that.
-			disp = dseg_add_functionptr(cd, asm_handle_exception);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_JSR(REG_ITMP2_XPC, REG_ITMP3);
-			M_NOP;
-			M_NOP;              /* nop ensures that XPC is less than the end */
-			                    /* of basic block                            */
+			M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_THROW);
 			break;
 
 		case ICMD_IFEQ:         /* ..., value ==> ...                         */
@@ -3494,10 +3488,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	/* handle exception */
 	
-	disp = dseg_add_functionptr(cd, asm_handle_nat_exception);
-	M_ALD(REG_ITMP3, REG_PV, disp);     /* load asm exception handler address */
-	M_JMP(REG_ITMP3);                   /* jump to asm exception handler      */
-	M_ASUB_IMM(REG_RA, 4, REG_ITMP2_XPC); /* get exception address (DELAY)    */
+	M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_NAT_EXCEPTION);
 
 	/* Generate patcher traps. */
 

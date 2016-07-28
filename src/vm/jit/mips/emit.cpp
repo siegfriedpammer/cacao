@@ -635,6 +635,12 @@ void emit_trap_compiler(codegendata *cd)
 }
 
 
+void emit_abstractmethoderror_trap(codegendata *cd)
+{
+	M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_AbstractMethodError);
+}
+
+
 /* emit_trap *******************************************************************
 
    Emit a trap instruction and return the original machine code.

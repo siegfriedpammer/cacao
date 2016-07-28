@@ -810,6 +810,11 @@ void emit_trap_compiler(codegendata *cd)
 	M_LWZ(REG_METHODPTR, REG_ZERO, TRAP_COMPILER);
 }
 
+void emit_abstractmethoderror_trap(codegendata *cd)
+{
+	M_LWZ(REG_METHODPTR, REG_ZERO, TRAP_AbstractMethodError);
+}
+
 
 /* emit_trap *******************************************************************
 

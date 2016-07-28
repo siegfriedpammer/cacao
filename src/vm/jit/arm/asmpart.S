@@ -27,7 +27,7 @@
 
 #include <sys/syscall.h>
 
-#include "vm/jit/arm/md-asm.hpp"
+#include "md-asm.hpp"
 
 #include "vm/jit/methodheader.hpp"
 
@@ -55,11 +55,6 @@
 	.type  asm_vm_call_method_double, %function
 	.globl asm_vm_call_method_exception_handler
 	.globl asm_vm_call_method_end
-
-	.globl asm_handle_exception
-	.globl asm_handle_nat_exception
-
-	.globl asm_abstractmethoderror
 
 	.globl asm_cacheflush
 	.type  asm_cacheflush, %function
@@ -149,108 +144,6 @@ asm_vm_call_method_exception_handler:
 asm_vm_call_method_end:
 
 
-/********************* function asm_handle_exception ***************************
-*                                                                              *
-*   This function handles an exception. It does not use the usual calling      *
-*   conventions. The exception pointer is passed in REG_ITMP1 and the          *
-*   pc from the exception raising position is passed in REG_ITMP2. It searches *
-*   the local exception table for a handler. If no one is found, it unwinds    *
-*   stacks and continues searching the callers.                                *
-*                                                                              *
-*   void asm_handle_exception (exceptionptr, exceptionpc);                     *
-*                                                                              *
-*******************************************************************************/
-
-asm_handle_nat_exception:
-	/*TODO:maybe make a macro out of it!!!*/
-	SAVE_ARGUMENT_REGISTERS  
-	mov   a0, lr
-	bl    md_asm_codegen_get_pv_from_pc
-	mov   ip, res1
-	RESTORE_ARGUMENT_REGISTERS  
-	/* fall through */
-
-asm_handle_exception:
-	stmfd sp!, {r0 - r3}               /* save possible used registers    */
-	mov   itmp3, #1                    /* set maybe-leaf flag             */
-	mov   a3, #(4*4)                   /* prepare a3 for handle_exception */
-
-asm_handle_exception_loop:
-	stmfd sp!, {ip,lr}                 /* call exception helper here!     */
-	mov   a0, xptr                     /* pass exception pointer          */
-	mov   a1, xpc                      /* pass exception pointer          */
-	mov   a2, ip                       /* pass data segment pointer       */
-	add   a3, sp, a3                   /* calculate Java sp into a3...    */
-	add   a3, a3, #(2*4)
-	bl    exceptions_handle_exception
-	ldmfd sp!, {ip,lr}
-
-	tst   a0, a0
-	beq   asm_handle_exception_not_catched
-
-	mov   xpc, a0                      /* move handlerpc into xpc         */
-	tst   itmp3,itmp3                  /* if this is a lead method ...    */
-	ldmnefd sp!, {r0 - r3}             /* restore argument registers      */
-
-	mov   pc, xpc                      /* jump to handler                 */
-
-asm_handle_exception_not_catched:
-	tst   itmp3,itmp3                  /* if this is a lead method ...    */
-	addne sp, sp, #(4*4)               /* remove maybe-leaf stackframe    */
-	movne itmp3, #0                    /* remove maybe-leaf flag          */
-
-	ldr   a2, [ip, #FrameSize]         /* t2 = frame size                 */
-	add   a0, sp, a2                   /* t0 = pointer to save area       */
-	ldr   a1, [ip, #IsLeaf]            /* t1 = is leaf procedure          */
-	tst   a1, a1                       /* if is leaf ...                  */
-	ldreq lr, [a0, #-4]!               /* ... restore RA                  */
-	mov   xpc, lr                      /* the new xpc is RA               */
-
-	ldr   a1, [ip, #IntSave]           /* t1 = saved int register count   */
-	rsb   a1, a1, #5                   /* t1 = count of unsaved registers */
-	sub   a1, a1, #1
-	add   pc, pc, a1, lsl #2           /* do not load unsaved registers   */
-	ldr   v1, [a0, #-20]               /* ... but restore the other ones  */
-	ldr   v2, [a0, #-16]
-	ldr   v3, [a0, #-12]
-	ldr   v4, [a0, #- 8]
-	ldr   v5, [a0, #- 4]
-
-	add   sp, sp, a2                   /* unwind stack (using t2)         */
-	mov   a3, #0                       /* prepare a3 for handle_exception */
-
-	/*TODO:maybe make a macro out of it!!!*/
-	SAVE_ARGUMENT_REGISTERS  
-	mov   a0, lr
-	bl    md_asm_codegen_get_pv_from_pc
-	mov   ip, res1
-	RESTORE_ARGUMENT_REGISTERS  
-
-	b     asm_handle_exception_loop
-
-
-/* asm_abstractmethoderror *****************************************************
-
-   Creates and throws an AbstractMethodError.
-
-*******************************************************************************/
-
-asm_abstractmethoderror:
-	stmfd sp!, {lr}                     /* save return address                */
-	add   a0, sp, #(1*4)                /* pass java sp                       */
-	mov   a1, lr                        /* pass exception address             */
-#if defined(ARM_NO_THUMB_IW)
-	bl    exceptions_asm_new_abstractmethoderror
-#else
-	blx   exceptions_asm_new_abstractmethoderror
-#endif
-	ldmfd sp!, {lr}                     /* restore return address             */
-
-	mov   xptr, res1                    /* get exception pointer              */
-	sub   xpc, lr, #4                   /* exception address is ra - 4        */
-	b     asm_handle_nat_exception
-
-		
 /********************* function asm_cacheflush *********************************
 *                                                                              *
 *   TODO: document me                                                          *

@@ -209,6 +209,7 @@ void emit_exception_check(codegendata *cd, instruction *iptr);
 void emit_trap_compiler(codegendata *cd);
 void emit_trap_countdown(codegendata *cd, s4 *counter);
 uint32_t emit_trap(codegendata *cd);
+void emit_abstractmethoderror_trap(codegendata *cd);
 
 void emit_patcher_traps(jitdata *jd);
 

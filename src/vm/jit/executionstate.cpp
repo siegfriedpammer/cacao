@@ -78,7 +78,11 @@ void executionstate_pop_stackframe(executionstate_t *es)
 # if STACKFRAME_LEAFMETHODS_RA_REGISTER
 	if (!code_is_leafmethod(es->code)) {
 # endif
+# if STACKFRAME_PACKED_SAVED_REGISTERS
+		basesp -= 1 * SIZEOF_VOID_P;
+# else
 		basesp -= 1 * SIZE_OF_STACKSLOT;
+# endif
 		es->ra = *((uint8_t**) basesp);
 # if STACKFRAME_LEAFMETHODS_RA_REGISTER
 	}
@@ -98,7 +102,11 @@ void executionstate_pop_stackframe(executionstate_t *es)
 	for (i=0; i<es->code->savedintcount; ++i) {
 		while (nregdescint[--reg] != REG_SAV)
 			;
+#if STACKFRAME_PACKED_SAVED_REGISTERS
+		basesp -= 1 * SIZEOF_VOID_P;
+#else
 		basesp -= 1 * SIZE_OF_STACKSLOT;
+#endif
 		es->intregs[reg] = *((uintptr_t*) basesp);
 	}
 
@@ -114,7 +122,7 @@ void executionstate_pop_stackframe(executionstate_t *es)
 
 	// Adjust the stackpointer.
 	es->sp += framesize;
-#if STACKFRMAE_RA_BETWEEN_FRAMES
+#if STACKFRAME_RA_BETWEEN_FRAMES
 	es->sp += SIZEOF_VOID_P; /* skip return address */
 #endif
 
@@ -124,10 +132,10 @@ void executionstate_pop_stackframe(executionstate_t *es)
 	// In debugging mode clobber non-saved registers.
 #if !defined(NDEBUG)
 	for (i=0; i<INT_REG_CNT; ++i)
-		if (nregdescint[i] != REG_SAV)
+		if (nregdescint[i] != REG_SAV && nregdescint[i] != REG_RES)
 			es->intregs[i] = (ptrint) 0x33dead3333dead33ULL;
 	for (i=0; i<FLT_REG_CNT; ++i)
-		if (nregdescfloat[i] != REG_SAV)
+		if (nregdescfloat[i] != REG_SAV && nregdescfloat[i] != REG_RES)
 			*(u8*)&(es->fltregs[i]) = 0x33dead3333dead33ULL;
 #endif /* !defined(NDEBUG) */
 }

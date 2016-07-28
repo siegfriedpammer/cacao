@@ -59,6 +59,12 @@ enum {
 
 	TRAP_COMPILER                       = 9,
 	TRAP_COUNTDOWN                      = 10,
+	TRAP_AbstractMethodError            = 11,
+
+	/* Don't use 12 (could be a normal load offset). */
+
+	TRAP_THROW                          = 13,
+	TRAP_NAT_EXCEPTION                  = 14,
 	TRAP_END
 };
 

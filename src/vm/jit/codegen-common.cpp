@@ -86,6 +86,7 @@
 #include "vm/jit/replace.hpp"
 #include "vm/jit/show.hpp"
 #include "vm/jit/stacktrace.hpp"
+#include "vm/jit/stubs.hpp"
 #include "vm/jit/trace.hpp"
 
 #include "vm/jit/optimizing/profile.hpp"
@@ -124,6 +125,7 @@ using namespace cacao;
 
 void codegen_init(void)
 {
+	AbstractMethodErrorStub::generate();
 }
 
 
@@ -1127,7 +1129,7 @@ bool codegen_emit(jitdata *jd)
 	// Keep stack of non-leaf functions 16-byte aligned for calls into
 	// native code.
 	if (!code_is_leafmethod(code) || JITDATA_HAS_FLAG_VERBOSECALL(jd))
-#if STACKFRMAE_RA_BETWEEN_FRAMES
+#if STACKFRAME_RA_BETWEEN_FRAMES
 		ALIGN_ODD(cd->stackframesize);
 #else
 		ALIGN_EVEN(cd->stackframesize);
@@ -2467,14 +2469,6 @@ void codegen_emit_phi_moves(jitdata *jd, basicblock *bptr)
 	}
 }
 #endif /* defined(ENABLE_SSA) */
-
-
-/* REMOVEME When we have exception handling in C. */
-
-void *md_asm_codegen_get_pv_from_pc(void *ra)
-{
-	return md_codegen_get_pv_from_pc(ra);
-}
 
 
 /*

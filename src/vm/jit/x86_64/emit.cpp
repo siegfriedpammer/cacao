@@ -444,6 +444,11 @@ void emit_trap_compiler(codegendata *cd)
 	M_ALD_MEM(REG_METHODPTR, TRAP_COMPILER);
 }
 
+void emit_abstractmethoderror_trap(codegendata *cd)
+{
+	M_ALD_MEM(REG_METHODPTR, TRAP_AbstractMethodError);
+}
+
 
 /* emit_patcher_alignment ******************************************************
 

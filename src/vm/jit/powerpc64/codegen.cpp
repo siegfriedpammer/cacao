@@ -1310,20 +1310,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 		case ICMD_ATHROW:       /* ..., objectref ==> ... (, objectref)       */
 
-			disp = dseg_add_functionptr(cd, asm_handle_exception);
-			M_ALD(REG_ITMP2, REG_PV, disp);
-			M_MTCTR(REG_ITMP2);
-
-			if (code_is_leafmethod(code))
-				M_MFLR(REG_ITMP3);                          /* save LR        */
-
-			M_BL(0);                                        /* get current PC */
-			M_MFLR(REG_ITMP2_XPC);
-
-			if (code_is_leafmethod(code))
-				M_MTLR(REG_ITMP3);                          /* restore LR     */
-
-			M_RTS;                                          /* jump to CTR    */
+			M_LWZ(REG_ITMP2, REG_ZERO, TRAP_THROW);
 			break;
 
 		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
@@ -2219,12 +2206,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	/* handle exception */
 
-	M_LADD_IMM(REG_ITMP2_XPC, -4, REG_ITMP2_XPC);  /* exception address       */
-
-	disp = dseg_add_functionptr(cd, asm_handle_nat_exception);
-	M_ALD(REG_ITMP3, REG_PV, disp);
-	M_MTCTR(REG_ITMP3);
-	M_RTS;
+	M_LWZ(REG_ITMP2, REG_ZERO, TRAP_NAT_EXCEPTION);
 }
 
 

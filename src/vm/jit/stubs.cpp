@@ -42,6 +42,7 @@
 #include "vm/jit/jit.hpp"               // for jitdata, jit_jitdata_new
 #include "vm/jit/reg.hpp"               // for reg_setup
 #include "vm/jit/show.hpp"
+#include "vm/jit/trap.hpp"
 #include "vm/method.hpp"                // for methodinfo
 #include "vm/options.hpp"               // for opt_verbosecall
 #include "vm/statistics.hpp"            // for StatVar
@@ -254,6 +255,19 @@ void BuiltinStub::generate(methodinfo* m, builtintable_entry* bte)
 			dseg_display(jd);
 	}
 #endif /* !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER) */
+}
+
+void *AbstractMethodErrorStub::stubcode;
+
+void AbstractMethodErrorStub::generate()
+{
+	codegendata *cd = NEW(codegendata);
+	// 16 bytes should be enough for all architectures
+	cd->mcodebase = cd->mcodeptr = CNEW(u1, 16);
+
+	emit_abstractmethoderror_trap(cd);
+	md_cacheflush(cd->mcodebase, 16);
+	stubcode = cd->mcodebase;
 }
 
 

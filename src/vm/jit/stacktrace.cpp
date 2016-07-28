@@ -351,7 +351,7 @@ static inline void stacktrace_stackframeinfo_next(stackframeinfo_t *tmpsfi)
 	else
 #endif
 		{
-#if STACKFRMAE_RA_BETWEEN_FRAMES
+#if STACKFRAME_RA_BETWEEN_FRAMES
 			sp = (void *) (((intptr_t) sp) + framesize + SIZEOF_VOID_P);
 #elif defined(__SPARC_64__)
 			/* already has the new sp */
