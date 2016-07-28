@@ -717,7 +717,7 @@ TEST_LOGS = $(am__test_logs2:.test.log=.log)
 TEST_LOG_DRIVER = $(SHELL) $(top_srcdir)/test-driver
 TEST_LOG_COMPILE = $(TEST_LOG_COMPILER) $(AM_TEST_LOG_FLAGS) \
 	$(TEST_LOG_FLAGS)
-DIST_SUBDIRS = $(SUBDIRS)
+DIST_SUBDIRS = libatomic_ops
 am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/bdw-gc.pc.in \
 	$(srcdir)/cord/cord.am $(srcdir)/doc/doc.am \
 	$(srcdir)/include/include.am $(srcdir)/tests/tests.am \
@@ -922,12 +922,8 @@ top_srcdir = @top_srcdir@
 # it hard to use either the resulting object files or libraries.
 # Thus there seems too be no real reason to recursively build in the
 # libatomic_ops directory.
-# if USE_INTERNAL_LIBATOMICS_OPS
-# SUBDIRS = @maybe_libatomic_ops@
-# else
-# SUBDIRS =
-# endif
-SUBDIRS = libatomic_ops
+@USE_INTERNAL_LIBATOMIC_OPS_TRUE@MAYBE_LIBATOMIC_OPS = libatomic_ops
+SUBDIRS = $(MAYBE_LIBATOMIC_OPS)
 ACLOCAL_AMFLAGS = -I m4
 
 # Initialize variables so that we can declare files locally.

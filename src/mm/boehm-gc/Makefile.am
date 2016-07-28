@@ -20,12 +20,11 @@
 # it hard to use either the resulting object files or libraries.
 # Thus there seems too be no real reason to recursively build in the
 # libatomic_ops directory.
-# if USE_INTERNAL_LIBATOMICS_OPS
-# SUBDIRS = @maybe_libatomic_ops@
-# else
-# SUBDIRS =
-# endif
-SUBDIRS = libatomic_ops
+if USE_INTERNAL_LIBATOMIC_OPS
+MAYBE_LIBATOMIC_OPS = libatomic_ops
+endif
+
+SUBDIRS = $(MAYBE_LIBATOMIC_OPS)
 
 ACLOCAL_AMFLAGS = -I m4
 AM_CPPFLAGS = \
