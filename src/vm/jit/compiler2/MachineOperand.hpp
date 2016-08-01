@@ -155,48 +155,45 @@ public:
 	virtual bool needs_allocation() const { return is_virtual(); }
 	bool has_embedded_operands()  { return op_size() != 0; }
 	std::size_t op_size() const {
-                return embedded_operands.size();
-        }
+		return embedded_operands.size();
+	}
 	EmbeddedMachineOperand &operator[](std::size_t i) {
-                assert(i < embedded_operands.size());
-                assert(embedded_operands[i].get_index() == i);
-                return embedded_operands[i];
-        }
+		assert(i < embedded_operands.size());
+		return embedded_operands[i];
+	}
 	const EmbeddedMachineOperand &get(std::size_t i) const {
-                assert(i < embedded_operands.size());
-                assert(embedded_operands[i].get_index() == i);
-                return embedded_operands[i];
-        }
+		assert(i < embedded_operands.size());
+		return embedded_operands[i];
+	}
 	EmbeddedMachineOperand &get(std::size_t i) {
-                assert(i < embedded_operands.size());
-                assert(embedded_operands[i].get_index() == i);
-                return embedded_operands[i];
-        }
+		assert(i < embedded_operands.size());
+		return embedded_operands[i];
+	}
 	operand_iterator begin() {
-                return embedded_operands.begin();
-        }
-        operand_iterator end() {
-                return embedded_operands.end();
-        }
-        operand_iterator find(MachineOperand *op) {
-                for (operand_iterator i = begin(), e =end(); i != e; ++i) {
-                        if (op->aquivalent(*i->dummy))
-                                return i;
-                }
-                return end();
-        }
-        EmbeddedMachineOperand &front() {
-                return embedded_operands.front();
-        }
-        EmbeddedMachineOperand &back() {
-                return embedded_operands.back();
-        }
-        const_operand_iterator begin() const {
-                return embedded_operands.begin();
-        }
-        const_operand_iterator end() const {
-                return embedded_operands.end();
-        }
+		return embedded_operands.begin();
+	}
+	operand_iterator end() {
+		return embedded_operands.end();
+	}
+	operand_iterator find(MachineOperand *op) {
+		for (operand_iterator i = begin(), e =end(); i != e; ++i) {
+			if (op->aquivalent(*i->dummy))
+				return i;
+		}
+		return end();
+	}
+	EmbeddedMachineOperand &front() {
+		return embedded_operands.front();
+	}
+	EmbeddedMachineOperand &back() {
+		return embedded_operands.back();
+	}
+	const_operand_iterator begin() const {
+		return embedded_operands.begin();
+	}
+	const_operand_iterator end() const {
+		return embedded_operands.end();
+	}
 
 	virtual OStream& print(OStream &OS) const {
 		return OS << get_name() /* << " (" << get_type() << ")" */;

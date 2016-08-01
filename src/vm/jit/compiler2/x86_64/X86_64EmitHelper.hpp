@@ -118,70 +118,70 @@ inline u1 get_rex(X86_64Register *reg, X86_64Register *rm = NULL,
 inline u1 get_rex(const X86_64Register *reg1, X86_64Register *reg2 = NULL, 
 			GPInstruction::OperandSize op_size = GPInstruction::OS_32, 
 			X86_64Register *reg3 = NULL) {
-        const unsigned rex_w = 3;
-        const unsigned rex_r = 2;
-        const unsigned rex_x = 1;
-        const unsigned rex_b = 0;
+	const unsigned rex_w = 3;
+	const unsigned rex_r = 2;
+	const unsigned rex_x = 1;
+	const unsigned rex_b = 0;
 
-        u1 rex = 0x40;
+	u1 rex = 0x40;
 
-        // 64-bit operand size
-        if (op_size == GPInstruction::OS_64) {
-                rex |= (1 << rex_w);
-        }
-        if (reg1 && reg1->extented) {
-                rex |= (1 << rex_r);
-        }
-        if (reg2 && reg2->extented) {
-                rex |= (1 << rex_b);
-        }
-        if (reg3 && reg3->extented) {
-                rex |= (1 << rex_x);
-        }
-        return rex;
+	// 64-bit operand size
+	if (op_size == GPInstruction::OS_64) {
+		rex |= (1 << rex_w);
+	}
+	if (reg1 && reg1->extented) {
+		rex |= (1 << rex_r);
+	}
+	if (reg2 && reg2->extented) {
+		rex |= (1 << rex_b);
+	}
+	if (reg3 && reg3->extented) {
+		rex |= (1 << rex_x);
+	}
+	return rex;
 
 }
 
 inline bool use_sib(X86_64Register *base, X86_64Register *index) {
-        return index || base == &RSP || base == &R12;
+	return index || base == &RSP || base == &R12;
 }
 
 inline u1 get_modrm(u1 reg, u1 base, s4 disp, bool use_sib = false) {
-        u1 modrm_mod = 6;
-        u1 modrm_reg = 3;
-        u1 modrm_rm = 0;
+	u1 modrm_mod = 6;
+	u1 modrm_reg = 3;
+	u1 modrm_rm = 0;
 
-        u1 mod = 0;
-        u1 rm = 0;
-        u1 modrm = 0;
+	u1 mod = 0;
+	u1 rm = 0;
+	u1 modrm = 0;
 
 	if (disp == 0) {
 		// no disp
 		mod = 0x00; //0b00
 	}
-        else if (fits_into<s1>(disp)) {
-                // disp8
-                mod = 0x01; // 0b01
-        } else if (fits_into<s4>(disp)) {
-                // disp32
-                mod = 0x02; // 0b10
-        }
-        else {
+	else if (fits_into<s1>(disp)) {
+		// disp8
+		mod = 0x01; // 0b01
+	} else if (fits_into<s4>(disp)) {
+		// disp32
+		mod = 0x02; // 0b10
+	}
+	else {
 		ABORT_MSG("Illegal displacement", "Displacement: "<<disp);
-        }
+	}
 
-        if (use_sib) {
-                rm = 0x04; // 0b100
-        }
-        else {
-                rm = base;
-        }
+	if (use_sib) {
+		rm = 0x04; // 0b100
+	}
+	else {
+		rm = base;
+	}
 
-        modrm = mod << modrm_mod;
-        modrm |= reg << modrm_reg;
-        modrm |= rm << modrm_rm;
+	modrm = mod << modrm_mod;
+	modrm |= reg << modrm_reg;
+	modrm |= rm << modrm_rm;
 
-        return modrm;
+	return modrm;
 }
 
 inline u1 get_modrm (X86_64Register *reg, X86_64Register *base, s4 disp, bool use_sib = false) {
@@ -189,23 +189,23 @@ inline u1 get_modrm (X86_64Register *reg, X86_64Register *base, s4 disp, bool us
 }
 
 inline u1 get_sib(X86_64Register *base, X86_64Register *index = NULL, u1 scale = 1) {
-        u1 sib_scale = 6;
-        u1 sib_index = 3;
-        u1 sib_base = 0;
+	u1 sib_scale = 6;
+	u1 sib_index = 3;
+	u1 sib_base = 0;
 
-        u1 sib = 0;
+	u1 sib = 0;
 
-        sib = scale << sib_scale;
-        if (index) {
-                sib |= index->get_index() << sib_index;
-        }
-        else {
-                sib |= RSP.get_index() << sib_index;
-        }
+	sib = scale << sib_scale;
+	if (index) {
+		sib |= index->get_index() << sib_index;
+	}
+	else {
+		sib |= RSP.get_index() << sib_index;
+	}
 
-        sib |= base->get_index() << sib_base;
+	sib |= base->get_index() << sib_base;
 
-        return sib;
+	return sib;
 }
 
 
@@ -232,72 +232,72 @@ inline u1 get_modrm_1reg(u1 reg, X86_64Register *rm) {
 
 class CodeSegmentBuilder {
 private:
-        typedef alloc::deque<u1>::type Container;
+	typedef alloc::deque<u1>::type Container;
 public:
-        typedef Container::iterator iterator;
-        typedef Container::const_iterator const_iterator;
-        typedef Container::value_type value_type;
+	typedef Container::iterator iterator;
+	typedef Container::const_iterator const_iterator;
+	typedef Container::value_type value_type;
 
-        void push_front(u1 d) { data.push_front(d); }
-        void push_back(u1 d) { data.push_back(d); }
-        CodeSegmentBuilder& operator+=(u1 d) {
-                push_back(d);
-                return *this;
-        }
-        u1& operator[](std::size_t i) {
-                if (i >= size()) {
-                        data.resize(i+1,0);
-                }
-                return data[i];
-        }
-        u1 operator[](std::size_t i) const {
-                assert(i < size());
-                return data[i];
-        }
-        std::size_t size() const { return data.size(); }
-        const_iterator begin() const { return data.begin(); }
-        const_iterator end()   const { return data.end(); }
-        iterator begin() { return data.begin(); }
-        iterator end()   { return data.end(); }
+	void push_front(u1 d) { data.push_front(d); }
+	void push_back(u1 d) { data.push_back(d); }
+	CodeSegmentBuilder& operator+=(u1 d) {
+		push_back(d);
+		return *this;
+	}
+	u1& operator[](std::size_t i) {
+		if (i >= size()) {
+			data.resize(i+1,0);
+		}
+		return data[i];
+	}
+	u1 operator[](std::size_t i) const {
+		assert(i < size());
+		return data[i];
+	}
+	std::size_t size() const { return data.size(); }
+	const_iterator begin() const { return data.begin(); }
+	const_iterator end()   const { return data.end(); }
+	iterator begin() { return data.begin(); }
+	iterator end()   { return data.end(); }
 private:
-        Container data;
+	Container data;
 };
 
 void add_CodeSegmentBuilder(CodeMemory *CM, const CodeSegmentBuilder &CSB) {
-        CodeFragment CF = CM->get_CodeFragment(CSB.size());
-        for (std::size_t i = 0, e = CSB.size(); i < e; ++i) {
-                CF[i] = CSB[i];
-        }
+	CodeFragment CF = CM->get_CodeFragment(CSB.size());
+	for (std::size_t i = 0, e = CSB.size(); i < e; ++i) {
+		CF[i] = CSB[i];
+	}
 }
 
 template <>
 inline StackSlot* cast_to<StackSlot>(MachineOperand *op) {
-        switch (op->get_OperandID()) {
-        case MachineOperand::ManagedStackSlotID:
-                {
-                        ManagedStackSlot *mslot = op->to_ManagedStackSlot();
-                        assert(mslot);
-                        StackSlot *slot = mslot->to_StackSlot();
-                        assert(slot);
-                        return slot;
-                }
-        case MachineOperand::StackSlotID:
-                {
-                        StackSlot *slot = op->to_StackSlot();
-                        assert(slot);
-                        return slot;
-                }
-        default: break;
-        }
-        assert(0 && "Not a stackslot");
-        return NULL;
+	switch (op->get_OperandID()) {
+	case MachineOperand::ManagedStackSlotID:
+		{
+			ManagedStackSlot *mslot = op->to_ManagedStackSlot();
+			assert(mslot);
+			StackSlot *slot = mslot->to_StackSlot();
+			assert(slot);
+			return slot;
+		}
+	case MachineOperand::StackSlotID:
+		{
+			StackSlot *slot = op->to_StackSlot();
+			assert(slot);
+			return slot;
+		}
+	default: break;
+	}
+	assert(0 && "Not a stackslot");
+	return NULL;
 }
 
 template <>
 inline Immediate* cast_to<Immediate>(MachineOperand *op) {
-        Immediate* imm = op->to_Immediate();
-        assert(imm);
-        return imm;
+	Immediate* imm = op->to_Immediate();
+	assert(imm);
+	return imm;
 }
 
 struct InstructionEncoding {

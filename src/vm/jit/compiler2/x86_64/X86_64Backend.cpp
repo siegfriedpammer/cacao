@@ -699,33 +699,33 @@ void X86_64LoweringVisitor::visit(ALOADInst *I, bool copyOperands) {
 	assert(src_index->get_type() == Type::IntTypeID);
 
 	s4 offset;
-        switch (type) {
-        case Type::ByteTypeID:
-                offset = OFFSET(java_bytearray_t, data[0]);
-                break;
-        case Type::ShortTypeID:
-                offset = OFFSET(java_shortarray_t, data[0]);
-                break;
-        case Type::IntTypeID:
-                offset = OFFSET(java_intarray_t, data[0]);
-                break;
-        case Type::LongTypeID:
-                offset = OFFSET(java_longarray_t, data[0]);
-                break;
-        case Type::FloatTypeID:
-                offset = OFFSET(java_floatarray_t, data[0]);
-                break;
-        case Type::DoubleTypeID:
-                offset = OFFSET(java_doublearray_t, data[0]);
-                break;
-        case Type::ReferenceTypeID:
-                offset = OFFSET(java_objectarray_t, data[0]);
-                break;
-        default:
-                ABORT_MSG("x86_64 Lowering not supported",
-                        "Inst: " << I << " type: " << type);
-                offset = 0;
-        }
+	switch (type) {
+	case Type::ByteTypeID:
+		offset = OFFSET(java_bytearray_t, data[0]);
+		break;
+	case Type::ShortTypeID:
+		offset = OFFSET(java_shortarray_t, data[0]);
+		break;
+	case Type::IntTypeID:
+		offset = OFFSET(java_intarray_t, data[0]);
+		break;
+	case Type::LongTypeID:
+		offset = OFFSET(java_longarray_t, data[0]);
+		break;
+	case Type::FloatTypeID:
+		offset = OFFSET(java_floatarray_t, data[0]);
+		break;
+	case Type::DoubleTypeID:
+		offset = OFFSET(java_doublearray_t, data[0]);
+		break;
+	case Type::ReferenceTypeID:
+		offset = OFFSET(java_objectarray_t, data[0]);
+		break;
+	default:
+		ABORT_MSG("x86_64 Lowering not supported",
+			"Inst: " << I << " type: " << type);
+		offset = 0;
+	}
 
 	modrm = new X86_64ModRMOperand(BaseOp(src_base),IndexOp(src_index),type,offset);
 #endif
@@ -776,33 +776,33 @@ void X86_64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 	assert(src_index->get_type() == Type::IntTypeID);
 
 	s4 offset;
-        switch (type) {
-        case Type::ByteTypeID:
-                offset = OFFSET(java_bytearray_t, data[0]);
-                break;
-        case Type::ShortTypeID:
-                offset = OFFSET(java_shortarray_t, data[0]);
-                break;
-        case Type::IntTypeID:
-                offset = OFFSET(java_intarray_t, data[0]);
-                break;
-        case Type::LongTypeID:
-                offset = OFFSET(java_longarray_t, data[0]);
-                break;
-        case Type::FloatTypeID:
-                offset = OFFSET(java_floatarray_t, data[0]);
-                break;
-        case Type::DoubleTypeID:
-                offset = OFFSET(java_doublearray_t, data[0]);
-                break;
-        case Type::ReferenceTypeID:
-                offset = OFFSET(java_objectarray_t, data[0]);
-                break;
-        default:
-                ABORT_MSG("x86_64 Lowering not supported",
-                        "Inst: " << I << " type: " << type);
-                offset = 0;
-        }
+	switch (type) {
+	case Type::ByteTypeID:
+		offset = OFFSET(java_bytearray_t, data[0]);
+		break;
+	case Type::ShortTypeID:
+		offset = OFFSET(java_shortarray_t, data[0]);
+		break;
+	case Type::IntTypeID:
+		offset = OFFSET(java_intarray_t, data[0]);
+		break;
+	case Type::LongTypeID:
+		offset = OFFSET(java_longarray_t, data[0]);
+		break;
+	case Type::FloatTypeID:
+		offset = OFFSET(java_floatarray_t, data[0]);
+		break;
+	case Type::DoubleTypeID:
+		offset = OFFSET(java_doublearray_t, data[0]);
+		break;
+	case Type::ReferenceTypeID:
+		offset = OFFSET(java_objectarray_t, data[0]);
+		break;
+	default:
+		ABORT_MSG("x86_64 Lowering not supported",
+			"Inst: " << I << " type: " << type);
+		offset = 0;
+	}
 
 	modrm = new X86_64ModRMOperand(BaseOp(src_base),IndexOp(src_index),type,offset);
 #endif

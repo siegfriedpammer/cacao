@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/X86_64Register.hpp - X86_64Register
+/* src/vm/jit/compiler2/X86_64ModRMOperand.hpp - X86_64ModRMOperand
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -61,11 +61,11 @@ public:
 class X86_64ModRMOperand : public NativeAddress {
 public:
 	enum ScaleFactor {
-          Scale1 = 0,
-          Scale2 = 1,
-          Scale4 = 2,
-          Scale8 = 3
-        };
+	  Scale1 = 0,
+	  Scale2 = 1,
+	  Scale4 = 2,
+	  Scale8 = 3
+	};
 
 	X86_64ModRMOperand(const BaseOp &base) 
 		: disp(0)
@@ -107,8 +107,8 @@ public:
 	}
 
 	virtual const char* get_name() const {
-                return "ModRMOperand";
-        }
+		return "ModRMOperand";
+	}
 	virtual X86_64ModRMOperand *to_X86_64ModRMOperand(); 
 	virtual OStream& print(OStream &OS) const {
 		if (disp)
@@ -122,7 +122,7 @@ public:
 		OS << (1 << scale);
 		OS << ')';
 		return OS;
-        }
+	}
 
 
 	void prepareEmit();
@@ -169,15 +169,15 @@ private:
 
 template <>
 inline X86_64ModRMOperand* cast_to<X86_64ModRMOperand>(MachineOperand *op) {
-        Address *addr = op->to_Address();
-        assert(addr);
-        MachineAddress *maddr = addr->to_MachineAddress();
-        assert(maddr);
-        NativeAddress *naddr = maddr->to_NativeAddress();
-        assert(naddr);
-        X86_64ModRMOperand *modrm = naddr->to_X86_64ModRMOperand();
-        assert(modrm);
-        return modrm;
+	Address *addr = op->to_Address();
+	assert(addr);
+	MachineAddress *maddr = addr->to_MachineAddress();
+	assert(maddr);
+	NativeAddress *naddr = maddr->to_NativeAddress();
+	assert(naddr);
+	X86_64ModRMOperand *modrm = naddr->to_X86_64ModRMOperand();
+	assert(modrm);
+	return modrm;
 }
 
 } // end namespace x86_64

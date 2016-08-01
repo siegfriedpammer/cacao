@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/X86_64Register.hpp - X86_64Register
+/* src/vm/jit/compiler2/X86_64ModRMOperand.cpp - X86_64ModRMOperand
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -48,26 +48,26 @@ void X86_64ModRMOperand::prepareEmit() {
 u1 X86_64ModRMOperand::getRex(const X86_64Register &reg, bool opsiz64) {
 	assert(base86_64);
 	const unsigned rex_w = 3;
-        const unsigned rex_r = 2;
-        const unsigned rex_x = 1;
-        const unsigned rex_b = 0;
+	const unsigned rex_r = 2;
+	const unsigned rex_x = 1;
+	const unsigned rex_b = 0;
 
-        u1 rex = 0x40;
+	u1 rex = 0x40;
 
-        // 64-bit operand size
-        if (opsiz64) {
-                rex |= (1 << rex_w);
-        }
-        if (reg.extented) {
-                rex |= (1 << rex_r);
-        }
-        if (base86_64 && base86_64->extented) {
-                rex |= (1 << rex_b);
-        }
-        if (index86_64 && index86_64->extented) {
-                rex |= (1 << rex_x);
-        }
-        return rex;
+	// 64-bit operand size
+	if (opsiz64) {
+		rex |= (1 << rex_w);
+	}
+	if (reg.extented) {
+		rex |= (1 << rex_r);
+	}
+	if (base86_64 && base86_64->extented) {
+		rex |= (1 << rex_b);
+	}
+	if (index86_64 && index86_64->extented) {
+		rex |= (1 << rex_x);
+	}
+	return rex;
 
 }
 
@@ -81,23 +81,23 @@ u1 X86_64ModRMOperand::getModRM(const X86_64Register &reg) {
 	u1 rex = getRex(reg,false);
 
 	u1 modrm_mod = 6;
-        u1 modrm_reg = 3;
-        u1 modrm_rm = 0;
+	u1 modrm_reg = 3;
+	u1 modrm_rm = 0;
 
 	u1 mod = 0;
 	u1 rm = 0;
 	u1 modrm = 0;
 
-        if (useDisp8()) {
-                // disp8
-                mod = 0x01; // 0b01
-        } else if (useDisp32()) {
-                // disp32
-                mod = 0x02; // 0b10
-        }
+	if (useDisp8()) {
+		// disp8
+		mod = 0x01; // 0b01
+	} else if (useDisp32()) {
+		// disp32
+		mod = 0x02; // 0b10
+	}
 	else {
-        	// no disp
-                mod = 0x00; // 0b00
+		// no disp
+		mod = 0x00; // 0b00
 	}
 
 	if (useSIB()) {
@@ -107,11 +107,11 @@ u1 X86_64ModRMOperand::getModRM(const X86_64Register &reg) {
 		rm = base86_64->get_index();	
 	}
 
-        modrm = mod << modrm_mod;
-        modrm |= reg.get_index() << modrm_reg;
-        modrm |= rm << modrm_rm;
+	modrm = mod << modrm_mod;
+	modrm |= reg.get_index() << modrm_reg;
+	modrm |= rm << modrm_rm;
 
-        return modrm;
+	return modrm;
 }
 
 u1 X86_64ModRMOperand::getSIB(const X86_64Register &reg) {
@@ -119,8 +119,8 @@ u1 X86_64ModRMOperand::getSIB(const X86_64Register &reg) {
 	u1 rex = getRex(reg,false);
 
 	u1 sib_scale = 6;
-        u1 sib_index = 3;
-        u1 sib_base = 0;
+	u1 sib_index = 3;
+	u1 sib_base = 0;
 
 	u1 sib = 0;	
 

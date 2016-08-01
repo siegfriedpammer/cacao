@@ -132,6 +132,11 @@ private:
 protected:
 	const std::size_t id;
 	operand_list operands;
+	/**
+  	 * dummy_operands is a list of operands embedded in the real operands 
+	 * of this instruction that need register allocation 
+	 * (for example indirect addressing on x86)
+ 	 */
 	dummy_operand_list dummy_operands;
 	RefMapTy ref_map;
 	successor_list successors;
@@ -170,6 +175,7 @@ public:
 		}
 	}
 
+	/// has to be called after all operands with embedded operands have been added
 	void finalize_operands() {
 		for (RefMapTy::iterator it = ref_map.begin(), e = ref_map.end(); it != e; ++it) {
 			it->first->real = &dummy_operands[it->second];
