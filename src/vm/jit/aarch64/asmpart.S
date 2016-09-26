@@ -380,7 +380,6 @@ flush_icache_2:
 	b.lo 	flush_icache_2
 	dsb 	ish
 	isb
-	mov 	a0, #0
 	ret
 
 asm_flush_dcache_range:
