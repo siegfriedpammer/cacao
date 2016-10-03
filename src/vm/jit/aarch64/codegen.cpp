@@ -1430,12 +1430,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 		case ICMD_ATHROW:       /* ..., objectref ==> ... (, objectref)       */
 
-			disp = dseg_add_functionptr(cd, asm_handle_exception);
-			asme.ald(REG_ITMP3, REG_PV, disp);
-			asme.adr(REG_ITMP2_XPC, 1); // next instruction is the exception throwing pc
-			asme.blr(REG_ITMP3);
-			M_NOP;              /* nop ensures that XPC is less than the end */
-			                    /* of basic block                            */
+			emit_trap(cd, REG_METHODPTR, TRAP_THROW);
 			break;
 
 		case ICMD_BUILTIN:      /* ..., arg1, arg2, arg3 ==> ...              */
@@ -2289,9 +2284,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	asme.lsub_imm(REG_ITMP2_XPC, REG_RA, 4); /* get exception address            */
 
-	disp = dseg_add_functionptr(cd, asm_handle_nat_exception);
-	asme.ald(REG_ITMP3, REG_PV, disp);     /* load asm exception handler address */
-	asme.br(REG_ITMP3);                    /* jump to asm exception handler */
+	emit_trap(cd, REG_ITMP2, TRAP_NAT_EXCEPTION);
 }
 
 

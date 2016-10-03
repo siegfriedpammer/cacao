@@ -51,7 +51,11 @@ enum {
 	TRAP_CHECK_EXCEPTION                = 6,
 	TRAP_PATCHER                        = 7,
 	TRAP_COMPILER                       = 8,
-	TRAP_COUNTDOWN                      = 9
+	TRAP_COUNTDOWN                      = 9,
+	TRAP_AbstractMethodError            = 10,
+	TRAP_THROW                          = 11,
+	TRAP_NAT_EXCEPTION                  = 12,
+	TRAP_END
 };
 
 

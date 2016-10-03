@@ -27,7 +27,7 @@
 
 #include <sys/syscall.h>
 
-#include "vm/jit/aarch64/md-asm.hpp"
+#include "md-asm.hpp"
 #include "vm/jit/aarch64/md-abi.hpp"
 
 #include "vm/jit/abi-asm.hpp"
@@ -54,11 +54,6 @@
 	.type  asm_vm_call_method_double, %function
 	.globl asm_vm_call_method_exception_handler
 	.globl asm_vm_call_method_end
-
-	.globl asm_handle_exception
-	.globl asm_handle_nat_exception
-
-	.globl asm_abstractmethoderror
 
 	.globl asm_cacheflush
 	.type  asm_cacheflush, %function
@@ -163,170 +158,6 @@ asm_vm_call_method_end:
 	b		L_asm_vm_call_method_recompute_return
 
 
-/********************* function asm_handle_exception ***************************
-*                                                                              *
-*   This function handles an exception. It does not use the usual calling      *
-*   conventions. The exception pointer is passed in REG_ITMP1 and the          *
-*   pc from the exception raising position is passed in REG_ITMP2. It searches *
-*   the local exception table for a handler. If no one is found, it unwinds    *
-*   stacks and continues searching the callers.                                *
-*                                                                              *
-*   void asm_handle_exception (exceptionptr, exceptionpc);                     *
-*                                                                              *
-*******************************************************************************/
-	
-
-asm_handle_nat_exception:
-L_asm_handle_nat_exception:
-L_asm_handle_exception_stack_loop:
-	sub		sp, sp, 48 
-	str		xptr, [sp]
-	str		xpc, [sp, 8]
-	str		lr, [sp, 24]
-	str		zero, [sp, 32]
-
-	mov		a0, lr 
-	bl		md_asm_codegen_get_pv_from_pc
-	str		a0, [sp, 16]
-	mov		pv, a0
-
-	ldr		a0, [sp]
-	ldr		a1, [sp, 8]	
-	mov		a2, pv 
-	add		a3, sp, 48
- 
-	b		L_asm_handle_exception_continue
-
-
-asm_handle_exception:
-L_asm_handle_exception:
-	sub		sp, sp, (SAVE_CNT) * 8
-
-	SAVE_ARGUMENT_REGISTERS
-	SAVE_TEMPORARY_REGISTERS(ARG_CNT)
-
-	sub		sp, sp, 48
-	str		xptr, [sp]
-	str		pv, [sp, 16]
-	str		lr, [sp, 24]
-	mov		itmp3, 1
-	str		itmp3, [sp, 32]
-
-	mov		a0, xptr
-	mov		a1, xpc
-	mov		a2, pv
-	add		a3, sp, (SAVE_CNT + 6) * 8
-
-L_asm_handle_exception_continue:
-	bl		exceptions_handle_exception
-
-	cbz		a0, L_asm_handle_exception_not_catched
-
-	mov		xpc, a0
-	ldr		xptr, [sp]
-	ldr		pv, [sp, 16]
-	ldr		lr, [sp, 24]
-	ldr		itmp3, [sp, 32]
-	add		sp, sp, 48
-
-	cbz		itmp3, L_asm_handle_exception_no_leaf
-
-	RESTORE_ARGUMENT_REGISTERS
-	RESTORE_TEMPORARY_REGISTERS(ARG_CNT)
-
-	add		sp, sp, (SAVE_CNT) * 8
-
-L_asm_handle_exception_no_leaf:
-	br		xpc
-
-L_asm_handle_exception_not_catched:
-	ldr		xptr, [sp]
-	ldr		pv, [sp, 16]
-	ldr		lr, [sp, 24]
-	ldr		itmp3, [sp, 32]
-	add		sp, sp, 48
-
-	cbz		itmp3, L_asm_handle_exception_no_leaf_stack
-
-	add		sp, sp, (SAVE_CNT) * 8
-	mov		itmp3, 0
-
-L_asm_handle_exception_no_leaf_stack:
-	ldr		t0i, [pv, FrameSize]
-	add		t0, sp, t0
-
-	ldr		t1i, [pv, IsLeaf]
-	cbnz	t1i, L_asm_handle_exception_no_ra_restore
-
-	ldr		lr, [t0, -8]
-	sub		t0, t0, 8
-
-L_asm_handle_exception_no_ra_restore:
-	mov		xpc, lr
-	ldr		t1i, [pv, IntSave]
-
-	adr		t2, L_asm_handle_exception_save_int_end
-	
-	sub		t2, t2, t1, LSL 2
-	br		t2
-
-	ldr		s0, [t0, -10 * 8]
-	ldr		s1, [t0, -9 * 8]
-	ldr		s2,	[t0, -8 * 8]
-	ldr		s3,	[t0, -7 * 8]
-	ldr		s4,	[t0, -6 * 8]
-	ldr		s5,	[t0, -5 * 8]
-	ldr		s6,	[t0, -4 * 8]
-	ldr		s7,	[t0, -3 * 8]
-	ldr		s8,	[t0, -2 * 8]
-	ldr		s9,	[t0, -1 * 8]
-
-L_asm_handle_exception_save_int_end:
-	sub		t0, t0, t1, LSL 3
-
-	ldr		t1i, [pv, FltSave]
-	adr		t2, L_asm_handle_exception_save_float_end
-
-	sub		t2, t2, t1, LSL 2
-	br		t2
-
-	ldr		fs0, [t0, -8 * 8]
-	ldr		fs1, [t0, -7 * 8]
-	ldr		fs2, [t0, -6 * 8]
-	ldr		fs3, [t0, -5 * 8]
-	ldr		fs4, [t0, -4 * 8]
-	ldr		fs5, [t0, -3 * 8]
-	ldr		fs6, [t0, -2 * 8]
-	ldr		fs7, [t0, -1 * 8]
-
-L_asm_handle_exception_save_float_end:
-	ldr		t0i, [pv, FrameSize]
-	add		sp, sp, t0
-	b		L_asm_handle_exception_stack_loop
-
-
-/* asm_abstractmethoderror *****************************************************
-
-   Creates and throws an AbstractMethodError.
-
-*******************************************************************************/
-
-asm_abstractmethoderror:
-	sub		sp, sp, 16					/* create stackframe                  */
-	str		lr,	[sp]                    /* save return address                */
-
-	add		a0, sp, 16                  /* original SP is argument for java   */
-	mov		a1, lr						/* pass exception address             */
-	bl		exceptions_asm_new_abstractmethoderror
-
-	ldr		lr, [sp]					/* resture return address             */
-	add		sp, sp, 16                  /* remove stackframe                  */
-
-	mov		xptr, a0					/* get exception pointer              */
-	sub		xpc, lr, 4                  /* exception address is lr - 4        */
-	b		L_asm_handle_nat_exception
-
-		
 /********************* function asm_cacheflush *********************************
 *                                                                              *
 *   Cache flushing on aarch64 wihtout EL1 access is somewhat more involved     *
