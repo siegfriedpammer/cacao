@@ -30,6 +30,10 @@ noinst_LTLIBRARIES = \
 
 libaarch64_la_SOURCES = \
 	Aarch64Backend.cpp \
+	Aarch64Cond.cpp \
+	Aarch64Emitter.cpp \
+	Aarch64Instructions.cpp \
+	Aarch64MachineMethodDescriptor.cpp \
 	Aarch64Register.cpp
 
 ## Local variables:

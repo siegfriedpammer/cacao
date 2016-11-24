@@ -27,6 +27,7 @@ JAVA     = LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(top_builddir)/src/c
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
 JAVACCMD = $(JAVAC) -source 1.6 -target 1.6 -nowarn -bootclasspath $(BOOTCLASSPATH)
 TIMING = 
+HAMCREST_JAR = /usr/share/java/hamcrest-all.jar
 
 EXTRA_DIST = \
 	$(srcdir)/org/cacaojvm/compiler2/test/*.java
@@ -40,7 +41,7 @@ build:
 	$(JAVACCMD) -Xbootclasspath/a:$(JUNIT_JAR) -d . $(srcdir)/org/cacaojvm/compiler2/test/*.java
 
 run:
-	$(JAVACMD) -Xbootclasspath/a:$(JUNIT_JAR):. -DTIMING=$(TIMING) org.cacaojvm.compiler2.test.CacaoJUnitCore org.cacaojvm.compiler2.test.All
+	$(JAVACMD) -Xbootclasspath/a:$(JUNIT_JAR):$(HAMCREST_JAR):. -DTIMING=$(TIMING) org.cacaojvm.compiler2.test.CacaoJUnitCore org.cacaojvm.compiler2.test.All
 
 ## Local variables:
 ## mode: Makefile
