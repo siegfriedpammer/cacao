@@ -29,42 +29,104 @@
 
 template<typename T> const T& zero();
 template<typename T> const u1 sFlag();
+template<typename T> const u1 type();
+template<typename T> const u1 size();
+template<typename T> const u1 v();
+
+template<typename T> 
+void Emitter::sbfm(const T& rd, const T& rn, u1 immr, u1 imms) {
+    bitfield(sFlag<T>(), 0, sFlag<T>(), immr, imms, rn.reg, rd.reg);
+}
+
+template<typename T> 
+void Emitter::ubfm(const T& rd, const T& rn, u1 immr, u1 imms) {
+    bitfield(sFlag<T>(), 2, sFlag<T>(), immr, imms, rn.reg, rd.reg);
+}
+
+template<typename T> 
+void Emitter::add(const T& rd, const T& rn, s2 imm) {
+    add_subtract_immediate(sFlag<T>(), 0, 0, 0, imm, rn.reg, rd.reg);
+}
+
+template<typename T> 
+void Emitter::sub(const T& rd, const T& rn, s2 imm) {
+    add_subtract_immediate(sFlag<T>(), 1, 0, 0, imm, rn.reg, rd.reg);
+}
+
+template<typename T> 
+void Emitter::subs(const T& rd, const T& rn, s2 imm) {
+    add_subtract_immediate(sFlag<T>(), 1, 1, 0, imm, rn.reg, rd.reg);
+}
 
 template<typename T>
 void Emitter::movn(const T& rd, u2 imm) {
-	u4 instr = move_wide_immediate(sFlag<T>(), 0, imm, rd.reg);
-	instructions.push_back(instr);
+	move_wide_immediate(sFlag<T>(), 0, 0, imm, rd.reg);
 }
 
 template<typename T>
 void Emitter::movz(const T& rd, u2 imm) {
-	u4 instr = move_wide_immediate(sFlag<T>(), 2, imm, rd.reg);
-	instructions.push_back(instr);
-} 
+	move_wide_immediate(sFlag<T>(), 2, 0, imm, rd.reg);
+}
 
 template<typename T>
-void Emitter::add(const T& rd, const T& rn, const T& rm) {
-    u4 instr = add_subtract_shifted_register(sFlag<T>(), 0, 0);
-    instr |= lsl(rm.reg, 16) | lsl(rn.reg, 5) | rd.reg;
-    instructions.push_back(instr);
+void Emitter::movk(const T& rd, u2 imm, u1 shift) {
+	move_wide_immediate(sFlag<T>(), 3, shift, imm, rd.reg);
+}
+
+template<typename T> 
+void Emitter::ldr(const T& rt, s4 offset) {
+    load_literal(sFlag<T>(), v<T>(), offset, rt.reg);
+}
+
+template<typename T>
+void Emitter::ldur(const T& rt, const X& rn, s2 imm) {
+    load_store_unscaled(size<T>(), v<T>(), 1, imm, rn.reg, rt.reg);
+}
+
+template<typename T>
+void Emitter::stur(const T& rt, const X& rn, s2 imm) {
+    load_store_unscaled(size<T>(), v<T>(), 0, imm, rn.reg, rt.reg);
+}
+
+template<typename T> 
+void Emitter::ldr(const T& rt, const X& rn, s2 imm) {
+    load_store_unsigned(size<T>(), v<T>(), 1, imm, rn.reg, rt.reg);
+}
+
+template<typename T> 
+void Emitter::str(const T& rt, const X& rn, s2 imm) {
+    load_store_unsigned(size<T>(), v<T>(), 0, imm, rn.reg, rt.reg);
+}
+
+template<typename T>
+void Emitter::add(const T& rd, const T& rn, const T& rm, Shift::SHIFT shift,
+                  u1 amount) {
+    add_subtract_shifted_register(sFlag<T>(), 0, 0, shift.code, rm.reg, 
+                                  amount, rn.reg, rd.reg);
 }
 
 template<typename T>
 void Emitter::sub(const T& rd, const T& rn, const T& rm) {
-    u4 instr = add_subtract_shifted_register(sFlag<T>(), 1, 0);
-    instr |= lsl(rm.reg, 16) | lsl(rn.reg, 5) | rd.reg;
-    instructions.push_back(instr);
+    add_subtract_shifted_register(sFlag<T>(), 1, 0, 0, rm.reg, 0, 
+                                  rn.reg, rd.reg);
 }
 
 template<typename T>
 void Emitter::subs(const T& rd, const T& rn, const T& rm) {
-    u4 instr = add_subtract_shifted_register(sFlag<T>(), 1, 1);
-    instr |= lsl(rm.reg, 16) | lsl(rn.reg, 5) | rd.reg;
-    instructions.push_back(instr);
+    add_subtract_shifted_register(sFlag<T>(), 1, 1, 0, rm.reg, 0, 
+                                  rn.reg, rd.reg);
 }
+
+template<typename T> 
+void Emitter::neg(const T& rd, const T& rm) {  sub(rd, zero<T>(), rm); }
 
 template<typename T>
 void Emitter::cmp(const T& rn, const T& rm) { subs(zero<T>(), rn, rm); }
+
+template<typename T> 
+void Emitter::csel(const T& rd, const T& rn, const T& rm, Cond::COND cond) {
+    conditional_select(sFlag<T>(), 0, 0, rm.reg, cond.code, 0, rn.reg, rd.reg);
+}
 
 template<typename T>
 void Emitter::mul(const T& rd, const T& rn, const T& rm) {
@@ -73,26 +135,77 @@ void Emitter::mul(const T& rd, const T& rn, const T& rm) {
 
 template<typename T>
 void Emitter::madd(const T& rd, const T& rn, const T& rm, const T& ra) {
-    u4 instr = data_processing_3_source(sFlag<T>(), 0, 0, 0);
-    instr |= lsl(rm.reg, 16) | lsl(ra.reg, 10) | lsl(rn.reg, 5) | rd.reg;
-    instructions.push_back(instr);
+    data_processing_3_source(sFlag<T>(), 0, 0, rm.reg, 0, ra.reg, 
+                             rn.reg, rd.reg);
+}
+
+template<typename T>
+void Emitter::msub(const T& rd, const T& rn, const T& rm, const T& ra) {
+    data_processing_3_source(sFlag<T>(), 0, 0, rm.reg, 1, ra.reg, 
+                             rn.reg, rd.reg);
 }
 
 template<typename T>
 void Emitter::mov(const T& rd, const T& rm) { orr(rd, zero<T>(), rm); }
 
 template<typename T>
+void Emitter::andd(const T& rd, const T& rn, const T& rm) {
+	logical_shifted_register(sFlag<T>(), 0, 0, rm.reg, rn.reg, rd.reg);
+}
+
+template<typename T>
 void Emitter::orr(const T& rd, const T& rn, const T& rm) {
-	u4 instr = logical_shifted_register(sFlag<T>(), 1, 0);
-	instr |= lsl(rm.reg, 16) | lsl(rn.reg, 5) | rd.reg;
-	instructions.push_back(instr);
+	logical_shifted_register(sFlag<T>(), 1, 0, rm.reg, rn.reg, rd.reg);
 }
 
 template <typename T>
 void Emitter::sdiv(const T& rd, const T& rn, const T& rm) {
-    u4 instr = data_processing_2_source(sFlag<T>(), 0, rm.reg, 3, 
-                                        rn.reg, rd.reg);
-    instructions.push_back(instr);
+    data_processing_2_source(sFlag<T>(), 0, rm.reg, 3, rn.reg, rd.reg);
+}
+
+template<typename T> 
+void Emitter::fcmp(const T& rn, const T& rm) {
+    fp_compare(0, 0, type<T>(), rm.reg, 0, rn.reg, 0);
+}
+
+template<typename T> 
+void Emitter::fmov(const T& rd, const T& rn) {
+    fp_data_processing_1(0, 0, type<T>(), 0, rn.reg, rd.reg);
+}
+
+template<typename T> 
+void Emitter::fneg(const T& rd, const T& rn) {
+    fp_data_processing_1(0, 0, type<T>(), 2, rn.reg, rd.reg);
+}
+
+template<typename T, typename S> 
+void Emitter::fcvt(const T& rd, const S& rn) {
+    fp_data_processing_1(0, 0, type<S>(), 4 + type<T>(), rn.reg, rd.reg);
+}
+
+template <typename T>
+void Emitter::fadd(const T& rd, const T& rn, const T& rm) {
+    fp_data_processing_2(0, 0, type<T>(), rm.reg, 2, rn.reg, rd.reg);
+}
+
+template <typename T>
+void Emitter::fdiv(const T& rd, const T& rn, const T& rm) {
+    fp_data_processing_2(0, 0, type<T>(), rm.reg, 1, rn.reg, rd.reg);
+}
+
+template <typename T>
+void Emitter::fmul(const T& rd, const T& rn, const T& rm) {
+    fp_data_processing_2(0, 0, type<T>(), rm.reg, 0, rn.reg, rd.reg);
+}
+
+template <typename T>
+void Emitter::fsub(const T& rd, const T& rn, const T& rm) {
+    fp_data_processing_2(0, 0, type<T>(), rm.reg, 3, rn.reg, rd.reg);
+}
+
+template<typename T, typename S> 
+void Emitter::scvtf(const T& rd, const S& rn) {
+    conversion_fp_integer(sFlag<S>(), 0, type<T>(), 0, 2, rn.reg, rd.reg);
 }
 
 /*

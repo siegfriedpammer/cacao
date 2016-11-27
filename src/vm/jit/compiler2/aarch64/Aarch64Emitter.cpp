@@ -36,6 +36,30 @@ template<> const X& zero<X>() { return xzr; }
 
 template<> const u1 sFlag<W>() { return 0; }
 template<> const u1 sFlag<X>() { return 1; }
+template<> const u1 sFlag<S>() { return 0; }
+template<> const u1 sFlag<D>() { return 1; }
+
+template<> const u1 type<S>() { return 0; }
+template<> const u1 type<D>() { return 1; }
+
+template<> const u1 size<B>() { return 0; }
+template<> const u1 size<H>() { return 1; }
+template<> const u1 size<W>() { return 2; }
+template<> const u1 size<X>() { return 3; }
+template<> const u1 size<S>() { return 2; }
+template<> const u1 size<D>() { return 3; }
+
+template<> const u1 v<B>() { return 0; }
+template<> const u1 v<H>() { return 0; }
+template<> const u1 v<W>() { return 0; }
+template<> const u1 v<X>() { return 0; }
+template<> const u1 v<S>() { return 1; }
+template<> const u1 v<D>() { return 1; }
+
+
+const Shift::SHIFT Shift::LSL(0x0);
+const Shift::SHIFT Shift::LSR(0x1);
+const Shift::SHIFT Shift::ASR(0x2);
 
 
 void Emitter::emit(CodeMemory* cm) {

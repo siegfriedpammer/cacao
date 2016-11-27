@@ -38,34 +38,6 @@ namespace jit {
 namespace compiler2 {
 namespace aarch64 {
 
-template <class A,class B>
-inline A* cast_to(B*);
-
-template <class A,A>
-inline A* cast_to(A* a) {
-	assert(a);
-	return a;
-}
-
-template <>
-inline Aarch64Register* cast_to<Aarch64Register>(MachineOperand* op) {
-	Register* reg = op->to_Register();
-	assert(reg);
-	MachineRegister *mreg = reg->to_MachineRegister();
-	assert(mreg);
-	NativeRegister *nreg = mreg->to_NativeRegister();
-	assert(nreg);
-	Aarch64Register *areg = nreg->get_Aarch64Register();
-	assert(areg);
-	return areg;
-}
-
-template <>
-inline Immediate* cast_to<Immediate>(MachineOperand* op) {
-	Immediate* imm = op->to_Immediate();
-	assert(imm);
-	return imm;
-}
 
 // TODO: find out how I can write a u4 to cm using existing methods
 static void emitRaw(CodeMemory* cm, u4 inst) {
@@ -77,106 +49,79 @@ static void emitRaw(CodeMemory* cm, u4 inst) {
 }
 
 
-void MovInst::emit(CodeMemory* cm) const {
-	MachineOperand* src = operands[0].op;
-	MachineOperand* dst = result.op;
-	assert(dst->is_Register());
-	Aarch64Register* reg_dst = cast_to<Aarch64Register>(dst);
+template<>
+void MovImmInst<W>::emit(Emitter& em) const {
+    Immediate* immediate = cast_to<Immediate>(this->get(0).op);
+	s4 value = immediate->get_value<s4>();
+	W reg = this->reg_res();
 
-	Emitter em;
-	if (src->is_Register()) {
-		Aarch64Register* reg_src = cast_to<Aarch64Register>(src);
-		em.mov(X(reg_dst->index), X(reg_src->index));
-	} else if (src->is_Immediate()) {
-		Immediate* imm = cast_to<Immediate>(src);
-		em.movz(X(reg_dst->index), (u2) imm->get_Long());
+	// For small negative immediates, use MOVN
+	if (value < 0 && -value-1 < 0xffff) {
+		em.movn(reg, -value - 1);
+		return;
 	}
-	em.emit(cm);
-}
 
-
-void AddInst::emit(CodeMemory* cm) const {
-	MachineOperand* src1 = operands[0].op;
-	MachineOperand* src2 = operands[1].op;
-	MachineOperand* dst = result.op;
-	Aarch64Register* reg_dst = cast_to<Aarch64Register>(dst);
-
-	Emitter em;
-	if (src2->is_Register()) {
-		Aarch64Register* reg_src1 = cast_to<Aarch64Register>(src1);
-		Aarch64Register* reg_src2 = cast_to<Aarch64Register>(src2);
-		em.add(X(reg_dst->index), X(reg_src1->index), X(reg_src2->index));
-	} else {
-		ABORT_MSG("aarch64: SubInst with immediate not implemented.", "");	
+	em.movz(reg, value & 0xffff);
+	
+	u4 v = (u4) value;
+	if (v > 0xffff) {
+		u2 imm = (value >> 16) & 0xffff;
+		em.movk(reg, imm, 1);
 	}
-	em.emit(cm);
 }
 
 
-void SubInst::emit(CodeMemory* cm) const {
-	MachineOperand* src1 = operands[0].op;
-	MachineOperand* src2 = operands[1].op;
-	MachineOperand* dst = result.op;
-	Aarch64Register* reg_dst = cast_to<Aarch64Register>(dst);
+template<>
+void MovImmInst<X>::emit(Emitter& em) const {
+    Immediate* immediate = cast_to<Immediate>(this->get(0).op);
+	s8 value = immediate->get_value<s8>();
+	X reg = this->reg_res();
 
-	Emitter em;
-	if (src2->is_Register()) {
-		Aarch64Register* reg_src1 = cast_to<Aarch64Register>(src1);
-		Aarch64Register* reg_src2 = cast_to<Aarch64Register>(src2);
-		em.sub(X(reg_dst->index), X(reg_src1->index), X(reg_src2->index));
-	} else {
-		ABORT_MSG("aarch64: SubInst with immediate not implemented.", "");	
+	// For small negative immediates, use MOVN
+	if (value < 0 && -value-1 < 0xffff) {
+		em.movn(reg, -value - 1);
+		return;
 	}
-	em.emit(cm);
-}
 
+	em.movz(reg, value & 0xffff);
 
-void MulInst::emit(CodeMemory* cm) const {
-	MachineOperand* src1 = operands[0].op;
-	MachineOperand* src2 = operands[1].op;
-	MachineOperand* dst = result.op;
-	Aarch64Register* reg_dst = cast_to<Aarch64Register>(dst);
-
-	Emitter em;
-	if (src2->is_Register()) {
-		Aarch64Register* reg_src1 = cast_to<Aarch64Register>(src1);
-		Aarch64Register* reg_src2 = cast_to<Aarch64Register>(src2);
-		em.mul(X(reg_dst->index), X(reg_src1->index), X(reg_src2->index));
-	} else {
-		ABORT_MSG("aarch64: SubInst with immediate not implemented.", "");	
+	u8 v = (u8) value;
+	if (v > 0xffff) {
+		u2 imm = (value >> 16) & 0xffff;
+		em.movk(reg, imm, 1);
 	}
-	em.emit(cm);
-}
 
-
-void DivInst::emit(CodeMemory* cm) const {
-	MachineOperand* src1 = operands[0].op;
-	MachineOperand* src2 = operands[1].op;
-	MachineOperand* dst = result.op;
-	Aarch64Register* reg_dst = cast_to<Aarch64Register>(dst);
-
-	Emitter em;
-	if (src2->is_Register()) {
-		Aarch64Register* reg_src1 = cast_to<Aarch64Register>(src1);
-		Aarch64Register* reg_src2 = cast_to<Aarch64Register>(src2);
-		em.sdiv(X(reg_dst->index), X(reg_src1->index), X(reg_src2->index));
-	} else {
-		ABORT_MSG("aarch64: SubInst with immediate not implemented.", "");	
+	if (v > 0xffffffff) {
+		u2 imm = (value >> 32) & 0xffff;
+		em.movk(reg, imm, 2);
 	}
-	em.emit(cm);
+
+	if (v > 0xffffffffffff) {
+		u2 imm = (value >> 48) & 0xffff;
+		em.movk(reg, imm, 3);
+	}
 }
 
 
-void CmpInst::emit(CodeMemory* cm) const {
-	MachineOperand* src1 = operands[0].op;
-	MachineOperand* src2 = operands[1].op;
-	Aarch64Register* reg_src1 = cast_to<Aarch64Register>(src1);
-	Aarch64Register* reg_src2 = cast_to<Aarch64Register>(src2);
+template<>
+void MulInst<W>::emit(Emitter& em) const {
+	W res = this->reg_res();
+	W op1 = this->reg_op(0);
+	W op2 = this->reg_op(1);
 
-	Emitter em;
-	em.cmp(X(reg_src1->index), X(reg_src2->index));
-	em.emit(cm);
+	em.mul(res, op1, op2);
+	em.ubfx(static_cast<X>(res.reg), static_cast<X>(res.reg));
 }
+
+template<>
+void MulInst<X>::emit(Emitter& em) const {
+	X res = this->reg_res();
+	X op1 = this->reg_op(0);
+	X op2 = this->reg_op(1);
+
+	em.mul(res, op1, op2);
+}
+
 
 void JumpInst::emit(CodeMemory* cm) const {
 	MachineBasicBlock *MBB = successor_front();
@@ -252,32 +197,72 @@ void CondJumpInst::link(CodeFragment& cf) const {
 
 void EnterInst::emit(CodeMemory* cm) const {
 	// TODO: handle differently for leaf methods
-	
-	// stp x29, x30, [sp, -size]!
+	Emitter em;
+
+	// stp x29, x30, [sp, -16]!
 	u4 stp = 0xa9800000 | 0x1d | (0x1f << 5) | (0x1e << 10);
-	s2 imm = - (framesize / 8);
+	s2 imm = - 2;
 	stp |= (imm & 0x7f) << 15;
+	em.emitRaw(stp);
 
 	// mov x29, sp
 	u4 mov = 0x91000000 | 0x1d | (0x1f << 5);
+	em.emitRaw(mov);
 
-	emitRaw(cm, mov);
-	emitRaw(cm, stp);
+	// sub sp, sp, size
+	if (framesize - 16 > 0)
+		em.sub(XSP, XSP, framesize - 16);
+	
+	em.emit(cm);
 }
 
 void LeaveInst::emit(CodeMemory* cm) const {
 	// TODO: handle differently for leaf methods
-	
-	// ldp x29, x30, [sp] size
+	Emitter em;
+
+	// mov sp, x29
+	em.add(XSP, XFP, 0);
+
+	// ldp x29, x30, [sp] 16
 	u4 ldp = 0xa8c00000 | 0x1d | (0x1f << 5) | (0x1e << 10);
-	s2 imm = (framesize / 8);
+	s2 imm = 2;
 	ldp |= (imm & 0x7f) << 15;
-	emitRaw(cm, ldp);
+	em.emitRaw(ldp);
+
+	em.emit(cm);
 }
 
 void RetInst::emit(CodeMemory* cm) const {
 	u4 ret = 0xd65f0000 | (0x1e << 5);
 	emitRaw(cm, ret);
+}
+
+void IntToLongInst::emit(Emitter& em) const {
+	em.sxtw(this->reg_res(), this->reg_op(0));
+}
+
+void IntToCharInst::emit(Emitter& em) const {
+	em.uxth(this->reg_res(), this->reg_op(0));
+}
+
+void PatchInst::emit(CodeMemory* CM) const {
+	UNIMPLEMENTED_MSG("aarch64: PatchInst::emit");
+	#if 0
+	CodeFragment code = CM->get_aligned_CodeFragment(2);
+	code[0] = 0x0f;
+	code[1] = 0x0b;
+	emit_nop(code + 2, code.size() - 2);
+	CM->require_linking(this,code);
+	#endif
+}
+
+void PatchInst::link(CodeFragment &CF) const {
+	UNIMPLEMENTED_MSG("aarch64: PatchInst::emit");
+	#if 0
+	CodeMemory &CM = CF.get_Segment().get_CodeMemory();
+	patcher->reposition(CM.get_offset(CF.get_begin()));
+	LOG2(this << " link: reposition: " << patcher->get_mpc() << nl);
+	#endif
 }
 
 } // end namespace aarch64

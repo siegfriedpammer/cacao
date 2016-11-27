@@ -73,10 +73,10 @@ GPRegister* IntegerArgumentRegisters[] = {
 };
 
 GPRegister* IntegerCallerSavedRegisters[] = {
-	&R0, &R1, &R2, &R3, &R4, &R5, &R6, &R7, &R8, &R9, &R10, &R11, &R12,
-	&R13, &R14, &R15, &R16, &R17, &R18, &R29, &R30, &SP
+	&R0, &R1, &R2, &R3, &R4, &R5, &R6, &R7, &R8, &R10, &R11, &R12,
+	&R13, &R14, &R15, &R16, &R17, &R18
 };
-std::size_t IntegerCallerSavedRegistersSize = 22;
+std::size_t IntegerCallerSavedRegistersSize = 18;
 
 FPRegister V0 ("V0" ,  0,  0*16, 16);
 FPRegister V1 ("V1" ,  1,  1*16, 16);
@@ -115,6 +115,13 @@ FPRegister* FloatArgumentRegisters[] = {
 	&V0, &V1, &V2, &V3, &V4, &V5, &V6, &V7
 };
 
+
+FPRegister* FloatCallerSavedRegisters[] = {
+	&V0, &V1, &V2, &V3, &V4, &V5, &V6, &V7, &V16, &V17, &V18, &V19, &V20,
+	&V21, &V22, &V23, &V24, &V25, &V26, &V27, &V28, &V29, &V30, &V31
+};
+std::size_t FloatCallerSavedRegistersSize = 24;
+
 } // end namespace aarch64
 
 using namespace aarch64;
@@ -131,7 +138,7 @@ BackendBase<Aarch64>::get_OperandFile(OperandFile& of, MachineOperand* mo) const
 	case Type::IntTypeID:
 	case Type::LongTypeID:
 	case Type::ReferenceTypeID:
-		#if 0
+		#if 1
 		for (unsigned i = 0; i < IntegerCallerSavedRegistersSize; ++i) {
 			of.push_back(new aarch64::NativeRegister(type, IntegerCallerSavedRegisters[i]));
 		}
@@ -150,10 +157,10 @@ BackendBase<Aarch64>::get_OperandFile(OperandFile& of, MachineOperand* mo) const
 
 	case Type::FloatTypeID:
 	case Type::DoubleTypeID:
-		for (unsigned i = 0; i < FloatArgumentRegisterSize; ++i) {
-			of.push_back(new aarch64::NativeRegister(type, FloatArgumentRegisters[i]));
+		for (unsigned i = 0; i < FloatCallerSavedRegistersSize; ++i) {
+			of.push_back(new aarch64::NativeRegister(type, FloatCallerSavedRegisters[i]));
 		}
-		assert(of.size() == FloatArgumentRegisterSize);
+		assert(of.size() == FloatCallerSavedRegistersSize);
 		break;
 		
 	default:

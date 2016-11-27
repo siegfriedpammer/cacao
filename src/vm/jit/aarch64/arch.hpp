@@ -47,7 +47,14 @@
 
 #define SUPPORT_LONG_ADD                 1
 #define SUPPORT_LONG_CMP                 1
+
+// compiler2 SSAConstruction has no support for LMULPOW2
+#ifdef ENABLE_COMPILER2
+#define SUPPORT_LONG_SHIFT               0
+#else
 #define SUPPORT_LONG_SHIFT               1
+#endif
+
 #define SUPPORT_LONG_MUL                 1
 #define SUPPORT_LONG_DIV                 0
 
@@ -55,7 +62,14 @@
 #define SUPPORT_LONG_REM_POW2            0
 
 #define SUPPORT_CONST_LOGICAL            1  /* AND, OR, XOR with immediates   */
+
+// compiler2 SSAConstruction has no support for IMULPOW2
+// which will not be used if we do MULCONST
+#ifdef ENABLE_COMPILER2
+#define SUPPORT_CONST_MUL                1
+#else
 #define SUPPORT_CONST_MUL                0  /* mutiply with immediate         */
+#endif
 
 #define SUPPORT_CONST_STORE              0  /* do we support const stores     */
 #define SUPPORT_CONST_STORE_ZERO_ONLY    1  /* on some risc machines we can   */

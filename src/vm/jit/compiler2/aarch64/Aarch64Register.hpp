@@ -184,6 +184,28 @@ extern GPRegister* IntegerArgumentRegisters[];
 const std::size_t FloatArgumentRegisterSize = 8;
 extern FPRegister* FloatArgumentRegisters[];
 
+template <class A,class B>
+inline A* cast_to(B*);
+
+template <class A,A>
+inline A* cast_to(A* a) {
+	assert(a);
+	return a;
+}
+
+template <>
+inline Aarch64Register* cast_to<Aarch64Register>(MachineOperand* op) {
+	Register* reg = op->to_Register();
+	assert(reg);
+	MachineRegister *mreg = reg->to_MachineRegister();
+	assert(mreg);
+	NativeRegister *nreg = mreg->to_NativeRegister();
+	assert(nreg);
+	Aarch64Register *areg = nreg->get_Aarch64Register();
+	assert(areg);
+	return areg;
+}
+
 } // end namespace aarch64
 } // end namespace compiler2
 } // end namespace jit
