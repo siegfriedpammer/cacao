@@ -48,12 +48,47 @@ static void emitRaw(CodeMemory* cm, u4 inst) {
 	cf[3] = (inst >> 24) & 0xff;
 }
 
+void LoadInst::emit(Emitter& em) const {
+	s4 off = this->offset();
+	Reg dst = this->reg_res();
+	Reg base = this->reg_base();
 
-template<>
-void MovImmInst<W>::emit(Emitter& em) const {
+	if (off < 0) {
+		em.ldur(dst, base, off);
+	} else {
+		em.ldr(dst, base, off);
+	}
+}
+
+
+void StoreInst::emit(Emitter& em) const {
+	s4 off = offset();
+	Reg src = reg_src();
+	Reg base = reg_base();
+	if (off < 0) {
+		em.stur(src, base, off);
+	} else {
+		em.str(src, base, off);
+	}
+}
+
+
+void MovInst::emit(Emitter& em) const {
+	if (reg_res().r() == reg_op(0).r()) return;
+
+	em.mov(reg_res(), reg_op(0));
+}
+
+
+void MovImmInst::emit(Emitter& em) const {
+	if (resultT() == Type::IntTypeID) emitIConst(em);
+	else emitLConst(em);
+}
+
+void MovImmInst::emitIConst(Emitter& em) const {
     Immediate* immediate = cast_to<Immediate>(this->get(0).op);
 	s4 value = immediate->get_value<s4>();
-	W reg = this->reg_res();
+	Reg reg = this->reg_res();
 
 	// For small negative immediates, use MOVN
 	if (value < 0 && -value-1 < 0xffff) {
@@ -71,11 +106,10 @@ void MovImmInst<W>::emit(Emitter& em) const {
 }
 
 
-template<>
-void MovImmInst<X>::emit(Emitter& em) const {
+void MovImmInst::emitLConst(Emitter& em) const {
     Immediate* immediate = cast_to<Immediate>(this->get(0).op);
 	s8 value = immediate->get_value<s8>();
-	X reg = this->reg_res();
+	Reg reg = this->reg_res();
 
 	// For small negative immediates, use MOVN
 	if (value < 0 && -value-1 < 0xffff) {
@@ -102,26 +136,83 @@ void MovImmInst<X>::emit(Emitter& em) const {
 	}
 }
 
-
-template<>
-void MulInst<W>::emit(Emitter& em) const {
-	W res = this->reg_res();
-	W op1 = this->reg_op(0);
-	W op2 = this->reg_op(1);
-
-	em.mul(res, op1, op2);
-	em.ubfx(static_cast<X>(res.reg), static_cast<X>(res.reg));
+void CSelInst::emit(Emitter& em) const {
+	em.csel(reg_res(), reg_op(0), reg_op(1), cond);
 }
 
-template<>
-void MulInst<X>::emit(Emitter& em) const {
-	X res = this->reg_res();
-	X op1 = this->reg_op(0);
-	X op2 = this->reg_op(1);
-
-	em.mul(res, op1, op2);
+void AndInst::emit(Emitter& em) const {
+	em.andd(reg_res(), reg_op(0), reg_op(1));
 }
 
+void CmpInst::emit(Emitter& em) const {
+	Reg reg0 = this->reg_op(0);
+
+	if (this->get(1).op->is_Register()) {
+		em.cmp(reg0, this->reg_op(1));
+	} else if (this->get(1).op->is_Immediate()) {
+		Immediate *imm = cast_to<Immediate>(this->get(1).op);
+		em.cmp(reg0, imm->get_Int());
+	}
+}
+
+void MulInst::emit(Emitter& em) const {
+	Reg res = reg_res();
+	em.mul(res, reg_op(0), reg_op(1));
+
+	if (resultT() == Type::IntTypeID) {
+		em.ubfx(res, res);
+	}
+}
+
+void AddInst::emit(Emitter& em) const {
+	if (get(0).op->is_Register() && get(1).op->is_Register()) {
+		em.add(reg_res(), reg_op(0), reg_op(1), shift, amount);
+	} else {
+		ABORT_MSG("AddInst<T>::emit", "Operand not in register.");
+	}
+}
+
+void SubInst::emit(Emitter& em) const {
+	em.sub(reg_res(), reg_op(0), reg_op(1));
+}
+
+void NegInst::emit(Emitter& em) const { em.neg(reg_res(), reg_op(0)); }
+
+void DivInst::emit(Emitter& em) const {
+	em.sdiv(reg_res(), reg_op(0), reg_op(1));
+}
+
+void MulSubInst::emit(Emitter& em) const {
+	em.msub(reg_res(), reg_op(0), reg_op(1), reg_op(2));
+}
+
+void FAddInst::emit(Emitter& em) const { 
+	em.fadd(reg_res(), reg_op(0), reg_op(1));
+}
+
+void FSubInst::emit(Emitter& em) const {
+	em.fsub(reg_res(), reg_op(0), reg_op(1));
+}
+
+void FNegInst::emit(Emitter& em) const { em.fneg(reg_res(), reg_op(0)); }
+
+void FMulInst::emit(Emitter& em) const {
+	em.fmul(reg_res(), reg_op(0), reg_op(1));
+}
+
+void FDivInst::emit(Emitter& em) const { 
+	em.fdiv(reg_res(), reg_op(0), reg_op(1));
+}
+
+void FCmpInst::emit(Emitter& em) const {
+	em.fcmp(reg_op(0), reg_op(1));
+}
+
+void FMovInst::emit(Emitter& em) const {
+	if (reg_res().r() == reg_op(0).r()) return;
+
+	em.fmov(reg_res(), reg_op(0));
+}
 
 void JumpInst::emit(CodeMemory* cm) const {
 	MachineBasicBlock *MBB = successor_front();
@@ -211,7 +302,7 @@ void EnterInst::emit(CodeMemory* cm) const {
 
 	// sub sp, sp, size
 	if (framesize - 16 > 0)
-		em.sub(XSP, XSP, framesize - 16);
+		em.sub(Reg::XSP, Reg::XSP, framesize - 16);
 	
 	em.emit(cm);
 }
@@ -221,7 +312,7 @@ void LeaveInst::emit(CodeMemory* cm) const {
 	Emitter em;
 
 	// mov sp, x29
-	em.add(XSP, XFP, 0);
+	em.add(Reg::XSP, Reg::XFP, 0);
 
 	// ldp x29, x30, [sp] 16
 	u4 ldp = 0xa8c00000 | 0x1d | (0x1f << 5) | (0x1e << 10);
@@ -237,12 +328,28 @@ void RetInst::emit(CodeMemory* cm) const {
 	emitRaw(cm, ret);
 }
 
+void FcvtInst::emit(Emitter& em) const {
+	em.fcvt(reg_res(), reg_from());
+}
+
+void IntToFpInst::emit(Emitter& em) const {
+	em.scvtf(reg_res(), reg_from());
+}
+
 void IntToLongInst::emit(Emitter& em) const {
-	em.sxtw(this->reg_res(), this->reg_op(0));
+	em.sxtw(reg_res(), reg_op(0));
 }
 
 void IntToCharInst::emit(Emitter& em) const {
-	em.uxth(this->reg_res(), this->reg_op(0));
+	em.uxth(reg_res(), reg_op(0));
+}
+
+void IntegerToByteInst::emit(Emitter& em) const {
+	em.sxtb(reg_res(), reg_op(0));
+}
+
+void IntegerToShortInst::emit(Emitter& em) const {
+	em.sxth(reg_res(), reg_op(0));
 }
 
 void PatchInst::emit(CodeMemory* CM) const {
@@ -263,6 +370,28 @@ void PatchInst::link(CodeFragment &CF) const {
 	patcher->reposition(CM.get_offset(CF.get_begin()));
 	LOG2(this << " link: reposition: " << patcher->get_mpc() << nl);
 	#endif
+}
+
+void DsegAddrInst::emit(CodeMemory* cm) const {
+	// Load DSeg address
+	CodeFragment code = cm->get_CodeFragment(4);
+	cm->require_linking(this, code);
+}
+
+void DsegAddrInst::link(CodeFragment &cf) const {
+	CodeMemory &cm = cf.get_Segment().get_CodeMemory();
+	s4 offset = cm.get_offset(data_index, cf);
+	#if 0
+	LOG2(this << " offset: " << offset << " data index: " << data_index.idx
+	     << " CF end index: " << cf.get_end().idx << nl);
+	LOG2("dseg->size " << cm.get_DataSegment().size() << " cseg->size "
+		 << cm.get_CodeSegment().size() << nl);
+	#endif
+	assert(offset != 0);
+
+	Emitter em;
+	em.ldr(reg_res(), offset);
+	em.emit(cf);
 }
 
 } // end namespace aarch64

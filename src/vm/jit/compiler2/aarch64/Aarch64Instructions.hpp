@@ -89,25 +89,25 @@ inline StackSlot* cast_to<StackSlot>(MachineOperand *op) {
 }
 
 
-/**
- * Superclass for register instructions
- */
-template<typename O, typename R>
-class GPInstruction : public MachineInstruction {
+class AArch64Instruction : public MachineInstruction {
 public:
-	GPInstruction(const char* name, MachineOperand* result, 
-	              std::size_t num_operands)
-	        : MachineInstruction(name, result, num_operands) {}
+	AArch64Instruction(const char* name, MachineOperand* result,
+					   Type::TypeID type, std::size_t num_operands)
+			: MachineInstruction(name, result, num_operands), 
+			  result_type(type) {}
 
-	O reg_op(std::size_t idx) const {
-		assert(idx < operands.size());
-		Aarch64Register* reg = cast_to<Aarch64Register>(operands[idx].op);
-		return O(reg->index);
+	Reg fromOp(MachineOperand* op, Type::TypeID type) const {
+		Aarch64Register* reg = cast_to<Aarch64Register>(op);
+		return regFromType(reg->index, type);
 	}
 
-	R reg_res() const {
-		Aarch64Register* reg = cast_to<Aarch64Register>(result.op);
-		return R(reg->index);
+	Reg reg_res() const {
+		return fromOp(result.op, result_type);
+	}
+
+	Reg reg_op(std::size_t idx) const {
+		assert(idx < operands.size());
+		return fromOp(operands[idx].op, result_type);
 	}
 
 	virtual void emit(CodeMemory* cm) const {
@@ -117,27 +117,50 @@ public:
 	}
 
 	virtual void emit(Emitter& em) const {}
+	Type::TypeID resultT() const { return result_type; }
+
+private:
+	Type::TypeID result_type;
+
+	virtual Reg regFromType(u1 reg, Type::TypeID type) const {
+		switch (type) {
+		case Type::ByteTypeID:
+		case Type::CharTypeID:
+		case Type::ShortTypeID:
+		case Type::IntTypeID: return Reg::W(reg);
+		case Type::ReferenceTypeID:
+		case Type::LongTypeID: return Reg::X(reg);
+		case Type::FloatTypeID: return Reg::S(reg);
+		case Type::DoubleTypeID: return Reg::D(reg);
+		default: break;
+		}
+		ABORT_MSG("aarch64: regFromOpSize unsupported op_size", 
+		          "Type: " << type);
+		return Reg::XZR; // make compiler happy
+	}
 };
 
 
-template<typename T>
-class MovImmInst : public GPInstruction<T, T> {
+class MovImmInst : public AArch64Instruction {
 public: 
-	MovImmInst(const DstOp &dst, const SrcOp &src)
-			: GPInstruction<T, T>("Aarch64MovImmInst", dst.op, 1) {
-		this->set_operand(0, src.op);
+	MovImmInst(const DstOp &dst, const SrcOp &src, Type::TypeID type)
+			: AArch64Instruction("Aarch64MovImmInst", dst.op, type, 1) {
+		operands[0].op = src.op;
 	}
 
 	virtual void emit(Emitter& em) const;
+
+private:
+	void emitIConst(Emitter& em) const;
+	void emitLConst(Emitter& em) const;
 };
 
 
-template<typename T>
-class MovInst : public GPInstruction<T, T> {
+class MovInst : public AArch64Instruction {
 public:
-	MovInst(const DstOp &dst, const SrcOp &src)
-			: GPInstruction<T, T>("Aarch64MovInst", dst.op, 1) {
-		this->set_operand(0, src.op);
+	MovInst(const DstOp &dst, const SrcOp &src, Type::TypeID type)
+			: AArch64Instruction("Aarch64MovInst", dst.op, type, 1) {
+		operands[0].op = src.op;
 	}
 
 	virtual bool is_move() const { return true; }
@@ -145,97 +168,33 @@ public:
 };
 
 
-template<typename T>
-class MemoryInst : public MachineInstruction {
+class StoreInst : public AArch64Instruction {
 public:
-	MemoryInst(const char* name, const DstOp &dst, const BaseOp &base, 
-	           const IdxOp &offset)
-			: MachineInstruction(name, dst.op, 2) {
-		this->set_operand(0, base.op);
-		this->set_operand(1, offset.op);
+	StoreInst(const SrcOp &src, const BaseOp &base, const IdxOp &offset,
+	          Type::TypeID type)
+			: AArch64Instruction("Aarch64StoreInst", &NoOperand, type, 3) {
+		operands[0].op = src.op;
+		operands[1].op = base.op;
+		operands[2].op = offset.op;
 	}
 
-	// Only used for StackSlot Operand at the moment
-	MemoryInst(const char* name, const DstOp &dst, const SrcOp &src)
-			: MachineInstruction(name, dst.op, 1) {
-		this->set_operand(0, src.op);
+	StoreInst(const SrcOp &src, const DstOp &dst, Type::TypeID type)
+			: AArch64Instruction("Aarch64StoreInst", dst.op, type, 1) {
+		operands[0].op = src.op;		
 	}
 
-	T reg_res() const {
-		Aarch64Register* reg = cast_to<Aarch64Register>(result.op);
-		return T(reg->index);
+	Reg reg_src() const {
+		return reg_op(0);
 	}
 
-	X reg_base() const {
-		MachineOperand *op = this->get(0).op;
+	Reg reg_base() const {
+		if (result.op->is_StackSlot() || result.op->is_ManagedStackSlot()) {
+			return Reg::XFP;
+		}
+
+		MachineOperand *op = get(1).op;
 		if (op->is_Register()) {
-			Aarch64Register* reg = cast_to<Aarch64Register>(op);
-			return X(reg->index);
-		} else if (op->is_StackSlot() || op->is_ManagedStackSlot()) {
-			return XFP;
-		} else {
-			ABORT_MSG("MemoryInst::reg_base", op << " not supported");
-		}
-		assert(0);
-	}
-
-	s4 offset() const {
-		if (this->get(0).op->is_StackSlot() 
-				|| this->get(0).op->is_ManagedStackSlot()) {
-			StackSlot* stackSlot = cast_to<StackSlot>(this->get(0).op);
-			return stackSlot->get_index() * kStackSlotSize;
-		}
-
-		MachineOperand *op = this->get(1).op;
-		if (op->is_Immediate()) {
-			Immediate* imm = cast_to<Immediate>(op);
-			return imm->get_Int();
-		} else {
-			ABORT_MSG("Memory::offset", op << " not supported");
-		}
-		assert(0);
-	}
-
-	virtual void emit(CodeMemory* cm) const {
-		Emitter em;
-		emit(em);
-		em.emit(cm);
-	}
-
-	virtual void emit(Emitter& em) const = 0;
-};
-
-
-template<typename T>
-class StoreInst : public MachineInstruction {
-public:
-	StoreInst(const SrcOp &src, const BaseOp &base, const IdxOp &offset)
-			: MachineInstruction("Aarch64StoreInst", &NoOperand, 3) {
-		this->set_operand(0, src.op);
-		this->set_operand(1, base.op);
-		this->set_operand(2, offset.op);
-	}
-
-	StoreInst(const SrcOp &src, const DstOp &dst)
-			: MachineInstruction("Aarch64StoreInst", dst.op, 1) {
-		this->set_operand(0, src.op);		
-	}
-
-	T reg_src() const {
-		Aarch64Register* reg = cast_to<Aarch64Register>(this->operands[0].op);
-		return T(reg->index);
-	}
-
-	X reg_base() const {
-		if (this->result.op->is_StackSlot() 
-			|| this->result.op->is_ManagedStackSlot()) {
-			return XFP;
-		}
-
-		MachineOperand *op = this->get(1).op;
-		if (op->is_Register()) {
-			Aarch64Register* reg = cast_to<Aarch64Register>(op);
-			return X(reg->index);
+			return reg_op(1);
 		}  else {
 			ABORT_MSG("MemoryInst::reg_base", op << " not supported");
 		}
@@ -243,9 +202,8 @@ public:
 	}
 
 	s4 offset() const {
-		if (this->result.op->is_StackSlot() 
-				|| this->result.op->is_ManagedStackSlot()) {
-			StackSlot* stackSlot = cast_to<StackSlot>(this->result.op);
+		if (result.op->is_StackSlot() || result.op->is_ManagedStackSlot()) {
+			StackSlot* stackSlot = cast_to<StackSlot>(result.op);
 			return stackSlot->get_index() * kStackSlotSize;
 		}
 
@@ -260,46 +218,107 @@ public:
 	}
 	
 	virtual bool is_move() const { 
-		return this->operands[0].op->is_Register() && 
-		       (this->result.op->is_StackSlot() 
-			   	|| this->result.op->is_ManagedStackSlot());
-	}
-
-	virtual void emit(CodeMemory* cm) const {
-		Emitter em;
-		emit(em);
-		em.emit(cm);
+		return operands[0].op->is_Register() && 
+		       (result.op->is_StackSlot() 
+			   	|| result.op->is_ManagedStackSlot());
 	}
 
 	virtual void emit(Emitter& em) const;
+
+private:
+	virtual Reg regFromType(u1 reg, Type::TypeID type) const {
+		switch (type) {
+		case Type::ByteTypeID: return Reg::B(reg);
+		case Type::ShortTypeID: return Reg::H(reg);
+		case Type::IntTypeID: return Reg::W(reg);
+		case Type::ReferenceTypeID:
+		case Type::LongTypeID: return Reg::X(reg);
+		case Type::FloatTypeID: return Reg::S(reg);
+		case Type::DoubleTypeID: return Reg::D(reg);
+		default: break;
+		}
+		ABORT_MSG("aarch64: regFromOpSize unsupported type", 
+		          "Type: " << type);
+		return Reg::XZR; // make compiler happy
+	}
 };
 
 
-template<typename T>
-class LoadInst : public MemoryInst<T> {
+class LoadInst : public AArch64Instruction {
 public:
-	LoadInst(const DstOp &dst, const BaseOp &base, const IdxOp &offset)
-			: MemoryInst<T>("Aarch64LoadInst", dst, base, offset) {}
+	LoadInst(const DstOp &dst, const BaseOp &base, const IdxOp &offset,
+	         Type::TypeID type)
+			: AArch64Instruction("Aarch64LoadInst", dst.op, type, 2) {
+		operands[0].op = base.op;
+		operands[1].op = offset.op;
+	}
 	
-	LoadInst(const DstOp &dst, const SrcOp &src)
-			: MemoryInst<T>("Aarch64LoadInst", dst, src) {}
+	LoadInst(const DstOp &dst, const SrcOp &src, Type::TypeID type)
+			: AArch64Instruction("Aarch64LoadInst", dst.op, type, 1) {
+		operands[0].op = src.op;
+	}
+
+	Reg reg_base() const {
+		MachineOperand *op = get(0).op;
+		if (op->is_Register()) {
+			return reg_op(0);
+		} else if (op->is_StackSlot() || op->is_ManagedStackSlot()) {
+			return Reg::XFP;
+		} else {
+			ABORT_MSG("MemoryInst::reg_base", op << " not supported");
+		}
+		assert(0);
+	}
+
+	s4 offset() const {
+		if (get(0).op->is_StackSlot() || get(0).op->is_ManagedStackSlot()) {
+			StackSlot* stackSlot = cast_to<StackSlot>(get(0).op);
+			return stackSlot->get_index() * kStackSlotSize;
+		}
+
+		MachineOperand *op = get(1).op;
+		if (op->is_Immediate()) {
+			Immediate* imm = cast_to<Immediate>(op);
+			return imm->get_Int();
+		} else {
+			ABORT_MSG("Memory::offset", op << " not supported");
+		}
+		assert(0);
+	}
 
 	virtual bool is_move() const { 
-		return this->result.op->is_Register() && 
-		       (this->operands[0].op->is_StackSlot() 
-			   	|| this->operands[0].op->is_ManagedStackSlot());
+		return result.op->is_Register() && 
+		       (operands[0].op->is_StackSlot() 
+			   	|| operands[0].op->is_ManagedStackSlot());
 	}
 	virtual void emit(Emitter& em) const;
+
+private:
+	virtual Reg regFromType(u1 reg, Type::TypeID type) const {
+		switch (type) {
+		case Type::ByteTypeID: return Reg::B(reg);
+		case Type::ShortTypeID: return Reg::H(reg);
+		case Type::IntTypeID: return Reg::W(reg);
+		case Type::ReferenceTypeID:
+		case Type::LongTypeID: return Reg::X(reg);
+		case Type::FloatTypeID: return Reg::S(reg);
+		case Type::DoubleTypeID: return Reg::D(reg);
+		default: break;
+		}
+		ABORT_MSG("aarch64: regFromOpSize unsupported type", 
+		          "Type: " << type);
+		return Reg::XZR; // make compiler happy
+	}
 };
 
 
-template<typename T>
-class DsegAddrInst : public GPInstruction<T, T> {
+class DsegAddrInst : public AArch64Instruction {
 private:
 	DataSegment::IdxTy data_index;
 public:
-	DsegAddrInst(const DstOp &dst, DataSegment::IdxTy &data_index)
-			: GPInstruction<T, T>("Aarch64DsegAddrInst", dst.op, 0), 
+	DsegAddrInst(const DstOp &dst, DataSegment::IdxTy &data_index, 
+	             Type::TypeID type)
+			: AArch64Instruction("Aarch64DsegAddrInst", dst.op, type, 0), 
 		      data_index(data_index) {}
 
 	virtual void emit(CodeMemory* cm) const;
@@ -307,15 +326,14 @@ public:
 };
 
 
-template<typename T>
-class AddInst : public GPInstruction<T, T> {
+class AddInst : public AArch64Instruction {
 public:
 	AddInst(const DstOp &dst, const SrcOp &src1, const SrcOp &src2,
-			Shift::SHIFT shift = Shift::LSL, u1 amount = 0)
-			: GPInstruction<T, T>("Aarch64AddInst", dst.op, 2), shift(shift),
-			  amount(amount) {
-		this->set_operand(0, src1.op);
-		this->set_operand(1, src2.op);
+			Type::TypeID type, Shift::SHIFT shift = Shift::LSL, u1 amount = 0)
+			: AArch64Instruction("Aarch64AddInst", dst.op, type, 2), 
+			  shift(shift), amount(amount) {
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
 	}
 
 	virtual void emit(Emitter& em) const;
@@ -326,80 +344,77 @@ private:
 };
 
 
-template<typename T>
-class SubInst : public GPInstruction<T, T> {
+class SubInst : public AArch64Instruction {
 public:
-	SubInst(const DstOp &dst, const SrcOp &src1, const SrcOp &src2)
-			: GPInstruction<T, T>("Aarch64SubInst", dst.op, 2) {
-		this->operands[0].op = src1.op;
-		this->operands[1].op = src2.op;
+	SubInst(const DstOp &dst, const SrcOp &src1, const SrcOp &src2, 
+	        Type::TypeID type)
+			: AArch64Instruction("Aarch64SubInst", dst.op, type, 2) {
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
 	}
 
 	virtual void emit(Emitter& em) const;
 };
 
 
-template<typename T>
-class MulInst : public GPInstruction<T, T> {
+class MulInst : public AArch64Instruction {
 public:
-	MulInst(const DstOp &dst, const SrcOp &src1, const SrcOp &src2)
-			: GPInstruction<T, T>("Aarch64MulInst", dst.op, 2) {
-		this->operands[0].op = src1.op;
-		this->operands[1].op = src2.op;
+	MulInst(const DstOp &dst, const SrcOp &src1, const SrcOp &src2,
+	        Type::TypeID type)
+			: AArch64Instruction("Aarch64MulInst", dst.op, type, 2) {
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
 	}
 
 	virtual void emit(Emitter& em) const;	
 };
 
 
-template<typename T>
-class MulSubInst : public GPInstruction<T, T> {
+class MulSubInst : public AArch64Instruction {
 public:
 	MulSubInst(const DstOp &dst, const SrcOp &src1, const SrcOp &src2,
-	           const SrcOp &src3)
-			: GPInstruction<T, T>("Aarch64MulSubInst", dst.op, 3) {
-		this->set_operand(0, src1.op);
-		this->set_operand(1, src2.op);
-		this->set_operand(2, src3.op);
+	           const SrcOp &src3, Type::TypeID type)
+			: AArch64Instruction("Aarch64MulSubInst", dst.op, type, 3) {
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
+		operands[2].op = src3.op;
 	}
 
 	virtual void emit(Emitter& em) const;
 };
 
 
-template<typename T>
-class DivInst : public GPInstruction<T, T> {
+class DivInst : public AArch64Instruction {
 public:
-	DivInst(const DstOp &dst, const SrcOp &src1, const SrcOp &src2)
-			: GPInstruction<T, T>("Aarch64DivInst", dst.op, 2) {
-		this->operands[0].op = src1.op;
-		this->operands[1].op = src2.op;
+	DivInst(const DstOp &dst, const SrcOp &src1, const SrcOp &src2,
+	        Type::TypeID type)
+			: AArch64Instruction("Aarch64DivInst", dst.op, type, 2) {
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
 	}
 
 	virtual void emit(Emitter& em) const;	
 };
 
-
-template<typename T>
-class NegInst : public GPInstruction<T, T> {
+class NegInst : public AArch64Instruction {
 public:
-	NegInst(const DstOp &dst, const SrcOp &src)
-			: GPInstruction<T, T>("Aarch64NegInst", dst.op, 1) {
-		this->set_operand(0, src.op);
+	NegInst(const DstOp &dst, const SrcOp &src, Type::TypeID type)
+			: AArch64Instruction("Aarch64NegInst", dst.op, type, 1) {
+		operands[0].op = src.op;
 	}
 
 	virtual void emit(Emitter& em) const;
 };
 
-template<typename T>
-class AndInst : public GPInstruction<T, T> {
+
+class AndInst : public AArch64Instruction {
 public:
 	AndInst(const DstOp &dst, const SrcOp &src1, const SrcOp &src2,
-			Shift::SHIFT shift = Shift::LSL, u1 amount = 0)
-			: GPInstruction<T, T>("Aarch64AndInst", dst.op, 2), shift(shift),
-			  amount(amount) {
-		this->set_operand(0, src1.op);
-		this->set_operand(1, src2.op);
+	        Type::TypeID type, Shift::SHIFT shift = Shift::LSL, u1 amount = 0)
+			: AArch64Instruction("Aarch64AndInst", dst.op, type, 2), 
+			  shift(shift), amount(amount) {
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
 	}
 
 	virtual void emit(Emitter& em) const;
@@ -410,25 +425,23 @@ private:
 };
 
 
-template<typename T>
-class FCmpInst : public GPInstruction<T, T> {
+class FCmpInst : public AArch64Instruction {
 public:
-	FCmpInst(const SrcOp &src1, const SrcOp &src2)
-			: GPInstruction<T, T>("Aarch64FCmpInst", &NoOperand, 2) {
-		this->set_operand(0, src1.op);
-		this->set_operand(1, src2.op);
+	FCmpInst(const SrcOp &src1, const SrcOp &src2, Type::TypeID type)
+			: AArch64Instruction("Aarch64FCmpInst", &NoOperand, type, 2) {
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
 	}
 
 	virtual void emit(Emitter& em) const;
 };
 
 
-template<typename T>
-class FMovInst : public GPInstruction<T, T> {
+class FMovInst : public AArch64Instruction {
 public:
-	FMovInst(const DstOp &dst, const SrcOp &src)
-			: GPInstruction<T, T>("Aarch64FMovInst", dst.op, 1) {
-		this->set_operand(0, src.op);
+	FMovInst(const DstOp &dst, const SrcOp &src, Type::TypeID type)
+			: AArch64Instruction("Aarch64FMovInst", dst.op, type, 1) {
+		operands[0].op = src.op;
 	}
 
 	virtual bool is_move() const { return true; }
@@ -436,64 +449,63 @@ public:
 };
 
 
-template<typename T>
-class FAddInst : public GPInstruction<T, T> {
+class FAddInst : public AArch64Instruction {
 public:
-	FAddInst(const DstOp &dst, const SrcOp &src1, const SrcOp &src2)
-			: GPInstruction<T, T>("Aarch64FAddInst", dst.op, 2) {
-		this->set_operand(0, src1.op);
-		this->set_operand(1, src2.op);
+	FAddInst(const DstOp &dst, const SrcOp &src1, const SrcOp &src2,
+	         Type::TypeID type)
+			: AArch64Instruction("Aarch64FAddInst", dst.op, type, 2) {
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
 	}
 
 	virtual void emit(Emitter& em) const;	
 };
 
 
-template<typename T>
-class FDivInst : public GPInstruction<T, T> {
+class FDivInst : public AArch64Instruction {
 public:
-	FDivInst(const DstOp &dst, const SrcOp &src1, const SrcOp &src2)
-			: GPInstruction<T, T>("Aarch64FDivInst", dst.op, 2) {
-		this->set_operand(0, src1.op);
-		this->set_operand(1, src2.op);
+	FDivInst(const DstOp &dst, const SrcOp &src1, const SrcOp &src2,
+	         Type::TypeID type)
+			: AArch64Instruction("Aarch64FDivInst", dst.op, type, 2) {
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
+	}
+
+	virtual void emit(Emitter& em) const;
+};
+
+
+class FMulInst : public AArch64Instruction {
+public:
+	FMulInst(const DstOp &dst, const SrcOp &src1, const SrcOp &src2,
+	         Type::TypeID type)
+			: AArch64Instruction("Aarch64FMulInst", dst.op, type, 2) {
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
 	}
 
 	virtual void emit(Emitter& em) const;	
 };
 
 
-template<typename T>
-class FMulInst : public GPInstruction<T, T> {
+class FSubInst : public AArch64Instruction {
 public:
-	FMulInst(const DstOp &dst, const SrcOp &src1, const SrcOp &src2)
-			: GPInstruction<T, T>("Aarch64FMulInst", dst.op, 2) {
-		this->set_operand(0, src1.op);
-		this->set_operand(1, src2.op);
+	FSubInst(const DstOp &dst, const SrcOp &src1, const SrcOp &src2,
+	         Type::TypeID type)
+			: AArch64Instruction("Aarch64FSubInst", dst.op, type, 2) {
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
 	}
 
-	virtual void emit(Emitter& em) const;	
+	virtual void emit(Emitter& em) const;
 };
 
 
-template<typename T>
-class FSubInst : public GPInstruction<T, T> {
+class FNegInst : public AArch64Instruction {
 public:
-	FSubInst(const DstOp &dst, const SrcOp &src1, const SrcOp &src2)
-			: GPInstruction<T, T>("Aarch64FSubInst", dst.op, 2) {
-		this->set_operand(0, src1.op);
-		this->set_operand(1, src2.op);
-	}
-
-	virtual void emit(Emitter& em) const;	
-};
-
-
-template<typename T>
-class FNegInst : public GPInstruction<T, T> {
-public:
-	FNegInst(const DstOp &dst, const SrcOp &src)
-			: GPInstruction<T, T>("Aarch64FNegInst", dst.op, 1) {
-		this->set_operand(0, src.op);
+	FNegInst(const DstOp &dst, const SrcOp &src, Type::TypeID type)
+			: AArch64Instruction("Aarch64FNegInst", dst.op, type, 1) {
+		operands[0].op = src.op;
 	}
 
 	virtual void emit(Emitter& em) const;
@@ -514,29 +526,28 @@ public:
 };
 
 
-template<typename T>
-class CmpInst : public GPInstruction<T, T> {
+class CmpInst : public AArch64Instruction {
 public:
-	CmpInst(const SrcOp &src1, const SrcOp &src2)
-		: GPInstruction<T, T>("Aarch64CmpInst", &NoOperand, 2) {
-		this->set_operand(0, src1.op);
-		this->set_operand(1, src2.op);
+	CmpInst(const SrcOp &src1, const SrcOp &src2, Type::TypeID type)
+		: AArch64Instruction("Aarch64CmpInst", &NoOperand, type, 2) {
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
 	}
 
 	virtual void emit(Emitter& em) const;
 };
 
 
-template<typename T>
-class CSelInst : public GPInstruction<T, T> {
+class CSelInst : public AArch64Instruction {
 private:
 	Cond::COND cond;
 public:
 	CSelInst(const DstOp &dst, const SrcOp &src1, const SrcOp &src2, 
-	         Cond::COND cond)
-			: GPInstruction<T, T>("Aarch64CSelInst", dst.op, 2), cond(cond) {
-		this->set_operand(0, src1.op);
-		this->set_operand(1, src2.op);
+	         Type::TypeID type, Cond::COND cond)
+			: AArch64Instruction("Aarch64CSelInst", dst.op, type, 2), 
+			  cond(cond) {
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
 	}
 
 	virtual void emit(Emitter& em) const;
@@ -605,66 +616,84 @@ public:
 };
 
 
-template<typename O, typename R>
-class IntToFpInst : public GPInstruction<O, R> {
+class IntToFpInst : public AArch64Instruction {
 public:
-	IntToFpInst(const DstOp &dst, const SrcOp &src) 
-			: GPInstruction<O, R>("Aarch64IntToFpInst", dst.op, 1) {
-		this->set_operand(0, src.op);
+	IntToFpInst(const DstOp &dst, const SrcOp &src, Type::TypeID toType,
+	            Type::TypeID fromType) 
+			: AArch64Instruction("Aarch64IntToFpInst", dst.op, toType, 1),
+			  from_type(fromType) {
+		operands[0].op = src.op;
 	}
 
 	virtual void emit(Emitter& em) const;
+
+private:
+	Type::TypeID from_type;
+
+	Reg reg_from() const {
+		return fromOp(operands[0].op, from_type);
+	}
 };
 
-template<typename O, typename R>
-class FcvtInst : public GPInstruction<O, R> {
+class FcvtInst : public AArch64Instruction {
 public:
-	FcvtInst(const DstOp &dst, const SrcOp &src) 
-			: GPInstruction<O, R>("Aarch64FcvtInst", dst.op, 1) {
-		this->set_operand(0, src.op);
+	FcvtInst(const DstOp &dst, const SrcOp &src, Type::TypeID toType,
+	         Type::TypeID fromType)  
+			: AArch64Instruction("Aarch64FcvtInst", dst.op, toType, 1),
+			  from_type(fromType) {
+		operands[0].op = src.op;
 	}
 
 	virtual void emit(Emitter& em) const;
+
+private:
+	Type::TypeID from_type;
+
+	Reg reg_from() const {
+		return fromOp(operands[0].op, from_type);
+	}
 };
 
-class IntToLongInst : public GPInstruction<W, X> {
+class IntToLongInst : public AArch64Instruction {
 public:
 	IntToLongInst(const DstOp &dst, const SrcOp &src)
-			: GPInstruction<W, X>("Aarch64IntToLongInst", dst.op, 1) {
+			: AArch64Instruction("Aarch64IntToLongInst", dst.op, 
+			                     Type::IntTypeID, 1) {
 		operands[0].op = src.op;
 	}
 
 	virtual void emit(Emitter& em) const;
 };
 
-// Int and long to byte
-template<typename T>
-class IntToByteInst : public GPInstruction<T, T> {
+
+class IntegerToByteInst : public AArch64Instruction {
 public:
-	IntToByteInst(const DstOp &dst, const SrcOp &src)
-			: GPInstruction<T, T>("Aarch64IntToByteInst", dst.op, 1) {
-		this->set_operand(0, src.op);
+	IntegerToByteInst(const DstOp &dst, const SrcOp &src, Type::TypeID type)
+			: AArch64Instruction("Aarch64IntToByteInst", dst.op, type, 1) {
+		operands[0].op = src.op;
 	}
 
 	virtual void emit(Emitter& em) const;
 };
 
-class IntToCharInst : public GPInstruction<W, W> {
+
+class IntToCharInst : public AArch64Instruction {
 public:
 	IntToCharInst(const DstOp &dst, const SrcOp &src)
-			: GPInstruction<W, W>("Aarch64IntToCharInst", dst.op, 1) {
-		this->set_operand(0, src.op);
+			: AArch64Instruction("Aarch64IntToCharInst", dst.op, 
+			                     Type::IntTypeID, 1) {
+		operands[0].op = src.op;
 	}
 
 	virtual void emit(Emitter& em) const;
 };
 
-template<typename T>
-class IntToShortInst : public GPInstruction<T, T> {
+
+class IntegerToShortInst : public AArch64Instruction {
 public:
-	IntToShortInst(const DstOp &dst, const SrcOp &src)
-			: GPInstruction<T, T>("Aarch64IntToShortInst", dst.op, 1) {
-		this->set_operand(0, src.op);
+	IntegerToShortInst(const DstOp &dst, const SrcOp &src, Type::TypeID type)
+			: AArch64Instruction("Aarch64IntToShortInst", dst.op, type, 1) {
+		operands[0].op = src.op;
 	}
 
 	virtual void emit(Emitter& em) const;
@@ -682,10 +711,6 @@ public:
 	virtual void link(CodeFragment &cf) const;
 };
 
-// Separted all the template definitions to keep file size "reasonable"
-#define _INSIDE_INSTRUCTIONS_HPP
-#include "vm/jit/compiler2/aarch64/Aarch64InstructionsT.hpp"
-#undef _INSIDE_INSTRUCTIONS_HPP
 
 } // end namespace aarch64
 } // end namespace compiler2

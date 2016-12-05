@@ -38,50 +38,55 @@ namespace jit {
 namespace compiler2 {
 namespace aarch64 {
 
+class Reg {
+public:
+	static Reg X(u1 reg) { return Reg(reg, &XConf); }
+	static Reg W(u1 reg) { return Reg(reg, &WConf); }
+	static Reg H(u1 reg) { return Reg(reg, &HConf); }
+	static Reg B(u1 reg) { return Reg(reg, &BConf); }
+	
+	static Reg D(u1 reg) { return Reg(reg, &DConf); }
+	static Reg S(u1 reg) { return Reg(reg, &SConf); }
 
-/// Represents a 64-bit GP register
-struct X {
+	static Reg XZR;
+	static Reg WZR;
+
+	static Reg XSP;
+	static Reg XFP;
+
+	u1 r() const { return reg; }
+
+	u1 sf() const { return conf->sf; }
+	u1 type() const { return conf->type; }
+	u1 size() const { return conf->size; }
+	u1 v() const { return conf->v; }
+	const Reg* zero() const { return conf->zero; }
+
+private:
+	struct RegConfiguration {
+		u1 sf;
+		u1 type;
+		u1 size;
+		u1 v;
+
+		const Reg* const zero;
+	};
+
+	explicit Reg(u1 reg, const RegConfiguration* const conf) 
+			: reg(reg), conf(conf) {}
+
 	u1 reg;
-	explicit X(u1 reg) : reg(reg) {}
+	const RegConfiguration* const conf;
+
+	static RegConfiguration XConf;
+	static RegConfiguration WConf;
+	static RegConfiguration HConf;
+	static RegConfiguration BConf;
+
+	static RegConfiguration DConf;
+	static RegConfiguration SConf;
 };
 
-/// Represents the lower 32-bit part of a GP register
-struct W {
-	u1 reg;
-	explicit W(u1 reg) : reg(reg) {}
-};
-
-/// Represents a half word
-struct H {
-	u1 reg;
-	explicit H(u1 reg) : reg(reg) {}
-};
-
-/// Represents a byte
-struct B {
-	u1 reg;
-	explicit B(u1 reg) : reg(reg) {}
-};
-
-/// Represents a 64-bit SIMD&FP register
-struct D {
-	u1 reg;
-	explicit D(u1 reg) : reg(reg) {}
-};
-
-/// Represents a 32-bit SIMD&FP register
-struct S {
-	u1 reg;
-	explicit S(u1 reg) : reg(reg) {}
-};
-
-
-// Predefine zero register
-const W wzr(0x1f);
-const X xzr(0x1f);
-
-const X XSP(0x1f);
-const X XFP(0x1d);
 
 class Shift {
 public:
@@ -97,6 +102,7 @@ public:
 	static const SHIFT ASR;
 };
 
+
 class Emitter {
 private:
 	typedef alloc::vector<u4>::type instruction_list;
@@ -105,32 +111,23 @@ private:
 public:
 	explicit Emitter() : instructions() {}
 
-	template<typename T> void sbfm(const T& rd, const T& rn, u1 immr, u1 imms);
-	void sxtw(const X& xd, const W& wn) { 
-		sbfm(xd, static_cast<X>(wn.reg), 0, 31); 
-	}
-	template<typename T> void sxtb(const T& rd, const T& rn) {
-		sbfm(rd, rn, 0, 7);
-	}
-	template<typename T> void sxth(const T& rd, const T& rn) {
-		sbfm(rd, rn, 0, 15);
-	}
-	template<typename T> void ubfm(const T& rd, const T& rn, u1 immr, u1 imms);
-	void uxth(const W& wd, const W& wn) { ubfm(wd, wn, 0, 15); }
-	void ubfx(const X& wd, const X& wn) {
-		ubfm(wd, wn, 0, 31);
-	}
+	void sbfm(const Reg& rd, const Reg& rn, u1 immr, u1 imms);
+	void sxtw(const Reg& xd, const Reg& wn) { sbfm(xd, wn, 0, 31); }
+	void sxtb(const Reg& rd, const Reg& rn) { sbfm(rd, rn, 0, 7); }
+	void sxth(const Reg& rd, const Reg& rn) { sbfm(rd, rn, 0, 15); }
 
-	template<typename T> void add(const T& rd, const T& rn, s2 imm);
-	template<typename T> void sub(const T& rd, const T& rn, s2 imm);
-	template<typename T> void subs(const T& rd, const T& rn, s2 imm);
-	template<typename T> void cmp(const T& rn, s2 imm) {
-		subs(static_cast<T>(XSP.reg), rn, imm);
-	}
+	void ubfm(const Reg& rd, const Reg& rn, u1 immr, u1 imms);
+	void uxth(const Reg& wd, const Reg& wn) { ubfm(wd, wn, 0, 15); }
+	void ubfx(const Reg& wd, const Reg& wn) { ubfm(wd, wn, 0, 31); }
+
+	void add(const Reg& rd, const Reg& rn, s2 imm);
+	void sub(const Reg& rd, const Reg& rn, s2 imm);
+	void subs(const Reg& rd, const Reg& rn, s2 imm);
+	void cmp(const Reg& rn, s2 imm) { subs(Reg::XZR, rn, imm); }
 	
-	template<typename T> void movn(const T& rd, u2 imm);
-	template<typename T> void movz(const T& rd, u2 imm);
-	template<typename T> void movk(const T& rd, u2 imm, u1 shift = 0);
+	void movn(const Reg& rd, u2 imm);
+	void movz(const Reg& rd, u2 imm);
+	void movk(const Reg& rd, u2 imm, u1 shift = 0);
 
 	void bcond(u1 cond, s4 offset) {
 		s4 off = offset >> 2;
@@ -146,56 +143,46 @@ public:
 		instructions.push_back(instr);
 	}
 
-	void adr(const X& xd, s4 offset) {
-		u1 low = offset & 0x3;
-		u4 high = (offset >> 2) & 0x7ffff;
-		u4 instr = 0x10000000 | lsl(low, 29) | lsl(high, 5) | xd.reg;
-		instructions.push_back(instr);
-	}
+	void ldr(const Reg& rt, s4 offset);
 
-	template<typename T> void ldr(const T& rt, s4 offset);
+	void ldur(const Reg& rt, const Reg& rn, s2 imm = 0);
+	void stur(const Reg& rt, const Reg& rn, s2 imm = 0);
 
-	template<typename T> void ldur(const T& rt, const X& rn, s2 imm = 0);
-	template<typename T> void stur(const T& rt, const X& rn, s2 imm = 0);
+	void ldr(const Reg& rt, const Reg& rn, s2 imm = 0);
+	void str(const Reg& rt, const Reg& rn, s2 imm = 0);
 
-	template<typename T> void ldr(const T& rt, const X& rn, s2 imm = 0);
-	template<typename T> void str(const T& rt, const X& rn, s2 imm = 0);
+	void add(const Reg& rd, const Reg& rn, const Reg& rm, 
+	         Shift::SHIFT shift = Shift::LSL, u1 amount = 0);
+	void sub(const Reg& rd, const Reg& rn, const Reg& rm);
+	void subs(const Reg& rd, const Reg& rn, const Reg& rm);
+	void neg(const Reg& rd, const Reg& rm);
+	void cmp(const Reg& rn, const Reg& rm);
 
-	template<typename T> void add(const T& rd, const T& rn, const T& rm,
-								  Shift::SHIFT shift = Shift::LSL, u1 amount = 0);
-	template<typename T> void sub(const T& rd, const T& rn, const T& rm);
-	template<typename T> void subs(const T& rd, const T& rn, const T& rm);
-	template<typename T> void neg(const T& rd, const T& rm);
-	template<typename T> void cmp(const T& rn, const T& rm);
+	void csel(const Reg& rd, const Reg& rn, const Reg& rm, Cond::COND cond);
 
-	template<typename T> void csel(const T& rd, const T& rn, const T& rm, 
-	                               Cond::COND cond);
-
-	template<typename T> void mul(const T& rd, const T& rn, const T& rm);
-	template<typename T> void madd(const T& rd, const T& rn, const T& rm,
-	                               const T& ra);
-	template<typename T> void msub(const T& rd, const T& rn, const T& rm,
-	                               const T& ra);
+	void mul(const Reg& rd, const Reg& rn, const Reg& rm);
+	void madd(const Reg& rd, const Reg& rn, const Reg& rm, const Reg& ra);
+	void msub(const Reg& rd, const Reg& rn, const Reg& rm, const Reg& ra);
 
 	void nop() { instructions.push_back(0xd503201f); }
-	template<typename T> void mov(const T& rd, const T& rm);
-	template<typename T> void andd(const T& rd, const T& rn, const T& rm);
-	template<typename T> void orr(const T& rd, const T& rn, const T& rm);
+	void mov(const Reg& rd, const Reg& rm) { orr(rd, *rd.zero(), rm); }
+	void andd(const Reg& rd, const Reg& rn, const Reg& rm);
+	void orr(const Reg& rd, const Reg& rn, const Reg& rm);
 
-	template<typename T> void sdiv(const T& rd, const T& rn, const T& rm);
+	void sdiv(const Reg& rd, const Reg& rn, const Reg& rm);
 
-	template<typename T> void fcmp(const T& rn, const T& rm);
+	void fcmp(const Reg& rn, const Reg& rm);
 
-	template<typename T> void fmov(const T& rd, const T& rn);
-	template<typename T> void fneg(const T& rd, const T& rn);
-	template<typename T, typename S> void fcvt(const T& rd, const S& rn);
+	void fmov(const Reg& rd, const Reg& rn);
+	void fneg(const Reg& rd, const Reg& rn);
+	void fcvt(const Reg& rd, const Reg& rn);
 
-	template<typename T> void fadd(const T& rd, const T& rn, const T& rm);
-	template<typename T> void fdiv(const T& rd, const T& rn, const T& rm);
-	template<typename T> void fmul(const T& rd, const T& rn, const T& rm);
-	template<typename T> void fsub(const T& rd, const T& rn, const T& rm);
+	void fadd(const Reg& rd, const Reg& rn, const Reg& rm);
+	void fdiv(const Reg& rd, const Reg& rn, const Reg& rm);
+	void fmul(const Reg& rd, const Reg& rn, const Reg& rm);
+	void fsub(const Reg& rd, const Reg& rn, const Reg& rm);
 
-	template<typename T, typename S> void scvtf(const T& rd, const S& rn);
+	void scvtf(const Reg& rd, const Reg& rn);
 
 	void emit(CodeMemory* cm);
 	void emit(CodeFragment& cf);
@@ -308,11 +295,6 @@ private:
 		instructions.push_back(instr);
 	}	
 };
-
-// Separted all the template definitions to keep file size "reasonable"
-#define _INSIDE_EMITTER_HPP
-#include "vm/jit/compiler2/aarch64/Aarch64EmitterT.hpp"
-#undef _INSIDE_EMITTER_HPP
 
 
 } // end namespace aarch64

@@ -89,10 +89,10 @@ MachineInstruction* BackendBase<Aarch64>::create_Move(MachineOperand *src,
 		case Type::ByteTypeID:
 		case Type::ShortTypeID:
 		case Type::IntTypeID:
-			return new MovImmInst<W>(DstOp(dst), SrcOp(src));
+			return new MovImmInst(DstOp(dst), SrcOp(src), Type::IntTypeID);
 		case Type::LongTypeID:
 		case Type::ReferenceTypeID:
-			return new MovImmInst<X>(DstOp(dst), SrcOp(src));
+			return new MovImmInst(DstOp(dst), SrcOp(src), Type::LongTypeID);
 		case Type::DoubleTypeID:
 		{
 			// TODO: check if this is the correct way of using the DSEG
@@ -102,7 +102,8 @@ MachineInstruction* BackendBase<Aarch64>::create_Move(MachineOperand *src,
 			DataFragment data = ds.get_Ref(sizeof(double));
 			DataSegment::IdxTy idx = ds.insert_tag(DSDouble(imm), data);
 			write_data<double>(data, imm);
-			MachineInstruction *dseg = new DsegAddrInst<D>(DstOp(dst), idx);
+			MachineInstruction *dseg = 
+				new DsegAddrInst(DstOp(dst), idx, Type::DoubleTypeID);
 			return dseg;
 		}
 		default:
@@ -116,14 +117,13 @@ MachineInstruction* BackendBase<Aarch64>::create_Move(MachineOperand *src,
 		case Type::ByteTypeID:
 		case Type::ShortTypeID:
 		case Type::IntTypeID:
-			return new MovInst<W>(DstOp(dst), SrcOp(src));
 		case Type::LongTypeID:
 		case Type::ReferenceTypeID:
-			return new MovInst<X>(DstOp(dst), SrcOp(src));
-		case Type::DoubleTypeID:
-			return new FMovInst<D>(DstOp(dst), SrcOp(src));
+			return new MovInst(DstOp(dst), SrcOp(src), type);
+		
 		case Type::FloatTypeID:
-			return new FMovInst<S>(DstOp(dst), SrcOp(src));
+		case Type::DoubleTypeID:
+			return new FMovInst(DstOp(dst), SrcOp(src), type);
 
 		default:
 			break;
@@ -133,7 +133,7 @@ MachineInstruction* BackendBase<Aarch64>::create_Move(MachineOperand *src,
 	if (src->is_Register() && (dst->is_StackSlot() || dst->is_ManagedStackSlot())) {			
 		switch (type) {
 		case Type::DoubleTypeID:
-			return new StoreInst<D>(SrcOp(src), DstOp(dst));
+			return new StoreInst(SrcOp(src), DstOp(dst), type);
 		default:
 			break;
 		}
@@ -142,7 +142,7 @@ MachineInstruction* BackendBase<Aarch64>::create_Move(MachineOperand *src,
 	if (dst->is_Register() && (src->is_StackSlot() || src->is_ManagedStackSlot())) {
 		switch (type) {
 		case Type::DoubleTypeID:
-			return new aarch64::LoadInst<D>(DstOp(dst), SrcOp(src));
+			return new aarch64::LoadInst(DstOp(dst), SrcOp(src), type);
 		default:
 			break;
 		}
@@ -196,14 +196,12 @@ void Aarch64LoweringVisitor::visit(LOADInst *I, bool copyOperands) {
 		case Type::ByteTypeID:
 		case Type::ShortTypeID:
 		case Type::IntTypeID:
-			move = new LoadInst<W>(DstOp(dst), SrcOp(src_op));
+			move = new LoadInst(DstOp(dst), SrcOp(src_op), Type::IntTypeID);
 			break;
 		case Type::LongTypeID:
 		case Type::ReferenceTypeID:
-			move = new LoadInst<X>(DstOp(dst), SrcOp(src_op));
-			break;
 		case Type::DoubleTypeID:
-			move = new LoadInst<D>(DstOp(dst), SrcOp(src_op));
+			move = new LoadInst(DstOp(dst), SrcOp(src_op), type);
 			break;
 		default:
 			ABORT_MSG("aarch64 type not supported: ", I << " type: " << type);
@@ -219,7 +217,6 @@ void Aarch64LoweringVisitor::visit(CMPInst *I, bool copyOperands) {
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
 	Type::TypeID type = I->get_operand(0)->get_type();
 	assert(type == I->get_operand(1)->get_type());
-	MachineInstruction* cmp;
 	
 	MachineOperand *dst = new VirtualRegister(Type::IntTypeID);
 	MachineOperand *tmp1 = new VirtualRegister(Type::IntTypeID);
@@ -230,36 +227,39 @@ void Aarch64LoweringVisitor::visit(CMPInst *I, bool copyOperands) {
 				"Inst: " << I << " type: " << type);
 	}
 
-	if (type == Type::FloatTypeID) 
-		cmp = new FCmpInst<S>(SrcOp(src_op1), SrcOp(src_op2));
-	else
-	    cmp = new FCmpInst<D>(SrcOp(src_op1), SrcOp(src_op2));
-	get_current()->push_back(cmp);
+	get_current()->push_back(
+		new FCmpInst(SrcOp(src_op1), SrcOp(src_op2), type));
 
 	get_current()->push_back(
-		new MovImmInst<W>(DstOp(dst), SrcOp(new Immediate(0, Type::IntType()))));
+		new MovImmInst(DstOp(dst), SrcOp(new Immediate(0, Type::IntType())),
+		               Type::IntTypeID));
 	get_current()->push_back(
-		new MovImmInst<W>(DstOp(tmp1), SrcOp(new Immediate(1, Type::IntType()))));
+		new MovImmInst(DstOp(tmp1), SrcOp(new Immediate(1, Type::IntType())),
+					   Type::IntTypeID));
 	get_current()->push_back(
-		new MovImmInst<W>(DstOp(tmp2), SrcOp(new Immediate(-1, Type::IntType()))));
+		new MovImmInst(DstOp(tmp2), SrcOp(new Immediate(-1, Type::IntType())),
+		               Type::IntTypeID));
 
+	MachineInstruction *csel = NULL;
 	if (I->get_FloatHandling() == CMPInst::L) {
 		/* set to -1 if less than or unordered (NaN) */
 		/* set to 1 if greater than */
-		get_current()->push_back(
-			new CSelInst<W>(DstOp(tmp1), SrcOp(tmp1), SrcOp(tmp2), Cond::GT));		
+		csel = new CSelInst(DstOp(tmp1), SrcOp(tmp1), SrcOp(tmp2),
+			                Type::IntTypeID, Cond::GT);		
 	} else if (I->get_FloatHandling() == CMPInst::G) {
 		/* set to 1 if greater than or unordered (NaN) */
 		/* set to -1 if less than */
-		get_current()->push_back(
-			new CSelInst<W>(DstOp(tmp1), SrcOp(tmp1), SrcOp(tmp2), Cond::HI));
+		csel = new CSelInst(DstOp(tmp1), SrcOp(tmp1), SrcOp(tmp2),
+			                Type::IntTypeID, Cond::HI);
 	} else {
 		assert(0);
 	}
+	get_current()->push_back(csel);
 
 	/* set to 0 if equal or result of previous csel */
 	get_current()->push_back(
-		new CSelInst<W>(DstOp(dst), SrcOp(dst), SrcOp(tmp1), Cond::EQ));
+		new CSelInst(DstOp(dst), SrcOp(dst), SrcOp(tmp1),
+		             Type::IntTypeID, Cond::EQ));
 	set_op(I, dst);
 }
 
@@ -275,10 +275,7 @@ void Aarch64LoweringVisitor::visit(IFInst *I, bool copyOperands) {
 	case Type::IntTypeID:
 	case Type::LongTypeID:
 	{
-		if (type != Type::LongTypeID)
-			cmp = new CmpInst<W>(SrcOp(src_op1), SrcOp(src_op2));
-		else
-			cmp = new CmpInst<X>(SrcOp(src_op1), SrcOp(src_op2));
+		cmp = new CmpInst(SrcOp(src_op1), SrcOp(src_op2), type);
 		
 		MachineInstruction* cjmp = NULL;
 		BeginInstRef& then = I->get_then_target();
@@ -330,16 +327,13 @@ void Aarch64LoweringVisitor::visit(NEGInst *I, bool copyOperands) {
 
 	switch (type) {
 	case Type::IntTypeID:
-		neg = new NegInst<W>(DstOp(dst), SrcOp(src));
-		break;
 	case Type::LongTypeID:
-		neg = new NegInst<X>(DstOp(dst), SrcOp(src));
+		neg = new NegInst(DstOp(dst), SrcOp(src), type);
 		break;
-	case Type::DoubleTypeID:
-		neg = new FNegInst<D>(DstOp(dst), SrcOp(src));
-		break;
+	
 	case Type::FloatTypeID:
-		neg = new FNegInst<S>(DstOp(dst), SrcOp(src));
+	case Type::DoubleTypeID:
+		neg = new FNegInst(DstOp(dst), SrcOp(src), type);
 		break;
 
 	default:
@@ -352,7 +346,6 @@ void Aarch64LoweringVisitor::visit(NEGInst *I, bool copyOperands) {
 
 void Aarch64LoweringVisitor::visit(ADDInst *I, bool copyOperands) {
 	assert(I);
-	assert(copyOperands);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
 	assert(src_op1->is_Register() && src_op2->is_Register());
@@ -362,21 +355,14 @@ void Aarch64LoweringVisitor::visit(ADDInst *I, bool copyOperands) {
 	MachineInstruction* inst;
 
 	switch (type) {
-	case Type::ByteTypeID:
 	case Type::IntTypeID:
-		inst = new AddInst<W>(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2));
-		break;
-
 	case Type::LongTypeID:
-		inst = new AddInst<X>(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2));
-		break;
-
-	case Type::DoubleTypeID:
-		inst = new FAddInst<D>(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2));
+		inst = new AddInst(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2), type);
 		break;
 
 	case Type::FloatTypeID:
-		inst = new FAddInst<S>(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2));
+	case Type::DoubleTypeID:
+		inst = new FAddInst(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2), type);
 		break;
 
 	default:
@@ -398,10 +384,8 @@ void Aarch64LoweringVisitor::visit(ANDInst *I, bool copyOperands) {
 	
 	switch (type) {
 	case Type::IntTypeID:
-		inst = new AndInst<W>(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2));
-		break;
 	case Type::LongTypeID:
-		inst = new AndInst<X>(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2));
+		inst = new AndInst(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2), type);
 		break;
 
 	default:
@@ -422,21 +406,14 @@ void Aarch64LoweringVisitor::visit(SUBInst *I, bool copyOperands) {
 	MachineInstruction* inst;
 
 	switch (type) {
-	case Type::ByteTypeID:
 	case Type::IntTypeID:
-		inst = new SubInst<W>(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2));
-		break;
-	
 	case Type::LongTypeID:
-		inst = new SubInst<X>(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2));
+		inst = new SubInst(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2), type);
 		break;
 	
-	case Type::DoubleTypeID:
-		inst = new FSubInst<D>(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2));
-		break;
-
 	case Type::FloatTypeID:
-		inst = new FSubInst<S>(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2));
+	case Type::DoubleTypeID:
+		inst = new FSubInst(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2), type);
 		break;
 
 	default:
@@ -457,23 +434,15 @@ void Aarch64LoweringVisitor::visit(MULInst *I, bool copyOperands) {
 	MachineInstruction* inst;
 
 	switch (type) {
-	case Type::ByteTypeID:
 	case Type::IntTypeID:
-		inst = new MulInst<W>(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2));
-		break;
-
 	case Type::LongTypeID:
-		inst = new MulInst<X>(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2));
-		break;
-
-	case Type::DoubleTypeID:
-		inst = new FMulInst<D>(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2));
+		inst = new MulInst(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2), type);
 		break;
 
 	case Type::FloatTypeID:
-		inst = new FMulInst<S>(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2));
+	case Type::DoubleTypeID:
+		inst = new FMulInst(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2), type);
 		break;
-
 
 	default:
 		ABORT_MSG("aarch64: Lowering not supported",
@@ -493,23 +462,16 @@ void Aarch64LoweringVisitor::visit(DIVInst *I, bool copyOperands) {
 	MachineInstruction* inst;
 
 	switch (type) {
-	case Type::ByteTypeID:
 	case Type::IntTypeID:
-		inst = new DivInst<W>(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2));
-		break;
-
 	case Type::LongTypeID:
-		inst = new DivInst<X>(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2));
-		break;
-
-	case Type::DoubleTypeID:
-		inst = new FDivInst<D>(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2));
+		inst = new DivInst(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2), type);
 		break;
 
 	case Type::FloatTypeID:
-		inst = new FDivInst<S>(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2));
+	case Type::DoubleTypeID:
+		inst = new FDivInst(DstOp(dst), SrcOp(src_op1), SrcOp(src_op2), type);
 		break;
-		
+
 	default:
 		ABORT_MSG("aarch64: Lowering not supported",
 				"Inst: " << I << " type: " << type);
@@ -532,9 +494,9 @@ void Aarch64LoweringVisitor::visit(REMInst *I, bool copyOperands) {
 
 	switch (type) {
 	case Type::IntTypeID:
-		div = new DivInst<W>(DstOp(tmp), SrcOp(dividend), SrcOp(src_op2));
-		msub = new MulSubInst<W>(DstOp(dst), SrcOp(tmp), SrcOp(src_op2), 
-			                     SrcOp(dividend));
+		div = new DivInst(DstOp(tmp), SrcOp(dividend), SrcOp(src_op2), type);
+		msub = new MulSubInst(DstOp(dst), SrcOp(tmp), SrcOp(src_op2), 
+			                     SrcOp(dividend), type);
 		get_current()->push_back(div);
 		get_current()->push_back(msub);
 		set_op(I, msub->get_result().op);
@@ -560,81 +522,46 @@ void Aarch64LoweringVisitor::visit(ALOADInst *I, bool copyOperands) {
 	Immediate *imm;
 
 	s4 offset = 0;
+	u1 shift = 0;
 	switch (type) {
 	case Type::ByteTypeID:
 		offset = OFFSET(java_bytearray_t, data[0]);
-		imm = new Immediate(offset, Type::IntType());
-
-		get_current()->push_back(
-			new AddInst<X>(DstOp(base), SrcOp(src_ref), SrcOp(src_index)));
-		get_current()->push_back(
-			new LoadInst<B>(DstOp(vreg), BaseOp(base), IdxOp(imm)));
 		break;
 	case Type::ShortTypeID:
 		offset = OFFSET(java_shortarray_t, data[0]);
-		imm = new Immediate(offset, Type::IntType());
-
-		get_current()->push_back(
-			new AddInst<X>(DstOp(base), SrcOp(src_ref), SrcOp(src_index),
-			               Shift::LSL, 1));
-		get_current()->push_back(
-			new LoadInst<H>(DstOp(vreg), BaseOp(base), IdxOp(imm)));
+		shift = 1;
 		break;
 	case Type::IntTypeID:
 		offset = OFFSET(java_intarray_t, data[0]);
-		imm = new Immediate(offset, Type::IntType());
-
-		get_current()->push_back(
-			new AddInst<X>(DstOp(base), SrcOp(src_ref), SrcOp(src_index),
-			               Shift::LSL, 2));
-		get_current()->push_back(
-			new LoadInst<W>(DstOp(vreg), BaseOp(base), IdxOp(imm)));
+		shift = 2;
 		break;
 	case Type::LongTypeID:
 		offset = OFFSET(java_longarray_t, data[0]);
-		imm = new Immediate(offset, Type::IntType());
-
-		get_current()->push_back(
-			new AddInst<X>(DstOp(base), SrcOp(src_ref), SrcOp(src_index),
-			               Shift::LSL, 3));
-		get_current()->push_back(
-			new LoadInst<X>(DstOp(vreg), BaseOp(base), IdxOp(imm)));
+		shift = 3;
 		break;
 	case Type::ReferenceTypeID:
 		offset = OFFSET(java_objectarray_t, data[0]);
-		imm = new Immediate(offset, Type::IntType());
-
-		get_current()->push_back(
-			new AddInst<X>(DstOp(base), SrcOp(src_ref), SrcOp(src_index),
-			               Shift::LSL, 3));
-		get_current()->push_back(
-			new LoadInst<X>(DstOp(vreg), BaseOp(base), IdxOp(imm)));
+		shift = 3;
 		break;
 	case Type::FloatTypeID:
 		offset = OFFSET(java_floatarray_t, data[0]);
-		imm = new Immediate(offset, Type::IntType());
-
-		get_current()->push_back(
-			new AddInst<X>(DstOp(base), SrcOp(src_ref), SrcOp(src_index),
-			               Shift::LSL, 2));
-		get_current()->push_back(
-			new LoadInst<S>(DstOp(vreg), BaseOp(base), IdxOp(imm)));
+		shift = 2;
 		break;
 	case Type::DoubleTypeID:
 		offset = OFFSET(java_doublearray_t, data[0]);
-		imm = new Immediate(offset, Type::IntType());
-
-		get_current()->push_back(
-			new AddInst<X>(DstOp(base), SrcOp(src_ref), SrcOp(src_index),
-			               Shift::LSL, 3));
-		get_current()->push_back(
-			new LoadInst<D>(DstOp(vreg), BaseOp(base), IdxOp(imm)));
+		shift = 3;	
 		break;
 	default:
 		ABORT_MSG("aarch64 Lowering not supported",
 			"Inst: " << I << " type: " << type);
 	}
+	imm = new Immediate(offset, Type::IntType());
 
+	get_current()->push_back(
+		new AddInst(DstOp(base), SrcOp(src_ref), SrcOp(src_index),
+			        Type::LongTypeID, Shift::LSL, shift));
+	get_current()->push_back(
+		new LoadInst(DstOp(vreg), BaseOp(base), IdxOp(imm), type));
 	set_op(I, vreg);
 }
 
@@ -652,80 +579,45 @@ void Aarch64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 	Type::TypeID type = I->get_array_type();
 
 	s4 offset = 0;
+	u1 shift = 0;
 	switch (type) {
 	case Type::ByteTypeID:
 		offset = OFFSET(java_bytearray_t, data[0]);
-		imm = new Immediate(offset, Type::IntType());
-		
-		get_current()->push_back(
-			new AddInst<X>(DstOp(base), SrcOp(src_ref), SrcOp(src_index)));
-		get_current()->push_back(
-			new StoreInst<B>(SrcOp(src_value), BaseOp(base), IdxOp(imm)));
 		break;
 	case Type::ShortTypeID:
 		offset = OFFSET(java_shortarray_t, data[0]);
-		imm = new Immediate(offset, Type::IntType());
-		
-		get_current()->push_back(
-			new AddInst<X>(DstOp(base), SrcOp(src_ref), SrcOp(src_index),
-						   Shift::LSL, 1));
-		get_current()->push_back(
-			new StoreInst<H>(SrcOp(src_value), BaseOp(base), IdxOp(imm)));
+		shift = 1;
 		break;
 	case Type::IntTypeID:
 		offset = OFFSET(java_intarray_t, data[0]);
-		imm = new Immediate(offset, Type::IntType());
-
-		get_current()->push_back(
-			new AddInst<X>(DstOp(base), SrcOp(src_ref), SrcOp(src_index),
-			               Shift::LSL, 2));
-		get_current()->push_back(
-			new StoreInst<W>(SrcOp(src_value), BaseOp(base), IdxOp(imm)));
+		shift = 2;
 		break;
 	case Type::LongTypeID:
 		offset = OFFSET(java_longarray_t, data[0]);
-		imm = new Immediate(offset, Type::IntType());
-
-		get_current()->push_back(
-			new AddInst<X>(DstOp(base), SrcOp(src_ref), SrcOp(src_index),
-			               Shift::LSL, 3));
-		get_current()->push_back(
-			new StoreInst<X>(SrcOp(src_value), BaseOp(base), IdxOp(imm)));
+		shift = 3;
 		break;
 	case Type::ReferenceTypeID:
 		offset = OFFSET(java_objectarray_t, data[0]);
-		imm = new Immediate(offset, Type::IntType());
-
-		get_current()->push_back(
-			new AddInst<X>(DstOp(base), SrcOp(src_ref), SrcOp(src_index),
-			               Shift::LSL, 3));
-		get_current()->push_back(
-			new StoreInst<X>(SrcOp(src_value), BaseOp(base), IdxOp(imm)));
+		shift = 3;
 		break;
 	case Type::FloatTypeID:
 		offset = OFFSET(java_floatarray_t, data[0]);
-		imm = new Immediate(offset, Type::IntType());
-
-		get_current()->push_back(
-			new AddInst<X>(DstOp(base), SrcOp(src_ref), SrcOp(src_index),
-			               Shift::LSL, 2));
-		get_current()->push_back(
-			new StoreInst<S>(SrcOp(src_value), BaseOp(base), IdxOp(imm)));
+		shift = 2;
 		break;
 	case Type::DoubleTypeID:
 		offset = OFFSET(java_doublearray_t, data[0]);
-		imm = new Immediate(offset, Type::IntType());
-
-		get_current()->push_back(
-			new AddInst<X>(DstOp(base), SrcOp(src_ref), SrcOp(src_index),
-			               Shift::LSL, 3));
-		get_current()->push_back(
-			new StoreInst<D>(SrcOp(src_value), BaseOp(base), IdxOp(imm)));
+		shift = 3;	
 		break;
 	default:
 		ABORT_MSG("aarch64 Lowering not supported",
 			"Inst: " << I << " type: " << type);
 	}
+	imm = new Immediate(offset, Type::IntType());
+	get_current()->push_back(
+			new AddInst(DstOp(base), SrcOp(src_ref), SrcOp(src_index),
+			            Type::LongTypeID, Shift::LSL, shift));
+	get_current()->push_back(
+			new StoreInst(SrcOp(src_value), BaseOp(base), IdxOp(imm), type));
 }
 
 void Aarch64LoweringVisitor::visit(ARRAYLENGTHInst *I, bool copyOperands) {
@@ -737,7 +629,7 @@ void Aarch64LoweringVisitor::visit(ARRAYLENGTHInst *I, bool copyOperands) {
 	Immediate *imm = new Immediate(OFFSET(java_array_t, size), Type::IntType());
 
 	MachineInstruction *load = 
-		new LoadInst<W>(DstOp(vreg), BaseOp(src_op), IdxOp(imm));
+		new LoadInst(DstOp(vreg), BaseOp(src_op), IdxOp(imm), Type::IntTypeID);
 	get_current()->push_back(load);
 	set_op(I, load->get_result().op);
 }
@@ -766,27 +658,17 @@ void Aarch64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 	case Type::ByteTypeID:
 	case Type::ShortTypeID:
 	case Type::IntTypeID:
-	{
-		MachineOperand *ret_reg = new NativeRegister(type, &R0);
-		mov = new MovInst<W>(DstOp(ret_reg), SrcOp(src_op));
-		break;
-	}
 	case Type::LongTypeID:
 	{
 		MachineOperand *ret_reg = new NativeRegister(type, &R0);
-		mov = new MovInst<X>(DstOp(ret_reg), SrcOp(src_op));
-		break;
-	}
-	case Type::DoubleTypeID:
-	{
-		MachineOperand *ret_reg = new NativeRegister(type, &V0);
-		mov = new FMovInst<D>(DstOp(ret_reg), SrcOp(src_op));
+		mov = new MovInst(DstOp(ret_reg), SrcOp(src_op), type);
 		break;
 	}
 	case Type::FloatTypeID:
+	case Type::DoubleTypeID:
 	{
 		MachineOperand *ret_reg = new NativeRegister(type, &V0);
-		mov = new FMovInst<S>(DstOp(ret_reg), SrcOp(src_op));
+		mov = new FMovInst(DstOp(ret_reg), SrcOp(src_op), type);
 		break;
 	}
 	case Type::VoidTypeID: 
@@ -820,8 +702,8 @@ void Aarch64LoweringVisitor::visit(CASTInst *I, bool copyOperands) {
 		switch (to) {
 		case Type::DoubleTypeID:
 		{
-			MachineInstruction *conv = new IntToFpInst<X, D>(
-				DstOp(new VirtualRegister(to)), SrcOp(src_op));
+			MachineInstruction *conv = new IntToFpInst(
+				DstOp(new VirtualRegister(to)), SrcOp(src_op), to, from);
 			get_current()->push_back(conv);
 			set_op(I, conv->get_result().op);
 			return;
@@ -837,7 +719,8 @@ void Aarch64LoweringVisitor::visit(CASTInst *I, bool copyOperands) {
 		case Type::ByteTypeID:
 		{
 			MachineInstruction *conv = 
-				new IntToByteInst<W>(DstOp(new VirtualRegister(to)), SrcOp(src_op));
+				new IntegerToByteInst(DstOp(new VirtualRegister(to)), 
+				                         SrcOp(src_op), from);
 			get_current()->push_back(conv);
 			set_op(I, conv->get_result().op);
 			return;
@@ -845,7 +728,8 @@ void Aarch64LoweringVisitor::visit(CASTInst *I, bool copyOperands) {
 		case Type::ShortTypeID:
 		{
 			MachineInstruction *conv = 
-				new IntToShortInst<W>(DstOp(new VirtualRegister(to)), SrcOp(src_op));
+				new IntegerToShortInst(DstOp(new VirtualRegister(to)), 
+				                       SrcOp(src_op), from);
 			get_current()->push_back(conv);
 			set_op(I, conv->get_result().op);
 			return;
@@ -867,20 +751,14 @@ void Aarch64LoweringVisitor::visit(CASTInst *I, bool copyOperands) {
 			return;
 		}
 		case Type::FloatTypeID:
-		{
-			MachineInstruction *conv = 
-				new IntToFpInst<W, S>(DstOp(new VirtualRegister(to)), SrcOp(src_op));
-			get_current()->push_back(conv);
-			set_op(I, conv->get_result().op);
-			return;
-		}
 		case Type::DoubleTypeID:
 		{
 			MachineInstruction *conv = 
-				new IntToFpInst<W, D>(DstOp(new VirtualRegister(to)), SrcOp(src_op));
+				new IntToFpInst(DstOp(new VirtualRegister(to)), SrcOp(src_op),
+				                to, from);
 			get_current()->push_back(conv);
 			set_op(I, conv->get_result().op);
-			return;			
+			return;
 		}
 		default:
 			break;
@@ -893,7 +771,8 @@ void Aarch64LoweringVisitor::visit(CASTInst *I, bool copyOperands) {
 		case Type::FloatTypeID:
 		{
 			MachineInstruction *conv = 
-				new FcvtInst<D, S>(DstOp(new VirtualRegister(to)), SrcOp(src_op));
+				new FcvtInst(DstOp(new VirtualRegister(to)), SrcOp(src_op),
+				             to, from);
 			get_current()->push_back(conv);
 			set_op(I, conv->get_result().op);
 			return;
@@ -909,7 +788,8 @@ void Aarch64LoweringVisitor::visit(CASTInst *I, bool copyOperands) {
 		case Type::DoubleTypeID:
 		{
 			MachineInstruction *conv = 
-				new FcvtInst<S, D>(DstOp(new VirtualRegister(to)), SrcOp(src_op));
+				new FcvtInst(DstOp(new VirtualRegister(to)), SrcOp(src_op),
+				             to, from);
 			get_current()->push_back(conv);
 			set_op(I, conv->get_result().op);
 			return;
@@ -964,17 +844,17 @@ void Aarch64LoweringVisitor::visit(GETSTATICInst *I, bool copyOperands) {
 		assert(0 && "Not yet implemented");
 	}
 	VirtualRegister *addr = new VirtualRegister(Type::ReferenceTypeID);
-	MachineInstruction *dseg = new DsegAddrInst<X>(DstOp(addr), idx);
+	MachineInstruction *dseg = 
+		new DsegAddrInst(DstOp(addr), idx, Type::LongTypeID);
 	MachineOperand *vreg = new VirtualRegister(I->get_type());
 	MachineInstruction *load = NULL;
 	Immediate *imm = new Immediate(0, Type::IntType());
 
 	switch (I->get_type()) {
 	case Type::IntTypeID:
-		load = new LoadInst<W>(DstOp(vreg), BaseOp(addr), IdxOp(imm));
-		break;
 	case Type::LongTypeID:
-		load = new LoadInst<X>(DstOp(vreg), BaseOp(addr), IdxOp(imm));
+		load = new LoadInst(DstOp(vreg), BaseOp(addr), IdxOp(imm), 
+		                    I->get_type());
 		break;		
 	default:
 		ABORT_MSG("aarch64: Type not implemented.", 
@@ -1006,7 +886,7 @@ void Aarch64LoweringVisitor::visit(LOOKUPSWITCHInst *I, bool copyOperands) {
 		MachineInstruction *cmp = NULL;
 		switch (type) {
 		case Type::IntTypeID:
-			cmp = new CmpInst<W>(SrcOp(src_op), SrcOp(cmpOp));
+			cmp = new CmpInst(SrcOp(src_op), SrcOp(cmpOp), type);
 			break;
 		default:
 			UNIMPLEMENTED_MSG("aarch64: LOOKUPSWITCHInst type: " << type);
