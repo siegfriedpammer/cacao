@@ -700,6 +700,15 @@ void Aarch64LoweringVisitor::visit(CASTInst *I, bool copyOperands) {
 	case Type::LongTypeID:
 	{
 		switch (to) {
+		case Type::IntTypeID:
+		{
+			MachineInstruction *conv = 
+				new LongToIntInst(DstOp(new VirtualRegister(to)), 
+				                  SrcOp(src_op));
+			get_current()->push_back(conv);
+			set_op(I, conv->get_result().op);
+			return;
+		}
 		case Type::DoubleTypeID:
 		{
 			MachineInstruction *conv = new IntToFpInst(

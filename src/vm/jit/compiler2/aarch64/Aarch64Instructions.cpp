@@ -352,6 +352,10 @@ void IntegerToShortInst::emit(Emitter& em) const {
 	em.sxth(reg_res(), reg_op(0));
 }
 
+void LongToIntInst::emit(Emitter& em) const {
+	em.sxth(reg_res(), reg_op(0));
+}
+
 void PatchInst::emit(CodeMemory* CM) const {
 	UNIMPLEMENTED_MSG("aarch64: PatchInst::emit");
 	#if 0

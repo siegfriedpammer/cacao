@@ -666,6 +666,18 @@ public:
 };
 
 
+class LongToIntInst : public AArch64Instruction {
+public:
+	LongToIntInst(const DstOp &dst, const SrcOp &src)
+			: AArch64Instruction("Aarch64LongToIntInst", dst.op, 
+			                     Type::IntTypeID, 1) {
+		operands[0].op = src.op;
+	}
+
+	virtual void emit(Emitter& em) const;
+};
+
+
 class IntegerToByteInst : public AArch64Instruction {
 public:
 	IntegerToByteInst(const DstOp &dst, const SrcOp &src, Type::TypeID type)
