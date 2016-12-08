@@ -62,6 +62,12 @@ public:
 	virtual void visit(ARRAYBOUNDSCHECKInst *I, bool copyOperands);
 	virtual void visit(CMPInst *I, bool copyOperands);
 	virtual void visit(NEGInst *I, bool copyOperands);
+	virtual void visit(INVOKESPECIALInst *I, bool copyOperands);
+	virtual void visit(INVOKEVIRTUALInst *I, bool copyOperands);
+	virtual void visit(BUILTINInst *I, bool copyOperands);
+	virtual void visit(CONSTInst *I, bool copyOperands);
+	virtual void visit(GETFIELDInst *I, bool copyOperands);
+	virtual void visit(PUTFIELDInst *I, bool copyOperands);
 
 	virtual void lowerComplex(Instruction* I, int ruleId);
 };

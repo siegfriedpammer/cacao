@@ -30,7 +30,7 @@ namespace compiler2 {
 namespace aarch64 {
 
 NativeRegister::NativeRegister(Type::TypeID type, Aarch64Register* reg)
-	: MachineRegister(reg->name, type), reg(reg) {}
+	: MachineRegister(reg->name, type), reg(reg), fixedInterval(this) {}
 
 const uint8_t GPRegister::base = 0;
 const uint8_t FPRegister::base = 0;
@@ -74,9 +74,9 @@ GPRegister* IntegerArgumentRegisters[] = {
 
 GPRegister* IntegerCallerSavedRegisters[] = {
 	&R0, &R1, &R2, &R3, &R4, &R5, &R6, &R7, &R8, &R10, &R11, &R12,
-	&R13, &R14, &R15, &R16, &R17, &R18
+	&R13, &R14, &R15, &R16, &R17
 };
-std::size_t IntegerCallerSavedRegistersSize = 18;
+std::size_t IntegerCallerSavedRegistersSize = 17;
 
 FPRegister V0 ("V0" ,  0,  0*16, 16);
 FPRegister V1 ("V1" ,  1,  1*16, 16);
@@ -168,6 +168,20 @@ BackendBase<Aarch64>::get_OperandFile(OperandFile& of, MachineOperand* mo) const
 				"Type: " << type);
 	}
 	return of;
+}
+
+template<>
+void BackendBase<Aarch64>::get_CallerSaved(OperandFile& of) const {
+	Type::TypeID type = Type::LongTypeID;
+	#if 1
+	for (unsigned i = 0; i < IntegerCallerSavedRegistersSize; ++i) {
+		of.push_back(new aarch64::NativeRegister(type, IntegerCallerSavedRegisters[i]));
+	}
+	type = Type::DoubleTypeID;
+	for (unsigned i = 0; i < FloatCallerSavedRegistersSize; ++i) {
+		of.push_back(new aarch64::NativeRegister(type, FloatCallerSavedRegisters[i]));
+	}
+	#endif
 }
 
 } // end namespace compiler2

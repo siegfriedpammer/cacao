@@ -25,6 +25,7 @@
 #ifndef _JIT_COMPILER2_AARCH64_REGISTER
 #define _JIT_COMPILER2_AARCH64_REGISTER
 
+#include "vm/jit/compiler2/LivetimeInterval.hpp"
 #include "vm/jit/compiler2/MachineRegister.hpp"
 
 namespace cacao {
@@ -65,6 +66,7 @@ public:
 class NativeRegister : public MachineRegister {
 private:
 	Aarch64Register *reg;
+	LivetimeInterval fixedInterval;
 
 public:
 	NativeRegister(Type::TypeID type, Aarch64Register* reg);

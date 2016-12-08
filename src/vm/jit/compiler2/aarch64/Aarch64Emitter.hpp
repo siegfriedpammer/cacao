@@ -143,6 +143,11 @@ public:
 		instructions.push_back(instr);
 	}
 
+	void blr(const Reg& rd) {
+		u4 instr = 0xd63f0000 | lsl(rd.r(), 5);
+		instructions.push_back(instr);
+	}
+
 	void ldr(const Reg& rt, s4 offset);
 
 	void ldur(const Reg& rt, const Reg& rn, s2 imm = 0);

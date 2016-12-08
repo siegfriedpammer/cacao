@@ -711,6 +711,7 @@ public:
 	virtual void emit(Emitter& em) const;
 };
 
+
 class PatchInst : public MachineInstruction {
 private:
 	Patcher *patcher;
@@ -723,6 +724,18 @@ public:
 	virtual void link(CodeFragment &cf) const;
 };
 
+
+class CallInst : public AArch64Instruction {
+public:
+	CallInst(const SrcOp &src, const DstOp &dst, std::size_t argc)
+			: AArch64Instruction("Aarch64CallInst", dst.op, Type::LongTypeID,
+			                     1 + argc) {
+		operands[0].op = src.op;							 
+	}
+
+	virtual void emit(Emitter& em) const;
+	virtual bool is_call() const { return true; }
+};
 
 } // end namespace aarch64
 } // end namespace compiler2

@@ -74,9 +74,18 @@ void StoreInst::emit(Emitter& em) const {
 
 
 void MovInst::emit(Emitter& em) const {
-	if (reg_res().r() == reg_op(0).r()) return;
+	// TODO: tell reg alloc that my MOVs cant handle stack slots ...
+	if (operands[0].op->is_Register() && result.op->is_Register()) {
+		if (reg_res().r() == reg_op(0).r()) return;
 
-	em.mov(reg_res(), reg_op(0));
+		em.mov(reg_res(), reg_op(0));
+	} else if (operands[0].op->is_Register() && result.op->is_stackslot()) {
+		StoreInst str(SrcOp(operands[0].op), DstOp(result.op), resultT());
+		str.emit(em);
+	} else {
+		LoadInst load(DstOp(result.op), SrcOp(operands[0].op), resultT());
+		load.emit(em);
+	}
 }
 
 
@@ -173,7 +182,12 @@ void AddInst::emit(Emitter& em) const {
 }
 
 void SubInst::emit(Emitter& em) const {
-	em.sub(reg_res(), reg_op(0), reg_op(1));
+	if (get(1).op->is_Register()) {
+		em.sub(reg_res(), reg_op(0), reg_op(1));
+	} else {
+		Immediate *imm = cast_to<Immediate>(get(1).op);
+		em.sub(reg_res(), reg_op(0), imm->get_Long());
+	}
 }
 
 void NegInst::emit(Emitter& em) const { em.neg(reg_res(), reg_op(0)); }
@@ -396,6 +410,10 @@ void DsegAddrInst::link(CodeFragment &cf) const {
 	Emitter em;
 	em.ldr(reg_res(), offset);
 	em.emit(cf);
+}
+
+void CallInst::emit(Emitter& em) const {
+	em.blr(reg_op(0));
 }
 
 } // end namespace aarch64

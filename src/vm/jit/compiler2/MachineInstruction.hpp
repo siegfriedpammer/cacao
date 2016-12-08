@@ -327,6 +327,9 @@ public:
 	virtual bool is_end() const {
 		return is_jump();
 	}
+	virtual bool is_call() const {
+		return false;
+	}
 	virtual MachineMoveInst* to_MachineMoveInst() {
 		return NULL;
 	}
