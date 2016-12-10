@@ -155,7 +155,7 @@ inline u1 get_modrm(u1 reg, u1 base, s4 disp, bool use_sib = false) {
 	u1 rm = 0;
 	u1 modrm = 0;
 
-	if (disp == 0) {
+	if (disp == 0 || base == 0x05 /* RBP */) {
 		// no disp
 		mod = 0x00; //0b00
 	}
@@ -204,7 +204,7 @@ inline u1 get_sib(X86_64Register *base, X86_64Register *index = NULL, u1 scale =
 	}
 
 	sib |= base->get_index() << sib_base;
-
+	
 	return sib;
 }
 
@@ -412,7 +412,6 @@ struct InstructionEncoding {
 
 	static void emit (CodeMemory* CM, u1 primary_opcode, GPInstruction::OperandSize op_size, MachineOperand *src, MachineOperand *dst, u1 secondary_opcode = 0, u1 op_reg = 0, u1 prefix = 0, bool prefix_0f = false, bool encode_dst = true, bool imm_sign_extended = false) {
 		CodeSegmentBuilder code;
-		
 		if (dst->is_Register()) {
 			X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
 			if (src->is_Register()) {
@@ -541,7 +540,10 @@ struct InstructionEncoding {
 					code += index;
 				} else {
 					code += get_modrm(0x2,dst_reg,&RBP);
-					InstructionEncoding::imm<s4>(code.end(), index);
+					code += (u1) 0xff & (index >> 0x00);
+					code += (u1) 0xff & (index >> 0x08);
+					code += (u1) 0xff & (index >> 0x10);
+					code += (u1) 0xff & (index >> 0x18);
 				}
 			}
 			else if (src->is_Address()) {
@@ -567,7 +569,7 @@ struct InstructionEncoding {
 					code += get_sib(base,index,scale);
 				}
 				if (disp != 0) {
-					if (fits_into<s1>(disp)) {
+					if (fits_into<s1>(disp) && base != &RBP) {
 						code += (s1)disp;
 					}
 					else {
@@ -605,7 +607,10 @@ struct InstructionEncoding {
 					code += index;
 				} else {
 					code += get_modrm(0x2,src_reg,&RBP);
-					InstructionEncoding::imm<s4>(code.end(), index);
+					code += (u1) 0xff & (index >> 0x00);
+					code += (u1) 0xff & (index >> 0x08);
+					code += (u1) 0xff & (index >> 0x10);
+					code += (u1) 0xff & (index >> 0x18);
 				}
 			}
 			else {
@@ -638,7 +643,7 @@ struct InstructionEncoding {
 					code += get_sib(base,index,scale);
 				}
 				if (disp != 0) {
-					if (fits_into<s1>(disp)) {
+					if (fits_into<s1>(disp) && base != &RBP) {
 						code += (s1)disp;
 					}
 					else {
@@ -668,7 +673,7 @@ struct InstructionEncoding {
 					code += get_sib(base,index,scale);
 				}
 				if (disp != 0) {
-					if (fits_into<s1>(disp)) {
+					if (fits_into<s1>(disp) && base != &RBP) {
 						code += (s1)disp;
 					}
 					else {

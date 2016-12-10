@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/X86_64ModRMOperand.cpp - X86_64ModRMOperand
+/* src/vm/jit/compiler2/X86_64Register.hpp - X86_64Register
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -38,8 +38,6 @@ X86_64ModRMOperand *X86_64ModRMOperand::to_X86_64ModRMOperand() {
 }
 
 void X86_64ModRMOperand::prepareEmit() {
-	assert(embedded_operands[base]);
-	assert(embedded_operands[index]);
 	base86_64 = cast_to<X86_64Register>(embedded_operands[base].real->op);
 	if (op_size() > index)
 		index86_64 = cast_to<X86_64Register>(embedded_operands[index].real->op);

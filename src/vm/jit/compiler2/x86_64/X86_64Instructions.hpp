@@ -359,15 +359,17 @@ public:
 			const Src2Op &src2, OperandSize op_size, u1 alu_id)
 			: GPInstruction(name, dstsrc1.op, op_size, 2) , alu_id(alu_id) {
 		assert(alu_id < 8);
-		operands[0].op = dstsrc1.op;
-		operands[1].op = src2.op;
+		set_operand(0,dstsrc1.op);
+		set_operand(1,src2.op);
+		finalize_operands();
 	}
 	ALUInstruction(const char * name, const Src1Op &src1,
 			const Src2Op &src2, OperandSize op_size, u1 alu_id)
 			: GPInstruction(name, &NoOperand, op_size, 2) , alu_id(alu_id) {
 		assert(alu_id < 8);
-		operands[0].op = src1.op;
-		operands[1].op = src2.op;
+		set_operand(0,src1.op);
+		set_operand(1,src2.op);
+		finalize_operands();
 	}
 	/**
 	 * This must be implemented by subclasses.
@@ -491,8 +493,9 @@ public:
 	IMulInst(const Src2Op &src2, const DstSrc1Op &dstsrc1,
 		OperandSize op_size)
 			: GPInstruction("X86_64IMulInst", dstsrc1.op, op_size, 2) {
-		operands[0].op = dstsrc1.op;
-		operands[1].op = src2.op;
+		set_operand(0,dstsrc1.op);
+		set_operand(1,src2.op);
+		finalize_operands();
 	}
 	virtual void emit(CodeMemory* CM) const;
 };

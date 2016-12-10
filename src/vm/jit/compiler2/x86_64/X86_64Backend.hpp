@@ -47,6 +47,8 @@ public:
 	virtual void visit(IFInst *I, bool copyOperands);
 	virtual void visit(ADDInst *I, bool copyOperands);
 	virtual void visit(ANDInst *I, bool copyOperands);
+	virtual void visit(ORInst *I, bool copyOperands);
+	virtual void visit(XORInst *I, bool copyOperands);
 	virtual void visit(SUBInst *I, bool copyOperands);
 	virtual void visit(MULInst *I, bool copyOperands);
 	virtual void visit(DIVInst *I, bool copyOperands);

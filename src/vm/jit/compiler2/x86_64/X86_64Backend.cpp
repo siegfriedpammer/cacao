@@ -436,6 +436,62 @@ void X86_64LoweringVisitor::visit(ANDInst *I, bool copyOperands) {
 	set_op(I,alu->get_result().op);
 }
 
+void X86_64LoweringVisitor::visit(ORInst *I, bool copyOperands) {
+	assert(I);
+	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
+	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
+	Type::TypeID type = I->get_type();
+	VirtualRegister *dst = NULL;
+
+	setupSrcDst(src_op1, src_op2, dst, type, copyOperands, I->is_commutable());
+
+	MachineInstruction *alu = NULL;
+
+	switch (type) {
+	case Type::ByteTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+		alu = new OrInst(
+			Src2Op(src_op2),
+			DstSrc1Op(dst),
+			get_OperandSize_from_Type(type));
+		break;
+	default:
+		ABORT_MSG("x86_64: Lowering not supported",
+			"Inst: " << I << " type: " << type);
+	}
+	get_current()->push_back(alu);
+	set_op(I,alu->get_result().op);
+}
+
+void X86_64LoweringVisitor::visit(XORInst *I, bool copyOperands) {
+	assert(I);
+	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
+	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
+	Type::TypeID type = I->get_type();
+	VirtualRegister *dst = NULL;
+
+	setupSrcDst(src_op1, src_op2, dst, type, copyOperands, I->is_commutable());
+
+	MachineInstruction *alu = NULL;
+
+	switch (type) {
+	case Type::ByteTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+		alu = new XorInst(
+			Src2Op(src_op2),
+			DstSrc1Op(dst),
+			get_OperandSize_from_Type(type));
+		break;
+	default:
+		ABORT_MSG("x86_64: Lowering not supported",
+			"Inst: " << I << " type: " << type);
+	}
+	get_current()->push_back(alu);
+	set_op(I,alu->get_result().op);
+}
+
 void X86_64LoweringVisitor::visit(SUBInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
@@ -631,7 +687,8 @@ void X86_64LoweringVisitor::visit(REMInst *I, bool copyOperands) {
 
 void X86_64LoweringVisitor::visit(AREFInst *I, bool copyOperands) {
 	// Only emit Instructions if Pattern Matching is used. If not ASTOREInst/ALOADInst will handle everything
-#ifdef PATTERN_MATCHING
+#if 0
+//#ifdef PATTERN_MATCHING // won't currently work because if base or index are modified, AREF should be modified instead/aswell.
 	assert(I);
 	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_index = get_op(I->get_operand(1)->to_Instruction());
@@ -687,7 +744,8 @@ void X86_64LoweringVisitor::visit(ALOADInst *I, bool copyOperands) {
 	MachineOperand *modrm = NULL;
 
 	// if Pattern Matching is used, src op is Register with Effective Address , otherwise src op is AREFInst 
-#ifdef PATTERN_MATCHING
+#if 0
+//#ifdef PATTERN_MATCHING // won't currently work because if base or index are modified, AREF should be modified instead/aswell.
 	MachineOperand* src_ref = get_op(ref_inst);
 	assert(src_ref->get_type() == Type::ReferenceTypeID);
 
@@ -764,7 +822,8 @@ void X86_64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 	MachineInstruction *move = NULL;
 
 	// if Pattern Matching is used, src op is Register with Effective Address , otherwise src op is AREFInst 
-#ifdef PATTERN_MATCHING
+#if 0
+//#ifdef PATTERN_MATCHING // won't currently work because if base or index are modified, AREF should be modified instead/aswell.
 	MachineOperand* src_ref = get_op(ref_inst);
 	assert(src_ref->get_type() == Type::ReferenceTypeID);
 

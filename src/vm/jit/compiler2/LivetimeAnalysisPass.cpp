@@ -154,7 +154,7 @@ public:
 	ProcessOutOperands(LivetimeIntervalMapTy &lti_map, MIIterator i, MIIterator e,
 		LiveInSetTy &live) : lti_map(lti_map), i(i), e(e), live(live) {}
 	void operator()(MachineOperandDesc &op) {
-		if (op.op->needs_allocation()) {
+		if (op.op && op.op->needs_allocation()) {
 			LOG2("ProcessOutOperand: op=" << *(op.op) << " set form: " << **i << nl);
 			LivetimeInterval &lti = find_or_insert(lti_map,op.op);
 			lti.set_from(UseDef(UseDef::Def,i,&op), UseDef(UseDef::PseudoDef,e));
@@ -184,14 +184,14 @@ public:
 	ProcessInOperands(LivetimeIntervalMapTy &lti_map, MachineBasicBlock *BB,
 		MIIterator i, LiveInSetTy &live) : lti_map(lti_map), BB(BB), i(i), live(live) {}
 	void operator()(MachineOperandDesc &op) {
-		if (op.op->needs_allocation()) {
+		if (op.op && op.op->needs_allocation()) {
 			LOG2("ProcessInOperand: op=" << *(op.op) << " range form: "
 				<< BB->front() << " to " << **i << nl);
 			LivetimeInterval &lti = find_or_insert(lti_map,op.op);
 			lti.add_range(UseDef(UseDef::PseudoUse,BB->mi_first()),
 				UseDef(UseDef::Use,i,&op));
 			live.insert(op.op);
-		}
+		} 
 	}
 };
 

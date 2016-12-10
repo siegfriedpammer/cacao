@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/X86_64ModRMOperand.hpp - X86_64ModRMOperand
+/* src/vm/jit/compiler2/X86_64Register.hpp - X86_64Register
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -87,7 +87,8 @@ public:
 		 ,base86_64(NULL)
 		 ,index86_64(NULL) {
 		embedded_operands.push_back(EmbeddedMachineOperand(base.op));		 
-		embedded_operands.push_back(EmbeddedMachineOperand(index.op));
+		if (index.op != NULL)
+			embedded_operands.push_back(EmbeddedMachineOperand(index.op));
 	}
 	X86_64ModRMOperand(const BaseOp &base, const IndexOp &index, Type::TypeID type, s4 disp=0) 
 		: disp(disp)
@@ -95,7 +96,8 @@ public:
 		 ,base86_64(NULL)
 		 ,index86_64(NULL) {
 		embedded_operands.push_back(EmbeddedMachineOperand(base.op));		 
-		embedded_operands.push_back(EmbeddedMachineOperand(index.op));
+		if (index.op != NULL)
+			embedded_operands.push_back(EmbeddedMachineOperand(index.op));
 	}
 	X86_64ModRMOperand(const BaseOp &base, const IndexOp &index, s4 disp) 
 		: disp(disp)
@@ -103,7 +105,8 @@ public:
 		 ,base86_64(NULL)
 		 ,index86_64(NULL) {
 		embedded_operands.push_back(EmbeddedMachineOperand(base.op));		 
-		embedded_operands.push_back(EmbeddedMachineOperand(index.op));
+		if (index.op != NULL)
+			embedded_operands.push_back(EmbeddedMachineOperand(index.op));
 	}
 
 	virtual const char* get_name() const {
@@ -114,10 +117,17 @@ public:
 		if (disp)
 			OS << disp;
 		OS << '(';
-		OS << embedded_operands[base].real->op;
+		if (embedded_operands[base].real && embedded_operands[base].real->op)
+			OS << embedded_operands[base].real->op;
+		else if (embedded_operands[base].dummy)
+			OS << embedded_operands[base].dummy;
 		OS << ',';
-		if (op_size() > index)
-			OS << embedded_operands[index].real->op;
+		if (op_size() > index) {
+			if (embedded_operands[index].real && embedded_operands[index].real->op)
+				OS << embedded_operands[index].real->op;
+			else if (embedded_operands[index].dummy)
+				OS << embedded_operands[index].dummy;
+		}
 		OS << ',';
 		OS << (1 << scale);
 		OS << ')';
@@ -140,7 +150,10 @@ public:
 	static ScaleFactor get_scale(Type::TypeID type); 
 	static ScaleFactor get_scale(int32_t scale); 
 	inline X86_64Register *getBase() {
-		 return cast_to<X86_64Register>(embedded_operands[base].real->op);
+		if (embedded_operands[base].real->op)
+			return cast_to<X86_64Register>(embedded_operands[base].real->op);
+		else
+			return &RBP;
 	}
 
 	inline X86_64Register *getIndex() {
