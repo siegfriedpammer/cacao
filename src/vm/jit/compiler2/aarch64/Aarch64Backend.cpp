@@ -542,8 +542,10 @@ void Aarch64LoweringVisitor::visit(REMInst *I, bool copyOperands) {
 
 void Aarch64LoweringVisitor::visit(ALOADInst *I, bool copyOperands) {
 	assert(I);
-	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
-	MachineOperand* src_index = get_op(I->get_operand(1)->to_Instruction());
+	Instruction* ref_inst = I->get_operand(0)->to_Instruction();
+
+	MachineOperand* src_ref = get_op(ref_inst->get_operand(0)->to_Instruction());
+	MachineOperand* src_index = get_op(ref_inst->get_operand(1)->to_Instruction());
 	assert(src_ref->get_type() == Type::ReferenceTypeID);
 	assert(src_index->get_type() == Type::IntTypeID);
 
@@ -599,9 +601,11 @@ void Aarch64LoweringVisitor::visit(ALOADInst *I, bool copyOperands) {
 
 void Aarch64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 	assert(I);
-	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
-	MachineOperand* src_index = get_op(I->get_operand(1)->to_Instruction());
-	MachineOperand* src_value = get_op(I->get_operand(2)->to_Instruction());
+	Instruction* ref_inst = I->get_operand(0)->to_Instruction();
+
+	MachineOperand* src_ref = get_op(ref_inst->get_operand(0)->to_Instruction());
+	MachineOperand* src_index = get_op(ref_inst->get_operand(1)->to_Instruction());
+	MachineOperand* src_value = get_op(I->get_operand(1)->to_Instruction());
 	assert(src_ref->get_type() == Type::ReferenceTypeID);
 	assert(src_index->get_type() == Type::IntTypeID);
 
@@ -678,8 +682,6 @@ void Aarch64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 	Type::TypeID type = I->get_type();
 	MachineOperand* src_op = type == Type::VoidTypeID ?
 			0 : get_op(I->get_operand(0)->to_Instruction());
-
-	assert(src_op->is_Register());
 
 	MachineInstruction *mov = NULL;
 	LeaveInst *leave = new LeaveInst();
@@ -1230,6 +1232,10 @@ void Aarch64LoweringVisitor::visit(PUTFIELDInst *I, bool copyOperands) {
 	
 	MachineInstruction *store = new StoreInst(SrcOp(value_op), BaseOp(addr_op), IdxOp(offset), type);
 	get_current()->push_back(store);
+}
+
+void Aarch64LoweringVisitor::visit(AREFInst *I, bool copyOperands) {
+	// DO NOTHING
 }
 
 void Aarch64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){

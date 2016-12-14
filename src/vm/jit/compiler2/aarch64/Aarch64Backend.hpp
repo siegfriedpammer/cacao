@@ -68,6 +68,7 @@ public:
 	virtual void visit(CONSTInst *I, bool copyOperands);
 	virtual void visit(GETFIELDInst *I, bool copyOperands);
 	virtual void visit(PUTFIELDInst *I, bool copyOperands);
+	virtual void visit(AREFInst *I, bool copyOperands);
 
 	virtual void lowerComplex(Instruction* I, int ruleId);
 };

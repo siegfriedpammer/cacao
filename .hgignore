@@ -55,6 +55,8 @@ src/native/include/*.h
 src/scripts/java
 test-driver
 tests/*.class
+tests/compiler2/junit/org/cacaojvm/compiler2/test/*.class
+tests/compiler2/junit/org/cacaojvm/compiler2/test/aarch64/*.class
 tests/regression/*.class
 tests/regression/assertion/*.class
 tests/regression/assertion/packagetest/*.class
