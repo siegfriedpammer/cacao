@@ -191,7 +191,7 @@ public:
 			lti.add_range(UseDef(UseDef::PseudoUse,BB->mi_first()),
 				UseDef(UseDef::Use,i,&op));
 			live.insert(op.op);
-		} 
+		}
 	}
 };
 

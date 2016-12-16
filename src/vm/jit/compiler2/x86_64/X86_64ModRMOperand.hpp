@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/X86_64Register.hpp - X86_64Register
+/* src/vm/jit/compiler2/x86_64/X86_64ModRMOperand.hpp - X86_64ModRMOperand
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO

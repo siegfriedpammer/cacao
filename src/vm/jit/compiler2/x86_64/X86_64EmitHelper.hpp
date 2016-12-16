@@ -204,7 +204,7 @@ inline u1 get_sib(X86_64Register *base, X86_64Register *index = NULL, u1 scale =
 	}
 
 	sib |= base->get_index() << sib_base;
-	
+
 	return sib;
 }
 
