@@ -78,6 +78,8 @@ import org.junit.runners.Suite;
 	// Idiv.class,
 	// Irem.class,
 
+	InvokeStatic.class,
+
 	MatcherBenchmarks.class
 
 	// SampleTest.class

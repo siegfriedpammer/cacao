@@ -131,6 +131,16 @@ inline T align_to(T val) {
 	return val + ( rem == 0 ? 0 : size - rem);
 }
 
+template <class I,class Seg>
+static void write_data(Seg seg, I data) {
+	assert(seg.size() == sizeof(I));
+
+	for (int i = 0, e = sizeof(I) ; i < e ; ++i) {
+		seg[i] = (u1) 0xff & *(reinterpret_cast<u1*>(&data) + i);
+	}
+
+}
+
 } // end anonymous namespace
 
 template<>
@@ -1184,6 +1194,10 @@ void X86_64LoweringVisitor::visit(INVOKESTATICInst *I, bool copyOperands) {
 	case Type::LongTypeID:
 		result = new NativeRegister(type,&RAX);
 		break;
+	case Type::FloatTypeID:
+	case Type::DoubleTypeID:
+		result = new NativeRegister(type,&XMM0);
+		break;
 	default:
 		ABORT_MSG("x86_64 Lowering not supported",
 		"Inst: " << I << " type: " << type);
@@ -1194,7 +1208,7 @@ void X86_64LoweringVisitor::visit(INVOKESTATICInst *I, bool copyOperands) {
 	// move values to parameters
 	for (std::size_t i = 0; i < I->op_size(); ++i ) {
 		MachineInstruction* mov = get_Backend()->create_Move(
-			new UnassignedReg(MD[i]),
+			get_op(I->get_operand(i)->to_Instruction()),
 			MMD[i]
 		);
 		get_current()->push_back(mov);
@@ -1206,18 +1220,42 @@ void X86_64LoweringVisitor::visit(INVOKESTATICInst *I, bool copyOperands) {
 	// load address
 	DataSegment &DS = get_Backend()->get_JITData()->get_CodeMemory()->get_DataSegment();
 	DataSegment::IdxTy idx = DS.get_index(DSFMIRef(I->get_fmiref()));
+	size_t fragment_size = sizeof(void*);
 	if (DataSegment::is_invalid(idx)) {
-		DataFragment data = DS.get_Ref(sizeof(void*));
+		DataFragment data = DS.get_Ref(fragment_size);
 		idx = DS.insert_tag(DSFMIRef(I->get_fmiref()),data);
 	}
+
 	if (I->is_resolved()) {
-		LOG2("INVOKESTATICInst: is resolved" << nl);
-		// write stubroutine
-		//methodinfo*         lm;             // Local methodinfo for ICMD_INVOKE*.
-		//lm = I->get_fmiref()->p.method;
-		//lm->stubroutine;
+		methodinfo* callee = I->get_fmiref()->p.method;
+		DataFragment datafrag = DS.get_Ref(idx, fragment_size);
+
+		// TODO: Use a patcher to retrieve the callee's entrypoint.
+		//
+		// The callee might not yet have been compiled yet, therefore
+		// `callee->code->entrypoint` could contain an invalid address at this
+		// point which is not safe to call. However, since we are in the
+		// compiler2, for now we illegally assume that the baseline compiled
+		// code has already seen this INVOKESTATIC and that the callee code is
+		// already available.
+		//
+		// Instead of directly using the callee's entrypoint we would have to
+		// tansfer execution to a patcher that compiles the callee, if
+		// necessary, and patches its entrypoint address back into the caller's
+		// data segment. Unfortunately, for now we cannot directly use the
+		// `stubroutine`-driven approach that is employed by the baseline
+		// compiler. The reason for this lies in the way how the according
+		// patching mechanism in `md_jit_patch_method_address` is implemented:
+		// To determine the type (INVOKESTATIC/SPECIAL vs.
+		// INVOKEVIRTUAL/INTERFACE) of the issuing call it exploits
+		// characteristics of the machine code that only hold for calls that
+		// are emitted by the baseline compiler but do not hold for the
+		// compiler2.
+		write_data<void*>(datafrag, callee->code->entrypoint);
 	} else {
-		LOG2("INVOKESTATICInst: is notresolved" << nl);
+		// TODO: Use a patcher to resolve the callee.
+
+		assert(0 && "Calls to unresolved methods are not yet supported");
 	}
 	MovDSEGInst *dmov = new MovDSEGInst(DstOp(addr),idx);
 	get_current()->push_back(dmov);
@@ -1226,41 +1264,12 @@ void X86_64LoweringVisitor::visit(INVOKESTATICInst *I, bool copyOperands) {
 	get_current()->push_back(call);
 	// get result
 	if (result != &NoOperand) {
-		MachineInstruction *reg = new MovInst(
-			SrcOp(result),
-			DstOp(new VirtualRegister(type)),
-			get_OperandSize_from_Type(type));
+		MachineOperand *dst = new VirtualRegister(type);
+		MachineInstruction *reg = get_Backend()->create_Move(result, dst);
 		get_current()->push_back(reg);
 		set_op(I,reg->get_result().op);
 	}
-	#if 0
-	if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-		unresolved_method*  um;
-		um = iptr->sx.s23.s3.um;
-		disp = dseg_add_unique_address(cd, um);
-
-		patcher_add_patch_ref(jd, PATCHER_invokestatic_special,
-							  um, disp);
-	}
-	else {
-		methodinfo*         lm;             // Local methodinfo for ICMD_INVOKE*.
-		lm = iptr->sx.s23.s3.fmiref->p.method;
-		disp = dseg_add_functionptr(cd, lm->stubroutine);
-	}
-	#endif
 }
-namespace {
-
-template <class I,class Seg>
-static void write_data(Seg seg, I data) {
-	assert(seg.size() == sizeof(I));
-
-	for (int i = 0, e = sizeof(I) ; i < e ; ++i) {
-		seg[i] = (u1) 0xff & *(reinterpret_cast<u1*>(&data) + i);
-	}
-
-}
-} // end anonymous namespace
 
 void X86_64LoweringVisitor::visit(GETSTATICInst *I, bool copyOperands) {
 	assert(I);
