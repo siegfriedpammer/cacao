@@ -721,6 +721,27 @@ bool patcher_instanceof_class(patchref_t *pr)
 	return true;
 }
 
+// Dummies, not used
+
+bool patcher_get_putfield(patchref_t* pr)
+{
+   return false;
+}
+
+bool patcher_resolve_classref_to_classinfo(patchref_t* pr)
+{
+   return false;
+}
+
+bool patcher_resolve_classref_to_vftbl(patchref_t* pr)
+{
+   return false;
+}
+
+bool patcher_resolve_classref_to_flags(patchref_t* pr)
+{
+   return false;
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.
