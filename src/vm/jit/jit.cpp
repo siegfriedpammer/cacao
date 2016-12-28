@@ -371,23 +371,6 @@ u1 *jit_compile(methodinfo *m)
 		jd->flags |= JITDATA_FLAG_COUNTDOWN;
 #endif
 
-#if defined(ENABLE_REPLACEMENT) && defined(ENABLE_INLINING) && defined(ENABLE_INLINING_DEBUG) && !defined(NDEBUG)
-	if (opt_Inline && (jd->m->hitcountdown > 0) && (jd->code->optlevel == 0)) {
-		if (!opt_InlineMethod) {
-			jd->flags |= JITDATA_FLAG_COUNTDOWN;
-		} else {
-			if (!opt_InlineMethodUtf) {
-				opt_InlineMethodUtf = Utf8String::from_utf8(opt_InlineMethod);
-			}
-			LOG2("name: " << jd->m->name << " hash: " << jd->m->name.hash() << cacao::nl);
-			LOG2(/*"name: " << opt_InlineMethodUtf << " "*/"hash: " << opt_InlineMethodUtf.hash() << cacao::nl);
-			if ( jd->m->name.hash() == opt_InlineMethodUtf.hash() ) {
-				jd->flags |= JITDATA_FLAG_COUNTDOWN;
-			}
-		}
-	}
-#endif
-
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (!opt_intrp)
