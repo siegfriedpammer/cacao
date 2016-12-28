@@ -450,6 +450,23 @@ void emit_abstractmethoderror_trap(codegendata *cd)
 }
 
 
+/* emit_trap_countdown *********************************************************
+
+   Emit a countdown trap
+
+   counter....absolute address of the counter variable
+
+*******************************************************************************/
+
+void emit_trap_countdown(codegendata *cd, s4 *counter)
+{
+	M_MOV_IMM(counter, REG_ITMP1);
+	M_ISUB_IMM_MEMBASE(1, REG_ITMP1, 0);
+	M_BNS(8);
+	M_ALD_MEM(REG_METHODPTR, TRAP_COUNTDOWN);
+}
+
+
 /* emit_patcher_alignment ******************************************************
 
    Emit NOP to ensure placement at an even address.

@@ -1242,7 +1242,8 @@ bool codegen_emit(jitdata *jd)
 		// Handle replacement points.
 		REPLACEMENT_POINT_BLOCK_START(cd, bptr);
 
-#if defined(ENABLE_REPLACEMENT) && defined(__I386__)
+#if defined(ENABLE_REPLACEMENT)
+# if defined(__I386__) || defined(__X86_64__)
 		// Generate countdown trap code.
 		methodinfo* m = jd->m;
 		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
@@ -1251,6 +1252,7 @@ bool codegen_emit(jitdata *jd)
 				emit_trap_countdown(cd, &(m->hitcountdown));
 			}
 		}
+# endif
 #endif
 
 #if defined(ENABLE_PROFILING)
