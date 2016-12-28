@@ -106,8 +106,6 @@ bool CodeGenPass::run(JITData &JD) {
 	JD.get_Backend()->create_frame(CM,JD.get_StackSlotManager());
 	// fix last block (frame start, alignment)
 	bbmap[MBB] = CS.size() - bb_start;
-	// link code memory
-	CM->link();
 	// finish
 	finish(JD);
 	return true;
@@ -156,8 +154,22 @@ void CodeGenPass::finish(JITData &JD) {
 	registerdata* rd   = jd->rd;
 #endif
 
-	/* prevent compiler warning */
+	/* Generate the method header. It simply contains a pointer to the
+	   method's codeinfo structure that has to be placed at a fixed offset
+	   from the end of the data segment (the offset is defined as
+	   `CodeinfoPointer` in src/vm/jit/methodheader.hpp). For more info have
+	   a look at the baseline compiler's `codegen_emit` function in
+	   src/vm/jit/codegen-common.cpp. */
 
+	DataFragment codeinfo_ptr = DS.get_Ref(sizeof(codeinfo *));
+	// TODO unify with `InstructionEncoding::imm`
+	for (int i = 0, e = sizeof(codeinfo *); i < e; i++) {
+		codeinfo_ptr[i] = (reinterpret_cast<u1*>(&code))[i];
+	}
+
+	/* Link code memory */
+
+	CM->link();
 
 	/* calculate the code length */
 
