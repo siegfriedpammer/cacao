@@ -190,6 +190,7 @@ struct jitdata {
 #define JITDATA_FLAG_REORDER             0x00000010
 #define JITDATA_FLAG_INLINE              0x00000020
 
+/* Indicates that a method should be instrumented with countdown traps. */
 #define JITDATA_FLAG_COUNTDOWN           0x00000100
 
 #define JITDATA_FLAG_SHOWINTERMEDIATE    0x20000000

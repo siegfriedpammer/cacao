@@ -201,6 +201,7 @@ int      opt_ProfileMemoryUsage           = 0;
 FILE    *opt_ProfileMemoryUsageGNUPlot    = NULL;
 int      opt_RegallocSpillAll             = 0;
 #if defined(ENABLE_REPLACEMENT)
+char*    opt_ReplaceMethod                = NULL;
 int      opt_TestReplacement              = 0;
 #endif
 int      opt_TraceBuiltinCalls            = 0;
@@ -279,6 +280,7 @@ enum {
 	OPT_ProfileMemoryUsage,
 	OPT_ProfileMemoryUsageGNUPlot,
 	OPT_RegallocSpillAll,
+	OPT_ReplaceMethod,
 	OPT_TestReplacement,
 	OPT_TraceBuiltinCalls,
 	OPT_TraceCompilerCalls,
@@ -353,6 +355,7 @@ option_t options_XX[] = {
 	{ "ProfileMemoryUsageGNUPlot",    OPT_ProfileMemoryUsageGNUPlot,    OPT_TYPE_VALUE,   "TODO" },
 	{ "RegallocSpillAll",             OPT_RegallocSpillAll,             OPT_TYPE_BOOLEAN, "spill all variables to the stack" },
 #if defined(ENABLE_REPLACEMENT)
+	{ "ReplaceMethod",                OPT_ReplaceMethod,                OPT_TYPE_VALUE,   "perform on-stack replacement only for the specified method"},
 	{ "TestReplacement",              OPT_TestReplacement,              OPT_TYPE_BOOLEAN, "activate all replacement points during code generation" },
 #endif
 	{ "TraceBuiltinCalls",            OPT_TraceBuiltinCalls,            OPT_TYPE_BOOLEAN, "trace calls to VM builtin functions" },
@@ -825,6 +828,10 @@ void options_xx(JavaVMInitArgs *vm_args)
 			break;
 
 #if defined(ENABLE_REPLACEMENT)
+		case OPT_ReplaceMethod:
+			opt_ReplaceMethod = value;
+			break;
+
 		case OPT_TestReplacement:
 			opt_TestReplacement = enable;
 			break;

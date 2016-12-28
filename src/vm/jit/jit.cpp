@@ -363,6 +363,14 @@ u1 *jit_compile(methodinfo *m)
 	if (opt_verbosecall)
 		jd->flags |= JITDATA_FLAG_VERBOSECALL;
 
+#if defined(ENABLE_REPLACEMENT)
+	/* If `opt_ReplaceMethod` is given we only want to instrument the specified
+	   method with countdown traps to prevent that on-stack replacement is
+	   triggered in any other method. */
+	if (opt_ReplaceMethod == NULL || method_matches(m, opt_ReplaceMethod))
+		jd->flags |= JITDATA_FLAG_COUNTDOWN;
+#endif
+
 #if defined(ENABLE_REPLACEMENT) && defined(ENABLE_INLINING) && defined(ENABLE_INLINING_DEBUG) && !defined(NDEBUG)
 	if (opt_Inline && (jd->m->hitcountdown > 0) && (jd->code->optlevel == 0)) {
 		if (!opt_InlineMethod) {

@@ -213,6 +213,7 @@ extern int      opt_ProfileMemoryUsage;
 extern FILE    *opt_ProfileMemoryUsageGNUPlot;
 extern int      opt_RegallocSpillAll;
 #if defined(ENABLE_REPLACEMENT)
+extern char    *opt_ReplaceMethod;
 extern int      opt_TestReplacement;
 #endif
 extern int      opt_TraceBuiltinCalls;
