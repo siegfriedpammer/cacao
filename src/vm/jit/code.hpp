@@ -48,10 +48,11 @@ template <class T> class LockedList;
 /* constants ******************************************************************/
 
 enum CodeFlag {
-	CODE_FLAG_INVALID      = 0x0001,
-	CODE_FLAG_LEAFMETHOD   = 0x0002,
-	CODE_FLAG_SYNCHRONIZED = 0x0004,
-	CODE_FLAG_TLH          = 0x0008
+	CODE_FLAG_INVALID         = 0x0001,
+	CODE_FLAG_LEAFMETHOD      = 0x0002,
+	CODE_FLAG_SYNCHRONIZED    = 0x0004,
+	CODE_FLAG_TLH             = 0x0008,
+	CODE_FLAG_USING_FRAMEPTR  = 0x0010  // TODO probably only needed for x86_64?
 };
 
 /**
@@ -183,6 +184,28 @@ inline static void code_flag_synchronized(codeinfo *code)
 inline static void code_unflag_synchronized(codeinfo *code)
 {
 	code->flags &= ~CODE_FLAG_SYNCHRONIZED;
+}
+
+
+/* code_xxx_using_frameptr *****************************************************
+
+   Functions for CODE_FLAG_USING_FRAMEPTR.
+
+*******************************************************************************/
+
+inline static int code_is_using_frameptr(codeinfo *code)
+{
+	return (code->flags & CODE_FLAG_USING_FRAMEPTR);
+}
+
+inline static void code_flag_using_frameptr(codeinfo *code)
+{
+	code->flags |= CODE_FLAG_USING_FRAMEPTR;
+}
+
+inline static void code_unflag_using_frameptr(codeinfo *code)
+{
+	code->flags &= ~CODE_FLAG_USING_FRAMEPTR;
 }
 
 

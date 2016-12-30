@@ -34,14 +34,11 @@
 
 struct codeinfo;
 struct executionstate_t;
-struct java_object_t;
-struct jitdata;
 struct methodinfo;
 struct rplalloc;
 struct rplpoint;
 struct sourceframe_t;
 struct sourcestate_t;
-struct stackframeinfo_t;
 union replace_val_t;
 
 #if !defined(ENABLE_REPLACEMENT)
@@ -63,9 +60,9 @@ union replace_val_t;
 
 /*** structs *********************************************************/
 
-#define RPLALLOC_STACK  -1
-#define RPLALLOC_PARAM  -2
-#define RPLALLOC_SYNC   -3
+#define RPLALLOC_STACK  -1 // allocation info for a stack variable
+#define RPLALLOC_PARAM  -2 // allocation info for a call parameter
+#define RPLALLOC_SYNC   -3 // allocation info for a synchronization slot
 
 /* `rplalloc` is a compact struct for register allocation info        */
 
@@ -89,8 +86,10 @@ struct rplalloc {
 #define RPLPOINT_CHECK_BB(bptr)
 #endif
 
-/* An `rplpoint` represents a replacement point in a compiled method  */
-
+/**
+ * A point in a compiled method where it is possible to recover the source
+ * state to perform on-stack replacement.
+ */
 struct rplpoint {
 	/**
 	 * CAUTION: Do not change the numerical values. These are used as
@@ -108,9 +107,10 @@ struct rplpoint {
 	};
 
 	enum Flag {
-		FLAG_NOTRAP    = 0x01,  // rplpoint cannot be trapped
-		FLAG_COUNTDOWN = 0x02,  // count down hits
-		FLAG_ACTIVE    = 0x08   // trap is active
+		FLAG_NOTRAP     = 0x01,  // rplpoint cannot be trapped
+		FLAG_COUNTDOWN  = 0x02,  // count down hits
+		FLAG_DEOPTIMIZE = 0x04,  // indicates a deoptimization point
+		FLAG_ACTIVE     = 0x08   // trap is active
 	};
 
 	u1          *pc;               /* machine code PC of this point    */
@@ -124,7 +124,10 @@ struct rplpoint {
 	unsigned int flags:8;          /* OR of Flag constants             */
 };
 
-
+/**
+ * Represents a value of a javalocal or stack variable that has been
+ * recovered from the execution state.
+ */
 union replace_val_t {
 	s4             i;
 	s8             l;
@@ -138,7 +141,9 @@ union replace_val_t {
 	java_object_t *a;
 };
 
-
+/**
+ * A machine-independent representation of a method's execution state.
+ */
 struct sourceframe_t {
 	sourceframe_t *down;           /* source frame down the call chain */
 
@@ -173,10 +178,6 @@ struct sourceframe_t {
 	ptrint         nativesavint[INT_SAV_CNT]; /* XXX temporary */
 	double         nativesavflt[FLT_REG_CNT]; /* XXX temporary */
 };
-
-#define REPLACE_IS_NATIVE_FRAME(frame)  ((frame)->sfi != NULL)
-#define REPLACE_IS_JAVA_FRAME(frame)    ((frame)->sfi == NULL)
-
 
 struct sourcestate_t {
 	sourceframe_t *frames;    /* list of source frames, from bottom up */
@@ -243,7 +244,9 @@ void replace_free_replacement_points(codeinfo *code);
 void replace_activate_replacement_points(codeinfo *code, bool mappable);
 void replace_deactivate_replacement_points(codeinfo *code);
 
-bool replace_handler(u1 *pc, executionstate_t *es);
+void replace_handle_countdown_trap(u1 *pc, executionstate_t *es);
+bool replace_handle_replacement_trap(u1 *pc, executionstate_t *es);
+void replace_handle_deoptimization_trap(u1 *pc, executionstate_t *es);
 
 #if !defined(NDEBUG)
 void replace_show_replacement_points(codeinfo *code);
@@ -258,6 +261,24 @@ void replace_source_frame_println(sourceframe_t *frame);
 #if defined(ENABLE_JIT)
 void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert);
 #endif
+
+namespace cacao {
+
+class OStream;
+
+OStream& operator<<(OStream &OS, const rplpoint *rp);
+OStream& operator<<(OStream &OS, const rplpoint &rp);
+
+OStream& operator<<(OStream &OS, const rplalloc *ra);
+OStream& operator<<(OStream &OS, const rplalloc &ra);
+
+OStream& operator<<(OStream &OS, const sourceframe_t *frame);
+OStream& operator<<(OStream &OS, const sourceframe_t &frame);
+
+OStream& operator<<(OStream &OS, const sourcestate_t *ss);
+OStream& operator<<(OStream &OS, const sourcestate_t &ss);
+
+} // end namespace cacao
 
 #endif // ENABLE_REPLACEMENT
 
