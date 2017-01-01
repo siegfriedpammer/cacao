@@ -165,6 +165,17 @@ struct instruction {
 #if defined(ENABLE_ESCAPE_REASON)
 	void *escape_reasons;
 #endif
+#if defined(ENABLE_REPLACEMENT)
+	/// The stack vars that are alive after this instruction.
+	///
+	/// This liveness information is needed for deoptimization and hence will
+	/// only be generated if the current method is recompiled due to a
+	/// decompilation request.
+	s4 *stack_after;
+
+	/// The size of stack_after.
+	s4 stackdepth_after;
+#endif
 };
 
 
@@ -252,6 +263,8 @@ static inline bool instruction_has_dst(const instruction* iptr)
 		return icmd_table[iptr->opc].dataflow >= DF_DST_BASE;
 	}
 }
+
+bool instruction_has_side_effects(const instruction *iptr);
 
 #endif // _INSTRUCTION_HPP
 

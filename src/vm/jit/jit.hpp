@@ -193,6 +193,9 @@ struct jitdata {
 /* Indicates that a method should be instrumented with countdown traps. */
 #define JITDATA_FLAG_COUNTDOWN           0x00000100
 
+/* Indicates that deoptimization information has to be generated. */
+#define JITDATA_FLAG_DEOPTIMIZE          0x00000200
+
 #define JITDATA_FLAG_SHOWINTERMEDIATE    0x20000000
 #define JITDATA_FLAG_SHOWDISASSEMBLE     0x40000000
 #define JITDATA_FLAG_VERBOSECALL         0x80000000
@@ -218,6 +221,9 @@ struct jitdata {
 
 #define JITDATA_HAS_FLAG_COUNTDOWN(jd) \
     ((jd)->flags & JITDATA_FLAG_COUNTDOWN)
+
+#define JITDATA_HAS_FLAG_DEOPTIMIZE(jd) \
+    ((jd)->flags & JITDATA_FLAG_DEOPTIMIZE)
 
 #define JITDATA_HAS_FLAG_SHOWINTERMEDIATE(jd) \
     ((jd)->flags & JITDATA_FLAG_SHOWINTERMEDIATE)

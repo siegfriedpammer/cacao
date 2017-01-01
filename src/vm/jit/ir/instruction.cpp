@@ -45,6 +45,33 @@ Type instruction_call_site_return_type(const instruction* iptr) {
    return (Type) instruction_call_site(iptr)->returntype.type;
 }
 
+bool instruction_has_side_effects(const instruction *iptr)
+{
+	assert(iptr);
+	int opc = iptr->opc;
+	return opc == ICMD_INVOKESTATIC
+		|| opc == ICMD_INVOKEVIRTUAL
+		|| opc == ICMD_INVOKEINTERFACE
+		|| opc == ICMD_INVOKESPECIAL
+		|| opc == ICMD_PUTSTATIC
+		|| opc == ICMD_PUTFIELD
+		|| opc == ICMD_PUTSTATICCONST
+		|| opc == ICMD_PUTFIELDCONST
+		|| opc == ICMD_ASTORE
+		|| opc == ICMD_IASTORE
+		|| opc == ICMD_LASTORE
+		|| opc == ICMD_FASTORE
+		|| opc == ICMD_DASTORE
+		|| opc == ICMD_AASTORE
+		|| opc == ICMD_BASTORE
+		|| opc == ICMD_CASTORE
+		|| opc == ICMD_SASTORE
+		|| opc == ICMD_NEW
+		|| opc == ICMD_MONITORENTER
+		|| opc == ICMD_MONITOREXIT;
+}
+
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
