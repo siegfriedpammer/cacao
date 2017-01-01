@@ -41,22 +41,7 @@ struct sourceframe_t;
 struct sourcestate_t;
 union replace_val_t;
 
-#if !defined(ENABLE_REPLACEMENT)
-
-/*** macros for the codegens (disabled version) ************************/
-
-#define REPLACEMENT_POINTS_INIT(cd, jd)
-#define REPLACEMENT_POINTS_RESET(cd, jd)
-#define REPLACEMENT_POINT_BLOCK_START(cd, bptr)
-#define REPLACEMENT_POINT_INLINE_START(cd, iptr)
-#define REPLACEMENT_POINT_INLINE_BODY(cd, iptr)
-#define REPLACEMENT_POINT_RETURN(cd, iptr)
-#define REPLACEMENT_POINT_INVOKE(cd, iptr)
-#define REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr)
-#define REPLACEMENT_POINT_FORGC_BUILTIN(cd, iptr)
-#define REPLACEMENT_POINT_FORGC_BUILTIN_RETURN(cd, iptr)
-
-#else /* defined(ENABLE_REPLACEMENT) */
+#if defined(ENABLE_REPLACEMENT)
 
 /*** structs *********************************************************/
 
@@ -70,7 +55,7 @@ union replace_val_t;
 struct rplalloc {
 	s4           index;     /* local index, -1 for stack slot         */
 	s4           regoff;    /* register index / stack slot offset     */
-	unsigned int flags:4;   /* OR of (INMEMORY,...)                   */
+	bool         inmemory;  /* indicates whether value is stored in memory */
 	unsigned int type:4;    /* TYPE_... constant                      */
 };
 
@@ -107,7 +92,7 @@ struct rplpoint {
 	};
 
 	enum Flag {
-		FLAG_NOTRAP     = 0x01,  // rplpoint cannot be trapped
+		FLAG_TRAPPABLE  = 0x01,  // rplpoint can be trapped
 		FLAG_COUNTDOWN  = 0x02,  // count down hits
 		FLAG_DEOPTIMIZE = 0x04,  // indicates a deoptimization point
 		FLAG_ACTIVE     = 0x08   // trap is active
@@ -184,61 +169,8 @@ struct sourcestate_t {
 };
 
 
-/*** macros for the codegens *******************************************/
-
-#define REPLACEMENT_POINTS_INIT(cd, jd)                              \
-    if (!replace_create_replacement_points(jd))                      \
-        return false;                                                \
-    (cd)->replacementpoint = (jd)->code->rplpoints;
-
-#define REPLACEMENT_POINTS_RESET(cd, jd)                             \
-    (cd)->replacementpoint = (jd)->code->rplpoints;
-
-#define REPLACEMENT_POINT_BLOCK_START(cd, bptr)                      \
-    if ((bptr)->bitflags & BBFLAG_REPLACEMENT)                       \
-        codegen_set_replacement_point((cd) RPLPOINT_CHECK_BB(bptr));
-
-#define REPLACEMENT_POINT_INLINE_START(cd, iptr)                     \
-    codegen_set_replacement_point(cd RPLPOINT_CHECK(INLINE));
-
-#define REPLACEMENT_POINT_INLINE_BODY(cd, iptr)                      \
-    codegen_set_replacement_point_notrap(cd RPLPOINT_CHECK(BODY));
-
-#define REPLACEMENT_POINT_RETURN(cd, iptr)                           \
-    codegen_set_replacement_point(cd RPLPOINT_CHECK(RETURN));
-
-#define REPLACEMENT_POINT_INVOKE(cd, iptr)                           \
-    codegen_set_replacement_point(cd RPLPOINT_CHECK(CALL));
-
-#define REPLACEMENT_POINT_INVOKE_RETURN(cd,  iptr)                   \
-    if (iptr->opc != ICMD_BUILTIN)                                   \
-        cd->replacementpoint[-1].callsize = (cd->mcodeptr - cd->mcodebase)\
-                    - (ptrint) cd->replacementpoint[-1].pc;
-
-
-/*** macros for the codegens (for GC) **********************************/
-
-#if defined(ENABLE_GC_CACAO)
-
-#define REPLACEMENT_POINT_FORGC_BUILTIN(cd, iptr)                    \
-	codegen_set_replacement_point(cd RPLPOINT_CHECK(CALL));
-
-#define REPLACEMENT_POINT_FORGC_BUILTIN_RETURN(cd, iptr)             \
-	if (iptr->opc == ICMD_BUILTIN)                                   \
-		cd->replacementpoint[-1].callsize = (cd->mcodeptr - cd->mcodebase)\
-					- (ptrint) cd->replacementpoint[-1].pc;
-
-#else // ENABLE_GC_CACAO
-
-#define REPLACEMENT_POINT_FORGC_BUILTIN(cd, iptr)
-#define REPLACEMENT_POINT_FORGC_BUILTIN_RETURN(cd, iptr)
-
-#endif // ENABLE_GC_CACAO
-
-
 /*** prototypes ********************************************************/
 
-bool replace_create_replacement_points(jitdata *jd);
 void replace_free_replacement_points(codeinfo *code);
 
 void replace_activate_replacement_points(codeinfo *code, bool mappable);
@@ -247,14 +179,6 @@ void replace_deactivate_replacement_points(codeinfo *code);
 void replace_handle_countdown_trap(u1 *pc, executionstate_t *es);
 bool replace_handle_replacement_trap(u1 *pc, executionstate_t *es);
 void replace_handle_deoptimization_trap(u1 *pc, executionstate_t *es);
-
-#if !defined(NDEBUG)
-void replace_show_replacement_points(codeinfo *code);
-void replace_replacement_point_println(rplpoint *rp, int depth);
-void replace_sourcestate_println(sourcestate_t *ss);
-void replace_sourcestate_println_short(sourcestate_t *ss);
-void replace_source_frame_println(sourceframe_t *frame);
-#endif
 
 /* machine dependent functions (code in ARCH_DIR/md.c) */
 

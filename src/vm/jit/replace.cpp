@@ -141,570 +141,6 @@ static void replace_statistics_source_frame(sourceframe_t *frame);
  */
 #define REPLACE_IS_CALL_SITE(rp) ((rp)->callsize > 0)
 
-/******************************************************************************/
-/* PART I: Creating / freeing replacement points                              */
-/******************************************************************************/
-
-
-/* replace_create_replacement_point ********************************************
-
-   Create a replacement point.
-
-   IN:
-       jd...............current jitdata
-	   iinfo............inlining info for the current position
-	   rp...............pre-allocated (uninitialized) rplpoint
-	   type.............rplpoint::TYPE constant
-	   iptr.............current instruction
-	   *pra.............current rplalloc pointer
-	   javalocals.......the javalocals at the current point
-	   stackvars........the stack variables at the current point
-	   stackdepth.......the stack depth at the current point
-	   paramcount.......number of parameters at the start of stackvars
-
-   OUT:
-       *rpa.............points to the next free rplalloc
-
-*******************************************************************************/
-
-static void replace_create_replacement_point(jitdata *jd,
-											 insinfo_inline *iinfo,
-											 rplpoint *rp,
-											 rplpoint::Type type,
-											 instruction *iptr,
-											 rplalloc **pra,
-											 s4 *javalocals,
-											 s4 *stackvars,
-											 s4 stackdepth,
-											 s4 paramcount)
-{
-	rplalloc *ra;
-	s4        i;
-	varinfo  *v;
-	s4        index;
-
-	ra = *pra;
-
-	REPLACE_COUNT(stat_rploints);
-
-	rp->method   = (iinfo) ? iinfo->method : jd->m;
-	rp->pc       = NULL;        /* set by codegen */
-	rp->callsize = 0;     /* set by codegen */
-	rp->regalloc = ra;
-	rp->flags    = 0;
-	rp->type     = type;
-	rp->id       = iptr->flags.bits >> INS_FLAG_ID_SHIFT;
-
-	/* XXX unify these two fields */
-	rp->parent = (iinfo) ? iinfo->rp : NULL;
-
-	/* store local allocation info of javalocals */
-
-	if (javalocals) {
-		for (i = 0; i < rp->method->maxlocals; ++i) {
-			index = javalocals[i];
-			if (index == jitdata::UNUSED)
-				continue;
-
-			ra->index = i;
-			if (index >= 0) {
-				v = VAR(index);
-				ra->flags  = v->flags & (INMEMORY);
-				ra->regoff = v->vv.regoff;
-				ra->type   = v->type;
-			}
-			else {
-				ra->regoff = RETADDR_FROM_JAVALOCAL(index);
-				ra->type = TYPE_RET;
-				ra->flags = 0;
-			}
-			ra++;
-		}
-	}
-
-	/* store allocation info of java stack vars */
-
-	for (i = 0; i < stackdepth; ++i) {
-		v = VAR(stackvars[i]);
-		ra->flags = v->flags & (INMEMORY);
-		ra->index = (i < paramcount) ? RPLALLOC_PARAM : RPLALLOC_STACK;
-		ra->type  = v->type;
-		/* XXX how to handle locals on the stack containing returnAddresses? */
-		if (v->type == TYPE_RET) {
-			assert(stackvars[i] >= jd->localcount);
-			ra->regoff = v->vv.retaddr->nr;
-		}
-		else
-			ra->regoff = v->vv.regoff;
-		ra++;
-	}
-
-	/* total number of allocations */
-
-	rp->regalloccount = ra - rp->regalloc;
-
-	*pra = ra;
-}
-
-
-/* replace_create_inline_start_replacement_point *******************************
-
-   Create an INLINE_START replacement point.
-
-   IN:
-       jd...............current jitdata
-	   rp...............pre-allocated (uninitialized) rplpoint
-	   iptr.............current instruction
-	   *pra.............current rplalloc pointer
-	   javalocals.......the javalocals at the current point
-
-   OUT:
-       *rpa.............points to the next free rplalloc
-
-   RETURN VALUE:
-       the insinfo_inline * for the following inlined body
-
-*******************************************************************************/
-
-static insinfo_inline * replace_create_inline_start_replacement_point(
-											 jitdata *jd,
-											 rplpoint *rp,
-											 instruction *iptr,
-											 rplalloc **pra,
-											 s4 *javalocals)
-{
-	insinfo_inline *calleeinfo;
-	rplalloc       *ra;
-
-	calleeinfo = iptr->sx.s23.s3.inlineinfo;
-
-	calleeinfo->rp = rp;
-
-	replace_create_replacement_point(jd, calleeinfo->parent, rp,
-			rplpoint::TYPE_INLINE, iptr, pra,
-			javalocals,
-			calleeinfo->stackvars, calleeinfo->stackvarscount,
-			calleeinfo->paramcount);
-
-	if (calleeinfo->synclocal != jitdata::UNUSED) {
-		ra = (*pra)++;
-		ra->index  = RPLALLOC_SYNC;
-		ra->regoff = jd->var[calleeinfo->synclocal].vv.regoff;
-		ra->flags  = jd->var[calleeinfo->synclocal].flags & INMEMORY;
-		ra->type   = TYPE_ADR;
-
-		rp->regalloccount++;
-	}
-
-	return calleeinfo;
-}
-
-
-/* replace_create_replacement_points *******************************************
-
-   Create the replacement points for the given code.
-
-   IN:
-       jd...............current jitdata, must not have any replacement points
-
-   OUT:
-       code->rplpoints.......set to the list of replacement points
-	   code->rplpointcount...number of replacement points
-	   code->regalloc........list of allocation info
-	   code->regalloccount...total length of allocation info list
-	   code->globalcount.....number of global allocations at the
-	                         start of code->regalloc
-
-   RETURN VALUE:
-       true.............everything ok
-       false............an exception has been thrown
-
-*******************************************************************************/
-
-#define CLEAR_javalocals(array, method)                              \
-    do {                                                             \
-        for (i=0; i<(method)->maxlocals; ++i)                        \
-            (array)[i] = jitdata::UNUSED;                                     \
-    } while (0)
-
-#define COPY_OR_CLEAR_javalocals(dest, array, method)                \
-    do {                                                             \
-        if ((array) != NULL)                                         \
-            MCOPY((dest), (array), s4, (method)->maxlocals);         \
-        else                                                         \
-            CLEAR_javalocals((dest), (method));                      \
-    } while (0)
-
-#define COUNT_javalocals(array, method, counter)                     \
-    do {                                                             \
-        for (i=0; i<(method)->maxlocals; ++i)                        \
-            if ((array)[i] != jitdata::UNUSED)                                \
-				(counter)++;                                         \
-    } while (0)
-
-bool replace_create_replacement_points(jitdata *jd)
-{
-	codeinfo        *code;
-	registerdata    *rd;
-	basicblock      *bptr;
-	int              count;
-	methodinfo      *m;
-	rplpoint        *rplpoints;
-	rplpoint        *rp;
-	int              alloccount;
-	rplalloc        *regalloc;
-	rplalloc        *ra;
-	int              i;
-	instruction     *iptr;
-	instruction     *iend;
-	s4              *javalocals;
-	s4              *jl;
-	methoddesc      *md;
-	insinfo_inline  *iinfo;
-	s4               startcount;
-	s4               firstcount;
-#if defined(REPLACE_PATCH_DYNAMIC_CALL)
-	bool             needentry;
-#endif
-
-	REPLACE_COUNT(stat_methods);
-
-	/* get required compiler data */
-
-	code = jd->code;
-	rd   = jd->rd;
-
-	/* assert that we wont overwrite already allocated data */
-
-	assert(code);
-	assert(code->m);
-	assert(code->rplpoints == NULL);
-	assert(code->rplpointcount == 0);
-	assert(code->regalloc == NULL);
-	assert(code->regalloccount == 0);
-	assert(code->globalcount == 0);
-
-	m = code->m;
-
-	/* in instance methods, we may need a rplpoint at the method entry */
-
-#if defined(REPLACE_PATCH_DYNAMIC_CALL)
-	if (!(m->flags & ACC_STATIC)) {
-		jd->basicblocks[0].bitflags |= BBFLAG_REPLACEMENT;
-		needentry = true;
-	}
-	else {
-		needentry = false;
-	}
-#endif /* defined(REPLACE_PATCH_DYNAMIC_CALL) */
-
-	/* iterate over the basic block list to find replacement points */
-
-	count = 0;
-	alloccount = 0;
-
-	javalocals = (s4*) DumpMemory::allocate(sizeof(s4) * jd->maxlocals);
-
-	for (bptr = jd->basicblocks; bptr; bptr = bptr->next) {
-
-		/* skip dead code */
-
-		if (bptr->state < basicblock::FINISHED)
-			continue;
-
-		/* get info about this block */
-
-		m = bptr->method;
-		iinfo = bptr->inlineinfo;
-
-		/* initialize javalocals at the start of this block */
-
-		COPY_OR_CLEAR_javalocals(javalocals, bptr->javalocals, m);
-
-		/* iterate over the instructions */
-
-		iptr = bptr->iinstr;
-		iend = iptr + bptr->icount;
-		startcount = count;
-		firstcount = count;
-
-		for (; iptr != iend; ++iptr) {
-			switch (iptr->opc) {
-#if defined(ENABLE_GC_CACAO)
-				case ICMD_BUILTIN:
-					md = iptr->sx.s23.s3.bte->md;
-					count++;
-					COUNT_javalocals(javalocals, m, alloccount);
-					alloccount += iptr->s1.argcount;
-					if (iinfo)
-						alloccount -= iinfo->throughcount;
-					break;
-#endif
-
-				case ICMD_INVOKESTATIC:
-				case ICMD_INVOKESPECIAL:
-				case ICMD_INVOKEVIRTUAL:
-				case ICMD_INVOKEINTERFACE:
-					INSTRUCTION_GET_METHODDESC(iptr, md);
-					count++;
-					COUNT_javalocals(javalocals, m, alloccount);
-					alloccount += iptr->s1.argcount;
-					if (iinfo)
-						alloccount -= iinfo->throughcount;
-					break;
-
-				case ICMD_ISTORE:
-				case ICMD_LSTORE:
-				case ICMD_FSTORE:
-				case ICMD_DSTORE:
-				case ICMD_ASTORE:
-					stack_javalocals_store(iptr, javalocals);
-					break;
-
-				case ICMD_IRETURN:
-				case ICMD_LRETURN:
-				case ICMD_FRETURN:
-				case ICMD_DRETURN:
-				case ICMD_ARETURN:
-					alloccount += 1;
-					/* FALLTHROUGH! */
-				case ICMD_RETURN:
-					count++;
-					break;
-
-				case ICMD_INLINE_START:
-					iinfo = iptr->sx.s23.s3.inlineinfo;
-
-					count++;
-					COUNT_javalocals(javalocals, m, alloccount);
-					alloccount += iinfo->stackvarscount;
-					if (iinfo->synclocal != jitdata::UNUSED)
-						alloccount++;
-
-					m = iinfo->method;
-					/* javalocals may be set at next block start, or now */
-					COPY_OR_CLEAR_javalocals(javalocals, iinfo->javalocals_start, m);
-					break;
-
-				case ICMD_INLINE_BODY:
-					assert(iinfo == iptr->sx.s23.s3.inlineinfo);
-
-					jl = iinfo->javalocals_start;
-					if (jl == NULL) {
-						/* get the javalocals from the following block start */
-						assert(bptr->next);
-						jl = bptr->next->javalocals;
-					}
-					count++;
-					COUNT_javalocals(jl, m, alloccount);
-					break;
-
-				case ICMD_INLINE_END:
-					assert(iinfo == iptr->sx.s23.s3.inlineinfo ||
-						   iinfo == iptr->sx.s23.s3.inlineinfo->parent);
-					iinfo = iptr->sx.s23.s3.inlineinfo;
-					m = iinfo->outer;
-					if (iinfo->javalocals_end)
-						MCOPY(javalocals, iinfo->javalocals_end, s4, m->maxlocals);
-					iinfo = iinfo->parent;
-					break;
-				default:
-					break;
-			}
-
-			if (iptr == bptr->iinstr)
-				firstcount = count;
-		} /* end instruction loop */
-
-		/* create replacement points at targets of backward branches */
-		/* We only need the replacement point there, if there is no  */
-		/* replacement point inside the block.                       */
-
-		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
-#if defined(REPLACE_PATCH_DYNAMIC_CALL)
-			int test = (needentry && bptr == jd->basicblocks) ? firstcount : count;
-#else
-			int test = count;
-#endif
-			if (test > startcount) {
-				/* we don't need an extra rplpoint */
-				bptr->bitflags &= ~BBFLAG_REPLACEMENT;
-			}
-			else {
-				count++;
-				alloccount += bptr->indepth;
-				if (bptr->inlineinfo)
-					alloccount -= bptr->inlineinfo->throughcount;
-
-				COUNT_javalocals(bptr->javalocals, bptr->method, alloccount);
-			}
-		}
-
-	} /* end basicblock loop */
-
-	/* if no points were found, there's nothing to do */
-
-	if (!count)
-		return true;
-
-	/* allocate replacement point array and allocation array */
-
-	rplpoints = MNEW(rplpoint, count);
-	regalloc = MNEW(rplalloc, alloccount);
-	ra = regalloc;
-
-	/* initialize replacement point structs */
-
-	rp = rplpoints;
-
-	/* XXX try to share code with the counting loop! */
-
-	for (bptr = jd->basicblocks; bptr; bptr = bptr->next) {
-		/* skip dead code */
-
-		if (bptr->state < basicblock::FINISHED)
-			continue;
-
-		/* get info about this block */
-
-		m = bptr->method;
-		iinfo = bptr->inlineinfo;
-
-		/* initialize javalocals at the start of this block */
-
-		COPY_OR_CLEAR_javalocals(javalocals, bptr->javalocals, m);
-
-		/* create replacement points at targets of backward branches */
-
-		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
-
-			i = (iinfo) ? iinfo->throughcount : 0;
-			replace_create_replacement_point(jd, iinfo, rp++,
-					(rplpoint::Type) bptr->type, bptr->iinstr, &ra,
-					bptr->javalocals, bptr->invars + i, bptr->indepth - i, 0);
-
-			if (JITDATA_HAS_FLAG_COUNTDOWN(jd))
-				rp[-1].flags |= rplpoint::FLAG_COUNTDOWN;
-		}
-
-		/* iterate over the instructions */
-
-		iptr = bptr->iinstr;
-		iend = iptr + bptr->icount;
-
-		for (; iptr != iend; ++iptr) {
-			switch (iptr->opc) {
-#if defined(ENABLE_GC_CACAO)
-				case ICMD_BUILTIN:
-					md = iptr->sx.s23.s3.bte->md;
-
-					i = (iinfo) ? iinfo->throughcount : 0;
-					replace_create_replacement_point(jd, iinfo, rp++,
-							rplpoint::TYPE_CALL, iptr, &ra,
-							javalocals, iptr->sx.s23.s2.args,
-							iptr->s1.argcount - i,
-							md->paramcount);
-					break;
-#endif
-
-				case ICMD_INVOKESTATIC:
-				case ICMD_INVOKESPECIAL:
-				case ICMD_INVOKEVIRTUAL:
-				case ICMD_INVOKEINTERFACE:
-					INSTRUCTION_GET_METHODDESC(iptr, md);
-
-					i = (iinfo) ? iinfo->throughcount : 0;
-					replace_create_replacement_point(jd, iinfo, rp++,
-							rplpoint::TYPE_CALL, iptr, &ra,
-							javalocals, iptr->sx.s23.s2.args,
-							iptr->s1.argcount - i,
-							md->paramcount);
-					break;
-
-				case ICMD_ISTORE:
-				case ICMD_LSTORE:
-				case ICMD_FSTORE:
-				case ICMD_DSTORE:
-				case ICMD_ASTORE:
-					stack_javalocals_store(iptr, javalocals);
-					break;
-
-				case ICMD_IRETURN:
-				case ICMD_LRETURN:
-				case ICMD_FRETURN:
-				case ICMD_DRETURN:
-				case ICMD_ARETURN:
-					replace_create_replacement_point(jd, iinfo, rp++,
-							rplpoint::TYPE_RETURN, iptr, &ra,
-							NULL, &(iptr->s1.varindex), 1, 0);
-					break;
-
-				case ICMD_RETURN:
-					replace_create_replacement_point(jd, iinfo, rp++,
-							rplpoint::TYPE_RETURN, iptr, &ra,
-							NULL, NULL, 0, 0);
-					break;
-
-				case ICMD_INLINE_START:
-					iinfo = replace_create_inline_start_replacement_point(
-								jd, rp++, iptr, &ra, javalocals);
-					m = iinfo->method;
-					/* javalocals may be set at next block start, or now */
-					COPY_OR_CLEAR_javalocals(javalocals, iinfo->javalocals_start, m);
-					break;
-
-				case ICMD_INLINE_BODY:
-					assert(iinfo == iptr->sx.s23.s3.inlineinfo);
-
-					jl = iinfo->javalocals_start;
-					if (jl == NULL) {
-						/* get the javalocals from the following block start */
-						assert(bptr->next);
-						jl = bptr->next->javalocals;
-					}
-					/* create a non-trappable rplpoint */
-					replace_create_replacement_point(jd, iinfo, rp++,
-							rplpoint::TYPE_BODY, iptr, &ra,
-							jl, NULL, 0, 0);
-					rp[-1].flags |= rplpoint::FLAG_NOTRAP;
-					break;
-
-				case ICMD_INLINE_END:
-					assert(iinfo == iptr->sx.s23.s3.inlineinfo ||
-						   iinfo == iptr->sx.s23.s3.inlineinfo->parent);
-					iinfo = iptr->sx.s23.s3.inlineinfo;
-					m = iinfo->outer;
-					if (iinfo->javalocals_end)
-						MCOPY(javalocals, iinfo->javalocals_end, s4, m->maxlocals);
-					iinfo = iinfo->parent;
-					break;
-				default:
-					break;
-			}
-		} /* end instruction loop */
-	} /* end basicblock loop */
-
-	assert((rp - rplpoints) == count);
-	assert((ra - regalloc) == alloccount);
-
-	/* store the data in the codeinfo */
-
-	code->rplpoints     = rplpoints;
-	code->rplpointcount = count;
-	code->regalloc      = regalloc;
-	code->regalloccount = alloccount;
-	code->globalcount   = 0;
-	code->memuse        = rd->memuse;
-
-	REPLACE_COUNT_DIST(stat_dist_method_rplpoints, count);
-	REPLACE_COUNT_INC(stat_regallocs, alloccount);
-
-	/* everything alright */
-
-	return true;
-}
-
-
 /* replace_free_replacement_points *********************************************
 
    Free memory used by replacement points.
@@ -730,11 +166,6 @@ void replace_free_replacement_points(codeinfo *code)
 	code->regalloccount = 0;
 	code->globalcount = 0;
 }
-
-
-/******************************************************************************/
-/* PART II: Activating / deactivating replacement points                      */
-/******************************************************************************/
 
 
 /* replace_activate_replacement_points *****************************************
@@ -766,7 +197,7 @@ void replace_activate_replacement_points(codeinfo *code, bool mappable)
 	i = code->rplpointcount;
 	rp = code->rplpoints;
 	for (; i--; rp++) {
-		if (rp->flags & rplpoint::FLAG_NOTRAP)
+		if (!(rp->flags & rplpoint::FLAG_TRAPPABLE))
 			continue;
 
 #if 0
@@ -791,7 +222,7 @@ void replace_activate_replacement_points(codeinfo *code, bool mappable)
 	while (rp--, i--) {
 		assert(!(rp->flags & rplpoint::FLAG_ACTIVE));
 
-		if (rp->flags & rplpoint::FLAG_NOTRAP)
+		if (!(rp->flags & rplpoint::FLAG_TRAPPABLE))
 			continue;
 
 #if 0
@@ -857,11 +288,6 @@ void replace_deactivate_replacement_points(codeinfo *code)
 }
 
 
-/******************************************************************************/
-/* PART III: The replacement mechanism                                        */
-/******************************************************************************/
-
-
 /* replace_read_value **********************************************************
 
    Read a value with the given allocation from the execution state.
@@ -880,7 +306,7 @@ static void replace_read_value(executionstate_t *es,
 							   rplalloc *ra,
 							   replace_val_t *javaval)
 {
-	if (ra->flags & INMEMORY) {
+	if (ra->inmemory) {
 		/* XXX HAS_4BYTE_STACKSLOT may not be the right discriminant here */
 #ifdef HAS_4BYTE_STACKSLOT
 		if (IS_2_WORD_TYPE(ra->type)) {
@@ -930,7 +356,7 @@ static void replace_write_value(executionstate_t *es,
 							    rplalloc *ra,
 							    replace_val_t *javaval)
 {
-	if (ra->flags & INMEMORY) {
+	if (ra->inmemory) {
 		/* XXX HAS_4BYTE_STACKSLOT may not be the right discriminant here */
 #ifdef HAS_4BYTE_STACKSLOT
 		if (IS_2_WORD_TYPE(ra->type)) {
@@ -2777,8 +2203,8 @@ OStream& operator<<(OStream &OS, const rplpoint &rp) {
 	if (rp.flags & rplpoint::FLAG_ACTIVE) {
 		OS << " ACTIVE ";
 	}
-	if (rp.flags & rplpoint::FLAG_NOTRAP) {
-		OS << " NO_TRAP ";
+	if (rp.flags & rplpoint::FLAG_TRAPPABLE) {
+		OS << " TRAPPABLE ";
 	}
 	if (rp.flags & rplpoint::FLAG_COUNTDOWN) {
 		OS << " COUNTDOWN ";
@@ -2828,7 +2254,7 @@ OStream& operator<<(OStream &OS, const rplalloc &ra) {
 
 	if (ra.type == TYPE_RET) {
 		OS << "ret(L" << ra.regoff << ")";
-	} else if (ra.flags & INMEMORY) {
+	} else if (ra.inmemory) {
 		OS << "M" << ra.regoff;
 	} else if (IS_FLT_DBL_TYPE(ra.type)) {
 		OS << "F" << ra.regoff;
