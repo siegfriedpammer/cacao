@@ -33,10 +33,6 @@
 #include "arch.hpp"
 #include "md.hpp"
 
-#if defined(ENABLE_GC_CACAO)
-# include "mm/cacao-gc/gc.h"
-#endif
-
 #include "mm/dumpmemory.hpp"
 #include "mm/memory.hpp"
 
@@ -1553,20 +1549,12 @@ static void replace_pop_native_frame(executionstate_t *es,
 
 	/* restore saved registers */
 
-#if defined(ENABLE_GC_CACAO)
-	j = 0;
-	for (i=0; i<INT_REG_CNT; ++i) {
-		if (nregdescint[i] == REG_SAV)
-			es->intregs[i] = sfi->intregs[j++];
-	}
-#else
 	/* XXX we don't have them, yet, in the sfi, so clear them */
 
 	for (i=0; i<INT_REG_CNT; ++i) {
 		if (nregdescint[i] == REG_SAV)
 			es->intregs[i] = 0;
 	}
-#endif
 
 	/* XXX we don't have float registers in the sfi, so clear them */
 
@@ -1638,18 +1626,6 @@ static void replace_push_native_frame(executionstate_t *es, sourcestate_t *ss)
 	/* assert that the native frame has not moved */
 
 	assert(es->sp == frame->sfi->sp);
-
-	/* update saved registers in the stackframeinfo */
-
-#if defined(ENABLE_GC_CACAO)
-	j = 0;
-	for (i=0; i<INT_REG_CNT; ++i) {
-		if (nregdescint[i] == REG_SAV)
-			frame->sfi->intregs[j++] = es->intregs[i];
-	}
-
-	/* XXX leave float registers untouched here */
-#endif
 
 	/* restore saved registers */
 
@@ -1779,181 +1755,6 @@ sourcestate_t *replace_recover_inlined_source_state(rplpoint *rp,
 
 	return ss;
 }
-
-
-/* replace_recover_full_source_state *******************************************
-
-   Recover the source state from the given replacement point and execution
-   state.
-
-   IN:
-       rp...............replacement point that has been reached, if any
-	   sfi..............stackframeinfo, if called from native code
-	   es...............execution state at the replacement point rp
-
-   RETURN VALUE:
-       the source state
-
-*******************************************************************************/
-
-#if defined(ENABLE_GC_CACAO)
-sourcestate_t *replace_recover_full_source_state(rplpoint *rp,
-												 stackframeinfo_t *sfi,
-												 executionstate_t *es)
-{
-	sourcestate_t *ss;
-	u1            *ra;
-	bool           locked;
-#if defined(REPLACE_STATISTICS)
-	s4             depth;
-#endif
-
-	/* create the source frame structure in dump memory */
-
-	ss = (sourcestate_t*) DumpMemory::allocate(sizeof(sourcestate_t));
-	ss->frames = NULL;
-
-	/* each iteration of the loop recovers one source frame */
-
-	depth = 0;
-	locked = false;
-
-	while (rp || sfi) {
-
-		DOLOG( executionstate_println(es); );
-
-		/* if we are not at a replacement point, it is a native frame */
-
-		if (rp == NULL) {
-			DOLOG( printf("native frame: sfi: "); replace_stackframeinfo_println(sfi); );
-
-			locked = true;
-			replace_pop_native_frame(es, ss, sfi);
-			sfi = sfi->prev;
-
-			if (es->code == NULL)
-				continue;
-
-			goto after_machine_frame;
-		}
-
-		/* read the values for this source frame from the execution state */
-
-		DOLOG( printf("recovering source state for%s:\n",
-					(ss->frames == NULL) ? " TOPFRAME" : "");
-			   replace_replacement_point_println(rp, 1); );
-
-		replace_read_executionstate(rp, es, ss, ss->frames == NULL);
-
-#if defined(REPLACE_STATISTICS)
-		REPLACE_COUNT(stat_frames);
-		depth++;
-		replace_statistics_source_frame(ss->frames);
-#endif
-
-		/* in locked areas (below native frames), identity map the frame */
-
-		if (locked) {
-			ss->frames->torp = ss->frames->fromrp;
-			ss->frames->tocode = ss->frames->fromcode;
-		}
-
-		/* unroll to the next (outer) frame */
-
-		if (rp->parent) {
-			/* this frame is in inlined code */
-
-			DOLOG( printf("INLINED!\n"); );
-
-			rp = rp->parent;
-
-			assert(rp->type == rplpoint::TYPE_INLINE);
-			REPLACE_COUNT(stat_unroll_inline);
-		}
-		else {
-			/* this frame had been called at machine-level. pop it. */
-
-			DOLOG( printf("UNWIND\n"); );
-
-			ra = replace_pop_activation_record(es, ss->frames);
-			if (ra == NULL) {
-				DOLOG( printf("REACHED NATIVE CODE\n"); );
-
-				rp = NULL;
-
-#if !defined(ENABLE_GC_CACAO)
-				break; /* XXX remove to activate native frames */
-#endif
-				continue;
-			}
-
-			/* find the replacement point at the call site */
-
-after_machine_frame:
-			rp = replace_find_replacement_point_for_pc(es->code, es->pc, 0);
-
-			if (rp == NULL)
-				vm_abort("could not find replacement point while unrolling call");
-
-			DOLOG( printf("found replacement point.\n");
-					replace_replacement_point_println(rp, 1); );
-
-			assert(rp->type == rplpoint::TYPE_CALL);
-			REPLACE_COUNT(stat_unroll_call);
-		}
-	} /* end loop over source frames */
-
-	REPLACE_COUNT_DIST(stat_dist_frames, depth);
-
-	return ss;
-}
-#endif /* defined(ENABLE_CACAO_GC) */
-
-
-/* replace_map_source_state_identity *******************************************
-
-   Map each source frame in the given source state to the same replacement
-   point and compilation unit it was derived from. This is mainly used for
-   garbage collection.
-
-   IN:
-       ss...............the source state
-
-   OUT:
-       ss...............the source state, modified: The `torp` and `tocode`
-	                    fields of each source frame are set.
-
-*******************************************************************************/
-
-#if defined(ENABLE_GC_CACAO)
-static void replace_map_source_state_identity(sourcestate_t *ss)
-{
-	sourceframe_t *frame;
-
-	/* iterate over the source frames from outermost to innermost */
-
-	for (frame = ss->frames; frame != NULL; frame = frame->down) {
-
-		/* skip native frames */
-
-		if (REPLACE_IS_NATIVE_FRAME(frame)) {
-			continue;
-		}
-
-		/* map frames using the identity mapping */
-
-		if (frame->tocode) {
-			assert(frame->tocode == frame->fromcode);
-			assert(frame->torp   == frame->fromrp);
-		} else {
-			assert(frame->tocode == NULL);
-			assert(frame->torp   == NULL);
-			frame->tocode = frame->fromcode;
-			frame->torp   = frame->fromrp;
-		}
-	}
-}
-#endif
 
 
 /* replace_build_execution_state ***********************************************
@@ -2159,18 +1960,11 @@ bool replace_handle_replacement_trap(u1 *pc, executionstate_t *es)
 
 	if (rp != NULL && (rp->flags & rplpoint::FLAG_ACTIVE)) {
 
-#if defined(ENABLE_GC_CACAO)
-		if (gc_pending) {
-			replace_gc(rp, es);
-		} else
-#endif
-		{
-			LOG("handle replacement trap" << nl);
+		LOG("handle replacement trap" << nl);
 	
-			/* perform on-stack replacement */
+		/* perform on-stack replacement */
 
-			replace_optimize(code, rp, es);
-		}
+		replace_optimize(code, rp, es);
 
 		return true;
 	}
