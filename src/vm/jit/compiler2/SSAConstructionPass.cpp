@@ -37,6 +37,8 @@
 #include "vm/jit/ir/icmd.hpp"
 #include "vm/jit/ir/instruction.hpp"
 
+#include "mm/dumpmemory.hpp"
+
 #include "vm/statistics.hpp"
 
 #include "toolbox/logging.hpp"
@@ -1005,6 +1007,24 @@ void SSAConstructionPass::print_current_def() const {
 	}
 }
 
+#if defined(ENABLE_REPLACEMENT)
+SourceStateInst *SSAConstructionPass::record_source_state(
+		Instruction *I,
+		instruction *iptr,
+		basicblock *bb,
+		s4 *javalocals,
+		s4 *stack,
+		s4 stackdepth) {
+	s4 source_id = iptr->flags.bits >> INS_FLAG_ID_SHIFT;
+	LOG("record source state after instruction " << source_id << " " << I << nl);
+	SourceStateInst *source_state = new SourceStateInst(source_id, I);
+	install_javalocal_dependencies(source_state, javalocals, bb);
+	install_stackvar_dependencies(source_state, stack, stackdepth, 0, bb);
+	M->add_Instruction(source_state);
+	return source_state;
+}
+#endif
+
 bool SSAConstructionPass::run(JITData &JD) {
 	M = JD.get_Method();
 	LOG("SSAConstructionPass: " << *M << nl);
@@ -1034,6 +1054,11 @@ bool SSAConstructionPass::run(JITData &JD) {
 	unsigned int num_basicblocks = jd->basicblockcount;
 	unsigned int init_basicblock = 0;
 	bool extra_init_bb = jd->basicblocks[0].predecessorcount;
+
+#if defined(ENABLE_REPLACEMENT)
+	// Used to track at each point the javalocals that are live.
+	s4 *live_javalocals = (s4*) DumpMemory::allocate(sizeof(s4) * jd->maxlocals);
+#endif
 
 	assert(jd->basicblockcount);
 	if (extra_init_bb) {
@@ -1207,11 +1232,37 @@ bool SSAConstructionPass::run(JITData &JD) {
 		// they do not get deleted!
 		current_def[global_state][bbindex] = BB[bbindex];
 
+#if defined(ENABLE_REPLACEMENT)
+		// Get javalocals that are live at the begin of the block.
+		assert((jd->maxlocals > 0) == (bb->javalocals != NULL));
+		MCOPY(live_javalocals, bb->javalocals, s4, jd->maxlocals);
+
+		if (bb->predecessorcount > 1 || bb->nr == 0) {
+			// Record the source state at method entry and control-flow merges.
+			SourceStateInst *source_state = record_source_state(BB[bbindex],
+					bb->iinstr, bb, live_javalocals, bb->invars, bb->indepth);
+
+			// For now it is only possible to jump into optimized code at the begin
+			// of methods. Hence, we currently only place a ReplacementEntryInst at
+			// method entry.
+			if (bb->nr == 0) {
+				ReplacementEntryInst *rplentry = new ReplacementEntryInst(BB[bbindex], source_state);
+				M->add_Instruction(rplentry);
+			}
+		}
+#endif
+
 		FOR_EACH_INSTRUCTION(bb,iptr) {
 			STATISTICS(++num_icmd_inst);
 			#if !defined(NDEBUG)
 			LOG("iptr: " << icmd_table[iptr->opc].name << nl);
 			#endif
+
+#if defined(ENABLE_REPLACEMENT)
+			Instruction *old_global_state = read_variable(global_state,bbindex)->to_Instruction();
+			Instruction *new_global_state = NULL;
+#endif
+
 			switch (iptr->opc) {
 			case ICMD_NOP:
 				//M->add_Instruction(new NOPInst());
@@ -2095,6 +2146,9 @@ bool SSAConstructionPass::run(JITData &JD) {
 				{
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
 					write_variable(iptr->dst.varindex,bbindex,s1);
+#if defined(ENABLE_REPLACEMENT)
+					stack_javalocals_store(iptr, live_javalocals);
+#endif
 				}
 				break;
 		//		SHOW_S1(OS, iptr);
@@ -2610,6 +2664,16 @@ bool SSAConstructionPass::run(JITData &JD) {
 				goto _default;
 			}
 			continue;
+
+#if defined(ENABLE_REPLACEMENT)
+			// Record the source state if the last instruction was side-effecting.
+			new_global_state = read_variable(global_state,bbindex)->to_Instruction();
+			if (new_global_state != old_global_state && !new_global_state->to_BeginInst()) {
+				assert(instruction_has_side_effects(iptr));
+				record_source_state(new_global_state, iptr, bb, live_javalocals,
+						iptr->stack_after, iptr->stackdepth_after);
+			}
+#endif
 
 			_default:
 				#if !defined(NDEBUG)

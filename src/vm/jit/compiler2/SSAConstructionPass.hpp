@@ -72,6 +72,14 @@ private:
 	void seal_block(size_t bb);
 	bool try_seal_block(basicblock *bb);
 	void print_current_def() const;
+#if defined(ENABLE_REPLACEMENT)
+	void install_javalocal_dependencies(SourceStateInst *source_state,
+			s4 *javalocals, basicblock *bb);
+	void install_stackvar_dependencies(SourceStateInst *source_state,
+		s4 *stack, s4 stackdepth, s4 paramcount, basicblock *bb);
+	SourceStateInst *record_source_state(Instruction *I, instruction *iptr,
+		basicblock *bb, s4 *javalocals, s4 *stack, s4 stackdepth);
+#endif
 public:
 	Value* read_variable(size_t varindex, size_t bb);
 	static char ID;
