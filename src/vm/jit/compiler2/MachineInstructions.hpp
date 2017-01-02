@@ -31,6 +31,9 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+class MachineReplacementEntryInst;
+class MachineDeoptInst;
+
 class MachineLabelInst : public MachineInstruction {
 public:
 	MachineLabelInst() : MachineInstruction("MLabel", &NoOperand, 0) {}
@@ -144,6 +147,99 @@ public:
 
 };
 #endif
+
+/**
+ * Represents a point in the program, where it is possible to recover the source
+ * state to perform on-stack replacement.
+ */
+class MachineReplacementPointInst : public MachineInstruction {
+private:
+	typedef alloc::vector<s4>::type JavalocalIndexMapTy;
+
+	s4 source_id;
+	JavalocalIndexMapTy javalocal_indices;
+
+public:
+	/**
+	 * @param source_id the id of the baseline IR instruction this replacement
+	 * point represents in the source state
+	 * @param num_operands the number of operands, i.e., the number of values
+	 * that are live at this OSR point
+	 */
+	MachineReplacementPointInst(const char *name, s4 source_id, std::size_t num_operands)
+		: MachineInstruction(name, &NoOperand, num_operands),
+		source_id(source_id), javalocal_indices(num_operands) {}
+	virtual void emit(CodeMemory* CM) const {};
+	virtual void link(CodeFragment &CF) const {};
+
+	virtual MachineReplacementPointInst* to_MachineReplacementPointInst() {
+		return this;
+	}
+
+	virtual MachineReplacementEntryInst* to_MachineReplacementEntryInst() {
+		return NULL;
+	}
+
+	virtual MachineDeoptInst* to_MachineDeoptInst() {
+		return NULL;
+	}
+
+	s4 get_source_id() const { return source_id; }
+
+	/**
+	 * Set the javalocal index of the i-th operand of this instruction. Pass a
+	 * value >= 0 to indicate a valid javalocal index. Pass RPLALLOC_STACK to
+	 * indicate that the i-th operand is a stack variable. Pass RPLALLOC_PARAM
+	 * to indicate that it is a parameter at a call site.
+	 */
+	void set_javalocal_index(std::size_t i, s4 javalocal_index) {
+		assert(i < op_size());
+		javalocal_indices[i] = javalocal_index;
+	}
+
+	/**
+	 * @return the javalocal index of the i-th operand of this instruction. For
+	 * possible return values refer to set_javalocal_index().
+	 */
+	s4 get_javalocal_index(std::size_t i) {
+		assert(i < op_size());
+		return javalocal_indices[i];
+	}
+
+	virtual bool is_trappable() const = 0;
+};
+
+class MachineReplacementEntryInst : public MachineReplacementPointInst {
+public:
+	MachineReplacementEntryInst(s4 source_id, std::size_t num_operands, bool at_call_site)
+		: MachineReplacementPointInst("MReplacementEntry", source_id, num_operands) {}
+	virtual void emit(CodeMemory* CM) const {};
+	virtual void link(CodeFragment &CF) const {};
+
+	virtual MachineReplacementEntryInst* to_MachineReplacementEntryInst() {
+		return this;
+	}
+
+	virtual bool is_trappable() const {
+		return true;
+	}
+};
+
+class MachineDeoptInst : public MachineReplacementPointInst {
+public:
+	MachineDeoptInst(s4 source_id, std::size_t num_operands)
+		: MachineReplacementPointInst("MDeopt", source_id, num_operands) {}
+	virtual void emit(CodeMemory* CM) const {};
+	virtual void link(CodeFragment &CF) const {};
+
+	virtual MachineDeoptInst* to_MachineDeoptInst() {
+		return this;
+	}
+
+	virtual bool is_trappable() const {
+		return false;
+	}
+};
 
 } // end namespace compiler2
 } // end namespace jit
