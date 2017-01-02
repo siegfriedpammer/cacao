@@ -461,7 +461,7 @@ void emit_abstractmethoderror_trap(codegendata *cd)
 void emit_trap_countdown(codegendata *cd, s4 *counter)
 {
 	M_MOV_IMM(counter, REG_ITMP1);
-	M_ISUB_IMM_MEMBASE(1, REG_ITMP1, 0);
+	M_ISUB_IMM_MEMBASE(1, REG_ITMP1, 0, true);
 	M_BNS(8);
 	M_ALD_MEM(REG_METHODPTR, TRAP_COUNTDOWN);
 }
@@ -1744,7 +1744,11 @@ void emit_alu_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 disp) 
 }
 
 
-void emit_alul_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 disp) {
+void emit_alul_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 disp, bool lock) {
+	if (lock) {
+		*(cd->mcodeptr++) = 0xf0;
+	}
+
 	if (IS_IMM8(imm)) {
 		emit_rex(0,0,0,(basereg));
 		*(cd->mcodeptr++) = 0x83;

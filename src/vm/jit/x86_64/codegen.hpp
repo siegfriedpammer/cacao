@@ -158,7 +158,7 @@
 #define M_ISUB_IMM(a,b)         emit_alul_imm_reg(cd, ALU_SUB, (a), (b))
 #define M_IMUL_IMM(a,b,c)       emit_imull_imm_reg_reg(cd, (b), (a), (c))
 
-#define M_ISUB_IMM_MEMBASE(a,b,c) emit_alul_imm_membase(cd, ALU_SUB, (a), (b), (c))
+#define M_ISUB_IMM_MEMBASE(a,b,c,lock) emit_alul_imm_membase(cd, ALU_SUB, (a), (b), (c), (lock))
 
 #define M_LADD(a,b)             emit_alu_reg_reg(cd, ALU_ADD, (a), (b))
 #define M_LSUB(a,b)             emit_alu_reg_reg(cd, ALU_SUB, (a), (b))
