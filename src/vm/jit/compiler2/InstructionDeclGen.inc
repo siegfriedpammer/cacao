@@ -87,6 +87,10 @@ class PHIInst;
 class ContainerInst;
 class BeginInst;
 class EndInst;
+class SourceStateInst;
+class ReplacementPointInst;
+class ReplacementEntryInst;
+class DeoptInst;
 
 /*
  * These are local overrides for various environment variables in Emacs.

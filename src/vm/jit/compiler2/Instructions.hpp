@@ -984,6 +984,169 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/**
+ * Represents a point in the program, where it is possible to recover the source
+ * state to perform on-stack replacement.
+ */
+class SourceStateInst : public Instruction {
+public:
+	struct Javalocal {
+		Value *value;
+		std::size_t index;
+
+		explicit Javalocal(Value *v, std::size_t index) : value(v), index(index) {}
+	};
+private:
+	typedef alloc::vector<Javalocal>::type JavalocalListTy;
+	typedef alloc::vector<Value*>::type StackvarListTy;
+	typedef alloc::vector<Value*>::type ParamListTy;
+
+	s4 source_id;
+	SourceStateInst *parent;
+
+	JavalocalListTy javalocals;
+	StackvarListTy stackvars;
+	ParamListTy params;
+public:
+	typedef JavalocalListTy::const_iterator const_javalocal_iterator;
+	typedef StackvarListTy::const_iterator const_stackvar_iterator;
+	typedef ParamListTy::const_iterator const_param_iterator;
+
+	/**
+	 * @param source_id The id of the baseline IR instruction after which the
+	 * source state is recorded.
+	 * @param I The Instruction that corresponds to the given source_id.
+	 */
+	explicit SourceStateInst(s4 source_id, Instruction *I) :
+			Instruction(SourceStateInstID, Type::VoidTypeID),
+			source_id(source_id) {
+		append_dep(I);
+	}
+	virtual SourceStateInst* to_SourceStateInst() { return this; }
+
+	Instruction *get_anchor() const {
+		return *dep_begin();
+	}
+
+	virtual bool is_floating() const { return true; }
+	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+
+	s4 get_source_id() const { return source_id; }
+	SourceStateInst *get_parent() const { return parent; };
+	void set_parent(SourceStateInst *ss) { parent = ss; }
+
+	void append_javalocal(Javalocal l) {
+		append_op(l.value);
+		javalocals.push_back(l);
+	}
+
+	void append_stackvar(Value *v) {
+		append_op(v);
+		stackvars.push_back(v);
+	}
+
+	void append_param(Value *v) {
+		append_op(v);
+		params.push_back(v);
+	}
+
+	virtual void replace_op(Value* v_old, Value* v_new) {
+		Instruction::replace_op(v_old, v_new);
+		std::replace(stackvars.begin(), stackvars.end(), v_old, v_new);
+		std::replace(params.begin(), params.end(), v_old, v_new);
+		for (JavalocalListTy::iterator i = javalocals.begin(), e = javalocals.end();
+				i != e; i++) {
+			Javalocal &local = *i;
+			if (local.value == v_old) {
+				local.value = v_new;
+			}
+		}
+	}
+
+	const_javalocal_iterator javalocal_begin() const { return javalocals.begin(); }
+	const_javalocal_iterator javalocal_end()   const { return javalocals.end(); }
+
+	const_stackvar_iterator stackvar_begin() const { return stackvars.begin(); }
+	const_stackvar_iterator stackvar_end()   const { return stackvars.end(); }
+
+	const_param_iterator param_begin() const { return params.begin(); }
+	const_param_iterator param_end()   const { return params.end(); }
+
+	virtual bool verify() const { return true; }
+};
+
+class ReplacementPointInst : public Instruction {
+public:
+	explicit ReplacementPointInst(InstID id) : Instruction(id, Type::VoidTypeID) {}
+	virtual SourceStateInst *get_source_state() const = 0;
+
+	virtual ReplacementPointInst* to_ReplacementPointInst() { return this; }
+	virtual bool verify() const { return true; }
+};
+
+class ReplacementEntryInst : public ReplacementPointInst {
+public:
+	explicit ReplacementEntryInst(BeginInst *begin, SourceStateInst *source_state) :
+			ReplacementPointInst(ReplacementEntryInstID) {
+		assert(begin);
+		assert(source_state);
+		append_dep(begin);
+		append_dep(source_state);
+	}
+
+	virtual ReplacementEntryInst* to_ReplacementEntryInst() { return this; }
+	virtual bool is_floating() const { return false; }
+	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+
+	virtual BeginInst* get_BeginInst() const {
+		assert(dep_size() >= 1);
+		BeginInst *begin = (*dep_begin())->to_BeginInst();
+		assert(begin);
+		return begin;
+	}
+
+	virtual SourceStateInst* get_source_state() const {
+		assert(dep_size() >= 2);
+		SourceStateInst *source_state = (*(++dep_begin()))->to_SourceStateInst();
+		assert(source_state);
+		return source_state;
+	}
+};
+
+class DeoptInst : public ReplacementPointInst {
+private:
+	SourceStateInst *source_state;
+public:
+	explicit DeoptInst(Instruction *guarded_inst, Value *condition)
+			: ReplacementPointInst(DeoptInstID), source_state(NULL) {
+		assert(guarded_inst);
+		assert(guarded_inst->has_side_effects() || guarded_inst->to_BeginInst());
+		assert(condition);
+		assert(condition->get_type() != Type::VoidTypeID);
+		guarded_inst->append_dep(this);
+		append_op(condition);
+	}
+
+	virtual DeoptInst* to_DeoptInst() { return this; }
+	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+
+	Instruction *get_guarded_inst() const {
+		assert(rdep_size() >= 1);
+		Instruction *guarded_inst = *rdep_begin();
+		return guarded_inst;
+	}
+
+	void set_source_state(SourceStateInst *s) {
+		assert(s);
+		append_dep(s);
+		source_state = s;
+	}
+
+	virtual SourceStateInst *get_source_state() const {
+		return source_state;
+	}
+};
+
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

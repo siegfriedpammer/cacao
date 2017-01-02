@@ -116,7 +116,7 @@ protected:
 		v->append_user(this);
 	}
 
-	void replace_op(Value* v_old, Value* v_new);
+	virtual void replace_op(Value* v_old, Value* v_new);
 
 	/**
 	 * @todo use Value::print_operands

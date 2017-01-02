@@ -59,7 +59,11 @@ Instruction::GETEXCEPTIONInstID,
 Instruction::PHIInstID,
 Instruction::ContainerInstID,
 Instruction::BeginInstID,
-Instruction::EndInstID
+Instruction::EndInstID,
+Instruction::SourceStateInstID,
+Instruction::ReplacementPointInstID,
+Instruction::ReplacementEntryInstID,
+Instruction::DeoptInstID
 
 /*
  * These are local overrides for various environment variables in Emacs.

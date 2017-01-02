@@ -87,6 +87,10 @@ PHIInstID,
 ContainerInstID,
 BeginInstID,
 EndInstID,
+SourceStateInstID,
+ReplacementPointInstID,
+ReplacementEntryInstID,
+DeoptInstID,
 
 /*
  * These are local overrides for various environment variables in Emacs.

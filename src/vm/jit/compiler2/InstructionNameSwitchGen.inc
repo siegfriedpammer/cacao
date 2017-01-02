@@ -87,6 +87,10 @@ case PHIInstID: return "PHIInst";
 case ContainerInstID: return "ContainerInst";
 case BeginInstID: return "BeginInst";
 case EndInstID: return "EndInst";
+case SourceStateInstID: return "SourceStateInst";
+case ReplacementPointInstID: return "ReplacementPointInst";
+case ReplacementEntryInstID: return "ReplacementEntryInst";
+case DeoptInstID: return "DeoptInst";
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -87,6 +87,10 @@ virtual PHIInst* to_PHIInst() { return NULL; }
 virtual ContainerInst* to_ContainerInst() { return NULL; }
 virtual BeginInst* to_BeginInst() { return NULL; }
 virtual EndInst* to_EndInst() { return NULL; }
+virtual SourceStateInst* to_SourceStateInst() { return NULL; }
+virtual ReplacementPointInst* to_ReplacementPointInst() { return NULL; }
+virtual ReplacementEntryInst* to_ReplacementEntryInst() { return NULL; }
+virtual DeoptInst* to_DeoptInst() { return NULL; }
 
 /*
  * These are local overrides for various environment variables in Emacs.

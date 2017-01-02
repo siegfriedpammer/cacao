@@ -104,3 +104,8 @@ ContainerInst
 BeginInst
 EndInst
 
+# Instructions for On-Stack Replacement
+SourceStateInst
+ReplacementPointInst
+ReplacementEntryInst
+DeoptInst

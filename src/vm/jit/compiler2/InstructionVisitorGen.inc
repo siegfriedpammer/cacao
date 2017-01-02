@@ -87,6 +87,10 @@ virtual void visit(PHIInst* I, bool copyOperands);
 virtual void visit(ContainerInst* I, bool copyOperands);
 virtual void visit(BeginInst* I, bool copyOperands);
 virtual void visit(EndInst* I, bool copyOperands);
+virtual void visit(SourceStateInst* I, bool copyOperands);
+virtual void visit(ReplacementPointInst* I, bool copyOperands);
+virtual void visit(ReplacementEntryInst* I, bool copyOperands);
+virtual void visit(DeoptInst* I, bool copyOperands);
 
 /*
  * These are local overrides for various environment variables in Emacs.

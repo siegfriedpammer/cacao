@@ -87,6 +87,10 @@ void InstructionVisitor::visit(PHIInst* I, bool copyOperands) {visit_default(I);
 void InstructionVisitor::visit(ContainerInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(BeginInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(EndInst* I, bool copyOperands) {visit_default(I);}
+void InstructionVisitor::visit(SourceStateInst* I, bool copyOperands) {visit_default(I);}
+void InstructionVisitor::visit(ReplacementPointInst* I, bool copyOperands) {visit_default(I);}
+void InstructionVisitor::visit(ReplacementEntryInst* I, bool copyOperands) {visit_default(I);}
+void InstructionVisitor::visit(DeoptInst* I, bool copyOperands) {visit_default(I);}
 
 /*
  * These are local overrides for various environment variables in Emacs.
