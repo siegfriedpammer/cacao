@@ -163,89 +163,25 @@ MachineCode* compile(methodinfo* m)
 
 	PM.add_Pass<CodeGenPass>();
 
-/*****************************************************************************/
-/** prolog start jit_compile **/
-/*****************************************************************************/
-	u1      *r;
-	jitdata *jd;
-	u1       optlevel;
-
-	/* check for max. optimization level */
-
-	optlevel = (m->code) ? m->code->optlevel : 0;
-
-#if 0
-	if (optlevel == 1) {
-/* 		log_message_method("not recompiling: ", m); */
-		return NULL;
-	}
-#endif
-
-	//DEBUG_JIT_COMPILEVERBOSE("Recompiling start: ");
-
-	//STATISTICS(count_jit_calls++);
-
-#if 0 && defined(ENABLE_STATISTICS)
-	/* measure time */
-
-	if (opt_getcompilingtime)
-		compilingtime_start();
-#endif
-
 	// Create new dump memory area.
 	DumpMemoryArea dma;
 
 	/* create jitdata structure */
 
-	jd = jit_jitdata_new(m);
+	jitdata *jd = jit_jitdata_new(m);
+	jit_jitdata_init_for_recompilation(jd);
+	JITData JD(jd);
 
 	/* set the current optimization level to the previous one plus 1 */
 
+	u1 optlevel = (jd->m->code) ? jd->m->code->optlevel : 0;
 	jd->code->optlevel = optlevel + 1;
-
-	/* get the optimization flags for the current JIT run */
-
-#if defined(ENABLE_VERIFIER)
-	jd->flags |= JITDATA_FLAG_VERIFY;
-#endif
-
-	/* jd->flags |= JITDATA_FLAG_REORDER; */
-	if (opt_showintermediate)
-		jd->flags |= JITDATA_FLAG_SHOWINTERMEDIATE;
-	if (opt_showdisassemble)
-		jd->flags |= JITDATA_FLAG_SHOWDISASSEMBLE;
-	if (opt_verbosecall)
-		jd->flags |= JITDATA_FLAG_VERBOSECALL;
-
-#if defined(ENABLE_INLINING)
-	//XXX #warning Inlining currently disabled (broken)
-#if 0
-	if (opt_Inline)
-		jd->flags |= JITDATA_FLAG_INLINE;
-#endif
-#endif
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (!opt_intrp)
-# endif
-		/* initialize the register allocator */
-
-		reg_setup(jd);
-#endif
-
-	/* setup the codegendata memory */
-
-	codegen_setup(jd);
 
 	/* now call internal compile function */
 
 	bool bak = opt_RegallocSpillAll;
 	opt_RegallocSpillAll = true;
-/*****************************************************************************/
-/** prolog end jit_compile **/
-/*****************************************************************************/
-	JITData JD(jd);
+
 /*****************************************************************************/
 /** prolog start jit_compile_intern **/
 /*****************************************************************************/
@@ -320,20 +256,26 @@ MachineCode* compile(methodinfo* m)
 /*****************************************************************************/
 /** prolog end jit_compile_intern **/
 /*****************************************************************************/
+
+	/* set the previous code version */
+
+	code->prev = m->code;
+
+	/* run the compiler2 passes */
+
 	PM.runPasses(JD);
 	assert(code);
 	assert(code->entrypoint);
 
 
-	code->prev = m->code;
 	m->code = code;
-	r = JD.get_jitdata()->code->entrypoint;
+	u1 *entrypoint = JD.get_jitdata()->code->entrypoint;
 /*****************************************************************************/
 /** epilog  start jit_compile **/
 /*****************************************************************************/
 	opt_RegallocSpillAll = bak;
 
-	if (r == NULL) {
+	if (entrypoint == NULL) {
 		/* We had an exception! Finish stuff here if necessary. */
 
 		/* release codeinfo */
@@ -351,16 +293,11 @@ MachineCode* compile(methodinfo* m)
 	// Hook point just after code was generated.
 	Hook::jit_generated(m, m->code);
 
-	//DEBUG_JIT_COMPILEVERBOSE("Recompiling done: ");
+	LOG(bold << bold << "Compiler End: " << reset_color << *m << nl);
 
 	/* return pointer to the methods entry point */
 
-/** epilog end jit_compile **/
-
-	LOG(bold << bold << "Compiler End: " << reset_color << *m << nl);
-
-	//return mc;
-	return r;
+	return entrypoint;
 }
 
 } // end namespace cacao

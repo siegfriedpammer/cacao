@@ -467,6 +467,8 @@ void jit_close(void);
 /* create a new jitdata */
 jitdata *jit_jitdata_new(methodinfo *m);
 
+void jit_jitdata_init_for_recompilation(jitdata *jd);
+
 /* compile a method with jit compiler */
 u1 *jit_compile(methodinfo *m);
 u1 *jit_recompile(methodinfo *m);

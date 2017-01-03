@@ -435,71 +435,26 @@ u1 *jit_compile(methodinfo *m)
 }
 
 
-/* jit_recompile ***************************************************************
+/* jit_jitdata_init_for_recompilation ******************************************
 
-   Recompiles a Java method.
+   Initalizes a jitdata structure such that it can be used for rompiling a
+   method.
 
 *******************************************************************************/
 
-u1 *jit_recompile(methodinfo *m)
-{
-	u1      *r;
-	jitdata *jd;
-	u1       optlevel;
-
-	/* check for max. optimization level */
-
-	optlevel = (m->code) ? m->code->optlevel : 0;
-
-#if 0
-	if (optlevel == 1) {
-/* 		log_message_method("not recompiling: ", m); */
-		return NULL;
-	}
-#endif
-
-	DEBUG_JIT_COMPILEVERBOSE("Recompiling start: ");
-
-
-#if defined(ENABLE_STATISTICS)
-	/* measure time */
-
-	if (opt_getcompilingtime)
-		compilingtime_start();
-#endif
-
-	// Create new dump memory area.
-	DumpMemoryArea dma;
-
-	/* create jitdata structure */
-
-	jd = jit_jitdata_new(m);
-
-	/* set the current optimization level to the previous one plus 1 */
-
-	jd->code->optlevel = optlevel + 1;
-
+void jit_jitdata_init_for_recompilation(jitdata *jd) {
 	/* get the optimization flags for the current JIT run */
 
 #if defined(ENABLE_VERIFIER)
 	jd->flags |= JITDATA_FLAG_VERIFY;
 #endif
 
-	/* jd->flags |= JITDATA_FLAG_REORDER; */
 	if (opt_showintermediate)
 		jd->flags |= JITDATA_FLAG_SHOWINTERMEDIATE;
 	if (opt_showdisassemble)
 		jd->flags |= JITDATA_FLAG_SHOWDISASSEMBLE;
 	if (opt_verbosecall)
 		jd->flags |= JITDATA_FLAG_VERBOSECALL;
-
-#if defined(ENABLE_INLINING)
-	// XXX #warning Inlining currently disabled (broken)
-#if 0
-	if (opt_Inline)
-		jd->flags |= JITDATA_FLAG_INLINE;
-#endif
-#endif
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
@@ -513,12 +468,45 @@ u1 *jit_recompile(methodinfo *m)
 	/* setup the codegendata memory */
 
 	codegen_setup(jd);
+}
+
+
+/* jit_recompile ***************************************************************
+
+   Recompiles a Java method.
+
+*******************************************************************************/
+
+u1 *jit_recompile(methodinfo *m)
+{
+	DEBUG_JIT_COMPILEVERBOSE("Recompiling start: ");
+
+#if defined(ENABLE_STATISTICS)
+	/* measure time */
+
+	if (opt_getcompilingtime)
+		compilingtime_start();
+#endif
+
+	/* Create new dump memory area. */
+
+	DumpMemoryArea dma;
+
+	/* create jitdata structure */
+
+	jitdata *jd = jit_jitdata_new(m);
+	jit_jitdata_init_for_recompilation(jd);
+
+	/* set the current optimization level to the previous one plus 1 */
+
+	u1 optlevel = (jd->m->code) ? jd->m->code->optlevel : 0;
+	jd->code->optlevel = optlevel + 1;
 
 	/* now call internal compile function */
 
-	r = jit_compile_intern(jd);
+	u1 *entrypoint = jit_compile_intern(jd);
 
-	if (r == NULL) {
+	if (entrypoint == NULL) {
 		/* We had an exception! Finish stuff here if necessary. */
 
 		/* release codeinfo */
@@ -540,8 +528,9 @@ u1 *jit_recompile(methodinfo *m)
 
 	/* return pointer to the methods entry point */
 
-	return r;
+	return entrypoint;
 }
+
 
 #if defined(ENABLE_PM_HACKS)
 #include "vm/jit/jit_pm_1.inc"
