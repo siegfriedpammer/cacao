@@ -472,6 +472,7 @@ void jit_jitdata_init_for_recompilation(jitdata *jd);
 /* compile a method with jit compiler */
 u1 *jit_compile(methodinfo *m);
 u1 *jit_recompile(methodinfo *m);
+u1 *jit_recompile_for_deoptimization(methodinfo *m);
 
 void jit_invalidate_code(methodinfo *m);
 codeinfo *jit_get_current_code(methodinfo *m);

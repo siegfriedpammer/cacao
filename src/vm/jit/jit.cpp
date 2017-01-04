@@ -532,6 +532,60 @@ u1 *jit_recompile(methodinfo *m)
 }
 
 
+/* jit_recompile_for_deoptimization ********************************************
+
+   Recompiles a Java method generating necessary meta-data for deoptimization.
+
+*******************************************************************************/
+
+u1 *jit_recompile_for_deoptimization(methodinfo *m)
+{
+#if defined(ENABLE_STATISTICS)
+	/* measure time */
+
+	if (opt_getcompilingtime)
+		compilingtime_start();
+#endif
+
+	/* Create new dump memory area. */
+
+	DumpMemoryArea dma;
+
+	/* create jitdata structure */
+
+	jitdata *jd = jit_jitdata_new(m);
+	jit_jitdata_init_for_recompilation(jd);
+
+	jd->flags |= JITDATA_FLAG_DEOPTIMIZE;
+
+	/* now call internal compile function */
+
+	u1 *entrypoint = jit_compile_intern(jd);
+
+	if (entrypoint == NULL) {
+		/* We had an exception! Finish stuff here if necessary. */
+
+		/* release codeinfo */
+
+		code_codeinfo_free(jd->code);
+	}
+
+#if defined(ENABLE_STATISTICS)
+	/* measure time */
+
+	if (opt_getcompilingtime)
+		compilingtime_stop();
+#endif
+
+	// Hook point just after code was generated.
+	Hook::jit_generated(m, m->code);
+
+	/* return pointer to the methods entry point */
+
+	return entrypoint;
+}
+
+
 #if defined(ENABLE_PM_HACKS)
 #include "vm/jit/jit_pm_1.inc"
 #endif

@@ -285,7 +285,12 @@ void trap_handle(int sig, void *xpc, void *context)
 		p = NULL;
 		replace_handle_countdown_trap((uint8_t*) xpc, &es);
 		break;
-#endif
+
+	case TRAP_DEOPTIMIZE:
+		p = NULL;
+		replace_handle_deoptimization_trap((uint8_t*) xpc, &es);
+		break;
+ #endif
 
 	case TRAP_AbstractMethodError:
 		p = exceptions_new_abstractmethoderror();

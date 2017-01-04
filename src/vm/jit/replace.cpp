@@ -1757,6 +1757,75 @@ sourcestate_t *replace_recover_inlined_source_state(rplpoint *rp,
 }
 
 
+/* replace_map_source_state_to_deoptimized_code ********************************
+
+   Map each source frame in the given source state to a target replacement
+   point and compilation unit (considering that the correspondings methods could
+   be inlined).
+
+   IN:
+       ss...............the source state
+
+   OUT:
+       ss...............the source state, modified: The `torp` and `tocode`
+	                    fields of each source frame are set.
+
+*******************************************************************************/
+
+static void replace_map_source_state_to_deoptimized_code(sourcestate_t *ss)
+{
+	codeinfo *code = NULL;
+	sourceframe_t *frame = ss->frames;
+
+	assert(frame);
+	assert(ss->frames->down == NULL && "Inlined frames are not yet supported");
+	assert(!REPLACE_IS_NATIVE_FRAME(frame));
+
+	LOG("map frame " << frame << nl);
+
+	/* find code for this frame */
+
+	if (frame->method->deopttarget == NULL) {
+		/* reinvoke baseline compiler and save depotimized code for
+		   future replacements */
+
+		LOG("reinvoke baseline compiler" << nl);
+		jit_recompile_for_deoptimization(frame->method);
+		frame->method->deopttarget = frame->method->code;
+	}
+
+	code = frame->method->deopttarget;
+
+	assert(code);
+
+	/* prepare code for usage */
+
+#if 0
+	if (code_is_invalid(code)) {
+		code_unflag_invalid(code);
+		replace_deactivate_replacement_points(code);
+	}
+#endif
+
+	rplpoint *rp;
+	if (frame->down) {
+		/* we have not yet reached the topmost frame on the stack, therefore
+		   execution currently stands at a call site */
+		rp = replace_find_replacement_point_at_call_site(code, frame);
+	} else {
+		/* we have reached the topmost frame on the stack */
+		rp = replace_find_replacement_point(code, frame);
+	}
+
+	assert(rp);
+
+	/* map this frame */
+
+	frame->tocode = code;
+	frame->torp = rp;
+}
+
+
 /* replace_build_execution_state ***********************************************
 
    Build an execution state for the given (mapped) source state.
@@ -1970,6 +2039,53 @@ bool replace_handle_replacement_trap(u1 *pc, executionstate_t *es)
 	}
 
 	return false;
+}
+
+
+/* replace_handle_deoptimization_trap ******************************************
+
+   This function is called by the signal handler. It deoptimizes the method that
+   triggered the deopimization trap and initiates on-stack replacement.
+
+   THIS FUNCTION MUST BE CALLED USING A SAFE STACK AREA!
+
+   IN:
+       pc...............the program counter that triggered the countdown trap.
+       es...............the execution state (machine state) at the countdown
+                        trap.
+
+   OUT:
+       es...............the execution state after replacement finished.
+
+*******************************************************************************/
+
+void replace_handle_deoptimization_trap(u1 *pc, executionstate_t *es) {
+	LOG("handle deopimization trap" << nl);
+
+	DumpMemoryArea dma;
+
+	/* search the codeinfo for the given PC */
+
+	codeinfo *code = code_find_codeinfo_for_pc(pc);
+	es->code = code;
+	assert(code);
+
+	/* search for a replacement point at the given PC */
+
+	methodinfo *method = code->m;
+	rplpoint *rp = replace_find_replacement_point_at_or_before_pc(code, pc);
+	assert(rp);
+	assert(rp->flags & rplpoint::FLAG_DEOPTIMIZE);
+
+	/* replace by deoptimized code */
+
+	LOG("perform deoptimization at " << rp << nl);
+	jit_invalidate_code(method);
+	sourcestate_t *ss = replace_recover_inlined_source_state(rp, es);
+	replace_map_source_state_to_deoptimized_code(ss);
+	replace_build_execution_state(ss, es);
+
+	LOG(BoldGreen << "finished deoptimization: " << reset_color << "jump into code" << nl);
 }
 
 

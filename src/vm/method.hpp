@@ -113,6 +113,7 @@ struct methodinfo {                 /* method structure                       */
 
 #if defined(ENABLE_REPLACEMENT)
 	s4            hitcountdown;     /* decreased for each hit                 */
+	codeinfo     *deopttarget;
 #endif
 
 #if defined(ENABLE_DEBUG_FILTER)
