@@ -48,6 +48,7 @@ class MachineMoveInst;
 class MachinePhiInst;
 class CodeMemory;
 class MachineInstruction;
+class MachineReplacementPointInst;
 
 /**
  * Descriptor of a MachineOperand
@@ -336,6 +337,9 @@ public:
 	}
 	#endif
 	virtual MachinePhiInst* to_MachinePhiInst() {
+		return NULL;
+	}
+	virtual MachineReplacementPointInst* to_MachineReplacementPointInst() {
 		return NULL;
 	}
 	/// print instruction

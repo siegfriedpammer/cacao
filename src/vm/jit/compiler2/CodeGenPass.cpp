@@ -29,11 +29,13 @@
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/RegisterAllocatorPass.hpp"
+#include "vm/jit/compiler2/MachineRegister.hpp"
 
 #include "toolbox/logging.hpp"
 
 #include "mm/codememory.hpp"
 #include "vm/types.hpp"
+#include "vm/jit/executionstate.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/methodtree.hpp"
 
@@ -42,6 +44,10 @@
 #include "mm/memory.hpp"
 
 #include "md.hpp"
+
+#if defined(ENABLE_REPLACEMENT)
+#include "vm/jit/replace.hpp"
+#endif
 
 #define DEBUG_NAME "compiler2/CodeGen"
 
@@ -77,6 +83,9 @@ bool CodeGenPass::run(JITData &JD) {
 			LOG2("MInst: " << MI << " emitted instruction:" << nl);
 			MI->emit(CM);
 			std::size_t end = CS.size();
+#if defined(ENABLE_REPLACEMENT)
+			instruction_positions[MI] = start;
+#endif
 			#if defined(ENABLE_STATISTICS)
 			if (MI->is_move() && start != end) {
 				STATISTICS(++num_remaining_moves);
@@ -133,7 +142,102 @@ void print_hex(OStream &OS, u1 *start, u1 *end, uint32_t num_bytes_per_line = 8)
 }
 #endif
 
+#if defined(ENABLE_REPLACEMENT)
+template<class OutputIt>
+void find_all_replacement_points(MachineInstructionSchedule *MIS,
+		OutputIt outIterator) {
+	MachineBasicBlock *MBB = NULL;
+	for (MachineInstructionSchedule::const_iterator i = MIS->begin(),
+			e = MIS->end() ; i != e ; ++i ) {
+		MBB = *i;
+		for (MachineBasicBlock::const_iterator i = MBB->begin(),
+				e = MBB->end(); i != e ; ++i) {
+			MachineInstruction *MI = *i;
+			if (MI->to_MachineReplacementPointInst()) {
+				*outIterator = MI;
+				outIterator++;
+			}
+		}
+	}
+}
+#endif
+
 } // end anonymous namespace
+
+#if defined(ENABLE_REPLACEMENT)
+template<class ForwardIt>
+void CodeGenPass::resolve_replacement_points(ForwardIt first, ForwardIt last, JITData &JD) {
+	codeinfo *code = JD.get_jitdata()->code;
+	CodeMemory *CM = JD.get_CodeMemory();
+	CodeSegment &CS = CM->get_CodeSegment();
+
+	code->rplpointcount = std::distance(first, last);
+	code->rplpoints = MNEW(rplpoint, code->rplpointcount);
+
+	rplpoint *rp = code->rplpoints;
+	for (ForwardIt i = first; i != last; i++) {
+		MachineReplacementPointInst *MI = (*i)->to_MachineReplacementPointInst();
+		assert(MI);
+		std::size_t offset = CS.size() - instruction_positions[MI];
+
+		u1 *position = code->entrypoint + offset;
+
+		// initialize rplpoint structure
+		rp->method        = JD.get_jitdata()->m;
+		rp->pc            = position;
+		rp->regalloc      = MNEW(rplalloc, MI->op_size());
+		rp->regalloccount = MI->op_size();
+		rp->flags         = 0;
+		rp->id            = MI->get_source_id();
+
+		if (MI->to_MachineDeoptInst()) {
+			rp->flags |= rplpoint::FLAG_DEOPTIMIZE;
+		}
+
+		// store allocation infos
+		rplalloc *ra = rp->regalloc;
+		int op_index = 0;
+		for (MachineInstruction::operand_iterator i = MI->begin(),
+				e = MI->end(); i != e; i++) {
+			MachineOperand *mop = i->op;
+
+			ra->index = MI->get_javalocal_index(op_index);
+			ra->type = convert_to_type(mop->get_type());
+
+			Register *reg = mop->to_Register();
+			if (reg) {
+				// the operand has been allocated to a register
+				MachineRegister *machine_reg = reg->to_MachineRegister();
+				assert(machine_reg);
+				ra->inmemory = false;
+
+				// XXX The `regoff` member of the `rplalloc` structure has to
+				// store a register identifier that is compatible to those in
+				// vm/jit/TARGET/md-abi.hpp, which is part of the baseiline
+				// compiler. We somehow need to obtain such a register identifier
+				// from the compiler2's `MachineRegister`. It seems that
+				// `id_offset()` and `id_size()` can be used for this purpose,
+				// but we had to change their visibility from `protected` to
+				// `public`. Is this approach ok?
+				ra->regoff = machine_reg->id_offset() / machine_reg->id_size();
+			} else {
+				// the operand has been allocated to a stack slot
+				StackSlot *stack_slot = mop->to_StackSlot();
+				assert(stack_slot);
+				ra->inmemory = true;
+				ra->regoff = stack_slot->get_index();
+			}
+
+			op_index++;
+			ra++;
+		}
+
+		LOG("resolved replacement point " << rp << nl);
+
+		rp++;
+	}
+}
+#endif // defined(ENABLE_REPLACEMENT)
 
 void CodeGenPass::finish(JITData &JD) {
 	CodeMemory *CM = JD.get_CodeMemory();
@@ -251,13 +355,23 @@ void CodeGenPass::finish(JITData &JD) {
 	code->savedintcount      = INT_SAV_CNT - rd->savintreguse;
 	code->savedfltcount      = FLT_SAV_CNT - rd->savfltreguse;
 #else
-	code->stackframesize     = 0;
+	code->stackframesize     = JD.get_StackSlotManager()->get_frame_size() / SIZE_OF_STACKSLOT;
 	code->synchronizedoffset = 0;
 	code->savedintcount      = 0;
 	code->savedfltcount      = 0;
 #endif
 #if defined(HAS_ADDRESS_REGISTER_FILE)
 	code->savedadrcount      = ADR_SAV_CNT - rd->savadrreguse;
+#endif
+
+#if defined(__X86_64__)
+	// Since we use the EnterInst on method entry, the generated code saves the
+	// frame pointer (register RBP) of the calling method on the stack. We
+	// therefore have to provide an additional stack slot.
+	code->stackframesize++;
+# if defined(ENABLE_REPLACEMENT)
+	code_flag_using_frameptr(code);
+# endif
 #endif
 
 	/* Create the exception table. */
@@ -284,21 +398,16 @@ void CodeGenPass::finish(JITData &JD) {
 	#if !defined(NDEBUG)
 	DEBUG2(patcher_list_show(code));
 	#endif
-#if 0
 #if defined(ENABLE_REPLACEMENT)
 	/* replacement point resolving */
 	{
-		int i;
-		rplpoint *rp;
-
-		rp = code->rplpoints;
-		for (i=0; i<code->rplpointcount; ++i, ++rp) {
-			rp->pc = (u1*) ((ptrint) epoint + (ptrint) rp->pc);
-		}
+		MInstListTy rplpoints;
+		MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
+		find_all_replacement_points(MIS, std::back_inserter(rplpoints));
+		resolve_replacement_points(rplpoints.begin(), rplpoints.end(), JD);
 	}
 #endif /* defined(ENABLE_REPLACEMENT) */
 
-#endif
 	/* Insert method into methodtree to find the entrypoint. */
 
 	methodtree_insert(code->entrypoint, code->entrypoint + CS.size());

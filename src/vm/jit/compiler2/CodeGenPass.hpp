@@ -54,6 +54,28 @@ public:
 	static Option<bool> print_data;
 #endif
 private:
+#if defined(ENABLE_REPLACEMENT)
+	typedef std::vector<MachineInstruction*> MInstListTy;
+	typedef alloc::map<MachineInstruction*,std::size_t>::type InstructionPositionMap;
+
+	/// Map a MachineInstruction to a offset in the current CodeMemory.
+	///
+	/// This map stores for each MachineInstruction the offset of the native
+	/// code that was written to the CodeSegment by MachineInstruction::emit().
+	InstructionPositionMap instruction_positions;
+
+	/// Create the final rplpoint structures for the current method.
+	///
+	/// Create a rplpoint structure for each MachineReplacementPointInst in
+	/// the range @p first to @p last and store them in the codeinfo of @p JD.
+	///
+	/// @param first Forward iterator that points to the first
+	///              MachineReplacementPointInst* in the range.
+	/// @param last  Forward iterator that marks the end of the range.
+	/// @param JD    The JITData of the currently compiled method.
+	template<class ForwardIt>	
+	void resolve_replacement_points(ForwardIt first, ForwardIt last, JITData &JD);
+#endif
 	/**
 	 * finish code generation
 	 *

@@ -47,6 +47,9 @@ public:
 	}
 	virtual NativeRegister* to_NativeRegister() = 0;
 	virtual ~MachineRegister() {}
+
+	using MachineOperand::id_offset;
+	using MachineOperand::id_size;
 };
 
 } // end namespace compiler2
