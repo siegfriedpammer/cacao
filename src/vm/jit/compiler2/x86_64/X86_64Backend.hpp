@@ -66,6 +66,9 @@ public:
 	virtual void visit(ARRAYBOUNDSCHECKInst *I, bool copyOperands);
 	virtual void visit(CMPInst *I, bool copyOperands);
 	virtual void visit(NEGInst *I, bool copyOperands);
+#if defined(ENABLE_REPLACEMENT)
+	virtual void visit(DeoptInst* I, bool copyOperands);
+#endif
 
 	virtual void lowerComplex(Instruction* I, int ruleId);
 
