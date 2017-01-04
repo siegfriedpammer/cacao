@@ -49,6 +49,7 @@ libcompiler2_la_SOURCES = \
 	Conditional.cpp \
 	DisassemblerPass.cpp \
 	DataSegment.cpp \
+	DeoptInstAnchoringPass.cpp \
 	DominatorPass.cpp \
 	DomTreePrinterPass.cpp \
 	ExamplePass.cpp \
