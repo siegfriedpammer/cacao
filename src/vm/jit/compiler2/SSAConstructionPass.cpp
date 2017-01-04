@@ -838,7 +838,7 @@ Value* SSAConstructionPass::read_variable_recursive(size_t varindex, size_t bb) 
 		// create constant for now but seriously, this should not happen!
 		#if 0
 		varinfo *v = VAR(varindex);
-		Type::TypeID type = convert_var_type(v->type);
+		Type::TypeID type = convert_to_typeid(v->type);
 		Instruction *konst;
 		switch (type) {
 		case Type::IntTypeID:
@@ -1104,7 +1104,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 	// create variable type map
 	for(size_t i = 0, e = jd->vartop; i != e ; ++i) {
 		varinfo &v = jd->var[i];
-		var_type_tbl[i] = convert_var_type(v.type);
+		var_type_tbl[i] = convert_to_typeid(v.type);
 	}
 	// set global state
 	var_type_tbl[global_state] = Type::GlobalStateTypeID;
@@ -1121,11 +1121,11 @@ bool SSAConstructionPass::run(JITData &JD) {
 	for (int i = 0, slot = 0; i < md->paramcount; ++i) {
 		int type = md->paramtypes[i].type;
 		int varindex = jd->local_map[slot * 5 + type];
-		LOG("parameter: i = " << i << " slot = " << slot << " type " << get_var_type(type) << nl);
+		LOG("parameter: i = " << i << " slot = " << slot << " type " << get_type_name(type) << nl);
 
 		if (varindex != jitdata::UNUSED) {
 			// only load if variable is used
-			Instruction *I = new LOADInst(convert_var_type(type), i, BB[init_basicblock]);
+			Instruction *I = new LOADInst(convert_to_typeid(type), i, BB[init_basicblock]);
 			write_variable(varindex,init_basicblock,I);
 			M->add_Instruction(I);
 		}
@@ -1165,7 +1165,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 	// print variables
 	for(size_t i = 0, e = jd->vartop; i != e ; ++i) {
 		varinfo &v = jd->var[i];
-		LOG("var#" << i << " type: " << get_var_type(v.type) << nl);
+		LOG("var#" << i << " type: " << get_type_name(v.type) << nl);
 	}
 	#endif
 	LOG("# variables: " << jd->vartop << nl);
@@ -1175,7 +1175,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 	LOG("# parameter slots: " << md->paramslots << nl);
 	for (int i = 0; i < md->paramslots; ++i) {
 		int type = md->paramtypes[i].type;
-		LOG("argument type: " << get_var_type(type)
+		LOG("argument type: " << get_type_name(type)
 		    << " (index " << i << ")"
 		    << " (var_local " << jd->local_map[i * 5 + type] << ")" << nl);
 		switch (type) {
@@ -1190,9 +1190,9 @@ bool SSAConstructionPass::run(JITData &JD) {
 		for (int j = 0; j < 5; ++j) {
 			s4 entry = jd->local_map[i*5+j];
 			if (entry == jitdata::UNUSED)
-				LOG("  type " <<get_var_type(j) << " UNUSED" << nl);
+				LOG("  type " <<get_type_name(j) << " UNUSED" << nl);
 			else
-				LOG("  type " <<get_var_type(j) << " " << entry << nl);
+				LOG("  type " <<get_type_name(j) << " " << entry << nl);
 		}
 	}
 
@@ -1916,7 +1916,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 				{
 					constant_FMIref *fmiref;
 					INSTRUCTION_GET_FIELDREF(iptr, fmiref);
-					Type::TypeID type = convert_var_type(fmiref->parseddesc.fd->type);
+					Type::TypeID type = convert_to_typeid(fmiref->parseddesc.fd->type);
 					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
 					assert(state_change);
 					Instruction *getstatic = new GETSTATICInst(type,fmiref,INSTRUCTION_IS_RESOLVED(iptr),

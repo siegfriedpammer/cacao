@@ -123,11 +123,27 @@ public:
 	};
 };
 
-const char* get_type_name(const Type::TypeID &type);
+/// Get the printable name of the @p type.
+///
+/// @param type One of the ::Type enum values (as defined in vm/global.hpp).
+///
+/// @return The printable name of @p type
+const char *get_type_name(int type);
 
-// conversion functions
-const char * get_var_type(int type);
-Type::TypeID convert_var_type(int type);
+/// Convert a ::Type to a Type::TypeID.
+///
+/// @param type One of the ::Type enum values (as defined in vm/global.hpp).
+///
+/// @return The Type::TypeID that corresponds to @p type.
+Type::TypeID convert_to_typeid(int type);
+
+/// Convert a Type::TypeID to a ::Type.
+///
+/// @param id The Type::TypeID to convert.
+///
+/// @return The ::Type enum value (as defined in vm/global.hpp) that corresponds
+///         to @p id.
+int convert_to_type(Type::TypeID id);
 
 OStream& operator<<(OStream &OS, const Type::TypeID &type);
 

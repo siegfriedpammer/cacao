@@ -34,7 +34,7 @@ namespace jit {
 namespace compiler2 {
 
 // conversion functions
-const char * get_var_type(int type)
+const char * get_type_name(int type)
 {
 	switch(type) {
 	case TYPE_INT: return "TYPE_INT";
@@ -48,7 +48,7 @@ const char * get_var_type(int type)
 	return "(unknown type)";
 }
 
-Type::TypeID convert_var_type(int type)
+Type::TypeID convert_to_typeid(int type)
 {
 	switch(type) {
 	case TYPE_INT:  return Type::IntTypeID;
@@ -60,9 +60,24 @@ Type::TypeID convert_var_type(int type)
 	case TYPE_RET:
 	default: /* do nothing */ ;
 	}
-	ABORT_MSG("Type not supported", "type: " << get_var_type(type) << " (0x" << setz(2) << hex << type << dec << ") "
+	ABORT_MSG("Type not supported", "type: " << get_type_name(type) << " (0x" << setz(2) << hex << type << dec << ") "
 		  << " not yet supported!");
 	//assert( 0 && "Unsupported type");
+	return Type::VoidTypeID;
+}
+
+int convert_to_type(Type::TypeID type) {
+	switch(type) {
+	case Type::IntTypeID:       return TYPE_INT;
+	case Type::LongTypeID:      return TYPE_LNG;
+	case Type::FloatTypeID:     return TYPE_FLT;
+	case Type::DoubleTypeID:    return TYPE_DBL;
+	case Type::VoidTypeID:      return TYPE_VOID;
+	case Type::ReferenceTypeID: return TYPE_ADR; // XXX is this right?
+	default: /* do nothing */ ;
+	}
+
+	ABORT_MSG("Could not convert type", "");
 	return Type::VoidTypeID;
 }
 

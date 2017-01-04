@@ -51,7 +51,7 @@ Method::Method(methodinfo *m) : class_name_utf8(m->clazz->name),
 
 	for (int i = 0, slot = 0; i < md->paramcount; ++i) {
 		int type = md->paramtypes[i].type;
-		MD[i] = convert_var_type(type);
+		MD[i] = convert_to_typeid(type);
 		/*
 		int varindex = jd->local_map[slot * 5 + type];
 		assert(varindex != UNUSED);
