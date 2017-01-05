@@ -26,6 +26,10 @@
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
 
+#if defined(ENABLE_REPLACEMENT)
+# include "vm/jit/replace.hpp"
+#endif
+
 #include "Target.hpp"
 
 namespace cacao {
@@ -66,6 +70,69 @@ void LoweringVisitorBase::visit(CONSTInst* I, bool copyOperands) {
 	get_current()->push_back(move);
 	set_op(I,move->get_result().op);
 }
+
+#if defined(ENABLE_REPLACEMENT)
+void LoweringVisitorBase::lower_source_state_dependencies(MachineReplacementPointInst *MI,
+		SourceStateInst *source_state) {
+	assert(MI);
+	assert(source_state);
+
+	int op_index = 0;
+
+	// lower javalocal dependencies
+	for (SourceStateInst::const_javalocal_iterator i = source_state->javalocal_begin(),
+			e = source_state->javalocal_end(); i != e; i++) {
+		SourceStateInst::Javalocal local = *i;
+		Instruction *op = local.value->to_Instruction();
+		assert(op);
+		MachineOperand *mop = get_op(op);
+		MI->set_operand(op_index, mop);
+		MI->set_javalocal_index(op_index, local.index);
+		op_index++;
+	}
+
+	// lower stackvar dependencies
+	for (SourceStateInst::const_stackvar_iterator i = source_state->stackvar_begin(),
+			e = source_state->stackvar_end(); i != e; i++) {
+		Instruction *op = (*i)->to_Instruction();
+		assert(op);
+		MachineOperand *mop = get_op(op);
+		MI->set_operand(op_index, mop);
+		MI->set_javalocal_index(op_index, RPLALLOC_STACK);
+		op_index++;
+	}
+
+	// lower call-site parameter dependencies
+	for (SourceStateInst::const_param_iterator i = source_state->param_begin(),
+			e = source_state->param_end(); i != e; i++) {
+		Instruction *op = (*i)->to_Instruction();
+		assert(op);
+		MachineOperand *mop = get_op(op);
+		MI->set_operand(op_index, mop);
+		MI->set_javalocal_index(op_index, RPLALLOC_PARAM);
+		op_index++;
+	}
+}
+#endif
+
+#if defined(ENABLE_REPLACEMENT)
+void LoweringVisitorBase::visit(SourceStateInst* I, bool copyOperands) {
+	// A SouceStateInst is just an artificial instruction for holding metadata
+	// for ReplacementPointInsts. It has no direct pendant on LIR level and
+	// hence needs no lowering logic.
+}
+#endif
+
+#if defined(ENABLE_REPLACEMENT)
+void LoweringVisitorBase::visit(ReplacementEntryInst* I, bool copyOperands) {
+	SourceStateInst *source_state = I->get_source_state();
+	assert(source_state);
+	MachineReplacementEntryInst *MI = new MachineReplacementEntryInst(
+			source_state->get_source_id(), source_state->op_size(), false);
+	lower_source_state_dependencies(MI, source_state);
+	get_current()->push_back(MI);
+}
+#endif
 
 MachineBasicBlock* LoweringVisitorBase::new_block() const {
 	return *schedule->insert_after(get_current()->self_iterator(),MBBBuilder());

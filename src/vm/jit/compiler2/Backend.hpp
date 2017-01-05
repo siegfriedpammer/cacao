@@ -128,6 +128,12 @@ public:
 	virtual void visit(GOTOInst* I, bool copyOperands);
 	virtual void visit(PHIInst* I, bool copyOperands);
 	virtual void visit(CONSTInst* I, bool copyOperands);
+#if defined(ENABLE_REPLACEMENT)
+	virtual void visit(SourceStateInst* I, bool copyOperands);
+	virtual void visit(ReplacementEntryInst* I, bool copyOperands);
+	void lower_source_state_dependencies(MachineReplacementPointInst *MI,
+		SourceStateInst *source_state);
+#endif
 
 	/* RuleId enum cannot be used in interface, as including MatcherDefs.hpp 
 	 * requires Grammar.inc. Backend.hpp is included in several other files 
