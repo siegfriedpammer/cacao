@@ -34,12 +34,12 @@
 #include "md-abi.hpp"
 #include "vm/jit/powerpc/codegen.hpp"
 #include "vm/jit/powerpc/md.hpp"
+#include "vm/jit/powerpc/patcher.hpp"
 
 #include "vm/global.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/jit.hpp"
-#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/trap.hpp"
 
 

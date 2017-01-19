@@ -35,6 +35,7 @@
 
 #include "vm/jit/powerpc/arch.hpp"
 #include "vm/jit/powerpc/codegen.hpp"
+#include "vm/jit/powerpc/patcher.hpp"
 
 #include "mm/memory.hpp"
 
@@ -62,7 +63,6 @@
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/methodheader.hpp"
 #include "vm/jit/parse.hpp"
-#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/reg.hpp"
 #include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.hpp"

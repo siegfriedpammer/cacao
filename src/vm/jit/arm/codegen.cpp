@@ -36,6 +36,7 @@
 #include "vm/jit/arm/arch.hpp"
 #include "vm/jit/arm/codegen.hpp"
 #include "vm/jit/arm/emit.hpp"
+#include "vm/jit/arm/patcher.hpp"
 
 #include "mm/memory.hpp"
 
@@ -62,7 +63,6 @@
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/methodheader.hpp"
 #include "vm/jit/parse.hpp"
-#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/reg.hpp"
 #include "vm/jit/stacktrace.hpp"
 

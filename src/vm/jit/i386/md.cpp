@@ -32,13 +32,13 @@
 #include "vm/types.hpp"
 
 #include "vm/jit/i386/codegen.hpp"
+#include "vm/jit/i386/patcher.hpp"
 
 #include "vm/global.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.hpp"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/trap.hpp"
 
 
