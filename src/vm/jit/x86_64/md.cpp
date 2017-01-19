@@ -32,12 +32,12 @@
 
 #include "vm/jit/x86_64/codegen.hpp"
 #include "vm/jit/x86_64/md-abi.hpp"
+#include "vm/jit/x86_64/patcher.hpp"
 
 #include "vm/vm.hpp"
 
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/executionstate.hpp"
-#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/trap.hpp"
 
 

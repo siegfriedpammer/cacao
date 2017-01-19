@@ -58,9 +58,22 @@ struct patchref_t {
 	bool         done;          /* XXX preliminary: patch already applied?    */
 };
 
+/* patcher_function_list *******************************************************
 
-/* macros *********************************************************************/
+   This is a list which maps patcher function pointers to the according
+   names of the patcher functions. It is only usefull for debugging
+   purposes.
 
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+typedef struct patcher_function_list_t {
+	functionptr patcher;
+	const char* name;
+} patcher_function_list_t;
+
+extern patcher_function_list_t patcher_function_list[];
+#endif
 
 /* function prototypes ********************************************************/
 
@@ -136,12 +149,12 @@ bool patcher_putfield(patchref_t *pr);
 bool patcher_get_putfield(patchref_t *pr);
 #define PATCHER_get_putfield (functionptr) patcher_get_putfield
 
-#if defined(__I386__) || defined(__X86_64__)
+#if defined(__I386__)
 
 bool patcher_putfieldconst(patchref_t *pr);
 #define PATCHER_putfieldconst (functionptr) patcher_putfieldconst
 
-#endif /* defined(__I386__) || defined(__X86_64__) */
+#endif /* defined(__I386__) */
 
 bool patcher_invokestatic_special(patchref_t *pr);
 #define PATCHER_invokestatic_special (functionptr) patcher_invokestatic_special

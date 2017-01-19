@@ -59,42 +59,6 @@
 
 STAT_DECLARE_VAR(int,size_patchref,0)
 
-/* patcher_function_list *******************************************************
-
-   This is a list which maps patcher function pointers to the according
-   names of the patcher functions. It is only usefull for debugging
-   purposes.
-
-*******************************************************************************/
-
-#if !defined(NDEBUG)
-typedef struct patcher_function_list_t {
-	functionptr patcher;
-	const char* name;
-} patcher_function_list_t;
-
-static patcher_function_list_t patcher_function_list[] = {
-	{ PATCHER_initialize_class,              "initialize_class" },
-#ifdef ENABLE_VERIFIER
-	{ PATCHER_resolve_class,                 "resolve_class" },
-#endif /* ENABLE_VERIFIER */
-	{ PATCHER_resolve_classref_to_classinfo, "resolve_classref_to_classinfo"},
-	{ PATCHER_resolve_classref_to_vftbl,     "resolve_classref_to_vftbl"},
-	// { PATCHER_resolve_classref_to_index,     "resolve_classref_to_index"},
-	{ PATCHER_resolve_classref_to_flags,     "resolve_classref_to_flags"},
-	{ PATCHER_resolve_native_function,       "resolve_native_function" },
-	{ PATCHER_invokestatic_special,          "invokestatic_special" },
-	{ PATCHER_invokevirtual,                 "invokevirtual" },
-	{ PATCHER_invokeinterface,               "invokeinterface" },
-	{ PATCHER_breakpoint,                    "breakpoint" },
-	{ PATCHER_checkcast_interface,			 "checkcast_interface" },
-	{ PATCHER_instanceof_interface,			 "instanceof_interface" },
-	{ PATCHER_get_putstatic,				 "get_putstatic" },
-	{ PATCHER_get_putfield,					 "get_putfield" },
-	{ NULL,                                  "-UNKNOWN PATCHER FUNCTION-" }
-};
-#endif
-
 
 /* patcher_list_create *********************************************************
 
@@ -201,14 +165,6 @@ void patcher_list_show(codeinfo *code)
 # error Unknown PATCHER_CALL_SIZE
 #endif
 		printf(" type:%s\n", l->name);
-
-		// Display machine code of patched position.
-#if 0 && defined(ENABLE_DISASSEMBLER)
-		printf("\t\tcurrent -> ");
-		disassinstr((uint8_t*) pr.mpc);
-		printf("\t\tapplied -> ");
-		disassinstr((uint8_t*) &(pr.mcode));
-#endif
 	}
 }
 #endif
