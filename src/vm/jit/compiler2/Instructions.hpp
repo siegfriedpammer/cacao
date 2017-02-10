@@ -1152,17 +1152,25 @@ private:
 	SourceStateInst *source_state;
 
 public:
-	explicit DeoptimizeInst(BeginInst *begin, SourceStateInst *source_state)
+	explicit DeoptimizeInst(BeginInst *begin)
 			: ReplacementPointInst(DeoptimizeInstID) {
 		assert(begin);
-		assert(source_state);
 		append_dep(begin);
-		append_dep(source_state);
 	}
 
 	virtual bool is_floating() const { return false; }
 	virtual DeoptimizeInst* to_DeoptimizeInst() { return this; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+
+	void set_source_state(SourceStateInst *s) {
+		assert(s);
+		append_dep(s);
+		source_state = s;
+	}
+
+	virtual SourceStateInst *get_source_state() const {
+		return source_state;
+	}
 };
 
 
