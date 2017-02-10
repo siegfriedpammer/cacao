@@ -91,6 +91,7 @@ SourceStateInstID,
 ReplacementPointInstID,
 ReplacementEntryInstID,
 DeoptInstID,
+DeoptimizeInstID,
 
 /*
  * These are local overrides for various environment variables in Emacs.

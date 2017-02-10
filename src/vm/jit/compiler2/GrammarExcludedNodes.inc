@@ -63,7 +63,8 @@ Instruction::EndInstID,
 Instruction::SourceStateInstID,
 Instruction::ReplacementPointInstID,
 Instruction::ReplacementEntryInstID,
-Instruction::DeoptInstID
+Instruction::DeoptInstID,
+Instruction::DeoptimizeInstID
 
 /*
  * These are local overrides for various environment variables in Emacs.

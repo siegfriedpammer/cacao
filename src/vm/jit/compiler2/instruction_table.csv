@@ -109,3 +109,4 @@ SourceStateInst
 ReplacementPointInst
 ReplacementEntryInst
 DeoptInst
+DeoptimizeInst

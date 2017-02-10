@@ -91,6 +91,7 @@ class SourceStateInst;
 class ReplacementPointInst;
 class ReplacementEntryInst;
 class DeoptInst;
+class DeoptimizeInst;
 
 /*
  * These are local overrides for various environment variables in Emacs.

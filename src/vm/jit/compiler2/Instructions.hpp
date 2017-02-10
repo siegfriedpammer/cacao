@@ -1147,6 +1147,25 @@ public:
 	}
 };
 
+class DeoptimizeInst : public ReplacementPointInst {
+private:
+	SourceStateInst *source_state;
+
+public:
+	explicit DeoptimizeInst(BeginInst *begin, SourceStateInst *source_state)
+			: ReplacementPointInst(DeoptimizeInstID) {
+		assert(begin);
+		assert(source_state);
+		append_dep(begin);
+		append_dep(source_state);
+	}
+
+	virtual bool is_floating() const { return false; }
+	virtual DeoptimizeInst* to_DeoptimizeInst() { return this; }
+	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+};
+
+
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

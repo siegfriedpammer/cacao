@@ -91,6 +91,7 @@ virtual SourceStateInst* to_SourceStateInst() { return NULL; }
 virtual ReplacementPointInst* to_ReplacementPointInst() { return NULL; }
 virtual ReplacementEntryInst* to_ReplacementEntryInst() { return NULL; }
 virtual DeoptInst* to_DeoptInst() { return NULL; }
+virtual DeoptimizeInst* to_DeoptimizeInst() { return NULL; }
 
 /*
  * These are local overrides for various environment variables in Emacs.

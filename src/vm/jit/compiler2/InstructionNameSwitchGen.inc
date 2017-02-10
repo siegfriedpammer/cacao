@@ -91,6 +91,7 @@ case SourceStateInstID: return "SourceStateInst";
 case ReplacementPointInstID: return "ReplacementPointInst";
 case ReplacementEntryInstID: return "ReplacementEntryInst";
 case DeoptInstID: return "DeoptInst";
+case DeoptimizeInstID: return "DeoptimizeInst";
 
 /*
  * These are local overrides for various environment variables in Emacs.
