@@ -70,55 +70,6 @@ using namespace cacao;
 #define REPLACE_PATCH_DYNAMIC_CALL
 /*#define REPLACE_PATCH_ALL*/
 
-/*** statistics ***************************************************************/
-
-#define REPLACE_STATISTICS
-
-#if defined(REPLACE_STATISTICS)
-
-static int stat_replacements = 0;
-static int stat_frames = 0;
-static int stat_recompile = 0;
-static int stat_staticpatch = 0;
-static int stat_unroll_inline = 0;
-static int stat_unroll_call = 0;
-static int stat_dist_frames[20] = { 0 };
-static int stat_dist_locals[20] = { 0 };
-static int stat_dist_locals_adr[10] = { 0 };
-static int stat_dist_locals_prim[10] = { 0 };
-static int stat_dist_locals_ret[10] = { 0 };
-static int stat_dist_locals_void[10] = { 0 };
-static int stat_dist_stack[10] = { 0 };
-static int stat_dist_stack_adr[10] = { 0 };
-static int stat_dist_stack_prim[10] = { 0 };
-static int stat_dist_stack_ret[10] = { 0 };
-static int stat_methods = 0;
-static int stat_rploints = 0;
-static int stat_regallocs = 0;
-static int stat_dist_method_rplpoints[20] = { 0 };
-
-#define REPLACE_COUNT(cnt)  (cnt)++
-#define REPLACE_COUNT_IF(cnt, cond)  do{ if(cond) (cnt)++; } while(0)
-#define REPLACE_COUNT_INC(cnt, inc)  ((cnt) += (inc))
-
-#define REPLACE_COUNT_DIST(array, val)                               \
-    do {                                                             \
-        int limit = (sizeof(array) / sizeof(int)) - 1;               \
-        if ((val) < (limit)) (array)[val]++;                         \
-        else (array)[limit]++;                                       \
-    } while (0)
-
-static void replace_statistics_source_frame(sourceframe_t *frame);
-
-#else
-
-#define REPLACE_COUNT(cnt)
-#define REPLACE_COUNT_IF(cnt, cond)
-#define REPLACE_COUNT_INC(cnt, inc)
-#define REPLACE_COUNT_DIST(array, val)
-
-#endif /* defined(REPLACE_STATISTICS) */
-
 /*** constants used internally ************************************************/
 
 #define TOP_IS_NORMAL    0
@@ -736,7 +687,7 @@ static void replace_write_executionstate(rplpoint *rp,
 	while (remaining_allocations && ra->index >= 0) {
 		assert(ra->index < m->maxlocals);
 		assert(ra->index < frame->javalocalcount);
-		assert(ra->index == frame->javalocaltype[ra->index]);
+		assert(ra->type == frame->javalocaltype[ra->index]);
 		if (ra->type == TYPE_RET) {
 			/* XXX assert that it matches this rplpoint */
 		} else {
@@ -1289,7 +1240,9 @@ void replace_push_activation_record(executionstate_t *es,
 
 	assert(es);
 	assert(!rpcall || callerframe);
-    assert(!rpcall || rpcall->type == rplpoint::TYPE_CALL);
+#if 0
+	assert(!rpcall || rpcall->type == rplpoint::TYPE_CALL);
+#endif
 	assert(!rpcall || rpcall == callerframe->torp);
 	assert(calleeframe);
 	assert(!callerframe || calleeframe == callerframe->down);
@@ -1446,7 +1399,8 @@ rplpoint * replace_find_replacement_point(codeinfo *code,
 
 rplpoint *replace_find_replacement_point_at_or_before_pc(
 		codeinfo *code,
-		u1 *pc) {
+		u1 *pc,
+		unsigned int desired_flags) {
 	LOG("searching for nearest rp before pc " << pc
 			<< " in method [" << *code->m << "]" << nl);
 
@@ -1454,7 +1408,7 @@ rplpoint *replace_find_replacement_point_at_or_before_pc(
 	rplpoint *rp = code->rplpoints;
 
 	for (s4 i = 0; i < code->rplpointcount; ++i, ++rp) {
-		if (rp->pc <= pc) {
+		if (rp->pc <= pc && (rp->flags & desired_flags)) {
 			if (nearest == NULL || nearest->pc < rp->pc) {
 				nearest = rp;
 			}
@@ -1737,10 +1691,13 @@ sourcestate_t *replace_recover_inlined_source_state(rplpoint *rp,
 	/* recover source frames of inlined methods, if there are any */
 
 	rplpoint *next_rp = rp;
+
+#if 0
 	while (next_rp->parent != NULL) {
 		next_rp = replace_recover_source_frame(next_rp, es, ss);
 		assert(next_rp);
 	}
+#endif
 
 	/* recover the source frame of the first non-inlined method */
 
@@ -1775,54 +1732,65 @@ sourcestate_t *replace_recover_inlined_source_state(rplpoint *rp,
 static void replace_map_source_state_to_deoptimized_code(sourcestate_t *ss)
 {
 	codeinfo *code = NULL;
-	sourceframe_t *frame = ss->frames;
 
-	assert(frame);
-	assert(ss->frames->down == NULL && "Inlined frames are not yet supported");
-	assert(!REPLACE_IS_NATIVE_FRAME(frame));
+	assert(ss->frames);
+	assert(!REPLACE_IS_NATIVE_FRAME(ss->frames));
+	assert(ss->frames->down);
+	assert(!ss->frames->down->down);
 
-	LOG("map frame " << frame << nl);
+	/* iterate over the source frames from outermost to innermost */
 
-	/* find code for this frame */
+	for (sourceframe_t *frame = ss->frames; frame != NULL; frame = frame->down) {
 
-	if (frame->method->deopttarget == NULL) {
-		/* reinvoke baseline compiler and save depotimized code for
-		   future replacements */
+		assert(!REPLACE_IS_NATIVE_FRAME(frame));
 
-		LOG("reinvoke baseline compiler" << nl);
-		jit_recompile_for_deoptimization(frame->method);
-		frame->method->deopttarget = frame->method->code;
-	}
+		LOG("map frame " << frame << nl);
 
-	code = frame->method->deopttarget;
+		/* find code for this frame */
 
-	assert(code);
+		if (frame != ss->frames) {
+			if (frame->method->deopttarget == NULL) {
+				/* reinvoke baseline compiler and save depotimized code for
+				   future replacements */
 
-	/* prepare code for usage */
+				LOG("reinvoke baseline compiler" << nl);
+				jit_recompile_for_deoptimization(frame->method);
+				frame->method->deopttarget = frame->method->code;
+			}
+
+			code = frame->method->deopttarget;
+		} else {
+			code = frame->method->code;
+		}
+
+		assert(code);
+
+		/* prepare code for usage */
 
 #if 0
-	if (code_is_invalid(code)) {
-		code_unflag_invalid(code);
-		replace_deactivate_replacement_points(code);
-	}
+		if (code_is_invalid(code)) {
+			code_unflag_invalid(code);
+			replace_deactivate_replacement_points(code);
+		}
 #endif
 
-	rplpoint *rp;
-	if (frame->down) {
-		/* we have not yet reached the topmost frame on the stack, therefore
-		   execution currently stands at a call site */
-		rp = replace_find_replacement_point_at_call_site(code, frame);
-	} else {
-		/* we have reached the topmost frame on the stack */
-		rp = replace_find_replacement_point(code, frame);
+		rplpoint *rp;
+		if (frame->down) {
+			/* we have not yet reached the topmost frame on the stack, therefore
+			   there execution currently stands at a call site */
+			rp = replace_find_replacement_point_at_call_site(code, frame);
+		} else {
+			/* we have reached the topmost frame on the stack */
+			rp = replace_find_replacement_point(code, frame);
+		}
+
+		assert(rp);
+
+		/* map this frame */
+
+		frame->tocode = code;
+		frame->torp = rp;
 	}
-
-	assert(rp);
-
-	/* map this frame */
-
-	frame->tocode = code;
-	frame->torp = rp;
 }
 
 
@@ -1983,7 +1951,7 @@ void replace_handle_countdown_trap(u1 *pc, executionstate_t *es)
 	/* search for a replacement point at the given PC */
 
 	methodinfo *method = code->m;
-	rplpoint *rp = replace_find_replacement_point_at_or_before_pc(code, pc);
+	rplpoint *rp = replace_find_replacement_point_at_or_before_pc(code, pc, rplpoint::FLAG_COUNTDOWN);
 
 	assert(rp);
 	assert(rp->flags & rplpoint::FLAG_COUNTDOWN);
@@ -2073,7 +2041,7 @@ void replace_handle_deoptimization_trap(u1 *pc, executionstate_t *es) {
 	/* search for a replacement point at the given PC */
 
 	methodinfo *method = code->m;
-	rplpoint *rp = replace_find_replacement_point_at_or_before_pc(code, pc);
+	rplpoint *rp = replace_find_replacement_point_at_or_before_pc(code, pc, rplpoint::FLAG_DEOPTIMIZE);
 	assert(rp);
 	assert(rp->flags & rplpoint::FLAG_DEOPTIMIZE);
 
@@ -2082,6 +2050,8 @@ void replace_handle_deoptimization_trap(u1 *pc, executionstate_t *es) {
 	LOG("perform deoptimization at " << rp << nl);
 	jit_invalidate_code(method);
 	sourcestate_t *ss = replace_recover_inlined_source_state(rp, es);
+	LOG("topmost source frame " << ss->frames << nl);
+	LOG("next source frame " << ss->frames->down << nl);
 	replace_map_source_state_to_deoptimized_code(ss);
 	replace_build_execution_state(ss, es);
 
