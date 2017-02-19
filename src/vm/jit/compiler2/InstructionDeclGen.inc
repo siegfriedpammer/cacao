@@ -88,9 +88,8 @@ class ContainerInst;
 class BeginInst;
 class EndInst;
 class SourceStateInst;
-class ReplacementPointInst;
 class ReplacementEntryInst;
-class DeoptInst;
+class AssumptionInst;
 class DeoptimizeInst;
 
 /*

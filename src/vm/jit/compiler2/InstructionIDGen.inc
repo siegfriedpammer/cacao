@@ -88,9 +88,8 @@ ContainerInstID,
 BeginInstID,
 EndInstID,
 SourceStateInstID,
-ReplacementPointInstID,
 ReplacementEntryInstID,
-DeoptInstID,
+AssumptionInstID,
 DeoptimizeInstID,
 
 /*

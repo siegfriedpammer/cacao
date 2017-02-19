@@ -61,9 +61,8 @@ Instruction::ContainerInstID,
 Instruction::BeginInstID,
 Instruction::EndInstID,
 Instruction::SourceStateInstID,
-Instruction::ReplacementPointInstID,
 Instruction::ReplacementEntryInstID,
-Instruction::DeoptInstID,
+Instruction::AssumptionInstID,
 Instruction::DeoptimizeInstID
 
 /*

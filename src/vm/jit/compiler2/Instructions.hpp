@@ -1014,12 +1014,13 @@ public:
 
 	/**
 	 * @param source_id The id of the baseline IR instruction after which the
-	 * source state is recorded.
-	 * @param I The Instruction that corresponds to the given source_id.
+	 *                  source state is recorded.
+	 * @param I         The Instruction that corresponds to the given source_id.
 	 */
 	explicit SourceStateInst(s4 source_id, Instruction *I) :
 			Instruction(SourceStateInstID, Type::VoidTypeID),
 			source_id(source_id) {
+		assert(!I->is_floating());
 		append_dep(I);
 	}
 	virtual SourceStateInst* to_SourceStateInst() { return this; }
@@ -1028,7 +1029,13 @@ public:
 		return *dep_begin();
 	}
 
-	virtual bool is_floating() const { return true; }
+	virtual BeginInst* get_BeginInst() const {
+		BeginInst *begin = (*dep_begin())->get_BeginInst();
+		assert(begin);
+		return begin;
+	}
+
+	virtual bool is_floating() const { return false; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 
 	s4 get_source_id() const { return source_id; }
@@ -1075,19 +1082,10 @@ public:
 	virtual bool verify() const { return true; }
 };
 
-class ReplacementPointInst : public Instruction {
+class ReplacementEntryInst : public Instruction {
 public:
-	explicit ReplacementPointInst(InstID id) : Instruction(id, Type::VoidTypeID) {}
-	virtual SourceStateInst *get_source_state() const = 0;
-
-	virtual ReplacementPointInst* to_ReplacementPointInst() { return this; }
-	virtual bool verify() const { return true; }
-};
-
-class ReplacementEntryInst : public ReplacementPointInst {
-public:
-	explicit ReplacementEntryInst(BeginInst *begin, SourceStateInst *source_state) :
-			ReplacementPointInst(ReplacementEntryInstID) {
+	explicit ReplacementEntryInst(BeginInst *begin, SourceStateInst *source_state)
+			: Instruction(ReplacementEntryInstID, Type::VoidTypeID) {
 		assert(begin);
 		assert(source_state);
 		append_dep(begin);
@@ -1113,12 +1111,13 @@ public:
 	}
 };
 
-class DeoptInst : public ReplacementPointInst {
+class AssumptionInst : public Instruction {
 private:
 	SourceStateInst *source_state;
+
 public:
-	explicit DeoptInst(Instruction *guarded_inst, Value *condition)
-			: ReplacementPointInst(DeoptInstID), source_state(NULL) {
+	explicit AssumptionInst(Instruction *guarded_inst, Value *condition)
+			: Instruction(AssumptionInstID, Type::VoidTypeID), source_state(NULL) {
 		assert(guarded_inst);
 		assert(guarded_inst->has_side_effects() || guarded_inst->to_BeginInst());
 		assert(condition);
@@ -1127,7 +1126,7 @@ public:
 		append_op(condition);
 	}
 
-	virtual DeoptInst* to_DeoptInst() { return this; }
+	virtual AssumptionInst* to_AssumptionInst() { return this; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 
 	Instruction *get_guarded_inst() const {
@@ -1139,6 +1138,7 @@ public:
 	void set_source_state(SourceStateInst *s) {
 		assert(s);
 		append_dep(s);
+		assert(source_state == NULL);
 		source_state = s;
 	}
 
@@ -1147,15 +1147,14 @@ public:
 	}
 };
 
-class DeoptimizeInst : public ReplacementPointInst {
+class DeoptimizeInst : public EndInst {
 private:
 	SourceStateInst *source_state;
 
 public:
 	explicit DeoptimizeInst(BeginInst *begin)
-			: ReplacementPointInst(DeoptimizeInstID) {
-		assert(begin);
-		append_dep(begin);
+			: EndInst(DeoptimizeInstID, begin), source_state(NULL) {
+		set_type(Type::VoidTypeID);
 	}
 
 	virtual bool is_floating() const { return false; }
@@ -1165,6 +1164,7 @@ public:
 	void set_source_state(SourceStateInst *s) {
 		assert(s);
 		append_dep(s);
+		assert(source_state == NULL);
 		source_state = s;
 	}
 

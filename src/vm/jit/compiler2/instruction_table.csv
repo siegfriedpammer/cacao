@@ -106,7 +106,6 @@ EndInst
 
 # Instructions for On-Stack Replacement
 SourceStateInst
-ReplacementPointInst
 ReplacementEntryInst
-DeoptInst
+AssumptionInst
 DeoptimizeInst

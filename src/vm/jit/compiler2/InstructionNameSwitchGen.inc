@@ -88,9 +88,8 @@ case ContainerInstID: return "ContainerInst";
 case BeginInstID: return "BeginInst";
 case EndInstID: return "EndInst";
 case SourceStateInstID: return "SourceStateInst";
-case ReplacementPointInstID: return "ReplacementPointInst";
 case ReplacementEntryInstID: return "ReplacementEntryInst";
-case DeoptInstID: return "DeoptInst";
+case AssumptionInstID: return "AssumptionInst";
 case DeoptimizeInstID: return "DeoptimizeInst";
 
 /*
