@@ -202,7 +202,9 @@ FILE    *opt_ProfileMemoryUsageGNUPlot    = NULL;
 int      opt_RegallocSpillAll             = 0;
 #if defined(ENABLE_REPLACEMENT)
 char*    opt_ReplaceMethod                = NULL;
+char*    opt_OptimizeMethod               = NULL;
 int      opt_TestReplacement              = 0;
+bool     opt_DisableCountdownTraps        = false;
 #endif
 int      opt_TraceBuiltinCalls            = 0;
 int      opt_TraceCompilerCalls           = 0;
@@ -281,7 +283,9 @@ enum {
 	OPT_ProfileMemoryUsageGNUPlot,
 	OPT_RegallocSpillAll,
 	OPT_ReplaceMethod,
+	OPT_OptimizeMethod,
 	OPT_TestReplacement,
+	OPT_DisableCountdownTraps,
 	OPT_TraceBuiltinCalls,
 	OPT_TraceCompilerCalls,
 	OPT_TraceExceptions,
@@ -356,7 +360,9 @@ option_t options_XX[] = {
 	{ "RegallocSpillAll",             OPT_RegallocSpillAll,             OPT_TYPE_BOOLEAN, "spill all variables to the stack" },
 #if defined(ENABLE_REPLACEMENT)
 	{ "ReplaceMethod",                OPT_ReplaceMethod,                OPT_TYPE_VALUE,   "perform on-stack replacement only for the specified method"},
+	{ "OptimizeMethod",               OPT_OptimizeMethod,               OPT_TYPE_VALUE,   ""},
 	{ "TestReplacement",              OPT_TestReplacement,              OPT_TYPE_BOOLEAN, "activate all replacement points during code generation" },
+	{ "DisableCountdownTraps",        OPT_DisableCountdownTraps,        OPT_TYPE_BOOLEAN, "" },
 #endif
 	{ "TraceBuiltinCalls",            OPT_TraceBuiltinCalls,            OPT_TYPE_BOOLEAN, "trace calls to VM builtin functions" },
 	{ "TraceCompilerCalls",           OPT_TraceCompilerCalls,           OPT_TYPE_BOOLEAN, "trace JIT compiler calls" },
@@ -832,8 +838,16 @@ void options_xx(JavaVMInitArgs *vm_args)
 			opt_ReplaceMethod = value;
 			break;
 
+		case OPT_OptimizeMethod:
+			opt_OptimizeMethod = value;
+			break;
+
 		case OPT_TestReplacement:
 			opt_TestReplacement = enable;
+			break;
+
+		case OPT_DisableCountdownTraps:
+			opt_DisableCountdownTraps = true;
 			break;
 #endif
 
