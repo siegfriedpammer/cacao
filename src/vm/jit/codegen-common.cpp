@@ -796,7 +796,7 @@ void codegen_create_replacement_points(jitdata *jd)
 			// XXX for now we only create them at the method entry, until it is
 			//     possible to jump into optimized code at backward branch targets.
 
-			if (bptr == jd->basicblocks) {
+			if (bptr == jd->basicblocks && JITDATA_HAS_FLAG_COUNTDOWN(jd)) {
 				flags |= rplpoint::FLAG_TRAPPABLE;
 				flags |= rplpoint::FLAG_COUNTDOWN;
 			}
