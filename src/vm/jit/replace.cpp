@@ -2050,8 +2050,6 @@ void replace_handle_deoptimization_trap(u1 *pc, executionstate_t *es) {
 	LOG("perform deoptimization at " << rp << nl);
 	jit_invalidate_code(method);
 	sourcestate_t *ss = replace_recover_inlined_source_state(rp, es);
-	LOG("topmost source frame " << ss->frames << nl);
-	LOG("next source frame " << ss->frames->down << nl);
 	replace_map_source_state_to_deoptimized_code(ss);
 	replace_build_execution_state(ss, es);
 
