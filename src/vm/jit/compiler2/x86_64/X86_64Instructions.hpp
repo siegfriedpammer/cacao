@@ -718,6 +718,20 @@ public:
 	}
 };
 
+class TrapInst : public X86_64Instruction {
+private:
+	s4 trap;
+
+public:
+	TrapInst(s4 trap, const SrcOp &index)
+			: X86_64Instruction("X86_64TrapInst", &NoOperand, 1), trap(trap) {
+		operands[0].op = index.op;
+	}
+
+	virtual bool is_end() const { return true; }
+	virtual void emit(CodeMemory* CM) const;
+};
+
 class CondTrapInst : public X86_64Instruction {
 private:
 	Cond::COND cond;

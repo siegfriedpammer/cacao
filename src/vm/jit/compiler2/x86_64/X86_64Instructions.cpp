@@ -586,6 +586,25 @@ OStream& CondJumpInst::print_successor_label(OStream &OS,std::size_t index) cons
 	return OS << index;
 }
 
+void TrapInst::emit(CodeMemory* CM) const {
+	// TODO Understand, clean up, and unify with CondTrapInst::emit if possible.
+
+	CodeFragment code = CM->get_CodeFragment(8);
+	// XXX make more readable
+	X86_64Register *src_reg = cast_to<X86_64Register>(operands[0].op);
+	// move
+	code[0] = 0x48; // rex
+	code[1] = 0x8b; // move
+	code[2] = (0x7 & src_reg->get_index()) << 3 | 0x4;
+	                // ModRM: mod=0x00, reg=src_reg, rm=0b100 (SIB)
+	code[3] = 0x25; // SIB scale=0b00, index=0b100, base=0b101 (illegal -> trap)
+	// trap
+	code[4] = u1( 0xff & (trap >> (8 * 0)));
+	code[5] = u1( 0xff & (trap >> (8 * 1)));
+	code[6] = u1( 0xff & (trap >> (8 * 2)));
+	code[7] = u1( 0xff & (trap >> (8 * 3)));
+}
+
 void CondTrapInst::emit(CodeMemory* CM) const {
 	CodeFragment code = CM->get_CodeFragment(8);
 	// XXX make more readable
