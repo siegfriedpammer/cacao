@@ -90,7 +90,10 @@ void GlobalValueNumberingPass::init_partition(Method::const_iterator begin, Meth
 
 		if (I->has_side_effects()
 				|| I->get_opcode() == Instruction::LOADInstID
-				|| I->get_opcode() == Instruction::ALOADInstID) {
+				|| I->get_opcode() == Instruction::ALOADInstID
+				|| I->get_opcode() == Instruction::SourceStateInstID
+				|| I->get_opcode() == Instruction::DeoptimizeInstID
+				|| I->get_opcode() == Instruction::AssumptionInstID) {
 			// instructions which change the global state or depend on it
 			// will be in a separate block each, because they are congruent
 			// only with themselves
