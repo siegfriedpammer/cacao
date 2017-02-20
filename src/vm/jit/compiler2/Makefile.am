@@ -38,6 +38,7 @@ noinst_LTLIBRARIES = \
 	libcompiler2.la
 
 libcompiler2_la_SOURCES = \
+	AssumptionAnchoringPass.cpp \
 	Backend.cpp \
 	BasicBlockSchedulingPass.cpp \
 	CFGConstructionPass.cpp \
@@ -47,12 +48,14 @@ libcompiler2_la_SOURCES = \
 	CodeSegment.cpp \
 	Compiler.cpp \
 	Conditional.cpp \
+	ConstantPropagationPass.cpp \
+	DeadCodeEliminationPass.cpp \
 	DisassemblerPass.cpp \
 	DataSegment.cpp \
-	DeoptInstAnchoringPass.cpp \
 	DominatorPass.cpp \
 	DomTreePrinterPass.cpp \
 	ExamplePass.cpp \
+	GlobalValueNumberingPass.cpp \
 	GraphHelper.cpp \
 	ICMDPrinterPass.cpp \
 	Instruction.cpp \
@@ -95,10 +98,7 @@ libcompiler2_la_SOURCES = \
 	StackSlotManager.cpp \
 	Type.cpp \
 	Value.cpp \
-	VerifierPass.cpp \
-	DeadCodeEliminationPass.cpp \
-	ConstantPropagationPass.cpp \
-	GlobalValueNumberingPass.cpp
+	VerifierPass.cpp
 
 libcompiler2_la_LIBADD = \
 	alloc/liballoc.la \

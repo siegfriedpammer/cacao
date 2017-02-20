@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/DeoptInstAnchoringPass.cpp - DeoptInstAnchoringPass
+/* src/vm/jit/compiler2/AssumptionAnchoringPass.cpp - AssumptionAnchoringPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,7 +22,7 @@
 
 */
 
-#include "vm/jit/compiler2/DeoptInstAnchoringPass.hpp"
+#include "vm/jit/compiler2/AssumptionAnchoringPass.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
@@ -31,10 +31,11 @@
 #include "vm/jit/compiler2/DominatorPass.hpp"
 #include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
 #include "vm/jit/compiler2/SSAPrinterPass.hpp"
+#include "vm/jit/compiler2/SourceStateAttachmentPass.hpp"
 #include "toolbox/logging.hpp"
 
 // define name for debugging (see logging.hpp)
-#define DEBUG_NAME "compiler2/DeoptInstAnchoringPass"
+#define DEBUG_NAME "compiler2/AssumptionAnchoringPass"
 
 namespace cacao {
 namespace jit {
@@ -44,7 +45,7 @@ namespace compiler2 {
  * Finds the nearest dominator of @p begin that is the start of the branch
  * that contains @p begin.
  */
-BeginInst *DeoptInstAnchoringPass::find_nearest_branch_begin(BeginInst *begin) {
+BeginInst *AssumptionAnchoringPass::find_nearest_branch_begin(BeginInst *begin) {
 	BeginInst *current_begin = begin;
 	BeginInst *idom = dominator_tree->get_idominator(current_begin);
 	while (current_begin != method->get_init_bb()
@@ -58,16 +59,16 @@ BeginInst *DeoptInstAnchoringPass::find_nearest_branch_begin(BeginInst *begin) {
 /**
  * Makes sure that @p deopt is anchored to a proper BeginInst.
  */
-void DeoptInstAnchoringPass::anchor(DeoptInst *deopt) {
+void AssumptionAnchoringPass::anchor(AssumptionInst *deopt) {
 	Instruction *guarded_inst = deopt->get_guarded_inst();
 	BeginInst *anchor;
 
 	if (guarded_inst->is_floating()) {
-		// Anchor the DeoptInst to the first BeginInst of the method.
+		// Anchor the AssumptionInst to the first BeginInst of the method.
 		anchor = method->get_init_bb();
 	} else {
-		// Make sure that the DeoptInst does not leave the branch of the
-		// instruction that it guards. Therefore the DeoptInst has to be
+		// Make sure that the AssumptionInst does not leave the branch of the
+		// instruction that it guards. Therefore the AssumptionInst has to be
 		// anchored to the BeginInst that starts the current branch.
 		BeginInst *begin = guarded_inst->get_BeginInst();
 		assert(begin);
@@ -79,15 +80,15 @@ void DeoptInstAnchoringPass::anchor(DeoptInst *deopt) {
 	LOG("anchored " << deopt << " to " << anchor << nl);
 }
 
-bool DeoptInstAnchoringPass::run(JITData &JD) {
+bool AssumptionAnchoringPass::run(JITData &JD) {
 	method = JD.get_Method();
 	dominator_tree = get_Pass<DominatorPass>();
 
 	for (Method::const_iterator i = method->begin(), e = method->end(); i != e;
 			++i) {
 		Instruction *I = *i;
-		if (I->to_DeoptInst()) {
-			DeoptInst *deopt = I->to_DeoptInst();
+		if (I->to_AssumptionInst()) {
+			AssumptionInst *deopt = I->to_AssumptionInst();
 			anchor(deopt);
 		}
 	}
@@ -95,20 +96,20 @@ bool DeoptInstAnchoringPass::run(JITData &JD) {
 }
 
 // pass usage
-PassUsage& DeoptInstAnchoringPass::get_PassUsage(PassUsage &PU) const {
+PassUsage& AssumptionAnchoringPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<InstructionMetaPass>();
 	PU.add_requires<DominatorPass>();
 	PU.add_schedule_before<ScheduleEarlyPass>();
-	PU.add_schedule_before<SSAPrinterPass>();
+	PU.add_schedule_before<SourceStateAttachmentPass>();
 	return PU;
 }
 
 // the address of this variable is used to identify the pass
-char DeoptInstAnchoringPass::ID = 0;
+char AssumptionAnchoringPass::ID = 0;
 
 // register pass
 #if defined(ENABLE_REPLACEMENT)
-static PassRegistry<DeoptInstAnchoringPass> X("DeoptInstAnchoringPass");
+//static PassRegistry<AssumptionAnchoringPass> X("AssumptionAnchoringPass");
 #endif
 
 } // end namespace compiler2

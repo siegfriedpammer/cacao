@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/DeoptInstAnchoringPass.hpp - DeoptInstAnchoringPass
+/* src/vm/jit/compiler2/AssumptionAnchoringPass.hpp - AssumptionAnchoringPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,12 +22,12 @@
 
 */
 
-#ifndef _JIT_COMPILER2_DEOPTINSTANCHORINGPASS
-#define _JIT_COMPILER2_DEOPTINSTANCHORINGPASS
+#ifndef _JIT_COMPILER2_ASSUMPTIONANCHORINGPASS
+#define _JIT_COMPILER2_ASSUMPTIONANCHORINGPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
 
-MM_MAKE_NAME(DeoptInstAnchoringPass)
+MM_MAKE_NAME(AssumptionAnchoringPass)
 
 namespace cacao {
 namespace jit {
@@ -36,24 +36,24 @@ namespace compiler2 {
 class Method;
 class DominatorTree;
 class BeginInst;
-class DeoptInst;
+class AssumptionInst;
 
 /**
- * DeoptInstAnchoringPass
+ * AssumptionAnchoringPass
  *
  * TODO more info
  */
-class DeoptInstAnchoringPass : public Pass, public memory::ManagerMixin<DeoptInstAnchoringPass> {
+class AssumptionAnchoringPass : public Pass, public memory::ManagerMixin<AssumptionAnchoringPass> {
 private:
 	Method *method;
 	DominatorTree *dominator_tree;
 
 	BeginInst *find_nearest_branch_begin(BeginInst *begin);
-	void anchor(DeoptInst *deopt);
+	void anchor(AssumptionInst *deopt);
 
 public:
 	static char ID;
-	DeoptInstAnchoringPass() : Pass() {}
+	AssumptionAnchoringPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
 };
@@ -62,7 +62,7 @@ public:
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_DEOPTINSTANCHORINGPASS */
+#endif /* _JIT_COMPILER2_ASSUMPTIONANCHORINGPASS */
 
 
 /*
