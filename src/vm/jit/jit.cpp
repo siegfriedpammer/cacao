@@ -364,10 +364,8 @@ u1 *jit_compile(methodinfo *m)
 		jd->flags |= JITDATA_FLAG_VERBOSECALL;
 
 #if defined(ENABLE_REPLACEMENT)
-	/* If `opt_ReplaceMethod` is given we only want to instrument the specified
-	   method with countdown traps to prevent that on-stack replacement is
-	   triggered in any other method. */
-	if (opt_ReplaceMethod == NULL || method_matches(m, opt_ReplaceMethod))
+	// TODO This condition looks ugly
+	if (!opt_DisableCountdownTraps && (opt_ReplaceMethod == NULL || method_matches(m, opt_ReplaceMethod)))
 		jd->flags |= JITDATA_FLAG_COUNTDOWN;
 #endif
 
@@ -1103,7 +1101,18 @@ void *jit_compile_handle(methodinfo *m, void *pv, void *ra, void *mptr)
 
 	/* Compile the method. */
 
-	newpv = jit_compile(m);
+	bool compile_optimized = false;
+#if defined(ENABLE_COMPILER2)
+	compile_optimized = method_matches(m,opt_OptimizeMethod);
+#endif
+
+	if (compile_optimized) {
+#if defined(ENABLE_COMPILER2)
+		newpv = cacao::jit::compiler2::compile(m);
+#endif
+	} else {
+		newpv = jit_compile(m);
+	}
 
 	/* There was a problem during compilation. */
 
