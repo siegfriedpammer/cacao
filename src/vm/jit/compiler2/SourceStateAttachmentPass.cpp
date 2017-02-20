@@ -34,7 +34,7 @@
 #include "toolbox/logging.hpp"
 
 // define name for debugging (see logging.hpp)
-#define DEBUG_NAME "compiler2/SourceStateAttachmentPass"
+#define DEBUG_NAME "compiler2/SourceStateAttachment"
 
 namespace cacao {
 namespace jit {
@@ -42,7 +42,7 @@ namespace compiler2 {
 
 namespace {
 
-SourceStateInst *find_associated_source_state(Instruction *I) {
+SourceStateInst *get_associated_source_state(Instruction *I) {
 	Instruction::const_dep_iterator i = I->rdep_begin();
 	Instruction::const_dep_iterator e = I->rdep_end();
 
@@ -58,9 +58,6 @@ SourceStateInst *find_associated_source_state(Instruction *I) {
 
 } // end anonymous namespace
 
-/**
- * TODO more info
- */
 SourceStateInst *SourceStateAttachmentPass::find_nearest_dominating_source_state(BeginInst *block) {
 	BeginInst *current_block = block;
 	SourceStateInst *source_state = NULL;
@@ -71,17 +68,18 @@ SourceStateInst *SourceStateAttachmentPass::find_nearest_dominating_source_state
 
 		if (last_side_effect) {
 			// use the SourceStateInst of the last side-effecting node
-			return find_associated_source_state(last_side_effect);
+			return get_associated_source_state(last_side_effect);
 		} else if (current_block->pred_size() > 1 || current_block == M->get_init_bb()) {
 			// when there is no side-effecting node within this block then let's
 			// look if the current block's BeginInst has an associated
 			// SourceStateInst, which is the case iff it is a control-flow merge
-			// (i.e. it has more than one predecessors)
-			return find_associated_source_state(current_block);
+			// (i.e. it has more than one predecessors) or it is the method's
+			// entry block.
+			return get_associated_source_state(current_block);
 		} else {
 			// when there is no side-effecting node within this block and
 			// the current block is no control-flow merge, we have to expand our
-			// search of a SourceStateInst to the preceding blocks
+			// search for a SourceStateInst to the preceding blocks
 			current_block = current_block->get_predecessor(0);
 		}
 	}
@@ -90,21 +88,17 @@ SourceStateInst *SourceStateAttachmentPass::find_nearest_dominating_source_state
 	return source_state;
 }
 
-/**
- * TODO more info
- */
-void SourceStateAttachmentPass::attach_source_state(DeoptInst *deopt) {
-	assert(deopt);
-
-	Instruction *guarded_inst = deopt->get_guarded_inst();;
+SourceStateInst *SourceStateAttachmentPass::find_nearest_dominating_source_state(AssumptionInst *assumption) {
+	Instruction *guarded_inst = assumption->get_guarded_inst();;
 	assert(guarded_inst->has_side_effects() || guarded_inst->to_BeginInst());
 
-	// get the blocks that contain the DeoptInst and its guarded instruction
-	BeginInst *deopt_block = schedule->get(deopt);
+	// get the blocks that contain the AssumptionInst and its guarded instruction
+	BeginInst *assumption_block = schedule->get(assumption);
 	BeginInst *guarded_block = schedule->get(guarded_inst);
 
-	SourceStateInst *source_state;
-	if (deopt_block == guarded_block) {
+	SourceStateInst *source_state = NULL;
+
+	if (assumption_block == guarded_block) {
 		Instruction::const_dep_iterator i = guarded_inst->dep_begin();
 		Instruction::const_dep_iterator e = guarded_inst->dep_end();
 
@@ -119,45 +113,57 @@ void SourceStateAttachmentPass::attach_source_state(DeoptInst *deopt) {
 
 		if (preceding_side_effect) {
 			// use the SourceStateInst of the preceding side-effecting node
-			source_state = find_associated_source_state(preceding_side_effect);
-		} else if (deopt_block->pred_size() > 1 || deopt_block == M->get_init_bb()) {
+			source_state = get_associated_source_state(preceding_side_effect);
+		} else if (assumption_block->pred_size() > 1 || assumption_block == M->get_init_bb()) {
 			// when there is no side-effecting node within this block that
 			// precedes the guarded instruction then let's look if the current
 			// block's BeginInst has an associated SourceStateInst, which is the
 			// case iff it is a control-flow merge (i.e. it has more than one
 			// predecessors)
-			source_state = find_associated_source_state(deopt_block);
+			source_state = get_associated_source_state(assumption_block);
 		} else {
 			// when there is no side-effecting node preceding the guarded
 			// instruction and the current block's BeginInst is no control-flow
 			// merge, we have to expand our search of a SourceStateInst to the
 			// preceding blocks
-			assert(deopt_block->pred_size() == 1);
-			BeginInst *pred = deopt_block->get_predecessor(0);
+			assert(assumption_block->pred_size() == 1);
+			BeginInst *pred = assumption_block->get_predecessor(0);
 			source_state = find_nearest_dominating_source_state(pred);
 		}
 	} else {
-		// when the DeoptInst has been scheduled to another block than the node
+		// when the AssumptionInst has been scheduled to another block than the node
 		// that it guards, we immediately search for an appropriate
-		// SourceStateInst within the dominating blocks of the DeoptInst
-		source_state = find_nearest_dominating_source_state(deopt_block);
+		// SourceStateInst within the dominating blocks of the AssumptionInst
+		source_state = find_nearest_dominating_source_state(assumption_block);
 	}
 
-	assert(source_state);
-	LOG("attach " << source_state << " to " << deopt << nl);
-	deopt->set_source_state(source_state);
+	return source_state;
 }
 
 bool SourceStateAttachmentPass::run(JITData &JD) {
+	LOG("run" << nl);
 	M = JD.get_Method();
 	schedule = get_Pass<ScheduleClickPass>();
-	
+
 	for (Method::const_iterator i = M->begin(), e = M->end(); i != e; ++i) {
 		Instruction *I = *i;
-		if (I->to_DeoptInst()) {
-			attach_source_state(I->to_DeoptInst());
+		if (I->to_AssumptionInst()) {
+			AssumptionInst *assumption = I->to_AssumptionInst();
+			SourceStateInst *source_state = find_nearest_dominating_source_state(assumption);
+			assert(source_state);
+			LOG("attach " << source_state << " to " << assumption << nl);
+			assumption->set_source_state(source_state);
+		} else if (I->to_DeoptimizeInst()) {
+			DeoptimizeInst *deoptimize = I->to_DeoptimizeInst();
+			BeginInst *begin = deoptimize->get_BeginInst();
+			assert(begin);
+			SourceStateInst *source_state = find_nearest_dominating_source_state(begin);
+			assert(source_state);
+			LOG("attach " << source_state << " to " << deoptimize << nl);
+			deoptimize->set_source_state(source_state);
 		}
 	}
+
 	return true;
 }
 
@@ -166,7 +172,6 @@ PassUsage& SourceStateAttachmentPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<InstructionMetaPass>();
 	PU.add_requires<ScheduleClickPass>();
 	PU.add_schedule_before<MachineInstructionSchedulingPass>();
-//	PU.add_schedule_before<DeadCodeEliminationPass>();
 	return PU;
 }
 
@@ -174,9 +179,9 @@ PassUsage& SourceStateAttachmentPass::get_PassUsage(PassUsage &PU) const {
 char SourceStateAttachmentPass::ID = 0;
 
 // register pass
-#if defined(ENABLE_REPLACEMENT)
+//#if defined(ENABLE_REPLACEMENT)
 static PassRegistry<SourceStateAttachmentPass> X("SourceStateAttachmentPass");
-#endif
+//#endif
 
 } // end namespace compiler2
 } // end namespace jit

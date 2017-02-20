@@ -37,7 +37,7 @@ class Method;
 class GlobalSchedule;
 class SourceStateInst;
 class BeginInst;
-class DeoptInst;
+class AssumptionInst;
 
 /**
  * SourceStateAttachmentPass
@@ -49,8 +49,8 @@ private:
 	Method *M;
 	GlobalSchedule *schedule;
 
-	SourceStateInst *find_nearest_dominating_source_state(BeginInst *block);
-	void attach_source_state(DeoptInst *deopt);
+	SourceStateInst *find_nearest_dominating_source_state(BeginInst *begin);
+	SourceStateInst *find_nearest_dominating_source_state(AssumptionInst *assumption);
 
 public:
 	static char ID;
