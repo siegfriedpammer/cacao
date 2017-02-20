@@ -74,6 +74,13 @@ private:
 	bool try_seal_block(basicblock *bb);
 	void print_current_def() const;
 
+	/// Check whether all predecessor blocks of @p bb have been skipped.
+	///
+	/// @param bb The block to check.
+	///
+	/// @return True if all predecessors have been skipped, false otherwise.
+	bool skipped_all_predecessors(basicblock *bb);
+
 	void remove_unreachable_blocks();
 
 #if defined(ENABLE_REPLACEMENT)

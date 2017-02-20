@@ -1089,6 +1089,16 @@ void SSAConstructionPass::deoptimize(int block_nr) {
 	skipped_blocks[block_nr] = true;
 }
 
+bool SSAConstructionPass::skipped_all_predecessors(basicblock *bb) {
+	for (int i = 0; i < bb->predecessorcount; i++) {
+		basicblock *pred = bb->predecessors[i];
+		if (visited_blocks[pred->nr] && !skipped_blocks[pred->nr]) {
+			return false;
+		}
+	}
+	return true;
+}
+
 void SSAConstructionPass::remove_unreachable_blocks() {
 	alloc::vector<BeginInst*>::type unreachable_blocks;
 
@@ -1301,15 +1311,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			continue;
 		}
 
-		bool skipped_all_predecessors = true;
-		for (int i = 0; i < bb->predecessorcount; i++) {
-			basicblock *pred = bb->predecessors[i];
-			if (visited_blocks[pred->nr] && !skipped_blocks[pred->nr]) {
-				skipped_all_predecessors = false;
-			}
-		}
-
-		if (skipped_all_predecessors && bb->predecessorcount > 0) {
+		if (skipped_all_predecessors(bb) && bb->predecessorcount > 0) {
 			skipped_blocks[bb->nr] = true;
 		}
 
