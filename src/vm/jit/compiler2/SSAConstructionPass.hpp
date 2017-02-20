@@ -73,6 +73,9 @@ private:
 	void seal_block(size_t bb);
 	bool try_seal_block(basicblock *bb);
 	void print_current_def() const;
+
+	void remove_unreachable_blocks();
+
 #if defined(ENABLE_REPLACEMENT)
 	void deoptimize(int block_index);
 	void install_javalocal_dependencies(SourceStateInst *source_state,

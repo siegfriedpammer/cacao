@@ -1089,6 +1089,29 @@ void SSAConstructionPass::deoptimize(int block_nr) {
 	skipped_blocks[block_nr] = true;
 }
 
+void SSAConstructionPass::remove_unreachable_blocks() {
+	alloc::vector<BeginInst*>::type unreachable_blocks;
+
+	Method::const_bb_iterator end = M->bb_end();
+	for (Method::const_bb_iterator i = M->bb_begin(); i != end; i++) {
+		BeginInst *begin = *i;
+		if (begin->pred_size() == 0 && begin != M->get_init_bb()) {
+			unreachable_blocks.push_back(begin);
+		}
+	}
+
+	while (!unreachable_blocks.empty()) {
+		BeginInst *begin = unreachable_blocks.back();
+		unreachable_blocks.pop_back();
+
+		LOG("Remove unreachable block " << begin << nl);
+		EndInst *end = begin->get_EndInst();
+		assert(end);
+		M->remove_Instruction(end);
+		M->remove_bb(begin);
+	}
+}
+
 bool SSAConstructionPass::run(JITData &JD) {
 	M = JD.get_Method();
 	LOG("SSAConstructionPass: " << *M << nl);
@@ -2353,6 +2376,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 				}
 			case ICMD_INVOKESTATIC:
 				{
+					deoptimize(bbindex);
+#if 0
 					//methoddesc *md;
 					constant_FMIref   *fmiref;
 					//INSTRUCTION_GET_METHODDESC(iptr, md);
@@ -2410,6 +2435,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					}
 					write_variable(global_state,bbindex,I);
 					M->add_Instruction(I);
+#endif
 				}
 				break;
 			case ICMD_INVOKEINTERFACE:
@@ -2848,6 +2874,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			try_seal_block(bb->successors[i]);
 		}
 	}
+
 	#ifndef NDEBUG
 	for(size_t i = 0; i< num_basicblocks; ++i) {
 		if (!sealed_blocks[i]) {
@@ -2858,6 +2885,11 @@ bool SSAConstructionPass::run(JITData &JD) {
 		}
 	}
 	#endif
+
+	remove_unreachable_blocks();
+
+	LOG("Remove all" << nl);
+
 	return true;
 }
 
