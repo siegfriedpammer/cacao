@@ -1347,17 +1347,19 @@ bool SSAConstructionPass::run(JITData &JD) {
 		assert((jd->maxlocals > 0) == (bb->javalocals != NULL));
 		MCOPY(live_javalocals, bb->javalocals, s4, jd->maxlocals);
 
-		if (bb->predecessorcount > 1 || bb->nr == 0) {
-			// Record the source state at method entry and control-flow merges.
-			SourceStateInst *source_state = record_source_state(BB[bbindex],
-					bb->iinstr, bb, live_javalocals, bb->invars, bb->indepth);
+		if (!skipped_blocks[bbindex]) {
+			if (bb->predecessorcount > 1 || bb->nr == 0) {
+				// Record the source state at method entry and control-flow merges.
+				SourceStateInst *source_state = record_source_state(BB[bbindex],
+						bb->iinstr, bb, live_javalocals, bb->invars, bb->indepth);
 
-			// For now it is only possible to jump into optimized code at the begin
-			// of methods. Hence, we currently only place a ReplacementEntryInst at
-			// method entry.
-			if (bb->nr == 0) {
-				ReplacementEntryInst *rplentry = new ReplacementEntryInst(BB[bbindex], source_state);
-				M->add_Instruction(rplentry);
+				// For now it is only possible to jump into optimized code at the begin
+				// of methods. Hence, we currently only place a ReplacementEntryInst at
+				// method entry.
+				if (bb->nr == 0) {
+					ReplacementEntryInst *rplentry = new ReplacementEntryInst(BB[bbindex], source_state);
+					M->add_Instruction(rplentry);
+				}
 			}
 		}
 #endif
