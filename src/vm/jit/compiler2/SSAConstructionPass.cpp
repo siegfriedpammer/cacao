@@ -1008,6 +1008,62 @@ void SSAConstructionPass::print_current_def() const {
 }
 
 #if defined(ENABLE_REPLACEMENT)
+void SSAConstructionPass::install_javalocal_dependencies(
+		SourceStateInst *source_state,
+		s4 *javalocals,
+		basicblock *bb) {
+	if (javalocals) {
+		for (s4 i = 0; i < bb->method->maxlocals; ++i) {
+			s4 varindex = javalocals[i];
+			if (varindex == jitdata::UNUSED) {
+				continue;
+			}
+
+			if (varindex >= 0) {
+				Value *v = read_variable(
+						static_cast<size_t>(varindex),
+						bb->nr);
+				SourceStateInst::Javalocal javalocal(v,
+						static_cast<size_t>(i));
+				source_state->append_javalocal(javalocal);
+				LOG("register javalocal " << varindex << " " << v
+						<< " at " << source_state << nl);
+			} else {
+				assert(0);
+				// TODO
+			}
+		}
+	}
+}
+#endif
+
+#if defined(ENABLE_REPLACEMENT)
+void SSAConstructionPass::install_stackvar_dependencies(
+		SourceStateInst *source_state,
+		s4 *stack,
+		s4 stackdepth,
+		s4 paramcount,
+		basicblock *bb) {
+	for (s4 stack_index = 0; stack_index < stackdepth; stack_index++) {
+		s4 varindex = stack[stack_index];
+		Value *v = read_variable(
+				static_cast<size_t>(varindex),
+				bb->nr);
+
+		if (stack_index < paramcount) {
+			source_state->append_param(v);
+			LOG("register param " << varindex << " " << v
+					<< " at " << source_state << nl);
+		} else {
+			source_state->append_stackvar(v);
+			LOG("register stackvar " << varindex << " " << v
+					<< " at " << source_state << nl);
+		}
+	}
+}
+#endif
+
+#if defined(ENABLE_REPLACEMENT)
 SourceStateInst *SSAConstructionPass::record_source_state(
 		Instruction *I,
 		instruction *iptr,
@@ -1024,6 +1080,14 @@ SourceStateInst *SSAConstructionPass::record_source_state(
 	return source_state;
 }
 #endif
+
+void SSAConstructionPass::deoptimize(int block_nr) {
+	assert(BB[block_nr]);
+	LOG("Instruction not supported, deoptimize instead" << nl);
+	DeoptimizeInst *deopt = new DeoptimizeInst(BB[block_nr]);
+	M->add_Instruction(deopt);
+	skipped_blocks[block_nr] = true;
+}
 
 bool SSAConstructionPass::run(JITData &JD) {
 	M = JD.get_Method();
@@ -1058,6 +1122,12 @@ bool SSAConstructionPass::run(JITData &JD) {
 #if defined(ENABLE_REPLACEMENT)
 	// Used to track at each point the javalocals that are live.
 	s4 *live_javalocals = (s4*) DumpMemory::allocate(sizeof(s4) * jd->maxlocals);
+
+	visited_blocks.clear();
+	visited_blocks.resize(num_basicblocks, false);
+
+	skipped_blocks.clear();
+	skipped_blocks.resize(num_basicblocks, false);
 #endif
 
 	assert(jd->basicblockcount);
@@ -1068,7 +1138,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 		init_basicblock = jd->basicblockcount;
 		LOG("Extra basic block added (index = " << init_basicblock << ")" << nl);
 	}
-
+	
 	// store basicblock BeginInst
 	beginToIndex.clear();
 	BB.clear();
@@ -1197,6 +1267,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 	}
 
 	FOR_EACH_BASICBLOCK(jd,bb) {
+		visited_blocks[bb->nr] = true;
+
 		if (bb->icount == 0 ) {
 			// this is the last (empty) basicblock
 			assert(bb->nr == jd->basicblockcount);
@@ -1205,23 +1277,38 @@ bool SSAConstructionPass::run(JITData &JD) {
 			// we dont need it
 			continue;
 		}
+
+		bool skipped_all_predecessors = true;
+		for (int i = 0; i < bb->predecessorcount; i++) {
+			basicblock *pred = bb->predecessors[i];
+			if (visited_blocks[pred->nr] && !skipped_blocks[pred->nr]) {
+				skipped_all_predecessors = false;
+			}
+		}
+
+		if (skipped_all_predecessors && bb->predecessorcount > 0) {
+			skipped_blocks[bb->nr] = true;
+		}
+
 		std::size_t bbindex = (std::size_t)bb->nr;
 		instruction *iptr;
 		LOG("basicblock: " << bbindex << nl);
 
-		// handle invars
-		for(s4 i = 0; i < bb->indepth; ++i) {
-			std::size_t varindex = bb->invars[i];
-			PHIInst *phi = new PHIInst(var_type_tbl[varindex], BB[bbindex]);
-			write_variable(varindex, bbindex, phi);
-			if (!sealed_blocks[bbindex]) {
-				incomplete_in_phi[bbindex].push_back(new InVarPhis(phi, jd, bbindex, i, this));
+		if (!skipped_blocks[bbindex]) {
+			// handle invars
+			for(s4 i = 0; i < bb->indepth; ++i) {
+				std::size_t varindex = bb->invars[i];
+				PHIInst *phi = new PHIInst(var_type_tbl[varindex], BB[bbindex]);
+				write_variable(varindex, bbindex, phi);
+				if (!sealed_blocks[bbindex]) {
+					incomplete_in_phi[bbindex].push_back(new InVarPhis(phi, jd, bbindex, i, this));
+				}
+				else {
+					InVarPhis invar(phi, jd, bbindex, i, this);
+					invar.fill_operands();
+				}
+				M->add_Instruction(phi);
 			}
-			else {
-				InVarPhis invar(phi, jd, bbindex, i, this);
-				invar.fill_operands();
-			}
-			M->add_Instruction(phi);
 		}
 
 		// add begin block
@@ -1253,6 +1340,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 #endif
 
 		FOR_EACH_INSTRUCTION(bb,iptr) {
+			if (skipped_blocks[bb->nr]) {
+				break;
+			}
+
 			STATISTICS(++num_icmd_inst);
 			#if !defined(NDEBUG)
 			LOG("iptr: " << icmd_table[iptr->opc].name << nl);
@@ -1269,10 +1360,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 				break;
 			case ICMD_POP:
 			case ICMD_CHECKNULL:
-		//		SHOW_S1(OS, iptr);
-		//		break;
-
-				goto _default;
+				{
+					deoptimize(bbindex);
+					break;
+				}
 		//		/* unary */
 			case ICMD_INEG:
 			case ICMD_LNEG:
@@ -1548,7 +1639,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_LSHR:
 			case ICMD_IUSHR:
 			case ICMD_LUSHR:
-				goto _default;
+				{
+					deoptimize(bbindex);
+					break;
+				}
 			case ICMD_IOR:
 			case ICMD_LOR:
 			case ICMD_IXOR:
@@ -1661,7 +1755,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 				}
 				break;
 			case ICMD_IMULPOW2:
-				goto _default;
+				{
+					deoptimize(bbindex);
+					break;
+				}
 			case ICMD_IREMPOW2:
 			case ICMD_IDIVPOW2:
 				// FIXME we should lower this to a shift
@@ -1708,7 +1805,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_CASTORECONST:
 			case ICMD_SASTORECONST:
 			case ICMD_AASTORECONST:
-				goto _default;
+				{
+					deoptimize(bbindex);
+					break;
+				}
 			case ICMD_IASTORECONST:
 			case ICMD_LASTORECONST:
 				{
@@ -1842,7 +1942,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 				}
 				break;
 			case ICMD_LMULPOW2:
-				goto _default;
+				{
+					deoptimize(bbindex);
+					break;
+				}
 			case ICMD_LDIVPOW2:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
@@ -1898,9 +2001,15 @@ bool SSAConstructionPass::run(JITData &JD) {
 
 			case ICMD_GETFIELD:        /* 1 -> 1 */
 			case ICMD_PUTFIELD:        /* 2 -> 0 */
-				goto _default;
+				{
+					deoptimize(bbindex);
+					break;
+				}
 			case ICMD_PUTSTATIC:       /* 1 -> 0 */
 				{
+					deoptimize(bbindex);
+					break;
+#if 0
 					constant_FMIref *fmiref;
 					INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
@@ -1910,6 +2019,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						BB[bbindex],state_change);
 					write_variable(global_state,bbindex,putstatic);
 					M->add_Instruction(putstatic);
+#endif
 				}
 				break;
 			case ICMD_GETSTATIC:       /* 0 -> 1 */
@@ -1942,7 +2052,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		}
 		//		break;
 
-				goto _default;
+				{
+					deoptimize(bbindex);
+					break;
+				}
 			case ICMD_IINC:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
@@ -2077,7 +2190,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		break;
 
 			case ICMD_RET:
-				goto _default;
+				{
+					deoptimize(bbindex);
+					break;
+				}
 		//		SHOW_S1_LOCAL(OS, iptr);
 		//		if (stage >= SHOW_STACK) {
 		//			printf(" ---> L%03d", iptr->dst.block->nr);
@@ -2231,7 +2347,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 
 			case ICMD_INVOKEVIRTUAL:
 			case ICMD_INVOKESPECIAL:
-				goto _default;
+				{
+					deoptimize(bbindex);
+					break;
+				}
 			case ICMD_INVOKESTATIC:
 				{
 					//methoddesc *md;
@@ -2313,7 +2432,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		}
 		//		break;
 
-				goto _default;
+				{
+					deoptimize(bbindex);
+					break;
+				}
 			case ICMD_IFLT:
 			case ICMD_IFGT:
 			case ICMD_IFGE:
@@ -2432,8 +2554,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		SHOW_S1(OS, iptr);
 		//		SHOW_TARGET(OS, iptr->dst);
 		//		break;
-
-				goto _default;
+				{
+					deoptimize(bbindex);
+					break;
+				}
 			case ICMD_IF_ICMPEQ:
 			case ICMD_IF_ICMPNE:
 			case ICMD_IF_ICMPLT:
@@ -2534,8 +2658,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		SHOW_S2(OS, iptr);
 		//		SHOW_TARGET(OS, iptr->dst);
 		//		break;
-				goto _default;
-
+				{
+					deoptimize(bbindex);
+					break;
+				}
 			case ICMD_TABLESWITCH:
 				{
 					s4 tablehigh = iptr->sx.s23.s3.tablehigh;
@@ -2632,8 +2758,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 		#endif
 		//		}
 		//		break;
-
-				goto _default;
+				{
+					deoptimize(bbindex);
+					break;
+				}
 			case ICMD_COPY:
 			case ICMD_MOVE:
 				{
@@ -2647,6 +2775,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_GETEXCEPTION:
 		//		SHOW_DST(OS, iptr);
 		//		break;
+				{
+					deoptimize(bbindex);
+					break;
+				}
 		#if defined(ENABLE_SSA)	
 			case ICMD_PHI:
 		//		printf("[ ");
@@ -2659,6 +2791,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		if (iptr->flags.bits & (1 << 1)) OS << "redundantAll ";
 		//		if (iptr->flags.bits & (1 << 2)) OS << "redundantOne ";
 		//		break;
+				{
+					deoptimize(bbindex);
+					break;
+				}
 		#endif
 			default:
 				goto _default;
@@ -2686,11 +2822,21 @@ bool SSAConstructionPass::run(JITData &JD) {
 		}
 
 		if (!BB[bbindex]->get_EndInst()) {
-			// No end instruction yet. Adding GOTO
-			assert(bbindex+1 < BB.size());
-			BeginInst *targetBlock = BB[bbindex+1];
-			Instruction *result = new GOTOInst(BB[bbindex], targetBlock);
-			M->add_Instruction(result);
+			if (!skipped_blocks[bbindex]) {
+				// No end instruction yet. Adding GOTO
+				assert(bbindex+1 < BB.size());
+				BeginInst *targetBlock = BB[bbindex+1];
+				Instruction *result = new GOTOInst(BB[bbindex], targetBlock);
+				M->add_Instruction(result);
+			} else {
+				// Add a dummy RETURNInst, just to make sure that the current
+				// BeginInst has a corresponding EndInst.
+				// TODO Maybe we should introduce an artificial EndInst.
+				//      For example, we could introduce an "artificial" UnreachableInst
+				//      similar to that one of LLVM's IR.
+				Instruction *result = new RETURNInst(BB[bbindex]);
+				M->add_Instruction(result);
+			}
 		}
 
 		// block filled!

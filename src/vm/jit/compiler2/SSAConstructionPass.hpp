@@ -62,8 +62,9 @@ private:
 	alloc::vector<alloc::list<InVarPhis*>::type >::type incomplete_in_phi;
 
 	alloc::vector<bool>::type sealed_blocks;
-	//
 	alloc::vector<bool>::type filled_blocks;
+	alloc::vector<bool>::type visited_blocks;
+	alloc::vector<bool>::type skipped_blocks;
 	alloc::vector<Type::TypeID>::type var_type_tbl;
 	void write_variable(size_t varindex, size_t bb, Value *V);
 	Value* read_variable_recursive(size_t varindex, size_t bb);
@@ -73,6 +74,7 @@ private:
 	bool try_seal_block(basicblock *bb);
 	void print_current_def() const;
 #if defined(ENABLE_REPLACEMENT)
+	void deoptimize(int block_index);
 	void install_javalocal_dependencies(SourceStateInst *source_state,
 			s4 *javalocals, basicblock *bb);
 	void install_stackvar_dependencies(SourceStateInst *source_state,
