@@ -59,25 +59,23 @@ BeginInst *AssumptionAnchoringPass::find_nearest_branch_begin(BeginInst *begin) 
 /**
  * Makes sure that @p deopt is anchored to a proper BeginInst.
  */
-void AssumptionAnchoringPass::anchor(AssumptionInst *deopt) {
-	Instruction *guarded_inst = deopt->get_guarded_inst();
+void AssumptionAnchoringPass::anchor(AssumptionInst *assumption) {
 	BeginInst *anchor;
 
-	if (guarded_inst->is_floating()) {
+	if (/* Some guarded instruction is floating */ true) {
 		// Anchor the AssumptionInst to the first BeginInst of the method.
 		anchor = method->get_init_bb();
 	} else {
 		// Make sure that the AssumptionInst does not leave the branch of the
-		// instruction that it guards. Therefore the AssumptionInst has to be
+		// instructions that it guards. Therefore the AssumptionInst has to be
 		// anchored to the BeginInst that starts the current branch.
-		BeginInst *begin = guarded_inst->get_BeginInst();
-		assert(begin);
-		anchor = find_nearest_branch_begin(begin);
+
+		// TODO
 	}
 
 	assert(anchor);
-	deopt->append_dep(anchor);
-	LOG("anchored " << deopt << " to " << anchor << nl);
+	assumption->append_dep(anchor);
+	LOG("anchored " << assumption << " to " << anchor << nl);
 }
 
 bool AssumptionAnchoringPass::run(JITData &JD) {

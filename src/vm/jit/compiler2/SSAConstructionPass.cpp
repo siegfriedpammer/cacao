@@ -971,9 +971,12 @@ bool SSAConstructionPass::try_seal_block(basicblock *bb) {
 		return true;
 
 	LOG("try sealing basic block: " << bb->nr << nl);
-	for(int i = 0; i < bb->predecessorcount; ++i)
-		if (!filled_blocks[bb->predecessors[i]->nr])
+	for(int i = 0; i < bb->predecessorcount; ++i) {
+		int pred_bbindex = bb->predecessors[i]->nr;
+		if (!filled_blocks[pred_bbindex] && !skipped_blocks[pred_bbindex]) {
 			return false;
+		}
+	}
 
 	// seal it!
 	seal_block(bb->nr);
@@ -1081,12 +1084,12 @@ SourceStateInst *SSAConstructionPass::record_source_state(
 }
 #endif
 
-void SSAConstructionPass::deoptimize(int block_nr) {
-	assert(BB[block_nr]);
+void SSAConstructionPass::deoptimize(int bbindex) {
+	assert(BB[bbindex]);
 	LOG("Instruction not supported, deoptimize instead" << nl);
-	DeoptimizeInst *deopt = new DeoptimizeInst(BB[block_nr]);
+	DeoptimizeInst *deopt = new DeoptimizeInst(BB[bbindex]);
 	M->add_Instruction(deopt);
-	skipped_blocks[block_nr] = true;
+	skipped_blocks[bbindex] = true;
 }
 
 bool SSAConstructionPass::skipped_all_predecessors(basicblock *bb) {

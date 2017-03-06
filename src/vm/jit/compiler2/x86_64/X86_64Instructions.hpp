@@ -718,11 +718,19 @@ public:
 	}
 };
 
+/// A TrapInst represents a hardware trap.
 class TrapInst : public X86_64Instruction {
 private:
+
+	/// A trap number as defined in x86_64/md-trap.hpp
 	s4 trap;
 
 public:
+
+	/// Construct a TrapInst.
+	///
+	/// @param trap  A trap number as defined in x86_64/md-trap.hpp.
+	/// @param SrcOp TODO
 	TrapInst(s4 trap, const SrcOp &index)
 			: X86_64Instruction("X86_64TrapInst", &NoOperand, 1), trap(trap) {
 		operands[0].op = index.op;

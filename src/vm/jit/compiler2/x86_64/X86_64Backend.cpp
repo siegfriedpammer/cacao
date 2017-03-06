@@ -1424,7 +1424,7 @@ void X86_64LoweringVisitor::visit(AssumptionInst *I, bool copyOperands) {
 	SourceStateInst *source_state = I->get_source_state();
 	assert(source_state);
 	MachineDeoptInst *MI = new MachineDeoptInst(
-			source_state->get_source_id(), source_state->op_size());
+			source_state->get_source_location(), source_state->op_size());
 	lower_source_state_dependencies(MI, source_state);
 	get_current()->push_back(MI);
 
@@ -1451,7 +1451,7 @@ void X86_64LoweringVisitor::visit(DeoptimizeInst *I, bool copyOperands) {
 	SourceStateInst *source_state = I->get_source_state();
 	assert(source_state);
 	MachineDeoptInst *MI = new MachineDeoptInst(
-			source_state->get_source_id(), source_state->op_size());
+			source_state->get_source_location(), source_state->op_size());
 	lower_source_state_dependencies(MI, source_state);
 	get_current()->push_back(MI);
 

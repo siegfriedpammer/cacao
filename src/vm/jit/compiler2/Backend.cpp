@@ -128,7 +128,7 @@ void LoweringVisitorBase::visit(ReplacementEntryInst* I, bool copyOperands) {
 	SourceStateInst *source_state = I->get_source_state();
 	assert(source_state);
 	MachineReplacementEntryInst *MI = new MachineReplacementEntryInst(
-			source_state->get_source_id(), source_state->op_size(), false);
+			source_state->get_source_location(), source_state->op_size(), false);
 	lower_source_state_dependencies(MI, source_state);
 	get_current()->push_back(MI);
 }

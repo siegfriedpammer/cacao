@@ -984,49 +984,79 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-/**
- * Represents a point in the program, where it is possible to recover the source
- * state to perform on-stack replacement.
- */
+/// Provides a mapping from HIR values to baseline IR variables.
+///
+/// In order to reconstruct the source state during on-stack replacement, it
+/// is necessary to be able to reconstruct the machine-independent source state
+/// from the current machine-dependent execution state. Due to the generality of
+/// the baseline compiler's IR the on-stack replacement mechanism represents the
+/// source state in terms of the baseline IR variables. Hence, it is necessary
+/// to be able to map compiler2-specific HIR values to baseline IR variables. A
+/// SourceStateInst provides such mapping information for a single program
+/// location which is identified by the (machine-independent) ID of the
+/// corresponding baseline IR instruction.
 class SourceStateInst : public Instruction {
 public:
+
+	/// Maps a HIR value to a baseline IR javalocal index.
 	struct Javalocal {
+
+		/// The value that is mapped to a baseline IR javalocal index.
 		Value *value;
+
+		/// A baseline IR javalocal index.
 		std::size_t index;
 
-		explicit Javalocal(Value *v, std::size_t index) : value(v), index(index) {}
+		/// Construct a Javalocal that maps @p value to @p index
+		///
+		/// @param value The Value that is mapped to @p index.
+		/// @param index The javalocal index that corresponds to @p value.
+		explicit Javalocal(Value *value, std::size_t index) : value(value), index(index) {}
 	};
+
 private:
+
 	typedef alloc::vector<Javalocal>::type JavalocalListTy;
 	typedef alloc::vector<Value*>::type StackvarListTy;
 	typedef alloc::vector<Value*>::type ParamListTy;
 
-	s4 source_id;
+	/// The program location corresponding to the provided mapping information.
+	///
+	/// The mappings of HIR values to baseline IR variables, which are given by
+	/// this SourceStateInst, are bound to this exact program location. This
+	/// location is given in terms of an ID of the corresponding baseline IR
+	/// instruction.
+	s4 source_location;
+
+	/// The state of the enclosing method in case we are in an inlined region.
 	SourceStateInst *parent;
 
+	/// List of mappings from HIR values to baseline IR javalocal indices.
 	JavalocalListTy javalocals;
+
+	/// List of HIR values that correspond to baseline IR stack variables.
 	StackvarListTy stackvars;
+
+	/// List of HIR values that correspond to method parameters.
 	ParamListTy params;
+
 public:
+
 	typedef JavalocalListTy::const_iterator const_javalocal_iterator;
 	typedef StackvarListTy::const_iterator const_stackvar_iterator;
 	typedef ParamListTy::const_iterator const_param_iterator;
 
-	/**
-	 * @param source_id The id of the baseline IR instruction after which the
-	 *                  source state is recorded.
-	 * @param I         The Instruction that corresponds to the given source_id.
-	 */
-	explicit SourceStateInst(s4 source_id, Instruction *I) :
+	/// Construct a SourceStateInst.
+	///
+	/// @param source_location The ID of the baseline IR instruction at the
+	///                        mapped program location.
+	/// @param hir_location    The HIR instruction that corresponds to the
+	///                        given @p source_location.
+	explicit SourceStateInst(s4 source_location, Instruction *hir_location) :
 			Instruction(SourceStateInstID, Type::VoidTypeID),
-			source_id(source_id) {
-		assert(!I->is_floating());
-		append_dep(I);
-	}
-	virtual SourceStateInst* to_SourceStateInst() { return this; }
-
-	Instruction *get_anchor() const {
-		return *dep_begin();
+			source_location(source_location) {
+		assert(!hir_location->is_floating());
+		append_dep(hir_location);
 	}
 
 	virtual BeginInst* get_BeginInst() const {
@@ -1035,27 +1065,49 @@ public:
 		return begin;
 	}
 
-	virtual bool is_floating() const { return false; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+	/// Get the program location that corresponds to the given mappings.
+	s4 get_source_location() const { return source_location; }
 
-	s4 get_source_id() const { return source_id; }
+	/// The state of the enclosing method in case we are in an inlined region.
 	SourceStateInst *get_parent() const { return parent; };
-	void set_parent(SourceStateInst *ss) { parent = ss; }
 
-	void append_javalocal(Javalocal l) {
-		append_op(l.value);
-		javalocals.push_back(l);
+	/// Set state of the enclosing method in case we are in an inlined region.
+	///
+ 	/// @param new_parent The corresponding source state.
+	void set_parent(SourceStateInst *new_parent) { parent = new_parent; }
+
+	/// Append a new mapping from a HIR Value to a baseline IR javalocal index.
+	///
+	/// @param local The Javalocal to append.
+	void append_javalocal(Javalocal local) {
+		append_op(local.value);
+		javalocals.push_back(local);
 	}
 
-	void append_stackvar(Value *v) {
-		append_op(v);
-		stackvars.push_back(v);
+	/// Append a new value to corresponds to a baseline IR stack variable.
+	///
+	/// @param value The value to append.
+	void append_stackvar(Value *value) {
+		append_op(value);
+		stackvars.push_back(value);
 	}
 
-	void append_param(Value *v) {
-		append_op(v);
-		params.push_back(v);
+	/// Append a new value to corresponds to a method parameter.
+	///
+	/// @param value The value to append.
+	void append_param(Value *value) {
+		append_op(value);
+		params.push_back(value);
 	}
+
+	const_javalocal_iterator javalocal_begin() const { return javalocals.begin(); }
+	const_javalocal_iterator javalocal_end()   const { return javalocals.end(); }
+
+	const_stackvar_iterator stackvar_begin() const { return stackvars.begin(); }
+	const_stackvar_iterator stackvar_end()   const { return stackvars.end(); }
+
+	const_param_iterator param_begin() const { return params.begin(); }
+	const_param_iterator param_end()   const { return params.end(); }
 
 	virtual void replace_op(Value* v_old, Value* v_new) {
 		Instruction::replace_op(v_old, v_new);
@@ -1070,20 +1122,20 @@ public:
 		}
 	}
 
-	const_javalocal_iterator javalocal_begin() const { return javalocals.begin(); }
-	const_javalocal_iterator javalocal_end()   const { return javalocals.end(); }
-
-	const_stackvar_iterator stackvar_begin() const { return stackvars.begin(); }
-	const_stackvar_iterator stackvar_end()   const { return stackvars.end(); }
-
-	const_param_iterator param_begin() const { return params.begin(); }
-	const_param_iterator param_end()   const { return params.end(); }
-
+	virtual SourceStateInst* to_SourceStateInst() { return this; }
+	virtual bool is_floating() const { return false; }
+	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 	virtual bool verify() const { return true; }
 };
 
+/// A point where the method can be entered through on-stack replacement.
 class ReplacementEntryInst : public Instruction {
 public:
+
+	/// Construct a ReplacementEntryInst.
+	///
+	/// @param begin        The corresponding BeginInst.
+	/// @param source_state The corresponding source state.
 	explicit ReplacementEntryInst(BeginInst *begin, SourceStateInst *source_state)
 			: Instruction(ReplacementEntryInstID, Type::VoidTypeID) {
 		assert(begin);
@@ -1092,10 +1144,7 @@ public:
 		append_dep(source_state);
 	}
 
-	virtual ReplacementEntryInst* to_ReplacementEntryInst() { return this; }
-	virtual bool is_floating() const { return false; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-
+	/// Get the BeginInst that this ReplacementEntryInst is attached to.
 	virtual BeginInst* get_BeginInst() const {
 		assert(dep_size() >= 1);
 		BeginInst *begin = (*dep_begin())->to_BeginInst();
@@ -1103,74 +1152,112 @@ public:
 		return begin;
 	}
 
-	virtual SourceStateInst* get_source_state() const {
+	/// Get the source state at this ReplacementEntryInst.
+	///
+	/// The source state is used to reconstruct the stack frame for the
+	/// optimized code. Since optimized code is currently only entered at method
+	/// entry, the information that is captured by the source state is
+	/// sufficient for this task.
+	SourceStateInst* get_source_state() const {
 		assert(dep_size() >= 2);
 		SourceStateInst *source_state = (*(++dep_begin()))->to_SourceStateInst();
 		assert(source_state);
 		return source_state;
 	}
+
+	virtual ReplacementEntryInst* to_ReplacementEntryInst() { return this; }
+	virtual bool is_floating() const { return false; }
+	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/// Represents a speculative assumption that has to be checked at run-time.
+///
+/// Optimizations that rely on speculative assumptions may generate
+/// AssumptionInst in order to avoid the illegal execution of speculatively
+/// transformed program regions. Hence, all those instructions that rely
+/// on such a speculation need a scheduling dependency to the according
+/// AssumptionInst. In case a speculation fails at run-time, deoptimization to
+/// will be triggered to transfer execution back to an unoptimized version of
+/// this method.
 class AssumptionInst : public Instruction {
 private:
+
+	/// The source state that is used for deoptimization.
 	SourceStateInst *source_state;
 
 public:
-	explicit AssumptionInst(Instruction *guarded_inst, Value *condition)
+
+	/// Construct an AssumptionInst.
+	///
+	/// @param condition A boolean HIR expression that encodes the speculative
+	///                  assumption to check.
+	explicit AssumptionInst(Value *condition)
 			: Instruction(AssumptionInstID, Type::VoidTypeID), source_state(NULL) {
-		assert(guarded_inst);
-		assert(guarded_inst->has_side_effects() || guarded_inst->to_BeginInst());
 		assert(condition);
 		assert(condition->get_type() != Type::VoidTypeID);
-		guarded_inst->append_dep(this);
 		append_op(condition);
+	}
+
+	/// Set the source state that should be used for deoptimization.
+	///
+	/// Do not set the source state manually since this will be done
+	/// automatically by the SourceStateAttachmentPass.
+	///
+	/// @param new_source_state The source state.
+	void set_source_state(SourceStateInst *new_source_state) {
+		assert(new_source_state);
+		append_dep(new_source_state);
+		assert(source_state == NULL);
+		source_state = new_source_state;
+	}
+
+	/// Get the source state that is used for deoptimization.
+	virtual SourceStateInst *get_source_state() const {
+		return source_state;
 	}
 
 	virtual AssumptionInst* to_AssumptionInst() { return this; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-
-	Instruction *get_guarded_inst() const {
-		assert(rdep_size() >= 1);
-		Instruction *guarded_inst = *rdep_begin();
-		return guarded_inst;
-	}
-
-	void set_source_state(SourceStateInst *s) {
-		assert(s);
-		append_dep(s);
-		assert(source_state == NULL);
-		source_state = s;
-	}
-
-	virtual SourceStateInst *get_source_state() const {
-		return source_state;
-	}
 };
 
+/// Transfers execution back to an unoptimized version of the method.
 class DeoptimizeInst : public EndInst {
 private:
+
+	/// The source state that is used for deoptimization.
 	SourceStateInst *source_state;
 
 public:
+
+	/// Construct a DeoptimizeInst.
+	///
+	/// @param begin The corresponding BeginInst.
 	explicit DeoptimizeInst(BeginInst *begin)
 			: EndInst(DeoptimizeInstID, begin), source_state(NULL) {
 		set_type(Type::VoidTypeID);
 	}
 
-	virtual bool is_floating() const { return false; }
-	virtual DeoptimizeInst* to_DeoptimizeInst() { return this; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-
-	void set_source_state(SourceStateInst *s) {
-		assert(s);
-		append_dep(s);
+	/// Set the source state that should be used for deoptimization.
+	///
+	/// Do not set the source state manually since this will be done
+	/// automatically by the SourceStateAttachmentPass.
+	///
+	/// @param new_source_state The source state.
+	void set_source_state(SourceStateInst *new_source_state) {
+		assert(new_source_state);
+		append_dep(new_source_state);
 		assert(source_state == NULL);
-		source_state = s;
+		source_state = new_source_state;
 	}
 
+	/// Get the source state that is used for deoptimization.
 	virtual SourceStateInst *get_source_state() const {
 		return source_state;
 	}
+
+	virtual bool is_floating() const { return false; }
+	virtual DeoptimizeInst* to_DeoptimizeInst() { return this; }
+	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
 

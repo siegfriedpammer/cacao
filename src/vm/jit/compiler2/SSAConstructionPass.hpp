@@ -63,8 +63,19 @@ private:
 
 	alloc::vector<bool>::type sealed_blocks;
 	alloc::vector<bool>::type filled_blocks;
+
+	/// Used to remember which basicblocks have already been visited.
+	///
+	/// This vector is indexed by basicblock indices (i.e. by basicblock::nr).
 	alloc::vector<bool>::type visited_blocks;
+
+	/// Indicates whether IR construction should be skipped for a basicblock.
+	///
+	/// This vector is indexed by basicblock indices (i.e. by basicblock::nr).
+	///
+	/// @see SSAConstructionPass::deoptimize()
 	alloc::vector<bool>::type skipped_blocks;
+
 	alloc::vector<Type::TypeID>::type var_type_tbl;
 	void write_variable(size_t varindex, size_t bb, Value *V);
 	Value* read_variable_recursive(size_t varindex, size_t bb);
@@ -81,10 +92,20 @@ private:
 	/// @return True if all predecessors have been skipped, false otherwise.
 	bool skipped_all_predecessors(basicblock *bb);
 
+	/// Remove unreachable BeginInsts and their corresponding EndInsts.
 	void remove_unreachable_blocks();
 
 #if defined(ENABLE_REPLACEMENT)
-	void deoptimize(int block_index);
+	/// Helper function to terminate a block with a DeoptimizeInst.
+	///
+	/// Assigns a new DeoptimizeInst to the BeginInst that corresponds to the
+	/// given @p bbindex. Additionally the corresponding skipped_blocks flag
+	/// is set to true in order to signal that IR construction should be skipped
+	/// for the rest of this block.
+	///
+	/// @param bbindex The corresponding basicblock index.
+	void deoptimize(int bbindex);
+
 	void install_javalocal_dependencies(SourceStateInst *source_state,
 			s4 *javalocals, basicblock *bb);
 	void install_stackvar_dependencies(SourceStateInst *source_state,

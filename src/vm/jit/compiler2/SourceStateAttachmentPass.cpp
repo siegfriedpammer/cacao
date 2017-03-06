@@ -89,7 +89,8 @@ SourceStateInst *SourceStateAttachmentPass::find_nearest_dominating_source_state
 }
 
 SourceStateInst *SourceStateAttachmentPass::find_nearest_dominating_source_state(AssumptionInst *assumption) {
-	Instruction *guarded_inst = assumption->get_guarded_inst();;
+	assert(assumption->rdep_size() == 1);
+	Instruction *guarded_inst = *(assumption->rdep_begin());
 	assert(guarded_inst->has_side_effects() || guarded_inst->to_BeginInst());
 
 	// get the blocks that contain the AssumptionInst and its guarded instruction
