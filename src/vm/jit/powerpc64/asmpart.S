@@ -39,11 +39,6 @@
 	.globl asm_vm_call_method_exception_handler
 	.globl asm_vm_call_method_end
 
-	.globl asm_handle_nat_exception
-	.globl asm_handle_exception
-
-	.globl asm_abstractmethoderror
-
 	.globl asm_cacheflush
 
 
@@ -164,7 +159,7 @@ L_register_copy:
 L_stack_copy:
 	addi	t1,t1,20*8		/* before first possible stack slot arg */
 	mr	t3,t2			/* argument counter */
-	sldi	t2,t2,8			/* calculate size of stack */
+	sldi	t2,t2,3			/* calculate size of stack */
 	sub	sp,sp,t2		/* increase the stack */
 	mr	t2,sp			/* t2 points to bottom of stack now */
 
@@ -213,189 +208,6 @@ asm_vm_call_method_exception_handler:
 
 asm_vm_call_method_end:
 	nop
-
-
-/********************* function asm_handle_exception ***************************
-*                                                                              *
-*   This function handles an exception. It does not use the usual calling      *
-*   conventions. The exception pointer is passed in REG_ITMP1 and the          *
-*   pc from the exception raising position is passed in REG_ITMP2. It searches *
-*   the local exception table for a handler. If no one is found, it unwinds    *
-*   stacks and continues searching the callers.                                *
-*                                                                              *
-*   void asm_handle_exception (exceptionptr, exceptionpc);                     *
-*                                                                              *
-*******************************************************************************/
-		
-asm_handle_nat_exception:
-L_asm_handle_nat_exception:             /* required for PIC code              */
-L_asm_handle_exception_stack_loop:
-	mflr    r0
-	addi    sp,sp,-(LA_SIZE+PA_SIZE+((4+6)*8))  /* allocate stack (+4 for darwin)     */
-	std     xptr,LA_SIZE+PA_SIZE+(4+0)*8(sp)    /* save exception pointer             */
-	std     xpc,LA_SIZE+PA_SIZE+(4+1)*8(sp)     /* save exception pc                  */
-	std     r0,LA_SIZE+PA_SIZE+(4+3)*8(sp)      /* save return address                */
-	li      itmp3,0
-	std     itmp3,LA_SIZE+PA_SIZE+(4+4)*8(sp)   /* save maybe-leaf flag (cleared)     */
-
-	mr      a0,r0                       /* pass return address                */
-	bl      md_asm_codegen_get_pv_from_pc   /* get PV from RA                 */
-	std     v0,LA_SIZE+PA_SIZE+(4+2)*8(sp)      /* save data segment pointer          */
-
-	ld      a0,LA_SIZE+PA_SIZE+(4+0)*8(sp)      /* pass xptr                          */
-	ld      a1,LA_SIZE+PA_SIZE+(4+1)*8(sp)      /* pass xpc                           */
-	ld      a2,LA_SIZE+PA_SIZE+(4+2)*8(sp)      /* pass PV (v0 == a0)                 */
-	addi    a3,sp,LA_SIZE+PA_SIZE+((4+6)*8)     /* pass Java SP                       */
-
-	b       L_asm_handle_exception_continue
-
-
-asm_handle_exception:
-L_asm_handle_exception:                 /* required for PIC code              */
-	addi    sp,sp,-(ARG_CNT+TMP_CNT)*8  /* create maybe-leaf stackframe       */
-
-	SAVE_ARGUMENT_REGISTERS(0)          /* we save arg and temp registers in  */
-	SAVE_TEMPORARY_REGISTERS(ARG_CNT)   /* case this is a leaf method         */
-
-	addi    sp,sp,-(LA_SIZE+PA_SIZE+(4+6)*8)        /* allocate stack                     */
-	std     xptr,LA_SIZE+PA_SIZE+(4+0)*8(sp)        /* save exception pointer             */
-	std     pv,LA_SIZE+PA_SIZE+(4+2)*8(sp)          /* save data segment pointer          */
-	mflr    r0           		                /* save return address                */
-	std     r0,LA_SIZE+PA_SIZE+(4+3)*8(sp)		
-	li      t0, 1
-	std     t0, LA_SIZE+PA_SIZE+(4+4)*8(sp)         /* maybe-leaf flag */
-	
-	mr      a0,xptr                     /* pass exception pointer             */
-	mr      a1,xpc                      /* pass exception pc                  */
-	mr      a2,pv                       /* pass data segment pointer          */
-	addi    a3,sp,LA_SIZE+PA_SIZE+(ARG_CNT+TMP_CNT)*8+(4+6)*8
-
-
-L_asm_handle_exception_continue:
-	bl      exceptions_handle_exception
-
-	mr.     v0,v0
-	beq     L_asm_handle_exception_not_catched
-
-	mr      xpc,v0                              /* move handlerpc into xpc            */
-	ld      xptr,LA_SIZE+PA_SIZE+(4+0)*8(sp)    /* restore exception pointer          */
-	ld      pv,LA_SIZE+PA_SIZE+(4+2)*8(sp)      /* restore data segment pointer       */
-	ld      r0,LA_SIZE+PA_SIZE+(4+3)*8(sp)      /* restore return address             */
-	mtlr    r0
-	ld      t0,LA_SIZE+PA_SIZE+(4+4)*8(sp)      /* get maybe-leaf flag                */
-	addi    sp,sp,LA_SIZE+PA_SIZE+(4+6)*8       /* free stack frame                   */
-
-	mr.     t0,t0
-	beq     L_asm_handle_exception_no_leaf
-
-	RESTORE_ARGUMENT_REGISTERS(0)       /* if this is a leaf method, we have  */
-	RESTORE_TEMPORARY_REGISTERS(ARG_CNT)/* to restore arg and temp registers  */
-
-	addi    sp,sp,(ARG_CNT+TMP_CNT)*8   /* remove maybe-leaf stackframe       */
-
-L_asm_handle_exception_no_leaf:
-	mtctr   xpc                         /* jump to the handler                */
-	bctr
-
-L_asm_handle_exception_not_catched:
-	ld      xptr,LA_SIZE+PA_SIZE+(4+0)*8(sp)        /* restore exception pointer          */
-	ld      pv,LA_SIZE+PA_SIZE+(4+2)*8(sp)          /* restore data segment pointer       */
-	ld      r0,LA_SIZE+PA_SIZE+(4+3)*8(sp)          /* restore return address             */
-	mtlr    r0
-	ld      t0,LA_SIZE+PA_SIZE+(4+4)*8(sp)          /* get maybe-leaf flag                */
-	addi    sp,sp,LA_SIZE+PA_SIZE+(4+6)*8           /* free stack frame                   */
-
-	mr.     t0,t0
-	beq     L_asm_handle_exception_no_leaf_stack
-
-	addi    sp,sp,(ARG_CNT+TMP_CNT)*8   /* remove maybe-leaf stackframe       */
-	li      t0,0                        /* clear the maybe-leaf flag          */
-
-L_asm_handle_exception_no_leaf_stack:
-	lwz     t1,FrameSize(pv)            /* get frame size                     */
-	add     t1,sp,t1                    /* pointer to save area               */
-
-	lwz     t2,IsLeaf(pv)               /* is leaf procedure                  */
-	mr.     t2,t2
-	bne     L_asm_handle_exception_no_ra_restore
-
-	ld      r0,LA_LR_OFFSET(t1)         /* restore ra                         */
-	mtlr    r0
-
-L_asm_handle_exception_no_ra_restore:
-	mflr    xpc                         /* the new xpc is ra                  */
-	mr      t4,xpc                      /* save RA */
-	lwz     t2,IntSave(pv)              /* t1 = saved int register count      */
-	bl      ex_int1
-ex_int1:
-	mflr    t3                          /* t3 = current pc                    */
-	addi    t3,t3,(ex_int2-ex_int1)@l
-	slwi    t2,t2,2                     /* t2 = register count * 4            */
-	subf    t3,t2,t3                    /* t3 = IntSave - t2                  */
-	mtctr   t3
-	bctr
-
-	ld      s0,-9*8(t1)
-	ld      s1,-8*8(t1)
-	ld      s2,-7*8(t1)
-	ld      s3,-6*8(t1)
-	ld      s4,-5*8(t1)
-	ld      s5,-4*8(t1)
-	ld      s6,-3*8(t1)
-	ld      s7,-2*8(t1)
-	ld      s8,-1*8(t1)
-
-ex_int2:
-	subf    t1,t2,t1                    /* t1 = t1 - register count * 4       */
-	lwz     t2,FltSave(pv)
-	bl      ex_flt1
-ex_flt1:
-	mflr    t3
-	addi    t3,t3,(ex_flt2-ex_flt1)@l
-	slwi    t2,t2,2                     /* t2 = register count * 4            */
-	subf    t3,t2,t3                    /* t3 = FltSave - t2                  */
-	mtctr   t3
-	bctr
-
-	lfd     fs0,-10*8(t1)
-	lfd     fs1,-9*8(t1)
-	lfd     fs2,-8*8(t1)
-	lfd     fs3,-7*8(t1)
-	lfd     fs4,-6*8(t1)
-	lfd     fs5,-5*8(t1)
-	lfd     fs6,-4*8(t1)
-	lfd     fs7,-3*8(t1)
-	lfd     fs8,-2*8(t1)
-	lfd     fs9,-1*8(t1)
-
-ex_flt2:
-	mtlr    t4                                   /* restore RA */
-	lwz     t1,FrameSize(pv)                     
-	add     sp,sp,t1                             /* unwind stack */
-	b       L_asm_handle_exception_stack_loop
-
-
-/* asm_abstractmethoderror *****************************************************
-
-   Creates and throws an AbstractMethodError.
-
-*******************************************************************************/
-
-asm_abstractmethoderror:
-	mflr	r0
-	std     r0,LA_LR_OFFSET(sp)
-	stdu    sp,-LA_SIZE_ALIGNED(sp)     /* preserve linkage area              */
-	addi    a0,sp,LA_SIZE_ALIGNED       /* pass java sp                       */
-	mr      a1,r0                       /* pass exception address             */
-	bl      exceptions_asm_new_abstractmethoderror
-	ld      r0,LA_SIZE_ALIGNED+LA_LR_OFFSET(sp)
-	mtlr    r0                          /* restore return address             */
-	addi    sp,sp,LA_SIZE_ALIGNED
-
-	mr      xptr,v0                     /* get exception pointer              */
-	mr      xpc,r0                      /* we can't use r0 directly in addi   */
-	addi    xpc,xpc,-4                  /* exception address is ra - 4        */
-	b       L_asm_handle_nat_exception
 
 
 /* asm_cacheflush **************************************************************

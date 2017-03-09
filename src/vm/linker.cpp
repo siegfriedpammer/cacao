@@ -903,7 +903,7 @@ static classinfo *link_class_intern(classinfo *c)
 			v->table[i] = (methodptr) (ptrint) &intrp_asm_abstractmethoderror;
 		else
 # endif
-			v->table[i] = (methodptr) (ptrint) &asm_abstractmethoderror;
+			v->table[i] = (methodptr) (ptrint) AbstractMethodErrorStub::stubcode;
 #else
 		v->table[i] = (methodptr) (ptrint) &intrp_asm_abstractmethoderror;
 #endif
@@ -1353,7 +1353,7 @@ static bool linker_addinterface(classinfo *c, classinfo *ic)
 			else
 # endif
 				v->interfacetable[-i][j] =
-					(methodptr) (ptrint) &asm_abstractmethoderror;
+					(methodptr) (ptrint) AbstractMethodErrorStub::stubcode;
 #else
 			v->interfacetable[-i][j] =
 				(methodptr) (ptrint) &intrp_asm_abstractmethoderror;

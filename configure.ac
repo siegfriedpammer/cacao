@@ -81,6 +81,12 @@ arm | armv4* | armv5* | armv6* | armv7* )
 	esac
     ;;
 
+aarch64 | armv8* | arm64 )
+	ARCH_DIR="aarch64"
+	AM_CPPFLAGS="$AM_CPPFLAGS -D__AARCH64__"
+	JAVA_ARCH="aarch64"
+	;;
+
 hppa2.0 )
     ARCH_DIR="parisc"
     AM_CPPFLAGS="$AM_CPPFLAGS -D__PARISC__"
@@ -788,6 +794,8 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/alpha/Makefile]
 		[src/vm/jit/alpha/freebsd/Makefile]
 		[src/vm/jit/alpha/linux/Makefile]
+		[src/vm/jit/aarch64/Makefile]
+		[src/vm/jit/aarch64/linux/Makefile]
 		[src/vm/jit/arm/Makefile]
 		[src/vm/jit/arm/linux/Makefile]
 		[src/vm/jit/i386/Makefile]

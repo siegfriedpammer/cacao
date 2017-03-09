@@ -630,6 +630,11 @@ void emit_trap_compiler(codegendata *cd)
 	M_TRAP(REG_METHODPTR, TRAP_COMPILER);
 }
 
+void emit_abstractmethoderror_trap(codegendata *cd)
+{
+	M_TRAP(REG_METHODPTR, TRAP_AbstractMethodError);
+}
+
 
 /* emit_trap *******************************************************************
 
@@ -1006,6 +1011,8 @@ void emit_verbosecall_exit(jitdata *jd)
 		M_DST(REG_FRESULT, REG_SP, 0 * 8);
 		break;
 #endif
+	case TYPE_VOID:
+		break;
 	default:
 		assert(false);
 		break;
@@ -1038,6 +1045,8 @@ void emit_verbosecall_exit(jitdata *jd)
 		M_DLD(REG_FRESULT, REG_SP, 0 * 8);
 		break;
 #endif
+	case TYPE_VOID:
+		break;
 	default:
 		assert(false);
 		break;

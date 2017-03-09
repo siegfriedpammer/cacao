@@ -314,6 +314,11 @@ classinfo *class_define(Utf8String name, classloader_t *cl, int32_t length, uint
 
 	c = classcache_store(cl, c, true);
 
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7)
+	java_lang_Class jlc(LLNI_classinfo_wrap(c));
+	jlc.set_classLoader(cl);
+#endif
+
 	return c;
 }
 
@@ -1311,7 +1316,7 @@ fieldinfo *class_findfield(classinfo *c, Utf8String name, Utf8String desc)
 
 *******************************************************************************/
 
-fieldinfo *class_findfield_by_name(classinfo* c, Utf8String name)
+fieldinfo *class_findfield_by_name(classinfo* c, Utf8String name, bool throwexception)
 {
 	for (int32_t i = 0; i < c->fieldscount; i++) {
 		fieldinfo* f = &(c->fields[i]);
@@ -1321,7 +1326,8 @@ fieldinfo *class_findfield_by_name(classinfo* c, Utf8String name)
 	}
 
 	// Field not found.
-	exceptions_throw_nosuchfielderror(c, name);
+	if (throwexception)
+		exceptions_throw_nosuchfielderror(c, name);
 	return NULL;
 }
 

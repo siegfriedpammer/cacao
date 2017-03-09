@@ -672,7 +672,7 @@ void thread_print_info(threadobject *t)
 
 	ptrint tid = threads_get_tid(t);
 
-	printf(" t=0x%"PRIxPTR" tid=0x%"PRIxPTR" (%"PRIdPTR")", (uintptr_t) t, tid, tid);
+	printf(" t=0x%" PRIxPTR" tid=0x%" PRIxPTR" (%" PRIdPTR")", (uintptr_t) t, tid, tid);
 	printf(" index=%d", t->index);
 
 	/* Print thread state. */

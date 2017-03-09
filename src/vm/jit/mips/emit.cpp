@@ -635,6 +635,12 @@ void emit_trap_compiler(codegendata *cd)
 }
 
 
+void emit_abstractmethoderror_trap(codegendata *cd)
+{
+	M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_AbstractMethodError);
+}
+
+
 /* emit_trap *******************************************************************
 
    Emit a trap instruction and return the original machine code.
@@ -790,6 +796,8 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
 	case TYPE_FLT:
 	case TYPE_DBL:
 		M_DLD(REG_FRESULT, REG_SP, syncslot_offset);
+		break;
+	case TYPE_VOID:
 		break;
 	default:
 		break;
@@ -1020,7 +1028,7 @@ void emit_verbosecall_exit(jitdata *jd)
 		break;
 	default:
 		assert(false);
-		break;	
+		break;
 	}
 
 	/* keep stack 16-byte aligned */

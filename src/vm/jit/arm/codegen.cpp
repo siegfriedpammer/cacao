@@ -31,6 +31,7 @@
 #include "vm/types.hpp"
 
 #include "md-abi.hpp"
+#include "md-trap.hpp"
 
 #include "vm/jit/arm/arch.hpp"
 #include "vm/jit/arm/codegen.hpp"
@@ -1391,12 +1392,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 		case ICMD_ATHROW:       /* ..., objectref ==> ... (, objectref)       */
 
-			disp = dseg_add_functionptr(cd, asm_handle_exception);
-			M_DSEG_LOAD(REG_ITMP3, disp);
-			M_MOV(REG_ITMP2_XPC, REG_PC);
-			M_MOV(REG_PC, REG_ITMP3);
-			M_NOP;              /* nop ensures that XPC is less than the end  */
-			                    /* of basic block                             */
+			M_TRAP(0, TRAP_THROW);
 			break;
 
 		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
@@ -2689,11 +2685,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	/* handle exception here */
 
-	M_SUB_IMM(REG_ITMP2_XPC, REG_LR, 4);/* move fault address into xpc        */
-
-	disp = dseg_add_functionptr(cd, asm_handle_nat_exception);
-	M_DSEG_LOAD(REG_ITMP3, disp);       /* load asm exception handler address */
-	M_MOV(REG_PC, REG_ITMP3);           /* jump to asm exception handler      */
+	M_TRAP(0, TRAP_NAT_EXCEPTION);
 }
 
 

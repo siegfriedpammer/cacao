@@ -48,8 +48,6 @@ java_handle_t *exceptions_get_and_clear_exception(void);
 java_handle_t *exceptions_new_abstractmethoderror(void);
 java_handle_t *exceptions_new_arraystoreexception(void);
 
-extern "C" java_object_t *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra);
-
 void exceptions_throw_abstractmethoderror(void);
 void exceptions_throw_classcircularityerror(classinfo *c);
 void exceptions_throw_classformaterror(classinfo *c, const char *message, ...);

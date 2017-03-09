@@ -35,6 +35,7 @@ DIST_SUBDIRS = \
 	verify \
 	\
 	intrp \
+	aarch64 \
 	alpha \
 	arm \
 	i386 \

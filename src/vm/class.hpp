@@ -230,7 +230,7 @@ constant_classref *class_get_classref_component_of(constant_classref *ref);
 fieldinfo *class_findfield(classinfo *c, Utf8String name, Utf8String desc);
 
 /* search 'classinfo'-structure for a field with the specified name */
-fieldinfo *class_findfield_by_name(classinfo *c, Utf8String name);
+fieldinfo *class_findfield_by_name(classinfo *c, Utf8String name, bool throwexception);
 
 /* search class for a field */
 fieldinfo *class_resolvefield(classinfo *c, Utf8String name, Utf8String desc, classinfo *referer);

@@ -48,16 +48,13 @@ enum {
 	TRAP_ArithmeticException            = 1,
 	TRAP_ArrayIndexOutOfBoundsException = 2,
 	TRAP_ArrayStoreException            = 3,
-
-	/* Don't use 4 (could be a normal load offset). */
-
-	TRAP_ClassCastException             = 5,
-	TRAP_CHECK_EXCEPTION                = 6,
-	TRAP_COMPILER                       = 7,
-
-	/* Don't use 8 (could be a normal load offset). */
-
-	TRAP_COUNTDOWN                      = 9,
+	TRAP_ClassCastException             = 4,
+	TRAP_CHECK_EXCEPTION                = 5,
+	TRAP_COMPILER                       = 6,
+	TRAP_COUNTDOWN                      = 7,
+	TRAP_AbstractMethodError            = 8,
+	TRAP_THROW                          = 9,
+	TRAP_NAT_EXCEPTION                  = 10,
 	TRAP_END,
 
 	// This is handled via SIGILL.

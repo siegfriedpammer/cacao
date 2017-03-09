@@ -85,11 +85,6 @@ void asm_handle_exception(void);
 void asm_handle_nat_exception(void);
 #endif
 
-/* stub for throwing AbstractMethodError's */
-#if defined(ENABLE_JIT)
-void asm_abstractmethoderror(void);
-#endif
-
 #if defined(ENABLE_INTRP)
 void intrp_asm_abstractmethoderror(void);
 #endif
@@ -99,8 +94,6 @@ void asm_patcher_wrapper(void);
 
 /* cache flush function */
 void asm_cacheflush(void* addr, int nbytes);
-
-void *md_asm_codegen_get_pv_from_pc(void *ra);
 
 #if defined(ENABLE_ESCAPE_CHECK)
 void asm_escape_check(java_object_t *obj);

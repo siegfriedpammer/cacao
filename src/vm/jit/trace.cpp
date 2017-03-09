@@ -126,9 +126,10 @@ static void trace_java_call_print_argument(Buffer<>& logtext, methodinfo *m, typ
 				       .write("\")");
 			}
 		}
-		default:
-			assert(false);
-			break;
+		break;
+	default:
+		assert(false);
+		break;
 	}
 }
 

@@ -44,7 +44,7 @@
 
 /* Defines. *******************************************************************/
 
-#define LIBJVM_NAME    NATIVE_LIBRARY_PREFIX"jvm"NATIVE_LIBRARY_SUFFIX
+#define LIBJVM_NAME    NATIVE_LIBRARY_PREFIX"jvm" NATIVE_LIBRARY_SUFFIX
 
 
 /* forward declarations *******************************************************/
@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 	/* get the path of the current executable */
 
 	path = os::dirname(path);
-	len  = os::strlen(path) + os::strlen("/../lib/"LIBJVM_NAME) + os::strlen("0");
+	len  = os::strlen(path) + os::strlen("/../lib/" LIBJVM_NAME) + os::strlen("0");
 
 	if (len > 4096) {
 		fprintf(stderr, "main: libjvm name to long for buffer\n");
@@ -107,9 +107,9 @@ int main(int argc, char **argv)
 
 	/* concatenate the library name */
 
-	strcat(path, "/../lib/"LIBJVM_NAME);
+	strcat(path, "/../lib/" LIBJVM_NAME);
 # else
-	path = (char*) CACAO_LIBDIR"/"LIBJVM_NAME;
+	path = (char*) CACAO_LIBDIR"/" LIBJVM_NAME;
 # endif
 
 	/* First try to open where dlopen searches, e.g. LD_LIBRARY_PATH.

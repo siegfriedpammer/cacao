@@ -118,6 +118,7 @@ namespace {
  */
 
 struct find_patcher : public std::binary_function<PatcherPtrTy, void*, bool> {
+
 	bool operator() (const PatcherPtrTy& pr,
 			const void* pc) const {
 		return (pr->get_mpc() == (uintptr_t) pc);

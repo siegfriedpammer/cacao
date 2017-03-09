@@ -32,9 +32,9 @@ dnl @license AllPermissive
 AC_DEFUN([AC_PROG_JAR],[
 AC_REQUIRE([AC_EXEEXT])dnl
 if test "x$JAVAPREFIX" = x; then
-        test "x$JAR" = x && AC_CHECK_PROGS(JAR, fastjar$EXEEXT zip$EXEEXT jar$EXEEXT)
+        test "x$JAR" = x && AC_CHECK_PROGS(JAR, fastjar$EXEEXT jar$EXEEXT zip$EXEEXT)
 else
-        test "x$JAR" = x && AC_CHECK_PROGS(JAR, fastjar zip jar, $JAVAPREFIX)
+        test "x$JAR" = x && AC_CHECK_PROGS(JAR, fastjar jar zip, $JAVAPREFIX)
 fi
 test "x$JAR" = x && AC_MSG_ERROR([no acceptable jar program found in \$PATH])
 AC_PROVIDE([$0])dnl

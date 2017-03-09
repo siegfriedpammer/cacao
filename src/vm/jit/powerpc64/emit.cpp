@@ -513,6 +513,8 @@ void emit_verbosecall_exit(jitdata *jd)
 	case TYPE_DBL:
 		M_DST(REG_FRESULT, REG_SP, LA_SIZE+PA_SIZE+0*8);
 		break;
+	case TYPE_VOID:
+		break;
 	default:
 		assert(false);
 		break;
@@ -540,6 +542,8 @@ void emit_verbosecall_exit(jitdata *jd)
 	case TYPE_FLT:
 	case TYPE_DBL:
 		M_DLD(REG_FRESULT, REG_SP, LA_SIZE+PA_SIZE+0*8);
+		break;
+	case TYPE_VOID:
 		break;
 	default:
 		assert(false);
@@ -804,6 +808,11 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 void emit_trap_compiler(codegendata *cd)
 {
 	M_LWZ(REG_METHODPTR, REG_ZERO, TRAP_COMPILER);
+}
+
+void emit_abstractmethoderror_trap(codegendata *cd)
+{
+	M_LWZ(REG_METHODPTR, REG_ZERO, TRAP_AbstractMethodError);
 }
 
 

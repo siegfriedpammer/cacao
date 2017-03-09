@@ -24,6 +24,7 @@
 
 #include "toolbox/logging.hpp"
 #include "vm/jit/ir/icmd.hpp"
+#include "vm/jit/ir/instruction.hpp"
 
 #include "duplicate.hpp"
 #include "Value.hpp"

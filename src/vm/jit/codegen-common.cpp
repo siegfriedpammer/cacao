@@ -86,6 +86,7 @@
 #include "vm/jit/replace.hpp"
 #include "vm/jit/show.hpp"
 #include "vm/jit/stacktrace.hpp"
+#include "vm/jit/stubs.hpp"
 #include "vm/jit/trace.hpp"
 
 #include "vm/jit/optimizing/profile.hpp"
@@ -124,6 +125,7 @@ using namespace cacao;
 
 void codegen_init(void)
 {
+	AbstractMethodErrorStub::generate();
 }
 
 
@@ -704,7 +706,18 @@ namespace {
  *
  * @note should be moved to a backend code unit.
  */
-#if defined(__ALPHA__)
+#if defined(__AARCH64__)
+struct FrameInfo {
+	u1 *sp;
+	int32_t framesize;
+	FrameInfo(u1 *sp, int32_t framesize) : sp(sp), framesize(framesize) {}
+	uint8_t  *get_datasp()    const { return  sp + framesize - SIZEOF_VOID_P; }
+	uint8_t  *get_javasp()    const { return  sp + framesize; }
+	uint64_t *get_arg_regs()  const { return (uint64_t *) sp; }
+	uint64_t *get_arg_stack() const { return (uint64_t *) get_javasp(); }
+	uint64_t *get_ret_regs()  const { return (uint64_t *) sp; }
+};
+#elif defined(__ALPHA__)
 struct FrameInfo {
 	u1 *sp;
 	int32_t framesize;
@@ -816,6 +829,8 @@ struct FrameInfo {
 #else
 // dummy
 struct FrameInfo {
+	u1 *sp;
+	int32_t framesize;
 	FrameInfo(u1 *sp, int32_t framesize) : sp(sp), framesize(framesize) {
 		/* XXX is was unable to do this port for SPARC64, sorry. (-michi) */
 		/* XXX maybe we need to pass the RA as argument there */
@@ -864,6 +879,9 @@ struct FrameInfo {
 
 java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 {
+	assert(sp);
+	assert(pv);
+
 	stackframeinfo_t *sfi;
 	localref_table   *lrt;
 	codeinfo         *code;
@@ -907,7 +925,7 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 #endif
 
 #if !defined(NDEBUG)
-# if defined(__ALPHA__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
+# if defined(__AARCH64__) || defined(__ALPHA__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
 	/* print the call-trace if necesarry */
 	/* BEFORE: filling the local reference table */
 
@@ -948,6 +966,9 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 
 java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 {
+	assert(sp);
+	assert(pv);
+
 	stackframeinfo_t *sfi;
 	java_handle_t    *e;
 	java_object_t    *o;
@@ -1007,7 +1028,7 @@ java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 #endif
 
 #if !defined(NDEBUG)
-# if defined(__ALPHA__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
+# if defined(__AARCH64__) || defined(__ALPHA__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
 	/* print the call-trace if necesarry */
 	/* AFTER: unwrapping the return value */
 
@@ -1127,7 +1148,7 @@ bool codegen_emit(jitdata *jd)
 	// Keep stack of non-leaf functions 16-byte aligned for calls into
 	// native code.
 	if (!code_is_leafmethod(code) || JITDATA_HAS_FLAG_VERBOSECALL(jd))
-#if STACKFRMAE_RA_BETWEEN_FRAMES
+#if STACKFRAME_RA_BETWEEN_FRAMES
 		ALIGN_ODD(cd->stackframesize);
 #else
 		ALIGN_EVEN(cd->stackframesize);
@@ -2467,14 +2488,6 @@ void codegen_emit_phi_moves(jitdata *jd, basicblock *bptr)
 	}
 }
 #endif /* defined(ENABLE_SSA) */
-
-
-/* REMOVEME When we have exception handling in C. */
-
-void *md_asm_codegen_get_pv_from_pc(void *ra)
-{
-	return md_codegen_get_pv_from_pc(ra);
-}
 
 
 /*

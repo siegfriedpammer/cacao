@@ -58,6 +58,12 @@ enum {
 	/* Don't use 8 (could be a normal load offset). */
 
 	TRAP_COUNTDOWN                      = 9,
+	TRAP_AbstractMethodError            = 10,
+	TRAP_THROW                          = 11,
+
+	/* Don't use 12 (could be a normal load offset). */
+
+	TRAP_NAT_EXCEPTION                  = 13,
 	TRAP_END,
 
 	// This handled via SIGILL.

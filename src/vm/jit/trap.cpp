@@ -110,7 +110,7 @@ void trap_handle(int sig, void *xpc, void *context)
 		vm_abort("trap_handle: The program counter is NULL!");
 #endif
 
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
+#if defined(__AARCH64__) || defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
 # if !defined(NDEBUG)
 	/* Perform a sanity check on our execution state functions. */
 
@@ -204,6 +204,17 @@ void trap_handle(int sig, void *xpc, void *context)
 
 		break;
 
+	case TRAP_AbstractMethodError:
+	case TRAP_NAT_EXCEPTION:
+#if !STACKFRAME_LEAFMETHODS_RA_REGISTER
+		ra = *(u1**) sp - 1;
+		sp = (u1*) sp + SIZEOF_VOID_P;
+		es.sp += SIZEOF_VOID_P;
+#endif
+		xpc = ra;
+		pv = 0;
+		break;
+
 	default:
 		/* do nothing */
 		break;
@@ -217,7 +228,8 @@ void trap_handle(int sig, void *xpc, void *context)
 
 	/* Fill and add a stackframeinfo. */
 
-	stacktrace_stackframeinfo_add(&sfi, pv, sp, ra, xpc);
+	if (type != TRAP_NAT_EXCEPTION)
+		stacktrace_stackframeinfo_add(&sfi, pv, sp, ra, xpc);
 
 	/* Get resulting exception (or pointer to compiled method). */
 
@@ -283,6 +295,15 @@ void trap_handle(int sig, void *xpc, void *context)
 		break;
 #endif
 
+	case TRAP_AbstractMethodError:
+		p = exceptions_new_abstractmethoderror();
+		break;
+
+	case TRAP_THROW:
+	case TRAP_NAT_EXCEPTION:
+		p = (java_handle_t*) (void*) es.intregs[REG_ITMP1_XPTR];
+		break;
+
 	default:
 		/* Let's try to get a backtrace. */
 
@@ -299,9 +320,10 @@ void trap_handle(int sig, void *xpc, void *context)
 
 	/* Remove stackframeinfo. */
 
-	stacktrace_stackframeinfo_remove(&sfi);
+	if (type != TRAP_NAT_EXCEPTION)
+		stacktrace_stackframeinfo_remove(&sfi);
 
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
+#if defined(__AARCH64__) || defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
 	/* Update execution state and set registers. */
 	/* AFTER: removing stackframeinfo */
 
@@ -392,10 +414,13 @@ void trap_handle(int sig, void *xpc, void *context)
 	trap_handle_exception:
 	default:
 		if (p != NULL) {
-#if defined(__ALPHA__) || defined(__I386__) || defined(__X86_64__)
+#if defined(__AARCH64__) || defined(__ALPHA__) || defined(__MIPS__) || defined(__ARM__) || defined(__I386__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__)
 			// Perform stack unwinding for exceptions on execution state.
 			es.pc = (uint8_t *) (uintptr_t) xpc;
-			es.pv = (uint8_t *) (uintptr_t) sfi.pv;
+			if (type == TRAP_NAT_EXCEPTION)
+				es.pv = (uint8_t*) md_codegen_get_pv_from_pc(xpc);
+			else
+				es.pv = (uint8_t *) (uintptr_t) sfi.pv;
 			executionstate_unwind_exception(&es, p);
 
 			// Pass the exception object to the exception handler.

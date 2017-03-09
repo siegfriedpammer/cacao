@@ -1674,6 +1674,7 @@ typecheck_result typeinfo_t::merge(methodinfo *m, const typeinfo_t *src) {
 	classref_or_classinfo common;
 	classref_or_classinfo elementclass;
 	int dimension;
+	ArrayType new_elementtype;
 	bool changed;
 	typecheck_result r;
 
@@ -1784,23 +1785,23 @@ return_simple:
          * interpret it as an array (same dim. as x) of Arraystubs. */
         if (x->dimension < src->dimension) {
             dimension = x->dimension;
-            elementtype = ARRAYTYPE_OBJECT;
+            new_elementtype = ARRAYTYPE_OBJECT;
             elementclass.cls = pseudo_class_Arraystub;
         }
         else {
             dimension    = src->dimension;
-            elementtype  = src->elementtype;
+            new_elementtype = src->elementtype;
             elementclass = src->elementclass;
         }
         
         /* {The arrays are of the same dimension.} */
         
-        if (x->elementtype != elementtype) {
+        if (x->elementtype != new_elementtype) {
             /* Different element types are merged, so the resulting array
              * type has one accessible dimension less. */
             if (--dimension == 0) {
                 common.cls       = pseudo_class_Arraystub;
-                elementtype      = ARRAYTYPE_INT;
+                new_elementtype = ARRAYTYPE_INT;
                 elementclass.any = NULL;
             }
             else {
@@ -1810,14 +1811,14 @@ return_simple:
 					return typecheck_FAIL;
 				}
 
-                elementtype      = ARRAYTYPE_OBJECT;
+                new_elementtype = ARRAYTYPE_OBJECT;
                 elementclass.cls = pseudo_class_Arraystub;
             }
         }
         else {
             /* {The arrays have the same dimension and elementtype.} */
 
-            if (elementtype == ARRAYTYPE_OBJECT) {
+            if (new_elementtype == ARRAYTYPE_OBJECT) {
                 /* The elements are references, so their respective
                  * types must be merged.
                  */
@@ -1862,7 +1863,7 @@ return_simple:
 		changed |= r;
 
         dimension        = 0;
-        elementtype      = ARRAYTYPE_INT;
+        new_elementtype = ARRAYTYPE_INT;
         elementclass.any = NULL;
     }
 
@@ -1876,8 +1877,8 @@ return_simple:
         this->dimension = dimension;
         changed = true;
     }
-    if (this->elementtype != elementtype) {
-        this->elementtype = elementtype;
+    if (elementtype != new_elementtype) {
+        elementtype = new_elementtype;
         changed = true;
     }
     if (this->elementclass.any != elementclass.any) {

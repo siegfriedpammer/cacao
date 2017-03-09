@@ -419,6 +419,18 @@ bool patcher_resolve_classref_to_vftbl(patchref_t *pr)
 	return true;
 }
 
+// Dummies, not used
+
+bool patcher_checkcast_interface(patchref_t *pr)
+{
+   return false;
+}
+
+bool patcher_instanceof_interface(patchref_t *pr)
+{
+   return false;
+}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
