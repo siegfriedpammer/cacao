@@ -38,6 +38,11 @@ SUBDIRS += \
 	jsr292
 endif
 
+if ENABLE_COMPILER2
+SUBDIRS += \
+       compiler2
+endif
+
 EXTRA_DIST = \
 	$(srcdir)/*.java
 

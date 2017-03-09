@@ -224,7 +224,9 @@ void method_print(methodinfo *m);
 void method_println(methodinfo *m);
 void method_methodref_print(constant_FMIref *mr);
 void method_methodref_println(constant_FMIref *mr);
+
 #endif
+bool method_matches(methodinfo *m, const char* name);
 
 
 namespace cacao {

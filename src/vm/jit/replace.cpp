@@ -2625,7 +2625,6 @@ static void replace_me(rplpoint *rp, executionstate_t *es)
 {
 	stackframeinfo_t    *sfi;
 	sourcestate_t       *ss;
-	sourceframe_t       *frame;
 	codeinfo            *origcode;
 	rplpoint            *origrp;
 #if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
@@ -2704,7 +2703,7 @@ static void replace_me(rplpoint *rp, executionstate_t *es)
 	/* avoid infinite loops by self-replacement, only if not in testing mode */
 
 	if (!opt_TestReplacement) {
-		frame = ss->frames;
+		sourceframe_t *frame = ss->frames;
 		while (frame->down)
 			frame = frame->down;
 

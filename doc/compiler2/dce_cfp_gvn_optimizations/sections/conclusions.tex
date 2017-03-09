@@ -1,0 +1,6 @@
+\section{Conclusions}
+\label{sec:conclusions}
+
+In this thesis we presented machine-independent optimizations for use within the new optimizing compiler of the CACAO VM. Dead code elimination, constant folding, constant propagation and global value numbering have been described and it has been shown how they can be applied to the SSA-based intermediate representation of the compiler. Due to the characteristics of this intermediate representation, constant propagation becomes an implicit effect of constant folding, hence both techniques can be combined in a single compiler pass. The program transformations in the course of constant folding, constant propagation as well as global value numbering inherently lead to dead code and thus have to be followed by a run of dead code elimination.
+
+Based on our examinations the optimizations have been implemented and added to the compiler. Thereby, the code size as well as the execution time of compiled programs could be decreased which mainly can be attributed to global value numbering. Though compilation time has slightly increased on average, in some cases the optimizations also achieve faster compilation, since less work has to be done within subsequent compiler passes.

@@ -1,0 +1,24 @@
+2013-12-15 Josef Eisl <zapster@zapster.cc>
+	* fixed class name typo: PassRegistery->PassRegistry
+	* vm/jit/compiler2/alloc/*: added custom allocator for standard library
+	containers as well as wrappers for the containers. Use
+	alloc::list<T>::type instead of std::list.
+	* vm/jit/compiler2/memory/*: added a custom new/delete handler mixin
+	class.
+	* PassManager: pass timing
+	* LSRA: added register hints
+	* SSAConstruction, x86_64 lowering: added Array support
+
+2013-11-06 Josef Eisl <zapster@zapster.cc>
+	* new LIR: see MachineBasicBlock, MachineInstructionSchedule,
+	MachineInstructionSchedulingPass
+	* added Visitors: see InstructionVisitor, LoweringVisitor
+	* LivetimeInterval: and LinearScan pass rewritten (LSRA can this is
+	not yet handle resolution correctly)
+	* PassManager: replaced add_Pass(ID) with add_Pass<PassClass>()
+	* new "Template Pass": XxxPass is superseded by ExamplePass
+	* added PassDependencyGraphPrinter: look for PassDependencyGraph.dot
+	in the run directory
+	* PassManager: does now schedule passes (see PassUsage for more info)
+	* unordered_{map,set}: switch to unordered_{map,set} (hashmap,
+	hashset) in some components

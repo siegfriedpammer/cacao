@@ -81,6 +81,12 @@
 # include "vm/jit/loop/loop.hpp"
 #endif
 
+#if defined(ENABLE_COMPILER2)
+#include "vm/jit/compiler2/Compiler.hpp"
+#include "vm/jit/compiler2/JITData.hpp"
+#include "vm/jit/compiler2/ObjectFileWriterPass.hpp"
+#endif
+
 /* debug macros ***************************************************************/
 
 #if !defined(NDEBUG)
@@ -180,6 +186,7 @@ void jit_init(void)
 #endif
 }
 
+#define DEBUG_NAME "jit"
 
 /* jit_close *******************************************************************
 
@@ -254,6 +261,7 @@ jitdata *jit_jitdata_new(methodinfo *m)
 	return jd;
 }
 
+STAT_REGISTER_VAR_EXTERN(std::size_t, compiler_last_codesize, 0, "last-code-size", "code size of the last compiled method")
 
 /* jit_compile *****************************************************************
 
@@ -355,9 +363,20 @@ u1 *jit_compile(methodinfo *m)
 	if (opt_verbosecall)
 		jd->flags |= JITDATA_FLAG_VERBOSECALL;
 
-#if defined(ENABLE_REPLACEMENT) && defined(ENABLE_INLINING)
+#if defined(ENABLE_REPLACEMENT) && defined(ENABLE_INLINING) && defined(ENABLE_INLINING_DEBUG) && !defined(NDEBUG)
 	if (opt_Inline && (jd->m->hitcountdown > 0) && (jd->code->optlevel == 0)) {
-		jd->flags |= JITDATA_FLAG_COUNTDOWN;
+		if (!opt_InlineMethod) {
+			jd->flags |= JITDATA_FLAG_COUNTDOWN;
+		} else {
+			if (!opt_InlineMethodUtf) {
+				opt_InlineMethodUtf = Utf8String::from_utf8(opt_InlineMethod);
+			}
+			LOG2("name: " << jd->m->name << " hash: " << jd->m->name.hash() << cacao::nl);
+			LOG2(/*"name: " << opt_InlineMethodUtf << " "*/"hash: " << opt_InlineMethodUtf.hash() << cacao::nl);
+			if ( jd->m->name.hash() == opt_InlineMethodUtf.hash() ) {
+				jd->flags |= JITDATA_FLAG_COUNTDOWN;
+			}
+		}
 	}
 #endif
 
@@ -378,6 +397,16 @@ u1 *jit_compile(methodinfo *m)
 	/* now call internal compile function */
 
 	r = jit_compile_intern(jd);
+#if defined(ENABLE_COMPILER2)
+	if (method_matches(m,opt_CompileMethod)) {
+		using namespace cacao::jit::compiler2;
+		JITData JD(jd);
+		ObjectFileWriterPass pass;
+		pass.initialize();
+		pass.run(JD);
+		pass.finalize();
+	}
+#endif
 
 	if (r == NULL) {
 		/* We had an exception! Finish stuff here if necessary. */
@@ -403,6 +432,11 @@ u1 *jit_compile(methodinfo *m)
 	/* leave the monitor */
 
 	m->mutex->unlock();
+
+#if defined(ENABLE_STATISTICS)
+	if (m && m->code)
+		compiler_last_codesize = m->code->mcodelength;
+#endif
 
 	/* return pointer to the methods entry point */
 
@@ -469,8 +503,11 @@ u1 *jit_recompile(methodinfo *m)
 		jd->flags |= JITDATA_FLAG_VERBOSECALL;
 
 #if defined(ENABLE_INLINING)
+	// XXX #warning Inlining currently disabled (broken)
+#if 0
 	if (opt_Inline)
 		jd->flags |= JITDATA_FLAG_INLINE;
+#endif
 #endif
 
 #if defined(ENABLE_JIT)
@@ -939,8 +976,13 @@ codeinfo *jit_get_current_code(methodinfo *m)
 
 	/* otherwise: recompile */
 
+#if defined(ENABLE_COMPILER2)
+	if (!cacao::jit::compiler2::compile(m))
+		return NULL;
+#else
 	if (!jit_recompile(m))
 		return NULL;
+#endif
 
 	assert(m->code);
 

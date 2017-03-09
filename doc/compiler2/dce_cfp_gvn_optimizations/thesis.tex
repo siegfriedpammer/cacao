@@ -1,0 +1,222 @@
+\documentclass[oneside]{scrartcl}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amstext}
+\usepackage{amsthm}
+\usepackage{thmtools}
+\usepackage{enumerate}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage[automark]{scrpage2}
+\usepackage[section]{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usetikzlibrary{calc,trees,positioning,arrows,chains,shapes.geometric,%
+    decorations.pathreplacing,decorations.pathmorphing,shapes,%
+    matrix,shapes.symbols,positioning}
+\usetikzlibrary{fit}
+\usetikzlibrary{backgrounds}
+\usepackage[bottom=10em]{geometry}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% STYLES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\tikzset{
+  %nodes
+  Inst/.style={
+    rectangle,
+    draw=black!80,
+    fill=black!40,
+    rounded corners,
+    inner sep=0.2em,
+    minimum height=2em,
+    minimum width=8em,
+    thick,
+    font=\sffamily
+  },
+  %edges
+  thick edge/.style={-latex,very thick,shorten >=2pt,shorten <=2pt,line cap=round},
+  thin edge/.style={-latex,thin,shorten >=1pt,shorten <=1pt,line cap=round},
+  scheddep/.style={thick edge,blue},
+  datadep/.style={thin edge,black},
+  begin2end/.style={thick edge,dashed},
+  cfg/.style={thick edge},
+  %background
+  basicblock/.style={fill=black!10,inner sep=0.5em,thick,rectangle,rounded corners},
+}
+
+% instructions
+\newcommand{\Inst}[1]{#1}
+
+\renewcommand{\heavyrulewidth}{1pt}
+
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\numberwithin{figure}{section}
+\numberwithin{table}{section}
+
+\newcommand{\irinline}[1]{\textsf{#1}}
+
+\lstset{
+language=Java,
+keywordstyle=\bfseries,
+basicstyle=\sffamily\small,
+columns=flexible,
+captionpos=b,
+caption=~,
+mathescape=true,
+tabsize=4,
+belowcaptionskip=8pt
+}
+
+% caption style for listings
+\captionsetup[lstlisting]{
+singlelinecheck=false,
+margin=0pt,
+labelfont={bf,normalsize,sf},
+labelsep=space,
+font={small},
+justification=justified
+}
+
+% caption style for algorithms
+\captionsetup[algorithm]{
+singlelinecheck=false,
+margin=0pt,
+labelfont={bf,normalsize,sf},
+labelsep=space
+}
+
+% caption style for figures
+\captionsetup[figure]{
+singlelinecheck=true,
+margin=0pt,
+format=plain,
+labelfont={bf,normalsize,sf},
+%font={small},
+labelsep=space,
+justification=justified,
+minmargin=0.05\textwidth
+}
+
+% caption style for tables
+\captionsetup[table]{
+singlelinecheck=true,
+margin=0pt,
+format=plain,
+labelfont={bf,normalsize,sf},
+labelsep=space,
+justification=justified,
+minmargin=0.05\textwidth
+}
+
+% the title and style of the abstract part
+\renewcommand{\abstractname}{}
+\renewenvironment{abstract}{
+  \begin{center}
+  \textbf{\Large\rmfamily Abstract}\\[10pt]
+ 
+  \begin{minipage}{0.9\textwidth}
+  \itshape
+}{\end{minipage}
+\end{center}}
+
+% style for the header line of the content pages
+\renewcommand{\headfont}{\rmfamily\MakeUppercase}
+
+% theorem style for definitions
+\declaretheoremstyle[
+  headfont=\sffamily\bfseries,
+]{definitionstyle}
+
+% theorem type for definitions
+\declaretheorem[
+  name=Definition,
+  numberwithin=section,
+  style=definitionstyle
+]{definition}
+
+% theorem style for lemmas
+\declaretheoremstyle[
+  headfont=\sffamily\bfseries,
+]{claimstyle}
+
+% theorem type for definitions
+\declaretheorem[
+  name=Claim,
+  numberwithin=section,
+  style=claimstyle
+]{claim}
+
+% bibliography style
+\bibliographystyle{alpha}
+
+\AtBeginDocument{%
+\renewcommand{\thealgorithm}{\thesection .\arabic{algorithm}}
+\numberwithin{lstlisting}{section}
+}
+
+% Define bar chart colors
+\definecolor{bblue}{HTML}{4F81BD}
+\definecolor{rred}{HTML}{C0504D}
+\definecolor{ggreen}{HTML}{9BBB59}
+\definecolor{ppurple}{HTML}{9F4C7C}
+
+\newcommand{\barwidth}{6pt}
+\newcommand{\barpadding}{0.4pt}
+\newcommand{\chartheight}{9cm}
+\newcommand{\enlargexlimits}{0.06}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% BODY
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+% empty 
+\pagestyle{scrheadings}
+\clearscrheadfoot
+
+\include{titlepage}
+\include{abstract}
+
+\tableofcontents
+\newpage
+
+\pagestyle{scrheadings}
+\clearscrheadfoot
+\ihead[]{\textsc{\headmark}}
+\ohead[\pagemark]{\pagemark}
+\setheadsepline[\textwidth]{0.5pt}
+
+\input{sections/introduction}
+\input{sections/intermediate-representation}
+\input{sections/dead-code-elimination}
+\input{sections/constant-folding-propagation}
+\input{sections/global-value-numbering}
+\input{sections/evaluation}
+\input{sections/related}
+\input{sections/conclusions}
+
+\newpage
+
+\appendix
+\input{sections/alpern-partitioning}
+
+\newpage
+
+\bibliography{references}
+
+\end{document}

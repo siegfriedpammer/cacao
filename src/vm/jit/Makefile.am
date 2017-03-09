@@ -79,6 +79,14 @@ INLINE_LIB = \
 	inline/libinline.la
 endif
 
+if ENABLE_COMPILER2
+SUBDIRS += \
+       compiler2
+
+COMPILER2_LIB = \
+       compiler2/libcompiler2.la
+endif
+
 if ENABLE_LOOP
 SUBDIRS += \
 	loop
@@ -177,6 +185,8 @@ libjit_la_SOURCES = \
 	parse.hpp \
 	patcher-common.cpp \
 	patcher-common.hpp \
+	PatcherNew.cpp \
+	PatcherNew.hpp \
 	$(RECOMPILE_SOURCES) \
 	$(REG_SOURCES) \
 	$(REPLACE_SOURCES) \
@@ -207,6 +217,12 @@ libjit_la_LIBADD = \
 	$(VERIFIER_LIB) \
 	$(INTRP_LIB) \
 	$(ARCH_LIB)
+
+if ENABLE_COMPILER2
+libjit_la_LIBADD += \
+       $(COMPILER2_LIB)
+endif
+
 
 ## Local variables:
 ## mode: Makefile

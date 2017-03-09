@@ -95,6 +95,10 @@ void nativevm_preinit(void)
 	_Jv_sun_reflect_ConstantPool_init();
 #endif
 
+#if defined(ENABLE_COMPILER2)
+	_Jv_org_cacaojvm_compiler2_test_Compiler2Test_init();
+#endif
+
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	// Load libjava.so

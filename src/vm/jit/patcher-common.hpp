@@ -55,7 +55,6 @@ struct patchref_t {
 	functionptr  patcher;       /* patcher function to call                   */
 	void*        ref;           /* reference passed                           */
 	uint32_t     mcode;         /* machine code to be patched back in         */
-	bool         done;          /* XXX preliminary: patch already applied?    */
 };
 
 
@@ -74,7 +73,7 @@ void patcher_list_show(codeinfo *code);
 
 patchref_t *patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp);
 
-void patcher_resolve(jitdata* jd);
+void patcher_resolve(codeinfo* code);
 
 bool patcher_is_patched(patchref_t* pr);
 bool patcher_is_patched_at(void* pc);
