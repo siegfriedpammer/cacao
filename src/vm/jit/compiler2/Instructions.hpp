@@ -429,7 +429,6 @@ private:
 		classref_or_classinfo     c;                 /* for ACONST with class     */
 	} val_operand_t;
 	val_operand_t value;
-	bool resolved;
 public:
 	explicit CONSTInst(int32_t i,Type::IntType) : Instruction(CONSTInstID, Type::IntTypeID) {
 		value.i = i;
@@ -442,9 +441,6 @@ public:
 	}
 	explicit CONSTInst(double d,Type::DoubleType) : Instruction(CONSTInstID, Type::DoubleTypeID) {
 		value.d = d;
-	}
-	explicit CONSTInst(void *anyptr, Type::ReferenceType, bool resolved) : Instruction(CONSTInstID, Type::ReferenceTypeID), resolved(resolved) {
-		value.anyptr = anyptr;
 	}
 	virtual CONSTInst* to_CONSTInst() { return this; }
 
@@ -477,10 +473,6 @@ public:
 		assert(get_type() == Type::DoubleTypeID);
 		return value.d;
 	}
-	void* get_Anyptr() const {
-		assert(get_type() == Type::ReferenceTypeID);
-		return value.anyptr;
-	}
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 	virtual OStream& print(OStream& OS) const {
 		Instruction::print(OS);
@@ -493,66 +485,19 @@ public:
 		}
 		return OS;
 	}
-
-	bool is_resolved() const { return resolved; }
 };
 
 class GETFIELDInst : public Instruction {
-private:
-	constant_FMIref *fmiref;
-	bool resolved;
 public:
-	/**
-	 * @param resolved This _should_ not change during compilation
-	 */
-	explicit GETFIELDInst(Type::TypeID type, constant_FMIref *fmiref, bool resolved,
-			BeginInst *begin, Instruction *state_change, Value *s1)
-			: Instruction(GETFIELDInstID, type), fmiref(fmiref), resolved(resolved) {
-		append_dep(begin);
-		append_dep(state_change);
-		append_op(s1);
-	}
-	virtual BeginInst* get_BeginInst() const {
-		BeginInst *begin = dep_front()->to_BeginInst();
-		assert(begin);
-		return begin;
-	}
-	virtual bool has_side_effects() const { return true; }
-	virtual bool is_floating() const { return false; }
-	virtual bool is_homogeneous() const { return false; }
+	explicit GETFIELDInst(Type::TypeID type) : Instruction(GETFIELDInstID, type) {}
 	virtual GETFIELDInst* to_GETFIELDInst() { return this; }
-	bool is_resolved() const { return resolved; }
-	constant_FMIref* get_fmiref() const { return fmiref; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
 class PUTFIELDInst : public Instruction {
-private:
-	constant_FMIref *fmiref;
-	bool resolved;
 public:
-	/**
-	 * @param resolved This _should_ not change during compilation
-	 */
-	explicit PUTFIELDInst(Value *s1, Value *s2, constant_FMIref *fmiref, bool resolved,
-			BeginInst* begin, Instruction *state_change)
-			: Instruction(PUTFIELDInstID, s2->get_type()), fmiref(fmiref), resolved(resolved) {
-		append_op(s1);
-		append_op(s2);
-		append_dep(begin);
-		//append_dep(state_change);
-	}
-	virtual BeginInst* get_BeginInst() const {
-		BeginInst *begin = (*dep_begin())->to_BeginInst();
-		assert(begin);
-		return begin;
-	}
-	virtual bool has_side_effects() const { return true; }
-	virtual bool is_floating() const { return false; }
-	virtual bool is_homogeneous() const { return false; }
+	explicit PUTFIELDInst(Type::TypeID type) : Instruction(PUTFIELDInstID, type) {}
 	virtual PUTFIELDInst* to_PUTFIELDInst() { return this; }
-	bool is_resolved() const { return resolved; }
-	constant_FMIref* get_fmiref() const { return fmiref; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
@@ -782,45 +727,12 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class BUILTINInst : public MultiOpInst {
-private:
-	MethodDescriptor MD;
-	constant_FMIref *fmiref;
-	bool resolved;
-	builtintable_entry *bte;
+class BUILTINInst : public Instruction {
 public:
-	explicit BUILTINInst(Type::TypeID type, unsigned size,
-			constant_FMIref *fmiref, builtintable_entry* bte, bool resolved, BeginInst *begin, Instruction *state_change)
-			: MultiOpInst(BUILTINInstID, type), MD(size),
-			fmiref(fmiref), resolved(resolved), bte(bte) {
-		assert(state_change && state_change->get_name());
-		append_dep(begin);
-		append_dep(state_change);
-	}
-	virtual BeginInst* get_BeginInst() const {
-		BeginInst *begin = (*dep_begin())->to_BeginInst();
-		assert(begin);
-		return begin;
-	}
-	virtual bool has_side_effects() const { return true; }
-	virtual bool is_floating() const { return false; }
-	void append_parameter(Value *V) {
-		std::size_t i = op_size();
-		assert(i < MD.size());
-		MD[i] = V->get_type();
-		append_op(V);
-	}
-	MethodDescriptor& get_MethodDescriptor() {
-		assert(MD.size() == op_size());
-		return MD;
-	}
-	bool is_resolved() const { return resolved; }
-	constant_FMIref* get_fmiref() const { return fmiref; }
-	builtintable_entry* get_bte() const { return bte; }
+	explicit BUILTINInst(Type::TypeID type) : Instruction(BUILTINInstID, type) {}
 	virtual BUILTINInst* to_BUILTINInst() { return this; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
-
 
 class INVOKEVIRTUALInst : public Instruction {
 public:
@@ -829,40 +741,9 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class INVOKESPECIALInst : public MultiOpInst {
-private:
-	MethodDescriptor MD;
-	constant_FMIref *fmiref;
-	bool resolved;
+class INVOKESPECIALInst : public Instruction {
 public:
-	explicit INVOKESPECIALInst(Type::TypeID type, unsigned size,
-			constant_FMIref *fmiref, bool resolved, BeginInst *begin, Instruction *state_change)
-			: MultiOpInst(INVOKESPECIALInstID, type), MD(size),
-			fmiref(fmiref), resolved(resolved) {
-		assert(state_change && state_change->get_name());
-		append_dep(begin);
-		append_dep(state_change);
-	}
-	virtual BeginInst* get_BeginInst() const {
-		BeginInst *begin = (*dep_begin())->to_BeginInst();
-		assert(begin);
-		return begin;
-	}
-	virtual bool has_side_effects() const { return true; }
-	virtual bool is_floating() const { return false; }
-	virtual bool is_homogeneous() const { return false; }
-	void append_parameter(Value *V) {
-		std::size_t i = op_size();
-		assert(i < MD.size());
-		MD[i] = V->get_type();
-		append_op(V);
-	}
-	MethodDescriptor& get_MethodDescriptor() {
-		assert(MD.size() == op_size());
-		return MD;
-	}
-	bool is_resolved() const { return resolved; }
-	constant_FMIref* get_fmiref() const { return fmiref; }
+	explicit INVOKESPECIALInst(Type::TypeID type) : Instruction(INVOKESPECIALInstID, type) {}
 	virtual INVOKESPECIALInst* to_INVOKESPECIALInst() { return this; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
@@ -1102,7 +983,6 @@ public:
 	virtual bool is_floating() const { return false; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
-
 
 } // end namespace compiler2
 } // end namespace jit

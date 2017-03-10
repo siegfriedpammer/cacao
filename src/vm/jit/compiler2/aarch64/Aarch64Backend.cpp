@@ -211,35 +211,8 @@ void Aarch64LoweringVisitor::visit(CONSTInst* I, bool copyOperands) {
 		get_current()->push_back(move);
 		set_op(I,move->get_result().op);
 	} else {
-		if (I->is_resolved()) {
-			LOG2("ACONST is resolved.\n");
-
-			VirtualRegister *reg = new VirtualRegister(type);
-			MachineInstruction *load = NULL;
-			if (I->get_Anyptr() == NULL) {
-				Immediate *imm = new Immediate(0, Type::LongType());
-				load = new MovImmInst(DstOp(reg), SrcOp(imm), Type::LongTypeID);
-			} else {
-				classinfo *ci = (classinfo*) I->get_Anyptr();
-				LOG2("ACONST for class: " << ci->name << nl);
-
-				typedef ConstTag<DataSegmentType,void*,LongID> DSAddr;
-				DataSegment &DS = get_Backend()->get_JITData()->get_CodeMemory()->get_DataSegment();
-				DataSegment::IdxTy idx = DS.get_index(DSAddr(I->get_Anyptr()));
-				if (DataSegment::is_invalid(idx)) {
-					DataFragment data = DS.get_Ref(sizeof(void*));
-					write_data<void*>(data, I->get_Anyptr());
-					idx = DS.insert_tag(DSAddr(I->get_Anyptr()),data);
-				}
-				load = new DsegAddrInst(DstOp(reg), idx, Type::LongTypeID);
-			}
-			get_current()->push_back(load);
-			set_op(I, load->get_result().op);
-		} else {
-			LOG2("ACONST is NOT resolved.\n");
-			ABORT_MSG("aarch64: CONSTInst", 
-					  "ACONST with unresolved classref is not umplemented.");
-		}
+		ABORT_MSG("aarch64: Lowering not supported", 
+				"Inst: " << I << " type: " << type);
 	}
 }
 
@@ -1034,204 +1007,23 @@ void Aarch64LoweringVisitor::visit(TABLESWITCHInst *I, bool copyOperands) {
 }
 
 void Aarch64LoweringVisitor::visit(BUILTINInst *I, bool copyOperands) {
-	assert(I);
-	Type::TypeID type = I->get_type();
-	MethodDescriptor &MD = I->get_MethodDescriptor();
-	MachineMethodDescriptor MMD(MD);
-
-	if (!I->is_resolved()) {
-		ABORT_MSG("aarch64 Builtin", "unresolved is not implemented.");
-	}
-
-	// operands for the call
-	//VirtualRegister *addr = new VirtualRegister(Type::ReferenceTypeID);
-	MachineOperand *addr = new NativeRegister(Type::ReferenceTypeID, &R18);
-	MachineOperand *result = &NoOperand;
-
-	// get return value
-	switch (type) {
-	case Type::IntTypeID:
-	case Type::LongTypeID:
-	case Type::ReferenceTypeID:
-		result = new NativeRegister(type,&R0);
-		break;
-	default:
-		ABORT_MSG("aarch64 Lowering not supported",
-		"Inst: " << I << " type: " << type);
-	}
-
-	// create call
-	MachineInstruction* call = new CallInst(SrcOp(addr),DstOp(result),I->op_size());
-	// move values to parameters
-	for (std::size_t i = 0; i < I->op_size(); ++i ) {
-		Instruction *param = I->get_operand(i)->to_Instruction();
-		assert(param);
-		MachineInstruction* mov = get_Backend()->create_Move(
-			get_op(param),
-			MMD[i]
-		);
-		get_current()->push_back(mov);
-		// set call operand
-		call->set_operand(i+1,MMD[i]);
-	}
-	// spill caller saved
-
-	// load address
-	void *func = NULL;
-	if (I->get_bte()->stub == NULL) {
-		func = reinterpret_cast<void*>(I->get_bte()->fp);
-		LOG2("BUILTINInst: using fp\n");
-	} else {
-		func = (void*) (ptrint) I->get_bte()->stub;
-		LOG2("BUILTINInst: using stub\n");
-	}
-
-	typedef ConstTag<DataSegmentType,void*,LongID> DSAddr;
-	DataSegment &DS = get_Backend()->get_JITData()->get_CodeMemory()->get_DataSegment();
-	DataSegment::IdxTy idx = DS.get_index(DSAddr(func));
-	if (DataSegment::is_invalid(idx)) {
-		DataFragment data = DS.get_Ref(sizeof(void*));
-		write_data<void*>(data, func);
-		idx = DS.insert_tag(DSAddr(func),data);
-	}
-	DsegAddrInst *load = new DsegAddrInst(DstOp(addr), idx, Type::LongTypeID);
-	get_current()->push_back(load);
-
-	// add call
-	get_current()->push_back(call);
-	// get result
-	if (result != &NoOperand) {
-		MachineInstruction *reg = 
-			new MovInst(DstOp(new VirtualRegister(type)), SrcOp(result), type);
-		get_current()->push_back(reg);
-		set_op(I,reg->get_result().op);
-		//set_op(I, call->get_result().op);
-	}
+	UNIMPLEMENTED_MSG("BUILTINInst lowering!");
 }
 
 void Aarch64LoweringVisitor::visit(INVOKESPECIALInst *I, bool copyOperands) {
-	assert(I);
-	Type::TypeID type = I->get_type();
-	MethodDescriptor &MD = I->get_MethodDescriptor();
-	MachineMethodDescriptor MMD(MD);
-
-	// operands for the call
-	//VirtualRegister *addr = new VirtualRegister(Type::ReferenceTypeID);
-	MachineOperand *addr = new NativeRegister(Type::ReferenceTypeID, &R18);
-	MachineOperand *result = &NoOperand;
-
-	// get return value
-	switch (type) {
-	case Type::IntTypeID:
-	case Type::LongTypeID:
-		result = new NativeRegister(type,&R0);
-		break;
-	case Type::VoidTypeID: break;
-	default:
-		ABORT_MSG("aarch64 Lowering not supported",
-		"Inst: " << I << " type: " << type);
-	}
-
-	// create call
-	MachineInstruction* call = new CallInst(SrcOp(addr),DstOp(result),I->op_size());
-	// move values to parameters
-	for (std::size_t i = 0; i < I->op_size(); ++i ) {
-		Instruction *param = I->get_operand(i)->to_Instruction();
-		assert(param);
-		MachineInstruction* mov = get_Backend()->create_Move(
-			get_op(param),
-			MMD[i]
-		);
-		get_current()->push_back(mov);
-		// set call operand
-		call->set_operand(i+1,MMD[i]);
-	}
-	// spill caller saved
-
-	// load address
-	DataSegment &DS = get_Backend()->get_JITData()->get_CodeMemory()->get_DataSegment();
-	DataSegment::IdxTy idx = DS.get_index(DSFMIRef(I->get_fmiref()));
-	if (DataSegment::is_invalid(idx)) {
-		DataFragment data = DS.get_Ref(sizeof(void*));
-
-		if (I->is_resolved()) {
-			LOG2("INVOKESPECIALInst: is resolved" << nl);
-			methodinfo *lm = I->get_fmiref()->p.method;
-			
-			for (int i = 0, e = 8 ; i < e ; ++i) {
-				data[i] = (u1) 0xff & *(reinterpret_cast<u1*>(&lm->code->entrypoint) + i);
-			}
-			//InstructionEncoding::imm(data, lm->code->entrypoint);
-		} else {
-			LOG2("INVOKESPECIALInst: is notresolved" << nl);
-			ABORT_MSG("aarch64: unresolved INVOKESPECIALInst not impl", "");
-		}
-		idx = DS.insert_tag(DSFMIRef(I->get_fmiref()),data);
-	}
-	DsegAddrInst *dmov = new DsegAddrInst(DstOp(addr), idx, Type::LongTypeID);
-	get_current()->push_back(dmov);
-
-	// add call
-	get_current()->push_back(call);
-
-	// adjust PV
-	//CodeSegment &cs = get_Backend()->get_JITData()->get_CodeMemory()->get_CodeSegment();
-	//int32_t disp = (int32_t) (cs.get_start() - cs.get_end());
-	//Immediate *imm = new Immediate(-disp, Type::LongType());
-	//MachineInstruction *sub = new SubInst(DstOp(addr), SrcOp(new NativeRegister(Type::LongTypeID, &R30)), SrcOp(imm), Type::LongTypeID);
-	//get_current()->push_back(sub);
-
-	// get result
-	if (result != &NoOperand) {
-		MachineInstruction *reg = 
-			new MovInst(DstOp(new VirtualRegister(type)), SrcOp(result), type);
-		get_current()->push_back(reg);
-		set_op(I, reg->get_result().op);
-		//set_op(I, call->get_result().op);
-	}
+	UNIMPLEMENTED_MSG("INVOKESPECIALInst lowering!");
 }
 
 void Aarch64LoweringVisitor::visit(INVOKEVIRTUALInst *I, bool copyOperands) {
-	Type::TypeID type = I->get_type();
-	//ABORT_MSG("aarch64: Lowering not supported",
-	//	"Inst: " << I << " type: " << type);
-	VirtualRegister *vreg = new VirtualRegister(type);
-	set_op(I,vreg);
+	UNIMPLEMENTED_MSG("INVOKEVIRTUALInst lowering!");
 }
 
 void Aarch64LoweringVisitor::visit(GETFIELDInst *I, bool copyOperands) {
-	assert(I);
-	Type::TypeID type = I->get_type();
-	
-	if (!I->is_resolved()) {
-		ABORT_MSG("aarch64 GETFIELDInst", "Unresolved GETFIELD not implemented!");
-	}
-
-	MachineOperand* addr_op = get_op(I->get_operand(0)->to_Instruction());
-	fieldinfo* fi = I->get_fmiref()->p.field;
-
-	VirtualRegister *vreg = new VirtualRegister(type);
-	Immediate *offset = new Immediate(fi->offset, Type::IntType());
-	MachineInstruction *load = new LoadInst(DstOp(vreg), BaseOp(addr_op), IdxOp(offset), type);
-	get_current()->push_back(load);
-	set_op(I, load->get_result().op);
+	UNIMPLEMENTED_MSG("GETFIELDInst lowering!");
 }
 
 void Aarch64LoweringVisitor::visit(PUTFIELDInst *I, bool copyOperands) {
-	assert(I);
-	Type::TypeID type = I->get_type();
-	
-	if (!I->is_resolved()) {
-		ABORT_MSG("aarch64 PUTFIELDInst", "Unresolved PUTFIELD not implemented!");
-	}
-
-	MachineOperand* addr_op = get_op(I->get_operand(0)->to_Instruction());
-	MachineOperand* value_op = get_op(I->get_operand(1)->to_Instruction());
-	fieldinfo* fi = I->get_fmiref()->p.field;
-	Immediate *offset = new Immediate(fi->offset, Type::IntType());
-	
-	MachineInstruction *store = new StoreInst(SrcOp(value_op), BaseOp(addr_op), IdxOp(offset), type);
-	get_current()->push_back(store);
+	UNIMPLEMENTED_MSG("PUTFIELDInst lowering!");
 }
 
 void Aarch64LoweringVisitor::visit(AREFInst *I, bool copyOperands) {

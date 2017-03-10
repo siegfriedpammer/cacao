@@ -48,6 +48,7 @@ STAT_REGISTER_GROUP_VAR(std::size_t,num_trivial_phis,0,"# trivial phis","number 
 STAT_REGISTER_GROUP_VAR(std::size_t,num_icmd_inst,0,"icmd instructions",
 	"ICMD instructions processed (by the compiler2)",compiler2_stat)
 
+
 namespace cacao {
 
 namespace {
@@ -1825,15 +1826,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 
 				/* const ADR */
 			case ICMD_ACONST:
-				{
-					//Instruction *state_change = read_variable(global_state, bbindex)->to_Instruction();
-					//assert(state_change);
-					Instruction *aconst = new CONSTInst(iptr->sx.val.anyptr, Type::ReferenceType(), INSTRUCTION_IS_RESOLVED(iptr));
-					write_variable(iptr->dst.varindex, bbindex, aconst);
-					//write_variable(global_state, bbindex, aconst);
-					M->add_Instruction(aconst);
-				}
-				break;
 		//		if (iptr->flags.bits & INS_FLAG_CLASS) {
 		//			SHOW_ADR_CONST(OS, iptr->sx.val.anyptr);
 		//			SHOW_CLASSREF_OR_CLASSINFO(OS, iptr->sx.val.c);
@@ -1853,39 +1845,9 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		printf("%p ", (void*) iptr->sx.s23.s3.constval);
 		//		break;
 
-			case ICMD_GETFIELD:       /* 1 -> 1 */
-				{
-					constant_FMIref   *fmiref;
-					INSTRUCTION_GET_METHODREF(iptr, fmiref);
-					Type::TypeID type = convert_var_type(fmiref->parseddesc.fd->type);
-					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
-					assert(state_change);
-					
-					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
-					
-					Instruction *getstatic = new GETFIELDInst(type,fmiref,INSTRUCTION_IS_RESOLVED(iptr),
-						BB[bbindex],state_change,s1);
-					write_variable(iptr->dst.varindex,bbindex,getstatic);
-					write_variable(global_state,bbindex,getstatic);
-					M->add_Instruction(getstatic);
-				}
-				break;
-
+			case ICMD_GETFIELD:        /* 1 -> 1 */
 			case ICMD_PUTFIELD:        /* 2 -> 0 */
-				{
-					constant_FMIref *fmiref;
-					INSTRUCTION_GET_FIELDREF(iptr, fmiref);
-					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
-					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
-					//Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
-					//assert(state_change);
-					Instruction *putstatic = new PUTFIELDInst(s1,s2,fmiref,INSTRUCTION_IS_RESOLVED(iptr),
-						BB[bbindex],NULL);
-					//write_variable(global_state,bbindex,putstatic);
-					M->add_Instruction(putstatic);
-				}
-				break;
-
+					goto _default;
 			case ICMD_PUTSTATIC:       /* 1 -> 0 */
 				{
 					constant_FMIref *fmiref;
@@ -2198,158 +2160,24 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		break;
 
 			case ICMD_BUILTIN:
-				{
 		//		if (stage >= SHOW_STACK) {
-		//			int32_t *argp = iptr->sx.s23.s2.args;
-		//			int i = iptr->s1.argcount;
+		//			argp = iptr->sx.s23.s2.args;
+		//			i = iptr->s1.argcount;
 		//			while (i--) {
 		//				if ((iptr->s1.argcount - 1 - i) == iptr->sx.s23.s3.bte->md->paramcount)
 		//					printf(" pass-through: ");
-		//				SHOW_VARIABLE(dbg(), *(argp++));
+		//				SHOW_VARIABLE(OS, *(argp++));
 		//			}
 		//		}
-		//		printf("Builtin to call: %s \n", iptr->sx.s23.s3.bte->cname);
+		//		printf("%s ", iptr->sx.s23.s3.bte->cname);
 		//		if (iptr->sx.s23.s3.bte->md->returntype.type != TYPE_VOID) {
-		//			SHOW_DST(dbg(), iptr);
+		//			SHOW_DST(OS, iptr);
 		//		}
-					builtintable_entry* bte = iptr->sx.s23.s3.bte;
-					if (bte->emit_fastpath != NULL) {
-						LOG2("emit_fastpath is not NULL.\n");
-						ABORT_MSG("emit_fastpath not implemented.", "");
-					} else {
-						//constant_FMIref   *fmiref;
-						//INSTRUCTION_GET_METHODREF(iptr, fmiref);
-						methoddesc *md = bte->md;
-
-						// get return type
-						Type::TypeID type;
-						switch (md->returntype.type) {
-						case TYPE_INT:
-							type = Type::IntTypeID;
-							break;
-						case TYPE_LNG:
-							type = Type::LongTypeID;
-							break;
-						case TYPE_FLT:
-							type = Type::FloatTypeID;
-							break;
-						case TYPE_DBL:
-							type = Type::DoubleTypeID;
-							break;
-						case TYPE_VOID:
-							type = Type::VoidTypeID;
-							break;
-						case TYPE_ADR:
-							type = Type::ReferenceTypeID;
-							break;
-						case TYPE_RET:
-							//type = Type::TypeID;
-							//break;
-						default:
-							type = Type::VoidTypeID;
-							err() << BoldRed << "error: " << reset_color << " type " << BoldWhite
-								<< md->returntype.type << reset_color
-								<< " not yet supported! (see vm/global.h)" << nl;
-							assert(false);
-						}
-						// get arguments
-						s4 *argp = iptr->sx.s23.s2.args;
-						int32_t i = iptr->s1.argcount;
-
-						// create instruction
-						Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
-						assert(state_change);
-						BUILTINInst *builtin = new BUILTINInst(type,i,NULL,bte,
-							INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
-						LOG3("BUILTINInst: " << builtin << " dep = " << state_change << nl);
-						while (i--) {
-							// TODO understand
-							//if ((iptr->s1.argcount - 1 - i) == md->paramcount)
-							//	printf(" pass-through: ");
-							builtin->append_parameter(read_variable(*(argp++),bbindex));
-						}
-						if (type != Type::VoidTypeID) {
-							write_variable(iptr->dst.varindex,bbindex,builtin);
-						}
-						write_variable(global_state,bbindex,builtin);
-						M->add_Instruction(builtin);
-					}
-				}
-				break;
+		//		break;
 
 			case ICMD_INVOKEVIRTUAL:
-				{
-					Instruction *invoke = new INVOKEVIRTUALInst(Type::LongTypeID);
-					write_variable(iptr->dst.varindex,bbindex,invoke);
-					M->add_Instruction(invoke);
-				}
-				break;
-
 			case ICMD_INVOKESPECIAL:
-				{
-					//methoddesc *md;
-					constant_FMIref   *fmiref;
-					//INSTRUCTION_GET_METHODDESC(iptr, md);
-					INSTRUCTION_GET_METHODREF(iptr, fmiref);
-
-					// get return type
-					Type::TypeID type;
-					switch (fmiref->parseddesc.md->returntype.type) {
-					case TYPE_INT:
-						type = Type::IntTypeID;
-						break;
-					case TYPE_LNG:
-						type = Type::LongTypeID;
-						break;
-					case TYPE_FLT:
-						type = Type::FloatTypeID;
-						break;
-					case TYPE_DBL:
-						type = Type::DoubleTypeID;
-						break;
-					case TYPE_VOID:
-						type = Type::VoidTypeID;
-						break;
-					case TYPE_ADR:
-						//type = Type::TypeID;
-						//break;
-					case TYPE_RET:
-						//type = Type::TypeID;
-						//break;
-					default:
-						type = Type::VoidTypeID;
-						err() << BoldRed << "error: " << reset_color << " type " << BoldWhite
-							  << fmiref->parseddesc.md->returntype.type << reset_color
-							  << " not yet supported! (see vm/global.h)" << nl;
-						assert(false);
-					}
-					// get arguments
-					s4 *argp = iptr->sx.s23.s2.args;
-					//int32_t i = iptr->s1.argcount;
-					int32_t i = fmiref->parseddesc.md->paramcount;
-					// create instruction
-
-					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
-					assert(state_change);
-					INVOKESPECIALInst *I = new INVOKESPECIALInst(type,i,fmiref,
-						INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
-					LOG3("INVOKESPECIALInst: " << I << " dep = " << state_change << nl);
-					LOG3("INVOKESPECIALInst: " << fmiref->name << ", " << fmiref->descriptor << nl);
-					LOG3("INVOKESPECIALInst: arg count = " << i << nl);
-					while (i--) {
-						// TODO understand
-						//if ((iptr->s1.argcount - 1 - i) == md->paramcount)
-						//	printf(" pass-through: ");
-						I->append_parameter(read_variable(*(argp++),bbindex));
-					}
-					if (type != Type::VoidTypeID) {
-						write_variable(iptr->dst.varindex,bbindex,I);
-					}
-					write_variable(global_state,bbindex,I);
-					M->add_Instruction(I);
-				}
-				break;
-
+					goto _default;
 			case ICMD_INVOKESTATIC:
 				{
 					//methoddesc *md;
