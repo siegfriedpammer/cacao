@@ -28,10 +28,7 @@ import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-	L2b.class,
-
-	SimpleInvokeStatic.class,
-	SimpleObject.class
+	L2b.class
 })
 public class All {
 }
