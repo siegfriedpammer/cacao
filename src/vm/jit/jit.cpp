@@ -363,7 +363,7 @@ u1 *jit_compile(methodinfo *m)
 	if (opt_verbosecall)
 		jd->flags |= JITDATA_FLAG_VERBOSECALL;
 
-#if defined(ENABLE_REPLACEMENT)
+#if defined(ENABLE_COMPILER2)
 	// TODO This condition looks ugly
 	if (!opt_DisableCountdownTraps && (opt_ReplaceMethod == NULL || method_matches(m, opt_ReplaceMethod)))
 		jd->flags |= JITDATA_FLAG_COUNTDOWN;
@@ -885,7 +885,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 	DEBUG_JIT_COMPILEVERBOSE("Generating code done: ");
 
-#if !defined(NDEBUG) && defined(ENABLE_REPLACEMENT)
+#if !defined(NDEBUG) && defined(ENABLE_COMPILER2)
 	/* activate replacement points inside newly created code */
 
 	if (opt_TestReplacement)
@@ -952,10 +952,10 @@ void jit_invalidate_code(methodinfo *m)
 
 	/* activate mappable replacement points */
 
-#if defined(ENABLE_REPLACEMENT)
+#if defined(ENABLE_COMPILER2)
 	replace_activate_replacement_points(code, true);
 #else
-	vm_abort("invalidating code only works with ENABLE_REPLACEMENT");
+	vm_abort("invalidating code only works with ENABLE_COMPILER2");
 #endif
 }
 

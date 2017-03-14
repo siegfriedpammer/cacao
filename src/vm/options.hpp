@@ -212,7 +212,7 @@ extern int      opt_ProfileGCMemoryUsage;
 extern int      opt_ProfileMemoryUsage;
 extern FILE    *opt_ProfileMemoryUsageGNUPlot;
 extern int      opt_RegallocSpillAll;
-#if defined(ENABLE_REPLACEMENT)
+#if defined(ENABLE_COMPILER2)
 extern char    *opt_ReplaceMethod;
 extern char    *opt_OptimizeMethod;
 extern int      opt_TestReplacement;

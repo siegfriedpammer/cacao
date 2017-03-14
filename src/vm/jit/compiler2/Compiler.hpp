@@ -108,6 +108,9 @@ namespace compiler2 {
  *
  */
 
+#ifndef ENABLE_REPLACEMENT
+# error "compiler2 does only work with replacement enabled!"
+#endif
 
 extern Option<bool> enabled;
 

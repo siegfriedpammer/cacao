@@ -247,7 +247,7 @@ methodinfo *code_get_methodinfo_for_pv(void *pv);
 
 #if defined(ENABLE_REPLACEMENT)
 int code_get_sync_slot_count(codeinfo *code);
-#endif /* defined(ENABLE_REPLACEMENT) */
+#endif
 
 void code_free_code_of_method(methodinfo *m);
 

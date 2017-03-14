@@ -26,9 +26,7 @@
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
 
-#if defined(ENABLE_REPLACEMENT)
 # include "vm/jit/replace.hpp"
-#endif
 
 #include "Target.hpp"
 
@@ -71,7 +69,6 @@ void LoweringVisitorBase::visit(CONSTInst* I, bool copyOperands) {
 	set_op(I,move->get_result().op);
 }
 
-#if defined(ENABLE_REPLACEMENT)
 void LoweringVisitorBase::lower_source_state_dependencies(MachineReplacementPointInst *MI,
 		SourceStateInst *source_state) {
 	assert(MI);
@@ -113,17 +110,13 @@ void LoweringVisitorBase::lower_source_state_dependencies(MachineReplacementPoin
 		op_index++;
 	}
 }
-#endif
 
-#if defined(ENABLE_REPLACEMENT)
 void LoweringVisitorBase::visit(SourceStateInst* I, bool copyOperands) {
 	// A SouceStateInst is just an artificial instruction for holding metadata
 	// for ReplacementPointInsts. It has no direct pendant on LIR level and
 	// hence needs no lowering logic.
 }
-#endif
 
-#if defined(ENABLE_REPLACEMENT)
 void LoweringVisitorBase::visit(ReplacementEntryInst* I, bool copyOperands) {
 	SourceStateInst *source_state = I->get_source_state();
 	assert(source_state);
@@ -132,7 +125,6 @@ void LoweringVisitorBase::visit(ReplacementEntryInst* I, bool copyOperands) {
 	lower_source_state_dependencies(MI, source_state);
 	get_current()->push_back(MI);
 }
-#endif
 
 MachineBasicBlock* LoweringVisitorBase::new_block() const {
 	return *schedule->insert_after(get_current()->self_iterator(),MBBBuilder());

@@ -165,7 +165,8 @@ struct instruction {
 #if defined(ENABLE_ESCAPE_REASON)
 	void *escape_reasons;
 #endif
-#if defined(ENABLE_REPLACEMENT)
+
+#if defined(ENABLE_COMPILER2)
 	/// The stack vars that are alive after this instruction.
 	///
 	/// This liveness information is needed for deoptimization and hence will
@@ -237,7 +238,7 @@ struct insinfo_inline {
 	int32_t    *javalocals_end;   /* javalocals after inlined body            */
 
 	/* fields set by replacement point creation ------------------------------*/
-#if defined(ENABLE_REPLACEMENT)
+#if defined(ENABLE_COMPILER2)
 	rplpoint   *rp;             /* replacement point at INLINE_START          */
 #endif
 

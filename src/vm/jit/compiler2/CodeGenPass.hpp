@@ -54,7 +54,7 @@ public:
 	static Option<bool> print_data;
 #endif
 private:
-#if defined(ENABLE_REPLACEMENT)
+
 	typedef std::vector<MachineInstruction*> MInstListTy;
 	typedef alloc::map<MachineInstruction*,std::size_t>::type InstructionPositionMap;
 
@@ -75,7 +75,7 @@ private:
 	/// @param JD    The JITData of the currently compiled method.
 	template<class ForwardIt>	
 	void resolve_replacement_points(ForwardIt first, ForwardIt last, JITData &JD);
-#endif
+
 	/**
 	 * finish code generation
 	 *

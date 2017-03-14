@@ -234,7 +234,7 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
 
     /* XXX if required asm_cacheflush(pc,8); */
 }
-#endif /* defined(ENABLE_REPLACEMENT) */
+#endif
 
 
 /*

@@ -45,9 +45,7 @@
 
 #include "md.hpp"
 
-#if defined(ENABLE_REPLACEMENT)
 #include "vm/jit/replace.hpp"
-#endif
 
 #define DEBUG_NAME "compiler2/CodeGen"
 
@@ -83,9 +81,7 @@ bool CodeGenPass::run(JITData &JD) {
 			LOG2("MInst: " << MI << " emitted instruction:" << nl);
 			MI->emit(CM);
 			std::size_t end = CS.size();
-#if defined(ENABLE_REPLACEMENT)
 			instruction_positions[MI] = start;
-#endif
 			#if defined(ENABLE_STATISTICS)
 			if (MI->is_move() && start != end) {
 				STATISTICS(++num_remaining_moves);
@@ -142,7 +138,6 @@ void print_hex(OStream &OS, u1 *start, u1 *end, uint32_t num_bytes_per_line = 8)
 }
 #endif
 
-#if defined(ENABLE_REPLACEMENT)
 template<class OutputIt>
 void find_all_replacement_points(MachineInstructionSchedule *MIS,
 		OutputIt outIterator) {
@@ -160,11 +155,9 @@ void find_all_replacement_points(MachineInstructionSchedule *MIS,
 		}
 	}
 }
-#endif
 
 } // end anonymous namespace
 
-#if defined(ENABLE_REPLACEMENT)
 template<class ForwardIt>
 void CodeGenPass::resolve_replacement_points(ForwardIt first, ForwardIt last, JITData &JD) {
 	codeinfo *code = JD.get_jitdata()->code;
@@ -237,7 +230,6 @@ void CodeGenPass::resolve_replacement_points(ForwardIt first, ForwardIt last, JI
 		rp++;
 	}
 }
-#endif // defined(ENABLE_REPLACEMENT)
 
 void CodeGenPass::finish(JITData &JD) {
 	CodeMemory *CM = JD.get_CodeMemory();
@@ -369,9 +361,7 @@ void CodeGenPass::finish(JITData &JD) {
 	// frame pointer (register RBP) of the calling method on the stack. We
 	// therefore have to provide an additional stack slot.
 	code->stackframesize++;
-# if defined(ENABLE_REPLACEMENT)
 	code_flag_using_frameptr(code);
-# endif
 #endif
 
 	/* Create the exception table. */
@@ -398,7 +388,6 @@ void CodeGenPass::finish(JITData &JD) {
 	#if !defined(NDEBUG)
 	DEBUG2(patcher_list_show(code));
 	#endif
-#if defined(ENABLE_REPLACEMENT)
 	/* replacement point resolving */
 	{
 		MInstListTy rplpoints;
@@ -406,7 +395,6 @@ void CodeGenPass::finish(JITData &JD) {
 		find_all_replacement_points(MIS, std::back_inserter(rplpoints));
 		resolve_replacement_points(rplpoints.begin(), rplpoints.end(), JD);
 	}
-#endif /* defined(ENABLE_REPLACEMENT) */
 
 	/* Insert method into methodtree to find the entrypoint. */
 

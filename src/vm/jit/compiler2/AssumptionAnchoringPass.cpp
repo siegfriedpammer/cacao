@@ -105,10 +105,8 @@ PassUsage& AssumptionAnchoringPass::get_PassUsage(PassUsage &PU) const {
 // the address of this variable is used to identify the pass
 char AssumptionAnchoringPass::ID = 0;
 
-// register pass
-#if defined(ENABLE_REPLACEMENT)
+// TODO register pass
 //static PassRegistry<AssumptionAnchoringPass> X("AssumptionAnchoringPass");
-#endif
 
 } // end namespace compiler2
 } // end namespace jit

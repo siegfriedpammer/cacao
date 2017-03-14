@@ -180,9 +180,7 @@ PassUsage& SourceStateAttachmentPass::get_PassUsage(PassUsage &PU) const {
 char SourceStateAttachmentPass::ID = 0;
 
 // register pass
-//#if defined(ENABLE_REPLACEMENT)
 static PassRegistry<SourceStateAttachmentPass> X("SourceStateAttachmentPass");
-//#endif
 
 } // end namespace compiler2
 } // end namespace jit

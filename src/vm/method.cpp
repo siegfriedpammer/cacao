@@ -587,7 +587,7 @@ bool method_load(ClassBuffer& cb, methodinfo *m, DescriptorPool& descpool)
 		return false;
 	}
 
-#if defined(ENABLE_REPLACEMENT)
+#if defined(ENABLE_COMPILER2)
 	/* initialize the hit countdown field */
 
 	m->hitcountdown = METHOD_INITIAL_HIT_COUNTDOWN;

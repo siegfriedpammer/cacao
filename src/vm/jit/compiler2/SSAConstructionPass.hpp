@@ -95,7 +95,6 @@ private:
 	/// Remove unreachable BeginInsts and their corresponding EndInsts.
 	void remove_unreachable_blocks();
 
-#if defined(ENABLE_REPLACEMENT)
 	/// Helper function to terminate a block with a DeoptimizeInst.
 	///
 	/// Assigns a new DeoptimizeInst to the BeginInst that corresponds to the
@@ -108,11 +107,13 @@ private:
 
 	void install_javalocal_dependencies(SourceStateInst *source_state,
 			s4 *javalocals, basicblock *bb);
+
 	void install_stackvar_dependencies(SourceStateInst *source_state,
 		s4 *stack, s4 stackdepth, s4 paramcount, basicblock *bb);
+
 	SourceStateInst *record_source_state(Instruction *I, instruction *iptr,
 		basicblock *bb, s4 *javalocals, s4 *stack, s4 stackdepth);
-#endif
+
 public:
 	Value* read_variable(size_t varindex, size_t bb);
 	static char ID;

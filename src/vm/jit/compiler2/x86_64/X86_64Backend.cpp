@@ -1417,7 +1417,6 @@ void X86_64LoweringVisitor::visit(TABLESWITCHInst *I, bool copyOperands) {
 	set_op(I,cjmp->get_result().op);
 }
 
-#if defined(ENABLE_REPLACEMENT)
 void X86_64LoweringVisitor::visit(AssumptionInst *I, bool copyOperands) {
 	assert(I);
 
@@ -1441,8 +1440,6 @@ void X86_64LoweringVisitor::visit(AssumptionInst *I, bool copyOperands) {
 	MachineOperand *methodptr = new NativeRegister(Type::ReferenceTypeID, &R10);
 	MachineInstruction *trap = new CondTrapInst(Cond::NE, TRAP_DEOPTIMIZE, SrcOp(methodptr));
 	get_current()->push_back(trap);
-
-
 }
 
 void X86_64LoweringVisitor::visit(DeoptimizeInst *I, bool copyOperands) {
@@ -1459,7 +1456,6 @@ void X86_64LoweringVisitor::visit(DeoptimizeInst *I, bool copyOperands) {
 	MachineInstruction *deoptimize_trap = new TrapInst(TRAP_DEOPTIMIZE, SrcOp(methodptr));
 	get_current()->push_back(deoptimize_trap);
 }
-#endif
 
 void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 

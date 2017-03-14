@@ -504,7 +504,7 @@ void codegen_set_replacement_point(codegendata *cd)
 
 	cd->replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
 
-#if defined(__X86_64__)
+#if defined(__X86_64__) && defined(ENABLE_COMPILER2)
 	// Generate countdown trap code.
 	methodinfo *m = cd->replacementpoint->method;
 	if (cd->replacementpoint->flags & rplpoint::FLAG_COUNTDOWN) {
@@ -1014,7 +1014,7 @@ void codegen_finish(jitdata *jd)
 			rp->pc = (u1*) ((ptrint) epoint + (ptrint) rp->pc);
 		}
 	}
-#endif /* defined(ENABLE_REPLACEMENT) */
+#endif
 
 	/* Insert method into methodtree to find the entrypoint. */
 

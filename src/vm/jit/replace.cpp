@@ -1079,7 +1079,8 @@ void replace_patch_callback(classinfo *c, struct replace_patch_data_t *pd)
 
 	if (vftbl != NULL
 		&& vftbl->vftbllength > pd->m->vftblindex
-		&& (void*) vftbl->table[pd->m->vftblindex] != (void*) (uintptr_t) &asm_abstractmethoderror
+		// TODO understand
+		//&& (void*) vftbl->table[pd->m->vftblindex] != (void*) (uintptr_t) &asm_abstractmethoderror
 		&& code_get_methodinfo_for_pv(vftbl->table[pd->m->vftblindex]) == pd->m)
 	{
 		replace_patch_class(c->vftbl, pd->m, pd->oldentrypoint, pd->entrypoint);

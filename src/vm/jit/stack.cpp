@@ -1977,7 +1977,7 @@ bool stack_reanalyse_block(stackdata_t *sd)
 
 		/* relocate live stackvars after the current instruction */
 
-#if defined(ENABLE_REPLACEMENT)
+#if defined(ENABLE_COMPILER2)
 		if (instruction_has_side_effects(iptr) && JITDATA_HAS_FLAG_DEOPTIMIZE(sd->jd)) {
 			s4 *stackvar = iptr->stack_after;
 			for (s4 i = 0; i < iptr->stackdepth_after; i++) {
@@ -4546,7 +4546,7 @@ normal_LCMP:
 
 					/* record live stackvars after the current instruction */
 
-#if defined(ENABLE_REPLACEMENT)
+#if defined(ENABLE_COMPILER2)
 					if (iptr != NULL && instruction_has_side_effects(iptr)
 							&& JITDATA_HAS_FLAG_DEOPTIMIZE(sd.jd)) {
 						assert(stackdepth >= 0);

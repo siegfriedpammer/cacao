@@ -280,7 +280,7 @@ void trap_handle(int sig, void *xpc, void *context)
 		entry = jit_compile_handle(m, sfi.pv, ra, (void*) val);
 		break;
 
-#if defined(__X86_64__) && defined(ENABLE_REPLACEMENT)
+#if defined(__X86_64__) && defined(ENABLE_COMPILER2)
 	case TRAP_COUNTDOWN:
 		p = NULL;
 		replace_handle_countdown_trap((uint8_t*) xpc, &es);
@@ -290,7 +290,7 @@ void trap_handle(int sig, void *xpc, void *context)
 		p = NULL;
 		replace_handle_deoptimization_trap((uint8_t*) xpc, &es);
 		break;
- #endif
+#endif
 
 	case TRAP_AbstractMethodError:
 		p = exceptions_new_abstractmethoderror();
