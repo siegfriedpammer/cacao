@@ -2816,9 +2816,15 @@ bool SSAConstructionPass::run(JITData &JD) {
 				}
 		#endif
 			default:
-				goto _default;
+				#if !defined(NDEBUG)
+				ABORT_MSG(icmd_table[iptr->opc].name << " (" << iptr->opc << ")",
+					"Operation not yet supported!");
+				#else
+				ABORT_MSG("Opcode: (" << iptr->opc << ")",
+					"Operation not yet supported!");
+				#endif
+				break;
 			}
-			continue;
 
 			// Record the source state if the last instruction was side-effecting.
 			new_global_state = read_variable(global_state,bbindex)->to_Instruction();
@@ -2827,15 +2833,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 				record_source_state(new_global_state, iptr, bb, live_javalocals,
 						iptr->stack_after, iptr->stackdepth_after);
 			}
-
-			_default:
-				#if !defined(NDEBUG)
-				ABORT_MSG(icmd_table[iptr->opc].name << " (" << iptr->opc << ")",
-					"Operation not yet supported!");
-				#else
-				ABORT_MSG("Opcode: (" << iptr->opc << ")",
-					"Operation not yet supported!");
-				#endif
 		}
 
 		if (!BB[bbindex]->get_EndInst()) {
