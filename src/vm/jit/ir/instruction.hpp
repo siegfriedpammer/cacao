@@ -273,10 +273,12 @@ static inline bool instruction_has_side_effects(const instruction *iptr)
 		|| opc == ICMD_INVOKEINTERFACE
 		|| opc == ICMD_INVOKESPECIAL
 		|| opc == ICMD_PUTSTATIC
+		|| opc == ICMD_GETSTATIC
 		|| opc == ICMD_PUTFIELD
 		|| opc == ICMD_PUTSTATICCONST
 		|| opc == ICMD_PUTFIELDCONST
 		|| opc == ICMD_ASTORE
+		|| opc == ICMD_ALOAD
 		|| opc == ICMD_IASTORE
 		|| opc == ICMD_LASTORE
 		|| opc == ICMD_FASTORE
@@ -285,6 +287,14 @@ static inline bool instruction_has_side_effects(const instruction *iptr)
 		|| opc == ICMD_BASTORE
 		|| opc == ICMD_CASTORE
 		|| opc == ICMD_SASTORE
+		|| opc == ICMD_IALOAD
+		|| opc == ICMD_SALOAD
+		|| opc == ICMD_BALOAD
+		|| opc == ICMD_CALOAD
+		|| opc == ICMD_LALOAD
+		|| opc == ICMD_DALOAD
+		|| opc == ICMD_FALOAD
+		|| opc == ICMD_AALOAD
 		|| opc == ICMD_NEW
 		|| opc == ICMD_MONITORENTER
 		|| opc == ICMD_MONITOREXIT;
