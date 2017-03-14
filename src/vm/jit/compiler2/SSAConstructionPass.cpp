@@ -2900,8 +2900,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 
 	remove_unreachable_blocks();
 
-	LOG("Remove all" << nl);
-
 	return true;
 }
 
