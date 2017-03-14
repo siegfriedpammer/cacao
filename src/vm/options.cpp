@@ -203,7 +203,6 @@ int      opt_RegallocSpillAll             = 0;
 #if defined(ENABLE_REPLACEMENT)
 char*    opt_ReplaceMethod                = NULL;
 char*    opt_OptimizeMethod               = NULL;
-int      opt_TestReplacement              = 0;
 bool     opt_DisableCountdownTraps        = false;
 #endif
 int      opt_TraceBuiltinCalls            = 0;
@@ -833,10 +832,6 @@ void options_xx(JavaVMInitArgs *vm_args)
 
 		case OPT_OptimizeMethod:
 			opt_OptimizeMethod = value;
-			break;
-
-		case OPT_TestReplacement:
-			opt_TestReplacement = enable;
 			break;
 
 		case OPT_DisableCountdownTraps:

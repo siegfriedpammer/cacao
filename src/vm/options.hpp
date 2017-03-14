@@ -215,7 +215,6 @@ extern int      opt_RegallocSpillAll;
 #if defined(ENABLE_COMPILER2)
 extern char    *opt_ReplaceMethod;
 extern char    *opt_OptimizeMethod;
-extern int      opt_TestReplacement;
 extern bool     opt_DisableCountdownTraps;
 #endif
 extern int      opt_TraceBuiltinCalls;
