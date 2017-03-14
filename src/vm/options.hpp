@@ -242,9 +242,6 @@ extern bool     opt_RtTimingCSV;
 extern FILE    *opt_StatisticsLogfile;
 extern bool     opt_StatisticsCSV;
 #endif
-#if defined(ENABLE_REPLACEMENT)
-extern int      opt_TraceReplacement;
-#endif
 extern int      opt_TraceSubsystemInitialization;
 extern int      opt_TraceTraps;
 
