@@ -295,6 +295,12 @@ static inline bool instruction_has_side_effects(const instruction *iptr)
 		|| opc == ICMD_DALOAD
 		|| opc == ICMD_FALOAD
 		|| opc == ICMD_AALOAD
+		|| opc == ICMD_BASTORECONST
+		|| opc == ICMD_CASTORECONST
+		|| opc == ICMD_SASTORECONST
+		|| opc == ICMD_AASTORECONST
+		|| opc == ICMD_IASTORECONST
+		|| opc == ICMD_LASTORECONST
 		|| opc == ICMD_NEW
 		|| opc == ICMD_MONITORENTER
 		|| opc == ICMD_MONITOREXIT;
