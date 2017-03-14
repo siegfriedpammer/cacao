@@ -2489,6 +2489,12 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Instruction *konst = new CONSTInst(iptr->sx.val.i,Type::IntType());
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
 					assert(s1);
+
+					if (s1->get_type() != konst->get_type()) {
+						deoptimize(bbindex);
+						break;
+					}
+
 					assert(BB[iptr->dst.block->nr]);
 					BeginInst *trueBlock = BB[iptr->dst.block->nr]->to_BeginInst();
 					assert(trueBlock);
@@ -2540,6 +2546,12 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Instruction *konst = new CONSTInst(iptr->sx.val.l,Type::LongType());
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
 					assert(s1);
+
+					if (s1->get_type() != konst->get_type()) {
+						deoptimize(bbindex);
+						break;
+					}
+
 					assert(BB[iptr->dst.block->nr]);
 					BeginInst *trueBlock = BB[iptr->dst.block->nr]->to_BeginInst();
 					assert(trueBlock);
@@ -2612,6 +2624,12 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
 					assert(s1);
 					assert(s2);
+
+					if (s1->get_type() != s2->get_type()) {
+						deoptimize(bbindex);
+						break;
+					}
+
 					assert(BB[iptr->dst.block->nr]);
 					BeginInst *trueBlock = BB[iptr->dst.block->nr]->to_BeginInst();
 					assert(trueBlock);
@@ -2659,6 +2677,12 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
 					assert(s1);
 					assert(s2);
+
+					if (s1->get_type() != s2->get_type()) {
+						deoptimize(bbindex);
+						break;
+					}
+
 					assert(BB[iptr->dst.block->nr]);
 					BeginInst *trueBlock = BB[iptr->dst.block->nr]->to_BeginInst();
 					assert(trueBlock);
