@@ -38,7 +38,6 @@ noinst_LTLIBRARIES = \
 	libcompiler2.la
 
 libcompiler2_la_SOURCES = \
-	AssumptionAnchoringPass.cpp \
 	Backend.cpp \
 	BasicBlockSchedulingPass.cpp \
 	CFGConstructionPass.cpp \
