@@ -1144,7 +1144,7 @@ public:
 		append_dep(source_state);
 	}
 
-	/// Get the BeginInst that this ReplacementEntryInst is attached to.
+	/// Get the BeginInst this ReplacementEntryInst is attached to.
 	virtual BeginInst* get_BeginInst() const {
 		assert(dep_size() >= 1);
 		BeginInst *begin = (*dep_begin())->to_BeginInst();
@@ -1270,7 +1270,6 @@ public:
 	virtual DeoptimizeInst* to_DeoptimizeInst() { return this; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
-
 
 } // end namespace compiler2
 } // end namespace jit
