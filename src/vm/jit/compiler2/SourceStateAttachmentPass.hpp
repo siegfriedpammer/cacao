@@ -50,7 +50,6 @@ private:
 	GlobalSchedule *schedule;
 
 	SourceStateInst *find_nearest_dominating_source_state(BeginInst *begin);
-	SourceStateInst *find_nearest_dominating_source_state(AssumptionInst *assumption);
 
 public:
 	static char ID;

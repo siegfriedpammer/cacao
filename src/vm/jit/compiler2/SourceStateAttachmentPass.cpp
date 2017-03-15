@@ -88,59 +88,6 @@ SourceStateInst *SourceStateAttachmentPass::find_nearest_dominating_source_state
 	return source_state;
 }
 
-SourceStateInst *SourceStateAttachmentPass::find_nearest_dominating_source_state(AssumptionInst *assumption) {
-	assert(assumption->rdep_size() == 1);
-	Instruction *guarded_inst = *(assumption->rdep_begin());
-	assert(guarded_inst->has_side_effects() || guarded_inst->to_BeginInst());
-
-	// get the blocks that contain the AssumptionInst and its guarded instruction
-	BeginInst *assumption_block = schedule->get(assumption);
-	BeginInst *guarded_block = schedule->get(guarded_inst);
-
-	SourceStateInst *source_state = NULL;
-
-	if (assumption_block == guarded_block) {
-		Instruction::const_dep_iterator i = guarded_inst->dep_begin();
-		Instruction::const_dep_iterator e = guarded_inst->dep_end();
-
-		// find the preceding side-effecting node in the same block
-		Instruction *preceding_side_effect = NULL;
-		for (; i != e; i++) {
-			Instruction *I = *i;
-			if (!I->to_BeginInst() && I->has_side_effects()) {
-				preceding_side_effect = I;
-			}
-		}
-
-		if (preceding_side_effect) {
-			// use the SourceStateInst of the preceding side-effecting node
-			source_state = get_associated_source_state(preceding_side_effect);
-		} else if (assumption_block->pred_size() > 1 || assumption_block == M->get_init_bb()) {
-			// when there is no side-effecting node within this block that
-			// precedes the guarded instruction then let's look if the current
-			// block's BeginInst has an associated SourceStateInst, which is the
-			// case iff it is a control-flow merge (i.e. it has more than one
-			// predecessors)
-			source_state = get_associated_source_state(assumption_block);
-		} else {
-			// when there is no side-effecting node preceding the guarded
-			// instruction and the current block's BeginInst is no control-flow
-			// merge, we have to expand our search of a SourceStateInst to the
-			// preceding blocks
-			assert(assumption_block->pred_size() == 1);
-			BeginInst *pred = assumption_block->get_predecessor(0);
-			source_state = find_nearest_dominating_source_state(pred);
-		}
-	} else {
-		// when the AssumptionInst has been scheduled to another block than the node
-		// that it guards, we immediately search for an appropriate
-		// SourceStateInst within the dominating blocks of the AssumptionInst
-		source_state = find_nearest_dominating_source_state(assumption_block);
-	}
-
-	return source_state;
-}
-
 bool SourceStateAttachmentPass::run(JITData &JD) {
 	LOG("run" << nl);
 	M = JD.get_Method();
@@ -150,7 +97,8 @@ bool SourceStateAttachmentPass::run(JITData &JD) {
 		Instruction *I = *i;
 		if (I->to_AssumptionInst()) {
 			AssumptionInst *assumption = I->to_AssumptionInst();
-			SourceStateInst *source_state = find_nearest_dominating_source_state(assumption);
+			BeginInst *assumption_block = schedule->get(assumption);
+			SourceStateInst *source_state = find_nearest_dominating_source_state(assumption_block);
 			assert(source_state);
 			LOG("attach " << source_state << " to " << assumption << nl);
 			assumption->set_source_state(source_state);

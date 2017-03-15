@@ -1174,28 +1174,34 @@ public:
 ///
 /// Optimizations that rely on speculative assumptions may generate
 /// AssumptionInst in order to avoid the illegal execution of speculatively
-/// transformed program regions. Hence, all those instructions that rely
-/// on such a speculation need a scheduling dependency to the according
-/// AssumptionInst. In case a speculation fails at run-time, deoptimization to
-/// will be triggered to transfer execution back to an unoptimized version of
-/// this method.
+/// transformed program regions. In case a speculation fails at run-time,
+/// deoptimization will be triggered to transfer execution back to an
+/// unoptimized version of this method.
 class AssumptionInst : public Instruction {
 private:
 
 	/// The source state that is used for deoptimization.
 	SourceStateInst *source_state;
 
+	/// The entry to the region of code that relies on this assumption.
+	BeginInst *guarded_block;
+
 public:
 
 	/// Construct an AssumptionInst.
 	///
-	/// @param condition A boolean HIR expression that encodes the speculative
-	///                  assumption to check.
-	explicit AssumptionInst(Value *condition)
+	/// @param condition     A boolean HIR expression that encodes the
+	///                      speculative assumption to check.
+	/// @param guarded_block The entry to the region of the code that relies on
+	///                      this assumption and thus needs to be guarded
+	///                      against illegal execution.
+	explicit AssumptionInst(Value *condition, BeginInst *guarded_block)
 			: Instruction(AssumptionInstID, Type::VoidTypeID), source_state(NULL) {
 		assert(condition);
 		assert(condition->get_type() != Type::VoidTypeID);
 		append_op(condition);
+		this->guarded_block = guarded_block;
+		guarded_block->append_dep(this);
 	}
 
 	/// Set the source state that should be used for deoptimization.
@@ -1214,6 +1220,11 @@ public:
 	/// Get the source state that is used for deoptimization.
 	virtual SourceStateInst *get_source_state() const {
 		return source_state;
+	}
+
+	/// Get the entry to the region of code that relies on this assumption.
+	virtual BeginInst *get_guarded_block() const {
+		return guarded_block;
 	}
 
 	virtual AssumptionInst* to_AssumptionInst() { return this; }
