@@ -1306,8 +1306,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 			continue;
 		}
 
-		if (skipped_all_predecessors(bb) && bb->predecessorcount > 0) {
+		if ((skipped_all_predecessors(bb) && bb->predecessorcount > 0) || bb->type == basicblock::TYPE_EXH) {
 			skipped_blocks[bb->nr] = true;
+			DeoptimizeInst *deopt = new DeoptimizeInst(BB[bb->nr]);
+			M->add_Instruction(deopt);
 		}
 
 		std::size_t bbindex = (std::size_t)bb->nr;
@@ -2860,21 +2862,11 @@ bool SSAConstructionPass::run(JITData &JD) {
 		}
 
 		if (!BB[bbindex]->get_EndInst()) {
-			if (!skipped_blocks[bbindex]) {
-				// No end instruction yet. Adding GOTO
-				assert(bbindex+1 < BB.size());
-				BeginInst *targetBlock = BB[bbindex+1];
-				Instruction *result = new GOTOInst(BB[bbindex], targetBlock);
-				M->add_Instruction(result);
-			} else {
-				// Add a dummy RETURNInst, just to make sure that the current
-				// BeginInst has a corresponding EndInst.
-				// TODO Maybe we should introduce an artificial EndInst.
-				//      For example, we could introduce an "artificial" UnreachableInst
-				//      similar to that one of LLVM's IR.
-				Instruction *result = new RETURNInst(BB[bbindex]);
-				M->add_Instruction(result);
-			}
+			// No end instruction yet. Adding GOTO
+			assert(bbindex+1 < BB.size());
+			BeginInst *targetBlock = BB[bbindex+1];
+			Instruction *result = new GOTOInst(BB[bbindex], targetBlock);
+			M->add_Instruction(result);
 		}
 
 		// block filled!
