@@ -289,10 +289,11 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class CHECKNULLInst : public Instruction {
+class CHECKNULLInst : public UnaryInst {
 public:
-	explicit CHECKNULLInst(Type::TypeID type) : Instruction(CHECKNULLInstID, type) {}
+	explicit CHECKNULLInst(Value *S1) : UnaryInst(CHECKNULLInstID, Type::VoidTypeID, S1) {}
 	virtual CHECKNULLInst* to_CHECKNULLInst() { return this; }
+	virtual bool is_homogeneous() const { return false; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
@@ -734,29 +735,15 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class INVOKEVIRTUALInst : public Instruction {
-public:
-	explicit INVOKEVIRTUALInst(Type::TypeID type) : Instruction(INVOKEVIRTUALInstID, type) {}
-	virtual INVOKEVIRTUALInst* to_INVOKEVIRTUALInst() { return this; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
-
-class INVOKESPECIALInst : public Instruction {
-public:
-	explicit INVOKESPECIALInst(Type::TypeID type) : Instruction(INVOKESPECIALInstID, type) {}
-	virtual INVOKESPECIALInst* to_INVOKESPECIALInst() { return this; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
-
-class INVOKESTATICInst : public MultiOpInst {
+class INVOKEInst : public MultiOpInst {
 private:
 	MethodDescriptor MD;
 	constant_FMIref *fmiref;
 	bool resolved;
 public:
-	explicit INVOKESTATICInst(Type::TypeID type, unsigned size,
+	explicit INVOKEInst(InstID ID, Type::TypeID type, unsigned size,
 			constant_FMIref *fmiref, bool resolved, BeginInst *begin, Instruction *state_change)
-			: MultiOpInst(INVOKESTATICInstID, type), MD(size),
+			: MultiOpInst(ID, type), MD(size),
 			fmiref(fmiref), resolved(resolved) {
 		assert(state_change && state_change->get_name());
 		append_dep(begin);
@@ -769,6 +756,7 @@ public:
 	}
 	virtual bool has_side_effects() const { return true; }
 	virtual bool is_floating() const { return false; }
+	virtual bool is_homogeneous() const { return false; }
 	void append_parameter(Value *V) {
 		std::size_t i = op_size();
 		assert(i < MD.size());
@@ -781,13 +769,41 @@ public:
 	}
 	bool is_resolved() const { return resolved; }
 	constant_FMIref* get_fmiref() const { return fmiref; }
+	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+};
+
+class INVOKESTATICInst : public INVOKEInst {
+public:
+	explicit INVOKESTATICInst(Type::TypeID type, unsigned size,
+			constant_FMIref *fmiref, bool resolved, BeginInst *begin, Instruction *state_change)
+		: INVOKEInst(INVOKESTATICInstID, type, size, fmiref, resolved, begin, state_change) {}
 	virtual INVOKESTATICInst* to_INVOKESTATICInst() { return this; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class INVOKEINTERFACEInst : public Instruction {
+class INVOKEVIRTUALInst : public INVOKEInst {
 public:
-	explicit INVOKEINTERFACEInst(Type::TypeID type) : Instruction(INVOKEINTERFACEInstID, type) {}
+	explicit INVOKEVIRTUALInst(Type::TypeID type, unsigned size,
+			constant_FMIref *fmiref, bool resolved, BeginInst *begin, Instruction *state_change)
+		: INVOKEInst(INVOKEVIRTUALInstID, type, size, fmiref, resolved, begin, state_change) {}
+	virtual INVOKEVIRTUALInst* to_INVOKEVIRTUALInst() { return this; }
+	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+};
+
+class INVOKESPECIALInst : public INVOKEInst {
+public:
+	explicit INVOKESPECIALInst(Type::TypeID type, unsigned size,
+			constant_FMIref *fmiref, bool resolved, BeginInst *begin, Instruction *state_change)
+		: INVOKEInst(INVOKESPECIALInstID, type, size, fmiref, resolved, begin, state_change) {}
+	virtual INVOKESPECIALInst* to_INVOKESPECIALInst() { return this; }
+	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+};
+
+class INVOKEINTERFACEInst : public INVOKEInst {
+public:
+	explicit INVOKEINTERFACEInst(Type::TypeID type, unsigned size,
+			constant_FMIref *fmiref, bool resolved, BeginInst *begin, Instruction *state_change)
+		: INVOKEInst(INVOKEINTERFACEInstID, type, size, fmiref, resolved, begin, state_change) {}
 	virtual INVOKEINTERFACEInst* to_INVOKEINTERFACEInst() { return this; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };

@@ -70,6 +70,7 @@ class INSTANCEOFInst;
 class GOTOInst;
 class JSRInst;
 class BUILTINInst;
+class INVOKEInst;
 class INVOKEVIRTUALInst;
 class INVOKESPECIALInst;
 class INVOKESTATICInst;

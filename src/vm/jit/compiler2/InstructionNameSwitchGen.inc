@@ -70,6 +70,7 @@ case INSTANCEOFInstID: return "INSTANCEOFInst";
 case GOTOInstID: return "GOTOInst";
 case JSRInstID: return "JSRInst";
 case BUILTINInstID: return "BUILTINInst";
+case INVOKEInstID: return "INVOKEInst";
 case INVOKEVIRTUALInstID: return "INVOKEVIRTUALInst";
 case INVOKESPECIALInstID: return "INVOKESPECIALInst";
 case INVOKESTATICInstID: return "INVOKESTATICInst";

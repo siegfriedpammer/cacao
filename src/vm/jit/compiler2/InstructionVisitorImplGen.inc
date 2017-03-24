@@ -70,6 +70,7 @@ void InstructionVisitor::visit(INSTANCEOFInst* I, bool copyOperands) {visit_defa
 void InstructionVisitor::visit(GOTOInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(JSRInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(BUILTINInst* I, bool copyOperands) {visit_default(I);}
+void InstructionVisitor::visit(INVOKEInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(INVOKEVIRTUALInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(INVOKESPECIALInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(INVOKESTATICInst* I, bool copyOperands) {visit_default(I);}

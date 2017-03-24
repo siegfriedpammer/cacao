@@ -70,6 +70,7 @@ virtual void visit(INSTANCEOFInst* I, bool copyOperands);
 virtual void visit(GOTOInst* I, bool copyOperands);
 virtual void visit(JSRInst* I, bool copyOperands);
 virtual void visit(BUILTINInst* I, bool copyOperands);
+virtual void visit(INVOKEInst* I, bool copyOperands);
 virtual void visit(INVOKEVIRTUALInst* I, bool copyOperands);
 virtual void visit(INVOKESPECIALInst* I, bool copyOperands);
 virtual void visit(INVOKESTATICInst* I, bool copyOperands);

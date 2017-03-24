@@ -70,6 +70,7 @@ virtual INSTANCEOFInst* to_INSTANCEOFInst() { return NULL; }
 virtual GOTOInst* to_GOTOInst() { return NULL; }
 virtual JSRInst* to_JSRInst() { return NULL; }
 virtual BUILTINInst* to_BUILTINInst() { return NULL; }
+virtual INVOKEInst* to_INVOKEInst() { return NULL; }
 virtual INVOKEVIRTUALInst* to_INVOKEVIRTUALInst() { return NULL; }
 virtual INVOKESPECIALInst* to_INVOKESPECIALInst() { return NULL; }
 virtual INVOKESTATICInst* to_INVOKESTATICInst() { return NULL; }
