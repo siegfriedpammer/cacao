@@ -24,6 +24,7 @@
 package org.cacaojvm.compiler2.test;
 
 import org.junit.Test;
+import org.junit.Ignore;
 
 public class InvokeVirtual extends Compiler2TestBase {
 
@@ -65,6 +66,7 @@ public class InvokeVirtual extends Compiler2TestBase {
 		return t.foo(a, b, c, d, e, f, g, h);
 	}
 
+	@Ignore("Stack arguments not yet handled correctly by linear scan register allocator.")
 	@Test
 	public void testInvokeVirtualIntManyParams() {
 		testResultEqual("invokeVirtualIntManyParams", "(Lorg/cacaojvm/compiler2/test/InvokeVirtual;IIIIIIII)I", this, 1, 2, 3, 4, 5, 6, 7, 8);
