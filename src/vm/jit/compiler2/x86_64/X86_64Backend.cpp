@@ -952,6 +952,7 @@ void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 	case Type::ShortTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
+	case Type::ReferenceTypeID:
 	{
 		MachineOperand *ret_reg = new NativeRegister(type,&RAX);
 		MachineInstruction *reg = new MovInst(
@@ -1003,9 +1004,6 @@ void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 		set_op(I,ret->get_result().op);
 		return;
 	}
-
-	case Type::ReferenceTypeID:
-		// TODO: implement
 	default: break;
 	}
 	ABORT_MSG("x86_64 Lowering not supported",
@@ -1194,6 +1192,7 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	switch (type) {
 	case Type::IntTypeID:
 	case Type::LongTypeID:
+	case Type::ReferenceTypeID:
 		result = new NativeRegister(type,&RAX);
 		break;
 	case Type::FloatTypeID:
@@ -1225,22 +1224,12 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 
 	if (I->to_INVOKESTATICInst() || I->to_INVOKESPECIALInst()) {
 		// load address
-		DataSegment &DS = get_Backend()->get_JITData()->get_CodeMemory()->get_DataSegment();
-		DataSegment::IdxTy idx = DS.get_index(DSFMIRef(I->get_fmiref()));
-		size_t fragment_size = sizeof(void*);
-
-		if (DataSegment::is_invalid(idx)) {
-			DataFragment data = DS.get_Ref(fragment_size);
-			idx = DS.insert_tag(DSFMIRef(I->get_fmiref()),data);
-		}
-
-		DataFragment datafrag = DS.get_Ref(idx, fragment_size);
-		write_data<void*>(datafrag, callee->code->entrypoint);
-		MovDSEGInst *dmov = new MovDSEGInst(DstOp(addr),idx);
-		get_current()->push_back(dmov);
+		Immediate *method_address = new Immediate(reinterpret_cast<s8>(callee->code->entrypoint),
+				Type::ReferenceType());
+		MachineInstruction *mov = get_Backend()->create_Move(method_address, addr);
+		get_current()->push_back(mov);
 	} else if (I->to_INVOKEVIRTUALInst()) {
 		int32_t s1 = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * callee->vftblindex;
-
 		VirtualRegister *vftbl_address = new VirtualRegister(Type::ReferenceTypeID);
 		MachineOperand *receiver = get_op(I->get_operand(0)->to_Instruction());
 		MachineOperand *vftbl_offset = new X86_64ModRMOperand(BaseOp(receiver), OFFSET(java_object_t, vftbl));
@@ -1252,22 +1241,26 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 		MachineInstruction *load_method_address = new MovInst(SrcOp(method_offset), DstOp(addr),
 				GPInstruction::OS_64);
 		get_current()->push_back(load_method_address);
-
-//		// implicit null-pointer check
-//		M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));
-//		M_ALD32(REG_ITMP3, REG_METHODPTR, s1);
-//		M_CALL(REG_ITMP3);
 	} else if (I->to_INVOKEINTERFACEInst()) {
 		int32_t s1 = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr) * callee->clazz->index;
-		int32_t s2 = sizeof(methodptr) * (callee - callee->clazz->methods);
+		VirtualRegister *vftbl_address = new VirtualRegister(Type::ReferenceTypeID);
+		MachineOperand *receiver = get_op(I->get_operand(0)->to_Instruction());
+		MachineOperand *vftbl_offset = new X86_64ModRMOperand(BaseOp(receiver), OFFSET(java_object_t, vftbl));
+		MachineInstruction *load_vftbl_address = new MovInst(SrcOp(vftbl_offset), DstOp(vftbl_address),
+				GPInstruction::OS_64);
+		get_current()->push_back(load_vftbl_address);
 
-//		// implicit null-pointer check
-//		M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));
-//		M_ALD32(REG_METHODPTR, REG_METHODPTR, s1);
-//		if (INSTRUCTION_IS_UNRESOLVED(iptr))
-//			emit_arbitrary_nop(cd, PATCH_ALIGNMENT((uintptr_t) cd->mcodeptr, 3, sizeof(int32_t)));
-//		M_ALD32(REG_ITMP3, REG_METHODPTR, s2);
-//		M_CALL(REG_ITMP3);
+		VirtualRegister *interface_address = new VirtualRegister(Type::ReferenceTypeID);
+		MachineOperand *interface_offset = new X86_64ModRMOperand(BaseOp(vftbl_address), s1);
+		MachineInstruction *load_interface_address = new MovInst(SrcOp(interface_offset),
+				DstOp(interface_address), GPInstruction::OS_64);
+		get_current()->push_back(load_interface_address);
+
+		int32_t s2 = sizeof(methodptr) * (callee - callee->clazz->methods);
+		MachineOperand *method_offset = new X86_64ModRMOperand(BaseOp(interface_address), s2);
+		MachineInstruction *load_method_address = new MovInst(SrcOp(method_offset), DstOp(addr),
+				GPInstruction::OS_64);
+		get_current()->push_back(load_method_address);
 	}
 
 	// add call

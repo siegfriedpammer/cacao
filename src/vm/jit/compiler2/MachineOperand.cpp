@@ -85,6 +85,7 @@ s8 Immediate::get_value() const {
 	case Type::ShortTypeID: return (s8)value.i;
 	case Type::IntTypeID: return (s8)value.i;
 	case Type::LongTypeID: return (s8)value.l;
+	case Type::ReferenceTypeID: return (s8)value.l;
 	default: break;
 	}
 	ABORT_MSG("TypeNotSupported: Immediate::get_value<s8>",

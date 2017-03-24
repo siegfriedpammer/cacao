@@ -2348,7 +2348,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 		#endif
 		#endif
 		//		break;
-
 			case ICMD_BUILTIN:
 		//		if (stage >= SHOW_STACK) {
 		//			argp = iptr->sx.s23.s2.args;
@@ -2363,8 +2362,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		if (iptr->sx.s23.s3.bte->md->returntype.type != TYPE_VOID) {
 		//			SHOW_DST(OS, iptr);
 		//		}
-		//		break;
-
+		//		break;	
+				
 			case ICMD_INVOKESPECIAL:
 				{
 					assert(INSTRUCTION_MUST_CHECK(iptr));
@@ -2380,11 +2379,11 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_INVOKEINTERFACE:
 			case ICMD_INVOKESTATIC:
 				{
-					//methoddesc *md;
 					constant_FMIref   *fmiref;
+
 					//INSTRUCTION_GET_METHODDESC(iptr, md);
 					INSTRUCTION_GET_METHODREF(iptr, fmiref);
-
+					
 					// get return type
 					Type::TypeID type;
 					switch (fmiref->parseddesc.md->returntype.type) {
@@ -2404,8 +2403,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 						type = Type::VoidTypeID;
 						break;
 					case TYPE_ADR:
-						//type = Type::TypeID;
-						//break;
+						type = Type::ReferenceTypeID;
+						break;
 					case TYPE_RET:
 						//type = Type::TypeID;
 						//break;
@@ -2438,6 +2437,9 @@ bool SSAConstructionPass::run(JITData &JD) {
 						break;
 					case ICMD_INVOKEINTERFACE:
 						I = new INVOKEINTERFACEInst(type,i,fmiref,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
+						break;
+					case ICMD_BUILTIN:
+						I = new BUILTINInst(type,i,fmiref,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
 						break;
 					default:
 						break;
@@ -2779,6 +2781,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_IRETURN:
 			case ICMD_DRETURN:
 			case ICMD_LRETURN:
+			case ICMD_ARETURN:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
 					Instruction *result = new RETURNInst(BB[bbindex], s1);
@@ -2794,7 +2797,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 					M->add_Instruction(result);
 				}
 				break;
-			case ICMD_ARETURN:
 			case ICMD_ATHROW:
 		//		SHOW_S1(OS, iptr);
 		//		if (INSTRUCTION_IS_UNRESOLVED(iptr)) {

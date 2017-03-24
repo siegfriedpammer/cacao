@@ -329,6 +329,13 @@ public:
 			: MachineOperand(ImmediateID, type) {
 		value.d = val;
 	}
+
+	/// TODO How to handle addresses as immediates?
+	Immediate(s8 val, Type::ReferenceType type)
+			: MachineOperand(ImmediateID, type) {
+		value.l = val;
+	}
+
 	virtual Immediate* to_Immediate() { return this; }
 	virtual const char* get_name() const {
 		return "Immediate";

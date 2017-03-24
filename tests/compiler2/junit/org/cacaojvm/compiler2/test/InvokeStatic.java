@@ -67,4 +67,17 @@ public class InvokeStatic extends Compiler2TestBase {
 		testResultEqual("invokeStaticDouble", "()D");
 	}
 
+	public static Object identity(Object o) {
+		return o;
+	}
+
+	/** This is the method under test. */
+	static Object invokeStaticObject(Object o) {
+		return identity(o);
+	}
+
+	@Test
+	public void testInvokeStaticObject() {
+		testResultEqual("invokeStaticObject", "(Ljava/lang/Object;)Ljava/lang/Object;", "42");
+	}
 }
