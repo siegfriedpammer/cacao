@@ -79,6 +79,8 @@ import org.junit.runners.Suite;
 	// Irem.class,
 
 	InvokeStatic.class,
+	InvokeSpecial.class,
+	InvokeVirtual.class,
 
 	MatcherBenchmarks.class
 
