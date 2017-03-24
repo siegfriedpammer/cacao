@@ -1080,6 +1080,16 @@ public:
 	virtual void emit(CodeMemory* CM) const;
 };
 
+class TestInst : public GPInstruction {
+public:
+	TestInst(const SrcOp &src1, SrcOp &src2, OperandSize op_size)
+			: GPInstruction("X86_64TestInst", &NoOperand, op_size, 2) {
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
+	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
 } // end namespace x86_64
 } // end namespace compiler2
 } // end namespace jit

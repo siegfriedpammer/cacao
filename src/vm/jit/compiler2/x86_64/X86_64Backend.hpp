@@ -55,7 +55,11 @@ public:
 	virtual void visit(REMInst *I, bool copyOperands);
 	virtual void visit(RETURNInst *I, bool copyOperands);
 	virtual void visit(CASTInst *I, bool copyOperands);
+	virtual void visit(INVOKEInst *I, bool copyOperands);
 	virtual void visit(INVOKESTATICInst *I, bool copyOperands);
+	virtual void visit(INVOKESPECIALInst *I, bool copyOperands);
+	virtual void visit(INVOKEVIRTUALInst *I, bool copyOperands);
+	virtual void visit(INVOKEINTERFACEInst *I, bool copyOperands);
 	virtual void visit(GETSTATICInst *I, bool copyOperands);
 	virtual void visit(LOOKUPSWITCHInst *I, bool copyOperands);
 	virtual void visit(TABLESWITCHInst *I, bool copyOperands);
@@ -66,6 +70,7 @@ public:
 	virtual void visit(ARRAYBOUNDSCHECKInst *I, bool copyOperands);
 	virtual void visit(CMPInst *I, bool copyOperands);
 	virtual void visit(NEGInst *I, bool copyOperands);
+	virtual void visit(CHECKNULLInst *I, bool copyOperands);
 	virtual void visit(AssumptionInst* I, bool copyOperands);
 	virtual void visit(DeoptimizeInst* I, bool copyOperands);
 

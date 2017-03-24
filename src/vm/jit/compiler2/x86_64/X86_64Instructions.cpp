@@ -1282,6 +1282,26 @@ void FINCSTPInst::emit(CodeMemory* CM) const {
 	code[1] = 0xf7;
 }
 
+void TestInst::emit(CodeMemory* CM) const {
+	CodeSegmentBuilder code;
+	MachineOperand *src1 = operands[0].op;
+	MachineOperand *src2 = operands[1].op;
+
+	X86_64Register *src1_reg = cast_to<X86_64Register>(src1);
+	X86_64Register *src2_reg = cast_to<X86_64Register>(src2);
+
+	// rex
+	u1 rex = get_rex(src1_reg, src2_reg, get_op_size() == OS_64);
+	if (rex != 0x40) {
+		code += rex;
+	}
+
+	code += 0x85;
+	code += get_modrm_reg2reg(src1_reg, src2_reg);
+
+	add_CodeSegmentBuilder(CM,code);
+}
+
 } // end namespace x86_64
 } // end namespace compiler2
 } // end namespace jit

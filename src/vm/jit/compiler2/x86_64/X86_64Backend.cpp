@@ -40,6 +40,8 @@
 #include "vm/class.hpp"
 #include "vm/field.hpp"
 
+#include "mm/memory.hpp"
+
 #include "md-trap.hpp"
 
 #include "toolbox/OStream.hpp"
@@ -1178,7 +1180,7 @@ void X86_64LoweringVisitor::visit(CASTInst *I, bool copyOperands) {
 	ABORT_MSG("x86_64 Cast not supported!", "From " << from << " to " << to );
 }
 
-void X86_64LoweringVisitor::visit(INVOKESTATICInst *I, bool copyOperands) {
+void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	assert(I);
 	Type::TypeID type = I->get_type();
 	MethodDescriptor &MD = I->get_MethodDescriptor();
@@ -1217,51 +1219,60 @@ void X86_64LoweringVisitor::visit(INVOKESTATICInst *I, bool copyOperands) {
 	}
 	// spill caller saved
 
-	// load address
-	DataSegment &DS = get_Backend()->get_JITData()->get_CodeMemory()->get_DataSegment();
-	DataSegment::IdxTy idx = DS.get_index(DSFMIRef(I->get_fmiref()));
-	size_t fragment_size = sizeof(void*);
-	if (DataSegment::is_invalid(idx)) {
-		DataFragment data = DS.get_Ref(fragment_size);
-		idx = DS.insert_tag(DSFMIRef(I->get_fmiref()),data);
-	}
+	assert(I->is_resolved() && "Calls to unresolved methods are not supported");
 
-	if (I->is_resolved()) {
-		methodinfo* callee = I->get_fmiref()->p.method;
+	methodinfo* callee = I->get_fmiref()->p.method;
+
+	if (I->to_INVOKESTATICInst() || I->to_INVOKESPECIALInst()) {
+		// load address
+		DataSegment &DS = get_Backend()->get_JITData()->get_CodeMemory()->get_DataSegment();
+		DataSegment::IdxTy idx = DS.get_index(DSFMIRef(I->get_fmiref()));
+		size_t fragment_size = sizeof(void*);
+
+		if (DataSegment::is_invalid(idx)) {
+			DataFragment data = DS.get_Ref(fragment_size);
+			idx = DS.insert_tag(DSFMIRef(I->get_fmiref()),data);
+		}
+
 		DataFragment datafrag = DS.get_Ref(idx, fragment_size);
-
-		// TODO: Use a patcher to retrieve the callee's entrypoint.
-		//
-		// The callee might not yet have been compiled yet, therefore
-		// `callee->code->entrypoint` could contain an invalid address at this
-		// point which is not safe to call. However, since we are in the
-		// compiler2, for now we illegally assume that the baseline compiled
-		// code has already seen this INVOKESTATIC and that the callee code is
-		// already available.
-		//
-		// Instead of directly using the callee's entrypoint we would have to
-		// tansfer execution to a patcher that compiles the callee, if
-		// necessary, and patches its entrypoint address back into the caller's
-		// data segment. Unfortunately, for now we cannot directly use the
-		// `stubroutine`-driven approach that is employed by the baseline
-		// compiler. The reason for this lies in the way how the according
-		// patching mechanism in `md_jit_patch_method_address` is implemented:
-		// To determine the type (INVOKESTATIC/SPECIAL vs.
-		// INVOKEVIRTUAL/INTERFACE) of the issuing call it exploits
-		// characteristics of the machine code that only hold for calls that
-		// are emitted by the baseline compiler but do not hold for the
-		// compiler2.
 		write_data<void*>(datafrag, callee->code->entrypoint);
-	} else {
-		// TODO: Use a patcher to resolve the callee.
+		MovDSEGInst *dmov = new MovDSEGInst(DstOp(addr),idx);
+		get_current()->push_back(dmov);
+	} else if (I->to_INVOKEVIRTUALInst()) {
+		int32_t s1 = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * callee->vftblindex;
 
-		assert(0 && "Calls to unresolved methods are not yet supported");
+		VirtualRegister *vftbl_address = new VirtualRegister(Type::ReferenceTypeID);
+		MachineOperand *receiver = get_op(I->get_operand(0)->to_Instruction());
+		MachineOperand *vftbl_offset = new X86_64ModRMOperand(BaseOp(receiver), OFFSET(java_object_t, vftbl));
+		MachineInstruction *load_vftbl_address = new MovInst(SrcOp(vftbl_offset), DstOp(vftbl_address),
+				GPInstruction::OS_64);
+		get_current()->push_back(load_vftbl_address);
+
+		MachineOperand *method_offset = new X86_64ModRMOperand(BaseOp(vftbl_address), s1);
+		MachineInstruction *load_method_address = new MovInst(SrcOp(method_offset), DstOp(addr),
+				GPInstruction::OS_64);
+		get_current()->push_back(load_method_address);
+
+//		// implicit null-pointer check
+//		M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));
+//		M_ALD32(REG_ITMP3, REG_METHODPTR, s1);
+//		M_CALL(REG_ITMP3);
+	} else if (I->to_INVOKEINTERFACEInst()) {
+		int32_t s1 = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr) * callee->clazz->index;
+		int32_t s2 = sizeof(methodptr) * (callee - callee->clazz->methods);
+
+//		// implicit null-pointer check
+//		M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));
+//		M_ALD32(REG_METHODPTR, REG_METHODPTR, s1);
+//		if (INSTRUCTION_IS_UNRESOLVED(iptr))
+//			emit_arbitrary_nop(cd, PATCH_ALIGNMENT((uintptr_t) cd->mcodeptr, 3, sizeof(int32_t)));
+//		M_ALD32(REG_ITMP3, REG_METHODPTR, s2);
+//		M_CALL(REG_ITMP3);
 	}
-	MovDSEGInst *dmov = new MovDSEGInst(DstOp(addr),idx);
-	get_current()->push_back(dmov);
 
 	// add call
 	get_current()->push_back(call);
+
 	// get result
 	if (result != &NoOperand) {
 		MachineOperand *dst = new VirtualRegister(type);
@@ -1269,6 +1280,22 @@ void X86_64LoweringVisitor::visit(INVOKESTATICInst *I, bool copyOperands) {
 		get_current()->push_back(reg);
 		set_op(I,reg->get_result().op);
 	}
+}
+
+void X86_64LoweringVisitor::visit(INVOKESTATICInst *I, bool copyOperands) {
+	visit(static_cast<INVOKEInst*>(I), copyOperands);
+}
+
+void X86_64LoweringVisitor::visit(INVOKESPECIALInst *I, bool copyOperands) {
+	visit(static_cast<INVOKEInst*>(I), copyOperands);
+}
+
+void X86_64LoweringVisitor::visit(INVOKEVIRTUALInst *I, bool copyOperands) {
+	visit(static_cast<INVOKEInst*>(I), copyOperands);
+}
+
+void X86_64LoweringVisitor::visit(INVOKEINTERFACEInst *I, bool copyOperands) {
+	visit(static_cast<INVOKEInst*>(I), copyOperands);
 }
 
 void X86_64LoweringVisitor::visit(GETSTATICInst *I, bool copyOperands) {
@@ -1424,6 +1451,10 @@ void X86_64LoweringVisitor::visit(TABLESWITCHInst *I, bool copyOperands) {
 	// assert(0 && "load data segment and jump"));
 	// load table entry
 	set_op(I,cjmp->get_result().op);
+}
+
+void X86_64LoweringVisitor::visit(CHECKNULLInst *I, bool copyOperands) {
+	
 }
 
 void X86_64LoweringVisitor::visit(AssumptionInst *I, bool copyOperands) {
