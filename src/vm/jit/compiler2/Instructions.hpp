@@ -443,6 +443,9 @@ public:
 	explicit CONSTInst(double d,Type::DoubleType) : Instruction(CONSTInstID, Type::DoubleTypeID) {
 		value.d = d;
 	}
+	explicit CONSTInst(void *anyptr,Type::ReferenceType) : Instruction(CONSTInstID, Type::ReferenceTypeID) {
+		value.anyptr = anyptr;
+	}
 	virtual CONSTInst* to_CONSTInst() { return this; }
 
 	/**
@@ -473,6 +476,10 @@ public:
 	double get_Double() const {
 		assert(get_type() == Type::DoubleTypeID);
 		return value.d;
+	}
+	void *get_Reference() const {
+		assert(get_type() == Type::ReferenceTypeID);
+		return value.anyptr;
 	}
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 	virtual OStream& print(OStream& OS) const {
@@ -728,13 +735,6 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class BUILTINInst : public Instruction {
-public:
-	explicit BUILTINInst(Type::TypeID type) : Instruction(BUILTINInstID, type) {}
-	virtual BUILTINInst* to_BUILTINInst() { return this; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
-
 class INVOKEInst : public MultiOpInst {
 private:
 	MethodDescriptor MD;
@@ -805,6 +805,25 @@ public:
 			constant_FMIref *fmiref, bool resolved, BeginInst *begin, Instruction *state_change)
 		: INVOKEInst(INVOKEINTERFACEInstID, type, size, fmiref, resolved, begin, state_change) {}
 	virtual INVOKEINTERFACEInst* to_INVOKEINTERFACEInst() { return this; }
+	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+};
+
+class BUILTINInst : public INVOKEInst {
+private:
+
+	/// A pointer to the function that implements the builtin functionality.
+	u1 *address;
+
+public:
+	explicit BUILTINInst(Type::TypeID type, u1 *address, unsigned size,
+		bool resolved, BeginInst *begin, Instruction *state_change)
+		: INVOKEInst(BUILTINInstID, type, size, NULL, resolved, begin, state_change), address(address) {}
+
+	u1 *get_address() const {
+		return address;
+	}
+
+	virtual BUILTINInst* to_BUILTINInst() { return this; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 

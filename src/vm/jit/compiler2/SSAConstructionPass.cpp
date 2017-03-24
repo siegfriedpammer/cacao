@@ -2021,6 +2021,13 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		printf("%p ", (void*) iptr->sx.s23.s3.constval);
 		//		break;
 
+			{
+				assert(INSTRUCTION_IS_RESOLVED(iptr));
+				Instruction *I = new CONSTInst(iptr->sx.val.anyptr, Type::ReferenceType());
+				write_variable(iptr->dst.varindex,bbindex,I);
+				M->add_Instruction(I);
+			}
+			break;
 			case ICMD_GETFIELD:        /* 1 -> 1 */
 			case ICMD_PUTFIELD:        /* 2 -> 0 */
 				{
@@ -2348,22 +2355,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 		#endif
 		#endif
 		//		break;
-			case ICMD_BUILTIN:
-		//		if (stage >= SHOW_STACK) {
-		//			argp = iptr->sx.s23.s2.args;
-		//			i = iptr->s1.argcount;
-		//			while (i--) {
-		//				if ((iptr->s1.argcount - 1 - i) == iptr->sx.s23.s3.bte->md->paramcount)
-		//					printf(" pass-through: ");
-		//				SHOW_VARIABLE(OS, *(argp++));
-		//			}
-		//		}
-		//		printf("%s ", iptr->sx.s23.s3.bte->cname);
-		//		if (iptr->sx.s23.s3.bte->md->returntype.type != TYPE_VOID) {
-		//			SHOW_DST(OS, iptr);
-		//		}
-		//		break;	
-				
 			case ICMD_INVOKESPECIAL:
 				{
 					assert(INSTRUCTION_MUST_CHECK(iptr));
@@ -2378,15 +2369,21 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_INVOKEVIRTUAL:
 			case ICMD_INVOKEINTERFACE:
 			case ICMD_INVOKESTATIC:
+			case ICMD_BUILTIN:
 				{
-					constant_FMIref   *fmiref;
-
-					//INSTRUCTION_GET_METHODDESC(iptr, md);
-					INSTRUCTION_GET_METHODREF(iptr, fmiref);
+					methoddesc *md;
+					constant_FMIref *fmiref;
+					
+					if (iptr->opc == ICMD_BUILTIN) {
+						md = iptr->sx.s23.s3.bte->md;
+					} else {
+						INSTRUCTION_GET_METHODREF(iptr, fmiref);
+						md = fmiref->parseddesc.md;
+					}
 					
 					// get return type
 					Type::TypeID type;
-					switch (fmiref->parseddesc.md->returntype.type) {
+					switch (md->returntype.type) {
 					case TYPE_INT:
 						type = Type::IntTypeID;
 						break;
@@ -2439,7 +2436,11 @@ bool SSAConstructionPass::run(JITData &JD) {
 						I = new INVOKEINTERFACEInst(type,i,fmiref,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
 						break;
 					case ICMD_BUILTIN:
-						I = new BUILTINInst(type,i,fmiref,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
+						{
+							builtintable_entry *bte = iptr->sx.s23.s3.bte;
+							u1 *builtin_address = bte->stub == NULL ? reinterpret_cast<u1*>(bte->fp) : bte->stub;
+							I = new BUILTINInst(type,builtin_address,i,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
+						}
 						break;
 					default:
 						break;

@@ -1199,6 +1199,8 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	case Type::DoubleTypeID:
 		result = new NativeRegister(type,&XMM0);
 		break;
+	case Type::VoidTypeID:
+		break;
 	default:
 		ABORT_MSG("x86_64 Lowering not supported",
 		"Inst: " << I << " type: " << type);
@@ -1220,15 +1222,15 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 
 	assert(I->is_resolved() && "Calls to unresolved methods are not supported");
 
-	methodinfo* callee = I->get_fmiref()->p.method;
-
 	if (I->to_INVOKESTATICInst() || I->to_INVOKESPECIALInst()) {
 		// load address
+		methodinfo* callee = I->get_fmiref()->p.method;
 		Immediate *method_address = new Immediate(reinterpret_cast<s8>(callee->code->entrypoint),
 				Type::ReferenceType());
 		MachineInstruction *mov = get_Backend()->create_Move(method_address, addr);
 		get_current()->push_back(mov);
 	} else if (I->to_INVOKEVIRTUALInst()) {
+		methodinfo* callee = I->get_fmiref()->p.method;
 		int32_t s1 = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * callee->vftblindex;
 		VirtualRegister *vftbl_address = new VirtualRegister(Type::ReferenceTypeID);
 		MachineOperand *receiver = get_op(I->get_operand(0)->to_Instruction());
@@ -1242,6 +1244,7 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 				GPInstruction::OS_64);
 		get_current()->push_back(load_method_address);
 	} else if (I->to_INVOKEINTERFACEInst()) {
+		methodinfo* callee = I->get_fmiref()->p.method;
 		int32_t s1 = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr) * callee->clazz->index;
 		VirtualRegister *vftbl_address = new VirtualRegister(Type::ReferenceTypeID);
 		MachineOperand *receiver = get_op(I->get_operand(0)->to_Instruction());
@@ -1261,6 +1264,11 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 		MachineInstruction *load_method_address = new MovInst(SrcOp(method_offset), DstOp(addr),
 				GPInstruction::OS_64);
 		get_current()->push_back(load_method_address);
+	} else if (I->to_BUILTINInst()) {
+		Immediate *method_address = new Immediate(reinterpret_cast<s8>(I->to_BUILTINInst()->get_address()),
+				Type::ReferenceType());
+		MachineInstruction *mov = get_Backend()->create_Move(method_address, addr);
+		get_current()->push_back(mov);
 	}
 
 	// add call
@@ -1288,6 +1296,10 @@ void X86_64LoweringVisitor::visit(INVOKEVIRTUALInst *I, bool copyOperands) {
 }
 
 void X86_64LoweringVisitor::visit(INVOKEINTERFACEInst *I, bool copyOperands) {
+	visit(static_cast<INVOKEInst*>(I), copyOperands);
+}
+
+void X86_64LoweringVisitor::visit(BUILTINInst *I, bool copyOperands) {
 	visit(static_cast<INVOKEInst*>(I), copyOperands);
 }
 

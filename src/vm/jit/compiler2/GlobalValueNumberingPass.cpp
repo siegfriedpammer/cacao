@@ -121,10 +121,9 @@ void GlobalValueNumberingPass::init_partition(Method::const_iterator begin, Meth
 				case Type::DoubleTypeID:
 					block = get_or_create_block(doubleToBlock,
 						constInst->get_Double());
-
 					break;
 				default:
-					assert(0 && "illegal type");
+					break;
 			}
 		} else if (I->get_opcode() == Instruction::PHIInstID) {
 			// all PHIInsts which belong to the same basic block

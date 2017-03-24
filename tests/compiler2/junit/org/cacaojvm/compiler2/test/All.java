@@ -83,6 +83,8 @@ import org.junit.runners.Suite;
 	InvokeVirtual.class,
 	InvokeInterface.class,
 
+	New.class,
+
 	MatcherBenchmarks.class
 
 	// SampleTest.class

@@ -74,6 +74,9 @@ Immediate::Immediate(CONSTInst *I)
 	case Type::DoubleTypeID:
 		value.d = I->get_Double();
 		break;
+	case Type::ReferenceTypeID:
+		value.l = reinterpret_cast<s8>(I->get_Reference());
+		break;
 	default:
 		assert(0);
 		break;
