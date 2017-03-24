@@ -2365,16 +2365,21 @@ bool SSAConstructionPass::run(JITData &JD) {
 		//		}
 		//		break;
 
-			case ICMD_INVOKEVIRTUAL:
 			case ICMD_INVOKESPECIAL:
 				{
-					deoptimize(bbindex);
-					break;
+					assert(INSTRUCTION_MUST_CHECK(iptr));
+
+					s4 receiver_index = *(iptr->sx.s23.s2.args);
+					Value *receiver = read_variable(receiver_index,bbindex);
+					CHECKNULLInst *check_null = new CHECKNULLInst(receiver);
+					M->add_Instruction(check_null);
+					write_variable(global_state, bbindex, check_null);
 				}
+				// fall through
+			case ICMD_INVOKEVIRTUAL:
+			case ICMD_INVOKEINTERFACE:
 			case ICMD_INVOKESTATIC:
 				{
-					deoptimize(bbindex);
-#if 0
 					//methoddesc *md;
 					constant_FMIref   *fmiref;
 					//INSTRUCTION_GET_METHODDESC(iptr, md);
@@ -2418,9 +2423,27 @@ bool SSAConstructionPass::run(JITData &JD) {
 
 					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
 					assert(state_change);
-					INVOKESTATICInst *I = new INVOKESTATICInst(type,i,fmiref,
-						INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
-					LOG3("INVOKESTATICInst: " << I << " dep = " << state_change << nl);
+
+					INVOKEInst *I;
+
+					switch (iptr->opc) {
+					case ICMD_INVOKESPECIAL:
+						I = new INVOKESPECIALInst(type,i,fmiref,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
+						break;
+					case ICMD_INVOKEVIRTUAL:
+						I = new INVOKEVIRTUALInst(type,i,fmiref,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
+						break;
+					case ICMD_INVOKESTATIC:
+						I = new INVOKESTATICInst(type,i,fmiref,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
+						break;
+					case ICMD_INVOKEINTERFACE:
+						I = new INVOKEINTERFACEInst(type,i,fmiref,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
+						break;
+					default:
+						break;
+					}
+
+					LOG3("INVOKEInst: " << I << " dep = " << state_change << nl);
 					while (i--) {
 						// TODO understand
 						//if ((iptr->s1.argcount - 1 - i) == md->paramcount)
@@ -2435,30 +2458,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 #endif
 				}
 				break;
-			case ICMD_INVOKEINTERFACE:
-		//		if (stage >= SHOW_STACK) {
-		//			methoddesc *md;
-		//			INSTRUCTION_GET_METHODDESC(iptr, md);
-		//			argp = iptr->sx.s23.s2.args;
-		//			i = iptr->s1.argcount;
-		//			while (i--) {
-		//				if ((iptr->s1.argcount - 1 - i) == md->paramcount)
-		//					printf(" pass-through: ");
-		//				SHOW_VARIABLE(OS, *(argp++));
-		//			}
-		//		}
-		//		INSTRUCTION_GET_METHODREF(iptr, fmiref);
-		//		method_methodref_print(fmiref);
-		//		if (fmiref->parseddesc.md->returntype.type != TYPE_VOID) {
-		//			putchar(' ');
-		//			SHOW_DST(OS, iptr);
-		//		}
-		//		break;
-
-				{
-					deoptimize(bbindex);
-					break;
-				}
 			case ICMD_IFLT:
 			case ICMD_IFGT:
 			case ICMD_IFGE:
