@@ -81,6 +81,7 @@ import org.junit.runners.Suite;
 	InvokeStatic.class,
 	InvokeSpecial.class,
 	InvokeVirtual.class,
+	InvokeInterface.class,
 
 	MatcherBenchmarks.class
 
