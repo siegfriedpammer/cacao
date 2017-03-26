@@ -1223,7 +1223,6 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	assert(I->is_resolved() && "Calls to unresolved methods are not supported");
 
 	if (I->to_INVOKESTATICInst() || I->to_INVOKESPECIALInst()) {
-		// load address
 		methodinfo* callee = I->get_fmiref()->p.method;
 		Immediate *method_address = new Immediate(reinterpret_cast<s8>(callee->code->entrypoint),
 				Type::ReferenceType());

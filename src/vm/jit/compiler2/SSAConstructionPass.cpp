@@ -1166,7 +1166,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 		init_basicblock = jd->basicblockcount;
 		LOG("Extra basic block added (index = " << init_basicblock << ")" << nl);
 	}
-	
+
 	// store basicblock BeginInst
 	beginToIndex.clear();
 	BB.clear();
@@ -2381,7 +2381,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						md = fmiref->parseddesc.md;
 					}
 					
-					// get return type
+					// Determine the return type of the invocation.
 					Type::TypeID type;
 					switch (md->returntype.type) {
 					case TYPE_INT:
@@ -2403,62 +2403,63 @@ bool SSAConstructionPass::run(JITData &JD) {
 						type = Type::ReferenceTypeID;
 						break;
 					case TYPE_RET:
-						//type = Type::TypeID;
-						//break;
+						// TODO Implement me.
 					default:
 						type = Type::VoidTypeID;
 						err() << BoldRed << "error: " << reset_color << " type " << BoldWhite
-							  << fmiref->parseddesc.md->returntype.type << reset_color
+							  << md->returntype.type << reset_color
 							  << " not yet supported! (see vm/global.h)" << nl;
 						assert(false);
 					}
-					// get arguments
-					s4 *argp = iptr->sx.s23.s2.args;
-					int32_t i = iptr->s1.argcount;
-					// create instruction
 
 					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
 					assert(state_change);
 
-					INVOKEInst *I;
-
+					// Create the actual instruction for the invocation.
+					INVOKEInst *I = NULL;
+					int32_t argcount = iptr->s1.argcount;
 					switch (iptr->opc) {
 					case ICMD_INVOKESPECIAL:
-						I = new INVOKESPECIALInst(type,i,fmiref,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
+						I = new INVOKESPECIALInst(type,argcount,fmiref,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
 						break;
 					case ICMD_INVOKEVIRTUAL:
-						I = new INVOKEVIRTUALInst(type,i,fmiref,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
+						I = new INVOKEVIRTUALInst(type,argcount,fmiref,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
 						break;
 					case ICMD_INVOKESTATIC:
-						I = new INVOKESTATICInst(type,i,fmiref,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
+						I = new INVOKESTATICInst(type,argcount,fmiref,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
 						break;
 					case ICMD_INVOKEINTERFACE:
-						I = new INVOKEINTERFACEInst(type,i,fmiref,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
+						I = new INVOKEINTERFACEInst(type,argcount,fmiref,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
 						break;
 					case ICMD_BUILTIN:
 						{
 							builtintable_entry *bte = iptr->sx.s23.s3.bte;
 							u1 *builtin_address = bte->stub == NULL ? reinterpret_cast<u1*>(bte->fp) : bte->stub;
-							I = new BUILTINInst(type,builtin_address,i,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
+							I = new BUILTINInst(type,builtin_address,argcount,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
 						}
 						break;
 					default:
+						assert(false);
 						break;
 					}
 
-					LOG3("INVOKEInst: " << I << " dep = " << state_change << nl);
-					while (i--) {
+					// Establish data dependencies to the arguments of the invocation.
+					s4 *args = iptr->sx.s23.s2.args;
+					for (int i = 0; i < argcount; i++) {
 						// TODO understand
 						//if ((iptr->s1.argcount - 1 - i) == md->paramcount)
 						//	printf(" pass-through: ");
-						I->append_parameter(read_variable(*(argp++),bbindex));
+						I->append_parameter(read_variable(args[i],bbindex));
 					}
+
 					if (type != Type::VoidTypeID) {
 						write_variable(iptr->dst.varindex,bbindex,I);
 					}
+
 					write_variable(global_state,bbindex,I);
 					M->add_Instruction(I);
-#endif
+
+					LOG3("INVOKEInst: " << I << " dep = " << state_change << nl);
 				}
 				break;
 			case ICMD_IFLT:
