@@ -2371,6 +2371,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_INVOKESTATIC:
 			case ICMD_BUILTIN:
 				{
+					assert(INSTRUCTION_IS_RESOLVED(iptr) && "Calls to unresolved methods are not supported");
+
 					methoddesc *md;
 					constant_FMIref *fmiref;
 					
@@ -2420,22 +2422,22 @@ bool SSAConstructionPass::run(JITData &JD) {
 					int32_t argcount = iptr->s1.argcount;
 					switch (iptr->opc) {
 					case ICMD_INVOKESPECIAL:
-						I = new INVOKESPECIALInst(type,argcount,fmiref,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
+						I = new INVOKESPECIALInst(type,argcount,fmiref,BB[bbindex],state_change);
 						break;
 					case ICMD_INVOKEVIRTUAL:
-						I = new INVOKEVIRTUALInst(type,argcount,fmiref,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
+						I = new INVOKEVIRTUALInst(type,argcount,fmiref,BB[bbindex],state_change);
 						break;
 					case ICMD_INVOKESTATIC:
-						I = new INVOKESTATICInst(type,argcount,fmiref,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
+						I = new INVOKESTATICInst(type,argcount,fmiref,BB[bbindex],state_change);
 						break;
 					case ICMD_INVOKEINTERFACE:
-						I = new INVOKEINTERFACEInst(type,argcount,fmiref,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
+						I = new INVOKEINTERFACEInst(type,argcount,fmiref,BB[bbindex],state_change);
 						break;
 					case ICMD_BUILTIN:
 						{
 							builtintable_entry *bte = iptr->sx.s23.s3.bte;
 							u1 *builtin_address = bte->stub == NULL ? reinterpret_cast<u1*>(bte->fp) : bte->stub;
-							I = new BUILTINInst(type,builtin_address,argcount,INSTRUCTION_IS_RESOLVED(iptr),BB[bbindex],state_change);
+							I = new BUILTINInst(type,builtin_address,argcount,BB[bbindex],state_change);
 						}
 						break;
 					default:
