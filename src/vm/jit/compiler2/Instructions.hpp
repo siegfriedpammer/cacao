@@ -769,6 +769,7 @@ public:
 	}
 	bool is_resolved() const { return resolved; }
 	constant_FMIref* get_fmiref() const { return fmiref; }
+	virtual INVOKEInst* to_INVOKEInst() { return this; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
