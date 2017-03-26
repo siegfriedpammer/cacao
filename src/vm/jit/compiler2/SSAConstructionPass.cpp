@@ -1351,6 +1351,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 				SourceStateInst *source_state = record_source_state(BB[bbindex],
 						bb->iinstr, bb, live_javalocals, bb->invars, bb->indepth);
 
+#if defined(ENABLE_COUNTDOWN_TRAPS)
 				// For now it is only possible to jump into optimized code at the begin
 				// of methods. Hence, we currently only place a ReplacementEntryInst at
 				// method entry.
@@ -1358,6 +1359,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					ReplacementEntryInst *rplentry = new ReplacementEntryInst(BB[bbindex], source_state);
 					M->add_Instruction(rplentry);
 				}
+#endif
 			}
 		}
 
