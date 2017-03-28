@@ -58,7 +58,7 @@ and the input file (instruction_table.csv).
 %term TABLESWITCHInstID = 49
 %term LOOKUPSWITCHInstID = 50
 %term RETURNInstID = 51
-%term NoInstID = 60
+%term NoInstID = 64
 %%
 stm: NOPInstID "NOPInstID" 1 
 stm: POPInstID "POPInstID" 1 
