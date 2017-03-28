@@ -40,30 +40,6 @@ class Compiler2TestBase extends Compiler2Test {
 		assertEquals(resultCompiler2, resultBaseline);
 	}
 
-	protected void testExpectException(Class<? extends Exception> exception, String methodName, String methodDesc, Object... args) {
-		boolean baselineDidThrow = false;
-		boolean compiler2DidThrow = false;
-
-		try {
-			runBaseline(getClass(), methodName, methodDesc, args);
-		} catch (Exception ex) {
-			if (ex.getClass().equals(exception)) {
-				baselineDidThrow = true;
-			} 
-		}
-
-//		try {
-//			runCompiler2(getClass(), methodName, methodDesc, args);
-//		} catch (Exception ex) {
-//			if (ex.getClass().equals(exception)) {
-//				compiler2DidThrow = true;
-//			} 
-//		}
-
-		assertTrue(baselineDidThrow);
-//		assertTrue(compiler2DidThrow);
-	}
-
 	protected void testResultEqual(String methodName, String methodDesc,
 			Object... args) {
 		testResultEqual(getClass(), methodName, methodDesc, args);

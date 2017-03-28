@@ -40,9 +40,4 @@ public class InvokeSpecial extends Compiler2TestBase {
 	public void testInvokeSpecialNoArgs() {
 		testResultEqual("invokeSpecialNoArgs", "(Lorg/cacaojvm/compiler2/test/InvokeSpecial;)I", this);
 	}
-
-	//@Test
-	public void testInvokeSpecialNoArgsNullPointException() {
-		testExpectException(NullPointerException.class, "invokeSpecialNoArgs", "(Lorg/cacaojvm/compiler2/test/InvokeSpecial;)I", null);
-	}
 }
