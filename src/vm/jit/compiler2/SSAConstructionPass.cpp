@@ -2371,7 +2371,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_INVOKESTATIC:
 			case ICMD_BUILTIN:
 				{
-					assert(INSTRUCTION_IS_RESOLVED(iptr) && "Calls to unresolved methods are not supported");
+					if (!INSTRUCTION_IS_RESOLVED(iptr)) {
+						deoptimize(bbindex);
+						break;
+					}
 
 					methoddesc *md;
 					constant_FMIref *fmiref;
