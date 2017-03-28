@@ -364,7 +364,6 @@ u1 *jit_compile(methodinfo *m)
 		jd->flags |= JITDATA_FLAG_VERBOSECALL;
 
 #if defined(ENABLE_COMPILER2)
-	// TODO This condition looks ugly
 	if (!opt_DisableCountdownTraps && (opt_ReplaceMethod == NULL || method_matches(m, opt_ReplaceMethod)))
 		jd->flags |= JITDATA_FLAG_COUNTDOWN;
 #endif

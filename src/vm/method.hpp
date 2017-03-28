@@ -113,7 +113,7 @@ struct methodinfo {                 /* method structure                       */
 
 #if defined(ENABLE_COMPILER2)
 	s4            hitcountdown;     /* decreased for each hit                 */
-	codeinfo     *deopttarget;      /* TODO more info                         */
+	codeinfo     *deopttarget;      /* code to use for deoptimization         */
 #endif
 
 #if defined(ENABLE_DEBUG_FILTER)
