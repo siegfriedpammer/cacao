@@ -272,6 +272,7 @@ static inline bool instruction_has_side_effects(const instruction *iptr)
 		|| opc == ICMD_INVOKEVIRTUAL
 		|| opc == ICMD_INVOKEINTERFACE
 		|| opc == ICMD_INVOKESPECIAL
+		|| opc == ICMD_BUILTIN
 		|| opc == ICMD_PUTSTATIC
 		|| opc == ICMD_GETSTATIC
 		|| opc == ICMD_PUTFIELD
