@@ -153,7 +153,7 @@ PassUsage& DeadCodeEliminationPass::get_PassUsage(PassUsage &PU) const {
 char DeadCodeEliminationPass::ID = 0;
 
 // register pass
-static PassRegistry<DeadCodeEliminationPass> X("DeadCodeEliminationPass");
+//static PassRegistry<DeadCodeEliminationPass> X("DeadCodeEliminationPass");
 
 } // end namespace compiler2
 } // end namespace jit

@@ -27,7 +27,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-class Compiler2TestBase extends Compiler2Test {
+public class Compiler2TestBase extends Compiler2Test {
 
 	// without timing
 

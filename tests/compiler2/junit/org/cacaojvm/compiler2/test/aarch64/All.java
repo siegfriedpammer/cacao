@@ -21,74 +21,14 @@
  * 02110-1301, USA.
  *
  */
-package org.cacaojvm.compiler2.test;
+package org.cacaojvm.compiler2.test.aarch64;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-	// @formatter:off
-	Fact.class,
-	Sqrt.class,
-	Power.class,
-	Min.class,
-	Pi.class,
-	PiSpigot.class,
-	Overflow.class,
-	ParameterLong.class,
-	ParameterDouble.class,
-	Ineg.class,
-	Lneg.class,
-	Fneg.class,
-	Dneg.class,
-	Fcmp.class,
-	Dcmp.class,
-	BoyerMoore.class,
-	ArrayLength.class,
-	Permut.class,
-	ArrayLoad.class,
-	ArrayStore.class,
-	ArrayLoadFloat.class,
-	DoubleArrayStore.class,
-	MatAdd.class,
-	MatMult.class,
-	GetStatic.class,
-	Array2dimLoad.class,
-	Array2dimStore.class,
-	LookupSwitch.class,
-	
-	D2f.class,
-	Dadd.class,
-	Dsub.class,
-	Dmul.class,
-	Ddiv.class,
-	
-	F2d.class,
-	Fadd.class,
-	Fsub.class,
-	Fmul.class,
-	Fdiv.class,
-	
-	I2b.class,
-	I2c.class,
-	I2s.class,
-	I2f.class,
-	I2d.class,
-	Idiv.class,
-	Irem.class,
-
-	InvokeStatic.class,
-	InvokeSpecial.class,
-	InvokeVirtual.class,
-	InvokeInterface.class,
-
-	New.class,
-
-	MatcherBenchmarks.class
-
-	// SampleTest.class
-	// @formatter:on
+	L2b.class
 })
 public class All {
 }

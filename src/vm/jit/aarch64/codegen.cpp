@@ -458,12 +458,31 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			emit_store_dst(jd, iptr, d);
 			break;
 
+		case ICMD_IMULCONST:  /* ..., value  ==> ..., value * constant        */
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			asme.iconst(REG_ITMP2, iptr->sx.val.i);
+			asme.imul(d, s1, REG_ITMP2);
+			asme.ubfx(d, d); // cut back to int
+			emit_store_dst(jd, iptr, d);
+			break;
+
 		case ICMD_LMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			asme.lmul(d, s1, s2);
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_LMULCONST:  /* ..., value  ==> ..., value * constant        */
+		                      /* sx.val.l = constant                             */
+
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			asme.lconst(REG_ITMP2, iptr->sx.val.l);
+			asme.lmul(d, s1, REG_ITMP2);
 			emit_store_dst(jd, iptr, d);
 			break;
 

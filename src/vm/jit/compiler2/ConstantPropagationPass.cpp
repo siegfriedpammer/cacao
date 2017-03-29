@@ -361,7 +361,7 @@ PassUsage& ConstantPropagationPass::get_PassUsage(PassUsage &PU) const {
 char ConstantPropagationPass::ID = 0;
 
 // register pass
-static PassRegistry<ConstantPropagationPass> X("ConstantPropagationPass");
+//static PassRegistry<ConstantPropagationPass> X("ConstantPropagationPass");
 
 } // end namespace compiler2
 } // end namespace jit
