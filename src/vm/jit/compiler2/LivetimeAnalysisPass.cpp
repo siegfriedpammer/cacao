@@ -242,27 +242,6 @@ public:
 	}
 };
 
-
-/**
- * @Cpp11 use std::function
- */
-class AddFixedInterval : public std::unary_function<MachineOperand*,void> {
-private:
-	LivetimeIntervalMapTy &lti_map;
-	MIIterator i;
-public:
-	/// Constructor
-	AddFixedInterval(LivetimeIntervalMapTy &lti_map, MIIterator i)
-		: lti_map(lti_map), i(i) {}
-
-	void operator()(MachineOperand* op) {
-		assert(op);
-		LOG2("AddFixedInterval: op=" << *op << nl);
-		find_or_insert(lti_map,op).add_range(UseDef(UseDef::PseudoDef, i),
-				                             UseDef(UseDef::PseudoDef, i));
-	}
-};
-
 namespace option {
 	Option<bool> print_intervals("PrintLivetimeIntervals","compiler2: print livetime intervals",false,::cacao::option::xx_root());
 }
@@ -297,15 +276,6 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 		for(MachineBasicBlock::reverse_iterator i = BB->rbegin(), e = BB->rend(); i != e ; ++i) {
 			// phis are handled separately
 			if ((*i)->is_phi()) continue;
-
-			LOG2("MInst: " << **i << nl);
-			// for calls, add fixed intervals for caller saved registers
-			if ((*i)->is_call()) {
-				LOG2("MINst: " << **i << " destroys caller saved registers." << nl);
-				OperandFile callerSaved;
-				JD.get_Backend()->get_CallerSaved(callerSaved);
-				std::for_each(callerSaved.begin(), callerSaved.end(), AddFixedInterval(lti_map, BB->convert(i)));
-			}
 
 			// for each output operand of MI
 			ProcessOutOperands(lti_map, BB->convert(i), BB->mi_last(), live)((*i)->get_result());

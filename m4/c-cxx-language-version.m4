@@ -24,7 +24,7 @@ dnl Determine C/C++ language version to use
 AC_DEFUN([AC_CHECK_WITH_CXX_VERSION],[
 AC_MSG_CHECKING(which C++ language version to use)
 AC_ARG_WITH([cxx-standard],
-            [AS_HELP_STRING(--with-cxx-standard=<version>, specifies which version of the C++ language to use (98,11,14) [[default=14]])],
+            [AS_HELP_STRING(--with-cxx-standard=<version>, specifies which version of the C++ language to use (98,11,14) [[default=98]])],
             [case "${withval}" in
                 98)
                     CXX_LANGUAGE_VERSION=c++98
@@ -39,7 +39,7 @@ AC_ARG_WITH([cxx-standard],
                     AC_MSG_ERROR(unknown C++ version ${withval})
                     ;;
              esac],
-            [CXX_LANGUAGE_VERSION=c++14])
+            [CXX_LANGUAGE_VERSION=c++98])
 AC_MSG_RESULT(${CXX_LANGUAGE_VERSION})
 ])
 
