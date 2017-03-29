@@ -960,8 +960,6 @@ void replace_pop_activation_record(executionstate_t *es,
 
 	executionstate_pop_stackframe(es);
 
-	LOG2("current rbp: " << (uintptr_t*) es->intregs[RBP] << nl);
-
 	/* Subtract one from the PC so we do not hit the replacement point */
 	/* of the instruction following the call, if there is one.         */
 
