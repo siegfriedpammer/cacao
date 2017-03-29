@@ -277,6 +277,7 @@ bool LivetimeAnalysisPass::run(JITData &JD) {
 			// phis are handled separately
 			if ((*i)->is_phi()) continue;
 
+			LOG2("MInst: " << **i << nl);
 			// for each output operand of MI
 			ProcessOutOperands(lti_map, BB->convert(i), BB->mi_last(), live)((*i)->get_result());
 

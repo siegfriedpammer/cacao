@@ -156,6 +156,8 @@ public:
 	void ldr(const Reg& rt, const Reg& rn, s2 imm = 0);
 	void str(const Reg& rt, const Reg& rn, s2 imm = 0);
 
+	void ldr(const Reg& rt, const Reg& rn, const Reg& rm);
+
 	void add(const Reg& rd, const Reg& rn, const Reg& rm, 
 	         Shift::SHIFT shift = Shift::LSL, u1 amount = 0);
 	void sub(const Reg& rd, const Reg& rn, const Reg& rm);
@@ -229,6 +231,14 @@ private:
 		assert(imm >= -256 && imm <= 255);
 		u4 instr = 0x38000000 | lsl(size, 30) | lsl(v, 26) | lsl(opc, 22) 
 		                      | lsl(imm & 0x1ff, 12) | lsl(rn, 5) | rt;
+		instructions.push_back(instr);
+	}
+
+	void load_store_register(u1 size, u1 v, u1 opc, u1 rm, u1 option, u1 s, 
+	                         u1 rn, u1 rt) {
+		u4 instr = 0x38200800 | lsl(size, 30) | lsl(v, 26) | lsl(opc, 22)
+							  | lsl(rm, 16) | lsl(option, 13) | lsl(s, 12)
+							  | lsl(rn, 5) | rt;
 		instructions.push_back(instr);
 	}
 

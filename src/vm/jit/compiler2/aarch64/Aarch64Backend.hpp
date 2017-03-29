@@ -52,7 +52,6 @@ public:
 	virtual void visit(REMInst *I, bool copyOperands);
 	virtual void visit(RETURNInst *I, bool copyOperands);
 	virtual void visit(CASTInst *I, bool copyOperands);
-	virtual void visit(INVOKESTATICInst *I, bool copyOperands);
 	virtual void visit(GETSTATICInst *I, bool copyOperands);
 	virtual void visit(LOOKUPSWITCHInst *I, bool copyOperands);
 	virtual void visit(TABLESWITCHInst *I, bool copyOperands);
@@ -62,13 +61,16 @@ public:
 	virtual void visit(ARRAYBOUNDSCHECKInst *I, bool copyOperands);
 	virtual void visit(CMPInst *I, bool copyOperands);
 	virtual void visit(NEGInst *I, bool copyOperands);
+	virtual void visit(INVOKEInst *I, bool copyOperands);
+	virtual void visit(INVOKESTATICInst *I, bool copyOperands);
 	virtual void visit(INVOKESPECIALInst *I, bool copyOperands);
 	virtual void visit(INVOKEVIRTUALInst *I, bool copyOperands);
+	virtual void visit(INVOKEINTERFACEInst *I, bool copyOperands);
 	virtual void visit(BUILTINInst *I, bool copyOperands);
-	virtual void visit(CONSTInst *I, bool copyOperands);
 	virtual void visit(GETFIELDInst *I, bool copyOperands);
 	virtual void visit(PUTFIELDInst *I, bool copyOperands);
 	virtual void visit(AREFInst *I, bool copyOperands);
+	virtual void visit(CHECKNULLInst *I, bool copyOperands);
 
 	virtual void lowerComplex(Instruction* I, int ruleId);
 };

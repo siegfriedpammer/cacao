@@ -53,8 +53,19 @@ void LoadInst::emit(Emitter& em) const {
 	Reg dst = this->reg_res();
 	Reg base = this->reg_base();
 
-	if (off < 0) {
+	u1 sz = 1 << dst.size(); /* 64bit: 8, 32bit: 4 */
+
+	// Handle ambigous case first (see Armv8 reference manual)
+	if (off >= 0 && off <= 255 && (off % sz == 0)) {
+		em.ldr(dst, base, off);
+	} else if (off >= -256 && off <= 255) {
 		em.ldur(dst, base, off);
+	} else if (off < 0 && (-off) < 0xffff) { // this is for larger negative offsets
+		// TODO: R9 is just temporary fixed, as the offset should be known when
+		//       this instruction is created, an additional vreg operator is needed here to
+		//       temporarly hold this negative offset (maybe this can be the same es the dst reg)
+		em.movn(Reg::X(9), (-off) - 1);
+		em.ldr(dst, base, Reg::X(9));
 	} else {
 		em.ldr(dst, base, off);
 	}

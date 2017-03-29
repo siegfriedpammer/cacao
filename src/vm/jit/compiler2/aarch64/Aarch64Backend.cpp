@@ -91,7 +91,21 @@ MachineInstruction* BackendBase<Aarch64>::create_Move(MachineOperand *src,
 		case Type::IntTypeID:
 			return new MovImmInst(DstOp(dst), SrcOp(src), Type::IntTypeID);
 		case Type::LongTypeID:
+		case Type::ReferenceTypeID:
 			return new MovImmInst(DstOp(dst), SrcOp(src), Type::LongTypeID);
+		case Type::FloatTypeID:
+		{
+			// TODO: check if this is the correct way of using the DSEG
+			float imm = src->to_Immediate()->get_Float();
+			DataSegment &ds = get_JITData()
+							  ->get_CodeMemory()->get_DataSegment();
+			DataFragment data = ds.get_Ref(sizeof(float));
+			DataSegment::IdxTy idx = ds.insert_tag(DSFloat(imm), data);
+			write_data<float>(data, imm);
+			MachineInstruction *dseg = 
+				new DsegAddrInst(DstOp(dst), idx, Type::FloatTypeID);
+			return dseg;
+		}
 		case Type::DoubleTypeID:
 		{
 			// TODO: check if this is the correct way of using the DSEG
@@ -198,22 +212,6 @@ void Aarch64LoweringVisitor::visit(LOADInst *I, bool copyOperands) {
 	}
 	get_current()->push_back(move);
 	set_op(I,move->get_result().op);
-}
-
-void Aarch64LoweringVisitor::visit(CONSTInst* I, bool copyOperands) {
-	assert(I);
-	Type::TypeID type = I->get_type();
-	
-	if (type != Type::ReferenceTypeID) {
-		VirtualRegister *reg = new VirtualRegister(type);
-		Immediate *imm = new Immediate(I);
-		MachineInstruction *move = get_Backend()->create_Move(imm,reg);
-		get_current()->push_back(move);
-		set_op(I,move->get_result().op);
-	} else {
-		ABORT_MSG("aarch64: Lowering not supported", 
-				"Inst: " << I << " type: " << type);
-	}
 }
 
 void Aarch64LoweringVisitor::visit(CMPInst *I, bool copyOperands) {
@@ -667,6 +665,7 @@ void Aarch64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 	case Type::ShortTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
+	case Type::ReferenceTypeID:
 	{
 		MachineOperand *ret_reg = new NativeRegister(type, &R0);
 		mov = new MovInst(DstOp(ret_reg), SrcOp(src_op), type);
@@ -822,14 +821,13 @@ void Aarch64LoweringVisitor::visit(CASTInst *I, bool copyOperands) {
 	ABORT_MSG("aarch64: Cast not supported!", "From " << from << " to " << to );
 }
 
-void Aarch64LoweringVisitor::visit(INVOKESTATICInst *I, bool copyOperands) {
+void Aarch64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	assert(I);
 	Type::TypeID type = I->get_type();
 	MethodDescriptor &MD = I->get_MethodDescriptor();
 	MachineMethodDescriptor MMD(MD);
 
 	// operands for the call
-	//VirtualRegister *addr = new VirtualRegister(Type::ReferenceTypeID);
 	MachineOperand *addr = new NativeRegister(Type::ReferenceTypeID, &R18);
 	MachineOperand *result = &NoOperand;
 
@@ -837,7 +835,14 @@ void Aarch64LoweringVisitor::visit(INVOKESTATICInst *I, bool copyOperands) {
 	switch (type) {
 	case Type::IntTypeID:
 	case Type::LongTypeID:
+	case Type::ReferenceTypeID:
 		result = new NativeRegister(type,&R0);
+		break;
+	case Type::FloatTypeID:
+	case Type::DoubleTypeID:
+		result = new NativeRegister(type,&V0);
+		break;
+	case Type::VoidTypeID:
 		break;
 	default:
 		ABORT_MSG("x86_64 Lowering not supported",
@@ -848,53 +853,89 @@ void Aarch64LoweringVisitor::visit(INVOKESTATICInst *I, bool copyOperands) {
 	MachineInstruction* call = new CallInst(SrcOp(addr),DstOp(result),I->op_size());
 	// move values to parameters
 	for (std::size_t i = 0; i < I->op_size(); ++i ) {
-		Instruction *param = I->get_operand(i)->to_Instruction();
-		assert(param);
 		MachineInstruction* mov = get_Backend()->create_Move(
-			get_op(param),
+			get_op(I->get_operand(i)->to_Instruction()),
 			MMD[i]
 		);
 		get_current()->push_back(mov);
 		// set call operand
 		call->set_operand(i+1,MMD[i]);
 	}
-	// spill caller saved
 
-	// load address
-	DataSegment &DS = get_Backend()->get_JITData()->get_CodeMemory()->get_DataSegment();
-	DataSegment::IdxTy idx = DS.get_index(DSFMIRef(I->get_fmiref()));
-	if (DataSegment::is_invalid(idx)) {
-		DataFragment data = DS.get_Ref(sizeof(void*));
+	if (I->to_INVOKESTATICInst() || I->to_INVOKESPECIALInst()) {
+		methodinfo* callee = I->get_fmiref()->p.method;
+		Immediate *method_address = new Immediate(reinterpret_cast<s8>(callee->code->entrypoint),
+				Type::ReferenceType());
+		MachineInstruction *mov = get_Backend()->create_Move(method_address, addr);
+		get_current()->push_back(mov);
+	} else if (I->to_INVOKEVIRTUALInst()) {
+		methodinfo* callee = I->get_fmiref()->p.method;
+		int32_t s1 = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * callee->vftblindex;
+		VirtualRegister *vftbl_address = new VirtualRegister(Type::ReferenceTypeID);
+		MachineOperand *receiver = get_op(I->get_operand(0)->to_Instruction());
+		MachineOperand *vftbl_offset = new Immediate(OFFSET(java_object_t, vftbl), Type::IntType());
+		MachineInstruction *load_vftbl_address = new LoadInst(DstOp(vftbl_address), BaseOp(receiver), IdxOp(vftbl_offset), Type::LongTypeID);
+		get_current()->push_back(load_vftbl_address);
 
-		if (I->is_resolved()) {
-			LOG2("INVOKESTATICInst: is resolved" << nl);
-			methodinfo *lm = I->get_fmiref()->p.method;
-			
-			for (int i = 0, e = 8 ; i < e ; ++i) {
-				data[i] = (u1) 0xff & *(reinterpret_cast<u1*>(&lm->code->entrypoint) + i);
-			}
-			//InstructionEncoding::imm(data, lm->code->entrypoint);
-		} else {
-			LOG2("INVOKESTATICInst: is notresolved" << nl);
-			ABORT_MSG("aarch64: unresolved INVOKESTATIC not impl", "");
-		}
-		idx = DS.insert_tag(DSFMIRef(I->get_fmiref()),data);
+		MachineOperand *method_offset = new Immediate(s1, Type::IntType());
+		MachineInstruction *load_method_address = new LoadInst(DstOp(addr), BaseOp(vftbl_address), IdxOp(method_offset), Type::LongTypeID);
+		get_current()->push_back(load_method_address);
+	} else if (I->to_INVOKEINTERFACEInst()) {
+		methodinfo* callee = I->get_fmiref()->p.method;
+		int32_t s1 = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr) * callee->clazz->index;
+		VirtualRegister *vftbl_address = new VirtualRegister(Type::ReferenceTypeID);
+		MachineOperand *receiver = get_op(I->get_operand(0)->to_Instruction());
+
+		MachineOperand *vftbl_offset = new Immediate(OFFSET(java_object_t, vftbl), Type::IntType());
+		MachineInstruction *load_vftbl_address = new LoadInst(DstOp(vftbl_address), BaseOp(receiver), IdxOp(vftbl_offset), Type::LongTypeID);
+		get_current()->push_back(load_vftbl_address);
+
+		VirtualRegister *interface_address = new VirtualRegister(Type::ReferenceTypeID);
+		MachineOperand *interface_offset = new Immediate(s1, Type::IntType());
+		MachineInstruction *load_interface_address = new LoadInst(DstOp(interface_address), BaseOp(vftbl_address), IdxOp(interface_offset), Type::LongTypeID);
+		get_current()->push_back(load_interface_address);
+
+		int32_t s2 = sizeof(methodptr) * (callee - callee->clazz->methods);
+		MachineOperand *method_offset = new Immediate(s2, Type::IntType());
+		MachineInstruction *load_method_address = new LoadInst(DstOp(addr), BaseOp(interface_address), IdxOp(method_offset), Type::LongTypeID);
+		get_current()->push_back(load_method_address);
+	} else if (I->to_BUILTINInst()) {
+		Immediate *method_address = new Immediate(reinterpret_cast<s8>(I->to_BUILTINInst()->get_address()),
+				Type::ReferenceType());
+		MachineInstruction *mov = get_Backend()->create_Move(method_address, addr);
+		get_current()->push_back(mov);
 	}
-	DsegAddrInst *dmov = new DsegAddrInst(DstOp(addr), idx, Type::LongTypeID);
-	get_current()->push_back(dmov);
 
 	// add call
 	get_current()->push_back(call);
+
 	// get result
 	if (result != &NoOperand) {
-		MachineInstruction *reg = 
-			new MovInst(DstOp(new VirtualRegister(type)), SrcOp(result), type);
+		MachineOperand *dst = new VirtualRegister(type);
+		MachineInstruction *reg = get_Backend()->create_Move(result, dst);
 		get_current()->push_back(reg);
 		set_op(I,reg->get_result().op);
 	}
+}
 
-	//ABORT_MSG("aarch64: Lowering not supported",
-	//	"Inst: " << I << " type: " << type);
+void Aarch64LoweringVisitor::visit(INVOKESTATICInst *I, bool copyOperands) {
+	visit(static_cast<INVOKEInst*>(I), copyOperands);
+}
+
+void Aarch64LoweringVisitor::visit(INVOKESPECIALInst *I, bool copyOperands) {
+	visit(static_cast<INVOKEInst*>(I), copyOperands);
+}
+
+void Aarch64LoweringVisitor::visit(INVOKEVIRTUALInst *I, bool copyOperands) {
+	visit(static_cast<INVOKEInst*>(I), copyOperands);
+}
+
+void Aarch64LoweringVisitor::visit(INVOKEINTERFACEInst *I, bool copyOperands) {
+	visit(static_cast<INVOKEInst*>(I), copyOperands);
+}
+
+void Aarch64LoweringVisitor::visit(BUILTINInst *I, bool copyOperands) {
+	visit(static_cast<INVOKEInst*>(I), copyOperands);
 }
 
 
@@ -1006,16 +1047,8 @@ void Aarch64LoweringVisitor::visit(TABLESWITCHInst *I, bool copyOperands) {
 		"Inst: " << I << " type: " << type);
 }
 
-void Aarch64LoweringVisitor::visit(BUILTINInst *I, bool copyOperands) {
-	UNIMPLEMENTED_MSG("BUILTINInst lowering!");
-}
-
-void Aarch64LoweringVisitor::visit(INVOKESPECIALInst *I, bool copyOperands) {
-	UNIMPLEMENTED_MSG("INVOKESPECIALInst lowering!");
-}
-
-void Aarch64LoweringVisitor::visit(INVOKEVIRTUALInst *I, bool copyOperands) {
-	UNIMPLEMENTED_MSG("INVOKEVIRTUALInst lowering!");
+void Aarch64LoweringVisitor::visit(CHECKNULLInst *I, bool copyOperands) {
+	
 }
 
 void Aarch64LoweringVisitor::visit(GETFIELDInst *I, bool copyOperands) {

@@ -91,6 +91,10 @@ void Emitter::str(const Reg& rt, const Reg& rn, s2 imm) {
     load_store_unsigned(rt.size(), rt.v(), 0, imm, rn.r(), rt.r());
 }
 
+void Emitter::ldr(const Reg& rt, const Reg& rn, const Reg& rm) {
+    load_store_register(rt.size(), rt.v(), 1, rm.r(), 3, 0, rn.r(), rt.r());
+}
+
 void Emitter::sbfm(const Reg& rd, const Reg& rn, u1 immr, u1 imms) {
     bitfield(rd.sf(), 0, rd.sf(), immr, imms, rn.r(), rd.r());
 }
