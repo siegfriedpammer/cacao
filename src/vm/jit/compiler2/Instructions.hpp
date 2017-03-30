@@ -537,29 +537,31 @@ public:
 
 class PUTSTATICInst : public Instruction {
 private:
-	constant_FMIref *fmiref;
-	bool resolved;
+	fieldinfo *field;
+
 public:
-	/**
-	 * @param resolved This _should_ not change during compilation
-	 */
-	explicit PUTSTATICInst(Value *value, constant_FMIref *fmiref, bool resolved,
+	explicit PUTSTATICInst(Value *value, fieldinfo *field,
 			BeginInst* begin, Instruction *state_change)
-			: Instruction(PUTSTATICInstID, value->get_type()), fmiref(fmiref), resolved(resolved) {
+			: Instruction(PUTSTATICInstID, value->get_type()), field(field) {
+		assert(value);
+		assert(field);
+		assert(begin);
+		assert(state_change);
 		append_op(value);
 		append_dep(begin);
 		append_dep(state_change);
 	}
+
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = (*dep_begin())->to_BeginInst();
 		assert(begin);
 		return begin;
 	}
+
 	virtual bool has_side_effects() const { return true; }
 	virtual bool is_floating() const { return false; }
 	virtual PUTSTATICInst* to_PUTSTATICInst() { return this; }
-	bool is_resolved() const { return resolved; }
-	constant_FMIref* get_fmiref() const { return fmiref; }
+	fieldinfo* get_field() const { return field; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 

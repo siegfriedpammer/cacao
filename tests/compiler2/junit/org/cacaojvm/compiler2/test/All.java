@@ -55,6 +55,7 @@ import org.junit.runners.Suite;
 	MatMult.class,
 	GetField.class,
 	GetStatic.class,
+	PutStatic.class,
 	Array2dimLoad.class,
 	Array2dimStore.class,
 	LookupSwitch.class,

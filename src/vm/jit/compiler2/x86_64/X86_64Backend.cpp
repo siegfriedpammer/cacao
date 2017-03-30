@@ -1353,6 +1353,45 @@ void X86_64LoweringVisitor::visit(GETSTATICInst *I, bool copyOperands) {
 	set_op(I, read_field->get_result().op);
 }
 
+void X86_64LoweringVisitor::visit(PUTSTATICInst *I, bool copyOperands) {
+	assert(I);
+
+	Immediate *field_address_imm = new Immediate(reinterpret_cast<s8>(I->get_field()->value),
+			Type::ReferenceType());
+
+	// TODO Remove this as soon as stores to immediate addresses are supported.
+	VirtualRegister *field_address = new VirtualRegister(Type::ReferenceTypeID);
+	MachineInstruction *load_field_address = get_Backend()->create_Move(field_address_imm,
+			field_address);
+	get_current()->push_back(load_field_address);
+
+	MachineOperand *value = get_op(I->get_operand(0)->to_Instruction());
+	MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(field_address));
+	MachineInstruction *write_field;
+
+	switch (value->get_type()) {
+	case Type::CharTypeID:
+	case Type::ByteTypeID:
+	case Type::ShortTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+	case Type::ReferenceTypeID:
+		write_field = new MovInst(SrcOp(value),DstOp(modrm),get_OperandSize_from_Type(value->get_type()));
+		break;
+	case Type::FloatTypeID:
+		write_field = new MovSSInst(SrcOp(value),DstOp(modrm));
+		break;
+	case Type::DoubleTypeID:
+		write_field = new MovSDInst(SrcOp(value),DstOp(modrm));
+		break;
+	default:
+		ABORT_MSG("x86_64 Lowering not supported", "Inst: " << I);
+	}
+
+	get_current()->push_back(write_field);
+	set_op(I, write_field->get_result().op);
+}
+
 void X86_64LoweringVisitor::visit(LOOKUPSWITCHInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());

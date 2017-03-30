@@ -2060,19 +2060,30 @@ bool SSAConstructionPass::run(JITData &JD) {
 				}
 			case ICMD_PUTSTATIC:       /* 1 -> 0 */
 				{
-					deoptimize(bbindex);
-					break;
-#if 0
+					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+						deoptimize(bbindex);
+						break;
+					}
+
 					constant_FMIref *fmiref;
 					INSTRUCTION_GET_FIELDREF(iptr, fmiref);
-					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+					fieldinfo* field = fmiref->p.field;
+
+					if (!class_is_or_almost_initialized(field->clazz)) {
+						deoptimize(bbindex);
+						break;
+					}
+
 					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
 					assert(state_change);
-					Instruction *putstatic = new PUTSTATICInst(s1,fmiref,INSTRUCTION_IS_RESOLVED(iptr),
-						BB[bbindex],state_change);
-					write_variable(global_state,bbindex,putstatic);
+
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+					Instruction *putstatic = new PUTSTATICInst(s1, field,
+							BB[bbindex], state_change);
+
+					write_variable(global_state, bbindex, putstatic);
+
 					M->add_Instruction(putstatic);
-#endif
 				}
 				break;
 			case ICMD_GETSTATIC:       /* 0 -> 1 */
