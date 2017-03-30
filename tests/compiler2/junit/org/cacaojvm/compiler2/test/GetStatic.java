@@ -27,7 +27,7 @@ import org.junit.Test;
 
 public class GetStatic extends Compiler2TestBase {
 
-        static byte byteField;
+	static byte byteField;
 
 	/** This is the method under test. */
 	static byte getByte() {
@@ -36,11 +36,11 @@ public class GetStatic extends Compiler2TestBase {
 
 	@Test
 	public void testByte() {
-                byteField = 111;
+		byteField = 111;
 		testResultEqual("getByte", "()B");
 	}
 
-        static short shortField;
+	static short shortField;
 
 	/** This is the method under test. */
 	static short getShort() {
@@ -49,11 +49,11 @@ public class GetStatic extends Compiler2TestBase {
 
 	@Test
 	public void testShort() {
-                shortField = 11111;
+		shortField = 11111;
 		testResultEqual("getShort", "()S");
 	}
 
-        static int intField;
+	static int intField;
 
 	/** This is the method under test. */
 	static int getInt() {
@@ -62,11 +62,11 @@ public class GetStatic extends Compiler2TestBase {
 
 	@Test
 	public void testInt() {
-                intField = 0xDEADBEEF;
+		intField = 0xDEADBEEF;
 		testResultEqual("getInt", "()I");
 	}
 
-        static long longField;
+	static long longField;
 
 	/** This is the method under test. */
 	static long getLong() {
@@ -75,7 +75,7 @@ public class GetStatic extends Compiler2TestBase {
 
 	@Test
 	public void testLong() {
-                longField = 0xDEADBEEF12345678L;
+		longField = 0xDEADBEEF12345678L;
 		testResultEqual("getLong", "()J");
 	}
 
