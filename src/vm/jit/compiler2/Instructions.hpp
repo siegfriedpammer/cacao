@@ -496,8 +496,34 @@ public:
 };
 
 class GETFIELDInst : public Instruction {
+private:
+	fieldinfo *field;
+
 public:
-	explicit GETFIELDInst(Type::TypeID type) : Instruction(GETFIELDInstID, type) {}
+	explicit GETFIELDInst(Type::TypeID type, Value *objectref,
+			fieldinfo *field, BeginInst *begin, Instruction *state_change)
+		: Instruction(GETFIELDInstID, type), field(field) {
+		assert(objectref);
+		assert(field);
+		assert(begin);
+		assert(state_change);
+
+		append_op(objectref);
+		append_dep(begin);
+		append_dep(state_change);
+	}
+
+	virtual BeginInst* get_BeginInst() const {
+		BeginInst *begin = (*dep_begin())->to_BeginInst();
+		assert(begin);
+		return begin;
+	}
+
+	fieldinfo *get_field() const { return field; }
+
+	virtual bool verify() const { return true; }
+	virtual bool has_side_effects() const { return true; }
+	virtual bool is_floating() const { return false; }
 	virtual GETFIELDInst* to_GETFIELDInst() { return this; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };

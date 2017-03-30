@@ -61,6 +61,7 @@ public:
 	virtual void visit(INVOKEVIRTUALInst *I, bool copyOperands);
 	virtual void visit(INVOKEINTERFACEInst *I, bool copyOperands);
 	virtual void visit(BUILTINInst *I, bool copyOperands);
+	virtual void visit(GETFIELDInst *I, bool copyOperands);
 	virtual void visit(GETSTATICInst *I, bool copyOperands);
 	virtual void visit(LOOKUPSWITCHInst *I, bool copyOperands);
 	virtual void visit(TABLESWITCHInst *I, bool copyOperands);

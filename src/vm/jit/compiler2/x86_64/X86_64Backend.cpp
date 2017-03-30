@@ -1300,6 +1300,40 @@ void X86_64LoweringVisitor::visit(BUILTINInst *I, bool copyOperands) {
 	visit(static_cast<INVOKEInst*>(I), copyOperands);
 }
 
+void X86_64LoweringVisitor::visit(GETFIELDInst *I, bool copyOperands) {
+	assert(I);
+
+	MachineOperand* objectref = get_op(I->get_operand(0)->to_Instruction());
+	MachineOperand *field_address = new X86_64ModRMOperand(BaseOp(objectref),
+			I->get_field()->offset);
+	MachineOperand *vreg = new VirtualRegister(I->get_type());
+	MachineInstruction *read_field;
+
+	switch (I->get_type()) {
+	case Type::CharTypeID:
+	case Type::ByteTypeID:
+	case Type::ShortTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+	case Type::ReferenceTypeID:
+		read_field = new MovInst(SrcOp(field_address), DstOp(vreg),
+				get_OperandSize_from_Type(I->get_type()));
+		break;
+	case Type::FloatTypeID:
+		read_field = new MovSSInst(SrcOp(field_address), DstOp(vreg));
+		break;
+	case Type::DoubleTypeID:
+		read_field = new MovSDInst(SrcOp(field_address), DstOp(vreg));
+		break;
+	default:
+		ABORT_MSG("x86_64 Lowering not supported",
+			"Inst: " << I << " type: " << I->get_type());
+	}
+
+	get_current()->push_back(read_field);
+	set_op(I, read_field->get_result().op);
+}
+
 void X86_64LoweringVisitor::visit(GETSTATICInst *I, bool copyOperands) {
 	assert(I);
 	DataSegment &DS = get_Backend()->get_JITData()->get_CodeMemory()->get_DataSegment();

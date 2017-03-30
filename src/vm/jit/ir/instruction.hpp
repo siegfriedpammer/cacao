@@ -276,6 +276,7 @@ static inline bool instruction_has_side_effects(const instruction *iptr)
 		|| opc == ICMD_PUTSTATIC
 		|| opc == ICMD_GETSTATIC
 		|| opc == ICMD_PUTFIELD
+		|| opc == ICMD_GETFIELD
 		|| opc == ICMD_PUTSTATICCONST
 		|| opc == ICMD_PUTFIELDCONST
 		|| opc == ICMD_ASTORE

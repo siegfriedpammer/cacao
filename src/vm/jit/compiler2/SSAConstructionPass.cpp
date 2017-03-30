@@ -31,6 +31,7 @@
 #include "vm/jit/compiler2/CFGConstructionPass.hpp"
 
 #include "vm/descriptor.hpp"
+#include "vm/field.hpp"
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/show.hpp"
@@ -2029,6 +2030,29 @@ bool SSAConstructionPass::run(JITData &JD) {
 			}
 			break;
 			case ICMD_GETFIELD:        /* 1 -> 1 */
+				{
+					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+						deoptimize(bbindex);
+						break;
+					}
+
+					constant_FMIref *fmiref;
+					INSTRUCTION_GET_FIELDREF(iptr, fmiref);
+					fieldinfo* field = fmiref->p.field;
+
+					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
+					assert(state_change);
+
+					Type::TypeID type = convert_to_typeid(fmiref->parseddesc.fd->type);
+					Value *objectref = read_variable(iptr->s1.varindex,bbindex);
+					Instruction *getfield = new GETFIELDInst(type, objectref, field, BB[bbindex], state_change);
+
+					write_variable(iptr->dst.varindex, bbindex, getfield);
+					write_variable(global_state, bbindex, getfield);
+
+					M->add_Instruction(getfield);
+				}
+				break;
 			case ICMD_PUTFIELD:        /* 2 -> 0 */
 				{
 					deoptimize(bbindex);
