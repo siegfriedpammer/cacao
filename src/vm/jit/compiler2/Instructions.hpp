@@ -529,8 +529,36 @@ public:
 };
 
 class PUTFIELDInst : public Instruction {
+private:
+	fieldinfo *field;
+
 public:
-	explicit PUTFIELDInst(Type::TypeID type) : Instruction(PUTFIELDInstID, type) {}
+	explicit PUTFIELDInst(Value *objectref, Value *value, fieldinfo *field,
+			BeginInst* begin, Instruction *state_change)
+			: Instruction(PUTFIELDInstID, value->get_type()), field(field) {
+		assert(objectref);
+		assert(value);
+		assert(field);
+		assert(begin);
+		assert(state_change);
+
+		append_op(objectref);
+		append_op(value);
+		append_dep(begin);
+		append_dep(state_change);
+	}
+
+	virtual BeginInst* get_BeginInst() const {
+		BeginInst *begin = (*dep_begin())->to_BeginInst();
+		assert(begin);
+		return begin;
+	}
+
+	fieldinfo *get_field() const { return field; }
+
+	virtual bool verify() const { return true; }
+	virtual bool has_side_effects() const { return true; }
+	virtual bool is_floating() const { return false; }
 	virtual PUTFIELDInst* to_PUTFIELDInst() { return this; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };

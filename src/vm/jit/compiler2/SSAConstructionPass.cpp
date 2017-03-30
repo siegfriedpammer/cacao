@@ -2055,11 +2055,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 				break;
 			case ICMD_PUTFIELD:        /* 2 -> 0 */
 				{
-					deoptimize(bbindex);
-					break;
-				}
-			case ICMD_PUTSTATIC:       /* 1 -> 0 */
-				{
 					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 						deoptimize(bbindex);
 						break;
@@ -2069,21 +2064,17 @@ bool SSAConstructionPass::run(JITData &JD) {
 					INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 					fieldinfo* field = fmiref->p.field;
 
-					if (!class_is_or_almost_initialized(field->clazz)) {
-						deoptimize(bbindex);
-						break;
-					}
-
-					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
+					Instruction *state_change = read_variable(global_state, bbindex)->to_Instruction();
 					assert(state_change);
 
-					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
-					Instruction *putstatic = new PUTSTATICInst(s1, field,
-							BB[bbindex], state_change);
+					Value *objectref = read_variable(iptr->s1.varindex, bbindex);
+					Value *value = read_variable(iptr->sx.s23.s2.varindex, bbindex);
+					Instruction *putfield = new PUTFIELDInst(objectref, value, field, BB[bbindex],
+							state_change);
 
-					write_variable(global_state, bbindex, putstatic);
+					write_variable(global_state, bbindex, putfield);
 
-					M->add_Instruction(putstatic);
+					M->add_Instruction(putfield);
 				}
 				break;
 			case ICMD_GETSTATIC:       /* 0 -> 1 */
@@ -2113,6 +2104,34 @@ bool SSAConstructionPass::run(JITData &JD) {
 					write_variable(global_state, bbindex, getstatic);
 
 					M->add_Instruction(getstatic);
+				}
+				break;
+			case ICMD_PUTSTATIC:       /* 1 -> 0 */
+				{
+					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+						deoptimize(bbindex);
+						break;
+					}
+
+					constant_FMIref *fmiref;
+					INSTRUCTION_GET_FIELDREF(iptr, fmiref);
+					fieldinfo* field = fmiref->p.field;
+
+					if (!class_is_or_almost_initialized(field->clazz)) {
+						deoptimize(bbindex);
+						break;
+					}
+
+					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
+					assert(state_change);
+
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+					Instruction *putstatic = new PUTSTATICInst(s1, field,
+							BB[bbindex], state_change);
+
+					write_variable(global_state, bbindex, putstatic);
+
+					M->add_Instruction(putstatic);
 				}
 				break;
 			case ICMD_PUTSTATICCONST:  /* 0 -> 0 */

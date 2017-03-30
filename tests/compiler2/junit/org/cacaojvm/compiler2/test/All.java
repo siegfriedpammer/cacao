@@ -54,6 +54,7 @@ import org.junit.runners.Suite;
 	MatAdd.class,
 	MatMult.class,
 	GetField.class,
+	PutField.class,
 	GetStatic.class,
 	PutStatic.class,
 	Array2dimLoad.class,

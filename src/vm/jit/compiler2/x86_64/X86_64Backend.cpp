@@ -1334,6 +1334,39 @@ void X86_64LoweringVisitor::visit(GETFIELDInst *I, bool copyOperands) {
 	set_op(I, read_field->get_result().op);
 }
 
+void X86_64LoweringVisitor::visit(PUTFIELDInst *I, bool copyOperands) {
+	assert(I);
+
+	MachineOperand *objectref = get_op(I->get_operand(0)->to_Instruction());
+	MachineOperand *value = get_op(I->get_operand(1)->to_Instruction());
+	MachineOperand *field_address = new X86_64ModRMOperand(BaseOp(objectref),
+			I->get_field()->offset);
+	MachineInstruction *write_field;
+
+	switch (I->get_type()) {
+	case Type::CharTypeID:
+	case Type::ByteTypeID:
+	case Type::ShortTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+	case Type::ReferenceTypeID:
+		write_field = new MovInst(SrcOp(value), DstOp(field_address),
+				get_OperandSize_from_Type(I->get_type()));
+		break;
+	case Type::FloatTypeID:
+		write_field = new MovSSInst(SrcOp(value), DstOp(field_address));
+		break;
+	case Type::DoubleTypeID:
+		write_field = new MovSDInst(SrcOp(value), DstOp(field_address));
+		break;
+	default:
+		ABORT_MSG("x86_64 Lowering not supported", "Inst: " << I);
+	}
+
+	get_current()->push_back(write_field);
+	set_op(I, write_field->get_result().op);
+}
+
 void X86_64LoweringVisitor::visit(GETSTATICInst *I, bool copyOperands) {
 	assert(I);
 
