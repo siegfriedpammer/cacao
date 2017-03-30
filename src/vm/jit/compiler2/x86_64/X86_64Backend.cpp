@@ -69,7 +69,7 @@ template<>
 MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *src,
 		MachineOperand* dst) const {
 	Type::TypeID type = dst->get_type();
-	assert(type == src->get_type() || src->to_Address());
+	assert(type == src->get_type());
 	assert(!(src->is_stackslot() && dst->is_stackslot()));
 	switch (type) {
 	case Type::CharTypeID:
@@ -797,30 +797,9 @@ void X86_64LoweringVisitor::visit(ALOADInst *I, bool copyOperands) {
 		offset = 0;
 	}
 
-	modrm = new X86_64ModRMOperand(BaseOp(src_base),IndexOp(src_index),type,offset);
+	modrm = new X86_64ModRMOperand(type,BaseOp(src_base),IndexOp(src_index),type,offset);
 #endif
-	MachineInstruction *move = NULL;
-
-	switch (type) {
-	case Type::CharTypeID:
-	case Type::ByteTypeID:
-	case Type::ShortTypeID:
-	case Type::IntTypeID:
-	case Type::LongTypeID:
-	case Type::ReferenceTypeID:
-		move = new MovInst(SrcOp(modrm),DstOp(vreg),get_OperandSize_from_Type(type));
-		break;
-	case Type::FloatTypeID:
-		move = new MovSSInst(SrcOp(modrm),DstOp(vreg));
-		break;
-	case Type::DoubleTypeID:
-		move = new MovSDInst(SrcOp(modrm),DstOp(vreg));
-		break;
-	default:
-		ABORT_MSG("x86_64 Lowering not supported",
-			"Inst: " << I << " type: " << type);
-	}
-
+	MachineInstruction *move = get_Backend()->create_Move(modrm, vreg);
 	get_current()->push_back(move);
 	set_op(I,move->get_result().op);
 }
@@ -831,7 +810,6 @@ void X86_64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 	MachineOperand* src_value = get_op(I->get_operand(1)->to_Instruction());
 	Type::TypeID type = src_value->get_type();
 	MachineOperand *modrm = NULL;
-	MachineInstruction *move = NULL;
 
 	// if Pattern Matching is used, src op is Register with Effective Address , otherwise src op is AREFInst 
 #if 0
@@ -875,27 +853,9 @@ void X86_64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 		offset = 0;
 	}
 
-	modrm = new X86_64ModRMOperand(BaseOp(src_base),IndexOp(src_index),type,offset);
+	modrm = new X86_64ModRMOperand(type,BaseOp(src_base),IndexOp(src_index),type,offset);
 #endif
-	switch (type) {
-	case Type::CharTypeID:
-	case Type::ByteTypeID:
-	case Type::ShortTypeID:
-	case Type::IntTypeID:
-	case Type::LongTypeID:
-	case Type::ReferenceTypeID:
-		move = new MovInst(SrcOp(src_value),DstOp(modrm),get_OperandSize_from_Type(type));
-		break;
-	case Type::FloatTypeID:
-		move = new MovSSInst(SrcOp(src_value),DstOp(modrm));
-		break;
-	case Type::DoubleTypeID:
-		move = new MovSDInst(SrcOp(src_value),DstOp(modrm));
-		break;
-	default:
-		ABORT_MSG("x86_64 Lowering not supported",
-			"Inst: " << I << " type: " << type);
-	}
+	MachineInstruction *move = get_Backend()->create_Move(src_value, modrm);
 	get_current()->push_back(move);
 	set_op(I,move->get_result().op);
 }
@@ -907,7 +867,7 @@ void X86_64LoweringVisitor::visit(ARRAYLENGTHInst *I, bool copyOperands) {
 	assert(src_op->get_type() == Type::ReferenceTypeID);
 	MachineOperand *vreg = new VirtualRegister(Type::IntTypeID);
 	// create modrm source operand
-	MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(src_op),OFFSET(java_array_t,size));
+	MachineOperand *modrm = new X86_64ModRMOperand(Type::IntTypeID,BaseOp(src_op),OFFSET(java_array_t,size));
 	MachineInstruction *move = new MovInst(SrcOp(modrm)
 					      ,DstOp(vreg)
 					      ,get_OperandSize_from_Type(Type::IntTypeID)
@@ -925,7 +885,7 @@ void X86_64LoweringVisitor::visit(ARRAYBOUNDSCHECKInst *I, bool copyOperands) {
 
 	// load array length
 	MachineOperand *len = new VirtualRegister(Type::IntTypeID);
-	MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(src_ref),OFFSET(java_array_t,size));
+	MachineOperand *modrm = new X86_64ModRMOperand(Type::IntTypeID,BaseOp(src_ref),OFFSET(java_array_t,size));
 	MachineInstruction *move = new MovInst(SrcOp(modrm)
 					      ,DstOp(len)
 					      ,get_OperandSize_from_Type(Type::IntTypeID)
@@ -1231,12 +1191,12 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 		int32_t s1 = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * callee->vftblindex;
 		VirtualRegister *vftbl_address = new VirtualRegister(Type::ReferenceTypeID);
 		MachineOperand *receiver = get_op(I->get_operand(0)->to_Instruction());
-		MachineOperand *vftbl_offset = new X86_64ModRMOperand(BaseOp(receiver), OFFSET(java_object_t, vftbl));
+		MachineOperand *vftbl_offset = new X86_64ModRMOperand(Type::ReferenceTypeID, BaseOp(receiver), OFFSET(java_object_t, vftbl));
 		MachineInstruction *load_vftbl_address = new MovInst(SrcOp(vftbl_offset), DstOp(vftbl_address),
 				GPInstruction::OS_64);
 		get_current()->push_back(load_vftbl_address);
 
-		MachineOperand *method_offset = new X86_64ModRMOperand(BaseOp(vftbl_address), s1);
+		MachineOperand *method_offset = new X86_64ModRMOperand(Type::ReferenceTypeID, BaseOp(vftbl_address), s1);
 		MachineInstruction *load_method_address = new MovInst(SrcOp(method_offset), DstOp(addr),
 				GPInstruction::OS_64);
 		get_current()->push_back(load_method_address);
@@ -1245,19 +1205,19 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 		int32_t s1 = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr) * callee->clazz->index;
 		VirtualRegister *vftbl_address = new VirtualRegister(Type::ReferenceTypeID);
 		MachineOperand *receiver = get_op(I->get_operand(0)->to_Instruction());
-		MachineOperand *vftbl_offset = new X86_64ModRMOperand(BaseOp(receiver), OFFSET(java_object_t, vftbl));
+		MachineOperand *vftbl_offset = new X86_64ModRMOperand(Type::ReferenceTypeID, BaseOp(receiver), OFFSET(java_object_t, vftbl));
 		MachineInstruction *load_vftbl_address = new MovInst(SrcOp(vftbl_offset), DstOp(vftbl_address),
 				GPInstruction::OS_64);
 		get_current()->push_back(load_vftbl_address);
 
 		VirtualRegister *interface_address = new VirtualRegister(Type::ReferenceTypeID);
-		MachineOperand *interface_offset = new X86_64ModRMOperand(BaseOp(vftbl_address), s1);
+		MachineOperand *interface_offset = new X86_64ModRMOperand(Type::ReferenceTypeID, BaseOp(vftbl_address), s1);
 		MachineInstruction *load_interface_address = new MovInst(SrcOp(interface_offset),
 				DstOp(interface_address), GPInstruction::OS_64);
 		get_current()->push_back(load_interface_address);
 
 		int32_t s2 = sizeof(methodptr) * (callee - callee->clazz->methods);
-		MachineOperand *method_offset = new X86_64ModRMOperand(BaseOp(interface_address), s2);
+		MachineOperand *method_offset = new X86_64ModRMOperand(Type::ReferenceTypeID, BaseOp(interface_address), s2);
 		MachineInstruction *load_method_address = new MovInst(SrcOp(method_offset), DstOp(addr),
 				GPInstruction::OS_64);
 		get_current()->push_back(load_method_address);
@@ -1304,32 +1264,10 @@ void X86_64LoweringVisitor::visit(GETFIELDInst *I, bool copyOperands) {
 	assert(I);
 
 	MachineOperand* objectref = get_op(I->get_operand(0)->to_Instruction());
-	MachineOperand *field_address = new X86_64ModRMOperand(BaseOp(objectref),
-			I->get_field()->offset);
+	MachineOperand *field_address = new X86_64ModRMOperand(I->get_type(),
+			BaseOp(objectref), I->get_field()->offset);
 	MachineOperand *vreg = new VirtualRegister(I->get_type());
-	MachineInstruction *read_field;
-
-	switch (I->get_type()) {
-	case Type::CharTypeID:
-	case Type::ByteTypeID:
-	case Type::ShortTypeID:
-	case Type::IntTypeID:
-	case Type::LongTypeID:
-	case Type::ReferenceTypeID:
-		read_field = new MovInst(SrcOp(field_address), DstOp(vreg),
-				get_OperandSize_from_Type(I->get_type()));
-		break;
-	case Type::FloatTypeID:
-		read_field = new MovSSInst(SrcOp(field_address), DstOp(vreg));
-		break;
-	case Type::DoubleTypeID:
-		read_field = new MovSDInst(SrcOp(field_address), DstOp(vreg));
-		break;
-	default:
-		ABORT_MSG("x86_64 Lowering not supported",
-			"Inst: " << I << " type: " << I->get_type());
-	}
-
+	MachineInstruction *read_field = get_Backend()->create_Move(field_address, vreg);
 	get_current()->push_back(read_field);
 	set_op(I, read_field->get_result().op);
 }
@@ -1339,30 +1277,9 @@ void X86_64LoweringVisitor::visit(PUTFIELDInst *I, bool copyOperands) {
 
 	MachineOperand *objectref = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand *value = get_op(I->get_operand(1)->to_Instruction());
-	MachineOperand *field_address = new X86_64ModRMOperand(BaseOp(objectref),
-			I->get_field()->offset);
-	MachineInstruction *write_field;
-
-	switch (I->get_type()) {
-	case Type::CharTypeID:
-	case Type::ByteTypeID:
-	case Type::ShortTypeID:
-	case Type::IntTypeID:
-	case Type::LongTypeID:
-	case Type::ReferenceTypeID:
-		write_field = new MovInst(SrcOp(value), DstOp(field_address),
-				get_OperandSize_from_Type(I->get_type()));
-		break;
-	case Type::FloatTypeID:
-		write_field = new MovSSInst(SrcOp(value), DstOp(field_address));
-		break;
-	case Type::DoubleTypeID:
-		write_field = new MovSDInst(SrcOp(value), DstOp(field_address));
-		break;
-	default:
-		ABORT_MSG("x86_64 Lowering not supported", "Inst: " << I);
-	}
-
+	MachineOperand *field_address = new X86_64ModRMOperand(value->get_type(),
+			BaseOp(objectref), I->get_field()->offset);
+	MachineInstruction *write_field = get_Backend()->create_Move(value, field_address);
 	get_current()->push_back(write_field);
 	set_op(I, write_field->get_result().op);
 }
@@ -1379,7 +1296,7 @@ void X86_64LoweringVisitor::visit(GETSTATICInst *I, bool copyOperands) {
 			field_address);
 	get_current()->push_back(load_field_address);
 
-	MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(field_address));
+	MachineOperand *modrm = new X86_64ModRMOperand(I->get_type(), BaseOp(field_address));
 	MachineOperand *vreg = new VirtualRegister(I->get_type());
 	MachineInstruction *read_field = get_Backend()->create_Move(modrm, vreg);
 	get_current()->push_back(read_field);
@@ -1399,28 +1316,8 @@ void X86_64LoweringVisitor::visit(PUTSTATICInst *I, bool copyOperands) {
 	get_current()->push_back(load_field_address);
 
 	MachineOperand *value = get_op(I->get_operand(0)->to_Instruction());
-	MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(field_address));
-	MachineInstruction *write_field;
-
-	switch (value->get_type()) {
-	case Type::CharTypeID:
-	case Type::ByteTypeID:
-	case Type::ShortTypeID:
-	case Type::IntTypeID:
-	case Type::LongTypeID:
-	case Type::ReferenceTypeID:
-		write_field = new MovInst(SrcOp(value),DstOp(modrm),get_OperandSize_from_Type(value->get_type()));
-		break;
-	case Type::FloatTypeID:
-		write_field = new MovSSInst(SrcOp(value),DstOp(modrm));
-		break;
-	case Type::DoubleTypeID:
-		write_field = new MovSDInst(SrcOp(value),DstOp(modrm));
-		break;
-	default:
-		ABORT_MSG("x86_64 Lowering not supported", "Inst: " << I);
-	}
-
+	MachineOperand *modrm = new X86_64ModRMOperand(value->get_type(), BaseOp(field_address));
+	MachineInstruction *write_field = get_Backend()->create_Move(value, modrm);
 	get_current()->push_back(write_field);
 	set_op(I, write_field->get_result().op);
 }
@@ -1722,7 +1619,7 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 			CONSTInst* displacement = I->get_operand(1)->to_Instruction()->to_CONSTInst();
 			VirtualRegister *dst = new VirtualRegister(type);
 
-			MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(base),IndexOp(index),displacement->get_value());
+			MachineOperand *modrm = new X86_64ModRMOperand(Type::VoidTypeID,BaseOp(base),IndexOp(index),displacement->get_value());
 			MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(type), SrcOp(modrm));
 
 			get_current()->push_back(lea);
@@ -1748,7 +1645,7 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 			CONSTInst* displacement = nested_add->get_operand(1)->to_Instruction()->to_CONSTInst();
 			VirtualRegister *dst = new VirtualRegister(type);
 
-			MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(base),IndexOp(index),displacement->get_value());
+			MachineOperand *modrm = new X86_64ModRMOperand(Type::VoidTypeID,BaseOp(base),IndexOp(index),displacement->get_value());
 			MachineInstruction* lea = new LEAInst(DstOp(dst), get_OperandSize_from_Type(type), SrcOp(modrm));
 
 			get_current()->push_back(lea);
@@ -1774,7 +1671,8 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 			CONSTInst* multiplier = nested_mul->get_operand(1)->to_Instruction()->to_CONSTInst();
 
 			VirtualRegister *dst = new VirtualRegister(type);
-			MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(base)
+			MachineOperand *modrm = new X86_64ModRMOperand(Type::VoidTypeID
+								      ,BaseOp(base)
 								      ,IndexOp(index)
 								      ,X86_64ModRMOperand::get_scale(multiplier->get_Int())
 								      );
@@ -1803,7 +1701,8 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 			CONSTInst* multiplier = nested_mul->get_operand(1)->to_Instruction()->to_CONSTInst();
 
 			VirtualRegister *dst = new VirtualRegister(type);
-			MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(base)
+			MachineOperand *modrm = new X86_64ModRMOperand(Type::VoidTypeID
+								      ,BaseOp(base)
 								      ,IndexOp(index)
 								      ,X86_64ModRMOperand::get_scale(multiplier->get_Int())
 								      );
@@ -1837,7 +1736,8 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 			CONSTInst* displacement = I->get_operand(1)->to_Instruction()->to_CONSTInst();
 
 			VirtualRegister *dst = new VirtualRegister(type);
-			MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(base)
+			MachineOperand *modrm = new X86_64ModRMOperand(Type::VoidTypeID
+								      ,BaseOp(base)
 								      ,IndexOp(index)
 								      ,X86_64ModRMOperand::get_scale(multiplier->get_Int())
 								      ,displacement->get_value()
@@ -1871,7 +1771,8 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 			CONSTInst* displacement = mul_add->get_operand(1)->to_Instruction()->to_CONSTInst();
 
 			VirtualRegister *dst = new VirtualRegister(type);
-			MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(base)
+			MachineOperand *modrm = new X86_64ModRMOperand(Type::VoidTypeID
+								      ,BaseOp(base)
 								      ,IndexOp(index)
 								      ,X86_64ModRMOperand::get_scale(multiplier->get_Int())
 								      ,displacement->get_value()
@@ -1933,27 +1834,8 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 			}
 
 			// create modrm source operand
-			MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(src_ref),IndexOp(src_index),type,offset);
-			MachineInstruction *move = NULL;
-			switch (type) {
-			case Type::CharTypeID:
-			case Type::ByteTypeID:
-			case Type::ShortTypeID:
-			case Type::IntTypeID:
-			case Type::LongTypeID:
-			case Type::ReferenceTypeID:
-				move = new MovInst(SrcOp(modrm),DstOp(dst),get_OperandSize_from_Type(type));
-				break;
-			case Type::FloatTypeID:
-				move = new MovSSInst(SrcOp(modrm),DstOp(dst));
-				break;
-			case Type::DoubleTypeID:
-				move = new MovSDInst(SrcOp(modrm),DstOp(dst));
-				break;
-			default:
-				ABORT_MSG("x86_64 Lowering not supported",
-					"Inst: " << I << " type: " << type);
-			}
+			MachineOperand *modrm = new X86_64ModRMOperand(type,BaseOp(src_ref),IndexOp(src_index),type,offset);
+			MachineInstruction *move = get_Backend()->create_Move(modrm, dst);
 			get_current()->push_back(move);
 			set_op(I,move->get_result().op);
 			break;
@@ -2008,27 +1890,8 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 			}
 
 			// create modrm source operand
-			MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(dst_ref),IndexOp(dst_index),type,offset);
-			MachineInstruction *move = NULL;
-			switch (type) {
-			case Type::CharTypeID:
-			case Type::ByteTypeID:
-			case Type::ShortTypeID:
-			case Type::IntTypeID:
-			case Type::LongTypeID:
-			case Type::ReferenceTypeID:
-				move = new MovInst(SrcOp(src),DstOp(modrm),get_OperandSize_from_Type(type));
-				break;
-			case Type::FloatTypeID:
-				move = new MovSSInst(SrcOp(src),DstOp(modrm));
-				break;
-			case Type::DoubleTypeID:
-				move = new MovSDInst(SrcOp(src),DstOp(modrm));
-				break;
-			default:
-				ABORT_MSG("x86_64 Lowering not supported",
-					"Inst: " << I << " type: " << type);
-			}
+			MachineOperand *modrm = new X86_64ModRMOperand(type,BaseOp(dst_ref),IndexOp(dst_index),type,offset);
+			MachineInstruction *move = get_Backend()->create_Move(src, modrm);
 			get_current()->push_back(move);
 			set_op(I,move->get_result().op);
 			break;
@@ -2083,27 +1946,8 @@ void X86_64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
 			}
 
 			// create modrm source operand
-			MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(dst_ref),IndexOp(dst_index),type,offset);
-			MachineInstruction *move = NULL;
-			switch (type) {
-			case Type::CharTypeID:
-			case Type::ByteTypeID:
-			case Type::ShortTypeID:
-			case Type::IntTypeID:
-			case Type::LongTypeID:
-			case Type::ReferenceTypeID:
-				move = new MovInst(SrcOp(imm),DstOp(modrm),get_OperandSize_from_Type(type));
-				break;
-			case Type::FloatTypeID:
-				move = new MovSSInst(SrcOp(imm),DstOp(modrm));
-				break;
-			case Type::DoubleTypeID:
-				move = new MovSDInst(SrcOp(imm),DstOp(modrm));
-				break;
-			default:
-				ABORT_MSG("x86_64 Lowering not supported",
-					"Inst: " << I << " type: " << type);
-			}
+			MachineOperand *modrm = new X86_64ModRMOperand(type,BaseOp(dst_ref),IndexOp(dst_index),type,offset);
+			MachineInstruction *move = get_Backend()->create_Move(imm, modrm);
 			get_current()->push_back(move);
 			set_op(I,move->get_result().op);
 			break;

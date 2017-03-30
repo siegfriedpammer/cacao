@@ -363,10 +363,12 @@ public:
 
 class Address : public MachineOperand {
 public:
-	/**
-	 * @todo ReturnAddressTypeID is not correct
-	 */
-	Address() : MachineOperand(AddressID, Type::ReturnAddressTypeID) {}
+
+	/// Construct an Address.
+	///
+	/// @param type The type of the data referenced by this Address.
+	Address(Type::TypeID type) : MachineOperand(AddressID, type) {}
+
 	virtual Address* to_Address() { return this; }
 	virtual MachineAddress* to_MachineAddress() = 0;
 	virtual const char* get_name() const {

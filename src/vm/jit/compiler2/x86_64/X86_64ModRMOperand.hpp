@@ -53,7 +53,12 @@ class X86_64ModRMOperand;
 
 class NativeAddress : public MachineAddress {
 public:
-	NativeAddress() {}
+
+	/// Construct a NativeAddress.
+	///
+	/// @param type The type of the data referenced by this NativeAddress.
+	NativeAddress(Type::TypeID type) : MachineAddress(type) {}
+
 	virtual NativeAddress *to_NativeAddress(); 
 	virtual X86_64ModRMOperand *to_X86_64ModRMOperand() = 0;
 };
@@ -67,44 +72,49 @@ public:
 	  Scale8 = 3
 	};
 
-	X86_64ModRMOperand(const BaseOp &base) 
-		: disp(0)
+	X86_64ModRMOperand(Type::TypeID type, const BaseOp &base)
+		: NativeAddress(type)
+		 ,disp(0)
 		 ,scale(Scale1)
 		 ,base86_64(NULL)
 		 ,index86_64(NULL) {
-		embedded_operands.push_back(EmbeddedMachineOperand(base.op));		 
+		embedded_operands.push_back(EmbeddedMachineOperand(base.op));
 	}
-	X86_64ModRMOperand(const BaseOp &base, s4 disp) 
-		: disp(disp) 
+	X86_64ModRMOperand(Type::TypeID type, const BaseOp &base, s4 disp)
+		: NativeAddress(type)
+		 ,disp(disp) 
 		 ,scale(Scale1)
 		 ,base86_64(NULL)
 		 ,index86_64(NULL) {
-		embedded_operands.push_back(EmbeddedMachineOperand(base.op));		 
+		embedded_operands.push_back(EmbeddedMachineOperand(base.op));
 	}
-	X86_64ModRMOperand(const BaseOp &base, const IndexOp &index, ScaleFactor scale, s4 disp=0) 
-		: disp(disp)
+	X86_64ModRMOperand(Type::TypeID type, const BaseOp &base, const IndexOp &index, ScaleFactor scale, s4 disp=0)
+		: NativeAddress(type)
+		 ,disp(disp)
 		 ,scale(scale)
 		 ,base86_64(NULL)
 		 ,index86_64(NULL) {
-		embedded_operands.push_back(EmbeddedMachineOperand(base.op));		 
+		embedded_operands.push_back(EmbeddedMachineOperand(base.op));
 		if (index.op != NULL)
 			embedded_operands.push_back(EmbeddedMachineOperand(index.op));
 	}
-	X86_64ModRMOperand(const BaseOp &base, const IndexOp &index, Type::TypeID type, s4 disp=0) 
-		: disp(disp)
-		 ,scale(get_scale(type))
+	X86_64ModRMOperand(Type::TypeID type, const BaseOp &base, const IndexOp &index, Type::TypeID scale_type, s4 disp=0)
+		: NativeAddress(type)
+		 ,disp(disp)
+		 ,scale(get_scale(scale_type))
 		 ,base86_64(NULL)
 		 ,index86_64(NULL) {
-		embedded_operands.push_back(EmbeddedMachineOperand(base.op));		 
+		embedded_operands.push_back(EmbeddedMachineOperand(base.op));
 		if (index.op != NULL)
 			embedded_operands.push_back(EmbeddedMachineOperand(index.op));
 	}
-	X86_64ModRMOperand(const BaseOp &base, const IndexOp &index, s4 disp) 
-		: disp(disp)
+	X86_64ModRMOperand(Type::TypeID type, const BaseOp &base, const IndexOp &index, s4 disp)
+		: NativeAddress(type)
+		 ,disp(disp)
 		 ,scale(Scale1) 
 		 ,base86_64(NULL)
 		 ,index86_64(NULL) {
-		embedded_operands.push_back(EmbeddedMachineOperand(base.op));		 
+		embedded_operands.push_back(EmbeddedMachineOperand(base.op));
 		if (index.op != NULL)
 			embedded_operands.push_back(EmbeddedMachineOperand(index.op));
 	}
@@ -112,7 +122,7 @@ public:
 	virtual const char* get_name() const {
 		return "ModRMOperand";
 	}
-	virtual X86_64ModRMOperand *to_X86_64ModRMOperand(); 
+	virtual X86_64ModRMOperand *to_X86_64ModRMOperand();
 	virtual OStream& print(OStream &OS) const {
 		if (disp)
 			OS << disp;
@@ -147,7 +157,7 @@ public:
 	s1 getDisp32_2();
 	s1 getDisp32_3();
 	s1 getDisp32_4();
-	static ScaleFactor get_scale(Type::TypeID type); 
+	static ScaleFactor get_scale(Type::TypeID type);
 	static ScaleFactor get_scale(int32_t scale); 
 	inline X86_64Register *getBase() {
 		if (embedded_operands[base].real->op)
