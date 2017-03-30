@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/GetVirtual.java - GetVirtual
+/** tests/compiler2/junit/InvokeVirtual.java - InvokeVirtual
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO

@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/GetStatic.java - GetStatic
+/** tests/compiler2/junit/PutField.java - PutField
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
