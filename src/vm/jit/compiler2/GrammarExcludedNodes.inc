@@ -31,6 +31,7 @@ and the input file (instruction_table.csv).
 Instruction::LoadInstID,
 Instruction::UnaryInstID,
 Instruction::BinaryInstID,
+Instruction::FieldAccessInstID,
 Instruction::GETFIELDInstID,
 Instruction::PUTFIELDInstID,
 Instruction::PUTSTATICInstID,

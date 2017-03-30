@@ -31,6 +31,7 @@ and the input file (./instruction_table.csv).
 virtual LoadInst* to_LoadInst() { return NULL; }
 virtual UnaryInst* to_UnaryInst() { return NULL; }
 virtual BinaryInst* to_BinaryInst() { return NULL; }
+virtual FieldAccessInst* to_FieldAccessInst() { return NULL; }
 virtual NOPInst* to_NOPInst() { return NULL; }
 virtual POPInst* to_POPInst() { return NULL; }
 virtual CHECKNULLInst* to_CHECKNULLInst() { return NULL; }

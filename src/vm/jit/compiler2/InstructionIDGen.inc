@@ -31,6 +31,7 @@ and the input file (./instruction_table.csv).
 LoadInstID,
 UnaryInstID,
 BinaryInstID,
+FieldAccessInstID,
 NOPInstID,
 POPInstID,
 CHECKNULLInstID,

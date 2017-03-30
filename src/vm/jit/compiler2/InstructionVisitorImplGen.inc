@@ -31,6 +31,7 @@ and the input file (./instruction_table.csv).
 void InstructionVisitor::visit(LoadInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(UnaryInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(BinaryInst* I, bool copyOperands) {visit_default(I);}
+void InstructionVisitor::visit(FieldAccessInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(NOPInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(POPInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(CHECKNULLInst* I, bool copyOperands) {visit_default(I);}

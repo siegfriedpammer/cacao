@@ -31,6 +31,7 @@ and the input file (./instruction_table.csv).
 class LoadInst;
 class UnaryInst;
 class BinaryInst;
+class FieldAccessInst;
 class NOPInst;
 class POPInst;
 class CHECKNULLInst;

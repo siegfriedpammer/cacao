@@ -495,16 +495,27 @@ public:
 	}
 };
 
-class GETFIELDInst : public Instruction {
+class FieldAccessInst : public Instruction {
 private:
 	fieldinfo *field;
 
 public:
+	explicit FieldAccessInst(InstID id, Type::TypeID type, fieldinfo *field)
+		: Instruction(id, type), field(field) {
+		assert(field);
+	}
+	
+	fieldinfo *get_field() const { return field; }
+	
+	virtual FieldAccessInst* to_FieldAccessInst() { return this; }
+};
+
+class GETFIELDInst : public FieldAccessInst {
+public:
 	explicit GETFIELDInst(Type::TypeID type, Value *objectref,
 			fieldinfo *field, BeginInst *begin, Instruction *state_change)
-		: Instruction(GETFIELDInstID, type), field(field) {
+		: FieldAccessInst(GETFIELDInstID, type, field) {
 		assert(objectref);
-		assert(field);
 		assert(begin);
 		assert(state_change);
 
@@ -519,8 +530,6 @@ public:
 		return begin;
 	}
 
-	fieldinfo *get_field() const { return field; }
-
 	virtual bool verify() const { return true; }
 	virtual bool has_side_effects() const { return true; }
 	virtual bool is_floating() const { return false; }
@@ -528,17 +537,13 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class PUTFIELDInst : public Instruction {
-private:
-	fieldinfo *field;
-
+class PUTFIELDInst : public FieldAccessInst {
 public:
 	explicit PUTFIELDInst(Value *objectref, Value *value, fieldinfo *field,
 			BeginInst* begin, Instruction *state_change)
-			: Instruction(PUTFIELDInstID, value->get_type()), field(field) {
+			: FieldAccessInst(PUTFIELDInstID, value->get_type(), field) {
 		assert(objectref);
 		assert(value);
-		assert(field);
 		assert(begin);
 		assert(state_change);
 
@@ -554,8 +559,6 @@ public:
 		return begin;
 	}
 
-	fieldinfo *get_field() const { return field; }
-
 	virtual bool verify() const { return true; }
 	virtual bool has_side_effects() const { return true; }
 	virtual bool is_floating() const { return false; }
@@ -563,18 +566,39 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class PUTSTATICInst : public Instruction {
-private:
-	fieldinfo *field;
+class GETSTATICInst : public FieldAccessInst {
+public:
+	explicit GETSTATICInst(Type::TypeID type, fieldinfo *field,
+			BeginInst *begin, Instruction *state_change)
+			: FieldAccessInst(GETSTATICInstID, type, field) {
+		assert(begin);
+		assert(state_change);
 
+		append_dep(begin);
+		append_dep(state_change);
+	}
+
+	virtual BeginInst* get_BeginInst() const {
+		BeginInst *begin = dep_front()->to_BeginInst();
+		assert(begin);
+		return begin;
+	}
+
+	virtual bool has_side_effects() const { return true; }
+	virtual bool is_floating() const { return false; }
+	virtual GETSTATICInst* to_GETSTATICInst() { return this; }
+	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+};
+
+class PUTSTATICInst : public FieldAccessInst {
 public:
 	explicit PUTSTATICInst(Value *value, fieldinfo *field,
 			BeginInst* begin, Instruction *state_change)
-			: Instruction(PUTSTATICInstID, value->get_type()), field(field) {
+			: FieldAccessInst(PUTSTATICInstID, value->get_type(), field) {
 		assert(value);
-		assert(field);
 		assert(begin);
 		assert(state_change);
+
 		append_op(value);
 		append_dep(begin);
 		append_dep(state_change);
@@ -589,35 +613,6 @@ public:
 	virtual bool has_side_effects() const { return true; }
 	virtual bool is_floating() const { return false; }
 	virtual PUTSTATICInst* to_PUTSTATICInst() { return this; }
-	fieldinfo* get_field() const { return field; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
-
-class GETSTATICInst : public Instruction {
-private:
-	fieldinfo *field;
-
-public:
-	explicit GETSTATICInst(Type::TypeID type, fieldinfo *field,
-			BeginInst *begin, Instruction *state_change)
-			: Instruction(GETSTATICInstID, type), field(field) {
-		assert(field);
-		assert(begin);
-		assert(state_change);
-		append_dep(begin);
-		append_dep(state_change);
-	}
-
-	virtual BeginInst* get_BeginInst() const {
-		BeginInst *begin = dep_front()->to_BeginInst();
-		assert(begin);
-		return begin;
-	}
-
-	virtual bool has_side_effects() const { return true; }
-	virtual bool is_floating() const { return false; }
-	virtual GETSTATICInst* to_GETSTATICInst() { return this; }
-	fieldinfo* get_field() const { return field; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
