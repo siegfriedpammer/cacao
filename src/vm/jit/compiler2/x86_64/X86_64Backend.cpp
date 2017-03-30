@@ -69,7 +69,7 @@ template<>
 MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *src,
 		MachineOperand* dst) const {
 	Type::TypeID type = dst->get_type();
-	assert(type == src->get_type());
+	assert(type == src->get_type() || src->to_Address());
 	assert(!(src->is_stackslot() && dst->is_stackslot()));
 	switch (type) {
 	case Type::CharTypeID:
@@ -1336,69 +1336,21 @@ void X86_64LoweringVisitor::visit(GETFIELDInst *I, bool copyOperands) {
 
 void X86_64LoweringVisitor::visit(GETSTATICInst *I, bool copyOperands) {
 	assert(I);
-	DataSegment &DS = get_Backend()->get_JITData()->get_CodeMemory()->get_DataSegment();
-	constant_FMIref* fmiref = I->get_fmiref();
-	DataSegment::IdxTy idx = DS.get_index(DSFMIRef(fmiref));
-	size_t size = sizeof(void*);
-	if (DataSegment::is_invalid(idx)) {
-		DataFragment datafrag = DS.get_Ref(size);
-		idx = DS.insert_tag(DSFMIRef(fmiref), datafrag);
-	}
 
-	if (I->is_resolved()) {
-		fieldinfo* fi = I->get_fmiref()->p.field;
+	Immediate *field_address_imm = new Immediate(reinterpret_cast<s8>(I->get_field()->value),
+			Type::ReferenceType());
 
-		if (!class_is_or_almost_initialized(fi->clazz)) {
-			//PROFILE_CYCLE_STOP;
-			Patcher *patcher = new InitializeClassPatcher(fi->clazz);
-			PatcherPtrTy ptr(patcher);
-			get_Backend()->get_JITData()->get_jitdata()->code->patchers->push_back(ptr);
-			MachineInstruction *pi = new PatchInst(patcher);
-			get_current()->push_back(pi);
-			//PROFILE_CYCLE_START;
-		}
-		DataFragment datafrag = DS.get_Ref(idx, size);
-		// write data
-		write_data<void*>(datafrag, fmiref->p.field->value);
-	} else {
-		assert(0 && "Not yet implemented");
-		#if 0
-		unresolved_field* uf = iptr->sx.s23.s3.uf;
-		fieldtype = uf->fieldref->parseddesc.fd->type;
-		disp      = dseg_add_unique_address(cd, 0);
+	// TODO Remove this as soon as loads from immediate addresses are supported.
+	VirtualRegister *field_address = new VirtualRegister(Type::ReferenceTypeID);
+	MachineInstruction *load_field_address = get_Backend()->create_Move(field_address_imm,
+			field_address);
+	get_current()->push_back(load_field_address);
 
-		pr = patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
-
-		fi = NULL;		/* Silence compiler warning */
-		#endif
-	}
-	VirtualRegister *addr = new VirtualRegister(Type::ReferenceTypeID);
-	MovDSEGInst *dmov = new MovDSEGInst(DstOp(addr),idx);
+	MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(field_address));
 	MachineOperand *vreg = new VirtualRegister(I->get_type());
-	MachineOperand *modrm = new X86_64ModRMOperand(BaseOp(addr));
-	MachineInstruction *mov;
-	switch (I->get_type()) {
-	case Type::CharTypeID:
-	case Type::ByteTypeID:
-	case Type::ShortTypeID:
-	case Type::IntTypeID:
-	case Type::LongTypeID:
-	case Type::ReferenceTypeID:
-		mov = new MovInst(SrcOp(modrm),DstOp(vreg),get_OperandSize_from_Type(I->get_type()));
-		break;
-	case Type::FloatTypeID:
-		mov = new MovSSInst(SrcOp(modrm),DstOp(vreg));
-		break;
-	case Type::DoubleTypeID:
-		mov = new MovSDInst(SrcOp(modrm),DstOp(vreg));
-		break;
-	default:
-		ABORT_MSG("x86_64 Lowering not supported",
-			"Inst: " << I << " type: " << I->get_type());
-	}
-	get_current()->push_back(dmov);
-	get_current()->push_back(mov);
-	set_op(I,mov->get_result().op);
+	MachineInstruction *read_field = get_Backend()->create_Move(modrm, vreg);
+	get_current()->push_back(read_field);
+	set_op(I, read_field->get_result().op);
 }
 
 void X86_64LoweringVisitor::visit(LOOKUPSWITCHInst *I, bool copyOperands) {

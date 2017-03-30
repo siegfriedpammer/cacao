@@ -565,28 +565,29 @@ public:
 
 class GETSTATICInst : public Instruction {
 private:
-	constant_FMIref *fmiref;
-	bool resolved;
+	fieldinfo *field;
+
 public:
-	/**
-	 * @param resolved This _should_ not change during compilation
-	 */
-	explicit GETSTATICInst(Type::TypeID type, constant_FMIref *fmiref, bool resolved,
+	explicit GETSTATICInst(Type::TypeID type, fieldinfo *field,
 			BeginInst *begin, Instruction *state_change)
-			: Instruction(GETSTATICInstID, type), fmiref(fmiref), resolved(resolved) {
+			: Instruction(GETSTATICInstID, type), field(field) {
+		assert(field);
+		assert(begin);
+		assert(state_change);
 		append_dep(begin);
 		append_dep(state_change);
 	}
+
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = dep_front()->to_BeginInst();
 		assert(begin);
 		return begin;
 	}
+
 	virtual bool has_side_effects() const { return true; }
 	virtual bool is_floating() const { return false; }
 	virtual GETSTATICInst* to_GETSTATICInst() { return this; }
-	bool is_resolved() const { return resolved; }
-	constant_FMIref* get_fmiref() const { return fmiref; }
+	fieldinfo* get_field() const { return field; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 

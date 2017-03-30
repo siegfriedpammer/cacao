@@ -2077,15 +2077,30 @@ bool SSAConstructionPass::run(JITData &JD) {
 				break;
 			case ICMD_GETSTATIC:       /* 0 -> 1 */
 				{
+					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+						deoptimize(bbindex);
+						break;
+					}
+
 					constant_FMIref *fmiref;
 					INSTRUCTION_GET_FIELDREF(iptr, fmiref);
-					Type::TypeID type = convert_to_typeid(fmiref->parseddesc.fd->type);
+					fieldinfo* field = fmiref->p.field;
+
+					if (!class_is_or_almost_initialized(field->clazz)) {
+						deoptimize(bbindex);
+						break;
+					}
+
 					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
 					assert(state_change);
-					Instruction *getstatic = new GETSTATICInst(type,fmiref,INSTRUCTION_IS_RESOLVED(iptr),
-						BB[bbindex],state_change);
-					write_variable(iptr->dst.varindex,bbindex,getstatic);
-					write_variable(global_state,bbindex,getstatic);
+
+					Type::TypeID type = convert_to_typeid(fmiref->parseddesc.fd->type);
+					Instruction *getstatic = new GETSTATICInst(type, field,
+							BB[bbindex], state_change);
+
+					write_variable(iptr->dst.varindex, bbindex, getstatic);
+					write_variable(global_state, bbindex, getstatic);
+
 					M->add_Instruction(getstatic);
 				}
 				break;
