@@ -79,4 +79,29 @@ public class GetStatic extends Compiler2TestBase {
 		testResultEqual("getLong", "()J");
 	}
 
+	static float floatField;
+
+	/** This is the method under test. */
+	static float getFloat() {
+		return floatField;
+	}
+
+	@Test
+	public void testFloat() {
+		floatField = 3.40282347e38F;
+		testResultEqual("getFloat", "()F");
+	}
+
+	static double doubleField;
+
+	/** This is the method under test. */
+	static double getDouble() {
+		return doubleField;
+	}
+
+	@Test
+	public void testDouble() {
+		doubleField = 1.79769313e308D;
+		testResultEqual("getDouble", "()D");
+	}
 }

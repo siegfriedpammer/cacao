@@ -49,7 +49,7 @@ public class GetField extends Compiler2TestBase {
 
 	@Test
 	public void testShort() {
-                shortField = 11111;
+		shortField = 11111;
 		testResultEqual("getShort", "(Lorg/cacaojvm/compiler2/test/GetField;)S", this);
 	}
 
@@ -62,7 +62,7 @@ public class GetField extends Compiler2TestBase {
 
 	@Test
 	public void testInt() {
-                intField = 0xDEADBEEF;
+		intField = 0xDEADBEEF;
 		testResultEqual("getInt", "(Lorg/cacaojvm/compiler2/test/GetField;)I", this);
 	}
 
@@ -75,8 +75,33 @@ public class GetField extends Compiler2TestBase {
 
 	@Test
 	public void testLong() {
-                longField = 0xDEADBEEF12345678L;
+		longField = 0xDEADBEEF12345678L;
 		testResultEqual("getLong", "(Lorg/cacaojvm/compiler2/test/GetField;)J", this);
 	}
 
+	public float floatField;
+
+	/** This is the method under test. */
+	static float getFloat(GetField obj) {
+		return obj.floatField;
+	}
+
+	@Test
+	public void testFloat() {
+		floatField = 3.40282347e38F;
+		testResultEqual("getFloat", "(Lorg/cacaojvm/compiler2/test/GetField;)F", this);
+	}
+
+	public double doubleField;
+
+	/** This is the method under test. */
+	static double getDouble(GetField obj) {
+		return obj.doubleField;
+	}
+
+	@Test
+	public void testDouble() {
+		doubleField = 1.79769313e308D;
+		testResultEqual("getDouble", "(Lorg/cacaojvm/compiler2/test/GetField;)D", this);
+	}
 }

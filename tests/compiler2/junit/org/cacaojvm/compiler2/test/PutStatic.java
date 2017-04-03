@@ -107,17 +107,64 @@ public class PutStatic extends Compiler2TestBase {
 
 	@Test
 	public void testLong() {
-		long value = 0xDEADBEEF12345678L;
+		long value = 0xDEADBEEF12345678l;
 
 		runBaseline("setLong", "(J)V", value);
 		long baselineValue = longField;
 
 		// Reset the field under test.
-		intField = 0;
+		longField = 0l;
 
 		runCompiler2("setLong", "(J)V", value);
 		long compiler2Value = longField;
 
 		assertEquals(baselineValue, compiler2Value);
 	}
+
+	static float floatField;
+
+	/** This is the method under test. */
+	static void setFloat(float value) {
+		floatField = value;
+	}
+
+	@Test
+	public void testFloat() {
+		float value = 3.40282347e38f;
+
+		runBaseline("setFloat", "(F)V", value);
+		float baselineValue = floatField;
+
+		// Reset the field under test.
+		floatField = 0.0f;
+
+		runCompiler2("setFloat", "(F)V", value);
+		float compiler2Value = floatField;
+
+		assertEquals(baselineValue, compiler2Value, 0.0f);
+	}
+
+	static double doubleField;
+
+	/** This is the method under test. */
+	static void setDouble(double value) {
+		doubleField = value;
+	}
+
+	@Test
+	public void testDouble() {
+		double value = 1.79769313e308d;
+
+		runBaseline("setDouble", "(D)V", value);
+		double baselineValue = doubleField;
+
+		// Reset the field under test.
+		doubleField = 0.0d;
+
+		runCompiler2("setDouble", "(D)V", value);
+		double compiler2Value = doubleField;
+
+		assertEquals(baselineValue, compiler2Value, 0.0d);
+	}
+
 }

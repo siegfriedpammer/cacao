@@ -23,6 +23,7 @@
  */
 package org.cacaojvm.compiler2.test;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -107,17 +108,63 @@ public class PutField extends Compiler2TestBase {
 
 	@Test
 	public void testLong() {
-		long value = 0xDEADBEEF12345678L;
+		long value = 0xDEADBEEF12345678l;
 
 		runBaseline("setLong", "(Lorg/cacaojvm/compiler2/test/PutField;J)V", this, value);
 		long baselineValue = longField;
 
 		// Reset the field under test.
-		intField = 0;
+		longField = 0l;
 
 		runCompiler2("setLong", "(Lorg/cacaojvm/compiler2/test/PutField;J)V", this, value);
 		long compiler2Value = longField;
 
 		assertEquals(baselineValue, compiler2Value);
+	}
+
+	public float floatField;
+
+	/** This is the method under test. */
+	static void setFloat(PutField obj, float value) {
+		obj.floatField = value;
+	}
+
+	@Test
+	public void testFloat() {
+		float value = 3.40282347e38f;
+
+		runBaseline("setFloat", "(Lorg/cacaojvm/compiler2/test/PutField;F)V", this, value);
+		float baselineValue = floatField;
+
+		// Reset the field under test.
+		floatField = 0.0f;
+
+		runCompiler2("setFloat", "(Lorg/cacaojvm/compiler2/test/PutField;F)V", this, value);
+		float compiler2Value = floatField;
+
+		assertEquals(baselineValue, compiler2Value, 0.0f);
+	}
+
+	public double doubleField;
+
+	/** This is the method under test. */
+	static void setDouble(PutField obj, double value) {
+		obj.doubleField = value;
+	}
+
+	@Test
+	public void testDouble() {
+		double value = 1.79769313e308d;
+
+		runBaseline("setDouble", "(Lorg/cacaojvm/compiler2/test/PutField;D)V", this, value);
+		double baselineValue = doubleField;
+
+		// Reset the field under test.
+		doubleField = 0.0d;
+
+		runCompiler2("setDouble", "(Lorg/cacaojvm/compiler2/test/PutField;D)V", this, value);
+		double compiler2Value = doubleField;
+
+		assertEquals(baselineValue, compiler2Value, 0.0d);
 	}
 }
