@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/GetStatic.java - GetStatic
+/** tests/compiler2/junit/GetField.java - GetField
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,83 +25,83 @@ package org.cacaojvm.compiler2.test;
 
 import org.junit.Test;
 
-public class GetStatic extends Compiler2TestBase {
+public class GetField extends Compiler2TestBase {
 
-	static byte byteField;
+	public byte byteField;
 
 	/** This is the method under test. */
-	static byte getByte() {
-		return byteField;
+	static byte getByte(GetField obj) {
+		return obj.byteField;
 	}
 
 	@Test
 	public void testByte() {
 		byteField = 111;
-		testResultEqual("getByte", "()B");
+		testResultEqual("getByte", "(Lorg/cacaojvm/compiler2/test/GetField;)B", this);
 	}
 
-	static short shortField;
+	public short shortField;
 
 	/** This is the method under test. */
-	static short getShort() {
-		return shortField;
+	static short getShort(GetField obj) {
+		return obj.shortField;
 	}
 
 	@Test
 	public void testShort() {
 		shortField = 11111;
-		testResultEqual("getShort", "()S");
+		testResultEqual("getShort", "(Lorg/cacaojvm/compiler2/test/GetField;)S", this);
 	}
 
-	static int intField;
+	public int intField;
 
 	/** This is the method under test. */
-	static int getInt() {
-		return intField;
+	static int getInt(GetField obj) {
+		return obj.intField;
 	}
 
 	@Test
 	public void testInt() {
 		intField = 0xDEADBEEF;
-		testResultEqual("getInt", "()I");
+		testResultEqual("getInt", "(Lorg/cacaojvm/compiler2/test/GetField;)I", this);
 	}
 
-	static long longField;
+	public long longField;
 
 	/** This is the method under test. */
-	static long getLong() {
-		return longField;
+	static long getLong(GetField obj) {
+		return obj.longField;
 	}
 
 	@Test
 	public void testLong() {
 		longField = 0xDEADBEEF12345678L;
-		testResultEqual("getLong", "()J");
+		testResultEqual("getLong", "(Lorg/cacaojvm/compiler2/test/GetField;)J", this);
 	}
 
-	static float floatField;
+	public float floatField;
 
 	/** This is the method under test. */
-	static float getFloat() {
-		return floatField;
+	static float getFloat(GetField obj) {
+		return obj.floatField;
 	}
 
 	@Test
 	public void testFloat() {
 		floatField = 3.40282347e38F;
-		testResultEqual("getFloat", "()F");
+		testResultEqual("getFloat", "(Lorg/cacaojvm/compiler2/test/GetField;)F", this);
 	}
 
-	static double doubleField;
+	public double doubleField;
 
 	/** This is the method under test. */
-	static double getDouble() {
-		return doubleField;
+	static double getDouble(GetField obj) {
+		return obj.doubleField;
 	}
 
 	@Test
 	public void testDouble() {
 		doubleField = 1.79769313e308D;
-		testResultEqual("getDouble", "()D");
+		testResultEqual("getDouble", "(Lorg/cacaojvm/compiler2/test/GetField;)D", this);
 	}
 }

@@ -31,6 +31,7 @@ and the input file (./instruction_table.csv).
 case LoadInstID: return "LoadInst";
 case UnaryInstID: return "UnaryInst";
 case BinaryInstID: return "BinaryInst";
+case FieldAccessInstID: return "FieldAccessInst";
 case NOPInstID: return "NOPInst";
 case POPInstID: return "POPInst";
 case CHECKNULLInstID: return "CHECKNULLInst";

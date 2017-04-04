@@ -37,8 +37,12 @@ namespace compiler2 {
 
 class MachineAddress : public Address {
 public:
-	MachineAddress()
-		: Address() {}
+
+	/// Construct a MachineAddress.
+	///
+	/// @param type The type of the data referenced by this MachineAddress.
+	MachineAddress(Type::TypeID type) : Address(type) {}
+
 	virtual MachineAddress* to_MachineAddress() { return this; }
 	virtual NativeAddress* to_NativeAddress() = 0;
 	virtual const char *get_name() const {

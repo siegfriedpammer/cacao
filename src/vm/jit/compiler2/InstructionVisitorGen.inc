@@ -31,6 +31,7 @@ and the input file (./instruction_table.csv).
 virtual void visit(LoadInst* I, bool copyOperands);
 virtual void visit(UnaryInst* I, bool copyOperands);
 virtual void visit(BinaryInst* I, bool copyOperands);
+virtual void visit(FieldAccessInst* I, bool copyOperands);
 virtual void visit(NOPInst* I, bool copyOperands);
 virtual void visit(POPInst* I, bool copyOperands);
 virtual void visit(CHECKNULLInst* I, bool copyOperands);

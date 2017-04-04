@@ -495,72 +495,124 @@ public:
 	}
 };
 
-class GETFIELDInst : public Instruction {
-public:
-	explicit GETFIELDInst(Type::TypeID type) : Instruction(GETFIELDInstID, type) {}
-	virtual GETFIELDInst* to_GETFIELDInst() { return this; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
-
-class PUTFIELDInst : public Instruction {
-public:
-	explicit PUTFIELDInst(Type::TypeID type) : Instruction(PUTFIELDInstID, type) {}
-	virtual PUTFIELDInst* to_PUTFIELDInst() { return this; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
-
-class PUTSTATICInst : public Instruction {
+class FieldAccessInst : public Instruction {
 private:
-	constant_FMIref *fmiref;
-	bool resolved;
+	fieldinfo *field;
+
 public:
-	/**
-	 * @param resolved This _should_ not change during compilation
-	 */
-	explicit PUTSTATICInst(Value *value, constant_FMIref *fmiref, bool resolved,
-			BeginInst* begin, Instruction *state_change)
-			: Instruction(PUTSTATICInstID, value->get_type()), fmiref(fmiref), resolved(resolved) {
-		append_op(value);
+	explicit FieldAccessInst(InstID id, Type::TypeID type, fieldinfo *field)
+		: Instruction(id, type), field(field) {
+		assert(field);
+	}
+	
+	fieldinfo *get_field() const { return field; }
+	
+	virtual FieldAccessInst* to_FieldAccessInst() { return this; }
+};
+
+class GETFIELDInst : public FieldAccessInst {
+public:
+	explicit GETFIELDInst(Type::TypeID type, Value *objectref,
+			fieldinfo *field, BeginInst *begin, Instruction *state_change)
+		: FieldAccessInst(GETFIELDInstID, type, field) {
+		assert(objectref);
+		assert(begin);
+		assert(state_change);
+
+		append_op(objectref);
 		append_dep(begin);
 		append_dep(state_change);
 	}
+
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = (*dep_begin())->to_BeginInst();
 		assert(begin);
 		return begin;
 	}
+
+	virtual bool verify() const { return true; }
 	virtual bool has_side_effects() const { return true; }
 	virtual bool is_floating() const { return false; }
-	virtual PUTSTATICInst* to_PUTSTATICInst() { return this; }
-	bool is_resolved() const { return resolved; }
-	constant_FMIref* get_fmiref() const { return fmiref; }
+	virtual GETFIELDInst* to_GETFIELDInst() { return this; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class GETSTATICInst : public Instruction {
-private:
-	constant_FMIref *fmiref;
-	bool resolved;
+class PUTFIELDInst : public FieldAccessInst {
 public:
-	/**
-	 * @param resolved This _should_ not change during compilation
-	 */
-	explicit GETSTATICInst(Type::TypeID type, constant_FMIref *fmiref, bool resolved,
-			BeginInst *begin, Instruction *state_change)
-			: Instruction(GETSTATICInstID, type), fmiref(fmiref), resolved(resolved) {
+	explicit PUTFIELDInst(Value *objectref, Value *value, fieldinfo *field,
+			BeginInst* begin, Instruction *state_change)
+			: FieldAccessInst(PUTFIELDInstID, value->get_type(), field) {
+		assert(objectref);
+		assert(value);
+		assert(begin);
+		assert(state_change);
+
+		append_op(objectref);
+		append_op(value);
 		append_dep(begin);
 		append_dep(state_change);
 	}
+
+	virtual BeginInst* get_BeginInst() const {
+		BeginInst *begin = (*dep_begin())->to_BeginInst();
+		assert(begin);
+		return begin;
+	}
+
+	virtual bool verify() const { return true; }
+	virtual bool has_side_effects() const { return true; }
+	virtual bool is_floating() const { return false; }
+	virtual PUTFIELDInst* to_PUTFIELDInst() { return this; }
+	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+};
+
+class GETSTATICInst : public FieldAccessInst {
+public:
+	explicit GETSTATICInst(Type::TypeID type, fieldinfo *field,
+			BeginInst *begin, Instruction *state_change)
+			: FieldAccessInst(GETSTATICInstID, type, field) {
+		assert(begin);
+		assert(state_change);
+
+		append_dep(begin);
+		append_dep(state_change);
+	}
+
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = dep_front()->to_BeginInst();
 		assert(begin);
 		return begin;
 	}
+
 	virtual bool has_side_effects() const { return true; }
 	virtual bool is_floating() const { return false; }
 	virtual GETSTATICInst* to_GETSTATICInst() { return this; }
-	bool is_resolved() const { return resolved; }
-	constant_FMIref* get_fmiref() const { return fmiref; }
+	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+};
+
+class PUTSTATICInst : public FieldAccessInst {
+public:
+	explicit PUTSTATICInst(Value *value, fieldinfo *field,
+			BeginInst* begin, Instruction *state_change)
+			: FieldAccessInst(PUTSTATICInstID, value->get_type(), field) {
+		assert(value);
+		assert(begin);
+		assert(state_change);
+
+		append_op(value);
+		append_dep(begin);
+		append_dep(state_change);
+	}
+
+	virtual BeginInst* get_BeginInst() const {
+		BeginInst *begin = (*dep_begin())->to_BeginInst();
+		assert(begin);
+		return begin;
+	}
+
+	virtual bool has_side_effects() const { return true; }
+	virtual bool is_floating() const { return false; }
+	virtual PUTSTATICInst* to_PUTSTATICInst() { return this; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 

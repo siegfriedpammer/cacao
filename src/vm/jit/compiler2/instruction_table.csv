@@ -33,6 +33,7 @@
 LoadInst
 UnaryInst
 BinaryInst
+FieldAccessInst
 
 # Instructions forward defs
 

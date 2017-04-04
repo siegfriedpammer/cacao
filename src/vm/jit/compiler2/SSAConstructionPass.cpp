@@ -31,6 +31,7 @@
 #include "vm/jit/compiler2/CFGConstructionPass.hpp"
 
 #include "vm/descriptor.hpp"
+#include "vm/field.hpp"
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/show.hpp"
@@ -2029,40 +2030,108 @@ bool SSAConstructionPass::run(JITData &JD) {
 			}
 			break;
 			case ICMD_GETFIELD:        /* 1 -> 1 */
-			case ICMD_PUTFIELD:        /* 2 -> 0 */
 				{
-					deoptimize(bbindex);
-					break;
-				}
-			case ICMD_PUTSTATIC:       /* 1 -> 0 */
-				{
-					deoptimize(bbindex);
-					break;
-#if 0
+					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+						deoptimize(bbindex);
+						break;
+					}
+
 					constant_FMIref *fmiref;
 					INSTRUCTION_GET_FIELDREF(iptr, fmiref);
-					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+					fieldinfo* field = fmiref->p.field;
+
 					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
 					assert(state_change);
-					Instruction *putstatic = new PUTSTATICInst(s1,fmiref,INSTRUCTION_IS_RESOLVED(iptr),
-						BB[bbindex],state_change);
-					write_variable(global_state,bbindex,putstatic);
-					M->add_Instruction(putstatic);
-#endif
+
+					Type::TypeID type = convert_to_typeid(fmiref->parseddesc.fd->type);
+					Value *objectref = read_variable(iptr->s1.varindex,bbindex);
+					Instruction *getfield = new GETFIELDInst(type, objectref, field, BB[bbindex], state_change);
+
+					write_variable(iptr->dst.varindex, bbindex, getfield);
+					write_variable(global_state, bbindex, getfield);
+
+					M->add_Instruction(getfield);
+				}
+				break;
+			case ICMD_PUTFIELD:        /* 2 -> 0 */
+				{
+					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+						deoptimize(bbindex);
+						break;
+					}
+
+					constant_FMIref *fmiref;
+					INSTRUCTION_GET_FIELDREF(iptr, fmiref);
+					fieldinfo* field = fmiref->p.field;
+
+					Instruction *state_change = read_variable(global_state, bbindex)->to_Instruction();
+					assert(state_change);
+
+					Value *objectref = read_variable(iptr->s1.varindex, bbindex);
+					Value *value = read_variable(iptr->sx.s23.s2.varindex, bbindex);
+					Instruction *putfield = new PUTFIELDInst(objectref, value, field, BB[bbindex],
+							state_change);
+
+					write_variable(global_state, bbindex, putfield);
+
+					M->add_Instruction(putfield);
 				}
 				break;
 			case ICMD_GETSTATIC:       /* 0 -> 1 */
 				{
+					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+						deoptimize(bbindex);
+						break;
+					}
+
 					constant_FMIref *fmiref;
 					INSTRUCTION_GET_FIELDREF(iptr, fmiref);
-					Type::TypeID type = convert_to_typeid(fmiref->parseddesc.fd->type);
+					fieldinfo* field = fmiref->p.field;
+
+					if (!class_is_or_almost_initialized(field->clazz)) {
+						deoptimize(bbindex);
+						break;
+					}
+
 					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
 					assert(state_change);
-					Instruction *getstatic = new GETSTATICInst(type,fmiref,INSTRUCTION_IS_RESOLVED(iptr),
-						BB[bbindex],state_change);
-					write_variable(iptr->dst.varindex,bbindex,getstatic);
-					write_variable(global_state,bbindex,getstatic);
+
+					Type::TypeID type = convert_to_typeid(fmiref->parseddesc.fd->type);
+					Instruction *getstatic = new GETSTATICInst(type, field,
+							BB[bbindex], state_change);
+
+					write_variable(iptr->dst.varindex, bbindex, getstatic);
+					write_variable(global_state, bbindex, getstatic);
+
 					M->add_Instruction(getstatic);
+				}
+				break;
+			case ICMD_PUTSTATIC:       /* 1 -> 0 */
+				{
+					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+						deoptimize(bbindex);
+						break;
+					}
+
+					constant_FMIref *fmiref;
+					INSTRUCTION_GET_FIELDREF(iptr, fmiref);
+					fieldinfo* field = fmiref->p.field;
+
+					if (!class_is_or_almost_initialized(field->clazz)) {
+						deoptimize(bbindex);
+						break;
+					}
+
+					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
+					assert(state_change);
+
+					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
+					Instruction *putstatic = new PUTSTATICInst(s1, field,
+							BB[bbindex], state_change);
+
+					write_variable(global_state, bbindex, putstatic);
+
+					M->add_Instruction(putstatic);
 				}
 				break;
 			case ICMD_PUTSTATICCONST:  /* 0 -> 0 */
