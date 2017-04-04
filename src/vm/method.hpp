@@ -57,7 +57,7 @@ namespace cacao {
 }
 
 
-#if defined(ENABLE_REPLACEMENT)
+#if defined(ENABLE_COMPILER2)
 // Initial value for the hit countdown field of each method.
 #define METHOD_INITIAL_HIT_COUNTDOWN  1000
 #endif
@@ -111,8 +111,9 @@ struct methodinfo {                 /* method structure                       */
 
 	BreakpointTable* breakpoints;   /* breakpoints in this method             */
 
-#if defined(ENABLE_REPLACEMENT)
+#if defined(ENABLE_COMPILER2)
 	s4            hitcountdown;     /* decreased for each hit                 */
+	codeinfo     *deopttarget;      /* code to use for deoptimization         */
 #endif
 
 #if defined(ENABLE_DEBUG_FILTER)
@@ -224,7 +225,9 @@ void method_print(methodinfo *m);
 void method_println(methodinfo *m);
 void method_methodref_print(constant_FMIref *mr);
 void method_methodref_println(constant_FMIref *mr);
+
 #endif
+bool method_matches(methodinfo *m, const char* name);
 
 
 namespace cacao {

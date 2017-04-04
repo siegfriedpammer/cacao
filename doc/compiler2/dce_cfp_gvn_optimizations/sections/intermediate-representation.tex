@@ -1,0 +1,105 @@
+\section{The Intermediate Representation}
+\label{sec:intermediate-representation}
+
+The new optimizing compiler of the CACAO VM uses two different forms of intermediate representations for the code \cite{eisl:2013}. A high-level representation model, based on static single assignment form, builds the center of the architecture independent parts. Later on, within the architecture dependent compiler back-end, this structure is transformed into a low-level representation, which uses lists of machine instructions to form basic blocks. The optimization algorithms presented in subsequent sections are targeted at being incorporated into the machine independent front-end of the compiler and operate on the high-level representation. In the following, we will give an overview of its main characteristics because basic knowledge about it is necessary for a thorough understanding of the optimization algorithms. We will not go into detail on every aspect, so for further information refer to \cite{eisl:2013}.
+
+As already mentioned, this intermediate representation is based on static single assignment form. It represents a method's code in the form of a graph-based structure, where instructions are represented by nodes. Each node has an associated type, which is part of a static type hierarchy. Each type is a direct or indirect sub-type of \irinline{Instruction}, which forms the base of this hierarchy. In the following, we will use the terms \emph{node} and \irinline{Instruction} interchangeably (similarly, to refer to nodes associated with a sub-type of \irinline{Instruction}, we will use the according type name). The possible relationships between nodes are represented by three different types of edges: \emph{control-flow edges}, \emph{data-flow edges} and \emph{scheduling edges}.
+
+The units of control-flow within this graph are the nodes of type \irinline{BEGINInst} and \irinline{ENDInst}. These nodes form pairs which are comparable to basic blocks in traditional representation models. But as we will see later on, in contrast to basic blocks, there do not necessarily exist lists of instructions which are assigned to these control-flow units. On one hand, at \irinline{BEGINInsts} several control-flow paths merge, meaning that there can be a number of control-flow edges, that go into a node of this type. Each \irinline{BEGINInst} will have a single outgoing edge leading to exactly one \irinline{ENDInst}. On the other hand, these \irinline{ENDInst}s can have several outgoing control-flow edges to \irinline{BEGINInst}s. There are different sub-types of \irinline{ENDInst}: \irinline{GOTOInst}s, for example, which can only have a single outgoing edge, or \irinline{IFInst}s with two outgoing edges; another important example are nodes of type \irinline{RETURNInst}, which do not have outgoing edges at all.
+
+\begin{lstlisting}[label=lst:factorial, caption=Example adopted from \cite{eisl:2013}]
+static long fact(long n) {
+	long res = 1;
+	while(1 < n) {
+		res *= n--;
+	}
+	return res;
+}
+\end{lstlisting}
+
+Besides these units to express the program's control-flow, there are also primitive nodes that compute and supply data values. They can have multiple inputs, namely their operands, which are represented by ordered incoming data-flow edges. The value computed by such nodes can be consumed and serve as operand for other nodes. The latter case is modeled by using data-flow edges starting at the supplying node and ending at the consuming one. A special case of such nodes are those which represent $\phi$-functions. These \irinline{PHIInst}s serve to merge values at points where multiple control-flow paths join. Each $\phi$-node is fixed to exactly one \irinline{BEGINInst} and accordingly has to be scheduled after this node. Such dependencies are modeled by using scheduling edges which define the order of execution between nodes. Although there exist some explicit scheduling dependencies like in the case of $\phi$-nodes, an important aspect of this intermediate representation is that there does not exist a complete instruction schedule.
+
+The method in listing \ref{lst:factorial} would be translated into this intermediate representation as can be seen in figure \ref{fig:ir-demo}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}%
+[
+  scale=0.7,
+  every node/.style={
+   scale=0.7
+ },
+  %show background rectangle,
+  %inner frame sep=1em,
+]
+%[scale=0.4]
+%
+  %\draw[step=.5cm,black!25,very thin,draw opacity=1] (-3,-3) grid (3,3);
+ 
+  %%
+  \node[Inst] (begin0) {\Inst{BeginInst}};
+ \node[Inst] (goto6) [below=of begin0] {\Inst{GOTOInst}};
+ \node (start) [above left=1 and -0.5 of begin0] {};
+  %
+  \node[Inst] (load4) [below left= 0.25 and 1 of begin0] {\Inst{LOADInst}};
+  %%
+  \node[Inst] (begin1) [below=of goto6] {\Inst{BeginInst}};
+ \node[Inst] (if9) [below=3 of begin1] {\Inst{IFInst}};
+  %
+  \node[Inst] (phi8) [above left=1.25 and -0.5  of if9] {\Inst{PHIInst}};
+ \node[Inst] (phi10) [right=of phi8] {\Inst{PHIInst}};
+ \node[Inst] (mul13) [below right=of phi10] {\Inst{MULInst}};
+ \node[Inst] (const5) [above right=of phi10] {\Inst{CONSTInst} $=1$};
+ \node[Inst] (const7) [above left=0.5 and 2 of if9] {\Inst{CONSTInst} $=1$};
+  %%
+  \node[Inst] (begin2) [below left=of if9] {\Inst{BeginInst}};
+ \node[Inst] (goto14) [below=of begin2] {\Inst{GOTOInst}};
+  %%
+  \node[Inst] (begin3) [below right=of if9] {\Inst{BeginInst}};
+ \node[Inst] (return15) [below=of begin3] {\Inst{RETURNInst}};
+  %%
+  \node[Inst] (sub12) [above left=of phi8] {\Inst{SUBInst}};
+ \node[Inst] (const11) [above left= 0.5 and - 0.5 of sub12] {\Inst{CONSTInst} $=1$};
+  %
+  \node[below=0.5 of return15] {};
+  %%
+  \begin{pgfonlayer}{background}
+   \node[basicblock,fit=(begin0) (goto6) (load4)] {};
+   \node[basicblock,fit=(begin1) (if9) (phi8) (phi10)] {};
+   \node[basicblock,fit=(begin2) (goto14)] {};
+   \node[basicblock,fit=(begin3) (return15)] {};
+ \end{pgfonlayer}
+  %%
+  % begin end
+  \draw [dashed,->,shorten >=0.2cm] (start) to node[sloped,anchor=south,near start] {entry} (begin0);
+  \draw [begin2end] (begin0) to (goto6);
+  \draw [begin2end] (begin1) to (if9);
+  \draw [begin2end] (begin2) to (goto14);
+  \draw [begin2end] (begin3) to (return15);
+  % data dep
+  \draw [datadep] (const5) to (phi10);
+  \draw [datadep] (const7) to (if9);
+  \draw [datadep] (phi8) to (if9);
+  \draw [datadep] (load4) to (phi8);
+  \draw [datadep,bend right] (phi10) to (return15);
+  \draw [datadep] (const11) to (sub12);
+  \draw [datadep] (phi8) to (sub12);
+  \draw [datadep,bend right] (sub12) to (phi8);
+  \draw [datadep] (phi8) to (mul13);
+  \draw [datadep] (phi10) to (mul13);
+  \draw [datadep,bend right] (mul13) to (phi10);
+  % sched dep
+  \draw [scheddep] (begin0) to (load4);
+  \draw [scheddep] (begin1) to (phi8);
+  \draw [scheddep] (begin1) to (phi10);
+  % cfg
+  \draw [cfg] (goto6) to (begin1);
+  \draw [cfg] (if9) to (begin2);
+  \draw [cfg] (if9) to (begin3);
+  \begin{pgfonlayer}{background}
+   \draw [cfg,bend left] (goto14.west) to [out=90] (begin1.west);
+ \end{pgfonlayer}
+\end{tikzpicture}
+\caption{Control-flow is marked by thick solid arrows. To highlight pairs of \irinline{BEGINInst}s and \irinline{ENDInst}s, the according edges are dashed. Data-flow is represented by thin arrows pointing into def-use direction. Scheduling dependencies are marked blue. Example adopted from \cite{eisl:2013}}
+\label{fig:ir-demo}
+\end{figure}

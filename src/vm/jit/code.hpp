@@ -33,6 +33,9 @@
 #include "vm/jit/methodheader.hpp"      // for CodeInfoPointer
 #include "vm/types.hpp"                 // for u1, s4
 
+#include "future/memory.hpp"            // for cacao::shared_ptr
+#include "vm/jit/PatcherNew.hpp"         // for cacao::Patcher
+
 class LinenumberTable;
 struct exceptiontable_t;
 struct methodinfo;
@@ -45,12 +48,18 @@ template <class T> class LockedList;
 /* constants ******************************************************************/
 
 enum CodeFlag {
-	CODE_FLAG_INVALID      = 0x0001,
-	CODE_FLAG_LEAFMETHOD   = 0x0002,
-	CODE_FLAG_SYNCHRONIZED = 0x0004,
-	CODE_FLAG_TLH          = 0x0008
+	CODE_FLAG_INVALID         = 0x0001,
+	CODE_FLAG_LEAFMETHOD      = 0x0002,
+	CODE_FLAG_SYNCHRONIZED    = 0x0004,
+	CODE_FLAG_TLH             = 0x0008,
+	CODE_FLAG_USING_FRAMEPTR  = 0x0010  // TODO probably only needed for x86_64?
 };
 
+/**
+ * @Cpp11 should be std::shared_ptr or const std::unique_ptr
+ */
+typedef cacao::shared_ptr<cacao::Patcher> PatcherPtrTy;
+typedef LockedList<PatcherPtrTy> PatcherListTy;
 
 /* codeinfo *******************************************************************
 
@@ -86,7 +95,8 @@ struct codeinfo {
 	LinenumberTable* linenumbertable;
 
 	/* patcher list */
-	LockedList<patchref_t>* patchers;
+	//LockedList<patchref_t>* patchers;
+	PatcherListTy* patchers;
 
 	/* replacement */
 #if defined(ENABLE_REPLACEMENT)
@@ -177,6 +187,28 @@ inline static void code_unflag_synchronized(codeinfo *code)
 }
 
 
+/* code_xxx_using_frameptr *****************************************************
+
+   Functions for CODE_FLAG_USING_FRAMEPTR.
+
+*******************************************************************************/
+
+inline static int code_is_using_frameptr(codeinfo *code)
+{
+	return (code->flags & CODE_FLAG_USING_FRAMEPTR);
+}
+
+inline static void code_flag_using_frameptr(codeinfo *code)
+{
+	code->flags |= CODE_FLAG_USING_FRAMEPTR;
+}
+
+inline static void code_unflag_using_frameptr(codeinfo *code)
+{
+	code->flags &= ~CODE_FLAG_USING_FRAMEPTR;
+}
+
+
 /* code_get_codeinfo_for_pv ****************************************************
 
    Return the codeinfo for the given PV.
@@ -215,7 +247,7 @@ methodinfo *code_get_methodinfo_for_pv(void *pv);
 
 #if defined(ENABLE_REPLACEMENT)
 int code_get_sync_slot_count(codeinfo *code);
-#endif /* defined(ENABLE_REPLACEMENT) */
+#endif
 
 void code_free_code_of_method(methodinfo *m);
 

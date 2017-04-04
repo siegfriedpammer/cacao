@@ -33,10 +33,6 @@
 #include "arch.hpp"
 #include "md.hpp"
 
-#if defined(ENABLE_GC_CACAO)
-# include "mm/cacao-gc/gc.h"
-#endif
-
 #include "mm/dumpmemory.hpp"
 #include "mm/memory.hpp"
 
@@ -67,76 +63,12 @@
 
 #include "vm/jit/ir/instruction.hpp"
 
+#define DEBUG_NAME "replace"
+
+using namespace cacao;
 
 #define REPLACE_PATCH_DYNAMIC_CALL
 /*#define REPLACE_PATCH_ALL*/
-
-
-/*** debugging ****************************************************************/
-
-#if !defined(NDEBUG)
-static void java_value_print(s4 type, replace_val_t value);
-static void replace_stackframeinfo_println(stackframeinfo_t *sfi);
-#endif
-
-#if !defined(NDEBUG)
-#define DOLOG(code)        do{ if (opt_TraceReplacement > 1) { code; } } while(0)
-#define DOLOG_SHORT(code)  do{ if (opt_TraceReplacement > 0) { code; } } while(0)
-#else
-#define DOLOG(code)
-#define DOLOG_SHORT(code)
-#endif
-
-
-/*** statistics ***************************************************************/
-
-#define REPLACE_STATISTICS
-
-#if defined(REPLACE_STATISTICS)
-
-static int stat_replacements = 0;
-static int stat_frames = 0;
-static int stat_recompile = 0;
-static int stat_staticpatch = 0;
-static int stat_unroll_inline = 0;
-static int stat_unroll_call = 0;
-static int stat_dist_frames[20] = { 0 };
-static int stat_dist_locals[20] = { 0 };
-static int stat_dist_locals_adr[10] = { 0 };
-static int stat_dist_locals_prim[10] = { 0 };
-static int stat_dist_locals_ret[10] = { 0 };
-static int stat_dist_locals_void[10] = { 0 };
-static int stat_dist_stack[10] = { 0 };
-static int stat_dist_stack_adr[10] = { 0 };
-static int stat_dist_stack_prim[10] = { 0 };
-static int stat_dist_stack_ret[10] = { 0 };
-static int stat_methods = 0;
-static int stat_rploints = 0;
-static int stat_regallocs = 0;
-static int stat_dist_method_rplpoints[20] = { 0 };
-
-#define REPLACE_COUNT(cnt)  (cnt)++
-#define REPLACE_COUNT_IF(cnt, cond)  do{ if(cond) (cnt)++; } while(0)
-#define REPLACE_COUNT_INC(cnt, inc)  ((cnt) += (inc))
-
-#define REPLACE_COUNT_DIST(array, val)                               \
-    do {                                                             \
-        int limit = (sizeof(array) / sizeof(int)) - 1;               \
-        if ((val) < (limit)) (array)[val]++;                         \
-        else (array)[limit]++;                                       \
-    } while (0)
-
-static void replace_statistics_source_frame(sourceframe_t *frame);
-
-#else
-
-#define REPLACE_COUNT(cnt)
-#define REPLACE_COUNT_IF(cnt, cond)
-#define REPLACE_COUNT_INC(cnt, inc)
-#define REPLACE_COUNT_DIST(array, val)
-
-#endif /* defined(REPLACE_STATISTICS) */
-
 
 /*** constants used internally ************************************************/
 
@@ -145,570 +77,16 @@ static void replace_statistics_source_frame(sourceframe_t *frame);
 #define TOP_IS_IN_ITMP1  2
 #define TOP_IS_VOID      3
 
-
-/******************************************************************************/
-/* PART I: Creating / freeing replacement points                              */
-/******************************************************************************/
-
-
-/* replace_create_replacement_point ********************************************
-
-   Create a replacement point.
-
-   IN:
-       jd...............current jitdata
-	   iinfo............inlining info for the current position
-	   rp...............pre-allocated (uninitialized) rplpoint
-	   type.............rplpoint::TYPE constant
-	   iptr.............current instruction
-	   *pra.............current rplalloc pointer
-	   javalocals.......the javalocals at the current point
-	   stackvars........the stack variables at the current point
-	   stackdepth.......the stack depth at the current point
-	   paramcount.......number of parameters at the start of stackvars
-
-   OUT:
-       *rpa.............points to the next free rplalloc
-
-*******************************************************************************/
-
-static void replace_create_replacement_point(jitdata *jd,
-											 insinfo_inline *iinfo,
-											 rplpoint *rp,
-											 rplpoint::Type type,
-											 instruction *iptr,
-											 rplalloc **pra,
-											 s4 *javalocals,
-											 s4 *stackvars,
-											 s4 stackdepth,
-											 s4 paramcount)
-{
-	rplalloc *ra;
-	s4        i;
-	varinfo  *v;
-	s4        index;
-
-	ra = *pra;
-
-	REPLACE_COUNT(stat_rploints);
-
-	rp->method   = (iinfo) ? iinfo->method : jd->m;
-	rp->pc       = NULL;        /* set by codegen */
-	rp->callsize = 0;     /* set by codegen */
-	rp->regalloc = ra;
-	rp->flags    = 0;
-	rp->type     = type;
-	rp->id       = iptr->flags.bits >> INS_FLAG_ID_SHIFT;
-
-	/* XXX unify these two fields */
-	rp->parent = (iinfo) ? iinfo->rp : NULL;
-
-	/* store local allocation info of javalocals */
-
-	if (javalocals) {
-		for (i = 0; i < rp->method->maxlocals; ++i) {
-			index = javalocals[i];
-			if (index == jitdata::UNUSED)
-				continue;
-
-			ra->index = i;
-			if (index >= 0) {
-				v = VAR(index);
-				ra->flags  = v->flags & (INMEMORY);
-				ra->regoff = v->vv.regoff;
-				ra->type   = v->type;
-			}
-			else {
-				ra->regoff = RETADDR_FROM_JAVALOCAL(index);
-				ra->type = TYPE_RET;
-				ra->flags = 0;
-			}
-			ra++;
-		}
-	}
-
-	/* store allocation info of java stack vars */
-
-	for (i = 0; i < stackdepth; ++i) {
-		v = VAR(stackvars[i]);
-		ra->flags = v->flags & (INMEMORY);
-		ra->index = (i < paramcount) ? RPLALLOC_PARAM : RPLALLOC_STACK;
-		ra->type  = v->type;
-		/* XXX how to handle locals on the stack containing returnAddresses? */
-		if (v->type == TYPE_RET) {
-			assert(stackvars[i] >= jd->localcount);
-			ra->regoff = v->vv.retaddr->nr;
-		}
-		else
-			ra->regoff = v->vv.regoff;
-		ra++;
-	}
-
-	/* total number of allocations */
-
-	rp->regalloccount = ra - rp->regalloc;
-
-	*pra = ra;
-}
-
-
-/* replace_create_inline_start_replacement_point *******************************
-
-   Create an INLINE_START replacement point.
-
-   IN:
-       jd...............current jitdata
-	   rp...............pre-allocated (uninitialized) rplpoint
-	   iptr.............current instruction
-	   *pra.............current rplalloc pointer
-	   javalocals.......the javalocals at the current point
-
-   OUT:
-       *rpa.............points to the next free rplalloc
-
-   RETURN VALUE:
-       the insinfo_inline * for the following inlined body
-
-*******************************************************************************/
-
-static insinfo_inline * replace_create_inline_start_replacement_point(
-											 jitdata *jd,
-											 rplpoint *rp,
-											 instruction *iptr,
-											 rplalloc **pra,
-											 s4 *javalocals)
-{
-	insinfo_inline *calleeinfo;
-	rplalloc       *ra;
-
-	calleeinfo = iptr->sx.s23.s3.inlineinfo;
-
-	calleeinfo->rp = rp;
-
-	replace_create_replacement_point(jd, calleeinfo->parent, rp,
-			rplpoint::TYPE_INLINE, iptr, pra,
-			javalocals,
-			calleeinfo->stackvars, calleeinfo->stackvarscount,
-			calleeinfo->paramcount);
-
-	if (calleeinfo->synclocal != jitdata::UNUSED) {
-		ra = (*pra)++;
-		ra->index  = RPLALLOC_SYNC;
-		ra->regoff = jd->var[calleeinfo->synclocal].vv.regoff;
-		ra->flags  = jd->var[calleeinfo->synclocal].flags & INMEMORY;
-		ra->type   = TYPE_ADR;
-
-		rp->regalloccount++;
-	}
-
-	return calleeinfo;
-}
-
-
-/* replace_create_replacement_points *******************************************
-
-   Create the replacement points for the given code.
-
-   IN:
-       jd...............current jitdata, must not have any replacement points
-
-   OUT:
-       code->rplpoints.......set to the list of replacement points
-	   code->rplpointcount...number of replacement points
-	   code->regalloc........list of allocation info
-	   code->regalloccount...total length of allocation info list
-	   code->globalcount.....number of global allocations at the
-	                         start of code->regalloc
-
-   RETURN VALUE:
-       true.............everything ok
-       false............an exception has been thrown
-
-*******************************************************************************/
-
-#define CLEAR_javalocals(array, method)                              \
-    do {                                                             \
-        for (i=0; i<(method)->maxlocals; ++i)                        \
-            (array)[i] = jitdata::UNUSED;                                     \
-    } while (0)
-
-#define COPY_OR_CLEAR_javalocals(dest, array, method)                \
-    do {                                                             \
-        if ((array) != NULL)                                         \
-            MCOPY((dest), (array), s4, (method)->maxlocals);         \
-        else                                                         \
-            CLEAR_javalocals((dest), (method));                      \
-    } while (0)
-
-#define COUNT_javalocals(array, method, counter)                     \
-    do {                                                             \
-        for (i=0; i<(method)->maxlocals; ++i)                        \
-            if ((array)[i] != jitdata::UNUSED)                                \
-				(counter)++;                                         \
-    } while (0)
-
-bool replace_create_replacement_points(jitdata *jd)
-{
-	codeinfo        *code;
-	registerdata    *rd;
-	basicblock      *bptr;
-	int              count;
-	methodinfo      *m;
-	rplpoint        *rplpoints;
-	rplpoint        *rp;
-	int              alloccount;
-	rplalloc        *regalloc;
-	rplalloc        *ra;
-	int              i;
-	instruction     *iptr;
-	instruction     *iend;
-	s4              *javalocals;
-	s4              *jl;
-	methoddesc      *md;
-	insinfo_inline  *iinfo;
-	s4               startcount;
-	s4               firstcount;
-#if defined(REPLACE_PATCH_DYNAMIC_CALL)
-	bool             needentry;
-#endif
-
-	REPLACE_COUNT(stat_methods);
-
-	/* get required compiler data */
-
-	code = jd->code;
-	rd   = jd->rd;
-
-	/* assert that we wont overwrite already allocated data */
-
-	assert(code);
-	assert(code->m);
-	assert(code->rplpoints == NULL);
-	assert(code->rplpointcount == 0);
-	assert(code->regalloc == NULL);
-	assert(code->regalloccount == 0);
-	assert(code->globalcount == 0);
-
-	m = code->m;
-
-	/* in instance methods, we may need a rplpoint at the method entry */
-
-#if defined(REPLACE_PATCH_DYNAMIC_CALL)
-	if (!(m->flags & ACC_STATIC)) {
-		jd->basicblocks[0].bitflags |= BBFLAG_REPLACEMENT;
-		needentry = true;
-	}
-	else {
-		needentry = false;
-	}
-#endif /* defined(REPLACE_PATCH_DYNAMIC_CALL) */
-
-	/* iterate over the basic block list to find replacement points */
-
-	count = 0;
-	alloccount = 0;
-
-	javalocals = (s4*) DumpMemory::allocate(sizeof(s4) * jd->maxlocals);
-
-	for (bptr = jd->basicblocks; bptr; bptr = bptr->next) {
-
-		/* skip dead code */
-
-		if (bptr->state < basicblock::FINISHED)
-			continue;
-
-		/* get info about this block */
-
-		m = bptr->method;
-		iinfo = bptr->inlineinfo;
-
-		/* initialize javalocals at the start of this block */
-
-		COPY_OR_CLEAR_javalocals(javalocals, bptr->javalocals, m);
-
-		/* iterate over the instructions */
-
-		iptr = bptr->iinstr;
-		iend = iptr + bptr->icount;
-		startcount = count;
-		firstcount = count;
-
-		for (; iptr != iend; ++iptr) {
-			switch (iptr->opc) {
-#if defined(ENABLE_GC_CACAO)
-				case ICMD_BUILTIN:
-					md = iptr->sx.s23.s3.bte->md;
-					count++;
-					COUNT_javalocals(javalocals, m, alloccount);
-					alloccount += iptr->s1.argcount;
-					if (iinfo)
-						alloccount -= iinfo->throughcount;
-					break;
-#endif
-
-				case ICMD_INVOKESTATIC:
-				case ICMD_INVOKESPECIAL:
-				case ICMD_INVOKEVIRTUAL:
-				case ICMD_INVOKEINTERFACE:
-					INSTRUCTION_GET_METHODDESC(iptr, md);
-					count++;
-					COUNT_javalocals(javalocals, m, alloccount);
-					alloccount += iptr->s1.argcount;
-					if (iinfo)
-						alloccount -= iinfo->throughcount;
-					break;
-
-				case ICMD_ISTORE:
-				case ICMD_LSTORE:
-				case ICMD_FSTORE:
-				case ICMD_DSTORE:
-				case ICMD_ASTORE:
-					stack_javalocals_store(iptr, javalocals);
-					break;
-
-				case ICMD_IRETURN:
-				case ICMD_LRETURN:
-				case ICMD_FRETURN:
-				case ICMD_DRETURN:
-				case ICMD_ARETURN:
-					alloccount += 1;
-					/* FALLTHROUGH! */
-				case ICMD_RETURN:
-					count++;
-					break;
-
-				case ICMD_INLINE_START:
-					iinfo = iptr->sx.s23.s3.inlineinfo;
-
-					count++;
-					COUNT_javalocals(javalocals, m, alloccount);
-					alloccount += iinfo->stackvarscount;
-					if (iinfo->synclocal != jitdata::UNUSED)
-						alloccount++;
-
-					m = iinfo->method;
-					/* javalocals may be set at next block start, or now */
-					COPY_OR_CLEAR_javalocals(javalocals, iinfo->javalocals_start, m);
-					break;
-
-				case ICMD_INLINE_BODY:
-					assert(iinfo == iptr->sx.s23.s3.inlineinfo);
-
-					jl = iinfo->javalocals_start;
-					if (jl == NULL) {
-						/* get the javalocals from the following block start */
-						assert(bptr->next);
-						jl = bptr->next->javalocals;
-					}
-					count++;
-					COUNT_javalocals(jl, m, alloccount);
-					break;
-
-				case ICMD_INLINE_END:
-					assert(iinfo == iptr->sx.s23.s3.inlineinfo ||
-						   iinfo == iptr->sx.s23.s3.inlineinfo->parent);
-					iinfo = iptr->sx.s23.s3.inlineinfo;
-					m = iinfo->outer;
-					if (iinfo->javalocals_end)
-						MCOPY(javalocals, iinfo->javalocals_end, s4, m->maxlocals);
-					iinfo = iinfo->parent;
-					break;
-				default:
-					break;
-			}
-
-			if (iptr == bptr->iinstr)
-				firstcount = count;
-		} /* end instruction loop */
-
-		/* create replacement points at targets of backward branches */
-		/* We only need the replacement point there, if there is no  */
-		/* replacement point inside the block.                       */
-
-		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
-#if defined(REPLACE_PATCH_DYNAMIC_CALL)
-			int test = (needentry && bptr == jd->basicblocks) ? firstcount : count;
-#else
-			int test = count;
-#endif
-			if (test > startcount) {
-				/* we don't need an extra rplpoint */
-				bptr->bitflags &= ~BBFLAG_REPLACEMENT;
-			}
-			else {
-				count++;
-				alloccount += bptr->indepth;
-				if (bptr->inlineinfo)
-					alloccount -= bptr->inlineinfo->throughcount;
-
-				COUNT_javalocals(bptr->javalocals, bptr->method, alloccount);
-			}
-		}
-
-	} /* end basicblock loop */
-
-	/* if no points were found, there's nothing to do */
-
-	if (!count)
-		return true;
-
-	/* allocate replacement point array and allocation array */
-
-	rplpoints = MNEW(rplpoint, count);
-	regalloc = MNEW(rplalloc, alloccount);
-	ra = regalloc;
-
-	/* initialize replacement point structs */
-
-	rp = rplpoints;
-
-	/* XXX try to share code with the counting loop! */
-
-	for (bptr = jd->basicblocks; bptr; bptr = bptr->next) {
-		/* skip dead code */
-
-		if (bptr->state < basicblock::FINISHED)
-			continue;
-
-		/* get info about this block */
-
-		m = bptr->method;
-		iinfo = bptr->inlineinfo;
-
-		/* initialize javalocals at the start of this block */
-
-		COPY_OR_CLEAR_javalocals(javalocals, bptr->javalocals, m);
-
-		/* create replacement points at targets of backward branches */
-
-		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
-
-			i = (iinfo) ? iinfo->throughcount : 0;
-			replace_create_replacement_point(jd, iinfo, rp++,
-					(rplpoint::Type) bptr->type, bptr->iinstr, &ra,
-					bptr->javalocals, bptr->invars + i, bptr->indepth - i, 0);
-
-			if (JITDATA_HAS_FLAG_COUNTDOWN(jd))
-				rp[-1].flags |= rplpoint::FLAG_COUNTDOWN;
-		}
-
-		/* iterate over the instructions */
-
-		iptr = bptr->iinstr;
-		iend = iptr + bptr->icount;
-
-		for (; iptr != iend; ++iptr) {
-			switch (iptr->opc) {
-#if defined(ENABLE_GC_CACAO)
-				case ICMD_BUILTIN:
-					md = iptr->sx.s23.s3.bte->md;
-
-					i = (iinfo) ? iinfo->throughcount : 0;
-					replace_create_replacement_point(jd, iinfo, rp++,
-							rplpoint::TYPE_CALL, iptr, &ra,
-							javalocals, iptr->sx.s23.s2.args,
-							iptr->s1.argcount - i,
-							md->paramcount);
-					break;
-#endif
-
-				case ICMD_INVOKESTATIC:
-				case ICMD_INVOKESPECIAL:
-				case ICMD_INVOKEVIRTUAL:
-				case ICMD_INVOKEINTERFACE:
-					INSTRUCTION_GET_METHODDESC(iptr, md);
-
-					i = (iinfo) ? iinfo->throughcount : 0;
-					replace_create_replacement_point(jd, iinfo, rp++,
-							rplpoint::TYPE_CALL, iptr, &ra,
-							javalocals, iptr->sx.s23.s2.args,
-							iptr->s1.argcount - i,
-							md->paramcount);
-					break;
-
-				case ICMD_ISTORE:
-				case ICMD_LSTORE:
-				case ICMD_FSTORE:
-				case ICMD_DSTORE:
-				case ICMD_ASTORE:
-					stack_javalocals_store(iptr, javalocals);
-					break;
-
-				case ICMD_IRETURN:
-				case ICMD_LRETURN:
-				case ICMD_FRETURN:
-				case ICMD_DRETURN:
-				case ICMD_ARETURN:
-					replace_create_replacement_point(jd, iinfo, rp++,
-							rplpoint::TYPE_RETURN, iptr, &ra,
-							NULL, &(iptr->s1.varindex), 1, 0);
-					break;
-
-				case ICMD_RETURN:
-					replace_create_replacement_point(jd, iinfo, rp++,
-							rplpoint::TYPE_RETURN, iptr, &ra,
-							NULL, NULL, 0, 0);
-					break;
-
-				case ICMD_INLINE_START:
-					iinfo = replace_create_inline_start_replacement_point(
-								jd, rp++, iptr, &ra, javalocals);
-					m = iinfo->method;
-					/* javalocals may be set at next block start, or now */
-					COPY_OR_CLEAR_javalocals(javalocals, iinfo->javalocals_start, m);
-					break;
-
-				case ICMD_INLINE_BODY:
-					assert(iinfo == iptr->sx.s23.s3.inlineinfo);
-
-					jl = iinfo->javalocals_start;
-					if (jl == NULL) {
-						/* get the javalocals from the following block start */
-						assert(bptr->next);
-						jl = bptr->next->javalocals;
-					}
-					/* create a non-trappable rplpoint */
-					replace_create_replacement_point(jd, iinfo, rp++,
-							rplpoint::TYPE_BODY, iptr, &ra,
-							jl, NULL, 0, 0);
-					rp[-1].flags |= rplpoint::FLAG_NOTRAP;
-					break;
-
-				case ICMD_INLINE_END:
-					assert(iinfo == iptr->sx.s23.s3.inlineinfo ||
-						   iinfo == iptr->sx.s23.s3.inlineinfo->parent);
-					iinfo = iptr->sx.s23.s3.inlineinfo;
-					m = iinfo->outer;
-					if (iinfo->javalocals_end)
-						MCOPY(javalocals, iinfo->javalocals_end, s4, m->maxlocals);
-					iinfo = iinfo->parent;
-					break;
-				default:
-					break;
-			}
-		} /* end instruction loop */
-	} /* end basicblock loop */
-
-	assert((rp - rplpoints) == count);
-	assert((ra - regalloc) == alloccount);
-
-	/* store the data in the codeinfo */
-
-	code->rplpoints     = rplpoints;
-	code->rplpointcount = count;
-	code->regalloc      = regalloc;
-	code->regalloccount = alloccount;
-	code->globalcount   = 0;
-	code->memuse        = rd->memuse;
-
-	REPLACE_COUNT_DIST(stat_dist_method_rplpoints, count);
-	REPLACE_COUNT_INC(stat_regallocs, alloccount);
-
-	/* everything alright */
-
-	return true;
-}
-
+/**
+ * Determines whether a given `sourceframe` represents a frame of a
+ * native method.
+ */
+#define REPLACE_IS_NATIVE_FRAME(frame)  ((frame)->sfi != NULL)
+
+/**
+ * Determeines whether the given replacement point is at a call site.
+ */
+#define REPLACE_IS_CALL_SITE(rp) ((rp)->callsize > 0)
 
 /* replace_free_replacement_points *********************************************
 
@@ -735,11 +113,6 @@ void replace_free_replacement_points(codeinfo *code)
 	code->regalloccount = 0;
 	code->globalcount = 0;
 }
-
-
-/******************************************************************************/
-/* PART II: Activating / deactivating replacement points                      */
-/******************************************************************************/
 
 
 /* replace_activate_replacement_points *****************************************
@@ -771,11 +144,13 @@ void replace_activate_replacement_points(codeinfo *code, bool mappable)
 	i = code->rplpointcount;
 	rp = code->rplpoints;
 	for (; i--; rp++) {
-		if (rp->flags & rplpoint::FLAG_NOTRAP)
+		if (!(rp->flags & rplpoint::FLAG_TRAPPABLE))
 			continue;
 
+#if 0
 		if (mappable && (rp->type == rplpoint::TYPE_RETURN))
 			continue;
+#endif
 
 		count++;
 	}
@@ -794,31 +169,18 @@ void replace_activate_replacement_points(codeinfo *code, bool mappable)
 	while (rp--, i--) {
 		assert(!(rp->flags & rplpoint::FLAG_ACTIVE));
 
-		if (rp->flags & rplpoint::FLAG_NOTRAP)
+		if (!(rp->flags & rplpoint::FLAG_TRAPPABLE))
 			continue;
 
+#if 0
 		if (mappable && (rp->type == rplpoint::TYPE_RETURN))
 			continue;
-
-		DOLOG( printf("activate replacement point:\n");
-			   replace_replacement_point_println(rp, 1); fflush(stdout); );
-
-		savedmcode -= REPLACEMENT_PATCH_SIZE;
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_DISASSEMBLER)
-		DOLOG( printf("\tinstruction before: ");
-			   disassinstr(rp->pc); fflush(stdout); );
-# endif
-
-		md_patch_replacement_point(rp->pc, savedmcode, false);
-
-# if defined(ENABLE_DISASSEMBLER)
-		DOLOG( printf("\tinstruction after : ");
-			   disassinstr(rp->pc); fflush(stdout); );
-# endif
 #endif
 
+		LOG2("activate replacement point: " << rp << nl);
+
+		savedmcode -= REPLACEMENT_PATCH_SIZE;
+		md_patch_replacement_point(rp->pc, savedmcode, false);
 		rp->flags |= rplpoint::FLAG_ACTIVE;
 	}
 
@@ -844,23 +206,6 @@ void replace_deactivate_replacement_points(codeinfo *code)
 	s4        count;
 	u1       *savedmcode;
 
-	if (code->savedmcode == NULL) {
-		/* disarm countdown points by patching the branches */
-
-		i = code->rplpointcount;
-		rp = code->rplpoints;
-		for (; i--; rp++) {
-			if ((rp->flags & (rplpoint::FLAG_ACTIVE | rplpoint::FLAG_COUNTDOWN))
-					== rplpoint::FLAG_COUNTDOWN)
-			{
-#if 0
-				*(s4*) (rp->pc + 9) = 0; /* XXX machine dependent! */
-#endif
-			}
-		}
-		return;
-	}
-
 	assert(code->savedmcode != NULL);
 	savedmcode = code->savedmcode;
 
@@ -875,25 +220,9 @@ void replace_deactivate_replacement_points(codeinfo *code)
 
 		count++;
 
-		DOLOG( printf("deactivate replacement point:\n");
-			   replace_replacement_point_println(rp, 1); fflush(stdout); );
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_DISASSEMBLER)
-		DOLOG( printf("\tinstruction before: ");
-			   disassinstr(rp->pc); fflush(stdout); );
-# endif
-
+		LOG2("deactivate replacement point: " << rp << nl);
 		md_patch_replacement_point(rp->pc, savedmcode, true);
-
-# if defined(ENABLE_DISASSEMBLER)
-		DOLOG( printf("\tinstruction before: ");
-			   disassinstr(rp->pc); fflush(stdout); );
-# endif
-#endif
-
 		rp->flags &= ~rplpoint::FLAG_ACTIVE;
-
 		savedmcode += REPLACEMENT_PATCH_SIZE;
 	}
 
@@ -904,11 +233,6 @@ void replace_deactivate_replacement_points(codeinfo *code)
 	MFREE(code->savedmcode, u1, count * REPLACEMENT_PATCH_SIZE);
 	code->savedmcode = NULL;
 }
-
-
-/******************************************************************************/
-/* PART III: The replacement mechanism                                        */
-/******************************************************************************/
 
 
 /* replace_read_value **********************************************************
@@ -929,7 +253,7 @@ static void replace_read_value(executionstate_t *es,
 							   rplalloc *ra,
 							   replace_val_t *javaval)
 {
-	if (ra->flags & INMEMORY) {
+	if (ra->inmemory) {
 		/* XXX HAS_4BYTE_STACKSLOT may not be the right discriminant here */
 #ifdef HAS_4BYTE_STACKSLOT
 		if (IS_2_WORD_TYPE(ra->type)) {
@@ -979,7 +303,7 @@ static void replace_write_value(executionstate_t *es,
 							    rplalloc *ra,
 							    replace_val_t *javaval)
 {
-	if (ra->flags & INMEMORY) {
+	if (ra->inmemory) {
 		/* XXX HAS_4BYTE_STACKSLOT may not be the right discriminant here */
 #ifdef HAS_4BYTE_STACKSLOT
 		if (IS_2_WORD_TYPE(ra->type)) {
@@ -1053,8 +377,6 @@ static sourceframe_t *replace_new_sourceframe(sourcestate_t *ss)
        rp...............replacement point at which `es` was taken
 	   es...............execution state
 	   ss...............the source state to add the source frame to
-	   topframe.........true, if the first (top-most) source frame on the
-	                    stack is to be read
 
    OUT:
        *ss..............the source state with the newly created source frame
@@ -1075,13 +397,10 @@ static s4 replace_normalize_type_map[] = {
 
 static void replace_read_executionstate(rplpoint *rp,
 										executionstate_t *es,
-										sourcestate_t *ss,
-										bool topframe)
+										sourcestate_t *ss)
 {
 	methodinfo    *m;
 	codeinfo      *code;
-	int            count;
-	int            i;
 	rplalloc      *ra;
 	sourceframe_t *frame;
 	int            topslot;
@@ -1089,10 +408,14 @@ static void replace_read_executionstate(rplpoint *rp,
 #if defined(__I386__)
 	stackslot_t   *basesp;
 #endif
+	bool           topframe;
+
+	LOG("read execution state at replacement point " << rp << nl);
 
 	code = code_find_codeinfo_for_pc(rp->pc);
 	m = rp->method;
 	topslot = TOP_IS_NORMAL;
+	topframe = ss->frames == NULL;
 
 	/* stack pointer */
 
@@ -1100,9 +423,11 @@ static void replace_read_executionstate(rplpoint *rp,
 
 	/* in some cases the top stack slot is passed in REG_ITMP1 */
 
+#if 0
 	if (rp->type == rplpoint::TYPE_EXH) {
 		topslot = TOP_IS_IN_ITMP1;
 	}
+#endif
 
 	/* calculate base stack pointer */
 
@@ -1115,24 +440,26 @@ static void replace_read_executionstate(rplpoint *rp,
 	frame = replace_new_sourceframe(ss);
 	frame->method = rp->method;
 	frame->id = rp->id;
+#if 0
 	assert(rp->type >= 0 && rp->type < sizeof(replace_normalize_type_map)/sizeof(s4));
 	frame->type = replace_normalize_type_map[rp->type];
+#endif
 	frame->fromrp = rp;
 	frame->fromcode = code;
 
 	/* read local variables */
 
-	count = m->maxlocals;
-	frame->javalocalcount = count;
-	frame->javalocals = (replace_val_t*) DumpMemory::allocate(sizeof(replace_val_t) * count);
-	frame->javalocaltype = (u1*) DumpMemory::allocate(sizeof(u1) * count);
+	frame->javalocalcount = m->maxlocals;
+	frame->javalocals = (replace_val_t*) DumpMemory::allocate(sizeof(replace_val_t) * frame->javalocalcount);
+	frame->javalocaltype = (u1*) DumpMemory::allocate(sizeof(u1) * frame->javalocalcount);
 
 	/* mark values as undefined */
-	for (i=0; i<count; ++i) {
+	for (int javalocal_index = 0; javalocal_index < frame->javalocalcount;
+			++javalocal_index) {
 #if !defined(NDEBUG)
-		frame->javalocals[i].l = (u8) 0x00dead0000dead00ULL;
+		frame->javalocals[javalocal_index].l = (u8) 0x00dead0000dead00ULL;
 #endif
-		frame->javalocaltype[i] = TYPE_VOID;
+		frame->javalocaltype[javalocal_index] = TYPE_VOID;
 	}
 
 	/* some entries in the intregs array are not meaningful */
@@ -1146,18 +473,18 @@ static void replace_read_executionstate(rplpoint *rp,
 
 	/* read javalocals */
 
-	count = rp->regalloccount;
 	ra = rp->regalloc;
+	int remaining_allocations = rp->regalloccount;
 
-	while (count && (i = ra->index) >= 0) {
-		assert(i < m->maxlocals);
-		frame->javalocaltype[i] = ra->type;
+	while (remaining_allocations && ra->index >= 0) {
+		assert(ra->index < m->maxlocals);
+		frame->javalocaltype[ra->index] = ra->type;
 		if (ra->type == TYPE_RET)
-			frame->javalocals[i].i = ra->regoff;
+			frame->javalocals[ra->index].i = ra->regoff;
 		else
-			replace_read_value(es, ra, frame->javalocals + i);
+			replace_read_value(es, ra, frame->javalocals + ra->index);
 		ra++;
-		count--;
+		remaining_allocations--;
 	}
 
 	/* read instance, if this is the first rplpoint */
@@ -1198,58 +525,58 @@ static void replace_read_executionstate(rplpoint *rp,
 
 	/* read stack slots */
 
-	frame->javastackdepth = count;
-	frame->javastack = (replace_val_t*) DumpMemory::allocate(sizeof(replace_val_t) * count);
-	frame->javastacktype = (u1*) DumpMemory::allocate(sizeof(u1) * count);
+	frame->javastackdepth = remaining_allocations;
+	frame->javastack = (replace_val_t*) DumpMemory::allocate(sizeof(replace_val_t) * frame->javastackdepth);
+	frame->javastacktype = (u1*) DumpMemory::allocate(sizeof(u1) * frame->javastackdepth);
 
 #if !defined(NDEBUG)
 	/* mark values as undefined */
-	for (i=0; i<count; ++i) {
-		frame->javastack[i].l = (u8) 0x00dead0000dead00ULL;
-		frame->javastacktype[i] = TYPE_VOID;
+	for (int stack_index = 0; stack_index < frame->javastackdepth; ++stack_index) {
+		frame->javastack[stack_index].l = (u8) 0x00dead0000dead00ULL;
+		frame->javastacktype[stack_index] = TYPE_VOID;
 	}
 #endif /* !defined(NDEBUG) */
 
-	i = 0;
+	int stack_index = 0;
 
 	/* the first stack slot is special in SBR and EXH blocks */
 
 	if (topslot == TOP_IS_ON_STACK) {
-		assert(count);
+		assert(remaining_allocations);
 
 		assert(ra->index == RPLALLOC_STACK);
 		assert(ra->type == TYPE_ADR);
-		frame->javastack[i].p = sp[-1];
-		frame->javastacktype[i] = TYPE_ADR; /* XXX RET */
-		count--;
-		i++;
+		frame->javastack[stack_index].p = sp[-1];
+		frame->javastacktype[stack_index] = TYPE_ADR; /* XXX RET */
+		remaining_allocations--;
+		stack_index++;
 		ra++;
 	}
 	else if (topslot == TOP_IS_IN_ITMP1) {
-		assert(count);
+		assert(remaining_allocations);
 
 		assert(ra->index == RPLALLOC_STACK);
 		assert(ra->type == TYPE_ADR);
-		frame->javastack[i].p = es->intregs[REG_ITMP1];
-		frame->javastacktype[i] = TYPE_ADR; /* XXX RET */
-		count--;
-		i++;
+		frame->javastack[stack_index].p = es->intregs[REG_ITMP1];
+		frame->javastacktype[stack_index] = TYPE_ADR; /* XXX RET */
+		remaining_allocations--;
+		stack_index++;
 		ra++;
 	}
 	else if (topslot == TOP_IS_VOID) {
-		assert(count);
+		assert(remaining_allocations);
 
 		assert(ra->index == RPLALLOC_STACK);
-		frame->javastack[i].l = 0;
-		frame->javastacktype[i] = TYPE_VOID;
-		count--;
-		i++;
+		frame->javastack[stack_index].l = 0;
+		frame->javastacktype[stack_index] = TYPE_VOID;
+		remaining_allocations--;
+		stack_index++;
 		ra++;
 	}
 
 	/* read remaining stack slots */
 
-	for (; count--; ra++) {
+	for (; remaining_allocations--; ra++) {
 		if (ra->index == RPLALLOC_SYNC) {
 			assert(rp->type == rplpoint::TYPE_INLINE);
 
@@ -1276,16 +603,17 @@ static void replace_read_executionstate(rplpoint *rp,
 
 		if (!topframe && ra->index == RPLALLOC_PARAM) {
 			frame->javastackdepth--;
-		}
-		else {
+		} else {
 			if (ra->type == TYPE_RET)
-				frame->javastack[i].i = ra->regoff;
+				frame->javastack[stack_index].i = ra->regoff;
 			else
-				replace_read_value(es,ra,frame->javastack + i);
-			frame->javastacktype[i] = ra->type;
-			i++;
+				replace_read_value(es,ra,frame->javastack + stack_index);
+			frame->javastacktype[stack_index] = ra->type;
+			stack_index++;
 		}
 	}
+
+	LOG("recovered source frame: [" << frame << "]" << nl);
 }
 
 
@@ -1309,22 +637,20 @@ static void replace_read_executionstate(rplpoint *rp,
 
 static void replace_write_executionstate(rplpoint *rp,
 										 executionstate_t *es,
-										 sourcestate_t *ss,
-										 bool topframe)
+										 sourcestate_t *ss)
 {
 	methodinfo     *m;
-	//codeinfo       *code;
-	int             count;
-	int             i;
 	rplalloc       *ra;
 	sourceframe_t  *frame;
 	int             topslot;
 	stackslot_t    *sp;
-	//stackslot_t    *basesp;
+	bool            topframe;
 
-	//code = code_find_codeinfo_for_pc(rp->pc);
+	LOG("write execution state for " << rp << nl);
+
 	m = rp->method;
 	topslot = TOP_IS_NORMAL;
+	topframe = ss->frames->down == NULL;
 
 	/* pop a source frame */
 
@@ -1336,74 +662,83 @@ static void replace_write_executionstate(rplpoint *rp,
 
 	sp = (stackslot_t *) es->sp;
 
-	//basesp = sp + code->stackframesize;
+#if defined(__X86_64__)
+	if (code_is_using_frameptr(frame->tocode)) {
+		/* The frame pointer has to point to the beginning of the stack
+		   frame. */
+		es->intregs[RBP] = (uintptr_t) (sp + frame->tocode->stackframesize - 1);
+		LOG2("set RBP to " << (uintptr_t*) es->intregs[RBP] << nl);
+	}
+#endif
 
 	/* in some cases the top stack slot is passed in REG_ITMP1 */
 
+#if 0
 	if (rp->type == rplpoint::TYPE_EXH) {
 		topslot = TOP_IS_IN_ITMP1;
 	}
+#endif
 
 	/* write javalocals */
 
 	ra = rp->regalloc;
-	count = rp->regalloccount;
+	int remaining_allocations = rp->regalloccount;
 
-	while (count && (i = ra->index) >= 0) {
-		assert(i < m->maxlocals);
-		assert(i < frame->javalocalcount);
-		assert(ra->type == frame->javalocaltype[i]);
+	while (remaining_allocations && ra->index >= 0) {
+		assert(ra->index < m->maxlocals);
+		assert(ra->index < frame->javalocalcount);
+		assert(ra->type == frame->javalocaltype[ra->index]);
 		if (ra->type == TYPE_RET) {
 			/* XXX assert that it matches this rplpoint */
+		} else {
+			replace_write_value(es, ra, frame->javalocals + ra->index);
 		}
-		else
-			replace_write_value(es, ra, frame->javalocals + i);
-		count--;
+		remaining_allocations--;
 		ra++;
 	}
 
 	/* write stack slots */
 
-	i = 0;
+	int stack_index = 0;
 
 	/* the first stack slot is special in SBR and EXH blocks */
 
 	if (topslot == TOP_IS_ON_STACK) {
-		assert(count);
+		assert(remaining_allocations);
 
 		assert(ra->index == RPLALLOC_STACK);
-		assert(i < frame->javastackdepth);
-		assert(frame->javastacktype[i] == TYPE_ADR);
-		sp[-1] = frame->javastack[i].p;
-		count--;
-		i++;
+		assert(stack_index < frame->javastackdepth);
+		assert(frame->javastacktype[stack_index] == TYPE_ADR);
+		sp[-1] = frame->javastack[stack_index].p;
+		remaining_allocations--;
+		stack_index++;
 		ra++;
 	}
 	else if (topslot == TOP_IS_IN_ITMP1) {
-		assert(count);
+		assert(remaining_allocations);
 
 		assert(ra->index == RPLALLOC_STACK);
-		assert(i < frame->javastackdepth);
-		assert(frame->javastacktype[i] == TYPE_ADR);
-		es->intregs[REG_ITMP1] = frame->javastack[i].p;
-		count--;
-		i++;
+		assert(stack_index < frame->javastackdepth);
+		assert(frame->javastacktype[stack_index] == TYPE_ADR);
+		es->intregs[REG_ITMP1] = frame->javastack[stack_index].p;
+		remaining_allocations--;
+		stack_index++;
 		ra++;
 	}
 	else if (topslot == TOP_IS_VOID) {
-		assert(count);
+		assert(remaining_allocations);
 
 		assert(ra->index == RPLALLOC_STACK);
-		assert(i < frame->javastackdepth);
-		assert(frame->javastacktype[i] == TYPE_VOID);
-		count--;
-		i++;
+		assert(stack_index < frame->javastackdepth);
+		assert(frame->javastacktype[stack_index] == TYPE_VOID);
+		remaining_allocations--;
+		stack_index++;
 		ra++;
 	}
 
 	/* write remaining stack slots */
 
-	for (; count--; ra++) {
+	for (; remaining_allocations--; ra++) {
 		if (ra->index == RPLALLOC_SYNC) {
 			assert(rp->type == rplpoint::TYPE_INLINE);
 
@@ -1433,15 +768,15 @@ static void replace_write_executionstate(rplpoint *rp,
 			*/
 		}
 		else {
-			assert(i < frame->javastackdepth);
-			assert(ra->type == frame->javastacktype[i]);
+			assert(stack_index < frame->javastackdepth);
+			assert(ra->type == frame->javastacktype[stack_index]);
 			if (ra->type == TYPE_RET) {
 				/* XXX assert that it matches this rplpoint */
 			}
 			else {
-				replace_write_value(es,ra,frame->javastack + i);
+				replace_write_value(es,ra,frame->javastack + stack_index);
 			}
-			i++;
+			stack_index++;
 		}
 	}
 
@@ -1493,8 +828,8 @@ void md_push_stackframe(executionstate_t *es, codeinfo *calleecode, u1 *ra)
 
 	/* build the stackframe */
 
-	DOLOG( printf("building stackframe of %d words at %p\n",
-				  calleecode->stackframesize, (void*)es->sp); );
+	LOG("building stackframe of " << calleecode->stackframesize << " words at "
+			<< es->sp << nl);
 
 	sp = (stackslot_t *) es->sp;
 	basesp = sp;
@@ -1515,6 +850,7 @@ void md_push_stackframe(executionstate_t *es, codeinfo *calleecode, u1 *ra)
 #if defined(__I386__)
 	/* Stackslot 0 may contain the object instance for vftbl patching.
 	   Destroy it, so there's no undefined value used. */
+	// XXX Is this also true for x86_64?
 	if ((basesp - sp) > 0) {
 		sp[0] = 0;
 	}
@@ -1538,6 +874,13 @@ void md_push_stackframe(executionstate_t *es, codeinfo *calleecode, u1 *ra)
 
 	/* save int registers */
 
+#if defined(__X86_64__)
+	if (code_is_using_frameptr(calleecode)) {
+		*((uintptr_t*) --basesp) = es->intregs[RBP];
+		LOG2("push rbp onto stack " << (uintptr_t*) es->intregs[RBP] << nl);
+	}
+#endif
+
 	reg = INT_REG_CNT;
 	for (i=0; i<calleecode->savedintcount; ++i) {
 		while (nregdescint[--reg] != REG_SAV)
@@ -1549,6 +892,8 @@ void md_push_stackframe(executionstate_t *es, codeinfo *calleecode, u1 *ra)
 #if !defined(NDEBUG) && 0
 		es->intregs[reg] = (ptrint) 0x44dead4444dead44ULL;
 #endif
+
+		LOG2("push " << abi_registers_integer_name[reg] << " onto stack" << nl);
 	}
 
 	/* save flt registers */
@@ -1583,12 +928,9 @@ void md_push_stackframe(executionstate_t *es, codeinfo *calleecode, u1 *ra)
    OUT:
        *es..............the execution state after popping the stack frame
 
-   RETURN VALUE:
-       the return address of the poped activation record
-
 *******************************************************************************/
 
-u1* replace_pop_activation_record(executionstate_t *es,
+void replace_pop_activation_record(executionstate_t *es,
 								  sourceframe_t *frame)
 {
 	u1 *ra;
@@ -1599,6 +941,8 @@ u1* replace_pop_activation_record(executionstate_t *es,
 
 	assert(es->code);
 	assert(frame);
+
+	LOG("pop activation record for method [" << frame->method->name << "]" << nl);
 
 	/* calculate the base of the stack frame */
 
@@ -1616,29 +960,23 @@ u1* replace_pop_activation_record(executionstate_t *es,
 
 	executionstate_pop_stackframe(es);
 
-	ra = es->pc;
-
-	DOLOG( printf("RA = %p\n", (void*)ra); );
+	LOG2("current rbp: " << (uintptr_t*) es->intregs[RBP] << nl);
 
 	/* Subtract one from the PC so we do not hit the replacement point */
 	/* of the instruction following the call, if there is one.         */
 
 	es->pc--;
 
+	ra = es->pc;
+
 	/* find the new codeinfo */
 
 	void* pv = md_codegen_get_pv_from_pc(ra);
-	DOLOG( printf("PV = %p\n", pv); );
 
 	code = code_get_codeinfo_for_pv(pv);
-	DOLOG( printf("CODE = %p\n", (void*) code); );
-
-	/* return NULL if we reached native code */
 
 	es->pv   = (uint8_t*) pv;
 	es->code = code;
-
-	return (code) ? ra : NULL;
 }
 
 
@@ -1659,24 +997,14 @@ static void replace_patch_method_pointer(methodptr *mpp,
 										 const char *kind)
 {
 #if !defined(NDEBUG)
-	codeinfo       *oldcode;
-	codeinfo       *newcode;
-#endif
-
-	DOLOG( printf("patch method pointer from: %p to %p\n",
-				  (void*) *mpp, (void*)entrypoint); );
-
-#if !defined(NDEBUG)
-	oldcode = code_get_codeinfo_for_pv(*mpp);
-	newcode = code_get_codeinfo_for_pv(entrypoint);
-
-	DOLOG_SHORT( printf("\tpatch %s %p ", kind, (void*) oldcode);
-				 method_println(oldcode->m);
-				 printf("\t      with      %p ", (void*) newcode);
-				 method_println(newcode->m); );
+	codeinfo *oldcode = code_get_codeinfo_for_pv(*mpp);
+	codeinfo *newcode = code_get_codeinfo_for_pv(entrypoint);
 
 	assert(oldcode->m == newcode->m);
 #endif
+
+	LOG("patch method pointer from " << (void *) *mpp << " to "
+		<< (void *) entrypoint << nl);
 
 	/* write the new entrypoint */
 
@@ -1704,6 +1032,8 @@ void replace_patch_class(vftbl_t *vftbl,
 	s4                 i;
 	methodptr         *mpp;
 	methodptr         *mppend;
+
+	LOG("patch class " << vftbl->clazz->name << nl);
 
 	/* patch the vftbl of the class */
 
@@ -1749,7 +1079,8 @@ void replace_patch_callback(classinfo *c, struct replace_patch_data_t *pd)
 
 	if (vftbl != NULL
 		&& vftbl->vftbllength > pd->m->vftblindex
-		&& (void*) vftbl->table[pd->m->vftblindex] != (void*) (uintptr_t) &asm_abstractmethoderror
+		// TODO understand
+		//&& (void*) vftbl->table[pd->m->vftblindex] != (void*) (uintptr_t) &asm_abstractmethoderror
 		&& code_get_methodinfo_for_pv(vftbl->table[pd->m->vftblindex]) == pd->m)
 	{
 		replace_patch_class(c->vftbl, pd->m, pd->oldentrypoint, pd->entrypoint);
@@ -1766,8 +1097,7 @@ void replace_patch_class_hierarchy(methodinfo *m,
 	pd.oldentrypoint = oldentrypoint;
 	pd.entrypoint = entrypoint;
 
-	DOLOG_SHORT( printf("patching class hierarchy: ");
-			     method_println(m); );
+	LOG("patching class hierarchy: " << *m << nl);
 
 	classcache_foreach_loaded_class(
 			(classcache_foreach_functionptr_t) &replace_patch_callback,
@@ -1847,7 +1177,7 @@ void replace_patch_future_calls(u1 *ra,
 		/* we need to know the instance */
 
 		if (!calleeframe->instance.a) {
-			DOLOG_SHORT( printf("WARNING: object instance unknown!\n"); );
+			LOG(BoldYellow << "WARNING: " << reset_color << "object instance unknown!" << nl);
 			replace_patch_class_hierarchy(calleem, oldentrypoint, entrypoint);
 			return;
 		}
@@ -1859,18 +1189,22 @@ void replace_patch_future_calls(u1 *ra,
 
 		assert(vftbl->clazz->vftbl == vftbl);
 
-		DOLOG_SHORT( printf("\tclass: "); class_println(vftbl->clazz); );
+		LOG("class: " << vftbl->clazz);
 
 		replace_patch_class(vftbl, calleem, oldentrypoint, entrypoint);
-	}
-	else {
+	} else {
 		/* the call was statically bound */
 
-#if defined(__I386__)
+#if defined(__I386__) || defined(__X86_64__)
 		/* It happens that there is a patcher trap. (pm) */
 		if (*(u2 *)(patchpos - 1) == 0x0b0f) {
-		} else
+			LOG2("enountered patcher trap, not patching static call");
+			return;
+		}
 #endif
+		LOG2("patch static call of [" << *calleem << "] in ["
+			<< *callerframe->method << "]" << nl);
+
 		replace_patch_method_pointer((methodptr *) patchpos, entrypoint, "static   ");
 	}
 }
@@ -1900,7 +1234,6 @@ void replace_push_activation_record(executionstate_t *es,
 									sourceframe_t *callerframe,
 									sourceframe_t *calleeframe)
 {
-	s4           i;
 	s4           count;
 	stackslot_t *sp;
 	u1          *ra;
@@ -1908,10 +1241,14 @@ void replace_push_activation_record(executionstate_t *es,
 
 	assert(es);
 	assert(!rpcall || callerframe);
-    assert(!rpcall || rpcall->type == rplpoint::TYPE_CALL);
+#if 0
+	assert(!rpcall || rpcall->type == rplpoint::TYPE_CALL);
+#endif
 	assert(!rpcall || rpcall == callerframe->torp);
 	assert(calleeframe);
 	assert(!callerframe || calleeframe == callerframe->down);
+
+	LOG("push activation record for " << *calleeframe->method << nl);
 
 	/* the compilation unit we are entering */
 
@@ -1920,10 +1257,19 @@ void replace_push_activation_record(executionstate_t *es,
 
 	/* calculate the return address */
 
-	if (rpcall)
+	// XXX why is ra == es->pc for native frames but not for
+	//     non-native ones?
+	if (rpcall) {
 		ra = rpcall->pc + rpcall->callsize;
-	else
-		ra = es->pc + 1 /* XXX this is ugly */;
+	} else {
+#if 1
+		// XXX we only need to do this if we decrement the pc in
+		//     `replace_pop_activation_record`
+		ra = es->pc + 1;
+#else
+		ra = es->pc;
+#endif
+	}
 
 	/* push the stackframe */
 
@@ -1932,7 +1278,9 @@ void replace_push_activation_record(executionstate_t *es,
 	/* we move into a new code unit, set code, PC, PV */
 
 	es->code = calleecode;
+#if 0
 	es->pc = calleecode->entrypoint; /* XXX not needed? */
+#endif
 	es->pv = calleecode->entrypoint;
 
 	/* write slots used for synchronization */
@@ -1940,22 +1288,42 @@ void replace_push_activation_record(executionstate_t *es,
 	sp = (stackslot_t *) es->sp;
 	count = code_get_sync_slot_count(calleecode);
 	assert(count == calleeframe->syncslotcount);
-	for (i=0; i<count; ++i) {
-		*((intptr_t*) (sp + calleecode->memuse + i)) = calleeframe->syncslots[i].p;
+	for (s4 slot_index = 0; slot_index < count; ++slot_index) {
+		*((intptr_t*) (sp + calleecode->memuse + slot_index)) = calleeframe->syncslots[slot_index].p;
 	}
 
 	/* redirect future invocations */
 
 	if (callerframe && rpcall) {
-#if defined(REPLACE_PATCH_ALL)
-		if (rpcall->type == callerframe->fromrp->type)
-#else
+#if !defined(REPLACE_PATCH_ALL)
 		if (rpcall == callerframe->fromrp)
 #endif
 			replace_patch_future_calls(ra, callerframe, calleeframe);
 	}
 }
 
+rplpoint *replace_find_replacement_point_at_call_site(codeinfo *code,
+													  sourceframe_t *frame)
+{
+	assert(code);
+	assert(frame);
+
+	LOG("searching for call site rp for source id " << frame->id
+			<< " in method [" << *frame->method << "]" << nl);
+
+	rplpoint *rp = code->rplpoints;
+
+	for (s4 i = 0; i < code->rplpointcount; i++, rp++) {
+		if (rp->id == frame->id
+				&& rp->method == frame->method
+				&& REPLACE_IS_CALL_SITE(rp)) {
+			return rp;
+		}
+	}
+
+	ABORT_MSG("no matching replacement point found", "");
+	return NULL; /* NOT REACHED */
+}
 
 /* replace_find_replacement_point **********************************************
 
@@ -1973,51 +1341,36 @@ void replace_push_activation_record(executionstate_t *es,
 *******************************************************************************/
 
 rplpoint * replace_find_replacement_point(codeinfo *code,
-										  sourceframe_t *frame,
-										  rplpoint *parent)
+										  sourceframe_t *frame)
 {
-	//methodinfo *m;
 	rplpoint *rp;
-	s4        i;
-	s4        j;
 	s4        stacki;
 	rplalloc *ra;
 
 	assert(code);
 	assert(frame);
 
-	DOLOG( printf("searching replacement point for:\n");
-		   replace_source_frame_println(frame); );
-
-	//m = frame->method;
-
-	DOLOG( printf("code = %p\n", (void*)code); );
+	LOG("searching for rp for source id " << frame->id
+			<< " in method [" << *frame->method << "]" << nl);
 
 	rp = code->rplpoints;
-	i = code->rplpointcount;
-	while (i--) {
-		if (rp->id == frame->id && rp->method == frame->method
-				&& rp->parent == parent
-				&& replace_normalize_type_map[rp->type] == frame->type)
-		{
+	for (s4 i = 0; i < code->rplpointcount; i++, rp++) {
+		if (rp->id == frame->id && rp->method == frame->method) {
 			/* check if returnAddresses match */
 			/* XXX optimize: only do this if JSRs in method */
-			DOLOG( printf("checking match for:");
-				   replace_replacement_point_println(rp, 1); fflush(stdout); );
 			ra = rp->regalloc;
 			stacki = 0;
-			for (j = rp->regalloccount; j--; ++ra) {
+			for (s4 j = rp->regalloccount; j--; ++ra) {
 				if (ra->type == TYPE_RET) {
 					if (ra->index == RPLALLOC_STACK) {
 						assert(stacki < frame->javastackdepth);
 						if (frame->javastack[stacki].i != ra->regoff)
-							goto no_match;
+							continue;
 						stacki++;
-					}
-					else {
+					} else {
 						assert(ra->index >= 0 && ra->index < frame->javalocalcount);
 						if (frame->javalocals[ra->index].i != ra->regoff)
-							goto no_match;
+							continue;
 					}
 				}
 			}
@@ -2025,29 +1378,51 @@ rplpoint * replace_find_replacement_point(codeinfo *code,
 			/* found */
 			return rp;
 		}
-no_match:
-		rp++;
 	}
 
-#if !defined(NDEBUG)
-	printf("candidate replacement points were:\n");
-	rp = code->rplpoints;
-	i = code->rplpointcount;
-	for (; i--; ++rp) {
-		replace_replacement_point_println(rp, 1);
-	}
-#endif
-
-	vm_abort("no matching replacement point found");
+	ABORT_MSG("no matching replacement point found", "");
 	return NULL; /* NOT REACHED */
 }
 
+/* replace_find_replacement_point_at_or_before_pc ******************************
+
+   Find the nearest replacement point at or before the given PC.
+
+   IN:
+       code.............compilation unit the PC is in
+       pc...............the machine code PC
+
+   RETURN VALUE:
+       the replacement point found, or NULL if no replacement point was found
+
+*******************************************************************************/
+
+
+rplpoint *replace_find_replacement_point_at_or_before_pc(
+		codeinfo *code,
+		u1 *pc,
+		unsigned int desired_flags) {
+	LOG("searching for nearest rp before pc " << pc
+			<< " in method [" << *code->m << "]" << nl);
+
+	rplpoint *nearest = NULL;
+	rplpoint *rp = code->rplpoints;
+
+	for (s4 i = 0; i < code->rplpointcount; ++i, ++rp) {
+		if (rp->pc <= pc && (rp->flags & desired_flags)) {
+			if (nearest == NULL || nearest->pc < rp->pc) {
+				nearest = rp;
+			}
+		}
+	}
+
+	return nearest;
+}
 
 /* replace_find_replacement_point_for_pc ***************************************
 
-   Find the nearest replacement point at or before the given PC. The
-   given PC has to be between (rp->pc) and (rp->pc+rp->callsize) for
-   the replacement point to be found.
+   Find the nearest replacement point whose PC is between (rp->pc) and
+   (rp->pc+rp->callsize).
 
    IN:
        code.............compilation unit the PC is in
@@ -2059,32 +1434,22 @@ no_match:
 
 *******************************************************************************/
 
-rplpoint *replace_find_replacement_point_for_pc(codeinfo *code, u1 *pc, unsigned desired_flags)
+rplpoint *replace_find_replacement_point_for_pc(codeinfo *code, u1 *pc)
 {
-	rplpoint *found;
 	rplpoint *rp;
 	s4        i;
 
-	DOLOG( printf("searching for rp at pc:%p in %p ", (void*)pc, (void*)code);
-		   method_println(code->m); );
-
-	found = NULL;
+	LOG("searching for rp at pc " << pc << " in method [" << *code->m << "]"
+			<< nl);
 
 	rp = code->rplpoints;
 	for (i=0; i<code->rplpointcount; ++i, ++rp) {
-		DOLOG( replace_replacement_point_println(rp, 2); );
 		if (rp->pc <= pc && rp->pc + rp->callsize >= pc) {
-			if (desired_flags) {
-				if (rp->flags & desired_flags) {
-					found = rp;
-				}
-			} else {
-				found = rp;
-			}
+			return rp;
 		}
 	}
 
-	return found;
+	return NULL;
 }
 
 /* replace_pop_native_frame ****************************************************
@@ -2139,20 +1504,12 @@ static void replace_pop_native_frame(executionstate_t *es,
 
 	/* restore saved registers */
 
-#if defined(ENABLE_GC_CACAO)
-	j = 0;
-	for (i=0; i<INT_REG_CNT; ++i) {
-		if (nregdescint[i] == REG_SAV)
-			es->intregs[i] = sfi->intregs[j++];
-	}
-#else
 	/* XXX we don't have them, yet, in the sfi, so clear them */
 
 	for (i=0; i<INT_REG_CNT; ++i) {
 		if (nregdescint[i] == REG_SAV)
 			es->intregs[i] = 0;
 	}
-#endif
 
 	/* XXX we don't have float registers in the sfi, so clear them */
 
@@ -2204,7 +1561,7 @@ static void replace_push_native_frame(executionstate_t *es, sourcestate_t *ss)
 	assert(es);
 	assert(ss);
 
-	DOLOG( printf("pushing native frame\n"); );
+	LOG("push native frame" << nl);
 
 	/* remove the frame from the source state */
 
@@ -2224,18 +1581,6 @@ static void replace_push_native_frame(executionstate_t *es, sourcestate_t *ss)
 	/* assert that the native frame has not moved */
 
 	assert(es->sp == frame->sfi->sp);
-
-	/* update saved registers in the stackframeinfo */
-
-#if defined(ENABLE_GC_CACAO)
-	j = 0;
-	for (i=0; i<INT_REG_CNT; ++i) {
-		if (nregdescint[i] == REG_SAV)
-			frame->sfi->intregs[j++] = es->intregs[i];
-	}
-
-	/* XXX leave float registers untouched here */
-#endif
 
 	/* restore saved registers */
 
@@ -2260,139 +1605,121 @@ static void replace_push_native_frame(executionstate_t *es, sourcestate_t *ss)
 	es->pc = frame->nativepc;
 }
 
+/* replace_recover_source_frame ************************************************
 
-/* replace_recover_source_state ************************************************
-
-   Recover the source state from the given replacement point and execution
-   state.
+   Recovers a source frame from the given replacement point and execution
+   state and pushes is to the front of the source state.
 
    IN:
        rp...............replacement point that has been reached, if any
-	   sfi..............stackframeinfo, if called from native code
 	   es...............execution state at the replacement point rp
+	   es...............the source state
+
+	OUT:
+       es...............the modified execution state
+	   ss...............the new source state
+
+   RETURN VALUE:
+       the replacement point at the call site within the caller frame or NULL
+       if it was called from a native method
+
+*******************************************************************************/
+
+rplpoint *replace_recover_source_frame(rplpoint *rp,
+											   executionstate_t *es,
+											   sourcestate_t *ss) {
+	/* read the values for this source frame from the execution state */
+
+	replace_read_executionstate(rp, es, ss);
+
+	/* unroll to the next (outer) frame */
+
+	rplpoint *next_rp = NULL;
+	if (rp->parent) {
+		/* this frame is in inlined code */
+
+		LOG("INLINED!" << nl);
+
+		next_rp = rp->parent;
+
+#if 0
+		assert(next_rp->type == rplpoint::TYPE_INLINE);
+#endif
+	} else {
+		/* this frame had been called at machine-level. pop it. */
+
+		replace_pop_activation_record(es, ss->frames);
+		if (es->code == NULL) {
+			LOG("REACHED NATIVE CODE" << nl);
+			next_rp = NULL;
+		} else {
+			/* find the replacement point at the call site */
+
+			next_rp = replace_find_replacement_point_for_pc(es->code, es->pc);
+
+			assert(next_rp);
+			assert(REPLACE_IS_CALL_SITE(next_rp));
+		}
+	}
+
+	return next_rp;
+}
+
+
+/* replace_recover_inlined_source_state *******************************************
+
+   Recover the source state from the given replacement point and execution
+   state until the first non-inlined method is reached.
+
+   IN:
+       rp...............replacement point that has been reached, if any
+       es...............execution state at the replacement point rp
+
+   OUT:
+       es...............the modified execution state
 
    RETURN VALUE:
        the source state
 
 *******************************************************************************/
 
-sourcestate_t *replace_recover_source_state(rplpoint *rp,
-											stackframeinfo_t *sfi,
-										    executionstate_t *es)
+sourcestate_t *replace_recover_inlined_source_state(rplpoint *rp,
+													executionstate_t *es)
 {
-	sourcestate_t *ss;
-	u1            *ra;
-	bool           locked;
-#if defined(REPLACE_STATISTICS)
-	s4             depth;
-#endif
-
-	/* create the source frame structure in dump memory */
-
-	ss = (sourcestate_t*) DumpMemory::allocate(sizeof(sourcestate_t));
+	sourcestate_t *ss = (sourcestate_t*) DumpMemory::allocate(sizeof(sourcestate_t));
 	ss->frames = NULL;
 
-	/* each iteration of the loop recovers one source frame */
+	/* recover source frames of inlined methods, if there are any */
 
-	depth = 0;
-	locked = false;
+	rplpoint *next_rp = rp;
 
-	while (rp || sfi) {
-
-		DOLOG( executionstate_println(es); );
-
-		/* if we are not at a replacement point, it is a native frame */
-
-		if (rp == NULL) {
-			DOLOG( printf("native frame: sfi: "); replace_stackframeinfo_println(sfi); );
-
-			locked = true;
-			replace_pop_native_frame(es, ss, sfi);
-			sfi = sfi->prev;
-
-			if (es->code == NULL)
-				continue;
-
-			goto after_machine_frame;
-		}
-
-		/* read the values for this source frame from the execution state */
-
-		DOLOG( printf("recovering source state for%s:\n",
-					(ss->frames == NULL) ? " TOPFRAME" : "");
-			   replace_replacement_point_println(rp, 1); );
-
-		replace_read_executionstate(rp, es, ss, ss->frames == NULL);
-
-#if defined(REPLACE_STATISTICS)
-		REPLACE_COUNT(stat_frames);
-		depth++;
-		replace_statistics_source_frame(ss->frames);
+#if 0
+	while (next_rp->parent != NULL) {
+		next_rp = replace_recover_source_frame(next_rp, es, ss);
+		assert(next_rp);
+	}
 #endif
 
-		/* in locked areas (below native frames), identity map the frame */
+	/* recover the source frame of the first non-inlined method */
 
-		if (locked) {
-			ss->frames->torp = ss->frames->fromrp;
-			ss->frames->tocode = ss->frames->fromcode;
-		}
+	next_rp = replace_recover_source_frame(next_rp, es, ss);
 
-		/* unroll to the next (outer) frame */
+	/* recover the frame of the calling method (if it's not native) so that the
+	   call can be patched if necessary */
 
-		if (rp->parent) {
-			/* this frame is in inlined code */
-
-			DOLOG( printf("INLINED!\n"); );
-
-			rp = rp->parent;
-
-			assert(rp->type == rplpoint::TYPE_INLINE);
-			REPLACE_COUNT(stat_unroll_inline);
-		}
-		else {
-			/* this frame had been called at machine-level. pop it. */
-
-			DOLOG( printf("UNWIND\n"); );
-
-			ra = replace_pop_activation_record(es, ss->frames);
-			if (ra == NULL) {
-				DOLOG( printf("REACHED NATIVE CODE\n"); );
-
-				rp = NULL;
-
-#if !defined(ENABLE_GC_CACAO)
-				break; /* XXX remove to activate native frames */
-#endif
-				continue;
-			}
-
-			/* find the replacement point at the call site */
-
-after_machine_frame:
-			rp = replace_find_replacement_point_for_pc(es->code, es->pc, 0);
-
-			if (rp == NULL)
-				vm_abort("could not find replacement point while unrolling call");
-
-			DOLOG( printf("found replacement point.\n");
-					replace_replacement_point_println(rp, 1); );
-
-			assert(rp->type == rplpoint::TYPE_CALL);
-			REPLACE_COUNT(stat_unroll_call);
-		}
-	} /* end loop over source frames */
-
-	REPLACE_COUNT_DIST(stat_dist_frames, depth);
+	if (next_rp != NULL) {
+		replace_recover_source_frame(next_rp, es, ss);
+	}
 
 	return ss;
 }
 
 
-/* replace_map_source_state ****************************************************
+/* replace_map_source_state_to_deoptimized_code ********************************
 
    Map each source frame in the given source state to a target replacement
-   point and compilation unit. If no valid code is available for a source
-   frame, it is (re)compiled.
+   point and compilation unit (considering that the correspondings methods could
+   be inlined).
 
    IN:
        ss...............the source state
@@ -2401,133 +1728,71 @@ after_machine_frame:
        ss...............the source state, modified: The `torp` and `tocode`
 	                    fields of each source frame are set.
 
-   RETURN VALUE:
-       true.............everything went ok
-	   false............an exception has been thrown
-
 *******************************************************************************/
 
-static bool replace_map_source_state(sourcestate_t *ss)
+static void replace_map_source_state_to_deoptimized_code(sourcestate_t *ss)
 {
-	sourceframe_t *frame;
-	codeinfo      *code;
-	rplpoint      *rp;
-	rplpoint      *parent; /* parent of inlined rplpoint */
-#if defined(REPLACE_STATISTICS)
-	codeinfo      *oldcode;
-#endif
+	codeinfo *code = NULL;
 
-	parent = NULL;
-	code = NULL;
+	assert(ss->frames);
+	assert(!REPLACE_IS_NATIVE_FRAME(ss->frames));
+	assert(ss->frames->down);
+	assert(!ss->frames->down->down);
 
 	/* iterate over the source frames from outermost to innermost */
 
-	for (frame = ss->frames; frame != NULL; frame = frame->down) {
+	for (sourceframe_t *frame = ss->frames; frame != NULL; frame = frame->down) {
 
-		/* XXX skip native frames */
+		assert(!REPLACE_IS_NATIVE_FRAME(frame));
 
-		if (REPLACE_IS_NATIVE_FRAME(frame)) {
-			parent = NULL;
-			continue;
-		}
+		LOG("map frame " << frame << nl);
 
-		/* map frames which are not already mapped */
+		/* find code for this frame */
 
-		if (frame->tocode) {
-			code = frame->tocode;
-			rp = frame->torp;
-			assert(rp);
-		}
-		else {
-			assert(frame->torp == NULL);
+		if (frame != ss->frames) {
+			if (frame->method->deopttarget == NULL) {
+				/* reinvoke baseline compiler and save depotimized code for
+				   future replacements */
 
-			if (parent == NULL) {
-				/* find code for this frame */
-
-#if defined(REPLACE_STATISTICS)
-				oldcode = frame->method->code;
-#endif
-				/* request optimization of hot methods and their callers */
-
-				if (frame->method->hitcountdown < 0
-					|| (frame->down && frame->down->method->hitcountdown < 0))
-					jit_request_optimization(frame->method);
-
-				code = jit_get_current_code(frame->method);
-
-				if (code == NULL)
-					return false; /* exception */
-
-				REPLACE_COUNT_IF(stat_recompile, code != oldcode);
+				LOG("reinvoke baseline compiler" << nl);
+				jit_recompile_for_deoptimization(frame->method);
+				frame->method->deopttarget = frame->method->code;
 			}
 
-			assert(code);
-
-			/* map this frame */
-
-			rp = replace_find_replacement_point(code, frame, parent);
-
-			frame->tocode = code;
-			frame->torp = rp;
-		}
-
-		if (rp->type == rplpoint::TYPE_CALL) {
-			parent = NULL;
-		}
-		else {
-			/* inlining */
-			parent = rp;
-		}
-	}
-
-	return true;
-}
-
-
-/* replace_map_source_state_identity *******************************************
-
-   Map each source frame in the given source state to the same replacement
-   point and compilation unit it was derived from. This is mainly used for
-   garbage collection.
-
-   IN:
-       ss...............the source state
-
-   OUT:
-       ss...............the source state, modified: The `torp` and `tocode`
-	                    fields of each source frame are set.
-
-*******************************************************************************/
-
-#if defined(ENABLE_GC_CACAO)
-static void replace_map_source_state_identity(sourcestate_t *ss)
-{
-	sourceframe_t *frame;
-
-	/* iterate over the source frames from outermost to innermost */
-
-	for (frame = ss->frames; frame != NULL; frame = frame->down) {
-
-		/* skip native frames */
-
-		if (REPLACE_IS_NATIVE_FRAME(frame)) {
-			continue;
-		}
-
-		/* map frames using the identity mapping */
-
-		if (frame->tocode) {
-			assert(frame->tocode == frame->fromcode);
-			assert(frame->torp   == frame->fromrp);
+			code = frame->method->deopttarget;
 		} else {
-			assert(frame->tocode == NULL);
-			assert(frame->torp   == NULL);
-			frame->tocode = frame->fromcode;
-			frame->torp   = frame->fromrp;
+			code = frame->method->code;
 		}
+
+		assert(code);
+
+		/* prepare code for usage */
+
+#if 0
+		if (code_is_invalid(code)) {
+			code_unflag_invalid(code);
+			replace_deactivate_replacement_points(code);
+		}
+#endif
+
+		rplpoint *rp;
+		if (frame->down) {
+			/* we have not yet reached the topmost frame on the stack, therefore
+			   there execution currently stands at a call site */
+			rp = replace_find_replacement_point_at_call_site(code, frame);
+		} else {
+			/* we have reached the topmost frame on the stack */
+			rp = replace_find_replacement_point(code, frame);
+		}
+
+		assert(rp);
+
+		/* map this frame */
+
+		frame->tocode = code;
+		frame->torp = rp;
 	}
 }
-#endif
 
 
 /* replace_build_execution_state ***********************************************
@@ -2560,759 +1825,500 @@ static void replace_build_execution_state(sourcestate_t *ss,
 	rp = NULL;
 
 	while (ss->frames) {
-
 		if (REPLACE_IS_NATIVE_FRAME(ss->frames)) {
 			prevframe = ss->frames;
 			replace_push_native_frame(es, ss);
 			parent = NULL;
 			rp = NULL;
-			continue;
-		}
+		} else {
+			if (parent == NULL) {
+				/* create a machine-level stack frame */
 
-		if (parent == NULL) {
-			/* create a machine-level stack frame */
+				replace_push_activation_record(es, rp, prevframe, ss->frames);
+			}
+	
+			rp = ss->frames->torp;
+			assert(rp);
 
-			DOLOG( printf("pushing activation record for:\n");
-				   if (rp) replace_replacement_point_println(rp, 1);
-				   else printf("\tfirst frame\n"); );
+			es->code = ss->frames->tocode;
+			prevframe = ss->frames;
 
-			replace_push_activation_record(es, rp, prevframe, ss->frames);
-
-			DOLOG( executionstate_println(es); );
-		}
-
-		rp = ss->frames->torp;
-		assert(rp);
-
-		DOLOG( printf("creating execution state for%s:\n",
-				(ss->frames->down == NULL) ? " TOPFRAME" : "");
-			   replace_replacement_point_println(ss->frames->fromrp, 1);
-			   replace_replacement_point_println(rp, 1); );
-
-		es->code = ss->frames->tocode;
-		prevframe = ss->frames;
-
-		replace_write_executionstate(rp, es, ss, ss->frames->down == NULL);
-
-		DOLOG( executionstate_println(es); );
-
-		if (rp->type == rplpoint::TYPE_CALL) {
-			parent = NULL;
-		}
-		else {
-			/* inlining */
-			parent = rp;
+			replace_write_executionstate(rp, es, ss);
+	
+			if (REPLACE_IS_CALL_SITE(rp)) {
+				parent = NULL;
+			} else {
+				/* inlining */
+				parent = rp;
+			}
 		}
 	}
 }
 
 
-/* replace_me ******************************************************************
+/* replace_on_stack ************************************************************
 
-   This function is called by the signal handler when a thread reaches
-   a replacement point. `replace_me` must map the execution state to the
-   target replacement point and let execution continue there.
+   Performs on-stack replacement.
 
    THIS FUNCTION MUST BE CALLED USING A SAFE STACK AREA!
-
+ 
    IN:
+       code.............the code of the method to be replaced.
        rp...............replacement point that has been reached
-       es...............execution state read by signal handler
-
-*******************************************************************************/
-
-static void replace_me(rplpoint *rp, executionstate_t *es)
-{
-	stackframeinfo_t    *sfi;
-	sourcestate_t       *ss;
-	sourceframe_t       *frame;
-	codeinfo            *origcode;
-	rplpoint            *origrp;
-#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-	threadobject        *thread;
-#endif
-
-	origcode = es->code;
-	origrp   = rp;
-
-#if defined(ENABLE_TLH)
-	/*printf("Replacing in %s/%s\n", UTF_TEXT(rp->method->clazz->name), UTF_TEXT(rp->method->name));*/
-#endif
-
-	/*if (strcmp(UTF_TEXT(rp->method->clazz->name), "antlr/AlternativeElement") == 0 && strcmp(UTF_TEXT(rp->method->name), "getAutoGenType") ==0) opt_TraceReplacement = 2; else opt_TraceReplacement = 0;*/
-
-	DOLOG_SHORT( printf("REPLACING(%d %p): (id %d %p) ",
-				 stat_replacements, (void*)THREADOBJECT,
-				 rp->id, (void*)rp);
-				 method_println(es->code->m); );
-
-	DOLOG( replace_replacement_point_println(rp, 1); );
-
-	REPLACE_COUNT(stat_replacements);
-
-	// Create new dump memory area.
-	DumpMemoryArea dma;
-
-	/* Get the stackframeinfo for the current thread. */
-
-	sfi = threads_get_current_stackframeinfo();
-
-	/* recover source state */
-
-	ss = replace_recover_source_state(rp, sfi, es);
-
-#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-	/* if there is a collection pending, we assume the replacement point should
-	   suspend this thread */
-
-	if (gc_pending) {
-
-		thread = THREADOBJECT;
-
-		DOLOG_SHORT( printf("REPLACEMENT: Suspending thread for GC now!\n"); );
-
-		/* map the sourcestate using the identity mapping */
-		replace_map_source_state_identity(ss);
-
-		/* since we enter the same method again, we turn off rps now */
-		/* XXX michi: can we really do this? what if the rp was active before
-		   we activated it for the gc? */
-		replace_deactivate_replacement_points(origcode);
-
-		/* remember executionstate and sourcestate for this thread */
-		GC_EXECUTIONSTATE = es;
-		GC_SOURCESTATE    = ss;
-
-		/* really suspend this thread now (PC = 0) */
-		threads_suspend_ack(NULL, NULL);
-
-		DOLOG_SHORT( printf("REPLACEMENT: Resuming thread after GC now!\n"); );
-
-	} else {
-#endif /*defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)*/
-
-	/* map the source state */
-
-	if (!replace_map_source_state(ss))
-		vm_abort("exception during method replacement");
-
-	DOLOG( replace_sourcestate_println(ss); );
-
-	DOLOG_SHORT( replace_sourcestate_println_short(ss); );
-
-#if !defined(NDEBUG)
-	/* avoid infinite loops by self-replacement, only if not in testing mode */
-
-	if (!opt_TestReplacement) {
-		frame = ss->frames;
-		while (frame->down)
-			frame = frame->down;
-
-		if (frame->torp == origrp) {
-			DOLOG_SHORT(
-				printf("WARNING: identity replacement, turning off rps to avoid infinite loop\n");
-			);
-			replace_deactivate_replacement_points(origcode);
-		}
-	}
-#endif
-
-#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-	}
-#endif
-
-	/* build the new execution state */
-
-	replace_build_execution_state(ss, es);
-
-#if !defined(NDEBUG)
-	/* continue execution after patched machine code, if testing mode enabled */
-
-	if (opt_TestReplacement)
-		es->pc += REPLACEMENT_PATCH_SIZE;
-#endif
-}
-
-
-/* replace_handler *************************************************************
-
-   This function is called by the signal handler. It determines if there
-   is an active replacement point pending at the given PC and returns
-   accordingly.
-
-   THIS FUNCTION MUST BE CALLED USING A SAFE STACK AREA!
-
-   IN:
-       pc...............the program counter that triggered the replacement.
-       es...............the execution state (machine state) to which the
-	                    replacement should be applied.
+       es...............current execution state
 
    OUT:
        es...............the execution state after replacement finished.
 
-   RETURN VALUE:
-       true.............replacement done, everything went ok
-       false............no replacement done, execution state unchanged
+*******************************************************************************/
+
+static void replace_optimize(codeinfo *code, rplpoint *rp, executionstate_t *es)
+{
+	LOG(BoldCyan << "perform replacement" << reset_color << " at " << rp << nl);
+
+	DumpMemoryArea dma;
+	es->code = code;
+	sourcestate_t *ss = (sourcestate_t*) DumpMemory::allocate(sizeof(sourcestate_t));
+	ss->frames = NULL;
+
+	/* recover the source frame of the first non-inlined method */
+
+	rplpoint *rpcall = replace_recover_source_frame(rp, es, ss);
+
+	/* recover the frame of the calling method (if it's not native) so that the
+	   call can be patched if necessary */
+
+	if (rpcall != NULL) {
+		replace_recover_source_frame(rpcall, es, ss);
+	}
+
+	sourceframe_t *topframe;
+	sourceframe_t *callerframe;
+
+	if (ss->frames->down) {
+		callerframe = ss->frames;
+		topframe = ss->frames->down;
+	} else {
+		callerframe = NULL;
+		topframe = ss->frames;
+	}
+
+	/* map the topmost frame to a replacement point in the optimized code */
+	jit_request_optimization(topframe->method);
+	topframe->tocode = jit_get_current_code(topframe->method);
+	topframe->torp = replace_find_replacement_point(topframe->tocode, topframe);
+
+	/* identity map the calling frame */
+
+	if (callerframe) {
+		callerframe->tocode = callerframe->fromcode;
+		callerframe->torp = callerframe->fromrp;
+	}
+
+	/* rebuild execution state */
+
+	replace_build_execution_state(ss, es);
+
+	LOG(BoldGreen << "finished replacement: " << reset_color << "jump into optimized code" << nl);
+}
+
+
+/* replace_handle_countdown_trap ***********************************************
+
+   This function is called by the signal handler. It recompiles the method that
+   triggered the countdown trap and initiates on-stack replacement.
+
+   THIS FUNCTION MUST BE CALLED USING A SAFE STACK AREA!
+
+   IN:
+       pc...............the program counter that triggered the countdown trap.
+       es...............the execution state (machine state) at the countdown
+                        trap.
+
+   OUT:
+       es...............the execution state after replacement finished.
 
 *******************************************************************************/
 
-bool replace_handler(u1 *pc, executionstate_t *es)
+void replace_handle_countdown_trap(u1 *pc, executionstate_t *es)
 {
-	codeinfo         *code;
-	rplpoint         *rp;
-
+	LOG("handle countdown trap" << nl);
+	
 	/* search the codeinfo for the given PC */
 
-	code = code_find_codeinfo_for_pc(pc);
+	codeinfo *code = code_find_codeinfo_for_pc(pc);
 	assert(code);
 
 	/* search for a replacement point at the given PC */
 
-	rp = replace_find_replacement_point_for_pc(code, pc, (rplpoint::FLAG_ACTIVE | rplpoint::FLAG_COUNTDOWN));
+	methodinfo *method = code->m;
+	rplpoint *rp = replace_find_replacement_point_at_or_before_pc(code, pc, rplpoint::FLAG_COUNTDOWN);
 
-	/* check if the replacement point belongs to given PC and is active */
+	assert(rp);
+	assert(rp->flags & rplpoint::FLAG_COUNTDOWN);
+	assert(method->hitcountdown < 0);
 
-	if ((rp != NULL) && (rp->pc == pc)
-	    && (rp->flags & (rplpoint::FLAG_ACTIVE | rplpoint::FLAG_COUNTDOWN))) {
+	/* perform on-stack replacement */
 
-		DOLOG( printf("valid replacement point\n"); );
+	replace_optimize(code, rp, es);
+}
 
-		/* set codeinfo pointer in execution state */
 
-		es->code = code;
+/* replace_handle_replacement_trap *********************************************
 
-		/* do the actual replacement */
+   This function is called by the signal handler. Initiates on-stack replacement
+   if there is an active replacement trap at the given PC.
 
-		replace_me(rp, es);
+   THIS FUNCTION MUST BE CALLED USING A SAFE STACK AREA!
 
-		/* new code is entered after returning */
+   IN:
+       pc...............the program counter that triggered the replacement trap
+       es...............the execution state (machine state) at the
+                        replacement trap.
 
-		DOLOG( printf("JUMPING IN!\n"); fflush(stdout); );
+   OUT:
+       es...............the execution state after replacement finished.
+
+   RETURNS:
+       true.............if replacement was performed at the given pc.
+       false............otherwise.
+
+*******************************************************************************/
+
+bool replace_handle_replacement_trap(u1 *pc, executionstate_t *es)
+{
+	/* search the codeinfo for the given PC */
+
+	codeinfo *code = code_find_codeinfo_for_pc(pc);
+	assert(code);
+
+	/* search for a replacement point at the given PC */
+
+	rplpoint *rp = replace_find_replacement_point_for_pc(code, pc);
+
+	if (rp != NULL && (rp->flags & rplpoint::FLAG_ACTIVE)) {
+
+		LOG("handle replacement trap" << nl);
+	
+		/* perform on-stack replacement */
+
+		replace_optimize(code, rp, es);
+
 		return true;
 	}
-	else
-		return false;
+
+	return false;
 }
 
 
-/******************************************************************************/
-/* NOTE: Stuff specific to the exact GC is below.                             */
-/******************************************************************************/
+/* replace_handle_deoptimization_trap ******************************************
 
-#if defined(ENABLE_GC_CACAO)
-void replace_gc_from_native(threadobject *thread, u1 *pc, u1 *sp)
-{
-	stackframeinfo_t *sfi;
-	executionstate_t *es;
-	sourcestate_t    *ss;
+   This function is called by the signal handler. It deoptimizes the method that
+   triggered the deopimization trap and initiates on-stack replacement.
 
-	/* Get the stackframeinfo of this thread. */
+   THIS FUNCTION MUST BE CALLED USING A SAFE STACK AREA!
 
-	assert(thread == THREADOBJECT);
+   IN:
+       pc...............the program counter that triggered the countdown trap.
+       es...............the execution state (machine state) at the countdown
+                        trap.
 
-	sfi = threads_get_current_stackframeinfo();
+   OUT:
+       es...............the execution state after replacement finished.
 
-	/* create the execution state */
-	es = (executionstate_t*) DumpMemory::allocate(sizeof(executionstate_t));
-	es->pc = pc;
-	es->sp = sp;
-	es->pv = 0;      /* since we are in a native, PV is invalid! */
-	es->code = NULL; /* since we are in a native, we do not have a codeinfo */
+*******************************************************************************/
 
-	/* we assume we are in a native (no replacement point)! */
-	ss = replace_recover_source_state(NULL, sfi, es);
+void replace_handle_deoptimization_trap(u1 *pc, executionstate_t *es) {
+	LOG("handle deopimization trap" << nl);
 
-	/* map the sourcestate using the identity mapping */
-	replace_map_source_state_identity(ss);
+	DumpMemoryArea dma;
 
-	/* remember executionstate and sourcestate for this thread */
-	GC_EXECUTIONSTATE = es;
-	GC_SOURCESTATE    = ss;
-}
-#endif
+	/* search the codeinfo for the given PC */
 
-#if defined(ENABLE_GC_CACAO)
-void replace_gc_into_native(threadobject *thread)
-{
-	executionstate_t *es;
-	sourcestate_t    *ss;
+	codeinfo *code = code_find_codeinfo_for_pc(pc);
+	es->code = code;
+	assert(code);
 
-	/* get the executionstate and sourcestate for the given thread */
-	es = GC_EXECUTIONSTATE;
-	ss = GC_SOURCESTATE;
+	/* search for a replacement point at the given PC */
 
-	/* rebuild the stack of the given thread */
+	methodinfo *method = code->m;
+	rplpoint *rp = replace_find_replacement_point_at_or_before_pc(code, pc, rplpoint::FLAG_DEOPTIMIZE);
+	assert(rp);
+	assert(rp->flags & rplpoint::FLAG_DEOPTIMIZE);
+
+	/* replace by deoptimized code */
+
+	LOG("perform deoptimization at " << rp << nl);
+	jit_invalidate_code(method);
+	sourcestate_t *ss = replace_recover_inlined_source_state(rp, es);
+	replace_map_source_state_to_deoptimized_code(ss);
 	replace_build_execution_state(ss, es);
+
+	LOG(BoldGreen << "finished deoptimization: " << reset_color << "jump into code" << nl);
 }
-#endif
 
 
 /******************************************************************************/
 /* NOTE: No important code below.                                             */
 /******************************************************************************/
 
-
-/* statistics *****************************************************************/
-
-#if defined(REPLACE_STATISTICS)
-static void print_freq(FILE *file,int *array,int limit)
-{
-	int i;
-	int sum = 0;
-	int cum = 0;
-	for (i=0; i<limit; ++i)
-		sum += array[i];
-	sum += array[limit];
-	for (i=0; i<limit; ++i) {
-		cum += array[i];
-		fprintf(file,"      %3d: %8d (cum %3d%%)\n",
-				i, array[i], (sum) ? ((100*cum)/sum) : 0);
-	}
-	fprintf(file,"    >=%3d: %8d\n",limit,array[limit]);
-}
-#endif /* defined(REPLACE_STATISTICS) */
-
-
-#if defined(REPLACE_STATISTICS)
-
-#define REPLACE_PRINT_DIST(name, array)                              \
-    printf("    " name " distribution:\n");                          \
-    print_freq(stdout, (array), sizeof(array)/sizeof(int) - 1);
-
-void replace_print_statistics(void)
-{
-	printf("replacement statistics:\n");
-	printf("    # of replacements:   %d\n", stat_replacements);
-	printf("    # of frames:         %d\n", stat_frames);
-	printf("    # of recompilations: %d\n", stat_recompile);
-	printf("    patched static calls:%d\n", stat_staticpatch);
-	printf("    unrolled inlines:    %d\n", stat_unroll_inline);
-	printf("    unrolled calls:      %d\n", stat_unroll_call);
-	REPLACE_PRINT_DIST("frame depth", stat_dist_frames);
-	REPLACE_PRINT_DIST("locals per frame", stat_dist_locals);
-	REPLACE_PRINT_DIST("ADR locals per frame", stat_dist_locals_adr);
-	REPLACE_PRINT_DIST("primitive locals per frame", stat_dist_locals_prim);
-	REPLACE_PRINT_DIST("RET locals per frame", stat_dist_locals_ret);
-	REPLACE_PRINT_DIST("void locals per frame", stat_dist_locals_void);
-	REPLACE_PRINT_DIST("stack slots per frame", stat_dist_stack);
-	REPLACE_PRINT_DIST("ADR stack slots per frame", stat_dist_stack_adr);
-	REPLACE_PRINT_DIST("primitive stack slots per frame", stat_dist_stack_prim);
-	REPLACE_PRINT_DIST("RET stack slots per frame", stat_dist_stack_ret);
-	printf("\n");
-	printf("    # of methods:            %d\n", stat_methods);
-	printf("    # of replacement points: %d\n", stat_rploints);
-	printf("    # of regallocs:          %d\n", stat_regallocs);
-	printf("        per rplpoint:        %f\n", (double)stat_regallocs / stat_rploints);
-	printf("        per method:          %f\n", (double)stat_regallocs / stat_methods);
-	REPLACE_PRINT_DIST("replacement points per method", stat_dist_method_rplpoints);
-	printf("\n");
-
-}
-#endif /* defined(REPLACE_STATISTICS) */
-
-
-#if defined(REPLACE_STATISTICS)
-static void replace_statistics_source_frame(sourceframe_t *frame)
-{
-	int adr = 0;
-	int ret = 0;
-	int prim = 0;
-	int vd = 0;
-	int n = 0;
-	int i;
-
-	for (i=0; i<frame->javalocalcount; ++i) {
-		switch (frame->javalocaltype[i]) {
-			case TYPE_ADR: adr++; break;
-			case TYPE_RET: ret++; break;
-			case TYPE_INT: case TYPE_LNG: case TYPE_FLT: case TYPE_DBL: prim++; break;
-			case TYPE_VOID: vd++; break;
-			default: assert(0);
-		}
-		n++;
-	}
-	REPLACE_COUNT_DIST(stat_dist_locals, n);
-	REPLACE_COUNT_DIST(stat_dist_locals_adr, adr);
-	REPLACE_COUNT_DIST(stat_dist_locals_void, vd);
-	REPLACE_COUNT_DIST(stat_dist_locals_ret, ret);
-	REPLACE_COUNT_DIST(stat_dist_locals_prim, prim);
-	adr = ret = prim = n = 0;
-	for (i=0; i<frame->javastackdepth; ++i) {
-		switch (frame->javastacktype[i]) {
-			case TYPE_ADR: adr++; break;
-			case TYPE_RET: ret++; break;
-			case TYPE_INT: case TYPE_LNG: case TYPE_FLT: case TYPE_DBL: prim++; break;
-		}
-		n++;
-	}
-	REPLACE_COUNT_DIST(stat_dist_stack, n);
-	REPLACE_COUNT_DIST(stat_dist_stack_adr, adr);
-	REPLACE_COUNT_DIST(stat_dist_stack_ret, ret);
-	REPLACE_COUNT_DIST(stat_dist_stack_prim, prim);
-}
-#endif /* defined(REPLACE_STATISTICS) */
-
-
-/* debugging helpers **********************************************************/
-
-/* replace_replacement_point_println *******************************************
-
-   Print replacement point info.
-
-   IN:
-       rp...............the replacement point to print
-
-*******************************************************************************/
-
-#if !defined(NDEBUG)
-
 #define TYPECHAR(t)  (((t) >= 0 && (t) <= TYPE_RET) ? show_jit_type_letters[t] : '?')
 
-static const char *replace_type_str[] = {
-	"STD",
-	"EXH",
-	"SBR",
-	"CALL",
-	"INLINE",
-	"RETURN",
-	"BODY"
-};
+namespace cacao {
 
-void replace_replacement_point_println(rplpoint *rp, int depth)
-{
-	int j;
-	int index;
-
+OStream& operator<<(OStream &OS, const rplpoint *rp) {
 	if (!rp) {
-		printf("(rplpoint *)NULL\n");
-		return;
+		return OS << "(rplpoint *) NULL";
 	}
-
-	for (j=0; j<depth; ++j)
-		putchar('\t');
-
-	printf("rplpoint (id %d) %p pc:%p+%d type:%s",
-			rp->id, (void*)rp,rp->pc,rp->callsize,
-			replace_type_str[rp->type]);
-	if (rp->flags & rplpoint::FLAG_NOTRAP)
-		printf(" NOTRAP");
-	if (rp->flags & rplpoint::FLAG_COUNTDOWN)
-		printf(" COUNTDOWN");
-	if (rp->flags & rplpoint::FLAG_ACTIVE)
-		printf(" ACTIVE");
-	printf(" parent:%p\n", (void*)rp->parent);
-	for (j=0; j<depth; ++j)
-		putchar('\t');
-	printf("ra:%d = [",	rp->regalloccount);
-
-	for (j=0; j<rp->regalloccount; ++j) {
-		if (j)
-			putchar(' ');
-		index = rp->regalloc[j].index;
-		switch (index) {
-			case RPLALLOC_STACK: printf("S"); break;
-			case RPLALLOC_PARAM: printf("P"); break;
-			case RPLALLOC_SYNC : printf("Y"); break;
-			default: printf("%d", index);
-		}
-		printf(":%1c:", TYPECHAR(rp->regalloc[j].type));
-		if (rp->regalloc[j].type == TYPE_RET) {
-			printf("ret(L%03d)", rp->regalloc[j].regoff);
-		}
-		else {
-			show_allocation(rp->regalloc[j].type, rp->regalloc[j].flags, rp->regalloc[j].regoff);
-		}
-	}
-
-	printf("]\n");
-	for (j=0; j<depth; ++j)
-		putchar('\t');
-	printf("method: ");
-	method_print(rp->method);
-
-	printf("\n");
+	return OS << *rp;
 }
-#endif /* !defined(NDEBUG) */
 
+OStream& operator<<(OStream &OS, const rplpoint &rp) {
+	OS << "[";
 
-/* replace_show_replacement_points *********************************************
+	OS << "id=" << rp.id << ", pc=" << rp.pc;
 
-   Print replacement point info.
-
-   IN:
-       code.............codeinfo whose replacement points should be printed.
-
-*******************************************************************************/
-
-#if !defined(NDEBUG)
-void replace_show_replacement_points(codeinfo *code)
-{
-	int i;
-	int depth;
-	rplpoint *rp;
-	rplpoint *parent;
-
-	if (!code) {
-		printf("(codeinfo *)NULL\n");
-		return;
+	OS << " flags=[";
+	if (rp.flags & rplpoint::FLAG_ACTIVE) {
+		OS << " ACTIVE ";
 	}
+	if (rp.flags & rplpoint::FLAG_TRAPPABLE) {
+		OS << " TRAPPABLE ";
+	}
+	if (rp.flags & rplpoint::FLAG_COUNTDOWN) {
+		OS << " COUNTDOWN ";
+	}
+	if (rp.flags & rplpoint::FLAG_DEOPTIMIZE) {
+		OS << " DEOPTIMIZE ";
+	}
+	OS << "]";
 
-	printf("\treplacement points: %d\n",code->rplpointcount);
+	OS << ", parent=" << rp.parent << ", ";
+	OS << "allocations=[";
 
-	printf("\ttotal allocations : %d\n",code->regalloccount);
-	printf("\tsaved int regs    : %d\n",code->savedintcount);
-	printf("\tsaved flt regs    : %d\n",code->savedfltcount);
-	printf("\tmemuse            : %d\n",code->memuse);
-
-	printf("\n");
-
-	for (i=0; i<code->rplpointcount; ++i) {
-		rp = code->rplpoints + i;
-
-		depth = 1;
-		parent = rp->parent;
-		while (parent) {
-			depth++;
-			parent = parent->parent;
+	for (int j=0; j < rp.regalloccount; ++j) {
+		if (j > 0) {
+			OS << ", ";
 		}
-		replace_replacement_point_println(rp, depth);
+		OS << rp.regalloc[j];
 	}
+
+	OS << "], ";
+	OS << "method=[" << *rp.method << "], ";
+	OS << "callsize=" << rp.callsize;
+
+	OS << "]";
+
+	return OS;
 }
-#endif
 
+OStream& operator<<(OStream &OS, const rplalloc *ra) {
+	if (!ra) {
+		return OS << "(rplalloc *) NULL";
+	}
+	return OS << *ra;
+}
 
-#if !defined(NDEBUG)
-static void java_value_print(s4 type, replace_val_t value)
-{
+OStream& operator<<(OStream &OS, const rplalloc &ra) {
+	OS << "[";
+
+	switch (ra.index) {
+		case RPLALLOC_STACK: OS << "S"; break;
+		case RPLALLOC_PARAM: OS << "P"; break;
+		case RPLALLOC_SYNC : OS << "Y"; break;
+		default: OS << ra.index;
+	}
+
+	OS << ":" << TYPECHAR(ra.type) << ", ";
+
+	if (ra.type == TYPE_RET) {
+		OS << "ret(L" << ra.regoff << ")";
+	} else if (ra.inmemory) {
+		OS << "M" << ra.regoff;
+	} else if (IS_FLT_DBL_TYPE(ra.type)) {
+		OS << "F" << ra.regoff;
+	} else {
+		/* integer register */
+
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+		if (IS_2_WORD_TYPE(ra.type)) {
+# if defined(ENABLE_JIT)
+			OS << abi_registers_integer_name[GET_LOW_REG(ra.regoff)];
+			OS << "/";
+			OS << abi_registers_integer_name[GET_HIGH_REG(ra.regoff)];
+# else  /* defined(ENABLE_JIT) */
+			OS << GET_LOW_REG(ra.regoff) << "/" << GET_HIGH_REG(ra.regoff);
+# endif /* defined(ENABLE_JIT) */
+		} else {
+#endif /* defined(SUPPORT_COMBINE_INTEGER_REGISTERS) */
+
+			OS << abi_registers_integer_name[ra.regoff];
+
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+		}
+#endif /* defined(SUPPORT_COMBINE_INTEGER_REGISTERS) */
+	}
+
+	OS << "]";
+
+	return OS;
+}
+
+OStream& operator<<(OStream &OS, const sourceframe_t *frame) {
+	if (!frame) {
+		return OS << "(sourceframe_t *) NULL";
+	}
+	return OS << *frame;
+}
+
+static OStream& replace_val_print(OStream &OS, s4 type, replace_val_t value) {
 	java_object_t *obj;
 	Utf8String     u;
 
-	printf("%016llx",(unsigned long long) value.l);
-
-	if (type < 0 || type > TYPE_RET)
-		printf(" <INVALID TYPE:%d>", type);
-	else
-		printf(" %s", show_jit_type_names[type]);
+	OS << "type=";
+	if (type < 0 || type > TYPE_RET) {
+		OS << "<INVALID TYPE:" << type << ">";
+	} else {
+		OS << show_jit_type_names[type];
+	}
+	
+	OS << ", raw=" << value.l << ", value=";
 
 	if (type == TYPE_ADR && value.a != NULL) {
 		obj = value.a;
-		putchar(' ');
-		utf_display_printable_ascii_classname(obj->vftbl->clazz->name);
+		OS << obj->vftbl->clazz->name;
 
+#if 0
 		if (obj->vftbl->clazz == class_java_lang_String) {
 			printf(" \"");
 			u = JavaString(obj).to_utf8();
 			utf_display_printable_ascii(u);
 			printf("\"");
 		}
+#endif
+	} else if (type == TYPE_INT) {
+		OS << value.i;
+	} else if (type == TYPE_LNG) {
+		OS << value.l;
+	} else if (type == TYPE_FLT) {
+		OS << value.f;
+	} else if (type == TYPE_DBL) {
+		OS << value.d;
 	}
-	else if (type == TYPE_INT) {
-		printf(" %ld", (long) value.i);
-	}
-	else if (type == TYPE_LNG) {
-		printf(" %lld", (long long) value.l);
-	}
-	else if (type == TYPE_FLT) {
-		printf(" %f", value.f);
-	}
-	else if (type == TYPE_DBL) {
-		printf(" %f", value.d);
-	}
+
+	return OS;
 }
-#endif /* !defined(NDEBUG) */
 
-
-#if !defined(NDEBUG)
-void replace_source_frame_println(sourceframe_t *frame)
-{
-	s4 i,j;
-	s4 t;
-
-	if (REPLACE_IS_NATIVE_FRAME(frame)) {
-		printf("\tNATIVE\n");
-		printf("\tsfi: "); replace_stackframeinfo_println(frame->sfi);
-		printf("\tnativepc: %p\n", frame->nativepc);
-		printf("\tframesize: %d\n", frame->nativeframesize);
-
-		j = 0;
-		for (i=0; i<INT_REG_CNT; ++i) {
-			if (nregdescint[i] == REG_SAV)
-				printf("\t%s = %p\n", abi_registers_integer_name[i], (void*)frame->nativesavint[j++]);
+static OStream& print_replace_vals(OStream &OS, replace_val_t *values, u1 *types, s4 count) {
+	for (s4 i = 0; i < count; ++i) {
+		s4 type = types[i];
+		OS << "[";
+		if (type == TYPE_VOID) {
+			OS << "type=void";
+		} else {
+			replace_val_print(OS, type, values[i]);
 		}
+		OS << "]";
 
-		j = 0;
-		for (i=0; i<FLT_REG_CNT; ++i) {
-			if (nregdescfloat[i] == REG_SAV)
-				printf("\tF%02d = %f\n", i, frame->nativesavflt[j++]);
+		if (i + 1 < count) {
+			OS << ", ";
 		}
-
-		printf("\n");
-		return;
 	}
-
-	printf("\t");
-	method_println(frame->method);
-	printf("\tid: %d\n", frame->id);
-	printf("\ttype: %s\n", replace_type_str[frame->type]);
-	printf("\n");
-
-	if (frame->instance.a) {
-		printf("\tinstance: ");
-		java_value_print(TYPE_ADR, frame->instance);
-		printf("\n");
-	}
-
-	if (frame->javalocalcount) {
-		printf("\tlocals (%d):\n",frame->javalocalcount);
-		for (i=0; i<frame->javalocalcount; ++i) {
-			t = frame->javalocaltype[i];
-			if (t == TYPE_VOID) {
-				printf("\tlocal[ %2d] = void\n",i);
-			}
-			else {
-				printf("\tlocal[%c%2d] = ",TYPECHAR(t),i);
-				java_value_print(t, frame->javalocals[i]);
-				printf("\n");
-			}
-		}
-		printf("\n");
-	}
-
-	if (frame->javastackdepth) {
-		printf("\tstack (depth %d):\n",frame->javastackdepth);
-		for (i=0; i<frame->javastackdepth; ++i) {
-			t = frame->javastacktype[i];
-			if (t == TYPE_VOID) {
-				printf("\tstack[%2d] = void", i);
-			}
-			else {
-				printf("\tstack[%2d] = ",i);
-				java_value_print(frame->javastacktype[i], frame->javastack[i]);
-				printf("\n");
-			}
-		}
-		printf("\n");
-	}
-
-	if (frame->syncslotcount) {
-		printf("\tsynchronization slots (%d):\n",frame->syncslotcount);
-		for (i=0; i<frame->syncslotcount; ++i) {
-			printf("\tslot[%2d] = %016llx\n",i,(unsigned long long) frame->syncslots[i].p);
-		}
-		printf("\n");
-	}
-
-	if (frame->fromcode) {
-		printf("\tfrom %p ", (void*)frame->fromcode);
-		method_println(frame->fromcode->m);
-	}
-	if (frame->tocode) {
-		printf("\tto %p ", (void*)frame->tocode);
-		method_println(frame->tocode->m);
-	}
-
-	if (frame->fromrp) {
-		printf("\tfrom replacement point:\n");
-		replace_replacement_point_println(frame->fromrp, 2);
-	}
-	if (frame->torp) {
-		printf("\tto replacement point:\n");
-		replace_replacement_point_println(frame->torp, 2);
-	}
-
-	printf("\n");
+	return OS;
 }
-#endif /* !defined(NDEBUG) */
 
+OStream& operator<<(OStream &OS, const sourceframe_t &frame) {
+	OS << "[";
 
-/* replace_sourcestate_println *************************************************
+	if (REPLACE_IS_NATIVE_FRAME(&frame)) {
+		OS << "NATIVE, ";
+		OS << "nativepc=" << frame.nativepc << nl;
+		OS << "framesize=" << frame.nativeframesize << nl;
 
-   Print source state
+		OS << "registers (integer)=[";
+		for (s4 i = 0, j = 0; i < INT_REG_CNT; ++i) {
+			if (nregdescint[i] == REG_SAV) {
+				OS << abi_registers_integer_name[i] << ": " << (void*)frame.nativesavint[j++] << ", ";
+			}
+		}
+		OS << "] ";
 
-   IN:
-       ss...............the source state to print
+		OS << "registers (float)=[";
+		for (s4 i = 0, j = 0; i < FLT_REG_CNT; ++i) {
+			if (nregdescfloat[i] == REG_SAV) {
+				OS << "F" << i << ": " << frame.nativesavflt[j++] << ", ";
+			}
+		}
+		OS << "]";
+	} else {
+		OS << "method=" << frame.method->name << ", ";
+		OS << "id=" << frame.id;
 
-*******************************************************************************/
+#if 0
+		if (frame->instance.a) {
+			printf("\tinstance: ");
+			java_value_print(TYPE_ADR, frame->instance);
+			printf("\n");
+		}
+#endif
 
-#if !defined(NDEBUG)
-void replace_sourcestate_println(sourcestate_t *ss)
-{
+		if (frame.javalocalcount) {
+			OS << ", locals (" << frame.javalocalcount << ")=[";
+			print_replace_vals(OS, frame.javalocals, frame.javalocaltype,
+					frame.javalocalcount);
+			OS << "]";
+		}
+
+		if (frame.javastackdepth) {
+			OS << ", stack (depth=" << frame.javastackdepth << ")=[";
+			print_replace_vals(OS, frame.javastack, frame.javastacktype,
+					frame.javastackdepth);
+			OS << "]";
+		}
+
+#if 0
+		if (frame->syncslotcount) {
+			printf("\tsynchronization slots (%d):\n",frame->syncslotcount);
+			for (i=0; i<frame->syncslotcount; ++i) {
+				printf("\tslot[%2d] = %016llx\n",i,(unsigned long long) frame->syncslots[i].p);
+			}
+			printf("\n");
+		}
+#endif
+
+		if (frame.fromcode) {
+			OS << ", from=" << (void*) frame.fromcode;
+		}
+		if (frame.tocode) {
+			OS << ", to=" << (void*) frame.tocode;
+		}
+
+	}
+
+	OS << "]";
+
+	return OS;
+}
+
+OStream& operator<<(OStream &OS, const sourcestate_t *ss) {
+	if (!ss) {
+		return OS << "(sourcestate_t *) NULL" << nl;
+	}
+	return OS << *ss;
+}
+
+OStream& operator<<(OStream &OS, const sourcestate_t &ss) {
+	OS << "sourcestate_t:" << nl;
 	int i;
 	sourceframe_t *frame;
-
-	if (!ss) {
-		printf("(sourcestate_t *)NULL\n");
-		return;
+	for (i = 0, frame = ss.frames; frame != NULL; frame = frame->down, ++i) {
+		OS << "frame " << i << ": [" << frame << "]" << nl;
 	}
-
-	printf("sourcestate_t:\n");
-
-	for (i=0, frame = ss->frames; frame != NULL; frame = frame->down, ++i) {
-		printf("    frame %d:\n", i);
-		replace_source_frame_println(frame);
-	}
+	return OS;
 }
-#endif
 
 
-/* replace_sourcestate_println_short *******************************************
-
-   Print a compact representation of the given source state.
-
-   IN:
-       ss...............the source state to print
-
-*******************************************************************************/
-
-#if !defined(NDEBUG)
-void replace_sourcestate_println_short(sourcestate_t *ss)
-{
-	sourceframe_t *frame;
-
-	for (frame = ss->frames; frame != NULL; frame = frame->down) {
-		printf("\t");
-
-		if (REPLACE_IS_NATIVE_FRAME(frame)) {
-			printf("NATIVE (pc %p size %d) ",
-				   (void*)frame->nativepc, frame->nativeframesize);
-			replace_stackframeinfo_println(frame->sfi);
-			continue;
-		}
-
-		if (frame->torp) {
-			printf("%c", (frame->torp == frame->fromrp) ? '=' : '+');
-		}
-
-		printf("%s", replace_type_str[frame->fromrp->type]);
-
-		if (frame->torp && frame->torp->type != frame->fromrp->type)
-			printf("->%s", replace_type_str[frame->torp->type]);
-
-		if (frame->tocode != frame->fromcode)
-			printf(" (%p->%p/%d) ",
-				   (void*) frame->fromcode, (void*) frame->tocode,
-				   frame->fromrp->id);
-		else
-			printf(" (%p/%d) ", (void*) frame->fromcode, frame->fromrp->id);
-
-		method_println(frame->method);
-	}
-}
-#endif
-
-#if !defined(NDEBUG)
-static void replace_stackframeinfo_println(stackframeinfo_t *sfi)
-{
-	printf("prev=%p pv=%p sp=%p ra=%p xpc=%p method=",
-			(void*)sfi->prev, (void*)sfi->pv, (void*)sfi->sp,
-			(void*)sfi->ra, (void*)sfi->xpc);
-
-	if (sfi->code)
-		method_println(sfi->code->m);
-	else
-		printf("(nil)\n");
-}
-#endif
+} // end namespace cacao
 
 
 /*

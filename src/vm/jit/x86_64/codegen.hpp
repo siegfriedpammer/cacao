@@ -158,6 +158,8 @@
 #define M_ISUB_IMM(a,b)         emit_alul_imm_reg(cd, ALU_SUB, (a), (b))
 #define M_IMUL_IMM(a,b,c)       emit_imull_imm_reg_reg(cd, (b), (a), (c))
 
+#define M_ISUB_IMM_MEMBASE(a,b,c,lock) emit_alul_imm_membase(cd, ALU_SUB, (a), (b), (c), (lock))
+
 #define M_LADD(a,b)             emit_alu_reg_reg(cd, ALU_ADD, (a), (b))
 #define M_LSUB(a,b)             emit_alu_reg_reg(cd, ALU_SUB, (a), (b))
 #define M_LMUL(a,b)             emit_imul_reg_reg(cd, (a), (b))
@@ -266,6 +268,8 @@
 #define M_BGE(disp)             emit_jcc(cd, CC_GE, (disp))
 #define M_BGT(disp)             emit_jcc(cd, CC_G, (disp))
 
+#define M_BNS(a)                emit_jcc(cd, CC_NS, (a))
+
 #define M_BULT(disp)            emit_jcc(cd, CC_B, (disp))
 #define M_BULE(disp)            emit_jcc(cd, CC_BE, (disp))
 #define M_BUGE(disp)            emit_jcc(cd, CC_AE, (disp))
@@ -344,6 +348,8 @@
 
 #define M_IINC_MEMBASE(a,b)     emit_incl_membase(cd, (a), (b))
 #define M_LINC_MEMBASE(a,b)     emit_incq_membase(cd, (a), (b))
+
+#define M_IDEC_MEMBASE(a,b)     emit_decl_membase(cd, (a), (b))
 
 #define M_IADD_MEMBASE(a,b,c)   emit_alul_reg_membase(cd, ALU_ADD, (a), (b), (c))
 #define M_IADC_MEMBASE(a,b,c)   emit_alul_reg_membase(cd, ALU_ADC, (a), (b), (c))

@@ -1975,6 +1975,18 @@ bool stack_reanalyse_block(stackdata_t *sd)
 				return false;
 		} /* switch */
 
+		/* relocate live stackvars after the current instruction */
+
+#if defined(ENABLE_COMPILER2)
+		if (instruction_has_side_effects(iptr) && JITDATA_HAS_FLAG_DEOPTIMIZE(sd->jd)) {
+			s4 *stackvar = iptr->stack_after;
+			for (s4 i = 0; i < iptr->stackdepth_after; i++) {
+				RELOCATE(*stackvar);
+				stackvar++;
+			}
+		}
+#endif
+
 #if defined(STACK_VERBOSE)
 		show_icmd(sd->jd, iptr, false, SHOW_STACK);
 		printf("\n");
@@ -4531,6 +4543,26 @@ normal_LCMP:
 					} /* switch */
 
 					CHECKOVERFLOW;
+
+					/* record live stackvars after the current instruction */
+
+#if defined(ENABLE_COMPILER2)
+					if (iptr != NULL && instruction_has_side_effects(iptr)
+							&& JITDATA_HAS_FLAG_DEOPTIMIZE(sd.jd)) {
+						assert(stackdepth >= 0);
+						assert((stackdepth == 0) == (curstack == NULL));
+
+						iptr->stack_after = DMNEW(s4, stackdepth);
+						iptr->stackdepth_after = stackdepth;
+
+						stackelement_t *current_elem = curstack;
+						for (int i = stackdepth - 1; current_elem; i--) {
+							iptr->stack_after[i] = current_elem->varnum;
+							current_elem = current_elem->prev;
+						}
+					}
+#endif
+
 					iptr++;
 				} /* while instructions */
 

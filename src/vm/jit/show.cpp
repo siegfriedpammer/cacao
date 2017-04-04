@@ -352,14 +352,6 @@ void show_method(jitdata *jd, int stage)
 		printf("\n");
 	}
 
-#if defined(ENABLE_REPLACEMENT)
-	if (code->rplpoints) {
-		printf("Replacement Points:\n");
-		replace_show_replacement_points(code);
-		printf("\n");
-	}
-#endif /* defined(ENABLE_REPLACEMENT) */
-
 #if defined(ENABLE_DISASSEMBLER)
 	/* show code before first basic block */
 

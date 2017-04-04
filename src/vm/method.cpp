@@ -587,7 +587,7 @@ bool method_load(ClassBuffer& cb, methodinfo *m, DescriptorPool& descpool)
 		return false;
 	}
 
-#if defined(ENABLE_REPLACEMENT)
+#if defined(ENABLE_COMPILER2)
 	/* initialize the hit countdown field */
 
 	m->hitcountdown = METHOD_INITIAL_HIT_COUNTDOWN;
@@ -1268,6 +1268,11 @@ void method_methodref_println(constant_FMIref *mr)
 }
 #endif /* !defined(NDEBUG) */
 
+bool method_matches(methodinfo *m, const char* name) {
+	if (!m || !name)
+		return false;
+	return m->name == Utf8String::from_utf8(name);
+}
 
 namespace cacao {
 namespace {

@@ -268,7 +268,7 @@ void trap_handle(int sig, void *xpc, void *context)
 	case TRAP_PATCHER:
 		p = NULL;
 #if defined(ENABLE_REPLACEMENT)
-		was_replaced = replace_handler((uint8_t*) xpc, &es);
+		was_replaced = replace_handle_replacement_trap((uint8_t*) xpc, &es);
 		if (was_replaced)
 			break;
 #endif
@@ -280,11 +280,15 @@ void trap_handle(int sig, void *xpc, void *context)
 		entry = jit_compile_handle(m, sfi.pv, ra, (void*) val);
 		break;
 
-#if defined(__I386__) && defined(ENABLE_REPLACEMENT)
-# warning Port the below stuff to use the patching subsystem.
+#if defined(__X86_64__) && defined(ENABLE_COMPILER2)
 	case TRAP_COUNTDOWN:
 		p = NULL;
-		(void) replace_handler((uint8_t*) xpc - 13, &es);
+		replace_handle_countdown_trap((uint8_t*) xpc, &es);
+		break;
+
+	case TRAP_DEOPTIMIZE:
+		p = NULL;
+		replace_handle_deoptimization_trap((uint8_t*) xpc, &es);
 		break;
 #endif
 

@@ -102,6 +102,10 @@
 #include "vm/jit/intrp/intrp.h"
 #endif
 
+#include "toolbox/logging.hpp"
+
+#define DEBUG_NAME "codegen"
+
 
 STAT_REGISTER_VAR(int,count_branches_unresolved,0,"unresolved branches","unresolved branches")
 STAT_DECLARE_GROUP(function_call_stat)
@@ -487,30 +491,6 @@ void codegen_branch_label_add(codegendata *cd, s4 label, s4 condition, s4 reg, u
 }
 
 
-/* codegen_set_replacement_point_notrap ****************************************
-
-   Record the position of a non-trappable replacement point.
-
-*******************************************************************************/
-
-#if defined(ENABLE_REPLACEMENT)
-#if !defined(NDEBUG)
-void codegen_set_replacement_point_notrap(codegendata *cd, s4 type)
-#else
-void codegen_set_replacement_point_notrap(codegendata *cd)
-#endif
-{
-	assert(cd->replacementpoint);
-	assert(cd->replacementpoint->type == type);
-	assert(cd->replacementpoint->flags & rplpoint::FLAG_NOTRAP);
-
-	cd->replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
-
-	cd->replacementpoint++;
-}
-#endif /* defined(ENABLE_REPLACEMENT) */
-
-
 /* codegen_set_replacement_point ***********************************************
 
    Record the position of a trappable replacement point.
@@ -518,29 +498,380 @@ void codegen_set_replacement_point_notrap(codegendata *cd)
 *******************************************************************************/
 
 #if defined(ENABLE_REPLACEMENT)
-#if !defined(NDEBUG)
-void codegen_set_replacement_point(codegendata *cd, s4 type)
-#else
 void codegen_set_replacement_point(codegendata *cd)
-#endif
 {
 	assert(cd->replacementpoint);
-	assert(cd->replacementpoint->type == type);
-	assert(!(cd->replacementpoint->flags & rplpoint::FLAG_NOTRAP));
 
 	cd->replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
 
-	cd->replacementpoint++;
-
-#if !defined(NDEBUG)
-	/* XXX actually we should use an own REPLACEMENT_NOPS here! */
-	if (opt_TestReplacement)
-		PATCHER_NOPS;
+#if defined(__X86_64__) && defined(ENABLE_COUNTDOWN_TRAPS)
+	// Generate countdown trap code.
+	methodinfo *m = cd->replacementpoint->method;
+	if (cd->replacementpoint->flags & rplpoint::FLAG_COUNTDOWN) {
+		// XXX Probably 32 bytes aren't enough for every architecture
+		MCODECHECK(32);
+		emit_trap_countdown(cd, &(m->hitcountdown));
+	}
 #endif
+
+	cd->replacementpoint++;
 
 	/* XXX assert(cd->lastmcodeptr <= cd->mcodeptr); */
 
 	cd->lastmcodeptr = cd->mcodeptr + PATCHER_CALL_SIZE;
+}
+#endif /* defined(ENABLE_REPLACEMENT) */
+
+
+/* codegen_create_replacement_point ********************************************
+
+   Create a replacement point.
+
+   IN:
+       jd...............current jitdata
+	   rp...............pre-allocated (uninitialized) replacement point
+	   iptr.............current instruction
+	   *pra.............current rplalloc pointer
+	   javalocals.......the javalocals at the current point
+	   stackvars........the stack variables at the current point
+	   stackdepth.......the stack depth at the current point
+	   paramcount.......number of parameters at the start of stackvars
+	   flags............flags for the replacement point
+
+   OUT:
+       *vpa.............points to the next free rplalloc
+
+*******************************************************************************/
+
+#if defined(ENABLE_REPLACEMENT)
+static void codegen_create_replacement_point(
+		jitdata *jd,
+		rplpoint *rp,
+		instruction *iptr,
+		rplalloc **pra,
+		s4 *javalocals,
+		s4 *stackvars,
+		s4 stackdepth,
+		s4 paramcount,
+		u1 flags = 0)
+{
+	rplalloc *ra = *pra;
+
+	rp->method = jd->m;
+	rp->pc = NULL; /* set by codegen */
+	rp->regalloc = ra;
+	rp->flags = flags;
+	rp->id = iptr->flags.bits >> INS_FLAG_ID_SHIFT;
+
+	/* store local allocation info of javalocals */
+
+	if (javalocals) {
+		for (s4 i = 0; i < rp->method->maxlocals; ++i) {
+			s4 varindex = javalocals[i];
+			if (varindex == jitdata::UNUSED)
+				continue;
+
+			ra->index = i;
+			if (varindex >= 0) {
+				varinfo  *v = VAR(varindex);
+				ra->inmemory = v->flags & (INMEMORY);
+				ra->regoff = v->vv.regoff;
+				ra->type = v->type;
+			} else {
+				ra->regoff = RETADDR_FROM_JAVALOCAL(varindex);
+				ra->type = TYPE_RET;
+				ra->inmemory = false;
+			}
+			ra++;
+		}
+	}
+
+	/* store allocation info of java stack vars */
+
+	for (s4 stack_index = 0; stack_index < stackdepth; stack_index++) {
+		s4 varindex = stackvars[stack_index];
+		varinfo *v = VAR(varindex);
+		ra->inmemory = v->flags & (INMEMORY);
+		ra->index = (stack_index < paramcount) ? RPLALLOC_PARAM : RPLALLOC_STACK;
+		ra->type = v->type;
+		/* XXX how to handle locals on the stack containing returnAddresses? */
+		if (v->type == TYPE_RET) {
+			assert(varindex >= jd->localcount);
+			ra->regoff = v->vv.retaddr->nr;
+		} else {
+			ra->regoff = v->vv.regoff;
+		}
+		ra++;
+	}
+
+	/* total number of allocations */
+
+	rp->regalloccount = ra - rp->regalloc;
+
+	*pra = ra;
+
+	LOG("created replacement point " << rp << nl);
+}
+#endif /* defined(ENABLE_REPLACEMENT) */
+
+
+/* codegen_create_replacement_points *******************************************
+
+   Create the replacement points for the given code.
+
+   IN:
+       jd...............current jitdata, must not have any replacement points
+
+   OUT:
+       code->rplpoints.........set to the list of replacement points
+	   code->rplpointcount.....number of replacement points
+	   code->allocation........list of allocation info
+	   code->allocationcount...total length of allocation info list
+	   code->globalcount.......number of global allocations at the
+	                           start of code->allocation
+
+*******************************************************************************/
+
+#if defined(ENABLE_REPLACEMENT)
+
+#define CLEAR_javalocals(array, method)                              \
+    do {                                                             \
+        for (int i=0; i<(method)->maxlocals; ++i)                    \
+            (array)[i] = jitdata::UNUSED;                            \
+    } while (0)
+
+#define COPY_OR_CLEAR_javalocals(dest, array, method)                \
+    do {                                                             \
+        if ((array) != NULL)                                         \
+            MCOPY((dest), (array), s4, (method)->maxlocals);         \
+        else                                                         \
+            CLEAR_javalocals((dest), (method));                      \
+    } while (0)
+
+#define COUNT_javalocals(array, method, counter)                     \
+    do {                                                             \
+        for (int i=0; i<(method)->maxlocals; ++i)                    \
+            if ((array)[i] != jitdata::UNUSED)                       \
+                (counter)++;                                         \
+    } while (0)
+
+void codegen_create_replacement_points(jitdata *jd)
+{
+	LOG("create replacement points for method '" << jd->m->name << "'" << nl);
+
+	/* get required compiler data */
+
+	codeinfo *code = jd->code;
+	registerdata *rd   = jd->rd;
+
+	/* assert that we wont overwrite already allocated data */
+
+	assert(code);
+	assert(code->m);
+	assert(code->rplpoints == NULL);
+	assert(code->rplpointcount == 0);
+	assert(code->regalloc == NULL);
+	assert(code->regalloccount == 0);
+	assert(code->globalcount == 0);
+
+	/* iterate over the basic block list to find replacement points */
+
+	int count = 0; /* count of replacement points */
+	int alloccount = 0; /* count of rplallocs */
+
+	s4 *live_javalocals = (s4*) DumpMemory::allocate(sizeof(s4) * jd->maxlocals);
+
+	for (basicblock *bptr = jd->basicblocks; bptr; bptr = bptr->next) {
+
+		/* skip dead code */
+
+		if (bptr->state < basicblock::FINISHED) {
+			continue;
+		}
+
+		/* get info about this block */
+
+		methodinfo *method = bptr->method;
+
+		/* initialize javalocals at the start of this block */
+
+		COPY_OR_CLEAR_javalocals(live_javalocals, bptr->javalocals, method);
+
+		/* create replacement points at method entry and control-flow merge
+		   points */
+
+		if (bptr == jd->basicblocks ||
+			(bptr->predecessorcount > 1 && JITDATA_HAS_FLAG_DEOPTIMIZE(jd))) {
+			count++;
+			alloccount += bptr->indepth;
+			COUNT_javalocals(bptr->javalocals, bptr->method, alloccount);
+		}
+
+		/* iterate over the instructions */
+
+		instruction *iptr = bptr->iinstr;
+		instruction *iend = iptr + bptr->icount;
+
+		for (; iptr != iend; ++iptr) {
+			/* record effects on javalocals */
+
+			switch (iptr->opc) {
+#if defined(ENABLE_GC_CACAO)
+				case ICMD_BUILTIN:
+					count++;
+					COUNT_javalocals(live_javalocals, method, alloccount);
+					alloccount += iptr->s1.argcount;
+					break;
+#endif
+
+				case ICMD_INVOKESTATIC:
+				case ICMD_INVOKESPECIAL:
+				case ICMD_INVOKEVIRTUAL:
+				case ICMD_INVOKEINTERFACE:
+					count++;
+					COUNT_javalocals(live_javalocals, method, alloccount);
+					alloccount += iptr->s1.argcount;
+					break;
+
+				case ICMD_ISTORE:
+				case ICMD_LSTORE:
+				case ICMD_FSTORE:
+				case ICMD_DSTORE:
+				case ICMD_ASTORE:
+					stack_javalocals_store(iptr, live_javalocals);
+					break;
+				default:
+					break;
+			}
+
+			/* count javalocals and stackvars after side-effecting instructions */
+
+			if (instruction_has_side_effects(iptr) && JITDATA_HAS_FLAG_DEOPTIMIZE(jd)) {
+				count++;
+				alloccount += iptr->stackdepth_after;
+				COUNT_javalocals(live_javalocals, method, alloccount);
+			}
+		} /* end instruction loop */
+	} /* end basicblock loop */
+
+	/* if no points were found, there's nothing to do */
+
+	if (count == 0) {
+		return;
+	}
+
+	/* allocate replacement point array and allocation array */
+
+	rplpoint *rplpoints = MNEW(rplpoint, count);
+	rplalloc *allocs = MNEW(rplalloc, alloccount);
+	rplalloc *ra = allocs;
+
+	/* initialize replacement point structs */
+
+	rplpoint *rp = rplpoints;
+
+	for (basicblock *bptr = jd->basicblocks; bptr; bptr = bptr->next) {
+		/* skip dead code */
+
+		if (bptr->state < basicblock::FINISHED) {
+			continue;
+		}
+
+		/* get info about this block */
+
+		methodinfo *method = bptr->method;
+
+		/* initialize javalocals at the start of this block */
+
+		COPY_OR_CLEAR_javalocals(live_javalocals, bptr->javalocals, method);
+
+		/* create replacement points at method entry and control-flow merge
+		   points */
+
+		if (bptr == jd->basicblocks ||
+				(bptr->predecessorcount > 1 && JITDATA_HAS_FLAG_DEOPTIMIZE(jd))) {
+			u1 flags = 0;
+			/* create countdown traps at targets of backward branches and at the
+			   method entry */
+			// XXX for now we only create them at the method entry, until it is
+			//     possible to jump into optimized code at backward branch targets.
+
+			if (bptr == jd->basicblocks && JITDATA_HAS_FLAG_COUNTDOWN(jd)) {
+				flags |= rplpoint::FLAG_TRAPPABLE;
+				flags |= rplpoint::FLAG_COUNTDOWN;
+			}
+
+			codegen_create_replacement_point(jd, rp++, bptr->iinstr, &ra,
+					live_javalocals, bptr->invars, bptr->indepth, 0, flags);
+		}
+
+		/* iterate over the instructions */
+
+		instruction *iptr = bptr->iinstr;
+		instruction *iend = iptr + bptr->icount;
+
+		for (; iptr != iend; ++iptr) {
+			/* record effects on javalocals */
+
+			switch (iptr->opc) {
+#if defined(ENABLE_GC_CACAO)
+				case ICMD_BUILTIN: {
+					methoddesc *md = iptr->sx.s23.s3.bte->md;
+
+					codegen_create_replacement_point(jd, rp++,
+							iptr, &va, live_javalocals, iptr->sx.s23.s2.args,
+							iptr->s1.argcount,
+							md->paramcount);
+					break;
+				}
+#endif
+
+				case ICMD_INVOKESTATIC:
+				case ICMD_INVOKESPECIAL:
+				case ICMD_INVOKEVIRTUAL:
+				case ICMD_INVOKEINTERFACE: {
+					methoddesc *md;
+					INSTRUCTION_GET_METHODDESC(iptr, md);
+
+					codegen_create_replacement_point(jd, rp++,
+							iptr, &ra, live_javalocals, iptr->sx.s23.s2.args,
+							iptr->s1.argcount,
+							md->paramcount);
+					break;
+				}
+
+				case ICMD_ISTORE:
+				case ICMD_LSTORE:
+				case ICMD_FSTORE:
+				case ICMD_DSTORE:
+				case ICMD_ASTORE:
+					stack_javalocals_store(iptr, live_javalocals);
+					break;
+				default:
+					break;
+			}
+
+			/* create replacement points after side-effecting instructions */
+
+			if (instruction_has_side_effects(iptr) && JITDATA_HAS_FLAG_DEOPTIMIZE(jd)) {
+				codegen_create_replacement_point(jd, rp++, &iptr[1], &ra,
+						live_javalocals, iptr->stack_after,
+						iptr->stackdepth_after, 0, 0);
+			}
+		} /* end instruction loop */
+	} /* end basicblock loop */
+
+	assert((rp - rplpoints) == count);
+	assert((ra - allocs) == alloccount);
+
+	/* store the data in the codeinfo */
+
+	code->rplpoints = rplpoints;
+	code->rplpointcount = count;
+	code->regalloc = allocs;
+	code->regalloccount = alloccount;
+	code->globalcount = 0;
+	code->memuse = rd->memuse;
 }
 #endif /* defined(ENABLE_REPLACEMENT) */
 
@@ -670,7 +1001,7 @@ void codegen_finish(jitdata *jd)
 
 	/* patcher resolving */
 
-	patcher_resolve(jd);
+	patcher_resolve(jd->code);
 
 #if defined(ENABLE_REPLACEMENT)
 	/* replacement point resolving */
@@ -683,7 +1014,7 @@ void codegen_finish(jitdata *jd)
 			rp->pc = (u1*) ((ptrint) epoint + (ptrint) rp->pc);
 		}
 	}
-#endif /* defined(ENABLE_REPLACEMENT) */
+#endif
 
 	/* Insert method into methodtree to find the entrypoint. */
 
@@ -1220,8 +1551,11 @@ bool codegen_emit(jitdata *jd)
 		codegen_emit_phi_moves(jd, ls->basicblocks[0]);
 #endif
 
+#if defined(ENABLE_REPLACEMENT)
 	// Create replacement points.
-	REPLACEMENT_POINTS_INIT(cd, jd);
+	codegen_create_replacement_points(jd);
+	cd->replacementpoint = jd->code->rplpoints;
+#endif
 
 	/*
 	 * SECTION 3: ICMD code generation.
@@ -1239,17 +1573,11 @@ bool codegen_emit(jitdata *jd)
 		// Branch resolving.
 		codegen_resolve_branchrefs(cd, bptr);
 
-		// Handle replacement points.
-		REPLACEMENT_POINT_BLOCK_START(cd, bptr);
-
-#if defined(ENABLE_REPLACEMENT) && defined(__I386__)
-		// Generate countdown trap code.
-		methodinfo* m = jd->m;
-		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
-			if (cd->replacementpoint[-1].flags & rplpoint::FLAG_COUNTDOWN) {
-				MCODECHECK(32);
-				emit_trap_countdown(cd, &(m->hitcountdown));
-			}
+#if defined(ENABLE_REPLACEMENT)
+		// Set a replacement point at the start of this block if necessary.
+		if (bptr == jd->basicblocks ||
+				(bptr->predecessorcount > 1 && JITDATA_HAS_FLAG_DEOPTIMIZE(jd))) {
+			codegen_set_replacement_point(cd);
 		}
 #endif
 
@@ -1362,14 +1690,8 @@ bool codegen_emit(jitdata *jd)
 
 			/* inline operations **********************************************/
 
-			case ICMD_INLINE_START:
-
-				REPLACEMENT_POINT_INLINE_START(cd, iptr);
-				break;
-
 			case ICMD_INLINE_BODY:
 
-				REPLACEMENT_POINT_INLINE_BODY(cd, iptr);
 				linenumbertable_list_entry_add_inline_start(cd, iptr);
 				linenumbertable_list_entry_add(cd, iptr->line);
 				break;
@@ -1958,12 +2280,10 @@ bool codegen_emit(jitdata *jd)
 
 			case ICMD_RETURN:     /* ...  ==> ...                             */
 
-				REPLACEMENT_POINT_RETURN(cd, iptr);
 				goto nowperformreturn;
 
 			case ICMD_ARETURN:    /* ..., retvalue ==> ...                    */
 
-				REPLACEMENT_POINT_RETURN(cd, iptr);
 				s1 = emit_load_s1(jd, iptr, REG_RESULT);
 				// XXX Sparc64: Here this should be REG_RESULT_CALLEE!
 				emit_imove(cd, s1, REG_RESULT);
@@ -1983,7 +2303,6 @@ bool codegen_emit(jitdata *jd)
 			case ICMD_FRETURN:
 #endif
 
-				REPLACEMENT_POINT_RETURN(cd, iptr);
 				s1 = emit_load_s1(jd, iptr, REG_RESULT);
 				// XXX Sparc64: Here this should be REG_RESULT_CALLEE!
 				emit_imove(cd, s1, REG_RESULT);
@@ -1994,7 +2313,6 @@ bool codegen_emit(jitdata *jd)
 			case ICMD_DRETURN:
 #endif
 
-				REPLACEMENT_POINT_RETURN(cd, iptr);
 				s1 = emit_load_s1(jd, iptr, REG_LRESULT);
 				// XXX Sparc64: Here this should be REG_RESULT_CALLEE!
 				emit_lmove(cd, s1, REG_LRESULT);
@@ -2003,7 +2321,6 @@ bool codegen_emit(jitdata *jd)
 #if !defined(ENABLE_SOFTFLOAT)
 			case ICMD_FRETURN:    /* ..., retvalue ==> ...                    */
 
-				REPLACEMENT_POINT_RETURN(cd, iptr);
 				s1 = emit_load_s1(jd, iptr, REG_FRESULT);
 #if defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 				M_CAST_F2I(s1, REG_RESULT);
@@ -2014,7 +2331,6 @@ bool codegen_emit(jitdata *jd)
 
 			case ICMD_DRETURN:    /* ..., retvalue ==> ...                    */
 
-				REPLACEMENT_POINT_RETURN(cd, iptr);
 				s1 = emit_load_s1(jd, iptr, REG_FRESULT);
 #if defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 				M_CAST_D2L(s1, REG_LRESULT);
@@ -2045,8 +2361,6 @@ nowperformreturn:
 				break;
 
 			case ICMD_BUILTIN:      /* ..., [arg1, [arg2 ...]] ==> ...        */
-
-				REPLACEMENT_POINT_FORGC_BUILTIN(cd, iptr);
 
 				bte = iptr->sx.s23.s3.bte;
 				md  = bte->md;
@@ -2098,7 +2412,9 @@ nowperformreturn:
 			case ICMD_INVOKEVIRTUAL:/* op1 = arg count, val.a = method pointer    */
 			case ICMD_INVOKEINTERFACE:
 
-				REPLACEMENT_POINT_INVOKE(cd, iptr);
+#if defined(ENABLE_REPLACEMENT)
+				codegen_set_replacement_point(cd);
+#endif
 
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 					unresolved_method* um = iptr->sx.s23.s3.um;
@@ -2229,9 +2545,14 @@ gen_method:
 				// Generate method profiling code.
 				PROFILE_CYCLE_START;
 
+#if defined(ENABLE_REPLACEMENT)
 				// Store size of call code in replacement point.
-				REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
-				REPLACEMENT_POINT_FORGC_BUILTIN_RETURN(cd, iptr);
+				if (iptr->opc != ICMD_BUILTIN) {
+					// Store size of call code in replacement point.
+					cd->replacementpoint[-1].callsize = (cd->mcodeptr - cd->mcodebase)
+						- (ptrint) cd->replacementpoint[-1].pc;
+				}
+#endif
 
 				// Recompute the procedure vector (PV).
 				emit_recompute_pv(cd);
@@ -2354,6 +2675,12 @@ gen_method:
 				return false;
 
 			} // the big switch
+
+#if defined(ENABLE_REPLACEMENT)
+			if (instruction_has_side_effects(iptr) && JITDATA_HAS_FLAG_DEOPTIMIZE(jd)) {
+				codegen_set_replacement_point(cd);
+			}
+#endif
 
 		} // for all instructions
 

@@ -25,6 +25,7 @@
 #ifndef OSTREAM_HPP_
 #define OSTREAM_HPP_ 1
 
+#include <string>
 #include <cstdio>
 
 namespace cacao {
@@ -206,6 +207,9 @@ public:
 	OStream& operator<<(const NoUnderline&);
 
 	void set_file(FILE *file) { this->file = file; }
+
+	/// force color (0 = disabled, 1 = yes, 0 = no)
+	static void set_force_color(int);
 private:
 	void on_newline();
 
@@ -224,7 +228,13 @@ private:
 	bool newline;
 
 	/// supports ansi escape codes
-	bool use_color;
+	bool _use_color;
+
+	/// supports ansi escape codes
+	bool use_color() const;
+
+	/// force color (0 = disabled, 1 = yes, 0 = no)
+	static int force_color;
 
 	enum IntegerFormat {
 		IntFmt_decimal,
@@ -432,6 +442,22 @@ inline OStream& print_container(OStream &OS, _ForwardIterator i, const _ForwardI
 		OS << ", " << *i;
 	}
 	return OS << "]";
+}
+
+template <class _ForwardIterator>
+inline OStream& print_ptr_container(OStream &OS, _ForwardIterator i, const _ForwardIterator &e) {
+	if (i == e)
+		return OS << "[<empty>]";
+	OS << "[" << **i;
+	++i;
+	for( ; i != e ; ++i) {
+		OS << ", " << **i;
+	}
+	return OS << "]";
+}
+
+inline OStream& operator<<(OStream &OS, const std::string &t) {
+	return OS << t.c_str();
 }
 
 } // end namespace cacao

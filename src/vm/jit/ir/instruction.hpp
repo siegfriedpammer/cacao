@@ -165,6 +165,18 @@ struct instruction {
 #if defined(ENABLE_ESCAPE_REASON)
 	void *escape_reasons;
 #endif
+
+#if defined(ENABLE_COMPILER2)
+	/// The stack vars that are alive after this instruction.
+	///
+	/// This liveness information is needed for deoptimization and hence will
+	/// only be generated if the current method is recompiled due to a
+	/// decompilation request.
+	s4 *stack_after;
+
+	/// The size of stack_after.
+	s4 stackdepth_after;
+#endif
 };
 
 
@@ -226,7 +238,7 @@ struct insinfo_inline {
 	int32_t    *javalocals_end;   /* javalocals after inlined body            */
 
 	/* fields set by replacement point creation ------------------------------*/
-#if defined(ENABLE_REPLACEMENT)
+#if defined(ENABLE_COMPILER2)
 	rplpoint   *rp;             /* replacement point at INLINE_START          */
 #endif
 
@@ -252,6 +264,50 @@ static inline bool instruction_has_dst(const instruction* iptr)
 		return icmd_table[iptr->opc].dataflow >= DF_DST_BASE;
 	}
 }
+
+static inline bool instruction_has_side_effects(const instruction *iptr)
+{
+	int opc = iptr->opc;
+	return opc == ICMD_INVOKESTATIC
+		|| opc == ICMD_INVOKEVIRTUAL
+		|| opc == ICMD_INVOKEINTERFACE
+		|| opc == ICMD_INVOKESPECIAL
+		|| opc == ICMD_BUILTIN
+		|| opc == ICMD_PUTSTATIC
+		|| opc == ICMD_GETSTATIC
+		|| opc == ICMD_PUTFIELD
+		|| opc == ICMD_GETFIELD
+		|| opc == ICMD_PUTSTATICCONST
+		|| opc == ICMD_PUTFIELDCONST
+		|| opc == ICMD_ASTORE
+		|| opc == ICMD_ALOAD
+		|| opc == ICMD_IASTORE
+		|| opc == ICMD_LASTORE
+		|| opc == ICMD_FASTORE
+		|| opc == ICMD_DASTORE
+		|| opc == ICMD_AASTORE
+		|| opc == ICMD_BASTORE
+		|| opc == ICMD_CASTORE
+		|| opc == ICMD_SASTORE
+		|| opc == ICMD_IALOAD
+		|| opc == ICMD_SALOAD
+		|| opc == ICMD_BALOAD
+		|| opc == ICMD_CALOAD
+		|| opc == ICMD_LALOAD
+		|| opc == ICMD_DALOAD
+		|| opc == ICMD_FALOAD
+		|| opc == ICMD_AALOAD
+		|| opc == ICMD_BASTORECONST
+		|| opc == ICMD_CASTORECONST
+		|| opc == ICMD_SASTORECONST
+		|| opc == ICMD_AASTORECONST
+		|| opc == ICMD_IASTORECONST
+		|| opc == ICMD_LASTORECONST
+		|| opc == ICMD_NEW
+		|| opc == ICMD_MONITORENTER
+		|| opc == ICMD_MONITOREXIT;
+}
+
 
 #endif // _INSTRUCTION_HPP
 

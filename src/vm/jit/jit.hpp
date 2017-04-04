@@ -190,7 +190,11 @@ struct jitdata {
 #define JITDATA_FLAG_REORDER             0x00000010
 #define JITDATA_FLAG_INLINE              0x00000020
 
+/* Indicates that a method should be instrumented with countdown traps. */
 #define JITDATA_FLAG_COUNTDOWN           0x00000100
+
+/* Indicates that deoptimization information has to be generated. */
+#define JITDATA_FLAG_DEOPTIMIZE          0x00000200
 
 #define JITDATA_FLAG_SHOWINTERMEDIATE    0x20000000
 #define JITDATA_FLAG_SHOWDISASSEMBLE     0x40000000
@@ -217,6 +221,9 @@ struct jitdata {
 
 #define JITDATA_HAS_FLAG_COUNTDOWN(jd) \
     ((jd)->flags & JITDATA_FLAG_COUNTDOWN)
+
+#define JITDATA_HAS_FLAG_DEOPTIMIZE(jd) \
+    ((jd)->flags & JITDATA_FLAG_DEOPTIMIZE)
 
 #define JITDATA_HAS_FLAG_SHOWINTERMEDIATE(jd) \
     ((jd)->flags & JITDATA_FLAG_SHOWINTERMEDIATE)
@@ -460,9 +467,12 @@ void jit_close(void);
 /* create a new jitdata */
 jitdata *jit_jitdata_new(methodinfo *m);
 
+void jit_jitdata_init_for_recompilation(jitdata *jd);
+
 /* compile a method with jit compiler */
 u1 *jit_compile(methodinfo *m);
 u1 *jit_recompile(methodinfo *m);
+u1 *jit_recompile_for_deoptimization(methodinfo *m);
 
 void jit_invalidate_code(methodinfo *m);
 codeinfo *jit_get_current_code(methodinfo *m);

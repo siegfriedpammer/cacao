@@ -65,6 +65,7 @@ enum {
 
 	TRAP_THROW                          = 13,
 	TRAP_NAT_EXCEPTION                  = 14,
+	TRAP_DEOPTIMIZE                     = 15,
 	TRAP_END
 };
 

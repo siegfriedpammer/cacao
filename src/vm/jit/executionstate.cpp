@@ -97,6 +97,14 @@ void executionstate_pop_stackframe(executionstate_t *es)
 		es->ra = *((uint8_t**) (basesp + LA_LR_OFFSET));
 #endif /* STACKFRAME_RA_LINKAGE_AREA */
 
+#if defined(__X86_64__)
+	// Recover the frame-pointer
+	if (code_is_using_frameptr(es->code)) {
+		basesp -= 1 * SIZE_OF_STACKSLOT;
+		es->intregs[RBP] = *((uintptr_t*) basesp);
+	}
+#endif
+
 	// Restore saved int registers.
 	reg = INT_REG_CNT;
 	for (i=0; i<es->code->savedintcount; ++i) {

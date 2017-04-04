@@ -45,6 +45,7 @@ Type instruction_call_site_return_type(const instruction* iptr) {
    return (Type) instruction_call_site(iptr)->returntype.type;
 }
 
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

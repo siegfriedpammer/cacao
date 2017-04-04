@@ -190,6 +190,8 @@ int      opt_InlineAll                    = 0;
 int      opt_InlineCount                  = INT_MAX;
 int      opt_InlineMaxSize                = INT_MAX;
 int      opt_InlineMinSize                = 0;
+char*    opt_InlineMethod                 = NULL;
+Utf8String opt_InlineMethodUtf;
 #endif
 #endif
 int      opt_PrintConfig                  = 0;
@@ -199,7 +201,9 @@ int      opt_ProfileMemoryUsage           = 0;
 FILE    *opt_ProfileMemoryUsageGNUPlot    = NULL;
 int      opt_RegallocSpillAll             = 0;
 #if defined(ENABLE_REPLACEMENT)
-int      opt_TestReplacement              = 0;
+char*    opt_ReplaceMethod                = NULL;
+char*    opt_OptimizeMethod               = NULL;
+bool     opt_DisableCountdownTraps        = false;
 #endif
 int      opt_TraceBuiltinCalls            = 0;
 int      opt_TraceCompilerCalls           = 0;
@@ -215,17 +219,16 @@ int      opt_TraceJVMCalls                = 0;
 int      opt_TraceJVMCallsVerbose         = 0;
 #if defined(ENABLE_RT_TIMING)
 FILE    *opt_RtTimingLogfile              = NULL;
+bool     opt_RtTimingCSV                  = false;
 #endif
 #if defined(ENABLE_STATISTICS)
 FILE    *opt_StatisticsLogfile            = NULL;
+bool     opt_StatisticsCSV                = false;
 #endif
 #if defined(ENABLE_JVMTI)
 int      opt_TraceJVMTICalls              = 0;
 #endif
 int      opt_TraceLinkClass               = 0;
-#if defined(ENABLE_REPLACEMENT)
-int      opt_TraceReplacement             = 0;
-#endif
 int      opt_TraceSubsystemInitialization = 0;
 int      opt_TraceTraps                   = 0;
 
@@ -251,6 +254,7 @@ enum {
 	OPT_CompileAll,
 	OPT_CompileMethod,
 	OPT_CompileSignature,
+	OPT_ColorOutput,
 	OPT_DebugLocalReferences,
 	OPT_DebugLocks,
 	OPT_DebugPackage,
@@ -267,13 +271,17 @@ enum {
 	OPT_InlineCount,
 	OPT_InlineMaxSize,
 	OPT_InlineMinSize,
+	OPT_InlineMethod,
 	OPT_PrintConfig,
 	OPT_PrintWarnings,
 	OPT_ProfileGCMemoryUsage,
 	OPT_ProfileMemoryUsage,
 	OPT_ProfileMemoryUsageGNUPlot,
 	OPT_RegallocSpillAll,
+	OPT_ReplaceMethod,
+	OPT_OptimizeMethod,
 	OPT_TestReplacement,
+	OPT_DisableCountdownTraps,
 	OPT_TraceBuiltinCalls,
 	OPT_TraceCompilerCalls,
 	OPT_TraceExceptions,
@@ -286,11 +294,12 @@ enum {
 	OPT_TraceJVMCallsVerbose,
 	OPT_TraceJVMTICalls,
 	OPT_TraceLinkClass,
-	OPT_TraceReplacement,
 	OPT_TraceSubsystemInitialization,
 	OPT_TraceTraps,
 	OPT_RtTimingLogfile,
-	OPT_StatisticsLogfile
+	OPT_RtTimingCSV,
+	OPT_StatisticsLogfile,
+	OPT_StatisticsCSV
 };
 
 
@@ -317,6 +326,7 @@ option_t options_XX[] = {
 	{ "DebugStackFrameInfo",          OPT_DebugStackFrameInfo,          OPT_TYPE_BOOLEAN, "TODO" },
 	{ "DebugStackTrace",              OPT_DebugStackTrace,              OPT_TYPE_BOOLEAN, "debug stacktrace creation" },
 	{ "DebugThreads",                 OPT_DebugThreads,                 OPT_TYPE_BOOLEAN, "print debug information for threads" },
+	{ "ColorOutput",                  OPT_ColorOutput,                  OPT_TYPE_VALUE,   "enable color output (yes, no, auto) [default=auto]" },
 #if defined(ENABLE_DISASSEMBLER)
 	{ "DisassembleStubs",             OPT_DisassembleStubs,             OPT_TYPE_BOOLEAN, "disassemble builtin and native stubs when generated" },
 #endif
@@ -334,6 +344,7 @@ option_t options_XX[] = {
 	{ "InlineCount",                  OPT_InlineCount,                  OPT_TYPE_VALUE,   "stop inlining after the given number of roots" },
 	{ "InlineMaxSize",                OPT_InlineMaxSize,                OPT_TYPE_VALUE,   "maximum size for inlined result" },
 	{ "InlineMinSize",                OPT_InlineMinSize,                OPT_TYPE_VALUE,   "minimum size for inlined result" },
+	{ "InlineMethod",                 OPT_InlineMethod,                 OPT_TYPE_VALUE,   "inline only specified method" },
 #endif
 #endif
 	{ "PrintConfig",                  OPT_PrintConfig,                  OPT_TYPE_BOOLEAN, "print VM configuration" },
@@ -343,7 +354,10 @@ option_t options_XX[] = {
 	{ "ProfileMemoryUsageGNUPlot",    OPT_ProfileMemoryUsageGNUPlot,    OPT_TYPE_VALUE,   "TODO" },
 	{ "RegallocSpillAll",             OPT_RegallocSpillAll,             OPT_TYPE_BOOLEAN, "spill all variables to the stack" },
 #if defined(ENABLE_REPLACEMENT)
+	{ "ReplaceMethod",                OPT_ReplaceMethod,                OPT_TYPE_VALUE,   "perform on-stack replacement only for the specified method"},
+	{ "OptimizeMethod",               OPT_OptimizeMethod,               OPT_TYPE_VALUE,   ""},
 	{ "TestReplacement",              OPT_TestReplacement,              OPT_TYPE_BOOLEAN, "activate all replacement points during code generation" },
+	{ "DisableCountdownTraps",        OPT_DisableCountdownTraps,        OPT_TYPE_BOOLEAN, "" },
 #endif
 	{ "TraceBuiltinCalls",            OPT_TraceBuiltinCalls,            OPT_TYPE_BOOLEAN, "trace calls to VM builtin functions" },
 	{ "TraceCompilerCalls",           OPT_TraceCompilerCalls,           OPT_TYPE_BOOLEAN, "trace JIT compiler calls" },
@@ -361,16 +375,15 @@ option_t options_XX[] = {
 	{ "TraceJVMTICalls",              OPT_TraceJVMTICalls,              OPT_TYPE_BOOLEAN, "trace JVMTI method calls" },
 #endif
 	{ "TraceLinkClass",               OPT_TraceLinkClass,               OPT_TYPE_BOOLEAN, "trace class linking" },
-#if defined(ENABLE_REPLACEMENT)
-	{ "TraceReplacement",             OPT_TraceReplacement,             OPT_TYPE_VALUE,   "trace on-stack replacement with the given verbosity level (default: 1)" },
-#endif
 	{ "TraceSubsystemInitialization", OPT_TraceSubsystemInitialization, OPT_TYPE_BOOLEAN, "trace initialization of subsystems" },
 	{ "TraceTraps",                   OPT_TraceTraps,                   OPT_TYPE_BOOLEAN, "trace traps generated by JIT code" },
 #if defined(ENABLE_RT_TIMING)
 	{ "RtTimingLogfile",              OPT_RtTimingLogfile,              OPT_TYPE_VALUE,   "rt-timing logfile (default: rt-timing.log, use - for stdout)" },
+	{ "RtTimingCSV",                  OPT_RtTimingCSV,                  OPT_TYPE_BOOLEAN, "enable csv output for rt-timing" },
 #endif
 #if defined(ENABLE_STATISTICS)
 	{ "StatisticsLogfile",            OPT_StatisticsLogfile,           OPT_TYPE_VALUE,   "statistics logfile (default: statistics.log, use - for stdout)" },
+	{ "StatisticsCSV",                OPT_StatisticsCSV,               OPT_TYPE_BOOLEAN, "enable csv output for statistics" },
 #endif
 
 	/* end marker */
@@ -699,6 +712,17 @@ void options_xx(JavaVMInitArgs *vm_args)
 			opt_DebugThreads = enable;
 			break;
 
+		case OPT_ColorOutput:
+			if (value != NULL) {
+				if (strcmp("auto",value) == 0)
+					cacao::OStream::set_force_color(0);
+				if (strcmp("no",value) == 0)
+					cacao::OStream::set_force_color(-1);
+				if (strcmp("yes",value) == 0)
+					cacao::OStream::set_force_color(1);
+			}
+			break;
+
 #if defined(ENABLE_DISASSEMBLER)
 		case OPT_DisassembleStubs:
 			opt_DisassembleStubs = enable;
@@ -743,6 +767,12 @@ void options_xx(JavaVMInitArgs *vm_args)
 		case OPT_InlineMinSize:
 			if (value != NULL)
 				opt_InlineMinSize = os::atoi(value);
+			break;
+		case OPT_InlineMethod:
+			// we can not yet set opt_InlineMethodUtf because
+			// the utf8 subsystem is not yet initialized!
+			//opt_InlineMethodUtf = Utf8String::from_utf8(opt_InlineMethod);
+			opt_InlineMethod = value;
 			break;
 #endif
 #endif
@@ -796,8 +826,16 @@ void options_xx(JavaVMInitArgs *vm_args)
 			break;
 
 #if defined(ENABLE_REPLACEMENT)
-		case OPT_TestReplacement:
-			opt_TestReplacement = enable;
+		case OPT_ReplaceMethod:
+			opt_ReplaceMethod = value;
+			break;
+
+		case OPT_OptimizeMethod:
+			opt_OptimizeMethod = value;
+			break;
+
+		case OPT_DisableCountdownTraps:
+			opt_DisableCountdownTraps = true;
 			break;
 #endif
 
@@ -857,15 +895,6 @@ void options_xx(JavaVMInitArgs *vm_args)
 			opt_TraceLinkClass = enable;
 			break;
 
-#if defined(ENABLE_REPLACEMENT)
-		case OPT_TraceReplacement:
-			if (value == NULL)
-				opt_TraceReplacement = 1;
-			else
-				opt_TraceReplacement = os::atoi(value);
-			break;
-#endif
-
 		case OPT_TraceSubsystemInitialization:
 			opt_TraceSubsystemInitialization = enable;
 			break;
@@ -892,6 +921,9 @@ void options_xx(JavaVMInitArgs *vm_args)
 
 			opt_RtTimingLogfile = file;
 			break;
+		case OPT_RtTimingCSV:
+			opt_RtTimingCSV = enable;
+			break;
 #endif
 
 #if defined(ENABLE_STATISTICS)
@@ -911,6 +943,9 @@ void options_xx(JavaVMInitArgs *vm_args)
 			}
 
 			opt_StatisticsLogfile = file;
+			break;
+		case OPT_StatisticsCSV:
+			opt_StatisticsCSV = enable;
 			break;
 #endif
 

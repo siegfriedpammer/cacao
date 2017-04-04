@@ -1,0 +1,157 @@
+\section{Constant Folding \& Propagation}
+\label{sec:constantprop}
+
+In general, constant folding and constant propagation are techniques that optimize programs by performing transformations on those code parts that make use of values which are statically known to be constant. The reason to cover these optimizations within only one section and not devote a single one to each of them is, that they can be combined very effectively.
+
+Constant folding, also known as constant expression evaluation, evaluates those expressions at compile-time, for which each operand is a constant value \cite{muchnick:1997:advanced-compiler-design}. That means, computations that would have been done during run-time are now executed during the compilation process. It is important, that the result of this compile-time computation has to be the same as the one that would have been computed during the execution of the compiled program. Thus it is necessary to consider all those aspects that could cause a difference between the result of a static evaluation and that of the run-time evaluation of an expression. For example, if the floating point representation or the floating point arithmetic of the compiler deviates from the run-time environment of the compiled program, this could lead to differing results of the according computations. Another aspect to consider is that exceptional cases --- like divisions by zero --- have to be handled accordingly.
+
+% TODO: introducing phrase for constant propagation
+Assuming a program or intermediate representation is in static single assignment form, the general idea of constant propagation can be described by the following rule \cite{appel:2004:moderncompilerimpl}: For any assignment of the form $v \leftarrow c$ for some constant $c$, replace each use of the variable $v$ by $c$. Nevertheless, this rule ignores an important case, namely the occurrence of $\phi$-functions, for which an additional rule has to be considered \cite{appel:2004:moderncompilerimpl}: Any $\phi$-function of the form $v \leftarrow \phi (x_1, x_2,\ldots , x_n)$, where all $x_i$ are equal to some constant $c$, can be replaced by $v \leftarrow c$. An iterative application of these rules can now be used to propagate constants as far as possible through a program. The principles of constant propagation considered so far, describe a restricted form of this type of optimization. In section \ref{sec:related} we will thus shortly present an extension of this optimization technique which combines constant propagation with unreachable code elimination and therefore discovers additional optimization possibilities.
+
+What is left to say is that constant folding, on the one hand, can lead to code that can be further optimized by the use of constant propagation. The application of constant propagation, on the other hand, can lead to code that in turn can be further optimized by the use of constant folding. For example, the expression on the right-hand side of the assignment statement in listing \ref{lst:const-combined} can be evaluated leading to the code in listing \ref{lst:const-combined-opt1}. This provides the further possibility to propagate the constant value of variable \lstinline!a! to the return statement in the next line. This in turn yields further folding possibilities as can be seen in listing \ref{lst:const-combined-opt2}, where the operation within the return statement only uses constant operands.
+
+\newsavebox{\lstConstCombined}
+\begin{lrbox}{\lstConstCombined}
+\begin{lstlisting}[label=lst:const-combined]
+a = 1 + 2;
+return a + 3;
+\end{lstlisting}
+\end{lrbox}
+
+\newsavebox{\lstConstCombinedFirstOpt}
+\begin{lrbox}{\lstConstCombinedFirstOpt}
+\begin{lstlisting}[label=lst:const-combined-opt1]
+a = 3;
+return a + 3;
+\end{lstlisting}
+\end{lrbox}
+
+\newsavebox{\lstConstCombinedSecondOpt}
+\begin{lrbox}{\lstConstCombinedSecondOpt}
+\begin{lstlisting}[label=lst:const-combined-opt2]
+a = 3;
+return 3 + 3;
+\end{lstlisting}
+\end{lrbox}
+
+\begin{minipage}[b]{0.33\textwidth}
+\centerline{\usebox{\lstConstCombined}}
+\end{minipage}
+~
+\begin{minipage}[t]{0.34\textwidth}
+\centerline{\usebox{\lstConstCombinedFirstOpt}}
+\end{minipage}
+~
+\begin{minipage}[t]{0.33\textwidth}
+\centerline{\usebox{\lstConstCombinedSecondOpt}}
+\end{minipage}
+
+Obviously, the rules for constant propagation, defined earlier, lead to dead code, as shown in listing \ref{lst:const-combined-opt2}, where variable \lstinline!a! is not referenced anymore. A run of dead code elimination, as described in section \ref{sec:dead-code}, can be used to eliminate the unused code.
+
+\subsection{Application to the Intermediate Representation}
+\label{sec:constantprop:application-to-the-ir}
+
+Due to the characteristics of the intermediate representation of the compiler framework, constant propagation will be an implicit effect of constant folding. Each node with constant operands that represents an operation that can be evaluated statically (like arithmetical or logical operations) will be replaced by introducing a new node of type \irinline{CONSTInst}. The value of this constant node will be the result of the original node's operation, applied to the values of its operands. Furthermore, each node that references the replaced node as an operand has to adjust the according references within its use list to point to the newly introduced node. The replacement of nodes in the course of the folding deletes all the references to them, thus they become dead according to definition \ref{def:dead-node} in section \ref{sec:dead-code:application-to-the-ir}. A subsequent run of dead code elimination at the end of this optimization would delete these dead nodes.
+
+To illustrate the application of constant folding, we will reconsider the example code from listing \ref{lst:const-combined}, but we first have to translate it into the intermediate representation (for reasons of simplicity, the following figures will not include the dead nodes that would reside within the program). Figure \ref{fig:const-combined} shows the graph, which is the result of this translation.
+
+\vspace{3pt}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[every node/.style={scale=0.7, node distance=0.7cm and -0.3cm}]
+  \node[Inst] (return) [] {\Inst{RETURNInst}};
+  \node[Inst] (add1) [above=of return] {\Inst{ADDInst}};
+  \node[Inst] (const1) [above right=of add1] {\Inst{CONSTInst} $=3$};
+  \node[Inst] (add2) [above left=of add1] {\Inst{ADDInst}};
+  \node[Inst] (const2) [above left=of add2] {\Inst{CONSTInst} $=1$};
+  \node[Inst] (const3) [above right=of add2] {\Inst{CONSTInst} $=2$};
+
+  % data dep
+  \draw [datadep] (add1) to (return);
+  \draw [datadep] (const1) to (add1);
+  \draw [datadep] (add2) to (add1);
+  \draw [datadep] (const2) to (add2);
+  \draw [datadep] (const3) to (add2);
+\end{tikzpicture}
+\caption{}
+\label{fig:const-combined}
+\end{figure}
+
+The topmost node of type \irinline{ADDInst} in this graphic represents the expression \lstinline!1 + 2!, having only constant operands. Thus, it can be evaluated and replaced by a new node of type \irinline{CONSTInst} whose value corresponds to the result of this operation. Figure \ref{fig:const-combined-opt1} presents the graph after the according transformation. The remaining \irinline{ADDInst} now has only operands of type \irinline{CONSTInst}. Thus, it can be folded further and replaced by a new constant node, leading to the graph in figure \ref{fig:const-combined-opt2}.
+
+\vspace{3pt}
+\begin{figure}[H]
+\begin{minipage}[b]{0.5\textwidth}
+\centering
+\begin{tikzpicture}[every node/.style={scale=0.7, node distance=0.7cm and -0.3cm}]
+  \node[Inst] (return) [] {\Inst{RETURNInst}};
+  \node[Inst] (add1) [above=of return] {\Inst{ADDInst}};
+  \node[Inst] (const1) [above right=of add1] {\Inst{CONSTInst} $=3$};
+  \node[Inst] (const2) [above left=of add1] {\Inst{CONSTInst} $=3$};
+  % data dep
+  \draw [datadep] (add1) to (return);
+  \draw [datadep] (const1) to (add1);
+  \draw [datadep] (const2) to (add1);
+\end{tikzpicture}
+\caption{}
+\label{fig:const-combined-opt1}
+\end{minipage}
+~
+\begin{minipage}[b]{0.5\textwidth}
+\centering
+\begin{tikzpicture}[every node/.style={scale=0.7, node distance=0.7cm and -0.3cm}]
+  \node[Inst] (return) [] {\Inst{RETURNInst}};
+  \node[Inst] (const) [above=of return] {\Inst{CONSTInst} $=6$};
+  % data dep
+  \draw [datadep] (const) to (return);
+\end{tikzpicture}
+\caption{}
+\label{fig:const-combined-opt2}
+\end{minipage}
+\end{figure}
+
+These examples illustrate how the propagation of constants is done implicitly when introducing the new constant nodes during folding. The only places where propagation has to be done explicitly, are occurrences of nodes which represent $\phi$-functions. The following rule covers this case: Each node of type \irinline{PHIInst}, for which all operands are equal to some constant $c$, can be replaced by introducing a new node of type \irinline{CONSTInst}, whose value is set to $c$.
+
+\begin{algorithm}[t]
+\caption{Combined constant folding \& propagation}
+\label{alg:const-ir}
+\begin{algorithmic}[1]
+\State $\mathcal{W} \gets$ all nodes in the intermediate representation graph
+\While{$\mathcal{W}$ is not empty}
+	\State remove some node $n$ from $\mathcal{W}$
+	\If{all operands $o_i$ of node $n$ are constant}\label{alg:const-ir:operand-check}
+		\If{$n$ is of type PHIInst and all $o_i$ are equal to some constant value $c$}\label{alg:const-ir:operand-check-equal}
+			\State \Call{ReplaceByConstant}{n, c}
+		\ElsIf{$n$'s operation can be evaluated statically}\label{alg:const-ir:if-evaluatable}
+			\State $x \gets$ the result of $n$'s operation applied to $n$'s operands\label{alg:const-ir:cont-init}
+			\State \Call{ReplaceByConstant}{n, x}
+		\EndIf
+	\EndIf
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+Based on the previous considerations, a more detailed formulation of this combined version of constant folding and constant propagation is given in algorithm \ref{alg:const-ir}. It is an adaption of a constant propagation algorithm described by Appel and Palsberg \cite{appel:2004:moderncompilerimpl} and revisits the idea of using a work list for those nodes that should be reconsidered, like it already has been done for dead code elimination in section \ref{sec:dead-code:application-to-the-ir}. We again assume constant time removal and the avoidance of duplicate entries in this container. At each iteration of the while loop a node will be removed from the work list to consider if all of its operands are constant nodes. According to the previously defined rules, we then have to further distinguish if the node is of type \irinline{PHIInst} or if it represents any other operation that can be evaluated at compile-time. The steps that have to be done during the according node replacements have been outsourced to a procedure whose pseudo code is shown in algorithm \ref{alg:const-ir-replace}.
+
+In general, the execution of the condition test in line~\ref{alg:const-ir:operand-check} of algorithm~\ref{alg:const-ir} would involve to examine the node's whole operand list. Nevertheless, it is possible to implement this test to be executed in constant time. One possibility would be to keep a counter for each node, whose value represents the number of operands which are constants. Each time a \irinline{CONSTInst} is added to the node's operand list, the counter will be increased. Accordingly, each time a \irinline{CONSTInst} is removed from the operand list, the counter will be decreased. Thus if all the operands of a node are constant, then this counter would be equal to the number of operands. The condition test could then be realized by a comparison of the counter to the size of the operand list.
+
+The running time of the presented algorithm is in $\mathcal{O}(E\cdot O + N)$ where $E$ is the number of data-flow edges in the graph, $O$ is the maximum number of operands of any node and $N$ is the number of nodes in the program. We will constitute this in the following.
+
+Each time a node is replaced by a new constant node (and obviously each node can be replaced at most once), we will have to examine all of its users which is done by following each def-use edge that starts at that node. Consequently, the maximum number of data-flow edges which will be visited in def-use direction during the whole algorithm is obviously limited by $E$. For each of the users, it is necessary to inspect the whole operand list, to replace all the references to the original node by a reference to the new constant node. This takes time linear to the size of the corresponding operand list, which is limited by $O$. Each user will then be placed on the work list for reconsideration.
+In the following, if one of these nodes is removed from the work list, the condition test in line \ref{alg:const-ir:operand-check} of algorithm \ref{alg:const-ir} will be performed, which, with respect to previous considerations, can be done in constant time (this test is actually performed at least $N$ times, since at the beginning of the algorithm, the work list contains all the nodes in the program).
+The algorithm will again pass through a node's operand list in line \ref{alg:const-ir:operand-check-equal}, when determining if all operands represent the same constant value, which again is limited by $O$.
+
+\begin{algorithm}[t]
+\caption{Procedure for node replacements}
+\label{alg:const-ir-replace}
+\begin{algorithmic}[1]
+\Procedure{ReplaceByConstant}{$n_{\mathit{old}}$, $c$}
+	\State create a new constant node $n_{\mathit{new}}$\label{alg:cont-ir:create-const}
+	\State $n_{\mathit{new}}.\mathit{value} \gets c$\label{alg:const-ir:cont-init}
+	\For{each user $u_i$ of $n_{\mathit{old}}$}\label{alg:const-ir:for-loop-users}
+		\State replace each occurrence of $n_{old}$ in $u_i$'s list of operands by $n_{\mathit{new}}$\label{alg:const-ir:replace-operand}
+		\State $\mathcal{W} \gets \mathcal{W} \cup \lbrace u_i\rbrace$\label{alg:const-ir:worklist-insert}
+	\EndFor
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}

@@ -81,6 +81,12 @@
 # include "vm/jit/loop/loop.hpp"
 #endif
 
+#if defined(ENABLE_COMPILER2)
+#include "vm/jit/compiler2/Compiler.hpp"
+#include "vm/jit/compiler2/JITData.hpp"
+#include "vm/jit/compiler2/ObjectFileWriterPass.hpp"
+#endif
+
 /* debug macros ***************************************************************/
 
 #if !defined(NDEBUG)
@@ -180,6 +186,7 @@ void jit_init(void)
 #endif
 }
 
+#define DEBUG_NAME "jit"
 
 /* jit_close *******************************************************************
 
@@ -254,6 +261,7 @@ jitdata *jit_jitdata_new(methodinfo *m)
 	return jd;
 }
 
+STAT_REGISTER_VAR_EXTERN(std::size_t, compiler_last_codesize, 0, "last-code-size", "code size of the last compiled method")
 
 /* jit_compile *****************************************************************
 
@@ -355,10 +363,9 @@ u1 *jit_compile(methodinfo *m)
 	if (opt_verbosecall)
 		jd->flags |= JITDATA_FLAG_VERBOSECALL;
 
-#if defined(ENABLE_REPLACEMENT) && defined(ENABLE_INLINING)
-	if (opt_Inline && (jd->m->hitcountdown > 0) && (jd->code->optlevel == 0)) {
+#if defined(ENABLE_COMPILER2)
+	if (!opt_DisableCountdownTraps && (opt_ReplaceMethod == NULL || method_matches(m, opt_ReplaceMethod)))
 		jd->flags |= JITDATA_FLAG_COUNTDOWN;
-	}
 #endif
 
 #if defined(ENABLE_JIT)
@@ -378,6 +385,16 @@ u1 *jit_compile(methodinfo *m)
 	/* now call internal compile function */
 
 	r = jit_compile_intern(jd);
+#if defined(ENABLE_COMPILER2)
+	if (method_matches(m,opt_CompileMethod)) {
+		using namespace cacao::jit::compiler2;
+		JITData JD(jd);
+		ObjectFileWriterPass pass;
+		pass.initialize();
+		pass.run(JD);
+		pass.finalize();
+	}
+#endif
 
 	if (r == NULL) {
 		/* We had an exception! Finish stuff here if necessary. */
@@ -404,74 +421,37 @@ u1 *jit_compile(methodinfo *m)
 
 	m->mutex->unlock();
 
+#if defined(ENABLE_STATISTICS)
+	if (m && m->code)
+		compiler_last_codesize = m->code->mcodelength;
+#endif
+
 	/* return pointer to the methods entry point */
 
 	return r;
 }
 
 
-/* jit_recompile ***************************************************************
+/* jit_jitdata_init_for_recompilation ******************************************
 
-   Recompiles a Java method.
+   Initalizes a jitdata structure such that it can be used for rompiling a
+   method.
 
 *******************************************************************************/
 
-u1 *jit_recompile(methodinfo *m)
-{
-	u1      *r;
-	jitdata *jd;
-	u1       optlevel;
-
-	/* check for max. optimization level */
-
-	optlevel = (m->code) ? m->code->optlevel : 0;
-
-#if 0
-	if (optlevel == 1) {
-/* 		log_message_method("not recompiling: ", m); */
-		return NULL;
-	}
-#endif
-
-	DEBUG_JIT_COMPILEVERBOSE("Recompiling start: ");
-
-
-#if defined(ENABLE_STATISTICS)
-	/* measure time */
-
-	if (opt_getcompilingtime)
-		compilingtime_start();
-#endif
-
-	// Create new dump memory area.
-	DumpMemoryArea dma;
-
-	/* create jitdata structure */
-
-	jd = jit_jitdata_new(m);
-
-	/* set the current optimization level to the previous one plus 1 */
-
-	jd->code->optlevel = optlevel + 1;
-
+void jit_jitdata_init_for_recompilation(jitdata *jd) {
 	/* get the optimization flags for the current JIT run */
 
 #if defined(ENABLE_VERIFIER)
 	jd->flags |= JITDATA_FLAG_VERIFY;
 #endif
 
-	/* jd->flags |= JITDATA_FLAG_REORDER; */
 	if (opt_showintermediate)
 		jd->flags |= JITDATA_FLAG_SHOWINTERMEDIATE;
 	if (opt_showdisassemble)
 		jd->flags |= JITDATA_FLAG_SHOWDISASSEMBLE;
 	if (opt_verbosecall)
 		jd->flags |= JITDATA_FLAG_VERBOSECALL;
-
-#if defined(ENABLE_INLINING)
-	if (opt_Inline)
-		jd->flags |= JITDATA_FLAG_INLINE;
-#endif
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
@@ -485,12 +465,45 @@ u1 *jit_recompile(methodinfo *m)
 	/* setup the codegendata memory */
 
 	codegen_setup(jd);
+}
+
+
+/* jit_recompile ***************************************************************
+
+   Recompiles a Java method.
+
+*******************************************************************************/
+
+u1 *jit_recompile(methodinfo *m)
+{
+	DEBUG_JIT_COMPILEVERBOSE("Recompiling start: ");
+
+#if defined(ENABLE_STATISTICS)
+	/* measure time */
+
+	if (opt_getcompilingtime)
+		compilingtime_start();
+#endif
+
+	/* Create new dump memory area. */
+
+	DumpMemoryArea dma;
+
+	/* create jitdata structure */
+
+	jitdata *jd = jit_jitdata_new(m);
+	jit_jitdata_init_for_recompilation(jd);
+
+	/* set the current optimization level to the previous one plus 1 */
+
+	u1 optlevel = (jd->m->code) ? jd->m->code->optlevel : 0;
+	jd->code->optlevel = optlevel + 1;
 
 	/* now call internal compile function */
 
-	r = jit_compile_intern(jd);
+	u1 *entrypoint = jit_compile_intern(jd);
 
-	if (r == NULL) {
+	if (entrypoint == NULL) {
 		/* We had an exception! Finish stuff here if necessary. */
 
 		/* release codeinfo */
@@ -512,8 +525,63 @@ u1 *jit_recompile(methodinfo *m)
 
 	/* return pointer to the methods entry point */
 
-	return r;
+	return entrypoint;
 }
+
+
+/* jit_recompile_for_deoptimization ********************************************
+
+   Recompiles a Java method generating necessary meta-data for deoptimization.
+
+*******************************************************************************/
+
+u1 *jit_recompile_for_deoptimization(methodinfo *m)
+{
+#if defined(ENABLE_STATISTICS)
+	/* measure time */
+
+	if (opt_getcompilingtime)
+		compilingtime_start();
+#endif
+
+	/* Create new dump memory area. */
+
+	DumpMemoryArea dma;
+
+	/* create jitdata structure */
+
+	jitdata *jd = jit_jitdata_new(m);
+	jit_jitdata_init_for_recompilation(jd);
+
+	jd->flags |= JITDATA_FLAG_DEOPTIMIZE;
+
+	/* now call internal compile function */
+
+	u1 *entrypoint = jit_compile_intern(jd);
+
+	if (entrypoint == NULL) {
+		/* We had an exception! Finish stuff here if necessary. */
+
+		/* release codeinfo */
+
+		code_codeinfo_free(jd->code);
+	}
+
+#if defined(ENABLE_STATISTICS)
+	/* measure time */
+
+	if (opt_getcompilingtime)
+		compilingtime_stop();
+#endif
+
+	// Hook point just after code was generated.
+	Hook::jit_generated(m, m->code);
+
+	/* return pointer to the methods entry point */
+
+	return entrypoint;
+}
+
 
 #if defined(ENABLE_PM_HACKS)
 #include "vm/jit/jit_pm_1.inc"
@@ -816,13 +884,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 	DEBUG_JIT_COMPILEVERBOSE("Generating code done: ");
 
-#if !defined(NDEBUG) && defined(ENABLE_REPLACEMENT)
-	/* activate replacement points inside newly created code */
-
-	if (opt_TestReplacement)
-		replace_activate_replacement_points(code, false);
-#endif
-
 #if !defined(NDEBUG)
 #if defined(ENABLE_DEBUG_FILTER)
 	if (jd->m->filtermatches & SHOW_FILTER_FLAG_SHOW_METHOD)
@@ -883,10 +944,10 @@ void jit_invalidate_code(methodinfo *m)
 
 	/* activate mappable replacement points */
 
-#if defined(ENABLE_REPLACEMENT)
+#if defined(ENABLE_COMPILER2)
 	replace_activate_replacement_points(code, true);
 #else
-	vm_abort("invalidating code only works with ENABLE_REPLACEMENT");
+	vm_abort("invalidating code only works with ENABLE_COMPILER2");
 #endif
 }
 
@@ -939,8 +1000,13 @@ codeinfo *jit_get_current_code(methodinfo *m)
 
 	/* otherwise: recompile */
 
+#if defined(ENABLE_COMPILER2)
+	if (!cacao::jit::compiler2::compile(m))
+		return NULL;
+#else
 	if (!jit_recompile(m))
 		return NULL;
+#endif
 
 	assert(m->code);
 
@@ -1027,7 +1093,18 @@ void *jit_compile_handle(methodinfo *m, void *pv, void *ra, void *mptr)
 
 	/* Compile the method. */
 
-	newpv = jit_compile(m);
+	bool compile_optimized = false;
+#if defined(ENABLE_COMPILER2)
+	compile_optimized = method_matches(m,opt_OptimizeMethod);
+#endif
+
+	if (compile_optimized) {
+#if defined(ENABLE_COMPILER2)
+		newpv = cacao::jit::compiler2::compile(m);
+#endif
+	} else {
+		newpv = jit_compile(m);
+	}
 
 	/* There was a problem during compilation. */
 

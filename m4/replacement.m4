@@ -39,3 +39,23 @@ if test x"${ENABLE_REPLACEMENT}" = "xyes"; then
     AC_DEFINE([ENABLE_REPLACEMENT], 1, [use on-stack replacement])
 fi
 ])
+
+
+dnl check for countdown traps
+
+AC_DEFUN([AC_CHECK_ENABLE_COUNTDOWN_TRAPS],[
+AC_MSG_CHECKING(whether the baseline compiler should emit countdown traps)
+AC_ARG_ENABLE([countdown-traps],
+              [AS_HELP_STRING(--enable-countdown-traps,enable countdown traps [[default=no]])],
+              [case "${enableval}" in
+                   yes) ENABLE_COUNTDOWN_TRAPS=yes;;
+                   *) ENABLE_COUNTDOWN_TRAPS=no;;
+               esac],
+              [ENABLE_COUNTDOWN_TRAPS=no])
+AC_MSG_RESULT(${ENABLE_COUNTDOWN_TRAPS})
+AM_CONDITIONAL([ENABLE_COUNTDOWN_TRAPS], test x"${ENABLE_COUNTDOWN_TRAPS}" = "xyes")
+
+if test x"${ENABLE_COUNTDOWN_TRAPS}" = "xyes"; then
+    AC_DEFINE([ENABLE_COUNTDOWN_TRAPS], 1, [enable countdown traps])
+fi
+])

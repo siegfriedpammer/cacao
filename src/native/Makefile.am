@@ -1,6 +1,6 @@
 ## src/native/Makefile.am
 ##
-## Copyright (C) 1996-2013
+## Copyright (C) 1996-2014
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -31,6 +31,11 @@ SUBDIRS = \
 if ENABLE_JVMTI
 SUBDIRS += jvmti
 JVMTI_LIB = jvmti/libjvmti.la
+endif
+
+if ENABLE_COMPILER2
+SUBDIRS += compiler2
+JVMTI_LIB = compiler2/libcompiler2.la
 endif
 
 noinst_LTLIBRARIES = libnative.la

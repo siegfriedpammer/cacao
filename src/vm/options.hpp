@@ -202,6 +202,8 @@ extern int      opt_InlineAll;
 extern int      opt_InlineCount;
 extern int      opt_InlineMaxSize;
 extern int      opt_InlineMinSize;
+extern char*    opt_InlineMethod;
+extern Utf8String opt_InlineMethodUtf;
 #endif
 #endif
 extern int      opt_PrintConfig;
@@ -210,8 +212,10 @@ extern int      opt_ProfileGCMemoryUsage;
 extern int      opt_ProfileMemoryUsage;
 extern FILE    *opt_ProfileMemoryUsageGNUPlot;
 extern int      opt_RegallocSpillAll;
-#if defined(ENABLE_REPLACEMENT)
-extern int      opt_TestReplacement;
+#if defined(ENABLE_COMPILER2)
+extern char    *opt_ReplaceMethod;
+extern char    *opt_OptimizeMethod;
+extern bool     opt_DisableCountdownTraps;
 #endif
 extern int      opt_TraceBuiltinCalls;
 extern int      opt_TraceCompilerCalls;
@@ -231,12 +235,11 @@ extern int      opt_TraceJVMTICalls;
 extern int      opt_TraceLinkClass;
 #if defined(ENABLE_RT_TIMING)
 extern FILE    *opt_RtTimingLogfile;
+extern bool     opt_RtTimingCSV;
 #endif
 #if defined(ENABLE_STATISTICS)
 extern FILE    *opt_StatisticsLogfile;
-#endif
-#if defined(ENABLE_REPLACEMENT)
-extern int      opt_TraceReplacement;
+extern bool     opt_StatisticsCSV;
 #endif
 extern int      opt_TraceSubsystemInitialization;
 extern int      opt_TraceTraps;
