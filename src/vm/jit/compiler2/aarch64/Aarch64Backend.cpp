@@ -938,59 +938,64 @@ void Aarch64LoweringVisitor::visit(BUILTINInst *I, bool copyOperands) {
 	visit(static_cast<INVOKEInst*>(I), copyOperands);
 }
 
+void Aarch64LoweringVisitor::visit(GETFIELDInst *I, bool copyOperands) {
+	assert(I);
+
+	MachineOperand* objectref = get_op(I->get_operand(0)->to_Instruction());
+	MachineOperand *result = new VirtualRegister(I->get_type());
+	Immediate *field_offset = new Immediate(reinterpret_cast<s4>(I->get_field()->offset),
+				Type::IntType());
+
+	MachineInstruction *read_field = new LoadInst(
+		DstOp(result), BaseOp(objectref), IdxOp(field_offset), I->get_type());
+	get_current()->push_back(read_field);
+	set_op(I, read_field->get_result().op);
+}
+
+void Aarch64LoweringVisitor::visit(PUTFIELDInst *I, bool copyOperands) {
+	assert(I);
+
+	MachineOperand *objectref = get_op(I->get_operand(0)->to_Instruction());
+	MachineOperand *value = get_op(I->get_operand(1)->to_Instruction());
+	Immediate *field_offset = new Immediate(reinterpret_cast<s4>(I->get_field()->offset),
+			Type::IntType());
+
+	MachineInstruction *write_field = new StoreInst(
+		SrcOp(value), BaseOp(objectref), IdxOp(field_offset), I->get_type());
+	get_current()->push_back(write_field);
+	set_op(I, write_field->get_result().op);
+}
 
 void Aarch64LoweringVisitor::visit(GETSTATICInst *I, bool copyOperands) {
 	assert(I);
-	DataSegment &ds = get_Backend()->get_JITData()->get_CodeMemory()
-	                  ->get_DataSegment();
-	constant_FMIref* fmiref = I->get_fmiref();
-	DataSegment::IdxTy idx = ds.get_index(DSFMIRef(fmiref));
-	size_t size = sizeof(void*);
-	if (DataSegment::is_invalid(idx)) {
-		DataFragment datafrag = ds.get_Ref(size);
-		idx = ds.insert_tag(DSFMIRef(fmiref), datafrag);
-	}
+	VirtualRegister *field_address = new VirtualRegister(Type::ReferenceTypeID);
+	Immediate *field_address_imm = new Immediate(reinterpret_cast<s8>(I->get_field()->value),
+			Type::ReferenceType());
+	MachineInstruction *mov = get_Backend()->create_Move(field_address_imm, field_address);
+	get_current()->push_back(mov);
 
-	if (I->is_resolved()) {
-		fieldinfo* fi = I->get_fmiref()->p.field;
-
-		if (!class_is_or_almost_initialized(fi->clazz)) {
-			//PROFILE_CYCLE_STOP;
-			Patcher *patcher = new InitializeClassPatcher(fi->clazz);
-			PatcherPtrTy ptr(patcher);
-			get_Backend()->get_JITData()->get_jitdata()->code->patchers
-				->push_back(ptr);
-			MachineInstruction *pi = new PatchInst(patcher);
-			get_current()->push_back(pi);
-			//PROFILE_CYCLE_START;
-		}
-		DataFragment datafrag = ds.get_Ref(idx, size);
-		// write data
-		write_data<void*>(datafrag, fmiref->p.field->value);
-	} else {
-		assert(0 && "Not yet implemented");
-	}
-	VirtualRegister *addr = new VirtualRegister(Type::ReferenceTypeID);
-	MachineInstruction *dseg = 
-		new DsegAddrInst(DstOp(addr), idx, Type::LongTypeID);
 	MachineOperand *vreg = new VirtualRegister(I->get_type());
-	MachineInstruction *load = NULL;
 	Immediate *imm = new Immediate(0, Type::IntType());
+	MachineInstruction *load = new LoadInst(
+		DstOp(vreg), BaseOp(field_address), IdxOp(imm), I->get_type());
 
-	switch (I->get_type()) {
-	case Type::IntTypeID:
-	case Type::LongTypeID:
-		load = new LoadInst(DstOp(vreg), BaseOp(addr), IdxOp(imm), 
-		                    I->get_type());
-		break;		
-	default:
-		ABORT_MSG("aarch64: Type not implemented.", 
-			"Inst: " << I << " type: " << I->get_type());
-	}
-
-	get_current()->push_back(dseg);
 	get_current()->push_back(load);
 	set_op(I, load->get_result().op);
+}
+
+void Aarch64LoweringVisitor::visit(PUTSTATICInst *I, bool copyOperands) {
+	VirtualRegister *field_address = new VirtualRegister(Type::ReferenceTypeID);
+	Immediate *field_address_imm = new Immediate(reinterpret_cast<s8>(I->get_field()->value),
+			Type::ReferenceType());
+	MachineInstruction *mov = get_Backend()->create_Move(field_address_imm, field_address);
+	get_current()->push_back(mov);
+
+	MachineOperand *value = get_op(I->get_operand(0)->to_Instruction());
+	Immediate *imm = new Immediate(0, Type::IntType());
+	MachineInstruction *write_field = new StoreInst(
+		SrcOp(value), BaseOp(field_address), IdxOp(imm), I->get_type());
+	get_current()->push_back(write_field);
+	set_op(I, write_field->get_result().op);
 }
 
 void Aarch64LoweringVisitor::visit(LOOKUPSWITCHInst *I, bool copyOperands) {
@@ -1048,15 +1053,7 @@ void Aarch64LoweringVisitor::visit(TABLESWITCHInst *I, bool copyOperands) {
 }
 
 void Aarch64LoweringVisitor::visit(CHECKNULLInst *I, bool copyOperands) {
-	
-}
-
-void Aarch64LoweringVisitor::visit(GETFIELDInst *I, bool copyOperands) {
-	UNIMPLEMENTED_MSG("GETFIELDInst lowering!");
-}
-
-void Aarch64LoweringVisitor::visit(PUTFIELDInst *I, bool copyOperands) {
-	UNIMPLEMENTED_MSG("PUTFIELDInst lowering!");
+	// TODO: Implement me
 }
 
 void Aarch64LoweringVisitor::visit(AREFInst *I, bool copyOperands) {
