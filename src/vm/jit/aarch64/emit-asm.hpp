@@ -185,7 +185,7 @@ inline void emit_ldstr_reg_us(codegendata *cd, u1 size, u1 v, u1 opc, u2 imm12, 
 /* Handle ambigous Load/Store instructions ***********************************/
 
 /* See Armv8 reference manual for the ambigous case rules */
-inline void emit_ldstr_ambigous(codegendata *cd, u1 size, u1 v, u1 opc, s2 imm, u1 Rt, u1 Rn)
+inline void emit_ldstr_ambigous(codegendata *cd, u1 size, u1 v, u1 opc, s4 imm, u1 Rt, u1 Rn)
 {
 	u1 sz = LSL(1, size); /* 64bit: 8, 32bit: 4 */
 
@@ -197,6 +197,9 @@ inline void emit_ldstr_ambigous(codegendata *cd, u1 size, u1 v, u1 opc, s2 imm, 
 	else if (imm < 0 && (-imm) < 0xffff) { /* this is for larger negative offsets */
 		// Should only be the case for INVOKESTATIC, which does not use REG_ITMP3
 		emit_movn_imm(cd, REG_ITMP3, (-imm) - 1);
+		emit_ldstr_reg_reg(cd, size, v, opc, REG_ITMP3, 3, 0, Rn, Rt);
+	} else if ((imm / sz) > 0xfff) { /* this is for larger positive offsets */
+		emit_mov_imm(cd, REG_ITMP3, imm);
 		emit_ldstr_reg_reg(cd, size, v, opc, REG_ITMP3, 3, 0, Rn, Rt);
 	}
 	else {

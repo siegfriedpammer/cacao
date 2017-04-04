@@ -104,28 +104,28 @@ class AsmEmitter {
         void nop() { emit_nop(cd); }
 
         /* Load / store ********************************************************/
-        void ild(u1 xt, u1 xn, s2 imm) { emit_ldr_imm32(cd, xt, xn, imm); }
-        void lld(u1 xt, u1 xn, s2 imm) { emit_ldr_imm(cd, xt, xn, imm); }
-        void ald(u1 xt, u1 xn, s2 imm) { emit_ldr_imm(cd, xt, xn, imm); }
+        void ild(u1 xt, u1 xn, s4 imm) { emit_ldr_imm32(cd, xt, xn, imm); }
+        void lld(u1 xt, u1 xn, s4 imm) { emit_ldr_imm(cd, xt, xn, imm); }
+        void ald(u1 xt, u1 xn, s4 imm) { emit_ldr_imm(cd, xt, xn, imm); }
 
-        void fld(u1 xt, u1 xn, s2 imm) { emit_fp_ldr_imm32(cd, xt, xn, imm); }
-        void dld(u1 xt, u1 xn, s2 imm) { emit_fp_ldr_imm(cd, xt, xn, imm); }
+        void fld(u1 xt, u1 xn, s4 imm) { emit_fp_ldr_imm32(cd, xt, xn, imm); }
+        void dld(u1 xt, u1 xn, s4 imm) { emit_fp_ldr_imm(cd, xt, xn, imm); }
 
-        void ldrh(u1 wt, u1 xn, s2 imm) { emit_ldrh_imm(cd, wt, xn, imm); }
-        void ldrb(u1 wt, u1 xn, s2 imm) { emit_ldrb_imm(cd, wt, xn, imm); }
+        void ldrh(u1 wt, u1 xn, s4 imm) { emit_ldrh_imm(cd, wt, xn, imm); }
+        void ldrb(u1 wt, u1 xn, s4 imm) { emit_ldrb_imm(cd, wt, xn, imm); }
 
-        void ldrsb32(u1 wt, u1 xn, s2 imm) { emit_ldrsb_imm32(cd, wt, xn, imm); }
-        void ldrsh32(u1 wt, u1 xn, s2 imm) { emit_ldrsh_imm32(cd, wt, xn, imm); }
+        void ldrsb32(u1 wt, u1 xn, s4 imm) { emit_ldrsb_imm32(cd, wt, xn, imm); }
+        void ldrsh32(u1 wt, u1 xn, s4 imm) { emit_ldrsh_imm32(cd, wt, xn, imm); }
 
-        void ist(u1 xt, u1 xn, s2 imm) { emit_str_imm32(cd, xt, xn, imm); }
-        void lst(u1 xt, u1 xn, s2 imm) { emit_str_imm(cd, xt, xn, imm); }
-        void ast(u1 xt, u1 xn, s2 imm) { emit_str_imm(cd, xt, xn, imm); }
+        void ist(u1 xt, u1 xn, s4 imm) { emit_str_imm32(cd, xt, xn, imm); }
+        void lst(u1 xt, u1 xn, s4 imm) { emit_str_imm(cd, xt, xn, imm); }
+        void ast(u1 xt, u1 xn, s4 imm) { emit_str_imm(cd, xt, xn, imm); }
 
-        void fst(u1 xt, u1 xn, s2 imm) { emit_fp_str_imm32(cd, xt, xn, imm); }
-        void dst(u1 xt, u1 xn, s2 imm) { emit_fp_str_imm(cd, xt, xn, imm); }
+        void fst(u1 xt, u1 xn, s4 imm) { emit_fp_str_imm32(cd, xt, xn, imm); }
+        void dst(u1 xt, u1 xn, s4 imm) { emit_fp_str_imm(cd, xt, xn, imm); }
 
-        void strh(u1 wt, u1 xn, s2 imm) { emit_strh_imm(cd, wt, xn, imm); }
-        void strb(u1 wt, u1 xn, s2 imm) { emit_strb_imm(cd, wt, xn, imm); }
+        void strh(u1 wt, u1 xn, s4 imm) { emit_strh_imm(cd, wt, xn, imm); }
+        void strb(u1 wt, u1 xn, s4 imm) { emit_strb_imm(cd, wt, xn, imm); }
 
         void iconst(u1 xt, s4 value) {
             // For small negative immediates, use MOVN
