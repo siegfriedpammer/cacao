@@ -53,6 +53,25 @@ public class PutField extends Compiler2TestBase {
 		assertEquals(baselineValue, compiler2Value);
 	}
 
+	/** This is the method under test. */
+	static void setByteConstant(PutField obj) {
+		obj.byteField = 111;
+	}
+
+	@Test
+	public void testByteConstant() {
+		runBaseline("setByteConstant", "(Lorg/cacaojvm/compiler2/test/PutField;)V", this);
+		byte baselineValue = byteField;
+
+		// Reset the field under test.
+		byteField = 0;
+
+		runCompiler2("setByteConstant", "(Lorg/cacaojvm/compiler2/test/PutField;)V", this);
+		byte compiler2Value = byteField;
+
+		assertEquals(baselineValue, compiler2Value);
+	}
+
 	public short shortField;
 
 	/** This is the method under test. */
@@ -71,6 +90,25 @@ public class PutField extends Compiler2TestBase {
 		shortField = 0;
 
 		runCompiler2("setShort", "(Lorg/cacaojvm/compiler2/test/PutField;S)V", this, value);
+		short compiler2Value = shortField;
+
+		assertEquals(baselineValue, compiler2Value);
+	}
+
+	/** This is the method under test. */
+	static void setShortConstant(PutField obj) {
+		obj.shortField = 11111;
+	}
+
+	@Test
+	public void testShortConstant() {
+		runBaseline("setShortConstant", "(Lorg/cacaojvm/compiler2/test/PutField;)V", this);
+		short baselineValue = shortField;
+
+		// Reset the field under test.
+		shortField = 0;
+
+		runCompiler2("setShortConstant", "(Lorg/cacaojvm/compiler2/test/PutField;)V", this);
 		short compiler2Value = shortField;
 
 		assertEquals(baselineValue, compiler2Value);
@@ -99,6 +137,25 @@ public class PutField extends Compiler2TestBase {
 		assertEquals(baselineValue, compiler2Value);
 	}
 
+	/** This is the method under test. */
+	static void setIntConstant(PutField obj) {
+		obj.intField = 0xDEADBEEF;
+	}
+
+	@Test
+	public void testIntConstant() {
+		runBaseline("setIntConstant", "(Lorg/cacaojvm/compiler2/test/PutField;)V", this);
+		int baselineValue = intField;
+
+		// Reset the field under test.
+		intField = 0;
+
+		runCompiler2("setIntConstant", "(Lorg/cacaojvm/compiler2/test/PutField;)V", this);
+		int compiler2Value = intField;
+
+		assertEquals(baselineValue, compiler2Value);
+	}
+
 	public long longField;
 
 	/** This is the method under test. */
@@ -121,6 +178,26 @@ public class PutField extends Compiler2TestBase {
 
 		assertEquals(baselineValue, compiler2Value);
 	}
+
+	/** This is the method under test. */
+	static void setLongConstant(PutField obj) {
+		obj.longField = 0xDEADBEEF12345678l;
+	}
+
+	@Test
+	public void testLongConstant() {
+		runBaseline("setLongConstant", "(Lorg/cacaojvm/compiler2/test/PutField;)V", this);
+		long baselineValue = longField;
+
+		// Reset the field under test.
+		longField = 0l;
+
+		runCompiler2("setLongConstant", "(Lorg/cacaojvm/compiler2/test/PutField;)V", this);
+		long compiler2Value = longField;
+
+		assertEquals(baselineValue, compiler2Value);
+	}
+
 
 	public float floatField;
 
@@ -145,6 +222,25 @@ public class PutField extends Compiler2TestBase {
 		assertEquals(baselineValue, compiler2Value, 0.0f);
 	}
 
+	/** This is the method under test. */
+	static void setFloatConstant(PutField obj) {
+		obj.floatField = 3.40282347e38f;
+	}
+
+	@Test
+	public void testFloatConstant() {
+		runBaseline("setFloatConstant", "(Lorg/cacaojvm/compiler2/test/PutField;)V", this);
+		float baselineValue = floatField;
+
+		// Reset the field under test.
+		floatField = 0.0f;
+
+		runCompiler2("setFloatConstant", "(Lorg/cacaojvm/compiler2/test/PutField;)V", this);
+		float compiler2Value = floatField;
+
+		assertEquals(baselineValue, compiler2Value, 0.0f);
+	}
+
 	public double doubleField;
 
 	/** This is the method under test. */
@@ -163,6 +259,25 @@ public class PutField extends Compiler2TestBase {
 		doubleField = 0.0d;
 
 		runCompiler2("setDouble", "(Lorg/cacaojvm/compiler2/test/PutField;D)V", this, value);
+		double compiler2Value = doubleField;
+
+		assertEquals(baselineValue, compiler2Value, 0.0d);
+	}
+
+	/** This is the method under test. */
+	static void setDoubleConstant(PutField obj) {
+		obj.doubleField = 1.79769313e308d;
+	}
+
+	@Test
+	public void testDoubleConstant() {
+		runBaseline("setDoubleConstant", "(Lorg/cacaojvm/compiler2/test/PutField;)V", this);
+		double baselineValue = doubleField;
+
+		// Reset the field under test.
+		doubleField = 0.0d;
+
+		runCompiler2("setDoubleConstant", "(Lorg/cacaojvm/compiler2/test/PutField;)V", this);
 		double compiler2Value = doubleField;
 
 		assertEquals(baselineValue, compiler2Value, 0.0d);

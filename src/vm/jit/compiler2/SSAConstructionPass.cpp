@@ -2054,6 +2054,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 				}
 				break;
 			case ICMD_PUTFIELD:        /* 2 -> 0 */
+			case ICMD_PUTFIELDCONST:   /* 1 -> 0 */
 				{
 					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 						deoptimize(bbindex);
@@ -2068,7 +2069,30 @@ bool SSAConstructionPass::run(JITData &JD) {
 					assert(state_change);
 
 					Value *objectref = read_variable(iptr->s1.varindex, bbindex);
-					Value *value = read_variable(iptr->sx.s23.s2.varindex, bbindex);
+					Value *value;
+
+					if (iptr->opc == ICMD_PUTFIELDCONST) {
+						Type::TypeID type = convert_to_typeid(fmiref->parseddesc.fd->type);
+						CONSTInst *konst;
+						switch (type) {
+							case Type::IntTypeID:
+								konst = new CONSTInst(static_cast<int32_t>(iptr->sx.s23.s2.constval),
+												Type::IntType());
+								break;
+							case Type::LongTypeID:
+								konst = new CONSTInst(static_cast<int64_t>(iptr->sx.s23.s2.constval),
+												Type::LongType());
+								break;
+							default:
+								assert(false);
+								break;
+						}
+						M->add_Instruction(konst);
+						value = konst;
+					} else {
+						value = read_variable(iptr->sx.s23.s2.varindex, bbindex);
+					}
+
 					Instruction *putfield = new PUTFIELDInst(objectref, value, field, BB[bbindex],
 							state_change);
 
@@ -2135,7 +2159,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 				}
 				break;
 			case ICMD_PUTSTATICCONST:  /* 0 -> 0 */
-			case ICMD_PUTFIELDCONST:   /* 1 -> 0 */
 		//		if (opcode != ICMD_GETSTATIC && opcode != ICMD_PUTSTATICCONST) {
 		//			SHOW_S1(OS, iptr);
 		//			if (opcode == ICMD_PUTFIELD) {
