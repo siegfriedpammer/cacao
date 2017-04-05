@@ -52,6 +52,25 @@ public class PutStatic extends Compiler2TestBase {
 		assertEquals(baselineValue, compiler2Value);
 	}
 
+	/** This is the method under test. */
+	static void setByteConstant() {
+		byteField = 111;
+	}
+
+	@Test
+	public void testByteConstant() {
+		runBaseline("setByteConstant", "()V");
+		byte baselineValue = byteField;
+
+		// Reset the field under test.
+		byteField = 0;
+
+		runCompiler2("setByteConstant", "()V");
+		byte compiler2Value = byteField;
+
+		assertEquals(baselineValue, compiler2Value);
+	}
+
 	static short shortField;
 
 	/** This is the method under test. */
@@ -70,6 +89,25 @@ public class PutStatic extends Compiler2TestBase {
 		shortField = 0;
 
 		runCompiler2("setShort", "(S)V", value);
+		short compiler2Value = shortField;
+
+		assertEquals(baselineValue, compiler2Value);
+	}
+
+	/** This is the method under test. */
+	static void setShortConstant() {
+		shortField = 11111;
+	}
+
+	@Test
+	public void testShortConstant() {
+		runBaseline("setShortConstant", "()V");
+		short baselineValue = shortField;
+
+		// Reset the field under test.
+		shortField = 0;
+
+		runCompiler2("setShortConstant", "()V");
 		short compiler2Value = shortField;
 
 		assertEquals(baselineValue, compiler2Value);
@@ -98,6 +136,25 @@ public class PutStatic extends Compiler2TestBase {
 		assertEquals(baselineValue, compiler2Value);
 	}
 
+	/** This is the method under test. */
+	static void setIntConstant() {
+		intField = 0xDEADBEEF;
+	}
+
+	@Test
+	public void testIntConstant() {
+		runBaseline("setIntConstant", "()V");
+		int baselineValue = intField;
+
+		// Reset the field under test.
+		intField = 0;
+
+		runCompiler2("setIntConstant", "()V");
+		int compiler2Value = intField;
+
+		assertEquals(baselineValue, compiler2Value);
+	}
+
 	static long longField;
 
 	/** This is the method under test. */
@@ -116,6 +173,25 @@ public class PutStatic extends Compiler2TestBase {
 		longField = 0l;
 
 		runCompiler2("setLong", "(J)V", value);
+		long compiler2Value = longField;
+
+		assertEquals(baselineValue, compiler2Value);
+	}
+
+	/** This is the method under test. */
+	static void setLongConstant() {
+		longField = 0xDEADBEEF12345678l;
+	}
+
+	@Test
+	public void testLongConstant() {
+		runBaseline("setLongConstant", "()V");
+		long baselineValue = longField;
+
+		// Reset the field under test.
+		longField = 0l;
+
+		runCompiler2("setLongConstant", "()V");
 		long compiler2Value = longField;
 
 		assertEquals(baselineValue, compiler2Value);
@@ -144,6 +220,25 @@ public class PutStatic extends Compiler2TestBase {
 		assertEquals(baselineValue, compiler2Value, 0.0f);
 	}
 
+	/** This is the method under test. */
+	static void setFloatConstant() {
+		floatField = 3.40282347e38f;
+	}
+
+	@Test
+	public void testFloatConstant() {
+		runBaseline("setFloatConstant", "()V");
+		float baselineValue = floatField;
+
+		// Reset the field under test.
+		floatField = 0.0f;
+
+		runCompiler2("setFloatConstant", "()V");
+		float compiler2Value = floatField;
+
+		assertEquals(baselineValue, compiler2Value, 0.0f);
+	}
+
 	static double doubleField;
 
 	/** This is the method under test. */
@@ -167,4 +262,22 @@ public class PutStatic extends Compiler2TestBase {
 		assertEquals(baselineValue, compiler2Value, 0.0d);
 	}
 
+	/** This is the method under test. */
+	static void setDoubleConstant() {
+		doubleField = 1.79769313e308d;
+	}
+
+	@Test
+	public void testDoubleConstant() {
+		runBaseline("setDoubleConstant", "()V");
+		double baselineValue = doubleField;
+
+		// Reset the field under test.
+		doubleField = 0.0d;
+
+		runCompiler2("setDoubleConstant", "()V");
+		double compiler2Value = doubleField;
+
+		assertEquals(baselineValue, compiler2Value, 0.0d);
+	}
 }

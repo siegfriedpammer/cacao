@@ -114,6 +114,14 @@ private:
 	SourceStateInst *record_source_state(Instruction *I, instruction *iptr,
 		basicblock *bb, s4 *javalocals, s4 *stack, s4 stackdepth);
 
+	/// Creates a CONSTInst of type @p type from the s2 operand of @p iptr.
+	///
+	/// @param iptr The corresponding baseline IR instruction.
+	/// @param type The corresponding type.
+	///
+	/// @return The new CONSTInst.
+	CONSTInst *parse_s2_constant(instruction *iptr, Type::TypeID type);
+
 public:
 	Value* read_variable(size_t varindex, size_t bb);
 	static char ID;
