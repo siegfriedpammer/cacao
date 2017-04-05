@@ -78,7 +78,6 @@ private:
 	void propagate(Instruction *inst);
 
 public:
-	static char ID;
 	ConstantPropagationPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;

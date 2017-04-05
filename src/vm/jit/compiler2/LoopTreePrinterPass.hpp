@@ -41,7 +41,6 @@ namespace compiler2 {
  */
 class LoopTreePrinterPass : public Pass, public memory::ManagerMixin<LoopTreePrinterPass> {
 public:
-	static char ID;
 	static Option<bool> enabled;
 	LoopTreePrinterPass() : Pass() {}
 	virtual bool run(JITData &JD);

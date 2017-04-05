@@ -47,7 +47,6 @@ private:
 	typedef unordered_map<Instruction*,bool> InstBoolMapTy;
 	typedef unordered_map<Instruction*,std::size_t> InstIntMapTy;
 public:
-	static char ID;
 	DeadCodeEliminationPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;

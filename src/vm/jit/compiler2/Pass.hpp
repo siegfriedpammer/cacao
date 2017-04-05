@@ -47,13 +47,27 @@ class JITData;
  */
 class Pass { 
 private:
+	static PassInfo::IDTy id_counter;
+
 	PassManager *pm;
-	bool allowed_to_use_result(char &id) const;
+	bool allowed_to_use_result(const PassInfo::IDTy &id) const;
 public:
 	Pass() : pm(NULL) {}
 
 	void set_PassManager(PassManager *PM) {
 		pm = PM;
+	}
+
+	/** 
+	 * This template will return a unique ID for each type that it is called with.
+	 * 
+	 * This is needed since Pass IDs are accessed statically via a concrete Pass type
+	 * and not via a concrete instance.
+	 */ 
+	template<class T>
+	static PassInfo::IDTy ID() {
+		static PassInfo::IDTy ID = id_counter++;
+		return ID;
 	}
 
 	/**
@@ -63,7 +77,7 @@ public:
 	 */
 	template<class _PassClass>
 	_PassClass *get_Pass() const {
-		if (!allowed_to_use_result(_PassClass::ID)) {
+		if (!allowed_to_use_result(_PassClass::template ID<_PassClass>())) {
 			assert(0 && "Not allowed to get result (not declared in get_PassUsage())");
 			return NULL;
 		}
@@ -77,7 +91,7 @@ public:
 	 */
 	template<class _PassClass>
 	_PassClass *get_Pass_if_available() const {
-		if (!pm->result_ready[&_PassClass::ID])
+		if (!pm->result_ready[_PassClass::template ID<_PassClass>()])
 			return NULL;
 		return pm->get_Pass_result<_PassClass>();
 	}

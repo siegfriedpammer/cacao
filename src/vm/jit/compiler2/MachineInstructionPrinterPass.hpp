@@ -43,7 +43,6 @@ class LoweringPass;
  */
 class MachineInstructionPrinterPass : public Pass, public memory::ManagerMixin<MachineInstructionPrinterPass> {
 public:
-	static char ID;
 	static Option<bool> enabled;
 	MachineInstructionPrinterPass() : Pass() {}
 	virtual bool run(JITData &JD);

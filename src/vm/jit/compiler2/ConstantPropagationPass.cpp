@@ -357,9 +357,6 @@ PassUsage& ConstantPropagationPass::get_PassUsage(PassUsage &PU) const {
 	return PU;
 }
 
-// the address of this variable is used to identify the pass
-char ConstantPropagationPass::ID = 0;
-
 // register pass
 static PassRegistry<ConstantPropagationPass> X("ConstantPropagationPass");
 

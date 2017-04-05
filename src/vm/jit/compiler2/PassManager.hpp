@@ -49,7 +49,7 @@ class Pass;
 
 class PassInfo {
 public:
-	typedef void * IDTy;
+	typedef uint32_t IDTy;
 	typedef Pass* (*ConstructorTy)();
 private:
 	const char *const name;
@@ -108,9 +108,9 @@ private:
 
 	template<class _PassClass>
 	_PassClass* get_Pass_result() {
-		assert_msg(result_ready[&_PassClass::ID], "result for "
-		  << get_Pass_name(&_PassClass::ID) << " is not ready!");
-		return (_PassClass*)initialized_passes[&_PassClass::ID];
+		assert_msg(result_ready[_PassClass::template ID<_PassClass>()], "result for "
+		  << get_Pass_name(_PassClass::template ID<_PassClass>()) << " is not ready!");
+		return (_PassClass*)initialized_passes[_PassClass::template ID<_PassClass>()];
 	}
 	void schedulePasses();
 public:
@@ -153,7 +153,7 @@ public:
 	 */
 	template<class _PassClass>
 	void add_Pass() {
-		PassInfo::IDTy ID = &_PassClass::ID;
+		PassInfo::IDTy ID = _PassClass::template ID<_PassClass>();
 		assert(registered_passes()[ID] && "Pass not registered");
 		passes.insert(ID);
 		schedule.push_back(ID);
@@ -173,7 +173,7 @@ Pass *call_ctor() { return new _PassClass(); }
 
 template <class _PassClass>
 struct PassRegistry : public PassInfo {
-	PassRegistry(const char * name) : PassInfo(name, &_PassClass::ID, (PassInfo::ConstructorTy)call_ctor<_PassClass>) {
+	PassRegistry(const char * name) : PassInfo(name, _PassClass::template ID<_PassClass>(), (PassInfo::ConstructorTy)call_ctor<_PassClass>) {
 		PassManager::register_Pass(this);
 	}
 };

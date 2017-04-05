@@ -41,7 +41,6 @@ namespace compiler2 {
  */
 class ICMDPrinterPass : public Pass, public memory::ManagerMixin<ICMDPrinterPass> {
 public:
-	static char ID;
 	ICMDPrinterPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;

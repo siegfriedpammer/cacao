@@ -118,7 +118,6 @@ private:
 
 	void clean_up_operand_inverse();
 public:
-	static char ID;
 	GlobalValueNumberingPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;

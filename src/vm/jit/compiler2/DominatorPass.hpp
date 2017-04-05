@@ -126,7 +126,6 @@ private:
 	NodeTy* Eval(NodeTy *v);
 	void Compress(NodeTy *v);
 public:
-	static char ID;
 	DominatorPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;

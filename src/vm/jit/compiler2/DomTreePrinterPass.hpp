@@ -41,7 +41,6 @@ namespace compiler2 {
  */
 class DomTreePrinterPass : public Pass, public memory::ManagerMixin<DomTreePrinterPass> {
 public:
-	static char ID;
 	static Option<bool> enabled;
 	DomTreePrinterPass() : Pass() {}
 	virtual bool run(JITData &JD);

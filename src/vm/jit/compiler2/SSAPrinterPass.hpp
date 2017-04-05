@@ -41,7 +41,6 @@ namespace compiler2 {
  */
 class SSAPrinterPass : public Pass, public memory::ManagerMixin<SSAPrinterPass> {
 public:
-	static char ID;
 	static Option<bool> enabled;
 	SSAPrinterPass() : Pass() {}
 	virtual bool run(JITData &JD);
@@ -55,7 +54,6 @@ public:
  */
 class BasicBlockPrinterPass : public Pass, public memory::ManagerMixin<BasicBlockPrinterPass> {
 public:
-	static char ID;
 	static Option<bool> enabled;
 	BasicBlockPrinterPass() : Pass() {}
 	virtual bool run(JITData &JD);
@@ -71,7 +69,6 @@ class GlobalSchedulePrinterPass : public Pass, public memory::ManagerMixin<Globa
 private:
 	static const char* name;
 public:
-	static char ID;
 	GlobalSchedulePrinterPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;

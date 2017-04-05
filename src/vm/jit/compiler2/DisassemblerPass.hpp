@@ -40,7 +40,6 @@ namespace compiler2 {
  */
 class DisassemblerPass : public Pass, public memory::ManagerMixin<DisassemblerPass> {
 public:
-	static char ID;
 	static Option<bool> enabled;
 	DisassemblerPass() : Pass() {}
 	virtual bool run(JITData &JD);
