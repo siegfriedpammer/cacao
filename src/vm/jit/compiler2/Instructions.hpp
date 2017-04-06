@@ -93,6 +93,37 @@ public:
 	Conditional::CondID get_condition() const { return cond; }
 };
 
+/// An Instruction that is aware of the source state it corresponds to.
+class SourceStateAwareInst {
+private:
+
+	/// The source state that corresponds to this Instruction.
+	SourceStateInst *source_state;
+
+	/// Set the source state that corresonds to this instruction.
+	///
+	/// This will be done automatically by the SourceStateAttachmentPass.
+	///
+	/// @param s The source state.
+	void set_source_state(SourceStateInst *s) {
+		assert(s != NULL);
+		assert(source_state == NULL);
+		source_state = s;
+	}
+
+public:
+
+	SourceStateAwareInst() : source_state(NULL) {}
+
+	/// Get the source state that corresponds to this Instruction.
+	///
+	/// @return The source state if available, NULL otherwise.
+	SourceStateInst *get_source_state() const { return source_state; }
+
+	virtual ~SourceStateAwareInst() {};
+
+	friend class SourceStateAttachmentPass;
+};
 
 /**
  * This Instruction mark the start of a basic block
@@ -289,12 +320,13 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class CHECKNULLInst : public UnaryInst {
+class CHECKNULLInst : public UnaryInst, public SourceStateAwareInst {
 public:
 	explicit CHECKNULLInst(Value *S1) : UnaryInst(CHECKNULLInstID, Type::VoidTypeID, S1) {}
 	virtual CHECKNULLInst* to_CHECKNULLInst() { return this; }
 	virtual bool is_homogeneous() const { return false; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+	virtual ~CHECKNULLInst() {};
 };
 
 class ARRAYLENGTHInst : public UnaryInst {
@@ -681,7 +713,7 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class ARRAYBOUNDSCHECKInst : public BinaryInst {
+class ARRAYBOUNDSCHECKInst : public BinaryInst, public SourceStateAwareInst {
 public:
 	explicit ARRAYBOUNDSCHECKInst(Type::TypeID type, Value* ref, Value* index)
 			: BinaryInst(ARRAYBOUNDSCHECKInstID, Type::VoidTypeID, ref, index) {
@@ -691,6 +723,7 @@ public:
 	virtual ARRAYBOUNDSCHECKInst* to_ARRAYBOUNDSCHECKInst() { return this; }
 	virtual bool is_homogeneous() const { return false; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+	virtual ~ARRAYBOUNDSCHECKInst() {}
 };
 
 class RETInst : public Instruction {
@@ -1264,11 +1297,8 @@ public:
 /// transformed program regions. In case a speculation fails at run-time,
 /// deoptimization will be triggered to transfer execution back to an
 /// unoptimized version of this method.
-class AssumptionInst : public Instruction {
+class AssumptionInst : public Instruction, public SourceStateAwareInst {
 private:
-
-	/// The source state that is used for deoptimization.
-	SourceStateInst *source_state;
 
 	/// The entry to the region of code that relies on this assumption.
 	BeginInst *guarded_block;
@@ -1283,30 +1313,12 @@ public:
 	///                      this assumption and thus needs to be guarded
 	///                      against illegal execution.
 	explicit AssumptionInst(Value *condition, BeginInst *guarded_block)
-			: Instruction(AssumptionInstID, Type::VoidTypeID), source_state(NULL) {
+			: Instruction(AssumptionInstID, Type::VoidTypeID) {
 		assert(condition);
 		assert(condition->get_type() != Type::VoidTypeID);
 		append_op(condition);
 		this->guarded_block = guarded_block;
 		guarded_block->append_dep(this);
-	}
-
-	/// Set the source state that should be used for deoptimization.
-	///
-	/// Do not set the source state manually since this will be done
-	/// automatically by the SourceStateAttachmentPass.
-	///
-	/// @param new_source_state The source state.
-	void set_source_state(SourceStateInst *new_source_state) {
-		assert(new_source_state);
-		append_dep(new_source_state);
-		assert(source_state == NULL);
-		source_state = new_source_state;
-	}
-
-	/// Get the source state that is used for deoptimization.
-	virtual SourceStateInst *get_source_state() const {
-		return source_state;
 	}
 
 	/// Get the entry to the region of code that relies on this assumption.
@@ -1316,46 +1328,25 @@ public:
 
 	virtual AssumptionInst* to_AssumptionInst() { return this; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+	virtual ~AssumptionInst() {};
 };
 
 /// Transfers execution back to an unoptimized version of the method.
-class DeoptimizeInst : public EndInst {
-private:
-
-	/// The source state that is used for deoptimization.
-	SourceStateInst *source_state;
-
+class DeoptimizeInst : public EndInst, public SourceStateAwareInst {
 public:
 
 	/// Construct a DeoptimizeInst.
 	///
 	/// @param begin The corresponding BeginInst.
 	explicit DeoptimizeInst(BeginInst *begin)
-			: EndInst(DeoptimizeInstID, begin), source_state(NULL) {
+			: EndInst(DeoptimizeInstID, begin) {
 		set_type(Type::VoidTypeID);
-	}
-
-	/// Set the source state that should be used for deoptimization.
-	///
-	/// Do not set the source state manually since this will be done
-	/// automatically by the SourceStateAttachmentPass.
-	///
-	/// @param new_source_state The source state.
-	void set_source_state(SourceStateInst *new_source_state) {
-		assert(new_source_state);
-		append_dep(new_source_state);
-		assert(source_state == NULL);
-		source_state = new_source_state;
-	}
-
-	/// Get the source state that is used for deoptimization.
-	virtual SourceStateInst *get_source_state() const {
-		return source_state;
 	}
 
 	virtual bool is_floating() const { return false; }
 	virtual DeoptimizeInst* to_DeoptimizeInst() { return this; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+	virtual ~DeoptimizeInst() {};
 };
 
 } // end namespace compiler2
