@@ -86,8 +86,6 @@ PassUsage& DomTreePrinterPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<DominatorPass>();
 	return PU;
 }
-// the address of this variable is used to identify the pass
-char DomTreePrinterPass::ID = 0;
 
 Option<bool> DomTreePrinterPass::enabled("DomTreePrinterPass","compiler2: enable DomTreePrinterPass",false,::cacao::option::xx_root());
 

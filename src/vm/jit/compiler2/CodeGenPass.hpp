@@ -86,7 +86,6 @@ private:
 	void finish(JITData &JD);
 	BasicBlockMap bbmap;
 public:
-	static char ID;
 	CodeGenPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;

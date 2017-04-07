@@ -52,7 +52,6 @@ private:
 	SourceStateInst *find_nearest_dominating_source_state(BeginInst *begin);
 
 public:
-	static char ID;
 	SourceStateAttachmentPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;

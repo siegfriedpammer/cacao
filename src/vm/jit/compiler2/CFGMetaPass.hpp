@@ -42,7 +42,6 @@ namespace compiler2 {
  */
 class CFGMetaPass : public Pass, public memory::ManagerMixin<CFGMetaPass> {
 public:
-	static char ID;
 	CFGMetaPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;

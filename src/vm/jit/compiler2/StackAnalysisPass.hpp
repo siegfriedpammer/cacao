@@ -41,7 +41,6 @@ namespace compiler2 {
  */
 class StackAnalysisPass : public Pass, public memory::ManagerMixin<StackAnalysisPass> {
 public:
-	static char ID;
 	StackAnalysisPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;

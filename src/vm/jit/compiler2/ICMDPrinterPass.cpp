@@ -49,9 +49,6 @@ PassUsage& ICMDPrinterPass::get_PassUsage(PassUsage &PU) const {
 	return PU;
 }
 
-// the address of this variable is used to identify the pass
-char ICMDPrinterPass::ID = 0;
-
 // register pass
 static PassRegistry<ICMDPrinterPass> X("ICMDPrinterPass");
 

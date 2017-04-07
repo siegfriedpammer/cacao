@@ -28,6 +28,7 @@
 #include "vm/jit/compiler2/Pass.hpp"
 #include "future/unordered_map.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
+#include "toolbox/Option.hpp"
 
 #include <list>
 
@@ -78,10 +79,14 @@ private:
 	void propagate(Instruction *inst);
 
 public:
-	static char ID;
+	static Option<bool> enabled;
 	ConstantPropagationPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
+
+	virtual bool is_enabled() const {
+		return ConstantPropagationPass::enabled;
+	}
 };
 
 } // end namespace compiler2

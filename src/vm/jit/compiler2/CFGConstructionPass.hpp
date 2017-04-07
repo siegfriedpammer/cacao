@@ -42,7 +42,6 @@ namespace compiler2 {
  */
 class CFGConstructionPass : public Pass, public memory::ManagerMixin<CFGConstructionPass> {
 public:
-	static char ID;
 	CFGConstructionPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;

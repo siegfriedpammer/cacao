@@ -85,16 +85,24 @@ PassManager::~PassManager() {
 	}
 }
 
-void PassManager::initializePasses() {
-}
-
 void PassManager::runPasses(JITData &JD) {
 	LOG("runPasses" << nl);
 	if (option::print_pass_dependencies) {
 		print_PassDependencyGraph(*this);
 	}
-	initializePasses();
-	schedulePasses();
+
+	if (!passes_are_scheduled) {
+		schedulePasses();
+		passes_are_scheduled = true;
+	}
+
+	// TODO: Since we changed PassManager to a singleton, passes are not automatically
+	//       recreated upon each run. So we force the construction of fresh Pass instances.
+	//
+	//       This is done because passes currently don't clean up their data structures, and
+	//       can't be reused.
+	initialized_passes.clear();
+	
 	for(ScheduleListTy::iterator i = schedule.begin(), e = schedule.end(); i != e; ++i) {
 		PassInfo::IDTy id = *i;
 		result_ready[id] = false;
@@ -134,10 +142,6 @@ void PassManager::runPasses(JITData &JD) {
 		timer.stop();
 		#endif
 	}
-	finalizePasses();
-}
-
-void PassManager::finalizePasses() {
 }
 
 
@@ -345,6 +349,15 @@ void PassManager::schedulePasses() {
 			i != e; ++i) {
 		PassInfo::IDTy id = i->first;
 		Pass *pass = get_initialized_Pass(id);
+
+		// Only schedule passes that want to be run
+		if (!pass->is_enabled()) {
+			continue;
+		}
+
+		// If a pass is enabled, add it to the schedule
+		schedule.push_back(id);
+
 		PassUsage &PA = pu_map[id];
 		pass->get_PassUsage(PA);
 		// add run before
@@ -354,7 +367,6 @@ void PassManager::schedulePasses() {
 	}
 	// fill reverser required map
 	std::for_each(pu_map.begin(),pu_map.end(),ReverseRequire(reverse_require_map));
-	//
 	std::copy(schedule.begin(), schedule.end(), std::back_inserter(unhandled));
 
 	PassScheduler scheduler(unhandled,ready,stack,new_schedule,pu_map,reverse_require_map);

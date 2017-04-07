@@ -1120,6 +1120,26 @@ void SSAConstructionPass::remove_unreachable_blocks() {
 	}
 }
 
+CONSTInst *SSAConstructionPass::parse_s2_constant(instruction *iptr, Type::TypeID type) {
+	CONSTInst *konst;
+
+	switch (type) {
+	case Type::IntTypeID:
+		konst = new CONSTInst(static_cast<int32_t>(iptr->sx.s23.s2.constval),
+						Type::IntType());
+		break;
+	case Type::LongTypeID:
+		konst = new CONSTInst(static_cast<int64_t>(iptr->sx.s23.s2.constval),
+						Type::LongType());
+		break;
+	default:
+		assert(false);
+		break;
+	}
+
+	return konst;
+}
+
 bool SSAConstructionPass::run(JITData &JD) {
 	M = JD.get_Method();
 	LOG("SSAConstructionPass: " << *M << nl);
@@ -2054,6 +2074,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 				}
 				break;
 			case ICMD_PUTFIELD:        /* 2 -> 0 */
+			case ICMD_PUTFIELDCONST:   /* 1 -> 0 */
 				{
 					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 						deoptimize(bbindex);
@@ -2068,7 +2089,17 @@ bool SSAConstructionPass::run(JITData &JD) {
 					assert(state_change);
 
 					Value *objectref = read_variable(iptr->s1.varindex, bbindex);
-					Value *value = read_variable(iptr->sx.s23.s2.varindex, bbindex);
+					Value *value;
+
+					if (iptr->opc == ICMD_PUTFIELDCONST) {
+						Type::TypeID type = convert_to_typeid(fmiref->parseddesc.fd->type);
+						CONSTInst *konst = parse_s2_constant(iptr, type);
+						value = konst;
+						M->add_Instruction(konst);
+					} else {
+						value = read_variable(iptr->sx.s23.s2.varindex, bbindex);
+					}
+
 					Instruction *putfield = new PUTFIELDInst(objectref, value, field, BB[bbindex],
 							state_change);
 
@@ -2107,6 +2138,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 				}
 				break;
 			case ICMD_PUTSTATIC:       /* 1 -> 0 */
+			case ICMD_PUTSTATICCONST:  /* 0 -> 0 */
 				{
 					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 						deoptimize(bbindex);
@@ -2125,8 +2157,18 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
 					assert(state_change);
 
-					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
-					Instruction *putstatic = new PUTSTATICInst(s1, field,
+					Value *value;
+
+					if (iptr->opc == ICMD_PUTSTATICCONST) {
+						Type::TypeID type = convert_to_typeid(fmiref->parseddesc.fd->type);
+						CONSTInst *konst = parse_s2_constant(iptr, type);
+						value = konst;
+						M->add_Instruction(konst);
+					} else {
+						value = read_variable(iptr->s1.varindex,bbindex);
+					}
+
+					Instruction *putstatic = new PUTSTATICInst(value, field,
 							BB[bbindex], state_change);
 
 					write_variable(global_state, bbindex, putstatic);
@@ -2134,26 +2176,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 					M->add_Instruction(putstatic);
 				}
 				break;
-			case ICMD_PUTSTATICCONST:  /* 0 -> 0 */
-			case ICMD_PUTFIELDCONST:   /* 1 -> 0 */
-		//		if (opcode != ICMD_GETSTATIC && opcode != ICMD_PUTSTATICCONST) {
-		//			SHOW_S1(OS, iptr);
-		//			if (opcode == ICMD_PUTFIELD) {
-		//				SHOW_S2(OS, iptr);
-		//			}
-		//		}
-		//		INSTRUCTION_GET_FIELDREF(iptr, fmiref);
-		//		SHOW_FIELD(OS, fmiref);
-		//
-		//		if (opcode == ICMD_GETSTATIC || opcode == ICMD_GETFIELD) {
-		//			SHOW_DST(OS, iptr);
-		//		}
-		//		break;
-
-				{
-					deoptimize(bbindex);
-					break;
-				}
 			case ICMD_IINC:
 				{
 					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
@@ -2986,8 +3008,6 @@ PassUsage& SSAConstructionPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<CFGConstructionPass>();
 	return PU;
 }
-// the address of this variable is used to identify the pass
-char SSAConstructionPass::ID = 0;
 
 // registrate Pass
 static PassRegistry<SSAConstructionPass> X("SSAConstructionPass");

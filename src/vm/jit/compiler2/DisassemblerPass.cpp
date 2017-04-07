@@ -75,9 +75,6 @@ PassUsage& DisassemblerPass::get_PassUsage(PassUsage &PU) const {
 	return PU;
 }
 
-// the address of this variable is used to identify the pass
-char DisassemblerPass::ID = 0;
-
 // register pass
 static PassRegistry<DisassemblerPass> X("DisassemblerPass");
 

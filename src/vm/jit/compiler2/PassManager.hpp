@@ -49,7 +49,7 @@ class Pass;
 
 class PassInfo {
 public:
-	typedef void * IDTy;
+	typedef uint32_t IDTy;
 	typedef Pass* (*ConstructorTy)();
 private:
 	const char *const name;
@@ -90,10 +90,7 @@ private:
 	 * A pass may occur more than once.
 	 */
 	ScheduleListTy schedule;
-	/**
-	 * The list of passed that should be performed
-	 */
-	PassListTy passes;
+
 	/**
 	 * Map of ready results
 	 */
@@ -108,22 +105,30 @@ private:
 
 	template<class _PassClass>
 	_PassClass* get_Pass_result() {
-		assert_msg(result_ready[&_PassClass::ID], "result for "
-		  << get_Pass_name(&_PassClass::ID) << " is not ready!");
-		return (_PassClass*)initialized_passes[&_PassClass::ID];
+		assert_msg(result_ready[_PassClass::template ID<_PassClass>()], "result for "
+		  << get_Pass_name(_PassClass::template ID<_PassClass>()) << " is not ready!");
+		return (_PassClass*)initialized_passes[_PassClass::template ID<_PassClass>()];
 	}
 	void schedulePasses();
+
+	bool passes_are_scheduled;
 public:
 	const char * get_Pass_name(PassInfo::IDTy ID) {
 		PassInfo *PI = registered_passes()[ID];
 		assert(PI && "Pass not registered");
 		return PI->get_name();
 	}
-	PassManager() {
+	PassManager() : passes_are_scheduled(false) {
 		MYLOG("PassManager::PassManager()" << nl);
 	}
 
 	~PassManager();
+
+	static PassManager& get() {
+		// C++11 ensures that the initialization for local static variables is thread-safe
+		static PassManager instance;
+		return instance;
+	}
 
 	/**
 	 * DO NOT CALL THIS MANUALLY. ONLY INVOKE VIA RegisterPass.
@@ -134,30 +139,9 @@ public:
 	}
 
 	/**
-	 * run pass initializers
-	 */
-	void initializePasses();
-
-	/**
 	 * run passes
 	 */
 	void runPasses(JITData &JD);
-
-	/**
-	 * run pass finalizers
-	 */
-	void finalizePasses();
-
-	/**
-	 * add a compiler pass
-	 */
-	template<class _PassClass>
-	void add_Pass() {
-		PassInfo::IDTy ID = &_PassClass::ID;
-		assert(registered_passes()[ID] && "Pass not registered");
-		passes.insert(ID);
-		schedule.push_back(ID);
-	}
 
 	PassMapTy::const_iterator initialized_begin() const { return initialized_passes.begin(); }
 	PassMapTy::const_iterator initialized_end() const { return initialized_passes.end(); }
@@ -165,7 +149,6 @@ public:
 	PassInfoMapTy::const_iterator registered_end() const { return registered_passes().end(); }
 
 	friend class Pass;
-
 };
 
 template<class _PassClass>
@@ -173,7 +156,7 @@ Pass *call_ctor() { return new _PassClass(); }
 
 template <class _PassClass>
 struct PassRegistry : public PassInfo {
-	PassRegistry(const char * name) : PassInfo(name, &_PassClass::ID, (PassInfo::ConstructorTy)call_ctor<_PassClass>) {
+	PassRegistry(const char * name) : PassInfo(name, _PassClass::template ID<_PassClass>(), (PassInfo::ConstructorTy)call_ctor<_PassClass>) {
 		PassManager::register_Pass(this);
 	}
 };

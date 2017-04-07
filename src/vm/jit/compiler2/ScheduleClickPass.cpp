@@ -73,8 +73,6 @@ PassUsage& ScheduleClickPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<ScheduleLatePass>();
 	return PU;
 }
-// the address of this variable is used to identify the pass
-char ScheduleClickPass::ID = 0;
 
 // registrate Pass
 static PassRegistry<ScheduleClickPass> X("ScheduleClickPass");

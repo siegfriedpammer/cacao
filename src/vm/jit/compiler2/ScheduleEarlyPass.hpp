@@ -50,7 +50,6 @@ private:
 	Method *M;
 	void schedule_early(Instruction *I);
 public:
-	static char ID;
 	ScheduleEarlyPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;

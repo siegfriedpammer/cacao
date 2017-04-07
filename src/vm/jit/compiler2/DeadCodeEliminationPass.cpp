@@ -149,8 +149,7 @@ PassUsage& DeadCodeEliminationPass::get_PassUsage(PassUsage &PU) const {
 	return PU;
 }
 
-// the address of this variable is used to identify the pass
-char DeadCodeEliminationPass::ID = 0;
+Option<bool> DeadCodeEliminationPass::enabled("DeadCodeEliminationPass","compiler2: enable dead code elimination (default = true)",true,::cacao::option::xx_root());
 
 // register pass
 //static PassRegistry<DeadCodeEliminationPass> X("DeadCodeEliminationPass");

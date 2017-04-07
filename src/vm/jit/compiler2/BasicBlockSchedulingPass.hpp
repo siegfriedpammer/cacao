@@ -45,7 +45,6 @@ class BasicBlockSchedulingPass : public Pass, public memory::ManagerMixin<BasicB
 private:
 	Method *M;
 public:
-	static char ID;
 	BasicBlockSchedulingPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;

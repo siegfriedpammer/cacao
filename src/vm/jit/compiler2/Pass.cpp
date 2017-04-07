@@ -30,7 +30,9 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-bool Pass::allowed_to_use_result(char &id) const {
+uint32_t Pass::id_counter = 0;
+
+bool Pass::allowed_to_use_result(const PassInfo::IDTy &id) const {
 	PassUsage PU;
 	return get_PassUsage(PU).is_required(id);
 }

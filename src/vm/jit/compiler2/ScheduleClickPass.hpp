@@ -48,7 +48,6 @@ private:
 	GlobalSchedule *late;
 	Method *M;
 public:
-	static char ID;
 	ScheduleClickPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
