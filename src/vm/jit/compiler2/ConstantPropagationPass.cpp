@@ -30,6 +30,7 @@
 #include "vm/jit/compiler2/DeadCodeEliminationPass.hpp"
 #include "vm/jit/compiler2/GlobalValueNumberingPass.hpp"
 #include "vm/jit/compiler2/ScheduleClickPass.hpp"
+#include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
 #include "vm/jit/compiler2/InstructionMetaPass.hpp"
 #include "vm/jit/compiler2/SSAPrinterPass.hpp"
 
@@ -354,8 +355,11 @@ PassUsage& ConstantPropagationPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<InstructionMetaPass>();
 	PU.add_schedule_before<DeadCodeEliminationPass>();
 	PU.add_schedule_before<GlobalValueNumberingPass>();
+	PU.add_schedule_before<ScheduleEarlyPass>();
 	return PU;
 }
+
+Option<bool> ConstantPropagationPass::enabled("ConstantPropagationPass","compiler2: enable constant propagation (default = true)",true,::cacao::option::xx_root());
 
 // register pass
 static PassRegistry<ConstantPropagationPass> X("ConstantPropagationPass");

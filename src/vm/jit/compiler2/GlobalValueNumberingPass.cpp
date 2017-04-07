@@ -31,6 +31,7 @@
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/InstructionMetaPass.hpp"
 #include "vm/jit/compiler2/DeadCodeEliminationPass.hpp"
+#include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
 #include "toolbox/logging.hpp"
 
 // define name for debugging (see logging.hpp)
@@ -483,8 +484,11 @@ bool GlobalValueNumberingPass::run(JITData &JD) {
 PassUsage& GlobalValueNumberingPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<InstructionMetaPass>();
 	PU.add_schedule_before<DeadCodeEliminationPass>();
+	PU.add_schedule_before<ScheduleEarlyPass>();
 	return PU;
 }
+
+Option<bool> GlobalValueNumberingPass::enabled("GlobalValueNumberingPass","compiler2: enable global value numbering (default = true)",true,::cacao::option::xx_root());
 
 // register pass
 static PassRegistry<GlobalValueNumberingPass> X("GlobalValueNumberingPass");

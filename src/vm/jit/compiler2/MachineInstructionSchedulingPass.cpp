@@ -315,7 +315,6 @@ bool MachineInstructionSchedulingPass::verify() const {
 PassUsage& MachineInstructionSchedulingPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<BasicBlockSchedulingPass>();
 	PU.add_requires<ScheduleClickPass>();
-	PU.add_requires<ConstantPropagationPass>();
 	return PU;
 }
 
