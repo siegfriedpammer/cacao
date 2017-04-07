@@ -42,7 +42,6 @@ namespace compiler2 {
  */
 class VerifierPass : public Pass, public memory::ManagerMixin<VerifierPass> {
 public:
-	static char ID;
 	VerifierPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;

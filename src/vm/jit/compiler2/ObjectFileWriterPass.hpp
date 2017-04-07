@@ -41,11 +41,14 @@ namespace compiler2 {
  */
 class ObjectFileWriterPass : public Pass, public memory::ManagerMixin<ObjectFileWriterPass> {
 public:
-	static char ID;
 	static Option<bool> enabled;
 	ObjectFileWriterPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
+
+    virtual bool is_enabled() const {
+        return ObjectFileWriterPass::enabled;
+    }
 };
 
 } // end namespace compiler2

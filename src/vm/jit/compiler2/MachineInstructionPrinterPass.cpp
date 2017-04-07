@@ -54,8 +54,6 @@ PassUsage& MachineInstructionPrinterPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_run_before<CodeGenPass>();
 	return PU;
 }
-// the address of this variable is used to identify the pass
-char MachineInstructionPrinterPass::ID = 0;
 
 Option<bool> MachineInstructionPrinterPass::enabled("MachineInstructionPrinterPass","compiler2: enable MachineInstructionPrinterPass",false,::cacao::option::xx_root());
 

@@ -3008,8 +3008,6 @@ PassUsage& SSAConstructionPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<CFGConstructionPass>();
 	return PU;
 }
-// the address of this variable is used to identify the pass
-char SSAConstructionPass::ID = 0;
 
 // registrate Pass
 static PassRegistry<SSAConstructionPass> X("SSAConstructionPass");

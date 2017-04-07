@@ -55,9 +55,6 @@ PassUsage& VerifierPass::get_PassUsage(PassUsage &PU) const {
 	return PU;
 }
 
-// the address of this variable is used to identify the pass
-char VerifierPass::ID = 0;
-
 // registrate Pass
 static PassRegistry<VerifierPass> X("VerifierPass");
 

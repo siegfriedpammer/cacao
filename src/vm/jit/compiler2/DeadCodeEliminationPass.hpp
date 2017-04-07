@@ -27,6 +27,7 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 #include "future/unordered_map.hpp"
+#include "toolbox/Option.hpp"
 
 namespace cacao {
 namespace jit {
@@ -47,10 +48,14 @@ private:
 	typedef unordered_map<Instruction*,bool> InstBoolMapTy;
 	typedef unordered_map<Instruction*,std::size_t> InstIntMapTy;
 public:
-	static char ID;
+    static Option<bool> enabled;
 	DeadCodeEliminationPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
+
+    virtual bool is_enabled() const {
+        return DeadCodeEliminationPass::enabled;
+    }
 };
 
 } // end namespace compiler2

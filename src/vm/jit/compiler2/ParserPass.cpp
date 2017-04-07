@@ -43,9 +43,6 @@ bool ParserPass::run(JITData &JD) {
 	return true;
 }
 
-// the address of this variable is used to identify the pass
-char ParserPass::ID = 0;
-
 // registrate Pass
 static PassRegistry<ParserPass> X("ParserPass");
 

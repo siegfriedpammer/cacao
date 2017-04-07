@@ -43,7 +43,6 @@ namespace compiler2 {
  */
 class ParserPass : public Pass, public memory::ManagerMixin<ParserPass> {
 public:
-	static char ID;
 	ParserPass() : Pass() {}
 	virtual bool run(JITData &JD);
 };

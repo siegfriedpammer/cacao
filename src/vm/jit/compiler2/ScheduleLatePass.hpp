@@ -53,7 +53,6 @@ private:
 	Method *M;
 public:
 	void schedule_late(Instruction *I);
-	static char ID;
 	ScheduleLatePass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;

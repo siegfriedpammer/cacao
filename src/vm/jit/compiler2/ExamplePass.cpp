@@ -55,9 +55,6 @@ PassUsage& ExamplePass::get_PassUsage(PassUsage &PU) const {
 	return PU;
 }
 
-// the address of this variable is used to identify the pass
-char ExamplePass::ID = 0;
-
 // register pass
 static PassRegistry<ExamplePass> X("ExamplePass");
 

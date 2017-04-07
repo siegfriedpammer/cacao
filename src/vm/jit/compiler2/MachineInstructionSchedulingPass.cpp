@@ -315,12 +315,8 @@ bool MachineInstructionSchedulingPass::verify() const {
 PassUsage& MachineInstructionSchedulingPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<BasicBlockSchedulingPass>();
 	PU.add_requires<ScheduleClickPass>();
-	PU.add_requires<ConstantPropagationPass>();
 	return PU;
 }
-
-// the address of this variable is used to identify the pass
-char MachineInstructionSchedulingPass::ID = 0;
 
 // register pass
 static PassRegistry<MachineInstructionSchedulingPass> X("MachineInstructionSchedulingPass");

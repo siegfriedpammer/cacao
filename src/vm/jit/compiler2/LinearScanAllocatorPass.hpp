@@ -113,7 +113,6 @@ private:
 	//bool order_and_insert_move(MachineBasicBlock *predecessor, MachineBasicBlock *successor,
 	//		MoveMapTy &move_map);
 public:
-	static char ID;
 	LinearScanAllocatorPass() : Pass() {}
 	virtual void initialize();
 	virtual bool run(JITData &JD);

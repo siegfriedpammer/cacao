@@ -43,11 +43,14 @@ class LoweringPass;
  */
 class MachineInstructionPrinterPass : public Pass, public memory::ManagerMixin<MachineInstructionPrinterPass> {
 public:
-	static char ID;
 	static Option<bool> enabled;
 	MachineInstructionPrinterPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+
+    virtual bool is_enabled() const {
+        return MachineInstructionPrinterPass::enabled;
+    }
 };
 
 } // end namespace cacao

@@ -209,9 +209,6 @@ PassUsage& DominatorPass::get_PassUsage(PassUsage &PU) const {
 	return PU;
 }
 
-// the address of this variable is used to identify the pass
-char DominatorPass::ID = 0;
-
 // register pass
 static PassRegistry<DominatorPass> X("DominatorPass");
 

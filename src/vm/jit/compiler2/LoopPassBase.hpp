@@ -82,7 +82,6 @@ private:
 
 	NodeType* get_init_node(JITData &JD);
 public:
-	static char ID;
 	LoopPassBase() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;

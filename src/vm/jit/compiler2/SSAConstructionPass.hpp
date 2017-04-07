@@ -124,7 +124,6 @@ private:
 
 public:
 	Value* read_variable(size_t varindex, size_t bb);
-	static char ID;
 	SSAConstructionPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual bool verify() const;

@@ -42,10 +42,6 @@ LoopPass::NodeType* LoopPass::get_init_node(JITData &JD) {
 	return M->get_init_bb();
 }
 
-// the address of this variable is used to identify the pass
-template<>
-char LoopPass::ID = 0;
-
 // register pass
 static PassRegistry<LoopPass> X("LoopPass");
 
