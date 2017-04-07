@@ -126,8 +126,6 @@ MachineCode* compile(methodinfo* m)
 	// reset instructions
 	Instruction::reset();
 
-	PassManager PM;
-
 	LOG(bold << bold << "Compiler Start: " << reset_color << *m << nl);
 
 	// Create new dump memory area.
@@ -230,7 +228,7 @@ MachineCode* compile(methodinfo* m)
 
 	/* run the compiler2 passes */
 
-	PM.runPasses(JD);
+	PassManager::get().runPasses(JD);
 	assert(code);
 	assert(code->entrypoint);
 

@@ -110,17 +110,25 @@ private:
 		return (_PassClass*)initialized_passes[_PassClass::template ID<_PassClass>()];
 	}
 	void schedulePasses();
+
+	bool passes_are_scheduled;
 public:
 	const char * get_Pass_name(PassInfo::IDTy ID) {
 		PassInfo *PI = registered_passes()[ID];
 		assert(PI && "Pass not registered");
 		return PI->get_name();
 	}
-	PassManager() {
+	PassManager() : passes_are_scheduled(false) {
 		MYLOG("PassManager::PassManager()" << nl);
 	}
 
 	~PassManager();
+
+	static PassManager& get() {
+		// C++11 ensures that the initialization for local static variables is thread-safe
+		static PassManager instance;
+		return instance;
+	}
 
 	/**
 	 * DO NOT CALL THIS MANUALLY. ONLY INVOKE VIA RegisterPass.
@@ -131,19 +139,9 @@ public:
 	}
 
 	/**
-	 * run pass initializers
-	 */
-	void initializePasses();
-
-	/**
 	 * run passes
 	 */
 	void runPasses(JITData &JD);
-
-	/**
-	 * run pass finalizers
-	 */
-	void finalizePasses();
 
 	PassMapTy::const_iterator initialized_begin() const { return initialized_passes.begin(); }
 	PassMapTy::const_iterator initialized_end() const { return initialized_passes.end(); }

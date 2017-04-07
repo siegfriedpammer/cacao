@@ -85,16 +85,24 @@ PassManager::~PassManager() {
 	}
 }
 
-void PassManager::initializePasses() {
-}
-
 void PassManager::runPasses(JITData &JD) {
 	LOG("runPasses" << nl);
 	if (option::print_pass_dependencies) {
 		print_PassDependencyGraph(*this);
 	}
-	initializePasses();
-	schedulePasses();
+
+	if (!passes_are_scheduled) {
+		schedulePasses();
+		passes_are_scheduled = true;
+	}
+
+	// TODO: Since we changed PassManager to a singleton, passes are not automatically
+	//       recreated upon each run. So we force the construction of fresh Pass instances.
+	//
+	//       This is done because passes currently don't clean up their data structures, and
+	//       can't be reused.
+	initialized_passes.clear();
+	
 	for(ScheduleListTy::iterator i = schedule.begin(), e = schedule.end(); i != e; ++i) {
 		PassInfo::IDTy id = *i;
 		result_ready[id] = false;
@@ -134,10 +142,6 @@ void PassManager::runPasses(JITData &JD) {
 		timer.stop();
 		#endif
 	}
-	finalizePasses();
-}
-
-void PassManager::finalizePasses() {
 }
 
 

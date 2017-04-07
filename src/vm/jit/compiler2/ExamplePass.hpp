@@ -45,9 +45,9 @@ public:
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
 
-	// virtual void initialize();   (optional)
-	// virtual void finalize();     (optional)
-	// virtual bool verify() const; (optional)
+	virtual bool is_enabled() const {
+        return false;
+    }
 };
 
 } // end namespace compiler2
