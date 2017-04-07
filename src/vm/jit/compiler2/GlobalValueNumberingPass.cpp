@@ -491,7 +491,7 @@ PassUsage& GlobalValueNumberingPass::get_PassUsage(PassUsage &PU) const {
 Option<bool> GlobalValueNumberingPass::enabled("GlobalValueNumberingPass","compiler2: enable global value numbering (default = true)",true,::cacao::option::xx_root());
 
 // register pass
-//static PassRegistry<GlobalValueNumberingPass> X("GlobalValueNumberingPass");
+static PassRegistry<GlobalValueNumberingPass> X("GlobalValueNumberingPass");
 
 } // end namespace compiler2
 } // end namespace jit

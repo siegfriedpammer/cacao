@@ -362,7 +362,7 @@ PassUsage& ConstantPropagationPass::get_PassUsage(PassUsage &PU) const {
 Option<bool> ConstantPropagationPass::enabled("ConstantPropagationPass","compiler2: enable constant propagation (default = true)",true,::cacao::option::xx_root());
 
 // register pass
-//static PassRegistry<ConstantPropagationPass> X("ConstantPropagationPass");
+static PassRegistry<ConstantPropagationPass> X("ConstantPropagationPass");
 
 } // end namespace compiler2
 } // end namespace jit
