@@ -1248,14 +1248,8 @@ bool LinearScanAllocatorPass::verify() const {
 
 // pass usage
 PassUsage& LinearScanAllocatorPass::get_PassUsage(PassUsage &PU) const {
-	// requires
 	PU.add_requires<LivetimeAnalysisPass>();
 	PU.add_requires<MachineInstructionSchedulingPass>();
-	// modified
-	PU.add_modifies<MachineInstructionSchedulingPass>();
-	// destroys
-	// not yet updated correctly (might be only changed)
-	PU.add_destroys<LivetimeAnalysisPass>();
 	return PU;
 }
 
