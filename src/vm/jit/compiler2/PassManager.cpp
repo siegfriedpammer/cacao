@@ -345,6 +345,15 @@ void PassManager::schedulePasses() {
 			i != e; ++i) {
 		PassInfo::IDTy id = i->first;
 		Pass *pass = get_initialized_Pass(id);
+
+		// Only schedule passes that want to be run
+		if (!pass->is_enabled()) {
+			continue;
+		}
+
+		// If a pass is enabled, add it to the schedule
+		schedule.push_back(id);
+
 		PassUsage &PA = pu_map[id];
 		pass->get_PassUsage(PA);
 		// add run before
@@ -354,7 +363,6 @@ void PassManager::schedulePasses() {
 	}
 	// fill reverser required map
 	std::for_each(pu_map.begin(),pu_map.end(),ReverseRequire(reverse_require_map));
-	//
 	std::copy(schedule.begin(), schedule.end(), std::back_inserter(unhandled));
 
 	PassScheduler scheduler(unhandled,ready,stack,new_schedule,pu_map,reverse_require_map);

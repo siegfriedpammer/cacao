@@ -45,6 +45,10 @@ public:
 	SSAPrinterPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
+
+    virtual bool is_enabled() const {
+        return SSAPrinterPass::enabled;
+    }
 };
 
 
@@ -58,7 +62,13 @@ public:
 	BasicBlockPrinterPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
+    
+    virtual bool is_enabled() const {
+        return BasicBlockPrinterPass::enabled;
+    }
 };
+
+extern Option<bool> schedule_printer_enabled;
 
 /**
  * GlobalSchedulePrinterPass
@@ -72,9 +82,11 @@ public:
 	GlobalSchedulePrinterPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
-};
 
-extern Option<bool> schedule_printer_enabled;
+    virtual bool is_enabled() const {
+        return schedule_printer_enabled;
+    }
+};
 
 class ScheduleEarlyPass;
 class ScheduleLatePass;

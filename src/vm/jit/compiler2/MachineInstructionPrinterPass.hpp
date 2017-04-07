@@ -47,6 +47,10 @@ public:
 	MachineInstructionPrinterPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+
+    virtual bool is_enabled() const {
+        return MachineInstructionPrinterPass::enabled;
+    }
 };
 
 } // end namespace cacao

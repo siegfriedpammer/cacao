@@ -104,6 +104,13 @@ public:
 	}
 
 	/**
+	 * Allows concrete passes to enable/disable themselves the way they like
+	 */
+	virtual bool is_enabled() const {
+		return true;
+	}
+
+	/**
 	 * Initialize the Pass.
 	 * This method is called by the PassManager before the pass is started. It should be used to
 	 * initialize e.g. data structures. A Pass object might be reused so the construtor can not be

@@ -130,39 +130,6 @@ MachineCode* compile(methodinfo* m)
 
 	LOG(bold << bold << "Compiler Start: " << reset_color << *m << nl);
 
-	// pass configuration
-	if (opt_showintermediate) {
-		PM.add_Pass<ICMDPrinterPass>();
-	}
-	if (LoopTreePrinterPass::enabled) {
-		PM.add_Pass<LoopTreePrinterPass>();
-	}
-	if (DomTreePrinterPass::enabled) {
-		PM.add_Pass<DomTreePrinterPass>();
-	}
-	if (SSAPrinterPass::enabled) {
-		PM.add_Pass<SSAPrinterPass>();
-	}
-	if (BasicBlockPrinterPass::enabled) {
-		PM.add_Pass<BasicBlockPrinterPass>();
-	}
-	if (schedule_printer_enabled) {
-		PM.add_Pass<GlobalSchedulePrinterPass<ScheduleEarlyPass> >();
-		PM.add_Pass<GlobalSchedulePrinterPass<ScheduleLatePass> >();
-		PM.add_Pass<GlobalSchedulePrinterPass<ScheduleClickPass> >();
-	}
-	if (MachineInstructionPrinterPass::enabled) {
-		PM.add_Pass<MachineInstructionPrinterPass>();
-	}
-	if (ObjectFileWriterPass::enabled) {
-		PM.add_Pass<ObjectFileWriterPass>();
-	}
-	if (opt_showdisassemble || DisassemblerPass::enabled) {
-		PM.add_Pass<DisassemblerPass>();
-	}
-
-	PM.add_Pass<CodeGenPass>();
-
 	// Create new dump memory area.
 	DumpMemoryArea dma;
 

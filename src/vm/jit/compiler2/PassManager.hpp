@@ -90,10 +90,7 @@ private:
 	 * A pass may occur more than once.
 	 */
 	ScheduleListTy schedule;
-	/**
-	 * The list of passed that should be performed
-	 */
-	PassListTy passes;
+
 	/**
 	 * Map of ready results
 	 */
@@ -148,24 +145,12 @@ public:
 	 */
 	void finalizePasses();
 
-	/**
-	 * add a compiler pass
-	 */
-	template<class _PassClass>
-	void add_Pass() {
-		PassInfo::IDTy ID = _PassClass::template ID<_PassClass>();
-		assert(registered_passes()[ID] && "Pass not registered");
-		passes.insert(ID);
-		schedule.push_back(ID);
-	}
-
 	PassMapTy::const_iterator initialized_begin() const { return initialized_passes.begin(); }
 	PassMapTy::const_iterator initialized_end() const { return initialized_passes.end(); }
 	PassInfoMapTy::const_iterator registered_begin() const { return registered_passes().begin(); }
 	PassInfoMapTy::const_iterator registered_end() const { return registered_passes().end(); }
 
 	friend class Pass;
-
 };
 
 template<class _PassClass>

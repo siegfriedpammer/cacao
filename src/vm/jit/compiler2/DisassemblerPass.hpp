@@ -25,6 +25,7 @@
 #ifndef _JIT_COMPILER2_DISASSEMBLERPASS
 #define _JIT_COMPILER2_DISASSEMBLERPASS
 
+#include "vm/options.hpp"
 #include "vm/jit/compiler2/Pass.hpp"
 #include "toolbox/Option.hpp"
 
@@ -44,6 +45,10 @@ public:
 	DisassemblerPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+
+    virtual bool is_enabled() const {
+        return DisassemblerPass::enabled || opt_showdisassemble;
+    }
 };
 
 } // end namespace compiler2

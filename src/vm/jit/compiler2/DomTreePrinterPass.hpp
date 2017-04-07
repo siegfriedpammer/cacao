@@ -45,6 +45,10 @@ public:
 	DomTreePrinterPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+
+    virtual bool is_enabled() const {
+        return DomTreePrinterPass::enabled;
+    }
 };
 
 } // end namespace compiler2

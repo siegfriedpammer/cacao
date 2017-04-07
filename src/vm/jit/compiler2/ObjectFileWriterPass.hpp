@@ -45,6 +45,10 @@ public:
 	ObjectFileWriterPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
+
+    virtual bool is_enabled() const {
+        return ObjectFileWriterPass::enabled;
+    }
 };
 
 } // end namespace compiler2

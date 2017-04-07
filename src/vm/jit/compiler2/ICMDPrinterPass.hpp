@@ -25,6 +25,8 @@
 #ifndef _JIT_COMPILER2_ICMDPRINTERPASS
 #define _JIT_COMPILER2_ICMDPRINTERPASS
 
+#include "vm/options.hpp"
+
 #include "vm/jit/compiler2/Pass.hpp"
 
 MM_MAKE_NAME(ICMDPrinterPass)
@@ -45,9 +47,9 @@ public:
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
 
-	// virtual void initialize();   (optional)
-	// virtual void finalize();     (optional)
-	// virtual bool verify() const; (optional)
+    virtual bool is_enabled() const {
+        return opt_showintermediate;
+    }
 };
 
 } // end namespace compiler2
