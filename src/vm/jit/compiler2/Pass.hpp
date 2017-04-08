@@ -36,7 +36,6 @@ namespace jit {
 namespace compiler2 {
 
 // forward declaration
-class PassManager;
 class PassUsage;
 class JITData;
 
@@ -49,13 +48,13 @@ class Pass {
 private:
 	static PassInfo::IDTy id_counter;
 
-	PassManager *pm;
+	PassRunner *pm;
 	bool allowed_to_use_result(const PassInfo::IDTy &id) const;
 public:
 	Pass() : pm(NULL) {}
 
-	void set_PassManager(PassManager *PM) {
-		pm = PM;
+	void set_PassRunner(PassRunner *pr) {
+		pm = pr;
 	}
 
 	/** 

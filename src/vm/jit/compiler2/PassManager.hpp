@@ -25,6 +25,9 @@
 #ifndef _JIT_COMPILER2_PASSMANAGER
 #define _JIT_COMPILER2_PASSMANAGER
 
+#include <memory>
+#include <unordered_map>
+
 #include "vm/jit/compiler2/alloc/vector.hpp"
 #include "vm/jit/compiler2/alloc/unordered_set.hpp"
 #include "vm/jit/compiler2/alloc/unordered_map.hpp"
@@ -45,12 +48,14 @@ namespace compiler2 {
 
 class JITData;
 class Pass;
+class PassRunner;
 
+using UPPass = std::unique_ptr<Pass>;
 
 class PassInfo {
 public:
-	typedef uint32_t IDTy;
-	typedef Pass* (*ConstructorTy)();
+	using IDTy = uint32_t;
+	using ConstructorTy = Pass* (*)();
 private:
 	const char *const name;
 	/// Constructor function pointer
@@ -66,64 +71,42 @@ public:
 	}
 };
 
+
 /**
- * Manage the execution of compiler passes
+ * Manages pass registry and scheduling.
  *
- * @todo handle modified (timestamp?)
- * @todo conditionally reevaluate
+ * PassManager is implemented as a singleton. It holds a list of registered passes
+ * and knows how to construct them.
+ *
+ * Passes are scheduled the first time
+ * the schedule is accessed and the schedule does not change after that.
+ *
+ * Running passes and propagating results between passes
+ * is handled by the PassRunner.
  */
 class PassManager {
 public:
-	typedef alloc::unordered_set<PassInfo::IDTy>::type PassListTy;
-	typedef alloc::vector<PassInfo::IDTy>::type ScheduleListTy;
-	typedef alloc::unordered_map<PassInfo::IDTy,Pass*>::type PassMapTy;
-	typedef alloc::unordered_map<PassInfo::IDTy,bool>::type ResultReadyMapTy;
-	typedef alloc::unordered_map<PassInfo::IDTy, PassInfo*>::type PassInfoMapTy;
+	using ScheduleListTy = alloc::vector<PassInfo::IDTy>::type;
+	using PassInfoMapTy = alloc::unordered_map<PassInfo::IDTy, PassInfo*>::type;
 private:
 	/**
-	 * This stores the initialized passes.
-	 * Every Pass can only occur once.
-	 */
-	PassMapTy initialized_passes;
-	/**
-	 * This variable contains a schedule of the passes.
-	 * A pass may occur more than once.
+	 * This is the pass schedule. A pass may occur more than once.
 	 */
 	ScheduleListTy schedule;
 
-	/**
-	 * Map of ready results
-	 */
-	ResultReadyMapTy result_ready;
+	bool passes_are_scheduled;
 
 	static PassInfoMapTy &registered_passes() {
 		static PassInfoMapTy registered_passes;
 		return registered_passes;
 	}
 
-	Pass* get_initialized_Pass(PassInfo::IDTy ID);
-
-	template<class _PassClass>
-	_PassClass* get_Pass_result() {
-		assert_msg(result_ready[_PassClass::template ID<_PassClass>()], "result for "
-		  << get_Pass_name(_PassClass::template ID<_PassClass>()) << " is not ready!");
-		return (_PassClass*)initialized_passes[_PassClass::template ID<_PassClass>()];
-	}
 	void schedulePasses();
+	UPPass create_Pass(PassInfo::IDTy ID) const;
 
-	bool passes_are_scheduled;
+	explicit PassManager() : passes_are_scheduled(false) {}
+
 public:
-	const char * get_Pass_name(PassInfo::IDTy ID) {
-		PassInfo *PI = registered_passes()[ID];
-		assert(PI && "Pass not registered");
-		return PI->get_name();
-	}
-	PassManager() : passes_are_scheduled(false) {
-		MYLOG("PassManager::PassManager()" << nl);
-	}
-
-	~PassManager();
-
 	static PassManager& get() {
 		// C++11 ensures that the initialization for local static variables is thread-safe
 		static PassManager instance;
@@ -138,15 +121,65 @@ public:
 		registered_passes().insert(std::make_pair(PI->ID,PI));
 	}
 
+	const char * get_Pass_name(PassInfo::IDTy ID) {
+		PassInfo *PI = registered_passes()[ID];
+		assert(PI && "Pass not registered");
+		return PI->get_name();
+	}
+
+	ScheduleListTy::const_iterator schedule_begin() {
+		if (!passes_are_scheduled) {
+			schedulePasses();
+			passes_are_scheduled = true;
+		}
+		return schedule.begin(); 
+	}
+	ScheduleListTy::const_iterator schedule_end() const { return schedule.end(); }
+
+	PassInfoMapTy::const_iterator registered_begin() const { return registered_passes().begin(); }
+	PassInfoMapTy::const_iterator registered_end() const { return registered_passes().end(); }
+	
+	friend class PassRunner;
+};
+
+
+/**
+ * Each instance of PassRunner represents a single run of the compiler2.
+ *
+ * The PassRunner owns all the pass instances for its corresponding run.
+ */
+class PassRunner {
+public:
+	using PassMapTy = std::unordered_map<PassInfo::IDTy,UPPass>;
+	using ResultReadyMapTy = alloc::unordered_map<PassInfo::IDTy,bool>::type;
+private:
+	/**
+	 * Stores pass instances so other passes can retrieve
+	 * their results. This map owns all contained passes.
+	 */
+	PassMapTy passes;
+	
+	/**
+	 * Map of ready results
+	 */
+	ResultReadyMapTy result_ready;
+
+	UPPass& get_Pass(PassInfo::IDTy ID);
+
+	template<class _PassClass>
+	_PassClass* get_Pass_result() {
+		auto pass_id = _PassClass::template ID<_PassClass>();
+
+		assert_msg(result_ready[pass_id], "result for "
+		  << PassManager::get().get_Pass_name(pass_id) << " is not ready!");
+		return (_PassClass*) passes[pass_id].get();
+	}
+
+public:
 	/**
 	 * run passes
 	 */
 	void runPasses(JITData &JD);
-
-	PassMapTy::const_iterator initialized_begin() const { return initialized_passes.begin(); }
-	PassMapTy::const_iterator initialized_end() const { return initialized_passes.end(); }
-	PassInfoMapTy::const_iterator registered_begin() const { return registered_passes().begin(); }
-	PassInfoMapTy::const_iterator registered_end() const { return registered_passes().end(); }
 
 	friend class Pass;
 };
