@@ -66,20 +66,20 @@ public class InvokeInterface extends Compiler2TestBase {
 		testResultEqual("invokeInterfaceInt", "(Lorg/cacaojvm/compiler2/test/InvokeInterface$IFoo;II)I", new FooImpl(), 1, 2);
 		testResultEqual("invokeInterfaceInt", "(Lorg/cacaojvm/compiler2/test/InvokeInterface$IFoo;II)I", new FooImpl(), 2, 3);
 	}
-//
-//	public int foo(int a, int b, int c, int d, int e, int f, int g, int h) {
-//		return a + b + c + d + e + f + g + h;
-//	}
-//
-//	/** This is the method under test. */
-//	static int invokeInterfaceIntManyParams(InvokeInterface t, int a, int b, int c, int d, int e, int f, int g, int h) {
-//		return t.foo(a, b, c, d, e, f, g, h);
-//	}
-//
-//	@Ignore("Stack arguments not yet handled correctly by linear scan register allocator.")
-//	@Test
-//	public void testInvokeInterfaceIntManyParams() {
-//		testResultEqual("invokeInterfaceIntManyParams", "(Lorg/cacaojvm/compiler2/test/InvokeInterface;IIIIIIII)I", this, 1, 2, 3, 4, 5, 6, 7, 8);
-//		testResultEqual("invokeInterfaceIntManyParams", "(Lorg/cacaojvm/compiler2/test/InvokeInterface;IIIIIIII)I", this, 2, 3, 4, 5, 6, 7, 8, 9);
-//	}
+
+	public int foo(int a, int b, int c, int d, int e, int f, int g, int h) {
+		return a + b + c + d + e + f + g + h;
+	}
+
+	/** This is the method under test. */
+	static int invokeInterfaceIntManyParams(InvokeInterface t, int a, int b, int c, int d, int e, int f, int g, int h) {
+		return t.foo(a, b, c, d, e, f, g, h);
+	}
+
+	@Ignore("Stack arguments not yet handled correctly by linear scan register allocator.")
+	@Test
+	public void testInvokeInterfaceIntManyParams() {
+		testResultEqual("invokeInterfaceIntManyParams", "(Lorg/cacaojvm/compiler2/test/InvokeInterface;IIIIIIII)I", this, 1, 2, 3, 4, 5, 6, 7, 8);
+		testResultEqual("invokeInterfaceIntManyParams", "(Lorg/cacaojvm/compiler2/test/InvokeInterface;IIIIIIII)I", this, 2, 3, 4, 5, 6, 7, 8, 9);
+	}
 }

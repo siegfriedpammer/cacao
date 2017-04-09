@@ -279,20 +279,19 @@ public:
 class ManagedStackSlot : public MachineOperand {
 private:
 	StackSlotManager *parent;
-	unsigned id;
-	ManagedStackSlot(StackSlotManager *SSM,unsigned id, Type::TypeID type)
-		: MachineOperand(ManagedStackSlotID,type), parent(SSM), id(id) {}
+	u4 index;
+	ManagedStackSlot(StackSlotManager *SSM, Type::TypeID type)
+		: MachineOperand(ManagedStackSlotID,type), parent(SSM) {}
+
 public:
-	/**
-	 * FIXME this should be managed
-	 */
-	virtual StackSlot* to_StackSlot();
+
 	virtual ManagedStackSlot* to_ManagedStackSlot() { return this; }
 	virtual const char* get_name() const {
 		return "ManagedStackSlot";
 	}
-	//virtual bool is_virtual() const { return true; }
-	unsigned get_id() const { return id; }
+	u4 get_index() const { return index; }
+	void set_index(unsigned index) { this->index = index; }
+	StackSlotManager *get_parent() const { return parent; }
 	virtual OStream& print(OStream &OS) const {
 		return MachineOperand::print(OS) << get_id();
 	}

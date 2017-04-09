@@ -669,9 +669,9 @@ void X86_64LoweringVisitor::visit(REMInst *I, bool copyOperands) {
 	case Type::FloatTypeID:
 	case Type::DoubleTypeID:
 		ssm = get_Backend()->get_JITData()->get_StackSlotManager();
-		src = ssm->create_ManagedStackSlot(type);
-		dst = ssm->create_ManagedStackSlot(type);
-		resultSlot = ssm->create_ManagedStackSlot(type);
+		src = ssm->create_slot(type);
+		dst = ssm->create_slot(type);
+		resultSlot = ssm->create_slot(type);
 
 		// operands of the FP stack can only be loaded from memory
 		get_current()->push_back(get_Backend()->create_Move(dividend, src));
@@ -1143,6 +1143,7 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	Type::TypeID type = I->get_type();
 	MethodDescriptor &MD = I->get_MethodDescriptor();
 	MachineMethodDescriptor MMD(MD);
+	StackSlotManager *SSM = get_Backend()->get_JITData()->get_StackSlotManager();
 
 	// operands for the call
 	VirtualRegister *addr = new VirtualRegister(Type::ReferenceTypeID);
@@ -1169,14 +1170,20 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	// create call
 	MachineInstruction* call = new CallInst(SrcOp(addr),DstOp(result),I->op_size());
 	// move values to parameters
+	int arg_counter = 0;
 	for (std::size_t i = 0; i < I->op_size(); ++i ) {
+		MachineOperand *arg_dst = MMD[i];
+		if (arg_dst->is_StackSlot()) {
+			arg_dst = SSM->create_argument_slot(arg_dst->get_type(), arg_counter++);
+		}
+
 		MachineInstruction* mov = get_Backend()->create_Move(
 			get_op(I->get_operand(i)->to_Instruction()),
-			MMD[i]
+			arg_dst
 		);
 		get_current()->push_back(mov);
 		// set call operand
-		call->set_operand(i+1,MMD[i]);
+		call->set_operand(i+1,arg_dst);
 	}
 	// spill caller saved
 
