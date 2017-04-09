@@ -50,7 +50,7 @@ class JITData;
 class Pass;
 class PassRunner;
 
-using UPPass = std::unique_ptr<Pass>;
+using PassUPtrTy = std::unique_ptr<Pass>;
 
 class PassInfo {
 public:
@@ -102,7 +102,7 @@ private:
 	}
 
 	void schedulePasses();
-	UPPass create_Pass(PassInfo::IDTy ID) const;
+	PassUPtrTy create_Pass(PassInfo::IDTy ID) const;
 
 	explicit PassManager() : passes_are_scheduled(false) {}
 
@@ -150,7 +150,7 @@ public:
  */
 class PassRunner {
 public:
-	using PassMapTy = std::unordered_map<PassInfo::IDTy,UPPass>;
+	using PassMapTy = std::unordered_map<PassInfo::IDTy,PassUPtrTy>;
 	using ResultReadyMapTy = alloc::unordered_map<PassInfo::IDTy,bool>::type;
 private:
 	/**
@@ -164,7 +164,7 @@ private:
 	 */
 	ResultReadyMapTy result_ready;
 
-	UPPass& get_Pass(PassInfo::IDTy ID);
+	PassUPtrTy& get_Pass(PassInfo::IDTy ID);
 
 	template<class _PassClass>
 	_PassClass* get_Pass_result() {

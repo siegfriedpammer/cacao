@@ -60,12 +60,12 @@ namespace option {
 } // end anonymous namespace
 
 
-UPPass PassManager::create_Pass(PassInfo::IDTy ID) const {
+PassUPtrTy PassManager::create_Pass(PassInfo::IDTy ID) const {
 	PassInfo *PI = registered_passes()[ID];
 	assert(PI && "Pass not registered");
 
 	// This should be the only place where a Pass is constructed!
-	UPPass pass(PI->create_Pass());
+	PassUPtrTy pass(PI->create_Pass());
 
 	#if ENABLE_RT_TIMING
 	RTTimer &timer = pass_timers[ID];
@@ -77,7 +77,7 @@ UPPass PassManager::create_Pass(PassInfo::IDTy ID) const {
 
 // Since passes do NOT guarantee that they can be reused cleanly
 // we create new pass instances if they occur more than once in the schedule
-UPPass& PassRunner::get_Pass(PassInfo::IDTy ID) {
+PassUPtrTy& PassRunner::get_Pass(PassInfo::IDTy ID) {
 	auto P = PassManager::get().create_Pass(ID);
 	P->set_PassRunner(this);
 
