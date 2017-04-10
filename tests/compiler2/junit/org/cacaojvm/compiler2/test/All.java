@@ -73,13 +73,14 @@ import org.junit.runners.Suite;
 	Fmul.class,
 	Fdiv.class,
 	
-	// I2b.class,
-	// I2c.class,
-	// I2s.class,
-	// I2f.class,
-	// I2d.class,
-	// Idiv.class,
-	// Irem.class,
+	I2b.class,
+	I2c.class,
+	I2s.class,
+	I2f.class,
+	I2d.class,
+	Idiv.class,
+	Irem.class,
+	Ishl.class,
 
 	InvokeStatic.class,
 	InvokeSpecial.class,
@@ -87,6 +88,7 @@ import org.junit.runners.Suite;
 	InvokeInterface.class,
 
 	New.class,
+	InstanceOf.class,
 
 	MatcherBenchmarks.class
 
