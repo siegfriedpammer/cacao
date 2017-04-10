@@ -624,18 +624,17 @@ bool LinearScanAllocatorPass::allocate_unhandled() {
 					MachineInstruction *MI = *pos.get_iterator();
 					if (!(MI->is_move() && MI->get_result().op->aquivalent(*MI->get(0).op))) {
 						LOG2("Spill intervals blocking fixed: " << current.get_operand() << nl);
-						assert(false);
-//						// spill intervals that currently block reg
-//						UseDef next_use_pos = act.next_usedef_after(
-//							current.front().start,UseDef(UseDef::PseudoDef,MIS->mi_end()));
-//						SplitActive split (current.get_operand(), current.front().start, 
-//									next_use_pos, backend, unhandled);
-//						SplitActive::argument_type split_act = act;
-//						split(split_act);
-//						// spill each interval in inactive for reg at the end of the livetime hole
-//						std::for_each(inactive.begin(), inactive.end(),
-//							SplitInactive(current.get_operand(), current.front().start, 
-//								unhandled));
+						// spill intervals that currently block reg
+						UseDef next_use_pos = act.next_usedef_after(
+							current.front().start,UseDef(UseDef::PseudoDef,MIS->mi_end()));
+						SplitActive split (current.get_operand(), current.front().start,
+									next_use_pos, backend, unhandled);
+						SplitActive::argument_type split_act = act;
+						split(split_act);
+						// spill each interval in inactive for reg at the end of the livetime hole
+						std::for_each(inactive.begin(), inactive.end(),
+							SplitInactive(current.get_operand(), current.front().start,
+								unhandled));
 					}
 				}
 			}
