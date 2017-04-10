@@ -80,6 +80,7 @@ import org.junit.runners.Suite;
 	// I2d.class,
 	// Idiv.class,
 	// Irem.class,
+	Ishl.class,
 
 	InvokeStatic.class,
 	InvokeSpecial.class,
