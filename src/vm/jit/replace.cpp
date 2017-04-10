@@ -1666,10 +1666,14 @@ rplpoint *replace_recover_source_frame(rplpoint *rp,
 }
 
 
-/* replace_recover_inlined_source_state *******************************************
+/* replace_recover_source_state ************************************************
 
    Recover the source state from the given replacement point and execution
-   state until the first non-inlined method is reached.
+   state. The bottom-most source frame of the returned source state represents
+   the method that triggered on-stack replacement. Additionally, the source
+   frame of the caller is recovered (in case it's not native) to be able
+   to patch the call-site if necessary, i.e., the source state will contain at
+   most two source frames.
 
    IN:
        rp...............replacement point that has been reached, if any
