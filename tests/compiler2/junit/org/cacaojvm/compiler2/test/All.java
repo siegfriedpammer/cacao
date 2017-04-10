@@ -88,6 +88,7 @@ import org.junit.runners.Suite;
 	InvokeInterface.class,
 
 	New.class,
+	InstanceOf.class,
 
 	MatcherBenchmarks.class
 
