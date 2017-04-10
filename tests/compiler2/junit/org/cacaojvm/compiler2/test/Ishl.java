@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/SampleTest.java - SampleTest
+/** tests/compiler2/junit/Ishl.java - Ishl
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
