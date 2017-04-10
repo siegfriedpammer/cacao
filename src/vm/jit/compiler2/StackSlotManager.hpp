@@ -40,10 +40,9 @@ class ManagedStackSlot;
 class StackSlot;
 
 /**
- * StackSlot Manager.
+ * StackSlotManager
  *
- * The StackSlot Manger is used to manage slots for spilled registers
- * etc.
+ * The StackSlotManger is used to manage slots for spilled registers etc.
  */
 class StackSlotManager {
 private:
@@ -81,7 +80,7 @@ public:
 	ManagedStackSlot* create_argument_slot(Type::TypeID type, u4 index);
 
 	/**
-	 * Assigns each ManagedStackSlot a position in the frame.
+	 * Assigns each ManagedStackSlot a position in the virtual frame.
 	 */
 	void finalize();
 

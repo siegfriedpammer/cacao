@@ -276,25 +276,89 @@ public:
 	}
 };
 
+/**
+ * A "virtual" slot that will eventually be mapped to a machine-level slot.
+ *
+ * A ManagedStackSlot may be used to store spill-registers (as needed during
+ * register allocation) or to store arguments of method invocations.
+ * ManagedStackSlots may only be constructed via a corresponding StackSlotManager
+ * and will eventually be mapped to actual machine-level slots during code
+ * generation.
+ *
+ * Note that there is no one-to-one mapping between actual machine-level slots
+ * and ManagedStackSlots. Multiple ManagedStackSlots might map to the same
+ * machine-level slot which is the case for those slots that are used for
+ * storing arguments for method invocations.
+ */
 class ManagedStackSlot : public MachineOperand {
 private:
+
+	/**
+	 * The StackSlotManager that created (and owns) this slot.
+	 */
 	StackSlotManager *parent;
+
+	/**
+	 * Represents the slot's position in the virtual stack frame.
+	 *
+	 * Note that multiple ManagedStackSlots might use the same index, since they
+	 * may be mapped to the same position in the stack frame (which is the case
+	 * for slots that are used for storing arguments for method invocations).
+	 */
 	u4 index;
+
+	/**
+	 * Construct a ManagedStackSlot.
+	 *
+	 * @param SSM  The StackSlotManager that created (and owns) this slot.
+	 * @param type The type of the slot.
+	 */
 	ManagedStackSlot(StackSlotManager *SSM, Type::TypeID type)
 		: MachineOperand(ManagedStackSlotID,type), parent(SSM) {}
 
 public:
 
+	/**
+	 * Conversion method.
+	 */
 	virtual ManagedStackSlot* to_ManagedStackSlot() { return this; }
+
+	/**
+	 * @return A human-readable name of this slot.
+	 */
 	virtual const char* get_name() const {
 		return "ManagedStackSlot";
 	}
+
+	/**
+	 * @return The index representing this slot's position in the virtual
+	 *         stack frame.
+	 */
 	u4 get_index() const { return index; }
+
+	/**
+	 * Set the index of the slot.
+	 *
+	 * @param index The corresponding index.
+	 */
 	void set_index(unsigned index) { this->index = index; }
+
+	/**
+	 * @return The StackSlotManager that created (and owns) this slot.
+	 */
 	StackSlotManager *get_parent() const { return parent; }
+
+	/**
+	 * Print a human-readable representation of this slot.
+	 *
+	 * @param OS The stream to print to.
+	 *
+	 * @return The corresponding stream.
+	 */
 	virtual OStream& print(OStream &OS) const {
 		return MachineOperand::print(OS) << get_id();
 	}
+
 	friend class StackSlotManager;
 };
 
