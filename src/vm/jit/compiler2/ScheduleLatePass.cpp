@@ -162,8 +162,6 @@ PassUsage& ScheduleLatePass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<LoopPass>();
 	return PU;
 }
-// the address of this variable is used to identify the pass
-char ScheduleLatePass::ID = 0;
 
 // registrate Pass
 static PassRegistry<ScheduleLatePass> X("ScheduleLatePass");

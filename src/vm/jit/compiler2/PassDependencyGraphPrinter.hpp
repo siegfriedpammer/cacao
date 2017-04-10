@@ -29,9 +29,7 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-class PassManager;
-
-void print_PassDependencyGraph(PassManager &PM);
+void print_PassDependencyGraph();
 
 } // end namespace compiler2
 } // end namespace jit

@@ -49,9 +49,6 @@ PassUsage& StackAnalysisPass::get_PassUsage(PassUsage &PU) const {
 	return PU;
 }
 
-// the address of this variable is used to identify the pass
-char StackAnalysisPass::ID = 0;
-
 // registrate Pass
 static PassRegistry<StackAnalysisPass> X("StackAnalysisPass");
 

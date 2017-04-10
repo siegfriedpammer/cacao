@@ -42,9 +42,6 @@ PassUsage& RegisterAllocatorPass::get_PassUsage(PassUsage &PU) const {
 	return PU;
 }
 
-// the address of this variable is used to identify the pass
-char RegisterAllocatorPass::ID = 0;
-
 // register pass
 static PassRegistry<RegisterAllocatorPass> X("RegisterAllocatorPass");
 

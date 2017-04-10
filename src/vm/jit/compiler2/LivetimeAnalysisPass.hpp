@@ -55,7 +55,6 @@ private:
 	LivetimeIntervalMapTy lti_map;
 	MachineInstructionSchedule *MIS;
 public:
-	static char ID;
 	LivetimeAnalysisPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;

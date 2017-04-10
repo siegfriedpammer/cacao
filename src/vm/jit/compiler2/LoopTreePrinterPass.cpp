@@ -96,8 +96,6 @@ PassUsage& LoopTreePrinterPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<LoopPass>();
 	return PU;
 }
-// the address of this variable is used to identify the pass
-char LoopTreePrinterPass::ID = 0;
 
 Option<bool> LoopTreePrinterPass::enabled("LoopTreePrinterPass","compiler2: enable LoopTreePrinterPass",false,::cacao::option::xx_root());
 

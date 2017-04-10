@@ -59,43 +59,40 @@ namespace option {
 }
 } // end anonymous namespace
 
-Pass* PassManager::get_initialized_Pass(PassInfo::IDTy ID) {
-	Pass *P = initialized_passes[ID];
-	if (!P) {
-		PassInfo *PI = registered_passes()[ID];
-		assert(PI && "Pass not registered");
-		// This should be the only place where a Pass is constructed!
-		P = PI->create_Pass();
-		P->set_PassManager(this);
-		initialized_passes[ID] = P;
-		result_ready[ID] = false;
-		#if ENABLE_RT_TIMING
-		RTTimer &timer = pass_timers[ID];
-		new (&timer) RTTimer(PI->get_name(),PI->get_name(),compiler2_rtgroup());
-		#endif
-	}
-	return P;
+
+PassUPtrTy PassManager::create_Pass(PassInfo::IDTy ID) const {
+	PassInfo *PI = registered_passes()[ID];
+	assert(PI && "Pass not registered");
+
+	// This should be the only place where a Pass is constructed!
+	PassUPtrTy pass(PI->create_Pass());
+
+	#if ENABLE_RT_TIMING
+	RTTimer &timer = pass_timers[ID];
+	new (&timer) RTTimer(PI->get_name(),PI->get_name(),compiler2_rtgroup());
+	#endif
+
+	return pass;
 }
 
-PassManager::~PassManager() {
-	// delete all passes
-	for(PassMapTy::iterator i = initialized_passes.begin(), e = initialized_passes.end(); i != e; ++i) {
-		Pass* P = i->second;
-		delete P;
-	}
+// Since passes do NOT guarantee that they can be reused cleanly
+// we create new pass instances if they occur more than once in the schedule
+PassUPtrTy& PassRunner::get_Pass(PassInfo::IDTy ID) {
+	auto P = PassManager::get().create_Pass(ID);
+	P->set_PassRunner(this);
+
+	passes[ID] = std::move(P);
+	result_ready[ID] = false;
+
+	return passes[ID];
 }
 
-void PassManager::initializePasses() {
-}
 
-void PassManager::runPasses(JITData &JD) {
+void PassRunner::runPasses(JITData &JD) {
 	LOG("runPasses" << nl);
-	if (option::print_pass_dependencies) {
-		print_PassDependencyGraph(*this);
-	}
-	initializePasses();
-	schedulePasses();
-	for(ScheduleListTy::iterator i = schedule.begin(), e = schedule.end(); i != e; ++i) {
+
+	auto PS = PassManager::get();
+	for (auto i = PS.schedule_begin(), e = PS.schedule_end(); i != e; ++i) {
 		PassInfo::IDTy id = *i;
 		result_ready[id] = false;
 		#if ENABLE_RT_TIMING
@@ -104,12 +101,12 @@ void PassManager::runPasses(JITData &JD) {
 		RTTimer &timer = f->second;
 		timer.start();
 		#endif
-		Pass* P = get_initialized_Pass(id);
-		LOG("initialize: " << get_Pass_name(id) << nl);
+		auto&& P = get_Pass(id);
+		LOG("initialize: " << PS.get_Pass_name(id) << nl);
 		P->initialize();
-		LOG("start: " << get_Pass_name(id) << nl);
+		LOG("start: " << PS.get_Pass_name(id) << nl);
 		if (!P->run(JD)) {
-			err() << bold << Red << "error" << reset_color << " during pass " << get_Pass_name(id) << nl;
+			err() << bold << Red << "error" << reset_color << " during pass " << PS.get_Pass_name(id) << nl;
 			os::abort("compiler2: error");
 		}
 		// invalidating results
@@ -118,26 +115,22 @@ void PassManager::runPasses(JITData &JD) {
 		for (PassUsage::const_iterator i = PU.destroys_begin(), e = PU.destroys_end();
 				i != e; ++i) {
 			result_ready[*i] = false;
-			LOG("mark invalid" << get_Pass_name(*i) << nl);
+			LOG("mark invalid" << PS.get_Pass_name(*i) << nl);
 		}
 		#ifndef NDEBUG
-		LOG("verifying: " << get_Pass_name(id) << nl);
+		LOG("verifying: " << PS.get_Pass_name(id) << nl);
 		if (!P->verify()) {
-			err() << bold << Red << "verification error" << reset_color << " during pass " << get_Pass_name(id) << nl;
+			err() << bold << Red << "verification error" << reset_color << " during pass " << PS.get_Pass_name(id) << nl;
 			os::abort("compiler2: error");
 		}
 		#endif
 		result_ready[id] = true;
-		LOG("finialize: " << get_Pass_name(id) << nl);
+		LOG("finialize: " << PS.get_Pass_name(id) << nl);
 		P->finalize();
 		#if ENABLE_RT_TIMING
 		timer.stop();
 		#endif
 	}
-	finalizePasses();
-}
-
-void PassManager::finalizePasses() {
 }
 
 
@@ -334,6 +327,10 @@ void PassManager::schedulePasses() {
 	latest = this;
 #endif
 
+	if (option::print_pass_dependencies) {
+		print_PassDependencyGraph();
+	}
+
 	alloc::deque<PassInfo::IDTy>::type unhandled;
 	alloc::unordered_set<PassInfo::IDTy>::type ready;
 	alloc::list<PassInfo::IDTy>::type stack;
@@ -344,7 +341,16 @@ void PassManager::schedulePasses() {
 	for (PassInfoMapTy::const_iterator i = registered_passes().begin(), e = registered_passes().end();
 			i != e; ++i) {
 		PassInfo::IDTy id = i->first;
-		Pass *pass = get_initialized_Pass(id);
+		auto pass = create_Pass(id);
+
+		// Only schedule passes that want to be run
+		if (!pass->is_enabled()) {
+			continue;
+		}
+
+		// If a pass is enabled, add it to the schedule
+		schedule.push_back(id);
+
 		PassUsage &PA = pu_map[id];
 		pass->get_PassUsage(PA);
 		// add run before
@@ -354,7 +360,6 @@ void PassManager::schedulePasses() {
 	}
 	// fill reverser required map
 	std::for_each(pu_map.begin(),pu_map.end(),ReverseRequire(reverse_require_map));
-	//
 	std::copy(schedule.begin(), schedule.end(), std::back_inserter(unhandled));
 
 	PassScheduler scheduler(unhandled,ready,stack,new_schedule,pu_map,reverse_require_map);

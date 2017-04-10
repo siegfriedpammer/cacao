@@ -43,7 +43,7 @@ class JITData {
 private:
 	jitdata *jd;
 	Method M;
-	std::auto_ptr<Backend> BE;
+	std::unique_ptr<Backend> BE;
 	StackSlotManager SSM;
 	CodeMemory cm;
 public:

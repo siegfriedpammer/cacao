@@ -99,8 +99,6 @@ PassUsage& ScheduleEarlyPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<InstructionMetaPass>();
 	return PU;
 }
-// the address of this variable is used to identify the pass
-char ScheduleEarlyPass::ID = 0;
 
 // registrate Pass
 static PassRegistry<ScheduleEarlyPass> X("ScheduleEarlyPass");

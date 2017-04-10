@@ -64,8 +64,8 @@ private:
 	PIIDSet schedule_after;
 	PIIDSet schedule_before;
 
-	bool is_required(char &ID) const {
-		return requires.find(&ID) != requires.end();
+	bool is_required(const PassInfo::IDTy &ID) const {
+		return requires.find(ID) != requires.end();
 	}
 
 public:
@@ -76,7 +76,7 @@ public:
 	 */
 	template<class PassName>
 	void add_requires() {
-		requires.insert(&PassName::ID);
+		requires.insert(PassName::template ID<PassName>());
 	}
 	void add_requires(PassInfo::IDTy id) {
 		requires.insert(id);
@@ -87,7 +87,7 @@ public:
 	 */
 	template<class PassName>
 	void add_destroys() {
-		destroys.insert(&PassName::ID);
+		destroys.insert(PassName::template ID<PassName>());
 	}
 	void add_destroys(PassInfo::IDTy id) {
 		destroys.insert(id);
@@ -98,7 +98,7 @@ public:
 	 */
 	template<class PassName>
 	void add_modifies() {
-		modifies.insert(&PassName::ID);
+		modifies.insert(PassName::template ID<PassName>());
 	}
 	void add_modifies(PassInfo::IDTy id) {
 		modifies.insert(id);
@@ -111,7 +111,7 @@ public:
 	 */
 	template<class PassName>
 	void add_run_before() {
-		run_before.insert(&PassName::ID);
+		run_before.insert(PassName::template ID<PassName>());
 	}
 	void add_run_before(PassInfo::IDTy id) {
 		run_before.insert(id);
@@ -125,7 +125,7 @@ public:
 	 */
 	template<class PassName>
 	void add_schedule_before() {
-		schedule_before.insert(&PassName::ID);
+		schedule_before.insert(PassName::template ID<PassName>());
 	}
 	void add_schedule_before(PassInfo::IDTy id) {
 		schedule_before.insert(id);
@@ -141,7 +141,7 @@ public:
 	 */
 	template<class PassName>
 	void add_schedule_after() {
-		schedule_after.insert(&PassName::ID);
+		schedule_after.insert(PassName::template ID<PassName>());
 	}
 	void add_schedule_after(PassInfo::IDTy id) {
 		schedule_after.insert(id);

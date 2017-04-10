@@ -30,6 +30,7 @@
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "future/unordered_set.hpp"
 #include "future/unordered_map.hpp"
+#include "toolbox/Option.hpp"
 
 namespace cacao {
 namespace jit {
@@ -118,14 +119,14 @@ private:
 
 	void clean_up_operand_inverse();
 public:
-	static char ID;
+	static Option<bool> enabled;
 	GlobalValueNumberingPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
 
-	// virtual void initialize();   (optional)
-	// virtual void finalize();     (optional)
-	// virtual bool verify() const; (optional)
+	virtual bool is_enabled() const {
+		return GlobalValueNumberingPass::enabled;
+	}
 };
 
 } // end namespace compiler2

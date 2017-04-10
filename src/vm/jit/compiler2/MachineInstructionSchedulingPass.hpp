@@ -46,7 +46,6 @@ namespace compiler2 {
  */
 class MachineInstructionSchedulingPass : public Pass, public memory::ManagerMixin<MachineInstructionSchedulingPass>, public MachineInstructionSchedule {
 public:
-	static char ID;
 	MachineInstructionSchedulingPass() : Pass() {}
 	virtual void initialize();
 	virtual bool run(JITData &JD);

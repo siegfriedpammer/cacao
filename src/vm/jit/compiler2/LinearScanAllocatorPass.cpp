@@ -1248,19 +1248,10 @@ bool LinearScanAllocatorPass::verify() const {
 
 // pass usage
 PassUsage& LinearScanAllocatorPass::get_PassUsage(PassUsage &PU) const {
-	// requires
 	PU.add_requires<LivetimeAnalysisPass>();
 	PU.add_requires<MachineInstructionSchedulingPass>();
-	// modified
-	PU.add_modifies<MachineInstructionSchedulingPass>();
-	// destroys
-	// not yet updated correctly (might be only changed)
-	PU.add_destroys<LivetimeAnalysisPass>();
 	return PU;
 }
-
-// the address of this variable is used to identify the pass
-char LinearScanAllocatorPass::ID = 0;
 
 // register pass
 static PassRegistry<LinearScanAllocatorPass> X("LinearScanAllocatorPass");

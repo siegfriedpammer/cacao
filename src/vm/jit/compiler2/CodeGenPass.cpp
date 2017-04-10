@@ -434,8 +434,6 @@ PassUsage& CodeGenPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<RegisterAllocatorPass>();
 	return PU;
 }
-// the address of this variable is used to identify the pass
-char CodeGenPass::ID = 0;
 
 // registrate Pass
 static PassRegistry<CodeGenPass> X("CodeGenPass");

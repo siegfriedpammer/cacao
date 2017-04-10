@@ -42,11 +42,6 @@ MachineLoopPass::NodeType* MachineLoopPass::get_init_node(JITData &JD) {
 	return MIS->front();
 }
 
-
-// the address of this variable is used to identify the pass
-template<>
-char MachineLoopPass::ID = 0;
-
 // register pass
 static PassRegistry<MachineLoopPass> X("MachineLoopPass");
 

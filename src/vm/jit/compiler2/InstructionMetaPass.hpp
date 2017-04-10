@@ -42,7 +42,6 @@ namespace compiler2 {
  */
 class InstructionMetaPass : public Pass, public memory::ManagerMixin<InstructionMetaPass> {
 public:
-	static char ID;
 	InstructionMetaPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;

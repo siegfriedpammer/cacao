@@ -36,7 +36,6 @@ namespace jit {
 namespace compiler2 {
 
 // forward declaration
-class PassManager;
 class PassUsage;
 class JITData;
 
@@ -47,13 +46,27 @@ class JITData;
  */
 class Pass { 
 private:
-	PassManager *pm;
-	bool allowed_to_use_result(char &id) const;
+	static PassInfo::IDTy id_counter;
+
+	PassRunner *pm;
+	bool allowed_to_use_result(const PassInfo::IDTy &id) const;
 public:
 	Pass() : pm(NULL) {}
 
-	void set_PassManager(PassManager *PM) {
-		pm = PM;
+	void set_PassRunner(PassRunner *pr) {
+		pm = pr;
+	}
+
+	/** 
+	 * This template will return a unique ID for each type that it is called with.
+	 * 
+	 * This is needed since Pass IDs are accessed statically via a concrete Pass type
+	 * and not via a concrete instance.
+	 */ 
+	template<class T>
+	static PassInfo::IDTy ID() {
+		static PassInfo::IDTy ID = id_counter++;
+		return ID;
 	}
 
 	/**
@@ -63,7 +76,7 @@ public:
 	 */
 	template<class _PassClass>
 	_PassClass *get_Pass() const {
-		if (!allowed_to_use_result(_PassClass::ID)) {
+		if (!allowed_to_use_result(_PassClass::template ID<_PassClass>())) {
 			assert(0 && "Not allowed to get result (not declared in get_PassUsage())");
 			return NULL;
 		}
@@ -77,7 +90,7 @@ public:
 	 */
 	template<class _PassClass>
 	_PassClass *get_Pass_if_available() const {
-		if (!pm->result_ready[&_PassClass::ID])
+		if (!pm->result_ready[_PassClass::template ID<_PassClass>()])
 			return NULL;
 		return pm->get_Pass_result<_PassClass>();
 	}
@@ -87,6 +100,13 @@ public:
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const {
 		// default: require nothing, destroy nothing
 		return PU;
+	}
+
+	/**
+	 * Allows concrete passes to enable/disable themselves the way they like
+	 */
+	virtual bool is_enabled() const {
+		return true;
 	}
 
 	/**

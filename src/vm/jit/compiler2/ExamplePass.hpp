@@ -41,14 +41,13 @@ namespace compiler2 {
  */
 class ExamplePass : public Pass, public memory::ManagerMixin<ExamplePass> {
 public:
-	static char ID;
 	ExamplePass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
 
-	// virtual void initialize();   (optional)
-	// virtual void finalize();     (optional)
-	// virtual bool verify() const; (optional)
+	virtual bool is_enabled() const {
+        return false;
+    }
 };
 
 } // end namespace compiler2

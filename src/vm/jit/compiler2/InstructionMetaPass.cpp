@@ -41,9 +41,6 @@ PassUsage& InstructionMetaPass::get_PassUsage(PassUsage &PU) const {
 	return PU;
 }
 
-// the address of this variable is used to identify the pass
-char InstructionMetaPass::ID = 0;
-
 // register pass
 static PassRegistry<InstructionMetaPass> X("InstructionMetaPass");
 

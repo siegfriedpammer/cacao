@@ -38,7 +38,6 @@ namespace compiler2 {
  */
 class RegisterAllocatorPass : public Pass, public memory::ManagerMixin<RegisterAllocatorPass> {
 public:
-	static char ID;
 	RegisterAllocatorPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
