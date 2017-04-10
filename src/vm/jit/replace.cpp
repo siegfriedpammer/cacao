@@ -1965,7 +1965,7 @@ void replace_handle_deoptimization_trap(u1 *pc, executionstate_t *es) {
 
 	if (topframe->method->deopttarget == NULL) {
 		/* reinvoke baseline compiler and save depotimized code for
-			   future replacements */
+		   future replacements */
 
 		LOG("reinvoke baseline compiler" << nl);
 		jit_recompile_for_deoptimization(topframe->method);
