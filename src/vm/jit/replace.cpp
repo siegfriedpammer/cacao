@@ -1683,115 +1683,23 @@ rplpoint *replace_recover_source_frame(rplpoint *rp,
 
 *******************************************************************************/
 
-sourcestate_t *replace_recover_inlined_source_state(rplpoint *rp,
-													executionstate_t *es)
+sourcestate_t *replace_recover_source_state(rplpoint *rp, executionstate_t *es)
 {
 	sourcestate_t *ss = (sourcestate_t*) DumpMemory::allocate(sizeof(sourcestate_t));
 	ss->frames = NULL;
 
-	/* recover source frames of inlined methods, if there are any */
+	/* recover the source frame of the method that triggered on-stack replacement */
 
-	rplpoint *next_rp = rp;
-
-#if 0
-	while (next_rp->parent != NULL) {
-		next_rp = replace_recover_source_frame(next_rp, es, ss);
-		assert(next_rp);
-	}
-#endif
-
-	/* recover the source frame of the first non-inlined method */
-
-	next_rp = replace_recover_source_frame(next_rp, es, ss);
+	rplpoint *rpcall = replace_recover_source_frame(rp, es, ss);
 
 	/* recover the frame of the calling method (if it's not native) so that the
 	   call can be patched if necessary */
 
-	if (next_rp != NULL) {
-		replace_recover_source_frame(next_rp, es, ss);
+	if (rpcall != NULL) {
+		replace_recover_source_frame(rpcall, es, ss);
 	}
 
 	return ss;
-}
-
-
-/* replace_map_source_state_to_deoptimized_code ********************************
-
-   Map each source frame in the given source state to a target replacement
-   point and compilation unit (considering that the correspondings methods could
-   be inlined).
-
-   IN:
-       ss...............the source state
-
-   OUT:
-       ss...............the source state, modified: The `torp` and `tocode`
-	                    fields of each source frame are set.
-
-*******************************************************************************/
-
-static void replace_map_source_state_to_deoptimized_code(sourcestate_t *ss)
-{
-	codeinfo *code = NULL;
-
-	assert(ss->frames);
-	assert(!REPLACE_IS_NATIVE_FRAME(ss->frames));
-	assert(ss->frames->down);
-	assert(!ss->frames->down->down);
-
-	/* iterate over the source frames from outermost to innermost */
-
-	for (sourceframe_t *frame = ss->frames; frame != NULL; frame = frame->down) {
-
-		assert(!REPLACE_IS_NATIVE_FRAME(frame));
-
-		LOG("map frame " << frame << nl);
-
-		/* find code for this frame */
-
-		if (frame != ss->frames) {
-			if (frame->method->deopttarget == NULL) {
-				/* reinvoke baseline compiler and save depotimized code for
-				   future replacements */
-
-				LOG("reinvoke baseline compiler" << nl);
-				jit_recompile_for_deoptimization(frame->method);
-				frame->method->deopttarget = frame->method->code;
-			}
-
-			code = frame->method->deopttarget;
-		} else {
-			code = frame->method->code;
-		}
-
-		assert(code);
-
-		/* prepare code for usage */
-
-#if 0
-		if (code_is_invalid(code)) {
-			code_unflag_invalid(code);
-			replace_deactivate_replacement_points(code);
-		}
-#endif
-
-		rplpoint *rp;
-		if (frame->down) {
-			/* we have not yet reached the topmost frame on the stack, therefore
-			   there execution currently stands at a call site */
-			rp = replace_find_replacement_point_at_call_site(code, frame);
-		} else {
-			/* we have reached the topmost frame on the stack */
-			rp = replace_find_replacement_point(code, frame);
-		}
-
-		assert(rp);
-
-		/* map this frame */
-
-		frame->tocode = code;
-		frame->torp = rp;
-	}
 }
 
 
@@ -1878,19 +1786,7 @@ static void replace_optimize(codeinfo *code, rplpoint *rp, executionstate_t *es)
 
 	DumpMemoryArea dma;
 	es->code = code;
-	sourcestate_t *ss = (sourcestate_t*) DumpMemory::allocate(sizeof(sourcestate_t));
-	ss->frames = NULL;
-
-	/* recover the source frame of the first non-inlined method */
-
-	rplpoint *rpcall = replace_recover_source_frame(rp, es, ss);
-
-	/* recover the frame of the calling method (if it's not native) so that the
-	   call can be patched if necessary */
-
-	if (rpcall != NULL) {
-		replace_recover_source_frame(rpcall, es, ss);
-	}
+	sourcestate_t *ss = replace_recover_source_state(rp, es);
 
 	sourceframe_t *topframe;
 	sourceframe_t *callerframe;
@@ -1904,6 +1800,7 @@ static void replace_optimize(codeinfo *code, rplpoint *rp, executionstate_t *es)
 	}
 
 	/* map the topmost frame to a replacement point in the optimized code */
+
 	jit_request_optimization(topframe->method);
 	topframe->tocode = jit_get_current_code(topframe->method);
 	topframe->torp = replace_find_replacement_point(topframe->tocode, topframe);
@@ -1962,7 +1859,6 @@ void replace_handle_countdown_trap(u1 *pc, executionstate_t *es)
 
 	replace_optimize(code, rp, es);
 }
-
 
 /* replace_handle_replacement_trap *********************************************
 
@@ -2046,12 +1942,45 @@ void replace_handle_deoptimization_trap(u1 *pc, executionstate_t *es) {
 	assert(rp);
 	assert(rp->flags & rplpoint::FLAG_DEOPTIMIZE);
 
-	/* replace by deoptimized code */
-
 	LOG("perform deoptimization at " << rp << nl);
-	jit_invalidate_code(method);
-	sourcestate_t *ss = replace_recover_inlined_source_state(rp, es);
-	replace_map_source_state_to_deoptimized_code(ss);
+
+	sourcestate_t *ss = replace_recover_source_state(rp, es);
+
+	sourceframe_t *topframe;
+	sourceframe_t *callerframe;
+
+	if (ss->frames->down) {
+		callerframe = ss->frames;
+		topframe = ss->frames->down;
+	} else {
+		callerframe = NULL;
+		topframe = ss->frames;
+	}
+
+	/* map the topmost frame to a replacement point in the deoptimized code */
+
+	if (topframe->method->deopttarget == NULL) {
+		/* reinvoke baseline compiler and save depotimized code for
+			   future replacements */
+
+		LOG("reinvoke baseline compiler" << nl);
+		jit_recompile_for_deoptimization(topframe->method);
+		topframe->method->deopttarget = topframe->method->code;
+		assert(topframe->method->deopttarget);
+	}
+
+	topframe->tocode = topframe->method->deopttarget;
+	topframe->torp = replace_find_replacement_point(topframe->tocode, topframe);
+
+	/* identity map the calling frame */
+
+	if (callerframe) {
+		callerframe->tocode = callerframe->fromcode;
+		callerframe->torp = callerframe->fromrp;
+	}
+
+	/* rebuild execution state */
+
 	replace_build_execution_state(ss, es);
 
 	LOG(BoldGreen << "finished deoptimization: " << reset_color << "jump into code" << nl);
