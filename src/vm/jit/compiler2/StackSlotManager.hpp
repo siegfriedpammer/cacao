@@ -91,7 +91,7 @@ public:
 	u4 get_frame_size() const;
 
 	/**
-	 * @return The number of of actual machine-level slots.
+	 * @return The number of actual machine-level slots.
 	 */
 	u4 get_number_of_machine_slots() const;
 };
