@@ -22,40 +22,56 @@
 
 */
 
+#include <algorithm>
+
 #include "vm/jit/compiler2/StackSlotManager.hpp"
 #include "vm/jit/compiler2/MachineOperand.hpp"
+#include "vm/jit/executionstate.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
 StackSlotManager::~StackSlotManager() {
-	for( StackSlotListTy::iterator i = slots.begin(),
-			e = slots.begin(); i != e; ) {
-		delete i->first;
-		delete i->second;
+	while (!slots.empty()) {
+		ManagedStackSlot *slot = slots.back();
+		slots.pop_back();
+		delete slot;
+	}
+
+	while (!argument_slots.empty()) {
+		ManagedStackSlot *slot = argument_slots.back();
+		argument_slots.pop_back();
+		delete slot;
 	}
 }
 
-ManagedStackSlot* StackSlotManager::create_ManagedStackSlot(Type::TypeID type) {
-	ManagedStackSlot* mslot = new ManagedStackSlot(this, counter, type);
-	slots.insert(std::make_pair(mslot, new StackSlot(-counter, type)));
-	counter++;
-	return mslot;
+ManagedStackSlot* StackSlotManager::create_slot(Type::TypeID type) {
+	slots.push_back(new ManagedStackSlot(this, type));
+	return slots.back();
+}
+
+ManagedStackSlot* StackSlotManager::create_argument_slot(Type::TypeID type, u4 index) {
+	number_of_machine_argument_slots = std::max(number_of_machine_argument_slots, index + 1);
+	auto slot = new ManagedStackSlot(this, type);
+	slot->set_index(index);
+	argument_slots.push_back(slot);
+	return slot;
+}
+
+void StackSlotManager::finalize() {
+	u4 next_index = number_of_machine_argument_slots;
+	for (auto slot : slots) {
+		slot->set_index(next_index++);
+	}
 }
 
 u4 StackSlotManager::get_frame_size() const {
-	// TODO compress stack
-	// for now we only us 8 byte slots
-	return slots.size() * 8;
+	return get_number_of_machine_slots() * SIZE_OF_STACKSLOT;
 }
 
-StackSlot* StackSlotManager::get_StackSlot(ManagedStackSlot* MSS) {
-	StackSlotListTy::const_iterator i = slots.find(MSS);
-	if (i == slots.end()) {
-		return NULL;
-	}
-	return i->second;
+u4 StackSlotManager::get_number_of_machine_slots() const {
+	return number_of_machine_argument_slots + slots.size();
 }
 
 } // end namespace compiler2

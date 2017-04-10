@@ -65,6 +65,9 @@ bool CodeGenPass::run(JITData &JD) {
 	MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
 	CodeMemory *CM = JD.get_CodeMemory();
 	CodeSegment &CS = CM->get_CodeSegment();
+	StackSlotManager *SSM = JD.get_StackSlotManager();
+
+	SSM->finalize();
 
 	// NOTE reverse so we see jump targets (which are not backedges) before
 	// the jump.
@@ -108,7 +111,7 @@ bool CodeGenPass::run(JITData &JD) {
 	}
 	assert(MBB != NULL);
 	// create stack frame
-	JD.get_Backend()->create_frame(CM,JD.get_StackSlotManager());
+	JD.get_Backend()->create_frame(CM,SSM);
 	// fix last block (frame start, alignment)
 	bbmap[MBB] = CS.size() - bb_start;
 	// finish

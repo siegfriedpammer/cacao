@@ -29,6 +29,7 @@
 #include "vm/types.hpp"
 
 #include "vm/jit/compiler2/alloc/map.hpp"
+#include "vm/jit/compiler2/alloc/vector.hpp"
 
 namespace cacao {
 namespace jit {
@@ -39,34 +40,59 @@ class ManagedStackSlot;
 class StackSlot;
 
 /**
- * StackSlot Manager.
+ * StackSlotManager
  *
- * The StackSlot Manger is used to manage slote for spilled registers
- * etc.
+ * The StackSlotManger is used to manage slots for spilled registers etc.
  */
 class StackSlotManager {
 private:
-	typedef alloc::map<ManagedStackSlot*,StackSlot*>::type StackSlotListTy;
-	StackSlotListTy slots;
-	s4 counter;
+	typedef alloc::vector<ManagedStackSlot*>::type SlotListTy;
+
+	SlotListTy slots;
+	SlotListTy argument_slots;
+
+	/**
+	 * The number of argument slots at machine-level.
+	 */
+	u4 number_of_machine_argument_slots;
+
 public:
-	StackSlotManager() : counter(1) {}
+	StackSlotManager() : number_of_machine_argument_slots(0) {}
 	~StackSlotManager();
 
 	/**
-	 * create a new managed stack slot
+	 * Create a ManagedStackSlot.
+	 *
+	 * @param type The slot's type.
+	 *
+	 * @return The new stack slot.
 	 */
-	ManagedStackSlot* create_ManagedStackSlot(Type::TypeID type);
+	ManagedStackSlot* create_slot(Type::TypeID type);
 
 	/**
-	 * get the size of the stack frame in bytes
+	 * Create a ManagedStackSlot for an invocation argument.
+	 *
+	 * @param type  The slot's type.
+	 * @param index The index of the invocation argument for which this slot is used.
+	 *
+	 * @return The new stack slot.
+	 */
+	ManagedStackSlot* create_argument_slot(Type::TypeID type, u4 index);
+
+	/**
+	 * Assigns each ManagedStackSlot a position in the virtual frame.
+	 */
+	void finalize();
+
+	/**
+	 * @return The size of the stack frame in bytes.
 	 */
 	u4 get_frame_size() const;
 
 	/**
-	 * get a stack slot from a managed stack slot
+	 * @return The number of actual machine-level slots.
 	 */
-	StackSlot* get_StackSlot(ManagedStackSlot* MSS);
+	u4 get_number_of_machine_slots() const;
 };
 
 } // end namespace compiler2

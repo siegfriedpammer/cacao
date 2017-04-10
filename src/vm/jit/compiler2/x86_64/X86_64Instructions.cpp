@@ -1175,9 +1175,6 @@ void CVTSD2SSInst::emit(CodeMemory* CM) const {
 
 // TODO: refactor
 void FLDInst::emit(CodeMemory *CM) const {
-	StackSlot *slot;
-
-	slot = cast_to<StackSlot>(result.op);
 	CodeSegmentBuilder code;
 	REX rex;
 	OperandSize op_size = get_op_size();
@@ -1185,27 +1182,20 @@ void FLDInst::emit(CodeMemory *CM) const {
 	switch (op_size) {
 
 	case GPInstruction::OS_32:
-	{
 		code += 0xd9;
 		break;
-	}
 	case GPInstruction::OS_64:
-	{
 		rex + REX::W;
 		code += rex;
 		code += 0xdd;
 		break;
-	}
 	default:
-	{
 		ABORT_MSG(this << ": Operand size for FLD not supported",
 			"size: " << get_op_size() * 8 << "bit");
 	}
-	}
-
 
 	// modmr + imm
-	s4 index = slot->get_index() * 8;
+	s4 index = get_stack_position(result.op);
 	if (fits_into<s1>(index)) {
 		code += get_modrm_u1(0x1,0,RBP.get_index());
 		code += (u1) 0xff & (index >> 0x00);
@@ -1217,14 +1207,10 @@ void FLDInst::emit(CodeMemory *CM) const {
 		code += (u1) 0xff & (index >> 0x18);
 	}
 	add_CodeSegmentBuilder(CM,code);
-
 }
 
 // TODO: refactor
 void FSTPInst::emit(CodeMemory *CM) const {
-	StackSlot *slot;
-
-	slot = cast_to<StackSlot>(result.op);
 	CodeSegmentBuilder code;
 	REX rex;
 	OperandSize op_size = get_op_size();
@@ -1232,27 +1218,20 @@ void FSTPInst::emit(CodeMemory *CM) const {
 	switch (op_size) {
 
 	case GPInstruction::OS_32:
-	{
 		code += 0xd9;
 		break;
-	}
 	case GPInstruction::OS_64:
-	{
 		rex + REX::W;
 		code += rex;
 		code += 0xdd;
 		break;
-	}
 	default:
-	{
 		ABORT_MSG(this << ": Operand size for FSTP not supported",
 			"size: " << get_op_size() * 8 << "bit");
 	}
-	}
-
 
 	// modmr + imm
-	s4 index = slot->get_index() * 8;
+	s4 index = get_stack_position(result.op);
 	if (fits_into<s1>(index)) {
 		code += get_modrm_u1(0x1,3,RBP.get_index());
 		code += (u1) 0xff & (index >> 0x00);
@@ -1264,8 +1243,6 @@ void FSTPInst::emit(CodeMemory *CM) const {
 		code += (u1) 0xff & (index >> 0x18);
 	}
 	add_CodeSegmentBuilder(CM,code);
-
-
 }
 
 void FFREEInst::emit(CodeMemory* CM) const {
