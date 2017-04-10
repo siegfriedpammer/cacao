@@ -1216,7 +1216,11 @@ bool SSAConstructionPass::run(JITData &JD) {
 				/* const ADR */
 			case ICMD_ACONST:
 				{
-					assert(INSTRUCTION_IS_RESOLVED(iptr));
+					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+						deoptimize(bbindex);
+						break;
+					}
+
 					Instruction *I = new CONSTInst(iptr->sx.val.anyptr, Type::ReferenceType());
 					write_variable(iptr->dst.varindex,bbindex,I);
 					M->add_Instruction(I);
