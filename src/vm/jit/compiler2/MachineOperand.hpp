@@ -28,7 +28,6 @@
 #include "vm/jit/compiler2/Type.hpp"
 #include "toolbox/OStream.hpp"
 #include "vm/types.hpp"
-#include "future/unordered_set.hpp" // for cacao::hash()
 
 #include "vm/jit/compiler2/memory/Manager.hpp"
 #include "vm/jit/compiler2/alloc/list.hpp"
@@ -510,6 +509,9 @@ typedef alloc::list<MachineOperand*>::type OperandFile;
 
 } // end namespace compiler2
 } // end namespace jit
+} // end namespace cacao
+
+namespace std {
 
 template<>
 struct hash<cacao::jit::compiler2::MachineOperand*> {
@@ -517,11 +519,6 @@ struct hash<cacao::jit::compiler2::MachineOperand*> {
 		return v->get_id();
 	}
 };
-
-
-} // end namespace cacao
-
-namespace std {
 
 template<>
 struct less<cacao::jit::compiler2::MachineOperand*> {

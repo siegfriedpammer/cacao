@@ -28,7 +28,6 @@
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/MethodC2.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
-#include "future/unordered_set.hpp"
 #include "future/unordered_map.hpp"
 #include "toolbox/Option.hpp"
 
@@ -46,7 +45,7 @@ namespace compiler2 {
  */
 class GlobalValueNumberingPass : public Pass {
 private:
-	typedef unordered_set<Instruction*> BlockTy;
+	typedef alloc::unordered_set<Instruction*>::type BlockTy;
 	typedef std::list<BlockTy*> PartitionTy;
 	typedef std::pair<BlockTy*,int> WorkListPairTy;
 	typedef std::list<WorkListPairTy*> WorkListTy;
@@ -64,7 +63,7 @@ private:
 	typedef unordered_map<double,BlockTy*> DoubleBlockMapTy;
 	typedef unordered_map<BeginInst*,BlockTy*> BBBlockMapTy;
 
-	typedef unordered_set<Instruction*> TouchedInstListTy;
+	typedef alloc::unordered_set<Instruction*>::type TouchedInstListTy;
 	typedef unordered_map<BlockTy*,TouchedInstListTy*> Block2TouchedInstListMapTy;
 
 	int max_arity;
