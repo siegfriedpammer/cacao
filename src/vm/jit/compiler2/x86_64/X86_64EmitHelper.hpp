@@ -28,6 +28,7 @@
 #include "vm/jit/compiler2/x86_64/X86_64Register.hpp"
 #include "vm/jit/compiler2/CodeMemory.hpp"
 #include "vm/jit/compiler2/alloc/deque.hpp"
+#include "vm/jit/compiler2/StackSlotManager.hpp"
 #include "vm/types.hpp"
 #include "toolbox/logging.hpp"
 
@@ -228,6 +229,18 @@ inline u1 get_modrm_reg2reg(X86_64Register *reg, X86_64Register *rm) {
 }
 inline u1 get_modrm_1reg(u1 reg, X86_64Register *rm) {
 	return get_modrm_u1(0x3,reg,rm->get_index());
+}
+
+int get_stack_position(MachineOperand *op) {
+	if (op->is_StackSlot()) {
+		StackSlot *slot = op->to_StackSlot();
+		return slot->get_index() * 8;
+	} else if (op->is_ManagedStackSlot()) {
+		ManagedStackSlot *slot = op->to_ManagedStackSlot();
+		StackSlotManager *SSM = slot->get_parent();
+		return -(SSM->get_number_of_machine_slots() - slot->get_index()) * 8;
+	}
+	assert(false && "Not a stackslot");
 }
 
 class CodeSegmentBuilder {
@@ -521,8 +534,7 @@ struct InstructionEncoding {
 				}
 			}
 			else if (src->is_stackslot()) {
-				StackSlot *src_slot = cast_to<StackSlot>(src);
-				s4 index = src_slot->get_index() * 8;
+				s4 index = get_stack_position(src);
 				u1 rex = get_rex(dst_reg,NULL,op_size == GPInstruction::OS_64);
 				if (rex != 0x40)
 					code += rex;
@@ -586,8 +598,7 @@ struct InstructionEncoding {
 			}
 		}
 		else if (dst->is_stackslot()) {
-			StackSlot *dst_slot = cast_to<StackSlot>(dst);
-			s4 index = dst_slot->get_index() * 8;
+			s4 index = get_stack_position(dst);
 			if (src->is_Register()) {
 				X86_64Register *src_reg = cast_to<X86_64Register>(src);
 				u1 rex = get_rex(src_reg,NULL,op_size == GPInstruction::OS_64);
@@ -615,7 +626,7 @@ struct InstructionEncoding {
 			}
 			else {
 				ABORT_MSG("Operand(s) not supported",
-						"dst: " << dst_slot << " src: " << src << " op_code: " << primary_opcode);
+						"dst: " << dst << " src: " << src << " op_code: " << primary_opcode);
 			}
 		}
 		else if (dst->is_Address()) {

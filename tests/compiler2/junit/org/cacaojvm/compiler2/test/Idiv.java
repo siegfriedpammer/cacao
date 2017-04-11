@@ -24,6 +24,7 @@
 package org.cacaojvm.compiler2.test;
 
 import org.junit.Test;
+import org.junit.Ignore;
 
 public class Idiv extends Compiler2TestBase {
 
@@ -67,14 +68,11 @@ public class Idiv extends Compiler2TestBase {
 		testResultEqual("idiv", "(II)I", 0, 5);
 	}
 
-	/**
-	 * This test will not succeed unless exceptions are handled
-	 */
-	/*
+	@Ignore("The test framework does not yet pass on exceptions properly")
 	@Test
 	public void test8() {
 		testResultEqual("idiv", "(II)I", 5, 0);
-	}*/
+	}
 
 	/**
 	 * This is the method under test.

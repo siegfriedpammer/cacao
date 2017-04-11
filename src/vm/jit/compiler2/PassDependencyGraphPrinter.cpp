@@ -124,8 +124,8 @@ public:
 } // end anonymous namespace
 
 // run pass
-void print_PassDependencyGraph(PassManager &PM) {
-	GraphPrinter<PassDependencyGraphPrinter>::print("PassDependencyGraph.dot", PassDependencyGraphPrinter(PM));
+void print_PassDependencyGraph() {
+	GraphPrinter<PassDependencyGraphPrinter>::print("PassDependencyGraph.dot", PassDependencyGraphPrinter(PassManager::get()));
 }
 
 } // end namespace cacao

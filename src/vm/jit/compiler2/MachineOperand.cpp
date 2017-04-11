@@ -55,10 +55,6 @@ OStream& operator<<(OStream &OS, const MachineOperandType &MO) {
 }
 #endif
 
-StackSlot* ManagedStackSlot::to_StackSlot() {
-	return parent->get_StackSlot(this);
-}
-
 Immediate::Immediate(CONSTInst *I)
 		: MachineOperand(ImmediateID,I->get_type()) {
 	switch (get_type()) {

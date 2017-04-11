@@ -228,7 +228,9 @@ MachineCode* compile(methodinfo* m)
 
 	/* run the compiler2 passes */
 
-	PassManager::get().runPasses(JD);
+	PassRunner runner;
+	runner.runPasses(JD);
+	
 	assert(code);
 	assert(code->entrypoint);
 

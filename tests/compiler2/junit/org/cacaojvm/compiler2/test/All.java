@@ -80,6 +80,7 @@ import org.junit.runners.Suite;
 	I2d.class,
 	Idiv.class,
 	Irem.class,
+	Ishl.class,
 
 	InvokeStatic.class,
 	InvokeSpecial.class,
@@ -87,6 +88,7 @@ import org.junit.runners.Suite;
 	InvokeInterface.class,
 
 	New.class,
+	InstanceOf.class,
 
 	MatcherBenchmarks.class
 
