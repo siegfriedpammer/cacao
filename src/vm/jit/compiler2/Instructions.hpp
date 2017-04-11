@@ -83,7 +83,7 @@ public:
 };
 
 /**
- * TODO not a real Instruction... hmm
+ * Base type of Instructions that compute a condition.
  */
 class CondInst {
 protected:
@@ -93,31 +93,42 @@ public:
 	Conditional::CondID get_condition() const { return cond; }
 };
 
-/// An Instruction that is aware of the source state it corresponds to.
+/**
+ * Base type of Instructions that have to be mapped to a SourceStateInst.
+ */
 class SourceStateAwareInst {
 private:
 
-	/// The source state that corresponds to this Instruction.
+	/**
+	 * The source state that corresponds to this Instruction.
+	 */
 	SourceStateInst *source_state;
 
-	/// Set the source state that corresonds to this instruction.
-	///
-	/// This will be done automatically by the SourceStateAttachmentPass.
-	///
-	/// @param s The source state.
-	void set_source_state(SourceStateInst *s) {
-		assert(s != NULL);
-		assert(source_state == NULL);
-		source_state = s;
+	/**
+	 * Set the source state that corresponds to this Instruction.
+	 *
+	 * This will be done automatically by the SourceStateAttachmentPass.
+	 *
+	 * @param source_state The source state.
+	 */
+	void set_source_state(SourceStateInst *source_state) {
+		assert(source_state != NULL);
+		assert(this->source_state == NULL);
+		this->source_state = source_state;
 	}
 
 public:
 
+	/**
+	 * Construct a SourceStateAwareInst.
+	 */
 	SourceStateAwareInst() : source_state(NULL) {}
 
-	/// Get the source state that corresponds to this Instruction.
-	///
-	/// @return The source state if available, NULL otherwise.
+	/**
+	 * Get the source state that corresponds to this Instruction.
+	 *
+	 * @return The source state if available, NULL otherwise.
+	 */
 	SourceStateInst *get_source_state() const { return source_state; }
 
 	virtual ~SourceStateAwareInst() {};
@@ -126,7 +137,7 @@ public:
 };
 
 /**
- * This Instruction mark the start of a basic block
+ * This Instruction marks the start of a basic block.
  */
 class BeginInst : public Instruction {
 public:
@@ -188,7 +199,7 @@ public:
 };
 
 /**
- * this stores a reference to a begin instruction
+ * This stores a reference to a BeginInst.
  */
 class BeginInstRef {
 private:
@@ -223,7 +234,7 @@ inline OStream& operator<<(OStream &OS, const BeginInstRef &BIR) {
 }
 
 /**
- * This Instruction mark the end of a basic block
+ * This Instruction marks the end of a basic block.
  */
 class EndInst : public Instruction {
 public:
@@ -320,12 +331,61 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/**
+ * CHECKNULLInst.
+ */
 class CHECKNULLInst : public UnaryInst, public SourceStateAwareInst {
+private:
+
+	/**
+	 * Indicates whether the null-check is implicit.
+	 */
+	bool implicit;
+
 public:
-	explicit CHECKNULLInst(Value *S1) : UnaryInst(CHECKNULLInstID, Type::VoidTypeID, S1) {}
+
+	/**
+	 * Construct a CHECKNULLInst.
+	 *
+	 * @param objectref The object reference to check.
+	 * @param implicit  Whether the null-check is implicit (false by default).
+	 */
+	explicit CHECKNULLInst(Value *objectref, bool implicit = false)
+			: UnaryInst(CHECKNULLInstID, Type::VoidTypeID, objectref),
+			implicit(implicit) {
+		assert(objectref != NULL);
+		append_op(objectref);
+	}
+
+	/**
+	 * Make the null-check implicit or explicit.
+	 *
+	 * @param implicit True to make the null-check implicit, false otherwise.
+	 */
+	void set_implicit(bool implicit) {
+		this->implicit = implicit;
+	}
+
+	/**
+	 * @return True if the null-check is implicit, false otherwise.
+	 */
+	bool is_implicit() const { return implicit; }
+
+	/**
+	 * Conversion method.
+	 */
 	virtual CHECKNULLInst* to_CHECKNULLInst() { return this; }
+
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
 	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * @see Instruction::accept()
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+
 	virtual ~CHECKNULLInst() {};
 };
 
@@ -896,7 +956,9 @@ public:
 class BUILTINInst : public INVOKEInst {
 private:
 
-	/// A pointer to the function that implements the builtin functionality.
+	/**
+	 * A pointer to the function that implements the builtin functionality.
+	 */
 	u1 *address;
 
 public:
@@ -1030,9 +1092,20 @@ public:
 
 class RETURNInst : public EndInst {
 public:
-	/// void return
+
+	/**
+	 * Construct a RETURNInst that ends a void method.
+	 *
+	 * @param begin The corresponding BeginInst.
+	 */
 	explicit RETURNInst(BeginInst *begin) : EndInst(RETURNInstID, begin) {}
-	/// value return
+
+	/**
+	 * Construct a RETURNInst that ends a method by returning @p S1.
+	 *
+	 * @param begin The corresponding BeginInst.
+	 * @param S1    The value to return.
+	 */
 	explicit RETURNInst(BeginInst *begin, Value* S1) : EndInst(RETURNInstID, begin) {
 		append_op(S1);
 		set_type(S1->get_type());
@@ -1104,33 +1177,43 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-/// Provides a mapping from HIR values to baseline IR variables.
-///
-/// In order to reconstruct the source state during on-stack replacement, it
-/// is necessary to be able to reconstruct the machine-independent source state
-/// from the current machine-dependent execution state. Due to the generality of
-/// the baseline compiler's IR the on-stack replacement mechanism represents the
-/// source state in terms of the baseline IR variables. Hence, it is necessary
-/// to be able to map compiler2-specific HIR values to baseline IR variables. A
-/// SourceStateInst provides such mapping information for a single program
-/// location which is identified by the (machine-independent) ID of the
-/// corresponding baseline IR instruction.
+/**
+ * Provides a mapping from HIR values to baseline IR variables.
+
+ * In order to reconstruct the source state during on-stack replacement, it
+ * is necessary to be able to reconstruct the machine-independent source state
+ * from the current machine-dependent execution state. Due to the generality of
+ * the baseline compiler's IR the on-stack replacement mechanism represents the
+ * source state in terms of the baseline IR variables. Hence, it is necessary
+ * to be able to map compiler2-specific HIR values to baseline IR variables. A
+ * SourceStateInst provides such mapping information for a single program
+ * location which is identified by the (machine-independent) ID of the
+ * corresponding baseline IR instruction.
+ */
 class SourceStateInst : public Instruction {
 public:
 
-	/// Maps a HIR value to a baseline IR javalocal index.
+	/**
+	 * Maps a HIR value to a baseline IR javalocal index.
+	 */
 	struct Javalocal {
 
-		/// The value that is mapped to a baseline IR javalocal index.
+		/**
+		 * The value that is mapped to a baseline IR javalocal index.
+		 */
 		Value *value;
 
-		/// A baseline IR javalocal index.
+		/**
+		 * A baseline IR javalocal index.
+		 */
 		std::size_t index;
 
-		/// Construct a Javalocal that maps @p value to @p index
-		///
-		/// @param value The Value that is mapped to @p index.
-		/// @param index The javalocal index that corresponds to @p value.
+		/**
+		 * Construct a Javalocal that maps @p value to @p index
+		 *
+		 * @param value The Value that is mapped to @p index.
+		 * @param index The javalocal index that corresponds to @p value.
+		 */
 		explicit Javalocal(Value *value, std::size_t index) : value(value), index(index) {}
 	};
 
@@ -1140,24 +1223,34 @@ private:
 	typedef alloc::vector<Value*>::type StackvarListTy;
 	typedef alloc::vector<Value*>::type ParamListTy;
 
-	/// The program location corresponding to the provided mapping information.
-	///
-	/// The mappings of HIR values to baseline IR variables, which are given by
-	/// this SourceStateInst, are bound to this exact program location. This
-	/// location is given in terms of an ID of the corresponding baseline IR
-	/// instruction.
+	/**
+	 * The program location corresponding to the provided mapping information.
+	 *
+	 * The mappings of HIR values to baseline IR variables, which are given by
+	 * this SourceStateInst, are bound to this exact program location. This
+	 * location is given in terms of an ID of the corresponding baseline IR
+	 * instruction.
+	 */
 	s4 source_location;
 
-	/// The state of the enclosing method in case we are in an inlined region.
+	/**
+	 * The state of the enclosing method in case we are in an inlined region.
+	 */
 	SourceStateInst *parent;
 
-	/// List of mappings from HIR values to baseline IR javalocal indices.
+	/**
+	 * List of mappings from HIR values to baseline IR javalocal indices.
+	 */
 	JavalocalListTy javalocals;
 
-	/// List of HIR values that correspond to baseline IR stack variables.
+	/**
+	 * List of HIR values that correspond to baseline IR stack variables.
+	 */
 	StackvarListTy stackvars;
 
-	/// List of HIR values that correspond to method parameters.
+	/**
+	 * List of HIR values that correspond to method parameters.
+	 */
 	ParamListTy params;
 
 public:
@@ -1166,12 +1259,14 @@ public:
 	typedef StackvarListTy::const_iterator const_stackvar_iterator;
 	typedef ParamListTy::const_iterator const_param_iterator;
 
-	/// Construct a SourceStateInst.
-	///
-	/// @param source_location The ID of the baseline IR instruction at the
-	///                        mapped program location.
-	/// @param hir_location    The HIR instruction that corresponds to the
-	///                        given @p source_location.
+	/**
+	 * Construct a SourceStateInst.
+	 *
+	 * @param source_location The ID of the baseline IR instruction at the
+	 *                        mapped program location.
+	 * @param hir_location    The HIR instruction that corresponds to the
+	 *                        given @p source_location.
+	 */
 	explicit SourceStateInst(s4 source_location, Instruction *hir_location) :
 			Instruction(SourceStateInstID, Type::VoidTypeID),
 			source_location(source_location) {
@@ -1185,36 +1280,48 @@ public:
 		return begin;
 	}
 
-	/// Get the program location that corresponds to the given mappings.
+	/**
+	 * @return The program location that corresponds to the given mappings.
+	 */
 	s4 get_source_location() const { return source_location; }
 
-	/// The state of the enclosing method in case we are in an inlined region.
+	/**
+	 * @return The state of the enclosing method in case we are in an inlined region.
+	 */
 	SourceStateInst *get_parent() const { return parent; };
 
-	/// Set state of the enclosing method in case we are in an inlined region.
-	///
- 	/// @param new_parent The corresponding source state.
+	/**
+	 * Set state of the enclosing method in case we are in an inlined region.
+	 *
+	 * @param new_parent The corresponding source state.
+	 */
 	void set_parent(SourceStateInst *new_parent) { parent = new_parent; }
 
-	/// Append a new mapping from a HIR Value to a baseline IR javalocal index.
-	///
-	/// @param local The Javalocal to append.
+	/**
+	 * Append a new mapping from a HIR Value to a baseline IR javalocal index.
+	 * 
+	 * @param local The Javalocal to append.
+	 */
 	void append_javalocal(Javalocal local) {
 		append_op(local.value);
 		javalocals.push_back(local);
 	}
 
-	/// Append a new value to corresponds to a baseline IR stack variable.
-	///
-	/// @param value The value to append.
+	/**
+	 * Append a new value to corresponds to a baseline IR stack variable.
+	 *
+	 * @param value The value to append.
+	 */
 	void append_stackvar(Value *value) {
 		append_op(value);
 		stackvars.push_back(value);
 	}
 
-	/// Append a new value to corresponds to a method parameter.
-	///
-	/// @param value The value to append.
+	/**
+	 * Append a new value to corresponds to a method parameter.
+	 *
+	 * @param value The value to append.
+	 */
 	void append_param(Value *value) {
 		append_op(value);
 		params.push_back(value);
@@ -1248,14 +1355,18 @@ public:
 	virtual bool verify() const { return true; }
 };
 
-/// A point where the method can be entered through on-stack replacement.
+/**
+ * A point where the method can be entered through on-stack replacement.
+ */
 class ReplacementEntryInst : public Instruction {
 public:
 
-	/// Construct a ReplacementEntryInst.
-	///
-	/// @param begin        The corresponding BeginInst.
-	/// @param source_state The corresponding source state.
+	/**
+	 * Construct a ReplacementEntryInst.
+	 *
+	 * @param begin        The corresponding BeginInst.
+	 * @param source_state The corresponding source state.
+	 */
 	explicit ReplacementEntryInst(BeginInst *begin, SourceStateInst *source_state)
 			: Instruction(ReplacementEntryInstID, Type::VoidTypeID) {
 		assert(begin);
@@ -1264,7 +1375,9 @@ public:
 		append_dep(source_state);
 	}
 
-	/// Get the BeginInst this ReplacementEntryInst is attached to.
+	/**
+	 * Get the BeginInst this ReplacementEntryInst is attached to.
+	 */
 	virtual BeginInst* get_BeginInst() const {
 		assert(dep_size() >= 1);
 		BeginInst *begin = (*dep_begin())->to_BeginInst();
@@ -1272,12 +1385,14 @@ public:
 		return begin;
 	}
 
-	/// Get the source state at this ReplacementEntryInst.
-	///
-	/// The source state is used to reconstruct the stack frame for the
-	/// optimized code. Since optimized code is currently only entered at method
-	/// entry, the information that is captured by the source state is
-	/// sufficient for this task.
+	/**
+	 * Get the source state at this ReplacementEntryInst.
+	 *
+	 * The source state is used to reconstruct the stack frame for the
+	 * optimized code. Since optimized code is currently only entered at method
+	 * entry, the information that is captured by the source state is
+	 * sufficient for this task.
+	 */
 	SourceStateInst* get_source_state() const {
 		assert(dep_size() >= 2);
 		SourceStateInst *source_state = (*(++dep_begin()))->to_SourceStateInst();
@@ -1290,28 +1405,34 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-/// Represents a speculative assumption that has to be checked at run-time.
-///
-/// Optimizations that rely on speculative assumptions may generate
-/// AssumptionInst in order to avoid the illegal execution of speculatively
-/// transformed program regions. In case a speculation fails at run-time,
-/// deoptimization will be triggered to transfer execution back to an
-/// unoptimized version of this method.
+/**
+ * Represents a speculative assumption that has to be checked at run-time.
+ *
+ * Optimizations that rely on speculative assumptions may generate
+ * AssumptionInst in order to avoid the illegal execution of speculatively
+ * transformed program regions. In case a speculation fails at run-time,
+ * deoptimization will be triggered to transfer execution back to an
+ * unoptimized version of this method.
+ */
 class AssumptionInst : public Instruction, public SourceStateAwareInst {
 private:
 
-	/// The entry to the region of code that relies on this assumption.
+	/**
+	 * The entry to the region of code that relies on this assumption.
+	 */
 	BeginInst *guarded_block;
 
 public:
 
-	/// Construct an AssumptionInst.
-	///
-	/// @param condition     A boolean HIR expression that encodes the
-	///                      speculative assumption to check.
-	/// @param guarded_block The entry to the region of the code that relies on
-	///                      this assumption and thus needs to be guarded
-	///                      against illegal execution.
+	/**
+	 * Construct an AssumptionInst.
+	 *
+	 * @param condition     A boolean HIR expression that encodes the
+	 *                      speculative assumption to check.
+	 * @param guarded_block The entry to the region of the code that relies on
+	 *                      this assumption and thus needs to be guarded
+	 *                      against illegal execution.
+	 */
 	explicit AssumptionInst(Value *condition, BeginInst *guarded_block)
 			: Instruction(AssumptionInstID, Type::VoidTypeID) {
 		assert(condition);
@@ -1321,7 +1442,9 @@ public:
 		guarded_block->append_dep(this);
 	}
 
-	/// Get the entry to the region of code that relies on this assumption.
+	/**
+	 * Get the entry to the region of code that relies on this assumption.
+	 */
 	virtual BeginInst *get_guarded_block() const {
 		return guarded_block;
 	}
@@ -1331,13 +1454,17 @@ public:
 	virtual ~AssumptionInst() {};
 };
 
-/// Transfers execution back to an unoptimized version of the method.
+/**
+ * Transfers execution back to an unoptimized version of the method.
+ */
 class DeoptimizeInst : public EndInst, public SourceStateAwareInst {
 public:
 
-	/// Construct a DeoptimizeInst.
-	///
-	/// @param begin The corresponding BeginInst.
+	/**
+	 * Construct a DeoptimizeInst.
+	 *
+	 * @param begin The corresponding BeginInst.
+	 */
 	explicit DeoptimizeInst(BeginInst *begin)
 			: EndInst(DeoptimizeInstID, begin) {
 		set_type(Type::VoidTypeID);
