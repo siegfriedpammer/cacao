@@ -33,8 +33,9 @@
 
 #if defined(ENABLE_MEMORY_MANAGER_STATISTICS)
 
+#include <unordered_map>
+
 #include "vm/statistics.hpp"
-#include "future/unordered_map.hpp"
 
 namespace cacao {
 namespace jit {
@@ -46,8 +47,8 @@ STAT_DECLARE_SUM_GROUP(comp2_allocated)
 STAT_DECLARE_SUM_GROUP(comp2_deallocated)
 STAT_DECLARE_SUM_GROUP(comp2_max)
 
-inline unordered_map<void*,std::size_t>& mem_map() {
-	static unordered_map<void*,std::size_t> mm;
+inline std::unordered_map<void*,std::size_t>& mem_map() {
+	static std::unordered_map<void*,std::size_t> mm;
 	return mm;
 }
 

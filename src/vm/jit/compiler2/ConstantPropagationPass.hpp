@@ -26,7 +26,7 @@
 #define _JIT_COMPILER2_CONSTANTPROPAGATIONPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
-#include "future/unordered_map.hpp"
+#include "vm/jit/compiler2/alloc/unordered_map.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "toolbox/Option.hpp"
 
@@ -52,8 +52,8 @@ class Instruction;
  */
 class ConstantPropagationPass : public Pass {
 private:
-	typedef unordered_map<Instruction*,bool> InstBoolMapTy;
-	typedef unordered_map<Instruction*,std::size_t> InstIntMapTy;
+	typedef alloc::unordered_map<Instruction*,bool>::type InstBoolMapTy;
+	typedef alloc::unordered_map<Instruction*,std::size_t>::type InstIntMapTy;
 	typedef std::list<Instruction*> WorkListTy;
 
 	/**
