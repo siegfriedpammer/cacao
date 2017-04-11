@@ -31,7 +31,7 @@
 #include "vm/jit/compiler2/ScheduleClickPass.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
 
-#include "future/memory.hpp"
+#include <memory>
 
 MM_MAKE_NAME(MachineInstructionSchedulingPass)
 
@@ -70,8 +70,7 @@ private:
       virtual bool verify() const;
    };
 
-   shared_ptr<ListSchedulingPass> IS;
-
+   std::shared_ptr<ListSchedulingPass> IS;
 };
 
 } // end namespace compiler2

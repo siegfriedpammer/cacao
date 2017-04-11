@@ -178,7 +178,7 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 	GlobalSchedule* GS = get_Pass<ScheduleClickPass>();
 
 #if !PATTERN_MATCHING
-	IS = shared_ptr<ListSchedulingPass>(new ListSchedulingPass(GS));
+	IS = std::shared_ptr<ListSchedulingPass>(new ListSchedulingPass(GS));
 	IS->run(JD);
 #endif
 
