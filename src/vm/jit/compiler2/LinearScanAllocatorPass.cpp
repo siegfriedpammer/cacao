@@ -1235,7 +1235,7 @@ bool LinearScanAllocatorPass::verify() const {
 	for(MIIterator i = MIS->mi_begin(), e = MIS->mi_end(); i != e ; ++i) {
 		MachineInstruction *MI = *i;
 		// result virtual
-		if (is_virtual(MI->get_result()) || cacao::any_of(MI->begin(), MI->end(), is_virtual)) {
+		if (is_virtual(MI->get_result()) || std::any_of(MI->begin(), MI->end(), is_virtual)) {
 			ERROR_MSG("Unallocated Operand!","Instruction " << *MI << " contains unallocated operands.");
 			return false;
 		}

@@ -47,7 +47,6 @@ LDADD=libgtest_main.a \
 
 # test cases
 TESTS = sample \
-	future_algorithm \
 	future_unordered \
 	logging_test \
 	buffer_test \
