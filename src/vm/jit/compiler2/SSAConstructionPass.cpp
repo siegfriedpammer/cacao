@@ -675,10 +675,15 @@ bool SSAConstructionPass::run(JITData &JD) {
 				}
 			case ICMD_ARRAYLENGTH:
 				{
-					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
-					Instruction *result = new ARRAYLENGTHInst(s1);
-					write_variable(iptr->dst.varindex,bbindex,result);
-					M->add_Instruction(result);
+					Value *arrayref = read_variable(iptr->s1.varindex, bbindex);
+
+					Instruction *null_check = new CHECKNULLInst(arrayref, false);
+					M->add_Instruction(null_check);
+
+					Instruction *array_length = new ARRAYLENGTHInst(arrayref);
+					array_length->append_dep(null_check);
+					M->add_Instruction(array_length);
+					write_variable(iptr->dst.varindex, bbindex, array_length);
 					break;
 				}
 			case ICMD_I2L:
@@ -1067,8 +1072,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_IASTORECONST:
 			case ICMD_LASTORECONST:
 				{
-					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
-					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
+					Value *arrayref = read_variable(iptr->s1.varindex, bbindex);
+					Value *index = read_variable(iptr->sx.s23.s2.varindex,bbindex);
 					Instruction *konst;
 					Type::TypeID type;
 					switch (iptr->opc) {
@@ -1076,6 +1081,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 						type = Type::IntTypeID;
 						konst = new CONSTInst(iptr->sx.s23.s3.constval,Type::IntType());
 						break;
+					// TODO Investigate why the following cases are not used.
 					#if 0
 					case ICMD_BASTORECONST:
 						type = Type::ByteTypeID;
@@ -1104,17 +1110,25 @@ bool SSAConstructionPass::run(JITData &JD) {
 						konst = NULL;
 					}
 					M->add_Instruction(konst);
+
 					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
 					assert(state_change);
-					
-					Instruction *ref = new AREFInst(type, s1, s2);
-					M->add_Instruction(ref);
-					Instruction *result = new ASTOREInst(type, ref, konst, BB[bbindex], state_change);
-					write_variable(global_state,bbindex,result);
-					M->add_Instruction(result);
-					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(type, s1, s2);
-					ref->append_dep(boundscheck);
+
+					Instruction *null_check = new CHECKNULLInst(arrayref, false);
+					M->add_Instruction(null_check);
+
+					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(type, arrayref, index);
+					boundscheck->append_dep(null_check);
 					M->add_Instruction(boundscheck);
+
+					Instruction *ref = new AREFInst(type, arrayref, index);
+					ref->append_dep(null_check);
+					ref->append_dep(boundscheck);
+					M->add_Instruction(ref);
+
+					Instruction *array_store = new ASTOREInst(type, ref, konst, BB[bbindex], state_change);
+					M->add_Instruction(array_store);
+					write_variable(global_state, bbindex, array_store);
 				}
 				break;
 			case ICMD_ICONST:
@@ -1242,12 +1256,16 @@ bool SSAConstructionPass::run(JITData &JD) {
 
 					Type::TypeID type = convert_to_typeid(fmiref->parseddesc.fd->type);
 					Value *objectref = read_variable(iptr->s1.varindex,bbindex);
-					Instruction *getfield = new GETFIELDInst(type, objectref, field, BB[bbindex], state_change);
 
+					CHECKNULLInst *null_check = new CHECKNULLInst(objectref, true);
+					M->add_Instruction(null_check);
+
+					Instruction *getfield = new GETFIELDInst(type, objectref, field, BB[bbindex],
+							state_change);
+					getfield->append_dep(null_check);
+					M->add_Instruction(getfield);
 					write_variable(iptr->dst.varindex, bbindex, getfield);
 					write_variable(global_state, bbindex, getfield);
-
-					M->add_Instruction(getfield);
 				}
 				break;
 			case ICMD_PUTFIELD:        /* 2 -> 0 */
@@ -1277,12 +1295,14 @@ bool SSAConstructionPass::run(JITData &JD) {
 						value = read_variable(iptr->sx.s23.s2.varindex, bbindex);
 					}
 
+					CHECKNULLInst *null_check = new CHECKNULLInst(objectref, true);
+					M->add_Instruction(null_check);
+
 					Instruction *putfield = new PUTFIELDInst(objectref, value, field, BB[bbindex],
 							state_change);
-
-					write_variable(global_state, bbindex, putfield);
-
+					putfield->append_dep(null_check);
 					M->add_Instruction(putfield);
+					write_variable(global_state, bbindex, putfield);
 				}
 				break;
 			case ICMD_GETSTATIC:       /* 0 -> 1 */
@@ -1372,9 +1392,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_FASTORE:
 			case ICMD_AASTORE:
 				{
-					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
-					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
-					Value *s3 = read_variable(iptr->sx.s23.s3.varindex,bbindex);
+					Value *arrayref = read_variable(iptr->s1.varindex, bbindex);
+					Value *index = read_variable(iptr->sx.s23.s2.varindex,bbindex);
+					Value *value = read_variable(iptr->sx.s23.s3.varindex,bbindex);
+
 					Type::TypeID type;
 					switch (iptr->opc) {
 					case ICMD_BASTORE:
@@ -1401,19 +1422,29 @@ bool SSAConstructionPass::run(JITData &JD) {
 					case ICMD_DASTORE:
 						type = Type::DoubleTypeID;
 						break;
-					default: assert(0);
+					default:
+						assert(0);
 						type = Type::VoidTypeID;
 					}
+
 					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
 					assert(state_change);
-					Instruction *ref = new AREFInst(s3->get_type(), s1, s2);
-					M->add_Instruction(ref);
-					Instruction *result = new ASTOREInst(type, ref, s3, BB[bbindex], state_change);
-					write_variable(global_state,bbindex,result);
-					M->add_Instruction(result);
-					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(type, s1, s2);
-					ref->append_dep(boundscheck);
+
+					Instruction *null_check = new CHECKNULLInst(arrayref, false);
+					M->add_Instruction(null_check);
+
+					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(type, arrayref, index);
+					boundscheck->append_dep(null_check);
 					M->add_Instruction(boundscheck);
+
+					Instruction *ref = new AREFInst(value->get_type(), arrayref, index);
+					ref->append_dep(null_check);
+					ref->append_dep(boundscheck);
+					M->add_Instruction(ref);
+
+					Instruction *array_store = new ASTOREInst(type, ref, value, BB[bbindex], state_change);
+					M->add_Instruction(array_store);
+					write_variable(global_state, bbindex, array_store);
 				}
 				break;
 			case ICMD_IALOAD:
@@ -1425,8 +1456,8 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_FALOAD:
 			case ICMD_AALOAD:
 				{
-					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
-					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
+					Value *arrayref = read_variable(iptr->s1.varindex, bbindex);
+					Value *index = read_variable(iptr->sx.s23.s2.varindex,bbindex);
 					Type::TypeID type;
 					switch (iptr->opc) {
 					case ICMD_BALOAD:
@@ -1453,20 +1484,30 @@ bool SSAConstructionPass::run(JITData &JD) {
 					case ICMD_DALOAD:
 						type = Type::DoubleTypeID;
 						break;
-					default: assert(0);
+					default:
+						assert(0);
 						type = Type::VoidTypeID;
 					}
+
 					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
 					assert(state_change);
-					Instruction *ref = new AREFInst(type, s1, s2);
-					M->add_Instruction(ref);
-					Instruction *result = new ALOADInst(type, ref, BB[bbindex], state_change);
-					write_variable(iptr->dst.varindex,bbindex,result);
-					write_variable(global_state,bbindex,result);
-					M->add_Instruction(result);
-					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(type, s1, s2);
-					ref->append_dep(boundscheck);
+
+					Instruction *null_check = new CHECKNULLInst(arrayref, false);
+					M->add_Instruction(null_check);
+
+					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(type, arrayref, index);
+					boundscheck->append_dep(null_check);
 					M->add_Instruction(boundscheck);
+
+					Instruction *ref = new AREFInst(type, arrayref, index);
+					ref->append_dep(null_check);
+					ref->append_dep(boundscheck);
+					M->add_Instruction(ref);
+
+					Instruction *array_load = new ALOADInst(type, ref, BB[bbindex], state_change);
+					M->add_Instruction(array_load);
+					write_variable(iptr->dst.varindex, bbindex, array_load);
+					write_variable(global_state, bbindex, array_load);
 				}
 				break;
 			case ICMD_RET:
@@ -1501,16 +1542,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 				deoptimize(bbindex);
 				break;
 			case ICMD_INVOKESPECIAL:
-				{
-					assert(INSTRUCTION_MUST_CHECK(iptr));
-
-					s4 receiver_index = *(iptr->sx.s23.s2.args);
-					Value *receiver = read_variable(receiver_index,bbindex);
-					CHECKNULLInst *check_null = new CHECKNULLInst(receiver);
-					M->add_Instruction(check_null);
-					write_variable(global_state, bbindex, check_null);
-				}
-				// fall through
 			case ICMD_INVOKEVIRTUAL:
 			case ICMD_INVOKEINTERFACE:
 			case ICMD_INVOKESTATIC:
@@ -1566,26 +1597,62 @@ bool SSAConstructionPass::run(JITData &JD) {
 					assert(state_change);
 
 					// Create the actual instruction for the invocation.
-					INVOKEInst *I = NULL;
+					INVOKEInst *invoke = NULL;
 					int32_t argcount = iptr->s1.argcount;
 					switch (iptr->opc) {
 					case ICMD_INVOKESPECIAL:
-						I = new INVOKESPECIALInst(type,argcount,fmiref,BB[bbindex],state_change);
+						{
+							assert(INSTRUCTION_MUST_CHECK(iptr));
+
+							s4 receiver_index = *(iptr->sx.s23.s2.args);
+							Value *receiver = read_variable(receiver_index,bbindex);
+							Instruction *null_check = new CHECKNULLInst(receiver, false);
+							M->add_Instruction(null_check);
+
+							invoke = new INVOKESPECIALInst(type,argcount,fmiref,BB[bbindex],state_change);
+							invoke->append_dep(null_check);
+						}
 						break;
 					case ICMD_INVOKEVIRTUAL:
-						I = new INVOKEVIRTUALInst(type,argcount,fmiref,BB[bbindex],state_change);
+						{
+							s4 receiver_index = *(iptr->sx.s23.s2.args);
+							Value *receiver = read_variable(receiver_index,bbindex);
+							Instruction *null_check = new CHECKNULLInst(receiver, false);
+							M->add_Instruction(null_check);
+
+							invoke = new INVOKEVIRTUALInst(type,argcount,fmiref,BB[bbindex],state_change);
+							invoke->append_dep(null_check);
+						}
 						break;
 					case ICMD_INVOKESTATIC:
-						I = new INVOKESTATICInst(type,argcount,fmiref,BB[bbindex],state_change);
+						{
+							invoke = new INVOKESTATICInst(type,argcount,fmiref,BB[bbindex],state_change);
+						}
 						break;
 					case ICMD_INVOKEINTERFACE:
-						I = new INVOKEINTERFACEInst(type,argcount,fmiref,BB[bbindex],state_change);
+						{
+							s4 receiver_index = *(iptr->sx.s23.s2.args);
+							Value *receiver = read_variable(receiver_index,bbindex);
+							Instruction *null_check = new CHECKNULLInst(receiver, false);
+							M->add_Instruction(null_check);
+
+							invoke = new INVOKEINTERFACEInst(type,argcount,fmiref,BB[bbindex],state_change);
+							invoke->append_dep(null_check);
+						}
 						break;
 					case ICMD_BUILTIN:
 						{
 							builtintable_entry *bte = iptr->sx.s23.s3.bte;
 							u1 *builtin_address = bte->stub == NULL ? reinterpret_cast<u1*>(bte->fp) : bte->stub;
-							I = new BUILTINInst(type,builtin_address,argcount,BB[bbindex],state_change);
+							invoke = new BUILTINInst(type,builtin_address,argcount,BB[bbindex],state_change);
+
+							if (bte->opcode == ICMD_MONITORENTER || bte->opcode == ICMD_MONITOREXIT) {
+								s4 monitor_index = *(iptr->sx.s23.s2.args);
+								Value *monitor = read_variable(monitor_index, bbindex);
+								Instruction *null_check = new CHECKNULLInst(monitor, false);
+								M->add_Instruction(null_check);
+								invoke->append_dep(null_check);
+							}
 						}
 						break;
 					default:
@@ -1599,17 +1666,17 @@ bool SSAConstructionPass::run(JITData &JD) {
 						// TODO understand
 						//if ((iptr->s1.argcount - 1 - i) == md->paramcount)
 						//	printf(" pass-through: ");
-						I->append_parameter(read_variable(args[i],bbindex));
+						invoke->append_parameter(read_variable(args[i],bbindex));
 					}
 
 					if (type != Type::VoidTypeID) {
-						write_variable(iptr->dst.varindex,bbindex,I);
+						write_variable(iptr->dst.varindex,bbindex,invoke);
 					}
 
-					write_variable(global_state,bbindex,I);
-					M->add_Instruction(I);
+					write_variable(global_state,bbindex,invoke);
+					M->add_Instruction(invoke);
 
-					LOG3("INVOKEInst: " << I << " dep = " << state_change << nl);
+					LOG3("INVOKEInst: " << invoke << " dep = " << state_change << nl);
 				}
 				break;
 			case ICMD_IFLT:
