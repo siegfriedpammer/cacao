@@ -583,8 +583,6 @@ public:
 	 * Visitor pattern.
 	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-
-	virtual ~CHECKNULLInst() {};
 };
 
 class ARRAYLENGTHInst : public UnaryInst {
@@ -814,8 +812,6 @@ public:
 	 * Get the accesed field.
 	 */
 	fieldinfo *get_field() const { return field; }
-
-	virtual ~FieldAccessInst() {}
 };
 
 /**
@@ -1157,7 +1153,6 @@ public:
 	virtual ARRAYBOUNDSCHECKInst *to_ARRAYBOUNDSCHECKInst() { return this; }
 	virtual bool is_homogeneous() const { return false; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-	virtual ~ARRAYBOUNDSCHECKInst() {}
 };
 
 /**
@@ -1667,8 +1662,6 @@ public:
 	 * Visitor pattern.
 	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-
-	virtual ~AssumptionInst() {};
 };
 
 /**
@@ -1711,8 +1704,6 @@ public:
 	 * Visitor pattern.
 	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-
-	virtual ~DeoptimizeInst() {};
 };
 
 } // end namespace compiler2
