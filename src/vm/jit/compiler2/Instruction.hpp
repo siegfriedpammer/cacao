@@ -54,6 +54,7 @@ namespace compiler2 {
 
 // Forward declarations
 class InstructionVisitor;
+class SourceStateAwareInst;
 
 // include instruction declaration
 #include "vm/jit/compiler2/InstructionDeclGen.inc"
@@ -206,7 +207,8 @@ public:
 	virtual bool is_commutable() const { return false; }
 
 	// casting functions
-	virtual Instruction*          to_Instruction()          { return this; }
+	virtual Instruction*          to_Instruction() { return this; }
+	virtual SourceStateAwareInst* to_SourceStateAwareInst() { return NULL; }
 
 // include to_XXXInst()'s
 #include "vm/jit/compiler2/InstructionToInstGen.inc"

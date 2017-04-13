@@ -41,7 +41,6 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-
 // Instruction groups
 class LoadInst : public Instruction {
 public:
@@ -83,39 +82,236 @@ public:
 };
 
 /**
- * Base type of Instructions that compute a condition.
+ * Base type of instructions that compute a condition.
  */
 class CondInst {
 protected:
-	Conditional::CondID cond;
+
+	/**
+	 * The kind of condition that is computed.
+	 */
+	Conditional::CondID condition;
+
 public:
-	explicit CondInst(Conditional::CondID cond) : cond(cond){}
-	Conditional::CondID get_condition() const { return cond; }
+
+	/**
+	 * Construct a CondInst.
+	 *
+	 * @param condition The kind of condition to copmute.
+	 */
+	explicit CondInst(Conditional::CondID condition) : condition(condition){}
+
+	/**
+	 * Get the kind of condition that is computed.
+	 */
+	Conditional::CondID get_condition() const { return condition; }
+
+	virtual ~CondInst() {}
 };
 
 /**
- * Base type of Instructions that have to be mapped to a SourceStateInst.
+ * Provides a mapping from HIR values to baseline IR variables.
+ *
+ * In order to reconstruct the source state during on-stack replacement, it
+ * is necessary to be able to reconstruct the machine-independent source state
+ * from the current machine-dependent execution state. Due to the generality of
+ * the baseline compiler's IR the on-stack replacement mechanism represents the
+ * source state in terms of the baseline IR variables. Hence, it is necessary
+ * to be able to map compiler2-specific HIR values to baseline IR variables. A
+ * SourceStateInst provides such mapping information for a single program
+ * location which is identified by the (machine-independent) ID of the
+ * corresponding baseline IR instruction.
+ */
+class SourceStateInst : public Instruction {
+public:
+
+	/**
+	 * Maps a HIR value to a baseline IR javalocal index.
+	 */
+	struct Javalocal {
+
+		/**
+		 * The value that is mapped to a baseline IR javalocal index.
+		 */
+		Value *value;
+
+		/**
+		 * A baseline IR javalocal index.
+		 */
+		std::size_t index;
+
+		/**
+		 * Construct a Javalocal that maps @p value to @p index
+		 *
+		 * @param value The Value that is mapped to @p index.
+		 * @param index The javalocal index that corresponds to @p value.
+		 */
+		explicit Javalocal(Value *value, std::size_t index) : value(value), index(index) {}
+	};
+
+private:
+
+	typedef alloc::vector<Javalocal>::type JavalocalListTy;
+	typedef alloc::vector<Value*>::type StackvarListTy;
+	typedef alloc::vector<Value*>::type ParamListTy;
+
+	/**
+	 * The program location corresponding to the provided mapping information.
+	 *
+	 * The mappings of HIR values to baseline IR variables, which are given by
+	 * this SourceStateInst, are bound to this exact program location. This
+	 * location is given in terms of an ID of the corresponding baseline IR
+	 * instruction.
+	 */
+	s4 source_location;
+
+	/**
+	 * The state of the enclosing method in case we are in an inlined region.
+	 */
+	SourceStateInst *parent;
+
+	/**
+	 * List of mappings from HIR values to baseline IR javalocal indices.
+	 */
+	JavalocalListTy javalocals;
+
+	/**
+	 * List of HIR values that correspond to baseline IR stack variables.
+	 */
+	StackvarListTy stackvars;
+
+	/**
+	 * List of HIR values that correspond to method parameters.
+	 */
+	ParamListTy params;
+
+public:
+
+	typedef JavalocalListTy::const_iterator const_javalocal_iterator;
+	typedef StackvarListTy::const_iterator const_stackvar_iterator;
+	typedef ParamListTy::const_iterator const_param_iterator;
+
+	/**
+	 * Construct a SourceStateInst.
+	 *
+	 * @param source_location The ID of the baseline IR instruction at the
+	 *                        mapped program location.
+	 * @param hir_location    The HIR instruction that corresponds to the
+	 *                        given @p source_location.
+	 */
+	explicit SourceStateInst(s4 source_location, Instruction *hir_location) :
+			Instruction(SourceStateInstID, Type::VoidTypeID),
+			source_location(source_location) {
+		assert(!hir_location->is_floating());
+		append_dep(hir_location);
+	}
+
+	virtual BeginInst* get_BeginInst() const {
+		BeginInst *begin = (*dep_begin())->get_BeginInst();
+		assert(begin);
+		return begin;
+	}
+
+	/**
+	 * @return The program location that corresponds to the given mappings.
+	 */
+	s4 get_source_location() const { return source_location; }
+
+	/**
+	 * @return The state of the enclosing method in case we are in an inlined region.
+	 */
+	SourceStateInst *get_parent() const { return parent; };
+
+	/**
+	 * Set state of the enclosing method in case we are in an inlined region.
+	 *
+	 * @param new_parent The corresponding source state.
+	 */
+	void set_parent(SourceStateInst *new_parent) { parent = new_parent; }
+
+	/**
+	 * Append a new mapping from a HIR Value to a baseline IR javalocal index.
+	 *
+	 * @param local The Javalocal to append.
+	 */
+	void append_javalocal(Javalocal local) {
+		append_op(local.value);
+		javalocals.push_back(local);
+	}
+
+	/**
+	 * Append a new value to corresponds to a baseline IR stack variable.
+	 *
+	 * @param value The value to append.
+	 */
+	void append_stackvar(Value *value) {
+		append_op(value);
+		stackvars.push_back(value);
+	}
+
+	/**
+	 * Append a new value to corresponds to a method parameter.
+	 *
+	 * @param value The value to append.
+	 */
+	void append_param(Value *value) {
+		append_op(value);
+		params.push_back(value);
+	}
+
+	const_javalocal_iterator javalocal_begin() const { return javalocals.begin(); }
+	const_javalocal_iterator javalocal_end()   const { return javalocals.end(); }
+
+	const_stackvar_iterator stackvar_begin() const { return stackvars.begin(); }
+	const_stackvar_iterator stackvar_end()   const { return stackvars.end(); }
+
+	const_param_iterator param_begin() const { return params.begin(); }
+	const_param_iterator param_end()   const { return params.end(); }
+
+	virtual void replace_op(Value* v_old, Value* v_new) {
+		Instruction::replace_op(v_old, v_new);
+		std::replace(stackvars.begin(), stackvars.end(), v_old, v_new);
+		std::replace(params.begin(), params.end(), v_old, v_new);
+		for (JavalocalListTy::iterator i = javalocals.begin(), e = javalocals.end();
+				i != e; i++) {
+			Javalocal &local = *i;
+			if (local.value == v_old) {
+				local.value = v_new;
+			}
+		}
+	}
+
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
+	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * For now we prevent floating to avoid unforeseen instruction reordering.
+	 */
+	virtual bool is_floating() const { return false; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual SourceStateInst* to_SourceStateInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
+	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+};
+
+/**
+ * Base type of instructions that can be mapped to a SourceStateInst.
  */
 class SourceStateAwareInst {
 private:
 
 	/**
-	 * The source state that corresponds to this Instruction.
+	 * The SourceStateInst that corresponds to this Instruction.
 	 */
 	SourceStateInst *source_state;
-
-	/**
-	 * Set the source state that corresponds to this Instruction.
-	 *
-	 * This will be done automatically by the SourceStateAttachmentPass.
-	 *
-	 * @param source_state The source state.
-	 */
-	void set_source_state(SourceStateInst *source_state) {
-		assert(source_state != NULL);
-		assert(this->source_state == NULL);
-		this->source_state = source_state;
-	}
 
 public:
 
@@ -125,15 +321,36 @@ public:
 	SourceStateAwareInst() : source_state(NULL) {}
 
 	/**
-	 * Get the source state that corresponds to this Instruction.
+	 * Convert this SourceStateAwareInst to an Instruction.
+	 *
+	 * @return This SourceStateAwareInst as Instruction.
+	 */
+	virtual Instruction *to_Instruction() = 0;
+
+	/**
+	 * Get the SourceStateInst that corresponds to this Instruction.
 	 *
 	 * @return The source state if available, NULL otherwise.
 	 */
 	SourceStateInst *get_source_state() const { return source_state; }
 
-	virtual ~SourceStateAwareInst() {};
+	/**
+	 * Set the SourceStateInst that corresponds to this Instruction.
+	 *
+	 * This will be done automatically by the SourceStateAttachmentPass.
+	 *
+	 * @param source_state The corresponding SourceStateInst.
+	 */
+	void set_source_state(SourceStateInst *source_state) {
+		assert(source_state != NULL);
+		assert(this->source_state == NULL);
+		this->source_state = source_state;
+		Instruction *I = to_Instruction();
+		assert(I != NULL);
+		I->append_dep(source_state);
+	}
 
-	friend class SourceStateAttachmentPass;
+	virtual ~SourceStateAwareInst() {}
 };
 
 /**
@@ -264,19 +481,7 @@ public:
 		assert(begin);
 		bi->pred_list.push_back(begin);
 	}
-	#if 0
-	void replace_succ(BeginInst* s_old, BeginInst* s_new) {
-		assert(s_new);
-		// replace the successor of this EndInst with the new block s_new
-		std::replace(succ_list.begin(), succ_list.end(), s_old, s_new);
-		// update pred link of the new BeginInst
-		assert(begin);
-		s_new->pred_list.push_back(begin);
 
-		// remove the predecessor of s_old
-		s_old->pred_list.remove(begin);
-	}
-	#endif
 	int get_successor_index(const BeginInst* BI) const {
 		if (BI) {
 			int index = 0;
@@ -332,7 +537,7 @@ public:
 };
 
 /**
- * CHECKNULLInst.
+ * An implicit or explicit null-check on an object reference.
  */
 class CHECKNULLInst : public UnaryInst, public SourceStateAwareInst {
 private:
@@ -367,14 +572,11 @@ public:
 	}
 
 	/**
+	 * Indicates whether the null-check is implicit.
+	 *
 	 * @return True if the null-check is implicit, false otherwise.
 	 */
 	bool is_implicit() const { return implicit; }
-
-	/**
-	 * Conversion method.
-	 */
-	virtual CHECKNULLInst* to_CHECKNULLInst() { return this; }
 
 	/**
 	 * @see Instruction::is_homogeneous()
@@ -382,7 +584,22 @@ public:
 	virtual bool is_homogeneous() const { return false; }
 
 	/**
-	 * @see Instruction::accept()
+	 * Conversion method.
+	 */
+	virtual Instruction *to_Instruction() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual SourceStateAwareInst *to_SourceStateAwareInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual CHECKNULLInst *to_CHECKNULLInst() { return this; }
+
+	/**
+	 * Visitor pattern.
 	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 
@@ -587,23 +804,54 @@ public:
 	}
 };
 
+/**
+ * Base class of instructions that access a field on a class or object.
+ */
 class FieldAccessInst : public Instruction {
 private:
+
+	/**
+	 * The accessed field.
+	 */
 	fieldinfo *field;
 
 public:
+
+	/**
+	 * Construct a FieldAccessInst.
+	 *
+	 * @param id    The corresponding InstID.
+	 * @param type  The corresponding type.
+	 * @param field The accessed field.
+	 */
 	explicit FieldAccessInst(InstID id, Type::TypeID type, fieldinfo *field)
 		: Instruction(id, type), field(field) {
 		assert(field);
 	}
-	
+
+	/**
+	 * Get the accesed field.
+	 */
 	fieldinfo *get_field() const { return field; }
-	
-	virtual FieldAccessInst* to_FieldAccessInst() { return this; }
+
+	virtual ~FieldAccessInst() {}
 };
 
+/**
+ * Get the value of an object's field.
+ */
 class GETFIELDInst : public FieldAccessInst {
 public:
+
+	/**
+	 * Construct a GETFIELDInst.
+	 *
+	 * @param type         The corresponding type.
+	 * @param objectref    The object whose field is accessed.
+	 * @param field        The accessed field.
+	 * @param begin        The BeginInst of the containing block.
+	 * @param state_change The previous side-effecting Instruction.
+	 */
 	explicit GETFIELDInst(Type::TypeID type, Value *objectref,
 			fieldinfo *field, BeginInst *begin, Instruction *state_change)
 		: FieldAccessInst(GETFIELDInstID, type, field) {
@@ -616,21 +864,56 @@ public:
 		append_dep(state_change);
 	}
 
+	/**
+	 * Get the BeginInst of the containing block.
+	 */
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = (*dep_begin())->to_BeginInst();
 		assert(begin);
 		return begin;
 	}
 
-	virtual bool verify() const { return true; }
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
+	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * For now consider as side-effect to avoid illegal instruction reordering.
+	 */
 	virtual bool has_side_effects() const { return true; }
+
+	/**
+	 * For now consider as fixed to avoid illegal instruction reordering.
+	 */
 	virtual bool is_floating() const { return false; }
+
+	/**
+	 * Conversion method.
+	 */
 	virtual GETFIELDInst* to_GETFIELDInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/**
+ * Write a value to an object's field.
+ */
 class PUTFIELDInst : public FieldAccessInst {
 public:
+
+	/**
+	 * Construct a PUTFIELDInst.
+	 *
+	 * @param objectref    The object whose field is accessed.
+	 * @param value        The value to write.
+	 * @param field        The accessed field.
+	 * @param begin        The BeginInst of the containing block.
+	 * @param state_change The previous side-effecting Instruction.
+	 */
 	explicit PUTFIELDInst(Value *objectref, Value *value, fieldinfo *field,
 			BeginInst* begin, Instruction *state_change)
 			: FieldAccessInst(PUTFIELDInstID, value->get_type(), field) {
@@ -645,21 +928,55 @@ public:
 		append_dep(state_change);
 	}
 
+	/**
+	 * Get the BeginInst of the containing block.
+	 */
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = (*dep_begin())->to_BeginInst();
 		assert(begin);
 		return begin;
 	}
 
-	virtual bool verify() const { return true; }
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
+	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * A PUTFIELDInst might change the global state.
+	 */
 	virtual bool has_side_effects() const { return true; }
+
+	/**
+	 * A PUTFIELDInst is not allowed to float.
+	 */
 	virtual bool is_floating() const { return false; }
+
+	/**
+	 * Conversion method.
+	 */
 	virtual PUTFIELDInst* to_PUTFIELDInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/**
+ * Get the value of a static field.
+ */
 class GETSTATICInst : public FieldAccessInst {
 public:
+
+	/**
+	 * Construct a GETSTATICInst.
+	 *
+	 * @param type         The corresponding type.
+	 * @param field        The accessed field.
+	 * @param begin        The BeginInst of the containing block.
+	 * @param state_change The previous side-effecting Instruction.
+	 */
 	explicit GETSTATICInst(Type::TypeID type, fieldinfo *field,
 			BeginInst *begin, Instruction *state_change)
 			: FieldAccessInst(GETSTATICInstID, type, field) {
@@ -670,20 +987,55 @@ public:
 		append_dep(state_change);
 	}
 
+	/**
+	 * Get the BeginInst of the containing block.
+	 */
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = dep_front()->to_BeginInst();
 		assert(begin);
 		return begin;
 	}
 
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
+	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * For now consider as side-effect to avoid illegal instruction reordering.
+	 */
 	virtual bool has_side_effects() const { return true; }
+
+	/**
+	 * For now consider as fixed to avoid illegal instruction reordering.
+	 */
 	virtual bool is_floating() const { return false; }
+
+	/**
+	 * Conversion method.
+	 */
 	virtual GETSTATICInst* to_GETSTATICInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/**
+ * Write a value to a static field.
+ */
 class PUTSTATICInst : public FieldAccessInst {
 public:
+
+	/**
+	 * Construct a PUTSTATICInst.
+	 *
+	 * @param value        The value to write.
+	 * @param field        The accessed field.
+	 * @param begin        The BeginInst of the containing block.
+	 * @param state_change The previous side-effecting Instruction.
+	 */
 	explicit PUTSTATICInst(Value *value, fieldinfo *field,
 			BeginInst* begin, Instruction *state_change)
 			: FieldAccessInst(PUTSTATICInstID, value->get_type(), field) {
@@ -696,15 +1048,38 @@ public:
 		append_dep(state_change);
 	}
 
+	/**
+	 * Get the BeginInst of the containing block.
+	 */
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = (*dep_begin())->to_BeginInst();
 		assert(begin);
 		return begin;
 	}
 
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
+	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * A PUTSTATICInst changes the global state.
+	 */
 	virtual bool has_side_effects() const { return true; }
+
+	/**
+	 * A PUTSTATICInst is not allowed to float.
+	 */
 	virtual bool is_floating() const { return false; }
+
+	/**
+	 * Conversion method.
+	 */
 	virtual PUTSTATICInst* to_PUTSTATICInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
@@ -729,6 +1104,14 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/**
+ * Store a value into an array.
+ *
+ * TODO The JVM specification uses "astore" to refer to an operation that
+ *      stores a reference to a local variable. To avoid confusion we should
+ *      therefore rename this class to something more uncontentious like
+ *      "ArrayStoreInst".
+ */
 class ASTOREInst : public Instruction {
 public:
 	explicit ASTOREInst(Type::TypeID type, Value* ref, Value* value,
@@ -754,6 +1137,14 @@ public:
 	}
 };
 
+/**
+ * Load a value from an array.
+ *
+ * TODO The JVM specification uses "aload" to refer to an operation that
+ *      stores a reference to a local variable. To avoid confusion we should
+ *      therefore rename this class to something more uncontentious like
+ *      "ArrayLoadInst".
+ */
 class ALOADInst : public Instruction {
 public:
 	explicit ALOADInst(Type::TypeID type, Value* ref, 
@@ -780,7 +1171,9 @@ public:
 		assert(ref->get_type() == Type::ReferenceTypeID);
 		assert(index->get_type() == Type::IntTypeID);
 	}
-	virtual ARRAYBOUNDSCHECKInst* to_ARRAYBOUNDSCHECKInst() { return this; }
+	virtual Instruction *to_Instruction() { return this; }
+	virtual SourceStateAwareInst *to_SourceStateAwareInst() { return this; }
+	virtual ARRAYBOUNDSCHECKInst *to_ARRAYBOUNDSCHECKInst() { return this; }
 	virtual bool is_homogeneous() const { return false; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 	virtual ~ARRAYBOUNDSCHECKInst() {}
@@ -793,13 +1186,42 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/**
+ * A LOADInst represents an argument that is passed to the current method.
+ */
 class LOADInst : public LoadInst {
 private:
+
+	/**
+	 * The index of the argument that is represented by this LOADInst.
+	 */
 	unsigned index;
+
 public:
-	explicit LOADInst(Type::TypeID type, unsigned index, BeginInst* begin ) : LoadInst(LOADInstID, type, begin), index(index) {}
+
+	/**
+	 * Construct a LOADInst.
+	 *
+	 * @param type  The corresponding type.
+	 * @param index The index of the method-argument.
+	 * @param begin The initial BeginInst of the current method.
+	 */
+	explicit LOADInst(Type::TypeID type, unsigned index, BeginInst* begin)
+		: LoadInst(LOADInstID, type, begin), index(index) {}
+
+	/**
+	 * Conversion method.
+	 */
 	virtual LOADInst* to_LOADInst() { return this; }
+
+	/**
+	 * The index of the argument is represented by this LOADInst.
+	 */
 	unsigned get_index() const { return index; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
@@ -1090,6 +1512,9 @@ public:
 	}
 };
 
+/**
+ * Return from the current method.
+ */
 class RETURNInst : public EndInst {
 public:
 
@@ -1178,184 +1603,6 @@ public:
 };
 
 /**
- * Provides a mapping from HIR values to baseline IR variables.
-
- * In order to reconstruct the source state during on-stack replacement, it
- * is necessary to be able to reconstruct the machine-independent source state
- * from the current machine-dependent execution state. Due to the generality of
- * the baseline compiler's IR the on-stack replacement mechanism represents the
- * source state in terms of the baseline IR variables. Hence, it is necessary
- * to be able to map compiler2-specific HIR values to baseline IR variables. A
- * SourceStateInst provides such mapping information for a single program
- * location which is identified by the (machine-independent) ID of the
- * corresponding baseline IR instruction.
- */
-class SourceStateInst : public Instruction {
-public:
-
-	/**
-	 * Maps a HIR value to a baseline IR javalocal index.
-	 */
-	struct Javalocal {
-
-		/**
-		 * The value that is mapped to a baseline IR javalocal index.
-		 */
-		Value *value;
-
-		/**
-		 * A baseline IR javalocal index.
-		 */
-		std::size_t index;
-
-		/**
-		 * Construct a Javalocal that maps @p value to @p index
-		 *
-		 * @param value The Value that is mapped to @p index.
-		 * @param index The javalocal index that corresponds to @p value.
-		 */
-		explicit Javalocal(Value *value, std::size_t index) : value(value), index(index) {}
-	};
-
-private:
-
-	typedef alloc::vector<Javalocal>::type JavalocalListTy;
-	typedef alloc::vector<Value*>::type StackvarListTy;
-	typedef alloc::vector<Value*>::type ParamListTy;
-
-	/**
-	 * The program location corresponding to the provided mapping information.
-	 *
-	 * The mappings of HIR values to baseline IR variables, which are given by
-	 * this SourceStateInst, are bound to this exact program location. This
-	 * location is given in terms of an ID of the corresponding baseline IR
-	 * instruction.
-	 */
-	s4 source_location;
-
-	/**
-	 * The state of the enclosing method in case we are in an inlined region.
-	 */
-	SourceStateInst *parent;
-
-	/**
-	 * List of mappings from HIR values to baseline IR javalocal indices.
-	 */
-	JavalocalListTy javalocals;
-
-	/**
-	 * List of HIR values that correspond to baseline IR stack variables.
-	 */
-	StackvarListTy stackvars;
-
-	/**
-	 * List of HIR values that correspond to method parameters.
-	 */
-	ParamListTy params;
-
-public:
-
-	typedef JavalocalListTy::const_iterator const_javalocal_iterator;
-	typedef StackvarListTy::const_iterator const_stackvar_iterator;
-	typedef ParamListTy::const_iterator const_param_iterator;
-
-	/**
-	 * Construct a SourceStateInst.
-	 *
-	 * @param source_location The ID of the baseline IR instruction at the
-	 *                        mapped program location.
-	 * @param hir_location    The HIR instruction that corresponds to the
-	 *                        given @p source_location.
-	 */
-	explicit SourceStateInst(s4 source_location, Instruction *hir_location) :
-			Instruction(SourceStateInstID, Type::VoidTypeID),
-			source_location(source_location) {
-		assert(!hir_location->is_floating());
-		append_dep(hir_location);
-	}
-
-	virtual BeginInst* get_BeginInst() const {
-		BeginInst *begin = (*dep_begin())->get_BeginInst();
-		assert(begin);
-		return begin;
-	}
-
-	/**
-	 * @return The program location that corresponds to the given mappings.
-	 */
-	s4 get_source_location() const { return source_location; }
-
-	/**
-	 * @return The state of the enclosing method in case we are in an inlined region.
-	 */
-	SourceStateInst *get_parent() const { return parent; };
-
-	/**
-	 * Set state of the enclosing method in case we are in an inlined region.
-	 *
-	 * @param new_parent The corresponding source state.
-	 */
-	void set_parent(SourceStateInst *new_parent) { parent = new_parent; }
-
-	/**
-	 * Append a new mapping from a HIR Value to a baseline IR javalocal index.
-	 * 
-	 * @param local The Javalocal to append.
-	 */
-	void append_javalocal(Javalocal local) {
-		append_op(local.value);
-		javalocals.push_back(local);
-	}
-
-	/**
-	 * Append a new value to corresponds to a baseline IR stack variable.
-	 *
-	 * @param value The value to append.
-	 */
-	void append_stackvar(Value *value) {
-		append_op(value);
-		stackvars.push_back(value);
-	}
-
-	/**
-	 * Append a new value to corresponds to a method parameter.
-	 *
-	 * @param value The value to append.
-	 */
-	void append_param(Value *value) {
-		append_op(value);
-		params.push_back(value);
-	}
-
-	const_javalocal_iterator javalocal_begin() const { return javalocals.begin(); }
-	const_javalocal_iterator javalocal_end()   const { return javalocals.end(); }
-
-	const_stackvar_iterator stackvar_begin() const { return stackvars.begin(); }
-	const_stackvar_iterator stackvar_end()   const { return stackvars.end(); }
-
-	const_param_iterator param_begin() const { return params.begin(); }
-	const_param_iterator param_end()   const { return params.end(); }
-
-	virtual void replace_op(Value* v_old, Value* v_new) {
-		Instruction::replace_op(v_old, v_new);
-		std::replace(stackvars.begin(), stackvars.end(), v_old, v_new);
-		std::replace(params.begin(), params.end(), v_old, v_new);
-		for (JavalocalListTy::iterator i = javalocals.begin(), e = javalocals.end();
-				i != e; i++) {
-			Javalocal &local = *i;
-			if (local.value == v_old) {
-				local.value = v_new;
-			}
-		}
-	}
-
-	virtual SourceStateInst* to_SourceStateInst() { return this; }
-	virtual bool is_floating() const { return false; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-	virtual bool verify() const { return true; }
-};
-
-/**
  * A point where the method can be entered through on-stack replacement.
  */
 class ReplacementEntryInst : public Instruction {
@@ -1400,8 +1647,19 @@ public:
 		return source_state;
 	}
 
+	/**
+	 * Conversion method.
+	 */
 	virtual ReplacementEntryInst* to_ReplacementEntryInst() { return this; }
+
+	/**
+	 * A ReplacementEntryInst is fixed to the method's initial BeginInst.
+	 */
 	virtual bool is_floating() const { return false; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
@@ -1449,8 +1707,31 @@ public:
 		return guarded_block;
 	}
 
-	virtual AssumptionInst* to_AssumptionInst() { return this; }
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
+	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual Instruction *to_Instruction() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual SourceStateAwareInst *to_SourceStateAwareInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual AssumptionInst *to_AssumptionInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+
 	virtual ~AssumptionInst() {};
 };
 
@@ -1470,9 +1751,31 @@ public:
 		set_type(Type::VoidTypeID);
 	}
 
+	/**
+	 * A DeoptimizeInst is fixed in the CFG therefore non-floating.
+	 */
 	virtual bool is_floating() const { return false; }
-	virtual DeoptimizeInst* to_DeoptimizeInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual Instruction *to_Instruction() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual SourceStateAwareInst *to_SourceStateAwareInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual DeoptimizeInst *to_DeoptimizeInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+
 	virtual ~DeoptimizeInst() {};
 };
 
