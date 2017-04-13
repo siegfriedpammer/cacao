@@ -43,16 +43,31 @@ namespace compiler2 {
 
 // Instruction groups
 
+/**
+ * Base type of instructions with a single operand.
+ */
 class UnaryInst : public Instruction {
 public:
-	explicit UnaryInst(InstID id, Type::TypeID type, Value* S1) : Instruction(id, type) {
-		append_op(S1);
+
+	/**
+	 * Construct a UnaryInst.
+	 *
+	 * @param id   The corresponding InstID.
+	 * @param type The type of the value that is computed by this UnaryInst.
+	 * @param op   The operand.
+	 */
+	explicit UnaryInst(InstID id, Type::TypeID type, Value* op) : Instruction(id, type) {
+		append_op(op);
 	}
+
+	/**
+	 * Conversion method.
+	 */
 	virtual UnaryInst* to_UnaryInst() { return this; }
 };
 
 /**
- * Binary Instruction. Not a real instruction. For convenience only.
+ * Base type of instructions with two operands.
  *
  * @note Idea: create a ArithmeticInst superclass which features a method
  * e.g. simplify() which returns the result of the operands if they are
@@ -60,15 +75,38 @@ public:
  */
 class BinaryInst : public Instruction {
 public:
-	explicit BinaryInst(InstID id, Type::TypeID type, Value* S1, Value* S2) : Instruction(id, type) {
-		append_op(S1);
-		append_op(S2);
+
+	/**
+	 * Construct a BinaryInst.
+	 *
+	 * @param id   The corresponding InstID.
+	 * @param type The type that is computed by this BinaryInst.
+	 * @param op1  The first operand.
+	 * @param op2  The second operand.
+	 */
+	explicit BinaryInst(InstID id, Type::TypeID type, Value* op1, Value* op2) : Instruction(id, type) {
+		append_op(op1);
+		append_op(op2);
 	}
+
+	/**
+	 * Conversion method.
+	 */
 	virtual BinaryInst* to_BinaryInst() { return this; }
 };
 
+/**
+ * Base type of instructions with an arbitrary number of operands.
+ */
 class MultiOpInst : public Instruction {
 public:
+
+	/**
+	 * Construct a MultiOpInst.
+	 *
+	 * @param id   The corresponding InstID.
+	 * @param type The type that is computed by this MultiOpInst.
+	 */
 	explicit MultiOpInst(InstID id, Type::TypeID type) : Instruction(id, type) {}
 
 	// exporting to the public
@@ -194,13 +232,16 @@ public:
 	 * @param hir_location    The HIR instruction that corresponds to the
 	 *                        given @p source_location.
 	 */
-	explicit SourceStateInst(s4 source_location, Instruction *hir_location) :
-			Instruction(SourceStateInstID, Type::VoidTypeID),
+	explicit SourceStateInst(s4 source_location, Instruction *hir_location)
+			: Instruction(SourceStateInstID, Type::VoidTypeID),
 			source_location(source_location) {
 		assert(!hir_location->is_floating());
 		append_dep(hir_location);
 	}
 
+	/**
+	 * Get the BeginInst of the block that contains this SourceStateInst.
+	 */
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = (*dep_begin())->get_BeginInst();
 		assert(begin);
@@ -353,9 +394,12 @@ public:
  */
 class BeginInst : public Instruction {
 public:
+
 	typedef alloc::vector<BeginInst*>::type PredecessorListTy;
 	typedef PredecessorListTy::const_iterator const_pred_iterator;
+
 private:
+
 	EndInst *end;
 	PredecessorListTy pred_list;
 
@@ -809,7 +853,7 @@ public:
 	}
 
 	/**
-	 * Get the accesed field.
+	 * Get the accessed field.
 	 */
 	fieldinfo *get_field() const { return field; }
 };
@@ -823,10 +867,10 @@ public:
 	/**
 	 * Construct a GETFIELDInst.
 	 *
-	 * @param type         The corresponding type.
+	 * @param type         The type of the value to read from the field.
 	 * @param objectref    The object whose field is accessed.
 	 * @param field        The accessed field.
-	 * @param begin        The BeginInst of the containing block.
+	 * @param begin        The BeginInst of the block that contains this GETFIELDInst.
 	 * @param state_change The previous side-effecting Instruction.
 	 */
 	explicit GETFIELDInst(Type::TypeID type, Value *objectref,
@@ -842,7 +886,7 @@ public:
 	}
 
 	/**
-	 * Get the BeginInst of the containing block.
+	 * Get the BeginInst of the block that contains this GETFIELDInst.
 	 */
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = (*dep_begin())->to_BeginInst();
@@ -888,7 +932,7 @@ public:
 	 * @param objectref    The object whose field is accessed.
 	 * @param value        The value to write.
 	 * @param field        The accessed field.
-	 * @param begin        The BeginInst of the containing block.
+	 * @param begin        The BeginInst of the block that contains this PUTFIELDInst.
 	 * @param state_change The previous side-effecting Instruction.
 	 */
 	explicit PUTFIELDInst(Value *objectref, Value *value, fieldinfo *field,
@@ -906,7 +950,7 @@ public:
 	}
 
 	/**
-	 * Get the BeginInst of the containing block.
+	 * Get the BeginInst of the block that contains this PUTFIELDInst.
 	 */
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = (*dep_begin())->to_BeginInst();
@@ -949,9 +993,9 @@ public:
 	/**
 	 * Construct a GETSTATICInst.
 	 *
-	 * @param type         The corresponding type.
+	 * @param type         The type of the value to read from the field.
 	 * @param field        The accessed field.
-	 * @param begin        The BeginInst of the containing block.
+	 * @param begin        The BeginInst of the block that contains this GETSTATICInst.
 	 * @param state_change The previous side-effecting Instruction.
 	 */
 	explicit GETSTATICInst(Type::TypeID type, fieldinfo *field,
@@ -965,7 +1009,7 @@ public:
 	}
 
 	/**
-	 * Get the BeginInst of the containing block.
+	 * Get the BeginInst of the block that contains this GETSTATICInst.
 	 */
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = dep_front()->to_BeginInst();
@@ -1010,7 +1054,7 @@ public:
 	 *
 	 * @param value        The value to write.
 	 * @param field        The accessed field.
-	 * @param begin        The BeginInst of the containing block.
+	 * @param begin        The BeginInst of the block that contains this PUTSTATICInst.
 	 * @param state_change The previous side-effecting Instruction.
 	 */
 	explicit PUTSTATICInst(Value *value, fieldinfo *field,
@@ -1026,7 +1070,7 @@ public:
 	}
 
 	/**
-	 * Get the BeginInst of the containing block.
+	 * Get the BeginInst of the block that contains this PUTSTATICInst.
 	 */
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = (*dep_begin())->to_BeginInst();
@@ -1171,7 +1215,7 @@ public:
 	/**
 	 * Construct a LOADInst.
 	 *
-	 * @param type  The corresponding type.
+	 * @param type  The type of the method-argument.
 	 * @param index The index of the method-argument.
 	 * @param begin The initial BeginInst of the current method.
 	 */
@@ -1262,12 +1306,34 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/**
+ * Base type of instruction that perform a method invocation.
+ */
 class INVOKEInst : public MultiOpInst {
 private:
+
+	/**
+	 * The MethodDescriptor of the method to invoke.
+	 */
 	MethodDescriptor MD;
+
+	/**
+	 * Holds information about the method to invoke.
+	 */
 	constant_FMIref *fmiref;
 
 public:
+
+	/**
+	 * Construct an INVOKEInst.
+	 *
+	 * @param ID          The corresponding InstID.
+	 * @param type        The return type.
+	 * @param size        The number of method parameters.
+	 * @param fmiref      The reference to the corresponding methodinfo.
+	 * @param begin       The block that contains the invocation.
+	 * @param state_chage The previous side-effect.
+	 */
 	explicit INVOKEInst(InstID ID, Type::TypeID type, unsigned size,
 			constant_FMIref *fmiref, BeginInst *begin, Instruction *state_change)
 			: MultiOpInst(ID, type), MD(size),
@@ -1276,65 +1342,190 @@ public:
 		append_dep(begin);
 		append_dep(state_change);
 	}
+
+	/**
+	 * Get the BeginInst of the block that contains this INVOKEInst.
+	 */
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = (*dep_begin())->to_BeginInst();
 		assert(begin);
 		return begin;
 	}
-	virtual bool has_side_effects() const { return true; }
-	virtual bool is_floating() const { return false; }
+
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
 	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * Pessimistically assume that each kind of invocation has side-effects.
+	 */
+	virtual bool has_side_effects() const { return true; }
+
+	/**
+	 * An INVOKEInst is not allowed to float, it has to stay fixed in the CFG.
+	 */
+	virtual bool is_floating() const { return false; }
+
+	/**
+	 * Append a parameter that has to be passed to the invoked method.
+	 *
+	 * @param V The corresponding parameter.
+	 */
 	void append_parameter(Value *V) {
 		std::size_t i = op_size();
 		assert(i < MD.size());
 		MD[i] = V->get_type();
 		append_op(V);
 	}
+
+	/**
+	 * Get the MethodDescriptor of the method to invoke.
+	 */
 	MethodDescriptor& get_MethodDescriptor() {
 		assert(MD.size() == op_size());
 		return MD;
 	}
+
+	/**
+	 * Get information about the method to invoke.
+	 */
 	constant_FMIref* get_fmiref() const { return fmiref; }
+
+	/**
+	 * Conversion method.
+	 */
 	virtual INVOKEInst* to_INVOKEInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/**
+ * Invoke a static method.
+ */
 class INVOKESTATICInst : public INVOKEInst {
 public:
+
+	/**
+	 * Construct an INVOKESTATICInst.
+	 *
+	 * @param type         The return type.
+	 * @param size         The number of method parameters.
+	 * @param fmiref       The reference to the corresponding methodinfo.
+	 * @param begin        The BeginInst of the block that contains this INVOKESTATICInst.
+	 * @param state_change The previous side-effect.
+	 */
 	explicit INVOKESTATICInst(Type::TypeID type, unsigned size,
 			constant_FMIref *fmiref, BeginInst *begin, Instruction *state_change)
 		: INVOKEInst(INVOKESTATICInstID, type, size, fmiref, begin, state_change) {}
+
+	/**
+	 * Conversion method.
+	 */
 	virtual INVOKESTATICInst* to_INVOKESTATICInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/**
+ * Invoke an instance method.
+ */
 class INVOKEVIRTUALInst : public INVOKEInst {
 public:
+
+	/**
+	 * Construct an INVOKEVIRTUALInst.
+	 *
+	 * @param type         The return type.
+	 * @param size         The number of method parameters.
+	 * @param fmiref       The reference to the corresponding methodinfo.
+	 * @param begin        The BeginInst of the block that contains this INVOKEVIRTUALInst.
+	 * @param state_change The previous side-effect.
+	 */
 	explicit INVOKEVIRTUALInst(Type::TypeID type, unsigned size,
 			constant_FMIref *fmiref, BeginInst *begin, Instruction *state_change)
 		: INVOKEInst(INVOKEVIRTUALInstID, type, size, fmiref, begin, state_change) {}
+
+	/**
+	 * Conversion method.
+	 */
 	virtual INVOKEVIRTUALInst* to_INVOKEVIRTUALInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/**
+ * Invoke an instance method with special handling.
+ */
 class INVOKESPECIALInst : public INVOKEInst {
 public:
+
+	/**
+	 * Construct an INVOKESPECIALInst.
+	 *
+	 * @param type         The return type.
+	 * @param size         The number of method parameters.
+	 * @param fmiref       The reference to the corresponding methodinfo.
+	 * @param begin        The BeginInst of the block that contains this INVOKESPECIALInst.
+	 * @param state_change The previous side-effect.
+	 */
 	explicit INVOKESPECIALInst(Type::TypeID type, unsigned size,
 			constant_FMIref *fmiref, BeginInst *begin, Instruction *state_change)
 		: INVOKEInst(INVOKESPECIALInstID, type, size, fmiref, begin, state_change) {}
+
+	/**
+	 * Conversion method.
+	 */
 	virtual INVOKESPECIALInst* to_INVOKESPECIALInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/**
+ * Invoke an interface method.
+ */
 class INVOKEINTERFACEInst : public INVOKEInst {
 public:
+
+	/**
+	 * Construct an INVOKEINTERFACEInst.
+	 *
+	 * @param type         The return type.
+	 * @param size         The number of method parameters.
+	 * @param fmiref       The reference to the corresponding methodinfo.
+	 * @param begin        The BeginInst of the block that contains this INVOKEINTERFACEInst.
+	 * @param state_change The previous side-effect.
+	 */
 	explicit INVOKEINTERFACEInst(Type::TypeID type, unsigned size,
 			constant_FMIref *fmiref, BeginInst *begin, Instruction *state_change)
 		: INVOKEInst(INVOKEINTERFACEInstID, type, size, fmiref, begin, state_change) {}
+
+	/**
+	 * Conversion method.
+	 */
 	virtual INVOKEINTERFACEInst* to_INVOKEINTERFACEInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/**
+ * Invoke a builtin.
+ */
 class BUILTINInst : public INVOKEInst {
 private:
 
@@ -1344,15 +1535,36 @@ private:
 	u1 *address;
 
 public:
+
+	/**
+	 * Construct a BUILTINInst.
+	 *
+	 * @param type         The return type.
+	 * @param address      A pointer to the function that implements the builtin
+	 *                     functionality.
+	 * @param size         The number of parameters for the invocation.
+	 * @param begin        The BeginInst of the block that contains this BUILTINInst.
+	 * @param state_change The previous side-effect.
+	 */
 	explicit BUILTINInst(Type::TypeID type, u1 *address, unsigned size,
 		BeginInst *begin, Instruction *state_change)
 		: INVOKEInst(BUILTINInstID, type, size, NULL, begin, state_change), address(address) {}
 
+	/**
+	 * Get the pointer to the function that implements the builtin functionality.
+	 */
 	u1 *get_address() const {
 		return address;
 	}
 
+	/**
+	 * Conversion method.
+	 */
 	virtual BUILTINInst* to_BUILTINInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
