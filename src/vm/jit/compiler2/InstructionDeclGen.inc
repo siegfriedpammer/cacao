@@ -28,12 +28,9 @@ Instead have a look at the generator (./instruction_gen.py)
 and the input file (./instruction_table.csv).
 */
 
-class LoadInst;
 class UnaryInst;
 class BinaryInst;
 class FieldAccessInst;
-class NOPInst;
-class POPInst;
 class CHECKNULLInst;
 class ARRAYLENGTHInst;
 class ARRAYBOUNDSCHECKInst;
@@ -59,9 +56,7 @@ class INCInst;
 class AREFInst;
 class ASTOREInst;
 class ALOADInst;
-class RETInst;
 class LOADInst;
-class STOREInst;
 class NEWInst;
 class NEWARRAYInst;
 class ANEWARRAYInst;
@@ -69,7 +64,6 @@ class MULTIANEWARRAYInst;
 class CHECKCASTInst;
 class INSTANCEOFInst;
 class GOTOInst;
-class JSRInst;
 class BUILTINInst;
 class INVOKEInst;
 class INVOKEVIRTUALInst;
@@ -82,11 +76,7 @@ class TABLESWITCHInst;
 class LOOKUPSWITCHInst;
 class RETURNInst;
 class THROWInst;
-class COPYInst;
-class MOVEInst;
-class GETEXCEPTIONInst;
 class PHIInst;
-class ContainerInst;
 class BeginInst;
 class EndInst;
 class SourceStateInst;

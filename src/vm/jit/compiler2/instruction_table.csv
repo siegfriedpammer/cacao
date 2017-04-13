@@ -30,25 +30,16 @@
 ##
 
 # Instruction groups
-LoadInst
 UnaryInst
 BinaryInst
 FieldAccessInst
 
-# Instructions forward defs
-
-NOPInst,0
-POPInst,0
+# Instructions
 CHECKNULLInst,0
 ARRAYLENGTHInst,1
-
 ARRAYBOUNDSCHECKInst,2
-
 NEGInst,1
-
 CASTInst,1
-
-# binary
 ADDInst,2
 SUBInst,2
 MULInst,2
@@ -69,20 +60,14 @@ INCInst
 AREFInst,2
 ASTOREInst,2
 ALOADInst,1
-RETInst
 LOADInst,0
-STOREInst
 NEWInst
 NEWARRAYInst
 ANEWARRAYInst
 MULTIANEWARRAYInst
 CHECKCASTInst
 INSTANCEOFInst
-#INLINE_STARTInst
-#INLINE_ENDInst
-#INLINE_BODYInst
 GOTOInst
-JSRInst
 BUILTINInst
 INVOKEInst
 INVOKEVIRTUALInst
@@ -95,13 +80,8 @@ TABLESWITCHInst,1
 LOOKUPSWITCHInst,1
 RETURNInst,1
 THROWInst
-COPYInst
-MOVEInst
-GETEXCEPTIONInst
 PHIInst
 
-# extra instruction
-ContainerInst
 # Control Flow Meta Instructions
 BeginInst
 EndInst

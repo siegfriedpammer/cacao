@@ -42,11 +42,6 @@ namespace jit {
 namespace compiler2 {
 
 // Instruction groups
-class LoadInst : public Instruction {
-public:
-	explicit LoadInst(InstID id, Type::TypeID type, BeginInst *begin) : Instruction(id, type, begin) {}
-	virtual bool is_floating() const { return false; }
-};
 
 class UnaryInst : public Instruction {
 public:
@@ -521,20 +516,6 @@ inline void BeginInst::set_successor(int index, BeginInst *BI) {
 }
 
 // Instructions
-
-class NOPInst : public Instruction {
-public:
-	explicit NOPInst() : Instruction(NOPInstID, Type::VoidTypeID) {}
-	virtual NOPInst* to_NOPInst() { return this; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
-
-class POPInst : public Instruction {
-public:
-	explicit POPInst(Type::TypeID type) : Instruction(POPInstID, type) {}
-	virtual POPInst* to_POPInst() { return this; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
 
 /**
  * An implicit or explicit null-check on an object reference.
@@ -1179,17 +1160,10 @@ public:
 	virtual ~ARRAYBOUNDSCHECKInst() {}
 };
 
-class RETInst : public Instruction {
-public:
-	explicit RETInst(Type::TypeID type) : Instruction(RETInstID, type) {}
-	virtual RETInst* to_RETInst() { return this; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
-
 /**
  * A LOADInst represents an argument that is passed to the current method.
  */
-class LOADInst : public LoadInst {
+class LOADInst : public Instruction {
 private:
 
 	/**
@@ -1207,7 +1181,7 @@ public:
 	 * @param begin The initial BeginInst of the current method.
 	 */
 	explicit LOADInst(Type::TypeID type, unsigned index, BeginInst* begin)
-		: LoadInst(LOADInstID, type, begin), index(index) {}
+		: Instruction(LOADInstID, type, begin), index(index) {}
 
 	/**
 	 * Conversion method.
@@ -1220,15 +1194,13 @@ public:
 	unsigned get_index() const { return index; }
 
 	/**
+	 * A LOADInst must not float, it has to stay in the method's initial block.
+	 */
+	bool is_floating() const { return false; }
+
+	/**
 	 * Visitor pattern.
 	 */
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
-
-class STOREInst : public Instruction {
-public:
-	explicit STOREInst(Type::TypeID type) : Instruction(STOREInstID, type) {}
-	virtual STOREInst* to_STOREInst() { return this; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
@@ -1292,13 +1264,6 @@ public:
 		return succ_front();
 	}
 	friend class Method;
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
-
-class JSRInst : public Instruction {
-public:
-	explicit JSRInst(Type::TypeID type) : Instruction(JSRInstID, type) {}
-	virtual JSRInst* to_JSRInst() { return this; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
@@ -1535,7 +1500,15 @@ public:
 		append_op(S1);
 		set_type(S1->get_type());
 	}
+
+	/**
+	 * Conversion method.
+	 */
 	virtual RETURNInst* to_RETURNInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
@@ -1543,27 +1516,6 @@ class THROWInst : public Instruction {
 public:
 	explicit THROWInst(Type::TypeID type) : Instruction(THROWInstID, type) {}
 	virtual THROWInst* to_THROWInst() { return this; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
-
-class COPYInst : public Instruction {
-public:
-	explicit COPYInst(Type::TypeID type) : Instruction(COPYInstID, type) {}
-	virtual COPYInst* to_COPYInst() { return this; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
-
-class MOVEInst : public Instruction {
-public:
-	explicit MOVEInst(Type::TypeID type) : Instruction(MOVEInstID, type) {}
-	virtual MOVEInst* to_MOVEInst() { return this; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
-
-class GETEXCEPTIONInst : public Instruction {
-public:
-	explicit GETEXCEPTIONInst(Type::TypeID type) : Instruction(GETEXCEPTIONInstID, type) {}
-	virtual GETEXCEPTIONInst* to_GETEXCEPTIONInst() { return this; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
@@ -1583,22 +1535,6 @@ public:
 
 	// exporting to the public
 	using Instruction::append_op;
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
-
-class ContainerInst : public Instruction {
-public:
-	explicit ContainerInst(BeginInst *begin) : Instruction(ContainerInstID, Type::VoidTypeID) {
-		append_dep(begin);
-	}
-	virtual ContainerInst* to_ContainerInst() { return this; }
-
-	virtual BeginInst* get_BeginInst() const {
-		BeginInst *begin = (*dep_begin())->to_BeginInst();
-		assert(begin);
-		return begin;
-	}
-	virtual bool is_floating() const { return false; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 

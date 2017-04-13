@@ -207,7 +207,7 @@ public:
 	virtual bool is_commutable() const { return false; }
 
 	// casting functions
-	virtual Instruction*          to_Instruction() { return this; }
+	virtual Instruction* to_Instruction() { return this; }
 	virtual SourceStateAwareInst* to_SourceStateAwareInst() { return NULL; }
 
 // include to_XXXInst()'s
