@@ -165,7 +165,9 @@ public:
 		I->reverse_dep_list.remove(this);
 	}
 
-	/// check if the instruction is in a correct state
+	/**
+	 * Check if the instruction is in a correct state.
+	 */
 	virtual bool verify() const;
 
 	const_dep_iterator dep_begin() const { return dep_list.begin(); }
@@ -194,17 +196,36 @@ public:
 		return false;
 	}
 
-	/// True if the instruction has a homogeneous signature.
-	/// (i.e. all operands and the result have the same type)
+	/**
+	 * True if the instruction has a homogeneous signature.
+	 * (i.e. all operands and the result have the same type)
+	 */
 	virtual bool is_homogeneous() const { return true; }
-	/// True if the instruction has no fixed control dependencies
+
+	/**
+	 * True if the instruction has no fixed control dependencies.
+	 */
 	virtual bool is_floating() const { return true; }
-	/// True the instruction has side effects
+
+	/**
+	 * True the instruction has side effects.
+	 */
 	virtual bool has_side_effects() const { return false; }
-	/// True if the instruction is an arithmetic instruction
+
+	/**
+	 * True if the instruction is an arithmetic instruction.
+	 */
 	virtual bool is_arithmetic() const { return false; }
-	/// True if the operands of the instruction are commutable
+
+	/**
+	 * True if the operands of the instruction are commutable.
+	 */
 	virtual bool is_commutable() const { return false; }
+
+	/**
+	 * True if the instruction performs a dereference.
+	 */
+	virtual bool is_dereference() const { return false; }
 
 	// casting functions
 	virtual Instruction* to_Instruction() { return this; }
@@ -223,7 +244,9 @@ public:
 		return "Unknown Instruction";
 	}
 
-	/// Visitor
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) = 0;
 
 	virtual OStream& print(OStream& OS) const;

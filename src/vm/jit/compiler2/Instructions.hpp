@@ -910,6 +910,11 @@ public:
 	virtual bool is_floating() const { return false; }
 
 	/**
+	 * A GETFIELDInst performs a dereference on the accessed object.
+	 */
+	virtual bool is_dereference() const { return true; }
+
+	/**
 	 * Conversion method.
 	 */
 	virtual GETFIELDInst* to_GETFIELDInst() { return this; }
@@ -972,6 +977,11 @@ public:
 	 * A PUTFIELDInst is not allowed to float.
 	 */
 	virtual bool is_floating() const { return false; }
+
+	/**
+	 * A PUTFIELDInst performs a dereference on the accessed object.
+	 */
+	virtual bool is_dereference() const { return true; }
 
 	/**
 	 * Conversion method.
@@ -1185,17 +1195,55 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/**
+ * Perform a bounds-check for an array-access.
+ */
 class ARRAYBOUNDSCHECKInst : public BinaryInst, public SourceStateAwareInst {
 public:
-	explicit ARRAYBOUNDSCHECKInst(Type::TypeID type, Value* ref, Value* index)
-			: BinaryInst(ARRAYBOUNDSCHECKInstID, Type::VoidTypeID, ref, index) {
-		assert(ref->get_type() == Type::ReferenceTypeID);
+
+	/**
+	 * Construct an ARRAYBOUNDSCHECKInst.
+	 *
+	 * @param type     The corresponding type.
+	 * @param arrayref The reference to the accessed array.
+	 * @param index    The accessed index.
+	 */
+	explicit ARRAYBOUNDSCHECKInst(Type::TypeID type, Value* arrayref, Value* index)
+			: BinaryInst(ARRAYBOUNDSCHECKInstID, Type::VoidTypeID, arrayref, index) {
+		assert(arrayref != NULL);
+		assert(arrayref->get_type() == Type::ReferenceTypeID);
+		assert(index != NULL);
 		assert(index->get_type() == Type::IntTypeID);
 	}
-	virtual Instruction *to_Instruction() { return this; }
-	virtual SourceStateAwareInst *to_SourceStateAwareInst() { return this; }
-	virtual ARRAYBOUNDSCHECKInst *to_ARRAYBOUNDSCHECKInst() { return this; }
+
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
 	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * An ARRAYBOUNDSCHECKInst performs a dereference on the accessed array.
+	 */
+	virtual bool is_dereference() const { return true; }
+
+	/**
+	 * Casting method.
+	 */
+	virtual Instruction *to_Instruction() { return this; }
+
+	/**
+	 * Casting method.
+	 */
+	virtual SourceStateAwareInst *to_SourceStateAwareInst() { return this; }
+
+	/**
+	 * Casting method.
+	 */
+	virtual ARRAYBOUNDSCHECKInst *to_ARRAYBOUNDSCHECKInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
@@ -1453,6 +1501,11 @@ public:
 		: INVOKEInst(INVOKEVIRTUALInstID, type, size, fmiref, begin, state_change) {}
 
 	/**
+	 * An INVOKEVIRTUALInst performs a dereference on accessed object.
+	 */
+	virtual bool is_dereference() const { return true; }
+
+	/**
 	 * Conversion method.
 	 */
 	virtual INVOKEVIRTUALInst* to_INVOKEVIRTUALInst() { return this; }
@@ -1511,6 +1564,11 @@ public:
 	explicit INVOKEINTERFACEInst(Type::TypeID type, unsigned size,
 			constant_FMIref *fmiref, BeginInst *begin, Instruction *state_change)
 		: INVOKEInst(INVOKEINTERFACEInstID, type, size, fmiref, begin, state_change) {}
+
+	/**
+	 * An INVOKEINTERFACEInst performs a dereference on accessed object.
+	 */
+	virtual bool is_dereference() const { return true; }
 
 	/**
 	 * Conversion method.
@@ -1893,7 +1951,7 @@ public:
 	}
 
 	/**
-	 * A DeoptimizeInst is fixed in the CFG therefore non-floating.
+	 * A DeoptimizeInst is fixed in the CFG and therefore non-floating.
 	 */
 	virtual bool is_floating() const { return false; }
 
