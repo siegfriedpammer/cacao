@@ -62,6 +62,7 @@ libcompiler2_la_SOURCES = \
 	InstructionVisitor.cpp \
 	JITData.cpp \
 	LinearScanAllocatorPass.cpp \
+	ListSchedulingPass.cpp \
 	LivetimeAnalysisPass.cpp \
 	LivetimeInterval.cpp \
 	Loop.cpp \

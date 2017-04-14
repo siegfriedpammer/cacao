@@ -26,15 +26,11 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
-
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
+#include "vm/jit/compiler2/ListSchedulingPass.hpp"
+#include "vm/jit/compiler2/ScheduleClickPass.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
-#include "vm/jit/compiler2/ConstantPropagationPass.hpp"
-
 #include "vm/jit/compiler2/Matcher.hpp"
-
-#include "vm/jit/compiler2/alloc/queue.hpp"
-#include "vm/jit/compiler2/alloc/deque.hpp"
 
 #include "Target.hpp"
 
@@ -45,14 +41,6 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
-
-void MachineInstructionSchedulingPass::initialize() {
-#if 0
-	list.clear();
-	map.clear();
-#endif
-}
-
 
 namespace {
 
@@ -80,108 +68,15 @@ struct UpdatePhiOperand : public std::unary_function<MachinePhiInst*,void> {
 	}
 };
 
-// LIST SCHEDULING ADDITIONAL STUFF IN ANONYMOUS NAMESPACE
-
-class MyComparator {
-private:
-	const GlobalSchedule* sched;
-	unsigned users(Instruction *I) const {
-		unsigned users = 0;
-		for (Instruction::UserListTy::const_iterator i = I->user_begin(),
-				e = I->user_end(); i != e; ++i) {
-			Instruction *user = *i;
-			// only instructions in this basic block
-			if ( sched->get(user) == sched->get(I)) {
-				users++;
-			}
-		}
-		return users;
-	}
-public:
-	MyComparator(const GlobalSchedule* sched) : sched(sched) {}
-	bool operator() (Instruction* lhs, Instruction* rhs) const {
-		if (lhs->get_opcode() != rhs->get_opcode()) {
-			// BeginInst always first!
-			if (lhs->to_BeginInst()) return false;
-			if (rhs->to_BeginInst()) return true;
-			// EndInst always last!
-			if (rhs->to_EndInst()) return false;
-			if (lhs->to_EndInst()) return true;
-			// PHIs right after BeginInst
-			if (lhs->to_PHIInst()) return false;
-			if (rhs->to_PHIInst()) return true;
-			// LOADInst first
-			if (lhs->to_LOADInst()) return false;
-			if (rhs->to_LOADInst()) return true;
-		}
-		// prioritize instruction with fewer users in the current bb
-		unsigned lhs_user = users(lhs);
-		unsigned rhs_user = users(rhs);
-		if (lhs_user == rhs_user) {
-			return InstPtrLess()(rhs,lhs);
-		}
-		return lhs_user > rhs_user;
-	}
-};
-
-typedef alloc::priority_queue<Instruction*,alloc::deque<Instruction*>::type,MyComparator>::type PriorityQueueTy;
-
-struct FindLeader2 : public std::unary_function<Value*,void> {
-	alloc::set<Instruction*>::type &scheduled;
-	GlobalSchedule *sched;
-	Instruction *I;
-	bool &leader;
-	/// constructor
-	FindLeader2(alloc::set<Instruction*>::type &scheduled, GlobalSchedule *sched, Instruction *I, bool &leader)
-		: scheduled(scheduled), sched(sched), I(I), leader(leader) {}
-	/// function call operator
-	void operator()(Value *value) {
-		Instruction *op = value->to_Instruction();
-		assert(op);
-		if (op != I && sched->get(I) == sched->get(op) && scheduled.find(op) == scheduled.end() ) {
-			leader = false;
-		}
-	}
-};
-
-struct FindLeader : public std::unary_function<Instruction*,void> {
-	alloc::set<Instruction*>::type &scheduled;
-	GlobalSchedule *sched;
-	PriorityQueueTy &ready;
-	BeginInst *BI;
-	/// constructor
-	FindLeader(alloc::set<Instruction*>::type &scheduled, GlobalSchedule *sched, PriorityQueueTy &ready, BeginInst *BI)
-		: scheduled(scheduled), sched(sched), ready(ready), BI(BI) {}
-
-	/// function call operator
-	void operator()(Instruction* I) {
-		// only instructions in this basic block
-		if ( sched->get(I) != sched->get(BI)) {
-			return;
-		}
-		bool leader = true;
-		// for each operand
-		std::for_each(I->op_begin(), I->op_end(), FindLeader2(scheduled, sched, I, leader));
-		// for each dependency
-		std::for_each(I->dep_begin(), I->dep_end(), FindLeader2(scheduled, sched, I, leader));
-		if (leader) {
-			LOG("leader: " << I << nl);
-			ready.push(I);
-		}
-	}
-};
-
 } // end anonymous namespace
 
 bool MachineInstructionSchedulingPass::run(JITData &JD) {
 	BasicBlockSchedule *BS = get_Pass<BasicBlockSchedulingPass>();
-	GlobalSchedule* GS = get_Pass<ScheduleClickPass>();
-
 #if !PATTERN_MATCHING
-	IS = shared_ptr<ListSchedulingPass>(new ListSchedulingPass(GS));
-	IS->run(JD);
+	ListSchedulingPass* IS = get_Pass<ListSchedulingPass>();
+#else
+	GlobalSchedule* GS = get_Pass<ScheduleClickPass>();
 #endif
-
 
 	alloc::map<BeginInst*,MachineBasicBlock*>::type map;
 
@@ -257,12 +152,6 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 
 // verify
 bool MachineInstructionSchedulingPass::verify() const {
-
-#if !PATTERN_MATCHING
-	// call List Scheduling verify first
-	IS->verify();
-#endif
-
 	for (MachineInstructionSchedule::const_iterator i = begin(), e = end();
 			i != e; ++i) {
 		MachineBasicBlock *MBB = *i;
@@ -315,6 +204,7 @@ bool MachineInstructionSchedulingPass::verify() const {
 PassUsage& MachineInstructionSchedulingPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<BasicBlockSchedulingPass>();
 	PU.add_requires<ScheduleClickPass>();
+	PU.add_requires<ListSchedulingPass>();
 	return PU;
 }
 
@@ -322,103 +212,6 @@ PassUsage& MachineInstructionSchedulingPass::get_PassUsage(PassUsage &PU) const 
 static PassRegistry<MachineInstructionSchedulingPass> X("MachineInstructionSchedulingPass");
 
 // LIST SCHEDULING PART MOVED HERE
-
-void MachineInstructionSchedulingPass::ListSchedulingPass::schedule(BeginInst *BI) {
-	// reference to the instruction list of the current basic block
-	InstructionListTy &inst_list = map[BI];
-	// set of already scheduled instructions
-	alloc::set<Instruction*>::type scheduled;
-	// queue of ready instructions
-	MyComparator comp = MyComparator(sched);
-	PriorityQueueTy ready(comp);
-	// Begin is always the first instruction
-	ready.push(BI);
-	LOG3(Cyan<<"BI: " << BI << reset_color << nl);
-	for(GlobalSchedule::const_inst_iterator i = sched->inst_begin(BI),
-			e = sched->inst_end(BI); i != e; ++i) {
-		Instruction *I = *i;
-		// BI is already in the queue
-		if (I->to_BeginInst() == BI)
-			continue;
-		LOG3("Instruction: " << I << nl);
-		//fill_ready(sched, ready, I);
-		bool leader = true;
-
-		LOG3("schedule(initial leader): " << I << " #op " << I->op_size()  << " #dep " << I->dep_size() << nl);
-		// for each operand
-		std::for_each(I->op_begin(), I->op_end(), FindLeader2(scheduled, sched, I, leader));
-		// for each dependency
-		std::for_each(I->dep_begin(), I->dep_end(), FindLeader2(scheduled, sched, I, leader));
-
-		if (leader) {
-			LOG("initial leader: " << I << nl);
-			ready.push(I);
-		}
-	}
-
-	while (!ready.empty()) {
-		Instruction *I = ready.top();
-		ready.pop();
-		if (scheduled.find(I) != scheduled.end()){
-			continue;
-		}
-		inst_list.push_back(I);
-		LOG("insert: " << I << nl);
-		scheduled.insert(I);
-		// for all users
-		std::for_each(I->user_begin(), I->user_end(), FindLeader(scheduled,sched,ready,BI));
-		// for all dependant instruction
-		std::for_each(I->rdep_begin(), I->rdep_end(), FindLeader(scheduled,sched,ready,BI));
-	}
-	#if defined(ENABLE_LOGGING)
-	for(const_inst_iterator i = inst_begin(BI), e = inst_end(BI); i != e ; ++i) {
-		Instruction *I = *i;
-		LOG(I<<nl);
-	}
-	#endif
-	assert( std::distance(inst_begin(BI),inst_end(BI)) == std::distance(sched->inst_begin(BI),sched->inst_end(BI)) );
-}
-
-bool MachineInstructionSchedulingPass::ListSchedulingPass::run(JITData &JD) {
-	M = JD.get_Method();
-	for (Method::const_bb_iterator i = M->bb_begin(), e = M->bb_end() ; i != e ; ++i) {
-		BeginInst *BI = *i;
-		LOG("ListScheduling: " << BI << nl);
-		schedule(BI);
-	}
-	#if defined(ENABLE_LOGGING)
-	LOG("Schedule:" << nl);
-	for (Method::const_bb_iterator i = M->bb_begin(), e = M->bb_end() ; i != e ; ++i) {
-		BeginInst *BI = *i;
-		for(const_inst_iterator i = inst_begin(BI), e = inst_end(BI); i != e ; ++i) {
-			Instruction *I = *i;
-			LOG(I<<nl);
-		}
-	}
-	#endif
-	return true;
-}
-
-bool MachineInstructionSchedulingPass::ListSchedulingPass::verify() const {
-	for (Method::const_iterator i = M->begin(), e = M->end(); i!=e; ++i) {
-		Instruction *I = *i;
-		bool found = false;
-		for (Method::const_bb_iterator i = M->bb_begin(), e = M->bb_end(); i!=e; ++i) {
-			BeginInst *BI = *i;
-			if (std::find(inst_begin(BI),inst_end(BI),I) != inst_end(BI)) {
-				found = true;
-			}
-		}
-		if (!found) {
-			ERROR_MSG("Instruction not Scheduled!","Instruction: " << I);
-			return false;
-		}
-	}
-	return true;
-}
-
-
-
 
 } // end namespace compiler2
 } // end namespace jit

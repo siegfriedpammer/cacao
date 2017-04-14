@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/MachineInstructionSchedulingPass.hpp - MachineInstructionSchedulingPass
+/* src/vm/jit/compiler2/ListSchedulingPass.hpp - ListSchedulingPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,38 +22,61 @@
 
 */
 
-#ifndef _JIT_COMPILER2_MACHINEINSTRUCTIONSCHEDULINGPASS
-#define _JIT_COMPILER2_MACHINEINSTRUCTIONSCHEDULINGPASS
+#ifndef _JIT_COMPILER2_LISTSCHEDULINGPASS
+#define _JIT_COMPILER2_LISTSCHEDULINGPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
-#include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
+#include "vm/jit/compiler2/Instruction.hpp"
+#include "vm/jit/compiler2/InstructionSchedule.hpp"
 
-#include "future/memory.hpp"
-
-MM_MAKE_NAME(MachineInstructionSchedulingPass)
+MM_MAKE_NAME(ListSchedulingPass)
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+class GlobalSchedule;
+class Method;
 
 /**
- * MachineInstructionSchedulingPass
- * TODO: more info
+ * ListSchedulingPass
+ *
+ * Constructs an instruction schedule for each basic block based on a
+ * classical list scheduling algorithm.
  */
-class MachineInstructionSchedulingPass : public Pass, public memory::ManagerMixin<MachineInstructionSchedulingPass>, public MachineInstructionSchedule {
+class ListSchedulingPass : public Pass,
+						   public memory::ManagerMixin<ListSchedulingPass>,
+						   public InstructionSchedule<Instruction> {
+private:
+
+	/**
+	 * The Method to process.
+	 */
+	Method *M;
+
+	/**
+	 * The current GlobalSchedule of the processed Method.
+	 */
+	GlobalSchedule *GS;
+
+	/**
+	 * Schedule the instructions within the block that starts at @p begin.
+	 */
+	void schedule(BeginInst *begin);
+
 public:
-	MachineInstructionSchedulingPass() : Pass() {}
+
+	ListSchedulingPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual bool verify() const;
-	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
+	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
 };
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_MACHINEINSTRUCTIONSCHEDULINGPASS */
+#endif /* _JIT_COMPILER2_LISTSCHEDULINGPASS */
 
 
 /*
