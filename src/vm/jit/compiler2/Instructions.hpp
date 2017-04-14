@@ -1213,10 +1213,6 @@ public:
 	 */
 	virtual ASTOREInst* to_ASTOREInst() { return this; }
 
-	Type::TypeID get_array_type() const {
-		return this->op_back()->get_type();
-	}
-
 	/**
 	 * Visitor pattern.
 	 */
