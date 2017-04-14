@@ -629,11 +629,32 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/**
+ * Get the length of an array.
+ */
 class ARRAYLENGTHInst : public UnaryInst {
 public:
-	explicit ARRAYLENGTHInst(Value *S1) : UnaryInst(ARRAYLENGTHInstID, Type::IntTypeID, S1) {}
+
+	/**
+	 * Construct an ARRAYLENGTHInst.
+	 *
+	 * @param arrayref The array of interest.
+	 */
+	explicit ARRAYLENGTHInst(Value *arrayref) : UnaryInst(ARRAYLENGTHInstID, Type::IntTypeID, arrayref) {}
+
+	/**
+	 * Conversion method.
+	 */
 	virtual ARRAYLENGTHInst* to_ARRAYLENGTHInst() { return this; }
+
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
 	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
@@ -1145,6 +1166,15 @@ public:
  */
 class ASTOREInst : public Instruction {
 public:
+
+	/**
+	 * Construct an ALOADInst.
+	 *
+	 * @param type         The type of the value to store.
+	 * @param ref          The reference to the accessed array element.
+	 * @param begin        The BeginInst of the block that contains the ASTOREInst.
+	 * @param state_change The previous side-effect.
+	 */
 	explicit ASTOREInst(Type::TypeID type, Value* ref, Value* value,
 			BeginInst *begin, Instruction *state_change)
 			: Instruction(ASTOREInstID, Type::VoidTypeID) {
@@ -1153,19 +1183,44 @@ public:
 		append_dep(begin);
 		append_dep(state_change);
 	}
-	virtual ASTOREInst* to_ASTOREInst() { return this; }
-	virtual bool is_homogeneous() const { return false; }
-	virtual bool has_side_effects() const { return true; }
+
+	/**
+	 * Get the BeginInst of the block that contains this ASTOREInst.
+	 */
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = dep_front()->to_BeginInst();
 		assert(begin);
 		return begin;
 	}
+
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
+	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * An ASTOREInst might change the global state.
+	 */
+	virtual bool has_side_effects() const { return true; }
+
+	/**
+	 * An ASTOREInst is not allowed to float.
+	 */
 	virtual bool is_floating() const { return false; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual ASTOREInst* to_ASTOREInst() { return this; }
+
 	Type::TypeID get_array_type() const {
 		return this->op_back()->get_type();
 	}
+
+	/**
+	 * Visitor pattern.
+	 */
+	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
 /**
@@ -1178,6 +1233,15 @@ public:
  */
 class ALOADInst : public Instruction {
 public:
+
+	/**
+	 * Construct an ALOADInst.
+	 *
+	 * @param type         The type of the accessed array element.
+	 * @param ref          The reference to the accessed array element.
+	 * @param begin        The BeginInst of the block that contains the ALOADInst.
+	 * @param state_change The previous side-effect.
+	 */
 	explicit ALOADInst(Type::TypeID type, Value* ref, 
 			BeginInst *begin, Instruction *state_change)
 			: Instruction(ALOADInstID, type) {
@@ -1185,13 +1249,33 @@ public:
 		append_dep(begin);
 		append_dep(state_change);
 	}
-	virtual ALOADInst* to_ALOADInst() { return this; }
-	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * Get the BeginInst of the block that contains this ALOADInst.
+	 */
 	virtual BeginInst* get_BeginInst() const {
 		assert(dep_size() > 0);
 		return dep_front()->to_BeginInst();
 	}
+
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
+	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * For now consider as fixed to avoid illegal instruction reordering.
+	 */
 	virtual bool is_floating() const { return false; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual ALOADInst* to_ALOADInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
