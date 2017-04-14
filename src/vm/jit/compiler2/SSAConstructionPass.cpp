@@ -1117,7 +1117,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Instruction *null_check = new CHECKNULLInst(arrayref, false);
 					M->add_Instruction(null_check);
 
-					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(type, arrayref, index);
+					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(arrayref, index);
 					boundscheck->append_dep(null_check);
 					M->add_Instruction(boundscheck);
 
@@ -1433,7 +1433,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Instruction *null_check = new CHECKNULLInst(arrayref, false);
 					M->add_Instruction(null_check);
 
-					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(type, arrayref, index);
+					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(arrayref, index);
 					boundscheck->append_dep(null_check);
 					M->add_Instruction(boundscheck);
 
@@ -1495,7 +1495,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Instruction *null_check = new CHECKNULLInst(arrayref, false);
 					M->add_Instruction(null_check);
 
-					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(type, arrayref, index);
+					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(arrayref, index);
 					boundscheck->append_dep(null_check);
 					M->add_Instruction(boundscheck);
 

@@ -1204,11 +1204,10 @@ public:
 	/**
 	 * Construct an ARRAYBOUNDSCHECKInst.
 	 *
-	 * @param type     The corresponding type.
 	 * @param arrayref The reference to the accessed array.
 	 * @param index    The accessed index.
 	 */
-	explicit ARRAYBOUNDSCHECKInst(Type::TypeID type, Value* arrayref, Value* index)
+	explicit ARRAYBOUNDSCHECKInst(Value* arrayref, Value* index)
 			: BinaryInst(ARRAYBOUNDSCHECKInstID, Type::VoidTypeID, arrayref, index) {
 		assert(arrayref != NULL);
 		assert(arrayref->get_type() == Type::ReferenceTypeID);
