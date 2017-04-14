@@ -640,7 +640,8 @@ public:
 	 *
 	 * @param arrayref The array of interest.
 	 */
-	explicit ARRAYLENGTHInst(Value *arrayref) : UnaryInst(ARRAYLENGTHInstID, Type::IntTypeID, arrayref) {}
+	explicit ARRAYLENGTHInst(Value *arrayref)
+		: UnaryInst(ARRAYLENGTHInstID, Type::IntTypeID, arrayref) {}
 
 	/**
 	 * Conversion method.
@@ -651,6 +652,11 @@ public:
 	 * @see Instruction::is_homogeneous()
 	 */
 	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * An ARRAYLENGTHInst performs a dereference on the accessed array.
+	 */
+	virtual bool is_dereference() const { return true; }
 
 	/**
 	 * Visitor pattern.
@@ -1168,7 +1174,7 @@ class ASTOREInst : public Instruction {
 public:
 
 	/**
-	 * Construct an ALOADInst.
+	 * Construct an ASTOREInst.
 	 *
 	 * @param type         The type of the value to store.
 	 * @param ref          The reference to the accessed array element.
@@ -1207,6 +1213,11 @@ public:
 	 * An ASTOREInst is not allowed to float.
 	 */
 	virtual bool is_floating() const { return false; }
+
+	/**
+	 * An ASTOREInst performs a dereference on the accessed array.
+	 */
+	virtual bool is_dereference() const { return true; }
 
 	/**
 	 * Conversion method.
@@ -1263,6 +1274,11 @@ public:
 	 * For now consider as fixed to avoid illegal instruction reordering.
 	 */
 	virtual bool is_floating() const { return false; }
+
+	/**
+	 * An ALOADInst performs a dereference on the accessed array.
+	 */
+	virtual bool is_dereference() const { return true; }
 
 	/**
 	 * Conversion method.
