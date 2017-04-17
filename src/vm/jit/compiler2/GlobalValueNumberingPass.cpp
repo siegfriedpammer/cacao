@@ -325,22 +325,14 @@ void GlobalValueNumberingPass::eliminate_redundancies_in_block(BlockTy *block) {
 	// the block, the rest of them (i.e. block->size() - 1) is redundant
 	STAT_REDUNDANT_NODES(inst, block->size() - 1);
 
-	for (BlockTy::iterator e = block->end(); i != e; i++) {
+	for (; i != block->end(); i++) {
 		Instruction *replacable = *i;
 		replacable->replace_value(inst);
 
-		if (inst->get_opcode() == Instruction::ARRAYBOUNDSCHECKInstID) {
-			// TODO: consider scheduling dependencies of other instruction types
-			// as well (but at the time of implementation the only instruction
-			// type with scheduling dependencies are array bounds check nodes)
-
-			Instruction::const_dep_iterator i;
-			Instruction::const_dep_iterator e = replacable->rdep_end();
-			while ((i = replacable->rdep_begin()) != e) {
-				Instruction *dependent = *i;
-				dependent->append_dep(inst);
-				dependent->remove_dep(replacable);
-			}
+		for (auto j = replacable->rdep_begin(); j != replacable->rdep_end(); j++) {
+			Instruction *dependent = *j;
+			dependent->append_dep(inst);
+			dependent->remove_dep(replacable);
 		}
 	}
 }
