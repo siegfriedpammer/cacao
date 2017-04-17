@@ -81,6 +81,7 @@ libcompiler2_la_SOURCES = \
 	MachineOperand.cpp \
 	MethodC2.cpp \
 	MethodDescriptor.cpp \
+	NullCheckEliminationPass.cpp \
 	ObjectFileWriterPass.cpp \
 	ParserPass.cpp \
 	Pass.cpp \
