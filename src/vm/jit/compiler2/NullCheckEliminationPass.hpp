@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_NULLCHECKELIMINATIONPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/alloc/unordered_set.hpp"
 
 MM_MAKE_NAME(NullCheckEliminationPass)
 
@@ -33,11 +34,21 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+class Method;
+class Value;
+
 /**
  * NullCheckEliminationPass
  */
 class NullCheckEliminationPass : public Pass, public memory::ManagerMixin<NullCheckEliminationPass> {
+private:
+
+	Method *M;
+
+	bool is_non_null(Value *objectref);
+
 public:
+
 	NullCheckEliminationPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;

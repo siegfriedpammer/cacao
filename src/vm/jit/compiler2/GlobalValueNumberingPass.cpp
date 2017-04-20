@@ -94,7 +94,8 @@ void GlobalValueNumberingPass::init_partition(Method::const_iterator begin, Meth
 				|| I->get_opcode() == Instruction::ALOADInstID
 				|| I->get_opcode() == Instruction::SourceStateInstID
 				|| I->get_opcode() == Instruction::DeoptimizeInstID
-				|| I->get_opcode() == Instruction::AssumptionInstID) {
+				|| I->get_opcode() == Instruction::AssumptionInstID
+				|| I->get_opcode() == Instruction::CHECKNULLInstID) {
 			// instructions which change the global state or depend on it
 			// will be in a separate block each, because they are congruent
 			// only with themselves
