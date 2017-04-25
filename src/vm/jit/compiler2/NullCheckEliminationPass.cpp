@@ -71,17 +71,26 @@ bool NullCheckEliminationPass::run(JITData &JD) {
 	M = JD.get_Method();
 	ListSchedulingPass *IS = get_Pass<ListSchedulingPass>();
 
-	alloc::unordered_set<Instruction*>::type safe_dereferences;
-	alloc::unordered_map<BeginInst*, alloc::vector<Value*>::type>::type non_null_references_per_block;
+	alloc::unordered_map<BeginInst*, alloc::vector<int>::type>::type non_null_references_per_block;
 	alloc::queue<BeginInst*>::type worklist;
+	alloc::unordered_set<BeginInst*>::type visited_blocks;
+
+	worklist.push(M->get_init_bb());
 
 	while (!worklist.empty()) {
 		BeginInst *begin = worklist.front();
 		worklist.pop();
 
-		// Solve data-flow equation at block entry, ignoring loop back-edges.
+		if (visited_blocks.count(begin) > 0) {
+			continue;
+		}
+
+		visited_blocks.insert(begin);
+
+		// Solve data-flow equation at block entry.
+		// TODO Consider loop-back-edges.
 		auto &non_null_references = non_null_references_per_block[begin];
-		alloc::vector<Value*>::type intersection;
+		alloc::vector<int>::type intersection;
 		for (auto pred_it = begin->pred_begin(); pred_it != begin->pred_end();
 				pred_it++) {
 			BeginInst *pred = *pred_it;
@@ -104,16 +113,22 @@ bool NullCheckEliminationPass::run(JITData &JD) {
 		// Compute data-flow information for each instruction within the current block.
 		for (auto inst_it = IS->inst_begin(begin); inst_it != IS->inst_end(begin); inst_it++) {
 			Instruction *I = *inst_it;
+			DereferenceInst *dereference = I->to_DereferenceInst();
 
-			if (I->is_dereference()) {
-				Value *objectref = I->get_operand(0);
-				if (std::find(non_null_references.begin(), non_null_references.end(), objectref) != non_null_references.end()) {
-					safe_dereferences.insert(I);
+			if (dereference) {
+				Instruction *objectref = dereference->get_objectref();
+				assert(objectref);
+				assert(objectref->get_type() == Type::ReferenceTypeID);
+
+				if (std::find(non_null_references.begin(), non_null_references.end(), objectref->get_id()) != non_null_references.end()) {
+					LOG("Detected redundant null-check on " << objectref  << " by " << I << nl);
+					dereference->set_needs_null_check(false);
 				} else {
-					non_null_references.push_back(objectref);
+					LOG("Detected non-redundant null-check on " << objectref << " by " << I << nl);
+					non_null_references.push_back(objectref->get_id());
 				}
 			} else if (is_non_null(I)) {
-				non_null_references.push_back(I);
+				non_null_references.push_back(I->get_id());
 			}
 		}
 
@@ -126,30 +141,6 @@ bool NullCheckEliminationPass::run(JITData &JD) {
 			if (succ->get_id() > begin->get_id()) {
 				worklist.push(succ);
 			}
-		}
-	}
-
-	// Collect redundant null-checks.
-	alloc::vector<CHECKNULLInst*>::type redundant_null_checks;
-	for (auto inst_it = M->begin(); inst_it != M->end(); inst_it++) {
-		CHECKNULLInst *null_check = (*inst_it)->to_CHECKNULLInst();
-		if (null_check) {
-			Value *dereference = *(null_check->rdep_begin());
-			if (null_check->rdep_size() == 0
-					|| safe_dereferences.count(dereference->to_Instruction()) > 0) {
-				redundant_null_checks.push_back(null_check);
-			}
-		}
-	}
-
-	// Remove redundant null-checks.
-	while (!redundant_null_checks.empty()) {
-		CHECKNULLInst *null_check = redundant_null_checks.back();
-		redundant_null_checks.pop_back();
-		LOG("Remove null-check " << null_check << nl);
-		for (auto rdep_it = null_check->rdep_begin(); rdep_it != null_check->rdep_end(); rdep_it++) {
-			Instruction *rdep = *rdep_it;
-			rdep->remove_dep(null_check);
 		}
 	}
 
