@@ -390,6 +390,44 @@ public:
 };
 
 /**
+ * Base type of instructions that dereference an object reference.
+ */
+class DereferenceInst {
+private:
+
+	/**
+	 * Whether a null-check is needed to safeguard the dereference.
+	 */
+	bool needs_null_check;
+
+public:
+
+	/**
+	 * Control whether a null-check is needed to safeguard the dereference.
+	 */
+	void set_needs_null_check(bool needs_null_check) {
+		this->needs_null_check = needs_null_check;
+	}
+
+	/**
+	 * Whether a null-check is needed to safeguard the dereference.
+	 */
+	bool get_needs_null_check() const { return needs_null_check; }
+
+	/**
+	 * Get the corresponding object reference.
+	 */
+	virtual Instruction *get_objectref() = 0;
+
+	/**
+	 * Conversion method.
+	 */
+	virtual DereferenceInst *to_DereferenceInst() = 0;
+
+	virtual ~DereferenceInst() {}
+};
+
+/**
  * This Instruction marks the start of a basic block.
  */
 class BeginInst : public Instruction {
@@ -562,46 +600,21 @@ inline void BeginInst::set_successor(int index, BeginInst *BI) {
 // Instructions
 
 /**
- * An implicit or explicit null-check on an object reference.
+ * Represents an explicit null-check on an object reference.
  */
 class CHECKNULLInst : public UnaryInst, public SourceStateAwareInst {
-private:
-
-	/**
-	 * Indicates whether the null-check is implicit.
-	 */
-	bool implicit;
-
 public:
 
 	/**
 	 * Construct a CHECKNULLInst.
 	 *
 	 * @param objectref The object reference to check.
-	 * @param implicit  Whether the null-check is implicit (false by default).
 	 */
-	explicit CHECKNULLInst(Value *objectref, bool implicit = false)
-			: UnaryInst(CHECKNULLInstID, Type::VoidTypeID, objectref),
-			implicit(implicit) {
+	explicit CHECKNULLInst(Value *objectref)
+			: UnaryInst(CHECKNULLInstID, Type::VoidTypeID, objectref) {
 		assert(objectref != NULL);
 		append_op(objectref);
 	}
-
-	/**
-	 * Make the null-check implicit or explicit.
-	 *
-	 * @param implicit True to make the null-check implicit, false otherwise.
-	 */
-	void set_implicit(bool implicit) {
-		this->implicit = implicit;
-	}
-
-	/**
-	 * Indicates whether the null-check is implicit.
-	 *
-	 * @return True if the null-check is implicit, false otherwise.
-	 */
-	bool is_implicit() const { return implicit; }
 
 	/**
 	 * @see Instruction::is_homogeneous()
@@ -632,7 +645,7 @@ public:
 /**
  * Get the length of an array.
  */
-class ARRAYLENGTHInst : public UnaryInst {
+class ARRAYLENGTHInst : public UnaryInst, public DereferenceInst {
 public:
 
 	/**
@@ -643,6 +656,22 @@ public:
 	explicit ARRAYLENGTHInst(Value *arrayref)
 		: UnaryInst(ARRAYLENGTHInstID, Type::IntTypeID, arrayref) {}
 
+	virtual Instruction *get_objectref() {
+		Instruction *objectref = (*op_begin())->to_Instruction();
+		assert(objectref);
+		return objectref;
+	}
+
+	/**
+	 * Conversion method.
+	 */
+	virtual Instruction* to_Instruction() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual DereferenceInst* to_DereferenceInst() { return this; }
+
 	/**
 	 * Conversion method.
 	 */
@@ -652,11 +681,6 @@ public:
 	 * @see Instruction::is_homogeneous()
 	 */
 	virtual bool is_homogeneous() const { return false; }
-
-	/**
-	 * An ARRAYLENGTHInst performs a dereference on the accessed array.
-	 */
-	virtual bool is_dereference() const { return true; }
 
 	/**
 	 * Visitor pattern.
@@ -888,7 +912,7 @@ public:
 /**
  * Get the value of an object's field.
  */
-class GETFIELDInst : public FieldAccessInst {
+class GETFIELDInst : public FieldAccessInst, public DereferenceInst {
 public:
 
 	/**
@@ -921,6 +945,12 @@ public:
 		return begin;
 	}
 
+	virtual Instruction *get_objectref() {
+		Instruction *objectref = (*op_begin())->to_Instruction();
+		assert(objectref);
+		return objectref;
+	}
+
 	/**
 	 * @see Instruction::is_homogeneous()
 	 */
@@ -937,9 +967,9 @@ public:
 	virtual bool is_floating() const { return false; }
 
 	/**
-	 * A GETFIELDInst performs a dereference on the accessed object.
+	 * Conversion method.
 	 */
-	virtual bool is_dereference() const { return true; }
+	virtual DereferenceInst* to_DereferenceInst() { return this; }
 
 	/**
 	 * Conversion method.
@@ -955,7 +985,7 @@ public:
 /**
  * Write a value to an object's field.
  */
-class PUTFIELDInst : public FieldAccessInst {
+class PUTFIELDInst : public FieldAccessInst, public DereferenceInst {
 public:
 
 	/**
@@ -990,6 +1020,12 @@ public:
 		return begin;
 	}
 
+	virtual Instruction *get_objectref() {
+		Instruction *objectref = (*op_begin())->to_Instruction();
+		assert(objectref);
+		return objectref;
+	}
+
 	/**
 	 * @see Instruction::is_homogeneous()
 	 */
@@ -1006,9 +1042,9 @@ public:
 	virtual bool is_floating() const { return false; }
 
 	/**
-	 * A PUTFIELDInst performs a dereference on the accessed object.
+	 * Conversion method.
 	 */
-	virtual bool is_dereference() const { return true; }
+	virtual DereferenceInst* to_DereferenceInst() { return this; }
 
 	/**
 	 * Conversion method.
@@ -1148,7 +1184,7 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class AREFInst : public Instruction {
+class AREFInst : public Instruction, public DereferenceInst {
 public:
 	explicit AREFInst(Type::TypeID type, Value* ref, Value* index)
 			: Instruction(AREFInstID, type) {
@@ -1157,6 +1193,18 @@ public:
 		append_op(ref);
 		append_op(index);
 	}
+
+	virtual Instruction *get_objectref() {
+		Instruction *objectref = (*op_begin())->to_Instruction();
+		assert(objectref);
+		return objectref;
+	}
+
+	/**
+	 * Conversion method.
+	 */
+	virtual DereferenceInst* to_DereferenceInst() { return this; }
+
 	virtual AREFInst* to_AREFInst() { return this; }
 	virtual bool is_homogeneous() const { return false; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
@@ -1170,7 +1218,7 @@ public:
  *      therefore rename this class to something more uncontentious like
  *      "ArrayStoreInst".
  */
-class ASTOREInst : public Instruction {
+class ASTOREInst : public Instruction, public DereferenceInst {
 public:
 
 	/**
@@ -1199,6 +1247,13 @@ public:
 		return begin;
 	}
 
+	virtual Instruction *get_objectref() {
+		AREFInst *aref = (*op_begin())->to_Instruction()->to_AREFInst();
+		assert(aref);
+		Instruction *objectref = aref->get_objectref();
+		return objectref;
+	}
+
 	/**
 	 * @see Instruction::is_homogeneous()
 	 */
@@ -1215,9 +1270,9 @@ public:
 	virtual bool is_floating() const { return false; }
 
 	/**
-	 * An ASTOREInst performs a dereference on the accessed array.
+	 * Conversion method.
 	 */
-	virtual bool is_dereference() const { return true; }
+	virtual DereferenceInst* to_DereferenceInst() { return this; }
 
 	/**
 	 * Conversion method.
@@ -1238,7 +1293,7 @@ public:
  *      therefore rename this class to something more uncontentious like
  *      "ArrayLoadInst".
  */
-class ALOADInst : public Instruction {
+class ALOADInst : public Instruction, public DereferenceInst {
 public:
 
 	/**
@@ -1265,6 +1320,13 @@ public:
 		return dep_front()->to_BeginInst();
 	}
 
+	virtual Instruction *get_objectref() {
+		AREFInst *aref = (*op_begin())->to_Instruction()->to_AREFInst();
+		assert(aref);
+		Instruction *objectref = aref->get_objectref();
+		return objectref;
+	}
+
 	/**
 	 * @see Instruction::is_homogeneous()
 	 */
@@ -1276,9 +1338,9 @@ public:
 	virtual bool is_floating() const { return false; }
 
 	/**
-	 * An ALOADInst performs a dereference on the accessed array.
+	 * Conversion method.
 	 */
-	virtual bool is_dereference() const { return true; }
+	virtual DereferenceInst* to_DereferenceInst() { return this; }
 
 	/**
 	 * Conversion method.
@@ -1294,7 +1356,7 @@ public:
 /**
  * Perform a bounds-check for an array-access.
  */
-class ARRAYBOUNDSCHECKInst : public BinaryInst, public SourceStateAwareInst {
+class ARRAYBOUNDSCHECKInst : public BinaryInst, public SourceStateAwareInst, public DereferenceInst {
 public:
 
 	/**
@@ -1311,15 +1373,16 @@ public:
 		assert(index->get_type() == Type::IntTypeID);
 	}
 
+	virtual Instruction *get_objectref() {
+		Instruction *objectref = (*op_begin())->to_Instruction();
+		assert(objectref);
+		return objectref;
+	}
+
 	/**
 	 * @see Instruction::is_homogeneous()
 	 */
 	virtual bool is_homogeneous() const { return false; }
-
-	/**
-	 * An ARRAYBOUNDSCHECKInst performs a dereference on the accessed array.
-	 */
-	virtual bool is_dereference() const { return true; }
 
 	/**
 	 * Casting method.
@@ -1330,6 +1393,11 @@ public:
 	 * Casting method.
 	 */
 	virtual SourceStateAwareInst *to_SourceStateAwareInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual DereferenceInst* to_DereferenceInst() { return this; }
 
 	/**
 	 * Casting method.
@@ -1579,7 +1647,7 @@ public:
 /**
  * Invoke an instance method.
  */
-class INVOKEVIRTUALInst : public INVOKEInst {
+class INVOKEVIRTUALInst : public INVOKEInst, public DereferenceInst {
 public:
 
 	/**
@@ -1595,10 +1663,16 @@ public:
 			constant_FMIref *fmiref, BeginInst *begin, Instruction *state_change)
 		: INVOKEInst(INVOKEVIRTUALInstID, type, size, fmiref, begin, state_change) {}
 
+	virtual Instruction *get_objectref() {
+		Instruction *objectref = (*op_begin())->to_Instruction();
+		assert(objectref);
+		return objectref;
+	}
+
 	/**
-	 * An INVOKEVIRTUALInst performs a dereference on accessed object.
+	 * Conversion method.
 	 */
-	virtual bool is_dereference() const { return true; }
+	virtual DereferenceInst* to_DereferenceInst() { return this; }
 
 	/**
 	 * Conversion method.
@@ -1644,7 +1718,7 @@ public:
 /**
  * Invoke an interface method.
  */
-class INVOKEINTERFACEInst : public INVOKEInst {
+class INVOKEINTERFACEInst : public INVOKEInst, public DereferenceInst {
 public:
 
 	/**
@@ -1660,10 +1734,16 @@ public:
 			constant_FMIref *fmiref, BeginInst *begin, Instruction *state_change)
 		: INVOKEInst(INVOKEINTERFACEInstID, type, size, fmiref, begin, state_change) {}
 
+	virtual Instruction *get_objectref() {
+		Instruction *objectref = (*op_begin())->to_Instruction();
+		assert(objectref);
+		return objectref;
+	}
+
 	/**
-	 * An INVOKEINTERFACEInst performs a dereference on accessed object.
+	 * Conversion method.
 	 */
-	virtual bool is_dereference() const { return true; }
+	virtual DereferenceInst* to_DereferenceInst() { return this; }
 
 	/**
 	 * Conversion method.

@@ -55,6 +55,7 @@ namespace compiler2 {
 // Forward declarations
 class InstructionVisitor;
 class SourceStateAwareInst;
+class DereferenceInst;
 
 // include instruction declaration
 #include "vm/jit/compiler2/InstructionDeclGen.inc"
@@ -222,14 +223,10 @@ public:
 	 */
 	virtual bool is_commutable() const { return false; }
 
-	/**
-	 * True if the instruction performs a dereference.
-	 */
-	virtual bool is_dereference() const { return false; }
-
 	// casting functions
 	virtual Instruction* to_Instruction() { return this; }
 	virtual SourceStateAwareInst* to_SourceStateAwareInst() { return NULL; }
+	virtual DereferenceInst* to_DereferenceInst() { return NULL; }
 
 // include to_XXXInst()'s
 #include "vm/jit/compiler2/InstructionToInstGen.inc"
