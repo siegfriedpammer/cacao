@@ -69,12 +69,14 @@
 
 inline void emit_cmp_branch_imm(codegendata *cd, u1 sf, u1 op, s4 imm, u1 Rt)
 {
+	u4 off = 0x7ffff & imm;
 	*((u4 *) cd->mcodeptr) = LSL(sf, 31) | LSL(op, 24)  
-						     | LSL(imm, 5) | Rt | 0x34000000;
+						     | LSL(off, 5) | Rt | 0x34000000;
 	cd->mcodeptr += 4;
 }
 
-#define emit_cbnz(cd, Xt, imm)	emit_cmp_branch_imm(cd, 1, 1, imm, Xt)
+#define emit_cbnz(cd, Xt, imm)		emit_cmp_branch_imm(cd, 1, 1, imm, Xt)
+#define emit_cbnz32(cd, Wt, imm)	emit_cmp_branch_imm(cd, 0, 1, imm, Wt)
 
 
 /* Conditional branch (immediate) ********************************************/
@@ -145,6 +147,20 @@ inline void emit_mov_wide_imm(codegendata *cd, u1 sf, u1 opc, u1 hw, u2 imm16, u
 #define emit_movn_imm32(cd, Xd, imm)		emit_mov_wide_imm(cd, 0, 0, 0, imm, Xd)
 #define emit_movk_imm(cd, Xd, imm, hw) 		emit_mov_wide_imm(cd, 1, 3, hw, imm, Xd)
 #define emit_movk_imm32(cd, Xd, imm, hw) 	emit_mov_wide_imm(cd, 0, 3, hw, imm, Xd)
+
+
+/* Load/Store exclusive *******************************************************/
+
+inline void emit_ldstr_excl(codegendata *cd, u1 size, u1 o2, u1 L, u1 o1, u1 Rs, u1 o0, u1 Rt2, u1 Rn, u1 Rt)
+{
+	*((u4 *) cd->mcodeptr) = LSL(size, 30) | LSL(o2, 23) | LSL(L, 22) 
+	                         | LSL(o1, 21) | LSL(Rs, 16) | LSL(o0, 15)
+							 | LSL(Rt2, 10) | LSL(Rn, 5) | Rt | 0x08000000;
+	cd->mcodeptr += 4;
+}
+
+#define emit_ldxr32(cd, Wt, Xn)		emit_ldstr_excl(cd, 2, 0, 1, 0, 31, 0, 31, Xn, Wt)
+#define emit_stxr32(cd, Ws, Wt, Xn)	emit_ldstr_excl(cd, 2, 0, 0, 0, Ws, 0, 31, Xn, Wt)
 
 
 /* Load/Store Register (unscaled immediate) ***********************************/

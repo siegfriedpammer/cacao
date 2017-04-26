@@ -127,6 +127,11 @@ class AsmEmitter {
         void strh(u1 wt, u1 xn, s4 imm) { emit_strh_imm(cd, wt, xn, imm); }
         void strb(u1 wt, u1 xn, s4 imm) { emit_strb_imm(cd, wt, xn, imm); }
 
+        /* Load / store exclusive */
+
+        void ildxr(u1 wt, u1 xn) { emit_ldxr32(cd, wt, xn); }
+        void istxr(u1 ws, u1 wt, u1 xn) { emit_stxr32(cd, ws, wt, xn); }
+
         void iconst(u1 xt, s4 value) {
             // For small negative immediates, use MOVN
             if (value < 0 && -value-1 < 0xffff) {
@@ -195,6 +200,7 @@ class AsmEmitter {
         void ret() { emit_ret(cd); }
 
         void cbnz(u1 xn, s4 imm) { emit_cbnz(cd, xn, imm); }
+        void icbnz(u1 wn, s4 imm) { emit_cbnz32(cd, wn, imm); }
 
         /* Integer arithemtic *************************************************/
         void iadd_imm(u1 xd, u1 xn, u4 imm) { emit_add_imm32(cd, xd, xn, imm); }
