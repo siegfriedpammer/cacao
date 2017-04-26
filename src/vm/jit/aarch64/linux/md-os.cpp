@@ -115,13 +115,14 @@ void md_executionstate_read(executionstate_t *es, void *context)
 
 	/* read special registers */
 	es->pc = (u1 *) _mc->pc;
-	es->sp = (u1 *) _mc->regs[REG_SP];
+	es->sp = (u1 *) _mc->sp;
 	es->pv = (u1 *) _mc->regs[REG_PV];
 	es->ra = (u1 *) _mc->regs[REG_LR];
 
 	/* read integer registers */
-	for (i = 0; i < INT_REG_CNT; i++)
+	for (i = 0; i < (INT_REG_CNT - 1); i++)
 		es->intregs[i] = _mc->regs[i];
+	es->intregs[REG_SP] = _mc->sp;
 
 	/* read float registers */
 	/* Do not use the assignment operator '=', as the type of
@@ -154,7 +155,7 @@ void md_executionstate_write(executionstate_t *es, void *context)
 	_mc = &_uc->uc_mcontext;
 
 	/* write integer registers */
-	for (i = 0; i < INT_REG_CNT; i++)
+	for (i = 0; i < (INT_REG_CNT - 1); i++)
 		_mc->regs[i] = es->intregs[i];
 
 	/* write float registers */
@@ -172,7 +173,7 @@ void md_executionstate_write(executionstate_t *es, void *context)
 
 	/* write special registers */
 	_mc->pc           = (ptrint) es->pc;
-	_mc->regs[REG_SP] = (ptrint) es->sp;
+	_mc->sp 		  = (ptrint) es->sp;
 	_mc->regs[REG_PV] = (ptrint) es->pv;
 	_mc->regs[REG_LR] = (ptrint) es->ra;
 }
