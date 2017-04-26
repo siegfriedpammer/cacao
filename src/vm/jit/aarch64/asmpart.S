@@ -87,12 +87,13 @@ asm_vm_call_method_int:
 asm_vm_call_method_long:
 asm_vm_call_method_float:
 asm_vm_call_method_double:
-	sub		sp, sp, 32                    /* make room for saved registers  */
-	str		lr, [sp]                      /* save link register             */
+	stp     fp, lr, [sp, -16]!            
+	mov     fp, sp
+	sub		sp, sp, 16                    /* make room for saved registers  */
 
-	str		s0, [sp, 8]                   /* save registers                 */
+	str		s0, [sp, 0]                   /* save registers                 */
 
-	str     a0, [sp, 16]                  /* save method PV                 */
+	str     a0, [sp, 8]                   /* save method PV                 */
 
 	mov		t0, a1                        /* address of the argument array  */
 	mov     t1, a2                        /* stack argument count           */
@@ -133,7 +134,7 @@ L_asm_vm_call_method_stack_copy_loop:
 	cbnz	t1, L_asm_vm_call_method_stack_copy_loop
 
 L_asm_vm_call_method_stack_copy_done:
-	ldr		mptr, [s0, 16]               /* get address of PV                      */
+	ldr		mptr, [s0, 8]                /* get address of PV                      */
 	mov     pv, mptr                     /* load PV                                */
 	blr		pv 
 	
@@ -143,10 +144,9 @@ L_asm_vm_call_method_recompute_pv:
 L_asm_vm_call_method_recompute_return:
 	mov		sp, s0                      /* restore stack pointer            */
 	
-	ldr		lr, [sp]				    /* restore load register            */
-	ldr		s0, [sp, 8]
-	
-	add		sp, sp, 32 
+	ldr		s0, [sp, 0]
+	mov     sp, fp
+	ldp     fp, lr, [sp], 16
 	ret
 
 asm_vm_call_method_exception_handler:
