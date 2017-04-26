@@ -23,6 +23,8 @@
  */
 package org.cacaojvm.compiler2.test;
 
+import java.lang.reflect.InvocationTargetException;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -33,11 +35,32 @@ class Compiler2TestBase extends Compiler2Test {
 
 	protected void testResultEqual(Class<?> compileClass, String methodName,
 			String methodDesc, Object... args) {
-		Object resultBaseline = runBaseline(compileClass, methodName,
-				methodDesc, args);
-		Object resultCompiler2 = runCompiler2(compileClass, methodName,
-				methodDesc, args);
-		assertEquals(resultCompiler2, resultBaseline);
+
+		Throwable exceptionBaseline = null;
+		Throwable exceptionCompiler2 = null;
+
+		Object resultBaseline = null;
+		Object resultCompiler2 = null;
+
+        try {
+			resultBaseline = runBaseline(compileClass, methodName,
+					methodDesc, args);
+        } catch (Throwable e) {
+			exceptionBaseline = e;
+		}
+
+		try {
+			resultCompiler2 = runCompiler2(compileClass, methodName,
+					methodDesc, args);
+		} catch (Throwable e) {
+			exceptionCompiler2 = e;
+		}
+
+		if (exceptionBaseline != null) {
+			assertEquals(exceptionCompiler2, exceptionBaseline);
+		} else {
+			assertEquals(resultCompiler2, resultBaseline);
+		}
 	}
 
 	protected void testResultEqual(String methodName, String methodDesc,
@@ -46,25 +69,37 @@ class Compiler2TestBase extends Compiler2Test {
 	}
 
 	protected Object runBaseline(String methodName, String methodDesc,
-			Object... args) {
+			Object... args) throws Throwable {
 		return runBaseline(getClass(), methodName, methodDesc, args);
 	}
 
 	protected Object runCompiler2(String methodName, String methodDesc,
-			Object... args) {
+			Object... args) throws Throwable {
 		return runCompiler2(getClass(), methodName, methodDesc, args);
 	}
 
 	protected Object runBaseline(Class<?> compileClass, String methodName, 
-			String methodDesc, Object... args) {
-		compileBaseline(compileClass, methodName, methodDesc);
-		return executeMethod(compileClass, methodName, methodDesc, args);
+			String methodDesc, Object... args) throws Throwable {
+		try {
+			compileBaseline(compileClass, methodName, methodDesc);
+			return executeMethod(compileClass, methodName, methodDesc, args);
+		} catch (InvocationTargetException e) {
+			throw e.getCause();
+		} catch (Exception e) {
+			throw e;
+		}
 	}
 
 	protected Object runCompiler2(Class<?> compileClass, String methodName, 
-			String methodDesc, Object... args) {
-		compileCompiler2(compileClass, methodName, methodDesc);
-		return executeMethod(compileClass, methodName, methodDesc, args);
+			String methodDesc, Object... args) throws Throwable {
+		try {
+			compileCompiler2(compileClass, methodName, methodDesc);
+			return executeMethod(compileClass, methodName, methodDesc, args);
+		} catch (InvocationTargetException e) {
+			throw e.getCause();
+		} catch (Exception e) {
+			throw e;
+		}
 	}
 
 	// with timing
@@ -72,11 +107,32 @@ class Compiler2TestBase extends Compiler2Test {
 	protected void testResultEqual(Class<?> compileClass, 
 			String methodName, String methodDesc, TimingResults tr,
 			Object... args) {
-		Object resultBaseline = runBaseline(compileClass, 
-				methodName,	methodDesc, tr.baseline, args);
-		Object resultCompiler2 = runCompiler2(compileClass, 
-				methodName,	methodDesc, tr.compiler2, args);
-		assertEquals(resultCompiler2, resultBaseline);
+
+		Throwable exceptionBaseline = null;
+		Throwable exceptionCompiler2 = null;
+
+		Object resultBaseline = null;
+		Object resultCompiler2 = null;
+
+		try {
+			resultBaseline = runBaseline(compileClass, 
+					methodName,	methodDesc, tr.baseline, args);
+		} catch (Throwable e) {
+			exceptionBaseline = e;
+		}
+
+		try {
+			resultCompiler2 = runCompiler2(compileClass, 
+					methodName,	methodDesc, tr.compiler2, args);
+		} catch (Throwable e) {
+			exceptionCompiler2 = e;
+		}
+
+		if (exceptionBaseline != null) {
+			assertEquals(exceptionCompiler2, exceptionBaseline);
+		} else {
+			assertEquals(resultCompiler2, resultBaseline);
+		}
 	}
 
 	protected void testResultEqual(String methodName, String methodDesc,
@@ -85,29 +141,29 @@ class Compiler2TestBase extends Compiler2Test {
 	}
 
 	protected Object runBaseline(String methodName, String methodDesc,
-			Timing elapsed, Object... args) {
+			Timing elapsed, Object... args) throws Throwable {
 		return runBaseline(getClass(), methodName, methodDesc, elapsed, args);
 	}
 
 	protected Object runCompiler2(String methodName, String methodDesc,
-			Timing elapsed, Object... args) {
+			Timing elapsed, Object... args) throws Throwable {
 		return runCompiler2(getClass(), methodName, methodDesc, elapsed, args);
 	}
 
 	protected Object runBaseline(Class<?> compileClass, String methodName, String methodDesc,
-			Timing elapsed, Object... args) {
+			Timing elapsed, Object... args) throws Throwable {
 		compileBaseline(compileClass, methodName, methodDesc);
 		return runMethod(compileClass, methodName, methodDesc, elapsed, args);
 	}
 
 	protected Object runCompiler2(Class<?> compileClass, String methodName, String methodDesc,
-			Timing elapsed, Object... args) {
+			Timing elapsed, Object... args) throws Throwable {
 		compileCompiler2(compileClass, methodName, methodDesc);
 		return runMethod(compileClass, methodName, methodDesc, elapsed, args);
 	}
 
 	private Object runMethod(Class<?> compileClass, String methodName,
-			String methodDesc, Timing elapsed, Object... args){
+			String methodDesc, Timing elapsed, Object... args) throws Throwable {
 		Long start = System.nanoTime();
 		Object o = executeMethod(compileClass, methodName, methodDesc, args);
 		elapsed.nanoseconds = System.nanoTime() - start;

@@ -38,7 +38,7 @@ public class PutField extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testByte() {
+	public void testByte() throws Throwable {
 		byte value = 111;
 
 		runBaseline("setByte", "(Lorg/cacaojvm/compiler2/test/PutField;B)V", this, value);
@@ -59,7 +59,7 @@ public class PutField extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testByteConstant() {
+	public void testByteConstant() throws Throwable {
 		runBaseline("setByteConstant", "(Lorg/cacaojvm/compiler2/test/PutField;)V", this);
 		byte baselineValue = byteField;
 
@@ -80,7 +80,7 @@ public class PutField extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testShort() {
+	public void testShort() throws Throwable {
 		short value = 11111;
 
 		runBaseline("setShort", "(Lorg/cacaojvm/compiler2/test/PutField;S)V", this, value);
@@ -101,7 +101,7 @@ public class PutField extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testShortConstant() {
+	public void testShortConstant() throws Throwable {
 		runBaseline("setShortConstant", "(Lorg/cacaojvm/compiler2/test/PutField;)V", this);
 		short baselineValue = shortField;
 
@@ -122,7 +122,7 @@ public class PutField extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testInt() {
+	public void testInt() throws Throwable {
 		int value = 0xDEADBEEF;
 
 		runBaseline("setInt", "(Lorg/cacaojvm/compiler2/test/PutField;I)V", this, value);
@@ -143,7 +143,7 @@ public class PutField extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testIntConstant() {
+	public void testIntConstant() throws Throwable {
 		runBaseline("setIntConstant", "(Lorg/cacaojvm/compiler2/test/PutField;)V", this);
 		int baselineValue = intField;
 
@@ -164,7 +164,7 @@ public class PutField extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testLong() {
+	public void testLong() throws Throwable {
 		long value = 0xDEADBEEF12345678l;
 
 		runBaseline("setLong", "(Lorg/cacaojvm/compiler2/test/PutField;J)V", this, value);
@@ -185,7 +185,7 @@ public class PutField extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testLongConstant() {
+	public void testLongConstant() throws Throwable {
 		runBaseline("setLongConstant", "(Lorg/cacaojvm/compiler2/test/PutField;)V", this);
 		long baselineValue = longField;
 
@@ -207,7 +207,7 @@ public class PutField extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testFloat() {
+	public void testFloat() throws Throwable {
 		float value = 3.40282347e38f;
 
 		runBaseline("setFloat", "(Lorg/cacaojvm/compiler2/test/PutField;F)V", this, value);
@@ -228,7 +228,7 @@ public class PutField extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testFloatConstant() {
+	public void testFloatConstant() throws Throwable {
 		runBaseline("setFloatConstant", "(Lorg/cacaojvm/compiler2/test/PutField;)V", this);
 		float baselineValue = floatField;
 
@@ -249,7 +249,7 @@ public class PutField extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testDouble() {
+	public void testDouble() throws Throwable {
 		double value = 1.79769313e308d;
 
 		runBaseline("setDouble", "(Lorg/cacaojvm/compiler2/test/PutField;D)V", this, value);
@@ -270,7 +270,7 @@ public class PutField extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testDoubleConstant() {
+	public void testDoubleConstant() throws Throwable {
 		runBaseline("setDoubleConstant", "(Lorg/cacaojvm/compiler2/test/PutField;)V", this);
 		double baselineValue = doubleField;
 

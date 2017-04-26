@@ -29,7 +29,7 @@ import org.junit.Test;
 public class MatMult extends Compiler2TestBase {
 
 	@Test
-	public void test_matMult() {
+	public void test_matMult() throws Throwable {
 
 		// @formatter:off
 		int[][] a = new int[][] {

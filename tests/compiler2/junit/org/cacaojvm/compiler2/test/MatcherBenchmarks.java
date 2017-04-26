@@ -99,7 +99,7 @@ public class MatcherBenchmarks extends Compiler2TestBase {
 
 
 	@Test @Ignore
-	public void test8_conv() {
+	public void test8_conv() throws Throwable {
 		TimingResults tr = new TimingResults();
 
 		Random rand = new Random(42);
@@ -146,7 +146,7 @@ public class MatcherBenchmarks extends Compiler2TestBase {
 	}
 
 	@Test
-	public void test9_matTrans() {
+	public void test9_matTrans() throws Throwable {
 		TimingResults tr = new TimingResults();
 
 		Random rand = new Random(42);

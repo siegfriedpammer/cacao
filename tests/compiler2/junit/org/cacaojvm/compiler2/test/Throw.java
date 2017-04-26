@@ -1,4 +1,4 @@
-/** tests/compiler2/junit/ArrayStore.java - ArrayStore
+/** tests/compiler2/junit/Throw.java - Throw
  *
  * Copyright (C) 1996-2014
  * CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,30 +23,34 @@
  */
 package org.cacaojvm.compiler2.test;
 
-import static org.junit.Assert.assertArrayEquals;
+import java.lang.reflect.InvocationTargetException;
+
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.Test;
+import org.junit.Ignore;
 
-public class ArrayStore extends Compiler2TestBase {
+public class Throw extends Compiler2TestBase {
 
-	@Test
-	public void test0() throws Throwable {
-		final int n = 10;
-		long[] arrayBaseline = new long[n];
-		long[] arrayCompiler2 = new long[n];
-
-		for (int i = 0; i < n; i++) {
-			runBaseline("testArrayStore", "([JIJ)V", arrayBaseline, i, i);
-			runCompiler2("testArrayStore", "([JIJ)V", arrayCompiler2, i, i);
-		}
-
-		assertArrayEquals(arrayBaseline, arrayCompiler2);
+	public static class FooException extends Exception {
 	}
 
-	/**
-	 * This is the method under test.
-	 */
-	static void testArrayStore(long test[], int index, long value) {
-		test[index] = value;
+	static void throwException(FooException e) throws FooException {
+		throw e;
+	}
+
+	@Test(expected = FooException.class)
+	public void testThrowException() throws Throwable {
+		runCompiler2("throwException", "(Lorg/cacaojvm/compiler2/test/Throw$FooException;)V", new FooException());
+	}
+
+	static void throwNewException() throws FooException {
+		throw new FooException();
+	}
+
+	@Test(expected = FooException.class)
+	public void testThrowNewException() throws Throwable {
+		runCompiler2("throwException", "(Lorg/cacaojvm/compiler2/test/Throw$FooException;)V", new FooException());
 	}
 }
