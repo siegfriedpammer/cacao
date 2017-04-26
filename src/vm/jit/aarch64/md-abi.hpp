@@ -50,6 +50,8 @@
 #define REG_ITMP1_XPTR  9    /* exception pointer = temporary register 1      */
 #define REG_ITMP2_XPC   10   /* exception pc = temporary register 2           */
 
+#define REG_FP          29   /* frame pointer, needed in compiler2            */
+
 #define REG_SP          31   /* stack pointer                                 */
 #define REG_ZERO        31   /* always zero                                   */
 

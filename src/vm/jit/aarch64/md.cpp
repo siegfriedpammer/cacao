@@ -238,7 +238,25 @@ bool md_trap_decode(trapinfo_t* trp, int sig, void* xpc, executionstate_t* es)
 #if defined(ENABLE_REPLACEMENT)
 void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
 {
-	os::abort("md_patch_replacement_point: NOT IMPLEMENTED!");
+	u4 mcode;
+
+	if (revert) {
+		/* restore the patched-over instruction */
+		*(u4*)(pc) = *(u4*)(savedmcode);
+	}
+	else {
+		/* save the current machine code */
+		*(u4*)(savedmcode) = *(u4*)(pc);
+
+		/* build the machine code for the patch */
+		mcode =  0xE7000000 | (TRAP_PATCHER << 8);
+
+		/* write the new machine code */
+		*(u4*)(pc) = (u4) mcode;
+	}
+
+	/* flush instruction cache */
+    md_icacheflush(pc,4);
 }
 #endif /* defined(ENABLE_REPLACEMENT) */
 

@@ -40,6 +40,7 @@
 #include "vm/jit/code.hpp"
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/disass.hpp"
+#include "vm/jit/methodtree.hpp"
 
 
 /* global variables ***********************************************************/
@@ -118,7 +119,10 @@ inline static void *md_codegen_get_pv_from_pc(void *ra)
         }
         pv = ((uint8_t *) pc) - offset;
     } else {
-		vm_abort_disassemble(pc, 2, "md_codegen_get_pv_from_pc: unknown instruction %x", mcode);
+		// md_codegen_get_pv_from_pc is also called for optimized methods (compiler2).
+        // Since we do not adjust the pv register after each subroutine call,
+        // we fall back on searching the method tree
+        pv = methodtree_find(ra);
     }
 
 	return pv;
