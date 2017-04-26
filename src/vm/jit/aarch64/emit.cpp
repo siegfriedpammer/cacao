@@ -471,6 +471,30 @@ void emit_abstractmethoderror_trap(codegendata *cd)
 }
 
 
+/* emit_trap_countdown *********************************************************
+
+   Emit a countdown trap
+
+   counter....absolute address of the counter variable
+
+*******************************************************************************/
+
+void emit_trap_countdown(codegendata *cd, s4 *counter)
+{
+	AsmEmitter asme(cd);
+	asme.lconst(REG_ITMP1, (s8) counter);
+
+	// Simple load-sub-store loop
+	asme.ildxr(REG_ITMP2, REG_ITMP1);
+	asme.isub_imm(REG_ITMP2, REG_ITMP2, 1);
+	asme.istxr(REG_ITMP3, REG_ITMP2, REG_ITMP1);
+	asme.icbnz(REG_ITMP3, -3);
+
+	asme.icbnz(REG_ITMP2, 2);
+	emit_trap(cd, REG_METHODPTR, TRAP_COUNTDOWN);
+}
+
+
 /* emit_trap *******************************************************************
 
    Emit a trap instruction and return the original machine code.
