@@ -115,14 +115,14 @@ class Compiler2TestBase extends Compiler2Test {
 		Object resultCompiler2 = null;
 
 		try {
-			resultBaseline = runBaseline(compileClass, 
+			resultBaseline = runBaseline(compileClass,
 					methodName,	methodDesc, tr.baseline, args);
 		} catch (Throwable e) {
 			exceptionBaseline = e;
 		}
 
 		try {
-			resultCompiler2 = runCompiler2(compileClass, 
+			resultCompiler2 = runCompiler2(compileClass,
 					methodName,	methodDesc, tr.compiler2, args);
 		} catch (Throwable e) {
 			exceptionCompiler2 = e;
