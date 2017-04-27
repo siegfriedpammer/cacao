@@ -281,6 +281,7 @@ void SSAConstructionPass::install_stackvar_dependencies(
 		s4 stackdepth,
 		s4 paramcount,
 		basicblock *bb) {
+	LOG("register " << stackdepth << " stackvars and " << paramcount << " parameters" << nl);
 	for (s4 stack_index = 0; stack_index < stackdepth; stack_index++) {
 		s4 varindex = stack[stack_index];
 		Value *v = read_variable(
@@ -634,6 +635,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			Instruction *new_global_state = NULL;
 
 			switch (iptr->opc) {
+			case ICMD_POP:
 			case ICMD_NOP:
 				break;
 			case ICMD_CHECKNULL:
@@ -1957,7 +1959,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 
 			// Record the source state if the last instruction was side-effecting.
 			new_global_state = read_variable(global_state,bbindex)->to_Instruction();
-			if (new_global_state != old_global_state && !new_global_state->to_BeginInst()) {
+			if (new_global_state != old_global_state && new_global_state->has_side_effects()) {
 				assert(instruction_has_side_effects(iptr));
 				record_source_state(new_global_state, iptr, bb, live_javalocals,
 						iptr->stack_after, iptr->stackdepth_after);

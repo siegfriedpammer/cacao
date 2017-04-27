@@ -90,6 +90,7 @@ void GlobalValueNumberingPass::init_partition(Method::const_iterator begin, Meth
 		STAT_TOTAL_NODES(I)
 
 		if (I->has_side_effects()
+				|| !I->is_floating()
 				|| I->get_opcode() == Instruction::LOADInstID
 				|| I->get_opcode() == Instruction::ALOADInstID
 				|| I->get_opcode() == Instruction::SourceStateInstID

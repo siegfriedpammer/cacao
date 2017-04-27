@@ -111,6 +111,17 @@ void LoweringVisitorBase::lower_source_state_dependencies(MachineReplacementPoin
 	}
 }
 
+void LoweringVisitorBase::place_deoptimization_marker(SourceStateAwareInst *I) {
+	SourceStateInst *source_state = I->get_source_state();
+
+	if (source_state) {
+		MachineDeoptInst *deopt = new MachineDeoptInst(
+				source_state->get_source_location(), source_state->op_size());
+		lower_source_state_dependencies(deopt, source_state);
+		get_current()->push_back(deopt);
+	}
+}
+
 void LoweringVisitorBase::visit(SourceStateInst* I, bool copyOperands) {
 	// A SouceStateInst is just an artificial instruction for holding metadata
 	// for ReplacementPointInsts. It has no direct pendant on LIR level and

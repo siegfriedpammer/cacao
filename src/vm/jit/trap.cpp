@@ -174,6 +174,16 @@ void trap_handle(int sig, void *xpc, void *context)
 	java_handle_t* o     = NULL;
 	methodinfo*    m     = NULL;
 
+	if (type == TRAP_NullPointerException
+			|| type == TRAP_ArrayIndexOutOfBoundsException
+			|| type == TRAP_ArithmeticException) {
+		void* xpv = md_codegen_get_pv_from_pc(xpc);
+		codeinfo *code = code_get_codeinfo_for_pv(xpv);
+		if (code->optlevel > 0) {
+			type = TRAP_DEOPTIMIZE;
+		}
+	}
+
 	switch (type) {
 	case TRAP_ArrayIndexOutOfBoundsException:
 		/* Get the index into the array causing the exception. */

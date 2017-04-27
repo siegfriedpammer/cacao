@@ -66,8 +66,6 @@ SourceStateInst *SourceStateAttachmentPass::process_block(BeginInst *begin,
 
 	assert(begin);
 
-	LOG("process " << begin << nl);
-
 	// This is a CFG merge, therefore it has its own SourceStateInst.
 	if (begin->pred_size() > 1) {
 		latest_source_state = get_associated_source_state(begin);
@@ -79,7 +77,7 @@ SourceStateInst *SourceStateAttachmentPass::process_block(BeginInst *begin,
 		Instruction *I = *i;
 
 		// Attach the SourceStateInst in case the current Instruction needs one.
-		if (I->to_SourceStateAwareInst()) {
+		if (I->to_SourceStateAwareInst() && I->to_SourceStateAwareInst()->needs_source_state()) {
 			SourceStateAwareInst *sink = I->to_SourceStateAwareInst();
 			LOG("Attach " << latest_source_state << " to " << sink->to_Instruction() << nl);
 			sink->set_source_state(latest_source_state);

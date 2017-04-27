@@ -134,6 +134,8 @@ public:
 	void lower_source_state_dependencies(MachineReplacementPointInst *MI,
 		SourceStateInst *source_state);
 
+	void place_deoptimization_marker(SourceStateAwareInst *I);
+
 	/* RuleId enum cannot be used in interface, as including MatcherDefs.hpp 
 	 * requires Grammar.inc. Backend.hpp is included in several other files 
 	 * that are compiled without CXXFLAGS containing arch folder.

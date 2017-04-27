@@ -386,13 +386,15 @@ public:
 		I->append_dep(source_state);
 	}
 
+	virtual bool needs_source_state() { return true; }
+
 	virtual ~SourceStateAwareInst() {}
 };
 
 /**
  * Base type of instructions that dereference an object reference.
  */
-class DereferenceInst {
+class DereferenceInst : public SourceStateAwareInst {
 private:
 
 	/**
@@ -401,6 +403,8 @@ private:
 	bool needs_null_check;
 
 public:
+
+	DereferenceInst() : needs_null_check(true) {}
 
 	/**
 	 * Control whether a null-check is needed to safeguard the dereference.
@@ -418,6 +422,8 @@ public:
 	 * Get the corresponding object reference.
 	 */
 	virtual Instruction *get_objectref() = 0;
+
+	virtual bool needs_source_state() { return get_needs_null_check(); }
 
 	/**
 	 * Conversion method.
@@ -666,6 +672,8 @@ public:
 	 * Conversion method.
 	 */
 	virtual Instruction* to_Instruction() { return this; }
+
+	virtual SourceStateAwareInst* to_SourceStateAwareInst() { return this; }
 
 	/**
 	 * Conversion method.
@@ -957,14 +965,13 @@ public:
 	virtual bool is_homogeneous() const { return false; }
 
 	/**
-	 * For now consider as side-effect to avoid illegal instruction reordering.
-	 */
-	virtual bool has_side_effects() const { return true; }
-
-	/**
 	 * For now consider as fixed to avoid illegal instruction reordering.
 	 */
 	virtual bool is_floating() const { return false; }
+
+	virtual Instruction* to_Instruction() { return this; }
+
+	virtual SourceStateAwareInst* to_SourceStateAwareInst() { return this; }
 
 	/**
 	 * Conversion method.
@@ -1041,6 +1048,10 @@ public:
 	 */
 	virtual bool is_floating() const { return false; }
 
+	virtual Instruction* to_Instruction() { return this; }
+
+	virtual SourceStateAwareInst* to_SourceStateAwareInst() { return this; }
+
 	/**
 	 * Conversion method.
 	 */
@@ -1094,11 +1105,6 @@ public:
 	 * @see Instruction::is_homogeneous()
 	 */
 	virtual bool is_homogeneous() const { return false; }
-
-	/**
-	 * For now consider as side-effect to avoid illegal instruction reordering.
-	 */
-	virtual bool has_side_effects() const { return true; }
 
 	/**
 	 * For now consider as fixed to avoid illegal instruction reordering.
@@ -1200,6 +1206,10 @@ public:
 		return objectref;
 	}
 
+	virtual Instruction* to_Instruction() { return this; }
+
+	virtual SourceStateAwareInst* to_SourceStateAwareInst() { return this; }
+
 	/**
 	 * Conversion method.
 	 */
@@ -1269,6 +1279,10 @@ public:
 	 */
 	virtual bool is_floating() const { return false; }
 
+	virtual Instruction* to_Instruction() { return this; }
+
+	virtual SourceStateAwareInst* to_SourceStateAwareInst() { return this; }
+
 	/**
 	 * Conversion method.
 	 */
@@ -1337,6 +1351,10 @@ public:
 	 */
 	virtual bool is_floating() const { return false; }
 
+	virtual Instruction* to_Instruction() { return this; }
+
+	virtual SourceStateAwareInst* to_SourceStateAwareInst() { return this; }
+
 	/**
 	 * Conversion method.
 	 */
@@ -1356,7 +1374,7 @@ public:
 /**
  * Perform a bounds-check for an array-access.
  */
-class ARRAYBOUNDSCHECKInst : public BinaryInst, public SourceStateAwareInst, public DereferenceInst {
+class ARRAYBOUNDSCHECKInst : public BinaryInst, public DereferenceInst {
 public:
 
 	/**
@@ -1669,6 +1687,10 @@ public:
 		return objectref;
 	}
 
+	virtual Instruction* to_Instruction() { return this; }
+
+	virtual SourceStateAwareInst* to_SourceStateAwareInst() { return this; }
+
 	/**
 	 * Conversion method.
 	 */
@@ -1739,6 +1761,10 @@ public:
 		assert(objectref);
 		return objectref;
 	}
+
+	virtual Instruction* to_Instruction() { return this; }
+
+	virtual SourceStateAwareInst* to_SourceStateAwareInst() { return this; }
 
 	/**
 	 * Conversion method.
