@@ -504,7 +504,7 @@ void codegen_set_replacement_point(codegendata *cd)
 
 	cd->replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
 
-#if defined(__X86_64__) && defined(ENABLE_COUNTDOWN_TRAPS)
+#if (defined(__AARCH64__) || defined(__X86_64__)) && defined(ENABLE_COUNTDOWN_TRAPS)
 	// Generate countdown trap code.
 	methodinfo *m = cd->replacementpoint->method;
 	if (cd->replacementpoint->flags & rplpoint::FLAG_COUNTDOWN) {
