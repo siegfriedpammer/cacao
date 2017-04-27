@@ -85,6 +85,7 @@ bool CodeGenPass::run(JITData &JD) {
 			MI->emit(CM);
 			std::size_t end = CS.size();
 			instruction_positions[MI] = start;
+			instruction_sizes[MI] = end - start;
 			#if defined(ENABLE_STATISTICS)
 			if (MI->is_move() && start != end) {
 				STATISTICS(++num_remaining_moves);
@@ -185,9 +186,21 @@ void CodeGenPass::resolve_replacement_points(ForwardIt first, ForwardIt last, JI
 		rp->regalloccount = MI->op_size();
 		rp->flags         = 0;
 		rp->id            = MI->get_source_id();
+		rp->patch_target_addr = NULL;
 
 		if (MI->to_MachineDeoptInst()) {
 			rp->flags |= rplpoint::FLAG_DEOPTIMIZE;
+		}
+
+		if (MI->to_MachineReplacementPointCallSiteInst()) {
+			rp->callsize = instruction_sizes[MI->to_MachineReplacementPointCallSiteInst()->get_call_inst()];
+		
+			if (MI->to_MachineReplacementPointStaticSpecialInst()) {
+				DataSegment::IdxTy idx = MI->to_MachineReplacementPointStaticSpecialInst()->get_idx();
+				// The data and code segment were already copied, 
+				// with the DataSegment directly starting at code->mcode
+				rp->patch_target_addr = code->mcode + idx.idx;
+			}
 		}
 
 		// store allocation infos
@@ -359,12 +372,23 @@ void CodeGenPass::finish(JITData &JD) {
 	code->savedadrcount      = ADR_SAV_CNT - rd->savadrreguse;
 #endif
 
-#if defined(__X86_64__)
+#if defined(__AARCH64__) || defined(__X86_64__)
 	// Since we use the EnterInst on method entry, the generated code saves the
 	// frame pointer (register RBP) of the calling method on the stack. We
 	// therefore have to provide an additional stack slot.
 	code->stackframesize++;
 	code_flag_using_frameptr(code);
+#endif
+
+#if defined(__AARCH64__)
+	// We do not handle leaf methods yet in the aarch64 compiler2 backend
+	// During replacement, assumptions are made on the stacklayout regarding
+	// leaf methods that do not hold up when using the compiler2 backend
+	code_unflag_leafmethod(code);
+
+	// On aarch64 the replacement code also assumes that the stacksize includes
+	// the return address
+	code->stackframesize++;
 #endif
 
 	/* Create the exception table. */

@@ -57,12 +57,16 @@ private:
 
 	typedef std::vector<MachineInstruction*> MInstListTy;
 	typedef alloc::map<MachineInstruction*,std::size_t>::type InstructionPositionMap;
+	typedef alloc::map<MachineInstruction*,std::size_t>::type InstructionSizeMap;
 
 	/// Map a MachineInstruction to a offset in the current CodeMemory.
 	///
 	/// This map stores for each MachineInstruction the offset of the native
 	/// code that was written to the CodeSegment by MachineInstruction::emit().
 	InstructionPositionMap instruction_positions;
+
+	/// Map a MachineInstruction to its size in the code memory (number of emitted bytes)
+	InstructionSizeMap instruction_sizes;
 
 	/// Create the final rplpoint structures for the current method.
 	///
