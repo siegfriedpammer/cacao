@@ -536,6 +536,10 @@ void Aarch64LoweringVisitor::visit(ALOADInst *I, bool copyOperands) {
 		offset = OFFSET(java_shortarray_t, data[0]);
 		shift = 1;
 		break;
+	case Type::CharTypeID:
+		offset = OFFSET(java_chararray_t, data[0]);
+		shift = 1;
+		break;
 	case Type::IntTypeID:
 		offset = OFFSET(java_intarray_t, data[0]);
 		shift = 2;
@@ -593,6 +597,10 @@ void Aarch64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 		break;
 	case Type::ShortTypeID:
 		offset = OFFSET(java_shortarray_t, data[0]);
+		shift = 1;
+		break;
+	case Type::CharTypeID:
+		offset = OFFSET(java_chararray_t, data[0]);
 		shift = 1;
 		break;
 	case Type::IntTypeID:
@@ -826,6 +834,7 @@ void Aarch64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	Type::TypeID type = I->get_type();
 	MethodDescriptor &MD = I->get_MethodDescriptor();
 	MachineMethodDescriptor MMD(MD);
+	StackSlotManager *SSM = get_Backend()->get_JITData()->get_StackSlotManager();
 
 	// operands for the call
 	MachineOperand *addr = new NativeRegister(Type::ReferenceTypeID, &R18);
@@ -852,22 +861,44 @@ void Aarch64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	// create call
 	MachineInstruction* call = new CallInst(SrcOp(addr),DstOp(result),I->op_size());
 	// move values to parameters
+	int arg_counter = 0;
 	for (std::size_t i = 0; i < I->op_size(); ++i ) {
+		MachineOperand *arg_dst = MMD[i];
+		if (arg_dst->is_StackSlot()) {
+			arg_dst = SSM->create_argument_slot(arg_dst->get_type(), arg_counter++);
+		}
+
 		MachineInstruction* mov = get_Backend()->create_Move(
 			get_op(I->get_operand(i)->to_Instruction()),
-			MMD[i]
+			arg_dst
 		);
 		get_current()->push_back(mov);
 		// set call operand
-		call->set_operand(i+1,MMD[i]);
+		call->set_operand(i+1,arg_dst);
 	}
 
+	// Source state for replacement point instructions
+	// Concrete class depends on INVOKE type
+	SourceStateInst *source_state = I->get_SourceStateInst();
+	assert(source_state);
+	MachineReplacementPointCallSiteInst *MI = nullptr;
+
 	if (I->to_INVOKESTATICInst() || I->to_INVOKESPECIALInst()) {
+		DataSegment &DS = get_Backend()->get_JITData()->get_CodeMemory()->get_DataSegment();
+		DataSegment::IdxTy idx = DS.get_index(DSFMIRef(I->get_fmiref()));
+		if (DataSegment::is_invalid(idx)) {
+			DataFragment data = DS.get_Ref(sizeof(void*));
+			idx = DS.insert_tag(DSFMIRef(I->get_fmiref()), data);
+		}
+
+		DataFragment datafrag = DS.get_Ref(idx, sizeof(void*));
 		methodinfo* callee = I->get_fmiref()->p.method;
-		Immediate *method_address = new Immediate(reinterpret_cast<s8>(callee->code->entrypoint),
-				Type::ReferenceType());
-		MachineInstruction *mov = get_Backend()->create_Move(method_address, addr);
+		write_data<void*>(datafrag, callee->code->entrypoint);
+		
+		DsegAddrInst* mov = new DsegAddrInst(DstOp(addr), idx, Type::ReferenceTypeID);
 		get_current()->push_back(mov);
+
+		MI = new MachineReplacementPointStaticSpecialInst(call, source_state->get_source_location(), source_state->op_size(), idx);
 	} else if (I->to_INVOKEVIRTUALInst()) {
 		methodinfo* callee = I->get_fmiref()->p.method;
 		int32_t s1 = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * callee->vftblindex;
@@ -880,6 +911,8 @@ void Aarch64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 		MachineOperand *method_offset = new Immediate(s1, Type::IntType());
 		MachineInstruction *load_method_address = new LoadInst(DstOp(addr), BaseOp(vftbl_address), IdxOp(method_offset), Type::LongTypeID);
 		get_current()->push_back(load_method_address);
+
+		MI = new MachineReplacementPointCallSiteInst(call, source_state->get_source_location(), source_state->op_size());
 	} else if (I->to_INVOKEINTERFACEInst()) {
 		methodinfo* callee = I->get_fmiref()->p.method;
 		int32_t s1 = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr) * callee->clazz->index;
@@ -899,12 +932,20 @@ void Aarch64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 		MachineOperand *method_offset = new Immediate(s2, Type::IntType());
 		MachineInstruction *load_method_address = new LoadInst(DstOp(addr), BaseOp(interface_address), IdxOp(method_offset), Type::LongTypeID);
 		get_current()->push_back(load_method_address);
+
+		MI = new MachineReplacementPointCallSiteInst(call, source_state->get_source_location(), source_state->op_size());
 	} else if (I->to_BUILTINInst()) {
 		Immediate *method_address = new Immediate(reinterpret_cast<s8>(I->to_BUILTINInst()->get_address()),
 				Type::ReferenceType());
 		MachineInstruction *mov = get_Backend()->create_Move(method_address, addr);
 		get_current()->push_back(mov);
+
+		MI = new MachineReplacementPointCallSiteInst(call, source_state->get_source_location(), source_state->op_size());
 	}
+
+	// add replacement point
+	lower_source_state_dependencies(MI, source_state);
+	get_current()->push_back(MI);
 
 	// add call
 	get_current()->push_back(call);
@@ -1058,6 +1099,21 @@ void Aarch64LoweringVisitor::visit(CHECKNULLInst *I, bool copyOperands) {
 
 void Aarch64LoweringVisitor::visit(AREFInst *I, bool copyOperands) {
 	// DO NOTHING
+}
+
+void Aarch64LoweringVisitor::visit(DeoptimizeInst *I, bool copyOperands) {
+	assert(I);
+
+	SourceStateInst *source_state = I->get_source_state();
+	assert(source_state);
+	MachineDeoptInst *MI = new MachineDeoptInst(
+			source_state->get_source_location(), source_state->op_size());
+	lower_source_state_dependencies(MI, source_state);
+	get_current()->push_back(MI);
+
+	MachineOperand *methodptr = new NativeRegister(Type::ReferenceTypeID, &R18);
+	MachineInstruction *deoptimize_trap = new TrapInst(TRAP_DEOPTIMIZE, SrcOp(methodptr));
+	get_current()->push_back(deoptimize_trap);
 }
 
 void Aarch64LoweringVisitor::lowerComplex(Instruction* I, int ruleId){
