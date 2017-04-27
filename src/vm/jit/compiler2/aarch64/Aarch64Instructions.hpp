@@ -65,30 +65,6 @@ template<> inline Immediate* cast_to<Immediate>(MachineOperand* op) {
 	return imm;
 }
 
-template <>
-inline StackSlot* cast_to<StackSlot>(MachineOperand *op) {
-	switch (op->get_OperandID()) {
-	case MachineOperand::ManagedStackSlotID:
-		{
-			ManagedStackSlot *mslot = op->to_ManagedStackSlot();
-			assert(mslot);
-			StackSlot *slot = mslot->to_StackSlot();
-			assert(slot);
-			return slot;
-		}
-	case MachineOperand::StackSlotID:
-		{
-			StackSlot *slot = op->to_StackSlot();
-			assert(slot);
-			return slot;
-		}
-	default: break;
-	}
-	assert(0 && "Not a stackslot");
-	return NULL;
-}
-
-
 class AArch64Instruction : public MachineInstruction {
 public:
 	AArch64Instruction(const char* name, MachineOperand* result,
@@ -188,8 +164,10 @@ public:
 	}
 
 	Reg reg_base() const {
-		if (result.op->is_StackSlot() || result.op->is_ManagedStackSlot()) {
+		if (result.op->is_StackSlot()) {
 			return Reg::XFP;
+		} else if (result.op->is_ManagedStackSlot()) {
+			return Reg::XSP;
 		}
 
 		MachineOperand *op = get(1).op;
@@ -202,8 +180,11 @@ public:
 	}
 
 	s4 offset() const {
-		if (result.op->is_StackSlot() || result.op->is_ManagedStackSlot()) {
-			StackSlot* stackSlot = cast_to<StackSlot>(result.op);
+		if (result.op->is_StackSlot()) {
+			StackSlot* stackSlot = result.op->to_StackSlot();
+			return stackSlot->get_index() * kStackSlotSize;
+		} else if (result.op->is_ManagedStackSlot()) {
+			ManagedStackSlot* stackSlot = result.op->to_ManagedStackSlot();
 			return stackSlot->get_index() * kStackSlotSize;
 		}
 
@@ -230,6 +211,7 @@ private:
 		switch (type) {
 		case Type::ByteTypeID: return Reg::B(reg);
 		case Type::ShortTypeID: return Reg::H(reg);
+		case Type::CharTypeID: return Reg::H(reg);
 		case Type::IntTypeID: return Reg::W(reg);
 		case Type::ReferenceTypeID:
 		case Type::LongTypeID: return Reg::X(reg);
@@ -262,8 +244,10 @@ public:
 		MachineOperand *op = get(0).op;
 		if (op->is_Register()) {
 			return reg_op(0);
-		} else if (op->is_StackSlot() || op->is_ManagedStackSlot()) {
+		} else if (op->is_StackSlot()) {
 			return Reg::XFP;
+		} else if (op->is_ManagedStackSlot()) {
+			return Reg::XSP;
 		} else {
 			ABORT_MSG("MemoryInst::reg_base", op << " not supported");
 		}
@@ -271,8 +255,11 @@ public:
 	}
 
 	s4 offset() const {
-		if (get(0).op->is_StackSlot() || get(0).op->is_ManagedStackSlot()) {
-			StackSlot* stackSlot = cast_to<StackSlot>(get(0).op);
+		if (get(0).op->is_StackSlot()) {
+			StackSlot* stackSlot = get(0).op->to_StackSlot();
+			return stackSlot->get_index() * kStackSlotSize;
+		} else if (get(0).op->is_ManagedStackSlot()) {
+			ManagedStackSlot* stackSlot = get(0).op->to_ManagedStackSlot();
 			return stackSlot->get_index() * kStackSlotSize;
 		}
 
@@ -298,6 +285,7 @@ private:
 		switch (type) {
 		case Type::ByteTypeID: return Reg::B(reg);
 		case Type::ShortTypeID: return Reg::H(reg);
+		case Type::CharTypeID: return Reg::H(reg);
 		case Type::IntTypeID: return Reg::W(reg);
 		case Type::ReferenceTypeID:
 		case Type::LongTypeID: return Reg::X(reg);
@@ -735,6 +723,23 @@ public:
 
 	virtual void emit(Emitter& em) const;
 	virtual bool is_call() const { return true; }
+};
+
+
+class TrapInst : public AArch64Instruction {
+private:
+	/// A trap number as defined in aarch64/md-trap.hpp
+	s4 trap;
+
+public:
+	TrapInst(s4 trap, const SrcOp &index) 
+			: AArch64Instruction("Aarch64TrapInst", &NoOperand, 
+			                     Type::ReferenceTypeID, 1), trap(trap) {
+		operands[0].op = index.op;
+	}
+
+	virtual bool is_end() const { return true; }
+	virtual void emit(Emitter& em) const;
 };
 
 } // end namespace aarch64
