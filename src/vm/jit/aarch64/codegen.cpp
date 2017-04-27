@@ -88,9 +88,9 @@ void codegen_emit_prolog(jitdata* jd)
 
 	/* create stack frame (if necessary) */
 	/* NOTE: SP on aarch64 has to be quad word aligned */
+	int offset = cd->stackframesize * 8;
+	offset += (offset % 16);
 	if (cd->stackframesize) {
-		int offset = cd->stackframesize * 8;
-		offset += (offset % 16);
 		asme.lda(REG_SP, REG_SP, -offset);
 	}
 
@@ -98,7 +98,7 @@ void codegen_emit_prolog(jitdata* jd)
 
 	p = cd->stackframesize;
 	if (!code_is_leafmethod(code)) {
-		p--; asme.lst(REG_RA, REG_SP, p * 8);
+		p--; asme.lst(REG_RA, REG_SP, offset - 8);
 	}
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
 		p--; asme.lst(rd->savintregs[i], REG_SP, p * 8);
@@ -182,12 +182,15 @@ void codegen_emit_epilog(jitdata* jd)
 	registerdata* rd   = jd->rd;
 	AsmEmitter asme(cd);
 
+	int offset = cd->stackframesize * 8;
+	offset += (offset % 16);
+
 	p = cd->stackframesize;
 
 	/* restore return address */
 
 	if (!code_is_leafmethod(code)) {
-		p--; asme.lld(REG_RA, REG_SP, p * 8);
+		p--; asme.lld(REG_RA, REG_SP, offset - 8);
 	}
 
 	/* restore saved registers */
@@ -202,8 +205,6 @@ void codegen_emit_epilog(jitdata* jd)
 	/* deallocate stack */
 
 	if (cd->stackframesize) {
-		int offset = cd->stackframesize * 8;
-		offset += (offset % 16);
 		asme.lda(REG_SP, REG_SP, offset);
 	}
 
