@@ -71,7 +71,7 @@ void executionstate_pop_stackframe(executionstate_t *es)
 
 	// Calculate the base of the stack frame.
 	uintptr_t sp     = (uintptr_t) es->sp;
-	uintptr_t basesp = sp + es->code->stackframesize * SIZE_OF_STACKSLOT;
+	uintptr_t basesp = sp + framesize;
 
 	// Restore return address, if part of frame.
 #if STACKFRAME_RA_TOP_OF_FRAME
@@ -97,11 +97,22 @@ void executionstate_pop_stackframe(executionstate_t *es)
 		es->ra = *((uint8_t**) (basesp + LA_LR_OFFSET));
 #endif /* STACKFRAME_RA_LINKAGE_AREA */
 
-#if defined(__X86_64__)
+#if defined(__AARCH64__) || defined(__X86_64__)
 	// Recover the frame-pointer
 	if (code_is_using_frameptr(es->code)) {
 		basesp -= 1 * SIZE_OF_STACKSLOT;
+# if defined(__X86_64__)
 		es->intregs[RBP] = *((uintptr_t*) basesp);
+# elif defined(__AARCH64__)
+		es->intregs[REG_FP] = *((uintptr_t*) basesp);
+# endif
+	}
+#endif
+
+#if defined(__AARCH64__)
+	// If the stack was padded for 16-byte alignment, do it here
+	if (framesize != es->code->stackframesize * SIZE_OF_STACKSLOT) {
+		basesp -= 1 * SIZE_OF_STACKSLOT;
 	}
 #endif
 

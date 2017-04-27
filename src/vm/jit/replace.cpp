@@ -662,12 +662,18 @@ static void replace_write_executionstate(rplpoint *rp,
 
 	sp = (stackslot_t *) es->sp;
 
-#if defined(__X86_64__)
+#if defined(__AARCH64__) || defined(__X86_64__)
 	if (code_is_using_frameptr(frame->tocode)) {
 		/* The frame pointer has to point to the beginning of the stack
 		   frame. */
+# if defined(__X86_64__)
 		es->intregs[RBP] = (uintptr_t) (sp + frame->tocode->stackframesize - 1);
 		LOG2("set RBP to " << (uintptr_t*) es->intregs[RBP] << nl);
+# elif defined(__AARCH64__)
+		auto stackframesize = frame->tocode->stackframesize + (frame->tocode->stackframesize % 2);
+		es->intregs[REG_FP] = (uintptr_t) (sp + stackframesize - 2);
+		LOG2("set REG_FP to " << (uintptr_t*) es->intregs[REG_FP] << nl);
+# endif
 	}
 #endif
 
@@ -834,7 +840,12 @@ void md_push_stackframe(executionstate_t *es, codeinfo *calleecode, u1 *ra)
 	sp = (stackslot_t *) es->sp;
 	basesp = sp;
 
+	/* on aarch64, we need to quad-word align the stackframesize */
+#if defined(__AARCH64__)
+	sp -= (calleecode->stackframesize + calleecode->stackframesize % 2);
+#else
 	sp -= calleecode->stackframesize;
+#endif
 	es->sp = (u1*) sp;
 
 	/* in debug mode, invalidate stack frame first */
@@ -872,15 +883,26 @@ void md_push_stackframe(executionstate_t *es, codeinfo *calleecode, u1 *ra)
 		*((uint8_t**) ((intptr_t) basesp + LA_LR_OFFSET)) = ra;
 #endif /* STACKFRAME_RA_LINKAGE_AREA */
 
-	/* save int registers */
-
-#if defined(__X86_64__)
+#if defined(__AARCH64__) || defined(__X86_64__)
 	if (code_is_using_frameptr(calleecode)) {
+# if defined(__X86_64__)
 		*((uintptr_t*) --basesp) = es->intregs[RBP];
 		LOG2("push rbp onto stack " << (uintptr_t*) es->intregs[RBP] << nl);
+# elif defined(__AARCH64__)
+		*((uintptr_t*) --basesp) = es->intregs[REG_FP];
+		LOG2("push REG_FP onto stack " << (uintptr_t*) es->intregs[REG_FP] << nl);
+# endif
 	}
 #endif
 
+#if defined(__AARCH64__)
+	// If the framesize was padded for 16-byte alignment, add the padding
+	if (calleecode->stackframesize % 2) {
+		basesp--;
+	}
+#endif
+
+	/* save int registers */
 	reg = INT_REG_CNT;
 	for (i=0; i<calleecode->savedintcount; ++i) {
 		while (nregdescint[--reg] != REG_SAV)
@@ -911,6 +933,8 @@ void md_push_stackframe(executionstate_t *es, codeinfo *calleecode, u1 *ra)
 		*(u8*)&(es->fltregs[reg]) = 0x44dead4444dead44ULL;
 #endif
 	}
+
+	md_dcacheflush(es->sp, (calleecode->stackframesize + (calleecode->stackframesize % 2)) * SIZE_OF_STACKSLOT);
 }
 
 
@@ -963,7 +987,13 @@ void replace_pop_activation_record(executionstate_t *es,
 	/* Subtract one from the PC so we do not hit the replacement point */
 	/* of the instruction following the call, if there is one.         */
 
+#if defined(__AARCH64__)
+	if (((u8)es->pc) % 4) {
+		es->pc--;
+	}
+#else
 	es->pc--;
+#endif
 
 	ra = es->pc;
 
@@ -1007,6 +1037,8 @@ static void replace_patch_method_pointer(methodptr *mpp,
 	/* write the new entrypoint */
 
 	*mpp = (methodptr) entrypoint;
+
+	md_cacheflush(mpp, SIZEOF_VOID_P);
 }
 
 
@@ -1155,7 +1187,11 @@ void replace_patch_future_calls(u1 *ra,
 	/* get the position to patch, in case it was a statically bound call   */
 
 	pv = callerframe->fromcode->entrypoint;
-	patchpos = (u1*) md_jit_method_patch_address(pv, ra, NULL);
+	if (callerframe->fromcode->optlevel > 0) {
+		patchpos = (u1*) callerframe->fromrp->patch_target_addr;
+	} else {
+		patchpos = (u1*) md_jit_method_patch_address(pv, ra, NULL);
+	}
 
 	if (patchpos == NULL) {
 		/* the call was dispatched dynamically */
@@ -1197,6 +1233,15 @@ void replace_patch_future_calls(u1 *ra,
 		/* It happens that there is a patcher trap. (pm) */
 		if (*(u2 *)(patchpos - 1) == 0x0b0f) {
 			LOG2("enountered patcher trap, not patching static call");
+			return;
+		}
+#endif
+
+#if defined(__AARCH64__)
+		/* Iit happens that there is a patcher trap. */
+		if ((*(u4 *)(patchpos - 4) & (0xE7000700)) == 0xE7000700) {
+			LOG2(BoldYellow << "Encountered trap, not patching static call" << reset_color << nl);
+			assert(false);
 			return;
 		}
 #endif
@@ -1260,7 +1305,7 @@ void replace_push_activation_record(executionstate_t *es,
 	if (rpcall) {
 		ra = rpcall->pc + rpcall->callsize;
 	} else {
-#if 1
+#if defined(__X86_64__)
 		// XXX we only need to do this if we decrement the pc in
 		//     `replace_pop_activation_record`
 		ra = es->pc + 1;
@@ -1855,7 +1900,7 @@ void replace_handle_countdown_trap(u1 *pc, executionstate_t *es)
 
 	assert(rp);
 	assert(rp->flags & rplpoint::FLAG_COUNTDOWN);
-	assert(method->hitcountdown < 0);
+	assert(method->hitcountdown <= 0);
 
 	/* perform on-stack replacement */
 
@@ -1944,7 +1989,7 @@ void replace_handle_deoptimization_trap(u1 *pc, executionstate_t *es) {
 	assert(rp);
 	assert(rp->flags & rplpoint::FLAG_DEOPTIMIZE);
 
-	LOG("perform deoptimization at " << rp << nl);
+	LOG(BoldCyan << "perform deoptimization at " << reset_color << rp << nl);
 
 	sourcestate_t *ss = replace_recover_source_state(rp, es);
 

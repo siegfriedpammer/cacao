@@ -107,6 +107,7 @@ struct rplpoint {
 	unsigned int regalloccount:20; /* number of local allocations      */
 	Type         type:4;           /* type of replacement point        */
 	unsigned int flags:8;          /* OR of Flag constants             */
+	u1          *patch_target_addr; /* target address to patch for invoke Static/Special */ 
 };
 
 /**
