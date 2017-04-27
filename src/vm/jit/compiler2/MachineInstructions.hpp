@@ -26,12 +26,15 @@
 #define _JIT_COMPILER2_MACHINEINSTRUCTIONS
 
 #include "vm/jit/compiler2/MachineInstruction.hpp"
+#include "vm/jit/compiler2/DataSegment.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
 class MachineReplacementEntryInst;
+class MachineReplacementPointCallSiteInst;
+class MachineReplacementPointStaticSpecialInst;
 class MachineDeoptInst;
 
 class MachineLabelInst : public MachineInstruction {
@@ -180,6 +183,14 @@ public:
 		return NULL;
 	}
 
+	virtual MachineReplacementPointCallSiteInst* to_MachineReplacementPointCallSiteInst() {
+		return NULL;
+	}
+
+	virtual MachineReplacementPointStaticSpecialInst* to_MachineReplacementPointStaticSpecialInst() {
+		return NULL;
+	}
+
 	virtual MachineDeoptInst* to_MachineDeoptInst() {
 		return NULL;
 	}
@@ -211,7 +222,7 @@ public:
 
 class MachineReplacementEntryInst : public MachineReplacementPointInst {
 public:
-	MachineReplacementEntryInst(s4 source_id, std::size_t num_operands, bool at_call_site)
+	MachineReplacementEntryInst(s4 source_id, std::size_t num_operands)
 		: MachineReplacementPointInst("MReplacementEntry", source_id, num_operands) {}
 	virtual void emit(CodeMemory* CM) const {};
 	virtual void link(CodeFragment &CF) const {};
@@ -222,6 +233,60 @@ public:
 
 	virtual bool is_trappable() const {
 		return true;
+	}
+};
+
+/**
+ * Represents a replacement point at a call site (INVOKE* ICMDs)
+ * The reference to the corresponding call MachineInstruction is needed since
+ * the replacement point needs to know the size of the callsite (in bytes)
+ */
+class MachineReplacementPointCallSiteInst : public MachineReplacementPointInst {
+private:
+	MachineInstruction *call_inst;
+
+public:
+	MachineReplacementPointCallSiteInst(MachineInstruction* call_inst, s4 source_id, std::size_t num_operands)
+		: MachineReplacementPointInst("MReplacementPointCallSite", source_id, num_operands), call_inst(call_inst) {}
+	virtual void emit(CodeMemory* CM) const {};
+	virtual void link(CodeFragment &CF) const {};
+
+	virtual MachineReplacementPointCallSiteInst* to_MachineReplacementPointCallSiteInst() {
+		return this;
+	}
+
+	virtual bool is_trappable() const {
+		return false;
+	}
+
+	MachineInstruction* get_call_inst() const {
+		return call_inst;
+	}
+};
+
+/**
+ * Specialication for INVOKESpecial and INVOKEStatic.
+ * Since the target address is known during compilation, this class holds a reference
+ * to the DataSegment index where the address is stored so it can be patched
+ * during OSR
+ */
+class MachineReplacementPointStaticSpecialInst : public MachineReplacementPointCallSiteInst {
+private:
+	/**
+	 * DataSegment index that contains the address of the call target
+	 */
+	DataSegment::IdxTy idx;
+
+public:
+	MachineReplacementPointStaticSpecialInst(MachineInstruction* call_inst, s4 source_id, std::size_t num_operands, DataSegment::IdxTy idx)
+		: MachineReplacementPointCallSiteInst(call_inst, source_id, num_operands), idx(idx) {}
+	
+	virtual MachineReplacementPointStaticSpecialInst* to_MachineReplacementPointStaticSpecialInst() {
+		return this;
+	}
+
+	DataSegment::IdxTy get_idx() const {
+		return idx;
 	}
 };
 
