@@ -210,6 +210,10 @@ void Emitter::scvtf(const Reg& rd, const Reg& rn) {
     conversion_fp_integer(rn.sf(), 0, rd.type(), 0, 2, rn.r(), rd.r());
 }
 
+void Emitter::trap(const Reg& rd, int type) {
+    trap_encode(rd.r(), type);
+}
+
 } // end namespace aarch64
 } // end namespace compiler2
 } // end namespace jit

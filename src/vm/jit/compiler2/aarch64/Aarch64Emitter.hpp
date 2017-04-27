@@ -191,6 +191,8 @@ public:
 
 	void scvtf(const Reg& rd, const Reg& rn);
 
+	void trap(const Reg& rd, int type);
+
 	void emit(CodeMemory* cm);
 	void emit(CodeFragment& cf);
 	void emitRaw(u4 instr) { instructions.push_back(instr); }
@@ -307,6 +309,11 @@ private:
 	                           u1 rn, u1 rd) {
 		u4 instr = 0x1e200000 | lsl(sf, 31) | lsl(s, 29) | lsl(type, 22)
 		                      | lsl(rmode, 19) | lsl(op, 16) | lsl(rn, 5) | rd;
+		instructions.push_back(instr);
+	}
+
+	void trap_encode(u1 rd, s4 type) {
+		u4 instr = 0xe7000000 | lsl(type & 0xff, 8) | rd;
 		instructions.push_back(instr);
 	}	
 };
