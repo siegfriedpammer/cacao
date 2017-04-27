@@ -1504,6 +1504,11 @@ bool SSAConstructionPass::run(JITData &JD) {
 				{
 					assert(INSTRUCTION_MUST_CHECK(iptr));
 
+					// TODO: Since we deoptimize for INVOKEs we need to deoptimize early
+					//       for INVOKESPECIAL or the CHECKNULLInst will cause problems
+					deoptimize(bbindex);
+					break;
+
 					s4 receiver_index = *(iptr->sx.s23.s2.args);
 					Value *receiver = read_variable(receiver_index,bbindex);
 					CHECKNULLInst *check_null = new CHECKNULLInst(receiver);
@@ -1516,10 +1521,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_INVOKESTATIC:
 			case ICMD_BUILTIN:
 				{
-					if (!INSTRUCTION_IS_RESOLVED(iptr)) {
-						deoptimize(bbindex);
-						break;
-					}
+					// TODO: Currently we deoptimize for INVOKEs because the
+					//       register allocator can not handle call sites correctly.
+					deoptimize(bbindex);
+					break;
 
 					methoddesc *md;
 					constant_FMIref *fmiref;
@@ -1565,27 +1570,30 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
 					assert(state_change);
 
+					SourceStateInst *source_state = record_source_state(BB[bbindex],
+						bb->iinstr, bb, live_javalocals, bb->invars, bb->indepth);
+
 					// Create the actual instruction for the invocation.
 					INVOKEInst *I = NULL;
 					int32_t argcount = iptr->s1.argcount;
 					switch (iptr->opc) {
 					case ICMD_INVOKESPECIAL:
-						I = new INVOKESPECIALInst(type,argcount,fmiref,BB[bbindex],state_change);
+						I = new INVOKESPECIALInst(type,argcount,fmiref,BB[bbindex],state_change,source_state);
 						break;
 					case ICMD_INVOKEVIRTUAL:
-						I = new INVOKEVIRTUALInst(type,argcount,fmiref,BB[bbindex],state_change);
+						I = new INVOKEVIRTUALInst(type,argcount,fmiref,BB[bbindex],state_change,source_state);
 						break;
 					case ICMD_INVOKESTATIC:
-						I = new INVOKESTATICInst(type,argcount,fmiref,BB[bbindex],state_change);
+						I = new INVOKESTATICInst(type,argcount,fmiref,BB[bbindex],state_change,source_state);
 						break;
 					case ICMD_INVOKEINTERFACE:
-						I = new INVOKEINTERFACEInst(type,argcount,fmiref,BB[bbindex],state_change);
+						I = new INVOKEINTERFACEInst(type,argcount,fmiref,BB[bbindex],state_change,source_state);
 						break;
 					case ICMD_BUILTIN:
 						{
 							builtintable_entry *bte = iptr->sx.s23.s3.bte;
 							u1 *builtin_address = bte->stub == NULL ? reinterpret_cast<u1*>(bte->fp) : bte->stub;
-							I = new BUILTINInst(type,builtin_address,argcount,BB[bbindex],state_change);
+							I = new BUILTINInst(type,builtin_address,argcount,BB[bbindex],state_change,source_state);
 						}
 						break;
 					default:
