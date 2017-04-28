@@ -331,8 +331,9 @@ void GlobalValueNumberingPass::eliminate_redundancies_in_block(BlockTy *block) {
 		Instruction *replacable = *i;
 		replacable->replace_value(inst);
 
-		for (auto j = replacable->rdep_begin(); j != replacable->rdep_end(); j++) {
-			Instruction *dependent = *j;
+		alloc::vector<Instruction*>::type rdeps(replacable->rdep_begin(), replacable->rdep_end());
+
+		for (Instruction *dependent : rdeps) {
 			dependent->append_dep(inst);
 			dependent->remove_dep(replacable);
 		}

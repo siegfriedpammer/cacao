@@ -1115,7 +1115,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(arrayref, index);
 					M->add_Instruction(boundscheck);
 
-					Instruction *ref = new AREFInst(type, arrayref, index);
+					Instruction *ref = new AREFInst(type, arrayref, index, BB[bbindex]);
 					ref->append_dep(boundscheck);
 					M->add_Instruction(ref);
 
@@ -1418,7 +1418,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(arrayref, index);
 					M->add_Instruction(boundscheck);
 
-					Instruction *ref = new AREFInst(value->get_type(), arrayref, index);
+					Instruction *ref = new AREFInst(value->get_type(), arrayref, index, BB[bbindex]);
 					ref->append_dep(boundscheck);
 					M->add_Instruction(ref);
 
@@ -1475,7 +1475,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Instruction *boundscheck = new ARRAYBOUNDSCHECKInst(arrayref, index);
 					M->add_Instruction(boundscheck);
 
-					Instruction *ref = new AREFInst(type, arrayref, index);
+					Instruction *ref = new AREFInst(type, arrayref, index, BB[bbindex]);
 					ref->append_dep(boundscheck);
 					M->add_Instruction(ref);
 

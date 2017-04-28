@@ -1192,12 +1192,23 @@ public:
 
 class AREFInst : public Instruction, public DereferenceInst {
 public:
-	explicit AREFInst(Type::TypeID type, Value* ref, Value* index)
+	explicit AREFInst(Type::TypeID type, Value* ref, Value* index, BeginInst* begin)
 			: Instruction(AREFInstID, type) {
 		assert(ref->get_type() == Type::ReferenceTypeID);
 		assert(index->get_type() == Type::IntTypeID);
+		assert(begin);
 		append_op(ref);
 		append_op(index);
+		append_dep(begin);
+	}
+
+	/**
+	 * Get the BeginInst of the block that contains this AREFInst.
+	 */
+	virtual BeginInst* get_BeginInst() const {
+		BeginInst *begin = (*dep_begin())->to_BeginInst();
+		assert(begin);
+		return begin;
 	}
 
 	virtual Instruction *get_objectref() {
@@ -1217,6 +1228,7 @@ public:
 
 	virtual AREFInst* to_AREFInst() { return this; }
 	virtual bool is_homogeneous() const { return false; }
+	virtual bool is_floating() const { return false; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
