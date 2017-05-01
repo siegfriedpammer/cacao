@@ -126,6 +126,7 @@ void GlobalValueNumberingPass::init_partition(Method::const_iterator begin, Meth
 						constInst->get_Double());
 					break;
 				default:
+					block = create_block();
 					break;
 			}
 		} else if (I->get_opcode() == Instruction::PHIInstID) {
@@ -319,15 +320,19 @@ void GlobalValueNumberingPass::eliminate_redundancies() {
 }
 
 void GlobalValueNumberingPass::eliminate_redundancies_in_block(BlockTy *block) {
-	BlockTy::iterator i = block->begin();
-	Instruction *inst = *i;
-	i++;
+	Instruction *inst = *(block->begin());
+
+	// A CONSTInst does not represent a computation, hence CONSTInsts that
+	// represent the same constant value don't need to be consolidated.
+	if (inst->to_CONSTInst()) {
+		return;
+	}
 
 	// the first node in the block will be used to replace all the others in
 	// the block, the rest of them (i.e. block->size() - 1) is redundant
 	STAT_REDUNDANT_NODES(inst, block->size() - 1);
 
-	for (; i != block->end(); i++) {
+	for (auto i = std::next(block->begin()); i != block->end(); i++) {
 		Instruction *replacable = *i;
 		replacable->replace_value(inst);
 
