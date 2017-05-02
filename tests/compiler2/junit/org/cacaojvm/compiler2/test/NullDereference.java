@@ -95,7 +95,6 @@ public class NullDereference extends Compiler2TestBase {
 		return a[1];
 	}
 
-	@Ignore
 	@Test(expected = NullPointerException.class)
 	public void testArrayLoad() throws Throwable {
 		runCompiler2("arrayLoad", "()J");
@@ -106,7 +105,6 @@ public class NullDereference extends Compiler2TestBase {
 		a[1] = 0l;
 	}
 
-	@Ignore
 	@Test(expected = NullPointerException.class)
 	public void testArrayStore() throws Throwable {
 		runCompiler2("arrayStore", "()V");

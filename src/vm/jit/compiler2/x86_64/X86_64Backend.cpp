@@ -888,13 +888,7 @@ void X86_64LoweringVisitor::visit(ARRAYBOUNDSCHECKInst *I, bool copyOperands) {
 	assert(src_index->get_type() == Type::IntTypeID);
 
 	// Implicit null-checks are handled via deoptimization.
-	// TODO MachineDeoptInsts at bounds-checks currently lead to test-failures.
-	//      This is probably due to the additional live-ranges that are caused
-	//      by the MachineDeoptInsts which lead to inconsistent behavior in
-	//      the LinearScanAllocatorPass.
-#if 0
 	place_deoptimization_marker(I);
-#endif
 
 	// load array length
 	MachineOperand *len = new VirtualRegister(Type::IntTypeID);
