@@ -37,9 +37,6 @@
 #include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/SourceStateAttachmentPass.hpp"
 #include "vm/jit/compiler2/alloc/queue.hpp"
-#include "vm/jit/compiler2/alloc/unordered_map.hpp"
-#include "vm/jit/compiler2/alloc/unordered_set.hpp"
-#include "vm/jit/compiler2/alloc/vector.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -50,14 +47,14 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-bool NullCheckEliminationPass::is_non_null(Value *objectref) {
+bool NullCheckEliminationPass::is_trivially_non_null(Value *objectref) {
 	Instruction *I = objectref->to_Instruction();
 
 	if (I->to_LOADInst()) {
 		LOADInst *load = I->to_LOADInst();
 		// A LOADInst is known to be non-null if it is a reference
 		// to the this-pointer within an instance-method.
-		return !M->is_static() && load->get_index();
+		return !M->is_static() && load->get_index() == 0;
 	}
 
 	// Instructions that create new objects are trivially non-null.
@@ -67,82 +64,146 @@ bool NullCheckEliminationPass::is_non_null(Value *objectref) {
 		|| I->to_MULTIANEWARRAYInst();
 }
 
-bool NullCheckEliminationPass::run(JITData &JD) {
-	M = JD.get_Method();
-	ListSchedulingPass *IS = get_Pass<ListSchedulingPass>();
+void NullCheckEliminationPass::map_referenes_to_bitpositions() {
+	int num_of_bits = 0;
+	for (auto it = M->begin(); it != M->end(); it++) {
+		Instruction *I = *it;
+		if (I->get_type() == Type::ReferenceTypeID) {
+			bitpositions[I] = num_of_bits++;
+			LOG2("Map " << I << " to bitposition " << bitpositions[I] << nl);
+		}
+	}
+}
 
-	alloc::unordered_map<BeginInst*, alloc::vector<int>::type>::type non_null_references_per_block;
+void NullCheckEliminationPass::prepare_bitvectors() {
+	// Prepare the initial bitevector for each block, 
+	for (auto bb_it = M->bb_begin(); bb_it != M->bb_end(); bb_it++) {
+		BeginInst *begin = *bb_it;
+		non_null_references_at_entry[begin].resize(bitpositions.size());
+		non_null_references_at_entry[begin].set();
+		non_null_references_at_exit[begin].resize(bitpositions.size());
+		non_null_references_at_exit[begin].set();
+	}
+
+	// At method entry we assume that each object reference may be null.
+	non_null_references_at_entry[M->get_init_bb()].reset();
+}
+
+void NullCheckEliminationPass::perform_null_check_elimination() {
+	ListSchedulingPass *schedule = get_Pass<ListSchedulingPass>();
+
 	alloc::queue<BeginInst*>::type worklist;
-	alloc::unordered_set<BeginInst*>::type visited_blocks;
+	alloc::unordered_map<BeginInst*, bool>::type in_worklist(M->bb_size());
 
 	worklist.push(M->get_init_bb());
+	in_worklist[M->get_init_bb()] = true;
 
 	while (!worklist.empty()) {
 		BeginInst *begin = worklist.front();
 		worklist.pop();
+		in_worklist[begin] = false;
 
-		if (visited_blocks.count(begin) > 0) {
-			continue;
-		}
+		// The local analysis state.
+		auto &non_null_references = non_null_references_at_exit[begin];
 
-		visited_blocks.insert(begin);
+		// Initialize the local state to be equal to the entry state.
+		non_null_references = non_null_references_at_entry[begin];
 
-		// Solve data-flow equation at block entry.
-		// TODO Consider loop-back-edges.
-		auto &non_null_references = non_null_references_per_block[begin];
-		alloc::vector<int>::type intersection;
-		for (auto pred_it = begin->pred_begin(); pred_it != begin->pred_end();
-				pred_it++) {
-			BeginInst *pred = *pred_it;
-			auto &pred_non_null_references = non_null_references_per_block[pred];
-
-			if (pred_it == begin->pred_begin()) {
-				std::copy(pred_non_null_references.begin(), pred_non_null_references.end(),
-						std::back_inserter(non_null_references));
-			} else if (pred->get_id() < begin->get_id()) {
-				std::set_intersection(non_null_references.begin(), non_null_references.end(),
-						pred_non_null_references.begin(), pred_non_null_references.end(),
-						std::back_inserter(intersection));
-				non_null_references.clear();
-				std::copy(intersection.begin(), intersection.end(),
-						std::back_inserter(non_null_references));
-				intersection.clear();
-			}
-		}
+		LOG2("Process " << begin << nl);
 
 		// Compute data-flow information for each instruction within the current block.
-		for (auto inst_it = IS->inst_begin(begin); inst_it != IS->inst_end(begin); inst_it++) {
+		for (auto inst_it = schedule->inst_begin(begin);
+				inst_it != schedule->inst_end(begin); inst_it++) {
 			Instruction *I = *inst_it;
-			DereferenceInst *dereference = I->to_DereferenceInst();
 
-			if (dereference) {
+			if (I->get_type() == Type::ReferenceTypeID) {
+				if (is_trivially_non_null(I)) {
+					LOG2(I << " is trivially non-null" << nl);
+					non_null_references[bitpositions[I]] = true;
+				} else if (I->to_PHIInst()) {
+					bool meet = true;
+					for (auto op_it = I->op_begin(); op_it != I->op_end(); op_it++) {
+						Instruction *op = (*op_it)->to_Instruction();
+						meet &= non_null_references[bitpositions[op]];
+					}
+					non_null_references[bitpositions[I]] = meet;
+				}
+			}
+
+			if (I->to_DereferenceInst() != nullptr) {
+				DereferenceInst *dereference = I->to_DereferenceInst();
 				Instruction *objectref = dereference->get_objectref();
+
 				assert(objectref);
 				assert(objectref->get_type() == Type::ReferenceTypeID);
 
-				if (std::find(non_null_references.begin(), non_null_references.end(), objectref->get_id()) != non_null_references.end()) {
-					LOG("Detected redundant null-check on " << objectref  << " by " << I << nl);
+				if (non_null_references[bitpositions[objectref]]) {
+					// The objectref that is dereferenced by the current
+					// instruction is known to be non-null, therefore no
+					// null-check has to be performed at this point.
 					dereference->set_needs_null_check(false);
+					LOG2("Remove null-check on " << objectref << " by " << I << nl);
 				} else {
-					LOG("Detected non-redundant null-check on " << objectref << " by " << I << nl);
-					non_null_references.push_back(objectref->get_id());
+					// The objectref that is dereferenced by the current
+					// instruction may be null, therefore a null-check has to
+					// be performed at this point.
+					dereference->set_needs_null_check(true);
+					non_null_references[bitpositions[objectref]] = true;
+					LOG2("Introduce null-check on " << objectref << " by " << I << nl);
 				}
-			} else if (is_non_null(I)) {
-				non_null_references.push_back(I->get_id());
 			}
 		}
-
-		std::sort(non_null_references.begin(), non_null_references.end());
 
 		// Process successors of the current block.
 		EndInst *end = begin->get_EndInst();
 		for (auto succ_it = end->succ_begin(); succ_it != end->succ_end(); succ_it++) {
 			BeginInst *succ = (*succ_it).get();
-			if (succ->get_id() > begin->get_id()) {
+
+			auto num_of_set_bits = non_null_references_at_entry[succ].count();
+
+			// Compute the analysis state for the entry of the successor block.
+			non_null_references_at_entry[succ] &= non_null_references;
+
+			auto new_num_of_set_bits = non_null_references_at_entry[succ].count();
+
+			// In case the analysis state at the successor changed, the
+			// successor has to be reanalyzed as well.
+			bool reanalyze_successor = num_of_set_bits != new_num_of_set_bits;
+			if (reanalyze_successor && !in_worklist[succ]) {
 				worklist.push(succ);
+				in_worklist[succ] = true;
 			}
 		}
 	}
+}
+
+#ifdef ENABLE_LOGGING
+void NullCheckEliminationPass::print_final_results() {
+	for (auto inst_it = M->begin(); inst_it != M->end(); inst_it++) {
+		Instruction *I = *inst_it;
+		DereferenceInst *dereference = I->to_DereferenceInst();
+
+		if (dereference) {
+			Instruction *objectref = dereference->get_objectref();
+			if (!dereference->get_needs_null_check()) {
+				LOG("Null-check on " << objectref << " by " << I << " is redundant" << nl);
+			} else {
+				LOG("Null-check on " << objectref << " by " << I << " is not redundant" << nl);
+			}
+		}
+	}
+}
+#endif
+
+bool NullCheckEliminationPass::run(JITData &JD) {
+	M = JD.get_Method();
+
+	map_referenes_to_bitpositions();
+	prepare_bitvectors();
+	perform_null_check_elimination();
+#ifdef ENABLE_LOGGING
+	print_final_results();
+#endif
 
 	return true;
 }

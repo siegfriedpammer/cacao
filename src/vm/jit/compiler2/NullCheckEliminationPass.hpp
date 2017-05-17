@@ -26,7 +26,9 @@
 #define _JIT_COMPILER2_NULLCHECKELIMINATIONPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
-#include "vm/jit/compiler2/alloc/unordered_set.hpp"
+#include "vm/jit/compiler2/alloc/unordered_map.hpp"
+
+#include <boost/dynamic_bitset.hpp>
 
 MM_MAKE_NAME(NullCheckEliminationPass)
 
@@ -36,6 +38,8 @@ namespace compiler2 {
 
 class Method;
 class Value;
+class Instruction;
+class BeginInst;
 
 /**
  * NullCheckEliminationPass
@@ -45,7 +49,33 @@ private:
 
 	Method *M;
 
-	bool is_non_null(Value *objectref);
+	/**
+	 * Maps each object reference to a unique bitvector position.
+	 */
+	alloc::unordered_map<Instruction*,int>::type bitpositions;
+
+	/**
+	 *
+	 */
+	alloc::unordered_map<BeginInst*, boost::dynamic_bitset<>>::type non_null_references_at_exit;
+
+	/**
+	 * Holds for each BeginInst the local analysis state in the form of a
+	 * bitvector.
+	 */
+	alloc::unordered_map<BeginInst*, boost::dynamic_bitset<>>::type non_null_references_at_entry;
+
+	bool is_trivially_non_null(Value *objectref);
+
+	void map_referenes_to_bitpositions();
+
+	void prepare_bitvectors();
+
+	void perform_null_check_elimination();
+
+#ifdef ENABLE_LOGGING
+	void print_final_results();
+#endif
 
 public:
 
