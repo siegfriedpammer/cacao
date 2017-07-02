@@ -32,9 +32,9 @@
 #include "vm/jit/arm/codegen.hpp"
 #include "vm/jit/arm/md.hpp"
 #include "vm/jit/arm/md-abi.hpp"
+#include "vm/jit/arm/patcher.hpp"
 
 #include "vm/jit/executionstate.hpp"
-#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/trap.hpp"
 
 

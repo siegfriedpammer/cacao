@@ -32,6 +32,7 @@
 #include "vm/types.hpp"
 
 #include "vm/jit/arm/md.hpp"
+#include "vm/jit/arm/patcher.hpp"
 
 #include "mm/memory.hpp"
 
@@ -46,7 +47,6 @@
 #include "vm/resolve.hpp"
 
 #include "vm/jit/asmpart.hpp"
-#include "vm/jit/patcher-common.hpp"
 
 
 /* patcher_patch_code **********************************************************
@@ -419,17 +419,26 @@ bool patcher_resolve_classref_to_vftbl(patchref_t *pr)
 	return true;
 }
 
-// Dummies, not used
 
-bool patcher_checkcast_interface(patchref_t *pr)
-{
-   return false;
-}
-
-bool patcher_instanceof_interface(patchref_t *pr)
-{
-   return false;
-}
+#if !defined(NDEBUG)
+patcher_function_list_t patcher_function_list[] = {
+	{ PATCHER_initialize_class,              "initialize_class" },
+#ifdef ENABLE_VERIFIER
+	{ PATCHER_resolve_class,                 "resolve_class" },
+#endif /* ENABLE_VERIFIER */
+	{ PATCHER_resolve_classref_to_classinfo, "resolve_classref_to_classinfo"},
+	{ PATCHER_resolve_classref_to_vftbl,     "resolve_classref_to_vftbl"},
+	{ PATCHER_resolve_classref_to_flags,     "resolve_classref_to_flags"},
+	{ PATCHER_resolve_native_function,       "resolve_native_function" },
+	{ PATCHER_invokestatic_special,          "invokestatic_special" },
+	{ PATCHER_invokevirtual,                 "invokevirtual" },
+	{ PATCHER_invokeinterface,               "invokeinterface" },
+	{ PATCHER_breakpoint,                    "breakpoint" },
+	{ PATCHER_get_putstatic,                 "get_putstatic" },
+	{ PATCHER_get_putfield,                  "get_putfield" },
+	{ NULL,                                  "-UNKNOWN PATCHER FUNCTION-" }
+};
+#endif
 
 
 /*

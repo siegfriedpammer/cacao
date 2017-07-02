@@ -31,6 +31,7 @@
 
 #include "vm/jit/mips/codegen.hpp"
 #include "vm/jit/mips/md-abi.hpp"
+#include "vm/jit/mips/patcher.hpp"
 
 #include "mm/memory.hpp"
 
@@ -48,7 +49,6 @@
 #include "vm/jit/dseg.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/replace.hpp"
 #include "vm/jit/trace.hpp"
 #include "vm/jit/trap.hpp"

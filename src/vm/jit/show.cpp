@@ -29,7 +29,6 @@
 #include <stdio.h>                      // for printf, putchar, fflush
 #include "codegen-common.hpp"           // for codegendata
 #include "config.h"                     // for ENABLE_DEBUG_FILTER, etc
-#include "patcher-common.hpp"           // for patcher_list_show
 #include "replace.hpp"
 #include "threads/lock.hpp"
 #include "threads/mutex.hpp"            // for Mutex
@@ -49,7 +48,7 @@
 #include "vm/jit/jit.hpp"               // for basicblock, jitdata, etc
 #include "vm/jit/linenumbertable.hpp"   // for LinenumberTable
 #include "vm/jit/parse.hpp"
-#include "vm/jit/patcher-common.hpp"
+#include "vm/jit/patcher-common.hpp"    // for patcher_list_show
 #include "vm/jit/reg.hpp"               // for varinfo, etc
 #include "vm/jit/stack.hpp"
 #include "vm/method.hpp"                // for methodinfo, etc

@@ -33,6 +33,7 @@
 
 #include "md-abi.hpp"
 #include "vm/jit/powerpc64/codegen.hpp"
+#include "vm/jit/powerpc64/patcher.hpp"
 
 #include "threads/lock.hpp"
 
@@ -49,7 +50,6 @@
 #include "vm/jit/dseg.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/replace.hpp"
 #include "vm/jit/trace.hpp"
 #include "vm/jit/trap.hpp"

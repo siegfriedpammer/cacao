@@ -49,6 +49,7 @@ libarch_la_SOURCES =  \
 	emit.hpp          \
 	emit.cpp          \
 	patcher.cpp       \
+	patcher.hpp       \
 	                  \
 	md-abi.cpp        \
 	md-abi.hpp        \
