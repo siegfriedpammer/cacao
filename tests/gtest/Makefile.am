@@ -35,6 +35,8 @@ AM_CXXFLAGS += $(GTEST_CXXFLAGS)
 AM_LDFLAGS   = $(GTEST_LDFLAGS)
 LIBS        += $(GTEST_LIBS)
 
+DIST_SUBDIRS = compiler2
+
 # build current directory before subdirectories (libgtest_main.a)
 SUBDIRS = .
 
@@ -52,7 +54,8 @@ TESTS = sample \
 	future_unordered \
 	logging_test \
 	buffer_test \
-	classfileversion_test
+	classfileversion_test \
+	ordered_list_test
 
 check_PROGRAMS = $(TESTS)
 

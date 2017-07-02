@@ -33,7 +33,18 @@ noinst_LTLIBRARIES = \
 	liballoc.la
 
 liballoc_la_SOURCES = \
-	Allocator.cpp
+	Allocator.cpp \
+	Allocator.hpp \
+	deque.hpp \
+	list.hpp \
+	map.hpp \
+	ordered_list.hpp \
+	queue.hpp \
+	set.hpp \
+	stack.hpp \
+	unordered_map.hpp \
+	unordered_set.hpp \
+	vector.hpp
 
 ## Local variables:
 ## mode: Makefile

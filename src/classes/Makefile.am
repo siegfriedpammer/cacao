@@ -24,7 +24,8 @@
 EXTRA_DIST = \
 	$(VM_JAVA_FILES_GNU_CLASSPATH) \
 	$(VM_JAVA_FILES_GNU_CLASSPATH_ANNOTATIONS) \
-	$(VM_JAVA_FILES_CLDC1_1)
+	$(VM_JAVA_FILES_CLDC1_1) \
+	$(top_srcdir)/src/classes/cacao/org/cacaojvm/compiler2/test/Compiler2Test.java
 
 CLEANFILES = vm.zip
 

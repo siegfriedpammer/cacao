@@ -29,12 +29,22 @@ noinst_LTLIBRARIES = \
 	libx86_64.la
 
 libx86_64_la_SOURCES = \
+	Grammar.inc \
+	Target.hpp \
+	X86_64.hpp \
 	X86_64Backend.cpp \
+	X86_64Backend.hpp \
 	X86_64Cond.cpp \
+	X86_64Cond.hpp \
+	X86_64EmitHelper.hpp \
 	X86_64Instructions.cpp \
+	X86_64Instructions.hpp \
 	X86_64MachineMethodDescriptor.cpp \
+	X86_64MachineMethodDescriptor.hpp \
+	X86_64ModRMOperand.cpp \
+	X86_64ModRMOperand.hpp \
 	X86_64Register.cpp \
-	X86_64ModRMOperand.cpp
+	X86_64Register.hpp
 
 ## Local variables:
 ## mode: Makefile
