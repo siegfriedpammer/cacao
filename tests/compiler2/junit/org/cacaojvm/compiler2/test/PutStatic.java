@@ -37,7 +37,7 @@ public class PutStatic extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testByte() {
+	public void testByte() throws Throwable {
 		byte value = 111;
 
 		runBaseline("setByte", "(B)V", value);
@@ -58,7 +58,7 @@ public class PutStatic extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testByteConstant() {
+	public void testByteConstant() throws Throwable {
 		runBaseline("setByteConstant", "()V");
 		byte baselineValue = byteField;
 
@@ -79,7 +79,7 @@ public class PutStatic extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testShort() {
+	public void testShort() throws Throwable {
 		short value = 11111;
 
 		runBaseline("setShort", "(S)V", value);
@@ -100,7 +100,7 @@ public class PutStatic extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testShortConstant() {
+	public void testShortConstant() throws Throwable {
 		runBaseline("setShortConstant", "()V");
 		short baselineValue = shortField;
 
@@ -121,7 +121,7 @@ public class PutStatic extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testInt() {
+	public void testInt() throws Throwable {
 		int value = 0xDEADBEEF;
 
 		runBaseline("setInt", "(I)V", value);
@@ -142,7 +142,7 @@ public class PutStatic extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testIntConstant() {
+	public void testIntConstant() throws Throwable {
 		runBaseline("setIntConstant", "()V");
 		int baselineValue = intField;
 
@@ -163,7 +163,7 @@ public class PutStatic extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testLong() {
+	public void testLong() throws Throwable {
 		long value = 0xDEADBEEF12345678l;
 
 		runBaseline("setLong", "(J)V", value);
@@ -184,7 +184,7 @@ public class PutStatic extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testLongConstant() {
+	public void testLongConstant() throws Throwable {
 		runBaseline("setLongConstant", "()V");
 		long baselineValue = longField;
 
@@ -205,7 +205,7 @@ public class PutStatic extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testFloat() {
+	public void testFloat() throws Throwable {
 		float value = 3.40282347e38f;
 
 		runBaseline("setFloat", "(F)V", value);
@@ -226,7 +226,7 @@ public class PutStatic extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testFloatConstant() {
+	public void testFloatConstant() throws Throwable {
 		runBaseline("setFloatConstant", "()V");
 		float baselineValue = floatField;
 
@@ -247,7 +247,7 @@ public class PutStatic extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testDouble() {
+	public void testDouble() throws Throwable {
 		double value = 1.79769313e308d;
 
 		runBaseline("setDouble", "(D)V", value);
@@ -268,7 +268,7 @@ public class PutStatic extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testDoubleConstant() {
+	public void testDoubleConstant() throws Throwable {
 		runBaseline("setDoubleConstant", "()V");
 		double baselineValue = doubleField;
 

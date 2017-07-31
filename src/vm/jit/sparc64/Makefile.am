@@ -53,6 +53,7 @@ libarch_la_SOURCES =  \
 	$(DISASS_SOURCES) \
 	emit.cpp          \
 	emit.hpp          \
+	emit-arch.hpp     \
 	patcher.cpp       \
 	                  \
 	md-abi.cpp        \

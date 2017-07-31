@@ -32,8 +32,6 @@
 #include "vm/types.hpp"
 #include "toolbox/logging.hpp"
 
-#define DEBUG_NAME "compiler2/x86_64 Emit"
-
 namespace cacao {
 namespace jit {
 namespace compiler2 {

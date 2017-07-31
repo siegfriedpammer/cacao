@@ -32,6 +32,7 @@
 
 #include "vm/jit/i386/codegen.hpp"
 #include "vm/jit/i386/md.hpp"
+#include "vm/jit/i386/patcher.hpp"
 
 #include "threads/thread.hpp"
 
@@ -40,7 +41,6 @@
 
 #include "vm/jit/asmpart.hpp"
 #include "vm/jit/executionstate.hpp"
-#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.hpp"
 

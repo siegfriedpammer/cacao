@@ -28,12 +28,9 @@ Instead have a look at the generator (./instruction_gen.py)
 and the input file (./instruction_table.csv).
 */
 
-void InstructionVisitor::visit(LoadInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(UnaryInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(BinaryInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(FieldAccessInst* I, bool copyOperands) {visit_default(I);}
-void InstructionVisitor::visit(NOPInst* I, bool copyOperands) {visit_default(I);}
-void InstructionVisitor::visit(POPInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(CHECKNULLInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(ARRAYLENGTHInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(ARRAYBOUNDSCHECKInst* I, bool copyOperands) {visit_default(I);}
@@ -59,9 +56,7 @@ void InstructionVisitor::visit(INCInst* I, bool copyOperands) {visit_default(I);
 void InstructionVisitor::visit(AREFInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(ASTOREInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(ALOADInst* I, bool copyOperands) {visit_default(I);}
-void InstructionVisitor::visit(RETInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(LOADInst* I, bool copyOperands) {visit_default(I);}
-void InstructionVisitor::visit(STOREInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(NEWInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(NEWARRAYInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(ANEWARRAYInst* I, bool copyOperands) {visit_default(I);}
@@ -69,7 +64,6 @@ void InstructionVisitor::visit(MULTIANEWARRAYInst* I, bool copyOperands) {visit_
 void InstructionVisitor::visit(CHECKCASTInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(INSTANCEOFInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(GOTOInst* I, bool copyOperands) {visit_default(I);}
-void InstructionVisitor::visit(JSRInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(BUILTINInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(INVOKEInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(INVOKEVIRTUALInst* I, bool copyOperands) {visit_default(I);}
@@ -82,11 +76,7 @@ void InstructionVisitor::visit(TABLESWITCHInst* I, bool copyOperands) {visit_def
 void InstructionVisitor::visit(LOOKUPSWITCHInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(RETURNInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(THROWInst* I, bool copyOperands) {visit_default(I);}
-void InstructionVisitor::visit(COPYInst* I, bool copyOperands) {visit_default(I);}
-void InstructionVisitor::visit(MOVEInst* I, bool copyOperands) {visit_default(I);}
-void InstructionVisitor::visit(GETEXCEPTIONInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(PHIInst* I, bool copyOperands) {visit_default(I);}
-void InstructionVisitor::visit(ContainerInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(BeginInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(EndInst* I, bool copyOperands) {visit_default(I);}
 void InstructionVisitor::visit(SourceStateInst* I, bool copyOperands) {visit_default(I);}

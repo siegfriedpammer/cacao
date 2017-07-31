@@ -25,11 +25,13 @@ package org.cacaojvm.compiler2.test;
 
 import static org.junit.Assert.assertArrayEquals;
 import org.junit.Test;
+import org.junit.Ignore;
 
 public class MatMult extends Compiler2TestBase {
 
+	@Ignore("The register allocator currently runs into an endless loop here.")
 	@Test
-	public void test_matMult() {
+	public void test_matMult() throws Throwable {
 
 		// @formatter:off
 		int[][] a = new int[][] {

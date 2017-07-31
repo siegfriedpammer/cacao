@@ -32,7 +32,7 @@ public class DoubleArrayStore extends Compiler2TestBase {
 	private static final double DELTA = 1e-15;
 
 	@Test
-	public void test0() {
+	public void test0() throws Throwable {
 		final int n = 10;
 		double[] arrayBaseline = new double[n];
 		double[] arrayCompiler2 = new double[n];

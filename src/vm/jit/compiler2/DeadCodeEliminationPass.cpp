@@ -88,6 +88,7 @@ bool DeadCodeEliminationPass::run(JITData &JD) {
 		// here we inspect whether the node that has just been picked from
 		// the work list is dead
 		if (I->user_size() == deadUsers[I] && !I->has_side_effects()
+				&& I->is_floating()
 				&& !is_control_flow_inst(I) && !I->to_SourceStateInst()
 				&& !I->to_ReplacementEntryInst()
 				&& !I->to_AssumptionInst()

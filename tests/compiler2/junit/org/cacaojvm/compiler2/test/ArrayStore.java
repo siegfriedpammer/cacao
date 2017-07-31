@@ -30,7 +30,7 @@ import org.junit.Test;
 public class ArrayStore extends Compiler2TestBase {
 
 	@Test
-	public void test0() {
+	public void test0() throws Throwable {
 		final int n = 10;
 		long[] arrayBaseline = new long[n];
 		long[] arrayCompiler2 = new long[n];

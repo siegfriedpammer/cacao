@@ -36,6 +36,7 @@
 
 #include "vm/jit/x86_64/codegen.hpp"
 #include "vm/jit/x86_64/emit.hpp"
+#include "vm/jit/x86_64/patcher.hpp"
 
 #include "mm/memory.hpp"
 
@@ -64,7 +65,6 @@
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/methodheader.hpp"
 #include "vm/jit/parse.hpp"
-#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/reg.hpp"
 #include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.hpp"

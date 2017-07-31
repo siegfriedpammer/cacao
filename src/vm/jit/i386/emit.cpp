@@ -33,6 +33,7 @@
 #include "vm/jit/i386/codegen.hpp"
 #include "vm/jit/i386/emit.hpp"
 #include "vm/jit/i386/md-abi.hpp"
+#include "vm/jit/i386/patcher.hpp"
 
 #include "mm/memory.hpp"
 
@@ -51,7 +52,6 @@
 #include "vm/jit/dseg.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/replace.hpp"
 #include "vm/jit/trace.hpp"
 #include "vm/jit/trap.hpp"

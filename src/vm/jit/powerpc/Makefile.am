@@ -52,6 +52,7 @@ libarch_la_SOURCES =  \
 	$(DISASS_SOURCES) \
 	emit.cpp          \
 	patcher.cpp       \
+	patcher.hpp       \
 	                  \
 	md-stubs.hpp      \
 	md-trap.hpp       \

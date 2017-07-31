@@ -174,6 +174,22 @@ void trap_handle(int sig, void *xpc, void *context)
 	java_handle_t* o     = NULL;
 	methodinfo*    m     = NULL;
 
+	// If the trap was triggered within compiler2-optimized code due to an
+	// implicit exception (i.e. NullPointerException,
+	// ArrayIndexOutOfBoundsException, or ArithmeticException) we deoptimize
+	// instead of throwing the exception.
+#if defined(ENABLE_COMPILER2)
+	if (type == TRAP_NullPointerException
+			|| type == TRAP_ArrayIndexOutOfBoundsException
+			|| type == TRAP_ArithmeticException) {
+		void *xpv = md_codegen_get_pv_from_pc(xpc);
+		codeinfo *code = code_get_codeinfo_for_pv(xpv);
+		if (code->optlevel > 0) {
+			type = TRAP_DEOPTIMIZE;
+		}
+	}
+#endif
+
 	switch (type) {
 	case TRAP_ArrayIndexOutOfBoundsException:
 		/* Get the index into the array causing the exception. */

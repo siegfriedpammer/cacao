@@ -29,7 +29,7 @@ import org.junit.Test;
 public class MatAdd extends Compiler2TestBase {
 
 	@Test
-	public void test_matAdd() {
+	public void test_matAdd() throws Throwable {
 		TimingResults tr = new TimingResults();
 		int[][] a = new int[][] { { 1, 2 }, { 3, 4 }, { 5, 6 }, { 7, 8 } };
 		int[][] b = new int[][] { { 3, 6 }, { 6, 9 }, { 4, 8 }, { 8, 12 } };

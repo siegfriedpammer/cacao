@@ -155,7 +155,6 @@ void patcher_list_show(codeinfo *code)
 
 		pr->print(cacao::out());
 		cacao::out() << cacao::nl;
-
 	}
 }
 #endif

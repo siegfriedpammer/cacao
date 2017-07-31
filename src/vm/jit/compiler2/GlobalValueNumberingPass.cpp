@@ -90,11 +90,13 @@ void GlobalValueNumberingPass::init_partition(Method::const_iterator begin, Meth
 		STAT_TOTAL_NODES(I)
 
 		if (I->has_side_effects()
+				|| !I->is_floating()
 				|| I->get_opcode() == Instruction::LOADInstID
 				|| I->get_opcode() == Instruction::ALOADInstID
 				|| I->get_opcode() == Instruction::SourceStateInstID
 				|| I->get_opcode() == Instruction::DeoptimizeInstID
-				|| I->get_opcode() == Instruction::AssumptionInstID) {
+				|| I->get_opcode() == Instruction::AssumptionInstID
+				|| I->get_opcode() == Instruction::CHECKNULLInstID) {
 			// instructions which change the global state or depend on it
 			// will be in a separate block each, because they are congruent
 			// only with themselves
@@ -124,6 +126,7 @@ void GlobalValueNumberingPass::init_partition(Method::const_iterator begin, Meth
 						constInst->get_Double());
 					break;
 				default:
+					block = create_block();
 					break;
 			}
 		} else if (I->get_opcode() == Instruction::PHIInstID) {
@@ -317,30 +320,27 @@ void GlobalValueNumberingPass::eliminate_redundancies() {
 }
 
 void GlobalValueNumberingPass::eliminate_redundancies_in_block(BlockTy *block) {
-	BlockTy::iterator i = block->begin();
-	Instruction *inst = *i;
-	i++;
+	Instruction *inst = *(block->begin());
+
+	// A CONSTInst does not represent a computation, hence CONSTInsts that
+	// represent the same constant value don't need to be consolidated.
+	if (inst->to_CONSTInst()) {
+		return;
+	}
 
 	// the first node in the block will be used to replace all the others in
 	// the block, the rest of them (i.e. block->size() - 1) is redundant
 	STAT_REDUNDANT_NODES(inst, block->size() - 1);
 
-	for (BlockTy::iterator e = block->end(); i != e; i++) {
+	for (auto i = std::next(block->begin()); i != block->end(); i++) {
 		Instruction *replacable = *i;
 		replacable->replace_value(inst);
 
-		if (inst->get_opcode() == Instruction::ARRAYBOUNDSCHECKInstID) {
-			// TODO: consider scheduling dependencies of other instruction types
-			// as well (but at the time of implementation the only instruction
-			// type with scheduling dependencies are array bounds check nodes)
+		alloc::vector<Instruction*>::type rdeps(replacable->rdep_begin(), replacable->rdep_end());
 
-			Instruction::const_dep_iterator i;
-			Instruction::const_dep_iterator e = replacable->rdep_end();
-			while ((i = replacable->rdep_begin()) != e) {
-				Instruction *dependent = *i;
-				dependent->append_dep(inst);
-				dependent->remove_dep(replacable);
-			}
+		for (Instruction *dependent : rdeps) {
+			dependent->append_dep(inst);
+			dependent->remove_dep(replacable);
 		}
 	}
 }

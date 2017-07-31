@@ -135,6 +135,7 @@ MachineCode* compile(methodinfo* m)
 
 	jitdata *jd = jit_jitdata_new(m);
 	jit_jitdata_init_for_recompilation(jd);
+	jd->flags |= JITDATA_FLAG_DEOPTIMIZE;
 	JITData JD(jd);
 
 	/* set the current optimization level to the previous one plus 1 */

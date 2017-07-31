@@ -247,6 +247,7 @@ inline OStream& SSAGraph::getEdgeAttributes(OStream& OS, const SSAGraph::EdgeTyp
 
 PassUsage& SSAPrinterPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<SSAConstructionPass>();
+	PU.add_schedule_before<ScheduleEarlyPass>();
 	return PU;
 }
 

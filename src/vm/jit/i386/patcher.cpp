@@ -31,6 +31,7 @@
 
 #include "vm/jit/i386/codegen.hpp"
 #include "vm/jit/i386/md.hpp"
+#include "vm/jit/i386/patcher.hpp"
 
 #include "mm/memory.hpp"
 
@@ -45,11 +46,6 @@
 #include "vm/resolve.hpp"
 
 #include "vm/jit/patcher-common.hpp"
-
-
-#define PATCH_BACK_ORIGINAL_MCODE							\
-	do {													\
-	} while (0)
 
 
 /* patcher_patch_code **********************************************************
@@ -721,27 +717,33 @@ bool patcher_instanceof_class(patchref_t *pr)
 	return true;
 }
 
-// Dummies, not used
 
-bool patcher_get_putfield(patchref_t* pr)
-{
-   return false;
-}
+#if !defined(NDEBUG)
+patcher_function_list_t patcher_function_list[] = {
+	{ PATCHER_initialize_class,              "initialize_class" },
+#ifdef ENABLE_VERIFIER
+	{ PATCHER_resolve_class,                 "resolve_class" },
+#endif /* ENABLE_VERIFIER */
+	{ PATCHER_resolve_native_function,       "resolve_native_function" },
+	{ PATCHER_invokestatic_special,          "invokestatic_special" },
+	{ PATCHER_invokevirtual,                 "invokevirtual" },
+	{ PATCHER_invokeinterface,               "invokeinterface" },
+	{ PATCHER_breakpoint,                    "breakpoint" },
+	{ PATCHER_checkcast_interface,           "checkcast_interface" },
+	{ PATCHER_instanceof_interface,          "instanceof_interface" },
+	{ PATCHER_get_putstatic,                 "get_putstatic" },
+	{ PATCHER_getfield,                      "getfield" },
+	{ PATCHER_putfield,                      "putfield" },
+	{ PATCHER_putfieldconst,                 "putfieldconst" },
+	{ PATCHER_builtin_multianewarray,        "builtin_multianewarray" },
+	{ PATCHER_builtin_arraycheckcast,        "builtin_arraycheckcast" },
+	{ PATCHER_checkcast_instanceof_flags,    "checkcast_instanceof_flags" },
+	{ PATCHER_checkcast_class,               "checkcast_class" },
+	{ PATCHER_instanceof_class,              "instanceof_class" },
+	{ NULL,                                  "-UNKNOWN PATCHER FUNCTION-" }
+};
+#endif
 
-bool patcher_resolve_classref_to_classinfo(patchref_t* pr)
-{
-   return false;
-}
-
-bool patcher_resolve_classref_to_vftbl(patchref_t* pr)
-{
-   return false;
-}
-
-bool patcher_resolve_classref_to_flags(patchref_t* pr)
-{
-   return false;
-}
 
 /*
  * These are local overrides for various environment variables in Emacs.

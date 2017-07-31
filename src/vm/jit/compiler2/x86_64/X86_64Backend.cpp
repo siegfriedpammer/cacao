@@ -862,6 +862,10 @@ void X86_64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 
 void X86_64LoweringVisitor::visit(ARRAYLENGTHInst *I, bool copyOperands) {
 	assert(I);
+
+	// Implicit null-checks are handled via deoptimization.
+	place_deoptimization_marker(I);
+
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
 	assert(I->get_type() == Type::IntTypeID);
 	assert(src_op->get_type() == Type::ReferenceTypeID);
@@ -883,6 +887,9 @@ void X86_64LoweringVisitor::visit(ARRAYBOUNDSCHECKInst *I, bool copyOperands) {
 	assert(src_ref->get_type() == Type::ReferenceTypeID);
 	assert(src_index->get_type() == Type::IntTypeID);
 
+	// Implicit null-checks are handled via deoptimization.
+	place_deoptimization_marker(I);
+
 	// load array length
 	MachineOperand *len = new VirtualRegister(Type::IntTypeID);
 	MachineOperand *modrm = new X86_64ModRMOperand(Type::IntTypeID,BaseOp(src_ref),OFFSET(java_array_t,size));
@@ -891,12 +898,14 @@ void X86_64LoweringVisitor::visit(ARRAYBOUNDSCHECKInst *I, bool copyOperands) {
 					      ,get_OperandSize_from_Type(Type::IntTypeID)
 					      );
 	get_current()->push_back(move);
+
 	// compare with index
 	CmpInst *cmp = new CmpInst(
 		Src2Op(len),
 		Src1Op(src_index),
 		get_OperandSize_from_Type(Type::IntTypeID));
 	get_current()->push_back(cmp);
+
 	// throw exception
 	MachineInstruction *trap = new CondTrapInst(Cond::B,TRAP_ArrayIndexOutOfBoundsException, SrcOp(src_index));
 	get_current()->push_back(trap);
@@ -1194,6 +1203,10 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 		MachineInstruction *mov = get_Backend()->create_Move(method_address, addr);
 		get_current()->push_back(mov);
 	} else if (I->to_INVOKEVIRTUALInst()) {
+
+		// Implicit null-checks are handled via deoptimization.
+		place_deoptimization_marker(I->to_INVOKEVIRTUALInst());
+
 		methodinfo* callee = I->get_fmiref()->p.method;
 		int32_t s1 = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * callee->vftblindex;
 		VirtualRegister *vftbl_address = new VirtualRegister(Type::ReferenceTypeID);
@@ -1208,6 +1221,10 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 				GPInstruction::OS_64);
 		get_current()->push_back(load_method_address);
 	} else if (I->to_INVOKEINTERFACEInst()) {
+
+		// Implicit null-checks are handled via deoptimization.
+		place_deoptimization_marker(I->to_INVOKEINTERFACEInst());
+
 		methodinfo* callee = I->get_fmiref()->p.method;
 		int32_t s1 = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr) * callee->clazz->index;
 		VirtualRegister *vftbl_address = new VirtualRegister(Type::ReferenceTypeID);
@@ -1270,6 +1287,9 @@ void X86_64LoweringVisitor::visit(BUILTINInst *I, bool copyOperands) {
 void X86_64LoweringVisitor::visit(GETFIELDInst *I, bool copyOperands) {
 	assert(I);
 
+	// Implicit null-checks are handled via deoptimization.
+	place_deoptimization_marker(I);
+
 	MachineOperand* objectref = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand *field_address = new X86_64ModRMOperand(I->get_type(),
 			BaseOp(objectref), I->get_field()->offset);
@@ -1281,6 +1301,9 @@ void X86_64LoweringVisitor::visit(GETFIELDInst *I, bool copyOperands) {
 
 void X86_64LoweringVisitor::visit(PUTFIELDInst *I, bool copyOperands) {
 	assert(I);
+
+	// Implicit null-checks are handled via deoptimization.
+	place_deoptimization_marker(I);
 
 	MachineOperand *objectref = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand *value = get_op(I->get_operand(1)->to_Instruction());

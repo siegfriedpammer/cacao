@@ -37,7 +37,8 @@ noinst_HEADERS =
 noinst_LTLIBRARIES = libmd.la
 
 libmd_la_SOURCES = \
-	md-os.cpp
+	md-os.cpp \
+	macro_rename.hpp
 
 
 ## Local variables:

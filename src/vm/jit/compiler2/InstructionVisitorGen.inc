@@ -28,12 +28,9 @@ Instead have a look at the generator (./instruction_gen.py)
 and the input file (./instruction_table.csv).
 */
 
-virtual void visit(LoadInst* I, bool copyOperands);
 virtual void visit(UnaryInst* I, bool copyOperands);
 virtual void visit(BinaryInst* I, bool copyOperands);
 virtual void visit(FieldAccessInst* I, bool copyOperands);
-virtual void visit(NOPInst* I, bool copyOperands);
-virtual void visit(POPInst* I, bool copyOperands);
 virtual void visit(CHECKNULLInst* I, bool copyOperands);
 virtual void visit(ARRAYLENGTHInst* I, bool copyOperands);
 virtual void visit(ARRAYBOUNDSCHECKInst* I, bool copyOperands);
@@ -59,9 +56,7 @@ virtual void visit(INCInst* I, bool copyOperands);
 virtual void visit(AREFInst* I, bool copyOperands);
 virtual void visit(ASTOREInst* I, bool copyOperands);
 virtual void visit(ALOADInst* I, bool copyOperands);
-virtual void visit(RETInst* I, bool copyOperands);
 virtual void visit(LOADInst* I, bool copyOperands);
-virtual void visit(STOREInst* I, bool copyOperands);
 virtual void visit(NEWInst* I, bool copyOperands);
 virtual void visit(NEWARRAYInst* I, bool copyOperands);
 virtual void visit(ANEWARRAYInst* I, bool copyOperands);
@@ -69,7 +64,6 @@ virtual void visit(MULTIANEWARRAYInst* I, bool copyOperands);
 virtual void visit(CHECKCASTInst* I, bool copyOperands);
 virtual void visit(INSTANCEOFInst* I, bool copyOperands);
 virtual void visit(GOTOInst* I, bool copyOperands);
-virtual void visit(JSRInst* I, bool copyOperands);
 virtual void visit(BUILTINInst* I, bool copyOperands);
 virtual void visit(INVOKEInst* I, bool copyOperands);
 virtual void visit(INVOKEVIRTUALInst* I, bool copyOperands);
@@ -82,11 +76,7 @@ virtual void visit(TABLESWITCHInst* I, bool copyOperands);
 virtual void visit(LOOKUPSWITCHInst* I, bool copyOperands);
 virtual void visit(RETURNInst* I, bool copyOperands);
 virtual void visit(THROWInst* I, bool copyOperands);
-virtual void visit(COPYInst* I, bool copyOperands);
-virtual void visit(MOVEInst* I, bool copyOperands);
-virtual void visit(GETEXCEPTIONInst* I, bool copyOperands);
 virtual void visit(PHIInst* I, bool copyOperands);
-virtual void visit(ContainerInst* I, bool copyOperands);
 virtual void visit(BeginInst* I, bool copyOperands);
 virtual void visit(EndInst* I, bool copyOperands);
 virtual void visit(SourceStateInst* I, bool copyOperands);
