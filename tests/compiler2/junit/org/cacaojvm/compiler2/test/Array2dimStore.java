@@ -29,7 +29,7 @@ import org.junit.Test;
 public class Array2dimStore extends Compiler2TestBase {
 
 	@Test
-	public void test0() {
+	public void test0() throws Throwable {
 		int[][] a = new int[10][10];
 
 		int[][] aBaseline = a.clone();

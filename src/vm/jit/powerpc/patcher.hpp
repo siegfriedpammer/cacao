@@ -1,6 +1,6 @@
-/* src/future/future.cpp - dummy implementation file
+/* src/vm/jit/powerpc/patcher.hpp - architecture specific code patching stuff
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2017
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -22,7 +22,17 @@
 
 */
 
-// dummy file to make the archive non-empty
+
+#ifndef _PATCHER_HPP
+#define _PATCHER_HPP
+
+#include "vm/jit/patcher-common.hpp"
+
+/* function prototypes ********************************************************/
+
+
+#endif // _PATCHER_HPP
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

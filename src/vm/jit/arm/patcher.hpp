@@ -1,6 +1,6 @@
-/* src/future/future_hash.hpp - future hash function
+/* src/vm/jit/arm/patcher.hpp - architecture specific code patching stuff
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2017
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,23 +23,16 @@
 */
 
 
-#ifndef FUTURE_FUTURE_HASH_HPP_
-#define FUTURE_FUTURE_HASH_HPP_ 1
+#ifndef _PATCHER_HPP
+#define _PATCHER_HPP
 
-// namespace _future must be defined before including this file
+#include "vm/jit/patcher-common.hpp"
 
-namespace cacao {
+/* function prototypes ********************************************************/
 
-template<class Key>
-struct hash {
-	std::size_t operator()(Key const& k) const {
-		return _future::hash<Key>()(k);
-	}
-};
 
-} // end namespace cacao
+#endif // _PATCHER_HPP
 
-#endif /* FUTURE_FUTURE_HASH_HPP_ */
 
 /*
  * These are local overrides for various environment variables in Emacs.

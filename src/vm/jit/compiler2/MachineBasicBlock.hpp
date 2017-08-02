@@ -25,11 +25,11 @@
 #ifndef _JIT_COMPILER2_MACHINEBASICBLOCK
 #define _JIT_COMPILER2_MACHINEBASICBLOCK
 
+#include <algorithm>
+
 #include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
 #include "vm/jit/compiler2/memory/Manager.hpp"
 #include "vm/jit/compiler2/alloc/ordered_list.hpp"
-
-#include "future/algorithm.hpp" // for all_of, none_of
 
 MM_MAKE_NAME(MachineBasicBlock)
 
@@ -362,7 +362,7 @@ inline MachineBasicBlock::iterator MachineBasicBlock::insert_after(iterator pos,
 template<class InputIt>
 inline void MachineBasicBlock::insert_before(iterator pos,
 		InputIt first, InputIt last) {
-	assert(cacao::none_of(first,last,check_is_phi));
+	assert(std::none_of(first,last,check_is_phi));
 	list.insert(pos,first,last);
 	std::for_each(first,last,
 		std::bind1st(std::mem_fun(&MachineBasicBlock::update), this));
@@ -370,7 +370,7 @@ inline void MachineBasicBlock::insert_before(iterator pos,
 template<class InputIt>
 inline void MachineBasicBlock::insert_after(iterator pos,
 		InputIt first, InputIt last) {
-	assert(cacao::none_of(first,last,check_is_phi));
+	assert(std::none_of(first,last,check_is_phi));
 	list.insert(++pos,first,last);
 	std::for_each(first,last,
 		std::bind1st(std::mem_fun(&MachineBasicBlock::update), this));

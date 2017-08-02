@@ -29,7 +29,7 @@ class Compiler2Test {
 			Class<?> compileClass, String methodName, String methodDesc);
 	
 	protected static native Object executeMethod(Class<?> compileClass, 
-			String methodName, String methodDesc, Object[] args);
+			String methodName, String methodDesc, Object[] args) throws Throwable;
 
 	protected static void compileBaseline(Class<?> compileClass,
 			String methodName, String methodDesc) {

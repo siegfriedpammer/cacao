@@ -1,6 +1,6 @@
-/* src/future/memory.hpp - future memory library features
+/* src/vm/jit/compiler2/ListSchedulingPass.hpp - ListSchedulingPass
 
-   Copyright (C) 1996-2013
+   Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -22,35 +22,62 @@
 
 */
 
+#ifndef _JIT_COMPILER2_LISTSCHEDULINGPASS
+#define _JIT_COMPILER2_LISTSCHEDULINGPASS
 
-#ifndef FUTURE_MEMORY_HPP_
-#define FUTURE_MEMORY_HPP_ 1
+#include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/Instruction.hpp"
+#include "vm/jit/compiler2/InstructionSchedule.hpp"
 
-#include "config.h"
-
-// get shared_ptr
-#if HAVE_STD_TR1_SHARED_PTR
-
-#include <tr1/memory>
+MM_MAKE_NAME(ListSchedulingPass)
 
 namespace cacao {
-using std::tr1::shared_ptr;
+namespace jit {
+namespace compiler2 {
+
+class GlobalSchedule;
+class Method;
+
+/**
+ * ListSchedulingPass
+ *
+ * Constructs an instruction schedule for each basic block based on a
+ * classical list scheduling algorithm.
+ */
+class ListSchedulingPass : public Pass,
+						   public memory::ManagerMixin<ListSchedulingPass>,
+						   public InstructionSchedule<Instruction> {
+private:
+
+	/**
+	 * The Method to process.
+	 */
+	Method *M;
+
+	/**
+	 * The current GlobalSchedule of the processed Method.
+	 */
+	GlobalSchedule *GS;
+
+	/**
+	 * Schedule the instructions within the block that starts at @p begin.
+	 */
+	void schedule(BeginInst *begin);
+
+public:
+
+	ListSchedulingPass() : Pass() {}
+	virtual bool run(JITData &JD);
+	virtual bool verify() const;
+	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+};
+
+} // end namespace compiler2
+} // end namespace jit
 } // end namespace cacao
 
-#elif HAVE_BOOST_SHARED_PTR
+#endif /* _JIT_COMPILER2_LISTSCHEDULINGPASS */
 
-#include <boost/shared_ptr.hpp>
-
-namespace cacao {
-using boost::shared_ptr;
-} // end namespace cacao
-
-#else
-#error "No implementation of shared_ptr available"
-#endif
-
-
-#endif /* FUTURE_MEMORY_HPP_ */
 
 /*
  * These are local overrides for various environment variables in Emacs.

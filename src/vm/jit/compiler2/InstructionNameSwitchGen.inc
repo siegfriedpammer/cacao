@@ -28,12 +28,9 @@ Instead have a look at the generator (./instruction_gen.py)
 and the input file (./instruction_table.csv).
 */
 
-case LoadInstID: return "LoadInst";
 case UnaryInstID: return "UnaryInst";
 case BinaryInstID: return "BinaryInst";
 case FieldAccessInstID: return "FieldAccessInst";
-case NOPInstID: return "NOPInst";
-case POPInstID: return "POPInst";
 case CHECKNULLInstID: return "CHECKNULLInst";
 case ARRAYLENGTHInstID: return "ARRAYLENGTHInst";
 case ARRAYBOUNDSCHECKInstID: return "ARRAYBOUNDSCHECKInst";
@@ -59,9 +56,7 @@ case INCInstID: return "INCInst";
 case AREFInstID: return "AREFInst";
 case ASTOREInstID: return "ASTOREInst";
 case ALOADInstID: return "ALOADInst";
-case RETInstID: return "RETInst";
 case LOADInstID: return "LOADInst";
-case STOREInstID: return "STOREInst";
 case NEWInstID: return "NEWInst";
 case NEWARRAYInstID: return "NEWARRAYInst";
 case ANEWARRAYInstID: return "ANEWARRAYInst";
@@ -69,7 +64,6 @@ case MULTIANEWARRAYInstID: return "MULTIANEWARRAYInst";
 case CHECKCASTInstID: return "CHECKCASTInst";
 case INSTANCEOFInstID: return "INSTANCEOFInst";
 case GOTOInstID: return "GOTOInst";
-case JSRInstID: return "JSRInst";
 case BUILTINInstID: return "BUILTINInst";
 case INVOKEInstID: return "INVOKEInst";
 case INVOKEVIRTUALInstID: return "INVOKEVIRTUALInst";
@@ -82,11 +76,7 @@ case TABLESWITCHInstID: return "TABLESWITCHInst";
 case LOOKUPSWITCHInstID: return "LOOKUPSWITCHInst";
 case RETURNInstID: return "RETURNInst";
 case THROWInstID: return "THROWInst";
-case COPYInstID: return "COPYInst";
-case MOVEInstID: return "MOVEInst";
-case GETEXCEPTIONInstID: return "GETEXCEPTIONInst";
 case PHIInstID: return "PHIInst";
-case ContainerInstID: return "ContainerInst";
 case BeginInstID: return "BeginInst";
 case EndInstID: return "EndInst";
 case SourceStateInstID: return "SourceStateInst";

@@ -28,6 +28,8 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#include <memory>
+
 #include "Instruction.hpp"
 #include "vm/jit/compiler2/GlobalSchedule.hpp"
 #include "vm/jit/compiler2/MatcherDefs.hpp"
@@ -35,8 +37,6 @@
 #include "vm/jit/compiler2/alloc/set.hpp"
 #include "vm/jit/compiler2/alloc/unordered_map.hpp"
 #include "Target.hpp"
-
-#include "future/memory.hpp"
 
 // #include "vm/jit/compiler2/MatcherDefs.hpp"
 
@@ -57,13 +57,13 @@ class Matcher {
 public:
 
 	// typedefs to avoid naming dependency to generated matcher
-	typedef alloc::unordered_map<Instruction*, shared_ptr<STATE_TYPE> >::type InstToStateLabelTy;
+	typedef alloc::unordered_map<Instruction*, std::shared_ptr<STATE_TYPE> >::type InstToStateLabelTy;
 	typedef alloc::list<Instruction*>::type InstListTy;
 	typedef alloc::set<Instruction*>::type InstSetTy;
-	typedef alloc::unordered_map<int, shared_ptr<Instruction> >::type ProxyMapByInstTy;
+	typedef alloc::unordered_map<int, std::shared_ptr<Instruction> >::type ProxyMapByInstTy;
 	typedef alloc::set<Instruction::InstID>::type ExcludeSetTy;
-	typedef alloc::unordered_map<Instruction*, shared_ptr<InstSetTy> >::type DependencyMapTy;
-	typedef alloc::unordered_map<Instruction*, shared_ptr<ProxyMapByInstTy> >::type ProxyMapTy;
+	typedef alloc::unordered_map<Instruction*, std::shared_ptr<InstSetTy> >::type DependencyMapTy;
+	typedef alloc::unordered_map<Instruction*, std::shared_ptr<ProxyMapByInstTy> >::type ProxyMapTy;
 
 	Matcher(GlobalSchedule* sched, BeginInst* BI, LoweringVisitor *LV) : 
 		sched(sched), basicBlock(BI), LV(LV) { }

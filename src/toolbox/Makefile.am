@@ -36,6 +36,7 @@ libtoolbox_la_SOURCES = \
 	bitvector.hpp \
 	buffer.hpp \
 	endianess.hpp \
+	GraphPrinter.hpp \
 	hashtable.cpp \
 	hashtable.hpp \
 	intern_table.hpp \
@@ -44,8 +45,10 @@ libtoolbox_la_SOURCES = \
 	logging.hpp \
 	Option.hpp \
 	Option.cpp \
+	ordered_list.hpp \
 	set.hpp \
 	set.cpp \
+	UnionFind.hpp \
 	utf_utils.hpp \
 	utf8_transform.inc \
 	utf16_transform.inc \

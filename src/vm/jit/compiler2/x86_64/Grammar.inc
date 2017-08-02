@@ -370,7 +370,7 @@ static short burm_decode_stm[] = {
 #ifdef GENMETHODDEFS
 #undef GENMETHODDEFS
 
-int burm_rule(shared_ptr<STATE_TYPE> state, int goalnt);
+int burm_rule(std::shared_ptr<STATE_TYPE> state, int goalnt);
 void burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root);
 void burm_kids(NODEPTR_TYPE p, int eruleno, NODEPTR_TYPE kids[]);
 
@@ -513,7 +513,7 @@ namespace {
 
 }
 
-int Matcher::burm_rule(shared_ptr<STATE_TYPE> state, int goalnt) {
+int Matcher::burm_rule(std::shared_ptr<STATE_TYPE> state, int goalnt) {
 	if (goalnt < 1 || goalnt > 1)
 		ABORT_MSG("burm_rule", "Bad goal nonterminal " << goalnt << nl);
 	if (!state)
@@ -529,34 +529,34 @@ int Matcher::burm_rule(shared_ptr<STATE_TYPE> state, int goalnt) {
 
 void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 	int c;
-	shared_ptr<STATE_TYPE> p;
+	std::shared_ptr<STATE_TYPE> p;
 
 	if (!a)
 		ABORT_MSG("burm_label", "Null tree");
-	STATE_LABEL(a) = p = shared_ptr<STATE_TYPE>(new STATE_TYPE(root));
+	STATE_LABEL(a) = p = std::shared_ptr<STATE_TYPE>(new STATE_TYPE(root));
 	switch (OP_LABEL(a)) {
-	case 3: /* NOPInstID */
+	case 4: /* NOPInstID */
 		/* stm: NOPInstID */
 		if (1 + 0 < p->cost[burm_stm_NT]) {
 			p->cost[burm_stm_NT] = 1 + 0;
 			p->rule.burm_stm = 1;
 		}
 		break;
-	case 4: /* POPInstID */
+	case 5: /* POPInstID */
 		/* stm: POPInstID */
 		if (1 + 0 < p->cost[burm_stm_NT]) {
 			p->cost[burm_stm_NT] = 1 + 0;
 			p->rule.burm_stm = 2;
 		}
 		break;
-	case 5: /* CHECKNULLInstID */
+	case 6: /* CHECKNULLInstID */
 		/* stm: CHECKNULLInstID */
 		if (1 + 0 < p->cost[burm_stm_NT]) {
 			p->cost[burm_stm_NT] = 1 + 0;
 			p->rule.burm_stm = 3;
 		}
 		break;
-	case 6: /* ARRAYLENGTHInstID */
+	case 7: /* ARRAYLENGTHInstID */
 		burm_label(LEFT_CHILD(a), root);
 		p->isLeaf = (OP_LABEL(LEFT_CHILD(a)) == Instruction::NoInstID);
 		/* stm: ARRAYLENGTHInstID(stm) */
@@ -566,7 +566,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			p->rule.burm_stm = 4;
 		}
 		break;
-	case 7: /* ARRAYBOUNDSCHECKInstID */
+	case 8: /* ARRAYBOUNDSCHECKInstID */
 		burm_label(LEFT_CHILD(a), root);
 		burm_label(RIGHT_CHILD(a), root);
 		p->isLeaf = (OP_LABEL(LEFT_CHILD(a)) == Instruction::NoInstID || OP_LABEL(RIGHT_CHILD(a)) == Instruction::NoInstID);
@@ -577,7 +577,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			p->rule.burm_stm = 5;
 		}
 		break;
-	case 8: /* NEGInstID */
+	case 9: /* NEGInstID */
 		burm_label(LEFT_CHILD(a), root);
 		p->isLeaf = (OP_LABEL(LEFT_CHILD(a)) == Instruction::NoInstID);
 		/* stm: NEGInstID(stm) */
@@ -587,7 +587,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			p->rule.burm_stm = 6;
 		}
 		break;
-	case 9: /* CASTInstID */
+	case 10: /* CASTInstID */
 		burm_label(LEFT_CHILD(a), root);
 		p->isLeaf = (OP_LABEL(LEFT_CHILD(a)) == Instruction::NoInstID);
 		/* stm: CASTInstID(stm) */
@@ -597,7 +597,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			p->rule.burm_stm = 7;
 		}
 		break;
-	case 10: /* ADDInstID */
+	case 11: /* ADDInstID */
 		burm_label(LEFT_CHILD(a), root);
 		burm_label(RIGHT_CHILD(a), root);
 		p->isLeaf = (OP_LABEL(LEFT_CHILD(a)) == Instruction::NoInstID || OP_LABEL(RIGHT_CHILD(a)) == Instruction::NoInstID);
@@ -608,8 +608,8 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			p->rule.burm_stm = 8;
 		}
 		if (	/* stm: ADDInstID(CONSTInstID,CONSTInstID) */
-			OP_LABEL(LEFT_CHILD(a)) == 21 && /* CONSTInstID */
-			OP_LABEL(RIGHT_CHILD(a)) == 21 /* CONSTInstID */
+			OP_LABEL(LEFT_CHILD(a)) == 22 && /* CONSTInstID */
+			OP_LABEL(RIGHT_CHILD(a)) == 22 /* CONSTInstID */
 		) {
 			c = 1;
 			if (c + 0 < p->cost[burm_stm_NT]) {
@@ -618,7 +618,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			}
 		}
 		if (	/* stm: ADDInstID(stm,CONSTInstID) */
-			OP_LABEL(RIGHT_CHILD(a)) == 21 /* CONSTInstID */
+			OP_LABEL(RIGHT_CHILD(a)) == 22 /* CONSTInstID */
 		) {
 			c = (STATE_LABEL(LEFT_CHILD(a)))->cost[burm_stm_NT] + (encodeDiscreteCost(a, a->get_operand(1)));
 			if (c + 0 < p->cost[burm_stm_NT]) {
@@ -627,8 +627,8 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			}
 		}
 		if (	/* stm: ADDInstID(ADDInstID(stm,stm),CONSTInstID) */
-			OP_LABEL(LEFT_CHILD(a)) == 10 && /* ADDInstID */
-			OP_LABEL(RIGHT_CHILD(a)) == 21 /* CONSTInstID */
+			OP_LABEL(LEFT_CHILD(a)) == 11 && /* ADDInstID */
+			OP_LABEL(RIGHT_CHILD(a)) == 22 /* CONSTInstID */
 		) {
 			c = (STATE_LABEL(LEFT_CHILD(LEFT_CHILD(a))))->cost[burm_stm_NT] + (STATE_LABEL(RIGHT_CHILD(LEFT_CHILD(a))))->cost[burm_stm_NT] + (calcBaseIndexDisplacementCost(a));
 			if (c + 0 < p->cost[burm_stm_NT]) {
@@ -637,8 +637,8 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			}
 		}
 		if (	/* stm: ADDInstID(stm,ADDInstID(stm,CONSTInstID)) */
-			OP_LABEL(RIGHT_CHILD(a)) == 10 && /* ADDInstID */
-			OP_LABEL(RIGHT_CHILD(RIGHT_CHILD(a))) == 21 /* CONSTInstID */
+			OP_LABEL(RIGHT_CHILD(a)) == 11 && /* ADDInstID */
+			OP_LABEL(RIGHT_CHILD(RIGHT_CHILD(a))) == 22 /* CONSTInstID */
 		) {
 			c = (STATE_LABEL(LEFT_CHILD(a)))->cost[burm_stm_NT] + (STATE_LABEL(LEFT_CHILD(RIGHT_CHILD(a))))->cost[burm_stm_NT] + (calcBaseIndexDisplacement2Cost(a));
 			if (c + 0 < p->cost[burm_stm_NT]) {
@@ -647,8 +647,8 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			}
 		}
 		if (	/* stm: ADDInstID(stm,MULInstID(stm,CONSTInstID)) */
-			OP_LABEL(RIGHT_CHILD(a)) == 12 && /* MULInstID */
-			OP_LABEL(RIGHT_CHILD(RIGHT_CHILD(a))) == 21 /* CONSTInstID */
+			OP_LABEL(RIGHT_CHILD(a)) == 13 && /* MULInstID */
+			OP_LABEL(RIGHT_CHILD(RIGHT_CHILD(a))) == 22 /* CONSTInstID */
 		) {
 			c = (STATE_LABEL(LEFT_CHILD(a)))->cost[burm_stm_NT] + (STATE_LABEL(LEFT_CHILD(RIGHT_CHILD(a))))->cost[burm_stm_NT] + (calcBaseIndexMultiplierCost(a));
 			if (c + 0 < p->cost[burm_stm_NT]) {
@@ -657,8 +657,8 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			}
 		}
 		if (	/* stm: ADDInstID(MULInstID(stm,CONSTInstID),stm) */
-			OP_LABEL(LEFT_CHILD(a)) == 12 && /* MULInstID */
-			OP_LABEL(RIGHT_CHILD(LEFT_CHILD(a))) == 21 /* CONSTInstID */
+			OP_LABEL(LEFT_CHILD(a)) == 13 && /* MULInstID */
+			OP_LABEL(RIGHT_CHILD(LEFT_CHILD(a))) == 22 /* CONSTInstID */
 		) {
 			c = (STATE_LABEL(LEFT_CHILD(LEFT_CHILD(a))))->cost[burm_stm_NT] + (STATE_LABEL(RIGHT_CHILD(a)))->cost[burm_stm_NT] + (calcBaseIndexMultiplier2Cost(a));
 			if (c + 0 < p->cost[burm_stm_NT]) {
@@ -667,10 +667,10 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			}
 		}
 		if (	/* stm: ADDInstID(ADDInstID(stm,MULInstID(stm,CONSTInstID)),CONSTInstID) */
-			OP_LABEL(LEFT_CHILD(a)) == 10 && /* ADDInstID */
-			OP_LABEL(RIGHT_CHILD(LEFT_CHILD(a))) == 12 && /* MULInstID */
-			OP_LABEL(RIGHT_CHILD(RIGHT_CHILD(LEFT_CHILD(a)))) == 21 && /* CONSTInstID */
-			OP_LABEL(RIGHT_CHILD(a)) == 21 /* CONSTInstID */
+			OP_LABEL(LEFT_CHILD(a)) == 11 && /* ADDInstID */
+			OP_LABEL(RIGHT_CHILD(LEFT_CHILD(a))) == 13 && /* MULInstID */
+			OP_LABEL(RIGHT_CHILD(RIGHT_CHILD(LEFT_CHILD(a)))) == 22 && /* CONSTInstID */
+			OP_LABEL(RIGHT_CHILD(a)) == 22 /* CONSTInstID */
 		) {
 			c = (STATE_LABEL(LEFT_CHILD(LEFT_CHILD(a))))->cost[burm_stm_NT] + (STATE_LABEL(LEFT_CHILD(RIGHT_CHILD(LEFT_CHILD(a)))))->cost[burm_stm_NT] + (calcBaseIndexMultiplierDisplacementCost(a));
 			if (c + 0 < p->cost[burm_stm_NT]) {
@@ -679,10 +679,10 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			}
 		}
 		if (	/* stm: ADDInstID(stm,ADDInstID(MULInstID(stm,CONSTInstID),CONSTInstID)) */
-			OP_LABEL(RIGHT_CHILD(a)) == 10 && /* ADDInstID */
-			OP_LABEL(LEFT_CHILD(RIGHT_CHILD(a))) == 12 && /* MULInstID */
-			OP_LABEL(RIGHT_CHILD(LEFT_CHILD(RIGHT_CHILD(a)))) == 21 && /* CONSTInstID */
-			OP_LABEL(RIGHT_CHILD(RIGHT_CHILD(a))) == 21 /* CONSTInstID */
+			OP_LABEL(RIGHT_CHILD(a)) == 11 && /* ADDInstID */
+			OP_LABEL(LEFT_CHILD(RIGHT_CHILD(a))) == 13 && /* MULInstID */
+			OP_LABEL(RIGHT_CHILD(LEFT_CHILD(RIGHT_CHILD(a)))) == 22 && /* CONSTInstID */
+			OP_LABEL(RIGHT_CHILD(RIGHT_CHILD(a))) == 22 /* CONSTInstID */
 		) {
 			c = (STATE_LABEL(LEFT_CHILD(a)))->cost[burm_stm_NT] + (STATE_LABEL(LEFT_CHILD(LEFT_CHILD(RIGHT_CHILD(a)))))->cost[burm_stm_NT] + (calcBaseIndexMultiplierDisplacement2Cost(a));
 			if (c + 0 < p->cost[burm_stm_NT]) {
@@ -691,7 +691,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			}
 		}
 		break;
-	case 11: /* SUBInstID */
+	case 12: /* SUBInstID */
 		burm_label(LEFT_CHILD(a), root);
 		burm_label(RIGHT_CHILD(a), root);
 		p->isLeaf = (OP_LABEL(LEFT_CHILD(a)) == Instruction::NoInstID || OP_LABEL(RIGHT_CHILD(a)) == Instruction::NoInstID);
@@ -702,7 +702,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			p->rule.burm_stm = 9;
 		}
 		if (	/* stm: SUBInstID(stm,CONSTInstID) */
-			OP_LABEL(RIGHT_CHILD(a)) == 21 /* CONSTInstID */
+			OP_LABEL(RIGHT_CHILD(a)) == 22 /* CONSTInstID */
 		) {
 			c = (STATE_LABEL(LEFT_CHILD(a)))->cost[burm_stm_NT] + (encodeDiscreteCost(a, a->get_operand(1)));
 			if (c + 0 < p->cost[burm_stm_NT]) {
@@ -711,7 +711,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			}
 		}
 		break;
-	case 12: /* MULInstID */
+	case 13: /* MULInstID */
 		burm_label(LEFT_CHILD(a), root);
 		burm_label(RIGHT_CHILD(a), root);
 		p->isLeaf = (OP_LABEL(LEFT_CHILD(a)) == Instruction::NoInstID || OP_LABEL(RIGHT_CHILD(a)) == Instruction::NoInstID);
@@ -722,7 +722,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			p->rule.burm_stm = 10;
 		}
 		if (	/* stm: MULInstID(stm,CONSTInstID) */
-			OP_LABEL(RIGHT_CHILD(a)) == 21 /* CONSTInstID */
+			OP_LABEL(RIGHT_CHILD(a)) == 22 /* CONSTInstID */
 		) {
 			c = (STATE_LABEL(LEFT_CHILD(a)))->cost[burm_stm_NT] + (encodeDiscreteCost(a, a->get_operand(1)));
 			if (c + 0 < p->cost[burm_stm_NT]) {
@@ -731,7 +731,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			}
 		}
 		break;
-	case 13: /* DIVInstID */
+	case 14: /* DIVInstID */
 		burm_label(LEFT_CHILD(a), root);
 		burm_label(RIGHT_CHILD(a), root);
 		p->isLeaf = (OP_LABEL(LEFT_CHILD(a)) == Instruction::NoInstID || OP_LABEL(RIGHT_CHILD(a)) == Instruction::NoInstID);
@@ -742,7 +742,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			p->rule.burm_stm = 11;
 		}
 		break;
-	case 14: /* REMInstID */
+	case 15: /* REMInstID */
 		burm_label(LEFT_CHILD(a), root);
 		burm_label(RIGHT_CHILD(a), root);
 		p->isLeaf = (OP_LABEL(LEFT_CHILD(a)) == Instruction::NoInstID || OP_LABEL(RIGHT_CHILD(a)) == Instruction::NoInstID);
@@ -753,21 +753,21 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			p->rule.burm_stm = 12;
 		}
 		break;
-	case 15: /* SHLInstID */
+	case 16: /* SHLInstID */
 		/* stm: SHLInstID */
 		if (1 + 0 < p->cost[burm_stm_NT]) {
 			p->cost[burm_stm_NT] = 1 + 0;
 			p->rule.burm_stm = 13;
 		}
 		break;
-	case 16: /* USHRInstID */
+	case 17: /* USHRInstID */
 		/* stm: USHRInstID */
 		if (1 + 0 < p->cost[burm_stm_NT]) {
 			p->cost[burm_stm_NT] = 1 + 0;
 			p->rule.burm_stm = 14;
 		}
 		break;
-	case 17: /* ANDInstID */
+	case 18: /* ANDInstID */
 		burm_label(LEFT_CHILD(a), root);
 		burm_label(RIGHT_CHILD(a), root);
 		p->isLeaf = (OP_LABEL(LEFT_CHILD(a)) == Instruction::NoInstID || OP_LABEL(RIGHT_CHILD(a)) == Instruction::NoInstID);
@@ -778,7 +778,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			p->rule.burm_stm = 15;
 		}
 		break;
-	case 18: /* ORInstID */
+	case 19: /* ORInstID */
 		burm_label(LEFT_CHILD(a), root);
 		burm_label(RIGHT_CHILD(a), root);
 		p->isLeaf = (OP_LABEL(LEFT_CHILD(a)) == Instruction::NoInstID || OP_LABEL(RIGHT_CHILD(a)) == Instruction::NoInstID);
@@ -789,7 +789,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			p->rule.burm_stm = 16;
 		}
 		break;
-	case 19: /* XORInstID */
+	case 20: /* XORInstID */
 		burm_label(LEFT_CHILD(a), root);
 		burm_label(RIGHT_CHILD(a), root);
 		p->isLeaf = (OP_LABEL(LEFT_CHILD(a)) == Instruction::NoInstID || OP_LABEL(RIGHT_CHILD(a)) == Instruction::NoInstID);
@@ -800,7 +800,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			p->rule.burm_stm = 17;
 		}
 		break;
-	case 20: /* CMPInstID */
+	case 21: /* CMPInstID */
 		burm_label(LEFT_CHILD(a), root);
 		burm_label(RIGHT_CHILD(a), root);
 		p->isLeaf = (OP_LABEL(LEFT_CHILD(a)) == Instruction::NoInstID || OP_LABEL(RIGHT_CHILD(a)) == Instruction::NoInstID);
@@ -811,14 +811,14 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			p->rule.burm_stm = 18;
 		}
 		break;
-	case 21: /* CONSTInstID */
+	case 22: /* CONSTInstID */
 		/* stm: CONSTInstID */
 		if (1 + 0 < p->cost[burm_stm_NT]) {
 			p->cost[burm_stm_NT] = 1 + 0;
 			p->rule.burm_stm = 19;
 		}
 		break;
-	case 27: /* AREFInstID */
+	case 28: /* AREFInstID */
 		burm_label(LEFT_CHILD(a), root);
 		burm_label(RIGHT_CHILD(a), root);
 		p->isLeaf = (OP_LABEL(LEFT_CHILD(a)) == Instruction::NoInstID || OP_LABEL(RIGHT_CHILD(a)) == Instruction::NoInstID);
@@ -835,7 +835,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			p->rule.burm_stm = 39;
 		}
 		break;
-	case 28: /* ASTOREInstID */
+	case 29: /* ASTOREInstID */
 		burm_label(LEFT_CHILD(a), root);
 		burm_label(RIGHT_CHILD(a), root);
 		p->isLeaf = (OP_LABEL(LEFT_CHILD(a)) == Instruction::NoInstID || OP_LABEL(RIGHT_CHILD(a)) == Instruction::NoInstID);
@@ -846,7 +846,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			p->rule.burm_stm = 21;
 		}
 		if (	/* stm: ASTOREInstID(AREFInstID(stm,stm),stm) */
-			OP_LABEL(LEFT_CHILD(a)) == 27 /* AREFInstID */
+			OP_LABEL(LEFT_CHILD(a)) == 28 /* AREFInstID */
 		) {
 			c = (STATE_LABEL(LEFT_CHILD(LEFT_CHILD(a))))->cost[burm_stm_NT] + (STATE_LABEL(RIGHT_CHILD(LEFT_CHILD(a))))->cost[burm_stm_NT] + (STATE_LABEL(RIGHT_CHILD(a)))->cost[burm_stm_NT] + 1;
 			if (c + 0 < p->cost[burm_stm_NT]) {
@@ -855,8 +855,8 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			}
 		}
 		if (	/* stm: ASTOREInstID(AREFInstID(stm,stm),CONSTInstID) */
-			OP_LABEL(LEFT_CHILD(a)) == 27 && /* AREFInstID */
-			OP_LABEL(RIGHT_CHILD(a)) == 21 /* CONSTInstID */
+			OP_LABEL(LEFT_CHILD(a)) == 28 && /* AREFInstID */
+			OP_LABEL(RIGHT_CHILD(a)) == 22 /* CONSTInstID */
 		) {
 			c = (STATE_LABEL(LEFT_CHILD(LEFT_CHILD(a))))->cost[burm_stm_NT] + (STATE_LABEL(RIGHT_CHILD(LEFT_CHILD(a))))->cost[burm_stm_NT] + 1;
 			if (c + 0 < p->cost[burm_stm_NT]) {
@@ -865,7 +865,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			}
 		}
 		break;
-	case 29: /* ALOADInstID */
+	case 30: /* ALOADInstID */
 		burm_label(LEFT_CHILD(a), root);
 		p->isLeaf = (OP_LABEL(LEFT_CHILD(a)) == Instruction::NoInstID);
 		/* stm: ALOADInstID(stm) */
@@ -875,7 +875,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			p->rule.burm_stm = 22;
 		}
 		if (	/* stm: ALOADInstID(AREFInstID(stm,stm)) */
-			OP_LABEL(LEFT_CHILD(a)) == 27 /* AREFInstID */
+			OP_LABEL(LEFT_CHILD(a)) == 28 /* AREFInstID */
 		) {
 			c = (STATE_LABEL(LEFT_CHILD(LEFT_CHILD(a))))->cost[burm_stm_NT] + (STATE_LABEL(RIGHT_CHILD(LEFT_CHILD(a))))->cost[burm_stm_NT] + 1;
 			if (c + 0 < p->cost[burm_stm_NT]) {
@@ -884,14 +884,14 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			}
 		}
 		break;
-	case 31: /* LOADInstID */
+	case 32: /* LOADInstID */
 		/* stm: LOADInstID */
 		if (1 + 0 < p->cost[burm_stm_NT]) {
 			p->cost[burm_stm_NT] = 1 + 0;
 			p->rule.burm_stm = 23;
 		}
 		break;
-	case 46: /* IFInstID */
+	case 48: /* IFInstID */
 		burm_label(LEFT_CHILD(a), root);
 		burm_label(RIGHT_CHILD(a), root);
 		p->isLeaf = (OP_LABEL(LEFT_CHILD(a)) == Instruction::NoInstID || OP_LABEL(RIGHT_CHILD(a)) == Instruction::NoInstID);
@@ -902,7 +902,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			p->rule.burm_stm = 24;
 		}
 		break;
-	case 48: /* TABLESWITCHInstID */
+	case 50: /* TABLESWITCHInstID */
 		burm_label(LEFT_CHILD(a), root);
 		p->isLeaf = (OP_LABEL(LEFT_CHILD(a)) == Instruction::NoInstID);
 		/* stm: TABLESWITCHInstID(stm) */
@@ -912,7 +912,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			p->rule.burm_stm = 25;
 		}
 		break;
-	case 49: /* LOOKUPSWITCHInstID */
+	case 51: /* LOOKUPSWITCHInstID */
 		burm_label(LEFT_CHILD(a), root);
 		p->isLeaf = (OP_LABEL(LEFT_CHILD(a)) == Instruction::NoInstID);
 		/* stm: LOOKUPSWITCHInstID(stm) */
@@ -922,7 +922,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			p->rule.burm_stm = 26;
 		}
 		break;
-	case 50: /* RETURNInstID */
+	case 52: /* RETURNInstID */
 		burm_label(LEFT_CHILD(a), root);
 		p->isLeaf = (OP_LABEL(LEFT_CHILD(a)) == Instruction::NoInstID);
 		/* stm: RETURNInstID(stm) */
@@ -932,7 +932,7 @@ void Matcher::burm_label(NODEPTR_TYPE a, NODEPTR_TYPE root) {
 			p->rule.burm_stm = 27;
 		}
 		break;
-	case 59: /* NoInstID */
+	case 65: /* NoInstID */
 		/* stm: NoInstID */
 		if (1 + 0 < p->cost[burm_stm_NT]) {
 			p->cost[burm_stm_NT] = 1 + 0;

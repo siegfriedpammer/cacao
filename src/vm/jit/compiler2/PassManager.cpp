@@ -170,7 +170,7 @@ struct ContainsFn<typename alloc::set<ValueType>::type,ValueType> {
 };
 
 template <class ValueType>
-struct ContainsFn<unordered_set<ValueType>,ValueType> {
+struct ContainsFn<alloc::unordered_set<ValueType>,ValueType> {
 	bool operator()(const typename alloc::unordered_set<ValueType>::type &c, const ValueType &val) {
 		return c.find(val) != c.end();
 	}

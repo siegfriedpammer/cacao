@@ -41,24 +41,33 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-
 // Instruction groups
-class LoadInst : public Instruction {
-public:
-	explicit LoadInst(InstID id, Type::TypeID type, BeginInst *begin) : Instruction(id, type, begin) {}
-	virtual bool is_floating() const { return false; }
-};
 
+/**
+ * Base type of instructions with a single operand.
+ */
 class UnaryInst : public Instruction {
 public:
-	explicit UnaryInst(InstID id, Type::TypeID type, Value* S1) : Instruction(id, type) {
-		append_op(S1);
+
+	/**
+	 * Construct a UnaryInst.
+	 *
+	 * @param id   The corresponding InstID.
+	 * @param type The type of the value that is computed by this UnaryInst.
+	 * @param op   The operand.
+	 */
+	explicit UnaryInst(InstID id, Type::TypeID type, Value* op) : Instruction(id, type) {
+		append_op(op);
 	}
+
+	/**
+	 * Conversion method.
+	 */
 	virtual UnaryInst* to_UnaryInst() { return this; }
 };
 
 /**
- * Binary Instruction. Not a real instruction. For convenience only.
+ * Base type of instructions with two operands.
  *
  * @note Idea: create a ArithmeticInst superclass which features a method
  * e.g. simplify() which returns the result of the operands if they are
@@ -66,15 +75,38 @@ public:
  */
 class BinaryInst : public Instruction {
 public:
-	explicit BinaryInst(InstID id, Type::TypeID type, Value* S1, Value* S2) : Instruction(id, type) {
-		append_op(S1);
-		append_op(S2);
+
+	/**
+	 * Construct a BinaryInst.
+	 *
+	 * @param id   The corresponding InstID.
+	 * @param type The type that is computed by this BinaryInst.
+	 * @param op1  The first operand.
+	 * @param op2  The second operand.
+	 */
+	explicit BinaryInst(InstID id, Type::TypeID type, Value* op1, Value* op2) : Instruction(id, type) {
+		append_op(op1);
+		append_op(op2);
 	}
+
+	/**
+	 * Conversion method.
+	 */
 	virtual BinaryInst* to_BinaryInst() { return this; }
 };
 
+/**
+ * Base type of instructions with an arbitrary number of operands.
+ */
 class MultiOpInst : public Instruction {
 public:
+
+	/**
+	 * Construct a MultiOpInst.
+	 *
+	 * @param id   The corresponding InstID.
+	 * @param type The type that is computed by this MultiOpInst.
+	 */
 	explicit MultiOpInst(InstID id, Type::TypeID type) : Instruction(id, type) {}
 
 	// exporting to the public
@@ -83,31 +115,48 @@ public:
 };
 
 /**
- * TODO not a real Instruction... hmm
+ * Base type of instructions that compute a condition.
  */
 class CondInst {
 protected:
-	Conditional::CondID cond;
+
+	/**
+	 * The kind of condition that is computed.
+	 */
+	Conditional::CondID condition;
+
 public:
-	explicit CondInst(Conditional::CondID cond) : cond(cond){}
-	Conditional::CondID get_condition() const { return cond; }
+
+	/**
+	 * Construct a CondInst.
+	 *
+	 * @param condition The kind of condition to copmute.
+	 */
+	explicit CondInst(Conditional::CondID condition) : condition(condition){}
+
+	/**
+	 * Get the kind of condition that is computed.
+	 */
+	Conditional::CondID get_condition() const { return condition; }
+
+	virtual ~CondInst() {}
 };
 
-/// Provides a mapping from HIR values to baseline IR variables.
-///
-/// In order to reconstruct the source state during on-stack replacement, it
-/// is necessary to be able to reconstruct the machine-independent source state
-/// from the current machine-dependent execution state. Due to the generality of
-/// the baseline compiler's IR the on-stack replacement mechanism represents the
-/// source state in terms of the baseline IR variables. Hence, it is necessary
-/// to be able to map compiler2-specific HIR values to baseline IR variables. A
-/// SourceStateInst provides such mapping information for a single program
-/// location which is identified by the (machine-independent) ID of the
-/// corresponding baseline IR instruction.
+/**
+ * Provides a mapping from HIR values to baseline IR variables.
+ *
+ * In order to reconstruct the source state during on-stack replacement, it
+ * is necessary to be able to reconstruct the machine-independent source state
+ * from the current machine-dependent execution state. Due to the generality of
+ * the baseline compiler's IR the on-stack replacement mechanism represents the
+ * source state in terms of the baseline IR variables. Hence, it is necessary
+ * to be able to map compiler2-specific HIR values to baseline IR variables. A
+ * SourceStateInst provides such mapping information for a single program
+ * location which is identified by the (machine-independent) ID of the
+ * corresponding baseline IR instruction.
+ */
 class SourceStateInst : public Instruction {
 public:
-
-	/// Maps a HIR value to a baseline IR javalocal index.
 	struct Javalocal {
 
 		/// The value that is mapped to a baseline IR javalocal index.
@@ -237,14 +286,292 @@ public:
 	virtual bool verify() const { return true; }
 };
 
+	/**
+	 * Maps a HIR value to a baseline IR javalocal index.
+	 */
+	struct Javalocal {
+
+		/**
+		 * The value that is mapped to a baseline IR javalocal index.
+		 */
+		Value *value;
+
+		/**
+		 * A baseline IR javalocal index.
+		 */
+		std::size_t index;
+
+		/**
+		 * Construct a Javalocal that maps @p value to @p index
+		 *
+		 * @param value The Value that is mapped to @p index.
+		 * @param index The javalocal index that corresponds to @p value.
+		 */
+		explicit Javalocal(Value *value, std::size_t index) : value(value), index(index) {}
+	};
+
+private:
+
+	typedef alloc::vector<Javalocal>::type JavalocalListTy;
+	typedef alloc::vector<Value*>::type StackvarListTy;
+	typedef alloc::vector<Value*>::type ParamListTy;
+
+	/**
+	 * The program location corresponding to the provided mapping information.
+	 *
+	 * The mappings of HIR values to baseline IR variables, which are given by
+	 * this SourceStateInst, are bound to this exact program location. This
+	 * location is given in terms of an ID of the corresponding baseline IR
+	 * instruction.
+	 */
+	s4 source_location;
+
+	/**
+	 * The state of the enclosing method in case we are in an inlined region.
+	 */
+	SourceStateInst *parent;
+
+	/**
+	 * List of mappings from HIR values to baseline IR javalocal indices.
+	 */
+	JavalocalListTy javalocals;
+
+	/**
+	 * List of HIR values that correspond to baseline IR stack variables.
+	 */
+	StackvarListTy stackvars;
+
+	/**
+	 * List of HIR values that correspond to method parameters.
+	 */
+	ParamListTy params;
+
+public:
+
+	typedef JavalocalListTy::const_iterator const_javalocal_iterator;
+	typedef StackvarListTy::const_iterator const_stackvar_iterator;
+	typedef ParamListTy::const_iterator const_param_iterator;
+
+	/**
+	 * Construct a SourceStateInst.
+	 *
+	 * @param source_location The ID of the baseline IR instruction at the
+	 *                        mapped program location.
+	 * @param hir_location    The HIR instruction that corresponds to the
+	 *                        given @p source_location.
+	 */
+	explicit SourceStateInst(s4 source_location, Instruction *hir_location)
+			: Instruction(SourceStateInstID, Type::VoidTypeID),
+			source_location(source_location) {
+		assert(!hir_location->is_floating());
+		append_dep(hir_location);
+	}
+
+	/**
+	 * Get the BeginInst of the block that contains this SourceStateInst.
+	 */
+	virtual BeginInst* get_BeginInst() const {
+		BeginInst *begin = (*dep_begin())->get_BeginInst();
+		assert(begin);
+		return begin;
+	}
+
+	/**
+	 * @return The program location that corresponds to the given mappings.
+	 */
+	s4 get_source_location() const { return source_location; }
+
+	/**
+	 * @return The state of the enclosing method in case we are in an inlined region.
+	 */
+	SourceStateInst *get_parent() const { return parent; };
+
+	/**
+	 * Set state of the enclosing method in case we are in an inlined region.
+	 *
+	 * @param new_parent The corresponding source state.
+	 */
+	void set_parent(SourceStateInst *new_parent) { parent = new_parent; }
+
+	/**
+	 * Append a new mapping from a HIR Value to a baseline IR javalocal index.
+	 *
+	 * @param local The Javalocal to append.
+	 */
+	void append_javalocal(Javalocal local) {
+		append_op(local.value);
+		javalocals.push_back(local);
+	}
+
+	/**
+	 * Append a new value to corresponds to a baseline IR stack variable.
+	 *
+	 * @param value The value to append.
+	 */
+	void append_stackvar(Value *value) {
+		append_op(value);
+		stackvars.push_back(value);
+	}
+
+	/**
+	 * Append a new value to corresponds to a method parameter.
+	 *
+	 * @param value The value to append.
+	 */
+	void append_param(Value *value) {
+		append_op(value);
+		params.push_back(value);
+	}
+
+	const_javalocal_iterator javalocal_begin() const { return javalocals.begin(); }
+	const_javalocal_iterator javalocal_end()   const { return javalocals.end(); }
+
+	const_stackvar_iterator stackvar_begin() const { return stackvars.begin(); }
+	const_stackvar_iterator stackvar_end()   const { return stackvars.end(); }
+
+	const_param_iterator param_begin() const { return params.begin(); }
+	const_param_iterator param_end()   const { return params.end(); }
+
+	virtual void replace_op(Value* v_old, Value* v_new) {
+		Instruction::replace_op(v_old, v_new);
+		std::replace(stackvars.begin(), stackvars.end(), v_old, v_new);
+		std::replace(params.begin(), params.end(), v_old, v_new);
+		for (JavalocalListTy::iterator i = javalocals.begin(), e = javalocals.end();
+				i != e; i++) {
+			Javalocal &local = *i;
+			if (local.value == v_old) {
+				local.value = v_new;
+			}
+		}
+	}
+
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
+	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * For now we prevent floating to avoid unforeseen instruction reordering.
+	 */
+	virtual bool is_floating() const { return false; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual SourceStateInst* to_SourceStateInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
+	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
+};
+
 /**
- * This Instruction mark the start of a basic block
+ * Base type of instructions that can be mapped to a SourceStateInst.
+ */
+class SourceStateAwareInst {
+private:
+
+	/**
+	 * The SourceStateInst that corresponds to this Instruction.
+	 */
+	SourceStateInst *source_state;
+
+public:
+
+	/**
+	 * Construct a SourceStateAwareInst.
+	 */
+	SourceStateAwareInst() : source_state(NULL) {}
+
+	/**
+	 * Convert this SourceStateAwareInst to an Instruction.
+	 *
+	 * @return This SourceStateAwareInst as Instruction.
+	 */
+	virtual Instruction *to_Instruction() = 0;
+
+	/**
+	 * Get the SourceStateInst that corresponds to this Instruction.
+	 *
+	 * @return The source state if available, NULL otherwise.
+	 */
+	SourceStateInst *get_source_state() const { return source_state; }
+
+	/**
+	 * Set the SourceStateInst that corresponds to this Instruction.
+	 *
+	 * This will be done automatically by the SourceStateAttachmentPass.
+	 *
+	 * @param source_state The corresponding SourceStateInst.
+	 */
+	void set_source_state(SourceStateInst *source_state) {
+		assert(source_state != NULL);
+		assert(this->source_state == NULL);
+		this->source_state = source_state;
+		Instruction *I = to_Instruction();
+		assert(I != NULL);
+		I->append_dep(source_state);
+	}
+
+	virtual bool needs_source_state() { return true; }
+
+	virtual ~SourceStateAwareInst() {}
+};
+
+/**
+ * Base type of instructions that dereference an object reference.
+ */
+class DereferenceInst : public SourceStateAwareInst {
+private:
+
+	/**
+	 * Whether a null-check is needed to safeguard the dereference.
+	 */
+	bool needs_null_check;
+
+public:
+
+	DereferenceInst() : needs_null_check(true) {}
+
+	/**
+	 * Control whether a null-check is needed to safeguard the dereference.
+	 */
+	void set_needs_null_check(bool needs_null_check) {
+		this->needs_null_check = needs_null_check;
+	}
+
+	/**
+	 * Whether a null-check is needed to safeguard the dereference.
+	 */
+	bool get_needs_null_check() const { return needs_null_check; }
+
+	/**
+	 * Get the corresponding object reference.
+	 */
+	virtual Instruction *get_objectref() = 0;
+
+	virtual bool needs_source_state() { return get_needs_null_check(); }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual DereferenceInst *to_DereferenceInst() = 0;
+
+	virtual ~DereferenceInst() {}
+};
+
+/**
+ * This Instruction marks the start of a basic block.
  */
 class BeginInst : public Instruction {
 public:
+
 	typedef alloc::vector<BeginInst*>::type PredecessorListTy;
 	typedef PredecessorListTy::const_iterator const_pred_iterator;
+
 private:
+
 	EndInst *end;
 	PredecessorListTy pred_list;
 
@@ -300,7 +627,7 @@ public:
 };
 
 /**
- * this stores a reference to a begin instruction
+ * This stores a reference to a BeginInst.
  */
 class BeginInstRef {
 private:
@@ -335,7 +662,7 @@ inline OStream& operator<<(OStream &OS, const BeginInstRef &BIR) {
 }
 
 /**
- * This Instruction mark the end of a basic block
+ * This Instruction marks the end of a basic block.
  */
 class EndInst : public Instruction {
 public:
@@ -365,19 +692,7 @@ public:
 		assert(begin);
 		bi->pred_list.push_back(begin);
 	}
-	#if 0
-	void replace_succ(BeginInst* s_old, BeginInst* s_new) {
-		assert(s_new);
-		// replace the successor of this EndInst with the new block s_new
-		std::replace(succ_list.begin(), succ_list.end(), s_old, s_new);
-		// update pred link of the new BeginInst
-		assert(begin);
-		s_new->pred_list.push_back(begin);
 
-		// remove the predecessor of s_old
-		s_old->pred_list.remove(begin);
-	}
-	#endif
 	int get_successor_index(const BeginInst* BI) const {
 		if (BI) {
 			int index = 0;
@@ -418,33 +733,94 @@ inline void BeginInst::set_successor(int index, BeginInst *BI) {
 
 // Instructions
 
-class NOPInst : public Instruction {
+/**
+ * Represents an explicit null-check on an object reference.
+ */
+class CHECKNULLInst : public UnaryInst, public SourceStateAwareInst {
 public:
-	explicit NOPInst() : Instruction(NOPInstID, Type::VoidTypeID) {}
-	virtual NOPInst* to_NOPInst() { return this; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
 
-class POPInst : public Instruction {
-public:
-	explicit POPInst(Type::TypeID type) : Instruction(POPInstID, type) {}
-	virtual POPInst* to_POPInst() { return this; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
+	/**
+	 * Construct a CHECKNULLInst.
+	 *
+	 * @param objectref The object reference to check.
+	 */
+	explicit CHECKNULLInst(Value *objectref)
+			: UnaryInst(CHECKNULLInstID, Type::VoidTypeID, objectref) {
+		assert(objectref != NULL);
+		append_op(objectref);
+	}
 
-class CHECKNULLInst : public UnaryInst {
-public:
-	explicit CHECKNULLInst(Value *S1) : UnaryInst(CHECKNULLInstID, Type::VoidTypeID, S1) {}
-	virtual CHECKNULLInst* to_CHECKNULLInst() { return this; }
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
 	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual Instruction *to_Instruction() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual SourceStateAwareInst *to_SourceStateAwareInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual CHECKNULLInst *to_CHECKNULLInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class ARRAYLENGTHInst : public UnaryInst {
+/**
+ * Get the length of an array.
+ */
+class ARRAYLENGTHInst : public UnaryInst, public DereferenceInst {
 public:
-	explicit ARRAYLENGTHInst(Value *S1) : UnaryInst(ARRAYLENGTHInstID, Type::IntTypeID, S1) {}
+
+	/**
+	 * Construct an ARRAYLENGTHInst.
+	 *
+	 * @param arrayref The array of interest.
+	 */
+	explicit ARRAYLENGTHInst(Value *arrayref)
+		: UnaryInst(ARRAYLENGTHInstID, Type::IntTypeID, arrayref) {}
+
+	virtual Instruction *get_objectref() {
+		Instruction *objectref = (*op_begin())->to_Instruction();
+		assert(objectref);
+		return objectref;
+	}
+
+	/**
+	 * Conversion method.
+	 */
+	virtual Instruction* to_Instruction() { return this; }
+
+	virtual SourceStateAwareInst* to_SourceStateAwareInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual DereferenceInst* to_DereferenceInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
 	virtual ARRAYLENGTHInst* to_ARRAYLENGTHInst() { return this; }
+
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
 	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
@@ -638,23 +1014,52 @@ public:
 	}
 };
 
+/**
+ * Base class of instructions that access a field on a class or object.
+ */
 class FieldAccessInst : public Instruction {
 private:
+
+	/**
+	 * The accessed field.
+	 */
 	fieldinfo *field;
 
 public:
+
+	/**
+	 * Construct a FieldAccessInst.
+	 *
+	 * @param id    The corresponding InstID.
+	 * @param type  The corresponding type.
+	 * @param field The accessed field.
+	 */
 	explicit FieldAccessInst(InstID id, Type::TypeID type, fieldinfo *field)
 		: Instruction(id, type), field(field) {
 		assert(field);
 	}
-	
+
+	/**
+	 * Get the accessed field.
+	 */
 	fieldinfo *get_field() const { return field; }
-	
-	virtual FieldAccessInst* to_FieldAccessInst() { return this; }
 };
 
-class GETFIELDInst : public FieldAccessInst {
+/**
+ * Get the value of an object's field.
+ */
+class GETFIELDInst : public FieldAccessInst, public DereferenceInst {
 public:
+
+	/**
+	 * Construct a GETFIELDInst.
+	 *
+	 * @param type         The type of the value to read from the field.
+	 * @param objectref    The object whose field is accessed.
+	 * @param field        The accessed field.
+	 * @param begin        The BeginInst of the block that contains this GETFIELDInst.
+	 * @param state_change The previous side-effecting Instruction.
+	 */
 	explicit GETFIELDInst(Type::TypeID type, Value *objectref,
 			fieldinfo *field, BeginInst *begin, Instruction *state_change)
 		: FieldAccessInst(GETFIELDInstID, type, field) {
@@ -667,21 +1072,66 @@ public:
 		append_dep(state_change);
 	}
 
+	/**
+	 * Get the BeginInst of the block that contains this GETFIELDInst.
+	 */
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = (*dep_begin())->to_BeginInst();
 		assert(begin);
 		return begin;
 	}
 
-	virtual bool verify() const { return true; }
-	virtual bool has_side_effects() const { return true; }
+	virtual Instruction *get_objectref() {
+		Instruction *objectref = (*op_begin())->to_Instruction();
+		assert(objectref);
+		return objectref;
+	}
+
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
+	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * For now consider as fixed to avoid illegal instruction reordering.
+	 */
 	virtual bool is_floating() const { return false; }
+
+	virtual Instruction* to_Instruction() { return this; }
+
+	virtual SourceStateAwareInst* to_SourceStateAwareInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual DereferenceInst* to_DereferenceInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
 	virtual GETFIELDInst* to_GETFIELDInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class PUTFIELDInst : public FieldAccessInst {
+/**
+ * Write a value to an object's field.
+ */
+class PUTFIELDInst : public FieldAccessInst, public DereferenceInst {
 public:
+
+	/**
+	 * Construct a PUTFIELDInst.
+	 *
+	 * @param objectref    The object whose field is accessed.
+	 * @param value        The value to write.
+	 * @param field        The accessed field.
+	 * @param begin        The BeginInst of the block that contains this PUTFIELDInst.
+	 * @param state_change The previous side-effecting Instruction.
+	 */
 	explicit PUTFIELDInst(Value *objectref, Value *value, fieldinfo *field,
 			BeginInst* begin, Instruction *state_change)
 			: FieldAccessInst(PUTFIELDInstID, value->get_type(), field) {
@@ -696,21 +1146,70 @@ public:
 		append_dep(state_change);
 	}
 
+	/**
+	 * Get the BeginInst of the block that contains this PUTFIELDInst.
+	 */
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = (*dep_begin())->to_BeginInst();
 		assert(begin);
 		return begin;
 	}
 
-	virtual bool verify() const { return true; }
+	virtual Instruction *get_objectref() {
+		Instruction *objectref = (*op_begin())->to_Instruction();
+		assert(objectref);
+		return objectref;
+	}
+
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
+	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * A PUTFIELDInst might change the global state.
+	 */
 	virtual bool has_side_effects() const { return true; }
+
+	/**
+	 * A PUTFIELDInst is not allowed to float.
+	 */
 	virtual bool is_floating() const { return false; }
+
+	virtual Instruction* to_Instruction() { return this; }
+
+	virtual SourceStateAwareInst* to_SourceStateAwareInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual DereferenceInst* to_DereferenceInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
 	virtual PUTFIELDInst* to_PUTFIELDInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/**
+ * Get the value of a static field.
+ */
 class GETSTATICInst : public FieldAccessInst {
 public:
+
+	/**
+	 * Construct a GETSTATICInst.
+	 *
+	 * @param type         The type of the value to read from the field.
+	 * @param field        The accessed field.
+	 * @param begin        The BeginInst of the block that contains this GETSTATICInst.
+	 * @param state_change The previous side-effecting Instruction.
+	 */
 	explicit GETSTATICInst(Type::TypeID type, fieldinfo *field,
 			BeginInst *begin, Instruction *state_change)
 			: FieldAccessInst(GETSTATICInstID, type, field) {
@@ -721,20 +1220,50 @@ public:
 		append_dep(state_change);
 	}
 
+	/**
+	 * Get the BeginInst of the block that contains this GETSTATICInst.
+	 */
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = dep_front()->to_BeginInst();
 		assert(begin);
 		return begin;
 	}
 
-	virtual bool has_side_effects() const { return true; }
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
+	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * For now consider as fixed to avoid illegal instruction reordering.
+	 */
 	virtual bool is_floating() const { return false; }
+
+	/**
+	 * Conversion method.
+	 */
 	virtual GETSTATICInst* to_GETSTATICInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/**
+ * Write a value to a static field.
+ */
 class PUTSTATICInst : public FieldAccessInst {
 public:
+
+	/**
+	 * Construct a PUTSTATICInst.
+	 *
+	 * @param value        The value to write.
+	 * @param field        The accessed field.
+	 * @param begin        The BeginInst of the block that contains this PUTSTATICInst.
+	 * @param state_change The previous side-effecting Instruction.
+	 */
 	explicit PUTSTATICInst(Value *value, fieldinfo *field,
 			BeginInst* begin, Instruction *state_change)
 			: FieldAccessInst(PUTSTATICInstID, value->get_type(), field) {
@@ -747,15 +1276,38 @@ public:
 		append_dep(state_change);
 	}
 
+	/**
+	 * Get the BeginInst of the block that contains this PUTSTATICInst.
+	 */
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = (*dep_begin())->to_BeginInst();
 		assert(begin);
 		return begin;
 	}
 
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
+	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * A PUTSTATICInst changes the global state.
+	 */
 	virtual bool has_side_effects() const { return true; }
+
+	/**
+	 * A PUTSTATICInst is not allowed to float.
+	 */
 	virtual bool is_floating() const { return false; }
+
+	/**
+	 * Conversion method.
+	 */
 	virtual PUTSTATICInst* to_PUTSTATICInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
@@ -766,22 +1318,67 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class AREFInst : public Instruction {
+class AREFInst : public Instruction, public DereferenceInst {
 public:
-	explicit AREFInst(Type::TypeID type, Value* ref, Value* index)
+	explicit AREFInst(Type::TypeID type, Value* ref, Value* index, BeginInst* begin)
 			: Instruction(AREFInstID, type) {
 		assert(ref->get_type() == Type::ReferenceTypeID);
 		assert(index->get_type() == Type::IntTypeID);
+		assert(begin);
 		append_op(ref);
 		append_op(index);
+		append_dep(begin);
 	}
+
+	/**
+	 * Get the BeginInst of the block that contains this AREFInst.
+	 */
+	virtual BeginInst* get_BeginInst() const {
+		BeginInst *begin = (*dep_begin())->to_BeginInst();
+		assert(begin);
+		return begin;
+	}
+
+	virtual Instruction *get_objectref() {
+		Instruction *objectref = (*op_begin())->to_Instruction();
+		assert(objectref);
+		return objectref;
+	}
+
+	virtual Instruction* to_Instruction() { return this; }
+
+	virtual SourceStateAwareInst* to_SourceStateAwareInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual DereferenceInst* to_DereferenceInst() { return this; }
+
 	virtual AREFInst* to_AREFInst() { return this; }
 	virtual bool is_homogeneous() const { return false; }
+	virtual bool is_floating() const { return false; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class ASTOREInst : public Instruction {
+/**
+ * Store a value into an array.
+ *
+ * TODO The JVM specification uses "astore" to refer to an operation that
+ *      stores a reference to a local variable. To avoid confusion we should
+ *      therefore rename this class to something more uncontentious like
+ *      "ArrayStoreInst".
+ */
+class ASTOREInst : public Instruction, public DereferenceInst {
 public:
+
+	/**
+	 * Construct an ASTOREInst.
+	 *
+	 * @param type         The type of the value to store.
+	 * @param ref          The reference to the accessed array element.
+	 * @param begin        The BeginInst of the block that contains the ASTOREInst.
+	 * @param state_change The previous side-effect.
+	 */
 	explicit ASTOREInst(Type::TypeID type, Value* ref, Value* value,
 			BeginInst *begin, Instruction *state_change)
 			: Instruction(ASTOREInstID, Type::VoidTypeID) {
@@ -790,23 +1387,77 @@ public:
 		append_dep(begin);
 		append_dep(state_change);
 	}
-	virtual ASTOREInst* to_ASTOREInst() { return this; }
-	virtual bool is_homogeneous() const { return false; }
-	virtual bool has_side_effects() const { return true; }
+
+	/**
+	 * Get the BeginInst of the block that contains this ASTOREInst.
+	 */
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = dep_front()->to_BeginInst();
 		assert(begin);
 		return begin;
 	}
-	virtual bool is_floating() const { return false; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-	Type::TypeID get_array_type() const {
-		return this->op_back()->get_type();
+
+	virtual Instruction *get_objectref() {
+		AREFInst *aref = (*op_begin())->to_Instruction()->to_AREFInst();
+		assert(aref);
+		Instruction *objectref = aref->get_objectref();
+		return objectref;
 	}
+
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
+	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * An ASTOREInst might change the global state.
+	 */
+	virtual bool has_side_effects() const { return true; }
+
+	/**
+	 * An ASTOREInst is not allowed to float.
+	 */
+	virtual bool is_floating() const { return false; }
+
+	virtual Instruction* to_Instruction() { return this; }
+
+	virtual SourceStateAwareInst* to_SourceStateAwareInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual DereferenceInst* to_DereferenceInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual ASTOREInst* to_ASTOREInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
+	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class ALOADInst : public Instruction {
+/**
+ * Load a value from an array.
+ *
+ * TODO The JVM specification uses "aload" to refer to an operation that
+ *      stores a reference to a local variable. To avoid confusion we should
+ *      therefore rename this class to something more uncontentious like
+ *      "ArrayLoadInst".
+ */
+class ALOADInst : public Instruction, public DereferenceInst {
 public:
+
+	/**
+	 * Construct an ALOADInst.
+	 *
+	 * @param type         The type of the accessed array element.
+	 * @param ref          The reference to the accessed array element.
+	 * @param begin        The BeginInst of the block that contains the ALOADInst.
+	 * @param state_change The previous side-effect.
+	 */
 	explicit ALOADInst(Type::TypeID type, Value* ref, 
 			BeginInst *begin, Instruction *state_change)
 			: Instruction(ALOADInstID, type) {
@@ -814,49 +1465,150 @@ public:
 		append_dep(begin);
 		append_dep(state_change);
 	}
-	virtual ALOADInst* to_ALOADInst() { return this; }
-	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * Get the BeginInst of the block that contains this ALOADInst.
+	 */
 	virtual BeginInst* get_BeginInst() const {
 		assert(dep_size() > 0);
 		return dep_front()->to_BeginInst();
 	}
+
+	virtual Instruction *get_objectref() {
+		AREFInst *aref = (*op_begin())->to_Instruction()->to_AREFInst();
+		assert(aref);
+		Instruction *objectref = aref->get_objectref();
+		return objectref;
+	}
+
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
+	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * For now consider as fixed to avoid illegal instruction reordering.
+	 */
 	virtual bool is_floating() const { return false; }
+
+	virtual Instruction* to_Instruction() { return this; }
+
+	virtual SourceStateAwareInst* to_SourceStateAwareInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual DereferenceInst* to_DereferenceInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual ALOADInst* to_ALOADInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class ARRAYBOUNDSCHECKInst : public BinaryInst {
+/**
+ * Perform a bounds-check for an array-access.
+ */
+class ARRAYBOUNDSCHECKInst : public BinaryInst, public DereferenceInst {
 public:
-	explicit ARRAYBOUNDSCHECKInst(Type::TypeID type, Value* ref, Value* index)
-			: BinaryInst(ARRAYBOUNDSCHECKInstID, Type::VoidTypeID, ref, index) {
-		assert(ref->get_type() == Type::ReferenceTypeID);
+
+	/**
+	 * Construct an ARRAYBOUNDSCHECKInst.
+	 *
+	 * @param arrayref The reference to the accessed array.
+	 * @param index    The accessed index.
+	 */
+	explicit ARRAYBOUNDSCHECKInst(Value* arrayref, Value* index)
+			: BinaryInst(ARRAYBOUNDSCHECKInstID, Type::VoidTypeID, arrayref, index) {
+		assert(arrayref != NULL);
+		assert(arrayref->get_type() == Type::ReferenceTypeID);
+		assert(index != NULL);
 		assert(index->get_type() == Type::IntTypeID);
 	}
-	virtual ARRAYBOUNDSCHECKInst* to_ARRAYBOUNDSCHECKInst() { return this; }
+
+	virtual Instruction *get_objectref() {
+		Instruction *objectref = (*op_begin())->to_Instruction();
+		assert(objectref);
+		return objectref;
+	}
+
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
 	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * Casting method.
+	 */
+	virtual Instruction *to_Instruction() { return this; }
+
+	/**
+	 * Casting method.
+	 */
+	virtual SourceStateAwareInst *to_SourceStateAwareInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual DereferenceInst* to_DereferenceInst() { return this; }
+
+	/**
+	 * Casting method.
+	 */
+	virtual ARRAYBOUNDSCHECKInst *to_ARRAYBOUNDSCHECKInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class RETInst : public Instruction {
-public:
-	explicit RETInst(Type::TypeID type) : Instruction(RETInstID, type) {}
-	virtual RETInst* to_RETInst() { return this; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
-
-class LOADInst : public LoadInst {
+/**
+ * A LOADInst represents an argument that is passed to the current method.
+ */
+class LOADInst : public Instruction {
 private:
-	unsigned index;
-public:
-	explicit LOADInst(Type::TypeID type, unsigned index, BeginInst* begin ) : LoadInst(LOADInstID, type, begin), index(index) {}
-	virtual LOADInst* to_LOADInst() { return this; }
-	unsigned get_index() const { return index; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
 
-class STOREInst : public Instruction {
+	/**
+	 * The index of the argument that is represented by this LOADInst.
+	 */
+	unsigned index;
+
 public:
-	explicit STOREInst(Type::TypeID type) : Instruction(STOREInstID, type) {}
-	virtual STOREInst* to_STOREInst() { return this; }
+
+	/**
+	 * Construct a LOADInst.
+	 *
+	 * @param type  The type of the method-argument.
+	 * @param index The index of the method-argument.
+	 * @param begin The initial BeginInst of the current method.
+	 */
+	explicit LOADInst(Type::TypeID type, unsigned index, BeginInst* begin)
+		: Instruction(LOADInstID, type, begin), index(index) {}
+
+	/**
+	 * Conversion method.
+	 */
+	virtual LOADInst* to_LOADInst() { return this; }
+
+	/**
+	 * The index of the argument is represented by this LOADInst.
+	 */
+	unsigned get_index() const { return index; }
+
+	/**
+	 * A LOADInst must not float, it has to stay in the method's initial block.
+	 */
+	bool is_floating() const { return false; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
@@ -923,19 +1675,34 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class JSRInst : public Instruction {
-public:
-	explicit JSRInst(Type::TypeID type) : Instruction(JSRInstID, type) {}
-	virtual JSRInst* to_JSRInst() { return this; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
-
+/**
+ * Base type of instruction that perform a method invocation.
+ */
 class INVOKEInst : public MultiOpInst {
 private:
+
+	/**
+	 * The MethodDescriptor of the method to invoke.
+	 */
 	MethodDescriptor MD;
+
+	/**
+	 * Holds information about the method to invoke.
+	 */
 	constant_FMIref *fmiref;
 
 public:
+
+	/**
+	 * Construct an INVOKEInst.
+	 *
+	 * @param ID          The corresponding InstID.
+	 * @param type        The return type.
+	 * @param size        The number of method parameters.
+	 * @param fmiref      The reference to the corresponding methodinfo.
+	 * @param begin       The block that contains the invocation.
+	 * @param state_chage The previous side-effect.
+	 */
 	explicit INVOKEInst(InstID ID, Type::TypeID type, unsigned size,
 			constant_FMIref *fmiref, BeginInst *begin, Instruction *state_change, SourceStateInst *source_state)
 			: MultiOpInst(ID, type), MD(size),
@@ -945,87 +1712,259 @@ public:
 		append_dep(state_change);
 		append_dep(source_state);
 	}
+
+	/**
+	 * Get the BeginInst of the block that contains this INVOKEInst.
+	 */
 	virtual BeginInst* get_BeginInst() const {
 		BeginInst *begin = (*dep_begin())->to_BeginInst();
 		assert(begin);
 		return begin;
 	}
-	virtual SourceStateInst* get_SourceStateInst() const {
-		auto it = std::next(dep_begin(), 2);
-		SourceStateInst *source_state = (*it)->to_SourceStateInst();
-		assert(source_state);
-		return source_state;
-	}
-	virtual bool has_side_effects() const { return true; }
-	virtual bool is_floating() const { return false; }
+
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
 	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * Pessimistically assume that each kind of invocation has side-effects.
+	 */
+	virtual bool has_side_effects() const { return true; }
+
+	/**
+	 * An INVOKEInst is not allowed to float, it has to stay fixed in the CFG.
+	 */
+	virtual bool is_floating() const { return false; }
+
+	/**
+	 * Append a parameter that has to be passed to the invoked method.
+	 *
+	 * @param V The corresponding parameter.
+	 */
 	void append_parameter(Value *V) {
 		std::size_t i = op_size();
 		assert(i < MD.size());
 		MD[i] = V->get_type();
 		append_op(V);
 	}
+
+	/**
+	 * Get the MethodDescriptor of the method to invoke.
+	 */
 	MethodDescriptor& get_MethodDescriptor() {
 		assert(MD.size() == op_size());
 		return MD;
 	}
+
+	/**
+	 * Get information about the method to invoke.
+	 */
 	constant_FMIref* get_fmiref() const { return fmiref; }
+
+	/**
+	 * Conversion method.
+	 */
 	virtual INVOKEInst* to_INVOKEInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/**
+ * Invoke a static method.
+ */
 class INVOKESTATICInst : public INVOKEInst {
 public:
+
+	/**
+	 * Construct an INVOKESTATICInst.
+	 *
+	 * @param type         The return type.
+	 * @param size         The number of method parameters.
+	 * @param fmiref       The reference to the corresponding methodinfo.
+	 * @param begin        The BeginInst of the block that contains this INVOKESTATICInst.
+	 * @param state_change The previous side-effect.
+	 */
 	explicit INVOKESTATICInst(Type::TypeID type, unsigned size,
 			constant_FMIref *fmiref, BeginInst *begin, Instruction *state_change, SourceStateInst *source_state)
 		: INVOKEInst(INVOKESTATICInstID, type, size, fmiref, begin, state_change, source_state) {}
+
+	/**
+	 * Conversion method.
+	 */
 	virtual INVOKESTATICInst* to_INVOKESTATICInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class INVOKEVIRTUALInst : public INVOKEInst {
+/**
+ * Invoke an instance method.
+ */
+class INVOKEVIRTUALInst : public INVOKEInst, public DereferenceInst {
 public:
+
+	/**
+	 * Construct an INVOKEVIRTUALInst.
+	 *
+	 * @param type         The return type.
+	 * @param size         The number of method parameters.
+	 * @param fmiref       The reference to the corresponding methodinfo.
+	 * @param begin        The BeginInst of the block that contains this INVOKEVIRTUALInst.
+	 * @param state_change The previous side-effect.
+	 */
 	explicit INVOKEVIRTUALInst(Type::TypeID type, unsigned size,
 			constant_FMIref *fmiref, BeginInst *begin, Instruction *state_change, SourceStateInst *source_state)
 		: INVOKEInst(INVOKEVIRTUALInstID, type, size, fmiref, begin, state_change, source_state) {}
+
+	virtual Instruction *get_objectref() {
+		Instruction *objectref = (*op_begin())->to_Instruction();
+		assert(objectref);
+		return objectref;
+	}
+
+	virtual Instruction* to_Instruction() { return this; }
+
+	virtual SourceStateAwareInst* to_SourceStateAwareInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual DereferenceInst* to_DereferenceInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
 	virtual INVOKEVIRTUALInst* to_INVOKEVIRTUALInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/**
+ * Invoke an instance method with special handling.
+ */
 class INVOKESPECIALInst : public INVOKEInst {
 public:
+
+	/**
+	 * Construct an INVOKESPECIALInst.
+	 *
+	 * @param type         The return type.
+	 * @param size         The number of method parameters.
+	 * @param fmiref       The reference to the corresponding methodinfo.
+	 * @param begin        The BeginInst of the block that contains this INVOKESPECIALInst.
+	 * @param state_change The previous side-effect.
+	 */
 	explicit INVOKESPECIALInst(Type::TypeID type, unsigned size,
 			constant_FMIref *fmiref, BeginInst *begin, Instruction *state_change, SourceStateInst *source_state)
 		: INVOKEInst(INVOKESPECIALInstID, type, size, fmiref, begin, state_change, source_state) {}
+
+	/**
+	 * Conversion method.
+	 */
 	virtual INVOKESPECIALInst* to_INVOKESPECIALInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class INVOKEINTERFACEInst : public INVOKEInst {
+/**
+ * Invoke an interface method.
+ */
+class INVOKEINTERFACEInst : public INVOKEInst, public DereferenceInst {
 public:
+
+	/**
+	 * Construct an INVOKEINTERFACEInst.
+	 *
+	 * @param type         The return type.
+	 * @param size         The number of method parameters.
+	 * @param fmiref       The reference to the corresponding methodinfo.
+	 * @param begin        The BeginInst of the block that contains this INVOKEINTERFACEInst.
+	 * @param state_change The previous side-effect.
+	 */
 	explicit INVOKEINTERFACEInst(Type::TypeID type, unsigned size,
 			constant_FMIref *fmiref, BeginInst *begin, Instruction *state_change, SourceStateInst *source_state)
 		: INVOKEInst(INVOKEINTERFACEInstID, type, size, fmiref, begin, state_change, source_state) {}
+
+	virtual Instruction *get_objectref() {
+		Instruction *objectref = (*op_begin())->to_Instruction();
+		assert(objectref);
+		return objectref;
+	}
+
+	virtual Instruction* to_Instruction() { return this; }
+
+	virtual SourceStateAwareInst* to_SourceStateAwareInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual DereferenceInst* to_DereferenceInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
 	virtual INVOKEINTERFACEInst* to_INVOKEINTERFACEInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
+/**
+ * Invoke a builtin.
+ */
 class BUILTINInst : public INVOKEInst {
 private:
 
-	/// A pointer to the function that implements the builtin functionality.
+	/**
+	 * A pointer to the function that implements the builtin functionality.
+	 */
 	u1 *address;
 
 public:
+
+	/**
+	 * Construct a BUILTINInst.
+	 *
+	 * @param type         The return type.
+	 * @param address      A pointer to the function that implements the builtin
+	 *                     functionality.
+	 * @param size         The number of parameters for the invocation.
+	 * @param begin        The BeginInst of the block that contains this BUILTINInst.
+	 * @param state_change The previous side-effect.
+	 */
 	explicit BUILTINInst(Type::TypeID type, u1 *address, unsigned size,
 		BeginInst *begin, Instruction *state_change, SourceStateInst *source_state)
 		: INVOKEInst(BUILTINInstID, type, size, NULL, begin, state_change, source_state), address(address) {}
 
+	/**
+	 * Get the pointer to the function that implements the builtin functionality.
+	 */
 	u1 *get_address() const {
 		return address;
 	}
 
+	/**
+	 * Conversion method.
+	 */
 	virtual BUILTINInst* to_BUILTINInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
@@ -1145,16 +2084,38 @@ public:
 	}
 };
 
+/**
+ * Return from the current method.
+ */
 class RETURNInst : public EndInst {
 public:
-	/// void return
+
+	/**
+	 * Construct a RETURNInst that ends a void method.
+	 *
+	 * @param begin The corresponding BeginInst.
+	 */
 	explicit RETURNInst(BeginInst *begin) : EndInst(RETURNInstID, begin) {}
-	/// value return
+
+	/**
+	 * Construct a RETURNInst that ends a method by returning @p S1.
+	 *
+	 * @param begin The corresponding BeginInst.
+	 * @param S1    The value to return.
+	 */
 	explicit RETURNInst(BeginInst *begin, Value* S1) : EndInst(RETURNInstID, begin) {
 		append_op(S1);
 		set_type(S1->get_type());
 	}
+
+	/**
+	 * Conversion method.
+	 */
 	virtual RETURNInst* to_RETURNInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
@@ -1162,27 +2123,6 @@ class THROWInst : public Instruction {
 public:
 	explicit THROWInst(Type::TypeID type) : Instruction(THROWInstID, type) {}
 	virtual THROWInst* to_THROWInst() { return this; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
-
-class COPYInst : public Instruction {
-public:
-	explicit COPYInst(Type::TypeID type) : Instruction(COPYInstID, type) {}
-	virtual COPYInst* to_COPYInst() { return this; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
-
-class MOVEInst : public Instruction {
-public:
-	explicit MOVEInst(Type::TypeID type) : Instruction(MOVEInstID, type) {}
-	virtual MOVEInst* to_MOVEInst() { return this; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
-
-class GETEXCEPTIONInst : public Instruction {
-public:
-	explicit GETEXCEPTIONInst(Type::TypeID type) : Instruction(GETEXCEPTIONInstID, type) {}
-	virtual GETEXCEPTIONInst* to_GETEXCEPTIONInst() { return this; }
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
@@ -1205,30 +2145,18 @@ public:
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-class ContainerInst : public Instruction {
-public:
-	explicit ContainerInst(BeginInst *begin) : Instruction(ContainerInstID, Type::VoidTypeID) {
-		append_dep(begin);
-	}
-	virtual ContainerInst* to_ContainerInst() { return this; }
-
-	virtual BeginInst* get_BeginInst() const {
-		BeginInst *begin = (*dep_begin())->to_BeginInst();
-		assert(begin);
-		return begin;
-	}
-	virtual bool is_floating() const { return false; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-};
-
-/// A point where the method can be entered through on-stack replacement.
+/**
+ * A point where the method can be entered through on-stack replacement.
+ */
 class ReplacementEntryInst : public Instruction {
 public:
 
-	/// Construct a ReplacementEntryInst.
-	///
-	/// @param begin        The corresponding BeginInst.
-	/// @param source_state The corresponding source state.
+	/**
+	 * Construct a ReplacementEntryInst.
+	 *
+	 * @param begin        The corresponding BeginInst.
+	 * @param source_state The corresponding source state.
+	 */
 	explicit ReplacementEntryInst(BeginInst *begin, SourceStateInst *source_state)
 			: Instruction(ReplacementEntryInstID, Type::VoidTypeID) {
 		assert(begin);
@@ -1237,7 +2165,9 @@ public:
 		append_dep(source_state);
 	}
 
-	/// Get the BeginInst this ReplacementEntryInst is attached to.
+	/**
+	 * Get the BeginInst this ReplacementEntryInst is attached to.
+	 */
 	virtual BeginInst* get_BeginInst() const {
 		assert(dep_size() >= 1);
 		BeginInst *begin = (*dep_begin())->to_BeginInst();
@@ -1245,12 +2175,14 @@ public:
 		return begin;
 	}
 
-	/// Get the source state at this ReplacementEntryInst.
-	///
-	/// The source state is used to reconstruct the stack frame for the
-	/// optimized code. Since optimized code is currently only entered at method
-	/// entry, the information that is captured by the source state is
-	/// sufficient for this task.
+	/**
+	 * Get the source state at this ReplacementEntryInst.
+	 *
+	 * The source state is used to reconstruct the stack frame for the
+	 * optimized code. Since optimized code is currently only entered at method
+	 * entry, the information that is captured by the source state is
+	 * sufficient for this task.
+	 */
 	SourceStateInst* get_source_state() const {
 		assert(dep_size() >= 2);
 		SourceStateInst *source_state = (*(++dep_begin()))->to_SourceStateInst();
@@ -1258,38 +2190,52 @@ public:
 		return source_state;
 	}
 
+	/**
+	 * Conversion method.
+	 */
 	virtual ReplacementEntryInst* to_ReplacementEntryInst() { return this; }
+
+	/**
+	 * A ReplacementEntryInst is fixed to the method's initial BeginInst.
+	 */
 	virtual bool is_floating() const { return false; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-/// Represents a speculative assumption that has to be checked at run-time.
-///
-/// Optimizations that rely on speculative assumptions may generate
-/// AssumptionInst in order to avoid the illegal execution of speculatively
-/// transformed program regions. In case a speculation fails at run-time,
-/// deoptimization will be triggered to transfer execution back to an
-/// unoptimized version of this method.
-class AssumptionInst : public Instruction {
+/**
+ * Represents a speculative assumption that has to be checked at run-time.
+ *
+ * Optimizations that rely on speculative assumptions may generate
+ * AssumptionInst in order to avoid the illegal execution of speculatively
+ * transformed program regions. In case a speculation fails at run-time,
+ * deoptimization will be triggered to transfer execution back to an
+ * unoptimized version of this method.
+ */
+class AssumptionInst : public Instruction, public SourceStateAwareInst {
 private:
 
-	/// The source state that is used for deoptimization.
-	SourceStateInst *source_state;
-
-	/// The entry to the region of code that relies on this assumption.
+	/**
+	 * The entry to the region of code that relies on this assumption.
+	 */
 	BeginInst *guarded_block;
 
 public:
 
-	/// Construct an AssumptionInst.
-	///
-	/// @param condition     A boolean HIR expression that encodes the
-	///                      speculative assumption to check.
-	/// @param guarded_block The entry to the region of the code that relies on
-	///                      this assumption and thus needs to be guarded
-	///                      against illegal execution.
+	/**
+	 * Construct an AssumptionInst.
+	 *
+	 * @param condition     A boolean HIR expression that encodes the
+	 *                      speculative assumption to check.
+	 * @param guarded_block The entry to the region of the code that relies on
+	 *                      this assumption and thus needs to be guarded
+	 *                      against illegal execution.
+	 */
 	explicit AssumptionInst(Value *condition, BeginInst *guarded_block)
-			: Instruction(AssumptionInstID, Type::VoidTypeID), source_state(NULL) {
+			: Instruction(AssumptionInstID, Type::VoidTypeID) {
 		assert(condition);
 		assert(condition->get_type() != Type::VoidTypeID);
 		append_op(condition);
@@ -1297,70 +2243,78 @@ public:
 		guarded_block->append_dep(this);
 	}
 
-	/// Set the source state that should be used for deoptimization.
-	///
-	/// Do not set the source state manually since this will be done
-	/// automatically by the SourceStateAttachmentPass.
-	///
-	/// @param new_source_state The source state.
-	void set_source_state(SourceStateInst *new_source_state) {
-		assert(new_source_state);
-		append_dep(new_source_state);
-		assert(source_state == NULL);
-		source_state = new_source_state;
-	}
-
-	/// Get the source state that is used for deoptimization.
-	virtual SourceStateInst *get_source_state() const {
-		return source_state;
-	}
-
-	/// Get the entry to the region of code that relies on this assumption.
+	/**
+	 * Get the entry to the region of code that relies on this assumption.
+	 */
 	virtual BeginInst *get_guarded_block() const {
 		return guarded_block;
 	}
 
-	virtual AssumptionInst* to_AssumptionInst() { return this; }
+	/**
+	 * @see Instruction::is_homogeneous()
+	 */
+	virtual bool is_homogeneous() const { return false; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual Instruction *to_Instruction() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual SourceStateAwareInst *to_SourceStateAwareInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual AssumptionInst *to_AssumptionInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
-/// Transfers execution back to an unoptimized version of the method.
-class DeoptimizeInst : public EndInst {
-private:
-
-	/// The source state that is used for deoptimization.
-	SourceStateInst *source_state;
-
+/**
+ * Transfers execution back to an unoptimized version of the method.
+ */
+class DeoptimizeInst : public EndInst, public SourceStateAwareInst {
 public:
 
-	/// Construct a DeoptimizeInst.
-	///
-	/// @param begin The corresponding BeginInst.
+	/**
+	 * Construct a DeoptimizeInst.
+	 *
+	 * @param begin The corresponding BeginInst.
+	 */
 	explicit DeoptimizeInst(BeginInst *begin)
-			: EndInst(DeoptimizeInstID, begin), source_state(NULL) {
+			: EndInst(DeoptimizeInstID, begin) {
 		set_type(Type::VoidTypeID);
 	}
 
-	/// Set the source state that should be used for deoptimization.
-	///
-	/// Do not set the source state manually since this will be done
-	/// automatically by the SourceStateAttachmentPass.
-	///
-	/// @param new_source_state The source state.
-	void set_source_state(SourceStateInst *new_source_state) {
-		assert(new_source_state);
-		append_dep(new_source_state);
-		assert(source_state == NULL);
-		source_state = new_source_state;
-	}
-
-	/// Get the source state that is used for deoptimization.
-	virtual SourceStateInst *get_source_state() const {
-		return source_state;
-	}
-
+	/**
+	 * A DeoptimizeInst is fixed in the CFG and therefore non-floating.
+	 */
 	virtual bool is_floating() const { return false; }
-	virtual DeoptimizeInst* to_DeoptimizeInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual Instruction *to_Instruction() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual SourceStateAwareInst *to_SourceStateAwareInst() { return this; }
+
+	/**
+	 * Conversion method.
+	 */
+	virtual DeoptimizeInst *to_DeoptimizeInst() { return this; }
+
+	/**
+	 * Visitor pattern.
+	 */
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 

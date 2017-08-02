@@ -36,7 +36,7 @@ public class Permut extends Compiler2TestBase {
 	}
 
 	@Test
-	public void test_permut() {
+	public void test_permut() throws Throwable {
 		int n = 5;
 		int fn = fact(n);
 

@@ -30,6 +30,8 @@
 #include "vm/jit/compiler2/alloc/vector.hpp"
 #include "vm/jit/compiler2/alloc/list.hpp"
 
+#include "vm/method.hpp"
+
 // forware declaration
 struct methodinfo;
 class Utf8String;
@@ -74,6 +76,7 @@ private:
 	InstructionListTy inst_list;
 	BBListTy bb_list;
 	BeginInst* init_bb;
+	methodinfo *method;
 	MethodDescriptor* method_desc;
 	Utf8String &class_name_utf8;
 	Utf8String &method_name_utf8;
@@ -85,6 +88,9 @@ public:
 	const Utf8String& get_name_utf8() const { return method_name_utf8; }
 	const Utf8String& get_class_name_utf8() const { return class_name_utf8; }
 	const Utf8String& get_desc_utf8() const { return method_desc_utf8; }
+
+	bool is_static() const { return method->flags & ACC_STATIC; }
+
 	/**
 	 * Add instructions to a Method.
 	 *

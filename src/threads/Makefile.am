@@ -72,7 +72,8 @@ libthreads_la_SOURCES = \
 	ThreadRuntime.hpp \
 	$(THREAD_RUNTIME_SOURCES) \
 	thread.cpp \
-	thread.hpp
+	thread.hpp \
+	threadobject.hpp
 
 libthreads_la_LIBADD = \
 	$(THREAD_LIB)

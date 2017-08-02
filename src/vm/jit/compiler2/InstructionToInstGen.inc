@@ -28,12 +28,9 @@ Instead have a look at the generator (./instruction_gen.py)
 and the input file (./instruction_table.csv).
 */
 
-virtual LoadInst* to_LoadInst() { return NULL; }
 virtual UnaryInst* to_UnaryInst() { return NULL; }
 virtual BinaryInst* to_BinaryInst() { return NULL; }
 virtual FieldAccessInst* to_FieldAccessInst() { return NULL; }
-virtual NOPInst* to_NOPInst() { return NULL; }
-virtual POPInst* to_POPInst() { return NULL; }
 virtual CHECKNULLInst* to_CHECKNULLInst() { return NULL; }
 virtual ARRAYLENGTHInst* to_ARRAYLENGTHInst() { return NULL; }
 virtual ARRAYBOUNDSCHECKInst* to_ARRAYBOUNDSCHECKInst() { return NULL; }
@@ -59,9 +56,7 @@ virtual INCInst* to_INCInst() { return NULL; }
 virtual AREFInst* to_AREFInst() { return NULL; }
 virtual ASTOREInst* to_ASTOREInst() { return NULL; }
 virtual ALOADInst* to_ALOADInst() { return NULL; }
-virtual RETInst* to_RETInst() { return NULL; }
 virtual LOADInst* to_LOADInst() { return NULL; }
-virtual STOREInst* to_STOREInst() { return NULL; }
 virtual NEWInst* to_NEWInst() { return NULL; }
 virtual NEWARRAYInst* to_NEWARRAYInst() { return NULL; }
 virtual ANEWARRAYInst* to_ANEWARRAYInst() { return NULL; }
@@ -69,7 +64,6 @@ virtual MULTIANEWARRAYInst* to_MULTIANEWARRAYInst() { return NULL; }
 virtual CHECKCASTInst* to_CHECKCASTInst() { return NULL; }
 virtual INSTANCEOFInst* to_INSTANCEOFInst() { return NULL; }
 virtual GOTOInst* to_GOTOInst() { return NULL; }
-virtual JSRInst* to_JSRInst() { return NULL; }
 virtual BUILTINInst* to_BUILTINInst() { return NULL; }
 virtual INVOKEInst* to_INVOKEInst() { return NULL; }
 virtual INVOKEVIRTUALInst* to_INVOKEVIRTUALInst() { return NULL; }
@@ -82,11 +76,7 @@ virtual TABLESWITCHInst* to_TABLESWITCHInst() { return NULL; }
 virtual LOOKUPSWITCHInst* to_LOOKUPSWITCHInst() { return NULL; }
 virtual RETURNInst* to_RETURNInst() { return NULL; }
 virtual THROWInst* to_THROWInst() { return NULL; }
-virtual COPYInst* to_COPYInst() { return NULL; }
-virtual MOVEInst* to_MOVEInst() { return NULL; }
-virtual GETEXCEPTIONInst* to_GETEXCEPTIONInst() { return NULL; }
 virtual PHIInst* to_PHIInst() { return NULL; }
-virtual ContainerInst* to_ContainerInst() { return NULL; }
 virtual BeginInst* to_BeginInst() { return NULL; }
 virtual EndInst* to_EndInst() { return NULL; }
 virtual SourceStateInst* to_SourceStateInst() { return NULL; }

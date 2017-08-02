@@ -1,6 +1,6 @@
-/* tests/gtest/future_memory.cpp - test future memory library features
+/* src/vm/jit/mips/patcher.hpp - architecture specific code patching stuff
 
-   Copyright (C) 1996-2013
+   Copyright (C) 1996-2017
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -22,32 +22,16 @@
 
 */
 
-#include "gtest/gtest.h"
-#include "future/memory.hpp"
 
-namespace {
+#ifndef _PATCHER_HPP
+#define _PATCHER_HPP
 
-struct TestClass {
-	static int counter;
-	int id;
-	TestClass() {  id = counter++; }
-	~TestClass() { --counter; }
-};
+#include "vm/jit/patcher-common.hpp"
 
-int TestClass::counter = 0;
-
-} // end anonymous namespace
+/* function prototypes ********************************************************/
 
 
-TEST(future, shared_ptr1) {
-	EXPECT_EQ(0, TestClass::counter);
-	{
-		cacao::shared_ptr<TestClass> ptr(new TestClass);
-		EXPECT_EQ(0,ptr->id);
-		EXPECT_EQ(1, TestClass::counter);
-	}
-	EXPECT_EQ(0, TestClass::counter);
-}
+#endif // _PATCHER_HPP
 
 
 /*

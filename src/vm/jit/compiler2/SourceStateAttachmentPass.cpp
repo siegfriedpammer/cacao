@@ -22,15 +22,22 @@
 
 */
 
+#include <algorithm>
+
 #include "vm/jit/compiler2/SourceStateAttachmentPass.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/MethodC2.hpp"
 #include "vm/jit/compiler2/InstructionMetaPass.hpp"
-#include "vm/jit/compiler2/ScheduleClickPass.hpp"
+#include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
+#include "vm/jit/compiler2/ScheduleClickPass.hpp"
 #include "vm/jit/compiler2/GlobalSchedule.hpp"
+#include "vm/jit/compiler2/Instructions.hpp"
+#include "vm/jit/compiler2/alloc/queue.hpp"
+#include "vm/jit/compiler2/alloc/unordered_set.hpp"
+
 #include "toolbox/logging.hpp"
 
 // define name for debugging (see logging.hpp)
@@ -43,73 +50,88 @@ namespace compiler2 {
 namespace {
 
 SourceStateInst *get_associated_source_state(Instruction *I) {
-	Instruction::const_dep_iterator i = I->rdep_begin();
-	Instruction::const_dep_iterator e = I->rdep_end();
-
-	for (; i != e; i++) {
+	for (auto i = I->rdep_begin(); i != I->rdep_end(); i++) {
 		SourceStateInst *source_state = (*i)->to_SourceStateInst();
-		if (source_state) {
+		if (source_state != NULL) {
 			return source_state;
 		}
 	}
-
 	return NULL;
 }
 
 } // end anonymous namespace
 
-SourceStateInst *SourceStateAttachmentPass::find_nearest_dominating_source_state(BeginInst *block) {
-	BeginInst *current_block = block;
-	SourceStateInst *source_state = NULL;
+SourceStateInst *SourceStateAttachmentPass::process_block(BeginInst *begin,
+		SourceStateInst *latest_source_state) {
 
-	while (current_block != NULL) {
-		// find the last side-effecting node in this block
-		Instruction *last_side_effect = NULL;
+	assert(begin);
 
-		if (last_side_effect) {
-			// use the SourceStateInst of the last side-effecting node
-			return get_associated_source_state(last_side_effect);
-		} else if (current_block->pred_size() > 1 || current_block == M->get_init_bb()) {
-			// when there is no side-effecting node within this block then let's
-			// look if the current block's BeginInst has an associated
-			// SourceStateInst, which is the case iff it is a control-flow merge
-			// (i.e. it has more than one predecessors) or it is the method's
-			// entry block.
-			return get_associated_source_state(current_block);
-		} else {
-			// when there is no side-effecting node within this block and
-			// the current block is no control-flow merge, we have to expand our
-			// search for a SourceStateInst to the preceding blocks
-			current_block = current_block->get_predecessor(0);
+	// This is a CFG merge, therefore it has its own SourceStateInst.
+	if (begin->pred_size() > 1) {
+		latest_source_state = get_associated_source_state(begin);
+	}
+
+	assert(latest_source_state);
+
+	for (auto i = IS->inst_begin(begin); i != IS->inst_end(begin); i++) {
+		Instruction *I = *i;
+
+		// Attach the SourceStateInst in case the current Instruction needs one.
+		if (I->to_SourceStateAwareInst() && I->to_SourceStateAwareInst()->needs_source_state()) {
+			SourceStateAwareInst *sink = I->to_SourceStateAwareInst();
+			LOG("Attach " << latest_source_state << " to " << sink->to_Instruction() << nl);
+			sink->set_source_state(latest_source_state);
+		}
+
+		// Keep track of the latest applicable SourceStateInst.
+		if (I->has_side_effects()) {
+			latest_source_state = get_associated_source_state(I);
+			assert(latest_source_state);
 		}
 	}
 
-	assert(source_state);
-	return source_state;
+	return latest_source_state;
 }
 
 bool SourceStateAttachmentPass::run(JITData &JD) {
-	LOG("run" << nl);
 	M = JD.get_Method();
-	schedule = get_Pass<ScheduleClickPass>();
+	IS = get_Pass<ListSchedulingPass>();
 
-	for (Method::const_iterator i = M->begin(), e = M->end(); i != e; ++i) {
-		Instruction *I = *i;
-		if (I->to_AssumptionInst()) {
-			AssumptionInst *assumption = I->to_AssumptionInst();
-			BeginInst *assumption_block = schedule->get(assumption);
-			SourceStateInst *source_state = find_nearest_dominating_source_state(assumption_block);
-			assert(source_state);
-			LOG("attach " << source_state << " to " << assumption << nl);
-			assumption->set_source_state(source_state);
-		} else if (I->to_DeoptimizeInst()) {
-			DeoptimizeInst *deoptimize = I->to_DeoptimizeInst();
-			BeginInst *begin = deoptimize->get_BeginInst();
-			assert(begin);
-			SourceStateInst *source_state = find_nearest_dominating_source_state(begin);
-			assert(source_state);
-			LOG("attach " << source_state << " to " << deoptimize << nl);
-			deoptimize->set_source_state(source_state);
+	// The blocks that have not yet been processed.
+	alloc::queue<BeginInst*>::type blocks_to_process;
+
+	// For each block in blocks_to_process this holds the corresponding
+	// SourceStateInst that is applicable at the entry of the block.
+	alloc::queue<SourceStateInst*>::type source_state_at_block_entry;
+
+	// The blocks that have already been processed.
+	alloc::unordered_set<BeginInst*>::type processed_blocks;
+
+	BeginInst *init_bb = M->get_init_bb();
+	SourceStateInst *init_source_state = get_associated_source_state(init_bb);
+
+	blocks_to_process.push(init_bb);
+	source_state_at_block_entry.push(init_source_state);
+
+	while (!blocks_to_process.empty()) {
+		BeginInst *begin = blocks_to_process.front();
+		blocks_to_process.pop();
+		SourceStateInst *latest_source_state = source_state_at_block_entry.front();
+		source_state_at_block_entry.pop();
+
+		// Ignore blocks that have already been processed.
+		if (processed_blocks.count(begin) > 0) {
+			continue;
+		}
+
+		latest_source_state = process_block(begin, latest_source_state);
+		processed_blocks.insert(begin);
+
+		EndInst *end = begin->get_EndInst();
+		for (auto i = end->succ_begin(); i != end->succ_end(); i++) {
+			BeginInst *successor = (*i).get();
+			blocks_to_process.push(successor);
+			source_state_at_block_entry.push(latest_source_state);
 		}
 	}
 
@@ -119,7 +141,7 @@ bool SourceStateAttachmentPass::run(JITData &JD) {
 // pass usage
 PassUsage& SourceStateAttachmentPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<InstructionMetaPass>();
-	PU.add_requires<ScheduleClickPass>();
+	PU.add_requires<ListSchedulingPass>();
 	PU.add_schedule_before<MachineInstructionSchedulingPass>();
 	return PU;
 }

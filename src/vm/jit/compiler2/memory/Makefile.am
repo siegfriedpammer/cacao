@@ -33,7 +33,9 @@ noinst_LTLIBRARIES = \
 	libmemory.la
 
 libmemory_la_SOURCES = \
-	memstats.cpp
+	memstats.cpp \
+	memstats.hpp \
+	Manager.hpp
 
 ## Local variables:
 ## mode: Makefile

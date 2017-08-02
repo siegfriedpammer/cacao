@@ -33,6 +33,7 @@ DIST_SUBDIRS = \
 	optimizing \
 	schedule \
 	verify \
+	compiler2 \
 	\
 	intrp \
 	aarch64 \

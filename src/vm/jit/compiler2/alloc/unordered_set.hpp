@@ -25,8 +25,9 @@
 #ifndef _JIT_COMPILER2_ALLOC_UNORDERED_SET
 #define _JIT_COMPILER2_ALLOC_UNORDERED_SET
 
+#include <unordered_set>
+
 #include "vm/jit/compiler2/alloc/Allocator.hpp"
-#include "future/unordered_set.hpp"
 
 namespace cacao {
 namespace jit {
@@ -35,18 +36,18 @@ namespace alloc {
 
 template<
 	class Key,
-	class Hash = cacao::hash<Key>,
+	class Hash = std::hash<Key>,
 	class KeyEqual = std::equal_to<Key>
 > struct unordered_set {
-	typedef cacao::unordered_set<Key, Hash, KeyEqual, Allocator<Key> > type;
+	typedef std::unordered_set<Key, Hash, KeyEqual, Allocator<Key> > type;
 };
 
 template<
 	class Key,
-	class Hash = cacao::hash<Key>,
+	class Hash = std::hash<Key>,
 	class KeyEqual = std::equal_to<Key>
 > struct unordered_multiset {
-	typedef cacao::unordered_multiset<Key, Hash, KeyEqual, Allocator<Key> > type;
+	typedef std::unordered_multiset<Key, Hash, KeyEqual, Allocator<Key> > type;
 };
 
 } // end namespace alloc

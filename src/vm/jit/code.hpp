@@ -26,6 +26,8 @@
 #ifndef CODE_HPP_
 #define CODE_HPP_ 1
 
+#include <memory>
+
 #include "config.h"                     // for ENABLE_REPLACEMENT, ENABLE_PROFILING
 #include <assert.h>                     // for assert
 #include <stdint.h>                     // for int32_t, uint8_t, uint32_t, etc
@@ -33,7 +35,6 @@
 #include "vm/jit/methodheader.hpp"      // for CodeInfoPointer
 #include "vm/types.hpp"                 // for u1, s4
 
-#include "future/memory.hpp"            // for cacao::shared_ptr
 #include "vm/jit/PatcherNew.hpp"         // for cacao::Patcher
 
 class LinenumberTable;
@@ -55,10 +56,7 @@ enum CodeFlag {
 	CODE_FLAG_USING_FRAMEPTR  = 0x0010  // TODO probably only needed for x86_64?
 };
 
-/**
- * @Cpp11 should be std::shared_ptr or const std::unique_ptr
- */
-typedef cacao::shared_ptr<cacao::Patcher> PatcherPtrTy;
+typedef std::shared_ptr<cacao::Patcher> PatcherPtrTy;
 typedef LockedList<PatcherPtrTy> PatcherListTy;
 
 /* codeinfo *******************************************************************

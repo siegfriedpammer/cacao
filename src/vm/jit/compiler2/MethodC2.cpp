@@ -39,7 +39,7 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-Method::Method(methodinfo *m) : class_name_utf8(m->clazz->name),
+Method::Method(methodinfo *m) : method(m), class_name_utf8(m->clazz->name),
 		method_name_utf8(m->name), method_desc_utf8(m->descriptor) {
 	assert(m);
 	methoddesc *md = m->parseddesc;

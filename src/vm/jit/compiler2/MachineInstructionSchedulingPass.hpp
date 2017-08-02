@@ -26,12 +26,9 @@
 #define _JIT_COMPILER2_MACHINEINSTRUCTIONSCHEDULINGPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
-#include "vm/jit/compiler2/InstructionSchedule.hpp"
-#include "vm/jit/compiler2/GlobalSchedule.hpp"
-#include "vm/jit/compiler2/ScheduleClickPass.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
 
-#include "future/memory.hpp"
+#include <memory>
 
 MM_MAKE_NAME(MachineInstructionSchedulingPass)
 
@@ -47,31 +44,9 @@ namespace compiler2 {
 class MachineInstructionSchedulingPass : public Pass, public memory::ManagerMixin<MachineInstructionSchedulingPass>, public MachineInstructionSchedule {
 public:
 	MachineInstructionSchedulingPass() : Pass() {}
-	virtual void initialize();
 	virtual bool run(JITData &JD);
 	virtual bool verify() const;
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
-
-
-private:
-   class ListSchedulingPass : public memory::ManagerMixin<ListSchedulingPass>, public InstructionSchedule<Instruction> {
-   private:
-      GlobalSchedule *sched;
-      Method *M;
-   public:
-      /**
-       * schedule one basic block
-       */
-      void schedule(BeginInst *BI);
-      static char ID;
-      ListSchedulingPass(GlobalSchedule* sched) : 
-         sched(sched) {}
-      virtual bool run(JITData &JD);
-      virtual bool verify() const;
-   };
-
-   shared_ptr<ListSchedulingPass> IS;
-
 };
 
 } // end namespace compiler2

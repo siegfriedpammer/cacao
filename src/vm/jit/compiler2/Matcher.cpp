@@ -111,25 +111,25 @@ void Matcher::findRoots(){
 		// if excluded, handle manually, all ops are roots
 		if (checkIsNodeExcluded(inst)){
 			LOG("Found root: " << inst << " Reason: excluded node" << nl);
-			roots[inst] = shared_ptr<InstSetTy>(new InstSetTy());
-			revdeps[inst] = shared_ptr<InstSetTy>(new InstSetTy());
+			roots[inst] = std::shared_ptr<InstSetTy>(new InstSetTy());
+			revdeps[inst] = std::shared_ptr<InstSetTy>(new InstSetTy());
 			continue;
 		}
 
 		// consider inst with multiple users
 		if (inst->user_size() > 1){
 			LOG("Found root: " << inst << " Reason: multiple users" << nl);
-			roots[inst] = shared_ptr<InstSetTy>(new InstSetTy());
-			revdeps[inst] = shared_ptr<InstSetTy>(new InstSetTy());
+			roots[inst] = std::shared_ptr<InstSetTy>(new InstSetTy());
+			revdeps[inst] = std::shared_ptr<InstSetTy>(new InstSetTy());
 			continue;
 		}
 
 		// if inst has no users
 		if (inst->user_size() == 0){
 			LOG("Found root: " << inst << " Reason: no users" << nl);
-			roots[inst] = shared_ptr<InstSetTy>(new InstSetTy());
+			roots[inst] = std::shared_ptr<InstSetTy>(new InstSetTy());
 			// not necessarily needed
-			revdeps[inst] = shared_ptr<InstSetTy>(new InstSetTy());
+			revdeps[inst] = std::shared_ptr<InstSetTy>(new InstSetTy());
 			continue;
 		}
 
@@ -138,16 +138,16 @@ void Matcher::findRoots(){
 		if (inst_in_bb.find(user) == inst_in_bb.end()){
 			LOG("Found root: " << inst << " Reason: users in another basic block" << nl);
 
-			roots[inst] = shared_ptr<InstSetTy>(new InstSetTy());
+			roots[inst] = std::shared_ptr<InstSetTy>(new InstSetTy());
 			// not necessarily needed
-			revdeps[inst] = shared_ptr<InstSetTy>(new InstSetTy());
+			revdeps[inst] = std::shared_ptr<InstSetTy>(new InstSetTy());
 			continue;
 		}
 
 		if (checkIsNodeExcluded(user)){
 			LOG("Found root: " << inst << " Reason: used by excluded node" << nl);
-			roots[inst] = shared_ptr<InstSetTy>(new InstSetTy());
-			revdeps[inst] = shared_ptr<InstSetTy>(new InstSetTy());
+			roots[inst] = std::shared_ptr<InstSetTy>(new InstSetTy());
+			revdeps[inst] = std::shared_ptr<InstSetTy>(new InstSetTy());
 			continue;
 		}
 	}
@@ -161,9 +161,9 @@ bool Matcher::checkIsNodeExcluded(Instruction* inst){
 Instruction* Matcher::getOperand(Instruction* op, unsigned pos){
 	// always use proxy, if it already exists
 	if (instrProxies.find(op) != instrProxies.end()){
-		shared_ptr<ProxyMapByInstTy> proxyops = instrProxies[op];
+		std::shared_ptr<ProxyMapByInstTy> proxyops = instrProxies[op];
 		if (proxyops->find(pos) != proxyops->end()){
-			shared_ptr<Instruction> proxy = (proxyops->find(pos)->second);
+			std::shared_ptr<Instruction> proxy = (proxyops->find(pos)->second);
 			return &*proxy;
 		}
 	}
@@ -195,12 +195,12 @@ Instruction* Matcher::getOperand(Instruction* op, unsigned pos){
 Instruction* Matcher::createProxy(Instruction* op, unsigned pos, Instruction* operand, bool dependency){
 	// create map for operator, if it does not exist
 	if (instrProxies.find(op) == instrProxies.end()){
-		instrProxies[op] = shared_ptr<ProxyMapByInstTy>(new ProxyMapByInstTy());
+		instrProxies[op] = std::shared_ptr<ProxyMapByInstTy>(new ProxyMapByInstTy());
 	}
-	shared_ptr<ProxyMapByInstTy> proxyops = instrProxies[op];
+	std::shared_ptr<ProxyMapByInstTy> proxyops = instrProxies[op];
 
 	// create proxy
-	shared_ptr<Instruction> proxy = shared_ptr<Instruction>(new NoInst(op->get_BeginInst()));
+	std::shared_ptr<Instruction> proxy = std::shared_ptr<Instruction>(new NoInst(op->get_BeginInst()));
 	(*proxyops)[pos] = proxy;
 	LOG("Creating proxy: " << op << " op " << pos << " (= " << operand << ")" << nl);
 

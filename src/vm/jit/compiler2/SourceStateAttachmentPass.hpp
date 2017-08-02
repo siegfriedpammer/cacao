@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_SOURCESTATEATTACHMENTPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/InstructionSchedule.hpp"
 
 MM_MAKE_NAME(SourceStateAttachmentPass)
 
@@ -34,10 +35,9 @@ namespace jit {
 namespace compiler2 {
 
 class Method;
-class GlobalSchedule;
-class SourceStateInst;
+class Instruction;
 class BeginInst;
-class AssumptionInst;
+class SourceStateInst;
 
 /**
  * SourceStateAttachmentPass
@@ -46,12 +46,15 @@ class AssumptionInst;
  */
 class SourceStateAttachmentPass : public Pass, public memory::ManagerMixin<SourceStateAttachmentPass> {
 private:
-	Method *M;
-	GlobalSchedule *schedule;
 
-	SourceStateInst *find_nearest_dominating_source_state(BeginInst *begin);
+	Method *M;
+	InstructionSchedule<Instruction> *IS;
+
+	SourceStateInst *process_block(BeginInst *begin,
+			SourceStateInst *latest_source_state);
 
 public:
+
 	SourceStateAttachmentPass() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;

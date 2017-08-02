@@ -39,65 +39,147 @@ noinst_LTLIBRARIES = \
 
 libcompiler2_la_SOURCES = \
 	Backend.cpp \
+	Backend.hpp \
+	BasicBlockSchedule.hpp \
 	BasicBlockSchedulingPass.cpp \
+	BasicBlockSchedulingPass.hpp \
 	CFGConstructionPass.cpp \
+	CFGConstructionPass.hpp \
 	CFGMetaPass.cpp \
+	CFGMetaPass.hpp \
 	CodeGenPass.cpp \
+	CodeGenPass.hpp \
 	CodeMemory.cpp \
+	CodeMemory.hpp \
 	CodeSegment.cpp \
+	CodeSegment.hpp \
 	Compiler.cpp \
+	Compiler.hpp \
 	Conditional.cpp \
+	Conditional.hpp \
 	ConstantPropagationPass.cpp \
+	ConstantPropagationPass.hpp \
 	DeadCodeEliminationPass.cpp \
+	DeadCodeEliminationPass.hpp \
 	DisassemblerPass.cpp \
+	DisassemblerPass.hpp \
 	DataSegment.cpp \
+	DataSegment.hpp \
 	DominatorPass.cpp \
+	DominatorPass.hpp \
 	DomTreePrinterPass.cpp \
+	DomTreePrinterPass.hpp \
 	ExamplePass.cpp \
+	ExamplePass.hpp \
+	GlobalSchedule.hpp \
 	GlobalValueNumberingPass.cpp \
+	GlobalValueNumberingPass.hpp \
 	GraphHelper.cpp \
+	GraphHelper.hpp \
 	ICMDPrinterPass.cpp \
+	ICMDPrinterPass.hpp \
 	Instruction.cpp \
+	Instruction.hpp \
 	InstructionMetaPass.cpp \
+	InstructionMetaPass.hpp \
+	InstructionSchedule.hpp \
 	InstructionVisitor.cpp \
+	InstructionVisitor.hpp \
+	Instructions.hpp \
 	JITData.cpp \
+	JITData.hpp \
 	LinearScanAllocatorPass.cpp \
+	LinearScanAllocatorPass.hpp \
+	ListSchedulingPass.cpp \
+	ListSchedulingPass.hpp \
 	LivetimeAnalysisPass.cpp \
+	LivetimeAnalysisPass.hpp \
 	LivetimeInterval.cpp \
+	LivetimeInterval.hpp \
 	Loop.cpp \
-	LoopTreePrinterPass.cpp \
+	Loop.hpp \
+	LoopBase.hpp \
 	LoopPass.cpp \
+	LoopPass.hpp \
+	LoopPassBase.hpp \
 	LoopSimplificationPass.cpp \
-	Matcher.cpp \
+	LoopSimplificationPass.hpp \
+	LoopTreePrinterPass.cpp \
+	LoopTreePrinterPass.hpp \
+	MachineAddress.hpp \
 	MachineBasicBlock.cpp \
+	MachineBasicBlock.hpp \
 	MachineInstruction.cpp \
-	MachineInstructions.cpp \
-	MachineInstructionSchedule.cpp \
-	MachineInstructionSchedulingPass.cpp \
+	MachineInstruction.hpp \
 	MachineInstructionPrinterPass.cpp \
+	MachineInstructionPrinterPass.hpp \
+	MachineInstructionSchedule.cpp \
+	MachineInstructionSchedule.hpp \
+	MachineInstructionSchedulingPass.cpp \
+	MachineInstructionSchedulingPass.hpp \
+	MachineInstructions.cpp \
+	MachineInstructions.hpp \
 	MachineLoop.cpp \
+	MachineLoop.hpp \
 	MachineLoopPass.cpp \
+	MachineLoopPass.hpp \
 	MachineOperand.cpp \
+	MachineOperand.hpp \
+	MachineRegister.hpp \
+	Matcher.cpp \
+	Matcher.hpp \
+	MatcherDefs.hpp \
 	MethodC2.cpp \
+	MethodC2.hpp \
 	MethodDescriptor.cpp \
+	MethodDescriptor.hpp \
+	NullCheckEliminationPass.cpp \
+	NullCheckEliminationPass.hpp \
 	ObjectFileWriterPass.cpp \
+	ObjectFileWriterPass.hpp \
 	ParserPass.cpp \
+	ParserPass.hpp \
 	Pass.cpp \
+	Pass.hpp \
 	PassDependencyGraphPrinter.cpp \
+	PassDependencyGraphPrinter.hpp \
 	PassManager.cpp \
+	PassManager.hpp \
+	PassUsage.hpp \
 	RegisterAllocatorPass.cpp \
+	RegisterAllocatorPass.hpp \
 	ScheduleClickPass.cpp \
+	ScheduleClickPass.hpp \
 	ScheduleEarlyPass.cpp \
+	ScheduleEarlyPass.hpp \
 	ScheduleLatePass.cpp \
+	ScheduleLatePass.hpp \
 	Segment.cpp \
+	Segment.hpp \
 	SourceStateAttachmentPass.cpp \
+	SourceStateAttachmentPass.hpp \
 	SSAConstructionPass.cpp \
+	SSAConstructionPass.hpp \
 	SSAPrinterPass.cpp \
+	SSAPrinterPass.hpp \
 	StackAnalysisPass.cpp \
+	StackAnalysisPass.hpp \
 	StackSlotManager.cpp \
+	StackSlotManager.hpp \
 	Type.cpp \
+	Type.hpp \
 	Value.cpp \
-	VerifierPass.cpp
+	Value.hpp \
+	VerifierPass.cpp \
+	VerifierPass.hpp \
+	\
+	GrammarExcludedNodes.inc \
+	InstructionDeclGen.inc \
+	InstructionIDGen.inc \
+	InstructionToInstGen.inc \
+	InstructionNameSwitchGen.inc \
+	InstructionVisitorGen.inc \
+	InstructionVisitorImplGen.inc
 
 libcompiler2_la_LIBADD = \
 	alloc/liballoc.la \

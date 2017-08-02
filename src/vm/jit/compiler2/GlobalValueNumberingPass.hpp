@@ -25,11 +25,11 @@
 #ifndef _JIT_COMPILER2_GLOBALVALUENUMBERINGPASS
 #define _JIT_COMPILER2_GLOBALVALUENUMBERINGPASS
 
+#include <unordered_map>
+
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/MethodC2.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
-#include "future/unordered_set.hpp"
-#include "future/unordered_map.hpp"
 #include "toolbox/Option.hpp"
 
 namespace cacao {
@@ -46,26 +46,26 @@ namespace compiler2 {
  */
 class GlobalValueNumberingPass : public Pass {
 private:
-	typedef unordered_set<Instruction*> BlockTy;
+	typedef alloc::unordered_set<Instruction*>::type BlockTy;
 	typedef std::list<BlockTy*> PartitionTy;
 	typedef std::pair<BlockTy*,int> WorkListPairTy;
 	typedef std::list<WorkListPairTy*> WorkListTy;
-	typedef unordered_map<BlockTy*,std::vector<bool>* > InWorkListTy;
-	typedef unordered_map<Instruction*,BlockTy*> Inst2BlockMapTy;
+	typedef std::unordered_map<BlockTy*,std::vector<bool>* > InWorkListTy;
+	typedef std::unordered_map<Instruction*,BlockTy*> Inst2BlockMapTy;
 	typedef std::list<Instruction*> InstructionListTy;
 	typedef std::vector<InstructionListTy*> OperandIndex2UsersTy;
-	typedef unordered_map<Instruction*,OperandIndex2UsersTy*> OperandInverseMapTy;
+	typedef std::unordered_map<Instruction*,OperandIndex2UsersTy*> OperandInverseMapTy;
 
 	/// these types are needed for the creation of the inital blocks
-	typedef unordered_map<Instruction::InstID,BlockTy*,hash<int> > OpcodeBlockMapTy;
-	typedef unordered_map<int32_t,BlockTy*> IntBlockMapTy;
-	typedef unordered_map<int64_t,BlockTy*> LongBlockMapTy;
-	typedef unordered_map<float,BlockTy*> FloatBlockMapTy;
-	typedef unordered_map<double,BlockTy*> DoubleBlockMapTy;
-	typedef unordered_map<BeginInst*,BlockTy*> BBBlockMapTy;
+	typedef std::unordered_map<Instruction::InstID,BlockTy*,std::hash<int> > OpcodeBlockMapTy;
+	typedef std::unordered_map<int32_t,BlockTy*> IntBlockMapTy;
+	typedef std::unordered_map<int64_t,BlockTy*> LongBlockMapTy;
+	typedef std::unordered_map<float,BlockTy*> FloatBlockMapTy;
+	typedef std::unordered_map<double,BlockTy*> DoubleBlockMapTy;
+	typedef std::unordered_map<BeginInst*,BlockTy*> BBBlockMapTy;
 
-	typedef unordered_set<Instruction*> TouchedInstListTy;
-	typedef unordered_map<BlockTy*,TouchedInstListTy*> Block2TouchedInstListMapTy;
+	typedef alloc::unordered_set<Instruction*>::type TouchedInstListTy;
+	typedef std::unordered_map<BlockTy*,TouchedInstListTy*> Block2TouchedInstListMapTy;
 
 	int max_arity;
 	PartitionTy partition;

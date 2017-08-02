@@ -30,7 +30,7 @@ import org.junit.Test;
 public class BoyerMoore extends Compiler2TestBase {
 
 	@Test
-	public void test_boyerMoore() {
+	public void test_boyerMoore() throws Throwable {
 		String strPattern = "ana";
 		String strText = "bananas";
 

@@ -36,6 +36,7 @@
 
 #include "vm/jit/i386/codegen.hpp"
 #include "vm/jit/i386/emit.hpp"
+#include "vm/jit/i386/patcher.hpp"
 
 #include "mm/memory.hpp"
 
@@ -63,7 +64,6 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/parse.hpp"
-#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/reg.hpp"
 #include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.hpp"

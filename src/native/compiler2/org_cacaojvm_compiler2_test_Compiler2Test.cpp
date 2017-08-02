@@ -146,12 +146,6 @@ JNIEXPORT jobject JNICALL Java_org_cacaojvm_compiler2_test_Compiler2Test_execute
 	// TODO free code!
 	m->code = NULL;
 
-	// exception occurred?
-	if (exceptions_get_exception()) {
-		exceptions_print_stacktrace();
-		os::abort();
-	}
-
 	return (jobject) result;
 }
 

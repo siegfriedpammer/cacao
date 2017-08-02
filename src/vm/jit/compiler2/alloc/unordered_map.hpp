@@ -25,8 +25,9 @@
 #ifndef _JIT_COMPILER2_ALLOC_UNORDERED_MAP
 #define _JIT_COMPILER2_ALLOC_UNORDERED_MAP
 
+#include <unordered_map>
+
 #include "vm/jit/compiler2/alloc/Allocator.hpp"
-#include "future/unordered_map.hpp"
 
 namespace cacao {
 namespace jit {
@@ -36,19 +37,19 @@ namespace alloc {
 template<
 	class Key,
 	class T,
-	class Hash = cacao::hash<Key>,
+	class Hash = std::hash<Key>,
 	class KeyEqual = std::equal_to<Key>
 > struct unordered_map {
-	typedef cacao::unordered_map<Key, T, Hash, KeyEqual, Allocator<std::pair<const Key, T> > > type;
+	typedef std::unordered_map<Key, T, Hash, KeyEqual, Allocator<std::pair<const Key, T> > > type;
 };
 
 template<
 	class Key,
 	class T,
-	class Hash = cacao::hash<Key>,
+	class Hash = std::hash<Key>,
 	class KeyEqual = std::equal_to<Key>
 > struct unordered_multimap {
-	typedef cacao::unordered_multimap<Key, T, Hash, KeyEqual, Allocator<std::pair<const Key, T> > > type;
+	typedef std::unordered_multimap<Key, T, Hash, KeyEqual, Allocator<std::pair<const Key, T> > > type;
 };
 
 } // end namespace alloc

@@ -28,14 +28,13 @@
 #include "vm/jit/compiler2/Type.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 
-#include "future/memory.hpp"            // for cacao::shared_ptr
-
 #include "vm/jit/compiler2/memory/Manager.hpp"
 #include "vm/jit/compiler2/alloc/map.hpp"
 #include "vm/jit/compiler2/alloc/set.hpp"
 #include "vm/jit/compiler2/alloc/list.hpp"
 
 #include <climits>
+#include <memory>
 
 MM_MAKE_NAME(UseDef)
 MM_MAKE_NAME(LivetimeInterval)
@@ -193,7 +192,7 @@ public:
 	const_def_iterator def_end() const;
 	std::size_t def_size() const;
 private:
-	shared_ptr<LivetimeIntervalImpl> pimpl;
+	std::shared_ptr<LivetimeIntervalImpl> pimpl;
 	friend class LivetimeIntervalImpl;
 };
 
