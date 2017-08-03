@@ -431,6 +431,11 @@ void TrapInst::emit(Emitter& em) const {
 	em.trap(reg_op(0), trap);
 }
 
+void CondTrapInst::emit(Emitter& em) const {
+	em.bcond(cond.code, 2);
+	em.trap(reg_op(0), trap);
+}
+
 } // end namespace aarch64
 } // end namespace compiler2
 } // end namespace jit

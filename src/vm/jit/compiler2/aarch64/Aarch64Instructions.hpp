@@ -742,6 +742,22 @@ public:
 	virtual void emit(Emitter& em) const;
 };
 
+class CondTrapInst : public AArch64Instruction {
+private:
+	/// A trap number as defined in aarch64/md-trap.hpp
+	s4 trap;
+	Cond::COND cond;
+public:
+	CondTrapInst(Cond::COND cond, s4 trap, const SrcOp &index)
+			: AArch64Instruction("Aarch64CondTrapInst", &NoOperand, 
+								 Type::ReferenceTypeID, 1), trap(trap), cond(cond) {
+		operands[0].op = index.op;
+	}
+
+	virtual bool is_end() const { return true; }
+	virtual void emit(Emitter& em) const;
+};
+
 } // end namespace aarch64
 } // end namespace compiler2
 } // end namespace jit

@@ -29,11 +29,12 @@ JAVACCMD = $(JAVAC) -source 1.6 -target 1.6 -nowarn -bootclasspath $(BOOTCLASSPA
 TIMING = 
 
 EXTRA_DIST = \
-	$(srcdir)/org/cacaojvm/compiler2/test/*.java
+	$(srcdir)/org/cacaojvm/compiler2/test/*.java \
+	$(srcdir)/org/cacaojvm/compiler2/test/aarch64/*.java
 
-clean-local:
-	-rm -f $(srcdir)/org/cacaojvm/compiler2/test/*.class
-	-rm -f $(srcdir)/org/cacaojvm/compiler2/test/aarch64/*.class
+CLEANFILES = \
+	$(builddir)/org/cacaojvm/compiler2/test/*.class \
+	$(builddir)/org/cacaojvm/compiler2/test/aarch64/*.class
 
 check: build run
 

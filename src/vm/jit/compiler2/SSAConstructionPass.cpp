@@ -1592,30 +1592,30 @@ bool SSAConstructionPass::run(JITData &JD) {
 							Instruction *null_check = new CHECKNULLInst(receiver);
 							M->add_Instruction(null_check);
 
-							invoke = new INVOKESPECIALInst(type,argcount,fmiref,BB[bbindex],state_change);
+							invoke = new INVOKESPECIALInst(type,argcount,fmiref,BB[bbindex],state_change,source_state);
 							invoke->append_dep(null_check);
 						}
 						break;
 					case ICMD_INVOKEVIRTUAL:
 						{
-							invoke = new INVOKEVIRTUALInst(type,argcount,fmiref,BB[bbindex],state_change);
+							invoke = new INVOKEVIRTUALInst(type,argcount,fmiref,BB[bbindex],state_change,source_state);
 						}
 						break;
 					case ICMD_INVOKESTATIC:
 						{
-							invoke = new INVOKESTATICInst(type,argcount,fmiref,BB[bbindex],state_change);
+							invoke = new INVOKESTATICInst(type,argcount,fmiref,BB[bbindex],state_change,source_state);
 						}
 						break;
 					case ICMD_INVOKEINTERFACE:
 						{
-							invoke = new INVOKEINTERFACEInst(type,argcount,fmiref,BB[bbindex],state_change);
+							invoke = new INVOKEINTERFACEInst(type,argcount,fmiref,BB[bbindex],state_change,source_state);
 						}
 						break;
 					case ICMD_BUILTIN:
 						{
 							builtintable_entry *bte = iptr->sx.s23.s3.bte;
 							u1 *builtin_address = bte->stub == NULL ? reinterpret_cast<u1*>(bte->fp) : bte->stub;
-							invoke = new BUILTINInst(type,builtin_address,argcount,BB[bbindex],state_change);
+							invoke = new BUILTINInst(type,builtin_address,argcount,BB[bbindex],state_change,source_state);
 						}
 						break;
 					default:

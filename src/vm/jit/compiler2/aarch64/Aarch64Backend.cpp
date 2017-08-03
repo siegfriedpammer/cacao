@@ -587,7 +587,7 @@ void Aarch64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 	//MachineOperand *base = new VirtualRegister(Type::LongTypeID);
 	MachineOperand *base = new NativeRegister(Type::LongTypeID, &R9);
 	Immediate *imm;
-	Type::TypeID type = I->get_array_type();
+	Type::TypeID type = src_value->get_type();
 
 	s4 offset = 0;
 	u1 shift = 0;
@@ -637,6 +637,10 @@ void Aarch64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 
 void Aarch64LoweringVisitor::visit(ARRAYLENGTHInst *I, bool copyOperands) {
 	assert(I);
+	
+	// Implicit null-checks are handled via deoptimization.
+	place_deoptimization_marker(I);
+
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
 	assert(I->get_type() == Type::IntTypeID);
 	assert(src_op->get_type() == Type::ReferenceTypeID);
@@ -650,10 +654,30 @@ void Aarch64LoweringVisitor::visit(ARRAYLENGTHInst *I, bool copyOperands) {
 }
 
 void Aarch64LoweringVisitor::visit(ARRAYBOUNDSCHECKInst *I, bool copyOperands) {
-	//Type::TypeID type = I->get_type();
-	//ABORT_MSG("aarch64: Lowering not supported",
-	//		"Inst: " << I << " type: " << type);
-	// TODO: implement
+	assert(I);
+	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
+	MachineOperand* src_index = get_op(I->get_operand(1)->to_Instruction());
+	assert(src_ref->get_type() == Type::ReferenceTypeID);
+	assert(src_index->get_type() == Type::IntTypeID);
+
+	// Implicit null-checks are handled via deoptimization.
+	place_deoptimization_marker(I);
+
+	// load array length
+	MachineOperand *len = new VirtualRegister(Type::IntTypeID);
+	Immediate *imm = new Immediate(OFFSET(java_array_t, size), Type::IntType());
+
+	MachineInstruction *load = 
+		new LoadInst(DstOp(len), BaseOp(src_ref), IdxOp(imm), Type::IntTypeID);
+	get_current()->push_back(load);
+
+	// compare with index
+	CmpInst *cmp = new CmpInst(SrcOp(src_index), SrcOp(len), Type::IntTypeID);
+	get_current()->push_back(cmp);
+
+	// throw exception if index is out of bounds
+	CondTrapInst *trap = new CondTrapInst(Cond::CC, TRAP_ArrayIndexOutOfBoundsException, SrcOp(src_index));
+	get_current()->push_back(trap);
 }
 
 void Aarch64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
@@ -900,6 +924,9 @@ void Aarch64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 
 		MI = new MachineReplacementPointStaticSpecialInst(call, source_state->get_source_location(), source_state->op_size(), idx);
 	} else if (I->to_INVOKEVIRTUALInst()) {
+		// Implicit null-checks are handled via deoptimization.
+		place_deoptimization_marker(I->to_INVOKEVIRTUALInst());
+
 		methodinfo* callee = I->get_fmiref()->p.method;
 		int32_t s1 = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * callee->vftblindex;
 		VirtualRegister *vftbl_address = new VirtualRegister(Type::ReferenceTypeID);
@@ -914,6 +941,9 @@ void Aarch64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 
 		MI = new MachineReplacementPointCallSiteInst(call, source_state->get_source_location(), source_state->op_size());
 	} else if (I->to_INVOKEINTERFACEInst()) {
+		// Implicit null-checks are handled via deoptimization.
+		place_deoptimization_marker(I->to_INVOKEINTERFACEInst());
+
 		methodinfo* callee = I->get_fmiref()->p.method;
 		int32_t s1 = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr) * callee->clazz->index;
 		VirtualRegister *vftbl_address = new VirtualRegister(Type::ReferenceTypeID);
@@ -982,6 +1012,9 @@ void Aarch64LoweringVisitor::visit(BUILTINInst *I, bool copyOperands) {
 void Aarch64LoweringVisitor::visit(GETFIELDInst *I, bool copyOperands) {
 	assert(I);
 
+	// Implicit null-checks are handled via deoptimization.
+	place_deoptimization_marker(I);
+
 	MachineOperand* objectref = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand *result = new VirtualRegister(I->get_type());
 	Immediate *field_offset = new Immediate(reinterpret_cast<s4>(I->get_field()->offset),
@@ -995,6 +1028,9 @@ void Aarch64LoweringVisitor::visit(GETFIELDInst *I, bool copyOperands) {
 
 void Aarch64LoweringVisitor::visit(PUTFIELDInst *I, bool copyOperands) {
 	assert(I);
+
+	// Implicit null-checks are handled via deoptimization.
+	place_deoptimization_marker(I);
 
 	MachineOperand *objectref = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand *value = get_op(I->get_operand(1)->to_Instruction());

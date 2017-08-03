@@ -29,6 +29,12 @@ AM_CPPFLAGS += -I$(top_srcdir)/src \
 
 LIBS =
 
+DIST_SUBDIRS = \
+	aarch64 \
+	alloc \
+	memory \
+	x86_64
+
 SUBDIRS = \
 	alloc \
 	memory \

@@ -29,12 +29,21 @@ noinst_LTLIBRARIES = \
 	libaarch64.la
 
 libaarch64_la_SOURCES = \
+	Aarch64.hpp \
 	Aarch64Backend.cpp \
+	Aarch64Backend.hpp \
 	Aarch64Cond.cpp \
+	Aarch64Cond.hpp \
 	Aarch64Emitter.cpp \
+	Aarch64Emitter.hpp \
 	Aarch64Instructions.cpp \
+	Aarch64Instructions.hpp \
 	Aarch64MachineMethodDescriptor.cpp \
-	Aarch64Register.cpp
+	Aarch64MachineMethodDescriptor.hpp \
+	Aarch64Register.cpp \
+	Aarch64Register.hpp \
+	Grammar.inc \
+	Target.hpp
 
 ## Local variables:
 ## mode: Makefile

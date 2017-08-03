@@ -157,134 +157,6 @@ public:
  */
 class SourceStateInst : public Instruction {
 public:
-	struct Javalocal {
-
-		/// The value that is mapped to a baseline IR javalocal index.
-		Value *value;
-
-		/// A baseline IR javalocal index.
-		std::size_t index;
-
-		/// Construct a Javalocal that maps @p value to @p index
-		///
-		/// @param value The Value that is mapped to @p index.
-		/// @param index The javalocal index that corresponds to @p value.
-		explicit Javalocal(Value *value, std::size_t index) : value(value), index(index) {}
-	};
-
-private:
-
-	typedef alloc::vector<Javalocal>::type JavalocalListTy;
-	typedef alloc::vector<Value*>::type StackvarListTy;
-	typedef alloc::vector<Value*>::type ParamListTy;
-
-	/// The program location corresponding to the provided mapping information.
-	///
-	/// The mappings of HIR values to baseline IR variables, which are given by
-	/// this SourceStateInst, are bound to this exact program location. This
-	/// location is given in terms of an ID of the corresponding baseline IR
-	/// instruction.
-	s4 source_location;
-
-	/// The state of the enclosing method in case we are in an inlined region.
-	SourceStateInst *parent;
-
-	/// List of mappings from HIR values to baseline IR javalocal indices.
-	JavalocalListTy javalocals;
-
-	/// List of HIR values that correspond to baseline IR stack variables.
-	StackvarListTy stackvars;
-
-	/// List of HIR values that correspond to method parameters.
-	ParamListTy params;
-
-public:
-
-	typedef JavalocalListTy::const_iterator const_javalocal_iterator;
-	typedef StackvarListTy::const_iterator const_stackvar_iterator;
-	typedef ParamListTy::const_iterator const_param_iterator;
-
-	/// Construct a SourceStateInst.
-	///
-	/// @param source_location The ID of the baseline IR instruction at the
-	///                        mapped program location.
-	/// @param hir_location    The HIR instruction that corresponds to the
-	///                        given @p source_location.
-	explicit SourceStateInst(s4 source_location, Instruction *hir_location) :
-			Instruction(SourceStateInstID, Type::VoidTypeID),
-			source_location(source_location) {
-		assert(!hir_location->is_floating());
-		append_dep(hir_location);
-	}
-
-	virtual BeginInst* get_BeginInst() const {
-		BeginInst *begin = (*dep_begin())->get_BeginInst();
-		assert(begin);
-		return begin;
-	}
-
-	/// Get the program location that corresponds to the given mappings.
-	s4 get_source_location() const { return source_location; }
-
-	/// The state of the enclosing method in case we are in an inlined region.
-	SourceStateInst *get_parent() const { return parent; };
-
-	/// Set state of the enclosing method in case we are in an inlined region.
-	///
- 	/// @param new_parent The corresponding source state.
-	void set_parent(SourceStateInst *new_parent) { parent = new_parent; }
-
-	/// Append a new mapping from a HIR Value to a baseline IR javalocal index.
-	///
-	/// @param local The Javalocal to append.
-	void append_javalocal(Javalocal local) {
-		append_op(local.value);
-		javalocals.push_back(local);
-	}
-
-	/// Append a new value to corresponds to a baseline IR stack variable.
-	///
-	/// @param value The value to append.
-	void append_stackvar(Value *value) {
-		append_op(value);
-		stackvars.push_back(value);
-	}
-
-	/// Append a new value to corresponds to a method parameter.
-	///
-	/// @param value The value to append.
-	void append_param(Value *value) {
-		append_op(value);
-		params.push_back(value);
-	}
-
-	const_javalocal_iterator javalocal_begin() const { return javalocals.begin(); }
-	const_javalocal_iterator javalocal_end()   const { return javalocals.end(); }
-
-	const_stackvar_iterator stackvar_begin() const { return stackvars.begin(); }
-	const_stackvar_iterator stackvar_end()   const { return stackvars.end(); }
-
-	const_param_iterator param_begin() const { return params.begin(); }
-	const_param_iterator param_end()   const { return params.end(); }
-
-	virtual void replace_op(Value* v_old, Value* v_new) {
-		Instruction::replace_op(v_old, v_new);
-		std::replace(stackvars.begin(), stackvars.end(), v_old, v_new);
-		std::replace(params.begin(), params.end(), v_old, v_new);
-		for (JavalocalListTy::iterator i = javalocals.begin(), e = javalocals.end();
-				i != e; i++) {
-			Javalocal &local = *i;
-			if (local.value == v_old) {
-				local.value = v_new;
-			}
-		}
-	}
-
-	virtual SourceStateInst* to_SourceStateInst() { return this; }
-	virtual bool is_floating() const { return false; }
-	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
-	virtual bool verify() const { return true; }
-};
 
 	/**
 	 * Maps a HIR value to a baseline IR javalocal index.
@@ -1720,6 +1592,13 @@ public:
 		BeginInst *begin = (*dep_begin())->to_BeginInst();
 		assert(begin);
 		return begin;
+	}
+
+	virtual SourceStateInst* get_SourceStateInst() const {
+		auto it = std::next(dep_begin(), 2);
+		SourceStateInst *source_state = (*it)->to_SourceStateInst();
+		assert(source_state);
+		return source_state;
 	}
 
 	/**
