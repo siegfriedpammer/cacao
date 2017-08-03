@@ -1517,20 +1517,15 @@ bool SSAConstructionPass::run(JITData &JD) {
 				deoptimize(bbindex);
 				break;
 			case ICMD_INVOKESPECIAL:
-					// TODO: Since we deoptimize for INVOKEs we need to deoptimize early
-					//       for INVOKESPECIAL or the CHECKNULLInst will cause problems
-					deoptimize(bbindex);
-					break;
-
 			case ICMD_INVOKEVIRTUAL:
 			case ICMD_INVOKEINTERFACE:
 			case ICMD_INVOKESTATIC:
 			case ICMD_BUILTIN:
 				{
-					// TODO: Currently we deoptimize for INVOKEs because the
-					//       register allocator can not handle call sites correctly.
-					deoptimize(bbindex);
-					break;
+					if (!INSTRUCTION_IS_RESOLVED(iptr)) {
+						deoptimize(bbindex);
+						break;
+					}
 
 					methoddesc *md;
 					constant_FMIref *fmiref;
