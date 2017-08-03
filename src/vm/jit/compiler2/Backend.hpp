@@ -53,7 +53,6 @@ public:
 
 	//virtual RegisterFile* get_RegisterFile(Type::TypeID type) const = 0;
 	virtual OperandFile& get_OperandFile(OperandFile& OF,MachineOperand *MO) const = 0;
-	virtual void get_CallerSaved(OperandFile& OF) const = 0;
 	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const = 0;
 	virtual MachineInstruction* create_Jump(MachineBasicBlock *target) const = 0;
@@ -71,7 +70,6 @@ public:
 	BackendBase(JITData *JD) : Backend(JD) {}
 	//virtual RegisterFile* get_RegisterFile(Type::TypeID type) const;
 	virtual OperandFile& get_OperandFile(OperandFile& OF,MachineOperand *MO) const;
-	virtual void get_CallerSaved(OperandFile& OF) const;
 	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const;
 	virtual MachineInstruction* create_Jump(MachineBasicBlock *target) const;

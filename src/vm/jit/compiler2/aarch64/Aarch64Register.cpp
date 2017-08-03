@@ -170,20 +170,6 @@ BackendBase<Aarch64>::get_OperandFile(OperandFile& of, MachineOperand* mo) const
 	return of;
 }
 
-template<>
-void BackendBase<Aarch64>::get_CallerSaved(OperandFile& of) const {
-	Type::TypeID type = Type::LongTypeID;
-	#if 1
-	for (unsigned i = 0; i < IntegerCallerSavedRegistersSize; ++i) {
-		of.push_back(new aarch64::NativeRegister(type, IntegerCallerSavedRegisters[i]));
-	}
-	type = Type::DoubleTypeID;
-	for (unsigned i = 0; i < FloatCallerSavedRegistersSize; ++i) {
-		of.push_back(new aarch64::NativeRegister(type, FloatCallerSavedRegisters[i]));
-	}
-	#endif
-}
-
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
