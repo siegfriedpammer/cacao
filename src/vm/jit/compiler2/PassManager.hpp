@@ -28,6 +28,8 @@
 #include <memory>
 #include <unordered_map>
 
+#include "vm/jit/compiler2/PassUsage.hpp"
+
 #include "vm/jit/compiler2/alloc/vector.hpp"
 #include "vm/jit/compiler2/alloc/unordered_set.hpp"
 #include "vm/jit/compiler2/alloc/unordered_map.hpp"
@@ -51,26 +53,8 @@ class Pass;
 class PassRunner;
 
 using PassUPtrTy = std::unique_ptr<Pass>;
-
-class PassInfo {
-public:
-	using IDTy = uint32_t;
-	using ConstructorTy = Pass* (*)();
-private:
-	const char *const name;
-	/// Constructor function pointer
-	ConstructorTy ctor;
-public:
-	PassInfo::IDTy const ID;
-	PassInfo(const char* name, PassInfo::IDTy ID,  ConstructorTy ctor) : name(name),  ctor(ctor), ID(ID) {}
-	const char* get_name() const {
-		return name;
-	}
-	Pass* create_Pass() const {
-		return ctor();
-	}
-};
-
+using ID2PUTy = alloc::unordered_map<PassInfo::IDTy,PassUsage>::type;
+using ID2MapTy = alloc::unordered_map<PassInfo::IDTy,alloc::unordered_set<PassInfo::IDTy>::type >::type;
 
 /**
  * Manages pass registry and scheduling.
@@ -105,6 +89,21 @@ private:
 	PassUPtrTy create_Pass(PassInfo::IDTy ID) const;
 
 	explicit PassManager() : passes_are_scheduled(false) {}
+
+	// Some private functions and data structures that help with scheduling
+	ID2PUTy pu_map;
+	ID2MapTy reverse_require_map;
+
+	void populate_passusage(const PassUPtrTy& pass, PassInfo::IDTy id);
+	void populate_reverse_require_map();
+	
+	// Pass P specified by id is added to the required list of each
+	// pass in Ps run_before list
+	void add_run_before(PassInfo::IDTy id);
+
+	// Pass P specified by id is added to the add_schedule_after list of
+	// each pass in Ps schedule_before list
+	void add_schedule_before(PassInfo::IDTy id);
 
 public:
 	static PassManager& get() {

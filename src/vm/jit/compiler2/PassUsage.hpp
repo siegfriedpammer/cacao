@@ -25,7 +25,7 @@
 #ifndef _JIT_COMPILER2_PASSUSAGE
 #define _JIT_COMPILER2_PASSUSAGE
 
-#include "vm/jit/compiler2/PassManager.hpp"
+#include "vm/jit/compiler2/alloc/unordered_map.hpp"
 #include "vm/jit/compiler2/alloc/unordered_set.hpp"
 
 namespace cacao {
@@ -34,6 +34,26 @@ namespace compiler2 {
 
 // forward declaration
 class Pass;
+
+class PassInfo {
+public:
+	using IDTy = uint32_t;
+	using ConstructorTy = Pass* (*)();
+private:
+	const char *const name;
+	/// Constructor function pointer
+	ConstructorTy ctor;
+public:
+	PassInfo::IDTy const ID;
+	PassInfo(const char* name, PassInfo::IDTy ID,  ConstructorTy ctor) : name(name),  ctor(ctor), ID(ID) {}
+	const char* get_name() const {
+		return name;
+	}
+	Pass* create_Pass() const {
+		return ctor();
+	}
+};
+
 
 /**
  * Stores the interdependencies of a pass.
