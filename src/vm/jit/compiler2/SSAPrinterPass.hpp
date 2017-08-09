@@ -66,6 +66,10 @@ public:
     virtual bool is_enabled() const {
         return BasicBlockPrinterPass::enabled;
     }
+
+    virtual bool force_scheduling() const {
+        return true;
+    }
 };
 
 extern Option<bool> schedule_printer_enabled;
@@ -85,6 +89,10 @@ public:
 
     virtual bool is_enabled() const {
         return schedule_printer_enabled;
+    }
+
+    virtual bool force_scheduling() const {
+        return true;
     }
 };
 

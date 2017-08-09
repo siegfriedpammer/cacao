@@ -91,7 +91,7 @@ PassUPtrTy& PassRunner::get_Pass(PassInfo::IDTy ID) {
 void PassRunner::runPasses(JITData &JD) {
 	LOG("runPasses" << nl);
 
-	auto PS = PassManager::get();
+	auto& PS = PassManager::get();
 	for (auto i = PS.schedule_begin(), e = PS.schedule_end(); i != e; ++i) {
 		PassInfo::IDTy id = *i;
 		result_ready[id] = false;
@@ -348,8 +348,9 @@ void PassManager::schedulePasses() {
 			continue;
 		}
 
-		// If a pass is enabled, add it to the schedule
-		schedule.push_back(id);
+		if (pass->force_scheduling()) {
+			schedule.push_back(id);
+		}
 
 		PassUsage &PA = pu_map[id];
 		pass->get_PassUsage(PA);

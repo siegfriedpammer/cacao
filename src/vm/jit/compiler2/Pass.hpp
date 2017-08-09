@@ -110,6 +110,19 @@ public:
 	}
 
 	/**
+	 * Passes need to set this to true if they are not required by any other passes,
+	 * and if they do not specify a scheduling dependency themselves using add_run_before
+	 * or add_schedule_before.
+	 *
+	 * This is usually the case for debug/printer passes.
+	 *
+	 * The enable/disable flag supercedes this flag, it is only used for enabled passes.
+	 */
+	virtual bool force_scheduling() const {
+		return false;
+	}
+
+	/**
 	 * Initialize the Pass.
 	 * This method is called by the PassManager before the pass is started. It should be used to
 	 * initialize e.g. data structures. A Pass object might be reused so the construtor can not be

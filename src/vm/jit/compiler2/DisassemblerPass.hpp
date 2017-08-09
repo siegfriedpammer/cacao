@@ -49,6 +49,10 @@ public:
     virtual bool is_enabled() const {
         return DisassemblerPass::enabled || opt_showdisassemble;
     }
+
+    virtual bool force_scheduling() const {
+        return true;
+    }
 };
 
 } // end namespace compiler2

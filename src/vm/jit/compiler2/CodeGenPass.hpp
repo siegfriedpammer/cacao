@@ -96,6 +96,10 @@ public:
 	std::size_t get_block_size(MachineBasicBlock *MBB) const;
 	BasicBlockMap::const_iterator begin() const { return bbmap.begin(); }
 	BasicBlockMap::const_iterator end() const { return bbmap.end(); }
+
+	// By force scheduling the CodeGenPass, we kick off the whole basic
+	// pass pipeline (via required chain)
+	bool force_scheduling() const { return true; }
 };
 
 } // end namespace compiler2

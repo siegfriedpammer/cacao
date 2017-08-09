@@ -72,7 +72,7 @@ public:
 	PassUsage() {}
 
 	/**
-	 * PassName is required.
+	 * PassName must run before this pass and its result must be up-to-date.
 	 */
 	template<class PassName>
 	void add_requires() {
@@ -83,7 +83,8 @@ public:
 	}
 
 	/**
-	 * PassName will be invalidated.
+	 * This pass will destroy the result of PassName, invalidating PassName
+	 * and all passes that depend on PassName.
 	 */
 	template<class PassName>
 	void add_destroys() {
@@ -94,7 +95,8 @@ public:
 	}
 
 	/**
-	 * PassName will be modified. All passed depending on PassName are invalidated.
+	 * This pass modifies the result of PassName. All passed depending on PassName are invalidated,
+	 * but not PassName itself.
 	 */
 	template<class PassName>
 	void add_modifies() {
