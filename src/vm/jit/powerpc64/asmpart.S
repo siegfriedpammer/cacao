@@ -204,6 +204,7 @@ L_asm_vm_call_method_return:
 asm_vm_call_method_exception_handler:
 	mr      r3,itmp1
 	bl      builtin_throw_exception
+	nop
 	b       L_asm_vm_call_method_return
 
 asm_vm_call_method_end:
