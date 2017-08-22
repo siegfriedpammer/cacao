@@ -310,6 +310,7 @@ inline bool LoopPassBase<_T>::run(JITData &JD) {
 			continue;
 		}
 		this->set_loop(dfs[w],loop);
+		loop->add_child(dfs[w]);
 		//LOG2("loop(header = " << dfs[w] << ") = " << loop << nl);
 	}
 

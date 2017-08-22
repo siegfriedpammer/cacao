@@ -65,7 +65,7 @@ DisableFormat:   false
 # END LLVM style
 
 # BEGIN CACAO style
-Standard:          Cpp03
+Standard:          Cpp11
 
 # Indent
 IndentWidth:       4
@@ -73,6 +73,7 @@ TabWidth:          4
 UseTab:            ForIndentation
 IndentCaseLabels:  true
 AccessModifierOffset: -4
+ColumnLimit:	   100
 
 # uncuddled elses
 BreakBeforeBraces: Stroustrup

@@ -46,11 +46,14 @@ public:
 	typedef _T NodeType;
 	typedef typename alloc::unordered_set<LoopBase*>::type LoopSetTy;
 	typedef typename LoopSetTy::iterator loop_iterator;
+	typedef typename alloc::vector<NodeType*>::type NodeTypeListTy;
+	typedef typename NodeTypeListTy::iterator child_iterator;
 private:
 	NodeType *header;
 	NodeType *exit;
 	LoopBase      *parent;
 	LoopSetTy inner_loops;
+	NodeTypeListTy children;
 public:
 	LoopBase(NodeType *header, NodeType *exit) : header(header), exit(exit), parent(NULL) {}
 	NodeType *get_header() const {
@@ -79,6 +82,11 @@ public:
 			outer_loop->add_inner_loop(this);
 		}
 	}
+	void add_child(NodeType* child) {
+		children.push_back(child);
+	}
+	child_iterator child_begin() { return children.begin(); }
+	child_iterator child_end() { return children.end(); }
 };
 
 template <class _T>

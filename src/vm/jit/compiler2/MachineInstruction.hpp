@@ -131,6 +131,7 @@ private:
 		ref_map.insert(std::make_pair(op,pos));
 	}
 protected:
+	std::size_t step;		//< Schedule numbering inside a basic block (used by next use analysis)
 	const std::size_t id;
 	operand_list operands;
 	/**
@@ -309,6 +310,12 @@ public:
 	}
 	void set_result(MachineOperand *MO) {
 		result = MachineOperandDesc(0,MO);
+	}
+	const std::size_t get_step() const {
+		return step;
+	}
+	void set_step(const std::size_t s) {
+		step = s;
 	}
 	virtual bool accepts_immediate(std::size_t i, Immediate *imm) const {
 		return false;

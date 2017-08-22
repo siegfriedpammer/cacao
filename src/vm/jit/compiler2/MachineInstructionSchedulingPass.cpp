@@ -121,6 +121,7 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 			alloc::map<BeginInst*,MachineBasicBlock*>::type::const_iterator it = map.find(pred);
 			assert(it != map.end());
 			MBB->insert_pred(it->second);
+			it->second->insert_succ(MBB);
 		}
 
 	}
@@ -140,6 +141,7 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 				MachineBasicBlock *new_MBB = *insert_after(MBB->self_iterator(),MBBBuilder());
 				assert(new_MBB);
 				new_MBB->insert_pred(MBB);
+				MBB->insert_succ(new_MBB);
 				new_MBB->push_front(new MachineLabelInst());
 				LOG2("new MBB: " << *new_MBB << nl);
 				move_instructions(i,e,*MBB,*new_MBB);

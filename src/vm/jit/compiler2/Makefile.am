@@ -37,6 +37,7 @@ DIST_SUBDIRS = \
 
 SUBDIRS = \
 	alloc \
+	lsra \
 	memory \
 	$(ARCH_DIR)
 
@@ -189,6 +190,7 @@ libcompiler2_la_SOURCES = \
 
 libcompiler2_la_LIBADD = \
 	alloc/liballoc.la \
+	lsra/liblsra.la \
 	memory/libmemory.la \
 	$(ARCH_DIR)/lib$(ARCH_DIR).la
 

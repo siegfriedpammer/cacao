@@ -160,9 +160,13 @@ public:
 	typedef PredListTy::const_iterator const_pred_iterator;
 	typedef PredListTy::iterator pred_iterator;
 
+	typedef alloc::vector<MachineBasicBlock*>::type SuccListTy;
+	typedef SuccListTy::const_iterator const_succ_iterator;
+	typedef SuccListTy::iterator succ_iterator;
+
 	/// construct an empty MachineBasicBlock
 	MachineBasicBlock(const MBBIterator &my_it)
-		: id(id_counter++),  my_it(my_it) {};
+		: id(id_counter++),  my_it(my_it), processed(false) {};
 	/// checks if the basic block has no elements.
 	bool empty() const;
 	/// returns the number of elements
@@ -249,6 +253,15 @@ public:
 	 */
 	std::size_t get_predecessor_index(MachineBasicBlock* MBB) const;
 
+	/**
+	 * Adds the given MachineBasicBlock as a successor of this block
+	 */
+	void insert_succ(MachineBasicBlock* value);
+	const_succ_iterator succ_begin() const;
+	const_succ_iterator succ_end() const;
+	succ_iterator succ_begin();
+	succ_iterator succ_end();
+
 	/// get a MIIterator form a iterator
 	MIIterator convert(iterator pos);
 	/// get a MIIterator form a iterator
@@ -268,6 +281,16 @@ public:
 
 	/// get a iterator form a MIIterator
 	static iterator convert(MIIterator pos);
+
+	std::size_t get_id() const { return id; }
+
+	/// returns wether this BasicBlock is processed during Liveness Analysis
+	bool is_processed() const { return processed; }
+
+	/// Sets processed to 'true'
+	void mark_processed() { processed = true; }
+	/// Sets processed to 'false'
+	void mark_unprocessed() { processed = false; }
 private:
 	/// update instruction block
 	void update(MachineInstruction *MI);
@@ -280,6 +303,10 @@ private:
 	Container list;
 	PhiListTy phi;
 	PredListTy predecessors;
+	SuccListTy successors;
+
+	/// Used by liveness analysis
+	bool processed;
 
 	friend class MBBBuilder;
 	friend class MachineInstructionSchedule;
@@ -498,6 +525,22 @@ MachineBasicBlock::get_predecessor_index(MachineBasicBlock* MBB) const {
 	return i;
 }
 
+inline void MachineBasicBlock::insert_succ(MachineBasicBlock* value) {
+	successors.push_back(value);
+}
+inline MachineBasicBlock::const_succ_iterator MachineBasicBlock::succ_begin() const {
+	return successors.begin();
+}
+inline MachineBasicBlock::const_succ_iterator MachineBasicBlock::succ_end() const {
+	return successors.end();
+}
+inline MachineBasicBlock::succ_iterator MachineBasicBlock::succ_begin() {
+	return successors.begin();
+}
+inline MachineBasicBlock::succ_iterator MachineBasicBlock::succ_end() {
+	return successors.end();
+}
+
 inline bool MachineBasicBlock::operator==(const MachineBasicBlock &other) const {
 	//return this == &other;
 	return id == other.id;
@@ -556,6 +599,17 @@ MIIterator insert_after(MIIterator pos, MachineInstruction* value);
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
+
+namespace std {
+
+template<>
+struct hash<cacao::jit::compiler2::MachineBasicBlock*> {
+	std::size_t operator()(cacao::jit::compiler2::MachineBasicBlock *b) const {
+		return b->get_id();
+	}
+};
+
+} // end namespace std
 
 #endif /* _JIT_COMPILER2_MACHINEBASICBLOCK */
 

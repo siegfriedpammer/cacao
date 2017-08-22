@@ -99,6 +99,7 @@ protected:
 	virtual IdentifyOffsetTy id_offset() const { return 0; }
 	virtual IdentifySizeTy id_size()     const { return 1; }
 public:
+	static std::size_t get_id_counter() { return id_counter; }
 	std::size_t get_id() const { return id; }
 
 	explicit MachineOperand(OperandID op_id, Type::TypeID type)

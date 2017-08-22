@@ -31,6 +31,8 @@
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
+#include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/lsra/SpillPass.hpp"
 #include "vm/statistics.hpp"
 #include "vm/options.hpp"
 
@@ -1249,9 +1251,13 @@ bool LinearScanAllocatorPass::verify() const {
 // pass usage
 PassUsage& LinearScanAllocatorPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<LivetimeAnalysisPass>();
+	PU.add_requires<SpillPass>();
 	PU.add_requires<MachineInstructionSchedulingPass>();
 
 	PU.add_modifies<MachineInstructionSchedulingPass>();
+	
+	PU.add_destroys<LivetimeAnalysisPass>();
+	PU.add_destroys<NewLivetimeAnalysisPass>();
 	return PU;
 }
 
