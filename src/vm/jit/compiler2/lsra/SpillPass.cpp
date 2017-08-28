@@ -52,6 +52,8 @@ MachineInstruction::successor_iterator get_successor_end(MachineBasicBlock* MBB)
 	return MBB->back()->successor_end();
 }
 
+const unsigned kNRegs = 40; //< Number of avail. registers TODO: Get this from Backend
+
 } // end namespace
 
 void SpillPass::build_reverse_postorder(MachineBasicBlock* block)
@@ -68,31 +70,37 @@ void SpillPass::build_reverse_postorder(MachineBasicBlock* block)
 	reverse_postorder.push_front(block);
 }
 
+/**
+ * Checks whether an operand is available in all its predecessors.
+ * If its a PHI instruction, the operand param is ignored and the correct
+ * phi operand is looked up and used for each corresponding predecessor
+ */
 Available
 SpillPass::available_in_all_preds(MachineBasicBlock* block,
                                   const std::map<MachineBasicBlock*, const Workset*>& pred_worksets,
                                   MachineInstruction* instruction,
+                                  MachineOperand* op,
                                   bool is_phi)
 {
 	assert(pred_worksets.size() > 0);
 
 	bool available_everywhere = true;
 	bool available_nowhere = true;
+	MachineOperand* operand = nullptr;
 
 	for (const auto& pred_workset : pred_worksets) {
-		MachineOperandDesc* operand;
 		if (is_phi) {
 			auto idx = block->get_predecessor_index(pred_workset.first);
 			auto phi_instr = instruction->to_MachinePhiInst();
-			operand = &phi_instr->get(idx);
+			operand = phi_instr->get(idx).op;
 		}
 		else {
-			// TODO: If its not a phi, instruction should really be a used MO passed in
+			operand = op;
 		}
 
 		bool found = false;
 		for (const auto& location : *pred_workset.second) {
-			if (!operand->op->aquivalent(*location.op_desc->op)) {
+			if (!operand->aquivalent(*location.operand)) {
 				continue;
 			}
 
@@ -115,35 +123,54 @@ SpillPass::available_in_all_preds(MachineBasicBlock* block,
 	return Available::Partly;
 }
 
-#define USES_INFINITY 10000000
-
-static bool uses_is_infinite(unsigned time)
-{
-	return time >= USES_INFINITY;
-}
-
 Location SpillPass::to_take_or_not_to_take(MachineBasicBlock* block,
-                                           MachineInstruction* instruction,
+                                           MachineOperand* operand,
+                                           bool is_phi_result,
                                            Available available)
 {
 	Location location;
 	location.time = USES_INFINITY;
-	location.instruction = instruction;
+	location.operand = operand;
 	location.spilled = false;
 
 	// TODO: Implement architecture depending "dont spill" flag
 
-	NextUseTime next_use_time = next_use.get_next_use(block, instruction);
+	NextUseTime next_use_time = next_use.get_next_use(block, operand);
 	if (uses_is_infinite(next_use_time.time)) {
 		// operands marked as live in should not be dead, so it must be a phi
-		assert(instruction->to_MachinePhiInst());
+		assert(is_phi_result);
 		location.time = USES_INFINITY;
-		LOG3("\t" << *instruction << " not taken (dead)\n");
+		LOG3("\t" << *operand << " not taken (dead)\n");
 		return location;
 	}
+
+	location.time = next_use_time.time;
+	if (available == Available::Everywhere) {
+		LOG3("\t" << *operand << " taken (" << location.time << ", live in all preds)\n");
+		return location;
+	}
+	else if (available == Available::Nowhere) {
+		LOG3("\t" << *operand << " not taken (" << location.time << ", live in no pred)\n");
+		location.time = USES_INFINITY;
+		return location;
+	}
+
+	auto MLP = get_Pass<MachineLoopPass>();
+	auto loopdepth = MLP->loop_nest(MLP->get_Loop(block)) + 1;
+	if ((signed)next_use_time.outermost_loop >= loopdepth) {
+		LOG3("\t" << *operand << " taken (" << location.time << ", loop "
+		          << next_use_time.outermost_loop << ")\n");
+	}
+	else {
+		location.time = USES_PENDING;
+		LOG3("\t" << *operand << " delayed (outerdepth " << next_use_time.outermost_loop
+		          << " < loopdeth " << loopdepth << ")\n");
+	}
+
+	return location;
 }
 
-void SpillPass::decide_start_workset(MachineBasicBlock* block)
+WorksetUPtrTy SpillPass::decide_start_workset(MachineBasicBlock* block)
 {
 	std::map<MachineBasicBlock*, const Workset*> pred_worksets;
 	bool all_preds_known = true;
@@ -155,7 +182,7 @@ void SpillPass::decide_start_workset(MachineBasicBlock* block)
 			all_preds_known = false;
 		}
 		else {
-			pred_worksets[predecessor] = &iter->second.end();
+			pred_worksets[predecessor] = iter->second.end_workset.get();
 		}
 	}
 
@@ -165,15 +192,238 @@ void SpillPass::decide_start_workset(MachineBasicBlock* block)
 	LOG3("Living at the start of block [" << *block << "]\n");
 
 	// do PHis first
+	std::vector<MachineOperand*> phi_results;
 	for (auto i = block->phi_begin(), e = block->phi_end(); i != e; ++i) {
 		auto phi = *i;
 
 		Available available = Available::Unknown;
 		if (all_preds_known) {
-			available = available_in_all_preds(block, pred_worksets, phi, true);
+			available = available_in_all_preds(block, pred_worksets, phi, nullptr, true);
 		}
 
-		Location location = to_take_or_not_to_take(block, phi, available);
+		Location location = to_take_or_not_to_take(block, phi->get_result().op, true, available);
+		if (!uses_is_infinite(location.time)) {
+			if (uses_is_pending(location.time)) {
+				delayed.push_back(location);
+			}
+			else {
+				starters.push_back(location);
+			}
+		}
+		else {
+			// TODO: Spill phi
+			assert(false && "Spill phi not implemented!");
+		}
+
+		phi_results.push_back(phi->get_result().op);
+	}
+
+	// check all live-ins
+	auto LTA = get_Pass<NewLivetimeAnalysisPass>();
+	LTA->for_each_live_in(block, [&](auto operand) {
+		// Phi definitions are also in live_in but we do not handle them again
+		for (const auto& phi_result : phi_results) {
+			if (phi_result->aquivalent(*operand)) {
+				LOG3("Operand " << *operand << " is a phi definition (skipping).\n");
+				return;
+			}
+		}
+
+		LOG3("Operand " << *operand << " is live in " << *block << nl);
+
+		Available available = Available::Unknown;
+		if (all_preds_known) {
+			available = this->available_in_all_preds(block, pred_worksets, nullptr, operand, false);
+		}
+
+		Location location = this->to_take_or_not_to_take(block, operand, false, available);
+		if (!uses_is_infinite(location.time)) {
+			if (uses_is_pending(location.time)) {
+				delayed.push_back(location);
+			}
+			else {
+				starters.push_back(location);
+			}
+		}
+	});
+
+	auto MLP = get_Pass<MachineLoopPass>();
+	auto loop = MLP->get_Loop(block);
+	assert(loop && "Wtf am i going to do now???");
+	unsigned pressure = loop->get_register_pressure();
+	assert(delayed.size() <= pressure);
+
+	int free_slots = kNRegs - starters.size();
+	int free_pressure_slots = kNRegs - (pressure - delayed.size());
+	free_slots = std::min(free_slots, free_pressure_slots);
+
+	// so far we only put values into the starters list taht are used inside
+	// the loop. If register pressure in the loop is low then we can take some
+	// values and let them live through the loop
+	LOG2("Loop pressure " << pressure << ", taking " << free_slots << " delayed vals\n");
+	if (free_slots > 0) {
+		std::sort(delayed.begin(), delayed.end());
+
+		for (const auto& location : delayed) {
+			if (free_slots <= 0) {
+				break;
+			}
+
+			LOG3("    " << *location.operand << " location");
+		}
+
+		if (delayed.size() > 0)
+			assert(false && "Delayed values in free registers not implemented!");
+	}
+
+	// Spill phis (the actual phis not just their values) that are in this
+	// block but not in the start workset
+	for (const auto& location : delayed) {
+		assert(false && "Spilling delayed PHIs not implemented!");
+	}
+
+	std::sort(starters.begin(), starters.end());
+
+	// Copy best starters to start workset
+	unsigned workset_count = std::min<unsigned>(starters.size(), kNRegs);
+	auto workset = std::make_unique<Workset>();
+	std::copy_n(starters.begin(), workset_count, std::back_inserter(*workset));
+
+	// Spill phis (the actual phis not just their values) that are in this
+	// block but not in the start workset
+	for (unsigned i = workset_count, len = starters.size(); i < len; ++i) {
+		assert(false && "Spilling of starter PHIs not implemented!");
+	}
+
+	// Determine spill status of the values: If there is 1 predecessor block
+	// (which is no backedge) where the value is spilled then we must set it to
+	// spilled here
+	for (auto& location : *workset) {
+		// Phis from this block are not spilled
+		auto instr = location.operand->get_defining_instruction();
+		if (instr && *instr->get_block() == *block) {
+			assert(instr->to_MachinePhiInst());
+			location.spilled = false;
+			continue;
+		}
+
+		// determine if value was spilled on any predecessor
+		assert(false && "Not implemented!");
+	}
+
+	return workset;
+}
+
+#define TIME_UNDEFINED 6666
+
+// TODO: Workset really needs to be its own class and this a member method
+static void workset_insert(Workset& workset, MachineOperand* operand, bool spilled)
+{
+	// If it is already in the set only update spilled flag
+	for (auto& location : workset) {
+		if (location.operand->aquivalent(*operand)) {
+			if (spilled) {
+				location.spilled = true;
+			}
+			return;
+		}
+	}
+
+	Location location;
+	location.operand = operand;
+	location.spilled = spilled;
+	location.time = TIME_UNDEFINED;
+
+	workset.push_back(location);
+}
+
+// TODO: Workset really needs to be its own class and this a member method
+static Location* workset_contains(Workset& workset, MachineOperand* operand)
+{
+	for (auto& location : workset) {
+		if (location.operand->aquivalent(*operand)) {
+			return &location;
+		}
+	}
+	return nullptr;
+}
+
+// TODO: Workset really needs to be its own class and this a member method
+static void workset_remove(Workset& workset, MachineOperand* operand)
+{
+	for (auto i = workset.begin(), e = workset.end(); i != e; ++i) {
+		auto location = *i;
+		if (location.operand->aquivalent(*operand)) {
+			workset.erase(i);
+			return;
+		}
+	}
+}
+
+static void log_workset(const Workset& workset)
+{
+	for (const auto& location : workset) {
+		LOG3("   Location operand: " << *location.operand << nl);
+	}
+}
+
+/**
+ * Performs the actions necessary to grant the request that:
+ * - new_vals can be held in registers
+ * - as few as possible other values are disposed
+ * - the worst values get disposed
+ *
+ * is_usage indicates that the values are used (not defined)
+ * In this case reloads must be performed
+ */
+void SpillPass::displace(Workset& workset,
+                         const Workset& new_vals,
+                         bool const is_usage,
+                         MachineInstruction* instruction)
+{
+	std::vector<MachineOperand*> to_insert(kNRegs, nullptr);
+	std::vector<bool> spilled(kNRegs, false);
+
+	// 1. Identify the number of needed slots and the values to reload
+	unsigned demand = 0;
+
+	for (const auto& location : new_vals) {
+		auto operand = location.operand;
+		bool reloaded = false;
+
+		if (workset_contains(workset, operand) == nullptr) {
+			LOG3("\t\tinsert " << *operand << nl);
+			if (is_usage) {
+				LOG3("\tReload " << *operand << " before " << *instruction << nl);
+				// TODO: Add reload of value before the given instruction
+				reloaded = true;
+			}
+		}
+		else {
+			LOG3("\t\t" << *operand << " already in workset\n");
+			// TODO: Can we really get rid of this assert? 
+			// assert(is_usage);
+
+			// Remove the value from the current workset so it is not accidently spilled
+			workset_remove(workset, operand);
+		}
+		spilled[demand] = reloaded;
+		to_insert[demand] = location.operand;
+		++demand;
+	}
+
+	// 2. make room for at least 'demand' slots
+	unsigned len = workset.size();
+	int spills_needed = len + demand - kNRegs;
+
+	if (spills_needed > 0) {
+		// TODO: Implement spilling
+		assert(false && "Spilling not implemented in displace!!");
+	}
+
+	// 3. Insert the new values into the workset
+	for (unsigned i = 0; i < demand; ++i) {
+		workset_insert(workset, to_insert[i], spilled[i]);
 	}
 }
 
@@ -181,6 +431,7 @@ bool SpillPass::run(JITData& JD)
 {
 	LOG(nl << BoldYellow << "Running SpillPass" << reset_color << nl);
 	next_use.initialize(this);
+	loop_pressure.initialize(this);
 	auto MIS = get_Pass<MachineInstructionSchedulingPass>();
 
 	build_reverse_postorder(MIS->front());
@@ -197,16 +448,56 @@ bool SpillPass::run(JITData& JD)
 		else if (arity == 1) {
 			// one predecessor, copy its end workset
 			auto& pred_info = block_infos[*block->pred_begin()];
-			workset = std::make_unique<Workset>(pred_info.end());
+			workset = std::make_unique<Workset>(*pred_info.end_workset);
 		}
 		else {
 			// multiple predecessors, calculate the start workset
-			decide_start_workset(block);
-			ABORT_MSG("decide_start_workset not implemented", "");
+			workset = decide_start_workset(block);
 		}
+
+		if (DEBUG_COND_N(3)) {
+			LOG3("\nStart workset for " << *block << ":\n");
+			for (const auto& location : *workset) {
+				LOG3("  " << *location.operand << " (" << location.time << ")\n");
+			}
+			LOG3(nl);
+		}
+
+		BlockInfo block_info;
+		block_info.start_workset = std::make_unique<Workset>(*workset);
+
+		for (const auto& instruction : *block) {
+			// allocate all values _used_ by this instruction
+			Workset new_uses;
+			for (auto& operand_desc : *instruction) {
+				if (reg_alloc_considers_operand(*operand_desc.op)) {
+					workset_insert(new_uses, operand_desc.op, false);
+				}
+			}
+			displace(*workset, new_uses, true, instruction);
+
+			// allocate the value _defined_ by this instruction
+			Workset new_def;
+			auto& operand_desc = instruction->get_result();
+			if (reg_alloc_considers_operand(*operand_desc.op)) {
+				workset_insert(new_def, operand_desc.op, false);
+			}
+			displace(*workset, new_def, false, instruction);
+		}
+
+		// Remember end-workset for this block
+		block_info.end_workset = std::make_unique<Workset>(*workset);
+		if (DEBUG_COND_N(3)) {
+			LOG3("\nEnd workset for " << *block << ":\n");
+			for (const auto& location : *workset) {
+				LOG3("  " << *location.operand << " (" << location.time << ")\n");
+			}
+			LOG3(nl);
+		}
+
+		block_infos[block] = std::move(block_info);
 	}
 
-	ABORT_MSG("This is the end.", "Do not continue");
 	return true;
 }
 

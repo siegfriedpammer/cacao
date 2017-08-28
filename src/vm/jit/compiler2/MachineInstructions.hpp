@@ -56,6 +56,7 @@ public:
 		for(unsigned i = 0; i < num_operands; ++i) {
 			operands[i].op = new UnassignedReg(type);
 		}
+		get_result().op->set_defining_instruction(this);
 	}
 
 	virtual bool is_phi() const {

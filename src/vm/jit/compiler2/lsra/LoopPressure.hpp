@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/DominatorPass.hpp - DominatorPass
+/* src/vm/jit/compiler2/lsra/LoopPressure.hpp - LoopPressure
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,26 +22,34 @@
 
 */
 
-#ifndef _JIT_COMPILER2_DOMINATORPASS
-#define _JIT_COMPILER2_DOMINATORPASS
+#ifndef _JIT_COMPILER2_LSRA_LOOPPRESSURE
+#define _JIT_COMPILER2_LSRA_LOOPPRESSURE
 
-#include "vm/jit/compiler2/DominatorPassBase.hpp"
+#include "vm/jit/compiler2/MachineLoop.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-using DominatorTree = DominatorTreeBase<BeginInst>;
-using DominatorPass = DominatorPassBase<BeginInst>;
-		
-MM_CLASS_NAME(DominatorPass)
+class SpillPass;
+
+class LoopPressureAnalysis {
+public:
+	void initialize(SpillPass* sp);
+
+private:
+	SpillPass* SP;
+
+	void compute_loop_pressures();
+	unsigned compute_loop_pressure(MachineLoop* loop);
+	unsigned compute_block_pressure(MachineBasicBlock* block);
+};
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_DOMINATORPASS */
-
+#endif /* _JIT_COMPILER2_LSRA_LOOPPRESSURE */
 
 /*
  * These are local overrides for various environment variables in Emacs.

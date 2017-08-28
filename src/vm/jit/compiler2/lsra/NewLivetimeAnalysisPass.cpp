@@ -100,22 +100,23 @@ void NewLivetimeAnalysisPass::dag_dfs(MachineBasicBlock* block)
 		auto instruction = *i;
 
 		// phis are handled separately
-		if (instruction->is_phi())
+		if (!reg_alloc_considers_instruction(instruction) || instruction->is_phi())
 			continue;
 
 		// Remove operands defined in this instruction from live
-		live[instruction->get_result().op->get_id()] = false;
+		auto result_op = instruction->get_result().op;
+		if (reg_alloc_considers_operand(*result_op)) {
+			live[result_op->get_id()] = false;
+		}
 
 		// Add used operands in this instruction to live (also for dummy
 		// operands)
 		auto lambda_used_op = [&](auto op_desc) {
-			if (!op_desc.op->needs_allocation())
+			if (!reg_alloc_considers_operand(*op_desc.op))
 				return;
 
 			live[op_desc.op->get_id()] = true;
-#if !defined(NDEBUG)
-			operandMap[op_desc.op->get_id()] = op_desc.op;
-#endif
+			operands[op_desc.op->get_id()] = op_desc.op;
 		};
 
 		std::for_each(instruction->begin(), instruction->end(), lambda_used_op);
@@ -142,13 +143,14 @@ boost::dynamic_bitset<> NewLivetimeAnalysisPass::phi_uses(MachineBasicBlock* blo
 		std::for_each(successor->phi_begin(), successor->phi_end(), [&](auto phi_instr) {
 			auto idx = successor->get_predecessor_index(block);
 			auto operand = phi_instr->get(idx).op;
+			if (!reg_alloc_considers_operand(*operand)) {
+				return;
+			}
 			phi_uses[operand->get_id()] = true;
 
 			LOG3("\tphi operand " << *operand << " is used in " << *block << " (phi instr in "
 			                      << *successor << ")" << nl);
-#if !defined(NDEBUG)
-			operandMap[operand->get_id()] = operand;
-#endif
+			operands[operand->get_id()] = operand;
 		});
 	});
 
@@ -161,12 +163,13 @@ boost::dynamic_bitset<> NewLivetimeAnalysisPass::phi_defs(MachineBasicBlock* blo
 
 	std::for_each(block->phi_begin(), block->phi_end(), [&](auto phi_instr) {
 		auto operand = phi_instr->get_result().op;
+		if (!reg_alloc_considers_operand(*operand)) {
+			return;
+		}
 		phi_defs[operand->get_id()] = true;
 
 		LOG3("\tphi operand " << *operand << " is defined in " << *block << nl);
-#if !defined(NDEBUG)
-		operandMap[operand->get_id()] = operand;
-#endif
+		operands[operand->get_id()] = operand;
 	});
 
 	return phi_defs;
@@ -180,7 +183,7 @@ void NewLivetimeAnalysisPass::log_livety(OStream& OS, const LiveTy& liveSet)
 
 	OS << "[";
 	for (std::size_t i = 0; i < liveSet.size(); ++i) {
-		auto operand = operandMap[i];
+		auto operand = operands[i];
 
 		if (liveSet[i]) {
 			if (loggedElement)
@@ -235,6 +238,7 @@ bool NewLivetimeAnalysisPass::run(JITData& JD)
 {
 	LOG(nl << BoldYellow << "Running NewLivetimeAnalysisPass" << reset_color << nl);
 	num_operands = MachineOperand::get_id_counter();
+	operands = std::vector<MachineOperand*>(num_operands, nullptr);
 	LOG2("Initializing bitsets with size " << num_operands << " (number of operands)" << nl);
 
 	MachineInstructionSchedulingPass* MIS = get_Pass<MachineInstructionSchedulingPass>();
@@ -256,6 +260,38 @@ bool NewLivetimeAnalysisPass::run(JITData& JD)
 	}
 
 	return true;
+}
+
+LiveTy NewLivetimeAnalysisPass::liveness_transfer(const LiveTy& live, MachineInstruction* instruction) const
+{
+	LiveTy result(live);
+
+	assert(!instruction->to_MachinePhiInst() &&
+	       "Arguments of a phi functions are not live at the beginning of a block!");
+
+	if (!reg_alloc_considers_instruction(instruction))
+		return result;
+
+	auto result_operand = instruction->get_result().op;
+	if (reg_alloc_considers_operand(*result_operand)) {
+		result[result_operand->get_id()] = false;
+
+		assert(!result_operand->has_embedded_operands() &&
+		       "Embedded result operands not implemented!");
+	}
+
+	auto used_operands_transfer = [&](const auto& operand_desc) {
+		auto operand = operand_desc.op;
+		if (!reg_alloc_considers_operand(*operand))
+			return;
+
+		result[operand->get_id()] = true;
+	};
+
+	std::for_each(instruction->begin(), instruction->end(), used_operands_transfer);
+	std::for_each(instruction->dummy_begin(), instruction->dummy_end(), used_operands_transfer);
+
+	return result;
 }
 
 // pass usage

@@ -56,6 +56,7 @@ class CONSTInst;
 
 class MachineOperandDesc;
 class MachineOperand;
+class MachineInstruction;
 
 class EmbeddedMachineOperand : public memory::ManagerMixin<EmbeddedMachineOperand> {
 public:
@@ -90,6 +91,7 @@ private:
 	std::size_t id;
 	OperandID op_id;
 	Type::TypeID type;
+	MachineInstruction* defining_instruction; //< Only used by MachinePhiInsts (needed in SpillPhase)
 protected:
 	/**
 	 * TODO describe
@@ -198,6 +200,13 @@ public:
 	virtual OStream& print(OStream &OS) const {
 		return OS << get_name() /* << " (" << get_type() << ")" */;
 	}
+
+	MachineInstruction* get_defining_instruction() {
+		return defining_instruction;
+	}
+	void set_defining_instruction(MachineInstruction* instruction) {
+		defining_instruction = instruction;
+	}
 };
 
 class VoidOperand : public MachineOperand {
@@ -251,10 +260,10 @@ public:
 		return "vreg";
 	}
 	virtual OStream& print(OStream &OS) const {
-		return MachineOperand::print(OS) << get_id();
+		return MachineOperand::print(OS) << vreg;
 	}
 	virtual bool is_virtual() const { return true; }
-	unsigned get_id() const { return vreg; }
+	// unsigned get_id() const { return vreg; }
 };
 
 class StackSlot : public MachineOperand {

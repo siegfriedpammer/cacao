@@ -28,6 +28,7 @@
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/MachineInstruction.hpp"
 #include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/lsra/LoopPressure.hpp"
 #include "vm/jit/compiler2/lsra/NextUse.hpp"
 
 MM_MAKE_NAME(SpillPass)
@@ -39,21 +40,20 @@ namespace compiler2 {
 enum class Available { Everywhere, Nowhere, Partly, Unknown };
 
 struct Location {
-	MachineOperandDesc* op_desc;
-	MachineInstruction* instruction;
+	MachineOperand* operand;
 	unsigned time;
 	bool spilled;
+
+	bool operator<(const Location& other) {
+		return time < other.time;
+	}
 };
 
 using Workset = std::vector<Location>;
 
 using WorksetUPtrTy = std::unique_ptr<Workset>;
 
-class BlockInfo {
-public:
-	const Workset& end() const { return *end_workset; }
-
-private:
+struct BlockInfo {
 	WorksetUPtrTy start_workset;
 	WorksetUPtrTy end_workset;
 };
@@ -69,8 +69,9 @@ public:
 private:
 	NextUse next_use;
 	BlockInfosTy block_infos;
+	LoopPressureAnalysis loop_pressure;
 
-	void decide_start_workset(MachineBasicBlock* block);
+	WorksetUPtrTy decide_start_workset(MachineBasicBlock* block);
 
 	using BlockOrder = alloc::list<MachineBasicBlock*>::type;
 	BlockOrder reverse_postorder;
@@ -81,11 +82,18 @@ private:
 	available_in_all_preds(MachineBasicBlock* block,
 	                       const std::map<MachineBasicBlock*, const Workset*>& pred_worksets,
 	                       MachineInstruction* instruction,
+	                       MachineOperand* operand,
 	                       bool is_phi);
 
 	Location to_take_or_not_to_take(MachineBasicBlock* block,
-	                                MachineInstruction* instruction,
+	                                MachineOperand* operand,
+	                                bool is_phi_result,
 	                                Available available);
+
+	void displace(Workset& workset,
+	              const Workset& new_vals,
+	              bool const is_usage,
+	              MachineInstruction* instruction);
 };
 
 } // end namespace compiler2

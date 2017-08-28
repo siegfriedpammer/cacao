@@ -26,19 +26,20 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
-#include "vm/jit/compiler2/LinearScanAllocatorPass.hpp"
+#include "vm/jit/compiler2/lsra/RegisterAssignmentPass.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
 bool RegisterAllocatorPass::run(JITData &JD) {
+	// ABORT_MSG("This is the end.", "The buck stops here!");
 	return true;
 }
 
 // pass usage
 PassUsage& RegisterAllocatorPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<LinearScanAllocatorPass>();
+	PU.add_requires<RegisterAssignmentPass>();
 	return PU;
 }
 

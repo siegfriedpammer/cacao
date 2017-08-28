@@ -188,8 +188,16 @@ void X86_64LoweringVisitor::visit(LOADInst *I, bool copyOperands) {
 		ABORT_MSG("x86_64 type not supported: ",
 			  I << " type: " << type);
 	}
-	get_current()->push_back(move);
-	set_op(I,move->get_result().op);
+	// get_current()->push_back(move);
+	// set_op(I,move->get_result().op);
+
+	// Just for testing, dont insert a move, just add a virtual register
+	// that has the requirement that it MUST correspond to the correct machine register
+	// and let the register allocator split the lifetime if needed
+	// Also add an empty instruction that produces the parameter as a result so we get correct
+	// livetimes
+	get_current()->push_back(new ParamInst(dst));
+	set_op(I, dst);
 }
 
 void X86_64LoweringVisitor::visit(CMPInst *I, bool copyOperands) {
@@ -509,9 +517,9 @@ void X86_64LoweringVisitor::visit(SUBInst *I, bool copyOperands) {
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
 	Type::TypeID type = I->get_type();
-	VirtualRegister *dst = NULL;
+	VirtualRegister *dst = new VirtualRegister(type);
 
-	setupSrcDst(src_op1, src_op2, dst, type, copyOperands, I->is_commutable());
+	// setupSrcDst(src_op1, src_op2, dst, type, copyOperands, I->is_commutable());
 
 	MachineInstruction *alu = NULL;
 
@@ -519,9 +527,14 @@ void X86_64LoweringVisitor::visit(SUBInst *I, bool copyOperands) {
 	case Type::ByteTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
+		//alu = new SubInst(
+		//	Src2Op(src_op2),
+		//	DstSrc1Op(dst),
+		//	get_OperandSize_from_Type(type));
 		alu = new SubInst(
+			DstOp(dst),
+			Src1Op(src_op1),
 			Src2Op(src_op2),
-			DstSrc1Op(dst),
 			get_OperandSize_from_Type(type));
 		break;
 	case Type::DoubleTypeID:
@@ -547,9 +560,9 @@ void X86_64LoweringVisitor::visit(MULInst *I, bool copyOperands) {
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
 	Type::TypeID type = I->get_type();
-	VirtualRegister *dst = NULL;
+	VirtualRegister *dst = new VirtualRegister(type);
 
-	setupSrcDst(src_op1, src_op2, dst, type, copyOperands, I->is_commutable());
+	// setupSrcDst(src_op1, src_op2, dst, type, copyOperands, I->is_commutable());
 
 	MachineInstruction *alu = NULL;
 
@@ -557,9 +570,14 @@ void X86_64LoweringVisitor::visit(MULInst *I, bool copyOperands) {
 	case Type::ByteTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
+		//alu = new IMulInst(
+		//	Src2Op(src_op2),
+		//	DstSrc1Op(dst),
+		//	get_OperandSize_from_Type(type));
 		alu = new IMulInst(
+			DstOp(dst),
+			Src1Op(src_op1),
 			Src2Op(src_op2),
-			DstSrc1Op(dst),
 			get_OperandSize_from_Type(type));
 		break;
 	case Type::DoubleTypeID:
@@ -923,14 +941,18 @@ void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 	case Type::LongTypeID:
 	case Type::ReferenceTypeID:
 	{
-		MachineOperand *ret_reg = new NativeRegister(type,&RAX);
-		MachineInstruction *reg = new MovInst(
-			SrcOp(src_op),
-			DstOp(ret_reg),
-			get_OperandSize_from_Type(type));
+		// TODO: Just for testing, we do not spilt the life time manually here but
+		//       let the register allocator do it, if its needed. We only add the
+		//       requirement that VirtualReg MUST be in the return register
+		
+		//MachineOperand *ret_reg = new NativeRegister(type,&RAX);
+		//MachineInstruction *reg = new MovInst(
+		//	SrcOp(src_op),
+		//	DstOp(ret_reg),
+		//	get_OperandSize_from_Type(type));
 		LeaveInst *leave = new LeaveInst();
-		RetInst *ret = new RetInst(get_OperandSize_from_Type(type),SrcOp(ret_reg));
-		get_current()->push_back(reg);
+		RetInst *ret = new RetInst(get_OperandSize_from_Type(type),SrcOp(src_op));
+		// get_current()->push_back(reg);
 		get_current()->push_back(leave);
 		get_current()->push_back(ret);
 		set_op(I,ret->get_result().op);

@@ -74,6 +74,7 @@ libcompiler2_la_SOURCES = \
 	DataSegment.hpp \
 	DominatorPass.cpp \
 	DominatorPass.hpp \
+	DominatorPassBase.hpp \
 	DomTreePrinterPass.cpp \
 	DomTreePrinterPass.hpp \
 	ExamplePass.cpp \
@@ -116,6 +117,8 @@ libcompiler2_la_SOURCES = \
 	MachineAddress.hpp \
 	MachineBasicBlock.cpp \
 	MachineBasicBlock.hpp \
+	MachineDominatorPass.cpp \
+	MachineDominatorPass.hpp \
 	MachineInstruction.cpp \
 	MachineInstruction.hpp \
 	MachineInstructionPrinterPass.cpp \

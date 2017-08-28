@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/DominatorPass.cpp - DominatorPass
+/* src/vm/jit/compiler2/MachineDominatorPass.cpp - MachineDominatorPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,68 +22,72 @@
 
 */
 
-#include "vm/jit/compiler2/DominatorPass.hpp"
+#include "vm/jit/compiler2/MachineDominatorPass.hpp"
 
-#include "vm/jit/compiler2/CFGMetaPass.hpp"
+#include "vm/jit/compiler2/MachineBasicBlock.hpp"
+#include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
 template <>
-DominatorPass::NodeTy* DominatorPass::get_init_node(JITData& JD)
+MachineDominatorPass::NodeTy* MachineDominatorPass::get_init_node(JITData& JD)
 {
-	auto method = JD.get_Method();
-	return method->get_init_bb();
+	auto MIS = get_Pass<MachineInstructionSchedulingPass>();
+	return MIS->front();
 }
 
 template<>
-std::size_t DominatorPass::get_nodes_size(JITData &JD)
+std::size_t MachineDominatorPass::get_nodes_size(JITData &JD)
 {
-	auto method = JD.get_Method();
-	return method->bb_size();
+	auto MIS = get_Pass<MachineInstructionSchedulingPass>();
+	return MIS->size();
 }
 
 template<>
-auto DominatorPass::node_begin(JITData &JD)
+auto MachineDominatorPass::node_begin(JITData &JD)
 {
-	auto method = JD.get_Method();
-	return method->bb_begin();
+	auto MIS = get_Pass<MachineInstructionSchedulingPass>();
+	return MIS->begin();
 }
 
 template<>
-auto DominatorPass::node_end(JITData &JD)
+auto MachineDominatorPass::node_end(JITData &JD)
 {
-	auto method = JD.get_Method();
-	return method->bb_end();
+	auto MIS = get_Pass<MachineInstructionSchedulingPass>();
+	return MIS->end();
 }
 
 template<>
-auto DominatorPass::succ_begin(DominatorPass::NodeTy* v)
+auto MachineDominatorPass::succ_begin(MachineDominatorPass::NodeTy* block)
 {
-	EndInst *ve = v->get_EndInst();
-	assert(ve);
-	return ve->succ_begin();
+	return block->back()->successor_begin();
 }
 
 template<>
-auto DominatorPass::succ_end(DominatorPass::NodeTy* v)
+auto MachineDominatorPass::succ_end(MachineDominatorPass::NodeTy* block)
 {
-	EndInst *ve = v->get_EndInst();
-	assert(ve);
-	return ve->succ_end();
+	return block->back()->successor_end();
+}
+
+template<>
+template<>
+MachineDominatorPass::NodeTy* MachineDominatorPass::get(MachineBasicBlock* block)
+{
+	return block;
 }
 
 // pass usage
 template <>
-PassUsage& DominatorPass::get_PassUsage(PassUsage& PU) const
+PassUsage& MachineDominatorPass::get_PassUsage(PassUsage& PU) const
 {
-	PU.add_requires<CFGMetaPass>();
+	PU.add_requires<MachineInstructionSchedulingPass>();
 	return PU;
 }
 
 // register pass
-static PassRegistry<DominatorPass> X("DominatorPass");
+static PassRegistry<MachineDominatorPass> X("MachineDominatorPass");
 
 } // end namespace compiler2
 } // end namespace jit

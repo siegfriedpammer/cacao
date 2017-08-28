@@ -25,6 +25,7 @@
 #ifndef _JIT_COMPILER2_SCHEDULELATEPASS
 #define _JIT_COMPILER2_SCHEDULELATEPASS
 
+#include "vm/jit/compiler2/DominatorPass.hpp"
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/Loop.hpp"
 #include "vm/jit/compiler2/GlobalSchedule.hpp"
@@ -38,7 +39,6 @@ namespace compiler2 {
 
 class Method;
 class Instruction;
-class DominatorTree;
 
 /**
  * ScheduleLatePass

@@ -323,6 +323,19 @@ public:
 
 GPInstruction::OperandSize get_OperandSize_from_Type(const Type::TypeID type);
 
+// Just a "meta" instruction that produces a parameter so it
+// is "live". What we really want is a "Enter" instruction that
+// produces multiple result values (one for each parameter passed
+// to a method)
+class ParamInst : public GPInstruction {
+public:
+	ParamInst(MachineOperand* dst)
+		: GPInstruction("X86_64Parameter", dst,
+		  get_operand_size_from_Type(dst->get_type()), 0) {}
+	virtual void emit(CodeMemory* CM) const {}
+};
+
+
 /**
  * This abstract class represents a x86_64 ALU instruction.
  *
@@ -371,6 +384,15 @@ public:
 		set_operand(1,src2.op);
 		finalize_operands();
 	}
+	ALUInstruction(const char * name, const DstOp& dst, const Src1Op& src1,
+			const Src2Op& src2, OperandSize op_size, u1 alu_id)
+			: GPInstruction(name, dst.op, op_size, 2), alu_id(alu_id) {
+		assert(alu_id < 8);
+		set_operand(0, src1.op);
+		set_operand(1, src2.op);
+		finalize_operands();
+	}
+
 	/**
 	 * This must be implemented by subclasses.
 	 */
@@ -432,6 +454,9 @@ public:
 		OperandSize op_size)
 			: ALUInstruction("X86_64SubInst", dstsrc1, src2, op_size, 5) {
 	}
+	SubInst(const DstOp& dst, const Src1Op& src1, const Src2Op& src2, 
+		OperandSize op_size)
+			:ALUInstruction("X86_64SubInst", dst, src1, src2, op_size, 5) {}
 };
 class XorInst : public ALUInstruction {
 public:
@@ -495,6 +520,13 @@ public:
 			: GPInstruction("X86_64IMulInst", dstsrc1.op, op_size, 2) {
 		set_operand(0,dstsrc1.op);
 		set_operand(1,src2.op);
+		finalize_operands();
+	}
+	IMulInst(const DstOp& dst, const Src1Op& src1, const Src2Op& src2,
+		OperandSize op_size)
+			: GPInstruction("X86_64IMulInst", dst.op, op_size, 2) {
+		set_operand(0, src1.op);
+		set_operand(1, src2.op);
 		finalize_operands();
 	}
 	virtual void emit(CodeMemory* CM) const;

@@ -25,6 +25,7 @@
 #ifndef _JIT_COMPILER2_SCHEDULEEARLYPASS
 #define _JIT_COMPILER2_SCHEDULEEARLYPASS
 
+#include "vm/jit/compiler2/DominatorPass.hpp"
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/GlobalSchedule.hpp"
 
@@ -37,7 +38,6 @@ namespace compiler2 {
 
 class Method;
 class Instruction;
-class DominatorTree;
 
 /**
  * ScheduleEarlyPass

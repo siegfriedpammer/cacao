@@ -55,6 +55,7 @@ void LoweringVisitorBase::visit(GOTOInst* I, bool copyOperands) {
 void LoweringVisitorBase::visit(PHIInst* I, bool copyOperands) {
 	assert(I);
 	MachinePhiInst *phi = new MachinePhiInst(I->op_size(),I->get_type(),I);
+	phi->set_block(get_current()); // TODO: This shoudl really happen in the MBB
 	//get_current()->push_back(phi);
 	get_current()->insert_phi(phi);
 	set_op(I,phi->get_result().op);

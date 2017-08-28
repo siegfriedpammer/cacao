@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/DominatorPass.hpp - DominatorPass
+/* src/vm/jit/compiler2/MachineDominatorPass.hpp - MachineDominatorPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,8 +22,8 @@
 
 */
 
-#ifndef _JIT_COMPILER2_DOMINATORPASS
-#define _JIT_COMPILER2_DOMINATORPASS
+#ifndef _JIT_COMPILER2_MACHINEDOMINATORPASS
+#define _JIT_COMPILER2_MACHINEDOMINATORPASS
 
 #include "vm/jit/compiler2/DominatorPassBase.hpp"
 
@@ -31,16 +31,16 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-using DominatorTree = DominatorTreeBase<BeginInst>;
-using DominatorPass = DominatorPassBase<BeginInst>;
+using MachineDominatorTree = DominatorTreeBase<MachineBasicBlock>;
+using MachineDominatorPass = DominatorPassBase<MachineBasicBlock>;
 		
-MM_CLASS_NAME(DominatorPass)
+MM_CLASS_NAME(MachineDominatorPass)
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_DOMINATORPASS */
+#endif /* _JIT_COMPILER2_MACHINEDOMINATORPASS */
 
 
 /*

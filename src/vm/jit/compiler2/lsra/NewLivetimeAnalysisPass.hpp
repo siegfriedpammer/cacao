@@ -46,6 +46,52 @@ public:
 	virtual bool run(JITData& JD);
 	virtual PassUsage& get_PassUsage(PassUsage& PU) const;
 
+	bool is_live_in(MachineBasicBlock* block, MachineOperand* operand)
+	{
+		return get_live_in(block)[operand->get_id()];
+	}
+
+	template <typename UnaryFunction>
+	UnaryFunction for_each(const LiveTy& live, UnaryFunction f)
+	{
+		for (std::size_t i = 0, e = live.size(); i < e; ++i) {
+			if (live[i]) {
+				f(operands[i]);
+			}
+		}
+		return f;
+	}
+
+	template <typename UnaryFunction>
+	UnaryFunction for_each_live_in(MachineBasicBlock* block, UnaryFunction f)
+	{
+		auto& live_in = get_live_in(block);
+		return for_each(live_in, f);
+	}
+
+	template <typename UnaryFunction>
+	UnaryFunction for_each_live_out(MachineBasicBlock* block, UnaryFunction f)
+	{
+		auto& live_out = get_live_out(block);
+		return for_each(live_out, f);
+	}
+
+	/**
+	 * Updates a liveness set over a single step.
+	 * @param live The live out set of instruction
+	 * @return The live in set of instruction
+	 */
+	LiveTy liveness_transfer(const LiveTy& live, MachineInstruction* instruction) const;
+
+	LiveTy& get_live_in(MachineBasicBlock* block) { return get_livety(liveInMap, block); }
+	LiveTy& get_live_out(MachineBasicBlock* block) { return get_livety(liveOutMap, block); }
+
+	std::size_t get_num_operands() const { return num_operands; }
+
+#if !defined(NDEBUG)
+	void log_livety(OStream& OS, const LiveTy& liveSet);
+#endif
+
 private:
 	std::size_t num_operands;
 	LiveMapTy liveInMap;
@@ -65,18 +111,19 @@ private:
 		}
 		return it->second;
 	}
-	LiveTy& get_live_in(MachineBasicBlock* block) { return get_livety(liveInMap, block); }
-	LiveTy& get_live_out(MachineBasicBlock* block) { return get_livety(liveOutMap, block); }
 
-// To get better debug information, we keep a map that maps operant IDs, to
-// operands
-#if !defined(NDEBUG)
-	using OperandMap = alloc::map<std::size_t, MachineOperand*>::type;
-	OperandMap operandMap;
-
-	void log_livety(OStream& OS, const LiveTy& liveSet);
-#endif
+	std::vector<MachineOperand*> operands;
 };
+
+inline bool reg_alloc_considers_operand(const MachineOperand& op)
+{
+	return op.needs_allocation();
+}
+
+inline bool reg_alloc_considers_instruction(MachineInstruction* instruction)
+{
+	return instruction->to_MachineReplacementPointInst() == nullptr;
+}
 
 } // end namespace compiler2
 } // end namespace jit

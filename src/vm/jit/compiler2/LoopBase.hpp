@@ -54,6 +54,7 @@ private:
 	LoopBase      *parent;
 	LoopSetTy inner_loops;
 	NodeTypeListTy children;
+	unsigned register_pressure; //< Maximum register pressure inside this loop (only used by MachineLoops)
 public:
 	LoopBase(NodeType *header, NodeType *exit) : header(header), exit(exit), parent(NULL) {}
 	NodeType *get_header() const {
@@ -87,6 +88,12 @@ public:
 	}
 	child_iterator child_begin() { return children.begin(); }
 	child_iterator child_end() { return children.end(); }
+	const unsigned get_register_pressure() const {
+		return register_pressure;
+	}
+	void set_register_pressure(unsigned pressure) {
+		register_pressure = pressure;
+	}
 };
 
 template <class _T>
