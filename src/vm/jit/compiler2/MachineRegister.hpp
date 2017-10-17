@@ -25,11 +25,12 @@
 #ifndef _JIT_COMPILER2_MACHINEREGISTER
 #define _JIT_COMPILER2_MACHINEREGISTER
 
-#include "vm/jit/compiler2/MachineOperand.hpp"
+#include <memory>
+
 #include "Target.hpp"
+#include "vm/jit/compiler2/MachineOperand.hpp"
 
 #include "toolbox/logging.hpp"
-
 
 namespace cacao {
 namespace jit {
@@ -37,14 +38,12 @@ namespace compiler2 {
 
 class MachineRegister : public Register {
 private:
-	const char *name;
+	const char* name;
+
 public:
-	MachineRegister(const char *name, Type::TypeID type)
-		: Register(type), name(name) {}
+	MachineRegister(const char* name, Type::TypeID type) : Register(type), name(name) {}
 	virtual MachineRegister* to_MachineRegister() { return this; }
-	virtual const char* get_name() const {
-		return name;
-	}
+	virtual const char* get_name() const { return name; }
 	virtual NativeRegister* to_NativeRegister() = 0;
 	virtual ~MachineRegister() {}
 
@@ -57,7 +56,6 @@ public:
 } // end namespace cacao
 
 #endif /* _JIT_COMPILER2_MACHINEREGISTER */
-
 
 /*
  * These are local overrides for various environment variables in Emacs.

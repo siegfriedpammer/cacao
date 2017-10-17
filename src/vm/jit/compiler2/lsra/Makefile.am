@@ -35,10 +35,16 @@ noinst_LTLIBRARIES = \
 liblsra_la_SOURCES = \
 	LoopPressure.cpp \
 	LoopPressure.hpp \
+	LoopPressurePass.cpp \
+	LoopPressurePass.hpp \
 	NextUse.cpp \
 	NextUse. hpp \
 	NewLivetimeAnalysisPass.cpp \
 	NewLivetimeAnalysisPass.hpp \
+	NewSpillPass.cpp \
+	NewSpillPass.hpp \
+	NextUsePass.cpp \
+	NextUsePass.hpp \
 	RegisterAssignmentPass.cpp \
 	RegisterAssignmentPass.hpp \
 	SpillPass.cpp \

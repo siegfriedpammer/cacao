@@ -28,7 +28,7 @@
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
-#include "vm/jit/compiler2/RegisterAllocatorPass.hpp"
+#include "vm/jit/compiler2/SSADeconstructionPass.hpp"
 #include "vm/jit/compiler2/MachineRegister.hpp"
 
 #include "toolbox/logging.hpp"
@@ -217,6 +217,13 @@ void CodeGenPass::resolve_replacement_points(ForwardIt first, ForwardIt last, JI
 			if (reg) {
 				// the operand has been allocated to a register
 				MachineRegister *machine_reg = reg->to_MachineRegister();
+				if (!machine_reg && reg->is_virtual()) {
+					// XXX Somehow we end up with a ModRM operand here (??)
+					//     that looks like a virtual register, but is really an address
+					op_index++;
+					ra++;
+					continue;
+				}
 				assert(machine_reg);
 				ra->inmemory = false;
 
@@ -455,7 +462,7 @@ void CodeGenPass::finish(JITData &JD) {
 // pass usage
 PassUsage& CodeGenPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<MachineInstructionSchedulingPass>();
-	PU.add_requires<RegisterAllocatorPass>();
+	PU.add_requires<SSADeconstructionPass>();
 	return PU;
 }
 

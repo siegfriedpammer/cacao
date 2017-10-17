@@ -125,6 +125,13 @@ MachineInstruction* BackendBase<X86_64>::create_Jump(MachineBasicBlock *target) 
 	return new JumpInst(target);
 }
 
+template<>
+MachineInstruction* BackendBase<X86_64>::create_Swap(MachineOperand *op1, MachineOperand *op2) const {
+	assert(op1->is_Register() && op2->is_Register() && "Swap only implemented for register operands!");
+	assert(op1->get_type() == op2->get_type() && "Operand types of a swap have to match!");
+	return new SwapInst(Src1Op(op1), Src2Op(op2), get_OperandSize_from_Type(op1->get_type()));
+}
+
 namespace {
 
 template <unsigned size, class T>
@@ -161,42 +168,28 @@ void X86_64LoweringVisitor::visit(LOADInst *I, bool copyOperands) {
 	//FIXME inefficient
 	const MachineMethodDescriptor MMD(MD);
 	Type::TypeID type = I->get_type();
-	VirtualRegister *dst = new VirtualRegister(type);
-	MachineInstruction *move = NULL;
-	switch (type) {
-	case Type::ByteTypeID:
-	case Type::ShortTypeID:
-	case Type::IntTypeID:
-	case Type::LongTypeID:
-	case Type::ReferenceTypeID:
-		move = new MovInst(
-			SrcOp(MMD[I->get_index()]),
-			DstOp(dst),
-			get_OperandSize_from_Type(type));
-			break;
-	case Type::FloatTypeID:
-		move = new MovSSInst(
-			SrcOp(MMD[I->get_index()]),
-			DstOp(dst));
-			break;
-	case Type::DoubleTypeID:
-		move = new MovSDInst(
-			SrcOp(MMD[I->get_index()]),
-			DstOp(dst));
-			break;
-	default:
-		ABORT_MSG("x86_64 type not supported: ",
-			  I << " type: " << type);
-	}
-	// get_current()->push_back(move);
-	// set_op(I,move->get_result().op);
 
-	// Just for testing, dont insert a move, just add a virtual register
-	// that has the requirement that it MUST correspond to the correct machine register
-	// and let the register allocator split the lifetime if needed
-	// Also add an empty instruction that produces the parameter as a result so we get correct
-	// livetimes
-	get_current()->push_back(new ParamInst(dst));
+	MachineOperand *parameter = MMD[I->get_index()];
+	MachineOperand *src = parameter;
+	if (parameter->is_Register())
+		src = new VirtualRegister(type);
+	
+	MachineOperand *dst = new VirtualRegister(type);
+
+	// On the first parameter we create the param instruction that defines ALL parameters
+	if (parameter->is_Register()) {
+		if (param_instruction == nullptr) {
+			param_instruction = new ParamInst(src, parameter);
+			get_current()->push_back(param_instruction);
+		} else {
+			assert(param_instruction);
+			param_instruction->add_result(src, parameter);
+		}
+	}
+
+	// Prematurley split the live-range, their are some cases where repairing
+	// is not able to do it for us
+	get_current()->push_back(get_Backend()->create_Move(src, dst));
 	set_op(I, dst);
 }
 
@@ -214,12 +207,13 @@ void X86_64LoweringVisitor::visit(CMPInst *I, bool copyOperands) {
 		MachineBasicBlock *MBB = get_current();
 		GPInstruction::OperandSize op_size = get_OperandSize_from_Type(type);
 		MachineOperand *dst = new VirtualRegister(Type::IntTypeID);
+		MachineOperand *zero = new VirtualRegister(Type::IntTypeID);
 		MachineOperand *less = new VirtualRegister(Type::IntTypeID);
 		MachineOperand *greater = new VirtualRegister(Type::IntTypeID);
 		// unordered 0
 		MBB->push_back(new MovInst(
 			SrcOp(new Immediate(0,Type::IntType())),
-			DstOp(dst),
+			DstOp(zero),
 			op_size
 		));
 		// less then (1)
@@ -246,17 +240,21 @@ void X86_64LoweringVisitor::visit(CMPInst *I, bool copyOperands) {
 			break;
 		}
 		// cmov less
+		VirtualRegister *cless = new VirtualRegister(Type::IntTypeID);
 		MBB->push_back(new CMovInst(
 			Cond::B,
-			DstSrc1Op(dst),
+			Src1Op(zero),
 			Src2Op(less),
+			DstOp(cless),
 			op_size
 		));
 		// cmov greater
+		VirtualRegister *cgreater = new VirtualRegister(Type::IntTypeID);
 		MBB->push_back(new CMovInst(
 			Cond::A,
-			DstSrc1Op(dst),
+			Src1Op(cless),
 			Src2Op(greater),
+			DstOp(cgreater),
 			op_size
 		));
 		switch (I->get_FloatHandling()) {
@@ -264,8 +262,9 @@ void X86_64LoweringVisitor::visit(CMPInst *I, bool copyOperands) {
 			// treat unordered as GT
 			MBB->push_back(new CMovInst(
 				Cond::P,
-				DstSrc1Op(dst),
+				Src1Op(cgreater),
 				Src2Op(greater),
+				DstOp(dst),
 				op_size
 			));
 			break;
@@ -274,8 +273,9 @@ void X86_64LoweringVisitor::visit(CMPInst *I, bool copyOperands) {
 			// treat unordered as LT
 			MBB->push_back(new CMovInst(
 				Cond::P,
-				DstSrc1Op(dst),
+				Src1Op(cgreater),
 				Src2Op(less),
+				DstOp(dst),
 				op_size
 			));
 			break;
@@ -353,35 +353,43 @@ void X86_64LoweringVisitor::visit(NEGInst *I, bool copyOperands) {
 	MachineOperand* src = get_op(I->get_operand(0)->to_Instruction());
 	Type::TypeID type = I->get_type();
 	MachineBasicBlock *MBB = get_current();
-	//GPInstruction::OperandSize op_size = get_OperandSize_from_Type(type);
 
+	VirtualRegister *src_copy = new VirtualRegister(src->get_type());
 	VirtualRegister *dst = new VirtualRegister(type);
 
 	switch (type) {
 	case Type::FloatTypeID:
+	{
+		VirtualRegister *tmp = new VirtualRegister(type);
 		MBB->push_back(new MovImmSSInst(
 			SrcOp(new Immediate(0x80000000,Type::IntType())),
-			DstOp(dst)
+			DstOp(tmp)
 		));
 		MBB->push_back(new XORPSInst(
-			Src2Op(src),
-			DstSrc1Op(dst)
-		));
-		break;
-	case Type::DoubleTypeID:
-		MBB->push_back(new MovImmSDInst(
-			SrcOp(new Immediate(0x8000000000000000L,Type::LongType())),
+			Src1Op(src),
+			Src2Op(tmp),
 			DstOp(dst)
 		));
+		break;
+	}
+	case Type::DoubleTypeID:
+	{
+		VirtualRegister *tmp = new VirtualRegister(type);
+		MBB->push_back(new MovImmSDInst(
+			SrcOp(new Immediate(0x8000000000000000L,Type::LongType())),
+			DstOp(tmp)
+		));
 		MBB->push_back(new XORPDInst(
-			Src2Op(src),
-			DstSrc1Op(dst)
+			Src1Op(src),
+			Src2Op(tmp),
+			DstOp(dst)
 		));
 		break;
+	}
 	case Type::IntTypeID:
 	case Type::LongTypeID:
-		MBB->push_back(get_Backend()->create_Move(src,dst));
-		MBB->push_back(new NegInst(DstSrcOp(dst),get_operand_size_from_Type(type)));
+		MBB->push_back(get_Backend()->create_Move(src,src_copy));
+		MBB->push_back(new NegInst(SrcOp(src_copy),DstOp(dst),get_operand_size_from_Type(type)));
 		break;
 	default:
 		ABORT_MSG("x86_64: Lowering not supported",
@@ -395,9 +403,14 @@ void X86_64LoweringVisitor::visit(ADDInst *I, bool copyOperands) {
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
 	Type::TypeID type = I->get_type();
-	VirtualRegister *dst = NULL;
+	VirtualRegister *dst = new VirtualRegister(type);
 
-	setupSrcDst(src_op1, src_op2, dst, type, copyOperands, I->is_commutable());
+	// setupSrcDst(src_op1, src_op2, dst, type, copyOperands, I->is_commutable());
+
+	// Split the live-range of the first argument by making a copy
+	MachineOperand* src_op1_copy = new VirtualRegister(src_op1->get_type());
+	auto move = get_Backend()->create_Move(src_op1, src_op1_copy);
+	get_current()->push_back(move);
 
 	MachineInstruction *alu = NULL;
 
@@ -405,9 +418,14 @@ void X86_64LoweringVisitor::visit(ADDInst *I, bool copyOperands) {
 	case Type::ByteTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
+		// alu = new AddInst(
+		// 	Src2Op(src_op2),
+		// 	DstSrc1Op(dst),
+		// 	get_OperandSize_from_Type(type));
 		alu = new AddInst(
+			Src1Op(src_op1_copy),
 			Src2Op(src_op2),
-			DstSrc1Op(dst),
+			DstOp(dst),
 			get_OperandSize_from_Type(type));
 		break;
 	case Type::DoubleTypeID:
@@ -433,9 +451,14 @@ void X86_64LoweringVisitor::visit(ANDInst *I, bool copyOperands) {
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
 	Type::TypeID type = I->get_type();
-	VirtualRegister *dst = NULL;
+	VirtualRegister *dst = new VirtualRegister(type);
 
-	setupSrcDst(src_op1, src_op2, dst, type, copyOperands, I->is_commutable());
+	// setupSrcDst(src_op1, src_op2, dst, type, copyOperands, I->is_commutable());
+
+	// Split the live-range of the first argument by making a copy
+	MachineOperand* src_op1_copy = new VirtualRegister(src_op1->get_type());
+	auto move = get_Backend()->create_Move(src_op1, src_op1_copy);
+	get_current()->push_back(move);
 
 	MachineInstruction *alu = NULL;
 
@@ -444,8 +467,9 @@ void X86_64LoweringVisitor::visit(ANDInst *I, bool copyOperands) {
 	case Type::IntTypeID:
 	case Type::LongTypeID:
 		alu = new AndInst(
+			Src1Op(src_op1_copy),
 			Src2Op(src_op2),
-			DstSrc1Op(dst),
+			DstOp(dst),
 			get_OperandSize_from_Type(type));
 		break;
 	default:
@@ -520,6 +544,11 @@ void X86_64LoweringVisitor::visit(SUBInst *I, bool copyOperands) {
 	VirtualRegister *dst = new VirtualRegister(type);
 
 	// setupSrcDst(src_op1, src_op2, dst, type, copyOperands, I->is_commutable());
+	
+	// Split the live-range of the first argument by making a copy
+	MachineOperand* src_op1_copy = new VirtualRegister(src_op1->get_type());
+	auto move = get_Backend()->create_Move(src_op1, src_op1_copy);
+	get_current()->push_back(move);
 
 	MachineInstruction *alu = NULL;
 
@@ -533,14 +562,15 @@ void X86_64LoweringVisitor::visit(SUBInst *I, bool copyOperands) {
 		//	get_OperandSize_from_Type(type));
 		alu = new SubInst(
 			DstOp(dst),
-			Src1Op(src_op1),
+			Src1Op(src_op1_copy),
 			Src2Op(src_op2),
 			get_OperandSize_from_Type(type));
 		break;
 	case Type::DoubleTypeID:
 		alu = new SubSDInst(
+			Src1Op(src_op1_copy),
 			Src2Op(src_op2),
-			DstSrc1Op(dst));
+			DstOp(dst));
 		break;
 	case Type::FloatTypeID:
 		alu = new SubSSInst(
@@ -564,6 +594,11 @@ void X86_64LoweringVisitor::visit(MULInst *I, bool copyOperands) {
 
 	// setupSrcDst(src_op1, src_op2, dst, type, copyOperands, I->is_commutable());
 
+	// Split the live-range of the first argument by making a copy
+	MachineOperand* src_op1_copy = new VirtualRegister(src_op1->get_type());
+	auto move = get_Backend()->create_Move(src_op1, src_op1_copy);
+	get_current()->push_back(move);
+
 	MachineInstruction *alu = NULL;
 
 	switch (type) {
@@ -576,7 +611,7 @@ void X86_64LoweringVisitor::visit(MULInst *I, bool copyOperands) {
 		//	get_OperandSize_from_Type(type));
 		alu = new IMulInst(
 			DstOp(dst),
-			Src1Op(src_op1),
+			Src1Op(src_op1_copy),
 			Src2Op(src_op2),
 			get_OperandSize_from_Type(type));
 		break;
@@ -614,32 +649,45 @@ void X86_64LoweringVisitor::visit(DIVInst *I, bool copyOperands) {
 		// 1. move the dividend to RAX
 		// 2. extend the dividend to RDX:RAX
 		// 3. perform the division
-		MachineOperand *dividendUpper = new NativeRegister(type, &RDX);
-		MachineOperand *result = new NativeRegister(type, &RAX);
-		MachineInstruction *convertToQuadword = new CDQInst(DstSrc1Op(dividendUpper), DstSrc2Op(result), opsize);
-		get_current()->push_back(get_Backend()->create_Move(src_op1, result));
+
+		// Split live-ranges of src_op1 for easier register assignment
+		MachineOperand *src_op1_copy = new VirtualRegister(src_op1->get_type());
+		get_current()->push_back(get_Backend()->create_Move(src_op1, src_op1_copy));
+
+		MachineOperand *dividendUpper = new VirtualRegister(type);
+		MachineOperand *result = new VirtualRegister(type);
+		MachineInstruction *convertToQuadword = new CDQInst(SrcOp(src_op1_copy), DstOp(dividendUpper), DstOp(result), opsize);
 		get_current()->push_back(convertToQuadword);
-		alu = new IDivInst(Src2Op(src_op2), DstSrc1Op(result), DstSrc2Op(dividendUpper), opsize);
+
+		MachineOperand *quotient = new VirtualRegister(type);
+		MachineOperand *remainder = new VirtualRegister(type);
+		alu = new IDivInst(Src1Op(src_op2), Src2Op(dividendUpper), Src2Op(result), DstOp(quotient), DstOp(remainder), opsize);
 		break;
 	}
 	case Type::DoubleTypeID:
 	{
 		VirtualRegister *dst = new VirtualRegister(type);
-		MachineInstruction *mov = get_Backend()->create_Move(src_op1, dst);
+		VirtualRegister *src_op1_copy = new VirtualRegister(src_op1->get_type());
+
+		MachineInstruction *mov = get_Backend()->create_Move(src_op1, src_op1_copy);
 		get_current()->push_back(mov);
 		alu = new DivSDInst(
+			Src1Op(src_op1_copy),
 			Src2Op(src_op2),
-			DstSrc1Op(dst));
+			DstOp(dst));
 		break;
 	}
 	case Type::FloatTypeID:
 	{
 		VirtualRegister *dst = new VirtualRegister(type);
-		MachineInstruction *mov = get_Backend()->create_Move(src_op1, dst);
+		VirtualRegister *src_op1_copy = new VirtualRegister(src_op1->get_type());
+
+		MachineInstruction *mov = get_Backend()->create_Move(src_op1, src_op1_copy);
 		get_current()->push_back(mov);
 		alu = new DivSSInst(
-				Src2Op(src_op2),
-				DstSrc1Op(dst));
+			Src1Op(src_op1_copy),
+			Src2Op(src_op2),
+			DstOp(dst));
 		break;
 	}
 	default:
@@ -660,9 +708,8 @@ void X86_64LoweringVisitor::visit(REMInst *I, bool copyOperands) {
 	GPInstruction::OperandSize opsize = get_OperandSize_from_Type(type);
 	MachineOperand *dividend = get_op(I->get_operand(0)->to_Instruction());;
 
-	MachineInstruction *resultInst = NULL;
-	MachineOperand *resultOperand;
-	MachineInstruction *convertToQuadword;
+	MachineInstruction *resultInst = nullptr;
+	MachineOperand *resultOperand = nullptr;
 
 	StackSlotManager *ssm;
 	ManagedStackSlot *src;
@@ -672,18 +719,27 @@ void X86_64LoweringVisitor::visit(REMInst *I, bool copyOperands) {
 	switch (type) {
 	case Type::IntTypeID:
 	case Type::LongTypeID:
-
+	{
 		// 1. move the dividend to RAX
 		// 2. extend the dividend to RDX:RAX
 		// 3. perform the division
-		resultOperand = new NativeRegister(type, &RDX);
-		dividendLower = new NativeRegister(type, &RAX);
-		convertToQuadword = new CDQInst(DstSrc1Op(dividendLower), DstSrc2Op(resultOperand), opsize);
-		get_current()->push_back(get_Backend()->create_Move(dividend, dividendLower));
+
+		// Split live-ranges of src_op1 for easier register assignment
+		MachineOperand *src_op1_copy = new VirtualRegister(dividend->get_type());
+		get_current()->push_back(get_Backend()->create_Move(dividend, src_op1_copy));
+
+		MachineOperand *dividendUpper = new VirtualRegister(type);
+		MachineOperand *result = new VirtualRegister(type);
+		MachineInstruction *convertToQuadword = new CDQInst(SrcOp(src_op1_copy), DstOp(dividendUpper), DstOp(result), opsize);
 		get_current()->push_back(convertToQuadword);
-		resultInst = new IDivInst(Src2Op(src_op2), DstSrc1Op(resultOperand), DstSrc2Op(dividendLower), opsize);
+
+		MachineOperand *quotient = new VirtualRegister(type);
+		MachineOperand *remainder = new VirtualRegister(type);
+		resultInst = new IDivInst(Src1Op(src_op2), Src2Op(dividendUpper), Src2Op(result), DstOp(quotient), DstOp(remainder), opsize);
 		get_current()->push_back(resultInst);
+		resultOperand = remainder;
 		break;
+	}
 	case Type::FloatTypeID:
 	case Type::DoubleTypeID:
 		ssm = get_Backend()->get_JITData()->get_StackSlotManager();
@@ -712,7 +768,8 @@ void X86_64LoweringVisitor::visit(REMInst *I, bool copyOperands) {
 			"Inst: " << I << " type: " << type);
 	}
 
-	set_op(I,resultInst->get_result().op);
+	resultOperand = resultOperand ? resultOperand : resultInst->get_result().op;
+	set_op(I, resultOperand);
 }
 
 void X86_64LoweringVisitor::visit(AREFInst *I, bool copyOperands) {
@@ -945,11 +1002,11 @@ void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 		//       let the register allocator do it, if its needed. We only add the
 		//       requirement that VirtualReg MUST be in the return register
 		
-		//MachineOperand *ret_reg = new NativeRegister(type,&RAX);
-		//MachineInstruction *reg = new MovInst(
-		//	SrcOp(src_op),
-		//	DstOp(ret_reg),
-		//	get_OperandSize_from_Type(type));
+		MachineOperand *ret_reg = new NativeRegister(type,&RAX);
+		MachineInstruction *reg = new MovInst(
+			SrcOp(src_op),
+			DstOp(ret_reg),
+			get_OperandSize_from_Type(type));
 		LeaveInst *leave = new LeaveInst();
 		RetInst *ret = new RetInst(get_OperandSize_from_Type(type),SrcOp(src_op));
 		// get_current()->push_back(reg);
@@ -1172,51 +1229,56 @@ void X86_64LoweringVisitor::visit(CASTInst *I, bool copyOperands) {
 void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	assert(I);
 	Type::TypeID type = I->get_type();
+	bool call_has_result = type != Type::VoidTypeID;
 	MethodDescriptor &MD = I->get_MethodDescriptor();
 	MachineMethodDescriptor MMD(MD);
 	StackSlotManager *SSM = get_Backend()->get_JITData()->get_StackSlotManager();
 
-	// operands for the call
-	VirtualRegister *addr = new VirtualRegister(Type::ReferenceTypeID);
-	MachineOperand *result = &NoOperand;
-
-	// get return value
-	switch (type) {
-	case Type::IntTypeID:
-	case Type::LongTypeID:
-	case Type::ReferenceTypeID:
-		result = new NativeRegister(type,&RAX);
-		break;
-	case Type::FloatTypeID:
-	case Type::DoubleTypeID:
-		result = new NativeRegister(type,&XMM0);
-		break;
-	case Type::VoidTypeID:
-		break;
-	default:
-		ABORT_MSG("x86_64 Lowering not supported",
-		"Inst: " << I << " type: " << type);
+	// Implicit null-checks are handled via deoptimization
+	// TODO: Check with Matthias if we can move this really here
+	//       Its moved here because live-ranges of parameters are split
+	//       afterwards, but the deoptimize causes the arguments to live longer
+	//       then necessary
+	if (I->to_INVOKEVIRTUALInst()) {
+		place_deoptimization_marker(I->to_INVOKEVIRTUALInst());
+	} else if (I->to_INVOKEINTERFACEInst()) {
+		place_deoptimization_marker(I->to_INVOKEINTERFACEInst());
 	}
 
+	// operands for the call
+	VirtualRegister *addr = new VirtualRegister(Type::ReferenceTypeID);
+	MachineOperand *result = new VirtualRegister(type);
+
 	// create call
-	MachineInstruction* call = new CallInst(SrcOp(addr),DstOp(result),I->op_size());
-	// move values to parameters
+	MachineInstruction* call = new CallInst(SrcOp(addr), DstOp(result), I->op_size(), MMD);
+
+	// Split live ranges of parameters for easier register assignment
 	int arg_counter = 0;
 	for (std::size_t i = 0; i < I->op_size(); ++i ) {
 		MachineOperand *arg_dst = MMD[i];
 		if (arg_dst->is_StackSlot()) {
 			arg_dst = SSM->create_argument_slot(arg_dst->get_type(), arg_counter++);
+		} else {
+			// Even split the live range of arguments, since the same vreg may occur
+			// in multiple argument slots and it needs a different vreg assigned
+			arg_dst = new VirtualRegister(arg_dst->get_type());
 		}
 
 		MachineInstruction* mov = get_Backend()->create_Move(
 			get_op(I->get_operand(i)->to_Instruction()),
 			arg_dst
 		);
+		// Guide the reg alloc by restricting the spilt live-ranges to the required
+		// argument registers
+		if (!arg_dst->is_ManagedStackSlot()) {
+			auto requirement = std::make_unique<MachineRegisterRequirement>(new NativeRegister(arg_dst->get_type(), cast_to<X86_64Register>(MMD[i])));
+			mov->get_result().set_MachineRegisterRequirement(requirement);
+		}
 		get_current()->push_back(mov);
+		
 		// set call operand
 		call->set_operand(i+1,arg_dst);
 	}
-	// spill caller saved
 
 	if (I->to_INVOKESTATICInst() || I->to_INVOKESPECIALInst()) {
 		methodinfo* callee = I->get_fmiref()->p.method;
@@ -1227,7 +1289,7 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	} else if (I->to_INVOKEVIRTUALInst()) {
 
 		// Implicit null-checks are handled via deoptimization.
-		place_deoptimization_marker(I->to_INVOKEVIRTUALInst());
+		// place_deoptimization_marker(I->to_INVOKEVIRTUALInst());
 
 		methodinfo* callee = I->get_fmiref()->p.method;
 		int32_t s1 = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * callee->vftblindex;
@@ -1245,7 +1307,7 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	} else if (I->to_INVOKEINTERFACEInst()) {
 
 		// Implicit null-checks are handled via deoptimization.
-		place_deoptimization_marker(I->to_INVOKEINTERFACEInst());
+		// place_deoptimization_marker(I->to_INVOKEINTERFACEInst());
 
 		methodinfo* callee = I->get_fmiref()->p.method;
 		int32_t s1 = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr) * callee->clazz->index;
@@ -1278,7 +1340,7 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	get_current()->push_back(call);
 
 	// get result
-	if (result != &NoOperand) {
+	if (call_has_result) {
 		MachineOperand *dst = new VirtualRegister(type);
 		MachineInstruction *reg = get_Backend()->create_Move(result, dst);
 		get_current()->push_back(reg);

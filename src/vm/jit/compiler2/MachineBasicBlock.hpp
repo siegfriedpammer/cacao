@@ -160,10 +160,6 @@ public:
 	typedef PredListTy::const_iterator const_pred_iterator;
 	typedef PredListTy::iterator pred_iterator;
 
-	typedef alloc::vector<MachineBasicBlock*>::type SuccListTy;
-	typedef SuccListTy::const_iterator const_succ_iterator;
-	typedef SuccListTy::iterator succ_iterator;
-
 	/// construct an empty MachineBasicBlock
 	MachineBasicBlock(const MBBIterator &my_it)
 		: id(id_counter++),  my_it(my_it), processed(false) {};
@@ -253,14 +249,6 @@ public:
 	 */
 	std::size_t get_predecessor_index(MachineBasicBlock* MBB) const;
 
-	/**
-	 * Adds the given MachineBasicBlock as a successor of this block
-	 */
-	void insert_succ(MachineBasicBlock* value);
-	const_succ_iterator succ_begin() const;
-	const_succ_iterator succ_end() const;
-	succ_iterator succ_begin();
-	succ_iterator succ_end();
 
 	/// get a MIIterator form a iterator
 	MIIterator convert(iterator pos);
@@ -291,6 +279,11 @@ public:
 	void mark_processed() { processed = true; }
 	/// Sets processed to 'false'
 	void mark_unprocessed() { processed = false; }
+
+	/// Sets distance to a high value to mark this block as a loop exit
+	void mark_loop_exit() { distance = 100000; }
+	unsigned get_distance() const { return distance; }
+	
 private:
 	/// update instruction block
 	void update(MachineInstruction *MI);
@@ -303,10 +296,12 @@ private:
 	Container list;
 	PhiListTy phi;
 	PredListTy predecessors;
-	SuccListTy successors;
 
 	/// Used by liveness analysis
 	bool processed;
+
+	/// Used by NextUse analysis / SpillPass since loop exits blocks get a higher distance
+	unsigned distance = 0;
 
 	friend class MBBBuilder;
 	friend class MachineInstructionSchedule;
@@ -525,22 +520,6 @@ MachineBasicBlock::get_predecessor_index(MachineBasicBlock* MBB) const {
 	return i;
 }
 
-inline void MachineBasicBlock::insert_succ(MachineBasicBlock* value) {
-	successors.push_back(value);
-}
-inline MachineBasicBlock::const_succ_iterator MachineBasicBlock::succ_begin() const {
-	return successors.begin();
-}
-inline MachineBasicBlock::const_succ_iterator MachineBasicBlock::succ_end() const {
-	return successors.end();
-}
-inline MachineBasicBlock::succ_iterator MachineBasicBlock::succ_begin() {
-	return successors.begin();
-}
-inline MachineBasicBlock::succ_iterator MachineBasicBlock::succ_end() {
-	return successors.end();
-}
-
 inline bool MachineBasicBlock::operator==(const MachineBasicBlock &other) const {
 	//return this == &other;
 	return id == other.id;
@@ -601,7 +580,7 @@ MIIterator insert_after(MIIterator pos, MachineInstruction* value);
 } // end namespace cacao
 
 namespace std {
-
+	
 template<>
 struct hash<cacao::jit::compiler2::MachineBasicBlock*> {
 	std::size_t operator()(cacao::jit::compiler2::MachineBasicBlock *b) const {

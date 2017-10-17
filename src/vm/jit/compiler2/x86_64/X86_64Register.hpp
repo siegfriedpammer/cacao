@@ -174,6 +174,8 @@ extern GPRegister R15;
 
 const unsigned IntegerArgumentRegisterSize = 6;
 extern GPRegister* IntegerArgumentRegisters[];
+extern GPRegister* IntegerCallerSavedRegisters[];
+const unsigned IntegerCallerSavedRegistersSize = 9;
 
 extern SSERegister XMM0;
 extern SSERegister XMM1;
@@ -205,50 +207,33 @@ extern FPUStackRegister ST7;
 
 const unsigned FloatArgumentRegisterSize = 8;
 extern SSERegister* FloatArgumentRegisters[];
-#if 0
-class RegisterFile : public compiler2::RegisterFile {
-public:
-	RegisterFile(Type::TypeID type) {
-		switch (type) {
-		case Type::ByteTypeID:
-		case Type::IntTypeID:
-		case Type::LongTypeID:
-		case Type::ReferenceTypeID:
-			#if 1
-			for(unsigned i = 0; i < IntegerArgumentRegisterSize ; ++i) {
-				regs.push_back(IntegerArgumentRegisters[i]);
-			}
-			assert(regs.size() == IntegerArgumentRegisterSize);
-			#else
-			regs.push_back(&RDI);
-			regs.push_back(&RSI);
-			regs.push_back(&RDX);
-			#if 0
-			regs.push_back(&RCX);
-			regs.push_back(&R8);
-			regs.push_back(&R9);
-			#endif
-			#endif
-			return;
-		case Type::DoubleTypeID:
-			#if 1
-			for(unsigned i = 0; i < FloatArgumentRegisterSize ; ++i) {
-				regs.push_back(FloatArgumentRegisters[i]);
-			}
-			assert(regs.size() == FloatArgumentRegisterSize);
-			#else
-			regs.push_back(&XMM0);
-			regs.push_back(&XMM1);
-			regs.push_back(&XMM2);
-			#endif
-			return;
-		default: break;
-		}
-		ABORT_MSG("X86_64 Register File Type Not supported!",
-			"Type: " << type);
-	}
+
+enum class X86_64Class {
+	GP, FP
 };
-#endif
+
+template<X86_64Class type>
+class X86_64RegisterClass : public RegisterClass {
+public:
+	explicit X86_64RegisterClass();
+
+	bool handles_type(Type::TypeID) const;
+
+	unsigned count() const override { return all.size(); }
+	const MRegisterSet& get_All() const override { return all; }
+
+	unsigned caller_saved_count() const override { return caller_saved.size(); }
+	const MRegisterSet& get_CallerSaved() const override { return caller_saved; }
+
+	unsigned callee_saved_count() const override { return callee_saved.size(); }
+	const MRegisterSet& get_CalleeSaved() const override { return callee_saved; }
+
+private:
+	MRegisterSet all;
+	MRegisterSet caller_saved;
+	MRegisterSet callee_saved;
+};
+
 } // end namespace x86_64
 } // end namespace compiler2
 } // end namespace jit

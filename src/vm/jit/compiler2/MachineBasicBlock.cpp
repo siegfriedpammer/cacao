@@ -106,6 +106,7 @@ MachineBasicBlock* get_edge_block(MachineBasicBlock *from, MachineBasicBlock *to
 	MachineInstructionSchedule *MIS = from->get_parent();
 	// create new block
 	MachineBasicBlock *MBB = *MIS->insert_after(from->self_iterator(),MBBBuilder());
+	MBB->insert_pred(from);
 	MBB->push_front(new MachineLabelInst());
 	MBB->push_back(backend->create_Jump(to));
 	// fix links (from -> new)

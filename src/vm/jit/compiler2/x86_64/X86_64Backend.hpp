@@ -33,6 +33,7 @@ namespace jit {
 namespace compiler2 {
 namespace x86_64 {
 
+class ParamInst;
 
 class X86_64LoweringVisitor : public LoweringVisitorBase {
 public:
@@ -81,6 +82,8 @@ public:
 	virtual void lowerComplex(Instruction* I, int ruleId);
 
 private:
+	ParamInst* param_instruction = nullptr;
+
 	void setupSrcDst(MachineOperand*& src_op1, MachineOperand*& src_op2, VirtualRegister*& dst, 
 		Type::TypeID type, bool copyOperands, bool isCommutable);
 

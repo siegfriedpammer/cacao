@@ -68,7 +68,10 @@ OStream& MachineInstruction::print(OStream &OS) const {
 }
 
 OStream& MachineInstruction::print_result(OStream &OS) const {
-	return OS << get_result().op;
+	for (auto i = results_begin(), e = results_end(); i != e; ++i) {
+		OS << (*i) << " ";
+	}
+	return OS;
 }
 
 OStream& MachineInstruction::print_operands(OStream &OS) const {

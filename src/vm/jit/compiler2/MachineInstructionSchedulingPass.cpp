@@ -121,7 +121,6 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 			alloc::map<BeginInst*,MachineBasicBlock*>::type::const_iterator it = map.find(pred);
 			assert(it != map.end());
 			MBB->insert_pred(it->second);
-			it->second->insert_succ(MBB);
 		}
 
 	}
@@ -141,7 +140,6 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 				MachineBasicBlock *new_MBB = *insert_after(MBB->self_iterator(),MBBBuilder());
 				assert(new_MBB);
 				new_MBB->insert_pred(MBB);
-				MBB->insert_succ(new_MBB);
 				new_MBB->push_front(new MachineLabelInst());
 				LOG2("new MBB: " << *new_MBB << nl);
 				move_instructions(i,e,*MBB,*new_MBB);
@@ -149,6 +147,31 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 			}
 		}
 	}
+
+	// Split critical edges
+	// TODO: Decide whether this should be its own pass or not
+	LOG1(Cyan << "\nSplitting critical edges" << reset_color << nl);
+	for (auto& block : *this) {
+		auto num_successors = block->back()->successor_size();
+		if (num_successors < 2) {
+			LOG2("\t" << *block << " has " << num_successors << " successors (skipping)\n");
+			continue;
+		}
+
+		for (auto i = block->back()->successor_begin(), 
+			 e = block->back()->successor_end(); i != e; ++i) {
+			auto successor = *i;
+			auto num_predecessors = successor->pred_size();
+			if (num_predecessors < 2) {
+				LOG2("\t" << *successor << " has " << num_predecessors << " predecessors (skipping)\n");
+				continue;
+			}
+
+			LOG1("\tFound critical edge " << *block << " -> " << *successor << nl);
+			get_edge_block(block, successor, JD.get_Backend());
+		}
+	}
+
 	return true;
 }
 

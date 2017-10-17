@@ -59,7 +59,7 @@ auto DominatorPass::node_end(JITData &JD)
 }
 
 template<>
-auto DominatorPass::succ_begin(DominatorPass::NodeTy* v)
+EndInst::succ_const_iterator DominatorPass::succ_begin(DominatorPass::NodeTy* v)
 {
 	EndInst *ve = v->get_EndInst();
 	assert(ve);
@@ -67,11 +67,17 @@ auto DominatorPass::succ_begin(DominatorPass::NodeTy* v)
 }
 
 template<>
-auto DominatorPass::succ_end(DominatorPass::NodeTy* v)
+EndInst::succ_const_iterator DominatorPass::succ_end(DominatorPass::NodeTy* v)
 {
 	EndInst *ve = v->get_EndInst();
 	assert(ve);
 	return ve->succ_end();
+}
+
+template<>
+template<>
+inline DominatorPass::NodeTy* DominatorPass::get(BeginInstRef ref) {
+	return ref.get();
 }
 
 // pass usage

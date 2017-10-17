@@ -60,6 +60,7 @@ class MachineOperandDesc : public memory::ManagerMixin<MachineOperandDesc>  {
 private:
 	MachineInstruction *parent;
 	std::size_t index;
+	MachineRegisterRequirementUPtrTy requirement;
 public:
 	MachineOperand *op;
 	explicit MachineOperandDesc(MachineInstruction* parent, std::size_t index)
@@ -70,6 +71,23 @@ public:
 		: parent(parent), index(0), op(op) {}
 	std::size_t get_index() const { return index; }
 	MachineInstruction* get_MachineInstruction() const { return parent; }
+	
+	void set_MachineRegisterRequirement(MachineRegisterRequirementUPtrTy& new_requirement) {
+		requirement = std::move(new_requirement);
+	}
+	MachineRegisterRequirement* get_MachineRegisterRequirement() const { return requirement.get(); }
+};
+
+class MachineRegisterTwoAddressRequirement : public MachineRegisterRequirement {
+public:
+	MachineRegisterTwoAddressRequirement(MachineOperandDesc* desc) : MachineRegisterRequirement(nullptr), descriptor(desc) {}
+
+	virtual MachineOperand* get_required() {
+		return descriptor->op;
+	}
+
+private:
+	MachineOperandDesc* descriptor;
 };
 
 /**
@@ -131,9 +149,10 @@ private:
 		ref_map.insert(std::make_pair(op,pos));
 	}
 protected:
-	std::size_t step;		//< Schedule numbering inside a basic block (used by next use analysis)
+	std::size_t step = 0;		//< Schedule numbering inside a basic block (used by next use analysis)
 	const std::size_t id;
 	operand_list operands;
+	operand_list results;
 	/**
   	 * dummy_operands is a list of operands embedded in the real operands 
 	 * of this instruction that need register allocation 
@@ -142,7 +161,6 @@ protected:
 	dummy_operand_list dummy_operands;
 	RefMapTy ref_map;
 	successor_list successors;
-	MachineOperandDesc result;
 	const char *name;
 	const char *comment;
 	MachineBasicBlock *block;
@@ -153,7 +171,7 @@ public:
 	}
 	#endif
 	MachineInstruction(const char * name, MachineOperand* result, std::size_t num_operands, const char* comment = NULL)
-		: id(id_counter++), operands(), dummy_operands(), ref_map(), result(this, result), name(name), comment(comment), block(NULL) {
+		: id(id_counter++), operands(), dummy_operands(), ref_map(), name(name), comment(comment), block(NULL) {
 		for (std::size_t i = 0; i < num_operands ; ++i) {
 			operands.push_back(MachineOperandDesc(this,i));
 		}
@@ -162,6 +180,7 @@ public:
 				set_dummy_operand(&(*it));
 			}
 		}
+		results.emplace_back(this, result);
 	}
 
 	void set_comment(const char* c) { comment = c; }
@@ -215,6 +234,12 @@ public:
 	operand_iterator end() {
 		return operands.end();
 	}
+	operand_iterator results_begin() {
+		return results.begin();
+	}
+	operand_iterator results_end() {
+		return results.end();
+	}
 	operand_iterator find(MachineOperand *op) {
 		for (operand_iterator i = begin(), e =end(); i != e; ++i) {
 			if (op->aquivalent(*i->op))
@@ -233,6 +258,12 @@ public:
 	}
 	const_operand_iterator end() const {
 		return operands.end();
+	}
+	const_operand_iterator results_begin() const {
+		return results.begin();
+	}
+	const_operand_iterator results_end() const {
+		return results.end();
 	}
 	std::size_t dummy_op_size() const {
 		return dummy_operands.size();
@@ -303,13 +334,20 @@ public:
 		return name;
 	}
 	const MachineOperandDesc& get_result() const {
-		return result;
+		assert(results.size() > 0);
+		return results.front();
 	}
 	MachineOperandDesc& get_result() {
-		return result;
+		assert(results.size() > 0);
+		return results.front();
 	}
 	void set_result(MachineOperand *MO) {
-		result = MachineOperandDesc(0,MO);
+		assert(results.size() > 0);
+		results[0] = MachineOperandDesc(0,MO);
+	}
+	void add_result(MachineOperand *MO) {
+		assert(MO);
+		results.emplace_back(this, MO);
 	}
 	const std::size_t get_step() const {
 		return step;

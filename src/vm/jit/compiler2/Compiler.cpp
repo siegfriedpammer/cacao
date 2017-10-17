@@ -267,7 +267,7 @@ MachineCode* compile(methodinfo* m)
 	LOG(bold << bold << "Compiler End: " << reset_color << *m << nl);
 
 	/* return pointer to the methods entry point */
-
+	// ABORT_MSG("This is the end.", "");
 	return entrypoint;
 }
 

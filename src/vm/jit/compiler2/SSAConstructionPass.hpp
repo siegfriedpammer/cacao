@@ -122,6 +122,7 @@ private:
 	/// @return The new CONSTInst.
 	CONSTInst *parse_s2_constant(instruction *iptr, Type::TypeID type);
 
+	friend class InVarPhis;
 public:
 	Value* read_variable(size_t varindex, size_t bb);
 	SSAConstructionPass() : Pass() {}

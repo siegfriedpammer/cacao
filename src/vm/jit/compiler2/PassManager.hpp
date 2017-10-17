@@ -105,6 +105,15 @@ private:
 	// each pass in Ps schedule_before list
 	void add_schedule_before(PassInfo::IDTy id);
 
+	// This template is used for creating the fixed pass schedule and
+	// can be removed as soon as the pass scheduler is implemented in way that works better
+	template <typename PassName>
+	PassManager& add()
+	{
+		schedule.push_back(PassName::template ID<PassName>());
+		return *this;
+	}
+
 public:
 	static PassManager& get() {
 		// C++11 ensures that the initialization for local static variables is thread-safe
@@ -151,7 +160,7 @@ class PassRunner {
 public:
 	using PassMapTy = std::unordered_map<PassInfo::IDTy,PassUPtrTy>;
 	using ResultReadyMapTy = alloc::unordered_map<PassInfo::IDTy,bool>::type;
-private:
+protected:
 	/**
 	 * Stores pass instances so other passes can retrieve
 	 * their results. This map owns all contained passes.
@@ -178,7 +187,7 @@ public:
 	/**
 	 * run passes
 	 */
-	void runPasses(JITData &JD);
+	virtual void runPasses(JITData &JD);
 
 	friend class Pass;
 };

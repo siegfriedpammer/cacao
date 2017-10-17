@@ -32,7 +32,9 @@
 #include "vm/jit/compiler2/MethodC2.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
+#include "vm/jit/compiler2/ReversePostOrderPass.hpp"
 #include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/lsra/LoopPressurePass.hpp"
 
 #define DEBUG_NAME "compiler2/SpillPass"
 
@@ -42,32 +44,13 @@ namespace compiler2 {
 
 namespace {
 
-MachineInstruction::successor_iterator get_successor_begin(MachineBasicBlock* MBB)
-{
-	return MBB->back()->successor_begin();
-}
-
-MachineInstruction::successor_iterator get_successor_end(MachineBasicBlock* MBB)
-{
-	return MBB->back()->successor_end();
-}
-
-const unsigned kNRegs = 40; //< Number of avail. registers TODO: Get this from Backend
+const unsigned kNRegs = 9; //< Number of avail. registers TODO: Get this from Backend
 
 } // end namespace
 
-void SpillPass::build_reverse_postorder(MachineBasicBlock* block)
+unsigned SpillPass::get_distance(MachineInstruction* instruction, MachineOperand* operand)
 {
-	auto loop_tree = get_Pass<MachineLoopPass>();
-	for (auto i = get_successor_begin(block), e = get_successor_end(block); i != e; ++i) {
-		auto succ = *i;
-		// Only visit the successor if it is unproccessed and not a loop-back edge
-		if (!loop_tree->is_backedge(block, succ)) {
-			build_reverse_postorder(succ);
-		}
-	}
-
-	reverse_postorder.push_front(block);
+	return 0;
 }
 
 /**
@@ -250,8 +233,9 @@ WorksetUPtrTy SpillPass::decide_start_workset(MachineBasicBlock* block)
 	auto MLP = get_Pass<MachineLoopPass>();
 	auto loop = MLP->get_Loop(block);
 	assert(loop && "Wtf am i going to do now???");
-	unsigned pressure = loop->get_register_pressure();
-	assert(delayed.size() <= pressure);
+	unsigned pressure = 0;
+	//unsigned pressure = loop->get_register_pressure();
+	//assert(delayed.size() <= pressure);
 
 	int free_slots = kNRegs - starters.size();
 	int free_pressure_slots = kNRegs - (pressure - delayed.size());
@@ -401,7 +385,7 @@ void SpillPass::displace(Workset& workset,
 		}
 		else {
 			LOG3("\t\t" << *operand << " already in workset\n");
-			// TODO: Can we really get rid of this assert? 
+			// TODO: Can we really get rid of this assert?
 			// assert(is_usage);
 
 			// Remove the value from the current workset so it is not accidently spilled
@@ -417,6 +401,11 @@ void SpillPass::displace(Workset& workset,
 	int spills_needed = len + demand - kNRegs;
 
 	if (spills_needed > 0) {
+		LOG1("Spilling " << spills_needed << " variables\n");
+
+		for (const auto& location : workset) {
+			// auto dist = get_distance(instruction, location.operand, !is_usage);
+		}
 		// TODO: Implement spilling
 		assert(false && "Spilling not implemented in displace!!");
 	}
@@ -432,10 +421,9 @@ bool SpillPass::run(JITData& JD)
 	LOG(nl << BoldYellow << "Running SpillPass" << reset_color << nl);
 	next_use.initialize(this);
 	loop_pressure.initialize(this);
-	auto MIS = get_Pass<MachineInstructionSchedulingPass>();
+	auto RPO = get_Pass<ReversePostOrderPass>();
 
-	build_reverse_postorder(MIS->front());
-	for (auto block : reverse_postorder) {
+	for (auto block : *RPO) {
 		LOG3("Processing block " << *block << nl);
 
 		WorksetUPtrTy workset;
@@ -469,19 +457,25 @@ bool SpillPass::run(JITData& JD)
 		for (const auto& instruction : *block) {
 			// allocate all values _used_ by this instruction
 			Workset new_uses;
-			for (auto& operand_desc : *instruction) {
-				if (reg_alloc_considers_operand(*operand_desc.op)) {
-					workset_insert(new_uses, operand_desc.op, false);
-				}
-			}
+			auto use_lambda = [&](const auto& descriptor) {
+				if (!reg_alloc_considers_operand(*descriptor.op))
+					return;
+				workset_insert(new_uses, descriptor.op, false);
+			};
+			std::for_each(instruction->begin(), instruction->end(), use_lambda);
+			std::for_each(instruction->dummy_begin(), instruction->dummy_end(), use_lambda);
+
 			displace(*workset, new_uses, true, instruction);
 
 			// allocate the value _defined_ by this instruction
 			Workset new_def;
-			auto& operand_desc = instruction->get_result();
-			if (reg_alloc_considers_operand(*operand_desc.op)) {
-				workset_insert(new_def, operand_desc.op, false);
-			}
+			auto def_lambda = [&](const auto& descriptor) {
+				if (!reg_alloc_considers_operand(*descriptor.op))
+					return;
+				workset_insert(new_def, descriptor.op, false);
+			};
+			std::for_each(instruction->results_begin(), instruction->results_end(), def_lambda);
+
 			displace(*workset, new_def, false, instruction);
 		}
 
@@ -504,7 +498,9 @@ bool SpillPass::run(JITData& JD)
 PassUsage& SpillPass::get_PassUsage(PassUsage& PU) const
 {
 	PU.add_requires<MachineInstructionSchedulingPass>();
+	PU.add_requires<ReversePostOrderPass>();
 	PU.add_requires<MachineLoopPass>();
+	PU.add_requires<LoopPressurePass>();
 	PU.add_requires<NewLivetimeAnalysisPass>();
 	return PU;
 }

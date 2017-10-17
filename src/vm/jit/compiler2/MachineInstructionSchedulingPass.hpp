@@ -29,6 +29,7 @@
 #include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
 
 #include <memory>
+#include <vector>
 
 MM_MAKE_NAME(MachineInstructionSchedulingPass)
 

@@ -60,13 +60,13 @@ auto MachineDominatorPass::node_end(JITData &JD)
 }
 
 template<>
-auto MachineDominatorPass::succ_begin(MachineDominatorPass::NodeTy* block)
+MachineInstruction::successor_iterator MachineDominatorPass::succ_begin(MachineDominatorPass::NodeTy* block)
 {
 	return block->back()->successor_begin();
 }
 
 template<>
-auto MachineDominatorPass::succ_end(MachineDominatorPass::NodeTy* block)
+MachineInstruction::successor_iterator MachineDominatorPass::succ_end(MachineDominatorPass::NodeTy* block)
 {
 	return block->back()->successor_end();
 }

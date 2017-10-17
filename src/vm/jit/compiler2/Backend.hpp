@@ -25,6 +25,8 @@
 #ifndef _JIT_COMPILER2_BACKEND
 #define _JIT_COMPILER2_BACKEND
 
+#include <memory>
+
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
 #include "vm/jit/compiler2/InstructionVisitor.hpp"
@@ -39,23 +41,58 @@ namespace compiler2 {
 // forward declarations
 class StackSlotManager;
 class JITData;
-class RegisterFile;
 class MachineBasicBlock;
+
+using MRegisterSet = std::vector<MachineOperand*>;
+
+class RegisterClass {
+public:
+	virtual bool handles_type(Type::TypeID type) const = 0;
+
+	virtual unsigned count() const = 0;
+	virtual const MRegisterSet& get_All() const = 0;
+
+	virtual unsigned caller_saved_count() const = 0;
+	virtual const MRegisterSet& get_CallerSaved() const = 0;
+
+	virtual unsigned callee_saved_count() const = 0;
+	virtual const MRegisterSet& get_CalleeSaved() const = 0;
+};
+
+class RegisterInfo {
+public:
+	unsigned class_count() const { return classes.size(); };
+	const RegisterClass& get_class(unsigned idx) const {
+		assert(idx < classes.size() && "This RI does not have that many classes!");
+		return *classes[idx];
+	}
+	auto class_cbegin() const { return classes.cbegin(); }
+	auto class_cend() const { return classes.cend(); }
+
+protected:
+	using RegisterClassUPtrTy = std::unique_ptr<RegisterClass>;
+	std::vector<RegisterClassUPtrTy> classes;
+};
+
+template<typename Target>
+class RegisterInfoBase : public RegisterInfo {};
 
 class Backend : public memory::ManagerMixin<Backend>  {
 private:
 	JITData *JD;
+	RegisterInfo *RI;
 protected:
-	Backend(JITData *JD) : JD(JD) {}
+	Backend(JITData *JD, RegisterInfo *RI) : JD(JD), RI(RI) {}
 public:
 	static Backend* factory(JITData *JD);
-	JITData* get_JITData() const { return JD; };
+	JITData* get_JITData() const { return JD; }
+	RegisterInfo* get_RegisterInfo() const { return RI; }
 
-	//virtual RegisterFile* get_RegisterFile(Type::TypeID type) const = 0;
 	virtual OperandFile& get_OperandFile(OperandFile& OF,MachineOperand *MO) const = 0;
 	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const = 0;
 	virtual MachineInstruction* create_Jump(MachineBasicBlock *target) const = 0;
+	virtual MachineInstruction* create_Swap(MachineOperand *op1, MachineOperand *op2) const = 0;
 	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM) const = 0;
 	virtual const char* get_name() const = 0;
 };
@@ -67,12 +104,14 @@ public:
 template <typename Target>
 class BackendBase : public Backend {
 public:
-	BackendBase(JITData *JD) : Backend(JD) {}
-	//virtual RegisterFile* get_RegisterFile(Type::TypeID type) const;
+	BackendBase(JITData *JD, RegisterInfo *RI) : Backend(JD, RI) {}
+
 	virtual OperandFile& get_OperandFile(OperandFile& OF,MachineOperand *MO) const;
 	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const;
 	virtual MachineInstruction* create_Jump(MachineBasicBlock *target) const;
+	virtual MachineInstruction* create_Swap(MachineOperand *op1,
+		MachineOperand* op2) const;
 	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM) const;
 	virtual const char* get_name() const;
 };

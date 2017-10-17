@@ -177,7 +177,7 @@ GPInstruction::OperandSize get_operand_size_from_Type(Type::TypeID type) {
 }
 
 void ALUInstruction::emit(CodeMemory* CM) const {
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 	MachineOperand *src1 = operands[0].op; 
 	MachineOperand *src2 = operands[1].op; 
 	MachineOperand *src;
@@ -388,7 +388,7 @@ void CallInst::emit(CodeMemory* CM) const {
 
 void MovInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 
 	GPInstruction::OpEncoding openc = get_OpEncoding(dst,src,get_op_size());
 	u1 opcode = 0x06; //invalid
@@ -444,6 +444,31 @@ void MovInst::emit(CodeMemory* CM) const {
 	InstructionEncoding::emit(CM,opcode,get_op_size(),src,dst,0,0,0,false,encode_dst);
 }
 
+void SwapInst::emit(CodeMemory *CM) const {
+	MachineOperand *src1 = operands[0].op;
+	MachineOperand *src2 = operands[1].op;
+
+	GPInstruction::OpEncoding openc = get_OpEncoding(src1,src2,get_op_size());
+	u1 opcode = 0x06; //invalid
+	switch (openc) {
+	case GPInstruction::RegReg8:
+	case GPInstruction::RegReg16:
+	case GPInstruction::RegReg32:
+	case GPInstruction::RegReg64:
+	{
+		opcode = 0x87;
+		break;
+	}
+	default: 
+	ABORT_MSG(this << ": Operand(s) not supported",
+		"src1: " << src1 << " src2: " << src2 << " op_size: "
+		<< get_op_size() * 8 << "bit");
+	break;
+	}
+
+	InstructionEncoding::emit(CM, opcode, get_op_size(), src1, src2, 0, 0, 0, false, false);
+}
+
 inline u1 get_rex(X86_64Register *reg, const ModRMOperandDesc &modrm, bool opsize64) {
 	REX rex;
 	if (opsize64)
@@ -465,7 +490,7 @@ void LEAInst::emit(CodeMemory* CM) const {
 
 void MovSXInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 	X86_64Register *src_reg = cast_to<X86_64Register>(src);
 	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
 
@@ -522,7 +547,7 @@ void MovSXInst::emit(CodeMemory* CM) const {
 }
 
 void MovDSEGInst::emit(CodeMemory* CM) const {
-	X86_64Register *dst = cast_to<X86_64Register>(result.op);
+	X86_64Register *dst = cast_to<X86_64Register>(get_result().op);
 	switch (get_op_size()) {
 	case OS_8:
 	case OS_16:
@@ -684,7 +709,7 @@ void CondJumpInst::link(CodeFragment &CF) const {
 
 void IMulInst::emit(CodeMemory* CM) const {
 	X86_64Register *src_reg = cast_to<X86_64Register>(operands[1].op);
-	X86_64Register *dst_reg = cast_to<X86_64Register>(result.op);
+	X86_64Register *dst_reg = cast_to<X86_64Register>(get_result().op);
 
 	InstructionEncoding::reg2reg<u2>(CM, 0x0faf, dst_reg, src_reg);
 	// imm Byte = 6B, sonst 69
@@ -694,7 +719,7 @@ void IMulInst::emit(CodeMemory* CM) const {
 }
 
 void IMulImmInst::emit(CodeMemory* CM) const {
-	X86_64Register *dst_reg = cast_to<X86_64Register>(result.op);
+	X86_64Register *dst_reg = cast_to<X86_64Register>(get_result().op);
 	X86_64Register *src_reg = cast_to<X86_64Register>(operands[0].op);
 	Immediate *imm = cast_to<Immediate>(operands[1].op);
 
@@ -709,7 +734,7 @@ void IMulImmInst::emit(CodeMemory* CM) const {
 
 void IDivInst::emit(CodeMemory *CM) const {
 	CodeFragment code = CM->get_CodeFragment(2);
-	X86_64Register *divisor = cast_to<X86_64Register>(operands[1].op);
+	X86_64Register *divisor = cast_to<X86_64Register>(operands[0].op);
 	code[0] = 0xf7;
 	code[1] = get_modrm_1reg(7, divisor);
 }
@@ -806,7 +831,7 @@ void XORPInst::emit(CodeMemory* CM) const {
 
 void SSEAluInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[1].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 
 	switch (get_OpEncoding(dst,src,get_op_size())) {
 	case GPInstruction::RegReg64:
@@ -842,7 +867,7 @@ void SSEAluInst::emit(CodeMemory* CM) const {
 
 void MovSDInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 	if (src->aquivalent(*dst)) return;
 
 	u1 opcode = 0x06; //invalid
@@ -870,7 +895,7 @@ void MovSDInst::emit(CodeMemory* CM) const {
 
 void MovSSInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 	if (src->aquivalent(*dst)) return;
 
 	u1 opcode = 0x06; //invalid
@@ -905,7 +930,7 @@ void FPRemInst::emit(CodeMemory* CM) const {
 
 void MovImmSInst::emit(CodeMemory* CM) const {
 	Immediate *imm = cast_to<Immediate>(operands[0].op);
-	X86_64Register *dst = cast_to<X86_64Register>(result.op);
+	X86_64Register *dst = cast_to<X86_64Register>(get_result().op);
 
 	CodeFragment code = CM->get_CodeFragment(dst->extented ? 9 : 8);
 	if (dst->extented) {
@@ -991,7 +1016,7 @@ void MovImmSInst::link(CodeFragment &CF) const {
 
 	assert(offset != 0);
 	int i = 4;
-	if (cast_to<X86_64Register>(result.op)->extented)
+	if (cast_to<X86_64Register>(get_result().op)->extented)
 		i = 5;
 	CF[i++] = u1(0xff & (offset >>  0));
 	CF[i++] = u1(0xff & (offset >>  8));
@@ -1005,7 +1030,7 @@ void MovImmSInst::link(CodeFragment &CF) const {
 // TODO: refactor
 void CVTSI2SDInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 
 	X86_64Register *src_reg = cast_to<X86_64Register>(src);
 	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
@@ -1040,7 +1065,7 @@ void CVTSI2SDInst::emit(CodeMemory* CM) const {
 // TODO: refactor
 void CVTSI2SSInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 
 	X86_64Register *src_reg = cast_to<X86_64Register>(src);
 	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
@@ -1075,7 +1100,7 @@ void CVTSI2SSInst::emit(CodeMemory* CM) const {
 
 void CVTTSS2SIInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 
 	X86_64Register *src_reg = cast_to<X86_64Register>(src);
 	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
@@ -1110,7 +1135,7 @@ void CVTTSS2SIInst::emit(CodeMemory* CM) const {
 
 void CVTTSD2SIInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 
 	X86_64Register *src_reg = cast_to<X86_64Register>(src);
 	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
@@ -1145,7 +1170,7 @@ void CVTTSD2SIInst::emit(CodeMemory* CM) const {
 
 void CVTSS2SDInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 
 	X86_64Register *src_reg = cast_to<X86_64Register>(src);
 	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
@@ -1160,7 +1185,7 @@ void CVTSS2SDInst::emit(CodeMemory* CM) const {
 
 void CVTSD2SSInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 
 	X86_64Register *src_reg = cast_to<X86_64Register>(src);
 	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
@@ -1195,7 +1220,7 @@ void FLDInst::emit(CodeMemory *CM) const {
 	}
 
 	// modmr + imm
-	s4 index = get_stack_position(result.op);
+	s4 index = get_stack_position(get_result().op);
 	if (fits_into<s1>(index)) {
 		code += get_modrm_u1(0x1,0,RBP.get_index());
 		code += (u1) 0xff & (index >> 0x00);
@@ -1231,7 +1256,7 @@ void FSTPInst::emit(CodeMemory *CM) const {
 	}
 
 	// modmr + imm
-	s4 index = get_stack_position(result.op);
+	s4 index = get_stack_position(get_result().op);
 	if (fits_into<s1>(index)) {
 		code += get_modrm_u1(0x1,3,RBP.get_index());
 		code += (u1) 0xff & (index >> 0x00);

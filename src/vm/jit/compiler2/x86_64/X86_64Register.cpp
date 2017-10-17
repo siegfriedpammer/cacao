@@ -64,11 +64,14 @@ GPRegister R14("R14",0x6,true ,0xe*8,8);
 GPRegister R15("R15",0x7,true ,0xf*8,8);
 
 GPRegister* IntegerArgumentRegisters[] = {
-&RDI, &RSI, &RDX, &RCX, &R8, &R9
+	&RDI, &RSI, &RDX, &RCX, &R8, &R9
 };
 GPRegister* IntegerCallerSavedRegisters[] = {
-&RAX,&R11,&R10,&R9,&R8,&RCX,&RDX,&RSI,&RDI};
-std::size_t IntegerCallerSavedRegistersSize = 9;
+	&RAX,&R11,&R10,&R9,&R8,&RCX,&RDX,&RSI,&RDI
+};
+GPRegister* IntegerCalleeSavedRegisters[] = {
+	&R12, &R13, &R14, &R15
+};
 
 SSERegister XMM0 ("XMM0" ,0x0,false,0x0*16,16);
 SSERegister XMM1 ("XMM1" ,0x1,false,0x1*16,16);
@@ -90,7 +93,50 @@ SSERegister XMM15("XMM15",0x7,true ,0xf*16,16);
 SSERegister* FloatArgumentRegisters[] = {
 &XMM0, &XMM1, &XMM2, &XMM3, &XMM4, &XMM5, &XMM6, &XMM7
 };
+SSERegister* FloatCallerSavedRegisters[] = {
+	&XMM0, &XMM2, &XMM3, &XMM4, &XMM5, &XMM6, &XMM7, &XMM8, &XMM9,
+	&XMM10, &XMM11, &XMM12, &XMM13, &XMM14, &XMM15
+};
 
+template<>
+X86_64RegisterClass<X86_64Class::GP>::X86_64RegisterClass()
+{
+	//for (const auto reg : IntegerCallerSavedRegisters) {
+	//	caller_saved.push_back(new NativeRegister(Type::VoidTypeID, reg));
+	//}
+
+	//for (const auto reg : IntegerCalleeSavedRegisters) {
+	//	callee_saved.push_back(new NativeRegister(Type::VoidTypeID, reg));
+	//}
+
+	caller_saved.push_back(new NativeRegister(Type::VoidTypeID, &RDI));
+	caller_saved.push_back(new NativeRegister(Type::VoidTypeID, &RAX));
+
+	std::copy(caller_saved.begin(), caller_saved.end(), std::back_inserter(all));
+	std::copy(callee_saved.begin(), callee_saved.end(), std::back_inserter(all));
+}
+
+template<>
+bool X86_64RegisterClass<X86_64Class::GP>::handles_type(Type::TypeID type) const
+{
+	return (type != Type::FloatTypeID && type != Type::DoubleTypeID);
+}
+
+template<>
+X86_64RegisterClass<X86_64Class::FP>::X86_64RegisterClass()
+{
+	for (const auto reg : FloatCallerSavedRegisters) {
+		caller_saved.push_back(new NativeRegister(Type::VoidTypeID, reg));
+	}	
+
+	std::copy(caller_saved.begin(), caller_saved.end(), std::back_inserter(all));
+}
+
+template<>
+bool X86_64RegisterClass<X86_64Class::FP>::handles_type(Type::TypeID type) const
+{
+	return (type == Type::FloatTypeID || type == Type::DoubleTypeID);
+}
 
 
 } // end namespace x86_64
@@ -100,6 +146,8 @@ template<>
 OperandFile&
 BackendBase<X86_64>::get_OperandFile(OperandFile& OF,MachineOperand *MO) const {
 	Type::TypeID type = MO->get_type();
+
+	assert(false && "Use the new RegisterInfo stuff please!");
 
 	switch (type) {
 	case Type::CharTypeID:
@@ -113,6 +161,7 @@ BackendBase<X86_64>::get_OperandFile(OperandFile& OF,MachineOperand *MO) const {
 			OF.push_back(new x86_64::NativeRegister(type,IntegerCallerSavedRegisters[i]));
 		}
 		assert(OF.size() == IntegerCallerSavedRegistersSize);
+		OF.push_back(new x86_64::NativeRegister(type, &R12));
 		#else
 		OF.push_back(new x86_64::NativeRegister(type,&RDI));
 		OF.push_back(new x86_64::NativeRegister(type,&RSI));
@@ -137,6 +186,11 @@ BackendBase<X86_64>::get_OperandFile(OperandFile& OF,MachineOperand *MO) const {
 	ABORT_MSG("X86_64 Register File Type Not supported!",
 		"Type: " << type);
 	return OF;
+}
+
+RegisterInfoBase<X86_64>::RegisterInfoBase() {
+	this->classes.emplace_back(new X86_64RegisterClass<X86_64Class::GP>());
+	this->classes.emplace_back(new X86_64RegisterClass<X86_64Class::FP>());
 }
 
 } // end namespace compiler2

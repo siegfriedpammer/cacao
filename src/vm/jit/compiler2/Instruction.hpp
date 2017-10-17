@@ -89,6 +89,11 @@ public:
 
 		NoInstID
 	};
+
+	static void reset() {
+		id_counter = 0;
+	}
+
 private:
 	OperandListTy op_list;
 	DepListTy dep_list;
@@ -99,9 +104,6 @@ private:
 	/**
 	 * Reset static infos (run by Compiler)
 	 */
-	static void reset() {
-		id_counter = 0;
-	}
 	friend MachineCode* compile(methodinfo*);
 
 protected:

@@ -21,6 +21,7 @@
 ## 02110-1301, USA.
 
 SUBDIRS = \
+	catch \
 	junit
 
 ## Local variables:

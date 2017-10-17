@@ -47,6 +47,15 @@ typedef x86_64::NativeRegister NativeRegister;
 typedef x86_64::NativeAddress NativeAddress;
 typedef x86_64::X86_64LoweringVisitor LoweringVisitor;
 
+// We need to put the template specialization here, because
+// Backend.cpp needs to see this.
+// The constructor implementation can be found in X86_64Register.cpp
+template<>
+class RegisterInfoBase<Target> : public RegisterInfo {
+public:
+	explicit RegisterInfoBase();
+};
+
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

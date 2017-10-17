@@ -45,8 +45,8 @@ void LoopPressureAnalysis::compute_loop_pressures()
 	auto MLP = SP->get_Pass<MachineLoopPass>();
 	for (auto i = MLP->loop_begin(), e = MLP->loop_end(); i != e; ++i) {
 		auto loop = *i;
-		unsigned pressure = compute_loop_pressure(loop);
-		loop->set_register_pressure(pressure);
+		//unsigned pressure = compute_loop_pressure(loop);
+		//loop->set_register_pressure(pressure);
 	}
 }
 
@@ -75,23 +75,7 @@ unsigned LoopPressureAnalysis::compute_block_pressure(MachineBasicBlock* block)
 
 	// Starting from LiveOut we calculate the live set at each instruction
 	for (auto i = block->rbegin(), e = block->rend(); i != e; ++i) {
-		auto instruction = *i;
-
-		if (!reg_alloc_considers_instruction(instruction))
-			continue;
-
-		// Remove defined value
-		auto result_op = instruction->get_result().op;
-		if (reg_alloc_considers_operand(*result_op)) {
-			live_set[result_op->get_id()] = false;
-		}
-
-		// Add used values
-		for (const auto& operand : *instruction) {
-			if (reg_alloc_considers_operand(*operand.op)) {
-				live_set[operand.op->get_id()] = true;
-			}
-		}
+		live_set = LTA->liveness_transfer(live_set, block->convert(i));
 
 		unsigned count = live_set.count();
 		max_live = std::max(max_live, count);

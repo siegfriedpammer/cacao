@@ -32,8 +32,8 @@ namespace jit {
 namespace compiler2 {
 
 using DominatorTree = DominatorTreeBase<BeginInst>;
-using DominatorPass = DominatorPassBase<BeginInst>;
-		
+using DominatorPass = DominatorPassBase<BeginInst, EndInst::succ_const_iterator>;
+	
 MM_CLASS_NAME(DominatorPass)
 
 } // end namespace compiler2

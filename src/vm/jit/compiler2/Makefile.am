@@ -156,8 +156,14 @@ libcompiler2_la_SOURCES = \
 	PassManager.cpp \
 	PassManager.hpp \
 	PassUsage.hpp \
+	PhiCoalescingPass.cpp \
+	PhiCoalescingPass.hpp \
+	PhiLiftingPass.cpp \
+	PhiLiftingPass.hpp \
 	RegisterAllocatorPass.cpp \
 	RegisterAllocatorPass.hpp \
+	ReversePostOrderPass.cpp \
+	ReversePostOrderPass.hpp \
 	ScheduleClickPass.cpp \
 	ScheduleClickPass.hpp \
 	ScheduleEarlyPass.cpp \
@@ -170,6 +176,8 @@ libcompiler2_la_SOURCES = \
 	SourceStateAttachmentPass.hpp \
 	SSAConstructionPass.cpp \
 	SSAConstructionPass.hpp \
+	SSADeconstructionPass.cpp \
+	SSADeconstructionPass.hpp \
 	SSAPrinterPass.cpp \
 	SSAPrinterPass.hpp \
 	StackAnalysisPass.cpp \

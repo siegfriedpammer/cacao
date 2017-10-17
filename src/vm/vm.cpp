@@ -1885,6 +1885,7 @@ void vm_shutdown(s4 status)
 	finalizer_join_thread();
 #endif
 
+	write_logfiles();
 	exit(status);
 }
 
@@ -1961,6 +1962,7 @@ static void write_logfiles() {
 			cacao::RTGroup::print_csv_header(OS);
 			cacao::RTGroup::root().print_csv(OS);
 		}
+		OS << cacao::flush;
 	}
 #endif
 
@@ -1982,6 +1984,7 @@ static void write_logfiles() {
 			cacao::StatGroup::print_csv_header(OS);
 			cacao::StatGroup::root().print_csv(OS);
 		}
+		OS << cacao::flush;
 	}
 #endif
 

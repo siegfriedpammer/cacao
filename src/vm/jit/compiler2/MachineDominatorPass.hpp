@@ -32,8 +32,9 @@ namespace jit {
 namespace compiler2 {
 
 using MachineDominatorTree = DominatorTreeBase<MachineBasicBlock>;
-using MachineDominatorPass = DominatorPassBase<MachineBasicBlock>;
-		
+using MachineDominatorPass = DominatorPassBase<MachineBasicBlock, MachineInstruction::successor_iterator>;
+
+
 MM_CLASS_NAME(MachineDominatorPass)
 
 } // end namespace compiler2

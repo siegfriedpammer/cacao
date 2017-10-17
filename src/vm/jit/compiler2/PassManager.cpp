@@ -33,6 +33,40 @@
 #include "vm/jit/compiler2/alloc/list.hpp"
 #include "vm/jit/compiler2/alloc/deque.hpp"
 
+#include "vm/jit/compiler2/ParserPass.hpp"
+#include "vm/jit/compiler2/StackAnalysisPass.hpp"
+#include "vm/jit/compiler2/VerifierPass.hpp"
+#include "vm/jit/compiler2/CFGConstructionPass.hpp"
+#include "vm/jit/compiler2/SSAConstructionPass.hpp"
+#include "vm/jit/compiler2/CFGMetaPass.hpp"
+#include "vm/jit/compiler2/LoopPass.hpp"
+#include "vm/jit/compiler2/InstructionMetaPass.hpp"
+#include "vm/jit/compiler2/ConstantPropagationPass.hpp"
+#include "vm/jit/compiler2/GlobalValueNumberingPass.hpp"
+#include "vm/jit/compiler2/DeadCodeEliminationPass.hpp"
+#include "vm/jit/compiler2/DominatorPass.hpp"
+#include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
+#include "vm/jit/compiler2/ScheduleLatePass.hpp"
+#include "vm/jit/compiler2/ScheduleClickPass.hpp"
+#include "vm/jit/compiler2/ListSchedulingPass.hpp"
+#include "vm/jit/compiler2/NullCheckEliminationPass.hpp"
+#include "vm/jit/compiler2/SourceStateAttachmentPass.hpp"
+#include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
+#include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
+#include "vm/jit/compiler2/MachineInstructionPrinterPass.hpp"
+#include "vm/jit/compiler2/MachineLoopPass.hpp"
+#include "vm/jit/compiler2/ReversePostOrderPass.hpp"
+#include "vm/jit/compiler2/PhiLiftingPass.hpp"
+#include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/lsra/LoopPressurePass.hpp"
+#include "vm/jit/compiler2/MachineDominatorPass.hpp"
+#include "vm/jit/compiler2/lsra/NewSpillPass.hpp"
+#include "vm/jit/compiler2/lsra/RegisterAssignmentPass.hpp"
+#include "vm/jit/compiler2/RegisterAllocatorPass.hpp"
+#include "vm/jit/compiler2/SSADeconstructionPass.hpp"
+#include "vm/jit/compiler2/CodeGenPass.hpp"
+#include "vm/jit/compiler2/DisassemblerPass.hpp"
+
 #include "vm/rt-timing.hpp"
 
 #include <algorithm>
@@ -68,8 +102,11 @@ PassUPtrTy PassManager::create_Pass(PassInfo::IDTy ID) const {
 	PassUPtrTy pass(PI->create_Pass());
 
 	#if ENABLE_RT_TIMING
-	RTTimer &timer = pass_timers[ID];
-	new (&timer) RTTimer(PI->get_name(),PI->get_name(),compiler2_rtgroup());
+	auto iter = pass_timers.find(ID);
+	if (iter == pass_timers.end()) {
+		RTTimer &timer = pass_timers[ID];
+		new (&timer) RTTimer(PI->get_name(),PI->get_name(),compiler2_rtgroup());
+	}
 	#endif
 
 	return pass;
@@ -95,13 +132,15 @@ void PassRunner::runPasses(JITData &JD) {
 	for (auto i = PS.schedule_begin(), e = PS.schedule_end(); i != e; ++i) {
 		PassInfo::IDTy id = *i;
 		result_ready[id] = false;
+		auto&& P = get_Pass(id);
+		
 		#if ENABLE_RT_TIMING
 		PassTimerMap::iterator f = pass_timers.find(id);
 		assert(f != pass_timers.end());
 		RTTimer &timer = f->second;
 		timer.start();
 		#endif
-		auto&& P = get_Pass(id);
+		
 		LOG("initialize: " << PS.get_Pass_name(id) << nl);
 		P->initialize();
 		LOG("start: " << PS.get_Pass_name(id) << nl);
@@ -279,6 +318,73 @@ void PassManager::schedulePasses() {
 		print_PassDependencyGraph();
 	}
 
+	/// @todo Currently we hardcode the pass schedule since we can not model some
+	///       dependencies. (E.g. pass does not change CFG, only changes instructions)
+	///       This leads to unnecessary Pass re-runs.
+	///       Either we hardcode the pass schedule here, which might get complicated if certain
+	///       analysises *might* be re-run depending on some other passes.
+	///       Or we extend the Pass scheduler with finer control (see llvm pass manager for what a full fledged one can do) 
+
+	/// @todo Add most of the printer passes if they are enabled
+
+	add<ParserPass>();
+	add<StackAnalysisPass>();
+	add<VerifierPass>();
+	add<CFGConstructionPass>();
+	add<SSAConstructionPass>();
+	add<CFGMetaPass>();
+	add<LoopPass>();
+	add<InstructionMetaPass>();
+	//add<ConstantPropagationPass>();
+	//add<GlobalValueNumberingPass>();
+	//add<DeadCodeEliminationPass>();
+	add<DominatorPass>();
+	add<ScheduleEarlyPass>();
+	add<ScheduleLatePass>();
+	add<ScheduleClickPass>();
+	add<ListSchedulingPass>();
+	//add<NullCheckEliminationPass>();
+	add<SourceStateAttachmentPass>();
+	add<BasicBlockSchedulingPass>();
+	add<MachineInstructionSchedulingPass>();
+
+	if (MachineInstructionPrinterPass::enabled) {
+		add<MachineInstructionPrinterPass>();
+	}
+
+	add<MachineLoopPass>();
+	add<ReversePostOrderPass>();
+	add<PhiLiftingPass>();
+
+	if (MachineInstructionPrinterPass::enabled) {
+		add<MachineInstructionPrinterPass>();
+	}
+
+	add<NewLivetimeAnalysisPass>();
+	add<LoopPressurePass>();
+	add<MachineDominatorPass>();
+	add<NewSpillPass>();
+
+	if (MachineInstructionPrinterPass::enabled) {
+		add<MachineInstructionPrinterPass>();
+	}
+
+	add<NewLivetimeAnalysisPass>();
+	add<RegisterAssignmentPass>();
+	add<RegisterAllocatorPass>();
+	add<SSADeconstructionPass>();
+
+	if (MachineInstructionPrinterPass::enabled) {
+		add<MachineInstructionPrinterPass>();
+	}
+
+	add<CodeGenPass>();
+
+	if (DisassemblerPass::enabled) {
+		add<DisassemblerPass>();
+	}
+
+	/*
 	alloc::deque<PassInfo::IDTy>::type unhandled;
 	alloc::unordered_set<PassInfo::IDTy>::type ready;
 	alloc::list<PassInfo::IDTy>::type stack;
@@ -325,6 +431,7 @@ void PassManager::schedulePasses() {
 		}
 	}
 	schedule = new_schedule;
+	*/
 }
 
 void PassManager::populate_passusage(const PassUPtrTy& pass, PassInfo::IDTy id) {

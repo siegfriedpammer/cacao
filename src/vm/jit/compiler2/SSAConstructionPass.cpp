@@ -80,6 +80,7 @@ public:
 			// append operand
 			phi->append_op(parent->read_variable(var,pred_nr));
 		}
+		parent->try_remove_trivial_phi(phi);
 	}
 };
 
@@ -105,7 +106,7 @@ Value* SSAConstructionPass::read_variable(size_t varindex, size_t bb) {
 Value* SSAConstructionPass::read_variable_recursive(size_t varindex, size_t bb) {
 	Value *val; // current definition
 	if(BB[bb]->pred_size() == 0) {
-		ABORT_MSG("no predecessor ","basic block " << bb << " var index " << varindex);
+		// ABORT_MSG("no predecessor ","basic block " << bb << " var index " << varindex);
 		return NULL;
 	}
 	if (!sealed_blocks[bb]) {
@@ -140,6 +141,7 @@ Value* SSAConstructionPass::add_phi_operands(size_t varindex, PHIInst *phi) {
 }
 
 Value* SSAConstructionPass::try_remove_trivial_phi(PHIInst *phi) {
+	LOG(BoldYellow << "Try Remove trivial phi: " << phi <<  reset_color << nl);
 	Value *same = NULL;
 	for(Instruction::OperandListTy::const_iterator i = phi->op_begin(),
 			e = phi->op_end(); i != e; ++i) {
@@ -287,6 +289,8 @@ void SSAConstructionPass::install_stackvar_dependencies(
 		Value *v = read_variable(
 				static_cast<size_t>(varindex),
 				bb->nr);
+		
+		if (v == nullptr) continue;
 
 		if (stack_index < paramcount) {
 			source_state->append_param(v);
@@ -582,12 +586,13 @@ bool SSAConstructionPass::run(JITData &JD) {
 				write_variable(varindex, bbindex, phi);
 				if (!sealed_blocks[bbindex]) {
 					incomplete_in_phi[bbindex].push_back(new InVarPhis(phi, jd, bbindex, i, this));
+					M->add_Instruction(phi);
 				}
 				else {
 					InVarPhis invar(phi, jd, bbindex, i, this);
+					M->add_Instruction(phi);
 					invar.fill_operands();
 				}
-				M->add_Instruction(phi);
 			}
 		}
 

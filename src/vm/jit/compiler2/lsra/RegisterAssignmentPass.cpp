@@ -25,10 +25,14 @@
 #include "vm/jit/compiler2/lsra/RegisterAssignmentPass.hpp"
 
 #include "vm/jit/compiler2/MachineDominatorPass.hpp"
-#include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineLoopPass.hpp"
+#include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
+#include "vm/jit/compiler2/MachineRegister.hpp"
+#include "vm/jit/compiler2/ReversePostOrderPass.hpp"
 #include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
-#include "vm/jit/compiler2/lsra/SpillPass.hpp"
+#include "vm/jit/compiler2/lsra/NewSpillPass.hpp"
+
+#include "vm/jit/compiler2/x86_64/X86_64Register.hpp"
 
 #define DEBUG_NAME "compiler2/RegisterAssignment"
 
@@ -36,189 +40,643 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-namespace {
-
-MachineInstruction::successor_iterator get_successor_begin(MachineBasicBlock* MBB)
+static bool op_cmp(MachineOperand* lhs, MachineOperand* rhs)
 {
-	return MBB->back()->successor_begin();
+	return lhs->aquivalence_less(*rhs);
 }
 
-MachineInstruction::successor_iterator get_successor_end(MachineBasicBlock* MBB)
+void RegisterAssignment::initialize_physical_registers(Backend* backend)
 {
-	return MBB->back()->successor_end();
+	initialize_physical_registers_for_class(backend, Type::ByteTypeID);
+	initialize_physical_registers_for_class(backend, Type::CharTypeID);
+	initialize_physical_registers_for_class(backend, Type::ShortTypeID);
+	initialize_physical_registers_for_class(backend, Type::IntTypeID);
+	initialize_physical_registers_for_class(backend, Type::LongTypeID);
+	initialize_physical_registers_for_class(backend, Type::ReferenceTypeID);
+	initialize_physical_registers_for_class(backend, Type::FloatTypeID);
+	initialize_physical_registers_for_class(backend, Type::DoubleTypeID);
 }
 
-} // end namespace
-
-void RegisterAssignmentPass::add_interval(MachineOperand* operand,
-                                          unsigned step,
-                                          bool def,
-                                          bool real)
+void RegisterAssignment::initialize_physical_registers_for_class(Backend* backend,
+                                                                 Type::TypeID type)
 {
-	LivetimeInterval interval{operand, step, def, real};
+	MachineOperand* dummy = new VirtualRegister(type);
+	const RegisterClass* regclass;
 
-	assert(current_list);
-	current_list->push_front(interval);
+	for (unsigned i = 0; i < backend->get_RegisterInfo()->class_count(); ++i) {
+		const auto& rc = backend->get_RegisterInfo()->get_class(i);
+		if (rc.handles_type(type)) {
+			regclass = &rc;
+			break;
+		}
+	}
 
-	LOG3("\t\t" << (def ? "def" : "use") << " adding " << *operand << ", step = " << step << nl);
+	/// @todo only works on x86_64, this needs to be arch independent!!!
+	RegisterSet registers;
+	for (const auto reg : regclass->get_All()) {
+		auto native_reg = x86_64::cast_to<x86_64::X86_64Register>(reg);
+		registers.push_back(new NativeRegister(type, native_reg));
+	}
+
+	std::sort(registers.begin(), registers.end(), op_cmp);
+
+	physical_registers.emplace(type, registers);
 }
 
-void RegisterAssignmentPass::create_borders(MachineBasicBlock* block)
+void RegisterAssignment::initialize_variables_for(MachineBasicBlock* block, MachineBasicBlock* idom)
 {
-	update_current_list(block);
-	unsigned step = 0;
+	if (idom) {
+		auto& idom_variables = allocated_variables_map.at(idom);
+		allocated_variables_map.emplace(block, AllocatedVariableSet(idom_variables));
+	}
+	else {
+		allocated_variables_map.emplace(block, AllocatedVariableSet());
+	}
+}
 
-	auto LTA = get_Pass<NewLivetimeAnalysisPass>();
-	auto live = LTA->get_live_out(block);
+void RegisterAssignment::intersect_variables_with(MachineBasicBlock* block, const LiveTy& live_in)
+{
+	auto& variables = allocated_variables_map.at(block);
 
-	// Make final uses of all values live out of the block.
-	// They are necessary to build up real intervals.
-	LTA->for_each_live_out(block, [&](const auto& operand) {
-		LOG3("\tMaking live: " << *operand << nl);
-		this->add_use(operand, step, false);
-	});
-	++step;
+	if (DEBUG_COND_N(3)) {
+		LOG3("\nInitial allocated variables (" << *block << "): ");
+		print_ptr_container(dbg(), variables.begin(), variables.end());
+		LOG3("\nLiveIn                      (" << *block << "): ");
+		rapass.LTA->log_livety(dbg(), live_in);
+		LOG3(nl);
+	}
 
-	// Determine the last uses of a value inside the block, since
-	// they are relevant for the interval
-	auto handle_instruction([&](const auto& instruction) {
-		LOG2("\tInstruction: " << *instruction << nl);
-		if (!reg_alloc_considers_instruction(instruction)) {
-			LOG2("\t\tskipped!\n");
+	for (auto i = variables.begin(); i != variables.end();) {
+		auto var = *i;
+		if (!live_in[var->operand->get_id()]) {
+			i = variables.erase(i);
+		}
+		else {
+			++i;
+		}
+	}
+
+	if (DEBUG_COND_N(3)) {
+		LOG3("Allocated vars intersected  (" << *block << "): ");
+		print_ptr_container(dbg(), variables.begin(), variables.end());
+		LOG3(nl);
+	}
+}
+
+void RegisterAssignment::add_allocated_variable(MachineBasicBlock* block, MachineOperand* operand)
+{
+	auto& variable = variable_for(operand);
+	allocated_variables_map.at(block).push_back(&variable);
+}
+
+void RegisterAssignment::remove_allocated_variable(MachineBasicBlock* block,
+                                                   MachineOperand* operand)
+{
+	auto& variable = variable_for(operand);
+	auto& allocated_variables = allocated_variables_map.at(block);
+
+	auto iter = std::find(allocated_variables.begin(), allocated_variables.end(), &variable);
+	if (iter != allocated_variables.end()) {
+		allocated_variables.erase(iter);
+	}
+}
+
+RegisterAssignment::ColorPair RegisterAssignment::choose_color(MachineBasicBlock* block,
+                                                               MachineInstruction* instruction,
+                                                               MachineOperandDesc& descriptor)
+{
+	RegisterSet allowed_ccolors;
+
+	auto allocated_ccolors = ccolors(block);
+	auto colors = allowed_colors(instruction, &variable_for(descriptor.op));
+
+	std::set_difference(colors.begin(), colors.end(), allocated_ccolors.begin(),
+	                    allocated_ccolors.end(), std::back_inserter(allowed_ccolors), op_cmp);
+
+	return choose_color(block, instruction, descriptor, allowed_ccolors);
+}
+
+RegisterAssignment::ColorPair RegisterAssignment::choose_color(MachineBasicBlock* block,
+                                                               MachineInstruction* instruction,
+                                                               MachineOperandDesc& descriptor,
+                                                               const RegisterSet& allowed_ccolors)
+{
+	RegisterSet allowed_gcolors;
+
+	auto& physical_registers = physical_registers_for(descriptor.op->get_type());
+	auto allocated_gcolors = gcolors(block);
+	std::set_difference(physical_registers.cbegin(), physical_registers.cend(),
+	                    allocated_gcolors.begin(), allocated_gcolors.end(),
+	                    std::back_inserter(allowed_gcolors), op_cmp);
+
+	auto& variable = variable_for(descriptor.op);
+
+	if (DEBUG_COND_N(3)) {
+		LOG3("[" << descriptor.op << "]: Allowed Local Colors:  ");
+		print_ptr_container(dbg(), allowed_ccolors.begin(), allowed_ccolors.end());
+		LOG3("\n[" << descriptor.op << "]: Allowed Global Colors: ");
+		print_ptr_container(dbg(), allowed_gcolors.begin(), allowed_gcolors.end());
+		LOG3(nl);
+	}
+
+	// We have reached a definition, set both gcolor and ccolor
+	if (variable.gcolor == nullptr && variable.ccolor == nullptr) {
+		RegisterSet intersection;
+		std::set_intersection(allowed_ccolors.begin(), allowed_ccolors.end(),
+		                      allowed_gcolors.begin(), allowed_gcolors.end(),
+		                      std::back_inserter(intersection), op_cmp);
+
+		LOG3("[" << descriptor.op << "]: Intersection:          ");
+		DEBUG3(print_ptr_container(dbg(), intersection.begin(), intersection.end()));
+		LOG3(nl);
+
+		auto color = pick(intersection);
+		if (color) {
+			return {color, color};
+		}
+		else {
+			return {pick(allowed_gcolors), pick(allowed_ccolors)};
+		}
+	}
+
+	// Returns the new ccolor (required for repairing)
+	if (variable.gcolor != nullptr && variable.ccolor != nullptr) {
+		if (std::find(allowed_ccolors.begin(), allowed_ccolors.end(), variable.gcolor) !=
+		    allowed_ccolors.end()) {
+			return {nullptr, variable.gcolor};
+		}
+		else {
+			return {nullptr, pick(allowed_ccolors)};
+		}
+	}
+
+	// Repairing result
+	if (variable.gcolor != nullptr && variable.ccolor == nullptr) {
+		if (std::find(allowed_ccolors.begin(), allowed_ccolors.end(), variable.gcolor) !=
+		    allowed_ccolors.end()) {
+			return {nullptr, variable.gcolor};
+		}
+		else {
+			return {nullptr, pick(allowed_ccolors)};
+		}
+	}
+
+	assert(false && "choose_color for repairing not implemented!");
+}
+
+std::vector<MachineOperand*> RegisterAssignment::ccolors(MachineBasicBlock* block)
+{
+	std::vector<MachineOperand*> result;
+
+	auto& allocated_variables = allocated_variables_map.at(block);
+	for (const auto& variable : allocated_variables) {
+		if (variable->ccolor)
+			result.push_back(variable->ccolor);
+	}
+
+	std::sort(result.begin(), result.end(), op_cmp);
+
+	return result;
+}
+
+std::vector<MachineOperand*> RegisterAssignment::gcolors(MachineBasicBlock* block)
+{
+	std::vector<MachineOperand*> result;
+
+	auto& allocated_variables = allocated_variables_map.at(block);
+	for (const auto& variable : allocated_variables) {
+		if (variable->gcolor)
+			result.push_back(variable->gcolor);
+	}
+
+	std::sort(result.begin(), result.end(), op_cmp);
+
+	return result;
+}
+
+RegisterAssignment::Variable& RegisterAssignment::variable_for(MachineOperand* operand)
+{
+	auto iter = variables.find(operand->get_id());
+	if (iter == variables.end()) {
+		Variable variable{operand, nullptr, nullptr};
+		iter = variables.emplace(operand->get_id(), variable).first;
+	}
+	return iter->second;
+}
+
+void RegisterAssignment::assign_operands_color(MachineInstruction* instruction)
+{
+	auto uses_lambda = [&](auto& descriptor) {
+		if (!reg_alloc_considers_operand(*descriptor.op))
 			return;
+
+		auto& variable = this->variable_for(descriptor.op);
+		if (variable.ccolor != nullptr) {
+			descriptor.op = variable.ccolor;
+		}
+		else {
+			variable.unassigned_uses.push_back(&descriptor);
+		}
+	};
+
+	std::for_each(instruction->begin(), instruction->end(), uses_lambda);
+	std::for_each(instruction->dummy_begin(), instruction->dummy_end(), uses_lambda);
+
+	auto result_lambda = [&](auto& descriptor) {
+		if (!reg_alloc_considers_operand(*descriptor.op))
+			return;
+
+		auto& variable = this->variable_for(descriptor.op);
+		descriptor.op = variable.ccolor;
+
+		for (auto& desc : variable.unassigned_uses) {
+			desc->op = variable.gcolor;
+		}
+	};
+	std::for_each(instruction->results_begin(), instruction->results_end(), result_lambda);
+}
+
+MachineOperand* RegisterAssignment::ccolor(MachineOperand* operand)
+{
+	return variable_for(operand).ccolor;
+}
+
+std::vector<MachineOperand*> RegisterAssignment::allowed_colors(MachineInstruction* instruction,
+                                                                Variable* variable)
+{
+	RegisterSet constrained;
+
+	auto descriptor_lambda = [&](const auto& descriptor) {
+		if (!descriptor.op->aquivalent(*variable->operand))
+			return;
+
+		auto requirement = descriptor.get_MachineRegisterRequirement();
+		if (requirement) {
+			// If the required operand is virtual (like for 2-Address Mode requirements), look up
+			// the currently assigned physical register
+			auto required_operand = requirement->get_required();
+			required_operand =
+			    required_operand->is_virtual() ? this->ccolor(required_operand) : required_operand;
+			assert(required_operand && "Required operand must not be null (its required...)");
+
+			constrained.push_back(required_operand);
+		}
+	};
+
+	std::for_each(instruction->begin(), instruction->end(), descriptor_lambda);
+	std::for_each(instruction->dummy_begin(), instruction->dummy_end(), descriptor_lambda);
+	std::for_each(instruction->results_begin(), instruction->results_end(), descriptor_lambda);
+
+	if (!constrained.empty())
+		return constrained;
+
+	return std::vector<MachineOperand*>(physical_registers_for(variable->operand->get_type()));
+}
+
+std::vector<MachineOperand*> RegisterAssignment::used_ccolors(MachineInstruction* instruction)
+{
+	std::vector<MachineOperand*> used_colors;
+	auto uses_lambda = [&](const auto& descriptor) {
+		auto& variable = this->variable_for(descriptor.op);
+		if (variable.ccolor != nullptr) {
+			used_colors.push_back(variable.ccolor);
+		}
+	};
+
+	std::for_each(instruction->begin(), instruction->end(), uses_lambda);
+	std::for_each(instruction->dummy_begin(), instruction->dummy_end(), uses_lambda);
+
+	return used_colors;
+}
+
+std::vector<MachineOperand*> RegisterAssignment::def_ccolors(MachineInstruction* instruction)
+{
+	std::vector<MachineOperand*> def_colors;
+	auto def_lambda = [&](const auto& descriptor) {
+		auto& variable = this->variable_for(descriptor.op);
+		if (variable.ccolor != nullptr) {
+			def_colors.push_back(variable.ccolor);
+		}
+	};
+
+	std::for_each(instruction->results_begin(), instruction->results_end(), def_lambda);
+
+	return def_colors;
+}
+
+RegisterAssignment::Variable*
+RegisterAssignment::allocated_variable_with_ccolor(MachineBasicBlock* block, MachineOperand* ccolor)
+{
+	auto& allocated_variables = allocated_variables_map.at(block);
+	for (auto& variable : allocated_variables) {
+		if (variable->ccolor->aquivalent(*ccolor)) {
+			return variable;
+		}
+	}
+
+	return nullptr;
+}
+
+bool RegisterAssignment::repair_argument(MachineBasicBlock* block,
+                                         MachineInstruction* instruction,
+                                         MachineOperandDesc& descriptor,
+                                         ParallelCopy& parallel_copy)
+{
+	RegisterSet available;
+
+	auto& physical_registers = physical_registers_for(descriptor.op->get_type());
+	auto allocated_ccolors = ccolors(block);
+	std::set_difference(physical_registers.cbegin(), physical_registers.cend(),
+	                    allocated_ccolors.begin(), allocated_ccolors.end(),
+	                    std::back_inserter(available), op_cmp);
+	return repair_argument(block, instruction, descriptor, parallel_copy, available, {});
+}
+
+bool RegisterAssignment::repair_argument(MachineBasicBlock* block,
+                                         MachineInstruction* instruction,
+                                         MachineOperandDesc& descriptor,
+                                         ParallelCopy& parallel_copy,
+                                         const RegisterSet& available,
+                                         const RegisterSet& forbidden)
+{
+	LOG1("[" << descriptor.op << "]: Reparing argument " << descriptor.op << nl);
+
+	MachineOperand* ccolor = nullptr;
+	RegisterSet allowed;
+
+	auto allowed_cols = allowed_colors(instruction, &variable_for(descriptor.op));
+	std::set_difference(allowed_cols.begin(), allowed_cols.end(), forbidden.begin(),
+	                    forbidden.end(), std::back_inserter(allowed), op_cmp);
+
+	if (DEBUG_COND_N(3)) {
+		LOG3("[" << descriptor.op << "]: Allowed colors:   ");
+		print_ptr_container(dbg(), allowed.begin(), allowed.end());
+		LOG3(nl);
+		LOG3("[" << descriptor.op << "]: Available colors: ");
+		print_ptr_container(dbg(), available.begin(), available.end());
+		LOG3("\n\n");
+	}
+
+	while (ccolor == nullptr && !allowed.empty()) {
+		// Regs not used in instruction => not constrained. So start trying regs that are not used
+		// in this instruction first
+		std::vector<MachineOperand*> not_used_colors;
+		auto used_colors = used_ccolors(instruction);
+
+		if (DEBUG_COND_N(3)) {
+			LOG3("[" << descriptor.op << "]: Used ccolors:        ");
+			print_ptr_container(dbg(), used_colors.begin(), used_colors.end());
+			LOG3(nl);
+
+			LOG3("[" << descriptor.op << "]: Allocated variables: ");
+			print_ptr_container(dbg(), allocated_variables_map.at(block).begin(),
+			                    allocated_variables_map.at(block).end());
+			LOG3(nl);
 		}
 
-		auto result_operand = instruction->get_result().op;
-		if (reg_alloc_considers_operand(*result_operand)) {
-			live[result_operand->get_id()] = false;
-			this->add_def(result_operand, step, 1);
+		std::set_difference(allowed.begin(), allowed.end(), used_colors.begin(), used_colors.end(),
+		                    std::back_inserter(not_used_colors), op_cmp);
+
+		auto& tmp_set = not_used_colors.empty() ? allowed : not_used_colors;
+		auto color_pair = choose_color(block, instruction, descriptor, tmp_set);
+		ccolor = color_pair.ccolor;
+		LOG3("[" << descriptor.op << "]: Choosen ccolor: " << ccolor << nl);
+
+		auto pawn = allocated_variable_with_ccolor(block, ccolor);
+		LOG3("[" << descriptor.op << "]: Found pawn " << pawn->operand << " [" << pawn->gcolor
+		         << ", " << pawn->ccolor << "]\n");
+
+		RegisterSet pawn_allowed;
+		RegisterSet available_with_current(available);
+		available_with_current.push_back(variable_for(descriptor.op).ccolor);
+		std::sort(available_with_current.begin(), available_with_current.end(), op_cmp);
+
+		RegisterSet intersection;
+		std::set_intersection(allowed_cols.begin(), allowed_cols.end(),
+		                      available_with_current.begin(), available_with_current.end(),
+		                      std::back_inserter(intersection), op_cmp);
+		std::set_difference(available_with_current.begin(), available_with_current.end(),
+		                    forbidden.begin(), forbidden.end(), std::back_inserter(pawn_allowed),
+		                    op_cmp);
+
+		LOG3("[" << descriptor.op << "]: Allowed pawn colors: ");
+		DEBUG3(print_ptr_container(dbg(), pawn_allowed.begin(), pawn_allowed.end()));
+		LOG3(nl);
+
+		bool success = false;
+		if (!pawn_allowed.empty()) {
+			MachineOperandDesc descriptor(nullptr, pawn->operand);
+			auto pawn_color_pair = choose_color(block, instruction, descriptor, pawn_allowed);
+			parallel_copy.add(pawn, pawn_color_pair.ccolor);
+			success = true;
+		}
+		else {
+			assert(false && "Recursive call not implemented yet!");
 		}
 
-		if (!instruction->to_MachinePhiInst()) {
-			auto use_lambda = [&](const auto& op_desc) {
-				auto operand = op_desc.op;
-				if (!reg_alloc_considers_operand(*operand))
+		if (!success) {
+			assert(false && "Multiple iterations not implemented!");
+		}
+	}
+
+	if (ccolor != nullptr) {
+		parallel_copy.add(&variable_for(descriptor.op), ccolor);
+		return true;
+	}
+
+	return false;
+}
+
+bool RegisterAssignment::repair_result(MachineBasicBlock* block,
+                                       MachineInstruction* instruction,
+                                       MachineOperandDesc& descriptor,
+                                       ParallelCopy& parallel_copy,
+                                       const LiveTy& live_out)
+{
+	LOG1("[" << descriptor.op << "]: Repairing result\n");
+
+	MachineOperand* ccolor = nullptr;
+	RegisterSet allowed;
+
+	auto allowed_cols = allowed_colors(instruction, &variable_for(descriptor.op));
+	auto use_def_cols = used_ccolors(instruction);
+	auto def_cols = def_ccolors(instruction);
+	std::copy(def_cols.begin(), def_cols.end(), std::back_inserter(use_def_cols));
+	std::sort(use_def_cols.begin(), use_def_cols.end(), op_cmp);
+
+	std::set_difference(allowed_cols.begin(), allowed_cols.end(), use_def_cols.begin(),
+	                    use_def_cols.end(), std::back_inserter(allowed), op_cmp);
+
+	if (DEBUG_COND_N(3)) {
+		LOG3("[" << descriptor.op << "]: Allowed colors: ");
+		print_ptr_container(dbg(), allowed.begin(), allowed.end());
+		LOG3(nl);
+	}
+
+	while (!allowed.empty() && ccolor == nullptr) {
+		auto color_pair = choose_color(block, instruction, descriptor, allowed);
+		ccolor = color_pair.ccolor;
+
+		LOG3("[" << descriptor.op << "]: Choosen ccolor: " << ccolor << nl);
+
+		auto pawn = allocated_variable_with_ccolor(block, ccolor);
+		LOG3("[" << descriptor.op << "]: Found pawn " << pawn->operand << " [" << pawn->gcolor
+		         << ", " << pawn->ccolor << "]\n");
+
+		RegisterSet tmp;
+		RegisterSet pawn_allowed;
+
+		auto constrained = allowed_colors(instruction, pawn);
+		std::set_difference(constrained.begin(), constrained.end(), use_def_cols.begin(),
+		                    use_def_cols.end(), std::back_inserter(tmp), op_cmp);
+		// Remove the choosen color from the allowed ones
+		// auto iter = std::find_if(pawn_allowed.begin(), pawn_allowed.end(),
+		//                         [&](const auto pawn) { return pawn->aquivalent(*ccolor); });
+		// if (iter != pawn_allowed.end()) {
+		//	pawn_allowed.erase(iter);
+		//}
+
+		// Temporarly, also remove all currently used colors, only allow free colors to be used
+		// for the pawn
+
+		auto used_ccolors = ccolors(block);
+		std::set_difference(tmp.begin(), tmp.end(), used_ccolors.begin(), used_ccolors.end(),
+		                    std::back_inserter(pawn_allowed), op_cmp);
+
+		LOG3("[" << descriptor.op << "]: Allowed pawn colors: ");
+		DEBUG3(print_ptr_container(dbg(), pawn_allowed.begin(), pawn_allowed.end()));
+		LOG3(nl);
+
+		MachineOperand* pawn_color = nullptr;
+		if (!pawn_allowed.empty()) {
+			// There is an available spot for pawn
+			MachineOperandDesc desc(nullptr, pawn->operand);
+			auto pawn_color_pair = choose_color(block, instruction, desc, pawn_allowed);
+			pawn_color = pawn_color_pair.ccolor;
+		}
+		else {
+			// TODO: Implement this more efficiently
+			bool found_color = false;
+
+			// pawn's color could be free (for our operand) by swapping pawn with a last use
+			auto uses_lambda = [&](const auto& descriptor) {
+				if (found_color || !reg_alloc_considers_operand(*descriptor.op))
 					return;
-				char msg = '-';
+				if (live_out[descriptor.op->get_id()])
+					return;
 
-				if (!live[operand->get_id()]) {
-					live[operand->get_id()] = true;
-					this->add_use(operand, step, true);
-					msg = 'X';
+				// TODO: Should be somewhere else and better documented (its a simple "contains")
+				auto is_element = [](const RegisterSet& set, MachineOperand* op) {
+					auto iter = std::find_if(set.begin(), set.end(), [&](const auto operand) {
+						return op->aquivalent(*operand);
+					});
+					return iter != set.end();
+				};
+
+				auto& variable = this->variable_for(descriptor.op);
+				auto constrained_pawn = this->allowed_colors(instruction, pawn);
+				auto constrained_arg = this->allowed_colors(instruction, &variable);
+				bool success = this->ccolor_is_available(block, variable.ccolor) &&
+				               is_element(constrained_pawn, variable.ccolor) &&
+				               is_element(constrained_arg, pawn->ccolor);
+
+				if (success) {
+					found_color = true;
+					pawn_color = variable.ccolor;
+					parallel_copy.add(&variable, pawn->ccolor);
 				}
-
-				LOG3("\t\t" << msg << " use: " << *operand << nl);
 			};
 
-			std::for_each(instruction->begin(), instruction->end(), use_lambda);
-			std::for_each(instruction->dummy_begin(), instruction->dummy_end(), use_lambda);
+			std::for_each(instruction->begin(), instruction->end(), uses_lambda);
+			std::for_each(instruction->dummy_begin(), instruction->dummy_end(), uses_lambda);
 		}
-		++step;
+
+		if (pawn_color != nullptr) {
+			parallel_copy.add(pawn, pawn_color);
+		}
+		else {
+			auto iter = std::find_if(allowed.begin(), allowed.end(), [&](const auto operand) {
+				return operand->aquivalent(*ccolor);
+			});
+			if (iter != allowed.end()) {
+				allowed.erase(iter);
+			}
+			ccolor = nullptr;
+		}
+	}
+
+	if (ccolor != nullptr) {
+		auto& variable = variable_for(descriptor.op);
+		variable.ccolor = ccolor;
+		return true;
+	}
+
+	return false;
+}
+
+bool RegisterAssignment::ccolor_is_available(MachineBasicBlock* block, MachineOperand* operand)
+{
+	return allocated_variable_with_ccolor(block, operand) == nullptr;
+}
+
+void ParallelCopy::add(RegisterAssignment::Variable* variable, MachineOperand* target)
+{
+	auto iter = std::find_if(operations.begin(), operations.end(), [&](const auto& copy) {
+		return copy.variable->operand->aquivalent(*variable->operand);
 	});
 
-	std::for_each(block->rbegin(), --block->rend(), handle_instruction);
-	std::for_each(block->phi_begin(), block->phi_end(), handle_instruction);
-
-	// Process live-ins last. In particular all phis are handled before, so
-	// when iterating the intervals the live-ins come before all Phis
-	LTA->for_each(live, [&](const auto& operand) { this->add_def(operand, step, false); });
-}
-
-void RegisterAssignmentPass::assign(MachineBasicBlock* block)
-{
-	LOG1(nl << Yellow << "Assigning colors for block " << *block << reset_color << nl);
-	LOG2("\tusedef chain for block\n");
-	if (DEBUG_COND_N(2)) {
-		for (const auto& interval : interval_map[block]) {
-			LOG2("\t" << (interval.is_def ? "def " : "use ") << *interval.operand << nl);
-		}
+	if (iter == operations.end()) {
+		operations.push_back({variable, variable->ccolor, target});
+		LOG2("Adding parallel copy for " << variable->operand << ": " << variable->ccolor << " -> "
+		                                 << target << nl);
 	}
-
-	// Mind that the sequence of defs from back to front defines a perfect
-	// elimination order. So, coloring the definitions from first to last will work
-
-}
-
-void RegisterAssignmentPass::build_reverse_postorder(MachineBasicBlock* block)
-{
-	auto loop_tree = get_Pass<MachineLoopPass>();
-	for (auto i = get_successor_begin(block), e = get_successor_end(block); i != e; ++i) {
-		auto succ = *i;
-		// Only visit the successor if it is unproccessed and not a loop-back edge
-		if (!loop_tree->is_backedge(block, succ)) {
-			build_reverse_postorder(succ);
-		}
+	else {
+		iter->target = target;
+		LOG2("Updating parallel copy for " << variable->operand << ": " << iter->source << " -> "
+		                                   << iter->target << nl);
 	}
-
-	reverse_postorder.push_front(block);
+	variable->ccolor = target;
 }
 
 bool RegisterAssignmentPass::run(JITData& JD)
 {
 	LOG(nl << BoldYellow << "Running RegisterAssignmentPass" << reset_color << nl);
-	auto MIS = get_Pass<MachineInstructionSchedulingPass>();
 	auto MDT = get_Pass<MachineDominatorPass>();
-	auto LTA = get_Pass<NewLivetimeAnalysisPass>();
-	build_reverse_postorder(MIS->front());
+	auto RPO = get_Pass<ReversePostOrderPass>();
+	LTA = get_Pass<NewLivetimeAnalysisPass>();
 	variables_size = LTA->get_num_operands();
-/*
-	for (auto& block : reverse_postorder) {
-		create_borders(block);
-	}
 
-	for (auto& block : reverse_postorder) {
-		assign(block);
-	}
-*/
 	// Initialize available registers for assignment
-	backend = JD.get_Backend();
-	OperandFile op_file;
-	backend->get_OperandFile(op_file, new VirtualRegister(Type::IntTypeID));
-	colors_size = op_file.size();
-	assignable_colors = std::make_unique<AssignableColors>(colors_size);
-	unsigned idx = 0;
-	for (auto& operand : op_file) {
-		assignable_colors->set_operand(idx++, operand);
-	}
+	assignment.initialize_physical_registers(JD.get_Backend());
 
-	for (auto& block : reverse_postorder) {
+	for (auto& block : *RPO) {
 		auto idom = MDT->get_idominator(block);
-		auto& allocated_variables = create_for(block, idom);
 
 		LOG1(Yellow << "\nProcessing block " << *block);
 		if (idom)
 			LOG1(" (immediate dominator = " << *idom << ")");
 		LOG1(reset_color << nl);
 
+		assignment.initialize_variables_for(block, idom);
+
 		// Remove all allocated variables that are not in the live in set of this block
 		auto& block_live_in = LTA->get_live_in(block);
-		allocated_variables.intersect(block_live_in);
-
-		LOG2("LiveIn(" << *block << "): ");
-		DEBUG2(LTA->log_livety(dbg(), block_live_in));
-		LOG2(nl);
-
-		// Get available colors
-		boost::dynamic_bitset<> available_colors(colors_size, 0ul);
-		available_colors.set();
-		available_colors -= allocated_variables.get_colors();
+		assignment.intersect_variables_with(block, block_live_in);
 
 		// Reverse instruction iteration to calculate live out sets for each instruction
 		std::list<std::pair<MachineInstruction*, LiveTy>> live_outs;
 		LiveTy live_out = LTA->get_live_out(block);
 		for (auto i = block->rbegin(), e = --block->rend(); i != e; ++i) {
 			auto instruction = *i;
-			auto pair = std::make_pair(instruction, live_out);
-			live_outs.push_front(pair);
+			live_outs.emplace_front(instruction, live_out);
 
-			live_out = LTA->liveness_transfer(live_out, instruction);
+			live_out = LTA->liveness_transfer(live_out, block->convert(i));
 		}
 
-		// Add PHIs at the front (???)
+		// Add PHIs at the front
 		for (auto i = block->phi_begin(), e = block->phi_end(); i != e; ++i) {
 			auto instruction = *i;
-			auto pair = std::make_pair(instruction, live_out);
-			live_outs.push_front(pair);
+			live_outs.emplace_front(instruction, live_out);
 		}
 
 		// Forward iteration over instructions + live_out data
@@ -226,65 +684,126 @@ bool RegisterAssignmentPass::run(JITData& JD)
 			auto instruction = pair.first;
 			auto& live_out = pair.second;
 
-			if (!reg_alloc_considers_instruction(instruction))
+			if (!reg_alloc_considers_instruction(instruction)) {
+				// MDeopts do not need any consideration, but the used vregs still need their
+				// physical registers assigned
+				assignment.assign_operands_color(instruction);
 				continue;
+			}
 
-			LOG2(Magenta << "\tProcessing instruction: " << *instruction << reset_color << nl);
-			LOG2("\t                        LiveOut: ");
+			LOG2(Magenta << "\nProcessing instruction: " << *instruction << reset_color << nl);
+			LOG2("                        LiveOut: ");
 			DEBUG2(LTA->log_livety(dbg(), live_out));
 			LOG2(nl);
 
-			if (!instruction->to_MachinePhiInst()) {
+			ParallelCopy parallel_copy;
 
-				auto uses_lambda = [&](const auto& op_desc) {
+			if (!instruction->to_MachinePhiInst()) {
+				std::vector<MachineOperand*> dead_operands;
+
+				auto uses_lambda = [&](auto& op_desc) {
 					auto operand = op_desc.op;
 					if (!reg_alloc_considers_operand(*operand))
 						return;
 
+					// Check if there are any requirements, and if so, if the operand already
+					// is in the correct register
+					auto assigned_color = assignment.ccolor(operand);
+					auto requirement = op_desc.get_MachineRegisterRequirement();
+					if (requirement) {
+						auto required_op = requirement->get_required();
+						LOG3("[" << operand << "]: Operator required to be in " << required_op
+						         << " and is currently in " << assigned_color << nl);
+
+						if (!required_op->aquivalent(*assigned_color)) {
+							// If the required register is available, we move it there
+							if (assignment.ccolor_is_available(block, required_op)) {
+								LOG3("[" << operand << "]: " << required_op
+								         << " is available, adding to parallel copy.\n");
+								parallel_copy.add(&assignment.variable_for(operand), required_op);
+							}
+							else {
+								auto success = assignment.repair_argument(block, instruction,
+								                                          op_desc, parallel_copy);
+								assert(success && "Graph-coloring as fallback not implemented!");
+							}
+						}
+					}
+
 					if (live_out[operand->get_id()])
 						return;
 
-					auto assigned_color = allocated_variables.get_color(operand);
-
-					LOG1("\t\tMaking " << *assignable_colors->get(assigned_color) << " available.\n");
-
-					available_colors[assigned_color] = true;
-					allocated_variables.remove_variable(operand->get_id());
+					dead_operands.push_back(operand);
 				};
 
 				std::for_each(instruction->begin(), instruction->end(), uses_lambda);
 				std::for_each(instruction->dummy_begin(), instruction->dummy_end(), uses_lambda);
+
+				// Release dead variables
+				for (auto operand : dead_operands) {
+					LOG1("[" << operand << "]: Making " << assignment.ccolor(operand)
+					         << " available.\n");
+					assignment.remove_allocated_variable(block, operand);
+				}
 			}
 
-			auto result_operand = instruction->get_result().op;
-			if (!reg_alloc_considers_operand(*result_operand))
-				continue;
+			for (auto i = instruction->results_begin(), e = instruction->results_end(); i != e;
+			     ++i) {
+				auto& result_descriptor = *i;
+				auto result_operand = result_descriptor.op;
 
-			assert(available_colors.any() && "No more free colors available. SpillPass messed up!");
-			auto color = available_colors.find_first();
-			allocated_variables.set_color(result_operand->get_id(), color);
-			available_colors[color] = false;
+				if (!reg_alloc_considers_operand(*result_operand)) {
+					continue;
+				}
 
-			LOG1("\t\tAssigning " << *result_operand << " = " << *assignable_colors->get(color) << nl);
+				// Assign definition
+				auto color_pair = assignment.choose_color(block, instruction, result_descriptor);
+				auto& variable = assignment.variable_for(result_operand);
+				variable.gcolor = color_pair.gcolor;
+				variable.ccolor = color_pair.ccolor;
 
-			if (!live_out[result_operand->get_id()]) {
-				LOG1("\t\tReleasing " << *result_operand << " since it is dead after this.\n");
-				available_colors[color] = true;
-				allocated_variables.remove_variable(result_operand->get_id());
+				LOG1("Assigned " << variable.operand << " = [" << variable.gcolor << ", "
+				                 << variable.ccolor << "]\n");
+
+				if (color_pair.ccolor == nullptr) {
+					bool success = assignment.repair_result(block, instruction, result_descriptor,
+					                                        parallel_copy, live_out);
+					assert(success && "Fallback Graph-coloring for definitions not implemented!");
+				}
+				assignment.add_allocated_variable(block, result_operand);
 			}
+
+			for (auto i = instruction->results_begin(), e = instruction->results_end(); i != e;
+			     ++i) {
+				// Release dead definitions
+				auto result_operand = i->op;
+				if (reg_alloc_considers_operand(*result_operand) &&
+				    !live_out[result_operand->get_id()]) {
+					LOG1("Releasing " << *result_operand << " since it is dead after this.\n");
+					assignment.remove_allocated_variable(block, result_operand);
+				}
+			}
+
+			// Insert the parallel copies before this instrution
+			for (const auto& copy : parallel_copy) {
+				auto move = JD.get_Backend()->create_Move(copy.source, copy.target);
+				auto iter = std::find(block->begin(), block->end(), instruction);
+				assert(iter != block->end());
+				block->insert_before(iter, move);
+
+				LOG1("Add Move: " << move << nl);
+			}
+			assignment.assign_operands_color(instruction);
 		}
-	}
 
-	for (const auto& block : reverse_postorder) {
-		auto& vars = allocated_variables_map.at(block);
-		for (const auto& instruction : *block) {
-			for (auto& op_desc : *instruction) {
-				if (!op_desc.op->is_virtual()) continue;
-				op_desc.op = get(vars, op_desc.op);
-			}
+		// Fix global colors, but only for blocks that dont end with a "ret"
+		if (!block->back()->is_end()) {
+			ParallelCopy parallel_copy;
+			assignment.for_each_allocated_variable(
+			    block, [&](const auto variable) { parallel_copy.add(variable, variable->gcolor); });
 
-			if (instruction->get_result().op->is_virtual()) {
-				instruction->get_result().op = get(vars, instruction->get_result().op);
+			for (const auto& copy : parallel_copy) {
+				assert(false && "Fixing global colors not implemented!");
 			}
 		}
 	}
@@ -292,28 +811,13 @@ bool RegisterAssignmentPass::run(JITData& JD)
 	return true;
 }
 
-unsigned AllocatedVariables::get_color(MachineOperand* operand) const
-{
-	LOG2("\t\tRequesting currently assigned color for " << *operand << nl);
-	auto operand_id = operand->get_id();
-	if (operand->is_virtual()) {
-		// assert(variables[operand_id] && "Color for unallocated operand requested!");
-		return colors[operand_id];
-	}
-
-	// Fixed operand
-	//variables[operand_id] = true;
-	//colors[operand_id] = operand_id;
-	return colors[operand_id];
-}
-
 PassUsage& RegisterAssignmentPass::get_PassUsage(PassUsage& PU) const
 {
 	PU.add_requires<MachineDominatorPass>();
-	PU.add_requires<MachineInstructionSchedulingPass>();
 	PU.add_requires<MachineLoopPass>();
 	PU.add_requires<NewLivetimeAnalysisPass>();
-	PU.add_requires<SpillPass>();
+	PU.add_requires<ReversePostOrderPass>();
+	PU.add_requires<NewSpillPass>();
 
 	PU.add_modifies<MachineInstructionSchedulingPass>();
 	return PU;

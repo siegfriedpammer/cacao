@@ -73,11 +73,6 @@ private:
 
 	WorksetUPtrTy decide_start_workset(MachineBasicBlock* block);
 
-	using BlockOrder = alloc::list<MachineBasicBlock*>::type;
-	BlockOrder reverse_postorder;
-
-	void build_reverse_postorder(MachineBasicBlock* block);
-
 	Available
 	available_in_all_preds(MachineBasicBlock* block,
 	                       const std::map<MachineBasicBlock*, const Workset*>& pred_worksets,
@@ -93,7 +88,9 @@ private:
 	void displace(Workset& workset,
 	              const Workset& new_vals,
 	              bool const is_usage,
-	              MachineInstruction* instruction);
+				  MachineInstruction* instruction);
+	
+	unsigned get_distance(MachineInstruction* instruction, MachineOperand* operand);
 };
 
 } // end namespace compiler2

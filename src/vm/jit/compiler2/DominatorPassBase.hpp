@@ -27,6 +27,7 @@
 
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
+#include "vm/jit/compiler2/MachineBasicBlock.hpp"
 
 #include "vm/jit/compiler2/alloc/set.hpp"
 #include "vm/jit/compiler2/alloc/map.hpp"
@@ -85,7 +86,7 @@ public:
 			++d;
 		}
 		return d;
-	}
+	}	
 };
 
 /**
@@ -99,8 +100,8 @@ public:
  * A Fast Algorithm for Finding Dominators in a Flowgraph, by Lengauer
  * and Tarjan, 1979 @cite Lengauer1979.
  */
-template<typename _T>
-class DominatorPassBase : public Pass, public memory::ManagerMixin<DominatorPassBase<_T> >, public DominatorTreeBase<_T> {
+template<typename _T, typename SuccIter>
+class DominatorPassBase : public Pass, public memory::ManagerMixin<DominatorPassBase<_T, SuccIter> >, public DominatorTreeBase<_T> {
 private:
 	typedef _T NodeTy;
 	typedef typename alloc::set<NodeTy *>::type NodeListTy;
@@ -131,18 +132,48 @@ private:
 	
 	auto node_begin(JITData &JD);
 	auto node_end(JITData &JD);
-	auto succ_begin(NodeTy* v);
-	auto succ_end(NodeTy* v);
+
+	SuccIter succ_begin(NodeTy* v);
+	SuccIter succ_end(NodeTy* v);
 
 	// Needed since BeginInst.succ_begin() iterator returns BeginInstRef& and we need to convert it
 	template<typename Ref>
-	NodeTy* get(Ref v) {
-		return v.get();
-	}		
+	NodeTy* get(Ref v);
+	//NodeTy* get(Ref v) {
+	//	return v.get();
+	//}	
+	
+	/**
+	 * Returns the children in the DOMINATOR TREE for a given node
+	 * Do NOT confuse this with successor in the CFG
+	 */
+	NodeListTy get_children(NodeTy* node) const {
+		NodeListTy children;
+		for (const auto& pair : DominatorTreeBase<_T>::dom) {
+			if (pair.second && *node == *pair.second) {
+				children.insert(pair.first);
+			}
+		}
+		return children;
+	}
+
 public:
+	typedef typename alloc::vector<NodeTy*>::type DominanceFrontierTy;
+
 	DominatorPassBase() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+
+	/**
+	 * Calculates the dominance frontier for a given Node.
+	 * Depending on future usage and how often this will get called,
+	 * it might be a good idea to cache the results or precalculate all
+	 * dominance frontiers during DominatorPass itself.
+	 * 
+	 * Implements the algorithm proposed by Cytron et al 
+	 * "Efficiently computing static single assignment form and the control dependence graph"
+	 */
+	DominanceFrontierTy get_dominance_frontier(NodeTy* node);
 };
 
 #define DEBUG_NAME "compiler2/DominatorPass"
@@ -189,16 +220,16 @@ typename DominatorTreeBase<T>::NodeTy* DominatorTreeBase<T>::find_nearest_common
 ///////////////////////////////////////////////////////////////////////////////
 // DominatorPass
 ///////////////////////////////////////////////////////////////////////////////
-template<typename T>
-typename DominatorPassBase<T>::NodeListTy& DominatorPassBase<T>::succ(NodeTy *v, NodeListTy& list) {
+template<typename T, typename I>
+typename DominatorPassBase<T,I>::NodeListTy& DominatorPassBase<T,I>::succ(NodeTy *v, NodeListTy& list) {
 	for (auto i = succ_begin(v), e = succ_end(v); i != e; ++i) {
 		list.insert(get(*i));
 	}
 	return list;
 }
 
-template<typename T>
-void DominatorPassBase<T>::DFS(NodeTy * v) {
+template<typename T, typename I>
+void DominatorPassBase<T,I>::DFS(NodeTy * v) {
 	assert(v);
 	semi[v] = ++n;
 	vertex[n] = v;
@@ -218,13 +249,13 @@ void DominatorPassBase<T>::DFS(NodeTy * v) {
 }
 
 // simple versions
-template<typename T>
-void DominatorPassBase<T>::Link(NodeTy *v, NodeTy *w) {
+template<typename T, typename I>
+void DominatorPassBase<T,I>::Link(NodeTy *v, NodeTy *w) {
 	ancestor[w] = v;
 }
 
-template<typename T>
-typename DominatorPassBase<T>::NodeTy* DominatorPassBase<T>::Eval(NodeTy *v) {
+template<typename T, typename I>
+typename DominatorPassBase<T,I>::NodeTy* DominatorPassBase<T,I>::Eval(NodeTy *v) {
 	if (ancestor[v] == 0) {
 		return v;
 	} else {
@@ -232,8 +263,8 @@ typename DominatorPassBase<T>::NodeTy* DominatorPassBase<T>::Eval(NodeTy *v) {
 	}
 }
 
-template<typename T>
-void DominatorPassBase<T>::Compress(NodeTy *v) {
+template<typename T, typename I>
+void DominatorPassBase<T,I>::Compress(NodeTy *v) {
 	// this preocedure assumes ancestor[v] != 0
 	assert(ancestor[v]);
 	if (ancestor[ancestor[v]] != 0) {
@@ -245,8 +276,8 @@ void DominatorPassBase<T>::Compress(NodeTy *v) {
 	}
 }
 
-template<typename T>
-bool DominatorPassBase<T>::run(JITData &JD) {
+template<typename T, typename I>
+bool DominatorPassBase<T,I>::run(JITData &JD) {
 	// initialize
 	n = 0;
 	vertex.resize(get_nodes_size(JD) + 1); // +1 because we start at 1 not at 0
@@ -317,7 +348,40 @@ bool DominatorPassBase<T>::run(JITData &JD) {
 	return true;
 }
 
+template<typename T, typename I>
+typename DominatorPassBase<T,I>::DominanceFrontierTy
+DominatorPassBase<T,I>::get_dominance_frontier(NodeTy* node)
+{
+	LOG("Calculating dominance frontier for " << node << nl);
+
+	DominanceFrontierTy df;
+
+	NodeListTy successors;
+	succ(node, successors);
+
+	for (const auto successor : successors) {
+		auto idom = DominatorTreeBase<T>::get_idominator(successor);
+		if (!(*idom == *node)) {
+			df.push_back(successor);
+		}
+	}
+
+	auto children = get_children(node);
+	for (const auto child : children) {
+		auto child_df = get_dominance_frontier(child);
+		for (const auto n : child_df) {
+			auto idom = DominatorTreeBase<T>::get_idominator(n);
+			if (!(*idom == *node)) {
+				df.push_back(n);
+			}
+		}
+	}
+
+	return df;
+}
+
 #undef DEBUG_NAME
+
 
 } // end namespace compiler2
 } // end namespace jit

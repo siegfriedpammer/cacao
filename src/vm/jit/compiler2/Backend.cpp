@@ -35,7 +35,7 @@ namespace jit {
 namespace compiler2 {
 
 Backend* Backend::factory(JITData *JD) {
-	return new BackendBase<Target>(JD);
+	return new BackendBase<Target>(JD, new RegisterInfoBase<Target>());
 }
 
 void LoweringVisitorBase::visit(BeginInst* I, bool copyOperands) {

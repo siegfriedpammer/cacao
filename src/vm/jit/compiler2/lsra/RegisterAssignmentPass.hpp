@@ -44,134 +44,153 @@ class Backend;
 class MachineBasicBlock;
 class MachineOperand;
 
-/**
- * Contains a bitset where bitset[i] = true iff operand
- * i has a color assigned.
- * Contains a list where list[i] = assigned_color for operand i
- * that has bitset[i] = true.
- */
-class AllocatedVariables {
+using RegColor = unsigned;
+constexpr RegColor kUndefinedReg = ~0u;
+
+class RegisterAssignmentPass;
+class ParallelCopy;
+
+class RegisterAssignment {
 public:
-	AllocatedVariables(unsigned variables_size, unsigned col_size)
-	    : variables(variables_size, 0ul), colors(variables_size, 0), colors_size(col_size)
+	explicit RegisterAssignment(RegisterAssignmentPass& pass) : rapass(pass) {}
+
+	void initialize_physical_registers(Backend* backend);
+	void initialize_variables_for(MachineBasicBlock* block, MachineBasicBlock* idom);
+	void intersect_variables_with(MachineBasicBlock* block, const LiveTy& live_in);
+
+	void add_allocated_variable(MachineBasicBlock* block, MachineOperand* operand);
+	void remove_allocated_variable(MachineBasicBlock* block, MachineOperand* operand);
+
+	struct ColorPair {
+		MachineOperand* gcolor;
+		MachineOperand* ccolor;
+	};
+	using RegisterSet = std::vector<MachineOperand*>;
+
+	ColorPair choose_color(MachineBasicBlock* block,
+	                       MachineInstruction* instruction,
+	                       MachineOperandDesc& descriptor);
+	ColorPair choose_color(MachineBasicBlock* block,
+	                       MachineInstruction* instruction,
+	                       MachineOperandDesc& descriptor,
+	                       const RegisterSet& allowed_ccolors);
+
+	void assign_operands_color(MachineInstruction* instruction);
+
+	struct Variable {
+		MachineOperand* operand;
+		MachineOperand* ccolor = nullptr;
+		MachineOperand* gcolor = nullptr;
+
+		std::vector<MachineOperandDesc*> unassigned_uses;
+	};
+
+	bool repair_argument(MachineBasicBlock* block,
+	                     MachineInstruction* instruction,
+	                     MachineOperandDesc& descriptor,
+	                     ParallelCopy& parallel_copy);
+	bool repair_argument(MachineBasicBlock* block,
+	                     MachineInstruction* instruction,
+	                     MachineOperandDesc& descriptor,
+	                     ParallelCopy& parallel_copy,
+	                     const RegisterSet& available,
+	                     const RegisterSet& forbidden);
+
+	bool repair_result(MachineBasicBlock* block,
+	                   MachineInstruction* instruction,
+	                   MachineOperandDesc& descriptor,
+					   ParallelCopy& parallel_copy,
+					   const LiveTy& live_out);
+
+	MachineOperand* ccolor(MachineOperand* operand);
+	Variable& variable_for(MachineOperand* operand);
+
+	// Checks whether a physical register is free to be used
+	bool ccolor_is_available(MachineBasicBlock* block, MachineOperand* operand);
+
+	template <typename UnaryFunction>
+	void for_each_allocated_variable(MachineBasicBlock* block, UnaryFunction function)
 	{
-	}
-
-	// Remove all variables from the allocated set that are not live
-	void intersect(const LiveTy& live_in) { variables &= live_in; }
-
-	boost::dynamic_bitset<> get_colors() const
-	{
-		boost::dynamic_bitset<> result(colors_size, 0ul);
-		for (std::size_t i = 0; i < variables.size(); ++i) {
-			if (!variables[i])
-				continue;
-
-			result[colors[i]] = true;
-		}
-		return result;
-	}
-
-	unsigned get_color(MachineOperand* operand) const;
-
-	void remove_variable(unsigned operand) { variables[operand] = false; }
-
-	void set_color(unsigned operand, unsigned color)
-	{
-		variables[operand] = true;
-		colors[operand] = color;
+		auto allocated_vars = allocated_variables_map.at(block);
+		std::for_each(allocated_vars.begin(), allocated_vars.end(), function);
 	}
 
 private:
-	boost::dynamic_bitset<> variables;
-	std::vector<unsigned> colors;
+	RegisterAssignmentPass& rapass;
 
-	unsigned colors_size;
+	// std::vector<MachineOperand*> physical_registers;
+	std::map<Type::TypeID, RegisterSet> physical_registers;
+	std::map<std::size_t, Variable> variables;
+
+	using AllocatedVariableSet = std::vector<Variable*>;
+	std::map<MachineBasicBlock*, AllocatedVariableSet> allocated_variables_map;
+
+	void initialize_physical_registers_for_class(Backend* backend, Type::TypeID type);
+	const RegisterSet& physical_registers_for(Type::TypeID type)
+	{
+		return physical_registers.at(type);
+	}
+
+	std::vector<MachineOperand*> ccolors(MachineBasicBlock* block);
+	std::vector<MachineOperand*> gcolors(MachineBasicBlock* block);
+
+	MachineOperand* pick(const std::vector<MachineOperand*> operands)
+	{
+		if (operands.empty())
+			return nullptr;
+
+		return operands.front();
+	}
+
+	// Returns all allowed colors for a given instruction and variable
+	// If variable is not used/defined by instruction, all colors of the corresponding
+	// register class are returned
+	std::vector<MachineOperand*> allowed_colors(MachineInstruction* instruction,
+	                                            Variable* variable);
+
+	std::vector<MachineOperand*> used_ccolors(MachineInstruction* instruction);
+	std::vector<MachineOperand*> def_ccolors(MachineInstruction* instruction);
+
+	Variable* allocated_variable_with_ccolor(MachineBasicBlock* block, MachineOperand* ccolor);
 };
 
-class AssignableColors {
-public:
-	AssignableColors(unsigned size) : colors(size, 0ul), operands(size, nullptr) {}
-	void set_operand(unsigned idx, MachineOperand* operand) { operands[idx] = operand; }
+inline OStream& operator<<(OStream& OS, const RegisterAssignment::Variable& variable)
+{
+	OS << *variable.operand;
+	return OS;
+}
 
-	MachineOperand* get(unsigned id) { return operands[id]; }
+class ParallelCopy {
+public:
+	struct Copy {
+		RegisterAssignment::Variable* variable;
+		MachineOperand* source;
+		MachineOperand* target;
+	};
+
+	void add(RegisterAssignment::Variable* variable, MachineOperand* target);
+
+	auto begin() const { return operations.begin(); }
+	auto end() const { return operations.end(); }
 
 private:
-	boost::dynamic_bitset<> colors;
-	std::vector<MachineOperand*> operands;
+	std::vector<Copy> operations;
 };
 
 class RegisterAssignmentPass : public Pass, public memory::ManagerMixin<RegisterAssignmentPass> {
 public:
-	RegisterAssignmentPass() : Pass() {}
+	RegisterAssignmentPass() : Pass(), assignment(*this) {}
 	virtual bool run(JITData& JD);
 	virtual PassUsage& get_PassUsage(PassUsage& PU) const;
 
 private:
 	Backend* backend;
-	std::unique_ptr<AssignableColors> assignable_colors;
 	unsigned variables_size;
-	unsigned colors_size;
-	std::map<MachineBasicBlock*, AllocatedVariables> allocated_variables_map;
 
-	// Creates a new AlloctedVariables& instance and puts it in the map.
-	// If an immediate dominator is specified, the data is copied from there
-	AllocatedVariables& create_for(MachineBasicBlock* block, MachineBasicBlock* idom)
-	{
-		if (idom) {
-			auto& idom_vars = allocated_variables_map.at(idom); // throw exception if its not there
-			allocated_variables_map.emplace(std::make_pair(block, AllocatedVariables(idom_vars)));
-		}
-		else {
-			allocated_variables_map.emplace(
-			    std::make_pair(block, AllocatedVariables(variables_size, colors_size)));
-		}
-		return allocated_variables_map.at(block);
-	}
+	RegisterAssignment assignment;
 
-	// TODO: This got copied from SpillPass, move it to a utility class!!!
-	using BlockOrder = std::list<MachineBasicBlock*>;
-	BlockOrder reverse_postorder;
-
-	void build_reverse_postorder(MachineBasicBlock* block);
-
-	void create_borders(MachineBasicBlock* block);
-	void assign(MachineBasicBlock* assign);
-
-	struct LivetimeInterval {
-		MachineOperand* operand;
-		unsigned step;
-		bool is_def;
-		bool is_real;
-	};
-	using IntervalList = std::list<LivetimeInterval>;
-	std::map<MachineBasicBlock*, IntervalList> interval_map;
-
-	IntervalList* current_list;
-
-	void update_current_list(MachineBasicBlock* block)
-	{
-		auto pair = interval_map.emplace(block, IntervalList());
-		current_list = &pair.first->second;
-	}
-
-	void add_interval(MachineOperand* operand, unsigned step, bool def, bool real);
-
-	void add_def(MachineOperand* operand, unsigned step, bool real)
-	{
-		add_interval(operand, step, 1, real);
-	}
-
-	void add_use(MachineOperand* operand, unsigned step, bool real)
-	{
-		add_interval(operand, step, 0, real);
-	}
-
-	MachineOperand* get(const AllocatedVariables& allocated_variables, MachineOperand* operand)
-	{
-		auto color = allocated_variables.get_color(operand);
-		return assignable_colors->get(color);
-	}
+	NewLivetimeAnalysisPass* LTA;
+	friend class RegisterAssignment;
 };
 
 } // end namespace compiler2

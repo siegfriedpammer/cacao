@@ -516,6 +516,16 @@ struct MachineOperandComp : public std::binary_function<MachineOperand*,MachineO
 
 typedef alloc::list<MachineOperand*>::type OperandFile;
 
+class MachineRegisterRequirement {
+public:
+	MachineRegisterRequirement(MachineOperand* required_reg) : required(required_reg) {}
+
+	virtual MachineOperand* get_required() { return required; }
+
+private:
+	MachineOperand* required;
+};
+using MachineRegisterRequirementUPtrTy = std::unique_ptr<MachineRegisterRequirement>;
 
 } // end namespace compiler2
 } // end namespace jit

@@ -33,6 +33,8 @@
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/LinearScanAllocatorPass.hpp"
 #include "vm/jit/compiler2/CodeGenPass.hpp"
+#include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/lsra/RegisterAssignmentPass.hpp"
 
 #include "toolbox/GraphPrinter.hpp"
 
@@ -51,6 +53,8 @@ namespace compiler2 {
 PassUsage& MachineInstructionPrinterPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<MachineInstructionSchedulingPass>();
 	PU.add_run_before<LinearScanAllocatorPass>();
+	PU.add_run_before<NewLivetimeAnalysisPass>();
+	PU.add_run_before<RegisterAssignmentPass>();
 	PU.add_run_before<CodeGenPass>();
 	return PU;
 }

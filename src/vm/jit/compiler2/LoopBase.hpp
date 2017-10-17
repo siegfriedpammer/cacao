@@ -54,7 +54,10 @@ private:
 	LoopBase      *parent;
 	LoopSetTy inner_loops;
 	NodeTypeListTy children;
-	unsigned register_pressure; //< Maximum register pressure inside this loop (only used by MachineLoops)
+
+	/// Maximum register pressure for each register class inside this loop
+	std::vector<unsigned> register_pressures;
+
 public:
 	LoopBase(NodeType *header, NodeType *exit) : header(header), exit(exit), parent(NULL) {}
 	NodeType *get_header() const {
@@ -88,11 +91,11 @@ public:
 	}
 	child_iterator child_begin() { return children.begin(); }
 	child_iterator child_end() { return children.end(); }
-	const unsigned get_register_pressure() const {
-		return register_pressure;
+	const std::vector<unsigned> get_register_pressures() const {
+		return register_pressures;
 	}
-	void set_register_pressure(unsigned pressure) {
-		register_pressure = pressure;
+	void set_register_pressures(const std::vector<unsigned>& pressures) {
+		register_pressures = pressures;
 	}
 };
 
