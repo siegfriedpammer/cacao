@@ -31,6 +31,7 @@
 #include "vm/jit/compiler2/x86_64/X86_64ModRMOperand.hpp"
 #include "vm/jit/compiler2/x86_64/X86_64MachineMethodDescriptor.hpp"
 #include "vm/jit/compiler2/MachineInstruction.hpp"
+#include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/DataSegment.hpp"
 #include "vm/types.hpp"
 
@@ -664,13 +665,14 @@ public:
 
 class CallInst : public GPInstruction {
 public:
-	CallInst(const SrcOp &src, const DstOp &dst, std::size_t argc, const MachineMethodDescriptor& MMD)
+	CallInst(const SrcOp &src, const DstOp &dst, std::size_t argc, const MachineMethodDescriptor& MMD, Backend* backend)
 			: GPInstruction("X86_64CallInst", dst.op, OS_64, 1 + argc) {
+		auto MOF = backend->get_JITData()->get_MachineOperandFactory();
 		operands[0].op = src.op;
 		
 		// For void type, use a temporary new vreg, that can be discarded
 		if (dst.op->get_type() == Type::VoidTypeID) {
-			get_result().op = new VirtualRegister(Type::LongTypeID);
+			get_result().op = MOF->CreateVirtualRegister(Type::LongTypeID);
 		}
 
 		X86_64Register* result_reg = nullptr;
@@ -688,7 +690,7 @@ public:
 		auto result_requirement = std::make_unique<MachineRegisterRequirement>(new NativeRegister(dst.op->get_type(), result_reg));
 		get_result().set_MachineRegisterRequirement(result_requirement);
 
-		add_result(new VirtualRegister(Type::DoubleTypeID));
+		add_result(MOF->CreateVirtualRegister(Type::DoubleTypeID));
 		auto result2_requirement = std::make_unique<MachineRegisterRequirement>(new NativeRegister(dst.op->get_type(), aux_reg));
 		results[1].set_MachineRegisterRequirement(result2_requirement);
 
@@ -703,7 +705,7 @@ public:
 		// Add all caller saved registers as results of the call
 		// Start at 1 since RAX is the first register and it is already bound
 		for (unsigned i = 1; i < IntegerCallerSavedRegistersSize ; ++i) {
-			add_result(new VirtualRegister(Type::LongTypeID));
+			add_result(MOF->CreateVirtualRegister(Type::LongTypeID));
 			
 			auto native_reg = new NativeRegister(Type::LongTypeID, IntegerCallerSavedRegisters[i]);
 			auto requirement = std::make_unique<MachineRegisterRequirement>(native_reg);

@@ -31,6 +31,7 @@
 
 using cacao::jit::compiler2::Backend;
 using cacao::jit::compiler2::MachineOperand;
+using cacao::jit::compiler2::MachineOperandFactory;
 using cacao::jit::compiler2::OperandFile;
 using cacao::jit::compiler2::VirtualRegister;
 
@@ -85,29 +86,6 @@ TEST_CASE("Set intersection works for native register lists", "[x86_64]")
 	REQUIRE(intersection1.front()->aquivalent(*reg1));
 
 	REQUIRE(intersection2.size() == 0);
-}
-
-TEST_CASE("OperandFile works with set intersection", "[x86_64, Special]")
-{
-	auto vreg = std::make_unique<VirtualRegister>(Ty::LongTypeID);
-
-	auto BE = Backend::factory(nullptr);
-	OperandFile op_file;
-	BE->get_OperandFile(op_file, vreg.get());
-
-	std::vector<MachineOperand*> operands;
-	std::copy(op_file.begin(), op_file.end(), std::back_inserter(operands));
-	std::sort(operands.begin(), operands.end(), op_cmp);
-
-	auto reg1 = std::make_unique<NativeRegister>(Ty::LongTypeID, &RDI);
-
-	std::vector<MachineOperand*> vec1 { reg1.get() };
-	std::vector<MachineOperand*> intersection;
-
-	std::set_intersection(vec1.begin(), vec1.end(), operands.begin(), operands.end(), std::back_inserter(intersection), op_cmp);
-	
-	REQUIRE(intersection.size() == 1);
-	REQUIRE(intersection.front()->aquivalent(*reg1));
 }
 
 /*

@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/StackSlotManager.cpp - StackSlotManager
+/* src/vm/jit/compiler2/MachineOperandSet.cpp - MachineOperandSet
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,64 +22,82 @@
 
 */
 
-#include <algorithm>
+#include "vm/jit/compiler2/MachineOperandSet.hpp"
 
-#include "vm/jit/compiler2/StackSlotManager.hpp"
 #include "vm/jit/compiler2/MachineOperand.hpp"
 #include "vm/jit/compiler2/MachineOperandFactory.hpp"
-#include "vm/jit/executionstate.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-StackSlotManager::~StackSlotManager() {
-	while (!slots.empty()) {
-		ManagedStackSlot *slot = slots.back();
-		slots.pop_back();
-		delete slot;
-	}
-
-	while (!argument_slots.empty()) {
-		ManagedStackSlot *slot = argument_slots.back();
-		argument_slots.pop_back();
-		delete slot;
-	}
+void OperandSet::add(const MachineOperand* operand)
+{
+	assert(operand->get_id() < set.size());
+	set[operand->get_id()] = true;
 }
 
-ManagedStackSlot* StackSlotManager::create_slot(Type::TypeID type) {
-	auto slot = MOF->CreateManagedStackSlot(this, type);
-	slots.push_back(slot);
-	return slots.back();
+void OperandSet::remove(const MachineOperand* operand)
+{
+	assert(operand->get_id() < set.size());
+	set[operand->get_id()] = false;
 }
 
-ManagedStackSlot* StackSlotManager::create_argument_slot(Type::TypeID type, u4 index) {
-	number_of_machine_argument_slots = std::max(number_of_machine_argument_slots, index + 1);
-	auto slot = MOF->CreateManagedStackSlot(this, type);
-	slot->set_index(index);
-	argument_slots.push_back(slot);
-	return slot;
+bool OperandSet::contains(const MachineOperand* operand) const
+{
+	assert(operand->get_id() < set.size());
+	return set[operand->get_id()];
 }
 
-void StackSlotManager::finalize() {
-	u4 next_index = number_of_machine_argument_slots;
-	for (auto slot : slots) {
-		slot->set_index(next_index++);
-	}
+void OperandSet::clear()
+{
+	set.reset();
 }
 
-u4 StackSlotManager::get_frame_size() const {
-	return get_number_of_machine_slots() * SIZE_OF_STACKSLOT;
+void OperandSet::swap(OperandSet& other)
+{
+	assert(set.size() == other.set.size() &&
+	       "We only allow operand sets of same max size to be swapped!");
+	set.swap(other.set);
 }
 
-u4 StackSlotManager::get_number_of_machine_slots() const {
-	return number_of_machine_argument_slots + slots.size();
+OperandSet& OperandSet::operator-=(const OperandSet& other)
+{
+	set -= other.set;
+	return *this;
+}
+
+OperandSet& OperandSet::operator|=(const OperandSet& other)
+{
+	set |= other.set;
+	return *this;
+}
+
+OperandSet& OperandSet::operator&=(const OperandSet& other)
+{
+	set &= other.set;
+	return *this;
+}
+
+MachineOperand* OperandSet::get(size_t index)
+{
+	assert(index >= 0 && index < set.size() && "Index out-of-bounds!");
+	assert(set[index] && "Operand is not a member of this set!");
+
+	return MOF->operands[index].get();
+}
+
+const MachineOperand* OperandSet::get(size_t index) const
+{
+	assert(index >= 0 && index < set.size() && "Index out-of-bounds!");
+	assert(set[index] && "Operand is not a member of this set!");
+
+	return MOF->operands[index].get();
 }
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
-
 
 /*
  * These are local overrides for various environment variables in Emacs.

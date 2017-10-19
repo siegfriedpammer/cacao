@@ -33,23 +33,16 @@ noinst_LTLIBRARIES = \
 	liblsra.la
 
 liblsra_la_SOURCES = \
-	LoopPressure.cpp \
-	LoopPressure.hpp \
+	LogHelper.hpp \
 	LoopPressurePass.cpp \
 	LoopPressurePass.hpp \
-	NextUse.cpp \
-	NextUse. hpp \
 	NewLivetimeAnalysisPass.cpp \
 	NewLivetimeAnalysisPass.hpp \
 	NewSpillPass.cpp \
 	NewSpillPass.hpp \
-	NextUsePass.cpp \
-	NextUsePass.hpp \
 	RegisterAssignmentPass.cpp \
-	RegisterAssignmentPass.hpp \
-	SpillPass.cpp \
-	SpillPass.hpp
-
+	RegisterAssignmentPass.hpp
+	
 ## Local variables:
 ## mode: Makefile
 ## indent-tabs-mode: t

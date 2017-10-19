@@ -79,6 +79,7 @@ public:
 class NativeRegister : public MachineRegister {
 private:
 	X86_64Register *reg;
+	
 public:
 	NativeRegister(Type::TypeID type, X86_64Register* reg);
 	virtual NativeRegister* to_NativeRegister() {

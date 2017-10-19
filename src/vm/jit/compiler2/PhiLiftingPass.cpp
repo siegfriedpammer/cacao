@@ -42,12 +42,13 @@ void PhiLiftingPass::handle_phi(MachinePhiInst* instruction)
 {
 	LOG2(Cyan << "Handling PHI instruction: " << *instruction << reset_color << nl);
 
+	auto MOF = backend->get_JITData()->get_MachineOperandFactory();
 	auto block = instruction->get_block();
 
 	// Copy parameters in predecessor basic block
 	for (unsigned idx = 0, e = block->pred_size(); idx < e; ++idx) {
 		auto operand = instruction->get(idx).op;
-		auto copy_op = new VirtualRegister(operand->get_type());
+		auto copy_op = MOF->CreateVirtualRegister(operand->get_type());
 		instruction->get(idx).op = copy_op;
 
 		auto move_instr = backend->create_Move(operand, copy_op);
@@ -60,7 +61,7 @@ void PhiLiftingPass::handle_phi(MachinePhiInst* instruction)
 
 	// Copy result in current block
 	auto operand = instruction->get_result().op;
-	auto result = new VirtualRegister(operand->get_type());
+	auto result = MOF->CreateVirtualRegister(operand->get_type());
 	instruction->get_result().op = result;
 
 	auto move_instr = backend->create_Move(result, operand);

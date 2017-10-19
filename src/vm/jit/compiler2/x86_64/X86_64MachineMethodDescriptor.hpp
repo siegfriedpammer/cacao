@@ -41,9 +41,10 @@ namespace x86_64 {
 class MachineMethodDescriptor {
 private:
 	const MethodDescriptor &MD;
+	MachineOperandFactory* MOF;
 	alloc::vector<MachineOperand*>::type parameter;
 public:
-	MachineMethodDescriptor(const MethodDescriptor &MD) : MD(MD), parameter(MD.size()) {
+	MachineMethodDescriptor(const MethodDescriptor &MD, MachineOperandFactory* MOF) : MD(MD), MOF(MOF), parameter(MD.size()) {
 		unsigned int_argument_counter = 0;
 		unsigned float_argument_counter = 0;
 		int stackslot_index = 2;
@@ -57,7 +58,7 @@ public:
 					parameter[i]= new NativeRegister(type,
 						IntegerArgumentRegisters[int_argument_counter]);
 				} else {
-					parameter[i]= new StackSlot(stackslot_index,type);
+					parameter[i]= MOF->CreateStackSlot(stackslot_index,type);
 					stackslot_index++;
 				}
 				int_argument_counter++;
@@ -68,7 +69,7 @@ public:
 					parameter[i]= new NativeRegister(type,
 						FloatArgumentRegisters[float_argument_counter]);
 				} else {
-					parameter[i]= new StackSlot(stackslot_index,type);
+					parameter[i]= MOF->CreateStackSlot(stackslot_index,type);
 					stackslot_index++;
 				}
 				float_argument_counter++;

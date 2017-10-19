@@ -81,7 +81,6 @@
 #include "vm/jit/compiler2/GlobalValueNumberingPass.hpp"
 
 #include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
-#include "vm/jit/compiler2/lsra/SpillPass.hpp"
 
 #include "vm/jit/compiler2/JITData.hpp"
 

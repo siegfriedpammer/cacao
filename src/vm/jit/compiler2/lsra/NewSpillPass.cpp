@@ -33,6 +33,7 @@
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineLoopPass.hpp"
 #include "vm/jit/compiler2/ReversePostOrderPass.hpp"
+#include "vm/jit/compiler2/lsra/LogHelper.hpp"
 #include "vm/jit/compiler2/lsra/LoopPressurePass.hpp"
 #include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
 
@@ -144,7 +145,9 @@ void SpillInfo::insert_instructions(const Backend& backend, StackSlotManager& ss
 		insert_before(spilled_op.spill_position, spill_instr);
 
 		for (const auto& reload_position : spilled_op.reload_positions) {
-			auto new_def = new VirtualRegister(operand->get_type());
+			auto new_def =
+			    backend.get_JITData()->get_MachineOperandFactory()->CreateVirtualRegister(
+			        operand->get_type());
 			auto reload_instr = backend.create_Move(spilled_op.stackslot, new_def);
 
 			LOG2("Inserting " << reload_instr << nl);
@@ -208,10 +211,10 @@ void NewSpillPass::reconstruct_ssa(const Occurrence& original_def,
 
 			if (df_block->pred_size() > 1) {
 				/*auto phi_instr = new MachinePhiInst(df_block->pred_size(),
-													original_def.operand()->get_type(), nullptr);
+				                                    original_def.operand()->get_type(), nullptr);
 				phi_instr->set_block(df_block);
 				for (unsigned i = 0; i < df_block->pred_size(); ++i) {
-					phi_instr->get(i).op = original_def.operand();
+				    phi_instr->get(i).op = original_def.operand();
 				}
 				LOG2("Inserting PHI " << phi_instr << nl);
 
@@ -221,7 +224,7 @@ void NewSpillPass::reconstruct_ssa(const Occurrence& original_def,
 				// Update use-chain for original_def
 				auto& chains = LTA->get_def_use_chains();
 				for (auto& descriptor : *phi_instr) {
-					// chains.add_use(&descriptor, phi_instr);
+				    // chains.add_use(&descriptor, phi_instr);
 				}*/
 				assert(false && "Phi insertion not yet imlemented!");
 			}
@@ -302,9 +305,8 @@ void NewSpillPass::limit(RegisterSet& workset,
 	auto iter = std::next(workset.begin(), m);
 	for (auto i = iter, e = workset.end(); i != e; ++i) {
 		auto operand = *i;
-		auto next_use = find(*next_use_set, operand);
 
-		if (!contains(spillset, operand) && next_use != next_use_set->end()) {
+		if (!contains(spillset, operand) && next_use_set->contains(*operand)) {
 			LOG2(Yellow << "Spilling " << operand << reset_color << nl);
 			spill_info.add_spill(operand, mi_spill_before);
 		}
@@ -318,18 +320,14 @@ void NewSpillPass::limit(RegisterSet& workset,
 void NewSpillPass::sort_by_next_use(RegisterSet& set, MachineInstruction* instruction) const
 {
 	auto LTA = get_Pass<NewLivetimeAnalysisPass>();
-	auto next_use_set = LTA->next_use_set_from(instruction);
+	auto next_use_set_ptr = LTA->next_use_set_from(instruction);
+	auto next_use_set = *next_use_set_ptr;
 
-	LOG3("Next use set for sort call: ");
-	DEBUG3(print_container(dbg(), next_use_set->begin(), next_use_set->end()));
-	LOG3(nl);
+	LOG3_NAMED_CONTAINER("Next use set for sort call: ", next_use_set);
 
 	std::sort(set.begin(), set.end(), [&](const auto lhs, const auto rhs) {
-		auto lhs_nu = find(*next_use_set, lhs);
-		auto rhs_nu = find(*next_use_set, rhs);
-
-		auto lhs_distance = (lhs_nu == next_use_set->end()) ? kInfinity : lhs_nu->distance;
-		auto rhs_distance = (rhs_nu == next_use_set->end()) ? kInfinity : rhs_nu->distance;
+		auto lhs_distance = next_use_set.contains(*lhs) ? next_use_set[*lhs] : kInfinity;
+		auto rhs_distance = next_use_set.contains(*rhs) ? next_use_set[*rhs] : kInfinity;
 
 		return lhs_distance < rhs_distance;
 	});
@@ -346,10 +344,11 @@ RegisterSetUPtrTy NewSpillPass::compute_workset(MachineBasicBlock* block)
 		auto used = used_in_loop(block);
 		LOG2_NAMED_PTR_CONTAINER("Operands used in loop: ", *used);
 
+		auto& live_in = LTA->get_live_in(block);
 		RegisterSet live_through;
-		LTA->for_each_live_in(block, [&](const auto operand) {
-			if (current_rc->handles_type(operand->get_type()) && !contains(*used, operand))
-				live_through.push_back(operand);
+		std::for_each(live_in.begin(), live_in.end(), [&](auto& operand) {
+			if (current_rc->handles_type(operand.get_type()) && !contains(*used, &operand))
+				live_through.push_back(&operand);
 		});
 		LOG2_NAMED_PTR_CONTAINER("Live-through: ", live_through);
 
@@ -430,9 +429,9 @@ RegisterSetUPtrTy NewSpillPass::compute_workset(MachineBasicBlock* block)
 
 		// Handle Live-ins now, since we already handled phi definitions before,
 		// we can ignore them now
-		auto live_in = LTA->get_live_in(block) - LTA->phi_defs(block);
-		LTA->for_each(live_in, [&](const auto operand) {
-			if (!current_rc->handles_type(operand->get_type()))
+		auto live_in = LTA->get_live_in(block) - LTA->mbb_phi_defs(block);
+		std::for_each(live_in.begin(), live_in.end(), [&](auto& operand) {
+			if (!current_rc->handles_type(operand.get_type()))
 				return;
 
 			bool available_everywhere = true;
@@ -444,7 +443,7 @@ RegisterSetUPtrTy NewSpillPass::compute_workset(MachineBasicBlock* block)
 				// Is the operand in the workset of the predecessor?
 				bool found = false;
 				for (const auto pred_op : *worksets_exit.at(predecessor)) {
-					if (!pred_op->aquivalent(*operand))
+					if (!pred_op->aquivalent(operand))
 						continue;
 
 					found = true;
@@ -456,10 +455,10 @@ RegisterSetUPtrTy NewSpillPass::compute_workset(MachineBasicBlock* block)
 			}
 
 			if (available_everywhere) {
-				take.push_back(operand);
+				take.push_back(&operand);
 			}
 			else {
-				cand.push_back(operand);
+				cand.push_back(&operand);
 			}
 
 		});
@@ -523,11 +522,11 @@ RegisterSetUPtrTy NewSpillPass::used_in_loop(MachineBasicBlock* block)
 	return used_operands;
 }
 
-RegisterSetUPtrTy NewSpillPass::used_in_loop(MachineLoop* loop, LiveTy& live_loop)
+RegisterSetUPtrTy NewSpillPass::used_in_loop(MachineLoop* loop, OperandSet& live_loop)
 {
 	auto used_operands = std::make_unique<RegisterSet>();
 
-	if (live_loop.none())
+	if (live_loop.empty())
 		return used_operands;
 
 	LOG2(nl << Yellow << "Processing loop: " << loop);
@@ -542,18 +541,18 @@ RegisterSetUPtrTy NewSpillPass::used_in_loop(MachineLoop* loop, LiveTy& live_loo
 	for (auto i = loop->child_begin(), e = loop->child_end(); i != e; ++i) {
 		auto child = *i;
 
-		LiveTy found_uses(live_loop);
+		OperandSet found_uses(live_loop);
 
-		LTA->for_each(live_loop, [&](const auto used_operand) {
-			if (!current_rc->handles_type(used_operand->get_type()))
+		std::for_each(live_loop.begin(), live_loop.end(), [&](auto& used_operand) {
+			if (!current_rc->handles_type(used_operand.get_type()))
 				return;
 
-			const auto& occurrences = chains.get_uses(used_operand);
+			const auto& occurrences = chains.get_uses(&used_operand);
 			for (const auto& occurrence : occurrences) {
 				auto usage_block = (*occurrence.instruction)->get_block();
 				if (*child == *usage_block) {
-					used_operands->push_back(used_operand);
-					found_uses[used_operand->get_id()] = false;
+					used_operands->push_back(&used_operand);
+					found_uses.remove(&used_operand);
 					return;
 				}
 			}

@@ -36,27 +36,12 @@ namespace compiler2 {
 namespace {
 
 /**
- * Returns the number of live values belonging to the given register class
- */
-static unsigned
-pressure_for(NewLivetimeAnalysisPass* LTA, const LiveTy& live_set, const RegisterClass& rc)
-{
-	unsigned pressure = 0;
-	LTA->for_each(live_set, [&](const auto operand) {
-		if (rc.handles_type(operand->get_type()))
-			pressure++;
-	});
-	return pressure;
-}
-
-/**
  * Merges two PressureTys by taking the maximum for each register class
  */
 static PressureTy max(const RegisterInfo& RI, const PressureTy& lhs, const PressureTy& rhs)
 {
 	PressureTy result(lhs.size());
 	for (unsigned i = 0; i < RI.class_count(); ++i) {
-		const auto& rc = RI.get_class(i);
 		result[i] = std::max(lhs[i], rhs[i]);
 	}
 	return result;
@@ -82,8 +67,8 @@ void LoopPressurePass::compute_block_pressure(MachineBasicBlock* block)
 	// Initial pressures are taken from live out
 	auto live = LTA->get_live_out(block);
 	for (unsigned i = 0, e = RI->class_count(); i < e; ++i) {
-		const auto& rc = RI->get_class(i);
-		pressures[i] = pressure_for(LTA, live, rc);
+		const auto live_rc = live & class_operands[i];
+		pressures[i] = live_rc.size();
 	}
 
 	// Now do the usual liveness transfer and compute max pressures at each
@@ -92,16 +77,16 @@ void LoopPressurePass::compute_block_pressure(MachineBasicBlock* block)
 		live = LTA->liveness_transfer(live, block->convert(i));
 
 		for (unsigned j = 0, je = RI->class_count(); j < je; ++j) {
-			const auto& rc = RI->get_class(j);
-			pressures[j] = std::max(pressures[j], pressure_for(LTA, live, rc));
+			const auto live_rc = live & class_operands[j];
+			pressures[j] = std::max<unsigned>(pressures[j], live_rc.size());
 		}
 	}
 
 	// Finally, also take PHI definitions into account
-	live |= LTA->phi_defs(block);
+	live |= LTA->mbb_phi_defs(block);
 	for (unsigned i = 0, e = RI->class_count(); i < e; ++i) {
-		const auto& rc = RI->get_class(i);
-		pressures[i] = std::max(pressures[i], pressure_for(LTA, live, rc));
+		const auto live_rc = live & class_operands[i];
+		pressures[i] = std::max<unsigned>(pressures[i], live_rc.size());
 	}
 
 	block_pressures[block] = std::move(pressures_ptr);
@@ -110,7 +95,7 @@ void LoopPressurePass::compute_block_pressure(MachineBasicBlock* block)
 PressureTy LoopPressurePass::looptree_walk(MachineLoop* loop)
 {
 	LOG1(Yellow << "Processing loop: " << loop << reset_color << nl);
-	
+
 	PressureTy loop_pressure(RI->class_count());
 
 	// First, get the max pressure of all basic blocks
@@ -134,6 +119,14 @@ bool LoopPressurePass::run(JITData& JD)
 	LOG(nl << BoldYellow << "Running LoopPressurePass" << reset_color << nl);
 
 	RI = JD.get_Backend()->get_RegisterInfo();
+
+	// Initialize the class operand sets, they are used to restrict
+	// liveness transfer results to a certain register class
+	auto MOF = JD.get_MachineOperandFactory();
+	for (unsigned i = 0, e = RI->class_count(); i < e; ++i) {
+		const auto& rc = RI->get_class(i);
+		class_operands.push_back(MOF->OperandsInClass(rc));
+	}
 
 	auto MLP = get_Pass<MachineLoopPass>();
 	for (auto i = MLP->loop_begin(), e = MLP->loop_end(); i != e; ++i) {

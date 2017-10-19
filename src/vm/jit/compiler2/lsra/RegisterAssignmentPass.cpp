@@ -25,10 +25,12 @@
 #include "vm/jit/compiler2/lsra/RegisterAssignmentPass.hpp"
 
 #include "vm/jit/compiler2/MachineDominatorPass.hpp"
-#include "vm/jit/compiler2/MachineLoopPass.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
+#include "vm/jit/compiler2/MachineLoopPass.hpp"
+#include "vm/jit/compiler2/MachineOperandFactory.hpp"
 #include "vm/jit/compiler2/MachineRegister.hpp"
 #include "vm/jit/compiler2/ReversePostOrderPass.hpp"
+#include "vm/jit/compiler2/lsra/LogHelper.hpp"
 #include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
 #include "vm/jit/compiler2/lsra/NewSpillPass.hpp"
 
@@ -40,9 +42,19 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+namespace {
+
 static bool op_cmp(MachineOperand* lhs, MachineOperand* rhs)
 {
 	return lhs->aquivalence_less(*rhs);
+}
+
+} // end anonymous namespace
+
+OStream& operator<<(OStream& OS, const RegisterAssignment::Variable& variable)
+{
+	OS << *variable.operand;
+	return OS;
 }
 
 void RegisterAssignment::initialize_physical_registers(Backend* backend)
@@ -60,7 +72,6 @@ void RegisterAssignment::initialize_physical_registers(Backend* backend)
 void RegisterAssignment::initialize_physical_registers_for_class(Backend* backend,
                                                                  Type::TypeID type)
 {
-	MachineOperand* dummy = new VirtualRegister(type);
 	const RegisterClass* regclass;
 
 	for (unsigned i = 0; i < backend->get_RegisterInfo()->class_count(); ++i) {
@@ -94,21 +105,20 @@ void RegisterAssignment::initialize_variables_for(MachineBasicBlock* block, Mach
 	}
 }
 
-void RegisterAssignment::intersect_variables_with(MachineBasicBlock* block, const LiveTy& live_in)
+void RegisterAssignment::intersect_variables_with(MachineBasicBlock* block,
+                                                  const OperandSet& live_in)
 {
 	auto& variables = allocated_variables_map.at(block);
 
 	if (DEBUG_COND_N(3)) {
-		LOG3("\nInitial allocated variables (" << *block << "): ");
-		print_ptr_container(dbg(), variables.begin(), variables.end());
-		LOG3("\nLiveIn                      (" << *block << "): ");
-		rapass.LTA->log_livety(dbg(), live_in);
 		LOG3(nl);
+		LOG3_NAMED_CONTAINER("Initial allocated variables (" << *block << "): ", variables);
+		LOG3_NAMED_CONTAINER("LiveIn                      (" << *block << "): ", live_in);
 	}
 
 	for (auto i = variables.begin(); i != variables.end();) {
 		auto var = *i;
-		if (!live_in[var->operand->get_id()]) {
+		if (!live_in.contains(var->operand)) {
 			i = variables.erase(i);
 		}
 		else {
@@ -117,9 +127,7 @@ void RegisterAssignment::intersect_variables_with(MachineBasicBlock* block, cons
 	}
 
 	if (DEBUG_COND_N(3)) {
-		LOG3("Allocated vars intersected  (" << *block << "): ");
-		print_ptr_container(dbg(), variables.begin(), variables.end());
-		LOG3(nl);
+		LOG3_NAMED_CONTAINER("Allocated vars intersected  (" << *block << "): ", variables);
 	}
 }
 
@@ -491,7 +499,7 @@ bool RegisterAssignment::repair_result(MachineBasicBlock* block,
                                        MachineInstruction* instruction,
                                        MachineOperandDesc& descriptor,
                                        ParallelCopy& parallel_copy,
-                                       const LiveTy& live_out)
+                                       const OperandSet& live_out)
 {
 	LOG1("[" << descriptor.op << "]: Repairing result\n");
 
@@ -508,9 +516,7 @@ bool RegisterAssignment::repair_result(MachineBasicBlock* block,
 	                    use_def_cols.end(), std::back_inserter(allowed), op_cmp);
 
 	if (DEBUG_COND_N(3)) {
-		LOG3("[" << descriptor.op << "]: Allowed colors: ");
-		print_ptr_container(dbg(), allowed.begin(), allowed.end());
-		LOG3(nl);
+		LOG3_NAMED_PTR_CONTAINER("[" << descriptor.op << "]: Allowed colors: ", allowed);
 	}
 
 	while (!allowed.empty() && ccolor == nullptr) {
@@ -562,7 +568,7 @@ bool RegisterAssignment::repair_result(MachineBasicBlock* block,
 			auto uses_lambda = [&](const auto& descriptor) {
 				if (found_color || !reg_alloc_considers_operand(*descriptor.op))
 					return;
-				if (live_out[descriptor.op->get_id()])
+				if (live_out.contains(descriptor.op))
 					return;
 
 				// TODO: Should be somewhere else and better documented (its a simple "contains")
@@ -644,7 +650,6 @@ bool RegisterAssignmentPass::run(JITData& JD)
 	auto MDT = get_Pass<MachineDominatorPass>();
 	auto RPO = get_Pass<ReversePostOrderPass>();
 	LTA = get_Pass<NewLivetimeAnalysisPass>();
-	variables_size = LTA->get_num_operands();
 
 	// Initialize available registers for assignment
 	assignment.initialize_physical_registers(JD.get_Backend());
@@ -664,8 +669,8 @@ bool RegisterAssignmentPass::run(JITData& JD)
 		assignment.intersect_variables_with(block, block_live_in);
 
 		// Reverse instruction iteration to calculate live out sets for each instruction
-		std::list<std::pair<MachineInstruction*, LiveTy>> live_outs;
-		LiveTy live_out = LTA->get_live_out(block);
+		std::list<std::pair<MachineInstruction*, OperandSet>> live_outs;
+		OperandSet live_out = LTA->get_live_out(block);
 		for (auto i = block->rbegin(), e = --block->rend(); i != e; ++i) {
 			auto instruction = *i;
 			live_outs.emplace_front(instruction, live_out);
@@ -682,7 +687,7 @@ bool RegisterAssignmentPass::run(JITData& JD)
 		// Forward iteration over instructions + live_out data
 		for (const auto& pair : live_outs) {
 			auto instruction = pair.first;
-			auto& live_out = pair.second;
+			const auto& live_out = pair.second;
 
 			if (!reg_alloc_considers_instruction(instruction)) {
 				// MDeopts do not need any consideration, but the used vregs still need their
@@ -691,10 +696,10 @@ bool RegisterAssignmentPass::run(JITData& JD)
 				continue;
 			}
 
-			LOG2(Magenta << "\nProcessing instruction: " << *instruction << reset_color << nl);
-			LOG2("                        LiveOut: ");
-			DEBUG2(LTA->log_livety(dbg(), live_out));
-			LOG2(nl);
+			if (DEBUG_COND_N(2)) {
+				LOG2(Magenta << "\nProcessing instruction: " << *instruction << reset_color << nl);
+				LOG2_NAMED_CONTAINER("                        LiveOut: ", live_out);
+			}
 
 			ParallelCopy parallel_copy;
 
@@ -730,7 +735,7 @@ bool RegisterAssignmentPass::run(JITData& JD)
 						}
 					}
 
-					if (live_out[operand->get_id()])
+					if (live_out.contains(operand))
 						return;
 
 					dead_operands.push_back(operand);
@@ -778,7 +783,7 @@ bool RegisterAssignmentPass::run(JITData& JD)
 				// Release dead definitions
 				auto result_operand = i->op;
 				if (reg_alloc_considers_operand(*result_operand) &&
-				    !live_out[result_operand->get_id()]) {
+				    !live_out.contains(result_operand)) {
 					LOG1("Releasing " << *result_operand << " since it is dead after this.\n");
 					assignment.remove_allocated_variable(block, result_operand);
 				}

@@ -23,6 +23,7 @@
 */
 
 #include "vm/jit/compiler2/Backend.hpp"
+#include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
 
@@ -54,7 +55,7 @@ void LoweringVisitorBase::visit(GOTOInst* I, bool copyOperands) {
 
 void LoweringVisitorBase::visit(PHIInst* I, bool copyOperands) {
 	assert(I);
-	MachinePhiInst *phi = new MachinePhiInst(I->op_size(),I->get_type(),I);
+	MachinePhiInst *phi = new MachinePhiInst(I->op_size(),I->get_type(),I,backend->get_JITData()->get_MachineOperandFactory());
 	phi->set_block(get_current()); // TODO: This shoudl really happen in the MBB
 	//get_current()->push_back(phi);
 	get_current()->insert_phi(phi);
@@ -63,7 +64,8 @@ void LoweringVisitorBase::visit(PHIInst* I, bool copyOperands) {
 
 void LoweringVisitorBase::visit(CONSTInst* I, bool copyOperands) {
 	assert(I);
-	VirtualRegister *reg = new VirtualRegister(I->get_type());
+	auto MOF = backend->get_JITData()->get_MachineOperandFactory();
+	VirtualRegister *reg = MOF->CreateVirtualRegister(I->get_type());
 	Immediate *imm = new Immediate(I);
 	MachineInstruction *move = backend->create_Move(imm,reg);
 	get_current()->push_back(move);
@@ -140,6 +142,10 @@ void LoweringVisitorBase::visit(ReplacementEntryInst* I, bool copyOperands) {
 
 MachineBasicBlock* LoweringVisitorBase::new_block() const {
 	return *schedule->insert_after(get_current()->self_iterator(),MBBBuilder());
+}
+
+VirtualRegister* LoweringVisitorBase::CreateVirtualRegister(Type::TypeID type) {
+	return backend->get_JITData()->get_MachineOperandFactory()->CreateVirtualRegister(type);
 }
 
 

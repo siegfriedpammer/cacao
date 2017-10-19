@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_MACHINEINSTRUCTIONS
 
 #include "vm/jit/compiler2/MachineInstruction.hpp"
+#include "vm/jit/compiler2/MachineOperandFactory.hpp"
 #include "vm/jit/compiler2/DataSegment.hpp"
 
 namespace cacao {
@@ -50,11 +51,11 @@ class MachinePhiInst : public MachineInstruction {
 private:
 	PHIInst *phi;
 public:
-	MachinePhiInst(unsigned num_operands, Type::TypeID type, PHIInst* phi)
-			: MachineInstruction("MPhi", new VirtualRegister(type),
+	MachinePhiInst(unsigned num_operands, Type::TypeID type, PHIInst* phi, MachineOperandFactory* MOF)
+			: MachineInstruction("MPhi", MOF->CreateVirtualRegister(type),
 			  num_operands), phi(phi) {
 		for(unsigned i = 0; i < num_operands; ++i) {
-			operands[i].op = new UnassignedReg(type);
+			operands[i].op = MOF->CreateUnassignedReg(type);
 		}
 		get_result().op->set_defining_instruction(this);
 	}

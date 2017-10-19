@@ -47,6 +47,9 @@ public:
 private:
 	RegisterInfo* RI;
 
+	/// Cache for all operands belonging to a register class
+	std::vector<OperandSet> class_operands;
+
 	using PressureUPtrTy = std::unique_ptr<PressureTy> ;
 	std::map<MachineBasicBlock*, PressureUPtrTy> block_pressures;
 

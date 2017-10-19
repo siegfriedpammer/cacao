@@ -32,7 +32,6 @@
 #include "vm/jit/compiler2/MachineInstructions.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
 #include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
-#include "vm/jit/compiler2/lsra/SpillPass.hpp"
 #include "vm/statistics.hpp"
 #include "vm/options.hpp"
 
@@ -266,7 +265,7 @@ inline bool LinearScanAllocatorPass::try_allocate_free(LivetimeInterval &current
 		return true;
 	}
 	// register available for the first part of the interval
-	MachineOperand *tmp = new VirtualRegister(reg->get_type());
+	MachineOperand *tmp = jd->get_MachineOperandFactory()->CreateVirtualRegister(reg->get_type());
 	if(!(*free_until_pos_reg.get_iterator())->is_label()) {
 		// insert move
 		MachineInstruction *move = backend->create_Move(reg,tmp);
@@ -385,7 +384,7 @@ void split_active_position(LivetimeInterval lti, UseDef current_pos, UseDef next
 	if (!next_use_pos.is_pseudo()) {
 		// if the next use position is no real use/def we can ignore it
 		// the moves, if required, will be inserted by the resolution phase
-		MachineOperand *vreg = new VirtualRegister(MO->get_type());
+		MachineOperand *vreg = backend->get_JITData()->get_MachineOperandFactory()->CreateVirtualRegister(MO->get_type());
 		MachineInstruction *move_from_stack = backend->create_Move(stackslot, vreg);
 		MIIterator split_pos = insert_move_before(move_from_stack,next_use_pos);
 		STATISTICS(++num_spill_loads);
@@ -423,15 +422,16 @@ struct SplitInactive: public std::unary_function<LivetimeInterval&,void> {
 	MachineOperand *reg;
 	UseDef pos;
 	LinearScanAllocatorPass::UnhandledSetTy &unhandled;
+	Backend *backend;
 	/// Constructor
-	SplitInactive(MachineOperand *reg , UseDef pos,	LinearScanAllocatorPass::UnhandledSetTy &unhandled)
-			: reg(reg), pos(pos), unhandled(unhandled) {}
+	SplitInactive(MachineOperand *reg , UseDef pos,	LinearScanAllocatorPass::UnhandledSetTy &unhandled, Backend *backend)
+			: reg(reg), pos(pos), unhandled(unhandled), backend(backend) {}
 
 	void operator()(LivetimeInterval& lti) {
 		MachineOperand *MO = lti.get_operand();
 		if (reg->aquivalent(*MO)) {
 			//ABORT_MSG("Spill current not yet implemented","not yet implemented");
-			LivetimeInterval new_lti = lti.split_inactive(pos, new VirtualRegister(reg->get_type()));
+			LivetimeInterval new_lti = lti.split_inactive(pos, backend->get_JITData()->get_MachineOperandFactory()->CreateVirtualRegister(reg->get_type()));
 			STATISTICS(++num_split_moves);
 			assert(lti.front().start < new_lti.front().start);
 			unhandled.push(new_lti);
@@ -446,7 +446,7 @@ inline void split_current(LivetimeInterval &current, Type::TypeID type, UseDef p
 	MachineOperand *stackslot = get_stackslot(backend,type);
 	// only create new register if there is a user
 	if ( pos != end) {
-		MachineOperand *vreg = new VirtualRegister(type);
+		MachineOperand *vreg = backend->get_JITData()->get_MachineOperandFactory()->CreateVirtualRegister(type);
 		MachineInstruction *move_from_stack = backend->create_Move(stackslot,vreg);
 		// split
 		MIIterator split_pos = insert_move_before(move_from_stack,pos);
@@ -530,7 +530,7 @@ inline bool LinearScanAllocatorPass::allocate_blocked(LivetimeInterval &current)
 
 		// spill each interval it in inactive for reg at the end of the livetime hole
 		std::for_each(inactive.begin(), inactive.end(),
-			SplitInactive(reg, current.front().start, unhandled));
+			SplitInactive(reg, current.front().start, unhandled, backend));
 		current.set_operand(reg);
 		LOG2("assigned operand: " << *reg << nl);
 		return true;
@@ -636,7 +636,7 @@ bool LinearScanAllocatorPass::allocate_unhandled() {
 						// spill each interval in inactive for reg at the end of the livetime hole
 						std::for_each(inactive.begin(), inactive.end(),
 							SplitInactive(current.get_operand(), current.front().start,
-								unhandled));
+								unhandled, backend));
 					}
 				}
 			}
@@ -851,8 +851,8 @@ inline void calc_free_regs(FreeRegsMap &free_regs, BBtoLTI_Map &bb2lti_map, Mach
 	for (Type::TypeID *p = types; *p != Type::VoidTypeID; ++p) {
 		Type::TypeID type = *p;
 		OperandFile OF;
-		VirtualRegister vreg(type);
-		backend->get_OperandFile(OF,&vreg);
+		VirtualRegister* vreg = backend->get_JITData()->get_MachineOperandFactory()->CreateVirtualRegister(type);
+		backend->get_OperandFile(OF,vreg);
 		free_regs[type].insert(OF.begin(),OF.end());
 	}
 	// remove used operands
@@ -1251,7 +1251,6 @@ bool LinearScanAllocatorPass::verify() const {
 // pass usage
 PassUsage& LinearScanAllocatorPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<LivetimeAnalysisPass>();
-	PU.add_requires<SpillPass>();
 	PU.add_requires<MachineInstructionSchedulingPass>();
 
 	PU.add_modifies<MachineInstructionSchedulingPass>();

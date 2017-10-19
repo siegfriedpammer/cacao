@@ -86,12 +86,16 @@ public:
 	typedef alloc::vector<EmbeddedMachineOperand>::type embedded_operand_list;
 	typedef embedded_operand_list::iterator operand_iterator;
 	typedef embedded_operand_list::const_iterator const_operand_iterator;
+
+	friend class MachineOperandFactory;
+
 private:
 	static std::size_t id_counter;
 	std::size_t id;
 	OperandID op_id;
 	Type::TypeID type;
-	MachineInstruction* defining_instruction; //< Only used by MachinePhiInsts (needed in SpillPhase)
+	MachineInstruction* defining_instruction; ///< Only used by MachinePhiInsts (needed in SpillPhase)
+	void set_id(std::size_t new_id) { id = new_id; } ///< Used by the factory to assign IDs
 protected:
 	/**
 	 * TODO describe
@@ -100,12 +104,13 @@ protected:
 	virtual IdentifyTy id_base()         const { return static_cast<IdentifyTy>(this); }
 	virtual IdentifyOffsetTy id_offset() const { return 0; }
 	virtual IdentifySizeTy id_size()     const { return 1; }
-public:
-	static std::size_t get_id_counter() { return id_counter; }
-	std::size_t get_id() const { return id; }
 
 	explicit MachineOperand(OperandID op_id, Type::TypeID type)
 		: id(id_counter++), op_id(op_id), type(type), embedded_operands() {}
+
+public:
+	static std::size_t get_id_counter() { return id_counter; }
+	std::size_t get_id() const { return id; }
 
 	OperandID get_OperandID() const { return op_id; }
 	Type::TypeID get_type() const { return type; }
@@ -224,8 +229,10 @@ class MachineRegister;
 class MachineAddress;
 
 class Register : public MachineOperand {
-public:
+protected:
 	Register(Type::TypeID type) : MachineOperand(RegisterID, type) {}
+
+public:
 	virtual const char* get_name() const {
 		return "Register";
 	}
@@ -239,22 +246,26 @@ public:
 
 
 class UnassignedReg : public Register {
-public:
+private:
 	UnassignedReg(Type::TypeID type) : Register(type) {}
+
+public:
 	virtual const char* get_name() const {
 		return "UnassignedReg";
 	}
 	virtual UnassignedReg* to_UnassignedReg()     { return this; }
+
+	friend class MachineOperandFactory;
 };
 
 class VirtualRegister : public Register {
 private:
 	static unsigned vreg_counter;
 	const unsigned vreg;
-public:
+
 	VirtualRegister(Type::TypeID type) : Register(type),
 		vreg(vreg_counter++) {}
-
+public:
 	virtual VirtualRegister* to_VirtualRegister() { return this; }
 	virtual const char* get_name() const {
 		return "vreg";
@@ -264,17 +275,18 @@ public:
 	}
 	virtual bool is_virtual() const { return true; }
 	// unsigned get_id() const { return vreg; }
+	friend class MachineOperandFactory;
 };
 
 class StackSlot : public MachineOperand {
 private:
 	int index; ///< index of the stackslot
-public:
 	/**
 	 * @param index  index of the stackslot
 	 */
 	StackSlot(int index, Type::TypeID type)
-		: MachineOperand(StackSlotID, type), index(index) {}
+	: MachineOperand(StackSlotID, type), index(index) {}
+public:
 	virtual StackSlot* to_StackSlot() { return this; }
 	int get_index() const { return index; }
 	virtual const char* get_name() const {
@@ -283,6 +295,8 @@ public:
 	virtual OStream& print(OStream &OS) const {
 		return MachineOperand::print(OS) << get_index();
 	}
+
+	friend class MachineOperandFactory;
 };
 
 /**
@@ -368,7 +382,7 @@ public:
 		return MachineOperand::print(OS) << get_id();
 	}
 
-	friend class StackSlotManager;
+	friend class MachineOperandFactory;
 };
 
 class Immediate : public MachineOperand {

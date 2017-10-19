@@ -135,6 +135,10 @@ libcompiler2_la_SOURCES = \
 	MachineLoopPass.hpp \
 	MachineOperand.cpp \
 	MachineOperand.hpp \
+	MachineOperandSet.cpp \
+	MachineOperandSet.hpp \
+	MachineOperandFactory.cpp \
+	MachineOperandFactory.hpp \
 	MachineRegister.hpp \
 	Matcher.cpp \
 	Matcher.hpp \

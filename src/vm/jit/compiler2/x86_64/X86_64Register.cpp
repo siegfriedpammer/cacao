@@ -101,16 +101,16 @@ SSERegister* FloatCallerSavedRegisters[] = {
 template<>
 X86_64RegisterClass<X86_64Class::GP>::X86_64RegisterClass()
 {
-	//for (const auto reg : IntegerCallerSavedRegisters) {
-	//	caller_saved.push_back(new NativeRegister(Type::VoidTypeID, reg));
-	//}
+	for (const auto reg : IntegerCallerSavedRegisters) {
+		caller_saved.push_back(new NativeRegister(Type::VoidTypeID, reg));
+	}
 
-	//for (const auto reg : IntegerCalleeSavedRegisters) {
-	//	callee_saved.push_back(new NativeRegister(Type::VoidTypeID, reg));
-	//}
+	for (const auto reg : IntegerCalleeSavedRegisters) {
+		callee_saved.push_back(new NativeRegister(Type::VoidTypeID, reg));
+	}
 
-	caller_saved.push_back(new NativeRegister(Type::VoidTypeID, &RDI));
-	caller_saved.push_back(new NativeRegister(Type::VoidTypeID, &RAX));
+	//caller_saved.push_back(new NativeRegister(Type::VoidTypeID, &RDI));
+	//caller_saved.push_back(new NativeRegister(Type::VoidTypeID, &RAX));
 
 	std::copy(caller_saved.begin(), caller_saved.end(), std::back_inserter(all));
 	std::copy(callee_saved.begin(), callee_saved.end(), std::back_inserter(all));

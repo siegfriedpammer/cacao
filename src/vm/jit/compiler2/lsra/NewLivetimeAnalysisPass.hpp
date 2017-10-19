@@ -31,6 +31,7 @@
 
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/MachineLoopPass.hpp"
+#include "vm/jit/compiler2/MachineOperandSet.hpp"
 #include "vm/jit/compiler2/Pass.hpp"
 
 MM_MAKE_NAME(NewLivetimeAnalysisPass)
@@ -39,28 +40,19 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-using LiveTy = boost::dynamic_bitset<>;
-using LiveMapTy = alloc::map<MachineBasicBlock*, LiveTy>::type;
-
-struct NextUse2 {
-	MachineOperand* operand = nullptr;
-	unsigned distance = 0;
-};
-
 constexpr unsigned kInfinity = std::numeric_limits<unsigned>::max();
 
-using NextUseSet = std::vector<NextUse2>;
+using NextUseSet = ExtendedOperandSet<unsigned>;
 using NextUseSetUPtrTy = std::unique_ptr<NextUseSet>;
 
 class NewLivetimeAnalysisPass;
 
 class NextUseInformation {
 public:
-	NextUseInformation(NewLivetimeAnalysisPass& P) : LTA(P) {}
+	NextUseInformation(NewLivetimeAnalysisPass& LTA) : LTA(LTA) {}
 
 	void initialize_empty_sets_for(MachineBasicBlock* block);
-	void add_operands(NextUseSet& set, const LiveTy& live, unsigned distance);
-	void remove_operands(NextUseSet& set, const LiveTy& live);
+	void add_operands(NextUseSet& set, OperandSet& live, unsigned distance);
 	void copy_out_to_in(MachineBasicBlock* block);
 	void transfer(NextUseSet&, MachineInstruction*, unsigned) const;
 
@@ -151,69 +143,36 @@ public:
 	virtual bool run(JITData& JD);
 	virtual PassUsage& get_PassUsage(PassUsage& PU) const;
 
-	bool is_live_in(MachineBasicBlock* block, MachineOperand* operand)
-	{
-		return get_live_in(block)[operand->get_id()];
-	}
-
-	template <typename UnaryFunction>
-	UnaryFunction for_each(const LiveTy& live, UnaryFunction f)
-	{
-		for (std::size_t i = 0, e = live.size(); i < e; ++i) {
-			if (live[i]) {
-				f(operands[i]);
-			}
-		}
-		return f;
-	}
-
-	template <typename UnaryFunction>
-	UnaryFunction for_each_live_in(MachineBasicBlock* block, UnaryFunction f)
-	{
-		auto& live_in = get_live_in(block);
-		return for_each(live_in, f);
-	}
-
-	template <typename UnaryFunction>
-	UnaryFunction for_each_live_out(MachineBasicBlock* block, UnaryFunction f)
-	{
-		auto& live_out = get_live_out(block);
-		return for_each(live_out, f);
-	}
-
 	/**
 	 * Updates a liveness set over a single step.
 	 * @param live The live out set of instruction
 	 * @return The live in set of instruction
 	 */
-	LiveTy
-	liveness_transfer(const LiveTy& live, const MIIterator& mi_iter, bool record_defuse = false);
+	OperandSet liveness_transfer(const OperandSet& live,
+	                             const MIIterator& mi_iter,
+	                             bool record_defuse = false);
 
-	LiveTy& get_live_in(MachineBasicBlock* block) { return get_livety(liveInMap, block); }
-	LiveTy& get_live_out(MachineBasicBlock* block) { return get_livety(liveOutMap, block); }
+	OperandSet& get_live_in(MachineBasicBlock* block) { return get_liveset(live_in_map, block); }
+	OperandSet& get_live_out(MachineBasicBlock* block) { return get_liveset(live_out_map, block); }
 
-	LiveTy phi_defs(MachineBasicBlock* block);
-
-	std::size_t get_num_operands() const { return num_operands; }
+	/// Returns all operands defined by PHI functions in the given MBB
+	/// @todo Maybe move this out of this class
+	OperandSet mbb_phi_defs(MachineBasicBlock* block) const;
 
 	/// Returns the next_use_in set relative to the given instruction
 	NextUseSetUPtrTy next_use_set_from(MachineInstruction* instruction);
 
-#if !defined(NDEBUG)
-	void log_livety(OStream& OS, const LiveTy& liveSet);
-#endif
-
 	DefUseChains& get_def_use_chains() { return def_use_chains; }
 
 private:
-	std::size_t num_operands;
-	LiveMapTy liveInMap;
-	LiveMapTy liveOutMap;
+	MachineOperandFactory* MOF;
+
+	using LiveMapTy = std::map<MachineBasicBlock*, OperandSet>;
+	LiveMapTy live_in_map;
+	LiveMapTy live_out_map;
 
 	NextUseInformation next_use;
 	DefUseChains def_use_chains;
-
-	std::map<MachineBasicBlock*, unsigned> max_pressures;
 
 	void initialize_blocks() const;
 	void initialize_instructions() const;
@@ -234,27 +193,21 @@ private:
 	/// liveness transfer along the way
 	void calculate_livein(MachineBasicBlock* block);
 
-	void looptree_dfs(MachineLoop* loop, const LiveTy& parent_loop_live);
-	LiveTy phi_uses(MachineBasicBlock* block);
+	void looptree_dfs(MachineLoop* loop, const OperandSet& parent_loop_live);
 
-	LiveTy& get_livety(LiveMapTy& liveMap, MachineBasicBlock* block)
-	{
-		auto it = liveMap.find(block);
-		if (it == liveMap.end()) {
-			LiveTy live(num_operands, 0ul);
-			it = liveMap.insert(std::make_pair(block, live)).first;
-		}
-		return it->second;
-	}
+	/// Returns all operands used by the PHI functions of the given MBB
+	/// @todo Maybe move this out of this class
+	OperandSet mbb_phi_uses(MachineBasicBlock* block) const;
+
+	/// Get or create the operand set associated with the provided MBB
+	OperandSet& get_liveset(LiveMapTy&, MachineBasicBlock*);
 
 	/// After liveness has been calculated, we use the result to propagate
 	/// next-use information to loop blocks.
 	void next_use_fixed_point();
 
-	std::vector<MachineOperand*> operands;
+	friend class NextUseInformation;
 };
-
-NextUseSet::iterator find(NextUseSet& set, MachineOperand* operand);
 
 inline bool reg_alloc_considers_operand(const MachineOperand& op)
 {
@@ -265,16 +218,6 @@ inline bool reg_alloc_considers_instruction(MachineInstruction* instruction)
 {
 	// return instruction->to_MachineReplacementPointInst() == nullptr;
 	return true;
-}
-
-inline OStream& operator<<(OStream& OS, NextUse2& next_use)
-{
-	OS << next_use.operand << "(";
-	if (next_use.distance != kInfinity)
-		OS << next_use.distance;
-	else
-		OS << "Inf";
-	return OS << ")";
 }
 
 template <typename UnaryFunction>

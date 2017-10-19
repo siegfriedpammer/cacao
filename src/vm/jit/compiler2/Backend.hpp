@@ -147,6 +147,10 @@ protected:
 		assert(op);
 		inst_map[I] = op;
 	}
+
+	// Forward operand factory calls, less typing for lowering visitors
+	VirtualRegister* CreateVirtualRegister(Type::TypeID type);
+	
 public:
 	LoweringVisitorBase(Backend *backend,MachineBasicBlock* current,
 		MapTy &map, InstructionMapTy &inst_map, MachineInstructionSchedule *schedule)

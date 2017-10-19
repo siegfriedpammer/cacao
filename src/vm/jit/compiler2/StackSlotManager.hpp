@@ -36,6 +36,7 @@ namespace jit {
 namespace compiler2 {
 
 // forward declaration
+class MachineOperandFactory;
 class ManagedStackSlot;
 class StackSlot;
 
@@ -51,13 +52,15 @@ private:
 	SlotListTy slots;
 	SlotListTy argument_slots;
 
+	MachineOperandFactory* MOF;
+
 	/**
 	 * The number of argument slots at machine-level.
 	 */
 	u4 number_of_machine_argument_slots;
 
 public:
-	StackSlotManager() : number_of_machine_argument_slots(0) {}
+	StackSlotManager(MachineOperandFactory* MOF) : MOF(MOF), number_of_machine_argument_slots(0) {}
 	~StackSlotManager();
 
 	/**

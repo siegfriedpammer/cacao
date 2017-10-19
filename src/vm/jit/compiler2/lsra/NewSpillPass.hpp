@@ -27,33 +27,16 @@
 
 #include <map>
 
-#include <boost/dynamic_bitset.hpp>
-
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/MachineLoopPass.hpp"
 #include "vm/jit/compiler2/Pass.hpp"
 
 MM_MAKE_NAME(NewSpillPass)
 
-#define LOG_NAMED_PTR_CONTAINER_N(n, prefix, container)                                            \
-	do {                                                                                           \
-		if (DEBUG_COND_N(n)) {                                                                     \
-			LOG_N(n, prefix);                                                                      \
-			DEBUG_N(n, print_ptr_container(dbg(), std::begin(container), std::end(container)));    \
-			LOG_N(n, nl);                                                                          \
-		}                                                                                          \
-	} while (0)
-
-#define LOG_NAMED_PTR_CONTAINER(prefix, container) LOG_NAMED_PTR_CONTAINER_N(0, prefix, container)
-#define LOG1_NAMED_PTR_CONTAINER(prefix, container) LOG_NAMED_PTR_CONTAINER_N(1, prefix, container)
-#define LOG2_NAMED_PTR_CONTAINER(prefix, container) LOG_NAMED_PTR_CONTAINER_N(2, prefix, container)
-#define LOG3_NAMED_PTR_CONTAINER(prefix, container) LOG_NAMED_PTR_CONTAINER_N(3, prefix, container)
-
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-using LiveTy = boost::dynamic_bitset<>;
 class MachineInstruction;
 class MachineOperand;
 class Backend;
@@ -121,7 +104,7 @@ private:
 	RegisterSetUPtrTy compute_workset(MachineBasicBlock*);
 	RegisterSetUPtrTy compute_spillset(MachineBasicBlock*, const RegisterSet&);
 	RegisterSetUPtrTy used_in_loop(MachineBasicBlock*);
-	RegisterSetUPtrTy used_in_loop(MachineLoop*, LiveTy&);	
+	RegisterSetUPtrTy used_in_loop(MachineLoop*, OperandSet&);	
 
 	void sort_by_next_use(RegisterSet&, MachineInstruction*) const;
 

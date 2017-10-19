@@ -32,7 +32,7 @@
 #include <boost/dynamic_bitset.hpp>
 
 #include "vm/jit/compiler2/Pass.hpp"
-#include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/Type.hpp"
 
 MM_MAKE_NAME(RegisterAssignmentPass)
 
@@ -42,11 +42,11 @@ namespace compiler2 {
 
 class Backend;
 class MachineBasicBlock;
+class MachineInstruction;
 class MachineOperand;
-
-using RegColor = unsigned;
-constexpr RegColor kUndefinedReg = ~0u;
-
+class MachineOperandDesc;
+class NewLivetimeAnalysisPass;
+class OperandSet;
 class RegisterAssignmentPass;
 class ParallelCopy;
 
@@ -56,7 +56,7 @@ public:
 
 	void initialize_physical_registers(Backend* backend);
 	void initialize_variables_for(MachineBasicBlock* block, MachineBasicBlock* idom);
-	void intersect_variables_with(MachineBasicBlock* block, const LiveTy& live_in);
+	void intersect_variables_with(MachineBasicBlock* block, const OperandSet& live_in);
 
 	void add_allocated_variable(MachineBasicBlock* block, MachineOperand* operand);
 	void remove_allocated_variable(MachineBasicBlock* block, MachineOperand* operand);
@@ -100,7 +100,7 @@ public:
 	                   MachineInstruction* instruction,
 	                   MachineOperandDesc& descriptor,
 					   ParallelCopy& parallel_copy,
-					   const LiveTy& live_out);
+					   const OperandSet& live_out);
 
 	MachineOperand* ccolor(MachineOperand* operand);
 	Variable& variable_for(MachineOperand* operand);
@@ -118,7 +118,6 @@ public:
 private:
 	RegisterAssignmentPass& rapass;
 
-	// std::vector<MachineOperand*> physical_registers;
 	std::map<Type::TypeID, RegisterSet> physical_registers;
 	std::map<std::size_t, Variable> variables;
 
@@ -154,11 +153,7 @@ private:
 	Variable* allocated_variable_with_ccolor(MachineBasicBlock* block, MachineOperand* ccolor);
 };
 
-inline OStream& operator<<(OStream& OS, const RegisterAssignment::Variable& variable)
-{
-	OS << *variable.operand;
-	return OS;
-}
+OStream& operator<<(OStream& OS, const RegisterAssignment::Variable& variable);
 
 class ParallelCopy {
 public:
@@ -185,7 +180,6 @@ public:
 
 private:
 	Backend* backend;
-	unsigned variables_size;
 
 	RegisterAssignment assignment;
 

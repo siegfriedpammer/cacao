@@ -40,8 +40,10 @@ class MachineRegister : public Register {
 private:
 	const char* name;
 
-public:
+protected:
 	MachineRegister(const char* name, Type::TypeID type) : Register(type), name(name) {}
+
+public:
 	virtual MachineRegister* to_MachineRegister() { return this; }
 	virtual const char* get_name() const { return name; }
 	virtual NativeRegister* to_NativeRegister() = 0;
