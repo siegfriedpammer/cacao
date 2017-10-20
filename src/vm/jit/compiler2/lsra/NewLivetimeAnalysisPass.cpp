@@ -91,18 +91,6 @@ static void add_to_all(NextUseSet& set, unsigned distance)
 	}
 }
 
-/// Converts a NextUseSet to a LiveSet (for easier comparison)
-static OperandSet convert(MachineOperandFactory* MOF, const NextUseSet& set)
-{
-	auto live = MOF->EmptySet();
-
-	for (const auto& operand : set) {
-		live.add(&operand);
-	}
-
-	return live;
-}
-
 } // namespace
 
 void NextUseInformation::initialize_empty_sets_for(MachineBasicBlock* block)
@@ -436,11 +424,11 @@ void NewLivetimeAnalysisPass::next_use_fixed_point()
 			auto block = *i;
 
 			auto& live_out = get_live_out(block);
-			auto next_use_out_ops = convert(MOF, next_use.get_next_use_out(block));
+			auto next_use_out_ops = next_use.get_next_use_out(block).GetOperandSet();
 			auto missing_out_ops = live_out - next_use_out_ops;
 
 			auto& live_in = get_live_in(block);
-			auto next_use_in_ops = convert(MOF, next_use.get_next_use_in(block));
+			auto next_use_in_ops = next_use.get_next_use_in(block).GetOperandSet();
 			auto missing_in_ops = live_in - next_use_in_ops;
 
 			if (missing_in_ops.empty() && missing_out_ops.empty())

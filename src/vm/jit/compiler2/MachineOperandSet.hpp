@@ -41,6 +41,10 @@ namespace compiler2 {
 
 class MachineOperandFactory;
 
+/// OperandList is just an alias for a std::vector,
+/// mainly used for OperandSets that need to be sorted
+using OperandList = std::vector<MachineOperand*>;
+
 /**
  * OperandSets are basically bitsets mapped on top of
  * all operands created by a MachineOperandFactory.
@@ -169,6 +173,10 @@ public:
 	const_iterator begin() const { return cbegin(); }
 	const_iterator end() const { return cend(); }
 
+	std::unique_ptr<OperandList> ToList();
+	OperandSet& operator=(const OperandList&);
+
+
 private:
 	OperandSet(const MachineOperandFactory* MOF, size_t size) : set(size), MOF(MOF) {}
 
@@ -249,6 +257,9 @@ public:
 
 	const_iterator begin() const { return cbegin(); }
 	const_iterator end() const { return cend(); }
+
+	/// Returns the underlying OperandSet
+	const OperandSet& GetOperandSet() const { return operand_set; }
 
 private:
 	ExtendedOperandSet(const MachineOperandFactory* MOF, OperandSet::size_t size)

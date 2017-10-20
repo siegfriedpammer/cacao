@@ -25,6 +25,7 @@
 
 #include "config.h"
 
+#include <string.h>
 #include <dis-asm.h>
 #include <cstdarg>
 #include <cstdio>

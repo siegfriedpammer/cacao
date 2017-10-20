@@ -95,6 +95,24 @@ const MachineOperand* OperandSet::get(size_t index) const
 	return MOF->operands[index].get();
 }
 
+std::unique_ptr<OperandList> OperandSet::ToList()
+{
+	auto list = std::make_unique<OperandList>();
+
+	for (auto& operand : *this) {
+		list->push_back(&operand);
+	}
+
+	return list;
+}
+
+OperandSet& OperandSet::operator=(const OperandList& list)
+{
+	clear();
+	std::for_each(list.cbegin(), list.cend(), [&](const auto operand) { this->add(operand); });
+	return *this;
+}
+
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

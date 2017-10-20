@@ -29,6 +29,7 @@
 
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/MachineLoopPass.hpp"
+#include "vm/jit/compiler2/MachineOperandSet.hpp"
 #include "vm/jit/compiler2/Pass.hpp"
 
 MM_MAKE_NAME(NewSpillPass)
@@ -39,12 +40,10 @@ namespace compiler2 {
 
 class MachineInstruction;
 class MachineOperand;
+class MachineOperandFactory;
 class Backend;
 class RegisterClass;
 class StackSlotManager;
-
-using RegisterSet = std::vector<MachineOperand*>;
-using RegisterSetUPtrTy = std::unique_ptr<RegisterSet>;
 
 class NewSpillPass;
 
@@ -88,25 +87,26 @@ private:
 	SpillInfo spill_info;
 	Backend* backend;
 	StackSlotManager* ssm;
+	MachineOperandFactory* mof;
 
-	std::map<MachineBasicBlock*, RegisterSetUPtrTy> worksets_entry;
-	std::map<MachineBasicBlock*, RegisterSetUPtrTy> worksets_exit;
+	std::map<MachineBasicBlock*, OperandSet> worksets_entry;
+	std::map<MachineBasicBlock*, OperandSet> worksets_exit;
 
-	std::map<MachineBasicBlock*, RegisterSetUPtrTy> spillsets_entry;
-	std::map<MachineBasicBlock*, RegisterSetUPtrTy> spillsets_exit;
+	std::map<MachineBasicBlock*, OperandSet> spillsets_entry;
+	std::map<MachineBasicBlock*, OperandSet> spillsets_exit;
 
 	const RegisterClass* current_rc; ///< Registerclass of the current pass run
 	unsigned current_rc_idx; ///< Index of RegisterClass, used to access loop pressure
 
 	void process_block(MachineBasicBlock*);
 	void fix_block_boundaries();
-	void limit(RegisterSet&, RegisterSet&, const MIIterator&, const MIIterator&, unsigned);
-	RegisterSetUPtrTy compute_workset(MachineBasicBlock*);
-	RegisterSetUPtrTy compute_spillset(MachineBasicBlock*, const RegisterSet&);
-	RegisterSetUPtrTy used_in_loop(MachineBasicBlock*);
-	RegisterSetUPtrTy used_in_loop(MachineLoop*, OperandSet&);	
+	void limit(OperandSet&, OperandSet&, const MIIterator&, const MIIterator&, unsigned);
+	OperandSet compute_workset(MachineBasicBlock*);
+	OperandSet compute_spillset(MachineBasicBlock*, const OperandSet&);
+	OperandSet used_in_loop(MachineBasicBlock*);
+	OperandSet used_in_loop(MachineLoop*, OperandSet&);	
 
-	void sort_by_next_use(RegisterSet&, MachineInstruction*) const;
+	void sort_by_next_use(OperandList&, MachineInstruction*) const;
 
 	void reconstruct_ssa(const Occurrence&, const std::vector<Occurrence>&) const;
 	const Occurrence& compute_reaching_def(const MIIterator&, const std::vector<Occurrence>&) const;
