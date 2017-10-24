@@ -42,21 +42,20 @@ namespace compiler2 {
 class StackSlotManager;
 class JITData;
 class MachineBasicBlock;
-
-using MRegisterSet = std::vector<MachineOperand*>;
+class OperandSet;
 
 class RegisterClass {
 public:
 	virtual bool handles_type(Type::TypeID type) const = 0;
 
 	virtual unsigned count() const = 0;
-	virtual const MRegisterSet& get_All() const = 0;
+	virtual const OperandSet& get_All() const = 0;
 
 	virtual unsigned caller_saved_count() const = 0;
-	virtual const MRegisterSet& get_CallerSaved() const = 0;
+	virtual const OperandSet& get_CallerSaved() const = 0;
 
 	virtual unsigned callee_saved_count() const = 0;
-	virtual const MRegisterSet& get_CalleeSaved() const = 0;
+	virtual const OperandSet& get_CalleeSaved() const = 0;
 };
 
 class RegisterInfo {
@@ -88,6 +87,11 @@ public:
 	JITData* get_JITData() const { return JD; }
 	RegisterInfo* get_RegisterInfo() const { return RI; }
 
+	/// Do not confuse this factory with the one from JITData. The JITData factory
+	/// provides ALL non platform specific operands, the native factory only provides
+	/// the concrete platform dependent register operands
+	virtual MachineOperandFactory* get_NativeFactory() const = 0;
+
 	virtual OperandFile& get_OperandFile(OperandFile& OF,MachineOperand *MO) const = 0;
 	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const = 0;
@@ -106,6 +110,7 @@ class BackendBase : public Backend {
 public:
 	BackendBase(JITData *JD, RegisterInfo *RI) : Backend(JD, RI) {}
 
+	virtual MachineOperandFactory* get_NativeFactory() const;
 	virtual OperandFile& get_OperandFile(OperandFile& OF,MachineOperand *MO) const;
 	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const;

@@ -32,6 +32,8 @@
 
 #include "config.h"
 
+#include <assert.h>
+#include <string.h>
 #include <dis-asm.h>
 #include <stdio.h>
 
@@ -61,6 +63,7 @@ u1 *disassinstr(u1 *code)
 		/* setting the struct members must be done after
 		   INIT_DISASSEMBLE_INFO */
 
+		info.arch             = bfd_arch_i386;
 		info.mach             = bfd_mach_x86_64;
 		info.read_memory_func = &disass_buffer_read_memory;
 
@@ -71,7 +74,12 @@ u1 *disassinstr(u1 *code)
 
 	disass_len = 0;
 
-	seqlen = print_insn_i386((bfd_vma) code, &info);
+	// Apprently, binutils changed, inspecting the source, they ignore all parameters
+	// except the first
+	disassembler_ftype disass_fun = disassembler(info.arch, info.endian == BFD_ENDIAN_BIG, info.mach, nullptr);
+	assert(disass_fun && "No disassembler function found!");
+
+	seqlen = (*disass_fun) ((bfd_vma) code, &info);
 
 	for (i = 0; i < seqlen; i++, code++) {
 		printf("%02x ", *code);

@@ -1097,13 +1097,19 @@ void X86_64LoweringVisitor::visit(CASTInst *I, bool copyOperands) {
 		}
  		case Type::DoubleTypeID:
 		{
+			MachineOperand *clear_result = CreateVirtualRegister(Type::DoubleTypeID);
 			MachineOperand *result = CreateVirtualRegister(Type::DoubleTypeID);
-			MachineInstruction *clearResult = new MovImmSDInst(SrcOp(new Immediate(0, Type::DoubleType())), DstOp(result));
+			MachineInstruction *clear = new MovImmSDInst(SrcOp(new Immediate(0, Type::DoubleType())), DstOp(clear_result));
 			MachineInstruction *conversion = new CVTSI2SDInst(
 				SrcOp(src_op),
 				DstOp(result),
 				GPInstruction::OS_32, GPInstruction::OS_64);
-			get_current()->push_back(clearResult);
+			// Connect the clear result to the conversion result via register requirement
+			// this is so SSA is preserved
+			auto requirement = std::make_unique<MachineRegisterRequirement>(clear_result);
+			conversion->get_result().set_MachineRegisterRequirement(requirement);
+
+			get_current()->push_back(clear);
 			get_current()->push_back(conversion);
 			set_op(I,conversion->get_result().op);
 			return;
@@ -1271,7 +1277,7 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 		// Guide the reg alloc by restricting the spilt live-ranges to the required
 		// argument registers
 		if (!arg_dst->is_ManagedStackSlot()) {
-			auto requirement = std::make_unique<MachineRegisterRequirement>(new NativeRegister(arg_dst->get_type(), cast_to<X86_64Register>(MMD[i])));
+			auto requirement = std::make_unique<MachineRegisterRequirement>(cast_to<X86_64Register>(MMD[i]));
 			mov->get_result().set_MachineRegisterRequirement(requirement);
 		}
 		get_current()->push_back(mov);

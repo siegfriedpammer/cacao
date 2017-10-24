@@ -52,7 +52,7 @@ class VirtualRegister;
  *
  * It is also used to create OperandSet instances.
  */
-class MachineOperandFactory : public memory::ManagerMixin<MachineOperandFactory> {
+class MachineOperandFactory {
 public:
 	/// Do not use directly, instead use StackSlotManager to create instances
 	ManagedStackSlot* CreateManagedStackSlot(StackSlotManager*, Type::TypeID);
@@ -72,15 +72,18 @@ public:
 		return std::unique_ptr<ExtendedOperandSet<T>>(set);
 	}
 
-private:
-	using MachineOperandUPtrTy = std::unique_ptr<MachineOperand>;
-	std::vector<MachineOperandUPtrTy> operands;
-
 	/**
 	 * Takes ownership of the provided operand and sets the operands ID to
 	 * the index in the operands vector.
+	 * Usually this method does not to be called, since ownership is handled
+	 * by the factory methods directly. The only exceptions are "NativeRegister"s,
+	 * because their typedefs are tricky.
 	 */
 	MachineOperand* register_ownership(MachineOperand*);
+
+protected:
+	using MachineOperandUPtrTy = std::unique_ptr<MachineOperand>;
+	std::vector<MachineOperandUPtrTy> operands;
 
 	friend class OperandSet;
 	template <typename T> friend class ExtendedOperandSet;

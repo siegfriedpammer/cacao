@@ -75,7 +75,7 @@ private:
 	std::map<std::size_t, SpilledOperandUPtrTy> spilled_operands;
 };
 
-class Occurrence;
+struct Occurrence;
 
 class NewSpillPass : public Pass, public memory::ManagerMixin<NewSpillPass> {
 public:

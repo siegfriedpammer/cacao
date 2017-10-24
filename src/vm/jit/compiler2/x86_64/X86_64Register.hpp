@@ -25,8 +25,9 @@
 #ifndef _JIT_COMPILER2_X86_64REGISTER
 #define _JIT_COMPILER2_X86_64REGISTER
 
-#include "vm/jit/compiler2/x86_64/X86_64.hpp"
+#include "vm/jit/compiler2/MachineOperandFactory.hpp"
 #include "vm/jit/compiler2/MachineRegister.hpp"
+#include "vm/jit/compiler2/x86_64/X86_64.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -39,9 +40,16 @@ namespace x86_64 {
 
 /**
  * x86_64 Register
+ *
+ * Initially, X86_64Register did not derive from MachineRegister, because
+ * it was directly mapped onto concrete registers, where only
+ * a single instance per machine register exists (regardless of type).
+ *
+ * Since it was usefull to allow X86_64Registers to be part of OperandSets,
+ * it is also now derived from MachineRegister, and instances are kept in
+ * the factory.
  */
-
-class X86_64Register {
+class X86_64Register : public MachineRegister {
 public:
 	const unsigned index;
 	const bool extented;
@@ -49,17 +57,22 @@ public:
 	const MachineOperand::IdentifyOffsetTy offset;
 	const MachineOperand::IdentifySizeTy size;
 
-	X86_64Register(const char* name,unsigned index,bool extented,
-		MachineOperand::IdentifyOffsetTy offset,
-		MachineOperand::IdentifySizeTy size)
-			: index(index), extented(extented), name(name), offset(offset),
-			size(size) {}
-	unsigned get_index() const {
-		return index;
+	X86_64Register(const char* name,
+	               unsigned index,
+	               bool extented,
+	               MachineOperand::IdentifyOffsetTy offset,
+	               MachineOperand::IdentifySizeTy size)
+	    : MachineRegister(name, Type::VoidTypeID), index(index), extented(extented), name(name),
+	      offset(offset), size(size)
+	{
 	}
-	virtual MachineOperand::IdentifyTy id_base()         const = 0;
+	unsigned get_index() const { return index; }
+
+	NativeRegister* to_NativeRegister() { return nullptr; }
+
+	virtual MachineOperand::IdentifyTy id_base() const = 0;
 	virtual MachineOperand::IdentifyOffsetTy id_offset() const { return offset; }
-	virtual MachineOperand::IdentifySizeTy id_size()     const { return size; }
+	virtual MachineOperand::IdentifySizeTy id_size() const { return size; }
 };
 
 class FPUStackRegister {
@@ -78,123 +91,133 @@ public:
  */
 class NativeRegister : public MachineRegister {
 private:
-	X86_64Register *reg;
-	
+	X86_64Register* reg;
+
 public:
-	NativeRegister(Type::TypeID type, X86_64Register* reg);
-	virtual NativeRegister* to_NativeRegister() {
-		return this;
-	}
-	X86_64Register* get_X86_64Register() const {
-		return reg;
-	}
-	virtual IdentifyTy id_base()         const { return reg->id_base(); }
+	NativeRegister(Type::TypeID type, MachineOperand* reg);
+	virtual NativeRegister* to_NativeRegister() { return this; }
+	X86_64Register* get_X86_64Register() const { return reg; }
+	virtual IdentifyTy id_base() const { return reg->id_base(); }
 	virtual IdentifyOffsetTy id_offset() const { return reg->id_offset(); }
-	virtual IdentifySizeTy id_size()     const { return reg->id_size(); }
+	virtual IdentifySizeTy id_size() const { return reg->id_size(); }
 };
 
-inline OStream& operator<<(OStream &OS, const X86_64Register& reg) {
+inline OStream& operator<<(OStream& OS, const X86_64Register& reg)
+{
 	return OS << reg.name;
 }
 
 class GPRegister : public X86_64Register {
 private:
 	static const uint8_t base;
+
 public:
-	GPRegister(const char* name,unsigned index,bool extented_gpr,
-		MachineOperand::IdentifyOffsetTy offset,
-		MachineOperand::IdentifySizeTy size)
-		: X86_64Register(name,index,extented_gpr, offset, size) {}
-	virtual MachineOperand::IdentifyTy id_base()         const { return static_cast<const void*>(&base); }
+	GPRegister(const char* name,
+	           unsigned index,
+	           bool extented_gpr,
+	           MachineOperand::IdentifyOffsetTy offset,
+	           MachineOperand::IdentifySizeTy size)
+	    : X86_64Register(name, index, extented_gpr, offset, size)
+	{
+	}
+	virtual MachineOperand::IdentifyTy id_base() const { return static_cast<const void*>(&base); }
 };
 
 class SSERegister : public X86_64Register {
 private:
 	static const uint8_t base;
+
 public:
-	SSERegister(const char* name,unsigned index,bool extented_gpr,
-		MachineOperand::IdentifyOffsetTy offset,
-		MachineOperand::IdentifySizeTy size)
-		: X86_64Register(name,index,extented_gpr, offset, size) {}
-	virtual MachineOperand::IdentifyTy id_base()         const { return static_cast<const void*>(&base); }
+	SSERegister(const char* name,
+	            unsigned index,
+	            bool extented_gpr,
+	            MachineOperand::IdentifyOffsetTy offset,
+	            MachineOperand::IdentifySizeTy size)
+	    : X86_64Register(name, index, extented_gpr, offset, size)
+	{
+	}
+	virtual MachineOperand::IdentifyTy id_base() const { return static_cast<const void*>(&base); }
 };
 
 template <>
-inline Register* cast_to<Register>(MachineOperand *op) {
-	Register *reg = op->to_Register();
+inline Register* cast_to<Register>(MachineOperand* op)
+{
+	Register* reg = op->to_Register();
 	assert(reg);
 	return reg;
 }
 
 template <>
-inline X86_64Register* cast_to<X86_64Register>(Register *reg) {
-	MachineRegister *mreg = reg->to_MachineRegister();
+inline X86_64Register* cast_to<X86_64Register>(Register* reg)
+{
+	MachineRegister* mreg = reg->to_MachineRegister();
 	assert(mreg);
-	NativeRegister *nreg = mreg->to_NativeRegister();
+	NativeRegister* nreg = mreg->to_NativeRegister();
 	assert(nreg);
-	X86_64Register *xreg = nreg->get_X86_64Register();
+	X86_64Register* xreg = nreg->get_X86_64Register();
 	assert(xreg);
 	return xreg;
 }
 
 template <>
-inline X86_64Register* cast_to<X86_64Register>(MachineOperand *op) {
-	Register *reg = op->to_Register();
+inline X86_64Register* cast_to<X86_64Register>(MachineOperand* op)
+{
+	Register* reg = op->to_Register();
 	assert(reg);
-	MachineRegister *mreg = reg->to_MachineRegister();
+	MachineRegister* mreg = reg->to_MachineRegister();
 	assert(mreg);
-	NativeRegister *nreg = mreg->to_NativeRegister();
+	NativeRegister* nreg = mreg->to_NativeRegister();
 	assert(nreg);
-	X86_64Register *xreg = nreg->get_X86_64Register();
+	X86_64Register* xreg = nreg->get_X86_64Register();
 	assert(xreg);
 	return xreg;
 }
 
 template <>
-inline X86_64Register* cast_to<X86_64Register>(X86_64Register *reg) {
+inline X86_64Register* cast_to<X86_64Register>(X86_64Register* reg)
+{
 	assert(reg);
 	return reg;
 }
 
-extern GPRegister RAX;
-extern GPRegister RCX;
-extern GPRegister RDX;
-extern GPRegister RBX;
-extern GPRegister RSP;
-extern GPRegister RBP;
-extern GPRegister RSI;
-extern GPRegister RDI;
-extern GPRegister R8;
-extern GPRegister R9;
-extern GPRegister R10;
-extern GPRegister R11;
-extern GPRegister R12;
-extern GPRegister R13;
-extern GPRegister R14;
-extern GPRegister R15;
+extern GPRegister& RAX;
+extern GPRegister& RCX;
+extern GPRegister& RDX;
+extern GPRegister& RBX;
+extern GPRegister& RSP;
+extern GPRegister& RBP;
+extern GPRegister& RSI;
+extern GPRegister& RDI;
+extern GPRegister& R8;
+extern GPRegister& R9;
+extern GPRegister& R10;
+extern GPRegister& R11;
+extern GPRegister& R12;
+extern GPRegister& R13;
+extern GPRegister& R14;
+extern GPRegister& R15;
 
 const unsigned IntegerArgumentRegisterSize = 6;
 extern GPRegister* IntegerArgumentRegisters[];
 extern GPRegister* IntegerCallerSavedRegisters[];
 const unsigned IntegerCallerSavedRegistersSize = 9;
 
-extern SSERegister XMM0;
-extern SSERegister XMM1;
-extern SSERegister XMM2;
-extern SSERegister XMM3;
-extern SSERegister XMM4;
-extern SSERegister XMM5;
-extern SSERegister XMM6;
-extern SSERegister XMM7;
-extern SSERegister XMM8;
-extern SSERegister XMM9;
-extern SSERegister XMM10;
-extern SSERegister XMM11;
-extern SSERegister XMM12;
-extern SSERegister XMM13;
-extern SSERegister XMM14;
-extern SSERegister XMM15;
-
+extern SSERegister& XMM0;
+extern SSERegister& XMM1;
+extern SSERegister& XMM2;
+extern SSERegister& XMM3;
+extern SSERegister& XMM4;
+extern SSERegister& XMM5;
+extern SSERegister& XMM6;
+extern SSERegister& XMM7;
+extern SSERegister& XMM8;
+extern SSERegister& XMM9;
+extern SSERegister& XMM10;
+extern SSERegister& XMM11;
+extern SSERegister& XMM12;
+extern SSERegister& XMM13;
+extern SSERegister& XMM14;
+extern SSERegister& XMM15;
 
 extern FPUStackRegister ST0;
 extern FPUStackRegister ST1;
@@ -205,34 +228,57 @@ extern FPUStackRegister ST5;
 extern FPUStackRegister ST6;
 extern FPUStackRegister ST7;
 
-
 const unsigned FloatArgumentRegisterSize = 8;
 extern SSERegister* FloatArgumentRegisters[];
 
-enum class X86_64Class {
-	GP, FP
+class NativeOperandFactory : public MachineOperandFactory {
+public:
+	explicit NativeOperandFactory() : MachineOperandFactory() {
+		#ifdef ENABLE_STATISTICS
+		// Since we have static MachineOperands (GPRegister, SSERegister), there are cases
+		// where they get deallocated during VM shutdown where the statistics class was not used
+		// yet, causing weird behaviour. To circumvent that case, we eagerly create the statistics class.
+		memory::get_comp2_deallocated<MachineOperand>();
+		#endif
+	}
+
+	GPRegister* CreateGPRegister(const char* name,
+	                             unsigned index,
+	                             bool extented_gpr,
+	                             MachineOperand::IdentifyOffsetTy offset,
+	                             MachineOperand::IdentifySizeTy size);
+
+	SSERegister* CreateSSERegister(const char* name,
+	                               unsigned index,
+	                               bool extented_gpr,
+	                               MachineOperand::IdentifyOffsetTy offset,
+	                               MachineOperand::IdentifySizeTy size);
 };
 
-template<X86_64Class type>
+extern NativeOperandFactory NOF;
+
+enum class X86_64Class { GP, FP };
+
+template <X86_64Class type>
 class X86_64RegisterClass : public RegisterClass {
 public:
 	explicit X86_64RegisterClass();
 
-	bool handles_type(Type::TypeID) const;
+	bool handles_type(Type::TypeID) const override;
 
 	unsigned count() const override { return all.size(); }
-	const MRegisterSet& get_All() const override { return all; }
+	const OperandSet& get_All() const override { return all; }
 
 	unsigned caller_saved_count() const override { return caller_saved.size(); }
-	const MRegisterSet& get_CallerSaved() const override { return caller_saved; }
+	const OperandSet& get_CallerSaved() const override { return caller_saved; }
 
 	unsigned callee_saved_count() const override { return callee_saved.size(); }
-	const MRegisterSet& get_CalleeSaved() const override { return callee_saved; }
+	const OperandSet& get_CalleeSaved() const override { return callee_saved; }
 
 private:
-	MRegisterSet all;
-	MRegisterSet caller_saved;
-	MRegisterSet callee_saved;
+	OperandSet all;
+	OperandSet caller_saved;
+	OperandSet callee_saved;
 };
 
 } // end namespace x86_64
@@ -241,7 +287,6 @@ private:
 } // end namespace cacao
 
 #endif /* _JIT_COMPILER2_X86_64REGISTER */
-
 
 /*
  * These are local overrides for various environment variables in Emacs.

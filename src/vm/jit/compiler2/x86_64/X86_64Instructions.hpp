@@ -343,7 +343,7 @@ public:
 
 		if (required_operand->is_Register()) {
 			auto machine_reg = cast_to<X86_64Register>(required_operand);
-			auto requirement = std::make_unique<MachineRegisterRequirement>(new NativeRegister(dst->get_type(), machine_reg));
+			auto requirement = std::make_unique<MachineRegisterRequirement>(machine_reg);
 			get_result().set_MachineRegisterRequirement(requirement);
 		}		
 	}
@@ -353,7 +353,7 @@ public:
 
 		if (required_operand->is_Register()) {
 			auto machine_reg = cast_to<X86_64Register>(required_operand);
-			auto requirement = std::make_unique<MachineRegisterRequirement>(new NativeRegister(dst->get_type(), machine_reg));
+			auto requirement = std::make_unique<MachineRegisterRequirement>(machine_reg);
 			results.back().set_MachineRegisterRequirement(requirement);
 		}
 	}
@@ -590,16 +590,16 @@ public:
 
 		add_result(dst2.op);
 
-		auto op1_requirement = std::make_unique<MachineRegisterRequirement>(new NativeRegister(src1.op->get_type(), &RDX));
+		auto op1_requirement = std::make_unique<MachineRegisterRequirement>(&RDX);
 		operands[1].set_MachineRegisterRequirement(op1_requirement);
 
-		auto op2_requirement = std::make_unique<MachineRegisterRequirement>(new NativeRegister(src2.op->get_type(), &RAX));
+		auto op2_requirement = std::make_unique<MachineRegisterRequirement>(&RAX);
 		operands[2].set_MachineRegisterRequirement(op2_requirement);
 
-		auto res0_requirement = std::make_unique<MachineRegisterRequirement>(new NativeRegister(dst1.op->get_type(), &RAX));
+		auto res0_requirement = std::make_unique<MachineRegisterRequirement>(&RAX);
 		results[0].set_MachineRegisterRequirement(res0_requirement);
 
-		auto res1_requirement = std::make_unique<MachineRegisterRequirement>(new NativeRegister(dst2.op->get_type(), &RDX));
+		auto res1_requirement = std::make_unique<MachineRegisterRequirement>(&RDX);
 		results[1].set_MachineRegisterRequirement(res1_requirement);
 
 	}
@@ -613,13 +613,13 @@ public:
 
 		add_result(dst2.op);
 
-		auto op1_requirement = std::make_unique<MachineRegisterRequirement>(new NativeRegister(dst2.op->get_type(), &RAX));
+		auto op1_requirement = std::make_unique<MachineRegisterRequirement>(&RAX);
 		operands[0].set_MachineRegisterRequirement(op1_requirement);
 
-		auto res1_requirement = std::make_unique<MachineRegisterRequirement>(new NativeRegister(dst1.op->get_type(), &RDX));
+		auto res1_requirement = std::make_unique<MachineRegisterRequirement>(&RDX);
 		results[0].set_MachineRegisterRequirement(res1_requirement);
 
-		auto res2_requirement = std::make_unique<MachineRegisterRequirement>(new NativeRegister(dst2.op->get_type(), &RAX));
+		auto res2_requirement = std::make_unique<MachineRegisterRequirement>(&RAX);
 		results[1].set_MachineRegisterRequirement(res2_requirement);		
 	}
 
@@ -646,7 +646,7 @@ public:
 		else
 			result_reg = &RAX;
 
-		auto requirement = std::make_unique<MachineRegisterRequirement>(new NativeRegister(src.op->get_type(), result_reg));
+		auto requirement = std::make_unique<MachineRegisterRequirement>(result_reg);
 		operands[0].set_MachineRegisterRequirement(requirement);
 	}
 	virtual bool is_end() const { return true; }
@@ -687,18 +687,18 @@ public:
 		}
 
 		// Result must be in result_reg, but aux_reg should also be caller saved
-		auto result_requirement = std::make_unique<MachineRegisterRequirement>(new NativeRegister(dst.op->get_type(), result_reg));
+		auto result_requirement = std::make_unique<MachineRegisterRequirement>(result_reg);
 		get_result().set_MachineRegisterRequirement(result_requirement);
 
 		add_result(MOF->CreateVirtualRegister(Type::DoubleTypeID));
-		auto result2_requirement = std::make_unique<MachineRegisterRequirement>(new NativeRegister(dst.op->get_type(), aux_reg));
+		auto result2_requirement = std::make_unique<MachineRegisterRequirement>(aux_reg);
 		results[1].set_MachineRegisterRequirement(result2_requirement);
 
 		// Set argument requirements
 		for (unsigned i = 1; i <= argc; ++i) {
 			if (MMD[i-1]->is_StackSlot())
 				continue;
-			auto op_requirement = std::make_unique<MachineRegisterRequirement>(MMD[i-1]);
+			auto op_requirement = std::make_unique<MachineRegisterRequirement>(cast_to<X86_64Register>(MMD[i-1]));
 			operands[i].set_MachineRegisterRequirement(op_requirement);
 		}
 
@@ -707,7 +707,7 @@ public:
 		for (unsigned i = 1; i < IntegerCallerSavedRegistersSize ; ++i) {
 			add_result(MOF->CreateVirtualRegister(Type::LongTypeID));
 			
-			auto native_reg = new NativeRegister(Type::LongTypeID, IntegerCallerSavedRegisters[i]);
+			auto native_reg = IntegerCallerSavedRegisters[i];
 			auto requirement = std::make_unique<MachineRegisterRequirement>(native_reg);
 			results[i + 1].set_MachineRegisterRequirement(requirement);
 		}

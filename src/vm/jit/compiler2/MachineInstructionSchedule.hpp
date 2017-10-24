@@ -86,7 +86,7 @@ public:
 	bool operator!=(const MBBIterator& rhs) const { return !(*this == rhs); }
 	bool operator>( const MBBIterator& rhs) const { return rhs < *this; }
 	reference       operator*()        { return *it; }
-	const reference operator*()  const { return *it; }
+	reference 	    operator*()  const { return *it; }
 	pointer         operator->()       { return &*it; }
 	const pointer   operator->() const { return &*it; }
 
@@ -144,7 +144,7 @@ public:
 	bool operator!=(const const_MBBIterator& rhs) const { return !(*this == rhs); }
 	bool operator>( const const_MBBIterator& rhs) const { return rhs < *this; }
 	reference       operator*()        { return *it; }
-	const reference operator*()  const { return *it; }
+	reference       operator*()  const { return *it; }
 	pointer         operator->()       { return &*it; }
 	const pointer   operator->() const { return &*it; }
 

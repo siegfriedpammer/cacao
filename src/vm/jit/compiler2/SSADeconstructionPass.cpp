@@ -34,6 +34,7 @@
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/RegisterAllocatorPass.hpp"
 #include "vm/jit/compiler2/ReversePostOrderPass.hpp"
+#include "vm/jit/compiler2/lsra/LogHelper.hpp"
 
 #define DEBUG_NAME "compiler2/SSADeconstructionPass"
 
@@ -154,6 +155,10 @@ void SSADeconstructionPass::insert_transfer_at_end(MachineBasicBlock* block,
 		src.push_back(src_op);
 	}
 
+	LOG2("Inserting parallel copy: \n");
+	LOG2_NAMED_PTR_CONTAINER("Source operands: ", src);
+	LOG2_NAMED_PTR_CONTAINER("Dest operands:   ", dst);
+
 	std::vector<unsigned> diff;
 	find_safe_operations(src, dst, diff);
 	implement_safe_operations(src, dst, diff, predecessor);
@@ -181,7 +186,10 @@ void SSADeconstructionPass::find_safe_operations(const std::vector<MachineOperan
 		if (dst[i] == nullptr)
 			continue;
 
-		auto iter = std::find(src.begin(), src.end(), dst[i]);
+		auto iter = std::find_if(src.begin(), src.end(), [&](const auto operand) {
+			return dst[i]->aquivalent(*operand);
+		});
+
 		if (iter == src.end()) {
 			diff.push_back(i);
 		}
@@ -250,9 +258,15 @@ bool SSADeconstructionPass::swap_registers(std::vector<MachineOperand*>& src,
 
 			LOG1("Inserting swap at end of (" << *block << "): " << *swap << nl);
 
+			auto find_lambda = [&](const auto operand) {
+				if (!operand)
+					return false;
+				return dst_op->aquivalent(*operand);
+			};
+
 			// Replace all dst_ops in src with src_op
-			for (auto iter = std::find(src.begin(), src.end(), dst_op), e = src.end(); iter != e;
-				iter = std::find(std::next(iter), src.end(), dst_op)) {
+			for (auto iter = std::find_if(src.begin(), src.end(), find_lambda), e = src.end(); iter != e;
+				iter = std::find_if(std::next(iter), src.end(), find_lambda)) {
 				LOG1("Replacing occurrence of " << dst_op << " with " << src_op << nl);
 				*iter = src_op;
 			}

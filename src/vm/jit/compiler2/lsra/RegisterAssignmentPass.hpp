@@ -45,6 +45,7 @@ class MachineBasicBlock;
 class MachineInstruction;
 class MachineOperand;
 class MachineOperandDesc;
+class MachineOperandFactory;
 class NewLivetimeAnalysisPass;
 class OperandSet;
 class RegisterAssignmentPass;
@@ -73,7 +74,7 @@ public:
 	ColorPair choose_color(MachineBasicBlock* block,
 	                       MachineInstruction* instruction,
 	                       MachineOperandDesc& descriptor,
-	                       const RegisterSet& allowed_ccolors);
+	                       OperandSet& allowed_ccolors);
 
 	void assign_operands_color(MachineInstruction* instruction);
 
@@ -83,6 +84,11 @@ public:
 		MachineOperand* gcolor = nullptr;
 
 		std::vector<MachineOperandDesc*> unassigned_uses;
+
+		/// Colors are machine registers without type, during final assignment
+		/// NativeRegisters are created and cached here
+		MachineOperand* ccolor_native = nullptr;
+		MachineOperand* gcolor_native = nullptr;
 	};
 
 	bool repair_argument(MachineBasicBlock* block,
@@ -93,14 +99,14 @@ public:
 	                     MachineInstruction* instruction,
 	                     MachineOperandDesc& descriptor,
 	                     ParallelCopy& parallel_copy,
-	                     const RegisterSet& available,
-	                     const RegisterSet& forbidden);
+	                     OperandSet& available,
+	                     OperandSet& forbidden);
 
 	bool repair_result(MachineBasicBlock* block,
 	                   MachineInstruction* instruction,
 	                   MachineOperandDesc& descriptor,
-					   ParallelCopy& parallel_copy,
-					   const OperandSet& live_out);
+	                   ParallelCopy& parallel_copy,
+	                   const OperandSet& live_out);
 
 	MachineOperand* ccolor(MachineOperand* operand);
 	Variable& variable_for(MachineOperand* operand);
@@ -118,37 +124,30 @@ public:
 private:
 	RegisterAssignmentPass& rapass;
 
-	std::map<Type::TypeID, RegisterSet> physical_registers;
+	std::map<Type::TypeID, OperandSet> physical_registers;
 	std::map<std::size_t, Variable> variables;
 
 	using AllocatedVariableSet = std::vector<Variable*>;
 	std::map<MachineBasicBlock*, AllocatedVariableSet> allocated_variables_map;
 
 	void initialize_physical_registers_for_class(Backend* backend, Type::TypeID type);
-	const RegisterSet& physical_registers_for(Type::TypeID type)
+	const OperandSet& physical_registers_for(Type::TypeID type)
 	{
 		return physical_registers.at(type);
 	}
 
-	std::vector<MachineOperand*> ccolors(MachineBasicBlock* block);
-	std::vector<MachineOperand*> gcolors(MachineBasicBlock* block);
+	OperandSet ccolors(MachineBasicBlock* block);
+	OperandSet gcolors(MachineBasicBlock* block);
 
-	MachineOperand* pick(const std::vector<MachineOperand*> operands)
-	{
-		if (operands.empty())
-			return nullptr;
-
-		return operands.front();
-	}
+	MachineOperand* pick(OperandSet& operands) const;
 
 	// Returns all allowed colors for a given instruction and variable
 	// If variable is not used/defined by instruction, all colors of the corresponding
 	// register class are returned
-	std::vector<MachineOperand*> allowed_colors(MachineInstruction* instruction,
-	                                            Variable* variable);
+	OperandSet allowed_colors(MachineInstruction* instruction, Variable* variable);
 
-	std::vector<MachineOperand*> used_ccolors(MachineInstruction* instruction);
-	std::vector<MachineOperand*> def_ccolors(MachineInstruction* instruction);
+	OperandSet used_ccolors(MachineInstruction* instruction);
+	OperandSet def_ccolors(MachineInstruction* instruction);
 
 	Variable* allocated_variable_with_ccolor(MachineBasicBlock* block, MachineOperand* ccolor);
 };
@@ -176,10 +175,12 @@ class RegisterAssignmentPass : public Pass, public memory::ManagerMixin<Register
 public:
 	RegisterAssignmentPass() : Pass(), assignment(*this) {}
 	virtual bool run(JITData& JD);
+	virtual bool verify() const;
 	virtual PassUsage& get_PassUsage(PassUsage& PU) const;
 
 private:
-	Backend* backend;
+	MachineOperandFactory* factory;
+	MachineOperandFactory* native_factory;
 
 	RegisterAssignment assignment;
 

@@ -78,6 +78,8 @@ public:
 	MachineRegisterRequirement* get_MachineRegisterRequirement() const { return requirement.get(); }
 };
 
+/// @todo Rename, this can not only be used for twoaddress instructions, but simly for two operands
+///               that need the same register assigned
 class MachineRegisterTwoAddressRequirement : public MachineRegisterRequirement {
 public:
 	MachineRegisterTwoAddressRequirement(MachineOperandDesc* desc) : MachineRegisterRequirement(nullptr), descriptor(desc) {}

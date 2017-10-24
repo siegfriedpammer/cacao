@@ -108,7 +108,7 @@ public:
 	bool operator!=(const MIIterator& rhs) const { return !(*this == rhs); }
 	bool operator>( const MIIterator& rhs) const { return rhs < *this; }
 	reference       operator*()        { return *it; }
-	const reference operator*()  const { return *it; }
+	reference       operator*()  const { return *it; }
 	pointer         operator->()       { return &*it; }
 	const pointer   operator->() const { return &*it; }
 

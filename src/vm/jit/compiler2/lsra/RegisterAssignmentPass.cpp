@@ -42,15 +42,6 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-namespace {
-
-static bool op_cmp(MachineOperand* lhs, MachineOperand* rhs)
-{
-	return lhs->aquivalence_less(*rhs);
-}
-
-} // end anonymous namespace
-
 OStream& operator<<(OStream& OS, const RegisterAssignment::Variable& variable)
 {
 	OS << *variable.operand;
@@ -72,26 +63,13 @@ void RegisterAssignment::initialize_physical_registers(Backend* backend)
 void RegisterAssignment::initialize_physical_registers_for_class(Backend* backend,
                                                                  Type::TypeID type)
 {
-	const RegisterClass* regclass;
-
 	for (unsigned i = 0; i < backend->get_RegisterInfo()->class_count(); ++i) {
 		const auto& rc = backend->get_RegisterInfo()->get_class(i);
 		if (rc.handles_type(type)) {
-			regclass = &rc;
-			break;
+			physical_registers.emplace(type, rc.get_All());
+			return;
 		}
 	}
-
-	/// @todo only works on x86_64, this needs to be arch independent!!!
-	RegisterSet registers;
-	for (const auto reg : regclass->get_All()) {
-		auto native_reg = x86_64::cast_to<x86_64::X86_64Register>(reg);
-		registers.push_back(new NativeRegister(type, native_reg));
-	}
-
-	std::sort(registers.begin(), registers.end(), op_cmp);
-
-	physical_registers.emplace(type, registers);
 }
 
 void RegisterAssignment::initialize_variables_for(MachineBasicBlock* block, MachineBasicBlock* idom)
@@ -112,7 +90,7 @@ void RegisterAssignment::intersect_variables_with(MachineBasicBlock* block,
 
 	if (DEBUG_COND_N(3)) {
 		LOG3(nl);
-		LOG3_NAMED_CONTAINER("Initial allocated variables (" << *block << "): ", variables);
+		LOG3_NAMED_PTR_CONTAINER("Initial allocated variables (" << *block << "): ", variables);
 		LOG3_NAMED_CONTAINER("LiveIn                      (" << *block << "): ", live_in);
 	}
 
@@ -127,7 +105,7 @@ void RegisterAssignment::intersect_variables_with(MachineBasicBlock* block,
 	}
 
 	if (DEBUG_COND_N(3)) {
-		LOG3_NAMED_CONTAINER("Allocated vars intersected  (" << *block << "): ", variables);
+		LOG3_NAMED_PTR_CONTAINER("Allocated vars intersected  (" << *block << "): ", variables);
 	}
 }
 
@@ -153,13 +131,8 @@ RegisterAssignment::ColorPair RegisterAssignment::choose_color(MachineBasicBlock
                                                                MachineInstruction* instruction,
                                                                MachineOperandDesc& descriptor)
 {
-	RegisterSet allowed_ccolors;
-
-	auto allocated_ccolors = ccolors(block);
 	auto colors = allowed_colors(instruction, &variable_for(descriptor.op));
-
-	std::set_difference(colors.begin(), colors.end(), allocated_ccolors.begin(),
-	                    allocated_ccolors.end(), std::back_inserter(allowed_ccolors), op_cmp);
+	auto allowed_ccolors = colors - ccolors(block);
 
 	return choose_color(block, instruction, descriptor, allowed_ccolors);
 }
@@ -167,36 +140,22 @@ RegisterAssignment::ColorPair RegisterAssignment::choose_color(MachineBasicBlock
 RegisterAssignment::ColorPair RegisterAssignment::choose_color(MachineBasicBlock* block,
                                                                MachineInstruction* instruction,
                                                                MachineOperandDesc& descriptor,
-                                                               const RegisterSet& allowed_ccolors)
+                                                               OperandSet& allowed_ccolors)
 {
-	RegisterSet allowed_gcolors;
-
-	auto& physical_registers = physical_registers_for(descriptor.op->get_type());
-	auto allocated_gcolors = gcolors(block);
-	std::set_difference(physical_registers.cbegin(), physical_registers.cend(),
-	                    allocated_gcolors.begin(), allocated_gcolors.end(),
-	                    std::back_inserter(allowed_gcolors), op_cmp);
+	const auto& physical_registers = physical_registers_for(descriptor.op->get_type());
+	auto allowed_gcolors = physical_registers - gcolors(block);
 
 	auto& variable = variable_for(descriptor.op);
 
 	if (DEBUG_COND_N(3)) {
-		LOG3("[" << descriptor.op << "]: Allowed Local Colors:  ");
-		print_ptr_container(dbg(), allowed_ccolors.begin(), allowed_ccolors.end());
-		LOG3("\n[" << descriptor.op << "]: Allowed Global Colors: ");
-		print_ptr_container(dbg(), allowed_gcolors.begin(), allowed_gcolors.end());
-		LOG3(nl);
+		LOG3_NAMED_CONTAINER("[" << descriptor.op << "]: Allowed Local Colors:  ", allowed_ccolors);
+		LOG3_NAMED_CONTAINER("[" << descriptor.op << "]: Allowed Global Colors: ", allowed_gcolors);
 	}
 
 	// We have reached a definition, set both gcolor and ccolor
 	if (variable.gcolor == nullptr && variable.ccolor == nullptr) {
-		RegisterSet intersection;
-		std::set_intersection(allowed_ccolors.begin(), allowed_ccolors.end(),
-		                      allowed_gcolors.begin(), allowed_gcolors.end(),
-		                      std::back_inserter(intersection), op_cmp);
-
-		LOG3("[" << descriptor.op << "]: Intersection:          ");
-		DEBUG3(print_ptr_container(dbg(), intersection.begin(), intersection.end()));
-		LOG3(nl);
+		auto intersection = allowed_ccolors & allowed_gcolors;
+		LOG3_NAMED_CONTAINER("[" << descriptor.op << "]: Intersection:          ", intersection);
 
 		auto color = pick(intersection);
 		if (color) {
@@ -209,8 +168,7 @@ RegisterAssignment::ColorPair RegisterAssignment::choose_color(MachineBasicBlock
 
 	// Returns the new ccolor (required for repairing)
 	if (variable.gcolor != nullptr && variable.ccolor != nullptr) {
-		if (std::find(allowed_ccolors.begin(), allowed_ccolors.end(), variable.gcolor) !=
-		    allowed_ccolors.end()) {
+		if (allowed_ccolors.contains(variable.gcolor)) {
 			return {nullptr, variable.gcolor};
 		}
 		else {
@@ -220,8 +178,7 @@ RegisterAssignment::ColorPair RegisterAssignment::choose_color(MachineBasicBlock
 
 	// Repairing result
 	if (variable.gcolor != nullptr && variable.ccolor == nullptr) {
-		if (std::find(allowed_ccolors.begin(), allowed_ccolors.end(), variable.gcolor) !=
-		    allowed_ccolors.end()) {
+		if (allowed_ccolors.contains(variable.gcolor)) {
 			return {nullptr, variable.gcolor};
 		}
 		else {
@@ -232,34 +189,38 @@ RegisterAssignment::ColorPair RegisterAssignment::choose_color(MachineBasicBlock
 	assert(false && "choose_color for repairing not implemented!");
 }
 
-std::vector<MachineOperand*> RegisterAssignment::ccolors(MachineBasicBlock* block)
+OperandSet RegisterAssignment::ccolors(MachineBasicBlock* block)
 {
-	std::vector<MachineOperand*> result;
+	auto result = rapass.native_factory->EmptySet();
 
 	auto& allocated_variables = allocated_variables_map.at(block);
 	for (const auto& variable : allocated_variables) {
 		if (variable->ccolor)
-			result.push_back(variable->ccolor);
+			result.add(variable->ccolor);
 	}
-
-	std::sort(result.begin(), result.end(), op_cmp);
 
 	return result;
 }
 
-std::vector<MachineOperand*> RegisterAssignment::gcolors(MachineBasicBlock* block)
+OperandSet RegisterAssignment::gcolors(MachineBasicBlock* block)
 {
-	std::vector<MachineOperand*> result;
+	auto result = rapass.native_factory->EmptySet();
 
 	auto& allocated_variables = allocated_variables_map.at(block);
 	for (const auto& variable : allocated_variables) {
 		if (variable->gcolor)
-			result.push_back(variable->gcolor);
+			result.add(variable->gcolor);
 	}
 
-	std::sort(result.begin(), result.end(), op_cmp);
-
 	return result;
+}
+
+MachineOperand* RegisterAssignment::pick(OperandSet& operands) const
+{
+	if (operands.empty())
+		return nullptr;
+
+	return &*operands.begin();
 }
 
 RegisterAssignment::Variable& RegisterAssignment::variable_for(MachineOperand* operand)
@@ -272,6 +233,8 @@ RegisterAssignment::Variable& RegisterAssignment::variable_for(MachineOperand* o
 	return iter->second;
 }
 
+/// Since we use the machine registers as colors directly, we need to create
+/// native instances that also contain the correct type
 void RegisterAssignment::assign_operands_color(MachineInstruction* instruction)
 {
 	auto uses_lambda = [&](auto& descriptor) {
@@ -279,8 +242,10 @@ void RegisterAssignment::assign_operands_color(MachineInstruction* instruction)
 			return;
 
 		auto& variable = this->variable_for(descriptor.op);
-		if (variable.ccolor != nullptr) {
-			descriptor.op = variable.ccolor;
+		if (variable.ccolor_native != nullptr) {
+			descriptor.op = variable.ccolor_native;
+			// auto type = variable.operand->get_type();
+			// descriptor.op = new NativeRegister(type, variable.ccolor);
 		}
 		else {
 			variable.unassigned_uses.push_back(&descriptor);
@@ -295,10 +260,21 @@ void RegisterAssignment::assign_operands_color(MachineInstruction* instruction)
 			return;
 
 		auto& variable = this->variable_for(descriptor.op);
-		descriptor.op = variable.ccolor;
+		auto type = variable.operand->get_type();
+		variable.ccolor_native = new NativeRegister(type, variable.ccolor);
+		variable.gcolor_native = new NativeRegister(type, variable.gcolor);
+
+		// We register the NativeRegs with the operand factory of this compiler run, so they get
+		// cleaned up when the run is finished
+		this->rapass.factory->register_ownership(variable.ccolor_native);
+		this->rapass.factory->register_ownership(variable.gcolor_native);
+
+		descriptor.op = variable.ccolor_native;
+		// descriptor.op = new NativeRegister(type, variable.ccolor);
 
 		for (auto& desc : variable.unassigned_uses) {
-			desc->op = variable.gcolor;
+			desc->op = variable.gcolor_native;
+			// desc->op = new NativeRegister(type, variable.gcolor);
 		}
 	};
 	std::for_each(instruction->results_begin(), instruction->results_end(), result_lambda);
@@ -309,10 +285,9 @@ MachineOperand* RegisterAssignment::ccolor(MachineOperand* operand)
 	return variable_for(operand).ccolor;
 }
 
-std::vector<MachineOperand*> RegisterAssignment::allowed_colors(MachineInstruction* instruction,
-                                                                Variable* variable)
+OperandSet RegisterAssignment::allowed_colors(MachineInstruction* instruction, Variable* variable)
 {
-	RegisterSet constrained;
+	OperandSet constrained = rapass.native_factory->EmptySet();
 
 	auto descriptor_lambda = [&](const auto& descriptor) {
 		if (!descriptor.op->aquivalent(*variable->operand))
@@ -327,7 +302,7 @@ std::vector<MachineOperand*> RegisterAssignment::allowed_colors(MachineInstructi
 			    required_operand->is_virtual() ? this->ccolor(required_operand) : required_operand;
 			assert(required_operand && "Required operand must not be null (its required...)");
 
-			constrained.push_back(required_operand);
+			constrained.add(required_operand);
 		}
 	};
 
@@ -338,16 +313,16 @@ std::vector<MachineOperand*> RegisterAssignment::allowed_colors(MachineInstructi
 	if (!constrained.empty())
 		return constrained;
 
-	return std::vector<MachineOperand*>(physical_registers_for(variable->operand->get_type()));
+	return physical_registers_for(variable->operand->get_type());
 }
 
-std::vector<MachineOperand*> RegisterAssignment::used_ccolors(MachineInstruction* instruction)
+OperandSet RegisterAssignment::used_ccolors(MachineInstruction* instruction)
 {
-	std::vector<MachineOperand*> used_colors;
+	auto used_colors = rapass.native_factory->EmptySet();
 	auto uses_lambda = [&](const auto& descriptor) {
 		auto& variable = this->variable_for(descriptor.op);
 		if (variable.ccolor != nullptr) {
-			used_colors.push_back(variable.ccolor);
+			used_colors.add(variable.ccolor);
 		}
 	};
 
@@ -357,13 +332,13 @@ std::vector<MachineOperand*> RegisterAssignment::used_ccolors(MachineInstruction
 	return used_colors;
 }
 
-std::vector<MachineOperand*> RegisterAssignment::def_ccolors(MachineInstruction* instruction)
+OperandSet RegisterAssignment::def_ccolors(MachineInstruction* instruction)
 {
-	std::vector<MachineOperand*> def_colors;
+	auto def_colors = rapass.native_factory->EmptySet();
 	auto def_lambda = [&](const auto& descriptor) {
 		auto& variable = this->variable_for(descriptor.op);
 		if (variable.ccolor != nullptr) {
-			def_colors.push_back(variable.ccolor);
+			def_colors.add(variable.ccolor);
 		}
 	};
 
@@ -390,63 +365,48 @@ bool RegisterAssignment::repair_argument(MachineBasicBlock* block,
                                          MachineOperandDesc& descriptor,
                                          ParallelCopy& parallel_copy)
 {
-	RegisterSet available;
+	const auto& physical_registers = physical_registers_for(descriptor.op->get_type());
+	auto available = physical_registers - ccolors(block);
+	auto forbidden = rapass.native_factory->EmptySet();
 
-	auto& physical_registers = physical_registers_for(descriptor.op->get_type());
-	auto allocated_ccolors = ccolors(block);
-	std::set_difference(physical_registers.cbegin(), physical_registers.cend(),
-	                    allocated_ccolors.begin(), allocated_ccolors.end(),
-	                    std::back_inserter(available), op_cmp);
-	return repair_argument(block, instruction, descriptor, parallel_copy, available, {});
+	return repair_argument(block, instruction, descriptor, parallel_copy, available, forbidden);
 }
 
 bool RegisterAssignment::repair_argument(MachineBasicBlock* block,
                                          MachineInstruction* instruction,
                                          MachineOperandDesc& descriptor,
                                          ParallelCopy& parallel_copy,
-                                         const RegisterSet& available,
-                                         const RegisterSet& forbidden)
+                                         OperandSet& available,
+                                         OperandSet& forbidden)
 {
 	LOG1("[" << descriptor.op << "]: Reparing argument " << descriptor.op << nl);
 
 	MachineOperand* ccolor = nullptr;
-	RegisterSet allowed;
 
 	auto allowed_cols = allowed_colors(instruction, &variable_for(descriptor.op));
-	std::set_difference(allowed_cols.begin(), allowed_cols.end(), forbidden.begin(),
-	                    forbidden.end(), std::back_inserter(allowed), op_cmp);
+	auto allowed = allowed_cols - forbidden;
 
 	if (DEBUG_COND_N(3)) {
-		LOG3("[" << descriptor.op << "]: Allowed colors:   ");
-		print_ptr_container(dbg(), allowed.begin(), allowed.end());
+		LOG3_NAMED_CONTAINER("[" << descriptor.op << "]: Allowed colors:   ", allowed);
+		LOG3_NAMED_CONTAINER("[" << descriptor.op << "]: Available colors: ", available);
 		LOG3(nl);
-		LOG3("[" << descriptor.op << "]: Available colors: ");
-		print_ptr_container(dbg(), available.begin(), available.end());
-		LOG3("\n\n");
 	}
 
 	while (ccolor == nullptr && !allowed.empty()) {
 		// Regs not used in instruction => not constrained. So start trying regs that are not used
 		// in this instruction first
-		std::vector<MachineOperand*> not_used_colors;
 		auto used_colors = used_ccolors(instruction);
 
 		if (DEBUG_COND_N(3)) {
-			LOG3("[" << descriptor.op << "]: Used ccolors:        ");
-			print_ptr_container(dbg(), used_colors.begin(), used_colors.end());
-			LOG3(nl);
-
-			LOG3("[" << descriptor.op << "]: Allocated variables: ");
-			print_ptr_container(dbg(), allocated_variables_map.at(block).begin(),
-			                    allocated_variables_map.at(block).end());
-			LOG3(nl);
+			LOG3_NAMED_CONTAINER("[" << descriptor.op << "]: Used ccolors:        ", used_colors);
+			LOG3_NAMED_PTR_CONTAINER("[" << descriptor.op << "]: Allocated variables: ",
+			                         allocated_variables_map.at(block));
 		}
 
-		std::set_difference(allowed.begin(), allowed.end(), used_colors.begin(), used_colors.end(),
-		                    std::back_inserter(not_used_colors), op_cmp);
-
+		auto not_used_colors = allowed - used_colors;
 		auto& tmp_set = not_used_colors.empty() ? allowed : not_used_colors;
 		auto color_pair = choose_color(block, instruction, descriptor, tmp_set);
+
 		ccolor = color_pair.ccolor;
 		LOG3("[" << descriptor.op << "]: Choosen ccolor: " << ccolor << nl);
 
@@ -454,22 +414,12 @@ bool RegisterAssignment::repair_argument(MachineBasicBlock* block,
 		LOG3("[" << descriptor.op << "]: Found pawn " << pawn->operand << " [" << pawn->gcolor
 		         << ", " << pawn->ccolor << "]\n");
 
-		RegisterSet pawn_allowed;
-		RegisterSet available_with_current(available);
-		available_with_current.push_back(variable_for(descriptor.op).ccolor);
-		std::sort(available_with_current.begin(), available_with_current.end(), op_cmp);
+		auto available_with_current = available;
+		available_with_current.add(variable_for(descriptor.op).ccolor);
 
-		RegisterSet intersection;
-		std::set_intersection(allowed_cols.begin(), allowed_cols.end(),
-		                      available_with_current.begin(), available_with_current.end(),
-		                      std::back_inserter(intersection), op_cmp);
-		std::set_difference(available_with_current.begin(), available_with_current.end(),
-		                    forbidden.begin(), forbidden.end(), std::back_inserter(pawn_allowed),
-		                    op_cmp);
-
-		LOG3("[" << descriptor.op << "]: Allowed pawn colors: ");
-		DEBUG3(print_ptr_container(dbg(), pawn_allowed.begin(), pawn_allowed.end()));
-		LOG3(nl);
+		auto contrained = allowed_colors(instruction, pawn);
+		auto pawn_allowed = (contrained & available_with_current) - forbidden;
+		LOG3_NAMED_CONTAINER("[" << descriptor.op << "]: Allowed pawn colors: ", pawn_allowed);
 
 		bool success = false;
 		if (!pawn_allowed.empty()) {
@@ -504,20 +454,12 @@ bool RegisterAssignment::repair_result(MachineBasicBlock* block,
 	LOG1("[" << descriptor.op << "]: Repairing result\n");
 
 	MachineOperand* ccolor = nullptr;
-	RegisterSet allowed;
 
 	auto allowed_cols = allowed_colors(instruction, &variable_for(descriptor.op));
-	auto use_def_cols = used_ccolors(instruction);
-	auto def_cols = def_ccolors(instruction);
-	std::copy(def_cols.begin(), def_cols.end(), std::back_inserter(use_def_cols));
-	std::sort(use_def_cols.begin(), use_def_cols.end(), op_cmp);
+	auto use_def_cols = used_ccolors(instruction) | def_ccolors(instruction);
+	auto allowed = allowed_cols - use_def_cols;
 
-	std::set_difference(allowed_cols.begin(), allowed_cols.end(), use_def_cols.begin(),
-	                    use_def_cols.end(), std::back_inserter(allowed), op_cmp);
-
-	if (DEBUG_COND_N(3)) {
-		LOG3_NAMED_PTR_CONTAINER("[" << descriptor.op << "]: Allowed colors: ", allowed);
-	}
+	LOG3_NAMED_CONTAINER("[" << descriptor.op << "]: Allowed colors: ", allowed);
 
 	while (!allowed.empty() && ccolor == nullptr) {
 		auto color_pair = choose_color(block, instruction, descriptor, allowed);
@@ -529,29 +471,13 @@ bool RegisterAssignment::repair_result(MachineBasicBlock* block,
 		LOG3("[" << descriptor.op << "]: Found pawn " << pawn->operand << " [" << pawn->gcolor
 		         << ", " << pawn->ccolor << "]\n");
 
-		RegisterSet tmp;
-		RegisterSet pawn_allowed;
-
-		auto constrained = allowed_colors(instruction, pawn);
-		std::set_difference(constrained.begin(), constrained.end(), use_def_cols.begin(),
-		                    use_def_cols.end(), std::back_inserter(tmp), op_cmp);
-		// Remove the choosen color from the allowed ones
-		// auto iter = std::find_if(pawn_allowed.begin(), pawn_allowed.end(),
-		//                         [&](const auto pawn) { return pawn->aquivalent(*ccolor); });
-		// if (iter != pawn_allowed.end()) {
-		//	pawn_allowed.erase(iter);
-		//}
+		auto pawn_allowed = allowed_colors(instruction, pawn) - use_def_cols;
 
 		// Temporarly, also remove all currently used colors, only allow free colors to be used
 		// for the pawn
+		pawn_allowed -= ccolors(block);
 
-		auto used_ccolors = ccolors(block);
-		std::set_difference(tmp.begin(), tmp.end(), used_ccolors.begin(), used_ccolors.end(),
-		                    std::back_inserter(pawn_allowed), op_cmp);
-
-		LOG3("[" << descriptor.op << "]: Allowed pawn colors: ");
-		DEBUG3(print_ptr_container(dbg(), pawn_allowed.begin(), pawn_allowed.end()));
-		LOG3(nl);
+		LOG3_NAMED_CONTAINER("[" << descriptor.op << "]: Allowed pawn colors: ", pawn_allowed);
 
 		MachineOperand* pawn_color = nullptr;
 		if (!pawn_allowed.empty()) {
@@ -571,20 +497,12 @@ bool RegisterAssignment::repair_result(MachineBasicBlock* block,
 				if (live_out.contains(descriptor.op))
 					return;
 
-				// TODO: Should be somewhere else and better documented (its a simple "contains")
-				auto is_element = [](const RegisterSet& set, MachineOperand* op) {
-					auto iter = std::find_if(set.begin(), set.end(), [&](const auto operand) {
-						return op->aquivalent(*operand);
-					});
-					return iter != set.end();
-				};
-
 				auto& variable = this->variable_for(descriptor.op);
 				auto constrained_pawn = this->allowed_colors(instruction, pawn);
 				auto constrained_arg = this->allowed_colors(instruction, &variable);
 				bool success = this->ccolor_is_available(block, variable.ccolor) &&
-				               is_element(constrained_pawn, variable.ccolor) &&
-				               is_element(constrained_arg, pawn->ccolor);
+				               constrained_pawn.contains(variable.ccolor) &&
+				               constrained_arg.contains(pawn->ccolor);
 
 				if (success) {
 					found_color = true;
@@ -601,12 +519,7 @@ bool RegisterAssignment::repair_result(MachineBasicBlock* block,
 			parallel_copy.add(pawn, pawn_color);
 		}
 		else {
-			auto iter = std::find_if(allowed.begin(), allowed.end(), [&](const auto operand) {
-				return operand->aquivalent(*ccolor);
-			});
-			if (iter != allowed.end()) {
-				allowed.erase(iter);
-			}
+			allowed.remove(ccolor);
 			ccolor = nullptr;
 		}
 	}
@@ -650,6 +563,9 @@ bool RegisterAssignmentPass::run(JITData& JD)
 	auto MDT = get_Pass<MachineDominatorPass>();
 	auto RPO = get_Pass<ReversePostOrderPass>();
 	LTA = get_Pass<NewLivetimeAnalysisPass>();
+
+	factory = JD.get_MachineOperandFactory();
+	native_factory = JD.get_Backend()->get_NativeFactory();
 
 	// Initialize available registers for assignment
 	assignment.initialize_physical_registers(JD.get_Backend());
@@ -791,12 +707,19 @@ bool RegisterAssignmentPass::run(JITData& JD)
 
 			// Insert the parallel copies before this instrution
 			for (const auto& copy : parallel_copy) {
-				auto move = JD.get_Backend()->create_Move(copy.source, copy.target);
+				auto source = new NativeRegister(copy.variable->operand->get_type(), copy.source);
+				auto target = new NativeRegister(copy.variable->operand->get_type(), copy.target);
+				factory->register_ownership(source);
+				factory->register_ownership(target);
+
+				auto move = JD.get_Backend()->create_Move(source, target);
 				auto iter = std::find(block->begin(), block->end(), instruction);
 				assert(iter != block->end());
 				block->insert_before(iter, move);
 
 				LOG1("Add Move: " << move << nl);
+
+				copy.variable->ccolor_native = target;
 			}
 			assignment.assign_operands_color(instruction);
 		}
@@ -811,6 +734,35 @@ bool RegisterAssignmentPass::run(JITData& JD)
 				assert(false && "Fixing global colors not implemented!");
 			}
 		}
+	}
+
+	return true;
+}
+
+/// Verify that machine registers have been replaced by NativeRegistes with assigned type
+bool RegisterAssignmentPass::verify() const
+{
+	auto assert_op = [](const auto& descriptor) {
+		auto op = descriptor.op;
+		if (!op->to_Register())
+			return;
+
+		if (!op->to_Register()->to_MachineRegister()->to_NativeRegister() &&
+		    op->get_type() != Type::VoidTypeID) {
+			ABORT_MSG("Non NativeRegister", op << " in " << descriptor.get_MachineInstruction());
+		}
+	};
+
+	auto assert_instruction = [&](const auto instr) {
+		std::for_each(instr->begin(), instr->end(), assert_op);
+		std::for_each(instr->dummy_begin(), instr->dummy_end(), assert_op);
+		std::for_each(instr->results_begin(), instr->results_end(), assert_op);
+	};
+
+	auto RPO = get_Pass<ReversePostOrderPass>();
+	for (auto block : *RPO) {
+		std::for_each(block->begin(), block->end(), assert_instruction);
+		std::for_each(block->phi_begin(), block->phi_end(), assert_instruction);
 	}
 
 	return true;

@@ -29,166 +29,186 @@ namespace jit {
 namespace compiler2 {
 namespace x86_64 {
 
-NativeRegister::NativeRegister(Type::TypeID type,
-	X86_64Register* reg) : MachineRegister(reg->name, type),
-	reg(reg) {
+NativeRegister::NativeRegister(Type::TypeID type, MachineOperand* reg)
+    : MachineRegister(((X86_64Register*)reg)->name, type), reg((X86_64Register*)reg)
+{
 }
 
-FPUStackRegister ST0 (0);
-FPUStackRegister ST1 (1);
-FPUStackRegister ST2 (2);
-FPUStackRegister ST3 (3);
-FPUStackRegister ST4 (4);
-FPUStackRegister ST5 (5);
-FPUStackRegister ST6 (6);
-FPUStackRegister ST7 (7);
+NativeOperandFactory NOF;
+
+FPUStackRegister ST0(0);
+FPUStackRegister ST1(1);
+FPUStackRegister ST2(2);
+FPUStackRegister ST3(3);
+FPUStackRegister ST4(4);
+FPUStackRegister ST5(5);
+FPUStackRegister ST6(6);
+FPUStackRegister ST7(7);
 
 const uint8_t GPRegister::base = 0;
 const uint8_t SSERegister::base = 0;
 
-GPRegister RAX("RAX",0x0,false,0x0*8,8);
-GPRegister RCX("RCX",0x1,false,0x1*8,8);
-GPRegister RDX("RDX",0x2,false,0x2*8,8);
-GPRegister RBX("RBX",0x3,false,0x3*8,8);
-GPRegister RSP("RSP",0x4,false,0x4*8,8);
-GPRegister RBP("RBP",0x5,false,0x5*8,8);
-GPRegister RSI("RSI",0x6,false,0x6*8,8);
-GPRegister RDI("RDI",0x7,false,0x7*8,8);
-GPRegister R8 ("R8", 0x0,true ,0x8*8,8);
-GPRegister R9 ("R9", 0x1,true ,0x9*8,8);
-GPRegister R10("R10",0x2,true ,0xa*8,8);
-GPRegister R11("R11",0x3,true ,0xb*8,8);
-GPRegister R12("R12",0x4,true ,0xc*8,8);
-GPRegister R13("R13",0x5,true ,0xd*8,8);
-GPRegister R14("R14",0x6,true ,0xe*8,8);
-GPRegister R15("R15",0x7,true ,0xf*8,8);
+GPRegister& RAX = *NOF.CreateGPRegister("RAX", 0x0, false, 0x0 * 8, 8);
+GPRegister& RCX = *NOF.CreateGPRegister("RCX", 0x1, false, 0x1 * 8, 8);
+GPRegister& RDX = *NOF.CreateGPRegister("RDX", 0x2, false, 0x2 * 8, 8);
+GPRegister& RBX = *NOF.CreateGPRegister("RBX", 0x3, false, 0x3 * 8, 8);
+GPRegister& RSP = *NOF.CreateGPRegister("RSP", 0x4, false, 0x4 * 8, 8);
+GPRegister& RBP = *NOF.CreateGPRegister("RBP", 0x5, false, 0x5 * 8, 8);
+GPRegister& RSI = *NOF.CreateGPRegister("RSI", 0x6, false, 0x6 * 8, 8);
+GPRegister& RDI = *NOF.CreateGPRegister("RDI", 0x7, false, 0x7 * 8, 8);
+GPRegister& R8 = *NOF.CreateGPRegister("R8", 0x0, true, 0x8 * 8, 8);
+GPRegister& R9 = *NOF.CreateGPRegister("R9", 0x1, true, 0x9 * 8, 8);
+GPRegister& R10 = *NOF.CreateGPRegister("R10", 0x2, true, 0xa * 8, 8);
+GPRegister& R11 = *NOF.CreateGPRegister("R11", 0x3, true, 0xb * 8, 8);
+GPRegister& R12 = *NOF.CreateGPRegister("R12", 0x4, true, 0xc * 8, 8);
+GPRegister& R13 = *NOF.CreateGPRegister("R13", 0x5, true, 0xd * 8, 8);
+GPRegister& R14 = *NOF.CreateGPRegister("R14", 0x6, true, 0xe * 8, 8);
+GPRegister& R15 = *NOF.CreateGPRegister("R15", 0x7, true, 0xf * 8, 8);
 
-GPRegister* IntegerArgumentRegisters[] = {
-	&RDI, &RSI, &RDX, &RCX, &R8, &R9
-};
-GPRegister* IntegerCallerSavedRegisters[] = {
-	&RAX,&R11,&R10,&R9,&R8,&RCX,&RDX,&RSI,&RDI
-};
-GPRegister* IntegerCalleeSavedRegisters[] = {
-	&R12, &R13, &R14, &R15
-};
+GPRegister* IntegerArgumentRegisters[] = {&RDI, &RSI, &RDX, &RCX, &R8, &R9};
+GPRegister* IntegerCallerSavedRegisters[] = {&RAX, &R11, &R10, &R9, &R8, &RCX, &RDX, &RSI, &RDI};
+GPRegister* IntegerCalleeSavedRegisters[] = {&R12, &R13, &R14, &R15};
 
-SSERegister XMM0 ("XMM0" ,0x0,false,0x0*16,16);
-SSERegister XMM1 ("XMM1" ,0x1,false,0x1*16,16);
-SSERegister XMM2 ("XMM2" ,0x2,false,0x2*16,16);
-SSERegister XMM3 ("XMM3" ,0x3,false,0x3*16,16);
-SSERegister XMM4 ("XMM4" ,0x4,false,0x4*16,16);
-SSERegister XMM5 ("XMM5" ,0x5,false,0x5*16,16);
-SSERegister XMM6 ("XMM6" ,0x6,false,0x6*16,16);
-SSERegister XMM7 ("XMM7" ,0x7,false,0x7*16,16);
-SSERegister XMM8 ("XMM8" ,0x0,true ,0x8*16,16);
-SSERegister XMM9 ("XMM9" ,0x1,true ,0x9*16,16);
-SSERegister XMM10("XMM10",0x2,true ,0xa*16,16);
-SSERegister XMM11("XMM11",0x3,true ,0xb*16,16);
-SSERegister XMM12("XMM12",0x4,true ,0xc*16,16);
-SSERegister XMM13("XMM13",0x5,true ,0xd*16,16);
-SSERegister XMM14("XMM14",0x6,true ,0xe*16,16);
-SSERegister XMM15("XMM15",0x7,true ,0xf*16,16);
+SSERegister& XMM0 = *NOF.CreateSSERegister("XMM0", 0x0, false, 0x0 * 16, 16);
+SSERegister& XMM1 = *NOF.CreateSSERegister("XMM1", 0x1, false, 0x1 * 16, 16);
+SSERegister& XMM2 = *NOF.CreateSSERegister("XMM2", 0x2, false, 0x2 * 16, 16);
+SSERegister& XMM3 = *NOF.CreateSSERegister("XMM3", 0x3, false, 0x3 * 16, 16);
+SSERegister& XMM4 = *NOF.CreateSSERegister("XMM4", 0x4, false, 0x4 * 16, 16);
+SSERegister& XMM5 = *NOF.CreateSSERegister("XMM5", 0x5, false, 0x5 * 16, 16);
+SSERegister& XMM6 = *NOF.CreateSSERegister("XMM6", 0x6, false, 0x6 * 16, 16);
+SSERegister& XMM7 = *NOF.CreateSSERegister("XMM7", 0x7, false, 0x7 * 16, 16);
+SSERegister& XMM8 = *NOF.CreateSSERegister("XMM8", 0x0, true, 0x8 * 16, 16);
+SSERegister& XMM9 = *NOF.CreateSSERegister("XMM9", 0x1, true, 0x9 * 16, 16);
+SSERegister& XMM10 = *NOF.CreateSSERegister("XMM10", 0x2, true, 0xa * 16, 16);
+SSERegister& XMM11 = *NOF.CreateSSERegister("XMM11", 0x3, true, 0xb * 16, 16);
+SSERegister& XMM12 = *NOF.CreateSSERegister("XMM12", 0x4, true, 0xc * 16, 16);
+SSERegister& XMM13 = *NOF.CreateSSERegister("XMM13", 0x5, true, 0xd * 16, 16);
+SSERegister& XMM14 = *NOF.CreateSSERegister("XMM14", 0x6, true, 0xe * 16, 16);
+SSERegister& XMM15 = *NOF.CreateSSERegister("XMM15", 0x7, true, 0xf * 16, 16);
 
-SSERegister* FloatArgumentRegisters[] = {
-&XMM0, &XMM1, &XMM2, &XMM3, &XMM4, &XMM5, &XMM6, &XMM7
-};
-SSERegister* FloatCallerSavedRegisters[] = {
-	&XMM0, &XMM2, &XMM3, &XMM4, &XMM5, &XMM6, &XMM7, &XMM8, &XMM9,
-	&XMM10, &XMM11, &XMM12, &XMM13, &XMM14, &XMM15
-};
+SSERegister* FloatArgumentRegisters[] = {&XMM0, &XMM1, &XMM2, &XMM3, &XMM4, &XMM5, &XMM6, &XMM7};
+SSERegister* FloatCallerSavedRegisters[] = {&XMM0,  &XMM2,  &XMM3,  &XMM4,  &XMM5,
+                                            &XMM6,  &XMM7,  &XMM8,  &XMM9,  &XMM10,
+                                            &XMM11, &XMM12, &XMM13, &XMM14, &XMM15};
 
-template<>
+GPRegister* NativeOperandFactory::CreateGPRegister(const char* name,
+                                                   unsigned index,
+                                                   bool extented_gpr,
+                                                   MachineOperand::IdentifyOffsetTy offset,
+                                                   MachineOperand::IdentifySizeTy size)
+{
+	auto operand = new GPRegister(name, index, extented_gpr, offset, size);
+	return (GPRegister*)register_ownership(operand);
+}
+
+SSERegister* NativeOperandFactory::CreateSSERegister(const char* name,
+                                                     unsigned index,
+                                                     bool extented_gpr,
+                                                     MachineOperand::IdentifyOffsetTy offset,
+                                                     MachineOperand::IdentifySizeTy size)
+{
+	auto operand = new SSERegister(name, index, extented_gpr, offset, size);
+	return (SSERegister*)register_ownership(operand);
+}
+
+template <>
 X86_64RegisterClass<X86_64Class::GP>::X86_64RegisterClass()
+    : all(NOF.EmptySet()), caller_saved(NOF.EmptySet()), callee_saved(NOF.EmptySet())
 {
 	for (const auto reg : IntegerCallerSavedRegisters) {
-		caller_saved.push_back(new NativeRegister(Type::VoidTypeID, reg));
+		caller_saved.add(reg);
 	}
 
 	for (const auto reg : IntegerCalleeSavedRegisters) {
-		callee_saved.push_back(new NativeRegister(Type::VoidTypeID, reg));
+		callee_saved.add(reg);
 	}
 
-	//caller_saved.push_back(new NativeRegister(Type::VoidTypeID, &RDI));
-	//caller_saved.push_back(new NativeRegister(Type::VoidTypeID, &RAX));
+	// caller_saved.push_back(new NativeRegister(Type::VoidTypeID, &RDI));
+	// caller_saved.push_back(new NativeRegister(Type::VoidTypeID, &RAX));
 
-	std::copy(caller_saved.begin(), caller_saved.end(), std::back_inserter(all));
-	std::copy(callee_saved.begin(), callee_saved.end(), std::back_inserter(all));
+	all |= caller_saved;
+	all |= callee_saved;
 }
 
-template<>
+template <>
 bool X86_64RegisterClass<X86_64Class::GP>::handles_type(Type::TypeID type) const
 {
 	return (type != Type::FloatTypeID && type != Type::DoubleTypeID);
 }
 
-template<>
+template <>
 X86_64RegisterClass<X86_64Class::FP>::X86_64RegisterClass()
+    : all(NOF.EmptySet()), caller_saved(NOF.EmptySet()), callee_saved(NOF.EmptySet())
 {
 	for (const auto reg : FloatCallerSavedRegisters) {
-		caller_saved.push_back(new NativeRegister(Type::VoidTypeID, reg));
-	}	
+		caller_saved.add(reg);
+	}
 
-	std::copy(caller_saved.begin(), caller_saved.end(), std::back_inserter(all));
+	all |= caller_saved;
 }
 
-template<>
+template <>
 bool X86_64RegisterClass<X86_64Class::FP>::handles_type(Type::TypeID type) const
 {
 	return (type == Type::FloatTypeID || type == Type::DoubleTypeID);
 }
 
-
 } // end namespace x86_64
 using namespace x86_64;
 
-template<>
-OperandFile&
-BackendBase<X86_64>::get_OperandFile(OperandFile& OF,MachineOperand *MO) const {
+template <>
+MachineOperandFactory* BackendBase<X86_64>::get_NativeFactory() const
+{
+	return &NOF;
+}
+
+template <>
+OperandFile& BackendBase<X86_64>::get_OperandFile(OperandFile& OF, MachineOperand* MO) const
+{
 	Type::TypeID type = MO->get_type();
 
 	assert(false && "Use the new RegisterInfo stuff please!");
 
 	switch (type) {
-	case Type::CharTypeID:
-	case Type::ByteTypeID:
-	case Type::ShortTypeID:
-	case Type::IntTypeID:
-	case Type::LongTypeID:
-	case Type::ReferenceTypeID:
-		#if 1
-		for(unsigned i = 0; i < IntegerCallerSavedRegistersSize ; ++i) {
-			OF.push_back(new x86_64::NativeRegister(type,IntegerCallerSavedRegisters[i]));
-		}
-		assert(OF.size() == IntegerCallerSavedRegistersSize);
-		OF.push_back(new x86_64::NativeRegister(type, &R12));
-		#else
-		OF.push_back(new x86_64::NativeRegister(type,&RDI));
-		OF.push_back(new x86_64::NativeRegister(type,&RSI));
-		OF.push_back(new x86_64::NativeRegister(type,&RDX));
-		#endif
-		return OF;
-	case Type::FloatTypeID:
-	case Type::DoubleTypeID:
-		#if 1
-		for(unsigned i = 0; i < FloatArgumentRegisterSize ; ++i) {
-			OF.push_back(new x86_64::NativeRegister(type,FloatArgumentRegisters[i]));
-		}
-		assert(OF.size() == FloatArgumentRegisterSize);
-		#else
-		regs.push_back(&XMM0);
-		regs.push_back(&XMM1);
-		regs.push_back(&XMM2);
-		#endif
-		return OF;
-	default: break;
+		case Type::CharTypeID:
+		case Type::ByteTypeID:
+		case Type::ShortTypeID:
+		case Type::IntTypeID:
+		case Type::LongTypeID:
+		case Type::ReferenceTypeID:
+#if 1
+			for (unsigned i = 0; i < IntegerCallerSavedRegistersSize; ++i) {
+				OF.push_back(new x86_64::NativeRegister(type, IntegerCallerSavedRegisters[i]));
+			}
+			assert(OF.size() == IntegerCallerSavedRegistersSize);
+			OF.push_back(new x86_64::NativeRegister(type, &R12));
+#else
+			OF.push_back(new x86_64::NativeRegister(type, &RDI));
+			OF.push_back(new x86_64::NativeRegister(type, &RSI));
+			OF.push_back(new x86_64::NativeRegister(type, &RDX));
+#endif
+			return OF;
+		case Type::FloatTypeID:
+		case Type::DoubleTypeID:
+#if 1
+			for (unsigned i = 0; i < FloatArgumentRegisterSize; ++i) {
+				OF.push_back(new x86_64::NativeRegister(type, FloatArgumentRegisters[i]));
+			}
+			assert(OF.size() == FloatArgumentRegisterSize);
+#else
+			regs.push_back(&XMM0);
+			regs.push_back(&XMM1);
+			regs.push_back(&XMM2);
+#endif
+			return OF;
+		default: break;
 	}
-	ABORT_MSG("X86_64 Register File Type Not supported!",
-		"Type: " << type);
+	ABORT_MSG("X86_64 Register File Type Not supported!", "Type: " << type);
 	return OF;
 }
 
-RegisterInfoBase<X86_64>::RegisterInfoBase() {
+RegisterInfoBase<X86_64>::RegisterInfoBase()
+{
 	this->classes.emplace_back(new X86_64RegisterClass<X86_64Class::GP>());
 	this->classes.emplace_back(new X86_64RegisterClass<X86_64Class::FP>());
 }
@@ -196,7 +216,6 @@ RegisterInfoBase<X86_64>::RegisterInfoBase() {
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
-
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -211,4 +230,3 @@ RegisterInfoBase<X86_64>::RegisterInfoBase() {
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */
-

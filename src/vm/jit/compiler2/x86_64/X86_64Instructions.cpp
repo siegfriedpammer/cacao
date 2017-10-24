@@ -186,7 +186,7 @@ void ALUInstruction::emit(CodeMemory* CM) const {
 		dst = src1;
 		src = src2;
 	}
-	else if (dst == src1) {
+	else if (dst->aquivalent(*src1)) {
 		src = src2;	
 	}
 	else {
