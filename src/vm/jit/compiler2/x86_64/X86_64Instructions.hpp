@@ -1095,12 +1095,6 @@ class SSEAluInst : public GPInstruction {
 private:
 	u1 opcode;
 protected:
-	SSEAluInst(const char* name, const Src2Op &src2, const DstSrc1Op &dstsrc1,
-			u1 opcode, GPInstruction::OperandSize op_size)
-			: GPInstruction(name, dstsrc1.op, op_size, 2), opcode(opcode) {
-		operands[0].op = dstsrc1.op;
-		operands[1].op = src2.op;
-	}
 	SSEAluInst(const char* name, const Src1Op &src1, const Src2Op &src2, const DstOp &dst,
 			u1 opcode, GPInstruction::OperandSize op_size)
 			: GPInstruction(name, dst.op, op_size, 2, true), opcode(opcode) {
@@ -1112,22 +1106,14 @@ public:
 };
 /// SSE Alu Instruction (Double-Precision)
 class SSEAluSDInst : public SSEAluInst {
-protected:
-	SSEAluSDInst(const char* name, const Src2Op &src2, const DstSrc1Op &dstsrc1,
-		u1 opcode)
-			: SSEAluInst(name, src2, dstsrc1, opcode, GPInstruction::OS_64) {}
-	
+protected:	
 	SSEAluSDInst(const char* name, const Src1Op &src1, const Src2Op &src2, 
 		const DstOp &dst, u1 opcode)
 			: SSEAluInst(name, src1, src2, dst, opcode, GPInstruction::OS_64) {}
 };
 /// SSE Alu Instruction (Single-Precision)
 class SSEAluSSInst : public SSEAluInst {
-protected:
-	SSEAluSSInst(const char* name, const Src2Op &src2, const DstSrc1Op &dstsrc1,
-		u1 opcode)
-			: SSEAluInst(name, src2, dstsrc1, opcode, GPInstruction::OS_32) {}
-	
+protected:	
 	SSEAluSSInst(const char* name, const Src1Op &src1, const Src2Op &src2, 
 		const DstOp &dst, u1 opcode)
 			: SSEAluInst(name, src1, src2, dst, opcode, GPInstruction::OS_32) {}
@@ -1138,14 +1124,14 @@ protected:
 /// Add Scalar Double-Precision Floating-Point Values
 class AddSDInst : public SSEAluSDInst {
 public:
-	AddSDInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-		: SSEAluSDInst("X86_64AddSDInst", src2, dstsrc1, 0x58) {}
+	AddSDInst(const Src1Op &src1, const Src2Op &src2, const DstOp &dst)
+		: SSEAluSDInst("X86_64AddSDInst", src1, src2, dst, 0x58) {}
 };
 /// Multiply Scalar Double-Precision Floating-Point Values
 class MulSDInst : public SSEAluSDInst {
 public:
-	MulSDInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-		: SSEAluSDInst("X86_64MulSDInst", src2, dstsrc1, 0x59) {}
+	MulSDInst(const Src1Op &src1, const Src2Op &src2, const DstOp &dst)
+		: SSEAluSDInst("X86_64MulSDInst", src1, src2, dst, 0x59) {}
 };
 /// Subtract Scalar Double-Precision Floating-Point Values
 class SubSDInst : public SSEAluSDInst {
@@ -1181,20 +1167,20 @@ public:
 /// Add Scalar Single-Precision Floating-Point Values
 class AddSSInst : public SSEAluSSInst {
 public:
-	AddSSInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-		: SSEAluSSInst("X86_64AddSSInst", src2, dstsrc1, 0x58) {}
+	AddSSInst(const Src1Op &src1, const Src2Op &src2, const DstOp &dst)
+		: SSEAluSSInst("X86_64AddSSInst", src1, src2, dst, 0x58) {}
 };
 /// Multiply Scalar Single-Precision Floating-Point Values
 class MulSSInst : public SSEAluSSInst {
 public:
-	MulSSInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-		: SSEAluSSInst("X86_64MulSSInst", src2, dstsrc1, 0x59) {}
+	MulSSInst(const Src1Op &src1, const Src2Op &src2, const DstOp &dst)
+		: SSEAluSSInst("X86_64MulSSInst", src1, src2, dst, 0x59) {}
 };
 /// Subtract Scalar Single-Precision Floating-Point Values
 class SubSSInst : public SSEAluSSInst {
 public:
-	SubSSInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-		: SSEAluSSInst("X86_64SubSSInst", src2, dstsrc1, 0x5c) {}
+	SubSSInst(const Src1Op &src1, const Src2Op &src2, const DstOp &dst)
+		: SSEAluSSInst("X86_64SubSSInst", src1, src2, dst, 0x5c) {}
 };
 /// Divide Scalar Single-Precision Floating-Point Values
 class DivSSInst : public SSEAluSSInst {

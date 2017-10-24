@@ -37,6 +37,7 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+class MachineOperandFactory;
 
 /**
  * MachineInstructionSchedulingPass
@@ -48,6 +49,9 @@ public:
 	virtual bool run(JITData &JD);
 	virtual bool verify() const;
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
+
+private:
+	MachineOperandFactory* MOF;
 };
 
 } // end namespace compiler2

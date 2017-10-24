@@ -836,26 +836,12 @@ void SSEAluInst::emit(CodeMemory* CM) const {
 	switch (get_OpEncoding(dst,src,get_op_size())) {
 	case GPInstruction::RegReg64:
 	{
-		X86_64Register *src_reg = cast_to<X86_64Register>(src);
-		X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
-
-		CodeFragment code = CM->get_CodeFragment(4);
-		code[0] = 0xf2;
-		code[1] = 0x0f;
-		code[2] = opcode;
-		code[3] = get_modrm_reg2reg(dst_reg,src_reg);
+		InstructionEncoding::emit (CM, opcode, get_op_size(), src, dst, 0, 0, 0xf2, true, true, false, GPInstruction::OS_64); 
 		return;
 	}
 	case GPInstruction::RegReg32:
 	{
-		X86_64Register *src_reg = cast_to<X86_64Register>(src);
-		X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
-
-		CodeFragment code = CM->get_CodeFragment(4);
-		code[0] = 0xf3;
-		code[1] = 0x0f;
-		code[2] = opcode;
-		code[3] = get_modrm_reg2reg(dst_reg,src_reg);
+		InstructionEncoding::emit (CM, opcode, get_op_size(), src, dst, 0, 0, 0xf3, true); 
 		return;
 	}
 	default: break;
@@ -868,6 +854,7 @@ void SSEAluInst::emit(CodeMemory* CM) const {
 void MovSDInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
 	MachineOperand *dst = get_result().op;
+	
 	if (src->aquivalent(*dst)) return;
 
 	u1 opcode = 0x06; //invalid
@@ -890,7 +877,7 @@ void MovSDInst::emit(CodeMemory* CM) const {
 		break;
 	}
 
-	InstructionEncoding::emit (CM, opcode, get_op_size(), src, dst, 0, 0, 0xf2, true); 
+	InstructionEncoding::emit (CM, opcode, get_op_size(), src, dst, 0, 0, 0xf2, true, true, false, GPInstruction::OS_64); 
 }
 
 void MovSSInst::emit(CodeMemory* CM) const {

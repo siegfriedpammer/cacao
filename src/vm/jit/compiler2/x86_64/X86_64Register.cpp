@@ -87,7 +87,7 @@ SSERegister& XMM14 = *NOF.CreateSSERegister("XMM14", 0x6, true, 0xe * 16, 16);
 SSERegister& XMM15 = *NOF.CreateSSERegister("XMM15", 0x7, true, 0xf * 16, 16);
 
 SSERegister* FloatArgumentRegisters[] = {&XMM0, &XMM1, &XMM2, &XMM3, &XMM4, &XMM5, &XMM6, &XMM7};
-SSERegister* FloatCallerSavedRegisters[] = {&XMM0,  &XMM2,  &XMM3,  &XMM4,  &XMM5,
+SSERegister* FloatCallerSavedRegisters[] = {&XMM0,  &XMM1, &XMM2,  &XMM3,  &XMM4,  &XMM5,
                                             &XMM6,  &XMM7,  &XMM8,  &XMM9,  &XMM10,
                                             &XMM11, &XMM12, &XMM13, &XMM14, &XMM15};
 

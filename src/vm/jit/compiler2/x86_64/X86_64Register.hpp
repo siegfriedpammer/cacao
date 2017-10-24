@@ -239,6 +239,7 @@ public:
 		// where they get deallocated during VM shutdown where the statistics class was not used
 		// yet, causing weird behaviour. To circumvent that case, we eagerly create the statistics class.
 		memory::get_comp2_deallocated<MachineOperand>();
+		memory::mem_map();
 		#endif
 	}
 

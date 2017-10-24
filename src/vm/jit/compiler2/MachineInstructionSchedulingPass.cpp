@@ -22,6 +22,8 @@
 
 */
 
+#include <algorithm>
+
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
@@ -71,6 +73,8 @@ struct UpdatePhiOperand : public std::unary_function<MachinePhiInst*,void> {
 } // end anonymous namespace
 
 bool MachineInstructionSchedulingPass::run(JITData &JD) {
+	MOF = JD.get_MachineOperandFactory();
+
 	BasicBlockSchedule *BS = get_Pass<BasicBlockSchedulingPass>();
 #if !PATTERN_MATCHING
 	ListSchedulingPass* IS = get_Pass<ListSchedulingPass>();
@@ -222,7 +226,33 @@ bool MachineInstructionSchedulingPass::verify() const {
 			}
 		}
 	}
-	return true;
+
+	// Partly verifying SSA by making sure each operand is only defined once
+	auto operands = MOF->EmptySet();
+	bool success = true;
+
+	auto def_lambda = [&](const auto& descriptor) {
+		auto operand = descriptor.op;
+		if (operand->is_virtual()) {
+			if (operands.contains(operand)) {
+				ERROR_MSG("LIR not in SSA form", 
+					"Operand " << operand << " is defined multiple times");
+				success = false;
+			}
+			operands.add(operand);
+		}
+	};
+
+	auto instr_lambda = [&](const auto instr) {
+		std::for_each(instr->results_begin(), instr->results_end(), def_lambda);
+	};
+
+	for (const auto MBB : *this) {
+		std::for_each(MBB->phi_begin(), MBB->phi_end(), instr_lambda);
+		std::for_each(MBB->begin(), MBB->end(), instr_lambda);
+	}
+	
+	return success;
 }
 
 // pass usage

@@ -33,20 +33,6 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-StackSlotManager::~StackSlotManager() {
-	while (!slots.empty()) {
-		ManagedStackSlot *slot = slots.back();
-		slots.pop_back();
-		delete slot;
-	}
-
-	while (!argument_slots.empty()) {
-		ManagedStackSlot *slot = argument_slots.back();
-		argument_slots.pop_back();
-		delete slot;
-	}
-}
-
 ManagedStackSlot* StackSlotManager::create_slot(Type::TypeID type) {
 	auto slot = MOF->CreateManagedStackSlot(this, type);
 	slots.push_back(slot);

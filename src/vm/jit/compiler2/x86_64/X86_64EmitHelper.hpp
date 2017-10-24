@@ -421,17 +421,21 @@ struct InstructionEncoding {
 
 	}
 
-	static void emit (CodeMemory* CM, u1 primary_opcode, GPInstruction::OperandSize op_size, MachineOperand *src, MachineOperand *dst, u1 secondary_opcode = 0, u1 op_reg = 0, u1 prefix = 0, bool prefix_0f = false, bool encode_dst = true, bool imm_sign_extended = false) {
+	static void emit (CodeMemory* CM, u1 primary_opcode, GPInstruction::OperandSize op_size, 
+		              MachineOperand *src, MachineOperand *dst, u1 secondary_opcode = 0, 
+					  u1 op_reg = 0, u1 prefix = 0, bool prefix_0f = false, 
+					  bool encode_dst = true, bool imm_sign_extended = false, GPInstruction::OperandSize default_op_size = GPInstruction::OS_32) {
 		CodeSegmentBuilder code;
 		if (dst->is_Register()) {
 			X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
 			if (src->is_Register()) {
 				X86_64Register *src_reg = cast_to<X86_64Register>(src);
-				u1 rex = get_rex(dst_reg,src_reg,op_size == GPInstruction::OS_64);
-				if (rex != 0x40)
-					code += rex;
+				bool opsize64 = (op_size == GPInstruction::OS_64) && (default_op_size != GPInstruction::OS_64);
+				u1 rex = get_rex(dst_reg,src_reg,opsize64);
 				if (prefix)
 					code += prefix;
+				if (rex != 0x40)
+					code += rex;
 				if (prefix_0f)
 					code += 0x0F;
 				code += primary_opcode;
@@ -533,11 +537,12 @@ struct InstructionEncoding {
 			}
 			else if (src->is_stackslot()) {
 				s4 index = get_stack_position(src);
-				u1 rex = get_rex(dst_reg,NULL,op_size == GPInstruction::OS_64);
-				if (rex != 0x40)
-					code += rex;
+				bool opsize64 = (op_size == GPInstruction::OS_64) && (default_op_size != GPInstruction::OS_64);
+				u1 rex = get_rex(dst_reg,NULL,opsize64);
 				if (prefix)
 					code += prefix;
+				if (rex != 0x40)
+					code += rex;
 				if (prefix_0f)
 					code += 0x0F;
 				code += primary_opcode;

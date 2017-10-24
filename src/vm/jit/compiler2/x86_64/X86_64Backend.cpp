@@ -418,10 +418,6 @@ void X86_64LoweringVisitor::visit(ADDInst *I, bool copyOperands) {
 	case Type::ByteTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
-		// alu = new AddInst(
-		// 	Src2Op(src_op2),
-		// 	DstSrc1Op(dst),
-		// 	get_OperandSize_from_Type(type));
 		alu = new AddInst(
 			Src1Op(src_op1_copy),
 			Src2Op(src_op2),
@@ -430,13 +426,15 @@ void X86_64LoweringVisitor::visit(ADDInst *I, bool copyOperands) {
 		break;
 	case Type::DoubleTypeID:
 		alu = new AddSDInst(
+			Src1Op(src_op1_copy),
 			Src2Op(src_op2),
-			DstSrc1Op(dst));
+			DstOp(dst));
 		break;
 	case Type::FloatTypeID:
 		alu = new AddSSInst(
-				Src2Op(src_op2),
-				DstSrc1Op(dst));
+			Src1Op(src_op1_copy),
+			Src2Op(src_op2),
+			DstOp(dst));
 		break;
 	default:
 		ABORT_MSG("x86_64: Lowering not supported",
@@ -556,10 +554,6 @@ void X86_64LoweringVisitor::visit(SUBInst *I, bool copyOperands) {
 	case Type::ByteTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
-		//alu = new SubInst(
-		//	Src2Op(src_op2),
-		//	DstSrc1Op(dst),
-		//	get_OperandSize_from_Type(type));
 		alu = new SubInst(
 			DstOp(dst),
 			Src1Op(src_op1_copy),
@@ -574,8 +568,9 @@ void X86_64LoweringVisitor::visit(SUBInst *I, bool copyOperands) {
 		break;
 	case Type::FloatTypeID:
 		alu = new SubSSInst(
-				Src2Op(src_op2),
-				DstSrc1Op(dst));
+			Src1Op(src_op1_copy),
+			Src2Op(src_op2),
+			DstOp(dst));
 		break;
 	default:
 		ABORT_MSG("x86_64: Lowering not supported",
@@ -605,10 +600,6 @@ void X86_64LoweringVisitor::visit(MULInst *I, bool copyOperands) {
 	case Type::ByteTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
-		//alu = new IMulInst(
-		//	Src2Op(src_op2),
-		//	DstSrc1Op(dst),
-		//	get_OperandSize_from_Type(type));
 		alu = new IMulInst(
 			DstOp(dst),
 			Src1Op(src_op1_copy),
@@ -617,13 +608,15 @@ void X86_64LoweringVisitor::visit(MULInst *I, bool copyOperands) {
 		break;
 	case Type::DoubleTypeID:
 		alu = new MulSDInst(
+			Src1Op(src_op1_copy),
 			Src2Op(src_op2),
-			DstSrc1Op(dst));
+			DstOp(dst));
 		break;
 	case Type::FloatTypeID:
 		alu = new MulSSInst(
-				Src2Op(src_op2),
-				DstSrc1Op(dst));
+			Src1Op(src_op1_copy),
+			Src2Op(src_op2),
+			DstOp(dst));
 		break;
 	default:
 		ABORT_MSG("x86_64: Lowering not supported",

@@ -61,7 +61,6 @@ private:
 
 public:
 	StackSlotManager(MachineOperandFactory* MOF) : MOF(MOF), number_of_machine_argument_slots(0) {}
-	~StackSlotManager();
 
 	/**
 	 * Create a ManagedStackSlot.
