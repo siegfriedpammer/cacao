@@ -1547,7 +1547,11 @@ void X86_64LoweringVisitor::visit(AssumptionInst *I, bool copyOperands) {
 	get_current()->push_back(cmp);
 
 	// deoptimize
-	MachineOperand *methodptr = new NativeRegister(Type::ReferenceTypeID, &R10);
+	auto def_instr = new MachineDefInst(Type::ReferenceTypeID, 
+		get_Backend()->get_JITData()->get_MachineOperandFactory());
+	get_current()->push_back(def_instr);
+
+	MachineOperand *methodptr = def_instr->get_result().op;
 	MachineInstruction *trap = new CondTrapInst(Cond::NE, TRAP_DEOPTIMIZE, SrcOp(methodptr));
 	get_current()->push_back(trap);
 }
@@ -1562,7 +1566,12 @@ void X86_64LoweringVisitor::visit(DeoptimizeInst *I, bool copyOperands) {
 	lower_source_state_dependencies(MI, source_state);
 	get_current()->push_back(MI);
 
-	MachineOperand *methodptr = new NativeRegister(Type::ReferenceTypeID, &R10);
+	// deoptimize
+	auto def_instr = new MachineDefInst(Type::ReferenceTypeID, 
+		get_Backend()->get_JITData()->get_MachineOperandFactory());
+	get_current()->push_back(def_instr);
+	
+	MachineOperand *methodptr = def_instr->get_result().op;
 	MachineInstruction *deoptimize_trap = new TrapInst(TRAP_DEOPTIMIZE, SrcOp(methodptr));
 	get_current()->push_back(deoptimize_trap);
 }

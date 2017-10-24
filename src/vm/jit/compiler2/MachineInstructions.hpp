@@ -73,6 +73,19 @@ public:
 		return phi;
 	}
 };
+
+/// Simple META instruction that can be used to define value.
+/// It does emit nothing.
+/// Currently used by TrapInstructions that do not have fixed
+/// register.
+class MachineDefInst : public MachineInstruction {
+public:
+	MachineDefInst(Type::TypeID type, MachineOperandFactory* MOF)
+		: MachineInstruction("MDef", MOF->CreateVirtualRegister(type), 0) {}
+	
+	virtual void emit(CodeMemory* CM) const {};
+};
+
 #if 0
 class MachineConstInst : public MachineInstruction {
 public:

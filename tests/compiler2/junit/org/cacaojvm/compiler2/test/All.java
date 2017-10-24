@@ -80,17 +80,17 @@ import org.junit.runners.Suite;
 	I2d.class,
 	Idiv.class,
 	Irem.class,
-	// Ishl.class,
+	Ishl.class,
 
 	InvokeStatic.class,
 	InvokeSpecial.class,
 	InvokeVirtual.class,
 	InvokeInterface.class,
 
-	// New.class,
-	// InstanceOf.class,
-	// Throw.class,
-	// NullDereference.class,
+	New.class,
+	InstanceOf.class,
+	Throw.class,
+	NullDereference.class,
 
 	MatcherBenchmarks.class
 
