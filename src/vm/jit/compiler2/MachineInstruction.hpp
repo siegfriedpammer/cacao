@@ -371,9 +371,12 @@ public:
 		return false;
 	}
 	virtual bool is_end() const {
-		return is_jump();
+		return false;
 	}
 	virtual bool is_call() const {
+		return false;
+	}
+	virtual bool is_trap() const {
 		return false;
 	}
 	virtual MachineMoveInst* to_MachineMoveInst() {

@@ -25,6 +25,7 @@
 #include "vm/jit/compiler2/MachineOperandFactory.hpp"
 
 #include "vm/jit/compiler2/Backend.hpp"
+#include "vm/jit/compiler2/MachineRegister.hpp"
 #include "vm/jit/compiler2/MachineOperand.hpp"
 #include "vm/jit/compiler2/MachineOperandSet.hpp"
 
@@ -62,6 +63,13 @@ VirtualRegister* MachineOperandFactory::CreateVirtualRegister(Type::TypeID type)
 {
 	auto operand = new VirtualRegister(type);
 	return register_ownership(operand)->to_Register()->to_VirtualRegister();
+}
+
+template <>
+NativeRegister* MachineOperandFactory::CreateNativeRegister(Type::TypeID type, MachineOperand* reg)
+{
+	auto operand = new NativeRegister(type, reg);
+	return register_ownership(operand)->to_Register()->to_MachineRegister()->to_NativeRegister();
 }
 
 OperandSet MachineOperandFactory::OperandsInClass(const RegisterClass& rc) const

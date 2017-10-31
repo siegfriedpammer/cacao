@@ -30,6 +30,7 @@
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/SSADeconstructionPass.hpp"
 #include "vm/jit/compiler2/MachineRegister.hpp"
+#include "vm/jit/compiler2/lsra/RegisterAssignmentPass.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -56,6 +57,80 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+namespace {
+static void emit_nop(CodeFragment code, int length) {
+	assert(length >= 0 && length <= 9);
+	unsigned mcodeptr = 0;
+	switch (length) {
+	case 0:
+		break;
+	case 1:
+		code[mcodeptr++] = 0x90;
+		break;
+	case 2:
+		code[mcodeptr++] = 0x66;
+		code[mcodeptr++] = 0x90;
+		break;
+	case 3:
+		code[mcodeptr++] = 0x0f;
+		code[mcodeptr++] = 0x1f;
+		code[mcodeptr++] = 0x00;
+		break;
+	case 4:
+		code[mcodeptr++] = 0x0f;
+		code[mcodeptr++] = 0x1f;
+		code[mcodeptr++] = 0x40;
+		code[mcodeptr++] = 0x00;
+		break;
+	case 5:
+		code[mcodeptr++] = 0x0f;
+		code[mcodeptr++] = 0x1f;
+		code[mcodeptr++] = 0x44;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		break;
+	case 6:
+		code[mcodeptr++] = 0x66;
+		code[mcodeptr++] = 0x0f;
+		code[mcodeptr++] = 0x1f;
+		code[mcodeptr++] = 0x44;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		break;
+	case 7:
+		code[mcodeptr++] = 0x0f;
+		code[mcodeptr++] = 0x1f;
+		code[mcodeptr++] = 0x80;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		break;
+	case 8:
+		code[mcodeptr++] = 0x0f;
+		code[mcodeptr++] = 0x1f;
+		code[mcodeptr++] = 0x84;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		break;
+	case 9:
+		code[mcodeptr++] = 0x66;
+		code[mcodeptr++] = 0x0f;
+		code[mcodeptr++] = 0x1f;
+		code[mcodeptr++] = 0x84;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		break;
+	}
+}
+}
+
 #ifdef ENABLE_LOGGING
 Option<bool> CodeGenPass::print_code("PrintCodeSegment","compiler2: print code segment",false,::cacao::option::xx_root());
 Option<bool> CodeGenPass::print_data("PrintDataSegment","compiler2: print data segment",false,::cacao::option::xx_root());
@@ -66,8 +141,33 @@ bool CodeGenPass::run(JITData &JD) {
 	CodeMemory *CM = JD.get_CodeMemory();
 	CodeSegment &CS = CM->get_CodeSegment();
 	StackSlotManager *SSM = JD.get_StackSlotManager();
+	MachineOperandFactory *MOF = JD.get_MachineOperandFactory();
+
+	// Create Prolog and Epilog, first calculate all used callee saved registers
+	// and assign each callee saved register a stackslot and a native register
+	Backend::CalleeSavedRegisters registers;
+	auto used_operands = get_Pass<RegisterAssignmentPass>()->get_used_operands();
+	auto RI = JD.get_Backend()->get_RegisterInfo();
+	for (unsigned idx = 0; idx < RI->class_count(); ++idx) {
+		const auto& regclass = RI->get_class(idx);
+		auto class_operands = used_operands & regclass.get_CalleeSaved();
+
+		std::for_each(class_operands.begin(), class_operands.end(), [&](auto& operand) {
+			MachineOperand* native_reg = MOF->CreateNativeRegister<NativeRegister>(regclass.default_type(), &operand);
+			auto slot = SSM->create_slot(regclass.default_type());
+
+			registers.push_back({native_reg, slot});
+		});
+	}
 
 	SSM->finalize();
+
+	JD.get_Backend()->create_prolog(*MIS->begin(), registers);
+	for (const auto block : *MIS) {
+		if (block->back()->is_end()) {
+			JD.get_Backend()->create_epilog(block, registers);
+		}
+	}
 
 	// NOTE reverse so we see jump targets (which are not backedges) before
 	// the jump.
@@ -111,8 +211,14 @@ bool CodeGenPass::run(JITData &JD) {
 		bbmap[MBB] = bb_end - bb_start;
 	}
 	assert(MBB != NULL);
-	// create stack frame
-	JD.get_Backend()->create_frame(CM,SSM);
+
+	// Align code
+	/// @todo This needs to be platform independent
+#if defined(__X86_64__)
+	CodeFragment CF = CM->get_aligned_CodeFragment(0);
+	emit_nop(CF,CF.size());
+#endif
+
 	// fix last block (frame start, alignment)
 	bbmap[MBB] = CS.size() - bb_start;
 	// finish
@@ -463,6 +569,7 @@ void CodeGenPass::finish(JITData &JD) {
 PassUsage& CodeGenPass::get_PassUsage(PassUsage &PU) const {
 	PU.add_requires<MachineInstructionSchedulingPass>();
 	PU.add_requires<SSADeconstructionPass>();
+	PU.add_requires<RegisterAssignmentPass>();
 	return PU;
 }
 

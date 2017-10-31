@@ -145,7 +145,7 @@ inline bool use_sib(X86_64Register *base, X86_64Register *index) {
 	return index || base == &RSP || base == &R12;
 }
 
-inline u1 get_modrm(u1 reg, u1 base, s4 disp, bool use_sib = false) {
+inline u1 get_modrm(u1 reg, u1 base, s4 disp, bool use_sib = false, bool is_base_extended = false) {
 	u1 modrm_mod = 6;
 	u1 modrm_reg = 3;
 	u1 modrm_rm = 0;
@@ -154,7 +154,7 @@ inline u1 get_modrm(u1 reg, u1 base, s4 disp, bool use_sib = false) {
 	u1 rm = 0;
 	u1 modrm = 0;
 
-	if (disp == 0 || base == 0x05 /* RBP */) {
+	if (disp == 0 || (base == 0x05 && !is_base_extended) /* RBP */ ) {
 		// no disp
 		mod = 0x00; //0b00
 	}
@@ -184,7 +184,7 @@ inline u1 get_modrm(u1 reg, u1 base, s4 disp, bool use_sib = false) {
 }
 
 inline u1 get_modrm (X86_64Register *reg, X86_64Register *base, s4 disp, bool use_sib = false) {
-	return get_modrm((reg != NULL) ? reg->get_index() : 0, (base != NULL) ? base->get_index() : 0, disp, use_sib);
+	return get_modrm((reg != NULL) ? reg->get_index() : 0, (base != NULL) ? base->get_index() : 0, disp, use_sib, reg->extented);
 }
 
 inline u1 get_sib(X86_64Register *base, X86_64Register *index = NULL, u1 scale = 1) {

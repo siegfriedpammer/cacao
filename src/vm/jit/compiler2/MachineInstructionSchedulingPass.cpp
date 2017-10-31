@@ -198,7 +198,7 @@ bool MachineInstructionSchedulingPass::verify() const {
 		}
 		MachineInstruction *back = MBB->back();
 		// check for end
-		if(!back->is_end()) {
+		if(!(back->is_end() || back->is_trap() || back->is_jump())) {
 			ERROR_MSG("verification failed", "last Instruction ("
 				<< *back << ") not a control flow transfer instruction");
 			return false;

@@ -98,7 +98,7 @@ public class MatcherBenchmarks extends Compiler2TestBase {
 	}
 
 
-	@Test @Ignore
+	@Test
 	public void test8_conv() throws Throwable {
 		TimingResults tr = new TimingResults();
 
@@ -145,7 +145,6 @@ public class MatcherBenchmarks extends Compiler2TestBase {
 		tr.report();
 	}
 
-	@Ignore("The register allocator currently runs into an endless loop here.")
 	@Test
 	public void test9_matTrans() throws Throwable {
 		TimingResults tr = new TimingResults();

@@ -55,7 +55,7 @@ public:
 			case Type::LongTypeID:
 			case Type::ReferenceTypeID:
 				if (int_argument_counter < IntegerArgumentRegisterSize) {
-					parameter[i]= new NativeRegister(type,
+					parameter[i]= MOF->CreateNativeRegister<NativeRegister>(type,
 						IntegerArgumentRegisters[int_argument_counter]);
 				} else {
 					parameter[i]= MOF->CreateStackSlot(stackslot_index,type);
@@ -66,7 +66,7 @@ public:
 			case Type::FloatTypeID:
 			case Type::DoubleTypeID:
 				if (float_argument_counter < FloatArgumentRegisterSize) {
-					parameter[i]= new NativeRegister(type,
+					parameter[i]= MOF->CreateNativeRegister<NativeRegister>(type,
 						FloatArgumentRegisters[float_argument_counter]);
 				} else {
 					parameter[i]= MOF->CreateStackSlot(stackslot_index,type);

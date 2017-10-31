@@ -35,15 +35,18 @@ namespace compiler2 {
 namespace x86_64 {
 
 // forward declarations
-class NativeRegister;
+// class NativeRegister;
 class NativeAddress;
 class X86_64LoweringVisitor;
+class X86_64Register;
 
 } // end namespace x86_64
 
+template<class T> class TypedNativeRegister;
+
 // typedefs
 typedef x86_64::X86_64 Target;
-typedef x86_64::NativeRegister NativeRegister;
+typedef TypedNativeRegister<x86_64::X86_64Register> NativeRegister;
 typedef x86_64::NativeAddress NativeAddress;
 typedef x86_64::X86_64LoweringVisitor LoweringVisitor;
 
@@ -53,7 +56,7 @@ typedef x86_64::X86_64LoweringVisitor LoweringVisitor;
 template<>
 class RegisterInfoBase<Target> : public RegisterInfo {
 public:
-	explicit RegisterInfoBase();
+	explicit RegisterInfoBase(JITData* JD);
 };
 
 } // end namespace compiler2

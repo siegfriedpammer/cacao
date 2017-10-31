@@ -39,7 +39,6 @@ dist_java_JAVA = \
 ## Add Test cases here
 catch_tests_SOURCES = \
 	CriticalEdgeSplitTest.cpp \
-	MachineOperandTest.cpp \
 	OperandSetTest.cpp
 
 ## Add the framework

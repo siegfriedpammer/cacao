@@ -153,7 +153,38 @@ static void write_data(Seg seg, I data) {
 } // end anonymous namespace
 
 template<>
-void BackendBase<X86_64>::create_frame(CodeMemory* CM, StackSlotManager *SSM) const {
+void BackendBase<X86_64>::create_prolog(MachineBasicBlock* entry, const CalleeSavedRegisters& callee_saved) const {
+	// Save callee saved registers
+	std::vector<MachineInstruction*> moves;
+	for (const auto& pair : callee_saved) {
+		auto move = create_Move(pair.first, pair.second);
+		moves.push_back(move);
+	}
+	entry->insert_after(entry->begin(), moves.begin(), moves.end());
+
+	// Create stackframe
+	auto SSM = get_JITData()->get_StackSlotManager();
+	auto enter = new EnterInst(align_to<16>(SSM->get_frame_size()));
+
+	entry->insert_after(entry->begin(), enter);
+}
+
+template<>
+void BackendBase<X86_64>::create_epilog(MachineBasicBlock* exit, const CalleeSavedRegisters& callee_saved) const {
+	// Restore callee saved registers, since a exit block has 2 instructions (leaveq, ret), we need to
+	// backoff for a bit
+	std::vector<MachineInstruction*> moves;
+	for (const auto& pair : callee_saved) {
+		auto move = create_Move(pair.second, pair.first);
+		moves.push_back(move);
+	}
+
+	auto iter = --exit->end();
+	exit->insert_before(--iter, moves.begin(), moves.end());
+}
+
+template<>
+void BackendBase<X86_64>::create_frame(CodeMemory* CM, StackSlotManager *SSM, const OperandSet& callee_saved) const {
 	EnterInst enter(align_to<16>(SSM->get_frame_size()));
 	enter.emit(CM);
 	// fix alignment
@@ -995,11 +1026,11 @@ void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 		//       let the register allocator do it, if its needed. We only add the
 		//       requirement that VirtualReg MUST be in the return register
 		
-		MachineOperand *ret_reg = new NativeRegister(type,&RAX);
-		MachineInstruction *reg = new MovInst(
-			SrcOp(src_op),
-			DstOp(ret_reg),
-			get_OperandSize_from_Type(type));
+		// MachineOperand *ret_reg = new NativeRegister(type,&RAX);
+		// MachineInstruction *reg = new MovInst(
+		// 	SrcOp(src_op),
+		//	DstOp(ret_reg),
+		//	get_OperandSize_from_Type(type));
 		LeaveInst *leave = new LeaveInst();
 		RetInst *ret = new RetInst(get_OperandSize_from_Type(type),SrcOp(src_op));
 		// get_current()->push_back(reg);
@@ -1010,10 +1041,10 @@ void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 	}
 	case Type::FloatTypeID:
 	{
-		MachineOperand *ret_reg = new NativeRegister(type,&XMM0);
-		MachineInstruction *reg = new MovSSInst(
-			SrcOp(src_op),
-			DstOp(ret_reg));
+		// MachineOperand *ret_reg = new NativeRegister(type,&XMM0);
+		// MachineInstruction *reg = new MovSSInst(
+		// 	SrcOp(src_op),
+		// 	DstOp(ret_reg));
 		LeaveInst *leave = new LeaveInst();
 		RetInst *ret = new RetInst(get_OperandSize_from_Type(type),SrcOp(src_op));
 		// get_current()->push_back(reg);
@@ -1024,10 +1055,10 @@ void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 	}
 	case Type::DoubleTypeID:
 	{
-		MachineOperand *ret_reg = new NativeRegister(type,&XMM0);
-		MachineInstruction *reg = new MovSDInst(
-			SrcOp(src_op),
-			DstOp(ret_reg));
+		// MachineOperand *ret_reg = new NativeRegister(type,&XMM0);
+		// MachineInstruction *reg = new MovSDInst(
+		//	SrcOp(src_op),
+		//	DstOp(ret_reg));
 		LeaveInst *leave = new LeaveInst();
 		RetInst *ret = new RetInst(get_OperandSize_from_Type(type),SrcOp(src_op));
 		// get_current()->push_back(reg);
@@ -1271,7 +1302,7 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 		// argument registers
 		if (!arg_dst->is_ManagedStackSlot()) {
 			auto requirement = std::make_unique<MachineRegisterRequirement>(cast_to<X86_64Register>(MMD[i]));
-			mov->get_result().set_MachineRegisterRequirement(requirement);
+			// mov->get_result().set_MachineRegisterRequirement(requirement);
 		}
 		get_current()->push_back(mov);
 		

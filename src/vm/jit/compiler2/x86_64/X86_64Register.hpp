@@ -47,7 +47,7 @@ namespace x86_64 {
  *
  * Since it was usefull to allow X86_64Registers to be part of OperandSets,
  * it is also now derived from MachineRegister, and instances are kept in
- * the factory.
+ * a native factory.
  */
 class X86_64Register : public MachineRegister {
 public:
@@ -62,11 +62,12 @@ public:
 	               bool extented,
 	               MachineOperand::IdentifyOffsetTy offset,
 	               MachineOperand::IdentifySizeTy size)
-	    : MachineRegister(name, Type::VoidTypeID), index(index), extented(extented), name(name),
+	    : MachineRegister(Type::VoidTypeID), index(index), extented(extented), name(name),
 	      offset(offset), size(size)
 	{
 	}
 	unsigned get_index() const { return index; }
+	const char* get_name() const { return name; }
 
 	NativeRegister* to_NativeRegister() { return nullptr; }
 
@@ -80,26 +81,6 @@ public:
 	const unsigned index;
 
 	FPUStackRegister(unsigned index) : index(index) {}
-};
-
-/**
- * This represents a machine register usage.
- *
- * It consists of a reference to the physical register and a type. This
- * abstraction is needed because registers can be used several times
- * with different types, e.g. DH vs. eDX vs. EDX vs. RDX.
- */
-class NativeRegister : public MachineRegister {
-private:
-	X86_64Register* reg;
-
-public:
-	NativeRegister(Type::TypeID type, MachineOperand* reg);
-	virtual NativeRegister* to_NativeRegister() { return this; }
-	X86_64Register* get_X86_64Register() const { return reg; }
-	virtual IdentifyTy id_base() const { return reg->id_base(); }
-	virtual IdentifyOffsetTy id_offset() const { return reg->id_offset(); }
-	virtual IdentifySizeTy id_size() const { return reg->id_size(); }
 };
 
 inline OStream& operator<<(OStream& OS, const X86_64Register& reg)
@@ -154,7 +135,7 @@ inline X86_64Register* cast_to<X86_64Register>(Register* reg)
 	assert(mreg);
 	NativeRegister* nreg = mreg->to_NativeRegister();
 	assert(nreg);
-	X86_64Register* xreg = nreg->get_X86_64Register();
+	X86_64Register* xreg = nreg->get_PlatformRegister();
 	assert(xreg);
 	return xreg;
 }
@@ -168,7 +149,7 @@ inline X86_64Register* cast_to<X86_64Register>(MachineOperand* op)
 	assert(mreg);
 	NativeRegister* nreg = mreg->to_NativeRegister();
 	assert(nreg);
-	X86_64Register* xreg = nreg->get_X86_64Register();
+	X86_64Register* xreg = nreg->get_PlatformRegister();
 	assert(xreg);
 	return xreg;
 }
@@ -253,7 +234,7 @@ public:
 	                               unsigned index,
 	                               bool extented_gpr,
 	                               MachineOperand::IdentifyOffsetTy offset,
-	                               MachineOperand::IdentifySizeTy size);
+								   MachineOperand::IdentifySizeTy size);
 };
 
 extern NativeOperandFactory NOF;
@@ -266,6 +247,7 @@ public:
 	explicit X86_64RegisterClass();
 
 	bool handles_type(Type::TypeID) const override;
+	Type::TypeID default_type() const override;
 
 	unsigned count() const override { return all.size(); }
 	const OperandSet& get_All() const override { return all; }

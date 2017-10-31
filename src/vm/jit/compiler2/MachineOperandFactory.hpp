@@ -60,6 +60,9 @@ public:
 	UnassignedReg* CreateUnassignedReg(Type::TypeID);
 	VirtualRegister* CreateVirtualRegister(Type::TypeID);
 
+	template <class T>
+	T* CreateNativeRegister(Type::TypeID, MachineOperand*);
+
 	OperandSet EmptySet() const { return OperandSet(this, operands.size()); }
 	
 	/// Returns all operands that correspond to the given register class
@@ -75,7 +78,7 @@ public:
 	/**
 	 * Takes ownership of the provided operand and sets the operands ID to
 	 * the index in the operands vector.
-	 * Usually this method does not to be called, since ownership is handled
+	 * Usually this method does not need to be called, since ownership is handled
 	 * by the factory methods directly. The only exceptions are "NativeRegister"s,
 	 * because their typedefs are tricky.
 	 */

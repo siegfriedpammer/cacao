@@ -29,8 +29,7 @@
 #include <map>
 #include <vector>
 
-#include <boost/dynamic_bitset.hpp>
-
+#include "vm/jit/compiler2/MachineOperandSet.hpp"
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/Type.hpp"
 
@@ -47,13 +46,12 @@ class MachineOperand;
 class MachineOperandDesc;
 class MachineOperandFactory;
 class NewLivetimeAnalysisPass;
-class OperandSet;
 class RegisterAssignmentPass;
 class ParallelCopy;
 
 class RegisterAssignment {
 public:
-	explicit RegisterAssignment(RegisterAssignmentPass& pass) : rapass(pass) {}
+	explicit RegisterAssignment(RegisterAssignmentPass& pass);
 
 	void initialize_physical_registers(Backend* backend);
 	void initialize_variables_for(MachineBasicBlock* block, MachineBasicBlock* idom);
@@ -66,7 +64,6 @@ public:
 		MachineOperand* gcolor;
 		MachineOperand* ccolor;
 	};
-	using RegisterSet = std::vector<MachineOperand*>;
 
 	ColorPair choose_color(MachineBasicBlock* block,
 	                       MachineInstruction* instruction,
@@ -178,9 +175,16 @@ public:
 	virtual bool verify() const;
 	virtual PassUsage& get_PassUsage(PassUsage& PU) const;
 
+	/// Returns a OperandSet from the Native Operand Factory of all the machine registers
+	/// assigned during this pass. This is currently used to get all callee-saved registers and
+	/// save/restore them during method prolog/epilog
+	const OperandSet& get_used_operands() const { return *used_operands; }
+
 private:
-	MachineOperandFactory* factory;
-	MachineOperandFactory* native_factory;
+	MachineOperandFactory* factory = nullptr;
+	MachineOperandFactory* native_factory = nullptr;
+
+	std::unique_ptr<OperandSet> used_operands;
 
 	RegisterAssignment assignment;
 

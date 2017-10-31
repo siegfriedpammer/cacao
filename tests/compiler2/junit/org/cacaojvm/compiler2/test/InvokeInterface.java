@@ -76,7 +76,6 @@ public class InvokeInterface extends Compiler2TestBase {
 		return t.foo(a, b, c, d, e, f, g, h);
 	}
 
-	@Ignore("Stack arguments not yet handled correctly by linear scan register allocator.")
 	@Test
 	public void testInvokeInterfaceIntManyParams() {
 		testResultEqual("invokeInterfaceIntManyParams", "(Lorg/cacaojvm/compiler2/test/InvokeInterface;IIIIIIII)I", this, 1, 2, 3, 4, 5, 6, 7, 8);

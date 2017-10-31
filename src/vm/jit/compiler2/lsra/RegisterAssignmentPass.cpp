@@ -34,8 +34,6 @@
 #include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
 #include "vm/jit/compiler2/lsra/NewSpillPass.hpp"
 
-#include "vm/jit/compiler2/x86_64/X86_64Register.hpp"
-
 #define DEBUG_NAME "compiler2/RegisterAssignment"
 
 namespace cacao {
@@ -46,6 +44,10 @@ OStream& operator<<(OStream& OS, const RegisterAssignment::Variable& variable)
 {
 	OS << *variable.operand;
 	return OS;
+}
+
+RegisterAssignment::RegisterAssignment(RegisterAssignmentPass& pass) : rapass(pass)
+{
 }
 
 void RegisterAssignment::initialize_physical_registers(Backend* backend)
@@ -244,8 +246,6 @@ void RegisterAssignment::assign_operands_color(MachineInstruction* instruction)
 		auto& variable = this->variable_for(descriptor.op);
 		if (variable.ccolor_native != nullptr) {
 			descriptor.op = variable.ccolor_native;
-			// auto type = variable.operand->get_type();
-			// descriptor.op = new NativeRegister(type, variable.ccolor);
 		}
 		else {
 			variable.unassigned_uses.push_back(&descriptor);
@@ -261,20 +261,17 @@ void RegisterAssignment::assign_operands_color(MachineInstruction* instruction)
 
 		auto& variable = this->variable_for(descriptor.op);
 		auto type = variable.operand->get_type();
-		variable.ccolor_native = new NativeRegister(type, variable.ccolor);
-		variable.gcolor_native = new NativeRegister(type, variable.gcolor);
-
-		// We register the NativeRegs with the operand factory of this compiler run, so they get
-		// cleaned up when the run is finished
-		this->rapass.factory->register_ownership(variable.ccolor_native);
-		this->rapass.factory->register_ownership(variable.gcolor_native);
+		variable.ccolor_native =
+		    this->rapass.factory->CreateNativeRegister<NativeRegister>(type, variable.ccolor);
+		variable.gcolor_native =
+		    this->rapass.factory->CreateNativeRegister<NativeRegister>(type, variable.gcolor);
 
 		descriptor.op = variable.ccolor_native;
-		// descriptor.op = new NativeRegister(type, variable.ccolor);
+		rapass.used_operands->add(variable.ccolor);
 
 		for (auto& desc : variable.unassigned_uses) {
 			desc->op = variable.gcolor_native;
-			// desc->op = new NativeRegister(type, variable.gcolor);
+			rapass.used_operands->add(variable.gcolor);
 		}
 	};
 	std::for_each(instruction->results_begin(), instruction->results_end(), result_lambda);
@@ -429,11 +426,19 @@ bool RegisterAssignment::repair_argument(MachineBasicBlock* block,
 			success = true;
 		}
 		else {
-			assert(false && "Recursive call not implemented yet!");
+			auto tmp_available = available;
+			auto tmp_forbidden = forbidden;
+			tmp_available.add(variable_for(descriptor.op).ccolor);
+			tmp_forbidden.add(pawn->ccolor);
+			MachineOperandDesc tmp_descriptor(nullptr, pawn->operand);
+
+			success = repair_argument(block, instruction, tmp_descriptor, parallel_copy,
+			                          tmp_available, tmp_forbidden);
 		}
 
 		if (!success) {
-			assert(false && "Multiple iterations not implemented!");
+			allowed.remove(ccolor);
+			ccolor = nullptr;
 		}
 	}
 
@@ -566,6 +571,7 @@ bool RegisterAssignmentPass::run(JITData& JD)
 
 	factory = JD.get_MachineOperandFactory();
 	native_factory = JD.get_Backend()->get_NativeFactory();
+	used_operands = std::make_unique<OperandSet>(native_factory->EmptySet());
 
 	// Initialize available registers for assignment
 	assignment.initialize_physical_registers(JD.get_Backend());
@@ -707,10 +713,10 @@ bool RegisterAssignmentPass::run(JITData& JD)
 
 			// Insert the parallel copies before this instrution
 			for (const auto& copy : parallel_copy) {
-				auto source = new NativeRegister(copy.variable->operand->get_type(), copy.source);
-				auto target = new NativeRegister(copy.variable->operand->get_type(), copy.target);
-				factory->register_ownership(source);
-				factory->register_ownership(target);
+				auto source = factory->CreateNativeRegister<NativeRegister>(
+				    copy.variable->operand->get_type(), copy.source);
+				auto target = factory->CreateNativeRegister<NativeRegister>(
+				    copy.variable->operand->get_type(), copy.target);
 
 				auto move = JD.get_Backend()->create_Move(source, target);
 				auto iter = std::find(block->begin(), block->end(), instruction);
@@ -731,7 +737,15 @@ bool RegisterAssignmentPass::run(JITData& JD)
 			    block, [&](const auto variable) { parallel_copy.add(variable, variable->gcolor); });
 
 			for (const auto& copy : parallel_copy) {
-				assert(false && "Fixing global colors not implemented!");
+				auto source = factory->CreateNativeRegister<NativeRegister>(copy.variable->operand->get_type(), copy.source);
+				auto target = factory->CreateNativeRegister<NativeRegister>(copy.variable->operand->get_type(), copy.target);
+				
+				auto move = JD.get_Backend()->create_Move(source, target);
+				block->insert_before(--block->end(), move);
+
+				LOG1("Add Move: " << move << nl);
+
+				copy.variable->ccolor_native = target;
 			}
 		}
 	}

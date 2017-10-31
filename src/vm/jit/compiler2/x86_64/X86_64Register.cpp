@@ -29,11 +29,6 @@ namespace jit {
 namespace compiler2 {
 namespace x86_64 {
 
-NativeRegister::NativeRegister(Type::TypeID type, MachineOperand* reg)
-    : MachineRegister(((X86_64Register*)reg)->name, type), reg((X86_64Register*)reg)
-{
-}
-
 NativeOperandFactory NOF;
 
 FPUStackRegister ST0(0);
@@ -137,6 +132,12 @@ bool X86_64RegisterClass<X86_64Class::GP>::handles_type(Type::TypeID type) const
 }
 
 template <>
+Type::TypeID X86_64RegisterClass<X86_64Class::GP>::default_type() const 
+{
+	return Type::LongTypeID;
+}
+
+template <>
 X86_64RegisterClass<X86_64Class::FP>::X86_64RegisterClass()
     : all(NOF.EmptySet()), caller_saved(NOF.EmptySet()), callee_saved(NOF.EmptySet())
 {
@@ -151,6 +152,12 @@ template <>
 bool X86_64RegisterClass<X86_64Class::FP>::handles_type(Type::TypeID type) const
 {
 	return (type == Type::FloatTypeID || type == Type::DoubleTypeID);
+}
+
+template <>
+Type::TypeID X86_64RegisterClass<X86_64Class::FP>::default_type() const 
+{
+	return Type::DoubleTypeID;
 }
 
 } // end namespace x86_64
@@ -178,10 +185,10 @@ OperandFile& BackendBase<X86_64>::get_OperandFile(OperandFile& OF, MachineOperan
 		case Type::ReferenceTypeID:
 #if 1
 			for (unsigned i = 0; i < IntegerCallerSavedRegistersSize; ++i) {
-				OF.push_back(new x86_64::NativeRegister(type, IntegerCallerSavedRegisters[i]));
+				//OF.push_back(new x86_64::NativeRegister(type, IntegerCallerSavedRegisters[i]));
 			}
-			assert(OF.size() == IntegerCallerSavedRegistersSize);
-			OF.push_back(new x86_64::NativeRegister(type, &R12));
+			//assert(OF.size() == IntegerCallerSavedRegistersSize);
+			//OF.push_back(new x86_64::NativeRegister(type, &R12));
 #else
 			OF.push_back(new x86_64::NativeRegister(type, &RDI));
 			OF.push_back(new x86_64::NativeRegister(type, &RSI));
@@ -192,9 +199,9 @@ OperandFile& BackendBase<X86_64>::get_OperandFile(OperandFile& OF, MachineOperan
 		case Type::DoubleTypeID:
 #if 1
 			for (unsigned i = 0; i < FloatArgumentRegisterSize; ++i) {
-				OF.push_back(new x86_64::NativeRegister(type, FloatArgumentRegisters[i]));
+				//OF.push_back(new x86_64::NativeRegister(type, FloatArgumentRegisters[i]));
 			}
-			assert(OF.size() == FloatArgumentRegisterSize);
+			//assert(OF.size() == FloatArgumentRegisterSize);
 #else
 			regs.push_back(&XMM0);
 			regs.push_back(&XMM1);
@@ -207,11 +214,23 @@ OperandFile& BackendBase<X86_64>::get_OperandFile(OperandFile& OF, MachineOperan
 	return OF;
 }
 
-RegisterInfoBase<X86_64>::RegisterInfoBase()
+RegisterInfoBase<X86_64>::RegisterInfoBase(JITData* JD) : RegisterInfo(JD)
 {
 	this->classes.emplace_back(new X86_64RegisterClass<X86_64Class::GP>());
 	this->classes.emplace_back(new X86_64RegisterClass<X86_64Class::FP>());
 }
+
+template <>
+const char* NativeRegister::get_name() const { return reg->get_name(); }
+
+template <>
+MachineOperand::IdentifyTy NativeRegister::id_base() const { return reg->id_base(); }
+
+template <>
+MachineOperand::IdentifyOffsetTy NativeRegister::id_offset() const { return reg->id_offset(); }
+
+template <>
+MachineOperand::IdentifySizeTy NativeRegister::id_size() const { return reg->id_size(); }
 
 } // end namespace compiler2
 } // end namespace jit

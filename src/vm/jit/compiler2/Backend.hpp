@@ -47,6 +47,7 @@ class OperandSet;
 class RegisterClass {
 public:
 	virtual bool handles_type(Type::TypeID type) const = 0;
+	virtual Type::TypeID default_type() const = 0;
 
 	virtual unsigned count() const = 0;
 	virtual const OperandSet& get_All() const = 0;
@@ -60,21 +61,32 @@ public:
 
 class RegisterInfo {
 public:
+	RegisterInfo(const RegisterInfo&) = delete;
+	RegisterInfo& operator=(const RegisterInfo&) = delete;
+
+	explicit RegisterInfo(JITData* JD) : JD(JD) {}
+
 	unsigned class_count() const { return classes.size(); };
 	const RegisterClass& get_class(unsigned idx) const {
 		assert(idx < classes.size() && "This RI does not have that many classes!");
 		return *classes[idx];
 	}
-	auto class_cbegin() const { return classes.cbegin(); }
-	auto class_cend() const { return classes.cend(); }
+	
+	/// Returns all callee saved registers from all register classes 
+	OperandSet get_AllCalleeSaved() const;
 
 protected:
+	JITData* JD;
+
 	using RegisterClassUPtrTy = std::unique_ptr<RegisterClass>;
 	std::vector<RegisterClassUPtrTy> classes;
 };
 
 template<typename Target>
-class RegisterInfoBase : public RegisterInfo {};
+class RegisterInfoBase : public RegisterInfo {
+public:
+	RegisterInfoBase(JITData *JD) : RegisterInfo(JD) {}
+};
 
 class Backend : public memory::ManagerMixin<Backend>  {
 private:
@@ -97,7 +109,14 @@ public:
 		MachineOperand* dst) const = 0;
 	virtual MachineInstruction* create_Jump(MachineBasicBlock *target) const = 0;
 	virtual MachineInstruction* create_Swap(MachineOperand *op1, MachineOperand *op2) const = 0;
-	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM) const = 0;
+	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM, const OperandSet&) const = 0;
+	
+	/// Simple type that ties together a callee saved register with the stack slot it is
+	/// saved to
+	using CalleeSavedRegisters = std::vector<std::pair<MachineOperand*,MachineOperand*>>;
+	virtual void create_prolog(MachineBasicBlock*, const CalleeSavedRegisters&) const = 0;
+	virtual void create_epilog(MachineBasicBlock*, const CalleeSavedRegisters&) const = 0;
+
 	virtual const char* get_name() const = 0;
 };
 /**
@@ -117,7 +136,11 @@ public:
 	virtual MachineInstruction* create_Jump(MachineBasicBlock *target) const;
 	virtual MachineInstruction* create_Swap(MachineOperand *op1,
 		MachineOperand* op2) const;
-	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM) const;
+	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM, const OperandSet&) const;
+
+	virtual void create_prolog(MachineBasicBlock*, const CalleeSavedRegisters&) const;
+	virtual void create_epilog(MachineBasicBlock*, const CalleeSavedRegisters&) const;
+
 	virtual const char* get_name() const;
 };
 

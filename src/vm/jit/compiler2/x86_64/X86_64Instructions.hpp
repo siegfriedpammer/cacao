@@ -887,7 +887,7 @@ public:
 		operands[0].op = index.op;
 	}
 
-	virtual bool is_end() const { return true; }
+	virtual bool is_trap() const { return true; }
 	virtual void emit(CodeMemory* CM) const;
 };
 
@@ -900,6 +900,7 @@ public:
 			: X86_64Instruction("X86_64CondTrapInst", &NoOperand, 1), cond(cond), trap(trap) {
 		operands[0].op = index.op;
 	}
+	virtual bool is_trap() const { return true; }
 	virtual void emit(CodeMemory* CM) const;
 };
 

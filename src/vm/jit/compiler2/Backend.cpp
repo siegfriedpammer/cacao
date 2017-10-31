@@ -26,6 +26,7 @@
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
+#include "vm/jit/compiler2/MachineOperandFactory.hpp"
 
 # include "vm/jit/replace.hpp"
 
@@ -36,7 +37,7 @@ namespace jit {
 namespace compiler2 {
 
 Backend* Backend::factory(JITData *JD) {
-	return new BackendBase<Target>(JD, new RegisterInfoBase<Target>());
+	return new BackendBase<Target>(JD, new RegisterInfoBase<Target>(JD));
 }
 
 void LoweringVisitorBase::visit(BeginInst* I, bool copyOperands) {
@@ -146,6 +147,14 @@ MachineBasicBlock* LoweringVisitorBase::new_block() const {
 
 VirtualRegister* LoweringVisitorBase::CreateVirtualRegister(Type::TypeID type) {
 	return backend->get_JITData()->get_MachineOperandFactory()->CreateVirtualRegister(type);
+}
+
+OperandSet RegisterInfo::get_AllCalleeSaved() const {
+	auto set = JD->get_Backend()->get_NativeFactory()->EmptySet();
+	for (const auto& clazz : classes) {
+		set |= clazz->get_CalleeSaved();
+	}
+	return set;
 }
 
 
