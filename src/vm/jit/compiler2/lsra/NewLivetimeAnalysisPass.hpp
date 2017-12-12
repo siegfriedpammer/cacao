@@ -102,12 +102,24 @@ private:
 
 struct Occurrence {
 	explicit Occurrence(MachineOperandDesc* desc, const MIIterator& iter)
-	    : operand(desc->op), descriptor(desc), instruction(iter)
+	    : operand(desc->op), descriptor(desc), instruction(iter), phi_instr(nullptr)
+	{
+	}
+
+	explicit Occurrence(MachineOperandDesc* desc, MachinePhiInst* phi_instr)
+	    : operand(desc->op), descriptor(desc), instruction(phi_instr->get_block()->self_iterator()),
+	      phi_instr(phi_instr)
 	{
 	}
 	MachineOperand* operand;
 	MachineOperandDesc* descriptor;
 	const MIIterator instruction;
+
+	MachinePhiInst* phi_instr;
+
+	MachineBasicBlock* block() const {
+		return phi_instr ? phi_instr->get_block() : (*instruction)->get_block();
+	}
 };
 
 class DefUseChains {
@@ -121,7 +133,9 @@ public:
 
 	void add_definition(MachineOperandDesc* desc, const MIIterator& iter);
 	void add_use(MachineOperandDesc* desc, const MIIterator& iter);
-	// void add_use(MachineOperandDesc* desc, MachinePhiInst* phi);
+	
+	void add_phi_definition(MachineOperandDesc* desc, MachinePhiInst* phi);
+	void add_phi_use(MachineOperandDesc* desc, MachinePhiInst* phi);
 
 	const Occurrence& get_definition(const MachineOperand*) const;
 	const std::list<Occurrence>& get_uses(const MachineOperand*) const;
@@ -157,7 +171,7 @@ public:
 
 	/// Returns all operands defined by PHI functions in the given MBB
 	/// @todo Maybe move this out of this class
-	OperandSet mbb_phi_defs(MachineBasicBlock* block) const;
+	OperandSet mbb_phi_defs(MachineBasicBlock* block, bool record_defuse = false);
 
 	/// Returns the next_use_in set relative to the given instruction
 	NextUseSetUPtrTy next_use_set_from(MachineInstruction* instruction);
@@ -197,7 +211,7 @@ private:
 
 	/// Returns all operands used by the PHI functions of the given MBB
 	/// @todo Maybe move this out of this class
-	OperandSet mbb_phi_uses(MachineBasicBlock* block) const;
+	OperandSet mbb_phi_uses(MachineBasicBlock* block, bool record_defuse = false);
 
 	/// Get or create the operand set associated with the provided MBB
 	OperandSet& get_liveset(LiveMapTy&, MachineBasicBlock*);
@@ -224,7 +238,7 @@ template <typename UnaryFunction>
 UnaryFunction DefUseChains::for_each_use(const MachineOperand* operand, UnaryFunction f)
 {
 	auto& chain = get(operand);
-	std::for_each(chain.uses.cbegin(), chain.uses.cend(), f);
+	return std::for_each(chain.uses.cbegin(), chain.uses.cend(), f);
 }
 
 } // end namespace compiler2

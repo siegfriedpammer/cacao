@@ -57,6 +57,7 @@
 #include "vm/jit/compiler2/MachineLoopPass.hpp"
 #include "vm/jit/compiler2/ReversePostOrderPass.hpp"
 #include "vm/jit/compiler2/PhiLiftingPass.hpp"
+#include "vm/jit/compiler2/PhiCoalescingPass.hpp"
 #include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
 #include "vm/jit/compiler2/lsra/LoopPressurePass.hpp"
 #include "vm/jit/compiler2/MachineDominatorPass.hpp"
@@ -354,13 +355,14 @@ void PassManager::schedulePasses() {
 
 	add<MachineLoopPass>();
 	add<ReversePostOrderPass>();
-	add<PhiLiftingPass>();
+	//add<PhiLiftingPass>();
 
 	if (MachineInstructionPrinterPass::enabled) {
 		add<MachineInstructionPrinterPass>();
 	}
 
 	add<NewLivetimeAnalysisPass>();
+	//add<PhiCoalescingPass>();
 	add<LoopPressurePass>();
 	add<MachineDominatorPass>();
 	add<NewSpillPass>();

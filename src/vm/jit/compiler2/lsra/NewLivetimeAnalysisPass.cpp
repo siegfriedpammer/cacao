@@ -189,6 +189,18 @@ void DefUseChains::add_use(MachineOperandDesc* desc, const MIIterator& iter)
 	chain.uses.emplace_back(desc, iter);
 }
 
+void DefUseChains::add_phi_definition(MachineOperandDesc* desc, MachinePhiInst* phi)
+{
+	auto& chain = get(desc->op);
+	chain.definition = std::make_unique<Occurrence>(desc, phi);
+}
+
+void DefUseChains::add_phi_use(MachineOperandDesc* desc, MachinePhiInst* phi)
+{
+	auto& chain = get(desc->op);
+	chain.uses.emplace_back(desc, phi);
+}
+
 const Occurrence& DefUseChains::get_definition(const MachineOperand* operand) const
 {
 	auto& chain = get(operand);
@@ -274,7 +286,7 @@ void NewLivetimeAnalysisPass::process_block(MachineBasicBlock* block)
 void NewLivetimeAnalysisPass::calculate_liveout(MachineBasicBlock* block)
 {
 	auto loop_tree = get_Pass<MachineLoopPass>();
-	auto live = mbb_phi_uses(block);
+	auto live = mbb_phi_uses(block, true);
 
 	auto& next_use_out = next_use.get_next_use_out(block);
 	next_use.add_operands(next_use_out, live, 0);
@@ -283,7 +295,7 @@ void NewLivetimeAnalysisPass::calculate_liveout(MachineBasicBlock* block)
 		auto successor = *i;
 		if (!loop_tree->is_backedge(block, successor)) {
 			// Live = Live u (LiveIn(S) \ PhiDefs(S))
-			auto phi_def = mbb_phi_defs(successor);
+			auto phi_def = mbb_phi_defs(successor, true);
 			auto& live_in = get_live_in(successor);
 
 			live |= (live_in - phi_def);
@@ -318,7 +330,7 @@ void NewLivetimeAnalysisPass::calculate_livein(MachineBasicBlock* block)
 	}
 
 	// LiveIn(B) = Live u PhiDefs(B)
-	auto phi_def = mbb_phi_defs(block);
+	auto phi_def = mbb_phi_defs(block, true);
 	get_live_in(block) = (live | phi_def);
 
 	next_use.add_operands(next_use_in, phi_def, 0);
@@ -330,7 +342,7 @@ void NewLivetimeAnalysisPass::calculate_livein(MachineBasicBlock* block)
 	}
 }
 
-OperandSet NewLivetimeAnalysisPass::mbb_phi_uses(MachineBasicBlock* block) const
+OperandSet NewLivetimeAnalysisPass::mbb_phi_uses(MachineBasicBlock* block, bool record_defuse)
 {
 	auto phi_uses = MOF->EmptySet();
 
@@ -343,6 +355,9 @@ OperandSet NewLivetimeAnalysisPass::mbb_phi_uses(MachineBasicBlock* block) const
 
 			phi_uses.add(operand);
 
+			if (record_defuse)
+				this->def_use_chains.add_phi_use(&phi_instr->get(idx), phi_instr);
+
 			LOG3("\tphi operand " << operand << " is used in " << *block << " (phi instr in "
 			                      << *successor << ")" << nl);
 		});
@@ -351,7 +366,7 @@ OperandSet NewLivetimeAnalysisPass::mbb_phi_uses(MachineBasicBlock* block) const
 	return phi_uses;
 }
 
-OperandSet NewLivetimeAnalysisPass::mbb_phi_defs(MachineBasicBlock* block) const
+OperandSet NewLivetimeAnalysisPass::mbb_phi_defs(MachineBasicBlock* block, bool record_defuse)
 {
 	auto phi_defs = MOF->EmptySet();
 
@@ -361,6 +376,9 @@ OperandSet NewLivetimeAnalysisPass::mbb_phi_defs(MachineBasicBlock* block) const
 			return;
 
 		phi_defs.add(operand);
+
+		if (record_defuse)
+			this->def_use_chains.add_phi_definition(&phi_instr->get_result(), phi_instr);
 
 		LOG3("\tphi operand " << operand << " is defined in " << *block << nl);
 	});

@@ -1034,7 +1034,7 @@ void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 		LeaveInst *leave = new LeaveInst();
 		RetInst *ret = new RetInst(get_OperandSize_from_Type(type),SrcOp(src_op));
 		// get_current()->push_back(reg);
-		get_current()->push_back(leave);
+		// get_current()->push_back(leave);
 		get_current()->push_back(ret);
 		set_op(I,ret->get_result().op);
 		return;
@@ -1048,7 +1048,7 @@ void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 		LeaveInst *leave = new LeaveInst();
 		RetInst *ret = new RetInst(get_OperandSize_from_Type(type),SrcOp(src_op));
 		// get_current()->push_back(reg);
-		get_current()->push_back(leave);
+		// get_current()->push_back(leave);
 		get_current()->push_back(ret);
 		set_op(I,ret->get_result().op);
 		return;
@@ -1062,7 +1062,7 @@ void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 		LeaveInst *leave = new LeaveInst();
 		RetInst *ret = new RetInst(get_OperandSize_from_Type(type),SrcOp(src_op));
 		// get_current()->push_back(reg);
-		get_current()->push_back(leave);
+		// get_current()->push_back(leave);
 		get_current()->push_back(ret);
 		set_op(I,ret->get_result().op);
 		return;
@@ -1071,7 +1071,7 @@ void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 	{
 		LeaveInst *leave = new LeaveInst();
 		RetInst *ret = new RetInst();
-		get_current()->push_back(leave);
+		// get_current()->push_back(leave);
 		get_current()->push_back(ret);
 		set_op(I,ret->get_result().op);
 		return;

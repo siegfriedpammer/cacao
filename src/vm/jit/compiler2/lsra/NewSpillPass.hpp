@@ -77,14 +77,35 @@ private:
 
 struct Occurrence;
 
+class SSAReconstructor {
+public:
+	explicit SSAReconstructor(NewSpillPass* pass) : sp(pass) {}
+
+	void reconstruct(const Occurrence& original_def,
+	                 const std::vector<Occurrence>& definitions);
+
+private:
+	NewSpillPass* sp;
+
+	/// \todo Current data structures used as a proof of concept, may need something better here
+	// using BlockToOperand = std::map<MachineBasicBlock*, MachineOperand*>;
+	// std::map<MachineOperand*, BlockToOperand> current_def;
+	std::map<MachineBasicBlock*, MachineOperand*> current_def;
+
+	void write_variable(MachineBasicBlock*, MachineOperand*);
+	MachineOperand* read_variable(MachineBasicBlock*);
+	MachineOperand* read_variable_recursive(MachineBasicBlock*);
+};
+
 class NewSpillPass : public Pass, public memory::ManagerMixin<NewSpillPass> {
 public:
-	NewSpillPass() : Pass(), spill_info(this) {}
+	NewSpillPass() : Pass(), spill_info(this), ssa_reconstructor(this) {}
 	virtual bool run(JITData& JD);
 	virtual PassUsage& get_PassUsage(PassUsage& PU) const;
 
 private:
 	SpillInfo spill_info;
+	SSAReconstructor ssa_reconstructor;
 	Backend* backend;
 	StackSlotManager* ssm;
 	MachineOperandFactory* mof;
@@ -96,7 +117,7 @@ private:
 	std::map<MachineBasicBlock*, OperandSet> spillsets_exit;
 
 	const RegisterClass* current_rc; ///< Registerclass of the current pass run
-	unsigned current_rc_idx; ///< Index of RegisterClass, used to access loop pressure
+	unsigned current_rc_idx;         ///< Index of RegisterClass, used to access loop pressure
 
 	void process_block(MachineBasicBlock*);
 	void fix_block_boundaries();
@@ -104,7 +125,7 @@ private:
 	OperandSet compute_workset(MachineBasicBlock*);
 	OperandSet compute_spillset(MachineBasicBlock*, const OperandSet&);
 	OperandSet used_in_loop(MachineBasicBlock*);
-	OperandSet used_in_loop(MachineLoop*, OperandSet&);	
+	OperandSet used_in_loop(MachineLoop*, OperandSet&);
 
 	void sort_by_next_use(OperandList&, MachineInstruction*) const;
 
@@ -112,6 +133,7 @@ private:
 	const Occurrence& compute_reaching_def(const MIIterator&, const std::vector<Occurrence>&) const;
 
 	friend class SpillInfo;
+	friend class SSAReconstructor;
 };
 
 } // end namespace compiler2

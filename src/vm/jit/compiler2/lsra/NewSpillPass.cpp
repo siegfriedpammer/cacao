@@ -135,8 +135,72 @@ void SpillInfo::insert_instructions(const Backend& backend, StackSlotManager& ss
 		auto& chains = LTA->get_def_use_chains();
 		const auto& original_definition = chains.get_definition(operand);
 
-		sp->reconstruct_ssa(original_definition, new_definitions);
+		// sp->reconstruct_ssa(original_definition, new_definitions);
+		sp->ssa_reconstructor.reconstruct(original_definition, new_definitions);
 	}
+}
+
+void SSAReconstructor::reconstruct(const Occurrence& original_def,
+                                   const std::vector<Occurrence>& definitions)
+{
+	current_def.clear();
+
+	std::vector<const MachineOperand*> defined_ops;
+	std::for_each(definitions.cbegin(), definitions.cend(),
+	              [&](const auto occurrence) { defined_ops.push_back(occurrence.operand); });
+
+	LOG1(nl << Cyan << "Reconstructing SSA for " << original_def.operand << reset_color << nl);
+	LOG1_NAMED_PTR_CONTAINER("New definitions: ", defined_ops);
+
+	write_variable(original_def.block(), original_def.operand);
+	for (auto& occurrence : definitions) {
+		write_variable(occurrence.block(), occurrence.operand);
+	}
+
+	auto LTA = sp->get_Pass<NewLivetimeAnalysisPass>();
+	LTA->get_def_use_chains().for_each_use(original_def.operand, [&](const auto& occurrence) {
+		auto operand = this->read_variable(occurrence.block());
+		// LOG3("Found definition in " << *occurrence.block() << " = " << operand << nl);
+
+		if (!original_def.operand->aquivalent(*operand)) {
+			LOG3("Replacing " << original_def.operand << " with " << operand << nl);
+			occurrence.descriptor->op = operand;
+		}
+	});
+
+	// assert(false && "SSA Reconstruction not yet implemented!");
+}
+
+void SSAReconstructor::write_variable(MachineBasicBlock* block, MachineOperand* operand)
+{
+	current_def[block] = operand;
+	LOG3("write_variable " << *block << " = " << operand << nl);
+}
+
+MachineOperand* SSAReconstructor::read_variable(MachineBasicBlock* block) {
+	auto iter = current_def.find(block);
+	if (iter != current_def.end()) {
+		// Local value numbering
+		return iter->second;
+	}
+	// Global value numbering
+	return read_variable_recursive(block);
+}
+
+MachineOperand* SSAReconstructor::read_variable_recursive(MachineBasicBlock* block) 
+{
+	MachineOperand* operand = nullptr;
+
+	// Do not create a PHI if block has only one predecessor
+	if (block->pred_size() == 1) {
+		operand = read_variable(*block->pred_begin());
+	} else {
+		assert(false && "Case not implemented!");
+	}
+
+	write_variable(block, operand);	
+
+	return operand;
 }
 
 void NewSpillPass::reconstruct_ssa(const Occurrence& original_def,
@@ -185,11 +249,11 @@ void NewSpillPass::reconstruct_ssa(const Occurrence& original_def,
 				continue;
 
 			if (df_block->pred_size() > 1) {
-				/*auto phi_instr = new MachinePhiInst(df_block->pred_size(),
-				                                    original_def.operand()->get_type(), nullptr);
+				auto phi_instr = new MachinePhiInst(df_block->pred_size(),
+				                                    original_def.operand->get_type(), nullptr, mof);
 				phi_instr->set_block(df_block);
 				for (unsigned i = 0; i < df_block->pred_size(); ++i) {
-				    phi_instr->get(i).op = original_def.operand();
+					phi_instr->get(i).op = phi_instr->get_result().op;
 				}
 				LOG2("Inserting PHI " << phi_instr << nl);
 
@@ -197,11 +261,11 @@ void NewSpillPass::reconstruct_ssa(const Occurrence& original_def,
 				phi_definitions.emplace_back(&phi_instr->get_result(), phi_instr);
 
 				// Update use-chain for original_def
-				auto& chains = LTA->get_def_use_chains();
-				for (auto& descriptor : *phi_instr) {
-				    // chains.add_use(&descriptor, phi_instr);
-				}*/
-				assert(false && "Phi insertion not yet imlemented!");
+				// auto& chains = LTA->get_def_use_chains();
+				// for (auto& descriptor : *phi_instr) {
+				//    chains.add_use(&descriptor, phi_instr);
+				//}
+				// assert(false && "Phi insertion not yet imlemented!");
 			}
 
 			phi_set.insert(df_block);
@@ -230,8 +294,7 @@ void NewSpillPass::reconstruct_ssa(const Occurrence& original_def,
 			LOG1("Replacing " << occurrence.operand << " with " << reaching_def.operand << nl);
 			occurrence.descriptor->op = reaching_def.operand;
 
-			auto instruction = (*occurrence.instruction);
-			if (instruction->is_phi()) {
+			if (reaching_def.phi_instr) {
 				assert(false && "Reaching phi definitions not implemented!");
 			}
 		}
@@ -247,9 +310,16 @@ NewSpillPass::compute_reaching_def(const MIIterator& mi_use_iter,
 	// First check if the same basic block as the "use" has a defintion
 	// and if that defintion occurs before the use
 	for (const auto& definition : definitions) {
-		auto def_block = (*definition.instruction)->get_block();
+		auto def_block = definition.descriptor->get_MachineInstruction()->get_block();
 		if (!(*def_block == *current_block))
 			continue;
+
+		// If we have a PHI, its in "phi_instr" and "instruction" points to the Label
+		// Since PHIs are considered the first instructions in each block, they are guaranteed
+		// to occur before the instruction mi_use_iter points to
+		if (definition.phi_instr) {
+			return definition;
+		}
 
 		if (definition.instruction < mi_use_iter) {
 			return definition;
@@ -579,7 +649,7 @@ void NewSpillPass::process_block(MachineBasicBlock* block)
 
 		auto used_ops = used_operands(mof, current_rc, instruction);
 		auto defined_ops = defined_operands(mof, current_rc, instruction);
-		
+
 		auto uses = used_ops - workset;
 
 		workset |= uses;
