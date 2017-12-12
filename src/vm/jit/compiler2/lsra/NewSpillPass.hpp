@@ -91,10 +91,14 @@ private:
 	// using BlockToOperand = std::map<MachineBasicBlock*, MachineOperand*>;
 	// std::map<MachineOperand*, BlockToOperand> current_def;
 	std::map<MachineBasicBlock*, MachineOperand*> current_def;
+	Type::TypeID current_type;
+
 
 	void write_variable(MachineBasicBlock*, MachineOperand*);
 	MachineOperand* read_variable(MachineBasicBlock*);
 	MachineOperand* read_variable_recursive(MachineBasicBlock*);
+	MachineOperand* add_phi_operands(MachinePhiInst*);
+	MachineOperand* try_remove_trivial_phi(MachinePhiInst*);
 };
 
 class NewSpillPass : public Pass, public memory::ManagerMixin<NewSpillPass> {

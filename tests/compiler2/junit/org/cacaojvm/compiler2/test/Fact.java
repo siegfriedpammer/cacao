@@ -42,12 +42,12 @@ public class Fact extends Compiler2TestBase {
 
 	@Parameters
 	public static Collection<Long[]> data() {
-		/*Long[][] list = new Long[10][1];
+		Long[][] list = new Long[10][1];
 		for (int i = 0; i < 10; i++) {
 			list[i][0] = (long) i;
-		}*/
-		Long[][] list = new Long[1][1];
-		list[0][0] = 5l;
+		}
+		//Long[][] list = new Long[1][1];
+		//list[0][0] = 5l;
 		return Arrays.asList(list);
 	}
 

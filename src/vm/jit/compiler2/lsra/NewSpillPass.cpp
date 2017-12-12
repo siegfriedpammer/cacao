@@ -84,6 +84,19 @@ static OperandSet defined_operands(const MachineOperandFactory* MOF,
 	return set;
 }
 
+/// \todo Maybe can be refactored by using Def-Use chains since the link
+///       to the definition should reveal if its a PHI or not
+static MachinePhiInst* is_defined_by_phi(const MachineOperand* operand, MachineBasicBlock* block)
+{
+	for (auto i = block->phi_begin(), e = block->phi_end(); i != e; ++i) {
+		auto phi_instr = *i;
+		if (phi_instr->get_result().op->aquivalent(*operand)) {
+			return phi_instr;
+		}
+	}
+	return nullptr;
+}
+
 void SpillInfo::add_spill(MachineOperand* operand, const MIIterator& position)
 {
 	auto iter = spilled_operands.find(operand->get_id());
@@ -144,6 +157,7 @@ void SSAReconstructor::reconstruct(const Occurrence& original_def,
                                    const std::vector<Occurrence>& definitions)
 {
 	current_def.clear();
+	current_type = original_def.operand->get_type();
 
 	std::vector<const MachineOperand*> defined_ops;
 	std::for_each(definitions.cbegin(), definitions.cend(),
@@ -177,7 +191,8 @@ void SSAReconstructor::write_variable(MachineBasicBlock* block, MachineOperand* 
 	LOG3("write_variable " << *block << " = " << operand << nl);
 }
 
-MachineOperand* SSAReconstructor::read_variable(MachineBasicBlock* block) {
+MachineOperand* SSAReconstructor::read_variable(MachineBasicBlock* block)
+{
 	auto iter = current_def.find(block);
 	if (iter != current_def.end()) {
 		// Local value numbering
@@ -187,20 +202,63 @@ MachineOperand* SSAReconstructor::read_variable(MachineBasicBlock* block) {
 	return read_variable_recursive(block);
 }
 
-MachineOperand* SSAReconstructor::read_variable_recursive(MachineBasicBlock* block) 
+MachineOperand* SSAReconstructor::read_variable_recursive(MachineBasicBlock* block)
 {
 	MachineOperand* operand = nullptr;
 
 	// Do not create a PHI if block has only one predecessor
 	if (block->pred_size() == 1) {
 		operand = read_variable(*block->pred_begin());
-	} else {
-		assert(false && "Case not implemented!");
+	}
+	else {
+		auto instr = new MachinePhiInst(block->pred_size(), current_type, nullptr, sp->mof);
+		instr->set_block(block);
+
+		write_variable(block, instr->get_result().op);
+		operand = add_phi_operands(instr);
+
+		if (operand->aquivalent(*instr->get_result().op)) {
+			block->insert_phi(instr);
+		}
 	}
 
-	write_variable(block, operand);	
+	write_variable(block, operand);
 
 	return operand;
+}
+
+MachineOperand* SSAReconstructor::add_phi_operands(MachinePhiInst* instr)
+{
+	auto block = instr->get_block();
+	for (std::size_t i = 0, e = block->pred_size(); i < e; ++i) {
+		auto operand = read_variable(block->get_predecessor(i));
+		instr->get(i).op = operand;
+
+		LOG3("\tPredecessor " << *block->get_predecessor(i) << " has operand " << operand << nl);
+	}
+	LOG3("After adding operands to PHI " << instr << nl);
+	return try_remove_trivial_phi(instr);
+}
+
+MachineOperand* SSAReconstructor::try_remove_trivial_phi(MachinePhiInst* instr)
+{
+	MachineOperand* same = nullptr;
+	for (const auto& descriptor : *instr) {
+		auto operand = descriptor.op;
+		if (operand->aquivalent(*instr->get_result().op) || (same && operand->aquivalent(*same)) ||
+		    operand->aquivalent(NoOperand))
+			continue;
+		if (same)
+			return instr->get_result().op; // The phi merges at least two values
+		same = operand;
+	}
+
+	if (!same) {
+		// The phi is unreachalbe or in the start block
+		same = &NoOperand;
+	}
+
+	return same;
 }
 
 void NewSpillPass::reconstruct_ssa(const Occurrence& original_def,
@@ -680,17 +738,28 @@ void NewSpillPass::fix_block_boundaries()
 		DEBUG2(print_ptr_container(dbg(), block->pred_begin(), block->pred_end()));
 		LOG2(reset_color << nl);
 
+		auto& ws_entry = worksets_entry.at(block);
+		auto spill_entry = mof->EmptySet();
+		for (auto i = block->pred_begin(), e = block->pred_end(); i != e; ++i) {
+			spill_entry |= spillsets_exit.at(*i);
+		}
+		spill_entry &= ws_entry;
+
 		for (auto i = block->pred_begin(), e = block->pred_end(); i != e; ++i) {
 			auto predecessor = *i;
+			LOG2(nl << Yellow << "\t Predecessor: " << *predecessor << reset_color << nl);
 
 			// Variables that are in the entry set of block, but not in the exit set
 			// of the predecessor need to be reloaded
-			auto& ws_entry = worksets_entry.at(block);
 			auto& ws_exit = worksets_exit.at(predecessor);
 			auto reload_ops = ws_entry - ws_exit;
 
-			auto& spill_entry = spillsets_entry.at(block);
 			auto& spill_exit = spillsets_exit.at(predecessor);
+
+			LOG3_NAMED_CONTAINER("workset entry:  ", ws_entry);
+			LOG3_NAMED_CONTAINER("workset exit:   ", ws_exit);
+			LOG3_NAMED_CONTAINER("spillset entry: ", spill_entry);
+			LOG3_NAMED_CONTAINER("spillset_exit:  ", spill_exit);
 
 			// Variables that are in the in the workset entry of this block, and in the
 			// exit workset of the predecessor might need to get spilled if they are in
@@ -708,8 +777,25 @@ void NewSpillPass::fix_block_boundaries()
 			// exit workset of the predecessor
 			auto spill_ops = (spill_entry - spill_exit) & ws_exit;
 
-			LOG3_NAMED_CONTAINER("operands to reload:  ", reload_ops);
-			LOG3_NAMED_CONTAINER("operands to spill:   ", spill_ops);
+			for (auto& operand : ws_entry) {
+				auto phi_instr = is_defined_by_phi(&operand, block);
+				auto& op = phi_instr ? *phi_instr->get(block->get_predecessor_index(predecessor)).op
+				                     : operand;
+
+				if (ws_exit.contains(&op)) {
+					// We might have to spill on this path
+					if (spill_entry.contains(&op) && !spill_exit.contains(&op)) {
+						assert(false && "TOOD: We might need top spill some shit no this path!");
+					}
+				}
+				else {
+					LOG3("Reloading " << op << nl);
+					spill_info.add_reload(&op, predecessor->mi_last());
+				}
+			}
+
+			// LOG3_NAMED_CONTAINER("operands to reload:  ", reload_ops);
+			// LOG3_NAMED_CONTAINER("operands to spill:   ", spill_ops);
 		}
 	}
 }

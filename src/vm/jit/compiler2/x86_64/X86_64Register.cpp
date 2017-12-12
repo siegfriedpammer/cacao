@@ -119,6 +119,7 @@ X86_64RegisterClass<X86_64Class::GP>::X86_64RegisterClass()
 	}
 
 	caller_saved.add(&RDI);
+	caller_saved.add(&RSI);
 	caller_saved.add(&RAX);
 
 	all |= caller_saved;
