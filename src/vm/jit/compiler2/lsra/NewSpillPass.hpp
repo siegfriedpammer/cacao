@@ -133,9 +133,6 @@ private:
 
 	void sort_by_next_use(OperandList&, MachineInstruction*) const;
 
-	void reconstruct_ssa(const Occurrence&, const std::vector<Occurrence>&) const;
-	const Occurrence& compute_reaching_def(const MIIterator&, const std::vector<Occurrence>&) const;
-
 	friend class SpillInfo;
 	friend class SSAReconstructor;
 };

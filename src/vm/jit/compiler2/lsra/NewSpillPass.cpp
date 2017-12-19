@@ -261,131 +261,6 @@ MachineOperand* SSAReconstructor::try_remove_trivial_phi(MachinePhiInst* instr)
 	return same;
 }
 
-void NewSpillPass::reconstruct_ssa(const Occurrence& original_def,
-                                   const std::vector<Occurrence>& definitions) const
-{
-	std::vector<const MachineOperand*> defined_ops;
-	std::for_each(definitions.cbegin(), definitions.cend(),
-	              [&](const auto occurrence) { defined_ops.push_back(occurrence.operand); });
-
-	LOG1(nl << Cyan << "Reconstructing SSA for " << original_def.operand << reset_color << nl);
-	LOG1_NAMED_PTR_CONTAINER("New definitions: ", defined_ops);
-
-	auto LTA = get_Pass<NewLivetimeAnalysisPass>();
-
-	// Step 1
-	std::set<MachineBasicBlock*> init_def_bb_set;
-
-	// Add basic block that defines original value
-	init_def_bb_set.insert((*original_def.instruction)->get_block());
-
-	// Add basic blocks that define the copies
-	std::for_each(definitions.cbegin(), definitions.cend(), [&](const auto occurrence) {
-		auto instruction = (*occurrence.instruction);
-		init_def_bb_set.insert(instruction->get_block());
-	});
-	LOG2_NAMED_PTR_CONTAINER("Init Def BB set: ", init_def_bb_set);
-
-	auto MDOM = get_Pass<MachineDominatorPass>();
-
-	std::set<MachineBasicBlock*> phi_set;
-	std::set<MachineBasicBlock*> work(init_def_bb_set);
-
-	std::vector<Occurrence> phi_definitions;
-
-	// Place PHI functions for definitions
-	while (!work.empty()) {
-		auto block = *work.begin();
-		work.erase(work.begin());
-
-		auto df = MDOM->get_dominance_frontier(block);
-		LOG2_NAMED_PTR_CONTAINER("DF(" << *block << "): ", df);
-
-		for (const auto df_block : df) {
-			auto iter = phi_set.find(df_block);
-			if (iter != phi_set.end())
-				continue;
-
-			if (df_block->pred_size() > 1) {
-				auto phi_instr = new MachinePhiInst(df_block->pred_size(),
-				                                    original_def.operand->get_type(), nullptr, mof);
-				phi_instr->set_block(df_block);
-				for (unsigned i = 0; i < df_block->pred_size(); ++i) {
-					phi_instr->get(i).op = phi_instr->get_result().op;
-				}
-				LOG2("Inserting PHI " << phi_instr << nl);
-
-				df_block->insert_phi(phi_instr);
-				phi_definitions.emplace_back(&phi_instr->get_result(), phi_instr);
-
-				// Update use-chain for original_def
-				// auto& chains = LTA->get_def_use_chains();
-				// for (auto& descriptor : *phi_instr) {
-				//    chains.add_use(&descriptor, phi_instr);
-				//}
-				// assert(false && "Phi insertion not yet imlemented!");
-			}
-
-			phi_set.insert(df_block);
-
-			// If df_block was not in our initial set, we add it to the workset
-			// (and to the inital set to prevent endless loops)
-			auto init_iter = init_def_bb_set.find(df_block);
-			if (init_iter == init_def_bb_set.end()) {
-				init_def_bb_set.insert(df_block);
-				work.insert(df_block);
-			}
-		}
-	}
-
-	std::vector<Occurrence> all_definitions(definitions);
-	all_definitions.push_back(original_def);
-	std::copy(phi_definitions.begin(), phi_definitions.end(), std::back_inserter(all_definitions));
-
-	// Step 2
-	auto& chains = LTA->get_def_use_chains();
-	chains.for_each_use(original_def.operand, [&](auto& occurrence) {
-		auto mi_use_iter = occurrence.instruction;
-		auto& reaching_def = this->compute_reaching_def(mi_use_iter, all_definitions);
-
-		if (!reaching_def.operand->aquivalent(*occurrence.operand)) {
-			LOG1("Replacing " << occurrence.operand << " with " << reaching_def.operand << nl);
-			occurrence.descriptor->op = reaching_def.operand;
-
-			if (reaching_def.phi_instr) {
-				assert(false && "Reaching phi definitions not implemented!");
-			}
-		}
-	});
-}
-
-const Occurrence&
-NewSpillPass::compute_reaching_def(const MIIterator& mi_use_iter,
-                                   const std::vector<Occurrence>& definitions) const
-{
-	auto current_block = (*mi_use_iter)->get_block();
-
-	// First check if the same basic block as the "use" has a defintion
-	// and if that defintion occurs before the use
-	for (const auto& definition : definitions) {
-		auto def_block = definition.descriptor->get_MachineInstruction()->get_block();
-		if (!(*def_block == *current_block))
-			continue;
-
-		// If we have a PHI, its in "phi_instr" and "instruction" points to the Label
-		// Since PHIs are considered the first instructions in each block, they are guaranteed
-		// to occur before the instruction mi_use_iter points to
-		if (definition.phi_instr) {
-			return definition;
-		}
-
-		if (definition.instruction < mi_use_iter) {
-			return definition;
-		}
-	}
-	assert(false && "Bottom-up search in the DOM-tree for other definitions not implemented!");
-}
-
 void NewSpillPass::limit(OperandSet& workset,
                          OperandSet& spillset,
                          const MIIterator& mi_iter,
@@ -761,14 +636,16 @@ void NewSpillPass::fix_block_boundaries()
 			LOG3_NAMED_CONTAINER("spillset entry: ", spill_entry);
 			LOG3_NAMED_CONTAINER("spillset_exit:  ", spill_exit);
 
-			// Variables that are in the in the workset entry of this block, and in the
-			// exit workset of the predecessor might need to get spilled if they are in
-			// the entry spillset of block, but not spilled at the end of the predecessor
-			auto intersection = ws_entry & ws_exit;
+			// Variables that are in the working set of the predecessor, but not in
+			// the entry set of this block, might need additional spilling if they are
+			// live-in
+			auto difference = ws_exit - ws_entry;
 
-			for (const auto& operand : intersection) {
-				if (spill_entry.contains(&operand) && !spill_exit.contains(&operand)) {
-					LOG3("operand needs to be spilled on this path: " << operand << nl);
+			for (const auto& operand : difference) {
+				bool is_live_in =
+				    get_Pass<NewLivetimeAnalysisPass>()->get_live_in(block).contains(&operand);
+				if (is_live_in && !spill_exit.contains(&operand)) {
+					assert(false && "Operand needs additioanl spilling!");
 				}
 			}
 

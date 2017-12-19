@@ -163,17 +163,6 @@ public:
 	DominatorPassBase() : Pass() {}
 	virtual bool run(JITData &JD);
 	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
-
-	/**
-	 * Calculates the dominance frontier for a given Node.
-	 * Depending on future usage and how often this will get called,
-	 * it might be a good idea to cache the results or precalculate all
-	 * dominance frontiers during DominatorPass itself.
-	 * 
-	 * Implements the algorithm proposed by Cytron et al 
-	 * "Efficiently computing static single assignment form and the control dependence graph"
-	 */
-	DominanceFrontierTy get_dominance_frontier(NodeTy* node);
 };
 
 #define DEBUG_NAME "compiler2/DominatorPass"
@@ -346,38 +335,6 @@ bool DominatorPassBase<T,I>::run(JITData &JD) {
 	#endif
 
 	return true;
-}
-
-template<typename T, typename I>
-typename DominatorPassBase<T,I>::DominanceFrontierTy
-DominatorPassBase<T,I>::get_dominance_frontier(NodeTy* node)
-{
-	LOG("Calculating dominance frontier for " << node << nl);
-
-	DominanceFrontierTy df;
-
-	NodeListTy successors;
-	succ(node, successors);
-
-	for (const auto successor : successors) {
-		auto idom = DominatorTreeBase<T>::get_idominator(successor);
-		if (!(*idom == *node)) {
-			df.push_back(successor);
-		}
-	}
-
-	auto children = get_children(node);
-	for (const auto child : children) {
-		auto child_df = get_dominance_frontier(child);
-		for (const auto n : child_df) {
-			auto idom = DominatorTreeBase<T>::get_idominator(n);
-			if (!(*idom == *node)) {
-				df.push_back(n);
-			}
-		}
-	}
-
-	return df;
 }
 
 #undef DEBUG_NAME
