@@ -51,7 +51,7 @@ void ThreadList::dump_threads()
 	// Lock the thread lists.
 	MutexLocker lock(_mutex);
 
-	printf("Full thread dump CACAO "VERSION_FULL":\n");
+	printf("Full thread dump CACAO " VERSION_FULL ":\n");
 
 	// Iterate over all started threads.
 	threadobject* self = THREADOBJECT;
