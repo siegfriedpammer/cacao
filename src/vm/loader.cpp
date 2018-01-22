@@ -679,7 +679,7 @@ static bool load_constantpool(ClassBuffer& cb, ForwardReferences& fwd, Descripto
 			// name and descriptor of the field or method
 			uint16_t nameandtype_index = cb.read_u2();
 
-			ForwardFieldMethInt f = { idx, tag, class_index, nameandtype_index };
+			ForwardFieldMethInt f = { idx, static_cast<uint8_t>(tag), class_index, nameandtype_index };
 
 			fwd.fieldmethints.push_back(f);
 

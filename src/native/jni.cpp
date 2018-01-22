@@ -4156,7 +4156,7 @@ jint JNI_GetDefaultJavaVMInitArgs(void *vm_args)
 		_vm_args->nOptions = 0;
 		break;
 
-	case JNI_VERSION_CACAO:
+	case static_cast<jint>(JNI_VERSION_CACAO):
 		// We reveal ourselves by accepting this version number,
 		// this actually means we are using the supported JNI version.
 		_vm_args->version = JNI_VERSION_SUPPORTED;
