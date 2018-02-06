@@ -85,7 +85,7 @@ build:
 run: $(OUTPUT_JAVA_TESTS)
 
 $(OUTPUT_JAVA_TESTS):
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD)" $@ $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD)" $@ $(srcdir)
 
 
 ## Local variables:

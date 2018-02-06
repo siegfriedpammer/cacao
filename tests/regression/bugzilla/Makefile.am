@@ -24,7 +24,7 @@
 JAVA     = $(top_builddir)/src/cacao/cacao
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
 JAVACCMD = $(JAVAC) -source 1.5 -target 1.5 -nowarn -bootclasspath $(BOOTCLASSPATH)
-JAVAENV  = LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs
+JAVAENV  = LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}
 
 EXTRA_DIST = \
 	$(srcdir)/*.java $(srcdir)/*.j $(srcdir)/boot-manifest.txt

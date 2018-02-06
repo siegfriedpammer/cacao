@@ -58,7 +58,7 @@ check: $(TESTNAMES)
 $(TESTNAMES) $(NOTESTNAMES):
 	@$(JAVACCMD) -d . $(srcdir)/$@.java
 	@$(CXX) -shared $(AM_CPPFLAGS) $(CPPFLAGS) $(CFLAGS) $(srcdir)/$@.cpp -o lib$@$(OS_DYNLIB) -fPIC
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs:. $(SHELL) $(srcdir)/../Test.sh "$(JAVACMD)" $@ $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs:.$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/../Test.sh "$(JAVACMD)" $@ $(srcdir)
 
 
 ## Local variables:
