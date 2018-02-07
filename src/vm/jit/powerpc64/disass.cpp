@@ -20,15 +20,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas  Krall
-            Reinhard Grafl
-
-   Changes: Stefan Ring
-            Christian Thalinger
-
-
 */
 
 
