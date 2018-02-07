@@ -71,7 +71,11 @@ void executionstate_pop_stackframe(executionstate_t *es)
 
 	// Calculate the base of the stack frame.
 	uintptr_t sp     = (uintptr_t) es->sp;
+#if defined(__AARCH64__)
 	uintptr_t basesp = sp + framesize;
+#else
+	uintptr_t basesp = sp + es->code->stackframesize * SIZE_OF_STACKSLOT;
+#endif
 
 	// Restore return address, if part of frame.
 #if STACKFRAME_RA_TOP_OF_FRAME
