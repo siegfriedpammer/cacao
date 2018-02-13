@@ -25,6 +25,7 @@
 
 #include "config.h"
 
+#include <string.h>
 #include <dis-asm.h>
 #include <cstdio>
 
@@ -58,6 +59,12 @@ u1 *disassinstr(u1 *code)
         info.mach             = bfd_mach_aarch64;
         info.read_memory_func = &disass_buffer_read_memory;
 
+#if HAVE_ONE_ARG_DISASM
+        disass_func = print_insn_aarch64;
+#else
+        disass_func = disassembler(bfd_arch_aarch64, FALSE, bfd_mach_aarch64, nullptr);
+#endif
+
         disass_initialized = true;
     }
 
@@ -65,7 +72,7 @@ u1 *disassinstr(u1 *code)
     
     disass_len = 0;
 
-    seqlen = print_insn_aarch64((bfd_vma) code, &info);
+    seqlen = disass_func((bfd_vma) code, &info);
 
     for (i = 0; i < seqlen; i++, code++) {
         printf("%02x ", *code);
@@ -92,4 +99,5 @@ u1 *disassinstr(u1 *code)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

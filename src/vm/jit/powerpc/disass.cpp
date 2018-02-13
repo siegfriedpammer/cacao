@@ -25,6 +25,7 @@
 
 #include "config.h"
 
+#include <string.h>
 #include <dis-asm.h>
 #include <stdint.h>
 #include <cstdio>
@@ -56,12 +57,18 @@ u1 *disassinstr(u1 *code)
 
 		info.read_memory_func = &disass_buffer_read_memory;
 
+#if HAVE_ONE_ARG_DISASM
+		disass_func = print_insn_big_powerpc;
+#else
+		disass_func = disassembler(bfd_arch_powerpc, TRUE, bfd_mach_ppc, nullptr);
+#endif
+
 		disass_initialized = true;
 	}
 
 	printf("0x%08x:   %08x    ", (s4) code, *((s4 *) code));
 
-	print_insn_big_powerpc((bfd_vma) code, &info);
+	disass_func((bfd_vma) code, &info);
 
 	printf("\n");
 

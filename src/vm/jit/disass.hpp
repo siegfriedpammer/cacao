@@ -84,6 +84,7 @@
 #if defined(WITH_BINUTILS_DISASSEMBLER)
 extern disassemble_info info;
 extern bool disass_initialized;
+extern int (*disass_func)(bfd_vma, disassemble_info*);
 #endif
 
 #if defined(__I386__) || defined(__X86_64__) || defined(__S390__) || defined(__aarch64__)
