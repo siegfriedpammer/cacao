@@ -65,6 +65,7 @@ if test x"${ENABLE_DISASSEMBLER}" = "xyes"; then
             AC_CHECK_LIB(opcodes, disassembler,, [AC_MSG_ERROR(cannot find libopcodes (from binutils))])
             AC_DEFINE([WITH_BINUTILS_DISASSEMBLER], 1, [use binutils disassembler])
             AM_CONDITIONAL([WITH_BINUTILS_DISASSEMBLER], [true])
+            WITH_BINUTILS_DISASSEMBLER=yes
             ;;
         * )
             AM_CONDITIONAL([WITH_BINUTILS_DISASSEMBLER], [false])
@@ -72,5 +73,16 @@ if test x"${ENABLE_DISASSEMBLER}" = "xyes"; then
     esac
 else
     AM_CONDITIONAL([WITH_BINUTILS_DISASSEMBLER], [false])
+fi
+
+if test x"${WITH_BINUTILS_DISASSEMBLER}" = "xyes"; then
+    AC_MSG_CHECKING([whether disassembler function takes one argument])
+    AC_COMPILE_IFELSE(
+        [AC_LANG_PROGRAM([[#include <dis-asm.h>
+        ]], [[void x(){disassembler(NULL);}]])],
+          [AC_DEFINE([HAVE_ONE_ARG_DISASM], 1, [one-argument disassembler() function])
+           AC_MSG_RESULT(yes)],
+          [AC_MSG_RESULT(no)]
+      )
 fi
 ])

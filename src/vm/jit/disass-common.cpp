@@ -25,6 +25,7 @@
 
 #include "config.h"
 
+#include <string.h>
 #include <dis-asm.h>
 #include <cstdarg>
 #include <cstdio>
@@ -41,6 +42,7 @@
 #if defined(WITH_BINUTILS_DISASSEMBLER)
 disassemble_info info;
 bool disass_initialized = false;
+int (*disass_func)(bfd_vma, disassemble_info*);
 #endif
 
 
