@@ -105,7 +105,7 @@ FILE* log_get_logfile()
 
 void log_start(void)
 {
-	fprintf(get_log(), "LOG: [0x%" PRIxPTR"] ", threads_get_current_tid());
+	fprintf(get_log(), "LOG: [0x%" PRIxPTR "] ", threads_get_current_tid());
 }
 
 /* log_finish ******************************************************************

@@ -66,7 +66,7 @@ CLEANFILES = \
 	*.class
 
 check: $(HARNESS_CLASS_FILES)
-	@for t in $(TEST_NAMES) ; do echo "TEST $$t" ; if ! { $(JAVACCMD) -d . -classpath . $(srcdir)/$$t.java && LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(JAVACMD) $$t ; }; then test -z "$(CHECK_NO_FAIL_FAST)" && exit 1 || echo FAIL; fi; done
+	@for t in $(TEST_NAMES) ; do echo "TEST $$t" ; if ! { $(JAVACCMD) -d . -classpath . $(srcdir)/$$t.java && LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(JAVACMD) $$t ; }; then test -z "$(CHECK_NO_FAIL_FAST)" && exit 1 || echo FAIL; fi; done
 
 $(HARNESS_CLASS_FILES): $(HARNESS_SOURCE_FILES)
 	$(JAVACCMD) -d . $(HARNESS_SOURCE_FILES)

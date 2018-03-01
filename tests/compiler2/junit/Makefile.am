@@ -23,7 +23,7 @@
 
 SUBDIRS =
 
-JAVA     = LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(top_builddir)/src/cacao/cacao
+JAVA     = LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(top_builddir)/src/cacao/cacao
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
 JAVACCMD = $(JAVAC) -source 1.6 -target 1.6 -nowarn -bootclasspath $(BOOTCLASSPATH)
 TIMING = 

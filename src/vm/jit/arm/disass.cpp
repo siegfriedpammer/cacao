@@ -25,6 +25,7 @@
 
 #include "config.h"
 
+#include <string.h>
 #include <dis-asm.h>
 #include <stdio.h>
 
@@ -80,17 +81,29 @@ u1 *disassinstr(u1 *code)
 
 		info.read_memory_func = &disass_buffer_read_memory;
 
+#if HAVE_ONE_ARG_DISASM
+#if defined(__ARMEL__)
+        disass_func = print_insn_little_arm;
+#else
+        disass_func = print_insn_big_arm;
+#endif
+#else
+        disass_func = disassembler(bfd_arch_arm,
+#if defined(__ARMEL__)
+                FALSE,
+#else
+                TRUE,
+#endif
+                bfd_mach_arm_unknown, nullptr);
+#endif
+
 		disass_initialized = true;
 	}
 
 	printf("0x%08x:   %08x    ", (u4) code, *((s4 *) code));
 
 	if (!disass_pseudo_instr(code))
-#if defined(__ARMEL__)
-		print_insn_little_arm((bfd_vma) code, &info);
-#else
-		print_insn_big_arm((bfd_vma) code, &info);
-#endif
+		disass_func((bfd_vma) code, &info);
 
 	printf("\n");
 
@@ -110,4 +123,5 @@ u1 *disassinstr(u1 *code)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

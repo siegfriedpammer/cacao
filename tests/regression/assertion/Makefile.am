@@ -75,76 +75,76 @@ build:
 run: $(ASSERTION_TESTS)
 
 EA_TEST1:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -ea" testassertions eatest1 enabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -ea" testassertions eatest1 enabled $(srcdir)
 
 EA_TEST2:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -enableassertions" testassertions eatest2 enabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -enableassertions" testassertions eatest2 enabled $(srcdir)
 
 EA_PACKAGE_TEST1:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -da -ea:packagetest..." packagetest.testassertions eapackagetest1 enabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -da -ea:packagetest..." packagetest.testassertions eapackagetest1 enabled $(srcdir)
 
 EA_PACKAGE_TEST2:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -disableassertions -ea:packagetest..." packagetest.testassertions eapackagetest2 enabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -disableassertions -ea:packagetest..." packagetest.testassertions eapackagetest2 enabled $(srcdir)
 
 EA_PACKAGE_TEST3:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -disableassertions -enableassertions:packagetest..." packagetest.testassertions eapackagetest3 enabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -disableassertions -enableassertions:packagetest..." packagetest.testassertions eapackagetest3 enabled $(srcdir)
 
 EA_PACKAGE_TEST4:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -enableassertions:packagetest... -disableassertions " packagetest.testassertions eapackagetest4 enabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -enableassertions:packagetest... -disableassertions " packagetest.testassertions eapackagetest4 enabled $(srcdir)
 
 EA_PACKAGE_TEST5:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -da -enableassertions:packagetest..." packagetest.testassertions eapackagetest5 enabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -da -enableassertions:packagetest..." packagetest.testassertions eapackagetest5 enabled $(srcdir)
 
 EA_CLASS_TEST1:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -da -ea:testassertions" testassertions eaclasstest1 enabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -da -ea:testassertions" testassertions eaclasstest1 enabled $(srcdir)
 
 EA_CLASS_TEST2:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -disableassertions -ea:testassertions" testassertions eaclasstest2 enabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -disableassertions -ea:testassertions" testassertions eaclasstest2 enabled $(srcdir)
 
 EA_CLASS_TEST3:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -disableassertions -enableassertions:testassertions" testassertions eaclasstest3 enabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -disableassertions -enableassertions:testassertions" testassertions eaclasstest3 enabled $(srcdir)
 
 EA_CLASS_TEST4:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -enableassertions:testassertions -disableassertions " testassertions eaclasstest4 enabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -enableassertions:testassertions -disableassertions " testassertions eaclasstest4 enabled $(srcdir)
 
 EA_CLASS_TEST5:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -da -enableassertions:testassertions" testassertions eaclasstest5 enabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -da -enableassertions:testassertions" testassertions eaclasstest5 enabled $(srcdir)
 
 DA_PACKAGE_TEST1:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -da:packagetest... -ea" packagetest.testassertions dapackagetest1 disabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -da:packagetest... -ea" packagetest.testassertions dapackagetest1 disabled $(srcdir)
 
 DA_PACKAGE_TEST2:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -disableassertions:packagetest... -ea" packagetest.testassertions dapackagetest2 disabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -disableassertions:packagetest... -ea" packagetest.testassertions dapackagetest2 disabled $(srcdir)
 
 DA_PACKAGE_TEST3:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -disableassertions:packagetest... -enableassertions" packagetest.testassertions dapackagetest3 disabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -disableassertions:packagetest... -enableassertions" packagetest.testassertions dapackagetest3 disabled $(srcdir)
 
 DA_PACKAGE_TEST4:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -enableassertions -disableassertions:packagetest... " packagetest.testassertions dapackagetest4 disabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -enableassertions -disableassertions:packagetest... " packagetest.testassertions dapackagetest4 disabled $(srcdir)
 
 DA_PACKAGE_TEST5:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -da:packagetest... -enableassertions" packagetest.testassertions dapackagetest5 disabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -da:packagetest... -enableassertions" packagetest.testassertions dapackagetest5 disabled $(srcdir)
 
 DA_CLASS_TEST1:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -ea -da:testassertions" testassertions daclasstest1 disabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -ea -da:testassertions" testassertions daclasstest1 disabled $(srcdir)
 
 DA_CLASS_TEST2:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -enableassertions -da:testassertions" testassertions daclasstest2 disabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -enableassertions -da:testassertions" testassertions daclasstest2 disabled $(srcdir)
 
 DA_CLASS_TEST3:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -enableassertions -disableassertions:testassertions" testassertions daclasstest3 disabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -enableassertions -disableassertions:testassertions" testassertions daclasstest3 disabled $(srcdir)
 
 DA_CLASS_TEST4:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -disableassertions:testassertions -enableassertions " testassertions daclasstest4 disabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -disableassertions:testassertions -enableassertions " testassertions daclasstest4 disabled $(srcdir)
 
 DA_CLASS_TEST5:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -ea -disableassertions:testassertions" testassertions daclasstest5 disabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -ea -disableassertions:testassertions" testassertions daclasstest5 disabled $(srcdir)
 
 ESA_TEST1:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -esa" testassertions esatest1 disabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -esa" testassertions esatest1 disabled $(srcdir)
 
 ESA_TEST2:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -enablesystemassertions" testassertions esatest2 disabled $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -enablesystemassertions" testassertions esatest2 disabled $(srcdir)
 
 
 ## Local variables:
