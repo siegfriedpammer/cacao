@@ -42,128 +42,17 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-class LTNode {
-public:
-	LTNode(MachineOperand* operand) : op(operand) {}
-	MachineOperand* operand() { return op; }
-
-	void add_child(LTNode* node) { children.push_back(node); }
-
-	void set_parent(LTNode* node) { parent = node; }
-	LTNode* get_parent() { return parent; }
-
-	void mark_visited() { visited = true; }
-	bool is_visited() const { return visited; }
-
-	auto begin() { return children.begin(); }
-	auto end() { return children.end(); }
-
-private:
-	MachineOperand* op;
-	LTNode* parent = nullptr;
-	std::vector<LTNode*> children;
-	bool visited = false;
-};
-
-class LocationTransferGraph {
-public:
-	void add_edge(MachineOperand* from, MachineOperand* to)
-	{
-		auto node_from = node_for(from);
-		auto node_to = node_for(to);
-		node_from->add_child(node_to);
-		node_to->set_parent(node_from);
-	}
-
-	std::vector<LocationTransferGraph>& get_components()
-	{
-		components.clear();
-		for (auto& pair : nodes) {
-			auto node = pair.second.get();
-			if (!node->is_visited()) {
-				auto& component = *components.emplace(components.end());
-				dfs(component, node);
-			}
-		}
-		return components;
-	}
-
-	/**
-	 * Only useful for components. Since they got created
-	 * from a "spartan" location transfer graph a component is
-	 * either a path or a cycle.
-	 * @return true, if component is a cycle, false if it is a path
-	 */
-	bool is_cycle() const
-	{
-		LTNode* start = nullptr;
-		for (auto& pair : nodes) {
-			auto node = pair.second.get();
-			if (node->get_parent() == nullptr) {
-				start = node;
-				break;
-			}
-		}
-		return start == nullptr;
-	}
-
-private:
-	std::map<MachineOperand*, std::unique_ptr<LTNode>> nodes;
-	std::vector<LocationTransferGraph> components;
-
-	LTNode* node_for(MachineOperand* operand)
-	{
-		auto iter = nodes.find(operand);
-		if (iter == nodes.end()) {
-			auto pair = nodes.emplace(std::make_pair(operand, std::make_unique<LTNode>(operand)));
-			iter = pair.first;
-		}
-		return iter->second.get();
-	}
-
-	void dfs(LocationTransferGraph& component, LTNode* node)
-	{
-		node->mark_visited();
-		for (auto child : *node) {
-			component.add_edge(node->operand(), child->operand());
-			if (!child->is_visited()) {
-				dfs(component, child);
-			}
-		}
-	}
-};
-
-void SSADeconstructionPass::insert_transfer_at_end(MachineBasicBlock* block,
-                                                   MachineBasicBlock* predecessor,
-                                                   unsigned phi_column)
+void ParallelCopyImpl::calculate()
 {
-	LOG3("Inserting transfers from [" << *predecessor << "] to [" << *block << "]\n");
-
-	std::vector<MachineOperand*> src;
-	std::vector<MachineOperand*> dst;
-
-	for (auto i = block->phi_begin(), e = block->phi_end(); i != e; ++i) {
-		auto phi = *i;
-
-		auto dst_op = phi->get_result().op;
-		auto src_op = phi->get(phi_column).op;
-
-		if (dst_op->aquivalent(*src_op))
-			continue;
-
-		dst.push_back(dst_op);
-		src.push_back(src_op);
-	}
-
 	LOG2("Inserting parallel copy: \n");
 	LOG2_NAMED_PTR_CONTAINER("Source operands: ", src);
 	LOG2_NAMED_PTR_CONTAINER("Dest operands:   ", dst);
 
-	std::vector<unsigned> diff;
-	find_safe_operations(src, dst, diff);
-	implement_safe_operations(src, dst, diff, predecessor);
+	std::set<unsigned> diff;
+	find_safe_operations(diff);
+	implement_safe_operations(diff);
 
-	implement_swaps(src, dst, predecessor);
+	implement_swaps();
 
 	bool empty = true;
 	for (unsigned i = 0; i < dst.size(); ++i) {
@@ -178,70 +67,93 @@ void SSADeconstructionPass::insert_transfer_at_end(MachineBasicBlock* block,
 	assert(empty && "There are copies yet to be implemented!");
 }
 
-void SSADeconstructionPass::find_safe_operations(const std::vector<MachineOperand*>& src,
-                                                 const std::vector<MachineOperand*>& dst,
-                                                 std::vector<unsigned>& diff)
+void SSADeconstructionPass::insert_transfer_at_end(MachineBasicBlock* block,
+                                                   MachineBasicBlock* predecessor,
+                                                   unsigned phi_column)
+{
+	LOG3("Inserting transfers from [" << *predecessor << "] to [" << *block << "]\n");
+
+	ParallelCopyImpl parallel_copy(*JD);
+
+	for (auto i = block->phi_begin(), e = block->phi_end(); i != e; ++i) {
+		auto phi = *i;
+
+		auto dst_op = phi->get_result().op;
+		auto src_op = phi->get(phi_column).op;
+
+		if (dst_op->aquivalent(*src_op))
+			continue;
+
+		parallel_copy.add(src_op, dst_op);
+	}
+
+	parallel_copy.calculate();
+	auto& operations = parallel_copy.get_operations();
+	predecessor->insert_before(--predecessor->end(), operations.begin(), operations.end());
+
+	if (DEBUG_COND_N(1)) {
+		for (auto operation : operations) {
+			LOG1("Inserting operation at end of (" << *predecessor << "): " << *operation << nl);
+		}
+	}
+}
+
+void ParallelCopyImpl::find_safe_operations(std::set<unsigned>& diff)
 {
 	for (unsigned i = 0; i < dst.size(); ++i) {
 		if (dst[i] == nullptr)
 			continue;
 
 		auto iter = std::find_if(src.begin(), src.end(), [&](const auto operand) {
-			return dst[i]->aquivalent(*operand);
+			return operand == nullptr ? false : dst[i]->aquivalent(*operand);
 		});
 
 		if (iter == src.end()) {
-			diff.push_back(i);
+			LOG1("Found safe operation: " << src[i] << " -> " << dst[i] << nl);
+			diff.insert(i);
 		}
 	}
 }
 
-void SSADeconstructionPass::implement_safe_operations(std::vector<MachineOperand*>& src,
-                                                      std::vector<MachineOperand*>& dst,
-                                                      std::vector<unsigned>& diff,
-                                                      MachineBasicBlock* block)
+void ParallelCopyImpl::implement_safe_operations(std::set<unsigned>& diff)
 {
 	while (diff.size() > 0) {
-		unsigned index = diff.back();
-		diff.pop_back();
+		unsigned index = *diff.begin();
+		diff.erase(index);
 
 		auto src_op = src[index];
-		auto dst_op = dst[index];
+		auto dst_op = dst[index];	
 		assert(src_op->is_Register() && dst_op->is_Register() &&
 		       "Load/stores not implementedf yet!");
 
-		auto move = JD->get_Backend()->create_Move(src_op, dst_op);
-		insert_before(block->mi_last(), move);
+		LOG1("Implement safe operation: " << src_op << " -> " << dst_op << nl);
 
-		LOG1("Inserting move at end of (" << *block << "): " << *move << nl);
+		auto move = JD.get_Backend()->create_Move(src_op, dst_op);
+		operations.push_back(move);
 
 		src[index] = nullptr;
 		dst[index] = nullptr;
-		find_safe_operations(src, dst, diff);
+		find_safe_operations(diff);
 	}
 }
 
-void SSADeconstructionPass::implement_swaps(std::vector<MachineOperand*>& src,
-                                            std::vector<MachineOperand*>& dst,
-                                            MachineBasicBlock* block)
+void ParallelCopyImpl::implement_swaps()
 {
 	bool has_changed = false;
 
 	do {
-		has_changed = swap_registers(src, dst, block);
+		has_changed = swap_registers();
 
-		std::vector<unsigned> diff;
-		find_safe_operations(src, dst, diff);
+		std::set<unsigned> diff;
+		find_safe_operations(diff);
 		if (!diff.empty()) {
 			has_changed = true;
-			implement_safe_operations(src, dst, diff, block);
+			implement_safe_operations(diff);
 		}
 	} while (has_changed);
 }
 
-bool SSADeconstructionPass::swap_registers(std::vector<MachineOperand*>& src,
-                                           std::vector<MachineOperand*>& dst,
-                                           MachineBasicBlock* block)
+bool ParallelCopyImpl::swap_registers()
 {
 	bool has_changed = false;
 
@@ -253,10 +165,8 @@ bool SSADeconstructionPass::swap_registers(std::vector<MachineOperand*>& src,
 			continue;
 
 		if (!src_op->aquivalent(*dst_op)) {
-			auto swap = JD->get_Backend()->create_Swap(src_op, dst_op);
-			insert_before(block->mi_last(), swap);
-
-			LOG1("Inserting swap at end of (" << *block << "): " << *swap << nl);
+			auto swap = JD.get_Backend()->create_Swap(src_op, dst_op);
+			operations.push_back(swap);
 
 			auto find_lambda = [&](const auto operand) {
 				if (!operand)
@@ -265,18 +175,17 @@ bool SSADeconstructionPass::swap_registers(std::vector<MachineOperand*>& src,
 			};
 
 			// Replace all dst_ops in src with src_op
-			for (auto iter = std::find_if(src.begin(), src.end(), find_lambda), e = src.end(); iter != e;
-				iter = std::find_if(std::next(iter), src.end(), find_lambda)) {
+			for (auto iter = std::find_if(src.begin(), src.end(), find_lambda), e = src.end();
+			     iter != e; iter = std::find_if(std::next(iter), src.end(), find_lambda)) {
 				LOG1("Replacing occurrence of " << dst_op << " with " << src_op << nl);
 				*iter = src_op;
 			}
 
 			has_changed = true;
-		} else {
-			auto move = JD->get_Backend()->create_Move(src_op, dst_op);
-			insert_before(block->mi_last(), move);
-
-			LOG1("Inserting move at end of (" << *block << "): " << *move << nl);
+		}
+		else {
+			// auto move = JD.get_Backend()->create_Move(src_op, dst_op);
+			// operations.push_back(move);
 		}
 
 		src[i] = nullptr;
@@ -305,39 +214,7 @@ bool SSADeconstructionPass::run(JITData& JD)
 	for (auto& block : *RPO) {
 		process_block(block);
 	}
-	/*
-	for (auto& block : *MIS) {
-	    if (block->phi_size() == 0)
-	        continue;
 
-	    std::vector<LocationTransferGraph> graphs;
-
-	    LOG1(Cyan << *block << " has PHIs. Building graphs." << reset_color << nl);
-	    for (unsigned i = 0, e = block->pred_size(); i < e; ++i) {
-
-	        LOG2("\tBuilding location transfer graph for predecessor " << *block->get_predecessor(i)
-	                                                                   << nl);
-	        auto& graph = *graphs.emplace(graphs.end());
-	        for (auto k = block->phi_begin(), ke = block->phi_end(); k != ke; ++k) {
-	            auto phi_instruction = *k;
-	            auto operand_to = phi_instruction->get_result().op;
-	            auto operand_from = phi_instruction->get(i).op;
-	            if (operand_to->aquivalent(*operand_from))
-	                continue;
-
-	            graph.add_edge(operand_from, operand_to);
-	            LOG2("\t\tAdding edge " << *operand_from << " -> " << *operand_to << nl);
-	        }
-
-	        auto& components = graph.get_components();
-	        LOG2("\tLocation transfer graph has " << components.size() << " components.\n");
-	        for (const auto& component : components) {
-	            auto is_cycle = component.is_cycle();
-	            LOG2("\t\tComponent is a " << (is_cycle ? "cycle" : "path") << nl);
-	        }
-	    }
-	}
-	*/
 	return true;
 }
 

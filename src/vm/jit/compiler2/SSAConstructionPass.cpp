@@ -369,11 +369,13 @@ CONSTInst *SSAConstructionPass::parse_s2_constant(instruction *iptr, Type::TypeI
 		konst = new CONSTInst(static_cast<int32_t>(iptr->sx.s23.s2.constval),
 						Type::IntType());
 		break;
+	case Type::ReferenceTypeID:
 	case Type::LongTypeID:
 		konst = new CONSTInst(static_cast<int64_t>(iptr->sx.s23.s2.constval),
 						Type::LongType());
 		break;
 	default:
+		ABORT_MSG("parse_s2_constant", "Type: " << type << " not supported!");
 		assert(false);
 		break;
 	}

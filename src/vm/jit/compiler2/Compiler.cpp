@@ -228,7 +228,8 @@ MachineCode* compile(methodinfo* m)
 	/* set the previous code version */
 
 	code->prev = m->code;
-
+	m->code = code;
+	
 	/* run the compiler2 passes */
 
 	PassRunner runner;
@@ -238,7 +239,7 @@ MachineCode* compile(methodinfo* m)
 	assert(code->entrypoint);
 
 
-	m->code = code;
+	
 	u1 *entrypoint = JD.get_jitdata()->code->entrypoint;
 /*****************************************************************************/
 /** epilog  start jit_compile **/

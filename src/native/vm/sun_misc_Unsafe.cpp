@@ -1303,6 +1303,28 @@ JNIEXPORT jint JNICALL Java_sun_misc_Unsafe_getLoadAverage(JNIEnv *env, jobject 
 	return result;
 }
 
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    unalignedAccess0
+ * Signature: ()Z
+ */
+JNIEXPORT jboolean Java_sun_misc_Unsafe_unalignedAccess0(JNIEnv *env, jobject _this)
+{
+	return false;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    isBigEndian0
+ * Signature: ()Z
+ */
+JNIEXPORT jboolean Java_sun_misc_Unsafe_isBigEndian0(JNIEnv *env, jobject _this)
+{
+	return false;
+}
+
 } // extern "C"
 
 
@@ -1390,6 +1412,9 @@ static JNINativeMethod methods[] = {
 	{ (char*) "unpark",                 (char*) "(Ljava/lang/Object;)V",                                      (void*) (uintptr_t) &Java_sun_misc_Unsafe_unpark                           },
 	{ (char*) "park",                   (char*) "(ZJ)V",                                                      (void*) (uintptr_t) &Java_sun_misc_Unsafe_park                             },
 	{ (char*) "getLoadAverage",         (char*) "([DI)I",                                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getLoadAverage                   },
+	{ (char*) "unalignedAccess0",       (char*) "()Z",                                                        (void*) (uintptr_t) &Java_sun_misc_Unsafe_unalignedAccess0                 },
+	{ (char*) "isBigEndian0",           (char*) "()Z",                                                        (void*) (uintptr_t) &Java_sun_misc_Unsafe_isBigEndian0                     },
+
 };
 
 

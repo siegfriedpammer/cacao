@@ -160,8 +160,9 @@ void PassRunner::runPasses(JITData &JD) {
 		#ifndef NDEBUG
 		LOG("verifying: " << PS.get_Pass_name(id) << nl);
 		if (!P->verify()) {
-			err() << bold << Red << "verification error" << reset_color << " during pass " << PS.get_Pass_name(id) << nl;
-			os::abort("compiler2: error");
+			ERROR_MSG(bold << Red << "verification error" << reset_color, " during pass " << PS.get_Pass_name(id) << nl);
+			// os::abort("compiler2: error");
+			throw std::runtime_error("Verification error! (logs should have more info)");
 		}
 		#endif
 		result_ready[id] = true;
@@ -344,7 +345,7 @@ void PassManager::schedulePasses() {
 	add<ScheduleLatePass>();
 	add<ScheduleClickPass>();
 	add<ListSchedulingPass>();
-	//add<NullCheckEliminationPass>();
+	add<NullCheckEliminationPass>();
 	add<SourceStateAttachmentPass>();
 	add<BasicBlockSchedulingPass>();
 	add<MachineInstructionSchedulingPass>();

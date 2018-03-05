@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_SSADECONSTRUCTIONPASS
 
 #include <list>
+#include <set>
 
 #include "vm/jit/compiler2/Pass.hpp"
 
@@ -36,7 +37,37 @@ namespace jit {
 namespace compiler2 {
 
 class MachineBasicBlock;
+class MachineInstruction;
 class MachineOperand;
+
+class ParallelCopyImpl {
+public:
+	ParallelCopyImpl(JITData& JD) : JD(JD) {}
+
+	void add(MachineOperand* src_op, MachineOperand* dst_op) {
+		src.push_back(src_op);
+		dst.push_back(dst_op);
+	}
+
+	void calculate();
+
+	std::vector<MachineInstruction*>& get_operations() {
+		return operations;
+	}
+
+private:
+	JITData& JD;
+
+	std::vector<MachineOperand*> src;
+	std::vector<MachineOperand*> dst;
+
+	std::vector<MachineInstruction*> operations;
+
+	void find_safe_operations(std::set<unsigned>&);
+	void implement_safe_operations(std::set<unsigned>&);
+	void implement_swaps();
+	bool swap_registers();
+};
 
 class SSADeconstructionPass : public Pass, public memory::ManagerMixin<SSADeconstructionPass> {
 public:
@@ -49,20 +80,6 @@ private:
 
 	void process_block(MachineBasicBlock*);
 	void insert_transfer_at_end(MachineBasicBlock*, MachineBasicBlock*, unsigned);
-
-	void find_safe_operations(const std::vector<MachineOperand*>& src,
-	                          const std::vector<MachineOperand*>& dst,
-	                          std::vector<unsigned>& diff);
-	void implement_safe_operations(std::vector<MachineOperand*>& src,
-	                               std::vector<MachineOperand*>& dst,
-	                               std::vector<unsigned>& diff,
-	                               MachineBasicBlock* block);
-	void implement_swaps(std::vector<MachineOperand*>& src,
-	                     std::vector<MachineOperand*>& dst,
-	                     MachineBasicBlock* block);
-	bool swap_registers(std::vector<MachineOperand*>& src,
-	                    std::vector<MachineOperand*>& dst,
-	                    MachineBasicBlock* block);
 };
 
 } // end namespace compiler2

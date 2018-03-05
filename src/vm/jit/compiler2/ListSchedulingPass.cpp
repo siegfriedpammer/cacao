@@ -193,7 +193,11 @@ void ListSchedulingPass::schedule(BeginInst *BI) {
 		LOG(I<<nl);
 	}
 #endif
-	assert( std::distance(inst_begin(BI),inst_end(BI)) == std::distance(GS->inst_begin(BI),GS->inst_end(BI)) );
+	// TODO: Re-enable assert, find out why this crashes for String.startsWith(Ljava/lang/String;I)Z
+	//       Remove exception when it works
+	// assert( std::distance(inst_begin(BI),inst_end(BI)) == std::distance(GS->inst_begin(BI),GS->inst_end(BI)) );
+	if (std::distance(inst_begin(BI),inst_end(BI)) != std::distance(GS->inst_begin(BI),GS->inst_end(BI)))
+		throw std::runtime_error("Weird ass behaviour in ListSchedulingPass");
 }
 
 bool ListSchedulingPass::run(JITData &JD) {

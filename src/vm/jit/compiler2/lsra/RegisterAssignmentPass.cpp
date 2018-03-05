@@ -30,6 +30,7 @@
 #include "vm/jit/compiler2/MachineOperandFactory.hpp"
 #include "vm/jit/compiler2/MachineRegister.hpp"
 #include "vm/jit/compiler2/ReversePostOrderPass.hpp"
+#include "vm/jit/compiler2/SSADeconstructionPass.hpp"
 #include "vm/jit/compiler2/lsra/LogHelper.hpp"
 #include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
 #include "vm/jit/compiler2/lsra/NewSpillPass.hpp"
@@ -712,20 +713,33 @@ bool RegisterAssignmentPass::run(JITData& JD)
 			}
 
 			// Insert the parallel copies before this instrution
-			for (const auto& copy : parallel_copy) {
-				auto source = factory->CreateNativeRegister<NativeRegister>(
-				    copy.variable->operand->get_type(), copy.source);
-				auto target = factory->CreateNativeRegister<NativeRegister>(
-				    copy.variable->operand->get_type(), copy.target);
+			if (parallel_copy.begin() != parallel_copy.end()) {
+				ParallelCopyImpl pcopy(JD);
+				LOG1("Calculating parallel copy:\n");
+				for (const auto& copy : parallel_copy) {
+					auto source = factory->CreateNativeRegister<NativeRegister>(
+						copy.variable->operand->get_type(), copy.source);
+					auto target = factory->CreateNativeRegister<NativeRegister>(
+						copy.variable->operand->get_type(), copy.target);
 
-				auto move = JD.get_Backend()->create_Move(source, target);
+					LOG1("Request move " << source << " -> " << target << nl);
+					pcopy.add(source, target);
+
+					used_operands->add(copy.target);
+					copy.variable->ccolor_native = target;
+				}
+
+				pcopy.calculate();
+				auto& operations = pcopy.get_operations();
 				auto iter = std::find(block->begin(), block->end(), instruction);
 				assert(iter != block->end());
-				block->insert_before(iter, move);
+				block->insert_before(iter, operations.begin(), operations.end());
 
-				LOG1("Add Move: " << move << nl);
-
-				copy.variable->ccolor_native = target;
+				if (DEBUG_COND_N(1)) {
+					for (auto operation : operations) {
+						LOG1("Inserting operation before this instruction: " << *operation << nl);
+					}
+				}
 			}
 			assignment.assign_operands_color(instruction);
 		}
@@ -736,16 +750,26 @@ bool RegisterAssignmentPass::run(JITData& JD)
 			assignment.for_each_allocated_variable(
 			    block, [&](const auto variable) { parallel_copy.add(variable, variable->gcolor); });
 
+			ParallelCopyImpl pcopy(JD);
 			for (const auto& copy : parallel_copy) {
 				auto source = factory->CreateNativeRegister<NativeRegister>(copy.variable->operand->get_type(), copy.source);
 				auto target = factory->CreateNativeRegister<NativeRegister>(copy.variable->operand->get_type(), copy.target);
 				
-				auto move = JD.get_Backend()->create_Move(source, target);
-				block->insert_before(--block->end(), move);
-
-				LOG1("Add Move: " << move << nl);
+				pcopy.add(source, target);
 
 				copy.variable->ccolor_native = target;
+			}
+
+			pcopy.calculate();
+			auto& operations = pcopy.get_operations();
+			// TODO: We might need a universal "insert-point" at the end of basic blocks
+			block->insert_before(--block->end(), operations.begin(), operations.end());
+
+			if (DEBUG_COND_N(1)) {
+				LOG1("Fixing global colors:\n");
+				for (auto operation : operations) {
+					LOG1("Inserting operation at end of block (" << *block << "): " << *operation << nl);
+				}
 			}
 		}
 	}

@@ -180,7 +180,7 @@ void BackendBase<X86_64>::create_epilog(MachineBasicBlock* exit, const CalleeSav
 	}
 
 	auto iter = --exit->end();
-	exit->insert_before(--iter, moves.begin(), moves.end());
+	exit->insert_before(iter, moves.begin(), moves.end());
 }
 
 template<>
@@ -865,7 +865,10 @@ void X86_64LoweringVisitor::visit(ALOADInst *I, bool copyOperands) {
 	MachineOperand* src_base = get_op(ref_inst->get_operand(0)->to_Instruction());
 	assert(src_base->get_type() == Type::ReferenceTypeID);
 	MachineOperand* src_index = get_op(ref_inst->get_operand(1)->to_Instruction());
-	assert(src_index->get_type() == Type::IntTypeID);
+	assert(src_index->get_type() == Type::IntTypeID 
+			   || src_index->get_type() == Type::ShortTypeID
+			   || src_index->get_type() == Type::CharTypeID
+			   || src_index->get_type() == Type::ByteTypeID);
 
 	s4 offset;
 	switch (type) {
@@ -874,6 +877,9 @@ void X86_64LoweringVisitor::visit(ALOADInst *I, bool copyOperands) {
 		break;
 	case Type::ShortTypeID:
 		offset = OFFSET(java_shortarray_t, data[0]);
+		break;
+	case Type::CharTypeID:
+		offset = OFFSET(java_chararray_t, data[0]);
 		break;
 	case Type::IntTypeID:
 		offset = OFFSET(java_intarray_t, data[0]);
@@ -921,7 +927,10 @@ void X86_64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 	MachineOperand* src_base = get_op(ref_inst->get_operand(0)->to_Instruction());
 	assert(src_base->get_type() == Type::ReferenceTypeID);
 	MachineOperand* src_index = get_op(ref_inst->get_operand(1)->to_Instruction());
-	assert(src_index->get_type() == Type::IntTypeID);
+	assert(src_index->get_type() == Type::IntTypeID 
+			   || src_index->get_type() == Type::ShortTypeID
+			   || src_index->get_type() == Type::CharTypeID
+			   || src_index->get_type() == Type::ByteTypeID);
 
 	s4 offset;
 	switch (type) {
@@ -930,6 +939,9 @@ void X86_64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 		break;
 	case Type::ShortTypeID:
 		offset = OFFSET(java_shortarray_t, data[0]);
+		break;
+	case Type::CharTypeID:
+		offset = OFFSET(java_chararray_t, data[0]);
 		break;
 	case Type::IntTypeID:
 		offset = OFFSET(java_intarray_t, data[0]);
@@ -984,7 +996,10 @@ void X86_64LoweringVisitor::visit(ARRAYBOUNDSCHECKInst *I, bool copyOperands) {
 	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_index = get_op(I->get_operand(1)->to_Instruction());
 	assert(src_ref->get_type() == Type::ReferenceTypeID);
-	assert(src_index->get_type() == Type::IntTypeID);
+	assert(src_index->get_type() == Type::IntTypeID 
+			   || src_index->get_type() == Type::ShortTypeID
+			   || src_index->get_type() == Type::CharTypeID
+			   || src_index->get_type() == Type::ByteTypeID);
 
 	// Implicit null-checks are handled via deoptimization.
 	place_deoptimization_marker(I);

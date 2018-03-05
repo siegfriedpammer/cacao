@@ -74,8 +74,8 @@ JNIEXPORT void JNICALL Java_org_cacaojvm_compiler2_test_Compiler2Test_compileMet
 		os::abort();
 	}
 
-	// there is no main method or it isn't static
-	if ((m == NULL) || !(m->flags & ACC_STATIC)) {
+	// throw exception if method is not found
+	if (m == NULL) {
 		exceptions_clear_exception();
 		exceptions_throw_nosuchmethoderror(ci, u, d);
 		exceptions_print_stacktrace();
@@ -132,8 +132,8 @@ JNIEXPORT jobject JNICALL Java_org_cacaojvm_compiler2_test_Compiler2Test_execute
 		os::abort();
 	}
 
-	// there is no main method or it isn't static
-	if ((m == NULL) || !(m->flags & ACC_STATIC)) {
+	// throw exception if method is not found
+	if (m == NULL) {
 		exceptions_clear_exception();
 		exceptions_throw_nosuchmethoderror(ci, u, d);
 		exceptions_print_stacktrace();

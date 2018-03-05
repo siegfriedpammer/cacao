@@ -1931,7 +1931,7 @@ void replace_handle_countdown_trap(u1 *pc, executionstate_t *es)
 bool replace_handle_replacement_trap(u1 *pc, executionstate_t *es)
 {
 	/* search the codeinfo for the given PC */
-
+	
 	codeinfo *code = code_find_codeinfo_for_pc(pc);
 	assert(code);
 

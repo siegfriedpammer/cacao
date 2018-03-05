@@ -142,6 +142,11 @@ STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_read_ila,0,"spill read i/l/a","I
 STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_read_flt,0,"spill read float","Float Spills (read from memory)",spill_read_stat)
 STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_read_dbl,0,"spill read double","Double Spills (read from memory)",spill_read_stat)
 
+STAT_DECLARE_GROUP(compiler2_stat)
+STAT_REGISTER_SUBGROUP(compiler2_jit_stat, "Compiler 2 JIT","General compiler2 JIT statistics", compiler2_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t, count_c2_calls, 0, "total compiler2 calls", "Number of optimizing compiler2 calls", compiler2_jit_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t, count_c2_success, 0, "successfull optimizations", "Number of successfully optimized methods", compiler2_jit_stat)
+
 /* jit_init ********************************************************************
 
    Initializes the JIT subsystem.
@@ -945,10 +950,69 @@ void jit_invalidate_code(methodinfo *m)
 	/* activate mappable replacement points */
 
 #if defined(ENABLE_COMPILER2)
-	replace_activate_replacement_points(code, true);
+	// replace_activate_replacement_points(code, true);
 #else
 	vm_abort("invalidating code only works with ENABLE_COMPILER2");
 #endif
+}
+
+/* jit_optimize_without_replace ************************************************
+
+   TEMPORARY. Called by count down trap. Recompiles with second stage but does
+   no on-stack-replacement.	
+
+*******************************************************************************/
+
+namespace option {
+	cacao::Option<bool> compare_disassembly("CompareDisassembly", "compiler2: dumps baseline and optimized version next to each other",false,::cacao::option::xx_root());
+}
+
+u1 *jit_optimize_without_replace(u1* xpc, void *pv, void *ra, void *mptr)
+{
+	codeinfo *code = code_find_codeinfo_for_pc((void*)xpc);
+	assert(code);
+	methodinfo *method = code->m;
+	
+	if (method->code->optlevel > 0) {
+		// Code was already optimized (or tried to)
+		LOG3("skipping method " << *method << cacao::nl);
+		return method->code->entrypoint;
+	}
+
+	LOG("optimizing method: " << *method << cacao::nl);
+
+	jit_request_optimization(method);
+	
+	try {
+		STATISTICS(count_c2_calls++);
+		if (!cacao::jit::compiler2::compile(method))
+			throw std::runtime_error("copmiler2 failed somewhere (see logs)");
+		STATISTICS(count_c2_success++);
+
+		LOG(cacao::BoldGreen << "Successfully optimized " << *method
+		                     << cacao::reset_color << cacao::nl);
+
+		if (option::compare_disassembly) {
+			u1* start = method->code->prev->entrypoint;
+			u1* end = method->code->prev->mcode + method->code->prev->mcodelength;
+
+			cacao::out() << cacao::Green << "Baseline version: " << *method << "\n" << cacao::reset_color;
+			disassemble(start, end);
+
+			start = method->code->entrypoint;
+			end = method->code->mcode + method->code->mcodelength;
+
+			cacao::out() << cacao::Green << "Optimized version: " << *method << "\n" << cacao::reset_color;
+			disassemble(start, end);
+		}
+	} catch (std::runtime_error err) {
+		LOG(cacao::BoldRed << "Failed to compile " << *method 
+			               << cacao::reset_color << cacao::nl);
+		jit_recompile_for_deoptimization(method);
+		method->code->optlevel = 1; // Set optlevel to 1, so we dont do this again
+	}
+	
+	return method->code->entrypoint;
 }
 
 

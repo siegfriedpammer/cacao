@@ -1195,7 +1195,10 @@ public:
 	explicit AREFInst(Type::TypeID type, Value* ref, Value* index, BeginInst* begin)
 			: Instruction(AREFInstID, type) {
 		assert(ref->get_type() == Type::ReferenceTypeID);
-		assert(index->get_type() == Type::IntTypeID);
+		assert(index->get_type() == Type::IntTypeID 
+			   || index->get_type() == Type::ShortTypeID
+			   || index->get_type() == Type::CharTypeID
+			   || index->get_type() == Type::ByteTypeID);
 		assert(begin);
 		append_op(ref);
 		append_op(index);
@@ -1400,7 +1403,10 @@ public:
 		assert(arrayref != NULL);
 		assert(arrayref->get_type() == Type::ReferenceTypeID);
 		assert(index != NULL);
-		assert(index->get_type() == Type::IntTypeID);
+		assert(index->get_type() == Type::IntTypeID 
+			   || index->get_type() == Type::ShortTypeID
+			   || index->get_type() == Type::CharTypeID
+			   || index->get_type() == Type::ByteTypeID);
 	}
 
 	virtual Instruction *get_objectref() {

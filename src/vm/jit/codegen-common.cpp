@@ -1532,6 +1532,16 @@ bool codegen_emit(jitdata *jd)
 	}
 #endif
 
+	
+	#if defined(ENABLE_REPLACEMENT)
+		// Create replacement points.
+		codegen_create_replacement_points(jd);
+		cd->replacementpoint = jd->code->rplpoints;
+
+		// Emit countdown trap before prolog
+		codegen_set_replacement_point(cd);
+	#endif
+
 	// Emit code for the method prolog.
 	codegen_emit_prolog(jd);
 
@@ -1549,12 +1559,6 @@ bool codegen_emit(jitdata *jd)
 	// With SSA the header is basicblock 0, insert phi moves if necessary.
 	if (ls != NULL)
 		codegen_emit_phi_moves(jd, ls->basicblocks[0]);
-#endif
-
-#if defined(ENABLE_REPLACEMENT)
-	// Create replacement points.
-	codegen_create_replacement_points(jd);
-	cd->replacementpoint = jd->code->rplpoints;
 #endif
 
 	/*
@@ -1575,8 +1579,7 @@ bool codegen_emit(jitdata *jd)
 
 #if defined(ENABLE_REPLACEMENT)
 		// Set a replacement point at the start of this block if necessary.
-		if (bptr == jd->basicblocks ||
-				(bptr->predecessorcount > 1 && JITDATA_HAS_FLAG_DEOPTIMIZE(jd))) {
+		if (bptr->predecessorcount > 1 && JITDATA_HAS_FLAG_DEOPTIMIZE(jd)) {
 			codegen_set_replacement_point(cd);
 		}
 #endif

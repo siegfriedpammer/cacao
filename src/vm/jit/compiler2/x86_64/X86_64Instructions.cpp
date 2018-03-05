@@ -33,6 +33,8 @@
 
 #include "toolbox/logging.hpp"
 
+#include <stdexcept>
+
 #define DEBUG_NAME "compiler2/x86_64"
 
 namespace cacao {
@@ -436,9 +438,10 @@ void MovInst::emit(CodeMemory* CM) const {
 		opcode = 0xc7;
 		break;
 	default: 
-		ABORT_MSG(this << ": Operand(s) not supported",
+		ERROR_MSG(this << ": Operand(s) not supported",
 			"dst: " << dst << " src: " << src << " op_size: "
 			<< get_op_size() * 8 << "bit");
+		throw std::runtime_error("Unsupported operands");
 		break;
 	}
 

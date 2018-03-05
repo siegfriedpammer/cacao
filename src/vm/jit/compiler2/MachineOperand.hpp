@@ -114,6 +114,7 @@ public:
 
 	OperandID get_OperandID() const { return op_id; }
 	Type::TypeID get_type() const { return type; }
+	void set_type(Type::TypeID newt) { type = newt; }
 
 	virtual const char* get_name() const  = 0;
 

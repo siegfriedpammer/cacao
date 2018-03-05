@@ -111,16 +111,16 @@ X86_64RegisterClass<X86_64Class::GP>::X86_64RegisterClass()
     : all(NOF.EmptySet()), caller_saved(NOF.EmptySet()), callee_saved(NOF.EmptySet())
 {
 	for (const auto reg : IntegerCallerSavedRegisters) {
-		// caller_saved.add(reg);
+		caller_saved.add(reg);
 	}
 
 	for (const auto reg : IntegerCalleeSavedRegisters) {
-		// callee_saved.add(reg);
+		callee_saved.add(reg);
 	}
 
-	caller_saved.add(&RDI);
-	caller_saved.add(&RSI);
-	caller_saved.add(&RAX);
+	//caller_saved.add(&RDI);
+	//caller_saved.add(&RSI);
+	//caller_saved.add(&RAX);
 
 	all |= caller_saved;
 	all |= callee_saved;

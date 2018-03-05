@@ -33,7 +33,7 @@
 #include "vm/jit/compiler2/memory/Manager.hpp"
 #include "vm/types.hpp"
 
-MM_MAKE_NAME(MachineOperandSet)
+MM_MAKE_NAME(OperandSet)
 
 namespace cacao {
 namespace jit {
@@ -58,7 +58,7 @@ using OperandList = std::vector<MachineOperand*>;
  *
  * Important, since this is a set, it can NOT be sorted.
  */
-class OperandSet : public memory::ManagerMixin<MachineOperandSet> {
+class OperandSet : public memory::ManagerMixin<OperandSet> {
 public:
 	using size_t = boost::dynamic_bitset<>::size_type;
 
@@ -198,7 +198,7 @@ private:
  * type with each MachineOperand in the set.
  */
 template <typename T>
-class ExtendedOperandSet : public memory::ManagerMixin<MachineOperandSet> {
+class ExtendedOperandSet : public memory::ManagerMixin<OperandSet> {
 public:
 	ExtendedOperandSet() = delete;
 	ExtendedOperandSet(const ExtendedOperandSet&) = default;

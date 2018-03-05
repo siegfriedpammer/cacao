@@ -1881,11 +1881,12 @@ void vm_shutdown(s4 status)
 	}
 #endif
 
+	write_logfiles();
+
 #if defined(ENABLE_THREADS)
 	finalizer_join_thread();
 #endif
 
-	write_logfiles();
 	exit(status);
 }
 
@@ -1902,7 +1903,7 @@ void vm_shutdown(s4 status)
 *******************************************************************************/
 
 void vm_exit_handler(void)
-{
+{	
 #if !defined(NDEBUG)
 	if (showmethods)
 		class_showmethods(mainclass);
@@ -1939,6 +1940,7 @@ void vm_exit_handler(void)
 
 #endif /* defined(ENABLE_STATISTICS) */
 	}
+	// write_logfiles();
 	/* vm_print_profile(stderr);*/
 }
 
