@@ -33,13 +33,11 @@ namespace jit {
 namespace compiler2 {
 
 bool RegisterAllocatorPass::run(JITData &JD) {
-	// ABORT_MSG("This is the end.", "The buck stops here!");
 	return true;
 }
 
 // pass usage
 PassUsage& RegisterAllocatorPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<RegisterAssignmentPass>();
 	return PU;
 }
 

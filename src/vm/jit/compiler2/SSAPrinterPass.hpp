@@ -43,10 +43,10 @@ class SSAPrinterPass : public Pass, public memory::ManagerMixin<SSAPrinterPass> 
 public:
 	static Option<bool> enabled;
 	SSAPrinterPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PA) const override;
 
-    virtual bool is_enabled() const {
+    bool is_enabled() const override {
         return SSAPrinterPass::enabled;
     }
 };
@@ -60,15 +60,11 @@ class BasicBlockPrinterPass : public Pass, public memory::ManagerMixin<BasicBloc
 public:
 	static Option<bool> enabled;
 	BasicBlockPrinterPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PA) const override;
     
-    virtual bool is_enabled() const {
+    bool is_enabled() const override {
         return BasicBlockPrinterPass::enabled;
-    }
-
-    virtual bool force_scheduling() const {
-        return true;
     }
 };
 
@@ -84,15 +80,11 @@ private:
 	static const char* name;
 public:
 	GlobalSchedulePrinterPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PA) const override;
 
-    virtual bool is_enabled() const {
+    bool is_enabled() const override {
         return schedule_printer_enabled;
-    }
-
-    virtual bool force_scheduling() const {
-        return true;
     }
 };
 

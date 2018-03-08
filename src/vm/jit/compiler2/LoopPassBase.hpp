@@ -50,7 +50,7 @@ namespace compiler2 {
  * @cite ClickPHD.
  */
 template <class _T>
-class LoopPassBase : public Pass, public memory::ManagerMixin<LoopPassBase<_T> >, public LoopTreeBase<_T> {
+class LoopPassBase : public Pass, public Artifact, public memory::ManagerMixin<LoopPassBase<_T> >, public LoopTreeBase<_T> {
 private:
 	typedef _T NodeType;
 	typedef typename alloc::set<const NodeType *>::type NodeListTy;
@@ -83,8 +83,12 @@ private:
 	NodeType* get_init_node(JITData &JD);
 public:
 	LoopPassBase() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
+
+	LoopPassBase* provide_Artifact(ArtifactInfo::IDTy) override {
+		return this;
+	}
 };
 
 template<class NodeType>

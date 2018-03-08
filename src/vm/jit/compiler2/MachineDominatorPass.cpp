@@ -34,28 +34,28 @@ namespace compiler2 {
 template <>
 MachineDominatorPass::NodeTy* MachineDominatorPass::get_init_node(JITData& JD)
 {
-	auto MIS = get_Pass<MachineInstructionSchedulingPass>();
+	auto MIS = get_Artifact<LIRControlFlowGraphArtifact>()->MIS;
 	return MIS->front();
 }
 
 template<>
 std::size_t MachineDominatorPass::get_nodes_size(JITData &JD)
 {
-	auto MIS = get_Pass<MachineInstructionSchedulingPass>();
+	auto MIS = get_Artifact<LIRControlFlowGraphArtifact>()->MIS;
 	return MIS->size();
 }
 
 template<>
 auto MachineDominatorPass::node_begin(JITData &JD)
 {
-	auto MIS = get_Pass<MachineInstructionSchedulingPass>();
+	auto MIS = get_Artifact<LIRControlFlowGraphArtifact>()->MIS;
 	return MIS->begin();
 }
 
 template<>
 auto MachineDominatorPass::node_end(JITData &JD)
 {
-	auto MIS = get_Pass<MachineInstructionSchedulingPass>();
+	auto MIS = get_Artifact<LIRControlFlowGraphArtifact>()->MIS;
 	return MIS->end();
 }
 
@@ -82,12 +82,15 @@ MachineDominatorPass::NodeTy* MachineDominatorPass::get(MachineBasicBlock* block
 template <>
 PassUsage& MachineDominatorPass::get_PassUsage(PassUsage& PU) const
 {
-	PU.add_requires<MachineInstructionSchedulingPass>();
+	PU.provides<MachineDominatorPass>();
+	PU.requires<LIRControlFlowGraphArtifact>();
 	return PU;
 }
 
 // register pass
 static PassRegistry<MachineDominatorPass> X("MachineDominatorPass");
+static ArtifactRegistry<MachineDominatorPass> Y("MachineDominatorPass");
+
 
 } // end namespace compiler2
 } // end namespace jit

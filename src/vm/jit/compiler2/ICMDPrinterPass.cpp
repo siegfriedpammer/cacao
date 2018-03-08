@@ -45,7 +45,7 @@ bool ICMDPrinterPass::run(JITData &JD) {
 
 // pass usage
 PassUsage& ICMDPrinterPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<CFGConstructionPass>();
+	PU.immediately_after<CFGConstructionPass>();
 	return PU;
 }
 

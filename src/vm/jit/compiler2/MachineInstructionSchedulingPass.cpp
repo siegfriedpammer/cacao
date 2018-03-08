@@ -75,11 +75,11 @@ struct UpdatePhiOperand : public std::unary_function<MachinePhiInst*,void> {
 bool MachineInstructionSchedulingPass::run(JITData &JD) {
 	MOF = JD.get_MachineOperandFactory();
 
-	BasicBlockSchedule *BS = get_Pass<BasicBlockSchedulingPass>();
+	BasicBlockSchedule *BS = get_Artifact<BasicBlockSchedule>();
 #if !PATTERN_MATCHING
-	ListSchedulingPass* IS = get_Pass<ListSchedulingPass>();
+	ListSchedulingPass* IS = get_Artifact<ListSchedulingPass>();
 #else
-	GlobalSchedule* GS = get_Pass<ScheduleClickPass>();
+	GlobalSchedule* GS = get_Artifact<ScheduleClickPass>();
 #endif
 
 	alloc::map<BeginInst*,MachineBasicBlock*>::type map;
@@ -257,14 +257,18 @@ bool MachineInstructionSchedulingPass::verify() const {
 
 // pass usage
 PassUsage& MachineInstructionSchedulingPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<BasicBlockSchedulingPass>();
-	PU.add_requires<ScheduleClickPass>();
-	PU.add_requires<ListSchedulingPass>();
+	PU.provides<LIRControlFlowGraphArtifact>();
+	PU.provides<LIRInstructionScheduleArtifact>();
+	PU.requires<BasicBlockSchedule>();
+	PU.requires<ScheduleClickPass>();
+	PU.requires<ListSchedulingPass>();
 	return PU;
 }
 
 // register pass
 static PassRegistry<MachineInstructionSchedulingPass> X("MachineInstructionSchedulingPass");
+static ArtifactRegistry<LIRControlFlowGraphArtifact> Y("LIRControlFlowGraphArtifact");
+static ArtifactRegistry<LIRInstructionScheduleArtifact> Z("LIRInstructionScheduleArtifact");
 
 // LIST SCHEDULING PART MOVED HERE
 

@@ -46,7 +46,7 @@ struct MBBCompare {
  * CodeGenPass
  * TODO: more info
  */
-class CodeGenPass : public Pass, public memory::ManagerMixin<CodeGenPass> {
+class CodeGenPass : public Pass, public Artifact, public memory::ManagerMixin<CodeGenPass> {
 public:
 	typedef alloc::map<MachineBasicBlock*,std::size_t,MBBCompare>::type BasicBlockMap;
 #ifdef ENABLE_LOGGING
@@ -91,15 +91,15 @@ private:
 	BasicBlockMap bbmap;
 public:
 	CodeGenPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
 	std::size_t get_block_size(MachineBasicBlock *MBB) const;
 	BasicBlockMap::const_iterator begin() const { return bbmap.begin(); }
 	BasicBlockMap::const_iterator end() const { return bbmap.end(); }
 
-	// By force scheduling the CodeGenPass, we kick off the whole basic
-	// pass pipeline (via required chain)
-	bool force_scheduling() const { return true; }
+	CodeGenPass* provide_Artifact(ArtifactInfo::IDTy) override {
+		return this;
+	}
 };
 
 } // end namespace compiler2

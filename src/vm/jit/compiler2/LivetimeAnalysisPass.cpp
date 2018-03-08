@@ -250,8 +250,8 @@ namespace option {
 
 bool LivetimeAnalysisPass::run(JITData &JD) {
 	LOG("LivetimeAnalysisPass::run()" << nl);
-	MIS = get_Pass<MachineInstructionSchedulingPass>();
-	MachineLoopTree *MLT = get_Pass<MachineLoopPass>();
+	MIS = get_Artifact<LIRInstructionScheduleArtifact>()->MIS;
+	MachineLoopTree *MLT = get_Artifact<MachineLoopPass>();
 	// TODO use better data structure for the register set
 	LiveInMapTy liveIn;
 
@@ -401,8 +401,6 @@ bool LivetimeAnalysisPass::verify() const {
 
 // pass usage
 PassUsage& LivetimeAnalysisPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<MachineLoopPass>();
-	PU.add_requires<MachineInstructionSchedulingPass>();
 	return PU;
 }
 

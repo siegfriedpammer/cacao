@@ -659,8 +659,8 @@ bool LinearScanAllocatorPass::allocate_unhandled() {
 }
 
 bool LinearScanAllocatorPass::run(JITData &JD) {
-	LA = get_Pass<LivetimeAnalysisPass>();
-	MIS = get_Pass<MachineInstructionSchedulingPass>();
+	LA = get_Artifact<LivetimeAnalysisPass>();
+	MIS = get_Artifact<LIRInstructionScheduleArtifact>()->MIS;
 	jd = &JD;
 	backend = jd->get_Backend();
 
@@ -1249,14 +1249,7 @@ bool LinearScanAllocatorPass::verify() const {
 
 
 // pass usage
-PassUsage& LinearScanAllocatorPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<LivetimeAnalysisPass>();
-	PU.add_requires<MachineInstructionSchedulingPass>();
-
-	PU.add_modifies<MachineInstructionSchedulingPass>();
-	
-	PU.add_destroys<LivetimeAnalysisPass>();
-	PU.add_destroys<NewLivetimeAnalysisPass>();
+PassUsage& LinearScanAllocatorPass::get_PassUsage(PassUsage &PU) const {	
 	return PU;
 }
 

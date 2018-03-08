@@ -28,7 +28,7 @@
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/DominatorPass.hpp"
-#include "vm/jit/compiler2/InstructionMetaPass.hpp"
+#include "vm/jit/compiler2/SSAConstructionPass.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -82,7 +82,7 @@ void ScheduleEarlyPass::schedule_early(Instruction *I) {
 }
 
 bool ScheduleEarlyPass::run(JITData &JD) {
-	DT = get_Pass<DominatorPass>();
+	DT = get_Artifact<DominatorPass>();
 	M = JD.get_Method();
 	for (Method::InstructionListTy::const_iterator i = M->begin(),
 			e = M->end() ; i != e ; ++i) {
@@ -95,13 +95,15 @@ bool ScheduleEarlyPass::run(JITData &JD) {
 }
 
 PassUsage& ScheduleEarlyPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<DominatorPass>();
-	PU.add_requires<InstructionMetaPass>();
+	PU.provides<ScheduleEarlyPass>();
+	PU.requires<HIRInstructionsArtifact>();
+	PU.requires<DominatorPass>();	
 	return PU;
 }
 
 // registrate Pass
 static PassRegistry<ScheduleEarlyPass> X("ScheduleEarlyPass");
+static ArtifactRegistry<ScheduleEarlyPass> Y("ScheduleEarlyPass");
 
 } // end namespace compiler2
 } // end namespace jit

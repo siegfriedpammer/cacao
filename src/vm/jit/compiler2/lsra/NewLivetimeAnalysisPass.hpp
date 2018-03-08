@@ -151,11 +151,15 @@ private:
 	const DefUseChain& get(const MachineOperand*) const;
 };
 
-class NewLivetimeAnalysisPass : public Pass, public memory::ManagerMixin<NewLivetimeAnalysisPass> {
+class NewLivetimeAnalysisPass : public Pass, public Artifact, public memory::ManagerMixin<NewLivetimeAnalysisPass> {
 public:
 	NewLivetimeAnalysisPass() : Pass(), next_use(*this) {}
-	virtual bool run(JITData& JD);
-	virtual PassUsage& get_PassUsage(PassUsage& PU) const;
+	bool run(JITData& JD) override;
+	PassUsage& get_PassUsage(PassUsage& PU) const override;
+
+	NewLivetimeAnalysisPass* provide_Artifact(ArtifactInfo::IDTy) override {
+		return this;
+	}
 
 	/**
 	 * Updates a liveness set over a single step.

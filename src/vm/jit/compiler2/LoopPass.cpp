@@ -24,7 +24,7 @@
 
 #include "vm/jit/compiler2/LoopPass.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
-#include "vm/jit/compiler2/CFGMetaPass.hpp"
+#include "vm/jit/compiler2/SSAConstructionPass.hpp"
 
 namespace cacao {
 namespace jit {
@@ -32,7 +32,8 @@ namespace compiler2 {
 
 template<>
 PassUsage& LoopPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<CFGMetaPass>();
+	PU.requires<HIRControlFlowGraphArtifact>();
+	PU.provides<LoopPass>();
 	return PU;
 }
 
@@ -44,6 +45,7 @@ LoopPass::NodeType* LoopPass::get_init_node(JITData &JD) {
 
 // register pass
 static PassRegistry<LoopPass> X("LoopPass");
+static ArtifactRegistry<LoopPass> Y("LoopPass");
 
 } // end namespace compiler2
 } // end namespace jit

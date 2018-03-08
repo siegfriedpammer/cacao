@@ -60,7 +60,7 @@ const PressureTy& LoopPressurePass::get_block_pressure(MachineBasicBlock* block)
 
 void LoopPressurePass::compute_block_pressure(MachineBasicBlock* block)
 {
-	auto LTA = get_Pass<NewLivetimeAnalysisPass>();
+	auto LTA = get_Artifact<NewLivetimeAnalysisPass>();
 	auto pressures_ptr = std::make_unique<PressureTy>(RI->class_count());
 	auto& pressures = *pressures_ptr;
 
@@ -128,7 +128,7 @@ bool LoopPressurePass::run(JITData& JD)
 		class_operands.push_back(MOF->OperandsInClass(rc));
 	}
 
-	auto MLP = get_Pass<MachineLoopPass>();
+	auto MLP = get_Artifact<MachineLoopPass>();
 	for (auto i = MLP->loop_begin(), e = MLP->loop_end(); i != e; ++i) {
 		looptree_walk(*i);
 	}
@@ -138,13 +138,15 @@ bool LoopPressurePass::run(JITData& JD)
 // pass usage
 PassUsage& LoopPressurePass::get_PassUsage(PassUsage& PU) const
 {
-	PU.add_requires<MachineLoopPass>();
-	PU.add_requires<NewLivetimeAnalysisPass>();
+	PU.provides<LoopPressurePass>();
+	PU.requires<MachineLoopPass>();
+	PU.requires<NewLivetimeAnalysisPass>();
 	return PU;
 }
 
 // register pass
 static PassRegistry<LoopPressurePass> X("LoopPressurePass");
+static ArtifactRegistry<LoopPressurePass> Y("LoopPressurePass");
 
 } // end namespace compiler2
 } // end namespace jit

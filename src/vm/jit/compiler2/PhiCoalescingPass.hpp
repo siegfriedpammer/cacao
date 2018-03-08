@@ -41,6 +41,7 @@ public:
 	PhiCoalescingPass() : Pass() {}
 	virtual bool run(JITData& JD);
 	virtual PassUsage& get_PassUsage(PassUsage& PU) const;
+	bool is_enabled() const override { return false; }
 
 private:
 	Backend* backend;

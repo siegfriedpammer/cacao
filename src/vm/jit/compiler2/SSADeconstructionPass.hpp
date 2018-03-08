@@ -69,7 +69,7 @@ private:
 	bool swap_registers();
 };
 
-class SSADeconstructionPass : public Pass, public memory::ManagerMixin<SSADeconstructionPass> {
+class SSADeconstructionPass : public Pass, public Artifact, public memory::ManagerMixin<SSADeconstructionPass> {
 public:
 	SSADeconstructionPass() : Pass() {}
 	virtual bool run(JITData& JD);

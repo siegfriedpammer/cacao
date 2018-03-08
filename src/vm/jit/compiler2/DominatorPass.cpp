@@ -24,7 +24,7 @@
 
 #include "vm/jit/compiler2/DominatorPass.hpp"
 
-#include "vm/jit/compiler2/CFGMetaPass.hpp"
+#include "vm/jit/compiler2/SSAConstructionPass.hpp"
 
 namespace cacao {
 namespace jit {
@@ -84,12 +84,14 @@ inline DominatorPass::NodeTy* DominatorPass::get(BeginInstRef ref) {
 template <>
 PassUsage& DominatorPass::get_PassUsage(PassUsage& PU) const
 {
-	PU.add_requires<CFGMetaPass>();
+	PU.requires<HIRControlFlowGraphArtifact>();
+	PU.provides<DominatorPass>();
 	return PU;
 }
 
 // register pass
 static PassRegistry<DominatorPass> X("DominatorPass");
+static ArtifactRegistry<DominatorPass> Y("DominatorPass");
 
 } // end namespace compiler2
 } // end namespace jit

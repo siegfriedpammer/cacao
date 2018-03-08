@@ -54,8 +54,12 @@ private:
 public:
 	void schedule_late(Instruction *I);
 	ScheduleLatePass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
+
+	ScheduleLatePass* provide_Artifact(ArtifactInfo::IDTy) override {
+		return this;
+	}
 };
 
 } // end namespace compiler2

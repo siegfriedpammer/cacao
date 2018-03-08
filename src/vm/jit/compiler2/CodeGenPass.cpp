@@ -137,7 +137,7 @@ Option<bool> CodeGenPass::print_data("PrintDataSegment","compiler2: print data s
 #endif
 
 bool CodeGenPass::run(JITData &JD) {
-	MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
+	MachineInstructionSchedule *MIS = get_Artifact<LIRInstructionScheduleArtifact>()->MIS;
 	CodeMemory *CM = JD.get_CodeMemory();
 	CodeSegment &CS = CM->get_CodeSegment();
 	StackSlotManager *SSM = JD.get_StackSlotManager();
@@ -146,7 +146,7 @@ bool CodeGenPass::run(JITData &JD) {
 	// Create Prolog and Epilog, first calculate all used callee saved registers
 	// and assign each callee saved register a stackslot and a native register
 	Backend::CalleeSavedRegisters registers;
-	auto used_operands = get_Pass<RegisterAssignmentPass>()->get_used_operands();
+	auto used_operands = get_Artifact<RegisterAssignmentPass>()->get_used_operands();
 	auto RI = JD.get_Backend()->get_RegisterInfo();
 	for (unsigned idx = 0; idx < RI->class_count(); ++idx) {
 		const auto& regclass = RI->get_class(idx);
@@ -531,7 +531,7 @@ void CodeGenPass::finish(JITData &JD) {
 	/* replacement point resolving */
 	{
 		MInstListTy rplpoints;
-		MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
+		MachineInstructionSchedule *MIS = get_Artifact<LIRInstructionScheduleArtifact>()->MIS;
 		find_all_replacement_points(MIS, std::back_inserter(rplpoints));
 		resolve_replacement_points(rplpoints.begin(), rplpoints.end(), JD);
 	}
@@ -567,14 +567,16 @@ void CodeGenPass::finish(JITData &JD) {
 
 // pass usage
 PassUsage& CodeGenPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<MachineInstructionSchedulingPass>();
-	PU.add_requires<SSADeconstructionPass>();
-	PU.add_requires<RegisterAssignmentPass>();
+	PU.provides<CodeGenPass>();
+	PU.requires<LIRInstructionScheduleArtifact>();
+	PU.requires<SSADeconstructionPass>();
+	PU.requires<RegisterAssignmentPass>();
 	return PU;
 }
 
 // registrate Pass
 static PassRegistry<CodeGenPass> X("CodeGenPass");
+static ArtifactRegistry<CodeGenPass> Y("CodeGenPass");
 
 } // end namespace compiler2
 } // end namespace jit

@@ -39,9 +39,10 @@ class MachinePhiInst;
 class PhiLiftingPass : public Pass, public memory::ManagerMixin<PhiLiftingPass> {
 public:
 	PhiLiftingPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
-
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
+	bool is_enabled() const override { return false; }
+	
 private:
 	Backend* backend;
 

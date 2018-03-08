@@ -41,7 +41,7 @@ namespace compiler2 {
 
 bool ReversePostOrderPass::run(JITData& JD)
 {
-	auto MIS = get_Pass<MachineInstructionSchedulingPass>();
+	auto MIS = get_Artifact<LIRControlFlowGraphArtifact>()->MIS;
 
 	// Reset all basic blocks
 	for (auto block : *MIS) {
@@ -54,7 +54,7 @@ bool ReversePostOrderPass::run(JITData& JD)
 
 void ReversePostOrderPass::build_reverse_post_order(MachineBasicBlock* block)
 {
-	auto loop_tree = get_Pass<MachineLoopPass>();
+	auto loop_tree = get_Artifact<MachineLoopPass>();
 	for (auto i = block->back()->successor_begin(), e = block->back()->successor_end(); i != e;
 	     ++i) {
 		auto succ = *i;
@@ -71,13 +71,15 @@ void ReversePostOrderPass::build_reverse_post_order(MachineBasicBlock* block)
 // pass usage
 PassUsage& ReversePostOrderPass::get_PassUsage(PassUsage& PU) const
 {
-	PU.add_requires<MachineInstructionSchedulingPass>();
-	PU.add_requires<MachineLoopPass>();
+	PU.provides<ReversePostOrderPass>();
+	PU.requires<LIRControlFlowGraphArtifact>();
+	PU.requires<MachineLoopPass>();
 	return PU;
 }
 
 // register pass
 static PassRegistry<ReversePostOrderPass> X("ReversePostOrderPass");
+static ArtifactRegistry<ReversePostOrderPass> Y("ReversePostOrderPass");
 
 } // end namespace compiler2
 } // end namespace jit

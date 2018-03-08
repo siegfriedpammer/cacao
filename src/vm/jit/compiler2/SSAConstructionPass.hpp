@@ -126,10 +126,13 @@ private:
 public:
 	Value* read_variable(size_t varindex, size_t bb);
 	SSAConstructionPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual bool verify() const;
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	bool verify() const override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
 };
+
+class HIRControlFlowGraphArtifact : public Artifact {};
+class HIRInstructionsArtifact : public Artifact {};
 
 } // end namespace cacao
 } // end namespace jit

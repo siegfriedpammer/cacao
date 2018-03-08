@@ -2019,12 +2019,17 @@ bool SSAConstructionPass::verify() const {
 }
 
 PassUsage& SSAConstructionPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<CFGConstructionPass>();
+	PU.after<CFGConstructionPass>();
+
+	PU.provides<HIRControlFlowGraphArtifact>();
+	PU.provides<HIRInstructionsArtifact>();
 	return PU;
 }
 
 // registrate Pass
 static PassRegistry<SSAConstructionPass> X("SSAConstructionPass");
+static ArtifactRegistry<HIRControlFlowGraphArtifact> Y("HIRControlFlowGraphArtifact");
+static ArtifactRegistry<HIRInstructionsArtifact> Z("HIRInstructionsArtifact");
 
 } // end namespace cacao
 } // end namespace jit

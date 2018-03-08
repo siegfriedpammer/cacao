@@ -168,12 +168,16 @@ private:
 	std::vector<Copy> operations;
 };
 
-class RegisterAssignmentPass : public Pass, public memory::ManagerMixin<RegisterAssignmentPass> {
+class RegisterAssignmentPass : public Pass, public Artifact, public memory::ManagerMixin<RegisterAssignmentPass> {
 public:
 	RegisterAssignmentPass() : Pass(), assignment(*this) {}
-	virtual bool run(JITData& JD);
-	virtual bool verify() const;
-	virtual PassUsage& get_PassUsage(PassUsage& PU) const;
+	bool run(JITData& JD) override;
+	bool verify() const override;
+	PassUsage& get_PassUsage(PassUsage& PU) const override;
+
+	RegisterAssignmentPass* provide_Artifact(ArtifactInfo::IDTy) override {
+		return this;
+	}
 
 	/// Returns a OperandSet from the Native Operand Factory of all the machine registers
 	/// assigned during this pass. This is currently used to get all callee-saved registers and

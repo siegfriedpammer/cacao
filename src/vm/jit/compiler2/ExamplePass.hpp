@@ -42,10 +42,10 @@ namespace compiler2 {
 class ExamplePass : public Pass, public memory::ManagerMixin<ExamplePass> {
 public:
 	ExamplePass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
 
-	virtual bool is_enabled() const {
+	bool is_enabled() const override {
         return false;
     }
 };

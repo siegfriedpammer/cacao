@@ -49,7 +49,6 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 
 #include "vm/jit/compiler2/ICMDPrinterPass.hpp"
-#include "vm/jit/compiler2/InstructionMetaPass.hpp"
 #include "vm/jit/compiler2/ParserPass.hpp"
 #include "vm/jit/compiler2/StackAnalysisPass.hpp"
 # if defined(ENABLE_VERIFIER)

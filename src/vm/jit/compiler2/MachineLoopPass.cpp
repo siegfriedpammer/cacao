@@ -32,18 +32,21 @@ namespace compiler2 {
 
 template<>
 PassUsage& MachineLoopPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<MachineInstructionSchedulingPass>();
+	PU.provides<MachineLoopPass>();
+	PU.requires<LIRControlFlowGraphArtifact>();
 	return PU;
 }
 
 template<>
 MachineLoopPass::NodeType* MachineLoopPass::get_init_node(JITData &JD) {
-	MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
+	MachineInstructionSchedule *MIS = get_Artifact<LIRControlFlowGraphArtifact>()->MIS;
 	return MIS->front();
 }
 
 // register pass
 static PassRegistry<MachineLoopPass> X("MachineLoopPass");
+static ArtifactRegistry<MachineLoopPass> Y("MachineLoopPass");
+
 
 } // end namespace compiler2
 } // end namespace jit

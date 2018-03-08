@@ -29,7 +29,7 @@
 #include "vm/jit/compiler2/MethodC2.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
-#include "vm/jit/compiler2/InstructionMetaPass.hpp"
+#include "vm/jit/compiler2/SSAConstructionPass.hpp"
 #include "vm/jit/compiler2/DeadCodeEliminationPass.hpp"
 #include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
 #include "toolbox/logging.hpp"
@@ -482,9 +482,9 @@ bool GlobalValueNumberingPass::run(JITData &JD) {
 
 // pass usage
 PassUsage& GlobalValueNumberingPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<InstructionMetaPass>();
-	PU.add_schedule_before<DeadCodeEliminationPass>();
-	PU.add_schedule_before<ScheduleEarlyPass>();
+	PU.requires<HIRInstructionsArtifact>();
+	PU.before<DeadCodeEliminationPass>();
+	PU.before<ScheduleEarlyPass>();
 	return PU;
 }
 

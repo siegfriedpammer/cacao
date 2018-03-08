@@ -48,7 +48,7 @@ private:
 public:
 	static char ID;
 	LoopSimplificationPass() : Pass() {}
-	virtual bool run(JITData &JD);
+	bool run(JITData &JD) override;
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
 };
 #endif

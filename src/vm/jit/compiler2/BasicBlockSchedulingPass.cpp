@@ -132,7 +132,7 @@ public:
 
 bool BasicBlockSchedulingPass::run(JITData &JD) {
 	M = JD.get_Method();
-	LoopTree *LT = get_Pass<LoopPass>();
+	LoopTree *LT = get_Artifact<LoopPass>();
 
 	// schedule loops
 	LoopScheduler loop_scheduler(M,LT);
@@ -209,7 +209,7 @@ bool BasicBlockSchedulingPass::verify() const {
 	}
 	#endif
 	#if VERIFY_PRED_PROPERTY || VERIFY_LOOP_PROPERTY
-	LoopTree *LT = get_Pass<LoopPass>();
+	LoopTree *LT = get_Artifact<LoopPass>();
 	#endif
 	#if VERIFY_PRED_PROPERTY
 	// check predecessor property
@@ -268,12 +268,14 @@ bool BasicBlockSchedulingPass::verify() const {
 
 // pass usage
 PassUsage& BasicBlockSchedulingPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<LoopPass>();
+	PU.provides<BasicBlockSchedule>();
+	PU.requires<LoopPass>();
 	return PU;
 }
 
 // register pass
 static PassRegistry<BasicBlockSchedulingPass> X("BasicBlockSchedulingPass");
+static ArtifactRegistry<BasicBlockSchedule> Y("BasicBlockSchedule");
 
 } // end namespace compiler2
 } // end namespace jit

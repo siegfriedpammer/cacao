@@ -44,7 +44,7 @@ namespace compiler2 {
 class ParserPass : public Pass, public memory::ManagerMixin<ParserPass> {
 public:
 	ParserPass() : Pass() {}
-	virtual bool run(JITData &JD);
+	bool run(JITData &JD) override;
 };
 
 } // end namespace compiler2

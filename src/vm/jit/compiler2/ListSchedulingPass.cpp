@@ -27,7 +27,7 @@
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/MethodC2.hpp"
-#include "vm/jit/compiler2/InstructionMetaPass.hpp"
+#include "vm/jit/compiler2/SSAConstructionPass.hpp"
 #include "vm/jit/compiler2/GlobalSchedule.hpp"
 #include "vm/jit/compiler2/ScheduleClickPass.hpp"
 #include "vm/jit/compiler2/alloc/queue.hpp"
@@ -202,7 +202,7 @@ void ListSchedulingPass::schedule(BeginInst *BI) {
 
 bool ListSchedulingPass::run(JITData &JD) {
 	M = JD.get_Method();
-	GS = get_Pass<ScheduleClickPass>();
+	GS = get_Artifact<ScheduleClickPass>();
 
 	for (Method::const_bb_iterator i = M->bb_begin(), e = M->bb_end() ; i != e ; ++i) {
 		BeginInst *BI = *i;
@@ -242,13 +242,15 @@ bool ListSchedulingPass::verify() const {
 
 // pass usage
 PassUsage& ListSchedulingPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<InstructionMetaPass>();
-	PU.add_requires<ScheduleClickPass>();
+	PU.provides<ListSchedulingPass>();
+	PU.requires<HIRInstructionsArtifact>();
+	PU.requires<ScheduleClickPass>();
 	return PU;
 }
 
 // register pass
 static PassRegistry<ListSchedulingPass> X("ListSchedulingPass");
+static ArtifactRegistry<ListSchedulingPass> Y("ListSchedulingPass");
 
 } // end namespace compiler2
 } // end namespace jit

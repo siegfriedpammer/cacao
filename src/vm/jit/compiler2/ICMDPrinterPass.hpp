@@ -44,15 +44,11 @@ namespace compiler2 {
 class ICMDPrinterPass : public Pass, public memory::ManagerMixin<ICMDPrinterPass> {
 public:
 	ICMDPrinterPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
 
-    virtual bool is_enabled() const {
+    bool is_enabled() const override {
         return opt_showintermediate;
-    }
-
-    virtual bool force_scheduling() const {
-        return true;
     }
 };
 

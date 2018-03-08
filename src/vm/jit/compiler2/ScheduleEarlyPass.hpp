@@ -51,8 +51,12 @@ private:
 	void schedule_early(Instruction *I);
 public:
 	ScheduleEarlyPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
+
+	ScheduleEarlyPass* provide_Artifact(ArtifactInfo::IDTy) override {
+		return this;
+	}
 };
 
 } // end namespace compiler2

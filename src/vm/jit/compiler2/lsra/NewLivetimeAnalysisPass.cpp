@@ -217,8 +217,8 @@ void NewLivetimeAnalysisPass::initialize_blocks() const
 {
 	LOG1("Marking loop exits with higher distance\n");
 
-	auto RPO = get_Pass<ReversePostOrderPass>();
-	auto MLP = get_Pass<MachineLoopPass>();
+	auto RPO = get_Artifact<ReversePostOrderPass>();
+	auto MLP = get_Artifact<MachineLoopPass>();
 	for (const auto block : *RPO) {
 		block->mark_unprocessed();
 
@@ -243,7 +243,7 @@ void NewLivetimeAnalysisPass::initialize_blocks() const
 void NewLivetimeAnalysisPass::initialize_instructions() const
 {
 	LOG1("Setting 'step' for each instruction in a basic block\n");
-	auto RPO = get_Pass<ReversePostOrderPass>();
+	auto RPO = get_Artifact<ReversePostOrderPass>();
 
 	for (const auto block : *RPO) {
 		unsigned step = 0;
@@ -258,7 +258,7 @@ void NewLivetimeAnalysisPass::initialize_instructions() const
  */
 void NewLivetimeAnalysisPass::dag_dfs(MachineBasicBlock* block)
 {
-	auto loop_tree = get_Pass<MachineLoopPass>();
+	auto loop_tree = get_Artifact<MachineLoopPass>();
 	for (auto i = get_successor_begin(block), e = get_successor_end(block); i != e; ++i) {
 		auto succ = *i;
 		// Only visit the successor if it is unproccessed and not a loop-back
@@ -285,7 +285,7 @@ void NewLivetimeAnalysisPass::process_block(MachineBasicBlock* block)
 
 void NewLivetimeAnalysisPass::calculate_liveout(MachineBasicBlock* block)
 {
-	auto loop_tree = get_Pass<MachineLoopPass>();
+	auto loop_tree = get_Artifact<MachineLoopPass>();
 	auto live = mbb_phi_uses(block, true);
 
 	auto& next_use_out = next_use.get_next_use_out(block);
@@ -437,7 +437,7 @@ void NewLivetimeAnalysisPass::next_use_fixed_point()
 		            << reset_color);
 
 		changed = false;
-		auto RPO = get_Pass<ReversePostOrderPass>();
+		auto RPO = get_Artifact<ReversePostOrderPass>();
 		for (auto i = RPO->rbegin(), e = RPO->rend(); i != e; ++i) {
 			auto block = *i;
 
@@ -511,8 +511,8 @@ bool NewLivetimeAnalysisPass::run(JITData& JD)
 
 	MOF = JD.get_MachineOperandFactory();
 
-	MachineInstructionSchedulingPass* MIS = get_Pass<MachineInstructionSchedulingPass>();
-	MachineLoopPass* ML = get_Pass<MachineLoopPass>();
+	MachineInstructionSchedulingPass* MIS = get_Artifact<LIRInstructionScheduleArtifact>()->MIS;
+	MachineLoopPass* ML = get_Artifact<MachineLoopPass>();
 
 	// Reset all basic blocks and set their distance (for next-use)
 	initialize_blocks();
@@ -595,14 +595,16 @@ NextUseSetUPtrTy NewLivetimeAnalysisPass::next_use_set_from(MachineInstruction* 
 // pass usage
 PassUsage& NewLivetimeAnalysisPass::get_PassUsage(PassUsage& PU) const
 {
-	PU.add_requires<MachineLoopPass>();
-	PU.add_requires<MachineInstructionSchedulingPass>();
-	PU.add_requires<ReversePostOrderPass>();
+	PU.provides<NewLivetimeAnalysisPass>();
+	PU.requires<MachineLoopPass>();
+	PU.requires<LIRInstructionScheduleArtifact>();
+	PU.requires<ReversePostOrderPass>();
 	return PU;
 }
 
 // register pass
 static PassRegistry<NewLivetimeAnalysisPass> X("NewLivetimeAnalysisPass");
+static ArtifactRegistry<NewLivetimeAnalysisPass> Y("NewLivetimeAnalysisPass");
 
 } // end namespace compiler2
 } // end namespace jit

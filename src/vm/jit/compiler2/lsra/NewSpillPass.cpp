@@ -144,7 +144,7 @@ void SpillInfo::insert_instructions(const Backend& backend, StackSlotManager& ss
 			new_definitions.emplace_back(&reload_instr->get_result(), iter);
 		}
 
-		auto LTA = sp->get_Pass<NewLivetimeAnalysisPass>();
+		auto LTA = sp->get_Artifact<NewLivetimeAnalysisPass>();
 		auto& chains = LTA->get_def_use_chains();
 		const auto& original_definition = chains.get_definition(operand);
 
@@ -171,7 +171,7 @@ void SSAReconstructor::reconstruct(const Occurrence& original_def,
 		write_variable(occurrence.block(), occurrence.operand);
 	}
 
-	auto LTA = sp->get_Pass<NewLivetimeAnalysisPass>();
+	auto LTA = sp->get_Artifact<NewLivetimeAnalysisPass>();
 	LTA->get_def_use_chains().for_each_use(original_def.operand, [&](const auto& occurrence) {
 		auto operand = this->read_variable(occurrence.block());
 		// LOG3("Found definition in " << *occurrence.block() << " = " << operand << nl);
@@ -279,7 +279,7 @@ void NewSpillPass::limit(OperandSet& workset,
 	sort_by_next_use(*workset_as_list, instruction);
 	LOG3_NAMED_PTR_CONTAINER("Sorted workset: ", *workset_as_list);
 
-	auto LTA = get_Pass<NewLivetimeAnalysisPass>();
+	auto LTA = get_Artifact<NewLivetimeAnalysisPass>();
 	auto next_use_set = LTA->next_use_set_from(instruction);
 	auto iter = std::next(workset_as_list->begin(), m);
 	for (auto i = iter, e = workset_as_list->end(); i != e; ++i) {
@@ -297,7 +297,7 @@ void NewSpillPass::limit(OperandSet& workset,
 
 void NewSpillPass::sort_by_next_use(OperandList& list, MachineInstruction* instruction) const
 {
-	auto LTA = get_Pass<NewLivetimeAnalysisPass>();
+	auto LTA = get_Artifact<NewLivetimeAnalysisPass>();
 	auto next_use_set_ptr = LTA->next_use_set_from(instruction);
 	auto next_use_set = *next_use_set_ptr;
 
@@ -315,8 +315,8 @@ OperandSet NewSpillPass::compute_workset(MachineBasicBlock* block)
 {
 	auto workset = mof->EmptySet();
 
-	auto MLP = get_Pass<MachineLoopPass>();
-	auto LTA = get_Pass<NewLivetimeAnalysisPass>();
+	auto MLP = get_Artifact<MachineLoopPass>();
+	auto LTA = get_Artifact<NewLivetimeAnalysisPass>();
 
 	if (MLP->is_loop_header(block)) {
 		auto used = used_in_loop(block);
@@ -479,8 +479,8 @@ OperandSet NewSpillPass::compute_spillset(MachineBasicBlock* block, const Operan
 
 OperandSet NewSpillPass::used_in_loop(MachineBasicBlock* block)
 {
-	auto MLP = get_Pass<MachineLoopPass>();
-	auto LTA = get_Pass<NewLivetimeAnalysisPass>();
+	auto MLP = get_Artifact<MachineLoopPass>();
+	auto LTA = get_Artifact<NewLivetimeAnalysisPass>();
 
 	auto used_operands = mof->EmptySet();
 	auto live_in = LTA->get_live_in(block);
@@ -506,7 +506,7 @@ OperandSet NewSpillPass::used_in_loop(MachineLoop* loop, OperandSet& live_loop)
 	}
 	LOG2(reset_color << nl);
 
-	auto LTA = get_Pass<NewLivetimeAnalysisPass>();
+	auto LTA = get_Artifact<NewLivetimeAnalysisPass>();
 	auto& chains = LTA->get_def_use_chains();
 
 	for (auto i = loop->child_begin(), e = loop->child_end(); i != e; ++i) {
@@ -606,7 +606,7 @@ void NewSpillPass::process_block(MachineBasicBlock* block)
 void NewSpillPass::fix_block_boundaries()
 {
 	LOG1(nl << Yellow << "Fixing block boundaries" << reset_color << nl);
-	auto RPO = get_Pass<ReversePostOrderPass>();
+	auto RPO = get_Artifact<ReversePostOrderPass>();
 
 	for (const auto block : *RPO) {
 		LOG2(nl << Yellow << "Processing block " << *block << " ");
@@ -643,7 +643,7 @@ void NewSpillPass::fix_block_boundaries()
 
 			for (const auto& operand : difference) {
 				bool is_live_in =
-				    get_Pass<NewLivetimeAnalysisPass>()->get_live_in(block).contains(&operand);
+				    get_Artifact<NewLivetimeAnalysisPass>()->get_live_in(block).contains(&operand);
 				if (is_live_in && !spill_exit.contains(&operand)) {
 					assert(false && "Operand needs additioanl spilling!");
 				}
@@ -686,7 +686,7 @@ bool NewSpillPass::run(JITData& JD)
 	mof = JD.get_MachineOperandFactory();
 
 	auto registerinfo = backend->get_RegisterInfo();
-	auto RPO = get_Pass<ReversePostOrderPass>();
+	auto RPO = get_Artifact<ReversePostOrderPass>();
 
 	LOG1("Running pass " << registerinfo->class_count() << " times. Once for each register class.");
 
@@ -715,14 +715,14 @@ bool NewSpillPass::run(JITData& JD)
 // pass usage
 PassUsage& NewSpillPass::get_PassUsage(PassUsage& PU) const
 {
-	PU.add_requires<NewLivetimeAnalysisPass>();
-	PU.add_requires<ReversePostOrderPass>();
-	PU.add_requires<MachineDominatorPass>();
-	PU.add_requires<MachineLoopPass>();
-	PU.add_requires<LoopPressurePass>();
+	PU.requires<NewLivetimeAnalysisPass>();
+	PU.requires<ReversePostOrderPass>();
+	PU.requires<MachineDominatorPass>();
+	PU.requires<MachineLoopPass>();
+	PU.requires<LoopPressurePass>();
 
-	PU.add_modifies<MachineInstructionSchedulingPass>();
-	PU.add_destroys<NewLivetimeAnalysisPass>();
+	PU.modifies<LIRInstructionScheduleArtifact>();
+	
 	return PU;
 }
 

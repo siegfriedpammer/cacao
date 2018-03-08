@@ -42,11 +42,15 @@ class MachineBasicBlock;
  * Since the reverse post-order requires the MachineLoopPass, which also requires the MIS pass,
  * the reverse post-order is calculated in its own pass.
  */
-class ReversePostOrderPass : public Pass, public memory::ManagerMixin<ReversePostOrderPass> {
+class ReversePostOrderPass : public Pass, public Artifact, public memory::ManagerMixin<ReversePostOrderPass> {
 public:
 	ReversePostOrderPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
+
+	ReversePostOrderPass* provide_Artifact(ArtifactInfo::IDTy) override {
+		return this;
+	}
 
 	auto begin() { return reverse_post_order.begin(); }
 	auto end()   { return reverse_post_order.end(); }

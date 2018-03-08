@@ -28,12 +28,9 @@
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
-#include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
-#include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
-#include "vm/jit/compiler2/LinearScanAllocatorPass.hpp"
-#include "vm/jit/compiler2/CodeGenPass.hpp"
-#include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
+#include "vm/jit/compiler2/lsra/NewSpillPass.hpp"
 #include "vm/jit/compiler2/lsra/RegisterAssignmentPass.hpp"
 
 #include "toolbox/GraphPrinter.hpp"
@@ -51,11 +48,10 @@ namespace jit {
 namespace compiler2 {
 
 PassUsage& MachineInstructionPrinterPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<MachineInstructionSchedulingPass>();
-	PU.add_run_before<LinearScanAllocatorPass>();
-	PU.add_run_before<NewLivetimeAnalysisPass>();
-	PU.add_run_before<RegisterAssignmentPass>();
-	PU.add_run_before<CodeGenPass>();
+	PU.requires<LIRInstructionScheduleArtifact>();
+	PU.immediately_after<MachineInstructionSchedulingPass>();
+	PU.immediately_after<NewSpillPass>();
+	PU.immediately_after<RegisterAssignmentPass>();
 	return PU;
 }
 
@@ -68,7 +64,7 @@ static PassRegistry<MachineInstructionPrinterPass> X("MachineInstructionPrinterP
 bool MachineInstructionPrinterPass::run(JITData &JD) {
 	#if defined(ENABLE_LOGGING)
 	if (enabled) {
-		MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
+		MachineInstructionSchedule *MIS = get_Artifact<LIRInstructionScheduleArtifact>()->MIS;
 		assert(MIS);
 		for (MachineInstructionSchedule::iterator i = MIS->begin(), e = MIS->end();
 				i != e; ++i) {

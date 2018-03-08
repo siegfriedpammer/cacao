@@ -41,7 +41,7 @@ namespace compiler2 {
  * Based on the approach from "Linear scan register allocation on SSA form"
  * by Wimmer and Franz @cite Wimmer2010.
  */
-class LivetimeAnalysisPass : public Pass, public memory::ManagerMixin<LivetimeAnalysisPass> {
+class LivetimeAnalysisPass : public Pass, public Artifact, public memory::ManagerMixin<LivetimeAnalysisPass> {
 public:
 	typedef alloc::map<MachineOperand*,LivetimeInterval,MachineOperandComp>::type LivetimeIntervalMapTy;
 	typedef LivetimeIntervalMapTy::const_iterator const_iterator;
@@ -56,10 +56,11 @@ private:
 	MachineInstructionSchedule *MIS;
 public:
 	LivetimeAnalysisPass() : Pass() {}
-	virtual bool run(JITData &JD);
+	bool run(JITData &JD) override;
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
+	bool is_enabled() const override { return false; }
 
-	virtual bool verify() const;
+	bool verify() const override;
 	virtual void initialize();
 
 	const_iterator begin() const {

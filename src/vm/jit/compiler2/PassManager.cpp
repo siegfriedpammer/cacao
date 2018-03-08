@@ -26,47 +26,15 @@
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/PassDependencyGraphPrinter.hpp"
 #include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/PassScheduler.hpp"
 #include "toolbox/logging.hpp"
 #include "toolbox/Option.hpp"
 #include "vm/vm.hpp"
 #include "vm/jit/compiler2/alloc/set.hpp"
 #include "vm/jit/compiler2/alloc/list.hpp"
 #include "vm/jit/compiler2/alloc/deque.hpp"
+#include "vm/jit/compiler2/lsra/LogHelper.hpp"
 
-#include "vm/jit/compiler2/ParserPass.hpp"
-#include "vm/jit/compiler2/StackAnalysisPass.hpp"
-#include "vm/jit/compiler2/VerifierPass.hpp"
-#include "vm/jit/compiler2/CFGConstructionPass.hpp"
-#include "vm/jit/compiler2/SSAConstructionPass.hpp"
-#include "vm/jit/compiler2/CFGMetaPass.hpp"
-#include "vm/jit/compiler2/LoopPass.hpp"
-#include "vm/jit/compiler2/InstructionMetaPass.hpp"
-#include "vm/jit/compiler2/ConstantPropagationPass.hpp"
-#include "vm/jit/compiler2/GlobalValueNumberingPass.hpp"
-#include "vm/jit/compiler2/DeadCodeEliminationPass.hpp"
-#include "vm/jit/compiler2/DominatorPass.hpp"
-#include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
-#include "vm/jit/compiler2/ScheduleLatePass.hpp"
-#include "vm/jit/compiler2/ScheduleClickPass.hpp"
-#include "vm/jit/compiler2/ListSchedulingPass.hpp"
-#include "vm/jit/compiler2/NullCheckEliminationPass.hpp"
-#include "vm/jit/compiler2/SourceStateAttachmentPass.hpp"
-#include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
-#include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
-#include "vm/jit/compiler2/MachineInstructionPrinterPass.hpp"
-#include "vm/jit/compiler2/MachineLoopPass.hpp"
-#include "vm/jit/compiler2/ReversePostOrderPass.hpp"
-#include "vm/jit/compiler2/PhiLiftingPass.hpp"
-#include "vm/jit/compiler2/PhiCoalescingPass.hpp"
-#include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
-#include "vm/jit/compiler2/lsra/LoopPressurePass.hpp"
-#include "vm/jit/compiler2/MachineDominatorPass.hpp"
-#include "vm/jit/compiler2/lsra/NewSpillPass.hpp"
-#include "vm/jit/compiler2/lsra/RegisterAssignmentPass.hpp"
-#include "vm/jit/compiler2/RegisterAllocatorPass.hpp"
-#include "vm/jit/compiler2/SSADeconstructionPass.hpp"
-#include "vm/jit/compiler2/CodeGenPass.hpp"
-#include "vm/jit/compiler2/DisassemblerPass.hpp"
 
 #include "vm/rt-timing.hpp"
 
@@ -132,7 +100,11 @@ void PassRunner::runPasses(JITData &JD) {
 	auto& PS = PassManager::get();
 	for (auto i = PS.schedule_begin(), e = PS.schedule_end(); i != e; ++i) {
 		PassInfo::IDTy id = *i;
-		result_ready[id] = false;
+		auto& pa = PS.passusage_map[id];
+		std::for_each(pa.provides_begin(), pa.provides_end(), [&](auto artifact_id) {
+			result_ready[artifact_id] = false;
+		});
+		
 		auto&& P = get_Pass(id);
 		
 		#if ENABLE_RT_TIMING
@@ -149,14 +121,7 @@ void PassRunner::runPasses(JITData &JD) {
 			err() << bold << Red << "error" << reset_color << " during pass " << PS.get_Pass_name(id) << nl;
 			os::abort("compiler2: error");
 		}
-		// invalidating results
-		PassUsage PU;
-		PU = P->get_PassUsage(PU);
-		for (PassUsage::const_iterator i = PU.destroys_begin(), e = PU.destroys_end();
-				i != e; ++i) {
-			result_ready[*i] = false;
-			LOG("mark invalid" << PS.get_Pass_name(*i) << nl);
-		}
+
 		#ifndef NDEBUG
 		LOG("verifying: " << PS.get_Pass_name(id) << nl);
 		if (!P->verify()) {
@@ -165,7 +130,9 @@ void PassRunner::runPasses(JITData &JD) {
 			throw std::runtime_error("Verification error! (logs should have more info)");
 		}
 		#endif
-		result_ready[id] = true;
+		std::for_each(pa.provides_begin(), pa.provides_end(), [&](auto artifact_id) {
+			result_ready[artifact_id] = true;
+		});
 		LOG("finialize: " << PS.get_Pass_name(id) << nl);
 		P->finalize();
 		#if ENABLE_RT_TIMING
@@ -174,224 +141,12 @@ void PassRunner::runPasses(JITData &JD) {
 	}
 }
 
-
-// begin Pass scheduler
-
-#undef DEBUG_NAME
-#define DEBUG_NAME "compiler2/PassManager/Scheduler"
-namespace {
-
-#if defined(ENABLE_LOGGING) || !defined(NDEBUG)
-// XXX for debugging only, to be removed
-PassManager* latest = NULL;
-// XXX for debugging only, to be removed
-const char* get_Pass_name(PassInfo::IDTy id) {
-	if (!latest) return "PassManager not available";
-	return latest->get_Pass_name(id);
-}
-#endif // defined(ENABLE_LOGGING) || !defined(NDEBUG)
-
-template <class InputIterator, class ValueType>
-inline bool contains(InputIterator begin, InputIterator end, const ValueType &val) {
-	return std::find(begin,end,val) != end;
-}
-
-template <class Container, class ValueType>
-struct ContainsFn {
-	bool operator()(const Container &c, const ValueType &val) {
-		return contains(c.begin(),c.end(),val);
-	}
-};
-
-template <class ValueType>
-struct ContainsFn<typename alloc::set<ValueType>::type,ValueType> {
-	bool operator()(const typename alloc::set<ValueType>::type &c, const ValueType &val) {
-		return c.find(val) != c.end();
-	}
-};
-
-template <class ValueType>
-struct ContainsFn<alloc::unordered_set<ValueType>,ValueType> {
-	bool operator()(const typename alloc::unordered_set<ValueType>::type &c, const ValueType &val) {
-		return c.find(val) != c.end();
-	}
-};
-
-template <class Container, class ValueType>
-inline bool contains(const Container &c, const ValueType &val) {
-	return ContainsFn<Container,ValueType>()(c,val);
-}
-
-struct Invalidate :
-public std::unary_function<PassInfo::IDTy,void> {
-	ID2MapTy &reverse_require_map;
-	alloc::unordered_set<PassInfo::IDTy>::type &ready;
-	// constructor
-	Invalidate(ID2MapTy &reverse_require_map, alloc::unordered_set<PassInfo::IDTy>::type &ready)
-		: reverse_require_map(reverse_require_map), ready(ready) {}
-	// function call operator
-	void operator()(PassInfo::IDTy id) {
-		if (ready.erase(id)) {
-			LOG3("  invalidated: " << get_Pass_name(id) << nl);
-			std::for_each(reverse_require_map[id].begin(),reverse_require_map[id].end(),*this);
-		}
-	}
-};
-
-class PassScheduler {
-private:
-	alloc::deque<PassInfo::IDTy>::type &unhandled;
-	alloc::unordered_set<PassInfo::IDTy>::type &ready;
-	alloc::list<PassInfo::IDTy>::type &stack;
-	PassManager::ScheduleListTy &new_schedule;
-	ID2PUTy &pu_map;
-	ID2MapTy &reverse_require_map;
-public:
-	/// constructor
-	PassScheduler(alloc::deque<PassInfo::IDTy>::type &unhandled, alloc::unordered_set<PassInfo::IDTy>::type &ready,
-		alloc::list<PassInfo::IDTy>::type &stack, PassManager::ScheduleListTy &new_schedule,
-		ID2PUTy &pu_map, ID2MapTy &reverse_require_map)
-			: unhandled(unhandled), ready(ready), stack(stack), new_schedule(new_schedule),
-			pu_map(pu_map), reverse_require_map(reverse_require_map) {}
-	/// call operator
-	void operator()(PassInfo::IDTy id) {
-		if (contains(ready,id)) return;
-		#ifndef NDEBUG
-			if (contains(stack,id)) {
-				ABORT_MSG("PassManager: dependency cycle detected",
-					"Pass " << get_Pass_name(id) << " already stacked for scheduling!");
-			}
-		#endif
-		stack.push_back(id);
-		PassUsage &PU = pu_map[id];
-		LOG3("prescheduled: " << get_Pass_name(id) << nl);
-		bool fixpoint;
-		do {
-			fixpoint = true;
-			// schedule schedule_after
-			for (PassUsage::const_iterator i = PU.schedule_after_begin(), e  = PU.schedule_after_end();
-					i != e ; ++i) {
-				LOG3(" schedule_after: " << get_Pass_name(*i) << nl);
-				if (std::find(new_schedule.rbegin(),new_schedule.rend(),*i) == new_schedule.rend()) {
-					operator()(*i);
-					fixpoint = false;
-				}
-			}
-			// schedule requires
-			for (PassUsage::const_iterator i = PU.requires_begin(), e  = PU.requires_end();
-					i != e ; ++i) {
-				LOG3(" requires: " << get_Pass_name(*i) << nl);
-				if (ready.find(*i) == ready.end()) {
-					operator()(*i);
-					fixpoint = false;
-				}
-			}
-		} while(!fixpoint);
-
-		LOG3("scheduled: " << get_Pass_name(id) << nl);
-		// remove all destroyed passes from ready
-		std::for_each(PU.destroys_begin(),PU.destroys_end(),Invalidate(reverse_require_map,ready));
-		// remove all passed depending on modified from ready
-		for (PassUsage::const_iterator i = PU.modifies_begin(), e  = PU.modifies_end();
-				i != e ; ++i) {
-			if (ready.find(*i) != ready.end()) {
-				LOG3(" modifies: " << get_Pass_name(*i) << nl);
-				std::for_each(reverse_require_map[*i].begin(),reverse_require_map[*i].end(),
-					Invalidate(reverse_require_map,ready));
-			}
-		}
-		// dummy use
-		unhandled.front();
-		new_schedule.push_back(id);
-		ready.insert(id);
-		stack.pop_back();
-	}
-};
-
-} // end anonymous namespace
-
 void PassManager::schedulePasses() {
-#if defined(ENABLE_LOGGING) || !defined(NDEBUG)
-	// XXX for debugging only, to be removed
-	latest = this;
-#endif
-
 	if (option::print_pass_dependencies) {
 		print_PassDependencyGraph();
 	}
 
-	/// @todo Currently we hardcode the pass schedule since we can not model some
-	///       dependencies. (E.g. pass does not change CFG, only changes instructions)
-	///       This leads to unnecessary Pass re-runs.
-	///       Either we hardcode the pass schedule here, which might get complicated if certain
-	///       analysises *might* be re-run depending on some other passes.
-	///       Or we extend the Pass scheduler with finer control (see llvm pass manager for what a full fledged one can do) 
-
-	/// @todo Add most of the printer passes if they are enabled
-
-	add<ParserPass>();
-	add<StackAnalysisPass>();
-	add<VerifierPass>();
-	add<CFGConstructionPass>();
-	add<SSAConstructionPass>();
-	add<CFGMetaPass>();
-	add<LoopPass>();
-	add<InstructionMetaPass>();
-	//add<ConstantPropagationPass>();
-	//add<GlobalValueNumberingPass>();
-	//add<DeadCodeEliminationPass>();
-	add<DominatorPass>();
-	add<ScheduleEarlyPass>();
-	add<ScheduleLatePass>();
-	add<ScheduleClickPass>();
-	add<ListSchedulingPass>();
-	add<NullCheckEliminationPass>();
-	add<SourceStateAttachmentPass>();
-	add<BasicBlockSchedulingPass>();
-	add<MachineInstructionSchedulingPass>();
-
-	if (MachineInstructionPrinterPass::enabled) {
-		add<MachineInstructionPrinterPass>();
-	}
-
-	add<MachineLoopPass>();
-	add<ReversePostOrderPass>();
-	//add<PhiLiftingPass>();
-
-	if (MachineInstructionPrinterPass::enabled) {
-		add<MachineInstructionPrinterPass>();
-	}
-
-	add<NewLivetimeAnalysisPass>();
-	//add<PhiCoalescingPass>();
-	add<LoopPressurePass>();
-	add<MachineDominatorPass>();
-	add<NewSpillPass>();
-
-	if (MachineInstructionPrinterPass::enabled) {
-		add<MachineInstructionPrinterPass>();
-	}
-
-	add<NewLivetimeAnalysisPass>();
-	add<RegisterAssignmentPass>();
-	add<RegisterAllocatorPass>();
-	add<SSADeconstructionPass>();
-
-	if (MachineInstructionPrinterPass::enabled) {
-		add<MachineInstructionPrinterPass>();
-	}
-
-	add<CodeGenPass>();
-
-	if (DisassemblerPass::enabled) {
-		add<DisassemblerPass>();
-	}
-
-	/*
-	alloc::deque<PassInfo::IDTy>::type unhandled;
-	alloc::unordered_set<PassInfo::IDTy>::type ready;
-	alloc::list<PassInfo::IDTy>::type stack;
-	ScheduleListTy new_schedule;
+	PassIDSetTy enabled_passes;
 
 	for (const auto& id_to_info : registered_passes()) {
 		PassInfo::IDTy id = id_to_info.first;
@@ -402,70 +157,30 @@ void PassManager::schedulePasses() {
 			continue;
 		}
 
-		if (pass->force_scheduling()) {
-			schedule.push_back(id);
-		}
-
-		populate_passusage(pass, id);
-		add_run_before(id);
-		add_schedule_before(id);
+		enabled_passes.insert(id);
+		
+		auto& pa = passusage_map[id];
+		pass->get_PassUsage(pa);
 	}
 
-	populate_reverse_require_map();
-	std::copy(schedule.begin(), schedule.end(), std::back_inserter(unhandled));
+	// Prepare provided_by_map, since we have all the passusages now
+	for (const auto& id_to_usage : passusage_map) {
+		auto id = id_to_usage.first;
+		auto& pa = id_to_usage.second;
 
-	PassScheduler scheduler(unhandled,ready,stack,new_schedule,pu_map,reverse_require_map);
-	while (!unhandled.empty()) {
-		PassInfo::IDTy id = unhandled.front();
-		unhandled.pop_front();
-		// schedule
-		scheduler(id);
-		assert(stack.empty());
+		std::for_each(pa.provides_begin(), pa.provides_end(), [&](auto artifact_id) {
+			provided_by_map[artifact_id] = id;
+		});
 	}
 
+	schedule = GetPassSchedule(enabled_passes, passusage_map);
+	
 	if (DEBUG_COND_N(2)) {
-		LOG2("old Schedule:" << nl);
+		LOG2("Schedule:" << nl);
 		for (const auto& id : schedule) {
 			LOG2("    " << get_Pass_name(id) << " id: " << id << nl);
 		}
-		LOG2("new Schedule:" << nl);
-		for (const auto& id : new_schedule) {
-			LOG2("    " << get_Pass_name(id) << " id: " << id << nl);
-		}
 	}
-	schedule = new_schedule;
-	*/
-}
-
-void PassManager::populate_passusage(const PassUPtrTy& pass, PassInfo::IDTy id) {
-	PassUsage &PA = pu_map[id];
-	pass->get_PassUsage(PA);
-}
-
-void PassManager::populate_reverse_require_map() {
-	std::for_each(pu_map.begin(), pu_map.end(), [&](auto& id_to_passusage) {
-		auto id = id_to_passusage.first;
-		auto& pass_usage = id_to_passusage.second;
-
-		std::for_each(pass_usage.requires_begin(), pass_usage.requires_end(),
-					  [&](auto requires_id) {
-			reverse_require_map[requires_id].insert(id);
-		});
-	});
-}
-
-void PassManager::add_run_before(PassInfo::IDTy id) {
-	PassUsage& PA = pu_map[id];
-	std::for_each(PA.run_before_begin(),PA.run_before_end(),[&](PassInfo::IDTy before) {
-		pu_map[before].add_requires(id);
-	});
-}
-
-void PassManager::add_schedule_before(PassInfo::IDTy id) {
-	PassUsage& PA = pu_map[id];
-	std::for_each(PA.schedule_before_begin(),PA.schedule_before_end(),[&](PassInfo::IDTy before) {
-		pu_map[before].add_schedule_after(id);
-	});
 }
 
 } // end namespace cacao

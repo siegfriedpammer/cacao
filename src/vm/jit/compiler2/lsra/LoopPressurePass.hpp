@@ -38,11 +38,15 @@ class MachineBasicBlock;
 
 using PressureTy = std::vector<unsigned>;
 
-class LoopPressurePass : public Pass, public memory::ManagerMixin<LoopPressurePass> {
+class LoopPressurePass : public Pass, public Artifact, public memory::ManagerMixin<LoopPressurePass> {
 public:
 	LoopPressurePass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
+
+	LoopPressurePass* provide_Artifact(ArtifactInfo::IDTy) override {
+		return this;
+	}
 
 private:
 	RegisterInfo* RI;

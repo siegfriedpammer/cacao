@@ -41,10 +41,8 @@
 
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
 #include "vm/jit/compiler2/CFGConstructionPass.hpp"
-#include "vm/jit/compiler2/CFGMetaPass.hpp"
 #include "vm/jit/compiler2/CodeGenPass.hpp"
 #include "vm/jit/compiler2/DominatorPass.hpp"
-#include "vm/jit/compiler2/InstructionMetaPass.hpp"
 #include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/LoopPass.hpp"
 #include "vm/jit/compiler2/MachineDominatorPass.hpp"

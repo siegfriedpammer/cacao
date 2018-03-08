@@ -29,10 +29,9 @@
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
-#include "vm/jit/compiler2/MachineLoopPass.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
-#include "vm/jit/compiler2/RegisterAllocatorPass.hpp"
+#include "vm/jit/compiler2/lsra/RegisterAssignmentPass.hpp"
 #include "vm/jit/compiler2/ReversePostOrderPass.hpp"
 #include "vm/jit/compiler2/lsra/LogHelper.hpp"
 
@@ -210,7 +209,7 @@ bool SSADeconstructionPass::run(JITData& JD)
 	LOG1(BoldYellow << "\nRunning SSADeconstructionPass" << reset_color << nl);
 	this->JD = &JD;
 
-	auto RPO = get_Pass<ReversePostOrderPass>();
+	auto RPO = get_Artifact<ReversePostOrderPass>();
 	for (auto& block : *RPO) {
 		process_block(block);
 	}
@@ -221,15 +220,19 @@ bool SSADeconstructionPass::run(JITData& JD)
 // pass usage
 PassUsage& SSADeconstructionPass::get_PassUsage(PassUsage& PU) const
 {
-	PU.add_requires<MachineInstructionSchedulingPass>();
-	PU.add_requires<RegisterAllocatorPass>();
-	PU.add_requires<ReversePostOrderPass>();
-	PU.add_requires<MachineLoopPass>();
+	PU.provides<SSADeconstructionPass>();
+
+	PU.requires<LIRInstructionScheduleArtifact>();
+	PU.requires<ReversePostOrderPass>();
+	PU.modifies<LIRInstructionScheduleArtifact>();
+
+	PU.after<RegisterAssignmentPass>();
 	return PU;
 }
 
 // register pass
 static PassRegistry<SSADeconstructionPass> X("SSADeconstructionPass");
+static ArtifactRegistry<SSADeconstructionPass> Y("SSADeconstructionPass");
 
 } // end namespace compiler2
 } // end namespace jit

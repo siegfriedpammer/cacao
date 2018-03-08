@@ -45,6 +45,7 @@ class Method;
  * classical list scheduling algorithm.
  */
 class ListSchedulingPass : public Pass,
+						   public Artifact,
 						   public memory::ManagerMixin<ListSchedulingPass>,
 						   public InstructionSchedule<Instruction> {
 private:
@@ -67,9 +68,13 @@ private:
 public:
 
 	ListSchedulingPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual bool verify() const;
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	bool verify() const override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
+
+	ListSchedulingPass* provide_Artifact(ArtifactInfo::IDTy) override {
+		return this;
+	}
 };
 
 } // end namespace compiler2

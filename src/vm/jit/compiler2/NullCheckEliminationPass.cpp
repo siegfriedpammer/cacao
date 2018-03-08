@@ -32,7 +32,6 @@
 #include "vm/jit/compiler2/MethodC2.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
-#include "vm/jit/compiler2/InstructionMetaPass.hpp"
 #include "vm/jit/compiler2/ScheduleClickPass.hpp"
 #include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/SourceStateAttachmentPass.hpp"
@@ -90,7 +89,7 @@ void NullCheckEliminationPass::prepare_bitvectors() {
 }
 
 void NullCheckEliminationPass::perform_null_check_elimination() {
-	ListSchedulingPass *schedule = get_Pass<ListSchedulingPass>();
+	ListSchedulingPass *schedule = get_Artifact<ListSchedulingPass>();
 
 	alloc::queue<BeginInst*>::type worklist;
 	alloc::unordered_map<BeginInst*, bool>::type in_worklist(M->bb_size());
@@ -210,9 +209,9 @@ bool NullCheckEliminationPass::run(JITData &JD) {
 
 // pass usage
 PassUsage& NullCheckEliminationPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<ScheduleClickPass>();
-	PU.add_requires<ListSchedulingPass>();
-	PU.add_schedule_before<SourceStateAttachmentPass>();
+	PU.requires<ScheduleClickPass>();
+	PU.requires<ListSchedulingPass>();
+	PU.before<SourceStateAttachmentPass>();
 	return PU;
 }
 

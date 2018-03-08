@@ -33,7 +33,7 @@ TEST_CASE("Simple edges are not split", "[CriticalEdge]")
 	TestPassRunner runner;
 	runner.until<MachineInstructionSchedulingPass>("CriticalEdgeSplitTest", "noSplit", "()I");
 
-	auto MIS = runner.get_Pass<MachineInstructionSchedulingPass>();
+	auto MIS = runner.get_Artifact<LIRInstructionScheduleArtifact>()->MIS;
 
 	REQUIRE(MIS->size() == 1);
 }
@@ -43,7 +43,7 @@ TEST_CASE("Simple if should be split", "[CriticalEdge]")
 	TestPassRunner runner;
 	runner.until<MachineInstructionSchedulingPass>("CriticalEdgeSplitTest", "simpleIf", "()I");
 
-	auto MIS = runner.get_Pass<MachineInstructionSchedulingPass>();
+	auto MIS = runner.get_Artifact<LIRInstructionScheduleArtifact>()->MIS;
 
 	REQUIRE(MIS->size() == 4);
 }
@@ -53,7 +53,7 @@ TEST_CASE("Simple if-else should NOT be split", "[CriticalEdge]")
 	TestPassRunner runner;
 	runner.until<MachineInstructionSchedulingPass>("CriticalEdgeSplitTest", "noSplitIfElse", "()I");
 
-	auto MIS = runner.get_Pass<MachineInstructionSchedulingPass>();
+	auto MIS = runner.get_Artifact<LIRInstructionScheduleArtifact>()->MIS;
 
 	REQUIRE(MIS->size() == 4);
 }
@@ -63,7 +63,7 @@ TEST_CASE("Modified factorial function has 2 critical edges", "[CriticalEdge]")
 	TestPassRunner runner;
 	runner.until<MachineInstructionSchedulingPass>("CriticalEdgeSplitTest", "modifiedFact", "()I");
 
-	auto MIS = runner.get_Pass<MachineInstructionSchedulingPass>();
+	auto MIS = runner.get_Artifact<LIRInstructionScheduleArtifact>()->MIS;
 
 	REQUIRE(MIS->size() == 7);
 }

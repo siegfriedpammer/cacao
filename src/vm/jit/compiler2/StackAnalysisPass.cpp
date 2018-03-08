@@ -45,7 +45,7 @@ bool StackAnalysisPass::run(JITData &JD) {
 }
 
 PassUsage& StackAnalysisPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<ParserPass>();
+	PU.after<ParserPass>();
 	return PU;
 }
 

@@ -24,13 +24,15 @@
 
 #include "vm/jit/compiler2/PassDependencyGraphPrinter.hpp"
 #include "toolbox/GraphPrinter.hpp"
-#include "vm/jit/compiler2/PassManager.hpp"
-#include "vm/jit/compiler2/Pass.hpp"
-#include "vm/jit/compiler2/PassUsage.hpp"
 #include "toolbox/logging.hpp"
-#include <algorithm>
-#include "vm/jit/compiler2/alloc/set.hpp"
+#include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/PassManager.hpp"
+#include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/alloc/map.hpp"
+#include "vm/jit/compiler2/alloc/set.hpp"
+
+#include <algorithm>
+#include <cstring>
 
 #define DEBUG_NAME "compiler2/PassDependencyGraphPrinter"
 
@@ -40,98 +42,175 @@ namespace compiler2 {
 
 namespace {
 
-struct AddEdge : public std::unary_function<PassInfo::IDTy,void> {
-	typedef std::pair<argument_type,argument_type> EdgeType;
-	std::set<EdgeType> &edges;
-	alloc::set<EdgeType>::type &set;
-	argument_type from;
-	bool reverse;
-	// constructor
-	AddEdge(std::set<EdgeType> &edges, alloc::set<EdgeType>::type &set, argument_type from, bool reverse=false)
-		: edges(edges), set(set), from(from), reverse(reverse) {}
-	// call operator
-	void operator()(const argument_type &to) {
-		EdgeType edge;
-		if (reverse) {
-			edge = std::make_pair(to,from);
-		}
-		else {
-			edge = std::make_pair(from,to);
-		}
-		edges.insert(edge);
-		set.insert(edge);
+struct PassArtifactNode {
+	const char* name;
+	bool is_pass;
+	bool is_artifact;
+	bool is_enabled;
+	unsigned long id;
+
+	static unsigned long id_counter;
+
+	PassArtifactNode() : PassArtifactNode("illegal") {}
+	PassArtifactNode(const char* name)
+	    : name(name), is_pass(false), is_artifact(false), is_enabled(true), id(id_counter++)
+	{
 	}
+	PassArtifactNode(const PassArtifactNode& other) = default;
+
+	bool operator==(const PassArtifactNode& other) const
+	{
+		return std::strcmp(name, other.name) == 0;
+	}
+
+	operator unsigned long() const { return id; }
 };
 
+unsigned long PassArtifactNode::id_counter = 0;
+
 template <class InputIterator, class ValueType>
-inline bool contains(InputIterator begin, InputIterator end, const ValueType &val) {
-	return std::find(begin,end,val) != end;
+inline bool contains(InputIterator begin, InputIterator end, const ValueType& val)
+{
+	return std::find(begin, end, val) != end;
 }
 
-class PassDependencyGraphPrinter : public PrintableGraph<PassManager,PassInfo::IDTy> {
+class PassDependencyGraphPrinter : public PrintableGraph<PassManager, PassArtifactNode> {
 private:
-	alloc::map<PassInfo::IDTy,const char*>::type names;
-	alloc::set<EdgeType>::type req;
-	alloc::set<EdgeType>::type mod;
-	alloc::set<EdgeType>::type dstr;
-	alloc::set<EdgeType>::type schedule_after;
-	alloc::set<EdgeType>::type run_before;
-	alloc::set<EdgeType>::type schedule_before;
+	std::map<ArtifactInfo::IDTy, PassArtifactNode> artifact_map;
+	std::map<PassInfo::IDTy, PassArtifactNode> pass_map;
+
+	alloc::set<EdgeType>::type requires;
+	alloc::set<EdgeType>::type provides;
+	alloc::set<EdgeType>::type modifies;
+	alloc::set<EdgeType>::type after;
+	alloc::set<EdgeType>::type before;
+	alloc::set<EdgeType>::type imm_after;
+	alloc::set<EdgeType>::type imm_before;
+
 public:
+	PassDependencyGraphPrinter(PassManager& PM)
+	{
+		std::vector<PassArtifactNode> node_list;
 
-    PassDependencyGraphPrinter(PassManager &PM) {
-		for(PassManager::PassInfoMapTy::const_iterator i = PM.registered_begin(),
-				e = PM.registered_end(); i != e; ++i) {
-			PassInfo::IDTy PI = i->first;
-			names[PI] = i->second->get_name();
-			nodes.insert(i->first);
+		for (auto i = PM.registered_begin(), e = PM.registered_end(); i != e; ++i) {
+			PassArtifactNode node(i->second->get_name());
+			node.is_pass = true;
+			node_list.push_back(node);
+			pass_map.emplace(i->first, node);
+		}
 
-			LOG("Pass: " << i->second->get_name() << " ID: " << PI << nl);
+		for (auto i = PM.registered_artifacts_begin(), e = PM.registered_artifacts_end(); i != e;
+		     ++i) {
+			PassArtifactNode node(i->second->get_name());
+			node.is_artifact = true;
 
-			// create Pass
-			Pass *pass = i->second->create_Pass();
+			auto iter = std::find_if(node_list.begin(), node_list.end(),
+			                         [&](const auto& other) { return node == other; });
+
+			if (iter != node_list.end()) {
+				iter->is_artifact = true;
+				artifact_map.emplace(i->first, *iter);
+			}
+			else {
+				node_list.push_back(node);
+				artifact_map.emplace(i->first, node);
+			}
+		}
+
+		for (auto i = PM.registered_begin(), e = PM.registered_end(); i != e; ++i) {
+			std::unique_ptr<Pass> pass(i->second->create_Pass());
 			PassUsage PU;
 			pass->get_PassUsage(PU);
-			delete pass;
-			std::for_each(PU.requires_begin(), PU.requires_end(),AddEdge(edges,req,PI));
-			std::for_each(PU.modifies_begin(), PU.modifies_end(),AddEdge(edges,mod,PI));
-			std::for_each(PU.destroys_begin(), PU.destroys_end(),AddEdge(edges,dstr,PI));
-			std::for_each(PU.schedule_after_begin(), PU.schedule_after_end(),AddEdge(edges,schedule_after,PI));
-			std::for_each(PU.run_before_begin(), PU.run_before_end(),AddEdge(edges,run_before,PI,true));
-			std::for_each(PU.schedule_before_begin(), PU.schedule_before_end(),AddEdge(edges,schedule_before,PI,true));
+
+			PassArtifactNode tmp(i->second->get_name());
+			auto iter = std::find_if(node_list.begin(), node_list.end(),
+			                         [&](const auto& other) { return tmp == other; });
+			auto& node = *iter;
+			node.is_enabled = pass->is_enabled();
+
+			std::for_each(PU.requires_begin(), PU.requires_end(), [&](const auto& aid) {
+				edges.emplace(node, artifact_map[aid]);
+				requires.emplace(node, artifact_map[aid]);
+			});
+
+			std::for_each(PU.provides_begin(), PU.provides_end(), [&](const auto& aid) {
+				edges.emplace(node, artifact_map[aid]);
+				provides.emplace(node, artifact_map[aid]);
+			});
+
+			std::for_each(PU.modifies_begin(), PU.modifies_end(), [&](const auto& aid) {
+				edges.emplace(node, artifact_map[aid]);
+				modifies.emplace(node, artifact_map[aid]);
+			});
+
+			std::for_each(PU.after_begin(), PU.after_end(), [&](const auto& pid) {
+				edges.emplace(node, pass_map[pid]);
+				after.emplace(node, pass_map[pid]);
+			});
+
+			std::for_each(PU.before_begin(), PU.before_end(), [&](const auto& pid) {
+				edges.emplace(node, pass_map[pid]);
+				before.emplace(node, pass_map[pid]);
+			});
+
+			std::for_each(PU.imm_after_begin(), PU.imm_after_end(), [&](const auto& pid) {
+				edges.emplace(node, pass_map[pid]);
+				imm_after.emplace(node, pass_map[pid]);
+			});
+
+			std::for_each(PU.imm_before_begin(), PU.imm_before_end(), [&](const auto& pid) {
+				edges.emplace(node, pass_map[pid]);
+				imm_before.emplace(node, pass_map[pid]);
+			});
 		}
+
+		nodes.insert(node_list.begin(), node_list.end());
 	}
 
-    virtual OStream& getGraphName(OStream& OS) const {
-		return OS << "PassDependencyGraph";
+	OStream& getGraphName(OStream& OS) const override { return OS << "PassDependencyGraph"; }
+
+	OStream& getNodeLabel(OStream& OS, const PassArtifactNode& node) const override
+	{
+		return OS << node.name;
 	}
 
-    virtual OStream& getNodeLabel(OStream& OS, const PassInfo::IDTy &node) const {
-		return OS << names.find(node)->second;
-	}
-    virtual OStream& getEdgeLabel(OStream& OS, const EdgeType &edge) const {
-		if (contains(req.begin(),req.end(),edge)) OS << "r";
-		if (contains(mod.begin(),mod.end(),edge)) OS << "m";
-		if (contains(dstr.begin(),dstr.end(),edge)) OS << "d";
-		if (contains(schedule_after.begin(),schedule_after.end(),edge)) OS << "a";
-		if (contains(run_before.begin(),run_before.end(),edge)) OS << "b";
-		if (contains(schedule_before.begin(),schedule_before.end(),edge)) OS << "s";
+	OStream& getNodeAttributes(OStream& OS, const PassArtifactNode& node) const override
+	{
+		if (!node.is_enabled)
+			return OS << "color=\"gray\" fontcolor=\"gray\"";
+
+		if (node.is_pass && node.is_artifact)
+			OS << "color=\"darkviolet\"";
+		else if (node.is_artifact)
+			OS << "color=\"blue\"";
 		return OS;
 	}
 
+	OStream& getEdgeLabel(OStream& OS, const EdgeType& edge) const override
+	{
+		if (contains(requires.begin(), requires.end(), edge)) OS << "r";
+		if (contains(provides.begin(), provides.end(), edge)) OS << "p";
+		if (contains(modifies.begin(), modifies.end(), edge)) OS << "m";
+		if (contains(after.begin(), after.end(), edge)) OS << "a";
+		if (contains(before.begin(), before.end(), edge)) OS << "b";
+		if (contains(imm_after.begin(), imm_after.end(), edge)) OS << "ia";
+		if (contains(imm_before.begin(), imm_before.end(), edge)) OS << "ib";
+		return OS;
+	}
 };
 
 } // end anonymous namespace
 
 // run pass
-void print_PassDependencyGraph() {
-	GraphPrinter<PassDependencyGraphPrinter>::print("PassDependencyGraph.dot", PassDependencyGraphPrinter(PassManager::get()));
+void print_PassDependencyGraph()
+{
+	GraphPrinter<PassDependencyGraphPrinter>::print("PassDependencyGraph.dot",
+	                                                PassDependencyGraphPrinter(PassManager::get()));
 }
 
-} // end namespace cacao
+} // namespace compiler2
 } // end namespace jit
-} // end namespace compiler2
-
+} // namespace cacao
 
 /*
  * These are local overrides for various environment variables in Emacs.

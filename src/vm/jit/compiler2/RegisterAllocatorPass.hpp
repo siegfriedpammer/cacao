@@ -39,12 +39,13 @@ namespace compiler2 {
 class RegisterAllocatorPass : public Pass, public memory::ManagerMixin<RegisterAllocatorPass> {
 public:
 	RegisterAllocatorPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
+	bool is_enabled() const override { return false; }
 
 	// virtual void initialize();   (optional)
 	// virtual void finalize();     (optional)
-	// virtual bool verify() const; (optional)
+	// bool verify() const override; (optional)
 };
 
 } // end namespace compiler2

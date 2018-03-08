@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/CFGMetaPass.hpp - CFGMetaPass
+/* src/vm/jit/compiler2/PassScheduler.hpp
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,36 +22,26 @@
 
 */
 
-#ifndef _JIT_COMPILER2_CFGMETAPASS
-#define _JIT_COMPILER2_CFGMETAPASS
+#ifndef _JIT_COMPILER2_PASSSCHEDULER
+#define _JIT_COMPILER2_PASSSCHEDULER
 
-#include "vm/jit/compiler2/Pass.hpp"
-
-MM_MAKE_NAME(CFGMetaPass)
+#include "vm/jit/compiler2/PassUsage.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-/**
- * CFGMetaPass
- *
- * This is a meta pass to communicate CFG changes to other passes.
- * If a pass depends on the CFG then get_PassUsage() should contain PU.add_requires<CFGMetaPass>().
- * Analogously, if a pass changes the CFG PU.add_modifies<CFGMetaPass>() should be present.
- */
-class CFGMetaPass : public Pass, public memory::ManagerMixin<CFGMetaPass> {
-public:
-	CFGMetaPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
-};
+using PassIDSetTy = std::unordered_set<PassInfo::IDTy>;
+using PassUsageMapTy = std::unordered_map<PassInfo::IDTy, PassUsage>;
+
+std::vector<PassInfo::IDTy> GetPassSchedule(const PassIDSetTy&, PassUsageMapTy&);
+
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_CFGMETAPASS */
+#endif /* _JIT_COMPILER2_PASSSCHEDULER */
 
 
 /*

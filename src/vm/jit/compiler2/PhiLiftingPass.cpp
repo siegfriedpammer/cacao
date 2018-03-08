@@ -75,7 +75,7 @@ bool PhiLiftingPass::run(JITData& JD)
 	LOG1(BoldYellow << "\nRunning PhiLiftingPass" << reset_color << nl);
 	backend = JD.get_Backend();
 
-	auto RPO = get_Pass<ReversePostOrderPass>();
+	auto RPO = get_Artifact<ReversePostOrderPass>();
 	for (auto& block : *RPO) {
 		for (auto i = block->phi_begin(), e = block->phi_end(); i != e; ++i) {
 			handle_phi(*i);
@@ -87,9 +87,6 @@ bool PhiLiftingPass::run(JITData& JD)
 // pass usage
 PassUsage& PhiLiftingPass::get_PassUsage(PassUsage& PU) const
 {
-	PU.add_requires<ReversePostOrderPass>();
-	PU.add_run_before<NewLivetimeAnalysisPass>();
-
 	return PU;
 }
 

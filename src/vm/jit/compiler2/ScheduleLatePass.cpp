@@ -136,9 +136,9 @@ void ScheduleLatePass::schedule_late(Instruction *I) {
 }
 
 bool ScheduleLatePass::run(JITData &JD) {
-	DT = get_Pass<DominatorPass>();
-	LT = get_Pass<LoopPass>();
-	early = get_Pass<ScheduleEarlyPass>();
+	DT = get_Artifact<DominatorPass>();
+	LT = get_Artifact<LoopPass>();
+	early = get_Artifact<ScheduleEarlyPass>();
 	M = JD.get_Method();
 	for (Method::InstructionListTy::const_iterator i = M->begin(),
 			e = M->end() ; i != e ; ++i) {
@@ -157,14 +157,16 @@ bool ScheduleLatePass::run(JITData &JD) {
 }
 
 PassUsage& ScheduleLatePass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<DominatorPass>();
-	PU.add_requires<ScheduleEarlyPass>();
-	PU.add_requires<LoopPass>();
+	PU.provides<ScheduleLatePass>();
+	PU.requires<DominatorPass>();
+	PU.requires<LoopPass>();
+	PU.requires<ScheduleEarlyPass>();
 	return PU;
 }
 
 // registrate Pass
 static PassRegistry<ScheduleLatePass> X("ScheduleLatePass");
+static ArtifactRegistry<ScheduleLatePass> Y("ScheduleLatePass");
 
 } // end namespace compiler2
 } // end namespace jit

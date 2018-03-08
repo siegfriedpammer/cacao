@@ -52,8 +52,6 @@ libcompiler2_la_SOURCES = \
 	BasicBlockSchedulingPass.hpp \
 	CFGConstructionPass.cpp \
 	CFGConstructionPass.hpp \
-	CFGMetaPass.cpp \
-	CFGMetaPass.hpp \
 	CodeGenPass.cpp \
 	CodeGenPass.hpp \
 	CodeMemory.cpp \
@@ -88,8 +86,6 @@ libcompiler2_la_SOURCES = \
 	ICMDPrinterPass.hpp \
 	Instruction.cpp \
 	Instruction.hpp \
-	InstructionMetaPass.cpp \
-	InstructionMetaPass.hpp \
 	InstructionSchedule.hpp \
 	InstructionVisitor.cpp \
 	InstructionVisitor.hpp \
@@ -159,6 +155,8 @@ libcompiler2_la_SOURCES = \
 	PassDependencyGraphPrinter.hpp \
 	PassManager.cpp \
 	PassManager.hpp \
+	PassScheduler.cpp \
+	PassScheduler.hpp \
 	PassUsage.hpp \
 	PhiCoalescingPass.cpp \
 	PhiCoalescingPass.hpp \

@@ -32,7 +32,7 @@
 #include "vm/jit/compiler2/SSAPrinterPass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
 #include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
-#include "vm/jit/compiler2/InstructionMetaPass.hpp"
+#include "vm/jit/compiler2/SSAConstructionPass.hpp"
 
 #define DEBUG_NAME "compiler2/DeadCodeEliminationPass"
 
@@ -144,9 +144,8 @@ bool DeadCodeEliminationPass::run(JITData &JD) {
 
 // pass usage
 PassUsage& DeadCodeEliminationPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<InstructionMetaPass>();
-	PU.add_schedule_before<ScheduleEarlyPass>();
-	PU.add_schedule_before<SSAPrinterPass>();
+	PU.requires<HIRInstructionsArtifact>();
+	PU.before<ScheduleEarlyPass>();
 	return PU;
 }
 

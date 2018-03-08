@@ -54,138 +54,153 @@ public:
 	}
 };
 
+class Artifact;
+class ArtifactInfo {
+public:
+	using IDTy = uint32_t;
+	using ConstructorTy = Artifact* (*)();
+private:
+	const char *const name;
+	ConstructorTy ctor;
+public:
+	ArtifactInfo::IDTy const ID;
+	ArtifactInfo(const char* name, ArtifactInfo::IDTy ID, ConstructorTy ctor) : name(name), ctor(ctor), ID(ID) {}
+	const char* get_name() const {
+		return name;
+	}
+	Artifact* create_Artifact() const {
+		return ctor();
+	}
+};
+
 
 /**
- * Stores the interdependencies of a pass.
+ * Stores the interdependencies of a pass and artifacts.
  *
- * add_modifies and add_destroys can be use to invalidate other passes.
- *
- * The others are used to control the placement of a pass.
- *
- * add_requires<PassName>() and add_schedule_after<>(PassName) assert that the pass
- * PassName must be scheduled before the current pass. The first version also ensures
- * that PassName is up to date. It also allows the retrieval of the info by using
- * get_Pass<PassName>().
- *
- * add_run_before<PassName> and add_schedule_before<PassName>() ensure that the
- * current pass is scheduled before PassName. The first version also enforces
- * that the current pass is up to date. add_run_before(add_schedule_before) is the
- * inverse operation of add_requires(add_schedule_after).
+ * requires<ArtifactName> and provides<ArtifactName> is the basic method on how
+ * passes are scheduled. If the scheduler ran successfully, it is guaranteed that
+ * all required artifacts are ready and up-to-date when the pass is run.
+ * 
+ * modifies<ArtifactName> can be used to signal that this pass modifies an artifact.
+ * Any artifact depending on a modified artifact, will be rebuilt if it is needed
+ * again later on.
+ * 
+ * For more fine-tuning and scheduling optimization passes (which usually do not
+ * provide any artifacts), before<PassName> and after<PassName> can be used. These
+ * guarantee that this pass is run either before or after the given pass.
+ * 
+ * A special case are debug/printer passes. A pass is considered a debug/printer pass
+ * if it neither provides nor modifies artifacts; and if it does not use before/after
+ * for placement. Instead there 2 methods "immediately_before" and "immediatley_after"
+ * that can be used at multiple locations to add these kinds of passes all over the schedule.
  */
 class PassUsage {
 public:
 	typedef alloc::unordered_set<PassInfo::IDTy>::type PIIDSet;
 	typedef PIIDSet::const_iterator const_iterator;
+	typedef alloc::unordered_set<ArtifactInfo::IDTy>::type AIIDSet;
 private:
-	PIIDSet requires;
-	PIIDSet destroys;
-	PIIDSet modifies;
-	PIIDSet run_before;
-	PIIDSet schedule_after;
-	PIIDSet schedule_before;
+	AIIDSet provides_;
+	AIIDSet requires_;
+	AIIDSet modifies_;
+
+	PIIDSet after_;
+	PIIDSet before_;
+
+	PIIDSet imm_after_;
+	PIIDSet imm_before_;
 
 	bool is_required(const PassInfo::IDTy &ID) const {
-		return requires.find(ID) != requires.end();
+		return requires_.find(ID) != requires_.end();
 	}
 
 public:
 	PassUsage() {}
 
 	/**
-	 * PassName must run before this pass and its result must be up-to-date.
+	 * This pass will provide the specified artifact.
+	 * Make sure to also override the "provide_Artifact" method in your pass
+	 * so the pass infrastructure can wire up everythign correctly.
 	 */
-	template<class PassName>
-	void add_requires() {
-		requires.insert(PassName::template ID<PassName>());
-	}
-	void add_requires(PassInfo::IDTy id) {
-		requires.insert(id);
+	template<typename ArtifactName>
+	void provides() {
+		provides_.insert(ArtifactName::template AID<ArtifactName>());
 	}
 
 	/**
-	 * This pass will destroy the result of PassName, invalidating PassName
-	 * and all passes that depend on PassName.
+	 * This pass requires artifact.
+	 * Every artifact specified in this manner can be retrieved using
+	 * "get_Artifact<>" during a pass run.
 	 */
-	template<class PassName>
-	void add_destroys() {
-		destroys.insert(PassName::template ID<PassName>());
-	}
-	void add_destroys(PassInfo::IDTy id) {
-		destroys.insert(id);
+	template<typename ArtifactName>
+	void requires() {
+		requires_.insert(ArtifactName::template AID<ArtifactName>());
 	}
 
 	/**
-	 * This pass modifies the result of PassName. All passed depending on PassName are invalidated,
-	 * but not PassName itself.
+	 * Signals that this pass modifies the specified artifact.
+	 * This might result in passes being re-scheduled.
 	 */
-	template<class PassName>
-	void add_modifies() {
-		modifies.insert(PassName::template ID<PassName>());
-	}
-	void add_modifies(PassInfo::IDTy id) {
-		modifies.insert(id);
+	template<typename ArtifactName>
+	void modifies() {
+		modifies_.insert(ArtifactName::template AID<ArtifactName>());
 	}
 
 	/**
-	 * Run before PassName.
-	 *
-	 * This enforces that the current pass is up to date before running PassName.
+	 * This pass needs to run after the specified pass.
+	 * E.g.: Can be used to order optimizations.
 	 */
-	template<class PassName>
-	void add_run_before() {
-		run_before.insert(PassName::template ID<PassName>());
-	}
-	void add_run_before(PassInfo::IDTy id) {
-		run_before.insert(id);
+	template<typename PassName>
+	void after() {
+		after_.insert(PassName::template ID<PassName>());
 	}
 
 	/**
-	 * Schedule before PassName.
-	 *
-	 * This ensures that the current pass has been executed at least once. It is
-	 * _not_ needed to be up to date.
+	 * This pass needs to run before the specified pass.
 	 */
-	template<class PassName>
-	void add_schedule_before() {
-		schedule_before.insert(PassName::template ID<PassName>());
-	}
-	void add_schedule_before(PassInfo::IDTy id) {
-		schedule_before.insert(id);
+	template<typename PassName>
+	void before() {
+		before_.insert(PassName::template ID<PassName>());
 	}
 
 	/**
-	 * Schedule after PassName.
-	 *
-	 * Like add_requires but does not rerun PassName if not up to date. Also,
-	 * it is not allowed the use get_Pass<PassName>(). This does _not_ force
-	 * a pass to be scheduled at all! It is only used to express schedule
-	 * dependencies.
+	 * If this pass is considered a debug/printer pass (see above for precise conditions),
+	 * this can be used to add a run of this pass after the specified pass.
 	 */
-	template<class PassName>
-	void add_schedule_after() {
-		schedule_after.insert(PassName::template ID<PassName>());
-	}
-	void add_schedule_after(PassInfo::IDTy id) {
-		schedule_after.insert(id);
+	template<typename PassName>
+	void immediately_after() {
+		imm_after_.insert(PassName::template ID<PassName>());
 	}
 
-	const_iterator destroys_begin() const { return destroys.begin(); }
-	const_iterator destroys_end()   const { return destroys.end(); }
+	/**
+	 * If this pass is considered a debug/printer pass (see above for precise conditions),
+	 * this can be used to add a run of this pass before the specified pass.
+	 */
+	template<typename PassName>
+	void immediately_before() {
+		imm_before_.insert(PassName::template ID<PassName>());
+	}
 
-	const_iterator modifies_begin() const { return modifies.begin(); }
-	const_iterator modifies_end()   const { return modifies.end(); }
+	const_iterator provides_begin() const { return provides_.begin(); }
+	const_iterator provides_end() const { return provides_.end(); }
 
-	const_iterator requires_begin() const { return requires.begin(); }
-	const_iterator requires_end()   const { return requires.end(); }
+	const_iterator requires_begin() const { return requires_.begin(); }
+	const_iterator requires_end() const { return requires_.end(); }
 
-	const_iterator run_before_begin() const { return run_before.begin(); }
-	const_iterator run_before_end()   const { return run_before.end(); }
+	const_iterator modifies_begin() const { return modifies_.begin(); }
+	const_iterator modifies_end() const { return modifies_.end(); }
 
-	const_iterator schedule_after_begin() const { return schedule_after.begin(); }
-	const_iterator schedule_after_end()   const { return schedule_after.end(); }
+	const_iterator after_begin() const { return after_.begin(); }
+	const_iterator after_end() const { return after_.end(); }
 
-	const_iterator schedule_before_begin() const { return schedule_before.begin(); }
-	const_iterator schedule_before_end()   const { return schedule_before.end(); }
+	const_iterator before_begin() const { return before_.begin(); }
+	const_iterator before_end() const { return before_.end(); }
+
+	const_iterator imm_after_begin() const { return imm_after_.begin(); }
+	const_iterator imm_after_end() const { return imm_after_.end(); }
+
+	const_iterator imm_before_begin() const { return imm_before_.begin(); }
+	const_iterator imm_before_end() const { return imm_before_.end(); }
 
 	friend class Pass;
 };

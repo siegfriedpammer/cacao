@@ -566,9 +566,9 @@ void ParallelCopy::add(RegisterAssignment::Variable* variable, MachineOperand* t
 bool RegisterAssignmentPass::run(JITData& JD)
 {
 	LOG(nl << BoldYellow << "Running RegisterAssignmentPass" << reset_color << nl);
-	auto MDT = get_Pass<MachineDominatorPass>();
-	auto RPO = get_Pass<ReversePostOrderPass>();
-	LTA = get_Pass<NewLivetimeAnalysisPass>();
+	auto MDT = get_Artifact<MachineDominatorPass>();
+	auto RPO = get_Artifact<ReversePostOrderPass>();
+	LTA = get_Artifact<NewLivetimeAnalysisPass>();
 
 	factory = JD.get_MachineOperandFactory();
 	native_factory = JD.get_Backend()->get_NativeFactory();
@@ -797,7 +797,7 @@ bool RegisterAssignmentPass::verify() const
 		std::for_each(instr->results_begin(), instr->results_end(), assert_op);
 	};
 
-	auto RPO = get_Pass<ReversePostOrderPass>();
+	auto RPO = get_Artifact<ReversePostOrderPass>();
 	for (auto block : *RPO) {
 		std::for_each(block->begin(), block->end(), assert_instruction);
 		std::for_each(block->phi_begin(), block->phi_end(), assert_instruction);
@@ -808,18 +808,21 @@ bool RegisterAssignmentPass::verify() const
 
 PassUsage& RegisterAssignmentPass::get_PassUsage(PassUsage& PU) const
 {
-	PU.add_requires<MachineDominatorPass>();
-	PU.add_requires<MachineLoopPass>();
-	PU.add_requires<NewLivetimeAnalysisPass>();
-	PU.add_requires<ReversePostOrderPass>();
-	PU.add_requires<NewSpillPass>();
+	PU.provides<RegisterAssignmentPass>();
 
-	PU.add_modifies<MachineInstructionSchedulingPass>();
+	PU.requires<MachineDominatorPass>();
+	PU.requires<MachineLoopPass>();
+	PU.requires<NewLivetimeAnalysisPass>();
+	PU.requires<ReversePostOrderPass>();
+	PU.modifies<LIRInstructionScheduleArtifact>();
+
+	PU.after<NewSpillPass>();
 	return PU;
 }
 
 // register pass
 static PassRegistry<RegisterAssignmentPass> X("RegisterAssignmentPass");
+static ArtifactRegistry<RegisterAssignmentPass> Y("RegisterAssignmentPass");
 
 } // end namespace compiler2
 } // end namespace jit

@@ -101,7 +101,7 @@ public:
  * and Tarjan, 1979 @cite Lengauer1979.
  */
 template<typename _T, typename SuccIter>
-class DominatorPassBase : public Pass, public memory::ManagerMixin<DominatorPassBase<_T, SuccIter> >, public DominatorTreeBase<_T> {
+class DominatorPassBase : public Pass, public Artifact, public memory::ManagerMixin<DominatorPassBase<_T, SuccIter> >, public DominatorTreeBase<_T> {
 private:
 	typedef _T NodeTy;
 	typedef typename alloc::set<NodeTy *>::type NodeListTy;
@@ -161,8 +161,12 @@ public:
 	typedef typename alloc::vector<NodeTy*>::type DominanceFrontierTy;
 
 	DominatorPassBase() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
+
+	DominatorPassBase* provide_Artifact(ArtifactInfo::IDTy) override {
+		return this;
+	}
 };
 
 #define DEBUG_NAME "compiler2/DominatorPass"

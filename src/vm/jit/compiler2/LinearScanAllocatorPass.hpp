@@ -114,10 +114,11 @@ private:
 	//		MoveMapTy &move_map);
 public:
 	LinearScanAllocatorPass() : Pass() {}
-	virtual void initialize();
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
-	virtual bool verify() const;
+	void initialize() override;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PA) const override;
+	bool verify() const override;
+	bool is_enabled() const override { return false; }
 };
 
 } // end namespace compiler2

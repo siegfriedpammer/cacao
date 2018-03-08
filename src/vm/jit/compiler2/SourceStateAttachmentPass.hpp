@@ -56,8 +56,8 @@ private:
 public:
 
 	SourceStateAttachmentPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
 };
 
 } // end namespace compiler2

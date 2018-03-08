@@ -50,10 +50,10 @@ private:
 public:
     static Option<bool> enabled;
 	DeadCodeEliminationPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PA) const override;
 
-    virtual bool is_enabled() const {
+    bool is_enabled() const override {
         return DeadCodeEliminationPass::enabled;
     }
 };
