@@ -30,7 +30,7 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({
 	// @formatter:off
 	Fact.class,
-	// Sqrt.class,
+	Sqrt.class,
 	Power.class,
 	Min.class,
 	Pi.class,
@@ -46,7 +46,7 @@ import org.junit.runners.Suite;
 	Dcmp.class,
 	// BoyerMoore.class,
 	ArrayLength.class,
-	// Permut.class,
+	Permut.class,
 	ArrayLoad.class,
 	ArrayStore.class,
 	ArrayLoadFloat.class,

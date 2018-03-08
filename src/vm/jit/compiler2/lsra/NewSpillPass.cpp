@@ -520,7 +520,7 @@ OperandSet NewSpillPass::used_in_loop(MachineLoop* loop, OperandSet& live_loop)
 
 			const auto& occurrences = chains.get_uses(&used_operand);
 			for (const auto& occurrence : occurrences) {
-				auto usage_block = (*occurrence.instruction)->get_block();
+				auto usage_block = occurrence.block();
 				if (*child == *usage_block) {
 					used_operands.add(&used_operand);
 					found_uses.remove(&used_operand);
