@@ -108,6 +108,9 @@ static bool contains(const Container& c, const ValueType& v)
 void SSAReconstructor::handle_uses(MachineInstruction* instruction)
 {
 	auto uses_lambda = [&](auto& desc) {
+		if (!desc.op->to_Register())
+			return;
+
 		if (!contains(original_definitions_set, desc.op->get_id()))
 			return;
 
@@ -124,6 +127,9 @@ void SSAReconstructor::handle_uses(MachineInstruction* instruction)
 void SSAReconstructor::handle_definitions(MachineInstruction* instruction)
 {
 	auto def_lambda = [&](auto& desc) {
+		if (!desc.op->to_Register())
+			return;
+			
 		if (contains(original_definitions_set, desc.op->get_id())) {
 			write_variable(desc.op, instruction->get_block(), desc.op);
 			return;

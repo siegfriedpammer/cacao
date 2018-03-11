@@ -47,8 +47,48 @@ STAT_DECLARE_SUM_GROUP(comp2_allocated)
 STAT_DECLARE_SUM_GROUP(comp2_deallocated)
 STAT_DECLARE_SUM_GROUP(comp2_max)
 
-inline std::unordered_map<void*,std::size_t>& mem_map() {
-	static std::unordered_map<void*,std::size_t> mm;
+/**
+ * Custom Allocator for the memory map, DO NOT USE IN ANY OTHER PLACE
+ * This allocator does not deallocate anything. This is because
+ * during VM shutdown, in some circumstances, deconstructing the
+ * memory map did throw a SIGSEGV.
+ */
+template<class T, class BaseAllocator = std::allocator<T> >
+class NoDeallocAllocator : public BaseAllocator {
+public:
+	typedef typename BaseAllocator::pointer pointer;
+	typedef typename BaseAllocator::size_type size_type;
+
+	NoDeallocAllocator() throw() : BaseAllocator() {}
+	NoDeallocAllocator(const NoDeallocAllocator& other) throw() : BaseAllocator(other) {}
+	template <class U>
+	NoDeallocAllocator(const NoDeallocAllocator<U, typename BaseAllocator::template rebind<U>::other> &other) throw() : BaseAllocator(other) {}
+	~NoDeallocAllocator() {}
+
+	/**
+	 * @note See @cite MeyersEffectiveSTL2001, Item why this is needed.
+	 */
+	template<class U>
+	struct rebind {
+		typedef NoDeallocAllocator<U, typename BaseAllocator::template rebind<U>::other> other;
+	};
+
+	pointer allocate(size_type n) {
+		return BaseAllocator::allocate(n);
+	}
+
+	pointer allocate(size_type n, pointer h) {
+		return BaseAllocator::allocate(n, h);
+	}
+
+	void deallocate(pointer p, size_type n) throw() {
+		// Do nothing
+	}
+};
+
+using CustomMemoryMap = std::unordered_map<void*,std::size_t, std::hash<void*>, std::equal_to<void*>, NoDeallocAllocator<std::pair<const void*, std::size_t>>>;
+inline CustomMemoryMap& mem_map() {
+	static CustomMemoryMap mm;
 	return mm;
 }
 

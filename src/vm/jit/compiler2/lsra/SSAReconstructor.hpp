@@ -29,8 +29,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "vm/jit/compiler2/Type.hpp"
-#include "vm/jit/compiler2/memory/Manager.hpp"
 #include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
 
 MM_MAKE_NAME(SSAReconstructor)
