@@ -1006,6 +1006,7 @@ u1 *jit_optimize_without_replace(u1* xpc, void *pv, void *ra, void *mptr)
 			disassemble(start, end);
 		}
 	} catch (std::runtime_error err) {
+		LOG(cacao::Red << "Exception: " << err.what() << cacao::reset_color << cacao::nl);
 		LOG(cacao::BoldRed << "Failed to compile " << *method 
 			               << cacao::reset_color << cacao::nl);
 		jit_recompile_for_deoptimization(method);

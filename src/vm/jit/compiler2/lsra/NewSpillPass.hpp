@@ -53,6 +53,7 @@ public:
 
 	void add_spill(MachineOperand*, const MIIterator&);
 	void add_reload(MachineOperand*, const MIIterator&);
+	void add_spill_phi(MachinePhiInst*);
 
 	void insert_instructions(const Backend&, StackSlotManager&) const;
 
@@ -66,13 +67,20 @@ private:
 		}
 
 		MachineOperand* operand;
-		MachineOperand* stackslot;
+		MachineOperand* stackslot = nullptr;
 		MIIterator spill_position;
 		std::vector<MIIterator> reload_positions;
+
+		// When spilling whole PHIs, we set this flag, the spilled
+		// arguments are then added to spilled_operands
+		bool spilled_phi = false;
+		MachinePhiInst* phi_instruction = nullptr;
 	};
 	using SpilledOperandUPtrTy = std::unique_ptr<SpilledOperand>;
 
 	std::map<std::size_t, SpilledOperandUPtrTy> spilled_operands;
+
+	friend class SSAReconstructor;
 };
 
 struct Occurrence;
@@ -125,7 +133,7 @@ private:
 
 	void process_block(MachineBasicBlock*);
 	void fix_block_boundaries();
-	void limit(OperandSet&, OperandSet&, const MIIterator&, const MIIterator&, unsigned);
+	void limit(OperandSet&, OperandSet&, const MIIterator&, MIIterator, unsigned);
 	OperandSet compute_workset(MachineBasicBlock*);
 	OperandSet compute_spillset(MachineBasicBlock*, const OperandSet&);
 	OperandSet used_in_loop(MachineBasicBlock*);

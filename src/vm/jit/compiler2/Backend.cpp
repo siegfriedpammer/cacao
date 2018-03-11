@@ -51,6 +51,7 @@ void LoweringVisitorBase::visit(GOTOInst* I, bool copyOperands) {
 	assert(I);
 	MachineInstruction *jump = backend->create_Jump(get(I->get_target().get()));
 	get_current()->push_back(jump);
+	get_current()->set_last_insertion_point(get_current()->mi_last());
 	set_op(I,jump->get_result().op);
 }
 

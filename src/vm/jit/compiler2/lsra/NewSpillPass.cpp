@@ -100,8 +100,15 @@ static MachinePhiInst* is_defined_by_phi(const MachineOperand* operand, MachineB
 void SpillInfo::add_spill(MachineOperand* operand, const MIIterator& position)
 {
 	auto iter = spilled_operands.find(operand->get_id());
-	assert(iter == spilled_operands.end() &&
-	       "Multiple spill positions for same variable not implemented!");
+	//assert(iter == spilled_operands.end() &&
+	//       "Multiple spill positions for same variable not implemented!");
+	if (iter != spilled_operands.end()) {
+		LOG(Red << "Warning: New spill position for operand " << operand
+		        << ". TODO: Check that the new spill position does not dominate the existing one.\n"
+				<< reset_color);
+		assert_msg(iter->second->spill_position <= position, "No dominance via scheduling");
+		return;
+	}	
 
 	auto spilled_op = std::make_unique<SpilledOperand>(operand, position);
 	spilled_operands.emplace(operand->get_id(), std::move(spilled_op));
@@ -116,21 +123,89 @@ void SpillInfo::add_reload(MachineOperand* operand, const MIIterator& position)
 	spilled_operand.reload_positions.push_back(position);
 }
 
+void SpillInfo::add_spill_phi(MachinePhiInst* instruction)
+{
+	auto operand = instruction->get_result().op;
+	auto iter = spilled_operands.find(operand->get_id());
+	assert_msg(iter == spilled_operands.end(),
+	           "Multiple spill positions for same variable not implemented!");
+
+	auto spilled_op = std::make_unique<SpilledOperand>(operand,
+	                                                   instruction->get_block()->mi_first());
+	spilled_op->spilled_phi = true;
+	spilled_op->phi_instruction = instruction;
+	spilled_operands.emplace(operand->get_id(), std::move(spilled_op));
+
+	// Add all arguments as separate spills
+	auto block = instruction->get_block();
+	for (auto i = block->pred_begin(), e = block->pred_end(); i != e; ++i) {
+		auto predecessor = *i;
+		auto idx = block->get_predecessor_index(predecessor);
+		auto argument_op = instruction->get(idx).op;
+		
+		add_spill(argument_op, predecessor->mi_last_insertion_point());
+	}
+}
+
 void SpillInfo::insert_instructions(const Backend& backend, StackSlotManager& ssm) const
 {
+	// Assign a spill slot to each spilled_operands
+	// TODO: Replace this with VirtualStackslots so we can do "register assignment" on them
+	//       and re-use spill slots (especially for phis)
+
+	// Currently we simply assume that program is in CSSA-form, so PHI arguments do not 
+	// interfere and we can assign the same stackslot to all arguments and the result of a phi
 	for (const auto& pair : spilled_operands) {
-		auto& spilled_op = *pair.second;
+		if (!pair.second->spilled_phi) continue;
+
+		pair.second->stackslot = ssm.create_slot(pair.second->operand->get_type());
+		for (const auto& desc : *pair.second->phi_instruction) {
+			auto& spilled_phi_argument = *spilled_operands.at(desc.op->get_id());
+			spilled_phi_argument.stackslot = pair.second->stackslot;
+		}
+	}
+
+	// Assign remaining stackslots, again, this should be replaced by virtual ones, and then
+	// done during RegisterAssignmentPass
+	for (const auto& pair : spilled_operands) {
+		if (pair.second->stackslot) continue;
+		pair.second->stackslot = ssm.create_slot(pair.second->operand->get_type());
+	}
+
+	// Collect all spilled_opperands in a new list and partition it that non-phi related spills/reloads come first
+	// TODO: This fixes a certain example, we have to show that this is either necessary and/or enough
+	std::vector<SpilledOperand*> spilled_operands_list;
+	for (const auto& pair : spilled_operands) {
+		spilled_operands_list.push_back(pair.second.get());
+	}
+	std::stable_partition(spilled_operands_list.begin(), spilled_operands_list.end(), [](auto spilled_op) {
+		return !spilled_op->spilled_phi;
+	});
+
+	for (auto* spilled_op_ptr : spilled_operands_list) {
+		auto& spilled_op = *spilled_op_ptr;
 		auto operand = spilled_op.operand;
 		std::vector<Occurrence> new_definitions;
 
 		LOG1(nl << Yellow << "Inserting spill/reload instructions for " << operand << reset_color
 		        << nl);
 
-		spilled_op.stackslot = ssm.create_slot(operand->get_type());
-		auto spill_instr = backend.create_Move(operand, spilled_op.stackslot);
+		// For non-PHIs we simply insert a move from the operand to the stackslot
+		// before spill position. For PHIs we replace all operands of the PHI with
+		// their stackslots and let the deconstruction do the move
+		if (!spilled_op.spilled_phi) {
+			auto spill_instr = backend.create_Move(operand, spilled_op.stackslot);
 
-		LOG2("Inserting " << spill_instr << nl);
-		insert_before(spilled_op.spill_position, spill_instr);
+			LOG2("Inserting " << spill_instr << nl);
+			insert_after(spilled_op.spill_position, spill_instr);
+		} else {
+			LOG2("Phi instruction BEFORE replace: " << *spilled_op.phi_instruction << nl);
+			for (auto& desc : *spilled_op.phi_instruction) {
+				desc.op = spilled_operands.at(desc.op->get_id())->stackslot;
+			}
+			spilled_op.phi_instruction->get_result().op = spilled_op.stackslot;
+			LOG2("Phi instruction AFTER replace:  " << *spilled_op.phi_instruction << nl);
+		}
 
 		for (const auto& reload_position : spilled_op.reload_positions) {
 			auto new_def =
@@ -148,7 +223,6 @@ void SpillInfo::insert_instructions(const Backend& backend, StackSlotManager& ss
 		auto& chains = LTA->get_def_use_chains();
 		const auto& original_definition = chains.get_definition(operand);
 
-		// sp->reconstruct_ssa(original_definition, new_definitions);
 		sp->ssa_reconstructor.reconstruct(original_definition, new_definitions);
 	}
 }
@@ -168,7 +242,9 @@ void SSAReconstructor::reconstruct(const Occurrence& original_def,
 
 	write_variable(original_def.block(), original_def.operand);
 	for (auto& occurrence : definitions) {
-		write_variable(occurrence.block(), occurrence.operand);
+		if (occurrence.block() != original_def.block()) {
+			write_variable(occurrence.block(), occurrence.operand);
+		}
 	}
 
 	auto LTA = sp->get_Artifact<NewLivetimeAnalysisPass>();
@@ -177,6 +253,10 @@ void SSAReconstructor::reconstruct(const Occurrence& original_def,
 		// LOG3("Found definition in " << *occurrence.block() << " = " << operand << nl);
 
 		if (!original_def.operand->aquivalent(*operand)) {
+			if (occurrence.phi_instr != nullptr) {
+				auto& spilled_phi_operand = *sp->spill_info.spilled_operands.at(occurrence.phi_instr->get_result().op->get_id());
+				if (spilled_phi_operand.spilled_phi) return;
+			}
 			LOG3("Replacing " << original_def.operand << " with " << operand << nl);
 			occurrence.descriptor->op = operand;
 		}
@@ -264,7 +344,7 @@ MachineOperand* SSAReconstructor::try_remove_trivial_phi(MachinePhiInst* instr)
 void NewSpillPass::limit(OperandSet& workset,
                          OperandSet& spillset,
                          const MIIterator& mi_iter,
-                         const MIIterator& mi_spill_before,
+                         MIIterator mi_spill_before,
                          unsigned m)
 {
 	LOG3("limit called with m = " << m << nl);
@@ -287,7 +367,7 @@ void NewSpillPass::limit(OperandSet& workset,
 
 		if (!spillset.contains(operand) && next_use_set->contains(*operand)) {
 			LOG2(Yellow << "Spilling " << operand << reset_color << nl);
-			spill_info.add_spill(operand, mi_spill_before);
+			spill_info.add_spill(operand, --mi_spill_before);
 		}
 		spillset.remove(operand);
 	}
@@ -356,6 +436,16 @@ OperandSet NewSpillPass::compute_workset(MachineBasicBlock* block)
 		else {
 			auto used_as_list = used.ToList();
 			sort_by_next_use(*used_as_list, block->front());
+
+			// Spill PHIs that will not be in the workset
+			for (auto i = std::next(used_as_list->begin(), regs_count), e = used_as_list->end(); i != e; ++i) {
+				auto phi_instruction = is_defined_by_phi(*i, block);
+				if (phi_instruction) {
+					LOG3("Spilling PHI instruction: " << *phi_instruction << nl);
+					spill_info.add_spill_phi(phi_instruction);
+				}
+			}
+
 			used_as_list->erase(std::next(used_as_list->begin(), regs_count), used_as_list->end());
 			used = *used_as_list;
 		}
@@ -404,7 +494,9 @@ OperandSet NewSpillPass::compute_workset(MachineBasicBlock* block)
 				cand.add(phi_instr->get_result().op);
 			}
 			else {
-				assert(false && "Spilling phis not implemented!");
+				// assert_msg(false, "Spilling phis not implemented: " << *phi_instr << nl);
+				LOG3("Spilling PHI instruction: " << *phi_instr << nl);
+				spill_info.add_spill_phi(phi_instr);
 			}
 		}
 
@@ -722,7 +814,7 @@ PassUsage& NewSpillPass::get_PassUsage(PassUsage& PU) const
 	PU.requires<LoopPressurePass>();
 
 	PU.modifies<LIRInstructionScheduleArtifact>();
-	
+
 	return PU;
 }
 

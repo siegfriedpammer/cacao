@@ -536,7 +536,8 @@ public:
 	MachineRegisterRequirement(MachineOperand* required_reg) : required(required_reg) {}
 
 	virtual MachineOperand* get_required() { return required; }
-
+	virtual ~MachineRegisterRequirement() = default;
+	
 private:
 	MachineOperand* required;
 };

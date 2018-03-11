@@ -57,6 +57,8 @@ public:
 
 	virtual unsigned callee_saved_count() const = 0;
 	virtual const OperandSet& get_CalleeSaved() const = 0;
+
+	virtual ~RegisterClass() = default;
 };
 
 class RegisterInfo {
@@ -118,6 +120,7 @@ public:
 	virtual void create_epilog(MachineBasicBlock*, const CalleeSavedRegisters&) const = 0;
 
 	virtual const char* get_name() const = 0;
+	virtual ~Backend() = default;
 };
 /**
  * Machine Backend

@@ -27,6 +27,7 @@
 #include "vm/jit/compiler2/PassDependencyGraphPrinter.hpp"
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/PassScheduler.hpp"
+#include "vm/jit/compiler2/JsonGraphPrinter.hpp"
 #include "toolbox/logging.hpp"
 #include "toolbox/Option.hpp"
 #include "vm/vm.hpp"
@@ -59,6 +60,8 @@ PassTimerMap pass_timers;
 namespace {
 namespace option {
 	Option<bool> print_pass_dependencies("PrintPassDependencies","compiler2: print pass dependencies",false,::cacao::option::xx_root());
+	Option<bool> dump_method_json("DumpMethodJson", "compiler2: dumps all the information for our debug tool in JSON format",false,::cacao::option::xx_root());
+
 }
 } // end anonymous namespace
 
@@ -93,11 +96,15 @@ PassUPtrTy& PassRunner::get_Pass(PassInfo::IDTy ID) {
 	return passes[ID];
 }
 
-
 void PassRunner::runPasses(JITData &JD) {
 	LOG("runPasses" << nl);
 
-	auto& PS = PassManager::get();
+	JsonGraphPrinter graphPrinter(this);
+	if (option::dump_method_json) {
+		graphPrinter.initialize(JD);
+	}
+	
+	auto& PS = PassManager::get();	
 	for (auto i = PS.schedule_begin(), e = PS.schedule_end(); i != e; ++i) {
 		PassInfo::IDTy id = *i;
 		auto& pa = PS.passusage_map[id];
@@ -125,7 +132,7 @@ void PassRunner::runPasses(JITData &JD) {
 		#ifndef NDEBUG
 		LOG("verifying: " << PS.get_Pass_name(id) << nl);
 		if (!P->verify()) {
-			ERROR_MSG(bold << Red << "verification error" << reset_color, " during pass " << PS.get_Pass_name(id) << nl);
+			LOG(bold << Red << "verification error" << reset_color << " during pass " << PS.get_Pass_name(id) << nl);
 			// os::abort("compiler2: error");
 			throw std::runtime_error("Verification error! (logs should have more info)");
 		}
@@ -137,8 +144,23 @@ void PassRunner::runPasses(JITData &JD) {
 		P->finalize();
 		#if ENABLE_RT_TIMING
 		timer.stop();
+		if (option::dump_method_json) {
+			auto ts = timer.time();
+			std::uint64_t duration = (std::uint64_t)ts.tv_sec * 1000000LL + (std::uint64_t)ts.tv_nsec / 1000LL;
+			graphPrinter.printPass(JD, P.get(), PS.get_Pass_name(id), duration);
+		}
+		#else
+		if (option::dump_method_json) {
+			graphPrinter.printPass(JD, P.get(), PS.get_Pass_name(id), 0);
+		}
 		#endif
 	}
+
+	if (option::dump_method_json) {
+		graphPrinter.close();
+	}
+	
+	// assert(false && "Only one method gets compiled!");
 }
 
 void PassManager::schedulePasses() {

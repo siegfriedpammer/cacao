@@ -41,7 +41,7 @@ public:
 	PhiLiftingPass() : Pass() {}
 	bool run(JITData &JD) override;
 	PassUsage& get_PassUsage(PassUsage &PU) const override;
-	bool is_enabled() const override { return false; }
+	bool is_enabled() const override { return true; }
 	
 private:
 	Backend* backend;

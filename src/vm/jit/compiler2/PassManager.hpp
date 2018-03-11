@@ -217,6 +217,7 @@ public:
 	virtual void runPasses(JITData &JD);
 
 	friend class Pass;
+	friend class JsonGraphPrinter;
 };
 
 template<class _PassClass>

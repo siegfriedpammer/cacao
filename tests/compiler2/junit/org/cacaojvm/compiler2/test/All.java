@@ -90,7 +90,7 @@ import org.junit.runners.Suite;
 	New.class,
 	InstanceOf.class,
 	Throw.class,
-	// NullDereference.class,
+	NullDereference.class,
 
 	MatcherBenchmarks.class
 

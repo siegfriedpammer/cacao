@@ -56,6 +56,11 @@ public:
 	MBBIterator(MachineInstructionSchedule *parent, const iterator &it)
 		: parent(parent), it(it) {}
 	MBBIterator(const MBBIterator& other) : parent(other.parent), it(other.it) {}
+	MBBIterator& operator=(const MBBIterator& other) {
+		parent = other.parent;
+		it = other.it;
+		return *this;
+	}
 	MBBIterator& operator++() {
 		++it;
 		return *this;

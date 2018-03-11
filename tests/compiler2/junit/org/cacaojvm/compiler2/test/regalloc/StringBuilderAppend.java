@@ -41,4 +41,11 @@ public class StringBuilderAppend extends Compiler2TestBase {
 
 		assertEquals(builderCompiler2.toString(), builderBaseline.toString());
 	}
+
+	@Test
+	public void testStringEquals() {
+		String str1 = "hello";
+		String str2 = "world";
+		testResultEqual(String.class, "equals", "(Ljava/lang/Object;)Z", str1, str2);
+	}
 }

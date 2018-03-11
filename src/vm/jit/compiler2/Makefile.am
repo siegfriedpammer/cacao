@@ -90,6 +90,8 @@ libcompiler2_la_SOURCES = \
 	InstructionVisitor.cpp \
 	InstructionVisitor.hpp \
 	Instructions.hpp \
+	JsonGraphPrinter.hpp \
+	JsonGraphPrinter.cpp \
 	JITData.cpp \
 	JITData.hpp \
 	LinearScanAllocatorPass.cpp \

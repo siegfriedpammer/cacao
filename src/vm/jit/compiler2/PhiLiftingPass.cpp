@@ -28,6 +28,7 @@
 #include "vm/jit/compiler2/ReversePostOrderPass.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
+#include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
 
 #include "toolbox/logging.hpp"
@@ -87,6 +88,9 @@ bool PhiLiftingPass::run(JITData& JD)
 // pass usage
 PassUsage& PhiLiftingPass::get_PassUsage(PassUsage& PU) const
 {
+	PU.requires<ReversePostOrderPass>();
+	PU.before<NewLivetimeAnalysisPass>();
+	PU.modifies<LIRInstructionScheduleArtifact>();
 	return PU;
 }
 

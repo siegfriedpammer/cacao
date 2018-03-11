@@ -69,7 +69,7 @@ template<>
 MachineInstruction* BackendBase<X86_64>::create_Move(MachineOperand *src,
 		MachineOperand* dst) const {
 	Type::TypeID type = dst->get_type();
-	assert(type == src->get_type());
+	assert_msg(type == src->get_type(), "Move needs the same type but its " << src->get_type() << " -> " << type);
 	assert(!(src->is_stackslot() && dst->is_stackslot()));
 	switch (type) {
 	case Type::CharTypeID:
@@ -368,6 +368,7 @@ void X86_64LoweringVisitor::visit(IFInst *I, bool copyOperands) {
 		//MachineInstruction *jmp = new JumpInst(get(els.get()));
 		get_current()->push_back(cmp);
 		get_current()->push_back(cjmp);
+		get_current()->set_last_insertion_point(--get_current()->mi_last());
 		//get_current()->push_back(jmp);
 
 		set_op(I,cjmp->get_result().op);
@@ -1051,6 +1052,7 @@ void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 		// get_current()->push_back(reg);
 		// get_current()->push_back(leave);
 		get_current()->push_back(ret);
+		get_current()->set_last_insertion_point(get_current()->mi_last());
 		set_op(I,ret->get_result().op);
 		return;
 	}
@@ -1065,6 +1067,7 @@ void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 		// get_current()->push_back(reg);
 		// get_current()->push_back(leave);
 		get_current()->push_back(ret);
+		get_current()->set_last_insertion_point(get_current()->mi_last());
 		set_op(I,ret->get_result().op);
 		return;
 	}
@@ -1079,6 +1082,7 @@ void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 		// get_current()->push_back(reg);
 		// get_current()->push_back(leave);
 		get_current()->push_back(ret);
+		get_current()->set_last_insertion_point(get_current()->mi_last());
 		set_op(I,ret->get_result().op);
 		return;
 	}
@@ -1088,6 +1092,7 @@ void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 		RetInst *ret = new RetInst();
 		// get_current()->push_back(leave);
 		get_current()->push_back(ret);
+		get_current()->set_last_insertion_point(get_current()->mi_last());
 		set_op(I,ret->get_result().op);
 		return;
 	}

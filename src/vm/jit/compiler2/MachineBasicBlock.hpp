@@ -162,7 +162,7 @@ public:
 
 	/// construct an empty MachineBasicBlock
 	MachineBasicBlock(const MBBIterator &my_it)
-		: id(id_counter++),  my_it(my_it), processed(false) {};
+		: id(id_counter++),  my_it(my_it), processed(false), last_insertion_point(my_it) {};
 	/// checks if the basic block has no elements.
 	bool empty() const;
 	/// returns the number of elements
@@ -258,6 +258,10 @@ public:
 	MIIterator mi_first();
 	/// returns an MIIterator to the last element (included)
 	MIIterator mi_last();
+
+	MIIterator mi_last_insertion_point() { return last_insertion_point; }
+	void set_last_insertion_point(MIIterator point) { last_insertion_point = point; }
+
 	/// get self iterator
 	MBBIterator self_iterator() const;
 	/// get parent
@@ -292,7 +296,7 @@ private:
 	std::size_t id;
 	MBBIterator my_it;
 	/// empty constructor
-	MachineBasicBlock() : id(id_counter++) {}
+	MachineBasicBlock() : id(id_counter++), last_insertion_point(my_it) {}
 	Container list;
 	PhiListTy phi;
 	PredListTy predecessors;
@@ -302,6 +306,9 @@ private:
 
 	/// Used by NextUse analysis / SpillPass since loop exits blocks get a higher distance
 	unsigned distance = 0;
+
+	/// Points to the point where instructions at the end of this block can be inserted
+	MIIterator last_insertion_point;
 
 	friend class MBBBuilder;
 	friend class MachineInstructionSchedule;

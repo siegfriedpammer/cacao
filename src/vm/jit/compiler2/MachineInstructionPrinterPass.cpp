@@ -30,6 +30,7 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
+#include "vm/jit/compiler2/PhiLiftingPass.hpp"
 #include "vm/jit/compiler2/lsra/NewSpillPass.hpp"
 #include "vm/jit/compiler2/lsra/RegisterAssignmentPass.hpp"
 
@@ -50,6 +51,7 @@ namespace compiler2 {
 PassUsage& MachineInstructionPrinterPass::get_PassUsage(PassUsage &PU) const {
 	PU.requires<LIRInstructionScheduleArtifact>();
 	PU.immediately_after<MachineInstructionSchedulingPass>();
+	PU.immediately_after<PhiLiftingPass>();
 	PU.immediately_after<NewSpillPass>();
 	PU.immediately_after<RegisterAssignmentPass>();
 	return PU;
