@@ -153,7 +153,7 @@ public:
 	typedef Container::reverse_iterator reverse_iterator;
 	typedef Container::const_reverse_iterator const_reverse_iterator;
 
-	typedef alloc::list<MachinePhiInst*>::type PhiListTy;
+	typedef alloc::vector<MachinePhiInst*>::type PhiListTy;
 	typedef PhiListTy::const_iterator const_phi_iterator;
 
 	typedef alloc::vector<MachineBasicBlock*>::type PredListTy;
@@ -225,6 +225,11 @@ public:
 	std::size_t phi_size() const;
 	/// removes all phi nodes
 	void phi_clear();
+	/// erase phis in the range
+	template<typename Iter>
+	auto phi_erase(Iter iter) {
+		return phi.erase(iter);
+	}
 
 	/**
 	 * Appends the given element value to the list of predecessors.

@@ -64,12 +64,11 @@ private:
 	std::vector<std::size_t> original_definitions_set;
 
 	/// \todo Current data structures used as a proof of concept, may need something better here
-	// using BlockToOperand = std::map<MachineBasicBlock*, MachineOperand*>;
-	// std::map<MachineOperand*, BlockToOperand> current_def;
-	// std::map<MachineBasicBlock*, MachineOperand*> current_def;
-	// Type::TypeID current_type;
 	using BlockToOperand = std::unordered_map<std::size_t, MachineOperand*>;
 	std::unordered_map<std::size_t, BlockToOperand> current_def;
+
+	using VariableToPhi = std::unordered_map<MachineOperand*, MachinePhiInst*>;
+	std::unordered_map<std::size_t, VariableToPhi> incomplete_phis;
 
 	using NewDefinitionTy = std::pair<Occurrence, std::vector<Occurrence>>;
 	std::vector<NewDefinitionTy> definitions;
@@ -83,8 +82,18 @@ private:
 	MachineOperand* add_phi_operands(MachineOperand*,MachinePhiInst*);
 	MachineOperand* try_remove_trivial_phi(MachinePhiInst*);
 
-	void handle_instruction(MachineInstruction*);
+	void handle_uses(MachineInstruction*);
+	void handle_definitions(MachineInstruction*);
 	void prepare_operand_sets();
+
+	std::unordered_set<std::size_t> sealed_blocks;
+	std::unordered_set<std::size_t> finished_blocks;
+
+	bool is_sealed(MachineBasicBlock*) const;
+	bool is_finished(MachineBasicBlock*) const;
+
+	void try_seal_block(MachineBasicBlock*);
+	void seal_block(MachineBasicBlock*);
 };
 
 } // end namespace compiler2
