@@ -23,10 +23,16 @@
 */
 
 #include "vm/jit/compiler2/x86_64/X86_64Register.hpp"
+#include "toolbox/Option.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+
+namespace option {
+	Option<int> available_registers("AvailableRegisters","compiler2: set the number of available integer registers for register allocation (min 2)",-1,::cacao::option::xx_root());
+}
+
 namespace x86_64 {
 
 NativeOperandFactory NOF;
@@ -110,17 +116,23 @@ template <>
 X86_64RegisterClass<X86_64Class::GP>::X86_64RegisterClass()
     : all(NOF.EmptySet()), caller_saved(NOF.EmptySet()), callee_saved(NOF.EmptySet())
 {
-	for (const auto reg : IntegerCallerSavedRegisters) {
-		caller_saved.add(reg);
-	}
+	auto available_registers = ::cacao::jit::compiler2::option::available_registers;
+	if (available_registers == -1) {
+		for (const auto reg : IntegerCallerSavedRegisters) {
+			caller_saved.add(reg);
+		}
 
-	for (const auto reg : IntegerCalleeSavedRegisters) {
-		callee_saved.add(reg);
+		for (const auto reg : IntegerCalleeSavedRegisters) {
+			callee_saved.add(reg);
+		}
+	} else if (available_registers >= 2 && available_registers <= 7) {
+		for (std::size_t i = 0, e = available_registers - 1; i < e; ++i) {
+			caller_saved.add(IntegerArgumentRegisters[i]);
+		}
+		caller_saved.add(&RAX);
+	} else {
+		ABORT_MSG("Invalid available registers", "Only return + arguments are available when reducing register count!");
 	}
-
-	//caller_saved.add(&RDI);
-	//caller_saved.add(&RSI);
-	//caller_saved.add(&RAX);
 
 	all |= caller_saved;
 	all |= callee_saved;

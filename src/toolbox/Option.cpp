@@ -156,6 +156,13 @@ bool Option<unsigned int>::parse(const char* value, std::size_t value_len) {
 	return true;
 }
 
+template<>
+bool Option<int>::parse(const char* value, std::size_t value_len) {
+	int verb = os::atoi(value);
+	set_value(verb);
+	return true;
+}
+
 } // end namespace cacao
 
 /*

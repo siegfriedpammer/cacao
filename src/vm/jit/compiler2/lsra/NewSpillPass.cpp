@@ -36,6 +36,7 @@
 #include "vm/jit/compiler2/lsra/LogHelper.hpp"
 #include "vm/jit/compiler2/lsra/LoopPressurePass.hpp"
 #include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/lsra/SSAReconstructor.hpp"
 
 #define DEBUG_NAME "compiler2/NewSpillPass"
 
@@ -106,7 +107,10 @@ void SpillInfo::add_spill(MachineOperand* operand, const MIIterator& position)
 		LOG(Red << "Warning: New spill position for operand " << operand
 		        << ". TODO: Check that the new spill position does not dominate the existing one.\n"
 				<< reset_color);
-		assert_msg(iter->second->spill_position <= position, "No dominance via scheduling");
+		// assert_msg(iter->second->spill_position <= position, "No dominance via scheduling");
+		if (!(iter->second->spill_position <= position)) {
+			iter->second->spill_position = position;
+		}
 		return;
 	}	
 
@@ -182,6 +186,7 @@ void SpillInfo::insert_instructions(const Backend& backend, StackSlotManager& ss
 		return !spilled_op->spilled_phi;
 	});
 
+	SSAReconstructor ssa_reconstructor(sp);
 	for (auto* spilled_op_ptr : spilled_operands_list) {
 		auto& spilled_op = *spilled_op_ptr;
 		auto operand = spilled_op.operand;
@@ -223,122 +228,9 @@ void SpillInfo::insert_instructions(const Backend& backend, StackSlotManager& ss
 		auto& chains = LTA->get_def_use_chains();
 		const auto& original_definition = chains.get_definition(operand);
 
-		sp->ssa_reconstructor.reconstruct(original_definition, new_definitions);
+		ssa_reconstructor.add_new_definitions(original_definition, new_definitions);
 	}
-}
-
-void SSAReconstructor::reconstruct(const Occurrence& original_def,
-                                   const std::vector<Occurrence>& definitions)
-{
-	current_def.clear();
-	current_type = original_def.operand->get_type();
-
-	std::vector<const MachineOperand*> defined_ops;
-	std::for_each(definitions.cbegin(), definitions.cend(),
-	              [&](const auto occurrence) { defined_ops.push_back(occurrence.operand); });
-
-	LOG1(nl << Cyan << "Reconstructing SSA for " << original_def.operand << reset_color << nl);
-	LOG1_NAMED_PTR_CONTAINER("New definitions: ", defined_ops);
-
-	write_variable(original_def.block(), original_def.operand);
-	for (auto& occurrence : definitions) {
-		if (occurrence.block() != original_def.block()) {
-			write_variable(occurrence.block(), occurrence.operand);
-		}
-	}
-
-	auto LTA = sp->get_Artifact<NewLivetimeAnalysisPass>();
-	LTA->get_def_use_chains().for_each_use(original_def.operand, [&](const auto& occurrence) {
-		auto operand = this->read_variable(occurrence.block());
-		// LOG3("Found definition in " << *occurrence.block() << " = " << operand << nl);
-
-		if (!original_def.operand->aquivalent(*operand)) {
-			if (occurrence.phi_instr != nullptr) {
-				auto& spilled_phi_operand = *sp->spill_info.spilled_operands.at(occurrence.phi_instr->get_result().op->get_id());
-				if (spilled_phi_operand.spilled_phi) return;
-			}
-			LOG3("Replacing " << original_def.operand << " with " << operand << nl);
-			occurrence.descriptor->op = operand;
-		}
-	});
-
-	// assert(false && "SSA Reconstruction not yet implemented!");
-}
-
-void SSAReconstructor::write_variable(MachineBasicBlock* block, MachineOperand* operand)
-{
-	current_def[block] = operand;
-	LOG3("write_variable " << *block << " = " << operand << nl);
-}
-
-MachineOperand* SSAReconstructor::read_variable(MachineBasicBlock* block)
-{
-	auto iter = current_def.find(block);
-	if (iter != current_def.end()) {
-		// Local value numbering
-		return iter->second;
-	}
-	// Global value numbering
-	return read_variable_recursive(block);
-}
-
-MachineOperand* SSAReconstructor::read_variable_recursive(MachineBasicBlock* block)
-{
-	MachineOperand* operand = nullptr;
-
-	// Do not create a PHI if block has only one predecessor
-	if (block->pred_size() == 1) {
-		operand = read_variable(*block->pred_begin());
-	}
-	else {
-		auto instr = new MachinePhiInst(block->pred_size(), current_type, nullptr, sp->mof);
-		instr->set_block(block);
-
-		write_variable(block, instr->get_result().op);
-		operand = add_phi_operands(instr);
-
-		if (operand->aquivalent(*instr->get_result().op)) {
-			block->insert_phi(instr);
-		}
-	}
-
-	write_variable(block, operand);
-
-	return operand;
-}
-
-MachineOperand* SSAReconstructor::add_phi_operands(MachinePhiInst* instr)
-{
-	auto block = instr->get_block();
-	for (std::size_t i = 0, e = block->pred_size(); i < e; ++i) {
-		auto operand = read_variable(block->get_predecessor(i));
-		instr->get(i).op = operand;
-
-		LOG3("\tPredecessor " << *block->get_predecessor(i) << " has operand " << operand << nl);
-	}
-	LOG3("After adding operands to PHI " << instr << nl);
-	return try_remove_trivial_phi(instr);
-}
-
-MachineOperand* SSAReconstructor::try_remove_trivial_phi(MachinePhiInst* instr)
-{
-	MachineOperand* same = nullptr;
-	for (const auto& descriptor : *instr) {
-		auto operand = descriptor.op;
-		if (operand->aquivalent(*instr->get_result().op) || (same && operand->aquivalent(*same)) ||
-		    operand->aquivalent(NoOperand))
-			continue;
-		if (same)
-			return instr->get_result().op; // The phi merges at least two values
-		same = operand;
-	}
-
-	if (!same) {
-		// The phi is unreachalbe or in the start block
-		same = &NoOperand;
-	}
-
-	return same;
+	ssa_reconstructor.reconstruct();
 }
 
 void NewSpillPass::limit(OperandSet& workset,
@@ -754,12 +646,13 @@ void NewSpillPass::fix_block_boundaries()
 				if (ws_exit.contains(&op)) {
 					// We might have to spill on this path
 					if (spill_entry.contains(&op) && !spill_exit.contains(&op)) {
-						assert(false && "TOOD: We might need top spill some shit no this path!");
+						LOG3("Spilling " << op << nl);
+						spill_info.add_spill(&op, --predecessor->mi_last_insertion_point());
 					}
 				}
 				else {
 					LOG3("Reloading " << op << nl);
-					spill_info.add_reload(&op, predecessor->mi_last());
+					spill_info.add_reload(&op, predecessor->mi_last_insertion_point());
 				}
 			}
 

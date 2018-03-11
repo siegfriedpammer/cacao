@@ -41,7 +41,9 @@ liblsra_la_SOURCES = \
 	NewSpillPass.cpp \
 	NewSpillPass.hpp \
 	RegisterAssignmentPass.cpp \
-	RegisterAssignmentPass.hpp
+	RegisterAssignmentPass.hpp \
+	SSAReconstructor.cpp \
+	SSAReconstructor.hpp
 	
 ## Local variables:
 ## mode: Makefile

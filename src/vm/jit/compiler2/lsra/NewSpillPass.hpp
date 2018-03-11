@@ -83,41 +83,14 @@ private:
 	friend class SSAReconstructor;
 };
 
-struct Occurrence;
-
-class SSAReconstructor {
-public:
-	explicit SSAReconstructor(NewSpillPass* pass) : sp(pass) {}
-
-	void reconstruct(const Occurrence& original_def,
-	                 const std::vector<Occurrence>& definitions);
-
-private:
-	NewSpillPass* sp;
-
-	/// \todo Current data structures used as a proof of concept, may need something better here
-	// using BlockToOperand = std::map<MachineBasicBlock*, MachineOperand*>;
-	// std::map<MachineOperand*, BlockToOperand> current_def;
-	std::map<MachineBasicBlock*, MachineOperand*> current_def;
-	Type::TypeID current_type;
-
-
-	void write_variable(MachineBasicBlock*, MachineOperand*);
-	MachineOperand* read_variable(MachineBasicBlock*);
-	MachineOperand* read_variable_recursive(MachineBasicBlock*);
-	MachineOperand* add_phi_operands(MachinePhiInst*);
-	MachineOperand* try_remove_trivial_phi(MachinePhiInst*);
-};
-
 class NewSpillPass : public Pass, public memory::ManagerMixin<NewSpillPass> {
 public:
-	NewSpillPass() : Pass(), spill_info(this), ssa_reconstructor(this) {}
+	NewSpillPass() : Pass(), spill_info(this) {}
 	virtual bool run(JITData& JD);
 	virtual PassUsage& get_PassUsage(PassUsage& PU) const;
 
 private:
 	SpillInfo spill_info;
-	SSAReconstructor ssa_reconstructor;
 	Backend* backend;
 	StackSlotManager* ssm;
 	MachineOperandFactory* mof;
