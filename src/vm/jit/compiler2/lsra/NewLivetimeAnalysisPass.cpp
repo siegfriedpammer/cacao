@@ -150,6 +150,8 @@ void NextUseInformation::transfer(NextUseSet& next_use_set,
 
 NextUseSet& NextUseInformation::get_next_use_out(MachineBasicBlock* block)
 {
+	assert_msg(block, "Do not pass nullptrs around!");
+	assert_msg(next_use_outs.find(block) != next_use_outs.end(), "Requesting non existing NextUseSet for " << *block);
 	return *next_use_outs.at(block);
 }
 
@@ -213,7 +215,7 @@ const std::list<Occurrence>& DefUseChains::get_uses(const MachineOperand* operan
 	return chain.uses;
 }
 
-void NewLivetimeAnalysisPass::initialize_blocks() const
+void NewLivetimeAnalysisPass::initialize_blocks()
 {
 	LOG1("Marking loop exits with higher distance\n");
 
@@ -221,6 +223,7 @@ void NewLivetimeAnalysisPass::initialize_blocks() const
 	auto MLP = get_Artifact<MachineLoopPass>();
 	for (const auto block : *RPO) {
 		block->mark_unprocessed();
+		next_use.initialize_empty_sets_for(block);
 
 		auto loop = MLP->get_Loop(block);
 		if (!loop)
@@ -274,8 +277,6 @@ void NewLivetimeAnalysisPass::dag_dfs(MachineBasicBlock* block)
 void NewLivetimeAnalysisPass::process_block(MachineBasicBlock* block)
 {
 	LOG2(nl << Yellow << "Processing " << *block << reset_color << nl);
-
-	next_use.initialize_empty_sets_for(block);
 
 	calculate_liveout(block);
 	calculate_livein(block);
@@ -542,9 +543,6 @@ OperandSet NewLivetimeAnalysisPass::liveness_transfer(const OperandSet& live,
 
 	assert(!instruction->to_MachinePhiInst() &&
 	       "Arguments of a phi functions are not live at the beginning of a block!");
-
-	if (!reg_alloc_considers_instruction(instruction))
-		return result;
 
 	auto result_operands_transfer = [&](auto& descriptor) {
 		auto operand = descriptor.op;

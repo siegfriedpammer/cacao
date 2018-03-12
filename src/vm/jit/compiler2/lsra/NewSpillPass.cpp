@@ -100,22 +100,38 @@ static MachinePhiInst* is_defined_by_phi(const MachineOperand* operand, MachineB
 
 void SpillInfo::add_spill(MachineOperand* operand, const MIIterator& position)
 {
+	// If its the first time we spill this operand, simply record it
 	auto iter = spilled_operands.find(operand->get_id());
-	//assert(iter == spilled_operands.end() &&
-	//       "Multiple spill positions for same variable not implemented!");
-	if (iter != spilled_operands.end()) {
-		LOG(Red << "Warning: New spill position for operand " << operand
-		        << ". TODO: Check that the new spill position does not dominate the existing one.\n"
-				<< reset_color);
-		// assert_msg(iter->second->spill_position <= position, "No dominance via scheduling");
-		if (!(iter->second->spill_position <= position)) {
-			iter->second->spill_position = position;
-		}
-		return;
-	}	
+	if (iter == spilled_operands.end()) {
+		auto spilled_op = std::make_unique<SpilledOperand>(operand, position);
+		spilled_operands.emplace(operand->get_id(), std::move(spilled_op));
 
-	auto spilled_op = std::make_unique<SpilledOperand>(operand, position);
-	spilled_operands.emplace(operand->get_id(), std::move(spilled_op));
+		return;
+	}
+
+	// Check if other spills dominate - or are dominated by - this spill
+	auto& spilled_op = *iter->second;
+	std::vector<MIIterator> positions_to_remove;
+	std::vector<MIIterator> positions_to_add;
+	for (auto i = spilled_op.spill_positions.begin(); i != spilled_op.spill_positions.end();) {
+		const auto& existing_spill_pos = *i;
+
+		// No need to add this spill if it is dominated by another
+		if (sp->strictly_dominates(existing_spill_pos, position)) {
+			LOG3("dominated by other spill, not added!\n");
+			return;
+		}
+
+		// Remove spills that the new position dominates
+		if (sp->strictly_dominates(position, existing_spill_pos)) {
+			LOG3("removing old spill since it is dominated by another!\n");
+			i = spilled_op.spill_positions.erase(i);
+		}
+		else {
+			++i;
+		}
+	}
+	spilled_op.spill_positions.push_back(position);
 }
 
 void SpillInfo::add_reload(MachineOperand* operand, const MIIterator& position)
@@ -134,8 +150,8 @@ void SpillInfo::add_spill_phi(MachinePhiInst* instruction)
 	assert_msg(iter == spilled_operands.end(),
 	           "Multiple spill positions for same variable not implemented!");
 
-	auto spilled_op = std::make_unique<SpilledOperand>(operand,
-	                                                   instruction->get_block()->mi_first());
+	auto spilled_op =
+	    std::make_unique<SpilledOperand>(operand, instruction->get_block()->mi_first());
 	spilled_op->spilled_phi = true;
 	spilled_op->phi_instruction = instruction;
 	spilled_operands.emplace(operand->get_id(), std::move(spilled_op));
@@ -146,7 +162,7 @@ void SpillInfo::add_spill_phi(MachinePhiInst* instruction)
 		auto predecessor = *i;
 		auto idx = block->get_predecessor_index(predecessor);
 		auto argument_op = instruction->get(idx).op;
-		
+
 		add_spill(argument_op, predecessor->mi_last_insertion_point());
 	}
 }
@@ -157,10 +173,11 @@ void SpillInfo::insert_instructions(const Backend& backend, StackSlotManager& ss
 	// TODO: Replace this with VirtualStackslots so we can do "register assignment" on them
 	//       and re-use spill slots (especially for phis)
 
-	// Currently we simply assume that program is in CSSA-form, so PHI arguments do not 
+	// Currently we simply assume that program is in CSSA-form, so PHI arguments do not
 	// interfere and we can assign the same stackslot to all arguments and the result of a phi
 	for (const auto& pair : spilled_operands) {
-		if (!pair.second->spilled_phi) continue;
+		if (!pair.second->spilled_phi)
+			continue;
 
 		pair.second->stackslot = ssm.create_slot(pair.second->operand->get_type());
 		for (const auto& desc : *pair.second->phi_instruction) {
@@ -172,19 +189,21 @@ void SpillInfo::insert_instructions(const Backend& backend, StackSlotManager& ss
 	// Assign remaining stackslots, again, this should be replaced by virtual ones, and then
 	// done during RegisterAssignmentPass
 	for (const auto& pair : spilled_operands) {
-		if (pair.second->stackslot) continue;
+		if (pair.second->stackslot)
+			continue;
 		pair.second->stackslot = ssm.create_slot(pair.second->operand->get_type());
 	}
 
-	// Collect all spilled_opperands in a new list and partition it that non-phi related spills/reloads come first
-	// TODO: This fixes a certain example, we have to show that this is either necessary and/or enough
+	// Collect all spilled_opperands in a new list and partition it that non-phi related
+	// spills/reloads come first
+	// TODO: This fixes a certain example, we have to show that this is either necessary and/or
+	// enough
 	std::vector<SpilledOperand*> spilled_operands_list;
 	for (const auto& pair : spilled_operands) {
 		spilled_operands_list.push_back(pair.second.get());
 	}
-	std::stable_partition(spilled_operands_list.begin(), spilled_operands_list.end(), [](auto spilled_op) {
-		return !spilled_op->spilled_phi;
-	});
+	std::stable_partition(spilled_operands_list.begin(), spilled_operands_list.end(),
+	                      [](auto spilled_op) { return !spilled_op->spilled_phi; });
 
 	SSAReconstructor ssa_reconstructor(sp);
 	for (auto* spilled_op_ptr : spilled_operands_list) {
@@ -199,11 +218,14 @@ void SpillInfo::insert_instructions(const Backend& backend, StackSlotManager& ss
 		// before spill position. For PHIs we replace all operands of the PHI with
 		// their stackslots and let the deconstruction do the move
 		if (!spilled_op.spilled_phi) {
-			auto spill_instr = backend.create_Move(operand, spilled_op.stackslot);
+			for (const auto& spill_position : spilled_op.spill_positions) {
+				auto spill_instr = backend.create_Move(operand, spilled_op.stackslot);
 
-			LOG2("Inserting " << spill_instr << nl);
-			insert_after(spilled_op.spill_position, spill_instr);
-		} else {
+				LOG2("Inserting " << spill_instr << nl);
+				insert_after(spill_position, spill_instr);
+			}
+		}
+		else {
 			LOG2("Phi instruction BEFORE replace: " << *spilled_op.phi_instruction << nl);
 			for (auto& desc : *spilled_op.phi_instruction) {
 				desc.op = spilled_operands.at(desc.op->get_id())->stackslot;
@@ -230,7 +252,40 @@ void SpillInfo::insert_instructions(const Backend& backend, StackSlotManager& ss
 
 		ssa_reconstructor.add_new_definitions(original_definition, new_definitions);
 	}
+	replace_registers_with_stackslots_for_deopt();
 	ssa_reconstructor.reconstruct();
+}
+
+void SpillInfo::replace_registers_with_stackslots_for_deopt() const
+{
+	for (auto block : *sp->get_Artifact<ReversePostOrderPass>()) {
+		for (auto i = block->begin(), e = block->end(); i != e; ++i) {
+			auto instruction = *i;
+			if (instruction->to_MachineReplacementPointInst() == nullptr)
+				continue;
+
+			for (auto& desc : *instruction) {
+				auto iter = spilled_operands.find(desc.op->get_id());
+				if (iter == spilled_operands.end())
+					continue;
+
+				// Found variable that is spilled, check if there are any spill_positions
+				// that dominate this ReplacementPointInst
+				auto current_pos = block->convert(i);
+				auto& spilled_op = *iter->second;
+				auto dominates = std::any_of(
+				    spilled_op.spill_positions.begin(), spilled_op.spill_positions.end(),
+				    [&](auto& spill_pos) { return sp->strictly_dominates(spill_pos, current_pos); });
+
+				if (dominates) {
+					LOG1(Cyan << "Replacing " << desc.op << " with " << spilled_op.stackslot
+				          << " in MachineReplacementPointInst\n"
+				          << reset_color);
+					desc.op = spilled_op.stackslot;
+				}
+			}
+		}
+	}
 }
 
 void NewSpillPass::limit(OperandSet& workset,
@@ -283,6 +338,77 @@ void NewSpillPass::sort_by_next_use(OperandList& list, MachineInstruction* instr
 	});
 }
 
+NewSpillPass::Availability NewSpillPass::available_in_all_preds(MachineBasicBlock* block,
+                                                                MachineOperand* op,
+                                                                MachinePhiInst* phi_instr)
+{
+	bool available_everywhere = true;
+	bool available_nowhere = true;
+
+	for (auto i = block->pred_begin(), e = block->pred_end(); i != e; ++i) {
+		MachineOperand* operand = op;
+		if (phi_instr) {
+			auto idx = block->get_predecessor_index(*i);
+			operand = phi_instr->get(idx).op;
+		}
+
+		bool found = false;
+		for (const auto& pred_op : worksets_exit.at(*i)) {
+			if (!pred_op.aquivalent(*operand))
+				continue;
+
+			found = true;
+			available_nowhere = false;
+			break;
+		}
+
+		available_everywhere &= found;
+	}
+
+	if (available_everywhere) {
+		return Availability::Everywhere;
+	}
+	else if (available_nowhere) {
+		return Availability::Nowhere;
+	}
+	else {
+		return Availability::Partly;
+	}
+}
+
+NewSpillPass::Location NewSpillPass::to_take_or_not_to_take(MachineBasicBlock* block,
+                                                            MachineOperand* operand,
+                                                            Availability available)
+{
+	Location location;
+	location.time_type = Location::TimeType::Infinity;
+	location.operand = operand;
+	location.spilled = false;
+
+	auto LTA = get_Artifact<NewLivetimeAnalysisPass>();
+	auto next_use_set_ptr = LTA->next_use_set_from(block->front());
+	auto next_use_set = *next_use_set_ptr;
+
+	if (!next_use_set.contains(*operand)) {
+		LOG3("\t" << operand << " not taken (dead)\n");
+		return location;
+	}
+
+	location.time_type = Location::TimeType::Normal;
+	location.time = next_use_set[*operand];
+	if (available == Availability::Everywhere) {
+		LOG3("\t" << operand << " taken (" << location.time << ", live in all pred)\n");
+		return location;
+	}
+	else if (available == Availability::Nowhere) {
+		LOG3("\t" << operand << " not taken (" << location.time << ", live in no pred)\n");
+		location.time_type = Location::TimeType::Infinity;
+		return location;
+	}
+
+	return location;
+}
+
 OperandSet NewSpillPass::compute_workset(MachineBasicBlock* block)
 {
 	auto workset = mof->EmptySet();
@@ -290,156 +416,155 @@ OperandSet NewSpillPass::compute_workset(MachineBasicBlock* block)
 	auto MLP = get_Artifact<MachineLoopPass>();
 	auto LTA = get_Artifact<NewLivetimeAnalysisPass>();
 
-	if (MLP->is_loop_header(block)) {
-		auto used = used_in_loop(block);
-		LOG2_NAMED_CONTAINER("Operands used in loop: ", used);
+	bool all_pred_known = std::all_of(block->pred_begin(), block->pred_end(), [&](const auto pred) {
+		return worksets_exit.find(pred) != worksets_exit.end();
+	});
 
-		auto& live_in = LTA->get_live_in(block);
-		OperandSet live_through = mof->EmptySet();
-		std::for_each(live_in.cbegin(), live_in.cend(), [&](const auto& operand) {
-			if (current_rc->handles_type(operand.get_type()) && !used.contains(&operand))
-				live_through.add(&operand);
-		});
-		LOG2_NAMED_CONTAINER("Live-through: ", live_through);
+	auto starters = mof->EmptySet();
+	auto delayed = mof->EmptySet();
 
-		const unsigned regs_count = current_rc->count();
+	// Handle PHI instructions first, if all operands of a PHI are available,
+	// put the result into "take"
+	for (auto i = block->phi_begin(), e = block->phi_end(); i != e; ++i) {
+		auto phi_instr = *i;
 
-		// Max loop pressure is the maximum of all loops where block is a header
-		unsigned loop_pressure = 0;
-		auto iter_pair = MLP->get_Loops_from_header(block);
-		for (auto i = iter_pair.first, e = iter_pair.second; i != e; ++i) {
-			auto current_loop_pressure = (*i)->get_register_pressures()[current_rc_idx];
-			loop_pressure = std::max(loop_pressure, current_loop_pressure);
+		if (!current_rc->handles_type(phi_instr->get_result().op->get_type()))
+			continue;
+
+		Availability available = Availability::Unknown;
+		if (all_pred_known) {
+			available = available_in_all_preds(block, nullptr, phi_instr);
 		}
 
-		OperandSet add = mof->EmptySet();
-		if (used.size() < regs_count) {
-			unsigned free_loop_regs = regs_count - loop_pressure + live_through.size();
-			auto live_through_as_list = live_through.ToList();
-			sort_by_next_use(*live_through_as_list, block->front());
-
-			unsigned live_through_count = std::min<unsigned>(live_through.size(), free_loop_regs);
-			LOG2("Adding " << live_through_count << " live-through variables to workset.\n");
-
-			auto to_iter = std::next(live_through_as_list->begin(), live_through_count);
-			std::for_each(live_through_as_list->begin(), to_iter,
-			              [&](const auto operand) { add.add(operand); });
+		auto operand = phi_instr->get_result().op;
+		auto location = to_take_or_not_to_take(block, operand, available);
+		if (location.time_type != Location::TimeType::Infinity) {
+			if (location.time_type == Location::TimeType::Pending) {
+				delayed.add(operand);
+			}
+			else {
+				starters.add(operand);
+			}
 		}
 		else {
-			auto used_as_list = used.ToList();
-			sort_by_next_use(*used_as_list, block->front());
+			LOG3("Spilling PHI instruction: " << *phi_instr << nl);
+			spill_info.add_spill_phi(phi_instr);
+		}
+	}
 
-			// Spill PHIs that will not be in the workset
-			for (auto i = std::next(used_as_list->begin(), regs_count), e = used_as_list->end(); i != e; ++i) {
-				auto phi_instruction = is_defined_by_phi(*i, block);
-				if (phi_instruction) {
-					LOG3("Spilling PHI instruction: " << *phi_instruction << nl);
-					spill_info.add_spill_phi(phi_instruction);
-				}
-			}
+	// Handle Live-ins now, since we already handled phi definitions before,
+	// we can ignore them now
+	auto live_in = LTA->get_live_in(block) - LTA->mbb_phi_defs(block);
+	std::for_each(live_in.begin(), live_in.end(), [&](auto& operand) {
+		if (!current_rc->handles_type(operand.get_type()))
+			return;
 
-			used_as_list->erase(std::next(used_as_list->begin(), regs_count), used_as_list->end());
-			used = *used_as_list;
+		Availability available = Availability::Unknown;
+		if (all_pred_known) {
+			available = available_in_all_preds(block, &operand, nullptr);
 		}
 
-		workset = (used | add);
-	}
-	else {
-		std::map<std::size_t, unsigned> frequencies;
-		OperandSet take = mof->EmptySet();
-		OperandSet cand = mof->EmptySet();
-
-		// Handle PHI instructions first, if all operands of a PHI are available,
-		// put the result into "take"
-		for (auto i = block->phi_begin(), e = block->phi_end(); i != e; ++i) {
-			auto phi_instr = *i;
-
-			if (!current_rc->handles_type(phi_instr->get_result().op->get_type()))
-				continue;
-
-			bool available_everywhere = true;
-			bool available_nowhere = true;
-			for (auto j = block->pred_begin(), je = block->pred_end(); j != je; ++j) {
-				auto predecessor = *j;
-
-				auto idx = block->get_predecessor_index(predecessor);
-				auto operand = phi_instr->get(idx).op;
-
-				// Is the operand in the workset of the predecessor?
-				bool found = false;
-				for (const auto& pred_op : worksets_exit.at(predecessor)) {
-					if (!pred_op.aquivalent(*operand))
-						continue;
-
-					found = true;
-					available_nowhere = false;
-					break;
-				}
-
-				available_everywhere &= found;
-			}
-
-			if (available_everywhere) {
-				take.add(phi_instr->get_result().op);
-			}
-			else if (!available_nowhere) {
-				cand.add(phi_instr->get_result().op);
+		auto location = to_take_or_not_to_take(block, &operand, available);
+		if (location.time_type != Location::TimeType::Infinity) {
+			if (location.time_type == Location::TimeType::Pending) {
+				delayed.add(&operand);
 			}
 			else {
-				// assert_msg(false, "Spilling phis not implemented: " << *phi_instr << nl);
-				LOG3("Spilling PHI instruction: " << *phi_instr << nl);
-				spill_info.add_spill_phi(phi_instr);
+				starters.add(&operand);
 			}
 		}
+	});
 
-		// Handle Live-ins now, since we already handled phi definitions before,
-		// we can ignore them now
-		auto live_in = LTA->get_live_in(block) - LTA->mbb_phi_defs(block);
-		std::for_each(live_in.cbegin(), live_in.cend(), [&](const auto& operand) {
-			if (!current_rc->handles_type(operand.get_type()))
+	const unsigned regs_count = current_rc->count();
+	unsigned loop_pressure = 0;
+	auto iter_pair = MLP->get_Loops_from_header(block);
+	for (auto i = iter_pair.first, e = iter_pair.second; i != e; ++i) {
+		auto current_loop_pressure = (*i)->get_register_pressures()[current_rc_idx];
+		loop_pressure = std::max(loop_pressure, current_loop_pressure);
+	}
+
+	assert_msg(delayed.size() <= loop_pressure,
+	           "Delayed set contains more operands then the loop pressure indicates");
+
+	int free_slots = regs_count - starters.size();
+	int free_pressure_slots = regs_count - (loop_pressure - delayed.size());
+	free_slots = std::min(free_slots, free_pressure_slots);
+
+	LOG1("Loop pressure " << loop_pressure << ", taking " << free_slots << " delayed operands\n");
+
+	// If the loop pressure inside the loop is low, we can take additional values and let
+	// them live through the loop
+	auto& def_use_chains = LTA->get_def_use_chains();
+
+	if (free_slots > 0) {
+		auto delayed_list_ptr = delayed.ToList();
+		auto& delayed_list = *delayed_list_ptr;
+		sort_by_next_use(delayed_list, block->front());
+
+		std::for_each(delayed_list.begin(), delayed_list.end(), [&](auto& operand) {
+			if (free_slots == 0)
 				return;
 
-			bool available_everywhere = true;
-			bool available_nowhere = true;
-
-			for (auto j = block->pred_begin(), je = block->pred_end(); j != je; ++j) {
-				auto predecessor = *j;
-
-				// Is the operand in the workset of the predecessor?
-				bool found = false;
-				for (const auto& pred_op : worksets_exit.at(predecessor)) {
-					if (!pred_op.aquivalent(operand))
-						continue;
-
-					found = true;
-					available_nowhere = false;
-					break;
-				}
-
-				available_everywhere &= found;
-			}
-
-			if (available_everywhere) {
-				take.add(&operand);
+			auto& occurrence = def_use_chains.get_definition(operand);
+			if (occurrence.phi_instr != nullptr) {
+				LOG1("\tdelayed PHI " << operand << " taken\n");
+				starters.add(operand);
+				--free_slots;
 			}
 			else {
-				cand.add(&operand);
+				// Do not use values that are dead in a known predecessor
+				bool should_take =
+				    std::all_of(block->pred_begin(), block->pred_end(), [&](auto pred) {
+					    auto ws_iter = worksets_exit.find(pred);
+					    if (ws_iter == worksets_exit.end())
+						    return true;
+
+					    if (!ws_iter->second.contains(operand)) {
+						    LOG1("\tdelayed " << operand << " not live in pred " << *pred << nl);
+						    return false;
+					    }
+					    return true;
+				    });
+
+				if (should_take) {
+					LOG1("\tdelayed operand " << operand << " taken\n");
+					starters.add(operand);
+					--free_slots;
+				}
 			}
-
 		});
+	}
 
-		workset = take;
+	// Spill the remaining PHIs that are in the delayed list
+	std::for_each(delayed.begin(), delayed.end(), [&](auto& operand) {
+		auto& occurrence = def_use_chains.get_definition(&operand);
+		if (occurrence.phi_instr == nullptr || occurrence.block() != block) {
+			return;
+		}
 
-		auto cand_as_list = cand.ToList();
-		sort_by_next_use(*cand_as_list, block->front());
+		LOG1("Spilling delayed PHI: " << occurrence.phi_instr << nl);
+		spill_info.add_spill_phi(occurrence.phi_instr);
+	});
 
-		const unsigned copy_count =
-		    std::min(cand_as_list->size(), current_rc->count() - take.size());
-		auto from_iter = std::next(cand_as_list->begin(), copy_count);
-		cand_as_list->erase(from_iter, cand_as_list->end());
-		cand = *cand_as_list;
+	auto starters_list_ptr = starters.ToList();
+	auto& starters_list = *starters_list_ptr;
+	sort_by_next_use(starters_list, block->front());
 
-		workset |= cand;
+	// Copy the best ones from starters to the workset
+	unsigned workset_count = std::min<unsigned>(starters.size(), regs_count);
+	for (std::size_t i = 0; i < workset_count; ++i) {
+		workset.add(starters_list[i]);
+	}
+
+	// Spill the remaining PHIs that are in the starters list but not in the workset
+	for (std::size_t i = workset_count, e = starters.size(); i < e; ++i) {
+		auto& occurrence = def_use_chains.get_definition(starters_list[i]);
+		if (occurrence.phi_instr == nullptr || occurrence.block() != block) {
+			continue;
+		}
+
+		LOG1("Spilling PHI: " << occurrence.phi_instr << nl);
+		spill_info.add_spill_phi(occurrence.phi_instr);
 	}
 
 	return workset;
@@ -458,7 +583,14 @@ OperandSet NewSpillPass::compute_spillset(MachineBasicBlock* block, const Operan
 		spillset_union |= iter->second;
 	}
 
-	return spillset_union & workset;
+	OperandSet workset_without_phis(workset);
+	for (const auto& operand : workset) {
+		if (is_defined_by_phi(&operand, block)) {
+			workset_without_phis.remove(&operand);
+		}
+	}
+
+	return spillset_union & workset_without_phis;
 }
 
 OperandSet NewSpillPass::used_in_loop(MachineBasicBlock* block)
@@ -562,6 +694,13 @@ void NewSpillPass::process_block(MachineBasicBlock* block)
 
 	for (auto i = block->begin(), e = block->end(); i != e; ++i) {
 		auto instruction = *i;
+		if (!reg_alloc_considers_instruction(instruction)) {
+			// Ignore MDeopts
+			// TODO: Check if its ok that variables wont get reloaded, but instead
+			//       the deopt instruction uses the stackslot where the value resides currently
+			continue;
+		}
+
 		LOG2(Magenta << "\nProcessing instruction: " << *instruction << reset_color << nl);
 
 		auto used_ops = used_operands(mof, current_rc, instruction);
@@ -608,11 +747,7 @@ void NewSpillPass::fix_block_boundaries()
 			auto predecessor = *i;
 			LOG2(nl << Yellow << "\t Predecessor: " << *predecessor << reset_color << nl);
 
-			// Variables that are in the entry set of block, but not in the exit set
-			// of the predecessor need to be reloaded
 			auto& ws_exit = worksets_exit.at(predecessor);
-			auto reload_ops = ws_entry - ws_exit;
-
 			auto& spill_exit = spillsets_exit.at(predecessor);
 
 			LOG3_NAMED_CONTAINER("workset entry:  ", ws_entry);
@@ -636,8 +771,6 @@ void NewSpillPass::fix_block_boundaries()
 			// Variables that are in the entry spillset of the block, but not in the
 			// exit spill set of the predecessor, need to be spilled if they are also in the
 			// exit workset of the predecessor
-			auto spill_ops = (spill_entry - spill_exit) & ws_exit;
-
 			for (auto& operand : ws_entry) {
 				auto phi_instr = is_defined_by_phi(&operand, block);
 				auto& op = phi_instr ? *phi_instr->get(block->get_predecessor_index(predecessor)).op
@@ -655,9 +788,6 @@ void NewSpillPass::fix_block_boundaries()
 					spill_info.add_reload(&op, predecessor->mi_last_insertion_point());
 				}
 			}
-
-			// LOG3_NAMED_CONTAINER("operands to reload:  ", reload_ops);
-			// LOG3_NAMED_CONTAINER("operands to spill:   ", spill_ops);
 		}
 	}
 }
@@ -695,6 +825,26 @@ bool NewSpillPass::run(JITData& JD)
 	spill_info.insert_instructions(*backend, *ssm);
 
 	return true;
+}
+
+/**
+ * Returns true, iff a instruction dominates the other.
+ * If the basic block is the same, the MIIterator less then comparison is used,
+ * otherwise we look it up in the dominator tree
+ */
+bool NewSpillPass::strictly_dominates(const MIIterator& a, const MIIterator& b)
+{
+	auto block_a = (*a)->get_block();
+	auto block_b = (*b)->get_block();
+
+	if (block_a != block_b) {
+		auto mdom = get_Artifact<MachineDominatorPass>();
+		auto result = mdom->dominates(block_a, block_b);
+		LOG3("Does " << *block_a << " dominate " << *block_b << "?: " << result << nl);
+		return mdom->dominates(block_a, block_b);
+	}
+
+	return a < b;
 }
 
 // pass usage

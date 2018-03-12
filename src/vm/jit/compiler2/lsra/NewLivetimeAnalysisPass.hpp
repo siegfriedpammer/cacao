@@ -192,7 +192,7 @@ private:
 	NextUseInformation next_use;
 	DefUseChains def_use_chains;
 
-	void initialize_blocks() const;
+	void initialize_blocks();
 	void initialize_instructions() const;
 
 	/// Performs a post-order traversal while ignoring loop-back edges
@@ -234,8 +234,7 @@ inline bool reg_alloc_considers_operand(const MachineOperand& op)
 
 inline bool reg_alloc_considers_instruction(MachineInstruction* instruction)
 {
-	// return instruction->to_MachineReplacementPointInst() == nullptr;
-	return true;
+	return instruction->to_MachineReplacementPointInst() == nullptr;
 }
 
 template <typename UnaryFunction>

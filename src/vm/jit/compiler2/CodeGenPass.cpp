@@ -342,12 +342,17 @@ void CodeGenPass::resolve_replacement_points(ForwardIt first, ForwardIt last, JI
 				// but we had to change their visibility from `protected` to
 				// `public`. Is this approach ok?
 				ra->regoff = machine_reg->id_offset() / machine_reg->id_size();
-			} else {
+			} else if (mop->is_StackSlot()) {
 				// the operand has been allocated to a stack slot
 				StackSlot *stack_slot = mop->to_StackSlot();
 				assert(stack_slot);
 				ra->inmemory = true;
 				ra->regoff = stack_slot->get_index();
+			} else if (mop->is_ManagedStackSlot()) {
+				LOG(BoldRed << "Error: Managed Stackslot (" << mop 
+				            << ") is specified in replacement point, but unhandled at the moment\n"
+							<< reset_color);
+				ra->inmemory = true;
 			}
 
 			op_index++;

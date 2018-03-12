@@ -229,7 +229,7 @@ void DominatorPassBase<T,I>::DFS(NodeTy * v) {
 	// TODO this can be done better
 	NodeListTy succ_v;
 	succ_v = succ(v, succ_v);
-	LOG("number of succ for " << (long)v << " (" << n << ") " << " = " << succ_v.size() << nl);
+	LOG("number of succ for " << *v << " (" << n << ") " << " = " << succ_v.size() << nl);
 	for(auto i = succ_v.begin() , e = succ_v.end();
 			i != e; ++i) {
 		NodeTy *w = *i;
@@ -333,7 +333,9 @@ bool DominatorPassBase<T,I>::run(JITData &JD) {
 		for (int i = 1 ; i <= n; ++i) {
 			NodeTy *v = vertex[i];
 			NodeTy *w = DominatorTreeBase<T>::dom[v];
-			LOG("index" << setw(3) << i << " dom(" << (long)v <<") =" << (long)w << nl);
+			LOG("index" << setw(3) << i << " dom(" << *v <<") = ");
+			if (w) LOG(*w << nl);
+			else LOG("nullptr" << nl);
 		}
 	}
 	#endif

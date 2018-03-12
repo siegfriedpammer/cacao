@@ -62,13 +62,13 @@ private:
 
 	struct SpilledOperand {
 		explicit SpilledOperand(MachineOperand* op, const MIIterator& position)
-		    : operand(op), spill_position(position)
+		    : operand(op), spill_positions{position}
 		{
 		}
 
 		MachineOperand* operand;
 		MachineOperand* stackslot = nullptr;
-		MIIterator spill_position;
+		std::vector<MIIterator> spill_positions;
 		std::vector<MIIterator> reload_positions;
 
 		// When spilling whole PHIs, we set this flag, the spilled
@@ -79,6 +79,8 @@ private:
 	using SpilledOperandUPtrTy = std::unique_ptr<SpilledOperand>;
 
 	std::map<std::size_t, SpilledOperandUPtrTy> spilled_operands;
+
+	void replace_registers_with_stackslots_for_deopt() const;
 
 	friend class SSAReconstructor;
 };
@@ -113,6 +115,21 @@ private:
 	OperandSet used_in_loop(MachineLoop*, OperandSet&);
 
 	void sort_by_next_use(OperandList&, MachineInstruction*) const;
+
+	enum class Availability { Unknown, Everywhere, Partly, Nowhere };
+	Availability available_in_all_preds(MachineBasicBlock*,MachineOperand*,MachinePhiInst*);
+
+	struct Location {
+		enum class TimeType { Normal, Infinity, Pending };
+		
+		TimeType time_type;
+		unsigned time;
+		MachineOperand* operand;
+		bool spilled;
+	};
+	Location to_take_or_not_to_take(MachineBasicBlock*,MachineOperand*,Availability);
+
+	bool strictly_dominates(const MIIterator&, const MIIterator&);
 
 	friend class SpillInfo;
 	friend class SSAReconstructor;
