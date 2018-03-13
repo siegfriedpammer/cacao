@@ -53,11 +53,12 @@ void PhiLiftingPass::handle_phi(MachinePhiInst* instruction)
 		instruction->get(idx).op = copy_op;
 
 		auto move_instr = backend->create_Move(operand, copy_op);
-
 		auto predecessor = block->get_predecessor(idx);
-		predecessor->insert_before(--predecessor->end(), move_instr);
-
 		LOG2("\tInserting (" << *move_instr << ") in " << *predecessor << nl);
+		
+		auto new_insertion_point = insert_before(predecessor->mi_last_insertion_point(), move_instr);
+		predecessor->set_last_insertion_point(new_insertion_point);
+
 	}
 
 	// Copy result in current block

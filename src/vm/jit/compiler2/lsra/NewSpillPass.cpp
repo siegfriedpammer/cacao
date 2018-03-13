@@ -98,21 +98,20 @@ static MachinePhiInst* is_defined_by_phi(const MachineOperand* operand, MachineB
 	return nullptr;
 }
 
-void SpillInfo::add_spill(MachineOperand* operand, const MIIterator& position)
+SpillInfo::SpilledOperand& SpillInfo::get_spilled_operand(MachineOperand* operand)
 {
-	// If its the first time we spill this operand, simply record it
 	auto iter = spilled_operands.find(operand->get_id());
 	if (iter == spilled_operands.end()) {
-		auto spilled_op = std::make_unique<SpilledOperand>(operand, position);
-		spilled_operands.emplace(operand->get_id(), std::move(spilled_op));
-
-		return;
+		auto spilled_op = std::make_unique<SpilledOperand>(operand);
+		iter = spilled_operands.emplace(operand->get_id(), std::move(spilled_op)).first;
 	}
+	return *iter->second;
+}
 
+void SpillInfo::add_spill(MachineOperand* operand, const MIIterator& position)
+{
 	// Check if other spills dominate - or are dominated by - this spill
-	auto& spilled_op = *iter->second;
-	std::vector<MIIterator> positions_to_remove;
-	std::vector<MIIterator> positions_to_add;
+	auto& spilled_op = get_spilled_operand(operand);
 	for (auto i = spilled_op.spill_positions.begin(); i != spilled_op.spill_positions.end();) {
 		const auto& existing_spill_pos = *i;
 
@@ -136,10 +135,7 @@ void SpillInfo::add_spill(MachineOperand* operand, const MIIterator& position)
 
 void SpillInfo::add_reload(MachineOperand* operand, const MIIterator& position)
 {
-	auto iter = spilled_operands.find(operand->get_id());
-	assert(iter != spilled_operands.end() && "Reload for unspilled variable called!");
-
-	auto& spilled_operand = *iter->second;
+	auto& spilled_operand = get_spilled_operand(operand);
 	spilled_operand.reload_positions.push_back(position);
 }
 
@@ -273,14 +269,16 @@ void SpillInfo::replace_registers_with_stackslots_for_deopt() const
 				// that dominate this ReplacementPointInst
 				auto current_pos = block->convert(i);
 				auto& spilled_op = *iter->second;
-				auto dominates = std::any_of(
-				    spilled_op.spill_positions.begin(), spilled_op.spill_positions.end(),
-				    [&](auto& spill_pos) { return sp->strictly_dominates(spill_pos, current_pos); });
+				auto dominates =
+				    std::any_of(spilled_op.spill_positions.begin(),
+				                spilled_op.spill_positions.end(), [&](auto& spill_pos) {
+					                return sp->strictly_dominates(spill_pos, current_pos);
+				                });
 
 				if (dominates) {
 					LOG1(Cyan << "Replacing " << desc.op << " with " << spilled_op.stackslot
-				          << " in MachineReplacementPointInst\n"
-				          << reset_color);
+					          << " in MachineReplacementPointInst\n"
+					          << reset_color);
 					desc.op = spilled_op.stackslot;
 				}
 			}
@@ -760,11 +758,15 @@ void NewSpillPass::fix_block_boundaries()
 			// live-in
 			auto difference = ws_exit - ws_entry;
 
-			for (const auto& operand : difference) {
+			for (auto& operand : difference) {
 				bool is_live_in =
 				    get_Artifact<NewLivetimeAnalysisPass>()->get_live_in(block).contains(&operand);
 				if (is_live_in && !spill_exit.contains(&operand)) {
-					assert(false && "Operand needs additioanl spilling!");
+					auto insert_pos = block->mi_first();
+					if (block->pred_size() > 1)
+						insert_pos = --predecessor->mi_last_insertion_point();
+					LOG3("Spilling " << operand << nl);
+					spill_info.add_spill(&operand, insert_pos);
 				}
 			}
 

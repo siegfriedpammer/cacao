@@ -44,7 +44,7 @@ import org.junit.runners.Suite;
 	Dneg.class,
 	Fcmp.class,
 	Dcmp.class,
-	// BoyerMoore.class,
+	BoyerMoore.class,
 	ArrayLength.class,
 	Permut.class,
 	ArrayLoad.class,

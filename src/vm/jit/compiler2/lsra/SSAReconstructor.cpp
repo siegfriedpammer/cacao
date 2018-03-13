@@ -93,9 +93,8 @@ void SSAReconstructor::reconstruct()
 
 		finished_blocks.insert(block->get_id());
 		try_seal_block(block);
-		std::for_each(block->back()->successor_begin(), block->back()->successor_end(), [&](auto successor) {
-			this->try_seal_block(successor);
-		});
+		std::for_each(block->back()->successor_begin(), block->back()->successor_end(),
+		              [&](auto successor) { this->try_seal_block(successor); });
 	}
 }
 
@@ -116,8 +115,10 @@ void SSAReconstructor::handle_uses(MachineInstruction* instruction)
 
 		auto operand = this->read_variable(desc.op, instruction->get_block());
 		if (!desc.op->aquivalent(*operand)) {
-			LOG3("Replaceing " << desc.op << " with " << operand << " in " << *instruction << nl);
+			LOG(Cyan << "Replacing " << desc.op << " with " << operand << " in " << *instruction
+			         << reset_color << nl);
 			desc.op = operand;
+			uses[operand->get_id()].push_back(&desc);
 		}
 	};
 	std::for_each(instruction->begin(), instruction->end(), uses_lambda);
@@ -129,7 +130,7 @@ void SSAReconstructor::handle_definitions(MachineInstruction* instruction)
 	auto def_lambda = [&](auto& desc) {
 		if (!desc.op->to_Register())
 			return;
-			
+
 		if (contains(original_definitions_set, desc.op->get_id())) {
 			write_variable(desc.op, instruction->get_block(), desc.op);
 			return;
@@ -231,13 +232,40 @@ MachineOperand* SSAReconstructor::try_remove_trivial_phi(MachinePhiInst* instr)
 		same = &NoOperand;
 	}
 
-	LOG(Cyan << "TODO: Replace all uses of " << instr->get_result().op << " with " << same
-	         << reset_color << nl);
+	// Replace all uses of the PHI result with the new operand
+	for (auto desc : uses[instr->get_result().op->get_id()]) {
+		LOG(Cyan << "Replacing " << desc->op << " with " << same << " in "
+		         << desc->get_MachineInstruction() << reset_color << nl);
+		desc->op = same;
+		uses[same->get_id()].push_back(desc);
+	}
+
+	// Update the current_def table, so future read_variable calls will have the new value
+	for (auto& orig_to_new : current_def) {
+		for (auto& block_to_def : orig_to_new.second) {
+			if (block_to_def.second == instr->get_result().op) {
+				LOG(Cyan << "Updating current_def of " << instr->get_result().op << " to " << same
+				         << reset_color << nl);
+				block_to_def.second = same;
+			}
+		}
+	}
+
 	auto block = instr->get_block();
 	for (auto i = block->phi_begin(), e = block->phi_end(); i != e; ++i) {
 		if (*i == instr) {
+			LOG(Cyan << "Removing PHI instruction from " << *block << ": " << instr << reset_color
+			         << nl);
 			block->phi_erase(i);
 			break;
+		}
+	}
+
+	// Try to remove other PHIs if they have become trivial
+	for (auto desc : uses[instr->get_result().op->get_id()]) {
+		auto phi_instr = desc->get_MachineInstruction()->to_MachinePhiInst();
+		if (phi_instr) {
+			try_remove_trivial_phi(phi_instr);
 		}
 	}
 
@@ -254,10 +282,11 @@ bool SSAReconstructor::is_finished(MachineBasicBlock* block) const
 	return finished_blocks.count(block->get_id()) == 1;
 }
 
-void SSAReconstructor::try_seal_block(MachineBasicBlock* block) {
+void SSAReconstructor::try_seal_block(MachineBasicBlock* block)
+{
 	if (is_sealed(block))
 		return;
-	
+
 	for (auto i = block->pred_begin(), e = block->pred_end(); i != e; ++i) {
 		if (!is_finished(*i)) {
 			return;
@@ -267,7 +296,8 @@ void SSAReconstructor::try_seal_block(MachineBasicBlock* block) {
 	seal_block(block);
 }
 
-void SSAReconstructor::seal_block(MachineBasicBlock* block) {
+void SSAReconstructor::seal_block(MachineBasicBlock* block)
+{
 	LOG1("Sealing block " << *block << nl);
 	for (const auto& variable_to_phi : incomplete_phis[block->get_id()]) {
 		add_phi_operands(variable_to_phi.first, variable_to_phi.second);

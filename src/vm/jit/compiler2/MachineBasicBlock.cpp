@@ -109,6 +109,7 @@ MachineBasicBlock* get_edge_block(MachineBasicBlock *from, MachineBasicBlock *to
 	MBB->insert_pred(from);
 	MBB->push_front(new MachineLabelInst());
 	MBB->push_back(backend->create_Jump(to));
+	MBB->set_last_insertion_point(MBB->mi_last());
 	// fix links (from -> new)
 	{
 		MachineInstruction *jump = from->back();

@@ -612,13 +612,6 @@ bool RegisterAssignmentPass::run(JITData& JD)
 			auto instruction = pair.first;
 			const auto& live_out = pair.second;
 
-			if (!reg_alloc_considers_instruction(instruction)) {
-				// MDeopts do not need any consideration, but the used vregs still need their
-				// physical registers assigned
-				assignment.assign_operands_color(instruction);
-				continue;
-			}
-
 			if (DEBUG_COND_N(2)) {
 				LOG2(Magenta << "\nProcessing instruction: " << *instruction << reset_color << nl);
 				LOG2_NAMED_CONTAINER("                        LiveOut: ", live_out);
@@ -784,6 +777,10 @@ bool RegisterAssignmentPass::verify() const
 		auto op = descriptor.op;
 		if (!op->to_Register())
 			return;
+
+		if (!op->to_Register()->to_MachineRegister()) {
+			ABORT_MSG("Non NativeRegister", op << " in " << descriptor.get_MachineInstruction());
+		}
 
 		if (!op->to_Register()->to_MachineRegister()->to_NativeRegister() &&
 		    op->get_type() != Type::VoidTypeID) {

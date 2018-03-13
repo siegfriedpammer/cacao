@@ -128,8 +128,21 @@ MachineInstruction* BackendBase<X86_64>::create_Jump(MachineBasicBlock *target) 
 template<>
 MachineInstruction* BackendBase<X86_64>::create_Swap(MachineOperand *op1, MachineOperand *op2) const {
 	assert(op1->is_Register() && op2->is_Register() && "Swap only implemented for register operands!");
-	assert(op1->get_type() == op2->get_type() && "Operand types of a swap have to match!");
-	return new SwapInst(Src1Op(op1), Src2Op(op2), get_OperandSize_from_Type(op1->get_type()));
+	
+	switch (op1->get_type()) {
+	case Type::CharTypeID:
+	case Type::ByteTypeID:
+	case Type::ShortTypeID:
+	case Type::IntTypeID:
+	case Type::LongTypeID:
+	case Type::ReferenceTypeID:
+		return new SwapInst(Src1Op(op1), Src2Op(op2), get_OperandSize_from_Type(Type::LongTypeID));
+	default:
+		break;
+	}
+	ABORT_MSG("x86_64: Swap not supported", op1 << " <-> " << op2);
+
+	return nullptr;
 }
 
 namespace {

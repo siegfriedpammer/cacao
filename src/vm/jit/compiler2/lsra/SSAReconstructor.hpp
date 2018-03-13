@@ -40,6 +40,7 @@ namespace compiler2 {
 class MachineBasicBlock;
 class MachineInstruction;
 class MachineOperand;
+class MachineOperandDesc;
 class MachinePhiInst;
 
 class NewSpillPass;
@@ -73,6 +74,10 @@ private:
 
 	// Links new defintions to the original one
 	std::unordered_map<std::size_t, MachineOperand*> reverse_def;
+
+	// Links newly introduced PHIs to their uses, so trivial PHIs can be removed
+	// more easily later on
+	std::unordered_map<std::size_t, std::vector<MachineOperandDesc*>> uses;
 
 	void write_variable(MachineOperand*,MachineBasicBlock*, MachineOperand*);
 	MachineOperand* read_variable(MachineOperand*,MachineBasicBlock*);
