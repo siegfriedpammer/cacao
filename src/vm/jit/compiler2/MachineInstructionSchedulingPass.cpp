@@ -235,8 +235,8 @@ bool MachineInstructionSchedulingPass::verify() const {
 		auto operand = descriptor.op;
 		if (operand->is_virtual()) {
 			if (operands.contains(operand)) {
-				ERROR_MSG("LIR not in SSA form", 
-					"Operand " << operand << " is defined multiple times");
+				LOG(BoldRed << "LIR not in SSA form\n" << 
+					"Operand " << operand << " is defined multiple times\n" << reset_color);
 				success = false;
 			}
 			operands.add(operand);

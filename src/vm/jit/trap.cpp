@@ -305,7 +305,9 @@ void trap_handle(int sig, void *xpc, void *context)
 
 	case TRAP_DEOPTIMIZE:
 		p = NULL;
-		// ABORT_MSG("TRAP_DEOPTIMIZE", "For now we do not handle deoptimization!");
+#if defined(ENABLE_COUNTDOWN_TRAPS)
+		ABORT_MSG("TRAP_DEOPTIMIZE", "For now we do not handle deoptimization!");
+#endif
 		replace_handle_deoptimization_trap((uint8_t*) xpc, &es);
 		break;
 #endif

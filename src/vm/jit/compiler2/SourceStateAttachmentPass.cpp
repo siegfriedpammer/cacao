@@ -71,7 +71,13 @@ SourceStateInst *SourceStateAttachmentPass::process_block(BeginInst *begin,
 		latest_source_state = get_associated_source_state(begin);
 	}
 
-	assert(latest_source_state);
+	// TODO: java/util/WeakHashMap.expungeStaleEntries()V
+	//       triggers this alert here. Investigate and fix bug, for now we just stop
+	//       the optimizing compiler run
+	// assert(latest_source_state);
+	if (!latest_source_state) {
+		throw std::runtime_error("SourceStateAttachementPass: no latest source state found!");
+	}
 
 	for (auto i = IS->inst_begin(begin); i != IS->inst_end(begin); i++) {
 		Instruction *I = *i;

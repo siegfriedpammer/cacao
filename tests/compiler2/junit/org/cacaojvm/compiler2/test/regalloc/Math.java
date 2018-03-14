@@ -35,4 +35,14 @@ public class Math extends Compiler2TestBase {
 	public void testMathMinIntegerSecondIsSmaller() {
 		testResultEqual(java.lang.Math.class, "min", "(II)I", 5, -20);
 	}
+
+	@Test
+	public void testMathMinFloatFirstIsSmaller() {
+		testResultEqual(java.lang.Math.class, "min", "(FF)F", 2.0f, 2.5f);
+	}
+
+	@Test
+	public void testMathMinDoubleFirstIsSmaller() {
+		testResultEqual(java.lang.Math.class, "min", "(DD)D", 2.0d, 5.0d);
+	}
 }

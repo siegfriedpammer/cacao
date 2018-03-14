@@ -30,6 +30,7 @@
 #include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
 #include "vm/jit/compiler2/memory/Manager.hpp"
 #include "vm/jit/compiler2/alloc/ordered_list.hpp"
+#include "toolbox/logging.hpp"
 
 MM_MAKE_NAME(MachineBasicBlock)
 
@@ -264,7 +265,10 @@ public:
 	/// returns an MIIterator to the last element (included)
 	MIIterator mi_last();
 
-	MIIterator mi_last_insertion_point() { return last_insertion_point; }
+	MIIterator mi_last_insertion_point() { 
+		assert_msg(last_insertion_point != mi_first(), "Last insertion point not set for block " << this->get_id());
+		return last_insertion_point; 
+	}
 	void set_last_insertion_point(MIIterator point) { last_insertion_point = point; }
 
 	/// get self iterator

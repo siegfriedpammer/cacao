@@ -309,7 +309,9 @@ class MachineDeoptInst : public MachineReplacementPointInst {
 public:
 	MachineDeoptInst(s4 source_id, std::size_t num_operands)
 		: MachineReplacementPointInst("MDeopt", source_id, num_operands) {
-			// throw std::runtime_error("No MachineDeoptInst supported!");
+#if defined(ENABLE_COUNTDOWN_TRAPS)
+			throw std::runtime_error("No MachineDeoptInst supported!");
+#endif
 		}
 	virtual void emit(CodeMemory* CM) const {};
 	virtual void link(CodeFragment &CF) const {};

@@ -382,11 +382,18 @@ void NegInst::emit(CodeMemory* CM) const {
 }
 
 void CallInst::emit(CodeMemory* CM) const {
-	CodeFragment code = CM->get_CodeFragment(2);
 	X86_64Register *reg_src = cast_to<X86_64Register>(operands[0].op);
-	//code[0] = get_rex(reg_src);
-	code[0] = 0xff;
-	code[1] = get_modrm_1reg(2, reg_src);
+	CodeSegmentBuilder code;
+	
+	u1 rex = get_rex(nullptr, reg_src, false);
+	if (rex != 0x40) {
+		code += rex;
+	}
+
+	code += 0xff;
+	code += get_modrm_1reg(2, reg_src);
+
+	add_CodeSegmentBuilder(CM, code);
 }
 
 void MovInst::emit(CodeMemory* CM) const {
@@ -616,8 +623,11 @@ OStream& CondJumpInst::print_successor_label(OStream &OS,std::size_t index) cons
 }
 
 void TrapInst::emit(CodeMemory* CM) const {
+#if defined(ENABLE_COUNTDOWN_TRAPS)
+	throw std::runtime_error("TrapInst: We do not support deoptimize traps!");
+#endif
 	// TODO Understand, clean up, and unify with CondTrapInst::emit if possible.
-
+	
 	CodeFragment code = CM->get_CodeFragment(8);
 	// XXX make more readable
 	X86_64Register *src_reg = cast_to<X86_64Register>(operands[0].op);
@@ -635,6 +645,9 @@ void TrapInst::emit(CodeMemory* CM) const {
 }
 
 void CondTrapInst::emit(CodeMemory* CM) const {
+#if defined(ENABLE_COUNTDOWN_TRAPS)
+	throw std::runtime_error("CondTrapInst: We do not support deoptimize traps!");
+#endif
 	CodeFragment code = CM->get_CodeFragment(8);
 	// XXX make more readable
 	X86_64Register *src_reg = cast_to<X86_64Register>(operands[0].op);

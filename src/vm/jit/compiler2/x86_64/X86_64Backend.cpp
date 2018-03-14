@@ -1331,12 +1331,6 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 			get_op(I->get_operand(i)->to_Instruction()),
 			arg_dst
 		);
-		// Guide the reg alloc by restricting the spilt live-ranges to the required
-		// argument registers
-		if (!arg_dst->is_ManagedStackSlot()) {
-			auto requirement = std::make_unique<MachineRegisterRequirement>(cast_to<X86_64Register>(MMD[i]));
-			// mov->get_result().set_MachineRegisterRequirement(requirement);
-		}
 		get_current()->push_back(mov);
 		
 		// set call operand
@@ -1345,6 +1339,9 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 
 	if (I->to_INVOKESTATICInst() || I->to_INVOKESPECIALInst()) {
 		methodinfo* callee = I->get_fmiref()->p.method;
+		assert_msg(callee->code, "No codeinfo for " << *callee << nl);
+		assert_msg(callee->code->entrypoint, "No entrypoint for " << *callee << nl);
+		
 		Immediate *method_address = new Immediate(reinterpret_cast<s8>(callee->code->entrypoint),
 				Type::ReferenceType());
 		MachineInstruction *mov = get_Backend()->create_Move(method_address, addr);
@@ -1513,6 +1510,7 @@ void X86_64LoweringVisitor::visit(LOOKUPSWITCHInst *I, bool copyOperands) {
 			Src1Op(src_op),
 			get_OperandSize_from_Type(type));
 		get_current()->push_back(cmp);
+		get_current()->set_last_insertion_point(get_current()->mi_last());
 		// create new block
 		MachineBasicBlock *then_block = get(s->get());
 		MachineBasicBlock *else_block = new_block();
@@ -1530,6 +1528,7 @@ void X86_64LoweringVisitor::visit(LOOKUPSWITCHInst *I, bool copyOperands) {
 	// default
 	MachineInstruction *jmp = new JumpInst(get(s->get()));
 	get_current()->push_back(jmp);
+	get_current()->set_last_insertion_point(get_current()->mi_last());
 	assert(++s == I->succ_end());
 
 	set_op(I,jmp->get_result().op);
@@ -1634,6 +1633,7 @@ void X86_64LoweringVisitor::visit(DeoptimizeInst *I, bool copyOperands) {
 	auto def_instr = new MachineDefInst(Type::ReferenceTypeID, 
 		get_Backend()->get_JITData()->get_MachineOperandFactory());
 	get_current()->push_back(def_instr);
+	get_current()->set_last_insertion_point(get_current()->mi_last());
 	
 	MachineOperand *methodptr = def_instr->get_result().op;
 	MachineInstruction *deoptimize_trap = new TrapInst(TRAP_DEOPTIMIZE, SrcOp(methodptr));

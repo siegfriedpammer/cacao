@@ -211,6 +211,8 @@ extern FPUStackRegister ST7;
 
 const unsigned FloatArgumentRegisterSize = 8;
 extern SSERegister* FloatArgumentRegisters[];
+const unsigned FloatCallerSavedRegistersSize = 16;
+extern SSERegister* FloatCallerSavedRegisters[];
 
 class NativeOperandFactory : public MachineOperandFactory {
 public:

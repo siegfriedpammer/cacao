@@ -47,9 +47,7 @@ OStream& operator<<(OStream& OS, const RegisterAssignment::Variable& variable)
 	return OS;
 }
 
-RegisterAssignment::RegisterAssignment(RegisterAssignmentPass& pass) : rapass(pass)
-{
-}
+RegisterAssignment::RegisterAssignment(RegisterAssignmentPass& pass) : rapass(pass) {}
 
 void RegisterAssignment::initialize_physical_registers(Backend* backend)
 {
@@ -694,26 +692,15 @@ bool RegisterAssignmentPass::run(JITData& JD)
 				assignment.add_allocated_variable(block, result_operand);
 			}
 
-			for (auto i = instruction->results_begin(), e = instruction->results_end(); i != e;
-			     ++i) {
-				// Release dead definitions
-				auto result_operand = i->op;
-				if (reg_alloc_considers_operand(*result_operand) &&
-				    !live_out.contains(result_operand)) {
-					LOG1("Releasing " << *result_operand << " since it is dead after this.\n");
-					assignment.remove_allocated_variable(block, result_operand);
-				}
-			}
-
 			// Insert the parallel copies before this instrution
 			if (parallel_copy.begin() != parallel_copy.end()) {
 				ParallelCopyImpl pcopy(JD);
 				LOG1("Calculating parallel copy:\n");
 				for (const auto& copy : parallel_copy) {
 					auto source = factory->CreateNativeRegister<NativeRegister>(
-						copy.variable->operand->get_type(), copy.source);
+					    copy.variable->operand->get_type(), copy.source);
 					auto target = factory->CreateNativeRegister<NativeRegister>(
-						copy.variable->operand->get_type(), copy.target);
+					    copy.variable->operand->get_type(), copy.target);
 
 					LOG1("Request move " << source << " -> " << target << nl);
 					pcopy.add(source, target);
@@ -734,6 +721,17 @@ bool RegisterAssignmentPass::run(JITData& JD)
 					}
 				}
 			}
+
+			for (auto i = instruction->results_begin(), e = instruction->results_end(); i != e;
+			     ++i) {
+				// Release dead definitions
+				auto result_operand = i->op;
+				if (reg_alloc_considers_operand(*result_operand) &&
+				    !live_out.contains(result_operand)) {
+					LOG1("Releasing " << *result_operand << " since it is dead after this.\n");
+					assignment.remove_allocated_variable(block, result_operand);
+				}
+			}
 			assignment.assign_operands_color(instruction);
 		}
 
@@ -745,9 +743,11 @@ bool RegisterAssignmentPass::run(JITData& JD)
 
 			ParallelCopyImpl pcopy(JD);
 			for (const auto& copy : parallel_copy) {
-				auto source = factory->CreateNativeRegister<NativeRegister>(copy.variable->operand->get_type(), copy.source);
-				auto target = factory->CreateNativeRegister<NativeRegister>(copy.variable->operand->get_type(), copy.target);
-				
+				auto source = factory->CreateNativeRegister<NativeRegister>(
+				    copy.variable->operand->get_type(), copy.source);
+				auto target = factory->CreateNativeRegister<NativeRegister>(
+				    copy.variable->operand->get_type(), copy.target);
+
 				pcopy.add(source, target);
 
 				copy.variable->ccolor_native = target;
@@ -756,12 +756,14 @@ bool RegisterAssignmentPass::run(JITData& JD)
 			pcopy.calculate();
 			auto& operations = pcopy.get_operations();
 			// TODO: We might need a universal "insert-point" at the end of basic blocks
-			block->insert_before(--block->end(), operations.begin(), operations.end());
+			block->insert_after(block->convert(--block->mi_last_insertion_point()),
+			                    operations.begin(), operations.end());
 
 			if (DEBUG_COND_N(1)) {
 				LOG1("Fixing global colors:\n");
 				for (auto operation : operations) {
-					LOG1("Inserting operation at end of block (" << *block << "): " << *operation << nl);
+					LOG1("Inserting operation at end of block (" << *block << "): " << *operation
+					                                             << nl);
 				}
 			}
 		}

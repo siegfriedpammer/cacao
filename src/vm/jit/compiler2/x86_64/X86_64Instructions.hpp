@@ -702,6 +702,10 @@ public:
 			operands[i].set_MachineRegisterRequirement(op_requirement);
 		}
 
+		// TODO: Adding virtual registers as results and binding them to
+		//       their respective caller saved machine registers is the same for
+		//       ALL call instructions. We can probably do better here
+
 		// Add all caller saved registers as results of the call
 		// Start at 1 since RAX is the first register and it is already bound
 		for (unsigned i = 1; i < IntegerCallerSavedRegistersSize ; ++i) {
@@ -710,6 +714,15 @@ public:
 			auto native_reg = IntegerCallerSavedRegisters[i];
 			auto requirement = std::make_unique<MachineRegisterRequirement>(native_reg);
 			results[i + 1].set_MachineRegisterRequirement(requirement);
+		}
+
+		auto base = IntegerCallerSavedRegistersSize;
+		for (unsigned i = 1; i < FloatCallerSavedRegistersSize; ++i) {
+			add_result(MOF->CreateVirtualRegister(Type::DoubleTypeID));
+
+			auto native_reg = FloatCallerSavedRegisters[i];
+			auto requirement = std::make_unique<MachineRegisterRequirement>(native_reg);
+			results[base + i].set_MachineRegisterRequirement(requirement);
 		}
 	}
 	virtual void emit(CodeMemory* CM) const;

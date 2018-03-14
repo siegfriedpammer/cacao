@@ -135,7 +135,15 @@ Value* SSAConstructionPass::add_phi_operands(size_t varindex, PHIInst *phi) {
 	BeginInst *BI = phi->get_BeginInst();
 	for (BeginInst::PredecessorListTy::const_iterator i = BI->pred_begin(),
 			e = BI->pred_end(); i != e; ++i) {
-		phi->append_op(read_variable(varindex,beginToIndex[*i]));
+		auto operand = read_variable(varindex, beginToIndex[*i]);
+		// TODO: Compiling java/io/BufferedInputStream.fill()V
+		//       crashes here for some reason. Find the bug and fix it,
+		//       for now we stop the optimizing compiler run
+		// assert_msg(operand, "Variable with index " << varindex << " not found!");
+		if (!operand) {
+			throw std::runtime_error("SSAConstructionPass: add_phi_operands(), operand not found!");
+		}
+		phi->append_op(operand);
 	}
 	return try_remove_trivial_phi(phi);
 }
@@ -322,6 +330,9 @@ SourceStateInst *SSAConstructionPass::record_source_state(
 
 void SSAConstructionPass::deoptimize(int bbindex) {
 	assert(BB[bbindex]);
+#if defined(ENABLE_COUNTDOWN_TRAPS)
+	throw std::runtime_error("SSAConstructionPass: deoptimize called!");
+#endif
 	LOG("Instruction not supported, deoptimize instead" << nl);
 	DeoptimizeInst *deopt = new DeoptimizeInst(BB[bbindex]);
 	M->add_Instruction(deopt);
