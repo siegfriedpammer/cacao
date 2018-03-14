@@ -85,6 +85,19 @@ STAT_REGISTER_GROUP_VAR_EXTERN(int,count_linenumbertable,0,"count linenumbertabl
 STAT_REGISTER_GROUP_VAR_EXTERN(int,size_patchref,0,"patchref","patcher references",table_stat)
 
 STAT_DECLARE_VAR(int,count_vmcode_len,0)
+
+#if defined(ENABLE_COMPILER2)
+namespace cacao {
+namespace option {
+	namespace {
+		constexpr unsigned int kInitialHitCount = 1000;
+	}
+	cacao::Option<unsigned int> hit_count("InitialHitCount", "compiler2: number of method calls before optimizing compiler is invoked", kInitialHitCount,::cacao::option::xx_root());
+}
+}
+#endif
+
+
 /* global variables ***********************************************************/
 
 methodinfo *method_java_lang_reflect_Method_invoke;
@@ -590,7 +603,7 @@ bool method_load(ClassBuffer& cb, methodinfo *m, DescriptorPool& descpool)
 #if defined(ENABLE_COMPILER2)
 	/* initialize the hit countdown field */
 
-	m->hitcountdown = METHOD_INITIAL_HIT_COUNTDOWN;
+	m->hitcountdown = option::hit_count.get();
 #endif
 
 	/* everything was ok */

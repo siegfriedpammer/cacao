@@ -82,6 +82,7 @@ public:
 	NullCheckEliminationPass() : Pass() {}
 	bool run(JITData &JD) override;
 	PassUsage& get_PassUsage(PassUsage &PU) const override;
+	bool is_enabled() const override { return false; }
 };
 
 } // end namespace compiler2

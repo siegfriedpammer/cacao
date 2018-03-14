@@ -57,12 +57,6 @@ namespace cacao {
 }
 
 
-#if defined(ENABLE_COMPILER2)
-// Initial value for the hit countdown field of each method.
-#define METHOD_INITIAL_HIT_COUNTDOWN  1000
-#endif
-
-
 /* methodinfo *****************************************************************/
 
 struct methodinfo {                 /* method structure                       */

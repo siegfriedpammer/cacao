@@ -140,7 +140,9 @@ MachineInstruction* BackendBase<X86_64>::create_Swap(MachineOperand *op1, Machin
 	default:
 		break;
 	}
-	ABORT_MSG("x86_64: Swap not supported", op1 << " <-> " << op2);
+
+	// ABORT_MSG("x86_64: Swap not supported", op1 << " <-> " << op2);
+	throw std::runtime_error("x86_64Backend: Swap for floating point not supported yet!");
 
 	return nullptr;
 }
@@ -1339,6 +1341,9 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 
 	if (I->to_INVOKESTATICInst() || I->to_INVOKESPECIALInst()) {
 		methodinfo* callee = I->get_fmiref()->p.method;
+		if (!callee->code) {
+			throw std::runtime_error("x86_64Backend: InvokeStatic/Special, no codeinfo!");
+		}
 		assert_msg(callee->code, "No codeinfo for " << *callee << nl);
 		assert_msg(callee->code->entrypoint, "No entrypoint for " << *callee << nl);
 		
