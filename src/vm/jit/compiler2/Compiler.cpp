@@ -127,6 +127,12 @@ MachineCode* compile(methodinfo* m)
 	// reset instructions
 	Instruction::reset();
 
+	// Currently we do not handle synchronized methods, since the monitors are not
+	// emitted
+	if (m->flags & ACC_SYNCHRONIZED) {
+		throw std::runtime_error("Compiler.cpp: Method is flaged as synchronized, monitor enter/exit not implemented in c2!");
+	}
+
 	LOG(bold << bold << "Compiler Start: " << reset_color << *m << nl);
 
 	// Create new dump memory area.
@@ -142,7 +148,7 @@ MachineCode* compile(methodinfo* m)
 	/* set the current optimization level to the previous one plus 1 */
 
 	u1 optlevel = (jd->m->code) ? jd->m->code->optlevel : 0;
-	jd->code->optlevel = optlevel + 1;
+	jd->code->optlevel = optlevel + 2;
 
 	/* now call internal compile function */
 

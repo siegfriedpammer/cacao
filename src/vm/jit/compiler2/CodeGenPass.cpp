@@ -39,6 +39,8 @@
 #include "vm/jit/executionstate.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/methodtree.hpp"
+#include "vm/jit/linenumbertable.hpp"
+#include "vm/jit/exceptiontable.hpp"
 
 #include "vm/jit/disass.hpp"
 
@@ -498,6 +500,10 @@ void CodeGenPass::finish(JITData &JD) {
 	code_flag_using_frameptr(code);
 #endif
 
+#if defined(__X86_64__)
+	code_unflag_leafmethod(code);
+#endif
+
 #if defined(__AARCH64__)
 	// We do not handle leaf methods yet in the aarch64 compiler2 backend
 	// During replacement, assumptions are made on the stacklayout regarding
@@ -511,15 +517,14 @@ void CodeGenPass::finish(JITData &JD) {
 
 	/* Create the exception table. */
 
-#if 0
-	exceptiontable_create(jd);
-#endif
+	exceptiontable_create(JD.get_jitdata());
+
 
 	/* Create the linenumber table. */
 
-#if 0
-	code->linenumbertable = new LinenumberTable(jd);
+	code->linenumbertable = new LinenumberTable(JD.get_jitdata());
 
+#if 0
 	/* jump table resolving */
 	for (jr = cd->jumpreferences; jr != NULL; jr = jr->next)
 		*((functionptr *) ((ptrint) epoint + jr->tablepos)) =

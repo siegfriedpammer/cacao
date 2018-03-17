@@ -57,7 +57,7 @@ Type::TypeID convert_to_typeid(int type)
 	case TYPE_DBL:  return Type::DoubleTypeID;
 	case TYPE_VOID: return Type::VoidTypeID;
 	case TYPE_ADR:  return Type::ReferenceTypeID; // XXX is this right?
-	case TYPE_RET:
+	case TYPE_RET:  return Type::ReturnAddressTypeID;
 	default: /* do nothing */ ;
 	}
 	ABORT_MSG("Type not supported", "type: " << get_type_name(type) << " (0x" << setz(2) << hex << type << dec << ") "

@@ -1339,18 +1339,38 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 		call->set_operand(i+1,arg_dst);
 	}
 
+	// Source state for replacement point instructions
+	// Concrete class depends on INVOKE type
+	SourceStateInst *source_state = I->get_SourceStateInst();
+	assert(source_state);
+	MachineReplacementPointCallSiteInst *MI = nullptr;
+
 	if (I->to_INVOKESTATICInst() || I->to_INVOKESPECIALInst()) {
+		DataSegment &DS = get_Backend()->get_JITData()->get_CodeMemory()->get_DataSegment();
+		DataSegment::IdxTy idx = DS.get_index(DSFMIRef(I->get_fmiref()));
+		if (DataSegment::is_invalid(idx)) {
+			DataFragment data = DS.get_Ref(sizeof(void*));
+			idx = DS.insert_tag(DSFMIRef(I->get_fmiref()), data);
+		}
+
+		DataFragment datafrag = DS.get_Ref(idx, sizeof(void*));
+
 		methodinfo* callee = I->get_fmiref()->p.method;
 		if (!callee->code) {
 			throw std::runtime_error("x86_64Backend: InvokeStatic/Special, no codeinfo!");
 		}
+		if (!callee->code->entrypoint) {
+			throw std::runtime_error("x86_64Backend: InvokeStatic/Special, no entrypoint!");
+		}
 		assert_msg(callee->code, "No codeinfo for " << *callee << nl);
 		assert_msg(callee->code->entrypoint, "No entrypoint for " << *callee << nl);
+
+		write_data<void*>(datafrag, callee->code->entrypoint);
 		
-		Immediate *method_address = new Immediate(reinterpret_cast<s8>(callee->code->entrypoint),
-				Type::ReferenceType());
-		MachineInstruction *mov = get_Backend()->create_Move(method_address, addr);
-		get_current()->push_back(mov);
+		MovDSEGInst *dmov = new MovDSEGInst(DstOp(addr), idx);
+		get_current()->push_back(dmov);
+
+		MI = new MachineReplacementPointStaticSpecialInst(call, source_state->get_source_location(), source_state->op_size(), idx);
 	} else if (I->to_INVOKEVIRTUALInst()) {
 
 		// Implicit null-checks are handled via deoptimization.
@@ -1369,6 +1389,8 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 		MachineInstruction *load_method_address = new MovInst(SrcOp(method_offset), DstOp(addr),
 				GPInstruction::OS_64);
 		get_current()->push_back(load_method_address);
+
+		MI = new MachineReplacementPointCallSiteInst(call, source_state->get_source_location(), source_state->op_size());
 	} else if (I->to_INVOKEINTERFACEInst()) {
 
 		// Implicit null-checks are handled via deoptimization.
@@ -1394,12 +1416,20 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 		MachineInstruction *load_method_address = new MovInst(SrcOp(method_offset), DstOp(addr),
 				GPInstruction::OS_64);
 		get_current()->push_back(load_method_address);
+
+		MI = new MachineReplacementPointCallSiteInst(call, source_state->get_source_location(), source_state->op_size());
 	} else if (I->to_BUILTINInst()) {
 		Immediate *method_address = new Immediate(reinterpret_cast<s8>(I->to_BUILTINInst()->get_address()),
 				Type::ReferenceType());
 		MachineInstruction *mov = get_Backend()->create_Move(method_address, addr);
 		get_current()->push_back(mov);
+
+		MI = new MachineReplacementPointCallSiteInst(call, source_state->get_source_location(), source_state->op_size());
 	}
+
+	// add replacement point
+	lower_source_state_dependencies(MI, source_state);
+	get_current()->push_back(MI);
 
 	// add call
 	get_current()->push_back(call);
@@ -1540,7 +1570,8 @@ void X86_64LoweringVisitor::visit(LOOKUPSWITCHInst *I, bool copyOperands) {
 }
 
 void X86_64LoweringVisitor::visit(TABLESWITCHInst *I, bool copyOperands) {
-	assert_msg(0 , "Fix CondJump");
+	// assert_msg(0 , "Fix CondJump");
+	throw std::runtime_error("x86_64Backend: Fix cond jump!");
 	assert(I);
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
 	Type::TypeID type = I->get_type();
@@ -1626,6 +1657,9 @@ void X86_64LoweringVisitor::visit(AssumptionInst *I, bool copyOperands) {
 
 void X86_64LoweringVisitor::visit(DeoptimizeInst *I, bool copyOperands) {
 	assert(I);
+#if defined(ENABLE_COUNTDOWN_TRAPS)
+	throw std::runtime_error("x86_64Backend: DeoptimizeInst not allowed!");
+#endif
 
 	SourceStateInst *source_state = I->get_source_state();
 	assert(source_state);

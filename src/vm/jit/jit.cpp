@@ -967,56 +967,6 @@ namespace option {
 	cacao::Option<bool> compare_disassembly("CompareDisassembly", "compiler2: dumps baseline and optimized version next to each other",false,::cacao::option::xx_root());
 }
 
-u1 *jit_optimize_without_replace(u1* xpc, void *pv, void *ra, void *mptr)
-{
-	codeinfo *code = code_find_codeinfo_for_pc((void*)xpc);
-	assert(code);
-	methodinfo *method = code->m;
-	
-	if (method->code->optlevel > 0) {
-		// Code was already optimized (or tried to)
-		LOG3("skipping method " << *method << cacao::nl);
-		return method->code->entrypoint;
-	}
-
-	LOG("optimizing method: " << *method << cacao::nl);
-
-	jit_request_optimization(method);
-	
-	try {
-		STATISTICS(count_c2_calls++);
-		if (!cacao::jit::compiler2::compile(method))
-			throw std::runtime_error("copmiler2 failed somewhere (see logs)");
-		STATISTICS(count_c2_success++);
-
-		LOG(cacao::BoldGreen << "Successfully optimized " << *method
-		                     << cacao::reset_color << cacao::nl);
-
-		if (option::compare_disassembly) {
-			u1* start = method->code->prev->entrypoint;
-			u1* end = method->code->prev->mcode + method->code->prev->mcodelength;
-
-			cacao::out() << cacao::Green << "Baseline version: " << *method << "\n" << cacao::reset_color;
-			disassemble(start, end);
-
-			start = method->code->entrypoint;
-			end = method->code->mcode + method->code->mcodelength;
-
-			cacao::out() << cacao::Green << "Optimized version: " << *method << "\n" << cacao::reset_color;
-			disassemble(start, end);
-		}
-	} catch (std::runtime_error err) {
-		LOG(cacao::Red << "Exception: " << err.what() << cacao::reset_color << cacao::nl);
-		LOG(cacao::BoldRed << "Failed to compile " << *method 
-			               << cacao::reset_color << cacao::nl);
-		jit_recompile_for_deoptimization(method);
-		method->code->optlevel = 1; // Set optlevel to 1, so we dont do this again
-	}
-	
-	return method->code->entrypoint;
-}
-
-
 /* jit_request_optimization ****************************************************
 
    Request optimization of the given method. If the code of the method is
@@ -1059,19 +1009,52 @@ codeinfo *jit_get_current_code(methodinfo *m)
 	assert(m);
 
 	/* if we have valid code, return it */
+	m->mutex->lock();
 
-	if (m->code && !code_is_invalid(m->code))
+	if (m->code && !code_is_invalid(m->code)) {
+		m->mutex->unlock();
 		return m->code;
+	}
+		
 
 	/* otherwise: recompile */
-
 #if defined(ENABLE_COMPILER2)
-	if (!cacao::jit::compiler2::compile(m))
-		return NULL;
+	try {
+		STATISTICS(count_c2_calls++);
+		if (!cacao::jit::compiler2::compile(m))
+			throw std::runtime_error("copmiler2 failed somewhere (see logs)");
+		STATISTICS(count_c2_success++);
+
+		LOG(cacao::BoldGreen << "Successfully optimized " << *m
+		                     << cacao::reset_color << cacao::nl);
+
+		if (option::compare_disassembly) {
+			u1* start = m->code->prev->entrypoint;
+			u1* end = m->code->prev->mcode + m->code->prev->mcodelength;
+
+			cacao::out() << cacao::Green << "Baseline version: " << *m << "\n" << cacao::reset_color;
+			disassemble(start, end);
+
+			start = m->code->entrypoint;
+			end = m->code->mcode + m->code->mcodelength;
+
+			cacao::out() << cacao::Green << "Optimized version: " << *m << "\n" << cacao::reset_color;
+			disassemble(start, end);
+		}
+	} catch (std::runtime_error err) {
+		LOG1(cacao::Red << "Exception: " << err.what() << cacao::reset_color << cacao::nl);
+		LOG1(cacao::BoldRed << "Failed to compile " << *m 
+			                << cacao::reset_color << cacao::nl);
+		jit_recompile_for_deoptimization(m);
+		m->code->optlevel = 1; // Set optlevel to 1, so we dont do this again
+	}
+
 #else
 	if (!jit_recompile(m))
 		return NULL;
 #endif
+
+	m->mutex->unlock();
 
 	assert(m->code);
 

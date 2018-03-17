@@ -102,7 +102,10 @@ private:
 					}
 				}
 			}
-			assert(unsched.empty() || !subloops.empty());
+			// assert(unsched.empty() || !subloops.empty());
+			if (!unsched.empty() && subloops.empty()) {
+				throw std::runtime_error("BasicBlockSchedulingPass: unscheduled blocks!");
+			}
 			for(LoopSetTy::iterator i = subloops.begin() , e = subloops.end(); i != e; ++i) {
 				Loop *subloop = *i;
 				if (is_ready(subloop->get_header()) ) {
@@ -186,9 +189,9 @@ inline Loop* get_root() {
 bool BasicBlockSchedulingPass::verify() const {
 	// check init basic block
 	if (*bb_begin() != M->get_init_bb()) {
-		ERROR_MSG("Schedule does not start with init basic block!",
+		LOG(BoldRed << "Schedule does not start with init basic block!\n" <<
 			"Init basic block is " << M->get_init_bb()
-			<< " but schedule starts with " << *bb_begin());
+			<< " but schedule starts with " << *bb_begin() << reset_color << nl);
 		return false;
 	}
 	// check if ordering (obsolete)

@@ -1287,6 +1287,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 					INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 					fieldinfo* field = fmiref->p.field;
 
+					if (field->flags & ACC_VOLATILE) {
+						throw std::runtime_error("SSAConstructionPass: ICMD_PUTFIELD, field is volatile, barrrier not implemented!");
+					}
+
 					Instruction *state_change = read_variable(global_state, bbindex)->to_Instruction();
 					assert(state_change);
 
@@ -1352,6 +1356,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 					if (!class_is_or_almost_initialized(field->clazz)) {
 						deoptimize(bbindex);
 						break;
+					}
+
+					if (field->flags & ACC_VOLATILE) {
+						throw std::runtime_error("SSAConstructionPass: ICMD_PUTSTATIC, field is volatile, barrrier not implemented!");
 					}
 
 					Instruction *state_change = read_variable(global_state,bbindex)->to_Instruction();
@@ -1546,13 +1554,17 @@ bool SSAConstructionPass::run(JITData &JD) {
 					}
 
 					methoddesc *md;
-					constant_FMIref *fmiref;
+					constant_FMIref *fmiref = nullptr;
 					
 					if (iptr->opc == ICMD_BUILTIN) {
 						md = iptr->sx.s23.s3.bte->md;
 					} else {
 						INSTRUCTION_GET_METHODREF(iptr, fmiref);
 						md = fmiref->parseddesc.md;
+					}
+
+					if (fmiref && fmiref->p.method->flags & ACC_NATIVE) {
+						throw std::runtime_error("SSAConstructionPass: Invoking native methods not supported in compiler2!");
 					}
 					
 					// Determine the return type of the invocation.
@@ -1969,12 +1981,13 @@ bool SSAConstructionPass::run(JITData &JD) {
 				}
 			default:
 				#if !defined(NDEBUG)
-				ABORT_MSG(icmd_table[iptr->opc].name << " (" << iptr->opc << ")",
-					"Operation not yet supported!");
+				LOG(BoldRed << icmd_table[iptr->opc].name << " (" << iptr->opc << ")\n" <<
+					"Operation not yet supported!\n" << reset_color);
 				#else
-				ABORT_MSG("Opcode: (" << iptr->opc << ")",
-					"Operation not yet supported!");
+				LOG(BoldRed << "Opcode: (" << iptr->opc << ")\n" <<
+					"Operation not yet supported!\n");
 				#endif
+				throw std::runtime_error("SSAConstructionPass: ICMD not implemented, see logs for details!");
 				break;
 			}
 
@@ -2016,7 +2029,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 	}
 #endif
 
-	remove_unreachable_blocks();
+	// remove_unreachable_blocks();
 
 	return true;
 }

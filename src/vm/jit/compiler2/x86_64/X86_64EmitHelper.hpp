@@ -232,13 +232,19 @@ inline u1 get_modrm_1reg(u1 reg, X86_64Register *rm) {
 int get_stack_position(MachineOperand *op) {
 	if (op->is_StackSlot()) {
 		StackSlot *slot = op->to_StackSlot();
-		return slot->get_index() * 8;
+		return (slot->get_index() + 2) * 8;
 	} else if (op->is_ManagedStackSlot()) {
 		ManagedStackSlot *slot = op->to_ManagedStackSlot();
-		StackSlotManager *SSM = slot->get_parent();
-		return -(SSM->get_number_of_machine_slots() - slot->get_index()) * 8;
+		return slot->get_index() * 8;
 	}
 	assert(false && "Not a stackslot");
+}
+
+// Caller memory arguments are referenced using RBP while
+// all other local stack variables are referenced using RSP
+GPRegister* get_stack_register(MachineOperand *op) {
+	assert_msg(op->is_stackslot(), "Operand " << op << " is not a stackslot!");
+	return op->is_StackSlot() ? &RBP : &RSP;
 }
 
 class CodeSegmentBuilder {
@@ -537,6 +543,7 @@ struct InstructionEncoding {
 			}
 			else if (src->is_stackslot()) {
 				s4 index = get_stack_position(src);
+				auto stack_reg = get_stack_register(src);
 				bool opsize64 = (op_size == GPInstruction::OS_64) && (default_op_size != GPInstruction::OS_64);
 				u1 rex = get_rex(dst_reg,NULL,opsize64);
 				if (prefix)
@@ -549,16 +556,31 @@ struct InstructionEncoding {
 				if (secondary_opcode != 0x00) {
 					code += secondary_opcode;
 				}
-				if (fits_into<s1>(index)) {
-					// Shouldn't mod be 0x0 for RIP relative addressing? needs test
-					code += get_modrm(0x1,dst_reg,&RBP);
-					code += index;
+				bool sib = use_sib(stack_reg, nullptr);
+
+				if (index != 0) {
+					if (fits_into<s1>(index)) {
+						code += get_modrm(0x1, dst_reg, stack_reg);
+						if (sib) {
+							code += get_sib(stack_reg, stack_reg, 0);
+						}
+						code += (s1)index;
+					}
+					else {
+						code += get_modrm(0x2, dst_reg, stack_reg);
+						if (sib) {
+							code += get_sib(stack_reg, stack_reg, 0);
+						}
+						code += (u1) 0xff & (index >> 0x00);
+						code += (u1) 0xff & (index >> 0x08);
+						code += (u1) 0xff & (index >> 0x10);
+						code += (u1) 0xff & (index >> 0x18);
+					}
 				} else {
-					code += get_modrm(0x2,dst_reg,&RBP);
-					code += (u1) 0xff & (index >> 0x00);
-					code += (u1) 0xff & (index >> 0x08);
-					code += (u1) 0xff & (index >> 0x10);
-					code += (u1) 0xff & (index >> 0x18);
+					code += get_modrm(0, dst_reg, stack_reg);
+					if (sib) {
+						code += get_sib(stack_reg, stack_reg, 0);
+					}
 				}
 			}
 			else if (src->is_Address()) {
@@ -602,6 +624,7 @@ struct InstructionEncoding {
 		}
 		else if (dst->is_stackslot()) {
 			s4 index = get_stack_position(dst);
+			auto stack_reg = get_stack_register(dst);
 			if (src->is_Register()) {
 				X86_64Register *src_reg = cast_to<X86_64Register>(src);
 				u1 rex = get_rex(src_reg,NULL,op_size == GPInstruction::OS_64);
@@ -615,16 +638,31 @@ struct InstructionEncoding {
 				if (secondary_opcode != 0x00) {
 					code += secondary_opcode;
 				}
-				if (fits_into<s1>(index)) {
-					// Shouldn't mod be 0x0 for RIP relative addressing? needs test
-					code += get_modrm(0x1,src_reg,&RBP);
-					code += index;
+				bool sib = use_sib(stack_reg, nullptr);
+
+				if (index != 0) {
+					if (fits_into<s1>(index)) {
+						code += get_modrm(0x1, src_reg, stack_reg);
+						if (sib) {
+							code += get_sib(stack_reg, stack_reg, 0);
+						}
+						code += (s1)index;
+					}
+					else {
+						code += get_modrm(0x2, src_reg, stack_reg);
+						if (sib) {
+							code += get_sib(stack_reg, stack_reg, 0);
+						}
+						code += (u1) 0xff & (index >> 0x00);
+						code += (u1) 0xff & (index >> 0x08);
+						code += (u1) 0xff & (index >> 0x10);
+						code += (u1) 0xff & (index >> 0x18);
+					}
 				} else {
-					code += get_modrm(0x2,src_reg,&RBP);
-					code += (u1) 0xff & (index >> 0x00);
-					code += (u1) 0xff & (index >> 0x08);
-					code += (u1) 0xff & (index >> 0x10);
-					code += (u1) 0xff & (index >> 0x18);
+					code += get_modrm(0, src_reg, stack_reg);
+					if (sib) {
+						code += get_sib(stack_reg, stack_reg, 0);
+					}
 				}
 			}
 			else {

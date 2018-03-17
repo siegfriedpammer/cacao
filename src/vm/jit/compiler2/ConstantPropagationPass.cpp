@@ -291,6 +291,7 @@ bool has_only_constant_operands(Instruction *inst) {
 				equal = firstOp->get_Double() == op->get_Double();
 				break;
 			default:
+				throw std::runtime_error("ConstantPropagationPass: Unhandled type in 'has_only_constant_operands'!");
 				assert(0);
 				return false;
 		}

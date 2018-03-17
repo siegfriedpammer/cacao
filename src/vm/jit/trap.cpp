@@ -178,7 +178,7 @@ void trap_handle(int sig, void *xpc, void *context)
 	// implicit exception (i.e. NullPointerException,
 	// ArrayIndexOutOfBoundsException, or ArithmeticException) we deoptimize
 	// instead of throwing the exception.
-#if defined(ENABLE_COMPILER2)
+#if defined(ENABLE_COMPILER2) && !defined(ENABLE_COUNTDOWN_TRAPS)
 	if (type == TRAP_NullPointerException
 			|| type == TRAP_ArrayIndexOutOfBoundsException
 			|| type == TRAP_ArithmeticException) {
@@ -299,8 +299,7 @@ void trap_handle(int sig, void *xpc, void *context)
 #if (defined(__AARCH64__) || defined(__X86_64__)) && defined(ENABLE_COMPILER2)
 	case TRAP_COUNTDOWN:
 		p = NULL;
-		// replace_handle_countdown_trap((uint8_t*) xpc, &es);
-		entry = jit_optimize_without_replace((u1*) xpc, sfi.pv, ra, (void*) val);
+		replace_handle_countdown_trap_simple((uint8_t*) xpc, &es);
 		break;
 
 	case TRAP_DEOPTIMIZE:
@@ -345,7 +344,6 @@ void trap_handle(int sig, void *xpc, void *context)
 	/* AFTER: removing stackframeinfo */
 
 	switch (type) {
-	case TRAP_COUNTDOWN:
 	case TRAP_COMPILER:
 		// The normal case for a compiler trap is to jump directly to
 		// the newly compiled method.

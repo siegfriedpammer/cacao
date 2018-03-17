@@ -47,10 +47,12 @@ public:
 	MachineMethodDescriptor(const MethodDescriptor &MD, MachineOperandFactory* MOF) : MD(MD), MOF(MOF), parameter(MD.size()) {
 		unsigned int_argument_counter = 0;
 		unsigned float_argument_counter = 0;
-		int stackslot_index = 2;
+		int stackslot_index = 0;
 		for (unsigned i = 0, e = MD.size(); i < e; ++i) {
 			Type::TypeID type = MD[i];
 			switch (type) {
+			case Type::CharTypeID:
+			case Type::ShortTypeID:
 			case Type::IntTypeID:
 			case Type::LongTypeID:
 			case Type::ReferenceTypeID:

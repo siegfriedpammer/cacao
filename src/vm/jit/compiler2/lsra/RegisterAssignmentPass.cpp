@@ -687,7 +687,10 @@ bool RegisterAssignmentPass::run(JITData& JD)
 				if (color_pair.ccolor == nullptr) {
 					bool success = assignment.repair_result(block, instruction, result_descriptor,
 					                                        parallel_copy, live_out);
-					assert(success && "Fallback Graph-coloring for definitions not implemented!");
+					if (!success) {
+						throw std::runtime_error("RegisterAssignmentPass: Fallback Graph-coloring for definitions not implemented!");
+					}
+					// assert(success && "Fallback Graph-coloring for definitions not implemented!");
 				}
 				assignment.add_allocated_variable(block, result_operand);
 			}

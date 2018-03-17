@@ -509,8 +509,8 @@ void codegen_set_replacement_point(codegendata *cd)
 	methodinfo *m = cd->replacementpoint->method;
 	if (cd->replacementpoint->flags & rplpoint::FLAG_COUNTDOWN) {
 		// XXX Probably 32 bytes aren't enough for every architecture
-		// MCODECHECK(32);
-		// emit_trap_countdown(cd, &(m->hitcountdown));
+		MCODECHECK(32);
+		emit_trap_countdown(cd, &(m->hitcountdown));
 	}
 #endif
 
@@ -1537,12 +1537,7 @@ bool codegen_emit(jitdata *jd)
 	cd->replacementpoint = jd->code->rplpoints;
 
 #if (defined(__AARCH64__) || defined(__X86_64__)) && defined(ENABLE_COUNTDOWN_TRAPS)
-	// Emit countdown trap
-	if (cd->replacementpoint->flags & rplpoint::FLAG_COUNTDOWN) {
-		methodinfo *m = cd->replacementpoint->method;
-		MCODECHECK(32);
-		emit_trap_countdown(cd, &(m->hitcountdown));
-	}
+	codegen_set_replacement_point(cd);
 #endif
 #endif
 
@@ -1585,7 +1580,7 @@ bool codegen_emit(jitdata *jd)
 		// Set a replacement point at the start of this block if necessary.
 		if (bptr == jd->basicblocks ||
 			(bptr->predecessorcount > 1 && JITDATA_HAS_FLAG_DEOPTIMIZE(jd))) {
-			codegen_set_replacement_point(cd);
+			// codegen_set_replacement_point(cd);
 		}
 #endif
 

@@ -43,9 +43,18 @@ public class StringBuilderAppend extends Compiler2TestBase {
 	}
 
 	@Test
-	public void testStringEquals() {
-		String str1 = "hello";
-		String str2 = "world";
-		testResultEqual(String.class, "equals", "(Ljava/lang/Object;)Z", str1, str2);
+	public void testAppendLongValue() throws Throwable {
+		StringBuilder builderBaseline = new StringBuilder();
+		StringBuilder builderCompiler2 = new StringBuilder();
+
+		runBaseline(StringBuilder.class, "append", "(J)Ljava/lang/StringBuilder;", builderBaseline, Long.MAX_VALUE);
+		runCompiler2(StringBuilder.class, "append", "(J)Ljava/lang/StringBuilder;", builderCompiler2, Long.MAX_VALUE);
+
+		assertEquals(builderCompiler2.toString(), builderBaseline.toString());
+	}
+
+	@Test
+	public void testStringValueOf() {
+		testResultEqual(String.class, "valueOf", "(I)Ljava/lang/String;", 5);
 	}
 }
