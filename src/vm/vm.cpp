@@ -1792,6 +1792,8 @@ int vm_destroy(JavaVM *vm)
 
 // 	_created = false;
 
+	write_logfiles();
+
 	/* Everything is ok. */
 
 	return 0;
@@ -1940,7 +1942,7 @@ void vm_exit_handler(void)
 
 #endif /* defined(ENABLE_STATISTICS) */
 	}
-	// write_logfiles();
+	
 	/* vm_print_profile(stderr);*/
 }
 
