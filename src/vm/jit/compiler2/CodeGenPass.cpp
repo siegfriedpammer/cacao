@@ -492,6 +492,11 @@ void CodeGenPass::finish(JITData &JD) {
 	code->savedadrcount      = ADR_SAV_CNT - rd->savadrreguse;
 #endif
 
+#if defined(__X86_64__)
+	// Stackslots are 16 byte aligned
+	code->stackframesize += (code->stackframesize % 2);
+#endif
+
 #if defined(__AARCH64__) || defined(__X86_64__)
 	// Since we use the EnterInst on method entry, the generated code saves the
 	// frame pointer (register RBP) of the calling method on the stack. We

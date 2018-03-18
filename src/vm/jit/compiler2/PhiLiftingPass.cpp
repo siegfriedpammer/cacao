@@ -56,9 +56,7 @@ void PhiLiftingPass::handle_phi(MachinePhiInst* instruction)
 		auto predecessor = block->get_predecessor(idx);
 		LOG2("\tInserting (" << *move_instr << ") in " << *predecessor << nl);
 		
-		auto new_insertion_point = insert_before(predecessor->mi_last_insertion_point(), move_instr);
-		predecessor->set_last_insertion_point(new_insertion_point);
-
+		insert_before(predecessor->mi_last_insertion_point(), move_instr);
 	}
 
 	// Copy result in current block

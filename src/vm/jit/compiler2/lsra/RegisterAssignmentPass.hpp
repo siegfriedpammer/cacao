@@ -60,6 +60,8 @@ public:
 	void add_allocated_variable(MachineBasicBlock* block, MachineOperand* operand);
 	void remove_allocated_variable(MachineBasicBlock* block, MachineOperand* operand);
 
+	void reset_local_colors();
+
 	struct ColorPair {
 		MachineOperand* gcolor;
 		MachineOperand* ccolor;

@@ -88,7 +88,8 @@ void SSADeconstructionPass::insert_transfer_at_end(MachineBasicBlock* block,
 
 	parallel_copy.calculate();
 	auto& operations = parallel_copy.get_operations();
-	predecessor->insert_before(--predecessor->end(), operations.begin(), operations.end());
+	auto insertion_point = predecessor->convert(predecessor->mi_last_insertion_point());
+	predecessor->insert_before(insertion_point, operations.begin(), operations.end());
 
 	if (DEBUG_COND_N(1)) {
 		for (auto operation : operations) {

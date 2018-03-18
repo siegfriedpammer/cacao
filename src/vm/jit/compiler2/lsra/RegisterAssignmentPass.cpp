@@ -128,6 +128,15 @@ void RegisterAssignment::remove_allocated_variable(MachineBasicBlock* block,
 	}
 }
 
+void RegisterAssignment::reset_local_colors()
+{
+	for (auto& id_to_variable : variables) {
+		auto& variable = id_to_variable.second;
+		variable.ccolor = variable.gcolor;
+		variable.ccolor_native = variable.gcolor_native;
+	}
+}
+
 RegisterAssignment::ColorPair RegisterAssignment::choose_color(MachineBasicBlock* block,
                                                                MachineInstruction* instruction,
                                                                MachineOperandDesc& descriptor)
@@ -688,9 +697,11 @@ bool RegisterAssignmentPass::run(JITData& JD)
 					bool success = assignment.repair_result(block, instruction, result_descriptor,
 					                                        parallel_copy, live_out);
 					if (!success) {
-						throw std::runtime_error("RegisterAssignmentPass: Fallback Graph-coloring for definitions not implemented!");
+						throw std::runtime_error("RegisterAssignmentPass: Fallback Graph-coloring "
+						                         "for definitions not implemented!");
 					}
-					// assert(success && "Fallback Graph-coloring for definitions not implemented!");
+					// assert(success && "Fallback Graph-coloring for definitions not
+					// implemented!");
 				}
 				assignment.add_allocated_variable(block, result_operand);
 			}
@@ -743,7 +754,7 @@ bool RegisterAssignmentPass::run(JITData& JD)
 			ParallelCopy parallel_copy;
 			assignment.for_each_allocated_variable(
 			    block, [&](const auto variable) { parallel_copy.add(variable, variable->gcolor); });
-
+			
 			ParallelCopyImpl pcopy(JD);
 			for (const auto& copy : parallel_copy) {
 				auto source = factory->CreateNativeRegister<NativeRegister>(
@@ -770,6 +781,9 @@ bool RegisterAssignmentPass::run(JITData& JD)
 				}
 			}
 		}
+
+		// Reset all local colors of variables to their global ones
+		assignment.reset_local_colors();
 	}
 
 	return true;
