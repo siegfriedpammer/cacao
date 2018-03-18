@@ -618,7 +618,11 @@ bool SSAConstructionPass::run(JITData &JD) {
 		current_def[global_state][bbindex] = BB[bbindex];
 
 		// Get javalocals that are live at the begin of the block.
-		assert((jd->maxlocals > 0) == (bb->javalocals != NULL));
+		// assert((jd->maxlocals > 0) == (bb->javalocals != NULL));
+		if ((jd->maxlocals > 0) != (bb->javalocals != NULL)) {
+			throw std::runtime_error("SSAConstructionPass: live-in javalocals do not match");
+		}
+
 		MCOPY(live_javalocals, bb->javalocals, s4, jd->maxlocals);
 
 		if (!skipped_blocks[bbindex]) {

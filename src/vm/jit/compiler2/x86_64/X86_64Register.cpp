@@ -123,7 +123,7 @@ X86_64RegisterClass<X86_64Class::GP>::X86_64RegisterClass()
 		}
 
 		for (const auto reg : IntegerCalleeSavedRegisters) {
-			// callee_saved.add(reg);
+			callee_saved.add(reg);
 		}
 	} else if (available_registers >= 2 && available_registers <= 7) {
 		for (std::size_t i = 0, e = available_registers - 1; i < e; ++i) {
