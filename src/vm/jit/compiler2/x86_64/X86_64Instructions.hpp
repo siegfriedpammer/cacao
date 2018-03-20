@@ -627,6 +627,8 @@ public:
 };
 
 class RetInst : public GPInstruction {
+private:
+	bool emit_leave = false;
 public:
 	/// void return
 	RetInst() : GPInstruction("X86_64RetInst", &NoOperand, NO_SIZE, 0) {}
@@ -649,6 +651,7 @@ public:
 		auto requirement = std::make_unique<MachineRegisterRequirement>(result_reg);
 		operands[0].set_MachineRegisterRequirement(requirement);
 	}
+	void set_emit_leave(bool emit) { emit_leave = emit; }
 	virtual bool is_end() const { return true; }
 	virtual void emit(CodeMemory* CM) const;
 };

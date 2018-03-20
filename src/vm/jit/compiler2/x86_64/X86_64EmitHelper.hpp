@@ -232,10 +232,18 @@ inline u1 get_modrm_1reg(u1 reg, X86_64Register *rm) {
 int get_stack_position(MachineOperand *op) {
 	if (op->is_StackSlot()) {
 		StackSlot *slot = op->to_StackSlot();
-		return (slot->get_index() + 2) * 8;
+		int offset_idx = slot->is_leaf() ? 1 : 2;
+		return (slot->get_index() + offset_idx) * 8;
 	} else if (op->is_ManagedStackSlot()) {
+		// If its a leaf method, we did not move RSP, and instead use negative offsets
 		ManagedStackSlot *slot = op->to_ManagedStackSlot();
-		return slot->get_index() * 8;
+		bool is_leaf = slot->get_parent()->is_leaf();
+		if (!is_leaf) {
+			return slot->get_index() * 8;
+		}
+		
+		return -(slot->get_index() + 1) * 8;
+		
 	}
 	assert(false && "Not a stackslot");
 }

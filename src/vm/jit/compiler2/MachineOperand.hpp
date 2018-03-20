@@ -282,14 +282,16 @@ public:
 class StackSlot : public MachineOperand {
 private:
 	int index; ///< index of the stackslot
+	bool leaf; ///< the emitter needs to know if its a leaf stack frame
 	/**
 	 * @param index  index of the stackslot
 	 */
-	StackSlot(int index, Type::TypeID type)
-	: MachineOperand(StackSlotID, type), index(index) {}
+	StackSlot(int index, Type::TypeID type, bool is_leaf = false)
+	: MachineOperand(StackSlotID, type), index(index), leaf(is_leaf) {}
 public:
 	virtual StackSlot* to_StackSlot() { return this; }
 	int get_index() const { return index; }
+	bool is_leaf() const { return leaf; }
 	virtual const char* get_name() const {
 		return "StackSlot";
 	}

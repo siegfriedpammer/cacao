@@ -56,7 +56,7 @@ class MachineOperandFactory {
 public:
 	/// Do not use directly, instead use StackSlotManager to create instances
 	ManagedStackSlot* CreateManagedStackSlot(StackSlotManager*, Type::TypeID);
-	StackSlot* CreateStackSlot(int, Type::TypeID);
+	StackSlot* CreateStackSlot(int, Type::TypeID, bool);
 	UnassignedReg* CreateUnassignedReg(Type::TypeID);
 	VirtualRegister* CreateVirtualRegister(Type::TypeID);
 

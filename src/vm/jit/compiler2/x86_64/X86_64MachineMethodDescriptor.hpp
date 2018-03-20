@@ -44,7 +44,7 @@ private:
 	MachineOperandFactory* MOF;
 	alloc::vector<MachineOperand*>::type parameter;
 public:
-	MachineMethodDescriptor(const MethodDescriptor &MD, MachineOperandFactory* MOF) : MD(MD), MOF(MOF), parameter(MD.size()) {
+	MachineMethodDescriptor(const MethodDescriptor &MD, MachineOperandFactory* MOF, bool is_leaf) : MD(MD), MOF(MOF), parameter(MD.size()) {
 		unsigned int_argument_counter = 0;
 		unsigned float_argument_counter = 0;
 		int stackslot_index = 0;
@@ -60,7 +60,7 @@ public:
 					parameter[i]= MOF->CreateNativeRegister<NativeRegister>(type,
 						IntegerArgumentRegisters[int_argument_counter]);
 				} else {
-					parameter[i]= MOF->CreateStackSlot(stackslot_index,type);
+					parameter[i]= MOF->CreateStackSlot(stackslot_index,type,is_leaf);
 					stackslot_index++;
 				}
 				int_argument_counter++;
@@ -71,7 +71,7 @@ public:
 					parameter[i]= MOF->CreateNativeRegister<NativeRegister>(type,
 						FloatArgumentRegisters[float_argument_counter]);
 				} else {
-					parameter[i]= MOF->CreateStackSlot(stackslot_index,type);
+					parameter[i]= MOF->CreateStackSlot(stackslot_index,type,is_leaf);
 					stackslot_index++;
 				}
 				float_argument_counter++;

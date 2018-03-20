@@ -169,6 +169,11 @@ static void write_data(Seg seg, I data) {
 
 template<>
 void BackendBase<X86_64>::create_prolog(MachineBasicBlock* entry, const CalleeSavedRegisters& callee_saved) const {
+	codeinfo* code = get_JITData()->get_jitdata()->code;
+	if (code_is_leafmethod(code)) {
+		return;
+	}
+
 	// Save callee saved registers
 	std::vector<MachineInstruction*> moves;
 	for (const auto& pair : callee_saved) {
@@ -186,16 +191,18 @@ void BackendBase<X86_64>::create_prolog(MachineBasicBlock* entry, const CalleeSa
 
 template<>
 void BackendBase<X86_64>::create_epilog(MachineBasicBlock* exit, const CalleeSavedRegisters& callee_saved) const {
-	// Restore callee saved registers, since a exit block has 2 instructions (leaveq, ret), we need to
-	// backoff for a bit
-	std::vector<MachineInstruction*> moves;
+	codeinfo* code = get_JITData()->get_jitdata()->code;
+	if (code_is_leafmethod(code)) {
+		return;
+	}
+	
+	// Restore callee saved registers
 	for (const auto& pair : callee_saved) {
 		auto move = create_Move(pair.second, pair.first);
-		moves.push_back(move);
+		
+		auto iter = insert_before(exit->mi_last_insertion_point(), move);
+		exit->set_last_insertion_point(iter);
 	}
-
-	auto iter = --exit->end();
-	exit->insert_before(iter, moves.begin(), moves.end());
 }
 
 template<>
@@ -212,7 +219,8 @@ void X86_64LoweringVisitor::visit(LOADInst *I, bool copyOperands) {
 	//MachineInstruction *minst = loadParameter(I->get_index(), I->get_type());
 	const MethodDescriptor &MD = I->get_Method()->get_MethodDescriptor();
 	//FIXME inefficient
-	const MachineMethodDescriptor MMD(MD, get_Backend()->get_JITData()->get_MachineOperandFactory());
+	codeinfo* code =  get_Backend()->get_JITData()->get_jitdata()->code;
+	const MachineMethodDescriptor MMD(MD, get_Backend()->get_JITData()->get_MachineOperandFactory(), code_is_leafmethod(code));
 	Type::TypeID type = I->get_type();
 
 	MachineOperand *parameter = MMD[I->get_index()];
@@ -1045,76 +1053,19 @@ void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 	assert(I);
 	Type::TypeID type = I->get_type();
 	MachineOperand* src_op = (type == Type::VoidTypeID ? 0 : get_op(I->get_operand(0)->to_Instruction()));
-	switch (type) {
-	case Type::CharTypeID:
-	case Type::ByteTypeID:
-	case Type::ShortTypeID:
-	case Type::IntTypeID:
-	case Type::LongTypeID:
-	case Type::ReferenceTypeID:
-	{
-		// TODO: Just for testing, we do not spilt the life time manually here but
-		//       let the register allocator do it, if its needed. We only add the
-		//       requirement that VirtualReg MUST be in the return register
-		
-		// MachineOperand *ret_reg = new NativeRegister(type,&RAX);
-		// MachineInstruction *reg = new MovInst(
-		// 	SrcOp(src_op),
-		//	DstOp(ret_reg),
-		//	get_OperandSize_from_Type(type));
-		LeaveInst *leave = new LeaveInst();
-		RetInst *ret = new RetInst(get_OperandSize_from_Type(type),SrcOp(src_op));
-		// get_current()->push_back(reg);
-		// get_current()->push_back(leave);
-		get_current()->push_back(ret);
-		get_current()->set_last_insertion_point(get_current()->mi_last());
-		set_op(I,ret->get_result().op);
-		return;
-	}
-	case Type::FloatTypeID:
-	{
-		// MachineOperand *ret_reg = new NativeRegister(type,&XMM0);
-		// MachineInstruction *reg = new MovSSInst(
-		// 	SrcOp(src_op),
-		// 	DstOp(ret_reg));
-		LeaveInst *leave = new LeaveInst();
-		RetInst *ret = new RetInst(get_OperandSize_from_Type(type),SrcOp(src_op));
-		// get_current()->push_back(reg);
-		// get_current()->push_back(leave);
-		get_current()->push_back(ret);
-		get_current()->set_last_insertion_point(get_current()->mi_last());
-		set_op(I,ret->get_result().op);
-		return;
-	}
-	case Type::DoubleTypeID:
-	{
-		// MachineOperand *ret_reg = new NativeRegister(type,&XMM0);
-		// MachineInstruction *reg = new MovSDInst(
-		//	SrcOp(src_op),
-		//	DstOp(ret_reg));
-		LeaveInst *leave = new LeaveInst();
-		RetInst *ret = new RetInst(get_OperandSize_from_Type(type),SrcOp(src_op));
-		// get_current()->push_back(reg);
-		// get_current()->push_back(leave);
-		get_current()->push_back(ret);
-		get_current()->set_last_insertion_point(get_current()->mi_last());
-		set_op(I,ret->get_result().op);
-		return;
-	}
-	case Type::VoidTypeID:
-	{
-		LeaveInst *leave = new LeaveInst();
-		RetInst *ret = new RetInst();
-		// get_current()->push_back(leave);
-		get_current()->push_back(ret);
-		get_current()->set_last_insertion_point(get_current()->mi_last());
-		set_op(I,ret->get_result().op);
-		return;
-	}
-	default: break;
-	}
-	ABORT_MSG("x86_64 Lowering not supported",
-		"Inst: " << I << " type: " << type);
+
+	RetInst* ret = nullptr;
+	if (type == Type::VoidTypeID)
+		ret = new RetInst();
+	else
+		ret = new RetInst(get_OperandSize_from_Type(type), SrcOp(src_op));
+
+	codeinfo* code = get_Backend()->get_JITData()->get_jitdata()->code;
+	ret->set_emit_leave(!code_is_leafmethod(code));
+	
+	get_current()->push_back(ret);
+	get_current()->set_last_insertion_point(get_current()->mi_last());
+	set_op(I, ret->get_result().op);
 }
 
 void X86_64LoweringVisitor::visit(CASTInst *I, bool copyOperands) {
@@ -1296,7 +1247,7 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	Type::TypeID type = I->get_type();
 	bool call_has_result = type != Type::VoidTypeID;
 	MethodDescriptor &MD = I->get_MethodDescriptor();
-	MachineMethodDescriptor MMD(MD, get_Backend()->get_JITData()->get_MachineOperandFactory());
+	MachineMethodDescriptor MMD(MD, get_Backend()->get_JITData()->get_MachineOperandFactory(), false);
 	StackSlotManager *SSM = get_Backend()->get_JITData()->get_StackSlotManager();
 
 	// Implicit null-checks are handled via deoptimization

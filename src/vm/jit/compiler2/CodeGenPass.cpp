@@ -487,20 +487,25 @@ void CodeGenPass::finish(JITData &JD) {
 #endif
 
 #if defined(__X86_64__)
-	// Stackslots are 16 byte aligned
-	code->stackframesize += (code->stackframesize % 2);
+	if (!code_is_leafmethod(code)) {
+		// RSP is 16 byte aligned
+		code->stackframesize += (code->stackframesize % 2);
+		
+		// We use RBP register in non-leaf methods
+		code->stackframesize++;
+		code_flag_using_frameptr(code);
+	} else {
+		// If its a leaf method, we do not adjust RSP, meaning RSP points to the return address
+		code->stackframesize = 0;
+	}
 #endif
 
-#if defined(__AARCH64__) || defined(__X86_64__)
+#if defined(__AARCH64__)
 	// Since we use the EnterInst on method entry, the generated code saves the
 	// frame pointer (register RBP) of the calling method on the stack. We
 	// therefore have to provide an additional stack slot.
 	code->stackframesize++;
 	code_flag_using_frameptr(code);
-#endif
-
-#if defined(__X86_64__)
-	code_unflag_leafmethod(code);
 #endif
 
 #if defined(__AARCH64__)

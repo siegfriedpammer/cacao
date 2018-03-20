@@ -358,6 +358,12 @@ void BreakInst::emit(CodeMemory* CM) const {
 }
 
 void RetInst::emit(CodeMemory* CM) const {
+	if (!emit_leave) {
+		CodeFragment code = CM->get_CodeFragment(1);
+		code[0] = 0xc3;
+		return;
+	}
+	
 	CodeFragment code = CM->get_CodeFragment(2);
 	code[0] = 0xc9;
 	code[1] = 0xc3;

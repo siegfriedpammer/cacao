@@ -47,9 +47,9 @@ ManagedStackSlot* MachineOperandFactory::CreateManagedStackSlot(StackSlotManager
 	return register_ownership(operand)->to_ManagedStackSlot();
 }
 
-StackSlot* MachineOperandFactory::CreateStackSlot(int index, Type::TypeID type)
+StackSlot* MachineOperandFactory::CreateStackSlot(int index, Type::TypeID type, bool is_leaf)
 {
-	auto operand = new StackSlot(index, type);
+	auto operand = new StackSlot(index, type, is_leaf);
 	return register_ownership(operand)->to_StackSlot();
 }
 

@@ -25,6 +25,7 @@
 #ifndef _JIT_COMPILER2_STACKSLOTMANAGER
 #define _JIT_COMPILER2_STACKSLOTMANAGER
 
+#include "vm/jit/code.hpp"
 #include "vm/jit/compiler2/Type.hpp"
 #include "vm/types.hpp"
 
@@ -59,8 +60,13 @@ private:
 	 */
 	u4 number_of_machine_argument_slots;
 
+	/**
+	 * If we create stackslots for a leaf method, the emitter needs to know this
+	 */
+	codeinfo* code;
+
 public:
-	StackSlotManager(MachineOperandFactory* MOF) : MOF(MOF), number_of_machine_argument_slots(0) {}
+	StackSlotManager(MachineOperandFactory* MOF, codeinfo* code) : MOF(MOF), number_of_machine_argument_slots(0), code(code) {}
 
 	/**
 	 * Create a ManagedStackSlot.
@@ -95,6 +101,11 @@ public:
 	 * @return The number of actual machine-level slots.
 	 */
 	u4 get_number_of_machine_slots() const;
+
+	/**
+	 * @return true, if the method currently emitted is a leaf method
+	 */
+	bool is_leaf() const { return code_is_leafmethod(code); }
 };
 
 } // end namespace compiler2
