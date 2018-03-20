@@ -23,6 +23,7 @@
 */
 
 #include <cassert>                         // for assert
+#include <cstdio>						   // for fopen
 #include <stdint.h>                        // for uintptr_t
 #include "config.h"                        // for ENABLE_JIT, etc
 #include "md.hpp"                          // for md_cacheflush
@@ -956,17 +957,6 @@ void jit_invalidate_code(methodinfo *m)
 #endif
 }
 
-/* jit_optimize_without_replace ************************************************
-
-   TEMPORARY. Called by count down trap. Recompiles with second stage but does
-   no on-stack-replacement.	
-
-*******************************************************************************/
-
-namespace option {
-	cacao::Option<bool> compare_disassembly("CompareDisassembly", "compiler2: dumps baseline and optimized version next to each other",false,::cacao::option::xx_root());
-}
-
 /* jit_request_optimization ****************************************************
 
    Request optimization of the given method. If the code of the method is
@@ -1004,6 +994,27 @@ void jit_request_optimization(methodinfo *m)
 
 *******************************************************************************/
 
+#if defined(ENABLE_COMPILER2)
+namespace option {
+	cacao::Option<bool> compare_disassembly("CompareDisassembly", "compiler2: dumps baseline and optimized version next to each other",false,::cacao::option::xx_root());
+	cacao::Option<bool> dump_machinecode("DumpMachineCode", "compiler2: Dumps both baseline and compiler2 machine code for further comparison by disassemblers",false,::cacao::option::xx_root());
+}
+
+static void dump_machinecode_to_file(codeinfo* code)
+{
+	FILE *file = std::fopen("mc-dump.dat", "a");
+	u4 data_len = code->entrypoint - code->mcode;
+	u4 code_len = code->mcodelength - data_len;
+	assert_msg(data_len + code_len == code->mcodelength, "Error in length calculation!");
+
+	std::fwrite(&data_len, 4, 1, file);
+	std::fwrite(&code_len, 4, 1, file);
+	std::fwrite(code->mcode, 1, code->mcodelength, file);
+
+	std::fclose(file);
+}
+#endif
+
 codeinfo *jit_get_current_code(methodinfo *m)
 {
 	assert(m);
@@ -1015,7 +1026,6 @@ codeinfo *jit_get_current_code(methodinfo *m)
 		m->mutex->unlock();
 		return m->code;
 	}
-		
 
 	/* otherwise: recompile */
 #if defined(ENABLE_COMPILER2)
@@ -1040,6 +1050,13 @@ codeinfo *jit_get_current_code(methodinfo *m)
 
 			cacao::out() << cacao::Green << "Optimized version: " << *m << "\n" << cacao::reset_color;
 			disassemble(start, end);
+		}
+
+		// First dump baseline version, then compiler2 version
+		// Disassembler tool will have to handle this
+		if (option::dump_machinecode) {
+			dump_machinecode_to_file(m->code->prev);
+			dump_machinecode_to_file(m->code);
 		}
 	} catch (std::runtime_error err) {
 		LOG1(cacao::Red << "Exception: " << err.what() << cacao::reset_color << cacao::nl);

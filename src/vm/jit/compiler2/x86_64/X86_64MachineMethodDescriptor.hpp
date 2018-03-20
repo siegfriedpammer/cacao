@@ -77,8 +77,9 @@ public:
 				float_argument_counter++;
 				break;
 			default:
-				ABORT_MSG("x86_64 MachineMethodDescriptor: Type not yet "
-					"supported!", "Type: " << type);
+				//ABORT_MSG("x86_64 MachineMethodDescriptor: Type not yet "
+				//	"supported!", "Type: " << type);
+				throw std::runtime_error("x86_64 MachineMethodDescriptor: Type not yet supported!");
 			}
 		}
 	}
