@@ -36,10 +36,10 @@ libtreescan_la_SOURCES = \
 	LogHelper.hpp \
 	LoopPressurePass.cpp \
 	LoopPressurePass.hpp \
-	NewLivetimeAnalysisPass.cpp \
-	NewLivetimeAnalysisPass.hpp \
-	NewSpillPass.cpp \
-	NewSpillPass.hpp \
+	LivetimeAnalysisPass.cpp \
+	LivetimeAnalysisPass.hpp \
+	SpillPass.cpp \
+	SpillPass.hpp \
 	RegisterAssignmentPass.cpp \
 	RegisterAssignmentPass.hpp \
 	SSAReconstructor.cpp \

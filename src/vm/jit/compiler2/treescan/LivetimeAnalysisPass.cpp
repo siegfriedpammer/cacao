@@ -22,7 +22,7 @@
 
 */
 
-#include "vm/jit/compiler2/treescan/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/treescan/LivetimeAnalysisPass.hpp"
 
 #include <boost/dynamic_bitset.hpp>
 
@@ -36,7 +36,7 @@
 
 #include "vm/jit/compiler2/alloc/map.hpp"
 
-#define DEBUG_NAME "compiler2/NewLivetimeAnalysisPass"
+#define DEBUG_NAME "compiler2/LivetimeAnalysisPass"
 
 namespace cacao {
 namespace jit {
@@ -215,7 +215,7 @@ const std::list<Occurrence>& DefUseChains::get_uses(const MachineOperand* operan
 	return chain.uses;
 }
 
-void NewLivetimeAnalysisPass::initialize_blocks()
+void LivetimeAnalysisPass::initialize_blocks()
 {
 	LOG1("Marking loop exits with higher distance\n");
 
@@ -243,7 +243,7 @@ void NewLivetimeAnalysisPass::initialize_blocks()
 	}
 }
 
-void NewLivetimeAnalysisPass::initialize_instructions() const
+void LivetimeAnalysisPass::initialize_instructions() const
 {
 	LOG1("Setting 'step' for each instruction in a basic block\n");
 	auto RPO = get_Artifact<ReversePostOrderPass>();
@@ -259,7 +259,7 @@ void NewLivetimeAnalysisPass::initialize_instructions() const
 /**
  * Performs a postorder traversal while ignoring loop-back edges
  */
-void NewLivetimeAnalysisPass::dag_dfs(MachineBasicBlock* block)
+void LivetimeAnalysisPass::dag_dfs(MachineBasicBlock* block)
 {
 	auto loop_tree = get_Artifact<MachineLoopPass>();
 	for (auto i = get_successor_begin(block), e = get_successor_end(block); i != e; ++i) {
@@ -274,7 +274,7 @@ void NewLivetimeAnalysisPass::dag_dfs(MachineBasicBlock* block)
 	process_block(block);
 }
 
-void NewLivetimeAnalysisPass::process_block(MachineBasicBlock* block)
+void LivetimeAnalysisPass::process_block(MachineBasicBlock* block)
 {
 	LOG2(nl << Yellow << "Processing " << *block << reset_color << nl);
 
@@ -284,7 +284,7 @@ void NewLivetimeAnalysisPass::process_block(MachineBasicBlock* block)
 	block->mark_processed();
 }
 
-void NewLivetimeAnalysisPass::calculate_liveout(MachineBasicBlock* block)
+void LivetimeAnalysisPass::calculate_liveout(MachineBasicBlock* block)
 {
 	auto loop_tree = get_Artifact<MachineLoopPass>();
 	auto live = mbb_phi_uses(block, true);
@@ -317,7 +317,7 @@ void NewLivetimeAnalysisPass::calculate_liveout(MachineBasicBlock* block)
 	}
 }
 
-void NewLivetimeAnalysisPass::calculate_livein(MachineBasicBlock* block)
+void LivetimeAnalysisPass::calculate_livein(MachineBasicBlock* block)
 {
 	auto live = get_live_out(block);
 
@@ -343,7 +343,7 @@ void NewLivetimeAnalysisPass::calculate_livein(MachineBasicBlock* block)
 	}
 }
 
-OperandSet NewLivetimeAnalysisPass::mbb_phi_uses(MachineBasicBlock* block, bool record_defuse)
+OperandSet LivetimeAnalysisPass::mbb_phi_uses(MachineBasicBlock* block, bool record_defuse)
 {
 	auto phi_uses = MOF->EmptySet();
 
@@ -367,7 +367,7 @@ OperandSet NewLivetimeAnalysisPass::mbb_phi_uses(MachineBasicBlock* block, bool 
 	return phi_uses;
 }
 
-OperandSet NewLivetimeAnalysisPass::mbb_phi_defs(MachineBasicBlock* block, bool record_defuse)
+OperandSet LivetimeAnalysisPass::mbb_phi_defs(MachineBasicBlock* block, bool record_defuse)
 {
 	auto phi_defs = MOF->EmptySet();
 
@@ -387,7 +387,7 @@ OperandSet NewLivetimeAnalysisPass::mbb_phi_defs(MachineBasicBlock* block, bool 
 	return phi_defs;
 }
 
-OperandSet& NewLivetimeAnalysisPass::get_liveset(LiveMapTy& map, MachineBasicBlock* block)
+OperandSet& LivetimeAnalysisPass::get_liveset(LiveMapTy& map, MachineBasicBlock* block)
 {
 	auto it = map.find(block);
 	if (it == map.end()) {
@@ -396,7 +396,7 @@ OperandSet& NewLivetimeAnalysisPass::get_liveset(LiveMapTy& map, MachineBasicBlo
 	return it->second;
 }
 
-void NewLivetimeAnalysisPass::looptree_dfs(MachineLoop* loop, const OperandSet& parent_live_loop)
+void LivetimeAnalysisPass::looptree_dfs(MachineLoop* loop, const OperandSet& parent_live_loop)
 {
 	LOG2(nl << Yellow << "Processing loop: " << loop);
 	if (loop->get_parent()) {
@@ -428,7 +428,7 @@ void NewLivetimeAnalysisPass::looptree_dfs(MachineLoop* loop, const OperandSet& 
 	}
 }
 
-void NewLivetimeAnalysisPass::next_use_fixed_point()
+void LivetimeAnalysisPass::next_use_fixed_point()
 {
 	bool changed = false;
 	unsigned iteration = 1;
@@ -506,9 +506,9 @@ void NewLivetimeAnalysisPass::next_use_fixed_point()
 	} while (changed);
 }
 
-bool NewLivetimeAnalysisPass::run(JITData& JD)
+bool LivetimeAnalysisPass::run(JITData& JD)
 {
-	LOG(nl << BoldYellow << "Running NewLivetimeAnalysisPass" << reset_color << nl);
+	LOG(nl << BoldYellow << "Running LivetimeAnalysisPass" << reset_color << nl);
 
 	MOF = JD.get_MachineOperandFactory();
 
@@ -534,7 +534,7 @@ bool NewLivetimeAnalysisPass::run(JITData& JD)
 	return true;
 }
 
-OperandSet NewLivetimeAnalysisPass::liveness_transfer(const OperandSet& live,
+OperandSet LivetimeAnalysisPass::liveness_transfer(const OperandSet& live,
                                                       const MIIterator& mi_iter,
                                                       bool record_defuse)
 {
@@ -575,7 +575,7 @@ OperandSet NewLivetimeAnalysisPass::liveness_transfer(const OperandSet& live,
 	return result;
 }
 
-NextUseSetUPtrTy NewLivetimeAnalysisPass::next_use_set_from(MachineInstruction* instruction)
+NextUseSetUPtrTy LivetimeAnalysisPass::next_use_set_from(MachineInstruction* instruction)
 {
 	auto block = instruction->get_block();
 	auto set = std::make_unique<NextUseSet>(next_use.get_next_use_out(block));
@@ -591,9 +591,9 @@ NextUseSetUPtrTy NewLivetimeAnalysisPass::next_use_set_from(MachineInstruction* 
 }
 
 // pass usage
-PassUsage& NewLivetimeAnalysisPass::get_PassUsage(PassUsage& PU) const
+PassUsage& LivetimeAnalysisPass::get_PassUsage(PassUsage& PU) const
 {
-	PU.provides<NewLivetimeAnalysisPass>();
+	PU.provides<LivetimeAnalysisPass>();
 	PU.requires<MachineLoopPass>();
 	PU.requires<LIRInstructionScheduleArtifact>();
 	PU.requires<ReversePostOrderPass>();
@@ -601,8 +601,8 @@ PassUsage& NewLivetimeAnalysisPass::get_PassUsage(PassUsage& PU) const
 }
 
 // register pass
-static PassRegistry<NewLivetimeAnalysisPass> X("NewLivetimeAnalysisPass");
-static ArtifactRegistry<NewLivetimeAnalysisPass> Y("NewLivetimeAnalysisPass");
+static PassRegistry<LivetimeAnalysisPass> X("LivetimeAnalysisPass");
+static ArtifactRegistry<LivetimeAnalysisPass> Y("LivetimeAnalysisPass");
 
 } // end namespace compiler2
 } // end namespace jit

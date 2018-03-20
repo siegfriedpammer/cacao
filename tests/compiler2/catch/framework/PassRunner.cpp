@@ -57,9 +57,9 @@
 #include "vm/jit/compiler2/SourceStateAttachmentPass.hpp"
 #include "vm/jit/compiler2/StackAnalysisPass.hpp"
 #include "vm/jit/compiler2/VerifierPass.hpp"
-#include "vm/jit/compiler2/treescan/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/treescan/LivetimeAnalysisPass.hpp"
 #include "vm/jit/compiler2/treescan/RegisterAssignmentPass.hpp"
-#include "vm/jit/compiler2/treescan/NewSpillPass.hpp"
+#include "vm/jit/compiler2/treescan/SpillPass.hpp"
 
 using cacao::bold;
 using cacao::err;
@@ -93,8 +93,8 @@ TestPassSchedule& TestPassSchedule::get_default()
 	    .add<cacao::jit::compiler2::BasicBlockSchedulingPass>()
 	    .add<cacao::jit::compiler2::MachineInstructionSchedulingPass>()
 	    .add<cacao::jit::compiler2::MachineLoopPass>()
-	    .add<cacao::jit::compiler2::NewLivetimeAnalysisPass>()
-	    .add<cacao::jit::compiler2::NewSpillPass>()
+	    .add<cacao::jit::compiler2::LivetimeAnalysisPass>()
+	    .add<cacao::jit::compiler2::SpillPass>()
 	    .add<cacao::jit::compiler2::MachineDominatorPass>()
 	    .add<cacao::jit::compiler2::RegisterAssignmentPass>()
 	    .add<cacao::jit::compiler2::RegisterAllocatorPass>()

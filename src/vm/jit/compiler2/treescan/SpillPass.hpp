@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/treescan/NewSpillPass.hpp - NewSpillPass
+/* src/vm/jit/compiler2/treescan/SpillPass.hpp - SpillPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,8 +22,8 @@
 
 */
 
-#ifndef _JIT_COMPILER2_LSRA_NEWSPILLPASS
-#define _JIT_COMPILER2_LSRA_NEWSPILLPASS
+#ifndef _JIT_COMPILER2_LSRA_SpillPass
+#define _JIT_COMPILER2_LSRA_SpillPass
 
 #include <map>
 
@@ -32,7 +32,7 @@
 #include "vm/jit/compiler2/MachineOperandSet.hpp"
 #include "vm/jit/compiler2/Pass.hpp"
 
-MM_MAKE_NAME(NewSpillPass)
+MM_MAKE_NAME(SpillPass)
 
 namespace cacao {
 namespace jit {
@@ -45,11 +45,11 @@ class Backend;
 class RegisterClass;
 class StackSlotManager;
 
-class NewSpillPass;
+class SpillPass;
 
 class SpillInfo {
 public:
-	explicit SpillInfo(NewSpillPass* pass) : sp(pass) {}
+	explicit SpillInfo(SpillPass* pass) : sp(pass) {}
 
 	void add_spill(MachineOperand*, const MIIterator&);
 	void add_reload(MachineOperand*, const MIIterator&);
@@ -58,7 +58,7 @@ public:
 	void insert_instructions(const Backend&, StackSlotManager&) const;
 
 private:
-	NewSpillPass* sp;
+	SpillPass* sp;
 
 	struct SpilledOperand {
 		SpilledOperand(MachineOperand* op, const MIIterator& position)
@@ -88,9 +88,9 @@ private:
 	friend class SSAReconstructor;
 };
 
-class NewSpillPass : public Pass, public memory::ManagerMixin<NewSpillPass> {
+class SpillPass : public Pass, public memory::ManagerMixin<SpillPass> {
 public:
-	NewSpillPass() : Pass(), spill_info(this) {}
+	SpillPass() : Pass(), spill_info(this) {}
 	virtual bool run(JITData& JD);
 	virtual PassUsage& get_PassUsage(PassUsage& PU) const;
 
@@ -142,7 +142,7 @@ private:
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_LSRA_NEWSPILLPASS */
+#endif /* _JIT_COMPILER2_LSRA_SpillPass */
 
 /*
  * These are local overrides for various environment variables in Emacs.

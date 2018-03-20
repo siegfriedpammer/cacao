@@ -29,8 +29,8 @@
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/PhiLiftingPass.hpp"
 #include "vm/jit/compiler2/ReversePostOrderPass.hpp"
-#include "vm/jit/compiler2/treescan/NewLivetimeAnalysisPass.hpp"
-#include "vm/jit/compiler2/treescan/NewSpillPass.hpp"
+#include "vm/jit/compiler2/treescan/LivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/treescan/SpillPass.hpp"
 
 #define DEBUG_NAME "compiler2/PhiCoalescingPass"
 

@@ -29,7 +29,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "vm/jit/compiler2/treescan/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/treescan/LivetimeAnalysisPass.hpp"
 
 MM_MAKE_NAME(SSAReconstructor)
 
@@ -43,11 +43,11 @@ class MachineOperand;
 class MachineOperandDesc;
 class MachinePhiInst;
 
-class NewSpillPass;
+class SpillPass;
 
 class SSAReconstructor : public memory::ManagerMixin<SSAReconstructor> {
 public:
-	explicit SSAReconstructor(NewSpillPass* pass);
+	explicit SSAReconstructor(SpillPass* pass);
 
 	void add_new_definitions(const Occurrence& original_def,
 	                         const std::vector<Occurrence>& new_definitions);
@@ -55,7 +55,7 @@ public:
 	void reconstruct();
 
 private:
-	NewSpillPass* sp;
+	SpillPass* sp;
 
 	// These 2 sets are used for checking during
 	// LIR traversal, if we need to consider the operands in each instruction

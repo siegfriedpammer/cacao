@@ -78,7 +78,7 @@
 #include "vm/jit/compiler2/ConstantPropagationPass.hpp"
 #include "vm/jit/compiler2/GlobalValueNumberingPass.hpp"
 
-#include "vm/jit/compiler2/treescan/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/treescan/LivetimeAnalysisPass.hpp"
 
 #include "vm/jit/compiler2/JITData.hpp"
 

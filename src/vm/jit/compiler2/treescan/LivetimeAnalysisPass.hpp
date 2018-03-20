@@ -34,7 +34,7 @@
 #include "vm/jit/compiler2/MachineOperandSet.hpp"
 #include "vm/jit/compiler2/Pass.hpp"
 
-MM_MAKE_NAME(NewLivetimeAnalysisPass)
+MM_MAKE_NAME(LivetimeAnalysisPass)
 
 namespace cacao {
 namespace jit {
@@ -45,11 +45,11 @@ constexpr unsigned kInfinity = std::numeric_limits<unsigned>::max();
 using NextUseSet = ExtendedOperandSet<unsigned>;
 using NextUseSetUPtrTy = std::unique_ptr<NextUseSet>;
 
-class NewLivetimeAnalysisPass;
+class LivetimeAnalysisPass;
 
 class NextUseInformation {
 public:
-	NextUseInformation(NewLivetimeAnalysisPass& LTA) : LTA(LTA) {}
+	NextUseInformation(LivetimeAnalysisPass& LTA) : LTA(LTA) {}
 
 	void initialize_empty_sets_for(MachineBasicBlock* block);
 	void add_operands(NextUseSet& set, OperandSet& live, unsigned distance);
@@ -60,7 +60,7 @@ public:
 	NextUseSet& get_next_use_in(MachineBasicBlock* block);
 
 private:
-	NewLivetimeAnalysisPass& LTA;
+	LivetimeAnalysisPass& LTA;
 
 	using NextUseMap = std::map<MachineBasicBlock*, NextUseSetUPtrTy>;
 	NextUseMap next_use_outs;
@@ -151,13 +151,13 @@ private:
 	const DefUseChain& get(const MachineOperand*) const;
 };
 
-class NewLivetimeAnalysisPass : public Pass, public Artifact, public memory::ManagerMixin<NewLivetimeAnalysisPass> {
+class LivetimeAnalysisPass : public Pass, public Artifact, public memory::ManagerMixin<LivetimeAnalysisPass> {
 public:
-	NewLivetimeAnalysisPass() : Pass(), next_use(*this) {}
+	LivetimeAnalysisPass() : Pass(), next_use(*this) {}
 	bool run(JITData& JD) override;
 	PassUsage& get_PassUsage(PassUsage& PU) const override;
 
-	NewLivetimeAnalysisPass* provide_Artifact(ArtifactInfo::IDTy) override {
+	LivetimeAnalysisPass* provide_Artifact(ArtifactInfo::IDTy) override {
 		return this;
 	}
 

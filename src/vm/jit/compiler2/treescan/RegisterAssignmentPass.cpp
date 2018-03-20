@@ -32,8 +32,8 @@
 #include "vm/jit/compiler2/ReversePostOrderPass.hpp"
 #include "vm/jit/compiler2/SSADeconstructionPass.hpp"
 #include "vm/jit/compiler2/treescan/LogHelper.hpp"
-#include "vm/jit/compiler2/treescan/NewLivetimeAnalysisPass.hpp"
-#include "vm/jit/compiler2/treescan/NewSpillPass.hpp"
+#include "vm/jit/compiler2/treescan/LivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/treescan/SpillPass.hpp"
 
 #define DEBUG_NAME "compiler2/RegisterAssignment"
 
@@ -575,7 +575,7 @@ bool RegisterAssignmentPass::run(JITData& JD)
 	LOG(nl << BoldYellow << "Running RegisterAssignmentPass" << reset_color << nl);
 	auto MDT = get_Artifact<MachineDominatorPass>();
 	auto RPO = get_Artifact<ReversePostOrderPass>();
-	LTA = get_Artifact<NewLivetimeAnalysisPass>();
+	LTA = get_Artifact<LivetimeAnalysisPass>();
 
 	factory = JD.get_MachineOperandFactory();
 	native_factory = JD.get_Backend()->get_NativeFactory();
@@ -828,11 +828,11 @@ PassUsage& RegisterAssignmentPass::get_PassUsage(PassUsage& PU) const
 
 	PU.requires<MachineDominatorPass>();
 	PU.requires<MachineLoopPass>();
-	PU.requires<NewLivetimeAnalysisPass>();
+	PU.requires<LivetimeAnalysisPass>();
 	PU.requires<ReversePostOrderPass>();
 	PU.modifies<LIRInstructionScheduleArtifact>();
 
-	PU.after<NewSpillPass>();
+	PU.after<SpillPass>();
 	return PU;
 }
 

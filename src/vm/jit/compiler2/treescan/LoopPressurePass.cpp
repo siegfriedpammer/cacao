@@ -25,7 +25,7 @@
 #include "vm/jit/compiler2/treescan/LoopPressurePass.hpp"
 
 #include "vm/jit/compiler2/MachineLoopPass.hpp"
-#include "vm/jit/compiler2/treescan/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/treescan/LivetimeAnalysisPass.hpp"
 
 #define DEBUG_NAME "compiler2/LoopPressurePass"
 
@@ -60,7 +60,7 @@ const PressureTy& LoopPressurePass::get_block_pressure(MachineBasicBlock* block)
 
 void LoopPressurePass::compute_block_pressure(MachineBasicBlock* block)
 {
-	auto LTA = get_Artifact<NewLivetimeAnalysisPass>();
+	auto LTA = get_Artifact<LivetimeAnalysisPass>();
 	auto pressures_ptr = std::make_unique<PressureTy>(RI->class_count());
 	auto& pressures = *pressures_ptr;
 
@@ -140,7 +140,7 @@ PassUsage& LoopPressurePass::get_PassUsage(PassUsage& PU) const
 {
 	PU.provides<LoopPressurePass>();
 	PU.requires<MachineLoopPass>();
-	PU.requires<NewLivetimeAnalysisPass>();
+	PU.requires<LivetimeAnalysisPass>();
 	return PU;
 }
 

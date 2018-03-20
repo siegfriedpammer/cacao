@@ -29,8 +29,8 @@
 #include "vm/jit/compiler2/MachineOperand.hpp"
 #include "vm/jit/compiler2/ReversePostOrderPass.hpp"
 #include "vm/jit/compiler2/treescan/LogHelper.hpp"
-#include "vm/jit/compiler2/treescan/NewLivetimeAnalysisPass.hpp"
-#include "vm/jit/compiler2/treescan/NewSpillPass.hpp"
+#include "vm/jit/compiler2/treescan/LivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/treescan/SpillPass.hpp"
 
 #define DEBUG_NAME "compiler2/SSAReconstructor"
 
@@ -38,7 +38,7 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-SSAReconstructor::SSAReconstructor(NewSpillPass* pass) : sp(pass) {}
+SSAReconstructor::SSAReconstructor(SpillPass* pass) : sp(pass) {}
 
 void SSAReconstructor::add_new_definitions(const Occurrence& original_def,
                                            const std::vector<Occurrence>& new_definitions)

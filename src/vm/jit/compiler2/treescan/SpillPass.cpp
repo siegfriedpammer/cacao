@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/treescan/NewSpillPass.cpp - NewSpillPass
+/* src/vm/jit/compiler2/treescan/SpillPass.cpp - SpillPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,7 +22,7 @@
 
 */
 
-#include "vm/jit/compiler2/treescan/NewSpillPass.hpp"
+#include "vm/jit/compiler2/treescan/SpillPass.hpp"
 
 #include <deque>
 
@@ -35,10 +35,10 @@
 #include "vm/jit/compiler2/ReversePostOrderPass.hpp"
 #include "vm/jit/compiler2/treescan/LogHelper.hpp"
 #include "vm/jit/compiler2/treescan/LoopPressurePass.hpp"
-#include "vm/jit/compiler2/treescan/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/treescan/LivetimeAnalysisPass.hpp"
 #include "vm/jit/compiler2/treescan/SSAReconstructor.hpp"
 
-#define DEBUG_NAME "compiler2/NewSpillPass"
+#define DEBUG_NAME "compiler2/SpillPass"
 
 namespace cacao {
 namespace jit {
@@ -242,7 +242,7 @@ void SpillInfo::insert_instructions(const Backend& backend, StackSlotManager& ss
 			new_definitions.emplace_back(&reload_instr->get_result(), iter);
 		}
 
-		auto LTA = sp->get_Artifact<NewLivetimeAnalysisPass>();
+		auto LTA = sp->get_Artifact<LivetimeAnalysisPass>();
 		auto& chains = LTA->get_def_use_chains();
 		const auto& original_definition = chains.get_definition(operand);
 
@@ -286,7 +286,7 @@ void SpillInfo::replace_registers_with_stackslots_for_deopt() const
 	}
 }
 
-void NewSpillPass::limit(OperandSet& workset,
+void SpillPass::limit(OperandSet& workset,
                          OperandSet& spillset,
                          const MIIterator& mi_iter,
                          MIIterator mi_spill_before,
@@ -304,7 +304,7 @@ void NewSpillPass::limit(OperandSet& workset,
 	sort_by_next_use(*workset_as_list, instruction);
 	LOG3_NAMED_PTR_CONTAINER("Sorted workset: ", *workset_as_list);
 
-	auto LTA = get_Artifact<NewLivetimeAnalysisPass>();
+	auto LTA = get_Artifact<LivetimeAnalysisPass>();
 	auto next_use_set = LTA->next_use_set_from(instruction);
 	auto iter = std::next(workset_as_list->begin(), m);
 	for (auto i = iter, e = workset_as_list->end(); i != e; ++i) {
@@ -320,9 +320,9 @@ void NewSpillPass::limit(OperandSet& workset,
 	workset = *workset_as_list; // Copy assignement implemented for this
 }
 
-void NewSpillPass::sort_by_next_use(OperandList& list, MachineInstruction* instruction) const
+void SpillPass::sort_by_next_use(OperandList& list, MachineInstruction* instruction) const
 {
-	auto LTA = get_Artifact<NewLivetimeAnalysisPass>();
+	auto LTA = get_Artifact<LivetimeAnalysisPass>();
 	auto next_use_set_ptr = LTA->next_use_set_from(instruction);
 	auto next_use_set = *next_use_set_ptr;
 
@@ -336,7 +336,7 @@ void NewSpillPass::sort_by_next_use(OperandList& list, MachineInstruction* instr
 	});
 }
 
-NewSpillPass::Availability NewSpillPass::available_in_all_preds(MachineBasicBlock* block,
+SpillPass::Availability SpillPass::available_in_all_preds(MachineBasicBlock* block,
                                                                 MachineOperand* op,
                                                                 MachinePhiInst* phi_instr)
 {
@@ -374,7 +374,7 @@ NewSpillPass::Availability NewSpillPass::available_in_all_preds(MachineBasicBloc
 	}
 }
 
-NewSpillPass::Location NewSpillPass::to_take_or_not_to_take(MachineBasicBlock* block,
+SpillPass::Location SpillPass::to_take_or_not_to_take(MachineBasicBlock* block,
                                                             MachineOperand* operand,
                                                             Availability available)
 {
@@ -383,7 +383,7 @@ NewSpillPass::Location NewSpillPass::to_take_or_not_to_take(MachineBasicBlock* b
 	location.operand = operand;
 	location.spilled = false;
 
-	auto LTA = get_Artifact<NewLivetimeAnalysisPass>();
+	auto LTA = get_Artifact<LivetimeAnalysisPass>();
 	auto next_use_set_ptr = LTA->next_use_set_from(block->front());
 	auto next_use_set = *next_use_set_ptr;
 
@@ -407,12 +407,12 @@ NewSpillPass::Location NewSpillPass::to_take_or_not_to_take(MachineBasicBlock* b
 	return location;
 }
 
-OperandSet NewSpillPass::compute_workset(MachineBasicBlock* block)
+OperandSet SpillPass::compute_workset(MachineBasicBlock* block)
 {
 	auto workset = mof->EmptySet();
 
 	auto MLP = get_Artifact<MachineLoopPass>();
-	auto LTA = get_Artifact<NewLivetimeAnalysisPass>();
+	auto LTA = get_Artifact<LivetimeAnalysisPass>();
 
 	bool all_pred_known = std::all_of(block->pred_begin(), block->pred_end(), [&](const auto pred) {
 		return worksets_exit.find(pred) != worksets_exit.end();
@@ -568,7 +568,7 @@ OperandSet NewSpillPass::compute_workset(MachineBasicBlock* block)
 	return workset;
 }
 
-OperandSet NewSpillPass::compute_spillset(MachineBasicBlock* block, const OperandSet& workset)
+OperandSet SpillPass::compute_spillset(MachineBasicBlock* block, const OperandSet& workset)
 {
 	auto spillset_union = mof->EmptySet();
 
@@ -591,10 +591,10 @@ OperandSet NewSpillPass::compute_spillset(MachineBasicBlock* block, const Operan
 	return spillset_union & workset_without_phis;
 }
 
-OperandSet NewSpillPass::used_in_loop(MachineBasicBlock* block)
+OperandSet SpillPass::used_in_loop(MachineBasicBlock* block)
 {
 	auto MLP = get_Artifact<MachineLoopPass>();
-	auto LTA = get_Artifact<NewLivetimeAnalysisPass>();
+	auto LTA = get_Artifact<LivetimeAnalysisPass>();
 
 	auto used_operands = mof->EmptySet();
 	auto live_in = LTA->get_live_in(block);
@@ -607,7 +607,7 @@ OperandSet NewSpillPass::used_in_loop(MachineBasicBlock* block)
 	return used_operands;
 }
 
-OperandSet NewSpillPass::used_in_loop(MachineLoop* loop, OperandSet& live_loop)
+OperandSet SpillPass::used_in_loop(MachineLoop* loop, OperandSet& live_loop)
 {
 	auto used_operands = mof->EmptySet();
 
@@ -620,7 +620,7 @@ OperandSet NewSpillPass::used_in_loop(MachineLoop* loop, OperandSet& live_loop)
 	}
 	LOG2(reset_color << nl);
 
-	auto LTA = get_Artifact<NewLivetimeAnalysisPass>();
+	auto LTA = get_Artifact<LivetimeAnalysisPass>();
 	auto& chains = LTA->get_def_use_chains();
 
 	for (auto i = loop->child_begin(), e = loop->child_end(); i != e; ++i) {
@@ -655,7 +655,7 @@ OperandSet NewSpillPass::used_in_loop(MachineLoop* loop, OperandSet& live_loop)
 	return used_operands;
 }
 
-void NewSpillPass::process_block(MachineBasicBlock* block)
+void SpillPass::process_block(MachineBasicBlock* block)
 {
 	LOG1(nl << Yellow << "Processing block " << *block << " ");
 	DEBUG1(print_ptr_container(dbg(), block->pred_begin(), block->pred_end()));
@@ -724,7 +724,7 @@ void NewSpillPass::process_block(MachineBasicBlock* block)
 	}
 }
 
-void NewSpillPass::fix_block_boundaries()
+void SpillPass::fix_block_boundaries()
 {
 	LOG1(nl << Yellow << "Fixing block boundaries" << reset_color << nl);
 	auto RPO = get_Artifact<ReversePostOrderPass>();
@@ -760,7 +760,7 @@ void NewSpillPass::fix_block_boundaries()
 
 			for (auto& operand : difference) {
 				bool is_live_in =
-				    get_Artifact<NewLivetimeAnalysisPass>()->get_live_in(block).contains(&operand);
+				    get_Artifact<LivetimeAnalysisPass>()->get_live_in(block).contains(&operand);
 				if (is_live_in && !spill_exit.contains(&operand)) {
 					auto insert_pos = block->mi_first();
 					if (block->pred_size() > 1)
@@ -794,7 +794,7 @@ void NewSpillPass::fix_block_boundaries()
 	}
 }
 
-bool NewSpillPass::run(JITData& JD)
+bool SpillPass::run(JITData& JD)
 {
 	LOG1(nl << BoldYellow << "Running SpillPass" << reset_color << nl);
 
@@ -834,7 +834,7 @@ bool NewSpillPass::run(JITData& JD)
  * If the basic block is the same, the MIIterator less then comparison is used,
  * otherwise we look it up in the dominator tree
  */
-bool NewSpillPass::strictly_dominates(const MIIterator& a, const MIIterator& b)
+bool SpillPass::strictly_dominates(const MIIterator& a, const MIIterator& b)
 {
 	auto block_a = (*a)->get_block();
 	auto block_b = (*b)->get_block();
@@ -850,9 +850,9 @@ bool NewSpillPass::strictly_dominates(const MIIterator& a, const MIIterator& b)
 }
 
 // pass usage
-PassUsage& NewSpillPass::get_PassUsage(PassUsage& PU) const
+PassUsage& SpillPass::get_PassUsage(PassUsage& PU) const
 {
-	PU.requires<NewLivetimeAnalysisPass>();
+	PU.requires<LivetimeAnalysisPass>();
 	PU.requires<ReversePostOrderPass>();
 	PU.requires<MachineDominatorPass>();
 	PU.requires<MachineLoopPass>();
@@ -864,7 +864,7 @@ PassUsage& NewSpillPass::get_PassUsage(PassUsage& PU) const
 }
 
 // register pass
-static PassRegistry<NewSpillPass> X("NewSpillPass");
+static PassRegistry<SpillPass> X("SpillPass");
 
 } // end namespace compiler2
 } // end namespace jit

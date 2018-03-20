@@ -45,7 +45,7 @@ class MachineInstruction;
 class MachineOperand;
 class MachineOperandDesc;
 class MachineOperandFactory;
-class NewLivetimeAnalysisPass;
+class LivetimeAnalysisPass;
 class RegisterAssignmentPass;
 class ParallelCopy;
 
@@ -194,7 +194,7 @@ private:
 
 	RegisterAssignment assignment;
 
-	NewLivetimeAnalysisPass* LTA;
+	LivetimeAnalysisPass* LTA;
 	friend class RegisterAssignment;
 };
 
