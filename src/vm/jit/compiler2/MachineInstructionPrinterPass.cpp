@@ -31,8 +31,8 @@
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/PhiLiftingPass.hpp"
-#include "vm/jit/compiler2/lsra/NewSpillPass.hpp"
-#include "vm/jit/compiler2/lsra/RegisterAssignmentPass.hpp"
+#include "vm/jit/compiler2/treescan/NewSpillPass.hpp"
+#include "vm/jit/compiler2/treescan/RegisterAssignmentPass.hpp"
 
 #include "toolbox/GraphPrinter.hpp"
 

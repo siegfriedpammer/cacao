@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/lsra/RegisterAssignmentPass.hpp - RegisterAssignmentPass
+/* src/vm/jit/compiler2/treescan/RegisterAssignmentPass.hpp - RegisterAssignmentPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO

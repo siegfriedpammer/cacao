@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/lsra/LogHelper.hpp - LogHelper
+/* src/vm/jit/compiler2/treescan/LogHelper.hpp - LogHelper
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO

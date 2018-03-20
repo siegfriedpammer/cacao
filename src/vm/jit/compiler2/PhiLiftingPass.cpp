@@ -29,7 +29,7 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
-#include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/treescan/NewLivetimeAnalysisPass.hpp"
 
 #include "toolbox/logging.hpp"
 

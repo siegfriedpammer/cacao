@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/lsra/NewSpillPass.cpp - NewSpillPass
+/* src/vm/jit/compiler2/treescan/NewSpillPass.cpp - NewSpillPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,7 +22,7 @@
 
 */
 
-#include "vm/jit/compiler2/lsra/NewSpillPass.hpp"
+#include "vm/jit/compiler2/treescan/NewSpillPass.hpp"
 
 #include <deque>
 
@@ -33,10 +33,10 @@
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineLoopPass.hpp"
 #include "vm/jit/compiler2/ReversePostOrderPass.hpp"
-#include "vm/jit/compiler2/lsra/LogHelper.hpp"
-#include "vm/jit/compiler2/lsra/LoopPressurePass.hpp"
-#include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
-#include "vm/jit/compiler2/lsra/SSAReconstructor.hpp"
+#include "vm/jit/compiler2/treescan/LogHelper.hpp"
+#include "vm/jit/compiler2/treescan/LoopPressurePass.hpp"
+#include "vm/jit/compiler2/treescan/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/treescan/SSAReconstructor.hpp"
 
 #define DEBUG_NAME "compiler2/NewSpillPass"
 

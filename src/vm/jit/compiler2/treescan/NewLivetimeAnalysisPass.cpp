@@ -22,7 +22,7 @@
 
 */
 
-#include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/treescan/NewLivetimeAnalysisPass.hpp"
 
 #include <boost/dynamic_bitset.hpp>
 
@@ -32,7 +32,7 @@
 #include "vm/jit/compiler2/MachineLoopPass.hpp"
 #include "vm/jit/compiler2/MachineOperand.hpp"
 #include "vm/jit/compiler2/ReversePostOrderPass.hpp"
-#include "vm/jit/compiler2/lsra/LogHelper.hpp"
+#include "vm/jit/compiler2/treescan/LogHelper.hpp"
 
 #include "vm/jit/compiler2/alloc/map.hpp"
 

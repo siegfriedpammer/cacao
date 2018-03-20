@@ -1,4 +1,4 @@
-## src/vm/jit/compiler2/lsra/Makefile.am
+## src/vm/jit/compiler2/treescan/Makefile.am
 ##
 ## Copyright (C) 2013
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO

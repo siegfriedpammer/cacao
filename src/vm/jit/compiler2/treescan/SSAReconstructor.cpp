@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/lsra/LoopPressurePass.cpp - LoopPressurePass
+/* src/vm/jit/compiler2/treescan/LoopPressurePass.cpp - LoopPressurePass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,15 +22,15 @@
 
 */
 
-#include "vm/jit/compiler2/lsra/SSAReconstructor.hpp"
+#include "vm/jit/compiler2/treescan/SSAReconstructor.hpp"
 
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
 #include "vm/jit/compiler2/MachineOperand.hpp"
 #include "vm/jit/compiler2/ReversePostOrderPass.hpp"
-#include "vm/jit/compiler2/lsra/LogHelper.hpp"
-#include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
-#include "vm/jit/compiler2/lsra/NewSpillPass.hpp"
+#include "vm/jit/compiler2/treescan/LogHelper.hpp"
+#include "vm/jit/compiler2/treescan/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/treescan/NewSpillPass.hpp"
 
 #define DEBUG_NAME "compiler2/SSAReconstructor"
 

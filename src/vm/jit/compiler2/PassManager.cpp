@@ -34,7 +34,7 @@
 #include "vm/jit/compiler2/alloc/set.hpp"
 #include "vm/jit/compiler2/alloc/list.hpp"
 #include "vm/jit/compiler2/alloc/deque.hpp"
-#include "vm/jit/compiler2/lsra/LogHelper.hpp"
+#include "vm/jit/compiler2/treescan/LogHelper.hpp"
 
 
 #include "vm/rt-timing.hpp"

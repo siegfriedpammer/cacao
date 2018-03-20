@@ -31,7 +31,7 @@
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
-#include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/treescan/NewLivetimeAnalysisPass.hpp"
 #include "vm/statistics.hpp"
 #include "vm/options.hpp"
 

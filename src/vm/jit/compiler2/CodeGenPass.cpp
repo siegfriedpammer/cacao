@@ -30,7 +30,7 @@
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/SSADeconstructionPass.hpp"
 #include "vm/jit/compiler2/MachineRegister.hpp"
-#include "vm/jit/compiler2/lsra/RegisterAssignmentPass.hpp"
+#include "vm/jit/compiler2/treescan/RegisterAssignmentPass.hpp"
 
 #include "toolbox/logging.hpp"
 

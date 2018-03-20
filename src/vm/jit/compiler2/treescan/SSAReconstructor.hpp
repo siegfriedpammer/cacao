@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/lsra/SSAReconstructor.hpp
+/* src/vm/jit/compiler2/treescan/SSAReconstructor.hpp
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -29,7 +29,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/treescan/NewLivetimeAnalysisPass.hpp"
 
 MM_MAKE_NAME(SSAReconstructor)
 

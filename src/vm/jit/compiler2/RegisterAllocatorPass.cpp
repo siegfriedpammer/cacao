@@ -26,7 +26,7 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
-#include "vm/jit/compiler2/lsra/RegisterAssignmentPass.hpp"
+#include "vm/jit/compiler2/treescan/RegisterAssignmentPass.hpp"
 
 namespace cacao {
 namespace jit {

@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/lsra/LoopPressurePass.cpp - LoopPressurePass
+/* src/vm/jit/compiler2/treescan/LoopPressurePass.cpp - LoopPressurePass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,10 +22,10 @@
 
 */
 
-#include "vm/jit/compiler2/lsra/LoopPressurePass.hpp"
+#include "vm/jit/compiler2/treescan/LoopPressurePass.hpp"
 
 #include "vm/jit/compiler2/MachineLoopPass.hpp"
-#include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/treescan/NewLivetimeAnalysisPass.hpp"
 
 #define DEBUG_NAME "compiler2/LoopPressurePass"
 

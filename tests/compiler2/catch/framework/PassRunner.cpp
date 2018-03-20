@@ -57,9 +57,9 @@
 #include "vm/jit/compiler2/SourceStateAttachmentPass.hpp"
 #include "vm/jit/compiler2/StackAnalysisPass.hpp"
 #include "vm/jit/compiler2/VerifierPass.hpp"
-#include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
-#include "vm/jit/compiler2/lsra/RegisterAssignmentPass.hpp"
-#include "vm/jit/compiler2/lsra/NewSpillPass.hpp"
+#include "vm/jit/compiler2/treescan/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/treescan/RegisterAssignmentPass.hpp"
+#include "vm/jit/compiler2/treescan/NewSpillPass.hpp"
 
 using cacao::bold;
 using cacao::err;

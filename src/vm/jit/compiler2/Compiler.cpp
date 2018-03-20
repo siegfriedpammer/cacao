@@ -79,7 +79,7 @@
 #include "vm/jit/compiler2/ConstantPropagationPass.hpp"
 #include "vm/jit/compiler2/GlobalValueNumberingPass.hpp"
 
-#include "vm/jit/compiler2/lsra/NewLivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/treescan/NewLivetimeAnalysisPass.hpp"
 
 #include "vm/jit/compiler2/JITData.hpp"
 

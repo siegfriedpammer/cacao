@@ -33,12 +33,13 @@ DIST_SUBDIRS = \
 	aarch64 \
 	alloc \
 	memory \
+	treescan \
 	x86_64
 
 SUBDIRS = \
 	alloc \
-	lsra \
 	memory \
+	treescan \
 	$(ARCH_DIR)
 
 noinst_LTLIBRARIES = \
