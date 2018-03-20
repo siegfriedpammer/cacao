@@ -67,7 +67,7 @@ namespace option {
 
 
 PassUPtrTy PassManager::create_Pass(PassInfo::IDTy ID) const {
-	PassInfo *PI = registered_passes()[ID];
+	PassInfo *PI = registered_passes.find(ID)->second;
 	assert(PI && "Pass not registered");
 
 	// This should be the only place where a Pass is constructed!
@@ -91,7 +91,6 @@ PassUPtrTy& PassRunner::get_Pass(PassInfo::IDTy ID) {
 	P->set_PassRunner(this);
 
 	passes[ID] = std::move(P);
-	result_ready[ID] = false;
 
 	return passes[ID];
 }
@@ -170,7 +169,7 @@ void PassManager::schedulePasses() {
 
 	PassIDSetTy enabled_passes;
 
-	for (const auto& id_to_info : registered_passes()) {
+	for (const auto& id_to_info : registered_passes) {
 		PassInfo::IDTy id = id_to_info.first;
 		auto pass = create_Pass(id);
 
@@ -198,6 +197,14 @@ void PassManager::schedulePasses() {
 	schedule = GetPassSchedule(enabled_passes, passusage_map);
 	
 	if (DEBUG_COND_N(2)) {
+		LOG2("Registered passes: \n");
+		for (const auto& p : registered_passes) {
+			LOG2("    " << p.first << ": " << p.second->get_name() << nl);
+		}
+		LOG2("Regsitered artifacts: \n");
+		for (const auto& p : registered_artifacts) {
+			LOG2("    " << p.first << ": " << p.second->get_name() << nl);
+		}
 		LOG2("Schedule:" << nl);
 		for (const auto& id : schedule) {
 			LOG2("    " << get_Pass_name(id) << " id: " << id << nl);

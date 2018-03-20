@@ -53,7 +53,6 @@
 #define DEBUG_NAME "compiler2/CodeGen"
 
 STAT_DECLARE_VAR(std::size_t, compiler_last_codesize, 0)
-STAT_DECLARE_VAR(std::size_t, num_remaining_moves,0)
 
 namespace cacao {
 namespace jit {
@@ -188,11 +187,6 @@ bool CodeGenPass::run(JITData &JD) {
 			std::size_t end = CS.size();
 			instruction_positions[MI] = start;
 			instruction_sizes[MI] = end - start;
-			#if defined(ENABLE_STATISTICS)
-			if (MI->is_move() && start != end) {
-				STATISTICS(++num_remaining_moves);
-			}
-			#endif
 			if (DEBUG_COND_N(2)) {
 				if ( start == end) {
 					LOG2("none" << nl);

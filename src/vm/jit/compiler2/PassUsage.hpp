@@ -63,8 +63,8 @@ private:
 	const char *const name;
 	ConstructorTy ctor;
 public:
-	ArtifactInfo::IDTy const ID;
-	ArtifactInfo(const char* name, ArtifactInfo::IDTy ID, ConstructorTy ctor) : name(name), ctor(ctor), ID(ID) {}
+	ArtifactInfo::IDTy const AID;
+	ArtifactInfo(const char* name, ArtifactInfo::IDTy AID, ConstructorTy ctor) : name(name), ctor(ctor), AID(AID) {}
 	const char* get_name() const {
 		return name;
 	}
@@ -110,7 +110,7 @@ private:
 	PIIDSet imm_after_;
 	PIIDSet imm_before_;
 
-	bool is_required(const PassInfo::IDTy &ID) const {
+	bool is_required(const ArtifactInfo::IDTy &ID) const {
 		return requires_.find(ID) != requires_.end();
 	}
 

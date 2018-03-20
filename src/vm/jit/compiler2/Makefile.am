@@ -95,14 +95,8 @@ libcompiler2_la_SOURCES = \
 	JsonGraphPrinter.cpp \
 	JITData.cpp \
 	JITData.hpp \
-	LinearScanAllocatorPass.cpp \
-	LinearScanAllocatorPass.hpp \
 	ListSchedulingPass.cpp \
 	ListSchedulingPass.hpp \
-	LivetimeAnalysisPass.cpp \
-	LivetimeAnalysisPass.hpp \
-	LivetimeInterval.cpp \
-	LivetimeInterval.hpp \
 	Loop.cpp \
 	Loop.hpp \
 	LoopBase.hpp \
@@ -206,7 +200,7 @@ libcompiler2_la_SOURCES = \
 
 libcompiler2_la_LIBADD = \
 	alloc/liballoc.la \
-	lsra/liblsra.la \
+	treescan/libtreescan.la \
 	memory/libmemory.la \
 	$(ARCH_DIR)/lib$(ARCH_DIR).la
 

@@ -30,9 +30,9 @@ AM_CPPFLAGS += -I$(top_srcdir)/src \
 LIBS =
 
 noinst_LTLIBRARIES = \
-	liblsra.la
+	libtreescan.la
 
-liblsra_la_SOURCES = \
+libtreescan_la_SOURCES = \
 	LogHelper.hpp \
 	LoopPressurePass.cpp \
 	LoopPressurePass.hpp \

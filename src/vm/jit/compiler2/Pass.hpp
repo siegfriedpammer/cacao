@@ -41,7 +41,7 @@ class JITData;
 
 class Artifact {
 private:
-	static ArtifactInfo::IDTy id_counter;
+	static ArtifactInfo::IDTy aid_counter;
 
 	PassRunner *pm;
 
@@ -54,7 +54,7 @@ public:
 
 	template<class T>
 	static ArtifactInfo::IDTy AID() {
-		static ArtifactInfo::IDTy ID = id_counter++;
+		static ArtifactInfo::IDTy ID = aid_counter++;
 		return ID;
 	}
 

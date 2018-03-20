@@ -73,6 +73,10 @@ public:
 	using ArtifactInfoMapTy = alloc::unordered_map<ArtifactInfo::IDTy, ArtifactInfo*>::type;
 	using PassUsageMapTy = std::unordered_map<PassInfo::IDTy, PassUsage>;
 private:
+
+	PassInfoMapTy registered_passes;
+	ArtifactInfoMapTy registered_artifacts;
+
 	/**
 	 * This is the pass schedule. A pass may occur more than once.
 	 */
@@ -87,16 +91,6 @@ private:
 	 * This map holds the answer
 	 */
 	alloc::unordered_map<ArtifactInfo::IDTy, PassInfo::IDTy>::type provided_by_map;
-
-	static PassInfoMapTy &registered_passes() {
-		static PassInfoMapTy registered_passes;
-		return registered_passes;
-	}
-
-	static ArtifactInfoMapTy& registered_artifacts() {
-		static ArtifactInfoMapTy registered_artifacts;
-		return registered_artifacts;
-	}
 
 	void schedulePasses();
 	PassUPtrTy create_Pass(PassInfo::IDTy ID) const;
@@ -122,27 +116,27 @@ public:
 	/**
 	 * DO NOT CALL THIS MANUALLY. ONLY INVOKE VIA PassRegistry.
 	 */
-	static void register_Pass(PassInfo *PI) {
+	void register_Pass(PassInfo *PI) {
 		MYLOG("PassManager::register_Pass: " << PI->get_name() << nl);
-		registered_passes().insert(std::make_pair(PI->ID,PI));
+		registered_passes.insert(std::make_pair(PI->ID,PI));
 	}
 
 	/**
 	 * DO NOT CALL THIS MANUALLY. ONLY INVOKE VIA ArtifactRegistry.
 	 */
-	static void register_Artifact(ArtifactInfo *AI) {
+	void register_Artifact(ArtifactInfo *AI) {
 		MYLOG("PassManager::register_Artifact: " << AI->get_name() << nl);
-		registered_artifacts().insert(std::make_pair(AI->ID, AI));
+		registered_artifacts.insert(std::make_pair(AI->AID, AI));
 	}
 
 	const char * get_Pass_name(PassInfo::IDTy ID) {
-		PassInfo *PI = registered_passes()[ID];
+		PassInfo *PI = registered_passes[ID];
 		assert(PI && "Pass not registered");
 		return PI->get_name();
 	}
 
 	const char * get_Artifact_name(ArtifactInfo::IDTy ID) {
-		ArtifactInfo *AI = registered_artifacts()[ID];
+		ArtifactInfo *AI = registered_artifacts[ID];
 		assert(AI && "Artifact not registered");
 		return AI->get_name();
 	}
@@ -156,11 +150,11 @@ public:
 	}
 	ScheduleListTy::const_iterator schedule_end() const { return schedule.end(); }
 
-	PassInfoMapTy::const_iterator registered_begin() const { return registered_passes().begin(); }
-	PassInfoMapTy::const_iterator registered_end() const { return registered_passes().end(); }
+	PassInfoMapTy::const_iterator registered_begin() const { return registered_passes.begin(); }
+	PassInfoMapTy::const_iterator registered_end() const { return registered_passes.end(); }
 
-	ArtifactInfoMapTy::const_iterator registered_artifacts_begin() const { return registered_artifacts().begin(); }
-	ArtifactInfoMapTy::const_iterator registered_artifacts_end() const { return registered_artifacts().end(); }
+	ArtifactInfoMapTy::const_iterator registered_artifacts_begin() const { return registered_artifacts.begin(); }
+	ArtifactInfoMapTy::const_iterator registered_artifacts_end() const { return registered_artifacts.end(); }
 	
 	friend class PassRunner;
 	friend class PassScheduler;
@@ -190,15 +184,6 @@ protected:
 
 	PassUPtrTy& get_Pass(PassInfo::IDTy ID);
 
-	template<class _PassClass>
-	_PassClass* get_Pass_result() {
-		auto pass_id = _PassClass::template ID<_PassClass>();
-
-		assert_msg(result_ready[pass_id], "result for "
-		  << PassManager::get().get_Pass_name(pass_id) << " is not ready!");
-		return (_PassClass*) passes[pass_id].get();
-	}
-
 	template<class ArtifactClass>
 	ArtifactClass* get_Artifact() {
 		auto artifact_id = ArtifactClass::template AID<ArtifactClass>();
@@ -223,20 +208,22 @@ public:
 template<class _PassClass>
 Pass *call_ctor() { return new _PassClass(); }
 
-template <class _PassClass>
+template <class _PassClass, 
+          typename = typename std::enable_if<std::is_base_of<Pass, _PassClass>::value>::type>
 struct PassRegistry : public PassInfo {
 	PassRegistry(const char * name) : PassInfo(name, _PassClass::template ID<_PassClass>(), (PassInfo::ConstructorTy)call_ctor<_PassClass>) {
-		PassManager::register_Pass(this);
+		PassManager::get().register_Pass(this);
 	}
 };
 
 template<typename _ArtifactClass>
 Artifact *call_actor() { return new _ArtifactClass(); }
 
-template<typename _ArtifactClass>
+template<typename _ArtifactClass,
+         typename = typename std::enable_if<std::is_base_of<Artifact, _ArtifactClass>::value>::type>
 struct ArtifactRegistry : public ArtifactInfo {
 	ArtifactRegistry(const char * name) : ArtifactInfo(name, _ArtifactClass::template AID<_ArtifactClass>(), (ArtifactInfo::ConstructorTy)call_actor<_ArtifactClass>) {
-		PassManager::register_Artifact(this);
+		PassManager::get().register_Artifact(this);
 	}
 };
 
