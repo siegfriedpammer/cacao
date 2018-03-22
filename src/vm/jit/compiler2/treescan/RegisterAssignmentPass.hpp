@@ -138,7 +138,7 @@ private:
 	OperandSet ccolors(MachineBasicBlock* block);
 	OperandSet gcolors(MachineBasicBlock* block);
 
-	MachineOperand* pick(OperandSet& operands) const;
+	MachineOperand* pick(const Variable&, OperandSet& operands);
 
 	// Returns all allowed colors for a given instruction and variable
 	// If variable is not used/defined by instruction, all colors of the corresponding

@@ -157,6 +157,8 @@ private:
 		return children;
 	}
 
+	friend class PhiCoalescingPass;
+
 public:
 	typedef typename alloc::vector<NodeTy*>::type DominanceFrontierTy;
 

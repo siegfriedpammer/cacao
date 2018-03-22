@@ -57,6 +57,9 @@ void PhiLiftingPass::handle_phi(MachinePhiInst* instruction)
 		LOG2("\tInserting (" << *move_instr << ") in " << *predecessor << nl);
 		
 		insert_before(predecessor->mi_last_insertion_point(), move_instr);
+
+		// Record inserted move instruction for PhiCoalescing afterwards
+		inserted_moves[instruction->get_id()].push_back(move_instr);
 	}
 
 	// Copy result in current block
@@ -87,6 +90,8 @@ bool PhiLiftingPass::run(JITData& JD)
 // pass usage
 PassUsage& PhiLiftingPass::get_PassUsage(PassUsage& PU) const
 {
+	PU.provides<PhiLiftingPass>();
+
 	PU.requires<ReversePostOrderPass>();
 	PU.before<LivetimeAnalysisPass>();
 	PU.modifies<LIRInstructionScheduleArtifact>();
@@ -95,6 +100,7 @@ PassUsage& PhiLiftingPass::get_PassUsage(PassUsage& PU) const
 
 // register pass
 static PassRegistry<PhiLiftingPass> X("PhiLiftingPass");
+static ArtifactRegistry<PhiLiftingPass> Y("PhiLiftingPass");
 
 } // end namespace compiler2
 } // end namespace jit

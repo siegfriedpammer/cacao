@@ -29,10 +29,11 @@
 #include "vm/jit/compiler2/MachineLoopPass.hpp"
 #include "vm/jit/compiler2/MachineOperandFactory.hpp"
 #include "vm/jit/compiler2/MachineRegister.hpp"
+#include "vm/jit/compiler2/PhiCoalescingPass.hpp"
 #include "vm/jit/compiler2/ReversePostOrderPass.hpp"
 #include "vm/jit/compiler2/SSADeconstructionPass.hpp"
-#include "vm/jit/compiler2/treescan/LogHelper.hpp"
 #include "vm/jit/compiler2/treescan/LivetimeAnalysisPass.hpp"
+#include "vm/jit/compiler2/treescan/LogHelper.hpp"
 #include "vm/jit/compiler2/treescan/SpillPass.hpp"
 
 #define DEBUG_NAME "compiler2/RegisterAssignment"
@@ -167,12 +168,12 @@ RegisterAssignment::ColorPair RegisterAssignment::choose_color(MachineBasicBlock
 		auto intersection = allowed_ccolors & allowed_gcolors;
 		LOG3_NAMED_CONTAINER("[" << descriptor.op << "]: Intersection:          ", intersection);
 
-		auto color = pick(intersection);
+		auto color = pick(variable, intersection);
 		if (color) {
 			return {color, color};
 		}
 		else {
-			return {pick(allowed_gcolors), pick(allowed_ccolors)};
+			return {pick(variable, allowed_gcolors), pick(variable, allowed_ccolors)};
 		}
 	}
 
@@ -182,7 +183,7 @@ RegisterAssignment::ColorPair RegisterAssignment::choose_color(MachineBasicBlock
 			return {nullptr, variable.gcolor};
 		}
 		else {
-			return {nullptr, pick(allowed_ccolors)};
+			return {nullptr, pick(variable, allowed_ccolors)};
 		}
 	}
 
@@ -192,7 +193,7 @@ RegisterAssignment::ColorPair RegisterAssignment::choose_color(MachineBasicBlock
 			return {nullptr, variable.gcolor};
 		}
 		else {
-			return {nullptr, pick(allowed_ccolors)};
+			return {nullptr, pick(variable, allowed_ccolors)};
 		}
 	}
 
@@ -225,10 +226,31 @@ OperandSet RegisterAssignment::gcolors(MachineBasicBlock* block)
 	return result;
 }
 
-MachineOperand* RegisterAssignment::pick(OperandSet& operands) const
+MachineOperand* RegisterAssignment::pick(const Variable& variable, OperandSet& operands)
 {
 	if (operands.empty())
 		return nullptr;
+
+	// Check if the variable is in any PHI-equivalence classes, and if so try to assign the same
+	// register as other elements in the same class
+	if (PhiCoalescingPass::enabled) {
+		auto set =
+		    rapass.get_Artifact<PhiCoalescingPass>()->get_equivalence_class_for(variable.operand);
+		if (set) {
+			OperandSet assigned_gcolors = rapass.native_factory->EmptySet();
+
+			for (auto equivalent_op : *set) {
+				const auto& equivalent_var = variable_for(equivalent_op);
+				if (equivalent_var.gcolor)
+					assigned_gcolors.add(equivalent_var.gcolor);
+			}
+
+			for (auto& gcolor : assigned_gcolors) {
+				if (operands.contains(&gcolor))
+					return &gcolor;
+			}
+		}
+	}
 
 	return &*operands.begin();
 }
@@ -754,7 +776,7 @@ bool RegisterAssignmentPass::run(JITData& JD)
 			ParallelCopy parallel_copy;
 			assignment.for_each_allocated_variable(
 			    block, [&](const auto variable) { parallel_copy.add(variable, variable->gcolor); });
-			
+
 			ParallelCopyImpl pcopy(JD);
 			for (const auto& copy : parallel_copy) {
 				auto source = factory->CreateNativeRegister<NativeRegister>(
@@ -831,6 +853,10 @@ PassUsage& RegisterAssignmentPass::get_PassUsage(PassUsage& PU) const
 	PU.requires<LivetimeAnalysisPass>();
 	PU.requires<ReversePostOrderPass>();
 	PU.modifies<LIRInstructionScheduleArtifact>();
+
+	if (PhiCoalescingPass::enabled) {
+		PU.requires<PhiCoalescingPass>();
+	}
 
 	PU.after<SpillPass>();
 	return PU;

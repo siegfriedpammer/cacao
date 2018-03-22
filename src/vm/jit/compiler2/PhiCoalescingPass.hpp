@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_PHICOALESCINGPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
+#include "vm/jit/compiler2/MachineOperandSet.hpp"
 
 MM_MAKE_NAME(PhiCoalescingPass)
 
@@ -34,19 +35,42 @@ namespace jit {
 namespace compiler2 {
 
 class Backend;
+class MachineBasicBlock;
 class MachinePhiInst;
+class MachineOperand;
 
-class PhiCoalescingPass : public Pass, public memory::ManagerMixin<PhiCoalescingPass> {
+class PhiCoalescingPass : public Pass, public Artifact, public memory::ManagerMixin<PhiCoalescingPass> {
 public:
+	static Option<bool> enabled;
 	PhiCoalescingPass() : Pass() {}
-	virtual bool run(JITData& JD);
-	virtual PassUsage& get_PassUsage(PassUsage& PU) const;
-	bool is_enabled() const override { return false; }
+	bool run(JITData& JD) override;
+	PassUsage& get_PassUsage(PassUsage& PU) const override;
+	bool is_enabled() const override { return PhiCoalescingPass::enabled; }
+
+	PhiCoalescingPass* provide_Artifact(ArtifactInfo::IDTy) override {
+		return this;
+	}
+
+	/// Returns the equivalence class the given operand belongs to
+	/// or nullptr if it not part of any
+	/// This is used by the RegisterAssignmentPass
+	const std::vector<MachineOperand*>* get_equivalence_class_for(MachineOperand*) const;
 
 private:
 	Backend* backend;
 
 	void handle_phi(MachinePhiInst* instruction);
+	
+	std::unordered_map<std::size_t, unsigned> preorder_nrs;
+	std::unordered_map<std::size_t, unsigned> max_preorder_nrs;
+
+	void dom_dfs(MachineBasicBlock*, unsigned&);
+	bool dominates(MachineBasicBlock*, MachineBasicBlock*);
+
+	unsigned preorder(MachineOperand*);
+	unsigned max_preorder(MachineOperand*);
+
+	std::vector<std::vector<MachineOperand*>> equivalence_classes;
 };
 
 } // end namespace compiler2

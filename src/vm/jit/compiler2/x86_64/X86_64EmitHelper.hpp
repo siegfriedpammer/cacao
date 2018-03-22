@@ -252,7 +252,11 @@ int get_stack_position(MachineOperand *op) {
 // all other local stack variables are referenced using RSP
 GPRegister* get_stack_register(MachineOperand *op) {
 	assert_msg(op->is_stackslot(), "Operand " << op << " is not a stackslot!");
-	return op->is_StackSlot() ? &RBP : &RSP;
+	if (op->is_StackSlot()) {
+		StackSlot *slot = op->to_StackSlot();
+		return slot->is_leaf() ? &RSP : &RBP;
+	}
+	return &RSP;
 }
 
 class CodeSegmentBuilder {

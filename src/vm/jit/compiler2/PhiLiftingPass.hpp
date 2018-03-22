@@ -34,15 +34,19 @@ namespace jit {
 namespace compiler2 {
 
 class Backend;
+class MachineInstruction;
 class MachinePhiInst;
 
-class PhiLiftingPass : public Pass, public memory::ManagerMixin<PhiLiftingPass> {
+class PhiLiftingPass : public Pass, public Artifact, public memory::ManagerMixin<PhiLiftingPass> {
 public:
 	PhiLiftingPass() : Pass() {}
 	bool run(JITData &JD) override;
 	PassUsage& get_PassUsage(PassUsage &PU) const override;
 	bool is_enabled() const override { return true; }
-	
+	PhiLiftingPass* provide_Artifact(ArtifactInfo::IDTy) override { return this; }
+
+	std::unordered_map<std::size_t, std::vector<MachineInstruction*>> inserted_moves;
+
 private:
 	Backend* backend;
 
