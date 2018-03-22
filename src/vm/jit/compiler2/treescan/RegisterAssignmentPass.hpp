@@ -84,6 +84,9 @@ public:
 
 		std::vector<MachineOperandDesc*> unassigned_uses;
 
+		/// If its a move, we try to assign the same color as this variable
+		Variable* hint = nullptr;
+
 		/// Colors are machine registers without type, during final assignment
 		/// NativeRegisters are created and cached here
 		MachineOperand* ccolor_native = nullptr;
@@ -138,7 +141,8 @@ private:
 	OperandSet ccolors(MachineBasicBlock* block);
 	OperandSet gcolors(MachineBasicBlock* block);
 
-	MachineOperand* pick(const Variable&, OperandSet& operands);
+	enum class PickType { Local, Global };
+	MachineOperand* pick(const Variable&, OperandSet& operands, PickType pick = PickType::Local);
 
 	// Returns all allowed colors for a given instruction and variable
 	// If variable is not used/defined by instruction, all colors of the corresponding

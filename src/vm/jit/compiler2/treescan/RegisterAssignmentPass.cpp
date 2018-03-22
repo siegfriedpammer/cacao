@@ -41,6 +41,15 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+namespace option {
+
+Option<bool> UseHints(
+    "RAUseHints",
+    "compiler2: Tries to assign the same register for source and target in move instructions.",
+    true,
+    ::cacao::option::xx_root());
+
+} // end namespace option
 
 OStream& operator<<(OStream& OS, const RegisterAssignment::Variable& variable)
 {
@@ -173,7 +182,7 @@ RegisterAssignment::ColorPair RegisterAssignment::choose_color(MachineBasicBlock
 			return {color, color};
 		}
 		else {
-			return {pick(variable, allowed_gcolors), pick(variable, allowed_ccolors)};
+			return {pick(variable, allowed_gcolors, PickType::Global), pick(variable, allowed_ccolors)};
 		}
 	}
 
@@ -226,7 +235,9 @@ OperandSet RegisterAssignment::gcolors(MachineBasicBlock* block)
 	return result;
 }
 
-MachineOperand* RegisterAssignment::pick(const Variable& variable, OperandSet& operands)
+MachineOperand* RegisterAssignment::pick(const Variable& variable,
+                                         OperandSet& operands,
+                                         RegisterAssignment::PickType type)
 {
 	if (operands.empty())
 		return nullptr;
@@ -249,6 +260,19 @@ MachineOperand* RegisterAssignment::pick(const Variable& variable, OperandSet& o
 				if (operands.contains(&gcolor))
 					return &gcolor;
 			}
+		}
+	}
+
+	// Next check if a hint is present, and the hinted color is available for us
+	if (variable.hint) {
+		if (type == PickType::Local && variable.hint->ccolor) {
+			if (operands.contains(variable.hint->ccolor))
+				return variable.hint->ccolor;
+		}
+
+		if (type == PickType::Global && variable.hint->gcolor) {
+			if (operands.contains(variable.hint->gcolor))
+				return variable.hint->gcolor;
 		}
 	}
 
@@ -644,6 +668,21 @@ bool RegisterAssignmentPass::run(JITData& JD)
 			if (DEBUG_COND_N(2)) {
 				LOG2(Magenta << "\nProcessing instruction: " << *instruction << reset_color << nl);
 				LOG2_NAMED_CONTAINER("                        LiveOut: ", live_out);
+			}
+
+			// For simple moves we add a hint, so it tries to assign
+			// the same register to the new definition.
+			// For PHIs we use the equivalence classes and hope they do a better job than simple
+			// hints
+			if (option::UseHints && instruction->is_move()) {
+				auto source = instruction->get(0).op;
+				auto target = instruction->get_result().op;
+				if (source->is_virtual() && target->is_virtual()) {
+					auto& target_var = assignment.variable_for(target);
+					auto& source_var = assignment.variable_for(source);
+
+					target_var.hint = &source_var;
+				}
 			}
 
 			ParallelCopy parallel_copy;
