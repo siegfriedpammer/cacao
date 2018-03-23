@@ -601,6 +601,7 @@ RT_REGISTER_GROUP_TIMER(checks_timer,        "compiler","checks at beginning",  
 RT_REGISTER_GROUP_TIMER(parse_timer,         "compiler","parse",                        compiler_group)
 RT_REGISTER_GROUP_TIMER(stack_timer,         "compiler","analyse_stack",                compiler_group)
 RT_REGISTER_GROUP_TIMER(typechecker_timer,   "compiler","typecheck",                    compiler_group)
+RT_REGISTER_GROUP_TIMER(cfg_timer,           "compiler","build cfg",                    compiler_group)
 RT_REGISTER_GROUP_TIMER(loop_timer,          "compiler","loop",                         compiler_group)
 RT_REGISTER_GROUP_TIMER(ifconversion_timer,  "compiler","if conversion",                compiler_group)
 RT_REGISTER_GROUP_TIMER(ra_timer,            "compiler","register allocation",          compiler_group)
@@ -731,7 +732,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 			DEBUG_JIT_COMPILEVERBOSE("Typechecking done: ");
 		}
 #endif
-		RT_TIMER_STOPSTART(typechecker_timer,loop_timer);
+		RT_TIMER_STOPSTART(typechecker_timer,ifconversion_timer);
 
 #if defined(ENABLE_IFCONV)
 		if (JITDATA_HAS_FLAG_IFCONV(jd)) {
@@ -740,7 +741,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 			jit_renumber_basicblocks(jd);
 		}
 #endif
-		RT_TIMER_STOPSTART(ifconversion_timer,ra_timer);
+		RT_TIMER_STOP(ifconversion_timer);
 
 		/* inlining */
 
@@ -760,21 +761,28 @@ static u1 *jit_compile_intern(jitdata *jd)
 		/* Build the CFG.  This has to be done after stack_analyse, as
 		   there happens the JSR elimination. */
 
+		RT_TIMER_START(cfg_timer);
+
 		if (!cfg_build(jd))
 			return NULL;
+
+		RT_TIMER_STOP(cfg_timer);
 
 #if defined(ENABLE_LOOP)
 		if (opt_loops)
 		{
+			RT_TIMER_START(loop_timer);
+
 			removeArrayBoundChecks(jd);
 			jit_renumber_basicblocks(jd);
 			
 			cfg_clear(jd);
 			if (!cfg_build(jd))
 				return NULL;
+
+			RT_TIMER_STOP(loop_timer);
 		}
 #endif
-		RT_TIMER_STOPSTART(ra_timer,loop_timer);
 
 #if defined(ENABLE_PROFILING)
 		/* Basic block reordering.  I think this should be done after
@@ -787,6 +795,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 			jit_renumber_basicblocks(jd);
 		}
 #endif
+		RT_TIMER_START(ra_timer);
 
 #if defined(ENABLE_PM_HACKS)
 #include "vm/jit/jit_pm_2.inc"

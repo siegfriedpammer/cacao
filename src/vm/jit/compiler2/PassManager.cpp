@@ -49,7 +49,7 @@ namespace compiler2 {
 
 #if ENABLE_RT_TIMING
 namespace {
-RT_REGISTER_GROUP(compiler2_rtgroup,"compiler2-pipeline","compiler2 pass pipeline")
+RT_REGISTER_GROUP(compiler2_rtgroup,"compiler2","compiler2 pass pipeline")
 
 typedef alloc::unordered_map<PassInfo::IDTy,RTTimer>::type PassTimerMap;
 PassTimerMap pass_timers;
@@ -77,7 +77,7 @@ PassUPtrTy PassManager::create_Pass(PassInfo::IDTy ID) const {
 	auto iter = pass_timers.find(ID);
 	if (iter == pass_timers.end()) {
 		RTTimer &timer = pass_timers[ID];
-		new (&timer) RTTimer(PI->get_name(),PI->get_name(),compiler2_rtgroup());
+		new (&timer) RTTimer("compiler2",PI->get_name(),compiler2_rtgroup());
 	}
 	#endif
 
@@ -145,8 +145,7 @@ void PassRunner::runPasses(JITData &JD) {
 		timer.stop();
 		if (option::dump_method_json) {
 			auto ts = timer.time();
-			std::uint64_t duration = (std::uint64_t)ts.tv_sec * 1000000LL + (std::uint64_t)ts.tv_nsec / 1000LL;
-			graphPrinter.printPass(JD, P.get(), PS.get_Pass_name(id), duration);
+			graphPrinter.printPass(JD, P.get(), PS.get_Pass_name(id), ts.count());
 		}
 		#else
 		if (option::dump_method_json) {
