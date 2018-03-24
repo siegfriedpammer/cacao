@@ -103,7 +103,7 @@ private:
 	/// for the rest of this block.
 	///
 	/// @param bbindex The corresponding basicblock index.
-	void deoptimize(int bbindex);
+	void deoptimize(int bbindex, const char*);
 
 	void install_javalocal_dependencies(SourceStateInst *source_state,
 			s4 *javalocals, basicblock *bb);

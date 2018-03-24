@@ -328,10 +328,10 @@ SourceStateInst *SSAConstructionPass::record_source_state(
 	return source_state;
 }
 
-void SSAConstructionPass::deoptimize(int bbindex) {
+void SSAConstructionPass::deoptimize(int bbindex, const char* msg = "SSAConstructionPass: deoptimize called!") {
 	assert(BB[bbindex]);
 #if defined(ENABLE_COUNTDOWN_TRAPS)
-	throw std::runtime_error("SSAConstructionPass: deoptimize called!");
+	throw std::runtime_error(msg);
 #endif
 	LOG("Instruction not supported, deoptimize instead" << nl);
 	DeoptimizeInst *deopt = new DeoptimizeInst(BB[bbindex]);
@@ -662,7 +662,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 				break;
 			case ICMD_CHECKNULL:
 				{
-					deoptimize(bbindex);
+					deoptimize(bbindex, "SSAConstructionPass: deoptimize for ICMD_CHECKNULL!");
 					break;
 				}
 
@@ -931,7 +931,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_IUSHR:
 			case ICMD_LUSHR:
 				{
-					deoptimize(bbindex);
+					deoptimize(bbindex, "SSAConstructionPass: deoptimize: shift commands not implemented!");
 					break;
 				}
 			case ICMD_IOR:
@@ -1042,7 +1042,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 				break;
 			case ICMD_IMULPOW2:
 				{
-					deoptimize(bbindex);
+					deoptimize(bbindex, "SSAConstructionPass: deptimize: ICMD_IMULPOW2 not implemented!");
 					break;
 				}
 			case ICMD_IREMPOW2:
@@ -1086,7 +1086,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_SASTORECONST:
 			case ICMD_AASTORECONST:
 				{
-					deoptimize(bbindex);
+					deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_*CONST commands!");
 					break;
 				}
 			case ICMD_IASTORECONST:
@@ -1217,7 +1217,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 				break;
 			case ICMD_LMULPOW2:
 				{
-					deoptimize(bbindex);
+					deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_LMULPOW2!");
 					break;
 				}
 			case ICMD_LDIVPOW2:
@@ -1246,7 +1246,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_ACONST:
 				{
 					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-						deoptimize(bbindex);
+						deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_ACONST not resolved!");
 						break;
 					}
 
@@ -1258,7 +1258,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_GETFIELD:        /* 1 -> 1 */
 				{
 					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-						deoptimize(bbindex);
+						deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_GETFIELD not resolved!");
 						break;
 					}
 
@@ -1283,7 +1283,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_PUTFIELDCONST:   /* 1 -> 0 */
 				{
 					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-						deoptimize(bbindex);
+						deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_PUTFIELD not resolved!");
 						break;
 					}
 
@@ -1319,7 +1319,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_GETSTATIC:       /* 0 -> 1 */
 				{
 					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-						deoptimize(bbindex);
+						deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_GETSTATIC not resolved!");
 						break;
 					}
 
@@ -1328,7 +1328,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					fieldinfo* field = fmiref->p.field;
 
 					if (!class_is_or_almost_initialized(field->clazz)) {
-						deoptimize(bbindex);
+						deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_GETSTATIC class not resolved!");
 						break;
 					}
 
@@ -1349,7 +1349,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_PUTSTATICCONST:  /* 0 -> 0 */
 				{
 					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-						deoptimize(bbindex);
+						deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_PUTSTATIC not resolved!");
 						break;
 					}
 
@@ -1358,7 +1358,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					fieldinfo* field = fmiref->p.field;
 
 					if (!class_is_or_almost_initialized(field->clazz)) {
-						deoptimize(bbindex);
+						deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_PUTSTATIC class not resolved!");
 						break;
 					}
 
@@ -1517,7 +1517,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 				break;
 			case ICMD_RET:
 				{
-					deoptimize(bbindex);
+					deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_RET!");
 					break;
 				}
 			case ICMD_ILOAD:
@@ -1544,7 +1544,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 				break;
 			case ICMD_CHECKCAST:
 			case ICMD_INSTANCEOF:
-				deoptimize(bbindex);
+				deoptimize(bbindex, "SSAConstructionPass: deoptimize: CHECKCAST and INSTANCEOF!");
 				break;
 			case ICMD_INVOKESPECIAL:
 			case ICMD_INVOKEVIRTUAL:
@@ -1553,7 +1553,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_BUILTIN:
 				{
 					if (!INSTRUCTION_IS_RESOLVED(iptr)) {
-						deoptimize(bbindex);
+						deoptimize(bbindex, "SSAConstructionPass: deoptimize: INVOKE* not resolved!");
 						break;
 					}
 
@@ -1707,7 +1707,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					assert(s1);
 
 					if (s1->get_type() != konst->get_type()) {
-						deoptimize(bbindex);
+						deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_IF* types do not match!");
 						break;
 					}
 
@@ -1759,7 +1759,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					assert(s1);
 
 					if (s1->get_type() != konst->get_type()) {
-						deoptimize(bbindex);
+						deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_IF_* types do not match!");
 						break;
 					}
 
@@ -1784,10 +1784,35 @@ bool SSAConstructionPass::run(JITData &JD) {
 				}
 				break;
 			case ICMD_JSR:
+				deoptimize(bbindex, "SSAConstructionPass: deoptimize: JSR!");
+				break;
 			case ICMD_IFNULL:
 			case ICMD_IFNONNULL:
 				{
-					deoptimize(bbindex);
+					Conditional::CondID cond;
+					if (iptr->opc == ICMD_IFNULL) {
+						cond = Conditional::EQ;
+					} else {
+						cond = Conditional::NE;
+					}
+					Instruction *konst = new CONSTInst(0, Type::ReferenceType());
+					Value *s1 = read_variable(iptr->s1.varindex, bbindex);
+					assert(s1);
+
+					if (s1->get_type() != konst->get_type()) {
+						deoptimize(bbindex, "SSAConstructionPass: deoptimize: IFNULL, IFNONNULL, argument is no reference!");
+						break;
+					}
+
+					assert(BB[iptr->dst.block->nr]);
+					auto trueBlock = BB[iptr->dst.block->nr]->to_BeginInst();
+					assert(trueBlock);
+					assert(BB[bbindex+1]);
+					auto falseBlock = BB[bbindex+1]->to_BeginInst();
+					assert(falseBlock);
+					Instruction *result = new IFInst(BB[bbindex], s1, konst, cond, trueBlock, falseBlock);
+					M->add_Instruction(konst);
+					M->add_Instruction(result);
 					break;
 				}
 			case ICMD_IF_ICMPEQ:
@@ -1827,7 +1852,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					assert(s2);
 
 					if (s1->get_type() != s2->get_type()) {
-						deoptimize(bbindex);
+						deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_IF_ICMP* types do not match!");
 						break;
 					}
 
@@ -1879,7 +1904,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					assert(s2);
 
 					if (s1->get_type() != s2->get_type()) {
-						deoptimize(bbindex);
+						deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_IF_LCMP* types do not match!");
 						break;
 					}
 
@@ -1897,7 +1922,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 			case ICMD_IF_ACMPEQ:
 			case ICMD_IF_ACMPNE:
 				{
-					deoptimize(bbindex);
+					deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_IF_ACMP* not implemented!");
 					break;
 				}
 			case ICMD_TABLESWITCH:
@@ -1968,7 +1993,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 				break;
 			case ICMD_ATHROW:
 				{
-					deoptimize(bbindex);
+					deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_ATHROW not implemented!");
 					break;
 				}
 			case ICMD_COPY:
@@ -1980,7 +2005,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 				break;
 			case ICMD_GETEXCEPTION:
 				{
-					deoptimize(bbindex);
+					deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_GETEXCEPTION not implemented!");
 					break;
 				}
 			default:

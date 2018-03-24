@@ -354,6 +354,7 @@ void X86_64LoweringVisitor::visit(IFInst *I, bool copyOperands) {
 	case Type::ByteTypeID:
 	case Type::IntTypeID:
 	case Type::LongTypeID:
+	case Type::ReferenceTypeID:
 	{
 		// Integer types
 		CmpInst *cmp = new CmpInst(
