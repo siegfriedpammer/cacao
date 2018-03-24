@@ -1870,6 +1870,66 @@ static void replace_optimize(codeinfo *code, rplpoint *rp, executionstate_t *es)
 
 /* replace_handle_countdown_trap_simple ****************************************
 
+	This is basically what md_jit_method_patch_address does, if the caller was
+	compiled using the second stage, and the baseline was triggerd by a
+	compilerstub through an INVOKEVIRTUAL/INTERFACE.
+
+	Since the second stage generated code is much more dynamic - e.g. moves
+	could be inserted before the call site - we cannot simply rewrite the
+	generated machine code. Also this approach should be much more protable.
+
+	The code is rather similar to the countdown_trap_simple method, because
+	both patch the callsite.
+
+*******************************************************************************/
+
+void replace_patch_baseline_in_second_stage(u1* ra, codeinfo* caller, codeinfo* callee, executionstate_t *es)
+{
+	if (caller->optlevel < 2) return;
+
+	LOG("patching baseline compiled method into second stage\n");
+
+	if (caller && !(caller->m->flags & ACC_NATIVE)) {
+		LOG1("Found caller method [" << *caller->m << "]\n");
+
+		sourceframe_t caller_frame;
+		caller_frame.fromcode = caller;
+		caller_frame.method = caller->m;
+
+		codeinfo fake_callee_from;
+		fake_callee_from.entrypoint = callee->m->stubroutine;
+
+		sourceframe_t callee_frame;
+		callee_frame.fromcode = &fake_callee_from;
+		callee_frame.tocode = callee;
+		callee_frame.method = callee->m;
+		callee_frame.down = nullptr;
+		callee_frame.instance.a = nullptr;
+
+		// If the method is not static, the first argument register should
+		// hold the object instance
+		if (!(callee->m->flags & ACC_STATIC)) {
+#if defined(__X86_64__)
+			callee_frame.instance.a = (java_object_t*) es->intregs[REG_A0];
+#endif			
+		}
+		
+		caller_frame.down = &callee_frame;
+
+		// If the caller method was compiled with c2, find the replacement point
+		// since it holds the patchaddress for static/special calls
+		if (caller->optlevel > 1) {
+			caller_frame.fromrp = replace_find_replacement_point_at_or_before_pc(caller, ra - 1, 0x0);
+			assert_msg(caller_frame.fromrp, "Unable to find caller replacement point!");
+			LOG1("Found replacement point " << *caller_frame.fromrp << nl);
+		}
+
+		replace_patch_future_calls(ra, &caller_frame, &callee_frame);
+	}
+}
+
+/* replace_handle_countdown_trap_simple ****************************************
+
    This function is called by the signal handler. It is a simpler version
    of the normal on-stack-replacement mechanism. It only recompiles the method
    with either the second stage or (if that fails) with the baseline compiler
@@ -1940,7 +2000,7 @@ void replace_handle_countdown_trap_simple(u1 *pc, executionstate_t *es)
 		// If the caller method was compiled with c2, find the replacement point
 		// since it holds the patchaddress for static/special calls
 		if (caller->optlevel > 1) {
-			caller_frame.fromrp = replace_find_replacement_point_at_or_before_pc(caller, ra, 0x0);
+			caller_frame.fromrp = replace_find_replacement_point_at_or_before_pc(caller, ra - 1, 0x0);
 			assert_msg(caller_frame.fromrp, "Unable to find caller replacement point!");
 			LOG1("Found replacement point " << *caller_frame.fromrp << nl);
 		}

@@ -177,6 +177,8 @@ void replace_free_replacement_points(codeinfo *code);
 void replace_activate_replacement_points(codeinfo *code, bool mappable);
 void replace_deactivate_replacement_points(codeinfo *code);
 
+void replace_patch_baseline_in_second_stage(u1* ra, codeinfo* caller, codeinfo* callee, executionstate_t *es);
+
 void replace_handle_countdown_trap(u1 *pc, executionstate_t *es);
 void replace_handle_countdown_trap_simple(u1 *pc, executionstate_t *es);
 bool replace_handle_replacement_trap(u1 *pc, executionstate_t *es);

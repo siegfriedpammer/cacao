@@ -154,7 +154,10 @@ inline u1 get_modrm(u1 reg, u1 base, s4 disp, bool use_sib = false, bool is_base
 	u1 rm = 0;
 	u1 modrm = 0;
 
-	if (disp == 0 || (base == 0x05 && !is_base_extended) /* RBP */ ) {
+	if (disp == 0 && base == 0x05 && is_base_extended) {
+		mod = 0x01; // We use displacement, but encode 0 in it
+	}
+	else if (disp == 0 || (base == 0x05 && !is_base_extended) /* RBP */ ) {
 		// no disp
 		mod = 0x00; //0b00
 	}
@@ -184,7 +187,7 @@ inline u1 get_modrm(u1 reg, u1 base, s4 disp, bool use_sib = false, bool is_base
 }
 
 inline u1 get_modrm (X86_64Register *reg, X86_64Register *base, s4 disp, bool use_sib = false) {
-	return get_modrm((reg != NULL) ? reg->get_index() : 0, (base != NULL) ? base->get_index() : 0, disp, use_sib, reg->extented);
+	return get_modrm((reg != NULL) ? reg->get_index() : 0, (base != NULL) ? base->get_index() : 0, disp, use_sib, base->extented);
 }
 
 inline u1 get_sib(X86_64Register *base, X86_64Register *index = NULL, u1 scale = 1) {
@@ -613,7 +616,8 @@ struct InstructionEncoding {
 					code += secondary_opcode;
 				}
 				bool sib = use_sib(base, index);
-				code += get_modrm(dst_reg,base,disp,sib);
+				auto rm = get_modrm(dst_reg,base,disp,sib);
+				code += rm;
 				if (sib) {
 					code += get_sib(base,index,scale);
 				}
@@ -626,6 +630,13 @@ struct InstructionEncoding {
 						code += (u1) 0xff & (disp >> 0x08);
 						code += (u1) 0xff & (disp >> 0x10);
 						code += (u1) 0xff & (disp >> 0x18);
+					}
+				} else {
+					// In special cases (for R13), even though displacement is 0, we have to
+					// encode the 0 offset explicitly or the encoding clashes with RIP-relative addressing
+					u1 mod = rm >> 6;
+					if (mod == 0x1) {
+						code += s1(0);
 					}
 				}
 			}

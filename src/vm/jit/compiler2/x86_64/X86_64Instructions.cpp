@@ -29,6 +29,7 @@
 #include "vm/jit/compiler2/CodeMemory.hpp"
 #include "vm/jit/PatcherNew.hpp"
 
+
 #include "vm/jit/compiler2/alloc/deque.hpp"
 
 #include "toolbox/logging.hpp"
@@ -630,7 +631,8 @@ OStream& CondJumpInst::print_successor_label(OStream &OS,std::size_t index) cons
 
 void TrapInst::emit(CodeMemory* CM) const {
 #if defined(ENABLE_COUNTDOWN_TRAPS)
-	throw std::runtime_error("TrapInst: We do not support deoptimize traps!");
+	if (trap == 15)	// using hardcoded number because includes would pull in too much baseline stuff
+		throw std::runtime_error("TrapInst: We do not support deoptimize traps!");
 #endif
 	// TODO Understand, clean up, and unify with CondTrapInst::emit if possible.
 	
@@ -652,7 +654,8 @@ void TrapInst::emit(CodeMemory* CM) const {
 
 void CondTrapInst::emit(CodeMemory* CM) const {
 #if defined(ENABLE_COUNTDOWN_TRAPS)
-	throw std::runtime_error("CondTrapInst: We do not support deoptimize traps!");
+	if (trap == 15) // using hardcoded number because includes would pull in too much baseline stuff
+		throw std::runtime_error("CondTrapInst: We do not support deoptimize traps!");
 #endif
 	CodeFragment code = CM->get_CodeFragment(8);
 	// XXX make more readable

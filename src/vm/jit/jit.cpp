@@ -1185,6 +1185,13 @@ void *jit_compile_handle(methodinfo *m, void *pv, void *ra, void *mptr)
 	if (newpv == NULL)
 		return NULL;
 
+	// Only patch method address if caller was compiled by baseline
+	// If the caller was compiled by the second stage, we use
+	// an implementation in the replacement module to patch the callsite
+	codeinfo* caller = code_find_codeinfo_for_pc(ra);
+	if (caller->optlevel > 1)
+		return newpv;
+
 	/* Get the method patch address. */
 
 	pa = md_jit_method_patch_address(pv, ra, mptr);

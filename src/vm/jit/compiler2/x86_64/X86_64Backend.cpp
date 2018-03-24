@@ -1256,11 +1256,11 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	//       Its moved here because live-ranges of parameters are split
 	//       afterwards, but the deoptimize causes the arguments to live longer
 	//       then necessary
-	if (I->to_INVOKEVIRTUALInst()) {
-		place_deoptimization_marker(I->to_INVOKEVIRTUALInst());
-	} else if (I->to_INVOKEINTERFACEInst()) {
-		place_deoptimization_marker(I->to_INVOKEINTERFACEInst());
-	}
+	// if (I->to_INVOKEVIRTUALInst()) {
+	//	place_deoptimization_marker(I->to_INVOKEVIRTUALInst());
+	// } else if (I->to_INVOKEINTERFACEInst()) {
+	//	place_deoptimization_marker(I->to_INVOKEINTERFACEInst());
+	// }
 
 	// operands for the call
 	VirtualRegister *addr = CreateVirtualRegister(Type::ReferenceTypeID);
@@ -1380,6 +1380,8 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	}
 
 	// add replacement point
+	// TODO: This replacement point should be before all the loads
+	//       at the call site
 	lower_source_state_dependencies(MI, source_state);
 	get_current()->push_back(MI);
 
