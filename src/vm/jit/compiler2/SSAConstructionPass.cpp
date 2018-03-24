@@ -1815,58 +1815,14 @@ bool SSAConstructionPass::run(JITData &JD) {
 					M->add_Instruction(result);
 					break;
 				}
+			case ICMD_IF_ACMPEQ:
+			case ICMD_IF_ACMPNE:
 			case ICMD_IF_ICMPEQ:
 			case ICMD_IF_ICMPNE:
 			case ICMD_IF_ICMPLT:
 			case ICMD_IF_ICMPGE:
 			case ICMD_IF_ICMPGT:
 			case ICMD_IF_ICMPLE:
-				{
-					Conditional::CondID cond;
-					switch (iptr->opc) {
-					case ICMD_IF_ICMPLE:
-						cond = Conditional::LE;
-						break;
-					case ICMD_IF_ICMPEQ:
-						cond = Conditional::EQ;
-						break;
-					case ICMD_IF_ICMPNE:
-						cond = Conditional::NE;
-						break;
-					case ICMD_IF_ICMPLT:
-						cond = Conditional::LT;
-						break;
-					case ICMD_IF_ICMPGE:
-						cond = Conditional::GE;
-						break;
-					case ICMD_IF_ICMPGT:
-						cond = Conditional::GT;
-						break;
-					default:
-						os::shouldnotreach();
-						cond = Conditional::NoCond;
-					}
-					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
-					Value *s2 = read_variable(iptr->sx.s23.s2.varindex,bbindex);
-					assert(s1);
-					assert(s2);
-
-					if (s1->get_type() != s2->get_type()) {
-						deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_IF_ICMP* types do not match!");
-						break;
-					}
-
-					assert(BB[iptr->dst.block->nr]);
-					BeginInst *trueBlock = BB[iptr->dst.block->nr]->to_BeginInst();
-					assert(trueBlock);
-					assert(BB[bbindex+1]);
-					BeginInst *falseBlock = BB[bbindex+1]->to_BeginInst();
-					assert(falseBlock);
-					Instruction *result = new IFInst(BB[bbindex], s1, s2, cond,
-						trueBlock, falseBlock);
-					M->add_Instruction(result);
-				}
-				break;
 			case ICMD_IF_LCMPEQ:
 			case ICMD_IF_LCMPNE:
 			case ICMD_IF_LCMPLT:
@@ -1876,21 +1832,29 @@ bool SSAConstructionPass::run(JITData &JD) {
 				{
 					Conditional::CondID cond;
 					switch (iptr->opc) {
+					case ICMD_IF_ACMPEQ:
+					case ICMD_IF_ICMPEQ:
 					case ICMD_IF_LCMPEQ:
 						cond = Conditional::EQ;
 						break;
+					case ICMD_IF_ACMPNE:
+					case ICMD_IF_ICMPNE:
 					case ICMD_IF_LCMPNE:
 						cond = Conditional::NE;
 						break;
+					case ICMD_IF_ICMPLT:
 					case ICMD_IF_LCMPLT:
 						cond = Conditional::LT;
 						break;
+					case ICMD_IF_ICMPGT:
 					case ICMD_IF_LCMPGT:
 						cond = Conditional::GT;
 						break;
+					case ICMD_IF_ICMPGE:
 					case ICMD_IF_LCMPGE:
 						cond = Conditional::GE;
 						break;
+					case ICMD_IF_ICMPLE:
 					case ICMD_IF_LCMPLE:
 						cond = Conditional::LE;
 						break;
@@ -1904,7 +1868,7 @@ bool SSAConstructionPass::run(JITData &JD) {
 					assert(s2);
 
 					if (s1->get_type() != s2->get_type()) {
-						deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_IF_LCMP* types do not match!");
+						deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_IF_?CMP* types do not match!");
 						break;
 					}
 
@@ -1917,12 +1881,6 @@ bool SSAConstructionPass::run(JITData &JD) {
 					Instruction *result = new IFInst(BB[bbindex], s1, s2, cond,
 						trueBlock, falseBlock);
 					M->add_Instruction(result);
-				}
-				break;
-			case ICMD_IF_ACMPEQ:
-			case ICMD_IF_ACMPNE:
-				{
-					deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_IF_ACMP* not implemented!");
 					break;
 				}
 			case ICMD_TABLESWITCH:
