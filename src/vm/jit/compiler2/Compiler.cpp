@@ -229,11 +229,6 @@ MachineCode* compile(methodinfo* m)
 /** prolog end jit_compile_intern **/
 /*****************************************************************************/
 
-	/* set the previous code version */
-
-	code->prev = m->code;
-	m->code = code;
-	
 	/* run the compiler2 passes */
 
 	PassRunner runner;
@@ -242,9 +237,8 @@ MachineCode* compile(methodinfo* m)
 	assert(code);
 	assert(code->entrypoint);
 
-
-	
 	u1 *entrypoint = JD.get_jitdata()->code->entrypoint;
+	
 /*****************************************************************************/
 /** epilog  start jit_compile **/
 /*****************************************************************************/
@@ -265,8 +259,13 @@ MachineCode* compile(methodinfo* m)
 		compilingtime_stop();
 #endif
 
+	code->prev = m->code;
+	m->code = code;
+
 	// Hook point just after code was generated.
 	Hook::jit_generated(m, m->code);
+
+	
 
 	LOG(bold << bold << "Compiler End: " << reset_color << *m << nl);
 

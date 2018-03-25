@@ -1033,8 +1033,8 @@ static void replace_patch_method_pointer(methodptr *mpp,
 			   "New code: " << *newcode->m << nl);
 #endif
 
-	LOG("patch method pointer from " << (void *) *mpp << " to "
-		<< (void *) entrypoint << nl);
+	LOG("patch method pointer (" << kind << ") from " << (void *) *mpp 
+		<< " to " << (void *) entrypoint << nl);
 
 	/* write the new entrypoint */
 
@@ -1965,12 +1965,16 @@ void replace_handle_countdown_trap_simple(u1 *pc, executionstate_t *es)
 	assert(code);
 	methodinfo *method = code->m;
 
+	method->mutex->lock();
+
 	LOG(BoldCyan << "Optimizing [" << *method << "]\n" << reset_color);
 
 	/* request optimization or at least a version without the countdown trap */
 	jit_request_optimization(method);
 	codeinfo *optimized_code = jit_get_current_code(method);
 	
+	method->mutex->unlock();
+
 	u1* ra = (u1*) *((uintptr_t*) es->sp);
 	codeinfo *caller = code_find_codeinfo_for_pc(ra);
 	if (caller && !(caller->m->flags & ACC_NATIVE)) {

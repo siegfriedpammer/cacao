@@ -983,7 +983,7 @@ void jit_request_optimization(methodinfo *m)
 	codeinfo *code;
 
 	code = m->code;
-
+	
 	if (code && code->optlevel == 0)
 		jit_invalidate_code(m);
 }
@@ -1029,10 +1029,9 @@ codeinfo *jit_get_current_code(methodinfo *m)
 	assert(m);
 
 	/* if we have valid code, return it */
-	m->mutex->lock();
 
 	if (m->code && !code_is_invalid(m->code)) {
-		m->mutex->unlock();
+		assert(m->code->entrypoint);
 		return m->code;
 	}
 
@@ -1079,8 +1078,6 @@ codeinfo *jit_get_current_code(methodinfo *m)
 	if (!jit_recompile(m))
 		return NULL;
 #endif
-
-	m->mutex->unlock();
 
 	assert(m->code);
 
