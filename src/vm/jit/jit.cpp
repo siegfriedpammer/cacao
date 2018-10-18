@@ -371,7 +371,7 @@ u1 *jit_compile(methodinfo *m)
 
 #if defined(ENABLE_COMPILER2)
 	if (!opt_DisableCountdownTraps && (opt_ReplaceMethod == NULL || method_matches(m, opt_ReplaceMethod)))
-		jd->flags |= JITDATA_FLAG_COUNTDOWN;
+		jd->flags |= JITDATA_FLAG_COUNTDOWN;	
 #endif
 
 #if defined(ENABLE_JIT)
@@ -844,6 +844,16 @@ static u1 *jit_compile_intern(jitdata *jd)
 	}
 # endif
 #endif /* defined(ENABLE_JIT) */
+
+	// Only enable countdown trap if the heuristic has high confidence
+	// that the compiler2 is able to actually able to compile the method.
+	//
+	// TODO: Remove this when deoptimization works and is not triggered
+	//       in 80% of the cases.
+	if (!cacao::jit::compiler2::can_possibly_compile(jd)) {
+		jd->flags &= ~JITDATA_FLAG_COUNTDOWN;
+	}
+
 	RT_TIMER_START(codegen_timer);
 
 #if defined(ENABLE_PROFILING)

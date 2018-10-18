@@ -30,6 +30,7 @@
 #include "vm/statistics.hpp"
 #include "vm/jit/cfg.hpp"
 #include "vm/jit/code.hpp"
+#include "vm/jit/ir/instruction.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/parse.hpp"
 #include "vm/jit/show.hpp"
@@ -270,8 +271,106 @@ MachineCode* compile(methodinfo* m)
 	LOG(bold << bold << "Compiler End: " << reset_color << *m << nl);
 
 	/* return pointer to the methods entry point */
-	// ABORT_MSG("This is the end.", "");
 	return entrypoint;
+}
+
+bool can_possibly_compile(void* jd_ptr)
+{
+	jitdata *jd = (jitdata*) jd_ptr;
+	methodinfo *m = jd->m;
+
+	// Currently we do not handle synchronized methods, since the monitors are
+	// not emitted.
+	if (m->flags & ACC_SYNCHRONIZED) return false;
+
+	// Native methods are handled correctly anyway.
+	if (m->flags & ACC_NATIVE) return true;
+
+	basicblock *bb;
+	FOR_EACH_BASICBLOCK(jd,bb) {
+	
+	instruction *iptr;
+	FOR_EACH_INSTRUCTION(bb,iptr) {
+		switch (iptr->opc) {
+			case ICMD_CHECKNULL:
+			case ICMD_ISHL:
+			case ICMD_LSHL:
+			case ICMD_ISHR:
+			case ICMD_LSHR:
+			case ICMD_IUSHR:
+			case ICMD_LUSHR:
+			case ICMD_IMULPOW2:
+			case ICMD_IORCONST:
+			case ICMD_IXORCONST:
+			case ICMD_ISHLCONST:
+			case ICMD_ISHRCONST:
+			case ICMD_IUSHRCONST:
+			case ICMD_LSHLCONST:
+			case ICMD_LSHRCONST:
+			case ICMD_LUSHRCONST:
+			case ICMD_BASTORECONST:
+			case ICMD_CASTORECONST:
+			case ICMD_SASTORECONST:
+			case ICMD_AASTORECONST:
+			case ICMD_LMULPOW2:
+			case ICMD_RET:
+			case ICMD_CHECKCAST:
+			case ICMD_INSTANCEOF:
+			case ICMD_JSR:
+			case ICMD_ATHROW:
+			case ICMD_GETEXCEPTION:
+				return false;
+			
+			// These have deopt markers placed, so we skip them.
+			case ICMD_ARRAYLENGTH:
+			case ICMD_INVOKEVIRTUAL:
+			case ICMD_INVOKEINTERFACE:
+
+			case ICMD_IALOAD:
+			case ICMD_SALOAD:
+			case ICMD_BALOAD:
+			case ICMD_CALOAD:
+			case ICMD_LALOAD:
+			case ICMD_DALOAD:
+			case ICMD_FALOAD:
+			case ICMD_AALOAD:
+			case ICMD_IASTORE:
+			case ICMD_SASTORE:
+			case ICMD_BASTORE:
+			case ICMD_CASTORE:
+			case ICMD_LASTORE:
+			case ICMD_DASTORE:
+			case ICMD_FASTORE:
+			case ICMD_AASTORE:
+			case ICMD_IASTORECONST:
+			case ICMD_LASTORECONST:
+			case ICMD_GETFIELD:
+			case ICMD_PUTFIELD:
+			case ICMD_PUTFIELDCONST:  
+				return false;
+
+			case ICMD_INVOKESPECIAL:
+			case ICMD_INVOKESTATIC:
+				{
+					// Only check if the instruction is resolved yet, otherwise
+					// we might still be able to compile.
+					if (INSTRUCTION_IS_RESOLVED(iptr)) {
+						constant_FMIref *fmiref = nullptr;
+						INSTRUCTION_GET_METHODREF(iptr, fmiref);
+
+						// Compiler2 can't invoke native methods.
+						if (fmiref && fmiref->p.method->flags & ACC_NATIVE) return false;
+					}
+				}
+			default: 
+				// Do nothing, we can handle this.
+				break;
+		}
+	}
+
+	}
+
+	return true;
 }
 
 } // end namespace cacao

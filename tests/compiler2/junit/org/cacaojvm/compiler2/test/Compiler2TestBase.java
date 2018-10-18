@@ -57,7 +57,12 @@ public class Compiler2TestBase extends Compiler2Test {
 		}
 
 		if (exceptionBaseline != null) {
-			assertEquals(exceptionCompiler2, exceptionBaseline);
+			// We cannot compare the exceptions directly since the stack trace will be different.
+			// (runBaseline/runCompiler2 will be in there).
+			// TODO: Compare the whole stacktrace below runBaseline/runCompiler2, not just
+			//       the first StackTraceElement.
+			assertEquals(exceptionCompiler2.getClass(), exceptionBaseline.getClass());
+			assertEquals(exceptionCompiler2.getStackTrace()[0], exceptionBaseline.getStackTrace()[0]);
 		} else {
 			assertEquals(resultCompiler2, resultBaseline);
 		}

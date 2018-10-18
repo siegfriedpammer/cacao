@@ -1326,7 +1326,7 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	} else if (I->to_INVOKEVIRTUALInst()) {
 
 		// Implicit null-checks are handled via deoptimization.
-		// place_deoptimization_marker(I->to_INVOKEVIRTUALInst());
+		place_deoptimization_marker(I->to_INVOKEVIRTUALInst());
 
 		methodinfo* callee = I->get_fmiref()->p.method;
 		int32_t s1 = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * callee->vftblindex;
@@ -1346,7 +1346,7 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	} else if (I->to_INVOKEINTERFACEInst()) {
 
 		// Implicit null-checks are handled via deoptimization.
-		// place_deoptimization_marker(I->to_INVOKEINTERFACEInst());
+		place_deoptimization_marker(I->to_INVOKEINTERFACEInst());
 
 		methodinfo* callee = I->get_fmiref()->p.method;
 		int32_t s1 = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr) * callee->clazz->index;

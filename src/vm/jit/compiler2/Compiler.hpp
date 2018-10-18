@@ -118,6 +118,14 @@ typedef u1 MachineCode;
 
 MachineCode* compile(methodinfo* m);
 
+// This is a temporary function that analyses the bytecode
+// and heuristically tells us whether the compiler2 is able to
+// successfully compile the given method.
+//
+// If this function returns false, the second stage compiler won't be able
+// to compile the given method at all, if it returns true it still might fail.
+bool can_possibly_compile(void* jd);
+
 } // end namespace cacao
 } // end namespace jit
 } // end namespace compiler2
