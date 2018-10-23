@@ -851,7 +851,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 	// TODO: Remove this when deoptimization works and is not triggered
 	//       in 80% of the cases.
 	if (!cacao::jit::compiler2::can_possibly_compile(jd)) {
-		jd->flags &= ~JITDATA_FLAG_COUNTDOWN;
+		// jd->flags &= ~JITDATA_FLAG_COUNTDOWN;
 	}
 
 	RT_TIMER_START(codegen_timer);
@@ -1176,7 +1176,7 @@ void *jit_compile_handle(methodinfo *m, void *pv, void *ra, void *mptr)
 
 	bool compile_optimized = false;
 #if defined(ENABLE_COMPILER2)
-	compile_optimized = method_matches(m,opt_OptimizeMethod);
+	compile_optimized = method_matches(m,opt_OptimizeMethod,opt_OptimizeClass,opt_OptimizeSignature);
 #endif
 
 	if (compile_optimized) {

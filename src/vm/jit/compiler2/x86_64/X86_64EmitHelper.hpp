@@ -468,10 +468,10 @@ struct InstructionEncoding {
 			else if (src->is_Immediate()) {
 				Immediate *src_imm = cast_to<Immediate>(src);
 				u1 rex = get_rex(NULL,dst_reg,op_size == GPInstruction::OS_64);
-				if (rex != 0x40)
-					code += rex;
 				if (prefix)
 					code += prefix;
+				if (rex != 0x40)
+					code += rex;
 				if (prefix_0f)
 					code += 0x0F;
 				if (!encode_dst)
@@ -605,10 +605,10 @@ struct InstructionEncoding {
 				s4 disp = src_mod->getDisp();
 				u1 scale = src_mod->getScale();
 				u1 rex = get_rex(dst_reg, base, op_size, index);
-				if (rex != 0x40)
-					code += rex;
 				if (prefix)
 					code += prefix;
+				if (rex != 0x40)
+					code += rex;
 				if (prefix_0f)
 					code += 0x0F;
 				code += primary_opcode;
@@ -651,10 +651,10 @@ struct InstructionEncoding {
 			if (src->is_Register()) {
 				X86_64Register *src_reg = cast_to<X86_64Register>(src);
 				u1 rex = get_rex(src_reg,NULL,op_size == GPInstruction::OS_64);
-				if (rex != 0x40)
-					code += rex;
 				if (prefix)
 					code += prefix;
+				if (rex != 0x40)
+					code += rex;
 				if (prefix_0f)
 					code += 0x0F;
 				code += primary_opcode;
@@ -702,10 +702,10 @@ struct InstructionEncoding {
 			if (src->is_Register()) {
 				X86_64Register *src_reg = cast_to<X86_64Register>(src);
 				u1 rex = get_rex(src_reg, base, op_size, index);
-				if (rex != 0x40)
-					code += rex;
 				if (prefix)
 					code += prefix;
+				if (rex != 0x40)
+					code += rex;
 				if (prefix_0f)
 					code += 0x0F;
 				code += primary_opcode;
@@ -732,10 +732,10 @@ struct InstructionEncoding {
 			else if (src->is_Immediate()) {
 				Immediate *src_imm = cast_to<Immediate>(src);
 				u1 rex = get_rex(NULL, base, op_size, index);
-				if (rex != 0x40)
-					code += rex;
 				if (prefix)
 					code += prefix;
+				if (rex != 0x40)
+					code += rex;
 				if (prefix_0f)
 					code += 0x0F;
 				code += primary_opcode;

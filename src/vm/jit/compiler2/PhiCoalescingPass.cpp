@@ -396,8 +396,11 @@ bool PhiCoalescingPass::run(JITData& JD)
 				}
 
 				if (live_out.contains(p.second)) {
-					assert_msg(false, "Local interference detected between " << p.first << " and "
-					                                                         << p.second);
+					// TODO: When compiling java/util/concurrent/ConcurrentLinkedQueue.offer(Ljava/lang/Object;)Z
+					//       this assertion fails. Investigate why.
+					// assert_msg(false, "Local interference detected between " << p.first << " and "
+					//                                                         << p.second);
+					throw std::runtime_error("Local interference detected between two variables!");
 				}
 			}
 		}

@@ -333,7 +333,7 @@ void SSAConstructionPass::deoptimize(int bbindex, const char* msg = "SSAConstruc
 #if defined(ENABLE_COUNTDOWN_TRAPS)
 	throw std::runtime_error(msg);
 #endif
-	LOG("Instruction not supported, deoptimize instead" << nl);
+	LOG("Deoptimize reason: " << msg << nl);
 	DeoptimizeInst *deopt = new DeoptimizeInst(BB[bbindex]);
 	M->add_Instruction(deopt);
 	skipped_blocks[bbindex] = true;
@@ -647,6 +647,10 @@ bool SSAConstructionPass::run(JITData &JD) {
 			if (skipped_blocks[bb->nr]) {
 				break;
 			}
+
+			// Set the current Java method line so all Instructions will also
+			// get the correct one.
+			M->set_current_line(iptr->line);
 
 			STATISTICS(++num_icmd_inst);
 			#if !defined(NDEBUG)

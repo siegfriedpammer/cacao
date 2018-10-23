@@ -179,8 +179,7 @@ void trap_handle(int sig, void *xpc, void *context)
 	// ArrayIndexOutOfBoundsException, or ArithmeticException) we deoptimize
 	// instead of throwing the exception.
 #if defined(ENABLE_COMPILER2) && !defined(ENABLE_COUNTDOWN_TRAPS)
-	if (type == TRAP_NullPointerException
-			|| type == TRAP_ArrayIndexOutOfBoundsException
+	if (type == TRAP_ArrayIndexOutOfBoundsException
 			|| type == TRAP_ArithmeticException) {
 		void *xpv = md_codegen_get_pv_from_pc(xpc);
 		codeinfo *code = code_get_codeinfo_for_pv(xpv);

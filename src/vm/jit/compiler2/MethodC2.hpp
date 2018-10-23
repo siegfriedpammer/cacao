@@ -81,6 +81,14 @@ private:
 	Utf8String &class_name_utf8;
 	Utf8String &method_name_utf8;
 	Utf8String &method_desc_utf8;
+
+	/**
+	 * Line number of the current instruction during SSA construction.
+	 * Everytime add_Instruction is called, the line number of the
+	 * Instruction is set to the value of current_line.
+	 */
+	u2 current_line = 0;
+
 public:
 	Method(methodinfo *m);
 	~Method();
@@ -178,6 +186,7 @@ public:
 	 */
 	BeginInst* get_edge_block(BeginInst* pred, BeginInst* succ);
 
+	void set_current_line(u2 value) { current_line = value; }
 };
 
 OStream& operator<<(OStream &OS, const Method &M);

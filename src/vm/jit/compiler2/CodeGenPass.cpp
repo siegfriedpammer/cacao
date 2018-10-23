@@ -526,6 +526,26 @@ void CodeGenPass::finish(JITData &JD) {
 
 	/* Create the linenumber table. */
 
+	std::vector<Linenumber> linenumbers;
+	for (auto i = instruction_positions.begin(), e = instruction_positions.end(); i != e; ++i) {
+		MachineInstruction* instr = i->first;
+		if (instr->get_line() == 0) continue;
+
+		LOG2(*instr << " at " << instr->get_line() << nl);
+		std::size_t offset = CS.size() - i->second;
+
+		linenumbers.push_back(Linenumber(instr->get_line(), (void*)offset));
+	}
+
+	std::sort(linenumbers.begin(), linenumbers.end(), [&](auto& ln1, auto& ln2) {
+		if (ln1.get_pc() == ln2.get_pc()) return ln1.get_linenumber() < ln2.get_linenumber(); 
+		return ln1.get_pc() < ln2.get_pc();
+	});
+
+	for (auto& lnr : linenumbers) {
+		LOG2("Line number " << lnr.get_linenumber() << " at " << lnr.get_pc() << nl);
+		JD.get_jitdata()->cd->linenumbers->push_front(lnr);
+	}
 	code->linenumbertable = new LinenumberTable(JD.get_jitdata());
 
 #if 0

@@ -1281,10 +1281,23 @@ void method_methodref_println(constant_FMIref *mr)
 }
 #endif /* !defined(NDEBUG) */
 
-bool method_matches(methodinfo *m, const char* name) {
+bool method_matches(methodinfo *m, const char* name, const char* clazz, const char* descriptor) {
 	if (!m || !name)
 		return false;
-	return m->name == Utf8String::from_utf8(name);
+
+	if (!m->clazz)
+		return false;
+
+	// If either a class name or a signature was provided, check them first,
+	// the name is the last thing we check.
+
+	if (clazz && !m->clazz->name.equals(clazz))
+		return false;
+
+	if (descriptor && !m->descriptor.equals(descriptor))
+		return false;
+
+	return m->name.equals(name);
 }
 
 namespace cacao {

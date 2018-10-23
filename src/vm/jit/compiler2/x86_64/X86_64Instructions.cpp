@@ -451,10 +451,11 @@ void MovInst::emit(CodeMemory* CM) const {
 	case GPInstruction::MemImm64:
 		opcode = 0xc7;
 		break;
-	default: 
-		ERROR_MSG(this << ": Operand(s) not supported",
-			"dst: " << dst << " src: " << src << " op_size: "
-			<< get_op_size() * 8 << "bit");
+	default:
+		// TODO: Re-enable error message somehow. 
+		// ERROR_MSG(this << ": Operand(s) not supported",
+		// 	"dst: " << dst << " src: " << src << " op_size: "
+		//	<< get_op_size() * 8 << "bit");
 		throw std::runtime_error("Unsupported operands");
 		break;
 	}
@@ -713,7 +714,9 @@ void CondJumpInst::emit(CodeMemory* CM) const {
 	s4 offset = CM->get_offset(idx);
 	if (offset == 0) {
 		// XXX fix me! remove empty blocks?
-		ABORT_MSG("x86_64 ERROR","CondJump offset 0 oO!");
+		// TODO Re-enable abort message or fix this.
+		// ABORT_MSG("x86_64 ERROR","CondJump offset 0 oO!");
+		throw std::runtime_error("x86_64 error, CondJump offset is zero!");
 		//return;
 	}
 	LOG2("found offset of " << *MBB << ": " << offset << nl);
@@ -925,9 +928,11 @@ void MovSSInst::emit(CodeMemory* CM) const {
 		break;
 	}
 	default: 
-		ABORT_MSG(this << ": Operand(s) not supported",
-			"dst: " << dst << " src: " << src << " op_size: "
-			<< get_op_size() * 8 << "bit");
+		// TODO: Re-enable error message + abort when is fixed.
+		// ABORT_MSG(this << ": Operand(s) not supported",
+		// 	"dst: " << dst << " src: " << src << " op_size: "
+		// 	<< get_op_size() * 8 << "bit");
+		throw std::runtime_error("Operands not supported (MovSSInst)");
 		break;
 	}
 

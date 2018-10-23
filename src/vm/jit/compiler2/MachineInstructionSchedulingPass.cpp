@@ -23,6 +23,7 @@
 */
 
 #include <algorithm>
+#include <iterator>
 
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
@@ -109,9 +110,19 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 		LOG2("lowering for BB using list sched " << BI << nl);
 		for (InstructionSchedule<Instruction>::const_inst_iterator i = IS->inst_begin(BI),
 				e = IS->inst_end(BI); i != e; ++i) {
+			// Save the current size, we need to set the correct line number
+			// for all the new MachineInstructions from [size, MBB->size()).
+			auto next = std::max<u2>(0, MBB->size() - 1);
+			
 			Instruction *I = *i;
 			LOG2("lower: " << *I << nl);
 			I->accept(LV, true);
+
+			auto j = MBB->begin();
+			std::advance(j, next);
+			for (auto je = MBB->end(); j != je; ++j) {
+				(*j)->set_line(I->get_line());
+			}
 		}
 #else
 		LOG2("Lowering with Pattern Matching " << BI << nl);

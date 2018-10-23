@@ -999,8 +999,7 @@ void X86_64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 void X86_64LoweringVisitor::visit(ARRAYLENGTHInst *I, bool copyOperands) {
 	assert(I);
 
-	// Implicit null-checks are handled via deoptimization.
-	place_deoptimization_marker(I);
+	// Implicit null-checks are handled correctly now, no deopt needed.
 
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
 	assert(I->get_type() == Type::IntTypeID);
@@ -1026,7 +1025,8 @@ void X86_64LoweringVisitor::visit(ARRAYBOUNDSCHECKInst *I, bool copyOperands) {
 			   || src_index->get_type() == Type::CharTypeID
 			   || src_index->get_type() == Type::ByteTypeID);
 
-	// Implicit null-checks are handled via deoptimization.
+	// Implicit null-checks are handled now, no deoptimization needed.
+	// TODO: Debug why ARRAYBOUNDSCHECKs don't work.
 	place_deoptimization_marker(I);
 
 	// load array length
@@ -1251,17 +1251,6 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	MachineMethodDescriptor MMD(MD, get_Backend()->get_JITData()->get_MachineOperandFactory(), false);
 	StackSlotManager *SSM = get_Backend()->get_JITData()->get_StackSlotManager();
 
-	// Implicit null-checks are handled via deoptimization
-	// TODO: Check with Matthias if we can move this really here
-	//       Its moved here because live-ranges of parameters are split
-	//       afterwards, but the deoptimize causes the arguments to live longer
-	//       then necessary
-	// if (I->to_INVOKEVIRTUALInst()) {
-	//	place_deoptimization_marker(I->to_INVOKEVIRTUALInst());
-	// } else if (I->to_INVOKEINTERFACEInst()) {
-	//	place_deoptimization_marker(I->to_INVOKEINTERFACEInst());
-	// }
-
 	// operands for the call
 	VirtualRegister *addr = CreateVirtualRegister(Type::ReferenceTypeID);
 	MachineOperand *result = CreateVirtualRegister(type);
@@ -1308,25 +1297,15 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 		DataFragment datafrag = DS.get_Ref(idx, sizeof(void*));
 
 		methodinfo* callee = I->get_fmiref()->p.method;
-		if (!callee->code) {
-			throw std::runtime_error("x86_64Backend: InvokeStatic/Special, no codeinfo!");
-		}
-		if (!callee->code->entrypoint) {
-			throw std::runtime_error("x86_64Backend: InvokeStatic/Special, no entrypoint!");
-		}
-		assert_msg(callee->code, "No codeinfo for " << *callee << nl);
-		assert_msg(callee->code->entrypoint, "No entrypoint for " << *callee << nl);
+		assert_msg(callee->stubroutine, "No stubroutine for " << *callee << nl);
+		write_data<void*>(datafrag, callee->stubroutine);
 
-		write_data<void*>(datafrag, callee->code->entrypoint);
-		
 		MovDSEGInst *dmov = new MovDSEGInst(DstOp(addr), idx);
 		get_current()->push_back(dmov);
 
 		MI = new MachineReplacementPointStaticSpecialInst(call, source_state->get_source_location(), source_state->op_size(), idx);
 	} else if (I->to_INVOKEVIRTUALInst()) {
-
-		// Implicit null-checks are handled via deoptimization.
-		place_deoptimization_marker(I->to_INVOKEVIRTUALInst());
+		// Implicit null-checks are handled now, no deoptimization needed.
 
 		methodinfo* callee = I->get_fmiref()->p.method;
 		int32_t s1 = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * callee->vftblindex;
@@ -1344,9 +1323,7 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 
 		MI = new MachineReplacementPointCallSiteInst(call, source_state->get_source_location(), source_state->op_size());
 	} else if (I->to_INVOKEINTERFACEInst()) {
-
-		// Implicit null-checks are handled via deoptimization.
-		place_deoptimization_marker(I->to_INVOKEINTERFACEInst());
+		// Implicit null-checks are handled now, no deoptimization needed.
 
 		methodinfo* callee = I->get_fmiref()->p.method;
 		int32_t s1 = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr) * callee->clazz->index;
@@ -1420,8 +1397,7 @@ void X86_64LoweringVisitor::visit(BUILTINInst *I, bool copyOperands) {
 void X86_64LoweringVisitor::visit(GETFIELDInst *I, bool copyOperands) {
 	assert(I);
 
-	// Implicit null-checks are handled via deoptimization.
-	place_deoptimization_marker(I);
+	// Implicit null-checks are handled now, no deoptimization needed.
 
 	MachineOperand* objectref = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand *field_address = new X86_64ModRMOperand(I->get_type(),
@@ -1435,8 +1411,7 @@ void X86_64LoweringVisitor::visit(GETFIELDInst *I, bool copyOperands) {
 void X86_64LoweringVisitor::visit(PUTFIELDInst *I, bool copyOperands) {
 	assert(I);
 
-	// Implicit null-checks are handled via deoptimization.
-	place_deoptimization_marker(I);
+	// Implicit null-checks are handled now, no deoptimization needed.
 
 	MachineOperand *objectref = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand *value = get_op(I->get_operand(1)->to_Instruction());

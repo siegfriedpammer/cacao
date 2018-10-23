@@ -320,12 +320,9 @@ bool can_possibly_compile(void* jd_ptr)
 			case ICMD_ATHROW:
 			case ICMD_GETEXCEPTION:
 				return false;
-			
-			// These have deopt markers placed, so we skip them.
-			case ICMD_ARRAYLENGTH:
-			case ICMD_INVOKEVIRTUAL:
-			case ICMD_INVOKEINTERFACE:
 
+			// These use ARRAYBOUNDSCHECK and those don't work
+			// correctly at the moment.
 			case ICMD_IALOAD:
 			case ICMD_SALOAD:
 			case ICMD_BALOAD:
@@ -342,11 +339,6 @@ bool can_possibly_compile(void* jd_ptr)
 			case ICMD_DASTORE:
 			case ICMD_FASTORE:
 			case ICMD_AASTORE:
-			case ICMD_IASTORECONST:
-			case ICMD_LASTORECONST:
-			case ICMD_GETFIELD:
-			case ICMD_PUTFIELD:
-			case ICMD_PUTFIELDCONST:  
 				return false;
 
 			case ICMD_INVOKESPECIAL:

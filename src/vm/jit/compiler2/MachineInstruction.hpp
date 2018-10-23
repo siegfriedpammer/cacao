@@ -150,6 +150,7 @@ private:
 	}
 protected:
 	std::size_t step = 0;		//< Schedule numbering inside a basic block (used by next use analysis)
+	u2 line = 0;                //< Corresponding line in the Java code.
 	const std::size_t id;
 	operand_list operands;
 	operand_list results;
@@ -171,7 +172,7 @@ public:
 	}
 	#endif
 	MachineInstruction(const char * name, MachineOperand* result, std::size_t num_operands, const char* comment = NULL)
-		: id(id_counter++), operands(), dummy_operands(), ref_map(), name(name), comment(comment), block(NULL) {
+		: line(0), id(id_counter++), operands(), dummy_operands(), ref_map(), name(name), comment(comment), block(NULL) {
 		for (std::size_t i = 0; i < num_operands ; ++i) {
 			operands.push_back(MachineOperandDesc(this,i));
 		}
@@ -224,7 +225,12 @@ public:
 		return operands[i];
 	}
 	MachineOperandDesc& get(std::size_t i) {
-		assert(i < operands.size());
+		// TODO: This assert fails while compiling javax/crypto/CryptoPolicyParser#peek
+		//       Investigate why, fix and re-enable assertion.
+		// assert(i < operands.size());
+		if (i >= operands.size()) {
+			throw std::runtime_error("MachineInstruction#get out of bounds access");
+		}
 		assert(operands[i].get_index() == i);
 		return operands[i];
 	}
@@ -355,6 +361,8 @@ public:
 	void set_step(const std::size_t s) {
 		step = s;
 	}
+	u2 get_line() const { return line; }
+	void set_line(u2 l) {line = l; }
 	virtual bool accepts_immediate(std::size_t i, Immediate *imm) const {
 		return false;
 	}
