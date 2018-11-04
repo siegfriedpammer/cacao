@@ -1750,7 +1750,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				/* array type cast-check */
 
 				s1 = emit_load_s1(jd, iptr, REG_A0);
-				asme.imov(REG_A0, s1);
+				asme.mov(REG_A0, s1);
 
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 					disp = dseg_add_unique_address(cd, NULL);
@@ -2008,7 +2008,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			emit_exception_check(cd, iptr);
 
 			d = codegen_reg_of_dst(jd, iptr, REG_RESULT);
-			asme.imov(d, REG_RESULT);
+			asme.mov(d, REG_RESULT);
 			emit_store_dst(jd, iptr, d);
 			break;
 
