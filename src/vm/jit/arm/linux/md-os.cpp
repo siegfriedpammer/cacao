@@ -29,21 +29,7 @@
 #include <stdint.h>
 #include "mm/memory.hpp"
 
-#define ucontext broken_glibc_ucontext
-#define ucontext_t broken_glibc_ucontext_t
 #include <ucontext.h>
-#undef ucontext
-#undef ucontext_t
-
-typedef struct ucontext {
-   unsigned long     uc_flags;
-   struct ucontext  *uc_link;
-   stack_t           uc_stack;
-   struct sigcontext uc_mcontext;
-   sigset_t          uc_sigmask;
-} ucontext_t;
-
-#define scontext_t struct sigcontext
 
 #include "vm/types.hpp"
 
@@ -65,10 +51,7 @@ typedef struct ucontext {
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t* _uc = (ucontext_t*) _p;
-	scontext_t* _sc = &_uc->uc_mcontext;
-
-	/* ATTENTION: glibc included messed up kernel headers we needed a
-	   workaround for the ucontext structure. */
+	mcontext_t* _sc = &_uc->uc_mcontext;
 
 	void* xpc = (u1 *) _sc->arm_pc;
 
@@ -83,10 +66,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t* _uc = (ucontext_t*) _p;
-	scontext_t* _sc = &_uc->uc_mcontext;
-
-	/* ATTENTION: glibc included messed up kernel headers we needed a
-	   workaround for the ucontext structure. */
+	mcontext_t* _sc = &_uc->uc_mcontext;
 
 	void* xpc = (void*) _sc->arm_pc;
 
@@ -105,7 +85,7 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 {
 	threadobject *thread;
 	ucontext_t   *_uc;
-	scontext_t   *_sc;
+	mcontext_t   *_sc;
 	u1           *pc;
 
 	thread = THREADOBJECT;
@@ -128,14 +108,11 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 void md_executionstate_read(executionstate_t *es, void *context)
 {
 	ucontext_t *_uc;
-	scontext_t *_sc;
+	mcontext_t *_sc;
 	int         i;
 
 	_uc = (ucontext_t *) context;
 	_sc = &_uc->uc_mcontext;
-
-	/* ATTENTION: glibc included messed up kernel headers we needed a
-	   workaround for the ucontext structure. */
 
 	/* read special registers */
 
@@ -147,7 +124,7 @@ void md_executionstate_read(executionstate_t *es, void *context)
 	/* read integer registers */
 
 	for (i = 0; i < INT_REG_CNT; i++)
-		es->intregs[i] = *((int32_t*) _sc + OFFSET(scontext_t, arm_r0)/4 + i);
+		es->intregs[i] = *((int32_t*) _sc + OFFSET(mcontext_t, arm_r0)/4 + i);
 
 	/* read float registers */
 
@@ -165,19 +142,16 @@ void md_executionstate_read(executionstate_t *es, void *context)
 void md_executionstate_write(executionstate_t *es, void *context)
 {
 	ucontext_t *_uc;
-	scontext_t *_sc;
+	mcontext_t *_sc;
 	int         i;
 
 	_uc = (ucontext_t *) context;
 	_sc = &_uc->uc_mcontext;
 
-	/* ATTENTION: glibc included messed up kernel headers we needed a
-	   workaround for the ucontext structure. */
-
 	/* write integer registers */
 
 	for (i = 0; i < INT_REG_CNT; i++)
-		*((int32_t*) _sc + OFFSET(scontext_t, arm_r0)/4 + i) = es->intregs[i];
+		*((int32_t*) _sc + OFFSET(mcontext_t, arm_r0)/4 + i) = es->intregs[i];
 
 	/* write special registers */
 
