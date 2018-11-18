@@ -510,7 +510,8 @@ void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		CHECK_INT_REG(reg);
 		M_TEQ_IMM(reg, 0);
-		M_TRAPEQ(0, TRAP_ArithmeticException);
+		M_BNE(0);
+		M_TRAP(0, TRAP_ArithmeticException);
 	}
 }
 
@@ -525,14 +526,16 @@ void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TST(reg, reg);
-		M_TRAPEQ(0, TRAP_NullPointerException);
+		M_BNE(0);
+		M_TRAP(0, TRAP_NullPointerException);
 	}
 }
 
 void emit_nullpointer_check_force(codegendata *cd, instruction *iptr, s4 reg)
 {
 	M_TST(reg, reg);
-	M_TRAPEQ(0, TRAP_NullPointerException);
+	M_BNE(0);
+	M_TRAP(0, TRAP_NullPointerException);
 }
 
 
@@ -547,7 +550,8 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ILD_INTERN(REG_ITMP3, s1, OFFSET(java_array_t, size));
 		M_CMP(s2, REG_ITMP3);
-		M_TRAPHS(s2, TRAP_ArrayIndexOutOfBoundsException);
+		M_BLO(0);
+		M_TRAP(s2, TRAP_ArrayIndexOutOfBoundsException);
 	}
 }
 
@@ -562,7 +566,8 @@ void emit_arraystore_check(codegendata *cd, instruction *iptr)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TST(REG_RESULT, REG_RESULT);
-		M_TRAPEQ(0, TRAP_ArrayStoreException);
+		M_BNE(0);
+		M_TRAP(0, TRAP_ArrayStoreException);
 	}
 }
 
@@ -578,23 +583,28 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		switch (condition) {
 		case BRANCH_EQ:
-			M_TRAPEQ(s1, TRAP_ClassCastException);
+			M_BNE(0);
+			M_TRAP(s1, TRAP_ClassCastException);
 			break;
 
 		case BRANCH_NE:
-			M_TRAPNE(s1, TRAP_ClassCastException);
+			M_BEQ(0);
+			M_TRAP(s1, TRAP_ClassCastException);
 			break;
 
 		case BRANCH_LT:
-			M_TRAPLT(s1, TRAP_ClassCastException);
+			M_BGE(0);
+			M_TRAP(s1, TRAP_ClassCastException);
 			break;
 
 		case BRANCH_LE:
-			M_TRAPLE(s1, TRAP_ClassCastException);
+			M_BGT(0);
+			M_TRAP(s1, TRAP_ClassCastException);
 			break;
 
 		case BRANCH_UGT:
-			M_TRAPHI(s1, TRAP_ClassCastException);
+			M_BLS(0);
+			M_TRAP(s1, TRAP_ClassCastException);
 			break;
 
 		default:
@@ -614,7 +624,8 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TST(REG_RESULT, REG_RESULT);
-		M_TRAPEQ(0, TRAP_CHECK_EXCEPTION);
+		M_BNE(0);
+		M_TRAP(0, TRAP_CHECK_EXCEPTION);
 	}
 }
 
