@@ -68,7 +68,7 @@ void LoweringVisitorBase::visit(CONSTInst* I, bool copyOperands) {
 	assert(I);
 	auto MOF = backend->get_JITData()->get_MachineOperandFactory();
 	// VirtualRegister *reg = MOF->CreateVirtualRegister(I->get_type());
-	Immediate *imm = MOF->CreateImmediate(I);
+	Immediate *imm = new Immediate(I);
 	// MachineInstruction *move = backend->create_Move(imm,reg);
 	// get_current()->push_back(move);
 	// set_op(I,move->get_result().op);

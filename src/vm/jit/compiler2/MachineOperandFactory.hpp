@@ -61,13 +61,6 @@ public:
 	UnassignedReg* CreateUnassignedReg(Type::TypeID);
 	VirtualRegister* CreateVirtualRegister(Type::TypeID);
 
-	Immediate* CreateImmediate(CONSTInst* instruction);
-	Immediate* CreateImmediate(s4 val, Type::IntType type);
-	Immediate* CreateImmediate(s8 val, Type::LongType type);
-	Immediate* CreateImmediate(float val, Type::FloatType type);
-	Immediate* CreateImmediate(double val, Type::DoubleType type);
-	Immediate* CreateImmediate(s8 val, Type::ReferenceType type);
-
 	template <class T>
 	T* CreateNativeRegister(Type::TypeID, MachineOperand*);
 

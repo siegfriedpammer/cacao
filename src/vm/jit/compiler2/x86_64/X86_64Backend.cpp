@@ -273,19 +273,19 @@ void X86_64LoweringVisitor::visit(CMPInst *I, bool copyOperands) {
 		MachineOperand *greater = CreateVirtualRegister(Type::IntTypeID);
 		// unordered 0
 		MBB->push_back(new MovInst(
-			SrcOp(MOF->CreateImmediate(0,Type::IntType())),
+			SrcOp(new Immediate(0,Type::IntType())),
 			DstOp(zero),
 			op_size
 		));
 		// less then (1)
 		MBB->push_back(new MovInst(
-			SrcOp(MOF->CreateImmediate(1,Type::IntType())),
+			SrcOp(new Immediate(1,Type::IntType())),
 			DstOp(less),
 			op_size
 		));
 		// greater then (-1)
 		MBB->push_back(new MovInst(
-			SrcOp(MOF->CreateImmediate(-1,Type::IntType())),
+			SrcOp(new Immediate(-1,Type::IntType())),
 			DstOp(greater),
 			op_size
 		));
@@ -436,7 +436,7 @@ void X86_64LoweringVisitor::visit(NEGInst *I, bool copyOperands) {
 	{
 		VirtualRegister *tmp = CreateVirtualRegister(type);
 		MBB->push_back(new MovImmSSInst(
-			SrcOp(MOF->CreateImmediate(0x80000000,Type::IntType())),
+			SrcOp(new Immediate(0x80000000,Type::IntType())),
 			DstOp(tmp)
 		));
 		MBB->push_back(new XORPSInst(
@@ -450,7 +450,7 @@ void X86_64LoweringVisitor::visit(NEGInst *I, bool copyOperands) {
 	{
 		VirtualRegister *tmp = CreateVirtualRegister(type);
 		MBB->push_back(new MovImmSDInst(
-			SrcOp(MOF->CreateImmediate(0x8000000000000000L,Type::LongType())),
+			SrcOp(new Immediate(0x8000000000000000L,Type::LongType())),
 			DstOp(tmp)
 		));
 		MBB->push_back(new XORPDInst(
@@ -1174,7 +1174,7 @@ void X86_64LoweringVisitor::visit(CASTInst *I, bool copyOperands) {
 			auto MOF = get_Backend()->get_JITData()->get_MachineOperandFactory();
 			MachineOperand *clear_result = CreateVirtualRegister(Type::DoubleTypeID);
 			MachineOperand *result = CreateVirtualRegister(Type::DoubleTypeID);
-			MachineInstruction *clear = new MovImmSDInst(SrcOp(MOF->CreateImmediate(0, Type::DoubleType())), DstOp(clear_result));
+			MachineInstruction *clear = new MovImmSDInst(SrcOp(new Immediate(0, Type::DoubleType())), DstOp(clear_result));
 			MachineInstruction *conversion = new CVTSI2SDInst(
 				SrcOp(src_op),
 				DstOp(result),
@@ -1418,7 +1418,7 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 		MI = new MachineReplacementPointCallSiteInst(call, source_state->get_source_location(), source_state->op_size());
 	} else if (I->to_BUILTINInst()) {
 		auto MOF = get_Backend()->get_JITData()->get_MachineOperandFactory();
-		Immediate *method_address = MOF->CreateImmediate(reinterpret_cast<s8>(I->to_BUILTINInst()->get_address()),
+		Immediate *method_address = new Immediate(reinterpret_cast<s8>(I->to_BUILTINInst()->get_address()),
 				Type::ReferenceType());
 		MachineInstruction *mov = get_Backend()->create_Move(method_address, addr);
 		get_current()->push_back(mov);
@@ -1501,7 +1501,7 @@ void X86_64LoweringVisitor::visit(GETSTATICInst *I, bool copyOperands) {
 	assert(I);
 
 	auto MOF = get_Backend()->get_JITData()->get_MachineOperandFactory();
-	Immediate *field_address_imm = MOF->CreateImmediate(reinterpret_cast<s8>(I->get_field()->value),
+	Immediate *field_address_imm = new Immediate(reinterpret_cast<s8>(I->get_field()->value),
 			Type::ReferenceType());
 
 	// TODO Remove this as soon as loads from immediate addresses are supported.
@@ -1521,7 +1521,7 @@ void X86_64LoweringVisitor::visit(PUTSTATICInst *I, bool copyOperands) {
 	assert(I);
 
 	auto MOF = get_Backend()->get_JITData()->get_MachineOperandFactory();
-	Immediate *field_address_imm = MOF->CreateImmediate(reinterpret_cast<s8>(I->get_field()->value),
+	Immediate *field_address_imm = new Immediate(reinterpret_cast<s8>(I->get_field()->value),
 			Type::ReferenceType());
 
 	// TODO Remove this as soon as stores to immediate addresses are supported.
@@ -1553,7 +1553,7 @@ void X86_64LoweringVisitor::visit(LOOKUPSWITCHInst *I, bool copyOperands) {
 			e = I->match_end(); i != e; ++i) {
 		// create compare
 		CmpInst *cmp = new CmpInst(
-			Src2Op(MOF->CreateImmediate(*i,Type::IntType())),
+			Src2Op(new Immediate(*i,Type::IntType())),
 			Src1Op(src_op),
 			get_OperandSize_from_Type(type));
 		get_current()->push_back(cmp);
