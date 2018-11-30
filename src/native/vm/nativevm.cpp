@@ -200,8 +200,10 @@ bool nativevm_init(void)
 
 	(void) vm_call_method(m, NULL);
 
-	if (exceptions_get_exception() != NULL)
+	if (exceptions_get_exception() != NULL) {
+		exceptions_print_stacktrace();
 		return false;
+	}
 
 # else
 #  error unknown classpath configuration

@@ -251,6 +251,13 @@ void X86_64LoweringVisitor::visit(CMPInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
+
+	// TODO: Remove once we lower stuff correctly.
+	if (src_op1->is_Immediate()) src_op1 = loadImmediate(src_op1);
+	if (src_op2->is_Immediate()) src_op2 = loadImmediate(src_op2);
+
+	auto MOF = get_Backend()->get_JITData()->get_MachineOperandFactory();
+
 	Type::TypeID type = I->get_operand(0)->get_type();
 	assert(type == I->get_operand(1)->get_type());
 	switch (type) {
@@ -266,19 +273,19 @@ void X86_64LoweringVisitor::visit(CMPInst *I, bool copyOperands) {
 		MachineOperand *greater = CreateVirtualRegister(Type::IntTypeID);
 		// unordered 0
 		MBB->push_back(new MovInst(
-			SrcOp(new Immediate(0,Type::IntType())),
+			SrcOp(MOF->CreateImmediate(0,Type::IntType())),
 			DstOp(zero),
 			op_size
 		));
 		// less then (1)
 		MBB->push_back(new MovInst(
-			SrcOp(new Immediate(1,Type::IntType())),
+			SrcOp(MOF->CreateImmediate(1,Type::IntType())),
 			DstOp(less),
 			op_size
 		));
 		// greater then (-1)
 		MBB->push_back(new MovInst(
-			SrcOp(new Immediate(-1,Type::IntType())),
+			SrcOp(MOF->CreateImmediate(-1,Type::IntType())),
 			DstOp(greater),
 			op_size
 		));
@@ -349,6 +356,10 @@ void X86_64LoweringVisitor::visit(IFInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
+	// TODO: Remove once we decide how to lower constants.
+	if (src_op1->is_Immediate()) src_op1 = loadImmediate(src_op1);
+	if (src_op2->is_Immediate()) src_op2 = loadImmediate(src_op2);
+	
 	Type::TypeID type = I->get_type();
 	switch (type) {
 	case Type::ByteTypeID:
@@ -400,25 +411,32 @@ void X86_64LoweringVisitor::visit(IFInst *I, bool copyOperands) {
 	}
 	default: break;
 	}
-	ABORT_MSG("x86_64: Lowering not supported",
-		"Inst: " << I << " type: " << type);
+	// TODO: Re-enable abort/error message once all types are implemented!
+	// ABORT_MSG("x86_64: Lowering not supported",
+	// 	"Inst: " << I << " type: " << type);
+	throw std::runtime_error("IFInst lowering not supported!");
 }
 
 void X86_64LoweringVisitor::visit(NEGInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src = get_op(I->get_operand(0)->to_Instruction());
+	// TODO: Remove once we decide how to lower constants.
+	if (src->is_Immediate()) src = loadImmediate(src);
+
 	Type::TypeID type = I->get_type();
 	MachineBasicBlock *MBB = get_current();
 
 	VirtualRegister *src_copy = CreateVirtualRegister(src->get_type());
 	VirtualRegister *dst = CreateVirtualRegister(type);
 
+	auto MOF = get_Backend()->get_JITData()->get_MachineOperandFactory();
+
 	switch (type) {
 	case Type::FloatTypeID:
 	{
 		VirtualRegister *tmp = CreateVirtualRegister(type);
 		MBB->push_back(new MovImmSSInst(
-			SrcOp(new Immediate(0x80000000,Type::IntType())),
+			SrcOp(MOF->CreateImmediate(0x80000000,Type::IntType())),
 			DstOp(tmp)
 		));
 		MBB->push_back(new XORPSInst(
@@ -432,7 +450,7 @@ void X86_64LoweringVisitor::visit(NEGInst *I, bool copyOperands) {
 	{
 		VirtualRegister *tmp = CreateVirtualRegister(type);
 		MBB->push_back(new MovImmSDInst(
-			SrcOp(new Immediate(0x8000000000000000L,Type::LongType())),
+			SrcOp(MOF->CreateImmediate(0x8000000000000000L,Type::LongType())),
 			DstOp(tmp)
 		));
 		MBB->push_back(new XORPDInst(
@@ -458,6 +476,9 @@ void X86_64LoweringVisitor::visit(ADDInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
+	// TODO: Remove once we decide how to lower constants.
+	if (src_op1->is_Immediate()) src_op1 = loadImmediate(src_op1);
+	if (src_op2->is_Immediate()) src_op2 = loadImmediate(src_op2);
 	Type::TypeID type = I->get_type();
 	VirtualRegister *dst = CreateVirtualRegister(type);
 
@@ -504,6 +525,9 @@ void X86_64LoweringVisitor::visit(ANDInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
+	// TODO: Remove once we decide how to lower constants.
+	if (src_op1->is_Immediate()) src_op1 = loadImmediate(src_op1);
+	if (src_op2->is_Immediate()) src_op2 = loadImmediate(src_op2);
 	Type::TypeID type = I->get_type();
 	VirtualRegister *dst = CreateVirtualRegister(type);
 
@@ -538,6 +562,9 @@ void X86_64LoweringVisitor::visit(ORInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
+	// TODO: Remove once we decide how to lower constants.
+	if (src_op1->is_Immediate()) src_op1 = loadImmediate(src_op1);
+	if (src_op2->is_Immediate()) src_op2 = loadImmediate(src_op2);
 	Type::TypeID type = I->get_type();
 	VirtualRegister *dst = NULL;
 
@@ -566,6 +593,9 @@ void X86_64LoweringVisitor::visit(XORInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
+	// TODO: Remove once we decide how to lower constants.
+	if (src_op1->is_Immediate()) src_op1 = loadImmediate(src_op1);
+	if (src_op2->is_Immediate()) src_op2 = loadImmediate(src_op2);
 	Type::TypeID type = I->get_type();
 	VirtualRegister *dst = NULL;
 
@@ -594,6 +624,9 @@ void X86_64LoweringVisitor::visit(SUBInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
+	// TODO: Remove once we decide how to lower constants.
+	if (src_op1->is_Immediate()) src_op1 = loadImmediate(src_op1);
+	if (src_op2->is_Immediate()) src_op2 = loadImmediate(src_op2);
 	Type::TypeID type = I->get_type();
 	VirtualRegister *dst = CreateVirtualRegister(type);
 
@@ -640,6 +673,9 @@ void X86_64LoweringVisitor::visit(MULInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
+	// TODO: Remove once we decide how to lower constants.
+	if (src_op1->is_Immediate()) src_op1 = loadImmediate(src_op1);
+	if (src_op2->is_Immediate()) src_op2 = loadImmediate(src_op2);
 	Type::TypeID type = I->get_type();
 	VirtualRegister *dst = CreateVirtualRegister(type);
 
@@ -686,6 +722,9 @@ void X86_64LoweringVisitor::visit(DIVInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op1 = get_op(I->get_operand(0)->to_Instruction());
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
+	// TODO: Remove once we decide how to lower constants.
+	if (src_op1->is_Immediate()) src_op1 = loadImmediate(src_op1);
+	if (src_op2->is_Immediate()) src_op2 = loadImmediate(src_op2);
 	Type::TypeID type = I->get_type();
 	GPInstruction::OperandSize opsize = get_OperandSize_from_Type(type);
 
@@ -751,11 +790,13 @@ void X86_64LoweringVisitor::visit(DIVInst *I, bool copyOperands) {
 void X86_64LoweringVisitor::visit(REMInst *I, bool copyOperands) {
 	assert(I);
 
-	MachineOperand* dividendLower;
 	MachineOperand* src_op2 = get_op(I->get_operand(1)->to_Instruction());
+	// TODO: Remove once we decide how to lower constants.
+	if (src_op2->is_Immediate()) src_op2 = loadImmediate(src_op2);
 	Type::TypeID type = I->get_type();
 	GPInstruction::OperandSize opsize = get_OperandSize_from_Type(type);
-	MachineOperand *dividend = get_op(I->get_operand(0)->to_Instruction());;
+	MachineOperand *dividend = get_op(I->get_operand(0)->to_Instruction());
+	if (dividend->is_Immediate()) dividend = loadImmediate(dividend);
 
 	MachineInstruction *resultInst = nullptr;
 	MachineOperand *resultOperand = nullptr;
@@ -888,8 +929,11 @@ void X86_64LoweringVisitor::visit(ALOADInst *I, bool copyOperands) {
 	modrm = new X86_64ModRMOperand(BaseOp(src_ref));
 #else
 	MachineOperand* src_base = get_op(ref_inst->get_operand(0)->to_Instruction());
+	// TODO: Remove once we decide how to lower constants.
+	if (src_base->is_Immediate()) src_base = loadImmediate(src_base);
 	assert(src_base->get_type() == Type::ReferenceTypeID);
 	MachineOperand* src_index = get_op(ref_inst->get_operand(1)->to_Instruction());
+	if (src_index->is_Immediate()) src_index = loadImmediate(src_index);
 	assert(src_index->get_type() == Type::IntTypeID 
 			   || src_index->get_type() == Type::ShortTypeID
 			   || src_index->get_type() == Type::CharTypeID
@@ -938,6 +982,10 @@ void X86_64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 	assert(I);
 	Instruction* ref_inst = I->get_operand(0)->to_Instruction();
 	MachineOperand* src_value = get_op(I->get_operand(1)->to_Instruction());
+
+	// TODO: Remove once we decide how constants are lowered.
+	if (src_value->is_Immediate()) src_value = loadImmediate(src_value);
+
 	Type::TypeID type = src_value->get_type();
 	MachineOperand *modrm = NULL;
 
@@ -950,8 +998,13 @@ void X86_64LoweringVisitor::visit(ASTOREInst *I, bool copyOperands) {
 	modrm = new X86_64ModRMOperand(BaseOp(src_ref));
 #else
 	MachineOperand* src_base = get_op(ref_inst->get_operand(0)->to_Instruction());
+	// TODO: Remove once we decide how constants are lowered.
+	if (src_base->is_Immediate()) src_base = loadImmediate(src_base);
 	assert(src_base->get_type() == Type::ReferenceTypeID);
+
 	MachineOperand* src_index = get_op(ref_inst->get_operand(1)->to_Instruction());
+	// TODO: Remove once we decide how constants are lowered.
+	if (src_index->is_Immediate()) src_index = loadImmediate(src_index);
 	assert(src_index->get_type() == Type::IntTypeID 
 			   || src_index->get_type() == Type::ShortTypeID
 			   || src_index->get_type() == Type::CharTypeID
@@ -1002,6 +1055,8 @@ void X86_64LoweringVisitor::visit(ARRAYLENGTHInst *I, bool copyOperands) {
 	// Implicit null-checks are handled correctly now, no deopt needed.
 
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
+	// TODO: Remove once we decide how constants are lowered.
+	if (src_op->is_Immediate()) src_op = loadImmediate(src_op);
 	assert(I->get_type() == Type::IntTypeID);
 	assert(src_op->get_type() == Type::ReferenceTypeID);
 	MachineOperand *vreg = CreateVirtualRegister(Type::IntTypeID);
@@ -1018,7 +1073,13 @@ void X86_64LoweringVisitor::visit(ARRAYLENGTHInst *I, bool copyOperands) {
 void X86_64LoweringVisitor::visit(ARRAYBOUNDSCHECKInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_ref = get_op(I->get_operand(0)->to_Instruction());
+	// TODO: Remove once we decide how constants are lowered.
+	if (src_ref->is_Immediate()) src_ref = loadImmediate(src_ref);
+
 	MachineOperand* src_index = get_op(I->get_operand(1)->to_Instruction());
+	// TODO: Remove once we decide how constants are lowered.
+	if (src_index->is_Immediate()) src_index = loadImmediate(src_index);
+	
 	assert(src_ref->get_type() == Type::ReferenceTypeID);
 	assert(src_index->get_type() == Type::IntTypeID 
 			   || src_index->get_type() == Type::ShortTypeID
@@ -1026,9 +1087,7 @@ void X86_64LoweringVisitor::visit(ARRAYBOUNDSCHECKInst *I, bool copyOperands) {
 			   || src_index->get_type() == Type::ByteTypeID);
 
 	// Implicit null-checks are handled now, no deoptimization needed.
-	// TODO: Debug why ARRAYBOUNDSCHECKs don't work.
-	place_deoptimization_marker(I);
-
+	
 	// load array length
 	MachineOperand *len = CreateVirtualRegister(Type::IntTypeID);
 	MachineOperand *modrm = new X86_64ModRMOperand(Type::IntTypeID,BaseOp(src_ref),OFFSET(java_array_t,size));
@@ -1054,6 +1113,8 @@ void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 	assert(I);
 	Type::TypeID type = I->get_type();
 	MachineOperand* src_op = (type == Type::VoidTypeID ? 0 : get_op(I->get_operand(0)->to_Instruction()));
+	// TODO: Remove once we decide how constants are lowered.
+	if (src_op && src_op->is_Immediate()) src_op = loadImmediate(src_op);
 
 	RetInst* ret = nullptr;
 	if (type == Type::VoidTypeID)
@@ -1072,6 +1133,8 @@ void X86_64LoweringVisitor::visit(RETURNInst *I, bool copyOperands) {
 void X86_64LoweringVisitor::visit(CASTInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
+	// TODO: Remove once we decide how constants are lowered.
+	if (src_op->is_Immediate()) src_op = loadImmediate(src_op);
 	Type::TypeID from = I->get_operand(0)->to_Instruction()->get_type();
 	Type::TypeID to = I->get_type();
 
@@ -1108,9 +1171,10 @@ void X86_64LoweringVisitor::visit(CASTInst *I, bool copyOperands) {
 		}
  		case Type::DoubleTypeID:
 		{
+			auto MOF = get_Backend()->get_JITData()->get_MachineOperandFactory();
 			MachineOperand *clear_result = CreateVirtualRegister(Type::DoubleTypeID);
 			MachineOperand *result = CreateVirtualRegister(Type::DoubleTypeID);
-			MachineInstruction *clear = new MovImmSDInst(SrcOp(new Immediate(0, Type::DoubleType())), DstOp(clear_result));
+			MachineInstruction *clear = new MovImmSDInst(SrcOp(MOF->CreateImmediate(0, Type::DoubleType())), DstOp(clear_result));
 			MachineInstruction *conversion = new CVTSI2SDInst(
 				SrcOp(src_op),
 				DstOp(result),
@@ -1270,10 +1334,11 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 			arg_dst = CreateVirtualRegister(arg_dst->get_type());
 		}
 
-		MachineInstruction* mov = get_Backend()->create_Move(
-			get_op(I->get_operand(i)->to_Instruction()),
-			arg_dst
-		);
+		MachineOperand* op = get_op(I->get_operand(i)->to_Instruction());
+		// TODO: Remove once we know how to lower constants or properly move them into
+		//       a stackslot.
+		if (op->is_Immediate()) op = loadImmediate(op);
+		MachineInstruction* mov = get_Backend()->create_Move(op, arg_dst);
 		get_current()->push_back(mov);
 		
 		// set call operand
@@ -1311,6 +1376,8 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 		int32_t s1 = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * callee->vftblindex;
 		VirtualRegister *vftbl_address = CreateVirtualRegister(Type::ReferenceTypeID);
 		MachineOperand *receiver = get_op(I->get_operand(0)->to_Instruction());
+		// TODO: Remove once we know how to lower constants or properly.
+		if (receiver->is_Immediate()) receiver = loadImmediate(receiver);
 		MachineOperand *vftbl_offset = new X86_64ModRMOperand(Type::ReferenceTypeID, BaseOp(receiver), OFFSET(java_object_t, vftbl));
 		MachineInstruction *load_vftbl_address = new MovInst(SrcOp(vftbl_offset), DstOp(vftbl_address),
 				GPInstruction::OS_64);
@@ -1329,6 +1396,8 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 		int32_t s1 = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr) * callee->clazz->index;
 		VirtualRegister *vftbl_address = CreateVirtualRegister(Type::ReferenceTypeID);
 		MachineOperand *receiver = get_op(I->get_operand(0)->to_Instruction());
+		// TODO: Remove once we know how to lower constants or properly.
+		if (receiver->is_Immediate()) receiver = loadImmediate(receiver);
 		MachineOperand *vftbl_offset = new X86_64ModRMOperand(Type::ReferenceTypeID, BaseOp(receiver), OFFSET(java_object_t, vftbl));
 		MachineInstruction *load_vftbl_address = new MovInst(SrcOp(vftbl_offset), DstOp(vftbl_address),
 				GPInstruction::OS_64);
@@ -1348,7 +1417,8 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 
 		MI = new MachineReplacementPointCallSiteInst(call, source_state->get_source_location(), source_state->op_size());
 	} else if (I->to_BUILTINInst()) {
-		Immediate *method_address = new Immediate(reinterpret_cast<s8>(I->to_BUILTINInst()->get_address()),
+		auto MOF = get_Backend()->get_JITData()->get_MachineOperandFactory();
+		Immediate *method_address = MOF->CreateImmediate(reinterpret_cast<s8>(I->to_BUILTINInst()->get_address()),
 				Type::ReferenceType());
 		MachineInstruction *mov = get_Backend()->create_Move(method_address, addr);
 		get_current()->push_back(mov);
@@ -1400,6 +1470,8 @@ void X86_64LoweringVisitor::visit(GETFIELDInst *I, bool copyOperands) {
 	// Implicit null-checks are handled now, no deoptimization needed.
 
 	MachineOperand* objectref = get_op(I->get_operand(0)->to_Instruction());
+	// TODO: Remove once we decide how constants are lowered.
+	if (objectref->is_Immediate()) objectref = loadImmediate(objectref);
 	MachineOperand *field_address = new X86_64ModRMOperand(I->get_type(),
 			BaseOp(objectref), I->get_field()->offset);
 	MachineOperand *vreg = CreateVirtualRegister(I->get_type());
@@ -1414,7 +1486,10 @@ void X86_64LoweringVisitor::visit(PUTFIELDInst *I, bool copyOperands) {
 	// Implicit null-checks are handled now, no deoptimization needed.
 
 	MachineOperand *objectref = get_op(I->get_operand(0)->to_Instruction());
+	// TODO: Remove once we decide how constants are lowered.
+	if (objectref->is_Immediate()) objectref = loadImmediate(objectref);
 	MachineOperand *value = get_op(I->get_operand(1)->to_Instruction());
+	if (value->is_Immediate()) value = loadImmediate(value);
 	MachineOperand *field_address = new X86_64ModRMOperand(value->get_type(),
 			BaseOp(objectref), I->get_field()->offset);
 	MachineInstruction *write_field = get_Backend()->create_Move(value, field_address);
@@ -1425,7 +1500,8 @@ void X86_64LoweringVisitor::visit(PUTFIELDInst *I, bool copyOperands) {
 void X86_64LoweringVisitor::visit(GETSTATICInst *I, bool copyOperands) {
 	assert(I);
 
-	Immediate *field_address_imm = new Immediate(reinterpret_cast<s8>(I->get_field()->value),
+	auto MOF = get_Backend()->get_JITData()->get_MachineOperandFactory();
+	Immediate *field_address_imm = MOF->CreateImmediate(reinterpret_cast<s8>(I->get_field()->value),
 			Type::ReferenceType());
 
 	// TODO Remove this as soon as loads from immediate addresses are supported.
@@ -1444,7 +1520,8 @@ void X86_64LoweringVisitor::visit(GETSTATICInst *I, bool copyOperands) {
 void X86_64LoweringVisitor::visit(PUTSTATICInst *I, bool copyOperands) {
 	assert(I);
 
-	Immediate *field_address_imm = new Immediate(reinterpret_cast<s8>(I->get_field()->value),
+	auto MOF = get_Backend()->get_JITData()->get_MachineOperandFactory();
+	Immediate *field_address_imm = MOF->CreateImmediate(reinterpret_cast<s8>(I->get_field()->value),
 			Type::ReferenceType());
 
 	// TODO Remove this as soon as stores to immediate addresses are supported.
@@ -1454,6 +1531,8 @@ void X86_64LoweringVisitor::visit(PUTSTATICInst *I, bool copyOperands) {
 	get_current()->push_back(load_field_address);
 
 	MachineOperand *value = get_op(I->get_operand(0)->to_Instruction());
+	// TODO: Remove once we decide how constants are lowered.
+	if (value->is_Immediate()) value = loadImmediate(value);
 	MachineOperand *modrm = new X86_64ModRMOperand(value->get_type(), BaseOp(field_address));
 	MachineInstruction *write_field = get_Backend()->create_Move(value, modrm);
 	get_current()->push_back(write_field);
@@ -1463,14 +1542,18 @@ void X86_64LoweringVisitor::visit(PUTSTATICInst *I, bool copyOperands) {
 void X86_64LoweringVisitor::visit(LOOKUPSWITCHInst *I, bool copyOperands) {
 	assert(I);
 	MachineOperand* src_op = get_op(I->get_operand(0)->to_Instruction());
+	// TODO: Remove once we decide how constants are lowered.
+	if (src_op->is_Immediate()) src_op = loadImmediate(src_op);
 	Type::TypeID type = I->get_type();
+
+	auto MOF = get_Backend()->get_JITData()->get_MachineOperandFactory();
 
 	LOOKUPSWITCHInst::succ_const_iterator s = I->succ_begin();
 	for(LOOKUPSWITCHInst::match_iterator i = I->match_begin(),
 			e = I->match_end(); i != e; ++i) {
 		// create compare
 		CmpInst *cmp = new CmpInst(
-			Src2Op(new Immediate(*i,Type::IntType())),
+			Src2Op(MOF->CreateImmediate(*i,Type::IntType())),
 			Src1Op(src_op),
 			get_OperandSize_from_Type(type));
 		get_current()->push_back(cmp);
@@ -2128,6 +2211,14 @@ void X86_64LoweringVisitor::setupSrcDst(MachineOperand*& src_op1, MachineOperand
 	dst = CreateVirtualRegister(type);
 	MachineInstruction *mov = get_Backend()->create_Move(src_op1,dst);
 	get_current()->push_back(mov);
+}
+
+MachineOperand* X86_64LoweringVisitor::loadImmediate(MachineOperand* imm) {
+	auto MOF = get_Backend()->get_JITData()->get_MachineOperandFactory();
+	VirtualRegister *reg = MOF->CreateVirtualRegister(imm->get_type());
+	MachineInstruction *move = get_Backend()->create_Move(imm,reg);
+	get_current()->push_back(move);
+	return reg;
 }
 
 

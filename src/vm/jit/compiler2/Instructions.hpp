@@ -1389,7 +1389,7 @@ public:
 /**
  * Perform a bounds-check for an array-access.
  */
-class ARRAYBOUNDSCHECKInst : public BinaryInst, public DereferenceInst {
+class ARRAYBOUNDSCHECKInst : public BinaryInst {
 public:
 
 	/**
@@ -1424,16 +1424,6 @@ public:
 	 * Casting method.
 	 */
 	virtual Instruction *to_Instruction() { return this; }
-
-	/**
-	 * Casting method.
-	 */
-	virtual SourceStateAwareInst *to_SourceStateAwareInst() { return this; }
-
-	/**
-	 * Conversion method.
-	 */
-	virtual DereferenceInst* to_DereferenceInst() { return this; }
 
 	/**
 	 * Casting method.

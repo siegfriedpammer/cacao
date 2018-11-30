@@ -87,6 +87,8 @@ private:
 	void setupSrcDst(MachineOperand*& src_op1, MachineOperand*& src_op2, VirtualRegister*& dst, 
 		Type::TypeID type, bool copyOperands, bool isCommutable);
 
+	MachineOperand* loadImmediate(MachineOperand* imm);
+
 };
 
 } // end namespace x86_64

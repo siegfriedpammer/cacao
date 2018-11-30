@@ -133,13 +133,13 @@ Build(ReversePostOrderPass* rpo, PhiLiftingPass* pl, MachineOperandFactory* mof)
 			auto op = uf.Find(instr->get_result().op);
 
 			for (auto& argument : *instr) {
-				uf.Union(op, argument.op);
+				if (!argument.op->is_Immediate()) uf.Union(op, argument.op);
 			}
 
 			// Also union together all the arguments and results of the PHI-lifting we did earlier
 			// even though half of these are already in the UnionFind, we simply do not care
 			for (auto move : pl->inserted_moves[instr->get_id()]) {
-				uf.Union(op, move->get(0).op);
+				if (!move->get(0).op->is_Immediate()) uf.Union(op, move->get(0).op);
 				uf.Union(op, move->get_result().op);
 			}
 		}

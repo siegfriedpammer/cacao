@@ -87,6 +87,7 @@ template <typename T>
 struct BinaryOperation<T, Instruction::DIVInstID> :
 		public std::binary_function<T,T,T> {
 	T operator()(const T &lhs, const T &rhs) const {
+		LOG2("Dividing " << lhs << " by " << rhs << nl);
 		return lhs / rhs;
 	}
 };
@@ -329,6 +330,7 @@ bool ConstantPropagationPass::run(JITData &JD) {
 
 		if (constantOperands[I] == I->op_size()) {
 			if (I->get_opcode() == Instruction::CONSTInstID) {
+				LOG2("Propagating " << *I << nl);
 				propagate(I);
 			} else if (can_be_statically_evaluated(I)) {
 				CONSTInst *foldedInst = foldInstruction(I);

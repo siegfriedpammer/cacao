@@ -117,7 +117,7 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-#define DEBUG_NAME "compiler2"
+#define DEBUG_NAME "compiler2/Compiler"
 
 Option<bool> enabled("DebugCompiler2","compiler with compiler2",false,option::xx_root());
 
@@ -286,6 +286,13 @@ bool can_possibly_compile(void* jd_ptr)
 	// Native methods are handled correctly anyway.
 	if (m->flags & ACC_NATIVE) return true;
 
+	// The method sun/nio/cs/StandardCharsets$Aliases.init
+	// is only called once and takes too long to compile with the second stage.
+	// So we skip it here :-)
+	if (m->clazz && m->clazz->name.equals("sun/nio/cs/StandardCharsets$Aliases")
+	    	&& m->name.equals("init"))
+		return false;
+
 	basicblock *bb;
 	FOR_EACH_BASICBLOCK(jd,bb) {
 	
@@ -300,6 +307,9 @@ bool can_possibly_compile(void* jd_ptr)
 			case ICMD_IUSHR:
 			case ICMD_LUSHR:
 			case ICMD_IMULPOW2:
+			case ICMD_IDIVPOW2:
+			case ICMD_IREMPOW2:
+			case ICMD_IANDCONST:
 			case ICMD_IORCONST:
 			case ICMD_IXORCONST:
 			case ICMD_ISHLCONST:
@@ -308,21 +318,21 @@ bool can_possibly_compile(void* jd_ptr)
 			case ICMD_LSHLCONST:
 			case ICMD_LSHRCONST:
 			case ICMD_LUSHRCONST:
-			case ICMD_BASTORECONST:
-			case ICMD_CASTORECONST:
-			case ICMD_SASTORECONST:
-			case ICMD_AASTORECONST:
-			case ICMD_LMULPOW2:
 			case ICMD_RET:
 			case ICMD_CHECKCAST:
 			case ICMD_INSTANCEOF:
 			case ICMD_JSR:
 			case ICMD_ATHROW:
 			case ICMD_GETEXCEPTION:
+			case ICMD_LMULPOW2:
+			case ICMD_LDIVPOW2:
+			case ICMD_LREMPOW2:
+			case ICMD_LORCONST:
+			case ICMD_LXORCONST:
 				return false;
 
-			// These use ARRAYBOUNDSCHECK and those don't work
-			// correctly at the moment.
+			// Array loads/stores cause more bugs at the moment,
+			// so we disable them for now.
 			case ICMD_IALOAD:
 			case ICMD_SALOAD:
 			case ICMD_BALOAD:
@@ -339,6 +349,12 @@ bool can_possibly_compile(void* jd_ptr)
 			case ICMD_DASTORE:
 			case ICMD_FASTORE:
 			case ICMD_AASTORE:
+			case ICMD_BASTORECONST:
+			case ICMD_CASTORECONST:
+			case ICMD_SASTORECONST:
+			case ICMD_AASTORECONST:
+			case ICMD_IASTORECONST:
+			case ICMD_LASTORECONST:
 				return false;
 
 			case ICMD_INVOKESPECIAL:

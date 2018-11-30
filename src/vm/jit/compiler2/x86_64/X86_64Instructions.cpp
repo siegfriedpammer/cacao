@@ -762,10 +762,24 @@ void IMulImmInst::emit(CodeMemory* CM) const {
 }
 
 void IDivInst::emit(CodeMemory *CM) const {
-	CodeFragment code = CM->get_CodeFragment(2);
 	X86_64Register *divisor = cast_to<X86_64Register>(operands[0].op);
-	code[0] = 0xf7;
-	code[1] = get_modrm_1reg(7, divisor);
+
+	// TODO: Write tests that make sure that this will also work correctly
+	//       for Long types.
+	// If the register is extended we need the REX byte.
+	const u1 code_size = divisor->extented ? 3 : 2;
+	CodeFragment code = CM->get_CodeFragment(code_size);
+	
+	const u1 modrm = get_modrm_1reg(7, divisor);
+
+	if (divisor->extented) {
+		code[0] = 0x41;
+		code[1] = 0xf7;
+		code[2] = modrm;
+	} else {
+		code[0] = 0xf7;
+		code[1] = modrm;
+	}
 }
 
 void CDQInst::emit(CodeMemory *CM) const {

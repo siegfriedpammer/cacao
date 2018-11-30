@@ -1051,29 +1051,12 @@ bool SSAConstructionPass::run(JITData &JD) {
 				}
 			case ICMD_IREMPOW2:
 			case ICMD_IDIVPOW2:
-			case ICMD_IANDCONST:
 				{
-					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
-					Instruction *konst = new CONSTInst(iptr->sx.val.i,Type::IntType());
-					Instruction *result;
-					switch (iptr->opc) {
-					case ICMD_IANDCONST:
-						result = new ANDInst(Type::IntTypeID, s1, konst);
-						break;
-					case ICMD_IDIVPOW2:
-						result = new DIVInst(Type::IntTypeID, s1, konst);
-						break;
-					case ICMD_IREMPOW2:
-						result = new REMInst(Type::IntTypeID, s1, konst);
-						break;
-					default: assert(0);
-						result = NULL;
-					}
-					M->add_Instruction(konst);
-					write_variable(iptr->dst.varindex,bbindex,result);
-					M->add_Instruction(result);
+					deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_IREMPOW2 and ICMD_IDIVPOW2 commands!");
+					break;
 				}
 				break;
+			case ICMD_IANDCONST:
 			case ICMD_IORCONST:
 			case ICMD_IXORCONST:
 			case ICMD_ISHLCONST:
@@ -1220,31 +1203,19 @@ bool SSAConstructionPass::run(JITData &JD) {
 				}
 				break;
 			case ICMD_LMULPOW2:
+			case ICMD_LDIVPOW2:
+			case ICMD_LREMPOW2:
 				{
-					deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_LMULPOW2!");
+					deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_L*POW2!");
 					break;
 				}
-			case ICMD_LDIVPOW2:
-				{
-					Value *s1 = read_variable(iptr->s1.varindex,bbindex);
-					Instruction *konst = new CONSTInst(iptr->sx.val.l,Type::LongType());
-					Instruction *result;
-					switch (iptr->opc) {
-					case ICMD_LDIVPOW2:
-						// FIXME this is not right!
-						result = new SUBInst(Type::LongTypeID, s1, konst);
-						break;
-					default: assert(0);
-						result = 0;
-					}
-					M->add_Instruction(konst);
-					write_variable(iptr->dst.varindex,bbindex,result);
-					M->add_Instruction(result);
-				}
-				break;
-			case ICMD_LREMPOW2:
+			
 			case ICMD_LORCONST:
 			case ICMD_LXORCONST:
+				{
+					deoptimize(bbindex, "SSAConstructionPass: deoptimize: ICMD_L*CONST!");
+					break;
+				}
 
 				/* const ADR */
 			case ICMD_ACONST:

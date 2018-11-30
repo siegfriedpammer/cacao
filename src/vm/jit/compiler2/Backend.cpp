@@ -67,11 +67,16 @@ void LoweringVisitorBase::visit(PHIInst* I, bool copyOperands) {
 void LoweringVisitorBase::visit(CONSTInst* I, bool copyOperands) {
 	assert(I);
 	auto MOF = backend->get_JITData()->get_MachineOperandFactory();
-	VirtualRegister *reg = MOF->CreateVirtualRegister(I->get_type());
-	Immediate *imm = new Immediate(I);
-	MachineInstruction *move = backend->create_Move(imm,reg);
-	get_current()->push_back(move);
-	set_op(I,move->get_result().op);
+	// VirtualRegister *reg = MOF->CreateVirtualRegister(I->get_type());
+	Immediate *imm = MOF->CreateImmediate(I);
+	// MachineInstruction *move = backend->create_Move(imm,reg);
+	// get_current()->push_back(move);
+	// set_op(I,move->get_result().op);
+
+	// TODO: We do not mov immediates into registers upfront but let
+	//       each instruction decide on their own what to do with immediates.
+	//       This should later be reversed again and handled by the DAG matcher.
+	set_op(I, imm);
 }
 
 void LoweringVisitorBase::lower_source_state_dependencies(MachineReplacementPointInst *MI,

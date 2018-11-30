@@ -45,6 +45,7 @@ class StackSlot;
 class StackSlotManager;
 class UnassignedReg;
 class VirtualRegister;
+class CONSTInst;
 
 /**
  * Factory that owns all operands it creates. Deleting the factory deletes
@@ -59,6 +60,13 @@ public:
 	StackSlot* CreateStackSlot(int, Type::TypeID, bool);
 	UnassignedReg* CreateUnassignedReg(Type::TypeID);
 	VirtualRegister* CreateVirtualRegister(Type::TypeID);
+
+	Immediate* CreateImmediate(CONSTInst* instruction);
+	Immediate* CreateImmediate(s4 val, Type::IntType type);
+	Immediate* CreateImmediate(s8 val, Type::LongType type);
+	Immediate* CreateImmediate(float val, Type::FloatType type);
+	Immediate* CreateImmediate(double val, Type::DoubleType type);
+	Immediate* CreateImmediate(s8 val, Type::ReferenceType type);
 
 	template <class T>
 	T* CreateNativeRegister(Type::TypeID, MachineOperand*);

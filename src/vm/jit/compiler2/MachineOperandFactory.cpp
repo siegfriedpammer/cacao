@@ -65,6 +65,38 @@ VirtualRegister* MachineOperandFactory::CreateVirtualRegister(Type::TypeID type)
 	return register_ownership(operand)->to_Register()->to_VirtualRegister();
 }
 
+Immediate* MachineOperandFactory::CreateImmediate(CONSTInst* instruction)
+{
+	auto operand = new Immediate(instruction);
+	return register_ownership(operand)->to_Immediate();
+}
+
+Immediate* MachineOperandFactory::CreateImmediate(s4 val, Type::IntType type)
+{
+	auto operand = new Immediate(val, type);
+	return register_ownership(operand)->to_Immediate();
+}
+Immediate* MachineOperandFactory::CreateImmediate(s8 val, Type::LongType type)
+{
+	auto operand = new Immediate(val, type);
+	return register_ownership(operand)->to_Immediate();
+}
+Immediate* MachineOperandFactory::CreateImmediate(float val, Type::FloatType type)
+{
+	auto operand = new Immediate(val, type);
+	return register_ownership(operand)->to_Immediate();
+}
+Immediate* MachineOperandFactory::CreateImmediate(double val, Type::DoubleType type)
+{
+	auto operand = new Immediate(val, type);
+	return register_ownership(operand)->to_Immediate();
+}
+Immediate* MachineOperandFactory::CreateImmediate(s8 val, Type::ReferenceType type)
+{
+	auto operand = new Immediate(val, type);
+	return register_ownership(operand)->to_Immediate();
+}
+
 template <>
 NativeRegister* MachineOperandFactory::CreateNativeRegister(Type::TypeID type, MachineOperand* reg)
 {
