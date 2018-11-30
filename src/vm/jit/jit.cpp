@@ -147,6 +147,9 @@ STAT_DECLARE_GROUP(compiler2_stat)
 STAT_REGISTER_SUBGROUP(compiler2_jit_stat, "Compiler 2 JIT","General compiler2 JIT statistics", compiler2_stat)
 STAT_REGISTER_GROUP_VAR(std::size_t, count_c2_calls, 0, "total compiler2 calls", "Number of optimizing compiler2 calls", compiler2_jit_stat)
 STAT_REGISTER_GROUP_VAR(std::size_t, count_c2_success, 0, "successfull optimizations", "Number of successfully optimized methods", compiler2_jit_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t, count_baseline_recompile, 0, "failed optimizations", "Number of methods re-compiled with the baseline", compiler2_jit_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t, count_heuristic_skip, 0, "skipped methods", "Number of methods skipped, due to heuristic", compiler2_jit_stat)
+
 
 /* jit_init ********************************************************************
 
@@ -852,6 +855,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 	//       in 80% of the cases.
 	if (!cacao::jit::compiler2::can_possibly_compile(jd)) {
 		jd->flags &= ~JITDATA_FLAG_COUNTDOWN;
+		STATISTICS(count_heuristic_skip++);
 	}
 
 	RT_TIMER_START(codegen_timer);
@@ -1026,8 +1030,8 @@ static void dump_machinecode_to_file(codeinfo* code)
 	u4 code_len = code->mcodelength - data_len;
 	assert_msg(data_len + code_len == code->mcodelength, "Error in length calculation!");
 
-	std::fwrite(&data_len, 4, 1, file);
-	std::fwrite(&code_len, 4, 1, file);
+	std::fwrite(&data_len, 1, 4, file);
+	std::fwrite(&code_len, 1, 4, file);
 	std::fwrite(code->mcode, 1, code->mcodelength, file);
 
 	std::fclose(file);
@@ -1082,6 +1086,7 @@ codeinfo *jit_get_current_code(methodinfo *m)
 			                << cacao::reset_color << cacao::nl);
 		jit_recompile_for_deoptimization(m);
 		m->code->optlevel = 1; // Set optlevel to 1, so we dont do this again
+		STATISTICS(count_baseline_recompile++);
 	}
 
 #else

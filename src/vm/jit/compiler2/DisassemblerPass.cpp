@@ -54,6 +54,7 @@ bool DisassemblerPass::run(JITData &JD) {
 
 	disassemble(start, end);
 #else
+	dbg() << BoldYellow << "Disassembling " << *JD.get_Method() << nl << reset_color;
 	CodeGenPass *CG = get_Artifact<CodeGenPass>();
 	for (CodeGenPass::BasicBlockMap::const_iterator i = CG->begin(), e = CG->end(); i != e ; ++i) {
 		u1 *end = start + i->second;

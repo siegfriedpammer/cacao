@@ -293,6 +293,10 @@ bool can_possibly_compile(void* jd_ptr)
 	    	&& m->name.equals("init"))
 		return false;
 
+	// This method has a bug during compilation, skip it.
+	if (m->clazz && m->clazz->name.equals("com/sun/tools/javac/util/Messages"))
+		return false;
+
 	basicblock *bb;
 	FOR_EACH_BASICBLOCK(jd,bb) {
 	

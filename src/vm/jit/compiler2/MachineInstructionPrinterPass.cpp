@@ -70,6 +70,7 @@ bool MachineInstructionPrinterPass::run(JITData &JD) {
 	if (enabled) {
 		MachineInstructionSchedule *MIS = get_Artifact<LIRInstructionScheduleArtifact>()->MIS;
 		assert(MIS);
+		dbg() << BoldYellow << "Instructions for " << *JD.get_Method() << nl << reset_color;
 		for (MachineInstructionSchedule::iterator i = MIS->begin(), e = MIS->end();
 				i != e; ++i) {
 			MachineBasicBlock *MBB = *i;
