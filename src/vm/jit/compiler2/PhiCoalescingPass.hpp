@@ -51,10 +51,14 @@ public:
 		return this;
 	}
 
+	struct EquivalenceClass {
+		std::vector<MachineOperand*> operands;
+		MachineOperand* last_assigned_color;
+	};
 	/// Returns the equivalence class the given operand belongs to
 	/// or nullptr if it not part of any
 	/// This is used by the RegisterAssignmentPass
-	const std::vector<MachineOperand*>* get_equivalence_class_for(MachineOperand*) const;
+	EquivalenceClass* get_equivalence_class_for(MachineOperand*);
 
 private:
 	Backend* backend;
@@ -70,7 +74,7 @@ private:
 	unsigned preorder(MachineOperand*);
 	unsigned max_preorder(MachineOperand*);
 
-	std::vector<std::vector<MachineOperand*>> equivalence_classes;
+	std::vector<EquivalenceClass> equivalence_classes;
 };
 
 } // end namespace compiler2

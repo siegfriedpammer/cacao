@@ -242,23 +242,28 @@ MachineOperand* RegisterAssignment::pick(const Variable& variable,
 	if (operands.empty())
 		return nullptr;
 
+	MachineOperand* result = nullptr;
+
 	// Check if the variable is in any PHI-equivalence classes, and if so try to assign the same
 	// register as other elements in the same class
 	if (PhiCoalescingPass::enabled) {
 		auto set =
 		    rapass.get_Artifact<PhiCoalescingPass>()->get_equivalence_class_for(variable.operand);
 		if (set) {
-			OperandSet assigned_gcolors = rapass.native_factory->EmptySet();
+			// OperandSet assigned_gcolors = rapass.native_factory->EmptySet();
 
-			for (auto equivalent_op : *set) {
-				const auto& equivalent_var = variable_for(equivalent_op);
-				if (equivalent_var.gcolor)
-					assigned_gcolors.add(equivalent_var.gcolor);
-			}
+			// for (auto equivalent_op : set->operands) {
+			// 	const auto& equivalent_var = variable_for(equivalent_op);
+			// 	if (equivalent_var.gcolor)
+			// 		assigned_gcolors.add(equivalent_var.gcolor);
+			// }
 
-			for (auto& gcolor : assigned_gcolors) {
-				if (operands.contains(&gcolor))
-					return &gcolor;
+			// for (auto& gcolor : assigned_gcolors) {
+			// 	if (operands.contains(&gcolor))
+			// 		return &gcolor;
+			// }
+			if (set->last_assigned_color && operands.contains(set->last_assigned_color)) {
+				return set->last_assigned_color;
 			}
 		}
 	}
@@ -267,16 +272,27 @@ MachineOperand* RegisterAssignment::pick(const Variable& variable,
 	if (variable.hint) {
 		if (type == PickType::Local && variable.hint->ccolor) {
 			if (operands.contains(variable.hint->ccolor))
-				return variable.hint->ccolor;
+				result = variable.hint->ccolor;
 		}
 
 		if (type == PickType::Global && variable.hint->gcolor) {
 			if (operands.contains(variable.hint->gcolor))
-				return variable.hint->gcolor;
+				result = variable.hint->gcolor;
 		}
 	}
 
-	return &*operands.begin();
+	if (result == nullptr) result = &*operands.begin();
+
+	// If variable is part of a PHI-equivalence class, update last assigned value.
+	if (PhiCoalescingPass::enabled) {
+		auto set =
+		    rapass.get_Artifact<PhiCoalescingPass>()->get_equivalence_class_for(variable.operand);
+		if (set) {
+			set->last_assigned_color = result;
+		}
+	}
+
+	return result;
 }
 
 RegisterAssignment::Variable& RegisterAssignment::variable_for(MachineOperand* operand)

@@ -429,16 +429,16 @@ bool PhiCoalescingPass::run(JITData& JD)
 		LOG_NAMED_CONTAINER("Final equivalnce class operand set: ", final_set);
 		LOG(reset_color);
 
-		equivalence_classes.push_back(*final_set.ToList());
+		equivalence_classes.push_back({*final_set.ToList(), nullptr});
 	}
 
 	return true;
 }
 
-const std::vector<MachineOperand*>* PhiCoalescingPass::get_equivalence_class_for(MachineOperand* op) const
+PhiCoalescingPass::EquivalenceClass* PhiCoalescingPass::get_equivalence_class_for(MachineOperand* op)
 {
-	for (const auto& set : equivalence_classes) {
-		for (const auto operand : set) {
+	for (auto& set : equivalence_classes) {
+		for (const auto operand : set.operands) {
 			if (operand->get_id() == op->get_id()) return &set;
 		}
 	}
