@@ -25,6 +25,7 @@
 #ifndef _JIT_COMPILER2_PASSSCHEDULER
 #define _JIT_COMPILER2_PASSSCHEDULER
 
+#include <vector>
 #include "vm/jit/compiler2/PassUsage.hpp"
 
 namespace cacao {

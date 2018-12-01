@@ -1019,7 +1019,9 @@ void jit_request_optimization(methodinfo *m)
 
 #if defined(ENABLE_COMPILER2)
 namespace option {
+#if defined(ENABLE_DISASSEMBLER)
 	cacao::Option<bool> compare_disassembly("CompareDisassembly", "compiler2: dumps baseline and optimized version next to each other",false,::cacao::option::xx_root());
+#endif
 	cacao::Option<bool> dump_machinecode("DumpMachineCode", "compiler2: Dumps both baseline and compiler2 machine code for further comparison by disassemblers",false,::cacao::option::xx_root());
 }
 
@@ -1060,6 +1062,7 @@ codeinfo *jit_get_current_code(methodinfo *m)
 		LOG(cacao::BoldGreen << "Successfully optimized " << *m
 		                     << cacao::reset_color << cacao::nl);
 
+#if defined(ENABLE_DISASSEMBLER)
 		if (option::compare_disassembly) {
 			u1* start = m->code->prev->entrypoint;
 			u1* end = m->code->prev->mcode + m->code->prev->mcodelength;
@@ -1073,6 +1076,7 @@ codeinfo *jit_get_current_code(methodinfo *m)
 			cacao::out() << cacao::Green << "Optimized version: " << *m << "\n" << cacao::reset_color;
 			disassemble(start, end);
 		}
+#endif
 
 		// First dump baseline version, then compiler2 version
 		// Disassembler tool will have to handle this

@@ -1322,6 +1322,11 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	// create call
 	MachineInstruction* call = new CallInst(SrcOp(addr), DstOp(result), I->op_size(), MMD, get_Backend());
 
+	// We will split the live ranges of arguments for easier coloring.
+	// To not extend the lifetimes of the original values via the replacement point, we will
+	// keep a map and update the MachineReplacementPoint info accordingly.
+	std::map<MachineOperand*,MachineOperand*> argument_map;
+
 	// Split live ranges of parameters for easier register assignment
 	int arg_counter = 0;
 	for (std::size_t i = 0; i < I->op_size(); ++i ) {
@@ -1340,6 +1345,8 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 		if (op->is_Immediate()) op = loadImmediate(op);
 		MachineInstruction* mov = get_Backend()->create_Move(op, arg_dst);
 		get_current()->push_back(mov);
+
+		argument_map[op] = arg_dst;
 		
 		// set call operand
 		call->set_operand(i+1,arg_dst);
@@ -1427,9 +1434,15 @@ void X86_64LoweringVisitor::visit(INVOKEInst *I, bool copyOperands) {
 	}
 
 	// add replacement point
-	// TODO: This replacement point should be before all the loads
-	//       at the call site
+	// Use the vregs of the actual call, not the original ones.
 	lower_source_state_dependencies(MI, source_state);
+	for (std::size_t i = 0; i < MI->op_size(); ++i) {
+		auto iter = argument_map.find(MI->get(i).op);
+		if (iter != argument_map.end()) {
+			MI->set_operand(i, iter->second);
+		}
+	}
+
 	get_current()->push_back(MI);
 
 	// add call
