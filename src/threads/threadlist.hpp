@@ -110,7 +110,7 @@ inline void ThreadList::create_object()
 
 inline void ThreadList::add_to_active_thread_list(threadobject* t)
 {
-	MutexLocker(mutex());
+	MutexLocker lock(mutex());
 
 	_active_thread_list.push_back(t);
 	t->is_in_active_list = true;
@@ -125,7 +125,7 @@ inline void ThreadList::add_to_active_thread_list(threadobject* t)
 
 inline void ThreadList::remove_from_active_thread_list(threadobject* t)
 {
-	MutexLocker(mutex());
+	MutexLocker lock(mutex());
 
 	_active_thread_list.remove(t);
 	t->is_in_active_list = false;
@@ -138,42 +138,42 @@ inline void ThreadList::remove_from_active_thread_list(threadobject* t)
 
 inline threadobject* ThreadList::get_main_thread()
 {
-	MutexLocker(mutex());
+	MutexLocker lock(mutex());
 
 	return _active_thread_list.front();
 }
 
 inline int32_t ThreadList::get_number_of_active_threads()
 {
-	MutexLocker(mutex());
+	MutexLocker lock(mutex());
 
 	return _active_thread_list.size();
 }
 
 inline int32_t ThreadList::get_number_of_started_java_threads()
 {
-	MutexLocker(mutex());
+	MutexLocker lock(mutex());
 
 	return _number_of_started_java_threads;
 }
 
 inline int32_t ThreadList::get_number_of_active_java_threads()
 {
-	MutexLocker(mutex());
+	MutexLocker lock(mutex());
 
 	return _number_of_active_java_threads;
 }
 
 inline int32_t ThreadList::get_peak_of_active_java_threads()
 {
-	MutexLocker(mutex());
+	MutexLocker lock(mutex());
 
 	return _peak_of_active_java_threads;
 }
 
 inline void ThreadList::reset_peak_of_active_java_threads()
 {
-	MutexLocker(mutex());
+	MutexLocker lock(mutex());
 
 	_peak_of_active_java_threads = _number_of_active_java_threads;
 }
