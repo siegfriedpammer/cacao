@@ -149,6 +149,7 @@ PassUsage& SourceStateAttachmentPass::get_PassUsage(PassUsage &PU) const {
 	PU.requires<HIRInstructionsArtifact>();
 	PU.requires<ListSchedulingPass>();
 	PU.before<MachineInstructionSchedulingPass>();
+	PU.modifies<ListSchedulingPass>();
 	return PU;
 }
 
