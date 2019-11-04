@@ -85,6 +85,8 @@ libcompiler2_la_SOURCES = \
 	GraphHelper.hpp \
 	ICMDPrinterPass.cpp \
 	ICMDPrinterPass.hpp \
+	InliningPass.cpp \
+	InliningPass.hpp \
 	Instruction.cpp \
 	Instruction.hpp \
 	InstructionSchedule.hpp \
