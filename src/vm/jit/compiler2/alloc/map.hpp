@@ -35,7 +35,7 @@ namespace alloc {
 
 template<class Key, class T, class Compare = std::less<Key> >
 struct map {
-	typedef std::map<Key, T, Compare, Allocator<std::pair<Key, T> > > type;
+	typedef std::map<Key, T, Compare, Allocator<std::pair<Key const, T> > > type;
 };
 
 template<class Key, class T, class Compare = std::less<Key> >
