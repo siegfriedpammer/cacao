@@ -36,6 +36,8 @@ namespace compiler2 {
 
 class Instruction;
 class INVOKESTATICInst;
+class BeginInst;
+class Method;
 
 /**
  * InliningPass
@@ -45,6 +47,8 @@ private:
     bool can_inline(Instruction* I);
     void inline_instruction(Instruction* I);
     void inline_invoke_static_instruction(INVOKESTATICInst* I);
+    void transform_caller_bb(Instruction* callee, Method* to_inline);
+    bool is_dependent_on(Instruction* first, Instruction* second);
 #ifdef ENABLE_LOGGING
 	void print_final_results();
 #endif
