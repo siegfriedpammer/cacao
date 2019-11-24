@@ -44,7 +44,8 @@ class BeginInst;
  */
 class InliningPass : public Pass, public memory::ManagerMixin<InliningPass> {
 private:
-
+    bool can_inline(Instruction* I);
+    void inline_instruction(Instruction* I);
 #ifdef ENABLE_LOGGING
 	void print_final_results();
 #endif

@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <iostream>
 
 #include "vm/jit/compiler2/InliningPass.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
@@ -35,6 +36,7 @@
 #include "vm/jit/compiler2/SSAConstructionPass.hpp"
 #include "vm/jit/compiler2/SourceStateAttachmentPass.hpp"
 #include "vm/jit/compiler2/alloc/queue.hpp"
+#include "vm/jit/jit.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -46,7 +48,30 @@ namespace jit {
 namespace compiler2 {
 
 bool InliningPass::run(JITData &JD) {
+    log_start();
+    log_println("Start of inlining pass.");
+    Method* M = JD.get_Method();
+    log_message_utf("Inlining for class: ", M->get_class_name_utf8());
+    log_message_utf("Inlining for method: ", M->get_name_utf8());
+    log_println("begin(): %p", M->begin());
+    log_println("end(): %p", M->end());
+
+	for (auto it = M->begin(); it != M->end(); it++) {
+		Instruction *I = *it;
+		if (can_inline(I)) {
+            inline_instruction(I);
+		}
+	}
+
     return true;
+}
+
+bool InliningPass::can_inline(Instruction* I){
+    return I->get_opcode() == Instruction::INVOKESTATICInstID;
+}
+
+void InliningPass::inline_instruction(Instruction* I){
+    log_println("Inlining instruction (%p)", I);
 }
 
 // pass usage
