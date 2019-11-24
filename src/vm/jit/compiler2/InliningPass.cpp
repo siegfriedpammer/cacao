@@ -72,10 +72,31 @@ bool InliningPass::can_inline(Instruction* I){
 
 void InliningPass::inline_instruction(Instruction* I){
     log_println("Inlining instruction (%p)", I);
+    switch (I->get_opcode())
+    {
+        case Instruction::INVOKESTATICInstID:
+            inline_invoke_static_instruction(I->to_INVOKESTATICInst());
+            break;
+        default:
+            break;
+    }
+}
+
+void InliningPass::inline_invoke_static_instruction(INVOKESTATICInst* I){
+    log_println("Inlining static invoke instruction (%p)", I);
+    methodinfo* callee = I->get_fmiref()->p.method;
+    jitdata *jd = jit_jitdata_new(callee);
+	jit_jitdata_init_for_recompilation(jd);
+    JITData JD(jd);
+    
+    PassRunner runner;
+	runner.runPasses(JD);
+    Method* callee_method = JD.get_Method();
 }
 
 // pass usage
 PassUsage& InliningPass::get_PassUsage(PassUsage &PU) const {
+    PU.requires<HIRInstructionsArtifact>();
 	return PU;
 }
 

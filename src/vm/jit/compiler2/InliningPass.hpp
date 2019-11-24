@@ -34,10 +34,8 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-class Method;
-class Value;
 class Instruction;
-class BeginInst;
+class INVOKESTATICInst;
 
 /**
  * InliningPass
@@ -46,6 +44,7 @@ class InliningPass : public Pass, public memory::ManagerMixin<InliningPass> {
 private:
     bool can_inline(Instruction* I);
     void inline_instruction(Instruction* I);
+    void inline_invoke_static_instruction(INVOKESTATICInst* I);
 #ifdef ENABLE_LOGGING
 	void print_final_results();
 #endif
