@@ -62,6 +62,12 @@ bool InliningPass::run(JITData &JD) {
 		}
 	}
 
+    
+	for (auto it = M->bb_begin(); it != M->bb_end(); it++) {
+        auto BI = *it;
+        LOG("BI " << BI << " with end " << BI->get_EndInst() << nl);
+    }
+
     LOG("End of inlining pass." << nl);
 
     return true;
@@ -130,6 +136,8 @@ void InliningPass::transform_caller_bb(Instruction* call_site, Method* to_inline
 
     add_call_site_bbs(to_inline, BI, post_callsite_bb, call_site);
     
+    LOG("Test");
+
     // correct init bb if necessary
     if(caller_method->get_init_bb() == BI){
         LOG("Correcting init bb to " << pre_callsite_bb << nl);
@@ -175,8 +183,11 @@ BeginInst* InliningPass::create_post_call_site_bb(BeginInst* bb, Instruction* ca
         auto I = *it;
 
         if(I == call_site) continue;
-        
-        if(I->get_BeginInst() == bb && (bb->get_EndInst() == I || is_dependent_on(I, call_site))) {
+
+        if(I == bb->get_EndInst()) {
+            I->set_BeginInst(post_callsite_BI);
+            post_callsite_BI->set_EndInst(I->to_EndInst());
+        } else if(I->get_BeginInst() == bb && is_dependent_on(I, call_site)) {
             if (I->to_SourceStateInst()) {
                 LOG("Adding source state inst " << I << " to post call site bb " << nl);
                 LOG("Appending " << post_callsite_BI << nl);
@@ -209,15 +220,14 @@ void InliningPass::add_call_site_bbs(Method* to_inline, BeginInst* bb, BeginInst
 }
 
 Instruction* InliningPass::transform_instruction(Instruction* I, BeginInst* post_call_site_bb){
-    switch (I->get_type())
-    {
-    case Instruction::RETURNInstID:
+    LOG("Transforming " << I << nl);
+    if(I->to_RETURNInst()){
         auto begin_inst = I->get_BeginInst();
         auto end_instruction = new GOTOInst(begin_inst, post_call_site_bb);
-        LOG("Rewriting end instruction " << I << " to " << end_instruction << nl);
+        begin_inst->set_EndInst(end_instruction);
+        LOG("Rewriting return instruction " << I << " to " << end_instruction << nl);
         // TODO inlining delete?
         return end_instruction;
-        break;
     }
     return I;
 }
