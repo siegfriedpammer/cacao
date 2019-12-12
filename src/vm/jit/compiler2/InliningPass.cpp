@@ -138,8 +138,7 @@ void InliningPass::transform_caller_bb(Instruction* call_site, Method* to_inline
 
     auto call_site_bb_init = to_inline->get_init_bb();
     LOG("Rewriting end instruction of pre call site bb to " << call_site_bb_init << nl);
-    auto end_inst = new EndInst(pre_callsite_bb);
-    end_inst->append_succ(call_site_bb_init);
+    auto end_inst = new GOTOInst(pre_callsite_bb, call_site_bb_init);
     pre_callsite_bb->set_EndInst(end_inst);
     caller_method->add_Instruction(end_inst);
 }
@@ -152,7 +151,7 @@ BeginInst* InliningPass::create_pre_call_site_bb(BeginInst* bb, Instruction* cal
 	for (auto it = caller_method->begin(); it != caller_method->end(); it++) {
         auto I = *it;
         
-        if(I->get_BeginInst() == bb && !is_dependent_on(I, call_site)) {
+        if(I->get_BeginInst() == bb && !(bb->get_EndInst() == I)  && !is_dependent_on(I, call_site)) {
             if(I->to_SourceStateInst()) {
                 LOG("Adding source state inst " << I << " to pre call site bb " << nl);
                 LOG("Appending " << pre_callsite_BI << nl);
@@ -174,19 +173,20 @@ BeginInst* InliningPass::create_post_call_site_bb(BeginInst* bb, Instruction* ca
     post_callsite_BI->set_Method(original_method);
 	for (auto it = original_method->begin(); it != original_method->end(); it++) {
         auto I = *it;
-        
-        if(!is_dependent_on(I, call_site) || I == call_site)
-            continue;
 
-        if (I->to_SourceStateInst()) {
-            LOG("Adding source state inst " << I << " to post call site bb " << nl);
-            LOG("Appending " << post_callsite_BI << nl);
-            I->append_dep(post_callsite_BI); // TODO inlining: correct source state for invoke call
-        } else {
-            LOG("Adding to post call site bb " << *it << nl);
-            I->set_BeginInst(post_callsite_BI);
+        if(I == call_site) continue;
+        
+        if(I->get_BeginInst() == bb && (bb->get_EndInst() == I || is_dependent_on(I, call_site))) {
+            if (I->to_SourceStateInst()) {
+                LOG("Adding source state inst " << I << " to post call site bb " << nl);
+                LOG("Appending " << post_callsite_BI << nl);
+                I->append_dep(post_callsite_BI); // TODO inlining: correct source state for invoke call
+            } else {
+                LOG("Adding to post call site bb " << *it << nl);
+                I->set_BeginInst(post_callsite_BI);
+            }
+            replace_dep(I, bb, post_callsite_BI);
         }
-        replace_dep(I, bb, post_callsite_BI);
     }
     return post_callsite_BI;
 }
@@ -213,8 +213,7 @@ Instruction* InliningPass::transform_instruction(Instruction* I, BeginInst* post
     {
     case Instruction::RETURNInstID:
         auto begin_inst = I->get_BeginInst();
-        auto end_instruction = new EndInst(begin_inst);
-        end_instruction->append_succ(post_call_site_bb);
+        auto end_instruction = new GOTOInst(begin_inst, post_call_site_bb);
         LOG("Rewriting end instruction " << I << " to " << end_instruction << nl);
         // TODO inlining delete?
         return end_instruction;
