@@ -53,6 +53,16 @@ bool InliningPass::run(JITData &JD) {
     LOG("Inlining for class: " << M->get_class_name_utf8() << nl);
     LOG("Inlining for method: " << M->get_name_utf8() << nl);
 
+
+    // TODO inlining: remove
+	for (auto it = M->begin(); it != M->end(); it++) {
+        auto I = *it;
+        LOG(I << nl);
+	    for (auto itt = I->dep_begin(); itt != I->dep_end(); itt++) {
+            LOG("dep " << *(itt) << nl);
+        }
+    }
+
 	for (auto it = M->begin(); it != M->end(); it++) {
 		auto I = *it;
 
@@ -62,7 +72,7 @@ bool InliningPass::run(JITData &JD) {
 		}
 	}
 
-    
+    // TODO inlining: remove
 	for (auto it = M->bb_begin(); it != M->bb_end(); it++) {
         auto BI = *it;
         LOG("BI " << BI << " with end " << BI->get_EndInst() << nl);
@@ -179,6 +189,7 @@ BeginInst* InliningPass::create_post_call_site_bb(BeginInst* bb, Instruction* ca
     auto original_method = bb->get_Method();
     auto post_callsite_BI = new BeginInst();
     post_callsite_BI->set_Method(original_method);
+    Instruction* source_state_of_call_site = NULL;
 	for (auto it = original_method->begin(); it != original_method->end(); it++) {
         auto I = *it;
 
@@ -191,6 +202,11 @@ BeginInst* InliningPass::create_post_call_site_bb(BeginInst* bb, Instruction* ca
             if (I->to_SourceStateInst()) {
                 LOG("Adding source state inst " << I << " to post call site bb " << nl);
                 LOG("Appending " << post_callsite_BI << nl);
+
+                if(*(I->dep_begin()) == call_site) {
+                    source_state_of_call_site = I;
+                    continue;
+                }
                 I->append_dep(post_callsite_BI); // TODO inlining: correct source state for invoke call
             } else {
                 LOG("Adding to post call site bb " << *it << nl);
@@ -199,6 +215,9 @@ BeginInst* InliningPass::create_post_call_site_bb(BeginInst* bb, Instruction* ca
             replace_dep(I, bb, post_callsite_BI);
         }
     }
+    
+    // TODO inline: need to preserve? HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+    original_method->remove_Instruction(source_state_of_call_site);
     return post_callsite_BI;
 }
 
