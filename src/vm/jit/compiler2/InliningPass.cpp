@@ -264,6 +264,8 @@ PassUsage& InliningPass::get_PassUsage(PassUsage &PU) const {
 // register pass
 static PassRegistry<InliningPass> X("InliningPass");
 
+Option<bool> InliningPass::enabled("InliningPass","compiler2: enable InliningPrinterPass",false,::cacao::option::xx_root());
+
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
