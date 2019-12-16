@@ -37,6 +37,7 @@ namespace compiler2 {
 class Instruction;
 class INVOKESTATICInst;
 class BeginInst;
+class PHIInst;
 class Method;
 
 /**
@@ -51,7 +52,7 @@ private:
     BeginInst* create_pre_call_site_bb(BeginInst* bb, Instruction* call_site);
     BeginInst* create_post_call_site_bb(BeginInst* bb, Instruction* call_site);
     void add_call_site_bbs(Method* to_inline, BeginInst* bb, BeginInst* post_call_site_bb, Instruction* call_site);
-    Instruction* transform_instruction(Instruction* I, BeginInst* post_call_site_bb);
+    Instruction* transform_instruction(Instruction* I, BeginInst* post_call_site_bb, PHIInst* phi);
     bool is_dependent_on(Instruction* first, Instruction* second);
     void replace_dep(Instruction* for_inst, Instruction* old_inst, Instruction* new_inst);
 #ifdef ENABLE_LOGGING

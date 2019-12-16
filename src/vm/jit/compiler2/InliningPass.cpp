@@ -47,13 +47,7 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-bool InliningPass::run(JITData &JD) {
-    LOG("Start of inlining pass." << nl);
-    Method* M = JD.get_Method();
-    LOG("Inlining for class: " << M->get_class_name_utf8() << nl);
-    LOG("Inlining for method: " << M->get_name_utf8() << nl);
-
-
+void print_all_nodes(Method* M){
     // TODO inlining: remove
 	for (auto it = M->begin(); it != M->end(); it++) {
         auto I = *it;
@@ -61,7 +55,20 @@ bool InliningPass::run(JITData &JD) {
 	    for (auto itt = I->dep_begin(); itt != I->dep_end(); itt++) {
             LOG("dep " << *(itt) << nl);
         }
+	    for (auto itt = I->op_begin(); itt != I->op_end(); itt++) {
+            LOG("op " << *(itt) << nl);
+        }
     }
+}
+
+bool InliningPass::run(JITData &JD) {
+    LOG("Start of inlining pass." << nl);
+    Method* M = JD.get_Method();
+    LOG("Inlining for class: " << M->get_class_name_utf8() << nl);
+    LOG("Inlining for method: " << M->get_name_utf8() << nl);
+
+    LOG("BEFORE" << nl);
+    print_all_nodes(M);
 
 	for (auto it = M->begin(); it != M->end(); it++) {
 		auto I = *it;
@@ -77,6 +84,9 @@ bool InliningPass::run(JITData &JD) {
         auto BI = *it;
         LOG("BI " << BI << " with end " << BI->get_EndInst() << nl);
     }
+
+    LOG("AFTER" << nl);
+    print_all_nodes(M);
 
     LOG("End of inlining pass." << nl);
 
@@ -121,14 +131,16 @@ void InliningPass::inline_invoke_static_instruction(INVOKESTATICInst* I){
     transform_caller_bb(I, callee_method);
     LOG("Removing invoke instruction" << nl);
     caller_begin_inst->remove_dep(I);
-    // TODO inlining better
-    for(auto dep_it = I->rdep_begin(); dep_it != I->rdep_end(); dep_it++){
-        auto X = *dep_it;
-        X->remove_dep(I);
-        dep_it = I->rdep_begin();
-    }
+    
+    
+    LOG("AFTER1" << nl);
+    print_all_nodes(original_method);
+
     original_method->remove_Instruction(I);
     original_method->remove_bb(caller_begin_inst);
+    
+    LOG("AFTER2" << nl);
+    print_all_nodes(original_method);
 }
 
 void InliningPass::transform_caller_bb(Instruction* call_site, Method* to_inline){
@@ -139,15 +151,13 @@ void InliningPass::transform_caller_bb(Instruction* call_site, Method* to_inline
     auto pre_callsite_bb = create_pre_call_site_bb(BI, call_site);
     LOG("Adding pre call bb " << pre_callsite_bb << nl);
     caller_method->add_bb(pre_callsite_bb);
-    
+
     auto post_callsite_bb = create_post_call_site_bb(BI, call_site);
     LOG("Adding post call bb " << pre_callsite_bb << nl);
     caller_method->add_bb(post_callsite_bb);
-
+    
     add_call_site_bbs(to_inline, BI, post_callsite_bb, call_site);
     
-    LOG("Test");
-
     // correct init bb if necessary
     if(caller_method->get_init_bb() == BI){
         LOG("Correcting init bb to " << pre_callsite_bb << nl);
@@ -211,18 +221,22 @@ BeginInst* InliningPass::create_post_call_site_bb(BeginInst* bb, Instruction* ca
             } else {
                 LOG("Adding to post call site bb " << *it << nl);
                 I->set_BeginInst(post_callsite_BI);
-            }
-            replace_dep(I, bb, post_callsite_BI);
+            };
         }
+        replace_dep(I, bb, post_callsite_BI);
     }
     
-    // TODO inline: need to preserve? HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+    // TODO inline: need to preserve?
     original_method->remove_Instruction(source_state_of_call_site);
     return post_callsite_BI;
 }
 
 void InliningPass::add_call_site_bbs(Method* to_inline, BeginInst* bb, BeginInst* post_call_site_bb, Instruction* call_site){
-    LOG("create_call_site_bb" << nl);
+    LOG("create_call_site_bb" << to_inline->get_desc_utf8() << nl);
+    // TODO inlining: handle void and lookup correct type
+    auto return_type = Type::IntTypeID;
+    LOG("return type " << return_type << nl);
+    auto phi = new PHIInst(return_type, post_call_site_bb); // the phi will be the first instruction in the post call site bb
     auto original_method = bb->get_Method();
 	for (auto it = to_inline->begin(); it != to_inline->end(); it++) {
 		Instruction *I = *it;
@@ -233,20 +247,24 @@ void InliningPass::add_call_site_bbs(Method* to_inline, BeginInst* bb, BeginInst
             LOG("Adding bb from other method " << begin_inst << nl);
             original_method->add_bb(begin_inst);
          } else {
-            original_method->add_Instruction(transform_instruction(I, post_call_site_bb));
+            original_method->add_Instruction(transform_instruction(I, post_call_site_bb, phi));
         }
     }
+    call_site->replace_value(phi);
 }
 
-Instruction* InliningPass::transform_instruction(Instruction* I, BeginInst* post_call_site_bb){
+Instruction* InliningPass::transform_instruction(Instruction* I, BeginInst* post_call_site_bb, PHIInst* phi){
     LOG("Transforming " << I << nl);
-    if(I->to_RETURNInst()){
-        auto begin_inst = I->get_BeginInst();
-        auto end_instruction = new GOTOInst(begin_inst, post_call_site_bb);
-        begin_inst->set_EndInst(end_instruction);
-        LOG("Rewriting return instruction " << I << " to " << end_instruction << nl);
-        // TODO inlining delete?
-        return end_instruction;
+    switch(I->get_opcode()) {
+        case Instruction::RETURNInstID:
+            auto returnInst = I->to_RETURNInst();
+            auto begin_inst = I->get_BeginInst();
+            phi->append_op((Instruction*) *((returnInst->op_begin()))); // TODO inlining: error handling
+            auto end_instruction = new GOTOInst(begin_inst, post_call_site_bb);
+            begin_inst->set_EndInst(end_instruction);
+            LOG("Rewriting return instruction " << I << " to " << end_instruction << nl);
+            // TODO inlining delete?
+            return end_instruction;
     }
     return I;
 }
