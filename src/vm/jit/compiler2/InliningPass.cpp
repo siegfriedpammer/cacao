@@ -250,6 +250,7 @@ void InliningPass::add_call_site_bbs(Method* to_inline, BeginInst* bb, BeginInst
             original_method->add_Instruction(transform_instruction(I, post_call_site_bb, phi));
         }
     }
+	original_method->add_Instruction(phi);
     call_site->replace_value(phi);
 }
 
