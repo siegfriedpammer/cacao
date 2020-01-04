@@ -219,11 +219,11 @@ private:
 		}
         
         if(needs_phi()){
-			if(phi->op_size() == 1){
+			if(phi->op_size() == 1) {
 				call_site->replace_value(*(phi->op_begin()));
 				delete phi;
-			}else {
-				callee_method->add_Instruction(phi);
+			} else {
+				caller_method->add_Instruction(phi);
 		    	call_site->replace_value(phi);
 			}
 		}
