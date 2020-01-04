@@ -188,13 +188,10 @@ private:
 	void add_call_site_bbs()
 	{
 		LOG("create_call_site_bb" << callee_method->get_desc_utf8() << nl);
-		// TODO inlining: handle void and lookup correct type
-		auto return_type = call_site->get_type();
-		LOG("return type " << return_type << nl);
 		if(needs_phi()){
 			// the phi will be the replacement for the dependencies to the invoke inst in the post call site bb
+			auto return_type = call_site->get_type();
             phi = new PHIInst(return_type, post_call_site_bb);
-            callee_method->add_Instruction(phi);
         }
 
 		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
@@ -221,8 +218,15 @@ private:
             caller_method->add_Instruction(transform_instruction(I));
 		}
         
-        if(needs_phi())
-		    call_site->replace_value(phi);
+        if(needs_phi()){
+			if(phi->op_size() == 1){
+				call_site->replace_value(*(phi->op_begin()));
+				delete phi;
+			}else {
+				callee_method->add_Instruction(phi);
+		    	call_site->replace_value(phi);
+			}
+		}
 	}
 
 	void replace_method_parameters(){
