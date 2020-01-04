@@ -27,12 +27,12 @@
 #include <iostream>
 
 #include "vm/jit/compiler2/InliningPass.hpp"
-#include "vm/jit/compiler2/PassManager.hpp"
-#include "vm/jit/compiler2/JITData.hpp"
-#include "vm/jit/compiler2/PassUsage.hpp"
-#include "vm/jit/compiler2/MethodC2.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
+#include "vm/jit/compiler2/JITData.hpp"
+#include "vm/jit/compiler2/MethodC2.hpp"
+#include "vm/jit/compiler2/PassManager.hpp"
+#include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/SSAConstructionPass.hpp"
 #include "vm/jit/compiler2/SourceStateAttachmentPass.hpp"
 #include "vm/jit/compiler2/alloc/queue.hpp"
@@ -46,268 +46,356 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+// TODO inlining: info abour source states
+bool is_dependent_on(Instruction* first, Instruction* second)
+{
+	// TODO inlining:
+    if(first->get_opcode() == Instruction::RETURNInstID)
+        return true;
+    
+    if(first->get_opcode() == Instruction::SourceStateInstID && *(first->dep_begin()) == second)
+        return true;
 
-void print_all_nodes(Method* M){
-    // TODO inlining: remove
-	for (auto it = M->begin(); it != M->end(); it++) {
-        auto I = *it;
-        LOG(I << nl);
-	    for (auto itt = I->dep_begin(); itt != I->dep_end(); itt++) {
-            LOG("dep " << *(itt) << nl);
-        }
-	    for (auto itt = I->op_begin(); itt != I->op_end(); itt++) {
-            LOG("op " << *(itt) << nl);
-        }
-    }
+    return first == second;
 }
 
-bool InliningPass::run(JITData &JD) {
-    LOG("Start of inlining pass." << nl);
-    Method* M = JD.get_Method();
-    LOG("Inlining for class: " << M->get_class_name_utf8() << nl);
-    LOG("Inlining for method: " << M->get_name_utf8() << nl);
+void remove_all_deps(Instruction* inst){
+	LOG("Removing deps " << inst << nl);
+	auto it = inst->dep_begin();
+	while (it != inst->dep_end()){
+		inst->remove_dep(*it);
+		it = inst->dep_begin();
+	}
 
-    LOG("BEFORE" << nl);
-    print_all_nodes(M);
+	LOG("Removing reverse deps " << inst << nl);
+	it = inst->rdep_begin();
+	while (it != inst->rdep_end()){
+		auto I = *it;
+		I->remove_dep(inst);
+		it = inst->rdep_begin();
+	}
+}
+
+void replace_dep(Instruction* for_inst, Instruction* old_inst, Instruction* new_inst)
+{
+	LOG("Replacing dependencies for " << for_inst << nl);
+	for (auto it = for_inst->dep_begin(); it != for_inst->dep_end(); it++) {
+		auto I = *it;
+		if (I == old_inst) {
+			for_inst->remove_dep(I);
+			for_inst->append_dep(new_inst);
+			it = for_inst->dep_begin(); // TODO inlining
+		}
+	}
+}
+
+class InliningOperation {
+private:
+	INVOKEInst* call_site;
+	BeginInst* old_call_site_bb;
+	Method* caller_method;
+	Method* callee_method;
+	BeginInst* pre_call_site_bb;
+	BeginInst* post_call_site_bb;
+    PHIInst* phi;
+
+    bool needs_phi(){
+        return call_site->get_type() != Type::VoidTypeID;
+    }
+
+	void create_pre_call_site_bb()
+	{
+		LOG("create_pre_call_site_bb" << nl);
+		pre_call_site_bb = new BeginInst();
+		caller_method->add_bb(pre_call_site_bb);
+		List<Instruction*> to_remove;
+		// TODO inlining: only iterate bb
+		for (auto it = caller_method->begin(); it != caller_method->end(); it++) {
+			auto I = *it;
+
+			// ignore bb begins
+			if(I->get_opcode() == Instruction::BeginInstID)
+				continue;
+
+			if (I->get_BeginInst() != old_call_site_bb || is_dependent_on(I, call_site))
+				continue;
+
+			// For now deoptimization is not supported.
+			if(I->get_opcode() == Instruction::SourceStateInstID){
+				remove_all_deps(I);
+				to_remove.push_back(I);
+				continue;
+			}
+
+            LOG("Adding " << I << " to pre call site bb " << pre_call_site_bb << nl);
+            I->set_BeginInst(pre_call_site_bb);
+            replace_dep(I, old_call_site_bb, pre_call_site_bb);
+		}
+
+		for (auto it = to_remove.begin(); it != to_remove.end(); it++){
+			caller_method->remove_Instruction(*it);
+		}
+	}
+
+	void create_post_call_site_bb()
+	{
+		LOG("create_post_call_site_bb" << nl);
+		post_call_site_bb = new BeginInst();
+		caller_method->add_bb(post_call_site_bb);
+		// For now deoptimization is not supported.
+		Instruction* source_state_of_call_site = NULL;
+        // TODO only iterate bb
+		for (auto it = caller_method->begin(); it != caller_method->end(); it++) {
+			auto I = *it;
+
+			// ignore bb begins
+			if(I->get_opcode() == Instruction::BeginInstID)
+				continue;
+
+			if (I == call_site || I->get_BeginInst() != old_call_site_bb || !is_dependent_on(I, call_site))
+				continue;
+
+            LOG("Adding " << I << " to post call site bb " << post_call_site_bb << nl);
+
+			if (I == old_call_site_bb->get_EndInst()) {
+				post_call_site_bb->set_EndInst(I->to_EndInst());
+			}
+			else if (I->to_SourceStateInst() && *(I->dep_begin()) == call_site) { // remove source state of method call
+                source_state_of_call_site = I;
+                continue;
+			}
+			I->set_BeginInst(post_call_site_bb);
+			replace_dep(I, old_call_site_bb, post_call_site_bb);
+		}
+
+		caller_method->remove_Instruction(source_state_of_call_site);
+	}
+
+    Instruction* transform_instruction(Instruction* I)
+    {
+        LOG("Transforming " << I << nl);
+        switch (I->get_opcode()) {
+            case Instruction::RETURNInstID:
+                auto begin_inst = I->get_BeginInst();
+                auto end_instruction = new GOTOInst(begin_inst, post_call_site_bb);
+                begin_inst->set_EndInst(end_instruction);
+                LOG("Rewriting return instruction " << I << " to " << end_instruction << nl);
+                return end_instruction;
+        }
+        return I;
+    }
+
+	void add_call_site_bbs()
+	{
+		LOG("create_call_site_bb" << callee_method->get_desc_utf8() << nl);
+		// TODO inlining: handle void and lookup correct type
+		auto return_type = call_site->get_type();
+		LOG("return type " << return_type << nl);
+		if(needs_phi()){
+			// the phi will be the replacement for the dependencies to the invoke inst in the post call site bb
+            phi = new PHIInst(return_type, post_call_site_bb);
+            callee_method->add_Instruction(phi);
+        }
+
+		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
+			Instruction* I = *it;
+			LOG("Adding to call site " << *I << nl);
+
+			// For now deoptimization is not supported.
+			if(I->get_opcode() == Instruction::SourceStateInstID) {
+				remove_all_deps(I);
+				delete I;
+				continue;
+			}
+
+			if(I->get_opcode() == Instruction::BeginInstID) {
+				caller_method->add_bb(I->to_BeginInst());
+				continue;
+			}
+
+            if(I->get_opcode() == Instruction::RETURNInstID){
+                auto returnInst = I->to_RETURNInst();
+                if(needs_phi())
+                    phi->append_op((Instruction*)*((returnInst->op_begin()))); // TODO inlining: error handling
+            }
+            caller_method->add_Instruction(transform_instruction(I));
+		}
+        
+        if(needs_phi())
+		    call_site->replace_value(phi);
+	}
+
+	void replace_method_parameters(){
+		List<Instruction*> to_delete;
+		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
+			auto I = *it;
+			if(I->get_opcode() == Instruction::LOADInstID){
+				auto index = (I->to_LOADInst())->get_index();
+				auto given_operand = call_site->get_operand(index);
+				LOG("Replacing Load inst" << I << " with " << given_operand << nl);
+				I->replace_value(given_operand);
+				to_delete.push_back(I);
+			}
+		}
+		for (auto it = to_delete.begin(); it != to_delete.end(); it++) {
+			caller_method->remove_Instruction(*it);
+		}
+	}
+
+	void transform_caller_bb()
+	{
+		create_pre_call_site_bb();
+		create_post_call_site_bb();
+		add_call_site_bbs();
+		replace_method_parameters();
+
+		// correct init bb if necessary
+		if (caller_method->get_init_bb() == old_call_site_bb) {
+			LOG("Correcting init bb to " << pre_call_site_bb << nl);
+			caller_method->set_init_bb(pre_call_site_bb);
+ 		}
+
+		auto call_site_bb_init = callee_method->get_init_bb();
+		LOG("Rewriting next bb of pre call site bb to " << call_site_bb_init << nl);
+		auto end_inst = new GOTOInst(pre_call_site_bb, call_site_bb_init);
+		pre_call_site_bb->set_EndInst(end_inst);
+		caller_method->add_Instruction(end_inst);
+	}
+
+public:
+	InliningOperation(INVOKEInst* site, Method* callee)
+	{
+		call_site = site;
+		old_call_site_bb = call_site->get_BeginInst();
+		caller_method = call_site->get_Method();
+		callee_method = callee;
+	}
+
+	void execute()
+	{
+		LOG("Inserting new basic blocks into original method" << nl);
+		transform_caller_bb();
+
+		LOG("Removing invoke instruction" << nl);
+		remove_all_deps(call_site);
+		caller_method->remove_Instruction(call_site);
+		caller_method->remove_bb(old_call_site_bb);
+	}
+};
+
+void print_all_nodes(Method* M)
+{
+	// TODO inlining: remove
+	LOG("==========================="<<nl);
+	for (auto it = M->begin(); it != M->end(); it++) {
+		auto I = *it;
+		LOG(I << nl);
+		for (auto itt = I->dep_begin(); itt != I->dep_end(); itt++) {
+			LOG("dep " << *(itt) << nl);
+		}
+		for (auto itt = I->rdep_begin(); itt != I->rdep_end(); itt++) {
+			LOG("rdep " << *(itt) << nl);
+		}
+		for (auto itt = I->op_begin(); itt != I->op_end(); itt++) {
+			LOG("op " << *(itt) << nl);
+		}
+		for (auto itt = I->user_begin(); itt != I->user_end(); itt++) {
+			LOG("user " << *(itt) << nl);
+		}
+		if(I->to_EndInst()){
+			auto end = I->to_EndInst();
+			for (auto itt = end->succ_begin(); itt != end->succ_end(); itt++) {
+				LOG("succ " << *(itt) << nl);
+			}
+		}
+		if(I->to_BeginInst()){
+			auto end = I->to_BeginInst();
+			for (auto itt = end->pred_begin(); itt != end->pred_end(); itt++) {
+				LOG("pred " << *(itt) << nl);
+			}
+		}
+	}
+	LOG("==========================="<<nl);
+}
+
+bool InliningPass::run(JITData& JD)
+{
+	LOG("Start of inlining pass." << nl);
+	Method* M = JD.get_Method();
+	LOG("Inlining for class: " << M->get_class_name_utf8() << nl);
+	LOG("Inlining for method: " << M->get_name_utf8() << nl);
+
+	LOG("BEFORE" << nl);
+	print_all_nodes(M);
 
 	for (auto it = M->begin(); it != M->end(); it++) {
 		auto I = *it;
 
 		if (can_inline(I)) {
-            inline_instruction(I);
-            break;
+			inline_instruction(I);
+			break;
 		}
 	}
 
-    // TODO inlining: remove
-	for (auto it = M->bb_begin(); it != M->bb_end(); it++) {
-        auto BI = *it;
-        LOG("BI " << BI << " with end " << BI->get_EndInst() << nl);
-    }
+	LOG("AFTER" << nl);
+	print_all_nodes(M);
 
-    LOG("AFTER" << nl);
-    print_all_nodes(M);
+	LOG("End of inlining pass." << nl);
 
-    LOG("End of inlining pass." << nl);
-
-    return true;
+	return true;
 }
 
-bool InliningPass::can_inline(Instruction* I){
-    LOG("Can inline instruction " << I << nl);
-    return I->get_opcode() == Instruction::INVOKESTATICInstID;
+bool InliningPass::can_inline(Instruction* I)
+{
+	return I->get_opcode() == Instruction::INVOKESTATICInstID;
 }
 
-void InliningPass::inline_instruction(Instruction* I){
-    LOG("Inlining instruction" << I << nl);
-    switch (I->get_opcode())
-    {
-        case Instruction::INVOKESTATICInstID:
-            inline_invoke_static_instruction(I->to_INVOKESTATICInst());
-            break;
-        default:
-            break;
-    }
+void InliningPass::inline_instruction(Instruction* I)
+{
+	switch (I->get_opcode()) {
+		case Instruction::INVOKESTATICInstID:
+			inline_invoke_static_instruction(I->to_INVOKESTATICInst());
+			break;
+		default: break;
+	}
 }
 
-void InliningPass::inline_invoke_static_instruction(INVOKESTATICInst* I){
-    LOG("Inlining static invoke instruction " << I << nl);
-    auto callee = I->get_fmiref()->p.method;
-    auto *jd = jit_jitdata_new(callee);
+void InliningPass::inline_invoke_static_instruction(INVOKESTATICInst* I)
+{
+	LOG("Inlining static invoke instruction " << I << nl);
+	auto callee = I->get_fmiref()->p.method;
+	auto* jd = jit_jitdata_new(callee);
 	jit_jitdata_init_for_recompilation(jd);
-    JITData JD(jd);
-    
-    // TODO inlining don't run all passes.
-    PassRunner runner;
+	JITData JD(jd);
+
+	// TODO inlining don't run all passes.
+	PassRunner runner;
 	runner.runPasses(JD);
-    auto callee_method = JD.get_Method();
+	auto callee_method = JD.get_Method();
 
-    LOG("Successfully retrieved SSA-Code for instruction " << nl);
+	LOG("Successfully retrieved SSA-Code for instruction " << nl);
 
-    auto original_method = I->get_Method();
-    auto caller_begin_inst = I->get_BeginInst();
-
-    LOG("Inserting new basic blocks into original method" << nl);
-    transform_caller_bb(I, callee_method);
-    LOG("Removing invoke instruction" << nl);
-    caller_begin_inst->remove_dep(I);
-    
-    
-    LOG("AFTER1" << nl);
-    print_all_nodes(original_method);
-
-    original_method->remove_Instruction(I);
-    original_method->remove_bb(caller_begin_inst);
-    
-    LOG("AFTER2" << nl);
-    print_all_nodes(original_method);
-}
-
-void InliningPass::transform_caller_bb(Instruction* call_site, Method* to_inline){
-    auto caller_method = call_site->get_Method();
-    BeginInst* BI = call_site->get_BeginInst();
-    LOG("Transforming basic block with BeginInst " << BI  << " within method " << to_inline->get_name_utf8() << nl);
-
-    auto pre_callsite_bb = create_pre_call_site_bb(BI, call_site);
-    LOG("Adding pre call bb " << pre_callsite_bb << nl);
-    caller_method->add_bb(pre_callsite_bb);
-
-    auto post_callsite_bb = create_post_call_site_bb(BI, call_site);
-    LOG("Adding post call bb " << pre_callsite_bb << nl);
-    caller_method->add_bb(post_callsite_bb);
-    
-    add_call_site_bbs(to_inline, BI, post_callsite_bb, call_site);
-    
-    // correct init bb if necessary
-    if(caller_method->get_init_bb() == BI){
-        LOG("Correcting init bb to " << pre_callsite_bb << nl);
-        caller_method->set_init_bb(pre_callsite_bb);
-    }
-
-    auto call_site_bb_init = to_inline->get_init_bb();
-    LOG("Rewriting end instruction of pre call site bb to " << call_site_bb_init << nl);
-    auto end_inst = new GOTOInst(pre_callsite_bb, call_site_bb_init);
-    pre_callsite_bb->set_EndInst(end_inst);
-    caller_method->add_Instruction(end_inst);
-}
-
-BeginInst* InliningPass::create_pre_call_site_bb(BeginInst* bb, Instruction* call_site){
-    LOG("create_pre_call_site_bb" << nl);
-    auto caller_method = bb->get_Method();
-    auto pre_callsite_BI = new BeginInst();
-    pre_callsite_BI->set_Method(caller_method);
-	for (auto it = caller_method->begin(); it != caller_method->end(); it++) {
-        auto I = *it;
-        
-        if(I->get_BeginInst() == bb && !(bb->get_EndInst() == I)  && !is_dependent_on(I, call_site)) {
-            if(I->to_SourceStateInst()) {
-                LOG("Adding source state inst " << I << " to pre call site bb " << nl);
-                LOG("Appending " << pre_callsite_BI << nl);
-            }
-            else {
-                LOG("Adding to pre call site bb " << I << " with begin inst " << pre_callsite_BI << nl);
-                I->set_BeginInst(pre_callsite_BI);
-            }
-            replace_dep(I, bb, pre_callsite_BI);
-        }
-    }
-    return pre_callsite_BI;
-}
-
-BeginInst* InliningPass::create_post_call_site_bb(BeginInst* bb, Instruction* call_site){
-    LOG("create_post_call_site_bb" << nl);
-    auto original_method = bb->get_Method();
-    auto post_callsite_BI = new BeginInst();
-    post_callsite_BI->set_Method(original_method);
-    Instruction* source_state_of_call_site = NULL;
-	for (auto it = original_method->begin(); it != original_method->end(); it++) {
-        auto I = *it;
-
-        if(I == call_site) continue;
-
-        if(I == bb->get_EndInst()) {
-            I->set_BeginInst(post_callsite_BI);
-            post_callsite_BI->set_EndInst(I->to_EndInst());
-        } else if(I->get_BeginInst() == bb && is_dependent_on(I, call_site)) {
-            if (I->to_SourceStateInst()) {
-                LOG("Adding source state inst " << I << " to post call site bb " << nl);
-                LOG("Appending " << post_callsite_BI << nl);
-
-                if(*(I->dep_begin()) == call_site) {
-                    source_state_of_call_site = I;
-                    continue;
-                }
-                I->append_dep(post_callsite_BI); // TODO inlining: correct source state for invoke call
-            } else {
-                LOG("Adding to post call site bb " << *it << nl);
-                I->set_BeginInst(post_callsite_BI);
-            };
-        }
-        replace_dep(I, bb, post_callsite_BI);
-    }
-    
-    // TODO inline: need to preserve?
-    original_method->remove_Instruction(source_state_of_call_site);
-    return post_callsite_BI;
-}
-
-void InliningPass::add_call_site_bbs(Method* to_inline, BeginInst* bb, BeginInst* post_call_site_bb, Instruction* call_site){
-    LOG("create_call_site_bb" << to_inline->get_desc_utf8() << nl);
-    // TODO inlining: handle void and lookup correct type
-    auto return_type = Type::IntTypeID;
-    LOG("return type " << return_type << nl);
-    auto phi = new PHIInst(return_type, post_call_site_bb); // the phi will be the first instruction in the post call site bb
-    auto original_method = bb->get_Method();
-	for (auto it = to_inline->begin(); it != to_inline->end(); it++) {
-		Instruction *I = *it;
-        LOG("Adding to call site " << *I << nl);
-
-        if(I->to_BeginInst()){
-            BeginInst* begin_inst = I->to_BeginInst();
-            LOG("Adding bb from other method " << begin_inst << nl);
-            original_method->add_bb(begin_inst);
-         } else {
-            original_method->add_Instruction(transform_instruction(I, post_call_site_bb, phi));
-        }
-    }
-	original_method->add_Instruction(phi);
-    call_site->replace_value(phi);
-}
-
-Instruction* InliningPass::transform_instruction(Instruction* I, BeginInst* post_call_site_bb, PHIInst* phi){
-    LOG("Transforming " << I << nl);
-    switch(I->get_opcode()) {
-        case Instruction::RETURNInstID:
-            auto returnInst = I->to_RETURNInst();
-            auto begin_inst = I->get_BeginInst();
-            phi->append_op((Instruction*) *((returnInst->op_begin()))); // TODO inlining: error handling
-            auto end_instruction = new GOTOInst(begin_inst, post_call_site_bb);
-            begin_inst->set_EndInst(end_instruction);
-            LOG("Rewriting return instruction " << I << " to " << end_instruction << nl);
-            // TODO inlining delete?
-            return end_instruction;
-    }
-    return I;
-}
-
-void InliningPass::replace_dep(Instruction* for_inst, Instruction* old_inst, Instruction* new_inst){
-    LOG("Replacing dependencies for " << for_inst << nl);
-    for(auto it = for_inst->dep_begin(); it != for_inst->dep_end(); it++){
-        auto I = *it;
-        if(I == old_inst){
-            for_inst->remove_dep(I);
-            for_inst->append_dep(new_inst);
-            it = for_inst->dep_begin(); // TODO inlining
-        }
-    }
-}
-
-bool InliningPass::is_dependent_on(Instruction* first, Instruction* second){
-    if(first == second)
-        return true;
-    
-    bool is_dependent = false;
-    for (auto bb_it = first->dep_begin(); bb_it != first->dep_end(); bb_it++)
-        is_dependent |= is_dependent_on(*bb_it, second);
-    return is_dependent;
+    InliningOperation(I, callee_method).execute();
 }
 
 // pass usage
-PassUsage& InliningPass::get_PassUsage(PassUsage &PU) const {
-    PU.requires<HIRInstructionsArtifact>();
-	PU.immediately_after<SSAConstructionPass>(); // TODO inlining
+PassUsage& InliningPass::get_PassUsage(PassUsage& PU) const
+{
+    PU.immediately_after<SSAConstructionPass>();
 	return PU;
 }
 
 // register pass
 static PassRegistry<InliningPass> X("InliningPass");
 
-Option<bool> InliningPass::enabled("InliningPass","compiler2: enable InliningPrinterPass",false,::cacao::option::xx_root());
+Option<bool> InliningPass::enabled("InliningPass",
+                                   "compiler2: enable InliningPrinterPass",
+                                   false,
+                                   ::cacao::option::xx_root());
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
-
 
 /*
  * These are local overrides for various environment variables in Emacs.
