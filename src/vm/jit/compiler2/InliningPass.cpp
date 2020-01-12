@@ -372,7 +372,7 @@ void InliningPass::inline_invoke_static_instruction(INVOKESTATICInst* I)
 
 	// TODO inlining don't run all passes.
 	PassRunner runner;
-	runner.runPasses(JD);
+	runner.runPassesUntil<SSAConstructionPass>(JD);
 	auto callee_method = JD.get_Method();
 
 	LOG("Successfully retrieved SSA-Code for instruction " << nl);

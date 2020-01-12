@@ -96,14 +96,21 @@ PassUPtrTy& PassRunner::get_Pass(PassInfo::IDTy ID) {
 }
 
 void PassRunner::runPasses(JITData &JD) {
-	LOG("runPasses" << nl);
+	auto& PS = PassManager::get();
+	PS.schedule_begin(); // ensure the schedule is created
+	auto last_pass = *(std::prev(PS.schedule_end()));	
+	runPassesUntil(JD, last_pass);
+}
+
+void PassRunner::runPassesUntil(JITData &JD, PassInfo::IDTy last_pass) {
+	auto& PS = PassManager::get();	
+	LOG("runPasses until " << PS.get_Pass_name(last_pass) << nl);
 
 	JsonGraphPrinter graphPrinter(this);
 	if (option::dump_method_json) {
 		graphPrinter.initialize(JD);
 	}
 	
-	auto& PS = PassManager::get();	
 	for (auto i = PS.schedule_begin(), e = PS.schedule_end(); i != e; ++i) {
 		PassInfo::IDTy id = *i;
 		auto& pa = PS.passusage_map[id];
@@ -152,6 +159,11 @@ void PassRunner::runPasses(JITData &JD) {
 			graphPrinter.printPass(JD, P.get(), PS.get_Pass_name(id), 0);
 		}
 		#endif
+
+		if(id == last_pass){
+			LOG("Last pass " << PS.get_Pass_name(last_pass) << " reached." << nl);
+			break;
+		}
 	}
 
 	if (option::dump_method_json) {
