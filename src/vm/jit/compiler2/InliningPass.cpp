@@ -47,16 +47,27 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 // TODO inlining: info abour source states
-bool is_dependent_on(Instruction* first, Instruction* second)
-{
-	// TODO inlining:
-    if(first->get_opcode() == Instruction::RETURNInstID)
-        return true;
-    
-    if(first->get_opcode() == Instruction::SourceStateInstID && *(first->dep_begin()) == second)
-        return true;
 
-    return first == second;
+bool depends_on(Instruction* first, Instruction* second)
+{
+    if(first == second){
+		return true;
+	}
+
+	// if first is not in the same bb, first cannot depend on second anymore. Both start in the same bb and the traversal
+	// is only towards the start of the method.
+	if(first->get_BeginInst() != second->get_BeginInst()){
+		return false;
+	}
+	
+	auto is_dependent_rec = [&](Instruction* i){return depends_on(i, second);};
+	auto is_dependent_rec_op = [&](Value* v){
+		Instruction* i = v->to_Instruction();
+		return i ? depends_on(i, second) : false;
+	};
+
+	return std::any_of(first->dep_begin(),first->dep_end(),is_dependent_rec) ||
+		   std::any_of(first->op_begin(),first->op_end(),is_dependent_rec_op);
 }
 
 void remove_all_deps(Instruction* inst){
@@ -104,7 +115,7 @@ private:
 			if(I->get_opcode() == Instruction::BeginInstID)
 				continue;
 
-			if (I->get_BeginInst() != old_call_site_bb || is_dependent_on(I, call_site))
+			if (I->get_BeginInst() != old_call_site_bb || depends_on(I, call_site))
 				continue;
 
 			// For now deoptimization is not supported.
@@ -139,7 +150,7 @@ private:
 			if(I->get_opcode() == Instruction::BeginInstID)
 				continue;
 
-			if (I == call_site || I->get_BeginInst() != old_call_site_bb || !is_dependent_on(I, call_site))
+			if (I == call_site || I->get_BeginInst() != old_call_site_bb || !depends_on(I, call_site))
 				continue;
 
             LOG("Adding " << I << " to post call site bb " << post_call_site_bb << nl);
