@@ -39,6 +39,7 @@
 #include "vm/jit/compiler2/Compiler.hpp"
 
 #include "toolbox/logging.hpp"
+#define DEBUG_NAME "compiler2/Instruction"
 
 #include "vm/jit/compiler2/alloc/vector.hpp"
 #include "vm/jit/compiler2/alloc/set.hpp"
@@ -173,6 +174,14 @@ public:
 		dep_list.remove(I);
 		I->reverse_dep_list.remove(this);
 	}
+	
+	void replace_dep(Instruction* i_old, Instruction* i_new) {
+		assert(i_old);
+		assert(i_new);
+		std::replace(dep_list.begin(),dep_list.end(),i_old,i_new);
+		i_old->reverse_dep_list.remove(this);
+		i_new->reverse_dep_list.push_back(this);
+	}
 
 	/**
 	 * Check if the instruction is in a correct state.
@@ -198,6 +207,7 @@ public:
 	virtual BeginInst *get_BeginInst() const { return begin; }
 	virtual bool set_BeginInst(BeginInst *b) {
 		if (is_floating()) {
+			LOG("Setting begin inst from " << begin << " to " << b << nl);
 			begin = b;
 			return true;
 		}

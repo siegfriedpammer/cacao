@@ -76,19 +76,6 @@ void remove_all_deps(Instruction* inst){
 	}
 }
 
-void replace_dep(Instruction* for_inst, Instruction* old_inst, Instruction* new_inst)
-{
-	LOG("Replacing dependencies for " << for_inst << nl);
-	for (auto it = for_inst->dep_begin(); it != for_inst->dep_end(); it++) {
-		auto I = *it;
-		if (I == old_inst) {
-			for_inst->remove_dep(I);
-			for_inst->append_dep(new_inst);
-			it = for_inst->dep_begin(); // TODO inlining
-		}
-	}
-}
-
 class InliningOperation {
 private:
 	INVOKEInst* call_site;
@@ -129,7 +116,7 @@ private:
 
             LOG("Adding " << I << " to pre call site bb " << pre_call_site_bb << nl);
             I->set_BeginInst(pre_call_site_bb);
-            replace_dep(I, old_call_site_bb, pre_call_site_bb);
+            I->replace_dep(old_call_site_bb, pre_call_site_bb);
 		}
 
 		for (auto it = to_remove.begin(); it != to_remove.end(); it++){
@@ -165,7 +152,7 @@ private:
                 continue;
 			}
 			I->set_BeginInst(post_call_site_bb);
-			replace_dep(I, old_call_site_bb, post_call_site_bb);
+			I->replace_dep(old_call_site_bb, post_call_site_bb);
 		}
 
 		caller_method->remove_Instruction(source_state_of_call_site);
@@ -213,7 +200,7 @@ private:
             if(I->get_opcode() == Instruction::RETURNInstID){
                 auto returnInst = I->to_RETURNInst();
                 if(needs_phi())
-                    phi->append_op((Instruction*)*((returnInst->op_begin()))); // TODO inlining: error handling
+                    phi->append_op(*((returnInst->op_begin())));
             }
             caller_method->add_Instruction(transform_instruction(I));
 		}
