@@ -34,7 +34,6 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/SSAConstructionPass.hpp"
-#include "vm/jit/compiler2/SourceStateAttachmentPass.hpp"
 #include "vm/jit/compiler2/alloc/queue.hpp"
 #include "vm/jit/jit.hpp"
 
@@ -118,13 +117,6 @@ private:
 			if (I->get_BeginInst() != old_call_site_bb || depends_on(I, call_site))
 				continue;
 
-			// For now deoptimization is not supported.
-			if(I->get_opcode() == Instruction::SourceStateInstID){
-				remove_all_deps(I);
-				to_remove.push_back(I);
-				continue;
-			}
-
             LOG("Adding " << I << " to pre call site bb " << pre_call_site_bb << nl);
             I->set_BeginInst(pre_call_site_bb);
             I->replace_dep(old_call_site_bb, pre_call_site_bb);
@@ -142,7 +134,7 @@ private:
 		caller_method->add_bb(post_call_site_bb);
 		// For now deoptimization is not supported.
 		Instruction* source_state_of_call_site = NULL;
-        // TODO only iterate bb
+		// TODO inlining: only iterate bb
 		for (auto it = caller_method->begin(); it != caller_method->end(); it++) {
 			auto I = *it;
 
@@ -195,13 +187,6 @@ private:
 		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
 			Instruction* I = *it;
 			LOG("Adding to call site " << *I << nl);
-
-			// For now deoptimization is not supported.
-			if(I->get_opcode() == Instruction::SourceStateInstID) {
-				remove_all_deps(I);
-				delete I;
-				continue;
-			}
 
 			if(I->get_opcode() == Instruction::BeginInstID) {
 				caller_method->add_bb(I->to_BeginInst());
@@ -349,7 +334,17 @@ bool InliningPass::run(JITData& JD)
 
 bool InliningPass::can_inline(Instruction* I)
 {
-	return I->get_opcode() == Instruction::INVOKESTATICInstID;
+	bool can_inline_instruction = I->get_opcode() == Instruction::INVOKESTATICInstID;
+
+	if(!can_inline_instruction) return false;
+
+	auto source_method = I->get_Method();
+	auto target_method = I->to_INVOKEInst()->get_fmiref()->p.method;
+
+	// TODO inlining: better way and test?
+	return source_method->get_class_name_utf8() != target_method->clazz->name ||
+	       source_method->get_name_utf8() != target_method->name ||
+		   source_method->get_desc_utf8() != target_method->descriptor;
 }
 
 void InliningPass::inline_instruction(Instruction* I)
@@ -370,7 +365,6 @@ void InliningPass::inline_invoke_static_instruction(INVOKESTATICInst* I)
 	jit_jitdata_init_for_recompilation(jd);
 	JITData JD(jd);
 
-	// TODO inlining don't run all passes.
 	PassRunner runner;
 	runner.runPassesUntil<SSAConstructionPass>(JD);
 	auto callee_method = JD.get_Method();
