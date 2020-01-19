@@ -70,10 +70,12 @@ bool depends_on(Instruction* first, Instruction* second)
 }
 
 void remove_all_deps(Instruction* inst){
+	// TODO inlining: delete source state here
 	LOG("Removing deps " << inst << nl);
 	auto it = inst->dep_begin();
 	while (it != inst->dep_end()){
-		inst->remove_dep(*it);
+		auto I = *it;
+		inst->remove_dep(I);
 		it = inst->dep_begin();
 	}
 
@@ -82,6 +84,9 @@ void remove_all_deps(Instruction* inst){
 	while (it != inst->rdep_end()){
 		auto I = *it;
 		I->remove_dep(inst);
+		if(I->get_opcode() == Instruction::SourceStateInstID){
+			I->get_Method()->remove_Instruction(I);
+		}
 		it = inst->rdep_begin();
 	}
 }
@@ -99,6 +104,10 @@ private:
     bool needs_phi(){
         return call_site->get_type() != Type::VoidTypeID;
     }
+
+	bool inline_single_bb(){
+		return callee_method->bb_size() == 1;
+	}
 
 	void create_pre_call_site_bb()
 	{
@@ -161,7 +170,34 @@ private:
 		caller_method->remove_Instruction(source_state_of_call_site);
 	}
 
-    Instruction* transform_instruction(Instruction* I)
+	void add_call_site_bbs_for_single_bb_method()
+	{
+		LOG("add_call_site_bbs_for_single_bb_method" << callee_method->get_desc_utf8() << nl);
+		Value* result;
+
+		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
+			Instruction* I = *it;
+			LOG("Adding to call site " << *I << nl);
+
+			if(I->get_opcode() == Instruction::BeginInstID){
+				continue; // ignore begin instruction
+			} else if (I->get_opcode() == Instruction::SourceStateInstID){
+				continue; // ignore source states
+			} else if(I->get_opcode() == Instruction::RETURNInstID){
+                auto returnInst = I->to_RETURNInst();
+                result = *(returnInst->op_begin());
+				continue;
+            }
+
+			caller_method->add_Instruction(I);
+			I->set_BeginInst(old_call_site_bb);
+			// TODO how to ensure correct scheduling via scheduling edges
+		}
+        
+		call_site->replace_value(result);
+	}
+
+    Instruction* transform_instruction_complex(Instruction* I)
     {
         LOG("Transforming " << I << nl);
         switch (I->get_opcode()) {
@@ -175,9 +211,9 @@ private:
         return I;
     }
 
-	void add_call_site_bbs()
+	void add_call_site_bbs_for_complex_method()
 	{
-		LOG("create_call_site_bb" << callee_method->get_desc_utf8() << nl);
+		LOG("add_call_site_bbs_for_complex_method" << callee_method->get_desc_utf8() << nl);
 		if(needs_phi()){
 			// the phi will be the replacement for the dependencies to the invoke inst in the post call site bb
 			auto return_type = call_site->get_type();
@@ -196,9 +232,9 @@ private:
             if(I->get_opcode() == Instruction::RETURNInstID){
                 auto returnInst = I->to_RETURNInst();
                 if(needs_phi())
-                    phi->append_op(*((returnInst->op_begin())));
+                    phi->append_op(*(returnInst->op_begin()));
             }
-            caller_method->add_Instruction(transform_instruction(I));
+            caller_method->add_Instruction(transform_instruction_complex(I));
 		}
         
         if(needs_phi()){
@@ -229,24 +265,34 @@ private:
 		}
 	}
 
+	void correct_init_bb(){
+		// correction only needed if the callsite 
+		if (caller_method->get_init_bb() != old_call_site_bb) return;
+			
+		// only possible in methods with multiple bbs
+		LOG("Correcting init bb to " << pre_call_site_bb << nl);
+		caller_method->set_init_bb(pre_call_site_bb);
+	}
+
 	void transform_caller_bb()
 	{
-		create_pre_call_site_bb();
-		create_post_call_site_bb();
-		add_call_site_bbs();
-		replace_method_parameters();
-
-		// correct init bb if necessary
-		if (caller_method->get_init_bb() == old_call_site_bb) {
-			LOG("Correcting init bb to " << pre_call_site_bb << nl);
-			caller_method->set_init_bb(pre_call_site_bb);
- 		}
-
-		auto call_site_bb_init = callee_method->get_init_bb();
-		LOG("Rewriting next bb of pre call site bb to " << call_site_bb_init << nl);
-		auto end_inst = new GOTOInst(pre_call_site_bb, call_site_bb_init);
-		pre_call_site_bb->set_EndInst(end_inst);
-		caller_method->add_Instruction(end_inst);
+		if(inline_single_bb()){
+			add_call_site_bbs_for_single_bb_method();
+			replace_method_parameters();
+			// error: currently the BeginInst of the SourceStateInst is set to null -> error
+			// the source state inst should be removed completely
+		} else {
+			create_pre_call_site_bb();
+			create_post_call_site_bb();
+			add_call_site_bbs_for_complex_method();
+			replace_method_parameters();
+			correct_init_bb();
+			auto call_site_bb_init = callee_method->get_init_bb();
+			LOG("Rewriting next bb of pre call site bb to " << call_site_bb_init << nl);
+			auto end_inst = new GOTOInst(pre_call_site_bb, call_site_bb_init);
+			pre_call_site_bb->set_EndInst(end_inst);
+			caller_method->add_Instruction(end_inst);
+		}
 	}
 
 public:
@@ -266,7 +312,9 @@ public:
 		LOG("Removing invoke instruction" << nl);
 		remove_all_deps(call_site);
 		caller_method->remove_Instruction(call_site);
-		caller_method->remove_bb(old_call_site_bb);
+		if(!inline_single_bb()){
+			caller_method->remove_bb(old_call_site_bb);
+		}
 	}
 };
 
@@ -276,7 +324,7 @@ void print_all_nodes(Method* M)
 	LOG("==========================="<<nl);
 	for (auto it = M->begin(); it != M->end(); it++) {
 		auto I = *it;
-		LOG(I << nl);
+		LOG(I << " within " << I->get_BeginInst() << nl);
 		for (auto itt = I->dep_begin(); itt != I->dep_end(); itt++) {
 			LOG("dep " << *(itt) << nl);
 		}
