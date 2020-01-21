@@ -45,16 +45,9 @@ class Method;
  */
 class InliningPass : public Pass, public memory::ManagerMixin<InliningPass> {
 private:
-    bool can_inline(Instruction* I);
+    bool should_inline(Instruction* I);
     void inline_instruction(Instruction* I);
     void inline_invoke_static_instruction(INVOKESTATICInst* I);
-    void transform_caller_bb(Instruction* callee, Method* to_inline);
-    BeginInst* create_pre_call_site_bb(BeginInst* bb, Instruction* call_site);
-    BeginInst* create_post_call_site_bb(BeginInst* bb, Instruction* call_site);
-    void add_call_site_bbs(Method* to_inline, BeginInst* bb, BeginInst* post_call_site_bb, Instruction* call_site);
-    Instruction* transform_instruction(Instruction* I, BeginInst* post_call_site_bb, PHIInst* phi);
-    bool is_dependent_on(Instruction* first, Instruction* second);
-    void replace_dep(Instruction* for_inst, Instruction* old_inst, Instruction* new_inst);
 #ifdef ENABLE_LOGGING
 	void print_final_results();
 #endif

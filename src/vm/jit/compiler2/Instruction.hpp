@@ -178,9 +178,8 @@ public:
 	void replace_dep(Instruction* i_old, Instruction* i_new) {
 		assert(i_old);
 		assert(i_new);
-		std::replace(dep_list.begin(),dep_list.end(),i_old,i_new);
-		i_old->reverse_dep_list.remove(this);
-		i_new->reverse_dep_list.push_back(this);
+		remove_dep(i_old);
+		append_dep(i_new);
 	}
 
 	/**

@@ -69,13 +69,18 @@ bool depends_on(Instruction* first, Instruction* second)
 		   std::any_of(first->op_begin(),first->op_end(),is_dependent_rec_op);
 }
 
-void remove_all_deps(Instruction* inst){
-	// TODO inlining: delete source state here
+void remove_instruction_with_source_state(Instruction* inst){
+	LOG("removing " << inst << " with (r)dependencies" << nl);
+
 	LOG("Removing deps " << inst << nl);
 	auto it = inst->dep_begin();
 	while (it != inst->dep_end()){
 		auto I = *it;
+		LOG("dep " << I << nl);
 		inst->remove_dep(I);
+		if(I->get_opcode() == Instruction::SourceStateInstID){
+			remove_instruction_with_source_state(I);
+		}
 		it = inst->dep_begin();
 	}
 
@@ -83,11 +88,46 @@ void remove_all_deps(Instruction* inst){
 	it = inst->rdep_begin();
 	while (it != inst->rdep_end()){
 		auto I = *it;
+		LOG("rdep " << I << nl);
 		I->remove_dep(inst);
 		if(I->get_opcode() == Instruction::SourceStateInstID){
-			I->get_Method()->remove_Instruction(I);
+			remove_instruction_with_source_state(I);
 		}
 		it = inst->rdep_begin();
+	}
+
+	if(inst->get_opcode() == Instruction::BeginInstID){
+		inst->get_Method()->remove_bb(inst->to_BeginInst());	
+	} else {
+		inst->get_Method()->remove_Instruction(inst);
+	}
+}
+
+void print_node(Instruction* I){
+	LOG(I << " within " << I->get_BeginInst() << nl);
+	for (auto itt = I->dep_begin(); itt != I->dep_end(); itt++) {
+		LOG("dep " << *(itt) << nl);
+	}
+	for (auto itt = I->rdep_begin(); itt != I->rdep_end(); itt++) {
+		LOG("rdep " << *(itt) << nl);
+	}
+	for (auto itt = I->op_begin(); itt != I->op_end(); itt++) {
+		LOG("op " << *(itt) << nl);
+	}
+	for (auto itt = I->user_begin(); itt != I->user_end(); itt++) {
+		LOG("user " << *(itt) << nl);
+	}
+	if(I->to_EndInst()){
+		auto end = I->to_EndInst();
+		for (auto itt = end->succ_begin(); itt != end->succ_end(); itt++) {
+			LOG("succ " << *(itt) << nl);
+		}
+	}
+	if(I->to_BeginInst()){
+		auto end = I->to_BeginInst();
+		for (auto itt = end->pred_begin(); itt != end->pred_end(); itt++) {
+			LOG("pred " << *(itt) << nl);
+		}
 	}
 }
 
@@ -114,7 +154,6 @@ private:
 		LOG("create_pre_call_site_bb" << nl);
 		pre_call_site_bb = new BeginInst();
 		caller_method->add_bb(pre_call_site_bb);
-		List<Instruction*> to_remove;
 		// TODO inlining: only iterate bb
 		for (auto it = caller_method->begin(); it != caller_method->end(); it++) {
 			auto I = *it;
@@ -130,10 +169,6 @@ private:
             I->set_BeginInst(pre_call_site_bb);
             I->replace_dep(old_call_site_bb, pre_call_site_bb);
 		}
-
-		for (auto it = to_remove.begin(); it != to_remove.end(); it++){
-			caller_method->remove_Instruction(*it);
-		}
 	}
 
 	void create_post_call_site_bb()
@@ -141,8 +176,6 @@ private:
 		LOG("create_post_call_site_bb" << nl);
 		post_call_site_bb = new BeginInst();
 		caller_method->add_bb(post_call_site_bb);
-		// For now deoptimization is not supported.
-		Instruction* source_state_of_call_site = NULL;
 		// TODO inlining: only iterate bb
 		for (auto it = caller_method->begin(); it != caller_method->end(); it++) {
 			auto I = *it;
@@ -159,15 +192,11 @@ private:
 			if (I == old_call_site_bb->get_EndInst()) {
 				post_call_site_bb->set_EndInst(I->to_EndInst());
 			}
-			else if (I->to_SourceStateInst() && *(I->dep_begin()) == call_site) { // remove source state of method call
-                source_state_of_call_site = I;
-                continue;
-			}
 			I->set_BeginInst(post_call_site_bb);
+
+			LOG("Replacing dep for " << I << nl);
 			I->replace_dep(old_call_site_bb, post_call_site_bb);
 		}
-
-		caller_method->remove_Instruction(source_state_of_call_site);
 	}
 
 	void add_call_site_bbs_for_single_bb_method()
@@ -249,7 +278,7 @@ private:
 	}
 
 	void replace_method_parameters(){
-		List<Instruction*> to_delete;
+		List<Instruction*> to_remove;
 		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
 			auto I = *it;
 			if(I->get_opcode() == Instruction::LOADInstID){
@@ -257,11 +286,11 @@ private:
 				auto given_operand = call_site->get_operand(index);
 				LOG("Replacing Load inst" << I << " with " << given_operand << nl);
 				I->replace_value(given_operand);
-				to_delete.push_back(I);
+				to_remove.push_back(I);
 			}
 		}
-		for (auto it = to_delete.begin(); it != to_delete.end(); it++) {
-			caller_method->remove_Instruction(*it);
+		for (auto it = to_remove.begin(); it != to_remove.end(); it++) {
+			remove_instruction_with_source_state(*it);
 		}
 	}
 
@@ -279,8 +308,6 @@ private:
 		if(inline_single_bb()){
 			add_call_site_bbs_for_single_bb_method();
 			replace_method_parameters();
-			// error: currently the BeginInst of the SourceStateInst is set to null -> error
-			// the source state inst should be removed completely
 		} else {
 			create_pre_call_site_bb();
 			create_post_call_site_bb();
@@ -292,6 +319,7 @@ private:
 			auto end_inst = new GOTOInst(pre_call_site_bb, call_site_bb_init);
 			pre_call_site_bb->set_EndInst(end_inst);
 			caller_method->add_Instruction(end_inst);
+			print_node(post_call_site_bb);
 		}
 	}
 
@@ -309,11 +337,8 @@ public:
 		LOG("Inserting new basic blocks into original method" << nl);
 		transform_caller_bb();
 
-		LOG("Removing invoke instruction" << nl);
-		remove_all_deps(call_site);
-		caller_method->remove_Instruction(call_site);
 		if(!inline_single_bb()){
-			caller_method->remove_bb(old_call_site_bb);
+			remove_instruction_with_source_state(old_call_site_bb);
 		}
 	}
 };
@@ -323,32 +348,7 @@ void print_all_nodes(Method* M)
 	// TODO inlining: remove
 	LOG("==========================="<<nl);
 	for (auto it = M->begin(); it != M->end(); it++) {
-		auto I = *it;
-		LOG(I << " within " << I->get_BeginInst() << nl);
-		for (auto itt = I->dep_begin(); itt != I->dep_end(); itt++) {
-			LOG("dep " << *(itt) << nl);
-		}
-		for (auto itt = I->rdep_begin(); itt != I->rdep_end(); itt++) {
-			LOG("rdep " << *(itt) << nl);
-		}
-		for (auto itt = I->op_begin(); itt != I->op_end(); itt++) {
-			LOG("op " << *(itt) << nl);
-		}
-		for (auto itt = I->user_begin(); itt != I->user_end(); itt++) {
-			LOG("user " << *(itt) << nl);
-		}
-		if(I->to_EndInst()){
-			auto end = I->to_EndInst();
-			for (auto itt = end->succ_begin(); itt != end->succ_end(); itt++) {
-				LOG("succ " << *(itt) << nl);
-			}
-		}
-		if(I->to_BeginInst()){
-			auto end = I->to_BeginInst();
-			for (auto itt = end->pred_begin(); itt != end->pred_end(); itt++) {
-				LOG("pred " << *(itt) << nl);
-			}
-		}
+		print_node(*it);
 	}
 	LOG("==========================="<<nl);
 }
@@ -363,13 +363,21 @@ bool InliningPass::run(JITData& JD)
 	LOG("BEFORE" << nl);
 	print_all_nodes(M);
 
+    List<Instruction*> to_remove;
 	for (auto it = M->begin(); it != M->end(); it++) {
 		auto I = *it;
 
-		if (can_inline(I)) {
+		if (should_inline(I)) {
 			inline_instruction(I);
+			to_remove.push_back(I);
 			break;
 		}
+	}
+
+	LOG("Removing all invoke instructions" << nl);
+	for(auto it = to_remove.begin(); it != to_remove.end(); it++){
+		auto call_site = *it;
+		remove_instruction_with_source_state(call_site);
 	}
 
 	LOG("AFTER" << nl);
@@ -380,7 +388,7 @@ bool InliningPass::run(JITData& JD)
 	return true;
 }
 
-bool InliningPass::can_inline(Instruction* I)
+bool InliningPass::should_inline(Instruction* I)
 {
 	bool can_inline_instruction = I->get_opcode() == Instruction::INVOKESTATICInstID;
 
