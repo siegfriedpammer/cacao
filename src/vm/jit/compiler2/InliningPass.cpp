@@ -42,11 +42,23 @@
 // define name for debugging (see logging.hpp)
 #define DEBUG_NAME "compiler2/InliningPass"
 
+
+STAT_DECLARE_GROUP(compiler2_stat)
+STAT_REGISTER_SUBGROUP(compiler2_inliningpass_stat,
+	"inliningpasspass","inliningpasspass",compiler2_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t,inlined_method_invocations,0,"# of inlined method invocations",
+	"number of inlined method invocations",compiler2_inliningpasspass_stat)
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
-// TODO inlining: info abour source states
-
+	
+/*
+	IMPORTANT: The current implementation does not work with on-stack-replacement. Therefore the InliningPass should
+	not be opted in, when testing or working with deoptimization and on-stack-replacement. The reason for this is, 
+	that the SourceStateInstructions are not handled correctly. For example the source state instruction for the
+	inlined call will be deleted completely, which causes information loss.
+*/
 bool depends_on(Instruction* first, Instruction* second)
 {
     if(first == second){
@@ -185,7 +197,7 @@ private:
 
 	void add_call_site_bbs_for_single_bb_method()
 	{
-		LOG("add_call_site_bbs_for_single_bb_method" << callee_method->get_desc_utf8() << nl);
+		LOG("add_call_site_bbs_for_single_bb_method" << nl);
 		Value* result;
 
 		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
@@ -195,18 +207,19 @@ private:
 			if(I->get_opcode() == Instruction::BeginInstID){
 				continue; // ignore begin instruction
 			} else if (I->get_opcode() == Instruction::SourceStateInstID){
-				continue; // ignore source states
+				continue; // ignore source states for now
 			} else if(I->get_opcode() == Instruction::RETURNInstID){
                 auto returnInst = I->to_RETURNInst();
+				LOG(returnInst<<nl);
                 result = *(returnInst->op_begin());
+				LOG(result<<nl);
 				continue;
             }
 
 			caller_method->add_Instruction(I);
 			I->set_BeginInst(old_call_site_bb);
-			// TODO how to ensure correct scheduling via scheduling edges
+			// TODO inlining how to ensure correct scheduling via scheduling edges
 		}
-        
 		call_site->replace_value(result);
 	}
 
@@ -356,8 +369,8 @@ bool InliningPass::run(JITData& JD)
 
 		if (should_inline(I)) {
 			inline_instruction(I);
+			STATISTICS(inlined_method_invocations++);
 			to_remove.push_back(I->to_INVOKEInst());
-			break;
 		}
 	}
 
@@ -377,17 +390,20 @@ bool InliningPass::run(JITData& JD)
 
 bool InliningPass::should_inline(Instruction* I)
 {
-	bool can_inline_instruction = I->get_opcode() == Instruction::INVOKESTATICInstID;
+	bool can_inline_instruction = I->get_opcode() == Instruction::INVOKESTATICInstID ||
+	                              I->get_opcode() == Instruction::INVOKESPECIALInstID;
 
 	if(!can_inline_instruction) return false;
 
 	auto source_method = I->get_Method();
 	auto target_method = I->to_INVOKEInst()->get_fmiref()->p.method;
 
-	// TODO inlining: better way and test?
-	return source_method->get_class_name_utf8() != target_method->clazz->name ||
-	       source_method->get_name_utf8() != target_method->name ||
-		   source_method->get_desc_utf8() != target_method->descriptor;
+	auto is_ctor_call = target_method->name == "<init>";
+	auto is_recursive_call = source_method->get_class_name_utf8() != target_method->clazz->name ||
+	       					 source_method->get_name_utf8() != target_method->name ||
+		   					 source_method->get_desc_utf8() != target_method->descriptor;
+
+	return !is_ctor_call && !is_recursive_call;
 }
 
 void InliningPass::inline_instruction(Instruction* I)
@@ -396,13 +412,14 @@ void InliningPass::inline_instruction(Instruction* I)
 		case Instruction::INVOKESTATICInstID:
 			inline_invoke_static_instruction(I->to_INVOKESTATICInst());
 			break;
+		case Instruction::INVOKESPECIALInstID:
+			inline_invoke_special_instruction(I->to_INVOKESPECIALInst());
+			break;
 		default: break;
 	}
 }
 
-void InliningPass::inline_invoke_static_instruction(INVOKESTATICInst* I)
-{
-	LOG("Inlining static invoke instruction " << I << nl);
+JITData InliningPass::create_ssa_for_invoke_instruction(INVOKEInst* I){
 	auto callee = I->get_fmiref()->p.method;
 	auto* jd = jit_jitdata_new(callee);
 	jit_jitdata_init_for_recompilation(jd);
@@ -410,16 +427,35 @@ void InliningPass::inline_invoke_static_instruction(INVOKESTATICInst* I)
 
 	PassRunner runner;
 	runner.runPassesUntil<SSAConstructionPass>(JD);
-	auto callee_method = JD.get_Method();
+	return JD;
+}
+
+void InliningPass::inline_invoke_special_instruction(INVOKESPECIALInst* I)
+{
+	LOG("Inlining special invoke instruction " << I << nl);
+	
+	auto callee_method = create_ssa_for_invoke_instruction(I);
 
 	LOG("Successfully retrieved SSA-Code for instruction " << nl);
 
-    InliningOperation(I, callee_method).execute();
+    InliningOperation(I, callee_method.get_Method()).execute();
+}
+
+void InliningPass::inline_invoke_static_instruction(INVOKESTATICInst* I)
+{
+	LOG("Inlining static invoke instruction " << I << nl);
+
+	auto callee_method = create_ssa_for_invoke_instruction(I);
+
+	LOG("Successfully retrieved SSA-Code for instruction " << nl);
+
+    InliningOperation(I, callee_method.get_Method()).execute();
 }
 
 // pass usage
 PassUsage& InliningPass::get_PassUsage(PassUsage& PU) const
 {
+	// TODO inlining: better way?
     PU.immediately_after<SSAConstructionPass>();
 	return PU;
 }

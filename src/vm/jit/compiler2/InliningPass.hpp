@@ -36,8 +36,11 @@ namespace compiler2 {
 
 class Instruction;
 class INVOKESTATICInst;
+class INVOKESPECIALInst;
+class INVOKEInst;
 class BeginInst;
 class PHIInst;
+class JITData;
 class Method;
 
 /**
@@ -48,6 +51,8 @@ private:
     bool should_inline(Instruction* I);
     void inline_instruction(Instruction* I);
     void inline_invoke_static_instruction(INVOKESTATICInst* I);
+    void inline_invoke_special_instruction(INVOKESPECIALInst* I);
+    JITData create_ssa_for_invoke_instruction(INVOKEInst* I);
 #ifdef ENABLE_LOGGING
 	void print_final_results();
 #endif
