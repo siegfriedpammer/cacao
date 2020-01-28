@@ -48,8 +48,7 @@ class Method;
  */
 class InliningPass : public Pass, public memory::ManagerMixin<InliningPass> {
 private:
-    bool should_inline(Instruction* I);
-    void inline_instruction(Instruction* I);
+    void inline_instruction(INVOKEInst* I);
     void inline_invoke_static_instruction(INVOKESTATICInst* I);
     void inline_invoke_special_instruction(INVOKESPECIALInst* I);
     JITData create_ssa_for_invoke_instruction(INVOKEInst* I);

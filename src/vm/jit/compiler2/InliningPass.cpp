@@ -330,6 +330,36 @@ public:
 	}
 };
 
+class Heuristic {
+	protected: 
+		bool can_inline(INVOKEInst* I){
+			bool can_inline_instruction = I->get_opcode() == Instruction::INVOKESTATICInstID ||
+										I->get_opcode() == Instruction::INVOKESPECIALInstID;
+
+			if(!can_inline_instruction) return false;
+
+			auto source_method = I->get_Method();
+			auto target_method = I->to_INVOKEInst()->get_fmiref()->p.method;
+
+			// TODO inlining ctor
+			auto is_ctor_call = target_method->name == "<init>";
+			auto is_recursive_call = source_method->get_class_name_utf8() == target_method->clazz->name &&
+									source_method->get_name_utf8() == target_method->name &&
+									source_method->get_desc_utf8() == target_method->descriptor;
+
+			return !is_ctor_call && !is_recursive_call;
+		}
+	public:
+		virtual bool should_inline(INVOKEInst* I);
+};
+
+class EverythingPossibleHeuristic : public Heuristic {
+	public:
+		virtual bool should_inline(INVOKEInst* I){
+			return can_inline(I);
+		}
+};
+
 void print_all_nodes(Method* M)
 {
 	// TODO inlining: remove
@@ -366,7 +396,7 @@ bool InliningPass::run(JITData& JD)
 
 	// LOG("BEFORE" << nl);
 	// print_all_nodes(M);
-
+	EverythingPossibleHeuristic heuristic;
     List<INVOKEInst*> to_remove;
 	auto is_invoke = [&](Instruction* i) { return i->to_INVOKEInst() != NULL; };
 	auto i_iter = boost::make_filter_iterator(is_invoke, M->begin(), M->end());
@@ -374,7 +404,7 @@ bool InliningPass::run(JITData& JD)
 	for (;i_iter != i_end; i_iter++) {
 		auto I = (INVOKEInst*) *i_iter;
 
-		if (should_inline(I)) {
+		if (heuristic.should_inline(I)) {
 			inline_instruction(I);
 			STATISTICS(inlined_method_invocations++);
 			to_remove.push_back(I->to_INVOKEInst());
@@ -393,24 +423,6 @@ bool InliningPass::run(JITData& JD)
 	LOG("End of inlining pass." << nl);
 
 	return true;
-}
-
-bool InliningPass::should_inline(INVOKEInst* I)
-{
-	bool can_inline_instruction = I->get_opcode() == Instruction::INVOKESTATICInstID ||
-	                              I->get_opcode() == Instruction::INVOKESPECIALInstID;
-
-	if(!can_inline_instruction) return false;
-
-	auto source_method = I->get_Method();
-	auto target_method = I->to_INVOKEInst()->get_fmiref()->p.method;
-
-	auto is_ctor_call = target_method->name == "<init>";
-	auto is_recursive_call = source_method->get_class_name_utf8() == target_method->clazz->name &&
-	       					 source_method->get_name_utf8() == target_method->name &&
-		   					 source_method->get_desc_utf8() == target_method->descriptor;
-
-	return !is_ctor_call && !is_recursive_call;
 }
 
 void InliningPass::inline_instruction(INVOKEInst* I)
