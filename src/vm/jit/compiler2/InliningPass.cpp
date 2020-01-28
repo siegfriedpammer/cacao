@@ -360,6 +360,20 @@ class EverythingPossibleHeuristic : public Heuristic {
 		}
 };
 
+class CodeFactory {
+	public:
+		JITData create_ssa(INVOKEInst* I){
+			auto callee = I->get_fmiref()->p.method;
+			auto* jd = jit_jitdata_new(callee);
+			jit_jitdata_init_for_recompilation(jd);
+			JITData JD(jd);
+
+			PassRunner runner;
+			runner.runPassesUntil<SSAConstructionPass>(JD);
+			return JD;
+		}
+};
+
 void print_all_nodes(Method* M)
 {
 	// TODO inlining: remove
@@ -427,47 +441,10 @@ bool InliningPass::run(JITData& JD)
 
 void InliningPass::inline_instruction(INVOKEInst* I)
 {
-	switch (I->get_opcode()) {
-		case Instruction::INVOKESTATICInstID:
-			inline_invoke_static_instruction(I->to_INVOKESTATICInst());
-			break;
-		case Instruction::INVOKESPECIALInstID:
-			inline_invoke_special_instruction(I->to_INVOKESPECIALInst());
-			break;
-		default: break;
-	}
-}
-
-JITData InliningPass::create_ssa_for_invoke_instruction(INVOKEInst* I){
-	auto callee = I->get_fmiref()->p.method;
-	auto* jd = jit_jitdata_new(callee);
-	jit_jitdata_init_for_recompilation(jd);
-	JITData JD(jd);
-
-	PassRunner runner;
-	runner.runPassesUntil<SSAConstructionPass>(JD);
-	return JD;
-}
-
-void InliningPass::inline_invoke_special_instruction(INVOKESPECIALInst* I)
-{
-	LOG("Inlining special invoke instruction " << I << nl);
-	
-	auto callee_method = create_ssa_for_invoke_instruction(I);
-
+	CodeFactory codeFactory;
+	LOG("Inlining invoke instruction " << I << nl);
+	auto callee_method = codeFactory.create_ssa(I);
 	LOG("Successfully retrieved SSA-Code for instruction " << nl);
-
-    InliningOperation(I, callee_method.get_Method()).execute();
-}
-
-void InliningPass::inline_invoke_static_instruction(INVOKESTATICInst* I)
-{
-	LOG("Inlining static invoke instruction " << I << nl);
-
-	auto callee_method = create_ssa_for_invoke_instruction(I);
-
-	LOG("Successfully retrieved SSA-Code for instruction " << nl);
-
     InliningOperation(I, callee_method.get_Method()).execute();
 }
 

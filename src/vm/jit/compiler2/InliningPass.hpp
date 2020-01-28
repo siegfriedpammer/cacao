@@ -49,8 +49,6 @@ class Method;
 class InliningPass : public Pass, public memory::ManagerMixin<InliningPass> {
 private:
     void inline_instruction(INVOKEInst* I);
-    void inline_invoke_static_instruction(INVOKESTATICInst* I);
-    void inline_invoke_special_instruction(INVOKESPECIALInst* I);
     JITData create_ssa_for_invoke_instruction(INVOKEInst* I);
 #ifdef ENABLE_LOGGING
 	void print_final_results();
