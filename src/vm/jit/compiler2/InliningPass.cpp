@@ -36,6 +36,7 @@
 #include "vm/jit/compiler2/SSAConstructionPass.hpp"
 #include "vm/jit/compiler2/alloc/queue.hpp"
 #include "vm/jit/jit.hpp"
+#include "boost/iterator/filter_iterator.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -361,12 +362,15 @@ bool InliningPass::run(JITData& JD)
 	LOG("Inlining for class: " << M->get_class_name_utf8() << nl);
 	LOG("Inlining for method: " << M->get_name_utf8() << nl);
 
-	LOG("BEFORE" << nl);
-	print_all_nodes(M);
+	// LOG("BEFORE" << nl);
+	// print_all_nodes(M);
 
     List<INVOKEInst*> to_remove;
-	for (auto it = M->begin(); it != M->end(); it++) {
-		auto I = *it;
+	auto is_invoke = [&](Instruction* i) { return i->to_INVOKEInst() != NULL; };
+	auto i_iter = boost::make_filter_iterator(is_invoke, M->begin(), M->end());
+	auto i_end = boost::make_filter_iterator(is_invoke, M->end(), M->end());
+	for (;i_iter != i_end; i_iter++) {
+		auto I = (INVOKEInst*) *i_iter;
 
 		if (should_inline(I)) {
 			inline_instruction(I);
@@ -381,15 +385,15 @@ bool InliningPass::run(JITData& JD)
 		remove_call_site(call_site);
 	}
 
-	LOG("AFTER" << nl);
-	print_all_nodes(M);
+	// LOG("AFTER" << nl);
+	// print_all_nodes(M);
 
 	LOG("End of inlining pass." << nl);
 
 	return true;
 }
 
-bool InliningPass::should_inline(Instruction* I)
+bool InliningPass::should_inline(INVOKEInst* I)
 {
 	bool can_inline_instruction = I->get_opcode() == Instruction::INVOKESTATICInstID ||
 	                              I->get_opcode() == Instruction::INVOKESPECIALInstID;
@@ -407,7 +411,7 @@ bool InliningPass::should_inline(Instruction* I)
 	return !is_ctor_call && !is_recursive_call;
 }
 
-void InliningPass::inline_instruction(Instruction* I)
+void InliningPass::inline_instruction(INVOKEInst* I)
 {
 	switch (I->get_opcode()) {
 		case Instruction::INVOKESTATICInstID:
