@@ -345,11 +345,13 @@ void remove_call_site(INVOKEInst* call_site){
 	auto source_state = *std::find_if(call_site->rdep_begin(), call_site->rdep_end(), is_source_state);
 	source_state->to_SourceStateInst()->replace_dep(call_site, call_site->get_BeginInst());
 
-	// TODO inlining: choose invoke inst of call_site if there is one
+	// TODO inlining: inlined method calls
+ 	// the second dependency is special for invoke instructions and needs to be preserved.
 	auto is_invoke_inst = [](Instruction* I){ return I->to_INVOKEInst() != NULL;};
 	auto invoke_inst = *std::find_if(call_site->rdep_begin(), call_site->rdep_end(), is_invoke_inst);
 	if(invoke_inst){
-		invoke_inst->to_INVOKEInst()->replace_dep(call_site, call_site->get_BeginInst());
+		auto replace_with = *std::next(call_site->dep_begin(), 1);
+		invoke_inst->to_INVOKEInst()->replace_dep(call_site, replace_with);
 	}
 
 	remove_instruction(call_site);
