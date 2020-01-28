@@ -141,64 +141,46 @@ void print_node(Instruction* I){
 	}
 }
 
-class InliningOperation {
-private:
+class InliningOperationBase {
+protected:
 	INVOKEInst* call_site;
-	BeginInst* old_call_site_bb;
-	Method* caller_method;
 	Method* callee_method;
-	BeginInst* pre_call_site_bb;
-	BeginInst* post_call_site_bb;
-    PHIInst* phi;
 
-    bool needs_phi(){
-        return call_site->get_type() != Type::VoidTypeID;
-    }
-
-	bool inline_single_bb(){
-		return callee_method->bb_size() == 1;
+	InliningOperationBase(INVOKEInst* call_site, Method* callee_method){
+		this->call_site = call_site;
+		this->callee_method = callee_method;
 	}
 
-	bool does_not_belong_to_post_call_site_bb(Instruction* I) {
-		// Always include the end instruction of the original bb.
-		if(I == old_call_site_bb->get_EndInst()) return false;
-
-		return I->get_opcode() == Instruction::BeginInstID ||
-		       I == call_site ||
-			   I->get_BeginInst() != old_call_site_bb ||
-			   !depends_on(I, call_site);
-	}
-
-	void create_post_call_site_bb()
-	{
-		post_call_site_bb = new BeginInst();
-		LOG("create_post_call_site_bb " << post_call_site_bb << nl);
-		caller_method->add_bb(post_call_site_bb);
-		// TODO inlining: only iterate bb
-		for (auto it = caller_method->begin(); it != caller_method->end(); it++) {
+	void replace_method_parameters(){
+		List<Instruction*> to_remove;
+		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
 			auto I = *it;
-
-			if (does_not_belong_to_post_call_site_bb(I))
-				continue;
-
-            LOG("Adding " << I << " to post call site bb " << post_call_site_bb << nl);
-
-			if (I == old_call_site_bb->get_EndInst()) {
-				LOG("Setting end inst of post call site bb " << I << nl);
-				post_call_site_bb->set_EndInst(I->to_EndInst());
+			if(I->get_opcode() == Instruction::LOADInstID){
+				auto index = (I->to_LOADInst())->get_index();
+				auto given_operand = call_site->get_operand(index);
+				LOG("Replacing Load inst" << I << " with " << given_operand << nl);
+				I->replace_value(given_operand);
+				to_remove.push_back(I);
 			}
-
-			// TODO inlining: check if floating
-			I->set_BeginInst(post_call_site_bb);
-
-			LOG("Replacing " << old_call_site_bb << " dep for " << post_call_site_bb << " in " << I << nl);
-			I->replace_dep(old_call_site_bb, post_call_site_bb);
+		}
+		for (auto it = to_remove.begin(); it != to_remove.end(); it++) {
+			remove_instruction(*it);
 		}
 	}
+public:
+	virtual void execute();
+};
 
-	void add_call_site_bbs_for_single_bb_method()
+class SingleBBInliningOperation : public InliningOperationBase {
+private:
+	BeginInst* call_site_bb;
+	INVOKEInst* call_site;
+	Method* caller_method;
+	Method* callee_method;
+
+	void add_call_site_bbs()
 	{
-		LOG("add_call_site_bbs_for_single_bb_method" << nl);
+		LOG("add_call_site_bbs" << nl);
 		Value* result;
 
 		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
@@ -218,116 +200,168 @@ private:
             }
 
 			caller_method->add_Instruction(I);
-			I->set_BeginInst(old_call_site_bb);
+			I->set_BeginInst(call_site_bb);
 			// TODO inlining how to ensure correct scheduling via scheduling edges
 		}
 		call_site->replace_value(result);
 	}
 
-    Instruction* transform_instruction_complex(Instruction* I)
-    {
-        LOG("Transforming " << I << nl);
-        switch (I->get_opcode()) {
-            case Instruction::RETURNInstID:
-                auto begin_inst = I->get_BeginInst();
-                auto end_instruction = new GOTOInst(begin_inst, post_call_site_bb);
-                begin_inst->set_EndInst(end_instruction);
-                LOG("Rewriting return instruction " << I << " to " << end_instruction << nl);
-                return end_instruction;
-        }
-        return I;
-    }
-
-	void add_call_site_bbs_for_complex_method()
+public:
+	SingleBBInliningOperation(INVOKEInst* site, Method* callee) : InliningOperationBase(site, callee)
 	{
-		LOG("add_call_site_bbs_for_complex_method" << callee_method->get_desc_utf8() << nl);
-		if(needs_phi()){
-			// the phi will be the replacement for the dependencies to the invoke inst in the post call site bb
-			auto return_type = call_site->get_type();
-            phi = new PHIInst(return_type, post_call_site_bb);
-        }
+		call_site_bb = call_site->get_BeginInst();
+		caller_method = call_site->get_Method();
+	}
 
-		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
-			Instruction* I = *it;
-			LOG("Adding to call site " << *I << nl);
+	virtual void execute()
+	{
+		LOG("Inserting new basic blocks into original method" << nl);
+		add_call_site_bbs();
+		replace_method_parameters();
+	}
+};
 
-			if(I->get_opcode() == Instruction::BeginInstID) {
-				caller_method->add_bb(I->to_BeginInst());
-				continue;
+class ComplexInliningOperation {
+	private:
+		INVOKEInst* call_site;
+		BeginInst* old_call_site_bb;
+		Method* caller_method;
+		Method* callee_method;
+		BeginInst* pre_call_site_bb;
+		BeginInst* post_call_site_bb;
+		PHIInst* phi;
+
+		bool needs_phi(){
+			return call_site->get_type() != Type::VoidTypeID;
+		}
+
+		bool does_not_belong_to_post_call_site_bb(Instruction* I) {
+			// Always include the end instruction of the original bb.
+			if(I == old_call_site_bb->get_EndInst()) return false;
+
+			return I->get_opcode() == Instruction::BeginInstID ||
+				I == call_site ||
+				I->get_BeginInst() != old_call_site_bb ||
+				!depends_on(I, call_site);
+		}
+
+		void create_post_call_site_bb()
+		{
+			post_call_site_bb = new BeginInst();
+			LOG("create_post_call_site_bb " << post_call_site_bb << nl);
+			caller_method->add_bb(post_call_site_bb);
+			// TODO inlining: only iterate bb
+			for (auto it = caller_method->begin(); it != caller_method->end(); it++) {
+				auto I = *it;
+
+				if (does_not_belong_to_post_call_site_bb(I))
+					continue;
+
+				LOG("Adding " << I << " to post call site bb " << post_call_site_bb << nl);
+
+				if (I == old_call_site_bb->get_EndInst()) {
+					LOG("Setting end inst of post call site bb " << I << nl);
+					post_call_site_bb->set_EndInst(I->to_EndInst());
+				}
+
+				// TODO inlining: check if floating
+				I->set_BeginInst(post_call_site_bb);
+
+				LOG("Replacing " << old_call_site_bb << " dep for " << post_call_site_bb << " in " << I << nl);
+				I->replace_dep(old_call_site_bb, post_call_site_bb);
+			}
+		}
+
+		Instruction* transform_instruction(Instruction* I)
+		{
+			LOG("Transforming " << I << nl);
+			switch (I->get_opcode()) {
+				case Instruction::RETURNInstID:
+					auto begin_inst = I->get_BeginInst();
+					auto end_instruction = new GOTOInst(begin_inst, post_call_site_bb);
+					begin_inst->set_EndInst(end_instruction);
+					LOG("Rewriting return instruction " << I << " to " << end_instruction << nl);
+					return end_instruction;
+			}
+			return I;
+		}
+
+		void add_call_site_bbs()
+		{
+			LOG("add_call_site_bbs" << callee_method->get_desc_utf8() << nl);
+			if(needs_phi()){
+				// the phi will be the replacement for the dependencies to the invoke inst in the post call site bb
+				auto return_type = call_site->get_type();
+				phi = new PHIInst(return_type, post_call_site_bb);
 			}
 
-            if(I->get_opcode() == Instruction::RETURNInstID){
-                auto returnInst = I->to_RETURNInst();
-                if(needs_phi())
-                    phi->append_op(*(returnInst->op_begin()));
-            }
-            caller_method->add_Instruction(transform_instruction_complex(I));
-		}
-        
-        if(needs_phi()){
-			if(phi->op_size() == 1) {
-				call_site->replace_value(*(phi->op_begin()));
-				delete phi;
-			} else {
+			for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
+				Instruction* I = *it;
+				LOG("Adding to call site " << *I << nl);
+
+				if(I->get_opcode() == Instruction::BeginInstID) {
+					caller_method->add_bb(I->to_BeginInst());
+					continue;
+				}
+
+				if(I->get_opcode() == Instruction::RETURNInstID){
+					auto returnInst = I->to_RETURNInst();
+					if(needs_phi())
+						phi->append_op(*(returnInst->op_begin()));
+				}
+				caller_method->add_Instruction(transform_instruction(I));
+			}
+			
+			if(needs_phi()){
+				// phi node always has more than 1 operator, otherwise it would be a single bb inlining operation
 				caller_method->add_Instruction(phi);
-		    	call_site->replace_value(phi);
+				call_site->replace_value(phi);
 			}
 		}
-	}
 
-	void replace_method_parameters(){
-		List<Instruction*> to_remove;
-		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
-			auto I = *it;
-			if(I->get_opcode() == Instruction::LOADInstID){
-				auto index = (I->to_LOADInst())->get_index();
-				auto given_operand = call_site->get_operand(index);
-				LOG("Replacing Load inst" << I << " with " << given_operand << nl);
-				I->replace_value(given_operand);
-				to_remove.push_back(I);
+		void replace_method_parameters(){
+			List<Instruction*> to_remove;
+			for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
+				auto I = *it;
+				if(I->get_opcode() == Instruction::LOADInstID){
+					auto index = (I->to_LOADInst())->get_index();
+					auto given_operand = call_site->get_operand(index);
+					LOG("Replacing Load inst" << I << " with " << given_operand << nl);
+					I->replace_value(given_operand);
+					to_remove.push_back(I);
+				}
+			}
+			for (auto it = to_remove.begin(); it != to_remove.end(); it++) {
+				remove_instruction(*it);
 			}
 		}
-		for (auto it = to_remove.begin(); it != to_remove.end(); it++) {
-			remove_instruction(*it);
+
+		void wire_up_call_site_with_post_call_site_bb(){
+			auto call_site_bb_init = callee_method->get_init_bb();
+			LOG("Rewriting next bb of pre call site bb to " << call_site_bb_init << nl);
+			auto end_inst = new GOTOInst(pre_call_site_bb, call_site_bb_init);
+			pre_call_site_bb->set_EndInst(end_inst);
+			caller_method->add_Instruction(end_inst);
 		}
-	}
 
-	void wire_up_call_site_with_post_call_site_bb(){
-		auto call_site_bb_init = callee_method->get_init_bb();
-		LOG("Rewriting next bb of pre call site bb to " << call_site_bb_init << nl);
-		auto end_inst = new GOTOInst(pre_call_site_bb, call_site_bb_init);
-		pre_call_site_bb->set_EndInst(end_inst);
-		caller_method->add_Instruction(end_inst);
-	}
+	public:
+		ComplexInliningOperation(INVOKEInst* site, Method* callee)
+		{
+			call_site = site;
+			old_call_site_bb = call_site->get_BeginInst();
+			caller_method = call_site->get_Method();
+			callee_method = callee;
+		}
 
-	void transform_caller_bb()
-	{
-		if(inline_single_bb()){
-			add_call_site_bbs_for_single_bb_method();
-			replace_method_parameters();
-		} else {
+		virtual void execute()
+		{
+			LOG("Inserting new basic blocks into original method" << nl);
 			pre_call_site_bb = old_call_site_bb;
 			create_post_call_site_bb();
-			add_call_site_bbs_for_complex_method();
+			add_call_site_bbs();
 			replace_method_parameters();
 			wire_up_call_site_with_post_call_site_bb();
 		}
-	}
-
-public:
-	InliningOperation(INVOKEInst* site, Method* callee)
-	{
-		call_site = site;
-		old_call_site_bb = call_site->get_BeginInst();
-		caller_method = call_site->get_Method();
-		callee_method = callee;
-	}
-
-	void execute()
-	{
-		LOG("Inserting new basic blocks into original method" << nl);
-		transform_caller_bb();
-	}
 };
 
 class Heuristic {
@@ -445,7 +479,11 @@ void InliningPass::inline_instruction(INVOKEInst* I)
 	LOG("Inlining invoke instruction " << I << nl);
 	auto callee_method = codeFactory.create_ssa(I);
 	LOG("Successfully retrieved SSA-Code for instruction " << nl);
-    InliningOperation(I, callee_method.get_Method()).execute();
+	if (callee_method.get_Method()->bb_size() == 1){
+    	SingleBBInliningOperation(I, callee_method.get_Method()).execute();
+	} else {
+    	ComplexInliningOperation(I, callee_method.get_Method()).execute();
+	}
 }
 
 // pass usage
