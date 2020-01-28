@@ -344,6 +344,7 @@ void remove_call_site(INVOKEInst* call_site){
 	auto source_state = *std::find_if(call_site->rdep_begin(), call_site->rdep_end(), is_source_state);
 	source_state->to_SourceStateInst()->replace_dep(call_site, call_site->get_BeginInst());
 
+	// TODO inlining: choose invoke inst of call_site if there is one
 	auto is_invoke_inst = [](Instruction* I){ return I->to_INVOKEInst() != NULL;};
 	auto invoke_inst = *std::find_if(call_site->rdep_begin(), call_site->rdep_end(), is_invoke_inst);
 	if(invoke_inst){
@@ -399,9 +400,9 @@ bool InliningPass::should_inline(Instruction* I)
 	auto target_method = I->to_INVOKEInst()->get_fmiref()->p.method;
 
 	auto is_ctor_call = target_method->name == "<init>";
-	auto is_recursive_call = source_method->get_class_name_utf8() != target_method->clazz->name ||
-	       					 source_method->get_name_utf8() != target_method->name ||
-		   					 source_method->get_desc_utf8() != target_method->descriptor;
+	auto is_recursive_call = source_method->get_class_name_utf8() == target_method->clazz->name &&
+	       					 source_method->get_name_utf8() == target_method->name &&
+		   					 source_method->get_desc_utf8() == target_method->descriptor;
 
 	return !is_ctor_call && !is_recursive_call;
 }
