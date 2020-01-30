@@ -371,13 +371,11 @@ class Heuristic {
 			auto source_method = I->get_Method();
 			auto target_method = I->to_INVOKEInst()->get_fmiref()->p.method;
 
-			// TODO inlining ctor
-			auto is_ctor_call = target_method->name == "<init>";
 			auto is_recursive_call = source_method->get_class_name_utf8() == target_method->clazz->name &&
 									source_method->get_name_utf8() == target_method->name &&
 									source_method->get_desc_utf8() == target_method->descriptor;
 
-			return !is_ctor_call && !is_recursive_call;
+			return !is_recursive_call;
 		}
 	public:
 		virtual bool should_inline(INVOKEInst* I);
