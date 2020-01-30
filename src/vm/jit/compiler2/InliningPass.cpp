@@ -226,14 +226,47 @@ class ComplexInliningOperation : InliningOperationBase {
 			return call_site->get_type() != Type::VoidTypeID;
 		}
 
-		bool does_not_belong_to_post_call_site_bb(Instruction* I) {
-			// Always include the end instruction of the original bb.
-			if(I == old_call_site_bb->get_EndInst()) return false;
+		bool belongs_to_post_call_site_bb(Instruction* I) {
+			return I->get_BeginInst() == old_call_site_bb && I->to_EndInst() == NULL;
+		}
+		
+		void add_to_post_call_site_bb(Instruction* I){
+			LOG("Adding " << I << " to post call site bb " << post_call_site_bb << nl);
 
-			return I->get_opcode() == Instruction::BeginInstID ||
-				I == call_site ||
-				I->get_BeginInst() != old_call_site_bb ||
-				!depends_on(I, call_site);
+			// TODO inlining: check if floating
+			I->set_BeginInst(post_call_site_bb);
+			
+			if(old_call_site_bb->get_EndInst() == I){
+				LOG("Setting end inst of post call site bb " << I << nl);
+				post_call_site_bb->set_EndInst(I->to_EndInst());
+			}
+
+			LOG("Replacing " << old_call_site_bb << " dep for " << post_call_site_bb << " in " << I << nl);
+			I->replace_dep(old_call_site_bb, post_call_site_bb);
+		}
+
+		void add_dependent(Instruction* I){
+			LOG("Reee: " << I << nl);
+			if(!belongs_to_post_call_site_bb(I)) return;
+
+			auto add_rec = [&](Instruction* inst){
+				if(belongs_to_post_call_site_bb(inst)) {
+					add_to_post_call_site_bb(inst);
+					add_dependent(inst); 
+				}
+			};
+			auto add_rec_op = [&](Value* v){
+				Instruction* inst = v->to_Instruction();
+				if(inst && belongs_to_post_call_site_bb(inst)){
+					add_to_post_call_site_bb(inst);
+					add_dependent(inst); 
+				}
+			};
+
+			std::for_each(I->rdep_begin(), I->rdep_end(), add_rec);
+			std::for_each(I->user_begin(), I->user_end(), add_rec_op);
+
+			print_node(post_call_site_bb);
 		}
 
 		void create_post_call_site_bb()
@@ -241,26 +274,14 @@ class ComplexInliningOperation : InliningOperationBase {
 			post_call_site_bb = new BeginInst();
 			LOG("create_post_call_site_bb " << post_call_site_bb << nl);
 			caller_method->add_bb(post_call_site_bb);
-			// TODO inlining: only iterate bb
-			for (auto it = caller_method->begin(); it != caller_method->end(); it++) {
-				auto I = *it;
 
-				if (does_not_belong_to_post_call_site_bb(I))
-					continue;
+			// add end inst of call site bb
+			auto end_inst = old_call_site_bb->get_EndInst();
+			LOG("new end inst for post call site bb " << end_inst << nl);
+			end_inst->set_BeginInst(post_call_site_bb);
+			post_call_site_bb->set_EndInst(end_inst);
 
-				LOG("Adding " << I << " to post call site bb " << post_call_site_bb << nl);
-
-				if (I == old_call_site_bb->get_EndInst()) {
-					LOG("Setting end inst of post call site bb " << I << nl);
-					post_call_site_bb->set_EndInst(I->to_EndInst());
-				}
-
-				// TODO inlining: check if floating
-				I->set_BeginInst(post_call_site_bb);
-
-				LOG("Replacing " << old_call_site_bb << " dep for " << post_call_site_bb << " in " << I << nl);
-				I->replace_dep(old_call_site_bb, post_call_site_bb);
-			}
+			add_dependent(call_site);
 		}
 
 		Instruction* transform_instruction(Instruction* I)
