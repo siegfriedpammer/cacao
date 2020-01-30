@@ -464,7 +464,6 @@ void InliningPass::inline_instruction(INVOKEInst* I)
 // pass usage
 PassUsage& InliningPass::get_PassUsage(PassUsage& PU) const
 {
-	// TODO inlining: better way?
     PU.immediately_after<SSAConstructionPass>();
 	return PU;
 }
