@@ -173,6 +173,37 @@ class SingleBBInliningOperation : InliningOperationBase {
 private:
 	BeginInst* call_site_bb;
 
+	static bool is_source_state_or_begin_inst (Instruction* I){
+		auto op_code = I->get_opcode();
+		return op_code != Instruction::SourceStateInstID && op_code != Instruction::BeginInstID;
+	}
+
+	static bool is_state_change_for_other_instruction (Instruction* I){
+		return std::any_of(I->rdep_begin(), I->rdep_end(), SingleBBInliningOperation::is_source_state_or_begin_inst);
+	}
+
+	static Instruction* get_depending_instruction (Instruction* I){
+		return *std::find_if(I->rdep_begin(), I->rdep_end(), SingleBBInliningOperation::is_source_state_or_begin_inst);
+	}
+
+	void correct_scheduling_edges(Instruction* I){
+		if(!I->has_side_effects()) return;
+
+		auto state_change = I->get_last_state_change();
+		// If the last state change points to the basic block, then there is no state changing instruction
+		// before this instruction in this bb. Therefore the new state change has to be the last state changing
+		// instruction before the initial call site (or the new bb).
+		if (state_change->to_BeginInst()) {
+			Instruction* first_dependency_before_inlined_region = *std::next(call_site->dep_begin(), 1);
+			I->replace_state_change_dep(first_dependency_before_inlined_region);
+		}
+
+		if(is_state_change_for_other_instruction(call_site) && is_state_change_for_other_instruction(I)){
+			auto first_dependency_after_inlined_region = get_depending_instruction (call_site);
+			first_dependency_after_inlined_region->replace_dep(call_site, first_dependency_after_inlined_region);
+		}
+	}
+
 	void add_call_site_bbs()
 	{
 		LOG("add_call_site_bbs" << nl);
@@ -196,7 +227,8 @@ private:
 
 			caller_method->add_Instruction(I);
 			I->set_BeginInst(call_site_bb);
-			// TODO inlining how to ensure correct scheduling via scheduling edges
+
+			correct_scheduling_edges(I);
 		}
 		call_site->replace_value(result);
 	}
@@ -215,6 +247,7 @@ public:
 	}
 };
 
+// TODO inlining: Is repairing scheduling edges necessary here? 
 class ComplexInliningOperation : InliningOperationBase {
 	private:
 		BeginInst* old_call_site_bb;
@@ -241,6 +274,7 @@ class ComplexInliningOperation : InliningOperationBase {
 				post_call_site_bb->set_EndInst(I->to_EndInst());
 			}
 
+			// TODO inlining: what if old_call_site_bb exists 2 times.
 			LOG("Replacing " << old_call_site_bb << " dep for " << post_call_site_bb << " in " << I << nl);
 			I->replace_dep(old_call_site_bb, post_call_site_bb);
 		}
@@ -416,15 +450,6 @@ void remove_call_site(INVOKEInst* call_site){
 	auto is_source_state = [](Instruction* I){ return I->get_opcode() == Instruction::SourceStateInstID;};
 	auto source_state = *std::find_if(call_site->rdep_begin(), call_site->rdep_end(), is_source_state);
 	source_state->to_SourceStateInst()->replace_dep(call_site, call_site->get_BeginInst());
-
-	// TODO inlining: inlined method calls
- 	// the second dependency is special for invoke instructions and needs to be preserved.
-	auto is_invoke_inst = [](Instruction* I){ return I->to_INVOKEInst() != NULL;};
-	auto invoke_inst = *std::find_if(call_site->rdep_begin(), call_site->rdep_end(), is_invoke_inst);
-	if(invoke_inst){
-		auto replace_with = *std::next(call_site->dep_begin(), 1);
-		invoke_inst->to_INVOKEInst()->replace_dep(call_site, replace_with);
-	}
 
 	remove_instruction(call_site);
 }
