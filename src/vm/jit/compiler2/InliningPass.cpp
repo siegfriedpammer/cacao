@@ -198,9 +198,11 @@ private:
 			I->replace_state_change_dep(first_dependency_before_inlined_region);
 		}
 
-		if(is_state_change_for_other_instruction(call_site) && is_state_change_for_other_instruction(I)){
+		// If the call site is the last state change for an instruction, this instruction now needs to depend
+		// on the last state changing instruction of the inlined region, or the state change before the invocation.
+		if(is_state_change_for_other_instruction(call_site) && !is_state_change_for_other_instruction(I)){
 			auto first_dependency_after_inlined_region = get_depending_instruction (call_site);
-			first_dependency_after_inlined_region->replace_dep(call_site, first_dependency_after_inlined_region);
+			first_dependency_after_inlined_region->replace_dep(call_site, I);
 		}
 	}
 
@@ -247,7 +249,7 @@ public:
 	}
 };
 
-// TODO inlining: Is repairing scheduling edges necessary here? 
+// TODO inlining: when inserting into post call site bb, the deoendency to the call site needs to be removed
 class ComplexInliningOperation : InliningOperationBase {
 	private:
 		BeginInst* old_call_site_bb;
