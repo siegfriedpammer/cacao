@@ -60,27 +60,6 @@ namespace compiler2 {
 	that the SourceStateInstructions are not handled correctly. For example the source state instruction for the
 	inlined call will be deleted completely, which causes information loss.
 */
-bool depends_on(Instruction* first, Instruction* second)
-{
-    if(first == second){
-		return true;
-	}
-
-	// if first is not in the same bb, first cannot depend on second anymore. Both start in the same bb and the traversal
-	// is only towards the start of the method.
-	if(first->get_BeginInst() != second->get_BeginInst()){
-		return false;
-	}
-	
-	auto is_dependent_rec = [&](Instruction* i){return depends_on(i, second);};
-	auto is_dependent_rec_op = [&](Value* v){
-		Instruction* i = v->to_Instruction();
-		return i ? depends_on(i, second) : false;
-	};
-
-	return std::any_of(first->dep_begin(),first->dep_end(),is_dependent_rec) ||
-		   std::any_of(first->op_begin(),first->op_end(),is_dependent_rec_op);
-}
 
 void remove_instruction(Instruction* inst){
 	LOG("removing " << inst << " with (r)dependencies" << nl);
@@ -150,6 +129,19 @@ class InliningOperationBase {
 		InliningOperationBase (INVOKEInst* site, Method* callee) : call_site(site), callee_method(callee){
 			caller_method = call_site->get_Method();
 		}
+		
+		static bool is_source_state_or_begin_inst (Instruction* I){
+			auto op_code = I->get_opcode();
+			return op_code != Instruction::SourceStateInstID && op_code != Instruction::BeginInstID;
+		}
+
+		static bool is_state_change_for_other_instruction (Instruction* I){
+			return std::any_of(I->rdep_begin(), I->rdep_end(), InliningOperationBase::is_source_state_or_begin_inst);
+		}
+
+		static Instruction* get_depending_instruction (Instruction* I){
+			return *std::find_if(I->rdep_begin(), I->rdep_end(), InliningOperationBase::is_source_state_or_begin_inst);
+		}
 
 		void replace_method_parameters(){
 			List<Instruction*> to_remove;
@@ -172,19 +164,6 @@ class InliningOperationBase {
 class SingleBBInliningOperation : InliningOperationBase {
 private:
 	BeginInst* call_site_bb;
-
-	static bool is_source_state_or_begin_inst (Instruction* I){
-		auto op_code = I->get_opcode();
-		return op_code != Instruction::SourceStateInstID && op_code != Instruction::BeginInstID;
-	}
-
-	static bool is_state_change_for_other_instruction (Instruction* I){
-		return std::any_of(I->rdep_begin(), I->rdep_end(), SingleBBInliningOperation::is_source_state_or_begin_inst);
-	}
-
-	static Instruction* get_depending_instruction (Instruction* I){
-		return *std::find_if(I->rdep_begin(), I->rdep_end(), SingleBBInliningOperation::is_source_state_or_begin_inst);
-	}
 
 	void correct_scheduling_edges(Instruction* I){
 		if(!I->has_side_effects()) return;
@@ -249,7 +228,6 @@ public:
 	}
 };
 
-// TODO inlining: when inserting into post call site bb, the deoendency to the call site needs to be removed
 class ComplexInliningOperation : InliningOperationBase {
 	private:
 		BeginInst* old_call_site_bb;
@@ -282,7 +260,6 @@ class ComplexInliningOperation : InliningOperationBase {
 		}
 
 		void add_dependent(Instruction* I){
-			LOG("Reee: " << I << nl);
 			if(!belongs_to_post_call_site_bb(I)) return;
 
 			auto add_rec = [&](Instruction* inst){
@@ -318,6 +295,13 @@ class ComplexInliningOperation : InliningOperationBase {
 			post_call_site_bb->set_EndInst(end_inst);
 
 			add_dependent(call_site);
+
+			if(is_state_change_for_other_instruction(call_site)){
+				auto last_state_change = call_site->get_last_state_change(); 
+				auto dependent_inst = get_depending_instruction (call_site);
+				LOG("Replacing last state change for " << dependent_inst << " to " << last_state_change << "." << nl);
+				dependent_inst->replace_state_change_dep(last_state_change);
+			}
 		}
 
 		Instruction* transform_instruction(Instruction* I)
@@ -449,6 +433,7 @@ void print_all_nodes(Method* M)
 }
 
 void remove_call_site(INVOKEInst* call_site){
+	// append source state to bb (workaround)
 	auto is_source_state = [](Instruction* I){ return I->get_opcode() == Instruction::SourceStateInstID;};
 	auto source_state = *std::find_if(call_site->rdep_begin(), call_site->rdep_end(), is_source_state);
 	source_state->to_SourceStateInst()->replace_dep(call_site, call_site->get_BeginInst());
