@@ -178,8 +178,8 @@ public:
 	void replace_dep(Instruction* i_old, Instruction* i_new) {
 		assert(i_old);
 		assert(i_new);
-		auto found = std::find(dep_list.begin(), dep_list.end(), i_old);
-		if(*found){
+		auto found_it = std::find(dep_list.begin(), dep_list.end(), i_old);
+		if(found_it != dep_list.end()){
 			std::replace(dep_list.begin(), dep_list.end(), i_old, i_new);
 			i_old->reverse_dep_list.remove(this);
 			i_new->reverse_dep_list.push_back(this);
@@ -222,7 +222,8 @@ public:
 	 */
 	virtual BeginInst *get_BeginInst() const { return begin; }
 	virtual bool set_BeginInst(BeginInst *b) {
-		if (is_floating()) {
+//		if (is_floating()) { TODO inlining
+		if (true) {
 			LOG("Setting begin inst from " << begin << " to " << b << nl);
 			begin = b;
 			return true;

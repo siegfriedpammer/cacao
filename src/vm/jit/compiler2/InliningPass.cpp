@@ -92,31 +92,31 @@ void remove_instruction(Instruction* inst){
 void print_node(Instruction* I){
 	LOG(I << " within " << I->get_BeginInst() << nl);
 	for (auto itt = I->dep_begin(); itt != I->dep_end(); itt++) {
-		LOG("dep " << *(itt) << nl);
+		LOG("dep " << *(itt) << "(" << ((void*)(*itt)) << ")" <<  nl);
 	}
 	for (auto itt = I->rdep_begin(); itt != I->rdep_end(); itt++) {
-		LOG("rdep " << *(itt) << nl);
+		LOG("rdep " << *(itt) << "(" << ((void*)(*itt)) << ")" <<  nl);
 	}
 	for (auto itt = I->op_begin(); itt != I->op_end(); itt++) {
-		LOG("op " << *(itt) << nl);
+		LOG("op " << *(itt) << "(" << ((void*)(*itt)) << ")" <<  nl);
 	}
 	for (auto itt = I->user_begin(); itt != I->user_end(); itt++) {
-		LOG("user " << *(itt) << nl);
+		LOG("user " << *(itt) << "(" << ((void*)(*itt)) << ")" <<  nl);
 	}
 	if(I->to_EndInst()){
 		auto end = I->to_EndInst();
 		for (auto itt = end->succ_begin(); itt != end->succ_end(); itt++) {
-			LOG("succ " << *(itt) << nl);
+			LOG("succ " << *(itt) << "(" << ((void*)(*itt).get()) << ")" <<  nl);
 		}
 	}
 	if(I->to_BeginInst()){
 		auto begin = I->to_BeginInst();
 		for (auto itt = begin->pred_begin(); itt != begin->pred_end(); itt++) {
-			LOG("pred " << *(itt) << nl);
+			LOG("pred " << *(itt) << "(" << ((void*)(*itt)) << ")" <<  nl);
 		}
 
 		auto end = begin->get_EndInst();
-		LOG("end " << end << nl);
+		LOG("end " << end << "(" << ((void*)(end)) << ")" <<  nl);
 	}
 }
 
@@ -164,6 +164,11 @@ class InliningOperationBase {
 class SingleBBInliningOperation : InliningOperationBase {
 private:
 	BeginInst* call_site_bb;
+	BeginInst* caller_bb;
+
+	bool needs_null_check(){
+		return call_site->to_INVOKESTATICInst() == NULL;
+	}
 
 	void correct_scheduling_edges(Instruction* I){
 		if(!I->has_side_effects()) return;
@@ -174,6 +179,7 @@ private:
 		// instruction before the initial call site (or the new bb).
 		if (state_change->to_BeginInst()) {
 			Instruction* first_dependency_before_inlined_region = *std::next(call_site->dep_begin(), 1);
+			LOG("Setting last state change for " << I << " to " << first_dependency_before_inlined_region << nl);
 			I->replace_state_change_dep(first_dependency_before_inlined_region);
 		}
 
@@ -181,7 +187,8 @@ private:
 		// on the last state changing instruction of the inlined region, or the state change before the invocation.
 		if(is_state_change_for_other_instruction(call_site) && !is_state_change_for_other_instruction(I)){
 			auto first_dependency_after_inlined_region = get_depending_instruction (call_site);
-			first_dependency_after_inlined_region->replace_dep(call_site, I);
+			LOG("Setting last state change for " << first_dependency_after_inlined_region << " to " << I << nl);
+			first_dependency_after_inlined_region->replace_state_change_dep(I);
 		}
 	}
 
@@ -189,35 +196,57 @@ private:
 	{
 		LOG("add_call_site_bbs" << nl);
 		Value* result;
+		List<Instruction*> to_remove;
+		
+		Instruction* null_check_inst;
+		if(needs_null_check()){
+			auto is_null_check_inst = [](Instruction* i) { return i->get_opcode() == Instruction::CHECKNULLInstID; };
+			null_check_inst = *std::find_if(call_site->dep_begin(), call_site->dep_end(), is_null_check_inst);
+			LOG("Null check inst " << null_check_inst << nl);
+			call_site_bb->get_EndInst()->append_dep(null_check_inst);
+		}
 
 		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
 			Instruction* I = *it;
 			LOG("Adding to call site " << *I << nl);
 
 			if(I->get_opcode() == Instruction::BeginInstID){
+				to_remove.push_back(I);
 				continue; // ignore begin instruction
-			} else if (I->get_opcode() == Instruction::SourceStateInstID){
-				continue; // ignore source states for now
 			} else if(I->get_opcode() == Instruction::RETURNInstID){
 				auto returnInst = I->to_RETURNInst();
-				LOG(returnInst<<nl);
-				result = *(returnInst->op_begin());
-				LOG(result<<nl);
+				LOG("return operation " << returnInst << " with op size " << returnInst->op_size() << nl);
+				if(returnInst->op_size() > 0){
+					auto result = *(returnInst->op_begin());
+					call_site->replace_value(result);
+					LOG("result: " << result << nl);
+				}
+				to_remove.push_back(returnInst);
 				continue;
 			}
 
 			caller_method->add_Instruction(I);
+			I->replace_dep(caller_bb, call_site_bb);
 			I->set_BeginInst(call_site_bb);
 
 			correct_scheduling_edges(I);
+
+			if(needs_null_check()){
+				I->append_dep(null_check_inst);
+			}
+			print_node(I);
 		}
-		call_site->replace_value(result);
+
+		for (auto it = to_remove.begin(); it != to_remove.end(); it++) {
+			remove_instruction(*it);
+		}
 	}
 
 public:
 	SingleBBInliningOperation(INVOKEInst* site, Method* callee) : InliningOperationBase(site, callee)
 	{
 		call_site_bb = call_site->get_BeginInst();
+		caller_bb = callee->get_init_bb();
 	}
 
 	virtual void execute()
@@ -435,9 +464,13 @@ void print_all_nodes(Method* M)
 void remove_call_site(INVOKEInst* call_site){
 	// append source state to bb (workaround)
 	auto is_source_state = [](Instruction* I){ return I->get_opcode() == Instruction::SourceStateInstID;};
-	auto source_state = *std::find_if(call_site->rdep_begin(), call_site->rdep_end(), is_source_state);
-	source_state->to_SourceStateInst()->replace_dep(call_site, call_site->get_BeginInst());
-
+	auto source_state_it = std::find_if(call_site->rdep_begin(), call_site->rdep_end(), is_source_state);
+	if(source_state_it != call_site->rdep_end()){
+		auto source_state = *source_state_it;
+		LOG("Appending source state " << source_state << " to bb " << call_site->get_BeginInst() << nl);
+		source_state->to_SourceStateInst()->replace_dep(call_site, call_site->get_BeginInst());
+	}
+	
 	remove_instruction(call_site);
 }
 
@@ -448,8 +481,8 @@ bool InliningPass::run(JITData& JD)
 	LOG("Inlining for class: " << M->get_class_name_utf8() << nl);
 	LOG("Inlining for method: " << M->get_name_utf8() << nl);
 
-	// LOG("BEFORE" << nl);
-	// print_all_nodes(M);
+	LOG("BEFORE" << nl);
+	print_all_nodes(M);
 	EverythingPossibleHeuristic heuristic;
     List<INVOKEInst*> to_remove;
 	auto is_invoke = [&](Instruction* i) { return i->to_INVOKEInst() != NULL; };
@@ -468,11 +501,14 @@ bool InliningPass::run(JITData& JD)
 	LOG("Removing all invoke instructions" << nl);
 	for(auto it = to_remove.begin(); it != to_remove.end(); it++){
 		auto call_site = *it;
+		LOG("before"<<nl);
 		remove_call_site(call_site);
+		LOG("dude"<<nl);
 	}
+	LOG("end	dude"<<nl);
 
-	// LOG("AFTER" << nl);
-	// print_all_nodes(M);
+	LOG("AFTER" << nl);
+	print_all_nodes(M);
 
 	LOG("End of inlining pass." << nl);
 
@@ -485,6 +521,8 @@ void InliningPass::inline_instruction(INVOKEInst* I)
 	LOG("Inlining invoke instruction " << I << nl);
 	auto callee_method = codeFactory.create_ssa(I);
 	LOG("Successfully retrieved SSA-Code for instruction " << nl);
+	LOG("TO INLINE" << nl);
+	print_all_nodes(callee_method.get_Method());
 	if (callee_method.get_Method()->bb_size() == 1){
     	SingleBBInliningOperation(I, callee_method.get_Method()).execute();
 	} else {
