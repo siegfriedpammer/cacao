@@ -179,7 +179,22 @@ public:
 		assert(i_old);
 		assert(i_new);
 		auto found = std::find(dep_list.begin(), dep_list.end(), i_old);
-		*found = i_new;
+		if(*found){
+			std::replace(dep_list.begin(), dep_list.end(), i_old, i_new);
+			i_old->reverse_dep_list.remove(this);
+			i_new->reverse_dep_list.push_back(this);
+		}
+	}
+	
+	Instruction* get_last_state_change() {
+		return *std::next(dep_list.begin(), 1);
+	}
+
+	void replace_state_change_dep(Instruction* i_new) {
+		assert(i_new);
+		auto state_change_it = std::next(dep_list.begin(), 1);
+		auto i_old = *state_change_it;
+		*state_change_it = i_new;
 		i_old->reverse_dep_list.remove(this);
 		i_new->reverse_dep_list.push_back(this);
 	}
@@ -207,8 +222,7 @@ public:
 	 */
 	virtual BeginInst *get_BeginInst() const { return begin; }
 	virtual bool set_BeginInst(BeginInst *b) {
-//		if (is_floating()) { TODO inlining
-		if (true) {
+		if (is_floating()) {
 			LOG("Setting begin inst from " << begin << " to " << b << nl);
 			begin = b;
 			return true;
