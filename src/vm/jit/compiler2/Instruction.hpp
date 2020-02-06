@@ -182,7 +182,9 @@ public:
 		if(found_it != dep_list.end()){
 			std::replace(dep_list.begin(), dep_list.end(), i_old, i_new);
 			i_old->reverse_dep_list.remove(this);
-			i_new->reverse_dep_list.push_back(this);
+			for(int i = 0; i < std::count(dep_list.begin(), dep_list.end(), i_new); i++){
+				i_new->reverse_dep_list.push_back(this);
+			}
 		}
 	}
 	

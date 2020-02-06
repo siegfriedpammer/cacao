@@ -283,7 +283,6 @@ class ComplexInliningOperation : InliningOperationBase {
 				post_call_site_bb->set_EndInst(I->to_EndInst());
 			}
 
-			// TODO inlining: what if old_call_site_bb exists 2 times.
 			LOG("Replacing " << old_call_site_bb << " dep for " << post_call_site_bb << " in " << I << nl);
 			I->replace_dep(old_call_site_bb, post_call_site_bb);
 		}
