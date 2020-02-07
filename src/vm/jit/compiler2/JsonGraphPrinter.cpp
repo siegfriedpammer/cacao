@@ -386,6 +386,7 @@ void JsonGraphPrinter::printHIRInstruction(OStream &OS, Instruction *I, bool isR
          case Type::IntTypeID:    OS << inst->get_Int(); break;
          case Type::FloatTypeID:  OS << inst->get_Float(); break;
          case Type::DoubleTypeID: OS << inst->get_Double(); break;
+         case Type::ReferenceTypeID: OS << "\"Reference\""; break;
          default: assert(0);
       }
    }
