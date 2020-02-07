@@ -120,6 +120,16 @@ void print_node(Instruction* I){
 	}
 }
 
+void print_all_nodes(Method* M)
+{
+	// TODO inlining: remove
+	LOG("==========================="<<nl);
+	for (auto it = M->begin(); it != M->end(); it++) {
+		print_node(*it);
+	}
+	LOG("==========================="<<nl);
+}
+
 class InliningOperationBase {
 	protected: 
 		INVOKEInst* call_site;
@@ -201,9 +211,12 @@ private:
 		Instruction* null_check_inst;
 		if(needs_null_check()){
 			auto is_null_check_inst = [](Instruction* i) { return i->get_opcode() == Instruction::CHECKNULLInstID; };
-			null_check_inst = *std::find_if(call_site->dep_begin(), call_site->dep_end(), is_null_check_inst);
-			LOG("Null check inst " << null_check_inst << nl);
-			call_site_bb->get_EndInst()->append_dep(null_check_inst);
+			auto null_check_inst_it = std::find_if(call_site->dep_begin(), call_site->dep_end(), is_null_check_inst);
+			if(null_check_inst_it != call_site->dep_end()){ // TODO inlining: why no null check with virtual?
+				null_check_inst = *null_check_inst_it;
+				LOG("Null check inst " << null_check_inst << nl);
+				call_site_bb->get_EndInst()->append_dep(null_check_inst);
+			}
 		}
 
 		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
@@ -231,7 +244,7 @@ private:
 
 			correct_scheduling_edges(I);
 
-			if(needs_null_check()){
+			if(null_check_inst){
 				I->append_dep(null_check_inst);
 			}
 			print_node(I);
@@ -357,7 +370,7 @@ class ComplexInliningOperation : InliningOperationBase {
 
 			for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
 				Instruction* I = *it;
-				LOG("Adding to call site " << *I << nl);
+				LOG("Adding to call site " << I << nl);
 
 				if(I->get_opcode() == Instruction::BeginInstID) {
 					caller_method->add_bb(I->to_BeginInst());
@@ -409,20 +422,26 @@ class ComplexInliningOperation : InliningOperationBase {
 };
 
 class Heuristic {
+	private: 
+		bool is_currently_monomorphic(INVOKEInst* I){
+			return I->get_fmiref()->p.method->flags & ACC_METHOD_MONOMORPHIC;
+		}
+
 	protected: 
 		bool can_inline(INVOKEInst* I){
-			bool can_inline_instruction = I->get_opcode() == Instruction::INVOKESTATICInstID ||
-										I->get_opcode() == Instruction::INVOKESPECIALInstID;
+			bool is_monomorphic_call = I->get_opcode() == Instruction::INVOKESTATICInstID ||
+									   I->get_opcode() == Instruction::INVOKESPECIALInstID;
 
-			if(!can_inline_instruction) return false;
+			bool is_polymorphic_call = I->get_opcode() == Instruction::INVOKEVIRTUALInstID ||
+									   I->get_opcode() == Instruction::INVOKEINTERFACEInstID;
+
+			if(!(is_monomorphic_call || (is_polymorphic_call && is_currently_monomorphic(I)))) return false;
 
 			auto source_method = I->get_Method();
 			auto target_method = I->to_INVOKEInst()->get_fmiref()->p.method;
-
 			auto is_recursive_call = source_method->get_class_name_utf8() == target_method->clazz->name &&
 									source_method->get_name_utf8() == target_method->name &&
 									source_method->get_desc_utf8() == target_method->descriptor;
-
 			return !is_recursive_call;
 		}
 	public:
@@ -438,7 +457,7 @@ class EverythingPossibleHeuristic : public Heuristic {
 
 class CodeFactory {
 	public:
-		JITData create_ssa(INVOKEInst* I){
+		virtual JITData create_ssa(INVOKEInst* I){
 			auto callee = I->get_fmiref()->p.method;
 			auto* jd = jit_jitdata_new(callee);
 			jit_jitdata_init_for_recompilation(jd);
@@ -450,15 +469,49 @@ class CodeFactory {
 		}
 };
 
-void print_all_nodes(Method* M)
-{
-	// TODO inlining: remove
-	LOG("==========================="<<nl);
-	for (auto it = M->begin(); it != M->end(); it++) {
-		print_node(*it);
-	}
-	LOG("==========================="<<nl);
-}
+class GuardedCodeFactory : public CodeFactory {
+	private:
+		Method* target_method;
+
+		BeginInst* create_false_branch(INVOKEInst* I){
+			auto new_bb = new BeginInst();
+			target_method->add_bb(new_bb);
+			new_bb->append_dep(I);
+			auto source_state = I->get_SourceStateInst();
+			source_state->replace_dep(I->get_BeginInst(), new_bb);
+			I->set_BeginInst(new_bb);
+			
+			auto return_inst = new RETURNInst(new_bb, I); // TODO Inlining: probably copy INVOKEInst
+			target_method->add_Instruction(return_inst);
+
+			return new_bb;
+		}
+
+		BeginInst* create_guard(INVOKEInst* I){
+			auto true_branch = target_method->get_init_bb();
+			auto false_branch = create_false_branch(I);
+			
+			// TODO inlining: Can we get the current class, or not?
+			auto check_bb = new BeginInst(); 
+			auto current_object = I->get_operand(0);
+			// TODO inlining: get the adress of the initial object
+			auto if_inst = new IFInst(check_bb, current_object, current_object, Conditional::EQ, true_branch, false_branch);
+
+			check_bb->set_EndInst(if_inst);
+			target_method->add_bb(check_bb);
+			target_method->add_Instruction(if_inst);
+
+			return check_bb;
+		}
+	public:
+		JITData create_ssa(INVOKEInst* I){
+			auto JD = CodeFactory::create_ssa(I);
+			target_method = JD.get_Method();
+			auto new_init_bb = create_guard(I);
+			target_method->set_init_bb(new_init_bb);
+			return JD;
+		}
+};
 
 void remove_call_site(INVOKEInst* call_site){
 	// append source state to bb (workaround)
@@ -500,11 +553,8 @@ bool InliningPass::run(JITData& JD)
 	LOG("Removing all invoke instructions" << nl);
 	for(auto it = to_remove.begin(); it != to_remove.end(); it++){
 		auto call_site = *it;
-		LOG("before"<<nl);
 		remove_call_site(call_site);
-		LOG("dude"<<nl);
 	}
-	LOG("end	dude"<<nl);
 
 	LOG("AFTER" << nl);
 	print_all_nodes(M);
@@ -514,11 +564,28 @@ bool InliningPass::run(JITData& JD)
 	return true;
 }
 
+CodeFactory* get_code_factory(INVOKEInst *I){
+	switch (I->get_opcode())
+	{
+	case Instruction::INVOKESTATICInstID:
+	case Instruction::INVOKESPECIALInstID:
+		LOG("Using normal code factory");
+		return new CodeFactory();
+	case Instruction::INVOKEVIRTUALInstID:
+	case Instruction::INVOKEINTERFACEInstID:
+		LOG("Using guarded code factory");
+		return new GuardedCodeFactory();
+	default:
+		throw std::runtime_error("Unsupported invoke instruction!");
+	}
+}
+
 void InliningPass::inline_instruction(INVOKEInst* I)
 {
-	CodeFactory codeFactory;
+	auto codeFactory = get_code_factory(I);
 	LOG("Inlining invoke instruction " << I << nl);
-	auto callee_method = codeFactory.create_ssa(I);
+	auto callee_method = codeFactory->create_ssa(I);
+	delete codeFactory;
 	LOG("Successfully retrieved SSA-Code for instruction " << nl);
 	LOG("TO INLINE" << nl);
 	print_all_nodes(callee_method.get_Method());
