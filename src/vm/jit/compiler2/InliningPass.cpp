@@ -205,7 +205,6 @@ private:
 	void add_call_site_bbs()
 	{
 		LOG("add_call_site_bbs" << nl);
-		Value* result;
 		List<Instruction*> to_remove;
 		
 		Instruction* null_check_inst;
@@ -349,14 +348,16 @@ class ComplexInliningOperation : InliningOperationBase {
 		{
 			LOG("Transforming " << I << nl);
 			switch (I->get_opcode()) {
-				case Instruction::RETURNInstID:
+				case Instruction::RETURNInstID:{
 					auto begin_inst = I->get_BeginInst();
 					auto end_instruction = new GOTOInst(begin_inst, post_call_site_bb);
 					begin_inst->set_EndInst(end_instruction);
 					LOG("Rewriting return instruction " << I << " to " << end_instruction << nl);
 					return end_instruction;
+				}
+				default:
+					return I;
 			}
-			return I;
 		}
 
 		void add_call_site_bbs()
@@ -457,6 +458,7 @@ class EverythingPossibleHeuristic : public Heuristic {
 
 class CodeFactory {
 	public:
+		virtual ~CodeFactory(){}
 		virtual JITData create_ssa(INVOKEInst* I){
 			auto callee = I->get_fmiref()->p.method;
 			auto* jd = jit_jitdata_new(callee);
