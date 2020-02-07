@@ -555,7 +555,10 @@ bool InliningPass::run(JITData& JD)
 	LOG("Removing all invoke instructions" << nl);
 	for(auto it = to_remove.begin(); it != to_remove.end(); it++){
 		auto call_site = *it;
-		remove_call_site(call_site);
+		auto op_code = call_site->get_opcode();
+		if(op_code == Instruction::INVOKESTATICInstID || op_code == Instruction::INVOKESPECIALInstID){
+			remove_call_site(call_site);
+		}
 	}
 
 	LOG("AFTER" << nl);
