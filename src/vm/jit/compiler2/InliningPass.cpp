@@ -383,8 +383,8 @@ class Heuristic {
 		bool is_currently_monomorphic(INVOKEInst* I){
 			return I->get_fmiref()->p.method->flags & ACC_METHOD_MONOMORPHIC;
 		}
-
 	protected: 
+		Heuristic(){}
 		bool can_inline(INVOKEInst* I){
 			bool is_monomorphic_call = I->get_opcode() == Instruction::INVOKESTATICInstID ||
 									   I->get_opcode() == Instruction::INVOKESPECIALInstID;
@@ -402,13 +402,33 @@ class Heuristic {
 			return !is_recursive_call;
 		}
 	public:
-		virtual bool should_inline(INVOKEInst* I);
+		virtual bool has_next() = 0;
+		virtual INVOKEInst* next() = 0;
 };
 
 class EverythingPossibleHeuristic : public Heuristic {
+	private:
+		List<INVOKEInst*> work_list;
+		Method* M;
 	public:
-		virtual bool should_inline(INVOKEInst* I){
-			return can_inline(I);
+		EverythingPossibleHeuristic(Method* method) : M(method){
+			auto is_invoke = [&](Instruction* i) { return i->to_INVOKEInst() != NULL; };
+			auto i_iter = boost::make_filter_iterator(is_invoke, M->begin(), M->end());
+			auto i_end = boost::make_filter_iterator(is_invoke, M->end(), M->end());
+			
+			for (;i_iter != i_end; i_iter++) {
+				work_list.push_back((INVOKEInst*) *i_iter);
+			}
+		}
+
+		bool has_next(){
+			return work_list.size() > 0;
+		}
+
+		INVOKEInst* next(){
+			auto result = work_list.front();
+			work_list.pop_front();
+			return result;
 		}
 };
 
@@ -491,19 +511,13 @@ bool InliningPass::run(JITData& JD)
 	LOG("Inlining for class: " << M->get_class_name_utf8() << nl);
 	LOG("Inlining for method: " << M->get_name_utf8() << nl);
 
-	EverythingPossibleHeuristic heuristic;
+	EverythingPossibleHeuristic heuristic(M);
     List<INVOKEInst*> to_remove;
-	auto is_invoke = [&](Instruction* i) { return i->to_INVOKEInst() != NULL; };
-	auto i_iter = boost::make_filter_iterator(is_invoke, M->begin(), M->end());
-	auto i_end = boost::make_filter_iterator(is_invoke, M->end(), M->end());
-	for (;i_iter != i_end; i_iter++) {
-		auto I = (INVOKEInst*) *i_iter;
-
-		if (heuristic.should_inline(I)) {
-			inline_instruction(I);
-			STATISTICS(inlined_method_invocations++);
-			to_remove.push_back(I->to_INVOKEInst());
-		}
+	while(heuristic.has_next()){
+		auto I = heuristic.next();
+		inline_instruction(I);
+		STATISTICS(inlined_method_invocations++);
+		to_remove.push_back(I);
 	}
 
 	LOG("Removing all invoke instructions" << nl);
