@@ -89,47 +89,6 @@ void remove_instruction(Instruction* inst){
 	}
 }
 
-void print_node(Instruction* I){
-	LOG(I << " within " << I->get_BeginInst() << nl);
-	for (auto itt = I->dep_begin(); itt != I->dep_end(); itt++) {
-		LOG("dep " << *(itt) << "(" << ((void*)(*itt)) << ")" <<  nl);
-	}
-	for (auto itt = I->rdep_begin(); itt != I->rdep_end(); itt++) {
-		LOG("rdep " << *(itt) << "(" << ((void*)(*itt)) << ")" <<  nl);
-	}
-	for (auto itt = I->op_begin(); itt != I->op_end(); itt++) {
-		LOG("op " << *(itt) << "(" << ((void*)(*itt)) << ")" <<  nl);
-	}
-	for (auto itt = I->user_begin(); itt != I->user_end(); itt++) {
-		LOG("user " << *(itt) << "(" << ((void*)(*itt)) << ")" <<  nl);
-	}
-	if(I->to_EndInst()){
-		auto end = I->to_EndInst();
-		for (auto itt = end->succ_begin(); itt != end->succ_end(); itt++) {
-			LOG("succ " << *(itt) << "(" << ((void*)(*itt).get()) << ")" <<  nl);
-		}
-	}
-	if(I->to_BeginInst()){
-		auto begin = I->to_BeginInst();
-		for (auto itt = begin->pred_begin(); itt != begin->pred_end(); itt++) {
-			LOG("pred " << *(itt) << "(" << ((void*)(*itt)) << ")" <<  nl);
-		}
-
-		auto end = begin->get_EndInst();
-		LOG("end " << end << "(" << ((void*)(end)) << ")" <<  nl);
-	}
-}
-
-void print_all_nodes(Method* M)
-{
-	// TODO inlining: remove
-	LOG("==========================="<<nl);
-	for (auto it = M->begin(); it != M->end(); it++) {
-		print_node(*it);
-	}
-	LOG("==========================="<<nl);
-}
-
 class InliningOperationBase {
 	protected: 
 		INVOKEInst* call_site;
@@ -211,7 +170,7 @@ private:
 		if(needs_null_check()){
 			auto is_null_check_inst = [](Instruction* i) { return i->get_opcode() == Instruction::CHECKNULLInstID; };
 			auto null_check_inst_it = std::find_if(call_site->dep_begin(), call_site->dep_end(), is_null_check_inst);
-			if(null_check_inst_it != call_site->dep_end()){ // TODO inlining: why no null check with virtual?
+			if(null_check_inst_it != call_site->dep_end()) {
 				null_check_inst = *null_check_inst_it;
 				LOG("Null check inst " << null_check_inst << nl);
 				call_site_bb->get_EndInst()->append_dep(null_check_inst);
@@ -317,8 +276,6 @@ class ComplexInliningOperation : InliningOperationBase {
 
 			std::for_each(I->rdep_begin(), I->rdep_end(), add_rec);
 			std::for_each(I->user_begin(), I->user_end(), add_rec_op);
-
-			print_node(post_call_site_bb);
 		}
 
 		void create_post_call_site_bb()
@@ -482,7 +439,7 @@ class GuardedCodeFactory : public CodeFactory {
 			source_state->replace_dep(I->get_BeginInst(), new_bb);
 			I->set_BeginInst(new_bb);
 			
-			auto return_inst = new RETURNInst(new_bb, I); // TODO Inlining: probably copy INVOKEInst
+			auto return_inst = new RETURNInst(new_bb, I);
 			target_method->add_Instruction(return_inst);
 
 			return new_bb;
@@ -534,8 +491,6 @@ bool InliningPass::run(JITData& JD)
 	LOG("Inlining for class: " << M->get_class_name_utf8() << nl);
 	LOG("Inlining for method: " << M->get_name_utf8() << nl);
 
-	LOG("BEFORE" << nl);
-	print_all_nodes(M);
 	EverythingPossibleHeuristic heuristic;
     List<INVOKEInst*> to_remove;
 	auto is_invoke = [&](Instruction* i) { return i->to_INVOKEInst() != NULL; };
@@ -559,9 +514,6 @@ bool InliningPass::run(JITData& JD)
 			remove_call_site(call_site);
 		}
 	}
-
-	LOG("AFTER" << nl);
-	print_all_nodes(M);
 
 	LOG("End of inlining pass." << nl);
 
@@ -591,8 +543,6 @@ void InliningPass::inline_instruction(INVOKEInst* I)
 	auto callee_method = codeFactory->create_ssa(I);
 	delete codeFactory;
 	LOG("Successfully retrieved SSA-Code for instruction " << nl);
-	LOG("TO INLINE" << nl);
-	print_all_nodes(callee_method.get_Method());
 	if (callee_method.get_Method()->bb_size() == 1){
     	SingleBBInliningOperation(I, callee_method.get_Method()).execute();
 	} else {
