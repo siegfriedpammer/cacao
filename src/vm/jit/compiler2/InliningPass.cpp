@@ -151,6 +151,67 @@ class EverythingPossibleHeuristic : public Heuristic {
 		}
 };
 
+class LimitedBreathFirstHeuristic : public Heuristic {
+	private:
+		List<INVOKEInst*> work_list;
+		Method* M;
+		int max_size;
+		int current_size;
+		
+
+		bool is_within_budget(INVOKEInst* instruction){
+			// Only estimate size to limit the number of methods which need compiler2 compilation
+			int estimated_size = instruction->get_fmiref()->p.method->jcodelength;
+			return current_size + estimated_size <= max_size;
+		}
+
+		bool should_inline(Instruction* I){
+			auto invoke_inst = I->to_INVOKEInst();
+			return invoke_inst != NULL && can_inline(invoke_inst) && is_within_budget(invoke_inst);
+		}
+	public:
+		LimitedBreathFirstHeuristic(Method* method, int max_size) : M(method), max_size(max_size) {
+			current_size = M->size();
+			auto is_invoke = [&](Instruction* i) { return should_inline(i); };
+			auto i_iter = boost::make_filter_iterator(is_invoke, M->begin(), M->end());
+			auto i_end = boost::make_filter_iterator(is_invoke, M->end(), M->end());
+			
+			LOG("LimitedBreathFirstHeuristic: Instruction in the heuristic work list (max: " << max_size << ")." << nl);
+			for (;i_iter != i_end; i_iter++) {
+				auto I = (INVOKEInst*) *i_iter;
+				LOG("LimitedBreathFirstHeuristic: Adding " << I << nl);
+				work_list.push_back(I);
+			}
+		}
+
+		bool has_next(){
+			current_size = M->size();
+			auto found_instruction_within_budget = false;
+			while(work_list.size() > 0 && !found_instruction_within_budget){
+				auto next = work_list.front();
+				if (is_within_budget(next)){
+					found_instruction_within_budget = true;
+				} else {
+					LOG("Skipping " << next << " as it does not fit in the budget (current: " << current_size << ", max: " << max_size << ")");
+					work_list.pop_front();
+				}
+			}
+			return work_list.size() > 0;
+		}
+
+		INVOKEInst* next(){
+			auto result = work_list.front();
+			work_list.pop_front();
+			return result;
+		}
+
+		void on_new_instruction(Instruction* instruction){
+			if (should_inline(instruction)) {
+				work_list.push_back((INVOKEInst*) instruction);
+			}
+		}
+};
+
 class InliningOperationBase {
 	protected: 
 		INVOKEInst* call_site;
@@ -559,7 +620,7 @@ bool InliningPass::run(JITData& JD)
 	LOG("Inlining for class: " << M->get_class_name_utf8() << nl);
 	LOG("Inlining for method: " << M->get_name_utf8() << nl);
 
-	EverythingPossibleHeuristic heuristic(M);
+	LimitedBreathFirstHeuristic heuristic(M, 100);
     List<INVOKEInst*> to_remove;
 	while(heuristic.has_next()){
 		auto I = heuristic.next();
