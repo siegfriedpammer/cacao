@@ -89,13 +89,76 @@ void remove_instruction(Instruction* inst){
 	}
 }
 
+class Heuristic {
+	private: 
+		bool is_currently_monomorphic(INVOKEInst* I){
+			return I->get_fmiref()->p.method->flags & ACC_METHOD_MONOMORPHIC;
+		}
+	protected: 
+		Heuristic(){}
+		bool can_inline(INVOKEInst* I){
+			bool is_monomorphic_call = I->get_opcode() == Instruction::INVOKESTATICInstID ||
+									   I->get_opcode() == Instruction::INVOKESPECIALInstID;
+
+			bool is_polymorphic_call = I->get_opcode() == Instruction::INVOKEVIRTUALInstID ||
+									   I->get_opcode() == Instruction::INVOKEINTERFACEInstID;
+
+			if(!(is_monomorphic_call || (is_polymorphic_call && is_currently_monomorphic(I)))) return false;
+
+			auto source_method = I->get_Method();
+			auto target_method = I->to_INVOKEInst()->get_fmiref()->p.method;
+			auto is_recursive_call = source_method->get_class_name_utf8() == target_method->clazz->name &&
+									source_method->get_name_utf8() == target_method->name &&
+									source_method->get_desc_utf8() == target_method->descriptor;
+			return !is_recursive_call;
+		}
+	public:
+		virtual bool has_next() = 0;
+		virtual INVOKEInst* next() = 0;
+		virtual void on_new_instruction(Instruction* instruction) = 0;
+};
+
+class EverythingPossibleHeuristic : public Heuristic {
+	private:
+		List<INVOKEInst*> work_list;
+		Method* M;
+	public:
+		EverythingPossibleHeuristic(Method* method) : M(method){
+			auto is_invoke = [&](Instruction* i) { return i->to_INVOKEInst() != NULL && can_inline(i->to_INVOKEInst()); };
+			auto i_iter = boost::make_filter_iterator(is_invoke, M->begin(), M->end());
+			auto i_end = boost::make_filter_iterator(is_invoke, M->end(), M->end());
+			
+			for (;i_iter != i_end; i_iter++) {
+				work_list.push_back((INVOKEInst*) *i_iter);
+			}
+		}
+
+		bool has_next(){
+			return work_list.size() > 0;
+		}
+
+		INVOKEInst* next(){
+			auto result = work_list.front();
+			work_list.pop_front();
+			return result;
+		}
+
+		void on_new_instruction(Instruction* instruction){
+			auto invoke_inst = instruction->to_INVOKEInst();
+			if(invoke_inst != NULL && can_inline(invoke_inst)){
+				work_list.push_back(invoke_inst);
+			}
+		}
+};
+
 class InliningOperationBase {
 	protected: 
 		INVOKEInst* call_site;
 		Method* caller_method;
 		Method* callee_method;
+		Heuristic* heuristic;
 
-		InliningOperationBase (INVOKEInst* site, Method* callee) : call_site(site), callee_method(callee){
+		InliningOperationBase (INVOKEInst* site, Method* callee, Heuristic* heuristic) : call_site(site), callee_method(callee), heuristic(heuristic){
 			caller_method = call_site->get_Method();
 		}
 		
@@ -127,6 +190,10 @@ class InliningOperationBase {
 			for (auto it = to_remove.begin(); it != to_remove.end(); it++) {
 				remove_instruction(*it);
 			}
+		}
+
+		void on_inlined_inst(Instruction* instruction){
+			this->heuristic->on_new_instruction(instruction);
 		}
 };
 
@@ -206,6 +273,8 @@ private:
 			if(null_check_inst != NULL){
 				I->append_dep(null_check_inst);
 			}
+
+			on_inlined_inst(I);
 		}
 
 		for (auto it = to_remove.begin(); it != to_remove.end(); it++) {
@@ -214,7 +283,7 @@ private:
 	}
 
 public:
-	SingleBBInliningOperation(INVOKEInst* site, Method* callee) : InliningOperationBase(site, callee)
+	SingleBBInliningOperation(INVOKEInst* site, Method* callee, Heuristic* heuristic) : InliningOperationBase(site, callee, heuristic)
 	{
 		call_site_bb = call_site->get_BeginInst();
 		caller_bb = callee->get_init_bb();
@@ -339,7 +408,9 @@ class ComplexInliningOperation : InliningOperationBase {
 					if(needs_phi())
 						phi->append_op(*(returnInst->op_begin()));
 				}
-				caller_method->add_Instruction(transform_instruction(I));
+				auto new_inst = transform_instruction(I);
+				caller_method->add_Instruction(new_inst);
+				on_inlined_inst(new_inst);
 			}
 			
 			if(needs_phi()){
@@ -362,7 +433,7 @@ class ComplexInliningOperation : InliningOperationBase {
 		}
 
 	public:
-		ComplexInliningOperation(INVOKEInst* site, Method* callee) : InliningOperationBase(site, callee)
+		ComplexInliningOperation(INVOKEInst* site, Method* callee, Heuristic* heuristic) : InliningOperationBase(site, callee, heuristic)
 		{
 			old_call_site_bb = call_site->get_BeginInst();
 		}
@@ -375,60 +446,6 @@ class ComplexInliningOperation : InliningOperationBase {
 			add_call_site_bbs();
 			replace_method_parameters();
 			wire_up_call_site_with_post_call_site_bb();
-		}
-};
-
-class Heuristic {
-	private: 
-		bool is_currently_monomorphic(INVOKEInst* I){
-			return I->get_fmiref()->p.method->flags & ACC_METHOD_MONOMORPHIC;
-		}
-	protected: 
-		Heuristic(){}
-		bool can_inline(INVOKEInst* I){
-			bool is_monomorphic_call = I->get_opcode() == Instruction::INVOKESTATICInstID ||
-									   I->get_opcode() == Instruction::INVOKESPECIALInstID;
-
-			bool is_polymorphic_call = I->get_opcode() == Instruction::INVOKEVIRTUALInstID ||
-									   I->get_opcode() == Instruction::INVOKEINTERFACEInstID;
-
-			if(!(is_monomorphic_call || (is_polymorphic_call && is_currently_monomorphic(I)))) return false;
-
-			auto source_method = I->get_Method();
-			auto target_method = I->to_INVOKEInst()->get_fmiref()->p.method;
-			auto is_recursive_call = source_method->get_class_name_utf8() == target_method->clazz->name &&
-									source_method->get_name_utf8() == target_method->name &&
-									source_method->get_desc_utf8() == target_method->descriptor;
-			return !is_recursive_call;
-		}
-	public:
-		virtual bool has_next() = 0;
-		virtual INVOKEInst* next() = 0;
-};
-
-class EverythingPossibleHeuristic : public Heuristic {
-	private:
-		List<INVOKEInst*> work_list;
-		Method* M;
-	public:
-		EverythingPossibleHeuristic(Method* method) : M(method){
-			auto is_invoke = [&](Instruction* i) { return i->to_INVOKEInst() != NULL; };
-			auto i_iter = boost::make_filter_iterator(is_invoke, M->begin(), M->end());
-			auto i_end = boost::make_filter_iterator(is_invoke, M->end(), M->end());
-			
-			for (;i_iter != i_end; i_iter++) {
-				work_list.push_back((INVOKEInst*) *i_iter);
-			}
-		}
-
-		bool has_next(){
-			return work_list.size() > 0;
-		}
-
-		INVOKEInst* next(){
-			auto result = work_list.front();
-			work_list.pop_front();
-			return result;
 		}
 };
 
@@ -504,6 +521,37 @@ void remove_call_site(INVOKEInst* call_site){
 	remove_instruction(call_site);
 }
 
+CodeFactory* get_code_factory(INVOKEInst *I){
+	switch (I->get_opcode())
+	{
+	case Instruction::INVOKESTATICInstID:
+	case Instruction::INVOKESPECIALInstID:
+		LOG("Using normal code factory");
+		return new CodeFactory();
+	case Instruction::INVOKEVIRTUALInstID:
+	case Instruction::INVOKEINTERFACEInstID:
+		LOG("Using guarded code factory");
+		return new GuardedCodeFactory();
+	default:
+		LOG("Cannot get code factory for " << I << nl);
+		throw std::runtime_error("Unsupported invoke instruction!");
+	}
+}
+
+void inline_instruction(INVOKEInst* I, Heuristic* heuristic)
+{
+	auto codeFactory = get_code_factory(I);
+	LOG("Inlining invoke instruction " << I << nl);
+	auto callee_method = codeFactory->create_ssa(I);
+	delete codeFactory;
+	LOG("Successfully retrieved SSA-Code for instruction " << nl);
+	if (callee_method.get_Method()->bb_size() == 1){
+    	SingleBBInliningOperation(I, callee_method.get_Method(), heuristic).execute();
+	} else {
+    	ComplexInliningOperation(I, callee_method.get_Method(), heuristic).execute();
+	}
+}
+
 bool InliningPass::run(JITData& JD)
 {
 	LOG("Start of inlining pass." << nl);
@@ -515,7 +563,7 @@ bool InliningPass::run(JITData& JD)
     List<INVOKEInst*> to_remove;
 	while(heuristic.has_next()){
 		auto I = heuristic.next();
-		inline_instruction(I);
+		inline_instruction(I, &heuristic);
 		STATISTICS(inlined_method_invocations++);
 		to_remove.push_back(I);
 	}
@@ -532,36 +580,6 @@ bool InliningPass::run(JITData& JD)
 	LOG("End of inlining pass." << nl);
 
 	return true;
-}
-
-CodeFactory* get_code_factory(INVOKEInst *I){
-	switch (I->get_opcode())
-	{
-	case Instruction::INVOKESTATICInstID:
-	case Instruction::INVOKESPECIALInstID:
-		LOG("Using normal code factory");
-		return new CodeFactory();
-	case Instruction::INVOKEVIRTUALInstID:
-	case Instruction::INVOKEINTERFACEInstID:
-		LOG("Using guarded code factory");
-		return new GuardedCodeFactory();
-	default:
-		throw std::runtime_error("Unsupported invoke instruction!");
-	}
-}
-
-void InliningPass::inline_instruction(INVOKEInst* I)
-{
-	auto codeFactory = get_code_factory(I);
-	LOG("Inlining invoke instruction " << I << nl);
-	auto callee_method = codeFactory->create_ssa(I);
-	delete codeFactory;
-	LOG("Successfully retrieved SSA-Code for instruction " << nl);
-	if (callee_method.get_Method()->bb_size() == 1){
-    	SingleBBInliningOperation(I, callee_method.get_Method()).execute();
-	} else {
-    	ComplexInliningOperation(I, callee_method.get_Method()).execute();
-	}
 }
 
 // pass usage
