@@ -207,7 +207,7 @@ private:
 		LOG("add_call_site_bbs" << nl);
 		List<Instruction*> to_remove;
 		
-		Instruction* null_check_inst;
+		Instruction* null_check_inst = NULL;
 		if(needs_null_check()){
 			auto is_null_check_inst = [](Instruction* i) { return i->get_opcode() == Instruction::CHECKNULLInstID; };
 			auto null_check_inst_it = std::find_if(call_site->dep_begin(), call_site->dep_end(), is_null_check_inst);
@@ -219,6 +219,7 @@ private:
 		}
 
 		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
+			LOG("x"<<nl);
 			Instruction* I = *it;
 			LOG("Adding to call site " << *I << nl);
 
@@ -243,10 +244,9 @@ private:
 
 			correct_scheduling_edges(I);
 
-			if(null_check_inst){
+			if(null_check_inst != NULL){
 				I->append_dep(null_check_inst);
 			}
-			print_node(I);
 		}
 
 		for (auto it = to_remove.begin(); it != to_remove.end(); it++) {
@@ -287,7 +287,6 @@ class ComplexInliningOperation : InliningOperationBase {
 		void add_to_post_call_site_bb(Instruction* I){
 			LOG("Adding " << I << " to post call site bb " << post_call_site_bb << nl);
 
-			// TODO inlining: check if floating
 			I->set_BeginInst(post_call_site_bb);
 			
 			if(old_call_site_bb->get_EndInst() == I){
